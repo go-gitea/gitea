@@ -40,7 +40,7 @@ func NewGroup(ctx *context.Context) {
 		CanCreateIn: optional.Some(true),
 		OwnerID:     ctx.Org.Organization.ID,
 	}
-	cond := group_model.AccessibleGroupCondition(ctx.Doer, opts.OwnerID, unit_model.TypeInvalid, perm.AccessModeWrite)
+	cond := group_model.AccessibleGroupCondition(ctx.Doer, unit_model.TypeInvalid, perm.AccessModeWrite)
 	cond = cond.And(opts.ToConds())
 	groups, err := group_model.FindGroupsByCond(ctx, &group_model.FindGroupsOptions{
 		ListOptions: db.ListOptions{
@@ -49,7 +49,7 @@ func NewGroup(ctx *context.Context) {
 		ParentGroupID: -1,
 	}, cond)
 	for _, g := range groups {
-		err = g.LoadAccessibleSubgroups(ctx, true, ctx.Doer)
+		err = g.LoadAccessibleSubgroups(ctx, true, ctx.Doer, false)
 		if err != nil {
 			ctx.ServerError("LoadAccessibleSubgroups", err)
 			return

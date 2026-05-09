@@ -24,9 +24,9 @@ type Item interface {
 	Link() string
 	Title() string
 	Parent() Item
-	Children(doer *user_model.User) []Item
+	Children(doer *user_model.User, requireMember bool) []Item
 	Avatar(ctx context.Context) string
-	HasChildren(doer *user_model.User) bool
+	HasChildren(doer *user_model.User, requireMember bool) bool
 	IsGroup() bool
 	ID() int64
 	Sort() int
@@ -52,7 +52,7 @@ func (g *groupItemGroup) Parent() Item {
 	return &groupItemGroup{group}
 }
 
-func (g *groupItemGroup) Children(doer *user_model.User) []Item {
+func (g *groupItemGroup) Children(doer *user_model.User, requireMember bool) []Item {
 	var items []Item
 	repos := make([]*repo_model.Repository, 0)
 	sess := db.GetEngine(context.TODO())
@@ -60,11 +60,13 @@ func (g *groupItemGroup) Children(doer *user_model.User) []Item {
 		Where("group_id = ?", g.Group.ID).
 		And(builder.In("id", repo_model.AccessibleRepoIDsQuery(doer))).
 		Find(&repos)
+	log.Info("Loading accessible subgroups with doer %+v", doer)
 	if err != nil {
 		log.Error("%w", err)
 		return make([]Item, 0)
 	}
-	err = g.Group.LoadAccessibleSubgroups(context.TODO(), false, doer)
+	g.Group.Subgroups = nil
+	err = g.Group.LoadAccessibleSubgroups(context.TODO(), false, doer, requireMember)
 	if err != nil {
 		return make([]Item, 0)
 	}
@@ -87,8 +89,8 @@ func (g *groupItemGroup) Avatar(ctx context.Context) string {
 	return g.Group.AvatarLink(ctx)
 }
 
-func (g *groupItemGroup) HasChildren(doer *user_model.User) bool {
-	return len(g.Children(doer)) > 0
+func (g *groupItemGroup) HasChildren(doer *user_model.User, requireMember bool) bool {
+	return len(g.Children(doer, requireMember)) > 0
 }
 
 func (g *groupItemGroup) IsGroup() bool {
@@ -103,18 +105,23 @@ func (g *groupItemGroup) Sort() int {
 	return g.Group.SortOrder
 }
 
-func GetTopLevelGroupItemList(ctx context.Context, orgID int64, doer *user_model.User) []Item {
+func GetTopLevelGroupItemList(ctx context.Context, orgID int64, doer *user_model.User, requireMember bool) []Item {
 	var rootItems []Item
 	var doerID int64
 	if doer != nil {
 		doerID = doer.ID
 	}
+	groupCond := group_model.AccessibleGroupCondition(doer, unit.TypeInvalid, perm.AccessModeRead)
+	if requireMember {
+		groupCond = groupCond.And(group_model.MemberCond("repo_group.id", 0, doer))
+	}
+
 	groups, err := group_model.FindGroupsByCond(ctx, &group_model.FindGroupsOptions{
 		ParentGroupID: 0,
 		ActorID:       doerID,
 		OwnerID:       orgID,
-	}, group_model.
-		AccessibleGroupCondition(doer, orgID, unit.TypeInvalid, perm.AccessModeRead))
+	},
+		groupCond)
 	if err != nil {
 		return nil
 	}
@@ -143,9 +150,9 @@ func GetTopLevelGroupItemList(ctx context.Context, orgID int64, doer *user_model
 	return rootItems
 }
 
-func ItemHasChild(ctx context.Context, it Item, other int64, doer *user_model.User) bool {
-	for _, item := range it.Children(doer) {
-		if ItemHasChild(ctx, item, other, doer) {
+func ItemHasChild(ctx context.Context, it Item, other int64, doer *user_model.User, requireMember bool) bool {
+	for _, item := range it.Children(doer, requireMember) {
+		if ItemHasChild(ctx, item, other, doer, requireMember) {
 			return true
 		}
 	}

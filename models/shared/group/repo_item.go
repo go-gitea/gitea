@@ -31,7 +31,7 @@ func (repo *groupItemRepo) Parent() Item {
 	return &groupItemGroup{group}
 }
 
-func (repo *groupItemRepo) Children(doer *user_model.User) []Item {
+func (repo *groupItemRepo) Children(doer *user_model.User, requireMember bool) []Item {
 	return []Item{}
 }
 
@@ -43,7 +43,7 @@ func (repo *groupItemRepo) IsGroup() bool {
 	return false
 }
 
-func (repo *groupItemRepo) HasChildren(doer *user_model.User) bool { return false }
+func (repo *groupItemRepo) HasChildren(doer *user_model.User, requireMember bool) bool { return false }
 
 func (repo *groupItemRepo) ID() int64 {
 	return repo.Repo.ID

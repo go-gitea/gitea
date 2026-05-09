@@ -249,13 +249,13 @@ func OrgAssignment(orgAssignmentOpts OrgAssignmentOptions) func(ctx *Context) {
 			}
 			return nil
 		}
-		ctx.Data["GroupNavItems"] = shared_group.GetTopLevelGroupItemList(ctx, ctx.ContextUser.ID, ctx.Doer)
+		ctx.Data["GroupNavItems"] = shared_group.GetTopLevelGroupItemList(ctx, ctx.ContextUser.ID, ctx.Doer, false)
 		ctx.Data["GroupIsCurrent"] = groupIsCurrent(ctx)
 		ctx.Data["GroupHasChild"] = func(it shared_group.Item) bool {
 			if ctx.RepoGroup == nil || ctx.RepoGroup.Group == nil {
 				return false
 			}
-			return shared_group.ItemHasChild(ctx, it, ctx.RepoGroup.Group.ID, ctx.Doer)
+			return shared_group.ItemHasChild(ctx, it, ctx.RepoGroup.Group.ID, ctx.Doer, false)
 		}
 	}
 }
