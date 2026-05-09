@@ -94,6 +94,19 @@ func userOrgTeamUnitGroupBuilder(userID, orgID int64, unitType unit.Type) *build
 		And(builder.Gt{"`team_unit`.`access_mode`": int(perm.AccessModeNone)})
 }
 
+// MemberCond returns a cond that checks if a user is a member of a group
+func MemberCond(idStr string, groupID int64, user *user_model.User) builder.Cond {
+	var whereCond = builder.Eq{"`team_user`.uid": user.ID}.And(UserOrgTeamGroupCond("repo_group.id", user.ID))
+	if groupID > 0 {
+		whereCond = whereCond.And(builder.Eq{idStr: groupID})
+	}
+	return builder.Exists(builder.Select("1").
+		From("repo_group").
+		Join("INNER", "repo_group_team", "`repo_group_team`.group_id = repo_group.id").
+		Join("INNER", "team_user", "team_user.team_id = repo_group_team.team_id").
+		Where(whereCond))
+}
+
 // AccessibleGroupCondition returns a condition that matches groups which a user can access via the specified unit
 func AccessibleGroupCondition(user *user_model.User, orgID int64, unitType unit.Type, minMode perm.AccessMode) builder.Cond {
 	cond := builder.NewCond()
