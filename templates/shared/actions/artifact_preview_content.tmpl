@@ -49,8 +49,9 @@
 		</div>
 		<div class="twelve wide column">
 			{{if .SelectedPath}}
-				{{/* iframe sandbox="" matches the response CSP `sandbox` directive: opaque origin, no scripts, no forms, no popups. */}}
-				<iframe class="artifact-preview-frame" src="{{.PreviewRawURL}}/{{PathEscapeSegments .SelectedPath}}" sandbox="" referrerpolicy="no-referrer"></iframe>
+				{{/* sandbox="allow-scripts": scripts execute but in a null/opaque origin (no allow-same-origin), so they cannot
+				     access Gitea cookies or the parent frame. The response CSP reinforces this and blocks connect-src. */}}
+				<iframe class="artifact-preview-frame" src="{{.PreviewRawURL}}/{{PathEscapeSegments .SelectedPath}}" sandbox="allow-scripts" referrerpolicy="no-referrer"></iframe>
 			{{else}}
 				<div class="ui attached segment">{{ctx.Locale.Tr "none"}}</div>
 			{{end}}

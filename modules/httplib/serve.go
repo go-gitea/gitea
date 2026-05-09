@@ -54,14 +54,25 @@ func ServeSetHeaders(w http.ResponseWriter, opts ServeHeaderOptions) {
 		header.Set("Content-Length", strconv.FormatInt(*opts.ContentLength, 10))
 	}
 
-	// Disable script execution of HTML/SVG files, since we serve the file from the same origin as Gitea server
-	header.Set("Content-Security-Policy", "default-src 'none'; style-src 'unsafe-inline'; sandbox")
-	if strings.Contains(contentType, "application/pdf") {
+	// Served files share the Gitea origin, so we sandbox them to prevent privilege escalation.
+	// HTML artifacts may include JavaScript (e.g. coverage reports, genhtml output) so we allow
+	// scripts for text/html but keep the origin opaque by omitting allow-same-origin: scripts
+	// run in a null origin and cannot access Gitea cookies or the parent frame. connect-src
+	// 'none' blocks fetch/XHR so scripts cannot exfiltrate data or make authenticated API calls.
+	switch {
+	case strings.Contains(contentType, "text/html"):
+		// sandbox allow-scripts: scripts execute but in null origin (no allow-same-origin).
+		// default-src 'self' allows artifact sub-resources (sort.js, gcov.css, etc.) to load
+		// from the same preview/raw/* route without opening any external origin.
+		header.Set("Content-Security-Policy", "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'none'; sandbox allow-scripts")
+	case strings.Contains(contentType, "application/pdf"):
 		// no sandbox attribute for PDF as it breaks rendering in at least safari. this
 		// should generally be safe as scripts inside PDF can not escape the PDF document
 		// see https://bugs.chromium.org/p/chromium/issues/detail?id=413851 for more discussion
 		// HINT: PDF-RENDER-SANDBOX: PDF won't render in sandboxed context
 		header.Set("Content-Security-Policy", "default-src 'none'; style-src 'unsafe-inline'")
+	default:
+		header.Set("Content-Security-Policy", "default-src 'none'; style-src 'unsafe-inline'; sandbox")
 	}
 
 	if opts.Filename != "" && opts.ContentDisposition != "" {
