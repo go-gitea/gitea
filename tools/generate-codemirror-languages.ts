@@ -15,20 +15,19 @@ const renames: Record<string, string> = {
   'TeX': 'LaTeX',
 };
 
-// Per-language extensions to drop. Use only for extensions that would actively collide
-// with another language (e.g. .inc claimed by both PHP and C++) or where the syntax is
-// genuinely incompatible with the CodeMirror mode (e.g. .csh vs sh).
+// Extensions claimed by several unrelated languages with no good default winner.
+// Strip globally so files with these suffixes fall through to plain text.
+const ambiguousExt = new Set(['cgi', 'fcgi', 'inc']);
+
+// Per-language extensions to drop where the syntax is genuinely incompatible with the
+// CodeMirror mode (e.g. .csh vs sh) or otherwise misleading.
 const excludeExt: Record<string, string[]> = {
-  'C++': ['inc'],
   'INI': ['frm'],
   'JavaScript': ['_js', 'bones', 'es', 'es6', 'frag', 'gs', 'jake', 'javascript', 'jsb', 'jscad', 'jsfl', 'jslib', 'jsm', 'jspre', 'jss', 'njs', 'pac', 'sjs', 'ssjs', 'xsjs', 'xsjslib'],
-  'Lua': ['fcgi'],
-  'PHP': ['fcgi', 'inc'],
-  'Perl': ['cgi', 'fcgi'],
-  'Python': ['cgi', 'fcgi', 'spec'],
-  'Ruby': ['fcgi', 'spec'],
-  'Shell': ['cgi', 'csh', 'fcgi'],
-  'XML': ['inc', 'jsproj', 'tmpl', 'ts', 'tsx'],
+  'Python': ['spec'],
+  'Ruby': ['spec'],
+  'Shell': ['csh'],
+  'XML': ['jsproj', 'tmpl', 'ts', 'tsx'],
 };
 
 type LinguistEntry = {
@@ -58,7 +57,7 @@ async function main() {
     // extensions like ".cmake.in" cannot match as extensions and are dropped here.
     const extensions = (entry.extensions ?? [])
       .map((e) => e.replace(/^\./, ''))
-      .filter((e) => !e.includes('.') && !exExt.has(e));
+      .filter((e) => !e.includes('.') && !ambiguousExt.has(e) && !exExt.has(e));
     const filenames = entry.filenames ?? [];
     out.push({
       name: cmName,

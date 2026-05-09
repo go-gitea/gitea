@@ -361,7 +361,6 @@
       "html",
       "hta",
       "htm",
-      "inc",
       "xht",
       "xhtml"
     ],
@@ -624,7 +623,6 @@
       "pas",
       "dfm",
       "dpr",
-      "inc",
       "lpr",
       "pascal",
       "pp"
@@ -984,7 +982,6 @@
     "extensions": [
       "sql",
       "ddl",
-      "inc",
       "mysql",
       "prc",
       "tab",

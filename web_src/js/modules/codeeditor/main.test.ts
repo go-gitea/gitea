@@ -80,5 +80,6 @@ test('matchFilename — language detection covers extended rules', async () => {
   // Genuinely ambiguous extensions left unhighlighted on purpose.
   expect(match('foo.cgi')).toBeUndefined();
   expect(match('foo.fcgi')).toBeUndefined();
+  expect(match('foo.inc')).toBeUndefined();
   expect(match('foo.fish')).toBeUndefined();
 });
