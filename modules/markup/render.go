@@ -254,7 +254,7 @@ func IsInlineHTMLRenderer(renderer Renderer) bool {
 	if renderer.Name() == "csv" {
 		return false
 	}
-	if opts, ok := getExternalRendererOptions(renderer); ok && opts.DisplayInIframe {
+	if opts, ok := GetExternalRendererOptions(renderer); ok && opts.DisplayInIframe {
 		return false
 	}
 	return true
