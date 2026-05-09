@@ -55,6 +55,10 @@
   transition: all 0.2s cubic-bezier(.86,0,.07,1);
 }
 
+.menu-expandable-content-inner > ul {
+  margin: 0;
+}
+
 .expandable-menu-item label:has(input.toggle:checked) + div.menu-expandable-content {
   grid-template-rows: 1fr;
 }
