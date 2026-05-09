@@ -13,7 +13,7 @@ export function initCompSearchTeamBox() {
       url: `${appSubUrl}${searchTeamBox.getAttribute('data-search-url')}`,
       onResponse(response: {data: any[]}) {
         const resultItems = [];
-        const searchQuery = searchTeamBox.querySelector('input').value;
+        const searchQuery = searchTeamBox.querySelector('input')?.value ?? '';
         const searchQueryUppercase = searchQuery.toUpperCase();
         for (const item of response.data) {
           const resultItem = {

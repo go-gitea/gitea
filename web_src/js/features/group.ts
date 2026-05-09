@@ -8,22 +8,23 @@ export function initCommonGroup() {
   }
 
   document.querySelector('.group.settings.options #group_name')?.addEventListener('input', function (this: HTMLInputElement) {
-    const nameChanged = this.value.toLowerCase() !== this.getAttribute('data-group-name').toLowerCase();
+    const nameChanged = this.value.toLowerCase() !== this.getAttribute('data-group-name')?.toLowerCase();
     toggleElem('#group-name-change-prompt', nameChanged);
   });
 }
 
 async function moveItem({item, from, to, oldIndex}: SortableEvent): Promise<void> {
   const closestUl = to.nodeName.toLowerCase() === 'ul' ? to : to.closest('ul');
-  const sortable = Sortable.get(closestUl);
+  if (!closestUl || oldIndex === undefined) return;
+  const sortable = Sortable.get(closestUl)!;
   const isGroup = Boolean(item.getAttribute('data-is-group'));
   const strs = sortable.toArray();
   const newIndex = Math.max(1, strs.filter((a) => isGroup ?
     a.toLocaleLowerCase().startsWith('group') :
-    a.toLocaleLowerCase().startsWith('repo')).indexOf(item.getAttribute('data-sort-id')) + 1);
+    a.toLocaleLowerCase().startsWith('repo')).indexOf(item.getAttribute('data-sort-id')!) + 1);
   const data = {
-    newParent: parseInt(to.closest('ul').closest('li')?.getAttribute('data-id') || '0'),
-    id: parseInt(item.getAttribute('data-id')),
+    newParent: parseInt(to.closest('ul')?.closest('li')?.getAttribute('data-id') || '0'),
+    id: parseInt(item.getAttribute('data-id')!),
     newPos: newIndex,
     isGroup,
   };
@@ -44,12 +45,13 @@ function idSortFn(a: string, b: string): number {
 function onEnd(ev: SortableEvent) {
   const {to} = ev;
   const closestUl = to.nodeName.toLowerCase() === 'ul' ? to : (to.closest('li')?.closest('ul') ?? to.closest('ul'));
-  const sortable = Sortable.get(closestUl);
+  if (!closestUl) return;
+  const sortable = Sortable.get(closestUl)!;
   const strs = sortable.toArray();
   const groups = strs.filter((a) => a.toLocaleLowerCase().startsWith('group'));
   const repos = strs.filter((a) => a.toLocaleLowerCase().startsWith('repo'));
   const newArr = [...groups.toSorted(idSortFn), ...repos.toSorted(idSortFn)];
-  sortable.sort(newArr, true);
+  sortable?.sort(newArr, true);
   moveItem(ev);
 }
 
@@ -76,7 +78,8 @@ const baseSortableOptions: SortableOptions = {
   emptyInsertThreshold: 25,
 };
 
-function initSubgroupSortable(list: Element) {
+function initSubgroupSortable(list: HTMLElement | null) {
+  if (!list) return;
   createSortable(list, {...baseSortableOptions});
   for (const el of list.querySelectorAll('.expandable-menu-item')) {
     if (!el.getAttribute('data-is-group')) continue;
@@ -85,12 +88,12 @@ function initSubgroupSortable(list: Element) {
   }
 }
 
-async function initGroupSortable(parentEl: Element): Promise<void> {
+async function initGroupSortable(parentEl: HTMLElement): Promise<void> {
   initSubgroupSortable(parentEl);
 }
 
 export function initGroup(): void {
-  const mainContainer = document.querySelector('#group-navigation-menu > .sortable');
+  const mainContainer = document.querySelector('#group-navigation-menu > .sortable') as HTMLElement;
   if (!mainContainer) return;
   initGroupSortable(mainContainer);
 }

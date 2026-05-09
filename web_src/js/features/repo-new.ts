@@ -60,6 +60,9 @@ function initRepoNewTemplateSearch(form: HTMLFormElement) {
 function initRepoGroupSelector(form: HTMLFormElement) {
   const inputRepoOwnerUid = form.querySelector<HTMLInputElement>('input[name="uid"]');
   const elGroupDropdown = form.querySelector<HTMLInputElement>('#group_selector');
+  if (!inputRepoOwnerUid || !elGroupDropdown) {
+    return;
+  }
   const $dropdown = fomanticQuery(elGroupDropdown);
   const onChangeRepoOwner = function () {
     $dropdown.dropdown({

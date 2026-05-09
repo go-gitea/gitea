@@ -35,7 +35,7 @@ import {initRepoReleaseNew} from './features/repo-release.ts';
 import {initRepoEditor} from './features/repo-editor.ts';
 import {initCompSearchUserBox} from './features/comp/SearchUserBox.ts';
 import {initInstall} from './features/install.ts';
-import {initCompSearchTeamBox} from './features/comp/SearchTeamBox.ts'
+import {initCompSearchTeamBox} from './features/comp/SearchTeamBox.ts';
 import {initCompWebHookEditor} from './features/comp/WebHookEditor.ts';
 import {initRepoBranchButton} from './features/repo-branch.ts';
 import {initCommonOrganization} from './features/common-organization.ts';
@@ -67,7 +67,7 @@ import {initActionsPermissionsForm} from './features/common-actions-permissions.
 import {initRefIssueContextPopup} from './features/ref-issue.ts';
 import {initGlobalShortcut} from './modules/shortcut.ts';
 import {initDevtest} from './modules/devtest.ts';
-import {initCommonGroup, initGroup} from "./features/group.ts";
+import {initCommonGroup, initGroup} from './features/group.ts';
 
 const initStartTime = performance.now();
 const initPerformanceTracer = callInitFunctions([
