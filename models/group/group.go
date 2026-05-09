@@ -97,8 +97,12 @@ func (g *Group) LoadSubgroups(ctx context.Context, recursive bool) error {
 	return g.doLoadSubgroups(ctx, recursive, fgo.ToConds(), 0)
 }
 
-func (g *Group) LoadAccessibleSubgroups(ctx context.Context, recursive bool, doer *user_model.User) error {
-	return g.doLoadSubgroups(ctx, recursive, AccessibleGroupCondition(doer, unit.TypeInvalid, perm.AccessModeRead), 0)
+func (g *Group) LoadAccessibleSubgroups(ctx context.Context, recursive bool, doer *user_model.User, requireMember bool) error {
+	cond := AccessibleGroupCondition(doer, unit.TypeInvalid, perm.AccessModeRead)
+	if requireMember {
+		cond = builder.And(MemberCond("`repo_group`.parent_group_id", g.ID, doer), cond)
+	}
+	return g.doLoadSubgroups(ctx, recursive, cond, 0)
 }
 
 func (g *Group) LoadAttributes(ctx context.Context) error {

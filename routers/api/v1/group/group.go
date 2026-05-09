@@ -374,7 +374,7 @@ func GetGroupSubGroups(ctx *context.APIContext) {
 	//   "404":
 	//     "$ref": "#/responses/notFound"
 	g := ctx.RepoGroup.Group
-	err := g.LoadAccessibleSubgroups(ctx, false, ctx.Doer)
+	err := g.LoadAccessibleSubgroups(ctx, false, ctx.Doer, false)
 	if err != nil {
 		ctx.APIErrorInternal(err)
 		return
