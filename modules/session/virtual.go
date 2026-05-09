@@ -17,6 +17,11 @@ import (
 	postgres "gitea.com/go-chi/session/postgres"
 )
 
+// tombstoneTTL is how long a destroyed session ID is remembered so that
+// concurrent requests releasing after destruction cannot recreate the session
+// or be re-authenticated.
+const tombstoneTTL = 10 * time.Minute
+
 // VirtualSessionProvider represents a shadowed session provider implementation.
 // It wraps a real session provider and adds "tombstone" tracking for destroyed
 // sessions so that concurrent requests (e.g. EventSource) cannot accidentally
@@ -30,6 +35,8 @@ type VirtualSessionProvider struct {
 	// a FileStore reference may call Release() and recreate the file.
 	// By tracking destroyed IDs, Read() returns an inert VirtualStore
 	// that prevents re-authentication and avoids recreating the file.
+	// Entries self-expire after tombstoneTTL via time.AfterFunc so the map
+	// stays bounded regardless of session GC interval.
 	destroyedSIDs sync.Map // sid -> time.Time
 }
 
@@ -100,6 +107,10 @@ func (o *VirtualSessionProvider) Destroy(sid string) error {
 	o.lock.Lock()
 	defer o.lock.Unlock()
 	o.destroyedSIDs.Store(sid, time.Now())
+	// Self-expire the tombstone so the map stays bounded between session GCs.
+	time.AfterFunc(tombstoneTTL, func() {
+		o.destroyedSIDs.Delete(sid)
+	})
 	return o.provider.Destroy(sid)
 }
 
@@ -124,28 +135,13 @@ func (o *VirtualSessionProvider) GC() {
 
 	o.provider.GC()
 
-	// Clean up tombstone entries and re-destroy any files that may have
-	// been recreated by concurrent requests releasing after destruction.
-	cutoff := time.Now().Add(-10 * time.Minute)
-	var stale []string
-	var active []string
-	o.destroyedSIDs.Range(func(key, value any) bool {
-		sid := key.(string)
-		if value.(time.Time).Before(cutoff) {
-			stale = append(stale, sid)
-		} else {
-			active = append(active, sid)
-		}
+	// Re-destroy any sessions that may have been recreated by concurrent
+	// requests releasing after destruction. Tombstones themselves expire
+	// via time.AfterFunc in Destroy() so no manual cleanup is needed here.
+	o.destroyedSIDs.Range(func(key, _ any) bool {
+		_ = o.provider.Destroy(key.(string))
 		return true
 	})
-	for _, sid := range stale {
-		o.destroyedSIDs.Delete(sid)
-	}
-	if len(active) > 0 {
-		for _, sid := range active {
-			_ = o.provider.Destroy(sid)
-		}
-	}
 }
 
 func init() {

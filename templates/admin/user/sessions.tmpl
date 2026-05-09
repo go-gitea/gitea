@@ -14,14 +14,14 @@
 	</h4>
 	<div class="ui attached segment">
 		{{if .Sessions}}
-		<div class="flex-list">
+		<div class="flex-divided-list items-with-main">
 			{{range .Sessions}}
-				<div class="flex-item">
-					<div class="flex-item-leading">
+				<div class="item">
+					<div class="item-leading">
 						{{svg "octicon-device-desktop" 32}}
 					</div>
-					<div class="flex-item-main">
-						<div class="flex-item-title">
+					<div class="item-main">
+						<div class="item-title">
 							{{StringUtils.EllipsisString .UserAgent 60}}
 							{{if .LogoutUnix}}
 								<span class="ui grey label">{{ctx.Locale.Tr "settings.sessions.ended"}}</span>
@@ -29,7 +29,7 @@
 								<span class="ui green label">{{ctx.Locale.Tr "settings.sessions.active"}}</span>
 							{{end}}
 						</div>
-						<div class="flex-item-body">
+						<div class="item-body">
 							<span class="flex-text-inline">{{svg "octicon-globe"}} {{ctx.Locale.Tr "settings.sessions.login_ip"}}: {{.LoginIP}}</span>
 							{{if .LastIP}}
 								<span class="flex-text-inline">| {{ctx.Locale.Tr "settings.sessions.last_ip"}}: {{.LastIP}}</span>
@@ -38,14 +38,14 @@
 								<span class="flex-text-inline">| {{ctx.Locale.Tr "settings.sessions.prev_ip"}}: {{.PrevIP}}</span>
 							{{end}}
 						</div>
-						<div class="flex-item-body">
+						<div class="item-body">
 							<span class="flex-text-inline">{{svg "octicon-key"}} {{.LoginMethod}}</span>
 							<span class="flex-text-inline">| {{svg "octicon-calendar"}} {{DateUtils.AbsoluteShort .CreatedUnix}}</span>
 							<span class="flex-text-inline">| {{ctx.Locale.Tr "settings.sessions.last_active"}}: {{DateUtils.TimeSince .LastAccessUnix}}</span>
 						</div>
 					</div>
 					{{if not .LogoutUnix}}
-					<div class="flex-item-trailing">
+					<div class="item-trailing">
 						<form action="{{AppSubUrl}}/-/admin/users/{{$.User.ID}}/sessions/revoke" method="post">
 							<input type="hidden" name="session_id" value="{{.ID}}">
 							<button class="ui red tiny button">{{ctx.Locale.Tr "settings.sessions.revoke"}}</button>

@@ -76,6 +76,21 @@ func GetUserSessionsByUserID(ctx context.Context, userID int64) ([]*UserSession,
 		Desc("created_unix").Find(&sessions)
 }
 
+// CountUserSessionsByUserID returns (total, active) session counts for a user
+// without materializing the rows.
+func CountUserSessionsByUserID(ctx context.Context, userID int64) (total, active int64, err error) {
+	e := db.GetEngine(ctx)
+	total, err = e.Where("user_id = ?", userID).Count(new(UserSession))
+	if err != nil {
+		return 0, 0, err
+	}
+	active, err = e.Where("user_id = ? AND logout_unix = 0", userID).Count(new(UserSession))
+	if err != nil {
+		return 0, 0, err
+	}
+	return total, active, nil
+}
+
 // InvalidateUserSession marks a session as logged out
 func InvalidateUserSession(ctx context.Context, sessionID string) error {
 	_, err := db.GetEngine(ctx).Where("id = ? AND logout_unix = 0", sessionID).
