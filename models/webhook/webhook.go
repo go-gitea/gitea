@@ -126,6 +126,7 @@ type Webhook struct {
 	OwnerID                   int64 `xorm:"INDEX"`
 	IsSystemWebhook           bool
 	URL                       string `xorm:"url TEXT"`
+	Name                      string `xorm:"VARCHAR(255) NOT NULL DEFAULT ''"`
 	HTTPMethod                string `xorm:"http_method"`
 	ContentType               HookContentType
 	Secret                    string `xorm:"TEXT"`

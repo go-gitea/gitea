@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import ActionRunStatus from './ActionRunStatus.vue';
+import ActionStatusIcon from './ActionStatusIcon.vue';
 import WorkflowGraph from './WorkflowGraph.vue';
 import type {ActionRunViewStore} from "./ActionRunView.ts";
 import {computed, onBeforeUnmount, onMounted, toRefs} from "vue";
@@ -13,11 +13,18 @@ const props = defineProps<{
   locale: Record<string, any>;
 }>();
 
+const locale = props.locale;
 const {currentRun: run} = toRefs(props.store.viewData);
 
-const runTriggeredAtIso = computed(() => {
-  const t = props.store.viewData.currentRun.triggeredAt;
-  return t ? new Date(t * 1000).toISOString() : '';
+const isRerun = computed(() => run.value.runAttempt > 1);
+
+const triggerUser = computed(() => {
+  const currentAttempt = run.value.attempts.find((attempt) => attempt.current);
+  if (currentAttempt) {
+    return {name: currentAttempt.triggerUserName, link: currentAttempt.triggerUserLink};
+  }
+  const pusher = run.value.commit.pusher;
+  return pusher.displayName ? {name: pusher.displayName, link: pusher.link} : null;
 });
 
 onMounted(async () => {
@@ -32,10 +39,17 @@ onBeforeUnmount(() => {
   <div class="action-run-summary-view">
     <div class="action-run-summary-block">
       <div class="flex-text-block">
-        {{ locale.triggeredVia.replace('%s', run.triggerEvent) }} • <relative-time :datetime="runTriggeredAtIso" prefix=""/>
+        <span>{{ isRerun ? locale.rerun : locale.triggeredVia.replace('%s', run.triggerEvent) }}</span>
+        <template v-if="triggerUser">
+          <span>•</span>
+          <a v-if="triggerUser.link" class="muted" :href="triggerUser.link">{{ triggerUser.name }}</a>
+          <span v-else class="muted">{{ triggerUser.name }}</span>
+        </template>
+        <span>•</span>
+        <relative-time :datetime="run.triggeredAt || ''" prefix=""/>
       </div>
       <div class="flex-text-block">
-        <ActionRunStatus :locale-status="locale.status[run.status]" :status="run.status" :size="16"/>
+        <ActionStatusIcon :locale-status="locale.status[run.status]" :status="run.status" :size="16" icon-variant="circle-fill"/>
         <span>{{ locale.status[run.status] }}</span> • <span>{{ locale.totalDuration }} {{ run.duration || '–' }}</span>
       </div>
     </div>

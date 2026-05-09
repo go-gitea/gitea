@@ -79,7 +79,7 @@ func SignInOAuthCallback(ctx *context.Context) {
 			}
 		}
 		sort.Strings(errorKeyValues)
-		ctx.Flash.Error(strings.Join(errorKeyValues, "<br>"), true)
+		ctx.Flash.Error(strings.Join(errorKeyValues, "\n"), true)
 	}
 
 	// first look if the provider is still active
@@ -482,7 +482,7 @@ func oAuth2UserLoginCallback(ctx *context.Context, authSource *auth.Source, requ
 		LoginSource: authSource.ID,
 	}
 
-	hasUser, err := user_model.GetUser(ctx, user)
+	hasUser, err := user_model.GetIndividualUser(ctx, user)
 	if err != nil {
 		return nil, goth.User{}, err
 	}

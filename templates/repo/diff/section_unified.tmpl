@@ -24,9 +24,7 @@
 			{{end}}
 			{{$inlineDiff := $section.GetComputedInlineDiffFor $line ctx.Locale -}}
 			<td class="lines-escape">
-				{{- if $inlineDiff.EscapeStatus.Escaped -}}
-					<button class="toggle-escape-button btn interact-bg" title="{{template "repo/diff/escape_title" dict "diff" $inlineDiff}}"></button>
-				{{- end -}}
+				{{ctx.RenderUtils.RenderUnicodeEscapeToggleButton $inlineDiff.EscapeStatus}}
 			</td>
 			<td class="lines-type-marker"><span class="tw-font-mono" data-type-marker="{{$line.GetLineTypeMarker}}"></span></td>
 			{{if eq .GetType 4}}

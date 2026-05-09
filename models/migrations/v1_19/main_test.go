@@ -6,9 +6,9 @@ package v1_19
 import (
 	"testing"
 
-	"code.gitea.io/gitea/models/migrations/base"
+	"code.gitea.io/gitea/models/migrations/migrationtest"
 )
 
 func TestMain(m *testing.M) {
-	base.MainTest(m)
+	migrationtest.MainTest(m)
 }

@@ -5,6 +5,7 @@ package webtheme
 
 import (
 	"io/fs"
+	"net/url"
 	"os"
 	"path"
 	"regexp"
@@ -41,6 +42,10 @@ type ThemeMetaInfo struct {
 	DisplayName    string
 	ColorblindType string
 	ColorScheme    string
+}
+
+func (info *ThemeMetaInfo) PublicAssetURI() string {
+	return public.AssetURI("css/theme-" + url.PathEscape(info.InternalName) + ".css")
 }
 
 func (info *ThemeMetaInfo) GetDescription() string {

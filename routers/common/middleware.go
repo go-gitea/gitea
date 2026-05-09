@@ -28,6 +28,7 @@ func ProtocolMiddlewares() (handlers []any) {
 	// the order is important
 	handlers = append(handlers, ChiRoutePathHandler())   // make sure chi has correct paths
 	handlers = append(handlers, RequestContextHandler()) //	prepare the context and panic recovery
+	handlers = append(handlers, SecurityHeadersHandler())
 
 	if setting.ReverseProxyLimit > 0 && len(setting.ReverseProxyTrustedProxies) > 0 {
 		handlers = append(handlers, ForwardedHeadersHandler(setting.ReverseProxyLimit, setting.ReverseProxyTrustedProxies))
@@ -46,6 +47,21 @@ func ProtocolMiddlewares() (handlers []any) {
 	}
 
 	return handlers
+}
+
+// SecurityHeadersHandler sets headers globally for every response that leaves Gitea.
+func SecurityHeadersHandler() func(http.Handler) http.Handler {
+	return func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(resp http.ResponseWriter, req *http.Request) {
+			if setting.Security.XContentTypeOptions != "unset" {
+				resp.Header().Set("X-Content-Type-Options", setting.Security.XContentTypeOptions)
+			}
+			if setting.Security.XFrameOptions != "unset" {
+				resp.Header().Set("X-Frame-Options", setting.Security.XFrameOptions)
+			}
+			next.ServeHTTP(resp, req)
+		})
+	}
 }
 
 func RequestContextHandler() func(h http.Handler) http.Handler {

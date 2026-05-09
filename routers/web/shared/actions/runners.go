@@ -362,10 +362,6 @@ func RunnerUpdatePost(ctx *context.Context) {
 	ctx.JSONRedirect("")
 }
 
-func RedirectToDefaultSetting(ctx *context.Context) {
-	ctx.Redirect(ctx.Repo.RepoLink + "/settings/actions/runners")
-}
-
 func findActionsRunner(ctx *context.Context, rCtx *runnersCtx) *actions_model.ActionRunner {
 	runnerID := ctx.PathParamInt64("runnerid")
 	opts := &actions_model.FindRunnerOptions{

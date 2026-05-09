@@ -30,6 +30,7 @@ type Source struct {
 
 	SSHPublicKeyClaimName string
 	FullNameClaimName     string
+	ExternalIDClaim       string
 }
 
 // FromDB fills up an OAuth2Config from serialized format.

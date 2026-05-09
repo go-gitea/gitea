@@ -56,6 +56,8 @@ func parseManifest(data []byte) (map[string]string, map[string]string) {
 		paths[key] = entry.File
 		names[entry.File] = entry.Name
 		// Map associated CSS files, e.g. "css/index.css" -> "css/index.B3zrQPqD.css"
+		// FIXME: INCORRECT-VITE-MANIFEST-PARSER: the logic is wrong, Vite manifest doesn't work this way
+		// It just happens to be correct for the current modules dependencies
 		for _, css := range entry.CSS {
 			cssKey := path.Dir(css) + "/" + entry.Name + path.Ext(css)
 			paths[cssKey] = css
@@ -125,27 +127,33 @@ func getManifestData() *manifestDataStruct {
 	return data
 }
 
-// getHashedPath resolves an unhashed asset path (origin path) to its content-hashed path from the frontend manifest.
-// Example: getHashedPath("js/index.js") returns "js/index.C6Z2MRVQ.js"
-// Falls back to returning the input path unchanged if the manifest is unavailable.
-func getHashedPath(originPath string) string {
-	data := getManifestData()
-	if p, ok := data.paths[originPath]; ok {
-		return p
-	}
-	return originPath
-}
-
 // AssetURI returns the URI for a frontend asset.
 // It may return a relative path or a full URL depending on the StaticURLPrefix setting.
 // In Vite dev mode, known entry points are mapped to their source paths
 // so the reverse proxy serves them from the Vite dev server.
 // In production, it resolves the content-hashed path from the manifest.
 func AssetURI(originPath string) string {
-	if src := viteDevSourceURL(originPath); src != "" {
-		return src
+	if IsViteDevMode() {
+		if src := viteDevSourceURL(originPath); src != "" {
+			return src
+		}
+		// it should be caused by incorrect vite config
+		setting.PanicInDevOrTesting("Failed to locate local path for managed asset URI: %s", originPath)
 	}
-	return setting.StaticURLPrefix + "/assets/" + getHashedPath(originPath)
+
+	// Try to resolve an unhashed asset path (origin path) to its content-hashed path from the frontend manifest.
+	// Example: "js/index.js" -> "js/index.C6Z2MRVQ.js"
+	data := getManifestData()
+	assetPath := data.paths[originPath]
+	if assetPath == "" {
+		// it should be caused by either: "incorrect vite config" or "user's custom theme"
+		assetPath = originPath
+		if !setting.IsProd {
+			log.Warn("Failed to find managed asset URI for origin path: %s", originPath)
+		}
+	}
+
+	return setting.StaticURLPrefix + "/assets/" + assetPath
 }
 
 // AssetNameFromHashedPath returns the asset entry name for a given hashed asset path.

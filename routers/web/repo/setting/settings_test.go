@@ -13,15 +13,18 @@ import (
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unittest"
 	user_model "code.gitea.io/gitea/models/user"
+	"code.gitea.io/gitea/modules/gitrepo"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/test"
 	"code.gitea.io/gitea/modules/web"
 	"code.gitea.io/gitea/services/context"
 	"code.gitea.io/gitea/services/contexttest"
 	"code.gitea.io/gitea/services/forms"
+	mirror_service "code.gitea.io/gitea/services/mirror"
 	repo_service "code.gitea.io/gitea/services/repository"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestAddReadOnlyDeployKey(t *testing.T) {
@@ -385,4 +388,46 @@ func TestDeleteTeam(t *testing.T) {
 	DeleteTeam(ctx)
 
 	assert.False(t, repo_service.HasRepository(t.Context(), team, re.ID))
+}
+
+func TestHandleSettingsPostMirrorPreservesExistingUsername(t *testing.T) {
+	defer test.MockVariableValue(&setting.Mirror.Enabled, true)()
+
+	unittest.PrepareTestEnv(t)
+
+	// Use the existing fixture mirror repo (org3/repo5) which has a git repo on disk.
+	mirrorRepo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 5})
+	mirror := unittest.AssertExistsAndLoadBean(t, &repo_model.Mirror{RepoID: 5})
+
+	require.NoError(t, mirror_service.UpdateAddress(t.Context(), mirror, "https://existing-user:existing-password@example.com/user2/repo1.git"))
+
+	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
+
+	ctx, _ := contexttest.MockContext(t, mirrorRepo.Link()+"/settings")
+	contexttest.LoadUser(t, ctx, user.ID)
+	contexttest.LoadRepo(t, ctx, mirrorRepo.ID)
+
+	web.SetForm(ctx, &forms.RepoSettingForm{
+		Interval:       "8h",
+		MirrorAddress:  "https://example.com/user2/repo1.git",
+		MirrorPassword: "updated-password",
+	})
+
+	handleSettingsPostMirror(ctx)
+
+	assert.Equal(t, http.StatusSeeOther, ctx.Resp.WrittenStatus())
+
+	updatedMirror := unittest.AssertExistsAndLoadBean(t, &repo_model.Mirror{RepoID: mirrorRepo.ID})
+	assert.Equal(t, "https://example.com/user2/repo1.git", updatedMirror.RemoteAddress)
+
+	updatedRepo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: mirrorRepo.ID})
+	assert.Equal(t, "https://example.com/user2/repo1.git", updatedRepo.OriginalURL)
+
+	remoteURL, err := gitrepo.GitRemoteGetURL(t.Context(), updatedRepo, updatedMirror.GetRemoteName())
+	require.NoError(t, err)
+	require.NotNil(t, remoteURL.User)
+	assert.Equal(t, "existing-user", remoteURL.User.Username())
+	password, ok := remoteURL.User.Password()
+	require.True(t, ok)
+	assert.Equal(t, "updated-password", password)
 }

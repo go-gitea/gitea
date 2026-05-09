@@ -19,6 +19,7 @@ import (
 
 // regexp is based on go-license, excluding README and NOTICE
 // https://github.com/google/go-licenses/blob/master/licenses/find.go
+// also defined in vite.config.ts
 var licenseRe = regexp.MustCompile(`^(?i)((UN)?LICEN(S|C)E|COPYING).*$`)
 
 // primaryLicenseRe matches exact primary license filenames without suffixes.

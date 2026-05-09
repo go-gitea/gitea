@@ -74,8 +74,7 @@ func checkRepoLicense(t *testing.T, owner, repo string, expected []string) {
 	req := NewRequest(t, "GET", reqURL)
 	resp := MakeRequest(t, req, http.StatusOK)
 
-	var licenses []string
-	DecodeJSON(t, resp, &licenses)
+	licenses := DecodeJSON(t, resp, []string{})
 
 	assert.ElementsMatch(t, expected, licenses, 0)
 }

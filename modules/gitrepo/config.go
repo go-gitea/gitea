@@ -5,20 +5,10 @@ package gitrepo
 
 import (
 	"context"
-	"strings"
 
 	"code.gitea.io/gitea/modules/git/gitcmd"
 	"code.gitea.io/gitea/modules/globallock"
 )
-
-func GitConfigGet(ctx context.Context, repo Repository, key string) (string, error) {
-	result, _, err := RunCmdString(ctx, repo, gitcmd.NewCommand("config", "--get").
-		AddDynamicArguments(key))
-	if err != nil {
-		return "", err
-	}
-	return strings.TrimSpace(result), nil
-}
 
 func getRepoConfigLockKey(repoStoragePath string) string {
 	return "repo-config:" + repoStoragePath

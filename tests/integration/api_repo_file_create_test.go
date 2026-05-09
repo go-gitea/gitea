@@ -124,35 +124,6 @@ func getExpectedFileResponseForCreate(info apiFileResponseInfo) *api.FileRespons
 	return ret
 }
 
-func BenchmarkAPICreateFileSmall(b *testing.B) {
-	onGiteaRun(b, func(b *testing.B, u *url.URL) {
-		user2 := unittest.AssertExistsAndLoadBean(b, &user_model.User{ID: 2})       // owner of the repo1 & repo16
-		repo1 := unittest.AssertExistsAndLoadBean(b, &repo_model.Repository{ID: 1}) // public repo
-
-		b.ResetTimer()
-		for n := 0; b.Loop(); n++ {
-			treePath := fmt.Sprintf("update/file%d.txt", n)
-			_, _ = createFile(user2, repo1, treePath)
-		}
-	})
-}
-
-func BenchmarkAPICreateFileMedium(b *testing.B) {
-	data := make([]byte, 10*1024*1024)
-
-	onGiteaRun(b, func(b *testing.B, u *url.URL) {
-		user2 := unittest.AssertExistsAndLoadBean(b, &user_model.User{ID: 2})       // owner of the repo1 & repo16
-		repo1 := unittest.AssertExistsAndLoadBean(b, &repo_model.Repository{ID: 1}) // public repo
-
-		b.ResetTimer()
-		for n := 0; b.Loop(); n++ {
-			treePath := fmt.Sprintf("update/file%d.txt", n)
-			copy(data, treePath)
-			_, _ = createFile(user2, repo1, treePath)
-		}
-	})
-}
-
 func TestAPICreateFile(t *testing.T) {
 	onGiteaRun(t, func(t *testing.T, u *url.URL) {
 		user2 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})         // owner of the repo1 & repo16
@@ -194,8 +165,7 @@ func TestAPICreateFile(t *testing.T) {
 				lastCommitterWhen: lastCommit.Committer.When,
 				lastAuthorWhen:    lastCommit.Author.When,
 			})
-			var fileResponse api.FileResponse
-			DecodeJSON(t, resp, &fileResponse)
+			fileResponse := DecodeJSON(t, resp, &api.FileResponse{})
 			normalizeFileContentResponseCommitTime(fileResponse.Content)
 			assert.Equal(t, expectedFileResponse.Content, fileResponse.Content)
 			assert.Equal(t, expectedFileResponse.Commit.SHA, fileResponse.Commit.SHA)
@@ -217,8 +187,7 @@ func TestAPICreateFile(t *testing.T) {
 		req := NewRequestWithJSON(t, "POST", fmt.Sprintf("/api/v1/repos/%s/%s/contents/%s", user2.Name, repo1.Name, treePath), &createFileOptions).
 			AddTokenAuth(token2)
 		resp := MakeRequest(t, req, http.StatusCreated)
-		var fileResponse api.FileResponse
-		DecodeJSON(t, resp, &fileResponse)
+		fileResponse := DecodeJSON(t, resp, &api.FileResponse{})
 		expectedSHA := "a635aa942442ddfdba07468cf9661c08fbdf0ebf"
 		expectedHTMLURL := fmt.Sprintf(setting.AppURL+"user2/repo1/src/branch/new_branch/new/file%d.txt", fileID)
 		expectedDownloadURL := fmt.Sprintf(setting.AppURL+"user2/repo1/raw/branch/new_branch/new/file%d.txt", fileID)
@@ -235,7 +204,7 @@ func TestAPICreateFile(t *testing.T) {
 		req = NewRequestWithJSON(t, "POST", fmt.Sprintf("/api/v1/repos/%s/%s/contents/%s", user2.Name, repo1.Name, treePath), &createFileOptions).
 			AddTokenAuth(token2)
 		resp = MakeRequest(t, req, http.StatusCreated)
-		DecodeJSON(t, resp, &fileResponse)
+		fileResponse = DecodeJSON(t, resp, &api.FileResponse{})
 		expectedMessage := "Add " + treePath + "\n"
 		assert.Equal(t, expectedMessage, fileResponse.Commit.Message)
 
@@ -245,12 +214,11 @@ func TestAPICreateFile(t *testing.T) {
 		req = NewRequestWithJSON(t, "POST", fmt.Sprintf("/api/v1/repos/%s/%s/contents/%s", user2.Name, repo1.Name, treePath), &createFileOptions).
 			AddTokenAuth(token2)
 		resp = MakeRequest(t, req, http.StatusUnprocessableEntity)
-		expectedAPIError := context.APIError{
+		expectedAPIError := &context.APIError{
 			Message: "repository file already exists [path: " + treePath + "]",
 			URL:     setting.API.SwaggerURL,
 		}
-		var apiError context.APIError
-		DecodeJSON(t, resp, &apiError)
+		apiError := DecodeJSON(t, resp, &context.APIError{})
 		assert.Equal(t, expectedAPIError, apiError)
 
 		// Test creating a file in repo1 by user4 who does not have write access
@@ -320,7 +288,7 @@ func TestAPICreateFile(t *testing.T) {
 			lastCommitterWhen: latestCommit.Committer.When,
 			lastAuthorWhen:    latestCommit.Author.When,
 		})
-		DecodeJSON(t, resp, &fileResponse)
+		fileResponse = DecodeJSON(t, resp, &api.FileResponse{})
 		normalizeFileContentResponseCommitTime(fileResponse.Content)
 		assert.Equal(t, expectedFileResponse.Content, fileResponse.Content)
 		assert.Equal(t, expectedFileResponse.Commit.SHA, fileResponse.Commit.SHA)

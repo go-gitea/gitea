@@ -5,6 +5,7 @@ package org
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"strings"
 
@@ -306,19 +307,19 @@ func removeTeamMember(ctx context.Context, team *organization.Team, user *user_m
 		return err
 	}
 
-	// Delete access to team repositories.
+	// Delete access to team repositories. If any user or repo is missing, we can continue.
 	for _, repo := range repos {
-		if err := access_model.RecalculateUserAccess(ctx, repo, user.ID); err != nil {
+		if err := access_model.RecalculateUserAccess(ctx, repo, user.ID); err != nil && !errors.Is(err, util.ErrNotExist) {
 			return err
 		}
 
 		// Remove watches from now inaccessible
-		if err := repo_service.ReconsiderWatches(ctx, repo, user); err != nil {
+		if err := repo_service.ReconsiderWatches(ctx, repo, user); err != nil && !errors.Is(err, util.ErrNotExist) {
 			return err
 		}
 
 		// Remove issue assignments from now inaccessible
-		if err := repo_service.ReconsiderRepoIssuesAssignee(ctx, repo, user); err != nil {
+		if err := repo_service.ReconsiderRepoIssuesAssignee(ctx, repo, user); err != nil && !errors.Is(err, util.ErrNotExist) {
 			return err
 		}
 	}

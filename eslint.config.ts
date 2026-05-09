@@ -329,7 +329,7 @@ export default defineConfig([
       'github/no-innerText': [2],
       'github/no-then': [2],
       'github/no-useless-passive': [2],
-      'github/prefer-observers': [2],
+      'github/prefer-observers': [0],
       'github/require-passive-events': [2],
       'github/unescaped-html-literal': [2],
       'grouped-accessor-pairs': [2],
@@ -574,8 +574,6 @@ export default defineConfig([
       'no-restricted-properties': [2, ...restrictedProperties],
       'no-restricted-imports': [2, {paths: [
         {name: 'jquery', message: 'Use the global $ instead', allowTypeImports: true},
-        {name: 'htmx.org', message: 'Use the global htmx instead', allowTypeImports: true},
-        {name: 'idiomorph/htmx', message: 'Loaded in globals.ts', allowTypeImports: true},
       ]}],
       'no-restricted-syntax': [2, 'WithStatement', 'ForInStatement', 'LabeledStatement', 'SequenceExpression'],
       'no-return-assign': [0],
@@ -766,6 +764,7 @@ export default defineConfig([
       'unicorn/catch-error-name': [0],
       'unicorn/consistent-destructuring': [2],
       'unicorn/consistent-empty-array-spread': [2],
+      'unicorn/consistent-template-literal-escape': [2],
       'unicorn/consistent-existence-index-check': [0],
       'unicorn/consistent-function-scoping': [0],
       'unicorn/custom-error-definition': [0],
@@ -821,6 +820,7 @@ export default defineConfig([
       'unicorn/no-unused-properties': [2],
       'unicorn/no-useless-collection-argument': [2],
       'unicorn/no-useless-fallback-in-spread': [2],
+      'unicorn/no-useless-iterator-to-array': [2],
       'unicorn/no-useless-length-check': [2],
       'unicorn/no-useless-promise-resolve-reject': [2],
       'unicorn/no-useless-spread': [2],
@@ -870,6 +870,7 @@ export default defineConfig([
       'unicorn/prefer-response-static-json': [2],
       'unicorn/prefer-set-has': [0],
       'unicorn/prefer-set-size': [2],
+      'unicorn/prefer-simple-condition-first': [0],
       'unicorn/prefer-spread': [0],
       'unicorn/prefer-string-raw': [0],
       'unicorn/prefer-string-replace-all': [0],
@@ -888,6 +889,7 @@ export default defineConfig([
       'unicorn/require-post-message-target-origin': [0],
       'unicorn/string-content': [0],
       'unicorn/switch-case-braces': [0],
+      'unicorn/switch-case-break-position': [2],
       'unicorn/template-indent': [2],
       'unicorn/text-encoding-identifier-case': [0],
       'unicorn/throw-new-error': [2],
@@ -922,6 +924,7 @@ export default defineConfig([
   {
     ...playwright.configs['flat/recommended'],
     files: ['tests/e2e/**/*.test.ts'],
+    languageOptions: {globals: {...globals.nodeBuiltin, ...globals.browser}},
     rules: {
       ...playwright.configs['flat/recommended'].rules,
       'playwright/expect-expect': [0],
@@ -1013,11 +1016,11 @@ export default defineConfig([
     },
   },
   {
-    files: ['*', 'tools/**/*'],
+    files: ['*', 'tools/**/*', 'tests/**/*'],
     languageOptions: {globals: globals.nodeBuiltin},
   },
   {
     files: ['web_src/**/*'],
-    languageOptions: {globals: {...globals.browser, ...globals.jquery, htmx: false}},
+    languageOptions: {globals: {...globals.browser, ...globals.jquery}},
   },
 ]);

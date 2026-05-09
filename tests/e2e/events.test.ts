@@ -1,13 +1,12 @@
 import {test, expect} from '@playwright/test';
-import {loginUser, baseUrl, apiUserHeaders, apiCreateUser, apiDeleteUser, apiCreateRepo, apiCreateIssue, apiStartStopwatch} from './utils.ts';
+import {loginUser, baseUrl, apiUserHeaders, apiCreateUser, apiCreateRepo, apiCreateIssue, apiStartStopwatch, timeoutFactor, randomString} from './utils.ts';
 
 // These tests rely on a short EVENT_SOURCE_UPDATE_TIME in the e2e server config.
 test.describe('events', () => {
   test('notification count', async ({page, request}) => {
-    const id = `ev-notif-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`;
-    const owner = `${id}-owner`;
-    const commenter = `${id}-commenter`;
-    const repoName = id;
+    const owner = `ev-notif-owner-${randomString(8)}`;
+    const commenter = `ev-notif-commenter-${randomString(8)}`;
+    const repoName = `ev-notif-${randomString(8)}`;
 
     await Promise.all([apiCreateUser(request, owner), apiCreateUser(request, commenter)]);
 
@@ -16,43 +15,41 @@ test.describe('events', () => {
       apiCreateRepo(request, {name: repoName, headers: apiUserHeaders(owner)}),
       loginUser(page, owner),
     ]);
+    await page.goto('/');
     const badge = page.locator('a.not-mobile .notification_count');
     await expect(badge).toBeHidden();
 
     // Create issue as another user — this generates a notification delivered via server push
-    await apiCreateIssue(request, owner, repoName, {title: 'events notification test', headers: apiUserHeaders(commenter)});
+    await apiCreateIssue(request, {owner, repo: repoName, title: 'events notification test', headers: apiUserHeaders(commenter)});
 
     // Wait for the notification badge to appear via server event
-    await expect(badge).toBeVisible({timeout: 15000});
-
-    // Cleanup
-    await Promise.all([apiDeleteUser(request, commenter), apiDeleteUser(request, owner)]);
+    await expect(badge).toBeVisible({timeout: 15000 * timeoutFactor});
   });
 
   test('stopwatch', async ({page, request}) => {
-    const name = `ev-sw-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`;
+    const name = `ev-sw-${randomString(8)}`;
     const headers = apiUserHeaders(name);
 
     await apiCreateUser(request, name);
 
-    // Create repo, issue, and start stopwatch before login
-    await apiCreateRepo(request, {name, headers});
-    await apiCreateIssue(request, name, name, {title: 'events stopwatch test', headers});
-    await apiStartStopwatch(request, name, name, 1, {headers});
-
-    // Login — page renders with the active stopwatch element
-    await loginUser(page, name);
+    // Login in parallel with repo+issue+stopwatch setup (all independent after user exists)
+    await Promise.all([
+      loginUser(page, name),
+      (async () => {
+        await apiCreateRepo(request, {name, headers});
+        await apiCreateIssue(request, {owner: name, repo: name, title: 'events stopwatch test', headers});
+        await apiStartStopwatch(request, name, name, 1, {headers});
+      })(),
+    ]);
+    await page.goto('/');
 
     // Verify stopwatch is visible and links to the correct issue
     const stopwatch = page.locator('.active-stopwatch.not-mobile');
     await expect(stopwatch).toBeVisible();
-
-    // Cleanup
-    await apiDeleteUser(request, name);
   });
 
   test('logout propagation', async ({browser, request}) => {
-    const name = `ev-logout-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`;
+    const name = `ev-logout-${randomString(8)}`;
 
     await apiCreateUser(request, name);
 
@@ -69,6 +66,13 @@ test.describe('events', () => {
     // Verify page2 is logged in
     await expect(page2.getByRole('link', {name: 'Sign In'})).toBeHidden();
 
+    // Give page2's SharedWorker time to register its SSE connection on the
+    // server — otherwise the logout event can race the connection and be
+    // silently dropped. See https://github.com/go-gitea/gitea/pull/37403
+    // In the future, we can set an attribute to HTML page when the connection is established,
+    // then here we can just wait for that attribute (it should also work for the planned WebSocket SharedWorker)
+    await page2.waitForTimeout(500); // eslint-disable-line playwright/no-wait-for-timeout
+
     // Logout from page1 — this sends a logout event to all tabs
     await page1.goto('/user/logout');
 
@@ -76,8 +80,5 @@ test.describe('events', () => {
     await expect(page2.getByRole('link', {name: 'Sign In'})).toBeVisible();
 
     await context.close();
-
-    // Cleanup
-    await apiDeleteUser(request, name);
   });
 });

@@ -48,8 +48,7 @@ func TestAPIGitTags(t *testing.T) {
 		AddTokenAuth(token)
 	res := MakeRequest(t, req, http.StatusOK)
 
-	var tag *api.AnnotatedTag
-	DecodeJSON(t, res, &tag)
+	tag := DecodeJSON(t, res, &api.AnnotatedTag{})
 
 	assert.Equal(t, aTagName, tag.Tag)
 	assert.Equal(t, aTag.ID.String(), tag.SHA)

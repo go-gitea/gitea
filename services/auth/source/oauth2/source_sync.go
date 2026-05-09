@@ -67,7 +67,7 @@ func (source *Source) refresh(ctx context.Context, provider goth.Provider, u *us
 		LoginSource: u.LoginSourceID,
 	}
 
-	hasUser, err := user_model.GetUser(ctx, user)
+	hasUser, err := user_model.GetIndividualUser(ctx, user)
 	if err != nil {
 		return err
 	}

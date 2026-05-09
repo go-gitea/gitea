@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"io"
 	"regexp"
+	"slices"
 	"strings"
 	"time"
 	"unicode/utf8"
@@ -50,7 +51,7 @@ type NewPullRequestOptions struct {
 	AssigneeIDs     []int64
 	Reviewers       []*user_model.User
 	TeamReviewers   []*organization.Team
-	ProjectID       int64
+	ProjectIDs      []int64
 }
 
 // NewPullRequest creates new pull request with labels for repository.
@@ -110,8 +111,8 @@ func NewPullRequest(ctx context.Context, opts *NewPullRequestOptions) error {
 			assigneeCommentMap[assigneeID] = comment
 		}
 
-		if opts.ProjectID > 0 && canAssignProject {
-			if err := issues_model.IssueAssignOrRemoveProject(ctx, issue, issue.Poster, opts.ProjectID, 0); err != nil {
+		if len(opts.ProjectIDs) > 0 && canAssignProject {
+			if err := issues_model.IssueAssignOrRemoveProject(ctx, issue, issue.Poster, opts.ProjectIDs); err != nil {
 				return err
 			}
 		}
@@ -136,7 +137,7 @@ func NewPullRequest(ctx context.Context, opts *NewPullRequestOptions) error {
 		}
 
 		// add first push codes comment
-		if _, err := CreatePushPullComment(ctx, issue.Poster, pr, git.BranchPrefix+pr.BaseBranch, pr.GetGitHeadRefName(), false); err != nil {
+		if _, _, err := CreatePushPullComment(ctx, issue.Poster, pr, git.BranchPrefix+pr.BaseBranch, pr.GetGitHeadRefName(), false); err != nil {
 			return err
 		}
 
@@ -343,7 +344,7 @@ func ChangeTargetBranch(ctx context.Context, pr *issues_model.PullRequest, doer 
 			return err
 		}
 
-		_, err = CreatePushPullComment(ctx, doer, pr, git.BranchPrefix+pr.BaseBranch, pr.GetGitHeadRefName(), false)
+		_, _, err = CreatePushPullComment(ctx, doer, pr, git.BranchPrefix+pr.BaseBranch, pr.GetGitHeadRefName(), false)
 		return err
 	})
 }
@@ -411,8 +412,10 @@ func AddTestPullRequestTask(opts TestPullRequestOptions) {
 
 			// create push comment before check pull request status,
 			// then when the status is mergeable, the comment is already in database, to make testing easy and stable
-			comment, err := CreatePushPullComment(ctx, opts.Doer, pr, opts.OldCommitID, opts.NewCommitID, opts.IsForcePush)
-			if err == nil && comment != nil {
+			comment, commentCreated, err := CreatePushPullComment(ctx, opts.Doer, pr, opts.OldCommitID, opts.NewCommitID, opts.IsForcePush)
+			if err != nil {
+				log.Error("CreatePushPullComment: %v", err)
+			} else if commentCreated {
 				notify_service.PullRequestPushCommits(ctx, opts.Doer, pr, comment)
 			}
 			// The caller can be in a goroutine or a "push queue", "conflict check" can be time-consuming,
@@ -843,9 +846,8 @@ func GetSquashMergeCommitMessages(ctx context.Context, pr *issues_model.PullRequ
 		// use PR's commit messages as squash commit message
 		// commits list is in reverse chronological order
 		maxMsgSize := setting.Repository.PullRequest.DefaultMergeMessageSize
-		for i := len(commits) - 1; i >= 0; i-- {
-			commit := commits[i]
-			msg := strings.TrimSpace(commit.CommitMessage)
+		for _, commit := range slices.Backward(commits) {
+			msg := strings.TrimSpace(commit.MessageUTF8())
 			if msg == "" {
 				continue
 			}
@@ -1072,7 +1074,7 @@ func GetPullCommits(ctx context.Context, baseGitRepo *git.Repository, doer *user
 		}
 
 		commits = append(commits, CommitInfo{
-			Summary:               commit.Summary(),
+			Summary:               commit.MessageTitle(),
 			CommitterOrAuthorName: committerOrAuthorName,
 			ID:                    commit.ID.String(),
 			ShortSha:              base.ShortSha(commit.ID.String()),

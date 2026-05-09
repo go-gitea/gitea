@@ -1,4 +1,4 @@
-import {createMonaco} from './codeeditor.ts';
+import {createCodeEditor} from '../modules/codeeditor/main.ts';
 import {onInputDebounce, queryElems, toggleElem} from '../utils/dom.ts';
 import {POST} from '../modules/fetch.ts';
 import {initRepoSettingsBranchesDrag} from './repo-settings-branches.ts';
@@ -72,8 +72,7 @@ function initRepoSettingsSearchTeamBox() {
 
 function initRepoSettingsGitHook() {
   if (!document.querySelector('.page-content.repository.settings.edit.githook')) return;
-  const filename = document.querySelector('.hook-filename')!.textContent;
-  createMonaco(document.querySelector<HTMLTextAreaElement>('#content')!, filename, {language: 'shell'});
+  createCodeEditor(document.querySelector<HTMLTextAreaElement>('#content')!);
 }
 
 function initRepoSettingsBranches() {
