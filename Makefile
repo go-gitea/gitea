@@ -379,12 +379,8 @@ watch-backend: ## watch backend files and continuously rebuild
 .PHONY: test-backend
 test-backend: ## test backend files (set TEST_SHARD/TEST_TOTAL_SHARDS to run a partition)
 	@echo "Running go test with $(GOTEST_FLAGS) -tags '$(TAGS)'..."
-ifdef TEST_SHARD
-	@pkgs=$$(echo "$(GO_TEST_PACKAGES)" | tr ' ' '\n' | ./tools/partition-by-shard.sh) && \
+	@pkgs=$$(echo "$(GO_TEST_PACKAGES)" | tr ' ' '\n' | ./tools/test-go.sh pkgs) && \
 	$(GO) test $(GOTEST_FLAGS) -tags='$(TAGS)' $$pkgs
-else
-	@$(GO) test $(GOTEST_FLAGS) -tags='$(TAGS)' $(GO_TEST_PACKAGES)
-endif
 
 .PHONY: test-frontend
 test-frontend: node_modules ## test frontend files
@@ -449,11 +445,7 @@ test-integration:
 	@# would flood output per passing test. testcache can't help these tests anyway —
 	@# they mutate the work directory, so cache inputs change between runs.
 	$(GO) test $(GOTEST_FLAGS) -tags '$(TAGS)' -c code.gitea.io/gitea/tests/integration -o ./test-integration-$(GITEA_TEST_DATABASE).test
-ifdef TEST_SHARD
-	./tools/test-integration-shard.sh ./test-integration-$(GITEA_TEST_DATABASE).test
-else
-	./test-integration-$(GITEA_TEST_DATABASE).test
-endif
+	./tools/test-go.sh tests ./test-integration-$(GITEA_TEST_DATABASE).test
 
 .PHONY: test-integration\#%
 test-integration\#%:
