@@ -43,9 +43,9 @@ export type ActionsRun = {
 };
 
 export type ActionsJobSummary = {
-  jobId: number;
-  jobName: string;
-  summaryHTML: string;
+  jobId: number,
+  jobName: string,
+  summaryHTML: string,
 };
 
 export type ActionsRunAttempt = {

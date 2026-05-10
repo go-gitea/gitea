@@ -14,7 +14,6 @@ import (
 	"net/http"
 	"net/url"
 	"strconv"
-	"strings"
 	"time"
 
 	actions_model "code.gitea.io/gitea/models/actions"
@@ -513,9 +512,8 @@ func fillViewRunResponseSummary(ctx *context_module.Context, resp *ViewResponse,
 		runAttemptID = attempt.ID
 	}
 
-	// Step-scoped rows arrive ordered by (job_id, step_index), so a streaming groupby
-	// works without an auxiliary order slice. Markdown is concatenated per job and
-	// rendered once so multi-step constructs render the same as a single-step summary.
+	// Rows arrive ordered by (job_id, step_index). Each step's markdown is rendered
+	// independently so an unclosed construct in one step can't bleed into the next.
 	summaries, err := actions_model.ListActionRunJobSummariesByRunAttempt(ctx, ctx.Repo.Repository.ID, run.ID, runAttemptID)
 	if err != nil {
 		ctx.ServerError("ListActionRunJobSummariesByRunAttempt", err)
@@ -528,28 +526,17 @@ func fillViewRunResponseSummary(ctx *context_module.Context, resp *ViewResponse,
 		}
 		renderUtils := templates.NewRenderUtils(ctx)
 		var current *ViewJobSummary
-		var buf strings.Builder
-		flush := func() {
-			if current != nil {
-				current.SummaryHTML = renderUtils.MarkdownToHtml(buf.String())
-				resp.State.Run.JobSummaries = append(resp.State.Run.JobSummaries, current)
-			}
-		}
 		for _, s := range summaries {
 			if s.ContentType != actions_model.JobSummaryContentTypeMarkdown {
 				log.Warn("Skip unsupported job summary content type %q for run %d job %d step %d", s.ContentType, s.RunID, s.JobID, s.StepIndex)
 				continue
 			}
 			if current == nil || current.JobID != s.JobID {
-				flush()
-				buf.Reset()
 				current = &ViewJobSummary{JobID: s.JobID, JobName: jobNameByID[s.JobID]}
-			} else {
-				buf.WriteString("\n\n")
+				resp.State.Run.JobSummaries = append(resp.State.Run.JobSummaries, current)
 			}
-			buf.WriteString(s.Content)
+			current.SummaryHTML += renderUtils.MarkdownToHtml(s.Content)
 		}
-		flush()
 	}
 
 	arts, err := actions_model.ListUploadedArtifactsMetaByRunAttempt(ctx, ctx.Repo.Repository.ID, run.ID, runAttemptID)

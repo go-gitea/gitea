@@ -22,6 +22,7 @@ import (
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unittest"
 	user_model "code.gitea.io/gitea/models/user"
+	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/tests"
 
 	runnerv1 "code.gitea.io/actions-proto-go/runner/v1"
@@ -195,6 +196,21 @@ func TestActionsJobSummaryUpload(t *testing.T) {
 			SetHeader("Content-Type", actions_model.JobSummaryContentTypeMarkdown)
 		resp := MakeRequest(t, req, http.StatusBadRequest)
 		assert.Contains(t, resp.Body.String(), "step_index mismatch")
+	})
+
+	t.Run("empty-body-clears", func(t *testing.T) {
+		req := NewRequestWithBody(t, "PUT", summaryURL(0), strings.NewReader("### keep me")).
+			AddTokenAuth("8061e833a55f6fc0157c98b883e91fcfeeb1a71a").
+			SetHeader("Content-Type", actions_model.JobSummaryContentTypeMarkdown)
+		MakeRequest(t, req, http.StatusOK)
+
+		req = NewRequestWithBody(t, "PUT", summaryURL(0), strings.NewReader("")).
+			AddTokenAuth("8061e833a55f6fc0157c98b883e91fcfeeb1a71a").
+			SetHeader("Content-Type", actions_model.JobSummaryContentTypeMarkdown)
+		MakeRequest(t, req, http.StatusOK)
+
+		_, err := actions_model.GetActionRunJobSummary(t.Context(), task.Job.RepoID, task.Job.RunID, task.Job.RunAttemptID, task.Job.ID, 0)
+		require.ErrorIs(t, err, util.ErrNotExist)
 	})
 }
 

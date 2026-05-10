@@ -59,7 +59,13 @@ func uploadJobSummary(ctx *ArtifactContext) {
 		return
 	}
 	if len(body) == 0 {
-		ctx.JSON(http.StatusOK, map[string]any{"message": "empty"})
+		// PUT with an empty body clears any previously-stored summary for this step.
+		if err := actions_model.DeleteActionRunJobSummary(ctx, task.Job.RepoID, task.Job.RunID, task.Job.RunAttemptID, task.Job.ID, stepIndex); err != nil {
+			log.Error("Error deleting job summary: %v", err)
+			ctx.HTTPError(http.StatusInternalServerError, "Error deleting job summary")
+			return
+		}
+		ctx.JSON(http.StatusOK, map[string]any{"message": "cleared"})
 		return
 	}
 

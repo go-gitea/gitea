@@ -44,6 +44,10 @@ type ActionRunJobSummary struct {
 
 	Content     string `xorm:"LONGTEXT"`
 	ContentType string `xorm:"VARCHAR(255) NOT NULL DEFAULT 'text/markdown'"`
+	// ContentSize is the byte length of Content. Stored explicitly because LENGTH()
+	// counts characters (not bytes) on PostgreSQL, SQLite and MSSQL, which would let
+	// multibyte UTF-8 content bypass the aggregate cap.
+	ContentSize int64 `xorm:"NOT NULL DEFAULT 0"`
 
 	Created timeutil.TimeStamp `xorm:"created"`
 	Updated timeutil.TimeStamp `xorm:"updated"`
@@ -96,7 +100,7 @@ func UpsertActionRunJobSummary(ctx context.Context, repoID, runID, runAttemptID,
 			if e.StepIndex == stepIndex {
 				continue
 			}
-			aggregate += int(e.Size)
+			aggregate += int(e.ContentSize)
 		}
 		if aggregate > MaxJobSummaryAggregateSize {
 			return ErrJobSummaryAggregateExceeded
@@ -110,6 +114,7 @@ func UpsertActionRunJobSummary(ctx context.Context, repoID, runID, runAttemptID,
 			JobID:        jobID,
 			StepIndex:    stepIndex,
 			Content:      string(content),
+			ContentSize:  int64(len(content)),
 			ContentType:  contentType,
 			Created:      now,
 			Updated:      now,
@@ -118,22 +123,31 @@ func UpsertActionRunJobSummary(ctx context.Context, repoID, runID, runAttemptID,
 }
 
 type jobSummarySize struct {
-	StepIndex int64
-	Size      int64
+	StepIndex   int64
+	ContentSize int64
 }
 
 func listJobSummaryContentSizes(ctx context.Context, repoID, runID, runAttemptID, jobID int64) ([]jobSummarySize, error) {
 	var rows []jobSummarySize
 	err := db.GetEngine(ctx).Table("action_run_job_summary").
-		Select("step_index, LENGTH(content) AS size").
+		Cols("step_index", "content_size").
 		Where("repo_id=? AND run_id=? AND run_attempt_id=? AND job_id=?", repoID, runID, runAttemptID, jobID).
 		Find(&rows)
 	return rows, err
 }
 
+// DeleteActionRunJobSummary removes the stored summary for a specific step. Used when
+// a runner PUTs an empty body to clear a previously-uploaded step summary.
+func DeleteActionRunJobSummary(ctx context.Context, repoID, runID, runAttemptID, jobID, stepIndex int64) error {
+	_, err := db.GetEngine(ctx).
+		Where("repo_id=? AND run_id=? AND run_attempt_id=? AND job_id=? AND step_index=?", repoID, runID, runAttemptID, jobID, stepIndex).
+		Delete(new(ActionRunJobSummary))
+	return err
+}
+
 func upsertActionRunJobSummary(ctx context.Context, summary *ActionRunJobSummary) error {
 	engine := db.GetEngine(ctx)
-	columns := "`repo_id`, `run_id`, `run_attempt_id`, `job_id`, `step_index`, `content`, `content_type`, `created`, `updated`"
+	columns := "`repo_id`, `run_id`, `run_attempt_id`, `job_id`, `step_index`, `content`, `content_type`, `content_size`, `created`, `updated`"
 	values := []any{
 		summary.RepoID,
 		summary.RunID,
@@ -142,22 +156,23 @@ func upsertActionRunJobSummary(ctx context.Context, summary *ActionRunJobSummary
 		summary.StepIndex,
 		summary.Content,
 		summary.ContentType,
+		summary.ContentSize,
 		summary.Created,
 		summary.Updated,
 	}
 
 	if setting.Database.Type.IsPostgreSQL() || setting.Database.Type.IsSQLite3() {
-		args := append([]any{"INSERT INTO `action_run_job_summary` (" + columns + ") VALUES (?,?,?,?,?,?,?,?,?) " +
+		args := append([]any{"INSERT INTO `action_run_job_summary` (" + columns + ") VALUES (?,?,?,?,?,?,?,?,?,?) " +
 			"ON CONFLICT (`repo_id`, `run_id`, `run_attempt_id`, `job_id`, `step_index`) DO UPDATE SET " +
-			"`content` = excluded.`content`, `content_type` = excluded.`content_type`, `updated` = excluded.`updated`"}, values...)
+			"`content` = excluded.`content`, `content_type` = excluded.`content_type`, `content_size` = excluded.`content_size`, `updated` = excluded.`updated`"}, values...)
 		_, err := engine.Exec(args...)
 		return err
 	}
 
 	if setting.Database.Type.IsMySQL() {
 		args := append([]any{
-			"INSERT INTO `action_run_job_summary` (" + columns + ") VALUES (?,?,?,?,?,?,?,?,?) " +
-				"ON DUPLICATE KEY UPDATE `content` = VALUES(`content`), `content_type` = VALUES(`content_type`), `updated` = VALUES(`updated`)",
+			"INSERT INTO `action_run_job_summary` (" + columns + ") VALUES (?,?,?,?,?,?,?,?,?,?) " +
+				"ON DUPLICATE KEY UPDATE `content` = VALUES(`content`), `content_type` = VALUES(`content_type`), `content_size` = VALUES(`content_size`), `updated` = VALUES(`updated`)",
 		}, values...)
 		_, err := engine.Exec(args...)
 		return err
@@ -173,14 +188,14 @@ ON target.repo_id = source.repo_id
 	AND target.job_id = source.job_id
 	AND target.step_index = source.step_index
 WHEN MATCHED THEN
-	UPDATE SET content = ?, content_type = ?, updated = ?
+	UPDATE SET content = ?, content_type = ?, content_size = ?, updated = ?
 WHEN NOT MATCHED THEN
-	INSERT (repo_id, run_id, run_attempt_id, job_id, step_index, content, content_type, created, updated)
-	VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?);
+	INSERT (repo_id, run_id, run_attempt_id, job_id, step_index, content, content_type, content_size, created, updated)
+	VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
 `,
 			summary.RepoID, summary.RunID, summary.RunAttemptID, summary.JobID, summary.StepIndex,
-			summary.Content, summary.ContentType, summary.Updated,
-			summary.RepoID, summary.RunID, summary.RunAttemptID, summary.JobID, summary.StepIndex, summary.Content, summary.ContentType, summary.Created, summary.Updated)
+			summary.Content, summary.ContentType, summary.ContentSize, summary.Updated,
+			summary.RepoID, summary.RunID, summary.RunAttemptID, summary.JobID, summary.StepIndex, summary.Content, summary.ContentType, summary.ContentSize, summary.Created, summary.Updated)
 		return err
 	}
 
