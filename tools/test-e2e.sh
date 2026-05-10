@@ -2,7 +2,6 @@
 set -euo pipefail
 
 CONTAINER_RUNTIME="${CONTAINER_RUNTIME:-docker}"
-# Unique container name so concurrent test-e2e runs on the same host don't collide.
 CONTAINER_NAME="gitea-e2e-runner-$$"
 
 free_port() {
