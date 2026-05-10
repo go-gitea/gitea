@@ -581,7 +581,49 @@ func TestAPIIssueProjectMeta(t *testing.T) {
 }
 
 func TestAPIIssuePrivateOrgProjectHidden(t *testing.T) {
-	t.Skip("rebuilt for multi-project signature in later commit")
+	defer tests.PrepareTestEnv(t)()
+
+	// privated_org (id=23, visibility=private) has public repo (id=40)
+	// user5 is in privated_org, user2 is not
+	privateOrg := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 23})
+	publicRepo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 40})
+	user1 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 1})
+
+	issue := &issues_model.Issue{
+		RepoID:   publicRepo.ID,
+		Title:    "test for private org project",
+		PosterID: user1.ID,
+	}
+	require.NoError(t, issues_model.NewIssue(t.Context(), publicRepo, issue, nil, nil))
+
+	orgProject := project_model.Project{
+		Title:   "private org project",
+		OwnerID: privateOrg.ID,
+		Type:    project_model.TypeOrganization,
+	}
+	require.NoError(t, project_model.NewProject(t.Context(), &orgProject))
+	require.NoError(t, issues_model.IssueAssignOrRemoveProject(t.Context(), issue, user1, []int64{orgProject.ID}))
+
+	t.Run("AdminCanSee", func(t *testing.T) {
+		token1 := getTokenForLoggedInUser(t, loginUser(t, "user1"), auth_model.AccessTokenScopeReadIssue)
+		req := NewRequest(t, "GET", fmt.Sprintf("/api/v1/repos/%s/%s/issues/%d", publicRepo.OwnerName, publicRepo.Name, issue.Index)).AddTokenAuth(token1)
+		resp := MakeRequest(t, req, http.StatusOK)
+		var apiIssue api.Issue
+		DecodeJSON(t, resp, &apiIssue)
+		require.Len(t, apiIssue.Projects, 1, "admin should see private org project")
+		assert.Equal(t, orgProject.ID, apiIssue.Projects[0].ID)
+	})
+
+	t.Run("MemberWithoutProjectsAccess", func(t *testing.T) {
+		// user5 is in org23 (team17) but team17 only has Actions (type=9) access,
+		// not Projects (type=8). So user5 can access the repo but not org projects.
+		token5 := getTokenForLoggedInUser(t, loginUser(t, "user5"), auth_model.AccessTokenScopeReadIssue)
+		req := NewRequest(t, "GET", fmt.Sprintf("/api/v1/repos/%s/%s/issues/%d", publicRepo.OwnerName, publicRepo.Name, issue.Index)).AddTokenAuth(token5)
+		resp := MakeRequest(t, req, http.StatusOK)
+		var apiIssue api.Issue
+		DecodeJSON(t, resp, &apiIssue)
+		assert.Empty(t, apiIssue.Projects, "org member without projects unit access should not see project")
+	})
 }
 
 func testAPIIssueProjects(t *testing.T) {
