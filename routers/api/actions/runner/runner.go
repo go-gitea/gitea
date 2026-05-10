@@ -244,6 +244,22 @@ func (s *Service) UpdateTask(
 	}), nil
 }
 
+// planLogUpdate decides what UpdateLog should do for a request. It returns
+// the slice of rows to write (may be empty when the runner is finalizing a
+// log it has already streamed), whether to run TransferLogs, and whether
+// to bail with an ack-only response. We bail when the runner has outrun
+// the server (index > ack) even with noMore, since archiving a log with a
+// gap is worse than asking the runner to retry.
+func planLogUpdate(rows []*runnerv1.LogRow, index, ack int64, noMore bool) (newRows []*runnerv1.LogRow, finalize, bail bool) {
+	if index <= ack && int64(len(rows))+index > ack {
+		newRows = rows[ack-index:]
+	}
+	if len(newRows) == 0 && (!noMore || index > ack) {
+		return nil, false, true
+	}
+	return newRows, noMore, false
+}
+
 // UpdateLog uploads log of the task.
 func (s *Service) UpdateLog(
 	ctx context.Context,
@@ -260,8 +276,8 @@ func (s *Service) UpdateLog(
 		return nil, status.Errorf(codes.Internal, "invalid runner for task")
 	}
 	ack := task.LogLength
-
-	if len(req.Msg.Rows) == 0 || req.Msg.Index > ack || int64(len(req.Msg.Rows))+req.Msg.Index <= ack {
+	newRows, finalize, bail := planLogUpdate(req.Msg.Rows, req.Msg.Index, ack, req.Msg.NoMore)
+	if bail {
 		res.Msg.AckIndex = ack
 		return res, nil
 	}
@@ -270,21 +286,22 @@ func (s *Service) UpdateLog(
 		return nil, status.Errorf(codes.AlreadyExists, "log file has been archived")
 	}
 
-	rows := req.Msg.Rows[ack-req.Msg.Index:]
-	ns, err := actions.WriteLogs(ctx, task.LogFilename, task.LogSize, rows)
-	if err != nil {
-		return nil, status.Errorf(codes.Internal, "unable to append logs to dbfs file: %v", err)
-	}
-	task.LogLength += int64(len(rows))
-	for _, n := range ns {
-		task.LogIndexes = append(task.LogIndexes, task.LogSize)
-		task.LogSize += int64(n)
+	if len(newRows) > 0 {
+		ns, err := actions.WriteLogs(ctx, task.LogFilename, task.LogSize, newRows)
+		if err != nil {
+			return nil, status.Errorf(codes.Internal, "unable to append logs to dbfs file: %v", err)
+		}
+		task.LogLength += int64(len(newRows))
+		for _, n := range ns {
+			task.LogIndexes = append(task.LogIndexes, task.LogSize)
+			task.LogSize += int64(n)
+		}
 	}
 
 	res.Msg.AckIndex = task.LogLength
 
 	var remove func()
-	if req.Msg.NoMore {
+	if finalize {
 		task.LogInStorage = true
 		remove, err = actions.TransferLogs(ctx, task.LogFilename)
 		if err != nil {
