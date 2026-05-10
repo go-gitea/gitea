@@ -244,16 +244,6 @@ func (s *Service) UpdateTask(
 	}), nil
 }
 
-// planLogUpdate trims acked rows and decides whether to bail. Bails on
-// Index > ack even with NoMore — archiving a gap is worse than retrying.
-func planLogUpdate(rows []*runnerv1.LogRow, index, ack int64, noMore bool) (newRows []*runnerv1.LogRow, bail bool) {
-	if index <= ack && int64(len(rows))+index > ack {
-		newRows = rows[ack-index:]
-	}
-	bail = len(newRows) == 0 && (!noMore || index > ack)
-	return newRows, bail
-}
-
 // UpdateLog uploads log of the task.
 func (s *Service) UpdateLog(
 	ctx context.Context,
@@ -270,8 +260,17 @@ func (s *Service) UpdateLog(
 		return nil, status.Errorf(codes.Internal, "invalid runner for task")
 	}
 	ack := task.LogLength
-	rows, bail := planLogUpdate(req.Msg.Rows, req.Msg.Index, ack, req.Msg.NoMore)
-	if bail {
+
+	// Trim rows the runner already had acked.
+	var rows []*runnerv1.LogRow
+	if req.Msg.Index <= ack && int64(len(req.Msg.Rows))+req.Msg.Index > ack {
+		rows = req.Msg.Rows[ack-req.Msg.Index:]
+	}
+
+	// Bail unless we have new rows or a NoMore to finalize. Even with
+	// NoMore, bail when the runner has outrun the server — archiving a
+	// log with a gap is worse than asking it to retry.
+	if len(rows) == 0 && (!req.Msg.NoMore || req.Msg.Index > ack) {
 		res.Msg.AckIndex = ack
 		return res, nil
 	}
@@ -280,9 +279,9 @@ func (s *Service) UpdateLog(
 		return nil, status.Errorf(codes.AlreadyExists, "log file has been archived")
 	}
 
-	// Empty rows + offset==0 bootstraps the DBFS file via O_CREATE so the
-	// TransferLogs call below can read it for runners that finalized with
-	// no log output.
+	// WriteLogs is called even with no rows: with offset==0 it bootstraps
+	// an empty DBFS file so TransferLogs below has something to read when
+	// the runner finalizes a task that produced no log output.
 	ns, err := actions.WriteLogs(ctx, task.LogFilename, task.LogSize, rows)
 	if err != nil {
 		return nil, status.Errorf(codes.Internal, "unable to append logs to dbfs file: %v", err)
