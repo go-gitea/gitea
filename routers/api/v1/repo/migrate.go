@@ -10,6 +10,7 @@ import (
 	"net/http"
 	"strings"
 
+	admin_model "code.gitea.io/gitea/models/admin"
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/models/organization"
 	"code.gitea.io/gitea/models/perm"
@@ -18,11 +19,13 @@ import (
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/graceful"
+	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/modules/lfs"
 	"code.gitea.io/gitea/modules/log"
 	base "code.gitea.io/gitea/modules/migration"
 	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
+	"code.gitea.io/gitea/modules/timeutil"
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/modules/web"
 	"code.gitea.io/gitea/services/context"
@@ -169,6 +172,32 @@ func Migrate(ctx *context.APIContext) {
 		opts.AWSSecretAccessKey = form.AWSSecretAccessKey
 	}
 
+	// We only need CloneAddr so that frontend can fetch
+	// the particular task => CloneAddr
+	runtimeOpts := migrations.MigrateOptions{
+		CloneAddr: util.SanitizeCredentialURLs(opts.CloneAddr),
+		RepoName:  opts.RepoName,
+	}
+
+	jsonMarshalledOpts, err := json.Marshal(&runtimeOpts)
+	if err != nil {
+		handleMigrateError(ctx, repoOwner, err)
+		return
+	}
+
+	task := &admin_model.Task{
+		DoerID:         ctx.Doer.ID,
+		OwnerID:        repoOwner.ID,
+		Type:           api.TaskTypeMigrateRepo,
+		Status:         api.TaskStatusQueued,
+		PayloadContent: string(jsonMarshalledOpts),
+	}
+
+	if err := admin_model.CreateTask(ctx, task); err != nil {
+		handleMigrateError(ctx, repoOwner, err)
+		return
+	}
+
 	createdRepo, err := repo_service.CreateRepositoryDirectly(ctx, ctx.Doer, repoOwner, repo_service.CreateRepoOptions{
 		Name:           opts.RepoName,
 		Description:    opts.Description,
@@ -179,10 +208,21 @@ func Migrate(ctx *context.APIContext) {
 		Status:         repo_model.RepositoryBeingMigrated,
 	}, false)
 	if err != nil {
+		task.EndTime = timeutil.TimeStampNow()
+		task.Status = api.TaskStatusFailed
+		err2 := task.UpdateCols(ctx, "end_time", "status")
+		if err2 != nil {
+			log.Error("UpdateCols Failed: %v", err2.Error())
+		}
 		handleMigrateError(ctx, repoOwner, err)
 		return
 	}
 
+	task.RepoID = createdRepo.ID
+	if err = task.UpdateCols(ctx, "repo_id"); err != nil {
+		handleMigrateError(ctx, repoOwner, err)
+		return
+	}
 	opts.MigrateToRepoID = createdRepo.ID
 
 	doLongTimeMigrate := func(ctx gocontext.Context, doer *user_model.User) (migratedRepo *repo_model.Repository, retErr error) {
@@ -209,10 +249,24 @@ func Migrate(ctx *context.APIContext) {
 	// There are other abuses, maybe most HammerContext abuses should be fixed together in the future.
 	migratedRepo, err := doLongTimeMigrate(graceful.GetManager().HammerContext(), ctx.Doer)
 	if err != nil {
+		task.EndTime = timeutil.TimeStampNow()
+		task.Status = api.TaskStatusFailed
+		err2 := task.UpdateCols(ctx, "end_time", "status")
+		if err2 != nil {
+			log.Error("UpdateCols Failed: %v", err2.Error())
+		}
 		handleMigrateError(ctx, repoOwner, err)
 		return
 	}
 
+	task.EndTime = timeutil.TimeStampNow()
+	task.Status = api.TaskStatusFinished
+	err2 := task.UpdateCols(ctx, "end_time", "status")
+	if err2 != nil {
+		log.Error("UpdateCols Failed: %v", err2.Error())
+		handleMigrateError(ctx, repoOwner, err2)
+		return
+	}
 	ctx.JSON(http.StatusCreated, convert.ToRepo(ctx, migratedRepo, access_model.Permission{AccessMode: perm.AccessModeAdmin}))
 }
 
