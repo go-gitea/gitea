@@ -181,13 +181,13 @@ func toCommitStatusDescription(job *actions_model.ActionRunJob) string {
 	case actions_model.StatusFailure:
 		return fmt.Sprintf("Failing after %s", job.Duration())
 	case actions_model.StatusCancelled:
-		return fmt.Sprintf("Cancelled after %s", job.Duration())
+		return fmt.Sprintf("Canceled after %s", job.Duration())
 	case actions_model.StatusSkipped:
 		return "Skipped"
 	case actions_model.StatusRunning:
 		return "In progress"
 	case actions_model.StatusCancelling:
-		return "Cancellation in progress"
+		return "Canceling"
 	case actions_model.StatusWaiting:
 		return "Waiting to run"
 	case actions_model.StatusBlocked:
