@@ -10,6 +10,7 @@ import (
 	"strconv"
 
 	"code.gitea.io/gitea/models/db"
+	group_model "code.gitea.io/gitea/models/group"
 	issues_model "code.gitea.io/gitea/models/issues"
 	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
@@ -228,6 +229,16 @@ func GetFeeds(ctx context.Context, opts GetFeedsOptions) (ActionList, int64, err
 		}
 		if opts.OnlyPerformedBy {
 			cond = cond.And(builder.Eq{"act_user_id": opts.RequestedUser.ID})
+		}
+		if opts.RequestedGroup != nil {
+			cond = cond.And(builder.In("`action`.repo_id",
+				builder.Select("id").
+					From("repository").
+					Where(builder.Or(
+						builder.In("`repository`.group_id", group_model.ChildGroupCond(opts.RequestedGroup.ID, opts.Actor)),
+						builder.Eq{"`repository`.group_id": opts.RequestedGroup.ID}),
+					),
+			))
 		}
 	} else {
 		cond, err = ActivityQueryCondition(ctx, opts)
