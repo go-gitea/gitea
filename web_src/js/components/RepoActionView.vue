@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import {SvgIcon} from '../svg.ts';
-import ActionRunStatus from './ActionRunStatus.vue';
+import ActionStatusIcon from './ActionStatusIcon.vue';
 import {computed, ref, toRefs} from 'vue';
 import {POST, DELETE} from '../modules/fetch.ts';
 import ActionRunSummaryView from './ActionRunSummaryView.vue';
@@ -112,7 +112,7 @@ async function deleteArtifact(name: string) {
     <div class="action-view-header">
       <div class="action-info-summary">
         <div class="action-info-summary-title">
-          <ActionRunStatus :locale-status="locale.status[run.status]" :status="run.status" :size="20"/>
+          <ActionStatusIcon :locale-status="locale.status[run.status]" :status="run.status" :size="20" icon-variant="circle-fill"/>
           <!-- eslint-disable-next-line vue/no-v-html -->
           <h2 class="action-info-summary-title-text" v-html="run.titleHTML"/>
         </div>
@@ -161,7 +161,7 @@ async function deleteArtifact(name: string) {
                 </div>
                 <div class="flex-text-block tw-pl-[20px]">
                   <span class="flex-text-inline tw-flex-shrink-0">
-                    <ActionRunStatus :locale-status="locale.status[attempt.status]" :status="attempt.status" :size="14" class="flex-text-block"/>
+                    <ActionStatusIcon :locale-status="locale.status[attempt.status]" :status="attempt.status" :size="14" class="flex-text-block" icon-variant="circle-fill"/>
                     <span>{{ locale.status[attempt.status] }}</span>
                   </span>
                   <span>•</span>
@@ -226,7 +226,7 @@ async function deleteArtifact(name: string) {
             </button>
             <span v-else class="job-brief-toggle-placeholder"/>
             <a class="tw-contents silenced" :href="item.job.link">
-              <ActionRunStatus :locale-status="locale.status[item.job.status]" :status="item.job.status"/>
+              <ActionStatusIcon :locale-status="locale.status[item.job.status]" :status="item.job.status" icon-variant="circle-fill"/>
               <span class="tw-flex-1 gt-ellipsis">{{ item.job.name }}</span>
               <SvgIcon name="octicon-sync" role="button" :data-tooltip-content="locale.rerun" class="tw-cursor-pointer link-action interact-fg" :data-url="`${run.link}/jobs/${item.job.id}/rerun`" v-if="item.job.canRerun"/>
               <span>{{ item.job.duration }}</span>
