@@ -4,9 +4,15 @@
 package gitrepo
 
 import (
+	"path/filepath"
+	"strings"
 	"testing"
 
+	"code.gitea.io/gitea/modules/git/gitcmd"
+	"code.gitea.io/gitea/modules/util"
+
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 type mockRepository struct {
@@ -15,6 +21,32 @@ type mockRepository struct {
 
 func (r *mockRepository) RelativePath() string {
 	return r.path
+}
+
+func TestMergeBaseNoCommonHistory(t *testing.T) {
+	repoDir := filepath.Join(t.TempDir(), "repo.git")
+	require.NoError(t, gitcmd.NewCommand("init").AddDynamicArguments(repoDir).Run(t.Context()))
+	_, _, runErr := gitcmd.NewCommand("fast-import").WithDir(repoDir).WithStdinBytes([]byte(strings.TrimSpace(`
+commit refs/heads/branch1
+committer User <user@example.com> 1714310400 +0000
+data 12
+First commit
+M 100644 inline file1.txt
+data 12
+Hello from 1
+
+commit refs/heads/branch2
+committer User <user@example.com> 1714310400 +0000
+data 13
+Second commit
+M 100644 inline file2.txt
+data 12
+Hello from 2
+`))).RunStdString(t.Context())
+	require.NoError(t, runErr)
+	mergeBase, err := MergeBase(t.Context(), &mockRepository{path: repoDir}, "branch1", "branch2")
+	assert.Empty(t, mergeBase)
+	assert.ErrorIs(t, err, util.ErrNotExist)
 }
 
 func TestRepoGetDivergingCommits(t *testing.T) {

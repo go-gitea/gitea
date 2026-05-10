@@ -4,6 +4,7 @@
 package auth
 
 import (
+	"html/template"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
@@ -67,15 +68,15 @@ func TestWebAuthOAuth2(t *testing.T) {
 	defer test.MockVariableValue(&setting.OAuth2Client.EnableAutoRegistration, true)()
 
 	_ = oauth2.Init(t.Context())
-	addOAuth2Source(t, "dummy-auth-source", oauth2.Source{})
+	addOAuth2Source(t, "dummy+auth's source", oauth2.Source{})
 
 	t.Run("OAuth2MissingField", func(t *testing.T) {
 		defer test.MockVariableValue(&gothic.CompleteUserAuth, func(res http.ResponseWriter, req *http.Request) (goth.User, error) {
-			return goth.User{Provider: "dummy-auth-source", UserID: "dummy-user"}, nil
+			return goth.User{Provider: "dummy+auth's source", UserID: "dummy-user"}, nil
 		})()
 		mockOpt := contexttest.MockContextOption{SessionStore: session.NewMockMemStore("dummy-sid")}
-		ctx, resp := contexttest.MockContext(t, "/user/oauth2/dummy-auth-source/callback?code=dummy-code", mockOpt)
-		ctx.SetPathParam("provider", "dummy-auth-source")
+		ctx, resp := contexttest.MockContext(t, "/user/oauth2/..../callback?code=dummy-code", mockOpt)
+		ctx.SetPathParamRaw("provider", "dummy+auth%27s%20source")
 		SignInOAuthCallback(ctx)
 		assert.Equal(t, http.StatusSeeOther, resp.Code)
 		assert.Equal(t, "/user/link_account", test.RedirectURL(resp))
@@ -83,13 +84,13 @@ func TestWebAuthOAuth2(t *testing.T) {
 		// then the user will be redirected to the link account page, and see a message about the missing fields
 		ctx, _ = contexttest.MockContext(t, "/user/link_account", mockOpt)
 		LinkAccount(ctx)
-		assert.EqualValues(t, "auth.oauth_callback_unable_auto_reg:dummy-auth-source,email", ctx.Data["AutoRegistrationFailedPrompt"])
+		assert.Equal(t, template.HTML("auth.oauth_callback_unable_auto_reg:dummy+auth&#39;s source,email"), ctx.Data["AutoRegistrationFailedPrompt"])
 	})
 
 	t.Run("OAuth2CallbackError", func(t *testing.T) {
 		mockOpt := contexttest.MockContextOption{SessionStore: session.NewMockMemStore("dummy-sid")}
-		ctx, resp := contexttest.MockContext(t, "/user/oauth2/dummy-auth-source/callback", mockOpt)
-		ctx.SetPathParam("provider", "dummy-auth-source")
+		ctx, resp := contexttest.MockContext(t, "/user/oauth2/...../callback", mockOpt)
+		ctx.SetPathParamRaw("provider", "dummy+auth%27s%20source")
 		SignInOAuthCallback(ctx)
 		assert.Equal(t, http.StatusSeeOther, resp.Code)
 		assert.Equal(t, "/user/login", test.RedirectURL(resp))
@@ -112,8 +113,8 @@ func TestWebAuthOAuth2(t *testing.T) {
 				assert.Equal(t, expectedRedirect, test.RedirectURL(resp))
 			}
 		}
-		testSignIn(t, "/user/login", http.StatusSeeOther, "/user/oauth2/dummy-auth-source")
-		testSignIn(t, "/user/login?redirect_to=/", http.StatusSeeOther, "/user/oauth2/dummy-auth-source?redirect_to=%2F")
+		testSignIn(t, "/user/login", http.StatusSeeOther, "/user/oauth2/dummy+auth%27s%20source")
+		testSignIn(t, "/user/login?redirect_to=/", http.StatusSeeOther, "/user/oauth2/dummy+auth%27s%20source?redirect_to=%2F")
 
 		*enablePassword, *enableOpenID, *enablePasskey = true, false, false
 		testSignIn(t, "/user/login", http.StatusOK, "")

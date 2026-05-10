@@ -13,6 +13,7 @@ import (
 	"io"
 	"mime"
 	"net/http"
+	"strconv"
 	"strings"
 	"testing"
 	"time"
@@ -31,6 +32,7 @@ import (
 	"code.gitea.io/gitea/routers/api/actions"
 	actions_service "code.gitea.io/gitea/services/actions"
 
+	runnerv1 "code.gitea.io/actions-proto-go/runner/v1"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"google.golang.org/protobuf/encoding/protojson"
@@ -879,4 +881,128 @@ func TestActionsArtifactV4DeletePublicApiNotAllowedReadScope(t *testing.T) {
 	req = NewRequestWithBody(t, "GET", fmt.Sprintf("/api/v1/repos/%s/actions/artifacts/%d", repo.FullName(), 22), nil).
 		AddTokenAuth(token)
 	MakeRequest(t, req, http.StatusOK)
+}
+
+func testActionRunAttemptArtifactV4(t *testing.T, repo *repo_model.Repository, session *TestSession, runner *mockRunner) {
+	req := NewRequestWithValues(t, "POST", fmt.Sprintf("/%s/%s/actions/run?workflow=%s", repo.OwnerName, repo.Name, "run-attempt-artifact.yml"), map[string]string{
+		"ref": "refs/heads/main",
+	})
+	session.MakeRequest(t, req, http.StatusSeeOther)
+
+	// first run
+	task1 := runner.fetchTask(t)
+	_, job1, run := getTaskAndJobAndRunByTaskID(t, task1.Id)
+	require.NotZero(t, job1.RunAttemptID)
+	taskToken1 := task1.Context.GetFields()["gitea_runtime_token"].GetStringValue()
+	require.NotEmpty(t, taskToken1)
+	uploadTestArtifactFileV4(t, run.ID, job1.ID, taskToken1, "artifact-attempt-1", strings.Repeat("A", 32))
+	uploadTestArtifactFileV4(t, run.ID, job1.ID, taskToken1, "artifact-shared", strings.Repeat("C", 32))
+	attempt1Names := listArtifactNamesForRunV4(t, run.ID, job1.ID, taskToken1)
+	assert.ElementsMatch(t, []string{"artifact-attempt-1", "artifact-shared"}, attempt1Names)
+
+	runner.execTask(t, task1, &mockTaskOutcome{result: runnerv1.Result_RESULT_SUCCESS})
+
+	// rerun
+	req = NewRequest(t, "POST", fmt.Sprintf("/%s/%s/actions/runs/%d/rerun", repo.OwnerName, repo.Name, run.ID))
+	session.MakeRequest(t, req, http.StatusOK)
+	task2 := runner.fetchTask(t)
+	_, job2, _ := getTaskAndJobAndRunByTaskID(t, task2.Id)
+	require.NotZero(t, job2.RunAttemptID)
+	assert.NotEqual(t, job1.RunAttemptID, job2.RunAttemptID)
+	taskToken2 := task2.Context.GetFields()["gitea_runtime_token"].GetStringValue()
+	require.NotEmpty(t, taskToken2)
+	uploadTestArtifactFileV4(t, run.ID, job2.ID, taskToken2, "artifact-attempt-2", strings.Repeat("B", 32))
+	uploadTestArtifactFileV4(t, run.ID, job2.ID, taskToken2, "artifact-shared", strings.Repeat("D", 32))
+	attempt2Names := listArtifactNamesForRunV4(t, run.ID, job2.ID, taskToken2)
+	assert.ElementsMatch(t, []string{"artifact-attempt-2", "artifact-shared"}, attempt2Names)
+	assert.NotContains(t, attempt2Names, "artifact-attempt-1")
+
+	// "artifact-attempt-1" belongs to the first attempt, so the rerun token cannot access it
+	req = NewRequestWithBody(t, "POST", "/twirp/github.actions.results.api.v1.ArtifactService/GetSignedArtifactURL", toProtoJSON(&actions.GetSignedArtifactURLRequest{
+		Name:                    "artifact-attempt-1",
+		WorkflowRunBackendId:    strconv.FormatInt(run.ID, 10),
+		WorkflowJobRunBackendId: strconv.FormatInt(job2.ID, 10),
+	})).AddTokenAuth(taskToken2)
+	MakeRequest(t, req, http.StatusNotFound)
+
+	// the run-scoped repo API should list finalized v4 artifacts from all attempts
+	req = NewRequest(t, "GET", fmt.Sprintf("/api/v1/repos/%s/%s/actions/runs/%d/artifacts", repo.OwnerName, repo.Name, run.ID))
+	resp := session.MakeRequest(t, req, http.StatusOK)
+	var runArtifactsResp api.ActionArtifactsResponse
+	require.NoError(t, json.Unmarshal(resp.Body.Bytes(), &runArtifactsResp))
+	require.Len(t, runArtifactsResp.Entries, 4)
+	runArtifactNames := make([]string, 0, len(runArtifactsResp.Entries))
+	for _, artifact := range runArtifactsResp.Entries {
+		runArtifactNames = append(runArtifactNames, artifact.Name)
+	}
+	assert.ElementsMatch(t, []string{"artifact-attempt-1", "artifact-shared", "artifact-attempt-2", "artifact-shared"}, runArtifactNames)
+
+	// the result should contain 2 artifacts when query by name=artifact-shared
+	req = NewRequest(t, "GET", fmt.Sprintf("/api/v1/repos/%s/%s/actions/runs/%d/artifacts?name=artifact-shared", repo.OwnerName, repo.Name, run.ID))
+	resp = session.MakeRequest(t, req, http.StatusOK)
+	var sharedArtifactsResp api.ActionArtifactsResponse
+	require.NoError(t, json.Unmarshal(resp.Body.Bytes(), &sharedArtifactsResp))
+	require.Len(t, sharedArtifactsResp.Entries, 2)
+	assert.Equal(t, strings.Repeat("C", 32), downloadRepoArtifactV4Content(t, session, sharedArtifactsResp.Entries[0].ArchiveDownloadURL))
+	assert.Equal(t, strings.Repeat("D", 32), downloadRepoArtifactV4Content(t, session, sharedArtifactsResp.Entries[1].ArchiveDownloadURL))
+}
+
+func uploadTestArtifactFileV4(t *testing.T, runID, jobID int64, authToken, artifactName, content string) {
+	t.Helper()
+
+	req := NewRequestWithBody(t, "POST", "/twirp/github.actions.results.api.v1.ArtifactService/CreateArtifact", toProtoJSON(&actions.CreateArtifactRequest{
+		Version:                 4,
+		Name:                    artifactName,
+		WorkflowRunBackendId:    strconv.FormatInt(runID, 10),
+		WorkflowJobRunBackendId: strconv.FormatInt(jobID, 10),
+		MimeType:                wrapperspb.String("application/zip"),
+	})).AddTokenAuth(authToken)
+	resp := MakeRequest(t, req, http.StatusOK)
+	var uploadResp actions.CreateArtifactResponse
+	require.NoError(t, protojson.Unmarshal(resp.Body.Bytes(), &uploadResp))
+	require.True(t, uploadResp.Ok)
+
+	req = NewRequestWithBody(t, "PUT", uploadResp.SignedUploadUrl+"&comp=appendBlock", strings.NewReader(content))
+	MakeRequest(t, req, http.StatusCreated)
+
+	sum := sha256.Sum256([]byte(content))
+	req = NewRequestWithBody(t, "POST", "/twirp/github.actions.results.api.v1.ArtifactService/FinalizeArtifact", toProtoJSON(&actions.FinalizeArtifactRequest{
+		Name:                    artifactName,
+		Size:                    int64(len(content)),
+		Hash:                    wrapperspb.String("sha256:" + hex.EncodeToString(sum[:])),
+		WorkflowRunBackendId:    strconv.FormatInt(runID, 10),
+		WorkflowJobRunBackendId: strconv.FormatInt(jobID, 10),
+	})).AddTokenAuth(authToken)
+	resp = MakeRequest(t, req, http.StatusOK)
+	var finalizeResp actions.FinalizeArtifactResponse
+	require.NoError(t, protojson.Unmarshal(resp.Body.Bytes(), &finalizeResp))
+	require.True(t, finalizeResp.Ok)
+}
+
+func listArtifactNamesForRunV4(t *testing.T, runID, jobID int64, taskToken string) []string {
+	t.Helper()
+
+	req := NewRequestWithBody(t, "POST", "/twirp/github.actions.results.api.v1.ArtifactService/ListArtifacts", toProtoJSON(&actions.ListArtifactsRequest{
+		WorkflowRunBackendId:    strconv.FormatInt(runID, 10),
+		WorkflowJobRunBackendId: strconv.FormatInt(jobID, 10),
+	})).AddTokenAuth(taskToken)
+	resp := MakeRequest(t, req, http.StatusOK)
+	var listResp actions.ListArtifactsResponse
+	require.NoError(t, protojson.Unmarshal(resp.Body.Bytes(), &listResp))
+
+	names := make([]string, 0, len(listResp.Artifacts))
+	for _, item := range listResp.Artifacts {
+		names = append(names, item.Name)
+	}
+	return names
+}
+
+func downloadRepoArtifactV4Content(t *testing.T, session *TestSession, archiveDownloadURL string) string {
+	t.Helper()
+
+	req := NewRequest(t, "GET", archiveDownloadURL)
+	resp := session.MakeRequest(t, req, http.StatusFound)
+	req = NewRequest(t, "GET", resp.Header().Get("Location"))
+	resp = MakeRequest(t, req, http.StatusOK)
+	return resp.Body.String()
 }

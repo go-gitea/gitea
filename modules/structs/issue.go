@@ -47,20 +47,20 @@ type RepositoryMeta struct {
 // Issue represents an issue in a repository
 // swagger:model
 type Issue struct {
-	ID               int64          `json:"id"`
-	URL              string         `json:"url"`
-	HTMLURL          string         `json:"html_url"`
-	Index            int64          `json:"number"`
-	Poster           *User          `json:"user"`
-	OriginalAuthor   string         `json:"original_author"`
-	OriginalAuthorID int64          `json:"original_author_id"`
-	Title            string         `json:"title"`
-	Body             string         `json:"body"`
-	Ref              string         `json:"ref"`
-	Attachments      []*Attachment  `json:"assets"`
-	Labels           []*Label       `json:"labels"`
-	Milestone        *Milestone     `json:"milestone"`
-	Projects         []*ProjectMeta `json:"projects"`
+	ID               int64         `json:"id"`
+	URL              string        `json:"url"`
+	HTMLURL          string        `json:"html_url"`
+	Index            int64         `json:"number"`
+	Poster           *User         `json:"user"`
+	OriginalAuthor   string        `json:"original_author"`
+	OriginalAuthorID int64         `json:"original_author_id"`
+	Title            string        `json:"title"`
+	Body             string        `json:"body"`
+	Ref              string        `json:"ref"`
+	Attachments      []*Attachment `json:"assets"`
+	Labels           []*Label      `json:"labels"`
+	Milestone        *Milestone    `json:"milestone"`
+	Projects         []*Project    `json:"projects"`
 	// deprecated
 	Assignee  *User     `json:"assignee"`
 	Assignees []*User   `json:"assignees"`
@@ -101,7 +101,9 @@ type CreateIssueOption struct {
 	Milestone int64 `json:"milestone"`
 	// list of label ids
 	Labels []int64 `json:"labels"`
-	Closed bool    `json:"closed"`
+	// list of project ids
+	Projects []int64 `json:"projects"`
+	Closed   bool    `json:"closed"`
 }
 
 // EditIssueOption options for editing an issue
@@ -113,7 +115,9 @@ type EditIssueOption struct {
 	Assignee  *string  `json:"assignee"`
 	Assignees []string `json:"assignees"`
 	Milestone *int64   `json:"milestone"`
-	State     *string  `json:"state"`
+	// list of project ids to set (replaces existing projects)
+	Projects *[]int64 `json:"projects"`
+	State    *string  `json:"state"`
 	// swagger:strfmt date-time
 	Deadline       *time.Time `json:"due_date"`
 	RemoveDeadline *bool      `json:"unset_due_date"`

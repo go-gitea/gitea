@@ -129,7 +129,7 @@ func GetHeadOwnerAndRepo(ctx context.Context, baseRepo *repo_model.Repository, c
 	if compareReq.HeadOwner == baseRepo.Owner.Name {
 		headOwner = baseRepo.Owner
 	} else {
-		headOwner, err = user_model.GetUserOrOrgByName(ctx, compareReq.HeadOwner)
+		headOwner, err = user_model.GetUserByName(ctx, compareReq.HeadOwner)
 		if err != nil {
 			return nil, nil, err
 		}

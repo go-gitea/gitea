@@ -22,7 +22,7 @@ import (
 )
 
 func ToIssue(ctx context.Context, doer *user_model.User, issue *issues_model.Issue) *api.Issue {
-	return toIssue(ctx, doer, issue, cache.NewEphemeralCache(), WebAssetDownloadURL)
+	return toIssue(ctx, doer, issue, WebAssetDownloadURL)
 }
 
 // ToAPIIssue converts an Issue to API format
@@ -30,10 +30,10 @@ func ToIssue(ctx context.Context, doer *user_model.User, issue *issues_model.Iss
 // Required - Poster, Labels,
 // Optional - Milestone, Assignee, PullRequest
 func ToAPIIssue(ctx context.Context, doer *user_model.User, issue *issues_model.Issue) *api.Issue {
-	return toIssue(ctx, doer, issue, cache.NewEphemeralCache(), APIAssetDownloadURL)
+	return toIssue(ctx, doer, issue, APIAssetDownloadURL)
 }
 
-func toIssue(ctx context.Context, doer *user_model.User, issue *issues_model.Issue, permCache *cache.EphemeralCache, getDownloadURL func(repo *repo_model.Repository, attach *repo_model.Attachment) string) *api.Issue {
+func toIssue(ctx context.Context, doer *user_model.User, issue *issues_model.Issue, getDownloadURL func(repo *repo_model.Repository, attach *repo_model.Attachment) string) *api.Issue {
 	if err := issue.LoadPoster(ctx); err != nil {
 		return &api.Issue{}
 	}
@@ -95,11 +95,11 @@ func toIssue(ctx context.Context, doer *user_model.User, issue *issues_model.Iss
 		apiIssue.Milestone = ToAPIMilestone(issue.Milestone)
 	}
 
-	if err := issue.LoadProject(ctx); err != nil {
+	if err := issue.LoadProjects(ctx); err != nil {
 		return &api.Issue{}
 	}
-	if issue.Project != nil && canDoerSeeProject(ctx, permCache, doer, issue.Project) {
-		apiIssue.Projects = []*api.ProjectMeta{ToAPIProject(issue.Project, issue.ProjectBoardID, issue.ProjectBoardTitle)}
+	if len(issue.Projects) > 0 {
+		apiIssue.Projects = ToAPIProjectList(issue.Projects)
 	}
 
 	if err := issue.LoadAssignees(ctx); err != nil {
@@ -148,9 +148,8 @@ func ToIssueList(ctx context.Context, doer *user_model.User, il issues_model.Iss
 func ToAPIIssueList(ctx context.Context, doer *user_model.User, il issues_model.IssueList) []*api.Issue {
 	result := make([]*api.Issue, len(il))
 	_ = il.LoadPinOrder(ctx)
-	permCache := cache.NewEphemeralCache()
 	for i := range il {
-		result[i] = toIssue(ctx, doer, il[i], permCache, APIAssetDownloadURL)
+		result[i] = toIssue(ctx, doer, il[i], APIAssetDownloadURL)
 	}
 	return result
 }

@@ -282,9 +282,3 @@ func GetFeeds(ctx context.Context, opts GetFeedsOptions) (ActionList, int64, err
 
 	return actions, count, nil
 }
-
-func CountUserFeeds(ctx context.Context, userID int64) (int64, error) {
-	return db.GetEngine(ctx).Where("user_id = ?", userID).
-		And("is_deleted = ?", false).
-		Count(&Action{})
-}

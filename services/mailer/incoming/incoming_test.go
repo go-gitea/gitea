@@ -7,6 +7,8 @@ import (
 	"strings"
 	"testing"
 
+	"code.gitea.io/gitea/modules/setting"
+
 	"github.com/jhillyerd/enmime/v2"
 	"github.com/stretchr/testify/assert"
 )
@@ -66,6 +68,18 @@ func TestIsAutomaticReply(t *testing.T) {
 
 		assert.Equal(t, c.Expected, isAutomaticReply(env))
 	}
+}
+
+func TestSearchTokenInHeadersCaseInsensitive(t *testing.T) {
+	setting.IncomingEmail.ReplyToAddress = "InComing+%{token}@ExAmPle.com"
+	setting.Domain = "DoMain.com"
+	mkEnv := func(s string) *enmime.Envelope {
+		env, _ := enmime.ReadEnvelope(strings.NewReader(s + "\r\n\r\n"))
+		return env
+	}
+	assert.Equal(t, "abc", searchTokenInHeaders(mkEnv("To: incoming+abc@EXAMPLE.COM")))
+	assert.Equal(t, "abc", searchTokenInHeaders(mkEnv("Delivered-To: INCOMING+abc@example.com")))
+	assert.Equal(t, "abc", searchTokenInHeaders(mkEnv("References: <ReplY-abc@DomaiN.COM>")))
 }
 
 func TestGetContentFromMailReader(t *testing.T) {

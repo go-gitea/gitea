@@ -167,9 +167,9 @@ func TestToTitleCase(t *testing.T) {
 	assert.Equal(t, `Foo Bar Baz`, ToTitleCase(`FOO BAR BAZ`))
 }
 
-func TestReserveLineBreakForTextarea(t *testing.T) {
-	assert.Equal(t, "test\ndata", ReserveLineBreakForTextarea("test\r\ndata"))
-	assert.Equal(t, "test\ndata\n", ReserveLineBreakForTextarea("test\r\ndata\r\n"))
+func TestNormalizeStringEOL(t *testing.T) {
+	assert.Equal(t, "test\ndata", NormalizeStringEOL("test\r\ndata"))
+	assert.Equal(t, " test\ndata\n ", NormalizeStringEOL(" test\rdata\r "))
 }
 
 func TestOptionalArg(t *testing.T) {
@@ -183,4 +183,11 @@ func TestOptionalArg(t *testing.T) {
 	assert.Equal(t, 100, foo(nil, 100))
 	assert.Equal(t, 42, bar(nil))
 	assert.Equal(t, 100, bar(nil, 100))
+}
+
+func TestPathEscapeSegments(t *testing.T) {
+	assert.Equal(t, "a", PathEscapeSegments("a"))
+	assert.Equal(t, "a/b", PathEscapeSegments("a/b"))
+	assert.Equal(t, "a/b%20c", PathEscapeSegments("a/b c"))
+	assert.Equal(t, "a/b+c", PathEscapeSegments("a/b+c"))
 }

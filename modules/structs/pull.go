@@ -25,7 +25,7 @@ type PullRequest struct {
 	Labels []*Label `json:"labels"`
 	// The milestone associated with the pull request
 	Milestone *Milestone     `json:"milestone"`
-	Projects  []*ProjectMeta `json:"projects"`
+	Projects  []*Project `json:"projects"`
 	// The primary assignee of the pull request
 	Assignee *User `json:"assignee"`
 	// The list of users assigned to the pull request

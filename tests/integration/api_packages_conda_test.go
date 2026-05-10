@@ -218,8 +218,7 @@ func TestPackageConda(t *testing.T) {
 			req := NewRequest(t, "GET", root+"/noarch/repodata.json")
 			resp := MakeRequest(t, req, http.StatusOK)
 
-			var result RepoData
-			DecodeJSON(t, resp, &result)
+			result := DecodeJSON(t, resp, &RepoData{})
 
 			assert.Equal(t, "noarch", result.Info.Subdir)
 			assert.Empty(t, result.PackagesConda)
@@ -251,8 +250,7 @@ func TestPackageConda(t *testing.T) {
 			req := NewRequest(t, "GET", fmt.Sprintf("%s/%s/noarch/repodata.json", root, channel))
 			resp := MakeRequest(t, req, http.StatusOK)
 
-			var result RepoData
-			DecodeJSON(t, resp, &result)
+			result := DecodeJSON(t, resp, &RepoData{})
 
 			assert.Equal(t, "noarch", result.Info.Subdir)
 			assert.Empty(t, result.Packages)

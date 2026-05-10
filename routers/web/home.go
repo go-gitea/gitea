@@ -109,9 +109,3 @@ func HomeSitemap(ctx *context.Context) {
 		log.Error("Failed writing sitemap: %v", err)
 	}
 }
-
-// NotFound render 404 page
-func NotFound(ctx *context.Context) {
-	ctx.Data["Title"] = "Page Not Found"
-	ctx.NotFound(nil)
-}

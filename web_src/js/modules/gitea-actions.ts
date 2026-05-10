@@ -1,13 +1,14 @@
 // see "models/actions/status.go", if it needs to be used somewhere else, move it to a shared file like "types/actions.ts"
-export type ActionsRunStatus = 'unknown' | 'waiting' | 'running' | 'success' | 'failure' | 'cancelled' | 'skipped' | 'blocked';
+export type ActionsStatus = 'unknown' | 'waiting' | 'running' | 'success' | 'failure' | 'cancelled' | 'skipped' | 'blocked';
 export type ActionsArtifactStatus = 'expired' | 'completed';
 
 export type ActionsRun = {
   repoId: number,
   link: string,
+  viewLink: string,
   title: string,
   titleHTML: string,
-  status: ActionsRunStatus,
+  status: ActionsStatus,
   canCancel: boolean,
   canApprove: boolean,
   canRerun: boolean,
@@ -17,6 +18,8 @@ export type ActionsRun = {
   workflowID: string,
   workflowLink: string,
   isSchedule: boolean,
+  runAttempt: number,
+  attempts: Array<ActionsRunAttempt>,
   duration: string,
   triggeredAt: number,
   triggerEvent: string,
@@ -38,11 +41,24 @@ export type ActionsRun = {
   },
 };
 
+export type ActionsRunAttempt = {
+  attempt: number;
+  status: ActionsStatus;
+  done: boolean;
+  link: string;
+  current: boolean;
+  latest: boolean;
+  triggeredAt: number;
+  triggerUserName: string;
+  triggerUserLink: string;
+};
+
 export type ActionsJob = {
   id: number;
+  link: string;
   jobId: string;
   name: string;
-  status: ActionsRunStatus;
+  status: ActionsStatus;
   canRerun: boolean;
   needs?: string[];
   duration: string;

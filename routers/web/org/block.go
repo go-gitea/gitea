@@ -34,15 +34,5 @@ func BlockedUsers(ctx *context.Context) {
 }
 
 func BlockedUsersPost(ctx *context.Context) {
-	if _, err := shared_user.RenderUserOrgHeader(ctx); err != nil {
-		ctx.ServerError("RenderUserOrgHeader", err)
-		return
-	}
-
-	shared_user.BlockedUsersPost(ctx, ctx.ContextUser)
-	if ctx.Written() {
-		return
-	}
-
-	ctx.Redirect(ctx.ContextUser.OrganisationLink() + "/settings/blocked_users")
+	shared_user.BlockedUsersPost(ctx, ctx.ContextUser, ctx.ContextUser.OrganisationLink()+"/settings/blocked_users")
 }
