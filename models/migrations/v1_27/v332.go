@@ -5,13 +5,17 @@ package v1_27
 
 import "xorm.io/xorm"
 
-func AddCancellingSupportToActionRunner(x *xorm.Engine) error {
-	type ActionRunner struct {
-		HasCancellingSupport bool `xorm:"has_cancelling_support NOT NULL DEFAULT false"`
-	}
+type mirrorWithLastSyncUnix struct {
+	LastSyncUnix int64 `xorm:"INDEX"`
+}
 
+func (mirrorWithLastSyncUnix) TableName() string {
+	return "mirror"
+}
+
+func AddLastSyncUnixToMirror(x *xorm.Engine) error {
 	_, err := x.SyncWithOptions(xorm.SyncOptions{
 		IgnoreDropIndices: true,
-	}, new(ActionRunner))
+	}, new(mirrorWithLastSyncUnix))
 	return err
 }
