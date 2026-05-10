@@ -111,6 +111,11 @@ func (s *Service) Register(
 	return res, nil
 }
 
+// runnerCapabilityCancelling is the wire string the runner advertises in its
+// capabilities list to indicate it understands the transitional cancelling
+// state and will run post-step cleanup before finalizing the task.
+const runnerCapabilityCancelling = "cancelling"
+
 type capabilityGetter interface {
 	GetCapabilities() []string
 }
@@ -127,7 +132,7 @@ func runnerRequestHasCancellingCapability(req proto.Message) (bool, bool) {
 	}
 
 	if typedReq, ok := any(req).(capabilityGetter); ok {
-		return slices.Contains(typedReq.GetCapabilities(), "cancelling"), true
+		return slices.Contains(typedReq.GetCapabilities(), runnerCapabilityCancelling), true
 	}
 
 	return false, false

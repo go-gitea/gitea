@@ -33,7 +33,7 @@ func (r *capabilityDeclareRequest) GetCapabilities() []string {
 func TestRunnerRequestHasCancellingCapabilityTypedAccessor(t *testing.T) {
 	registerReq := &capabilityRegisterRequest{
 		RegisterRequest: &runnerv1.RegisterRequest{},
-		capabilities:    []string{"cancelling", "other"},
+		capabilities:    []string{runnerCapabilityCancelling, "other"},
 	}
 	hasCapability, known := runnerRequestHasCancellingCapability(registerReq)
 	assert.True(t, hasCapability)
