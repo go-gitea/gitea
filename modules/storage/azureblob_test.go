@@ -14,14 +14,17 @@ import (
 	"code.gitea.io/gitea/modules/test"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestAzureBlobStorage(t *testing.T) {
 	azureEndpoint := "http://devstoreaccount1.azurite.local:10000"
-	_, err := http.Get(azureEndpoint)
+	resp, err := http.Get(azureEndpoint)
 	if err != nil && test.AllowSkipExternalService() {
-		t.Skip("azure storage test skipped (not in CI or skippable CI)")
+		t.Skip("azure storage server not found, skipped")
 	}
+	require.NoError(t, err)
+	defer resp.Body.Close()
 
 	storageType := setting.AzureBlobStorageType
 	config := &setting.Storage{

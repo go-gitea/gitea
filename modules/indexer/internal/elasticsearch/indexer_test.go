@@ -18,10 +18,12 @@ import (
 func newRealIndexer(t *testing.T) *Indexer {
 	t.Helper()
 	esURL := util.IfZero(os.Getenv("TEST_ELASTICSEARCH_URL"), "http://elasticsearch:9200")
-	_, err := http.Get(esURL)
+	resp, err := http.Get(esURL)
 	if err != nil && test.AllowSkipExternalService() {
 		t.Skip("elastic search server not found, skipped")
 	}
+	require.NoError(t, err)
+	defer resp.Body.Close()
 
 	indexName := "gitea_test_" + strings.ReplaceAll(strings.ToLower(t.Name()), "/", "_")
 	ix := NewIndexer(esURL, indexName, 1, `{"mappings":{"properties":{"x":{"type":"keyword"}}}}`)

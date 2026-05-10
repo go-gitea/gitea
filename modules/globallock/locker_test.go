@@ -24,7 +24,7 @@ func newTestRedisLocker(t *testing.T) Locker {
 	rl := NewRedisLocker(redisURL).(*redisLocker)
 	err := rl.conn.Ping(t.Context()).Err()
 	if err != nil && test.AllowSkipExternalService() {
-		t.Skip("no redis server for testing, skipped (not in CI or skippable CI)")
+		t.Skip("no redis server for testing, skipped")
 	}
 	require.NoError(t, err, "redis error for testing: %v", err)
 	return rl

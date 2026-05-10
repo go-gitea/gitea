@@ -59,7 +59,7 @@ func TestBaseRedis(t *testing.T) {
 	if !waitRedisReady("redis://127.0.0.1:6379/0", 0) {
 		redisServer = redisServerCmd(t)
 		if redisServer == nil && test.AllowSkipExternalService() {
-			t.Skip("redis server command not found, skipped (not in CI or skippable CI)")
+			t.Skip("redis server command not found, skipped")
 		}
 		require.NotNil(t, redisServer)
 		assert.NoError(t, redisServer.Start())
