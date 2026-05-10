@@ -104,6 +104,7 @@ func NewTemplateContextForWeb(ctx reqctx.RequestContext, req *http.Request, loca
 	tmplCtx["AvatarUtils"] = templates.NewAvatarUtils(ctx)
 	tmplCtx["RenderUtils"] = templates.NewRenderUtils(ctx)
 	tmplCtx["MiscUtils"] = templates.NewMiscUtils(ctx)
+	tmplCtx["ActionsUtils"] = templates.NewActionsUtils(ctx)
 	tmplCtx["RootData"] = ctx.GetData()
 	tmplCtx["Consts"] = map[string]any{
 		"RepoUnitTypeCode":            unit.TypeCode,
