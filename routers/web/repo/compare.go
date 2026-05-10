@@ -231,7 +231,7 @@ func renderRichDiffBlob(ctx *context.Context, blob *git.Blob, name string, commi
 	}
 	rctx := renderhelper.NewRenderContextRepoFile(ctx, ctx.Repo.Repository, renderhelper.RepoFileOptions{
 		CurrentRefSubURL: refPath,
-		CurrentTreePath: path.Dir(name),
+		CurrentTreePath:  path.Dir(name),
 	}).WithRelativePath(name)
 
 	var buf strings.Builder
