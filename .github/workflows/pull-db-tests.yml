@@ -197,6 +197,13 @@ jobs:
           GOEXPERIMENT:
           GITHUB_READ_TOKEN: ${{ secrets.GITHUB_READ_TOKEN }}
 
+  test-unit:
+    needs: [files-changed, test-unit-nogogit, test-unit-gogit]
+    if: always() && (needs.files-changed.outputs.backend == 'true' || needs.files-changed.outputs.actions == 'true')
+    runs-on: ubuntu-latest
+    steps:
+      - run: '[ "${{ needs.test-unit-nogogit.result }}" = "success" ] && [ "${{ needs.test-unit-gogit.result }}" = "success" ]'
+
   test-mysql:
     if: needs.files-changed.outputs.backend == 'true' || needs.files-changed.outputs.actions == 'true'
     needs: files-changed
