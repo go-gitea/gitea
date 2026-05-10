@@ -21,7 +21,6 @@ import (
 	"code.gitea.io/gitea/models/db"
 	repo_model "code.gitea.io/gitea/models/repo"
 	secret_model "code.gitea.io/gitea/models/secret"
-	"code.gitea.io/gitea/modules/actions"
 	"code.gitea.io/gitea/modules/httplib"
 	"code.gitea.io/gitea/modules/optional"
 	"code.gitea.io/gitea/modules/setting"
@@ -1877,7 +1876,7 @@ func GetArtifact(ctx *context.APIContext) {
 		return
 	}
 
-	if actions.IsArtifactV4(art) {
+	if actions_service.IsArtifactV4(art) {
 		convertedArtifact, err := convert.ToActionArtifact(ctx.Repo.Repository, art)
 		if err != nil {
 			ctx.APIErrorInternal(err)
@@ -1926,7 +1925,7 @@ func DeleteArtifact(ctx *context.APIContext) {
 		return
 	}
 
-	if actions.IsArtifactV4(art) {
+	if actions_service.IsArtifactV4(art) {
 		if err := actions_model.SetArtifactNeedDeleteByID(ctx, art.ID); err != nil {
 			ctx.APIErrorInternal(err)
 			return
@@ -1999,10 +1998,10 @@ func DownloadArtifact(ctx *context.APIContext) {
 		return
 	}
 
-	if actions.IsArtifactV4(art) {
+	if actions_service.IsArtifactV4(art) {
 		// @actions/toolkit asserts that downloaded artifacts of a different runid return 302
 		// https://github.com/actions/toolkit/blob/44d43b5490b02998bd09b0c4ff369a4cc67876c2/packages/artifact/src/internal/download/download-artifact.ts#L203-L210
-		if actions.DownloadArtifactV4ServeDirect(ctx.Base, art) {
+		if actions_service.DownloadArtifactV4ServeDirect(ctx.Base, art) {
 			return
 		}
 
@@ -2054,8 +2053,8 @@ func DownloadArtifactRaw(ctx *context.APIContext) {
 		ctx.APIError(http.StatusNotFound, "Artifact has expired")
 		return
 	}
-	if actions.IsArtifactV4(art) {
-		err := actions.DownloadArtifactV4(ctx.Base, art)
+	if actions_service.IsArtifactV4(art) {
+		err := actions_service.DownloadArtifactV4(ctx.Base, art)
 		if err != nil {
 			ctx.APIErrorInternal(err)
 			return
