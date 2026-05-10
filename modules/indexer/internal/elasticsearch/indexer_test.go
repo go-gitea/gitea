@@ -4,27 +4,28 @@
 package elasticsearch
 
 import (
+	"net/http"
 	"os"
 	"strings"
 	"testing"
 
 	"code.gitea.io/gitea/modules/test"
+	"code.gitea.io/gitea/modules/util"
 
 	"github.com/stretchr/testify/require"
 )
 
 func newRealIndexer(t *testing.T) *Indexer {
 	t.Helper()
-	url := "http://elasticsearch:9200"
-	if os.Getenv("CI") == "" {
-		url = os.Getenv("TEST_ELASTICSEARCH_URL")
-		if url == "" || test.IsBuiltWithGogit() {
-			t.Skip("TEST_ELASTICSEARCH_URL not set, skipped (not in CI or skippable CI)")
-		}
+	esURL := util.IfZero(os.Getenv("TEST_ELASTICSEARCH_URL"), "http://elasticsearch:9200")
+	_, err := http.Get(esURL)
+	if err != nil && test.AllowSkipExternalService() {
+		t.Skip("elastic search server not found, skipped")
 	}
+
 	indexName := "gitea_test_" + strings.ReplaceAll(strings.ToLower(t.Name()), "/", "_")
-	ix := NewIndexer(url, indexName, 1, `{"mappings":{"properties":{"x":{"type":"keyword"}}}}`)
-	_, err := ix.Init(t.Context())
+	ix := NewIndexer(esURL, indexName, 1, `{"mappings":{"properties":{"x":{"type":"keyword"}}}}`)
+	_, err = ix.Init(t.Context())
 	require.NoError(t, err)
 	t.Cleanup(ix.Close)
 	return ix

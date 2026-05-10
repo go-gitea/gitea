@@ -5,6 +5,7 @@ package storage
 
 import (
 	"io"
+	"net/http"
 	"os"
 	"strings"
 	"testing"
@@ -16,15 +17,17 @@ import (
 )
 
 func TestAzureBlobStorage(t *testing.T) {
-	if os.Getenv("CI") == "" || test.IsBuiltWithGogit() {
+	azureEndpoint := "http://devstoreaccount1.azurite.local:10000"
+	_, err := http.Get(azureEndpoint)
+	if err != nil && test.AllowSkipExternalService() {
 		t.Skip("azure storage test skipped (not in CI or skippable CI)")
-		return
 	}
+
 	storageType := setting.AzureBlobStorageType
 	config := &setting.Storage{
 		AzureBlobConfig: setting.AzureBlobStorageConfig{
 			// https://learn.microsoft.com/azure/storage/common/storage-use-azurite?tabs=visual-studio-code#ip-style-url
-			Endpoint: "http://devstoreaccount1.azurite.local:10000",
+			Endpoint: azureEndpoint,
 			// https://learn.microsoft.com/azure/storage/common/storage-use-azurite?tabs=visual-studio-code#well-known-storage-account-and-key
 			AccountName: "devstoreaccount1",
 			AccountKey:  "Eby8vdM02xNOcqFlqUwJPLlmEtlCDXJ1OUzFT50uSRZ6IFsuFq2UVErCz4I6tq/K1SZFPTOtr/KBHBeksoGMGw==",

@@ -196,6 +196,7 @@ jobs:
           TAGS: bindata gogit
           GOEXPERIMENT:
           GITHUB_READ_TOKEN: ${{ secrets.GITHUB_READ_TOKEN }}
+          GITEA_TEST_CI_SKIP_EXTERNAL: true
 
   test-unit:
     needs: [files-changed, test-unit-nogogit, test-unit-gogit]

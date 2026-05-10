@@ -58,10 +58,10 @@ func TestBaseRedis(t *testing.T) {
 	}()
 	if !waitRedisReady("redis://127.0.0.1:6379/0", 0) {
 		redisServer = redisServerCmd(t)
-		if redisServer == nil && (os.Getenv("CI") == "" || test.IsBuiltWithGogit()) {
-			t.Skip("redis-server not found, skipped (not in CI or skippable CI)")
-			return
+		if redisServer == nil && test.AllowSkipExternalService() {
+			t.Skip("redis server command not found, skipped (not in CI or skippable CI)")
 		}
+		require.NotNil(t, redisServer)
 		assert.NoError(t, redisServer.Start())
 		require.True(t, waitRedisReady("redis://127.0.0.1:6379/0", 5*time.Second), "start redis-server")
 	}
