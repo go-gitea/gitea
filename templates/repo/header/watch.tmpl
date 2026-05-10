@@ -1,11 +1,11 @@
-<div class="ui labeled button" {{if not $.IsSigned}}data-tooltip-content="{{ctx.Locale.Tr "repo.watch_guest_user"}}"{{end}}>
+<div class="ui buttons" {{if not $.IsSigned}}data-tooltip-content="{{ctx.Locale.Tr "repo.watch_guest_user"}}"{{end}}>
 	{{$buttonText := ctx.Locale.Tr "repo.watch"}}
 	{{if $.IsWatchingRepo}}{{$buttonText = ctx.Locale.Tr "repo.unwatch"}}{{end}}
 	<a role="button" class="ui compact small basic button" aria-label="{{$buttonText}}"
 		{{if $.IsSigned}}
 			data-fetch-method="post"
 			data-fetch-url="{{$.RepoLink}}/action/{{if $.IsWatchingRepo}}unwatch{{else}}watch{{end}}"
-			data-fetch-sync="$closest(.ui.labeled.button)"
+			data-fetch-sync="$closest(.ui.buttons)"
 		{{else}}
 			href="{{AppSubUrl}}/user/login"
 		{{end}}
@@ -13,7 +13,19 @@
 		{{svg "octicon-eye"}}
 		<span class="not-mobile" aria-hidden="true">{{$buttonText}}</span>
 	</a>
-	<a class="ui basic label" href="{{$.RepoLink}}/watchers">
+	<a class="ui basic compact small button watch-label" href="{{$.RepoLink}}/watchers">
 		{{CountFmt .Repository.NumWatches}}
 	</a>
+	{{if $.IsWatchingRepo}}
+	<a class="ui basic compact small button watch-icon"
+		data-global-init="initWatchOptions"
+		data-repo-link="{{$.RepoLink}}"
+		data-watch-pull-requests="{{$.Watch.PullRequests}}"
+		data-watch-issues="{{$.Watch.Issues}}"
+		data-watch-releases="{{$.Watch.Releases}}"
+	>
+		{{svg "octicon-gear"}}
+	</a>
+	{{end}}
 </div>
+{{template "repo/watch_options_modal" $}}

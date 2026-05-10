@@ -139,22 +139,18 @@ func (ns *notificationService) NewPullRequest(ctx context.Context, pr *issues_mo
 		return
 	}
 	toNotify := make(container.Set[int64], 32)
-	repoWatchers, err := repo_model.GetRepoWatchersIDs(ctx, pr.Issue.RepoID)
+	repoWatchers, err := repo_model.GetRepoWatchersIDs(ctx, pr.Issue.RepoID, repo_model.WatchPullRequests)
 	if err != nil {
 		log.Error("GetRepoWatchersIDs: %v", err)
 		return
 	}
-	for _, id := range repoWatchers {
-		toNotify.Add(id)
-	}
+	toNotify.AddMultiple(repoWatchers...)
 	issueParticipants, err := issues_model.GetParticipantsIDsByIssueID(ctx, pr.IssueID)
 	if err != nil {
 		log.Error("GetParticipantsIDsByIssueID: %v", err)
 		return
 	}
-	for _, id := range issueParticipants {
-		toNotify.Add(id)
-	}
+	toNotify.AddMultiple(issueParticipants...)
 	delete(toNotify, pr.Issue.PosterID)
 	for _, mention := range mentions {
 		toNotify.Add(mention.ID)

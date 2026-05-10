@@ -1,43 +1,56 @@
--
-  id: 1
+- id: 1
   user_id: 1
   repo_id: 1
   mode: 1 # normal
+  pull_requests: true
+  issues: true
+  releases: true
 
--
-  id: 2
+- id: 2
   user_id: 4
   repo_id: 1
   mode: 1 # normal
+  pull_requests: true
+  issues: true
+  releases: true
 
--
-  id: 3
+- id: 3
   user_id: 9
   repo_id: 1
   mode: 1 # normal
+  pull_requests: true
+  issues: true
+  releases: true
 
--
-  id: 4
+- id: 4
   user_id: 8
   repo_id: 1
   mode: 2 # don't watch
+  pull_requests: true
+  issues: true
+  releases: true
 
--
-  id: 5
+- id: 5
   user_id: 11
   repo_id: 1
   mode: 3 # auto
+  pull_requests: true
+  issues: true
+  releases: true
 
--
-  id: 6
+- id: 6
   user_id: 10
   repo_id: 21
   mode: 1 # normal
+  pull_requests: true
+  issues: true
+  releases: true
 
--
-  id: 7
+- id: 7
   user_id: 10
   repo_id: 32
   mode: 1 # normal
-
+  pull_requests: true
+  issues: true
+  releases: true
 # DO NOT add more test data in the fixtures, test case should prepare their own test data separately and clearly
