@@ -570,7 +570,7 @@ func reqGroupMembership(mode perm.AccessMode, needsCreatePerm bool) func(ctx *co
 		}
 		if needsCreatePerm {
 			canCreateIn := ctx.RepoGroup.CanCreateRepoOrGroup
-			if !(canCreateIn || isOrgOwner || isOrgAdmin) {
+			if !canCreateIn && !(isOrgOwner || isOrgAdmin) {
 				ctx.APIError(http.StatusForbidden, fmt.Sprintf("User[%d] does not have permission to create new items in group[%d]", ctx.Doer.ID, g.ID))
 				return
 			}
