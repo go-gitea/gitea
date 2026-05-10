@@ -305,6 +305,14 @@ func ViewUser(ctx *context.Context) {
 	ctx.Data["Users"] = orgs // needed to be able to use explore/user_list template
 	ctx.Data["OrgsTotal"] = len(orgs)
 
+	sessionsTotal, sessionsActive, err := auth.CountUserSessionsByUserID(ctx, u.ID)
+	if err != nil {
+		ctx.ServerError("CountUserSessionsByUserID", err)
+		return
+	}
+	ctx.Data["SessionsTotal"] = sessionsTotal
+	ctx.Data["SessionsActive"] = sessionsActive
+
 	ctx.HTML(http.StatusOK, tplUserView)
 }
 

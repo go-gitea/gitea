@@ -1,6 +1,15 @@
 {{template "user/settings/layout_head" (dict "pageClass" "user settings security")}}
 	{{if not ($.UserDisabledFeatures.Contains "manage_mfa" "manage_credentials")}}
 	<div class="user-setting-content">
+
+		<h4 class="ui top attached header">
+			{{ctx.Locale.Tr "settings.sessions"}}
+		</h4>
+		<div class="ui attached segment">
+			<p>{{ctx.Locale.Tr "settings.sessions_desc"}}</p>
+			<a class="ui primary button" href="{{AppSubUrl}}/user/settings/security/sessions">{{ctx.Locale.Tr "settings.sessions.manage"}}</a>
+		</div>
+
 		{{if not ($.UserDisabledFeatures.Contains "manage_mfa")}}
 		{{template "user/settings/security/twofa" .}}
 		{{template "user/settings/security/webauthn" .}}

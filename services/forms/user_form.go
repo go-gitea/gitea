@@ -430,6 +430,17 @@ func (f *WebauthnDeleteForm) Validate(req *http.Request, errs binding.Errors) bi
 	return middleware.Validate(errs, ctx.Data, f, ctx.Locale)
 }
 
+// RevokeSessionForm for revoking a user session
+type RevokeSessionForm struct {
+	SessionID string `binding:"Required"`
+}
+
+// Validate validates the fields
+func (f *RevokeSessionForm) Validate(req *http.Request, errs binding.Errors) binding.Errors {
+	ctx := context.GetValidateContext(req)
+	return middleware.Validate(errs, ctx.Data, f, ctx.Locale)
+}
+
 // PackageSettingForm form for package settings
 type PackageSettingForm struct {
 	Action   string

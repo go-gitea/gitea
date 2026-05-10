@@ -4,6 +4,7 @@
 package web
 
 import (
+	"net"
 	"net/http"
 	"strings"
 
@@ -19,6 +20,7 @@ import (
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/storage"
 	"code.gitea.io/gitea/modules/structs"
+	"code.gitea.io/gitea/modules/timeutil"
 	"code.gitea.io/gitea/modules/validation"
 	"code.gitea.io/gitea/modules/web"
 	"code.gitea.io/gitea/modules/web/middleware"
@@ -97,6 +99,30 @@ type AuthMiddleware struct {
 	MiddlewareHandler func(*context.Context)
 }
 
+const sessionActivityThreshold = 5 * 60 // 5 minutes in seconds
+
+// updateUserSessionActivity updates the user session's last access time with throttling.
+// It reads "_last_tracked" from session data (already loaded, no extra DB read) and
+// only writes to DB if more than 5 minutes have elapsed. The DB write is a single
+// UPDATE statement with no prior SELECT.
+func updateUserSessionActivity(ctx *context.Context) {
+	now := timeutil.TimeStampNow()
+	if lastTracked, ok := ctx.Session.Get("_last_tracked").(int64); ok {
+		if int64(now)-lastTracked < sessionActivityThreshold {
+			return
+		}
+	}
+	ip := ctx.RemoteAddr()
+	if host, _, err := net.SplitHostPort(ip); err == nil {
+		ip = host
+	}
+	if err := auth_model.UpdateSessionActivity(ctx, ctx.Session.ID(), ip); err != nil {
+		log.Error("Failed to update session activity: %v", err)
+		return
+	}
+	_ = ctx.Session.Set("_last_tracked", int64(now))
+}
+
 func newWebAuthMiddleware() *AuthMiddleware {
 	type keyAllowOAuth2 struct{}
 	type keyAllowBasic struct{}
@@ -160,6 +186,11 @@ func newWebAuthMiddleware() *AuthMiddleware {
 		if ctx.Doer == nil {
 			// ensure the session uid is deleted
 			_ = ctx.Session.Delete("uid")
+		}
+
+		// Throttled session activity tracking for signed-in web sessions
+		if ctx.IsSigned && !ctx.IsBasicAuth {
+			updateUserSessionActivity(ctx)
 		}
 	}
 	return webAuth
@@ -651,6 +682,11 @@ func registerWebRoutes(m *web.Router, webAuth *AuthMiddleware) {
 				m.Post("/toggle_visibility", security.ToggleOpenIDVisibility)
 			}, openIDSignInEnabled)
 			m.Post("/account_link", security.DeleteAccountLink)
+			m.Group("/sessions", func() {
+				m.Get("", security.Sessions)
+				m.Post("/revoke", web.Bind(forms.RevokeSessionForm{}), security.RevokeSession)
+				m.Post("/revoke_all", security.RevokeAllSessions)
+			})
 		})
 
 		m.Group("/applications", func() {
@@ -788,6 +824,11 @@ func registerWebRoutes(m *web.Router, webAuth *AuthMiddleware) {
 			m.Post("/{userid}/delete", admin.DeleteUser)
 			m.Post("/{userid}/avatar", web.Bind(forms.AvatarForm{}), admin.AvatarPost)
 			m.Post("/{userid}/avatar/delete", admin.DeleteAvatar)
+			m.Group("/{userid}/sessions", func() {
+				m.Get("", admin.UserSessions)
+				m.Post("/revoke", web.Bind(forms.RevokeSessionForm{}), admin.RevokeUserSession)
+				m.Post("/revoke_all", admin.RevokeAllUserSessions)
+			})
 		})
 
 		m.Group("/badges", func() {

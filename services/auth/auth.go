@@ -7,13 +7,16 @@ package auth
 import (
 	"errors"
 	"fmt"
+	"net"
 	"net/http"
 
+	auth_model "code.gitea.io/gitea/models/auth"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/auth/webauthn"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/optional"
 	"code.gitea.io/gitea/modules/session"
+	"code.gitea.io/gitea/modules/timeutil"
 	"code.gitea.io/gitea/modules/web/middleware"
 	user_service "code.gitea.io/gitea/services/user"
 )
@@ -39,7 +42,7 @@ func Init() {
 }
 
 // handleSignIn clears existing session variables and stores new ones for the specified user object
-func handleSignIn(resp http.ResponseWriter, req *http.Request, sess SessionStore, user *user_model.User) {
+func handleSignIn(resp http.ResponseWriter, req *http.Request, sess SessionStore, user *user_model.User, loginMethod string) {
 	// We need to regenerate the session...
 	newSess, err := session.RegenerateSession(resp, req)
 	if err != nil {
@@ -63,6 +66,23 @@ func handleSignIn(resp http.ResponseWriter, req *http.Request, sess SessionStore
 	err = sess.Set("uname", user.Name)
 	if err != nil {
 		log.Error(fmt.Sprintf("Error setting session: %v", err))
+	}
+
+	// Create tracked user session record
+	ip := req.RemoteAddr
+	if host, _, err := net.SplitHostPort(ip); err == nil {
+		ip = host
+	}
+	if err := auth_model.CreateUserSession(req.Context(), &auth_model.UserSession{
+		ID:             sess.ID(),
+		UserID:         user.ID,
+		LoginIP:        ip,
+		LastIP:         ip,
+		UserAgent:      req.UserAgent(),
+		LoginMethod:    loginMethod,
+		LastAccessUnix: timeutil.TimeStampNow(),
+	}); err != nil {
+		log.Error("Failed to create user session record: %v", err)
 	}
 
 	// Language setting of the user overwrites the one previously set

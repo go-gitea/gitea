@@ -8,6 +8,7 @@ import (
 	"errors"
 	"fmt"
 	"html/template"
+	"net"
 	"net/http"
 	"net/url"
 	"strings"
@@ -124,6 +125,24 @@ func autoSignIn(ctx *context.Context) (bool, error) {
 		session.KeyUserHasTwoFactorAuth: userHasTwoFactorAuth,
 	}); err != nil {
 		return false, fmt.Errorf("unable to updateSession: %w", err)
+	}
+
+	// Create tracked user session record for remember-me login
+	ip := ctx.RemoteAddr()
+	if host, _, err := net.SplitHostPort(ip); err == nil {
+		ip = host
+	}
+	if err := auth.CreateUserSession(ctx, &auth.UserSession{
+		ID:             ctx.Session.ID(),
+		UserID:         u.ID,
+		LoginIP:        ip,
+		LastIP:         ip,
+		UserAgent:      ctx.Req.UserAgent(),
+		LoginMethod:    "remember_me",
+		AuthTokenID:    nt.ID,
+		LastAccessUnix: timeutil.TimeStampNow(),
+	}); err != nil {
+		log.Error("Failed to create user session record: %v", err)
 	}
 
 	if err := resetLocale(ctx, u); err != nil {
@@ -352,6 +371,7 @@ func SignInPost(ctx *context.Context) {
 		// User will need to use 2FA TOTP or WebAuthn, save data
 		"twofaUid":      u.ID,
 		"twofaRemember": form.Remember,
+		"_loginMethod":  "password",
 	}
 	if hasTOTPtwofa {
 		// User will need to use WebAuthn, save data
@@ -382,13 +402,14 @@ func handleSignIn(ctx *context.Context, u *user_model.User, remember bool) {
 }
 
 func handleSignInFull(ctx *context.Context, u *user_model.User, remember bool) {
+	var authTokenID string
 	if remember {
 		nt, token, err := auth_service.CreateAuthTokenForUserID(ctx, u.ID)
 		if err != nil {
 			ctx.ServerError("CreateAuthTokenForUserID", err)
 			return
 		}
-
+		authTokenID = nt.ID
 		ctx.SetSiteCookie(setting.CookieRememberName, nt.ID+":"+token, setting.LogInRememberDays*timeutil.Day)
 	}
 
@@ -415,6 +436,29 @@ func handleSignInFull(ctx *context.Context, u *user_model.User, remember bool) {
 	}); err != nil {
 		ctx.ServerError("RegenerateSession", err)
 		return
+	}
+
+	// Create tracked user session record
+	loginMethod := "password"
+	if method, ok := ctx.Session.Get("_loginMethod").(string); ok && method != "" {
+		loginMethod = method
+	}
+	_ = ctx.Session.Delete("_loginMethod")
+	ip := ctx.RemoteAddr()
+	if host, _, err := net.SplitHostPort(ip); err == nil {
+		ip = host
+	}
+	if err := auth.CreateUserSession(ctx, &auth.UserSession{
+		ID:             ctx.Session.ID(),
+		UserID:         u.ID,
+		LoginIP:        ip,
+		LastIP:         ip,
+		UserAgent:      ctx.Req.UserAgent(),
+		LoginMethod:    loginMethod,
+		AuthTokenID:    authTokenID,
+		LastAccessUnix: timeutil.TimeStampNow(),
+	}); err != nil {
+		log.Error("Failed to create user session record: %v", err)
 	}
 
 	// Language setting of the user overwrites the one previously set
@@ -462,6 +506,9 @@ func extractUserNameFromOAuth2(gothUser *goth.User) (string, error) {
 
 // HandleSignOut resets the session and sets the cookies
 func HandleSignOut(ctx *context.Context) {
+	if err := auth.InvalidateUserSession(ctx, ctx.Session.ID()); err != nil {
+		log.Error("Failed to invalidate user session: %v", err)
+	}
 	_ = ctx.Session.Flush()
 	_ = ctx.Session.Destroy(ctx.Resp, ctx.Req)
 	ctx.DeleteSiteCookie(setting.CookieRememberName)
