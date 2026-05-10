@@ -947,6 +947,7 @@ func registerWebRoutes(m *web.Router, webAuth *AuthMiddleware) {
 			m.Get("/dashboard/{team}", user.Dashboard)
 			m.Get("/dashboard/group/{group_id}", ctxDataSet("PageIsGroupDashboard", true), context.GroupAssignmentWeb(context.GroupAssignmentOptions{RequireMember: true}), user.Dashboard)
 			m.Get("/dashboard/-/heatmap", user.DashboardHeatmap)
+			m.Get("/dashboard/-/heatmap/group/{group_id}", context.GroupAssignmentWeb(context.GroupAssignmentOptions{RequireMember: true}), user.DashboardHeatmap)
 			m.Get("/dashboard/-/heatmap/{team}", user.DashboardHeatmap)
 			m.Get("/issues", user.Issues)
 			m.Get("/issues/{team}", user.Issues)

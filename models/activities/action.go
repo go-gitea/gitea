@@ -532,7 +532,6 @@ func ActivityQueryCondition(ctx context.Context, opts GetFeedsOptions) (builder.
 					builder.Eq{"`repository`.group_id": opts.RequestedGroup.ID}),
 				),
 		))
-
 	} else if opts.RequestedRepo != nil {
 		// repo's actions could have duplicate items, see the comment of NotifyWatchers
 		// so here we only filter the "original items", aka: user_id == act_user_id
