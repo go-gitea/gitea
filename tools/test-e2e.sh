@@ -30,9 +30,12 @@ wait_for_container() {
   local max_wait=30
   local elapsed=0
   echo "Waiting for container to start..."
-  # Probe the playwright run-server's TCP port directly via bash's /dev/tcp.
-  # Cheaper than re-grepping `docker logs` and signals actual readiness, not just a log line.
   while ! (echo > "/dev/tcp/127.0.0.1/$PLAYWRIGHT_SERVER_PORT") 2>/dev/null; do
+    if [ "$("$CONTAINER_RUNTIME" inspect -f '{{.State.Running}}' "$CONTAINER_NAME" 2>/dev/null)" != "true" ]; then
+      echo "Error: container exited before becoming ready." >&2
+      "$CONTAINER_RUNTIME" logs "$CONTAINER_NAME" >&2 || true
+      return 1
+    fi
     if [ "$elapsed" -ge "$max_wait" ]; then
       echo "Error: container did not become ready after ${max_wait}s." >&2
       "$CONTAINER_RUNTIME" logs "$CONTAINER_NAME" >&2 || true
@@ -46,7 +49,7 @@ wait_for_container() {
 
 CMD="${1:-run}"
 if [ "$CMD" = "install" ] || [ "$CMD" = "run" ]; then
-  shift
+  [ $# -gt 0 ] && shift
 else
   CMD="run"
 fi
@@ -59,11 +62,13 @@ if [ "$PLAYWRIGHT_MODE" = "container" ]; then
     echo "Install docker/podman or set CONTAINER_RUNTIME to an available runtime." >&2
     exit 1
   fi
-  # Strip any leading semver range specifier (^, ~, >=, etc.) so the version slots
-  # cleanly into the image tag.
   PLAYWRIGHT_VERSION=$(sed -n 's/.*"@playwright\/test"[[:space:]]*:[[:space:]]*"[^[:digit:]]*\([^"]*\)".*/\1/p' package.json)
+  # Reject non-semver to prevent shell injection into the `sh -c` below.
+  if ! [[ "$PLAYWRIGHT_VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z.]+)?$ ]]; then
+    echo "error: invalid @playwright/test version in package.json: '${PLAYWRIGHT_VERSION}'" >&2
+    exit 1
+  fi
   PLAYWRIGHT_IMAGE="mcr.microsoft.com/playwright:v${PLAYWRIGHT_VERSION}-noble"
-  PLAYWRIGHT_SERVER_PORT=$(free_port)
 fi
 
 if [ "$CMD" = "install" ]; then
@@ -102,8 +107,8 @@ cleanup() {
 trap cleanup EXIT
 
 if [ "$PLAYWRIGHT_MODE" = "container" ]; then
-  # --network=host is required so the playwright server in the container can reach
-  # the gitea instance running on the host's loopback interface.
+  PLAYWRIGHT_SERVER_PORT=$(free_port)
+  # --network=host: container needs host loopback to reach gitea.
   "$CONTAINER_RUNTIME" run --network=host --name "$CONTAINER_NAME" -d --rm --init --workdir /home/pwuser --user pwuser "$PLAYWRIGHT_IMAGE" /bin/sh -c "npx -y playwright@${PLAYWRIGHT_VERSION} run-server --port ${PLAYWRIGHT_SERVER_PORT} --host 0.0.0.0"
 
   if ! wait_for_container; then
@@ -195,9 +200,6 @@ GITEA_TEST_E2E_EMAIL="$GITEA_TEST_E2E_USER@$GITEA_TEST_E2E_DOMAIN"
 if [ -z "${GITEA_TEST_E2E_TIMEOUT_FACTOR:-}" ]; then
   if [ -n "${CI:-}" ]; then
     GITEA_TEST_E2E_TIMEOUT_FACTOR=4
-  # Container based runs seem slower so bump the default timeout to avoid failing tests
-  elif [ "${PLAYWRIGHT_MODE}" = "container" ]; then
-    GITEA_TEST_E2E_TIMEOUT_FACTOR=1.5
   else
     GITEA_TEST_E2E_TIMEOUT_FACTOR=1
   fi
