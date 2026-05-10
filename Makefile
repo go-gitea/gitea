@@ -377,7 +377,7 @@ watch-backend: ## watch backend files and continuously rebuild
 	GITEA_RUN_MODE=dev $(GO) run $(AIR_PACKAGE) -c .air.toml
 
 .PHONY: test-backend
-test-backend: ## test backend files (set TEST_SHARD/TEST_TOTAL_SHARDS to run a partition)
+test-backend: ## test backend files
 	@echo "Running go test with $(GOTEST_FLAGS) -tags '$(TAGS)'..."
 	@pkgs=$$(echo "$(GO_TEST_PACKAGES)" | tr ' ' '\n' | ./tools/test-go.sh pkgs) && \
 	$(GO) test $(GOTEST_FLAGS) -tags='$(TAGS)' $$pkgs
