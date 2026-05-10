@@ -259,7 +259,7 @@ func CancelPreviousJobs(ctx context.Context, repoID int64, ref, workflowID strin
 		Ref:          ref,
 		WorkflowID:   workflowID,
 		TriggerEvent: event,
-		Status:       []Status{StatusRunning, StatusWaiting, StatusBlocked},
+		Status:       []Status{StatusRunning, StatusWaiting, StatusBlocked, StatusCancelling},
 	})
 	if err != nil {
 		return nil, err
