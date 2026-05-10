@@ -63,7 +63,6 @@ if [ "$PLAYWRIGHT_MODE" = "container" ]; then
     exit 1
   fi
   PLAYWRIGHT_VERSION=$(sed -n 's/.*"@playwright\/test"[[:space:]]*:[[:space:]]*"[^[:digit:]]*\([^"]*\)".*/\1/p' package.json)
-  # Reject non-semver to prevent shell injection into the `sh -c` below.
   if ! [[ "$PLAYWRIGHT_VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z.]+)?$ ]]; then
     echo "error: invalid @playwright/test version in package.json: '${PLAYWRIGHT_VERSION}'" >&2
     exit 1
