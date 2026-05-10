@@ -21,19 +21,44 @@ type LoadedProject struct {
 	ColumnTitle string
 }
 
-// LoadProjects loads all projects the issue is assigned to
+// LoadProjects loads all projects the issue is assigned to,
+// along with the issue's column placement in each (Issue.LoadedProjects).
 func (issue *Issue) LoadProjects(ctx context.Context) (err error) {
-	if !issue.isProjectsLoaded {
-		err = db.GetEngine(ctx).Table("project").
-			Join("INNER", "project_issue", "project.id=project_issue.project_id").
-			Where("project_issue.issue_id = ?", issue.ID).
-			OrderBy("project.id ASC").
-			Find(&issue.Projects)
-		if err == nil {
-			issue.isProjectsLoaded = true
-		}
+	if issue.isProjectsLoaded {
+		return nil
 	}
-	return err
+
+	type projectWithColumn struct {
+		*project_model.Project `xorm:"extends"`
+		ProjectColumnID        int64  `xorm:"'project_board_id'"`
+		ColumnTitle            string `xorm:"'column_title'"`
+	}
+
+	var rows []*projectWithColumn
+	err = db.GetEngine(ctx).
+		Table("project").
+		Select("project.*, project_issue.project_board_id, project_board.title AS column_title").
+		Join("INNER", "project_issue", "project.id = project_issue.project_id").
+		Join("LEFT", "project_board", "project_issue.project_board_id = project_board.id").
+		Where("project_issue.issue_id = ?", issue.ID).
+		OrderBy("project.id ASC").
+		Find(&rows)
+	if err != nil {
+		return err
+	}
+
+	issue.Projects = make([]*project_model.Project, 0, len(rows))
+	issue.LoadedProjects = make([]*LoadedProject, 0, len(rows))
+	for _, r := range rows {
+		issue.Projects = append(issue.Projects, r.Project)
+		issue.LoadedProjects = append(issue.LoadedProjects, &LoadedProject{
+			Project:     r.Project,
+			ColumnID:    r.ProjectColumnID,
+			ColumnTitle: r.ColumnTitle,
+		})
+	}
+	issue.isProjectsLoaded = true
+	return nil
 }
 
 func (issue *Issue) projectIDs(ctx context.Context) (projectIDs []int64, _ error) {
