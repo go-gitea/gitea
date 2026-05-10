@@ -11,6 +11,7 @@ import (
 	"code.gitea.io/gitea/modules/setting"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestIssueList_LoadRepositories(t *testing.T) {
@@ -71,4 +72,31 @@ func TestIssueList_LoadAttributes(t *testing.T) {
 			assert.Empty(t, issue.Projects)
 		}
 	}
+}
+
+func TestIssueListLoadProjectsWithColumns(t *testing.T) {
+	require.NoError(t, unittest.PrepareTestDatabase())
+
+	// Fixture facts (from models/fixtures/project_issue.yml + project_board.yml):
+	// - Issue 1 is in project 1, column 1 ("To Do")
+	// - Issue 5 is in project 1, column 3 ("Done")
+	issue1 := unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{ID: 1})
+	issue5 := unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{ID: 5})
+
+	list := issues_model.IssueList{issue1, issue5}
+	require.NoError(t, list.LoadProjects(t.Context()))
+
+	require.Len(t, issue1.LoadedProjects, 1)
+	assert.Equal(t, int64(1), issue1.LoadedProjects[0].Project.ID)
+	assert.Equal(t, int64(1), issue1.LoadedProjects[0].ColumnID)
+	assert.Equal(t, "To Do", issue1.LoadedProjects[0].ColumnTitle)
+
+	require.Len(t, issue5.LoadedProjects, 1)
+	assert.Equal(t, int64(1), issue5.LoadedProjects[0].Project.ID)
+	assert.Equal(t, int64(3), issue5.LoadedProjects[0].ColumnID)
+	assert.Equal(t, "Done", issue5.LoadedProjects[0].ColumnTitle)
+
+	// Issue.Projects should also be populated (web-UI fallback).
+	require.Len(t, issue1.Projects, 1)
+	assert.Equal(t, int64(1), issue1.Projects[0].ID)
 }
