@@ -244,22 +244,6 @@ func (s *Service) UpdateTask(
 	}), nil
 }
 
-// planLogUpdate decides what UpdateLog should do for a request. It returns
-// the slice of rows to write (may be empty when the runner is finalizing a
-// log it has already streamed), whether to run TransferLogs, and whether
-// to bail with an ack-only response. We bail when the runner has outrun
-// the server (index > ack) even with noMore, since archiving a log with a
-// gap is worse than asking the runner to retry.
-func planLogUpdate(rows []*runnerv1.LogRow, index, ack int64, noMore bool) (newRows []*runnerv1.LogRow, finalize, bail bool) {
-	if index <= ack && int64(len(rows))+index > ack {
-		newRows = rows[ack-index:]
-	}
-	if len(newRows) == 0 && (!noMore || index > ack) {
-		return nil, false, true
-	}
-	return newRows, noMore, false
-}
-
 // UpdateLog uploads log of the task.
 func (s *Service) UpdateLog(
 	ctx context.Context,
@@ -276,8 +260,17 @@ func (s *Service) UpdateLog(
 		return nil, status.Errorf(codes.Internal, "invalid runner for task")
 	}
 	ack := task.LogLength
-	newRows, finalize, bail := planLogUpdate(req.Msg.Rows, req.Msg.Index, ack, req.Msg.NoMore)
-	if bail {
+
+	// Trim rows the runner already had acked.
+	var rows []*runnerv1.LogRow
+	if req.Msg.Index <= ack && int64(len(req.Msg.Rows))+req.Msg.Index > ack {
+		rows = req.Msg.Rows[ack-req.Msg.Index:]
+	}
+
+	// Bail unless we have new rows or a NoMore to finalize. Even with
+	// NoMore, bail when the runner has outrun the server — archiving a
+	// log with a gap is worse than asking it to retry.
+	if len(rows) == 0 && (!req.Msg.NoMore || req.Msg.Index > ack) {
 		res.Msg.AckIndex = ack
 		return res, nil
 	}
@@ -286,14 +279,14 @@ func (s *Service) UpdateLog(
 		return nil, status.Errorf(codes.AlreadyExists, "log file has been archived")
 	}
 
-	// Call WriteLogs even with empty newRows: when the runner finalizes a
-	// task that produced no log output, offset==0 makes WriteLogs create
-	// an empty DBFS file so TransferLogs below has something to read.
-	ns, err := actions.WriteLogs(ctx, task.LogFilename, task.LogSize, newRows)
+	// WriteLogs is called even with no rows: with offset==0 it bootstraps
+	// an empty DBFS file so TransferLogs below has something to read when
+	// the runner finalizes a task that produced no log output.
+	ns, err := actions.WriteLogs(ctx, task.LogFilename, task.LogSize, rows)
 	if err != nil {
 		return nil, status.Errorf(codes.Internal, "unable to append logs to dbfs file: %v", err)
 	}
-	task.LogLength += int64(len(newRows))
+	task.LogLength += int64(len(rows))
 	for _, n := range ns {
 		task.LogIndexes = append(task.LogIndexes, task.LogSize)
 		task.LogSize += int64(n)
@@ -302,7 +295,7 @@ func (s *Service) UpdateLog(
 	res.Msg.AckIndex = task.LogLength
 
 	var remove func()
-	if finalize {
+	if req.Msg.NoMore {
 		task.LogInStorage = true
 		remove, err = actions.TransferLogs(ctx, task.LogFilename)
 		if err != nil {
