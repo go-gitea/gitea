@@ -192,12 +192,13 @@ func isViteDevRequest(req *http.Request) bool {
 
 	// Vite uses a path relative to project root and adds "?import" to non-JS/CSS asset imports:
 	// - {WebSite}/public/assets/... (e.g. SVG icons from "{RepoRoot}/public/assets/img/svg/")
-	// - {WebSite}/assets/emoji.json: it is an exception for the frontend assets, it is imported by JS code, but:
+	// - {WebSite}/assets/<file>.json: exception for frontend-imported repo-root assets:
 	//   - KEEP IN MIND: all static frontend assets are served from "{AssetFS}/assets" to "{WebSite}/assets" by Gitea Web Server
 	//   - "{AssetFS}" is a layered filesystem from "{RepoRoot}/public" or embedded assets, and user's custom files in "{CustomPath}/public"
-	//   - "{RepoRoot}/assets/emoji.json" just happens to have the dir name "assets", it is not related to frontend assets
+	//   - "{RepoRoot}/assets/*.json" just happens to live under the dir name "assets"; it is not related to frontend assets
 	//   - BAD DESIGN: indeed it is a "conflicted and polluted name" sample
-	if path == "/assets/emoji.json" {
+	switch path {
+	case "/assets/emoji.json", "/assets/codemirror-languages.json":
 		return true
 	}
 	return false
