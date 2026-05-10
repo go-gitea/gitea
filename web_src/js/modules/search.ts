@@ -23,6 +23,14 @@ function buildResultElement(result: SearchResult): HTMLElement {
   return item;
 }
 
+// single delegated outside-click handler; each attachSearchBox registers a {container, hide} entry
+const outsideClickBoxes = new Set<{container: HTMLElement; hide: () => void}>();
+document.addEventListener('click', (event) => {
+  for (const box of outsideClickBoxes) {
+    if (!box.container.contains(event.target as Node)) box.hide();
+  }
+});
+
 /** Attach an API-driven autocomplete to `container`. `parse` maps the raw JSON response into the rendered result list. The selected result's title is written to the input on selection. */
 export function attachSearchBox<T = unknown>(container: HTMLElement, url: string, parse: (raw: T, query: string) => SearchResult[], {minCharacters = 2}: {minCharacters?: number} = {}): void {
   const input = container.querySelector<HTMLInputElement>('input.prompt') ?? container.querySelector<HTMLInputElement>('input');
@@ -36,10 +44,8 @@ export function attachSearchBox<T = unknown>(container: HTMLElement, url: string
   }
   const itemResults = new Map<HTMLElement, SearchResult>();
   let fetchController: AbortController | null = null;
-  let search: ReturnType<typeof debounce<(query: string) => Promise<void>>> | null = null;
 
   const hide = () => {
-    search?.cancel();
     fetchController?.abort();
     resultsEl.style.display = 'none';
     resultsEl.replaceChildren();
@@ -63,7 +69,7 @@ export function attachSearchBox<T = unknown>(container: HTMLElement, url: string
     hide();
   };
 
-  search = debounce(200, async (query: string) => {
+  const search = debounce(200, async (query: string) => {
     fetchController?.abort();
     if (query.length < minCharacters) return hide();
     const ctrl = (fetchController = new AbortController());
@@ -77,10 +83,12 @@ export function attachSearchBox<T = unknown>(container: HTMLElement, url: string
       if (errorName(err) !== 'AbortError') hide();
     }
   });
+  // cancel + hide ensures a debounced fetch scheduled before any of these can't fire afterwards
+  const dismiss = () => { search.cancel(); hide() };
 
   input.addEventListener('input', () => search(input.value));
   input.addEventListener('focus', () => { if (itemResults.size) resultsEl.style.display = 'block'; });
-  input.addEventListener('blur', () => setTimeout(hide, 150)); // deferred so a result mousedown can land first
+  input.addEventListener('blur', () => { search.cancel(); setTimeout(hide, 150) }); // hide deferred so a result mousedown can land first
   input.addEventListener('keydown', (event) => {
     const resultEls = Array.from(resultsEl.querySelectorAll<HTMLElement>('.result'));
     if (!resultEls.length) return;
@@ -94,7 +102,7 @@ export function attachSearchBox<T = unknown>(container: HTMLElement, url: string
       event.preventDefault();
       select(resultEls[index]);
     } else if (event.key === 'Escape') {
-      hide();
+      dismiss();
     }
   });
   // mousedown fires before input blur so the selection registers before blur-hide kicks in
@@ -104,7 +112,5 @@ export function attachSearchBox<T = unknown>(container: HTMLElement, url: string
     event.preventDefault();
     select(target);
   });
-  document.addEventListener('click', (event) => {
-    if (!container.contains(event.target as Node)) hide();
-  });
+  outsideClickBoxes.add({container, hide: dismiss});
 }
