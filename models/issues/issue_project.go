@@ -12,6 +12,15 @@ import (
 	"code.gitea.io/gitea/modules/util"
 )
 
+// LoadedProject pairs a project the issue belongs to with the issue's
+// column placement within that project. Populated by LoadProjects;
+// consumed by the API converter to build api.ProjectMeta.
+type LoadedProject struct {
+	Project     *project_model.Project
+	ColumnID    int64
+	ColumnTitle string
+}
+
 // LoadProjects loads all projects the issue is assigned to
 func (issue *Issue) LoadProjects(ctx context.Context) (err error) {
 	if !issue.isProjectsLoaded {
