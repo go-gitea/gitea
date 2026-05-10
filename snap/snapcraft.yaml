@@ -73,7 +73,6 @@ parts:
 
     override-build: |
       set -x
-      sed -i 's/os.Getuid()/1/g' modules/setting/setting.go
       npm install -g pnpm
       TAGS="bindata pam cert" make build
       install -D gitea "${SNAPCRAFT_PART_INSTALL}/gitea"
