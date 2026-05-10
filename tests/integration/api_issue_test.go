@@ -580,6 +580,56 @@ func TestAPIIssueProjectMeta(t *testing.T) {
 	})
 }
 
+func TestAPIIssueMultipleProjects(t *testing.T) {
+	defer tests.PrepareTestEnv(t)()
+
+	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
+	owner := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: repo.OwnerID})
+	user1 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 1})
+	token := getTokenForLoggedInUser(t, loginUser(t, owner.Name), auth_model.AccessTokenScopeReadIssue)
+
+	// Create a fresh issue on repo 1 with no existing project assignments
+	issue := &issues_model.Issue{
+		RepoID:   repo.ID,
+		Title:    "test for multiple projects",
+		PosterID: user1.ID,
+	}
+	require.NoError(t, issues_model.NewIssue(t.Context(), repo, issue, nil, nil))
+
+	// Create two repo-level projects to avoid any visibility-filter interactions
+	projA := project_model.Project{Title: "alpha", RepoID: repo.ID, Type: project_model.TypeRepository}
+	require.NoError(t, project_model.NewProject(t.Context(), &projA))
+	projB := project_model.Project{Title: "beta", RepoID: repo.ID, Type: project_model.TypeRepository}
+	require.NoError(t, project_model.NewProject(t.Context(), &projB))
+
+	// Assign the issue to both
+	require.NoError(t, issues_model.IssueAssignOrRemoveProject(t.Context(), issue, user1, []int64{projA.ID, projB.ID}))
+
+	req := NewRequest(t, "GET", fmt.Sprintf("/api/v1/repos/%s/%s/issues/%d", owner.Name, repo.Name, issue.Index)).AddTokenAuth(token)
+	resp := MakeRequest(t, req, http.StatusOK)
+	var apiIssue api.Issue
+	DecodeJSON(t, resp, &apiIssue)
+
+	require.Len(t, apiIssue.Projects, 2, "issue assigned to two projects should report both")
+
+	// Build a map for order-independent assertions
+	byID := make(map[int64]*api.ProjectMeta, 2)
+	for _, p := range apiIssue.Projects {
+		byID[p.ID] = p
+	}
+	require.Contains(t, byID, projA.ID)
+	require.Contains(t, byID, projB.ID)
+
+	assert.Equal(t, "alpha", byID[projA.ID].Title)
+	assert.Equal(t, "beta", byID[projB.ID].Title)
+
+	// Each ProjectMeta should have a real column placement (default column).
+	assert.NotZero(t, byID[projA.ID].ColumnID)
+	assert.NotEmpty(t, byID[projA.ID].Column)
+	assert.NotZero(t, byID[projB.ID].ColumnID)
+	assert.NotEmpty(t, byID[projB.ID].Column)
+}
+
 func TestAPIIssuePrivateOrgProjectHidden(t *testing.T) {
 	defer tests.PrepareTestEnv(t)()
 
