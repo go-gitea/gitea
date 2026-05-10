@@ -15,12 +15,12 @@ import (
 )
 
 func TestAzureBlobStorage(t *testing.T) {
-	azureEndpoint := test.ExternalServiceHTTP(t, "TEST_AZURESTORAGE_URL", "http://devstoreaccount1.azurite.local:10000")
+	endpoint := test.ExternalServiceHTTP(t, "TEST_AZURESTORAGE_ENDPOINT", "http://devstoreaccount1.azurite.local:10000")
 	storageType := setting.AzureBlobStorageType
 	config := &setting.Storage{
 		AzureBlobConfig: setting.AzureBlobStorageConfig{
 			// https://learn.microsoft.com/azure/storage/common/storage-use-azurite?tabs=visual-studio-code#ip-style-url
-			Endpoint: azureEndpoint,
+			Endpoint: endpoint,
 			// https://learn.microsoft.com/azure/storage/common/storage-use-azurite?tabs=visual-studio-code#well-known-storage-account-and-key
 			AccountName: "devstoreaccount1",
 			AccountKey:  "Eby8vdM02xNOcqFlqUwJPLlmEtlCDXJ1OUzFT50uSRZ6IFsuFq2UVErCz4I6tq/K1SZFPTOtr/KBHBeksoGMGw==",
@@ -74,7 +74,7 @@ func TestAzureBlobStoragePath(t *testing.T) {
 }
 
 func Test_azureBlobObject(t *testing.T) {
-	endpoint := test.ExternalServiceHTTP(t, "TEST_AZURESTORAGE_URL", "http://devstoreaccount1.azurite.local:10000")
+	endpoint := test.ExternalServiceHTTP(t, "TEST_AZURESTORAGE_ENDPOINT", "http://devstoreaccount1.azurite.local:10000")
 	s, err := NewStorage(setting.AzureBlobStorageType, &setting.Storage{
 		AzureBlobConfig: setting.AzureBlobStorageConfig{
 			// https://learn.microsoft.com/azure/storage/common/storage-use-azurite?tabs=visual-studio-code#ip-style-url
