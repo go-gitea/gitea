@@ -16,12 +16,9 @@ detect_playwright_mode() {
   PLAYWRIGHT_MODE="local"
 
   if [ "$(uname -s)" = "Linux" ]; then
-    if [ -f /etc/os-release ]; then
-      if ! grep -qE '^ID(_LIKE)?=.*(ubuntu|debian)' /etc/os-release; then
+    # playwright only supports ubuntu/debian officially
+    if ! grep -qE '^ID(_LIKE)?=.*(ubuntu|debian)' /etc/os-release 2>/dev/null; then
         PLAYWRIGHT_MODE="container"
-      fi
-    else
-      PLAYWRIGHT_MODE="container"
     fi
   fi
 }
