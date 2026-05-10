@@ -27,7 +27,7 @@ const circleFill = props.iconVariant === 'circle-fill';
     <SvgIcon name="octicon-circle" class="tw-text-text-light" :size="size" :class="className" v-else-if="status === 'waiting'"/>
     <SvgIcon name="octicon-blocked" class="tw-text-yellow" :size="size" :class="className" v-else-if="status === 'blocked'"/>
     <SvgIcon name="gitea-running" class="tw-text-yellow" :size="size" :class="'rotate-clockwise ' + className" v-else-if="status === 'running'"/>
-    <SvgIcon name="octicon-stop" class="tw-text-yellow" :size="size" :class="className" v-else-if="status === 'cancelling'"/>  
+    <SvgIcon name="octicon-stop" class="tw-text-yellow" :size="size" :class="className" v-else-if="status === 'cancelling'"/>
     <SvgIcon :name="circleFill ? 'octicon-x-circle-fill' : 'octicon-x'" class="tw-text-red" :size="size" :class="className" v-else/><!-- failure, unknown -->
   </span>
 </template>
