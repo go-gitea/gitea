@@ -5,7 +5,6 @@ package actions
 
 import (
 	"context"
-	"strings"
 
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/modules/setting"
@@ -28,15 +27,12 @@ const (
 	MaxJobSummaryAggregateSize = 1024 * 1024 // 1 MiB
 )
 
-// RunnerCapabilities returns the capabilities the server advertises to runners
-// via the X-Gitea-Actions-Capabilities header. Multiple capabilities are joined
-// with ", " so older runners that match a single token still work.
+// RunnerCapabilities returns the value advertised in the X-Gitea-Actions-Capabilities header.
+// When more capabilities are added, return them comma-separated so runners can split on ", ".
 func RunnerCapabilities() string {
-	return strings.Join([]string{JobSummaryCapability}, ", ")
+	return JobSummaryCapability
 }
 
-// ActionRunJobSummary stores one raw GITHUB_STEP_SUMMARY markdown upload for a job step.
-// It is internal state grouped for display as a job summary (not a downloadable artifact).
 type ActionRunJobSummary struct {
 	ID int64 `xorm:"pk autoincr"`
 

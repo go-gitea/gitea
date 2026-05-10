@@ -8,6 +8,7 @@ import (
 	"io"
 	"mime"
 	"net/http"
+	"slices"
 	"strconv"
 
 	actions_model "code.gitea.io/gitea/models/actions"
@@ -40,7 +41,7 @@ func uploadJobSummary(ctx *ArtifactContext) {
 		ctx.HTTPError(http.StatusInternalServerError, "Error getting task steps")
 		return
 	}
-	if !hasTaskStepIndex(steps, stepIndex) {
+	if !slices.ContainsFunc(steps, func(s *actions_model.ActionTaskStep) bool { return s.Index == stepIndex }) {
 		ctx.HTTPError(http.StatusBadRequest, "step_index mismatch")
 		return
 	}
@@ -81,15 +82,6 @@ func uploadJobSummary(ctx *ArtifactContext) {
 		"sizeBytes":  len(body),
 		"runAttempt": task.Job.RunAttemptID,
 	})
-}
-
-func hasTaskStepIndex(steps []*actions_model.ActionTaskStep, stepIndex int64) bool {
-	for _, step := range steps {
-		if step.Index == stepIndex {
-			return true
-		}
-	}
-	return false
 }
 
 func normalizeJobSummaryContentType(contentType string) (string, bool) {
