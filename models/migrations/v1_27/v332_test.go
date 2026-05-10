@@ -11,7 +11,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func Test_AddCancellingSupportToActionRunner(t *testing.T) {
+func TestAddCancellingSupportToActionRunner(t *testing.T) {
 	type ActionRunner struct {
 		ID   int64 `xorm:"pk autoincr"`
 		Name string
