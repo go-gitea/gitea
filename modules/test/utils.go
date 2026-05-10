@@ -11,8 +11,11 @@ import (
 	"io"
 	"net/http"
 	"net/http/httptest"
+	"runtime/debug"
 	"strings"
+	"sync"
 
+	"code.gitea.io/gitea/modules/container"
 	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/modules/util"
 )
@@ -140,4 +143,21 @@ func CompressGzip(content string) *bytes.Buffer {
 	_, _ = cw.Write([]byte(content))
 	_ = cw.Close()
 	return buf
+}
+
+var BuildTags = sync.OnceValue(func() container.Set[string] {
+	info, ok := debug.ReadBuildInfo()
+	if !ok {
+		return nil
+	}
+	for _, setting := range info.Settings {
+		if setting.Key == "-tags" {
+			return container.SetOf(strings.Fields(setting.Value)...)
+		}
+	}
+	return nil
+})
+
+func IsBuiltWithGogit() bool {
+	return BuildTags().Contains("gogit")
 }

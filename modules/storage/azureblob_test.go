@@ -10,13 +10,14 @@ import (
 	"testing"
 
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/test"
 
 	"github.com/stretchr/testify/assert"
 )
 
 func TestAzureBlobStorage(t *testing.T) {
-	if os.Getenv("CI") == "" {
-		t.Skip("azureBlobStorage not present outside of CI")
+	if os.Getenv("CI") == "" || test.IsBuiltWithGogit() {
+		t.Skip("azureBlobStorage not present and can be skipped in CI")
 		return
 	}
 	storageType := setting.AzureBlobStorageType

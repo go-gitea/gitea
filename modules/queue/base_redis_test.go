@@ -12,6 +12,7 @@ import (
 
 	"code.gitea.io/gitea/modules/nosql"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/test"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -57,8 +58,8 @@ func TestBaseRedis(t *testing.T) {
 	}()
 	if !waitRedisReady("redis://127.0.0.1:6379/0", 0) {
 		redisServer = redisServerCmd(t)
-		if redisServer == nil && os.Getenv("CI") == "" {
-			t.Skip("redis-server not found")
+		if redisServer == nil && (os.Getenv("CI") == "" || test.IsBuiltWithGogit()) {
+			t.Skip("redis-server not found and can be skipped in CI")
 			return
 		}
 		assert.NoError(t, redisServer.Start())

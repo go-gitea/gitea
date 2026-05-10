@@ -8,6 +8,8 @@ import (
 	"strings"
 	"testing"
 
+	"code.gitea.io/gitea/modules/test"
+
 	"github.com/stretchr/testify/require"
 )
 
@@ -16,8 +18,8 @@ func newRealIndexer(t *testing.T) *Indexer {
 	url := "http://elasticsearch:9200"
 	if os.Getenv("CI") == "" {
 		url = os.Getenv("TEST_ELASTICSEARCH_URL")
-		if url == "" {
-			t.Skip("TEST_ELASTICSEARCH_URL not set and not running in CI")
+		if url == "" || test.IsBuiltWithGogit() {
+			t.Skip("TEST_ELASTICSEARCH_URL not set and can be skipped in CI")
 		}
 	}
 	indexName := "gitea_test_" + strings.ReplaceAll(strings.ToLower(t.Name()), "/", "_")

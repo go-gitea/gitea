@@ -9,6 +9,8 @@ import (
 	"sync"
 	"testing"
 
+	"code.gitea.io/gitea/modules/test"
+
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -19,8 +21,8 @@ func TestLockAndDo(t *testing.T) {
 		if os.Getenv("CI") == "" {
 			// Make it possible to run tests against a local redis instance
 			url = os.Getenv("TEST_REDIS_URL")
-			if url == "" {
-				t.Skip("TEST_REDIS_URL not set and not running in CI")
+			if url == "" || test.IsBuiltWithGogit() {
+				t.Skip("TEST_REDIS_URL not set and can be skipped in CI")
 				return
 			}
 		}
