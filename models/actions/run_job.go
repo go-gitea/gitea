@@ -235,7 +235,10 @@ func UpdateRunJob(ctx context.Context, job *ActionRunJob, cond builder.Cond, col
 		return 0, err
 	}
 
-	if affected == 0 || (len(cols) > 0 && !slices.Contains(cols, "status") && job.Status == 0) {
+	// xorm's Update writes only non-zero fields when cols is empty, so a zero job.Status
+	// with empty cols means status isn't actually being persisted — skip aggregation.
+	statusUpdated := slices.Contains(cols, "status") || (len(cols) == 0 && job.Status != 0)
+	if affected == 0 || !statusUpdated {
 		return affected, nil
 	}
 
