@@ -173,7 +173,14 @@ func renderBlockDiff(oldBlocks, newBlocks []topLevelBlock) template.HTML {
 				if oldBlock.tag == "" || oldBlock.tag != newBlock.tag {
 					break
 				}
-				out.WriteString(string(htmlDiffWordLevel(template.HTML(oldBlock.html), template.HTML(newBlock.html))))
+				result := string(htmlDiffWordLevel(template.HTML(oldBlock.html), template.HTML(newBlock.html)))
+				result = strings.ReplaceAll(result,
+					`<span class="removed-code">`+oldBlock.html+`</span>`,
+					`<del class="removed-code">`+oldBlock.html+`</del>`)
+				result = strings.ReplaceAll(result,
+					`<span class="added-code">`+newBlock.html+`</span>`,
+					`<ins class="added-code">`+newBlock.html+`</ins>`)
+				out.WriteString(result)
 				paired++
 			}
 			for j := paired; j < len(delRunes); j++ {
