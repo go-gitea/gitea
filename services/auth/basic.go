@@ -112,7 +112,9 @@ func (b *Basic) VerifyAuthToken(req *http.Request, w http.ResponseWriter, store 
 	task, err := actions_model.GetRunningTaskByToken(req.Context(), authToken)
 	if err == nil && task != nil {
 		log.Trace("Basic Authorization: Valid AccessToken for task[%d]", task.ID)
-		store.GetData()["LoginMethod"] = ActionTokenMethodName
+		if err := setActionTokenScope(req.Context(), store, task); err != nil {
+			return nil, err
+		}
 		return user_model.NewActionsUserWithTaskID(task.ID), nil
 	}
 	return nil, nil //nolint:nilnil // the auth method is not applicable

@@ -114,6 +114,9 @@ func (o *OAuth2) userFromToken(ctx context.Context, tokenSHA string, store DataS
 		// First attempt to decode an actions JWT, returning the actions user
 		if taskID, err := actions.TokenToTaskID(tokenSHA); err == nil {
 			if CheckTaskIsRunning(ctx, taskID) {
+				if err := setActionTokenScopeByTaskID(ctx, store, taskID); err != nil {
+					return nil, err
+				}
 				return user_model.NewActionsUserWithTaskID(taskID), nil
 			}
 		}
@@ -132,6 +135,9 @@ func (o *OAuth2) userFromToken(ctx context.Context, tokenSHA string, store DataS
 			// check task token
 			if task, err := actions_model.GetRunningTaskByToken(ctx, tokenSHA); err == nil {
 				log.Trace("Basic Authorization: Valid AccessToken for task[%d]", task.ID)
+				if err := setActionTokenScope(ctx, store, task); err != nil {
+					return nil, err
+				}
 				return user_model.NewActionsUserWithTaskID(task.ID), nil
 			}
 		}
