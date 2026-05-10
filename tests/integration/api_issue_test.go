@@ -14,6 +14,7 @@ import (
 
 	auth_model "code.gitea.io/gitea/models/auth"
 	issues_model "code.gitea.io/gitea/models/issues"
+	project_model "code.gitea.io/gitea/models/project"
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unittest"
 	user_model "code.gitea.io/gitea/models/user"
@@ -23,6 +24,7 @@ import (
 	"code.gitea.io/gitea/tests"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestAPIIssue(t *testing.T) {
@@ -499,7 +501,83 @@ func testAPIIssueContentVersion(t *testing.T) {
 }
 
 func TestAPIIssueProjectMeta(t *testing.T) {
-	t.Skip("rebuilt for multi-project signature in later commit")
+	defer tests.PrepareTestEnv(t)()
+
+	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
+	owner := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: repo.OwnerID})
+	token := getTokenForLoggedInUser(t, loginUser(t, owner.Name), auth_model.AccessTokenScopeReadIssue)
+
+	t.Run("IssueWithProject", func(t *testing.T) {
+		defer tests.PrintCurrentTest(t)()
+
+		req := NewRequest(t, "GET", fmt.Sprintf("/api/v1/repos/%s/%s/issues/1", owner.Name, repo.Name)).AddTokenAuth(token)
+		resp := MakeRequest(t, req, http.StatusOK)
+		var apiIssue api.Issue
+		DecodeJSON(t, resp, &apiIssue)
+
+		require.Len(t, apiIssue.Projects, 1)
+		assert.Equal(t, int64(1), apiIssue.Projects[0].ID)
+		assert.Equal(t, "First project", apiIssue.Projects[0].Title)
+		assert.Equal(t, int64(1), apiIssue.Projects[0].ColumnID)
+		assert.Equal(t, "To Do", apiIssue.Projects[0].Column)
+	})
+
+	t.Run("IssueWithProjectNoColumn", func(t *testing.T) {
+		defer tests.PrintCurrentTest(t)()
+
+		req := NewRequest(t, "GET", fmt.Sprintf("/api/v1/repos/%s/%s/issues/2", owner.Name, repo.Name)).AddTokenAuth(token)
+		resp := MakeRequest(t, req, http.StatusOK)
+		var apiIssue api.Issue
+		DecodeJSON(t, resp, &apiIssue)
+
+		require.Len(t, apiIssue.Projects, 1)
+		assert.Equal(t, int64(1), apiIssue.Projects[0].ID)
+		assert.Equal(t, int64(0), apiIssue.Projects[0].ColumnID)
+		assert.Empty(t, apiIssue.Projects[0].Column)
+	})
+
+	t.Run("IssueWithoutProject", func(t *testing.T) {
+		defer tests.PrintCurrentTest(t)()
+
+		repo2 := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 2})
+		owner2 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: repo2.OwnerID})
+		token2 := getTokenForLoggedInUser(t, loginUser(t, owner2.Name), auth_model.AccessTokenScopeReadIssue)
+
+		req := NewRequest(t, "GET", fmt.Sprintf("/api/v1/repos/%s/%s/issues/1", owner2.Name, repo2.Name)).AddTokenAuth(token2)
+		resp := MakeRequest(t, req, http.StatusOK)
+		var apiIssue api.Issue
+		DecodeJSON(t, resp, &apiIssue)
+
+		assert.Empty(t, apiIssue.Projects)
+	})
+
+	t.Run("PublicOrgProjectVisibleToNonMember", func(t *testing.T) {
+		defer tests.PrintCurrentTest(t)()
+
+		// org3 (public) has repo32 (public) with issue 16
+		// user2 is in org3, user8 is not
+		org3 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 3})
+		orgRepo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 32})
+		issue16 := unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{ID: 16})
+		user2 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
+
+		orgProject := project_model.Project{
+			Title:   "public org project",
+			OwnerID: org3.ID,
+			Type:    project_model.TypeOrganization,
+		}
+		require.NoError(t, project_model.NewProject(t.Context(), &orgProject))
+		require.NoError(t, issues_model.IssueAssignOrRemoveProject(t.Context(), issue16, user2, []int64{orgProject.ID}))
+
+		// user8 (not in org3) should still see the project because org3 is public
+		token8 := getTokenForLoggedInUser(t, loginUser(t, "user8"), auth_model.AccessTokenScopeReadIssue)
+		req := NewRequest(t, "GET", fmt.Sprintf("/api/v1/repos/%s/%s/issues/%d", orgRepo.OwnerName, orgRepo.Name, issue16.Index)).AddTokenAuth(token8)
+		resp := MakeRequest(t, req, http.StatusOK)
+		var apiIssue api.Issue
+		DecodeJSON(t, resp, &apiIssue)
+		require.Len(t, apiIssue.Projects, 1, "public org project should be visible to non-members")
+		assert.Equal(t, orgProject.ID, apiIssue.Projects[0].ID)
+	})
 }
 
 func TestAPIIssuePrivateOrgProjectHidden(t *testing.T) {
