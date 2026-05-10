@@ -6,7 +6,7 @@ package v1_27
 import "xorm.io/xorm"
 
 type mirrorWithLastSyncUnix struct {
-	LastSyncUnix int64 `xorm:"last_sync_unix INDEX"`
+	LastSyncUnix int64 `xorm:"INDEX"`
 }
 
 func (mirrorWithLastSyncUnix) TableName() string {
@@ -14,6 +14,8 @@ func (mirrorWithLastSyncUnix) TableName() string {
 }
 
 func AddLastSyncUnixToMirror(x *xorm.Engine) error {
+	// IgnoreDropIndices preserves indices on the existing mirror table that are
+	// not declared on this partial migration struct.
 	_, err := x.SyncWithOptions(xorm.SyncOptions{
 		IgnoreDropIndices: true,
 	}, new(mirrorWithLastSyncUnix))

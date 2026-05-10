@@ -305,6 +305,7 @@ func SyncPullMirror(ctx context.Context, repoID int64) bool {
 
 	log.Trace("SyncMirrors [repo: %-v]: Scheduling next update", m.Repo)
 	m.ScheduleNextUpdate()
+	m.LastSyncUnix = m.UpdatedUnix
 	if err = repo_model.UpdateMirror(ctx, m); err != nil {
 		log.Error("SyncMirrors [repo: %-v]: failed to UpdateMirror with next update date: %v", m.Repo, err)
 		return false
@@ -412,11 +413,7 @@ func SyncPullMirror(ctx context.Context, repoID int64) bool {
 		}
 	}
 
-	if err = repo_model.UpdateMirrorLastSyncTime(ctx, m, m.UpdatedUnix); err != nil {
-		log.Error("SyncMirrors [repo: %-v]: failed to update mirror last_sync_unix: %v", m.Repo, err)
-	}
-
-	// Update license metadata after a successful mirror sync.
+	// Update License
 	if err = repo_service.AddRepoToLicenseUpdaterQueue(&repo_service.LicenseUpdaterOptions{
 		RepoID: m.Repo.ID,
 	}); err != nil {

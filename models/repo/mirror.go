@@ -99,13 +99,6 @@ func TouchMirror(ctx context.Context, m *Mirror) error {
 	return err
 }
 
-// UpdateMirrorLastSyncTime updates the mirror's last successful sync time.
-func UpdateMirrorLastSyncTime(ctx context.Context, m *Mirror, syncTime timeutil.TimeStamp) error {
-	m.LastSyncUnix = syncTime
-	_, err := db.GetEngine(ctx).ID(m.ID).Cols("last_sync_unix").NoAutoTime().Update(m)
-	return err
-}
-
 // DeleteMirrorByRepoID deletes a mirror by repoID
 func DeleteMirrorByRepoID(ctx context.Context, repoID int64) error {
 	_, err := db.GetEngine(ctx).Delete(&Mirror{RepoID: repoID})
