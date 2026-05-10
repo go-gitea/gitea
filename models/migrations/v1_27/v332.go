@@ -3,14 +3,19 @@
 
 package v1_27
 
-import (
-	"context"
+import "xorm.io/xorm"
 
-	"code.gitea.io/gitea/models/actions"
+type mirrorWithLastSyncUnix struct {
+	LastSyncUnix int64 `xorm:"INDEX"`
+}
 
-	"xorm.io/xorm"
-)
+func (mirrorWithLastSyncUnix) TableName() string {
+	return "mirror"
+}
 
-func AddActionRunJobSummaryTable(ctx context.Context, x *xorm.Engine) error {
-	return x.Sync(new(actions.ActionRunJobSummary))
+func AddLastSyncUnixToMirror(x *xorm.Engine) error {
+	_, err := x.SyncWithOptions(xorm.SyncOptions{
+		IgnoreDropIndices: true,
+	}, new(mirrorWithLastSyncUnix))
+	return err
 }
