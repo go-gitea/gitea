@@ -21,19 +21,31 @@ import (
 	"code.gitea.io/gitea/modules/util"
 )
 
-func ToIssue(ctx context.Context, doer *user_model.User, issue *issues_model.Issue) *api.Issue {
-	return toIssue(ctx, doer, issue, WebAssetDownloadURL)
+// ToIssueOptions controls optional data included in issue API responses.
+type ToIssueOptions struct {
+	PermCache *cache.EphemeralCache
+}
+
+func firstIssueOpt(opts []ToIssueOptions) ToIssueOptions {
+	if len(opts) > 0 {
+		return opts[0]
+	}
+	return ToIssueOptions{}
+}
+
+func ToIssue(ctx context.Context, doer *user_model.User, issue *issues_model.Issue, opts ...ToIssueOptions) *api.Issue {
+	return toIssue(ctx, doer, issue, WebAssetDownloadURL, firstIssueOpt(opts))
 }
 
 // ToAPIIssue converts an Issue to API format
 // it assumes some fields assigned with values:
 // Required - Poster, Labels,
 // Optional - Milestone, Assignee, PullRequest
-func ToAPIIssue(ctx context.Context, doer *user_model.User, issue *issues_model.Issue) *api.Issue {
-	return toIssue(ctx, doer, issue, APIAssetDownloadURL)
+func ToAPIIssue(ctx context.Context, doer *user_model.User, issue *issues_model.Issue, opts ...ToIssueOptions) *api.Issue {
+	return toIssue(ctx, doer, issue, APIAssetDownloadURL, firstIssueOpt(opts))
 }
 
-func toIssue(ctx context.Context, doer *user_model.User, issue *issues_model.Issue, getDownloadURL func(repo *repo_model.Repository, attach *repo_model.Attachment) string) *api.Issue {
+func toIssue(ctx context.Context, doer *user_model.User, issue *issues_model.Issue, getDownloadURL func(repo *repo_model.Repository, attach *repo_model.Attachment) string, opts ToIssueOptions) *api.Issue {
 	if err := issue.LoadPoster(ctx); err != nil {
 		return &api.Issue{}
 	}
@@ -98,8 +110,10 @@ func toIssue(ctx context.Context, doer *user_model.User, issue *issues_model.Iss
 	if err := issue.LoadProjects(ctx); err != nil {
 		return &api.Issue{}
 	}
-	if len(issue.Projects) > 0 {
-		apiIssue.Projects = ToAPIProjectList(issue.Projects)
+	for _, lp := range issue.LoadedProjects {
+		if pm := ToAPIProjectMeta(ctx, opts.PermCache, doer, lp); pm != nil {
+			apiIssue.Projects = append(apiIssue.Projects, pm)
+		}
 	}
 
 	if err := issue.LoadAssignees(ctx); err != nil {
@@ -135,21 +149,23 @@ func toIssue(ctx context.Context, doer *user_model.User, issue *issues_model.Iss
 }
 
 // ToIssueList converts an IssueList to API format
-func ToIssueList(ctx context.Context, doer *user_model.User, il issues_model.IssueList) []*api.Issue {
+func ToIssueList(ctx context.Context, doer *user_model.User, il issues_model.IssueList, opts ...ToIssueOptions) []*api.Issue {
 	result := make([]*api.Issue, len(il))
+	opt := firstIssueOpt(opts)
 	_ = il.LoadPinOrder(ctx)
 	for i := range il {
-		result[i] = ToIssue(ctx, doer, il[i])
+		result[i] = toIssue(ctx, doer, il[i], WebAssetDownloadURL, opt)
 	}
 	return result
 }
 
 // ToAPIIssueList converts an IssueList to API format
-func ToAPIIssueList(ctx context.Context, doer *user_model.User, il issues_model.IssueList) []*api.Issue {
+func ToAPIIssueList(ctx context.Context, doer *user_model.User, il issues_model.IssueList, opts ...ToIssueOptions) []*api.Issue {
 	result := make([]*api.Issue, len(il))
+	opt := firstIssueOpt(opts)
 	_ = il.LoadPinOrder(ctx)
 	for i := range il {
-		result[i] = toIssue(ctx, doer, il[i], APIAssetDownloadURL)
+		result[i] = toIssue(ctx, doer, il[i], APIAssetDownloadURL, opt)
 	}
 	return result
 }
