@@ -484,6 +484,13 @@
     ]
   },
   {
+    "name": "JSON-LD",
+    "extensions": [
+      "jsonld"
+    ],
+    "filenames": []
+  },
+  {
     "name": "Julia",
     "extensions": [
       "jl"
@@ -795,6 +802,13 @@
       "SConstruct",
       "wscript"
     ]
+  },
+  {
+    "name": "Q",
+    "extensions": [
+      "q"
+    ],
+    "filenames": []
   },
   {
     "name": "R",

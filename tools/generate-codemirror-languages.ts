@@ -5,14 +5,9 @@ import {languages as cmLanguages} from '@codemirror/language-data';
 
 const linguistUrl = 'https://raw.githubusercontent.com/github-linguist/linguist/main/lib/linguist/languages.yml';
 
-// Linguist names that don't match the corresponding @codemirror/language-data name.
+// Linguist names not resolvable through CodeMirror's name+alias matching below.
 const renames: Record<string, string> = {
-  'COBOL': 'Cobol',
-  'Diff': 'diff',
-  'INI': 'Properties files',
-  'Less': 'LESS',
   'Protocol Buffer': 'ProtoBuf',
-  'TeX': 'LaTeX',
 };
 
 // Extensions claimed by several unrelated languages with no good default winner.
@@ -45,11 +40,21 @@ async function main() {
   if (!res.ok) throw new Error(`fetch ${linguistUrl} failed: ${res.status}`);
   const linguist = parseYaml(await res.text()) as Record<string, LinguistEntry>;
 
-  const cmNames = new Set(cmLanguages.map((l) => l.name));
+  // Map every CM name and alias (lowercased) to its canonical CM name.
+  const cmByAlias = new Map<string, string>();
+  for (const lang of cmLanguages) {
+    cmByAlias.set(lang.name.toLowerCase(), lang.name);
+    for (const a of lang.alias) cmByAlias.set(a.toLowerCase(), lang.name);
+  }
+
   const out: CmLanguage[] = [];
+  const seen = new Set<string>();
   for (const [linguistName, entry] of Object.entries(linguist)) {
-    const cmName = renames[linguistName] ?? linguistName;
-    if (!cmNames.has(cmName)) continue;
+    const cmName = renames[linguistName] ?? cmByAlias.get(linguistName.toLowerCase());
+    // Multiple Linguist entries can alias to the same CM language (e.g. JSON5 → JSON);
+    // keep the first to avoid duplicate descriptions in the runtime list.
+    if (!cmName || seen.has(cmName)) continue;
+    seen.add(cmName);
     const exExt = new Set(excludeExt[linguistName]);
     // CodeMirror's matchFilename uses /\.([^.]+)$/ to extract the suffix, so multi-dot
     // extensions like ".cmake.in" cannot match as extensions and are dropped here.
