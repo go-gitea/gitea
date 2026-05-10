@@ -52,9 +52,16 @@ if (!res.ok) throw new Error(`fetch ${linguistUrl} failed: ${res.status}`);
 const linguist = parseYaml(await res.text()) as Record<string, LinguistEntry>;
 
 const cmByAlias = new Map<string, string>();
+// Map of extension -> the CM language that originally owns it. Used to prevent Linguist
+// from broadening one language's extension claim into another's territory (e.g. Linguist's
+// PLSQL lists .sql, but CM's SQL is the canonical owner).
+const cmOriginalExtOwner = new Map<string, string>();
 for (const lang of cmLanguages) {
   cmByAlias.set(lang.name.toLowerCase(), lang.name);
   for (const a of lang.alias) cmByAlias.set(a.toLowerCase(), lang.name);
+  for (const ext of lang.extensions) {
+    if (!cmOriginalExtOwner.has(ext)) cmOriginalExtOwner.set(ext, lang.name);
+  }
 }
 
 const out: CmLanguage[] = [];
@@ -69,7 +76,11 @@ for (const [linguistName, entry] of Object.entries(linguist)) {
   // ".cmake.in" can't match as extensions and are dropped here.
   const extensions = (entry.extensions ?? [])
     .map((e) => e.replace(/^\./, ''))
-    .filter((e) => !e.includes('.') && !ambiguousExt.has(e) && !exExt.has(e));
+    .filter((e) => {
+      if (e.includes('.') || ambiguousExt.has(e) || exExt.has(e)) return false;
+      const owner = cmOriginalExtOwner.get(e);
+      return !owner || owner === cmName;
+    });
   out.push({
     name: cmName,
     extensions: [...extensions, ...(extraExtensions[cmName] ?? [])],

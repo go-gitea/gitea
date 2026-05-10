@@ -7,7 +7,6 @@ import type {PaletteCommand} from './command-palette.ts';
 import {contextMenu, collectSymbols, selectAllOccurrences} from './context-menu.ts';
 import {createJsonLinter, createSyntaxErrorLinter} from './linter.ts';
 import {clickableUrls, goToDefinitionAt, trimTrailingWhitespaceFromView} from './utils.ts';
-import linguistLanguages from '../../../../assets/codemirror-languages.json' with {type: 'json'};
 import type {LanguageDescription, LanguageSupport} from '@codemirror/language';
 import type {Compartment, Extension} from '@codemirror/state';
 import type {EditorView, ViewUpdate} from '@codemirror/view';
@@ -42,10 +41,12 @@ export type CodemirrorEditor = {
   };
 };
 
+type LinguistLanguage = {name: string; extensions: string[]; filenames: string[]};
+
 export type CodemirrorModules = Awaited<ReturnType<typeof importCodemirror>>;
 
 export async function importCodemirror() {
-  const [autocomplete, commands, language, languageData, lint, search, state, view, highlight, indentMarkers, vscodeKeymap] = await Promise.all([
+  const [autocomplete, commands, language, languageData, lint, search, state, view, highlight, indentMarkers, vscodeKeymap, linguist] = await Promise.all([
     import('@codemirror/autocomplete'),
     import('@codemirror/commands'),
     import('@codemirror/language'),
@@ -57,8 +58,9 @@ export async function importCodemirror() {
     import('@lezer/highlight'),
     import('@replit/codemirror-indentation-markers'),
     import('@replit/codemirror-vscode-keymap'),
+    import('../../../../assets/codemirror-languages.json'),
   ]);
-  return {autocomplete, commands, language, languageData, lint, search, state, view, highlight, indentMarkers, vscodeKeymap};
+  return {autocomplete, commands, language, languageData, lint, search, state, view, highlight, indentMarkers, vscodeKeymap, linguistLanguages: linguist.default as LinguistLanguage[]};
 }
 
 const escapeRegex = (s: string) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
@@ -114,7 +116,7 @@ function buildBaseLanguages(cm: CodemirrorModules): LanguageDescription[] {
   const loadByName = new Map<string, LanguageDescription['load']>(
     cm.languageData.languages.map((l: LanguageDescription) => [l.name, l.load.bind(l)]),
   );
-  const overrides = linguistLanguages
+  const overrides = cm.linguistLanguages
     .filter((l) => loadByName.has(l.name))
     .map((l) => cm.language.LanguageDescription.of({
       name: l.name,

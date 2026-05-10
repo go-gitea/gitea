@@ -38,6 +38,12 @@ test('matchFilename — language detection covers extended rules', async () => {
   // .spec routes to RPM Spec via excludeExt redirect
   expect(match('foo.spec')).toBe('RPM Spec');
 
+  // CM original ownership preserved against Linguist's broader claims (.sql is SQL,
+  // not PLSQL, even though Linguist's PLSQL extension list includes it).
+  expect(match('foo.sql')).toBe('SQL');
+  expect(match('foo.h')).toBe('C');
+  expect(match('foo.mm')).toBe('Objective-C++');
+
   // Globally ambiguous extensions fall through to plain text
   expect(match('foo.cgi')).toBeUndefined();
   expect(match('foo.inc')).toBeUndefined();

@@ -52,13 +52,11 @@
       "cp",
       "cppm",
       "cxx",
-      "h",
       "h++",
       "hh",
       "hpp",
       "hxx",
       "inl",
-      "ino",
       "ipp",
       "ixx",
       "re",
@@ -76,7 +74,6 @@
       "boot",
       "cl2",
       "cljc",
-      "cljs",
       "cljscm",
       "cljx",
       "hic"
@@ -281,12 +278,9 @@
     "extensions": [
       "fth",
       "4th",
-      "f",
-      "for",
       "forth",
       "fr",
-      "frt",
-      "fs"
+      "frt"
     ],
     "filenames": []
   },
@@ -406,7 +400,6 @@
       "jsm",
       "jspre",
       "jss",
-      "jsx",
       "mjs",
       "njs",
       "pac",
@@ -582,10 +575,7 @@
   },
   {
     "name": "Objective-C",
-    "extensions": [
-      "m",
-      "h"
-    ],
+    "extensions": [],
     "filenames": []
   },
   {
@@ -622,8 +612,7 @@
       "dfm",
       "dpr",
       "lpr",
-      "pascal",
-      "pp"
+      "pascal"
     ],
     "filenames": []
   },
@@ -681,7 +670,6 @@
       "plsql",
       "prc",
       "spc",
-      "sql",
       "tpb",
       "tps",
       "trg",
@@ -702,12 +690,10 @@
     "name": "Properties files",
     "extensions": [
       "ini",
-      "cfg",
       "cnf",
       "dof",
       "lektorproject",
       "prefs",
-      "pro",
       "properties",
       "url",
       "conf"
@@ -974,8 +960,7 @@
   {
     "name": "Smalltalk",
     "extensions": [
-      "st",
-      "cs"
+      "st"
     ],
     "filenames": []
   },
@@ -1101,7 +1086,6 @@
   {
     "name": "Verilog",
     "extensions": [
-      "v",
       "veo"
     ],
     "filenames": []
@@ -1178,7 +1162,6 @@
       "launch",
       "mdpolicy",
       "mjml",
-      "mm",
       "mod",
       "mojo",
       "mxml",
@@ -1201,7 +1184,6 @@
       "rdf",
       "res",
       "resx",
-      "rs",
       "rss",
       "sch",
       "scxml",
@@ -1214,8 +1196,6 @@
       "sw",
       "targets",
       "tml",
-      "ts",
-      "tsx",
       "typ",
       "ui",
       "urdf",
