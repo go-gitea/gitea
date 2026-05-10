@@ -1,3 +1,5 @@
+// Copyright 2026 The Gitea Authors. All rights reserved.
+// SPDX-License-Identifier: MIT
 package group_test
 
 import (
@@ -8,6 +10,7 @@ import (
 	group_model "code.gitea.io/gitea/models/group"
 	"code.gitea.io/gitea/models/unittest"
 	"code.gitea.io/gitea/modules/util"
+
 	"github.com/stretchr/testify/assert"
 	"xorm.io/builder"
 )
@@ -36,14 +39,14 @@ func createParentGroup(t *testing.T) (*group_model.Group, group_model.RepoGroupL
 	return parentGroup, groups
 }
 
-func assertGroupOrder(t *testing.T, pgid int64, expectedIds []int64) {
+func assertGroupOrder(t *testing.T, pgid int64, expectedIDs []int64) {
 	e := db.GetEngine(t.Context())
 	groups := make(group_model.RepoGroupList, 0)
 	err := e.Where(builder.Eq{"parent_group_id": pgid}).Asc("sort_order").Find(&groups)
 	mappedIDs := util.SliceMap(groups, getID)
 	assert.NoError(t, err)
 	for i, group := range mappedIDs {
-		assert.Equal(t, expectedIds[i], group)
+		assert.Equal(t, expectedIDs[i], group)
 		assert.Equal(t, i, groups[i].SortOrder)
 	}
 }
