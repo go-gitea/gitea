@@ -160,23 +160,25 @@ type TestingT interface {
 
 func ExternalServiceHTTP(t TestingT, envVarName, def string) string {
 	t.Helper()
-	extURL := util.IfZero(os.Getenv(envVarName), def)
-	if extURL == "" {
+	val := util.IfZero(os.Getenv(envVarName), def)
+	if val == "" {
 		if AllowSkipExternalService() {
 			t.Skipf("skipping test because %s is not set", envVarName)
 		} else {
 			t.Fatalf("%s is not set, but skipping is not allowed in CI", envVarName)
 		}
 	}
-	resp, err := http.Get(extURL)
+	// minio's endpoint is "host:port" pattern
+	testURL := util.Iif(strings.Contains(val, "://"), val, "http://"+val)
+	resp, err := http.Get(testURL)
 	if err != nil {
 		if AllowSkipExternalService() {
-			t.Skipf("skipping test because %s is not ready", extURL)
+			t.Skipf("skipping test because %s is not ready", val)
 		} else {
-			t.Fatalf("%s is not ready, but skipping is not allowed in CI", extURL)
+			t.Fatalf("%s is not ready, but skipping is not allowed in CI", val)
 		}
 	} else {
 		_ = resp.Body.Close()
 	}
-	return extURL
+	return val
 }
