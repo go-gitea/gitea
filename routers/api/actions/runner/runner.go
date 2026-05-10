@@ -286,16 +286,17 @@ func (s *Service) UpdateLog(
 		return nil, status.Errorf(codes.AlreadyExists, "log file has been archived")
 	}
 
-	if len(newRows) > 0 {
-		ns, err := actions.WriteLogs(ctx, task.LogFilename, task.LogSize, newRows)
-		if err != nil {
-			return nil, status.Errorf(codes.Internal, "unable to append logs to dbfs file: %v", err)
-		}
-		task.LogLength += int64(len(newRows))
-		for _, n := range ns {
-			task.LogIndexes = append(task.LogIndexes, task.LogSize)
-			task.LogSize += int64(n)
-		}
+	// Call WriteLogs even with empty newRows: when the runner finalizes a
+	// task that produced no log output, offset==0 makes WriteLogs create
+	// an empty DBFS file so TransferLogs below has something to read.
+	ns, err := actions.WriteLogs(ctx, task.LogFilename, task.LogSize, newRows)
+	if err != nil {
+		return nil, status.Errorf(codes.Internal, "unable to append logs to dbfs file: %v", err)
+	}
+	task.LogLength += int64(len(newRows))
+	for _, n := range ns {
+		task.LogIndexes = append(task.LogIndexes, task.LogSize)
+		task.LogSize += int64(n)
 	}
 
 	res.Msg.AckIndex = task.LogLength
