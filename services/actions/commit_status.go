@@ -185,7 +185,7 @@ func toCommitStatusDescription(job *actions_model.ActionRunJob) string {
 	case actions_model.StatusSkipped:
 		return "Skipped"
 	case actions_model.StatusRunning:
-		return "Has started running"
+		return "In progress"
 	case actions_model.StatusCancelling:
 		return "Cancellation in progress"
 	case actions_model.StatusWaiting:
