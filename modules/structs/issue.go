@@ -68,7 +68,7 @@ type Issue struct {
 	Attachments      []*Attachment `json:"assets"`
 	Labels           []*Label      `json:"labels"`
 	Milestone        *Milestone    `json:"milestone"`
-	Projects         []*Project    `json:"projects"`
+	Projects         []*ProjectMeta `json:"projects"`
 	// deprecated
 	Assignee  *User     `json:"assignee"`
 	Assignees []*User   `json:"assignees"`
