@@ -19,7 +19,7 @@ func newRealIndexer(t *testing.T) *Indexer {
 	if os.Getenv("CI") == "" {
 		url = os.Getenv("TEST_ELASTICSEARCH_URL")
 		if url == "" || test.IsBuiltWithGogit() {
-			t.Skip("TEST_ELASTICSEARCH_URL not set and can be skipped in CI")
+			t.Skip("TEST_ELASTICSEARCH_URL not set (not in CI or skippable CI)")
 		}
 	}
 	indexName := "gitea_test_" + strings.ReplaceAll(strings.ToLower(t.Name()), "/", "_")

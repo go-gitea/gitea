@@ -22,7 +22,7 @@ func TestLockAndDo(t *testing.T) {
 			// Make it possible to run tests against a local redis instance
 			url = os.Getenv("TEST_REDIS_URL")
 			if url == "" || test.IsBuiltWithGogit() {
-				t.Skip("TEST_REDIS_URL not set and can be skipped in CI")
+				t.Skip("TEST_REDIS_URL not set, skipped (not in CI or skippable CI)")
 				return
 			}
 		}

@@ -59,7 +59,7 @@ func TestBaseRedis(t *testing.T) {
 	if !waitRedisReady("redis://127.0.0.1:6379/0", 0) {
 		redisServer = redisServerCmd(t)
 		if redisServer == nil && (os.Getenv("CI") == "" || test.IsBuiltWithGogit()) {
-			t.Skip("redis-server not found and can be skipped in CI")
+			t.Skip("redis-server not found, skipped (not in CI or skippable CI)")
 			return
 		}
 		assert.NoError(t, redisServer.Start())

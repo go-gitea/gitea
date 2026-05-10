@@ -17,7 +17,7 @@ import (
 
 func TestAzureBlobStorage(t *testing.T) {
 	if os.Getenv("CI") == "" || test.IsBuiltWithGogit() {
-		t.Skip("azureBlobStorage not present and can be skipped in CI")
+		t.Skip("azure storage test skipped (not in CI or skippable CI)")
 		return
 	}
 	storageType := setting.AzureBlobStorageType
