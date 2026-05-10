@@ -14,6 +14,7 @@ import (
 	"net/http"
 	"net/url"
 	"strconv"
+	"strings"
 	"time"
 
 	actions_model "code.gitea.io/gitea/models/actions"
@@ -505,50 +506,53 @@ func fillViewRunResponseSummary(ctx *context_module.Context, resp *ViewResponse,
 	}
 	resp.State.Run.TriggerEvent = run.TriggerEvent
 
-	// Job summaries (GITHUB_STEP_SUMMARY). Step-scoped rows are grouped for display by job.
-	{
-		var runAttemptID int64
-		if attempt != nil {
-			runAttemptID = attempt.ID
-		}
-		summaries, err := actions_model.ListActionRunJobSummariesByRunAttempt(ctx, ctx.Repo.Repository.ID, run.ID, runAttemptID)
-		if err != nil {
-			ctx.ServerError("ListActionRunJobSummariesByRunAttempt", err)
-			return
-		}
-		if len(summaries) > 0 {
-			jobNameByID := make(map[int64]string, len(jobs))
-			for _, j := range jobs {
-				jobNameByID[j.ID] = j.Name
-			}
-			summaryIndexByJobID := make(map[int64]int, len(jobs))
-			resp.State.Run.JobSummaries = make([]*ViewJobSummary, 0, len(jobs))
-			renderUtils := templates.NewRenderUtils(ctx)
-			for _, s := range summaries {
-				if s.ContentType != actions_model.JobSummaryContentTypeMarkdown {
-					log.Warn("Skip unsupported job summary content type %q for run %d job %d step %d", s.ContentType, s.RunID, s.JobID, s.StepIndex)
-					continue
-				}
-				idx, ok := summaryIndexByJobID[s.JobID]
-				if !ok {
-					idx = len(resp.State.Run.JobSummaries)
-					summaryIndexByJobID[s.JobID] = idx
-					resp.State.Run.JobSummaries = append(resp.State.Run.JobSummaries, &ViewJobSummary{
-						JobID:   s.JobID,
-						JobName: jobNameByID[s.JobID],
-					})
-				}
-				resp.State.Run.JobSummaries[idx].SummaryHTML += renderUtils.MarkdownToHtml(s.Content)
-			}
-		}
-	}
-
-	// Legacy runs (LatestAttemptID == 0) have no attempt; their artifacts all share run_attempt_id=0,
-	// so passing 0 here scopes to this run's legacy artifacts only.
+	// Legacy runs (LatestAttemptID == 0) have no attempt; their artifacts and summaries all
+	// share run_attempt_id=0, so passing 0 here scopes to this run's legacy rows only.
 	var runAttemptID int64
 	if attempt != nil {
 		runAttemptID = attempt.ID
 	}
+
+	// Job summaries (GITHUB_STEP_SUMMARY). Step-scoped rows are grouped for display by job.
+	// Concatenate raw markdown per job and render once for parity with multi-step constructs.
+	summaries, err := actions_model.ListActionRunJobSummariesByRunAttempt(ctx, ctx.Repo.Repository.ID, run.ID, runAttemptID)
+	if err != nil {
+		ctx.ServerError("ListActionRunJobSummariesByRunAttempt", err)
+		return
+	}
+	if len(summaries) > 0 {
+		jobNameByID := make(map[int64]string, len(jobs))
+		for _, j := range jobs {
+			jobNameByID[j.ID] = j.Name
+		}
+		markdownByJobID := make(map[int64]*strings.Builder, len(jobs))
+		jobOrder := make([]int64, 0, len(jobs))
+		for _, s := range summaries {
+			if s.ContentType != actions_model.JobSummaryContentTypeMarkdown {
+				log.Warn("Skip unsupported job summary content type %q for run %d job %d step %d", s.ContentType, s.RunID, s.JobID, s.StepIndex)
+				continue
+			}
+			b, ok := markdownByJobID[s.JobID]
+			if !ok {
+				b = &strings.Builder{}
+				markdownByJobID[s.JobID] = b
+				jobOrder = append(jobOrder, s.JobID)
+			} else {
+				b.WriteString("\n\n")
+			}
+			b.WriteString(s.Content)
+		}
+		renderUtils := templates.NewRenderUtils(ctx)
+		resp.State.Run.JobSummaries = make([]*ViewJobSummary, 0, len(jobOrder))
+		for _, jobID := range jobOrder {
+			resp.State.Run.JobSummaries = append(resp.State.Run.JobSummaries, &ViewJobSummary{
+				JobID:       jobID,
+				JobName:     jobNameByID[jobID],
+				SummaryHTML: renderUtils.MarkdownToHtml(markdownByJobID[jobID].String()),
+			})
+		}
+	}
+
 	arts, err := actions_model.ListUploadedArtifactsMetaByRunAttempt(ctx, ctx.Repo.Repository.ID, run.ID, runAttemptID)
 	if err != nil {
 		ctx.ServerError("ListUploadedArtifactsMetaByRunAttempt", err)

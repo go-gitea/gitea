@@ -72,13 +72,18 @@ jobs:
 	req = NewRequest(t, "GET", fmt.Sprintf("/%s/%s/actions/runs/%d", user2.Name, repo1.Name, 999999))
 	user2Session.MakeRequest(t, req, http.StatusNotFound)
 
+	assertJob1Summaries := func(t *testing.T, viewResp *actions_web.ViewResponse) {
+		t.Helper()
+		require.Len(t, viewResp.State.Run.JobSummaries, 1)
+		assert.Equal(t, job1.ID, viewResp.State.Run.JobSummaries[0].JobID)
+		assert.Contains(t, string(viewResp.State.Run.JobSummaries[0].SummaryHTML), "Hello summary")
+		assert.Contains(t, string(viewResp.State.Run.JobSummaries[0].SummaryHTML), "From second step")
+	}
+
 	req = NewRequest(t, "POST", fmt.Sprintf("/%s/%s/actions/runs/%d", user2.Name, repo1.Name, run1.ID))
 	resp := user2Session.MakeRequest(t, req, http.StatusOK)
 	viewResp := DecodeJSON(t, resp, &actions_web.ViewResponse{})
-	require.Len(t, viewResp.State.Run.JobSummaries, 1)
-	assert.Equal(t, job1.ID, viewResp.State.Run.JobSummaries[0].JobID)
-	assert.Contains(t, string(viewResp.State.Run.JobSummaries[0].SummaryHTML), "Hello summary")
-	assert.Contains(t, string(viewResp.State.Run.JobSummaries[0].SummaryHTML), "From second step")
+	assertJob1Summaries(t, viewResp)
 
 	// run1 and job1 belong to repo1, success
 	req = NewRequest(t, "POST", fmt.Sprintf("/%s/%s/actions/runs/%d/jobs/%d", user2.Name, repo1.Name, run1.ID, job1.ID))
@@ -86,10 +91,7 @@ jobs:
 	viewResp = DecodeJSON(t, resp, &actions_web.ViewResponse{})
 	assert.Len(t, viewResp.State.Run.Jobs, 1)
 	assert.Equal(t, job1.ID, viewResp.State.Run.Jobs[0].ID)
-	require.Len(t, viewResp.State.Run.JobSummaries, 1)
-	assert.Equal(t, job1.ID, viewResp.State.Run.JobSummaries[0].JobID)
-	assert.Contains(t, string(viewResp.State.Run.JobSummaries[0].SummaryHTML), "Hello summary")
-	assert.Contains(t, string(viewResp.State.Run.JobSummaries[0].SummaryHTML), "From second step")
+	assertJob1Summaries(t, viewResp)
 
 	// run2 and job2 do not belong to repo1, failure
 	req = NewRequest(t, "POST", fmt.Sprintf("/%s/%s/actions/runs/%d/jobs/%d", user2.Name, repo1.Name, run2.ID, job2.ID))

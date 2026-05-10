@@ -130,7 +130,7 @@ func (s *Service) Declare(
 	})
 	// Capabilities are communicated via headers to avoid a hard dependency on a proto bump.
 	// Older runners ignore unknown headers; newer runners can use this for feature negotiation.
-	resp.Header().Set("X-Gitea-Actions-Capabilities", actions_model.JobSummaryCapability)
+	resp.Header().Set("X-Gitea-Actions-Capabilities", actions_model.RunnerCapabilities())
 	return resp, nil
 }
 

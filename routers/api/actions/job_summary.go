@@ -24,16 +24,7 @@ func uploadJobSummary(ctx *ArtifactContext) {
 	}
 
 	jobID := ctx.PathParamInt64("job_id")
-	if jobID <= 0 {
-		ctx.HTTPError(http.StatusBadRequest, "invalid job_id")
-		return
-	}
-
-	if task == nil || task.Job == nil {
-		ctx.HTTPError(http.StatusInternalServerError, "task/job not loaded")
-		return
-	}
-	if task.Job.ID != jobID {
+	if jobID <= 0 || task.Job.ID != jobID {
 		ctx.HTTPError(http.StatusBadRequest, "job_id mismatch")
 		return
 	}
@@ -54,6 +45,12 @@ func uploadJobSummary(ctx *ArtifactContext) {
 		return
 	}
 
+	contentType, ok := normalizeJobSummaryContentType(ctx.Req.Header.Get("Content-Type"))
+	if !ok {
+		ctx.HTTPError(http.StatusBadRequest, "invalid summary content type")
+		return
+	}
+
 	body, err := io.ReadAll(io.LimitReader(ctx.Req.Body, actions_model.MaxJobSummarySize+1))
 	if err != nil {
 		log.Error("Error reading job summary request body: %v", err)
@@ -61,17 +58,15 @@ func uploadJobSummary(ctx *ArtifactContext) {
 		return
 	}
 	if len(body) == 0 {
-		ctx.JSON(http.StatusOK, map[string]string{"message": "empty"})
-		return
-	}
-
-	contentType, ok := normalizeJobSummaryContentType(ctx.Req.Header.Get("Content-Type"))
-	if !ok {
-		ctx.HTTPError(http.StatusBadRequest, "invalid summary content type")
+		ctx.JSON(http.StatusOK, map[string]any{"message": "empty"})
 		return
 	}
 
 	if err := actions_model.UpsertActionRunJobSummary(ctx, task.Job.RepoID, task.Job.RunID, task.Job.RunAttemptID, task.Job.ID, stepIndex, contentType, body); err != nil {
+		if errors.Is(err, actions_model.ErrJobSummaryAggregateExceeded) {
+			ctx.HTTPError(http.StatusBadRequest, "job summary aggregate size exceeded")
+			return
+		}
 		if errors.Is(err, util.ErrInvalidArgument) {
 			ctx.HTTPError(http.StatusBadRequest, "invalid summary")
 			return
@@ -81,10 +76,10 @@ func uploadJobSummary(ctx *ArtifactContext) {
 		return
 	}
 
-	ctx.JSON(http.StatusOK, map[string]string{
+	ctx.JSON(http.StatusOK, map[string]any{
 		"message":    "success",
-		"sizeBytes":  strconv.Itoa(len(body)),
-		"runAttempt": strconv.FormatInt(task.Job.RunAttemptID, 10),
+		"sizeBytes":  len(body),
+		"runAttempt": task.Job.RunAttemptID,
 	})
 }
 

@@ -155,6 +155,16 @@ func TestActionsJobSummaryUpload(t *testing.T) {
 		assert.Contains(t, resp.Body.String(), "invalid summary")
 	})
 
+	t.Run("aggregate-size-limit", func(t *testing.T) {
+		require.NoError(t, actions_model.UpsertActionRunJobSummary(t.Context(), task.Job.RepoID, task.Job.RunID, task.Job.RunAttemptID, task.Job.ID, 0,
+			actions_model.JobSummaryContentTypeMarkdown, []byte(strings.Repeat("a", actions_model.MaxJobSummaryAggregateSize-1024))))
+		req := NewRequestWithBody(t, "PUT", summaryURL(1), strings.NewReader(strings.Repeat("b", 4096))).
+			AddTokenAuth("8061e833a55f6fc0157c98b883e91fcfeeb1a71a").
+			SetHeader("Content-Type", actions_model.JobSummaryContentTypeMarkdown)
+		resp := MakeRequest(t, req, http.StatusBadRequest)
+		assert.Contains(t, resp.Body.String(), "aggregate size exceeded")
+	})
+
 	t.Run("job-mismatch", func(t *testing.T) {
 		req := NewRequestWithBody(t, "PUT", fmt.Sprintf("/api/actions_pipeline/_apis/pipelines/workflows/%d/jobs/%d/steps/0/summary", task.Job.RunID, task.Job.ID+1), strings.NewReader("summary")).
 			AddTokenAuth("8061e833a55f6fc0157c98b883e91fcfeeb1a71a").

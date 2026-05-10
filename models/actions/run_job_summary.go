@@ -5,6 +5,7 @@ package actions
 
 import (
 	"context"
+	"strings"
 
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/modules/setting"
@@ -19,10 +20,20 @@ const (
 	// JobSummaryContentTypeMarkdown is the only accepted content type for job summaries.
 	JobSummaryContentTypeMarkdown = "text/markdown"
 
-	// MaxJobSummarySize is the maximum accepted summary payload size in bytes.
-	// This is intentionally conservative to avoid DB bloat and UI abuse.
+	// MaxJobSummarySize is the maximum accepted per-step summary payload size in bytes.
 	MaxJobSummarySize = 1024 * 1024 // 1 MiB
+
+	// MaxJobSummaryAggregateSize is the maximum aggregate size of all step summaries within
+	// a single job attempt. Matches GitHub's documented per-job summary cap of 1 MiB.
+	MaxJobSummaryAggregateSize = 1024 * 1024 // 1 MiB
 )
+
+// RunnerCapabilities returns the capabilities the server advertises to runners
+// via the X-Gitea-Actions-Capabilities header. Multiple capabilities are joined
+// with ", " so older runners that match a single token still work.
+func RunnerCapabilities() string {
+	return strings.Join([]string{JobSummaryCapability}, ", ")
+}
 
 // ActionRunJobSummary stores one raw GITHUB_STEP_SUMMARY markdown upload for a job step.
 // It is internal state grouped for display as a job summary (not a downloadable artifact).
@@ -60,6 +71,10 @@ func GetActionRunJobSummary(ctx context.Context, repoID, runID, runAttemptID, jo
 	return &s, nil
 }
 
+// ErrJobSummaryAggregateExceeded is returned when a step summary upload would push the
+// aggregate size of summaries for a single job attempt over MaxJobSummaryAggregateSize.
+var ErrJobSummaryAggregateExceeded = util.NewInvalidArgumentErrorf("job summary aggregate size exceeded")
+
 func UpsertActionRunJobSummary(ctx context.Context, repoID, runID, runAttemptID, jobID, stepIndex int64, contentType string, content []byte) error {
 	if runID <= 0 || jobID <= 0 || repoID <= 0 || stepIndex < 0 {
 		return util.ErrInvalidArgument
@@ -71,26 +86,53 @@ func UpsertActionRunJobSummary(ctx context.Context, repoID, runID, runAttemptID,
 	if len(content) > MaxJobSummarySize {
 		return util.ErrInvalidArgument
 	}
-	if contentType == "" {
-		contentType = JobSummaryContentTypeMarkdown
-	}
 	if contentType != JobSummaryContentTypeMarkdown {
 		return util.ErrInvalidArgument
 	}
 
-	now := timeutil.TimeStampNow()
-	summary := &ActionRunJobSummary{
-		RepoID:       repoID,
-		RunID:        runID,
-		RunAttemptID: runAttemptID,
-		JobID:        jobID,
-		StepIndex:    stepIndex,
-		Content:      string(content),
-		ContentType:  contentType,
-		Created:      now,
-		Updated:      now,
-	}
-	return upsertActionRunJobSummary(ctx, summary)
+	return db.WithTx(ctx, func(ctx context.Context) error {
+		existing, err := listJobSummaryContentSizes(ctx, repoID, runID, runAttemptID, jobID)
+		if err != nil {
+			return err
+		}
+		aggregate := len(content)
+		for _, e := range existing {
+			if e.StepIndex == stepIndex {
+				continue
+			}
+			aggregate += int(e.Size)
+		}
+		if aggregate > MaxJobSummaryAggregateSize {
+			return ErrJobSummaryAggregateExceeded
+		}
+
+		now := timeutil.TimeStampNow()
+		return upsertActionRunJobSummary(ctx, &ActionRunJobSummary{
+			RepoID:       repoID,
+			RunID:        runID,
+			RunAttemptID: runAttemptID,
+			JobID:        jobID,
+			StepIndex:    stepIndex,
+			Content:      string(content),
+			ContentType:  contentType,
+			Created:      now,
+			Updated:      now,
+		})
+	})
+}
+
+type jobSummarySize struct {
+	StepIndex int64
+	Size      int64
+}
+
+func listJobSummaryContentSizes(ctx context.Context, repoID, runID, runAttemptID, jobID int64) ([]jobSummarySize, error) {
+	var rows []jobSummarySize
+	err := db.GetEngine(ctx).Table("action_run_job_summary").
+		Select("step_index, LENGTH(content) AS size").
+		Where("repo_id=? AND run_id=? AND run_attempt_id=? AND job_id=?", repoID, runID, runAttemptID, jobID).
+		Find(&rows)
+	return rows, err
 }
 
 func upsertActionRunJobSummary(ctx context.Context, summary *ActionRunJobSummary) error {
