@@ -377,24 +377,14 @@ watch-backend: ## watch backend files and continuously rebuild
 	GITEA_RUN_MODE=dev $(GO) run $(AIR_PACKAGE) -c .air.toml
 
 .PHONY: test-backend
-test-backend: ## test backend files
+test-backend: ## test backend files (set TEST_SHARD/TEST_TOTAL_SHARDS to run a partition)
 	@echo "Running go test with $(GOTEST_FLAGS) -tags '$(TAGS)'..."
-	@$(GO) test $(GOTEST_FLAGS) -tags='$(TAGS)' $(GO_TEST_PACKAGES)
-
-.PHONY: test-backend-gogit
-test-backend-gogit: ## test packages whose code or tests import the gogit-affected modules
-	@pkgs=$$(./tools/find-gogit-test-pkgs.sh '$(TAGS)') && \
-	$(GO) test $(GOTEST_FLAGS) -tags='$(TAGS)' $$pkgs
-
-.PHONY: test-backend-shard
-test-backend-shard: ## run the TEST_SHARD/TEST_TOTAL_SHARDS slice of test-backend
+ifdef TEST_SHARD
 	@pkgs=$$(echo "$(GO_TEST_PACKAGES)" | tr ' ' '\n' | ./tools/partition-by-shard.sh) && \
 	$(GO) test $(GOTEST_FLAGS) -tags='$(TAGS)' $$pkgs
-
-.PHONY: test-backend-gogit-shard
-test-backend-gogit-shard: ## run the TEST_SHARD/TEST_TOTAL_SHARDS slice of test-backend-gogit
-	@pkgs=$$(./tools/find-gogit-test-pkgs.sh '$(TAGS)' | ./tools/partition-by-shard.sh) && \
-	$(GO) test $(GOTEST_FLAGS) -tags='$(TAGS)' $$pkgs
+else
+	@$(GO) test $(GOTEST_FLAGS) -tags='$(TAGS)' $(GO_TEST_PACKAGES)
+endif
 
 .PHONY: test-frontend
 test-frontend: node_modules ## test frontend files
@@ -460,9 +450,6 @@ test-integration:
 	@# they mutate the work directory, so cache inputs change between runs.
 	$(GO) test $(GOTEST_FLAGS) -tags '$(TAGS)' -c code.gitea.io/gitea/tests/integration -o ./test-integration-$(GITEA_TEST_DATABASE).test
 ifdef TEST_SHARD
-ifndef TEST_TOTAL_SHARDS
-	$(error TEST_TOTAL_SHARDS must be set when TEST_SHARD is set)
-endif
 	./tools/test-integration-shard.sh ./test-integration-$(GITEA_TEST_DATABASE).test
 else
 	./test-integration-$(GITEA_TEST_DATABASE).test

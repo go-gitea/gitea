@@ -72,7 +72,7 @@ jobs:
           TAGS: bindata gogit
           TEST_LDAP: 1
           TEST_SHARD: ${{ matrix.shard }}
-          TEST_TOTAL_SHARDS: 3
+          TEST_TOTAL_SHARDS: ${{ strategy.job-total }}
 
   test-pgsql:
     needs: [files-changed, test-pgsql-shards]
@@ -118,7 +118,7 @@ jobs:
           TAGS: bindata gogit
           GOEXPERIMENT:
           TEST_SHARD: ${{ matrix.shard }}
-          TEST_TOTAL_SHARDS: 3
+          TEST_TOTAL_SHARDS: ${{ strategy.job-total }}
 
   test-sqlite:
     needs: [files-changed, test-sqlite-shards]
@@ -186,18 +186,18 @@ jobs:
         env:
           TAGS: bindata
       - name: unit-tests
-        run: make test-backend-shard test-check
+        run: make test-backend test-check
         env:
           TEST_SHARD: ${{ matrix.shard }}
-          TEST_TOTAL_SHARDS: 4
+          TEST_TOTAL_SHARDS: ${{ strategy.job-total }}
           GOTEST_FLAGS: -race -timeout=20m
           TAGS: bindata
           GITHUB_READ_TOKEN: ${{ secrets.GITHUB_READ_TOKEN }}
       - name: unit-tests-gogit
-        run: make test-backend-gogit-shard test-check
+        run: make test-backend test-check
         env:
           TEST_SHARD: ${{ matrix.shard }}
-          TEST_TOTAL_SHARDS: 4
+          TEST_TOTAL_SHARDS: ${{ strategy.job-total }}
           GOTEST_FLAGS: -race -timeout=20m
           TAGS: bindata gogit
           GOEXPERIMENT:
@@ -268,7 +268,7 @@ jobs:
           TAGS: bindata
           TEST_INDEXER_CODE_ES_URL: "http://elastic:changeme@elasticsearch:9200"
           TEST_SHARD: ${{ matrix.shard }}
-          TEST_TOTAL_SHARDS: 3
+          TEST_TOTAL_SHARDS: ${{ strategy.job-total }}
 
   test-mysql:
     needs: [files-changed, test-mysql-shards]
@@ -322,7 +322,7 @@ jobs:
         env:
           TAGS: bindata
           TEST_SHARD: ${{ matrix.shard }}
-          TEST_TOTAL_SHARDS: 3
+          TEST_TOTAL_SHARDS: ${{ strategy.job-total }}
 
   test-mssql:
     needs: [files-changed, test-mssql-shards]
