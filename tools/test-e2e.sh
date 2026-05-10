@@ -1,25 +1,23 @@
 #!/bin/bash
 set -euo pipefail
 
-# Extract Playwright version from package.json, stripping any leading semver
-# range specifier (^, ~, >=, etc.) so the version slots cleanly into the image tag.
-PLAYWRIGHT_VERSION=$(node -e "process.stdout.write(require('./package.json').devDependencies['@playwright/test'].replace(/^[^\d]+/, ''))")
-
+CONTAINER_RUNTIME="${CONTAINER_RUNTIME:-docker}"
 # Unique container name so concurrent test-e2e runs on the same host don't collide.
 CONTAINER_NAME="gitea-e2e-runner-$$"
 
+free_port() {
+  node -e "const s=require('net').createServer();s.listen(0,'127.0.0.1',()=>{process.stdout.write(String(s.address().port));s.close()})"
+}
+
 detect_playwright_mode() {
-  # If PLAYWRIGHT_MODE is already set to local or container, use it
   if [ "${PLAYWRIGHT_MODE:-auto}" = "local" ] || [ "${PLAYWRIGHT_MODE:-auto}" = "container" ]; then
     return
   fi
 
-  # Default to local
   PLAYWRIGHT_MODE="local"
 
   if [ "$(uname -s)" = "Linux" ]; then
     if [ -f /etc/os-release ]; then
-      # Check ID and ID_LIKE for ubuntu or debian
       if ! grep -qE '^ID(_LIKE)?=.*(ubuntu|debian)' /etc/os-release; then
         PLAYWRIGHT_MODE="container"
       fi
@@ -30,28 +28,21 @@ detect_playwright_mode() {
 }
 
 wait_for_container() {
-  local max_attempts=$1
-  local attempt=1
-  local wait_time=1
+  local max_wait=30
+  local elapsed=0
   echo "Waiting for container to start..."
-
-  while [ $attempt -le $max_attempts ]; do
-    # Match the run-server's "Listening on ws://..." banner.
-    if ${CONTAINER_RUNTIME:-docker} logs "$CONTAINER_NAME" 2>&1 | grep -q "Listening on"; then
-      echo "Container is ready."
-      return 0
-    fi
-
-    if [ $attempt -eq $max_attempts ]; then
-      echo "Error: Container did not become ready after $max_attempts attempts."
+  # Probe the playwright run-server's TCP port directly via bash's /dev/tcp.
+  # Cheaper than re-grepping `docker logs` and signals actual readiness, not just a log line.
+  while ! (echo > "/dev/tcp/127.0.0.1/$PLAYWRIGHT_SERVER_PORT") 2>/dev/null; do
+    if [ "$elapsed" -ge "$max_wait" ]; then
+      echo "Error: container did not become ready after ${max_wait}s." >&2
+      "$CONTAINER_RUNTIME" logs "$CONTAINER_NAME" >&2 || true
       return 1
     fi
-
-    echo "Attempt $attempt: Container not ready, waiting $wait_time second(s)..."
-    sleep $wait_time
-    ((attempt++))
-    ((wait_time*=2))  # Exponential backoff
+    sleep 1
+    elapsed=$((elapsed + 1))
   done
+  echo "Container is ready."
 }
 
 CMD="${1:-run}"
@@ -63,10 +54,17 @@ fi
 
 detect_playwright_mode
 
-if [ "$PLAYWRIGHT_MODE" = "container" ] && ! command -v "${CONTAINER_RUNTIME:-docker}" >/dev/null 2>&1; then
-  echo "error: PLAYWRIGHT_MODE=container but '${CONTAINER_RUNTIME:-docker}' is not installed." >&2
-  echo "Install docker/podman or set CONTAINER_RUNTIME to an available runtime." >&2
-  exit 1
+if [ "$PLAYWRIGHT_MODE" = "container" ]; then
+  if ! command -v "$CONTAINER_RUNTIME" >/dev/null 2>&1; then
+    echo "error: PLAYWRIGHT_MODE=container but '$CONTAINER_RUNTIME' is not installed." >&2
+    echo "Install docker/podman or set CONTAINER_RUNTIME to an available runtime." >&2
+    exit 1
+  fi
+  # Strip any leading semver range specifier (^, ~, >=, etc.) so the version slots
+  # cleanly into the image tag.
+  PLAYWRIGHT_VERSION=$(sed -n 's/.*"@playwright\/test"[[:space:]]*:[[:space:]]*"[^[:digit:]]*\([^"]*\)".*/\1/p' package.json)
+  PLAYWRIGHT_IMAGE="mcr.microsoft.com/playwright:v${PLAYWRIGHT_VERSION}-noble"
+  PLAYWRIGHT_SERVER_PORT=$(free_port)
 fi
 
 if [ "$CMD" = "install" ]; then
@@ -79,7 +77,9 @@ if [ "$CMD" = "install" ]; then
     fi
   else
     echo "Running playwright in container as host distro is not supported by playwright directly"
-    ${CONTAINER_RUNTIME:-docker} pull "mcr.microsoft.com/playwright:v${PLAYWRIGHT_VERSION}-noble"
+    if ! "$CONTAINER_RUNTIME" image inspect "$PLAYWRIGHT_IMAGE" >/dev/null 2>&1; then
+      "$CONTAINER_RUNTIME" pull "$PLAYWRIGHT_IMAGE"
+    fi
   fi
   exit 0
 fi
@@ -88,11 +88,11 @@ fi
 WORK_DIR=$(mktemp -d)
 
 # Find a random free port
-FREE_PORT=$(node -e "const s=require('net').createServer();s.listen(0,'127.0.0.1',()=>{process.stdout.write(String(s.address().port));s.close()})")
+FREE_PORT=$(free_port)
 
 cleanup() {
-  if [ "${PLAYWRIGHT_MODE:-}" = "container" ]; then
-    ${CONTAINER_RUNTIME:-docker} stop "$CONTAINER_NAME" >/dev/null 2>&1 || true
+  if [ "$PLAYWRIGHT_MODE" = "container" ]; then
+    "$CONTAINER_RUNTIME" stop "$CONTAINER_NAME" >/dev/null 2>&1 || true
   fi
   if [ -n "${SERVER_PID:-}" ]; then
     kill "$SERVER_PID" 2>/dev/null || true
@@ -102,12 +102,12 @@ cleanup() {
 }
 trap cleanup EXIT
 
-if [ "${PLAYWRIGHT_MODE:-}" = "container" ]; then
+if [ "$PLAYWRIGHT_MODE" = "container" ]; then
   # --network=host is required so the playwright server in the container can reach
   # the gitea instance running on the host's loopback interface.
-  ${CONTAINER_RUNTIME:-docker} run --network=host --name "$CONTAINER_NAME" -d --rm --init --workdir /home/pwuser --user pwuser "mcr.microsoft.com/playwright:v${PLAYWRIGHT_VERSION}-noble" /bin/sh -c "npx -y playwright@${PLAYWRIGHT_VERSION} run-server --port 4000 --host 0.0.0.0"
+  "$CONTAINER_RUNTIME" run --network=host --name "$CONTAINER_NAME" -d --rm --init --workdir /home/pwuser --user pwuser "$PLAYWRIGHT_IMAGE" /bin/sh -c "npx -y playwright@${PLAYWRIGHT_VERSION} run-server --port ${PLAYWRIGHT_SERVER_PORT} --host 0.0.0.0"
 
-  if ! wait_for_container 5; then
+  if ! wait_for_container; then
     exit 1
   fi
 fi
@@ -212,6 +212,6 @@ export GITEA_TEST_E2E_EMAIL
 export GITEA_TEST_E2E_TIMEOUT_FACTOR
 
 if [ "$PLAYWRIGHT_MODE" = "container" ]; then
-  export PW_TEST_CONNECT_WS_ENDPOINT=ws://127.0.0.1:4000/
+  export PW_TEST_CONNECT_WS_ENDPOINT="ws://127.0.0.1:${PLAYWRIGHT_SERVER_PORT}/"
 fi
 pnpm exec playwright test "$@"

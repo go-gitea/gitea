@@ -6,7 +6,6 @@ DIST_DIRS := $(DIST)/binaries $(DIST)/release
 export GOEXPERIMENT ?= jsonv2
 
 GO ?= go
-CONTAINER_RUNTIME ?= docker
 SHASUM ?= shasum -a 256
 COMMA := ,
 
@@ -473,7 +472,7 @@ playwright: deps-frontend
 
 .PHONY: test-e2e
 test-e2e: playwright frontend backend
-	@CONTAINER_RUNTIME=$(CONTAINER_RUNTIME) EXECUTABLE=$(EXECUTABLE) ./tools/test-e2e.sh run $(GITEA_TEST_E2E_FLAGS)
+	@EXECUTABLE=$(EXECUTABLE) ./tools/test-e2e.sh run $(GITEA_TEST_E2E_FLAGS)
 
 .PHONY: build
 build: frontend backend ## build everything
