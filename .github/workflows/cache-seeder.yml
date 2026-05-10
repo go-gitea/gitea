@@ -64,7 +64,6 @@ jobs:
       - uses: ./.github/actions/go-cache
         with:
           cache-name: ${{ matrix.job }}
-          build-cache: "false"
           lint-cache: "true"
       - run: make deps-backend deps-tools
       - run: make ${{ matrix.target }}

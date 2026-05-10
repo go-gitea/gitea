@@ -77,7 +77,7 @@ jobs:
           cache: false
       - uses: ./.github/actions/go-cache
         with:
-          cache-name: checks-backend
+          cache-name: seed
       - run: make deps-backend deps-tools
       - run: make --always-make checks-backend # ensure the "go-licenses" make target runs
 
@@ -112,7 +112,7 @@ jobs:
           cache: false
       - uses: ./.github/actions/go-cache
         with:
-          cache-name: compliance-backend
+          cache-name: seed
       - run: make deps-backend generate-go
       # no frontend build here as backend should be able to build, even without any frontend files
       # CGO is not used when cross-compile, so these steps also test if the code is compatible with CGO disabled

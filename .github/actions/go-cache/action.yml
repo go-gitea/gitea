@@ -37,8 +37,8 @@ runs:
       uses: actions/cache@27d5ce7f107fe9357f9df03efb73ab90386fccae # v5.0.5
       with:
         path: ~/.cache/go-build
-        key: gobuild-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('go.sum') }}
-        restore-keys: gobuild-${{ runner.os }}-${{ runner.arch }}
+        key: gobuild-${{ runner.os }}-${{ runner.arch }}-${{ inputs.cache-name }}-${{ hashFiles('go.sum') }}
+        restore-keys: gobuild-${{ runner.os }}-${{ runner.arch }}-${{ inputs.cache-name }}
     - if: ${{ inputs.lint-cache == 'true' }}
       uses: actions/cache@27d5ce7f107fe9357f9df03efb73ab90386fccae # v5.0.5
       with:
