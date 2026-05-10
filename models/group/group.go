@@ -368,7 +368,7 @@ func GetParentGroupIDChain(ctx context.Context, groupID int64) ([]int64, error) 
 }
 
 func groupHierarchyCTEBuilder(cond builder.Cond) builder.Cond {
-	firstPart := builder.Select(fmt.Sprintf("repo_group.*"), "1 as depth").
+	firstPart := builder.Select("repo_group.*", "1 as depth").
 		From("repo_group").
 		Where(builder.And(builder.Eq{
 			"parent_group_id": 0,
@@ -377,18 +377,16 @@ func groupHierarchyCTEBuilder(cond builder.Cond) builder.Cond {
 		From("repo_group", "r").
 		Join("INNER", "group_hierarchy h", "r.parent_group_id = h.id")
 
-	firstSql, _ := firstPart.ToBoundSQL()
-	secondSql, _ := secondPart.ToBoundSQL()
-	return builder.Expr(firstSql + " UNION ALL " + secondSql)
+	firstSQL, _ := firstPart.ToBoundSQL()
+	secondSQL, _ := secondPart.ToBoundSQL()
+	return builder.Expr(firstSQL + " UNION ALL " + secondSQL)
 }
 
 func AccessibleParentGroupCond(idStr string, groupID int64, user *user_model.User) builder.Cond {
 	accessibleCond := AccessibleGroupCondition(user, unit.TypeInvalid, perm.AccessModeRead)
 	unionBldr := groupHierarchyCTEBuilder(accessibleCond)
-	unionSql, err := builder.ToBoundSQL(unionBldr)
-	if err != nil {
-	}
-	return builder.In(idStr, builder.Expr("(WITH RECURSIVE group_hierarchy AS ("+unionSql+") SELECT id from group_hierarchy)"))
+	unionSQL, _ := builder.ToBoundSQL(unionBldr)
+	return builder.In(idStr, builder.Expr("(WITH RECURSIVE group_hierarchy AS ("+unionSQL+") SELECT id from group_hierarchy)"))
 }
 
 // ParentGroupCond returns a condition matching a group and its ancestors
@@ -434,9 +432,9 @@ func MoveGroup(ctx context.Context, group *Group, newParent int64, newSortOrder 
 		}
 	}
 
-	itemsLower := append(tmpSiblings)[0:group.SortOrder]
-	itemsUpper := append(tmpSiblings)[group.SortOrder+1:]
-	withoutCurrent := append(itemsLower, itemsUpper...)
+	withoutCurrent := tmpSiblings[0:group.SortOrder]
+	itemsUpper := tmpSiblings[group.SortOrder+1:]
+	withoutCurrent = append(withoutCurrent, itemsUpper...)
 
 	siblings = append(siblings, withoutCurrent[:newSortOrder]...)
 	siblings = append(siblings, group)

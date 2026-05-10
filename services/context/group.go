@@ -185,8 +185,6 @@ func groupAssignment(ctx commonCtx, doer *user_model.User, isSigned bool, handle
 				return
 			}
 		}
-	} else {
-		// ctx.Data["SignedUser"] = &user_model.User{}
 	}
 	repoGroup.GroupLink = group.GroupLink()
 	repoGroup.OrgGroupLink = group.OrgGroupLink()
@@ -379,14 +377,5 @@ func GroupAssignmentAPI() func(ctx *APIContext) {
 			}
 			ctx.RepoGroup = repoGroup
 		})
-	}
-}
-
-func groupIsCurrent(ctx *Context) func(groupID int64) bool {
-	return func(groupID int64) bool {
-		if ctx.RepoGroup.Group == nil {
-			return false
-		}
-		return ctx.RepoGroup.Group.ID == groupID
 	}
 }

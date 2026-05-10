@@ -177,7 +177,7 @@ func moveGroup(t *testing.T, actor string, groupID, newGroupID int64, pos *int, 
 	return DecodeJSON(t, resp, &api.Group{})
 }
 
-func editGroupTeam(t *testing.T, actor string, groupID int64, team string, options *api.CreateOrUpdateRepoGroupTeamOption) {
+func editGroupTeam(t *testing.T, actor string, groupID int64, team string, options *api.CreateOrUpdateRepoGroupTeamOption) { //nolint:unused // WIP...
 	token := getUserToken(t, actor, auth_model.AccessTokenScopeWriteOrganization)
 	req := NewRequestWithJSON(t, "PATCH", "/api/v1/groups/"+strconv.FormatInt(groupID, 10)+"/teams/"+team, options).AddTokenAuth(token)
 	MakeRequest(t, req, http.StatusNoContent)
