@@ -6884,7 +6884,7 @@
           },
           "projects": {
             "items": {
-              "$ref": "#/components/schemas/Project"
+              "$ref": "#/components/schemas/ProjectMeta"
             },
             "type": "array",
             "x-go-name": "Projects"
@@ -8255,62 +8255,26 @@
         "type": "object",
         "x-go-package": "code.gitea.io/gitea/modules/structs"
       },
-      "Project": {
-        "description": "Project represents a project",
+      "ProjectMeta": {
+        "description": "ProjectMeta basic project info as embedded in issue/PR responses",
         "properties": {
-          "closed_at": {
-            "format": "date-time",
+          "column": {
             "type": "string",
-            "x-go-name": "Closed"
+            "x-go-name": "Column"
           },
-          "created_at": {
-            "format": "date-time",
-            "type": "string",
-            "x-go-name": "Created"
-          },
-          "creator_id": {
-            "description": "CreatorID is the user who created the project",
+          "column_id": {
             "format": "int64",
             "type": "integer",
-            "x-go-name": "CreatorID"
-          },
-          "description": {
-            "description": "Description provides details about the project",
-            "type": "string",
-            "x-go-name": "Description"
+            "x-go-name": "ColumnID"
           },
           "id": {
-            "description": "ID is the unique identifier for the project",
             "format": "int64",
             "type": "integer",
             "x-go-name": "ID"
           },
-          "is_closed": {
-            "description": "IsClosed indicates if the project is closed",
-            "type": "boolean",
-            "x-go-name": "IsClosed"
-          },
-          "owner_id": {
-            "description": "OwnerID is the owner of the project (for org-level projects)",
-            "format": "int64",
-            "type": "integer",
-            "x-go-name": "OwnerID"
-          },
-          "repo_id": {
-            "description": "RepoID is the repository this project belongs to (for repo-level projects)",
-            "format": "int64",
-            "type": "integer",
-            "x-go-name": "RepoID"
-          },
           "title": {
-            "description": "Title is the title of the project",
             "type": "string",
             "x-go-name": "Title"
-          },
-          "updated_at": {
-            "format": "date-time",
-            "type": "string",
-            "x-go-name": "Updated"
           }
         },
         "type": "object",
@@ -8533,6 +8497,13 @@
             "format": "int64",
             "type": "integer",
             "x-go-name": "PinOrder"
+          },
+          "projects": {
+            "items": {
+              "$ref": "#/components/schemas/ProjectMeta"
+            },
+            "type": "array",
+            "x-go-name": "Projects"
           },
           "requested_reviewers": {
             "description": "The users requested to review the pull request",
