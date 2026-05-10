@@ -132,9 +132,9 @@ func newFuncMapWebPage() template.FuncMap {
 
 		// -----------------------------------------------------------------
 		// misc (TODO: move them to MiscUtils to avoid bloating the main func map)
-		"ActionContent2Commits":    ActionContent2Commits,
-		"CommentMustAsDiff":        gitdiff.CommentMustAsDiff,
-		"MirrorRemoteAddress":      mirrorRemoteAddress,
+		"ActionContent2Commits": ActionContent2Commits,
+		"CommentMustAsDiff":     gitdiff.CommentMustAsDiff,
+		"MirrorRemoteAddress":   mirrorRemoteAddress,
 
 		"FilenameIsImage": filenameIsImage,
 		"TabSizeClass":    tabSizeClass,

@@ -661,6 +661,10 @@ generate-gitignore: ## update gitignore files
 generate-images: | node_modules ## generate images
 	cd tools && node generate-images.ts $(TAGS)
 
+.PHONY: generate-codemirror-languages
+generate-codemirror-languages: | node_modules ## generate codemirror languages
+	node tools/generate-codemirror-languages.ts
+
 .PHONY: generate-manpage
 generate-manpage: ## generate manpage
 	@[ -f gitea ] || make backend
