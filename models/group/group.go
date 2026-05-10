@@ -14,7 +14,6 @@ import (
 	"code.gitea.io/gitea/models/perm"
 	"code.gitea.io/gitea/models/unit"
 	user_model "code.gitea.io/gitea/models/user"
-	"code.gitea.io/gitea/modules/container"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/optional"
 	"code.gitea.io/gitea/modules/setting"
@@ -424,24 +423,25 @@ func MoveGroup(ctx context.Context, group *Group, newParent int64, newSortOrder 
 		if err = ng.LoadSubgroups(ctx, false); err != nil {
 			return err
 		}
-		filtered := container.Filter(ng.Subgroups, func(e *Group) bool {
-			return e.ID != group.ID
-		})
-		siblings = append(append(filtered[0:min(newSortOrder, len(ng.Subgroups))], group), filtered[newSortOrder:]...)
+		tmpSiblings = ng.Subgroups
 	} else if newParent <= 0 {
 		tmpSiblings, err = FindGroups(ctx, &FindGroupsOptions{
 			OwnerID:       group.OwnerID,
 			ParentGroupID: 0,
 		})
-		tmpSiblings = container.Filter(tmpSiblings, func(e *Group) bool {
-			return group.ID != e.ID
-		})
-		tmpSiblings2 := make(RepoGroupList, newSortOrder)
-		copy(tmpSiblings2, tmpSiblings[0:newSortOrder])
-		tmpSiblings2 = append(tmpSiblings2, group)
-
-		siblings = append(tmpSiblings2, tmpSiblings[newSortOrder:]...)
+		if err != nil {
+			return err
+		}
 	}
+
+	itemsLower := append(tmpSiblings)[0:group.SortOrder]
+	itemsUpper := append(tmpSiblings)[group.SortOrder+1:]
+	withoutCurrent := append(itemsLower, itemsUpper...)
+
+	siblings = append(siblings, withoutCurrent[:newSortOrder]...)
+	siblings = append(siblings, group)
+	siblings = append(siblings, withoutCurrent[newSortOrder:]...)
+
 	parentGroupChain, err := GetParentGroupChain(ctx, newParent)
 	if err != nil {
 		return err
