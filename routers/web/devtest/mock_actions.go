@@ -192,13 +192,11 @@ func MockActionsRunsJobs(ctx *context.Context) {
 		{
 			JobID:       runID * 10,
 			JobName:     "job 100 (testsubname)",
-			ContentType: "text/markdown",
 			SummaryHTML: renderUtils.MarkdownToHtml("### Devtest job summary\n\n- Markdown rendering\n- Links: [example](https://example.com)\n\n```sh\necho hello\n```\n"),
 		},
 		{
 			JobID:       runID*10 + 2,
 			JobName:     "ULTRA LOOOOOOOOOOOONG job name 102 that exceeds the limit",
-			ContentType: "text/markdown",
 			SummaryHTML: renderUtils.MarkdownToHtml("### Another summary\n\nThis demonstrates multiple job summaries in one run.\n\n- Item A\n- Item B\n"),
 		},
 	}

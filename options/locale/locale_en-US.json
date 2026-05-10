@@ -3772,6 +3772,7 @@
   "actions.runs.view_workflow_file": "View workflow file",
   "actions.runs.summary": "Summary",
   "actions.runs.all_jobs": "All jobs",
+  "actions.runs.job_summaries": "Job summaries",
   "actions.runs.attempt": "Attempt",
   "actions.runs.latest": "Latest",
   "actions.runs.latest_attempt": "Latest attempt",

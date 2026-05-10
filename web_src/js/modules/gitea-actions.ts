@@ -45,7 +45,6 @@ export type ActionsRun = {
 export type ActionsJobSummary = {
   jobId: number;
   jobName: string;
-  contentType: string;
   summaryHTML: string;
 };
 

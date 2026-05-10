@@ -63,7 +63,8 @@ jobs:
 	task2 := runner2.fetchTask(t)
 	_, job2, run2 := getTaskAndJobAndRunByTaskID(t, task2.Id)
 
-	require.NoError(t, actions_model.UpsertActionRunJobSummary(t.Context(), repo1.ID, run1.ID, job1.RunAttemptID, job1.ID, "text/markdown", []byte("### Hello summary\n\nFrom job summary.\n")))
+	require.NoError(t, actions_model.UpsertActionRunJobSummary(t.Context(), repo1.ID, run1.ID, job1.RunAttemptID, job1.ID, 0, "text/markdown", []byte("### Hello summary\n\nFrom first step.\n")))
+	require.NoError(t, actions_model.UpsertActionRunJobSummary(t.Context(), repo1.ID, run1.ID, job1.RunAttemptID, job1.ID, 1, "text/markdown", []byte("From second step.\n")))
 
 	req := NewRequest(t, "GET", fmt.Sprintf("/%s/%s/actions/runs/%d", user2.Name, repo1.Name, run1.ID))
 	user2Session.MakeRequest(t, req, http.StatusOK)
@@ -71,15 +72,24 @@ jobs:
 	req = NewRequest(t, "GET", fmt.Sprintf("/%s/%s/actions/runs/%d", user2.Name, repo1.Name, 999999))
 	user2Session.MakeRequest(t, req, http.StatusNotFound)
 
-	// run1 and job1 belong to repo1, success
-	req = NewRequest(t, "POST", fmt.Sprintf("/%s/%s/actions/runs/%d/jobs/%d", user2.Name, repo1.Name, run1.ID, job1.ID))
+	req = NewRequest(t, "POST", fmt.Sprintf("/%s/%s/actions/runs/%d", user2.Name, repo1.Name, run1.ID))
 	resp := user2Session.MakeRequest(t, req, http.StatusOK)
 	viewResp := DecodeJSON(t, resp, &actions_web.ViewResponse{})
+	require.Len(t, viewResp.State.Run.JobSummaries, 1)
+	assert.Equal(t, job1.ID, viewResp.State.Run.JobSummaries[0].JobID)
+	assert.Contains(t, string(viewResp.State.Run.JobSummaries[0].SummaryHTML), "Hello summary")
+	assert.Contains(t, string(viewResp.State.Run.JobSummaries[0].SummaryHTML), "From second step")
+
+	// run1 and job1 belong to repo1, success
+	req = NewRequest(t, "POST", fmt.Sprintf("/%s/%s/actions/runs/%d/jobs/%d", user2.Name, repo1.Name, run1.ID, job1.ID))
+	resp = user2Session.MakeRequest(t, req, http.StatusOK)
+	viewResp = DecodeJSON(t, resp, &actions_web.ViewResponse{})
 	assert.Len(t, viewResp.State.Run.Jobs, 1)
 	assert.Equal(t, job1.ID, viewResp.State.Run.Jobs[0].ID)
 	require.Len(t, viewResp.State.Run.JobSummaries, 1)
 	assert.Equal(t, job1.ID, viewResp.State.Run.JobSummaries[0].JobID)
 	assert.Contains(t, string(viewResp.State.Run.JobSummaries[0].SummaryHTML), "Hello summary")
+	assert.Contains(t, string(viewResp.State.Run.JobSummaries[0].SummaryHTML), "From second step")
 
 	// run2 and job2 do not belong to repo1, failure
 	req = NewRequest(t, "POST", fmt.Sprintf("/%s/%s/actions/runs/%d/jobs/%d", user2.Name, repo1.Name, run2.ID, job2.ID))

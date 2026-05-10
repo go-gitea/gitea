@@ -15,10 +15,10 @@ import (
 	"code.gitea.io/gitea/modules/util"
 )
 
-const jobSummaryRouteBase = "/_apis/pipelines/workflows/{run_id}/jobs/{job_id}/summary"
+const jobSummaryRouteBase = "/_apis/pipelines/workflows/{run_id}/jobs/{job_id}/steps/{step_index}/summary"
 
 func uploadJobSummary(ctx *ArtifactContext) {
-	task, runID, ok := validateRunID(ctx)
+	task, _, ok := validateRunID(ctx)
 	if !ok {
 		return
 	}
@@ -37,8 +37,20 @@ func uploadJobSummary(ctx *ArtifactContext) {
 		ctx.HTTPError(http.StatusBadRequest, "job_id mismatch")
 		return
 	}
-	if task.Job.RunID != runID {
-		ctx.HTTPError(http.StatusBadRequest, "run_id mismatch")
+
+	stepIndex, err := strconv.ParseInt(ctx.PathParam("step_index"), 10, 64)
+	if err != nil || stepIndex < 0 {
+		ctx.HTTPError(http.StatusBadRequest, "invalid step_index")
+		return
+	}
+	steps, err := actions_model.GetTaskStepsByTaskID(ctx, task.ID)
+	if err != nil {
+		log.Error("Error getting task steps: %v", err)
+		ctx.HTTPError(http.StatusInternalServerError, "Error getting task steps")
+		return
+	}
+	if !hasTaskStepIndex(steps, stepIndex) {
+		ctx.HTTPError(http.StatusBadRequest, "step_index mismatch")
 		return
 	}
 
@@ -59,8 +71,8 @@ func uploadJobSummary(ctx *ArtifactContext) {
 		return
 	}
 
-	if err := actions_model.UpsertActionRunJobSummary(ctx, task.Job.RepoID, task.Job.RunID, task.Job.RunAttemptID, task.Job.ID, contentType, body); err != nil {
-		if errorsIsInvalidArg(err) {
+	if err := actions_model.UpsertActionRunJobSummary(ctx, task.Job.RepoID, task.Job.RunID, task.Job.RunAttemptID, task.Job.ID, stepIndex, contentType, body); err != nil {
+		if errors.Is(err, util.ErrInvalidArgument) {
 			ctx.HTTPError(http.StatusBadRequest, "invalid summary")
 			return
 		}
@@ -76,8 +88,13 @@ func uploadJobSummary(ctx *ArtifactContext) {
 	})
 }
 
-func errorsIsInvalidArg(err error) bool {
-	return errors.Is(err, util.ErrInvalidArgument)
+func hasTaskStepIndex(steps []*actions_model.ActionTaskStep, stepIndex int64) bool {
+	for _, step := range steps {
+		if step.Index == stepIndex {
+			return true
+		}
+	}
+	return false
 }
 
 func normalizeJobSummaryContentType(contentType string) (string, bool) {

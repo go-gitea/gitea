@@ -18,6 +18,7 @@ import (
 
 	actions_model "code.gitea.io/gitea/models/actions"
 	auth_model "code.gitea.io/gitea/models/auth"
+	"code.gitea.io/gitea/models/db"
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unittest"
 	user_model "code.gitea.io/gitea/models/user"
@@ -51,30 +52,95 @@ func getArtifactFixtureTask(t *testing.T) *actions_model.ActionTask {
 	task, err := actions_model.GetRunningTaskByToken(t.Context(), "8061e833a55f6fc0157c98b883e91fcfeeb1a71a")
 	require.NoError(t, err)
 	require.NoError(t, task.LoadJob(t.Context()))
+	ensureArtifactFixtureTaskSteps(t, task)
 	return task
+}
+
+func ensureArtifactFixtureTaskSteps(t *testing.T, task *actions_model.ActionTask) {
+	t.Helper()
+
+	steps, err := actions_model.GetTaskStepsByTaskID(t.Context(), task.ID)
+	require.NoError(t, err)
+
+	existingIndexes := make(map[int64]bool, len(steps))
+	for _, step := range steps {
+		existingIndexes[step.Index] = true
+	}
+
+	var stepsToInsert []*actions_model.ActionTaskStep
+	for _, idx := range []int64{0, 1} {
+		if existingIndexes[idx] {
+			continue
+		}
+		stepsToInsert = append(stepsToInsert, &actions_model.ActionTaskStep{
+			TaskID: task.ID,
+			Index:  idx,
+			RepoID: task.RepoID,
+			Status: actions_model.StatusWaiting,
+		})
+	}
+	if len(stepsToInsert) == 0 {
+		return
+	}
+
+	_, err = db.GetEngine(t.Context()).Insert(stepsToInsert)
+	require.NoError(t, err)
 }
 
 func TestActionsJobSummaryUpload(t *testing.T) {
 	defer prepareTestEnvActionsArtifacts(t)()
 
 	task := getArtifactFixtureTask(t)
-	summaryURL := fmt.Sprintf("/api/actions_pipeline/_apis/pipelines/workflows/%d/jobs/%d/summary", task.Job.RunID, task.Job.ID)
+	summaryURL := func(stepIndex int64) string {
+		return fmt.Sprintf("/api/actions_pipeline/_apis/pipelines/workflows/%d/jobs/%d/steps/%d/summary", task.Job.RunID, task.Job.ID, stepIndex)
+	}
 
 	t.Run("success", func(t *testing.T) {
 		body := "### Uploaded summary\n\n- line one\n"
-		req := NewRequestWithBody(t, "PUT", summaryURL, strings.NewReader(body)).
+		req := NewRequestWithBody(t, "PUT", summaryURL(0), strings.NewReader(body)).
 			AddTokenAuth("8061e833a55f6fc0157c98b883e91fcfeeb1a71a").
 			SetHeader("Content-Type", "text/markdown; charset=utf-8")
 		MakeRequest(t, req, http.StatusOK)
 
-		summary, err := actions_model.GetActionRunJobSummary(t.Context(), task.Job.RepoID, task.Job.RunID, task.Job.RunAttemptID, task.Job.ID)
+		summary, err := actions_model.GetActionRunJobSummary(t.Context(), task.Job.RepoID, task.Job.RunID, task.Job.RunAttemptID, task.Job.ID, 0)
 		require.NoError(t, err)
 		assert.Equal(t, actions_model.JobSummaryContentTypeMarkdown, summary.ContentType)
 		assert.Equal(t, body, summary.Content)
+
+		staleUpdated := summary.Updated - 60
+		_, err = db.GetEngine(t.Context()).ID(summary.ID).Cols("updated").Update(&actions_model.ActionRunJobSummary{Updated: staleUpdated})
+		require.NoError(t, err)
+
+		updatedBody := "### Updated summary\n\n- refreshed\n"
+		req = NewRequestWithBody(t, "PUT", summaryURL(0), strings.NewReader(updatedBody)).
+			AddTokenAuth("8061e833a55f6fc0157c98b883e91fcfeeb1a71a").
+			SetHeader("Content-Type", actions_model.JobSummaryContentTypeMarkdown)
+		MakeRequest(t, req, http.StatusOK)
+
+		summary, err = actions_model.GetActionRunJobSummary(t.Context(), task.Job.RepoID, task.Job.RunID, task.Job.RunAttemptID, task.Job.ID, 0)
+		require.NoError(t, err)
+		assert.Equal(t, updatedBody, summary.Content)
+		assert.Greater(t, summary.Updated, staleUpdated)
+
+		stepTwoBody := "### Second step summary\n\n- another step\n"
+		req = NewRequestWithBody(t, "PUT", summaryURL(1), strings.NewReader(stepTwoBody)).
+			AddTokenAuth("8061e833a55f6fc0157c98b883e91fcfeeb1a71a").
+			SetHeader("Content-Type", actions_model.JobSummaryContentTypeMarkdown)
+		MakeRequest(t, req, http.StatusOK)
+
+		summary, err = actions_model.GetActionRunJobSummary(t.Context(), task.Job.RepoID, task.Job.RunID, task.Job.RunAttemptID, task.Job.ID, 1)
+		require.NoError(t, err)
+		assert.Equal(t, stepTwoBody, summary.Content)
+
+		summaries, err := actions_model.ListActionRunJobSummariesByRunAttempt(t.Context(), task.Job.RepoID, task.Job.RunID, task.Job.RunAttemptID)
+		require.NoError(t, err)
+		require.Len(t, summaries, 2)
+		assert.Equal(t, int64(0), summaries[0].StepIndex)
+		assert.Equal(t, int64(1), summaries[1].StepIndex)
 	})
 
 	t.Run("invalid-content-type", func(t *testing.T) {
-		req := NewRequestWithBody(t, "PUT", summaryURL, strings.NewReader("summary")).
+		req := NewRequestWithBody(t, "PUT", summaryURL(0), strings.NewReader("summary")).
 			AddTokenAuth("8061e833a55f6fc0157c98b883e91fcfeeb1a71a").
 			SetHeader("Content-Type", "text/html")
 		resp := MakeRequest(t, req, http.StatusBadRequest)
@@ -82,7 +148,7 @@ func TestActionsJobSummaryUpload(t *testing.T) {
 	})
 
 	t.Run("size-limit", func(t *testing.T) {
-		req := NewRequestWithBody(t, "PUT", summaryURL, strings.NewReader(strings.Repeat("a", actions_model.MaxJobSummarySize+1))).
+		req := NewRequestWithBody(t, "PUT", summaryURL(0), strings.NewReader(strings.Repeat("a", actions_model.MaxJobSummarySize+1))).
 			AddTokenAuth("8061e833a55f6fc0157c98b883e91fcfeeb1a71a").
 			SetHeader("Content-Type", actions_model.JobSummaryContentTypeMarkdown)
 		resp := MakeRequest(t, req, http.StatusBadRequest)
@@ -90,7 +156,7 @@ func TestActionsJobSummaryUpload(t *testing.T) {
 	})
 
 	t.Run("job-mismatch", func(t *testing.T) {
-		req := NewRequestWithBody(t, "PUT", fmt.Sprintf("/api/actions_pipeline/_apis/pipelines/workflows/%d/jobs/%d/summary", task.Job.RunID, task.Job.ID+1), strings.NewReader("summary")).
+		req := NewRequestWithBody(t, "PUT", fmt.Sprintf("/api/actions_pipeline/_apis/pipelines/workflows/%d/jobs/%d/steps/0/summary", task.Job.RunID, task.Job.ID+1), strings.NewReader("summary")).
 			AddTokenAuth("8061e833a55f6fc0157c98b883e91fcfeeb1a71a").
 			SetHeader("Content-Type", actions_model.JobSummaryContentTypeMarkdown)
 		resp := MakeRequest(t, req, http.StatusBadRequest)
@@ -98,11 +164,27 @@ func TestActionsJobSummaryUpload(t *testing.T) {
 	})
 
 	t.Run("run-mismatch", func(t *testing.T) {
-		req := NewRequestWithBody(t, "PUT", fmt.Sprintf("/api/actions_pipeline/_apis/pipelines/workflows/%d/jobs/%d/summary", task.Job.RunID+1, task.Job.ID), strings.NewReader("summary")).
+		req := NewRequestWithBody(t, "PUT", fmt.Sprintf("/api/actions_pipeline/_apis/pipelines/workflows/%d/jobs/%d/steps/0/summary", task.Job.RunID+1, task.Job.ID), strings.NewReader("summary")).
 			AddTokenAuth("8061e833a55f6fc0157c98b883e91fcfeeb1a71a").
 			SetHeader("Content-Type", actions_model.JobSummaryContentTypeMarkdown)
 		resp := MakeRequest(t, req, http.StatusBadRequest)
 		assert.Contains(t, resp.Body.String(), "run-id does not match")
+	})
+
+	t.Run("invalid-step-index", func(t *testing.T) {
+		req := NewRequestWithBody(t, "PUT", summaryURL(-1), strings.NewReader("summary")).
+			AddTokenAuth("8061e833a55f6fc0157c98b883e91fcfeeb1a71a").
+			SetHeader("Content-Type", actions_model.JobSummaryContentTypeMarkdown)
+		resp := MakeRequest(t, req, http.StatusBadRequest)
+		assert.Contains(t, resp.Body.String(), "invalid step_index")
+	})
+
+	t.Run("step-index-mismatch", func(t *testing.T) {
+		req := NewRequestWithBody(t, "PUT", summaryURL(999), strings.NewReader("summary")).
+			AddTokenAuth("8061e833a55f6fc0157c98b883e91fcfeeb1a71a").
+			SetHeader("Content-Type", actions_model.JobSummaryContentTypeMarkdown)
+		resp := MakeRequest(t, req, http.StatusBadRequest)
+		assert.Contains(t, resp.Body.String(), "step_index mismatch")
 	})
 }
 

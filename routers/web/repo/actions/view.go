@@ -328,7 +328,6 @@ type ViewJob struct {
 type ViewJobSummary struct {
 	JobID       int64         `json:"jobId"`
 	JobName     string        `json:"jobName"`
-	ContentType string        `json:"contentType"`
 	SummaryHTML template.HTML `json:"summaryHTML"`
 }
 
@@ -506,7 +505,7 @@ func fillViewRunResponseSummary(ctx *context_module.Context, resp *ViewResponse,
 	}
 	resp.State.Run.TriggerEvent = run.TriggerEvent
 
-	// Job summaries (GITHUB_STEP_SUMMARY). Only show when present.
+	// Job summaries (GITHUB_STEP_SUMMARY). Step-scoped rows are grouped for display by job.
 	{
 		var runAttemptID int64
 		if attempt != nil {
@@ -522,19 +521,24 @@ func fillViewRunResponseSummary(ctx *context_module.Context, resp *ViewResponse,
 			for _, j := range jobs {
 				jobNameByID[j.ID] = j.Name
 			}
-			resp.State.Run.JobSummaries = make([]*ViewJobSummary, 0, len(summaries))
+			summaryIndexByJobID := make(map[int64]int, len(jobs))
+			resp.State.Run.JobSummaries = make([]*ViewJobSummary, 0, len(jobs))
 			renderUtils := templates.NewRenderUtils(ctx)
 			for _, s := range summaries {
 				if s.ContentType != actions_model.JobSummaryContentTypeMarkdown {
-					log.Warn("Skip unsupported job summary content type %q for run %d job %d", s.ContentType, s.RunID, s.JobID)
+					log.Warn("Skip unsupported job summary content type %q for run %d job %d step %d", s.ContentType, s.RunID, s.JobID, s.StepIndex)
 					continue
 				}
-				resp.State.Run.JobSummaries = append(resp.State.Run.JobSummaries, &ViewJobSummary{
-					JobID:       s.JobID,
-					JobName:     jobNameByID[s.JobID],
-					ContentType: s.ContentType,
-					SummaryHTML: renderUtils.MarkdownToHtml(s.Content),
-				})
+				idx, ok := summaryIndexByJobID[s.JobID]
+				if !ok {
+					idx = len(resp.State.Run.JobSummaries)
+					summaryIndexByJobID[s.JobID] = idx
+					resp.State.Run.JobSummaries = append(resp.State.Run.JobSummaries, &ViewJobSummary{
+						JobID:   s.JobID,
+						JobName: jobNameByID[s.JobID],
+					})
+				}
+				resp.State.Run.JobSummaries[idx].SummaryHTML += renderUtils.MarkdownToHtml(s.Content)
 			}
 		}
 	}

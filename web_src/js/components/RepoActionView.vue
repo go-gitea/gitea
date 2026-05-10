@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import {SvgIcon} from '../svg.ts';
 import ActionStatusIcon from './ActionStatusIcon.vue';
-import {toRefs} from 'vue';
+import {computed, toRefs} from 'vue';
 import {POST, DELETE} from '../modules/fetch.ts';
 import ActionRunSummaryView from './ActionRunSummaryView.vue';
 import ActionRunJobView from './ActionRunJobView.vue';
@@ -22,6 +22,11 @@ const props = defineProps<{
 const locale = props.locale;
 const store = createActionRunViewStore(props.actionsViewUrl);
 const {currentRun: run, runArtifacts: artifacts} = toRefs(store.viewData);
+const visibleJobSummaries = computed(() => {
+  const summaries = run.value.jobSummaries || [];
+  if (!props.jobId) return summaries;
+  return summaries.filter((summary) => summary.jobId === props.jobId);
+});
 
 function formatAttemptTitle(attempt: ActionsRunAttempt) {
   return attempt.latest ? `${locale.latestAttempt} #${attempt.attempt}` : `${locale.attempt} #${attempt.attempt}`;
@@ -213,20 +218,6 @@ async function deleteArtifact(name: string) {
               :locale="locale"
             />
           </div>
-          <div v-if="run.jobSummaries?.length" class="action-view-right-panel job-summary-section">
-            <div class="job-summary-section-header">
-              {{ locale.jobSummaries ?? 'Job summaries' }}
-            </div>
-            <div class="job-summary-list">
-              <div v-for="s in run.jobSummaries" :key="s.jobId" class="job-summary-item">
-                <div class="job-summary-header">
-                  <strong class="gt-ellipsis">{{ s.jobName || `Job ${s.jobId}` }}</strong>
-                </div>
-                <!-- eslint-disable-next-line vue/no-v-html -->
-                <div class="markup job-summary-body" v-html="s.summaryHTML"/>
-              </div>
-            </div>
-          </div>
         </template>
         <div v-else class="action-view-right-panel">
           <ActionRunJobView
@@ -235,6 +226,20 @@ async function deleteArtifact(name: string) {
             :actions-view-url="props.actionsViewUrl"
             :job-id="props.jobId"
           />
+        </div>
+        <div v-if="visibleJobSummaries.length" class="action-view-right-panel job-summary-section">
+          <div class="job-summary-section-header">
+            {{ locale.jobSummaries }}
+          </div>
+          <div class="job-summary-list">
+            <div v-for="s in visibleJobSummaries" :key="s.jobId" class="job-summary-item">
+              <div class="job-summary-header">
+                <strong class="gt-ellipsis">{{ s.jobName || `Job ${s.jobId}` }}</strong>
+              </div>
+              <!-- eslint-disable-next-line vue/no-v-html -->
+              <div class="markup job-summary-body" v-html="s.summaryHTML"/>
+            </div>
+          </div>
         </div>
       </div>
     </div>
