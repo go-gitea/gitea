@@ -64,7 +64,6 @@ jobs:
       - uses: ./.github/actions/go-cache
         with:
           cache-name: ${{ matrix.job }}
-          # the gobuild job already saves the shared gobuild cache key; let only it win.
           build-cache: "false"
           lint-cache: "true"
       - run: make deps-backend deps-tools
