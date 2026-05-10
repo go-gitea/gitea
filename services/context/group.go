@@ -186,7 +186,7 @@ func groupAssignment(ctx commonCtx, doer *user_model.User, isSigned bool, handle
 			}
 		}
 	} else {
-		//ctx.Data["SignedUser"] = &user_model.User{}
+		// ctx.Data["SignedUser"] = &user_model.User{}
 	}
 	repoGroup.GroupLink = group.GroupLink()
 	repoGroup.OrgGroupLink = group.OrgGroupLink()
@@ -221,7 +221,7 @@ func groupAssignment(ctx commonCtx, doer *user_model.User, isSigned bool, handle
 				return
 			}
 		}
-		//ctx.Data["NumTeams"] = len(repoGroup.Teams)
+		// ctx.Data["NumTeams"] = len(repoGroup.Teams)
 	}
 
 	teamName := ctx.PathParam("team")
