@@ -14,8 +14,6 @@ func (mirrorWithLastSyncUnix) TableName() string {
 }
 
 func AddLastSyncUnixToMirror(x *xorm.Engine) error {
-	// IgnoreDropIndices preserves indices on the existing mirror table that are
-	// not declared on this partial migration struct.
 	_, err := x.SyncWithOptions(xorm.SyncOptions{
 		IgnoreDropIndices: true,
 	}, new(mirrorWithLastSyncUnix))
