@@ -54,11 +54,10 @@ export async function apiCreateOrg(requestContext: APIRequestContext, name: stri
   }), 'apiCreateOrg');
 }
 
-/** Create a non-Owners team with read permission on the repo.code unit. */
-export async function apiCreateTeam(requestContext: APIRequestContext, org: string, name: string, {headers}: {headers?: Record<string, string>} = {}) {
+export async function apiCreateTeam(requestContext: APIRequestContext, org: string, name: string, {permission = 'read', units = ['repo.code'], headers}: {permission?: string; units?: Array<string>; headers?: Record<string, string>} = {}) {
   await apiRetry(() => requestContext.post(`${baseUrl()}/api/v1/orgs/${org}/teams`, {
     headers: headers || apiHeaders(),
-    data: {name, permission: 'read', units: ['repo.code']},
+    data: {name, permission, units},
   }), 'apiCreateTeam');
 }
 
