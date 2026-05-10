@@ -386,7 +386,7 @@ func GroupAssignmentAPI(early404 bool) func(ctx *APIContext) {
 	}
 }
 
-func groupIsCurrent(ctx *Context) func(groupID int64) bool { //nolint:unused // will be used later
+func groupIsCurrent(ctx *Context) func(groupID int64) bool {
 	return func(groupID int64) bool {
 		if ctx.RepoGroup.Group == nil {
 			return false

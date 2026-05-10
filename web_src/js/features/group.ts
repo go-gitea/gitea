@@ -41,27 +41,17 @@ async function moveItem({item, from, to, oldIndex}: SortableEvent): Promise<void
     }
     const toItem = to.closest('li');
     toItem?.querySelector(':scope > label')?.classList.add('has-children');
-
   } catch (error) {
     console.error(error);
     from.insertBefore(item, from.children[oldIndex]);
   }
 }
 
-function idSortFn(a: string, b: string): number {
-  return parseInt(a.split('-')[2]) - parseInt(b.split('-')[2]);
-}
-
 function onEnd(ev: SortableEvent) {
   const {to} = ev;
   const closestUl = to.nodeName.toLowerCase() === 'ul' ? to : (to.closest('li')?.closest('ul') ?? to.closest('ul'));
   if (!closestUl) return;
-  /*const sortable = Sortable.get(closestUl)!;
-  const strs = sortable.toArray();
-  const groups = strs.filter((a) => a.toLocaleLowerCase().startsWith('group'));
-  const repos = strs.filter((a) => a.toLocaleLowerCase().startsWith('repo'));
-  const newArr = [...groups.toSorted(idSortFn), ...repos.toSorted(idSortFn)];
-  sortable?.sort(newArr, true);*/
+
   moveItem(ev);
 }
 
