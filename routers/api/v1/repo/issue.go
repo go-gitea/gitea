@@ -19,6 +19,7 @@ import (
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unit"
 	user_model "code.gitea.io/gitea/models/user"
+	"code.gitea.io/gitea/modules/cache"
 	issue_indexer "code.gitea.io/gitea/modules/indexer/issues"
 	"code.gitea.io/gitea/modules/optional"
 	"code.gitea.io/gitea/modules/setting"
@@ -301,7 +302,7 @@ func SearchIssues(ctx *context.APIContext) {
 
 	ctx.SetLinkHeader(total, limit)
 	ctx.SetTotalCountHeader(total)
-	ctx.JSON(http.StatusOK, convert.ToAPIIssueList(ctx, ctx.Doer, issues))
+	ctx.JSON(http.StatusOK, convert.ToAPIIssueList(ctx, ctx.Doer, issues, convert.ToIssueOptions{PermCache: cache.NewEphemeralCache()}))
 }
 
 // ListIssues list the issues of a repository
@@ -529,7 +530,7 @@ func ListIssues(ctx *context.APIContext) {
 
 	ctx.SetLinkHeader(total, listOptions.PageSize)
 	ctx.SetTotalCountHeader(total)
-	ctx.JSON(http.StatusOK, convert.ToAPIIssueList(ctx, ctx.Doer, issues))
+	ctx.JSON(http.StatusOK, convert.ToAPIIssueList(ctx, ctx.Doer, issues, convert.ToIssueOptions{PermCache: cache.NewEphemeralCache()}))
 }
 
 func getUserIDForFilter(ctx *context.APIContext, queryName string) int64 {
@@ -595,7 +596,7 @@ func GetIssue(ctx *context.APIContext) {
 		ctx.APIErrorNotFound()
 		return
 	}
-	ctx.JSON(http.StatusOK, convert.ToAPIIssue(ctx, ctx.Doer, issue))
+	ctx.JSON(http.StatusOK, convert.ToAPIIssue(ctx, ctx.Doer, issue, convert.ToIssueOptions{PermCache: cache.NewEphemeralCache()}))
 }
 
 // CreateIssue create an issue of a repository
@@ -718,7 +719,7 @@ func CreateIssue(ctx *context.APIContext) {
 		ctx.APIErrorInternal(err)
 		return
 	}
-	ctx.JSON(http.StatusCreated, convert.ToAPIIssue(ctx, ctx.Doer, issue))
+	ctx.JSON(http.StatusCreated, convert.ToAPIIssue(ctx, ctx.Doer, issue, convert.ToIssueOptions{PermCache: cache.NewEphemeralCache()}))
 }
 
 // EditIssue modify an issue of a repository
@@ -935,7 +936,7 @@ func EditIssue(ctx *context.APIContext) {
 		ctx.APIErrorInternal(err)
 		return
 	}
-	ctx.JSON(http.StatusCreated, convert.ToAPIIssue(ctx, ctx.Doer, issue))
+	ctx.JSON(http.StatusCreated, convert.ToAPIIssue(ctx, ctx.Doer, issue, convert.ToIssueOptions{PermCache: cache.NewEphemeralCache()}))
 }
 
 func DeleteIssue(ctx *context.APIContext) {
