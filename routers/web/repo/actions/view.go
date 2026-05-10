@@ -512,8 +512,8 @@ func fillViewRunResponseSummary(ctx *context_module.Context, resp *ViewResponse,
 		runAttemptID = attempt.ID
 	}
 
-	// Rows arrive ordered by (job_id, step_index). Each step's markdown is rendered
-	// independently so an unclosed construct in one step can't bleed into the next.
+	// Each step's markdown is rendered independently so an unclosed construct
+	// in one step can't bleed into the next.
 	summaries, err := actions_model.ListActionRunJobSummariesByRunAttempt(ctx, ctx.Repo.Repository.ID, run.ID, runAttemptID)
 	if err != nil {
 		ctx.ServerError("ListActionRunJobSummariesByRunAttempt", err)

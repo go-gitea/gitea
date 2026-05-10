@@ -65,7 +65,11 @@ func uploadJobSummary(ctx *ArtifactContext) {
 			ctx.HTTPError(http.StatusInternalServerError, "Error deleting job summary")
 			return
 		}
-		ctx.JSON(http.StatusOK, map[string]any{"message": "cleared"})
+		ctx.JSON(http.StatusOK, map[string]any{
+			"message":    "cleared",
+			"sizeBytes":  0,
+			"runAttempt": task.Job.RunAttemptID,
+		})
 		return
 	}
 

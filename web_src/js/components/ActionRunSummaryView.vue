@@ -53,7 +53,6 @@ onBeforeUnmount(() => {
         <span>{{ locale.status[run.status] }}</span> • <span>{{ locale.totalDuration }} {{ run.duration || '–' }}</span>
       </div>
     </div>
-
     <WorkflowGraph
       v-if="run.jobs.length > 0"
       :store="store"
@@ -82,5 +81,4 @@ onBeforeUnmount(() => {
   border-radius: var(--border-radius) var(--border-radius) 0 0;
   background: var(--color-box-header);
 }
-
 </style>

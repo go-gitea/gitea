@@ -90,35 +90,36 @@ func UpsertActionRunJobSummary(ctx context.Context, repoID, runID, runAttemptID,
 		return util.ErrInvalidArgument
 	}
 
-	return db.WithTx(ctx, func(ctx context.Context) error {
-		existing, err := listJobSummaryContentSizes(ctx, repoID, runID, runAttemptID, jobID)
-		if err != nil {
-			return err
+	// The aggregate check is best-effort: a tx wouldn't actually serialize concurrent
+	// step uploads (no row-level lock on the parent job), so wrapping these two
+	// statements only adds round-trip cost without changing the race semantics.
+	existing, err := listJobSummaryContentSizes(ctx, repoID, runID, runAttemptID, jobID)
+	if err != nil {
+		return err
+	}
+	aggregate := len(content)
+	for _, e := range existing {
+		if e.StepIndex == stepIndex {
+			continue
 		}
-		aggregate := len(content)
-		for _, e := range existing {
-			if e.StepIndex == stepIndex {
-				continue
-			}
-			aggregate += int(e.ContentSize)
-		}
-		if aggregate > MaxJobSummaryAggregateSize {
-			return ErrJobSummaryAggregateExceeded
-		}
+		aggregate += int(e.ContentSize)
+	}
+	if aggregate > MaxJobSummaryAggregateSize {
+		return ErrJobSummaryAggregateExceeded
+	}
 
-		now := timeutil.TimeStampNow()
-		return upsertActionRunJobSummary(ctx, &ActionRunJobSummary{
-			RepoID:       repoID,
-			RunID:        runID,
-			RunAttemptID: runAttemptID,
-			JobID:        jobID,
-			StepIndex:    stepIndex,
-			Content:      string(content),
-			ContentSize:  int64(len(content)),
-			ContentType:  contentType,
-			Created:      now,
-			Updated:      now,
-		})
+	now := timeutil.TimeStampNow()
+	return upsertActionRunJobSummary(ctx, &ActionRunJobSummary{
+		RepoID:       repoID,
+		RunID:        runID,
+		RunAttemptID: runAttemptID,
+		JobID:        jobID,
+		StepIndex:    stepIndex,
+		Content:      string(content),
+		ContentSize:  int64(len(content)),
+		ContentType:  contentType,
+		Created:      now,
+		Updated:      now,
 	})
 }
 
