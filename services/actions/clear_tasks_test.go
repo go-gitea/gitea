@@ -95,7 +95,10 @@ func TestShouldBlockRunByConcurrency_CancellingJobBlocks(t *testing.T) {
 
 func TestCancelAbandonedJobsCancelsWholeAttempt(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
-	jobEmitterQueue = queue.CreateUniqueQueue[*jobUpdate](t.Context(), "test-actions-ready-job", queue.HandlerFuncT[*jobUpdate](nil))
+
+	prevQueue := jobEmitterQueue
+	t.Cleanup(func() { jobEmitterQueue = prevQueue })
+	jobEmitterQueue = queue.CreateUniqueQueue[*jobUpdate](t.Context(), "test-actions-ready-job", func(items ...*jobUpdate) []*jobUpdate { return nil })
 
 	oldTS := timeutil.TimeStampNow().AddDuration(-setting.Actions.AbandonedJobTimeout - time.Second)
 
