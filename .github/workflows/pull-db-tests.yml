@@ -112,14 +112,10 @@ jobs:
           TAGS: bindata gogit
           GOEXPERIMENT:
 
-  test-unit-shards:
+  test-unit-nogogit:
     if: needs.files-changed.outputs.backend == 'true' || needs.files-changed.outputs.actions == 'true'
     needs: files-changed
     runs-on: ubuntu-latest
-    strategy:
-      fail-fast: false
-      matrix:
-        shard: [1, 2]
     services:
       elasticsearch:
         image: docker.elastic.co/elasticsearch/elasticsearch:8.19.15
@@ -170,30 +166,72 @@ jobs:
       - run: make generate-go
         env:
           TAGS: bindata
-      - name: unit-tests
-        run: make test-backend test-check
+      - run: make test-backend test-check
         env:
-          TEST_SHARD: ${{ matrix.shard }}
-          TEST_TOTAL_SHARDS: ${{ strategy.job-total }}
           GOTEST_FLAGS: -race -timeout=20m
           TAGS: bindata
           GITHUB_READ_TOKEN: ${{ secrets.GITHUB_READ_TOKEN }}
-      - name: unit-tests-gogit
-        run: make test-backend test-check
+
+  test-unit-gogit:
+    if: needs.files-changed.outputs.backend == 'true' || needs.files-changed.outputs.actions == 'true'
+    needs: files-changed
+    runs-on: ubuntu-latest
+    services:
+      elasticsearch:
+        image: docker.elastic.co/elasticsearch/elasticsearch:8.19.15
         env:
-          TEST_SHARD: ${{ matrix.shard }}
-          TEST_TOTAL_SHARDS: ${{ strategy.job-total }}
+          discovery.type: single-node
+          xpack.security.enabled: false
+        ports:
+          - "9200:9200"
+      meilisearch:
+        image: getmeili/meilisearch:v1
+        env:
+          MEILI_ENV: development # disable auth
+        ports:
+          - "7700:7700"
+      redis:
+        image: redis
+        options: >- # wait until redis has started
+          --health-cmd "redis-cli ping"
+          --health-interval 5s
+          --health-timeout 3s
+          --health-retries 10
+        ports:
+          - 6379:6379
+      minio:
+        image: bitnamilegacy/minio:2021.12.29
+        env:
+          MINIO_ACCESS_KEY: 123456
+          MINIO_SECRET_KEY: 12345678
+        ports:
+          - "9000:9000"
+      devstoreaccount1.azurite.local: # https://github.com/Azure/Azurite/issues/1583
+        image: mcr.microsoft.com/azure-storage/azurite:latest
+        ports:
+          - 10000:10000
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+      - uses: actions/setup-go@4a3601121dd01d1626a1e23e37211e3254c1c06c # v6.4.0
+        with:
+          go-version-file: go.mod
+          check-latest: true
+          cache: false
+      - uses: ./.github/actions/go-cache
+        with:
+          cache-name: unit
+      - name: Add hosts to /etc/hosts
+        run: '[ -e "/.dockerenv" ] || [ -e "/run/.containerenv" ] || echo "127.0.0.1 minio devstoreaccount1.azurite.local mysql elasticsearch meilisearch smtpimap" | sudo tee -a /etc/hosts'
+      - run: make deps-backend
+      - run: make generate-go
+        env:
+          TAGS: bindata
+      - run: make test-backend test-check
+        env:
           GOTEST_FLAGS: -race -timeout=20m
           TAGS: bindata gogit
           GOEXPERIMENT:
           GITHUB_READ_TOKEN: ${{ secrets.GITHUB_READ_TOKEN }}
-
-  test-unit:
-    needs: [files-changed, test-unit-shards]
-    if: always() && (needs.files-changed.outputs.backend == 'true' || needs.files-changed.outputs.actions == 'true')
-    runs-on: ubuntu-latest
-    steps:
-      - run: '[ "${{ needs.test-unit-shards.result }}" = "success" ]'
 
   test-mysql:
     if: needs.files-changed.outputs.backend == 'true' || needs.files-changed.outputs.actions == 'true'

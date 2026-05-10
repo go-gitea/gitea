@@ -379,8 +379,7 @@ watch-backend: ## watch backend files and continuously rebuild
 .PHONY: test-backend
 test-backend: ## test backend files
 	@echo "Running go test with $(GOTEST_FLAGS) -tags '$(TAGS)'..."
-	@pkgs=$$(echo "$(GO_TEST_PACKAGES)" | tr ' ' '\n' | ./tools/test-go.sh pkgs) && \
-	$(GO) test $(GOTEST_FLAGS) -tags='$(TAGS)' $$pkgs
+	@$(GO) test $(GOTEST_FLAGS) -tags='$(TAGS)' $(GO_TEST_PACKAGES)
 
 .PHONY: test-frontend
 test-frontend: node_modules ## test frontend files
@@ -445,7 +444,7 @@ test-integration:
 	@# would flood output per passing test. testcache can't help these tests anyway —
 	@# they mutate the work directory, so cache inputs change between runs.
 	$(GO) test $(GOTEST_FLAGS) -tags '$(TAGS)' -c code.gitea.io/gitea/tests/integration -o ./test-integration-$(GITEA_TEST_DATABASE).test
-	./tools/test-go.sh tests ./test-integration-$(GITEA_TEST_DATABASE).test
+	./tools/test-go.sh ./test-integration-$(GITEA_TEST_DATABASE).test
 
 .PHONY: test-integration\#%
 test-integration\#%:
