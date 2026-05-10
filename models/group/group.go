@@ -433,7 +433,7 @@ func MoveGroup(ctx context.Context, group *Group, newParent int64, newSortOrder 
 	}
 
 	withoutCurrent := tmpSiblings[0:group.SortOrder]
-	itemsUpper := tmpSiblings[group.SortOrder+1:]
+	itemsUpper := tmpSiblings[min(group.SortOrder+1, len(tmpSiblings)-1):]
 	withoutCurrent = append(withoutCurrent, itemsUpper...)
 
 	siblings = append(siblings, withoutCurrent[:newSortOrder]...)
