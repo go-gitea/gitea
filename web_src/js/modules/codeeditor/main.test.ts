@@ -72,10 +72,18 @@ test('matchFilename — language detection covers extended rules', async () => {
   expect(match('foo.go')).toBe('Go');
   expect(match('foo.rs')).toBe('Rust');
   expect(match('foo.ts')).toBe('TypeScript');
+  expect(match('foo.tsx')).toBe('TSX');
   expect(match('foo.py')).toBe('Python');
   expect(match('foo.html')).toBe('HTML');
   expect(match('foo.css')).toBe('CSS');
   expect(match('foo.lua')).toBe('Lua');
+
+  // Extension co-claimed by XML and another language; the other should win on order.
+  expect(match('app.csproj')).toBe('XML');
+  expect(match('foo.jsproj')).toBe('XML');
+
+  // .spec must route to RPM Spec, not Python/Ruby, despite Linguist's primary.
+  expect(match('foo.spec')).toBe('RPM Spec');
 
   // Genuinely ambiguous extensions left unhighlighted on purpose.
   expect(match('foo.cgi')).toBeUndefined();

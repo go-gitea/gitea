@@ -19,15 +19,13 @@ const renames: Record<string, string> = {
 // Strip globally so files with these suffixes fall through to plain text.
 const ambiguousExt = new Set(['cgi', 'fcgi', 'inc']);
 
-// Per-language extensions to drop where the syntax is genuinely incompatible with the
-// CodeMirror mode (e.g. .csh vs sh) or otherwise misleading.
+// Per-language extensions to drop where the file isn't a text format (.frm is binary
+// VB6 form data) or where Linguist's primary owner conflicts with a more specialised
+// CodeMirror mode in our set (.spec → RPM Spec rather than Python/RSpec).
 const excludeExt: Record<string, string[]> = {
   'INI': ['frm'],
-  'JavaScript': ['_js', 'bones', 'es', 'es6', 'frag', 'gs', 'jake', 'javascript', 'jsb', 'jscad', 'jsfl', 'jslib', 'jsm', 'jspre', 'jss', 'njs', 'pac', 'sjs', 'ssjs', 'xsjs', 'xsjslib'],
   'Python': ['spec'],
   'Ruby': ['spec'],
-  'Shell': ['csh'],
-  'XML': ['jsproj', 'tmpl', 'ts', 'tsx'],
 };
 
 type LinguistEntry = {
