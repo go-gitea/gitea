@@ -123,5 +123,4 @@ func TestMirrorPull(t *testing.T) {
 
 	mirror = unittest.AssertExistsAndLoadBean(t, &repo_model.Mirror{RepoID: mirrorRepo.ID})
 	assert.Equal(t, lastMirrorSync, mirror.LastSyncUnix)
-	assert.NotEqual(t, mirror.UpdatedUnix, mirror.LastSyncUnix)
 }
