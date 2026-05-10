@@ -4,6 +4,7 @@
 package integration
 
 import (
+	"fmt"
 	"net/url"
 	"os"
 	"testing"
@@ -14,13 +15,13 @@ import (
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unittest"
 	user_model "code.gitea.io/gitea/models/user"
+	actions_module "code.gitea.io/gitea/modules/actions"
 	"code.gitea.io/gitea/modules/storage"
 
 	runnerv1 "code.gitea.io/actions-proto-go/runner/v1"
 	"connectrpc.com/connect"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
 // Regression for https://gitea.com/gitea/runner/issues/950: a runner that
@@ -39,19 +40,19 @@ func TestActionsLogFinalizeWithoutRows(t *testing.T) {
 		runner := newMockRunner()
 		runner.registerAsRepoRunner(t, user2.Name, repo.Name, "mock-runner", []string{"ubuntu-latest"}, false)
 
-		const wfPath = ".gitea/workflows/finalize-no-rows.yml"
-		wf := `name: finalize-no-rows
+		const wfTreePath = ".gitea/workflows/finalize-no-rows.yml"
+		wfFileContent := fmt.Sprintf(`name: finalize-no-rows
 on:
   push:
     paths:
-      - '.gitea/workflows/finalize-no-rows.yml'
+      - '%s'
 jobs:
   job1:
     runs-on: ubuntu-latest
     steps:
       - run: noop
-`
-		createWorkflowFile(t, token, user2.Name, repo.Name, wfPath, getWorkflowCreateFileOptions(user2, repo.DefaultBranch, "trigger", wf))
+`, wfTreePath)
+		createWorkflowFile(t, token, user2.Name, repo.Name, wfTreePath, getWorkflowCreateFileOptions(user2, repo.DefaultBranch, "trigger", wfFileContent))
 
 		task := runner.fetchTask(t)
 
@@ -64,22 +65,13 @@ jobs:
 		require.NoError(t, err)
 		assert.EqualValues(t, 0, resp.Msg.AckIndex)
 
-		_, err = runner.client.runnerServiceClient.UpdateTask(t.Context(), connect.NewRequest(&runnerv1.UpdateTaskRequest{
-			State: &runnerv1.TaskState{
-				Id:        task.Id,
-				Result:    runnerv1.Result_RESULT_SUCCESS,
-				StoppedAt: timestamppb.Now(),
-			},
-		}))
-		require.NoError(t, err)
-
 		freshTask := unittest.AssertExistsAndLoadBean(t, &actions_model.ActionTask{ID: task.Id})
-		assert.True(t, freshTask.LogInStorage, "log_in_storage must flip after empty NoMore=true")
+		require.True(t, freshTask.LogInStorage, "log_in_storage must flip after empty NoMore=true")
 
 		_, err = storage.Actions.Stat(freshTask.LogFilename)
 		assert.NoError(t, err, "archived log must exist in storage")
 
-		_, err = dbfs.Open(t.Context(), "actions_log/"+freshTask.LogFilename)
+		_, err = dbfs.Open(t.Context(), actions_module.DBFSPrefix+freshTask.LogFilename)
 		assert.ErrorIs(t, err, os.ErrNotExist, "DBFS row must be cleaned up after TransferLogs")
 	})
 }
