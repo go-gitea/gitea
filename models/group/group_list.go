@@ -94,7 +94,7 @@ func userOrgTeamUnitGroupBuilder(userID int64, unitType unit.Type) *builder.Buil
 
 // MemberCond returns a cond that checks if a user is a member of a group
 func MemberCond(idStr string, groupID int64, user *user_model.User) builder.Cond {
-	var whereCond = builder.Eq{"`team_user`.uid": user.ID}.And(UserOrgTeamGroupCond("repo_group.id", user.ID))
+	whereCond := builder.Eq{"`team_user`.uid": user.ID}.And(UserOrgTeamGroupCond("repo_group.id", user.ID))
 	if groupID > 0 {
 		whereCond = whereCond.And(builder.Eq{idStr: groupID})
 	}

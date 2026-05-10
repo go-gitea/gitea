@@ -21,10 +21,12 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-const groupOrgAdminTeam = "group-admins"
-const groupOrgWriterTeam = "group-writers"
-const groupOrgReaderTeam = "group-readers"
-const groupOrgUnitTeam = "unit-specialists"
+const (
+	groupOrgAdminTeam  = "group-admins"
+	groupOrgWriterTeam = "group-writers"
+	groupOrgReaderTeam = "group-readers"
+	groupOrgUnitTeam   = "unit-specialists"
+)
 
 type commonGroupRepoTestData struct {
 	fullFeatured          *api.Repository

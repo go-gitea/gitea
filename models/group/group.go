@@ -388,7 +388,6 @@ func AccessibleParentGroupCond(idStr string, groupID int64, user *user_model.Use
 	unionBldr := groupHierarchyCTEBuilder(accessibleCond)
 	unionSql, err := builder.ToBoundSQL(unionBldr)
 	if err != nil {
-
 	}
 	return builder.In(idStr, builder.Expr("(WITH RECURSIVE group_hierarchy AS ("+unionSql+") SELECT id from group_hierarchy)"))
 }
