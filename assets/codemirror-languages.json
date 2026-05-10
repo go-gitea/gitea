@@ -194,17 +194,6 @@
     "filenames": []
   },
   {
-    "name": "Dockerfile",
-    "extensions": [
-      "dockerfile",
-      "containerfile"
-    ],
-    "filenames": [
-      "Containerfile",
-      "Dockerfile"
-    ]
-  },
-  {
     "name": "Dylan",
     "extensions": [
       "dylan",
@@ -566,25 +555,6 @@
     ]
   },
   {
-    "name": "Markdown",
-    "extensions": [
-      "md",
-      "livemd",
-      "markdown",
-      "mdown",
-      "mdwn",
-      "mkd",
-      "mkdn",
-      "mkdown",
-      "ronn",
-      "scd",
-      "workbook"
-    ],
-    "filenames": [
-      "contents.lr"
-    ]
-  },
-  {
     "name": "Modelica",
     "extensions": [
       "mo"
@@ -739,7 +709,8 @@
       "prefs",
       "pro",
       "properties",
-      "url"
+      "url",
+      "conf"
     ],
     "filenames": [
       ".buckconfig",
@@ -750,7 +721,10 @@
       "buildozer.spec",
       "hosts",
       "pylintrc",
-      "vlcrc"
+      "vlcrc",
+      ".editorconfig",
+      ".gitconfig",
+      ".npmrc"
     ]
   },
   {
@@ -800,7 +774,8 @@
       "DEPS",
       "SConscript",
       "SConstruct",
-      "wscript"
+      "wscript",
+      "Snakefile"
     ]
   },
   {

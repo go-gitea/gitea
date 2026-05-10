@@ -61,29 +61,19 @@ export async function importCodemirror() {
   return {autocomplete, commands, language, languageData, lint, search, state, view, highlight, indentMarkers, vscodeKeymap};
 }
 
-const manualFilenames: Record<string, string[]> = {
-  'Properties files': ['.editorconfig', '.gitconfig', '.npmrc'],
-  'Python': ['Snakefile'],
-};
-const manualExtensions: Record<string, string[]> = {
-  'Properties files': ['conf'],
-};
-const handledByCustomEntry = new Set(['Dockerfile', 'Markdown']);
 const escapeRegex = (s: string) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 const filenameUnion = (filenames: string[]) =>
   filenames.length ? new RegExp(`^(${filenames.map(escapeRegex).join('|')})$`) : undefined;
 
 export function buildLanguageDescriptions(cm: CodemirrorModules): LanguageDescription[] {
-  const markdown = linguistLanguages.find((l) => l.name === 'Markdown');
-  const dockerfile = linguistLanguages.find((l) => l.name === 'Dockerfile');
   const list: LanguageDescription[] = [
     ...buildBaseLanguages(cm),
     cm.language.LanguageDescription.of({
-      name: 'Markdown', extensions: markdown?.extensions ?? ['md', 'markdown', 'mkd'],
+      name: 'Markdown', extensions: ['md', 'markdown', 'mkd', 'mdown', 'mdwn', 'mkdn', 'mkdown'],
       load: async () => (await import('@codemirror/lang-markdown')).markdown({codeLanguages: list}),
     }),
     cm.language.LanguageDescription.of({
-      name: 'Dockerfile', extensions: dockerfile?.extensions ?? ['dockerfile', 'containerfile'],
+      name: 'Dockerfile', extensions: ['dockerfile', 'containerfile'],
       filename: /^(Containerfile|Dockerfile)(\..+)?$/i,
       load: async () => new cm.language.LanguageSupport(cm.language.StreamLanguage.define((await import('@codemirror/legacy-modes/mode/dockerfile')).dockerFile)),
     }),
@@ -115,6 +105,9 @@ export function buildLanguageDescriptions(cm: CodemirrorModules): LanguageDescri
   return list;
 }
 
+// Languages that the JSON omits because they're constructed manually above.
+const customNames = new Set(['Dockerfile', 'Markdown']);
+
 let baseLanguagesCache: LanguageDescription[] | null = null;
 function buildBaseLanguages(cm: CodemirrorModules): LanguageDescription[] {
   if (baseLanguagesCache) return baseLanguagesCache;
@@ -122,16 +115,16 @@ function buildBaseLanguages(cm: CodemirrorModules): LanguageDescription[] {
     cm.languageData.languages.map((l: LanguageDescription) => [l.name, l.load.bind(l)]),
   );
   const overrides = linguistLanguages
-    .filter((l) => loadByName.has(l.name) && !handledByCustomEntry.has(l.name))
+    .filter((l) => loadByName.has(l.name))
     .map((l) => cm.language.LanguageDescription.of({
       name: l.name,
-      extensions: [...l.extensions, ...(manualExtensions[l.name] ?? [])],
-      filename: filenameUnion([...l.filenames, ...(manualFilenames[l.name] ?? [])]),
+      extensions: l.extensions,
+      filename: filenameUnion(l.filenames),
       load: loadByName.get(l.name)!,
     }));
   const overrideNames = new Set(overrides.map((o) => o.name));
   const fallback = cm.languageData.languages.filter(
-    (l: LanguageDescription) => !overrideNames.has(l.name) && !handledByCustomEntry.has(l.name),
+    (l: LanguageDescription) => !overrideNames.has(l.name) && !customNames.has(l.name),
   );
   return baseLanguagesCache = [...overrides, ...fallback];
 }
