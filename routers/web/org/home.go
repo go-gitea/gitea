@@ -105,10 +105,13 @@ func home(ctx *context.Context, viewRepositories bool) {
 	for _, team := range overviewTeams {
 		teamIDs = append(teamIDs, team.ID)
 	}
-	teamGroupCounts, err := organization.GetTeamUserGroupCounts(ctx, teamIDs)
-	if err != nil {
-		ctx.ServerError("GetTeamUserGroupCounts", err)
-		return
+	teamGroupCounts := map[int64]int64{}
+	if setting.Service.EnableUserGroups {
+		teamGroupCounts, err = organization.GetTeamUserGroupCounts(ctx, teamIDs)
+		if err != nil {
+			ctx.ServerError("GetTeamUserGroupCounts", err)
+			return
+		}
 	}
 
 	ctx.Data["OrgOverviewMembers"] = members

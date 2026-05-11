@@ -9,6 +9,7 @@ import (
 	"code.gitea.io/gitea/models/db"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/models/usergroup"
+	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/container"
 
 	"xorm.io/builder"
@@ -38,6 +39,9 @@ func IsTeamMemberWithGroups(ctx context.Context, orgID, teamID, userID int64) (b
 	if err != nil || isMember {
 		return isMember, err
 	}
+	if !setting.Service.EnableUserGroups {
+		return false, nil
+	}
 
 	groupIDs, err := GetTeamUserGroupIDs(ctx, teamID)
 	if err != nil || len(groupIDs) == 0 {
@@ -60,6 +64,9 @@ func IsTeamMemberWithGroups(ctx context.Context, orgID, teamID, userID int64) (b
 // team that give the user effective membership. This is used to produce a clear
 // warning message when a direct-add overlaps with group-based membership.
 func GetUserGroupsInTeamForUser(ctx context.Context, teamID, userID int64) ([]*usergroup.UserGroup, error) {
+	if !setting.Service.EnableUserGroups {
+		return nil, nil
+	}
 	groupIDs, err := GetTeamUserGroupIDs(ctx, teamID)
 	if err != nil || len(groupIDs) == 0 {
 		return nil, err
@@ -140,6 +147,9 @@ func GetTeamMembersWithGroups(ctx context.Context, opts *SearchMembersOptions) (
 	if opts.TeamID == 0 {
 		return GetTeamMembers(ctx, opts)
 	}
+	if !setting.Service.EnableUserGroups {
+		return GetTeamMembers(ctx, opts)
+	}
 
 	memberIDs := container.Set[int64]{}
 
@@ -191,6 +201,9 @@ func IsUserInTeamsWithGroups(ctx context.Context, userID int64, teamIDs []int64)
 	isMember, err := IsUserInTeams(ctx, userID, teamIDs)
 	if err != nil || isMember {
 		return isMember, err
+	}
+	if !setting.Service.EnableUserGroups {
+		return false, nil
 	}
 
 	groupIDs, err := GetUserGroupIDsByTeamIDs(ctx, teamIDs)

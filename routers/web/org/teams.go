@@ -104,10 +104,13 @@ func Teams(ctx *context.Context) {
 	for _, team := range teams {
 		teamIDs = append(teamIDs, team.ID)
 	}
-	teamGroupCounts, err := org_model.GetTeamUserGroupCounts(ctx, teamIDs)
-	if err != nil {
-		ctx.ServerError("GetTeamUserGroupCounts", err)
-		return
+	teamGroupCounts := map[int64]int64{}
+	if setting.Service.EnableUserGroups {
+		teamGroupCounts, err = org_model.GetTeamUserGroupCounts(ctx, teamIDs)
+		if err != nil {
+			ctx.ServerError("GetTeamUserGroupCounts", err)
+			return
+		}
 	}
 
 	ctx.Data["OrgListTeams"] = teams
@@ -237,6 +240,10 @@ func TeamsAction(ctx *context.Context) {
 
 		page = "team"
 	case "add_group":
+		if !setting.Service.EnableUserGroups {
+			ctx.HTTPError(http.StatusNotFound)
+			return
+		}
 		if !ctx.Org.IsOwner {
 			ctx.HTTPError(http.StatusNotFound)
 			return
@@ -255,6 +262,10 @@ func TeamsAction(ctx *context.Context) {
 		}
 		page = "team"
 	case "remove_group":
+		if !setting.Service.EnableUserGroups {
+			ctx.HTTPError(http.StatusNotFound)
+			return
+		}
 		if !ctx.Org.IsOwner {
 			ctx.HTTPError(http.StatusNotFound)
 			return
@@ -496,61 +507,57 @@ func TeamMembers(ctx *context.Context) {
 		return
 	}
 	ctx.Data["Units"] = unit_model.Units
+	if setting.Service.EnableUserGroups {
+		teamGroups, err := org_model.GetTeamUserGroups(ctx, ctx.Org.Team.ID)
+		if err != nil {
+			ctx.ServerError("GetTeamUserGroups", err)
+			return
+		}
+		ctx.Data["TeamGroups"] = teamGroups
+		ctx.Data["TeamGroupsCount"] = len(teamGroups)
 
-	teamGroups, err := org_model.GetTeamUserGroups(ctx, ctx.Org.Team.ID)
-	if err != nil {
-		ctx.ServerError("GetTeamUserGroups", err)
-		return
-	}
-	ctx.Data["TeamGroups"] = teamGroups
-	ctx.Data["TeamGroupsCount"] = len(teamGroups)
+		groupIDs := make([]int64, 0, len(teamGroups))
+		for _, g := range teamGroups {
+			groupIDs = append(groupIDs, g.ID)
+		}
+		memberCounts, err := usergroup_model.GetUserGroupMemberCounts(ctx, groupIDs)
+		if err != nil {
+			ctx.ServerError("GetUserGroupMemberCounts", err)
+			return
+		}
+		ctx.Data["TeamGroupMemberCounts"] = memberCounts
 
-	// Collect group IDs to batch-fetch member counts.
-	groupIDs := make([]int64, 0, len(teamGroups))
-	for _, g := range teamGroups {
-		groupIDs = append(groupIDs, g.ID)
-	}
-	memberCounts, err := usergroup_model.GetUserGroupMemberCounts(ctx, groupIDs)
-	if err != nil {
-		ctx.ServerError("GetUserGroupMemberCounts", err)
-		return
-	}
-	ctx.Data["TeamGroupMemberCounts"] = memberCounts
+		teamGroupPaths, err := usergroup_model.GetUserGroupFullPaths(ctx, groupIDs)
+		if err != nil {
+			ctx.ServerError("GetUserGroupFullPaths", err)
+			return
+		}
+		ctx.Data["TeamGroupPaths"] = teamGroupPaths
 
-	// Build full display paths for already-added groups so the list shows
-	// the same hierarchy context as the dropdown (e.g. "Engineering / Backend").
-	teamGroupPaths, err := usergroup_model.GetUserGroupFullPaths(ctx, groupIDs)
-	if err != nil {
-		ctx.ServerError("GetUserGroupFullPaths", err)
-		return
-	}
-	ctx.Data["TeamGroupPaths"] = teamGroupPaths
+		availableGroups, err := org_model.GetAvailableUserGroupsForTeam(ctx, ctx.Org.Team.ID)
+		if err != nil {
+			ctx.ServerError("GetAvailableUserGroupsForTeam", err)
+			return
+		}
+		ctx.Data["AvailableGroups"] = availableGroups
 
-	availableGroups, err := org_model.GetAvailableUserGroupsForTeam(ctx, ctx.Org.Team.ID)
-	if err != nil {
-		ctx.ServerError("GetAvailableUserGroupsForTeam", err)
-		return
+		availGroupIDs := make([]int64, 0, len(availableGroups))
+		for _, g := range availableGroups {
+			availGroupIDs = append(availGroupIDs, g.ID)
+		}
+		availableGroupPaths, err := usergroup_model.GetUserGroupFullPaths(ctx, availGroupIDs)
+		if err != nil {
+			ctx.ServerError("GetUserGroupFullPaths", err)
+			return
+		}
+		ctx.Data["AvailableGroupPaths"] = availableGroupPaths
+		availableGroupMemberCounts, err := usergroup_model.GetUserGroupMemberCounts(ctx, availGroupIDs)
+		if err != nil {
+			ctx.ServerError("GetUserGroupMemberCounts", err)
+			return
+		}
+		ctx.Data["AvailableGroupMemberCounts"] = availableGroupMemberCounts
 	}
-	ctx.Data["AvailableGroups"] = availableGroups
-
-	// Build full display paths (e.g. "Engineering / Backend") for each available group
-	// so the searchable dropdown can show hierarchy context.
-	availGroupIDs := make([]int64, 0, len(availableGroups))
-	for _, g := range availableGroups {
-		availGroupIDs = append(availGroupIDs, g.ID)
-	}
-	availableGroupPaths, err := usergroup_model.GetUserGroupFullPaths(ctx, availGroupIDs)
-	if err != nil {
-		ctx.ServerError("GetUserGroupFullPaths", err)
-		return
-	}
-	ctx.Data["AvailableGroupPaths"] = availableGroupPaths
-	availableGroupMemberCounts, err := usergroup_model.GetUserGroupMemberCounts(ctx, availGroupIDs)
-	if err != nil {
-		ctx.ServerError("GetUserGroupMemberCounts", err)
-		return
-	}
-	ctx.Data["AvailableGroupMemberCounts"] = availableGroupMemberCounts
 
 	invites, err := org_model.GetInvitesByTeamID(ctx, ctx.Org.Team.ID)
 	if err != nil {

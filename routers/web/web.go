@@ -522,7 +522,9 @@ func registerWebRoutes(m *web.Router, webAuth *AuthMiddleware) {
 	m.Post("/-/web-banner/dismiss", misc.WebBannerDismiss)
 	m.Get("/-/web-theme/list", misc.WebThemeList)
 	m.Post("/-/web-theme/apply", optSignIn, misc.WebThemeApply)
-	m.Get("/-/user-groups/{groupid}", reqSignIn, org.TeamUserGroup)
+	if setting.Service.EnableUserGroups {
+		m.Get("/-/user-groups/{groupid}", reqSignIn, org.TeamUserGroup)
+	}
 
 	m.Group("/explore", func() {
 		m.Get("", func(ctx *context.Context) {
@@ -811,18 +813,20 @@ func registerWebRoutes(m *web.Router, webAuth *AuthMiddleware) {
 			m.Get("", admin.Organizations)
 		})
 
-		m.Group("/user-groups", func() {
-			m.Get("", admin.UserGroups)
-			m.Combo("/new").Get(admin.UserGroupNew).Post(admin.UserGroupNewPost)
-			m.Group("/{groupid:[0-9]+}", func() {
-				m.Get("", admin.UserGroupEdit)
-				m.Post("", admin.UserGroupEditPost)
-				m.Post("/delete", admin.UserGroupDelete)
-				m.Post("/members/add", admin.UserGroupAddMember)
-				m.Post("/members/remove", admin.UserGroupRemoveMember)
-				m.Post("/teams/remove", admin.UserGroupRemoveFromTeam)
+		if setting.Service.EnableUserGroups {
+			m.Group("/user-groups", func() {
+				m.Get("", admin.UserGroups)
+				m.Combo("/new").Get(admin.UserGroupNew).Post(admin.UserGroupNewPost)
+				m.Group("/{groupid:[0-9]+}", func() {
+					m.Get("", admin.UserGroupEdit)
+					m.Post("", admin.UserGroupEditPost)
+					m.Post("/delete", admin.UserGroupDelete)
+					m.Post("/members/add", admin.UserGroupAddMember)
+					m.Post("/members/remove", admin.UserGroupRemoveMember)
+					m.Post("/teams/remove", admin.UserGroupRemoveFromTeam)
+				})
 			})
-		})
+		}
 
 		m.Group("/repos", func() {
 			m.Get("", admin.Repos)

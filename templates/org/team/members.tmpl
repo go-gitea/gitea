@@ -65,7 +65,7 @@
 					</div>
 				</div>
 
-				{{/* ── User Groups section ─────────────────────────────── */}}
+				{{if EnableUserGroups}}{{/* ── User Groups section ─────────────────────────────── */}}
 				<h4 class="ui top attached header tw-mt-4">
 					{{ctx.Locale.Tr "org.teams.user_groups"}}
 					{{if .TeamGroups}}<span class="ui small circular label">{{len .TeamGroups}}</span>{{end}}
@@ -134,6 +134,7 @@
 						{{end}}
 					</div>
 				</div>
+				{{end}}
 
 				{{/* ── Pending Invitations section ──────────────────────── */}}
 				{{if and .Invites $.IsOrganizationOwner}}

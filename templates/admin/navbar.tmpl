@@ -22,9 +22,11 @@
 				<a class="{{if .PageIsAdminOrganizations}}active {{end}}item" href="{{AppSubUrl}}/-/admin/orgs">
 					{{ctx.Locale.Tr "admin.organizations"}}
 				</a>
-				<a class="{{if .PageIsAdminUserGroups}}active {{end}}item" href="{{AppSubUrl}}/-/admin/user-groups">
-					{{ctx.Locale.Tr "admin.user_groups"}}
-				</a>
+				{{if EnableUserGroups}}
+					<a class="{{if .PageIsAdminUserGroups}}active {{end}}item" href="{{AppSubUrl}}/-/admin/user-groups">
+						{{ctx.Locale.Tr "admin.user_groups"}}
+					</a>
+				{{end}}
 				<a class="{{if .PageIsAdminUsers}}active {{end}}item" href="{{AppSubUrl}}/-/admin/users">
 					{{ctx.Locale.Tr "admin.users"}}
 				</a>

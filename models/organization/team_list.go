@@ -12,6 +12,7 @@ import (
 	"code.gitea.io/gitea/models/perm"
 	"code.gitea.io/gitea/models/unit"
 	"code.gitea.io/gitea/models/usergroup"
+	"code.gitea.io/gitea/modules/setting"
 
 	"xorm.io/builder"
 )
@@ -121,6 +122,13 @@ func GetUserOrgTeams(ctx context.Context, orgID, userID int64) (teams TeamList, 
 	for _, team := range teams {
 		teamMap[team.ID] = team
 	}
+	if !setting.Service.EnableUserGroups {
+		teams = make(TeamList, 0, len(teamMap))
+		for _, team := range teamMap {
+			teams = append(teams, team)
+		}
+		return teams, nil
+	}
 
 	groupIDs, err := usergroup.GetUserGroupIDsByUser(ctx, userID)
 	if err != nil {
@@ -171,6 +179,13 @@ func GetUserRepoTeamsWithGroups(ctx context.Context, orgID, userID, repoID int64
 	for _, t := range directTeams {
 		teamMap[t.ID] = t
 	}
+	if !setting.Service.EnableUserGroups {
+		result := make(TeamList, 0, len(teamMap))
+		for _, t := range teamMap {
+			result = append(result, t)
+		}
+		return result, nil
+	}
 
 	// Teams accessible via user group membership.
 	userGroupIDs, err := usergroup.GetUserGroupIDsByUser(ctx, userID)
@@ -208,6 +223,9 @@ func GetUserRepoTeamsWithGroups(ctx context.Context, orgID, userID, repoID int64
 // IsUserInAnyOrgTeamViaUserGroups returns true if the user belongs to any team
 // of the given org solely through a user group (i.e. no direct team_user entry required).
 func IsUserInAnyOrgTeamViaUserGroups(ctx context.Context, orgID, userID int64) (bool, error) {
+	if !setting.Service.EnableUserGroups {
+		return false, nil
+	}
 	userGroupIDs, err := usergroup.GetUserGroupIDsByUser(ctx, userID)
 	if err != nil || len(userGroupIDs) == 0 {
 		return false, err
