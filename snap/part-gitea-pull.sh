@@ -1,12 +1,12 @@
-#!/bin/sh
-set -e
+#!/bin/bash
+set -euo pipefail
 
-if [ ! -f go.mod -o ! -d snap ]; then
+if [ ! -f go.mod ] || [ ! -d snap ]; then
   echo "This script should be run from the root of the gitea repository"
   exit 1
 fi
 
-if [ -z "$SNAPCRAFT_PROJECT_NAME" ]; then
+if [ -z "${SNAPCRAFT_PROJECT_NAME:-}" ]; then
   echo "No snapcraft build env, continue with mocking ...."
   craftctl() { echo "* mocking craftctl: $*"; }
   snap() { echo "* mocking snap: $*"; }
@@ -30,8 +30,8 @@ fi
 # * last_committed_tag=v1.26.1 last_released_tag=v1.26.1 recent_tag=v1.27.0-dev-205 ./snap/part-gitea-pull.sh
 #   it will still use the current branch, and build it for "devel"
 
-[ -z "$last_committed_tag" ] && last_committed_tag="$(git for-each-ref --sort=taggerdate --format '%(tag)' refs/tags | tail -n 1)"
-[ -z "$last_released_tag" ] && last_released_tag="$(snap info gitea | awk '$1 == "latest/candidate:" { print $2 }')"
+last_committed_tag="${last_committed_tag:-$(git for-each-ref --sort=taggerdate --format '%(tag)' refs/tags | tail -n 1)}"
+last_released_tag="${last_released_tag:-$(snap info gitea | awk '$1 == "latest/candidate:" { print $2 }')}"
 
 if [ "${last_committed_tag}" != "${last_released_tag}" ]; then
   # if the latest tag has not been released to stable, build that tag instead of default branch.
@@ -48,15 +48,18 @@ fi
 # * v1.26.1
 # * v1.22.0-rc1-2816-gce089f498b
 # then normalize it to semver format: v1.2.3+dev.205.gce089f498b
-[ -z "$recent_tag" ] && recent_tag="$(git describe --always --tags)"
+recent_tag="${recent_tag:-$(git describe --always --tags)}"
 echo "Use recent tag $recent_tag to determine version and grade"
 
 version_main="$(echo "$recent_tag" | cut -d'-' -f1)"
 version_ext="$(echo "$recent_tag" | cut -d'-' -s -f2- | sed -e 'y/-/./')"
-[ -n "$version_ext" ] && grade=devel || grade=stable
-
-version="${version_main}"
-[ -n "$version_ext" ] && version="${version}+${version_ext}"
+if [ -n "$version_ext" ]; then
+  grade=devel
+  version="${version_main}+${version_ext}"
+else
+  grade=stable
+  version="${version_main}"
+fi
 
 craftctl set version="$version"
 craftctl set grade="$grade"

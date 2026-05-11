@@ -1,12 +1,12 @@
-#!/bin/sh
-set -e
+#!/bin/bash
+set -euo pipefail
 
-if [ ! -f go.mod -o ! -d snap ]; then
+if [ ! -f go.mod ] || [ ! -d snap ]; then
   echo "This script should be run from the root of the gitea repository"
   exit 1
 fi
 
-if [ -z "$SNAPCRAFT_PART_INSTALL" ]; then
+if [ -z "${SNAPCRAFT_PART_INSTALL:-}" ]; then
   SNAPCRAFT_PART_INSTALL="./dist/snap"
   echo "* using mock install path: $SNAPCRAFT_PART_INSTALL"
 fi
