@@ -1,0 +1,192 @@
+/* Gitea styles for Jupyter notebook content */
+.jupyter-notebook {
+  padding: 20px;
+  background: var(--color-body);
+  color: var(--color-text);
+  font-family: inherit;
+}
+
+/* Cell containers */
+.jupyter-notebook .cell {
+  margin-bottom: 20px;
+}
+
+/* Markdown cells */
+.jupyter-notebook .cell.markdown {
+  background: var(--color-body);
+  border: none;
+}
+
+.jupyter-notebook .cell.markdown .input {
+  padding: 6px 12px;
+  line-height: 1.6;
+  background: var(--color-body);
+  color: var(--color-text);
+  margin-left: 110px;
+}
+
+.jupyter-notebook .cell.markdown h1,
+.jupyter-notebook .cell.markdown h2,
+.jupyter-notebook .cell.markdown h3 {
+  margin-top: 24px;
+  margin-bottom: 16px;
+  font-weight: var(--font-weight-semibold);
+  line-height: 1.25;
+  color: var(--color-text);
+}
+
+.jupyter-notebook .cell.markdown h1 {
+  font-size: 1.875em;
+  border-bottom: 1px solid var(--color-secondary-alpha-20);
+  padding-bottom: 0.3em;
+}
+
+.jupyter-notebook .cell.markdown h2 {
+  font-size: 1.5em;
+}
+
+.jupyter-notebook .cell.markdown h3 {
+  font-size: 1.25em;
+}
+
+.jupyter-notebook .cell.markdown p {
+  margin-top: 0;
+  margin-bottom: 16px;
+}
+
+.jupyter-notebook .cell.markdown code {
+  padding: 0.2em 0.4em;
+  margin: 0;
+  font-size: 85%;
+  background-color: var(--color-secondary-alpha-20);
+  border-radius: 3px;
+  font-family: var(--fonts-monospace);
+}
+
+.jupyter-notebook .cell.markdown table {
+  border-collapse: collapse;
+  width: 100%;
+  margin: 16px 0;
+  font-size: 13px;
+}
+
+.jupyter-notebook .cell.markdown table th,
+.jupyter-notebook .cell.markdown table td {
+  border: 1px solid var(--color-secondary);
+  padding: 6px 13px;
+  text-align: left;
+}
+
+.jupyter-notebook .cell.markdown table th {
+  background: var(--color-secondary-alpha-20);
+  font-weight: var(--font-weight-semibold);
+}
+
+.jupyter-notebook .cell.markdown table tr:nth-child(even) {
+  background: var(--color-secondary-alpha-10);
+}
+
+/* Code cells */
+.jupyter-notebook .cell.code {
+  background: transparent;
+  border: none;
+}
+
+.jupyter-notebook .cell.code .input-wrapper,
+.jupyter-notebook .cell.code .output-wrapper {
+  display: flex;
+  align-items: flex-start;
+}
+
+.jupyter-notebook .cell.code .prompt {
+  padding: 10px 10px 10px 0;
+  color: var(--color-text-light-2);
+  font-family: var(--fonts-monospace);
+  font-size: 13px;
+  white-space: nowrap;
+  user-select: none;
+  text-align: right;
+  width: 100px;
+  flex-shrink: 0;
+}
+
+.jupyter-notebook .cell.code .input {
+  flex: 1;
+  background-color: var(--color-code-bg, #f6f8fa);
+  border: 1px solid var(--color-secondary-alpha-20, #d0d7de);
+  border-radius: 4px;
+  min-height: 40px;
+}
+
+.jupyter-notebook .cell.code .input pre {
+  margin: 0;
+  padding: 10px 16px;
+  font-family: var(--fonts-monospace, monospace);
+  font-size: 13px;
+  line-height: 1.5;
+  overflow-x: auto;
+  color: var(--color-text);
+  background: transparent;
+}
+
+.jupyter-notebook .cell.code .input code {
+  display: block;
+  font-family: inherit;
+}
+
+/* Code outputs */
+.jupyter-notebook .cell.code .output {
+  flex: 1;
+  background: var(--color-body);
+  color: var(--color-text);
+  overflow-x: auto;
+  min-width: 0;
+}
+
+.jupyter-notebook .cell.code .output pre {
+  margin: 0;
+  padding: 10px 16px;
+  font-family: var(--fonts-monospace);
+  font-size: 13px;
+  line-height: 1.5;
+  overflow-x: auto;
+  color: var(--color-text);
+  background: var(--color-body);
+  white-space: pre-wrap;
+  overflow-wrap: break-word;
+}
+
+.jupyter-notebook .cell.code .output table {
+  border-collapse: collapse;
+  margin: 10px 16px;
+  font-size: 13px;
+  max-width: 100%;
+}
+
+.jupyter-notebook .cell.code .output table th,
+.jupyter-notebook .cell.code .output table td {
+  border: 1px solid var(--color-secondary);
+  padding: 6px 13px;
+  text-align: left;
+}
+
+.jupyter-notebook .cell.code .output table th {
+  background: var(--color-secondary-alpha-20);
+  font-weight: var(--font-weight-semibold);
+}
+
+.jupyter-notebook .cell.code .output table tr:nth-child(even) {
+  background: var(--color-secondary-alpha-10);
+}
+
+.jupyter-notebook .cell.code .output img {
+  max-width: 90%;
+  height: auto;
+  display: block;
+  margin: 10px 0;
+}
+
+.jupyter-notebook .cell.code .output table img {
+  margin: 0;
+  width: auto;
+}

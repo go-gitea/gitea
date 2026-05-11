@@ -168,6 +168,9 @@ importers:
       katex:
         specifier: 0.16.45
         version: 0.16.45
+      marked:
+        specifier: 18.0.2
+        version: 18.0.2
       mermaid:
         specifier: 11.14.0
         version: 11.14.0
@@ -3294,6 +3297,11 @@ packages:
 
   marked@16.4.2:
     resolution: {integrity: sha512-TI3V8YYWvkVf3KJe1dRkpnjs68JUPyEa5vjKrp1XEEJUAOaQc+Qj+L1qWbPd0SJuAdQkFU0h73sXXqwDYxsiDA==}
+    engines: {node: '>= 20'}
+    hasBin: true
+
+  marked@18.0.2:
+    resolution: {integrity: sha512-NsmlUYBS/Zg57rgDWMYdnre6OTj4e+qq/JS2ot3KrYLSoHLw+sDu0Nm1ZGpRgYAq6c+b1ekaY5NzVchMCQnzcg==}
     engines: {node: '>= 20'}
     hasBin: true
 
@@ -7597,6 +7605,8 @@ snapshots:
       - supports-color
 
   marked@16.4.2: {}
+
+  marked@18.0.2: {}
 
   marked@4.3.0: {}
 
