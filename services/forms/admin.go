@@ -100,7 +100,7 @@ func (f *AdminDashboardForm) Validate(req *http.Request, errs binding.Errors) bi
 // NewGitHubAppCredentialForm form for creating GitHub App credential
 type NewGitHubAppCredentialForm struct {
 	Name           string `binding:"Required;MaxSize(255)" locale:"settings.github_app_name"`
-	AppID          int64  `binding:"Required" locale:"settings.github_app_id"`
+	ClientID       string `binding:"Required" locale:"settings.github_client_id"`
 	InstallationID int64  `binding:"Required" locale:"settings.github_app_installation_id"`
 	PrivateKey     string `binding:"Required" locale:"settings.github_app_private_key"`
 	BaseURL        string `binding:"MaxSize(255)" locale:"settings.github_app_base_url"`

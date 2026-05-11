@@ -31,7 +31,8 @@ type Mirror struct {
 	LFS         bool   `xorm:"lfs_enabled NOT NULL DEFAULT false"`
 	LFSEndpoint string `xorm:"lfs_endpoint TEXT"`
 
-	RemoteAddress string `xorm:"VARCHAR(2048)"`
+	RemoteAddress         string `xorm:"VARCHAR(2048)"`
+	GithubAppCredentialID int64  `xorm:"github_app_credential_id DEFAULT 0"`
 }
 
 func init() {

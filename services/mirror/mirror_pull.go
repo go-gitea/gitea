@@ -6,15 +6,18 @@ package mirror
 import (
 	"context"
 	"fmt"
+	"net/url"
 	"strings"
 	"time"
 
+	github_model "code.gitea.io/gitea/models/github"
 	repo_model "code.gitea.io/gitea/models/repo"
 	system_model "code.gitea.io/gitea/models/system"
 	"code.gitea.io/gitea/modules/cache"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/git/gitcmd"
 	giturl "code.gitea.io/gitea/modules/git/url"
+	gh "code.gitea.io/gitea/modules/github"
 	"code.gitea.io/gitea/modules/gitrepo"
 	"code.gitea.io/gitea/modules/globallock"
 	"code.gitea.io/gitea/modules/lfs"
@@ -22,6 +25,7 @@ import (
 	"code.gitea.io/gitea/modules/process"
 	"code.gitea.io/gitea/modules/proxy"
 	repo_module "code.gitea.io/gitea/modules/repository"
+	"code.gitea.io/gitea/modules/secret"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/timeutil"
 	"code.gitea.io/gitea/modules/util"
@@ -105,9 +109,83 @@ func checkRecoverableSyncError(stderrMessage string) bool {
 	}
 }
 
+// refreshGitHubAppMirrorToken refreshes the GitHub App installation token
+// for a mirror repository and updates the git remote URL with the fresh token.
+func refreshGitHubAppMirrorToken(ctx context.Context, m *repo_model.Mirror) error {
+	// Load the credential from the database
+	cred, err := github_model.GetGithubAppCredentialByID(ctx, m.GithubAppCredentialID)
+	if err != nil {
+		return fmt.Errorf("failed to get GitHub App credential (id=%d): %w", m.GithubAppCredentialID, err)
+	}
+
+	// Decrypt the private key
+	privateKey, err := secret.DecryptSecret(setting.SecretKey, cred.PrivateKeyEncrypted)
+	if err != nil {
+		return fmt.Errorf("failed to decrypt private key: %w", err)
+	}
+
+	// Determine base URL for API
+	apiBaseURL := cred.BaseURL
+	if apiBaseURL == "" {
+		apiBaseURL = "https://api.github.com"
+	}
+
+	// Get a fresh installation access token
+	token, err := gh.GetGitHubAppInstallationToken(
+		ctx,
+		cred.ClientID,
+		cred.InstallationID,
+		privateKey,
+		apiBaseURL,
+		migrations.NewMigrationHTTPTransport(),
+	)
+	if err != nil {
+		return fmt.Errorf("failed to get GitHub App installation token: %w", err)
+	}
+
+	// Get the current remote URL and replace the credentials with the fresh token
+	remoteURL, err := gitrepo.GitRemoteGetURL(ctx, m.Repo, m.GetRemoteName())
+	if err != nil {
+		return fmt.Errorf("failed to get remote URL: %w", err)
+	}
+
+	// remoteURL.URL is already a *url.URL from giturl.GitURL
+	u := remoteURL.URL
+
+	// Set the fresh token as credentials
+	u.User = url.UserPassword("oauth2", token)
+
+	// Update the git remote URL with the fresh token
+	remoteName := m.GetRemoteName()
+	if err := gitrepo.GitRemoteRemove(ctx, m.Repo, remoteName); err != nil && !git.IsRemoteNotExistError(err) {
+		return fmt.Errorf("failed to remove old remote: %w", err)
+	}
+	if err := gitrepo.GitRemoteAdd(ctx, m.Repo, remoteName, u.String(), gitrepo.RemoteOptionMirrorFetch); err != nil {
+		return fmt.Errorf("failed to add remote with fresh token: %w", err)
+	}
+
+	// Update LastUsed timestamp
+	_ = github_model.UpdateGithubAppCredentialLastUsed(ctx, m.GithubAppCredentialID)
+
+	log.Trace("SyncMirrors [repo: %-v]: refreshed GitHub App installation token", m.Repo)
+	return nil
+}
+
 // runSync returns true if sync finished without error.
 func runSync(ctx context.Context, m *repo_model.Mirror) ([]*repo_module.SyncResult, bool) {
 	log.Trace("SyncMirrors [repo: %-v]: running git remote update...", m.Repo)
+
+	// If this mirror uses a GitHub App credential, refresh the token before fetching
+	if m.GithubAppCredentialID > 0 {
+		if err := refreshGitHubAppMirrorToken(ctx, m); err != nil {
+			log.Error("SyncMirrors [repo: %-v]: failed to refresh GitHub App token: %v", m.Repo, err)
+			desc := fmt.Sprintf("Failed to refresh GitHub App token for mirror repository (%s): %v", m.Repo.FullName(), err)
+			if err := system_model.CreateRepositoryNotice(desc); err != nil {
+				log.Error("CreateRepositoryNotice: %v", err)
+			}
+			return nil, false
+		}
+	}
 
 	remoteURL, remoteErr := gitrepo.GitRemoteGetURL(ctx, m.Repo, m.GetRemoteName())
 	if remoteErr != nil {
@@ -297,8 +375,10 @@ func SyncPullMirror(ctx context.Context, repoID int64) bool {
 	log.Trace("SyncMirrors [repo: %-v]: Running Sync", m.Repo)
 	results, ok := runSync(ctx, m)
 	if !ok {
-		if err = repo_model.TouchMirror(ctx, m); err != nil {
-			log.Error("SyncMirrors [repo: %-v]: failed to TouchMirror: %v", m.Repo, err)
+		// Sync failed — schedule next attempt but don't update the "last synced" timestamp
+		m.ScheduleNextUpdate()
+		if err = repo_model.UpdateMirror(ctx, m); err != nil {
+			log.Error("SyncMirrors [repo: %-v]: failed to reschedule after failed sync: %v", m.Repo, err)
 		}
 		return false
 	}

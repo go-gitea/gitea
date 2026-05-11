@@ -7,7 +7,7 @@ import (
 	"net/http"
 	"strings"
 
-	auth_model "code.gitea.io/gitea/models/auth"
+	github_model "code.gitea.io/gitea/models/github"
 	"code.gitea.io/gitea/modules/secret"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/templates"
@@ -73,16 +73,16 @@ func GitHubAppsPost(ctx *context.Context) {
 		baseURL = "https://api.github.com"
 	}
 
-	cred := &auth_model.GithubAppCredential{
+	cred := &github_model.GithubAppCredential{
 		OwnerID:             ctx.Doer.ID,
 		Name:                form.Name,
-		AppID:               form.AppID,
+		ClientID:            form.ClientID,
 		InstallationID:      form.InstallationID,
 		PrivateKeyEncrypted: encryptedKey,
 		BaseURL:             baseURL,
 	}
 
-	if err := auth_model.CreateGithubAppCredential(ctx, cred); err != nil {
+	if err := github_model.CreateGithubAppCredential(ctx, cred); err != nil {
 		ctx.ServerError("CreateGithubAppCredential", err)
 		return
 	}
@@ -96,7 +96,7 @@ func DeleteGitHubApp(ctx *context.Context) {
 	id := ctx.FormInt64("id")
 
 	// Check ownership
-	owned, err := auth_model.CheckGithubAppCredentialOwnership(ctx, id, ctx.Doer.ID)
+	owned, err := github_model.CheckGithubAppCredentialOwnership(ctx, id, ctx.Doer.ID)
 	if err != nil {
 		ctx.ServerError("CheckGithubAppCredentialOwnership", err)
 		return
@@ -106,7 +106,7 @@ func DeleteGitHubApp(ctx *context.Context) {
 		return
 	}
 
-	if err := auth_model.DeleteGithubAppCredential(ctx, id); err != nil {
+	if err := github_model.DeleteGithubAppCredential(ctx, id); err != nil {
 		ctx.Flash.Error("DeleteGithubAppCredential: " + err.Error())
 	} else {
 		ctx.Flash.Success(ctx.Tr("settings.delete_github_app_success"))
@@ -116,10 +116,22 @@ func DeleteGitHubApp(ctx *context.Context) {
 }
 
 func loadGitHubAppsData(ctx *context.Context) {
-	creds, err := auth_model.GetGithubAppCredentialsByOwnerID(ctx, ctx.Doer.ID)
+	creds, err := github_model.GetGithubAppCredentialsByOwnerID(ctx, ctx.Doer.ID)
 	if err != nil {
 		ctx.ServerError("GetGithubAppCredentialsByOwnerID", err)
 		return
 	}
 	ctx.Data["Credentials"] = creds
+
+	// Load repositories using each credential
+	credentialRepos := make(map[int64][]*github_model.MirrorWithRepo)
+	for _, cred := range creds {
+		mirrors, err := github_model.GetMirrorsWithRepoByCredentialID(ctx, cred.ID)
+		if err != nil {
+			ctx.ServerError("GetMirrorsWithRepoByCredentialID", err)
+			return
+		}
+		credentialRepos[cred.ID] = mirrors
+	}
+	ctx.Data["CredentialRepos"] = credentialRepos
 }

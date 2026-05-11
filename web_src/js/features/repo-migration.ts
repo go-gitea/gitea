@@ -102,8 +102,11 @@ export function initRepoMigrate() {
   // Initialize on page load
   updateAuthFields();
 
-  // Listen for changes
-  authMethodDropdown.addEventListener('change', updateAuthFields);
+  // Listen for changes using Fomantic UI's onChange callback
+  const dropdownParent = authMethodDropdown.closest('.ui.dropdown');
+  if (dropdownParent) {
+    $(dropdownParent).dropdown('setting', 'onChange', updateAuthFields);
+  }
 }
 
 export function initRepoMigrationStatusChecker() {

@@ -180,12 +180,13 @@ func MigrateRepositoryGitData(ctx context.Context, u *user_model.User,
 				return repo, err
 			}
 			mirrorModel := repo_model.Mirror{
-				RepoID:         repo.ID,
-				Interval:       setting.Mirror.DefaultInterval,
-				EnablePrune:    true,
-				NextUpdateUnix: timeutil.TimeStampNow().AddDuration(setting.Mirror.DefaultInterval),
-				LFS:            opts.LFS,
-				RemoteAddress:  remoteAddress,
+				RepoID:                repo.ID,
+				Interval:              setting.Mirror.DefaultInterval,
+				EnablePrune:           true,
+				NextUpdateUnix:        timeutil.TimeStampNow().AddDuration(setting.Mirror.DefaultInterval),
+				LFS:                   opts.LFS,
+				RemoteAddress:         remoteAddress,
+				GithubAppCredentialID: opts.GithubAppCredentialId,
 			}
 			if opts.LFS {
 				mirrorModel.LFSEndpoint = opts.LFSEndpoint

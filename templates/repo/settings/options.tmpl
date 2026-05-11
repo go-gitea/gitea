@@ -144,6 +144,21 @@
 											<input id="mirror_address" name="mirror_address" value="{{$address.Address}}" required>
 											<p class="help">{{ctx.Locale.Tr "repo.mirror_address_desc"}}</p>
 										</div>
+									{{if .GitHubAppCredentials}}
+									<div class="inline field">
+										<label>{{ctx.Locale.Tr "repo.settings.mirror_settings.auth_method"}}</label>
+										<div class="ui selection dropdown" id="mirror-auth-method-dropdown">
+											<input type="hidden" name="mirror_auth_method" value="{{if gt .PullMirror.GithubAppCredentialID 0}}github_app{{else}}basic{{end}}">
+											<div class="default text">{{ctx.Locale.Tr "repo.settings.mirror_settings.auth_method_basic"}}</div>
+											{{svg "octicon-triangle-down" 14 "dropdown icon"}}
+											<div class="menu">
+												<div class="item" data-value="basic">{{ctx.Locale.Tr "repo.settings.mirror_settings.auth_method_basic"}}</div>
+												<div class="item" data-value="github_app">{{ctx.Locale.Tr "repo.migrate.auth_method_github_app"}}</div>
+											</div>
+										</div>
+									</div>
+
+									<div id="mirror-basic-auth-fields" {{if gt .PullMirror.GithubAppCredentialID 0}}style="display: none;"{{end}}>
 										<details class="ui optional field" {{if or .Err_Auth $address.Username}}open{{end}}>
 											<summary class="tw-p-1">
 												{{ctx.Locale.Tr "repo.need_auth"}}
@@ -160,6 +175,38 @@
 												<p class="help">{{ctx.Locale.Tr "repo.mirror_password_help"}}</p>
 											</div>
 										</details>
+									</div>
+
+									<div id="mirror-github-app-fields" class="field" {{if not (gt .PullMirror.GithubAppCredentialID 0)}}style="display: none;"{{end}}>
+										<label for="mirror_github_app_credential_id">{{ctx.Locale.Tr "repo.migrate.github_app_credential"}}</label>
+										<select id="mirror_github_app_credential_id" name="mirror_github_app_credential_id" class="ui selection dropdown">
+											<option value="">{{ctx.Locale.Tr "repo.migrate.github_app_credential_select"}}</option>
+											{{range .GitHubAppCredentials}}
+												<option value="{{.ID}}" {{if eq $.PullMirror.GithubAppCredentialID .ID}}selected{{end}}>{{.Name}}</option>
+											{{end}}
+										</select>
+										<span class="help">
+											{{ctx.Locale.Tr "repo.migrate.github_app_credential_helper"}} <a href="{{AppSubUrl}}/user/settings/github_apps">{{ctx.Locale.Tr "repo.migrate.github_app_credential_manage"}}</a>
+										</span>
+									</div>
+									{{else}}
+									<details class="ui optional field" {{if or .Err_Auth $address.Username}}open{{end}}>
+										<summary class="tw-p-1">
+											{{ctx.Locale.Tr "repo.need_auth"}}
+										</summary>
+										<div class="tw-p-1">
+											<div class="inline field {{if .Err_Auth}}error{{end}}">
+												<label for="mirror_username">{{ctx.Locale.Tr "username"}}</label>
+												<input id="mirror_username" name="mirror_username" value="{{$address.Username}}" {{if not .mirror_username}}data-need-clear="true"{{end}}>
+											</div>
+											<div class="inline field {{if .Err_Auth}}error{{end}}">
+												<label for="mirror_password">{{ctx.Locale.Tr "password"}}</label>
+												<input id="mirror_password" name="mirror_password" type="password" placeholder="{{if $address.Password}}{{ctx.Locale.Tr "repo.mirror_password_placeholder"}}{{else}}{{ctx.Locale.Tr "repo.mirror_password_blank_placeholder"}}{{end}}" value="" {{if not .mirror_password}}data-need-clear="true"{{end}} autocomplete="off">
+											</div>
+											<p class="help">{{ctx.Locale.Tr "repo.mirror_password_help"}}</p>
+										</div>
+									</details>
+									{{end}}
 
 										{{if .LFSStartServer}}
 										<div class="inline field">

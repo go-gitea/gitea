@@ -118,6 +118,35 @@ function initRepoSettingsBranches() {
   document.querySelector('#status_check_contexts')!.addEventListener('input', onInputDebounce(markMatchedStatusChecks));
 }
 
+function initRepoSettingsMirrorAuth() {
+  const authMethodDropdown = document.querySelector<HTMLInputElement>('#mirror-auth-method-dropdown input[name="mirror_auth_method"]');
+  if (!authMethodDropdown) return;
+
+  const basicAuthFields = document.querySelector<HTMLElement>('#mirror-basic-auth-fields');
+  const githubAppFields = document.querySelector<HTMLElement>('#mirror-github-app-fields');
+
+  function updateMirrorAuthFields() {
+    const authMethod = authMethodDropdown!.value || 'basic';
+
+    if (authMethod === 'github_app') {
+      basicAuthFields?.style.setProperty('display', 'none');
+      githubAppFields?.style.removeProperty('display');
+    } else {
+      basicAuthFields?.style.removeProperty('display');
+      githubAppFields?.style.setProperty('display', 'none');
+    }
+  }
+
+  // Initialize on page load
+  updateMirrorAuthFields();
+
+  // Listen for changes using Fomantic UI's onChange callback
+  const dropdownParent = authMethodDropdown.closest('.ui.dropdown');
+  if (dropdownParent) {
+    $(dropdownParent).dropdown('setting', 'onChange', updateMirrorAuthFields);
+  }
+}
+
 function initRepoSettingsOptions() {
   const pageContent = document.querySelector('.page-content.repository.settings.options');
   if (!pageContent) return;
@@ -140,6 +169,9 @@ function initRepoSettingsOptions() {
     const checkedVal = el.value;
     pageContent.querySelector('#tracker-issue-style-regex-box')!.classList.toggle('disabled', checkedVal !== 'regexp');
   }));
+
+  // Initialize mirror auth method toggle for GitHub-type pull mirrors
+  initRepoSettingsMirrorAuth();
 }
 
 export function initRepoSettings() {

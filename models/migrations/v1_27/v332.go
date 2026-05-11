@@ -16,12 +16,12 @@ func AddGithubAppCredentialTable(ctx context.Context, x *xorm.Engine) error {
 		ID                  int64              `xorm:"pk autoincr"`
 		OwnerID             int64              `xorm:"INDEX NOT NULL"`
 		Name                string             `xorm:"NOT NULL"`
-		AppID               int64              `xorm:"NOT NULL"`
+		ClientID            string             `xorm:"NOT NULL"`
 		InstallationID      int64              `xorm:"NOT NULL"`
 		PrivateKeyEncrypted string             `xorm:"TEXT NOT NULL"`
 		BaseURL             string             `xorm:"VARCHAR(255) NOT NULL DEFAULT 'https://api.github.com'"`
 		CreatedUnix         timeutil.TimeStamp `xorm:"created"`
-		UpdatedUnix         timeutil.TimeStamp `xorm:"updated"`
+		LastUsedUnix        timeutil.TimeStamp `xorm:"last_used_unix"`
 	}
 
 	return x.Sync(new(GithubAppCredential))

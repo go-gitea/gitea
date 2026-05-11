@@ -62,7 +62,7 @@ type MigrateRepoForm struct {
 	AuthUsername          string                 `json:"auth_username"`
 	AuthPassword          string                 `json:"auth_password"`
 	AuthToken             string                 `json:"auth_token"`
-	GitHubAppCredentialID int64                  `json:"github_app_credential_id" form:"github_app_credential_id"`
+	GithubAppCredentialId int64                  `json:"github_app_credential_id"`
 	// required: true
 	UID int64 `json:"uid" binding:"Required"`
 	// required: true
@@ -92,23 +92,25 @@ func (f *MigrateRepoForm) Validate(req *http.Request, errs binding.Errors) bindi
 
 // RepoSettingForm form for changing repository settings
 type RepoSettingForm struct {
-	RepoName               string `binding:"Required;AlphaDashDot;MaxSize(100)"`
-	Description            string `binding:"MaxSize(2048)"`
-	Website                string `binding:"ValidUrl;MaxSize(1024)"`
-	Interval               string
-	MirrorAddress          string
-	MirrorUsername         string
-	MirrorPassword         string
-	LFS                    bool   `form:"mirror_lfs"`
-	LFSEndpoint            string `form:"mirror_lfs_endpoint"`
-	PushMirrorID           int64
-	PushMirrorAddress      string
-	PushMirrorUsername     string
-	PushMirrorPassword     string
-	PushMirrorSyncOnCommit bool
-	PushMirrorInterval     string
-	Template               bool
-	EnablePrune            bool
+	RepoName                  string `binding:"Required;AlphaDashDot;MaxSize(100)"`
+	Description               string `binding:"MaxSize(2048)"`
+	Website                   string `binding:"ValidUrl;MaxSize(1024)"`
+	Interval                  string
+	MirrorAddress             string
+	MirrorUsername            string
+	MirrorPassword            string
+	MirrorAuthMethod          string `form:"mirror_auth_method"`
+	MirrorGithubAppCredential int64  `form:"mirror_github_app_credential_id"`
+	LFS                       bool   `form:"mirror_lfs"`
+	LFSEndpoint               string `form:"mirror_lfs_endpoint"`
+	PushMirrorID              int64
+	PushMirrorAddress         string
+	PushMirrorUsername        string
+	PushMirrorPassword        string
+	PushMirrorSyncOnCommit    bool
+	PushMirrorInterval        string
+	Template                  bool
+	EnablePrune               bool
 
 	// Advanced settings
 	EnableCode bool

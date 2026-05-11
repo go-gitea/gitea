@@ -10,8 +10,8 @@ import (
 	"strings"
 
 	admin_model "code.gitea.io/gitea/models/admin"
-	auth_model "code.gitea.io/gitea/models/auth"
 	"code.gitea.io/gitea/models/db"
+	github_model "code.gitea.io/gitea/models/github"
 	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/git"
@@ -68,17 +68,6 @@ func Migrate(ctx *context.Context) {
 		return
 	}
 	ctx.Data["ContextUser"] = ctxUser
-
-	// Load GitHub App credentials for GitHub migrations
-	if serviceType == structs.GithubService && ctx.Doer != nil {
-		credentials, err := auth_model.GetGithubAppCredentialsByOwnerID(ctx, ctx.Doer.ID)
-		if err != nil {
-			log.Error("Failed to load GitHub App credentials: %v", err)
-		} else {
-			ctx.Data["GitHubAppCredentials"] = credentials
-			log.Debug("Loaded %d GitHub App credentials for user %d", len(credentials), ctx.Doer.ID)
-		}
-	}
 
 	ctx.HTML(http.StatusOK, templates.TplName("repo/migrate/"+serviceType.Name()))
 }
@@ -216,6 +205,27 @@ func MigratePost(ctx *context.Context) {
 		}
 	}
 
+	// If a GitHub App credential is supplied in the request
+	if form.GithubAppCredentialId > 0 {
+		// GitHub App credentials are only valid for GitHub service migrations
+		if form.Service != structs.GithubService {
+			ctx.Data["Err_Auth"] = true
+			ctx.RenderWithErrDeprecated(ctx.Tr("repo.migrate.github_app_requires_github_service"), tpl, form)
+			return
+		}
+
+		// Check if the user is the owner of the GitHub app credential
+		ownsGitHubApp, err := github_model.CheckGithubAppCredentialOwnership(ctx, form.GithubAppCredentialId, ctx.Doer.ID)
+		if err != nil {
+			ctx.ServerError("CheckGithubAppCredentialOwnership", err)
+			return
+		}
+		if !ownsGitHubApp {
+			ctx.NotFound(nil)
+			return
+		}
+	}
+
 	opts := migrations.MigrateOptions{
 		OriginalURL:           form.CloneAddr,
 		GitServiceType:        form.Service,
@@ -229,7 +239,7 @@ func MigratePost(ctx *context.Context) {
 		AuthUsername:          form.AuthUsername,
 		AuthPassword:          form.AuthPassword,
 		AuthToken:             form.AuthToken,
-		GitHubAppCredentialID: form.GitHubAppCredentialID,
+		GithubAppCredentialId: form.GithubAppCredentialId,
 		Wiki:                  form.Wiki,
 		Issues:                form.Issues,
 		Milestones:            form.Milestones,
@@ -279,7 +289,7 @@ func setMigrationContextData(ctx *context.Context, serviceType structs.GitServic
 
 	// Load GitHub App credentials for the current user if viewing GitHub migration
 	if serviceType == structs.GithubService && ctx.Doer != nil {
-		credentials, err := auth_model.GetGithubAppCredentialsByOwnerID(ctx, ctx.Doer.ID)
+		credentials, err := github_model.GetGithubAppCredentialsByOwnerID(ctx, ctx.Doer.ID)
 		if err != nil {
 			log.Error("Failed to load GitHub App credentials: %v", err)
 		} else {

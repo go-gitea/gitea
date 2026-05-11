@@ -19,7 +19,7 @@
 							<details>
 								<summary><span class="item-title">{{.Name}}</span></summary>
 								<p class="tw-my-1">
-									{{ctx.Locale.Tr "settings.github_app_id"}}: {{.AppID}}
+									{{ctx.Locale.Tr "settings.github_client_id"}}: {{.ClientID}}
 								</p>
 								<p class="tw-my-1">
 									{{ctx.Locale.Tr "settings.github_app_installation_id"}}: {{.InstallationID}}
@@ -27,9 +27,24 @@
 								<p class="tw-my-1">
 									{{ctx.Locale.Tr "settings.github_app_base_url"}}: {{.BaseURL}}
 								</p>
+								<div class="tw-mt-2">
+									<strong>{{ctx.Locale.Tr "settings.github_app_used_by_repos"}}</strong>
+									{{$repos := index $.CredentialRepos .ID}}
+									{{if $repos}}
+										<div class="tw-mt-1">
+											{{range $repos}}
+												<div class="tw-my-1">
+													{{svg "octicon-repo" 14}} <a href="{{AppSubUrl}}/{{.OwnerName}}/{{.RepoName}}">{{.OwnerName}}/{{.RepoName}}</a>
+												</div>
+											{{end}}
+										</div>
+									{{else}}
+										<p class="tw-my-1 tw-text-secondary">{{ctx.Locale.Tr "settings.github_app_no_repos"}}</p>
+									{{end}}
+								</div>
 							</details>
 							<div class="item-body">
-								<i>{{ctx.Locale.Tr "settings.added_on" (DateUtils.AbsoluteShort .CreatedUnix)}} — {{svg "octicon-info"}} {{if .HasUsed}}{{ctx.Locale.Tr "settings.last_used"}} <span {{if .HasRecentActivity}}class="tw-text-green"{{end}}>{{DateUtils.AbsoluteShort .UpdatedUnix}}</span>{{else}}{{ctx.Locale.Tr "settings.no_activity"}}{{end}}</i>
+								<i>{{ctx.Locale.Tr "settings.added_on" (DateUtils.AbsoluteShort .CreatedUnix)}} — {{svg "octicon-info"}} {{if .HasUsed}}{{ctx.Locale.Tr "settings.last_used"}} <span {{if .HasRecentActivity}}class="tw-text-green"{{end}}>{{DateUtils.AbsoluteShort .LastUsedUnix}}</span>{{else}}{{ctx.Locale.Tr "settings.no_activity"}}{{end}}</i>
 							</div>
 						</div>
 						<div class="item-trailing">
@@ -51,11 +66,11 @@
 						<label for="name">{{ctx.Locale.Tr "settings.github_app_name"}}</label>
 						<input id="name" name="name" value="{{.name}}" required maxlength="255">
 					</div>
-					<div class="field {{if .Err_AppID}}error{{end}}">
-						<label for="app_id">{{ctx.Locale.Tr "settings.github_app_id"}}</label>
-						<input id="app_id" name="app_id" type="number" value="{{.app_id}}" required>
+					<div class="field {{if .Err_ClientID}}error{{end}}">
+						<label for="client_id">{{ctx.Locale.Tr "settings.github_client_id"}}</label>
+						<input id="client_id" name="client_id" value="{{.client_id}}" required>
 						<span class="help">
-							{{ctx.Locale.Tr "settings.github_app_id_helper"}}
+							{{ctx.Locale.Tr "settings.github_client_id_helper"}}
 						</span>
 					</div>
 					<div class="field {{if .Err_InstallationID}}error{{end}}">
@@ -67,7 +82,7 @@
 					</div>
 					<div class="field {{if .Err_PrivateKey}}error{{end}}">
 						<label for="private_key">{{ctx.Locale.Tr "settings.github_app_private_key"}}</label>
-						<textarea id="private_key" name="private_key" rows="10" required placeholder="-----BEGIN RSA PRIVATE KEY-----&#10;...&#10;-----END RSA PRIVATE KEY-----">{{.private_key}}</textarea>
+						<textarea id="private_key" name="private_key" rows="10" required placeholder="-----BEGIN RSA PRIVATE KEY-----&#10;...&#10;-----END RSA PRIVATE KEY-----"></textarea>
 						<span class="help">
 							{{ctx.Locale.Tr "settings.github_app_private_key_helper"}}
 						</span>
