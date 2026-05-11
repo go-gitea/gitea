@@ -665,8 +665,12 @@ func TestAPIIssuePrivateOrgProjectHidden(t *testing.T) {
 	})
 
 	t.Run("MemberWithoutProjectsAccess", func(t *testing.T) {
-		// user5 is in org23 (team17) but team17 only has Actions (type=9) access,
-		// not Projects (type=8). So user5 can access the repo but not org projects.
+		// user5 is a member of org23 (via team17). team17 has Actions
+		// (type=9) but NOT Projects (type=8) unit access. user5 can
+		// therefore reach the repo and read the issue, but the org's
+		// Projects unit is not visible to them — so the project must
+		// be filtered out of the issue's API response. Without the
+		// visibility filter this leaks the org project's id and title.
 		token5 := getTokenForLoggedInUser(t, loginUser(t, "user5"), auth_model.AccessTokenScopeReadIssue)
 		req := NewRequest(t, "GET", fmt.Sprintf("/api/v1/repos/%s/%s/issues/%d", publicRepo.OwnerName, publicRepo.Name, issue.Index)).AddTokenAuth(token5)
 		resp := MakeRequest(t, req, http.StatusOK)
