@@ -78,7 +78,7 @@ func ToNotificationThread(ctx context.Context, n *activities_model.Notification)
 		url := n.Repository.HTMLURL() + "/commit/" + url.PathEscape(n.CommitID)
 		title := n.CommitID
 		if n.Commit != nil {
-			title, _ = git.SplitCommitTitleBody(n.Commit.CommitMessage, 255)
+			title, _ = git.SplitCommitTitleBody(n.Commit.MessageUTF8(), 255)
 		}
 		result.Subject = &api.NotificationSubject{
 			Type:    api.NotifySubjectCommit,

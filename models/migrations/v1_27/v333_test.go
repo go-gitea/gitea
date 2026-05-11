@@ -6,7 +6,7 @@ package v1_27
 import (
 	"testing"
 
-	"code.gitea.io/gitea/models/migrations/base"
+	"code.gitea.io/gitea/models/migrations/migrationtest"
 	"code.gitea.io/gitea/modules/timeutil"
 
 	"github.com/stretchr/testify/assert"
@@ -37,7 +37,7 @@ func (NotificationBefore331) TableName() string {
 }
 
 func TestAddReleaseNotificationBackfillsNotificationDedupe(t *testing.T) {
-	x, deferable := base.PrepareTestEnv(t, 0, new(NotificationBefore331))
+	x, deferable := migrationtest.PrepareTestEnv(t, 0, new(NotificationBefore331))
 	defer deferable()
 	if x == nil || t.Failed() {
 		return
@@ -77,7 +77,7 @@ func TestAddReleaseNotificationBackfillsNotificationDedupe(t *testing.T) {
 }
 
 func TestAddReleaseNotificationDeduplicatesLegacyNotificationRows(t *testing.T) {
-	x, deferable := base.PrepareTestEnv(t, 0, new(NotificationBefore331))
+	x, deferable := migrationtest.PrepareTestEnv(t, 0, new(NotificationBefore331))
 	defer deferable()
 	if x == nil || t.Failed() {
 		return

@@ -111,15 +111,8 @@ func (r *Release) LoadPublisher(ctx context.Context) error {
 		return nil
 	}
 	var err error
-	r.Publisher, _, err = user_model.GetPossibleUserByID(ctx, r.PublisherID)
-	if err != nil {
-		if user_model.IsErrUserNotExist(err) {
-			r.Publisher = user_model.NewGhostUser()
-		} else {
-			return err
-		}
-	}
-	return nil
+	r.PublisherID, r.Publisher, err = user_model.GetPossibleUserByID(ctx, r.PublisherID)
+	return err
 }
 
 // LoadAttributes load repo and publisher attributes for a release
