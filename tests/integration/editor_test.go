@@ -98,6 +98,27 @@ func testEditorProtectedBranch(t *testing.T) {
 	resp := testEditorActionPostRequest(t, session, "/user2/repo1/_new/master/", map[string]string{"tree_path": "test-protected-branch.txt", "commit_choice": "direct"})
 	assert.Equal(t, http.StatusBadRequest, resp.Code)
 	assert.Equal(t, `Cannot commit to protected branch "master".`, test.ParseJSONError(resp.Body.Bytes()).ErrorMessage)
+
+	// Change "master" branch to mark files under "docs/" as unprotected
+	req = NewRequestWithValues(t, "POST", "/user2/repo1/settings/branches/edit", map[string]string{
+		"rule_name":                 "master",
+		"protected_file_patterns":   "",
+		"unprotected_file_patterns": "docs/*.md",
+		"enable_push":               "true",
+	})
+	session.MakeRequest(t, req, http.StatusSeeOther)
+	flashMsg = session.GetCookieFlashMessage()
+	assert.Equal(t, `Branch protection for rule "master" has been updated.`, flashMsg.SuccessMsg)
+
+	// Try to commit a non-matching file to the "master" branch and it should fail
+	resp = testEditorActionPostRequest(t, session, "/user2/repo1/_new/master/", map[string]string{"tree_path": "test-protected-branch.txt", "commit_choice": "direct"})
+	assert.Equal(t, http.StatusBadRequest, resp.Code)
+	assert.Equal(t, `Cannot commit to protected branch "master".`, test.ParseJSONError(resp.Body.Bytes()).ErrorMessage)
+
+	// Try to commit a file matching the unprotected pattern and it should succeed
+	resp = testEditorActionPostRequest(t, session, "/user2/repo1/_new/master/", map[string]string{"tree_path": "docs/new.md", "commit_choice": "direct"})
+	assert.Equal(t, http.StatusOK, resp.Code)
+	assert.Contains(t, resp.Body.String(), `"redirect":"/user2/repo1/src/branch/master/docs/new.md"`)
 }
 
 func testEditorActionPostRequest(t *testing.T, session *TestSession, requestPath string, params map[string]string) *httptest.ResponseRecorder {

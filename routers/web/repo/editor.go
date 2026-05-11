@@ -56,7 +56,7 @@ func prepareEditorPageFormOptions(ctx *context.Context, editorAction string) *co
 		return nil
 	}
 
-	commitFormOptions, err := context.PrepareCommitFormOptions(ctx, ctx.Doer, ctx.Repo.Repository, ctx.Repo.Permission, ctx.Repo.RefFullName)
+	commitFormOptions, err := context.PrepareCommitFormOptions(ctx, ctx.Doer, ctx.Repo.Repository, ctx.Repo.Permission, ctx.Repo.RefFullName, ctx.Repo.TreePath)
 	if err != nil {
 		ctx.ServerError("PrepareCommitFormOptions", err)
 		return nil
@@ -121,7 +121,7 @@ func prepareEditorCommitSubmittedForm[T forms.CommitCommonFormInterface](ctx *co
 	commonForm := form.GetCommitCommonForm()
 	commonForm.TreePath = files_service.CleanGitTreePath(commonForm.TreePath)
 
-	commitFormOptions, err := context.PrepareCommitFormOptions(ctx, ctx.Doer, ctx.Repo.Repository, ctx.Repo.Permission, ctx.Repo.RefFullName)
+	commitFormOptions, err := context.PrepareCommitFormOptions(ctx, ctx.Doer, ctx.Repo.Repository, ctx.Repo.Permission, ctx.Repo.RefFullName, commonForm.TreePath)
 	if err != nil {
 		ctx.ServerError("PrepareCommitFormOptions", err)
 		return nil
