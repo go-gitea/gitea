@@ -21,7 +21,7 @@ import (
 )
 
 // GenerateGitHubAppJWT generates a JWT for GitHub App authentication
-func GenerateGitHubAppJWT(clientID string, privateKeyPEM string) (string, error) {
+func GenerateGitHubAppJWT(clientID, privateKeyPEM string) (string, error) {
 	// Parse the private key
 	block, _ := pem.Decode([]byte(strings.TrimSpace(privateKeyPEM)))
 	if block == nil {

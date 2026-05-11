@@ -206,7 +206,7 @@ func MigratePost(ctx *context.Context) {
 	}
 
 	// If a GitHub App credential is supplied in the request
-	if form.GithubAppCredentialId > 0 {
+	if form.GithubAppCredentialID > 0 {
 		// GitHub App credentials are only valid for GitHub service migrations
 		if form.Service != structs.GithubService {
 			ctx.Data["Err_Auth"] = true
@@ -215,7 +215,7 @@ func MigratePost(ctx *context.Context) {
 		}
 
 		// Check if the user is the owner of the GitHub app credential
-		ownsGitHubApp, err := github_model.CheckGithubAppCredentialOwnership(ctx, form.GithubAppCredentialId, ctx.Doer.ID)
+		ownsGitHubApp, err := github_model.CheckGithubAppCredentialOwnership(ctx, form.GithubAppCredentialID, ctx.Doer.ID)
 		if err != nil {
 			ctx.ServerError("CheckGithubAppCredentialOwnership", err)
 			return
@@ -239,7 +239,7 @@ func MigratePost(ctx *context.Context) {
 		AuthUsername:          form.AuthUsername,
 		AuthPassword:          form.AuthPassword,
 		AuthToken:             form.AuthToken,
-		GithubAppCredentialId: form.GithubAppCredentialId,
+		GithubAppCredentialID: form.GithubAppCredentialID,
 		Wiki:                  form.Wiki,
 		Issues:                form.Issues,
 		Milestones:            form.Milestones,

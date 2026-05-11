@@ -16,14 +16,13 @@ import (
 
 	github_model "code.gitea.io/gitea/models/github"
 	"code.gitea.io/gitea/modules/git"
+	gh "code.gitea.io/gitea/modules/github"
 	"code.gitea.io/gitea/modules/log"
 	base "code.gitea.io/gitea/modules/migration"
 	"code.gitea.io/gitea/modules/proxy"
 	"code.gitea.io/gitea/modules/secret"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/structs"
-
-	gh "code.gitea.io/gitea/modules/github"
 
 	"github.com/google/go-github/v85/github"
 	"golang.org/x/oauth2"
@@ -58,8 +57,8 @@ func (f *GithubDownloaderV3Factory) New(ctx context.Context, opts base.MigrateOp
 	log.Trace("Create github downloader BaseURL: %s %s/%s", baseURL, oldOwner, oldName)
 
 	// Check if GitHub App authentication is requested
-	if opts.GithubAppCredentialId > 0 {
-		return NewGithubDownloaderV3WithApp(ctx, baseURL, opts.GithubAppCredentialId, oldOwner, oldName)
+	if opts.GithubAppCredentialID > 0 {
+		return NewGithubDownloaderV3WithApp(ctx, baseURL, opts.GithubAppCredentialID, oldOwner, oldName)
 	}
 
 	return NewGithubDownloaderV3(ctx, baseURL, opts.AuthUsername, opts.AuthPassword, opts.AuthToken, oldOwner, oldName), nil

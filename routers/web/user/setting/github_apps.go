@@ -73,7 +73,7 @@ func GitHubAppsPost(ctx *context.Context) {
 		baseURL = "https://api.github.com"
 	}
 
-	cred := &github_model.GithubAppCredential{
+	cred := &github_model.AppCredential{
 		OwnerID:             ctx.Doer.ID,
 		Name:                form.Name,
 		ClientID:            form.ClientID,

@@ -186,7 +186,7 @@ func MigrateRepositoryGitData(ctx context.Context, u *user_model.User,
 				NextUpdateUnix:        timeutil.TimeStampNow().AddDuration(setting.Mirror.DefaultInterval),
 				LFS:                   opts.LFS,
 				RemoteAddress:         remoteAddress,
-				GithubAppCredentialID: opts.GithubAppCredentialId,
+				GithubAppCredentialID: opts.GithubAppCredentialID,
 			}
 			if opts.LFS {
 				mirrorModel.LFSEndpoint = opts.LFSEndpoint

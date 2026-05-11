@@ -47,7 +47,7 @@ func TestHasRecentActivity(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			cred := &github_model.GithubAppCredential{
+			cred := &github_model.AppCredential{
 				LastUsedUnix: tt.lastUsedUnix,
 			}
 			assert.Equal(t, tt.expectRecent, cred.HasRecentActivity())
@@ -75,7 +75,7 @@ func TestHasUsed(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			cred := &github_model.GithubAppCredential{
+			cred := &github_model.AppCredential{
 				LastUsedUnix: tt.lastUsedUnix,
 			}
 			assert.Equal(t, tt.expectUsed, cred.HasUsed())
@@ -84,14 +84,14 @@ func TestHasUsed(t *testing.T) {
 }
 
 func TestTableName(t *testing.T) {
-	cred := &github_model.GithubAppCredential{}
+	cred := &github_model.AppCredential{}
 	assert.Equal(t, "github_app_credential", cred.TableName())
 }
 
 func TestCreateGithubAppCredential(t *testing.T) {
 	require.NoError(t, unittest.PrepareTestDatabase())
 
-	cred := &github_model.GithubAppCredential{
+	cred := &github_model.AppCredential{
 		OwnerID:             1,
 		Name:                "New Test App",
 		ClientID:            "Iv1.newtest",
@@ -151,7 +151,7 @@ func TestUpdateGithubAppCredentialLastUsed(t *testing.T) {
 	require.NoError(t, unittest.PrepareTestDatabase())
 
 	// Get initial state
-	cred := unittest.AssertExistsAndLoadBean(t, &github_model.GithubAppCredential{ID: 2})
+	cred := unittest.AssertExistsAndLoadBean(t, &github_model.AppCredential{ID: 2})
 	assert.Equal(t, timeutil.TimeStamp(0), cred.LastUsedUnix)
 
 	// Update last used
@@ -159,7 +159,7 @@ func TestUpdateGithubAppCredentialLastUsed(t *testing.T) {
 	require.NoError(t, err)
 
 	// Verify it was updated
-	updated := unittest.AssertExistsAndLoadBean(t, &github_model.GithubAppCredential{ID: 2})
+	updated := unittest.AssertExistsAndLoadBean(t, &github_model.AppCredential{ID: 2})
 	assert.Greater(t, updated.LastUsedUnix, timeutil.TimeStamp(0))
 }
 
@@ -167,14 +167,14 @@ func TestDeleteGithubAppCredential(t *testing.T) {
 	require.NoError(t, unittest.PrepareTestDatabase())
 
 	// Verify it exists
-	unittest.AssertExistsAndLoadBean(t, &github_model.GithubAppCredential{ID: 1})
+	unittest.AssertExistsAndLoadBean(t, &github_model.AppCredential{ID: 1})
 
 	// Delete it
 	err := github_model.DeleteGithubAppCredential(t.Context(), 1)
 	require.NoError(t, err)
 
 	// Verify it's gone
-	unittest.AssertNotExistsBean(t, &github_model.GithubAppCredential{ID: 1})
+	unittest.AssertNotExistsBean(t, &github_model.AppCredential{ID: 1})
 }
 
 func TestCheckGithubAppCredentialOwnership(t *testing.T) {

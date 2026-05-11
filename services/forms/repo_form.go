@@ -62,7 +62,7 @@ type MigrateRepoForm struct {
 	AuthUsername          string                 `json:"auth_username"`
 	AuthPassword          string                 `json:"auth_password"`
 	AuthToken             string                 `json:"auth_token"`
-	GithubAppCredentialId int64                  `json:"github_app_credential_id"`
+	GithubAppCredentialID int64                  `json:"github_app_credential_id"`
 	// required: true
 	UID int64 `json:"uid" binding:"Required"`
 	// required: true

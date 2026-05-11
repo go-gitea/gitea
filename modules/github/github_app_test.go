@@ -201,7 +201,7 @@ func TestGetGitHubAppInstallationToken(t *testing.T) {
 		// Verify it's the installation token endpoint
 		// go-github uses /api/v3 prefix for enterprise URLs
 		if (r.URL.Path == "/api/v3/app/installations/12345/access_tokens" ||
-			r.URL.Path == "/app/installations/12345/access_tokens") && r.Method == "POST" {
+			r.URL.Path == "/app/installations/12345/access_tokens") && r.Method == http.MethodPost {
 			callCount++
 			// Return a mock installation token response
 			w.Header().Set("Content-Type", "application/json")
@@ -273,7 +273,7 @@ func TestJWTTransport_SetsHeaders(t *testing.T) {
 		transport: mockServer.Client().Transport,
 	}
 
-	req, err := http.NewRequest("GET", mockServer.URL+"/test", nil)
+	req, err := http.NewRequest(http.MethodGet, mockServer.URL+"/test", nil)
 	require.NoError(t, err)
 
 	resp, err := transport.RoundTrip(req)
@@ -299,7 +299,7 @@ func TestJWTTransport_NilTransportFallsBackToDefault(t *testing.T) {
 		transport: nil, // nil transport — should fall back
 	}
 
-	req, err := http.NewRequest("GET", mockServer.URL+"/test", nil)
+	req, err := http.NewRequest(http.MethodGet, mockServer.URL+"/test", nil)
 	require.NoError(t, err)
 
 	resp, err := transport.RoundTrip(req)
@@ -322,11 +322,14 @@ func TestJWTTransport_PropagatesTransportError(t *testing.T) {
 		transport: &http.Transport{},
 	}
 
-	req, err := http.NewRequest("GET", serverURL+"/test", nil)
+	req, err := http.NewRequest(http.MethodGet, serverURL+"/test", nil)
 	require.NoError(t, err)
 
-	_, err = transport.RoundTrip(req)
+	resp, err := transport.RoundTrip(req)
 	require.Error(t, err, "should propagate transport error when server is unreachable")
+	if resp != nil {
+		defer resp.Body.Close()
+	}
 }
 
 func TestJWTTransport_DoesNotOverwriteOtherHeaders(t *testing.T) {
@@ -342,7 +345,7 @@ func TestJWTTransport_DoesNotOverwriteOtherHeaders(t *testing.T) {
 		transport: mockServer.Client().Transport,
 	}
 
-	req, err := http.NewRequest("GET", mockServer.URL+"/test", nil)
+	req, err := http.NewRequest(http.MethodGet, mockServer.URL+"/test", nil)
 	require.NoError(t, err)
 	req.Header.Set("X-Custom-Header", "custom-value")
 
