@@ -63,6 +63,18 @@
       "allowedVersions": "<4.0.0-rc.4", // rc.4 changes block scalar serialization, wait for stable release
     },
     {
+      "matchPackageNames": ["postgres"],
+      "allowedVersions": "/^14($|[.-])/", // pin to oldest supported major
+    },
+    {
+      "matchPackageNames": ["bitnamilegacy/mysql"],
+      "allowedVersions": "/^8\\.4($|[.-])/", // pin to oldest LTS
+    },
+    {
+      "matchPackageNames": ["mcr.microsoft.com/mssql/server"],
+      "allowedVersions": "/^2019($|[.-])/", // pin to oldest in extended support
+    },
+    {
       "groupName": "go dependencies",
       "matchManagers": ["gomod"],
       "postUpdateOptions": ["gomodUpdateImportPaths"],
