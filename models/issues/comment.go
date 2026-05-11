@@ -400,16 +400,7 @@ func (c *Comment) LoadPoster(ctx context.Context) (err error) {
 	if c.Poster != nil {
 		return nil
 	}
-
-	c.Poster, err = user_model.GetPossibleUserByID(ctx, c.PosterID)
-	if err != nil {
-		if user_model.IsErrUserNotExist(err) {
-			c.PosterID = user_model.GhostUserID
-			c.Poster = user_model.NewGhostUser()
-		} else {
-			log.Error("getUserByID[%d]: %v", c.ID, err)
-		}
-	}
+	c.PosterID, c.Poster, err = user_model.GetPossibleUserByID(ctx, c.PosterID)
 	return err
 }
 

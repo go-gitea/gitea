@@ -53,10 +53,10 @@ interface Window {
     enableTimeTracking: boolean,
     mermaidMaxSourceCharacters: number,
     i18n: Record<string, string>,
+    frontendInited: boolean,
   },
   $: JQueryStatic,
   jQuery: JQueryStatic,
-  htmx: typeof import('htmx.org').default,
   _globalHandlerErrors: Array<ErrorEvent & PromiseRejectionEvent> & {
     _inited: boolean,
     push: (e: ErrorEvent & PromiseRejectionEvent) => void | number,

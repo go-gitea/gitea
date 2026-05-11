@@ -23,6 +23,7 @@ import (
 	"code.gitea.io/gitea/modules/web"
 	"code.gitea.io/gitea/modules/web/middleware"
 	"code.gitea.io/gitea/modules/web/routing"
+	"code.gitea.io/gitea/modules/web/types"
 	"code.gitea.io/gitea/routers/common"
 	"code.gitea.io/gitea/routers/web/admin"
 	"code.gitea.io/gitea/routers/web/auth"
@@ -45,7 +46,7 @@ import (
 	"code.gitea.io/gitea/services/context"
 	"code.gitea.io/gitea/services/forms"
 
-	_ "code.gitea.io/gitea/modules/session" // to registers all internal adapters
+	_ "code.gitea.io/gitea/modules/session" // to register all internal adapters
 
 	"gitea.com/go-chi/captcha"
 	chi_middleware "github.com/go-chi/chi/v5/middleware"
@@ -91,8 +92,8 @@ func optionsCorsHandler() func(next http.Handler) http.Handler {
 }
 
 type AuthMiddleware struct {
-	AllowOAuth2       web.PreMiddlewareProvider
-	AllowBasic        web.PreMiddlewareProvider
+	AllowOAuth2       types.PreMiddlewareProvider
+	AllowBasic        types.PreMiddlewareProvider
 	MiddlewareHandler func(*context.Context)
 }
 
@@ -101,7 +102,7 @@ func newWebAuthMiddleware() *AuthMiddleware {
 	type keyAllowBasic struct{}
 	webAuth := &AuthMiddleware{}
 
-	middlewareSetContextValue := func(key, val any) web.PreMiddlewareProvider {
+	middlewareSetContextValue := func(key, val any) types.PreMiddlewareProvider {
 		return func(next http.Handler) http.Handler {
 			return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 				dataStore := reqctx.GetRequestDataStore(r.Context())
@@ -260,6 +261,7 @@ func Routes() *web.Router {
 	routes.BeforeRouting(chi_middleware.GetHead)
 
 	routes.Head("/", misc.DummyOK) // for health check - doesn't need to be passed through gzip handler
+	routes.Methods("GET, HEAD", "/assets/site-manifest.json", misc.SiteManifest)
 	routes.Methods("GET, HEAD, OPTIONS", "/assets/*", routing.MarkLogLevelTrace, public.AssetsCors(), public.FileHandlerFunc())
 	routes.Methods("GET, HEAD", "/avatars/*", avatarStorageHandler(setting.Avatar.Storage, "avatars", storage.Avatars))
 	routes.Methods("GET, HEAD", "/repo-avatars/*", avatarStorageHandler(setting.RepoAvatar.Storage, "repo-avatars", storage.RepoAvatars))
@@ -587,7 +589,7 @@ func registerWebRoutes(m *web.Router, webAuth *AuthMiddleware) {
 		})
 	}, reqSignOut)
 
-	m.Any("/user/events", routing.MarkLongPolling, events.Events)
+	m.Any("/user/events", routing.MarkLongPolling(), events.Events)
 
 	m.Group("/login/oauth", func() {
 		m.Group("", func() {
@@ -1173,7 +1175,7 @@ func registerWebRoutes(m *web.Router, webAuth *AuthMiddleware) {
 			m.Combo("/edit").Get(repo_setting.SettingsProtectedBranch).
 				Post(web.Bind(forms.ProtectBranchForm{}), context.RepoMustNotBeArchived(), repo_setting.SettingsProtectedBranchPost)
 			m.Post("/{id}/delete", repo_setting.DeleteProtectedBranchRulePost)
-			m.Post("/priority", web.Bind(forms.ProtectBranchPriorityForm{}), context.RepoMustNotBeArchived(), repo_setting.UpdateBranchProtectionPriories)
+			m.Post("/priority", context.RepoMustNotBeArchived(), repo_setting.UpdateBranchProtectionPriories)
 		})
 
 		m.Group("/tags", func() {
@@ -1355,6 +1357,7 @@ func registerWebRoutes(m *web.Router, webAuth *AuthMiddleware) {
 			m.Post("/labels", reqRepoIssuesOrPullsWriter, repo.UpdateIssueLabel)
 			m.Post("/milestone", reqRepoIssuesOrPullsWriter, repo.UpdateIssueMilestone)
 			m.Post("/projects", reqRepoIssuesOrPullsWriter, reqRepoProjectsReader, repo.UpdateIssueProject)
+			m.Post("/projects/column", reqRepoIssuesOrPullsWriter, reqRepoProjectsWriter, repo.UpdateIssueProjectColumn)
 			m.Post("/assignee", reqRepoIssuesOrPullsWriter, repo.UpdateIssueAssignee)
 			m.Post("/status", reqRepoIssuesOrPullsWriter, repo.UpdateIssueStatus)
 			m.Post("/delete", reqRepoAdmin, repo.BatchDeleteIssues)
@@ -1538,6 +1541,11 @@ func registerWebRoutes(m *web.Router, webAuth *AuthMiddleware) {
 			m.Combo("").
 				Get(actions.View).
 				Post(web.Bind(actions.ViewRequest{}), actions.ViewPost)
+			m.Group("/attempts/{attempt}", func() {
+				m.Combo("").
+					Get(actions.View).
+					Post(web.Bind(actions.ViewRequest{}), actions.ViewPost)
+			})
 			m.Group("/jobs/{job}", func() {
 				m.Combo("").
 					Get(actions.View).
@@ -1743,6 +1751,7 @@ func registerWebRoutes(m *web.Router, webAuth *AuthMiddleware) {
 
 	if setting.API.EnableSwagger {
 		m.Get("/swagger.v1.json", SwaggerV1Json)
+		m.Get("/openapi3.v1.json", OpenAPI3Json)
 	}
 
 	if !setting.IsProd || setting.IsInE2eTesting() {
@@ -1753,8 +1762,10 @@ func registerWebRoutes(m *web.Router, webAuth *AuthMiddleware) {
 			m.Any("/mail-preview/*", devtest.MailPreviewRender)
 			m.Any("/{sub}", devtest.TmplCommon)
 			m.Get("/repo-action-view/runs/{run}", devtest.MockActionsView)
+			m.Get("/repo-action-view/runs/{run}/attempts/{attempt}", devtest.MockActionsView)
 			m.Get("/repo-action-view/runs/{run}/jobs/{job}", devtest.MockActionsView)
 			m.Post("/repo-action-view/runs/{run}", web.Bind(actions.ViewRequest{}), devtest.MockActionsRunsJobs)
+			m.Post("/repo-action-view/runs/{run}/attempts/{attempt}", web.Bind(actions.ViewRequest{}), devtest.MockActionsRunsJobs)
 			m.Post("/repo-action-view/runs/{run}/jobs/{job}", web.Bind(actions.ViewRequest{}), devtest.MockActionsRunsJobs)
 		})
 	}

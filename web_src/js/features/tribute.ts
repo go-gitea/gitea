@@ -50,9 +50,9 @@ export async function attachTribute(element: HTMLElement) {
 
   const tribute = new Tribute({
     collection: [
-      emojiCollection as TributeCollection<any>,
-      mentionCollection as TributeCollection<any>,
-    ],
+      emojiCollection,
+      mentionCollection,
+    ] as TributeCollection<any>[],
     noMatchTemplate: () => '',
   });
   tribute.attach(element);

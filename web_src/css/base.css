@@ -501,10 +501,10 @@ img.ui.avatar,
 }
 
 blockquote.attention-note {
-  border-left-color: var(--color-blue-dark-1);
+  border-left-color: var(--color-info-text);
 }
 strong.attention-note, svg.attention-note {
-  color: var(--color-blue-dark-1);
+  color: var(--color-info-text);
 }
 
 blockquote.attention-tip {
@@ -515,10 +515,10 @@ strong.attention-tip, svg.attention-tip {
 }
 
 blockquote.attention-important {
-  border-left-color: var(--color-violet-dark-1);
+  border-left-color: var(--color-priority-text);
 }
 strong.attention-important, svg.attention-important {
-  color: var(--color-violet-dark-1);
+  color: var(--color-priority-text);
 }
 
 blockquote.attention-warning {
@@ -529,10 +529,10 @@ strong.attention-warning, svg.attention-warning {
 }
 
 blockquote.attention-caution {
-  border-left-color: var(--color-red-dark-1);
+  border-left-color: var(--color-error-text);
 }
 strong.attention-caution, svg.attention-caution {
-  color: var(--color-red-dark-1);
+  color: var(--color-error-text);
 }
 
 /* FIXME: this is a longstanding dirty patch since 2015, it only makes the pages more messy and shouldn't be used */
@@ -782,9 +782,15 @@ tr.top-line-blame:first-of-type {
 
 .color-icon {
   display: inline-block;
+  flex-shrink: 0;
   border-radius: var(--border-radius-full);
   height: 14px;
   width: 14px;
+}
+
+.icon-size-8 {
+  width: 8px;
+  height: 8px;
 }
 
 .rss-icon {
@@ -866,11 +872,14 @@ table th[data-sortt-desc] .svg {
   align-items: stretch;
 }
 
-/* can be used to replace "ui relaxed list" or "tw-flex tw-flex-col tw-gap-xxx" when we need more flexible layout */
-.flex-relaxed-list {
+/* this is useful to make a left-right (e.g.: title .... operations) layout with default gap, and it wrap for small widths */
+.flex-left-right {
   display: flex;
-  flex-direction: column;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  align-items: center;
   gap: var(--gap-block);
+  min-width: 0;
 }
 
 .ui.list.flex-items-block > .item,
@@ -881,9 +890,10 @@ table th[data-sortt-desc] .svg {
   display: flex;
   align-items: center;
   gap: var(--gap-block);
-  min-width: 0;
+  max-width: 100%;
 }
 
+.flex-left-right > .ui.button,
 .flex-text-block > .ui.button,
 .flex-text-inline > .ui.button {
   margin: 0; /* fomantic buttons have default margin, when we use them in a flex container with gap, we do not need these margins */

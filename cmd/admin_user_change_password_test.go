@@ -4,6 +4,7 @@
 package cmd
 
 import (
+	"io"
 	"testing"
 
 	"code.gitea.io/gitea/models/db"
@@ -82,7 +83,9 @@ func TestChangePasswordCommand(t *testing.T) {
 
 		for _, tc := range testCases {
 			t.Run(tc.name, func(t *testing.T) {
-				err := microcmdUserChangePassword().Run(ctx, tc.args)
+				cmd := microcmdUserChangePassword()
+				cmd.Writer, cmd.ErrWriter = io.Discard, io.Discard
+				err := cmd.Run(ctx, tc.args)
 				require.Error(t, err)
 				require.Contains(t, err.Error(), tc.expectedErr)
 			})

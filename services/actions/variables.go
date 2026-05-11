@@ -16,7 +16,7 @@ func CreateVariable(ctx context.Context, ownerID, repoID int64, name, data, desc
 		return nil, err
 	}
 
-	v, err := actions_model.InsertVariable(ctx, ownerID, repoID, name, util.ReserveLineBreakForTextarea(data), description)
+	v, err := actions_model.InsertVariable(ctx, ownerID, repoID, name, util.NormalizeStringEOL(data), description)
 	if err != nil {
 		return nil, err
 	}
@@ -29,7 +29,7 @@ func UpdateVariableNameData(ctx context.Context, variable *actions_model.ActionV
 		return false, err
 	}
 
-	variable.Data = util.ReserveLineBreakForTextarea(variable.Data)
+	variable.Data = util.NormalizeStringEOL(variable.Data)
 
 	return actions_model.UpdateVariableCols(ctx, variable, "name", "data", "description")
 }

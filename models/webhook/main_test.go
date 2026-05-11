@@ -15,5 +15,6 @@ func TestMain(m *testing.M) {
 			"webhook.yml",
 			"hook_task.yml",
 		},
+		SetUp: prepareWebhookTestData,
 	})
 }

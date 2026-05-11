@@ -1,91 +1,42 @@
 import {createApp} from 'vue';
-import {GET, POST} from '../modules/fetch.ts';
+import {GET} from '../modules/fetch.ts';
 import {fomanticQuery} from '../modules/fomantic/base.ts';
 import {createElementFromHTML} from '../utils/dom.ts';
+import {registerGlobalEventFunc} from '../modules/observer.ts';
 
-function initRepoPullRequestUpdate(el: HTMLElement) {
-  const prUpdateButtonContainer = el.querySelector('#update-pr-branch-with-base');
-  if (!prUpdateButtonContainer) return;
+export function initRepoPullRequestUpdate(el: HTMLElement) {
+  const elDropdown = el.querySelector(':scope > .ui.dropdown');
+  if (!elDropdown) return;
+  const elButton = el.querySelector<HTMLButtonElement>(':scope > button')!;
 
-  const prUpdateButton = prUpdateButtonContainer.querySelector<HTMLButtonElement>(':scope > button')!;
-  const prUpdateDropdown = prUpdateButtonContainer.querySelector(':scope > .ui.dropdown')!;
-  prUpdateButton.addEventListener('click', async function (e) {
-    e.preventDefault();
-    this.classList.add('is-loading');
-    let response: Response | undefined;
-    try {
-      response = await POST(this.getAttribute('data-do')!);
-    } catch (error) {
-      console.error(error);
-    } finally {
-      this.classList.remove('is-loading');
-    }
-    let data: Record<string, any> | undefined;
-    try {
-      data = await response?.json(); // the response is probably not a JSON
-    } catch (error) {
-      console.error(error);
-    }
-    if (data?.redirect) {
-      window.location.href = data.redirect;
-    } else {
-      window.location.reload();
-    }
-  });
-
-  fomanticQuery(prUpdateDropdown).dropdown({
+  fomanticQuery(elDropdown).dropdown({
     onChange(_text: string, _value: string, $choice: any) {
       const choiceEl = $choice[0];
-      const url = choiceEl.getAttribute('data-do');
-      if (url) {
-        const buttonText = prUpdateButton.querySelector('.button-text');
-        if (buttonText) {
-          buttonText.textContent = choiceEl.textContent;
-        }
-        prUpdateButton.setAttribute('data-do', url);
-      }
+      elButton.textContent = choiceEl.textContent;
+      elButton.setAttribute('data-url', choiceEl.getAttribute('data-update-url'));
     },
   });
 }
 
-function initRepoPullRequestCommitStatus(el: HTMLElement) {
-  for (const btn of el.querySelectorAll('.commit-status-hide-checks')) {
-    const panel = btn.closest('.commit-status-panel')!;
-    const list = panel.querySelector<HTMLElement>('.commit-status-list')!;
-    btn.addEventListener('click', () => {
-      list.style.maxHeight = list.style.maxHeight ? '' : '0px'; // toggle
-      btn.textContent = btn.getAttribute(list.style.maxHeight ? 'data-show-all' : 'data-hide-all');
-    });
-  }
+function onCommitStatusChecksToggle(btn: HTMLElement) {
+  const panel = btn.closest('.commit-status-toggle')!.parentElement!;
+  const list = panel.querySelector<HTMLElement>('.commit-status-list')!;
+  list.style.maxHeight = list.style.maxHeight ? '' : '0px'; // toggle
+  btn.textContent = btn.getAttribute(list.style.maxHeight ? 'data-show-all' : 'data-hide-all');
 }
 
 async function initRepoPullRequestMergeForm(box: HTMLElement) {
   const el = box.querySelector('#pull-request-merge-form');
   if (!el) return;
 
+  const data = JSON.parse(el.getAttribute('data-merge-form-props')!);
   const {default: PullRequestMergeForm} = await import('../components/PullRequestMergeForm.vue');
-  const view = createApp(PullRequestMergeForm);
-  view.mount(el);
-}
-
-function executeScripts(elem: HTMLElement) {
-  for (const oldScript of elem.querySelectorAll('script')) {
-    // TODO: that's the only way to load the data for the merge form. In the future
-    //  we need to completely decouple the page data and embedded script
-    // eslint-disable-next-line github/no-dynamic-script-tag
-    const newScript = document.createElement('script');
-    for (const attr of oldScript.attributes) {
-      if (attr.name === 'type' && attr.value === 'module') continue;
-      newScript.setAttribute(attr.name, attr.value);
-    }
-    newScript.text = oldScript.text;
-    document.body.append(newScript);
-  }
+  const view = createApp(PullRequestMergeForm, {mergeFormProps: data});
+  view.mount(el); // TODO: can unmount when reloaded?
 }
 
 export function initRepoPullMergeBox(el: HTMLElement) {
-  initRepoPullRequestCommitStatus(el);
-  initRepoPullRequestUpdate(el);
+  registerGlobalEventFunc('click', 'onCommitStatusChecksToggle', onCommitStatusChecksToggle);
   initRepoPullRequestMergeForm(el);
 
   const reloadingIntervalValue = el.getAttribute('data-pull-merge-box-reloading-interval');
@@ -121,7 +72,6 @@ export function initRepoPullMergeBox(el: HTMLElement) {
     }
     document.removeEventListener('visibilitychange', onVisibilityChange);
     const newElem = createElementFromHTML(await resp.text());
-    executeScripts(newElem);
     el.replaceWith(newElem);
   };
 

@@ -13,6 +13,7 @@ import (
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/test"
 	"code.gitea.io/gitea/modules/util"
+	"code.gitea.io/gitea/modules/web/types"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/stretchr/testify/assert"
@@ -312,12 +313,12 @@ func TestPreMiddlewareProvider(t *testing.T) {
 	root := NewRouter()
 	root.BeforeRouting(h("before-root"))
 	root.AfterRouting(h("root"))
-	root.Get("/a/1", h("mid"), PreMiddlewareProvider(p("pre-root")), h("end1"))
+	root.Get("/a/1", h("mid"), types.PreMiddlewareProvider(p("pre-root")), h("end1"))
 
 	sub := NewRouter()
 	sub.BeforeRouting(h("before-sub"))
 	sub.AfterRouting(h("sub"))
-	sub.Get("/2", h("mid"), PreMiddlewareProvider(p("pre-sub")), h("end2"))
+	sub.Get("/2", h("mid"), types.PreMiddlewareProvider(p("pre-sub")), h("end2"))
 	sub.NotFound(h("not-found"))
 
 	root.Mount("/a", sub)

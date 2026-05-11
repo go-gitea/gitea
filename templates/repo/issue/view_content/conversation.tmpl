@@ -11,7 +11,7 @@ The variables in "ctx.Data" are different in each case, making this template fra
 	{{$hasReview := and $comment.Review}}
 	{{$isReviewPending := and $hasReview (eq $comment.Review.Type 0)}}
 	<div class="ui segments conversation-holder">
-		<div class="ui segment collapsible-comment-box tw-py-2 tw-flex tw-items-center tw-justify-between">
+		<div class="ui segment collapsible-comment-box tw-py-2 flex-left-right">
 			<div class="tw-flex tw-items-center">
 				<a href="{{$comment.CodeCommentLink ctx}}" class="file-comment tw-ml-2 tw-break-anywhere">{{$comment.TreePath}}</a>
 				{{if $invalid}}

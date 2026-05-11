@@ -29,10 +29,5 @@ func BlockedUsers(ctx *context.Context) {
 }
 
 func BlockedUsersPost(ctx *context.Context) {
-	shared_user.BlockedUsersPost(ctx, ctx.Doer)
-	if ctx.Written() {
-		return
-	}
-
-	ctx.Redirect(setting.AppSubURL + "/user/settings/blocked_users")
+	shared_user.BlockedUsersPost(ctx, ctx.Doer, setting.AppSubURL+"/user/settings/blocked_users")
 }

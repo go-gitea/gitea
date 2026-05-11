@@ -152,8 +152,7 @@ func TestPackageVagrant(t *testing.T) {
 			Versions         []*versionMetadata `json:"versions"`
 		}
 
-		var result packageMetadata
-		DecodeJSON(t, resp, &result)
+		result := DecodeJSON(t, resp, &packageMetadata{})
 
 		assert.Equal(t, packageName, result.Name)
 		assert.Equal(t, packageDescription, result.Description)

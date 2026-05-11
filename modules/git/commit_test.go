@@ -91,7 +91,7 @@ empty commit`, commitFromReader.Signature.Payload)
 
 	commitFromReader2, err := CommitFromReader(gitRepo, sha, strings.NewReader(commitString+"\n\n"))
 	assert.NoError(t, err)
-	commitFromReader.CommitMessage += "\n\n"
+	commitFromReader.CommitMessage.MessageRaw += "\n\n"
 	commitFromReader.Signature.Payload += "\n\n"
 	assert.Equal(t, commitFromReader, commitFromReader2)
 }
@@ -154,9 +154,18 @@ ISO-8859-1`, commitFromReader.Signature.Payload)
 
 	commitFromReader2, err := CommitFromReader(gitRepo, sha, strings.NewReader(commitString+"\n\n"))
 	assert.NoError(t, err)
-	commitFromReader.CommitMessage += "\n\n"
+	commitFromReader.CommitMessage.MessageRaw += "\n\n"
 	commitFromReader.Signature.Payload += "\n\n"
 	assert.Equal(t, commitFromReader, commitFromReader2)
+}
+
+func TestCommitMessageSanitizesInvalidUTF8(t *testing.T) {
+	commit := &Commit{
+		CommitMessage: CommitMessage{MessageRaw: "title \xff\n\n\n\nbody \xff\n\n\n"},
+	}
+	assert.Equal(t, "title ÿ", commit.MessageTitle())
+	assert.Equal(t, "body ÿ", commit.MessageBody())
+	assert.Equal(t, "title ÿ\n\n\n\nbody ÿ\n\n\n", commit.MessageUTF8())
 }
 
 func TestHasPreviousCommit(t *testing.T) {

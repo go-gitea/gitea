@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"net/url"
 	"strings"
 	"time"
 
@@ -220,30 +221,38 @@ func UploadPackageFile(ctx *context.Context) {
 func DownloadPackageFile(ctx *context.Context) {
 	name := ctx.PathParam("name")
 	version := ctx.PathParam("version")
+	architecture := ctx.PathParam("architecture")
+	group := ctx.PathParam("group")
 
-	s, u, pf, err := packages_service.OpenFileForDownloadByPackageNameAndVersion(
-		ctx,
-		&packages_service.PackageInfo{
-			Owner:       ctx.Package.Owner,
-			PackageType: packages_model.TypeRpm,
-			Name:        name,
-			Version:     version,
-		},
-		&packages_service.PackageFileInfo{
-			Filename:     fmt.Sprintf("%s-%s.%s.rpm", name, version, ctx.PathParam("architecture")),
-			CompositeKey: ctx.PathParam("group"),
-		},
-		ctx.Req.Method,
-	)
-	if err != nil {
-		if errors.Is(err, util.ErrNotExist) {
-			apiError(ctx, http.StatusNotFound, err)
-		} else {
-			apiError(ctx, http.StatusInternalServerError, err)
-		}
-		return
+	openForDownload := func(filename string) (io.ReadSeekCloser, *url.URL, *packages_model.PackageFile, error) {
+		return packages_service.OpenFileForDownloadByPackageNameAndVersion(
+			ctx,
+			&packages_service.PackageInfo{
+				Owner:       ctx.Package.Owner,
+				PackageType: packages_model.TypeRpm,
+				Name:        name,
+				Version:     version,
+			},
+			&packages_service.PackageFileInfo{
+				Filename:     filename,
+				CompositeKey: group,
+			},
+			ctx.Req.Method,
+		)
 	}
 
+	s, u, pf, err := openForDownload(fmt.Sprintf("%s-%s.%s.rpm", name, version, architecture))
+	if errors.Is(err, util.ErrNotExist) && architecture != "noarch" {
+		s, u, pf, err = openForDownload(fmt.Sprintf("%s-%s.%s.rpm", name, version, "noarch"))
+	}
+
+	if errors.Is(err, util.ErrNotExist) {
+		apiError(ctx, http.StatusNotFound, err)
+		return
+	} else if err != nil {
+		apiError(ctx, http.StatusInternalServerError, err)
+		return
+	}
 	helper.ServePackageFile(ctx, s, u, pf)
 }
 

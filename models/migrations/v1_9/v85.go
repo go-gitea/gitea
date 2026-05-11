@@ -65,10 +65,7 @@ func HashAppToken(x *xorm.Engine) error {
 
 		for _, token := range tokens {
 			// generate salt
-			salt, err := util.CryptoRandomString(10)
-			if err != nil {
-				return err
-			}
+			salt := util.CryptoRandomString(10)
 			token.TokenSalt = salt
 			token.TokenHash = base.HashToken(token.Sha1, salt)
 			if len(token.Sha1) < 8 {

@@ -31,12 +31,14 @@ import (
 	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/templates/vars"
+	"code.gitea.io/gitea/modules/util"
 )
 
 // CreateRepoOptions contains the create repository options
 type CreateRepoOptions struct {
 	Name             string
 	Description      string
+	Website          string
 	OriginalURL      string
 	GitServiceType   api.GitServiceType
 	Gitignores       string
@@ -85,7 +87,7 @@ func prepareRepoCommit(ctx context.Context, repo *repo_model.Repository, tmpDir 
 	cloneLink := repo.CloneLink(ctx, nil /* no doer so do not generate user-related SSH link */)
 	match := map[string]string{
 		"Name":           repo.Name,
-		"Description":    repo.Description,
+		"Description":    util.NormalizeStringEOL(repo.Description),
 		"CloneURL.SSH":   cloneLink.SSH,
 		"CloneURL.HTTPS": cloneLink.HTTPS,
 		"OwnerName":      repo.OwnerName,
@@ -241,6 +243,7 @@ func CreateRepositoryDirectly(ctx context.Context, doer, owner *user_model.User,
 		Name:                            opts.Name,
 		LowerName:                       strings.ToLower(opts.Name),
 		Description:                     opts.Description,
+		Website:                         opts.Website,
 		OriginalURL:                     opts.OriginalURL,
 		OriginalServiceType:             opts.GitServiceType,
 		IsPrivate:                       opts.IsPrivate,

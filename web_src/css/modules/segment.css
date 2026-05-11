@@ -179,13 +179,8 @@
   margin-bottom: 1rem;
 }
 
-.ui.fitted.segment:not(.horizontally) {
-  padding-top: 0;
-  padding-bottom: 0;
-}
-.ui.fitted.segment:not(.vertically) {
-  padding-left: 0;
-  padding-right: 0;
+.ui.fitted.segment {
+  padding: 0;
 }
 
 .ui.segments .segment,

@@ -139,11 +139,11 @@ Here's how to run the test suite:
 
 - run tests (we suggest running them on Linux)
 
-|  Command                                    | Action                                                   |                                             |
-| :------------------------------------------ | :------------------------------------------------------- | ------------------------------------------- |
-|``make test[\#SpecificTestName]``            |  run unit test(s)                                        |                                             |
-|``make test-sqlite[\#SpecificTestName]``     |  run [integration](tests/integration) test(s) for SQLite | [More details](tests/integration/README.md) |
-|``make test-e2e``                            |  run [end-to-end](tests/e2e) test(s) using Playwright    |                                             |
+| Command                                       | Action                                               |                                             |
+|:----------------------------------------------|:-----------------------------------------------------| ------------------------------------------- |
+| ``make test-backend[\#SpecificTestName]``     | run unit test(s)                                     |                                             |
+| ``make test-integration[\#SpecificTestName]`` | run [integration](tests/integration) test(s)         | [More details](tests/integration/README.md) |
+| ``make test-e2e``                             | run [end-to-end](tests/e2e) test(s) using Playwright |                                             |
 
 - E2E test environment variables
 
@@ -151,7 +151,7 @@ Here's how to run the test suite:
 | :-------------------------------- | :---------------------------------------------------------- |
 | ``GITEA_TEST_E2E_DEBUG``          | When set, show Gitea server output                          |
 | ``GITEA_TEST_E2E_FLAGS``          | Additional flags passed to Playwright, for example ``--ui`` |
-| ``GITEA_TEST_E2E_TIMEOUT_FACTOR`` | Timeout multiplier (default: 3 on CI, 1 locally)            |
+| ``GITEA_TEST_E2E_TIMEOUT_FACTOR`` | Timeout multiplier (default: 4 on CI, 1 locally)            |
 
 ## Translation
 
@@ -188,6 +188,22 @@ Some of the key points:
 In the PR title, describe the problem you are fixing, not how you are fixing it. \
 Use the first comment as a summary of your PR. \
 In the PR summary, you can describe exactly how you are fixing this problem.
+
+PR titles must follow the [Conventional Commits](https://www.conventionalcommits.org/) format, because PRs are squash-merged and the PR title becomes the resulting commit message:
+
+```text
+type(scope)!: subject
+```
+
+The allowed types are `build`, `chore`, `ci`, `docs`, `feat`, `fix`, `perf`, `refactor`, `revert`, `style`, and `test`. The generic `chore` type is intentionally not accepted; pick a more descriptive type instead.
+
+Examples:
+
+```text
+fix(web): prevent avatar upload crash on empty file
+feat(api): add pagination to repo hooks list
+ci(workflows): lint PR titles with commitlint
+```
 
 Keep this summary up-to-date as the PR evolves. \
 If your PR changes the UI, you must add **after** screenshots in the PR summary. \

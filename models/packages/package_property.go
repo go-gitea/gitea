@@ -52,13 +52,13 @@ func InsertProperty(ctx context.Context, refType PropertyType, refID int64, name
 // GetProperties gets all properties
 func GetProperties(ctx context.Context, refType PropertyType, refID int64) ([]*PackageProperty, error) {
 	pps := make([]*PackageProperty, 0, 10)
-	return pps, db.GetEngine(ctx).Where("ref_type = ? AND ref_id = ?", refType, refID).Find(&pps)
+	return pps, db.GetEngine(ctx).Where("ref_type = ? AND ref_id = ?", refType, refID).OrderBy("id").Find(&pps)
 }
 
 // GetPropertiesByName gets all properties with a specific name
 func GetPropertiesByName(ctx context.Context, refType PropertyType, refID int64, name string) ([]*PackageProperty, error) {
 	pps := make([]*PackageProperty, 0, 10)
-	return pps, db.GetEngine(ctx).Where("ref_type = ? AND ref_id = ? AND name = ?", refType, refID, name).Find(&pps)
+	return pps, db.GetEngine(ctx).Where("ref_type = ? AND ref_id = ? AND name = ?", refType, refID, name).OrderBy("id").Find(&pps)
 }
 
 // UpdateProperty updates a property

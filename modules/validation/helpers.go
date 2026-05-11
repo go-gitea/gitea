@@ -4,7 +4,6 @@
 package validation
 
 import (
-	"net"
 	"net/url"
 	"regexp"
 	"slices"
@@ -32,10 +31,6 @@ var globalVars = sync.OnceValue(func() *globalVarsStruct {
 		invalidBadgeSlugPattern: regexp.MustCompile(`[-._]{2,}|[-._]$`),
 	}
 })
-
-func isLoopbackIP(ip string) bool {
-	return net.ParseIP(ip).IsLoopback()
-}
 
 // IsValidURL checks if URL is valid
 func IsValidURL(uri string) bool {
@@ -85,36 +80,9 @@ func IsEmailDomainListed(globs []glob.Glob, email string) bool {
 	return false
 }
 
-// IsAPIURL checks if URL is current Gitea instance API URL
-func IsAPIURL(uri string) bool {
-	return strings.HasPrefix(strings.ToLower(uri), strings.ToLower(setting.AppURL+"api"))
-}
-
-// IsValidExternalURL checks if URL is valid external URL
-func IsValidExternalURL(uri string) bool {
-	if !IsValidURL(uri) || IsAPIURL(uri) {
-		return false
-	}
-
-	u, err := url.ParseRequestURI(uri)
-	if err != nil {
-		return false
-	}
-
-	// Currently check only if not loopback IP is provided to keep compatibility
-	if isLoopbackIP(u.Hostname()) || strings.ToLower(u.Hostname()) == "localhost" {
-		return false
-	}
-
-	// TODO: Later it should be added to allow local network IP addresses
-	//       only if allowed by special setting
-
-	return true
-}
-
 // IsValidExternalTrackerURLFormat checks if URL matches required syntax for external trackers
 func IsValidExternalTrackerURLFormat(uri string) bool {
-	if !IsValidExternalURL(uri) {
+	if !IsValidURL(uri) {
 		return false
 	}
 	vars := globalVars()
