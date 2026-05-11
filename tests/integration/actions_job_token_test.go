@@ -208,8 +208,7 @@ func TestActionsCrossRepoAccess(t *testing.T) {
 				AutoInit: true,
 			}).AddTokenAuth(token)
 			resp := MakeRequest(t, req, http.StatusCreated)
-			var repo structs.Repository
-			DecodeJSON(t, resp, &repo)
+			repo := DecodeJSON(t, resp, &structs.Repository{})
 			return repo.ID
 		}
 

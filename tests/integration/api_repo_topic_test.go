@@ -22,33 +22,34 @@ import (
 func TestAPITopicSearch(t *testing.T) {
 	defer tests.PrepareTestEnv(t)()
 	searchURL, _ := url.Parse("/api/v1/topics/search")
-	var topics struct {
-		TopicNames []*api.TopicResponse `json:"topics"`
-	}
 
 	// search all topics
 	res := MakeRequest(t, NewRequest(t, "GET", searchURL.String()), http.StatusOK)
-	DecodeJSON(t, res, &topics)
+	topics := DecodeJSON(t, res, &struct {
+		TopicNames []*api.TopicResponse `json:"topics"`
+	}{})
 	assert.Len(t, topics.TopicNames, 6)
 	assert.Equal(t, "6", res.Header().Get("x-total-count"))
 
 	// pagination search topics first page
-	topics.TopicNames = nil
 	query := url.Values{"page": []string{"1"}, "limit": []string{"4"}}
 
 	searchURL.RawQuery = query.Encode()
 	res = MakeRequest(t, NewRequest(t, "GET", searchURL.String()), http.StatusOK)
-	DecodeJSON(t, res, &topics)
+	topics = DecodeJSON(t, res, &struct {
+		TopicNames []*api.TopicResponse `json:"topics"`
+	}{})
 	assert.Len(t, topics.TopicNames, 4)
 	assert.Equal(t, "6", res.Header().Get("x-total-count"))
 
 	// pagination search topics second page
-	topics.TopicNames = nil
 	query = url.Values{"page": []string{"2"}, "limit": []string{"4"}}
 
 	searchURL.RawQuery = query.Encode()
 	res = MakeRequest(t, NewRequest(t, "GET", searchURL.String()), http.StatusOK)
-	DecodeJSON(t, res, &topics)
+	topics = DecodeJSON(t, res, &struct {
+		TopicNames []*api.TopicResponse `json:"topics"`
+	}{})
 	assert.Len(t, topics.TopicNames, 2)
 	assert.Equal(t, "6", res.Header().Get("x-total-count"))
 
@@ -57,13 +58,17 @@ func TestAPITopicSearch(t *testing.T) {
 	query.Add("q", "topic")
 	searchURL.RawQuery = query.Encode()
 	res = MakeRequest(t, NewRequest(t, "GET", searchURL.String()), http.StatusOK)
-	DecodeJSON(t, res, &topics)
+	topics = DecodeJSON(t, res, &struct {
+		TopicNames []*api.TopicResponse `json:"topics"`
+	}{})
 	assert.Len(t, topics.TopicNames, 2)
 
 	query.Set("q", "database")
 	searchURL.RawQuery = query.Encode()
 	res = MakeRequest(t, NewRequest(t, "GET", searchURL.String()), http.StatusOK)
-	DecodeJSON(t, res, &topics)
+	topics = DecodeJSON(t, res, &struct {
+		TopicNames []*api.TopicResponse `json:"topics"`
+	}{})
 	if assert.Len(t, topics.TopicNames, 1) {
 		assert.EqualValues(t, 2, topics.TopicNames[0].ID)
 		assert.Equal(t, "database", topics.TopicNames[0].Name)
@@ -110,7 +115,7 @@ func TestAPIRepoTopic(t *testing.T) {
 	req = NewRequest(t, "GET", url).
 		AddTokenAuth(token2)
 	res = MakeRequest(t, req, http.StatusOK)
-	DecodeJSON(t, res, &topics)
+	topics = DecodeJSON(t, res, &api.TopicName{})
 	assert.ElementsMatch(t, []string{"topicname2", "golang", "topicname3"}, topics.TopicNames)
 
 	// Test replace topics
@@ -122,7 +127,7 @@ func TestAPIRepoTopic(t *testing.T) {
 	req = NewRequest(t, "GET", url).
 		AddTokenAuth(token2)
 	res = MakeRequest(t, req, http.StatusOK)
-	DecodeJSON(t, res, &topics)
+	topics = DecodeJSON(t, res, &api.TopicName{})
 	assert.ElementsMatch(t, []string{"windows", "mac"}, topics.TopicNames)
 
 	// Test replace topics with something invalid
@@ -134,7 +139,7 @@ func TestAPIRepoTopic(t *testing.T) {
 	req = NewRequest(t, "GET", url).
 		AddTokenAuth(token2)
 	res = MakeRequest(t, req, http.StatusOK)
-	DecodeJSON(t, res, &topics)
+	topics = DecodeJSON(t, res, &api.TopicName{})
 	assert.ElementsMatch(t, []string{"windows", "mac"}, topics.TopicNames)
 
 	// Test with some topics multiple times, less than 25 unique
@@ -146,7 +151,7 @@ func TestAPIRepoTopic(t *testing.T) {
 	req = NewRequest(t, "GET", url).
 		AddTokenAuth(token2)
 	res = MakeRequest(t, req, http.StatusOK)
-	DecodeJSON(t, res, &topics)
+	topics = DecodeJSON(t, res, &api.TopicName{})
 	assert.Len(t, topics.TopicNames, 25)
 
 	// Test writing more topics than allowed
@@ -173,7 +178,7 @@ func TestAPIRepoTopic(t *testing.T) {
 	req = NewRequest(t, "GET", fmt.Sprintf("/api/v1/repos/%s/%s/topics", org3.Name, repo3.Name)).
 		AddTokenAuth(token4)
 	res = MakeRequest(t, req, http.StatusOK)
-	DecodeJSON(t, res, &topics)
+	topics = DecodeJSON(t, res, &api.TopicName{})
 	assert.Empty(t, topics.TopicNames)
 
 	// Test add a topic to repo with write access (requires repo admin access)

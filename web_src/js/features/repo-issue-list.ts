@@ -2,6 +2,7 @@ import {updateIssuesMeta} from './repo-common.ts';
 import {toggleElem, queryElems, isElemVisible} from '../utils/dom.ts';
 import {html, htmlRaw} from '../utils/html.ts';
 import {confirmModal} from './comp/ConfirmModal.ts';
+import {errorMessage} from '../modules/errors.ts';
 import {showErrorToast} from '../modules/toast.ts';
 import {createSortable} from '../modules/sortable.ts';
 import {DELETE, POST} from '../modules/fetch.ts';
@@ -87,7 +88,9 @@ function initRepoIssueListCheckboxes() {
         await updateIssuesMeta(url, action, issueIDs, elementId);
         window.location.reload();
       } catch (err) {
-        showErrorToast(err.responseJSON?.error ?? err.message);
+        // FIXME: this logic (including updateIssuesMeta) is not right, should refactor to our JSONError framework
+        const e = err as {responseJSON?: {error: string}};
+        showErrorToast(e.responseJSON?.error ?? errorMessage(err));
       }
     },
   ));

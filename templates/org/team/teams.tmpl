@@ -22,7 +22,7 @@
 				<div class="column team-item-box">
 					<div class="ui top attached header muted-links flex-left-right team-item-header">
 						<a href="{{$.OrgLink}}/teams/{{.LowerName | PathEscape}}"><strong>{{.Name}}</strong></a>
-						<div class="flex-center-wrap">
+						<div class="flex-text-block tw-flex-wrap">
 							<a href="{{$.OrgLink}}/teams/{{.LowerName | PathEscape}}">{{.NumMembers}} {{ctx.Locale.Tr "org.lower_members"}}</a>
 							·
 							<a href="{{$.OrgLink}}/teams/{{.LowerName | PathEscape}}/repositories">{{.NumRepos}} {{ctx.Locale.Tr "org.lower_repositories"}}</a>
@@ -40,7 +40,7 @@
 					</div>
 					{{end}}
 					<div class="ui attached segment">
-						<div class="flex-center-wrap">
+						<div class="flex-text-block tw-flex-wrap">
 							{{range .Members}}
 								{{template "shared/user/avatarlink" dict "user" . "size" 32 "tooltip" true}}
 							{{else}}

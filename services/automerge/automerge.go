@@ -90,7 +90,7 @@ func RemoveScheduledAutoMerge(ctx context.Context, doer *user_model.User, pull *
 // StartPRCheckAndAutoMergeBySHA start an automerge check and auto merge task for all pull requests of repository and SHA
 func StartPRCheckAndAutoMergeBySHA(ctx context.Context, sha string, repo *repo_model.Repository) error {
 	pulls, err := getPullRequestsByHeadSHA(ctx, sha, repo, func(pr *issues_model.PullRequest) bool {
-		return !pr.HasMerged && pr.CanAutoMerge()
+		return !pr.HasMerged && pr.IsStatusMergeable()
 	})
 	if err != nil {
 		return err
@@ -251,7 +251,7 @@ func handlePullRequestAutoMerge(pullID int64, sha string) {
 		return
 	}
 
-	if err := pull_service.CheckPullMergeable(ctx, doer, &perm, pr, pull_service.MergeCheckTypeGeneral, false); err != nil {
+	if err := pull_service.CheckPullMergeable(ctx, doer, &perm, pr, pull_service.MergeCheckTypeGeneral, scheduledPRM.MergeStyle, false); err != nil {
 		if errors.Is(err, pull_service.ErrNotReadyToMerge) {
 			log.Info("%-v was scheduled to automerge by an unauthorized user", pr)
 			return

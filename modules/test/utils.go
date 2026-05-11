@@ -47,7 +47,7 @@ func ParseJSONError(buf []byte) (ret struct {
 }
 
 func ParseJSONRedirect(buf []byte) (ret struct {
-	Redirect string `json:"redirect"`
+	Redirect *string `json:"redirect"`
 },
 ) {
 	_ = json.Unmarshal(buf, &ret)

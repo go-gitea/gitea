@@ -6,7 +6,7 @@ package v1_25
 import (
 	"testing"
 
-	"code.gitea.io/gitea/models/migrations/base"
+	"code.gitea.io/gitea/models/migrations/migrationtest"
 	"code.gitea.io/gitea/modules/setting"
 
 	"github.com/stretchr/testify/assert"
@@ -23,11 +23,11 @@ func Test_ExtendCommentTreePathLength(t *testing.T) {
 		TreePath string `xorm:"VARCHAR(255)"`
 	}
 
-	x, deferrable := base.PrepareTestEnv(t, 0, new(Comment))
+	x, deferrable := migrationtest.PrepareTestEnv(t, 0, new(Comment))
 	defer deferrable()
 
 	require.NoError(t, ExtendCommentTreePathLength(x))
-	table := base.LoadTableSchemasMap(t, x)["comment"]
+	table := migrationtest.LoadTableSchemasMap(t, x)["comment"]
 	column := table.GetColumn("tree_path")
 	assert.Contains(t, []string{"NVARCHAR", "VARCHAR"}, column.SQLType.Name)
 	assert.EqualValues(t, 4000, column.Length)

@@ -76,8 +76,7 @@ func TestBasicAuthWithWebAuthn(t *testing.T) {
 	type tokenResponse struct {
 		Token string `json:"token"`
 	}
-	var tokenParsed tokenResponse
-	DecodeJSON(t, resp, &tokenParsed)
+	tokenParsed := DecodeJSON(t, resp, &tokenResponse{})
 	assert.NotEmpty(t, tokenParsed.Token)
 
 	// user32 has webauthn enrolled, he can't request API with basic auth
@@ -91,8 +90,7 @@ func TestBasicAuthWithWebAuthn(t *testing.T) {
 	type userResponse struct {
 		Message string `json:"message"`
 	}
-	var userParsed userResponse
-	DecodeJSON(t, resp, &userParsed)
+	userParsed := DecodeJSON(t, resp, &userResponse{})
 	assert.Equal(t, "basic authorization is not allowed while WebAuthn enrolled", userParsed.Message)
 
 	// user32 has webauthn enrolled, he can't request git protocol with basic auth

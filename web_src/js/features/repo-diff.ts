@@ -6,6 +6,7 @@ import {initViewedCheckboxListenerFor, initExpandAndCollapseFilesButton} from '.
 import {initImageDiff} from './imagediff.ts';
 import {showErrorToast} from '../modules/toast.ts';
 import {queryElemSiblings, hideElem, showElem, animateOnce, addDelegatedEventListener, createElementFromHTML, queryElems} from '../utils/dom.ts';
+import {errorMessage} from '../modules/errors.ts';
 import {POST, GET} from '../modules/fetch.ts';
 import {createTippy} from '../modules/tippy.ts';
 import {invertFileFolding} from './file-fold.ts';
@@ -85,7 +86,7 @@ function initRepoDiffConversationForm() {
       }
     } catch (error) {
       console.error('Error:', error);
-      showErrorToast(`Submit form failed: ${error}`);
+      showErrorToast(`Submit form failed: ${errorMessage(error)}`);
     } finally {
       form?.classList.remove('is-loading');
     }
