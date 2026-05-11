@@ -173,6 +173,14 @@ func PrepareCommitFormOptions(ctx *Context, doer *user_model.User, targetRepo *r
 		protectedBranch.Repo = targetRepo
 		canPushWithProtection = protectedBranch.CanUserPush(ctx, doer)
 		protectionRequireSigned = protectedBranch.RequireSignedCommits
+		// If the user can't push branch-wide but the specific file being edited
+		// matches an unprotected file pattern, direct commit is still allowed.
+		if !canPushWithProtection && ctx.Repo.TreePath != "" {
+			globUnprotected := protectedBranch.GetUnprotectedFilePatterns()
+			if protectedBranch.IsUnprotectedFile(globUnprotected, ctx.Repo.TreePath) {
+				canPushWithProtection = true
+			}
+		}
 	}
 
 	targetGitRepo, closer, err := gitrepo.RepositoryFromContextOrOpen(ctx, targetRepo)
