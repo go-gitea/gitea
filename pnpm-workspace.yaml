@@ -2,7 +2,6 @@ packages: [ . ] # workaround for https://github.com/SukkaW/nolyfill/issues/119
 savePrefix: ''
 dedupePeerDependents: false
 updateNotifier: false
-strictDepBuilds: false
 minimumReleaseAge: 0
 
 peerDependencyRules:
@@ -32,7 +31,7 @@ overrides:
   es-set-tostringtag: npm:@nolyfill/es-set-tostringtag@^1
 
 allowBuilds:
-  '@scarf/scarf': set this to true or false
-  core-js: set this to true or false
-  esbuild: set this to true or false
-  unrs-resolver: set this to true or false
+  '@scarf/scarf': false
+  core-js: false
+  esbuild: true
+  unrs-resolver: true
