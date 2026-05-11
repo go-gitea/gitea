@@ -129,8 +129,8 @@ jobs:
       minio:
         image: bitnamilegacy/minio:2025.7.23
         env:
-          MINIO_ACCESS_KEY: 123456
-          MINIO_SECRET_KEY: 12345678
+          MINIO_ROOT_USER: 123456
+          MINIO_ROOT_PASSWORD: 12345678
         ports:
           - "9000:9000"
       devstoreaccount1.azurite.local: # https://github.com/Azure/Azurite/issues/1583
