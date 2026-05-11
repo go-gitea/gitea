@@ -141,7 +141,7 @@ type CommitFormOptions struct {
 	CanCreateBasePullRequest bool
 }
 
-func PrepareCommitFormOptions(ctx *Context, doer *user_model.User, targetRepo *repo_model.Repository, doerRepoPerm access_model.Permission, refName git.RefName, treePath string) (*CommitFormOptions, error) {
+func PrepareCommitFormOptions(ctx *Context, doer *user_model.User, targetRepo *repo_model.Repository, doerRepoPerm access_model.Permission, refName git.RefName) (*CommitFormOptions, error) {
 	if !refName.IsBranch() {
 		// it shouldn't happen because middleware already checks
 		return nil, util.NewInvalidArgumentErrorf("ref %q is not a branch", refName)
@@ -175,9 +175,9 @@ func PrepareCommitFormOptions(ctx *Context, doer *user_model.User, targetRepo *r
 		protectionRequireSigned = protectedBranch.RequireSignedCommits
 		// If the user can't push branch-wide but the specific file being edited
 		// matches an unprotected file pattern, direct commit is still allowed.
-		if !canPushWithProtection && treePath != "" {
+		if !canPushWithProtection && ctx.Repo.TreePath != "" {
 			globUnprotected := protectedBranch.GetUnprotectedFilePatterns()
-			if protectedBranch.IsUnprotectedFile(globUnprotected, treePath) {
+			if protectedBranch.IsUnprotectedFile(globUnprotected, ctx.Repo.TreePath) {
 				canPushWithProtection = true
 			}
 		}

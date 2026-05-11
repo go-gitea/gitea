@@ -56,7 +56,7 @@ func prepareEditorPageFormOptions(ctx *context.Context, editorAction string) *co
 		return nil
 	}
 
-	commitFormOptions, err := context.PrepareCommitFormOptions(ctx, ctx.Doer, ctx.Repo.Repository, ctx.Repo.Permission, ctx.Repo.RefFullName, ctx.Repo.TreePath)
+	commitFormOptions, err := context.PrepareCommitFormOptions(ctx, ctx.Doer, ctx.Repo.Repository, ctx.Repo.Permission, ctx.Repo.RefFullName)
 	if err != nil {
 		ctx.ServerError("PrepareCommitFormOptions", err)
 		return nil
@@ -120,8 +120,14 @@ func prepareEditorCommitSubmittedForm[T forms.CommitCommonFormInterface](ctx *co
 
 	commonForm := form.GetCommitCommonForm()
 	commonForm.TreePath = files_service.CleanGitTreePath(commonForm.TreePath)
+	// For "_new" the URL has no file segment, so ctx.Repo.TreePath is empty;
+	// use the submitted form path so PrepareCommitFormOptions can evaluate
+	// branch protection (e.g. unprotected file patterns) against the real file.
+	if ctx.Repo.TreePath == "" {
+		ctx.Repo.TreePath = commonForm.TreePath
+	}
 
-	commitFormOptions, err := context.PrepareCommitFormOptions(ctx, ctx.Doer, ctx.Repo.Repository, ctx.Repo.Permission, ctx.Repo.RefFullName, commonForm.TreePath)
+	commitFormOptions, err := context.PrepareCommitFormOptions(ctx, ctx.Doer, ctx.Repo.Repository, ctx.Repo.Permission, ctx.Repo.RefFullName)
 	if err != nil {
 		ctx.ServerError("PrepareCommitFormOptions", err)
 		return nil
