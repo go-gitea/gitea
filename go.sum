@@ -243,6 +243,7 @@ github.com/dlclark/regexp2 v1.4.0/go.mod h1:2pZnwuY/m+8K6iRw6wQdMtk+rH5tNGR1i55k
 github.com/dlclark/regexp2 v1.7.0/go.mod h1:DHkYz0B9wPfa6wondMfaivmHpzrQ3v9q8cnmRbL6yW8=
 github.com/dlclark/regexp2 v1.12.0 h1:0j4c5qQmnC6XOWNjP3PIXURXN2gWx76rd3KvgdPkCz8=
 github.com/dlclark/regexp2 v1.12.0/go.mod h1:DHkYz0B9wPfa6wondMfaivmHpzrQ3v9q8cnmRbL6yW8=
+github.com/dlclark/regexp2/v2 v2.0.1 h1:eaQ7GE11jgSwLMM5BQ9BerbAXI3TLq+Y6o53V6z2tlw=
 github.com/dlclark/regexp2/v2 v2.0.1/go.mod h1:Bz5TMy5d8fPK0ximH0Yi9KvsRHNnvXqUx9XG6a4wB+I=
 github.com/dsnet/compress v0.0.2-0.20230904184137-39efe44ab707 h1:2tV76y6Q9BB+NEBasnqvs7e49aEBFI8ejC89PSnWH+4=
 github.com/dsnet/compress v0.0.2-0.20230904184137-39efe44ab707/go.mod h1:qssHWj60/X5sZFNxpG4HBPDHVqxNm4DfnCKgrbZOT+s=
@@ -382,8 +383,7 @@ github.com/google/go-cmp v0.5.5/go.mod h1:v8dTdLbMG2kIc/vJvl+f65V22dbkXbowE6jgT/
 github.com/google/go-cmp v0.6.0/go.mod h1:17dUlkBOakJ0+DkrSSNjCkIjxS6bF9zb3elmeNGIjoY=
 github.com/google/go-cmp v0.7.0 h1:wk8382ETsv4JYUZwIsn6YpYiWiBsYLSJiTsyBybVuN8=
 github.com/google/go-cmp v0.7.0/go.mod h1:pXiqmnSA92OHEEa9HXL2W4E7lf9JzCmGVUdgjX3N/iU=
-github.com/google/go-github/v84 v84.0.0 h1:I/0Xn5IuChMe8TdmI2bbim5nyhaRFJ7DEdzmD2w+yVA=
-github.com/google/go-github/v84 v84.0.0/go.mod h1:WwYL1z1ajRdlaPszjVu/47x1L0PXukJBn73xsiYrRRQ=
+github.com/google/go-github/v85 v85.0.0 h1:1+TLFX/akTFXK7o9Z9uAloQGufOn4ySa5DItUM1VWT4=
 github.com/google/go-github/v85 v85.0.0/go.mod h1:jYkBnqN+SzR2A2fGKYfbt6DEEQAyxeK0Q2XpPV9ZFsU=
 github.com/google/go-querystring v1.2.0 h1:yhqkPbu2/OH+V9BfpCVPZkNmUXhb2gBxJArfhIxNtP0=
 github.com/google/go-querystring v1.2.0/go.mod h1:8IFJqpSRITyJ8QhQ13bmbeMBDfmeEJZD5A0egEOmkqU=
@@ -762,8 +762,7 @@ github.com/zeebo/pcg v1.0.1 h1:lyqfGeWiv4ahac6ttHs+I5hwtH/+1mrhlCtVNQM2kHo=
 github.com/zeebo/pcg v1.0.1/go.mod h1:09F0S9iiKrwn9rlI5yjLkmrug154/YRW6KnnXVDM/l4=
 github.com/zeebo/xxh3 v1.1.0 h1:s7DLGDK45Dyfg7++yxI0khrfwq9661w9EN78eP/UZVs=
 github.com/zeebo/xxh3 v1.1.0/go.mod h1:IisAie1LELR4xhVinxWS5+zf1lA4p0MW4T+w+W07F5s=
-gitlab.com/gitlab-org/api/client-go v1.46.0 h1:YxBWFZIFYKcGESCb9fpkwzouo+apyB9pr/XTWzNoL24=
-gitlab.com/gitlab-org/api/client-go v1.46.0/go.mod h1:FtgyU6g2HS5+fMhw6nLK96GBEEBx5MzntOiJWfIaiN8=
+gitlab.com/gitlab-org/api/client-go/v2 v2.24.1 h1:XuTWCNmVSnXzjb9ty8XPR60BOHsXbzqgOlujW3+5DTM=
 gitlab.com/gitlab-org/api/client-go/v2 v2.24.1/go.mod h1:OSJITkIrT0UuA3JCucEK9UEGcC1PWBkQg5WW6W4nWuo=
 go.etcd.io/bbolt v1.3.5/go.mod h1:G5EMThwa9y8QZGBClrRx5EY+Yw9kAhnjy3bSjsnlVTQ=
 go.etcd.io/bbolt v1.4.3 h1:dEadXpI6G79deX5prL3QRNP6JB8UxVkqo4UPnHaNXJo=

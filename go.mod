@@ -38,7 +38,6 @@ require (
 	github.com/charmbracelet/git-lfs-transfer v0.1.1-0.20260309112543-12416315a635
 	github.com/chi-middleware/proxy v1.1.1
 	github.com/dimiro1/reply v0.0.0-20200315094148-d0136a4c9e21
-	github.com/dlclark/regexp2 v1.12.0
 	github.com/dlclark/regexp2/v2 v2.0.1
 	github.com/dsnet/compress v0.0.2-0.20230904184137-39efe44ab707
 	github.com/dustin/go-humanize v1.0.1
@@ -63,7 +62,6 @@ require (
 	github.com/gogs/chardet v0.0.0-20211120154057-b7413eaefb8f
 	github.com/gogs/go-gogs-client v0.0.0-20210131175652-1d7215cd8d85
 	github.com/golang-jwt/jwt/v5 v5.3.1
-	github.com/google/go-github/v84 v84.0.0
 	github.com/google/go-github/v85 v85.0.0
 	github.com/google/licenseclassifier/v2 v2.0.0
 	github.com/google/pprof v0.0.0-20260402051712-545e8a4df936
@@ -110,7 +108,6 @@ require (
 	github.com/yohcop/openid-go v1.0.1
 	github.com/yuin/goldmark v1.8.2
 	github.com/yuin/goldmark-highlighting/v2 v2.0.0-20230729083705-37449abec8cc
-	gitlab.com/gitlab-org/api/client-go v1.46.0
 	gitlab.com/gitlab-org/api/client-go/v2 v2.24.1
 	go.yaml.in/yaml/v4 v4.0.0-rc.3
 	golang.org/x/crypto v0.50.0
@@ -187,6 +184,7 @@ require (
 	github.com/cyphar/filepath-securejoin v0.6.1 // indirect
 	github.com/davecgh/go-spew v1.1.2-0.20180830191138-d8f796af33cc // indirect
 	github.com/davidmz/go-pageant v1.0.2 // indirect
+	github.com/dlclark/regexp2 v1.12.0 // indirect
 	github.com/emersion/go-sasl v0.0.0-20241020182733-b788ff22d5a6 // indirect
 	github.com/fatih/color v1.19.0 // indirect
 	github.com/fxamacker/cbor/v2 v2.9.1 // indirect
