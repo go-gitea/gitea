@@ -61,6 +61,7 @@
     {
       "groupName": "go dependencies",
       "matchManagers": ["gomod"],
+      "postUpdateOptions": ["gomodUpdateImportPaths"],
       "postUpgradeTasks": {
         "commands": ["make tidy"],
         "fileFilters": ["go.mod", "go.sum", "assets/go-licenses.json"],
