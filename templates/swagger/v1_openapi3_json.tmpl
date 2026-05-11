@@ -5619,6 +5619,11 @@
             "type": "boolean",
             "x-go-name": "AllowMerge"
           },
+          "allow_merge_update": {
+            "description": "either `true` to allow updating pull request branch by merge, or `false` to prevent it.",
+            "type": "boolean",
+            "x-go-name": "AllowMergeUpdate"
+          },
           "allow_rebase": {
             "description": "either `true` to allow rebase-merging pull requests, or `false` to prevent rebase-merging.",
             "type": "boolean",
@@ -5668,6 +5673,11 @@
             "description": "set to a merge style to be used by this repository: \"merge\", \"rebase\", \"rebase-merge\", \"squash\", or \"fast-forward-only\".",
             "type": "string",
             "x-go-name": "DefaultMergeStyle"
+          },
+          "default_update_style": {
+            "description": "set to an update style to be used by this repository: \"merge\" or \"rebase\".",
+            "type": "string",
+            "x-go-name": "DefaultUpdateStyle"
           },
           "description": {
             "description": "a short description of the repository.",
@@ -9115,6 +9125,10 @@
             "type": "boolean",
             "x-go-name": "AllowMerge"
           },
+          "allow_merge_update": {
+            "type": "boolean",
+            "x-go-name": "AllowMergeUpdate"
+          },
           "allow_rebase": {
             "type": "boolean",
             "x-go-name": "AllowRebase"
@@ -9183,6 +9197,10 @@
           "default_target_branch": {
             "type": "string",
             "x-go-name": "DefaultTargetBranch"
+          },
+          "default_update_style": {
+            "type": "string",
+            "x-go-name": "DefaultUpdateStyle"
           },
           "description": {
             "type": "string",
