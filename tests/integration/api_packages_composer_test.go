@@ -17,6 +17,7 @@ import (
 	user_model "code.gitea.io/gitea/models/user"
 	composer_module "code.gitea.io/gitea/modules/packages/composer"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/test"
 	"code.gitea.io/gitea/routers/api/packages/composer"
 	"code.gitea.io/gitea/tests"
 
@@ -263,7 +264,8 @@ func TestPackageComposer(t *testing.T) {
 			AddBasicAuth(user.Name)
 		resp = MakeRequest(t, req, http.StatusOK)
 
-		result = DecodeJSON(t, resp, &composer.PackageMetadataResponse{})
+		result = composer.PackageMetadataResponse{}
+		DecodeJSON(t, resp, &result)
 		pkgs = result.Packages[packageName]
 		assert.Len(t, pkgs, 1)
 		assert.Equal(t, repo2.HTMLURL(), pkgs[0].Source.URL)
@@ -275,7 +277,8 @@ func TestPackageComposer(t *testing.T) {
 			AddBasicAuth(otherUser.Name)
 		resp = MakeRequest(t, req, http.StatusOK)
 
-		result = DecodeJSON(t, resp, &composer.PackageMetadataResponse{})
+		result = composer.PackageMetadataResponse{}
+		DecodeJSON(t, resp, &result)
 		pkgs = result.Packages[packageName]
 		assert.Len(t, pkgs, 1)
 		assert.Empty(t, pkgs[0].Source.URL)
@@ -289,13 +292,13 @@ func TestPackageComposer(t *testing.T) {
 		listReq := NewRequest(t, "GET", fmt.Sprintf("/%s/-/packages", user.Name)).
 			AddBasicAuth(user.Name)
 		listResp := MakeRequest(t, listReq, http.StatusOK)
-		listDoc := NewHTMLParser(t, bytes.NewReader(listResp.Body.Bytes()))
+		listDoc := NewHTMLParser(t, listResp.Body)
 		assert.Equal(t, 0, listDoc.Find(".item-title .ui.basic.label").Length())
 
 		viewReq := NewRequest(t, "GET", fmt.Sprintf("/%s/-/packages/composer/%s/%s", user.Name, neturl.PathEscape(packageName), neturl.PathEscape(packageVersion))).
 			AddBasicAuth(user.Name)
 		viewResp := MakeRequest(t, viewReq, http.StatusOK)
-		viewDoc := NewHTMLParser(t, bytes.NewReader(viewResp.Body.Bytes()))
+		viewDoc := NewHTMLParser(t, viewResp.Body)
 		assert.Equal(t, 0, viewDoc.Find(".issue-title-header .ui.basic.label").Length())
 
 		privatePackageName := privateUser.Name + "/private-composer-package"
@@ -322,13 +325,13 @@ func TestPackageComposer(t *testing.T) {
 
 		privateListReq := NewRequest(t, "GET", fmt.Sprintf("/%s/-/packages", privateUser.Name))
 		privateListResp := privateSession.MakeRequest(t, privateListReq, http.StatusOK)
-		privateListDoc := NewHTMLParser(t, bytes.NewReader(privateListResp.Body.Bytes()))
+		privateListDoc := NewHTMLParser(t, privateListResp.Body)
 		assert.Equal(t, 1, privateListDoc.Find(".item-title .ui.basic.label").Length())
 		assert.Equal(t, "Private", privateListDoc.Find(".item-title .ui.basic.label").First().Text())
 
 		privateViewReq := NewRequest(t, "GET", fmt.Sprintf("/%s/-/packages/composer/%s/%s", privateUser.Name, neturl.PathEscape(privatePackageName), neturl.PathEscape(privatePackageVersion)))
 		privateViewResp := privateSession.MakeRequest(t, privateViewReq, http.StatusOK)
-		privateViewDoc := NewHTMLParser(t, bytes.NewReader(privateViewResp.Body.Bytes()))
+		privateViewDoc := NewHTMLParser(t, privateViewResp.Body)
 		assert.Equal(t, 1, privateViewDoc.Find(".issue-title-header .ui.basic.label").Length())
 		assert.Equal(t, "Private", privateViewDoc.Find(".issue-title-header .ui.basic.label").First().Text())
 	})
