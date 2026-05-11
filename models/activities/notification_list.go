@@ -166,7 +166,7 @@ func createOrUpdateIssueNotifications(ctx context.Context, issueID, commentID, n
 				return err
 			}
 		}
-		if existing.ID > 0 {
+		if existing != nil && existing.ID > 0 {
 			if err = updateIssueNotification(ctx, userID, issue.ID, commentID, notificationAuthorID); err != nil {
 				return err
 			}
