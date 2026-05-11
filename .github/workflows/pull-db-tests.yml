@@ -74,13 +74,6 @@ jobs:
           TEST_SHARD: ${{ matrix.shard }}
           TEST_TOTAL_SHARDS: ${{ strategy.job-total }}
 
-  test-pgsql:
-    needs: [files-changed, test-pgsql-shards]
-    if: always() && (needs.files-changed.outputs.backend == 'true' || needs.files-changed.outputs.actions == 'true')
-    runs-on: ubuntu-latest
-    steps:
-      - run: '[ "${{ needs.test-pgsql-shards.result }}" = "success" ]'
-
   test-sqlite:
     if: needs.files-changed.outputs.backend == 'true' || needs.files-changed.outputs.actions == 'true'
     needs: files-changed
@@ -197,13 +190,6 @@ jobs:
           GOEXPERIMENT:
           GITHUB_READ_TOKEN: ${{ secrets.GITHUB_READ_TOKEN }}
           GITEA_TEST_CI_SKIP_EXTERNAL: true
-
-  test-unit:
-    needs: [files-changed, test-unit-nogogit, test-unit-gogit]
-    if: always() && (needs.files-changed.outputs.backend == 'true' || needs.files-changed.outputs.actions == 'true')
-    runs-on: ubuntu-latest
-    steps:
-      - run: '[ "${{ needs.test-unit-nogogit.result }}" = "success" ] && [ "${{ needs.test-unit-gogit.result }}" = "success" ]'
 
   test-mysql:
     if: needs.files-changed.outputs.backend == 'true' || needs.files-changed.outputs.actions == 'true'
