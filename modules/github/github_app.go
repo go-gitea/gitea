@@ -17,7 +17,7 @@ import (
 	"code.gitea.io/gitea/modules/log"
 
 	"github.com/golang-jwt/jwt/v5"
-	"github.com/google/go-github/v84/github"
+	"github.com/google/go-github/v85/github"
 )
 
 // GenerateGitHubAppJWT generates a JWT for GitHub App authentication
