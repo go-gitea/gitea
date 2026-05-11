@@ -1082,6 +1082,8 @@ func ActionsDispatchWorkflow(ctx *context.APIContext) {
 			ctx.APIError(http.StatusNotFound, err)
 		} else if errors.Is(err, util.ErrPermissionDenied) {
 			ctx.APIError(http.StatusForbidden, err)
+		} else if errors.Is(err, util.ErrInvalidArgument) {
+			ctx.APIError(http.StatusUnprocessableEntity, err)
 		} else {
 			ctx.APIErrorInternal(err)
 		}
