@@ -307,6 +307,13 @@ func (u *User) DashboardLink() string {
 	return setting.AppSubURL + "/"
 }
 
+func (u *User) SettingsLink() string {
+	if u.IsOrganization() {
+		return u.OrganisationLink() + "/settings"
+	}
+	return setting.AppSubURL + "/user/settings"
+}
+
 // HomeLink returns the user or organization home page link.
 func (u *User) HomeLink() string {
 	return setting.AppSubURL + "/" + url.PathEscape(u.Name)
