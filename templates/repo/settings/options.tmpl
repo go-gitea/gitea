@@ -631,19 +631,17 @@
 							<label>{{ctx.Locale.Tr "repo.settings.pulls.default_update_style"}}</label>
 							<div class="ui dropdown selection">
 								<select name="pulls_default_update_style">
-									<option value="merge" {{if or (not $pullRequestEnabled) (eq $prUnit.PullRequestsConfig.DefaultUpdateStyle "merge")}}selected{{end}}>{{ctx.Locale.Tr "repo.pulls.update_branch"}}</option>
-									<option value="rebase" {{if eq $prUnit.PullRequestsConfig.DefaultUpdateStyle "rebase"}}selected{{end}}>{{ctx.Locale.Tr "repo.pulls.update_branch_rebase"}}</option>
+									{{range .PullsDefaultUpdateStyleOptions}}
+										<option value="{{.Value}}" {{if .Selected}}selected{{end}}>{{.Text}}</option>
+									{{end}}
 								</select>{{svg "octicon-triangle-down" 14 "dropdown icon"}}
 								<div class="default text">
-									{{if eq $prUnit.PullRequestsConfig.DefaultUpdateStyle "rebase"}}
-										{{ctx.Locale.Tr "repo.pulls.update_branch_rebase"}}
-									{{else}}
-										{{ctx.Locale.Tr "repo.pulls.update_branch"}}
-									{{end}}
+									{{.PullsDefaultUpdateStyleText}}
 								</div>
 								<div class="menu">
-									<div class="item" data-value="merge">{{ctx.Locale.Tr "repo.pulls.update_branch"}}</div>
-									<div class="item" data-value="rebase">{{ctx.Locale.Tr "repo.pulls.update_branch_rebase"}}</div>
+									{{range .PullsDefaultUpdateStyleOptions}}
+										<div class="item" data-value="{{.Value}}">{{.Text}}</div>
+									{{end}}
 								</div>
 							</div>
 						</div>

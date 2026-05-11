@@ -878,7 +878,7 @@ func (prInfo *pullRequestViewInfo) prepareMergeBox(ctx *context.Context, issue *
 			ctx.ServerError("GetDefaultUpdateStyle", err)
 			return
 		}
-		data.DefaultUpdateStyle = string(defaultUpdateStyle)
+		data.UpdatePrimaryAction, data.UpdateStyleOptions = preparePullUpdateActions(ctx, issue.Link(), defaultUpdateStyle, data.UpdateAllowed, data.UpdateByRebaseAllowed)
 	}
 
 	if ctx.IsSigned {
@@ -979,6 +979,43 @@ func (prInfo *pullRequestViewInfo) prepareMergeBox(ctx *context.Context, issue *
 	prInfo.prepareMergeBoxIconColor()
 
 	ctx.Data["PullMergeBoxData"] = prInfo.MergeBoxData
+}
+
+func preparePullUpdateActions(ctx *context.Context, issueLink string, defaultUpdateStyle repo_model.UpdateStyle, mergeAllowed, rebaseAllowed bool) (*pullUpdateAction, []*pullUpdateAction) {
+	var updateActions []*pullUpdateAction
+	mergeAction := &pullUpdateAction{
+		URL:  issueLink + "/update?style=merge",
+		Text: ctx.Tr("repo.pulls.update_branch"),
+	}
+	rebaseAction := &pullUpdateAction{
+		URL:  issueLink + "/update?style=rebase",
+		Text: ctx.Tr("repo.pulls.update_branch_rebase"),
+	}
+
+	if mergeAllowed {
+		updateActions = append(updateActions, mergeAction)
+	}
+	if rebaseAllowed {
+		updateActions = append(updateActions, rebaseAction)
+	}
+
+	var primaryAction *pullUpdateAction
+	if defaultUpdateStyle == repo_model.UpdateStyleRebase && rebaseAllowed {
+		primaryAction = rebaseAction
+	} else if mergeAllowed {
+		primaryAction = mergeAction
+	} else if rebaseAllowed {
+		primaryAction = rebaseAction
+	}
+	if primaryAction == nil {
+		return nil, nil
+	}
+	primaryAction.Selected = true
+
+	if len(updateActions) < 2 {
+		return primaryAction, nil
+	}
+	return primaryAction, updateActions
 }
 
 func (prInfo *pullRequestViewInfo) prepareMergeBoxProtectionChecks(ctx *context.Context) {

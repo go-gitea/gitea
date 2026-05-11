@@ -6,6 +6,7 @@ package setting
 
 import (
 	"errors"
+	"html/template"
 	"net/http"
 	"strings"
 	"time"
@@ -49,6 +50,12 @@ const (
 	tplDeployKeys      templates.TplName = "repo/settings/deploy_keys"
 )
 
+type selectOption struct {
+	Value    string
+	Text     template.HTML
+	Selected bool
+}
+
 // SettingsCtxData is a middleware that sets all the general context data for the
 // settings template.
 func SettingsCtxData(ctx *context.Context) {
@@ -66,6 +73,7 @@ func SettingsCtxData(ctx *context.Context) {
 	ctx.Data["SigningKeyAvailable"] = signing != nil
 	ctx.Data["SigningSettings"] = setting.Repository.Signing
 	ctx.Data["IsRepoIndexerEnabled"] = setting.Indexer.RepoIndexerEnabled
+	preparePullRequestSettings(ctx)
 
 	if ctx.Doer.IsAdmin {
 		if setting.Indexer.RepoIndexerEnabled {
@@ -93,6 +101,35 @@ func SettingsCtxData(ctx *context.Context) {
 	repo_router.PrepareBranchList(ctx)
 	if ctx.Written() {
 		return
+	}
+}
+
+func preparePullRequestSettings(ctx *context.Context) {
+	defaultUpdateStyle := repo_model.UpdateStyleMerge
+	if ctx.Repo.Repository.UnitEnabled(ctx, unit_model.TypePullRequests) {
+		prUnit := ctx.Repo.Repository.MustGetUnit(ctx, unit_model.TypePullRequests)
+		defaultUpdateStyle = util.IfZero(prUnit.PullRequestsConfig().DefaultUpdateStyle, repo_model.UpdateStyleMerge)
+	}
+
+	updateBranchText := ctx.Tr("repo.pulls.update_branch")
+	rebaseUpdateText := ctx.Tr("repo.pulls.update_branch_rebase")
+	defaultUpdateStyleText := updateBranchText
+	if defaultUpdateStyle == repo_model.UpdateStyleRebase {
+		defaultUpdateStyleText = rebaseUpdateText
+	}
+
+	ctx.Data["PullsDefaultUpdateStyleText"] = defaultUpdateStyleText
+	ctx.Data["PullsDefaultUpdateStyleOptions"] = []selectOption{
+		{
+			Value:    string(repo_model.UpdateStyleMerge),
+			Text:     updateBranchText,
+			Selected: defaultUpdateStyle == repo_model.UpdateStyleMerge,
+		},
+		{
+			Value:    string(repo_model.UpdateStyleRebase),
+			Text:     rebaseUpdateText,
+			Selected: defaultUpdateStyle == repo_model.UpdateStyleRebase,
+		},
 	}
 }
 

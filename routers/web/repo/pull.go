@@ -283,7 +283,8 @@ type pullMergeBoxData struct {
 	ShowUpdatePullInfo    bool
 	UpdateAllowed         bool
 	UpdateByRebaseAllowed bool
-	DefaultUpdateStyle    string
+	UpdatePrimaryAction   *pullUpdateAction
+	UpdateStyleOptions    []*pullUpdateAction
 
 	MergeFormProps        map[string]any
 	ShowPullCommands      bool
@@ -307,6 +308,12 @@ type pullMergeBoxData struct {
 	infoMergePrompts       pullMergeBoxInfoItemCollection
 
 	InfoSections []*pullInfoSection
+}
+
+type pullUpdateAction struct {
+	URL      string
+	Text     template.HTML
+	Selected bool
 }
 
 // pullRequestViewInfo is a structured type for viewing pull request

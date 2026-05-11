@@ -1,35 +1,24 @@
 {{$data := $.MergeBoxData}}
-{{$issueLink := $.IssueLink}}
-{{$isRebase := eq $data.DefaultUpdateStyle "rebase"}}
 <div class="tw-w-full flex-left-right">
 	<div class="flex-text-block">
 		{{svg "octicon-alert"}}
 		{{ctx.Locale.Tr "repo.pulls.outdated_with_base_branch"}}
 	</div>
-	{{if and $data.UpdateAllowed $data.UpdateByRebaseAllowed}}
-	<div class="ui buttons" data-global-init="initRepoPullRequestUpdate">
-		<button class="ui button link-action" data-url="{{$issueLink}}/update{{if $isRebase}}?style=rebase{{end}}">
-			{{if $isRebase}}{{ctx.Locale.Tr "repo.pulls.update_branch_rebase"}}{{else}}{{ctx.Locale.Tr "repo.pulls.update_branch"}}{{end}}
+	{{with $data.UpdatePrimaryAction}}
+	<div class="ui buttons"{{if $data.UpdateStyleOptions}} data-global-init="initRepoPullRequestUpdate"{{end}}>
+		<button class="ui button link-action" data-url="{{.URL}}">
+			{{.Text}}
 		</button>
+		{{if $data.UpdateStyleOptions}}
 		<div class="ui dropdown icon button">
 			{{svg "octicon-triangle-down"}}
 			<div class="menu">
-				<a class="item {{if not $isRebase}}selected{{end}}" data-update-url="{{$issueLink}}/update">{{ctx.Locale.Tr "repo.pulls.update_branch"}}</a>
-				<a class="item {{if $isRebase}}selected{{end}}" data-update-url="{{$issueLink}}/update?style=rebase">{{ctx.Locale.Tr "repo.pulls.update_branch_rebase"}}</a>
+				{{range $data.UpdateStyleOptions}}
+					<a class="item {{if .Selected}}selected{{end}}" data-update-url="{{.URL}}">{{.Text}}</a>
+				{{end}}
 			</div>
 		</div>
-	</div>
-	{{else if $data.UpdateAllowed}}
-	<div class="ui buttons">
-		<button class="ui button link-action" data-url="{{$issueLink}}/update">
-			{{ctx.Locale.Tr "repo.pulls.update_branch"}}
-		</button>
-	</div>
-	{{else if $data.UpdateByRebaseAllowed}}
-	<div class="ui buttons">
-		<button class="ui button link-action" data-url="{{$issueLink}}/update?style=rebase">
-			{{ctx.Locale.Tr "repo.pulls.update_branch_rebase"}}
-		</button>
+		{{end}}
 	</div>
 	{{end}}
 </div>
