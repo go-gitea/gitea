@@ -293,7 +293,7 @@ func TestPackageComposer(t *testing.T) {
 			AddBasicAuth(user.Name)
 		listResp := MakeRequest(t, listReq, http.StatusOK)
 		listDoc := NewHTMLParser(t, listResp.Body)
-		assert.Equal(t, 0, listDoc.Find(".item-title .ui.basic.label").Length())
+		assert.Equal(t, 0, listDoc.Find(".flex-item-title .ui.basic.label").Length())
 
 		viewReq := NewRequest(t, "GET", fmt.Sprintf("/%s/-/packages/composer/%s/%s", user.Name, neturl.PathEscape(packageName), neturl.PathEscape(packageVersion))).
 			AddBasicAuth(user.Name)
@@ -326,8 +326,8 @@ func TestPackageComposer(t *testing.T) {
 		privateListReq := NewRequest(t, "GET", fmt.Sprintf("/%s/-/packages", privateUser.Name))
 		privateListResp := privateSession.MakeRequest(t, privateListReq, http.StatusOK)
 		privateListDoc := NewHTMLParser(t, privateListResp.Body)
-		assert.Equal(t, 1, privateListDoc.Find(".item-title .ui.basic.label").Length())
-		assert.Equal(t, "Private", privateListDoc.Find(".item-title .ui.basic.label").First().Text())
+		assert.Equal(t, 1, privateListDoc.Find(".flex-item-title .ui.basic.label").Length())
+		assert.Equal(t, "Private", privateListDoc.Find(".flex-item-title .ui.basic.label").First().Text())
 
 		privateViewReq := NewRequest(t, "GET", fmt.Sprintf("/%s/-/packages/composer/%s/%s", privateUser.Name, neturl.PathEscape(privatePackageName), neturl.PathEscape(privatePackageVersion)))
 		privateViewResp := privateSession.MakeRequest(t, privateViewReq, http.StatusOK)
