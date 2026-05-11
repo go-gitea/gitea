@@ -43,6 +43,10 @@
       "allowedVersions": "<3.6.2", // v3.6.2 breaks -c flag parsing in help commands
     },
     {
+      "matchPackageNames": ["github.com/dlclark/regexp2"],
+      "allowedVersions": "^1", // v2 fails to build on linux/386: https://github.com/dlclark/regexp2/issues/102
+    },
+    {
       "matchPackageNames": ["github.com/Azure/azure-sdk-for-go/sdk/azcore"],
       "allowedVersions": "<1.21.0", // v1.21.0+ uses API version unsupported by Azurite in CI
     },
@@ -59,8 +63,21 @@
       "allowedVersions": "<4.0.0-rc.4", // rc.4 changes block scalar serialization, wait for stable release
     },
     {
+      "matchPackageNames": ["postgres"],
+      "allowedVersions": "/^14($|[.-])/", // pin to oldest supported major
+    },
+    {
+      "matchPackageNames": ["bitnamilegacy/mysql"],
+      "allowedVersions": "/^8\\.4($|[.-])/", // pin to oldest LTS
+    },
+    {
+      "matchPackageNames": ["mcr.microsoft.com/mssql/server"],
+      "allowedVersions": "/^2019($|[.-])/", // pin to oldest in extended support
+    },
+    {
       "groupName": "go dependencies",
       "matchManagers": ["gomod"],
+      "postUpdateOptions": ["gomodUpdateImportPaths"],
       "postUpgradeTasks": {
         "commands": ["make tidy"],
         "fileFilters": ["go.mod", "go.sum", "assets/go-licenses.json"],
