@@ -105,7 +105,7 @@ jobs:
     runs-on: ubuntu-latest
     services:
       elasticsearch:
-        image: docker.elastic.co/elasticsearch/elasticsearch:8.19.14
+        image: docker.elastic.co/elasticsearch/elasticsearch:8.19.15
         env:
           discovery.type: single-node
           xpack.security.enabled: false
@@ -184,7 +184,7 @@ jobs:
         options: >-
           --mount type=tmpfs,destination=/bitnami/mysql/data
       elasticsearch:
-        image: docker.elastic.co/elasticsearch/elasticsearch:8.19.14
+        image: docker.elastic.co/elasticsearch/elasticsearch:8.19.15
         env:
           discovery.type: single-node
           xpack.security.enabled: false

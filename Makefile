@@ -332,18 +332,11 @@ lint-spell-fix: ## lint spelling and fix issues
 
 .PHONY: lint-go
 lint-go: ## lint go files
-	$(GO) run $(GOLANGCI_LINT_PACKAGE) run
+	GO=$(GO) GOLANGCI_LINT_PACKAGE=$(GOLANGCI_LINT_PACKAGE) $(GO) run ./tools/lint-go-all.go
 
 .PHONY: lint-go-fix
 lint-go-fix: ## lint go files and fix issues
-	$(GO) run $(GOLANGCI_LINT_PACKAGE) run --fix
-
-# workaround step for the lint-go-windows CI task because 'go run' can not
-# have distinct GOOS/GOARCH for its build and run steps
-.PHONY: lint-go-windows
-lint-go-windows:
-	@GOOS= GOARCH= $(GO) install $(GOLANGCI_LINT_PACKAGE)
-	golangci-lint run
+	GO=$(GO) GOLANGCI_LINT_PACKAGE=$(GOLANGCI_LINT_PACKAGE) $(GO) run ./tools/lint-go-all.go --fix
 
 .PHONY: lint-editorconfig
 lint-editorconfig:
@@ -475,12 +468,11 @@ migrations.individual.test\#%:
 
 .PHONY: playwright
 playwright: deps-frontend
-	@# on GitHub Actions VMs, playwright's system deps are pre-installed
-	@pnpm exec playwright install $(if $(GITHUB_ACTIONS),,--with-deps) chromium firefox $(PLAYWRIGHT_FLAGS)
+	@./tools/test-e2e.sh install
 
 .PHONY: test-e2e
 test-e2e: playwright frontend backend
-	@EXECUTABLE=$(EXECUTABLE) ./tools/test-e2e.sh $(GITEA_TEST_E2E_FLAGS)
+	@EXECUTABLE=$(EXECUTABLE) ./tools/test-e2e.sh run $(GITEA_TEST_E2E_FLAGS)
 
 .PHONY: build
 build: frontend backend ## build everything
@@ -667,6 +659,10 @@ generate-gitignore: ## update gitignore files
 .PHONY: generate-images
 generate-images: | node_modules ## generate images
 	cd tools && node generate-images.ts $(TAGS)
+
+.PHONY: generate-codemirror-languages
+generate-codemirror-languages: | node_modules ## generate codemirror languages
+	node tools/generate-codemirror-languages.ts
 
 .PHONY: generate-manpage
 generate-manpage: ## generate manpage
