@@ -22,9 +22,10 @@ import (
 	"code.gitea.io/gitea/modules/secret"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/structs"
-	"github.com/google/go-github/v84/github"
 
 	gh "code.gitea.io/gitea/modules/github"
+
+	"github.com/google/go-github/v85/github"
 	"golang.org/x/oauth2"
 )
 
