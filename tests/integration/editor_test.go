@@ -119,6 +119,14 @@ func testEditorProtectedBranch(t *testing.T) {
 	resp = testEditorActionPostRequest(t, session, "/user2/repo1/_new/master/", map[string]string{"tree_path": "docs/new.md", "commit_choice": "direct"})
 	assert.Equal(t, http.StatusOK, resp.Code)
 	assert.Contains(t, resp.Body.String(), `"redirect":"/user2/repo1/src/branch/master/docs/new.md"`)
+
+	resp = testEditorActionPostRequest(t, session, "/user2/repo1/_edit/master/docs/new.md", map[string]string{
+		"content":       "renamed via editor",
+		"commit_choice": "direct",
+		"tree_path":     "docs/renamed.md",
+	})
+	assert.Equal(t, http.StatusOK, resp.Code)
+	assert.Contains(t, resp.Body.String(), `"redirect":"/user2/repo1/src/branch/master/docs/renamed.md"`)
 }
 
 func testEditorActionPostRequest(t *testing.T, session *TestSession, requestPath string, params map[string]string) *httptest.ResponseRecorder {

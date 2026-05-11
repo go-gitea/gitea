@@ -173,11 +173,14 @@ func PrepareCommitFormOptions(ctx *Context, doer *user_model.User, targetRepo *r
 		protectedBranch.Repo = targetRepo
 		canPushWithProtection = protectedBranch.CanUserPush(ctx, doer)
 		protectionRequireSigned = protectedBranch.RequireSignedCommits
-		// If the user can't push branch-wide but the specific file being edited
-		// matches an unprotected file pattern, direct commit is still allowed.
+		// If the user can't push branch-wide but the file being edited matches
+		// an unprotected file pattern, direct commit is still allowed. This uses
+		// ctx.Repo.TreePath, which is the file being edited on GET ("_edit"),
+		// the directory on "_new/<branch>/<dir>/", or the file path on
+		// "_delete"/"_upload". The "_edit"/"_new" POST handlers refine this
+		// further using the form-submitted destination path.
 		if !canPushWithProtection && ctx.Repo.TreePath != "" {
-			globUnprotected := protectedBranch.GetUnprotectedFilePatterns()
-			if protectedBranch.IsUnprotectedFile(globUnprotected, ctx.Repo.TreePath) {
+			if protectedBranch.IsUnprotectedFile(protectedBranch.GetUnprotectedFilePatterns(), ctx.Repo.TreePath) {
 				canPushWithProtection = true
 			}
 		}

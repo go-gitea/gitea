@@ -111,6 +111,26 @@ func (f *preparedEditorCommitForm[T]) GetCommitMessage(defaultCommitMessage stri
 	return commitMessage
 }
 
+// destinationAllowsDirectCommit reports whether the form-submitted destination
+// path qualifies for a direct commit via an unprotected file pattern, in cases
+// where PrepareCommitFormOptions (which only saw the URL-derived path) said no.
+func destinationAllowsDirectCommit(ctx *context.Context, opts *context.CommitFormOptions, destTreePath string) bool {
+	if opts.CanCommitToBranch {
+		return false // already allowed; nothing to refine
+	}
+	if destTreePath == "" || destTreePath == ctx.Repo.TreePath {
+		return false // no form destination, or same as URL path already evaluated
+	}
+	if opts.RequireSigned && !opts.WillSign {
+		return false // signing requirement still blocks
+	}
+	pb, _ := git_model.GetFirstMatchProtectedBranchRule(ctx, ctx.Repo.Repository.ID, ctx.Repo.BranchName)
+	if pb == nil {
+		return false
+	}
+	return pb.IsUnprotectedFile(pb.GetUnprotectedFilePatterns(), destTreePath)
+}
+
 func prepareEditorCommitSubmittedForm[T forms.CommitCommonFormInterface](ctx *context.Context) *preparedEditorCommitForm[T] {
 	form := web.GetForm(ctx).(T)
 	if ctx.HasError() {
@@ -120,17 +140,19 @@ func prepareEditorCommitSubmittedForm[T forms.CommitCommonFormInterface](ctx *co
 
 	commonForm := form.GetCommitCommonForm()
 	commonForm.TreePath = files_service.CleanGitTreePath(commonForm.TreePath)
-	// For "_new" the URL has no file segment, so ctx.Repo.TreePath is empty;
-	// use the submitted form path so PrepareCommitFormOptions can evaluate
-	// branch protection (e.g. unprotected file patterns) against the real file.
-	if ctx.Repo.TreePath == "" {
-		ctx.Repo.TreePath = commonForm.TreePath
-	}
 
 	commitFormOptions, err := context.PrepareCommitFormOptions(ctx, ctx.Doer, ctx.Repo.Repository, ctx.Repo.Permission, ctx.Repo.RefFullName)
 	if err != nil {
 		ctx.ServerError("PrepareCommitFormOptions", err)
 		return nil
+	}
+	// For "_edit"/"_new" POSTs the form submits the commit destination, which can
+	// differ from the URL-derived ctx.Repo.TreePath (rename on "_edit", or a path
+	// under "_new/<branch>/<dir>/"). PrepareCommitFormOptions only evaluated the
+	// URL path against unprotected file patterns; if the destination is the one
+	// that matches an unprotected pattern, allow direct commit.
+	if destinationAllowsDirectCommit(ctx, commitFormOptions, commonForm.TreePath) {
+		commitFormOptions.CanCommitToBranch = true
 	}
 	if commitFormOptions.NeedFork {
 		// It shouldn't happen, because we should have done the checks in the "GET" request. But just in case.
