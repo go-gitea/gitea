@@ -175,7 +175,7 @@ jobs:
     services:
       mysql:
         # the bitnami mysql image has more options than the official one, it's easier to customize
-        image: bitnamilegacy/mysql:9.4
+        image: bitnamilegacy/mysql:8.4
         env:
           ALLOW_EMPTY_PASSWORD: true
           MYSQL_DATABASE: testgitea
