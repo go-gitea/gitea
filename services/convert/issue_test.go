@@ -10,6 +10,7 @@ import (
 
 	"code.gitea.io/gitea/models/db"
 	issues_model "code.gitea.io/gitea/models/issues"
+	project_model "code.gitea.io/gitea/models/project"
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unittest"
 	user_model "code.gitea.io/gitea/models/user"
@@ -123,4 +124,37 @@ func TestToTrackedTime(t *testing.T) {
 		require.Len(t, list, 2)
 		assert.ElementsMatch(t, []string{"repo1", "repo3"}, []string{list[0].Issue.Repo.Name, list[1].Issue.Repo.Name})
 	})
+}
+
+// TestToAPIIssueWithoutOptsNoPanic exercises the path used by webhook
+// and actions notifiers (and other callers that don't construct a
+// ToIssueOptions). When the issue is assigned to an org-level project,
+// the visibility filter calls cache.GetWithEphemeralCache, which would
+// panic on a nil *EphemeralCache. firstIssueOpt's default keeps that safe.
+func TestToAPIIssueWithoutOptsNoPanic(t *testing.T) {
+	require.NoError(t, unittest.PrepareTestDatabase())
+	ctx := t.Context()
+
+	// repo32 is owned by org3, so an org3-level project can be assigned
+	// to its issues without tripping CanBeAccessedByOwnerRepo.
+	orgRepo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 32})
+	org3 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 3})
+	issue16 := unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{ID: 16})
+	user2 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
+
+	// Org-level project assigned to the issue forces canDoerSeeProject's
+	// non-repo branch — that's the path that needs the non-nil cache.
+	orgProject := project_model.Project{
+		Title:   "regression project",
+		OwnerID: org3.ID,
+		Type:    project_model.TypeOrganization,
+	}
+	require.NoError(t, project_model.NewProject(ctx, &orgProject))
+	require.NoError(t, issues_model.IssueAssignOrRemoveProject(ctx, issue16, user2, []int64{orgProject.ID}))
+
+	// No opts argument; firstIssueOpt must supply a fresh EphemeralCache.
+	// A panic here means the regression is back.
+	apiIssue := ToAPIIssue(ctx, user2, issue16)
+	assert.NotNil(t, apiIssue)
+	assert.Equal(t, orgRepo.ID, apiIssue.Repo.ID)
 }

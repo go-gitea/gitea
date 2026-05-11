@@ -26,11 +26,17 @@ type ToIssueOptions struct {
 	PermCache *cache.EphemeralCache
 }
 
+// firstIssueOpt resolves the variadic options for ToIssue/ToAPIIssue.
+// A non-nil PermCache is always returned so callers that omit the option
+// (webhook and actions notifiers, the web AJAX preview, etc.) don't panic
+// when the visibility filter calls into cache.GetWithEphemeralCache.
+// A fresh per-call cache buys nothing for performance, but keeps the
+// happy path nil-safe without changing the public API.
 func firstIssueOpt(opts []ToIssueOptions) ToIssueOptions {
-	if len(opts) > 0 {
+	if len(opts) > 0 && opts[0].PermCache != nil {
 		return opts[0]
 	}
-	return ToIssueOptions{}
+	return ToIssueOptions{PermCache: cache.NewEphemeralCache()}
 }
 
 func ToIssue(ctx context.Context, doer *user_model.User, issue *issues_model.Issue, opts ...ToIssueOptions) *api.Issue {
