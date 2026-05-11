@@ -41,7 +41,7 @@
 					</span>
 
 					<span class="flex-text-inline tw-text-12">
-						{{template "repo/commit_coauthor_avatars" dict "AuthorUser" $commit.User "AuthorSignature" $commit.Commit.Author "CoAuthors" $commit.CoAuthors}}
+						{{ctx.RenderUtils.CoAuthorAvatars $commit.User $commit.Commit.Author $commit.CoAuthors}}
 					</span>
 
 					<span class="time flex-text-inline">{{DateUtils.FullTime $commit.Date}}</span>

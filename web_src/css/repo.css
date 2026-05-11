@@ -1411,7 +1411,6 @@ tbody.commit-list {
 .coauthor-avatar-stack-wrapper {
   display: inline-flex;
   align-items: center;
-  vertical-align: middle;
   margin-right: 0.25rem;
 }
 
@@ -1425,7 +1424,6 @@ tbody.commit-list {
   margin-left: -12px;
   transition: transform 0.15s ease;
   position: relative;
-  z-index: 0;
   display: inline-flex;
   border-radius: 50%;
 }
@@ -1445,7 +1443,6 @@ tbody.commit-list {
   justify-content: center;
   width: 20px;
   height: 20px;
-  font-size: 10px;
   font-weight: var(--font-weight-semibold);
   border: 2px solid var(--color-body);
   border-radius: 50%;

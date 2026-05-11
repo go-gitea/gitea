@@ -91,7 +91,7 @@
 						{{range $pushCommit := $push.Commits}}
 							{{$commitLink := printf "%s/commit/%s" $repoLink .Sha1}}
 							<div class="flex-text-block">
-								{{template "repo/commit_coauthor_avatar_stack" dict "AuthorSignature" .AuthorSignature "CoAuthors" .CoAuthorUsers}}
+								{{ctx.RenderUtils.CoAuthorAvatarStack nil .AuthorSignature .CoAuthorUsers ""}}
 								<a class="ui sha label" href="{{$commitLink}}">{{ShortSha .Sha1}}</a>
 								<span class="tw-inline-block tw-truncate">
 									{{ctx.RenderUtils.RenderCommitMessage $pushCommit.Message $repo}}

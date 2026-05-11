@@ -6,6 +6,7 @@ package templates
 import (
 	"encoding/hex"
 	"fmt"
+	"html"
 	"html/template"
 	"math"
 	"net/url"
@@ -16,8 +17,10 @@ import (
 	issues_model "code.gitea.io/gitea/models/issues"
 	"code.gitea.io/gitea/models/renderhelper"
 	"code.gitea.io/gitea/models/repo"
+	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/charset"
 	"code.gitea.io/gitea/modules/emoji"
+	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/htmlutil"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/markup"
@@ -323,4 +326,99 @@ func (ut *RenderUtils) RenderUnicodeEscapeToggleTd(combined, escapeStatus *chars
 		return ""
 	}
 	return `<td class="lines-escape">` + ut.RenderUnicodeEscapeToggleButton(escapeStatus) + `</td>`
+}
+
+// CoAuthorAvatarStack renders an avatar stack for the commit author and co-authors.
+// authorUser may be nil when no Gitea account is linked; authorSig must always be set.
+func (ut *RenderUtils) CoAuthorAvatarStack(authorUser *user_model.User, authorSig *git.Signature, coAuthors []*user_model.CoAuthorUser, additionalClasses string) template.HTML {
+	au := NewAvatarUtils(ut.ctx)
+	if len(coAuthors) == 0 {
+		if authorUser != nil {
+			return au.Avatar(authorUser, 20, additionalClasses)
+		}
+		return au.AvatarByEmail(authorSig.Email, authorSig.Name, 20, additionalClasses)
+	}
+
+	const maxCo = 9
+	visibleCo := coAuthors
+	overflow := 0
+	if len(coAuthors) > maxCo {
+		visibleCo = coAuthors[:maxCo]
+		overflow = len(coAuthors) - maxCo
+	}
+
+	wrapperClass := "coauthor-avatar-stack-wrapper"
+	if additionalClasses != "" {
+		wrapperClass += " " + additionalClasses
+	}
+
+	var b strings.Builder
+	b.WriteString(`<span class="` + html.EscapeString(wrapperClass) + `">`)
+	b.WriteString(`<span class="coauthor-avatar-stack">`)
+
+	if authorUser != nil {
+		b.WriteString(string(htmlutil.HTMLFormat(`<a href="%s" data-tooltip-content="%s">%s</a>`,
+			template.URL(authorUser.HomeLink()), authorUser.GetDisplayName(), au.Avatar(authorUser, 20))))
+	} else {
+		b.WriteString(string(au.AvatarByEmail(authorSig.Email, authorSig.Name, 20)))
+	}
+
+	for _, co := range visibleCo {
+		if co.GiteaUser != nil {
+			b.WriteString(string(htmlutil.HTMLFormat(`<a href="%s" data-tooltip-content="%s">%s</a>`,
+				template.URL(co.GiteaUser.HomeLink()), co.GiteaUser.GetDisplayName(), au.Avatar(co.GiteaUser, 20))))
+		} else {
+			b.WriteString(string(au.AvatarByEmail(co.TrailerSignature.Email, co.TrailerSignature.Name, 20)))
+		}
+	}
+
+	b.WriteString(`</span>`) // end coauthor-avatar-stack
+
+	if overflow > 0 {
+		locale := ut.ctx.Value(translation.ContextKey).(translation.Locale)
+		overflowLabel := locale.TrN(overflow, "repo.commits.coauthor_others_1", "repo.commits.coauthor_others_n", overflow)
+		b.WriteString(string(htmlutil.HTMLFormat(`<span class="coauthor-overflow-chip tw-text-xs" role="img" aria-label="%s" data-tooltip-content="%s">+%d</span>`,
+			overflowLabel, overflowLabel, overflow)))
+	}
+
+	b.WriteString(`</span>`) // end coauthor-avatar-stack-wrapper
+	return template.HTML(b.String())
+}
+
+// CoAuthorAvatars renders the author/co-author avatar stack with descriptive name text.
+func (ut *RenderUtils) CoAuthorAvatars(authorUser *user_model.User, authorSig *git.Signature, coAuthors []*user_model.CoAuthorUser) template.HTML {
+	locale := ut.ctx.Value(translation.ContextKey).(translation.Locale)
+	var b strings.Builder
+	b.WriteString(`<span class="author-wrapper">`)
+
+	if len(coAuthors) > 0 {
+		b.WriteString(string(ut.CoAuthorAvatarStack(authorUser, authorSig, coAuthors, "")))
+		if authorUser != nil {
+			b.WriteString(string(authorUser.GetShortDisplayNameLinkHTML()))
+		} else {
+			b.WriteString(html.EscapeString(authorSig.Name))
+		}
+		b.WriteString(" " + string(locale.Tr("repo.commits.coauthor_and")) + " ")
+		if len(coAuthors) == 1 {
+			co := coAuthors[0]
+			if co.GiteaUser != nil {
+				b.WriteString(string(htmlutil.HTMLFormat(`<a class="muted" href="%s">%s</a>`,
+					template.URL(co.GiteaUser.HomeLink()), co.GiteaUser.GetDisplayName())))
+			} else {
+				b.WriteString(html.EscapeString(co.TrailerSignature.Name))
+			}
+		} else {
+			b.WriteString(string(locale.Tr("repo.commits.coauthor_people", len(coAuthors)+1)))
+		}
+	} else {
+		b.WriteString(string(ut.CoAuthorAvatarStack(authorUser, authorSig, nil, "tw-mr-1")))
+		if authorUser != nil {
+			b.WriteString(string(authorUser.GetShortDisplayNameLinkHTML()))
+		} else {
+			b.WriteString(html.EscapeString(authorSig.Name))
+		}
+	}
+
+	b.WriteString(`</span>`)
+	return template.HTML(b.String())
 }
