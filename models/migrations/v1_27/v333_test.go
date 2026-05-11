@@ -6,7 +6,7 @@ package v1_27
 import (
 	"testing"
 
-	"code.gitea.io/gitea/models/migrations/base"
+	"code.gitea.io/gitea/models/migrations/migrationtest"
 
 	"github.com/stretchr/testify/require"
 )
@@ -21,7 +21,7 @@ func Test_AddBranchProtectionBypassAllowlist(t *testing.T) {
 		BypassAllowlistTeamIDs []int64 `xorm:"JSON TEXT"`
 	}
 
-	x, deferable := base.PrepareTestEnv(t, 0, new(ProtectedBranch))
+	x, deferable := migrationtest.PrepareTestEnv(t, 0, new(ProtectedBranch))
 	defer deferable()
 
 	// Test with default values
@@ -58,4 +58,3 @@ func Test_AddBranchProtectionBypassAllowlist(t *testing.T) {
 	require.Equal(t, []int64{1, 2, 3}, pb2.BypassAllowlistUserIDs)
 	require.Equal(t, []int64{10, 20}, pb2.BypassAllowlistTeamIDs)
 }
-

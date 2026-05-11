@@ -18,4 +18,3 @@ func AddBranchProtectionBypassAllowlist(x *xorm.Engine) error {
 	}, new(ProtectedBranch))
 	return err
 }
-
