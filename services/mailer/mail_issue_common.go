@@ -182,7 +182,7 @@ func composeIssueCommentMessages(ctx context.Context, comment *mailComment, lang
 				if err != nil {
 					log.Error("CreateToken failed: %v", err)
 				} else {
-					replyAddress := strings.Replace(setting.IncomingEmail.ReplyToAddress, setting.IncomingEmail.TokenPlaceholder, token, 1)
+					replyAddress := strings.Replace(setting.IncomingEmail.ReplyToAddress, setting.IncomingEmailTokenPlaceholder, token, 1)
 					msg.ReplyTo = replyAddress
 					msg.SetHeader("List-Post", fmt.Sprintf("<mailto:%s>", replyAddress))
 
@@ -194,7 +194,7 @@ func composeIssueCommentMessages(ctx context.Context, comment *mailComment, lang
 			if err != nil {
 				log.Error("CreateToken failed: %v", err)
 			} else {
-				unsubAddress := strings.Replace(setting.IncomingEmail.ReplyToAddress, setting.IncomingEmail.TokenPlaceholder, token, 1)
+				unsubAddress := strings.Replace(setting.IncomingEmail.ReplyToAddress, setting.IncomingEmailTokenPlaceholder, token, 1)
 				listUnsubscribe = append(listUnsubscribe, "<mailto:"+unsubAddress+">")
 			}
 		}
