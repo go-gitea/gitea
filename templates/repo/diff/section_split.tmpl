@@ -43,7 +43,7 @@
 					<td class="lines-escape add-code lines-escape-new">{{if $match.RightIdx}}{{ctx.RenderUtils.RenderUnicodeEscapeToggleButton $rightDiff.EscapeStatus}}{{end}}</td>
 					<td class="lines-type-marker lines-type-marker-new add-code">{{if $match.RightIdx}}<span class="tw-font-mono" data-type-marker="{{$match.GetLineTypeMarker}}"></span>{{end}}</td>
 					<td class="lines-code lines-code-new add-code">
-						{{- if and $.root.SignedUserID $.root.PageIsPullFiles -}}
+						{{- if and $.root.SignedUserID (or $.root.PageIsPullFiles $.root.PageIsCommit) -}}
 							<button type="button" aria-label="{{ctx.Locale.Tr "repo.diff.comment.add_line_comment"}}" class="ui primary button add-code-comment add-code-comment-right{{if (not $match.CanComment)}} tw-invisible{{end}}" data-side="right" data-idx="{{$match.RightIdx}}">
 								{{- svg "octicon-plus" -}}
 							</button>
