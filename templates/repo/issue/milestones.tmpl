@@ -86,6 +86,26 @@
 				</li>
 			{{end}}
 
+			{{if not .Milestones}}
+				<div class="empty-placeholder">
+					{{if .Keyword}}
+						{{svg "octicon-search" 48}}
+						<h2>{{ctx.Locale.Tr "no_results_found"}}</h2>
+					{{else if and (eq .OpenCount 0) (eq .ClosedCount 0)}}
+						{{svg "octicon-milestone" 48}}
+						<h2>{{ctx.Locale.Tr "repo.milestones.empty"}}</h2>
+						<p>{{ctx.Locale.Tr "repo.milestones.new_subheader"}}</p>
+						{{if and (or .CanWriteIssues .CanWritePulls) (not .Repository.IsArchived)}}
+							<a class="ui primary button tw-mt-4" href="{{$.Link}}/new">{{ctx.Locale.Tr "repo.milestones.new"}}</a>
+						{{end}}
+					{{else}}
+						{{svg "octicon-milestone" 48}}
+						<h2>{{ctx.Locale.Tr "repo.issues.filter_no_results"}}</h2>
+						<p>{{ctx.Locale.Tr "repo.issues.filter_no_results_placeholder"}}</p>
+					{{end}}
+				</div>
+			{{end}}
+
 			{{template "base/paginate" .}}
 		</div>
 	</div>

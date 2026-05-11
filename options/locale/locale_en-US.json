@@ -1924,6 +1924,7 @@
   "repo.pull.agit_documentation": "Review documentation about AGit",
   "repo.comments.edit.already_changed": "Unable to save changes to the comment. It appears the content has already been changed by another user. Please refresh the page and try editing again to avoid overwriting their changes",
   "repo.milestones.new": "New Milestone",
+  "repo.milestones.empty": "No milestones yet.",
   "repo.milestones.closed": "Closed %s",
   "repo.milestones.update_ago": "Updated %s",
   "repo.milestones.no_due_date": "No due date",
