@@ -23,7 +23,7 @@ import (
 	"code.gitea.io/gitea/modules/timeutil"
 	"code.gitea.io/gitea/modules/util"
 
-	"github.com/dlclark/regexp2/v2"
+	"github.com/dlclark/regexp2"
 	"xorm.io/builder"
 )
 
