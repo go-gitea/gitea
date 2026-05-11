@@ -21,7 +21,6 @@ import (
 	"code.gitea.io/gitea/models/db"
 	repo_model "code.gitea.io/gitea/models/repo"
 	secret_model "code.gitea.io/gitea/models/secret"
-	"code.gitea.io/gitea/modules/actions"
 	"code.gitea.io/gitea/modules/httplib"
 	"code.gitea.io/gitea/modules/optional"
 	"code.gitea.io/gitea/modules/setting"
@@ -35,7 +34,7 @@ import (
 	"code.gitea.io/gitea/services/convert"
 	secret_service "code.gitea.io/gitea/services/secrets"
 
-	"github.com/nektos/act/pkg/model"
+	"gitea.com/gitea/runner/act/model"
 )
 
 // ListActionsSecrets list an repo's actions secrets
@@ -848,6 +847,12 @@ func ListActionTasks(ctx *context.APIContext) {
 	res := new(api.ActionTaskResponse)
 	res.TotalCount = total
 
+	taskList := actions_model.TaskList(tasks)
+	if err := taskList.LoadAttributes(ctx); err != nil {
+		ctx.APIErrorInternal(err)
+		return
+	}
+
 	res.Entries = make([]*api.ActionTask, len(tasks))
 	for i := range tasks {
 		convertedTask, err := convert.ToActionTask(ctx, tasks[i])
@@ -859,7 +864,7 @@ func ListActionTasks(ctx *context.APIContext) {
 	}
 
 	ctx.SetLinkHeader(total, listOptions.PageSize)
-	ctx.SetTotalCountHeader(total) // Duplicates api response field but it's better to set it for consistency
+	ctx.SetTotalCountHeader(total) // Duplicates api response field, but it's better to set it for consistency
 	ctx.JSON(http.StatusOK, &res)
 }
 
@@ -1155,6 +1160,7 @@ func getCurrentRepoActionRunByID(ctx *context.APIContext) *actions_model.ActionR
 		ctx.APIErrorInternal(err)
 		return nil
 	}
+	run.Repo = ctx.Repo.Repository
 	return run
 }
 
@@ -1226,7 +1232,7 @@ func GetWorkflowRun(ctx *context.APIContext) {
 		return
 	}
 
-	convertedRun, err := convert.ToActionWorkflowRun(ctx, ctx.Repo.Repository, run, nil)
+	convertedRun, err := convert.ToActionWorkflowRun(ctx, run, nil)
 	if err != nil {
 		ctx.APIErrorInternal(err)
 		return
@@ -1275,7 +1281,7 @@ func GetWorkflowRunAttempt(ctx *context.APIContext) {
 		return
 	}
 
-	convertedRun, err := convert.ToActionWorkflowRun(ctx, ctx.Repo.Repository, run, attempt)
+	convertedRun, err := convert.ToActionWorkflowRun(ctx, run, attempt)
 	if err != nil {
 		ctx.APIErrorInternal(err)
 		return
@@ -1330,7 +1336,7 @@ func RerunWorkflowRun(ctx *context.APIContext) {
 		return
 	}
 
-	convertedRun, err := convert.ToActionWorkflowRun(ctx, ctx.Repo.Repository, run, nil)
+	convertedRun, err := convert.ToActionWorkflowRun(ctx, run, nil)
 	if err != nil {
 		ctx.APIErrorInternal(err)
 		return
@@ -1870,7 +1876,7 @@ func GetArtifact(ctx *context.APIContext) {
 		return
 	}
 
-	if actions.IsArtifactV4(art) {
+	if actions_service.IsArtifactV4(art) {
 		convertedArtifact, err := convert.ToActionArtifact(ctx.Repo.Repository, art)
 		if err != nil {
 			ctx.APIErrorInternal(err)
@@ -1919,7 +1925,7 @@ func DeleteArtifact(ctx *context.APIContext) {
 		return
 	}
 
-	if actions.IsArtifactV4(art) {
+	if actions_service.IsArtifactV4(art) {
 		if err := actions_model.SetArtifactNeedDeleteByID(ctx, art.ID); err != nil {
 			ctx.APIErrorInternal(err)
 			return
@@ -1992,10 +1998,10 @@ func DownloadArtifact(ctx *context.APIContext) {
 		return
 	}
 
-	if actions.IsArtifactV4(art) {
+	if actions_service.IsArtifactV4(art) {
 		// @actions/toolkit asserts that downloaded artifacts of a different runid return 302
 		// https://github.com/actions/toolkit/blob/44d43b5490b02998bd09b0c4ff369a4cc67876c2/packages/artifact/src/internal/download/download-artifact.ts#L203-L210
-		if actions.DownloadArtifactV4ServeDirect(ctx.Base, art) {
+		if actions_service.DownloadArtifactV4ServeDirect(ctx.Base, art) {
 			return
 		}
 
@@ -2047,8 +2053,8 @@ func DownloadArtifactRaw(ctx *context.APIContext) {
 		ctx.APIError(http.StatusNotFound, "Artifact has expired")
 		return
 	}
-	if actions.IsArtifactV4(art) {
-		err := actions.DownloadArtifactV4(ctx.Base, art)
+	if actions_service.IsArtifactV4(art) {
+		err := actions_service.DownloadArtifactV4(ctx.Base, art)
 		if err != nil {
 			ctx.APIErrorInternal(err)
 			return

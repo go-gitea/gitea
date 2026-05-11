@@ -50,11 +50,7 @@ func (attempt *ActionRunAttempt) Duration() time.Duration {
 	return calculateDuration(attempt.Started, attempt.Stopped, attempt.Status, attempt.Updated)
 }
 
-func (attempt *ActionRunAttempt) LoadAttributes(ctx context.Context) error {
-	if attempt == nil {
-		return nil
-	}
-
+func (attempt *ActionRunAttempt) LoadAttributes(ctx context.Context) (err error) {
 	if attempt.Run == nil {
 		run, err := GetRunByRepoAndID(ctx, attempt.RepoID, attempt.RunID)
 		if err != nil {
@@ -67,11 +63,10 @@ func (attempt *ActionRunAttempt) LoadAttributes(ctx context.Context) error {
 	}
 
 	if attempt.TriggerUser == nil {
-		u, err := user_model.GetPossibleUserByID(ctx, attempt.TriggerUserID)
+		attempt.TriggerUserID, attempt.TriggerUser, err = user_model.GetPossibleUserByID(ctx, attempt.TriggerUserID)
 		if err != nil {
 			return err
 		}
-		attempt.TriggerUser = u
 	}
 
 	return nil

@@ -210,7 +210,7 @@ func CreateTeam(ctx *context.APIContext) {
 	//   "422":
 	//     "$ref": "#/responses/validationError"
 	form := web.GetForm(ctx).(*api.CreateTeamOption)
-	teamPermission := perm.ParseAccessMode(form.Permission, perm.AccessModeNone, perm.AccessModeAdmin)
+	teamPermission := perm.ParseAccessMode(string(form.Permission), perm.AccessModeNone, perm.AccessModeAdmin)
 	team := &organization.Team{
 		OrgID:                   ctx.Org.Organization.ID,
 		Name:                    form.Name,
@@ -224,7 +224,7 @@ func CreateTeam(ctx *context.APIContext) {
 		if len(form.UnitsMap) > 0 {
 			attachTeamUnitsMap(team, form.UnitsMap)
 		} else if len(form.Units) > 0 {
-			unitPerm := perm.ParseAccessMode(form.Permission, perm.AccessModeRead, perm.AccessModeWrite)
+			unitPerm := perm.ParseAccessMode(string(form.Permission), perm.AccessModeRead, perm.AccessModeWrite)
 			attachTeamUnits(team, unitPerm, form.Units)
 		} else {
 			ctx.APIErrorInternal(errors.New("units permission should not be empty"))
@@ -298,7 +298,7 @@ func EditTeam(ctx *context.APIContext) {
 	isAuthChanged := false
 	isIncludeAllChanged := false
 	if !team.IsOwnerTeam() && len(form.Permission) != 0 {
-		teamPermission := perm.ParseAccessMode(form.Permission, perm.AccessModeNone, perm.AccessModeAdmin)
+		teamPermission := perm.ParseAccessMode(string(form.Permission), perm.AccessModeNone, perm.AccessModeAdmin)
 		if team.AccessMode != teamPermission {
 			isAuthChanged = true
 			team.AccessMode = teamPermission
@@ -314,7 +314,7 @@ func EditTeam(ctx *context.APIContext) {
 		if len(form.UnitsMap) > 0 {
 			attachTeamUnitsMap(team, form.UnitsMap)
 		} else if len(form.Units) > 0 {
-			unitPerm := perm.ParseAccessMode(form.Permission, perm.AccessModeRead, perm.AccessModeWrite)
+			unitPerm := perm.ParseAccessMode(string(form.Permission), perm.AccessModeRead, perm.AccessModeWrite)
 			attachTeamUnits(team, unitPerm, form.Units)
 		}
 	} else {

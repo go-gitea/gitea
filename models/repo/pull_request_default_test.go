@@ -50,8 +50,8 @@ func TestPullRequestConfigFromDB(t *testing.T) {
 		{
 			// Realistic upgrade case: pre-PR JSON lacks the new fields and has AllowRebaseUpdate=false.
 			// Historical setting must be preserved while new fields take safe defaults.
-			name: "legacy without new fields",
-			json: `{"AllowMerge":true,"AllowRebase":true,"AllowRebaseMerge":true,"AllowSquash":true,"AllowRebaseUpdate":false}`,
+			name:            "legacy without new fields",
+			json:            `{"AllowMerge":true,"AllowRebase":true,"AllowRebaseMerge":true,"AllowSquash":true,"AllowRebaseUpdate":false}`,
 			wantMergeUpdate: true, wantRebaseUpdate: false,
 			wantDefaultStyle: UpdateStyleMerge, wantValidatesPass: true,
 		},

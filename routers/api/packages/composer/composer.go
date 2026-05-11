@@ -146,6 +146,7 @@ func PackageMetadata(ctx *context.Context) {
 	}
 
 	resp := createPackageMetadataResponse(
+		ctx,
 		setting.AppURL+"api/packages/"+ctx.Package.Owner.Name+"/composer",
 		pds,
 	)

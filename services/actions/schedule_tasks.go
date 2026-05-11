@@ -132,14 +132,22 @@ func CreateScheduleTask(ctx context.Context, spec *actions_model.ActionScheduleS
 }
 
 func withScheduleInEventPayload(eventPayload, schedule string) string {
-	if schedule == "" || eventPayload == "" {
+	if schedule == "" {
 		return eventPayload
 	}
 
-	event := map[string]any{}
-	if err := json.Unmarshal([]byte(eventPayload), &event); err != nil {
-		log.Error("withScheduleInEventPayload: unmarshal: %v", err)
-		return eventPayload
+	// eventPayload originates from json.Marshal(input.Payload) in handleSchedules,
+	// so a nil payload is stored as the literal "null" and pre-existing rows may be
+	// empty. Both cases start from a fresh map so the schedule field can still be set.
+	var event map[string]any
+	if eventPayload != "" {
+		if err := json.Unmarshal([]byte(eventPayload), &event); err != nil {
+			log.Error("withScheduleInEventPayload: unmarshal: %v", err)
+			return eventPayload
+		}
+	}
+	if event == nil {
+		event = map[string]any{}
 	}
 
 	event["schedule"] = schedule

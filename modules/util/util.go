@@ -15,6 +15,8 @@ import (
 	"strings"
 	"sync"
 
+	"code.gitea.io/gitea/modules/container"
+
 	"golang.org/x/text/cases"
 	"golang.org/x/text/language"
 )
@@ -290,4 +292,22 @@ func NormalizeStringEOL(input string) string {
 	// And users are unlikely to really need the "\r".
 	// Other than this, we should respect the original content, even leading or trailing spaces.
 	return UnsafeBytesToString(NormalizeEOL(UnsafeStringToBytes(input)))
+}
+
+func DiffSlice[T comparable](oldSlice, newSlice []T) (added, removed []T) {
+	oldSet := container.SetOf(oldSlice...)
+	newSet := container.SetOf(newSlice...)
+
+	addedSet, removedSet := container.Set[T]{}, container.Set[T]{}
+	for _, v := range newSlice {
+		if !oldSet.Contains(v) && addedSet.Add(v) {
+			added = append(added, v)
+		}
+	}
+	for _, v := range oldSlice {
+		if !newSet.Contains(v) && removedSet.Add(v) {
+			removed = append(removed, v)
+		}
+	}
+	return added, removed
 }

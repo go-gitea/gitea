@@ -48,8 +48,7 @@ func testAPIListReleasesWithWriteToken(t *testing.T) {
 
 	link, _ := url.Parse(fmt.Sprintf("/api/v1/repos/%s/%s/releases", user2.Name, repo.Name))
 	resp := MakeRequest(t, NewRequest(t, "GET", link.String()).AddTokenAuth(token), http.StatusOK)
-	var apiReleases []*api.Release
-	DecodeJSON(t, resp, &apiReleases)
+	apiReleases := DecodeJSON(t, resp, []*api.Release{})
 	if assert.Len(t, apiReleases, 3) {
 		for _, release := range apiReleases {
 			switch release.ID {
@@ -79,7 +78,7 @@ func testAPIListReleasesWithWriteToken(t *testing.T) {
 			req.AddTokenAuth(token)
 		}
 		resp = MakeRequest(t, req, http.StatusOK)
-		DecodeJSON(t, resp, &apiReleases)
+		apiReleases = DecodeJSON(t, resp, []*api.Release{})
 		assert.Len(t, apiReleases, expectedLength, msgAndArgs)
 	}
 
@@ -98,8 +97,7 @@ func testAPIListReleasesWithReadToken(t *testing.T) {
 
 	link, _ := url.Parse(fmt.Sprintf("/api/v1/repos/%s/%s/releases", user2.Name, repo.Name))
 	resp := MakeRequest(t, NewRequest(t, "GET", link.String()).AddTokenAuth(token), http.StatusOK)
-	var apiReleases []*api.Release
-	DecodeJSON(t, resp, &apiReleases)
+	apiReleases := DecodeJSON(t, resp, []*api.Release{})
 	if assert.Len(t, apiReleases, 2) {
 		for _, release := range apiReleases {
 			switch release.ID {
@@ -125,7 +123,7 @@ func testAPIListReleasesWithReadToken(t *testing.T) {
 			req.AddTokenAuth(token)
 		}
 		resp = MakeRequest(t, req, http.StatusOK)
-		DecodeJSON(t, resp, &apiReleases)
+		apiReleases = DecodeJSON(t, resp, []*api.Release{})
 		assert.Len(t, apiReleases, expectedLength, msgAndArgs)
 	}
 
@@ -152,8 +150,7 @@ func testAPIGetDraftRelease(t *testing.T) {
 
 	ownerToken := getUserToken(t, owner.LowerName, auth_model.AccessTokenScopeWriteRepository)
 	resp := MakeRequest(t, NewRequest(t, "GET", urlStr).AddTokenAuth(ownerToken), http.StatusOK)
-	var apiRelease api.Release
-	DecodeJSON(t, resp, &apiRelease)
+	apiRelease := DecodeJSON(t, resp, &api.Release{})
 	assert.Equal(t, release.Title, apiRelease.Title)
 }
 
@@ -169,8 +166,7 @@ func createNewReleaseUsingAPI(t *testing.T, token string, owner *user_model.User
 	}).AddTokenAuth(token)
 	resp := MakeRequest(t, req, http.StatusCreated)
 
-	var newRelease api.Release
-	DecodeJSON(t, resp, &newRelease)
+	newRelease := DecodeJSON(t, resp, &api.Release{})
 	rel := &repo_model.Release{
 		ID:      newRelease.ID,
 		TagName: newRelease.TagName,
@@ -179,7 +175,7 @@ func createNewReleaseUsingAPI(t *testing.T, token string, owner *user_model.User
 	unittest.AssertExistsAndLoadBean(t, rel)
 	assert.Equal(t, newRelease.Note, rel.Note)
 
-	return &newRelease
+	return newRelease
 }
 
 func TestAPICreateAndUpdateRelease(t *testing.T) {
@@ -207,8 +203,7 @@ func TestAPICreateAndUpdateRelease(t *testing.T) {
 		AddTokenAuth(token)
 	resp := MakeRequest(t, req, http.StatusOK)
 
-	var release api.Release
-	DecodeJSON(t, resp, &release)
+	release := DecodeJSON(t, resp, &api.Release{})
 
 	assert.Equal(t, newRelease.TagName, release.TagName)
 	assert.Equal(t, newRelease.Title, release.Title)
@@ -224,7 +219,7 @@ func TestAPICreateAndUpdateRelease(t *testing.T) {
 	}).AddTokenAuth(token)
 	resp = MakeRequest(t, req, http.StatusOK)
 
-	DecodeJSON(t, resp, &newRelease)
+	newRelease = DecodeJSON(t, resp, &api.Release{})
 	rel := &repo_model.Release{
 		ID:      newRelease.ID,
 		TagName: newRelease.TagName,
@@ -353,8 +348,7 @@ func testAPIGetDraftReleaseByTag(t *testing.T) {
 	token := getUserToken(t, "user40", auth_model.AccessTokenScopeReadRepository)
 	req = NewRequest(t, "GET", fmt.Sprintf("/api/v1/repos/%s/%s/releases/tags/%s", owner.Name, repo.Name, tag)).AddTokenAuth(token)
 	resp := MakeRequest(t, req, http.StatusOK)
-	release := api.Release{}
-	DecodeJSON(t, resp, &release)
+	release := DecodeJSON(t, resp, &api.Release{})
 	assert.Equal(t, "draft-release", release.Title)
 
 	// remove user 40 access from the repository
@@ -369,8 +363,7 @@ func testAPIGetDraftReleaseByTag(t *testing.T) {
 	user2Token := getUserToken(t, "user2", auth_model.AccessTokenScopeReadRepository)
 	req = NewRequest(t, "GET", fmt.Sprintf("/api/v1/repos/%s/%s/releases/tags/%s", owner.Name, repo.Name, tag)).AddTokenAuth(user2Token)
 	resp = MakeRequest(t, req, http.StatusOK)
-	release = api.Release{}
-	DecodeJSON(t, resp, &release)
+	release = DecodeJSON(t, resp, &api.Release{})
 	assert.Equal(t, "draft-release", release.Title)
 }
 
@@ -439,15 +432,13 @@ func TestAPIUploadAssetRelease(t *testing.T) {
 
 		t.Run("UploadDefaultName", func(t *testing.T) {
 			resp := performUpload(t, assetURL, bufImageBytes, http.StatusCreated)
-			var attachment api.Attachment
-			DecodeJSON(t, resp, &attachment)
+			attachment := DecodeJSON(t, resp, &api.Attachment{})
 			assert.Equal(t, filename, attachment.Name)
 			assert.EqualValues(t, 104, attachment.Size)
 		})
 		t.Run("UploadWithName", func(t *testing.T) {
 			resp := performUpload(t, assetURL+"?name=test-asset", bufImageBytes, http.StatusCreated)
-			var attachment api.Attachment
-			DecodeJSON(t, resp, &attachment)
+			attachment := DecodeJSON(t, resp, &api.Attachment{})
 			assert.Equal(t, "test-asset", attachment.Name)
 			assert.EqualValues(t, 104, attachment.Size)
 		})
@@ -465,8 +456,7 @@ func TestAPIUploadAssetRelease(t *testing.T) {
 		req = NewRequestWithBody(t, http.MethodPost, assetURL+"?name=stream.bin", bytes.NewReader(bufImageBytes)).AddTokenAuth(token)
 		resp := MakeRequest(t, req, http.StatusCreated)
 
-		var attachment api.Attachment
-		DecodeJSON(t, resp, &attachment)
+		attachment := DecodeJSON(t, resp, &api.Attachment{})
 
 		assert.Equal(t, "stream.bin", attachment.Name)
 		assert.EqualValues(t, 104, attachment.Size)

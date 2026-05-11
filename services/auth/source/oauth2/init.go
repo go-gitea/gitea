@@ -72,7 +72,7 @@ func initOAuth2Sources(ctx context.Context) error {
 		}
 		err := oauth2Source.RegisterSource()
 		if err != nil {
-			log.Critical("Unable to register source: %s due to Error: %v.", source.Name, err)
+			log.Error("Unable to register source: %s due to Error: %v.", source.Name, err)
 		}
 	}
 	return nil

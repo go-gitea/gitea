@@ -340,10 +340,10 @@ func (ctx *APIContext) IsUserSiteAdmin() bool {
 
 // IsUserRepoAdmin returns true if current user is admin in current repo
 func (ctx *APIContext) IsUserRepoAdmin() bool {
-	return ctx.Repo.IsAdmin()
+	return ctx.Repo.Permission.IsAdmin()
 }
 
 // IsUserRepoWriter returns true if current user has "write" privilege in current repo
 func (ctx *APIContext) IsUserRepoWriter(unitTypes []unit.Type) bool {
-	return slices.ContainsFunc(unitTypes, ctx.Repo.CanWrite)
+	return slices.ContainsFunc(unitTypes, ctx.Repo.Permission.CanWrite)
 }

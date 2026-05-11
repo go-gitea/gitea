@@ -7,6 +7,7 @@ import (
 	"context"
 
 	"code.gitea.io/gitea/models/db"
+	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/container"
 	"code.gitea.io/gitea/modules/translation"
@@ -17,27 +18,39 @@ import (
 
 type RunList []*ActionRun
 
-// GetUserIDs returns a slice of user's id
-func (runs RunList) GetUserIDs() []int64 {
-	return container.FilterSlice(runs, func(run *ActionRun) (int64, bool) {
-		return run.TriggerUserID, true
-	})
-}
-
 func (runs RunList) LoadTriggerUser(ctx context.Context) error {
-	userIDs := runs.GetUserIDs()
+	userIDs := container.FilterSlice(runs, func(run *ActionRun) (int64, bool) {
+		return run.TriggerUserID, run.TriggerUser == nil
+	})
 	users := make(map[int64]*user_model.User, len(userIDs))
 	if err := db.GetEngine(ctx).In("id", userIDs).Find(&users); err != nil {
 		return err
 	}
 	for _, run := range runs {
-		if run.TriggerUserID == user_model.ActionsUserID {
-			run.TriggerUser = user_model.NewActionsUser()
-		} else {
-			run.TriggerUser = users[run.TriggerUserID]
-			if run.TriggerUser == nil {
-				run.TriggerUser = user_model.NewGhostUser()
-			}
+		if run.TriggerUser != nil {
+			continue
+		}
+		run.TriggerUser = users[run.TriggerUserID]
+		if run.TriggerUserID < 0 {
+			run.TriggerUserID, run.TriggerUser, _ = user_model.GetPossibleUserByID(ctx, run.TriggerUserID)
+		} else if run.TriggerUser == nil {
+			run.TriggerUserID, run.TriggerUser, _ = user_model.GetPossibleUserByID(ctx, user_model.GhostUserID)
+		}
+	}
+	return nil
+}
+
+func (runs RunList) LoadRepos(ctx context.Context) error {
+	repoIDs := container.FilterSlice(runs, func(run *ActionRun) (int64, bool) {
+		return run.RepoID, run.Repo == nil
+	})
+	repos, err := repo_model.GetRepositoriesMapByIDs(ctx, repoIDs)
+	if err != nil {
+		return err
+	}
+	for _, run := range runs {
+		if run.Repo == nil {
+			run.Repo = repos[run.RepoID]
 		}
 	}
 	return nil

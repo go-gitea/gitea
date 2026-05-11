@@ -48,7 +48,7 @@ func GetImageCaptcha() *captcha.Captcha {
 const (
 	gRecaptchaResponseField  = "g-recaptcha-response"
 	hCaptchaResponseField    = "h-captcha-response"
-	mCaptchaResponseField    = "m-captcha-response"
+	mCaptchaResponseField    = "mcaptcha__token" // this form key is hard-coded in the mcaptcha frontend library
 	cfTurnstileResponseField = "cf-turnstile-response"
 )
 
