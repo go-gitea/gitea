@@ -431,14 +431,7 @@ func MoveGroup(ctx context.Context, group *Group, newParent int64, newSortOrder 
 			return err
 		}
 	}
-
-	withoutCurrent := tmpSiblings[0:group.SortOrder]
-	itemsUpper := tmpSiblings[min(group.SortOrder+1, len(tmpSiblings)-1):]
-	withoutCurrent = append(withoutCurrent, itemsUpper...)
-
-	siblings = append(siblings, withoutCurrent[:newSortOrder]...)
-	siblings = append(siblings, group)
-	siblings = append(siblings, withoutCurrent[newSortOrder:]...)
+	siblings = util.SliceInsert(util.SliceRemove(tmpSiblings, group.SortOrder), group, newSortOrder)
 
 	parentGroupChain, err := GetParentGroupChain(ctx, newParent)
 	if err != nil {
@@ -453,6 +446,9 @@ func MoveGroup(ctx context.Context, group *Group, newParent int64, newSortOrder 
 	if err != nil {
 		return err
 	}
+
+	oldParentID := group.ParentGroupID
+
 	group.OwnerName = group.Owner.Name
 	group.ParentGroupID = newParent
 	group.SortOrder = newSortOrder
@@ -473,6 +469,23 @@ func MoveGroup(ctx context.Context, group *Group, newParent int64, newSortOrder 
 			return err
 		}
 	}
+
+	// re-index items in old parent if different
+	if newParent != oldParentID {
+		oldItems, err := FindGroups(ctx, &FindGroupsOptions{
+			ParentGroupID: oldParentID,
+		})
+		for i, item := range oldItems {
+			item.SortOrder = i
+			if _, err = sess.Table(group.TableName()).
+				ID(item.ID).
+				Cols("sort_order").
+				Update(item); err != nil {
+				return err
+			}
+		}
+	}
+
 	return nil
 }
 

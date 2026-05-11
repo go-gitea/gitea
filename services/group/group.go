@@ -17,7 +17,6 @@ import (
 	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/gitrepo"
-	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/util"
 )
@@ -93,14 +92,55 @@ func MoveRepositoryToGroup(ctx context.Context, repo *repo_model.Repository, new
 			return fmt.Errorf("repo[%d]'s ownerID is not equal to new parent group[%d]'s owner ID", repo.ID, newGroup.ID)
 		}
 	}
+	oldGroupID := repo.GroupID
+
 	repo.GroupID = newGroupID
 	repo.GroupSortOrder = groupSortOrder
-	cnt, err := sess.
+	_, err := sess.
 		Table("repository").
 		ID(repo.ID).
-		MustCols("group_id").
+		MustCols("group_id", "group_sort_order").
 		Update(repo)
-	log.Info("updated %d rows?", cnt)
+
+	newSiblings, _, err := repo_model.SearchRepository(ctx, repo_model.SearchRepoOptions{
+		GroupID: repo.GroupID,
+		OrderBy: "group_sort_order ASC",
+	})
+	if err != nil {
+		return err
+	}
+	for i, newSibling := range newSiblings {
+		newSibling.GroupSortOrder = i
+		_, err = sess.
+			Table("repository").
+			ID(newSibling.ID).
+			MustCols("group_id", "group_sort_order").
+			Update(newSibling)
+		if err != nil {
+			return err
+		}
+	}
+
+	// re-index items in old parent group
+	if oldGroupID != repo.GroupID {
+		prevSiblings, _, err := repo_model.SearchRepository(ctx,
+			repo_model.SearchRepoOptions{
+				GroupID: oldGroupID,
+				OrderBy: "group_sort_order ASC",
+			})
+		for i, prevSibling := range prevSiblings {
+			prevSibling.GroupSortOrder = i
+			_, err = sess.
+				Table("repository").
+				ID(prevSibling.ID).
+				MustCols("group_id", "group_sort_order").
+				Update(prevSibling)
+			if err != nil {
+				return err
+			}
+		}
+	}
+
 	return err
 }
 
