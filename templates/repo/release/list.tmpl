@@ -111,6 +111,18 @@
 				</li>
 			{{end}}
 		</ul>
+		{{if not .Releases}}
+			<div class="empty-placeholder">
+				{{svg "octicon-tag" 48}}
+				<h2>{{ctx.Locale.Tr "repo.release.no_releases"}}</h2>
+				<p>{{ctx.Locale.Tr "repo.release.no_releases_desc"}}</p>
+				{{if .CanCreateRelease}}
+					<a class="ui primary button tw-mt-4" href="{{$.RepoLink}}/releases/new">
+						{{ctx.Locale.Tr "repo.release.new_release"}}
+					</a>
+				{{end}}
+			</div>
+		{{end}}
 
 		{{template "base/paginate" .}}
 	</div>
