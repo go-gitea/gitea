@@ -220,6 +220,7 @@ func GetRunJobsByRunAndAttemptID(ctx context.Context, runID, runAttemptID int64)
 		if cmp := base.NaturalSortCompare(a.JobID, b.JobID); cmp != 0 {
 			return cmp
 		}
+		// when using matrix, the JobID values are the same, then compare names
 		return base.NaturalSortCompare(a.Name, b.Name)
 	})
 	return jobs, nil
