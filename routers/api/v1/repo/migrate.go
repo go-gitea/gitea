@@ -189,7 +189,7 @@ func Migrate(ctx *context.APIContext) {
 		DoerID:         ctx.Doer.ID,
 		OwnerID:        repoOwner.ID,
 		Type:           api.TaskTypeMigrateRepo,
-		Status:         api.TaskStatusQueued,
+		Status:         api.TaskStatusRunning,
 		PayloadContent: string(jsonMarshalledOpts),
 	}
 
