@@ -8,6 +8,7 @@ import (
 
 	"code.gitea.io/gitea/models/unit"
 	"code.gitea.io/gitea/models/unittest"
+	"code.gitea.io/gitea/modules/util"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -72,6 +73,40 @@ func TestPullRequestConfigFromDB(t *testing.T) {
 			if tc.wantValidatesPass {
 				assert.NoError(t, cfg.ValidateUpdateSettings())
 			}
+		})
+	}
+}
+
+func TestPullRequestConfigValidateUpdateSettingsInvalidArgument(t *testing.T) {
+	cases := []struct {
+		name string
+		cfg  PullRequestsConfig
+	}{
+		{
+			name: "invalid default style",
+			cfg: PullRequestsConfig{
+				AllowMergeUpdate:   true,
+				AllowRebaseUpdate:  true,
+				DefaultUpdateStyle: "invalid",
+			},
+		},
+		{
+			name: "no update style enabled",
+			cfg: PullRequestsConfig{
+				DefaultUpdateStyle: UpdateStyleMerge,
+			},
+		},
+		{
+			name: "default update style disabled",
+			cfg: PullRequestsConfig{
+				AllowRebaseUpdate:  true,
+				DefaultUpdateStyle: UpdateStyleMerge,
+			},
+		},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			assert.ErrorIs(t, tc.cfg.ValidateUpdateSettings(), util.ErrInvalidArgument)
 		})
 	}
 }

@@ -635,16 +635,7 @@ func handleSettingsPostAdvanced(ctx *context.Context) {
 			DefaultTargetBranch:           strings.TrimSpace(form.DefaultTargetBranch),
 		}
 		if err := prConfig.ValidateUpdateSettings(); err != nil {
-			switch {
-			case errors.Is(err, repo_model.ErrInvalidDefaultUpdateStyle):
-				ctx.Flash.Error(ctx.Tr("repo.settings.pulls.invalid_update_style"))
-			case errors.Is(err, repo_model.ErrNoUpdateStyleEnabled):
-				ctx.Flash.Error(ctx.Tr("repo.settings.pulls.update_style_required"))
-			case errors.Is(err, repo_model.ErrDefaultUpdateStyleNotAllowed):
-				ctx.Flash.Error(ctx.Tr("repo.settings.pulls.default_update_style_not_allowed"))
-			default:
-				ctx.Flash.Error(err.Error())
-			}
+			ctx.Flash.Error(err.Error())
 			ctx.Redirect(repo.Link() + "/settings")
 			return
 		}
