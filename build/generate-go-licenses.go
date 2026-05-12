@@ -58,12 +58,35 @@ type LicenseEntry struct {
 // getModules returns all dependency modules with their local directory paths
 // and the package directories used from each module.
 func getModules(goCmd string) []ModuleInfo {
-	cmd := exec.Command(goCmd, "list", "-deps", "-f",
-		"{{if .Module}}{{.Module.Path}}\t{{.Module.Dir}}\t{{.Dir}}{{end}}", "./...")
-	cmd.Stderr = os.Stderr
 	// Use GOOS=linux with CGO to ensure we capture all platform-specific
 	// dependencies, matching the CI environment.
-	cmd.Env = append(os.Environ(), "GOOS=linux", "GOARCH=amd64", "CGO_ENABLED=1")
+	env := append(os.Environ(), "GOOS=linux", "GOARCH=amd64", "CGO_ENABLED=1")
+
+	// Enumerate gitea packages, dropping the lint-only customlint subtree
+	// so its dev-only deps don't show up in the runtime license list.
+	listCmd := exec.Command(goCmd, "list", "./...")
+	listCmd.Stderr = os.Stderr
+	listCmd.Env = env
+	listOut, err := listCmd.Output()
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "failed to run 'go list ./...': %v\n", err)
+		os.Exit(1)
+	}
+	var pkgs []string
+	for _, line := range strings.Split(string(listOut), "\n") {
+		pkg := strings.TrimSpace(line)
+		if pkg == "" || pkg == "code.gitea.io/gitea/tools/customlint" ||
+			strings.HasPrefix(pkg, "code.gitea.io/gitea/tools/customlint/") {
+			continue
+		}
+		pkgs = append(pkgs, pkg)
+	}
+
+	args := append([]string{"list", "-deps", "-f",
+		"{{if .Module}}{{.Module.Path}}\t{{.Module.Dir}}\t{{.Dir}}{{end}}"}, pkgs...)
+	cmd := exec.Command(goCmd, args...)
+	cmd.Stderr = os.Stderr
+	cmd.Env = env
 	output, err := cmd.Output()
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "failed to run 'go list -deps': %v\n", err)

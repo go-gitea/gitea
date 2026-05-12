@@ -19,7 +19,8 @@ _test
 /gitea_*
 
 # MS VSCode
-.vscode
+.vscode/*
+!/.vscode/settings.json
 __debug_bin*
 
 # Visual Studio
@@ -61,6 +62,7 @@ cpu.out
 /dist
 /custom/*
 !/custom/conf/app.example.ini
+/tools/custom-gcl*
 /data
 /indexers
 /log

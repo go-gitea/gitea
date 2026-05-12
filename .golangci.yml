@@ -5,6 +5,7 @@ output:
 linters:
   default: none
   enable:
+    - customlint
     - bidichk
     - bodyclose
     - depguard
@@ -31,6 +32,9 @@ linters:
     - usetesting
     - wastedassign
   settings:
+    custom:
+      customlint:
+        type: module
     depguard:
       rules:
         main:
