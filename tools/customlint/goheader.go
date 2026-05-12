@@ -19,10 +19,10 @@ var (
 var goheaderAnalyzer = &analysis.Analyzer{
 	Name: "goheader",
 	Doc:  "checks Gitea copyright/SPDX file headers",
-	Run:  runGoheader,
+	Run:  runGoHeader,
 }
 
-func runGoheader(pass *analysis.Pass) (any, error) {
+func runGoHeader(pass *analysis.Pass) (any, error) {
 	for _, file := range pass.Files {
 		filename := pass.Fset.Position(file.Pos()).Filename
 		f, err := os.Open(filename)
