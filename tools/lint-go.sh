@@ -1,7 +1,4 @@
 #!/usr/bin/env bash
-# Copyright 2026 The Gitea Authors. All rights reserved.
-# SPDX-License-Identifier: MIT
-#
 # Builds tools/custom-gcl on demand, then runs it.
 set -euo pipefail
 cd "$(dirname -- "${BASH_SOURCE[0]}")/.."
