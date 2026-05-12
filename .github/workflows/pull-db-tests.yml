@@ -105,7 +105,7 @@ jobs:
           TAGS: bindata gogit
           GOEXPERIMENT:
 
-  test-unit-nogogit:
+  test-unit:
     if: needs.files-changed.outputs.backend == 'true' || needs.files-changed.outputs.actions == 'true'
     needs: files-changed
     runs-on: ubuntu-latest
@@ -159,37 +159,21 @@ jobs:
       - run: make generate-go
         env:
           TAGS: bindata
-      - run: make test-backend test-check
+      - name: unit tests (bindata)
+        run: make test-backend
         env:
           GOTEST_FLAGS: -race -timeout=20m
           TAGS: bindata
           GITHUB_READ_TOKEN: ${{ secrets.GITHUB_READ_TOKEN }}
-
-  test-unit-gogit:
-    if: needs.files-changed.outputs.backend == 'true' || needs.files-changed.outputs.actions == 'true'
-    needs: files-changed
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
-      - uses: actions/setup-go@4a3601121dd01d1626a1e23e37211e3254c1c06c # v6.4.0
-        with:
-          go-version-file: go.mod
-          check-latest: true
-          cache: false
-      - uses: ./.github/actions/go-cache
-        with:
-          cache-name: seed
-      - run: make deps-backend
-      - run: make generate-go
-        env:
-          TAGS: bindata
-      - run: make test-backend test-check
+      - name: unit tests (bindata gogit)
+        run: make test-backend
         env:
           GOTEST_FLAGS: -race -timeout=20m
           TAGS: bindata gogit
           GOEXPERIMENT:
           GITHUB_READ_TOKEN: ${{ secrets.GITHUB_READ_TOKEN }}
           GITEA_TEST_CI_SKIP_EXTERNAL: true
+      - run: make test-check
 
   test-mysql:
     if: needs.files-changed.outputs.backend == 'true' || needs.files-changed.outputs.actions == 'true'

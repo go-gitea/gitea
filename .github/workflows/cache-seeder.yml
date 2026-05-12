@@ -1,15 +1,9 @@
-# Populates the go module, build, and golangci-lint caches under the default
-# branch's cache scope so that PR runs have a warm fallback to restore from.
+# Populates main's cache scope so PR runs warm-start from it. Saves the go
+# module, go build (incl. test compile), and golangci-lint caches.
 #
-# GitHub Actions caches are scoped per ref: a PR run can only write to its own
-# branch's scope, but can read from the base branch's scope as a fallback.
-# PRs therefore cannot seed main's scope themselves. Running the same cache
-# steps on push-to-main is the only opportunity to populate that fallback
-# scope so fresh PR branches start with a useful cache on first run.
-
-# A PR job's exact key lives in its own PR-scope (empty on first run, filled
-# by later runs of the same PR); on miss, actions/cache's restore-keys fall
-# back to prefix matches against entries this seeder saves in main's scope.
+# Caches are ref-scoped: PR runs read their own scope then fall back to the
+# base branch. Per .github/actions/go-cache/action.yml, PRs are restore-only,
+# so push-to-main is the only opportunity to populate the fallback scope.
 
 name: cache-seeder
 
@@ -46,6 +40,17 @@ jobs:
       - run: make deps-backend
       - run: TAGS="bindata" make backend
       - run: TAGS="bindata gogit" GOEXPERIMENT="" make backend
+      - name: warm test compile cache (bindata)
+        env:
+          TAGS: bindata
+          GOTEST_FLAGS: -race -list=^$$ -count=1
+        run: make test-backend
+      - name: warm test compile cache (bindata gogit)
+        env:
+          TAGS: bindata gogit
+          GOEXPERIMENT:
+          GOTEST_FLAGS: -race -list=^$$ -count=1
+        run: make test-backend
 
   lint:
     runs-on: ubuntu-latest
