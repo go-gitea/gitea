@@ -92,9 +92,9 @@ func main() {
 	_, _ = fmt.Fprintln(os.Stdout, "lint go header ...")
 	succeed := lintGoHeader()
 	_, _ = fmt.Fprintln(os.Stdout, "lint for linux ...")
-	succeed = runCmd([]string{"GOOS=linux", "TAGS=bindata"}, "golangci-lint", append([]string{"run"}, os.Args[1:]...)) && succeed
+	succeed = runCmd([]string{"GOOS=linux", "TAGS=bindata"}, "golangci-lint", append([]string{"run", "--build-tags=linux,bindata"}, os.Args[1:]...)) && succeed
 	_, _ = fmt.Fprintln(os.Stdout, "lint for windows ...")
-	succeed = runCmd([]string{"GOOS=windows", "TAGS=gogit"}, "golangci-lint", append([]string{"run"}, os.Args[1:]...)) && succeed
+	succeed = runCmd([]string{"GOOS=windows", "TAGS=gogit"}, "golangci-lint", append([]string{"run", "--build-tags=windows,gogit"}, os.Args[1:]...)) && succeed
 	if !succeed {
 		os.Exit(1)
 	}
