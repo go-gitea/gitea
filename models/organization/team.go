@@ -101,6 +101,15 @@ func (t *Team) IsVisible() bool {
 	return t.Visibility == TeamVisibilityVisible
 }
 
+// NormalizeTeamVisibility returns a valid visibility value. Any input other
+// than "visible" is normalized to "secret".
+func NormalizeTeamVisibility(s string) string {
+	if s == TeamVisibilityVisible {
+		return TeamVisibilityVisible
+	}
+	return TeamVisibilitySecret
+}
+
 func init() {
 	db.RegisterModel(new(Team))
 	db.RegisterModel(new(TeamUser))

@@ -733,10 +733,6 @@ func ToTeams(ctx context.Context, teams []*organization.Team, loadOrgs bool) ([]
 			return nil, err
 		}
 
-		visibility := t.Visibility
-		if visibility == "" {
-			visibility = organization.TeamVisibilitySecret
-		}
 		apiTeam := &api.Team{
 			ID:                      t.ID,
 			Name:                    t.Name,
@@ -746,7 +742,7 @@ func ToTeams(ctx context.Context, teams []*organization.Team, loadOrgs bool) ([]
 			Permission:              api.AccessLevelName(t.AccessMode.ToString()),
 			Units:                   t.GetUnitNames(),
 			UnitsMap:                t.GetUnitsMap(),
-			Visibility:              visibility,
+			Visibility:              organization.NormalizeTeamVisibility(t.Visibility),
 		}
 
 		if loadOrgs {

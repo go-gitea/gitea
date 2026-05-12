@@ -371,11 +371,6 @@ func NewTeamPost(ctx *context.Context) {
 	teamPermission := perm.ParseAccessMode(form.Permission, perm.AccessModeNone, perm.AccessModeAdmin)
 	unitPerms := getUnitPerms(ctx.Req.Form, teamPermission)
 
-	visibility := form.Visibility
-	if visibility != org_model.TeamVisibilityVisible {
-		visibility = org_model.TeamVisibilitySecret
-	}
-
 	t := &org_model.Team{
 		OrgID:                   ctx.Org.Organization.ID,
 		Name:                    form.TeamName,
@@ -383,7 +378,7 @@ func NewTeamPost(ctx *context.Context) {
 		AccessMode:              teamPermission,
 		IncludesAllRepositories: includesAllRepositories,
 		CanCreateOrgRepo:        form.CanCreateOrgRepo,
-		Visibility:              visibility,
+		Visibility:              org_model.NormalizeTeamVisibility(form.Visibility),
 	}
 
 	units := make([]*org_model.TeamUnit, 0, len(unitPerms))
@@ -563,11 +558,7 @@ func EditTeamPost(ctx *context.Context) {
 			t.IncludesAllRepositories = includesAllRepositories
 		}
 		t.CanCreateOrgRepo = form.CanCreateOrgRepo
-		if form.Visibility == org_model.TeamVisibilityVisible {
-			t.Visibility = org_model.TeamVisibilityVisible
-		} else {
-			t.Visibility = org_model.TeamVisibilitySecret
-		}
+		t.Visibility = org_model.NormalizeTeamVisibility(form.Visibility)
 	} else {
 		t.CanCreateOrgRepo = true
 		// The owner team must remain listable to all org members.
