@@ -11,8 +11,6 @@ import (
 	"golang.org/x/tools/go/analysis"
 )
 
-const headerScanLimit = 512
-
 var (
 	headerRE    = regexp.MustCompile(`^(// (Copyright [^\n]+|All rights reserved\.)\n)*// Copyright \d{4} (The Gogs Authors|The Gitea Authors|Gitea Authors|Gitea)\.( All rights reserved\.)?\n(// (Copyright [^\n]+|All rights reserved\.)\n)*// SPDX-License-Identifier: [\w.-]+`)
 	generatedRE = regexp.MustCompile(`(?m)^// (Code|This file is) [Gg]enerated.*DO NOT EDIT`)
@@ -31,7 +29,7 @@ func runGoheader(pass *analysis.Pass) (any, error) {
 		if err != nil {
 			return nil, err
 		}
-		data, err := io.ReadAll(io.LimitReader(f, headerScanLimit))
+		data, err := io.ReadAll(io.LimitReader(f, 512))
 		_ = f.Close()
 		if err != nil {
 			return nil, err
