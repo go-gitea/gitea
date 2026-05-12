@@ -89,7 +89,9 @@ func NewGroup(ctx *context.APIContext) {
 	//   "422":
 	//     "$ref": "#/responses/validationError"
 	ag := createCommonGroup(ctx, 0, ctx.Org.Organization.ID)
-	ctx.JSON(http.StatusCreated, ag)
+	if !ctx.Written() {
+		ctx.JSON(http.StatusCreated, ag)
+	}
 }
 
 // NewSubGroup create a new subgroup inside a group
@@ -125,7 +127,9 @@ func NewSubGroup(ctx *context.APIContext) {
 	)
 	gid := ctx.PathParamInt64("group_id")
 	group = createCommonGroup(ctx, gid, 0)
-	ctx.JSON(http.StatusCreated, group)
+	if !ctx.Written() {
+		ctx.JSON(http.StatusCreated, group)
+	}
 }
 
 // MoveGroup - move a group to a different group in the same organization, or to the root level if
