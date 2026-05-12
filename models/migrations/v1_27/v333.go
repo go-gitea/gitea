@@ -14,8 +14,14 @@ func (teamWithVisibility) TableName() string {
 }
 
 func AddVisibilityToTeam(x *xorm.Engine) error {
-	_, err := x.SyncWithOptions(xorm.SyncOptions{
+	if _, err := x.SyncWithOptions(xorm.SyncOptions{
 		IgnoreDropIndices: true,
-	}, new(teamWithVisibility))
+	}, new(teamWithVisibility)); err != nil {
+		return err
+	}
+
+	// Owner teams must remain listable to all org members; new orgs create
+	// them as visible, so make existing owner teams visible too.
+	_, err := x.Exec("UPDATE `team` SET visibility = ? WHERE lower_name = ?", "visible", "owners")
 	return err
 }
