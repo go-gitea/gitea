@@ -76,8 +76,6 @@ func getModules(goCmd string) []ModuleInfo {
 	// dependencies, matching the CI environment.
 	env := append(os.Environ(), "GOOS=linux", "GOARCH=amd64", "CGO_ENABLED=1")
 
-	// Enumerate gitea packages, dropping excludedModules so their dev-only
-	// deps don't show up in the runtime license list.
 	listCmd := exec.Command(goCmd, "list", "./...")
 	listCmd.Stderr = os.Stderr
 	listCmd.Env = env
