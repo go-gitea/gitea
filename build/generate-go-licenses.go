@@ -33,7 +33,6 @@ var ignoredNames = map[string]bool{
 	"code.gitea.io/gitea/options/license": true,
 }
 
-// excludedModules are package path prefixes skipped during license enumeration
 var excludedModules = []string{
 	"code.gitea.io/gitea/tools/customlint",
 }
