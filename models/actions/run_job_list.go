@@ -84,8 +84,8 @@ type FindRunJobOptions struct {
 }
 
 var JobOrderByMap = map[string]map[string]db.SearchOrderBy{
-	"asc":  {"id": db.SearchOrderByID},
-	"desc": {"id": db.SearchOrderByIDReverse},
+	"asc":  {"id": "`action_run_job`.id ASC"},
+	"desc": {"id": "`action_run_job`.id DESC"},
 }
 
 func (opts FindRunJobOptions) ToConds() builder.Cond {
