@@ -1,5 +1,4 @@
 import {hideElem, showElem, toggleElem} from '../utils/dom.ts';
-import {GET, POST} from '../modules/fetch.ts';
 import {sanitizeRepoName} from './repo-common.ts';
 
 const service = document.querySelector<HTMLInputElement>('#service_type');
