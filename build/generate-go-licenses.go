@@ -82,8 +82,10 @@ func getModules(goCmd string) []ModuleInfo {
 		pkgs = append(pkgs, pkg)
 	}
 
-	args := append([]string{"list", "-deps", "-f",
-		"{{if .Module}}{{.Module.Path}}\t{{.Module.Dir}}\t{{.Dir}}{{end}}"}, pkgs...)
+	args := append([]string{
+		"list", "-deps", "-f",
+		"{{if .Module}}{{.Module.Path}}\t{{.Module.Dir}}\t{{.Dir}}{{end}}",
+	}, pkgs...)
 	cmd := exec.Command(goCmd, args...)
 	cmd.Stderr = os.Stderr
 	cmd.Env = env
