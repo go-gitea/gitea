@@ -18,19 +18,15 @@ elif ! "$BIN" version 2>/dev/null | grep -q "$GOLANGCI_LINT_VERSION"; then
 fi
 
 if $NEEDS_BUILD; then
-  TMP_DIR="$(mktemp -d)"
-  trap 'rm -rf "$TMP_DIR"' EXIT
-  REPO_ROOT="$(pwd)"
-  ESC_REPO_ROOT="${REPO_ROOT//\'/\'\'}"
-  cat > "$TMP_DIR/.custom-gcl.yml" <<EOF
+  cat > .custom-gcl.yml <<EOF
 version: '$GOLANGCI_LINT_VERSION'
-destination: '$ESC_REPO_ROOT/tools'
+destination: tools
 plugins:
   - module: code.gitea.io/gitea
-    path: '$ESC_REPO_ROOT'
+    path: .
     import: code.gitea.io/gitea/tools/customlint
 EOF
-  (cd "$TMP_DIR" && "$GO" run "$GOLANGCI_LINT_PACKAGE" custom)
+  "$GO" run "$GOLANGCI_LINT_PACKAGE" custom
 fi
 
 exec "$BIN" run "$@"
