@@ -32,7 +32,6 @@ var ignoredNames = map[string]bool{
 	"code.gitea.io/gitea":                        true,
 	"code.gitea.io/gitea/options/license":        true,
 	"github.com/golangci/plugin-module-register": true, // lint-only, used by tools/customlint
-	"golang.org/x/tools":                         true, // lint-only, used by tools/customlint
 }
 
 var excludedExt = map[string]bool{
