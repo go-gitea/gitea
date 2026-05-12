@@ -31,7 +31,7 @@ var primaryLicenseRe = regexp.MustCompile(`^(?i)(LICEN[SC]E|COPYING)$`)
 var ignoredNames = map[string]bool{
 	"code.gitea.io/gitea":                        true,
 	"code.gitea.io/gitea/options/license":        true,
-	"github.com/golangci/plugin-module-register": true, // lint-only, used by tools/customlint
+	"github.com/golangci/plugin-module-register": true,
 }
 
 var excludedExt = map[string]bool{
