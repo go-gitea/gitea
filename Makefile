@@ -331,7 +331,7 @@ lint-spell-fix: ## lint spelling and fix issues
 	@git ls-files $(SPELLCHECK_FILES) | xargs go run $(MISSPELL_PACKAGE) -dict assets/misspellings.csv -w
 
 .PHONY: lint-go
-lint-go: ## lint go files
+lint-go: generate-go ## lint go files
 	GO=$(GO) GOLANGCI_LINT_PACKAGE=$(GOLANGCI_LINT_PACKAGE) $(GO) run ./tools/lint-go-all.go
 
 .PHONY: lint-go-fix

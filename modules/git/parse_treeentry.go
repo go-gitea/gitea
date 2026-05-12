@@ -43,6 +43,8 @@ func parseTreeEntries(data []byte, ptree *Tree) ([]*TreeEntry, error) {
 	return entries, nil
 }
 
+var _ = catBatchParseTreeEntries // bypass "unused" lint because it is only used by "nogogit"
+
 func catBatchParseTreeEntries(objectFormat ObjectFormat, ptree *Tree, rd BufferedReader, sz int64) ([]*TreeEntry, error) {
 	entries := make([]*TreeEntry, 0, 10)
 
