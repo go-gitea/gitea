@@ -122,3 +122,9 @@ func (opts FindRunJobOptions) ToJoins() []db.JoinFunc {
 	}
 	return nil
 }
+
+func (opts FindRunJobOptions) ToOrders() string {
+	return "`action_run_job`.`id` DESC"
+}
+
+var _ db.FindOptionsOrder = (*FindRunJobOptions)(nil)
