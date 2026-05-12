@@ -16,6 +16,7 @@ import (
 	"code.gitea.io/gitea/tests"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestAPIRepoTags(t *testing.T) {
@@ -31,36 +32,32 @@ func TestAPIRepoTags(t *testing.T) {
 		AddTokenAuth(token)
 	resp := MakeRequest(t, req, http.StatusOK)
 
-	var tags []*api.Tag
-	DecodeJSON(t, resp, &tags)
+	tags := DecodeJSON(t, resp, []*api.Tag{})
 
 	assert.Len(t, tags, 1)
 	assert.Equal(t, "v1.1", tags[0].Name)
-	assert.Equal(t, "Initial commit", tags[0].Message)
+	assert.Equal(t, "Initial commit\n", tags[0].Message)
 	assert.Equal(t, "65f1bf27bc3bf70f64657658635e66094edbcb4d", tags[0].Commit.SHA)
 	assert.Equal(t, setting.AppURL+"api/v1/repos/user2/repo1/git/commits/65f1bf27bc3bf70f64657658635e66094edbcb4d", tags[0].Commit.URL)
 	assert.Equal(t, setting.AppURL+"user2/repo1/archive/v1.1.zip", tags[0].ZipballURL)
 	assert.Equal(t, setting.AppURL+"user2/repo1/archive/v1.1.tar.gz", tags[0].TarballURL)
 
 	newTag := createNewTagUsingAPI(t, token, user.Name, repoName, "gitea/22", "", "nice!\nand some text")
+	assert.Equal(t, "nice!\nand some text\n", newTag.Message) // git message standard: there will always be a newline at the end of the message
+
 	resp = MakeRequest(t, req, http.StatusOK)
-	DecodeJSON(t, resp, &tags)
-	assert.Len(t, tags, 2)
-	for _, tag := range tags {
-		if tag.Name != "v1.1" {
-			assert.Equal(t, newTag.Name, tag.Name)
-			assert.Equal(t, newTag.Message, tag.Message)
-			assert.Equal(t, "nice!\nand some text", tag.Message)
-			assert.Equal(t, newTag.Commit.SHA, tag.Commit.SHA)
-		}
-	}
+	tags = DecodeJSON(t, resp, []*api.Tag{})
+	require.Len(t, tags, 2)
+	respTag := tags[0]
+	assert.Equal(t, newTag.Name, respTag.Name)
+	assert.Equal(t, newTag.Message, respTag.Message)
+	assert.Equal(t, newTag.Commit.SHA, respTag.Commit.SHA)
 
 	// get created tag
 	req = NewRequestf(t, "GET", "/api/v1/repos/%s/%s/tags/%s", user.Name, repoName, newTag.Name).
 		AddTokenAuth(token)
 	resp = MakeRequest(t, req, http.StatusOK)
-	var tag *api.Tag
-	DecodeJSON(t, resp, &tag)
+	tag := DecodeJSON(t, resp, &api.Tag{})
 	assert.Equal(t, newTag, tag)
 
 	// delete tag
@@ -81,7 +78,6 @@ func createNewTagUsingAPI(t *testing.T, token, ownerName, repoName, name, target
 	}).AddTokenAuth(token)
 	resp := MakeRequest(t, req, http.StatusCreated)
 
-	var respObj api.Tag
-	DecodeJSON(t, resp, &respObj)
-	return &respObj
+	respObj := DecodeJSON(t, resp, &api.Tag{})
+	return respObj
 }

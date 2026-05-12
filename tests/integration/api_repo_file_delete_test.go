@@ -67,8 +67,7 @@ func TestAPIDeleteFile(t *testing.T) {
 			req := NewRequestWithJSON(t, "DELETE", fmt.Sprintf("/api/v1/repos/%s/%s/contents/%s", user2.Name, repo1.Name, treePath), &deleteFileOptions).
 				AddTokenAuth(token2)
 			resp := MakeRequest(t, req, http.StatusOK)
-			var fileResponse api.FileResponse
-			DecodeJSON(t, resp, &fileResponse)
+			fileResponse := DecodeJSON(t, resp, &api.FileResponse{})
 			assert.NotNil(t, fileResponse)
 			assert.Nil(t, fileResponse.Content)
 		}
@@ -83,8 +82,7 @@ func TestAPIDeleteFile(t *testing.T) {
 		req := NewRequestWithJSON(t, "DELETE", fmt.Sprintf("/api/v1/repos/%s/%s/contents/%s", user2.Name, repo1.Name, treePath), &deleteFileOptions).
 			AddTokenAuth(token2)
 		resp := MakeRequest(t, req, http.StatusOK)
-		var fileResponse api.FileResponse
-		DecodeJSON(t, resp, &fileResponse)
+		fileResponse := DecodeJSON(t, resp, &api.FileResponse{})
 		assert.NotNil(t, fileResponse)
 		assert.Nil(t, fileResponse.Content)
 		assert.Equal(t, deleteFileOptions.Message+"\n", fileResponse.Commit.Message)
@@ -98,7 +96,7 @@ func TestAPIDeleteFile(t *testing.T) {
 		req = NewRequestWithJSON(t, "DELETE", fmt.Sprintf("/api/v1/repos/%s/%s/contents/%s", user2.Name, repo1.Name, treePath), &deleteFileOptions).
 			AddTokenAuth(token2)
 		resp = MakeRequest(t, req, http.StatusOK)
-		DecodeJSON(t, resp, &fileResponse)
+		fileResponse = DecodeJSON(t, resp, &api.FileResponse{})
 		expectedMessage := "Delete " + treePath + "\n"
 		assert.Equal(t, expectedMessage, fileResponse.Commit.Message)
 

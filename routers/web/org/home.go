@@ -98,8 +98,10 @@ func home(ctx *context.Context, viewRepositories bool) {
 		ctx.ServerError("FindOrgMembers", err)
 		return
 	}
-	ctx.Data["Members"] = members
-	ctx.Data["Teams"] = ctx.Org.Teams
+
+	const orgOverviewTeamsLimit = 5
+	ctx.Data["OrgOverviewMembers"] = members
+	ctx.Data["OrgOverviewTeams"] = ctx.Org.Teams[:min(len(ctx.Org.Teams), orgOverviewTeamsLimit)]
 	ctx.Data["DisableNewPullMirrors"] = setting.Mirror.DisableNewPull
 	ctx.Data["ShowMemberAndTeamTab"] = ctx.Org.IsMember || len(members) > 0
 
@@ -180,7 +182,7 @@ func prepareOrgProfileReadme(ctx *context.Context, prepareResult *shared_user.Pr
 	}
 
 	rctx := renderhelper.NewRenderContextRepoFile(ctx, profileRepo, renderhelper.RepoFileOptions{
-		CurrentRefPath: path.Join("branch", util.PathEscapeSegments(profileRepo.DefaultBranch)),
+		CurrentRefSubURL: path.Join("branch", util.PathEscapeSegments(profileRepo.DefaultBranch)),
 	})
 	ctx.Data["ProfileReadmeContent"], err = markdown.RenderString(rctx, readmeBytes)
 	if err != nil {

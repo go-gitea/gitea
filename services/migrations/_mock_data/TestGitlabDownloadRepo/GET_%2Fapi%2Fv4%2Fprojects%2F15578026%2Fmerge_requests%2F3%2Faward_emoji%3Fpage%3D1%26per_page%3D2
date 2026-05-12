@@ -1,0 +1,28 @@
+Cache-Control: max-age=0, private, must-revalidate
+Cf-Cache-Status: MISS
+Content-Security-Policy: default-src 'none'
+Content-Type: application/json
+Etag: W/"ef98d22b26e55b4da238d1ae4fc66140"
+Gitlab-Lb: haproxy-main-58-lb-gprd
+Gitlab-Sv: api-gke-us-east1-b
+Link: <https://gitlab.com/api/v4/projects/15578026/merge_requests/3/award_emoji?id=15578026&merge_request_iid=3&page=1&per_page=2>; rel="first", <https://gitlab.com/api/v4/projects/15578026/merge_requests/3/award_emoji?id=15578026&merge_request_iid=3&page=1&per_page=2>; rel="last"
+Ratelimit-Limit: 2000
+Ratelimit-Name: throttle_authenticated_api
+Ratelimit-Observed: 21
+Ratelimit-Remaining: 1979
+Ratelimit-Reset: 1776937500
+Referrer-Policy: strict-origin-when-cross-origin
+Strict-Transport-Security: max-age=31536000
+Vary: Origin, Accept-Encoding
+X-Content-Type-Options: nosniff
+X-Frame-Options: SAMEORIGIN
+X-Gitlab-Meta: {"correlation_id":"9f0bee98da1fc27f-VIE","version":"1"}
+X-Next-Page: 
+X-Page: 1
+X-Per-Page: 2
+X-Prev-Page: 
+X-Runtime: 0.057694
+X-Total: 1
+X-Total-Pages: 1
+
+[{"id":28081326,"name":"thumbsup","user":{"id":2005797,"username":"oliverpool","public_email":"","name":"oliverpool","state":"active","locked":false,"avatar_url":"https://gitlab.com/uploads/-/system/user/avatar/2005797/avatar.png","web_url":"https://gitlab.com/oliverpool"},"created_at":"2024-09-03T07:52:13.111Z","updated_at":"2024-09-03T07:52:13.111Z","awardable_id":324656914,"awardable_type":"MergeRequest","url":null}]

@@ -6,6 +6,7 @@ package markup
 import (
 	"bytes"
 	"context"
+	"errors"
 	"fmt"
 	"html/template"
 	"io"
@@ -43,7 +44,8 @@ type WebThemeInterface interface {
 }
 
 type StandalonePageOptions struct {
-	CurrentWebTheme WebThemeInterface
+	CurrentWebTheme   WebThemeInterface
+	RenderQueryString string
 }
 
 type RenderOptions struct {
@@ -206,17 +208,23 @@ func RenderString(ctx *RenderContext, content string) (string, error) {
 }
 
 func RenderIFrame(ctx *RenderContext, opts *ExternalRendererOptions, output io.Writer) error {
+	ownerName, repoName := ctx.RenderOptions.Metas["user"], ctx.RenderOptions.Metas["repo"]
+	refSubURL := ctx.RenderOptions.Metas["RefTypeNameSubURL"]
+	if ownerName == "" || repoName == "" || refSubURL == "" {
+		setting.PanicInDevOrTesting("RenderIFrame requires user, repo and RefTypeNameSubURL metas")
+		return errors.New("RenderIFrame requires user, repo and RefTypeNameSubURL metas")
+	}
 	src := fmt.Sprintf("%s/%s/%s/render/%s/%s", setting.AppSubURL,
-		url.PathEscape(ctx.RenderOptions.Metas["user"]),
-		url.PathEscape(ctx.RenderOptions.Metas["repo"]),
-		util.PathEscapeSegments(ctx.RenderOptions.Metas["RefTypeNameSubURL"]),
+		url.PathEscape(ownerName),
+		url.PathEscape(repoName),
+		ctx.RenderOptions.Metas["RefTypeNameSubURL"],
 		util.PathEscapeSegments(ctx.RenderOptions.RelativePath),
 	)
 	var extraAttrs template.HTML
 	if opts.ContentSandbox != "" {
 		extraAttrs = htmlutil.HTMLFormat(` sandbox="%s"`, opts.ContentSandbox)
 	}
-	_, err := htmlutil.HTMLPrintf(output, `<iframe data-src="%s" class="external-render-iframe"%s></iframe>`, src, extraAttrs)
+	_, err := htmlutil.HTMLPrintf(output, `<iframe data-src="%s" data-global-init="initExternalRenderIframe" class="external-render-iframe"%s></iframe>`, src, extraAttrs)
 	return err
 }
 
@@ -228,7 +236,7 @@ func pipes() (io.ReadCloser, io.WriteCloser, func()) {
 	}
 }
 
-func getExternalRendererOptions(renderer Renderer) (ret ExternalRendererOptions, _ bool) {
+func GetExternalRendererOptions(renderer Renderer) (ret ExternalRendererOptions, _ bool) {
 	if externalRender, ok := renderer.(ExternalRenderer); ok {
 		return externalRender.GetExternalRendererOptions(), true
 	}
@@ -237,7 +245,7 @@ func getExternalRendererOptions(renderer Renderer) (ret ExternalRendererOptions,
 
 func RenderWithRenderer(ctx *RenderContext, renderer Renderer, input io.Reader, output io.Writer) error {
 	var extraHeadHTML template.HTML
-	if extOpts, ok := getExternalRendererOptions(renderer); ok && extOpts.DisplayInIframe {
+	if extOpts, ok := GetExternalRendererOptions(renderer); ok && extOpts.DisplayInIframe {
 		if ctx.RenderOptions.StandalonePageOptions == nil {
 			// for an external "DisplayInIFrame" render, it could only output its content in a standalone page
 			// otherwise, a <iframe> should be outputted to embed the external rendered page
@@ -248,7 +256,12 @@ func RenderWithRenderer(ctx *RenderContext, renderer Renderer, input io.Reader, 
 		extraLinkHref := ctx.RenderOptions.StandalonePageOptions.CurrentWebTheme.PublicAssetURI()
 		// "<script>" must go before "<link>", to make Golang's http.DetectContentType() can still recognize the content as "text/html"
 		// DO NOT use "type=module", the script must run as early as possible, to set up the environment in the iframe
-		extraHeadHTML = htmlutil.HTMLFormat(`<script crossorigin src="%s"></script><link rel="stylesheet" href="%s">`, extraScriptSrc, extraLinkHref)
+		extraHeadHTML = htmlutil.HTMLFormat(
+			`<script nonce crossorigin src="%s" id="gitea-external-render-helper" data-render-query-string="%s"></script>`+
+				`<link rel="stylesheet" href="%s">`,
+			extraScriptSrc, ctx.RenderOptions.StandalonePageOptions.RenderQueryString,
+			extraLinkHref,
+		)
 	}
 
 	ctx.usedByRender = true

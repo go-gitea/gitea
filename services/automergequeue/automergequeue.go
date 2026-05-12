@@ -25,7 +25,7 @@ var AddToQueue = func(pr *issues_model.PullRequest, sha string) {
 
 // StartPRCheckAndAutoMerge start an automerge check and auto merge task for a pull request
 func StartPRCheckAndAutoMerge(ctx context.Context, pull *issues_model.PullRequest) {
-	if pull == nil || pull.HasMerged || !pull.CanAutoMerge() {
+	if pull == nil || pull.HasMerged || !pull.IsStatusMergeable() {
 		return
 	}
 

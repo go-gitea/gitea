@@ -7,15 +7,41 @@ import (
 	"net/http"
 	"path"
 	"strconv"
+	"strings"
 
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/httpcache"
+	"code.gitea.io/gitea/modules/httplib"
+	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/modules/web/middleware"
 	"code.gitea.io/gitea/services/context"
 )
+
+func SiteManifest(w http.ResponseWriter, req *http.Request) {
+	w.Header().Set("Content-Type", "application/manifest+json")
+	if httpcache.HandleGenericETagPublicCache(req, w, "", &setting.AppStartTime) {
+		return
+	}
+	if req.Method == http.MethodHead {
+		return
+	}
+
+	ctx := req.Context()
+	absoluteAssetURL := strings.TrimSuffix(httplib.MakeAbsoluteURL(ctx, setting.StaticURLPrefix), "/")
+	manifest := map[string]any{
+		"name":       setting.AppName,
+		"short_name": setting.AppName,
+		"start_url":  httplib.GuessCurrentAppURL(ctx),
+		"icons": []map[string]string{
+			{"src": absoluteAssetURL + "/assets/img/logo.png", "type": "image/png", "sizes": "512x512"},
+			{"src": absoluteAssetURL + "/assets/img/logo.svg", "type": "image/svg+xml", "sizes": "512x512"},
+		},
+	}
+	_ = json.NewEncoder(w).Encode(manifest)
+}
 
 func SSHInfo(rw http.ResponseWriter, req *http.Request) {
 	if !git.DefaultFeatures().SupportProcReceive {

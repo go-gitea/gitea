@@ -566,7 +566,11 @@ func DownloadPackageFile(ctx *context.Context) {
 		return
 	}
 
-	packages_helper.ServePackageFile(ctx, s, u, pf)
+	packages_helper.ServePackageFile(ctx, s, u, pf, httplib.ServeHeaderOptions{
+		Filename:           pf.Name,
+		LastModified:       pf.CreatedUnix.AsLocalTime(),
+		ContentDisposition: httplib.ContentDispositionAttachment,
+	})
 }
 
 // ActionPackageTerraformLock locks a terraform state

@@ -9,8 +9,8 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/nektos/act/pkg/exprparser"
-	"github.com/nektos/act/pkg/model"
+	"gitea.com/gitea/runner/act/exprparser"
+	"gitea.com/gitea/runner/act/model"
 	"go.yaml.in/yaml/v4"
 )
 
@@ -31,6 +31,9 @@ func Parse(content []byte, options ...ParseOption) ([]*SingleWorkflow, error) {
 	}
 	results := map[string]*JobResult{}
 	for id, job := range origin.Jobs {
+		if job == nil {
+			return nil, fmt.Errorf("needed job not found: %q", id)
+		}
 		results[id] = &JobResult{
 			Needs:   job.Needs(),
 			Result:  pc.jobResults[id],
@@ -81,12 +84,6 @@ func Parse(content []byte, options ...ParseOption) ([]*SingleWorkflow, error) {
 		}
 	}
 	return ret, nil
-}
-
-func WithJobResults(results map[string]string) ParseOption {
-	return func(c *parseContext) {
-		c.jobResults = results
-	}
 }
 
 func WithGitContext(context *model.GithubContext) ParseOption {

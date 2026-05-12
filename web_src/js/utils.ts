@@ -51,15 +51,6 @@ export function stripTags(text: string): string {
   return text;
 }
 
-export function urlQueryEscape(s: string) {
-  // See "TestQueryEscape" in backend
-  // https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/encodeURIComponent#encoding_for_rfc3986
-  return encodeURIComponent(s).replace(
-    /[!'()*]/g,
-    (c) => `%${c.charCodeAt(0).toString(16).toUpperCase()}`,
-  );
-}
-
 export function parseIssueHref(href: string): IssuePathInfo {
   // FIXME: it should use pathname and trim the appSubUrl ahead
   const path = (href || '').replace(/[#?].*$/, '');
@@ -82,11 +73,6 @@ export function parseIssuePageInfo(): IssuePageInfo {
     repoId: parseInt(el?.getAttribute('data-issue-repo-id') || ''),
     repoLink: el?.getAttribute('data-issue-repo-link') || '',
   };
-}
-
-/** parse a URL, either relative '/path' or absolute 'https://localhost/path' */
-export function parseUrl(str: string): URL {
-  return new URL(str, str.startsWith('http') ? undefined : window.location.origin);
 }
 
 /** return current locale chosen by user */
@@ -206,6 +192,17 @@ export function isImageFile({name, type}: {name?: string, type?: string}): boole
 
 export function isVideoFile({name, type}: {name?: string, type?: string}): boolean {
   return Boolean(/\.(mpe?g|mp4|mkv|webm)$/i.test(name || '') || type?.startsWith('video/'));
+}
+
+const byteUnits = ['B', 'KiB', 'MiB', 'GiB', 'TiB', 'PiB', 'EiB'];
+
+export function formatBytes(num: number, precision = 2): string {
+  if (!Number.isFinite(num) || num < 0) return `0 ${byteUnits[0]}`;
+  if (num < 1024) return `${num} ${byteUnits[0]}`;
+  const exp = Math.min(Math.floor(Math.log2(num) / 10), byteUnits.length - 1);
+  const value = num / (1024 ** exp);
+  const digits = Math.max(0, precision - 1 - Math.floor(Math.log10(value)));
+  return `${value.toFixed(digits)} ${byteUnits[exp]}`;
 }
 
 export function toggleFullScreen(fullScreenEl: HTMLElement, isFullScreen: boolean, sourceParentSelector?: string): void {

@@ -110,6 +110,6 @@ func TestAllowBlockList(t *testing.T) {
 	assert.NoError(t, checkByAllowBlockList("domain.com", []net.IP{net.ParseIP("1.2.3.4")}))
 	assert.Error(t, checkByAllowBlockList("domain.com", []net.IP{net.ParseIP("127.0.0.1")}))
 
-	// reset
-	init("", "", false)
+	// reset to allow local networks (mock servers use 127.0.0.1)
+	init("", "", true)
 }

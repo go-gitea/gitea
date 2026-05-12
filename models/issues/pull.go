@@ -437,8 +437,8 @@ func (pr *PullRequest) IsChecking() bool {
 	return pr.Status == PullRequestStatusChecking
 }
 
-// CanAutoMerge returns true if this pull request can be merged automatically.
-func (pr *PullRequest) CanAutoMerge() bool {
+// IsStatusMergeable returns true if this pull request is mergeable to its base
+func (pr *PullRequest) IsStatusMergeable() bool {
 	return pr.Status == PullRequestStatusMergeable
 }
 
@@ -475,7 +475,7 @@ func NewPullRequest(ctx context.Context, repo *repo_model.Repository, issue *Iss
 			LabelIDs:    labelIDs,
 			Attachments: uuids,
 		}); err != nil {
-			if repo_model.IsErrUserDoesNotHaveAccessToRepo(err) || IsErrNewIssueInsert(err) {
+			if repo_model.IsErrUserDoesNotHaveAccessToRepo(err) {
 				return err
 			}
 			return fmt.Errorf("newIssue: %w", err)
@@ -877,7 +877,12 @@ func ParseCodeOwnersLine(ctx context.Context, tokens []string) (*CodeOwnerRule, 
 
 	warnings := make([]string, 0)
 
-	expr := fmt.Sprintf("^%s$", strings.TrimPrefix(tokens[0], "!"))
+	// Strip leading "!" for negative rules, then strip leading "/" since
+	// git returns relative paths (e.g. "docs/foo.md" not "/docs/foo.md")
+	// and the regex is already anchored with ^...$, so the "/" is redundant.
+	pattern := strings.TrimPrefix(tokens[0], "!")
+	pattern = strings.TrimPrefix(pattern, "/")
+	expr := fmt.Sprintf("^%s$", pattern)
 	rule.Rule, err = regexp2.Compile(expr, regexp2.None)
 	if err != nil {
 		warnings = append(warnings, fmt.Sprintf("incorrect codeowner regexp: %s", err))

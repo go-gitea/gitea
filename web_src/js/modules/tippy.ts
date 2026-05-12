@@ -2,6 +2,7 @@ import tippy, {followCursor} from 'tippy.js';
 import {isDocumentFragmentOrElementNode} from '../utils/dom.ts';
 import type {Content, Instance, Placement, Props} from 'tippy.js';
 import {html} from '../utils/html.ts';
+import {stripTags} from '../utils.ts';
 
 type TippyOpts = {
   role?: string,
@@ -85,6 +86,7 @@ function attachTooltip(target: Element, content: Content | null = null): Instanc
     role: 'tooltip',
     theme: 'tooltip',
     hideOnClick,
+    allowHTML: target.getAttribute('data-tooltip-render') === 'html',
     placement: target.getAttribute('data-tooltip-placement') as Placement || 'top-start',
     followCursor: target.getAttribute('data-tooltip-follow-cursor') as Props['followCursor'] || false,
     ...(target.getAttribute('data-tooltip-interactive') === 'true' ? {interactive: true, aria: {content: 'describedby', expanded: false}} : {}),
@@ -127,7 +129,10 @@ function attachLazyTooltip(el: HTMLElement): void {
   if (!el.hasAttribute('aria-label')) {
     const content = el.getAttribute('data-tooltip-content');
     if (content) {
-      el.setAttribute('aria-label', content);
+      const isHtml = el.getAttribute('data-tooltip-render') === 'html';
+      let ariaLabelValue = content;
+      if (isHtml) ariaLabelValue = stripTags(content).replace(/\s+/g, ' ').trim();
+      el.setAttribute('aria-label', ariaLabelValue);
     }
   }
 }

@@ -6,7 +6,7 @@ package v1_26
 import (
 	"testing"
 
-	"code.gitea.io/gitea/models/migrations/base"
+	"code.gitea.io/gitea/models/migrations/migrationtest"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/test"
 
@@ -57,7 +57,7 @@ func Test_FixCommitStatusTargetURLToUseRunAndJobID(t *testing.T) {
 		TargetURL string
 	}
 
-	x, deferable := base.PrepareTestEnv(t, 0,
+	x, deferable := migrationtest.PrepareTestEnv(t, 0,
 		new(Repository),
 		new(ActionRun),
 		new(ActionRunJob),

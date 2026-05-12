@@ -11,7 +11,7 @@ import (
 )
 
 func getDefaultJSONHandler() Interface {
-	return jsonGoccy{}
+	return jsonV1{}
 }
 
 func MarshalKeepOptionalEmpty(v any) ([]byte, error) {

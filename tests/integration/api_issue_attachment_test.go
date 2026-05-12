@@ -35,8 +35,7 @@ func TestAPIGetIssueAttachment(t *testing.T) {
 	req := NewRequest(t, "GET", fmt.Sprintf("/api/v1/repos/%s/%s/issues/%d/assets/%d", repoOwner.Name, repo.Name, issue.Index, attachment.ID)).
 		AddTokenAuth(token)
 	resp := session.MakeRequest(t, req, http.StatusOK)
-	apiAttachment := new(api.Attachment)
-	DecodeJSON(t, resp, &apiAttachment)
+	apiAttachment := DecodeJSON(t, resp, &api.Attachment{})
 
 	unittest.AssertExistsAndLoadBean(t, &repo_model.Attachment{ID: apiAttachment.ID, IssueID: issue.ID})
 }
@@ -55,10 +54,9 @@ func TestAPIListIssueAttachments(t *testing.T) {
 	req := NewRequest(t, "GET", fmt.Sprintf("/api/v1/repos/%s/%s/issues/%d/assets", repoOwner.Name, repo.Name, issue.Index)).
 		AddTokenAuth(token)
 	resp := session.MakeRequest(t, req, http.StatusOK)
-	apiAttachment := new([]api.Attachment)
-	DecodeJSON(t, resp, &apiAttachment)
+	apiAttachment := DecodeJSON(t, resp, []api.Attachment{})
 
-	unittest.AssertExistsAndLoadBean(t, &repo_model.Attachment{ID: (*apiAttachment)[0].ID, IssueID: issue.ID})
+	unittest.AssertExistsAndLoadBean(t, &repo_model.Attachment{ID: apiAttachment[0].ID, IssueID: issue.ID})
 }
 
 func TestAPICreateIssueAttachment(t *testing.T) {
@@ -87,8 +85,7 @@ func TestAPICreateIssueAttachment(t *testing.T) {
 	req.Header.Add("Content-Type", writer.FormDataContentType())
 	resp := session.MakeRequest(t, req, http.StatusCreated)
 
-	apiAttachment := new(api.Attachment)
-	DecodeJSON(t, resp, &apiAttachment)
+	apiAttachment := DecodeJSON(t, resp, &api.Attachment{})
 
 	unittest.AssertExistsAndLoadBean(t, &repo_model.Attachment{ID: apiAttachment.ID, IssueID: issue.ID})
 }
@@ -138,8 +135,7 @@ func TestAPIEditIssueAttachment(t *testing.T) {
 		"name": newAttachmentName,
 	}).AddTokenAuth(token)
 	resp := session.MakeRequest(t, req, http.StatusCreated)
-	apiAttachment := new(api.Attachment)
-	DecodeJSON(t, resp, &apiAttachment)
+	apiAttachment := DecodeJSON(t, resp, &api.Attachment{})
 
 	unittest.AssertExistsAndLoadBean(t, &repo_model.Attachment{ID: apiAttachment.ID, IssueID: issue.ID, Name: apiAttachment.Name})
 }
