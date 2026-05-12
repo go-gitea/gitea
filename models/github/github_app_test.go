@@ -114,12 +114,24 @@ func TestCreateGithubAppCredential(t *testing.T) {
 func TestGetGithubAppCredentialByID(t *testing.T) {
 	require.NoError(t, unittest.PrepareTestDatabase())
 
-	// Get existing credential
-	cred, err := github_model.GetGithubAppCredentialByID(t.Context(), 1)
+	// Create a test credential
+	cred := &github_model.AppCredential{
+		OwnerID:             1,
+		Name:                "Test GitHub App",
+		ClientID:            "Iv1.test123",
+		InstallationID:      12345,
+		PrivateKeyEncrypted: "encrypted_key_data",
+		BaseURL:             "https://api.github.com",
+	}
+	err := github_model.CreateGithubAppCredential(t.Context(), cred)
 	require.NoError(t, err)
-	assert.Equal(t, "Test GitHub App", cred.Name)
-	assert.Equal(t, "Iv1.test123", cred.ClientID)
-	assert.Equal(t, int64(12345), cred.InstallationID)
+
+	// Get existing credential
+	loaded, err := github_model.GetGithubAppCredentialByID(t.Context(), cred.ID)
+	require.NoError(t, err)
+	assert.Equal(t, "Test GitHub App", loaded.Name)
+	assert.Equal(t, "Iv1.test123", loaded.ClientID)
+	assert.Equal(t, int64(12345), loaded.InstallationID)
 
 	// Get non-existing credential
 	_, err = github_model.GetGithubAppCredentialByID(t.Context(), 999999)
@@ -130,10 +142,45 @@ func TestGetGithubAppCredentialByID(t *testing.T) {
 func TestGetGithubAppCredentialsByOwnerID(t *testing.T) {
 	require.NoError(t, unittest.PrepareTestDatabase())
 
+	// Create test credentials for owner 1
+	cred1 := &github_model.AppCredential{
+		OwnerID:             1,
+		Name:                "Test GitHub App",
+		ClientID:            "Iv1.test123",
+		InstallationID:      12345,
+		PrivateKeyEncrypted: "encrypted_key_data",
+		BaseURL:             "https://api.github.com",
+	}
+	err := github_model.CreateGithubAppCredential(t.Context(), cred1)
+	require.NoError(t, err)
+
+	cred3 := &github_model.AppCredential{
+		OwnerID:             1,
+		Name:                "Recently Used App",
+		ClientID:            "Iv1.recent",
+		InstallationID:      11111,
+		PrivateKeyEncrypted: "recent_key",
+		BaseURL:             "https://api.github.com",
+	}
+	err = github_model.CreateGithubAppCredential(t.Context(), cred3)
+	require.NoError(t, err)
+
+	// Create test credential for owner 2
+	cred2 := &github_model.AppCredential{
+		OwnerID:             2,
+		Name:                "Another GitHub App",
+		ClientID:            "Iv1.test456",
+		InstallationID:      67890,
+		PrivateKeyEncrypted: "another_encrypted_key",
+		BaseURL:             "https://github.example.com/api/v3",
+	}
+	err = github_model.CreateGithubAppCredential(t.Context(), cred2)
+	require.NoError(t, err)
+
 	// Owner with multiple credentials
 	creds, err := github_model.GetGithubAppCredentialsByOwnerID(t.Context(), 1)
 	require.NoError(t, err)
-	assert.Len(t, creds, 2) // IDs 1 and 3
+	assert.Len(t, creds, 2)
 
 	// Owner with one credential
 	creds, err = github_model.GetGithubAppCredentialsByOwnerID(t.Context(), 2)
@@ -150,43 +197,79 @@ func TestGetGithubAppCredentialsByOwnerID(t *testing.T) {
 func TestUpdateGithubAppCredentialLastUsed(t *testing.T) {
 	require.NoError(t, unittest.PrepareTestDatabase())
 
-	// Get initial state
-	cred := unittest.AssertExistsAndLoadBean(t, &github_model.AppCredential{ID: 2})
+	// Create a test credential with last_used_unix = 0
+	cred := &github_model.AppCredential{
+		OwnerID:             2,
+		Name:                "Another GitHub App",
+		ClientID:            "Iv1.test456",
+		InstallationID:      67890,
+		PrivateKeyEncrypted: "another_encrypted_key",
+		BaseURL:             "https://github.example.com/api/v3",
+		LastUsedUnix:        0,
+	}
+	err := github_model.CreateGithubAppCredential(t.Context(), cred)
+	require.NoError(t, err)
+
+	// Verify initial state
 	assert.Equal(t, timeutil.TimeStamp(0), cred.LastUsedUnix)
 
 	// Update last used
-	err := github_model.UpdateGithubAppCredentialLastUsed(t.Context(), 2)
+	err = github_model.UpdateGithubAppCredentialLastUsed(t.Context(), cred.ID)
 	require.NoError(t, err)
 
 	// Verify it was updated
-	updated := unittest.AssertExistsAndLoadBean(t, &github_model.AppCredential{ID: 2})
+	updated := unittest.AssertExistsAndLoadBean(t, &github_model.AppCredential{ID: cred.ID})
 	assert.Greater(t, updated.LastUsedUnix, timeutil.TimeStamp(0))
 }
 
 func TestDeleteGithubAppCredential(t *testing.T) {
 	require.NoError(t, unittest.PrepareTestDatabase())
 
+	// Create a test credential
+	cred := &github_model.AppCredential{
+		OwnerID:             1,
+		Name:                "Test GitHub App",
+		ClientID:            "Iv1.test123",
+		InstallationID:      12345,
+		PrivateKeyEncrypted: "encrypted_key_data",
+		BaseURL:             "https://api.github.com",
+	}
+	err := github_model.CreateGithubAppCredential(t.Context(), cred)
+	require.NoError(t, err)
+
 	// Verify it exists
-	unittest.AssertExistsAndLoadBean(t, &github_model.AppCredential{ID: 1})
+	unittest.AssertExistsAndLoadBean(t, &github_model.AppCredential{ID: cred.ID})
 
 	// Delete it
-	err := github_model.DeleteGithubAppCredential(t.Context(), 1)
+	err = github_model.DeleteGithubAppCredential(t.Context(), cred.ID)
 	require.NoError(t, err)
 
 	// Verify it's gone
-	unittest.AssertNotExistsBean(t, &github_model.AppCredential{ID: 1})
+	unittest.AssertNotExistsBean(t, &github_model.AppCredential{ID: cred.ID})
 }
 
 func TestCheckGithubAppCredentialOwnership(t *testing.T) {
 	require.NoError(t, unittest.PrepareTestDatabase())
 
+	// Create a test credential owned by user 1
+	cred := &github_model.AppCredential{
+		OwnerID:             1,
+		Name:                "Test GitHub App",
+		ClientID:            "Iv1.test123",
+		InstallationID:      12345,
+		PrivateKeyEncrypted: "encrypted_key_data",
+		BaseURL:             "https://api.github.com",
+	}
+	err := github_model.CreateGithubAppCredential(t.Context(), cred)
+	require.NoError(t, err)
+
 	// Owner matches
-	owns, err := github_model.CheckGithubAppCredentialOwnership(t.Context(), 1, 1)
+	owns, err := github_model.CheckGithubAppCredentialOwnership(t.Context(), cred.ID, 1)
 	require.NoError(t, err)
 	assert.True(t, owns)
 
 	// Owner doesn't match
-	owns, err = github_model.CheckGithubAppCredentialOwnership(t.Context(), 1, 2)
+	owns, err = github_model.CheckGithubAppCredentialOwnership(t.Context(), cred.ID, 2)
 	require.NoError(t, err)
 	assert.False(t, owns)
 
