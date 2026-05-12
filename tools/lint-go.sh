@@ -1,5 +1,4 @@
 #!/usr/bin/env bash
-# Builds tools/custom-gcl on demand, then runs it.
 set -euo pipefail
 cd "$(dirname -- "${BASH_SOURCE[0]}")/.."
 
