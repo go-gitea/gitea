@@ -187,9 +187,10 @@ func OrgAssignment(orgAssignmentOpts OrgAssignmentOptions) func(ctx *Context) {
 					return
 				}
 			} else {
-				ctx.Org.Teams, err = org.GetUserTeams(ctx, ctx.Doer.ID)
+				// Org members see their own teams plus any team marked visible.
+				ctx.Org.Teams, err = organization.GetUserOrgVisibleTeams(ctx, org.ID, ctx.Doer.ID)
 				if err != nil {
-					ctx.ServerError("GetUserTeams", err)
+					ctx.ServerError("GetUserOrgVisibleTeams", err)
 					return
 				}
 			}

@@ -211,6 +211,10 @@ func CreateTeam(ctx *context.APIContext) {
 	//     "$ref": "#/responses/validationError"
 	form := web.GetForm(ctx).(*api.CreateTeamOption)
 	teamPermission := perm.ParseAccessMode(string(form.Permission), perm.AccessModeNone, perm.AccessModeAdmin)
+	visibility := form.Visibility
+	if visibility != organization.TeamVisibilityVisible {
+		visibility = organization.TeamVisibilitySecret
+	}
 	team := &organization.Team{
 		OrgID:                   ctx.Org.Organization.ID,
 		Name:                    form.Name,
@@ -218,6 +222,7 @@ func CreateTeam(ctx *context.APIContext) {
 		IncludesAllRepositories: form.IncludesAllRepositories,
 		CanCreateOrgRepo:        form.CanCreateOrgRepo,
 		AccessMode:              teamPermission,
+		Visibility:              visibility,
 	}
 
 	if team.AccessMode < perm.AccessModeAdmin {
@@ -293,6 +298,14 @@ func EditTeam(ctx *context.APIContext) {
 
 	if form.Description != nil {
 		team.Description = *form.Description
+	}
+
+	if form.Visibility != nil && !team.IsOwnerTeam() {
+		if *form.Visibility == organization.TeamVisibilityVisible {
+			team.Visibility = organization.TeamVisibilityVisible
+		} else {
+			team.Visibility = organization.TeamVisibilitySecret
+		}
 	}
 
 	isAuthChanged := false

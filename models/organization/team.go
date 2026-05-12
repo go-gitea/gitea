@@ -70,6 +70,14 @@ func (err ErrTeamNotExist) Unwrap() error {
 // OwnerTeamName return the owner team name
 const OwnerTeamName = "Owners"
 
+// Team visibility values. "secret" teams are only visible to members and org
+// owners (legacy behavior). "visible" teams can be listed and viewed by any
+// member of the parent organization.
+const (
+	TeamVisibilitySecret  = "secret"
+	TeamVisibilityVisible = "visible"
+)
+
 // Team represents a organization team.
 type Team struct {
 	ID                      int64 `xorm:"pk autoincr"`
@@ -84,6 +92,13 @@ type Team struct {
 	Units                   []*TeamUnit `xorm:"-"`
 	IncludesAllRepositories bool        `xorm:"NOT NULL DEFAULT false"`
 	CanCreateOrgRepo        bool        `xorm:"NOT NULL DEFAULT false"`
+	Visibility              string      `xorm:"VARCHAR(16) NOT NULL DEFAULT 'secret'"`
+}
+
+// IsVisible reports whether the team can be listed by org members who are not
+// members of the team itself.
+func (t *Team) IsVisible() bool {
+	return t.Visibility == TeamVisibilityVisible
 }
 
 func init() {

@@ -50,6 +50,9 @@ type SearchTeamOptions struct {
 	Keyword     string
 	OrgID       int64
 	IncludeDesc bool
+	// IncludeVisible, when combined with UserID, also returns teams whose
+	// visibility is "visible" even if the user is not a member.
+	IncludeVisible bool
 }
 
 func (opts *SearchTeamOptions) toCond() builder.Cond {
@@ -69,7 +72,14 @@ func (opts *SearchTeamOptions) toCond() builder.Cond {
 	}
 
 	if opts.UserID > 0 {
-		cond = cond.And(builder.Eq{"team_user.uid": opts.UserID})
+		if opts.IncludeVisible {
+			cond = cond.And(builder.Or(
+				builder.Eq{"team_user.uid": opts.UserID},
+				builder.Eq{"`team`.visibility": TeamVisibilityVisible},
+			))
+		} else {
+			cond = cond.And(builder.Eq{"team_user.uid": opts.UserID})
+		}
 	}
 
 	return cond
@@ -83,7 +93,11 @@ func SearchTeam(ctx context.Context, opts *SearchTeamOptions) (TeamList, int64, 
 	cond := opts.toCond()
 
 	if opts.UserID > 0 {
-		sess = sess.Join("INNER", "team_user", "team_user.team_id = team.id")
+		if opts.IncludeVisible {
+			sess = sess.Join("LEFT", "team_user", "team_user.team_id = team.id AND team_user.uid = ?", opts.UserID)
+		} else {
+			sess = sess.Join("INNER", "team_user", "team_user.team_id = team.id")
+		}
 	}
 	sess = db.SetSessionPagination(sess, opts)
 
@@ -112,6 +126,21 @@ func GetUserOrgTeams(ctx context.Context, orgID, userID int64) (teams TeamList, 
 		Join("INNER", "team_user", "team_user.team_id = team.id").
 		Where("team.org_id = ?", orgID).
 		And("team_user.uid=?", userID).
+		Find(&teams)
+}
+
+// GetUserOrgVisibleTeams returns all teams in the given organization that the
+// user can see: teams the user is a member of, plus teams whose visibility is
+// "visible".
+func GetUserOrgVisibleTeams(ctx context.Context, orgID, userID int64) (teams TeamList, err error) {
+	return teams, db.GetEngine(ctx).
+		Join("LEFT", "team_user", "team_user.team_id = team.id AND team_user.uid = ?", userID).
+		Where("team.org_id = ?", orgID).
+		And(builder.Or(
+			builder.Eq{"team_user.uid": userID},
+			builder.Eq{"`team`.visibility": TeamVisibilityVisible},
+		)).
+		OrderBy("CASE WHEN name=? THEN '' ELSE lower_name END", OwnerTeamName).
 		Find(&teams)
 }
 

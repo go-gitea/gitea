@@ -70,6 +70,7 @@ type CreateTeamForm struct {
 	Permission       string
 	RepoAccess       string
 	CanCreateOrgRepo bool
+	Visibility       string `binding:"OmitEmpty;In(secret,visible)"`
 }
 
 // Validate validates the fields

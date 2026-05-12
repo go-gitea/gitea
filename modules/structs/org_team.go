@@ -24,6 +24,11 @@ type Team struct {
 	UnitsMap map[string]string `json:"units_map"`
 	// Whether the team can create repositories in the organization
 	CanCreateOrgRepo bool `json:"can_create_org_repo"`
+	// Team visibility within the organization. Allowed values: "secret" (only
+	// members and owners can see the team) or "visible" (any org member can
+	// list the team).
+	// enum: secret,visible
+	Visibility string `json:"visibility"`
 }
 
 // CreateTeamOption options for creating a team
@@ -42,6 +47,10 @@ type CreateTeamOption struct {
 	UnitsMap map[string]string `json:"units_map"`
 	// Whether the team can create repositories in the organization
 	CanCreateOrgRepo bool `json:"can_create_org_repo"`
+	// Team visibility within the organization. Allowed values: "secret"
+	// (default) or "visible".
+	// enum: secret,visible
+	Visibility string `json:"visibility" binding:"OmitEmpty;In(secret,visible)"`
 }
 
 // EditTeamOption options for editing a team
@@ -60,4 +69,8 @@ type EditTeamOption struct {
 	UnitsMap map[string]string `json:"units_map"`
 	// Whether the team can create repositories in the organization
 	CanCreateOrgRepo *bool `json:"can_create_org_repo"`
+	// Team visibility within the organization. Allowed values: "secret" or
+	// "visible". When omitted, visibility is left unchanged.
+	// enum: secret,visible
+	Visibility *string `json:"visibility" binding:"OmitEmpty;In(secret,visible)"`
 }
