@@ -895,12 +895,12 @@ func handleSettingsPostDelete(ctx *context.Context) {
 		ctx.JSONErrorNotFound()
 		return
 	}
-	if repo.Name != form.RepoName {
+	if repo.Name != form.RepoName && !repo.IsEmpty {
 		ctx.JSONError(ctx.Tr("form.enterred_invalid_repo_name"))
 		return
 	}
 
-	// Close the gitrepository before doing this.
+	// Close the git repository before doing this.
 	if ctx.Repo.GitRepo != nil {
 		ctx.Repo.GitRepo.Close()
 	}
