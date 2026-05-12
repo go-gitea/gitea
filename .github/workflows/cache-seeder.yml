@@ -51,6 +51,16 @@ jobs:
           GOEXPERIMENT:
           GOTEST_FLAGS: -race -list=^$$ -count=1
         run: make test-backend
+      - name: warm integration compile cache (bindata)
+        run: go test -tags=bindata -c -o /dev/null code.gitea.io/gitea/tests/integration
+      - name: warm integration compile cache (bindata gogit)
+        env:
+          GOEXPERIMENT:
+        run: go test -tags='bindata gogit' -c -o /dev/null code.gitea.io/gitea/tests/integration
+      - name: warm integration compile cache (bindata gogit, race)
+        env:
+          GOEXPERIMENT:
+        run: go test -race -tags='bindata gogit' -c -o /dev/null code.gitea.io/gitea/tests/integration
 
   lint:
     runs-on: ubuntu-latest
