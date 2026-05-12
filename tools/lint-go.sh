@@ -3,8 +3,6 @@
 set -euo pipefail
 cd "$(dirname -- "${BASH_SOURCE[0]}")/.."
 
-GO="${GO:-go}"
-GOLANGCI_LINT_PACKAGE="${GOLANGCI_LINT_PACKAGE:-$(awk -F' *[:?]= *' '/^GOLANGCI_LINT_PACKAGE/{sub(/ +#.*$/,"",$2); print $2; exit}' Makefile)}"
 GOLANGCI_LINT_VERSION="${GOLANGCI_LINT_PACKAGE##*@}"
 BIN="tools/custom-gcl"
 

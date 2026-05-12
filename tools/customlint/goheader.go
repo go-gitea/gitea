@@ -20,16 +20,13 @@ var (
 
 var goheaderAnalyzer = &analysis.Analyzer{
 	Name: "goheader",
-	Doc:  "checks copyright and SPDX-License-Identifier headers of Go source files",
+	Doc:  "checks Gitea copyright/SPDX file headers",
 	Run:  runGoheader,
 }
 
 func runGoheader(pass *analysis.Pass) (any, error) {
 	for _, file := range pass.Files {
 		filename := pass.Fset.Position(file.Pos()).Filename
-		if filename == "" {
-			continue
-		}
 		f, err := os.Open(filename)
 		if err != nil {
 			return nil, err
