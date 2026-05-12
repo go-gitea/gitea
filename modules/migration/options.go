@@ -39,6 +39,9 @@ type MigrateOptions struct {
 	MigrateToRepoID int64
 	MirrorInterval  string `json:"mirror_interval"`
 
-	AWSAccessKeyID     string
-	AWSSecretAccessKey string
+	AWSAccessKeyID     string `json:"-"`
+	AWSSecretAccessKey string `json:"-"`
+
+	AWSAccessKeyIDEncrypted     string `json:"aws_access_key_id_encrypted,omitempty"`
+	AWSSecretAccessKeyEncrypted string `json:"aws_secret_access_key_encrypted,omitempty"`
 }

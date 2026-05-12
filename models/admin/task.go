@@ -137,6 +137,16 @@ func (task *Task) MigrateConfig() (*migration.MigrateOptions, error) {
 				log.Error("Unable to decrypt AuthToken, maybe SECRET_KEY is wrong: %v", err)
 			}
 		}
+		if opts.AWSAccessKeyIDEncrypted != "" {
+			if opts.AWSAccessKeyID, err = secret.DecryptSecret(setting.SecretKey, opts.AWSAccessKeyIDEncrypted); err != nil {
+				log.Error("Unable to decrypt AWSAccessKeyID, maybe SECRET_KEY is wrong: %v", err)
+			}
+		}
+		if opts.AWSSecretAccessKeyEncrypted != "" {
+			if opts.AWSSecretAccessKey, err = secret.DecryptSecret(setting.SecretKey, opts.AWSSecretAccessKeyEncrypted); err != nil {
+				log.Error("Unable to decrypt AWSSecretAccessKey, maybe SECRET_KEY is wrong: %v", err)
+			}
+		}
 
 		return &opts, nil
 	}
@@ -201,6 +211,10 @@ func FinishMigrateTask(ctx context.Context, task *Task) error {
 	conf.AuthPasswordEncrypted = ""
 	conf.AuthTokenEncrypted = ""
 	conf.CloneAddrEncrypted = ""
+	conf.AWSAccessKeyID = ""
+	conf.AWSAccessKeyIDEncrypted = ""
+	conf.AWSSecretAccessKey = ""
+	conf.AWSSecretAccessKeyEncrypted = ""
 	confBytes, err := json.Marshal(conf)
 	if err != nil {
 		return err
