@@ -6,6 +6,7 @@
 set -euo pipefail
 cd "$(dirname -- "${BASH_SOURCE[0]}")/.."
 
+GO="${GO:-go}"
 GOLANGCI_LINT_PACKAGE="${GOLANGCI_LINT_PACKAGE:-$(awk -F' *[:?]= *' '/^GOLANGCI_LINT_PACKAGE/{print $2; exit}' Makefile)}"
 GOLANGCI_LINT_VERSION="${GOLANGCI_LINT_PACKAGE##*@}"
 BIN="tools/custom-gcl"
@@ -32,7 +33,7 @@ plugins:
     path: '$ESC_REPO_ROOT'
     import: code.gitea.io/gitea/tools/customlint
 EOF
-  (unset GOOS GOARCH && cd "$TMP_DIR" && go run "$GOLANGCI_LINT_PACKAGE" custom)
+  (cd "$TMP_DIR" && "$GO" run "$GOLANGCI_LINT_PACKAGE" custom)
 fi
 
 exec "$BIN" run "$@"
