@@ -33,6 +33,12 @@ var ignoredNames = map[string]bool{
 	"code.gitea.io/gitea/options/license": true,
 }
 
+// excludedModules are package path prefixes skipped during license enumeration
+// (lint-only deps aren't part of the runtime binary).
+var excludedModules = []string{
+	"code.gitea.io/gitea/tools/customlint",
+}
+
 var excludedExt = map[string]bool{
 	".gitignore": true,
 	".go":        true,
@@ -55,6 +61,15 @@ type LicenseEntry struct {
 	LicenseText string `json:"licenseText"`
 }
 
+func isExcluded(pkg string) bool {
+	for _, prefix := range excludedModules {
+		if pkg == prefix || strings.HasPrefix(pkg, prefix+"/") {
+			return true
+		}
+	}
+	return false
+}
+
 // getModules returns all dependency modules with their local directory paths
 // and the package directories used from each module.
 func getModules(goCmd string) []ModuleInfo {
@@ -62,8 +77,8 @@ func getModules(goCmd string) []ModuleInfo {
 	// dependencies, matching the CI environment.
 	env := append(os.Environ(), "GOOS=linux", "GOARCH=amd64", "CGO_ENABLED=1")
 
-	// Enumerate gitea packages, dropping the lint-only customlint subtree
-	// so its dev-only deps don't show up in the runtime license list.
+	// Enumerate gitea packages, dropping excludedModules so their dev-only
+	// deps don't show up in the runtime license list.
 	listCmd := exec.Command(goCmd, "list", "./...")
 	listCmd.Stderr = os.Stderr
 	listCmd.Env = env
@@ -75,8 +90,7 @@ func getModules(goCmd string) []ModuleInfo {
 	var pkgs []string
 	for _, line := range strings.Split(string(listOut), "\n") {
 		pkg := strings.TrimSpace(line)
-		if pkg == "" || pkg == "code.gitea.io/gitea/tools/customlint" ||
-			strings.HasPrefix(pkg, "code.gitea.io/gitea/tools/customlint/") {
+		if pkg == "" || isExcluded(pkg) {
 			continue
 		}
 		pkgs = append(pkgs, pkg)
