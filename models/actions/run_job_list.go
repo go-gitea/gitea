@@ -124,7 +124,10 @@ func (opts FindRunJobOptions) ToJoins() []db.JoinFunc {
 }
 
 func (opts FindRunJobOptions) ToOrders() string {
-	return "`action_run_job`.`id` DESC"
+	if opts.PageSize > 0 || opts.Page > 0 {
+		return "`action_run_job`.`id` DESC"
+	}
+	return ""
 }
 
 var _ db.FindOptionsOrder = (*FindRunJobOptions)(nil)
