@@ -216,11 +216,12 @@ func GetRunJobsByRunAndAttemptID(ctx context.Context, runID, runAttemptID int64)
 	if err := db.GetEngine(ctx).Where("run_id=? AND run_attempt_id=?", runID, runAttemptID).OrderBy("id").Find(&jobs); err != nil {
 		return nil, err
 	}
+	// Matrix expansions share a JobID and need natural ordering by Name so "test (2)" precedes "test (10)".
+	// Returning 0 for different JobIDs keeps the stable sort's input order (DB id) intact across groups.
 	slices.SortStableFunc(jobs, func(a, b *ActionRunJob) int {
-		if cmp := base.NaturalSortCompare(a.JobID, b.JobID); cmp != 0 {
-			return cmp
+		if a.JobID != b.JobID {
+			return 0
 		}
-		// when using matrix, the JobID values are the same, then compare names
 		return base.NaturalSortCompare(a.Name, b.Name)
 	})
 	return jobs, nil
