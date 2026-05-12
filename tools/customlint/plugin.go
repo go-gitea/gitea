@@ -4,17 +4,12 @@
 package customlint
 
 import (
-	"errors"
-
 	"github.com/golangci/plugin-module-register/register"
 	"golang.org/x/tools/go/analysis"
 )
 
 func init() {
-	register.Plugin("customlint", func(conf any) (register.LinterPlugin, error) {
-		if conf != nil {
-			return nil, errors.New("customlint takes no settings")
-		}
+	register.Plugin("customlint", func(any) (register.LinterPlugin, error) {
 		return &plugin{}, nil
 	})
 }

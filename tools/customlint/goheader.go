@@ -4,6 +4,8 @@
 package customlint
 
 import (
+	"io"
+	"os"
 	"regexp"
 
 	"golang.org/x/tools/go/analysis"
@@ -28,12 +30,14 @@ func runGoheader(pass *analysis.Pass) (any, error) {
 		if filename == "" {
 			continue
 		}
-		data, err := pass.ReadFile(filename)
+		f, err := os.Open(filename)
 		if err != nil {
 			return nil, err
 		}
-		if len(data) > headerScanLimit {
-			data = data[:headerScanLimit]
+		data, err := io.ReadAll(io.LimitReader(f, headerScanLimit))
+		_ = f.Close()
+		if err != nil {
+			return nil, err
 		}
 		if generatedRE.Match(data) {
 			continue
