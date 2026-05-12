@@ -34,9 +34,7 @@ func ProtocolMiddlewares() (handlers []any) {
 		handlers = append(handlers, ForwardedHeadersHandler(setting.ReverseProxyLimit, setting.ReverseProxyTrustedProxies))
 	}
 
-	if setting.IsRouteLogEnabled() {
-		handlers = append(handlers, routing.NewLoggerHandler())
-	}
+	handlers = append(handlers, routing.NewRequestInfoHandler())
 
 	if setting.IsAccessLogEnabled() {
 		handlers = append(handlers, context.AccessLogger())
