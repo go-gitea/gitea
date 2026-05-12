@@ -119,6 +119,7 @@ jobs:
 
             json:
               - "**/*.json"
+              - "**/*.json5"
 
             e2e:
               - "tests/e2e/**"
