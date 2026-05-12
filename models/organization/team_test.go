@@ -184,7 +184,7 @@ func TestGetUserOrgVisibleTeams(t *testing.T) {
 		LowerName:  "visible-team",
 		Name:       "visible-team",
 		AccessMode: 1, // read
-		Visibility: organization.TeamVisibilityVisible,
+		Privacy:    organization.TeamPrivacyClosed,
 	}
 	assert.NoError(t, db.Insert(t.Context(), visible))
 	t.Cleanup(func() {

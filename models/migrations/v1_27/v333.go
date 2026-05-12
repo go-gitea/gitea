@@ -5,23 +5,23 @@ package v1_27
 
 import "xorm.io/xorm"
 
-type teamWithVisibility struct {
-	Visibility string `xorm:"VARCHAR(16) NOT NULL DEFAULT 'secret'"`
+type teamWithPrivacy struct {
+	Privacy string `xorm:"VARCHAR(16) NOT NULL DEFAULT 'secret'"`
 }
 
-func (teamWithVisibility) TableName() string {
+func (teamWithPrivacy) TableName() string {
 	return "team"
 }
 
-func AddVisibilityToTeam(x *xorm.Engine) error {
+func AddPrivacyToTeam(x *xorm.Engine) error {
 	if _, err := x.SyncWithOptions(xorm.SyncOptions{
 		IgnoreDropIndices: true,
-	}, new(teamWithVisibility)); err != nil {
+	}, new(teamWithPrivacy)); err != nil {
 		return err
 	}
 
 	// Owner teams must remain listable to all org members; new orgs create
-	// them as visible, so make existing owner teams visible too.
-	_, err := x.Exec("UPDATE `team` SET visibility = ? WHERE lower_name = ?", "visible", "owners")
+	// them as "closed", so make existing owner teams closed too.
+	_, err := x.Exec("UPDATE `team` SET privacy = ? WHERE lower_name = ?", "closed", "owners")
 	return err
 }

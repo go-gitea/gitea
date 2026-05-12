@@ -75,7 +75,7 @@ func (opts *SearchTeamOptions) toCond() builder.Cond {
 		if opts.IncludeVisible {
 			cond = cond.And(builder.Or(
 				builder.Eq{"team_user.uid": opts.UserID},
-				builder.Eq{"`team`.visibility": TeamVisibilityVisible},
+				builder.Eq{"`team`.privacy": TeamPrivacyClosed},
 			))
 		} else {
 			cond = cond.And(builder.Eq{"team_user.uid": opts.UserID})
@@ -138,7 +138,7 @@ func GetUserOrgVisibleTeams(ctx context.Context, orgID, userID int64) (teams Tea
 		Where("team.org_id = ?", orgID).
 		And(builder.Or(
 			builder.Eq{"team_user.uid": userID},
-			builder.Eq{"`team`.visibility": TeamVisibilityVisible},
+			builder.Eq{"`team`.privacy": TeamPrivacyClosed},
 		)).
 		OrderBy("CASE WHEN name=? THEN '' ELSE lower_name END", OwnerTeamName).
 		Find(&teams)

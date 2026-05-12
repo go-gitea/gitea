@@ -4,6 +4,17 @@
 
 package structs
 
+// TeamPrivacy controls who can list a team within its organization, matching
+// the GitHub Teams API. "secret" teams are only listable by team members and
+// org owners; "closed" teams are listable by any organization member.
+// swagger:enum TeamPrivacy
+type TeamPrivacy string
+
+const (
+	TeamPrivacySecret TeamPrivacy = "secret"
+	TeamPrivacyClosed TeamPrivacy = "closed"
+)
+
 // Team represents a team in an organization
 type Team struct {
 	// The unique identifier of the team
@@ -24,11 +35,10 @@ type Team struct {
 	UnitsMap map[string]string `json:"units_map"`
 	// Whether the team can create repositories in the organization
 	CanCreateOrgRepo bool `json:"can_create_org_repo"`
-	// Team visibility within the organization. Allowed values: "secret" (only
-	// members and owners can see the team) or "visible" (any org member can
-	// list the team).
-	// enum: secret,visible
-	Visibility string `json:"visibility"`
+	// Team privacy within the organization. "secret" teams are only listable
+	// by members and org owners; "closed" teams are listable by any
+	// organization member.
+	Privacy TeamPrivacy `json:"privacy"`
 }
 
 // CreateTeamOption options for creating a team
@@ -47,10 +57,8 @@ type CreateTeamOption struct {
 	UnitsMap map[string]string `json:"units_map"`
 	// Whether the team can create repositories in the organization
 	CanCreateOrgRepo bool `json:"can_create_org_repo"`
-	// Team visibility within the organization. Allowed values: "secret"
-	// (default) or "visible".
-	// enum: secret,visible
-	Visibility string `json:"visibility" binding:"OmitEmpty;In(secret,visible)"`
+	// Team privacy within the organization. Defaults to "secret".
+	Privacy TeamPrivacy `json:"privacy" binding:"OmitEmpty;In(secret,closed)"`
 }
 
 // EditTeamOption options for editing a team
@@ -69,8 +77,7 @@ type EditTeamOption struct {
 	UnitsMap map[string]string `json:"units_map"`
 	// Whether the team can create repositories in the organization
 	CanCreateOrgRepo *bool `json:"can_create_org_repo"`
-	// Team visibility within the organization. Allowed values: "secret" or
-	// "visible". When omitted, visibility is left unchanged.
-	// enum: secret,visible
-	Visibility *string `json:"visibility" binding:"OmitEmpty;In(secret,visible)"`
+	// Team privacy within the organization. When omitted, privacy is left
+	// unchanged.
+	Privacy *TeamPrivacy `json:"privacy" binding:"OmitEmpty;In(secret,closed)"`
 }

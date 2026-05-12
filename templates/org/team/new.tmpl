@@ -29,14 +29,14 @@
 								<br>
 								<div class="field">
 									<div class="ui radio checkbox">
-										<input type="radio" name="visibility" value="secret" {{if not .Team.IsVisible}}checked{{end}}>
+										<input type="radio" name="privacy" value="secret" {{if not .Team.IsVisible}}checked{{end}}>
 										<label>{{ctx.Locale.Tr "org.teams.visibility_secret"}}</label>
 										<span class="help">{{ctx.Locale.Tr "org.teams.visibility_secret_helper"}}</span>
 									</div>
 								</div>
 								<div class="field">
 									<div class="ui radio checkbox">
-										<input type="radio" name="visibility" value="visible" {{if .Team.IsVisible}}checked{{end}}>
+										<input type="radio" name="privacy" value="closed" {{if .Team.IsVisible}}checked{{end}}>
 										<label>{{ctx.Locale.Tr "org.teams.visibility_visible"}}</label>
 										<span class="help">{{ctx.Locale.Tr "org.teams.visibility_visible_helper"}}</span>
 									</div>
