@@ -211,13 +211,13 @@ func TestRepository_parseTagRef(t *testing.T) {
 			},
 
 			want: &Tag{
-				Name:      "v1.9.1",
-				ID:        MustIDFromString("ab23e4b7f4cd0caafe0174c0e7ef6d651ba72889"),
-				Object:    MustIDFromString("ab23e4b7f4cd0caafe0174c0e7ef6d651ba72889"),
-				Type:      "commit",
-				Tagger:    parseSignatureFromCommitLine("Foo Bar <foo@bar.com> 1565789218 +0300"),
-				Message:   "Add changelog of v1.9.1 (#7859)\n\n* add changelog of v1.9.1\n* Update CHANGELOG.md\n",
-				Signature: nil,
+				Name:          "v1.9.1",
+				ID:            MustIDFromString("ab23e4b7f4cd0caafe0174c0e7ef6d651ba72889"),
+				Object:        MustIDFromString("ab23e4b7f4cd0caafe0174c0e7ef6d651ba72889"),
+				Type:          "commit",
+				Tagger:        parseSignatureFromCommitLine("Foo Bar <foo@bar.com> 1565789218 +0300"),
+				CommitMessage: CommitMessage{MessageRaw: "Add changelog of v1.9.1 (#7859)\n\n* add changelog of v1.9.1\n* Update CHANGELOG.md\n"},
+				Signature:     nil,
 			},
 		},
 
@@ -240,13 +240,13 @@ func TestRepository_parseTagRef(t *testing.T) {
 			},
 
 			want: &Tag{
-				Name:      "v0.0.1",
-				ID:        MustIDFromString("8c68a1f06fc59c655b7e3905b159d761e91c53c9"),
-				Object:    MustIDFromString("3325fd8a973321fd59455492976c042dde3fd1ca"),
-				Type:      "tag",
-				Tagger:    parseSignatureFromCommitLine("Foo Bar <foo@bar.com> 1565789218 +0300"),
-				Message:   "Add changelog of v1.9.1 (#7859)\n\n* add changelog of v1.9.1\n* Update CHANGELOG.md\n",
-				Signature: nil,
+				Name:          "v0.0.1",
+				ID:            MustIDFromString("8c68a1f06fc59c655b7e3905b159d761e91c53c9"),
+				Object:        MustIDFromString("3325fd8a973321fd59455492976c042dde3fd1ca"),
+				Type:          "tag",
+				Tagger:        parseSignatureFromCommitLine("Foo Bar <foo@bar.com> 1565789218 +0300"),
+				CommitMessage: CommitMessage{MessageRaw: "Add changelog of v1.9.1 (#7859)\n\n* add changelog of v1.9.1\n* Update CHANGELOG.md\n"},
+				Signature:     nil,
 			},
 		},
 
@@ -263,6 +263,7 @@ func TestRepository_parseTagRef(t *testing.T) {
 
 * add changelog of v1.9.1
 * Update CHANGELOG.md
+
 -----BEGIN PGP SIGNATURE-----
 
 aBCGzBAABCgAdFiEEyWRwv/q1Q6IjSv+D4IPOwzt33PoFAmI8jbIACgkQ4IPOwzt3
@@ -298,12 +299,12 @@ qbHDASXl
 			},
 
 			want: &Tag{
-				Name:    "v0.0.1",
-				ID:      MustIDFromString("8c68a1f06fc59c655b7e3905b159d761e91c53c9"),
-				Object:  MustIDFromString("3325fd8a973321fd59455492976c042dde3fd1ca"),
-				Type:    "tag",
-				Tagger:  parseSignatureFromCommitLine("Foo Bar <foo@bar.com> 1565789218 +0300"),
-				Message: "Add changelog of v1.9.1 (#7859)\n\n* add changelog of v1.9.1\n* Update CHANGELOG.md",
+				Name:          "v0.0.1",
+				ID:            MustIDFromString("8c68a1f06fc59c655b7e3905b159d761e91c53c9"),
+				Object:        MustIDFromString("3325fd8a973321fd59455492976c042dde3fd1ca"),
+				Type:          "tag",
+				Tagger:        parseSignatureFromCommitLine("Foo Bar <foo@bar.com> 1565789218 +0300"),
+				CommitMessage: CommitMessage{MessageRaw: "Add changelog of v1.9.1 (#7859)\n\n* add changelog of v1.9.1\n* Update CHANGELOG.md\n"},
 				Signature: &CommitSignature{
 					Signature: `-----BEGIN PGP SIGNATURE-----
 

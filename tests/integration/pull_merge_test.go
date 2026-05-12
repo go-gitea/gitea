@@ -80,7 +80,7 @@ func testPullMerge(t *testing.T, session *TestSession, user, repo, pullNum strin
 }
 
 func testPullCleanUp(t *testing.T, session *TestSession, user, repo, pullnum string) *httptest.ResponseRecorder {
-	req := NewRequest(t, "GET", path.Join(user, repo, "pulls", pullnum))
+	req := NewRequest(t, "GET", "/"+path.Join(user, repo, "pulls", pullnum))
 	resp := session.MakeRequest(t, req, http.StatusOK)
 
 	// Click the little button to create a pull
@@ -322,11 +322,8 @@ func TestCantMergeWorkInProgress(t *testing.T) {
 		req := NewRequest(t, "GET", test.RedirectURL(resp))
 		resp = session.MakeRequest(t, req, http.StatusOK)
 		htmlDoc := NewHTMLParser(t, resp.Body)
-		text := strings.TrimSpace(htmlDoc.doc.Find(".merge-section > .item").Last().Text())
-		assert.NotEmpty(t, text, "Can't find WIP text")
-
-		assert.Contains(t, text, translation.NewLocale("en-US").TrString("repo.pulls.cannot_merge_work_in_progress"), "Unable to find WIP text")
-		assert.Contains(t, text, "[wip]", "Unable to find WIP text")
+		wipToggleButtonCount := htmlDoc.Find(`.merge-section > .item button[data-global-init="initPullRequestWipToggle"]`).Length()
+		assert.Equal(t, 1, wipToggleButtonCount)
 	})
 }
 

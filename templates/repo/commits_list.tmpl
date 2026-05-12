@@ -11,7 +11,7 @@
 		</thead>
 		<tbody class="commit-list">
 			{{$commitRepoLink := $.RepoLink}}{{if $.CommitRepoLink}}{{$commitRepoLink = $.CommitRepoLink}}{{end}}
-			{{range .Commits}}
+			{{range $commit := .Commits}}
 				<tr>
 					<td class="author">
 						<span class="author-wrapper">
@@ -38,18 +38,22 @@
 					<td class="message">
 						<span class="message-wrapper">
 						{{if $.PageIsWiki}}
-							<span class="commit-summary {{if gt .ParentCount 1}} grey text{{end}}" title="{{.Summary}}">{{.Summary | ctx.RenderUtils.RenderEmoji}}</span>
+							<span class="commit-summary {{if gt $commit.ParentCount 1}} grey text{{end}}" title="{{$commit.MessageTitle}}">
+								{{$commit.MessageTitle | ctx.RenderUtils.RenderEmoji}}
+							</span>
 						{{else}}
-							{{$commitLink:= printf "%s/commit/%s" $commitRepoLink (PathEscape .ID.String)}}
-							<span class="commit-summary {{if gt .ParentCount 1}} grey text{{end}}" title="{{.Summary}}">{{ctx.RenderUtils.RenderCommitMessageLinkSubject .Message $commitLink $.Repository}}</span>
+							{{$commitLink:= printf "%s/commit/%s" $commitRepoLink (PathEscape $commit.ID.String)}}
+							<span class="commit-summary {{if gt $commit.ParentCount 1}} grey text{{end}}" title="{{$commit.MessageTitle}}">
+								{{ctx.RenderUtils.RenderCommitMessageLinkSubject $commit.MessageUTF8 $commitLink $.Repository}}
+							</span>
 						{{end}}
 						</span>
-						{{if IsMultilineCommitMessage .Message}}
+						{{if $commit.MessageBody}}
 						<button class="ui button ellipsis-button" aria-expanded="false" data-global-click="onRepoEllipsisButtonClick">...</button>
 						{{end}}
 						{{template "repo/commit_statuses" dict "Status" .Status "Statuses" .Statuses}}
-						{{if IsMultilineCommitMessage .Message}}
-						<pre class="commit-body tw-hidden">{{ctx.RenderUtils.RenderCommitBody .Message $.Repository}}</pre>
+						{{if $commit.MessageBody}}
+						<pre class="commit-body tw-hidden">{{ctx.RenderUtils.RenderCommitBody $commit.MessageUTF8 $.Repository}}</pre>
 						{{end}}
 						{{if $.CommitsTagsMap}}
 							{{range (index $.CommitsTagsMap .ID.String)}}

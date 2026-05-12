@@ -202,10 +202,6 @@ func (f *ProtectBranchForm) Validate(req *http.Request, errs binding.Errors) bin
 	return middleware.Validate(errs, ctx.Data, f, ctx.Locale)
 }
 
-type ProtectBranchPriorityForm struct {
-	IDs []int64
-}
-
 // WebhookForm form for changing web hook
 type WebhookForm struct {
 	Name                     string `binding:"MaxSize(255)"`

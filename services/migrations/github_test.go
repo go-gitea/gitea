@@ -40,6 +40,7 @@ func TestGitHubDownloadRepo(t *testing.T) {
 		Name:          "test_repo",
 		Owner:         "go-gitea",
 		Description:   "Test repository for testing migration from github to gitea",
+		Website:       "https://gitea.com/test-repo",
 		CloneURL:      "https://github.com/go-gitea/test_repo.git",
 		OriginalURL:   "https://github.com/go-gitea/test_repo",
 		DefaultBranch: "master",

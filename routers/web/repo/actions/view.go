@@ -35,7 +35,7 @@ import (
 	actions_service "code.gitea.io/gitea/services/actions"
 	context_module "code.gitea.io/gitea/services/context"
 
-	"github.com/nektos/act/pkg/model"
+	"gitea.com/gitea/runner/act/model"
 )
 
 func findCurrentJobByPathParam(ctx *context_module.Context, jobs []*actions_model.ActionRunJob) (job *actions_model.ActionRunJob, hasPathParam bool) {
@@ -972,8 +972,8 @@ func ArtifactsDownloadView(ctx *context_module.Context) {
 	// A v4 Artifact may only contain a single file
 	// Multiple files are uploaded as a single file archive
 	// All other cases fall back to the legacy v1–v3 zip handling below
-	if len(artifacts) == 1 && actions.IsArtifactV4(artifacts[0]) {
-		err := actions.DownloadArtifactV4(ctx.Base, artifacts[0])
+	if len(artifacts) == 1 && actions_service.IsArtifactV4(artifacts[0]) {
+		err := actions_service.DownloadArtifactV4(ctx.Base, artifacts[0])
 		if err != nil {
 			ctx.ServerError("DownloadArtifactV4", err)
 			return
@@ -1072,7 +1072,7 @@ func EnableWorkflowFile(ctx *context_module.Context) {
 func disableOrEnableWorkflowFile(ctx *context_module.Context, isEnable bool) {
 	workflow := ctx.FormString("workflow")
 	if len(workflow) == 0 {
-		ctx.ServerError("workflow", nil)
+		ctx.JSONError("workflow is required")
 		return
 	}
 

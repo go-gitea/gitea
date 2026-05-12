@@ -1,17 +1,14 @@
 <div class="secondary-nav">
-{{with .Repository}}
+	{{with .Repository}}
 	<div class="ui container">
-		<div class="repo-header">
-			<div class="flex-item tw-items-center">
-				<div class="flex-item-leading">
-					{{template "repo/icon" .}}
+		<div class="repo-header flex-left-right">
+			{{/* left part */}}
+			<div class="flex-text-block">
+				{{template "repo/icon" .}}
+				<div class="flex-text-block tw-flex-wrap tw-text-18">
+					<a class="muted tw-font-normal" href="{{.Owner.HomeLink}}">{{.Owner.Name}}</a>/<a class="muted" href="{{$.RepoLink}}">{{.Name}}</a>
 				</div>
-				<div class="flex-item-main">
-					<div class="flex-item-title tw-text-18">
-						<a class="muted tw-font-normal" href="{{.Owner.HomeLink}}">{{.Owner.Name}}</a>/<a class="muted" href="{{$.RepoLink}}">{{.Name}}</a>
-					</div>
-				</div>
-				<div class="flex-item-trailing">
+				<div class="flex-text-block tw-flex-wrap">
 					{{if .IsArchived}}
 						<span class="ui basic label not-mobile">{{ctx.Locale.Tr "repo.desc.archived"}}</span>
 						<div class="repo-icon only-mobile" data-tooltip-content="{{ctx.Locale.Tr "repo.desc.archived"}}">{{svg "octicon-archive" 18}}</div>
@@ -38,6 +35,7 @@
 				</div>
 			</div>
 			{{if not (or .IsBeingCreated .IsBroken)}}
+				{{/* right part */}}
 				<div class="flex-text-block tw-flex-wrap">
 					{{if $.CanUserAcceptOrRejectTransfer}}
 						<button type="button" class="ui compact small basic primary button link-action" data-url="{{$.RepoLink}}/action/accept_transfer"
@@ -67,17 +65,20 @@
 				</div>
 			{{end}}
 		</div>
+
+		{{/* next line, secondary info */}}
 		{{if $.PullMirror}}
-			<div class="fork-flag">
+			<div class="secondary-info">
 				{{ctx.Locale.Tr "repo.mirror_from"}}
 				<a target="_blank" href="{{$.PullMirror.RemoteAddress}}">{{$.PullMirror.RemoteAddress}}</a>
 				{{if $.PullMirror.UpdatedUnix}}{{ctx.Locale.Tr "repo.mirror_sync"}} {{DateUtils.TimeSince $.PullMirror.UpdatedUnix}}{{end}}
 			</div>
 		{{end}}
-		{{if .IsFork}}<div class="fork-flag">{{ctx.Locale.Tr "repo.forked_from"}} <a href="{{.BaseRepo.Link}}">{{.BaseRepo.FullName}}</a></div>{{end}}
-		{{if .IsGenerated}}<div class="fork-flag">{{ctx.Locale.Tr "repo.generated_from"}} <a href="{{(.TemplateRepo ctx).Link}}">{{(.TemplateRepo ctx).FullName}}</a></div>{{end}}
+		{{if .IsFork}}<div class="secondary-info">{{ctx.Locale.Tr "repo.forked_from"}} <a href="{{.BaseRepo.Link}}">{{.BaseRepo.FullName}}</a></div>{{end}}
+		{{if .IsGenerated}}<div class="secondary-info">{{ctx.Locale.Tr "repo.generated_from"}} <a href="{{(.TemplateRepo ctx).Link}}">{{(.TemplateRepo ctx).FullName}}</a></div>{{end}}
 	</div>
-{{end}}
+	{{end}}
+
 	<div class="ui container">
 		<overflow-menu class="ui secondary pointing menu">
 			{{if not (or .Repository.IsBeingCreated .Repository.IsBroken)}}
