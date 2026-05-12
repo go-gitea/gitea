@@ -41,7 +41,7 @@ func ListJobs(ctx *context.APIContext, ownerID, repoID, runID int64, runAttemptI
 		RepoID:      repoID,
 		RunID:       runID,
 		ListOptions: listOptions,
-		OrderBy:     db.SearchOrderByID,
+		OrderBy:     "`action_run_job`.id ASC",
 	}
 	if runID > 0 {
 		opts.RunAttemptID = runAttemptID
