@@ -446,6 +446,10 @@ test-integration:
 	$(GO) test $(GOTEST_FLAGS) -tags '$(TAGS)' -c code.gitea.io/gitea/tests/integration -o ./test-integration-$(GITEA_TEST_DATABASE).test
 	./tools/test-integration.sh ./test-integration-$(GITEA_TEST_DATABASE).test
 
+.PHONY: test-integration-compile
+test-integration-compile:
+	$(GO) test $(GOTEST_FLAGS) -tags '$(TAGS)' -c -o /dev/null code.gitea.io/gitea/tests/integration
+
 .PHONY: test-integration\#%
 test-integration\#%:
 	$(GO) test $(GOTEST_FLAGS) -tags '$(TAGS)' -run $(subst .,/,$*) code.gitea.io/gitea/tests/integration
