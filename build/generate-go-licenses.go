@@ -34,7 +34,6 @@ var ignoredNames = map[string]bool{
 }
 
 // excludedModules are package path prefixes skipped during license enumeration
-// (lint-only deps aren't part of the runtime binary).
 var excludedModules = []string{
 	"code.gitea.io/gitea/tools/customlint",
 }
