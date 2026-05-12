@@ -707,6 +707,14 @@ func (Action) ListWorkflowJobs(ctx *context.APIContext) {
 	//   in: query
 	//   description: page size of results
 	//   type: integer
+	// - name: sort
+	//   in: query
+	//   description: sort jobs by attribute. Supported values are "id". Default is "id"
+	//   type: string
+	// - name: order
+	//   in: query
+	//   description: sort order, either "asc" (ascending) or "desc" (descending). Default is "asc"
+	//   type: string
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/WorkflowJobsList"
@@ -1526,6 +1534,14 @@ func ListWorkflowRunJobs(ctx *context.APIContext) {
 	//   in: query
 	//   description: page size of results
 	//   type: integer
+	// - name: sort
+	//   in: query
+	//   description: sort jobs by attribute. Supported values are "id". Default is "id"
+	//   type: string
+	// - name: order
+	//   in: query
+	//   description: sort order, either "asc" (ascending) or "desc" (descending). Default is "asc"
+	//   type: string
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/WorkflowJobsList"

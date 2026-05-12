@@ -41,9 +41,28 @@ func ListJobs(ctx *context.APIContext, ownerID, repoID, runID int64, runAttemptI
 		RepoID:      repoID,
 		RunID:       runID,
 		ListOptions: listOptions,
+		OrderBy:     db.SearchOrderByID,
 	}
 	if runID > 0 {
 		opts.RunAttemptID = runAttemptID
+	}
+	sortMode := ctx.FormString("sort")
+	if len(sortMode) > 0 {
+		sortOrder := ctx.FormString("order")
+		if len(sortOrder) == 0 {
+			sortOrder = "asc"
+		}
+		if orderMap, ok := actions_model.JobOrderByMap[sortOrder]; ok {
+			if orderBy, ok := orderMap[sortMode]; ok {
+				opts.OrderBy = orderBy
+			} else {
+				ctx.APIError(http.StatusUnprocessableEntity, fmt.Errorf("Invalid sort mode: \"%s\"", sortMode))
+				return
+			}
+		} else {
+			ctx.APIError(http.StatusUnprocessableEntity, fmt.Errorf("Invalid sort order: \"%s\"", sortOrder))
+			return
+		}
 	}
 	for _, status := range ctx.FormStrings("status") {
 		values, err := convertToInternal(status)

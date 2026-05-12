@@ -80,6 +80,12 @@ type FindRunJobOptions struct {
 	Statuses         []Status
 	UpdatedBefore    timeutil.TimeStamp
 	ConcurrencyGroup string
+	OrderBy          db.SearchOrderBy
+}
+
+var JobOrderByMap = map[string]map[string]db.SearchOrderBy{
+	"asc":  {"id": db.SearchOrderByID},
+	"desc": {"id": db.SearchOrderByIDReverse},
 }
 
 func (opts FindRunJobOptions) ToConds() builder.Cond {
@@ -122,3 +128,12 @@ func (opts FindRunJobOptions) ToJoins() []db.JoinFunc {
 	}
 	return nil
 }
+
+func (opts FindRunJobOptions) ToOrders() string {
+	if opts.OrderBy != "" {
+		return string(opts.OrderBy)
+	}
+	return ""
+}
+
+var _ db.FindOptionsOrder = FindRunJobOptions{}
