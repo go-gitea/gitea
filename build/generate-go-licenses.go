@@ -29,12 +29,10 @@ var primaryLicenseRe = regexp.MustCompile(`^(?i)(LICEN[SC]E|COPYING)$`)
 
 // ignoredNames are LicenseEntry.Name values to exclude from the output.
 var ignoredNames = map[string]bool{
-	"code.gitea.io/gitea":                 true,
-	"code.gitea.io/gitea/options/license": true,
-}
-
-var excludedModules = []string{
-	"code.gitea.io/gitea/tools/customlint",
+	"code.gitea.io/gitea":                        true,
+	"code.gitea.io/gitea/options/license":        true,
+	"github.com/golangci/plugin-module-register": true, // lint-only, used by tools/customlint
+	"golang.org/x/tools":                         true, // lint-only, used by tools/customlint
 }
 
 var excludedExt = map[string]bool{
@@ -59,46 +57,15 @@ type LicenseEntry struct {
 	LicenseText string `json:"licenseText"`
 }
 
-func isExcluded(pkg string) bool {
-	for _, prefix := range excludedModules {
-		if pkg == prefix || strings.HasPrefix(pkg, prefix+"/") {
-			return true
-		}
-	}
-	return false
-}
-
 // getModules returns all dependency modules with their local directory paths
 // and the package directories used from each module.
 func getModules(goCmd string) []ModuleInfo {
+	cmd := exec.Command(goCmd, "list", "-deps", "-f",
+		"{{if .Module}}{{.Module.Path}}\t{{.Module.Dir}}\t{{.Dir}}{{end}}", "./...")
+	cmd.Stderr = os.Stderr
 	// Use GOOS=linux with CGO to ensure we capture all platform-specific
 	// dependencies, matching the CI environment.
-	env := append(os.Environ(), "GOOS=linux", "GOARCH=amd64", "CGO_ENABLED=1")
-
-	listCmd := exec.Command(goCmd, "list", "./...")
-	listCmd.Stderr = os.Stderr
-	listCmd.Env = env
-	listOut, err := listCmd.Output()
-	if err != nil {
-		fmt.Fprintf(os.Stderr, "failed to run 'go list ./...': %v\n", err)
-		os.Exit(1)
-	}
-	var pkgs []string
-	for _, line := range strings.Split(string(listOut), "\n") {
-		pkg := strings.TrimSpace(line)
-		if pkg == "" || isExcluded(pkg) {
-			continue
-		}
-		pkgs = append(pkgs, pkg)
-	}
-
-	args := append([]string{
-		"list", "-deps", "-f",
-		"{{if .Module}}{{.Module.Path}}\t{{.Module.Dir}}\t{{.Dir}}{{end}}",
-	}, pkgs...)
-	cmd := exec.Command(goCmd, args...)
-	cmd.Stderr = os.Stderr
-	cmd.Env = env
+	cmd.Env = append(os.Environ(), "GOOS=linux", "GOARCH=amd64", "CGO_ENABLED=1")
 	output, err := cmd.Output()
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "failed to run 'go list -deps': %v\n", err)
