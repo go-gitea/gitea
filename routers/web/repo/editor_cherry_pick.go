@@ -47,6 +47,11 @@ func CherryPickPost(ctx *context.Context) {
 	if ctx.Written() {
 		return
 	}
+	// Cherry-pick can touch arbitrary paths; pass the URL path as a best-effort
+	// hint. Real per-file enforcement lives in the service / pre-receive hook.
+	if !editorCheckCanCommit(ctx, parsed, ctx.Repo.TreePath) {
+		return
+	}
 
 	defaultCommitMessage := util.Iif(parsed.form.Revert, ctx.Locale.TrString("repo.commit.revert-header", fromCommitID), ctx.Locale.TrString("repo.commit.cherry-pick-header", fromCommitID))
 	opts := &files.ApplyDiffPatchOptions{

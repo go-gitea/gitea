@@ -61,6 +61,10 @@ func prepareEditorPageFormOptions(ctx *context.Context, editorAction string) *co
 		ctx.ServerError("PrepareCommitFormOptions", err)
 		return nil
 	}
+	// Best-effort UI hint: refine CanCommitToBranch using the URL-derived path
+	// so the form renders the right default. The actual decision is re-run on
+	// POST against the operation's full affected path set.
+	context.RefineCanCommitToBranchByPaths(ctx, commitFormOptions, ctx.Repo.TreePath)
 
 	if commitFormOptions.NeedFork {
 		ForkToEdit(ctx)
@@ -111,26 +115,6 @@ func (f *preparedEditorCommitForm[T]) GetCommitMessage(defaultCommitMessage stri
 	return commitMessage
 }
 
-// destinationAllowsDirectCommit reports whether the form-submitted destination
-// path qualifies for a direct commit via an unprotected file pattern, in cases
-// where PrepareCommitFormOptions (which only saw the URL-derived path) said no.
-func destinationAllowsDirectCommit(ctx *context.Context, opts *context.CommitFormOptions, destTreePath string) bool {
-	if opts.CanCommitToBranch {
-		return false // already allowed; nothing to refine
-	}
-	if destTreePath == "" || destTreePath == ctx.Repo.TreePath {
-		return false // no form destination, or same as URL path already evaluated
-	}
-	if opts.RequireSigned && !opts.WillSign {
-		return false // signing requirement still blocks
-	}
-	pb, _ := git_model.GetFirstMatchProtectedBranchRule(ctx, ctx.Repo.Repository.ID, ctx.Repo.BranchName)
-	if pb == nil {
-		return false
-	}
-	return pb.IsUnprotectedFile(pb.GetUnprotectedFilePatterns(), destTreePath)
-}
-
 func prepareEditorCommitSubmittedForm[T forms.CommitCommonFormInterface](ctx *context.Context) *preparedEditorCommitForm[T] {
 	form := web.GetForm(ctx).(T)
 	if ctx.HasError() {
@@ -146,28 +130,18 @@ func prepareEditorCommitSubmittedForm[T forms.CommitCommonFormInterface](ctx *co
 		ctx.ServerError("PrepareCommitFormOptions", err)
 		return nil
 	}
-	// For "_edit"/"_new" POSTs the form submits the commit destination, which can
-	// differ from the URL-derived ctx.Repo.TreePath (rename on "_edit", or a path
-	// under "_new/<branch>/<dir>/"). PrepareCommitFormOptions only evaluated the
-	// URL path against unprotected file patterns; if the destination is the one
-	// that matches an unprotected pattern, allow direct commit.
-	if destinationAllowsDirectCommit(ctx, commitFormOptions, commonForm.TreePath) {
-		commitFormOptions.CanCommitToBranch = true
-	}
 	if commitFormOptions.NeedFork {
 		// It shouldn't happen, because we should have done the checks in the "GET" request. But just in case.
 		ctx.JSONError(ctx.Locale.TrString("error.not_found"))
 		return nil
 	}
 
-	// check commit behavior
+	// The "cannot commit to protected branch" guard runs in each POST handler
+	// via editorCheckCanCommit, once it has refined CanCommitToBranch against
+	// the operation's real affected path set (rename touches two paths).
 	fromBaseBranch := ctx.FormString("from_base_branch")
 	commitToNewBranch := commonForm.CommitChoice == editorCommitChoiceNewBranch || fromBaseBranch != ""
 	targetBranchName := util.Iif(commitToNewBranch, commonForm.NewBranchName, ctx.Repo.BranchName)
-	if targetBranchName == ctx.Repo.BranchName && !commitFormOptions.CanCommitToBranch {
-		ctx.JSONError(ctx.Tr("repo.editor.cannot_commit_to_protected_branch", targetBranchName))
-		return nil
-	}
 
 	if !issues.CanMaintainerWriteToBranch(ctx, ctx.Repo.Permission, targetBranchName, ctx.Doer) {
 		ctx.NotFound(nil)
@@ -217,6 +191,19 @@ func prepareEditorCommitSubmittedForm[T forms.CommitCommonFormInterface](ctx *co
 		NewBranchName:     targetBranchName,
 		GitCommitter:      gitCommitter,
 	}
+}
+
+// editorCheckCanCommit refines CanCommitToBranch against the operation's
+// actual affected tree paths (rename touches both source and destination),
+// then enforces the protected-branch guard when committing to the current
+// branch. Returns false if the request has been answered with an error.
+func editorCheckCanCommit[T any](ctx *context.Context, parsed *preparedEditorCommitForm[T], treePaths ...string) bool {
+	context.RefineCanCommitToBranchByPaths(ctx, parsed.CommitFormOptions, treePaths...)
+	if parsed.NewBranchName == ctx.Repo.BranchName && !parsed.CommitFormOptions.CanCommitToBranch {
+		ctx.JSONError(ctx.Tr("repo.editor.cannot_commit_to_protected_branch", parsed.NewBranchName))
+		return false
+	}
+	return true
 }
 
 // redirectForCommitChoice redirects after committing the edit to a branch
@@ -364,6 +351,17 @@ func EditFilePost(ctx *context.Context) {
 		return
 	}
 
+	// Affected paths: form destination, plus the URL-derived source path on
+	// "_edit" so a rename's source path is also evaluated against unprotected
+	// patterns (matches services/pull/patch.go CheckUnprotectedFiles).
+	affectedPaths := []string{parsed.form.TreePath}
+	if !isNewFile && ctx.Repo.TreePath != "" && ctx.Repo.TreePath != parsed.form.TreePath {
+		affectedPaths = append(affectedPaths, ctx.Repo.TreePath)
+	}
+	if !editorCheckCanCommit(ctx, parsed, affectedPaths...) {
+		return
+	}
+
 	defaultCommitMessage := util.Iif(isNewFile, ctx.Locale.TrString("repo.editor.add", parsed.form.TreePath), ctx.Locale.TrString("repo.editor.update", parsed.form.TreePath))
 
 	var operation string
@@ -429,6 +427,9 @@ func DeleteFilePost(ctx *context.Context) {
 		ctx.JSONError("cannot delete root directory") // it should not happen unless someone is trying to be malicious
 		return
 	}
+	if !editorCheckCanCommit(ctx, parsed, treePath) {
+		return
+	}
 
 	// Check if the path is a directory
 	entry, err := ctx.Repo.Commit.GetTreeEntryByPath(treePath)
@@ -489,6 +490,9 @@ func UploadFile(ctx *context.Context) {
 func UploadFilePost(ctx *context.Context) {
 	parsed := prepareEditorCommitSubmittedForm[*forms.UploadRepoFileForm](ctx)
 	if ctx.Written() {
+		return
+	}
+	if !editorCheckCanCommit(ctx, parsed, parsed.form.TreePath) {
 		return
 	}
 

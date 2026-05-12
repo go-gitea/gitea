@@ -30,6 +30,11 @@ func NewDiffPatchPost(ctx *context.Context) {
 	if ctx.Written() {
 		return
 	}
+	// Patch can touch arbitrary paths; pass the URL path as a best-effort hint.
+	// Real per-file enforcement lives in the service / pre-receive hook.
+	if !editorCheckCanCommit(ctx, parsed, ctx.Repo.TreePath) {
+		return
+	}
 
 	defaultCommitMessage := ctx.Locale.TrString("repo.editor.patch")
 	_, err := files.ApplyDiffPatch(ctx, ctx.Repo.Repository, ctx.Doer, &files.ApplyDiffPatchOptions{

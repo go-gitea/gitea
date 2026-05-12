@@ -139,6 +139,8 @@ type CommitFormOptions struct {
 	WontSignReason           string
 	CanCreatePullRequest     bool
 	CanCreateBasePullRequest bool
+
+	protectedBranch *git_model.ProtectedBranch // cached for RefineCanCommitToBranchByPaths
 }
 
 func PrepareCommitFormOptions(ctx *Context, doer *user_model.User, targetRepo *repo_model.Repository, doerRepoPerm access_model.Permission, refName git.RefName) (*CommitFormOptions, error) {
@@ -173,18 +175,10 @@ func PrepareCommitFormOptions(ctx *Context, doer *user_model.User, targetRepo *r
 		protectedBranch.Repo = targetRepo
 		canPushWithProtection = protectedBranch.CanUserPush(ctx, doer)
 		protectionRequireSigned = protectedBranch.RequireSignedCommits
-		// If the user can't push branch-wide but the file being edited matches
-		// an unprotected file pattern, direct commit is still allowed. This uses
-		// ctx.Repo.TreePath, which is the file being edited on GET ("_edit"),
-		// the directory on "_new/<branch>/<dir>/", or the file path on
-		// "_delete"/"_upload". The "_edit"/"_new" POST handlers refine this
-		// further using the form-submitted destination path.
-		if !canPushWithProtection && ctx.Repo.TreePath != "" {
-			if protectedBranch.IsUnprotectedFile(protectedBranch.GetUnprotectedFilePatterns(), ctx.Repo.TreePath) {
-				canPushWithProtection = true
-			}
-		}
 	}
+	// The unprotected-file override is applied separately by callers via
+	// RefineCanCommitToBranchByPaths once they know which paths the commit will
+	// actually touch — for a rename that's both the source and the destination.
 
 	targetGitRepo, closer, err := gitrepo.RepositoryFromContextOrOpen(ctx, targetRepo)
 	if err != nil {
@@ -220,6 +214,8 @@ func PrepareCommitFormOptions(ctx *Context, doer *user_model.User, targetRepo *r
 
 		CanCreatePullRequest:     canCreatePullRequest,
 		CanCreateBasePullRequest: canCreateBasePullRequest,
+
+		protectedBranch: protectedBranch,
 	}
 	editorAction := ctx.PathParam("editor_action")
 	editorPathParamRemaining := util.PathEscapeSegments(branchName) + "/" + util.PathEscapeSegments(ctx.Repo.TreePath)
@@ -236,6 +232,43 @@ func PrepareCommitFormOptions(ctx *Context, doer *user_model.User, targetRepo *r
 		opts.TargetFormAction += util.Iif(strings.Contains(opts.TargetFormAction, "?"), "&", "?") + ctx.Req.URL.RawQuery
 	}
 	return opts, nil
+}
+
+// RefineCanCommitToBranchByPaths re-evaluates CanCommitToBranch when the caller
+// knows which paths the commit will actually touch. If the user cannot push
+// branch-wide but every affected path matches an unprotected file pattern,
+// direct commit is allowed. Pass every path the commit will touch — for a
+// rename that means both the source and the destination, matching the
+// pre-receive hook semantics in services/pull/patch.go (CheckUnprotectedFiles
+// requires all affected files to match).
+func RefineCanCommitToBranchByPaths(ctx *Context, opts *CommitFormOptions, treePaths ...string) {
+	if opts.CanCommitToBranch || opts.WillSubmitToFork || opts.protectedBranch == nil {
+		return
+	}
+	if opts.RequireSigned && !opts.WillSign {
+		return // signing requirement still blocks regardless of file pattern
+	}
+	unprotectedGlobs := opts.protectedBranch.GetUnprotectedFilePatterns()
+	if len(unprotectedGlobs) == 0 {
+		return
+	}
+	matched := 0
+	for _, p := range treePaths {
+		if p == "" {
+			continue
+		}
+		if !opts.protectedBranch.IsUnprotectedFile(unprotectedGlobs, p) {
+			return
+		}
+		matched++
+	}
+	// Require at least one non-empty path matched, so callers that pass only
+	// empty strings don't accidentally get the unprotected-file override.
+	if matched == 0 {
+		return
+	}
+	opts.UserCanPush = true
+	opts.CanCommitToBranch = true
 }
 
 // CanUseTimetracker returns whether a user can use the timetracker.

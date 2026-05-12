@@ -127,6 +127,36 @@ func testEditorProtectedBranch(t *testing.T) {
 	})
 	assert.Equal(t, http.StatusOK, resp.Code)
 	assert.Contains(t, resp.Body.String(), `"redirect":"/user2/repo1/src/branch/master/docs/renamed.md"`)
+
+	// "_new" under an unprotected directory URL but with a protected destination
+	// in the form: the form's tree_path is the authoritative destination and
+	// must be rejected even though the URL hints at an unprotected location.
+	resp = testEditorActionPostRequest(t, session, "/user2/repo1/_new/master/docs/", map[string]string{"tree_path": "test-protected-branch.txt", "commit_choice": "direct"})
+	assert.Equal(t, http.StatusBadRequest, resp.Code)
+	assert.Equal(t, `Cannot commit to protected branch "master".`, test.ParseJSONError(resp.Body.Bytes()).ErrorMessage)
+
+	// Rename unprotected -> protected: destination path is not unprotected, reject.
+	resp = testEditorActionPostRequest(t, session, "/user2/repo1/_edit/master/docs/renamed.md", map[string]string{
+		"commit_choice": "direct",
+		"tree_path":     "renamed-to-protected.txt",
+	})
+	assert.Equal(t, http.StatusBadRequest, resp.Code)
+	assert.Equal(t, `Cannot commit to protected branch "master".`, test.ParseJSONError(resp.Body.Bytes()).ErrorMessage)
+
+	// Rename protected -> unprotected: the source path (README.md) is still
+	// touched by the commit and is not unprotected, so the override must NOT
+	// kick in. This is the rename-correctness case wxiaoguang flagged.
+	resp = testEditorActionPostRequest(t, session, "/user2/repo1/_edit/master/README.md", map[string]string{
+		"commit_choice": "direct",
+		"tree_path":     "docs/from-readme.md",
+	})
+	assert.Equal(t, http.StatusBadRequest, resp.Code)
+	assert.Equal(t, `Cannot commit to protected branch "master".`, test.ParseJSONError(resp.Body.Bytes()).ErrorMessage)
+
+	// Deleting a protected file directly must be rejected.
+	resp = testEditorActionPostRequest(t, session, "/user2/repo1/_delete/master/README.md", map[string]string{"commit_choice": "direct"})
+	assert.Equal(t, http.StatusBadRequest, resp.Code)
+	assert.Equal(t, `Cannot commit to protected branch "master".`, test.ParseJSONError(resp.Body.Bytes()).ErrorMessage)
 }
 
 func testEditorActionPostRequest(t *testing.T, session *TestSession, requestPath string, params map[string]string) *httptest.ResponseRecorder {
