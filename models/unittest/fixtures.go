@@ -6,6 +6,7 @@ package unittest
 import (
 	"context"
 	"fmt"
+	"regexp"
 	"strings"
 	"unicode"
 
@@ -73,6 +74,19 @@ func cutSpaceForSQL(s string) (string, string, bool) {
 	return s[:pos], strings.TrimSpace(s[pos+1:]), true
 }
 
+func cutCTEForSQL(s string) (expression string, query string, found bool) {
+	rx := regexp.MustCompile(`(?i)with\s+(?:recursive\s+)?(?P<expr_name>"[^"]+"|[a-z_]\w+)\s+as\s+\(\s*(?P<body>.*)\s*\)`)
+	s = strings.TrimSpace(s)
+	positions := rx.FindStringIndex(s)
+	if positions == nil {
+		return "", s, false
+	}
+	expression = strings.TrimSpace(s[positions[0]:positions[1]])
+	query = strings.TrimSpace(s[positions[1]:])
+	found = true
+	return expression, query, found
+}
+
 func trimTableNameQuotes(s string) string {
 	pos := strings.IndexByte(s, '.')
 	if pos != -1 {
@@ -86,7 +100,8 @@ func (f fixturesHookStruct) BeforeProcess(c *contexts.ContextHook) (context.Cont
 		return c.Ctx, nil
 	}
 	ctx, sql := c.Ctx, c.SQL
-	cmdPart, cmdRemaining, ok := cutSpaceForSQL(sql)
+	_, sqlPart, _ := cutCTEForSQL(sql)
+	cmdPart, cmdRemaining, ok := cutSpaceForSQL(sqlPart)
 	if !ok {
 		return ctx, nil
 	}
