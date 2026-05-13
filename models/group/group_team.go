@@ -135,24 +135,43 @@ func FindGroupTeamByTeamID(ctx context.Context, groupID, teamID int64) (gteam *R
 	return gteam, err
 }
 
-func GetAncestorPermissions(ctx context.Context, groupID, teamID int64) (perm.AccessMode, error) {
-	sess := db.GetEngine(ctx)
-	groups, err := GetParentGroupIDChain(ctx, groupID)
+func MapGroupAncestorsToGroupTeams(ctx context.Context, groupID, teamID int64) ([]*RepoGroupTeam, error) {
+	groups, err := GetParentGroupChain(ctx, groupID)
 	if err != nil {
-		return perm.AccessModeNone, err
+		return nil, err
 	}
-	gteams := make([]*RepoGroupTeam, 0)
-	err = sess.In("group_id", groups).And("team_id = ?", teamID).Find(&gteams)
-	if err != nil {
-		return perm.AccessModeNone, err
-	}
-	mapped := util.SliceMap(gteams, func(g *RepoGroupTeam) perm.AccessMode {
-		return g.AccessMode
-	})
-	maxMode := max(mapped[0])
+	groupTeams := make([]*RepoGroupTeam, len(groups))
 
-	for _, m := range mapped[1:] {
-		maxMode = max(maxMode, m)
+	for i, group := range groups {
+		var rgt *RepoGroupTeam
+		rgt, err = FindGroupTeamByTeamID(ctx, group.ID, teamID)
+		if err != nil {
+			return nil, err
+		}
+		if rgt != nil {
+			if err = rgt.LoadGroupUnits(ctx); err != nil {
+				return nil, err
+			}
+		}
+		groupTeams[i] = rgt
 	}
-	return maxMode, nil
+	return groupTeams, nil
+}
+
+// GetNearestAncestorWithTeam returns the RepoGroupTeam with the specified groupID and teamID.
+// if not found, it then traverses the parents of groupID until it finds a RepoGroupTeam with the specified teamID
+func GetNearestAncestorWithTeam(ctx context.Context, groupID, teamID int64) (*RepoGroupTeam, error) {
+	teams, err := MapGroupAncestorsToGroupTeams(ctx, groupID, teamID)
+	if err != nil {
+		return nil, err
+	}
+	// work our way up the target group's ancestry until we find a group assigned to the target team
+	var rgt *RepoGroupTeam
+	for i := len(teams) - 1; i >= 0; i-- {
+		rgt = teams[i]
+		if rgt != nil {
+			break
+		}
+	}
+	return rgt, nil
 }
