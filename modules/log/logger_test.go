@@ -177,3 +177,9 @@ func TestLoggerExpressionFilter(t *testing.T) {
 
 	assert.Equal(t, []string{"foo\n", "foo bar\n", "by filename\n"}, w1.FetchLogs())
 }
+
+func TestProtectSensitiveInfo(t *testing.T) {
+	assert.Equal(t, "", protectSensitiveInfo(""))
+	assert.Equal(t, "mailto:user@example.com", protectSensitiveInfo("mailto:user@example.com"))
+	assert.Equal(t, "https://example.com/path?k=_", protectSensitiveInfo("https://u:p@example.com/path?k=v#hash"))
+}

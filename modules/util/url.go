@@ -26,15 +26,3 @@ func SanitizeURL(s string) (string, error) {
 	u.User = nil
 	return u.String(), nil
 }
-
-// StripURL strips userinfo, query, and fragment from s for safe logging
-// (e.g. basic-auth userinfo, signed-URL credentials in the query string).
-// Returns "<unparseable url>" on parse error.
-func StripURL(s string) string {
-	u, err := url.Parse(s)
-	if err != nil {
-		return "<unparseable url>"
-	}
-	stripped := url.URL{Scheme: u.Scheme, Host: u.Host, Path: u.Path}
-	return stripped.String()
-}

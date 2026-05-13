@@ -24,7 +24,6 @@ import (
 	"code.gitea.io/gitea/modules/optional"
 	"code.gitea.io/gitea/modules/session"
 	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/modules/util"
 	source_service "code.gitea.io/gitea/services/auth/source"
 	"code.gitea.io/gitea/services/auth/source/oauth2"
 	"code.gitea.io/gitea/services/context"
@@ -305,15 +304,13 @@ func showLinkingLogin(ctx *context.Context, authSourceID int64, gothUser goth.Us
 
 var oauth2AvatarHTTPClient = &http.Client{Timeout: 30 * time.Second}
 
-func oauth2UpdateAvatarIfNeed(ctx *context.Context, rawURL string, u *user_model.User) {
-	if !setting.OAuth2Client.UpdateAvatar || len(rawURL) == 0 {
+func oauth2UpdateAvatarIfNeed(ctx *context.Context, avatarURL string, u *user_model.User) {
+	if !setting.OAuth2Client.UpdateAvatar || len(avatarURL) == 0 {
 		return
 	}
-	logURL := util.StripURL(rawURL)
-
-	req, err := http.NewRequestWithContext(ctx, http.MethodGet, rawURL, nil)
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, avatarURL, nil)
 	if err != nil {
-		log.Warn("oauth2UpdateAvatarIfNeed: invalid avatar URL %q: %v", logURL, err)
+		log.Warn("invalid avatar URL %q: %v", avatarURL, err)
 		return
 	}
 	// Some hosts (e.g. Wikimedia) reject Go's default User-Agent.
@@ -321,26 +318,26 @@ func oauth2UpdateAvatarIfNeed(ctx *context.Context, rawURL string, u *user_model
 
 	resp, err := oauth2AvatarHTTPClient.Do(req)
 	if err != nil {
-		log.Warn("oauth2UpdateAvatarIfNeed: fetch %q failed: %v", logURL, err)
+		log.Warn("fetch %q failed: %v", avatarURL, err)
 		return
 	}
 	defer func() { _ = resp.Body.Close() }()
 
 	if resp.StatusCode != http.StatusOK {
-		log.Warn("oauth2UpdateAvatarIfNeed: fetch %q returned status %d", logURL, resp.StatusCode)
+		log.Warn("fetch %q returned status %d", avatarURL, resp.StatusCode)
 		return
 	}
 	data, err := io.ReadAll(io.LimitReader(resp.Body, setting.Avatar.MaxFileSize+1))
 	if err != nil {
-		log.Warn("oauth2UpdateAvatarIfNeed: read body from %q failed: %v", logURL, err)
+		log.Warn("read body from %q failed: %v", avatarURL, err)
 		return
 	}
 	if int64(len(data)) > setting.Avatar.MaxFileSize {
-		log.Warn("oauth2UpdateAvatarIfNeed: avatar from %q exceeds max size %d", logURL, setting.Avatar.MaxFileSize)
+		log.Warn("avatar from %q exceeds max size %d", avatarURL, setting.Avatar.MaxFileSize)
 		return
 	}
 	if err := user_service.UploadAvatar(ctx, u, data); err != nil {
-		log.Warn("oauth2UpdateAvatarIfNeed: UploadAvatar for user %q failed: %v", u.Name, err)
+		log.Warn("UploadAvatar for user %q failed: %v", u.Name, err)
 	}
 }
 
