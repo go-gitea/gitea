@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+# Builds tools/custom-gcl on demand, then runs it.
 set -euo pipefail
 cd "$(dirname -- "${BASH_SOURCE[0]}")/.."
 
@@ -10,7 +11,7 @@ if [ ! -x "$BIN" ]; then
   NEEDS_BUILD=true
 elif [ -n "$(find tools/customlint -type f -newer "$BIN" -print -quit)" ]; then
   NEEDS_BUILD=true
-elif ! "$BIN" version 2>/dev/null | grep -q "$GOLANGCI_LINT_VERSION"; then
+elif ! "$BIN" version 2>/dev/null | grep -qF -- "$GOLANGCI_LINT_VERSION-custom-gcl"; then
   NEEDS_BUILD=true
 fi
 
@@ -26,4 +27,7 @@ EOF
   "$GO" run "$GOLANGCI_LINT_PACKAGE" custom
 fi
 
-exec "$BIN" run "$@"
+GOOS=linux "$BIN" run --build-tags=linux,bindata "$@"
+if [ -n "${CI:-}" ]; then
+  GOOS=windows "$BIN" run --build-tags=windows,gogit "$@"
+fi
