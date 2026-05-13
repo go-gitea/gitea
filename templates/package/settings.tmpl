@@ -10,12 +10,28 @@
 			{{template "user/overview/header" .}}
 		{{end}}
 		{{template "base/alert" .}}
-		<p><a href="{{.PackageDescriptor.PackageWebLink}}">{{.PackageDescriptor.Package.Name}}</a> / <strong>{{ctx.Locale.Tr "repo.settings"}}</strong></p>
+		<p>
+			<a href="{{.PackageDescriptor.PackageWebLink}}">{{.PackageDescriptor.Package.Name}}</a>
+			<span class="label-list">
+				{{template "package/shared/visibility_badge" dict "Package" .PackageDescriptor.Package "Owner" .PackageDescriptor.Owner}}
+			</span>
+			/ <strong>{{ctx.Locale.Tr "repo.settings"}}</strong>
+		</p>
+		<h4 class="ui top attached header">
+			{{ctx.Locale.Tr "packages.settings.visibility"}}
+		</h4>
+		<div class="ui attached segment">
+			<p>{{ctx.Locale.Tr "packages.settings.visibility.inherit"}}</p>
+			<a class="ui basic button" href="{{.ContextUser.SettingsLink}}">{{ctx.Locale.Tr "packages.settings.visibility.button"}}</a>
+		</div>
 		<h4 class="ui top attached header">
 			{{ctx.Locale.Tr "packages.settings.link"}}
 		</h4>
 		<div class="ui attached segment">
 			<p>{{ctx.Locale.Tr "packages.settings.link.description"}}</p>
+			<p>- {{ctx.Locale.Tr "packages.settings.link.notice1"}}</p>
+			<p>- {{ctx.Locale.Tr "packages.settings.link.notice2"}}</p>
+			<p>- {{ctx.Locale.Tr "packages.settings.link.notice3"}}</p>
 			<form class="ui form form-fetch-action ignore-dirty flex-text-block" action="{{.Link}}" method="post">
 				<input type="hidden" name="action" value="link">
 				<div data-global-init="initSearchRepoBox" class="ui search" data-uid="{{.PackageDescriptor.Owner.ID}}">
