@@ -130,9 +130,6 @@ jobs:
               - "playwright.config.ts"
 
             shell:
-              - "tools/*.sh"
-              - "build/*.sh"
-              - "contrib/*.sh"
-              - "docker/**/*.sh"
+              - "**/*.sh"
               - ".shellcheckrc"
               - "Makefile"

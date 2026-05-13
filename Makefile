@@ -20,7 +20,7 @@ SWAGGER_PACKAGE ?= github.com/go-swagger/go-swagger/cmd/swagger@v0.33.2 # renova
 XGO_PACKAGE ?= src.techknowlogick.com/xgo@v1.9.0 # renovate: datasource=go
 GOVULNCHECK_PACKAGE ?= golang.org/x/vuln/cmd/govulncheck@v1.3.0 # renovate: datasource=go
 ACTIONLINT_PACKAGE ?= github.com/rhysd/actionlint/cmd/actionlint@v1.7.12 # renovate: datasource=go
-SHELLCHECK_IMAGE ?= koalaman/shellcheck:v0.11.0 # renovate: datasource=docker
+SHELLCHECK_PACKAGE ?= koalaman/shellcheck@v0.11.0 # renovate: datasource=github-releases
 
 HAS_GO := $(shell hash $(GO) > /dev/null 2>&1 && echo yes)
 ifeq ($(HAS_GO), yes)
@@ -139,7 +139,6 @@ ESLINT_FILES := web_src/js tools *.ts tests/e2e
 STYLELINT_FILES := web_src/css web_src/js/components/*.vue
 SPELLCHECK_FILES := $(GO_DIRS) $(WEB_DIRS) templates options/locale/locale_en-US.json .github $(filter-out CHANGELOG.md, $(wildcard *.go *.md *.yml *.yaml *.toml))
 EDITORCONFIG_FILES := templates .github/workflows options/locale/locale_en-US.json
-SHELLCHECK_FILES := $(wildcard tools/*.sh build/*.sh contrib/*.sh) $(shell find docker -name '*.sh' -type f)
 
 GO_SOURCES := $(wildcard *.go)
 GO_SOURCES += $(shell find $(GO_DIRS) -type f -name "*.go")
@@ -351,7 +350,7 @@ lint-actions: ## lint action workflow files
 
 .PHONY: lint-shell
 lint-shell: ## lint shell scripts
-	@SHELLCHECK_IMAGE=$(SHELLCHECK_IMAGE) ./tools/lint-shell.sh $(SHELLCHECK_FILES)
+	@git ls-files '*.sh' | SHELLCHECK_VERSION=$(word 2,$(subst @, ,$(SHELLCHECK_PACKAGE))) xargs ./tools/lint-shell.sh
 
 .PHONY: lint-templates
 lint-templates: .venv node_modules ## lint template files

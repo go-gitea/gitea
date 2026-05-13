@@ -18,7 +18,6 @@
       "managerFilePatterns": ["/(^|/)Makefile$/"],
       "matchStrings": [
         "[A-Z_]+_PACKAGE\\s*\\?=\\s*(?<depName>[^@\\s]+?)(?:/cmd/[^@/\\s]+)?@(?<currentValue>\\S+)\\s+# renovate: datasource=(?<datasource>\\S+)",
-        "[A-Z_]+_IMAGE\\s*\\?=\\s*(?<depName>[^:\\s]+):(?<currentValue>\\S+)\\s+# renovate: datasource=(?<datasource>\\S+)",
       ],
     },
   ],
