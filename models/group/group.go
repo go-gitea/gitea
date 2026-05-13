@@ -461,7 +461,7 @@ func ParentGroupCond(ctx context.Context, idStr string, groupID int64) builder.C
 }
 
 // ChildGroupCond returns a condition recursively matching a group and its descendants
-func ChildGroupCond(firstParent int64, doer *user_model.User) builder.Cond {
+func ChildGroupCond(ctx context.Context, doer *user_model.User, firstParent int64) ([]int64, error) {
 	if firstParent < 0 {
 		firstParent = 0
 	}
@@ -473,7 +473,9 @@ func ChildGroupCond(firstParent int64, doer *user_model.User) builder.Cond {
 		filter = "AND (" + boundFilter + ")"
 	}
 
-	return builder.Expr(fmt.Sprintf(`with recursive groups as (
+	var ids []int64
+
+	err = db.GetEngine(ctx).SQL(fmt.Sprintf(`with recursive groups as (
 		select * from repo_group
 		WHERE parent_group_id = ? %s
 
@@ -482,7 +484,8 @@ func ChildGroupCond(firstParent int64, doer *user_model.User) builder.Cond {
 		select subgroup.*
 		from repo_group subgroup
 		join groups g on g.id = subgroup.parent_group_id
-	) select g.id from groups g`, filter), firstParent)
+	) select g.id from groups g`, filter), firstParent).Find(&ids)
+	return ids, err
 }
 
 func UpdateGroup(ctx context.Context, group *Group) error {

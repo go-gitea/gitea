@@ -524,11 +524,17 @@ func ActivityQueryCondition(ctx context.Context, opts GetFeedsOptions) (builder.
 		cond = cond.And(builder.In("repo_id", repo_model.AccessibleRepoIDsQuery(opts.Actor)))
 	}
 	if opts.RequestedGroup != nil {
+		var subCond builder.Cond
+		if childGroupCondIDs, err := group_model.ChildGroupCond(ctx, opts.Actor, opts.RequestedGroup.ID); err != nil {
+			subCond = builder.NotIn("`repository`.group_id")
+		} else {
+			subCond = builder.In("`repository`.group_id", childGroupCondIDs)
+		}
 		cond = cond.And(builder.In("`action`.repo_id",
 			builder.Select("id").
 				From("repository").
 				Where(builder.Or(
-					builder.In("`repository`.group_id", group_model.ChildGroupCond(opts.RequestedGroup.ID, opts.Actor)),
+					subCond,
 					builder.Eq{"`repository`.group_id": opts.RequestedGroup.ID}),
 				),
 		))
