@@ -1,0 +1,6 @@
+[core]
+	repositoryformatversion = 0
+	filemode = true
+	bare = true
+[remote "origin"]
+	url = /home/thomas/Desktop/gitea/modules/git/tests/repos/repo7_rename.git
