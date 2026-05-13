@@ -4,8 +4,6 @@
 package integration
 
 import (
-	"context"
-	"encoding/json"
 	"fmt"
 	"net/url"
 	"strings"
@@ -19,6 +17,7 @@ import (
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unittest"
 	user_model "code.gitea.io/gitea/models/user"
+	"code.gitea.io/gitea/modules/json"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/timeutil"
 	webhook_module "code.gitea.io/gitea/modules/webhook"
@@ -80,7 +79,7 @@ jobs:
 			seedTasks   = updaters * 30
 		)
 
-		seededTaskIDs := seedRunningTasksForDeadlockTest(t, ctx, repo, repo.OwnerID, user.ID, testRunnerID, headCommitSHA, seedTasks)
+		seededTaskIDs := seedRunningTasksForDeadlockTest(t, repo, repo.OwnerID, user.ID, testRunnerID, headCommitSHA, seedTasks)
 
 		// build a PushPayload
 		eventPayload, err := json.Marshal(&api.PushPayload{
@@ -184,8 +183,9 @@ jobs:
 }
 
 // seedRunningTasksForDeadlockTest inserts `n` (run, attempt, job, task) tuples
-func seedRunningTasksForDeadlockTest(t *testing.T, ctx context.Context, repo *repo_model.Repository, ownerID, userID, runnerID int64, seedCommitSHA string, n int) []int64 {
+func seedRunningTasksForDeadlockTest(t *testing.T, repo *repo_model.Repository, ownerID, userID, runnerID int64, seedCommitSHA string, n int) []int64 {
 	t.Helper()
+	ctx := t.Context()
 
 	// build a PushPayload
 	eventPayloadBytes, err := json.Marshal(&api.PushPayload{
