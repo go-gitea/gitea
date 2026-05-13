@@ -25,6 +25,7 @@ if [ ! -f ${GITEA_APP_INI} ]; then
         INSTALL_LOCK=true
     fi
 
+    # precompute because env-prefix vars can't reference each other
     SSH_PORT=${SSH_PORT:-"2222"}
     SSH_LISTEN_PORT=${SSH_LISTEN_PORT:-$SSH_PORT}
 
