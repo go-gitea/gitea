@@ -133,6 +133,6 @@ jobs:
               - "tools/*.sh"
               - "build/*.sh"
               - "contrib/*.sh"
-              - "docker/rootless/usr/local/bin/*.sh"
+              - "docker/**/*.sh"
               - ".shellcheckrc"
               - "Makefile"

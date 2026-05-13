@@ -139,7 +139,7 @@ ESLINT_FILES := web_src/js tools *.ts tests/e2e
 STYLELINT_FILES := web_src/css web_src/js/components/*.vue
 SPELLCHECK_FILES := $(GO_DIRS) $(WEB_DIRS) templates options/locale/locale_en-US.json .github $(filter-out CHANGELOG.md, $(wildcard *.go *.md *.yml *.yaml *.toml))
 EDITORCONFIG_FILES := templates .github/workflows options/locale/locale_en-US.json
-SHELLCHECK_FILES := $(wildcard tools/*.sh build/*.sh contrib/*.sh docker/rootless/usr/local/bin/*.sh)
+SHELLCHECK_FILES := $(wildcard tools/*.sh build/*.sh contrib/*.sh) $(shell find docker -name '*.sh' -type f)
 
 GO_SOURCES := $(wildcard *.go)
 GO_SOURCES += $(shell find $(GO_DIRS) -type f -name "*.go")
