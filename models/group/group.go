@@ -475,7 +475,12 @@ func ChildGroupCond(ctx context.Context, doer *user_model.User, firstParent int6
 
 	var ids []int64
 
-	err = db.GetEngine(ctx).SQL(fmt.Sprintf(`with recursive groups as (
+	var recursiveKeyword string
+	if !setting.Database.Type.IsMSSQL() {
+		recursiveKeyword = "recursive "
+	}
+
+	err = db.GetEngine(ctx).SQL(fmt.Sprintf(`with %sgroups as (
 		select * from repo_group
 		WHERE parent_group_id = ? %s
 
@@ -484,7 +489,7 @@ func ChildGroupCond(ctx context.Context, doer *user_model.User, firstParent int6
 		select subgroup.*
 		from repo_group subgroup
 		join groups g on g.id = subgroup.parent_group_id
-	) select g.id from groups g`, filter), firstParent).Find(&ids)
+	) select g.id from groups g`, recursiveKeyword, filter), firstParent).Find(&ids)
 	return ids, err
 }
 
