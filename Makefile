@@ -352,7 +352,7 @@ lint-actions: ## lint action workflow files
 
 .PHONY: lint-shell
 lint-shell: ## lint shell scripts
-	@$(CONTAINER_RUNTIME) run --rm -v "$$PWD":/mnt -w /mnt $(SHELLCHECK_IMAGE) --color=always $$(git ls-files '*.sh')
+	@SHELLCHECK_IMAGE=$(SHELLCHECK_IMAGE) CONTAINER_RUNTIME=$(CONTAINER_RUNTIME) ./tools/lint-shell.sh $$(git ls-files '*.sh')
 
 .PHONY: lint-templates
 lint-templates: .venv node_modules ## lint template files
