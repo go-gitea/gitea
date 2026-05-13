@@ -59,10 +59,10 @@ cpu.out
 /debug
 
 /bin
+/tools/bin
 /dist
 /custom/*
 !/custom/conf/app.example.ini
-/tools/bin
 /.custom-gcl.yml
 /data
 /indexers
