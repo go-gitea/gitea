@@ -74,7 +74,7 @@ func cutSpaceForSQL(s string) (string, string, bool) {
 	return s[:pos], strings.TrimSpace(s[pos+1:]), true
 }
 
-func cutCTEForSQL(s string) (expression string, query string, found bool) {
+func cutCTEForSQL(s string) (expression, query string, found bool) {
 	rx := regexp.MustCompile(`(?i)with\s+(?:recursive\s+)?(?P<expr_name>"[^"]+"|[a-z_]\w+)\s+as\s+\(\s*(?P<body>.*)\s*\)`)
 	s = strings.TrimSpace(s)
 	positions := rx.FindStringIndex(s)
