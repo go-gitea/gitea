@@ -280,11 +280,9 @@ type pullMergeBoxData struct {
 	CanMergeNow            bool // PR is mergeable, either no blocker, or doer is admin and can bypass the blockers
 	allowMerge             bool // doer has permission to merge
 
-	ShowUpdatePullInfo    bool
-	UpdateAllowed         bool
-	UpdateByRebaseAllowed bool
-	UpdatePrimaryAction   *pullUpdateAction
-	UpdateStyleOptions    []*pullUpdateAction
+	ShowUpdatePullInfo  bool
+	UpdatePrimaryAction *pullUpdateAction
+	UpdateStyleOptions  []*pullUpdateAction
 
 	MergeFormProps        map[string]any
 	ShowPullCommands      bool
@@ -974,20 +972,14 @@ func UpdatePullRequest(ctx *context.Context) {
 		return
 	}
 
-	defaultStyle, err := pull_service.GetDefaultUpdateStyle(ctx, issue.PullRequest)
-	if err != nil {
-		ctx.ServerError("GetDefaultUpdateStyle", err)
-		return
-	}
-	rebase := repo_model.UpdateStyle(ctx.FormString("style", string(defaultStyle))) == repo_model.UpdateStyleRebase
-
-	allowedUpdateByMerge, allowedUpdateByRebase, err := pull_service.IsUserAllowedToUpdate(ctx, issue.PullRequest, ctx.Doer)
+	userUpdateStyles, err := pull_service.CheckUserAllowedToUpdate(ctx, issue.PullRequest, ctx.Doer)
 	if err != nil {
 		ctx.ServerError("IsUserAllowedToMerge", err)
 		return
 	}
 
-	if (rebase && !allowedUpdateByRebase) || (!rebase && !allowedUpdateByMerge) {
+	rebase := ctx.FormString("style", string(userUpdateStyles.DefaultUpdateStyle)) == string(repo_model.UpdateStyleRebase)
+	if (rebase && !userUpdateStyles.RebaseAllowed) || (!rebase && !userUpdateStyles.MergeAllowed) {
 		ctx.JSONError(ctx.Tr("repo.pulls.update_not_allowed"))
 		return
 	}

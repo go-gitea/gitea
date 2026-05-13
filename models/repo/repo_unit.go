@@ -156,9 +156,7 @@ func DefaultPullRequestsConfig() *PullRequestsConfig {
 func (cfg *PullRequestsConfig) FromDB(bs []byte) error {
 	// set default values for existing PullRequestConfig in DB
 	*cfg = *DefaultPullRequestsConfig()
-	if err := json.UnmarshalHandleDoubleEncode(bs, &cfg); err != nil {
-		return err
-	}
+	_ = json.UnmarshalHandleDoubleEncode(bs, &cfg) // don't let corrupted database value cause unnecessary 500 error
 	cfg.DefaultUpdateStyle = util.IfZero(cfg.DefaultUpdateStyle, UpdateStyleMerge)
 	return nil
 }

@@ -867,18 +867,10 @@ func (prInfo *pullRequestViewInfo) prepareMergeBox(ctx *context.Context, issue *
 
 	if !prInfo.IsPullRequestBroken {
 		data.ShowUpdatePullInfo = pull.CommitsBehind > 0 && !issue.IsClosed && !pull.IsChecking() && !pull.IsFilesConflicted() && !prInfo.IsPullRequestBroken
-		var err error
-		data.UpdateAllowed, data.UpdateByRebaseAllowed, err = pull_service.IsUserAllowedToUpdate(ctx, pull, ctx.Doer)
-		if err != nil {
-			ctx.ServerError("IsUserAllowedToUpdate", err)
+		prInfo.preparePullUpdateActions(ctx)
+		if ctx.Written() {
 			return
 		}
-		defaultUpdateStyle, err := pull_service.GetDefaultUpdateStyle(ctx, pull)
-		if err != nil {
-			ctx.ServerError("GetDefaultUpdateStyle", err)
-			return
-		}
-		data.UpdatePrimaryAction, data.UpdateStyleOptions = preparePullUpdateActions(ctx, issue.Link(), defaultUpdateStyle, data.UpdateAllowed, data.UpdateByRebaseAllowed)
 	}
 
 	if ctx.IsSigned {
@@ -981,8 +973,19 @@ func (prInfo *pullRequestViewInfo) prepareMergeBox(ctx *context.Context, issue *
 	ctx.Data["PullMergeBoxData"] = prInfo.MergeBoxData
 }
 
-func preparePullUpdateActions(ctx *context.Context, issueLink string, defaultUpdateStyle repo_model.UpdateStyle, mergeAllowed, rebaseAllowed bool) (*pullUpdateAction, []*pullUpdateAction) {
-	var updateActions []*pullUpdateAction
+func (prInfo *pullRequestViewInfo) preparePullUpdateActions(ctx *context.Context) {
+	pull := prInfo.issue.PullRequest
+	data := prInfo.MergeBoxData
+	userUpdateStyles, err := pull_service.CheckUserAllowedToUpdate(ctx, pull, ctx.Doer)
+	if err != nil {
+		ctx.ServerError("IsUserAllowedToUpdate", err)
+		return
+	}
+	if !userUpdateStyles.MergeAllowed && !userUpdateStyles.RebaseAllowed {
+		return
+	}
+
+	issueLink := prInfo.issue.Link()
 	mergeAction := &pullUpdateAction{
 		URL:  issueLink + "/update?style=merge",
 		Text: ctx.Tr("repo.pulls.update_branch"),
@@ -992,30 +995,21 @@ func preparePullUpdateActions(ctx *context.Context, issueLink string, defaultUpd
 		Text: ctx.Tr("repo.pulls.update_branch_rebase"),
 	}
 
-	if mergeAllowed {
-		updateActions = append(updateActions, mergeAction)
+	if userUpdateStyles.MergeAllowed {
+		data.UpdateStyleOptions = append(data.UpdateStyleOptions, mergeAction)
 	}
-	if rebaseAllowed {
-		updateActions = append(updateActions, rebaseAction)
+	if userUpdateStyles.RebaseAllowed {
+		data.UpdateStyleOptions = append(data.UpdateStyleOptions, rebaseAction)
 	}
 
-	var primaryAction *pullUpdateAction
-	if defaultUpdateStyle == repo_model.UpdateStyleRebase && rebaseAllowed {
-		primaryAction = rebaseAction
-	} else if mergeAllowed {
-		primaryAction = mergeAction
-	} else if rebaseAllowed {
-		primaryAction = rebaseAction
+	if userUpdateStyles.DefaultUpdateStyle == repo_model.UpdateStyleRebase && userUpdateStyles.RebaseAllowed {
+		data.UpdatePrimaryAction = rebaseAction
+	} else if userUpdateStyles.DefaultUpdateStyle == repo_model.UpdateStyleMerge && userUpdateStyles.MergeAllowed {
+		data.UpdatePrimaryAction = mergeAction
+	} else {
+		data.UpdatePrimaryAction = data.UpdateStyleOptions[0]
 	}
-	if primaryAction == nil {
-		return nil, nil
-	}
-	primaryAction.Selected = true
-
-	if len(updateActions) < 2 {
-		return primaryAction, nil
-	}
-	return primaryAction, updateActions
+	data.UpdatePrimaryAction.Selected = true
 }
 
 func (prInfo *pullRequestViewInfo) prepareMergeBoxProtectionChecks(ctx *context.Context) {

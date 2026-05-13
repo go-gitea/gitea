@@ -9,7 +9,7 @@
 		<button class="ui button link-action" data-url="{{$data.UpdatePrimaryAction.URL}}">
 			{{$data.UpdatePrimaryAction.Text}}
 		</button>
-		{{if $data.UpdateStyleOptions}}
+		{{if gt (len $data.UpdateStyleOptions) 1}}
 		<div class="ui dropdown icon button">
 			{{svg "octicon-triangle-down"}}
 			<div class="menu">
