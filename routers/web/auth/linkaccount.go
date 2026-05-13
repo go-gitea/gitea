@@ -253,10 +253,6 @@ func LinkAccountPostRegister(ctx *context.Context) {
 		return
 	}
 
-	// Sync OAuth2-provided fields (avatar/full name/SSH keys) for the newly registered user.
-	// This mirrors the behaviour of the existing OAuth2 sign-in path so the "register" link-account
-	// flow is consistent with both auto-registration (handleOAuth2SignIn) and existing-account
-	// linking (oauth2LinkAccount), which already call oauth2SignInSync.
 	oauth2SignInSync(ctx, linkAccountData.AuthSourceID, u, linkAccountData.GothUser)
 	if ctx.Written() {
 		return

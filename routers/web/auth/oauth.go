@@ -303,29 +303,20 @@ func showLinkingLogin(ctx *context.Context, authSourceID int64, gothUser goth.Us
 	ctx.Redirect(setting.AppSubURL + "/user/link_account")
 }
 
-// oauth2AvatarHTTPClient is a shared HTTP client for fetching OIDC `picture` avatars.
-// It has a finite Timeout so a slow or hanging avatar host cannot stall the OAuth
-// callback indefinitely (http.DefaultClient has no timeout).
 var oauth2AvatarHTTPClient = &http.Client{Timeout: 30 * time.Second}
 
 func oauth2UpdateAvatarIfNeed(ctx *context.Context, rawURL string, u *user_model.User) {
 	if !setting.OAuth2Client.UpdateAvatar || len(rawURL) == 0 {
 		return
 	}
-	// Compute a redacted URL for log lines BEFORE issuing the request, so we
-	// never accidentally log signed-URL query parameters or userinfo.
 	logURL := util.StripURL(rawURL)
 
-	// Bind the outbound fetch to the inbound request context so the download
-	// is cancelled if the user navigates away / aborts login, and so any
-	// request-level deadline propagates to this fetch.
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, rawURL, nil)
 	if err != nil {
 		log.Warn("oauth2UpdateAvatarIfNeed: invalid avatar URL %q: %v", logURL, err)
 		return
 	}
-	// Some image hosts (e.g. Wikimedia) reject requests using Go's default User-Agent.
-	// Send a descriptive UA so that fetching public avatars works reliably.
+	// Some hosts (e.g. Wikimedia) reject Go's default User-Agent.
 	req.Header.Set("User-Agent", "Gitea "+setting.AppVer)
 
 	resp, err := oauth2AvatarHTTPClient.Do(req)
