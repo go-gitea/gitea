@@ -58,7 +58,6 @@ cpu.out
 /debug
 
 /bin
-/tools/bin
 /dist
 /custom/*
 !/custom/conf/app.example.ini
