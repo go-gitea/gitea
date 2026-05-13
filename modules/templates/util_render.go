@@ -366,13 +366,13 @@ func (ut *RenderUtils) AvatarStack(authorUser *user_model.User, authorSig *git.S
 		overflow = len(coAuthors) - maxCo
 	}
 
-	wrapperClass := "avatar-stack-wrapper"
+	stackClass := "avatar-stack"
 	if additionalClasses != "" {
-		wrapperClass += " " + additionalClasses
+		stackClass += " " + additionalClasses
 	}
 
 	var b strings.Builder
-	b.WriteString(string(htmlutil.HTMLFormat(`<span class="%s"><span class="avatar-stack">`, wrapperClass)))
+	b.WriteString(string(htmlutil.HTMLFormat(`<span class="%s">`, stackClass)))
 
 	appendLinked := func(idx int, u *user_model.User) {
 		href := ut.commitAuthorSearchURL(u.Name)
@@ -411,7 +411,7 @@ func (ut *RenderUtils) AvatarStack(authorUser *user_model.User, authorSig *git.S
 			len(visibleCo)+1, overflow, overflow)))
 	}
 
-	b.WriteString(`</span></span>`)
+	b.WriteString(`</span>`)
 	return template.HTML(b.String())
 }
 

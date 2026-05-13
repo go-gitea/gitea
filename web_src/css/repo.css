@@ -1410,12 +1410,6 @@ tbody.commit-list {
   align-items: center;
 }
 
-.avatar-stack-wrapper {
-  display: inline-flex;
-  align-items: center;
-  margin-right: 0.25rem;
-}
-
 .avatar-stack {
   display: inline-flex;
   align-items: center;
