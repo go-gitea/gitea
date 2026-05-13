@@ -30,9 +30,7 @@ jobs:
           cache-name: lint-backend
           lint-cache: "true"
       - run: make deps-backend deps-tools
-      - run: make lint-backend
-        env:
-          TAGS: bindata
+      - run: make generate-go lint-backend
 
   lint-on-demand:
     needs: files-changed
