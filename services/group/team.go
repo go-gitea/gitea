@@ -144,14 +144,24 @@ func RecalculateGroupAccess(ctx context.Context, g *group_model.Group, isNew boo
 		if gt, err = group_model.FindGroupTeamByTeamID(ctx, g.ParentGroupID, t.ID); err != nil {
 			return err
 		}
+		if gt == nil {
+			if gt, err = group_model.GetNearestAncestorWithTeam(ctx, g.ParentGroupID, t.ID); err != nil {
+				return err
+			}
+		}
+		var (
+			newGroupTeamAccessMode perm.AccessMode
+			canCreateIn            bool
+		)
 		if gt != nil {
-			if err = group_model.UpdateTeamGroup(ctx, g.OwnerID, t.ID, g.ID, gt.AccessMode, gt.CanCreateIn, isNew); err != nil {
-				return err
-			}
+			newGroupTeamAccessMode = gt.AccessMode
+			canCreateIn = gt.CanCreateIn
 		} else {
-			if err = group_model.UpdateTeamGroup(ctx, g.OwnerID, t.ID, g.ID, t.AccessMode, t.IsOwnerTeam() || t.AccessMode >= perm.AccessModeAdmin || t.CanCreateOrgRepo, isNew); err != nil {
-				return err
-			}
+			newGroupTeamAccessMode = t.AccessMode
+			canCreateIn = t.CanCreateOrgRepo
+		}
+		if err = group_model.UpdateTeamGroup(ctx, g.OwnerID, t.ID, g.ID, newGroupTeamAccessMode, canCreateIn, isNew); err != nil {
+			return err
 		}
 
 		if err = t.LoadUnits(ctx); err != nil {
@@ -163,6 +173,15 @@ func RecalculateGroupAccess(ctx context.Context, g *group_model.Group, isNew boo
 				gu, err := group_model.GetGroupUnit(ctx, g.ID, t.ID, u.Type)
 				if err != nil {
 					return err
+				}
+				if gu == nil {
+					gid := g.ID
+					if gt != nil {
+						gid = gt.GroupID
+					}
+					if gu, err = group_model.GetGroupUnit(ctx, gid, t.ID, u.Type); err != nil {
+						return err
+					}
 				}
 				if gu != nil {
 					newAccessMode = min(newAccessMode, gu.AccessMode)
