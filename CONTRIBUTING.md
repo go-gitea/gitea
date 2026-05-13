@@ -136,7 +136,6 @@ Here's how to run the test suite:
 |``make lint``          | lint everything (not needed if you only change the front- **or** backend)    |
 |``make lint-frontend`` | lint frontend files                                                          |
 |``make lint-backend``  | lint backend files                                                           |
-|``make lint-shell``    | lint shell scripts                                                           |
 
 - run tests (we suggest running them on Linux)
 
