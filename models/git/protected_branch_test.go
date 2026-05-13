@@ -158,54 +158,47 @@ func TestNewProtectBranchPriority(t *testing.T) {
 func TestCanBypassBranchProtection(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 
-	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 1})
+	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 1}) // not in team 1
+	teamMember := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
 
 	pb := &ProtectedBranch{
 		EnableBypassAllowlist:  true,
 		BypassAllowlistUserIDs: []int64{user.ID},
 	}
 
-	type expected struct {
-		byAdmin, byAllowList bool
-	}
-	testBypass := func(t *testing.T, exp expected, pb *ProtectedBranch, doer *user_model.User, isAdmin bool) {
-		actualAdmin, actualAllowList := CanBypassBranchProtection(t.Context(), pb, doer, isAdmin)
-		assert.Equal(t, exp.byAdmin, actualAdmin, "admin bypass mismatch")
-		assert.Equal(t, exp.byAllowList, actualAllowList, "allowlist bypass mismatch")
+	testBypass := func(t *testing.T, expected bool, pb *ProtectedBranch, doer *user_model.User, isAdmin bool) {
+		assert.Equal(t, expected, CanBypassBranchProtection(t.Context(), pb, doer, isAdmin))
 	}
 	// User bypasses via explicit allowlist.
-	testBypass(t, expected{false, true}, pb, user, false)
+	testBypass(t, true, pb, user, false)
 
 	// Non-admin cannot bypass when allowlist is disabled.
 	pb.EnableBypassAllowlist = false
-	testBypass(t, expected{false, false}, pb, user, false)
+	testBypass(t, false, pb, user, false)
 
 	// Repo admin can bypass independently of allowlist when not blocked.
-	testBypass(t, expected{true, true}, pb, user, true)
+	testBypass(t, true, pb, user, true)
 
 	// Admin override block still allows bypass for allowlisted users.
 	pb.EnableBypassAllowlist = true
 	pb.BlockAdminMergeOverride = true
-	testBypass(t, expected{false, true}, pb, user, false)
+	testBypass(t, true, pb, user, false)
 
 	// admin cannot bypass without allowlist membership.
 	pb.BypassAllowlistUserIDs = nil
-	testBypass(t, expected{false, false}, pb, user, true)
+	testBypass(t, false, pb, user, true)
 
 	// admin can bypass when allowlisted.
 	pb.BypassAllowlistUserIDs = []int64{user.ID}
-	testBypass(t, expected{false, true}, pb, user, true)
-
-	teamMember := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
-	nonTeamMember := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 1})
+	testBypass(t, true, pb, user, true)
 
 	// User bypasses via team allowlist membership.
 	pb.EnableBypassAllowlist = true
 	pb.BlockAdminMergeOverride = false
 	pb.BypassAllowlistUserIDs = nil
 	pb.BypassAllowlistTeamIDs = []int64{1} // team 1 contains user 2 in test fixtures
-	testBypass(t, expected{false, true}, pb, teamMember, false)
+	testBypass(t, true, pb, teamMember, false)
 
 	// User does not bypass when not in allowlisted teams.
-	testBypass(t, expected{false, false}, pb, nonTeamMember, false)
+	testBypass(t, false, pb, user, false)
 }
