@@ -1066,7 +1066,7 @@ func createOAuth2MockProvider() *httptest.Server {
 		switch r.URL.Path {
 		case "/avatar.png":
 			if !strings.HasPrefix(r.Header.Get("User-Agent"), "Gitea ") {
-				http.Error(w, "user agent doens't match", http.StatusForbidden)
+				http.Error(w, "user agent doesn't match", http.StatusForbidden)
 				return
 			}
 			w.Header().Set("Content-Type", "image/png")
