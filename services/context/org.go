@@ -204,7 +204,6 @@ func OrgAssignment(orgAssignmentOpts OrgAssignmentOptions) func(ctx *Context) {
 				if strings.EqualFold(team.LowerName, teamName) {
 					teamExists = true
 					ctx.Org.Team = team
-					ctx.Org.IsTeamMember = true
 					ctx.Data["Team"] = ctx.Org.Team
 					break
 				}
@@ -215,13 +214,21 @@ func OrgAssignment(orgAssignmentOpts OrgAssignmentOptions) func(ctx *Context) {
 				return
 			}
 
+			// ctx.Org.Teams may include "closed" (visible) teams the user is not a
+			// member of, so derive IsTeamMember from an actual membership check
+			// rather than the team's presence in the list.
+			ctx.Org.IsTeamMember, err = organization.IsTeamMember(ctx, org.ID, ctx.Org.Team.ID, ctx.Doer.ID)
+			if err != nil {
+				ctx.ServerError("IsTeamMember", err)
+				return
+			}
 			ctx.Data["IsTeamMember"] = ctx.Org.IsTeamMember
 			if opts.RequireTeamMember && !ctx.Org.IsTeamMember {
 				ctx.NotFound(err)
 				return
 			}
 
-			ctx.Org.IsTeamAdmin = ctx.Org.Team.IsOwnerTeam() || ctx.Org.Team.HasAdminAccess()
+			ctx.Org.IsTeamAdmin = ctx.Org.IsOwner || (ctx.Org.IsTeamMember && (ctx.Org.Team.IsOwnerTeam() || ctx.Org.Team.HasAdminAccess()))
 			ctx.Data["IsTeamAdmin"] = ctx.Org.IsTeamAdmin
 			if opts.RequireTeamAdmin && !ctx.Org.IsTeamAdmin {
 				ctx.NotFound(err)

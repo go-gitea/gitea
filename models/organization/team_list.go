@@ -51,7 +51,8 @@ type SearchTeamOptions struct {
 	OrgID       int64
 	IncludeDesc bool
 	// IncludeVisible, when combined with UserID, also returns teams whose
-	// visibility is "visible" even if the user is not a member.
+	// privacy is "closed" (i.e. visible to all org members) even if the user
+	// is not a member of them.
 	IncludeVisible bool
 }
 
@@ -130,8 +131,8 @@ func GetUserOrgTeams(ctx context.Context, orgID, userID int64) (teams TeamList, 
 }
 
 // GetUserOrgVisibleTeams returns all teams in the given organization that the
-// user can see: teams the user is a member of, plus teams whose visibility is
-// "visible".
+// user can see: teams the user is a member of, plus teams whose privacy is
+// "closed" (i.e. visible to all org members).
 func GetUserOrgVisibleTeams(ctx context.Context, orgID, userID int64) (teams TeamList, err error) {
 	return teams, db.GetEngine(ctx).
 		Join("LEFT", "team_user", "team_user.team_id = team.id AND team_user.uid = ?", userID).
