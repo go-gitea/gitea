@@ -96,11 +96,13 @@ func MoveRepositoryToGroup(ctx context.Context, repo *repo_model.Repository, new
 
 	repo.GroupID = newGroupID
 	repo.GroupSortOrder = groupSortOrder
-	_, err := sess.
+	if _, err := sess.
 		Table("repository").
 		ID(repo.ID).
 		MustCols("group_id", "group_sort_order").
-		Update(repo)
+		Update(repo); err != nil {
+		return err
+	}
 
 	newSiblings, _, err := repo_model.SearchRepository(ctx, repo_model.SearchRepoOptions{
 		GroupID: repo.GroupID,
@@ -128,6 +130,9 @@ func MoveRepositoryToGroup(ctx context.Context, repo *repo_model.Repository, new
 				GroupID: oldGroupID,
 				OrderBy: "group_sort_order ASC",
 			})
+		if err != nil {
+			return err
+		}
 		for i, prevSibling := range prevSiblings {
 			prevSibling.GroupSortOrder = i
 			_, err = sess.
