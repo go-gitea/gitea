@@ -3,8 +3,8 @@ summary: Gitea - A painless self-hosted Git service
 description: |
   The goal of this project is to make the easiest, fastest, and most painless
   way of setting up a self-hosted Git service with GitHub-like experiences,
-  including issue tracking, code review, project management, wikis, packages registry,
-  GitHub Actions and more.
+  including issue tracking, code review, project management, wikis, package registry,
+  Gitea Actions and more.
 
 icon: public/assets/img/logo.png
 confinement: strict
