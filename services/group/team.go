@@ -36,6 +36,12 @@ func AddTeamToGroup(ctx context.Context, group *group_model.Group, tname string,
 	}
 	mode := t.AccessMode
 	canCreateInRepo := t.CanCreateOrgRepo
+	if parentGroup == nil {
+		parentGroup, err = group_model.GetNearestAncestorWithTeam(ctx, group.ID, t.ID)
+		if err != nil {
+			return err
+		}
+	}
 	if parentGroup != nil {
 		mode = max(t.AccessMode, parentGroup.AccessMode)
 		canCreateInRepo = parentGroup.CanCreateIn || t.CanCreateOrgRepo
