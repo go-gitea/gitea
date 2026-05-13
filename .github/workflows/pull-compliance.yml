@@ -30,9 +30,8 @@ jobs:
           cache-name: lint-backend
           lint-cache: "true"
       - run: make deps-backend deps-tools
+      - run: TAGS="bindata" make generate-go # lint-go also lints with "bindata" tags which requires "_bindata.go"
       - run: make lint-backend
-        env:
-          TAGS: bindata
 
   lint-on-demand:
     needs: files-changed

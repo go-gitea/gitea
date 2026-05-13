@@ -464,24 +464,9 @@ func SearchUsers(ctx *context.APIContext) {
 
 	listOptions := utils.GetListOptions(ctx)
 
-	orderBy := db.SearchOrderByAlphabetically
-	sortMode := ctx.FormString("sort")
-	if len(sortMode) > 0 {
-		sortOrder := ctx.FormString("order")
-		if len(sortOrder) == 0 {
-			sortOrder = "asc"
-		}
-		if searchModeMap, ok := user_model.AdminUserOrderByMap[sortOrder]; ok {
-			if order, ok := searchModeMap[sortMode]; ok {
-				orderBy = order
-			} else {
-				ctx.APIError(http.StatusUnprocessableEntity, fmt.Errorf("Invalid sort mode: \"%s\"", sortMode))
-				return
-			}
-		} else {
-			ctx.APIError(http.StatusUnprocessableEntity, fmt.Errorf("Invalid sort order: \"%s\"", sortOrder))
-			return
-		}
+	orderBy, ok := utils.ResolveSortOrder(ctx, user_model.AdminUserOrderByMap, db.SearchOrderByAlphabetically)
+	if !ok {
+		return
 	}
 
 	var visible []api.VisibleType
