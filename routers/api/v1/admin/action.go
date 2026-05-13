@@ -44,6 +44,8 @@ func ListWorkflowJobs(ctx *context.APIContext) {
 	//     "$ref": "#/responses/error"
 	//   "404":
 	//     "$ref": "#/responses/notFound"
+	//   "422":
+	//     "$ref": "#/responses/validationError"
 
 	shared.ListJobs(ctx, 0, 0, 0, nil)
 }

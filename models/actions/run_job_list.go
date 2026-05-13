@@ -130,10 +130,7 @@ func (opts FindRunJobOptions) ToJoins() []db.JoinFunc {
 }
 
 func (opts FindRunJobOptions) ToOrders() string {
-	if opts.OrderBy != "" {
-		return string(opts.OrderBy)
-	}
-	return ""
+	return string(opts.OrderBy)
 }
 
 var _ db.FindOptionsOrder = FindRunJobOptions{}

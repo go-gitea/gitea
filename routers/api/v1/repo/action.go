@@ -722,6 +722,8 @@ func (Action) ListWorkflowJobs(ctx *context.APIContext) {
 	//     "$ref": "#/responses/error"
 	//   "404":
 	//     "$ref": "#/responses/notFound"
+	//   "422":
+	//     "$ref": "#/responses/validationError"
 
 	repoID := ctx.Repo.Repository.ID
 
@@ -1549,6 +1551,8 @@ func ListWorkflowRunJobs(ctx *context.APIContext) {
 	//     "$ref": "#/responses/error"
 	//   "404":
 	//     "$ref": "#/responses/notFound"
+	//   "422":
+	//     "$ref": "#/responses/validationError"
 
 	repoID, runID := ctx.Repo.Repository.ID, ctx.PathParamInt64("run")
 
