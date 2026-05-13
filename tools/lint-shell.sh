@@ -2,7 +2,6 @@
 set -euo pipefail
 
 CONTAINER_RUNTIME="${CONTAINER_RUNTIME:-docker}"
-
 VERSION=$(echo "$SHELLCHECK_IMAGE" | sed -E 's/.*:v([0-9.]+)@.*/\1/')
 
 if hash shellcheck 2>/dev/null && shellcheck --version | grep -qx "version: $VERSION"; then
