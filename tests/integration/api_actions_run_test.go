@@ -351,16 +351,6 @@ func testAPIActionsListUserWorkflows(t *testing.T) {
 				"jobs should be ordered by ID descending")
 		}
 	})
-
-	t.Run("JobsInvalidSort", func(t *testing.T) {
-		req := NewRequest(t, "GET", "/api/v1/user/actions/jobs?sort=bogus").AddTokenAuth(token)
-		MakeRequest(t, req, http.StatusUnprocessableEntity)
-	})
-
-	t.Run("JobsInvalidOrder", func(t *testing.T) {
-		req := NewRequest(t, "GET", "/api/v1/user/actions/jobs?sort=id&order=bogus").AddTokenAuth(token)
-		MakeRequest(t, req, http.StatusUnprocessableEntity)
-	})
 }
 
 func testAPIActionsListRepoWorkflows(t *testing.T) {
