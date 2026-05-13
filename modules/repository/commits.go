@@ -29,14 +29,8 @@ type PushCommit struct {
 	AuthorName     string
 	CommitterEmail string
 	CommitterName  string
-	CoAuthors      []*PushCommitCoAuthor `json:",omitempty"`
+	CoAuthors      []*git.Signature `json:",omitempty"`
 	Timestamp      time.Time
-}
-
-// PushCommitCoAuthor represents a co-author in a push commit payload.
-type PushCommitCoAuthor struct {
-	Name  string
-	Email string
 }
 
 // PushCommits represents list of commits in a push operation.
@@ -155,17 +149,6 @@ func (pc *PushCommits) AvatarLink(ctx context.Context, email string) string {
 	return v
 }
 
-func pushCommitCoAuthorsFromSignatures(sigs []*git.Signature) []*PushCommitCoAuthor {
-	if len(sigs) == 0 {
-		return nil
-	}
-	coAuthors := make([]*PushCommitCoAuthor, len(sigs))
-	for i, sig := range sigs {
-		coAuthors[i] = &PushCommitCoAuthor{Name: sig.Name, Email: sig.Email}
-	}
-	return coAuthors
-}
-
 // CommitToPushCommit transforms a git.Commit to PushCommit type.
 func CommitToPushCommit(commit *git.Commit) *PushCommit {
 	return &PushCommit{
@@ -175,30 +158,24 @@ func CommitToPushCommit(commit *git.Commit) *PushCommit {
 		AuthorName:     commit.Author.Name,
 		CommitterEmail: commit.Committer.Email,
 		CommitterName:  commit.Committer.Name,
-		CoAuthors:      pushCommitCoAuthorsFromSignatures(commit.CoAuthorSignatures()),
+		CoAuthors:      commit.CoAuthorSignatures(),
 		Timestamp:      commit.Author.When,
 	}
 }
 
 // AuthorSignature returns the push commit author as a git signature.
 func (pc *PushCommit) AuthorSignature() *git.Signature {
-	return &git.Signature{
-		Email: pc.AuthorEmail,
-		Name:  pc.AuthorName,
-	}
+	return &git.Signature{Email: pc.AuthorEmail, Name: pc.AuthorName}
 }
 
-// CoAuthorUsers returns co-authors in the template view shape.
+// CoAuthorUsers returns co-authors in the template view shape, without resolved Gitea users.
 func (pc *PushCommit) CoAuthorUsers() []*user_model.CoAuthorUser {
 	if len(pc.CoAuthors) == 0 {
 		return nil
 	}
 	coAuthors := make([]*user_model.CoAuthorUser, len(pc.CoAuthors))
-	for i, coAuthor := range pc.CoAuthors {
-		coAuthors[i] = &user_model.CoAuthorUser{TrailerSignature: &git.Signature{
-			Name:  coAuthor.Name,
-			Email: coAuthor.Email,
-		}}
+	for i, sig := range pc.CoAuthors {
+		coAuthors[i] = &user_model.CoAuthorUser{TrailerSignature: sig}
 	}
 	return coAuthors
 }

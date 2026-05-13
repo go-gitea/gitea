@@ -270,7 +270,7 @@ func TestCoAuthorSignatures(t *testing.T) {
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
 			cm := CommitMessage{MessageRaw: tc.body}
-			got := cm.CoAuthorSignatures()
+			got := cm.parseCoAuthorSignatures()
 			assert.Len(t, got, len(tc.want))
 			for i, w := range tc.want {
 				if i >= len(got) {

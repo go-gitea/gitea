@@ -1406,38 +1406,51 @@ tbody.commit-list {
   max-width: 240px;
   align-self: center;
   white-space: nowrap;
+  display: inline-flex;
+  align-items: center;
 }
 
-.coauthor-avatar-stack-wrapper {
+.avatar-stack-wrapper {
   display: inline-flex;
   align-items: center;
   margin-right: 0.25rem;
 }
 
-.coauthor-avatar-stack {
+.avatar-stack {
   display: inline-flex;
   align-items: center;
 }
 
-/* each direct child of the stack is either <a> (linked user) or <img> (no account) */
-.coauthor-avatar-stack > * {
-  margin-left: -12px;
+/* each direct child carries inline --n (0 = leftmost). Higher --n sits lower in the stack
+   and slides further right on hover so the whole stack fans out from the left anchor. */
+.avatar-stack > * {
+  margin-left: -16px;
   transition: transform 0.15s ease;
   position: relative;
   display: inline-flex;
   border-radius: 50%;
+  z-index: calc(100 - var(--n, 0));
 }
 
-.coauthor-avatar-stack > *:first-child {
+.avatar-stack > *:first-child {
   margin-left: 0;
 }
 
-.coauthor-avatar-stack .avatar {
+.avatar-stack > *:nth-child(2) {
+  margin-left: -14px;
+}
+
+.avatar-stack:hover > * {
+  transform: translateX(max(0px, calc(14px + (var(--n, 0) - 1) * 16px)));
+}
+
+.avatar-stack .avatar {
   border: 2px solid var(--color-body);
+  background: var(--color-body);
   border-radius: 50%;
 }
 
-.coauthor-overflow-chip {
+.avatar-stack-overflow-chip {
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -1450,26 +1463,25 @@ tbody.commit-list {
   color: var(--color-text);
 }
 
-.coauthor-avatar-stack > *:nth-child(1) { z-index: 20; }
-.coauthor-avatar-stack > *:nth-child(2) { z-index: 19; }
-.coauthor-avatar-stack > *:nth-child(3) { z-index: 18; }
-.coauthor-avatar-stack > *:nth-child(4) { z-index: 17; }
-.coauthor-avatar-stack > *:nth-child(5) { z-index: 16; }
-.coauthor-avatar-stack > *:nth-child(6) { z-index: 15; }
-.coauthor-avatar-stack > *:nth-child(7) { z-index: 14; }
-.coauthor-avatar-stack > *:nth-child(8) { z-index: 13; }
-.coauthor-avatar-stack > *:nth-child(9) { z-index: 12; }
-.coauthor-avatar-stack > *:nth-child(10) { z-index: 11; }
+.authors-popup-trigger {
+  cursor: pointer;
+}
 
-.coauthor-avatar-stack:hover > *:nth-child(2) { transform: translateX(12px); }
-.coauthor-avatar-stack:hover > *:nth-child(3) { transform: translateX(24px); }
-.coauthor-avatar-stack:hover > *:nth-child(4) { transform: translateX(36px); }
-.coauthor-avatar-stack:hover > *:nth-child(5) { transform: translateX(48px); }
-.coauthor-avatar-stack:hover > *:nth-child(6) { transform: translateX(60px); }
-.coauthor-avatar-stack:hover > *:nth-child(7) { transform: translateX(72px); }
-.coauthor-avatar-stack:hover > *:nth-child(8) { transform: translateX(84px); }
-.coauthor-avatar-stack:hover > *:nth-child(9) { transform: translateX(96px); }
-.coauthor-avatar-stack:hover > *:nth-child(10) { transform: translateX(108px); }
+.authors-popup {
+  min-width: 200px;
+  display: flex;
+  flex-direction: column;
+  padding: 4px 0;
+}
+
+.authors-popup > a {
+  padding: 6px 12px;
+  gap: 8px;
+}
+
+.authors-popup > a:hover {
+  background: var(--color-hover);
+}
 
 .latest-commit .message-wrapper {
   max-width: calc(100% - 2.5rem);

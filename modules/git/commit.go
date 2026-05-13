@@ -8,6 +8,7 @@ import (
 	"context"
 	"errors"
 	"io"
+	"net/mail"
 	"os/exec"
 	"strings"
 
@@ -69,22 +70,12 @@ func (c *CommitMessage) MessageBody() string {
 	return *c.messageBody
 }
 
-// cutTrailerPrefix matches "<token>:" case-insensitively at the start of line and
-// returns the trailing value plus whether a match was found. `git interpret-trailers`
-// matches trailer tokens case-insensitively, so e.g. "Co-Authored-By:" is valid.
-func cutTrailerPrefix(line, token string) (string, bool) {
-	if len(line) < len(token)+1 || line[len(token)] != ':' {
-		return "", false
-	}
-	if !strings.EqualFold(line[:len(token)], token) {
-		return "", false
-	}
-	return line[len(token)+1:], true
-}
-
-func isTrailerLine(line string) bool {
+// isTrailerLineShape reports whether the line looks like a `Token: value` trailer
+// per `git interpret-trailers`: the token is non-empty, contains only [A-Za-z0-9-],
+// and the value (after `:`) is non-empty.
+func isTrailerLineShape(line string) bool {
 	token, rest, ok := strings.Cut(line, ":")
-	if !ok || strings.TrimSpace(rest) == "" {
+	if !ok || token == "" || strings.TrimSpace(rest) == "" {
 		return false
 	}
 	for _, r := range token {
@@ -93,59 +84,60 @@ func isTrailerLine(line string) bool {
 		}
 		return false
 	}
-	return token != ""
+	return true
 }
 
-// CoAuthorSignatures parses "Co-authored-by:" and "Co-committed-by:" trailers
-// from the trailing block of the commit message and returns deduplicated
-// Signature values. Only the last paragraph of the body is scanned so that
-// quoted or in-body occurrences (e.g. inside a revert/cherry-pick description)
-// are not misinterpreted as trailers. The trailing paragraph must contain only
-// trailer-shaped lines.
-// Token matching is case-insensitive to match git's behaviour.
-func (c *CommitMessage) CoAuthorSignatures() []*Signature {
+// parseCoAuthorTrailer extracts a co-author Signature if the line is a
+// `Co-authored-by:`/`Co-committed-by:` trailer. Token matching is case-insensitive
+// to match git's behaviour. Email is lowercased; the address is parsed with
+// net/mail so a missing `<…>` or malformed address is rejected.
+func parseCoAuthorTrailer(line string) (*Signature, bool) {
+	token, rest, ok := strings.Cut(line, ":")
+	if !ok {
+		return nil, false
+	}
+	if !strings.EqualFold(token, "Co-authored-by") && !strings.EqualFold(token, "Co-committed-by") {
+		return nil, false
+	}
+	addr, err := mail.ParseAddress(strings.TrimSpace(rest))
+	if err != nil {
+		return nil, false
+	}
+	return &Signature{Name: addr.Name, Email: strings.ToLower(addr.Address)}, true
+}
+
+// parseCoAuthorSignatures parses `Co-authored-by:` and `Co-committed-by:` trailers
+// from the trailing block of the commit message and returns deduplicated Signature
+// values. Only the last paragraph of the body is scanned so quoted or in-body
+// occurrences (e.g. inside a revert/cherry-pick description) are not
+// misinterpreted; the trailing paragraph must contain only trailer-shaped lines.
+func (c *CommitMessage) parseCoAuthorSignatures() []*Signature {
 	if c.messageCoAuthors != nil {
 		return *c.messageCoAuthors
 	}
-	var sigs []*Signature
-	seen := make(map[string]struct{})
-	body := strings.TrimRight(c.MessageBody(), "\r\n")
-	if idx := strings.LastIndex(body, "\r\n\r\n"); idx >= 0 {
-		body = body[idx+4:]
-	} else if idx := strings.LastIndex(body, "\n\n"); idx >= 0 {
+	body := strings.ReplaceAll(strings.TrimRight(c.MessageBody(), "\r\n"), "\r\n", "\n")
+	if idx := strings.LastIndex(body, "\n\n"); idx >= 0 {
 		body = body[idx+2:]
 	}
-	lines := strings.Split(body, "\n")
-	for i, line := range lines {
-		lines[i] = strings.TrimRight(line, "\r")
-		if !isTrailerLine(lines[i]) {
-			c.messageCoAuthors = &sigs
-			return sigs
+	var sigs []*Signature
+	var seen map[string]struct{}
+	for line := range strings.SplitSeq(body, "\n") {
+		if !isTrailerLineShape(line) {
+			sigs = nil
+			break
 		}
-	}
-	for _, line := range lines {
-		rest, ok := cutTrailerPrefix(line, "Co-authored-by")
-		if !ok {
-			rest, ok = cutTrailerPrefix(line, "Co-committed-by")
-			if !ok {
-				continue
-			}
-		}
-		rest = strings.TrimSpace(rest)
-		name, emailWithBracket, ok := strings.Cut(rest, " <")
+		sig, ok := parseCoAuthorTrailer(line)
 		if !ok {
 			continue
 		}
-		email, _, ok := strings.Cut(emailWithBracket, ">")
-		if !ok {
+		if _, dup := seen[sig.Email]; dup {
 			continue
 		}
-		email = strings.ToLower(strings.TrimSpace(email))
-		if _, exists := seen[email]; exists {
-			continue
+		if seen == nil {
+			seen = make(map[string]struct{})
 		}
-		seen[email] = struct{}{}
-		sigs = append(sigs, &Signature{Name: strings.TrimSpace(name), Email: email})
+		seen[sig.Email] = struct{}{}
+		sigs = append(sigs, sig)
 	}
 	c.messageCoAuthors = &sigs
 	return sigs
@@ -155,11 +147,11 @@ func (c *CommitMessage) CoAuthorSignatures() []*Signature {
 // own author and committer emails filtered out, so a contributor who copies
 // themselves into a Co-authored-by line is not duplicated in the avatar stack.
 func (c *Commit) CoAuthorSignatures() []*Signature {
-	raw := c.CommitMessage.CoAuthorSignatures()
+	raw := c.parseCoAuthorSignatures()
 	if len(raw) == 0 {
 		return raw
 	}
-	exclude := make(map[string]struct{}, 2)
+	exclude := make(map[string]struct{})
 	if c.Author != nil {
 		exclude[strings.ToLower(strings.TrimSpace(c.Author.Email))] = struct{}{}
 	}

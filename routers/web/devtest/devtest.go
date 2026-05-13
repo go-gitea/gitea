@@ -159,6 +159,57 @@ func prepareMockDataBadgeActionsSvg(ctx *context.Context) {
 	ctx.Data["SelectedStyle"] = selectedStyle
 }
 
+func prepareMockDataCoAuthorAvatars(ctx *context.Context) {
+	mockUsers, _ := db.Find[user_model.User](ctx, user_model.SearchUserOptions{ListOptions: db.ListOptions{PageSize: 3}})
+	if len(mockUsers) == 0 {
+		return
+	}
+	u0 := mockUsers[0]
+	u1, u2 := u0, u0
+	if len(mockUsers) >= 2 {
+		u1 = mockUsers[1]
+	}
+	if len(mockUsers) >= 3 {
+		u2 = mockUsers[2]
+	}
+
+	authorSig := func(u *user_model.User) *git.Signature {
+		return &git.Signature{Name: u.Name, Email: u.Email}
+	}
+	coLinked := func(u *user_model.User) *user_model.CoAuthorUser {
+		return &user_model.CoAuthorUser{GiteaUser: u, TrailerSignature: authorSig(u)}
+	}
+	coUnlinked := func(name, email string) *user_model.CoAuthorUser {
+		return &user_model.CoAuthorUser{TrailerSignature: &git.Signature{Name: name, Email: email}}
+	}
+	nUnlinked := func(n int) []*user_model.CoAuthorUser {
+		out := make([]*user_model.CoAuthorUser, n)
+		for i := range out {
+			out[i] = coUnlinked(fmt.Sprintf("Contributor %d", i+1), fmt.Sprintf("contrib%d@example.com", i+1))
+		}
+		return out
+	}
+
+	type scenario struct {
+		Label      string
+		AuthorUser *user_model.User
+		AuthorSig  *git.Signature
+		CoAuthors  []*user_model.CoAuthorUser
+	}
+	ctx.Data["CoAuthorScenarios"] = []scenario{
+		{Label: "linked author, no co-authors", AuthorUser: u0, AuthorSig: authorSig(u0)},
+		{Label: "unlinked author, no co-authors", AuthorSig: &git.Signature{Name: "External Contributor", Email: "external@example.com"}},
+		{Label: "1 linked co-author", AuthorUser: u0, AuthorSig: authorSig(u0), CoAuthors: []*user_model.CoAuthorUser{coLinked(u1)}},
+		{Label: "1 unlinked co-author", AuthorUser: u0, AuthorSig: authorSig(u0), CoAuthors: []*user_model.CoAuthorUser{coUnlinked("Bob Smith", "bob@example.com")}},
+		{Label: "2 co-authors (3 people)", AuthorUser: u0, AuthorSig: authorSig(u0), CoAuthors: []*user_model.CoAuthorUser{coLinked(u1), coUnlinked("Bob Smith", "bob@example.com")}},
+		{Label: "3 co-authors mixed (4 people)", AuthorUser: u0, AuthorSig: authorSig(u0), CoAuthors: []*user_model.CoAuthorUser{coLinked(u1), coLinked(u2), coUnlinked("Bob Smith", "bob@example.com")}},
+		{Label: "9 co-authors (max visible, no overflow)", AuthorUser: u0, AuthorSig: authorSig(u0), CoAuthors: nUnlinked(9)},
+		{Label: "10 co-authors (overflow +1)", AuthorUser: u0, AuthorSig: authorSig(u0), CoAuthors: nUnlinked(10)},
+		{Label: "15 co-authors (overflow +6)", AuthorUser: u0, AuthorSig: authorSig(u0), CoAuthors: nUnlinked(15)},
+		{Label: "30 co-authors (overflow +21)", AuthorUser: u0, AuthorSig: authorSig(u0), CoAuthors: nUnlinked(30)},
+	}
+}
+
 func prepareMockDataRelativeTime(ctx *context.Context) {
 	now := time.Now()
 	ctx.Data["TimeNow"] = now
@@ -196,6 +247,8 @@ func prepareMockData(ctx *context.Context) {
 		prepareMockDataToastAndMessage(ctx)
 	case "/devtest/unicode-escape":
 		prepareMockDataUnicodeEscape(ctx)
+	case "/devtest/coauthor-avatars":
+		prepareMockDataCoAuthorAvatars(ctx)
 	}
 }
 

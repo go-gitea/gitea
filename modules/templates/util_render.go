@@ -6,7 +6,6 @@ package templates
 import (
 	"encoding/hex"
 	"fmt"
-	"html"
 	"html/template"
 	"math"
 	"net/url"
@@ -328,8 +327,25 @@ func (ut *RenderUtils) RenderUnicodeEscapeToggleTd(combined, escapeStatus *chars
 	return `<td class="lines-escape">` + ut.RenderUnicodeEscapeToggleButton(escapeStatus) + `</td>`
 }
 
+// commitAuthorSearchURL returns the repo's commits-by-author search URL for the current
+// ref, or an empty URL when no repo/ref context is available (e.g. dashboard feed).
+func (ut *RenderUtils) commitAuthorSearchURL(authorName string) template.URL {
+	if authorName == "" {
+		return ""
+	}
+	data := ut.ctx.GetData()
+	repoLink, _ := data["RepoLink"].(string)
+	refSubURL, _ := data["RefTypeNameSubURL"].(string)
+	if repoLink == "" || refSubURL == "" {
+		return ""
+	}
+	return template.URL(repoLink + "/commits/" + refSubURL + "/search?q=" + url.QueryEscape("author:"+authorName))
+}
+
 // CoAuthorAvatarStack renders an avatar stack for the commit author and co-authors.
 // authorUser may be nil when no Gitea account is linked; authorSig must always be set.
+// Each stack child carries an inline `--n` custom property so the CSS can apply
+// z-index and the :hover translate without hardcoding nth-child rules.
 func (ut *RenderUtils) CoAuthorAvatarStack(authorUser *user_model.User, authorSig *git.Signature, coAuthors []*user_model.CoAuthorUser, additionalClasses string) template.HTML {
 	au := NewAvatarUtils(ut.ctx)
 	if len(coAuthors) == 0 {
@@ -347,78 +363,129 @@ func (ut *RenderUtils) CoAuthorAvatarStack(authorUser *user_model.User, authorSi
 		overflow = len(coAuthors) - maxCo
 	}
 
-	wrapperClass := "coauthor-avatar-stack-wrapper"
+	wrapperClass := "avatar-stack-wrapper"
 	if additionalClasses != "" {
 		wrapperClass += " " + additionalClasses
 	}
 
 	var b strings.Builder
-	b.WriteString(`<span class="` + html.EscapeString(wrapperClass) + `">`)
-	b.WriteString(`<span class="coauthor-avatar-stack">`)
+	b.WriteString(string(htmlutil.HTMLFormat(`<span class="%s"><span class="avatar-stack">`, wrapperClass)))
 
-	if authorUser != nil {
-		b.WriteString(string(htmlutil.HTMLFormat(`<a href="%s" data-tooltip-content="%s">%s</a>`,
-			template.URL(authorUser.HomeLink()), authorUser.GetDisplayName(), au.Avatar(authorUser, 20))))
-	} else {
-		b.WriteString(string(au.AvatarByEmail(authorSig.Email, authorSig.Name, 20)))
+	appendLinked := func(idx int, u *user_model.User) {
+		href := ut.commitAuthorSearchURL(u.Name)
+		if href == "" {
+			href = template.URL(u.HomeLink())
+		}
+		b.WriteString(string(htmlutil.HTMLFormat(`<a href="%s" style="--n:%d">%s</a>`,
+			href, idx, au.Avatar(u, 20))))
+	}
+	appendUnlinked := func(idx int, sig *git.Signature) {
+		if href := ut.commitAuthorSearchURL(sig.Name); href != "" {
+			b.WriteString(string(htmlutil.HTMLFormat(`<a href="%s" style="--n:%d">%s</a>`,
+				href, idx, au.AvatarByEmail(sig.Email, sig.Name, 20))))
+			return
+		}
+		b.WriteString(string(htmlutil.HTMLFormat(`<span style="--n:%d">%s</span>`,
+			idx, au.AvatarByEmail(sig.Email, sig.Name, 20))))
 	}
 
-	for _, co := range visibleCo {
+	if authorUser != nil {
+		appendLinked(0, authorUser)
+	} else {
+		appendUnlinked(0, authorSig)
+	}
+	for i, co := range visibleCo {
 		if co.GiteaUser != nil {
-			b.WriteString(string(htmlutil.HTMLFormat(`<a href="%s" data-tooltip-content="%s">%s</a>`,
-				template.URL(co.GiteaUser.HomeLink()), co.GiteaUser.GetDisplayName(), au.Avatar(co.GiteaUser, 20))))
+			appendLinked(i+1, co.GiteaUser)
 		} else {
-			b.WriteString(string(au.AvatarByEmail(co.TrailerSignature.Email, co.TrailerSignature.Name, 20)))
+			appendUnlinked(i+1, co.TrailerSignature)
 		}
 	}
 
-	b.WriteString(`</span>`) // end coauthor-avatar-stack
-
 	if overflow > 0 {
-		locale := ut.ctx.Value(translation.ContextKey).(translation.Locale)
-		overflowLabel := locale.TrN(overflow, "repo.commits.coauthor_others_1", "repo.commits.coauthor_others_n", overflow)
-		b.WriteString(string(htmlutil.HTMLFormat(`<span class="coauthor-overflow-chip tw-text-xs" role="img" aria-label="%s" data-tooltip-content="%s">+%d</span>`,
-			overflowLabel, overflowLabel, overflow)))
+		b.WriteString(string(htmlutil.HTMLFormat(
+			`<span class="avatar-stack-overflow-chip tw-text-xs" style="--n:%d" aria-label="+%d">+%d</span>`,
+			len(visibleCo)+1, overflow, overflow)))
 	}
 
-	b.WriteString(`</span>`) // end coauthor-avatar-stack-wrapper
+	b.WriteString(`</span></span>`)
 	return template.HTML(b.String())
 }
 
 // CoAuthorAvatars renders the author/co-author avatar stack with descriptive name text.
+// Label rules follow GitHub: 2 total = `<author> and <coauthor>`; 3+ total opens
+// a popup listing all participants on click.
 func (ut *RenderUtils) CoAuthorAvatars(authorUser *user_model.User, authorSig *git.Signature, coAuthors []*user_model.CoAuthorUser) template.HTML {
 	locale := ut.ctx.Value(translation.ContextKey).(translation.Locale)
+	stackClass := ""
+	if len(coAuthors) == 0 {
+		stackClass = "tw-mr-1"
+	}
+
 	var b strings.Builder
 	b.WriteString(`<span class="author-wrapper">`)
+	b.WriteString(string(ut.CoAuthorAvatarStack(authorUser, authorSig, coAuthors, stackClass)))
 
-	if len(coAuthors) > 0 {
-		b.WriteString(string(ut.CoAuthorAvatarStack(authorUser, authorSig, coAuthors, "")))
-		if authorUser != nil {
-			b.WriteString(string(authorUser.GetShortDisplayNameLinkHTML()))
-		} else {
-			b.WriteString(html.EscapeString(authorSig.Name))
+	switch len(coAuthors) {
+	case 0:
+		b.WriteString(string(ut.authorNameLinkHTML(authorUser, authorSig)))
+	case 1:
+		b.WriteString(string(ut.authorNameLinkHTML(authorUser, authorSig)))
+		b.WriteString(string(htmlutil.HTMLFormat(`<span class="tw-mx-1">%s</span>`, locale.Tr("repo.commits.coauthor_and"))))
+		b.WriteString(string(ut.authorNameLinkHTML(coAuthors[0].GiteaUser, coAuthors[0].TrailerSignature)))
+	default:
+		total := len(coAuthors) + 1
+		b.WriteString(string(htmlutil.HTMLFormat(
+			`<a class="muted authors-popup-trigger" data-global-init="initAuthorsPopup" tabindex="0" role="button">%s</a>`,
+			locale.Tr("repo.commits.coauthor_people", total))))
+		b.WriteString(`<div class="tippy-target"><div class="authors-popup">`)
+		b.WriteString(string(ut.participantRowHTML(authorUser, authorSig)))
+		for _, co := range coAuthors {
+			b.WriteString(string(ut.participantRowHTML(co.GiteaUser, co.TrailerSignature)))
 		}
-		b.WriteString(" " + string(locale.Tr("repo.commits.coauthor_and")) + " ")
-		if len(coAuthors) == 1 {
-			co := coAuthors[0]
-			if co.GiteaUser != nil {
-				b.WriteString(string(htmlutil.HTMLFormat(`<a class="muted" href="%s">%s</a>`,
-					template.URL(co.GiteaUser.HomeLink()), co.GiteaUser.GetDisplayName())))
-			} else {
-				b.WriteString(html.EscapeString(co.TrailerSignature.Name))
-			}
-		} else {
-			b.WriteString(string(locale.Tr("repo.commits.coauthor_people", len(coAuthors)+1)))
-		}
-	} else {
-		b.WriteString(string(ut.CoAuthorAvatarStack(authorUser, authorSig, nil, "tw-mr-1")))
-		if authorUser != nil {
-			b.WriteString(string(authorUser.GetShortDisplayNameLinkHTML()))
-		} else {
-			b.WriteString(html.EscapeString(authorSig.Name))
-		}
+		b.WriteString(`</div></div>`)
 	}
 
 	b.WriteString(`</span>`)
 	return template.HTML(b.String())
+}
+
+// authorNameLinkHTML renders a muted link for an author. In a repo context the
+// link targets the repo's commit search filtered by author; otherwise it falls
+// back to the user's profile (or a mailto link when no Gitea account matches).
+func (ut *RenderUtils) authorNameLinkHTML(u *user_model.User, sig *git.Signature) template.HTML {
+	if u != nil {
+		if href := ut.commitAuthorSearchURL(u.Name); href != "" {
+			return htmlutil.HTMLFormat(`<a class="muted" href="%s">%s</a>`, href, u.GetDisplayName())
+		}
+		return u.GetShortDisplayNameLinkHTML()
+	}
+	if href := ut.commitAuthorSearchURL(sig.Name); href != "" {
+		return htmlutil.HTMLFormat(`<a class="muted" href="%s">%s</a>`, href, sig.Name)
+	}
+	return htmlutil.HTMLFormat(`<a class="muted" href="mailto:%s">%s</a>`, sig.Email, sig.Name)
+}
+
+// participantRowHTML renders one row of the authors popup: avatar + linked name.
+func (ut *RenderUtils) participantRowHTML(u *user_model.User, sig *git.Signature) template.HTML {
+	au := NewAvatarUtils(ut.ctx)
+	var href template.URL
+	var avatar template.HTML
+	var name string
+	if u != nil {
+		href = ut.commitAuthorSearchURL(u.Name)
+		if href == "" {
+			href = template.URL(u.HomeLink())
+		}
+		avatar = au.Avatar(u, 20)
+		name = u.GetDisplayName()
+	} else {
+		href = ut.commitAuthorSearchURL(sig.Name)
+		if href == "" {
+			href = template.URL("mailto:" + sig.Email)
+		}
+		avatar = au.AvatarByEmail(sig.Email, sig.Name, 20)
+		name = sig.Name
+	}
+	return htmlutil.HTMLFormat(`<a class="silenced flex-text-block" href="%s">%s<span>%s</span></a>`, href, avatar, name)
 }

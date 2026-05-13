@@ -1172,6 +1172,22 @@ func ValidateCommitWithEmail(ctx context.Context, c *git.Commit) *User {
 	return u
 }
 
+// CoAuthorUsersFromSigs wraps each signature with the matching Gitea user if any.
+func CoAuthorUsersFromSigs(sigs []*git.Signature, emailUserMap *EmailUserMap) []*CoAuthorUser {
+	if len(sigs) == 0 {
+		return nil
+	}
+	out := make([]*CoAuthorUser, len(sigs))
+	for i, sig := range sigs {
+		var giteaUser *User
+		if emailUserMap != nil {
+			giteaUser = emailUserMap.GetByEmail(sig.Email)
+		}
+		out[i] = &CoAuthorUser{GiteaUser: giteaUser, TrailerSignature: sig}
+	}
+	return out
+}
+
 // CoAuthorsFromCommit resolves co-author signatures from a commit into CoAuthorUser values.
 func CoAuthorsFromCommit(ctx context.Context, c *git.Commit) ([]*CoAuthorUser, error) {
 	sigs := c.CoAuthorSignatures()
@@ -1186,11 +1202,7 @@ func CoAuthorsFromCommit(ctx context.Context, c *git.Commit) ([]*CoAuthorUser, e
 	if err != nil {
 		return nil, err
 	}
-	coAuthors := make([]*CoAuthorUser, len(sigs))
-	for i, sig := range sigs {
-		coAuthors[i] = &CoAuthorUser{GiteaUser: emailUserMap.GetByEmail(sig.Email), TrailerSignature: sig}
-	}
-	return coAuthors, nil
+	return CoAuthorUsersFromSigs(sigs, emailUserMap), nil
 }
 
 // ValidateCommitsWithEmails checks if authors' e-mails of commits are corresponding to users.
@@ -1214,21 +1226,9 @@ func ValidateCommitsWithEmails(ctx context.Context, oldCommits []*git.Commit) ([
 	}
 
 	for _, c := range oldCommits {
-		user := emailUserMap.GetByEmail(c.Author.Email) // FIXME: why ValidateCommitsWithEmails uses "Author", but ParseCommitsWithSignature uses "Committer"?
-		coAuthorSigs := c.CoAuthorSignatures()
-		var coAuthors []*CoAuthorUser
-		if len(coAuthorSigs) > 0 {
-			coAuthors = make([]*CoAuthorUser, 0, len(coAuthorSigs))
-			for _, sig := range coAuthorSigs {
-				coAuthors = append(coAuthors, &CoAuthorUser{
-					GiteaUser:        emailUserMap.GetByEmail(sig.Email),
-					TrailerSignature: sig,
-				})
-			}
-		}
 		newCommits = append(newCommits, &UserCommit{
-			User:      user,
-			CoAuthors: coAuthors,
+			User:      emailUserMap.GetByEmail(c.Author.Email), // FIXME: why ValidateCommitsWithEmails uses "Author", but ParseCommitsWithSignature uses "Committer"?
+			CoAuthors: CoAuthorUsersFromSigs(c.CoAuthorSignatures(), emailUserMap),
 			Commit:    c,
 		})
 	}

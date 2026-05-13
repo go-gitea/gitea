@@ -223,7 +223,7 @@ func processBlameParts(ctx *context.Context, blameParts []*gitrepo.BlamePart) ma
 	return commitNames
 }
 
-func renderBlameFillFirstBlameRow(repoLink string, part *gitrepo.BlamePart, commit *user_model.UserCommit, br *blameRow) {
+func fillFirstBlameRow(repoLink string, part *gitrepo.BlamePart, commit *user_model.UserCommit, br *blameRow) {
 	br.AuthorUser = commit.User
 	br.CoAuthors = commit.CoAuthors
 	br.Author = commit.Author
@@ -256,7 +256,7 @@ func renderBlame(ctx *context.Context, blameParts []*gitrepo.BlamePart, commitNa
 			}
 
 			if partLineIdx == 0 {
-				renderBlameFillFirstBlameRow(ctx.Repo.RepoLink, part, commitNames[part.Sha], br)
+				fillFirstBlameRow(ctx.Repo.RepoLink, part, commitNames[part.Sha], br)
 			}
 		}
 	}
