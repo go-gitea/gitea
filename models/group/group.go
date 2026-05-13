@@ -211,7 +211,7 @@ func (g *Group) ShortName(length int) string {
 }
 
 func (g *Group) IsPrivateBecauseOfParentPermissions(ctx context.Context, user *user_model.User) (bool, error) {
-	cond := AccessibleParentGroupCond("`repo_group`.`id`", g.ID, user)
+	cond := AccessibleParentGroupCond(ctx, "`repo_group`.`id`", user)
 	has, err := db.GetEngine(ctx).Where(cond.And(builder.Eq{
 		"`repo_group`.id": g.ID,
 	})).Table(g.TableName()).Exist()
@@ -382,11 +382,21 @@ func groupHierarchyCTEBuilder(cond builder.Cond) builder.Cond {
 	return builder.Expr(firstSQL + " UNION ALL " + secondSQL)
 }
 
-func AccessibleParentGroupCond(idStr string, groupID int64, user *user_model.User) builder.Cond {
+func AccessibleParentGroupCond(ctx context.Context, idStr string, user *user_model.User) builder.Cond {
 	accessibleCond := AccessibleGroupCondition(user, unit.TypeInvalid, perm.AccessModeRead)
 	unionBldr := groupHierarchyCTEBuilder(accessibleCond)
 	unionSQL, _ := builder.ToBoundSQL(unionBldr)
-	return builder.In(idStr, builder.Expr("(WITH RECURSIVE group_hierarchy AS ("+unionSQL+") SELECT id from group_hierarchy)"))
+	var recursiveKeyword string
+
+	if !setting.Database.Type.IsMSSQL() {
+		recursiveKeyword = "RECURSIVE"
+	}
+
+	e := db.GetEngine(ctx)
+	sql := "WITH " + recursiveKeyword + " group_hierarchy AS (" + unionSQL + ")"
+	var ids []int64
+	e.SQL(sql + " select id from group_hierarchy").Find(&ids)
+	return builder.In(idStr, ids)
 }
 
 // ParentGroupCond returns a condition matching a group and its ancestors
