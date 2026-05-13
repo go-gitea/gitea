@@ -1175,6 +1175,7 @@ func getCurrentRepoActionRunJobsByID(ctx *context.APIContext) (*actions_model.Ac
 		ctx.APIErrorInternal(err)
 		return nil, nil
 	}
+	jobs.SortMatrixGroupsByName()
 	return run, jobs
 }
 

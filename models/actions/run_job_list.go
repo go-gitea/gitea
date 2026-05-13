@@ -5,9 +5,11 @@ package actions
 
 import (
 	"context"
+	"slices"
 
 	"code.gitea.io/gitea/models/db"
 	repo_model "code.gitea.io/gitea/models/repo"
+	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/container"
 	"code.gitea.io/gitea/modules/optional"
 	"code.gitea.io/gitea/modules/timeutil"
@@ -21,6 +23,22 @@ func (jobs ActionJobList) GetRunIDs() []int64 {
 	return container.FilterSlice(jobs, func(j *ActionRunJob) (int64, bool) {
 		return j.RunID, j.RunID != 0
 	})
+}
+
+// SortMatrixGroupsByName natural-sorts each contiguous run of jobs that share a JobID
+// so matrix expansions (e.g. "test (1)", "test (2)", "test (10)") appear in human order.
+// Input is expected to be in DB id order so JobID groups are contiguous; cross-group order is preserved.
+func (jobs ActionJobList) SortMatrixGroupsByName() {
+	for i := 0; i < len(jobs); {
+		j := i + 1
+		for j < len(jobs) && jobs[j].JobID == jobs[i].JobID {
+			j++
+		}
+		slices.SortFunc(jobs[i:j], func(a, b *ActionRunJob) int {
+			return base.NaturalSortCompare(a.Name, b.Name)
+		})
+		i = j
+	}
 }
 
 func (jobs ActionJobList) LoadRepos(ctx context.Context) error {
