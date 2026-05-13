@@ -10,6 +10,9 @@
 - Use Conventional Commits format for commit messages and PR titles (e.g. `type(scope): subject`)
 - Never force-push, amend, or squash unless asked. Use new commits and normal push for pull request updates
 - Preserve existing code comments, do not remove or rewrite comments that are still relevant
+- Keep comments short, prefer same-line, explain why, never narrate code
+- Prefer unit tests over integration tests when logic is testable in isolation
+- Aim for sub-2s local runtime for integration and e2e tests
 - In TypeScript, use `!` (non-null assertion) instead of `?.`/`??` when a value is known to always exist
 - For CSS layout, prefer `flex-*` helpers over per-child `tw-ml-*` / `tw-mr-*` margins; fall back to `tw-*` utilities when specificity requires `!important`
 - Include authorship attribution in issue and pull request comments
