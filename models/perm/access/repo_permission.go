@@ -499,7 +499,7 @@ func GetIndividualUserRepoPermission(ctx context.Context, repo *repo_model.Repos
 			perm.unitsMode[u.Type] = unitAccessMode
 		}
 		for _, team := range groupTeams {
-			teamMode, _ := team.UnitAccessModeEx(ctx, u.Type)
+			teamMode, _ := team.UnitAccessModeEx(ctx, u.Type, true)
 			unitAccessMode := max(perm.unitsMode[u.Type], minAccessMode, teamMode)
 			perm.unitsMode[u.Type] = unitAccessMode
 		}

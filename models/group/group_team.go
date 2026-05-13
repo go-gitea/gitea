@@ -10,7 +10,6 @@ import (
 	"code.gitea.io/gitea/models/perm"
 	"code.gitea.io/gitea/models/unit"
 	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/util"
 )
 
 // RepoGroupTeam represents a relation for a team's access to a group
@@ -30,7 +29,7 @@ func (g *RepoGroupTeam) LoadGroupUnits(ctx context.Context) error {
 	return err
 }
 
-func (g *RepoGroupTeam) UnitAccessModeEx(ctx context.Context, tp unit.Type) (accessMode perm.AccessMode, exist bool) {
+func (g *RepoGroupTeam) UnitAccessModeEx(ctx context.Context, tp unit.Type, includeAncestors bool) (accessMode perm.AccessMode, exist bool) {
 	accessMode = perm.AccessModeNone
 	if err := g.LoadGroupUnits(ctx); err != nil {
 		log.Warn("Error loading units of team for group[%d] (ID: %d): %s", g.GroupID, g.TeamID, err.Error())
@@ -41,6 +40,22 @@ func (g *RepoGroupTeam) UnitAccessModeEx(ctx context.Context, tp unit.Type) (acc
 			accessMode = u.AccessMode
 			exist = true
 			break
+		}
+	}
+	if includeAncestors {
+		anc, err := GetNearestAncestorWithTeam(ctx, g.GroupID, g.TeamID)
+		if err != nil {
+			return accessMode, false
+		}
+		if err = anc.LoadGroupUnits(ctx); err != nil {
+			return accessMode, false
+		}
+		for _, u := range anc.Units {
+			if u.Type == tp {
+				accessMode = u.AccessMode
+				exist = true
+				break
+			}
 		}
 	}
 	return accessMode, exist
