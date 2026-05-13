@@ -115,6 +115,53 @@ func init() {
 	db.RegisterModel(new(Notification))
 }
 
+// CreateCommitCommentNotification creates notifications for a commit comment.
+// It notifies the commit author (if they're a Gitea user) and any @mentioned users.
+func CreateCommitCommentNotification(ctx context.Context, doer *user_model.User, repo *repo_model.Repository, comment *issues_model.Comment, commitAuthorEmail string, mentionedUsernames []string) error {
+	return db.WithTx(ctx, func(ctx context.Context) error {
+		receiverIDs := make(map[int64]struct{})
+
+		// Notify the commit author if they map to a Gitea user
+		if commitAuthorEmail != "" {
+			author, err := user_model.GetUserByEmail(ctx, commitAuthorEmail)
+			if err == nil && author.ID != doer.ID {
+				receiverIDs[author.ID] = struct{}{}
+			}
+		}
+
+		// Notify @mentioned users
+		if len(mentionedUsernames) > 0 {
+			mentionedIDs, err := user_model.GetUserIDsByNames(ctx, mentionedUsernames, true)
+			if err == nil {
+				for _, id := range mentionedIDs {
+					if id != doer.ID {
+						receiverIDs[id] = struct{}{}
+					}
+				}
+			}
+		}
+
+		if len(receiverIDs) == 0 {
+			return nil
+		}
+
+		var notifications []*Notification
+		for uid := range receiverIDs {
+			notifications = append(notifications, &Notification{
+				UserID:    uid,
+				RepoID:    repo.ID,
+				Status:    NotificationStatusUnread,
+				Source:    NotificationSourceCommit,
+				CommitID:  comment.CommitSHA,
+				CommentID: comment.ID,
+				UpdatedBy: doer.ID,
+			})
+		}
+
+		return db.Insert(ctx, notifications)
+	})
+}
+
 // CreateRepoTransferNotification creates  notification for the user a repository was transferred to
 func CreateRepoTransferNotification(ctx context.Context, doer, newOwner *user_model.User, repo *repo_model.Repository) error {
 	return db.WithTx(ctx, func(ctx context.Context) error {
