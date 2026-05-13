@@ -43,7 +43,7 @@
 								<div class="blame-info">
 									<div class="blame-data">
 										<div class="blame-avatar">
-											{{ctx.RenderUtils.CoAuthorAvatarStack $row.AuthorUser $row.Author $row.CoAuthors ""}}
+											{{ctx.RenderUtils.AvatarStack $row.AuthorUser $row.Author $row.CoAuthors ""}}
 										</div>
 										<div class="blame-message muted-links" title="{{$row.CommitMessage}}">
 											{{ctx.RenderUtils.RenderCommitMessageLinkSubject $row.CommitMessage $row.CommitURL $.Repository}}

@@ -342,11 +342,14 @@ func (ut *RenderUtils) commitAuthorSearchURL(authorName string) template.URL {
 	return template.URL(repoLink + "/commits/" + refSubURL + "/search?q=" + url.QueryEscape("author:"+authorName))
 }
 
-// CoAuthorAvatarStack renders an avatar stack for the commit author and co-authors.
-// authorUser may be nil when no Gitea account is linked; authorSig must always be set.
+// AvatarStack renders an avatar stack for the commit author and co-authors.
+// Returns empty when neither a Gitea user nor a git signature is available.
 // Each stack child carries an inline `--n` custom property so the CSS can apply
 // z-index and the :hover translate without hardcoding nth-child rules.
-func (ut *RenderUtils) CoAuthorAvatarStack(authorUser *user_model.User, authorSig *git.Signature, coAuthors []*user_model.CoAuthorUser, additionalClasses string) template.HTML {
+func (ut *RenderUtils) AvatarStack(authorUser *user_model.User, authorSig *git.Signature, coAuthors []*user_model.CoAuthorUser, additionalClasses string) template.HTML {
+	if authorUser == nil && authorSig == nil {
+		return ""
+	}
 	au := NewAvatarUtils(ut.ctx)
 	if len(coAuthors) == 0 {
 		if authorUser != nil {
@@ -424,7 +427,7 @@ func (ut *RenderUtils) CoAuthorAvatars(authorUser *user_model.User, authorSig *g
 
 	var b strings.Builder
 	b.WriteString(`<span class="author-wrapper">`)
-	b.WriteString(string(ut.CoAuthorAvatarStack(authorUser, authorSig, coAuthors, stackClass)))
+	b.WriteString(string(ut.AvatarStack(authorUser, authorSig, coAuthors, stackClass)))
 
 	switch len(coAuthors) {
 	case 0:
