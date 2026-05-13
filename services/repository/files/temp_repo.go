@@ -300,12 +300,7 @@ func (t *TemporaryUploadRepository) CommitTree(ctx context.Context, opts *Commit
 		cmdCommitTree.AddOptionFormat("-S%s", key.KeyID)
 		if t.repo.GetTrustModel() == repo_model.CommitterTrustModel || t.repo.GetTrustModel() == repo_model.CollaboratorCommitterTrustModel {
 			if committerSig.Name != authorSig.Name || committerSig.Email != authorSig.Email {
-				// Add trailers
-				_, _ = messageBytes.WriteString("\n")
-				_, _ = messageBytes.WriteString("Co-authored-by: ")
-				_, _ = messageBytes.WriteString(committerSig.String())
-				_, _ = messageBytes.WriteString("\n")
-				_, _ = messageBytes.WriteString("Co-committed-by: ")
+				_, _ = messageBytes.WriteString("\nCo-authored-by: ")
 				_, _ = messageBytes.WriteString(committerSig.String())
 				_, _ = messageBytes.WriteString("\n")
 			}

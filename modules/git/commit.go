@@ -87,14 +87,14 @@ func isTrailerLineShape(line string) bool {
 	return true
 }
 
-// parseCoAuthorTrailer extracts a co-author from a `Co-authored-by:` or
-// `Co-committed-by:` trailer (case-insensitive). Returns false on a malformed address.
+// parseCoAuthorTrailer extracts a co-author from a `Co-authored-by:` trailer
+// (case-insensitive). Returns false on a malformed address.
 func parseCoAuthorTrailer(line string) (*Signature, bool) {
 	token, rest, ok := strings.Cut(line, ":")
 	if !ok {
 		return nil, false
 	}
-	if !strings.EqualFold(token, "Co-authored-by") && !strings.EqualFold(token, "Co-committed-by") {
+	if !strings.EqualFold(token, "Co-authored-by") {
 		return nil, false
 	}
 	addr, err := mail.ParseAddress(strings.TrimSpace(rest))
@@ -104,10 +104,10 @@ func parseCoAuthorTrailer(line string) (*Signature, bool) {
 	return &Signature{Name: addr.Name, Email: strings.ToLower(addr.Address)}, true
 }
 
-// parseCoAuthorSignatures parses `Co-authored-by:` and `Co-committed-by:` trailers
-// from the trailing block of the commit message. Only the last paragraph is scanned
-// (and it must contain only trailer-shaped lines) so in-body occurrences inside a
-// revert or cherry-pick description are not misinterpreted as trailers.
+// parseCoAuthorSignatures parses `Co-authored-by:` trailers from the trailing
+// block of the commit message. Only the last paragraph is scanned (and it must
+// contain only trailer-shaped lines) so in-body occurrences inside a revert or
+// cherry-pick description are not misinterpreted as trailers.
 func (c *CommitMessage) parseCoAuthorSignatures() []*Signature {
 	if c.coAuthorsParsed {
 		return c.coAuthors

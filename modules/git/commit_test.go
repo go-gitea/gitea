@@ -227,7 +227,7 @@ func TestCoAuthorSignatures(t *testing.T) {
 		},
 		{
 			name: "case insensitive token",
-			body: "title\n\nCo-Authored-By: Jane <Jane@Example.com>\nco-committed-by: Bob <bob@example.com>",
+			body: "title\n\nCo-Authored-By: Jane <Jane@Example.com>\nco-authored-by: Bob <bob@example.com>",
 			want: []Signature{
 				{Name: "Jane", Email: "jane@example.com"},
 				{Name: "Bob", Email: "bob@example.com"},
@@ -255,7 +255,7 @@ func TestCoAuthorSignatures(t *testing.T) {
 		},
 		{
 			name: "CRLF line endings",
-			body: "title\r\n\r\nCo-authored-by: Jane <jane@example.com>\r\nCo-committed-by: Bob <bob@example.com>",
+			body: "title\r\n\r\nCo-authored-by: Jane <jane@example.com>\r\nCo-authored-by: Bob <bob@example.com>",
 			want: []Signature{
 				{Name: "Jane", Email: "jane@example.com"},
 				{Name: "Bob", Email: "bob@example.com"},
