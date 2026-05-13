@@ -168,17 +168,21 @@ jobs:
 
 		totalDeadlocks := deadlockOnInsert.Load() + deadlockOnUpdate.Load()
 
-		t.Logf("inserts: success=%d errors=%d deadlocks=%d",
-			insertSuccess.Load(), insertErrors.Load(), deadlockOnInsert.Load())
-		t.Logf("updates: success=%d errors=%d deadlocks=%d",
-			updateSuccess.Load(), updateErrors.Load(), deadlockOnUpdate.Load())
+		t.Logf("inserts: success=%d errors=%d deadlocks=%d", insertSuccess.Load(), insertErrors.Load(), deadlockOnInsert.Load())
+		t.Logf("updates: success=%d errors=%d deadlocks=%d", updateSuccess.Load(), updateErrors.Load(), deadlockOnUpdate.Load())
 
-		assert.Zero(t, totalDeadlocks,
-			"deadlock detected: insert=%d update=%d (handleWorkflows would silently drop these workflow runs)",
-			deadlockOnInsert.Load(), deadlockOnUpdate.Load())
+		// totalDeadlocks should be zero
+		assert.Zero(t, totalDeadlocks, "deadlock detected: insert=%d update=%d", deadlockOnInsert.Load(), deadlockOnUpdate.Load())
 
-		assert.Equal(t, int64(inserters*insertsEach), insertSuccess.Load(),
-			"lost workflow runs: %d insertions failed", insertErrors.Load())
+		// all insertions should succeed
+		assert.Equal(t, int64(inserters*insertsEach), insertSuccess.Load(), "lost workflow runs: %d insertions failed", insertErrors.Load())
+
+		// verify the repository action_run counters are correct
+		updatedRepo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: repo.ID})
+		// NumActionRuns: seedTasks(seeded before starting inserters) + insertSuccess
+		assert.Equal(t, seedTasks+int(insertSuccess.Load()), updatedRepo.NumActionRuns, "NumActionRuns drift: seed=%d insertSuccess=%d", seedTasks, insertSuccess.Load())
+		// NumClosedActionRuns: updateSuccess(updater goroutines drove seed runs Running -> Success)
+		assert.Equal(t, int(updateSuccess.Load()), updatedRepo.NumClosedActionRuns, "NumClosedActionRuns drift: updateSuccess=%d", updateSuccess.Load())
 	})
 }
 
@@ -275,6 +279,14 @@ jobs:
 
 		taskIDs = append(taskIDs, task.ID)
 	}
+
+	// Mirror what PrepareRunAndInsert does for each created run, so the
+	// counter check at the end of the test can compare against (seedTasks +
+	// insertSuccess) without having to special-case the seed phase. Each seed
+	// run is Running (open), so only num_action_runs bumps; num_closed_*
+	// flips happen later when updaters drive the seeded tasks to Success.
+	require.NoError(t, actions_model.AdjustRepoRunNumbers(ctx, repo.ID, n, 0),
+		"adjust seed counters")
 
 	return taskIDs
 }
