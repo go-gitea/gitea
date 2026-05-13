@@ -249,7 +249,11 @@ func protectSensitiveInfo(s string) string {
 			vals[i] = "_"
 		}
 	}
-	return (&url.URL{Scheme: u.Scheme, Host: u.Host, Path: u.Path, RawQuery: q.Encode()}).String()
+	masked := &url.URL{Scheme: u.Scheme, Host: u.Host, Path: u.Path, RawQuery: q.Encode()}
+	if u.User != nil {
+		masked.User = url.User("_masked_")
+	}
+	return masked.String()
 }
 
 func (l *LoggerImpl) GetLevel() Level {
