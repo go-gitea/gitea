@@ -24,7 +24,7 @@ export default defineConfig([
       'tsconfig.json',
       '.devcontainer/*.json',
       '.vscode/*.json',
-      'contrib/ide/vscode/*.json',
+      'contrib/development/vscode/*.json',
     ],
     plugins: {json},
     language: 'json/jsonc',
