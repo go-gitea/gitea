@@ -217,7 +217,7 @@ func FileHistory(ctx *context.Context) {
 		return
 	}
 
-	commitsCount, err := gitrepo.FileCommitsCount(ctx, ctx.Repo.Repository, ctx.Repo.RefFullName.ShortName(), ctx.Repo.TreePath, git.FollowRename(followRename))
+	commitsCount, err := gitrepo.FileCommitsCount(ctx, ctx.Repo.Repository, ctx.Repo.RefFullName.ShortName(), ctx.Repo.TreePath, followRename)
 	if err != nil {
 		ctx.ServerError("FileCommitsCount", err)
 		return

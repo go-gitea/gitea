@@ -15,8 +15,6 @@ import (
 	"code.gitea.io/gitea/modules/setting"
 )
 
-type FollowRename bool
-
 const (
 	FollowRenameYes = true
 	FollowRenameNo  = false

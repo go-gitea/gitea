@@ -68,12 +68,12 @@ func CommitsCount(ctx context.Context, repo Repository, opts CommitsCountOptions
 }
 
 // FileCommitsCount return the number of files at a revision
-func FileCommitsCount(ctx context.Context, repo Repository, revision, file string, followRename git.FollowRename) (int64, error) {
+func FileCommitsCount(ctx context.Context, repo Repository, revision, file string, followRename bool) (int64, error) {
 	return CommitsCount(ctx, repo,
 		CommitsCountOptions{
 			Revision:     []string{revision},
 			RelPath:      []string{file},
-			FollowRename: bool(followRename),
+			FollowRename: followRename,
 		})
 }
 
