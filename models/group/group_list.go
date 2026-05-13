@@ -6,6 +6,7 @@ package group
 import (
 	"context"
 
+	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/models/perm"
 	"code.gitea.io/gitea/models/unit"
 	user_model "code.gitea.io/gitea/models/user"
@@ -29,12 +30,12 @@ func (groups RepoGroupList) LoadOwners(ctx context.Context) error {
 }
 
 func universalGroupPermBuilder(idStr string, userID int64, includeAdmin bool) builder.Cond {
-	adminSubquery := builder.Select("1").
+	adminSubquery := builder.Dialect(db.BuilderDialect()).Select("1").
 		From("`user`").
 		Where(builder.Eq{"`user`.is_admin": true, "`user`.`id`": userID})
 	eqCond := builder.Eq{"`team_user`.uid": userID}
 
-	teamSubquery := builder.Select("`team`.id").From("`team`").
+	teamSubquery := builder.Dialect(db.BuilderDialect()).Select("`team`.id").From("`team`").
 		Join("LEFT", "team_user", "team.id = team_user.team_id").
 		Join("LEFT", "`user` as iu", "iu.`id` = `team_user`.uid").
 		Where(builder.And(
@@ -42,7 +43,7 @@ func universalGroupPermBuilder(idStr string, userID int64, includeAdmin bool) bu
 			builder.Gte{"`team`.authorize": perm.AccessModeOwner},
 		))
 
-	sq := builder.Select("`repo_group`.id").
+	sq := builder.Dialect(db.BuilderDialect()).Select("`repo_group`.id").
 		From("`repo_group`").
 		Join("LEFT", "team", "`team`.org_id = `repo_group`.owner_id").
 		Where(
@@ -59,7 +60,7 @@ func universalGroupPermBuilder(idStr string, userID int64, includeAdmin bool) bu
 
 // userOrgTeamGroupBuilder returns group ids where user's teams can access.
 func userOrgTeamGroupBuilder(userID int64) *builder.Builder {
-	return builder.Select("`repo_group_team`.group_id").
+	return builder.Dialect(db.BuilderDialect()).Select("`repo_group_team`.group_id").
 		From("repo_group_team").
 		Join("INNER", "team_user", "`team_user`.team_id = `repo_group_team`.team_id").
 		Where(builder.And(builder.Eq{"`team_user`.uid": userID}))

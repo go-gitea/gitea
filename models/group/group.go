@@ -367,35 +367,37 @@ func GetParentGroupIDChain(ctx context.Context, groupID int64) ([]int64, error) 
 	return ids, err
 }
 
-func groupHierarchyCTEBuilder(cond builder.Cond) builder.Cond {
-	firstPart := builder.Select("repo_group.*", "1 as depth").
+func groupHierarchyCTEBuilder(cond builder.Cond) string {
+	firstPart := builder.Dialect(db.BuilderDialect()).Select("repo_group.*", "1 as depth").
 		From("repo_group").
 		Where(builder.And(builder.Eq{
 			"parent_group_id": 0,
 		}, cond))
-	secondPart := builder.Select("r.*", "h.depth + 1").
+	secondPart := builder.Dialect(db.BuilderDialect()).Select("r.*", "h.depth + 1").
 		From("repo_group", "r").
 		Join("INNER", "group_hierarchy h", "r.parent_group_id = h.id")
 
 	firstSQL, _ := firstPart.ToBoundSQL()
 	secondSQL, _ := secondPart.ToBoundSQL()
-	return builder.Expr(firstSQL + " UNION ALL " + secondSQL)
+	return firstSQL + " UNION ALL " + secondSQL
 }
 
 func AccessibleParentGroupCond(ctx context.Context, idStr string, user *user_model.User) builder.Cond {
 	accessibleCond := AccessibleGroupCondition(user, unit.TypeInvalid, perm.AccessModeRead)
-	unionBldr := groupHierarchyCTEBuilder(accessibleCond)
-	unionSQL, _ := builder.ToBoundSQL(unionBldr)
+	unionSQL := groupHierarchyCTEBuilder(accessibleCond)
 	var recursiveKeyword string
 
 	if !setting.Database.Type.IsMSSQL() {
-		recursiveKeyword = "RECURSIVE"
+		recursiveKeyword = "RECURSIVE "
 	}
 
 	e := db.GetEngine(ctx)
-	sql := "WITH " + recursiveKeyword + " group_hierarchy AS (" + unionSQL + ")"
+	sql := "WITH " + recursiveKeyword + "group_hierarchy AS (" + unionSQL + ")"
 	var ids []int64
-	e.SQL(sql + " select id from group_hierarchy").Find(&ids)
+	err := e.SQL(sql + " select id from group_hierarchy").Find(&ids)
+	if err != nil {
+		return builder.NotIn(idStr)
+	}
 	return builder.In(idStr, ids)
 }
 
