@@ -17,7 +17,6 @@ import (
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/timeutil"
 	"code.gitea.io/gitea/modules/util"
@@ -223,7 +222,13 @@ func (run *ActionRun) IsSchedule() bool {
 	return run.ScheduleID > 0
 }
 
-// UpdateRepoRunsNumbers updates the number of runs and closed runs of a repository.
+// UpdateRepoRunsNumbers fully recomputes a repository's num_action_runs and num_closed_action_runs from the action_run table.
+// It is the slow path - suitable for administrative recompute / one-off correction, and must not be used on the hot path:
+// the embedded `SELECT count(*) FROM action_run WHERE repo_id=N` subquery is treated as a locking read inside the UPDATE,
+// taking shared (and gap) locks on every action_run row with repo_id=N.
+// This deadlocks against any concurrent transaction that has already X-locked one of those rows (issue #36234).
+//
+// The hot-path stat updates use the lock-free AdjustRepoRunNumbers below.
 func UpdateRepoRunsNumbers(ctx context.Context, repo *repo_model.Repository) error {
 	_, err := db.GetEngine(ctx).ID(repo.ID).
 		NoAutoTime().
@@ -247,6 +252,22 @@ func UpdateRepoRunsNumbers(ctx context.Context, repo *repo_model.Repository) err
 				),
 		).
 		Update(repo)
+	return err
+}
+
+// AdjustRepoRunNumbers atomically adjusts a repository's run counters by the given deltas, without touching any action_run row.
+//
+// This is the deadlock-safe replacement for UpdateRepoRunsNumbers on the hot path:
+// concurrent calls only contend on the repository[id=N] row and never pull action_run locks into the transaction,
+// so they serialize cleanly instead of forming a cycle with other transactions that hold action_run locks.
+func AdjustRepoRunNumbers(ctx context.Context, repoID int64, numActionRunsDelta, numClosedActionRunsDelta int) error {
+	if numActionRunsDelta == 0 && numClosedActionRunsDelta == 0 {
+		return nil
+	}
+	_, err := db.GetEngine(ctx).Exec(
+		"UPDATE `repository` SET `num_action_runs` = `num_action_runs` + ?, `num_closed_action_runs` = `num_closed_action_runs` + ? WHERE `id` = ?",
+		numActionRunsDelta, numClosedActionRunsDelta, repoID,
+	)
 	return err
 }
 
@@ -401,6 +422,25 @@ func GetWorkflowLatestRun(ctx context.Context, repoID int64, workflowFile, branc
 // It requires the inputted run has Version set.
 // It will return error if the version is not matched (it means the run has been changed after loaded).
 func UpdateRun(ctx context.Context, run *ActionRun, cols ...string) error {
+	statusUpdate := slices.Contains(cols, "status") || (len(cols) == 0 && run.Status != 0)
+
+	var closedRunsNumDelta int
+	if statusUpdate {
+		// Read the pre-UPDATE status so we can detect a closed-vs-open transition.
+		var priorRun ActionRun
+		if has, err := db.GetEngine(ctx).ID(run.ID).Cols("status").Get(&priorRun); err != nil {
+			return fmt.Errorf("read prior run.status: %w", err)
+		} else if !has {
+			return errors.New("run not found")
+		}
+		switch {
+		case !priorRun.Status.IsDone() && run.Status.IsDone():
+			closedRunsNumDelta = 1
+		case priorRun.Status.IsDone() && !run.Status.IsDone():
+			closedRunsNumDelta = -1
+		}
+	}
+
 	sess := db.GetEngine(ctx).ID(run.ID)
 	if len(cols) > 0 {
 		sess.Cols(cols...)
@@ -415,15 +455,9 @@ func UpdateRun(ctx context.Context, run *ActionRun, cols ...string) error {
 		// It's impossible that the run is not found, since Gitea never deletes runs.
 	}
 
-	if run.Status != 0 || slices.Contains(cols, "status") {
-		if run.RepoID == 0 {
-			setting.PanicInDevOrTesting("RepoID should not be 0")
-		}
-		if err = run.LoadRepo(ctx); err != nil {
-			return err
-		}
-		if err := UpdateRepoRunsNumbers(ctx, run.Repo); err != nil {
-			return err
+	if closedRunsNumDelta != 0 {
+		if err := AdjustRepoRunNumbers(ctx, run.RepoID, 0, closedRunsNumDelta); err != nil {
+			return fmt.Errorf("adjust repo run numbers: %w", err)
 		}
 	}
 
