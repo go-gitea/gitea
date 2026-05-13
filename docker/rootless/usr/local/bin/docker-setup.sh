@@ -25,10 +25,6 @@ if [ ! -f ${GITEA_APP_INI} ]; then
         INSTALL_LOCK=true
     fi
 
-    # precompute because env-prefix vars can't reference each other
-    SSH_PORT=${SSH_PORT:-"2222"}
-    SSH_LISTEN_PORT=${SSH_LISTEN_PORT:-$SSH_PORT}
-
     # Substitute the environment variables in the template
     APP_NAME=${APP_NAME:-"Gitea: Git with a cup of tea"} \
     RUN_MODE=${RUN_MODE:-"prod"} \
@@ -37,8 +33,8 @@ if [ ! -f ${GITEA_APP_INI} ]; then
     HTTP_PORT=${HTTP_PORT:-"3000"} \
     ROOT_URL=${ROOT_URL:-""} \
     DISABLE_SSH=${DISABLE_SSH:-"false"} \
-    SSH_PORT=$SSH_PORT \
-    SSH_LISTEN_PORT=$SSH_LISTEN_PORT \
+    SSH_PORT=${SSH_PORT:-"2222"} \
+    SSH_LISTEN_PORT=${SSH_LISTEN_PORT:-} \
     DB_TYPE=${DB_TYPE:-"sqlite3"} \
     DB_HOST=${DB_HOST:-"localhost:3306"} \
     DB_NAME=${DB_NAME:-"gitea"} \
