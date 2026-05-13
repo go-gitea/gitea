@@ -40,7 +40,7 @@ type MigrateOptions struct {
 	MirrorInterval  string `json:"mirror_interval"`
 
 	AWSAccessKeyID     string
-	AWSSecretAccessKey string `json:"AWSSecretAccessKey,omitempty"`
+	AWSSecretAccessKey string `json:",omitempty"`
 
 	AWSSecretAccessKeyEncrypted string `json:"aws_secret_access_key_encrypted,omitempty"`
 }
