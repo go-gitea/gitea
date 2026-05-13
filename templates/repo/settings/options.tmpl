@@ -617,13 +617,13 @@
 						</div>
 						<div class="field">
 							<div class="ui checkbox">
-								<input name="pulls_allow_merge_update" type="checkbox" {{if or (not $pullRequestEnabled) ($prUnit.PullRequestsConfig.AllowMergeUpdate)}}checked{{end}}>
+								<input name="pulls_allow_merge_update" type="checkbox" {{if $prUnit.PullRequestsConfig.AllowMergeUpdate}}checked{{end}}>
 								<label>{{ctx.Locale.Tr "repo.settings.pulls.allow_merge_update"}}</label>
 							</div>
 						</div>
 						<div class="field">
 							<div class="ui checkbox">
-								<input name="pulls_allow_rebase_update" type="checkbox" {{if or (not $pullRequestEnabled) ($prUnit.PullRequestsConfig.AllowRebaseUpdate)}}checked{{end}}>
+								<input name="pulls_allow_rebase_update" type="checkbox" {{if $prUnit.PullRequestsConfig.AllowRebaseUpdate}}checked{{end}}>
 								<label>{{ctx.Locale.Tr "repo.settings.pulls.allow_rebase_update"}}</label>
 							</div>
 						</div>

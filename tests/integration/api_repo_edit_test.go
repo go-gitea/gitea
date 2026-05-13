@@ -18,6 +18,7 @@ import (
 	"code.gitea.io/gitea/modules/gitrepo"
 	api "code.gitea.io/gitea/modules/structs"
 	mirror_service "code.gitea.io/gitea/services/mirror"
+	"code.gitea.io/gitea/tests"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -505,29 +506,29 @@ func TestAPIRepoEdit(t *testing.T) {
 }
 
 func TestAPIRepoEditPullUpdateSettingsValidation(t *testing.T) {
-	onGiteaRun(t, func(t *testing.T, u *url.URL) {
-		user2 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
-		repo1 := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
+	defer tests.PrepareTestEnv(t)()
 
-		session := loginUser(t, user2.Name)
-		token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeWriteRepository)
-		url := fmt.Sprintf("/api/v1/repos/%s/%s", user2.Name, repo1.Name)
+	user2 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
+	repo1 := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
 
-		allowMergeUpdate := false
-		allowRebaseUpdate := false
-		req := NewRequestWithJSON(t, "PATCH", url, &api.EditRepoOption{
-			AllowMergeUpdate:  &allowMergeUpdate,
-			AllowRebaseUpdate: &allowRebaseUpdate,
-		}).AddTokenAuth(token)
-		MakeRequest(t, req, http.StatusUnprocessableEntity)
+	session := loginUser(t, user2.Name)
+	token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeWriteRepository)
+	repoURL := fmt.Sprintf("/api/v1/repos/%s/%s", user2.Name, repo1.Name)
 
-		allowRebaseUpdate = true
-		defaultUpdateStyle := string(repo_model.UpdateStyleMerge)
-		req = NewRequestWithJSON(t, "PATCH", url, &api.EditRepoOption{
-			AllowMergeUpdate:   &allowMergeUpdate,
-			AllowRebaseUpdate:  &allowRebaseUpdate,
-			DefaultUpdateStyle: &defaultUpdateStyle,
-		}).AddTokenAuth(token)
-		MakeRequest(t, req, http.StatusUnprocessableEntity)
-	})
+	allowMergeUpdate := false
+	allowRebaseUpdate := false
+	req := NewRequestWithJSON(t, "PATCH", repoURL, &api.EditRepoOption{
+		AllowMergeUpdate:  &allowMergeUpdate,
+		AllowRebaseUpdate: &allowRebaseUpdate,
+	}).AddTokenAuth(token)
+	MakeRequest(t, req, http.StatusUnprocessableEntity)
+
+	allowRebaseUpdate = true
+	defaultUpdateStyle := string(repo_model.UpdateStyleMerge)
+	req = NewRequestWithJSON(t, "PATCH", repoURL, &api.EditRepoOption{
+		AllowMergeUpdate:   &allowMergeUpdate,
+		AllowRebaseUpdate:  &allowRebaseUpdate,
+		DefaultUpdateStyle: &defaultUpdateStyle,
+	}).AddTokenAuth(token)
+	MakeRequest(t, req, http.StatusUnprocessableEntity)
 }

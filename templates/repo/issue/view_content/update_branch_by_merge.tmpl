@@ -4,10 +4,10 @@
 		{{svg "octicon-alert"}}
 		{{ctx.Locale.Tr "repo.pulls.outdated_with_base_branch"}}
 	</div>
-	{{with $data.UpdatePrimaryAction}}
+	{{if $data.UpdatePrimaryAction}}
 	<div class="ui buttons"{{if $data.UpdateStyleOptions}} data-global-init="initRepoPullRequestUpdate"{{end}}>
-		<button class="ui button link-action" data-url="{{.URL}}">
-			{{.Text}}
+		<button class="ui button link-action" data-url="{{$data.UpdatePrimaryAction.URL}}">
+			{{$data.UpdatePrimaryAction.Text}}
 		</button>
 		{{if $data.UpdateStyleOptions}}
 		<div class="ui dropdown icon button">

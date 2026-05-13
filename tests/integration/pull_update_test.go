@@ -140,12 +140,15 @@ func TestAPIPullUpdateByRebase(t *testing.T) {
 	})
 }
 
-// TestAPIPullUpdateNoStyleStaysMerge guards back-compat: even when the repo's
-// DefaultUpdateStyle is rebase, an API call with no `style` parameter must still
-// perform a merge update so existing API clients don't silently flip behavior.
-func TestAPIPullUpdateNoStyleStaysMerge(t *testing.T) {
+// TestAPIPullUpdateStyleSettings first checks that a disabled explicit style is
+// forbidden, then guards back-compat: even when the repo's DefaultUpdateStyle is
+// rebase, an API call with no `style` parameter must still perform a merge
+// update so existing API clients don't silently flip behavior.
+func TestAPIPullUpdateStyleSettings(t *testing.T) {
 	onGiteaRun(t, func(t *testing.T, giteaURL *url.URL) {
 		pr := setupOutdatedPRWithConfig(t, func(c *repo_model.PullRequestsConfig) {
+			c.AllowMergeUpdate = false
+			c.AllowRebaseUpdate = true
 			c.DefaultUpdateStyle = repo_model.UpdateStyleRebase
 		})
 
@@ -155,7 +158,16 @@ func TestAPIPullUpdateNoStyleStaysMerge(t *testing.T) {
 
 		session := loginUser(t, "user40")
 		token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeWriteRepository)
-		req := NewRequestf(t, "POST", "/api/v1/repos/%s/%s/pulls/%d/update", pr.BaseRepo.OwnerName, pr.BaseRepo.Name, pr.Issue.Index).
+
+		req := NewRequestf(t, "POST", "/api/v1/repos/%s/%s/pulls/%d/update?style=merge", pr.BaseRepo.OwnerName, pr.BaseRepo.Name, pr.Issue.Index).
+			AddTokenAuth(token)
+		session.MakeRequest(t, req, http.StatusForbidden)
+
+		updateRepoPullRequestConfig(t, pr.BaseRepo.ID, func(c *repo_model.PullRequestsConfig) {
+			c.AllowMergeUpdate = true
+		})
+
+		req = NewRequestf(t, "POST", "/api/v1/repos/%s/%s/pulls/%d/update", pr.BaseRepo.OwnerName, pr.BaseRepo.Name, pr.Issue.Index).
 			AddTokenAuth(token)
 		session.MakeRequest(t, req, http.StatusOK)
 
@@ -165,22 +177,6 @@ func TestAPIPullUpdateNoStyleStaysMerge(t *testing.T) {
 		require.NoError(t, err)
 		assert.Equal(t, 0, diffCount.Behind)
 		assert.Equal(t, 2, diffCount.Ahead)
-	})
-}
-
-func TestAPIPullUpdateDisabledStyleForbidden(t *testing.T) {
-	onGiteaRun(t, func(t *testing.T, giteaURL *url.URL) {
-		pr := setupOutdatedPRWithConfig(t, func(c *repo_model.PullRequestsConfig) {
-			c.AllowMergeUpdate = false
-			c.AllowRebaseUpdate = true
-			c.DefaultUpdateStyle = repo_model.UpdateStyleRebase
-		})
-
-		session := loginUser(t, "user2")
-		token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeWriteRepository)
-		req := NewRequestf(t, "POST", "/api/v1/repos/%s/%s/pulls/%d/update?style=merge", pr.BaseRepo.OwnerName, pr.BaseRepo.Name, pr.Issue.Index).
-			AddTokenAuth(token)
-		session.MakeRequest(t, req, http.StatusForbidden)
 	})
 }
 
