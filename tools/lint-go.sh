@@ -24,7 +24,7 @@ plugins:
     path: .
     import: code.gitea.io/gitea/tools/customlint
 EOF
-  "$GO" run "$GOLANGCI_LINT_PACKAGE" custom
+  env -u GOOS -u GOARCH "$GO" run "$GOLANGCI_LINT_PACKAGE" custom
 fi
 
 GOOS=linux "$BIN" run --build-tags=linux,bindata "$@"
