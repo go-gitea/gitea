@@ -979,7 +979,7 @@ func UpdatePullRequest(ctx *context.Context) {
 		ctx.ServerError("GetDefaultUpdateStyle", err)
 		return
 	}
-	rebase := pull_service.ResolveUpdateStyle(ctx.FormString("style"), defaultStyle) == repo_model.UpdateStyleRebase
+	rebase := repo_model.UpdateStyle(ctx.FormString("style", string(defaultStyle))) == repo_model.UpdateStyleRebase
 
 	allowedUpdateByMerge, allowedUpdateByRebase, err := pull_service.IsUserAllowedToUpdate(ctx, issue.PullRequest, ctx.Doer)
 	if err != nil {

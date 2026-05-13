@@ -1255,8 +1255,7 @@ func UpdatePullRequest(ctx *context.APIContext) {
 
 	// keep API back-compat: when no style is given, default to "merge" rather than the repo's DefaultUpdateStyle,
 	// so existing API clients keep getting a merge update.
-	updateStyle := pull_service.ResolveUpdateStyle(ctx.FormString("style"), repo_model.UpdateStyleMerge)
-	rebase := updateStyle == repo_model.UpdateStyleRebase
+	rebase := repo_model.UpdateStyle(ctx.FormString("style", string(repo_model.UpdateStyleMerge))) == repo_model.UpdateStyleRebase
 
 	allowedUpdateByMerge, allowedUpdateByRebase, err := pull_service.IsUserAllowedToUpdate(ctx, pr, ctx.Doer)
 	if err != nil {

@@ -20,29 +20,13 @@ import (
 	"code.gitea.io/gitea/modules/repository"
 )
 
-// ResolveUpdateStyle returns the explicitly requested style if non-empty, else the fallback.
-// API callers pass UpdateStyleMerge as fallback for back-compat; the web UI passes the repo's
-// configured default.
-func ResolveUpdateStyle(requested string, fallback repo_model.UpdateStyle) repo_model.UpdateStyle {
-	if requested != "" {
-		return repo_model.UpdateStyle(requested)
-	}
-	return fallback
-}
-
-// GetDefaultUpdateStyle returns the configured default branch-update style for the PR's base repo,
-// falling back to the global default when the PR unit is not configured.
+// GetDefaultUpdateStyle returns the configured default branch-update style for the PR's base repo.
+// Callers must ensure the PR unit is enabled on the base repo.
 func GetDefaultUpdateStyle(ctx context.Context, pull *issues_model.PullRequest) (repo_model.UpdateStyle, error) {
 	if err := pull.LoadBaseRepo(ctx); err != nil {
 		return "", err
 	}
-	prBaseUnit, err := pull.BaseRepo.GetUnit(ctx, unit.TypePullRequests)
-	if repo_model.IsErrUnitTypeNotExist(err) {
-		return repo_model.DefaultPullRequestsConfig().DefaultUpdateStyle, nil
-	} else if err != nil {
-		return "", fmt.Errorf("get base repo unit: %w", err)
-	}
-	return prBaseUnit.PullRequestsConfig().DefaultUpdateStyle, nil
+	return pull.BaseRepo.MustGetUnit(ctx, unit.TypePullRequests).PullRequestsConfig().DefaultUpdateStyle, nil
 }
 
 // Update updates pull request with base branch.
