@@ -268,9 +268,11 @@ func GenerateGitContent(ctx context.Context, templateRepo, generateRepo *repo_mo
 	}
 
 	// re-fetch repo
-	if generateRepo, err = repo_model.GetRepositoryByID(ctx, generateRepo.ID); err != nil {
+	refreshed, err := repo_model.GetRepositoryByID(ctx, generateRepo.ID)
+	if err != nil {
 		return fmt.Errorf("getRepositoryByID: %w", err)
 	}
+	*generateRepo = *refreshed
 
 	// if there was no default branch supplied when generating the repo, use the default one from the template
 	if strings.TrimSpace(generateRepo.DefaultBranch) == "" {
@@ -290,6 +292,10 @@ func GenerateGitContent(ctx context.Context, templateRepo, generateRepo *repo_mo
 
 	if err := git_model.CopyLFS(ctx, generateRepo, templateRepo); err != nil {
 		return fmt.Errorf("failed to copy LFS: %w", err)
+	}
+
+	if _, err := repo_module.SyncRepoBranches(ctx, generateRepo.ID, 0); err != nil {
+		return fmt.Errorf("SyncRepoBranches: %w", err)
 	}
 	return nil
 }
