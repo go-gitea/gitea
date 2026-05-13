@@ -276,7 +276,7 @@ func handleRepoViewSubmodule(ctx *context.Context, commitSubmoduleFile *git.Comm
 	redirectLink := submoduleWebLink.CommitWebLink
 	if isViewHomeOnlyContent(ctx) {
 		ctx.Resp.Header().Set("Content-Type", "text/html; charset=utf-8")
-		_, _ = htmlutil.HTMLPrintf(ctx.Resp, `<meta http-equiv="refresh" content="0;url=%s">`, redirectLink)
+		_, _ = htmlutil.HTMLPrintf(ctx.Resp, `<a href="%s">%s</a>`, redirectLink, redirectLink)
 	} else if !httplib.IsCurrentGiteaSiteURL(ctx, redirectLink) {
 		// don't auto-redirect to external URL, to avoid open redirect or phishing
 		ctx.Data["NotFoundPrompt"] = redirectLink
