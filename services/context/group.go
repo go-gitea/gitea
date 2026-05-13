@@ -127,7 +127,7 @@ func groupAssignment(ctx commonCtx, doer *user_model.User, isSigned bool, handle
 	}
 	privateBecauseOfParent, err := group.IsPrivateBecauseOfParentPermissions(ctx, doer)
 	if err != nil {
-		handleOtherError("error checking group access", err)
+		handleOtherError("error checking whether group is private due to parent permissions", err)
 		return
 	}
 	if group.Owner == nil {
