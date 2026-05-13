@@ -475,6 +475,9 @@ func MoveGroup(ctx context.Context, group *Group, newParent int64, newSortOrder 
 		oldItems, err := FindGroups(ctx, &FindGroupsOptions{
 			ParentGroupID: oldParentID,
 		})
+		if err != nil {
+			return err
+		}
 		for i, item := range oldItems {
 			item.SortOrder = i
 			if _, err = sess.Table(group.TableName()).
