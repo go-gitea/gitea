@@ -64,6 +64,9 @@ jobs:
       - if: needs.files-changed.outputs.actions == 'true'
         run: make lint-actions
 
+      - if: needs.files-changed.outputs.shell == 'true'
+        run: make lint-shell
+
   checks-backend:
     if: needs.files-changed.outputs.backend == 'true' || needs.files-changed.outputs.actions == 'true'
     needs: files-changed

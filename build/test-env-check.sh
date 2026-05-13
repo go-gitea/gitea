@@ -18,7 +18,7 @@ if [ "$gitea_uid" != "1000" ]; then
 fi
 
 cur_uid=$(id -u)
-if [ "$cur_uid" != "0" -a "$cur_uid" != "$gitea_uid" ]; then
+if [ "$cur_uid" != "0" ] && [ "$cur_uid" != "$gitea_uid" ]; then
   echo "The uid of current linux user is expected to be 0 or $gitea_uid, but it is $cur_uid"
   exit 1
 fi
