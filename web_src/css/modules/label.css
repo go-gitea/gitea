@@ -284,6 +284,13 @@ If the labels-list itself needs some layouts, use extra classes or "tw" helpers.
   line-height: var(--line-height-default);
 }
 
+.with-labels-list-block,
+.with-labels-list-block .labels-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--gap-inline);
+}
+
 /* Scoped labels with different colors on left and right */
 .ui.label.scope-parent {
   background: none !important;
