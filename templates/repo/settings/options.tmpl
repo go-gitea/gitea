@@ -939,8 +939,8 @@
 			{{ctx.Locale.Tr "repo.settings.delete"}}
 		</div>
 		<div class="content">
-			<h2 class="ui center tw-mb-2">{{.Repository.FullName}}</h2>
-			<div class="ui center">
+			<h2 class="tw-text-center tw-mb-2">{{.Repository.FullName}}</h2>
+			<div class="tw-text-center">
 				{{if not .DisableStars}}
 				<span>{{svg "octicon-star"}} {{CountFmt .Repository.NumStars}} {{ctx.Locale.Tr "repo.stars"}}</span>
 				&nbsp;
