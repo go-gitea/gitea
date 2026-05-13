@@ -1383,7 +1383,7 @@ been added to each release, please refer to the [blog](https://blog.gitea.com).
   * Fix mCaptcha bug (#33659) (#33661)
   * Git graph: don't show detached commits (#33645) (#33650)
   * Use MatchPhraseQuery for bleve code search (#33628)
-  * Adjust appearence of commit status webhook (#33778) #33789
+  * Adjust appearance of commit status webhook (#33778) #33789
   * Upgrade golang net from 0.35.0 -> 0.36.0 (#33795) #33796
 
 ## [1.23.4](https://github.com/go-gitea/gitea/releases/tag/v1.23.4) - 2025-02-16
@@ -2114,7 +2114,7 @@ been added to each release, please refer to the [blog](https://blog.gitea.com).
   * Optimize repo-list layout to enhance visual experience (#31272) (#31276)
   * fixed the dropdown menu for the top New button to expand to the left (#31273) (#31275)
   * Fix Activity Page Contributors dropdown (#31264) (#31269)
-  * fix: allow actions artifacts storage migration to complete succesfully (#31251) (#31257)
+  * fix: allow actions artifacts storage migration to complete successfully (#31251) (#31257)
   * Make blockquote attention recognize more syntaxes (#31240) (#31250)
   * Remove .segment from .project-column (#31204) (#31239)
   * Ignore FindRecentlyPushedNewBranches err (#31164) (#31171)
@@ -2298,7 +2298,7 @@ Key highlights of this release encompass significant changes categorized under `
   * Performance optimization for git push and check permissions for push options (#30104) (#30354)
 * BUGFIXES
   * Fix close file in the Upload func (#30262) (#30269)
-  * Fix inline math blocks can't be preceeded/followed by alphanumerical characters (#30175) (#30250)
+  * Fix inline math blocks can't be preceded/followed by alphanumerical characters (#30175) (#30250)
   * Fix missing 0 prefix of GPG key id (#30245) (#30247)
   * Include encoding in signature payload (#30174) (#30181)
   * Move from `max( id )` to `max( index )` for latest commit statuses (#30076) (#30155)
@@ -5590,7 +5590,7 @@ Key highlights of this release encompass significant changes categorized under `
   * Fix navbar on project view (#17749)
   * More pleasantly handle broken or missing git repositories (#17747)
   * Use `*PushUpdateOptions` as receiver (#17724)
-  * Remove unused `user` paramater (#17723)
+  * Remove unused `user` parameter (#17723)
   * Better builtin avatar generator (#17707)
   * Cleanup and use global style on popups (#17674)
   * Move user/org deletion to services (#17673)

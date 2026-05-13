@@ -49,6 +49,18 @@
             "description": "page size of results",
             "name": "limit",
             "in": "query"
+          },
+          {
+            "type": "string",
+            "description": "sort jobs by attribute. Supported values are \"id\". Default is \"id\"",
+            "name": "sort",
+            "in": "query"
+          },
+          {
+            "type": "string",
+            "description": "sort order, either \"asc\" (ascending) or \"desc\" (descending). Default is \"asc\"",
+            "name": "order",
+            "in": "query"
           }
         ],
         "responses": {
@@ -60,6 +72,9 @@
           },
           "404": {
             "$ref": "#/responses/notFound"
+          },
+          "422": {
+            "$ref": "#/responses/validationError"
           }
         }
       }
@@ -4918,6 +4933,18 @@
             "description": "page size of results",
             "name": "limit",
             "in": "query"
+          },
+          {
+            "type": "string",
+            "description": "sort jobs by attribute. Supported values are \"id\". Default is \"id\"",
+            "name": "sort",
+            "in": "query"
+          },
+          {
+            "type": "string",
+            "description": "sort order, either \"asc\" (ascending) or \"desc\" (descending). Default is \"asc\"",
+            "name": "order",
+            "in": "query"
           }
         ],
         "responses": {
@@ -4929,6 +4956,9 @@
           },
           "404": {
             "$ref": "#/responses/notFound"
+          },
+          "422": {
+            "$ref": "#/responses/validationError"
           }
         }
       }
@@ -5646,6 +5676,18 @@
             "description": "page size of results",
             "name": "limit",
             "in": "query"
+          },
+          {
+            "type": "string",
+            "description": "sort jobs by attribute. Supported values are \"id\". Default is \"id\"",
+            "name": "sort",
+            "in": "query"
+          },
+          {
+            "type": "string",
+            "description": "sort order, either \"asc\" (ascending) or \"desc\" (descending). Default is \"asc\"",
+            "name": "order",
+            "in": "query"
           }
         ],
         "responses": {
@@ -5657,6 +5699,9 @@
           },
           "404": {
             "$ref": "#/responses/notFound"
+          },
+          "422": {
+            "$ref": "#/responses/validationError"
           }
         }
       }
@@ -18965,6 +19010,18 @@
             "description": "page size of results",
             "name": "limit",
             "in": "query"
+          },
+          {
+            "type": "string",
+            "description": "sort jobs by attribute. Supported values are \"id\". Default is \"id\"",
+            "name": "sort",
+            "in": "query"
+          },
+          {
+            "type": "string",
+            "description": "sort order, either \"asc\" (ascending) or \"desc\" (descending). Default is \"asc\"",
+            "name": "order",
+            "in": "query"
           }
         ],
         "responses": {
@@ -18976,6 +19033,9 @@
           },
           "404": {
             "$ref": "#/responses/notFound"
+          },
+          "422": {
+            "$ref": "#/responses/validationError"
           }
         }
       }
@@ -29166,6 +29226,11 @@
         "mirror_interval": {
           "type": "string",
           "x-go-name": "MirrorInterval"
+        },
+        "mirror_last_sync_at": {
+          "type": "string",
+          "format": "date-time",
+          "x-go-name": "MirrorLastSyncAt"
         },
         "mirror_updated": {
           "type": "string",

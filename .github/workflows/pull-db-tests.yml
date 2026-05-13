@@ -34,7 +34,7 @@ jobs:
       minio:
         # as github actions doesn't support "entrypoint", we need to use a non-official image
         # that has a custom entrypoint set to "minio server /data"
-        image: bitnamilegacy/minio:2023.8.31
+        image: bitnamilegacy/minio:2025.7.23
         env:
           MINIO_ROOT_USER: 123456
           MINIO_ROOT_PASSWORD: 12345678
@@ -62,6 +62,8 @@ jobs:
         run: GITEA_TEST_DATABASE=pgsql make test-integration
         timeout-minutes: 50
         env:
+          # pgsql is chosen to be the unlucky one to run with the slow "race detector", it is about 60% slower.
+          GOTEST_FLAGS: -race -timeout=40m
           TAGS: bindata gogit
           TEST_LDAP: 1
 
@@ -82,7 +84,7 @@ jobs:
       - run: make deps-backend
       - run: make backend
         env:
-          TAGS: bindata gogit sqlite sqlite_unlock_notify
+          TAGS: bindata gogit
           GOEXPERIMENT:
       - name: run migration tests
         run: GITEA_TEST_DATABASE=sqlite make test-migration
@@ -92,9 +94,10 @@ jobs:
         run: GITEA_TEST_DATABASE=sqlite make test-integration
         timeout-minutes: 50
         env:
+          # sqlite driver can contain large amount of Golang code, so don't use race detector for it, otherwise, extremely slow
+          GOTEST_FLAGS: -timeout=40m
           TAGS: bindata gogit
           GOEXPERIMENT:
-          GOTEST_FLAGS: -race -timeout=40m
 
   test-unit:
     if: needs.files-changed.outputs.backend == 'true' || needs.files-changed.outputs.actions == 'true'
@@ -102,7 +105,7 @@ jobs:
     runs-on: ubuntu-latest
     services:
       elasticsearch:
-        image: docker.elastic.co/elasticsearch/elasticsearch:8.19.14
+        image: docker.elastic.co/elasticsearch/elasticsearch:8.19.15
         env:
           discovery.type: single-node
           xpack.security.enabled: false
@@ -124,10 +127,10 @@ jobs:
         ports:
           - 6379:6379
       minio:
-        image: bitnamilegacy/minio:2021.3.17
+        image: bitnamilegacy/minio:2025.7.23
         env:
-          MINIO_ACCESS_KEY: 123456
-          MINIO_SECRET_KEY: 12345678
+          MINIO_ROOT_USER: 123456
+          MINIO_ROOT_PASSWORD: 12345678
         ports:
           - "9000:9000"
       devstoreaccount1.azurite.local: # https://github.com/Azure/Azurite/issues/1583
@@ -154,15 +157,15 @@ jobs:
       - name: unit-tests
         run: make test-backend test-check
         env:
-          TAGS: bindata sqlite sqlite_unlock_notify
           GOTEST_FLAGS: -race -timeout=20m
+          TAGS: bindata
           GITHUB_READ_TOKEN: ${{ secrets.GITHUB_READ_TOKEN }}
       - name: unit-tests-gogit
         run: make test-backend test-check
         env:
-          TAGS: bindata gogit sqlite sqlite_unlock_notify
-          GOEXPERIMENT:
           GOTEST_FLAGS: -race -timeout=20m
+          TAGS: bindata gogit
+          GOEXPERIMENT:
           GITHUB_READ_TOKEN: ${{ secrets.GITHUB_READ_TOKEN }}
 
   test-mysql:
@@ -172,7 +175,7 @@ jobs:
     services:
       mysql:
         # the bitnami mysql image has more options than the official one, it's easier to customize
-        image: bitnamilegacy/mysql:8.0
+        image: bitnamilegacy/mysql:8.4
         env:
           ALLOW_EMPTY_PASSWORD: true
           MYSQL_DATABASE: testgitea
@@ -181,7 +184,7 @@ jobs:
         options: >-
           --mount type=tmpfs,destination=/bitnami/mysql/data
       elasticsearch:
-        image: docker.elastic.co/elasticsearch/elasticsearch:8.19.14
+        image: docker.elastic.co/elasticsearch/elasticsearch:8.19.15
         env:
           discovery.type: single-node
           xpack.security.enabled: false

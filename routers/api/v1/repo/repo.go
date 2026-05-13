@@ -187,24 +187,11 @@ func Search(ctx *context.APIContext) {
 		opts.IsPrivate = optional.Some(ctx.FormBool("is_private"))
 	}
 
-	sortMode := ctx.FormString("sort")
-	if len(sortMode) > 0 {
-		sortOrder := ctx.FormString("order")
-		if len(sortOrder) == 0 {
-			sortOrder = "asc"
-		}
-		if searchModeMap, ok := repo_model.OrderByMap[sortOrder]; ok {
-			if orderBy, ok := searchModeMap[sortMode]; ok {
-				opts.OrderBy = orderBy
-			} else {
-				ctx.APIError(http.StatusUnprocessableEntity, fmt.Errorf("Invalid sort mode: \"%s\"", sortMode))
-				return
-			}
-		} else {
-			ctx.APIError(http.StatusUnprocessableEntity, fmt.Errorf("Invalid sort order: \"%s\"", sortOrder))
-			return
-		}
+	orderBy, ok := utils.ResolveSortOrder(ctx, repo_model.OrderByMap, "")
+	if !ok {
+		return
 	}
+	opts.OrderBy = orderBy
 
 	repos, count, err := repo_model.SearchRepository(ctx, opts)
 	if err != nil {

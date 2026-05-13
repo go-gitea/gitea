@@ -40,7 +40,7 @@ func CheckPrincipalKeyString(ctx context.Context, user *user_model.User, content
 				if !email.IsActivated {
 					continue
 				}
-				if content == email.Email {
+				if strings.EqualFold(content, email.LowerEmail) {
 					return content, nil
 				}
 			}

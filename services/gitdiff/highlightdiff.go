@@ -6,6 +6,7 @@ package gitdiff
 import (
 	"bytes"
 	"html/template"
+	"slices"
 	"strings"
 	"unicode/utf8"
 
@@ -385,8 +386,7 @@ func (hcd *highlightCodeDiff) recoverOneDiff(str string) template.HTML {
 	}
 
 	// close all opening tags
-	for i := len(tagStack) - 1; i >= 0; i-- {
-		tagToClose := tagStack[i]
+	for _, tagToClose := range slices.Backward(tagStack) {
 		// get the closing tag "</span>" from "<span class=...>" or "<span>"
 		pos := strings.IndexAny(tagToClose, " >")
 		// pos must be positive, because the tags were pushed by us

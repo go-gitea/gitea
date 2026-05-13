@@ -11,7 +11,7 @@ import (
 	"code.gitea.io/gitea/models/db"
 	unittest "code.gitea.io/gitea/models/unittest"
 
-	act_model "github.com/nektos/act/pkg/model"
+	act_model "gitea.com/gitea/runner/act/model"
 	"github.com/stretchr/testify/assert"
 )
 

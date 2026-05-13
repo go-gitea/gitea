@@ -228,6 +228,24 @@ func checkJobsOfCurrentRunAttempt(ctx context.Context, run *actions_model.Action
 	if err != nil {
 		return nil, nil, nil, err
 	}
+	// The resolver below only considers needs and job-level concurrency, so a run blocked
+	// solely by run-level concurrency would have its jobs unblocked here. checkRunConcurrency
+	// re-evaluates when the holding run finishes.
+	if run.Status.IsBlocked() {
+		attempt, has, err := run.GetLatestAttempt(ctx)
+		if err != nil {
+			return nil, nil, nil, fmt.Errorf("GetLatestAttempt: %w", err)
+		}
+		if has {
+			shouldBlock, err := shouldBlockRunByConcurrency(ctx, attempt)
+			if err != nil {
+				return nil, nil, nil, fmt.Errorf("shouldBlockRunByConcurrency: %w", err)
+			}
+			if shouldBlock {
+				return jobs, nil, nil, nil
+			}
+		}
+	}
 	vars, err := actions_model.GetVariablesOfRun(ctx, run)
 	if err != nil {
 		return nil, nil, nil, err
