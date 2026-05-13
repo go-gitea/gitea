@@ -73,7 +73,7 @@ func AddTeamGroup(ctx context.Context, orgID, teamID, groupID int64, access perm
 }
 
 func UpdateTeamGroup(ctx context.Context, orgID, teamID, groupID int64, access perm.AccessMode, canCreateIn, isNew bool) (err error) {
-	if access <= perm.AccessModeNone {
+	if access <= perm.AccessModeRead {
 		canCreateIn = false
 	}
 	if isNew {
