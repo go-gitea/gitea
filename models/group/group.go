@@ -212,6 +212,8 @@ func (g *Group) ShortName(length int) string {
 
 func (g *Group) IsPrivateBecauseOfParentPermissions(ctx context.Context, user *user_model.User) (bool, error) {
 	cond := AccessibleParentGroupCond(ctx, "`repo_group`.`id`", user)
+	str, _ := builder.ToBoundSQL(cond)
+	log.Info(str)
 	has, err := db.GetEngine(ctx).Where(cond.And(builder.Eq{
 		"`repo_group`.id": g.ID,
 	})).Table(g.TableName()).Exist()
