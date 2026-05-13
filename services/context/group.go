@@ -5,6 +5,7 @@ package context
 
 import (
 	"context"
+	"fmt"
 	"strings"
 
 	group_model "code.gitea.io/gitea/models/group"
@@ -354,8 +355,8 @@ func GroupAssignmentAPI() func(ctx *APIContext) {
 	return func(ctx *APIContext) {
 		groupAssignment(ctx, ctx.Doer, ctx.IsSigned, func(err error) {
 			ctx.APIErrorNotFound(err)
-		}, func(_ string, err error) {
-			ctx.APIErrorInternal(err)
+		}, func(str string, err error) {
+			ctx.APIErrorInternal(fmt.Errorf("%s: %w", str, err))
 		}, func(repoGroup *RepoGroup, canAccess bool) {
 			if ctx.Written() {
 				return
