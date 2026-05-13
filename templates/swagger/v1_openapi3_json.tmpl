@@ -16718,6 +16718,22 @@
             }
           },
           {
+            "description": "sort jobs by attribute. Supported values are \"id\". Default is \"id\"",
+            "in": "query",
+            "name": "sort",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "sort order, either \"asc\" (ascending) or \"desc\" (descending). Default is \"asc\"",
+            "in": "query",
+            "name": "order",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
             "description": "group ID of the repo",
             "in": "path",
             "name": "group_id",
@@ -16737,6 +16753,9 @@
           },
           "404": {
             "$ref": "#/components/responses/notFound"
+          },
+          "422": {
+            "$ref": "#/components/responses/validationError"
           }
         },
         "summary": "Lists all jobs for a repository",
@@ -17656,6 +17675,22 @@
             }
           },
           {
+            "description": "sort jobs by attribute. Supported values are \"id\". Default is \"id\"",
+            "in": "query",
+            "name": "sort",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "sort order, either \"asc\" (ascending) or \"desc\" (descending). Default is \"asc\"",
+            "in": "query",
+            "name": "order",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
             "description": "group ID of the repo",
             "in": "path",
             "name": "group_id",
@@ -17675,6 +17710,9 @@
           },
           "404": {
             "$ref": "#/components/responses/notFound"
+          },
+          "422": {
+            "$ref": "#/components/responses/validationError"
           }
         },
         "summary": "Lists all jobs for a workflow run",
