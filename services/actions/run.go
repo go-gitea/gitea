@@ -10,7 +10,6 @@ import (
 	actions_model "code.gitea.io/gitea/models/actions"
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/modules/actions/jobparser"
-	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/util"
 
 	act_model "gitea.com/gitea/runner/act/model"
@@ -37,11 +36,6 @@ func PrepareRunAndInsert(ctx context.Context, content []byte, run *actions_model
 
 	if err = InsertRun(ctx, run, content, vars, inputsWithDefaults, wfRawConcurrency); err != nil {
 		return fmt.Errorf("InsertRun: %w", err)
-	}
-
-	// Bump num_action_runs by exactly +1 for the run we just inserted.
-	if err := actions_model.AdjustRepoRunNumbers(ctx, run.RepoID, 1, 0); err != nil {
-		log.Error("AdjustRepoRunNumbers for run %d post-commit: %v", run.ID, err)
 	}
 
 	// Load the newly inserted jobs with all fields from database (the job models in InsertRun are partial, so load again)

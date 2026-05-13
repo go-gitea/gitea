@@ -20,7 +20,6 @@ func initActionsTasks() {
 	registerCancelAbandonedJobs()
 	registerScheduleTasks()
 	registerActionsCleanup()
-	registerReconcileRepoActionRunCounters()
 }
 
 func registerStopZombieTasks() {
@@ -73,16 +72,5 @@ func registerActionsCleanup() {
 		Schedule:   "@midnight",
 	}, func(ctx context.Context, _ *user_model.User, _ Config) error {
 		return actions_service.Cleanup(ctx)
-	})
-}
-
-// registerReconcileRepoActionRunCounters reconciles repository.num_action_runs and repository.num_closed_action_runs against the action_run table.
-func registerReconcileRepoActionRunCounters() {
-	RegisterTaskFatal("reconcile_repo_action_run_counters", &BaseConfig{
-		Enabled:    true,
-		RunAtStart: false,
-		Schedule:   "@weekly",
-	}, func(ctx context.Context, _ *user_model.User, _ Config) error {
-		return actions_service.ReconcileRepoActionRunCounters(ctx)
 	})
 }

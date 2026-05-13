@@ -280,9 +280,6 @@ jobs:
 		taskIDs = append(taskIDs, task.ID)
 	}
 
-	// Mirror what PrepareRunAndInsert does for each created run
-	require.NoError(t, actions_model.AdjustRepoRunNumbers(ctx, repo.ID, n, 0))
-
 	return taskIDs
 }
 

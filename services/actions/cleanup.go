@@ -11,7 +11,6 @@ import (
 
 	actions_model "code.gitea.io/gitea/models/actions"
 	"code.gitea.io/gitea/models/db"
-	repo_model "code.gitea.io/gitea/models/repo"
 	actions_module "code.gitea.io/gitea/modules/actions"
 	"code.gitea.io/gitea/modules/container"
 	"code.gitea.io/gitea/modules/log"
@@ -251,11 +250,6 @@ func DeleteRun(ctx context.Context, run *actions_model.ActionRun) error {
 		return err
 	}
 
-	// Decrement the repository's run counters now that the row is gone.
-	if err := actions_model.AdjustRepoRunNumbers(ctx, repoID, -1, -1); err != nil {
-		log.Error("AdjustRepoRunNumbers for deleted run %d post-commit: %v", run.ID, err)
-	}
-
 	// Delete files on storage
 	for _, tas := range tasks {
 		removeTaskLog(ctx, tas)
@@ -266,29 +260,5 @@ func DeleteRun(ctx context.Context, run *actions_model.ActionRun) error {
 		}
 	}
 
-	return nil
-}
-
-// ReconcileRepoActionRunCounters recomputes num_action_runs and num_closed_action_runs for every repository that has any action_run rows.
-func ReconcileRepoActionRunCounters(ctx context.Context) error {
-	var repoIDs []int64
-	if err := db.GetEngine(ctx).
-		Table("action_run").
-		Cols("repo_id").
-		Distinct("repo_id").
-		Find(&repoIDs); err != nil {
-		return fmt.Errorf("list repos with action runs: %w", err)
-	}
-
-	var succeeded, failed int
-	for _, id := range repoIDs {
-		if err := actions_model.UpdateRepoRunsNumbers(ctx, &repo_model.Repository{ID: id}); err != nil {
-			log.Warn("reconcile action run counters for repo %d: %v", id, err)
-			failed++
-			continue
-		}
-		succeeded++
-	}
-	log.Info("reconcile action run counters: %d repos succeeded, %d failed", succeeded, failed)
 	return nil
 }
