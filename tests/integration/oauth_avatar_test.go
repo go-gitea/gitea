@@ -4,12 +4,7 @@
 package integration
 
 import (
-	"bytes"
-	"image"
-	"image/png"
 	"net/http"
-	"net/http/httptest"
-	"strings"
 	"testing"
 
 	auth_model "code.gitea.io/gitea/models/auth"
@@ -29,32 +24,6 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-// avatarTestServer serves a PNG at /avatar.png but returns 403 unless the
-// request's User-Agent starts with "Gitea " (mirrors hosts like Wikimedia
-// that reject Go's default UA). A successful avatar sync proves the UA fix.
-func avatarTestServer(t *testing.T) *httptest.Server {
-	t.Helper()
-	img := image.NewRGBA(image.Rect(0, 0, 8, 8))
-	for i := range img.Pix {
-		img.Pix[i] = 0xFF
-	}
-	var buf bytes.Buffer
-	require.NoError(t, png.Encode(&buf, img))
-	body := buf.Bytes()
-	return httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if r.URL.Path != "/avatar.png" {
-			http.NotFound(w, r)
-			return
-		}
-		if !strings.HasPrefix(r.Header.Get("User-Agent"), "Gitea ") {
-			http.Error(w, "forbidden", http.StatusForbidden)
-			return
-		}
-		w.Header().Set("Content-Type", "image/png")
-		_, _ = w.Write(body)
-	}))
-}
-
 func TestOAuth2AvatarFromPicture(t *testing.T) {
 	defer tests.PrepareTestEnv(t)()
 	defer test.MockVariableValue(&setting.OAuth2Client.UpdateAvatar, true)()
@@ -70,11 +39,7 @@ func TestOAuth2AvatarFromPicture(t *testing.T) {
 	require.NoError(t, err)
 	providerName := authSource.Cfg.(*oauth2.Source).Provider
 
-	avatarSrv := avatarTestServer(t)
-	defer avatarSrv.Close()
-
 	t.Run("AutoRegister", func(t *testing.T) {
-		defer tests.PrintCurrentTest(t)()
 		defer test.MockVariableValue(&setting.OAuth2Client.Username, "")()
 		defer test.MockVariableValue(&setting.OAuth2Client.EnableAutoRegistration, true)()
 		defer test.MockVariableValue(&gothic.CompleteUserAuth, func(res http.ResponseWriter, req *http.Request) (goth.User, error) {
@@ -83,7 +48,7 @@ func TestOAuth2AvatarFromPicture(t *testing.T) {
 				UserID:    "oidc-user-ua-pic",
 				Email:     "oidc-user-ua-pic@example.com",
 				Name:      "OIDC UA Pic",
-				AvatarURL: avatarSrv.URL + "/avatar.png",
+				AvatarURL: mockServer.URL + "/avatar.png",
 			}, nil
 		})()
 
@@ -96,11 +61,7 @@ func TestOAuth2AvatarFromPicture(t *testing.T) {
 	})
 
 	t.Run("LinkAccountRegister", func(t *testing.T) {
-		defer tests.PrintCurrentTest(t)()
-
 		const newUserName = "oidc-link-register"
-		const newUserEmail = "oidc-link-register@example.com"
-
 		defer web.RouteMockReset()
 		web.RouteMock(web.MockAfterMiddlewares, func(ctx *context.Context) {
 			require.NoError(t, auth.Oauth2SetLinkAccountData(ctx, auth.LinkAccountData{
@@ -108,16 +69,16 @@ func TestOAuth2AvatarFromPicture(t *testing.T) {
 				GothUser: goth.User{
 					Provider:  providerName,
 					UserID:    "oidc-link-register-sub",
-					Email:     newUserEmail,
+					Email:     "oidc-link-register-a@example.com",
 					Name:      "OIDC Link Register",
-					AvatarURL: avatarSrv.URL + "/avatar.png",
+					AvatarURL: mockServer.URL + "/avatar.png",
 				},
 			}))
 		})
 
 		req := NewRequestWithValues(t, "POST", "/user/link_account_signup", map[string]string{
 			"user_name": newUserName,
-			"email":     newUserEmail,
+			"email":     "oidc-link-register-b@example.com",
 			"password":  "AVeryStrongPassword!1",
 			"retype":    "AVeryStrongPassword!1",
 		})
