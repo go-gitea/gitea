@@ -1,6 +1,7 @@
 #!/bin/bash
 set -euo pipefail
 
+SHELLCHECK_VERSION="${SHELLCHECK_PACKAGE##*@}"
 SHELLCHECK="tools/bin/shellcheck-$SHELLCHECK_VERSION"
 
 if [ ! -x "$SHELLCHECK" ]; then

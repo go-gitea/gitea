@@ -350,7 +350,7 @@ lint-actions: ## lint action workflow files
 
 .PHONY: lint-shell
 lint-shell: ## lint shell scripts
-	@git ls-files '*.sh' | SHELLCHECK_VERSION=$(word 2,$(subst @, ,$(SHELLCHECK_PACKAGE))) xargs ./tools/lint-shell.sh
+	@git ls-files '*.sh' | SHELLCHECK_PACKAGE=$(SHELLCHECK_PACKAGE) xargs ./tools/lint-shell.sh
 
 .PHONY: lint-templates
 lint-templates: .venv node_modules ## lint template files
