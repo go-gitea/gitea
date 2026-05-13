@@ -69,11 +69,12 @@ fi
 
 if [ "$CMD" = "install" ]; then
   if [ "$PLAYWRIGHT_MODE" = "local" ]; then
+    read -ra playwright_flags <<< "${PLAYWRIGHT_FLAGS:-}"
     # on GitHub Actions VMs, playwright's system deps are pre-installed
     if [ -z "${GITHUB_ACTIONS:-}" ]; then
-      pnpm exec playwright install --with-deps chromium firefox ${PLAYWRIGHT_FLAGS:-}
+      pnpm exec playwright install --with-deps chromium firefox "${playwright_flags[@]}"
     else
-      pnpm exec playwright install chromium firefox ${PLAYWRIGHT_FLAGS:-}
+      pnpm exec playwright install chromium firefox "${playwright_flags[@]}"
     fi
   else
     echo "Running playwright in container as host distro is not supported by playwright directly"

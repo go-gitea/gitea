@@ -126,7 +126,8 @@ giteacmd manager flush-queues
 echo "Stopping gitea at $(date)"
 $service_stop
 echo "Creating backup in $giteahome"
-giteacmd dump $backupopts
+read -ra backupopts_arr <<< "$backupopts"
+giteacmd dump "${backupopts_arr[@]}"
 echo "Updating binary at $giteabin"
 cp -f "$giteabin" "$giteabin.bak" && mv -f "$binname" "$giteabin"
 # Restore SELinux context if applicable (e.g. RHEL/Fedora)
