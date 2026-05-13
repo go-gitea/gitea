@@ -10,9 +10,8 @@ if [ ! -x "$SHELLCHECK" ]; then
   [ "$ARCH" = "arm64" ] && ARCH=aarch64 # macOS reports arm64, upstream tarballs use aarch64
   mkdir -p tools/bin
   URL="https://github.com/koalaman/shellcheck/releases/download/$SHELLCHECK_VERSION/shellcheck-$SHELLCHECK_VERSION.$OS.$ARCH.tar.gz"
-  curl -fsSL "$URL" | tar -xzO "shellcheck-$SHELLCHECK_VERSION/shellcheck" > "$SHELLCHECK.tmp"
-  chmod +x "$SHELLCHECK.tmp"
-  mv -f "$SHELLCHECK.tmp" "$SHELLCHECK"
+  curl -fsSL "$URL" | tar -xzO "shellcheck-$SHELLCHECK_VERSION/shellcheck" > "$SHELLCHECK"
+  chmod +x "$SHELLCHECK"
 fi
 
 exec "$SHELLCHECK" --color=always "$@"
