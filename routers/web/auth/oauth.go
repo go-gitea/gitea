@@ -13,6 +13,7 @@ import (
 	"net/url"
 	"sort"
 	"strings"
+	"time"
 
 	"code.gitea.io/gitea/models/auth"
 	user_model "code.gitea.io/gitea/models/user"
@@ -302,6 +303,11 @@ func showLinkingLogin(ctx *context.Context, authSourceID int64, gothUser goth.Us
 	ctx.Redirect(setting.AppSubURL + "/user/link_account")
 }
 
+// oauth2AvatarHTTPClient is a shared HTTP client for fetching OIDC `picture` avatars.
+// It has a finite Timeout so a slow or hanging avatar host cannot stall the OAuth
+// callback indefinitely (http.DefaultClient has no timeout).
+var oauth2AvatarHTTPClient = &http.Client{Timeout: 30 * time.Second}
+
 func oauth2UpdateAvatarIfNeed(ctx *context.Context, rawURL string, u *user_model.User) {
 	if !setting.OAuth2Client.UpdateAvatar || len(rawURL) == 0 {
 		return
@@ -322,7 +328,7 @@ func oauth2UpdateAvatarIfNeed(ctx *context.Context, rawURL string, u *user_model
 	// Send a descriptive UA so that fetching public avatars works reliably.
 	req.Header.Set("User-Agent", "Gitea "+setting.AppVer)
 
-	resp, err := http.DefaultClient.Do(req)
+	resp, err := oauth2AvatarHTTPClient.Do(req)
 	if err != nil {
 		log.Warn("oauth2UpdateAvatarIfNeed: fetch %q failed: %v", logURL, err)
 		return
