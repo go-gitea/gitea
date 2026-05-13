@@ -939,6 +939,14 @@
 			{{ctx.Locale.Tr "repo.settings.delete"}}
 		</div>
 		<div class="content">
+			<h2 class="ui center tw-mb-2">{{.Repository.FullName}}</h2>
+			<div class="ui center">
+				{{if not .DisableStars}}
+				<span>{{svg "octicon-star"}} {{CountFmt .Repository.NumStars}} {{ctx.Locale.Tr "repo.stars"}}</span>
+				&nbsp;
+				{{end}}
+				<span>{{svg "octicon-eye"}} {{CountFmt .Repository.NumWatches}} {{ctx.Locale.Tr "repo.watchers"}}</span>
+			</div>
 			<div class="ui warning message">
 				{{ctx.Locale.Tr "repo.settings.delete_notices_1"}}<br>
 				{{ctx.Locale.Tr "repo.settings.delete_notices_2" .Repository.FullName}}
