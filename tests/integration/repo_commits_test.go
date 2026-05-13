@@ -42,7 +42,11 @@ func TestRepoCommits(t *testing.T) {
 			userHrefs = append(userHrefs, s.AttrOr("href", ""))
 		})
 		assert.Equal(t, []string{"69554a64c1e6030f051e5c3f94bfbd773cd6a324", "27566bd5738fc8b4e3fef3c5e72cce608537bd95", "5099b81332712fe655e34e8dd63574f503f61811"}, commits)
-		assert.Equal(t, []string{"/user2", "/user21", "/user2"}, userHrefs)
+		assert.Equal(t, []string{
+			"/user2/repo16/commits/branch/master/search?q=author%3Auser2%40example.com",
+			"/user2/repo16/commits/branch/master/search?q=author%3Auser21%40example.com",
+			"/user2/repo16/commits/branch/master/search?q=author%3Auser2%40example.com",
+		}, userHrefs)
 	})
 
 	t.Run("LastCommit", func(t *testing.T) {
@@ -52,7 +56,7 @@ func TestRepoCommits(t *testing.T) {
 		commitHref := doc.doc.Find(".latest-commit .commit-id-short").AttrOr("href", "")
 		authorHref := doc.doc.Find(".latest-commit .author-wrapper a").AttrOr("href", "")
 		assert.Equal(t, "/user2/repo16/commit/69554a64c1e6030f051e5c3f94bfbd773cd6a324", commitHref)
-		assert.Equal(t, "/user2", authorHref)
+		assert.Equal(t, "/user2/repo16/commits/branch/master/search?q=author%3Auser2%40example.com", authorHref)
 	})
 
 	t.Run("CommitListNonExistingCommiter", func(t *testing.T) {

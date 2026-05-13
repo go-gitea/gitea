@@ -35,6 +35,8 @@ export function initAuthorsPopup() {
       interactive: true,
       role: 'dialog',
       theme: 'menu',
+      trigger: 'click',
+      hideOnClick: true,
     });
   });
 }

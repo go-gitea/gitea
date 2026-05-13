@@ -161,10 +161,14 @@
 					{{range .CoAuthors}}
 						{{if .GiteaUser}}
 							{{ctx.AvatarUtils.Avatar .GiteaUser 20}}
-							<a href="{{.GiteaUser.HomeLink}}"><strong>{{.GiteaUser.GetDisplayName}}</strong></a>
+							<a class="muted" href="{{.GiteaUser.HomeLink}}"><strong>{{.GiteaUser.GetDisplayName}}</strong></a>
 						{{else}}
 							{{ctx.AvatarUtils.AvatarByEmail .TrailerSignature.Email .TrailerSignature.Name 20}}
-							<strong>{{.TrailerSignature.Name}}</strong>
+							{{if .TrailerSignature.Email}}
+								<a class="muted" href="mailto:{{.TrailerSignature.Email}}"><strong>{{.TrailerSignature.Name}}</strong></a>
+							{{else}}
+								<strong>{{.TrailerSignature.Name}}</strong>
+							{{end}}
 						{{end}}
 					{{end}}
 				</div>

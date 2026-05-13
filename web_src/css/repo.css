@@ -153,6 +153,12 @@ td .commit-summary {
   gap: 0.5em;
 }
 
+/* use semibold for latest commit author */
+.latest-commit .author-wrapper > a,
+.latest-commit .author-wrapper > .authors-popup-trigger {
+  font-weight: var(--font-weight-semibold);
+}
+
 @media (max-width: 767.98px) {
   .latest-commit .commit-id-short {
     display: none;
@@ -1458,6 +1464,15 @@ tbody.commit-list {
 
 .authors-popup-trigger {
   cursor: pointer;
+  background: none;
+  border: none;
+  padding: 0;
+  font: inherit;
+  color: inherit;
+}
+
+.authors-popup-trigger:hover {
+  color: var(--color-primary);
 }
 
 .authors-popup {

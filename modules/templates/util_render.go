@@ -327,9 +327,11 @@ func (ut *RenderUtils) RenderUnicodeEscapeToggleTd(combined, escapeStatus *chars
 	return `<td class="lines-escape">` + ut.RenderUnicodeEscapeToggleButton(escapeStatus) + `</td>`
 }
 
-// commitAuthorSearchURL builds the repo's commits-by-author search URL, or empty when no repo/ref context.
-func (ut *RenderUtils) commitAuthorSearchURL(authorName string) template.URL {
-	if authorName == "" {
+// commitAuthorSearchURL builds the repo's commits-by-author search URL. Returns
+// empty when no repo/ref context is present or when the value would not survive
+// the search parser (it splits on whitespace via strings.FieldsSeq).
+func (ut *RenderUtils) commitAuthorSearchURL(value string) template.URL {
+	if value == "" || strings.ContainsAny(value, " \t\r\n") {
 		return ""
 	}
 	data := ut.ctx.GetData()
@@ -338,25 +340,29 @@ func (ut *RenderUtils) commitAuthorSearchURL(authorName string) template.URL {
 	if repoLink == "" || refSubURL == "" {
 		return ""
 	}
-	return template.URL(repoLink + "/commits/" + refSubURL + "/search?q=" + url.QueryEscape("author:"+authorName))
+	return template.URL(repoLink + "/commits/" + refSubURL + "/search?q=" + url.QueryEscape("author:"+value))
 }
 
-// authorHref picks the most-relevant link target for an author: the repo's
-// commits-by-author search when available, otherwise the user profile or mailto.
+// authorHref picks the most-relevant link target for an author. The search
+// query uses the commit's signature email (no spaces, matches `git log
+// --author` substring on email) over username/display name. Falls back to the
+// user profile (matched) or mailto (unmatched).
 func (ut *RenderUtils) authorHref(u *user_model.User, sig *git.Signature) template.URL {
-	var name, fallback string
+	var searchValue, fallback string
+	if sig != nil && sig.Email != "" {
+		searchValue = sig.Email
+	} else if u != nil {
+		searchValue = u.Email
+	}
 	switch {
 	case u != nil:
-		name, fallback = u.Name, u.HomeLink()
-	case sig != nil:
-		name = sig.Name
-		if sig.Email != "" {
-			fallback = "mailto:" + sig.Email
-		}
+		fallback = u.HomeLink()
+	case sig != nil && sig.Email != "":
+		fallback = "mailto:" + sig.Email
 	default:
 		return ""
 	}
-	if href := ut.commitAuthorSearchURL(name); href != "" {
+	if href := ut.commitAuthorSearchURL(searchValue); href != "" {
 		return href
 	}
 	return template.URL(fallback)
@@ -455,7 +461,7 @@ func (ut *RenderUtils) CoAuthorAvatars(authorUser *user_model.User, authorSig *g
 		b.WriteString(string(ut.authorNameLinkHTML(coAuthors[0].GiteaUser, coAuthors[0].TrailerSignature)))
 	default:
 		b.WriteString(string(htmlutil.HTMLFormat(
-			`<a class="muted authors-popup-trigger" data-global-init="initAuthorsPopup" tabindex="0" role="button">%s</a>`,
+			`<button type="button" class="authors-popup-trigger" data-global-init="initAuthorsPopup">%s</button>`,
 			locale.Tr("repo.commits.coauthor_people", len(coAuthors)+1))))
 		b.WriteString(`<div class="tippy-target"><div class="authors-popup">`)
 		b.WriteString(string(ut.participantRowHTML(authorUser, authorSig)))
@@ -469,13 +475,33 @@ func (ut *RenderUtils) CoAuthorAvatars(authorUser *user_model.User, authorSig *g
 	return template.HTML(b.String())
 }
 
-// authorNameLinkHTML renders a muted text link for an author.
+// authorNameLinkHTML renders a muted text link for an author. In a repo+ref
+// context it points at the commits-by-author search (keyed by signature email);
+// otherwise it falls back to `GetShortDisplayNameLinkHTML` for matched users
+// (preserving the alternate-name tooltip) or a `mailto:` link for unmatched.
 func (ut *RenderUtils) authorNameLinkHTML(u *user_model.User, sig *git.Signature) template.HTML {
-	href := ut.authorHref(u, sig)
-	if href == "" {
+	var email string
+	if sig != nil {
+		email = sig.Email
+	} else if u != nil {
+		email = u.Email
+	}
+	if href := ut.commitAuthorSearchURL(email); href != "" {
+		if u != nil {
+			return htmlutil.HTMLFormat(`<a class="muted" href="%s">%s</a>`, href, u.GetDisplayName())
+		}
+		return htmlutil.HTMLFormat(`<a class="muted" href="%s">%s</a>`, href, sig.Name)
+	}
+	if u != nil {
+		return u.GetShortDisplayNameLinkHTML()
+	}
+	if sig == nil {
 		return ""
 	}
-	return htmlutil.HTMLFormat(`<a class="muted" href="%s">%s</a>`, href, authorDisplayName(u, sig))
+	if sig.Email != "" {
+		return htmlutil.HTMLFormat(`<a class="muted" href="mailto:%s">%s</a>`, sig.Email, sig.Name)
+	}
+	return template.HTML(template.HTMLEscapeString(sig.Name))
 }
 
 // participantRowHTML renders one row of the authors popup: avatar + name.
