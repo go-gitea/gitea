@@ -4,7 +4,7 @@ set -euo pipefail
 cd "$(dirname -- "${BASH_SOURCE[0]}")/.."
 
 GOLANGCI_LINT_VERSION="${GOLANGCI_LINT_PACKAGE##*@}"
-BIN="tools/custom-gcl"
+BIN="tools/bin/custom-gcl"
 
 NEEDS_BUILD=false
 if [ ! -x "$BIN" ]; then
@@ -18,7 +18,7 @@ fi
 if $NEEDS_BUILD; then
   cat > .custom-gcl.yml <<EOF
 version: '$GOLANGCI_LINT_VERSION'
-destination: tools
+destination: tools/bin
 plugins:
   - module: code.gitea.io/gitea
     path: .

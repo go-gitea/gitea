@@ -62,7 +62,7 @@ cpu.out
 /dist
 /custom/*
 !/custom/conf/app.example.ini
-/tools/custom-gcl*
+/tools/bin
 /.custom-gcl.yml
 /data
 /indexers
