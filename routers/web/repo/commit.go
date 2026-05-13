@@ -441,7 +441,7 @@ func Diff(ctx *context.Context) {
 		}
 	}
 	ctx.Data["CommitComments"] = commitComments
-	ctx.Data["CanComment"] = ctx.Doer != nil && ctx.Repo.CanRead(unit_model.TypeCode)
+	ctx.Data["CanComment"] = ctx.Doer != nil && ctx.Repo.Permission.CanRead(unit_model.TypeCode)
 
 	ctx.HTML(http.StatusOK, tplCommitPage)
 }
