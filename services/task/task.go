@@ -85,13 +85,6 @@ func CreateMigrateTask(ctx context.Context, doer, u *user_model.User, opts base.
 		return nil, err
 	}
 	opts.AuthToken = ""
-	if opts.AWSAccessKeyID != "" {
-		opts.AWSAccessKeyIDEncrypted, err = secret.EncryptSecret(setting.SecretKey, opts.AWSAccessKeyID)
-		if err != nil {
-			return nil, err
-		}
-		opts.AWSAccessKeyID = ""
-	}
 	if opts.AWSSecretAccessKey != "" {
 		opts.AWSSecretAccessKeyEncrypted, err = secret.EncryptSecret(setting.SecretKey, opts.AWSSecretAccessKey)
 		if err != nil {
