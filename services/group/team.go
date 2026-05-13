@@ -82,7 +82,7 @@ func DeleteTeamFromGroup(ctx context.Context, group *group_model.Group, org int6
 	if err != nil {
 		return err
 	}
-	if _, err = db.GetEngine(ctx).Where("group_id = ?", group.ID).Delete(new(group_model.RepoGroupUnit)); err != nil {
+	if _, err = db.GetEngine(ctx).Where("group_id = ?", group.ID).And("team_id = ?", team.ID).Delete(new(group_model.RepoGroupUnit)); err != nil {
 		return err
 	}
 	return committer.Commit()
