@@ -223,14 +223,7 @@ func (run *ActionRun) IsSchedule() bool {
 	return run.ScheduleID > 0
 }
 
-// UpdateRepoRunsNumbers recomputes a repository's num_action_runs and num_closed_action_runs from the action_run table.
-//
-// The two counts and the write are issued as three separate statements rather than a single
-// `UPDATE repository SET col = (SELECT count(*) FROM action_run ...)` so the SELECTs are
-// consistent (MVCC) reads instead of locking reads. The previous single-statement form
-// took shared (and gap) locks on every action_run row with repo_id=N because subqueries
-// inside an UPDATE are treated as current/locking reads; that deadlocked against any
-// concurrent transaction holding an X lock on one of those rows (issue #36234).
+// UpdateRepoRunsNumbers updates the number of runs and closed runs of a repository.
 func UpdateRepoRunsNumbers(ctx context.Context, repo *repo_model.Repository) error {
 	e := db.GetEngine(ctx)
 
