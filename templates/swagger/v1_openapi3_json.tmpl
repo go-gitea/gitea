@@ -10630,6 +10630,22 @@
             "schema": {
               "type": "integer"
             }
+          },
+          {
+            "description": "sort jobs by attribute. Supported values are \"id\". Default is \"id\"",
+            "in": "query",
+            "name": "sort",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "sort order, either \"asc\" (ascending) or \"desc\" (descending). Default is \"asc\"",
+            "in": "query",
+            "name": "order",
+            "schema": {
+              "type": "string"
+            }
           }
         ],
         "responses": {
@@ -10641,6 +10657,9 @@
           },
           "404": {
             "$ref": "#/components/responses/notFound"
+          },
+          "422": {
+            "$ref": "#/components/responses/validationError"
           }
         },
         "summary": "Lists all jobs",
@@ -15728,6 +15747,22 @@
             "schema": {
               "type": "integer"
             }
+          },
+          {
+            "description": "sort jobs by attribute. Supported values are \"id\". Default is \"id\"",
+            "in": "query",
+            "name": "sort",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "sort order, either \"asc\" (ascending) or \"desc\" (descending). Default is \"asc\"",
+            "in": "query",
+            "name": "order",
+            "schema": {
+              "type": "string"
+            }
           }
         ],
         "responses": {
@@ -15739,6 +15774,9 @@
           },
           "404": {
             "$ref": "#/components/responses/notFound"
+          },
+          "422": {
+            "$ref": "#/components/responses/validationError"
           }
         },
         "summary": "Lists all jobs for a repository",
@@ -16526,6 +16564,22 @@
             "schema": {
               "type": "integer"
             }
+          },
+          {
+            "description": "sort jobs by attribute. Supported values are \"id\". Default is \"id\"",
+            "in": "query",
+            "name": "sort",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "sort order, either \"asc\" (ascending) or \"desc\" (descending). Default is \"asc\"",
+            "in": "query",
+            "name": "order",
+            "schema": {
+              "type": "string"
+            }
           }
         ],
         "responses": {
@@ -16537,6 +16591,9 @@
           },
           "404": {
             "$ref": "#/components/responses/notFound"
+          },
+          "422": {
+            "$ref": "#/components/responses/validationError"
           }
         },
         "summary": "Lists all jobs for a workflow run",
@@ -30884,6 +30941,22 @@
             "schema": {
               "type": "integer"
             }
+          },
+          {
+            "description": "sort jobs by attribute. Supported values are \"id\". Default is \"id\"",
+            "in": "query",
+            "name": "sort",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "sort order, either \"asc\" (ascending) or \"desc\" (descending). Default is \"asc\"",
+            "in": "query",
+            "name": "order",
+            "schema": {
+              "type": "string"
+            }
           }
         ],
         "responses": {
@@ -30895,6 +30968,9 @@
           },
           "404": {
             "$ref": "#/components/responses/notFound"
+          },
+          "422": {
+            "$ref": "#/components/responses/validationError"
           }
         },
         "summary": "Get workflow jobs",
