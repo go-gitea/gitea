@@ -280,14 +280,6 @@ jobs:
 		taskIDs = append(taskIDs, task.ID)
 	}
 
-	// Mirror what PrepareRunAndInsert does for each created run, so the
-	// counter check at the end of the test can compare against (seedTasks +
-	// insertSuccess) without having to special-case the seed phase. Each seed
-	// run is Running (open), so only num_action_runs bumps; num_closed_*
-	// flips happen later when updaters drive the seeded tasks to Success.
-	require.NoError(t, actions_model.AdjustRepoRunNumbers(ctx, repo.ID, n, 0),
-		"adjust seed counters")
-
 	return taskIDs
 }
 
