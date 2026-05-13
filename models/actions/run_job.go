@@ -12,7 +12,6 @@ import (
 	"code.gitea.io/gitea/models/db"
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/modules/actions/jobparser"
-	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/timeutil"
 	"code.gitea.io/gitea/modules/util"
 
@@ -197,7 +196,6 @@ func GetLatestAttemptJobsByRepoAndRunID(ctx context.Context, repoID, runID int64
 	if err := db.GetEngine(ctx).Where("repo_id=? AND run_id=? AND run_attempt_id=0", repoID, runID).OrderBy("id").Find(&jobs); err != nil {
 		return nil, err
 	}
-	sortMatrixJobsByName(jobs)
 	return jobs, nil
 }
 
@@ -217,24 +215,7 @@ func GetRunJobsByRunAndAttemptID(ctx context.Context, runID, runAttemptID int64)
 	if err := db.GetEngine(ctx).Where("run_id=? AND run_attempt_id=?", runID, runAttemptID).OrderBy("id").Find(&jobs); err != nil {
 		return nil, err
 	}
-	sortMatrixJobsByName(jobs)
 	return jobs, nil
-}
-
-// sortMatrixJobsByName natural-sorts each contiguous run of jobs that share a JobID so matrix expansions
-// (e.g. "test (1)", "test (2)", "test (10)") appear in human order. The input is expected to already be
-// ordered by DB id, so JobID groups are contiguous and groups remain in insertion order.
-func sortMatrixJobsByName(jobs []*ActionRunJob) {
-	for i := 0; i < len(jobs); {
-		j := i + 1
-		for j < len(jobs) && jobs[j].JobID == jobs[i].JobID {
-			j++
-		}
-		slices.SortFunc(jobs[i:j], func(a, b *ActionRunJob) int {
-			return base.NaturalSortCompare(a.Name, b.Name)
-		})
-		i = j
-	}
 }
 
 func UpdateRunJob(ctx context.Context, job *ActionRunJob, cond builder.Cond, cols ...string) (int64, error) {
