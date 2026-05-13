@@ -18,11 +18,12 @@ import (
 )
 
 type CommitMessage struct {
-	MessageRaw       string
-	messageUTF8      *string
-	messageTitle     *string
-	messageBody      *string
-	messageCoAuthors *[]*Signature
+	MessageRaw      string
+	messageUTF8     *string
+	messageTitle    *string
+	messageBody     *string
+	coAuthors       []*Signature
+	coAuthorsParsed bool
 }
 
 // Commit represents a git commit.
@@ -70,9 +71,8 @@ func (c *CommitMessage) MessageBody() string {
 	return *c.messageBody
 }
 
-// isTrailerLineShape reports whether the line looks like a `Token: value` trailer
-// per `git interpret-trailers`: the token is non-empty, contains only [A-Za-z0-9-],
-// and the value (after `:`) is non-empty.
+// isTrailerLineShape reports whether the line matches `[A-Za-z0-9-]+:<non-empty>`
+// per `git interpret-trailers`.
 func isTrailerLineShape(line string) bool {
 	token, rest, ok := strings.Cut(line, ":")
 	if !ok || token == "" || strings.TrimSpace(rest) == "" {
@@ -87,10 +87,8 @@ func isTrailerLineShape(line string) bool {
 	return true
 }
 
-// parseCoAuthorTrailer extracts a co-author Signature if the line is a
-// `Co-authored-by:`/`Co-committed-by:` trailer. Token matching is case-insensitive
-// to match git's behaviour. Email is lowercased; the address is parsed with
-// net/mail so a missing `<…>` or malformed address is rejected.
+// parseCoAuthorTrailer extracts a co-author from a `Co-authored-by:` or
+// `Co-committed-by:` trailer (case-insensitive). Returns false on a malformed address.
 func parseCoAuthorTrailer(line string) (*Signature, bool) {
 	token, rest, ok := strings.Cut(line, ":")
 	if !ok {
@@ -107,13 +105,12 @@ func parseCoAuthorTrailer(line string) (*Signature, bool) {
 }
 
 // parseCoAuthorSignatures parses `Co-authored-by:` and `Co-committed-by:` trailers
-// from the trailing block of the commit message and returns deduplicated Signature
-// values. Only the last paragraph of the body is scanned so quoted or in-body
-// occurrences (e.g. inside a revert/cherry-pick description) are not
-// misinterpreted; the trailing paragraph must contain only trailer-shaped lines.
+// from the trailing block of the commit message. Only the last paragraph is scanned
+// (and it must contain only trailer-shaped lines) so in-body occurrences inside a
+// revert or cherry-pick description are not misinterpreted as trailers.
 func (c *CommitMessage) parseCoAuthorSignatures() []*Signature {
-	if c.messageCoAuthors != nil {
-		return *c.messageCoAuthors
+	if c.coAuthorsParsed {
+		return c.coAuthors
 	}
 	body := strings.ReplaceAll(strings.TrimRight(c.MessageBody(), "\r\n"), "\r\n", "\n")
 	if idx := strings.LastIndex(body, "\n\n"); idx >= 0 {
@@ -139,13 +136,13 @@ func (c *CommitMessage) parseCoAuthorSignatures() []*Signature {
 		seen[sig.Email] = struct{}{}
 		sigs = append(sigs, sig)
 	}
-	c.messageCoAuthors = &sigs
+	c.coAuthors = sigs
+	c.coAuthorsParsed = true
 	return sigs
 }
 
-// CoAuthorSignatures returns the commit's co-author trailers with the commit's
-// own author and committer emails filtered out, so a contributor who copies
-// themselves into a Co-authored-by line is not duplicated in the avatar stack.
+// CoAuthorSignatures returns the parsed co-author trailers with the commit's own
+// author and committer emails filtered out (so self-copying isn't counted).
 func (c *Commit) CoAuthorSignatures() []*Signature {
 	raw := c.parseCoAuthorSignatures()
 	if len(raw) == 0 {

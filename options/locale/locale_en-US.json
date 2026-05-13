@@ -2592,8 +2592,6 @@
   "repo.diff.coauthored_by": "co-authored by",
   "repo.commits.coauthor_and": "and",
   "repo.commits.coauthor_people": "%d people",
-  "repo.commits.coauthor_others_1": "%d other",
-  "repo.commits.coauthor_others_n": "%d others",
   "repo.diff.protected": "Protected",
   "repo.diff.image.side_by_side": "Side by Side",
   "repo.diff.image.swipe": "Swipe",

@@ -1415,8 +1415,7 @@ tbody.commit-list {
   align-items: center;
 }
 
-/* each direct child carries inline --n (0 = leftmost). Higher --n sits lower in the stack
-   and slides further right on hover so the whole stack fans out from the left anchor. */
+/* inline --n on each child drives z-index and the hover spread */
 .avatar-stack > * {
   margin-left: -16px;
   transition: transform 0.15s ease;
