@@ -106,7 +106,7 @@ type GroupAssignmentOptions struct {
 	RequireGroupAdmin bool
 }
 
-func groupAssignment(ctx commonCtx, doer *user_model.User, isSigned bool, handleNotFound func(error), handleOtherError func(string, error), assign func(repoGroup *RepoGroup, canAccess bool)) {
+func groupAssignment(ctx commonCtx, doer *user_model.User, isSigned bool, isAPI bool, handleNotFound func(error), handleOtherError func(string, error), assign func(repoGroup *RepoGroup, canAccess bool)) {
 	var err error
 	repoGroup := new(RepoGroup)
 	if repoGroup.Group == nil {
@@ -242,11 +242,13 @@ func groupAssignment(ctx commonCtx, doer *user_model.User, isSigned bool, handle
 			}
 		}
 
-		if !teamExists {
+		if !teamExists && !isAPI {
 			handleNotFound(err)
 			return
 		}
-		repoGroup.IsGroupAdmin = repoGroup.Team.IsOwnerTeam() || repoGroup.Team.AccessMode >= perm.AccessModeAdmin
+		if repoGroup.Team != nil {
+			repoGroup.IsGroupAdmin = repoGroup.Team.IsOwnerTeam() || repoGroup.Team.AccessMode >= perm.AccessModeAdmin
+		}
 	} else {
 		for _, team := range repoGroup.Teams {
 			if team.AccessMode >= perm.AccessModeAdmin {
@@ -273,7 +275,7 @@ func GroupAssignmentWeb(args GroupAssignmentOptions) func(ctx *Context) {
 	return func(ctx *Context) {
 		opts := args
 		var err error
-		groupAssignment(ctx, ctx.Doer, ctx.IsSigned, ctx.NotFound, ctx.ServerError, func(repoGroup *RepoGroup, canAccess bool) {
+		groupAssignment(ctx, ctx.Doer, ctx.IsSigned, false, ctx.NotFound, ctx.ServerError, func(repoGroup *RepoGroup, canAccess bool) {
 			if ctx.Written() {
 				return
 			}
@@ -353,7 +355,7 @@ func GroupAssignmentWeb(args GroupAssignmentOptions) func(ctx *Context) {
 
 func GroupAssignmentAPI() func(ctx *APIContext) {
 	return func(ctx *APIContext) {
-		groupAssignment(ctx, ctx.Doer, ctx.IsSigned, func(err error) {
+		groupAssignment(ctx, ctx.Doer, ctx.IsSigned, true, func(err error) {
 			ctx.APIErrorNotFound(err)
 		}, func(str string, err error) {
 			ctx.APIErrorInternal(fmt.Errorf("%s: %w", str, err))
