@@ -10,12 +10,10 @@ import (
 
 // ToUserGroup converts a UserGroup model to API format.
 func ToUserGroup(group *usergroup.UserGroup) *api.UserGroup {
-	if group == nil {
-		return nil
-	}
 	return &api.UserGroup{
-		ID:       group.ID,
-		Name:     group.Name,
-		ParentID: group.ParentID,
+		ID:          group.ID,
+		Name:        group.Name,
+		Description: group.Description,
+		ParentID:    group.ParentID,
 	}
 }

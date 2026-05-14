@@ -5,21 +5,24 @@ package structs
 
 // UserGroup represents a user group in API responses.
 type UserGroup struct {
-	ID       int64  `json:"id"`
-	Name     string `json:"name"`
-	ParentID int64  `json:"parent_id"`
+	ID          int64  `json:"id"`
+	Name        string `json:"name"`
+	Description string `json:"description"`
+	ParentID    int64  `json:"parent_id"`
 }
 
 // CreateUserGroupOption contains options for creating a user group.
 type CreateUserGroupOption struct {
-	Name     string `json:"name" binding:"Required"`
-	ParentID int64  `json:"parent_id"`
+	Name        string `json:"name" binding:"Required"`
+	Description string `json:"description"`
+	ParentID    int64  `json:"parent_id"`
 }
 
 // EditUserGroupOption contains options for editing a user group.
 type EditUserGroupOption struct {
-	Name     string `json:"name" binding:"Required"`
-	ParentID int64  `json:"parent_id"`
+	Name        string `json:"name" binding:"Required"`
+	Description string `json:"description"`
+	ParentID    int64  `json:"parent_id"`
 }
 
 // UserGroupMembersOption contains the member list for a user group.
