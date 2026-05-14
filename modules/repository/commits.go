@@ -170,14 +170,23 @@ func (pc *PushCommit) AuthorSignature() *git.Signature {
 
 // AuthorUser resolves the author email to a Gitea user via per-request cache, nil if no match.
 func (pc *PushCommit) AuthorUser(ctx context.Context) *user_model.User {
-	u, err := cache.GetWithContextCache(ctx, cachegroup.User, "email:"+pc.AuthorEmail, func(ctx context.Context, _ string) (*user_model.User, error) {
-		return user_model.GetUserByEmail(ctx, pc.AuthorEmail)
-	})
+	c := cache.GetContextCache(ctx)
+	key := "email:" + pc.AuthorEmail
+	if c != nil {
+		if v, has := c.Get(cachegroup.User, key); has {
+			u, _ := v.(*user_model.User)
+			return u
+		}
+	}
+	u, err := user_model.GetUserByEmail(ctx, pc.AuthorEmail)
 	if err != nil {
 		if !user_model.IsErrUserNotExist(err) {
 			log.Error("GetUserByEmail: %v", err)
 		}
-		return nil
+		u = nil
+	}
+	if c != nil {
+		c.Put(cachegroup.User, key, u)
 	}
 	return u
 }
