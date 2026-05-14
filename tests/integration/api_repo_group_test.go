@@ -41,6 +41,12 @@ type commonGroupTestData struct {
 	childPrivate            *api.Group
 	privateGrandchildPublic *api.Group
 	repos                   commonGroupRepoTestData
+	teamMembers             map[string]groupAccessAndUser
+}
+
+type groupAccessAndUser struct {
+	uid  int64
+	perm perm_model.AccessMode
 }
 
 func createOrgWithGroups(t *testing.T) *commonGroupTestData {
@@ -60,36 +66,34 @@ func createOrgWithGroups(t *testing.T) *commonGroupTestData {
 	resp := MakeRequest(t, req, http.StatusCreated)
 	apiOrg := DecodeJSON(t, resp, &api.Organization{})
 
-	teamPrivs := map[string]perm_model.AccessMode{
-		groupOrgAdminTeam:  perm_model.AccessModeAdmin,
-		groupOrgWriterTeam: perm_model.AccessModeWrite,
-		groupOrgReaderTeam: perm_model.AccessModeRead,
-		groupOrgUnitTeam:   perm_model.AccessModeRead,
+	teamPrivs := map[string]groupAccessAndUser{
+		groupOrgAdminTeam:  {uid: 4, perm: perm_model.AccessModeAdmin},
+		groupOrgWriterTeam: {uid: 5, perm: perm_model.AccessModeWrite},
+		groupOrgReaderTeam: {uid: 8, perm: perm_model.AccessModeRead},
+		groupOrgUnitTeam:   {uid: 13, perm: perm_model.AccessModeRead},
 	}
-	userIDs := []int64{4, 5, 8, 13}
 
-	userIDIdx := 0
 	baseOrgURL := "/api/v1/orgs/" + apiOrg.Name
 
 	for k, v := range teamPrivs {
 		reqBody := &api.CreateTeamOption{
 			Name:                    k,
-			CanCreateOrgRepo:        v >= perm_model.AccessModeWrite,
+			CanCreateOrgRepo:        v.perm >= perm_model.AccessModeWrite,
 			UnitsMap:                map[string]string{},
-			IncludesAllRepositories: v >= perm_model.AccessModeWrite,
+			IncludesAllRepositories: v.perm >= perm_model.AccessModeWrite,
+			Permission:              permToRepoWritePermission(v.perm),
 		}
 		for _, nunit := range unit_model.AllUnitKeyNames() {
-			reqBody.UnitsMap[nunit] = v.ToString()
+			reqBody.UnitsMap[nunit] = v.perm.ToString()
 		}
 		treq := NewRequestWithJSON(t, "POST", baseOrgURL+"/teams", reqBody).AddTokenAuth(token)
 		tres := MakeRequest(t, treq, http.StatusCreated)
 		team := DecodeJSON(t, tres, &api.Team{})
 
-		teamUser := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: userIDs[userIDIdx]})
+		teamUser := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: v.uid})
 
 		mreq := NewRequestf(t, "PUT", "/api/v1/teams/%d/members/%s", team.ID, teamUser.Name).AddTokenAuth(token)
 		MakeRequest(t, mreq, http.StatusNoContent)
-		userIDIdx++
 	}
 	rootPublic := createGroup(t, actor, apiOrg.Name, 0, &api.NewGroupOption{
 		Visibility: api.VisibleTypePublic,
@@ -125,6 +129,7 @@ func createOrgWithGroups(t *testing.T) *commonGroupTestData {
 			codeOnly:              createRepoInGroup(t, apiOrg.Name, actor, privateGrandchildPublic.ID, "code-only-repo", http.StatusCreated),
 			repoLevelTeamOverride: createRepoInGroup(t, apiOrg.Name, actor, childPrivate.ID, "unit-repo", http.StatusCreated),
 		},
+		teamMembers: teamPrivs,
 	}
 
 	return val
@@ -164,7 +169,20 @@ func createGroup(t *testing.T, actor, orgName string, parentGroupID int64, optio
 
 	req := NewRequestWithJSON(t, "POST", endpoint, options).AddTokenAuth(token)
 	resp := MakeRequest(t, req, expectedStatus)
-	return DecodeJSON(t, resp, &api.Group{})
+	if expectedStatus == http.StatusCreated {
+		return DecodeJSON(t, resp, &api.Group{})
+	}
+	return nil
+}
+
+func editGroup(t *testing.T, actor string, groupID int64, options *api.EditGroupOption, expectedStatus int) *api.Group {
+	token := getUserToken(t, actor, auth_model.AccessTokenScopeWriteOrganization)
+	req := NewRequestWithJSON(t, "PATCH", "/api/v1/groups/"+strconv.FormatInt(groupID, 10), options).AddTokenAuth(token)
+	resp := MakeRequest(t, req, expectedStatus)
+	if expectedStatus == http.StatusOK {
+		return DecodeJSON(t, resp, &api.Group{})
+	}
+	return nil
 }
 
 func moveGroup(t *testing.T, actor string, groupID, newGroupID int64, pos *int, expectedStatus int) *api.Group {
@@ -174,13 +192,28 @@ func moveGroup(t *testing.T, actor string, groupID, newGroupID int64, pos *int, 
 		NewParent: newGroupID,
 	}).AddTokenAuth(token)
 	resp := MakeRequest(t, req, expectedStatus)
-	return DecodeJSON(t, resp, &api.Group{})
+	if expectedStatus == http.StatusOK {
+		return DecodeJSON(t, resp, &api.Group{})
+	}
+	return nil
 }
 
-func editGroupTeam(t *testing.T, actor string, groupID int64, team string, options *api.CreateOrUpdateRepoGroupTeamOption) { //nolint:unused // WIP...
+func editGroupTeam(t *testing.T, actor string, groupID int64, team string, options *api.CreateOrUpdateRepoGroupTeamOption, expectedStatus int) { //nolint:unused // WIP...
 	token := getUserToken(t, actor, auth_model.AccessTokenScopeWriteOrganization)
 	req := NewRequestWithJSON(t, "PATCH", "/api/v1/groups/"+strconv.FormatInt(groupID, 10)+"/teams/"+team, options).AddTokenAuth(token)
-	MakeRequest(t, req, http.StatusNoContent)
+	MakeRequest(t, req, expectedStatus)
+}
+
+func addGroupTeam(t *testing.T, actor string, groupID int64, team string, options *api.CreateOrUpdateRepoGroupTeamOption, expectedStatus int) { //nolint:unused // WIP...
+	token := getUserToken(t, actor, auth_model.AccessTokenScopeWriteOrganization)
+	req := NewRequestWithJSON(t, "PUT", "/api/v1/groups/"+strconv.FormatInt(groupID, 10)+"/teams/"+team, options).AddTokenAuth(token)
+	MakeRequest(t, req, expectedStatus)
+}
+
+func deleteGroupTeam(t *testing.T, actor string, groupID int64, team string, expectedStatus int) { //nolint:unused // WIP...
+	token := getUserToken(t, actor, auth_model.AccessTokenScopeWriteOrganization)
+	req := NewRequestf(t, "DELETE", "/api/v1/groups/%d/teams/%s", groupID, team).AddTokenAuth(token)
+	MakeRequest(t, req, expectedStatus)
 }
 
 func assertGroupOrderSanity(t *testing.T, actor, orgName string, groupID int64, extraAssertion ...func(g *api.Group, idx int)) {
