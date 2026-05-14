@@ -34,12 +34,12 @@ func TestIsSSHRemoteAddr(t *testing.T) {
 		{"", false},
 
 		// Edge cases that look SCP-ish but aren't
-		{"host:path", false},               // no '@'
-		{"@host:path", false},              // '@' at start, no user
-		{"git@host", false},                // no ':'
-		{"http://user@host/path", false},   // '/' before ':' (after scheme)
-		{"user@host/path:branch", false},   // '/' before ':' — looks like a URL path, not SCP
-		{":git@host:path", false},          // ':' before '@'
+		{"host:path", false},             // no '@'
+		{"@host:path", false},            // '@' at start, no user
+		{"git@host", false},              // no ':'
+		{"http://user@host/path", false}, // '/' before ':' (after scheme)
+		{"user@host/path:branch", false}, // '/' before ':' — looks like a URL path, not SCP
+		{":git@host:path", false},        // ':' before '@'
 	}
 	for _, c := range cases {
 		t.Run(c.input, func(t *testing.T) {
