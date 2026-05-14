@@ -1629,6 +1629,16 @@
         },
         "description": "WorkflowRunsList"
       },
+      "actionsRunsBulkResult": {
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ActionRunsBulkResult"
+            }
+          }
+        },
+        "description": "ActionRunsBulkResult"
+      },
       "conflict": {
         "description": "APIConflict is a conflict empty response"
       },
@@ -1962,6 +1972,19 @@
             "format": "int64",
             "type": "integer",
             "x-go-name": "TotalCount"
+          }
+        },
+        "type": "object",
+        "x-go-package": "code.gitea.io/gitea/modules/structs"
+      },
+      "ActionRunsBulkResult": {
+        "description": "ActionRunsBulkResult is returned by bulk cancel/delete endpoints",
+        "properties": {
+          "count": {
+            "description": "number of runs affected",
+            "format": "int64",
+            "type": "integer",
+            "x-go-name": "Count"
           }
         },
         "type": "object",
@@ -16122,6 +16145,68 @@
       }
     },
     "/repos/{owner}/{repo}/actions/runs": {
+      "delete": {
+        "operationId": "deleteActionRuns",
+        "parameters": [
+          {
+            "description": "owner of the repo",
+            "in": "path",
+            "name": "owner",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "name of the repository",
+            "in": "path",
+            "name": "repo",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "workflow file name to filter by (e.g. ci.yml)",
+            "in": "query",
+            "name": "workflow",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "user ID of the trigger actor to filter by",
+            "in": "query",
+            "name": "actor",
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "description": "status to filter by (success, failure, cancelled, skipped); only done runs can be deleted",
+            "in": "query",
+            "name": "status",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/components/responses/actionsRunsBulkResult"
+          },
+          "400": {
+            "$ref": "#/components/responses/error"
+          },
+          "404": {
+            "$ref": "#/components/responses/notFound"
+          }
+        },
+        "summary": "Delete all workflow runs matching the given filters",
+        "tags": [
+          "repository"
+        ]
+      },
       "get": {
         "operationId": "getWorkflowRuns",
         "parameters": [
@@ -16212,6 +16297,70 @@
           }
         },
         "summary": "Lists all runs for a repository run",
+        "tags": [
+          "repository"
+        ]
+      }
+    },
+    "/repos/{owner}/{repo}/actions/runs/cancel": {
+      "post": {
+        "operationId": "cancelActionRuns",
+        "parameters": [
+          {
+            "description": "owner of the repo",
+            "in": "path",
+            "name": "owner",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "name of the repository",
+            "in": "path",
+            "name": "repo",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "workflow file name to filter by (e.g. ci.yml)",
+            "in": "query",
+            "name": "workflow",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "user ID of the trigger actor to filter by",
+            "in": "query",
+            "name": "actor",
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "description": "status to filter by (waiting, running, blocked); if omitted, cancels waiting and running",
+            "in": "query",
+            "name": "status",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/components/responses/actionsRunsBulkResult"
+          },
+          "400": {
+            "$ref": "#/components/responses/error"
+          },
+          "404": {
+            "$ref": "#/components/responses/notFound"
+          }
+        },
+        "summary": "Cancel all workflow runs matching the given filters",
         "tags": [
           "repository"
         ]

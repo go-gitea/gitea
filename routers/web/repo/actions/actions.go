@@ -25,6 +25,7 @@ import (
 	"code.gitea.io/gitea/modules/templates"
 	"code.gitea.io/gitea/modules/util"
 	shared_user "code.gitea.io/gitea/routers/web/shared/user"
+	actions_service "code.gitea.io/gitea/services/actions"
 	"code.gitea.io/gitea/services/context"
 	"code.gitea.io/gitea/services/convert"
 
@@ -243,6 +244,86 @@ func prepareWorkflowDispatchTemplate(ctx *context.Context, workflowInfos []Workf
 		return
 	}
 	ctx.Data["Tags"] = tags
+}
+
+// BulkCancel cancels all runs matching the current view filters (workflow, actor, status).
+func BulkCancel(ctx *context.Context) {
+	opts := bulkRunOptsFromForm(ctx)
+	if len(opts.Status) == 0 {
+		opts.Status = []actions_model.Status{actions_model.StatusWaiting, actions_model.StatusRunning, actions_model.StatusBlocked}
+	}
+
+	runs, err := db.Find[actions_model.ActionRun](ctx, opts)
+	if err != nil {
+		ctx.ServerError("Find", err)
+		return
+	}
+
+	for _, run := range runs {
+		jobs, err := db.Find[actions_model.ActionRunJob](ctx, actions_model.FindRunJobOptions{RunID: run.ID})
+		if err != nil {
+			ctx.ServerError("FindRunJobs", err)
+			return
+		}
+		cancelledJobs, err := actions_model.CancelJobs(ctx, jobs)
+		if err != nil {
+			ctx.ServerError("CancelJobs", err)
+			return
+		}
+		if len(cancelledJobs) > 0 {
+			actions_service.CreateCommitStatusForRunJobs(ctx, run, jobs...)
+			actions_service.NotifyWorkflowJobsStatusUpdate(ctx, cancelledJobs...)
+			actions_service.NotifyWorkflowRunStatusUpdateWithReload(ctx, run.RepoID, run.ID)
+		}
+	}
+
+	ctx.JSONOK()
+}
+
+// BulkDelete deletes all done runs matching the current view filters (workflow, actor, status).
+func BulkDelete(ctx *context.Context) {
+	opts := bulkRunOptsFromForm(ctx)
+	if len(opts.Status) == 0 {
+		opts.Status = []actions_model.Status{
+			actions_model.StatusSuccess,
+			actions_model.StatusFailure,
+			actions_model.StatusCancelled,
+			actions_model.StatusSkipped,
+		}
+	}
+
+	runs, err := db.Find[actions_model.ActionRun](ctx, opts)
+	if err != nil {
+		ctx.ServerError("Find", err)
+		return
+	}
+
+	for _, run := range runs {
+		if !run.Status.IsDone() {
+			continue
+		}
+		if err := actions_service.DeleteRun(ctx, run); err != nil {
+			ctx.ServerError("DeleteRun", err)
+			return
+		}
+	}
+
+	ctx.JSONOK()
+}
+
+// bulkRunOptsFromForm builds FindRunOptions from the current request's query params.
+func bulkRunOptsFromForm(ctx *context.Context) actions_model.FindRunOptions {
+	opts := actions_model.FindRunOptions{
+		RepoID:        ctx.Repo.Repository.ID,
+		WorkflowID:    ctx.FormString("workflow"),
+		TriggerUserID: ctx.FormInt64("actor"),
+	}
+	if statusStr := ctx.FormString("status"); statusStr != "" {
+		if s, err := actions_model.ParseStatus(statusStr); err == nil {
+			opts.Status = []actions_model.Status{s}
+		}
+	}
+	return opts
 }
 
 func prepareWorkflowList(ctx *context.Context, workflows []WorkflowInfo) {

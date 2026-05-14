@@ -53,3 +53,10 @@ type swaggerResponseRunDetails struct {
 	// in:body
 	Body api.RunDetails `json:"body"`
 }
+
+// ActionRunsBulkResult
+// swagger:response actionsRunsBulkResult
+type swaggerResponseActionsRunsBulkResult struct {
+	// in:body
+	Body api.ActionRunsBulkResult `json:"body"`
+}

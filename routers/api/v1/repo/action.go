@@ -1800,6 +1800,186 @@ func DeleteActionRun(ctx *context.APIContext) {
 	ctx.Status(http.StatusNoContent)
 }
 
+// CancelActionRuns cancels all workflow runs matching the given filters
+func CancelActionRuns(ctx *context.APIContext) {
+	// swagger:operation POST /repos/{owner}/{repo}/actions/runs/cancel repository cancelActionRuns
+	// ---
+	// summary: Cancel all workflow runs matching the given filters
+	// produces:
+	// - application/json
+	// parameters:
+	// - name: owner
+	//   in: path
+	//   description: owner of the repo
+	//   type: string
+	//   required: true
+	// - name: repo
+	//   in: path
+	//   description: name of the repository
+	//   type: string
+	//   required: true
+	// - name: workflow
+	//   in: query
+	//   description: workflow file name to filter by (e.g. ci.yml)
+	//   type: string
+	//   required: false
+	// - name: actor
+	//   in: query
+	//   description: user ID of the trigger actor to filter by
+	//   type: integer
+	//   required: false
+	// - name: status
+	//   in: query
+	//   description: status to filter by (waiting, running, blocked); if omitted, cancels waiting and running
+	//   type: string
+	//   required: false
+	// responses:
+	//   "200":
+	//     "$ref": "#/responses/actionsRunsBulkResult"
+	//   "400":
+	//     "$ref": "#/responses/error"
+	//   "404":
+	//     "$ref": "#/responses/notFound"
+
+	opts, err := parseBulkRunOptions(ctx)
+	if err != nil {
+		ctx.APIError(http.StatusBadRequest, err.Error())
+		return
+	}
+	// default to cancellable statuses when no status filter given
+	if len(opts.Status) == 0 {
+		opts.Status = []actions_model.Status{actions_model.StatusWaiting, actions_model.StatusRunning, actions_model.StatusBlocked}
+	}
+
+	runs, err := db.Find[actions_model.ActionRun](ctx, opts)
+	if err != nil {
+		ctx.APIErrorInternal(err)
+		return
+	}
+
+	cancelled := 0
+	for _, run := range runs {
+		jobs, err := db.Find[actions_model.ActionRunJob](ctx, actions_model.FindRunJobOptions{RunID: run.ID})
+		if err != nil {
+			ctx.APIErrorInternal(err)
+			return
+		}
+		cancelledJobs, err := actions_model.CancelJobs(ctx, jobs)
+		if err != nil {
+			ctx.APIErrorInternal(err)
+			return
+		}
+		if len(cancelledJobs) > 0 {
+			actions_service.CreateCommitStatusForRunJobs(ctx, run, jobs...)
+			actions_service.NotifyWorkflowJobsStatusUpdate(ctx, cancelledJobs...)
+			actions_service.NotifyWorkflowRunStatusUpdateWithReload(ctx, run.RepoID, run.ID)
+			cancelled++
+		}
+	}
+
+	ctx.JSON(http.StatusOK, api.ActionRunsBulkResult{Count: cancelled})
+}
+
+// DeleteActionRuns deletes all workflow runs matching the given filters
+func DeleteActionRuns(ctx *context.APIContext) {
+	// swagger:operation DELETE /repos/{owner}/{repo}/actions/runs repository deleteActionRuns
+	// ---
+	// summary: Delete all workflow runs matching the given filters
+	// produces:
+	// - application/json
+	// parameters:
+	// - name: owner
+	//   in: path
+	//   description: owner of the repo
+	//   type: string
+	//   required: true
+	// - name: repo
+	//   in: path
+	//   description: name of the repository
+	//   type: string
+	//   required: true
+	// - name: workflow
+	//   in: query
+	//   description: workflow file name to filter by (e.g. ci.yml)
+	//   type: string
+	//   required: false
+	// - name: actor
+	//   in: query
+	//   description: user ID of the trigger actor to filter by
+	//   type: integer
+	//   required: false
+	// - name: status
+	//   in: query
+	//   description: status to filter by (success, failure, cancelled, skipped); only done runs can be deleted
+	//   type: string
+	//   required: false
+	// responses:
+	//   "200":
+	//     "$ref": "#/responses/actionsRunsBulkResult"
+	//   "400":
+	//     "$ref": "#/responses/error"
+	//   "404":
+	//     "$ref": "#/responses/notFound"
+
+	opts, err := parseBulkRunOptions(ctx)
+	if err != nil {
+		ctx.APIError(http.StatusBadRequest, err.Error())
+		return
+	}
+	// only done runs can be deleted; reject if caller asks for non-done statuses
+	for _, s := range opts.Status {
+		if !s.IsDone() {
+			ctx.APIError(http.StatusBadRequest, "can only delete runs with a done status (success, failure, cancelled, skipped)")
+			return
+		}
+	}
+	// default to all done statuses when no filter given
+	if len(opts.Status) == 0 {
+		opts.Status = []actions_model.Status{
+			actions_model.StatusSuccess,
+			actions_model.StatusFailure,
+			actions_model.StatusCancelled,
+			actions_model.StatusSkipped,
+		}
+	}
+
+	runs, err := db.Find[actions_model.ActionRun](ctx, opts)
+	if err != nil {
+		ctx.APIErrorInternal(err)
+		return
+	}
+
+	deleted := 0
+	for _, run := range runs {
+		if err := actions_service.DeleteRun(ctx, run); err != nil {
+			ctx.APIErrorInternal(err)
+			return
+		}
+		deleted++
+	}
+
+	ctx.JSON(http.StatusOK, api.ActionRunsBulkResult{Count: deleted})
+}
+
+// parseBulkRunOptions builds FindRunOptions from common query params for bulk run endpoints.
+func parseBulkRunOptions(ctx *context.APIContext) (actions_model.FindRunOptions, error) {
+	opts := actions_model.FindRunOptions{
+		RepoID:     ctx.Repo.Repository.ID,
+		WorkflowID: ctx.FormString("workflow"),
+	}
+	if actorID := ctx.FormInt64("actor"); actorID > 0 {
+		opts.TriggerUserID = actorID
+	}
+	if statusStr := ctx.FormString("status"); statusStr != "" {
+		s, err := actions_model.ParseStatus(statusStr)
+		if err != nil {
+			return opts, fmt.Errorf("invalid status %q: %w", statusStr, err)
+		}
+		opts.Status = []actions_model.Status{s}
+	}
+	return opts, nil
+}
+
 // GetArtifacts Lists all artifacts for a repository.
 func GetArtifacts(ctx *context.APIContext) {
 	// swagger:operation GET /repos/{owner}/{repo}/actions/artifacts repository getArtifacts

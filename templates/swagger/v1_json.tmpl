@@ -5359,6 +5359,118 @@
             "$ref": "#/responses/notFound"
           }
         }
+      },
+      "delete": {
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "repository"
+        ],
+        "summary": "Delete all workflow runs matching the given filters",
+        "operationId": "deleteActionRuns",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "owner of the repo",
+            "name": "owner",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "name of the repository",
+            "name": "repo",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "workflow file name to filter by (e.g. ci.yml)",
+            "name": "workflow",
+            "in": "query"
+          },
+          {
+            "type": "integer",
+            "description": "user ID of the trigger actor to filter by",
+            "name": "actor",
+            "in": "query"
+          },
+          {
+            "type": "string",
+            "description": "status to filter by (success, failure, cancelled, skipped); only done runs can be deleted",
+            "name": "status",
+            "in": "query"
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/responses/actionsRunsBulkResult"
+          },
+          "400": {
+            "$ref": "#/responses/error"
+          },
+          "404": {
+            "$ref": "#/responses/notFound"
+          }
+        }
+      }
+    },
+    "/repos/{owner}/{repo}/actions/runs/cancel": {
+      "post": {
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "repository"
+        ],
+        "summary": "Cancel all workflow runs matching the given filters",
+        "operationId": "cancelActionRuns",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "owner of the repo",
+            "name": "owner",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "name of the repository",
+            "name": "repo",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "workflow file name to filter by (e.g. ci.yml)",
+            "name": "workflow",
+            "in": "query"
+          },
+          {
+            "type": "integer",
+            "description": "user ID of the trigger actor to filter by",
+            "name": "actor",
+            "in": "query"
+          },
+          {
+            "type": "string",
+            "description": "status to filter by (waiting, running, blocked); if omitted, cancels waiting and running",
+            "name": "status",
+            "in": "query"
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/responses/actionsRunsBulkResult"
+          },
+          "400": {
+            "$ref": "#/responses/error"
+          },
+          "404": {
+            "$ref": "#/responses/notFound"
+          }
+        }
       }
     },
     "/repos/{owner}/{repo}/actions/runs/{run}": {
@@ -21794,6 +21906,19 @@
       },
       "x-go-package": "code.gitea.io/gitea/modules/structs"
     },
+    "ActionRunsBulkResult": {
+      "description": "ActionRunsBulkResult is returned by bulk cancel/delete endpoints",
+      "type": "object",
+      "properties": {
+        "count": {
+          "description": "number of runs affected",
+          "type": "integer",
+          "format": "int64",
+          "x-go-name": "Count"
+        }
+      },
+      "x-go-package": "code.gitea.io/gitea/modules/structs"
+    },
     "ActionTask": {
       "description": "ActionTask represents a ActionTask",
       "type": "object",
@@ -31386,6 +31511,12 @@
       "description": "WorkflowRunsList",
       "schema": {
         "$ref": "#/definitions/ActionWorkflowRunsResponse"
+      }
+    },
+    "actionsRunsBulkResult": {
+      "description": "ActionRunsBulkResult",
+      "schema": {
+        "$ref": "#/definitions/ActionRunsBulkResult"
       }
     },
     "conflict": {

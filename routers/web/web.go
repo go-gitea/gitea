@@ -1537,6 +1537,8 @@ func registerWebRoutes(m *web.Router, webAuth *AuthMiddleware) {
 		m.Get("/workflow-dispatch-inputs", reqRepoActionsWriter, actions.WorkflowDispatchInputs)
 		m.Post("/approve-all-checks", reqRepoActionsWriter, actions.ApproveAllChecks)
 
+		m.Post("/runs/cancel", reqRepoActionsWriter, actions.BulkCancel)
+		m.Post("/runs/delete", reqRepoActionsWriter, actions.BulkDelete)
 		m.Group("/runs/{run}", func() {
 			m.Combo("").
 				Get(actions.View).
