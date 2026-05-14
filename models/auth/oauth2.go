@@ -537,7 +537,7 @@ func (grant *OAuth2Grant) IncreaseCounter(ctx context.Context) error {
 		return err
 	}
 	if affected == 0 {
-		return fmt.Errorf("grant state changed during token refresh")
+		return errors.New("grant state changed during token refresh")
 	}
 	grant.Counter++
 	return nil
