@@ -2844,7 +2844,6 @@
   "org.teams.repos.none": "此团队无法访问任何仓库。",
   "org.teams.members.none": "团队中没有成员。",
   "org.teams.members.blocked_user": "不能添加用户因为他已经被该组织屏蔽。",
-  "org.teams.members.redundant_direct_membership": "该用户已成功直接加入团队，但他已经通过以下用户组属于该团队：%s。",
   "org.teams.specific_repositories": "指定仓库",
   "org.teams.specific_repositories_helper": "团队成员将只能访问添加到团队的仓库。 选择此项 <strong>将不会</strong> 自动删除已经添加的仓库。",
   "org.teams.all_repositories": "所有仓库",
