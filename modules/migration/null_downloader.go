@@ -6,6 +6,9 @@ package migration
 import (
 	"context"
 	"net/url"
+
+	"code.gitea.io/gitea/modules/git"
+	"code.gitea.io/gitea/modules/log"
 )
 
 // NullDownloader implements a blank downloader
@@ -66,6 +69,12 @@ func (n NullDownloader) GetReviews(_ context.Context, reviewable Reviewable) ([]
 // FormatCloneURL add authentication into remote URLs
 func (n NullDownloader) FormatCloneURL(opts MigrateOptions, remoteAddr string) (string, error) {
 	if len(opts.AuthToken) > 0 || len(opts.AuthUsername) > 0 {
+		// SSH addresses authenticate via key/agent, not via embedded credentials.
+		// Returning them as-is also avoids url.Parse mangling the SCP-like short form.
+		if git.IsSSHRemoteAddr(remoteAddr) {
+			log.Warn("auth_username/auth_token supplied with SSH clone address %q; ignored — SSH uses the keys/agent of the Gitea process", remoteAddr)
+			return remoteAddr, nil
+		}
 		u, err := url.Parse(remoteAddr)
 		if err != nil {
 			return "", err

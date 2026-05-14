@@ -79,11 +79,33 @@ func IsRemoteNotExistError(err error) bool {
 	return gitcmd.StderrHasPrefix(err, prefix1) || gitcmd.StderrHasPrefix(err, prefix2)
 }
 
+// IsSSHRemoteAddr reports whether remoteAddr looks like an SSH remote.
+// It matches both the URL form (ssh://user@host[:port]/path) and the
+// SCP-like short form (user@host:path) commonly used by Git hosts.
+func IsSSHRemoteAddr(remoteAddr string) bool {
+	remoteAddr = strings.TrimSpace(remoteAddr)
+	if strings.HasPrefix(remoteAddr, "ssh://") || strings.HasPrefix(remoteAddr, "git+ssh://") {
+		return true
+	}
+	// SCP-like short syntax: [user@]host:path. The first ':' must come before the first '/'
+	// (otherwise it's a URL or a path containing a colon).
+	at := strings.Index(remoteAddr, "@")
+	colon := strings.Index(remoteAddr, ":")
+	slash := strings.Index(remoteAddr, "/")
+	if at <= 0 || colon <= at {
+		return false
+	}
+	if slash >= 0 && slash < colon {
+		return false
+	}
+	return true
+}
+
 // ParseRemoteAddr checks if given remote address is valid,
 // and returns composed URL with needed username and password.
 func ParseRemoteAddr(remoteAddr, authUsername, authPassword string) (string, error) {
 	remoteAddr = strings.TrimSpace(remoteAddr)
-	// Remote address can be HTTP/HTTPS/Git URL or local path.
+	// Remote address can be HTTP/HTTPS/Git/SSH URL, SCP-like short SSH syntax or local path.
 	if strings.HasPrefix(remoteAddr, "http://") ||
 		strings.HasPrefix(remoteAddr, "https://") ||
 		strings.HasPrefix(remoteAddr, "git://") {
@@ -96,6 +118,10 @@ func ParseRemoteAddr(remoteAddr, authUsername, authPassword string) (string, err
 		}
 		remoteAddr = u.String()
 	}
+
+	// SSH addresses (ssh:// URL form or SCP-like git@host:path form) authenticate
+	// with a key/agent at clone time, so we don't embed username/password in the URL.
+	// We keep the raw address as-is so that git understands the SCP form.
 
 	return remoteAddr, nil
 }

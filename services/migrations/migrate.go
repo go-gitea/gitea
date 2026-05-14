@@ -18,6 +18,7 @@ import (
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/container"
 	"code.gitea.io/gitea/modules/git"
+	giturl "code.gitea.io/gitea/modules/git/url"
 	"code.gitea.io/gitea/modules/hostmatcher"
 	"code.gitea.io/gitea/modules/log"
 	base "code.gitea.io/gitea/modules/migration"
@@ -42,7 +43,23 @@ func RegisterDownloaderFactory(factory base.DownloaderFactory) {
 
 // IsMigrateURLAllowed checks if an URL is allowed to be migrated from
 func IsMigrateURLAllowed(remoteURL string, doer *user_model.User) error {
-	// Remote address can be HTTP/HTTPS/Git URL or local path.
+	// Remote address can be HTTP/HTTPS/Git/SSH URL, SCP-like SSH short form or local path.
+	if git.IsSSHRemoteAddr(remoteURL) {
+		gitURL, err := giturl.ParseGitURL(remoteURL)
+		if err != nil {
+			return &git.ErrInvalidCloneAddr{IsURLError: true, Host: remoteURL}
+		}
+		hostName, _, errIgnored := net.SplitHostPort(gitURL.Host)
+		if errIgnored != nil {
+			hostName = gitURL.Host
+		}
+		if hostName == "" {
+			return &git.ErrInvalidCloneAddr{IsURLError: true, Host: remoteURL}
+		}
+		addrList, _ := net.LookupIP(hostName)
+		return checkByAllowBlockList(hostName, addrList)
+	}
+
 	u, err := url.Parse(remoteURL)
 	if err != nil {
 		return &git.ErrInvalidCloneAddr{IsURLError: true, Host: remoteURL}
@@ -204,10 +221,17 @@ func migrateRepository(ctx context.Context, doer *user_model.User, downloader ba
 			return err
 		}
 
-		// SECURITY: Ensure that we haven't been redirected from an external to a local filesystem
-		// Now we know all of these must parse
-		cloneAddrURL, _ := url.Parse(opts.CloneAddr)
-		cloneURL, _ := url.Parse(repo.CloneURL)
+		// SECURITY: Ensure that we haven't been redirected from an external to a local filesystem.
+		// Use giturl.ParseGitURL so SCP-like SSH addresses (git@host:owner/repo.git) parse
+		// without erroring; net/url.Parse rejects them as "first path segment cannot contain colon".
+		cloneAddrURL, err := giturl.ParseGitURL(opts.CloneAddr)
+		if err != nil {
+			return err
+		}
+		cloneURL, err := giturl.ParseGitURL(repo.CloneURL)
+		if err != nil {
+			return err
+		}
 
 		if cloneURL.Scheme == "file" || cloneURL.Scheme == "" {
 			if cloneAddrURL.Scheme != "file" && cloneAddrURL.Scheme != "" {

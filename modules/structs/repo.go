@@ -384,6 +384,12 @@ func (gt GitServiceType) Title() string {
 // MigrateRepoOptions options for migrating repository's
 // this is used to interact with api v1
 type MigrateRepoOptions struct {
+	// CloneAddr is the source URL. Supported forms: HTTP(S) URLs (https://host/owner/repo.git),
+	// Git URLs (git://host/path), SSH URLs (ssh://user@host[:port]/path) and the
+	// SCP-like SSH short syntax (user@host:owner/repo.git). When using an SSH address,
+	// authentication relies on the keys/configuration available to the Gitea server
+	// process (for example via the GIT_SSH_COMMAND environment variable);
+	// auth_username/auth_password are ignored for SSH addresses.
 	// required: true
 	CloneAddr string `json:"clone_addr" binding:"Required"`
 	// deprecated (only for backwards compatibility, use repo_owner instead)
