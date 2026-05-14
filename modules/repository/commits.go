@@ -179,11 +179,8 @@ func (pc *PushCommit) AuthorUser(ctx context.Context) *user_model.User {
 		}
 	}
 	u, err := user_model.GetUserByEmail(ctx, pc.AuthorEmail)
-	if err != nil {
-		if !user_model.IsErrUserNotExist(err) {
-			log.Error("GetUserByEmail: %v", err)
-		}
-		u = nil
+	if err != nil && !user_model.IsErrUserNotExist(err) {
+		log.Error("GetUserByEmail: %v", err)
 	}
 	if c != nil {
 		c.Put(cachegroup.User, key, u)

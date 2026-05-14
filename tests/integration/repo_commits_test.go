@@ -38,7 +38,7 @@ func TestRepoCommits(t *testing.T) {
 		doc.doc.Find("#commits-table .commit-id-short").Each(func(i int, s *goquery.Selection) {
 			commits = append(commits, path.Base(s.AttrOr("href", "")))
 		})
-		doc.doc.Find("#commits-table .author-wrapper a").Each(func(i int, s *goquery.Selection) {
+		doc.doc.Find("#commits-table .author-wrapper a.muted").Each(func(i int, s *goquery.Selection) {
 			userHrefs = append(userHrefs, s.AttrOr("href", ""))
 		})
 		assert.Equal(t, []string{"69554a64c1e6030f051e5c3f94bfbd773cd6a324", "27566bd5738fc8b4e3fef3c5e72cce608537bd95", "5099b81332712fe655e34e8dd63574f503f61811"}, commits)

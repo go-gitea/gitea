@@ -34,16 +34,11 @@ import (
 )
 
 type RenderUtils struct {
-	ctx       reqctx.RequestContext
-	repoLink  string
-	refSubURL string
+	ctx reqctx.RequestContext
 }
 
 func NewRenderUtils(ctx reqctx.RequestContext) *RenderUtils {
-	data := ctx.GetData()
-	repoLink, _ := data["RepoLink"].(string)
-	refSubURL, _ := data["RefTypeNameSubURL"].(string)
-	return &RenderUtils{ctx: ctx, repoLink: repoLink, refSubURL: refSubURL}
+	return &RenderUtils{ctx: ctx}
 }
 
 // RenderCommitMessage renders commit message with XSS-safe and special links.
@@ -338,10 +333,13 @@ func (ut *RenderUtils) commitAuthorSearchURL(value string) template.URL {
 	if value == "" || strings.ContainsAny(value, " \t\r\n") {
 		return ""
 	}
-	if ut.repoLink == "" || ut.refSubURL == "" {
+	data := ut.ctx.GetData()
+	repoLink, _ := data["RepoLink"].(string)
+	refSubURL, _ := data["RefTypeNameSubURL"].(string)
+	if repoLink == "" || refSubURL == "" {
 		return ""
 	}
-	return template.URL(ut.repoLink + "/commits/" + ut.refSubURL + "/search?q=" + url.QueryEscape("author:"+value))
+	return template.URL(repoLink + "/commits/" + refSubURL + "/search?q=" + url.QueryEscape("author:"+value))
 }
 
 func authorSearchEmail(u *user_model.User, sig *git.Signature) string {
@@ -389,9 +387,6 @@ func authorDisplayName(u *user_model.User, sig *git.Signature) string {
 func (ut *RenderUtils) AvatarStack(authorUser *user_model.User, authorSig *git.Signature, coAuthors []*user_model.CoAuthorUser) template.HTML {
 	if authorUser == nil && authorSig == nil {
 		return ""
-	}
-	if len(coAuthors) == 0 {
-		return ut.authorAvatar(authorUser, authorSig)
 	}
 
 	const maxCo = 9

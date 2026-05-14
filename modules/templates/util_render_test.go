@@ -250,7 +250,6 @@ func TestCoAuthorAvatars(t *testing.T) {
 		assert.Contains(t, got, "Alice")
 		assert.NotContains(t, got, "coauthor_and")
 		assert.NotContains(t, got, "coauthor_people")
-		assert.NotContains(t, got, "avatar-stack")
 	})
 
 	t.Run("single co-author uses and label", func(t *testing.T) {
