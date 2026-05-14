@@ -5,7 +5,7 @@
 	{{$index = Eval $index "+" 1}}
 	<div class="flex-text-block" id="{{$tag}}">{{/*singular-commit*/}}
 		<span class="badge badge-commit">{{svg "octicon-git-commit"}}</span>
-		{{ctx.RenderUtils.AvatarStack .User .Author .CoAuthors ""}}
+		{{ctx.RenderUtils.AvatarStack .User .Author .CoAuthors}}
 
 		{{$commitBaseLink := printf "%s/commit" $.comment.Issue.PullRequest.BaseRepo.Link}}
 		{{$commitLink:= printf "%s/%s" $commitBaseLink (PathEscape .ID.String)}}

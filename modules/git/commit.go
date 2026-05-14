@@ -13,17 +13,20 @@ import (
 	"strings"
 
 	"code.gitea.io/gitea/modules/charset"
+	"code.gitea.io/gitea/modules/container"
 	"code.gitea.io/gitea/modules/git/gitcmd"
 	"code.gitea.io/gitea/modules/util"
 )
 
+// CoAuthoredByTrailer is the canonical token for the `Co-authored-by:` git trailer.
+const CoAuthoredByTrailer = "Co-authored-by"
+
 type CommitMessage struct {
-	MessageRaw      string
-	messageUTF8     *string
-	messageTitle    *string
-	messageBody     *string
-	coAuthors       []*Signature
-	coAuthorsParsed bool
+	MessageRaw   string
+	messageUTF8  *string
+	messageTitle *string
+	messageBody  *string
+	coAuthors    *[]*Signature
 }
 
 // Commit represents a git commit.
@@ -94,7 +97,7 @@ func parseCoAuthorTrailer(line string) (*Signature, bool) {
 	if !ok {
 		return nil, false
 	}
-	if !strings.EqualFold(token, "Co-authored-by") {
+	if !strings.EqualFold(token, CoAuthoredByTrailer) {
 		return nil, false
 	}
 	addr, err := mail.ParseAddress(strings.TrimSpace(rest))
@@ -109,15 +112,15 @@ func parseCoAuthorTrailer(line string) (*Signature, bool) {
 // contain only trailer-shaped lines) so in-body occurrences inside a revert or
 // cherry-pick description are not misinterpreted as trailers.
 func (c *CommitMessage) parseCoAuthorSignatures() []*Signature {
-	if c.coAuthorsParsed {
-		return c.coAuthors
+	if c.coAuthors != nil {
+		return *c.coAuthors
 	}
-	body := strings.ReplaceAll(strings.TrimRight(c.MessageBody(), "\r\n"), "\r\n", "\n")
+	body := strings.TrimRight(util.NormalizeStringEOL(c.MessageBody()), "\n")
 	if idx := strings.LastIndex(body, "\n\n"); idx >= 0 {
 		body = body[idx+2:]
 	}
 	var sigs []*Signature
-	var seen map[string]struct{}
+	seen := container.Set[string]{}
 	for line := range strings.SplitSeq(body, "\n") {
 		if !isTrailerLineShape(line) {
 			sigs = nil
@@ -127,17 +130,12 @@ func (c *CommitMessage) parseCoAuthorSignatures() []*Signature {
 		if !ok {
 			continue
 		}
-		if _, dup := seen[sig.Email]; dup {
+		if !seen.Add(sig.Email) {
 			continue
 		}
-		if seen == nil {
-			seen = make(map[string]struct{})
-		}
-		seen[sig.Email] = struct{}{}
 		sigs = append(sigs, sig)
 	}
-	c.coAuthors = sigs
-	c.coAuthorsParsed = true
+	c.coAuthors = &sigs
 	return sigs
 }
 
@@ -148,16 +146,16 @@ func (c *Commit) CoAuthorSignatures() []*Signature {
 	if len(raw) == 0 {
 		return raw
 	}
-	exclude := make(map[string]struct{})
+	exclude := container.Set[string]{}
 	if c.Author != nil {
-		exclude[strings.ToLower(strings.TrimSpace(c.Author.Email))] = struct{}{}
+		exclude.Add(strings.ToLower(strings.TrimSpace(c.Author.Email)))
 	}
 	if c.Committer != nil {
-		exclude[strings.ToLower(strings.TrimSpace(c.Committer.Email))] = struct{}{}
+		exclude.Add(strings.ToLower(strings.TrimSpace(c.Committer.Email)))
 	}
 	out := make([]*Signature, 0, len(raw))
 	for _, sig := range raw {
-		if _, skip := exclude[sig.Email]; skip {
+		if exclude.Contains(sig.Email) {
 			continue
 		}
 		out = append(out, sig)

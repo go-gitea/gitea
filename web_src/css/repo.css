@@ -153,12 +153,6 @@ td .commit-summary {
   gap: 0.5em;
 }
 
-/* use semibold for latest commit author */
-.latest-commit .author-wrapper > a,
-.latest-commit .author-wrapper > .authors-popup-trigger {
-  font-weight: var(--font-weight-semibold);
-}
-
 @media (max-width: 767.98px) {
   .latest-commit .commit-id-short {
     display: none;
@@ -1399,96 +1393,12 @@ tbody.commit-list {
   vertical-align: baseline;
 }
 
-.message-wrapper,
-.author-wrapper {
+.message-wrapper {
   overflow: hidden;
   text-overflow: ellipsis;
   max-width: 100%;
   display: inline-block;
   vertical-align: middle;
-}
-
-.author-wrapper {
-  max-width: 240px;
-  align-self: center;
-  white-space: nowrap;
-  display: inline-flex;
-  align-items: center;
-}
-
-.avatar-stack {
-  display: inline-flex;
-  align-items: center;
-}
-
-/* inline --n on each child drives z-index and the hover spread */
-.avatar-stack > * {
-  margin-left: -16px;
-  transition: transform 0.15s ease;
-  position: relative;
-  display: inline-flex;
-  border-radius: 50%;
-  z-index: calc(100 - var(--n, 0));
-}
-
-.avatar-stack > *:first-child {
-  margin-left: 0;
-}
-
-.avatar-stack > *:nth-child(2) {
-  margin-left: -14px;
-}
-
-.avatar-stack:hover > * {
-  transform: translateX(max(0px, calc(14px + (var(--n, 0) - 1) * 16px)));
-}
-
-.avatar-stack .avatar {
-  border: 2px solid var(--color-body);
-  background: var(--color-body);
-  border-radius: 50%;
-}
-
-.avatar-stack-overflow-chip {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 20px;
-  height: 20px;
-  font-weight: var(--font-weight-semibold);
-  border: 2px solid var(--color-body);
-  border-radius: 50%;
-  background: var(--color-secondary);
-  color: var(--color-text);
-}
-
-.authors-popup-trigger {
-  cursor: pointer;
-  background: none;
-  border: none;
-  padding: 0;
-  font: inherit;
-  color: inherit;
-}
-
-.authors-popup-trigger:hover {
-  color: var(--color-primary);
-}
-
-.authors-popup {
-  min-width: 200px;
-  display: flex;
-  flex-direction: column;
-  padding: 4px 0;
-}
-
-.authors-popup > a {
-  padding: 6px 12px;
-  gap: 8px;
-}
-
-.authors-popup > a:hover {
-  background: var(--color-hover);
 }
 
 .latest-commit .message-wrapper {
@@ -1504,9 +1414,6 @@ tbody.commit-list {
 @media (max-width: 767.98px) {
   tr.commit-list {
     width: 100%;
-  }
-  .author-wrapper {
-    max-width: 80px;
   }
 }
 

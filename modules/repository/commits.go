@@ -168,6 +168,20 @@ func (pc *PushCommit) AuthorSignature() *git.Signature {
 	return &git.Signature{Email: pc.AuthorEmail, Name: pc.AuthorName}
 }
 
+// AuthorUser resolves the author email to a Gitea user via per-request cache, nil if no match.
+func (pc *PushCommit) AuthorUser(ctx context.Context) *user_model.User {
+	u, err := cache.GetWithContextCache(ctx, cachegroup.User, "email:"+pc.AuthorEmail, func(ctx context.Context, _ string) (*user_model.User, error) {
+		return user_model.GetUserByEmail(ctx, pc.AuthorEmail)
+	})
+	if err != nil {
+		if !user_model.IsErrUserNotExist(err) {
+			log.Error("GetUserByEmail: %v", err)
+		}
+		return nil
+	}
+	return u
+}
+
 // CoAuthorUsers returns co-authors in the template view shape, without resolved Gitea users.
 func (pc *PushCommit) CoAuthorUsers() []*user_model.CoAuthorUser {
 	if len(pc.CoAuthors) == 0 {
