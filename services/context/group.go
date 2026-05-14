@@ -40,6 +40,11 @@ type RepoGroup struct {
 	Team                 *organization.Team
 	Teams                []*organization.Team
 	GroupTeam            *group_model.RepoGroupTeam
+	doerCanAccess        bool
+}
+
+func (g *RepoGroup) DoerCanAccess() bool {
+	return g.doerCanAccess
 }
 
 func (g *RepoGroup) CanWriteUnit(ctx context.Context, doer *user_model.User, unitType unit.Type) bool {
