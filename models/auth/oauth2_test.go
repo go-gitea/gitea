@@ -4,6 +4,8 @@
 package auth_test
 
 import (
+	"crypto/sha256"
+	"encoding/base64"
 	"testing"
 	"time"
 
@@ -116,6 +118,41 @@ func TestOAuth2Application_ContainsRedirect_Slash(t *testing.T) {
 	assert.False(t, app.ContainsRedirectURI("http://127.0.0.1/other"))
 }
 
+func TestOAuth2Application_ContainsRedirectURI_ASCIIOnlyNormalization(t *testing.T) {
+	testCases := []struct {
+		name        string
+		registered  []string
+		redirectURI string
+		allowed     bool
+	}{
+		{
+			name:        "exact-match",
+			registered:  []string{"https://signin.example.test/callback"},
+			redirectURI: "https://signin.example.test/callback",
+			allowed:     true,
+		},
+		{
+			name:        "ascii-case-insensitive",
+			registered:  []string{"https://signin.example.test/callback"},
+			redirectURI: "https://signIN.example.test/callback",
+			allowed:     true,
+		},
+		{
+			name:        "non-ascii-not-folded",
+			registered:  []string{"https://signin.example.test/callback"},
+			redirectURI: "https://signİn.example.test/callback",
+			allowed:     false,
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			app := &auth_model.OAuth2Application{RedirectURIs: tc.registered}
+			assert.Equal(t, tc.allowed, app.ContainsRedirectURI(tc.redirectURI))
+		})
+	}
+}
+
 func TestOAuth2Application_ValidateClientSecret(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 	app := unittest.AssertExistsAndLoadBean(t, &auth_model.OAuth2Application{ID: 1})
@@ -193,6 +230,17 @@ func TestOAuth2Grant_IncreaseCounter(t *testing.T) {
 	unittest.AssertExistsAndLoadBean(t, &auth_model.OAuth2Grant{ID: 1, Counter: 2})
 }
 
+func TestOAuth2Grant_IncreaseCounterRejectsStaleCounter(t *testing.T) {
+	assert.NoError(t, unittest.PrepareTestDatabase())
+	grant := unittest.AssertExistsAndLoadBean(t, &auth_model.OAuth2Grant{ID: 1, Counter: 1})
+	stale := *grant
+
+	assert.NoError(t, grant.IncreaseCounter(t.Context()))
+	err := stale.IncreaseCounter(t.Context())
+	assert.Error(t, err)
+	assert.Contains(t, err.Error(), "grant state changed during token refresh")
+}
+
 func TestOAuth2Grant_ScopeContains(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 	grant := unittest.AssertExistsAndLoadBean(t, &auth_model.OAuth2Grant{ID: 1, Scope: "openid profile"})
@@ -237,35 +285,114 @@ func TestRevokeOAuth2Grant(t *testing.T) {
 //////////////////// Authorization Code
 
 func TestOAuth2AuthorizationCode_ValidateCodeChallenge(t *testing.T) {
-	// test plain
-	code := &auth_model.OAuth2AuthorizationCode{
-		CodeChallengeMethod: "plain",
-		CodeChallenge:       "test123",
-	}
-	assert.True(t, code.ValidateCodeChallenge("test123"))
-	assert.False(t, code.ValidateCodeChallenge("ierwgjoergjio"))
+	s256Verifier := "phase4-s256-verifier"
+	s256Sum := sha256.Sum256([]byte(s256Verifier))
+	missingVerifierSeed := "phase4-verifier-without-body"
+	missingVerifierSum := sha256.Sum256([]byte(missingVerifierSeed))
 
-	// test S256
-	code = &auth_model.OAuth2AuthorizationCode{
-		CodeChallengeMethod: "S256",
-		CodeChallenge:       "CjvyTLSdR47G5zYenDA-eDWW4lRrO8yvjcWwbD_deOg",
+	testCases := []struct {
+		name     string
+		code     *auth_model.OAuth2AuthorizationCode
+		verifier string
+		valid    bool
+	}{
+		{
+			name: "plain-success",
+			code: &auth_model.OAuth2AuthorizationCode{
+				CodeChallengeMethod: "plain",
+				CodeChallenge:       "plain-phase4-secret",
+			},
+			verifier: "plain-phase4-secret",
+			valid:    true,
+		},
+		{
+			name: "plain-failure",
+			code: &auth_model.OAuth2AuthorizationCode{
+				CodeChallengeMethod: "plain",
+				CodeChallenge:       "plain-phase4-secret",
+			},
+			verifier: "ierwgjoergjio",
+			valid:    false,
+		},
+		{
+			name: "s256-success",
+			code: &auth_model.OAuth2AuthorizationCode{
+				CodeChallengeMethod: "S256",
+				CodeChallenge:       base64.RawURLEncoding.EncodeToString(s256Sum[:]),
+			},
+			verifier: s256Verifier,
+			valid:    true,
+		},
+		{
+			name: "s256-failure",
+			code: &auth_model.OAuth2AuthorizationCode{
+				CodeChallengeMethod: "S256",
+				CodeChallenge:       base64.RawURLEncoding.EncodeToString(s256Sum[:]),
+			},
+			verifier: "wiogjerogorewngoenrgoiuenorg",
+			valid:    false,
+		},
+		{
+			name: "unsupported-method",
+			code: &auth_model.OAuth2AuthorizationCode{
+				CodeChallengeMethod: "monkey",
+				CodeChallenge:       "foiwgjioriogeiogjerger",
+			},
+			verifier: "foiwgjioriogeiogjerger",
+			valid:    false,
+		},
+		{
+			name: "no-pkce-configured",
+			code: &auth_model.OAuth2AuthorizationCode{
+				CodeChallengeMethod: "",
+				CodeChallenge:       "",
+			},
+			verifier: "",
+			valid:    true,
+		},
+		{
+			name: "s256-missing-verifier",
+			code: &auth_model.OAuth2AuthorizationCode{
+				CodeChallengeMethod: "S256",
+				CodeChallenge:       base64.RawURLEncoding.EncodeToString(missingVerifierSum[:]),
+			},
+			verifier: "",
+			valid:    false,
+		},
+		{
+			name: "plain-missing-verifier",
+			code: &auth_model.OAuth2AuthorizationCode{
+				CodeChallengeMethod: "plain",
+				CodeChallenge:       "plain-phase4-secret",
+			},
+			verifier: "",
+			valid:    false,
+		},
+		{
+			name: "missing-method-with-challenge",
+			code: &auth_model.OAuth2AuthorizationCode{
+				CodeChallengeMethod: "",
+				CodeChallenge:       "foierjiogerogerg",
+			},
+			verifier: "",
+			valid:    false,
+		},
+		{
+			name: "missing-method-rejects-even-matching-verifier",
+			code: &auth_model.OAuth2AuthorizationCode{
+				CodeChallengeMethod: "",
+				CodeChallenge:       "foierjiogerogerg",
+			},
+			verifier: "foierjiogerogerg",
+			valid:    false,
+		},
 	}
-	assert.True(t, code.ValidateCodeChallenge("N1Zo9-8Rfwhkt68r1r29ty8YwIraXR8eh_1Qwxg7yQXsonBt"))
-	assert.False(t, code.ValidateCodeChallenge("wiogjerogorewngoenrgoiuenorg"))
 
-	// test unknown
-	code = &auth_model.OAuth2AuthorizationCode{
-		CodeChallengeMethod: "monkey",
-		CodeChallenge:       "foiwgjioriogeiogjerger",
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			assert.Equal(t, tc.valid, tc.code.ValidateCodeChallenge(tc.verifier))
+		})
 	}
-	assert.False(t, code.ValidateCodeChallenge("foiwgjioriogeiogjerger"))
-
-	// test no code challenge
-	code = &auth_model.OAuth2AuthorizationCode{
-		CodeChallengeMethod: "",
-		CodeChallenge:       "foierjiogerogerg",
-	}
-	assert.True(t, code.ValidateCodeChallenge(""))
 }
 
 func TestOAuth2AuthorizationCode_GenerateRedirectURI(t *testing.T) {

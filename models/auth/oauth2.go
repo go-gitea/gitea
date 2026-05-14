@@ -6,6 +6,7 @@ package auth
 import (
 	"context"
 	"crypto/sha256"
+	"crypto/subtle"
 	"encoding/base32"
 	"encoding/base64"
 	"errors"
@@ -151,30 +152,40 @@ func (app *OAuth2Application) ContainsRedirectURI(redirectURI string) bool {
 	// https://www.rfc-editor.org/rfc/rfc6819#section-5.2.3.3
 	// https://openid.net/specs/openid-connect-core-1_0.html#AuthRequest
 	// https://datatracker.ietf.org/doc/html/draft-ietf-oauth-security-topics-12#section-3.1
-	contains := func(s string) bool {
-		s = strings.TrimSuffix(strings.ToLower(s), "/")
-		for _, u := range app.RedirectURIs {
-			if strings.TrimSuffix(strings.ToLower(u), "/") == s {
+	redirectCandidates := []string{redirectURI}
+	if !app.ConfidentialClient {
+		loopbackRedirect, ok := normalizePublicClientRedirectURI(redirectURI)
+		if ok {
+			redirectCandidates = append(redirectCandidates, loopbackRedirect)
+		}
+	}
+
+	for _, candidate := range redirectCandidates {
+		normalizedCandidate := normalizeRedirectURIForComparison(candidate)
+		for _, registeredURI := range app.RedirectURIs {
+			if normalizeRedirectURIForComparison(registeredURI) == normalizedCandidate {
 				return true
 			}
 		}
-		return false
 	}
-	if !app.ConfidentialClient {
-		uri, err := url.Parse(redirectURI)
-		// ignore port for http loopback uris following https://datatracker.ietf.org/doc/html/rfc8252#section-7.3
-		if err == nil && uri.Scheme == "http" && uri.Port() != "" {
-			ip := net.ParseIP(uri.Hostname())
-			if ip != nil && ip.IsLoopback() {
-				// strip port
-				uri.Host = uri.Hostname()
-				if contains(uri.String()) {
-					return true
-				}
-			}
-		}
+
+	return false
+}
+
+func normalizeRedirectURIForComparison(redirectURI string) string {
+	return strings.TrimSuffix(util.ToLowerASCII(redirectURI), "/")
+}
+
+func normalizePublicClientRedirectURI(redirectURI string) (string, bool) {
+	parsedURI, err := url.Parse(redirectURI)
+	if err != nil || parsedURI.Scheme != "http" || parsedURI.Port() == "" {
+		return "", false
 	}
-	return contains(redirectURI)
+	if ip := net.ParseIP(parsedURI.Hostname()); ip == nil || !ip.IsLoopback() {
+		return "", false
+	}
+	parsedURI.Host = parsedURI.Hostname()
+	return parsedURI.String(), true
 }
 
 // Base32 characters, but lowercased.
@@ -424,22 +435,35 @@ func (code *OAuth2AuthorizationCode) Invalidate(ctx context.Context) error {
 	return nil
 }
 
+func (code *OAuth2AuthorizationCode) requiresCodeVerifier() bool {
+	return code.CodeChallengeMethod != "" || code.CodeChallenge != ""
+}
+
+func deriveCodeChallenge(method, verifier string) (string, bool) {
+	switch method {
+	case "S256":
+		hash := sha256.Sum256([]byte(verifier))
+		return base64.RawURLEncoding.EncodeToString(hash[:]), true
+	case "plain":
+		return verifier, true
+	default:
+		return "", false
+	}
+}
+
 // ValidateCodeChallenge validates the given verifier against the saved code challenge. This is part of the PKCE implementation.
 func (code *OAuth2AuthorizationCode) ValidateCodeChallenge(verifier string) bool {
-	switch code.CodeChallengeMethod {
-	case "S256":
-		// base64url(SHA256(verifier)) see https://tools.ietf.org/html/rfc7636#section-4.6
-		h := sha256.Sum256([]byte(verifier))
-		hashedVerifier := base64.RawURLEncoding.EncodeToString(h[:])
-		return hashedVerifier == code.CodeChallenge
-	case "plain":
-		return verifier == code.CodeChallenge
-	case "":
+	if !code.requiresCodeVerifier() {
 		return true
-	default:
-		// unsupported method -> return false
+	}
+	if verifier == "" || code.CodeChallengeMethod == "" {
 		return false
 	}
+	expectedChallenge, ok := deriveCodeChallenge(code.CodeChallengeMethod, verifier)
+	if !ok {
+		return false
+	}
+	return subtle.ConstantTimeCompare([]byte(expectedChallenge), []byte(code.CodeChallenge)) == 1
 }
 
 // GetOAuth2AuthorizationByCode returns an authorization by its code
@@ -504,15 +528,18 @@ func (grant *OAuth2Grant) GenerateNewAuthorizationCode(ctx context.Context, redi
 
 // IncreaseCounter increases the counter and updates the grant
 func (grant *OAuth2Grant) IncreaseCounter(ctx context.Context) error {
-	_, err := db.GetEngine(ctx).ID(grant.ID).Incr("counter").Update(new(OAuth2Grant))
+	affected, err := db.GetEngine(ctx).
+		Where("id = ?", grant.ID).
+		And("counter = ?", grant.Counter).
+		Incr("counter").
+		Update(new(OAuth2Grant))
 	if err != nil {
 		return err
 	}
-	updatedGrant, err := GetOAuth2GrantByID(ctx, grant.ID)
-	if err != nil {
-		return err
+	if affected == 0 {
+		return fmt.Errorf("grant state changed during token refresh")
 	}
-	grant.Counter = updatedGrant.Counter
+	grant.Counter++
 	return nil
 }
 
