@@ -301,6 +301,14 @@ a.ui.ui.ui.grey.label:hover {
   vertical-align: 1.5px; /* compensates inline-flex baseline so labels center with text */
 }
 
+.repository.view.issue .comment-list .timeline-item .comment-text-line:has(.labels-list) {
+  line-height: 24px; /* override the abused 32px so wrapped labels get 4px gap */
+}
+
+.timeline-item.event .labels-list > a {
+  margin-block: 0; /* line-height provides the vertical gap, avoid double-spacing */
+}
+
 /* Scoped labels with different colors on left and right */
 .ui.label.scope-parent {
   background: none !important;
