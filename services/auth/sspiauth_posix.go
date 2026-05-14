@@ -12,7 +12,7 @@ import (
 
 type SSPIUserInfo struct {
 	Username string   // Name of user, usually in the form DOMAIN\User
-	Groups   []string // The user groups the user is a member of
+	Groups   []string // The global groups the user is a member of
 }
 
 type sspiAuthMock struct{}
