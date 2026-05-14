@@ -142,7 +142,7 @@ async function deleteArtifact(name: string) {
     <div class="action-view-body">
       <div class="action-view-left">
         <!-- summary -->
-        <a class="action-view-sidebar-item silenced" :href="run.viewLink" :class="!props.jobId ? 'selected' : ''">
+        <a class="action-view-sidebar-item flex-text-block silenced" :href="run.viewLink" :class="!props.jobId ? 'selected' : ''">
           <SvgIcon name="octicon-home"/>
           <span class="gt-ellipsis">{{ locale.summary }}</span>
         </a>
@@ -317,10 +317,6 @@ async function deleteArtifact(name: string) {
 .action-view-sidebar-item {
   padding: 6px 10px;
   border-radius: var(--border-radius);
-  display: flex;
-  flex-wrap: nowrap;
-  align-items: center;
-  gap: var(--gap-block);
 }
 
 .action-view-sidebar-item:hover {
