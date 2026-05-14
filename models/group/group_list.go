@@ -124,17 +124,14 @@ func AccessibleGroupCondition(user *user_model.User, unitType unit.Type, minMode
 		cond = cond.Or(condAnd)
 	}
 	if user != nil {
-		cond = cond.Or(universalGroupPermBuilder("`repo_group`.id", user.ID, true))
-		cond = cond.Or(UserOrgTeamPermCond("`repo_group`.id", user.ID, minMode))
-		if unitType == unit.TypeInvalid {
-			cond = cond.Or(
-				UserOrgTeamGroupCond("`repo_group`.id", user.ID),
-			)
-		} else {
-			cond = cond.Or(
+		modeCond := UserOrgTeamPermCond("`repo_group`.id", user.ID, minMode)
+		unitCond := builder.NewCond()
+		if unitType != unit.TypeInvalid {
+			unitCond = unitCond.And(
 				userOrgTeamUnitGroupCond("`repo_group`.id", user.ID, unitType),
 			)
 		}
+		cond = builder.Or(builder.And(builder.And(modeCond, unitCond), cond), universalGroupPermBuilder("`repo_group`.id", user.ID, true))
 	}
 	return cond
 }
