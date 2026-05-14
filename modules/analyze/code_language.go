@@ -9,6 +9,9 @@ import (
 	"github.com/go-enry/go-enry/v2"
 )
 
+// UnknownLanguage is the language name used when the language cannot be detected.
+const UnknownLanguage = "Unknown"
+
 // GetCodeLanguage detects code language based on file name and content
 // It can be slow when the content is used for detection
 func GetCodeLanguage(filename string, content []byte) string {
@@ -21,8 +24,12 @@ func GetCodeLanguage(filename string, content []byte) string {
 	}
 
 	if len(content) == 0 {
-		return enry.OtherLanguage
+		return UnknownLanguage
 	}
 
-	return enry.GetLanguage(path.Base(filename), content)
+	if language := enry.GetLanguage(path.Base(filename), content); language != enry.OtherLanguage {
+		return language
+	}
+
+	return UnknownLanguage
 }
