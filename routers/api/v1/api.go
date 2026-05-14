@@ -562,9 +562,13 @@ func reqGroupMembership(mode perm.AccessMode, needsCreatePerm bool) func(ctx *co
 			ctx.APIErrorInternal(err)
 			return
 		}
-		igm := ctx.RepoGroup.IsMember
+		canAccess = canAccess && ctx.RepoGroup.DoerCanAccess()
 
-		if !igm && !canAccess {
+		if mode > perm.AccessModeRead && !canAccess {
+			ctx.APIError(http.StatusForbidden, "")
+			return
+		}
+		if !canAccess {
 			ctx.APIErrorNotFound()
 			return
 		}
