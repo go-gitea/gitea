@@ -74,10 +74,6 @@ func NewGroup(ctx context.Context, g *group_model.Group) error {
 		return err
 	}
 
-	if err = RecalculateGroupAccess(ctx, g, true); err != nil {
-		return err
-	}
-
 	return committer.Commit()
 }
 
