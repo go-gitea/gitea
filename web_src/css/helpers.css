@@ -44,7 +44,11 @@ Gitea's private styles use `g-` prefix.
   padding: 6px 10px;
   border-radius: var(--border-radius);
 }
-.interact-list-item:hover { background-color: var(--color-hover); }
+
+.interact-list-item:hover {
+  background-color: var(--color-hover);
+}
+
 .interact-list-item.selected {
   font-weight: var(--font-weight-bold);
   background-color: var(--color-active);
