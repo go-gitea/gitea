@@ -7,6 +7,7 @@ import (
 	project_model "code.gitea.io/gitea/models/project"
 	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/services/context"
+	project_service "code.gitea.io/gitea/services/projects"
 )
 
 // MoveColumns moves or keeps columns in a project and sorts them inside that project
@@ -36,11 +37,11 @@ func MoveColumns(ctx *context.Context) {
 
 	sortedColumnIDs := make(map[int64]int64)
 	for _, column := range form.Columns {
-		sortedColumnIDs[column.Sorting] = column.ColumnID
+		sortedColumnIDs[column.ColumnID] = column.Sorting
 	}
 
-	if err = project_model.MoveColumnsOnProject(ctx, project, sortedColumnIDs); err != nil {
-		ctx.ServerError("MoveColumnsOnProject", err)
+	if err = project_service.ReorderColumns(ctx, project, sortedColumnIDs); err != nil {
+		ctx.ServerError("ReorderColumns", err)
 		return
 	}
 
