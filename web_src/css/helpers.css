@@ -30,6 +30,26 @@ Gitea's private styles use `g-` prefix.
 .interact-bg:hover { background: var(--color-hover) !important; }
 .interact-bg:active { background: var(--color-active) !important; }
 
+.interact-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.interact-list-item {
+  display: flex;
+  align-items: center;
+  gap: var(--gap-block);
+  max-width: 100%;
+  padding: 6px 10px;
+  border-radius: var(--border-radius);
+}
+.interact-list-item:hover { background-color: var(--color-hover); }
+.interact-list-item.selected {
+  font-weight: var(--font-weight-bold);
+  background-color: var(--color-active);
+}
+
 @media (max-width: 767.98px) {
   /* double selector so it wins over .tw-flex (old .gt-df) etc */
   .not-mobile.not-mobile {

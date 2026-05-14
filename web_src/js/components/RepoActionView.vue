@@ -142,7 +142,7 @@ async function deleteArtifact(name: string) {
     <div class="action-view-body">
       <div class="action-view-left">
         <!-- summary -->
-        <a class="action-view-sidebar-item flex-text-block silenced" :href="run.viewLink" :class="!props.jobId ? 'selected' : ''">
+        <a class="interact-list-item silenced" :href="run.viewLink" :class="!props.jobId ? 'selected' : ''">
           <SvgIcon name="octicon-home"/>
           <span class="gt-ellipsis">{{ locale.summary }}</span>
         </a>
@@ -151,8 +151,8 @@ async function deleteArtifact(name: string) {
         <div class="ui divider"/>
         <div class="left-list-header">{{ locale.allJobs }}</div>
         <!-- unlike other lists, the items have paddings already -->
-        <ul class="ui relaxed list flex-items-block tw-p-0">
-          <li class="item action-view-sidebar-item" v-for="job in run.jobs" :key="job.id" :class="props.jobId === job.id ? 'selected' : ''">
+        <ul class="interact-list">
+          <li class="interact-list-item" v-for="job in run.jobs" :key="job.id" :class="props.jobId === job.id ? 'selected' : ''">
             <a class="tw-contents silenced" :href="job.link">
               <ActionStatusIcon :locale-status="locale.status[job.status]" :status="job.status" icon-variant="circle-fill"/>
               <span class="tw-flex-1 gt-ellipsis">{{ job.name }}</span>
@@ -166,8 +166,8 @@ async function deleteArtifact(name: string) {
         <template v-if="artifacts.length > 0">
           <div class="ui divider"/>
           <div class="left-list-header">{{ locale.artifactsTitle }} ({{ artifacts.length }})</div>
-          <ul class="ui relaxed list flex-items-block tw-p-0">
-            <li class="item action-view-sidebar-item" v-for="artifact in artifacts" :key="artifact.name">
+          <ul class="interact-list">
+            <li class="interact-list-item" v-for="artifact in artifacts" :key="artifact.name">
               <template v-if="artifact.status !== 'expired'">
                 <a
                   class="tw-flex-1 tw-min-w-0 flex-text-block silenced" target="_blank"
@@ -195,8 +195,8 @@ async function deleteArtifact(name: string) {
         <!-- run details -->
         <div class="ui divider"/>
         <div class="left-list-header">{{ locale.runDetails }}</div>
-        <ul class="ui relaxed list flex-items-block tw-p-0">
-          <li class="item action-view-sidebar-item">
+        <ul class="interact-list">
+          <li class="interact-list-item">
             <a class="flex-text-block silenced" :href="`${run.link}/workflow`">
               <SvgIcon name="octicon-file-code" class="tw-text-text"/>
               <span class="gt-ellipsis">{{ locale.workflowFile }}</span>
@@ -309,23 +309,8 @@ async function deleteArtifact(name: string) {
   color: var(--color-text-light-2);
 }
 
-.action-view-left .ui.relaxed.list {
+.action-view-left .interact-list {
   margin: var(--gap-block) 0;
-  padding-left: 10px;
-}
-
-.action-view-sidebar-item {
-  padding: 6px 10px;
-  border-radius: var(--border-radius);
-}
-
-.action-view-sidebar-item:hover {
-  background-color: var(--color-hover);
-}
-
-.action-view-sidebar-item.selected {
-  font-weight: var(--font-weight-bold);
-  background-color: var(--color-active);
 }
 
 /* ================ */
