@@ -111,7 +111,7 @@ type GroupAssignmentOptions struct {
 	RequireGroupAdmin bool
 }
 
-func groupAssignment(ctx commonCtx, doer *user_model.User, isSigned bool, isAPI bool, handleNotFound func(error), handleOtherError func(string, error), assign func(repoGroup *RepoGroup, canAccess bool)) {
+func groupAssignment(ctx commonCtx, doer *user_model.User, isSigned bool, isAPI bool, handleNotFound func(error), handleOtherError func(string, error), assign func(repoGroup *RepoGroup)) {
 	var err error
 	repoGroup := new(RepoGroup)
 	if repoGroup.Group == nil {
@@ -273,18 +273,20 @@ func groupAssignment(ctx commonCtx, doer *user_model.User, isSigned bool, isAPI 
 	if !repoGroup.IsOwner && !repoGroup.IsGroupAdmin {
 		canAccess = canAccess && !privateBecauseOfParent
 	}
-	assign(repoGroup, canAccess)
+	repoGroup.doerCanAccess = canAccess
+	assign(repoGroup)
 }
 
 func GroupAssignmentWeb(args GroupAssignmentOptions) func(ctx *Context) {
 	return func(ctx *Context) {
 		opts := args
 		var err error
-		groupAssignment(ctx, ctx.Doer, ctx.IsSigned, false, ctx.NotFound, ctx.ServerError, func(repoGroup *RepoGroup, canAccess bool) {
+		groupAssignment(ctx, ctx.Doer, ctx.IsSigned, false, ctx.NotFound, ctx.ServerError, func(repoGroup *RepoGroup) {
 			if ctx.Written() {
 				return
 			}
 
+			canAccess := repoGroup.doerCanAccess
 			group := repoGroup.Group
 			if group.Visibility != structs.VisibleTypePublic && !ctx.IsSigned {
 				ctx.NotFound(nil)
@@ -364,11 +366,12 @@ func GroupAssignmentAPI() func(ctx *APIContext) {
 			ctx.APIErrorNotFound(err)
 		}, func(str string, err error) {
 			ctx.APIErrorInternal(fmt.Errorf("%s: %w", str, err))
-		}, func(repoGroup *RepoGroup, canAccess bool) {
+		}, func(repoGroup *RepoGroup) {
 			if ctx.Written() {
 				return
 			}
 
+			canAccess := repoGroup.doerCanAccess
 			group := repoGroup.Group
 			if group.Visibility != structs.VisibleTypePublic && !ctx.IsSigned {
 				ctx.APIErrorNotFound(nil)
