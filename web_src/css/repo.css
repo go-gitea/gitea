@@ -517,6 +517,10 @@ td .commit-summary {
   min-width: 0;
 }
 
+.repository.view.issue .comment-list .timeline-item .comment-text-line:has(.labels-list) {
+  line-height: 24px; /* tighten the abused 32px so wrapped labels get 4px gap */
+}
+
 .repository.view.issue .comment-list .timeline-item .comment-text-line .ui.label {
   line-height: 1.5; /* label has background, so it can't use parent's line-height */
 }

@@ -34,6 +34,10 @@
   }
 }
 
+#issue-list .item-title {
+  display: block; /* override flex-list inline-flex so labels flow with the title text */
+}
+
 #issue-list .branches {
   display: inline-flex;
 }
