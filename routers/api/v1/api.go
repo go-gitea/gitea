@@ -1194,7 +1194,7 @@ func Routes() *web.Router {
 					m.Delete("", user.Unstar)
 				}
 				m.Group("/{username}/{reponame}", fn, repoAssignment(), checkTokenPublicOnly())
-				m.Group("/{username}/group/{group_id}/{reponame}", fn, context.GroupAssignmentAPI(), repoAssignment(), reqGroupMembership(perm.AccessModeRead, false), checkTokenPublicOnly())
+				m.Group("/{username}/group/{group_id}/{reponame}", fn, context.GroupAssignmentAPI(true), repoAssignment(), reqGroupMembership(perm.AccessModeRead, false), checkTokenPublicOnly())
 			}, reqStarsEnabled(), tokenRequiresScopes(auth_model.AccessTokenScopeCategoryRepository))
 			m.Get("/times", repo.ListMyTrackedTimes)
 			m.Get("/stopwatches", repo.GetStopwatches)
@@ -1541,7 +1541,7 @@ func Routes() *web.Router {
 				m.Methods("HEAD,GET", "/{ball_type:tarball|zipball|bundle}/*", reqRepoReader(unit.TypeCode), context.ReferencesGitRepo(true), repo.DownloadArchive)
 			}
 			m.Group("/{username}/{reponame}", fn, repoAssignment(), checkTokenPublicOnly())
-			m.Group("/{username}/group/{group_id}/{reponame}", fn, context.GroupAssignmentAPI(), repoAssignment(), checkTokenPublicOnly())
+			m.Group("/{username}/group/{group_id}/{reponame}", fn, context.GroupAssignmentAPI(true), repoAssignment(), checkTokenPublicOnly())
 		}, tokenRequiresScopes(auth_model.AccessTokenScopeCategoryRepository))
 
 		// Artifacts direct download endpoint authenticates via signed url
@@ -1557,7 +1557,7 @@ func Routes() *web.Router {
 					Put(notify.ReadRepoNotifications)
 			}
 			m.Group("/{username}/{reponame}", fn, repoAssignment(), checkTokenPublicOnly())
-			m.Group("/{username}/group/{group_id}/{reponame}", fn, repoAssignment(), context.GroupAssignmentAPI(), reqGroupMembership(perm.AccessModeRead, false), checkTokenPublicOnly())
+			m.Group("/{username}/group/{group_id}/{reponame}", fn, repoAssignment(), context.GroupAssignmentAPI(true), reqGroupMembership(perm.AccessModeRead, false), checkTokenPublicOnly())
 		}, tokenRequiresScopes(auth_model.AccessTokenScopeCategoryNotification))
 
 		// Issue (requires issue scope)
@@ -1677,7 +1677,7 @@ func Routes() *web.Router {
 				})
 			}
 			m.Group("/{username}/{reponame}", fn, repoAssignment(), checkTokenPublicOnly())
-			m.Group("/{username}/group/{group_id}/{reponame}", fn, context.GroupAssignmentAPI(), repoAssignment(), checkTokenPublicOnly())
+			m.Group("/{username}/group/{group_id}/{reponame}", fn, context.GroupAssignmentAPI(true), repoAssignment(), checkTokenPublicOnly())
 		}, tokenRequiresScopes(auth_model.AccessTokenScopeCategoryIssue))
 
 		// NOTE: these are Gitea package management API - see packages.CommonRoutes and packages.DockerContainerRoutes for endpoints that implement package manager APIs
@@ -1878,7 +1878,7 @@ func Routes() *web.Router {
 					Patch(reqGroupMembership(perm.AccessModeAdmin, false), bind(api.CreateOrUpdateRepoGroupTeamOption{}), group.EditTeam).
 					Delete(reqGroupMembership(perm.AccessModeAdmin, false), group.DeleteTeam)
 			}, reqToken(), reqGroupMembership(perm.AccessModeRead, false))
-		}, context.GroupAssignmentAPI(), checkTokenPublicOnly())
+		}, context.GroupAssignmentAPI(false), checkTokenPublicOnly())
 	})
 	return m
 }

@@ -360,7 +360,7 @@ func GroupAssignmentWeb(args GroupAssignmentOptions) func(ctx *Context) {
 	}
 }
 
-func GroupAssignmentAPI() func(ctx *APIContext) {
+func GroupAssignmentAPI(early404 bool) func(ctx *APIContext) {
 	return func(ctx *APIContext) {
 		groupAssignment(ctx, ctx.Doer, ctx.IsSigned, true, func(err error) {
 			ctx.APIErrorNotFound(err)
@@ -383,7 +383,7 @@ func GroupAssignmentAPI() func(ctx *APIContext) {
 					return
 				}
 			}
-			if !canAccess {
+			if !canAccess && early404 {
 				ctx.APIErrorNotFound(nil)
 			}
 			ctx.RepoGroup = repoGroup
