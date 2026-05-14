@@ -16,6 +16,7 @@ import (
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/timeutil"
 	"code.gitea.io/gitea/modules/util"
@@ -224,6 +225,10 @@ func (run *ActionRun) IsSchedule() bool {
 // UpdateRepoRunsNumbers updates the number of runs and closed runs of a repository.
 // Callers MUST invoke this from outside any transaction that has X-locked action_run rows for the same repo
 func UpdateRepoRunsNumbers(ctx context.Context, repoID int64) {
+	if db.InTransaction(ctx) {
+		setting.PanicInDevOrTesting("UpdateRepoRunsNumbers must not be called inside a transaction")
+	}
+
 	e := db.GetEngine(ctx)
 
 	numActionRuns, err := e.Where("repo_id = ?", repoID).Count(new(ActionRun))
