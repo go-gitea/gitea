@@ -23,9 +23,9 @@
 							{{end}}
 						{{end}}
 						<span class="labels-list">
-							{{range .Labels}}
+							{{- range .Labels -}}
 								<a href="?q={{$.Keyword}}&type={{$.ViewType}}&state={{$.State}}&labels={{.ID}}{{if ne $.listType "milestone"}}&milestone={{$.MilestoneID}}{{end}}&assignee={{$.AssigneeID}}&poster={{$.PosterID}}{{if $.ShowArchivedLabels}}&archived=true{{end}}">{{ctx.RenderUtils.RenderLabel .}}</a>
-							{{end}}
+							{{- end -}}
 						</span>
 					</div>
 					{{if .TotalTrackedTime}}

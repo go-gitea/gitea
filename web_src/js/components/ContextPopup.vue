@@ -38,7 +38,7 @@ const body = computed(() => {
       </div>
       <div v-if="body">{{ body }}</div>
       <!-- eslint-disable-next-line vue/no-v-html -->
-      <div v-if="issue.labels.length" class="with-labels-list-block" v-html="renderedLabels"/>
+      <div v-if="issue.labels.length" v-html="renderedLabels"/>
     </div>
     <div v-else>
       {{ errorMessage }}
