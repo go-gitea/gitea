@@ -10992,7 +10992,7 @@
         ],
         "responses": {
           "200": {
-            "$ref": "#/components/responses/CronList"
+            "$ref": "#/components/responses/WorkflowRun"
           },
           "403": {
             "$ref": "#/components/responses/forbidden"
@@ -16673,7 +16673,7 @@
         ],
         "responses": {
           "200": {
-            "description": "success"
+            "$ref": "#/components/responses/WorkflowRun"
           },
           "400": {
             "$ref": "#/components/responses/error"
@@ -16686,98 +16686,6 @@
           }
         },
         "summary": "Cancel a workflow run and its jobs",
-        "tags": [
-          "repository"
-        ]
-      }
-    },
-    "/repos/{owner}/{repo}/actions/runs/{run}/jobs": {
-      "get": {
-        "operationId": "listWorkflowRunJobs",
-        "parameters": [
-          {
-            "description": "owner of the repo",
-            "in": "path",
-            "name": "owner",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "description": "name of the repository",
-            "in": "path",
-            "name": "repo",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "description": "runid of the workflow run",
-            "in": "path",
-            "name": "run",
-            "required": true,
-            "schema": {
-              "type": "integer"
-            }
-          },
-          {
-            "description": "workflow status (pending, queued, in_progress, failure, success, skipped)",
-            "in": "query",
-            "name": "status",
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "description": "page number of results to return (1-based)",
-            "in": "query",
-            "name": "page",
-            "schema": {
-              "type": "integer"
-            }
-          },
-          {
-            "description": "page size of results",
-            "in": "query",
-            "name": "limit",
-            "schema": {
-              "type": "integer"
-            }
-          },
-          {
-            "description": "sort jobs by attribute. Supported values are \"id\". Default is \"id\"",
-            "in": "query",
-            "name": "sort",
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "description": "sort order, either \"asc\" (ascending) or \"desc\" (descending). Default is \"asc\"",
-            "in": "query",
-            "name": "order",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "$ref": "#/components/responses/WorkflowJobsList"
-          },
-          "400": {
-            "$ref": "#/components/responses/error"
-          },
-          "404": {
-            "$ref": "#/components/responses/notFound"
-          },
-          "422": {
-            "$ref": "#/components/responses/validationError"
-          }
-        },
-        "summary": "Lists all jobs for a workflow run",
         "tags": [
           "repository"
         ]
@@ -16826,7 +16734,14 @@
         ],
         "responses": {
           "200": {
-            "description": "Job logs"
+            "description": "Job logs",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
           },
           "404": {
             "$ref": "#/components/responses/notFound"
@@ -16939,7 +16854,15 @@
         ],
         "responses": {
           "200": {
-            "description": "Logs archive"
+            "description": "Logs archive",
+            "content": {
+              "application/zip": {
+                "schema": {
+                  "type": "string",
+                  "format": "binary"
+                }
+              }
+            }
           },
           "404": {
             "$ref": "#/components/responses/notFound"

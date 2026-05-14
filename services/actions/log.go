@@ -23,7 +23,7 @@ func ReadStepLogs(ctx context.Context, cursors []api.ActionLogCursor, task *acti
 		if !cursor.Expanded {
 			continue
 		}
-		if cursor.Step >= len(steps) {
+		if cursor.Step < 0 || cursor.Step >= len(steps) {
 			continue
 		}
 		step := steps[cursor.Step]

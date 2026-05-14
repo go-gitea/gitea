@@ -26,7 +26,7 @@ func CancelRun(ctx context.Context, run *actions_model.ActionRun, jobs []*action
 		return err
 	}
 
-	CreateCommitStatusForRunJobs(ctx, run, jobs...)
+	CreateCommitStatusForRunJobs(ctx, run, updatedJobs...)
 	EmitJobsIfReadyByJobs(updatedJobs)
 	NotifyWorkflowJobsStatusUpdate(ctx, updatedJobs...)
 	if len(updatedJobs) > 0 {

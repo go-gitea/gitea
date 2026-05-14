@@ -11,6 +11,7 @@ import (
 	"net/url"
 	"path"
 	"strconv"
+	"strings"
 	"time"
 
 	actions_model "code.gitea.io/gitea/models/actions"
@@ -226,7 +227,7 @@ func ToTag(repo *repo_model.Repository, t *git.Tag) *api.Tag {
 	}
 }
 
-// ToActionTask convert a actions_model.ActionTask to an api.ActionTask
+// ToActionTask convert an actions_model.ActionTask to an api.ActionTask
 func ToActionTask(ctx context.Context, t *actions_model.ActionTask) (*api.ActionTask, error) {
 	if err := t.LoadAttributes(ctx); err != nil {
 		return nil, err

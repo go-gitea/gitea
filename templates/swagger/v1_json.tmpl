@@ -325,7 +325,10 @@
         ],
         "responses": {
           "200": {
-            "$ref": "#/responses/CronList"
+            "description": "success",
+            "schema": {
+              "$ref": "#/definitions/WorkflowRun"
+            }
           },
           "403": {
             "$ref": "#/responses/forbidden"
@@ -660,7 +663,10 @@
         ],
         "responses": {
           "200": {
-            "$ref": "#/responses/StringSlice"
+            "description": "success",
+            "schema": {
+              "$ref": "#/definitions/WorkflowRun"
+            }
           },
           "403": {
             "$ref": "#/responses/forbidden"

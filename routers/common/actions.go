@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"path/filepath"
 	"strings"
 
 	actions_model "code.gitea.io/gitea/models/actions"
@@ -45,21 +46,12 @@ func DownloadActionsRunAllJobLogs(ctx *context.Base, ctxRepo *repo_model.Reposit
 		return fmt.Errorf("LoadRun: %w", err)
 	}
 
-	workflowName := runJobs[0].Run.WorkflowID
-	if p := strings.Index(workflowName, "."); p > 0 {
-		workflowName = workflowName[0:p]
-	}
+	workflowName := strings.TrimSuffix(filepath.Base(runJobs[0].Run.WorkflowID), filepath.Ext(runJobs[0].Run.WorkflowID))
 	safeWorkflowName := strings.NewReplacer(`"`, "", "\r", "", "\n", "", "/", "-", `\`, "-").Replace(workflowName)
 
-	// Set headers for zip download
-	ctx.Resp.Header().Set("Content-Type", "application/zip")
-	ctx.Resp.Header().Set("Content-Disposition", fmt.Sprintf(`attachment; filename="%s-run-%d-logs.zip"`, safeWorkflowName, runID))
-
-	// Create zip writer
-	zipWriter := zip.NewWriter(ctx.Resp)
-	defer zipWriter.Close()
-
-	// Add each job's logs to the zip
+	// Pre-validate and open all log readers to prevent errors after headers are sent
+	var readers []io.ReadCloser
+	var fileNames []string
 	for _, job := range runJobs {
 		if job.TaskID == 0 {
 			continue // Skip jobs that haven't started
@@ -74,26 +66,46 @@ func DownloadActionsRunAllJobLogs(ctx *context.Base, ctxRepo *repo_model.Reposit
 			continue
 		}
 
+		reader, err := actions.OpenLogs(ctx, task.LogInStorage, task.LogFilename)
+		if err != nil {
+			return fmt.Errorf("OpenLogs for job %d: %w", job.ID, err)
+		}
+
 		// Create file in zip with job name and task ID; sanitize to prevent Zip Slip
-		safeJobName := strings.NewReplacer("/", "-", `\`, "-", "..", "__").Replace(job.Name)
+		safeJobName := strings.NewReplacer("/", "-", `\`, "-", "..", "__", `"`, "", "\r", "", "\n", "").Replace(job.Name)
 		fileName := fmt.Sprintf("%s-%s-%d.log", safeWorkflowName, safeJobName, task.ID)
 
-		if err := func() error {
-			reader, err := actions.OpenLogs(ctx, task.LogInStorage, task.LogFilename)
-			if err != nil {
-				return err
-			}
-			defer reader.Close()
+		readers = append(readers, reader)
+		fileNames = append(fileNames, fileName)
+	}
 
-			zipFile, err := zipWriter.Create(fileName)
-			if err != nil {
-				return err
-			}
+	// Set headers for zip download
+	ctx.Resp.Header().Set("Content-Type", "application/zip")
+	ctx.Resp.Header().Set("Content-Disposition", fmt.Sprintf(`attachment; filename="%s-run-%d-logs.zip"`, safeWorkflowName, runID))
 
-			_, err = io.Copy(zipFile, reader)
+	// Create zip writer
+	zipWriter := zip.NewWriter(ctx.Resp)
+	defer zipWriter.Close()
+
+	// Add each job's logs to the zip
+	for i, reader := range readers {
+		zipFile, err := zipWriter.Create(fileNames[i])
+		if err != nil {
+			// Close all readers on error
+			for _, r := range readers {
+				r.Close()
+			}
 			return err
-		}(); err != nil {
-			return fmt.Errorf("job %d: %w", job.ID, err)
+		}
+
+		_, err = io.Copy(zipFile, reader)
+		reader.Close()
+		if err != nil {
+			// Close remaining readers
+			for j := i + 1; j < len(readers); j++ {
+				readers[j].Close()
+			}
+			return err
 		}
 	}
 
