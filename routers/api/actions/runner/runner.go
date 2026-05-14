@@ -261,7 +261,16 @@ func (s *Service) UpdateLog(
 	}
 	ack := task.LogLength
 
-	if len(req.Msg.Rows) == 0 || req.Msg.Index > ack || int64(len(req.Msg.Rows))+req.Msg.Index <= ack {
+	// Trim rows the runner already had acked.
+	var rows []*runnerv1.LogRow
+	if req.Msg.Index <= ack && int64(len(req.Msg.Rows))+req.Msg.Index > ack {
+		rows = req.Msg.Rows[ack-req.Msg.Index:]
+	}
+
+	// Bail unless we have new rows or a NoMore to finalize. Even with
+	// NoMore, bail when the runner has outrun the server — archiving a
+	// log with a gap is worse than asking it to retry.
+	if len(rows) == 0 && (!req.Msg.NoMore || req.Msg.Index > ack) {
 		res.Msg.AckIndex = ack
 		return res, nil
 	}
@@ -270,7 +279,9 @@ func (s *Service) UpdateLog(
 		return nil, status.Errorf(codes.AlreadyExists, "log file has been archived")
 	}
 
-	rows := req.Msg.Rows[ack-req.Msg.Index:]
+	// WriteLogs is called even with no rows: with offset==0 it bootstraps
+	// an empty DBFS file so TransferLogs below has something to read when
+	// the runner finalizes a task that produced no log output.
 	ns, err := actions.WriteLogs(ctx, task.LogFilename, task.LogSize, rows)
 	if err != nil {
 		return nil, status.Errorf(codes.Internal, "unable to append logs to dbfs file: %v", err)
