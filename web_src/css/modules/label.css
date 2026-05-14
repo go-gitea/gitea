@@ -297,13 +297,8 @@ a.ui.ui.ui.grey.label:hover {
 
 #issue-list .item-title .labels-list > a,
 .timeline-item.event .labels-list > a {
-  margin: 2px 0;
+  margin: 2px 4px 2px 0; /* margin-right so wrapped labels stay left-aligned */
   vertical-align: 1.5px; /* compensates inline-flex baseline so labels center with text */
-}
-
-#issue-list .item-title .labels-list > a + a,
-.timeline-item.event .labels-list > a + a {
-  margin-left: 4px;
 }
 
 /* Scoped labels with different colors on left and right */
