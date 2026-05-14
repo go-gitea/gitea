@@ -4,9 +4,12 @@
 package oauth2
 
 import (
+	"testing"
 	"time"
 
 	"github.com/markbates/goth"
+	goth_oidc "github.com/markbates/goth/providers/openidConnect"
+	"github.com/stretchr/testify/assert"
 	"golang.org/x/oauth2"
 )
 
@@ -59,4 +62,55 @@ func init() {
 			func(clientKey, secret, callbackURL string, scopes ...string) goth.Provider {
 				return &fakeProvider{}
 			}))
+}
+
+func TestGetSourceEndpointURLs(t *testing.T) {
+	t.Run("custom provider defaults and overrides", func(t *testing.T) {
+		urls := GetSourceEndpointURLs("", &Source{
+			Provider: "github",
+			CustomURLMapping: &CustomURLMapping{
+				AuthURL: "https://login.github.example.test/oauth/authorize",
+			},
+		})
+
+		assert.ElementsMatch(t, []string{
+			"https://login.github.example.test/oauth/authorize",
+			"https://github.com/login/oauth/access_token",
+			"https://api.github.com/user",
+			"https://api.github.com/user/emails",
+		}, urls)
+	})
+
+	t.Run("registered oidc provider", func(t *testing.T) {
+		provider, err := goth_oidc.NewCustomisedURL(
+			"client",
+			"secret",
+			"https://gitea.example/user/oauth2/test-provider/callback",
+			"https://login.oidc.example.test/auth",
+			"https://login.oidc.example.test/token",
+			"https://issuer.oidc.example.test",
+			"https://userinfo.oidc.example.test",
+			"",
+			"openid",
+		)
+		assert.NoError(t, err)
+		provider.SetName("test-provider")
+		goth.UseProviders(provider)
+		t.Cleanup(func() {
+			RemoveProviderFromGothic("test-provider")
+		})
+
+		urls := GetSourceEndpointURLs("test-provider", &Source{
+			Provider:                      "openidConnect",
+			OpenIDConnectAutoDiscoveryURL: "https://discovery.oidc.example.test/.well-known/openid-configuration",
+		})
+
+		assert.ElementsMatch(t, []string{
+			"https://discovery.oidc.example.test/.well-known/openid-configuration",
+			"https://login.oidc.example.test/auth",
+			"https://login.oidc.example.test/token",
+			"https://issuer.oidc.example.test",
+			"https://userinfo.oidc.example.test",
+		}, urls)
+	})
 }

@@ -5,15 +5,20 @@ package auth
 
 import (
 	"net"
+	"net/http"
+	"net/url"
 	"testing"
 
 	"code.gitea.io/gitea/models/auth"
 	"code.gitea.io/gitea/models/unittest"
 	user_model "code.gitea.io/gitea/models/user"
+	"code.gitea.io/gitea/modules/hostmatcher"
 	"code.gitea.io/gitea/services/auth/source/oauth2"
 	"code.gitea.io/gitea/services/oauth2_provider"
 
 	"github.com/golang-jwt/jwt/v5"
+	"github.com/markbates/goth"
+	goth_oidc "github.com/markbates/goth/providers/openidConnect"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -77,9 +82,13 @@ func TestNewAccessTokenResponse_OIDCToken(t *testing.T) {
 }
 
 func TestOauth2AvatarAllowList(t *testing.T) {
-	allowList := oauth2AvatarAllowList(nil)
+	allowList := oauth2AvatarAllowList("", nil)
 	assert.True(t, allowList.MatchIPAddr(net.ParseIP("8.8.8.8")))
 	assert.False(t, allowList.MatchIPAddr(net.ParseIP("127.0.0.1")))
+
+	allowList = oauth2AvatarAllowList("", &oauth2.Source{Provider: "github"})
+	assert.True(t, allowList.MatchHostName("github.com"))
+	assert.True(t, allowList.MatchHostName("api.github.com"))
 
 	source := &oauth2.Source{
 		OpenIDConnectAutoDiscoveryURL: "https://idp.internal/.well-known/openid-configuration",
@@ -90,10 +99,60 @@ func TestOauth2AvatarAllowList(t *testing.T) {
 			EmailURL:   "https://mail.example.test/me",
 		},
 	}
-	allowList = oauth2AvatarAllowList(source)
+	allowList = oauth2AvatarAllowList("", source)
 	assert.True(t, allowList.MatchHostName("idp.internal"))
 	assert.True(t, allowList.MatchHostName("login.example.test"))
 	assert.True(t, allowList.MatchHostName("profile.example.test"))
 	assert.True(t, allowList.MatchHostName("mail.example.test"))
 	assert.False(t, allowList.MatchHostName("unexpected.example.test"))
+
+	oidcProvider, err := goth_oidc.NewCustomisedURL(
+		"client",
+		"secret",
+		"https://gitea.example/user/oauth2/test-oidc-provider/callback",
+		"https://login.oidc.internal/auth",
+		"https://login.oidc.internal/token",
+		"https://issuer.oidc.internal",
+		"https://userinfo.oidc.internal",
+		"",
+		"openid",
+	)
+	assert.NoError(t, err)
+	oidcProvider.SetName("test-oidc-provider")
+	goth.UseProviders(oidcProvider)
+	t.Cleanup(func() {
+		oauth2.RemoveProviderFromGothic("test-oidc-provider")
+	})
+
+	allowList = oauth2AvatarAllowList("test-oidc-provider", &oauth2.Source{
+		Provider:                      "openidConnect",
+		OpenIDConnectAutoDiscoveryURL: "https://discovery.oidc.internal/.well-known/openid-configuration",
+	})
+	assert.True(t, allowList.MatchHostName("discovery.oidc.internal"))
+	assert.True(t, allowList.MatchHostName("login.oidc.internal"))
+	assert.True(t, allowList.MatchHostName("userinfo.oidc.internal"))
+	assert.True(t, allowList.MatchHostName("issuer.oidc.internal"))
+}
+
+func TestOauth2AvatarProxyChecksTargetURL(t *testing.T) {
+	allowList := oauth2AvatarAllowList("", nil)
+	blockList := hostmatcher.ParseHostMatchList("oauth2 avatar host", "")
+	proxyURL, err := url.Parse("http://127.0.0.1:3128")
+	assert.NoError(t, err)
+
+	proxyFunc := oauth2AvatarProxy(allowList, blockList, func(req *http.Request) (*url.URL, error) {
+		return proxyURL, nil
+	})
+
+	req, err := http.NewRequest(http.MethodGet, "http://127.0.0.1/avatar.png", nil)
+	assert.NoError(t, err)
+	gotProxyURL, err := proxyFunc(req)
+	assert.Nil(t, gotProxyURL)
+	assert.Error(t, err)
+
+	req, err = http.NewRequest(http.MethodGet, "http://8.8.8.8/avatar.png", nil)
+	assert.NoError(t, err)
+	gotProxyURL, err = proxyFunc(req)
+	assert.NoError(t, err)
+	assert.Equal(t, proxyURL, gotProxyURL)
 }

@@ -218,6 +218,55 @@ func GetOIDCEndSessionEndpoint(providerName string) string {
 	return oidcProvider.OpenIDConfig.EndSessionEndpoint
 }
 
+// GetSourceEndpointURLs returns the effective OAuth2/OIDC endpoint URLs for a source.
+func GetSourceEndpointURLs(sourceName string, source *Source) []string {
+	if source == nil {
+		return nil
+	}
+
+	urls := map[string]struct{}{}
+	addURL := func(rawURL string) {
+		if rawURL == "" {
+			return
+		}
+		urls[rawURL] = struct{}{}
+	}
+
+	addURL(source.OpenIDConnectAutoDiscoveryURL)
+
+	if provider, ok := gothProviders[source.Provider].(*CustomProvider); ok && provider.customURLSettings != nil {
+		custom := provider.customURLSettings.OverrideWith(source.CustomURLMapping)
+		addURL(custom.AuthURL)
+		addURL(custom.TokenURL)
+		addURL(custom.ProfileURL)
+		addURL(custom.EmailURL)
+	} else if source.CustomURLMapping != nil {
+		addURL(source.CustomURLMapping.AuthURL)
+		addURL(source.CustomURLMapping.TokenURL)
+		addURL(source.CustomURLMapping.ProfileURL)
+		addURL(source.CustomURLMapping.EmailURL)
+	}
+
+	gothRWMutex.RLock()
+	registeredProvider, ok := goth.GetProviders()[sourceName]
+	gothRWMutex.RUnlock()
+	if ok {
+		if oidcProvider, ok := registeredProvider.(*openidConnect.Provider); ok && oidcProvider.OpenIDConfig != nil {
+			addURL(oidcProvider.OpenIDConfig.AuthEndpoint)
+			addURL(oidcProvider.OpenIDConfig.TokenEndpoint)
+			addURL(oidcProvider.OpenIDConfig.UserInfoEndpoint)
+			addURL(oidcProvider.OpenIDConfig.Issuer)
+		}
+	}
+
+	result := make([]string, 0, len(urls))
+	for rawURL := range urls {
+		result = append(result, rawURL)
+	}
+	sort.Strings(result)
+	return result
+}
+
 var ErrAuthSourceNotActivated = errors.New("auth source is not activated")
 
 // used to create different types of goth providers

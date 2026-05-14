@@ -30,7 +30,7 @@ func oauth2SignInSync(ctx *context.Context, authSourceID int64, u *user_model.Us
 		return
 	}
 
-	oauth2UpdateAvatarIfNeed(ctx, gothUser.AvatarURL, u, oauth2Source)
+	oauth2UpdateAvatarIfNeed(ctx, gothUser.AvatarURL, u, authSource.Name, oauth2Source)
 
 	// sync full name
 	fullNameKey := util.IfZero(oauth2Source.FullNameClaimName, "name")

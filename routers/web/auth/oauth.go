@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"html"
 	"io"
+	"net"
 	"net/http"
 	"net/url"
 	"sort"
@@ -303,7 +304,7 @@ func showLinkingLogin(ctx *context.Context, authSourceID int64, gothUser goth.Us
 	ctx.Redirect(setting.AppSubURL + "/user/link_account")
 }
 
-func oauth2AvatarAllowList(source *oauth2.Source) *hostmatcher.HostMatchList {
+func oauth2AvatarAllowList(sourceName string, source *oauth2.Source) *hostmatcher.HostMatchList {
 	allowList := hostmatcher.ParseHostMatchList("oauth2 avatar host", "")
 	allowList.AppendBuiltin(hostmatcher.MatchBuiltinExternal)
 	if source == nil {
@@ -322,25 +323,75 @@ func oauth2AvatarAllowList(source *oauth2.Source) *hostmatcher.HostMatchList {
 			return
 		}
 		allowList.AppendPattern(host)
-	} 
+	}
 
-	addHost(source.OpenIDConnectAutoDiscoveryURL)
-	if source.CustomURLMapping != nil {
-		addHost(source.CustomURLMapping.AuthURL)
-		addHost(source.CustomURLMapping.TokenURL)
-		addHost(source.CustomURLMapping.ProfileURL)
-		addHost(source.CustomURLMapping.EmailURL)
+	for _, rawURL := range oauth2.GetSourceEndpointURLs(sourceName, source) {
+		addHost(rawURL)
 	}
 	return allowList
 }
 
-func oauth2UpdateAvatarIfNeed(ctx *context.Context, url string, u *user_model.User, source *oauth2.Source) {
+func oauth2CheckURLByHostMatchList(usage string, targetURL *url.URL, allowList, blockList *hostmatcher.HostMatchList) error {
+	if targetURL == nil {
+		return fmt.Errorf("%s can not call an empty URL", usage)
+	}
+
+	host := targetURL.Hostname()
+	if host == "" {
+		return fmt.Errorf("%s can not call a URL without hostname, deny '%s'", usage, targetURL.String())
+	}
+
+	addrList := []net.IP{}
+	if ip := net.ParseIP(host); ip != nil {
+		addrList = append(addrList, ip)
+	} else {
+		// Some deployments rely on an HTTP proxy for outbound access. If local DNS is unavailable,
+		// we still fall back to explicit hostname patterns from the source-derived allow-list.
+		addrList, _ = net.LookupIP(host)
+	}
+
+	var ipAllowed bool
+	var ipBlocked bool
+	for _, addr := range addrList {
+		ipAllowed = ipAllowed || allowList.MatchIPAddr(addr)
+		ipBlocked = ipBlocked || blockList.MatchIPAddr(addr)
+	}
+
+	var blockedError error
+	if blockList.MatchHostName(host) || ipBlocked {
+		blockedError = fmt.Errorf("%s can not call blocked HTTP servers (check your %s setting), deny '%s'", usage, blockList.SettingKeyHint, targetURL.String())
+	}
+	if !allowList.IsEmpty() {
+		if !allowList.MatchHostName(host) && !ipAllowed {
+			return fmt.Errorf("%s can only call allowed HTTP servers (check your %s setting), deny '%s'", usage, allowList.SettingKeyHint, targetURL.String())
+		}
+	}
+	return blockedError
+}
+
+func oauth2AvatarProxy(allowList, blockList *hostmatcher.HostMatchList, next func(req *http.Request) (*url.URL, error)) func(req *http.Request) (*url.URL, error) {
+	if next == nil {
+		return nil
+	}
+	return func(req *http.Request) (*url.URL, error) {
+		proxyURL, err := next(req)
+		if err != nil || proxyURL == nil {
+			return proxyURL, err
+		}
+		if err := oauth2CheckURLByHostMatchList("oauth2 avatar", req.URL, allowList, blockList); err != nil {
+			return nil, err
+		}
+		return proxyURL, nil
+	}
+}
+
+func oauth2UpdateAvatarIfNeed(ctx *context.Context, url string, u *user_model.User, sourceName string, source *oauth2.Source) {
 	if setting.OAuth2Client.UpdateAvatar && len(url) > 0 {
-		allowList := oauth2AvatarAllowList(source)
+		allowList := oauth2AvatarAllowList(sourceName, source)
 		blockList := hostmatcher.ParseHostMatchList("oauth2 avatar host", "")
 		client := &http.Client{
 			Transport: &http.Transport{
-				Proxy:       proxy.Proxy(),
+				Proxy:       oauth2AvatarProxy(allowList, blockList, proxy.Proxy()),
 				DialContext: hostmatcher.NewDialContext("oauth2 avatar", allowList, blockList, setting.Proxy.ProxyURLFixed),
 			},
 		}
