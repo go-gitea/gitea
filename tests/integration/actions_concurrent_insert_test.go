@@ -152,6 +152,8 @@ jobs:
 					}
 					if _, err := actions_model.UpdateTaskByState(ctx, testRunnerID, state); err == nil {
 						updateSuccess.Add(1)
+						// Mirror the runner gRPC handler's post-commit counter recompute.
+						actions_model.UpdateRepoRunsNumbers(ctx, repo.ID)
 					} else {
 						updateErrors.Add(1)
 						if isDeadlockErr(err) {
