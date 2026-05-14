@@ -600,3 +600,22 @@ func TestMarkdownUlDir(t *testing.T) {
 </ul>
 `, string(result))
 }
+
+func TestMarkdownFencedCodeBlock(t *testing.T) {
+	testRender := func(input, expected string) {
+		buffer, err := markdown.RenderString(markup.NewTestRenderContext(), input)
+		assert.NoError(t, err)
+		assert.Equal(t, strings.TrimSpace(expected), strings.TrimSpace(string(buffer)))
+	}
+	const nl = "\n"
+	const prefix = `<div class="code-block-container code-overflow-scroll"><pre class="code-block">`
+	const suffix = `</pre></div>`
+
+	testRender("```\ncode\n```", prefix+`<code class="chroma language-text display">code`+nl+`</code>`+suffix)
+
+	const jsCommon = prefix + `<code class="chroma language-js display"><span class="nx">code</span>` + nl + `</code>` + suffix
+	testRender("```js\ncode\n```", jsCommon)
+	testRender("```js:app.ts\ncode\n```", jsCommon)
+	testRender("```js,ignore\ncode\n```", jsCommon)
+	testRender("```js ignore\ncode\n```", jsCommon)
+}

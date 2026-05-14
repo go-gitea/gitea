@@ -28,6 +28,7 @@ type FormatStyle = 'long' | 'short' | 'narrow';
 const unitNames = ['year', 'month', 'week', 'day', 'hour', 'minute', 'second'] as const;
 
 const durationRe = /^[-+]?P(?:(\d+)Y)?(?:(\d+)M)?(?:(\d+)W)?(?:(\d+)D)?(?:T(?:(\d+)H)?(?:(\d+)M)?(?:(\d+)S)?)?$/;
+const unixSecondsRe = /^\d+$/;
 
 function parseDurationMs(str: string): number {
   const m = durationRe.exec(str);
@@ -258,13 +259,13 @@ class RelativeTime extends HTMLElement {
   }
 
   get #lang(): string {
-    const lang = this.closest('[lang]')?.getAttribute('lang');
-    if (lang) {
+    for (const candidate of [this.closest('[lang]')?.getAttribute('lang'), navigator.language]) {
+      if (!candidate) continue;
       try {
-        return new Intl.Locale(lang).toString();
-      } catch { /* invalid locale, fall through */ }
+        return String(new Intl.Locale(candidate));
+      } catch {}
     }
-    return navigator.language ?? 'en';
+    return 'en';
   }
 
   get second(): 'numeric' | '2-digit' | undefined {
@@ -364,7 +365,8 @@ class RelativeTime extends HTMLElement {
   }
 
   get date(): Date | null {
-    const parsed = Date.parse(this.datetime);
+    const dt = this.datetime;
+    const parsed = unixSecondsRe.test(dt) ? Number(dt) * 1000 : Date.parse(dt);
     return Number.isNaN(parsed) ? null : new Date(parsed);
   }
 
@@ -432,7 +434,7 @@ class RelativeTime extends HTMLElement {
       const value = d[`${unit}s` as keyof Duration] as number;
       if (value || (duration.blank && unit === 'second')) {
         try {
-          parts.push(new Intl.NumberFormat(locale, {style: 'unit', unit, unitDisplay: style} as Intl.NumberFormatOptions).format(value));
+          parts.push(new Intl.NumberFormat(locale, {style: 'unit', unit, unitDisplay: style}).format(value));
         } catch { // PaleMoon lacks Intl.NumberFormat unit style support
           parts.push(`${value} ${value === 1 ? unit : `${unit}s`}`);
         }

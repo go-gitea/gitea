@@ -30,8 +30,7 @@ func TestUserHeatmap(t *testing.T) {
 	req := NewRequest(t, "GET", fmt.Sprintf("/api/v1/users/%s/heatmap", normalUsername)).
 		AddTokenAuth(token)
 	resp := MakeRequest(t, req, http.StatusOK)
-	var heatmap []*activities_model.UserHeatmapData
-	DecodeJSON(t, resp, &heatmap)
+	heatmap := DecodeJSON(t, resp, []*activities_model.UserHeatmapData{})
 	var dummyheatmap []*activities_model.UserHeatmapData
 	dummyheatmap = append(dummyheatmap, &activities_model.UserHeatmapData{Timestamp: 1603227600, Contributions: 1})
 

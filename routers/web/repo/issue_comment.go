@@ -45,34 +45,38 @@ func NewComment(ctx *context.Context) {
 	form := web.GetForm(ctx).(*forms.CreateCommentForm)
 	issueType := util.Iif(issue.IsPull, "pulls", "issues")
 
-	if !ctx.IsSigned || (ctx.Doer.ID != issue.PosterID && !ctx.Repo.CanReadIssuesOrPulls(issue.IsPull)) {
+	if !ctx.IsSigned || (ctx.Doer.ID != issue.PosterID && !ctx.Repo.Permission.CanReadIssuesOrPulls(issue.IsPull)) {
 		log.Trace("Permission Denied: User %-v not the Poster (ID: %d) and cannot read %s in Repo %-v.\n"+
 			"User in Repo has Permissions: %-+v", ctx.Doer, issue.PosterID, issueType, ctx.Repo.Repository, ctx.Repo.Permission)
 		ctx.HTTPError(http.StatusForbidden)
 		return
 	}
 
-	if issue.IsLocked && !ctx.Repo.CanWriteIssuesOrPulls(issue.IsPull) && !ctx.Doer.IsAdmin {
+	if issue.IsLocked && !ctx.Repo.Permission.CanWriteIssuesOrPulls(issue.IsPull) && !ctx.Doer.IsAdmin {
 		ctx.JSONError(ctx.Tr("repo.issues.comment_on_locked"))
 		return
 	}
 
+	redirect := fmt.Sprintf("%s/%s/%d", ctx.Repo.RepoLink, issueType, issue.Index)
 	attachments := util.Iif(setting.Attachment.Enabled, form.Files, nil)
 
-	// Can allow empty comments if there are attachments or a status change  (close, reopen, approve, reject)
-	// So, only stop if there is no content, no attachments, and no status change.
-	if form.Content == "" && len(attachments) == 0 && form.Status == "" {
-		ctx.JSONError(ctx.Tr("repo.issues.comment_no_content"))
-		return
-	}
-
-	comment, err := issue_service.CreateIssueComment(ctx, ctx.Doer, ctx.Repo.Repository, issue, form.Content, attachments)
-	if err != nil {
-		if errors.Is(err, user_model.ErrBlockedUser) {
-			ctx.JSONError(ctx.Tr("repo.issues.comment.blocked_user"))
-		} else {
-			ctx.ServerError("CreateIssueComment", err)
+	// allow empty content if there are attachments
+	if form.Content != "" || len(attachments) > 0 {
+		comment, err := issue_service.CreateIssueComment(ctx, ctx.Doer, ctx.Repo.Repository, issue, form.Content, attachments)
+		if err != nil {
+			if errors.Is(err, user_model.ErrBlockedUser) {
+				ctx.JSONError(ctx.Tr("repo.issues.comment.blocked_user"))
+			} else {
+				ctx.ServerError("CreateIssueComment", err)
+			}
+			return
 		}
+		// redirect to the comment's hashtag
+		redirect += "#" + comment.HashTag()
+	} else if form.Status == "" {
+		// if no status change (close, reopen), it is a plain comment, and content is required
+		// "approve/reject" are handled differently in SubmitReview
+		ctx.JSONError(ctx.Tr("repo.issues.comment_no_content"))
 		return
 	}
 
@@ -81,11 +85,12 @@ func NewComment(ctx *context.Context) {
 	// TODO: need further refactoring to the code below
 
 	// Check if doer can change the status of issue (close, reopen).
-	if (ctx.Repo.CanWriteIssuesOrPulls(issue.IsPull) || (ctx.IsSigned && issue.IsPoster(ctx.Doer.ID))) &&
+	if (ctx.Repo.Permission.CanWriteIssuesOrPulls(issue.IsPull) || (ctx.IsSigned && issue.IsPoster(ctx.Doer.ID))) &&
 		(form.Status == "reopen" || form.Status == "close") &&
 		!(issue.IsPull && issue.PullRequest.HasMerged) {
 		// Duplication and conflict check should apply to reopen pull request.
 		var branchOtherUnmergedPR *issues_model.PullRequest
+		var err error
 		if form.Status == "reopen" && issue.IsPull {
 			pull := issue.PullRequest
 			branchOtherUnmergedPR, err = issues_model.GetUnmergedPullRequest(ctx, pull.HeadRepoID, pull.BaseRepoID, pull.HeadBranch, pull.BaseBranch, pull.Flow)
@@ -179,11 +184,6 @@ func NewComment(ctx *context.Context) {
 		}
 	} // end if: handle close or reopen
 
-	// Redirect to the comment, add hashtag if it exists
-	redirect := fmt.Sprintf("%s/%s/%d", ctx.Repo.RepoLink, issueType, issue.Index)
-	if comment != nil {
-		redirect += "#" + comment.HashTag()
-	}
 	ctx.JSONRedirect(redirect)
 }
 
@@ -205,7 +205,7 @@ func UpdateCommentContent(ctx *context.Context) {
 		return
 	}
 
-	if !ctx.IsSigned || (ctx.Doer.ID != comment.PosterID && !ctx.Repo.CanWriteIssuesOrPulls(comment.Issue.IsPull)) {
+	if !ctx.IsSigned || (ctx.Doer.ID != comment.PosterID && !ctx.Repo.Permission.CanWriteIssuesOrPulls(comment.Issue.IsPull)) {
 		ctx.HTTPError(http.StatusForbidden)
 		return
 	}
@@ -289,7 +289,7 @@ func DeleteComment(ctx *context.Context) {
 		return
 	}
 
-	if !ctx.IsSigned || (ctx.Doer.ID != comment.PosterID && !ctx.Repo.CanWriteIssuesOrPulls(comment.Issue.IsPull)) {
+	if !ctx.IsSigned || (ctx.Doer.ID != comment.PosterID && !ctx.Repo.Permission.CanWriteIssuesOrPulls(comment.Issue.IsPull)) {
 		ctx.HTTPError(http.StatusForbidden)
 		return
 	} else if !comment.Type.HasContentSupport() {
@@ -324,7 +324,7 @@ func ChangeCommentReaction(ctx *context.Context) {
 		return
 	}
 
-	if !ctx.IsSigned || (ctx.Doer.ID != comment.PosterID && !ctx.Repo.CanReadIssuesOrPulls(comment.Issue.IsPull)) {
+	if !ctx.IsSigned || (ctx.Doer.ID != comment.PosterID && !ctx.Repo.Permission.CanReadIssuesOrPulls(comment.Issue.IsPull)) {
 		if log.IsTrace() {
 			if ctx.IsSigned {
 				issueType := "issues"

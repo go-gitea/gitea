@@ -29,11 +29,11 @@ func TestUser_ToUser(t *testing.T) {
 
 	apiUser = toUser(t.Context(), user1, false, false)
 	assert.False(t, apiUser.IsAdmin)
-	assert.Equal(t, api.VisibleTypePublic.String(), apiUser.Visibility)
+	assert.Equal(t, api.UserVisibilityPublic, apiUser.Visibility)
 
 	user31 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 31, IsAdmin: false, Visibility: api.VisibleTypePrivate})
 
 	apiUser = toUser(t.Context(), user31, true, true)
 	assert.False(t, apiUser.IsAdmin)
-	assert.Equal(t, api.VisibleTypePrivate.String(), apiUser.Visibility)
+	assert.Equal(t, api.UserVisibilityPrivate, apiUser.Visibility)
 }

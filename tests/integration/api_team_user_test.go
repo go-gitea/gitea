@@ -32,8 +32,7 @@ func TestAPITeamUser(t *testing.T) {
 		// read self user
 		req := NewRequest(t, "GET", "/api/v1/teams/1/members/user2").AddTokenAuth(user2Token)
 		resp := MakeRequest(t, req, http.StatusOK)
-		var user2 *api.User
-		DecodeJSON(t, resp, &user2)
+		user2 := DecodeJSON(t, resp, &api.User{})
 		user2.Created = user2.Created.In(time.Local)
 		user := unittest.AssertExistsAndLoadBean(t, &user_model.User{Name: "user2"})
 

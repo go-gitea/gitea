@@ -1,6 +1,6 @@
 import {env} from 'node:process';
 import {test, expect} from '@playwright/test';
-import {login, apiCreateRepo, apiDeleteRepo, randomString} from './utils.ts';
+import {login, apiCreateRepo, randomString} from './utils.ts';
 
 test('create a milestone', async ({page}) => {
   const repoName = `e2e-milestone-${randomString(8)}`;
@@ -9,5 +9,4 @@ test('create a milestone', async ({page}) => {
   await page.getByPlaceholder('Title').fill('Test Milestone');
   await page.getByRole('button', {name: 'Create Milestone'}).click();
   await expect(page.locator('.milestone-list')).toContainText('Test Milestone');
-  await apiDeleteRepo(page.request, env.GITEA_TEST_E2E_USER, repoName);
 });

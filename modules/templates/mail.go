@@ -65,13 +65,16 @@ func mailBodyFuncMap() template.FuncMap {
 		"NIL":     func() any { return nil },
 
 		// html/template related functions
-		"dict":         dict,
-		"Iif":          iif,
-		"Eval":         evalTokens,
-		"HTMLFormat":   htmlFormat,
-		"QueryEscape":  queryEscape,
-		"QueryBuild":   QueryBuild,
-		"SanitizeHTML": SanitizeHTML,
+		"dict":        dict,
+		"Iif":         iif,
+		"Eval":        evalTokens,
+		"HTMLFormat":  htmlFormat,
+		"QueryEscape": queryEscape,
+		"QueryBuild":  QueryBuild,
+
+		// deprecated, use "HTMLFormat" instead, but some user custom mail templates still use it
+		// see: https://github.com/go-gitea/gitea/issues/36049
+		"SanitizeHTML": sanitizeHTML,
 
 		"PathEscape":         url.PathEscape,
 		"PathEscapeSegments": util.PathEscapeSegments,

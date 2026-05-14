@@ -6,7 +6,7 @@ package v1_16
 import (
 	"testing"
 
-	"code.gitea.io/gitea/models/migrations/base"
+	"code.gitea.io/gitea/models/migrations/migrationtest"
 	"code.gitea.io/gitea/modules/json"
 
 	"github.com/stretchr/testify/assert"
@@ -27,7 +27,7 @@ func (ls *LoginSourceOriginalV189) TableName() string {
 
 func Test_UnwrapLDAPSourceCfg(t *testing.T) {
 	// Prepare and load the testing database
-	x, deferable := base.PrepareTestEnv(t, 0, new(LoginSourceOriginalV189))
+	x, deferable := migrationtest.PrepareTestEnv(t, 0, new(LoginSourceOriginalV189))
 	if x == nil || t.Failed() {
 		defer deferable()
 		return

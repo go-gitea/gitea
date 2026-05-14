@@ -1,0 +1,8 @@
+Alt-Svc: h3=":443"; ma=2592000
+Cache-Control: max-age=0, private, must-revalidate, no-transform
+Content-Length: 154
+Content-Type: application/json;charset=utf-8
+Vary: Origin
+X-Content-Type-Options: nosniff
+
+{"max_response_items":50,"default_paging_num":10,"default_git_trees_per_page":1000,"default_max_blob_size":10485760,"default_max_response_size":104857600}

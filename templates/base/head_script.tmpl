@@ -2,7 +2,7 @@
 If you are customizing Gitea, please do not change this file.
 If you introduce mistakes in it, Gitea JavaScript code wouldn't run correctly.
 */}}
-<script>
+<script nonce="{{ctx.CspScriptNonce}}">
 	{{/* before our JS code gets loaded, use arrays to store errors, then the arrays will be switched to our error handler later */}}
 	window.addEventListener('error', function(e) {window._globalHandlerErrors=window._globalHandlerErrors||[]; window._globalHandlerErrors.push(e);});
 	window.addEventListener('unhandledrejection', function(e) {window._globalHandlerErrors=window._globalHandlerErrors||[]; window._globalHandlerErrors.push(e);});
@@ -31,4 +31,4 @@ If you introduce mistakes in it, Gitea JavaScript code wouldn't run correctly.
 	{{/* in case some pages don't render the pageData, we make sure it is an object to prevent null access */}}
 	window.config.pageData = window.config.pageData || {};
 </script>
-{{ScriptImport "js/iife.js"}}
+{{ctx.ScriptImport "js/iife.js"}}

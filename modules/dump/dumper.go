@@ -4,6 +4,7 @@
 package dump
 
 import (
+	"archive/zip"
 	"context"
 	"errors"
 	"fmt"
@@ -85,7 +86,7 @@ func NewDumper(ctx context.Context, format string, output io.Writer) (*Dumper, e
 	var comp archives.ArchiverAsync
 	switch format {
 	case "zip":
-		comp = archives.Zip{}
+		comp = archives.Zip{Compression: zip.Deflate}
 	case "tar":
 		comp = archives.Tar{}
 	case "tar.sz":

@@ -27,13 +27,13 @@ func editorHandleFileOperationErrorRender(ctx *context_service.Context, message,
 	flashError, err := ctx.RenderToHTML(tplAlertDetails, map[string]any{
 		"Message": message,
 		"Summary": summary,
-		"Details": utils.SanitizeFlashErrorString(details),
+		"Details": utils.EscapeFlashErrorString(details),
 	})
 	if err == nil {
 		ctx.JSONError(flashError)
 	} else {
-		log.Error("RenderToHTML: %v", err)
-		ctx.JSONError(message + "\n" + summary + "\n" + utils.SanitizeFlashErrorString(details))
+		log.Error("RenderToHTML(%q, %q, %q), error: %v", message, summary, details, err)
+		ctx.JSONError("Unable to render error details, see server logs") // it should never happen
 	}
 }
 

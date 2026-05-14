@@ -1,13 +1,12 @@
 import {build, defineConfig} from 'vite';
 import vuePlugin from '@vitejs/plugin-vue';
 import {stringPlugin} from 'vite-string-plugin';
+import {licensePlugin, wrap} from 'rolldown-license-plugin';
 import {readFileSync, writeFileSync, mkdirSync, unlinkSync, globSync} from 'node:fs';
 import path, {basename, join, parse} from 'node:path';
 import {env} from 'node:process';
 import tailwindcss from 'tailwindcss';
 import tailwindConfig from './tailwind.config.ts';
-import wrapAnsi from 'wrap-ansi';
-import licensePlugin from 'rollup-plugin-license';
 import type {InlineConfig, Plugin, Rolldown} from 'vite';
 import {camelize} from 'vue';
 
@@ -39,15 +38,25 @@ const webComponents = new Set([
   'text-expander',
 ]);
 
-function formatLicenseText(licenseText: string) {
-  return wrapAnsi(licenseText || '', 80).trim();
+function failOnWarningsPlugin(): Rolldown.Plugin {
+  let warningCount = 0;
+  return {
+    name: 'fail-on-warnings',
+    onLog(level) {
+      if (level === 'warn') warningCount++;
+    },
+    buildEnd() {
+      if (!warningCount) return;
+      throw new Error(`${warningCount} warnings present`);
+    },
+  };
 }
 
 const commonRolldownOptions: Rolldown.RolldownOptions = {
   checks: {
-    eval: false, // htmx needs eval
     pluginTimings: false,
   },
+  ...(env.CI ? {plugins: [failOnWarningsPlugin()]} : {}),
 };
 
 function commonViteOpts({build, ...other}: InlineConfig): InlineConfig {
@@ -92,7 +101,7 @@ function iifeBuildOpts({sourceFileName, write}: {sourceFileName: string, write?:
 }
 
 // Build iife.js as a blocking IIFE bundle. In dev mode, serves it from memory
-// and rebuilds on file changes. In prod mode, writes to disk during closeBundle.
+// and rebuilds on file changes. In prod mode, writes to disk and updates "manifest.json".
 function iifePlugin(sourceFileName: string): Plugin {
   let iifeCode = '', iifeMap = '';
   const iifeModules = new Set<string>();
@@ -149,7 +158,7 @@ function iifePlugin(sourceFileName: string): Plugin {
         }
       });
     },
-    async closeBundle() {
+    async writeBundle() {
       for (const file of globSync(`js/${sourceBaseName}.*.js*`, {cwd: outDir})) unlinkSync(join(outDir, file));
 
       const result = await build(iifeBuildOpts({sourceFileName}));
@@ -171,6 +180,7 @@ function reducedSourcemapPlugin(): Plugin {
     'js/index.',
     'js/iife.',
     'js/swagger.',
+    'js/external-render-frontend.',
     'js/external-render-helper.',
     'js/eventsource.sharedworker.',
   ];
@@ -257,8 +267,10 @@ export default defineConfig(commonViteOpts({
     manifest: true,
     rolldownOptions: {
       input: {
+        // FIXME: INCORRECT-VITE-MANIFEST-PARSER: the "css importing" logic in backend is wrong
         index: join(import.meta.dirname, 'web_src/js/index.ts'),
         swagger: join(import.meta.dirname, 'web_src/js/swagger.ts'),
+        'external-render-frontend': join(import.meta.dirname, 'web_src/js/external-render-frontend.ts'),
         'eventsource.sharedworker': join(import.meta.dirname, 'web_src/js/eventsource.sharedworker.ts'),
         devtest: join(import.meta.dirname, 'web_src/css/devtest.css'),
         ...themes,
@@ -314,33 +326,29 @@ export default defineConfig(commonViteOpts({
       },
     }),
     isProduction ? licensePlugin({
-      thirdParty: {
-        output: {
-          file: join(import.meta.dirname, 'public/assets/licenses.txt'),
-          template(deps) {
-            const line = '-'.repeat(80);
-            const goJson = readFileSync(join(import.meta.dirname, 'assets/go-licenses.json'), 'utf8');
-            const goModules = JSON.parse(goJson).map(({name, licenseText}: {name: string, licenseText: string}) => {
-              return {name, body: formatLicenseText(licenseText)};
-            });
-            const jsModules = deps.map((dep) => {
-              return {name: dep.name, version: dep.version, body: formatLicenseText(dep.licenseText ?? '')};
-            });
-            const modules = [...goModules, ...jsModules].sort((a, b) => a.name.localeCompare(b.name));
-            return modules.map(({name, version, body}: {name: string, version?: string, body: string}) => {
-              const title = version ? `${name}@${version}` : name;
-              return `${line}\n${title}\n${line}\n${body}`;
-            }).join('\n');
-          },
-        },
-        allow(dependency) {
-          if (dependency.name === 'khroma') return true; // MIT: https://github.com/fabiospampinato/khroma/pull/33
-          return /(Apache-2\.0|0BSD|BSD-2-Clause|BSD-3-Clause|MIT|ISC|CPAL-1\.0|Unlicense|EPL-1\.0|EPL-2\.0)/.test(dependency.license ?? '');
-        },
+      done(deps, context) {
+        const line = '-'.repeat(80);
+        const goLicenses = JSON.parse(readFileSync(join(import.meta.dirname, 'assets/go-licenses.json'), 'utf8'));
+        const combined: Record<string, string> = {};
+        for (const {name, licenseText} of goLicenses) {
+          combined[name] = wrap(licenseText || '', 80).trim();
+        }
+        for (const {name, version, licenseText} of deps) {
+          combined[`${name}@${version}`] = wrap(licenseText, 80).trim();
+        }
+        const content = Object.entries(combined)
+          .sort(([a], [b]) => a.localeCompare(b))
+          .map(([title, body]) => `${line}\n${title}\n${line}\n${body}`).join('\n');
+        context.emitFile({type: 'asset', fileName: 'licenses.txt', source: content});
+      },
+      match: /^((UN)?LICEN(S|C)E|COPYING).*$/i, // also defined in build/generate-go-licenses.go
+      allow(dep) {
+        if (dep.name === 'khroma') return true; // MIT: https://github.com/fabiospampinato/khroma/pull/33
+        return /(Apache-2\.0|0BSD|BSD-2-Clause|BSD-3-Clause|MIT|ISC|CPAL-1\.0|Unlicense|EPL-1\.0|EPL-2\.0)/.test(dep.license);
       },
     }) : {
       name: 'dev-licenses-stub',
-      closeBundle() {
+      configureServer() {
         writeFileSync(join(outDir, 'licenses.txt'), 'Licenses are disabled during development');
       },
     },

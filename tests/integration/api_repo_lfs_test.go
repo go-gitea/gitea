@@ -77,8 +77,7 @@ func TestAPILFSBatch(t *testing.T) {
 
 	repo := createLFSTestRepository(t, "lfs-batch-repo")
 
-	content := []byte("dummy1")
-	oid := storeObjectInRepo(t, repo.ID, &content)
+	oid := storeObjectInRepo(t, repo.ID, "dummy1")
 	defer git_model.RemoveLFSMetaObjectByOid(t.Context(), repo.ID, oid)
 
 	session := loginUser(t, "user2")
@@ -255,8 +254,7 @@ func TestAPILFSBatch(t *testing.T) {
 			assert.True(t, exist)
 
 			repo2 := createLFSTestRepository(t, "lfs-batch2-repo")
-			content := []byte("dummy0")
-			storeObjectInRepo(t, repo2.ID, &content)
+			storeObjectInRepo(t, repo2.ID, "dummy0")
 
 			meta, err := git_model.GetLFSMetaObjectByOid(t.Context(), repo.ID, p.Oid)
 			assert.Nil(t, meta)
@@ -332,9 +330,7 @@ func TestAPILFSUpload(t *testing.T) {
 	setting.LFS.StartServer = true
 
 	repo := createLFSTestRepository(t, "lfs-upload-repo")
-
-	content := []byte("dummy3")
-	oid := storeObjectInRepo(t, repo.ID, &content)
+	oid := storeObjectInRepo(t, repo.ID, "dummy3")
 	defer git_model.RemoveLFSMetaObjectByOid(t.Context(), repo.ID, oid)
 
 	session := loginUser(t, "user2")
@@ -436,9 +432,7 @@ func TestAPILFSVerify(t *testing.T) {
 	setting.LFS.StartServer = true
 
 	repo := createLFSTestRepository(t, "lfs-verify-repo")
-
-	content := []byte("dummy3")
-	oid := storeObjectInRepo(t, repo.ID, &content)
+	oid := storeObjectInRepo(t, repo.ID, "dummy3")
 	defer git_model.RemoveLFSMetaObjectByOid(t.Context(), repo.ID, oid)
 
 	session := loginUser(t, "user2")

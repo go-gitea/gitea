@@ -36,16 +36,14 @@ func testActionsRunnerAdmin(t *testing.T) {
 	token := getUserToken(t, adminUsername, auth_model.AccessTokenScopeWriteAdmin)
 	req := NewRequest(t, "POST", "/api/v1/admin/actions/runners/registration-token").AddTokenAuth(token)
 	tokenResp := MakeRequest(t, req, http.StatusOK)
-	var registrationToken struct {
+	registrationToken := DecodeJSON(t, tokenResp, &struct {
 		Token string `json:"token"`
-	}
-	DecodeJSON(t, tokenResp, &registrationToken)
+	}{})
 	assert.NotEmpty(t, registrationToken.Token)
 
 	req = NewRequest(t, "GET", "/api/v1/admin/actions/runners").AddTokenAuth(token)
 	runnerListResp := MakeRequest(t, req, http.StatusOK)
-	runnerList := api.ActionRunnersResponse{}
-	DecodeJSON(t, runnerListResp, &runnerList)
+	runnerList := DecodeJSON(t, runnerListResp, &api.ActionRunnersResponse{})
 
 	idx := slices.IndexFunc(runnerList.Entries, func(e *api.ActionRunner) bool { return e.ID == 34349 })
 	require.NotEqual(t, -1, idx)
@@ -63,8 +61,7 @@ func testActionsRunnerAdmin(t *testing.T) {
 	MakeRequest(t, req, http.StatusOK)
 	req = NewRequest(t, "GET", fmt.Sprintf("/api/v1/admin/actions/runners/%d", expectedRunner.ID)).AddTokenAuth(token)
 	runnerResp := MakeRequest(t, req, http.StatusOK)
-	disabledRunner := api.ActionRunner{}
-	DecodeJSON(t, runnerResp, &disabledRunner)
+	disabledRunner := DecodeJSON(t, runnerResp, &api.ActionRunner{})
 	assert.True(t, disabledRunner.Disabled)
 
 	req = newRunnerUpdateRequest(t, fmt.Sprintf("/api/v1/admin/actions/runners/%d", expectedRunner.ID), false).AddTokenAuth(token)
@@ -78,8 +75,7 @@ func testActionsRunnerAdmin(t *testing.T) {
 		req = NewRequest(t, "GET", fmt.Sprintf("/api/v1/admin/actions/runners/%d", runnerEntry.ID)).AddTokenAuth(token)
 		runnerResp = MakeRequest(t, req, http.StatusOK)
 
-		runner := api.ActionRunner{}
-		DecodeJSON(t, runnerResp, &runner)
+		runner := DecodeJSON(t, runnerResp, &api.ActionRunner{})
 
 		assert.Equal(t, runnerEntry.Name, runner.Name)
 		assert.Equal(t, runnerEntry.ID, runner.ID)
@@ -102,16 +98,14 @@ func testActionsRunnerUser(t *testing.T) {
 	token := getUserToken(t, userUsername, auth_model.AccessTokenScopeWriteUser)
 	req := NewRequest(t, "POST", "/api/v1/user/actions/runners/registration-token").AddTokenAuth(token)
 	tokenResp := MakeRequest(t, req, http.StatusOK)
-	var registrationToken struct {
+	registrationToken := DecodeJSON(t, tokenResp, &struct {
 		Token string `json:"token"`
-	}
-	DecodeJSON(t, tokenResp, &registrationToken)
+	}{})
 	assert.NotEmpty(t, registrationToken.Token)
 
 	req = NewRequest(t, "GET", "/api/v1/user/actions/runners").AddTokenAuth(token)
 	runnerListResp := MakeRequest(t, req, http.StatusOK)
-	runnerList := api.ActionRunnersResponse{}
-	DecodeJSON(t, runnerListResp, &runnerList)
+	runnerList := DecodeJSON(t, runnerListResp, &api.ActionRunnersResponse{})
 
 	assert.Len(t, runnerList.Entries, 1)
 	assert.Equal(t, "runner_to_be_deleted-user", runnerList.Entries[0].Name)
@@ -126,8 +120,7 @@ func testActionsRunnerUser(t *testing.T) {
 	req = NewRequest(t, "GET", fmt.Sprintf("/api/v1/user/actions/runners/%d", runnerList.Entries[0].ID)).AddTokenAuth(token)
 	runnerResp := MakeRequest(t, req, http.StatusOK)
 
-	runner := api.ActionRunner{}
-	DecodeJSON(t, runnerResp, &runner)
+	runner := DecodeJSON(t, runnerResp, &api.ActionRunner{})
 
 	assert.Equal(t, "runner_to_be_deleted-user", runner.Name)
 	assert.Equal(t, int64(34346), runner.ID)
@@ -143,7 +136,7 @@ func testActionsRunnerUser(t *testing.T) {
 	MakeRequest(t, req, http.StatusOK)
 	req = NewRequest(t, "GET", fmt.Sprintf("/api/v1/user/actions/runners/%d", runnerList.Entries[0].ID)).AddTokenAuth(token)
 	runnerResp = MakeRequest(t, req, http.StatusOK)
-	DecodeJSON(t, runnerResp, &runner)
+	runner = DecodeJSON(t, runnerResp, &api.ActionRunner{})
 	assert.True(t, runner.Disabled)
 
 	req = newRunnerUpdateRequest(t, fmt.Sprintf("/api/v1/user/actions/runners/%d", runnerList.Entries[0].ID), false).AddTokenAuth(token)
@@ -170,8 +163,7 @@ func testActionsRunnerOwner(t *testing.T) {
 		req := NewRequest(t, "GET", fmt.Sprintf("/api/v1/orgs/org3/actions/runners/%d", 34347)).AddTokenAuth(token)
 		runnerResp := MakeRequest(t, req, http.StatusOK)
 
-		runner := api.ActionRunner{}
-		DecodeJSON(t, runnerResp, &runner)
+		runner := DecodeJSON(t, runnerResp, &api.ActionRunner{})
 
 		assert.Equal(t, "runner_to_be_deleted-org", runner.Name)
 		assert.Equal(t, int64(34347), runner.ID)
@@ -187,16 +179,14 @@ func testActionsRunnerOwner(t *testing.T) {
 		token := getUserToken(t, userUsername, auth_model.AccessTokenScopeWriteOrganization)
 		req := NewRequest(t, "POST", "/api/v1/orgs/org3/actions/runners/registration-token").AddTokenAuth(token)
 		tokenResp := MakeRequest(t, req, http.StatusOK)
-		var registrationToken struct {
+		registrationToken := DecodeJSON(t, tokenResp, &struct {
 			Token string `json:"token"`
-		}
-		DecodeJSON(t, tokenResp, &registrationToken)
+		}{})
 		assert.NotEmpty(t, registrationToken.Token)
 
 		req = NewRequest(t, "GET", "/api/v1/orgs/org3/actions/runners").AddTokenAuth(token)
 		runnerListResp := MakeRequest(t, req, http.StatusOK)
-		runnerList := api.ActionRunnersResponse{}
-		DecodeJSON(t, runnerListResp, &runnerList)
+		runnerList := DecodeJSON(t, runnerListResp, &api.ActionRunnersResponse{})
 
 		idx := slices.IndexFunc(runnerList.Entries, func(e *api.ActionRunner) bool { return e.ID == 34347 })
 		require.NotEqual(t, -1, idx)
@@ -215,8 +205,7 @@ func testActionsRunnerOwner(t *testing.T) {
 		req = NewRequest(t, "GET", fmt.Sprintf("/api/v1/orgs/org3/actions/runners/%d", expectedRunner.ID)).AddTokenAuth(token)
 		runnerResp := MakeRequest(t, req, http.StatusOK)
 
-		runner := api.ActionRunner{}
-		DecodeJSON(t, runnerResp, &runner)
+		runner := DecodeJSON(t, runnerResp, &api.ActionRunner{})
 
 		assert.Equal(t, "runner_to_be_deleted-org", runner.Name)
 		assert.Equal(t, int64(34347), runner.ID)
@@ -232,7 +221,7 @@ func testActionsRunnerOwner(t *testing.T) {
 		MakeRequest(t, req, http.StatusOK)
 		req = NewRequest(t, "GET", fmt.Sprintf("/api/v1/orgs/org3/actions/runners/%d", expectedRunner.ID)).AddTokenAuth(token)
 		runnerResp = MakeRequest(t, req, http.StatusOK)
-		DecodeJSON(t, runnerResp, &runner)
+		runner = DecodeJSON(t, runnerResp, &api.ActionRunner{})
 		assert.True(t, runner.Disabled)
 
 		req = newRunnerUpdateRequest(t, fmt.Sprintf("/api/v1/orgs/org3/actions/runners/%d", expectedRunner.ID), false).AddTokenAuth(token)
@@ -311,8 +300,7 @@ func testActionsRunnerRepo(t *testing.T) {
 		req := NewRequest(t, "GET", fmt.Sprintf("/api/v1/repos/user2/repo1/actions/runners/%d", 34348)).AddTokenAuth(token)
 		runnerResp := MakeRequest(t, req, http.StatusOK)
 
-		runner := api.ActionRunner{}
-		DecodeJSON(t, runnerResp, &runner)
+		runner := DecodeJSON(t, runnerResp, &api.ActionRunner{})
 
 		assert.Equal(t, "runner_to_be_deleted-repo1", runner.Name)
 		assert.Equal(t, int64(34348), runner.ID)
@@ -328,16 +316,14 @@ func testActionsRunnerRepo(t *testing.T) {
 		token := getUserToken(t, userUsername, auth_model.AccessTokenScopeWriteRepository)
 		req := NewRequest(t, "POST", "/api/v1/repos/user2/repo1/actions/runners/registration-token").AddTokenAuth(token)
 		tokenResp := MakeRequest(t, req, http.StatusOK)
-		var registrationToken struct {
+		registrationToken := DecodeJSON(t, tokenResp, &struct {
 			Token string `json:"token"`
-		}
-		DecodeJSON(t, tokenResp, &registrationToken)
+		}{})
 		assert.NotEmpty(t, registrationToken.Token)
 
 		req = NewRequest(t, "GET", "/api/v1/repos/user2/repo1/actions/runners").AddTokenAuth(token)
 		runnerListResp := MakeRequest(t, req, http.StatusOK)
-		runnerList := api.ActionRunnersResponse{}
-		DecodeJSON(t, runnerListResp, &runnerList)
+		runnerList := DecodeJSON(t, runnerListResp, &api.ActionRunnersResponse{})
 
 		assert.Len(t, runnerList.Entries, 1)
 		assert.Equal(t, "runner_to_be_deleted-repo1", runnerList.Entries[0].Name)
@@ -352,8 +338,7 @@ func testActionsRunnerRepo(t *testing.T) {
 		req = NewRequest(t, "GET", fmt.Sprintf("/api/v1/repos/user2/repo1/actions/runners/%d", runnerList.Entries[0].ID)).AddTokenAuth(token)
 		runnerResp := MakeRequest(t, req, http.StatusOK)
 
-		runner := api.ActionRunner{}
-		DecodeJSON(t, runnerResp, &runner)
+		runner := DecodeJSON(t, runnerResp, &api.ActionRunner{})
 
 		assert.Equal(t, "runner_to_be_deleted-repo1", runner.Name)
 		assert.Equal(t, int64(34348), runner.ID)
@@ -369,7 +354,7 @@ func testActionsRunnerRepo(t *testing.T) {
 		MakeRequest(t, req, http.StatusOK)
 		req = NewRequest(t, "GET", fmt.Sprintf("/api/v1/repos/user2/repo1/actions/runners/%d", runnerList.Entries[0].ID)).AddTokenAuth(token)
 		runnerResp = MakeRequest(t, req, http.StatusOK)
-		DecodeJSON(t, runnerResp, &runner)
+		runner = DecodeJSON(t, runnerResp, &api.ActionRunner{})
 		assert.True(t, runner.Disabled)
 
 		req = newRunnerUpdateRequest(t, fmt.Sprintf("/api/v1/repos/user2/repo1/actions/runners/%d", runnerList.Entries[0].ID), false).AddTokenAuth(token)

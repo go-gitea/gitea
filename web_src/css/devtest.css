@@ -1,3 +1,8 @@
+h1, h2 {
+  margin: 0;
+  padding: 10px 0;
+}
+
 .button-sample-groups {
   margin: 0; padding: 0;
 }
@@ -10,7 +15,6 @@
   margin-bottom: 5px;
 }
 
-h1, h2 {
-  margin: 0;
-  padding: 10px 0;
+.fetch-action-demo-forms .form-fetch-action {
+  border: 1px red dashed; /* show the border for demo purpose */
 }

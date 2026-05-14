@@ -12,6 +12,7 @@ import (
 	"net/http"
 	"net/url"
 	"os"
+	"path/filepath"
 	"testing"
 
 	auth_model "code.gitea.io/gitea/models/auth"
@@ -325,10 +326,11 @@ func crudActionCreateFile(_ *testing.T, ctx APITestContext, user *user_model.Use
 }
 
 func importTestingKey() (*openpgp.Entity, error) {
-	if _, _, err := process.GetManager().Exec("gpg --import tests/integration/private-testing.key", "gpg", "--import", "tests/integration/private-testing.key"); err != nil {
+	keyPath := filepath.Join(setting.GetGiteaTestSourceRoot(), "tests/integration/private-testing.key")
+	if _, _, err := process.GetManager().Exec("gpg --import "+keyPath, "gpg", "--import", keyPath); err != nil {
 		return nil, err
 	}
-	keyringFile, err := os.Open("tests/integration/private-testing.key")
+	keyringFile, err := os.Open(keyPath)
 	if err != nil {
 		return nil, err
 	}

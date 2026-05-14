@@ -25,8 +25,7 @@ func TestAPIListEmails(t *testing.T) {
 		AddTokenAuth(token)
 	resp := MakeRequest(t, req, http.StatusOK)
 
-	var emails []*api.Email
-	DecodeJSON(t, resp, &emails)
+	emails := DecodeJSON(t, resp, []*api.Email{})
 
 	assert.Equal(t, []*api.Email{
 		{
@@ -64,8 +63,7 @@ func TestAPIAddEmail(t *testing.T) {
 		AddTokenAuth(token)
 	resp := MakeRequest(t, req, http.StatusCreated)
 
-	var emails []*api.Email
-	DecodeJSON(t, resp, &emails)
+	emails := DecodeJSON(t, resp, []*api.Email{})
 	assert.Equal(t, []*api.Email{
 		{
 			Email:    "user2@example.com",
@@ -117,8 +115,7 @@ func TestAPIDeleteEmail(t *testing.T) {
 		AddTokenAuth(token)
 	resp := MakeRequest(t, req, http.StatusOK)
 
-	var emails []*api.Email
-	DecodeJSON(t, resp, &emails)
+	emails := DecodeJSON(t, resp, []*api.Email{})
 	assert.Equal(t, []*api.Email{
 		{
 			Email:    "user2@example.com",

@@ -24,10 +24,6 @@
   vertical-align: middle;
 }
 
-.ui.header > .ui.label.compact {
-  margin-top: inherit;
-}
-
 .ui.header .sub.header {
   display: block;
   font-weight: var(--font-weight-normal);

@@ -9,7 +9,6 @@ import (
 	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/modules/secret"
 	"code.gitea.io/gitea/modules/setting"
-	api "code.gitea.io/gitea/modules/structs"
 
 	"xorm.io/builder"
 	"xorm.io/xorm"
@@ -129,11 +128,11 @@ func AddHeaderAuthorizationEncryptedColWebhook(x *xorm.Engine) error {
 	}
 
 	type MatrixPayloadSafe struct {
-		Body          string               `json:"body"`
-		MsgType       string               `json:"msgtype"`
-		Format        string               `json:"format"`
-		FormattedBody string               `json:"formatted_body"`
-		Commits       []*api.PayloadCommit `json:"io.gitea.commits,omitempty"`
+		Body          string     `json:"body"`
+		MsgType       string     `json:"msgtype"`
+		Format        string     `json:"format"`
+		FormattedBody string     `json:"formatted_body"`
+		Commits       json.Value `json:"io.gitea.commits,omitempty"`
 	}
 	type MatrixPayloadUnsafe struct {
 		MatrixPayloadSafe

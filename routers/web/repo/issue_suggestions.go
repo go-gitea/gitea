@@ -16,8 +16,8 @@ import (
 func IssueSuggestions(ctx *context.Context) {
 	keyword := ctx.Req.FormValue("q")
 
-	canReadIssues := ctx.Repo.CanRead(unit.TypeIssues)
-	canReadPulls := ctx.Repo.CanRead(unit.TypePullRequests)
+	canReadIssues := ctx.Repo.Permission.CanRead(unit.TypeIssues)
+	canReadPulls := ctx.Repo.Permission.CanRead(unit.TypePullRequests)
 
 	var isPull optional.Option[bool]
 	if canReadPulls && !canReadIssues {

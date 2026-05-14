@@ -1,0 +1,41 @@
+{{if eq .PackageDescriptor.Package.Type "terraform"}}
+	{{$data := $.PackageVersionViewData}}
+	{{if $data.IsLatestVersion}}
+		<div class="divider"></div>
+		<div class="item tw-flex tw-flex-col tw-gap-2">
+			<div>
+				<strong>{{ctx.Locale.Tr "packages.terraform.lock_status"}}</strong>
+			</div>
+			<div>
+				{{if $data.TerraformLock}}
+					<div class="flex-text-block">
+						{{svg "octicon-lock" 16 "tw-text-red"}}
+						<span>{{ctx.Locale.Tr "packages.terraform.locked_by" $data.TerraformLock.Who}}</span>
+					</div>
+					<div class="tw-text-xs tw-ml-6 tw-break-anywhere">
+						{{DateUtils.TimeSince $data.TerraformLock.Created}} ({{$data.TerraformLock.Operation}})
+					</div>
+					{{if .CanWritePackages}}
+						<div>
+							<form action="{{.PackageDescriptor.VersionWebLink}}/terraform/unlock" method="post">
+								<button class="ui tiny button tw-w-full">{{ctx.Locale.Tr "packages.terraform.unlock"}}</button>
+							</form>
+						</div>
+					{{end}}
+				{{else}}
+					<div class="flex-text-block">
+						{{svg "octicon-unlock" 16 "tw-text-green"}}
+						<span>{{ctx.Locale.Tr "packages.terraform.unlocked"}}</span>
+					</div>
+					{{if .CanWritePackages}}
+						<div>
+							<form action="{{.PackageDescriptor.VersionWebLink}}/terraform/lock" method="post">
+								<button class="ui tiny button tw-w-full">{{ctx.Locale.Tr "packages.terraform.lock"}}</button>
+							</form>
+						</div>
+					{{end}}
+				{{end}}
+			</div>
+		</div>
+	{{end}}
+{{end}}

@@ -74,10 +74,6 @@ func (r *GlodmarkRender) Convert(source []byte, writer io.Writer, opts ...parser
 	return r.goldmarkMarkdown.Convert(source, writer, opts...)
 }
 
-func (r *GlodmarkRender) Renderer() renderer.Renderer {
-	return r.goldmarkMarkdown.Renderer()
-}
-
 func (r *GlodmarkRender) highlightingRenderer(w util.BufWriter, c highlighting.CodeBlockContext, entering bool) {
 	if entering {
 		languageBytes, _ := c.Language()
