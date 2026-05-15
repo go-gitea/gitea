@@ -268,11 +268,10 @@ func GenerateGitContent(ctx context.Context, templateRepo, generateRepo *repo_mo
 	}
 
 	// re-fetch repo
-	refreshed, err := repo_model.GetRepositoryByID(ctx, generateRepo.ID)
+	generateRepo, err = repo_model.GetRepositoryByID(ctx, generateRepo.ID)
 	if err != nil {
-		return fmt.Errorf("getRepositoryByID: %w", err)
+		return fmt.Errorf("GetRepositoryByID: %w", err)
 	}
-	*generateRepo = *refreshed
 
 	// if there was no default branch supplied when generating the repo, use the default one from the template
 	if strings.TrimSpace(generateRepo.DefaultBranch) == "" {
