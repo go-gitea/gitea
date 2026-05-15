@@ -1,4 +1,3 @@
-
 import '../fomantic/build/fomantic.js';
 import '../css/index.css';
 

@@ -82,6 +82,8 @@ type WorkflowStoreState = {
 const createDefaultFilters = (): WorkflowFilters => ({issue_type: '', source_column: '', target_column: '', labels: []});
 const createDefaultActions = (): WorkflowActions => ({column: '', add_labels: [], remove_labels: [], issue_state: ''});
 
+const getErrorMessage = (error: unknown): string => error instanceof Error ? error.message : String(error);
+
 function convertFilters(workflow?: WorkflowEvent | null): WorkflowFilters {
   const filters = createDefaultFilters();
   if (workflow?.filters && Array.isArray(workflow.filters)) {
@@ -151,7 +153,7 @@ export function createWorkflowStore(props: any): WorkflowStoreState {
     workflowFilters: createDefaultFilters(),
     workflowActions: createDefaultActions(),
 
-    workflowDrafts: {} as Record<string, WorkflowDraftState>,
+    workflowDrafts: {},
 
     getDraft(event_id: string): WorkflowDraftState | undefined {
       return store.workflowDrafts[event_id];
@@ -319,7 +321,7 @@ export function createWorkflowStore(props: any): WorkflowStoreState {
         }
       } catch (error) {
         console.error('Failed to save workflow:', error);
-        showErrorToast(`${props.locale.saveWorkflowFailed}: ${error.message}`);
+        showErrorToast(`${props.locale.saveWorkflowFailed}: ${getErrorMessage(error)}`);
       } finally {
         store.saving = false;
       }
@@ -367,7 +369,7 @@ export function createWorkflowStore(props: any): WorkflowStoreState {
         console.error('Failed to update workflow status:', error);
         // Revert the status change on error
         selected.enabled = previousEnabled;
-        showErrorToast(`${props.locale.updateWorkflowFailed}: ${error.message}`);
+        showErrorToast(`${props.locale.updateWorkflowFailed}: ${getErrorMessage(error)}`);
       }
     },
 
@@ -396,7 +398,7 @@ export function createWorkflowStore(props: any): WorkflowStoreState {
         }
       } catch (error) {
         console.error('Error deleting workflow:', error);
-        showErrorToast(`${props.locale.deleteWorkflowFailed}: ${error.message}`);
+        showErrorToast(`${props.locale.deleteWorkflowFailed}: ${getErrorMessage(error)}`);
       }
     },
 
