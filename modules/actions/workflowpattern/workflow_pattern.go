@@ -41,7 +41,7 @@ func PatternToRegex(pattern string) (string, error) {
 	var rpattern strings.Builder
 	rpattern.WriteString("^")
 	pos := 0
-	errors := map[int]string{}
+	patternErrors := map[int]string{}
 	for pos < len(pattern) {
 		switch pattern[pos] {
 		case '*':
@@ -68,7 +68,7 @@ func PatternToRegex(pattern string) (string, error) {
 			rpattern.WriteByte(pattern[pos])
 			pos++
 			if pos < len(pattern) && pattern[pos] == ']' {
-				errors[pos] = "Unexpected empty brackets '[]'"
+				patternErrors[pos] = "Unexpected empty brackets '[]'"
 				pos++
 				break
 			}
@@ -80,7 +80,7 @@ func PatternToRegex(pattern string) (string, error) {
 				switch pattern[pos] {
 				case '-':
 					if pos <= startPos || pos+1 >= len(pattern) {
-						errors[pos] = "Invalid range"
+						patternErrors[pos] = "Invalid range"
 						pos++
 						break
 					}
@@ -88,7 +88,7 @@ func PatternToRegex(pattern string) (string, error) {
 						return validChar(a, b, pattern[pos-1]) && validChar(a, b, pattern[pos+1]) && pattern[pos-1] <= pattern[pos+1]
 					}
 					if !validRange('A', 'z') && !validRange('0', '9') {
-						errors[pos] = "Ranges can only include a-z, A-Z, A-z, and 0-9"
+						patternErrors[pos] = "Ranges can only include a-z, A-Z, A-z, and 0-9"
 						pos++
 						break
 					}
@@ -96,7 +96,7 @@ func PatternToRegex(pattern string) (string, error) {
 					pos += 2
 				default:
 					if !validChar('A', 'z', pattern[pos]) && !validChar('0', '9', pattern[pos]) {
-						errors[pos] = "Ranges can only include a-z, A-Z and 0-9"
+						patternErrors[pos] = "Ranges can only include a-z, A-Z and 0-9"
 						pos++
 						break
 					}
@@ -105,14 +105,14 @@ func PatternToRegex(pattern string) (string, error) {
 				}
 			}
 			if pos >= len(pattern) || pattern[pos] != ']' {
-				errors[pos] = "Missing closing bracket ']' after '['"
+				patternErrors[pos] = "Missing closing bracket ']' after '['"
 				pos++
 			}
 			rpattern.WriteString("]")
 			pos++
 		case '\\':
 			if pos+1 >= len(pattern) {
-				errors[pos] = "Missing symbol after \\"
+				patternErrors[pos] = "Missing symbol after \\"
 				pos++
 				break
 			}
@@ -123,9 +123,9 @@ func PatternToRegex(pattern string) (string, error) {
 			pos++
 		}
 	}
-	if len(errors) > 0 {
+	if len(patternErrors) > 0 {
 		var errorMessage strings.Builder
-		for position, err := range errors {
+		for position, err := range patternErrors {
 			if errorMessage.Len() > 0 {
 				errorMessage.WriteString(", ")
 			}
@@ -138,7 +138,7 @@ func PatternToRegex(pattern string) (string, error) {
 }
 
 func CompilePatterns(patterns ...string) ([]*WorkflowPattern, error) {
-	ret := []*WorkflowPattern{}
+	ret := make([]*WorkflowPattern, 0, len(patterns))
 	for _, pattern := range patterns {
 		cp, err := CompilePattern(pattern)
 		if err != nil {
@@ -149,8 +149,8 @@ func CompilePatterns(patterns ...string) ([]*WorkflowPattern, error) {
 	return ret, nil
 }
 
-// returns true if the workflow should be skipped paths/branches
-func Skip(sequence []*WorkflowPattern, input []string, traceWriter TraceWriter) bool {
+// Skip returns true if the workflow should be skipped per paths/branches semantics.
+func Skip(sequence []*WorkflowPattern, input []string) bool {
 	if len(sequence) == 0 {
 		return false
 	}
@@ -158,14 +158,7 @@ func Skip(sequence []*WorkflowPattern, input []string, traceWriter TraceWriter) 
 		matched := false
 		for _, item := range sequence {
 			if item.Regex.MatchString(file) {
-				pattern := item.Pattern
-				if item.Negative {
-					matched = false
-					traceWriter.Info("%s excluded by pattern %s", file, pattern)
-				} else {
-					matched = true
-					traceWriter.Info("%s included by pattern %s", file, pattern)
-				}
+				matched = !item.Negative
 			}
 		}
 		if matched {
@@ -175,17 +168,19 @@ func Skip(sequence []*WorkflowPattern, input []string, traceWriter TraceWriter) 
 	return true
 }
 
-// returns true if the workflow should be skipped paths-ignore/branches-ignore
-func Filter(sequence []*WorkflowPattern, input []string, traceWriter TraceWriter) bool {
+// Filter returns true if the workflow should be skipped per paths-ignore/branches-ignore semantics.
+func Filter(sequence []*WorkflowPattern, input []string) bool {
 	if len(sequence) == 0 {
 		return false
 	}
 	for _, file := range input {
 		matched := false
 		for _, item := range sequence {
-			if item.Regex.MatchString(file) == !item.Negative {
-				pattern := item.Pattern
-				traceWriter.Info("%s ignored by pattern %s", file, pattern)
+			isMatch := item.Regex.MatchString(file)
+			if item.Negative {
+				isMatch = !isMatch
+			}
+			if isMatch {
 				matched = true
 				break
 			}

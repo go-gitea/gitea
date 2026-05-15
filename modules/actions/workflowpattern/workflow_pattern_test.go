@@ -410,8 +410,8 @@ func TestMatchPattern(t *testing.T) {
 			patterns, err := CompilePatterns(kase.patterns...)
 			assert.NoError(t, err)
 
-			assert.EqualValues(t, kase.skipResult, Skip(patterns, kase.inputs, &StdOutTraceWriter{}), "skipResult")       //nolint:testifylint // ported from nektos/act, follow-up cleanup
-			assert.EqualValues(t, kase.filterResult, Filter(patterns, kase.inputs, &StdOutTraceWriter{}), "filterResult") //nolint:testifylint // ported from nektos/act, follow-up cleanup
+			assert.Equal(t, kase.skipResult, Skip(patterns, kase.inputs), "skipResult")
+			assert.Equal(t, kase.filterResult, Filter(patterns, kase.inputs), "filterResult")
 		})
 	}
 }
