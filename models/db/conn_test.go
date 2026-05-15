@@ -107,3 +107,33 @@ func TestMakePgSQLConnStr(t *testing.T) {
 		assert.Equal(t, test.Output, connStr)
 	}
 }
+
+func TestMakeSQLiteConnectionURI(t *testing.T) {
+	tests := map[string]struct {
+		filePath string
+		params   []string
+		output   string
+	}{
+		"relative path": {
+			filePath: "data/gitea.db",
+			params:   []string{"cache=shared", "mode=rwc"},
+			output:   "file:data/gitea.db?cache=shared&mode=rwc",
+		},
+		"memory path": {
+			filePath: ":memory:",
+			params:   []string{"cache=shared", "mode=memory"},
+			output:   "file::memory:?cache=shared&mode=memory",
+		},
+		"sqlite uri": {
+			filePath: "file:test.db?cache=shared",
+			params:   []string{"mode=rwc"},
+			output:   "file:test.db?cache=shared&mode=rwc",
+		},
+	}
+
+	for name, test := range tests {
+		t.Run(name, func(t *testing.T) {
+			assert.Equal(t, test.output, makeSQLiteConnectionURI(test.filePath, test.params))
+		})
+	}
+}

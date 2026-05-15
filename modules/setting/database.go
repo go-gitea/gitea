@@ -5,6 +5,7 @@ package setting
 
 import (
 	"path/filepath"
+	"strings"
 	"time"
 )
 
@@ -65,6 +66,9 @@ func loadDBSetting(rootCfg ConfigProvider) {
 	Database.CharsetCollation = sec.Key("CHARSET_COLLATION").String()
 
 	Database.Path = sec.Key("PATH").MustString(filepath.Join(AppDataPath, "gitea.db"))
+	if Database.Type.IsSQLite3() {
+		Database.Path = normalizeSQLitePath(Database.Path)
+	}
 
 	Database.SQLiteBusyTimeout = sec.Key("SQLITE_TIMEOUT").MustInt(defaultSQLiteBusyTimeout)
 	// mattn driver isn't really affected by this timeout, but other drivers are affected
@@ -88,6 +92,13 @@ func loadDBSetting(rootCfg ConfigProvider) {
 	Database.DBConnectBackoff = sec.Key("DB_RETRY_BACKOFF").MustDuration(3 * time.Second)
 	Database.AutoMigration = sec.Key("AUTO_MIGRATION").MustBool(true)
 	Database.SlowQueryThreshold = sec.Key("SLOW_QUERY_THRESHOLD").MustDuration(Database.SlowQueryThreshold)
+}
+
+func normalizeSQLitePath(path string) string {
+	if path == ":memory:" || strings.HasPrefix(path, "file:") || filepath.IsAbs(path) {
+		return path
+	}
+	return filepath.Join(AppWorkPath, path)
 }
 
 // DatabaseType FIXME: it is also used directly with "schemas.DBType", so the names must be consistent

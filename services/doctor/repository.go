@@ -69,10 +69,11 @@ func deleteOrphanedRepos(ctx context.Context) (int64, error) {
 
 func init() {
 	Register(&Check{
-		Title:     "Deleted all content related to orphaned repos",
-		Name:      "delete-orphaned-repos",
-		IsDefault: false,
-		Run:       handleDeleteOrphanedRepos,
-		Priority:  4,
+		Title:         "Deleted all content related to orphaned repos",
+		Name:          "delete-orphaned-repos",
+		IsDefault:     false,
+		Run:           handleDeleteOrphanedRepos,
+		Priority:      4,
+		IsDestructive: true,
 	})
 }

@@ -21,7 +21,8 @@ func init() {
 		Run:                        garbageCollectLFSCheck,
 		AbortIfFailed:              false,
 		SkipDatabaseInitialization: false,
-		Priority:                   1,
+		Priority:                   3,
+		IsDestructive:              true,
 	})
 }
 
@@ -44,6 +45,7 @@ func garbageCollectLFSCheck(ctx context.Context, logger log.Logger, autofix bool
 		OlderThan: time.Now().Add(-24 * time.Hour * 7),
 		// We don't set the UpdatedLessRecentlyThan because we want to do a full GC
 	}); err != nil {
+		markDatabaseUntrusted(ctx)
 		return err
 	}
 

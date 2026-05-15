@@ -14,7 +14,6 @@ package db
 import (
 	"database/sql"
 	"fmt"
-	"strings"
 
 	"modernc.org/sqlite"
 )
@@ -36,6 +35,6 @@ func makeSQLiteConnStrModerncCCGO(opts SQLiteConnStrOptions) (string, string, er
 	if opts.JournalMode != "" {
 		params = append(params, fmt.Sprintf("_pragma=journal_mode(%s)", opts.JournalMode))
 	}
-	connStr := fmt.Sprintf("file:%s?%s", opts.FilePath, strings.Join(params, "&"))
+	connStr := makeSQLiteConnectionURI(opts.FilePath, params)
 	return sqlDriverSQLite3, connStr, nil
 }

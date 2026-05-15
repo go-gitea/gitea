@@ -107,6 +107,7 @@ func checkStorage(opts *checkStorageOptions) func(ctx context.Context, logger lo
 					},
 					name: "attachment",
 				}); err != nil {
+				markDatabaseUntrusted(ctx)
 				return err
 			}
 		}
@@ -127,6 +128,7 @@ func checkStorage(opts *checkStorageOptions) func(ctx context.Context, logger lo
 					},
 					name: "LFS file",
 				}); err != nil {
+				markDatabaseUntrusted(ctx)
 				return err
 			}
 		}
@@ -141,6 +143,7 @@ func checkStorage(opts *checkStorageOptions) func(ctx context.Context, logger lo
 					},
 					name: "avatar",
 				}); err != nil {
+				markDatabaseUntrusted(ctx)
 				return err
 			}
 		}
@@ -155,6 +158,7 @@ func checkStorage(opts *checkStorageOptions) func(ctx context.Context, logger lo
 					},
 					name: "repo avatar",
 				}); err != nil {
+				markDatabaseUntrusted(ctx)
 				return err
 			}
 		}
@@ -173,6 +177,7 @@ func checkStorage(opts *checkStorageOptions) func(ctx context.Context, logger lo
 					},
 					name: "repo archive",
 				}); err != nil {
+				markDatabaseUntrusted(ctx)
 				return err
 			}
 		}
@@ -199,6 +204,7 @@ func checkStorage(opts *checkStorageOptions) func(ctx context.Context, logger lo
 					},
 					name: "package blob",
 				}); err != nil {
+				markDatabaseUntrusted(ctx)
 				return err
 			}
 		}
@@ -215,7 +221,8 @@ func init() {
 		Run:                        checkStorage(&checkStorageOptions{All: true}),
 		AbortIfFailed:              false,
 		SkipDatabaseInitialization: false,
-		Priority:                   1,
+		Priority:                   3,
+		IsDestructive:              true,
 	})
 
 	Register(&Check{
@@ -225,7 +232,8 @@ func init() {
 		Run:                        checkStorage(&checkStorageOptions{Attachments: true}),
 		AbortIfFailed:              false,
 		SkipDatabaseInitialization: false,
-		Priority:                   1,
+		Priority:                   3,
+		IsDestructive:              true,
 	})
 
 	Register(&Check{
@@ -235,7 +243,8 @@ func init() {
 		Run:                        checkStorage(&checkStorageOptions{LFS: true}),
 		AbortIfFailed:              false,
 		SkipDatabaseInitialization: false,
-		Priority:                   1,
+		Priority:                   3,
+		IsDestructive:              true,
 	})
 
 	Register(&Check{
@@ -245,7 +254,8 @@ func init() {
 		Run:                        checkStorage(&checkStorageOptions{Avatars: true, RepoAvatars: true}),
 		AbortIfFailed:              false,
 		SkipDatabaseInitialization: false,
-		Priority:                   1,
+		Priority:                   3,
+		IsDestructive:              true,
 	})
 
 	Register(&Check{
@@ -255,7 +265,8 @@ func init() {
 		Run:                        checkStorage(&checkStorageOptions{RepoArchives: true}),
 		AbortIfFailed:              false,
 		SkipDatabaseInitialization: false,
-		Priority:                   1,
+		Priority:                   3,
+		IsDestructive:              true,
 	})
 
 	Register(&Check{
@@ -265,6 +276,7 @@ func init() {
 		Run:                        checkStorage(&checkStorageOptions{Packages: true}),
 		AbortIfFailed:              false,
 		SkipDatabaseInitialization: false,
-		Priority:                   1,
+		Priority:                   3,
+		IsDestructive:              true,
 	})
 }

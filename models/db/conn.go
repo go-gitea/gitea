@@ -107,8 +107,10 @@ func ConnStr(opts ConnOptions) (string, string, error) {
 		if opts.SQLitePath == "" {
 			return "", "", errors.New("sqlite3 database path cannot be empty")
 		}
-		if err := os.MkdirAll(filepath.Dir(opts.SQLitePath), os.ModePerm); err != nil {
-			return "", "", fmt.Errorf("failed to create directories: %w", err)
+		if opts.SQLitePath != ":memory:" && !strings.HasPrefix(opts.SQLitePath, "file:") {
+			if err := os.MkdirAll(filepath.Dir(opts.SQLitePath), os.ModePerm); err != nil {
+				return "", "", fmt.Errorf("failed to create directories: %w", err)
+			}
 		}
 		return makeSQLiteConnStr(SQLiteConnStrOptions{
 			FilePath:    opts.SQLitePath,
@@ -117,6 +119,17 @@ func ConnStr(opts ConnOptions) (string, string, error) {
 		})
 	}
 	return "", "", fmt.Errorf("unknown database type: %s", opts.Type)
+}
+
+func makeSQLiteConnectionURI(filePath string, params []string) string {
+	if strings.HasPrefix(filePath, "file:") {
+		separator := "?"
+		if strings.Contains(filePath, "?") {
+			separator = "&"
+		}
+		return filePath + separator + strings.Join(params, "&")
+	}
+	return fmt.Sprintf("file:%s?%s", filePath, strings.Join(params, "&"))
 }
 
 // parsePgSQLHostPort parses given input in various forms defined in
