@@ -35,11 +35,10 @@ import (
 
 func listUserOrgs(ctx *context.APIContext, u *user_model.User) {
 	listOptions := utils.GetListOptions(ctx)
-	includeVisibility := organization.DoerViewOtherVisibility(ctx.Doer, u)
 	opts := organization.FindOrgOptions{
 		ListOptions:       listOptions,
 		UserID:            u.ID,
-		IncludeVisibility: includeVisibility,
+		IncludeVisibility: organization.DoerViewOtherVisibility(ctx.Doer, u),
 	}
 	opts.ApplyPublicOnly(ctx.PublicOnly)
 	orgs, maxResults, err := db.FindAndCount[organization.Organization](ctx, opts)
