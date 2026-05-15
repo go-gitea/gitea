@@ -89,7 +89,6 @@ import (
 	"crypto/hmac"
 	"crypto/sha256"
 	"encoding/base64"
-	"encoding/binary"
 	"encoding/hex"
 	"encoding/xml"
 	"errors"
@@ -105,6 +104,7 @@ import (
 
 	actions_model "code.gitea.io/gitea/models/actions"
 	"code.gitea.io/gitea/models/db"
+	actions_module "code.gitea.io/gitea/modules/actions"
 	"code.gitea.io/gitea/modules/httplib"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/optional"
@@ -120,29 +120,6 @@ import (
 	"google.golang.org/protobuf/types/known/timestamppb"
 	"xorm.io/builder"
 )
-
-func appendArtifactV4SignatureString(dst []byte, value string) []byte {
-	var size [8]byte
-	binary.BigEndian.PutUint64(size[:], uint64(len(value)))
-	dst = append(dst, size[:]...)
-	return append(dst, value...)
-}
-
-func appendArtifactV4SignatureInt64(dst []byte, value int64) []byte {
-	var raw [8]byte
-	binary.BigEndian.PutUint64(raw[:], uint64(value))
-	return append(dst, raw[:]...)
-}
-
-func buildArtifactV4SignaturePayload(endpoint, expires, artifactName string, taskID, artifactID int64) []byte {
-	payload := make([]byte, 0, len(endpoint)+len(expires)+len(artifactName)+40)
-	payload = appendArtifactV4SignatureString(payload, endpoint)
-	payload = appendArtifactV4SignatureString(payload, expires)
-	payload = appendArtifactV4SignatureString(payload, artifactName)
-	payload = appendArtifactV4SignatureInt64(payload, taskID)
-	payload = appendArtifactV4SignatureInt64(payload, artifactID)
-	return payload
-}
 
 const ArtifactV4RouteBase = "/twirp/github.actions.results.api.v1.ArtifactService"
 
@@ -186,9 +163,7 @@ func ArtifactsV4Routes(prefix string) *web.Router {
 }
 
 func (r *artifactV4Routes) buildSignature(endpoint, expires, artifactName string, taskID, artifactID int64) []byte {
-	mac := hmac.New(sha256.New, setting.GetGeneralTokenSigningSecret())
-	_, _ = mac.Write(buildArtifactV4SignaturePayload(endpoint, expires, artifactName, taskID, artifactID))
-	return mac.Sum(nil)
+	return actions_module.BuildSignature("v4", endpoint, expires, artifactName, strconv.FormatInt(taskID, 10), strconv.FormatInt(artifactID, 10))
 }
 
 func (r *artifactV4Routes) buildArtifactURL(ctx *ArtifactContext, endpoint, artifactName string, taskID, artifactID int64) string {

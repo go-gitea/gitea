@@ -6,9 +6,7 @@ package repo
 import (
 	go_context "context"
 	"crypto/hmac"
-	"crypto/sha256"
 	"encoding/base64"
-	"encoding/binary"
 	"errors"
 	"fmt"
 	"net/http"
@@ -22,9 +20,9 @@ import (
 	"code.gitea.io/gitea/models/db"
 	repo_model "code.gitea.io/gitea/models/repo"
 	secret_model "code.gitea.io/gitea/models/secret"
+	"code.gitea.io/gitea/modules/actions"
 	"code.gitea.io/gitea/modules/httplib"
 	"code.gitea.io/gitea/modules/optional"
-	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/modules/web"
@@ -37,27 +35,6 @@ import (
 
 	"gitea.com/gitea/runner/act/model"
 )
-
-func appendArtifactSignatureString(dst []byte, value string) []byte {
-	var size [8]byte
-	binary.BigEndian.PutUint64(size[:], uint64(len(value)))
-	dst = append(dst, size[:]...)
-	return append(dst, value...)
-}
-
-func appendArtifactSignatureInt64(dst []byte, value int64) []byte {
-	var raw [8]byte
-	binary.BigEndian.PutUint64(raw[:], uint64(value))
-	return append(dst, raw[:]...)
-}
-
-func buildArtifactSignaturePayload(endpoint string, expires, artifactID int64) []byte {
-	payload := make([]byte, 0, len(endpoint)+24)
-	payload = appendArtifactSignatureString(payload, endpoint)
-	payload = appendArtifactSignatureInt64(payload, expires)
-	payload = appendArtifactSignatureInt64(payload, artifactID)
-	return payload
-}
 
 // ListActionsSecrets list an repo's actions secrets
 func (Action) ListActionsSecrets(ctx *context.APIContext) {
@@ -1981,9 +1958,7 @@ func DeleteArtifact(ctx *context.APIContext) {
 }
 
 func buildSignature(endp string, expires, artifactID int64) []byte {
-	mac := hmac.New(sha256.New, setting.GetGeneralTokenSigningSecret())
-	_, _ = mac.Write(buildArtifactSignaturePayload(endp, expires, artifactID))
-	return mac.Sum(nil)
+	return actions.BuildSignature("api", endp, strconv.FormatInt(expires, 10), strconv.FormatInt(artifactID, 10))
 }
 
 func buildDownloadRawEndpoint(repo *repo_model.Repository, artifactID int64) string {
