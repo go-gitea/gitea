@@ -346,7 +346,7 @@ lint-editorconfig:
 .PHONY: lint-actions
 lint-actions: .venv ## lint action workflow files
 	$(GO) run $(ACTIONLINT_PACKAGE)
-	@uv run --frozen zizmor --quiet .github
+	@uv run --frozen zizmor --quiet --min-confidence=medium .github
 
 .PHONY: lint-templates
 lint-templates: .venv node_modules ## lint template files

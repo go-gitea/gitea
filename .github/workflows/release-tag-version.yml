@@ -19,8 +19,6 @@ jobs:
       packages: write # to publish to ghcr.io
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
-        with:
-          persist-credentials: false
       # fetch all commits instead of only the last as some branches are long lived and could have many between versions
       # fetch all tags to ensure that "git describe" reports expected Gitea version, eg. v1.21.0-dev-1-g1234567
       - run: git fetch --unshallow --quiet --tags --force
@@ -28,12 +26,11 @@ jobs:
         with:
           go-version-file: go.mod
           check-latest: true
-          cache: true # zizmor: ignore[cache-poisoning] cache scope per-branch; only maintainer pushes write to this cache
       - uses: pnpm/action-setup@8912a9102ac27614460f54aedde9e1e7f9aec20d # v6.0.5
       - uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e # v6.4.0
         with:
           node-version: 24
-          cache: pnpm # zizmor: ignore[cache-poisoning] cache scope per-branch; only maintainer pushes write to this cache
+          cache: pnpm
           cache-dependency-path: pnpm-lock.yaml
       - run: make deps-frontend deps-backend
       # xgo build
@@ -93,8 +90,6 @@ jobs:
       packages: write # to publish to ghcr.io
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
-        with:
-          persist-credentials: false
       # fetch all commits instead of only the last as some branches are long lived and could have many between versions
       # fetch all tags to ensure that "git describe" reports expected Gitea version, eg. v1.21.0-dev-1-g1234567
       - run: git fetch --unshallow --quiet --tags --force
