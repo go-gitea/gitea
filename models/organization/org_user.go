@@ -10,8 +10,6 @@ import (
 	"code.gitea.io/gitea/models/db"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/log"
-
-	"xorm.io/builder"
 )
 
 // ________                ____ ___
@@ -65,7 +63,7 @@ func IsOrganizationOwner(ctx context.Context, orgID, uid int64) (bool, error) {
 		}
 		return false, err
 	}
-	return IsTeamMember(ctx, orgID, ownerTeam.ID, uid)
+	return IsTeamMemberWithGroups(ctx, orgID, ownerTeam.ID, uid)
 }
 
 // IsOrganizationAdmin returns true if given user is in the owner team or an admin team.
@@ -84,11 +82,20 @@ func IsOrganizationAdmin(ctx context.Context, orgID, uid int64) (bool, error) {
 
 // IsOrganizationMember returns true if given user is member of organization.
 func IsOrganizationMember(ctx context.Context, orgID, uid int64) (bool, error) {
-	return db.GetEngine(ctx).
+	isMember, err := db.GetEngine(ctx).
 		Where("uid=?", uid).
 		And("org_id=?", orgID).
 		Table("org_user").
 		Exist()
+	if err != nil || isMember {
+		return isMember, err
+	}
+
+	teams, err := GetUserOrgTeams(ctx, orgID, uid)
+	if err != nil {
+		return false, err
+	}
+	return len(teams) > 0, nil
 }
 
 // IsPublicMembership returns true if the given user's membership of given org is public.
@@ -103,12 +110,17 @@ func IsPublicMembership(ctx context.Context, orgID, uid int64) (bool, error) {
 
 // CanCreateOrgRepo returns true if user can create repo in organization
 func CanCreateOrgRepo(ctx context.Context, orgID, uid int64) (bool, error) {
-	return db.GetEngine(ctx).
-		Where(builder.Eq{"team.can_create_org_repo": true}).
-		Join("INNER", "team_user", "team_user.team_id = team.id").
-		And("team_user.uid = ?", uid).
-		And("team_user.org_id = ?", orgID).
-		Exist(new(Team))
+	teams := make([]int64, 0, 10)
+	if err := db.GetEngine(ctx).
+		Table("team").
+		Where("org_id=?", orgID).
+		And("can_create_org_repo=?", true).
+		Cols("id").
+		Find(&teams); err != nil {
+		return false, err
+	}
+
+	return IsUserInTeamsWithGroups(ctx, uid, teams)
 }
 
 // IsUserOrgOwner returns true if user is in the owner team of given organization.

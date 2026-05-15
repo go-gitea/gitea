@@ -19,6 +19,7 @@ import (
 	repo_model "code.gitea.io/gitea/models/repo"
 	unit_model "code.gitea.io/gitea/models/unit"
 	user_model "code.gitea.io/gitea/models/user"
+	usergroup_model "code.gitea.io/gitea/models/usergroup"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/templates"
@@ -39,6 +40,8 @@ const (
 	tplTeamNew templates.TplName = "org/team/new"
 	// tplTeamMembers template path for showing team members page
 	tplTeamMembers templates.TplName = "org/team/members"
+	// tplTeamUserGroup template path for showing a team user group's members page
+	tplTeamUserGroup templates.TplName = "org/team/user_group"
 	// tplTeamRepositories template path for showing team repositories page
 	tplTeamRepositories templates.TplName = "org/team/repositories"
 	// tplTeamInvite template path for team invites page
@@ -97,8 +100,21 @@ func Teams(ctx *context.Context) {
 			return
 		}
 	}
+	teamIDs := make([]int64, 0, len(teams))
+	for _, team := range teams {
+		teamIDs = append(teamIDs, team.ID)
+	}
+	teamGroupCounts := map[int64]int64{}
+	if setting.Service.EnableUserGroups {
+		teamGroupCounts, err = org_model.GetTeamUserGroupCounts(ctx, teamIDs)
+		if err != nil {
+			ctx.ServerError("GetTeamUserGroupCounts", err)
+			return
+		}
+	}
 
 	ctx.Data["OrgListTeams"] = teams
+	ctx.Data["OrgListTeamGroupCounts"] = teamGroupCounts
 	ctx.Data["Keyword"] = keyword
 	pager := context.NewPagination(count, setting.UI.MembersPagingNum, page, 5)
 	pager.AddParamFromRequest(ctx.Req)
@@ -198,12 +214,68 @@ func TeamsAction(ctx *context.Context) {
 			return
 		}
 
-		if ctx.Org.Team.IsMember(ctx, u.ID) {
-			ctx.Flash.Error(ctx.Tr("org.teams.add_duplicate_users"))
-		} else {
-			err = org_service.AddTeamMember(ctx, ctx.Org.Team, u)
+		isDirectMember, directErr := org_model.IsTeamMember(ctx, ctx.Org.Team.OrgID, ctx.Org.Team.ID, u.ID)
+		if directErr != nil {
+			err = directErr
+			break
 		}
 
+		if isDirectMember {
+			ctx.Flash.Error(ctx.Tr("org.teams.add_duplicate_users"))
+		} else {
+			warningGroups, groupErr := org_model.GetUserGroupsInTeamForUser(ctx, ctx.Org.Team.ID, u.ID)
+			if groupErr != nil {
+				err = groupErr
+				break
+			}
+			err = org_service.AddTeamMember(ctx, ctx.Org.Team, u)
+			if err == nil && len(warningGroups) > 0 {
+				groupNames := make([]string, 0, len(warningGroups))
+				for _, group := range warningGroups {
+					groupNames = append(groupNames, group.Name)
+				}
+				ctx.Flash.Warning(ctx.Tr("org.teams.members.redundant_direct_membership", strings.Join(groupNames, ", ")))
+			}
+		}
+
+		page = "team"
+	case "add_group":
+		if !setting.Service.EnableUserGroups {
+			ctx.HTTPError(http.StatusNotFound)
+			return
+		}
+		if !ctx.Org.IsOwner {
+			ctx.HTTPError(http.StatusNotFound)
+			return
+		}
+		groupID := ctx.FormInt64("gid")
+		group, groupErr := usergroup_model.GetUserGroupByID(ctx, groupID)
+		if groupErr != nil {
+			ctx.Flash.Error(ctx.Tr("org.teams.add_user_group_failed", ""))
+			ctx.Redirect(ctx.Org.OrgLink + "/teams/" + url.PathEscape(ctx.Org.Team.LowerName))
+			return
+		}
+		if err := org_service.AddTeamUserGroup(ctx, ctx.Org.Team, group.ID); err != nil {
+			ctx.Flash.Error(ctx.Tr("org.teams.add_user_group_failed", group.Name))
+			ctx.Redirect(ctx.Org.OrgLink + "/teams/" + url.PathEscape(ctx.Org.Team.LowerName))
+			return
+		}
+		page = "team"
+	case "remove_group":
+		if !setting.Service.EnableUserGroups {
+			ctx.HTTPError(http.StatusNotFound)
+			return
+		}
+		if !ctx.Org.IsOwner {
+			ctx.HTTPError(http.StatusNotFound)
+			return
+		}
+		groupID := ctx.FormInt64("gid")
+		if err := org_service.RemoveTeamUserGroup(ctx, ctx.Org.Team, groupID); err != nil {
+			ctx.Flash.Error(ctx.Tr("org.teams.remove_user_group_failed"))
+			page = "team"
+			break
+		}
 		page = "team"
 	case "remove_invite":
 		if !ctx.Org.IsOwner {
@@ -435,6 +507,57 @@ func TeamMembers(ctx *context.Context) {
 		return
 	}
 	ctx.Data["Units"] = unit_model.Units
+	if setting.Service.EnableUserGroups {
+		teamGroups, err := org_model.GetTeamUserGroups(ctx, ctx.Org.Team.ID)
+		if err != nil {
+			ctx.ServerError("GetTeamUserGroups", err)
+			return
+		}
+		ctx.Data["TeamGroups"] = teamGroups
+		ctx.Data["TeamGroupsCount"] = len(teamGroups)
+
+		groupIDs := make([]int64, 0, len(teamGroups))
+		for _, g := range teamGroups {
+			groupIDs = append(groupIDs, g.ID)
+		}
+		memberCounts, err := usergroup_model.GetUserGroupMemberCounts(ctx, groupIDs)
+		if err != nil {
+			ctx.ServerError("GetUserGroupMemberCounts", err)
+			return
+		}
+		ctx.Data["TeamGroupMemberCounts"] = memberCounts
+
+		teamGroupPaths, err := usergroup_model.GetUserGroupFullPaths(ctx, groupIDs)
+		if err != nil {
+			ctx.ServerError("GetUserGroupFullPaths", err)
+			return
+		}
+		ctx.Data["TeamGroupPaths"] = teamGroupPaths
+
+		availableGroups, err := org_model.GetAvailableUserGroupsForTeam(ctx, ctx.Org.Team.ID)
+		if err != nil {
+			ctx.ServerError("GetAvailableUserGroupsForTeam", err)
+			return
+		}
+		ctx.Data["AvailableGroups"] = availableGroups
+
+		availGroupIDs := make([]int64, 0, len(availableGroups))
+		for _, g := range availableGroups {
+			availGroupIDs = append(availGroupIDs, g.ID)
+		}
+		availableGroupPaths, err := usergroup_model.GetUserGroupFullPaths(ctx, availGroupIDs)
+		if err != nil {
+			ctx.ServerError("GetUserGroupFullPaths", err)
+			return
+		}
+		ctx.Data["AvailableGroupPaths"] = availableGroupPaths
+		availableGroupMemberCounts, err := usergroup_model.GetUserGroupMemberCounts(ctx, availGroupIDs)
+		if err != nil {
+			ctx.ServerError("GetUserGroupMemberCounts", err)
+			return
+		}
+		ctx.Data["AvailableGroupMemberCounts"] = availableGroupMemberCounts
+	}
 
 	invites, err := org_model.GetInvitesByTeamID(ctx, ctx.Org.Team.ID)
 	if err != nil {
@@ -445,6 +568,141 @@ func TeamMembers(ctx *context.Context) {
 	ctx.Data["IsEmailInviteEnabled"] = setting.MailService != nil
 
 	ctx.HTML(http.StatusOK, tplTeamMembers)
+}
+
+// TeamUserGroup renders a global user group detail page scoped to an org context.
+func TeamUserGroup(ctx *context.Context) {
+	orgName := ctx.FormTrim("org")
+	if orgName == "" {
+		ctx.NotFound(nil)
+		return
+	}
+
+	org, err := org_model.GetOrgByName(ctx, orgName)
+	if err != nil {
+		if user_model.IsErrUserNotExist(err) {
+			ctx.NotFound(nil)
+			return
+		}
+		ctx.ServerError("GetOrgByName", err)
+		return
+	}
+
+	isOrgMember, err := org_model.IsOrganizationMember(ctx, org.ID, ctx.Doer.ID)
+	if err != nil {
+		ctx.ServerError("IsOrganizationMember", err)
+		return
+	}
+	if !isOrgMember {
+		ctx.NotFound(nil)
+		return
+	}
+
+	groupID := ctx.PathParamInt64("groupid")
+	group, err := usergroup_model.GetUserGroupByID(ctx, groupID)
+	if err != nil {
+		if usergroup_model.IsErrUserGroupNotExist(err) {
+			ctx.NotFound(nil)
+			return
+		}
+		ctx.ServerError("GetUserGroupByID", err)
+		return
+	}
+
+	teamIDs, err := org_model.GetTeamIDsByUserGroupIDs(ctx, org.ID, []int64{groupID})
+	if err != nil {
+		ctx.ServerError("GetTeamIDsByUserGroupIDs", err)
+		return
+	}
+	if len(teamIDs) == 0 {
+		ctx.NotFound(nil)
+		return
+	}
+
+	page := max(ctx.FormInt("page"), 1)
+	pageSize := setting.UI.MembersPagingNum
+
+	effectiveMemberIDs, err := usergroup_model.GetEffectiveUserGroupMemberIDs(ctx, []int64{groupID})
+	if err != nil {
+		ctx.ServerError("GetEffectiveUserGroupMemberIDs", err)
+		return
+	}
+	members, err := usergroup_model.GetEffectiveUserGroupMembers(ctx, []int64{groupID}, db.ListOptions{
+		Page:     page,
+		PageSize: pageSize,
+	})
+	if err != nil {
+		ctx.ServerError("GetEffectiveUserGroupMembers", err)
+		return
+	}
+
+	directMemberCounts, err := usergroup_model.GetUserGroupMemberCounts(ctx, []int64{groupID})
+	if err != nil {
+		ctx.ServerError("GetUserGroupMemberCounts", err)
+		return
+	}
+
+	groupPaths, err := usergroup_model.GetUserGroupFullPaths(ctx, []int64{groupID})
+	if err != nil {
+		ctx.ServerError("GetUserGroupFullPaths", err)
+		return
+	}
+
+	ctx.Org.Organization = org
+	ctx.Org.IsMember = true
+	shouldSeeAllTeams, err := context.UserShouldSeeAllOrgTeams(ctx)
+	if err != nil {
+		ctx.ServerError("UserShouldSeeAllOrgTeams", err)
+		return
+	}
+
+	visibleTeams := make([]*org_model.Team, 0, len(teamIDs))
+	if shouldSeeAllTeams {
+		visibleTeams, err = org.LoadTeams(ctx)
+		if err != nil {
+			ctx.ServerError("LoadTeams", err)
+			return
+		}
+	} else {
+		visibleTeams, err = org_model.GetUserOrgTeams(ctx, org.ID, ctx.Doer.ID)
+		if err != nil {
+			ctx.ServerError("GetUserOrgTeams", err)
+			return
+		}
+	}
+
+	visibleTeamsByID := make(map[int64]*org_model.Team, len(visibleTeams))
+	for _, team := range visibleTeams {
+		visibleTeamsByID[team.ID] = team
+	}
+
+	hasVisibleTeam := false
+	for _, teamID := range teamIDs {
+		if _, ok := visibleTeamsByID[teamID]; ok {
+			hasVisibleTeam = true
+			break
+		}
+	}
+	if !hasVisibleTeam {
+		ctx.NotFound(nil)
+		return
+	}
+
+	ctx.Data["Title"] = group.Name
+	ctx.Data["PageIsOrgTeams"] = true
+	ctx.Data["Group"] = group
+	ctx.Data["GroupPath"] = groupPaths[groupID]
+	ctx.Data["GroupMembers"] = members
+	ctx.Data["OrgName"] = org.Name
+	ctx.Data["OrgDisplayName"] = org.DisplayName()
+	ctx.Data["OrgTeamsLink"] = setting.AppSubURL + "/org/" + url.PathEscape(org.Name) + "/teams"
+	ctx.Data["GroupDirectMembersCount"] = directMemberCounts[groupID]
+	ctx.Data["GroupEffectiveMembersCount"] = len(effectiveMemberIDs)
+	pager := context.NewPagination(int64(len(effectiveMemberIDs)), pageSize, page, 5)
+	pager.AddParamFromRequest(ctx.Req)
+	ctx.Data["Page"] = pager
+
+	ctx.HTML(http.StatusOK, tplTeamUserGroup)
 }
 
 // TeamRepositories show the repositories of team

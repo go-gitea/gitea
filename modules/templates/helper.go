@@ -110,6 +110,9 @@ func newFuncMapWebPage() template.FuncMap {
 		"EnableTimetracking": func() bool {
 			return setting.Service.EnableTimetracking
 		},
+		"EnableUserGroups": func() bool {
+			return setting.Service.EnableUserGroups
+		},
 		"DisableWebhooks": func() bool {
 			return setting.DisableWebhooks
 		},

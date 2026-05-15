@@ -1,0 +1,54 @@
+{{template "base/head" .}}
+<div role="main" aria-label="{{.Title}}" class="page-content organization teams">
+	<div class="ui container">
+		{{template "base/alert" .}}
+		<div class="tw-mt-4">
+			<a class="ui small button" href="{{.OrgTeamsLink}}">{{svg "octicon-arrow-left"}} {{ctx.Locale.Tr "org.teams"}}</a>
+		</div>
+		<div class="breadcrumb tw-mt-3 tw-flex tw-items-center tw-gap-1 tw-text-text-light tw-overflow-x-auto">
+			<a class="tw-whitespace-nowrap" href="{{.OrgTeamsLink}}">{{.OrgDisplayName}}</a>
+			<div class="breadcrumb-divider tw-my-0">{{svg "octicon-chevron-right" 14}}</div>
+			<span class="tw-whitespace-nowrap">{{.GroupPath}}</span>
+		</div>
+
+		<div class="ui top attached header tw-mt-4">
+			<div>
+				<strong>{{.Group.Name}}</strong>
+				<div class="tw-mt-1 tw-text-text-light">
+					<strong>{{.GroupEffectiveMembersCount}}</strong> {{ctx.Locale.Tr "org.lower_members"}}
+					{{if ne .GroupDirectMembersCount .GroupEffectiveMembersCount}}&nbsp;·&nbsp;<strong>{{.GroupDirectMembersCount}}</strong> {{ctx.Locale.Tr "org.user_groups.direct_members"}}{{end}}
+				</div>
+			</div>
+		</div>
+		<div class="ui attached segment">
+			{{if .Group.Description}}
+				<p class="tw-m-0">{{.Group.Description}}</p>
+				<p class="tw-mt-2 tw-mb-0 tw-text-text-light">{{ctx.Locale.Tr "org.user_groups.members_desc"}}</p>
+			{{else}}
+				<p class="tw-m-0 tw-text-text-light">{{ctx.Locale.Tr "org.user_groups.members_desc"}}</p>
+			{{end}}
+		</div>
+
+		<h4 class="ui top attached header tw-mt-4">{{ctx.Locale.Tr "org.members"}} ({{ctx.Locale.Tr "admin.total" .GroupEffectiveMembersCount}})</h4>
+		<div class="ui attached segment">
+			<div class="flex-divided-list items-with-main">
+				{{range .GroupMembers}}
+					<div class="item tw-items-center">
+						<div class="item-leading">
+							<a href="{{.HomeLink}}">{{ctx.AvatarUtils.Avatar . 32}}</a>
+						</div>
+						<div class="item-main">
+							<div class="item-title">{{template "shared/user/name" .}}</div>
+						</div>
+					</div>
+				{{else}}
+					<div class="item">
+						<span class="tw-text-text-light tw-italic">{{ctx.Locale.Tr "org.teams.members.none"}}</span>
+					</div>
+				{{end}}
+			</div>
+		</div>
+		{{template "base/paginate" .}}
+	</div>
+</div>
+{{template "base/footer" .}}

@@ -46,7 +46,7 @@ func addRepositoryToTeam(ctx context.Context, t *organization.Team, repo *repo_m
 
 	// Make all team members watch this repo if enabled in global settings
 	if setting.Service.AutoWatchNewRepos {
-		if err = t.LoadMembers(ctx); err != nil {
+		if err = t.LoadMembersWithGroups(ctx); err != nil {
 			return fmt.Errorf("getMembers: %w", err)
 		}
 		for _, u := range t.Members {
@@ -103,6 +103,9 @@ func removeAllRepositoriesFromTeam(ctx context.Context, t *organization.Team) (e
 	}
 
 	// Delete all accesses.
+	if err := t.LoadMembersWithGroups(ctx); err != nil {
+		return err
+	}
 	for _, repo := range repos {
 		if err := access_model.RecalculateTeamAccesses(ctx, repo, t.ID); err != nil {
 			return err

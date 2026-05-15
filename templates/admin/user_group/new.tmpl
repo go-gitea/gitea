@@ -1,0 +1,46 @@
+{{template "admin/layout_head" (dict "ctxData" . "pageClass" "admin")}}
+	<div class="admin-setting-content">
+		<h4 class="ui top attached header">{{ctx.Locale.Tr "admin.user_groups.new"}}</h4>
+		<div class="ui attached segment">
+			<form class="ui form" method="post" action="{{AppSubUrl}}/-/admin/user-groups/new">
+				<div class="field">
+					<label>{{ctx.Locale.Tr "admin.user_groups.name"}}</label>
+					<input name="name" maxlength="255" autofocus required>
+					<div class="help tw-mt-1">{{ctx.Locale.Tr "admin.user_groups.name_helper"}}</div>
+				</div>
+				<div class="field">
+					<label>{{ctx.Locale.Tr "admin.user_groups.slug"}}</label>
+					<input name="slug" maxlength="255">
+					<div class="help tw-mt-1">{{ctx.Locale.Tr "admin.user_groups.slug_helper"}}</div>
+				</div>
+				<div class="field">
+					<label>{{ctx.Locale.Tr "admin.user_groups.description"}}</label>
+					<textarea name="description" rows="4"></textarea>
+					<div class="help tw-mt-1">{{ctx.Locale.Tr "admin.user_groups.description_helper"}}</div>
+				</div>
+				<div class="field">
+					<label>{{ctx.Locale.Tr "admin.user_groups.parent"}}</label>
+				<div class="ui search selection dropdown">
+					<input type="hidden" name="parent_id" value="{{.PreselectedParentID}}">
+					{{if .PreselectedParentID}}
+						<div class="text">{{index .AllGroupPaths .PreselectedParentID}}</div>
+					{{else}}
+						<div class="default text">{{ctx.Locale.Tr "admin.user_groups.none"}}</div>
+					{{end}}
+					{{svg "octicon-triangle-down" 14 "dropdown icon"}}
+					<div class="menu">
+						<div class="item" data-value="0">{{ctx.Locale.Tr "admin.user_groups.none"}}</div>
+						{{range .AllGroups}}
+							<div class="item {{if eq .ID $.PreselectedParentID}}active selected{{end}}" data-value="{{.ID}}">{{index $.AllGroupPaths .ID}}</div>
+						{{end}}
+					</div>
+				</div>
+				</div>
+				<div class="tw-flex tw-gap-2">
+					<button class="ui primary button">{{ctx.Locale.Tr "admin.user_groups.create"}}</button>
+					<a class="ui button" href="{{AppSubUrl}}/-/admin/user-groups">{{ctx.Locale.Tr "cancel"}}</a>
+				</div>
+			</form>
+		</div>
+	</div>
+{{template "admin/layout_footer" .}}

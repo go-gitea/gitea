@@ -187,7 +187,8 @@ func OrgAssignment(orgAssignmentOpts OrgAssignmentOptions) func(ctx *Context) {
 					return
 				}
 			} else {
-				ctx.Org.Teams, err = org.GetUserTeams(ctx, ctx.Doer.ID)
+				// GetUserOrgTeams includes teams joined via user groups.
+				ctx.Org.Teams, err = organization.GetUserOrgTeams(ctx, org.ID, ctx.Doer.ID)
 				if err != nil {
 					ctx.ServerError("GetUserTeams", err)
 					return
