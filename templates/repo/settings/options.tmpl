@@ -13,7 +13,11 @@
 				</div>
 				<div class="inline field">
 					<label>{{ctx.Locale.Tr "repo.repo_size"}}</label>
-					<span {{if not (eq .Repository.Size 0)}} data-tooltip-content="{{.Repository.SizeDetailsString}}"{{end}}>{{FileSize .Repository.Size}}</span>
+					<span {{if .Err_RepoSize}}class="ui text red"{{end}} {{if not (eq .Repository.Size 0)}} data-tooltip-content="{{.Repository.SizeDetailsString}}"{{end}}>{{FileSize .Repository.Size}}
+						{{if gt .GitSizeMax -1}}
+							/ {{FileSize .GitSizeMax}}
+						{{end}}
+					</span>
 				</div>
 				<div class="inline field">
 					<label>{{ctx.Locale.Tr "repo.template"}}</label>

@@ -224,3 +224,57 @@ func Push(ctx context.Context, repoPath string, opts PushOptions) error {
 
 	return nil
 }
+
+// CountObject represents repository count objects report
+type CountObject struct {
+	Count       int64
+	Size        int64
+	InPack      int64
+	Packs       int64
+	SizePack    int64
+	PrunePack   int64
+	Garbage     int64
+	SizeGarbage int64
+}
+
+const (
+	statCount        = "count: "
+	statSize         = "size: "
+	statInpack       = "in-pack: "
+	statPacks        = "packs: "
+	statSizePack     = "size-pack: "
+	statPrunePackage = "prune-package: "
+	statGarbage      = "garbage: "
+	statSizeGarbage  = "size-garbage: "
+)
+
+// ParseCountObjectsResult parses the output from git count-objects -v
+// and returns a CountObject struct with the parsed values
+func ParseCountObjectsResult(output string) *CountObject {
+	const bytesPerKilobyte = 1024
+	repoSize := new(CountObject)
+	for line := range strings.SplitSeq(output, "\n") {
+		switch {
+		case strings.HasPrefix(line, statCount):
+			repoSize.Count, _ = strconv.ParseInt(line[7:], 10, 64)
+		case strings.HasPrefix(line, statSize):
+			number, _ := strconv.ParseInt(line[6:], 10, 64)
+			repoSize.Size = number * bytesPerKilobyte
+		case strings.HasPrefix(line, statInpack):
+			repoSize.InPack, _ = strconv.ParseInt(line[9:], 10, 64)
+		case strings.HasPrefix(line, statPacks):
+			repoSize.Packs, _ = strconv.ParseInt(line[7:], 10, 64)
+		case strings.HasPrefix(line, statSizePack):
+			number, _ := strconv.ParseInt(line[11:], 10, 64)
+			repoSize.SizePack = number * bytesPerKilobyte
+		case strings.HasPrefix(line, statPrunePackage):
+			repoSize.PrunePack, _ = strconv.ParseInt(line[16:], 10, 64)
+		case strings.HasPrefix(line, statGarbage):
+			repoSize.Garbage, _ = strconv.ParseInt(line[9:], 10, 64)
+		case strings.HasPrefix(line, statSizeGarbage):
+			number, _ := strconv.ParseInt(line[14:], 10, 64)
+			repoSize.SizeGarbage = number * bytesPerKilobyte
+		}
+	}
+	return repoSize
+}
