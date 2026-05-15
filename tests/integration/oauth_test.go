@@ -285,7 +285,7 @@ func testAccessTokenExchangeRedirectURIMismatch(t *testing.T) {
 	resp := MakeRequest(t, req, http.StatusBadRequest)
 	parsedError := new(oauth2_provider.AccessTokenError)
 	assert.NoError(t, json.Unmarshal(resp.Body.Bytes(), parsedError))
-	assert.Equal(t, "unauthorized_client", string(parsedError.ErrorCode))
+	assert.Equal(t, "invalid_grant", string(parsedError.ErrorCode))
 	assert.Equal(t, "redirect_uri differs from the original authorization request", parsedError.ErrorDescription)
 
 	req = NewRequestWithValues(t, "POST", "/login/oauth/access_token", map[string]string{
