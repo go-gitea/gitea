@@ -54,8 +54,8 @@ func TestRepoComment(t *testing.T) {
 `, rendered)
 	})
 
-	t.Run("WithCurrentRefPath", func(t *testing.T) {
-		rctx := NewRenderContextRepoComment(t.Context(), repo1, RepoCommentOptions{CurrentRefPath: "/commit/1234"}).
+	t.Run("WithCurrentRefSubURL", func(t *testing.T) {
+		rctx := NewRenderContextRepoComment(t.Context(), repo1, RepoCommentOptions{CurrentRefSubURL: "/commit/1234"}).
 			WithMarkupType(markdown.MarkupName)
 
 		// the ref path is only used to render commit message: a commit message is rendered at the commit page with its commit ID path

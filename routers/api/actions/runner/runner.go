@@ -15,7 +15,6 @@ import (
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/util"
 	actions_service "code.gitea.io/gitea/services/actions"
-	notify_service "code.gitea.io/gitea/services/notify"
 
 	runnerv1 "code.gitea.io/actions-proto-go/runner/v1"
 	"code.gitea.io/actions-proto-go/runner/v1/runnerv1connect"
@@ -80,9 +79,7 @@ func (s *Service) Register(
 		AgentLabels: labels,
 		Ephemeral:   req.Msg.Ephemeral,
 	}
-	if err := runner.GenerateToken(); err != nil {
-		return nil, errors.New("can't generate token")
-	}
+	runner.GenerateAndFillToken()
 
 	// create new runner
 	if err := actions_model.CreateRunner(ctx, runner); err != nil {
@@ -226,7 +223,7 @@ func (s *Service) UpdateTask(
 	actions_service.CreateCommitStatusForRunJobs(ctx, task.Job.Run, task.Job)
 
 	if task.Status.IsDone() {
-		notify_service.WorkflowJobStatusUpdate(ctx, task.Job.Run.Repo, task.Job.Run.TriggerUser, task.Job, task)
+		actions_service.NotifyWorkflowJobStatusUpdateWithTask(ctx, task.Job, task)
 	}
 
 	if req.Msg.State.Result != runnerv1.Result_RESULT_UNSPECIFIED {
@@ -234,7 +231,7 @@ func (s *Service) UpdateTask(
 			log.Error("Emit ready jobs of run %d: %v", task.Job.RunID, err)
 		}
 		if task.Job.Run.Status.IsDone() {
-			actions_service.NotifyWorkflowRunStatusUpdateWithReload(ctx, task.Job)
+			actions_service.NotifyWorkflowRunStatusUpdateWithReload(ctx, task.Job.RepoID, task.Job.RunID)
 		}
 	}
 
@@ -264,7 +261,16 @@ func (s *Service) UpdateLog(
 	}
 	ack := task.LogLength
 
-	if len(req.Msg.Rows) == 0 || req.Msg.Index > ack || int64(len(req.Msg.Rows))+req.Msg.Index <= ack {
+	// Trim rows the runner already had acked.
+	var rows []*runnerv1.LogRow
+	if req.Msg.Index <= ack && int64(len(req.Msg.Rows))+req.Msg.Index > ack {
+		rows = req.Msg.Rows[ack-req.Msg.Index:]
+	}
+
+	// Bail unless we have new rows or a NoMore to finalize. Even with
+	// NoMore, bail when the runner has outrun the server — archiving a
+	// log with a gap is worse than asking it to retry.
+	if len(rows) == 0 && (!req.Msg.NoMore || req.Msg.Index > ack) {
 		res.Msg.AckIndex = ack
 		return res, nil
 	}
@@ -273,7 +279,9 @@ func (s *Service) UpdateLog(
 		return nil, status.Errorf(codes.AlreadyExists, "log file has been archived")
 	}
 
-	rows := req.Msg.Rows[ack-req.Msg.Index:]
+	// WriteLogs is called even with no rows: with offset==0 it bootstraps
+	// an empty DBFS file so TransferLogs below has something to read when
+	// the runner finalizes a task that produced no log output.
 	ns, err := actions.WriteLogs(ctx, task.LogFilename, task.LogSize, rows)
 	if err != nil {
 		return nil, status.Errorf(codes.Internal, "unable to append logs to dbfs file: %v", err)

@@ -276,9 +276,9 @@ func IssueChangeLabels(ctx context.Context, doer *user_model.User, issue *issues
 }
 
 // IssueChangeProjects notifies change projects to notifiers
-func IssueChangeProjects(ctx context.Context, doer *user_model.User, issue *issues_model.Issue, newProject *project_model.Project) {
+func IssueChangeProjects(ctx context.Context, doer *user_model.User, issue *issues_model.Issue, oldProjectColumnMap map[int64]int64, newProjects []*project_model.Project) {
 	for _, notifier := range notifiers {
-		notifier.IssueChangeProjects(ctx, doer, issue, newProject)
+		notifier.IssueChangeProjects(ctx, doer, issue, oldProjectColumnMap, newProjects)
 	}
 }
 
@@ -413,12 +413,18 @@ func CreateCommitStatus(ctx context.Context, repo *repo_model.Repository, commit
 	}
 }
 
+// WorkflowRunStatusUpdate dispatches a workflow run status change to every registered notifier.
+// Prefer the helpers in services/actions/notify.go over calling this directly;
+// unless you are sure the caller has already resolved the correct sender and paired notifications.
 func WorkflowRunStatusUpdate(ctx context.Context, repo *repo_model.Repository, sender *user_model.User, run *actions_model.ActionRun) {
 	for _, notifier := range notifiers {
 		notifier.WorkflowRunStatusUpdate(ctx, repo, sender, run)
 	}
 }
 
+// WorkflowJobStatusUpdate dispatches a workflow job status change to every registered notifier.
+// Prefer the helpers in services/actions/notify.go over calling this directly;
+// unless you are sure the caller has already resolved the correct sender and paired notifications.
 func WorkflowJobStatusUpdate(ctx context.Context, repo *repo_model.Repository, sender *user_model.User, job *actions_model.ActionRunJob, task *actions_model.ActionTask) {
 	for _, notifier := range notifiers {
 		notifier.WorkflowJobStatusUpdate(ctx, repo, sender, job, task)

@@ -17,3 +17,5 @@
   id: 4
   blocker_id: 50
   blockee_id: 34
+
+# DO NOT add more test data in the fixtures, test case should prepare their own test data separately and clearly

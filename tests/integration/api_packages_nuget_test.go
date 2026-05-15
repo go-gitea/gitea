@@ -4,7 +4,6 @@
 package integration
 
 import (
-	"archive/zip"
 	"bytes"
 	"encoding/base64"
 	"encoding/xml"
@@ -26,6 +25,7 @@ import (
 	nuget_module "code.gitea.io/gitea/modules/packages/nuget"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/structs"
+	"code.gitea.io/gitea/modules/test"
 	"code.gitea.io/gitea/routers/api/packages/nuget"
 	packageService "code.gitea.io/gitea/services/packages"
 	"code.gitea.io/gitea/tests"
@@ -155,12 +155,9 @@ func TestPackageNuGet(t *testing.T) {
 	}
 
 	createPackage := func(id, version string) *bytes.Buffer {
-		var buf bytes.Buffer
-		archive := zip.NewWriter(&buf)
-		w, _ := archive.Create("package.nuspec")
-		w.Write([]byte(createNuspec(id, version)))
-		archive.Close()
-		return &buf
+		return test.WriteZipArchive(map[string]string{
+			"package.nuspec": createNuspec(id, version),
+		})
 	}
 
 	content := createPackage(packageName, packageVersion).Bytes()
@@ -254,8 +251,7 @@ func TestPackageNuGet(t *testing.T) {
 						return
 					}
 
-					var result nuget.ServiceIndexResponseV3
-					DecodeJSON(t, resp, &result)
+					result := DecodeJSON(t, resp, &nuget.ServiceIndexResponseV3{})
 
 					assert.Equal(t, "3.0.0", result.Version)
 					assert.NotEmpty(t, result.Resources)
@@ -379,11 +375,11 @@ func TestPackageNuGet(t *testing.T) {
 			defer tests.PrintCurrentTest(t)()
 
 			createSymbolPackage := func(id, packageType string) io.Reader {
-				var buf bytes.Buffer
-				archive := zip.NewWriter(&buf)
-
-				w, _ := archive.Create("package.nuspec")
-				w.Write([]byte(`<?xml version="1.0" encoding="utf-8"?>
+				symbolData, _ := base64.StdEncoding.DecodeString(`QlNKQgEAAQAAAAAADAAAAFBEQiB2MS4wAAAAAAAABgB8AAAAWAAAACNQZGIAAAAA1AAAAAgBAAAj
+fgAA3AEAAAQAAAAjU3RyaW5ncwAAAADgAQAABAAAACNVUwDkAQAAMAAAACNHVUlEAAAAFAIAACgB
+AAAjQmxvYgAAAGm7ENm9SGxMtAFVvPUsPJTF6PbtAAAAAFcVogEJAAAAAQAAAA==`)
+				return test.WriteZipArchive(map[string]string{
+					"package.nuspec": `<?xml version="1.0" encoding="utf-8"?>
 				<package xmlns="http://schemas.microsoft.com/packaging/2013/05/nuspec.xsd">
 				<metadata>
 					<id>` + id + `</id>
@@ -392,16 +388,9 @@ func TestPackageNuGet(t *testing.T) {
 					<description>` + packageDescription + `</description>
 					<packageTypes><packageType name="` + packageType + `" /></packageTypes>
 				</metadata>
-				</package>`))
-
-				w, _ = archive.Create(symbolFilename)
-				b, _ := base64.StdEncoding.DecodeString(`QlNKQgEAAQAAAAAADAAAAFBEQiB2MS4wAAAAAAAABgB8AAAAWAAAACNQZGIAAAAA1AAAAAgBAAAj
-fgAA3AEAAAQAAAAjU3RyaW5ncwAAAADgAQAABAAAACNVUwDkAQAAMAAAACNHVUlEAAAAFAIAACgB
-AAAjQmxvYgAAAGm7ENm9SGxMtAFVvPUsPJTF6PbtAAAAAFcVogEJAAAAAQAAAA==`)
-				w.Write(b)
-
-				archive.Close()
-				return &buf
+				</package>`,
+					symbolFilename: string(symbolData),
+				})
 			}
 
 			req := NewRequestWithBody(t, "PUT", url+"/symbolpackage", createSymbolPackage("unknown-package", "SymbolsPackage")).
@@ -694,8 +683,7 @@ AAAjQmxvYgAAAGm7ENm9SGxMtAFVvPUsPJTF6PbtAAAAAFcVogEJAAAAAQAAAA==`)
 					AddBasicAuth(user.Name)
 				resp := MakeRequest(t, req, http.StatusOK)
 
-				var result nuget.SearchResultResponse
-				DecodeJSON(t, resp, &result)
+				result := DecodeJSON(t, resp, &nuget.SearchResultResponse{})
 
 				assert.Equal(t, c.ExpectedTotal, result.TotalHits, "case %d: unexpected total hits", i)
 				assert.Len(t, result.Data, c.ExpectedResults, "case %d: unexpected result count", i)
@@ -712,8 +700,7 @@ AAAjQmxvYgAAAGm7ENm9SGxMtAFVvPUsPJTF6PbtAAAAAFcVogEJAAAAAQAAAA==`)
 					AddBasicAuth(user.Name)
 				resp := MakeRequest(t, req, http.StatusOK)
 
-				var result nuget.SearchResultResponse
-				DecodeJSON(t, resp, &result)
+				result := DecodeJSON(t, resp, &nuget.SearchResultResponse{})
 
 				assert.EqualValues(t, 2, result.TotalHits)
 				assert.Len(t, result.Data, 2)
@@ -750,8 +737,7 @@ AAAjQmxvYgAAAGm7ENm9SGxMtAFVvPUsPJTF6PbtAAAAAFcVogEJAAAAAQAAAA==`)
 				AddBasicAuth(user.Name)
 			resp := MakeRequest(t, req, http.StatusOK)
 
-			var result nuget.RegistrationIndexResponse
-			DecodeJSON(t, resp, &result)
+			result := DecodeJSON(t, resp, &nuget.RegistrationIndexResponse{})
 
 			assert.Equal(t, indexURL, result.RegistrationIndexURL)
 			assert.Equal(t, 1, result.Count)
@@ -831,8 +817,7 @@ AAAjQmxvYgAAAGm7ENm9SGxMtAFVvPUsPJTF6PbtAAAAAFcVogEJAAAAAQAAAA==`)
 					AddBasicAuth(user.Name)
 				resp := MakeRequest(t, req, http.StatusOK)
 
-				var result nuget.RegistrationLeafResponse
-				DecodeJSON(t, resp, &result)
+				result := DecodeJSON(t, resp, &nuget.RegistrationLeafResponse{})
 
 				assert.Equal(t, leafURL, result.RegistrationLeafURL)
 				assert.Equal(t, indexURL, result.RegistrationIndexURL)
@@ -892,8 +877,7 @@ AAAjQmxvYgAAAGm7ENm9SGxMtAFVvPUsPJTF6PbtAAAAAFcVogEJAAAAAQAAAA==`)
 				AddBasicAuth(user.Name)
 			resp := MakeRequest(t, req, http.StatusOK)
 
-			var result nuget.PackageVersionsResponse
-			DecodeJSON(t, resp, &result)
+			result := DecodeJSON(t, resp, &nuget.PackageVersionsResponse{})
 
 			assert.Len(t, result.Versions, 1)
 			assert.Equal(t, packageVersion, result.Versions[0])

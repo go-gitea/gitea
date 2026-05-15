@@ -1,4 +1,5 @@
 {{if .EnableHeatmap}}
+{{/*HINT: USER-ACTIVITY-PUSH-COMMITS: it only uses the doer's action time, it doesn't use git commit's time */}}
 <div class="activity-heatmap-container">
 	<div id="user-heatmap" class="is-loading"
 		data-heatmap-url="{{.HeatmapURL}}"

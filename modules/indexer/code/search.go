@@ -74,7 +74,7 @@ func HighlightSearchResultCode(filename, language string, lineNums []int, code s
 	// we should highlight the whole code block first, otherwise it doesn't work well with multiple line highlighting
 	lexer := highlight.DetectChromaLexerByFileName(filename, language)
 	hl := highlight.RenderCodeByLexer(lexer, code)
-	highlightedLines := strings.Split(string(hl), "\n")
+	highlightedLines := highlight.UnsafeSplitHighlightedLines(hl)
 
 	// The lineNums outputted by render might not match the original lineNums, because "highlight" removes the last `\n`
 	lines := make([]*ResultLine, min(len(highlightedLines), len(lineNums)))

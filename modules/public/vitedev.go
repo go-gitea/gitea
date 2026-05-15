@@ -16,6 +16,7 @@ import (
 	"code.gitea.io/gitea/modules/httplib"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/modules/web/routing"
 )
 
@@ -70,6 +71,9 @@ func getViteDevProxy() *httputil.ReverseProxy {
 			return nil
 		},
 		ErrorHandler: func(w http.ResponseWriter, r *http.Request, err error) {
+			if r.Context().Err() != nil {
+				return // request cancelled (e.g. client disconnected), silently ignore
+			}
 			log.Error("Error proxying to Vite dev server: %v", err)
 			http.Error(w, "Error proxying to Vite dev server: "+err.Error(), http.StatusBadGateway)
 		},
@@ -83,6 +87,7 @@ func getViteDevProxy() *httputil.ReverseProxy {
 // the Vite dev server port from the port file written by the viteDevServerPortPlugin.
 // It is needed because there are container-based development, only Gitea web server's port is exposed.
 func ViteDevMiddleware(next http.Handler) http.Handler {
+	markLongPolling := routing.MarkLongPolling()
 	return http.HandlerFunc(func(resp http.ResponseWriter, req *http.Request) {
 		if !isViteDevRequest(req) {
 			next.ServeHTTP(resp, req)
@@ -93,8 +98,7 @@ func ViteDevMiddleware(next http.Handler) http.Handler {
 			next.ServeHTTP(resp, req)
 			return
 		}
-		routing.MarkLongPolling(resp, req)
-		proxy.ServeHTTP(resp, req)
+		markLongPolling(proxy).ServeHTTP(resp, req)
 	})
 }
 
@@ -136,32 +140,31 @@ func IsViteDevMode() bool {
 	return isDev
 }
 
-func viteDevSourceURL(name string) string {
-	if !IsViteDevMode() {
-		return ""
-	}
-	if strings.HasPrefix(name, "css/theme-") {
-		// Only redirect built-in themes to Vite source; custom themes are served from custom/public/assets/css/
-		themeFile := strings.TrimPrefix(name, "css/")
-		srcPath := filepath.Join(setting.StaticRootPath, "web_src/css/themes", themeFile)
-		if _, err := os.Stat(srcPath); err == nil {
-			return setting.AppSubURL + "/web_src/css/themes/" + themeFile
-		}
-		return ""
-	}
-	if strings.HasPrefix(name, "css/") {
-		return setting.AppSubURL + "/web_src/" + name
-	}
-	if name == "js/eventsource.sharedworker.js" {
-		return setting.AppSubURL + "/web_src/js/features/eventsource.sharedworker.ts"
-	}
-	if name == "js/iife.js" {
-		return setting.AppSubURL + "/web_src/js/__vite_iife.js"
-	}
-	if name == "js/index.js" {
-		return setting.AppSubURL + "/web_src/js/index.ts"
+func detectWebSrcPath(webSrcPath string) string {
+	localPath := util.FilePathJoinAbs(setting.StaticRootPath, "web_src", webSrcPath)
+	if _, err := os.Stat(localPath); err == nil {
+		return setting.AppSubURL + "/web_src/" + webSrcPath
 	}
 	return ""
+}
+
+func viteDevSourceURL(name string) string {
+	if strings.HasPrefix(name, "css/theme-") {
+		// Only redirect built-in themes to Vite source; custom themes are served from custom/public/assets/css/
+		themeFilePath := "css/themes/" + strings.TrimPrefix(name, "css/")
+		if srcPath := detectWebSrcPath(themeFilePath); srcPath != "" {
+			return srcPath
+		}
+	}
+	// try to map ".js" files to ".ts" files
+	pathPrefix, ok := strings.CutSuffix(name, ".js")
+	if ok {
+		if srcPath := detectWebSrcPath(pathPrefix + ".ts"); srcPath != "" {
+			return srcPath
+		}
+	}
+	// for all others that the names match
+	return detectWebSrcPath(name)
 }
 
 // isViteDevRequest returns true if the request should be proxied to the Vite dev server.
@@ -189,12 +192,13 @@ func isViteDevRequest(req *http.Request) bool {
 
 	// Vite uses a path relative to project root and adds "?import" to non-JS/CSS asset imports:
 	// - {WebSite}/public/assets/... (e.g. SVG icons from "{RepoRoot}/public/assets/img/svg/")
-	// - {WebSite}/assets/emoji.json: it is an exception for the frontend assets, it is imported by JS code, but:
+	// - {WebSite}/assets/<file>.json: exception for frontend-imported repo-root assets:
 	//   - KEEP IN MIND: all static frontend assets are served from "{AssetFS}/assets" to "{WebSite}/assets" by Gitea Web Server
 	//   - "{AssetFS}" is a layered filesystem from "{RepoRoot}/public" or embedded assets, and user's custom files in "{CustomPath}/public"
-	//   - "{RepoRoot}/assets/emoji.json" just happens to have the dir name "assets", it is not related to frontend assets
+	//   - "{RepoRoot}/assets/*.json" just happens to live under the dir name "assets"; it is not related to frontend assets
 	//   - BAD DESIGN: indeed it is a "conflicted and polluted name" sample
-	if path == "/assets/emoji.json" {
+	switch path {
+	case "/assets/emoji.json", "/assets/codemirror-languages.json":
 		return true
 	}
 	return false

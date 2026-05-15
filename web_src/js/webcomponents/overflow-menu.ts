@@ -3,13 +3,13 @@ import {addDelegatedEventListener, generateElemId, isDocumentFragmentOrElementNo
 import octiconKebabHorizontal from '../../../public/assets/img/svg/octicon-kebab-horizontal.svg';
 
 window.customElements.define('overflow-menu', class extends HTMLElement {
-  popup: HTMLDivElement;
-  overflowItems: Array<HTMLElement>;
-  button: HTMLButtonElement | null;
-  menuItemsEl: HTMLElement;
-  resizeObserver: ResizeObserver;
-  mutationObserver: MutationObserver;
-  lastWidth: number;
+  popup!: HTMLDivElement;
+  overflowItems: Array<HTMLElement> = [];
+  button: HTMLButtonElement | null = null;
+  menuItemsEl!: HTMLElement;
+  resizeObserver!: ResizeObserver;
+  mutationObserver!: MutationObserver;
+  lastWidth!: number;
 
   updateButtonActivationState() {
     if (!this.button || !this.popup) return;
@@ -100,7 +100,7 @@ window.customElements.define('overflow-menu', class extends HTMLElement {
     const itemOverFlowMenuButton = this.querySelector<HTMLButtonElement>('.overflow-menu-button');
 
     // move items in popup back into the menu items for subsequent measurement
-    for (const item of this.overflowItems || []) {
+    for (const item of this.overflowItems) {
       if (!itemFlexSpace || item.getAttribute('data-after-flex-space')) {
         this.menuItemsEl.append(item);
       } else {

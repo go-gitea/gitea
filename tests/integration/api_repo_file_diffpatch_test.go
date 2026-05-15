@@ -50,8 +50,7 @@ func TestAPIApplyDiffPatchFileOptions(t *testing.T) {
 
 		req := NewRequestWithJSON(t, "POST", "/api/v1/repos/user2/repo1/diffpatch", getApplyDiffPatchFileOptions()).AddTokenAuth(token2)
 		resp := MakeRequest(t, req, http.StatusCreated)
-		var fileResponse api.FileResponse
-		DecodeJSON(t, resp, &fileResponse)
+		fileResponse := DecodeJSON(t, resp, &api.FileResponse{})
 		assert.Nil(t, fileResponse.Content)
 		assert.NotEmpty(t, fileResponse.Commit.HTMLURL)
 		req = NewRequest(t, "GET", "/api/v1/repos/user2/repo1/raw/patch-file-1.txt")

@@ -37,7 +37,7 @@ func TestViewTimetrackingControls(t *testing.T) {
 }
 
 func testViewTimetrackingControls(t *testing.T, session *TestSession, user, repo, issue string, canTrackTime bool) {
-	req := NewRequest(t, "GET", path.Join(user, repo, "issues", issue))
+	req := NewRequest(t, "GET", "/"+path.Join(user, repo, "issues", issue))
 	resp := session.MakeRequest(t, req, http.StatusOK)
 
 	htmlDoc := NewHTMLParser(t, resp.Body)
@@ -45,7 +45,7 @@ func testViewTimetrackingControls(t *testing.T, session *TestSession, user, repo
 	AssertHTMLElement(t, htmlDoc, ".issue-start-time", canTrackTime)
 	AssertHTMLElement(t, htmlDoc, ".issue-add-time", canTrackTime)
 
-	issueLink := path.Join(user, repo, "issues", issue)
+	issueLink := "/" + path.Join(user, repo, "issues", issue)
 	reqStart := NewRequest(t, "POST", path.Join(issueLink, "times", "stopwatch", "start"))
 	if canTrackTime {
 		session.MakeRequest(t, reqStart, http.StatusOK)

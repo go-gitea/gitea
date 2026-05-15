@@ -26,7 +26,6 @@ import (
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/templates"
 	"code.gitea.io/gitea/modules/timeutil"
-	"code.gitea.io/gitea/modules/user"
 	"code.gitea.io/gitea/modules/web"
 	"code.gitea.io/gitea/modules/web/middleware"
 	"code.gitea.io/gitea/routers/common"
@@ -77,7 +76,7 @@ func Install(ctx *context.Context) {
 	form.DbSchema = setting.Database.Schema
 	form.SSLMode = setting.Database.SSLMode
 
-	curDBType := setting.Database.Type.String()
+	curDBType := string(setting.Database.Type)
 	if !slices.Contains(setting.SupportedDatabaseTypes, curDBType) {
 		curDBType = "mysql"
 	}
@@ -87,15 +86,7 @@ func Install(ctx *context.Context) {
 	form.AppName = setting.AppName
 	form.RepoRootPath = setting.RepoRootPath
 	form.LFSRootPath = setting.LFS.Storage.Path
-
-	// Note(unknown): it's hard for Windows users change a running user,
-	// 	so just use current one if config says default.
-	if setting.IsWindows && setting.RunUser == "git" {
-		form.RunUser = user.CurrentUsername()
-	} else {
-		form.RunUser = setting.RunUser
-	}
-
+	form.RunUser = setting.RunUser
 	form.Domain = setting.Domain
 	form.SSHPort = setting.SSH.Port
 	form.HTTPPort = setting.HTTPPort
@@ -132,7 +123,7 @@ func Install(ctx *context.Context) {
 func checkDatabase(ctx *context.Context, form *forms.InstallForm) bool {
 	var err error
 
-	if (setting.Database.Type == "sqlite3") &&
+	if (setting.Database.Type == setting.DatabaseTypeSQLite3) &&
 		len(setting.Database.Path) == 0 {
 		ctx.Data["Err_DbPath"] = true
 		ctx.RenderWithErrDeprecated(ctx.Tr("install.err_empty_db_path"), tplInstall, form)
@@ -144,13 +135,8 @@ func checkDatabase(ctx *context.Context, form *forms.InstallForm) bool {
 	defer db.UnsetDefaultEngine()
 
 	if err = db.InitEngine(ctx); err != nil {
-		if strings.Contains(err.Error(), `Unknown database type: sqlite3`) {
-			ctx.Data["Err_DbType"] = true
-			ctx.RenderWithErrDeprecated(ctx.Tr("install.sqlite3_not_available", "https://docs.gitea.com/installation/install-from-binary"), tplInstall, form)
-		} else {
-			ctx.Data["Err_DbSetting"] = true
-			ctx.RenderWithErrDeprecated(ctx.Tr("install.invalid_db_setting", err), tplInstall, form)
-		}
+		ctx.Data["Err_DbSetting"] = true
+		ctx.RenderWithErrDeprecated(ctx.Tr("install.invalid_db_setting", err), tplInstall, form)
 		return false
 	}
 
@@ -272,13 +258,6 @@ func SubmitInstall(ctx *context.Context) {
 		return
 	}
 
-	currentUser, match := setting.IsRunUserMatchCurrentUser(form.RunUser)
-	if !match {
-		ctx.Data["Err_RunUser"] = true
-		ctx.RenderWithErrDeprecated(ctx.Tr("install.run_user_not_match", form.RunUser, currentUser), tplInstall, &form)
-		return
-	}
-
 	// Check logic loophole between disable self-registration and no admin account.
 	if form.DisableRegistration && len(form.AdminName) == 0 {
 		ctx.Data["Err_Services"] = true
@@ -344,7 +323,7 @@ func SubmitInstall(ctx *context.Context) {
 	cfg.Section("").Key("WORK_PATH").SetValue(setting.AppWorkPath)
 	cfg.Section("").Key("RUN_MODE").SetValue("prod")
 
-	cfg.Section("database").Key("DB_TYPE").SetValue(setting.Database.Type.String())
+	cfg.Section("database").Key("DB_TYPE").SetValue(string(setting.Database.Type))
 	cfg.Section("database").Key("HOST").SetValue(setting.Database.Host)
 	cfg.Section("database").Key("NAME").SetValue(setting.Database.Name)
 	cfg.Section("database").Key("USER").SetValue(setting.Database.User)

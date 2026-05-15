@@ -13,6 +13,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"slices"
 	"strings"
 	"time"
 
@@ -241,15 +242,22 @@ func BuildSpecificRepositoryFiles(ctx context.Context, ownerID int64, group stri
 		return err
 	}
 
+	data := []*repoData{primary, filelists, other}
+
+	updates := collectUpdateInfoUpdates(pfs, cache)
+	if len(updates) > 0 {
+		updateInfo, err := buildUpdateInfo(ctx, pv, updates, group)
+		if err != nil {
+			return err
+		}
+		data = append(data, updateInfo)
+	}
+
 	return buildRepomd(
 		ctx,
 		pv,
 		ownerID,
-		[]*repoData{
-			primary,
-			filelists,
-			other,
-		},
+		data,
 		group,
 	)
 }
@@ -560,6 +568,93 @@ func buildOther(ctx context.Context, pv *packages_model.PackageVersion, pfs []*p
 		Xmlns:        "http://linux.duke.edu/metadata/other",
 		PackageCount: len(pfs),
 		Packages:     packages,
+	}, group)
+}
+
+func collectUpdateInfoUpdates(pfs []*packages_model.PackageFile, c packageCache) (updates []*rpm_module.Update) {
+	seenVersions := make(map[int64]bool)
+	for _, pf := range pfs {
+		pd := c[pf]
+		if pd.Version != nil && !seenVersions[pd.Version.ID] && pd.VersionMetadata.Updates != nil {
+			updates = append(updates, pd.VersionMetadata.Updates...)
+			seenVersions[pd.Version.ID] = true
+		}
+	}
+	return updates
+}
+
+// buildUpdateInfo builds the updateinfo.xml file
+func buildUpdateInfo(ctx context.Context, pv *packages_model.PackageVersion, updates []*rpm_module.Update, group string) (*repoData, error) {
+	// Group updates by ID to merge package lists
+	type updateKey struct {
+		ID string
+	}
+	updateMap := make(map[updateKey]*rpm_module.Update)
+
+	for _, u := range updates {
+		key := updateKey{ID: u.ID}
+		if existing, ok := updateMap[key]; ok {
+			for _, newColl := range u.PkgList {
+				collFound := false
+				for j, existingColl := range existing.PkgList {
+					if existingColl.Short == newColl.Short {
+						for _, newPkg := range newColl.Packages {
+							pkgFound := false
+							for _, existingPkg := range existingColl.Packages {
+								if existingPkg.Name == newPkg.Name &&
+									existingPkg.Version == newPkg.Version &&
+									existingPkg.Release == newPkg.Release &&
+									existingPkg.Arch == newPkg.Arch {
+									pkgFound = true
+									break
+								}
+							}
+							if !pkgFound {
+								existing.PkgList[j].Packages = append(existing.PkgList[j].Packages, newPkg)
+							}
+						}
+						collFound = true
+						break
+					}
+				}
+				if !collFound {
+					collCopy := *newColl
+					collCopy.Packages = append([]*rpm_module.UpdatePackage(nil), newColl.Packages...)
+					existing.PkgList = append(existing.PkgList, &collCopy)
+				}
+			}
+		} else {
+			// Create a shallow copy so we don't mutate the original cached pointer
+			uCopy := *u
+			// Deep copy PkgList and Collections to avoid mutating cache
+			// Note: References is shallow-copied, but safe as long as it remains immutable
+			uCopy.PkgList = make([]*rpm_module.Collection, len(u.PkgList))
+			for i, coll := range u.PkgList {
+				collCopy := *coll
+				collCopy.Packages = append([]*rpm_module.UpdatePackage(nil), coll.Packages...)
+				uCopy.PkgList[i] = &collCopy
+			}
+			updateMap[key] = &uCopy
+		}
+	}
+
+	var mergedUpdates []*rpm_module.Update
+	for _, u := range updateMap {
+		mergedUpdates = append(mergedUpdates, u)
+	}
+	slices.SortFunc(mergedUpdates, func(a, b *rpm_module.Update) int {
+		return strings.Compare(a.ID, b.ID)
+	})
+
+	type updateInfo struct {
+		XMLName xml.Name             `xml:"updates"`
+		Xmlns   string               `xml:"xmlns,attr"`
+		Updates []*rpm_module.Update `xml:"update"`
+	}
+
+	return addDataAsFileToRepo(ctx, pv, "updateinfo", &updateInfo{
+		Xmlns:   "http://linux.duke.edu/metadata/updateinfo",
+		Updates: mergedUpdates,
 	}, group)
 }
 

@@ -272,7 +272,7 @@ func ConnectOpenIDPost(ctx *context.Context) {
 
 	// add OpenID for the user
 	userOID := &user_model.UserOpenID{UID: u.ID, URI: oid}
-	if err = user_model.AddUserOpenID(ctx, userOID); err != nil {
+	if err := user_model.AddUserOpenID(ctx, userOID); err != nil {
 		if user_model.IsErrOpenIDAlreadyUsed(err) {
 			ctx.RenderWithErrDeprecated(ctx.Tr("form.openid_been_used", oid), tplConnectOID, &form)
 			return
@@ -345,11 +345,7 @@ func RegisterOpenIDPost(ctx *context.Context) {
 	}
 
 	length := max(setting.MinPasswordLength, 256)
-	password, err := util.CryptoRandomString(int64(length))
-	if err != nil {
-		ctx.RenderWithErrDeprecated(err.Error(), tplSignUpOID, form)
-		return
-	}
+	password := util.CryptoRandomString(int64(length))
 
 	u := &user_model.User{
 		Name:   form.UserName,
@@ -363,7 +359,7 @@ func RegisterOpenIDPost(ctx *context.Context) {
 
 	// add OpenID for the user
 	userOID := &user_model.UserOpenID{UID: u.ID, URI: oid}
-	if err = user_model.AddUserOpenID(ctx, userOID); err != nil {
+	if err := user_model.AddUserOpenID(ctx, userOID); err != nil {
 		if user_model.IsErrOpenIDAlreadyUsed(err) {
 			ctx.RenderWithErrDeprecated(ctx.Tr("form.openid_been_used", oid), tplSignUpOID, &form)
 			return

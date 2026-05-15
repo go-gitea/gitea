@@ -70,6 +70,8 @@ func (g *ASTTransformer) Transform(node *ast.Document, reader text.Reader, pc pa
 			}
 		case *ast.CodeSpan:
 			g.transformCodeSpan(ctx, v, reader)
+		case *ast.FencedCodeBlock:
+			g.transformFencedCodeblock(v, reader)
 		case *ast.Blockquote:
 			return g.transformBlockquote(v, reader)
 		}

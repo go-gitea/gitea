@@ -79,11 +79,6 @@ func Migrate(ctx *context.APIContext) {
 		return
 	}
 
-	if ctx.HasAPIError() {
-		ctx.APIError(http.StatusUnprocessableEntity, ctx.GetErrMsg())
-		return
-	}
-
 	if !ctx.Doer.IsAdmin {
 		if !repoOwner.IsOrganization() && ctx.Doer.ID != repoOwner.ID {
 			ctx.APIError(http.StatusForbidden, "Given user is not an organization.")
@@ -262,7 +257,7 @@ func handleRemoteAddrError(ctx *context.APIContext, err error) {
 		addrErr := err.(*git.ErrInvalidCloneAddr)
 		switch {
 		case addrErr.IsURLError:
-			ctx.APIError(http.StatusUnprocessableEntity, err)
+			ctx.APIError(http.StatusUnprocessableEntity, "The provided URL is invalid.")
 		case addrErr.IsPermissionDenied:
 			if addrErr.LocalPath {
 				ctx.APIError(http.StatusUnprocessableEntity, "You are not allowed to import local repositories.")

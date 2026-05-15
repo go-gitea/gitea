@@ -32,11 +32,6 @@ const (
 	ContentTypeSubmodule ContentType = "submodule" // submodule content type (submodule)
 )
 
-// String gets the string of ContentType
-func (ct *ContentType) String() string {
-	return string(*ct)
-}
-
 type GetContentsOrListOptions struct {
 	TreePath                 string
 	IncludeSingleFileContent bool // include the file's content when the tree path is a file
@@ -184,7 +179,7 @@ func getFileContentsByEntryInternal(ctx context.Context, repo *repo_model.Reposi
 			}
 		}
 		if opts.IncludeCommitMessage {
-			contentsResponse.LastCommitMessage = new(lastCommit.Message())
+			contentsResponse.LastCommitMessage = new(lastCommit.MessageUTF8())
 		}
 	}
 

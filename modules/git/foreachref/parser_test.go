@@ -116,12 +116,12 @@ func TestParser(t *testing.T) {
 				},
 				{
 					"refname:short": "v0.0.2",
-					"contents":      "Update CI config (#651)",
+					"contents":      "Update CI config (#651)\n\n",
 					"author":        "John Doe <john.doe@foo.com> 1521643174 +0000",
 				},
 				{
 					"refname:short": "v0.0.3",
-					"contents":      "Fixed code sample for bash completion (#687)",
+					"contents":      "Fixed code sample for bash completion (#687)\n\n",
 					"author":        "Foo Baz <foo@baz.com> 1524836750 +0200",
 				},
 			},

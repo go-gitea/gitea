@@ -15,6 +15,7 @@ import (
 	activities_model "code.gitea.io/gitea/models/activities"
 	"code.gitea.io/gitea/models/renderhelper"
 	repo_model "code.gitea.io/gitea/models/repo"
+	"code.gitea.io/gitea/modules/markup"
 	"code.gitea.io/gitea/modules/markup/markdown"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/templates"
@@ -237,7 +238,7 @@ func feedActionsToFeedItems(ctx *context.Context, actions activities_model.Actio
 			}
 		}
 		if len(content) == 0 {
-			content = templates.SanitizeHTML(desc)
+			content = markup.Sanitize(desc)
 		}
 
 		items = append(items, &feeds.Item{

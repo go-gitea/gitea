@@ -157,6 +157,12 @@ func DeleteVersionByID(ctx context.Context, versionID int64) error {
 	return err
 }
 
+// DeleteVersionsByPackageID deletes all versions of a specific package
+func DeleteVersionsByPackageID(ctx context.Context, packageID int64) error {
+	_, err := db.GetEngine(ctx).Where(builder.Eq{"package_id": packageID}).Delete(&PackageVersion{})
+	return err
+}
+
 // HasVersionFileReferences checks if there are associated files
 func HasVersionFileReferences(ctx context.Context, versionID int64) (bool, error) {
 	return db.GetEngine(ctx).Get(&PackageFile{

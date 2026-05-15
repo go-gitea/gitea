@@ -37,25 +37,26 @@ func (m *workflowNotifier) NewIssue(ctx context.Context, issue *issues_model.Iss
 		log.Error("NewIssue: LoadRepo: %v", err)
 		return
 	}
-	if err := issue.LoadProject(ctx); err != nil {
+	if err := issue.LoadProjects(ctx); err != nil {
 		log.Error("NewIssue: LoadProject: %v", err)
 		return
 	}
-	if issue.Project == nil {
-		// TODO: handle item opened
+	if len(issue.Projects) == 0 {
 		return
 	}
 
-	workflows, err := project_model.FindWorkflowsByProjectID(ctx, issue.Project.ID)
-	if err != nil {
-		log.Error("NewIssue: FindWorkflowsByProjectID: %v", err)
-		return
-	}
+	for _, project := range issue.Projects {
+		workflows, err := project_model.FindWorkflowsByProjectID(ctx, project.ID)
+		if err != nil {
+			log.Error("NewIssue: FindWorkflowsByProjectID: %v", err)
+			return
+		}
 
-	// Find workflows for the ItemOpened event
-	for _, workflow := range workflows {
-		if workflow.WorkflowEvent == project_model.WorkflowEventItemOpened {
-			fireIssueWorkflow(ctx, workflow, issue, 0, 0)
+		// Find workflows for the ItemOpened event
+		for _, workflow := range workflows {
+			if workflow.WorkflowEvent == project_model.WorkflowEventItemOpened {
+				fireIssueWorkflow(ctx, workflow, issue, project.ID, 0, 0)
+			}
 		}
 	}
 }
@@ -74,40 +75,75 @@ func (m *workflowNotifier) IssueChangeStatus(ctx context.Context, doer *user_mod
 		log.Error("IssueChangeStatus: LoadRepo: %v", err)
 		return
 	}
-	if err := issue.LoadProject(ctx); err != nil {
+	if err := issue.LoadProjects(ctx); err != nil {
 		log.Error("NewIssue: LoadProject: %v", err)
 		return
 	}
-	if issue.Project == nil {
+	if len(issue.Projects) == 0 {
 		return
 	}
 
-	workflows, err := project_model.FindWorkflowsByProjectID(ctx, issue.Project.ID)
-	if err != nil {
-		log.Error("IssueChangeStatus: FindWorkflowsByProjectID: %v", err)
-		return
-	}
+	for _, project := range issue.Projects {
+		workflows, err := project_model.FindWorkflowsByProjectID(ctx, project.ID)
+		if err != nil {
+			log.Error("IssueChangeStatus: FindWorkflowsByProjectID: %v", err)
+			return
+		}
 
-	workflowEvent := util.Iif(isClosed, project_model.WorkflowEventItemClosed, project_model.WorkflowEventItemReopened)
-	// Find workflows for the specific event
-	for _, workflow := range workflows {
-		if workflow.WorkflowEvent == workflowEvent {
-			fireIssueWorkflow(ctx, workflow, issue, 0, 0)
+		workflowEvent := util.Iif(isClosed, project_model.WorkflowEventItemClosed, project_model.WorkflowEventItemReopened)
+		// Find workflows for the specific event
+		for _, workflow := range workflows {
+			if workflow.WorkflowEvent == workflowEvent {
+				fireIssueWorkflow(ctx, workflow, issue, project.ID, 0, 0)
+			}
 		}
 	}
 }
 
-func (*workflowNotifier) IssueChangeProjects(ctx context.Context, doer *user_model.User, issue *issues_model.Issue, newProject *project_model.Project) {
-	if newProject == nil { // removed from project
-		if err := issue.LoadProject(ctx); err != nil {
-			log.Error("LoadProject: %v", err)
-			return
+func (*workflowNotifier) IssueChangeProjects(ctx context.Context, doer *user_model.User, issue *issues_model.Issue, oldProjectColumnMap map[int64]int64, newProjects []*project_model.Project) {
+	addedProjects := make(map[int64]*project_model.Project)
+	for _, newProject := range newProjects {
+		if oldProjectColumnMap[newProject.ID] != 0 {
+			continue
 		}
-		if issue.Project == nil {
+		addedProjects[newProject.ID] = newProject
+	}
+	var removedProjectIDs []int64
+	for projectID, _ := range oldProjectColumnMap {
+		found := false
+		for _, newProject := range newProjects {
+			if newProject.ID == projectID {
+				found = true
+				break
+			}
+		}
+		if !found {
+			removedProjectIDs = append(removedProjectIDs, projectID)
+		}
+	}
+
+	for _, removedProjectID := range removedProjectIDs {
+		workflows, err := project_model.FindWorkflowsByProjectID(ctx, removedProjectID)
+		if err != nil {
+			log.Error("IssueChangeStatus: FindWorkflowsByProjectID: %v", err)
 			return
 		}
 
-		workflows, err := project_model.FindWorkflowsByProjectID(ctx, issue.Project.ID)
+		// Find workflows for the ItemRemovedFromProject event
+		for _, workflow := range workflows {
+			if workflow.WorkflowEvent == project_model.WorkflowEventItemRemovedFromProject {
+				fireIssueWorkflow(ctx, workflow, issue, removedProjectID, 0, 0)
+			}
+		}
+	}
+
+	for _, newProject := range addedProjects {
+		if err := issue.LoadRepo(ctx); err != nil {
+			log.Error("IssueChangeStatus: LoadRepo: %v", err)
+			return
+		}
+
+		workflows, err := project_model.FindWorkflowsByProjectID(ctx, newProject.ID)
 		if err != nil {
 			log.Error("IssueChangeStatus: FindWorkflowsByProjectID: %v", err)
 			return
@@ -115,36 +151,9 @@ func (*workflowNotifier) IssueChangeProjects(ctx context.Context, doer *user_mod
 
 		// Find workflows for the ItemOpened event
 		for _, workflow := range workflows {
-			if workflow.WorkflowEvent == project_model.WorkflowEventItemRemovedFromProject {
-				fireIssueWorkflow(ctx, workflow, issue, 0, 0)
+			if workflow.WorkflowEvent == project_model.WorkflowEventItemAddedToProject {
+				fireIssueWorkflow(ctx, workflow, issue, newProject.ID, 0, 0)
 			}
-		}
-		return
-	}
-
-	if err := issue.LoadRepo(ctx); err != nil {
-		log.Error("IssueChangeStatus: LoadRepo: %v", err)
-		return
-	}
-
-	if err := issue.LoadProject(ctx); err != nil {
-		log.Error("NewIssue: LoadProject: %v", err)
-		return
-	}
-	if issue.Project == nil || issue.Project.ID != newProject.ID {
-		return
-	}
-
-	workflows, err := project_model.FindWorkflowsByProjectID(ctx, issue.Project.ID)
-	if err != nil {
-		log.Error("IssueChangeStatus: FindWorkflowsByProjectID: %v", err)
-		return
-	}
-
-	// Find workflows for the ItemOpened event
-	for _, workflow := range workflows {
-		if workflow.WorkflowEvent == project_model.WorkflowEventItemAddedToProject {
-			fireIssueWorkflow(ctx, workflow, issue, 0, 0)
 		}
 	}
 }
@@ -155,8 +164,14 @@ func (*workflowNotifier) IssueChangeProjectColumn(ctx context.Context, doer *use
 		return
 	}
 
-	if err := issue.LoadProject(ctx); err != nil {
-		log.Error("NewIssue: LoadProject: %v", err)
+	if err := issue.LoadProjects(ctx); err != nil {
+		log.Error("IssueChangeProjectColumn: LoadProjects: %v", err)
+		return
+	}
+
+	oldColumn, err := project_model.GetColumn(ctx, oldColumnID)
+	if err != nil {
+		log.Error("IssueChangeProjectColumn: GetColumn: %v", err)
 		return
 	}
 
@@ -165,11 +180,21 @@ func (*workflowNotifier) IssueChangeProjectColumn(ctx context.Context, doer *use
 		log.Error("IssueChangeProjectColumn: GetColumn: %v", err)
 		return
 	}
-	if issue.Project == nil || issue.Project.ID != newColumn.ProjectID {
+	if oldColumn.ProjectID != newColumn.ProjectID {
+		return
+	}
+	found := false
+	for _, project := range issue.Projects {
+		if project.ID == oldColumn.ProjectID {
+			found = true
+			break
+		}
+	}
+	if !found {
 		return
 	}
 
-	workflows, err := project_model.FindWorkflowsByProjectID(ctx, issue.Project.ID)
+	workflows, err := project_model.FindWorkflowsByProjectID(ctx, oldColumn.ProjectID)
 	if err != nil {
 		log.Error("IssueChangeStatus: FindWorkflowsByProjectID: %v", err)
 		return
@@ -178,7 +203,7 @@ func (*workflowNotifier) IssueChangeProjectColumn(ctx context.Context, doer *use
 	// Find workflows for the ItemColumnChanged event
 	for _, workflow := range workflows {
 		if workflow.WorkflowEvent == project_model.WorkflowEventItemColumnChanged {
-			fireIssueWorkflow(ctx, workflow, issue, oldColumnID, newColumnID)
+			fireIssueWorkflow(ctx, workflow, issue, oldColumn.ProjectID, oldColumnID, newColumnID)
 		}
 	}
 }
@@ -195,24 +220,26 @@ func (*workflowNotifier) MergePullRequest(ctx context.Context, doer *user_model.
 		return
 	}
 
-	if err := issue.LoadProject(ctx); err != nil {
+	if err := issue.LoadProjects(ctx); err != nil {
 		log.Error("NewIssue: LoadProject: %v", err)
 		return
 	}
-	if issue.Project == nil {
+	if len(issue.Projects) == 0 {
 		return
 	}
 
-	workflows, err := project_model.FindWorkflowsByProjectID(ctx, issue.Project.ID)
-	if err != nil {
-		log.Error("IssueChangeStatus: FindWorkflowsByProjectID: %v", err)
-		return
-	}
+	for _, project := range issue.Projects {
+		workflows, err := project_model.FindWorkflowsByProjectID(ctx, project.ID)
+		if err != nil {
+			log.Error("IssueChangeStatus: FindWorkflowsByProjectID: %v", err)
+			return
+		}
 
-	// Find workflows for the PullRequestMerged event
-	for _, workflow := range workflows {
-		if workflow.WorkflowEvent == project_model.WorkflowEventPullRequestMerged {
-			fireIssueWorkflow(ctx, workflow, issue, 0, 0)
+		// Find workflows for the PullRequestMerged event
+		for _, workflow := range workflows {
+			if workflow.WorkflowEvent == project_model.WorkflowEventPullRequestMerged {
+				fireIssueWorkflow(ctx, workflow, issue, project.ID, 0, 0)
+			}
 		}
 	}
 }
@@ -233,30 +260,32 @@ func (*workflowNotifier) PullRequestReview(ctx context.Context, pr *issues_model
 		return
 	}
 
-	if err := issue.LoadProject(ctx); err != nil {
-		log.Error("NewIssue: LoadProject: %v", err)
+	if err := issue.LoadProjects(ctx); err != nil {
+		log.Error("NewIssue: LoadProjects: %v", err)
 		return
 	}
-	if issue.Project == nil {
-		return
-	}
-
-	workflows, err := project_model.FindWorkflowsByProjectID(ctx, issue.Project.ID)
-	if err != nil {
-		log.Error("IssueChangeStatus: FindWorkflowsByProjectID: %v", err)
+	if len(issue.Projects) == 0 {
 		return
 	}
 
-	// Find workflows for the PullRequestMerged event
-	for _, workflow := range workflows {
-		if (workflow.WorkflowEvent == project_model.WorkflowEventCodeChangesRequested && review.Type == issues_model.ReviewTypeReject) ||
-			(workflow.WorkflowEvent == project_model.WorkflowEventCodeReviewApproved && review.Type == issues_model.ReviewTypeApprove) {
-			fireIssueWorkflow(ctx, workflow, issue, 0, 0)
+	for _, project := range issue.Projects {
+		workflows, err := project_model.FindWorkflowsByProjectID(ctx, project.ID)
+		if err != nil {
+			log.Error("IssueChangeStatus: FindWorkflowsByProjectID: %v", err)
+			return
+		}
+
+		// Find workflows for the PullRequestMerged event
+		for _, workflow := range workflows {
+			if (workflow.WorkflowEvent == project_model.WorkflowEventCodeChangesRequested && review.Type == issues_model.ReviewTypeReject) ||
+				(workflow.WorkflowEvent == project_model.WorkflowEventCodeReviewApproved && review.Type == issues_model.ReviewTypeApprove) {
+				fireIssueWorkflow(ctx, workflow, issue, project.ID, 0, 0)
+			}
 		}
 	}
 }
 
-func fireIssueWorkflow(ctx context.Context, workflow *project_model.Workflow, issue *issues_model.Issue, sourceColumnID, targetColumnID int64) {
+func fireIssueWorkflow(ctx context.Context, workflow *project_model.Workflow, issue *issues_model.Issue, projectID, sourceColumnID, targetColumnID int64) {
 	if !workflow.Enabled {
 		return
 	}
@@ -271,7 +300,7 @@ func fireIssueWorkflow(ctx context.Context, workflow *project_model.Workflow, is
 		return
 	}
 
-	executeWorkflowActions(ctx, workflow, issue)
+	executeWorkflowActions(ctx, workflow, issue, projectID)
 }
 
 // matchWorkflowsFilters checks if the issue matches all filters of the workflow
@@ -344,7 +373,7 @@ func matchWorkflowsFilters(workflow *project_model.Workflow, issue *issues_model
 	return true
 }
 
-func executeWorkflowActions(ctx context.Context, workflow *project_model.Workflow, issue *issues_model.Issue) {
+func executeWorkflowActions(ctx context.Context, workflow *project_model.Workflow, issue *issues_model.Issue, projectID int64) {
 	if err := workflow.LoadProject(ctx); err != nil {
 		log.Error("LoadProject: %v", err)
 	}
@@ -365,7 +394,7 @@ func executeWorkflowActions(ctx context.Context, workflow *project_model.Workflo
 				log.Error("Invalid column ID: %s", action.Value)
 				continue
 			}
-			column, err := project_model.GetColumnByIDAndProjectID(ctx, columnID, issue.Project.ID)
+			column, err := project_model.GetColumnByIDAndProjectID(ctx, columnID, projectID)
 			if err != nil {
 				log.Error("GetColumnByIDAndProjectID: %v", err)
 				continue

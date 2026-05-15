@@ -20,7 +20,7 @@ import (
 	"code.gitea.io/gitea/modules/proxy"
 	"code.gitea.io/gitea/modules/structs"
 
-	"github.com/google/go-github/v84/github"
+	"github.com/google/go-github/v85/github"
 	"golang.org/x/oauth2"
 )
 
@@ -205,6 +205,7 @@ func (g *GithubDownloaderV3) GetRepoInfo(ctx context.Context) (*base.Repository,
 		Name:          gr.GetName(),
 		IsPrivate:     gr.GetPrivate(),
 		Description:   gr.GetDescription(),
+		Website:       gr.GetHomepage(),
 		OriginalURL:   gr.GetHTMLURL(),
 		CloneURL:      gr.GetCloneURL(),
 		DefaultBranch: gr.GetDefaultBranch(),

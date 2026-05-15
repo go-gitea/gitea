@@ -323,6 +323,15 @@ func GetProjectByName(ctx context.Context, repoID int64, name string) (*Project,
 	return p, nil
 }
 
+// GetProjectsMapByIDs returns projects by a list of IDs.
+func GetProjectsMapByIDs(ctx context.Context, ids []int64) (map[int64]*Project, error) {
+	projects := make(map[int64]*Project, len(ids))
+	if len(ids) == 0 {
+		return projects, nil
+	}
+	return projects, db.GetEngine(ctx).In("id", ids).Find(&projects)
+}
+
 // GetProjectByIDAndOwner returns the projects in a repository
 func GetProjectByIDAndOwner(ctx context.Context, id, ownerID int64) (*Project, error) {
 	p := new(Project)

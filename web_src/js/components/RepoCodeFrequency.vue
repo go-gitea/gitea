@@ -21,6 +21,7 @@ import {
   type DayDataObject,
 } from '../utils/time.ts';
 import {chartJsColors} from '../utils/color.ts';
+import {errorMessage} from '../modules/errors.ts';
 import {sleep} from '../utils.ts';
 import 'chartjs-adapter-dayjs-4/dist/chartjs-adapter-dayjs-4.esm';
 import {onMounted, shallowRef} from 'vue';
@@ -78,7 +79,7 @@ async function fetchGraphData() {
       errorText.value = response.statusText;
     }
   } catch (err) {
-    errorText.value = err.message;
+    errorText.value = errorMessage(err);
   } finally {
     isLoading.value = false;
   }
@@ -144,7 +145,7 @@ const options: ChartOptions<'line'> = {
 
 <template>
   <div>
-    <div class="ui header tw-flex tw-items-center tw-justify-between">
+    <div class="ui header">
       {{ isLoading ? locale.loadingTitle : errorText ? locale.loadingTitleFailed: `Code frequency over the history of ${repoLink.slice(1)}` }}
     </div>
     <div class="tw-flex ui segment main-graph">

@@ -7,34 +7,41 @@ concurrency:
   group: ${{ github.workflow }}-${{ github.head_ref || github.run_id }}
   cancel-in-progress: true
 
+permissions:
+  contents: read
+
 jobs:
   files-changed:
     uses: ./.github/workflows/files-changed.yml
-    permissions:
-      contents: read
 
-  container:
+  # QEMU-based build is slow (40-50 minutes), so run arm64 and riscv64 when dockerfile changes.
+  # Run amd64 when any docker-related files change, which is fast (4 minutes).
+  container-amd64:
     if: needs.files-changed.outputs.docker == 'true'
-    needs: files-changed
+    needs: [files-changed]
     runs-on: ubuntu-latest
-    permissions:
-      contents: read
     steps:
-      - uses: actions/checkout@v6
-      - uses: docker/setup-qemu-action@v4
-      - uses: docker/setup-buildx-action@v4
-      - name: Build regular container image
-        uses: docker/build-push-action@v7
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+      - uses: ./.github/actions/docker-dryrun
         with:
-          context: .
-          platforms: linux/amd64,linux/arm64,linux/riscv64
-          push: false
-          cache-from: type=registry,ref=ghcr.io/go-gitea/gitea:buildcache-rootful
-      - name: Build rootless container image
-        uses: docker/build-push-action@v7
+          platform: linux/amd64
+
+  container-arm64:
+    if: needs.files-changed.outputs.dockerfile == 'true'
+    needs: [files-changed]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+      - uses: ./.github/actions/docker-dryrun
         with:
-          context: .
-          push: false
-          platforms: linux/amd64,linux/arm64,linux/riscv64
-          file: Dockerfile.rootless
-          cache-from: type=registry,ref=ghcr.io/go-gitea/gitea:buildcache-rootless
+          platform: linux/arm64
+
+  container-riscv64:
+    if: needs.files-changed.outputs.dockerfile == 'true'
+    needs: [files-changed]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+      - uses: ./.github/actions/docker-dryrun
+        with:
+          platform: linux/riscv64
