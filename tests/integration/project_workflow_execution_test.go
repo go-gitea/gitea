@@ -251,8 +251,8 @@ func TestProjectWorkflowExecutionItemRemovedFromProject(t *testing.T) {
 
 	issue, err := issues_model.GetIssueByID(t.Context(), issueID)
 	assert.NoError(t, err)
-	assert.NoError(t, issue.LoadProject(t.Context()))
-	assert.Nil(t, issue.Project)
+	assert.NoError(t, issue.LoadProjects(t.Context()))
+	assert.Len(t, issue.Projects, 0)
 
 	err = issue.LoadLabels(t.Context())
 	assert.NoError(t, err)

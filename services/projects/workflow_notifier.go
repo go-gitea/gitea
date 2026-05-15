@@ -109,7 +109,7 @@ func (*workflowNotifier) IssueChangeProjects(ctx context.Context, doer *user_mod
 		addedProjects[newProject.ID] = newProject
 	}
 	var removedProjectIDs []int64
-	for projectID, _ := range oldProjectColumnMap {
+	for projectID := range oldProjectColumnMap {
 		found := false
 		for _, newProject := range newProjects {
 			if newProject.ID == projectID {
