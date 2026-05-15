@@ -4,6 +4,7 @@
 package gitrepo
 
 import (
+	"bytes"
 	"context"
 	"fmt"
 	"io"
@@ -27,6 +28,16 @@ func GetDiffShortStatByCmdArgs(ctx context.Context, repo Repository, trustedArgs
 	}
 
 	return parseDiffStat(stdout)
+}
+
+// GetDiffChangedFilesCountByCmdArgs counts changed files without calculating line-level diff stats.
+func GetDiffChangedFilesCountByCmdArgs(ctx context.Context, repo Repository, trustedArgs gitcmd.TrustedCmdArgs, dynamicArgs ...string) (int, error) {
+	cmd := gitcmd.NewCommand("diff", "--name-only", "-z").AddArguments(trustedArgs...).AddDynamicArguments(dynamicArgs...)
+	stdout, _, err := RunCmdBytes(ctx, repo, cmd)
+	if err != nil {
+		return 0, err
+	}
+	return bytes.Count(stdout, []byte{0}), nil
 }
 
 var shortStatFormat = regexp.MustCompile(

@@ -318,11 +318,12 @@ func Diff(ctx *context.Context) {
 		ctx.NotFound(err)
 		return
 	}
-	diffShortStat, err := gitdiff.GetDiffShortStat(ctx, gitRepoStore, gitRepo, "", commitID)
+	changedFiles, err := gitdiff.GetDiffChangedFilesCount(ctx, gitRepoStore, gitRepo, "", commitID)
 	if err != nil {
-		ctx.ServerError("GetDiffShortStat", err)
+		ctx.ServerError("GetDiffChangedFilesCount", err)
 		return
 	}
+	diffShortStat := &gitdiff.DiffShortStat{NumFiles: changedFiles}
 	ctx.Data["DiffShortStat"] = diffShortStat
 
 	parents := make([]string, commit.ParentCount())

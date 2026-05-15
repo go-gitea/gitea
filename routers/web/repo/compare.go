@@ -471,11 +471,12 @@ func (cpi *comparePageInfoType) prepareCompareDiff(ctx *context.Context, whitesp
 		ctx.ServerError("GetDiff", err)
 		return
 	}
-	diffShortStat, err := gitdiff.GetDiffShortStat(ctx, ci.HeadRepo, ci.HeadGitRepo, beforeCommitID, headCommitID)
+	changedFiles, err := gitdiff.GetDiffChangedFilesCount(ctx, ci.HeadRepo, ci.HeadGitRepo, beforeCommitID, headCommitID)
 	if err != nil {
-		ctx.ServerError("GetDiffShortStat", err)
+		ctx.ServerError("GetDiffChangedFilesCount", err)
 		return
 	}
+	diffShortStat := &gitdiff.DiffShortStat{NumFiles: changedFiles}
 	ctx.Data["DiffShortStat"] = diffShortStat
 	ctx.Data["Diff"] = diff
 	ctx.Data["DiffBlobExcerptData"] = &gitdiff.DiffBlobExcerptData{

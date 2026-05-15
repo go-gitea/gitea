@@ -1452,6 +1452,19 @@ func GetDiffShortStat(ctx context.Context, repoStorage gitrepo.Repository, gitRe
 	return diff, nil
 }
 
+func GetDiffChangedFilesCount(ctx context.Context, repoStorage gitrepo.Repository, gitRepo *git.Repository, beforeCommitID, afterCommitID string) (int, error) {
+	afterCommit, err := gitRepo.GetCommit(afterCommitID)
+	if err != nil {
+		return 0, err
+	}
+
+	_, actualBeforeCommitID, err := guessBeforeCommitForDiff(gitRepo, beforeCommitID, afterCommit)
+	if err != nil {
+		return 0, err
+	}
+	return gitrepo.GetDiffChangedFilesCountByCmdArgs(ctx, repoStorage, nil, actualBeforeCommitID.String(), afterCommitID)
+}
+
 // SyncUserSpecificDiff inserts user-specific data such as which files the user has already viewed on the given diff
 // Additionally, the database is updated asynchronously if files have changed since the last review
 func SyncUserSpecificDiff(ctx context.Context, userID int64, pull *issues_model.PullRequest, gitRepo *git.Repository, diff *Diff, opts *DiffOptions) (*pull_model.ReviewState, error) {
