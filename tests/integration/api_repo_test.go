@@ -671,6 +671,16 @@ func TestAPIGenerateRepo(t *testing.T) {
 
 	templateRepo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 44})
 
+	assertGeneratedRepoIsUsable := func(t *testing.T, ownerName string, repo *api.Repository) {
+		t.Helper()
+		assert.NotEmpty(t, repo.DefaultBranch)
+
+		req := NewRequestf(t, "GET", "/api/v1/repos/%s/%s/branches/%s", ownerName, repo.Name, repo.DefaultBranch).AddTokenAuth(token)
+		resp := MakeRequest(t, req, http.StatusOK)
+		branch := DecodeJSON(t, resp, &api.Branch{})
+		assert.Equal(t, repo.DefaultBranch, branch.Name)
+	}
+
 	// user
 	repo := new(api.Repository)
 	req := NewRequestWithJSON(t, "POST", fmt.Sprintf("/api/v1/repos/%s/%s/generate", templateRepo.OwnerName, templateRepo.Name), &api.GenerateRepoOption{
@@ -684,6 +694,7 @@ func TestAPIGenerateRepo(t *testing.T) {
 	DecodeJSON(t, resp, repo)
 
 	assert.Equal(t, "new-repo", repo.Name)
+	assertGeneratedRepoIsUsable(t, user.Name, repo)
 
 	// org
 	req = NewRequestWithJSON(t, "POST", fmt.Sprintf("/api/v1/repos/%s/%s/generate", templateRepo.OwnerName, templateRepo.Name), &api.GenerateRepoOption{
@@ -697,6 +708,7 @@ func TestAPIGenerateRepo(t *testing.T) {
 	DecodeJSON(t, resp, repo)
 
 	assert.Equal(t, "new-repo", repo.Name)
+	assertGeneratedRepoIsUsable(t, "org3", repo)
 }
 
 func TestAPIRepoGetReviewers(t *testing.T) {
