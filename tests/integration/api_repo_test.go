@@ -664,8 +664,7 @@ func TestAPIGenerateRepo(t *testing.T) {
 
 		req := NewRequestf(t, "GET", "/api/v1/repos/%s/%s/branches/%s", ownerName, repo.Name, repo.DefaultBranch).AddTokenAuth(token)
 		resp := MakeRequest(t, req, http.StatusOK)
-		branch := new(api.Branch)
-		DecodeJSON(t, resp, branch)
+		branch := DecodeJSON(t, resp, &api.Branch{})
 		assert.Equal(t, repo.DefaultBranch, branch.Name)
 	}
 
