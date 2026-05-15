@@ -12,6 +12,7 @@ import (
 	"code.gitea.io/gitea/models/db"
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/modules/actions"
+	"code.gitea.io/gitea/modules/container"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/timeutil"
@@ -62,6 +63,9 @@ func notifyWorkflowJobStatusUpdate(ctx context.Context, jobs []*actions_model.Ac
 func CancelPreviousJobs(ctx context.Context, repoID int64, ref, workflowID string, event webhook_module.HookEventType) error {
 	jobs, err := actions_model.CancelPreviousJobs(ctx, repoID, ref, workflowID, event)
 	notifyWorkflowJobStatusUpdate(ctx, jobs)
+	if len(jobs) > 0 {
+		actions_model.UpdateRepoRunsNumbers(ctx, repoID)
+	}
 	EmitJobsIfReadyByJobs(jobs)
 	return err
 }
@@ -69,6 +73,9 @@ func CancelPreviousJobs(ctx context.Context, repoID int64, ref, workflowID strin
 func CleanRepoScheduleTasks(ctx context.Context, repo *repo_model.Repository) error {
 	jobs, err := actions_model.CleanRepoScheduleTasks(ctx, repo)
 	notifyWorkflowJobStatusUpdate(ctx, jobs)
+	if len(jobs) > 0 {
+		actions_model.UpdateRepoRunsNumbers(ctx, repo.ID)
+	}
 	EmitJobsIfReadyByJobs(jobs)
 	return err
 }
@@ -176,6 +183,16 @@ func stopTasks(ctx context.Context, opts actions_model.FindTaskOptions) error {
 	}
 
 	notifyWorkflowJobStatusUpdate(ctx, jobs)
+
+	// Recompute counters post-commit for every repo whose runs may have flipped done-status.
+	reconcileRepos := make(container.Set[int64])
+	for _, job := range jobs {
+		reconcileRepos.Add(job.RepoID)
+	}
+	for repoID := range reconcileRepos {
+		actions_model.UpdateRepoRunsNumbers(ctx, repoID)
+	}
+
 	EmitJobsIfReadyByJobs(jobs)
 
 	return nil
@@ -197,6 +214,7 @@ func CancelAbandonedJobs(ctx context.Context) error {
 	// Collect one job per run to send workflow run status update
 	updatedRuns := map[int64]*actions_model.ActionRunJob{}
 	updatedJobs := []*actions_model.ActionRunJob{}
+	updatedRepoIDs := make(container.Set[int64])
 
 	for _, job := range jobs {
 		job.Status = actions_model.StatusCancelled
@@ -213,6 +231,7 @@ func CancelAbandonedJobs(ctx context.Context) error {
 			updated = n > 0
 			if updated && job.Run.Status.IsDone() {
 				updatedRuns[job.RunID] = job
+				updatedRepoIDs.Add(job.RepoID)
 			}
 			return nil
 		}); err != nil {
@@ -233,6 +252,10 @@ func CancelAbandonedJobs(ctx context.Context) error {
 		notify_service.WorkflowRunStatusUpdate(ctx, job.Run.Repo, job.Run.TriggerUser, job.Run)
 	}
 	EmitJobsIfReadyByJobs(updatedJobs)
+
+	for repoID := range updatedRepoIDs {
+		actions_model.UpdateRepoRunsNumbers(ctx, repoID)
+	}
 
 	return nil
 }
