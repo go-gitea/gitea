@@ -223,7 +223,7 @@ func (run *ActionRun) IsSchedule() bool {
 }
 
 // UpdateRepoRunsNumbers updates the number of runs and closed runs of a repository.
-// Callers MUST invoke this from outside any transaction that has X-locked action_run rows for the same repo
+// Callers MUST invoke this from outside any transaction that has X-locked action_run rows for the same repo, otherwise, transaction deadlock
 func UpdateRepoRunsNumbers(ctx context.Context, repoID int64) {
 	if db.InTransaction(ctx) {
 		setting.PanicInDevOrTesting("UpdateRepoRunsNumbers must not be called inside a transaction")
