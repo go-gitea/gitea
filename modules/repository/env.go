@@ -45,9 +45,10 @@ const (
 // or if you absolutely are sure that post-receive and pre-receive will do nothing
 // We provide the full pushing-environment for other hook providers
 func InternalPushingEnvironment(doer *user_model.User, repo *repo_model.Repository) []string {
-	return append(PushingEnvironment(doer, repo),
+	env := append(PushingEnvironment(doer, repo),
 		EnvIsInternal+"=true",
 	)
+	return appendGitConfigEnv(env, "receive.hideRefs", "!refs/pull/")
 }
 
 // PushingEnvironment returns an os environment to allow hooks to work on push
@@ -90,4 +91,28 @@ func FullPushingEnvironment(author, committer *user_model.User, repo *repo_model
 	)
 	environ = append(environ, DoerPushingEnvironment(committer, repo, isWiki)...)
 	return environ
+}
+
+func appendGitConfigEnv(env []string, key, value string) []string {
+	count := 0
+
+	for i, envVar := range env {
+		if !strings.HasPrefix(envVar, "GIT_CONFIG_COUNT=") {
+			continue
+		}
+
+		count, _ = strconv.Atoi(strings.TrimPrefix(envVar, "GIT_CONFIG_COUNT="))
+		env[i] = "GIT_CONFIG_COUNT=" + strconv.Itoa(count+1)
+		env = append(env,
+			"GIT_CONFIG_KEY_"+strconv.Itoa(count)+"="+key,
+			"GIT_CONFIG_VALUE_"+strconv.Itoa(count)+"="+value,
+		)
+		return env
+	}
+
+	return append(env,
+		"GIT_CONFIG_COUNT=1",
+		"GIT_CONFIG_KEY_0="+key,
+		"GIT_CONFIG_VALUE_0="+value,
+	)
 }
