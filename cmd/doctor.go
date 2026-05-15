@@ -203,6 +203,7 @@ func runDoctorCheck(ctx context.Context, cmd *cli.Command) error {
 	if cmd.Bool("all") {
 		checks = make([]*doctor.Check, len(doctor.Checks))
 		copy(checks, doctor.Checks)
+		checks = filterChecksForAll(checks)
 		if cmd.Bool("fix") {
 			checks, skippedChecks = filterFixChecksForAll(checks)
 		}
@@ -233,6 +234,28 @@ func runDoctorCheck(ctx context.Context, cmd *cli.Command) error {
 		_, _ = fmt.Fprintf(os.Stdout, "Skipping destructive checks from --all --fix: %s. Run them explicitly with --run <name> --fix after verifying the database.\n", strings.Join(names, ", "))
 	}
 	return doctor.RunChecks(ctx, colorize, cmd.Bool("fix"), checks)
+}
+
+func filterChecksForAll(checks []*doctor.Check) []*doctor.Check {
+	hasStorageAggregate := false
+	for _, check := range checks {
+		if check.Name == "storages" {
+			hasStorageAggregate = true
+			break
+		}
+	}
+	if !hasStorageAggregate {
+		return checks
+	}
+
+	filtered := make([]*doctor.Check, 0, len(checks))
+	for _, check := range checks {
+		if strings.HasPrefix(check.Name, "storage-") {
+			continue
+		}
+		filtered = append(filtered, check)
+	}
+	return filtered
 }
 
 func filterFixChecksForAll(checks []*doctor.Check) ([]*doctor.Check, []*doctor.Check) {

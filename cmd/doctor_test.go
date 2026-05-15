@@ -46,6 +46,25 @@ func TestFilterFixChecksForAll(t *testing.T) {
 	assert.Equal(t, "dangerous", skipped[0].Name)
 }
 
+func TestFilterChecksForAll(t *testing.T) {
+	checks := []*doctor.Check{
+		{Name: "storages"},
+		{Name: "storage-attachments"},
+		{Name: "storage-lfs"},
+		{Name: "safe"},
+	}
+
+	filtered := filterChecksForAll(checks)
+	assert.Len(t, filtered, 2)
+	assert.Equal(t, "storages", filtered[0].Name)
+	assert.Equal(t, "safe", filtered[1].Name)
+
+	filtered = filterChecksForAll([]*doctor.Check{{Name: "storage-attachments"}, {Name: "safe"}})
+	assert.Len(t, filtered, 2)
+	assert.Equal(t, "storage-attachments", filtered[0].Name)
+	assert.Equal(t, "safe", filtered[1].Name)
+}
+
 func TestDoctorCheckFixMode(t *testing.T) {
 	assert.Equal(t, "safe", doctorCheckFixMode(&doctor.Check{}))
 	assert.Equal(t, "explicit", doctorCheckFixMode(&doctor.Check{IsDestructive: true}))
