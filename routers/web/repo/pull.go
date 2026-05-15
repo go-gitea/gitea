@@ -1281,14 +1281,16 @@ func stopTimerIfAvailable(ctx *context.Context, user *user_model.User, issue *is
 
 func PullsNewRedirect(ctx *context.Context) {
 	branch := ctx.PathParam("*")
-	redirectRepo := ctx.Repo.Repository
 	repo := ctx.Repo.Repository
-	if repo.IsFork {
-		if err := repo.GetBaseRepo(ctx); err != nil {
-			ctx.ServerError("GetBaseRepo", err)
-			return
-		}
-		redirectRepo = repo.BaseRepo
+	redirectRepo, err := repo.GetPullRequestDefaultBaseRepo(ctx)
+	if err != nil {
+		ctx.ServerError("GetPullRequestDefaultBaseRepo", err)
+		return
+	}
+	if redirectRepo == nil {
+		redirectRepo = repo
+	}
+	if redirectRepo.ID != repo.ID {
 		branch = fmt.Sprintf("%s:%s", repo.OwnerName, branch)
 	}
 	ctx.Redirect(fmt.Sprintf("%s/compare/%s...%s?expand=1", redirectRepo.Link(), util.PathEscapeSegments(redirectRepo.DefaultBranch), util.PathEscapeSegments(branch)))

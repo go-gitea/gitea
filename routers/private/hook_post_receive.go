@@ -229,6 +229,7 @@ func HookPostReceive(ctx *gitea_context.PrivateContext) {
 	// We have to reload the repo in case its state is changed above
 	repo = nil
 	var baseRepo *repo_model.Repository
+	var err error
 
 	// Now handle the pull request notification trailers
 	for i := range opts.OldCommitIDs {
@@ -244,20 +245,17 @@ func HookPostReceive(ctx *gitea_context.PrivateContext) {
 					return
 				}
 
-				baseRepo = repo
-
-				if repo.IsFork {
-					if err := repo.GetBaseRepo(ctx); err != nil {
-						log.Error("Failed to get Base Repository of Forked repository: %-v Error: %v", repo, err)
-						ctx.JSON(http.StatusInternalServerError, private.HookPostReceiveResult{
-							Err:          fmt.Sprintf("Failed to get Base Repository of Forked repository: %-v Error: %v", repo, err),
-							RepoWasEmpty: wasEmpty,
-						})
-						return
-					}
-					if repo.BaseRepo.AllowsPulls(ctx) {
-						baseRepo = repo.BaseRepo
-					}
+				baseRepo, err = repo.GetPullRequestDefaultBaseRepo(ctx)
+				if err != nil {
+					log.Error("Failed to get default pull request base repository: %-v Error: %v", repo, err)
+					ctx.JSON(http.StatusInternalServerError, private.HookPostReceiveResult{
+						Err:          fmt.Sprintf("Failed to get default pull request base repository: %-v Error: %v", repo, err),
+						RepoWasEmpty: wasEmpty,
+					})
+					return
+				}
+				if baseRepo == nil {
+					baseRepo = repo
 				}
 
 				if !baseRepo.AllowsPulls(ctx) {
