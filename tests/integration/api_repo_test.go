@@ -645,8 +645,7 @@ func TestAPIRejectTransfer(t *testing.T) {
 	req = NewRequest(t, "POST", fmt.Sprintf("/api/v1/repos/%s/%s/transfer/reject", repo.OwnerName, repo.Name)).
 		AddTokenAuth(token)
 	resp := MakeRequest(t, req, http.StatusOK)
-	apiRepo := new(api.Repository)
-	DecodeJSON(t, resp, apiRepo)
+	apiRepo := DecodeJSON(t, resp, &api.Repository{})
 	assert.Equal(t, "user2", apiRepo.Owner.UserName)
 }
 
