@@ -180,8 +180,8 @@ func httpBase(ctx *context.Context, optGitService ...string) *serviceHandler {
 		}
 
 		if repoExist {
-			// Because of special ref "refs/for" (agit) , need delay write permission check
-			if git.DefaultFeatures().SupportProcReceive {
+			// Only the main code repo accepts refs/for pushes, so wiki pushes must keep write checks.
+			if git.DefaultFeatures().SupportProcReceive && !isWiki {
 				accessMode = perm.AccessModeRead
 			}
 

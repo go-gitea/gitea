@@ -14,6 +14,7 @@ import (
 	"code.gitea.io/gitea/modules/lfs"
 	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
+	"code.gitea.io/gitea/modules/test"
 	"code.gitea.io/gitea/services/migrations"
 	"code.gitea.io/gitea/tests"
 
@@ -22,11 +23,8 @@ import (
 
 func TestAPIRepoLFSMigrateLocal(t *testing.T) {
 	defer tests.PrepareTestEnv(t)()
-
-	oldImportLocalPaths := setting.ImportLocalPaths
-	oldAllowLocalNetworks := setting.Migrations.AllowLocalNetworks
-	setting.ImportLocalPaths = true
-	setting.Migrations.AllowLocalNetworks = true
+	defer test.MockVariableValue(&setting.ImportLocalPaths, true)()
+	defer test.MockVariableValue(&setting.Migrations.AllowLocalNetworks, true)()
 	assert.NoError(t, migrations.Init())
 
 	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 1})
@@ -47,8 +45,4 @@ func TestAPIRepoLFSMigrateLocal(t *testing.T) {
 	assert.True(t, ok)
 	ok, _ = store.Verify(lfs.Pointer{Oid: "d6f175817f886ec6fbbc1515326465fa96c3bfd54a4ea06cfd6dbbd8340e0152", Size: 6})
 	assert.True(t, ok)
-
-	setting.ImportLocalPaths = oldImportLocalPaths
-	setting.Migrations.AllowLocalNetworks = oldAllowLocalNetworks
-	assert.NoError(t, migrations.Init()) // reset old migration settings
 }
