@@ -12,6 +12,7 @@ import (
 
 	"code.gitea.io/gitea/modules/nosql"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/test"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -57,10 +58,10 @@ func TestBaseRedis(t *testing.T) {
 	}()
 	if !waitRedisReady("redis://127.0.0.1:6379/0", 0) {
 		redisServer = redisServerCmd(t)
-		if redisServer == nil && os.Getenv("CI") == "" {
-			t.Skip("redis-server not found")
-			return
+		if redisServer == nil && test.AllowSkipExternalService() {
+			t.Skip("redis server command not found, skipped")
 		}
+		require.NotNil(t, redisServer)
 		assert.NoError(t, redisServer.Start())
 		require.True(t, waitRedisReady("redis://127.0.0.1:6379/0", 5*time.Second), "start redis-server")
 	}
