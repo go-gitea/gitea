@@ -6,7 +6,9 @@
 package db
 
 import (
+	"fmt"
 	"strconv"
+	"strings"
 
 	_ "github.com/mattn/go-sqlite3"
 )
@@ -24,6 +26,6 @@ func makeSQLiteConnStrMattnCGO(opts SQLiteConnStrOptions) (string, string, error
 	if opts.JournalMode != "" {
 		params = append(params, "_journal_mode="+opts.JournalMode)
 	}
-	connStr := makeSQLiteConnectionURI(opts.FilePath, params)
+	connStr := fmt.Sprintf("file:%s?%s", opts.FilePath, strings.Join(params, "&"))
 	return sqlDriverSQLite3, connStr, nil
 }
