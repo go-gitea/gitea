@@ -250,6 +250,8 @@ func DeleteRun(ctx context.Context, run *actions_model.ActionRun) error {
 		return err
 	}
 
+	actions_model.UpdateRepoRunsNumbers(ctx, repoID)
+
 	// Delete files on storage
 	for _, tas := range tasks {
 		removeTaskLog(ctx, tas)
