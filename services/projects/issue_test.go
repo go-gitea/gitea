@@ -43,6 +43,7 @@ func Test_Projects(t *testing.T) {
 			ProjectID:       4,
 			IssueID:         4,
 			ProjectColumnID: 4,
+			Sorting:         1,
 		}
 		err = db.Insert(t.Context(), &pi2)
 		assert.NoError(t, err)
@@ -212,4 +213,45 @@ func Test_Projects(t *testing.T) {
 		require.Equal(t, "user10", assignees[1].Name)
 		require.Equal(t, "user2", assignees[2].Name)
 	})
+}
+
+func TestReorderIssuesInColumn_SwapWithinColumn(t *testing.T) {
+	assert.NoError(t, unittest.PrepareTestDatabase())
+
+	user2 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
+
+	// Project 1 is a repo project on repo 1. Issue 2 is on repo 1 and already
+	// on project 1 at column 0 (unassigned). Move it to column 2 (which already
+	// has issue 3 at sorting 0). AppendIssueToColumn updates the existing row.
+	_, err := project_model.AppendIssueToColumn(t.Context(), 1, 2, 2)
+	assert.NoError(t, err)
+
+	col2 := unittest.AssertExistsAndLoadBean(t, &project_model.Column{ID: 2})
+
+	// Swap issue 3 (sorting 0) and issue 2 (sorting 1) within column 2.
+	err = ReorderIssuesInColumn(t.Context(), user2, col2, map[int64]int64{
+		3: 1,
+		2: 0,
+	})
+	assert.NoError(t, err)
+
+	pi3 := unittest.AssertExistsAndLoadBean(t, &project_model.ProjectIssue{IssueID: 3, ProjectID: 1})
+	pi2 := unittest.AssertExistsAndLoadBean(t, &project_model.ProjectIssue{IssueID: 2, ProjectID: 1})
+	assert.EqualValues(t, 1, pi3.Sorting)
+	assert.EqualValues(t, 0, pi2.Sorting)
+}
+
+func TestMoveIssueToColumn_AppendsToDestination(t *testing.T) {
+	assert.NoError(t, unittest.PrepareTestDatabase())
+
+	issue3 := unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{ID: 3})
+	col3 := unittest.AssertExistsAndLoadBean(t, &project_model.Column{ID: 3})
+
+	// Column 3 has issue 5 at sorting 0 per fixtures.
+	err := MoveIssueToColumn(t.Context(), issue3, col3)
+	assert.NoError(t, err)
+
+	pi := unittest.AssertExistsAndLoadBean(t, &project_model.ProjectIssue{IssueID: 3, ProjectID: 1})
+	assert.EqualValues(t, 3, pi.ProjectColumnID)
+	assert.EqualValues(t, 1, pi.Sorting) // max(0) + 1
 }

@@ -282,6 +282,131 @@ func TestRepoProjectFilterByMilestone(t *testing.T) {
 	})
 }
 
+func TestAddProjectColumnHTTP(t *testing.T) {
+	defer tests.PrepareTestEnv(t)()
+
+	project := unittest.AssertExistsAndLoadBean(t, &project_model.Project{ID: 1})
+	assert.EqualValues(t, 1, project.RepoID)
+
+	sess := loginUser(t, "user2")
+	req := NewRequestWithValues(t, "POST", "/user2/repo1/projects/1/columns/new", map[string]string{
+		"title": "NewCol",
+		"color": "#aabbcc",
+	})
+	sess.MakeRequest(t, req, http.StatusOK)
+
+	unittest.AssertExistsAndLoadBean(t, &project_model.Column{ProjectID: 1, Title: "NewCol"})
+}
+
+func TestEditProjectColumnHTTP(t *testing.T) {
+	defer tests.PrepareTestEnv(t)()
+
+	sess := loginUser(t, "user2")
+	req := NewRequestWithValues(t, "PUT", "/user2/repo1/projects/1/2", map[string]string{
+		"title":   "Renamed",
+		"color":   "#112233",
+		"sorting": "5",
+	})
+	sess.MakeRequest(t, req, http.StatusOK)
+
+	column := unittest.AssertExistsAndLoadBean(t, &project_model.Column{ID: 2})
+	assert.Equal(t, "Renamed", column.Title)
+	assert.Equal(t, "#112233", column.Color)
+	assert.EqualValues(t, 5, column.Sorting)
+}
+
+func TestSetDefaultProjectColumnHTTP(t *testing.T) {
+	defer tests.PrepareTestEnv(t)()
+
+	col1Before := unittest.AssertExistsAndLoadBean(t, &project_model.Column{ID: 1})
+	assert.True(t, col1Before.Default)
+
+	sess := loginUser(t, "user2")
+	req := NewRequest(t, "POST", "/user2/repo1/projects/1/2/default")
+	sess.MakeRequest(t, req, http.StatusOK)
+
+	col1After := unittest.AssertExistsAndLoadBean(t, &project_model.Column{ID: 1})
+	assert.False(t, col1After.Default)
+	col2After := unittest.AssertExistsAndLoadBean(t, &project_model.Column{ID: 2})
+	assert.True(t, col2After.Default)
+}
+
+func TestDeleteProjectColumnHTTP(t *testing.T) {
+	defer tests.PrepareTestEnv(t)()
+
+	sess := loginUser(t, "user2")
+
+	// Column 2 holds issue 3 at sorting 0; deleting it must migrate issue 3 to
+	// the default column (column 1) at sorting max+1. This exercises the
+	// refactor that batches the issue move + row delete in a single transaction.
+	req := NewRequest(t, "DELETE", "/user2/repo1/projects/1/2")
+	sess.MakeRequest(t, req, http.StatusOK)
+
+	unittest.AssertNotExistsBean(t, &project_model.Column{ID: 2})
+
+	pi := unittest.AssertExistsAndLoadBean(t, &project_model.ProjectIssue{IssueID: 3, ProjectID: 1})
+	assert.EqualValues(t, 1, pi.ProjectColumnID)
+	assert.EqualValues(t, 1, pi.Sorting)
+
+	// Cannot delete the default column — service returns an error wrapped as ServerError.
+	req = NewRequest(t, "DELETE", "/user2/repo1/projects/1/1")
+	sess.MakeRequest(t, req, http.StatusInternalServerError)
+}
+
+func TestMoveIssuesBulkHTTP(t *testing.T) {
+	defer tests.PrepareTestEnv(t)()
+
+	sess := loginUser(t, "user2")
+
+	// Put issue 2 (project 1, column 0) onto column 1 first.
+	req := NewRequestWithValues(t, "POST", "/user2/repo1/issues/projects/column", map[string]string{
+		"issue_id": "2",
+		"id":       "1",
+	})
+	sess.MakeRequest(t, req, http.StatusOK)
+	pi2 := unittest.AssertExistsAndLoadBean(t, &project_model.ProjectIssue{IssueID: 2, ProjectID: 1})
+	assert.EqualValues(t, 1, pi2.ProjectColumnID)
+
+	// Swap the sort order of issues 1 and 2 inside column 1. Without the
+	// two-pass primitive the unique (project_board_id, sorting) index rejects
+	// this because both rows transiently collide on the same sorting.
+	req = NewRequestWithJSON(t, "POST", "/user2/repo1/projects/1/1/move", map[string]any{
+		"issues": []map[string]any{
+			{"issueID": 2, "sorting": 0},
+			{"issueID": 1, "sorting": 1},
+		},
+	})
+	sess.MakeRequest(t, req, http.StatusOK)
+
+	pi1After := unittest.AssertExistsAndLoadBean(t, &project_model.ProjectIssue{IssueID: 1, ProjectID: 1})
+	assert.EqualValues(t, 1, pi1After.Sorting)
+	pi2After := unittest.AssertExistsAndLoadBean(t, &project_model.ProjectIssue{IssueID: 2, ProjectID: 1})
+	assert.EqualValues(t, 0, pi2After.Sorting)
+}
+
+func TestMoveIssueBetweenColumnsBulkHTTP(t *testing.T) {
+	defer tests.PrepareTestEnv(t)()
+
+	sess := loginUser(t, "user2")
+
+	// Fixture: project 1 column 1 ("To Do", default) holds issue 1 at sorting 0;
+	// column 3 ("Done") holds issue 5 at sorting 0. Move issue 1 onto column 3
+	// after issue 5 via the bulk /move endpoint — this is the cross-column path
+	// through ReorderIssuesInColumn that emits a column-change timeline comment.
+	req := NewRequestWithJSON(t, "POST", "/user2/repo1/projects/1/3/move", map[string]any{
+		"issues": []map[string]any{
+			{"issueID": 1, "sorting": 1},
+		},
+	})
+	sess.MakeRequest(t, req, http.StatusOK)
+
+	pi1After := unittest.AssertExistsAndLoadBean(t, &project_model.ProjectIssue{IssueID: 1, ProjectID: 1})
+	assert.EqualValues(t, 3, pi1After.ProjectColumnID)
+	assert.EqualValues(t, 1, pi1After.Sorting)
+
+	unittest.AssertExistsAndLoadBean(t, &issues_model.Comment{IssueID: 1, Type: issues_model.CommentTypeProjectColumn})
+}
+
 func TestOrgProjectFilterByMilestone(t *testing.T) {
 	defer tests.PrepareTestEnv(t)()
 

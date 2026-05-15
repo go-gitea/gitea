@@ -4,7 +4,6 @@
 package org
 
 import (
-	"errors"
 	"fmt"
 	"net/http"
 	"strings"
@@ -496,8 +495,13 @@ func DeleteProjectColumn(ctx *context.Context) {
 		return
 	}
 
-	if err := project_model.DeleteColumnByID(ctx, ctx.PathParamInt64("columnID")); err != nil {
-		ctx.ServerError("DeleteProjectColumnByID", err)
+	column, err := project_model.GetColumn(ctx, ctx.PathParamInt64("columnID"))
+	if err != nil {
+		ctx.NotFoundOrServerError("GetColumn", project_model.IsErrProjectColumnNotExist, err)
+		return
+	}
+	if err := project_service.DeleteColumn(ctx, column); err != nil {
+		ctx.ServerError("DeleteColumn", err)
 		return
 	}
 
@@ -624,37 +628,13 @@ func MoveIssues(ctx *context.Context) {
 		return
 	}
 
-	issueIDs := make([]int64, 0, len(form.Issues))
 	sortedIssueIDs := make(map[int64]int64)
 	for _, issue := range form.Issues {
-		issueIDs = append(issueIDs, issue.IssueID)
-		sortedIssueIDs[issue.Sorting] = issue.IssueID
-	}
-	movedIssues, err := issues_model.GetIssuesByIDs(ctx, issueIDs)
-	if err != nil {
-		ctx.NotFoundOrServerError("GetIssueByID", issues_model.IsErrIssueNotExist, err)
-		return
+		sortedIssueIDs[issue.IssueID] = issue.Sorting
 	}
 
-	if len(movedIssues) != len(form.Issues) {
-		ctx.ServerError("some issues do not exist", errors.New("some issues do not exist"))
-		return
-	}
-
-	if _, err = movedIssues.LoadRepositories(ctx); err != nil {
-		ctx.ServerError("LoadRepositories", err)
-		return
-	}
-
-	for _, issue := range movedIssues {
-		if issue.RepoID != project.RepoID && issue.Repo.OwnerID != project.OwnerID {
-			ctx.ServerError("Some issue's repoID is not equal to project's repoID", errors.New("Some issue's repoID is not equal to project's repoID"))
-			return
-		}
-	}
-
-	if err = project_service.MoveIssuesOnProjectColumn(ctx, ctx.Doer, column, sortedIssueIDs); err != nil {
-		ctx.ServerError("MoveIssuesOnProjectColumn", err)
+	if err = project_service.ReorderIssuesInColumn(ctx, ctx.Doer, column, sortedIssueIDs); err != nil {
+		ctx.ServerError("ReorderIssuesInColumn", err)
 		return
 	}
 

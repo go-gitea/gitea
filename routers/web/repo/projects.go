@@ -481,38 +481,10 @@ func UpdateIssueProjectColumn(ctx *context.Context) {
 		return
 	}
 
-	if err := issue.LoadProjects(ctx); err != nil {
-		ctx.ServerError("LoadProjects", err)
+	if err := project_service.MoveIssueToColumn(ctx, issue, column); err != nil {
+		ctx.NotFoundOrServerError("MoveIssueToColumn", project_model.IsErrProjectColumnNotExist, err)
 		return
 	}
-
-	issueProjects := issue.Projects
-
-	// it must make sure the requested column is in this issue's projects
-	var columnProject *project_model.Project
-	for _, project := range issueProjects {
-		if column.ProjectID == project.ID {
-			columnProject = project
-			break
-		}
-	}
-	if columnProject == nil {
-		ctx.NotFound(nil)
-		return
-	}
-
-	// append to the end of the target column so we don't collide with existing sorting values
-	newSorting, err := project_model.GetColumnIssueNextSorting(ctx, columnProject.ID, column.ID)
-	if err != nil {
-		ctx.ServerError("GetColumnIssueNextSorting", err)
-		return
-	}
-
-	if err := project_service.MoveIssuesOnProjectColumn(ctx, ctx.Doer, column, map[int64]int64{newSorting: issue.ID}); err != nil {
-		ctx.ServerError("MoveIssuesOnProjectColumn", err)
-		return
-	}
-
 	ctx.JSONOK()
 }
 
@@ -561,8 +533,13 @@ func DeleteProjectColumn(ctx *context.Context) {
 		return
 	}
 
-	if err := project_model.DeleteColumnByID(ctx, ctx.PathParamInt64("columnID")); err != nil {
-		ctx.ServerError("DeleteProjectColumnByID", err)
+	column, err := project_model.GetColumn(ctx, ctx.PathParamInt64("columnID"))
+	if err != nil {
+		ctx.NotFoundOrServerError("GetColumn", project_model.IsErrProjectColumnNotExist, err)
+		return
+	}
+	if err := project_service.DeleteColumn(ctx, column); err != nil {
+		ctx.ServerError("DeleteColumn", err)
 		return
 	}
 
@@ -744,36 +721,13 @@ func MoveIssues(ctx *context.Context) {
 		ctx.ServerError("DecodeMovedIssuesForm", err)
 	}
 
-	issueIDs := make([]int64, 0, len(form.Issues))
 	sortedIssueIDs := make(map[int64]int64)
 	for _, issue := range form.Issues {
-		issueIDs = append(issueIDs, issue.IssueID)
-		sortedIssueIDs[issue.Sorting] = issue.IssueID
-	}
-	movedIssues, err := issues_model.GetIssuesByIDs(ctx, issueIDs)
-	if err != nil {
-		if issues_model.IsErrIssueNotExist(err) {
-			ctx.NotFound(nil)
-		} else {
-			ctx.ServerError("GetIssueByID", err)
-		}
-		return
+		sortedIssueIDs[issue.IssueID] = issue.Sorting
 	}
 
-	if len(movedIssues) != len(form.Issues) {
-		ctx.ServerError("some issues do not exist", errors.New("some issues do not exist"))
-		return
-	}
-
-	for _, issue := range movedIssues {
-		if issue.RepoID != project.RepoID {
-			ctx.ServerError("Some issue's repoID is not equal to project's repoID", errors.New("Some issue's repoID is not equal to project's repoID"))
-			return
-		}
-	}
-
-	if err = project_service.MoveIssuesOnProjectColumn(ctx, ctx.Doer, column, sortedIssueIDs); err != nil {
-		ctx.ServerError("MoveIssuesOnProjectColumn", err)
+	if err = project_service.ReorderIssuesInColumn(ctx, ctx.Doer, column, sortedIssueIDs); err != nil {
+		ctx.ServerError("ReorderIssuesInColumn", err)
 		return
 	}
 

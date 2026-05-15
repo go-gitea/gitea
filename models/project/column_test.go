@@ -43,53 +43,21 @@ func TestGetDefaultColumn(t *testing.T) {
 	assert.False(t, column.Default)
 }
 
-func Test_moveIssuesToAnotherColumn(t *testing.T) {
-	assert.NoError(t, unittest.PrepareTestDatabase())
-
-	column1 := unittest.AssertExistsAndLoadBean(t, &Column{ID: 1, ProjectID: 1})
-
-	issues, err := column1.GetIssues(t.Context())
-	assert.NoError(t, err)
-	assert.Len(t, issues, 1)
-	assert.EqualValues(t, 1, issues[0].ID)
-
-	column2 := unittest.AssertExistsAndLoadBean(t, &Column{ID: 2, ProjectID: 1})
-	issues, err = column2.GetIssues(t.Context())
-	assert.NoError(t, err)
-	assert.Len(t, issues, 1)
-	assert.EqualValues(t, 3, issues[0].ID)
-
-	err = moveIssuesToAnotherColumn(t.Context(), column1, column2)
-	assert.NoError(t, err)
-
-	issues, err = column1.GetIssues(t.Context())
-	assert.NoError(t, err)
-	assert.Empty(t, issues)
-
-	issues, err = column2.GetIssues(t.Context())
-	assert.NoError(t, err)
-	assert.Len(t, issues, 2)
-	assert.EqualValues(t, 3, issues[0].ID)
-	assert.EqualValues(t, 0, issues[0].Sorting)
-	assert.EqualValues(t, 1, issues[1].ID)
-	assert.EqualValues(t, 1, issues[1].Sorting)
-}
-
-func Test_MoveColumnsOnProject(t *testing.T) {
+func Test_SetColumnSortings_MovesAll(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 
 	project1 := unittest.AssertExistsAndLoadBean(t, &Project{ID: 1})
 	columns, err := project1.GetColumns(t.Context())
 	assert.NoError(t, err)
 	assert.Len(t, columns, 3)
-	assert.EqualValues(t, 0, columns[0].Sorting) // even if there is no default sorting, the code should also work
-	assert.EqualValues(t, 0, columns[1].Sorting)
-	assert.EqualValues(t, 0, columns[2].Sorting)
+	assert.EqualValues(t, 0, columns[0].Sorting)
+	assert.EqualValues(t, 1, columns[1].Sorting)
+	assert.EqualValues(t, 2, columns[2].Sorting)
 
-	err = MoveColumnsOnProject(t.Context(), project1, map[int64]int64{
-		0: columns[1].ID,
-		1: columns[2].ID,
-		2: columns[0].ID,
+	err = SetColumnSortings(t.Context(), project1.ID, map[int64]int64{
+		columns[1].ID: 0,
+		columns[2].ID: 1,
+		columns[0].ID: 2,
 	})
 	assert.NoError(t, err)
 

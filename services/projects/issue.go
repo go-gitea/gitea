@@ -17,22 +17,23 @@ import (
 	"code.gitea.io/gitea/modules/optional"
 )
 
-// MoveIssuesOnProjectColumn moves or keeps issues in a column and sorts them inside that column
-func MoveIssuesOnProjectColumn(ctx context.Context, doer *user_model.User, column *project_model.Column, sortedIssueIDs map[int64]int64) error {
+// ReorderIssuesInColumn assigns the given sortings to issues in the column and emits timeline comments
+func ReorderIssuesInColumn(ctx context.Context, doer *user_model.User, column *project_model.Column, sortings map[int64]int64) error {
+	if len(sortings) == 0 {
+		return nil
+	}
+	issueIDs := make([]int64, 0, len(sortings))
+	for issueID := range sortings {
+		issueIDs = append(issueIDs, issueID)
+	}
+
 	return db.WithTx(ctx, func(ctx context.Context) error {
-		issueIDs := make([]int64, 0, len(sortedIssueIDs))
-		for _, issueID := range sortedIssueIDs {
-			issueIDs = append(issueIDs, issueID)
-		}
-		count, err := db.GetEngine(ctx).
-			Where("project_id=?", column.ProjectID).
-			In("issue_id", issueIDs).
-			Count(new(project_model.ProjectIssue))
+		count, err := project_model.CountIssuesOnProject(ctx, column.ProjectID, issueIDs)
 		if err != nil {
 			return err
 		}
-		if int(count) != len(sortedIssueIDs) {
-			return errors.New("all issues have to be added to a project first")
+		if int(count) != len(sortings) {
+			return errors.New("ReorderIssuesInColumn: some issues are not on this project")
 		}
 
 		issues, err := issues_model.GetIssuesByIDs(ctx, issueIDs)
@@ -48,55 +49,100 @@ func MoveIssuesOnProjectColumn(ctx context.Context, doer *user_model.User, colum
 			return err
 		}
 
-		issuesMap := make(map[int64]*issues_model.Issue, len(issues))
+		// Repo projects require issue.RepoID == project.RepoID; org/user projects
+		// (project.RepoID == 0) require issue.Repo.OwnerID == project.OwnerID.
 		for _, issue := range issues {
-			issuesMap[issue.ID] = issue
+			if issue.RepoID != project.RepoID && issue.Repo.OwnerID != project.OwnerID {
+				return errors.New("ReorderIssuesInColumn: issue is not in this project's scope")
+			}
 		}
 
-		for sorting, issueID := range sortedIssueIDs {
-			curIssue := issuesMap[issueID]
-			if curIssue == nil {
+		issuesByID := make(map[int64]*issues_model.Issue, len(issues))
+		for _, issue := range issues {
+			issuesByID[issue.ID] = issue
+		}
+
+		// Park each affected row's sorting in a deterministic deep-negative range
+		// keyed off the issue id so the unique (project_board_id, sorting) constraint
+		// holds while we re-assign columns. SetIssueSortingsInColumn below parks
+		// again at -1, -2, ...; using -(issueID + parkOffset) here keeps the two
+		// parking passes in disjoint ranges regardless of map iteration order.
+		const parkOffset = int64(1_000_000)
+		for issueID := range sortings {
+			_, err := db.GetEngine(ctx).Exec(
+				"UPDATE `project_issue` SET sorting = ? WHERE issue_id = ? AND project_id = ?",
+				-(issueID + parkOffset), issueID, column.ProjectID,
+			)
+			if err != nil {
+				return err
+			}
+		}
+
+		for issueID := range sortings {
+			issue, ok := issuesByID[issueID]
+			if !ok {
 				continue
 			}
-
-			projectColumnMap, err := curIssue.ProjectColumnMap(ctx)
+			projectColumnMap, err := issue.ProjectColumnMap(ctx)
 			if err != nil {
 				return err
 			}
 
 			projectColumnID := projectColumnMap[column.ProjectID]
 
-			if projectColumnID != column.ID {
-				// add timeline to issue
-				if _, err := issues_model.CreateComment(ctx, &issues_model.CreateCommentOptions{
-					Type:               issues_model.CommentTypeProjectColumn,
-					Doer:               doer,
-					Repo:               curIssue.Repo,
-					Issue:              curIssue,
-					ProjectID:          column.ProjectID,
-					ProjectTitle:       project.Title,
-					ProjectColumnID:    column.ID,
-					ProjectColumnTitle: column.Title,
-				}); err != nil {
-					return err
-				}
+			if projectColumnID == column.ID {
+				continue
 			}
 
-			// Update the column and sorting for this specific issue in this specific project.
-			// IMPORTANT: The WHERE clause must include both issue_id AND project_id to ensure
-			// that moving an issue's column in one project doesn't affect its column in other
-			// projects when the issue is assigned to multiple projects.
+			// add timeline to issue
+			if _, err := issues_model.CreateComment(ctx, &issues_model.CreateCommentOptions{
+				Type:               issues_model.CommentTypeProjectColumn,
+				Doer:               doer,
+				Repo:               issue.Repo,
+				Issue:              issue,
+				ProjectID:          column.ProjectID,
+				ProjectTitle:       project.Title,
+				ProjectColumnID:    column.ID,
+				ProjectColumnTitle: column.Title,
+			}); err != nil {
+				return err
+			}
+
+			// Move the issue into the target column for this project only.
+			// The WHERE clause must include both issue_id AND project_id so that moving
+			// an issue's column in one project doesn't affect its column in other projects.
+			// Sortings remain parked here; SetIssueSortingsInColumn below sets them.
 			_, err = db.GetEngine(ctx).Table("project_issue").
 				Where("issue_id = ? AND project_id = ?", issueID, column.ProjectID).
-				Update(map[string]any{
-					"project_board_id": column.ID,
-					"sorting":          sorting,
-				})
+				Update(map[string]any{"project_board_id": column.ID})
 			if err != nil {
 				return err
 			}
 		}
-		return nil
+
+		return project_model.SetIssueSortingsInColumn(ctx, column.ID, sortings)
+	})
+}
+
+// MoveIssueToColumn places an issue at the end of the target column.
+// The column's project must be one of the projects the issue is already assigned to.
+func MoveIssueToColumn(ctx context.Context, issue *issues_model.Issue, column *project_model.Column) error {
+	return db.WithTx(ctx, func(ctx context.Context) error {
+		if err := issue.LoadProjects(ctx); err != nil {
+			return err
+		}
+		onProject := false
+		for _, p := range issue.Projects {
+			if p != nil && p.ID == column.ProjectID {
+				onProject = true
+				break
+			}
+		}
+		if !onProject {
+			return project_model.ErrProjectColumnNotExist{ColumnID: column.ID}
+		}
+		_, err := project_model.AppendIssueToColumn(ctx, column.ProjectID, column.ID, issue.ID)
+		return err
 	})
 }
 

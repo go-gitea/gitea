@@ -15,6 +15,7 @@ import (
 	"code.gitea.io/gitea/modules/util"
 
 	"xorm.io/builder"
+	"xorm.io/xorm/schemas"
 )
 
 type (
@@ -57,6 +58,17 @@ type Column struct {
 // TableName return the real table name
 func (Column) TableName() string {
 	return "project_board" // TODO: the legacy table name should be project_column
+}
+
+// TableIndices declares the unique constraint on (project_id, sorting).
+// Use a naked index name so xorm prefixes it per-table (UQE_project_board_*
+// on the real table, UQE_tmp_recreate__project_board_* on RecreateTable's
+// temp table); SQLite index names are database-scoped, so a verbatim UQE_*
+// name would collide between the two.
+func (*Column) TableIndices() []*schemas.Index {
+	idx := schemas.NewIndex("project_sorting", schemas.UniqueType)
+	idx.AddColumn("project_id", "sorting")
+	return []*schemas.Index{idx}
 }
 
 func (c *Column) GetIssues(ctx context.Context) ([]*ProjectIssue, error) {
@@ -105,8 +117,9 @@ func createDefaultColumnsForProject(ctx context.Context, project *Project) error
 			Title:       "Backlog",
 			ProjectID:   project.ID,
 			Default:     true,
+			Sorting:     0,
 		}
-		if err := db.Insert(ctx, column); err != nil {
+		if err := db.Insert(ctx, &column); err != nil {
 			return err
 		}
 
@@ -115,12 +128,13 @@ func createDefaultColumnsForProject(ctx context.Context, project *Project) error
 		}
 
 		columns := make([]Column, 0, len(items))
-		for _, v := range items {
+		for i, v := range items {
 			columns = append(columns, Column{
 				CreatedUnix: timeutil.TimeStampNow(),
 				CreatorID:   project.CreatorID,
 				Title:       v,
 				ProjectID:   project.ID,
+				Sorting:     int8(i + 1),
 			})
 		}
 
@@ -138,61 +152,34 @@ func NewColumn(ctx context.Context, column *Column) error {
 		return fmt.Errorf("bad color code: %s", column.Color)
 	}
 
-	res := struct {
-		MaxSorting  int64
-		ColumnCount int64
-	}{}
-	if _, err := db.GetEngine(ctx).Select("max(sorting) as max_sorting, count(*) as column_count").Table("project_board").
-		Where("project_id=?", column.ProjectID).Get(&res); err != nil {
-		return err
-	}
-	if res.ColumnCount >= maxProjectColumns {
-		return errors.New("NewBoard: maximum number of columns reached")
-	}
-	column.Sorting = int8(util.Iif(res.ColumnCount > 0, res.MaxSorting+1, 0))
-	_, err := db.GetEngine(ctx).Insert(column)
-	return err
-}
-
-// DeleteColumnByID removes all issues references to the project column.
-func DeleteColumnByID(ctx context.Context, columnID int64) error {
+	// Wrap the read-then-insert in a transaction: the unique index on
+	// (project_id, sorting) means two concurrent callers picking the same
+	// max+1 would otherwise have one fail at insert time.
 	return db.WithTx(ctx, func(ctx context.Context) error {
-		return deleteColumnByID(ctx, columnID)
+		res := struct {
+			MaxSorting  int64
+			ColumnCount int64
+		}{}
+		if _, err := db.GetEngine(ctx).Select("max(sorting) as max_sorting, count(*) as column_count").Table("project_board").
+			Where("project_id=?", column.ProjectID).Get(&res); err != nil {
+			return err
+		}
+		if res.ColumnCount >= maxProjectColumns {
+			return errors.New("NewBoard: maximum number of columns reached")
+		}
+		column.Sorting = int8(util.Iif(res.ColumnCount > 0, res.MaxSorting+1, 0))
+		_, err := db.GetEngine(ctx).Insert(column)
+		return err
 	})
 }
 
-func deleteColumnByID(ctx context.Context, columnID int64) error {
-	column, err := GetColumn(ctx, columnID)
-	if err != nil {
-		if IsErrProjectColumnNotExist(err) {
-			return nil
-		}
-
-		return err
-	}
-
+// DeleteColumnRow deletes the column row; refuses to delete a default column
+func DeleteColumnRow(ctx context.Context, column *Column) error {
 	if column.Default {
-		return errors.New("deleteColumnByID: cannot delete default column")
+		return errors.New("DeleteColumnRow: cannot delete default column")
 	}
-
-	// move all issues to the default column
-	project, err := GetProjectByID(ctx, column.ProjectID)
-	if err != nil {
-		return err
-	}
-	defaultColumn, err := project.MustDefaultColumn(ctx)
-	if err != nil {
-		return err
-	}
-
-	if err = moveIssuesToAnotherColumn(ctx, column, defaultColumn); err != nil {
-		return err
-	}
-
-	if _, err := db.GetEngine(ctx).ID(column.ID).NoAutoCondition().Delete(column); err != nil {
-		return err
-	}
-	return nil
+	_, err := db.GetEngine(ctx).ID(column.ID).NoAutoCondition().Delete(column)
+	return err
 }
 
 func deleteColumnByProjectID(ctx context.Context, projectID int64) error {
@@ -227,11 +214,7 @@ func GetColumnByIDAndProjectID(ctx context.Context, columnID, projectID int64) (
 
 // UpdateColumn updates a project column
 func UpdateColumn(ctx context.Context, column *Column) error {
-	var fieldToUpdate []string
-
-	if column.Sorting != 0 {
-		fieldToUpdate = append(fieldToUpdate, "sorting")
-	}
+	fieldToUpdate := []string{"sorting"}
 
 	if column.Title != "" {
 		fieldToUpdate = append(fieldToUpdate, "title")
@@ -349,32 +332,4 @@ func GetColumnsByIDs(ctx context.Context, projectID int64, columnsIDs []int64) (
 		return nil, err
 	}
 	return columns, nil
-}
-
-// MoveColumnsOnProject sorts columns in a project
-func MoveColumnsOnProject(ctx context.Context, project *Project, sortedColumnIDs map[int64]int64) error {
-	return db.WithTx(ctx, func(ctx context.Context) error {
-		sess := db.GetEngine(ctx)
-		columnIDs := util.ValuesOfMap(sortedColumnIDs)
-		movedColumns, err := GetColumnsByIDs(ctx, project.ID, columnIDs)
-		if err != nil {
-			return err
-		}
-		if len(movedColumns) != len(sortedColumnIDs) {
-			return errors.New("some columns do not exist")
-		}
-
-		for _, column := range movedColumns {
-			if column.ProjectID != project.ID {
-				return fmt.Errorf("column[%d]'s projectID is not equal to project's ID [%d]", column.ProjectID, project.ID)
-			}
-		}
-
-		for sorting, columnID := range sortedColumnIDs {
-			if _, err := sess.Exec("UPDATE `project_board` SET sorting=? WHERE id=?", sorting, columnID); err != nil {
-				return err
-			}
-		}
-		return nil
-	})
 }
