@@ -7,12 +7,14 @@ import (
 	"context"
 	"errors"
 	"net/http"
+	"time"
 
 	actions_model "code.gitea.io/gitea/models/actions"
 	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/actions"
 	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/util"
 	actions_service "code.gitea.io/gitea/services/actions"
 
@@ -130,50 +132,78 @@ func (s *Service) Declare(
 	}), nil
 }
 
-// FetchTask assigns a task to the runner
+// FetchTask assigns a task to the runner. When no task is available, the
+// request is held open until a new task version is signalled, the long-poll
+// timeout elapses, or the client disconnects.
 func (s *Service) FetchTask(
 	ctx context.Context,
 	req *connect.Request[runnerv1.FetchTaskRequest],
 ) (*connect.Response[runnerv1.FetchTaskResponse], error) {
 	runner := GetRunner(ctx)
 
-	var task *runnerv1.Task
-	tasksVersion := req.Msg.TasksVersion // task version from runner
-	latestVersion, err := actions_model.GetTasksVersionByScope(ctx, runner.OwnerID, runner.RepoID)
-	if err != nil {
-		return nil, status.Errorf(codes.Internal, "query tasks version failed: %v", err)
-	} else if latestVersion == 0 {
-		if err := actions_model.IncreaseTaskVersion(ctx, runner.OwnerID, runner.RepoID); err != nil {
-			return nil, status.Errorf(codes.Internal, "fail to increase task version: %v", err)
-		}
-		// if we don't increase the value of `latestVersion` here,
-		// the response of FetchTask will return tasksVersion as zero.
-		// and the runner will treat it as an old version of Gitea.
-		latestVersion++
+	var deadline <-chan time.Time
+	if d := setting.Actions.RunnerLongPollTimeout; d > 0 {
+		deadline = time.After(d)
 	}
 
-	if tasksVersion != latestVersion {
-		// Re-load runner from DB so task assignment uses current IsDisabled state
-		// (avoids race where disable commits while this request still has stale runner).
-		freshRunner, err := actions_model.GetRunnerByUUID(ctx, runner.UUID)
+	clientVersion := req.Msg.TasksVersion
+	var latestVersion int64
+LongPoll:
+	for {
+		wakeCh := actions_model.TasksVersionWakeChannel()
+
+		v, err := actions_model.GetTasksVersionByScope(ctx, runner.OwnerID, runner.RepoID)
 		if err != nil {
-			return nil, status.Errorf(codes.Internal, "get runner: %v", err)
+			return nil, status.Errorf(codes.Internal, "query tasks version failed: %v", err)
+		} else if v == 0 {
+			if err := actions_model.IncreaseTaskVersion(ctx, runner.OwnerID, runner.RepoID); err != nil {
+				return nil, status.Errorf(codes.Internal, "fail to increase task version: %v", err)
+			}
+			// if we don't increase the value of `v` here,
+			// the response of FetchTask will return tasksVersion as zero.
+			// and the runner will treat it as an old version of Gitea.
+			v = 1
 		}
-		// if the task version in request is not equal to the version in db,
-		// it means there may still be some tasks that haven't been assigned.
-		// try to pick a task for the runner that send the request.
-		if t, ok, err := actions_service.PickTask(ctx, freshRunner); err != nil {
-			log.Error("pick task failed: %v", err)
-			return nil, status.Errorf(codes.Internal, "pick task: %v", err)
-		} else if ok {
-			task = t
+		latestVersion = v
+
+		if clientVersion != latestVersion {
+			// Re-load runner from DB so task assignment uses current IsDisabled state
+			// (avoids race where disable commits while this request still has stale runner).
+			freshRunner, err := actions_model.GetRunnerByUUID(ctx, runner.UUID)
+			if err != nil {
+				return nil, status.Errorf(codes.Internal, "get runner: %v", err)
+			}
+			// if the task version in request is not equal to the version in db,
+			// it means there may still be some tasks that haven't been assigned.
+			// try to pick a task for the runner that send the request.
+			if t, ok, err := actions_service.PickTask(ctx, freshRunner); err != nil {
+				log.Error("pick task failed: %v", err)
+				return nil, status.Errorf(codes.Internal, "pick task: %v", err)
+			} else if ok {
+				return connect.NewResponse(&runnerv1.FetchTaskResponse{
+					Task:         t,
+					TasksVersion: latestVersion,
+				}), nil
+			}
+			clientVersion = latestVersion
+		}
+
+		if deadline == nil {
+			break
+		}
+
+		select {
+		case <-wakeCh:
+		case <-deadline:
+			break LongPoll
+		case <-ctx.Done():
+			break LongPoll
 		}
 	}
-	res := connect.NewResponse(&runnerv1.FetchTaskResponse{
-		Task:         task,
+
+	return connect.NewResponse(&runnerv1.FetchTaskResponse{
 		TasksVersion: latestVersion,
-	})
-	return res, nil
+	}), nil
 }
 
 // UpdateTask updates the task status.
