@@ -556,9 +556,7 @@ func testAPIPullReviewCommentReply(t *testing.T) {
 	// happy path
 	req := NewRequestWithJSON(t, http.MethodPost, url, &api.CreatePullReviewCommentReplyOptions{Body: "the reply"}).AddTokenAuth(token)
 	resp := MakeRequest(t, req, http.StatusCreated)
-
-	var reply api.PullReviewComment
-	DecodeJSON(t, resp, &reply)
+	reply := DecodeJSON(t, resp, &api.PullReviewComment{})
 	assert.Equal(t, "the reply", reply.Body)
 	assert.Equal(t, parent.ReviewID, reply.ReviewID)
 	assert.Equal(t, "README.md", reply.Path)
