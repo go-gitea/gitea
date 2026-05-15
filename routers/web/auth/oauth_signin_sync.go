@@ -19,8 +19,6 @@ import (
 )
 
 func oauth2SignInSync(ctx *context.Context, authSourceID int64, u *user_model.User, gothUser goth.User) {
-	oauth2UpdateAvatarIfNeed(ctx, gothUser.AvatarURL, u)
-
 	authSource, err := auth.GetSourceByID(ctx, authSourceID)
 	if err != nil {
 		ctx.ServerError("GetSourceByID", err)
@@ -31,6 +29,8 @@ func oauth2SignInSync(ctx *context.Context, authSourceID int64, u *user_model.Us
 		ctx.ServerError("oauth2SignInSync", fmt.Errorf("source %s is not an OAuth2 source", gothUser.Provider))
 		return
 	}
+
+	oauth2UpdateAvatarIfNeed(ctx, gothUser.AvatarURL, u, authSource.Name, oauth2Source)
 
 	// sync full name
 	fullNameKey := util.IfZero(oauth2Source.FullNameClaimName, "name")
