@@ -9,6 +9,7 @@ import (
 	"strings"
 
 	"code.gitea.io/gitea/modules/actions/jobparser"
+	"code.gitea.io/gitea/modules/actions/workflowpattern"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/glob"
 	"code.gitea.io/gitea/modules/log"
@@ -18,7 +19,6 @@ import (
 	webhook_module "code.gitea.io/gitea/modules/webhook"
 
 	"gitea.com/gitea/runner/act/model"
-	"gitea.com/gitea/runner/act/workflowpattern"
 	"go.yaml.in/yaml/v4"
 )
 
