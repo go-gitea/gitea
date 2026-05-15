@@ -50,6 +50,10 @@ func ListJobs(ctx *context.APIContext, ownerID, repoID, runID int64, runAttemptI
 	if runID > 0 {
 		opts.RunAttemptID = runAttemptID
 	}
+	if ownerID != 0 && repoID == 0 && ctx.Org != nil && ctx.Org.Organization != nil && ctx.Doer != nil {
+		opts.AccessUserID = ctx.Doer.ID
+		opts.AccessRestricted = ctx.Doer.IsRestricted
+	}
 	for _, status := range ctx.FormStrings("status") {
 		values, err := convertToInternal(status)
 		if err != nil {
@@ -144,6 +148,10 @@ func ListRuns(ctx *context.APIContext, ownerID, repoID int64) {
 		OwnerID:     ownerID,
 		RepoID:      repoID,
 		ListOptions: listOptions,
+	}
+	if ownerID != 0 && repoID == 0 && ctx.Org != nil && ctx.Org.Organization != nil && ctx.Doer != nil {
+		opts.AccessUserID = ctx.Doer.ID
+		opts.AccessRestricted = ctx.Doer.IsRestricted
 	}
 
 	if event := ctx.FormString("event"); event != "" {

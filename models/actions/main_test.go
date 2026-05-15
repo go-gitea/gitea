@@ -12,9 +12,13 @@ import (
 func TestMain(m *testing.M) {
 	unittest.MainTest(m, &unittest.TestOptions{
 		FixtureFiles: []string{
+			"access.yml",
+			"action_run_job.yml",
 			"action_runner_token.yml",
 			"action_run.yml",
 			"repository.yml",
+			"team_repo.yml",
+			"team_user.yml",
 		},
 	})
 }

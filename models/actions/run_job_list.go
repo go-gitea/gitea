@@ -94,6 +94,8 @@ type FindRunJobOptions struct {
 	RunAttemptID     optional.Option[int64] // use optional to allow filtering by zero (legacy jobs have run_attempt_id=0)
 	RepoID           int64
 	OwnerID          int64
+	AccessUserID     int64
+	AccessRestricted bool
 	CommitSHA        string
 	Statuses         []Status
 	UpdatedBefore    timeutil.TimeStamp
@@ -116,6 +118,13 @@ func (opts FindRunJobOptions) ToConds() builder.Cond {
 	}
 	if opts.RepoID > 0 {
 		cond = cond.And(builder.Eq{"`action_run_job`.repo_id": opts.RepoID})
+	}
+	if opts.AccessUserID > 0 {
+		accessCond := repo_model.UserAccessRepoCond("`action_run_job`.repo_id", opts.AccessUserID)
+		if !opts.AccessRestricted {
+			accessCond = accessCond.Or(builder.Eq{"`repository`.is_private": false})
+		}
+		cond = cond.And(accessCond)
 	}
 	if opts.CommitSHA != "" {
 		cond = cond.And(builder.Eq{"`action_run_job`.commit_sha": opts.CommitSHA})

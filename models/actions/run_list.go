@@ -60,6 +60,8 @@ type FindRunOptions struct {
 	db.ListOptions
 	RepoID           int64
 	OwnerID          int64
+	AccessUserID     int64
+	AccessRestricted bool
 	WorkflowID       string
 	Ref              string // the commit/tag/… that caused this workflow
 	TriggerUserID    int64
@@ -74,6 +76,13 @@ func (opts FindRunOptions) ToConds() builder.Cond {
 	cond := builder.NewCond()
 	if opts.RepoID > 0 {
 		cond = cond.And(builder.Eq{"`action_run`.repo_id": opts.RepoID})
+	}
+	if opts.AccessUserID > 0 {
+		accessCond := repo_model.UserAccessRepoCond("`action_run`.repo_id", opts.AccessUserID)
+		if !opts.AccessRestricted {
+			accessCond = accessCond.Or(builder.Eq{"`repository`.is_private": false})
+		}
+		cond = cond.And(accessCond)
 	}
 	if opts.WorkflowID != "" {
 		cond = cond.And(builder.Eq{"`action_run`.workflow_id": opts.WorkflowID})
