@@ -639,7 +639,7 @@ func handleAuthorizationCode(ctx *context.Context, form forms.AccessTokenForm, s
 	}
 	if authorizationCode.RedirectURI != "" && form.RedirectURI != authorizationCode.RedirectURI {
 		handleAccessTokenError(ctx, oauth2_provider.AccessTokenError{
-			ErrorCode:        oauth2_provider.AccessTokenErrorCodeUnauthorizedClient,
+			ErrorCode:        oauth2_provider.AccessTokenErrorCodeInvalidGrant,
 			ErrorDescription: "redirect_uri differs from the original authorization request",
 		})
 		return
