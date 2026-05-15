@@ -55,7 +55,7 @@ func AddTeamToGroup(ctx context.Context, group *group_model.Group, tname string,
 	if err = group.LoadParentGroup(ctx); err != nil {
 		return err
 	}
-	err = group_model.AddTeamGroup(ctx, group.ID, t.ID, group.ID, mode, canCreateInRepo)
+	err = group_model.AddTeamGroup(ctx, group.OwnerID, t.ID, group.ID, mode, canCreateInRepo)
 	if err != nil {
 		return err
 	}
