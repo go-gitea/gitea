@@ -212,6 +212,15 @@ type SearchRepoOptions struct {
 	OnlyShowRelevant bool
 }
 
+func (opts *SearchRepoOptions) ApplyPublicOnly(publicOnly bool) {
+	if !publicOnly {
+		return
+	}
+
+	opts.Private = false
+	opts.AllLimited = false
+}
+
 // UserOwnedRepoCond returns user ownered repositories
 func UserOwnedRepoCond(userID int64) builder.Cond {
 	return builder.Eq{

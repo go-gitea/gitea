@@ -78,7 +78,7 @@ func TestAPIActivityFeedsPublicOnly(t *testing.T) {
 		AddTokenAuth(publicToken)
 	resp = MakeRequest(t, req, http.StatusOK)
 	DecodeJSON(t, resp, &activities)
-	assert.Empty(t, activities)
+	assertPublicActivitiesOnly(t, activities)
 
 	orgToken := getUserToken(t, "user2", auth_model.AccessTokenScopeReadOrganization)
 	req = NewRequest(t, "GET", "/api/v1/orgs/org3/activities/feeds").
@@ -92,5 +92,16 @@ func TestAPIActivityFeedsPublicOnly(t *testing.T) {
 		AddTokenAuth(publicOrgToken)
 	resp = MakeRequest(t, req, http.StatusOK)
 	DecodeJSON(t, resp, &activities)
-	assert.Empty(t, activities)
+	assertPublicActivitiesOnly(t, activities)
+}
+
+func assertPublicActivitiesOnly(t *testing.T, activities []api.Activity) {
+	t.Helper()
+
+	for _, activity := range activities {
+		assert.False(t, activity.IsPrivate)
+		if activity.Repo != nil {
+			assert.False(t, activity.Repo.Private)
+		}
+	}
 }

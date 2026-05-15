@@ -212,6 +212,11 @@ func repoAssignment() func(ctx *context.APIContext) {
 			ctx.APIErrorNotFound()
 			return
 		}
+
+		if !context.TokenCanAccessRepo(ctx, repo) {
+			ctx.APIError(http.StatusForbidden, "token scope is limited to public repos")
+			return
+		}
 	}
 }
 
@@ -253,12 +258,12 @@ func checkTokenPublicOnly() func(ctx *context.APIContext) {
 		for _, category := range requiredScopeCategories {
 			switch category {
 			case auth_model.AccessTokenScopeCategoryRepository:
-				if ctx.Repo.Repository != nil && ctx.Repo.Repository.IsPrivate {
+				if !context.TokenCanAccessRepo(ctx, ctx.Repo.Repository) {
 					ctx.APIError(http.StatusForbidden, "token scope is limited to public repos")
 					return
 				}
 			case auth_model.AccessTokenScopeCategoryIssue:
-				if ctx.Repo.Repository != nil && ctx.Repo.Repository.IsPrivate {
+				if !context.TokenCanAccessRepo(ctx, ctx.Repo.Repository) {
 					ctx.APIError(http.StatusForbidden, "token scope is limited to public issues")
 					return
 				}
@@ -282,7 +287,7 @@ func checkTokenPublicOnly() func(ctx *context.APIContext) {
 					return
 				}
 			case auth_model.AccessTokenScopeCategoryNotification:
-				if ctx.Repo.Repository != nil && ctx.Repo.Repository.IsPrivate {
+				if !context.TokenCanAccessRepo(ctx, ctx.Repo.Repository) {
 					ctx.APIError(http.StatusForbidden, "token scope is limited to public notifications")
 					return
 				}
@@ -302,7 +307,7 @@ func rejectPublicOnly() func(ctx *context.APIContext) {
 			return
 		}
 
-		ctx.APIError(http.StatusForbidden, "token scope is limited to public notifications")
+		ctx.APIError(http.StatusForbidden, "this endpoint is not available for public-only tokens")
 	}
 }
 
@@ -969,6 +974,8 @@ func Routes() *web.Router {
 		})
 
 		// Notifications (requires 'notifications' scope)
+		// The notifications API is not available for public-only tokens because a user's notifications mix
+		// public and private repository events in the same mailbox.
 		m.Group("/notifications", func() {
 			m.Combo("").
 				Get(reqToken(), notify.ListNotifications).
@@ -978,8 +985,6 @@ func Routes() *web.Router {
 				Get(reqToken(), notify.GetThread).
 				Patch(reqToken(), notify.ReadThread)
 		}, tokenRequiresScopes(auth_model.AccessTokenScopeCategoryNotification), rejectPublicOnly())
-		// notifications API should not be used with public-only tokens, as notifications are mixed with both public and private repositories
-		// if a token is used with notifications API, it should be required to have the notification scope, and the token should not be public-only
 
 		// Users (requires user scope)
 		m.Group("/users", func() {

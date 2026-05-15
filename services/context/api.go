@@ -13,6 +13,7 @@ import (
 	"strconv"
 	"strings"
 
+	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unit"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/cache"
@@ -45,6 +46,11 @@ type APIContext struct {
 	Org        *APIOrganization
 	Package    *Package
 	PublicOnly bool // Whether the request is for a public endpoint
+}
+
+// TokenCanAccessRepo reports whether the current API token is allowed to access the repository.
+func TokenCanAccessRepo(ctx *APIContext, repo *repo_model.Repository) bool {
+	return repo == nil || !ctx.PublicOnly || !repo.IsPrivate
 }
 
 func init() {

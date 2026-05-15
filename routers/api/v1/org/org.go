@@ -36,14 +36,12 @@ import (
 func listUserOrgs(ctx *context.APIContext, u *user_model.User) {
 	listOptions := utils.GetListOptions(ctx)
 	includeVisibility := organization.DoerViewOtherVisibility(ctx.Doer, u)
-	if ctx.PublicOnly {
-		includeVisibility = api.VisibleTypePublic
-	}
 	opts := organization.FindOrgOptions{
 		ListOptions:       listOptions,
 		UserID:            u.ID,
 		IncludeVisibility: includeVisibility,
 	}
+	opts.ApplyPublicOnly(ctx.PublicOnly)
 	orgs, maxResults, err := db.FindAndCount[organization.Organization](ctx, opts)
 	if err != nil {
 		ctx.APIErrorInternal(err)
@@ -203,7 +201,7 @@ func GetAll(ctx *context.APIContext) {
 	//     "$ref": "#/responses/OrganizationList"
 
 	vMode := []api.VisibleType{api.VisibleTypePublic}
-	if ctx.IsSigned && !ctx.PublicOnly {
+	if ctx.IsSigned {
 		vMode = append(vMode, api.VisibleTypeLimited)
 		if ctx.Doer.IsAdmin {
 			vMode = append(vMode, api.VisibleTypePrivate)
@@ -212,13 +210,16 @@ func GetAll(ctx *context.APIContext) {
 
 	listOptions := utils.GetListOptions(ctx)
 
-	publicOrgs, maxResults, err := user_model.SearchUsers(ctx, user_model.SearchUserOptions{
+	searchOpts := user_model.SearchUserOptions{
 		Actor:       ctx.Doer,
 		ListOptions: listOptions,
 		Types:       []user_model.UserType{user_model.UserTypeOrganization},
 		OrderBy:     db.SearchOrderByAlphabetically,
 		Visible:     vMode,
-	})
+	}
+	searchOpts.ApplyPublicOnly(ctx.PublicOnly)
+
+	publicOrgs, maxResults, err := user_model.SearchUsers(ctx, searchOpts)
 	if err != nil {
 		ctx.APIErrorInternal(err)
 		return
@@ -475,7 +476,7 @@ func ListOrgActivityFeeds(ctx *context.APIContext) {
 	//     "$ref": "#/responses/notFound"
 
 	includePrivate := false
-	if ctx.IsSigned && !ctx.PublicOnly {
+	if ctx.IsSigned {
 		if ctx.Doer.IsAdmin {
 			includePrivate = true
 		} else {
@@ -498,6 +499,7 @@ func ListOrgActivityFeeds(ctx *context.APIContext) {
 		Date:           ctx.FormString("date"),
 		ListOptions:    listOptions,
 	}
+	opts.ApplyPublicOnly(ctx.PublicOnly)
 
 	feeds, count, err := feed_service.GetFeeds(ctx, opts)
 	if err != nil {
