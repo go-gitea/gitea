@@ -253,6 +253,11 @@ func LinkAccountPostRegister(ctx *context.Context) {
 		return
 	}
 
+	oauth2SignInSync(ctx, linkAccountData.AuthSourceID, u, linkAccountData.GothUser)
+	if ctx.Written() {
+		return
+	}
+
 	authSource, err := auth.GetSourceByID(ctx, linkAccountData.AuthSourceID)
 	if err != nil {
 		ctx.ServerError("GetSourceByID", err)
