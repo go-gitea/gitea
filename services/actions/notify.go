@@ -78,7 +78,11 @@ func NotifyWorkflowRunStatusUpdate(ctx context.Context, run *actions_model.Actio
 		}
 		triggerUser = attempt.TriggerUser
 	}
+
 	notify_service.WorkflowRunStatusUpdate(ctx, run.Repo, triggerUser, run)
+
+	// Recomputes the repository's num_action_runs / num_closed_action_runs counters since the run's status changed
+	actions_model.UpdateRepoRunsNumbers(ctx, run.RepoID)
 }
 
 // NotifyWorkflowJobsStatusUpdate notifies status updates for jobs without task.

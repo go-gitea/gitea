@@ -59,7 +59,7 @@ func (m *Manager) GetLevelDB(connection string) (db *leveldb.DB, err error) {
 		defer func() {
 			recovered = recover()
 			if recovered != nil {
-				log.Critical("PANIC during GetLevelDB: %v\nStacktrace: %s", recovered, log.Stack(2))
+				log.Error("PANIC during GetLevelDB: %v\nStacktrace: %s", recovered, log.Stack(2))
 			}
 			close(done)
 		}()

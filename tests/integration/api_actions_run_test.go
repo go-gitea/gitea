@@ -327,6 +327,30 @@ func testAPIActionsListUserWorkflows(t *testing.T) {
 			assert.NotEmpty(t, job.HTMLURL, "html_url should be populated via batch-loaded repo")
 		}
 	})
+
+	t.Run("JobsDefaultOrderAsc", func(t *testing.T) {
+		req := NewRequest(t, "GET", "/api/v1/user/actions/jobs").AddTokenAuth(token)
+		resp := MakeRequest(t, req, http.StatusOK)
+		jobs := DecodeJSON(t, resp, &api.ActionWorkflowJobsResponse{})
+
+		assert.GreaterOrEqual(t, len(jobs.Entries), 2, "need at least 2 jobs to verify ordering")
+		for i := 1; i < len(jobs.Entries); i++ {
+			assert.Less(t, jobs.Entries[i-1].ID, jobs.Entries[i].ID,
+				"jobs should be ordered by ID ascending by default")
+		}
+	})
+
+	t.Run("JobsOrderedByIDDesc", func(t *testing.T) {
+		req := NewRequest(t, "GET", "/api/v1/user/actions/jobs?sort=id&order=desc").AddTokenAuth(token)
+		resp := MakeRequest(t, req, http.StatusOK)
+		jobs := DecodeJSON(t, resp, &api.ActionWorkflowJobsResponse{})
+
+		assert.GreaterOrEqual(t, len(jobs.Entries), 2, "need at least 2 jobs to verify ordering")
+		for i := 1; i < len(jobs.Entries); i++ {
+			assert.Greater(t, jobs.Entries[i-1].ID, jobs.Entries[i].ID,
+				"jobs should be ordered by ID descending")
+		}
+	})
 }
 
 func testAPIActionsListRepoWorkflows(t *testing.T) {
