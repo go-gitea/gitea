@@ -10,29 +10,30 @@ import (
 	"testing"
 	"time"
 
+	"code.gitea.io/gitea/modules/test"
+	"code.gitea.io/gitea/modules/util"
+
 	"github.com/go-redsync/redsync/v4"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
+func newTestRedisLocker(t *testing.T) Locker {
+	t.Helper()
+	redisURL := util.IfZero(os.Getenv("TEST_REDIS_URL"), "redis://127.0.0.1:6379/0")
+	rl := NewRedisLocker(redisURL).(*redisLocker)
+	err := rl.conn.Ping(t.Context()).Err()
+	if err != nil && test.AllowSkipExternalService() {
+		t.Skip("no redis server for testing, skipped")
+	}
+	require.NoError(t, err, "redis error for testing: %v", err)
+	return rl
+}
+
 func TestLocker(t *testing.T) {
 	t.Run("redis", func(t *testing.T) {
-		url := "redis://127.0.0.1:6379/0"
-		if os.Getenv("CI") == "" {
-			// Make it possible to run tests against a local redis instance
-			url = os.Getenv("TEST_REDIS_URL")
-			if url == "" {
-				t.Skip("TEST_REDIS_URL not set and not running in CI")
-				return
-			}
-		}
-		oldExpiry := redisLockExpiry
-		redisLockExpiry = 5 * time.Second // make it shorter for testing
-		defer func() {
-			redisLockExpiry = oldExpiry
-		}()
-
-		locker := NewRedisLocker(url)
+		defer test.MockVariableValue(&redisLockExpiry, 5*time.Second)() // make it shorter for testing
+		locker := newTestRedisLocker(t)
 		testLocker(t, locker)
 		testRedisLocker(t, locker.(*redisLocker))
 		require.NoError(t, locker.(*redisLocker).Close())
