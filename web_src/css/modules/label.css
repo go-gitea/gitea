@@ -283,20 +283,19 @@ a.ui.ui.ui.grey.label:hover {
   line-height: var(--line-height-default);
 }
 
-/* In inline-flow contexts labels mix with surrounding text via inline <a> wrappers. */
 #issue-list .item-title .labels-list,
 .timeline-item.event .labels-list {
   display: inline;
 }
 
-#issue-list .item-title .labels-list > a {
-  margin: 2px 4px 2px 0; /* margin-right so wrapped labels stay left-aligned */
+#issue-list .item-title .labels-list > a,
+.timeline-item.event .labels-list > a {
+  margin-right: 4px; /* margin-right (not margin-left) keeps wrapped labels left-aligned */
   vertical-align: 1.5px; /* compensates inline-flex baseline so labels center with text */
 }
 
-.timeline-item.event .labels-list > a {
-  margin-right: 4px;
-  vertical-align: 1.5px;
+#issue-list .item-title .labels-list > a {
+  margin-block: 2px; /* row gap; timeline relies on parent line-height instead */
 }
 
 /* Scoped labels with different colors on left and right */
