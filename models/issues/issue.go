@@ -110,6 +110,13 @@ type Issue struct {
 	TimeEstimate int64 `xorm:"NOT NULL DEFAULT 0"`
 }
 
+// DependencyRef identifies a dependency issue by its repo-scoped coordinates
+type DependencyRef struct {
+	OwnerName string
+	RepoName  string
+	Index     int64
+}
+
 var (
 	issueTasksPat     = regexp.MustCompile(`(^\s*[-*]\s\[[\sxX]\]\s.)|(\n\s*[-*]\s\[[\sxX]\]\s.)`)
 	issueTasksDonePat = regexp.MustCompile(`(^\s*[-*]\s\[[xX]\]\s.)|(\n\s*[-*]\s\[[xX]\]\s.)`)

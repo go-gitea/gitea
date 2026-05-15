@@ -33,6 +33,24 @@ import (
 	issue_service "code.gitea.io/gitea/services/issue"
 )
 
+// parseIssueIncludes parses the "includes" query parameter for issue endpoints
+func parseIssueIncludes(ctx *context.APIContext) (convert.ToIssueOptions, bool) {
+	var opts convert.ToIssueOptions
+	for includeOpt := range strings.SplitSeq(ctx.FormString("includes"), ",") {
+		if includeOpt == "" {
+			continue
+		}
+		switch includeOpt {
+		case "dependencies":
+			opts.IncludeDependencies = true
+		default:
+			ctx.APIError(http.StatusBadRequest, fmt.Sprintf("unknown include option %q", includeOpt))
+			return opts, false
+		}
+	}
+	return opts, true
+}
+
 // buildSearchIssuesRepoIDs builds the list of repository IDs for issue search based on query parameters.
 // It returns repoIDs, allPublic flag, and any error that occurred.
 func buildSearchIssuesRepoIDs(ctx *context.APIContext) (repoIDs []int64, allPublic bool, err error) {
@@ -176,6 +194,11 @@ func SearchIssues(ctx *context.APIContext) {
 	//   description: Number of items per page
 	//   type: integer
 	//   minimum: 0
+	// - name: includes
+	//   in: query
+	//   description: 'comma-separated list of additional fields: "dependencies" adds blocked_by and blocking issue IDs'
+	//   type: string
+	//   required: false
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/IssueList"
@@ -183,6 +206,11 @@ func SearchIssues(ctx *context.APIContext) {
 	//     "$ref": "#/responses/error"
 	//   "422":
 	//     "$ref": "#/responses/validationError"
+
+	issueOpts, ok := parseIssueIncludes(ctx)
+	if !ok {
+		return
+	}
 
 	before, since, err := context.GetQueryBeforeSince(ctx.Base)
 	if err != nil {
@@ -301,7 +329,7 @@ func SearchIssues(ctx *context.APIContext) {
 
 	ctx.SetLinkHeader(total, limit)
 	ctx.SetTotalCountHeader(total)
-	ctx.JSON(http.StatusOK, convert.ToAPIIssueList(ctx, ctx.Doer, issues))
+	ctx.JSON(http.StatusOK, convert.ToAPIIssueList(ctx, ctx.Doer, issues, issueOpts))
 }
 
 // ListIssues list the issues of a repository
@@ -376,11 +404,21 @@ func ListIssues(ctx *context.APIContext) {
 	//   in: query
 	//   description: page size of results
 	//   type: integer
+	// - name: includes
+	//   in: query
+	//   description: 'comma-separated list of additional fields: "dependencies" adds blocked_by and blocking issue IDs'
+	//   type: string
+	//   required: false
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/IssueList"
 	//   "404":
 	//     "$ref": "#/responses/notFound"
+	issueOpts, ok := parseIssueIncludes(ctx)
+	if !ok {
+		return
+	}
+
 	before, since, err := context.GetQueryBeforeSince(ctx.Base)
 	if err != nil {
 		ctx.APIError(http.StatusUnprocessableEntity, err)
@@ -529,7 +567,7 @@ func ListIssues(ctx *context.APIContext) {
 
 	ctx.SetLinkHeader(total, listOptions.PageSize)
 	ctx.SetTotalCountHeader(total)
-	ctx.JSON(http.StatusOK, convert.ToAPIIssueList(ctx, ctx.Doer, issues))
+	ctx.JSON(http.StatusOK, convert.ToAPIIssueList(ctx, ctx.Doer, issues, issueOpts))
 }
 
 func getUserIDForFilter(ctx *context.APIContext, queryName string) int64 {
@@ -576,11 +614,21 @@ func GetIssue(ctx *context.APIContext) {
 	//   type: integer
 	//   format: int64
 	//   required: true
+	// - name: includes
+	//   in: query
+	//   description: 'comma-separated list of additional fields: "dependencies" adds blocked_by and blocking issue IDs'
+	//   type: string
+	//   required: false
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/Issue"
 	//   "404":
 	//     "$ref": "#/responses/notFound"
+
+	opts, ok := parseIssueIncludes(ctx)
+	if !ok {
+		return
+	}
 
 	issue, err := issues_model.GetIssueWithAttrsByIndex(ctx, ctx.Repo.Repository.ID, ctx.PathParamInt64("index"))
 	if err != nil {
@@ -595,7 +643,7 @@ func GetIssue(ctx *context.APIContext) {
 		ctx.APIErrorNotFound()
 		return
 	}
-	ctx.JSON(http.StatusOK, convert.ToAPIIssue(ctx, ctx.Doer, issue))
+	ctx.JSON(http.StatusOK, convert.ToAPIIssue(ctx, ctx.Doer, issue, opts))
 }
 
 // CreateIssue create an issue of a repository

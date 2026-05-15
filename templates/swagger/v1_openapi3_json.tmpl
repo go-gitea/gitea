@@ -6809,6 +6809,20 @@
             "type": "array",
             "x-go-name": "Assignees"
           },
+          "blocked_by": {
+            "items": {
+              "$ref": "#/components/schemas/IssueMeta"
+            },
+            "type": "array",
+            "x-go-name": "BlockedBy"
+          },
+          "blocking": {
+            "items": {
+              "$ref": "#/components/schemas/IssueMeta"
+            },
+            "type": "array",
+            "x-go-name": "Blocking"
+          },
           "body": {
             "type": "string",
             "x-go-name": "Body"
@@ -15171,6 +15185,14 @@
               "minimum": 0,
               "type": "integer"
             }
+          },
+          {
+            "description": "comma-separated list of additional fields: \"dependencies\" adds blocked_by and blocking issue IDs",
+            "in": "query",
+            "name": "includes",
+            "schema": {
+              "type": "string"
+            }
           }
         ],
         "responses": {
@@ -20980,6 +21002,14 @@
             "schema": {
               "type": "integer"
             }
+          },
+          {
+            "description": "comma-separated list of additional fields: \"dependencies\" adds blocked_by and blocking issue IDs",
+            "in": "query",
+            "name": "includes",
+            "schema": {
+              "type": "string"
+            }
           }
         ],
         "responses": {
@@ -21894,6 +21924,14 @@
             "schema": {
               "format": "int64",
               "type": "integer"
+            }
+          },
+          {
+            "description": "comma-separated list of additional fields: \"dependencies\" adds blocked_by and blocking issue IDs",
+            "in": "query",
+            "name": "includes",
+            "schema": {
+              "type": "string"
             }
           }
         ],
