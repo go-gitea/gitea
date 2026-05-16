@@ -63,7 +63,7 @@ func GetOrgGroups(ctx *context.APIContext) {
 		ActorID:       doerID,
 		OwnerID:       org.ID,
 	}, group_model.
-		AccessibleGroupCondition(ctx.Doer, unit.TypeInvalid, perm.AccessModeRead))
+		AccessibleGroupCondition(ctx.Doer, unit.TypeInvalid, perm.AccessModeRead, false))
 	if err != nil {
 		ctx.APIErrorInternal(err)
 		return

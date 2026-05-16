@@ -97,7 +97,7 @@ func (g *Group) LoadSubgroups(ctx context.Context, recursive bool) error {
 }
 
 func (g *Group) LoadAccessibleSubgroups(ctx context.Context, recursive bool, doer *user_model.User, requireMember bool) error {
-	cond := AccessibleGroupCondition(doer, unit.TypeInvalid, perm.AccessModeRead)
+	cond := AccessibleGroupCondition(doer, unit.TypeInvalid, perm.AccessModeRead, false)
 	if requireMember {
 		cond = builder.And(MemberCond("`repo_group`.parent_group_id", g.ID, doer), cond)
 	}
@@ -165,7 +165,7 @@ func (g *Group) IsOwnedBy(ctx context.Context, userID int64) (bool, error) {
 	return db.GetEngine(ctx).
 		Where(
 			builder.Or(
-				UserOrgTeamPermCond("`repo_group`.id", userID, perm.AccessModeOwner),
+				UserOrgTeamPermCond("`repo_group`.id", userID, perm.AccessModeOwner, false),
 				universalGroupPermBuilder("`repo_group`.id", userID, false)).
 				And(builder.Eq{"`repo_group`.id": g.ID})).
 		Table(g.TableName()).
@@ -199,7 +199,7 @@ func (g *Group) IsAdminOf(ctx context.Context, userID int64) (bool, error) {
 	return db.GetEngine(ctx).
 		Where(
 			builder.Or(
-				UserOrgTeamPermCond("`repo_group`.id", userID, perm.AccessModeAdmin),
+				UserOrgTeamPermCond("`repo_group`.id", userID, perm.AccessModeAdmin, false),
 				universalGroupPermBuilder("`repo_group`.id", userID, false)).
 				And(builder.Eq{"`repo_group`.id": g.ID})).
 		Table(g.TableName()).
