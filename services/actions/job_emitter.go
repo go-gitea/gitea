@@ -325,15 +325,15 @@ type jobStatusResolver struct {
 }
 
 func newJobStatusResolver(jobs actions_model.ActionJobList, vars map[string]string) *jobStatusResolver {
-	// Scope-aware: needs are resolved within the same ParentCallerJobID scope so the same
+	// Scope-aware: needs are resolved within the same ParentJobID scope so the same
 	// JobID in different reusable workflow calls does not cross-link.
 	scopedIDToJobs := make(map[int64]map[string][]*actions_model.ActionRunJob)
 	jobMap := make(map[int64]*actions_model.ActionRunJob)
 	for _, job := range jobs {
-		scope := scopedIDToJobs[job.ParentCallerJobID]
+		scope := scopedIDToJobs[job.ParentJobID]
 		if scope == nil {
 			scope = make(map[string][]*actions_model.ActionRunJob)
-			scopedIDToJobs[job.ParentCallerJobID] = scope
+			scopedIDToJobs[job.ParentJobID] = scope
 		}
 		scope[job.JobID] = append(scope[job.JobID], job)
 		jobMap[job.ID] = job
@@ -343,7 +343,7 @@ func newJobStatusResolver(jobs actions_model.ActionJobList, vars map[string]stri
 	needs := make(map[int64][]int64, len(jobs))
 	for _, job := range jobs {
 		statuses[job.ID] = job.Status
-		scope := scopedIDToJobs[job.ParentCallerJobID]
+		scope := scopedIDToJobs[job.ParentJobID]
 		for _, need := range job.Needs {
 			for _, v := range scope[need] {
 				needs[job.ID] = append(needs[job.ID], v.ID)
@@ -395,8 +395,8 @@ func (r *jobStatusResolver) resolve(ctx context.Context) map[int64]actions_model
 			continue
 		}
 		// A child of a caller cannot start until the caller has become "ready" (children inserted, CallPayload populated).
-		if actionRunJob.ParentCallerJobID > 0 {
-			if parent, ok := r.jobMap[actionRunJob.ParentCallerJobID]; ok && !parent.IsCallerExpanded {
+		if actionRunJob.ParentJobID > 0 {
+			if parent, ok := r.jobMap[actionRunJob.ParentJobID]; ok && !parent.IsExpanded {
 				continue
 			}
 		}

@@ -6,7 +6,7 @@ import {POST, DELETE} from '../modules/fetch.ts';
 import ActionRunSummaryView from './ActionRunSummaryView.vue';
 import ActionRunJobView from './ActionRunJobView.vue';
 import type {ActionsJob, ActionsRunAttempt} from '../modules/gitea-actions.ts';
-import {buildJobsByParentCallerJobID, createActionRunViewStore} from './ActionRunView.ts';
+import {buildJobsByParentJobID, createActionRunViewStore} from './ActionRunView.ts';
 import {buildArtifactTooltipHtml} from './ActionRunArtifacts.ts';
 
 defineOptions({
@@ -48,9 +48,9 @@ const forcedExpandedJobIDs = computed(() => {
   if (!props.jobId) return expanded;
   const jobsByID = new Map((run.value.jobs || []).map((job) => [job.id, job]));
   let cur = jobsByID.get(props.jobId);
-  while (cur?.parentCallerJobID) {
-    expanded.add(cur.parentCallerJobID);
-    cur = jobsByID.get(cur.parentCallerJobID);
+  while (cur?.parentJobID) {
+    expanded.add(cur.parentJobID);
+    cur = jobsByID.get(cur.parentJobID);
   }
   return expanded;
 });
@@ -61,7 +61,7 @@ function isJobCollapsed(jobID: number) {
 
 const visibleJobListItems = computed<JobListItem[]>(() => {
   const jobs = [...(run.value.jobs || [])].sort((a, b) => a.id - b.id);
-  const childrenByParent = buildJobsByParentCallerJobID(jobs);
+  const childrenByParent = buildJobsByParentJobID(jobs);
 
   const result: JobListItem[] = [];
   const stack: Array<{job: ActionsJob; depth: number}> = [];

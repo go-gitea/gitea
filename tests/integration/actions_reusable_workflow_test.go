@@ -197,7 +197,7 @@ jobs:
 				r1Job1Task := defaultRunner.fetchTask(t) // for reusable1_job1
 				_, r1Job1, _ := getTaskAndJobAndRunByTaskID(t, r1Job1Task.Id)
 				assert.Equal(t, "reusable1_job1", r1Job1.JobID)
-				assert.Equal(t, callerJob2ID, r1Job1.ParentCallerJobID)
+				assert.Equal(t, callerJob2ID, r1Job1.ParentJobID)
 				payload := getWorkflowCallPayloadFromTask(t, r1Job1Task)
 				if assert.Len(t, payload.Inputs, 5) {
 					assert.Equal(t, "from_caller_job2", payload.Inputs["str_input"])
@@ -219,7 +219,7 @@ jobs:
 				// reusable1_job3 (a nested caller) needs reusable1_job2, so it stays Blocked until r1j2 succeeds.
 				r1Job3Pre := unittest.AssertExistsAndLoadBean(t, &actions_model.ActionRunJob{RunID: runID, JobID: "reusable1_job3"})
 				assert.Equal(t, actions_model.StatusBlocked, r1Job3Pre.Status)
-				assert.False(t, r1Job3Pre.IsCallerExpanded)
+				assert.False(t, r1Job3Pre.IsExpanded)
 				assert.Equal(t, 0, unittest.GetCount(t, &actions_model.ActionRunJob{RunID: runID, JobID: "reusable2_job1"}))
 
 				r1Job2Task := customRunner.fetchTask(t) // for reusable1_job2
@@ -241,18 +241,18 @@ jobs:
 				// Now reusable1_job3 expands and reusable2_job1 becomes runnable.
 				r1Job3 := unittest.AssertExistsAndLoadBean(t, &actions_model.ActionRunJob{RunID: runID, JobID: "reusable1_job3"})
 				assert.True(t, r1Job3.IsReusableCaller)
-				assert.True(t, r1Job3.IsCallerExpanded)
-				assert.Equal(t, callerJob2ID, r1Job3.ParentCallerJobID)
+				assert.True(t, r1Job3.IsExpanded)
+				assert.Equal(t, callerJob2ID, r1Job3.ParentJobID)
 				r1Job3ID = r1Job3.ID
 				r1Job3AttemptJobID = r1Job3.AttemptJobID
 				r2Job1 := unittest.AssertExistsAndLoadBean(t, &actions_model.ActionRunJob{RunID: runID, JobID: "reusable2_job1"})
-				assert.Equal(t, r1Job3ID, r2Job1.ParentCallerJobID)
+				assert.Equal(t, r1Job3ID, r2Job1.ParentJobID)
 				r2Job1AttemptJobID = r2Job1.AttemptJobID
 
 				r2Job1Task := defaultRunner.fetchTask(t) // for reusable2_job1
 				_, fetchedR2Job1, _ := getTaskAndJobAndRunByTaskID(t, r2Job1Task.Id)
 				assert.Equal(t, "reusable2_job1", fetchedR2Job1.JobID)
-				assert.Equal(t, r1Job3ID, fetchedR2Job1.ParentCallerJobID)
+				assert.Equal(t, r1Job3ID, fetchedR2Job1.ParentJobID)
 				r2Job1Payload := getWorkflowCallPayloadFromTask(t, r2Job1Task)
 				if assert.Len(t, r2Job1Payload.Inputs, 1) {
 					assert.Equal(t, "from_caller_job2", r2Job1Payload.Inputs["msg"])
@@ -298,14 +298,14 @@ jobs:
 				r1Job3Attempt2 := unittest.AssertExistsAndLoadBean(t, &actions_model.ActionRunJob{RunID: runID, RunAttemptID: attempt2.ID, AttemptJobID: r1Job3AttemptJobID})
 				assert.Equal(t, actions_model.StatusBlocked, r1Job3Attempt2.Status)
 				assert.True(t, r1Job3Attempt2.IsReusableCaller)
-				assert.False(t, r1Job3Attempt2.IsCallerExpanded)
+				assert.False(t, r1Job3Attempt2.IsExpanded)
 				assert.Equal(t, 0, unittest.GetCount(t, &actions_model.ActionRunJob{RunID: runID, RunAttemptID: attempt2.ID, JobID: "reusable2_job1"}))
 
 				defaultRunner.fetchNoTask(t)
 				r1Job2Task := customRunner.fetchTask(t)
 				_, r1Job2, _ := getTaskAndJobAndRunByTaskID(t, r1Job2Task.Id)
 				assert.Equal(t, "reusable1_job2", r1Job2.JobID)
-				assert.Equal(t, callerJob2.ID, r1Job2.ParentCallerJobID)
+				assert.Equal(t, callerJob2.ID, r1Job2.ParentJobID)
 				assert.Equal(t, r1Job2AttemptJobID, r1Job2.AttemptJobID)
 				assert.Equal(t, actions_model.StatusRunning, r1Job2.Status)
 				run = unittest.AssertExistsAndLoadBean(t, &actions_model.ActionRun{ID: runID})
@@ -319,10 +319,10 @@ jobs:
 
 				// r1j3 expands again. Its child reuses the AttemptJobID from attempt 1
 				r1Job3Attempt2 = unittest.AssertExistsAndLoadBean(t, &actions_model.ActionRunJob{RunID: runID, RunAttemptID: attempt2.ID, AttemptJobID: r1Job3AttemptJobID})
-				assert.True(t, r1Job3Attempt2.IsCallerExpanded)
+				assert.True(t, r1Job3Attempt2.IsExpanded)
 				r2Job1Attempt2 := unittest.AssertExistsAndLoadBean(t, &actions_model.ActionRunJob{RunID: runID, RunAttemptID: attempt2.ID, JobID: "reusable2_job1"})
 				assert.Equal(t, r2Job1AttemptJobID, r2Job1Attempt2.AttemptJobID)
-				assert.Equal(t, r1Job3Attempt2.ID, r2Job1Attempt2.ParentCallerJobID)
+				assert.Equal(t, r1Job3Attempt2.ID, r2Job1Attempt2.ParentJobID)
 
 				r2Job1Task := defaultRunner.fetchTask(t)
 				_, fetchedR2Job1, _ := getTaskAndJobAndRunByTaskID(t, r2Job1Task.Id)
@@ -406,13 +406,13 @@ jobs:
 			run := unittest.AssertExistsAndLoadBean(t, &actions_model.ActionRun{RepoID: consumerRepo.ID})
 			crossJob := unittest.AssertExistsAndLoadBean(t, &actions_model.ActionRunJob{RunID: run.ID, JobID: "cross_job"})
 			assert.True(t, crossJob.IsReusableCaller)
-			assert.True(t, crossJob.IsCallerExpanded)
+			assert.True(t, crossJob.IsExpanded)
 			assert.Equal(t, actions_model.StatusWaiting, crossJob.Status)
 
 			libJobTask := runner.fetchTask(t)
 			_, fetchedLibJob, _ := getTaskAndJobAndRunByTaskID(t, libJobTask.Id)
 			assert.Equal(t, "lib_job", fetchedLibJob.JobID)
-			assert.Equal(t, crossJob.ID, fetchedLibJob.ParentCallerJobID)
+			assert.Equal(t, crossJob.ID, fetchedLibJob.ParentJobID)
 			assert.Equal(t, consumerRepo.ID, fetchedLibJob.RepoID)
 			payload := getWorkflowCallPayloadFromTask(t, libJobTask)
 			if assert.Len(t, payload.Inputs, 1) {
@@ -491,8 +491,8 @@ jobs:
 			assert.Equal(t, "inner", inner1.JobID)
 			innerAttemptJobID := inner1.AttemptJobID
 			callerAttempt1 := jobInLatest("caller")
-			assert.True(t, callerAttempt1.IsCallerExpanded)
-			assert.Equal(t, callerAttempt1.ID, inner1.ParentCallerJobID)
+			assert.True(t, callerAttempt1.IsExpanded)
+			assert.Equal(t, callerAttempt1.ID, inner1.ParentJobID)
 			runner.execTask(t, inner1Task, &mockTaskOutcome{result: runnerv1.Result_RESULT_SUCCESS})
 
 			run = unittest.AssertExistsAndLoadBean(t, &actions_model.ActionRun{ID: runID})
@@ -513,7 +513,7 @@ jobs:
 			assert.Equal(t, actions_model.StatusFailure, attempt2.Status)
 			callerAttempt2 := jobInLatest("caller")
 			assert.Equal(t, actions_model.StatusSkipped, callerAttempt2.Status)
-			assert.False(t, callerAttempt2.IsCallerExpanded)
+			assert.False(t, callerAttempt2.IsExpanded)
 			assert.Equal(t, 0, unittest.GetCount(t, &actions_model.ActionRunJob{RunID: runID, RunAttemptID: attempt2.ID, JobID: "inner"}))
 
 			// attempt 3: rerun gate, mock Success -> caller expands and inner reuses attempt 1's AttemptJobID

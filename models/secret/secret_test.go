@@ -26,15 +26,15 @@ func TestGetScopedSecretsForJob(t *testing.T) {
 	}
 
 	// insertCaller create an ActionRunJob caller row with the given CallSecrets policy
-	insertCaller := func(t *testing.T, runID, parentCallerJobID int64, callSecrets string) *actions_model.ActionRunJob {
+	insertCaller := func(t *testing.T, runID, parentJobID int64, callSecrets string) *actions_model.ActionRunJob {
 		t.Helper()
 		job := &actions_model.ActionRunJob{
-			RunID:             runID,
-			RepoID:            1,
-			IsReusableCaller:  true,
-			ParentCallerJobID: parentCallerJobID,
-			CallSecrets:       callSecrets,
-			Status:            actions_model.StatusBlocked,
+			RunID:            runID,
+			RepoID:           1,
+			IsReusableCaller: true,
+			ParentJobID:      parentJobID,
+			CallSecrets:      callSecrets,
+			Status:           actions_model.StatusBlocked,
 		}
 		require.NoError(t, db.Insert(t.Context(), job))
 		return job
@@ -42,7 +42,7 @@ func TestGetScopedSecretsForJob(t *testing.T) {
 
 	t.Run("TopLevelJob_ReturnsBaseUnchanged", func(t *testing.T) {
 		const runID = 9001
-		leaf := &actions_model.ActionRunJob{RunID: runID, ParentCallerJobID: 0}
+		leaf := &actions_model.ActionRunJob{RunID: runID, ParentJobID: 0}
 
 		got, err := getScopedSecretsForJob(ctx, leaf, base)
 		require.NoError(t, err)
@@ -52,7 +52,7 @@ func TestGetScopedSecretsForJob(t *testing.T) {
 	t.Run("CallerInherit_PassesParentScopeThrough", func(t *testing.T) {
 		const runID = 9002
 		caller := insertCaller(t, runID, 0, "inherit")
-		leaf := &actions_model.ActionRunJob{RunID: runID, ParentCallerJobID: caller.ID}
+		leaf := &actions_model.ActionRunJob{RunID: runID, ParentJobID: caller.ID}
 
 		got, err := getScopedSecretsForJob(ctx, leaf, base)
 		require.NoError(t, err)
@@ -62,7 +62,7 @@ func TestGetScopedSecretsForJob(t *testing.T) {
 	t.Run("CallerEmptySecrets_ExposesOnlyAutoTokens", func(t *testing.T) {
 		const runID = 9003
 		caller := insertCaller(t, runID, 0, "")
-		leaf := &actions_model.ActionRunJob{RunID: runID, ParentCallerJobID: caller.ID}
+		leaf := &actions_model.ActionRunJob{RunID: runID, ParentJobID: caller.ID}
 
 		got, err := getScopedSecretsForJob(ctx, leaf, base)
 		require.NoError(t, err)
@@ -76,7 +76,7 @@ func TestGetScopedSecretsForJob(t *testing.T) {
 		const runID = 9004
 		// {alias: source} - the called workflow sees `secrets.MY_KEY` resolved to PROD_API_KEY's value.
 		caller := insertCaller(t, runID, 0, `{"MY_KEY":"PROD_API_KEY"}`)
-		leaf := &actions_model.ActionRunJob{RunID: runID, ParentCallerJobID: caller.ID}
+		leaf := &actions_model.ActionRunJob{RunID: runID, ParentJobID: caller.ID}
 
 		got, err := getScopedSecretsForJob(ctx, leaf, base)
 		require.NoError(t, err)
@@ -91,7 +91,7 @@ func TestGetScopedSecretsForJob(t *testing.T) {
 	t.Run("CallerMapping_CaseInsensitiveSource", func(t *testing.T) {
 		const runID = 9005
 		caller := insertCaller(t, runID, 0, `{"alias":"prod_api_key"}`)
-		leaf := &actions_model.ActionRunJob{RunID: runID, ParentCallerJobID: caller.ID}
+		leaf := &actions_model.ActionRunJob{RunID: runID, ParentJobID: caller.ID}
 
 		got, err := getScopedSecretsForJob(ctx, leaf, base)
 		require.NoError(t, err)
@@ -103,7 +103,7 @@ func TestGetScopedSecretsForJob(t *testing.T) {
 		// MAPPED_ALIAS points at a secret name that doesn't exist in baseSecrets.
 		// The alias should NOT appear in the result.
 		caller := insertCaller(t, runID, 0, `{"MAPPED_ALIAS":"DOES_NOT_EXIST"}`)
-		leaf := &actions_model.ActionRunJob{RunID: runID, ParentCallerJobID: caller.ID}
+		leaf := &actions_model.ActionRunJob{RunID: runID, ParentJobID: caller.ID}
 
 		got, err := getScopedSecretsForJob(ctx, leaf, base)
 		require.NoError(t, err)
@@ -115,7 +115,7 @@ func TestGetScopedSecretsForJob(t *testing.T) {
 		const runID = 9007
 		outer := insertCaller(t, runID, 0, "inherit")
 		inner := insertCaller(t, runID, outer.ID, "inherit")
-		leaf := &actions_model.ActionRunJob{RunID: runID, ParentCallerJobID: inner.ID}
+		leaf := &actions_model.ActionRunJob{RunID: runID, ParentJobID: inner.ID}
 
 		got, err := getScopedSecretsForJob(ctx, leaf, base)
 		require.NoError(t, err)
@@ -129,7 +129,7 @@ func TestGetScopedSecretsForJob(t *testing.T) {
 		// leaf scope = inner mapping result.
 		outer := insertCaller(t, runID, 0, "inherit")
 		inner := insertCaller(t, runID, outer.ID, `{"ALIAS_OUT":"PROD_API_KEY"}`)
-		leaf := &actions_model.ActionRunJob{RunID: runID, ParentCallerJobID: inner.ID}
+		leaf := &actions_model.ActionRunJob{RunID: runID, ParentJobID: inner.ID}
 
 		got, err := getScopedSecretsForJob(ctx, leaf, base)
 		require.NoError(t, err)
@@ -148,7 +148,7 @@ func TestGetScopedSecretsForJob(t *testing.T) {
 		// leaf can therefore only see auto-tokens + OUTER_ALIAS.
 		outer := insertCaller(t, runID, 0, `{"OUTER_ALIAS":"PROD_API_KEY"}`)
 		inner := insertCaller(t, runID, outer.ID, "inherit")
-		leaf := &actions_model.ActionRunJob{RunID: runID, ParentCallerJobID: inner.ID}
+		leaf := &actions_model.ActionRunJob{RunID: runID, ParentJobID: inner.ID}
 
 		got, err := getScopedSecretsForJob(ctx, leaf, base)
 		require.NoError(t, err)
@@ -167,7 +167,7 @@ func TestGetScopedSecretsForJob(t *testing.T) {
 		// inner can still forward ALIAS_A as ALIAS_C (renaming).
 		outer := insertCaller(t, runID, 0, `{"ALIAS_A":"PROD_API_KEY"}`)
 		inner := insertCaller(t, runID, outer.ID, `{"ALIAS_B":"DEV_API_KEY","ALIAS_C":"ALIAS_A"}`)
-		leaf := &actions_model.ActionRunJob{RunID: runID, ParentCallerJobID: inner.ID}
+		leaf := &actions_model.ActionRunJob{RunID: runID, ParentJobID: inner.ID}
 
 		got, err := getScopedSecretsForJob(ctx, leaf, base)
 		require.NoError(t, err)

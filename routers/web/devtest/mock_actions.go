@@ -308,18 +308,18 @@ func MockActionsRunsJobs(ctx *context.Context) {
 			{
 				ID: libStepID, Link: jobLink(libStepID), JobID: "lib_step", Name: "lib step",
 				Status: actions_model.StatusSuccess.String(), Duration: "1m",
-				ParentCallerJobID: localCallerID,
+				ParentJobID: localCallerID,
 			},
 			{
 				ID: innerCallerID, Link: jobLink(innerCallerID), JobID: "inner_caller", Name: "inner caller (nested)",
 				Status: actions_model.StatusRunning.String(), Duration: "4m",
-				ParentCallerJobID: localCallerID,
-				IsReusableCaller:  true, CallUses: "./.gitea/workflows/inner.yml",
+				ParentJobID:      localCallerID,
+				IsReusableCaller: true, CallUses: "./.gitea/workflows/inner.yml",
 			},
 			{
 				ID: deepJobID, Link: jobLink(deepJobID), JobID: "deep_job", Name: "deep job",
 				Status: actions_model.StatusRunning.String(), Duration: "2m",
-				ParentCallerJobID: innerCallerID,
+				ParentJobID: innerCallerID,
 			},
 			{
 				ID: crossCallerID, Link: jobLink(crossCallerID), JobID: "cross_caller", Name: "cross-repo caller",
@@ -330,7 +330,7 @@ func MockActionsRunsJobs(ctx *context.Context) {
 			{
 				ID: externalJobID, Link: jobLink(externalJobID), JobID: "external_job", Name: "external job",
 				Status: actions_model.StatusWaiting.String(), Duration: "0s",
-				ParentCallerJobID: crossCallerID,
+				ParentJobID: crossCallerID,
 			},
 			{
 				ID: finalID, Link: jobLink(finalID), JobID: "final", Name: "final",

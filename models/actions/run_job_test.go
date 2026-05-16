@@ -13,7 +13,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestGetReusableCallerPriorAttemptChildren(t *testing.T) {
+func TestGetPriorAttemptChildrenByParent(t *testing.T) {
 	require.NoError(t, unittest.PrepareTestDatabase())
 	ctx := t.Context()
 
@@ -65,7 +65,7 @@ func TestGetReusableCallerPriorAttemptChildren(t *testing.T) {
 			Status:           status,
 			AttemptJobID:     callerAttemptJobID,
 			IsReusableCaller: true,
-			IsCallerExpanded: expanded,
+			IsExpanded:       expanded,
 		}
 		require.NoError(t, db.Insert(ctx, caller))
 		return caller
@@ -73,17 +73,17 @@ func TestGetReusableCallerPriorAttemptChildren(t *testing.T) {
 	insertChild := func(t *testing.T, attemptID, parentID, attemptJobID int64, name, jobID string) {
 		t.Helper()
 		require.NoError(t, db.Insert(ctx, &ActionRunJob{
-			RunID:             run.ID,
-			RunAttemptID:      attemptID,
-			RepoID:            run.RepoID,
-			OwnerID:           run.OwnerID,
-			CommitSHA:         run.CommitSHA,
-			Name:              name,
-			JobID:             jobID,
-			Attempt:           1,
-			Status:            StatusSuccess,
-			AttemptJobID:      attemptJobID,
-			ParentCallerJobID: parentID,
+			RunID:        run.ID,
+			RunAttemptID: attemptID,
+			RepoID:       run.RepoID,
+			OwnerID:      run.OwnerID,
+			CommitSHA:    run.CommitSHA,
+			Name:         name,
+			JobID:        jobID,
+			Attempt:      1,
+			Status:       StatusSuccess,
+			AttemptJobID: attemptJobID,
+			ParentJobID:  parentID,
 		}))
 	}
 
@@ -119,7 +119,7 @@ func TestGetReusableCallerPriorAttemptChildren(t *testing.T) {
 
 	t.Run("matrix instances and non-matrix sibling are indexed by (JobID, Name)", func(t *testing.T) {
 		// "current" = attempt 2; prior = attempt 1, which is the immediately preceding attempt.
-		out, err := GetReusableCallerPriorAttemptChildren(ctx, run.ID, attempt2.ID, callerAttemptJobID)
+		out, err := GetPriorAttemptChildrenByParent(ctx, run.ID, attempt2.ID, callerAttemptJobID)
 		require.NoError(t, err)
 		assertAttempt1Children(t, out)
 	})
@@ -127,7 +127,7 @@ func TestGetReusableCallerPriorAttemptChildren(t *testing.T) {
 	t.Run("walkback past an attempt where the caller had no children", func(t *testing.T) {
 		attempt3 := insertAttempt(t, 3, StatusRunning)
 		// "current" = attempt 3; the immediately preceding attempt 2 has no children, so the lookup must walk further back to attempt 1.
-		out, err := GetReusableCallerPriorAttemptChildren(ctx, run.ID, attempt3.ID, callerAttemptJobID)
+		out, err := GetPriorAttemptChildrenByParent(ctx, run.ID, attempt3.ID, callerAttemptJobID)
 		require.NoError(t, err)
 		assertAttempt1Children(t, out)
 	})

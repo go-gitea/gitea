@@ -14,11 +14,11 @@ import (
 func AddReusableWorkflowFieldsToActionRunJob(x *xorm.Engine) error {
 	type ActionRunJob struct {
 		IsReusableCaller        bool   `xorm:"index NOT NULL DEFAULT FALSE"`
-		ParentCallerJobID       int64  `xorm:"index NOT NULL DEFAULT 0"`
+		ParentJobID             int64  `xorm:"index NOT NULL DEFAULT 0"`
 		CallUses                string `xorm:"VARCHAR(512) NOT NULL DEFAULT ''"`
 		CallSecrets             string `xorm:"LONGTEXT"`
 		CallPayload             string `xorm:"LONGTEXT"`
-		IsCallerExpanded        bool   `xorm:"NOT NULL DEFAULT FALSE"`
+		IsExpanded              bool   `xorm:"NOT NULL DEFAULT FALSE"`
 		ReusableWorkflowContent []byte `xorm:"LONGBLOB"`
 	}
 

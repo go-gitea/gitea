@@ -130,9 +130,9 @@ func TestComputeReusableCallerOutputs(t *testing.T) {
 			JobID:                   jobID,
 			Attempt:                 1,
 			Status:                  actions_model.StatusSuccess,
-			ParentCallerJobID:       parentID,
+			ParentJobID:             parentID,
 			IsReusableCaller:        true,
-			IsCallerExpanded:        true,
+			IsExpanded:              true,
 			ReusableWorkflowContent: []byte(content),
 			CallPayload:             callPayload,
 		}
@@ -151,16 +151,16 @@ func TestComputeReusableCallerOutputs(t *testing.T) {
 			nextTaskID++
 		}
 		job := &actions_model.ActionRunJob{
-			RunID:             run.ID,
-			RepoID:            run.RepoID,
-			OwnerID:           run.OwnerID,
-			CommitSHA:         run.CommitSHA,
-			Name:              jobID,
-			JobID:             jobID,
-			Attempt:           1,
-			Status:            actions_model.StatusSuccess,
-			ParentCallerJobID: parentID,
-			TaskID:            taskID,
+			RunID:       run.ID,
+			RepoID:      run.RepoID,
+			OwnerID:     run.OwnerID,
+			CommitSHA:   run.CommitSHA,
+			Name:        jobID,
+			JobID:       jobID,
+			Attempt:     1,
+			Status:      actions_model.StatusSuccess,
+			ParentJobID: parentID,
+			TaskID:      taskID,
 		}
 		require.NoError(t, db.Insert(ctx, job))
 		for k, v := range outputs {

@@ -189,20 +189,20 @@ func GetSecretsOfTask(ctx context.Context, task *actions_model.ActionTask) (map[
 	return getScopedSecretsForJob(ctx, task.Job, baseSecrets)
 }
 
-// getScopedSecretsForJob walks up the caller chain (ParentCallerJobID) and applies
+// getScopedSecretsForJob walks up the caller chain (ParentJobID) and applies
 // each caller's secrets policy:
 //   - "secrets: inherit" passes the parent scope's secrets through unchanged.
 //   - explicit mapping {alias: SOURCE} only forwards the named secrets, plus the auto-generated tokens.
 //
-// For top-level jobs (ParentCallerJobID == 0) the base secrets are returned as-is.
+// For top-level jobs (ParentJobID == 0) the base secrets are returned as-is.
 func getScopedSecretsForJob(ctx context.Context, job *actions_model.ActionRunJob, baseSecrets map[string]string) (map[string]string, error) {
-	if job.ParentCallerJobID == 0 {
+	if job.ParentJobID == 0 {
 		return baseSecrets, nil
 	}
 
-	caller, err := actions_model.GetRunJobByRunAndID(ctx, job.RunID, job.ParentCallerJobID)
+	caller, err := actions_model.GetRunJobByRunAndID(ctx, job.RunID, job.ParentJobID)
 	if err != nil {
-		return nil, fmt.Errorf("load caller job %d: %w", job.ParentCallerJobID, err)
+		return nil, fmt.Errorf("load caller job %d: %w", job.ParentJobID, err)
 	}
 
 	parentScope, err := getScopedSecretsForJob(ctx, caller, baseSecrets)

@@ -73,11 +73,11 @@ func readWorkflowFromRepo(ctx context.Context, repo *repo_model.Repository, refO
 	return []byte(str), nil
 }
 
-// checkCallerChain walks `caller`'s ancestor chain (via ParentCallerJobID) and:
+// checkCallerChain walks `caller`'s ancestor chain (via ParentJobID) and:
 //   - rejects cycles (caller.CallUses appearing in any ancestor's CallUses)
 //   - enforces MaxReusableCallDepth on caller's depth (top-level = 0)
 func checkCallerChain(ctx context.Context, caller *actions_model.ActionRunJob) error {
-	if caller.ParentCallerJobID == 0 {
+	if caller.ParentJobID == 0 {
 		return nil // top-level caller: depth 0, no ancestors to walk
 	}
 
@@ -86,8 +86,8 @@ func checkCallerChain(ctx context.Context, caller *actions_model.ActionRunJob) e
 
 	depth := 0
 	current := caller
-	for current.ParentCallerJobID != 0 {
-		next, err := actions_model.GetRunJobByRunAndID(ctx, current.RunID, current.ParentCallerJobID)
+	for current.ParentJobID != 0 {
+		next, err := actions_model.GetRunJobByRunAndID(ctx, current.RunID, current.ParentJobID)
 		if err != nil {
 			return fmt.Errorf("walk caller chain: %w", err)
 		}
@@ -110,11 +110,11 @@ func checkCallerChain(ctx context.Context, caller *actions_model.ActionRunJob) e
 // It does NOT schedule a follow-up resolver pass; the caller of this function is responsible for emitting.
 func expandReusableWorkflowCaller(ctx context.Context, run *actions_model.ActionRun, attempt *actions_model.ActionRunAttempt, caller *actions_model.ActionRunJob, vars map[string]string) error {
 	// Already expanded by an earlier call, skip
-	if caller.IsCallerExpanded {
+	if caller.IsExpanded {
 		return nil
 	}
 
-	// 1. Cycle + depth check via the ParentCallerJobID chain.
+	// 1. Cycle + depth check via the ParentJobID chain.
 	if err := checkCallerChain(ctx, caller); err != nil {
 		return err
 	}
@@ -201,7 +201,7 @@ func expandReusableWorkflowCaller(ctx context.Context, run *actions_model.Action
 	}
 
 	// 8. Insert direct children of this caller.
-	existingChildren, err := actions_model.GetReusableCallerDirectChildJobs(ctx, caller)
+	existingChildren, err := actions_model.GetDirectChildJobsByParent(ctx, caller)
 	if err != nil {
 		return fmt.Errorf("get existing children of caller %d: %w", caller.ID, err)
 	}
@@ -215,10 +215,10 @@ func expandReusableWorkflowCaller(ctx context.Context, run *actions_model.Action
 
 	// 9. Update caller-related cols.
 	caller.CallPayload = string(callPayload)
-	caller.IsCallerExpanded = true
+	caller.IsExpanded = true
 	n, err := actions_model.UpdateRunJob(ctx, caller,
-		builder.Eq{"is_caller_expanded": false},
-		"call_secrets", "reusable_workflow_content", "call_payload", "is_caller_expanded")
+		builder.Eq{"is_expanded": false},
+		"call_secrets", "reusable_workflow_content", "call_payload", "is_expanded")
 	if err != nil {
 		return fmt.Errorf("commit caller %d expansion: %w", caller.ID, err)
 	}
@@ -249,7 +249,7 @@ func insertCallerChildren(ctx context.Context, run *actions_model.ActionRun, att
 		return fmt.Errorf("called workflow for caller %d (uses %q) has no jobs", caller.ID, caller.CallUses)
 	}
 
-	priorChildren, err := actions_model.GetReusableCallerPriorAttemptChildren(ctx, run.ID, attempt.ID, caller.AttemptJobID)
+	priorChildren, err := actions_model.GetPriorAttemptChildrenByParent(ctx, run.ID, attempt.ID, caller.AttemptJobID)
 	if err != nil {
 		return fmt.Errorf("lookup prior-attempt children of caller %d: %w", caller.ID, err)
 	}
@@ -296,7 +296,7 @@ func insertCallerChildren(ctx context.Context, run *actions_model.ActionRun, att
 			Needs:             needs,
 			RunsOn:            parsedChild.RunsOn(),
 			Status:            actions_model.StatusBlocked,
-			ParentCallerJobID: caller.ID,
+			ParentJobID:       caller.ID,
 		}
 		if perms := ExtractJobPermissionsFromWorkflow(sw, parsedChild); perms != nil {
 			child.TokenPermissions = perms

@@ -63,9 +63,8 @@ export type ActionsJob = {
   needs?: string[];
   duration: string;
 
-  // Reusable workflow fields. parentCallerJobID is 0 for top-level jobs.
   isReusableCaller: boolean;
-  parentCallerJobID: number;
+  parentJobID: number; // 0 for top-level jobs.
   callUses?: string;
 };
 

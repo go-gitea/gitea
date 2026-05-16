@@ -239,14 +239,14 @@ func execRerunPlan(ctx context.Context, plan *rerunPlan) (*actions_model.ActionR
 
 			newJob := cloneRunJobForAttempt(templateJob, newAttempt)
 
-			// Remap ParentCallerJobID from template attempts's DB ID -> new attempt's DB ID.
-			if templateJob.ParentCallerJobID != 0 {
-				newParentID, ok := templateIDToNewID[templateJob.ParentCallerJobID]
+			// Remap ParentJobID from template attempts's DB ID -> new attempt's DB ID.
+			if templateJob.ParentJobID != 0 {
+				newParentID, ok := templateIDToNewID[templateJob.ParentJobID]
 				if !ok {
 					return fmt.Errorf("clone order violation: parent job %d not yet cloned for child %d",
-						templateJob.ParentCallerJobID, templateJob.ID)
+						templateJob.ParentJobID, templateJob.ID)
 				}
-				newJob.ParentCallerJobID = newParentID
+				newJob.ParentJobID = newParentID
 			}
 
 			if plan.rerunAttemptJobIDs.Contains(templateJob.AttemptJobID) {
@@ -262,7 +262,7 @@ func execRerunPlan(ctx context.Context, plan *rerunPlan) (*actions_model.ActionR
 				newJob.IsConcurrencyEvaluated = false
 
 				if templateJob.IsReusableCaller {
-					newJob.IsCallerExpanded = false
+					newJob.IsExpanded = false
 					newJob.CallPayload = ""
 				}
 
@@ -293,7 +293,7 @@ func execRerunPlan(ctx context.Context, plan *rerunPlan) (*actions_model.ActionR
 			templateIDToNewID[templateJob.ID] = newJob.ID
 
 			// expand reusable caller
-			if newJob.IsReusableCaller && newJob.Status == actions_model.StatusWaiting && !newJob.IsCallerExpanded {
+			if newJob.IsReusableCaller && newJob.Status == actions_model.StatusWaiting && !newJob.IsExpanded {
 				if err := expandReusableWorkflowCaller(ctx, plan.run, newAttempt, newJob, vars); err != nil {
 					return fmt.Errorf("inline trigger caller %d ready: %w", newJob.ID, err)
 				}
@@ -393,7 +393,7 @@ func (p *rerunPlan) expandRerunJobIDs(jobsToRerun []*actions_model.ActionRunJob)
 
 		// same-scope downstream: siblings whose Needs reference cur.JobID join the rerun set
 		for _, candidate := range p.templateJobs {
-			if candidate.ParentCallerJobID != cur.ParentCallerJobID {
+			if candidate.ParentJobID != cur.ParentJobID {
 				continue
 			}
 			if rerunSet.Contains(candidate.AttemptJobID) || ancestorSet.Contains(candidate.AttemptJobID) {
@@ -407,10 +407,10 @@ func (p *rerunPlan) expandRerunJobIDs(jobsToRerun []*actions_model.ActionRunJob)
 		}
 
 		// escalate to parent caller as an ancestor so its own siblings get checked next round
-		if cur.ParentCallerJobID == 0 {
+		if cur.ParentJobID == 0 {
 			continue
 		}
-		parent, ok := byID[cur.ParentCallerJobID]
+		parent, ok := byID[cur.ParentJobID]
 		if !ok {
 			continue
 		}
@@ -424,8 +424,8 @@ func (p *rerunPlan) expandRerunJobIDs(jobsToRerun []*actions_model.ActionRunJob)
 	// remove entries whose parent-caller chain already has a rerunSet member
 	for atID := range ancestorSet {
 		cur := byAttemptJobID[atID]
-		for cur.ParentCallerJobID != 0 {
-			parent, ok := byID[cur.ParentCallerJobID]
+		for cur.ParentJobID != 0 {
+			parent, ok := byID[cur.ParentJobID]
 			if !ok {
 				break
 			}
@@ -451,7 +451,7 @@ func (p *rerunPlan) hasRerunDependency(job *actions_model.ActionRunJob) bool {
 	}
 	needSet := container.SetOf(job.Needs...)
 	for _, sibling := range p.templateJobs {
-		if sibling.ParentCallerJobID != job.ParentCallerJobID {
+		if sibling.ParentJobID != job.ParentJobID {
 			continue
 		}
 		if !needSet.Contains(sibling.JobID) {
@@ -477,7 +477,7 @@ func (p *rerunPlan) collectResetCallerDescendants() container.Set[int64] {
 		if out.Contains(tj.ID) {
 			continue
 		}
-		for _, child := range actions_model.CollectReusableCallerAllChildJobs(tj, p.templateJobs) {
+		for _, child := range actions_model.CollectAllDescendantJobs(tj, p.templateJobs) {
 			out.Add(child.ID)
 		}
 	}
@@ -512,8 +512,8 @@ func cloneRunJobForAttempt(templateJob *actions_model.ActionRunJob, attempt *act
 		ReusableWorkflowContent: slices.Clone(templateJob.ReusableWorkflowContent),
 		CallSecrets:             templateJob.CallSecrets,
 		CallPayload:             templateJob.CallPayload,
-		IsCallerExpanded:        templateJob.IsCallerExpanded,
-		ParentCallerJobID:       templateJob.ParentCallerJobID, // remapped by execRerunPlan
+		IsExpanded:              templateJob.IsExpanded,
+		ParentJobID:             templateJob.ParentJobID, // remapped by execRerunPlan
 	}
 }
 

@@ -318,12 +318,12 @@ func TestRerunPlan(t *testing.T) {
 // templateJob is a small constructor for fixture jobs used by the rerunPlan unit tests.
 func templateJob(id, attemptJobID int64, jobID string, parentID int64, isCaller bool, needs ...string) *actions_model.ActionRunJob {
 	return &actions_model.ActionRunJob{
-		ID:                id,
-		AttemptJobID:      attemptJobID,
-		JobID:             jobID,
-		ParentCallerJobID: parentID,
-		IsReusableCaller:  isCaller,
-		Needs:             needs,
+		ID:               id,
+		AttemptJobID:     attemptJobID,
+		JobID:            jobID,
+		ParentJobID:      parentID,
+		IsReusableCaller: isCaller,
+		Needs:            needs,
 	}
 }
 

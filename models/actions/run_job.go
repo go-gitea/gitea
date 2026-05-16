@@ -80,10 +80,9 @@ type ActionRunJob struct {
 	// IsReusableCaller marks this job as a reusable workflow caller.
 	// Caller jobs do not run on a runner; their status is derived from their child jobs.
 	IsReusableCaller bool `xorm:"index NOT NULL DEFAULT FALSE"`
-	// IsCallerExpanded reports whether expandReusableWorkflowCaller has finished expanding this caller.
-	// When true, the caller's children rows exist and CallPayload holds the resolved WorkflowCallPayload.
-	// Only meaningful when IsReusableCaller is true.
-	IsCallerExpanded bool `xorm:"NOT NULL DEFAULT FALSE"`
+	// IsExpanded reports whether this job's lazy expansion (children-row insertion) is complete.
+	// For a reusable workflow caller, true means children rows exist and CallPayload is populated.
+	IsExpanded bool `xorm:"NOT NULL DEFAULT FALSE"`
 	// CallUses stores the raw "uses:" string of a reusable workflow caller job.
 	// Only set when IsReusableCaller is true.
 	CallUses string `xorm:"VARCHAR(512) NOT NULL DEFAULT ''"`
@@ -97,12 +96,12 @@ type ActionRunJob struct {
 	// Only set when IsReusableCaller is true.
 	CallSecrets string `xorm:"LONGTEXT"`
 	// CallPayload is the JSON-encoded WorkflowCallPayload exposed to children as gitea.event.
-	// Populated atomically with IsCallerExpanded at the end of expandReusableWorkflowCaller.
+	// Populated atomically with IsExpanded at the end of expandReusableWorkflowCaller.
 	// Only set when IsReusableCaller is true.
 	CallPayload string `xorm:"LONGTEXT"`
 
-	// ParentCallerJobID is the ID of the direct reusable workflow caller job, or 0 for top-level jobs.
-	ParentCallerJobID int64 `xorm:"index NOT NULL DEFAULT 0"`
+	// ParentJobID scopes `Needs` resolution: name lookups happen only among rows sharing the same ParentJobID. 0 for top-level rows.
+	ParentJobID int64 `xorm:"index NOT NULL DEFAULT 0"`
 
 	Started timeutil.TimeStamp
 	Stopped timeutil.TimeStamp
@@ -258,14 +257,15 @@ func GetRunJobsByRunAndAttemptID(ctx context.Context, runID, runAttemptID int64)
 	return jobs, nil
 }
 
-// GetReusableCallerPriorAttemptChildren returns the children of the most recent prior attempt where
-// the caller (identified by callerAttemptJobID) actually had children, indexed by child JobID then child Name.
+// GetPriorAttemptChildrenByParent returns the children of the most recent prior attempt where
+// the parent (identified by parentAttemptJobID) actually had children, indexed by child JobID then child Name.
 // Returns (nil, nil) when no such attempt exists.
-func GetReusableCallerPriorAttemptChildren(ctx context.Context, runID, currentAttemptID, callerAttemptJobID int64) (map[string]map[string]*ActionRunJob, error) {
+// The (JobID, Name) key disambiguates both reusable-workflow subtrees and matrix-expanded instances (whose Name carries the matrix suffix).
+func GetPriorAttemptChildrenByParent(ctx context.Context, runID, currentAttemptID, parentAttemptJobID int64) (map[string]map[string]*ActionRunJob, error) {
 	// query every prior caller row sharing this AttemptJobID, newest first.
 	var priorCallers []*ActionRunJob
 	if err := db.GetEngine(ctx).
-		Where("run_id = ? AND attempt_job_id = ? AND run_attempt_id < ?", runID, callerAttemptJobID, currentAttemptID).
+		Where("run_id = ? AND attempt_job_id = ? AND run_attempt_id < ?", runID, parentAttemptJobID, currentAttemptID).
 		Desc("run_attempt_id").
 		Find(&priorCallers); err != nil {
 		return nil, fmt.Errorf("find prior callers: %w", err)
@@ -282,14 +282,14 @@ func GetReusableCallerPriorAttemptChildren(ctx context.Context, runID, currentAt
 	var allChildren []*ActionRunJob
 	if err := db.GetEngine(ctx).
 		Where("run_id = ?", runID).
-		In("parent_caller_job_id", callerIDs).
+		In("parent_job_id", callerIDs).
 		Find(&allChildren); err != nil {
 		return nil, fmt.Errorf("find prior children: %w", err)
 	}
 
 	childrenByCallerID := make(map[int64][]*ActionRunJob, len(callerIDs))
 	for _, c := range allChildren {
-		childrenByCallerID[c.ParentCallerJobID] = append(childrenByCallerID[c.ParentCallerJobID], c)
+		childrenByCallerID[c.ParentJobID] = append(childrenByCallerID[c.ParentJobID], c)
 	}
 
 	// Walk priorCallers in run_attempt_id-desc order and return the children of the first caller that actually had any.
@@ -312,11 +312,11 @@ func GetReusableCallerPriorAttemptChildren(ctx context.Context, runID, currentAt
 	return nil, nil //nolint:nilnil // every prior attempt skipped this caller
 }
 
-// GetReusableCallerDirectChildJobs returns the direct child jobs of a reusable workflow caller job.
-func GetReusableCallerDirectChildJobs(ctx context.Context, callerJob *ActionRunJob) (ActionJobList, error) {
+// GetDirectChildJobsByParent returns the direct child jobs of a parent job (e.g. a reusable workflow caller).
+func GetDirectChildJobsByParent(ctx context.Context, parentJob *ActionRunJob) (ActionJobList, error) {
 	var jobs []*ActionRunJob
 	if err := db.GetEngine(ctx).
-		Where("run_id=? AND parent_caller_job_id=?", callerJob.RunID, callerJob.ID).
+		Where("run_id=? AND parent_job_id=?", parentJob.RunID, parentJob.ID).
 		OrderBy("id").
 		Find(&jobs); err != nil {
 		return nil, err
@@ -324,16 +324,16 @@ func GetReusableCallerDirectChildJobs(ctx context.Context, callerJob *ActionRunJ
 	return jobs, nil
 }
 
-// CollectReusableCallerAllChildJobs returns every job in `allJobs` that lives under caller's subtree (recursively), excluding `caller` itself
-func CollectReusableCallerAllChildJobs(caller *ActionRunJob, allJobs []*ActionRunJob) []*ActionRunJob {
-	parents := map[int64]bool{caller.ID: true}
+// CollectAllDescendantJobs returns every job in `allJobs` that lives under parent's subtree (recursively), excluding `parent` itself
+func CollectAllDescendantJobs(parent *ActionRunJob, allJobs []*ActionRunJob) []*ActionRunJob {
+	parents := map[int64]bool{parent.ID: true}
 	for {
 		grew := false
 		for _, j := range allJobs {
-			if j.ParentCallerJobID == 0 {
+			if j.ParentJobID == 0 {
 				continue
 			}
-			if parents[j.ParentCallerJobID] && !parents[j.ID] {
+			if parents[j.ParentJobID] && !parents[j.ID] {
 				parents[j.ID] = true
 				grew = true
 			}
@@ -344,7 +344,7 @@ func CollectReusableCallerAllChildJobs(caller *ActionRunJob, allJobs []*ActionRu
 	}
 	out := make([]*ActionRunJob, 0)
 	for _, j := range allJobs {
-		if j.ID == caller.ID || !parents[j.ID] {
+		if j.ID == parent.ID || !parents[j.ID] {
 			continue
 		}
 		out = append(out, j)
@@ -390,7 +390,7 @@ func UpdateRunJob(ctx context.Context, job *ActionRunJob, cond builder.Cond, col
 	}
 
 	// Reusable workflow caller's children cascade their status changes upward to the parent caller
-	if statusChanged && job.ParentCallerJobID > 0 {
+	if statusChanged && job.ParentJobID > 0 {
 		return affected, cascadeCallerStatus(ctx, job)
 	}
 
@@ -448,9 +448,9 @@ func UpdateRunJob(ctx context.Context, job *ActionRunJob, cond builder.Cond, col
 
 // cascadeCallerStatus re-derives the parent reusable workflow caller's Status from its children
 func cascadeCallerStatus(ctx context.Context, child *ActionRunJob) error {
-	parent, err := GetRunJobByRunAndID(ctx, child.RunID, child.ParentCallerJobID)
+	parent, err := GetRunJobByRunAndID(ctx, child.RunID, child.ParentJobID)
 	if err != nil {
-		return fmt.Errorf("load parent caller %d: %w", child.ParentCallerJobID, err)
+		return fmt.Errorf("load parent caller %d: %w", child.ParentJobID, err)
 	}
 	return RefreshReusableCallerStatus(ctx, parent)
 }
@@ -461,7 +461,7 @@ func RefreshReusableCallerStatus(ctx context.Context, caller *ActionRunJob) erro
 	if !caller.IsReusableCaller {
 		return nil
 	}
-	children, err := GetReusableCallerDirectChildJobs(ctx, caller)
+	children, err := GetDirectChildJobsByParent(ctx, caller)
 	if err != nil {
 		return err
 	}
@@ -711,7 +711,7 @@ func cancelReusableCaller(ctx context.Context, caller *ActionRunJob) ([]*ActionR
 		return cancelledJobs, err
 	}
 
-	for _, c := range CollectReusableCallerAllChildJobs(caller, attemptJobs) {
+	for _, c := range CollectAllDescendantJobs(caller, attemptJobs) {
 		cancelled, err := cancelOneJob(ctx, c)
 		if err != nil {
 			return cancelledJobs, err

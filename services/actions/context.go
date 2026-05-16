@@ -99,13 +99,13 @@ func GenerateGiteaContext(ctx context.Context, run *actions_model.ActionRun, att
 		gitContext["job"] = job.JobID
 		gitContext["run_attempt"] = strconv.FormatInt(job.Attempt, 10)
 
-		if job.ParentCallerJobID > 0 {
+		if job.ParentJobID > 0 {
 			// Inject the caller's resolved workflow_call inputs into gitea.event.inputs.
 			// The rest of gitea.event stays as the caller's actual trigger event (push/pull_request/etc.)
 			// to match GitHub's semantics (see https://docs.github.com/en/actions/reference/workflows-and-actions/reusing-workflow-configurations#github-context).
 			// FIXME: If the run is triggered by "workflow_dispatch", the original inputs of "workflow_dispatch" will be overridden.
 			// If necessary, the caller can send these values to the called workflow via `with:`.
-			caller, err := actions_model.GetRunJobByRunAndID(ctx, job.RunID, job.ParentCallerJobID)
+			caller, err := actions_model.GetRunJobByRunAndID(ctx, job.RunID, job.ParentJobID)
 			if err == nil && caller.CallPayload != "" {
 				var cp api.WorkflowCallPayload
 				if err := json.Unmarshal([]byte(caller.CallPayload), &cp); err == nil && cp.Inputs != nil {
@@ -149,7 +149,7 @@ type TaskNeed struct {
 }
 
 // FindTaskNeeds finds the `needs` for the task by the task's job.
-// Lookup is scoped to the same ParentCallerJobID.
+// Lookup is scoped to the same ParentJobID.
 func FindTaskNeeds(ctx context.Context, job *actions_model.ActionRunJob) (map[string]*TaskNeed, error) {
 	if len(job.Needs) == 0 {
 		return nil, nil //nolint:nilnil // return nil when the job has no needs
@@ -170,7 +170,7 @@ func FindTaskNeeds(ctx context.Context, job *actions_model.ActionRunJob) (map[st
 	jobIDJobs := make(map[string][]*actions_model.ActionRunJob)
 	for _, candidate := range jobs {
 		// `needs` references are scope-bound: only candidates in the same caller scope match.
-		if candidate.ParentCallerJobID != job.ParentCallerJobID {
+		if candidate.ParentJobID != job.ParentJobID {
 			continue
 		}
 		jobIDJobs[candidate.JobID] = append(jobIDJobs[candidate.JobID], candidate)
@@ -214,7 +214,7 @@ func FindTaskNeeds(ctx context.Context, job *actions_model.ActionRunJob) (map[st
 func computeReusableCallerOutputs(ctx context.Context, caller *actions_model.ActionRunJob, allJobs []*actions_model.ActionRunJob) (map[string]string, error) {
 	directChildren := make([]*actions_model.ActionRunJob, 0)
 	for _, j := range allJobs {
-		if j.ParentCallerJobID == caller.ID {
+		if j.ParentJobID == caller.ID {
 			directChildren = append(directChildren, j)
 		}
 	}

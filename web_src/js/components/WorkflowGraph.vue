@@ -164,8 +164,8 @@ const jobsWithLayout = computed<JobNode[]>(() => {
 
 // scopedKey identifies a job within its reusable-workflow call scope so that the same
 // JobID in different reusable calls does not collide.
-function scopedKey(job: {parentCallerJobID: number; jobId: string}): string {
-  return `${job.parentCallerJobID || 0}:${job.jobId}`;
+function scopedKey(job: {parentJobID: number; jobId: string}): string {
+  return `${job.parentJobID || 0}:${job.jobId}`;
 }
 
 function buildDirectNeedsMap(jobs: ActionsJob[]): Map<string, string[]> {
@@ -176,7 +176,7 @@ function buildDirectNeedsMap(jobs: ActionsJob[]): Map<string, string[]> {
 
   for (const job of jobs) {
     const fromKey = scopedKey(job);
-    const needKeys = (job.needs || []).map((n) => `${job.parentCallerJobID || 0}:${n}`);
+    const needKeys = (job.needs || []).map((n) => `${job.parentJobID || 0}:${n}`);
     directNeedsByScopedKey.set(fromKey, needKeys);
 
     for (const needKey of needKeys) {
@@ -466,7 +466,7 @@ const nodesWithOutgoingEdge = computed(() => {
 
 
 function computeJobLevels(jobs: ActionsJob[]): Map<string, number> {
-  // Scope-aware: each job is keyed by `${parentCallerJobID}:${jobId}` so the same JobID
+  // Scope-aware: each job is keyed by `${parentJobID}:${jobId}` so the same JobID
   // in different reusable workflow calls does not cross-link in the level graph.
   const jobMap = new Map<string, ActionsJob>();
   jobs.forEach(job => {
@@ -510,7 +510,7 @@ function computeJobLevels(jobs: ActionsJob[]): Map<string, number> {
 
     let maxLevel = -1;
     for (const need of job.needs) {
-      const needScoped = `${job.parentCallerJobID || 0}:${need}`;
+      const needScoped = `${job.parentJobID || 0}:${need}`;
       const needJob = jobMap.get(needScoped);
       if (!needJob) continue;
 

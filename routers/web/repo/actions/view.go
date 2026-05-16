@@ -323,9 +323,9 @@ type ViewJob struct {
 	Needs    []string `json:"needs,omitempty"`
 
 	// Reusable workflow fields. All zero/empty for plain (non-call) jobs.
-	IsReusableCaller  bool   `json:"isReusableCaller"`
-	ParentCallerJobID int64  `json:"parentCallerJobID"`
-	CallUses          string `json:"callUses,omitempty"`
+	IsReusableCaller bool   `json:"isReusableCaller"`
+	ParentJobID      int64  `json:"parentJobID"`
+	CallUses         string `json:"callUses,omitempty"`
 }
 
 type ViewRunAttempt struct {
@@ -451,9 +451,9 @@ func fillViewRunResponseSummary(ctx *context_module.Context, resp *ViewResponse,
 			Duration: v.Duration().String(),
 			Needs:    v.Needs,
 
-			IsReusableCaller:  v.IsReusableCaller,
-			ParentCallerJobID: v.ParentCallerJobID,
-			CallUses:          v.CallUses,
+			IsReusableCaller: v.IsReusableCaller,
+			ParentJobID:      v.ParentJobID,
+			CallUses:         v.CallUses,
 		})
 	}
 

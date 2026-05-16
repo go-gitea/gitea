@@ -28,13 +28,13 @@ func getWorkflowDispatchInputsFromRun(run *actions_model.ActionRun) (map[string]
 //   - For top-level jobs, it falls back to the run's dispatch inputs (empty for non-dispatch events)
 //   - For reusable workflow children (and nested callers), this is the direct parent caller's CallPayload.Inputs
 func getInputsForJob(ctx context.Context, run *actions_model.ActionRun, job *actions_model.ActionRunJob) (map[string]any, error) {
-	if job.ParentCallerJobID == 0 {
+	if job.ParentJobID == 0 {
 		return getWorkflowDispatchInputsFromRun(run)
 	}
 
-	caller, err := actions_model.GetRunJobByRunAndID(ctx, run.ID, job.ParentCallerJobID)
+	caller, err := actions_model.GetRunJobByRunAndID(ctx, run.ID, job.ParentJobID)
 	if err != nil {
-		return nil, fmt.Errorf("load caller job %d: %w", job.ParentCallerJobID, err)
+		return nil, fmt.Errorf("load caller job %d: %w", job.ParentJobID, err)
 	}
 	if caller.CallPayload == "" {
 		// should not happen - a child job cannot reach this point if its caller's CallPayload hasn't been evaluated

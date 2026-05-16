@@ -87,12 +87,12 @@ export function createLogLineMessage(line: LogLine, cmd: LogLineCommand | null) 
   return logMsg;
 }
 
-// buildJobsByParentCallerJobID groups jobs by their parentCallerJobID (0 = top level).
+// buildJobsByParentJobID groups jobs by their parentJobID (0 = top level).
 // Useful for rendering the reusable-workflow caller/child tree in the sidebar.
-export function buildJobsByParentCallerJobID(jobs: ActionsJob[]): Map<number, ActionsJob[]> {
+export function buildJobsByParentJobID(jobs: ActionsJob[]): Map<number, ActionsJob[]> {
   const childrenByParent = new Map<number, ActionsJob[]>();
   for (const job of jobs) {
-    const parentID = job.parentCallerJobID || 0;
+    const parentID = job.parentJobID || 0;
     const existing = childrenByParent.get(parentID);
     if (existing) {
       existing.push(job);
@@ -106,7 +106,7 @@ export function buildJobsByParentCallerJobID(jobs: ActionsJob[]): Map<number, Ac
 // collectCallerChildJobs returns the direct children of a caller job.
 export function collectCallerChildJobs(jobs: ActionsJob[], callerJobID: number): ActionsJob[] {
   if (!callerJobID) return [];
-  return buildJobsByParentCallerJobID(jobs).get(callerJobID) || [];
+  return buildJobsByParentJobID(jobs).get(callerJobID) || [];
 }
 
 export function createEmptyActionsRun(): ActionsRun {

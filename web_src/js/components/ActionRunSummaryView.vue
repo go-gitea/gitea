@@ -20,7 +20,7 @@ const isRerun = computed(() => run.value.runAttempt > 1);
 
 // The summary's dependency graph is the workflow's top-level shape: a reusable caller
 // renders as a single node, its expanded children belong to the caller's own detail page.
-const topLevelJobs = computed(() => (run.value.jobs || []).filter((j) => !j.parentCallerJobID));
+const topLevelJobs = computed(() => (run.value.jobs || []).filter((j) => !j.parentJobID));
 
 const triggerUser = computed(() => {
   const currentAttempt = run.value.attempts.find((attempt) => attempt.current);
