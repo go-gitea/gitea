@@ -30,11 +30,14 @@ func GetUnitsByGroupID(ctx context.Context, groupID, teamID int64) (units []*Rep
 
 func GetGroupUnit(ctx context.Context, groupID, teamID int64, unitType unit.Type) (unit *RepoGroupUnit, err error) {
 	unit = new(RepoGroupUnit)
-	_, err = db.GetEngine(ctx).
+	has, err := db.GetEngine(ctx).
 		Where("group_id = ?", groupID).
 		And("team_id = ?", teamID).
 		And("type = ?", unitType).
 		Get(unit)
+	if !has {
+		unit = nil
+	}
 	return unit, err
 }
 
