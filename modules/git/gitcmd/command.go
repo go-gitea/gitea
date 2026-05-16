@@ -20,6 +20,7 @@ import (
 	"code.gitea.io/gitea/modules/gtprof"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/process"
+	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/util"
 )
 
@@ -54,6 +55,27 @@ type Command struct {
 	cmdStderr io.Writer
 
 	cmdManagedStderr *bytes.Buffer
+}
+
+// managedSSHCommand builds the GIT_SSH_COMMAND used for Gitea-managed SSH
+// operations (migration / mirror with a generated keypair). ssh runs
+// non-interactively (BatchMode) so the worker never hangs on an unknown host,
+// and the configured host-key policy is applied.
+func managedSSHCommand() string {
+	mode := setting.Migrations.SSHHostKeyChecking
+	if mode == "no" {
+		return "ssh -o BatchMode=yes -o StrictHostKeyChecking=no -o UserKnownHostsFile=" + util.ShellEscape(os.DevNull)
+	}
+	cmd := "ssh -o BatchMode=yes -o StrictHostKeyChecking=" + mode
+	// Persist accepted host keys in a Gitea-managed file so a later key change
+	// is detected (TOFU); fall back to ssh's default known_hosts if unset.
+	if setting.AppDataPath != "" {
+		knownHosts := filepath.Join(setting.AppDataPath, "home", ".ssh", "known_hosts")
+		if err := os.MkdirAll(filepath.Dir(knownHosts), 0o700); err == nil {
+			cmd += " -o UserKnownHostsFile=" + util.ShellEscape(knownHosts)
+		}
+	}
+	return cmd
 }
 
 func logArgSanitize(arg string) string {
@@ -453,6 +475,7 @@ func (c *Command) Start(ctx context.Context) (retErr error) {
 
 	if c.opts.SSHAuthSock != "" {
 		c.cmd.Env = append(c.cmd.Env, "SSH_AUTH_SOCK="+c.opts.SSHAuthSock)
+		c.cmd.Env = append(c.cmd.Env, "GIT_SSH_COMMAND="+managedSSHCommand())
 	}
 
 	c.cmd.Dir = c.opts.Dir
