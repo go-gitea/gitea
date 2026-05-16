@@ -13,6 +13,7 @@ import (
 	org_model "code.gitea.io/gitea/models/organization"
 	"code.gitea.io/gitea/models/perm"
 	"code.gitea.io/gitea/models/unit"
+	"code.gitea.io/gitea/modules/util"
 
 	"xorm.io/builder"
 )
@@ -143,6 +144,11 @@ func UpdateGroupTeam(ctx context.Context, gt *group_model.RepoGroupTeam, unitMap
 	return committer.Commit()
 }
 
+type genericUnitAccess struct {
+	Type       unit.Type
+	AccessMode perm.AccessMode
+}
+
 // RecalculateGroupAccess recalculates team access to a group.
 // should only be called if and only if a group was moved from another group.
 func RecalculateGroupAccess(ctx context.Context, g *group_model.Group, isNew bool) error {
@@ -156,65 +162,101 @@ func RecalculateGroupAccess(ctx context.Context, g *group_model.Group, isNew boo
 	}
 	var teams []*org_model.Team
 	if g.ParentGroup == nil {
-		teams, err = org_model.FindOrgTeams(ctx, g.OwnerID)
-		if err != nil {
-			return err
+		if isNew {
+			teams, err = org_model.FindOrgTeams(ctx, g.OwnerID)
+		} else {
+			teams, err = org_model.GetTeamsWithAccessToGroup(ctx, g.OwnerID, g.ID, perm.AccessModeRead)
 		}
 	} else {
-		teams, err = org_model.GetTeamsWithAccessToGroup(ctx, g.OwnerID, g.ParentGroupID, perm.AccessModeRead)
-		if err != nil {
-			return err
+		if isNew {
+			teams, err = org_model.GetTeamsWithAccessToGroup(ctx, g.OwnerID, g.ParentGroupID, perm.AccessModeRead)
+		} else {
+			teams, err = org_model.GetTeamsWithAccessToGroup(ctx, g.OwnerID, g.ID, perm.AccessModeRead)
 		}
 	}
+	if err != nil {
+		return err
+	}
 	for _, t := range teams {
-		var gt *group_model.RepoGroupTeam
-		if gt, err = group_model.FindGroupTeamByTeamID(ctx, g.ParentGroupID, t.ID); err != nil {
-			return err
+		if t.IsOwnerTeam() {
+			continue
 		}
-		if gt == nil {
-			if gt, err = group_model.GetNearestAncestorWithTeam(ctx, g.ParentGroupID, t.ID); err != nil {
+		var gt *group_model.RepoGroupTeam
+		if isNew {
+			if gt, err = group_model.FindGroupTeamByTeamID(ctx, g.ParentGroupID, t.ID); err != nil {
 				return err
+			}
+			if gt == nil {
+				if gt, err = group_model.GetNearestAncestorWithTeam(ctx, g.ParentGroupID, t.ID); err != nil {
+					return err
+				}
+			}
+		} else {
+			if gt, err = group_model.FindGroupTeamByTeamID(ctx, g.ID, t.ID); err != nil {
+				return err
+			}
+			if gt == nil {
+				if gt, err = group_model.GetNearestAncestorWithTeam(ctx, g.ID, t.ID); err != nil {
+					return err
+				}
 			}
 		}
 		var (
 			newGroupTeamAccessMode perm.AccessMode
 			canCreateIn            bool
+			units                  []genericUnitAccess
 		)
 		if gt != nil {
 			newGroupTeamAccessMode = gt.AccessMode
 			canCreateIn = gt.CanCreateIn
+			if err = gt.LoadGroupUnits(ctx); err != nil {
+				return err
+			}
+			units = util.SliceMap(gt.Units, func(it *group_model.RepoGroupUnit) genericUnitAccess {
+				return genericUnitAccess{
+					Type:       it.Type,
+					AccessMode: it.AccessMode,
+				}
+			})
 		} else {
 			newGroupTeamAccessMode = t.AccessMode
 			canCreateIn = t.CanCreateOrgRepo
+			if err = t.LoadUnits(ctx); err != nil {
+				return err
+			}
+			units = util.SliceMap(t.Units, func(it *org_model.TeamUnit) genericUnitAccess {
+				return genericUnitAccess{
+					Type:       it.Type,
+					AccessMode: it.AccessMode,
+				}
+			})
 		}
 		if err = group_model.UpdateTeamGroup(ctx, g.OwnerID, t.ID, g.ID, newGroupTeamAccessMode, canCreateIn, isNew); err != nil {
 			return err
 		}
 
-		if err = t.LoadUnits(ctx); err != nil {
-			return err
-		}
-		for _, u := range t.Units {
+		for _, u := range units {
 			newAccessMode := u.AccessMode
+			var gu *group_model.RepoGroupUnit
 			if g.ParentGroup == nil {
-				gu, err := group_model.GetGroupUnit(ctx, g.ID, t.ID, u.Type)
+				gu, err = group_model.GetGroupUnit(ctx, g.ID, t.ID, u.Type)
 				if err != nil {
 					return err
 				}
-				if gu == nil {
-					gid := g.ID
-					if gt != nil {
-						gid = gt.GroupID
-					}
-					if gu, err = group_model.GetGroupUnit(ctx, gid, t.ID, u.Type); err != nil {
-						return err
-					}
+			}
+			if gu == nil {
+				gid := g.ID
+				if gt != nil {
+					gid = gt.GroupID
 				}
-				if gu != nil {
-					newAccessMode = min(newAccessMode, gu.AccessMode)
+				if gu, err = group_model.GetGroupUnit(ctx, gid, t.ID, u.Type); err != nil {
+					return err
 				}
 			}
-			err = UpdateOrCreateGroupUnit(ctx, isNew, g, t, u.Unit(), newAccessMode)
+			if gu != nil {
+				newAccessMode = gu.AccessMode
+			}
+			err = UpdateOrCreateGroupUnit(ctx, g, t, unit.Units[u.Type], newAccessMode)
 			if err != nil {
 				return err
 			}
