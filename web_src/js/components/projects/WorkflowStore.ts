@@ -36,12 +36,12 @@ type WorkflowDraftState = {
 };
 
 export type ProjectColumn = {
-  id: string | number;
+  id: number;
   title: string;
 };
 
 export type ProjectLabel = {
-  id: string | number;
+  id: number;
   name: string;
   color: string;
 };
@@ -66,7 +66,7 @@ export type WorkflowEvent = {
   is_configured?: boolean;
 } & Record<string, unknown>;
 
-type WorkflowStoreState = {
+export type WorkflowStoreState = {
   workflowEvents: WorkflowEvent[];
   selectedItem: string | null;
   selectedWorkflow: WorkflowEvent | null;
@@ -74,8 +74,6 @@ type WorkflowStoreState = {
   projectLabels: ProjectLabel[];
   saving: boolean;
   loading: boolean;
-  showCreateDialog: boolean;
-  selectedEventType: string | null;
   workflowFilters: WorkflowFilters;
   workflowActions: WorkflowActions;
   workflowDrafts: Record<string, WorkflowDraftState>;
@@ -85,8 +83,7 @@ type WorkflowStoreState = {
   loadEvents(): Promise<WorkflowEvent[]>;
   loadProjectOptions(): Promise<void>;
   loadWorkflowData(event_id: string): Promise<void>;
-  resetWorkflowData(): void;
-  saveWorkflow(): Promise<void>;
+  saveWorkflow(): Promise<boolean>;
   saveWorkflowStatus(): Promise<void>;
   deleteWorkflow(): Promise<void>;
 };
@@ -156,12 +153,9 @@ export function createWorkflowStore(props: StoreProps): WorkflowStoreState {
     selectedItem: props.eventId || null,
     selectedWorkflow: null,
     projectColumns: [],
-    projectLabels: [], // Add labels data
+    projectLabels: [],
     saving: false,
-    loading: false, // Add loading state to prevent rapid clicks
-    showCreateDialog: false, // For create workflow dialog
-    selectedEventType: null, // For workflow creation
-
+    loading: false,
     workflowFilters: createDefaultFilters(),
     workflowActions: createDefaultActions(),
 
@@ -223,18 +217,8 @@ export function createWorkflowStore(props: StoreProps): WorkflowStoreState {
       }
     },
 
-    resetWorkflowData(): void {
-      store.workflowFilters = createDefaultFilters();
-      store.workflowActions = createDefaultActions();
-
-      const currentevent_id = store.selectedWorkflow?.event_id;
-      if (currentevent_id) {
-        store.updateDraft(currentevent_id, store.workflowFilters, store.workflowActions);
-      }
-    },
-
-    async saveWorkflow(): Promise<void> {
-      if (!store.selectedWorkflow) return;
+    async saveWorkflow(): Promise<boolean> {
+      if (!store.selectedWorkflow) return false;
 
       // Validate: at least one action must be configured
       const hasAtLeastOneAction = Boolean(
@@ -246,15 +230,13 @@ export function createWorkflowStore(props: StoreProps): WorkflowStoreState {
 
       if (!hasAtLeastOneAction) {
         showErrorToast(props.locale.atLeastOneActionRequired);
-        return;
+        return false;
       }
 
       store.saving = true;
       try {
-        // For new workflows, use the base event type
         const event_id = store.selectedWorkflow.event_id;
 
-        // Convert frontend data format to backend JSON format
         const postData = {
           event_id,
           filters: store.workflowFilters,
@@ -281,56 +263,44 @@ export function createWorkflowStore(props: StoreProps): WorkflowStoreState {
             errorMessage += `\n${errorText}`;
           }
           showErrorToast(errorMessage);
-          return;
+          return false;
         }
 
         const result = await response.json();
         if (result.success && result.workflow) {
-          // Always reload the events list to get the updated structure
-          // This ensures we have both the base event and the new filtered event
-          const eventKey = typeof store.selectedWorkflow.event_id === 'string' ? store.selectedWorkflow.event_id : '';
-          const wasNewWorkflow = store.selectedWorkflow.id === 0 ||
-                                 eventKey.startsWith('new-') ||
-                                 eventKey.startsWith('clone-');
+          const wasNewWorkflow = store.selectedWorkflow.id === 0;
+          // Clear draft for the old event_id before reloading (id=0 means unsaved)
+          if (wasNewWorkflow) store.clearDraft(store.selectedWorkflow.event_id);
 
-          if (wasNewWorkflow && store.selectedWorkflow.workflow_event) {
-            store.clearDraft(store.selectedWorkflow.workflow_event);
-          }
-
-          // Reload events from server to get the correct event structure
           await store.loadEvents();
 
-          // Find the reloaded workflow which has complete data including capabilities
           const reloadedWorkflow = store.workflowEvents.find((w: WorkflowEvent) => w.event_id === result.workflow.event_id);
 
           if (reloadedWorkflow) {
-            // Use the reloaded workflow as it has all the necessary fields
             store.selectedWorkflow = reloadedWorkflow;
             store.selectedItem = reloadedWorkflow.event_id;
           } else {
-            // Fallback: use the result from backend (shouldn't normally happen)
             store.selectedWorkflow = result.workflow;
             store.selectedItem = result.workflow.event_id;
           }
 
           store.workflowFilters = convertFilters(store.selectedWorkflow);
           store.workflowActions = convertActions(store.selectedWorkflow);
-          if (store.selectedWorkflow?.event_id) {
-            store.updateDraft(store.selectedWorkflow.event_id, store.workflowFilters, store.workflowActions);
-          }
+          store.updateDraft(store.selectedWorkflow!.event_id, store.workflowFilters, store.workflowActions);
 
-          // Update URL to use the new workflow ID
-          if (wasNewWorkflow && store.selectedWorkflow?.event_id) {
-            const newUrl = `${props.projectLink}/workflows/${store.selectedWorkflow.event_id}`;
-            window.history.replaceState({event_id: store.selectedWorkflow.event_id}, '', newUrl);
+          if (wasNewWorkflow && store.selectedWorkflow!.event_id) {
+            const newUrl = `${props.projectLink}/workflows/${store.selectedWorkflow!.event_id}`;
+            window.history.replaceState({event_id: store.selectedWorkflow!.event_id}, '', newUrl);
           }
-        } else {
-          console.error('Unexpected response format:', result);
-          showErrorToast(`${props.locale.saveWorkflowFailed}: Unexpected response format`);
+          return true;
         }
+        console.error('Unexpected response format:', result);
+        showErrorToast(`${props.locale.saveWorkflowFailed}: Unexpected response format`);
+        return false;
       } catch (error) {
         console.error('Failed to save workflow:', error);
         showErrorToast(`${props.locale.saveWorkflowFailed}: ${getErrorMessage(error)}`);
+        return false;
       } finally {
         store.saving = false;
       }
@@ -347,9 +317,7 @@ export function createWorkflowStore(props: StoreProps): WorkflowStoreState {
         const formData = new FormData();
         formData.append('enabled', desiredEnabled.toString());
 
-        // Use workflow ID for status update
-        const workflowId = selected.id;
-        const response = await POST(`${props.projectLink}/workflows/${workflowId}/status`, {
+        const response = await POST(`${props.projectLink}/workflows/${selected.id}/status`, {
           data: formData,
         });
 
@@ -387,9 +355,7 @@ export function createWorkflowStore(props: StoreProps): WorkflowStoreState {
       if (!selected || selected.id === 0) return;
 
       try {
-        // Use workflow ID for deletion
-        const workflowId = selected.id;
-        const response = await POST(`${props.projectLink}/workflows/${workflowId}/delete`, {
+        const response = await POST(`${props.projectLink}/workflows/${selected.id}/delete`, {
           data: new FormData(),
         });
 

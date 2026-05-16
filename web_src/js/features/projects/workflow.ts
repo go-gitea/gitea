@@ -44,6 +44,8 @@ export async function initProjectWorkflow() {
     updateWorkflowFailed: workflowDiv.getAttribute('data-locale-update-workflow-failed')!,
     deleteWorkflowFailed: workflowDiv.getAttribute('data-locale-delete-workflow-failed')!,
     atLeastOneActionRequired: workflowDiv.getAttribute('data-locale-at-least-one-action-required')!,
+    cloneTooltip: workflowDiv.getAttribute('data-locale-clone-tooltip')!,
+    deleteConfirm: workflowDiv.getAttribute('data-locale-delete-confirm')!,
   };
 
   const View = createApp(ProjectWorkflow, {
