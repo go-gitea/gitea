@@ -409,7 +409,7 @@ func prepareMigrationTasks() []*migration {
 		// Gitea 1.26.0 ends at migration ID number 330 (database version 331)
 
 		newMigration(331, "Add ActionRunAttempt model and related action fields", v1_27.AddActionRunAttemptModel),
-		newMigration(332, "Add block on codeowner reviews branch protection", v1_27.AddBlockOnCodeownerReviews),
+		newMigration(333, "Add block on codeowner reviews branch protection", v1_27.AddBlockOnCodeownerReviews),
 	}
 	return preparedMigrations
 }
