@@ -4,6 +4,7 @@
 package workflowpattern
 
 import (
+	"fmt"
 	"strings"
 	"testing"
 
@@ -406,12 +407,10 @@ func TestMatchPattern(t *testing.T) {
 	}
 
 	for _, kase := range kases {
-		t.Run(strings.Join(kase.patterns, ","), func(t *testing.T) {
-			patterns, err := CompilePatterns(kase.patterns...)
-			assert.NoError(t, err)
-
-			assert.Equal(t, kase.skipResult, Skip(patterns, kase.inputs), "skipResult")
-			assert.Equal(t, kase.filterResult, Filter(patterns, kase.inputs), "filterResult")
-		})
+		msg := fmt.Sprintf("patterns=%s, input=%s", strings.Join(kase.patterns, ","), strings.Join(kase.inputs, ","))
+		patterns, err := CompilePatterns(kase.patterns...)
+		assert.NoError(t, err, "compile error: %s", msg)
+		assert.Equal(t, kase.skipResult, Skip(patterns, kase.inputs), "unexpected skip result: %s", msg)
+		assert.Equal(t, kase.filterResult, Filter(patterns, kase.inputs), "unexpected filter result: %s", msg)
 	}
 }

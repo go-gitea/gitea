@@ -7,6 +7,7 @@ import (
 	"errors"
 	"fmt"
 	"regexp"
+	"slices"
 
 	"code.gitea.io/gitea/modules/util"
 )
@@ -18,11 +19,18 @@ type Glob interface {
 }
 
 type globCompiler struct {
+	regexpQuestion     bool
+	regexpPlus         bool
+	superWildcardRight bool
+	supportNegative    bool
+
+	separators        []rune
 	nonSeparatorChars string
 	globPattern       []rune
 	regexpPattern     string
 	regexp            *regexp.Regexp
 	pos               int
+	negativeFlip      bool
 }
 
 // compileChars compiles character class patterns like [abc] or [!abc]
@@ -70,13 +78,39 @@ func (g *globCompiler) compile(subPattern bool) (string, error) {
 		switch c {
 		case '*':
 			if g.pos < len(g.globPattern) && g.globPattern[g.pos] == '*' {
-				g.pos++
+				var matchRightSep bool
+				if g.superWildcardRight {
+					// check "**/" pattern, then the wildcards should also match the right separator
+					// e.g.: "**/docs" should match "docs"
+					var rightRune rune
+					if g.pos+1 < len(g.globPattern) {
+						rightRune = g.globPattern[g.pos+1]
+					}
+					if slices.Contains(g.separators, rightRune) {
+						matchRightSep = g.pos-2 < 0 || g.globPattern[g.pos-2] == rightRune
+					}
+				}
+				if matchRightSep {
+					g.pos += 2
+				} else {
+					g.pos++
+				}
 				result += ".*" // match any sequence of characters
 			} else {
 				result += g.nonSeparatorChars + "*" // match any sequence of non-separator characters
 			}
 		case '?':
-			result += g.nonSeparatorChars // match any single non-separator character
+			if g.regexpQuestion {
+				result += "?"
+			} else {
+				result += g.nonSeparatorChars // match any single non-separator character
+			}
+		case '+':
+			if g.regexpPlus {
+				result += "+"
+			} else {
+				result += "\\" + string(c)
+			}
 		case '[':
 			chars, err := g.compileChars()
 			if err != nil {
@@ -101,7 +135,7 @@ func (g *globCompiler) compile(subPattern bool) (string, error) {
 			}
 			result += "\\" + string(g.globPattern[g.pos])
 			g.pos++
-		case '.', '+', '^', '$', '(', ')', '|':
+		case '.', '^', '$', '(', ')', '|':
 			result += "\\" + string(c) // escape regexp special characters
 		default:
 			result += string(c)
@@ -111,8 +145,9 @@ func (g *globCompiler) compile(subPattern bool) (string, error) {
 	return result, nil
 }
 
-func newGlobCompiler(pattern string, separators ...rune) (Glob, error) {
-	g := &globCompiler{globPattern: []rune(pattern)}
+func initGlobCompiler(g *globCompiler, pattern string, separators []rune) (Glob, error) {
+	g.globPattern = []rune(pattern)
+	g.separators = separators
 
 	// Escape separators for use in character class
 	escapedSeparators := regexp.QuoteMeta(string(separators))
@@ -120,6 +155,11 @@ func newGlobCompiler(pattern string, separators ...rune) (Glob, error) {
 		g.nonSeparatorChars = "[^" + escapedSeparators + "]"
 	} else {
 		g.nonSeparatorChars = "."
+	}
+
+	if g.supportNegative && len(g.globPattern) > 0 && g.globPattern[0] == '!' {
+		g.negativeFlip = true
+		g.pos++
 	}
 
 	compiled, err := g.compile(false)
@@ -139,11 +179,24 @@ func newGlobCompiler(pattern string, separators ...rune) (Glob, error) {
 }
 
 func (g *globCompiler) Match(s string) bool {
-	return g.regexp.MatchString(s)
+	ret := g.regexp.MatchString(s)
+	if g.negativeFlip {
+		ret = !ret
+	}
+	return ret
 }
 
 func Compile(pattern string, separators ...rune) (Glob, error) {
-	return newGlobCompiler(pattern, separators...)
+	return initGlobCompiler(&globCompiler{}, pattern, separators)
+}
+
+func CompileWorkflow(pattern string) (Glob, error) {
+	return initGlobCompiler(&globCompiler{
+		regexpQuestion:     true,
+		regexpPlus:         true,
+		superWildcardRight: true,
+		supportNegative:    true,
+	}, pattern, []rune{'/'})
 }
 
 func MustCompile(pattern string, separators ...rune) Glob {

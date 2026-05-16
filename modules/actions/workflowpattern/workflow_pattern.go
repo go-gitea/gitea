@@ -4,190 +4,62 @@
 package workflowpattern
 
 import (
-	"fmt"
-	"regexp"
 	"strings"
+
+	"code.gitea.io/gitea/modules/glob"
 )
 
 type WorkflowPattern struct {
-	Pattern  string
-	Negative bool
-	Regex    *regexp.Regexp
-}
-
-func CompilePattern(rawpattern string) (*WorkflowPattern, error) {
-	negative := false
-	pattern := rawpattern
-	if strings.HasPrefix(rawpattern, "!") {
-		negative = true
-		pattern = rawpattern[1:]
-	}
-	rpattern, err := PatternToRegex(pattern)
-	if err != nil {
-		return nil, err
-	}
-	regex, err := regexp.Compile(rpattern)
-	if err != nil {
-		return nil, err
-	}
-	return &WorkflowPattern{
-		Pattern:  pattern,
-		Negative: negative,
-		Regex:    regex,
-	}, nil
-}
-
-func PatternToRegex(pattern string) (string, error) {
-	var rpattern strings.Builder
-	rpattern.WriteString("^")
-	pos := 0
-	patternErrors := map[int]string{}
-	for pos < len(pattern) {
-		switch pattern[pos] {
-		case '*':
-			if pos+1 < len(pattern) && pattern[pos+1] == '*' {
-				if pos+2 < len(pattern) && pattern[pos+2] == '/' {
-					rpattern.WriteString("(.+/)?")
-					pos += 3
-				} else {
-					rpattern.WriteString(".*")
-					pos += 2
-				}
-			} else {
-				rpattern.WriteString("[^/]*")
-				pos++
-			}
-		case '+', '?':
-			if pos > 0 {
-				rpattern.WriteByte(pattern[pos])
-			} else {
-				rpattern.WriteString(regexp.QuoteMeta(string([]byte{pattern[pos]})))
-			}
-			pos++
-		case '[':
-			rpattern.WriteByte(pattern[pos])
-			pos++
-			if pos < len(pattern) && pattern[pos] == ']' {
-				patternErrors[pos] = "Unexpected empty brackets '[]'"
-				pos++
-				break
-			}
-			validChar := func(a, b, test byte) bool {
-				return test >= a && test <= b
-			}
-			startPos := pos
-			for pos < len(pattern) && pattern[pos] != ']' {
-				switch pattern[pos] {
-				case '-':
-					if pos <= startPos || pos+1 >= len(pattern) {
-						patternErrors[pos] = "Invalid range"
-						pos++
-						break
-					}
-					validRange := func(a, b byte) bool {
-						return validChar(a, b, pattern[pos-1]) && validChar(a, b, pattern[pos+1]) && pattern[pos-1] <= pattern[pos+1]
-					}
-					if !validRange('A', 'z') && !validRange('0', '9') {
-						patternErrors[pos] = "Ranges can only include a-z, A-Z, A-z, and 0-9"
-						pos++
-						break
-					}
-					rpattern.WriteString(pattern[pos : pos+2])
-					pos += 2
-				default:
-					if !validChar('A', 'z', pattern[pos]) && !validChar('0', '9', pattern[pos]) {
-						patternErrors[pos] = "Ranges can only include a-z, A-Z and 0-9"
-						pos++
-						break
-					}
-					rpattern.WriteString(regexp.QuoteMeta(string([]byte{pattern[pos]})))
-					pos++
-				}
-			}
-			if pos >= len(pattern) || pattern[pos] != ']' {
-				patternErrors[pos] = "Missing closing bracket ']' after '['"
-				pos++
-			}
-			rpattern.WriteString("]")
-			pos++
-		case '\\':
-			if pos+1 >= len(pattern) {
-				patternErrors[pos] = "Missing symbol after \\"
-				pos++
-				break
-			}
-			rpattern.WriteString(regexp.QuoteMeta(string([]byte{pattern[pos+1]})))
-			pos += 2
-		default:
-			rpattern.WriteString(regexp.QuoteMeta(string([]byte{pattern[pos]})))
-			pos++
-		}
-	}
-	if len(patternErrors) > 0 {
-		var errorMessage strings.Builder
-		for position, err := range patternErrors {
-			if errorMessage.Len() > 0 {
-				errorMessage.WriteString(", ")
-			}
-			fmt.Fprintf(&errorMessage, "Position: %d Error: %s", position, err)
-		}
-		return "", fmt.Errorf("invalid Pattern '%s': %s", pattern, errorMessage.String())
-	}
-	rpattern.WriteString("$")
-	return rpattern.String(), nil
+	negative bool
+	glob     glob.Glob
 }
 
 func CompilePatterns(patterns ...string) ([]*WorkflowPattern, error) {
 	ret := make([]*WorkflowPattern, 0, len(patterns))
 	for _, pattern := range patterns {
-		cp, err := CompilePattern(pattern)
+		cp, err := glob.CompileWorkflow(pattern)
 		if err != nil {
 			return nil, err
 		}
-		ret = append(ret, cp)
+		ret = append(ret, &WorkflowPattern{glob: cp, negative: strings.HasPrefix(pattern, "!")})
 	}
 	return ret, nil
 }
 
 // Skip returns true if the workflow should be skipped per paths/branches semantics.
 func Skip(sequence []*WorkflowPattern, input []string) bool {
-	if len(sequence) == 0 {
-		return false
-	}
+	allSkipped := true
 	for _, file := range input {
-		matched := false
+		shouldSkip := true
 		for _, item := range sequence {
-			if item.Regex.MatchString(file) {
-				matched = !item.Negative
+			if item.negative {
+				// "!README.md" doesn't match "README.md", so "README.md" should be skipped
+				// "!README.md" matches "help.md" but it shouldn't affect "skip or not", because "help.md" might have been skipped by other rules like "docs/*.md"
+				if !item.glob.Match(file) {
+					shouldSkip = true
+				}
+			} else if item.glob.Match(file) {
+				// if "*.md" matches "help.md" so it shouldn't be skipped
+				shouldSkip = false
 			}
 		}
-		if matched {
-			return false
-		}
+		allSkipped = allSkipped && shouldSkip
 	}
-	return true
+	return len(sequence) > 0 && allSkipped
 }
 
 // Filter returns true if the workflow should be skipped per paths-ignore/branches-ignore semantics.
 func Filter(sequence []*WorkflowPattern, input []string) bool {
-	if len(sequence) == 0 {
-		return false
-	}
 	for _, file := range input {
-		matched := false
+		anyMatched := false
 		for _, item := range sequence {
-			isMatch := item.Regex.MatchString(file)
-			if item.Negative {
-				isMatch = !isMatch
-			}
-			if isMatch {
-				matched = true
+			if anyMatched = item.glob.Match(file); anyMatched {
 				break
 			}
 		}
-		if !matched {
+		if !anyMatched {
 			return false
 		}
 	}
-	return true
+	return len(sequence) != 0
 }
