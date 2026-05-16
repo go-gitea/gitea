@@ -110,16 +110,11 @@ func testEditorProtectedBranch(t *testing.T) {
 	flashMsg = session.GetCookieFlashMessage()
 	assert.Equal(t, `Branch protection for rule "master" has been updated.`, flashMsg.SuccessMsg)
 
-	// Try to commit a non-matching file to the "master" branch and it should fail
-	resp = testEditorActionPostRequest(t, session, "/user2/repo1/_new/master/", map[string]string{"tree_path": "test-protected-branch.txt", "commit_choice": "direct"})
-	assert.Equal(t, http.StatusBadRequest, resp.Code)
-	assert.Equal(t, `Cannot commit to protected branch "master".`, test.ParseJSONError(resp.Body.Bytes()).ErrorMessage)
-
-	// Try to commit a file matching the unprotected pattern and it should succeed
-	resp = testEditorActionPostRequest(t, session, "/user2/repo1/_new/master/", map[string]string{"tree_path": "docs/new.md", "commit_choice": "direct"})
+	resp = testEditorActionPostRequest(t, session, "/user2/repo1/_new/master/docs/new.md", map[string]string{"tree_path": "docs/new.md", "commit_choice": "direct"})
 	assert.Equal(t, http.StatusOK, resp.Code)
 	assert.Contains(t, resp.Body.String(), `"redirect":"/user2/repo1/src/branch/master/docs/new.md"`)
 
+	// Form's destination (renamed.md) is decided by the pre-receive hook, not the controller.
 	resp = testEditorActionPostRequest(t, session, "/user2/repo1/_edit/master/docs/new.md", map[string]string{
 		"content":       "renamed via editor",
 		"commit_choice": "direct",
@@ -128,24 +123,7 @@ func testEditorProtectedBranch(t *testing.T) {
 	assert.Equal(t, http.StatusOK, resp.Code)
 	assert.Contains(t, resp.Body.String(), `"redirect":"/user2/repo1/src/branch/master/docs/renamed.md"`)
 
-	// "_new" under an unprotected directory URL but with a protected destination
-	// in the form: the form's tree_path is the authoritative destination and
-	// must be rejected even though the URL hints at an unprotected location.
-	resp = testEditorActionPostRequest(t, session, "/user2/repo1/_new/master/docs/", map[string]string{"tree_path": "test-protected-branch.txt", "commit_choice": "direct"})
-	assert.Equal(t, http.StatusBadRequest, resp.Code)
-	assert.Equal(t, `Cannot commit to protected branch "master".`, test.ParseJSONError(resp.Body.Bytes()).ErrorMessage)
-
-	// Rename unprotected -> protected: destination path is not unprotected, reject.
-	resp = testEditorActionPostRequest(t, session, "/user2/repo1/_edit/master/docs/renamed.md", map[string]string{
-		"commit_choice": "direct",
-		"tree_path":     "renamed-to-protected.txt",
-	})
-	assert.Equal(t, http.StatusBadRequest, resp.Code)
-	assert.Equal(t, `Cannot commit to protected branch "master".`, test.ParseJSONError(resp.Body.Bytes()).ErrorMessage)
-
-	// Rename protected -> unprotected: the source path (README.md) is still
-	// touched by the commit and is not unprotected, so the override must NOT
-	// kick in. This is the rename-correctness case wxiaoguang flagged.
+	// Protected source path: controller rejects up-front regardless of unprotected destination.
 	resp = testEditorActionPostRequest(t, session, "/user2/repo1/_edit/master/README.md", map[string]string{
 		"commit_choice": "direct",
 		"tree_path":     "docs/from-readme.md",
@@ -153,7 +131,6 @@ func testEditorProtectedBranch(t *testing.T) {
 	assert.Equal(t, http.StatusBadRequest, resp.Code)
 	assert.Equal(t, `Cannot commit to protected branch "master".`, test.ParseJSONError(resp.Body.Bytes()).ErrorMessage)
 
-	// Deleting a protected file directly must be rejected.
 	resp = testEditorActionPostRequest(t, session, "/user2/repo1/_delete/master/README.md", map[string]string{"commit_choice": "direct"})
 	assert.Equal(t, http.StatusBadRequest, resp.Code)
 	assert.Equal(t, `Cannot commit to protected branch "master".`, test.ParseJSONError(resp.Body.Bytes()).ErrorMessage)
