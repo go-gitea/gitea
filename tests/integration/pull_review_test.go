@@ -159,6 +159,48 @@ func TestPullView_CodeOwner(t *testing.T) {
 			assert.True(t, hasCodeownerReviews)
 		})
 
+		t.Run("Dismissed Code Owner Review", func(t *testing.T) {
+			_, err := files_service.ChangeRepoFiles(t.Context(), repo, user2, &files_service.ChangeRepoFilesOptions{
+				NewBranch: "codeowner-dismiss-branch",
+				Files: []*files_service.ChangeRepoFile{
+					{
+						Operation:     "update",
+						TreePath:      "README.md",
+						ContentReader: strings.NewReader("# New README content\n"),
+					},
+				},
+			})
+			assert.NoError(t, err)
+
+			session := loginUser(t, "user2")
+			testPullCreate(t, session, "user2", "test_codeowner", false, repo.DefaultBranch, "codeowner-dismiss-branch", "Test Code Owner Dismissal")
+
+			pr := unittest.AssertExistsAndLoadBean(t, &issues_model.PullRequest{BaseRepoID: repo.ID, HeadBranch: "codeowner-dismiss-branch"})
+			unittest.AssertExistsAndLoadBean(t, &issues_model.Review{IssueID: pr.IssueID, Type: issues_model.ReviewTypeRequest, ReviewerID: 5})
+
+			hasCodeownerReviews := issue_service.HasAllRequiredCodeownerReviews(t.Context(), &protectBranch, pr)
+			assert.False(t, hasCodeownerReviews)
+
+			_, _, err = issues_model.SubmitReview(t.Context(), user5, pr.Issue, issues_model.ReviewTypeApprove, " LGTM", "", false, make([]string, 0))
+			assert.NoError(t, err)
+
+			hasCodeownerReviews = issue_service.HasAllRequiredCodeownerReviews(t.Context(), &protectBranch, pr)
+			assert.True(t, hasCodeownerReviews)
+
+			review := unittest.AssertExistsAndLoadBean(t, &issues_model.Review{IssueID: pr.IssueID, ReviewerID: 5, Type: issues_model.ReviewTypeApprove})
+			assert.False(t, review.Dismissed)
+
+			err = issues_model.DismissReview(t.Context(), review, true)
+			assert.NoError(t, err)
+
+			review, err = issues_model.GetReviewByID(t.Context(), review.ID)
+			assert.NoError(t, err)
+			assert.True(t, review.Dismissed)
+
+			hasCodeownerReviews = issue_service.HasAllRequiredCodeownerReviews(t.Context(), &protectBranch, pr)
+			assert.False(t, hasCodeownerReviews)
+		})
+
 		// change the default branch CODEOWNERS file to change README.md's codeowner
 		_, err = files_service.ChangeRepoFiles(t.Context(), repo, user2, &files_service.ChangeRepoFilesOptions{
 			Files: []*files_service.ChangeRepoFile{
@@ -270,86 +312,6 @@ func TestPullView_CodeOwner(t *testing.T) {
 
 			hasCodeownerReviews = issue_service.HasAllRequiredCodeownerReviews(t.Context(), &protectBranch, pr)
 			assert.True(t, hasCodeownerReviews)
-		})
-	})
-}
-
-func TestPullView_CodeOwner_DismissReview(t *testing.T) {
-	onGiteaRun(t, func(t *testing.T, u *url.URL) {
-		user2 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
-		user5 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 5})
-
-		repo, err := repo_service.CreateRepositoryDirectly(t.Context(), user2, user2, repo_service.CreateRepoOptions{
-			Name:             "test_codeowner_dismiss",
-			Readme:           "Default",
-			AutoInit:         true,
-			ObjectFormatName: git.Sha1ObjectFormat.Name(),
-			DefaultBranch:    "master",
-		}, true)
-		assert.NoError(t, err)
-
-		protectBranch := git_model.ProtectedBranch{
-			BlockOnCodeownerReviews: true,
-			RepoID:                  repo.ID,
-			RuleName:                "master",
-			CanPush:                 true,
-		}
-
-		err = pull_service.CreateOrUpdateProtectedBranch(t.Context(), repo, &protectBranch, git_model.WhitelistOptions{})
-		assert.NoError(t, err)
-
-		_, err = files_service.ChangeRepoFiles(t.Context(), repo, user2, &files_service.ChangeRepoFilesOptions{
-			OldBranch: repo.DefaultBranch,
-			Files: []*files_service.ChangeRepoFile{
-				{
-					Operation:     "create",
-					TreePath:      "CODEOWNERS",
-					ContentReader: strings.NewReader("README.md @user5\n"),
-				},
-			},
-		})
-		assert.NoError(t, err)
-
-		t.Run("Code Owner Review Dismissal", func(t *testing.T) {
-			_, err := files_service.ChangeRepoFiles(t.Context(), repo, user2, &files_service.ChangeRepoFilesOptions{
-				NewBranch: "codeowner-dismiss-branch",
-				Files: []*files_service.ChangeRepoFile{
-					{
-						Operation:     "update",
-						TreePath:      "README.md",
-						ContentReader: strings.NewReader("# New README content\n"),
-					},
-				},
-			})
-			assert.NoError(t, err)
-
-			session := loginUser(t, "user2")
-			testPullCreate(t, session, "user2", "test_codeowner_dismiss", false, repo.DefaultBranch, "codeowner-dismiss-branch", "Test Code Owner Dismissal")
-
-			pr := unittest.AssertExistsAndLoadBean(t, &issues_model.PullRequest{BaseRepoID: repo.ID, HeadBranch: "codeowner-dismiss-branch"})
-			unittest.AssertExistsAndLoadBean(t, &issues_model.Review{IssueID: pr.IssueID, Type: issues_model.ReviewTypeRequest, ReviewerID: 5})
-
-			hasCodeownerReviews := issue_service.HasAllRequiredCodeownerReviews(t.Context(), &protectBranch, pr)
-			assert.False(t, hasCodeownerReviews)
-
-			_, _, err = issues_model.SubmitReview(t.Context(), user5, pr.Issue, issues_model.ReviewTypeApprove, " LGTM", "", false, make([]string, 0))
-			assert.NoError(t, err)
-
-			hasCodeownerReviews = issue_service.HasAllRequiredCodeownerReviews(t.Context(), &protectBranch, pr)
-			assert.True(t, hasCodeownerReviews)
-
-			review := unittest.AssertExistsAndLoadBean(t, &issues_model.Review{IssueID: pr.IssueID, ReviewerID: 5, Type: issues_model.ReviewTypeApprove})
-			assert.False(t, review.Dismissed)
-
-			err = issues_model.DismissReview(t.Context(), review, true)
-			assert.NoError(t, err)
-
-			review, err = issues_model.GetReviewByID(t.Context(), review.ID)
-			assert.NoError(t, err)
-			assert.True(t, review.Dismissed)
-
-			hasCodeownerReviews = issue_service.HasAllRequiredCodeownerReviews(t.Context(), &protectBranch, pr)
-			assert.False(t, hasCodeownerReviews)
 		})
 	})
 }
