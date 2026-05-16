@@ -368,12 +368,12 @@ func GetParentGroupIDChain(ctx context.Context, groupID int64) ([]int64, error) 
 }
 
 func groupHierarchyCTEBuilder(cond builder.Cond) string {
-	firstPart := builder.Dialect(db.BuilderDialect()).Select("repo_group.*", "1 as depth").
-		From("repo_group").
-		Where(builder.And(builder.Eq{
-			"parent_group_id": 0,
-		}, cond))
-	secondPart := builder.Dialect(db.BuilderDialect()).Select("r.*", "h.depth + 1").
+	firstPart := builder.Dialect(db.BuilderDialect()).Select("repo_group.*", "1 as depth", "id as ancestor_id").
+		From("repo_group")
+	if cond != nil {
+		firstPart = firstPart.Where(cond)
+	}
+	secondPart := builder.Dialect(db.BuilderDialect()).Select("r.*", "h.depth + 1", "h.ancestor_id").
 		From("repo_group", "r").
 		Join("INNER", "group_hierarchy h", "r.parent_group_id = h.id")
 
@@ -383,8 +383,11 @@ func groupHierarchyCTEBuilder(cond builder.Cond) string {
 }
 
 func AccessibleParentGroupCond(ctx context.Context, idStr string, user *user_model.User) builder.Cond {
-	accessibleCond := AccessibleGroupCondition(user, unit.TypeInvalid, perm.AccessModeRead)
-	unionSQL := groupHierarchyCTEBuilder(accessibleCond)
+	accessibleCond := AccessibleGroupCondition(user, unit.TypeInvalid, perm.AccessModeRead, false)
+	unionSQL := groupHierarchyCTEBuilder(
+		accessibleCond.And(builder.Eq{
+			"parent_group_id": 0,
+		}))
 	var recursiveKeyword string
 
 	if !setting.Database.Type.IsMSSQL() {
