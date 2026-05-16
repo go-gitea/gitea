@@ -171,44 +171,18 @@ func stopTasks(ctx context.Context, opts actions_model.FindTaskOptions) error {
 
 // CancelAbandonedJobs cancels jobs that have not been picked by any runner for a long time
 func CancelAbandonedJobs(ctx context.Context) error {
-	jobs, err := db.Find[actions_model.ActionRunJob](ctx, actions_model.FindRunJobOptions{
+	abandonedJobs, err := db.Find[actions_model.ActionRunJob](ctx, actions_model.FindRunJobOptions{
 		Statuses:      []actions_model.Status{actions_model.StatusWaiting, actions_model.StatusBlocked},
 		UpdatedBefore: timeutil.TimeStampNow().AddDuration(-setting.Actions.AbandonedJobTimeout),
 	})
 	if err != nil {
-		log.Warn("find abandoned tasks: %v", err)
+		log.Warn("find abandoned jobs: %v", err)
 		return err
 	}
 
-	type runAttemptKey struct {
-		runID        int64
-		runAttemptID int64
-	}
-
-	jobsByAttempt := make(map[runAttemptKey]actions_model.ActionJobList, len(jobs))
-	for _, job := range jobs {
-		key := runAttemptKey{runID: job.RunID, runAttemptID: job.RunAttemptID}
-		if _, ok := jobsByAttempt[key]; ok {
-			continue
-		}
-
-		var runJobs actions_model.ActionJobList
-		runJobs, err = actions_model.GetRunJobsByRunAndAttemptID(ctx, job.RunID, job.RunAttemptID)
-		if err != nil {
-			log.Warn("load run %d attempt %d jobs for abandoned cleanup: %v", job.RunID, job.RunAttemptID, err)
-			continue
-		}
-		jobsByAttempt[key] = runJobs
-	}
-
-	updatedJobs := make([]*actions_model.ActionRunJob, 0, len(jobs))
-	for key, runJobs := range jobsByAttempt {
-		cancelledJobs, err := actions_model.CancelJobs(ctx, runJobs)
-		if err != nil {
-			log.Warn("cancel abandoned run %d attempt %d: %v", key.runID, key.runAttemptID, err)
-			continue
-		}
-		updatedJobs = append(updatedJobs, cancelledJobs...)
+	updatedJobs, err := actions_model.CancelJobs(ctx, abandonedJobs)
+	if err != nil {
+		log.Warn("cancel abandoned jobs: %v", err)
 	}
 
 	NotifyWorkflowJobsAndRunsStatusUpdate(ctx, updatedJobs)
