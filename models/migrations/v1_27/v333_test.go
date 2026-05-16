@@ -61,19 +61,15 @@ func TestAddReleaseNotificationBackfillsNotificationDedupe(t *testing.T) {
 	require.NoError(t, x.Table("notification").Asc("id").Find(&notifications))
 	require.Len(t, notifications, len(testData))
 
-	require.NotNil(t, notifications[0].UniqueKey)
-	assert.Equal(t, "issue-42", *notifications[0].UniqueKey)
+	assert.Equal(t, "issue-42", notifications[0].UniqueKey)
 
-	require.NotNil(t, notifications[1].UniqueKey)
-	assert.Equal(t, "pull-43", *notifications[1].UniqueKey)
+	assert.Equal(t, "pull-43", notifications[1].UniqueKey)
 
-	require.NotNil(t, notifications[2].UniqueKey)
-	assert.Equal(t, "commit-2-abc123", *notifications[2].UniqueKey)
+	assert.Equal(t, "commit-2-abc123", notifications[2].UniqueKey)
 
-	require.NotNil(t, notifications[3].UniqueKey)
-	assert.Equal(t, "release-7", *notifications[3].UniqueKey)
+	assert.Equal(t, "release-7", notifications[3].UniqueKey)
 
-	assert.Nil(t, notifications[4].UniqueKey)
+	assert.Equal(t, "repo-4", notifications[4].UniqueKey)
 }
 
 func TestAddReleaseNotificationDeduplicatesLegacyNotificationRows(t *testing.T) {
@@ -104,8 +100,7 @@ func TestAddReleaseNotificationDeduplicatesLegacyNotificationRows(t *testing.T) 
 	require.NoError(t, x.Table("notification").Find(&notifications))
 	require.Len(t, notifications, 1)
 
-	require.NotNil(t, notifications[0].UniqueKey)
-	assert.Equal(t, "commit-2-abc123", *notifications[0].UniqueKey)
+	assert.Equal(t, "commit-2-abc123", notifications[0].UniqueKey)
 	assert.Equal(t, notificationStatusPinnedV331, notifications[0].Status)
 	assert.Equal(t, expectedKeeper.UpdatedBy, notifications[0].UpdatedBy)
 	assert.Equal(t, expectedKeeper.UpdatedUnix, notifications[0].UpdatedUnix)

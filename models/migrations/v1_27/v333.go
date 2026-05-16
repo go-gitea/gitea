@@ -42,7 +42,7 @@ type NotificationV331 struct { //revive:disable-line:exported
 	CommitID  string
 	CommentID int64
 	ReleaseID int64
-	UniqueKey *string `xorm:"VARCHAR(255) DEFAULT NULL"`
+	UniqueKey string `xorm:"VARCHAR(255) NOT NULL"`
 
 	UpdatedBy int64 `xorm:"NOT NULL"`
 
@@ -131,22 +131,21 @@ type notificationV331Duplicate struct {
 	Cnt       int64
 }
 
-func uniqueKeyV331(source NotificationSourceV331, repoID, issueID, releaseID int64, commitID string) *string {
-	var key string
+func uniqueKeyV331(source NotificationSourceV331, repoID, issueID, releaseID int64, commitID string) (string, bool) {
 	switch source {
 	case notificationSourceIssueV331:
-		key = fmt.Sprintf("issue-%d", issueID)
+		return fmt.Sprintf("issue-%d", issueID), true
 	case notificationSourcePullRequestV331:
-		key = fmt.Sprintf("pull-%d", issueID)
+		return fmt.Sprintf("pull-%d", issueID), true
 	case notificationSourceCommitV331:
-		key = fmt.Sprintf("commit-%d-%s", repoID, commitID)
+		return fmt.Sprintf("commit-%d-%s", repoID, commitID), true
+	case notificationSourceRepositoryV331:
+		return fmt.Sprintf("repo-%d", repoID), true
 	case notificationSourceReleaseV331:
-		key = fmt.Sprintf("release-%d", releaseID)
+		return fmt.Sprintf("release-%d", releaseID), true
 	default:
-		return nil
+		return "", false
 	}
-
-	return &key
 }
 
 func backfillNotificationUniqueKeyV331(x *xorm.Engine) error {
@@ -165,20 +164,20 @@ func backfillNotificationUniqueKeyV331(x *xorm.Engine) error {
 		for _, notification := range notifications {
 			lastID = notification.ID
 
-			uniqueKey := uniqueKeyV331(
+			uniqueKey, ok := uniqueKeyV331(
 				notification.Source,
 				notification.RepoID,
 				notification.IssueID,
 				notification.ReleaseID,
 				notification.CommitID,
 			)
-			if uniqueKey == nil {
+			if !ok {
 				continue
 			}
 
 			if _, err := x.Exec(
 				"UPDATE notification SET unique_key = ? WHERE id = ?",
-				*uniqueKey,
+				uniqueKey,
 				notification.ID,
 			); err != nil {
 				return err

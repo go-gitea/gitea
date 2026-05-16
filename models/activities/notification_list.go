@@ -46,7 +46,7 @@ func (opts FindNotificationOptions) ToConds() builder.Cond {
 	if opts.uniqueKey != "" {
 		cond = cond.And(builder.Eq{"notification.unique_key": opts.uniqueKey})
 	}
-	if len(opts.Status) > 0 {
+	if opts.uniqueKey == "" && len(opts.Status) > 0 {
 		if len(opts.Status) == 1 {
 			cond = cond.And(builder.Eq{"notification.status": opts.Status[0]})
 		} else {

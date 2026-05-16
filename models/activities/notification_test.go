@@ -255,7 +255,7 @@ func TestSetCommitReadByScopesToRepo(t *testing.T) {
 	assert.Equal(t, activities_model.NotificationStatusUnread, secondRepoNotification.Status)
 }
 
-func TestCreateRepoTransferNotificationRemainsAppendOnly(t *testing.T) {
+func TestCreateRepoTransferNotificationDeduplicatesByRepo(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 
 	const receiverID = int64(2)
@@ -270,5 +270,8 @@ func TestCreateRepoTransferNotificationRemainsAppendOnly(t *testing.T) {
 		Source: []activities_model.NotificationSource{activities_model.NotificationSourceRepository},
 	})
 	assert.NoError(t, err)
-	assert.Len(t, notfs, 2)
+	if assert.Len(t, notfs, 1) {
+		assert.Equal(t, activities_model.NotificationStatusUnread, notfs[0].Status)
+		assert.EqualValues(t, 3, notfs[0].UpdatedBy)
+	}
 }
