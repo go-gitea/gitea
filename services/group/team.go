@@ -76,7 +76,7 @@ func AddTeamToGroup(ctx context.Context, group *group_model.Group, tname string,
 	}
 	if isNew {
 		for unitName, unitPerm := range unitMap {
-			err = UpdateOrCreateGroupUnit(ctx, true, group, t, unit.Units[unit.TypeFromKey(unitName)], perm.ParseAccessMode(unitPerm))
+			err = UpdateOrCreateGroupUnit(ctx, group, t, unit.Units[unit.TypeFromKey(unitName)], perm.ParseAccessMode(unitPerm))
 			if err != nil {
 				return err
 			}
@@ -223,10 +223,25 @@ func RecalculateGroupAccess(ctx context.Context, g *group_model.Group, isNew boo
 	return committer.Commit()
 }
 
-func UpdateOrCreateGroupUnit(ctx context.Context, isNew bool, group *group_model.Group, team *org_model.Team, unit unit.Unit, mode perm.AccessMode) error {
+func UpdateOrCreateGroupUnit(ctx context.Context, group *group_model.Group, team *org_model.Team, unit unit.Unit, mode perm.AccessMode) error {
 	sess := db.GetEngine(ctx)
+	isNew := false
+	gt, err := group_model.FindGroupTeamByTeamID(ctx, group.ID, team.ID)
+	if err != nil {
+		return err
+	}
+	if err = gt.LoadGroupUnits(ctx); err != nil {
+		return err
+	}
+	if gt == nil {
+		isNew = true
+	} else {
+		_, ex := gt.UnitAccessModeEx(ctx, unit.Type)
+		isNew = !ex
+	}
+
 	if isNew {
-		if _, err := sess.Table("repo_group_unit").MustCols("access_mode").Insert(&group_model.RepoGroupUnit{
+		if _, err = sess.Table("repo_group_unit").MustCols("access_mode").Insert(&group_model.RepoGroupUnit{
 			Type:       unit.Type,
 			TeamID:     team.ID,
 			GroupID:    group.ID,
@@ -235,7 +250,7 @@ func UpdateOrCreateGroupUnit(ctx context.Context, isNew bool, group *group_model
 			return err
 		}
 	} else {
-		if _, err := sess.Table("repo_group_unit").Where(builder.Eq{
+		if _, err = sess.Table("repo_group_unit").Where(builder.Eq{
 			"type":     unit.Type,
 			"team_id":  team.ID,
 			"group_id": group.ID,
