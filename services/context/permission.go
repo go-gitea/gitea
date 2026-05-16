@@ -25,7 +25,7 @@ func CheckTokenScopes(ctx *Context, repo *repo_model.Repository, scopes ...auth_
 
 	publicOnly, err := scope.PublicOnly()
 	if err != nil {
-		ctx.ServerError("HasScope", err)
+		ctx.ServerError("PublicOnly", err)
 		return
 	}
 
@@ -36,7 +36,7 @@ func CheckTokenScopes(ctx *Context, repo *repo_model.Repository, scopes ...auth_
 
 	scopeMatched, err := scope.HasAnyScope(scopes...)
 	if err != nil {
-		ctx.ServerError("HasScope", err)
+		ctx.ServerError("HasAnyScope", err)
 		return
 	}
 

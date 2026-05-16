@@ -28,12 +28,12 @@ import (
 )
 
 type attachmentScopeCase struct {
-	name                string
-	url                 string
-	readIssueStatus     int
-	readRepoStatus      int
-	publicOnlyIssueStat int
-	publicOnlyRepoStat  int
+	name                  string
+	url                   string
+	readIssueStatus       int
+	readRepoStatus        int
+	publicOnlyIssueStatus int
+	publicOnlyRepoStatus  int
 }
 
 func testGeneratePngBytes() []byte {
@@ -230,80 +230,80 @@ func TestAttachmentTokenScopes(t *testing.T) {
 	publicOnlyIssueToken := getUserToken(t, "user2", auth_model.AccessTokenScopeReadIssue, auth_model.AccessTokenScopePublicOnly)
 	publicOnlyRepoToken := getUserToken(t, "user2", auth_model.AccessTokenScopeReadRepository, auth_model.AccessTokenScopePublicOnly)
 
-	tests := []attachmentScopeCase{
+	cases := []attachmentScopeCase{
 		{
-			name:                "GlobalPublicIssueAttachment",
-			url:                 "/attachments/a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11",
-			readIssueStatus:     http.StatusOK,
-			readRepoStatus:      http.StatusForbidden,
-			publicOnlyIssueStat: http.StatusOK,
-			publicOnlyRepoStat:  http.StatusForbidden,
+			name:                  "GlobalPublicIssueAttachment",
+			url:                   "/attachments/a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11",
+			readIssueStatus:       http.StatusOK,
+			readRepoStatus:        http.StatusForbidden,
+			publicOnlyIssueStatus: http.StatusOK,
+			publicOnlyRepoStatus:  http.StatusForbidden,
 		},
 		{
-			name:                "RepoPublicIssueAttachment",
-			url:                 "/user2/repo1/attachments/a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11",
-			readIssueStatus:     http.StatusOK,
-			readRepoStatus:      http.StatusForbidden,
-			publicOnlyIssueStat: http.StatusOK,
-			publicOnlyRepoStat:  http.StatusForbidden,
+			name:                  "RepoPublicIssueAttachment",
+			url:                   "/user2/repo1/attachments/a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11",
+			readIssueStatus:       http.StatusOK,
+			readRepoStatus:        http.StatusForbidden,
+			publicOnlyIssueStatus: http.StatusOK,
+			publicOnlyRepoStatus:  http.StatusForbidden,
 		},
 		{
-			name:                "GlobalPrivateIssueAttachment",
-			url:                 "/attachments/a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a12",
-			readIssueStatus:     http.StatusOK,
-			readRepoStatus:      http.StatusForbidden,
-			publicOnlyIssueStat: http.StatusForbidden,
-			publicOnlyRepoStat:  http.StatusForbidden,
+			name:                  "GlobalPrivateIssueAttachment",
+			url:                   "/attachments/a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a12",
+			readIssueStatus:       http.StatusOK,
+			readRepoStatus:        http.StatusForbidden,
+			publicOnlyIssueStatus: http.StatusForbidden,
+			publicOnlyRepoStatus:  http.StatusForbidden,
 		},
 		{
-			name:                "RepoPrivateIssueAttachment",
-			url:                 "/user2/repo2/attachments/a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a12",
-			readIssueStatus:     http.StatusOK,
-			readRepoStatus:      http.StatusForbidden,
-			publicOnlyIssueStat: http.StatusForbidden,
-			publicOnlyRepoStat:  http.StatusForbidden,
+			name:                  "RepoPrivateIssueAttachment",
+			url:                   "/user2/repo2/attachments/a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a12",
+			readIssueStatus:       http.StatusOK,
+			readRepoStatus:        http.StatusForbidden,
+			publicOnlyIssueStatus: http.StatusForbidden,
+			publicOnlyRepoStatus:  http.StatusForbidden,
 		},
 		{
-			name:                "GlobalPublicReleaseAttachment",
-			url:                 "/attachments/a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a19",
-			readIssueStatus:     http.StatusForbidden,
-			readRepoStatus:      http.StatusOK,
-			publicOnlyIssueStat: http.StatusForbidden,
-			publicOnlyRepoStat:  http.StatusOK,
+			name:                  "GlobalPublicReleaseAttachment",
+			url:                   "/attachments/a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a19",
+			readIssueStatus:       http.StatusForbidden,
+			readRepoStatus:        http.StatusOK,
+			publicOnlyIssueStatus: http.StatusForbidden,
+			publicOnlyRepoStatus:  http.StatusOK,
 		},
 		{
-			name:                "RepoPublicReleaseAttachment",
-			url:                 "/user2/repo1/releases/attachments/a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a19",
-			readIssueStatus:     http.StatusForbidden,
-			readRepoStatus:      http.StatusOK,
-			publicOnlyIssueStat: http.StatusForbidden,
-			publicOnlyRepoStat:  http.StatusOK,
+			name:                  "RepoPublicReleaseAttachment",
+			url:                   "/user2/repo1/releases/attachments/a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a19",
+			readIssueStatus:       http.StatusForbidden,
+			readRepoStatus:        http.StatusOK,
+			publicOnlyIssueStatus: http.StatusForbidden,
+			publicOnlyRepoStatus:  http.StatusOK,
 		},
 		{
-			name:                "GlobalPrivateReleaseAttachment",
-			url:                 "/attachments/a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a22",
-			readIssueStatus:     http.StatusForbidden,
-			readRepoStatus:      http.StatusOK,
-			publicOnlyIssueStat: http.StatusForbidden,
-			publicOnlyRepoStat:  http.StatusForbidden,
+			name:                  "GlobalPrivateReleaseAttachment",
+			url:                   "/attachments/a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a22",
+			readIssueStatus:       http.StatusForbidden,
+			readRepoStatus:        http.StatusOK,
+			publicOnlyIssueStatus: http.StatusForbidden,
+			publicOnlyRepoStatus:  http.StatusForbidden,
 		},
 		{
-			name:                "RepoPrivateReleaseAttachment",
-			url:                 "/user2/repo2/releases/attachments/a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a22",
-			readIssueStatus:     http.StatusForbidden,
-			readRepoStatus:      http.StatusOK,
-			publicOnlyIssueStat: http.StatusForbidden,
-			publicOnlyRepoStat:  http.StatusForbidden,
+			name:                  "RepoPrivateReleaseAttachment",
+			url:                   "/user2/repo2/releases/attachments/a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a22",
+			readIssueStatus:       http.StatusForbidden,
+			readRepoStatus:        http.StatusOK,
+			publicOnlyIssueStatus: http.StatusForbidden,
+			publicOnlyRepoStatus:  http.StatusForbidden,
 		},
 	}
 
-	for _, tc := range tests {
+	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
 			MakeRequest(t, NewRequest(t, "GET", tc.url).AddTokenAuth(miscToken), http.StatusForbidden)
 			MakeRequest(t, NewRequest(t, "GET", tc.url).AddTokenAuth(readIssueToken), tc.readIssueStatus)
 			MakeRequest(t, NewRequest(t, "GET", tc.url).AddTokenAuth(readRepoToken), tc.readRepoStatus)
-			MakeRequest(t, NewRequest(t, "GET", tc.url).AddTokenAuth(publicOnlyIssueToken), tc.publicOnlyIssueStat)
-			MakeRequest(t, NewRequest(t, "GET", tc.url).AddTokenAuth(publicOnlyRepoToken), tc.publicOnlyRepoStat)
+			MakeRequest(t, NewRequest(t, "GET", tc.url).AddTokenAuth(publicOnlyIssueToken), tc.publicOnlyIssueStatus)
+			MakeRequest(t, NewRequest(t, "GET", tc.url).AddTokenAuth(publicOnlyRepoToken), tc.publicOnlyRepoStatus)
 		})
 	}
 }
