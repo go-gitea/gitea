@@ -32,6 +32,7 @@ import (
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/storage"
+	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/services/context"
 
 	"github.com/golang-jwt/jwt/v5"
@@ -604,6 +605,18 @@ func handleLFSToken(ctx stdCtx.Context, tokenSHA string, target *repo_model.Repo
 	if err != nil {
 		log.Error("Unable to GetUserById[%d]: Error: %v", claims.UserID, err)
 		return nil, err
+	}
+	if !u.IsActive || u.ProhibitLogin {
+		return nil, util.NewPermissionDeniedErrorf("not allowed to access any repository")
+	}
+
+	perm, err := access_model.GetDoerRepoPermission(ctx, target, u)
+	if err != nil {
+		log.Error("Unable to GetDoerRepoPermission for user[%d] repo[%d]: %v", claims.UserID, target.ID, err)
+		return nil, err
+	}
+	if !perm.CanAccess(mode, unit.TypeCode) {
+		return nil, util.NewPermissionDeniedErrorf("no permission to access the repository")
 	}
 	return u, nil
 }
