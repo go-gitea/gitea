@@ -174,3 +174,24 @@ func GetNearestAncestorWithTeam(ctx context.Context, groupID, teamID int64) (*Re
 	}
 	return rgt, nil
 }
+
+// FindNearestAncestorTeamsWithUser returns the RepoGroupTeam structs that a user can access in the specified group.
+// if not found, it then traverses the parents of `groupID` until it finds one or more teams which can be accessed by the user
+func FindNearestAncestorTeamsWithUser(ctx context.Context, groupID, userID int64) ([]*RepoGroupTeam, error) {
+	var groupTeams []*RepoGroupTeam
+	groups, err := GetParentGroupIDChain(ctx, groupID)
+	if err != nil {
+		return nil, err
+	}
+	for i := len(groups) - 1; i >= 0; i-- {
+		gid := groups[i]
+		groupTeams, err = FindUserGroupTeams(ctx, gid, userID)
+		if err != nil {
+			return nil, err
+		}
+		if len(groupTeams) > 0 {
+			return groupTeams, nil
+		}
+	}
+	return groupTeams, nil
+}
