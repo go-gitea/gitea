@@ -36,7 +36,7 @@ const (
 
 // MustEnableProjects checks whether user/org projects are enabled in settings.
 func MustEnableProjects(ctx *context.Context) {
-	if !setting.Project.EnableUserOrgProjects {
+	if setting.Admin.UserDisabledFeatures.Contains(setting.UserFeatureProjects) {
 		ctx.NotFound(nil)
 		return
 	}

@@ -24,6 +24,7 @@ var validUserFeatures = container.SetOf(
 	UserFeatureManageCredentials,
 	UserFeatureChangeUsername,
 	UserFeatureChangeFullName,
+	UserFeatureProjects,
 )
 
 func loadAdminFrom(rootCfg ConfigProvider) {
@@ -53,4 +54,5 @@ const (
 	UserFeatureManageCredentials = "manage_credentials"
 	UserFeatureChangeUsername    = "change_username"
 	UserFeatureChangeFullName    = "change_full_name"
+	UserFeatureProjects          = "projects"
 )

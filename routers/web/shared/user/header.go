@@ -141,7 +141,7 @@ const (
 
 func RenderUserOrgHeader(ctx *context.Context) (result *PrepareOwnerHeaderResult, err error) {
 	ctx.Data["IsPackageEnabled"] = setting.Packages.Enabled
-	ctx.Data["IsProjectsEnabled"] = setting.Project.EnableUserOrgProjects
+	ctx.Data["IsProjectsEnabled"] = !setting.Admin.UserDisabledFeatures.Contains(setting.UserFeatureProjects)
 	ctx.Data["IsRepoIndexerEnabled"] = setting.Indexer.RepoIndexerEnabled
 	ctx.Data["EnableFeed"] = setting.Other.EnableFeed
 	ctx.Data["FeedURL"] = ctx.ContextUser.HomeLink()
@@ -178,7 +178,7 @@ func loadHeaderCount(ctx *context.Context) error {
 	ctx.Data["RepoCount"] = repoCount
 
 	projectCount := int64(0)
-	if setting.Project.EnableUserOrgProjects {
+	if !setting.Admin.UserDisabledFeatures.Contains(setting.UserFeatureProjects) {
 		var projectType project_model.Type
 		if ctx.ContextUser.IsOrganization() {
 			projectType = project_model.TypeOrganization

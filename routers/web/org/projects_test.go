@@ -8,6 +8,7 @@ import (
 	"testing"
 
 	"code.gitea.io/gitea/models/unittest"
+	"code.gitea.io/gitea/modules/container"
 	"code.gitea.io/gitea/modules/setting"
 	test "code.gitea.io/gitea/modules/test"
 	"code.gitea.io/gitea/modules/web"
@@ -61,7 +62,7 @@ func TestAddColumnToProjectPostRejectsForeignProjects(t *testing.T) {
 
 func TestMustEnableProjectsDisabled(t *testing.T) {
 	unittest.PrepareTestEnv(t)
-	defer test.MockVariableValue(&setting.Project.EnableUserOrgProjects, false)()
+	defer test.MockVariableValue(&setting.Admin.UserDisabledFeatures, container.SetOf(setting.UserFeatureProjects))()
 
 	ctx, _ := contexttest.MockContext(t, "user2/-/projects")
 
