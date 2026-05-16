@@ -76,7 +76,7 @@ func (opts *SearchTeamOptions) toCond() builder.Cond {
 		if opts.IncludeVisible {
 			cond = cond.And(builder.Or(
 				builder.Eq{"team_user.uid": opts.UserID},
-				builder.Eq{"`team`.privacy": TeamPrivacyClosed},
+				builder.Eq{"`team`.team_privacy": TeamPrivacyClosed},
 			))
 		} else {
 			cond = cond.And(builder.Eq{"team_user.uid": opts.UserID})
@@ -127,21 +127,6 @@ func GetUserOrgTeams(ctx context.Context, orgID, userID int64) (teams TeamList, 
 		Join("INNER", "team_user", "team_user.team_id = team.id").
 		Where("team.org_id = ?", orgID).
 		And("team_user.uid=?", userID).
-		Find(&teams)
-}
-
-// GetUserOrgVisibleTeams returns all teams in the given organization that the
-// user can see: teams the user is a member of, plus teams whose privacy is
-// "closed" (i.e. visible to all org members).
-func GetUserOrgVisibleTeams(ctx context.Context, orgID, userID int64) (teams TeamList, err error) {
-	return teams, db.GetEngine(ctx).
-		Join("LEFT", "team_user", "team_user.team_id = team.id AND team_user.uid = ?", userID).
-		Where("team.org_id = ?", orgID).
-		And(builder.Or(
-			builder.Eq{"team_user.uid": userID},
-			builder.Eq{"`team`.privacy": TeamPrivacyClosed},
-		)).
-		OrderBy("CASE WHEN name=? THEN '' ELSE lower_name END", OwnerTeamName).
 		Find(&teams)
 }
 

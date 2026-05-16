@@ -172,7 +172,7 @@ func TestGetUserOrgTeams(t *testing.T) {
 	test(3, unittest.NonexistentID)
 }
 
-func TestGetUserOrgVisibleTeams(t *testing.T) {
+func TestSearchTeamIncludeVisible(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 
 	const orgID int64 = 3
@@ -191,7 +191,11 @@ func TestGetUserOrgVisibleTeams(t *testing.T) {
 		_, _ = db.GetEngine(t.Context()).ID(visible.ID).Delete(&organization.Team{})
 	})
 
-	teams, err := organization.GetUserOrgVisibleTeams(t.Context(), orgID, 2)
+	teams, _, err := organization.SearchTeam(t.Context(), &organization.SearchTeamOptions{
+		OrgID:          orgID,
+		UserID:         2,
+		IncludeVisible: true,
+	})
 	assert.NoError(t, err)
 	ids := make(map[int64]bool, len(teams))
 	for _, team := range teams {
@@ -204,7 +208,11 @@ func TestGetUserOrgVisibleTeams(t *testing.T) {
 	assert.True(t, ids[visible.ID], "expected to see visible team")
 
 	// user 5 is only an org member in team 1, must not see secret team 2 but must see the visible one.
-	teams, err = organization.GetUserOrgVisibleTeams(t.Context(), orgID, 5)
+	teams, _, err = organization.SearchTeam(t.Context(), &organization.SearchTeamOptions{
+		OrgID:          orgID,
+		UserID:         5,
+		IncludeVisible: true,
+	})
 	assert.NoError(t, err)
 	ids = make(map[int64]bool, len(teams))
 	for _, team := range teams {

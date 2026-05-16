@@ -6,7 +6,7 @@ package v1_27
 import "xorm.io/xorm"
 
 type teamWithPrivacy struct {
-	Privacy string `xorm:"VARCHAR(16) NOT NULL DEFAULT 'secret'"`
+	TeamPrivacy string `xorm:"VARCHAR(16) NOT NULL DEFAULT 'secret'"`
 }
 
 func (teamWithPrivacy) TableName() string {
@@ -22,6 +22,6 @@ func AddPrivacyToTeam(x *xorm.Engine) error {
 
 	// Owner teams must remain listable to all org members; new orgs create
 	// them as "closed", so make existing owner teams closed too.
-	_, err := x.Exec("UPDATE `team` SET privacy = ? WHERE lower_name = ?", "closed", "owners")
+	_, err := x.Exec("UPDATE `team` SET team_privacy = ? WHERE lower_name = ?", "closed", "owners")
 	return err
 }

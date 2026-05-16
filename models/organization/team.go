@@ -92,7 +92,7 @@ type Team struct {
 	Units                   []*TeamUnit `xorm:"-"`
 	IncludesAllRepositories bool        `xorm:"NOT NULL DEFAULT false"`
 	CanCreateOrgRepo        bool        `xorm:"NOT NULL DEFAULT false"`
-	Privacy                 string      `xorm:"VARCHAR(16) NOT NULL DEFAULT 'secret'"`
+	Privacy                 string      `xorm:"'team_privacy' VARCHAR(16) NOT NULL DEFAULT 'secret'"`
 }
 
 // IsVisible reports whether the team can be listed by org members who are not

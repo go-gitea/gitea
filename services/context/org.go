@@ -187,10 +187,13 @@ func OrgAssignment(orgAssignmentOpts OrgAssignmentOptions) func(ctx *Context) {
 					return
 				}
 			} else {
-				// Org members see their own teams plus any team marked visible.
-				ctx.Org.Teams, err = organization.GetUserOrgVisibleTeams(ctx, org.ID, ctx.Doer.ID)
+				ctx.Org.Teams, _, err = organization.SearchTeam(ctx, &organization.SearchTeamOptions{
+					OrgID:          org.ID,
+					UserID:         ctx.Doer.ID,
+					IncludeVisible: true,
+				})
 				if err != nil {
-					ctx.ServerError("GetUserOrgVisibleTeams", err)
+					ctx.ServerError("SearchTeam", err)
 					return
 				}
 			}
@@ -214,13 +217,15 @@ func OrgAssignment(orgAssignmentOpts OrgAssignmentOptions) func(ctx *Context) {
 				return
 			}
 
-			// ctx.Org.Teams may include "closed" (visible) teams the user is not a
-			// member of, so derive IsTeamMember from an actual membership check
-			// rather than the team's presence in the list.
-			ctx.Org.IsTeamMember, err = organization.IsTeamMember(ctx, org.ID, ctx.Org.Team.ID, ctx.Doer.ID)
-			if err != nil {
-				ctx.ServerError("IsTeamMember", err)
-				return
+			// Membership in a visible team is not implied by its presence in
+			// ctx.Org.Teams; admins/org owners keep the privileged flag set
+			// earlier in this function.
+			if !ctx.Org.IsOwner {
+				ctx.Org.IsTeamMember, err = organization.IsTeamMember(ctx, org.ID, ctx.Org.Team.ID, ctx.Doer.ID)
+				if err != nil {
+					ctx.ServerError("IsTeamMember", err)
+					return
+				}
 			}
 			ctx.Data["IsTeamMember"] = ctx.Org.IsTeamMember
 			if opts.RequireTeamMember && !ctx.Org.IsTeamMember {

@@ -27,9 +27,12 @@ import (
 	repo_service "code.gitea.io/gitea/services/repository"
 )
 
-// applyTeamVisibilityFilter restricts opts so the caller only receives teams
-// they are entitled to see: site admins and org owners see every team; other
-// org members see their own teams plus teams marked visible.
+// applyTeamVisibilityFilter narrows opts to the set of teams the caller is
+// entitled to see. Privileged callers (site admins and org owners) are left
+// unfiltered — they already see every team in the org. Other org members are
+// restricted to teams they belong to plus teams marked visible to all org
+// members (UserID + IncludeVisible together express that union in
+// SearchTeamOptions).
 func applyTeamVisibilityFilter(ctx *context.APIContext, opts *organization.SearchTeamOptions) error {
 	if ctx.Doer.IsAdmin {
 		return nil
