@@ -5,13 +5,16 @@ package v1_27
 
 import "xorm.io/xorm"
 
-func AddCancellingSupportToActionRunner(x *xorm.Engine) error {
-	type ActionRunner struct {
-		HasCancellingSupport bool `xorm:"has_cancelling_support NOT NULL DEFAULT false"`
+func AddBranchProtectionBypassAllowlist(x *xorm.Engine) error {
+	type ProtectedBranch struct {
+		EnableBypassAllowlist  bool    `xorm:"NOT NULL DEFAULT false"`
+		BypassAllowlistUserIDs []int64 `xorm:"JSON TEXT"`
+		BypassAllowlistTeamIDs []int64 `xorm:"JSON TEXT"`
 	}
 
 	_, err := x.SyncWithOptions(xorm.SyncOptions{
-		IgnoreDropIndices: true,
-	}, new(ActionRunner))
+		IgnoreConstrains: true,
+		IgnoreIndices:    true,
+	}, new(ProtectedBranch))
 	return err
 }
