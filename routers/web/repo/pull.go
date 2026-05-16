@@ -280,9 +280,9 @@ type pullMergeBoxData struct {
 	CanMergeNow            bool // PR is mergeable, either no blocker, or doer is admin and can bypass the blockers
 	allowMerge             bool // doer has permission to merge
 
-	ShowUpdatePullInfo    bool
-	UpdateAllowed         bool
-	UpdateByRebaseAllowed bool
+	ShowUpdatePullInfo  bool
+	UpdatePrimaryAction *pullUpdateAction
+	UpdateStyleOptions  []*pullUpdateAction
 
 	MergeFormProps        map[string]any
 	ShowPullCommands      bool
@@ -306,6 +306,12 @@ type pullMergeBoxData struct {
 	infoMergePrompts       pullMergeBoxInfoItemCollection
 
 	InfoSections []*pullInfoSection
+}
+
+type pullUpdateAction struct {
+	URL      string
+	Text     template.HTML
+	Selected bool
 }
 
 // pullRequestViewInfo is a structured type for viewing pull request
@@ -957,8 +963,6 @@ func UpdatePullRequest(ctx *context.Context) {
 		return
 	}
 
-	rebase := ctx.FormString("style") == "rebase"
-
 	if err := issue.PullRequest.LoadBaseRepo(ctx); err != nil {
 		ctx.ServerError("LoadBaseRepo", err)
 		return
@@ -968,13 +972,14 @@ func UpdatePullRequest(ctx *context.Context) {
 		return
 	}
 
-	allowedUpdateByMerge, allowedUpdateByRebase, err := pull_service.IsUserAllowedToUpdate(ctx, issue.PullRequest, ctx.Doer)
+	userUpdateStyles, err := pull_service.CheckUserAllowedToUpdate(ctx, issue.PullRequest, ctx.Doer)
 	if err != nil {
 		ctx.ServerError("IsUserAllowedToMerge", err)
 		return
 	}
 
-	if (!allowedUpdateByMerge && !rebase) || (rebase && !allowedUpdateByRebase) {
+	rebase := ctx.FormString("style", string(userUpdateStyles.DefaultUpdateStyle)) == string(repo_model.UpdateStyleRebase)
+	if (rebase && !userUpdateStyles.RebaseAllowed) || (!rebase && !userUpdateStyles.MergeAllowed) {
 		ctx.JSONError(ctx.Tr("repo.pulls.update_not_allowed"))
 		return
 	}

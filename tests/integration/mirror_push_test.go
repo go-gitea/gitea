@@ -17,6 +17,7 @@ import (
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/gitrepo"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/test"
 	"code.gitea.io/gitea/services/migrations"
 	mirror_service "code.gitea.io/gitea/services/mirror"
 	repo_service "code.gitea.io/gitea/services/repository"
@@ -35,7 +36,7 @@ func TestMirrorPushWikiDefaultBranchMismatch(t *testing.T) {
 }
 
 func testMirrorPush(t *testing.T, u *url.URL) {
-	setting.Migrations.AllowLocalNetworks = true
+	defer test.MockVariableValue(&setting.Migrations.AllowLocalNetworks, true)()
 	assert.NoError(t, migrations.Init())
 
 	_ = db.TruncateBeans(t.Context(), &repo_model.PushMirror{})
@@ -83,7 +84,7 @@ func testMirrorPush(t *testing.T, u *url.URL) {
 }
 
 func testMirrorPushWikiDefaultBranchMismatch(t *testing.T, u *url.URL) {
-	setting.Migrations.AllowLocalNetworks = true
+	defer test.MockVariableValue(&setting.Migrations.AllowLocalNetworks, true)()
 	assert.NoError(t, migrations.Init())
 
 	_ = db.TruncateBeans(t.Context(), &repo_model.PushMirror{})
@@ -154,7 +155,7 @@ func doUpdatePushMirror(t *testing.T, session *TestSession, owner, repo string, 
 
 func TestRepoSettingPushMirrorUpdate(t *testing.T) {
 	defer tests.PrepareTestEnv(t)()
-	setting.Migrations.AllowLocalNetworks = true
+	defer test.MockVariableValue(&setting.Migrations.AllowLocalNetworks, true)()
 	assert.NoError(t, migrations.Init())
 
 	session := loginUser(t, "user2")
