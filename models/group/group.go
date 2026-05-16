@@ -154,9 +154,13 @@ func (g *Group) CanAccessUnitAtLevel(ctx context.Context, user *user_model.User,
 			return true, nil
 		}
 	}
-	orCond := builder.Or(AccessibleGroupCondition(user, u, level))
-	if level == perm.AccessModeRead {
-		orCond = orCond.Or(builder.Eq{"`repo_group`.visibility": structs.VisibleTypePublic})
+	orCond := builder.Or(AccessibleGroupCondition(user, u, level, true))
+	isMember, err := g.IsMemberOf(ctx, user)
+	if err != nil {
+		return false, err
+	}
+	if level == perm.AccessModeRead && !isMember {
+		orCond = orCond.And(builder.Eq{"`repo_group`.visibility": structs.VisibleTypePublic})
 	}
 	return db.GetEngine(ctx).Table(g.TableName()).Where(builder.And(builder.Eq{"`repo_group`.id": g.ID}, orCond)).Exist()
 }
