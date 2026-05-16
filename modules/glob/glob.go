@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"regexp"
 	"slices"
+	"strings"
 
 	"code.gitea.io/gitea/modules/util"
 )
@@ -35,10 +36,11 @@ type globCompiler struct {
 
 // compileChars compiles character class patterns like [abc] or [!abc]
 func (g *globCompiler) compileChars() (string, error) {
-	result := ""
+	var result strings.Builder
+	result.WriteByte('[')
 	if g.pos < len(g.globPattern) && g.globPattern[g.pos] == '!' {
 		g.pos++
-		result += "^"
+		result.WriteByte('^')
 	}
 
 	for g.pos < len(g.globPattern) {
@@ -46,17 +48,19 @@ func (g *globCompiler) compileChars() (string, error) {
 		g.pos++
 
 		if c == ']' {
-			return "[" + result + "]", nil
+			result.WriteByte(']')
+			return result.String(), nil
 		}
 
 		if c == '\\' {
 			if g.pos >= len(g.globPattern) {
 				return "", errors.New("unterminated character class escape")
 			}
-			result += "\\" + string(g.globPattern[g.pos])
+			result.WriteByte('\\')
+			result.WriteRune(g.globPattern[g.pos])
 			g.pos++
 		} else {
-			result += string(c)
+			result.WriteRune(c)
 		}
 	}
 
@@ -65,14 +69,19 @@ func (g *globCompiler) compileChars() (string, error) {
 
 // compile compiles the glob pattern into a regular expression
 func (g *globCompiler) compile(subPattern bool) (string, error) {
-	result := ""
+	var result strings.Builder
 
 	for g.pos < len(g.globPattern) {
 		c := g.globPattern[g.pos]
 		g.pos++
 
 		if subPattern && c == '}' {
-			return "(" + result + ")", nil
+			var wrapped strings.Builder
+			wrapped.Grow(result.Len() + 2)
+			wrapped.WriteByte('(')
+			wrapped.WriteString(result.String())
+			wrapped.WriteByte(')')
+			return wrapped.String(), nil
 		}
 
 		switch c {
@@ -95,54 +104,58 @@ func (g *globCompiler) compile(subPattern bool) (string, error) {
 				} else {
 					g.pos++
 				}
-				result += ".*" // match any sequence of characters
+				result.WriteString(".*") // match any sequence of characters
 			} else {
-				result += g.nonSeparatorChars + "*" // match any sequence of non-separator characters
+				result.WriteString(g.nonSeparatorChars)
+				result.WriteByte('*') // match any sequence of non-separator characters
 			}
 		case '?':
 			if g.regexpQuestion {
-				result += "?"
+				result.WriteByte('?')
 			} else {
-				result += g.nonSeparatorChars // match any single non-separator character
+				result.WriteString(g.nonSeparatorChars) // match any single non-separator character
 			}
 		case '+':
 			if g.regexpPlus {
-				result += "+"
+				result.WriteByte('+')
 			} else {
-				result += "\\" + string(c)
+				result.WriteByte('\\')
+				result.WriteRune(c)
 			}
 		case '[':
 			chars, err := g.compileChars()
 			if err != nil {
 				return "", err
 			}
-			result += chars
+			result.WriteString(chars)
 		case '{':
 			subResult, err := g.compile(true)
 			if err != nil {
 				return "", err
 			}
-			result += subResult
+			result.WriteString(subResult)
 		case ',':
 			if subPattern {
-				result += "|"
+				result.WriteByte('|')
 			} else {
-				result += ","
+				result.WriteByte(',')
 			}
 		case '\\':
 			if g.pos >= len(g.globPattern) {
 				return "", errors.New("no character to escape")
 			}
-			result += "\\" + string(g.globPattern[g.pos])
+			result.WriteByte('\\')
+			result.WriteRune(g.globPattern[g.pos])
 			g.pos++
 		case '.', '^', '$', '(', ')', '|':
-			result += "\\" + string(c) // escape regexp special characters
+			result.WriteByte('\\')
+			result.WriteRune(c) // escape regexp special characters
 		default:
-			result += string(c)
+			result.WriteRune(c)
 		}
 	}
 
-	return result, nil
+	return result.String(), nil
 }
 
 func initGlobCompiler(g *globCompiler, pattern string, separators []rune) (Glob, error) {
@@ -167,7 +180,12 @@ func initGlobCompiler(g *globCompiler, pattern string, separators []rune) (Glob,
 		return nil, err
 	}
 
-	g.regexpPattern = "^" + compiled + "$"
+	var regexpPattern strings.Builder
+	regexpPattern.Grow(len(compiled) + 2)
+	regexpPattern.WriteByte('^')
+	regexpPattern.WriteString(compiled)
+	regexpPattern.WriteByte('$')
+	g.regexpPattern = regexpPattern.String()
 
 	regex, err := regexp.Compile(g.regexpPattern)
 	if err != nil {
