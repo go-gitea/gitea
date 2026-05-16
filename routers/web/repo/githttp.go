@@ -22,7 +22,6 @@ import (
 	access_model "code.gitea.io/gitea/models/perm/access"
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unit"
-	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/git/gitcmd"
 	"code.gitea.io/gitea/modules/gitrepo"
@@ -181,34 +180,20 @@ func httpBase(ctx *context.Context, optGitService ...string) *serviceHandler {
 		}
 
 		if repoExist {
-			// Because of special ref "refs/for" (agit) , need delay write permission check
-			if git.DefaultFeatures().SupportProcReceive {
+			// Only the main code repo accepts refs/for pushes, so wiki pushes must keep write checks.
+			if git.DefaultFeatures().SupportProcReceive && !isWiki {
 				accessMode = perm.AccessModeRead
 			}
 
-			taskID, isActionsUser := user_model.GetActionsUserTaskID(ctx.Doer)
-			if isActionsUser {
-				p, err := access_model.GetActionsUserRepoPermission(ctx, repo, ctx.Doer, taskID)
-				if err != nil {
-					ctx.ServerError("GetActionsUserRepoPermission", err)
-					return nil
-				}
+			p, err := access_model.GetDoerRepoPermission(ctx, repo, ctx.Doer)
+			if err != nil {
+				ctx.ServerError("GetDoerRepoPermission", err)
+				return nil
+			}
 
-				if !p.CanAccess(accessMode, unitType) {
-					ctx.PlainText(http.StatusNotFound, "Repository not found")
-					return nil
-				}
-			} else {
-				p, err := access_model.GetUserRepoPermission(ctx, repo, ctx.Doer)
-				if err != nil {
-					ctx.ServerError("GetUserRepoPermission", err)
-					return nil
-				}
-
-				if !p.CanAccess(accessMode, unitType) {
-					ctx.PlainText(http.StatusNotFound, "Repository not found")
-					return nil
-				}
+			if !p.CanAccess(accessMode, unitType) {
+				ctx.PlainText(http.StatusNotFound, "Repository not found")
+				return nil
 			}
 
 			if !isPull && repo.IsMirror {

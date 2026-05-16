@@ -8,7 +8,6 @@
 [![](https://www.codetriage.com/go-gitea/gitea/badges/users.svg)](https://www.codetriage.com/go-gitea/gitea "Help Contribute to Open Source")
 [![](https://opencollective.com/gitea/tiers/backers/badge.svg?label=backers&color=brightgreen)](https://opencollective.com/gitea "Become a backer/sponsor of gitea")
 [![](https://img.shields.io/badge/License-MIT-blue.svg)](https://opensource.org/licenses/MIT "License: MIT")
-[![Contribute with Gitpod](https://img.shields.io/badge/Contribute%20with-Gitpod-908a85?logo=gitpod&color=green)](https://gitpod.io/#https://github.com/go-gitea/gitea)
 [![](https://badges.crowdin.net/gitea/localized.svg)](https://translate.gitea.com "Crowdin")
 
 [繁體中文](./README.zh-tw.md) | [简体中文](./README.zh-cn.md)
@@ -44,10 +43,6 @@ If you have any suggestions or would like to contribute to it, you can visit the
 From the root of the source tree, run:
 
     TAGS="bindata" make build
-
-or if SQLite support is required:
-
-    TAGS="bindata sqlite sqlite_unlock_notify" make build
 
 The `build` target is split into two sub-targets:
 

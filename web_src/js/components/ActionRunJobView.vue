@@ -1,14 +1,14 @@
 <script setup lang="ts">
 import {nextTick, onBeforeUnmount, onMounted, ref, toRefs, watch} from 'vue';
 import {SvgIcon} from '../svg.ts';
-import ActionRunStatus from './ActionRunStatus.vue';
+import ActionStatusIcon from './ActionStatusIcon.vue';
 import {addDelegatedEventListener, createElementFromAttrs, toggleElem} from '../utils/dom.ts';
 import {formatDatetime} from '../utils/time.ts';
 import {POST} from '../modules/fetch.ts';
 import type {IntervalId} from '../types.ts';
 import {toggleFullScreen} from '../utils.ts';
 import {localUserSettings} from '../modules/user-settings.ts';
-import type {ActionsArtifact, ActionsRun, ActionsRunStatus} from '../modules/gitea-actions.ts';
+import type {ActionsArtifact, ActionsRun, ActionsStatus} from '../modules/gitea-actions.ts';
 import {
   type ActionRunViewStore,
   createLogLineMessage,
@@ -26,7 +26,7 @@ function isLogElementInViewport(el: Element, {extraViewPortHeight}={extraViewPor
 type Step = {
   summary: string,
   duration: string,
-  status: ActionsRunStatus,
+  status: ActionsStatus,
 }
 
 type JobStepState = {
@@ -77,9 +77,8 @@ defineOptions({
 
 const props = defineProps<{
   store: ActionRunViewStore,
-  runId: number;
   jobId: number;
-  actionsUrl: string;
+  actionsViewUrl: string;
   locale: Record<string, any>;
 }>();
 const store = props.store;
@@ -197,10 +196,9 @@ function beginLogGroup(stepIndex: number, startTime: number, line: LogLine, cmd:
 }
 
 // end a log group
-function endLogGroup(stepIndex: number, startTime: number, line: LogLine, cmd: LogLineCommand) {
+function endLogGroup(stepIndex: number) {
   const el = getJobStepLogsContainer(stepIndex);
   el._stepLogsActiveContainer = undefined;
-  el.append(createLogLine(stepIndex, startTime, line, cmd));
 }
 
 // show/hide the step logs for a step
@@ -229,7 +227,8 @@ function createLogLine(stepIndex: number, startTime: number, line: LogLine, cmd:
   toggleElem(logTimeStamp, timeVisible.value['log-time-stamp']);
   toggleElem(logTimeSeconds, timeVisible.value['log-time-seconds']);
 
-  return createElementFromAttrs('div', {id: `jobstep-${stepIndex}-${line.index}`, class: 'job-log-line'},
+  const lineClass = cmd?.name ? `job-log-line log-line-${cmd.name}` : 'job-log-line';
+  return createElementFromAttrs('div', {id: `jobstep-${stepIndex}-${line.index}`, class: lineClass},
     lineNum, logTimeStamp, logMsg, logTimeSeconds,
   );
 }
@@ -253,7 +252,7 @@ function appendLogs(stepIndex: number, startTime: number, logLines: LogLine[]) {
         beginLogGroup(stepIndex, startTime, line, cmd);
         continue;
       case 'endgroup':
-        endLogGroup(stepIndex, startTime, line, cmd);
+        endLogGroup(stepIndex);
         continue;
     }
     // the active logs container may change during the loop, for example: entering and leaving a group
@@ -269,8 +268,7 @@ async function fetchJobData(abortController: AbortController): Promise<JobData> 
     // for example: make cursor=null means the first time to fetch logs, cursor=eof means no more logs, etc
     return {step: idx, cursor: it.cursor, expanded: it.expanded};
   });
-  const url = `${props.actionsUrl}/runs/${props.runId}/jobs/${props.jobId}`;
-  const resp = await POST(url, {
+  const resp = await POST(props.actionsViewUrl, {
     signal: abortController.signal,
     data: {logCursors},
   });
@@ -354,11 +352,11 @@ async function loadJob() {
   }
 }
 
-function isDone(status: ActionsRunStatus) {
+function isDone(status: ActionsStatus) {
   return ['success', 'skipped', 'failure', 'cancelled'].includes(status);
 }
 
-function isExpandable(status: ActionsRunStatus) {
+function isExpandable(status: ActionsStatus) {
   return ['success', 'running', 'failure', 'cancelled'].includes(status);
 }
 
@@ -380,7 +378,7 @@ function toggleTimeDisplay(type: 'seconds' | 'stamp') {
 
 function toggleFullScreenMode() {
   isFullScreen.value = !isFullScreen.value;
-  toggleFullScreen('.action-view-right', isFullScreen.value, '.action-view-body');
+  toggleFullScreen(document.querySelector('.action-view-right')!, isFullScreen.value, '.action-view-body');
 }
 
 async function hashChangeListener() {
@@ -468,7 +466,7 @@ async function hashChangeListener() {
           :name="currentJobStepsStates[stepIdx].expanded ? 'octicon-chevron-down' : 'octicon-chevron-right'"
           :class="['tw-mr-2', !isExpandable(jobStep.status) && 'tw-invisible']"
         />
-        <ActionRunStatus :status="jobStep.status" class="tw-mr-2"/>
+        <ActionStatusIcon :status="jobStep.status" icon-variant="circle-fill" class="tw-mr-2"/>
         <span class="step-summary-msg gt-ellipsis">{{ jobStep.summary }}</span>
         <span class="step-summary-duration">{{ jobStep.duration }}</span>
       </div>
@@ -641,12 +639,49 @@ async function hashChangeListener() {
   overflow-wrap: anywhere;
 }
 
+.job-step-logs .log-msg a {
+  color: var(--color-console-link) !important;
+  text-decoration: underline;
+}
+
 .job-step-logs .job-log-line .log-cmd-command {
   color: var(--color-ansi-blue);
 }
 
-.job-step-logs .job-log-line .log-cmd-error {
-  color: var(--color-ansi-red);
+.job-step-logs .log-msg-label {
+  font-weight: var(--font-weight-semibold);
+}
+
+.job-step-logs .log-line-error {
+  background: var(--color-error-bg);
+}
+
+.job-step-logs .log-line-warning {
+  background: var(--color-warning-bg);
+}
+
+.job-step-logs .log-line-notice {
+  background: var(--color-info-bg);
+}
+
+.job-step-logs .log-line-debug {
+  background: var(--color-secondary-alpha-30);
+}
+
+.job-step-logs .log-cmd-error > .log-msg-label {
+  color: var(--color-error-text);
+}
+
+.job-step-logs .log-cmd-warning > .log-msg-label {
+  color: var(--color-warning-text);
+}
+
+.job-step-logs .log-cmd-notice > .log-msg-label {
+  color: var(--color-info-text);
+}
+
+.job-step-logs .log-cmd-debug > .log-msg-label {
+  color: var(--color-violet);
 }
 
 /* selectors here are intentionally exact to only match fullscreen */

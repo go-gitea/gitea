@@ -1,8 +1,8 @@
 import {GET} from '../modules/fetch.ts';
 import {toggleElem, createElementFromHTML} from '../utils/dom.ts';
-import {logoutFromWorker} from '../modules/worker.ts';
+import {UserEventsSharedWorker} from '../modules/worker.ts';
 
-const {appSubUrl, notificationSettings, assetVersionEncoded} = window.config;
+const {appSubUrl, notificationSettings} = window.config;
 let notificationSequenceNumber = 0;
 
 async function receiveUpdateCount(event: MessageEvent<{type: string, data: string}>) {
@@ -33,56 +33,15 @@ export function initNotificationCount() {
 
   if (notificationSettings.EventSourceUpdateTime > 0 && window.EventSource && window.SharedWorker) {
     // Try to connect to the event source via the shared worker first
-    const worker = new SharedWorker(`${window.__webpack_public_path__}js/eventsource.sharedworker.js?v=${assetVersionEncoded}`, 'notification-worker');
-    worker.addEventListener('error', (event) => {
-      console.error('worker error', event);
-    });
-    worker.port.addEventListener('messageerror', () => {
-      console.error('unable to deserialize message');
-    });
-    worker.port.postMessage({
-      type: 'start',
-      url: `${window.location.origin}${appSubUrl}/user/events`,
-    });
-    worker.port.addEventListener('message', (event: MessageEvent<{type: string, data: string}>) => {
-      if (!event.data || !event.data.type) {
-        console.error('unknown worker message event', event);
-        return;
-      }
-      if (event.data.type === 'notification-count') {
-        receiveUpdateCount(event); // no await
-      } else if (event.data.type === 'no-event-source') {
-        // browser doesn't support EventSource, falling back to periodic poller
+    const worker = new UserEventsSharedWorker('notification-worker');
+    worker.addMessageEventListener((event: MessageEvent) => {
+      if (event.data.type === 'no-event-source') {
         if (!usingPeriodicPoller) startPeriodicPoller(notificationSettings.MinTimeout);
-      } else if (event.data.type === 'error') {
-        console.error('worker port event error', event.data);
-      } else if (event.data.type === 'logout') {
-        if (event.data.data !== 'here') {
-          return;
-        }
-        worker.port.postMessage({
-          type: 'close',
-        });
-        worker.port.close();
-        logoutFromWorker();
-      } else if (event.data.type === 'close') {
-        worker.port.postMessage({
-          type: 'close',
-        });
-        worker.port.close();
+      } else if (event.data.type === 'notification-count') {
+        receiveUpdateCount(event); // no await
       }
     });
-    worker.port.addEventListener('error', (e) => {
-      console.error('worker port error', e);
-    });
-    worker.port.start();
-    window.addEventListener('beforeunload', () => {
-      worker.port.postMessage({
-        type: 'close',
-      });
-      worker.port.close();
-    });
-
+    worker.startPort();
     return;
   }
 
@@ -117,28 +76,26 @@ async function updateNotificationCountWithCallback(callback: (timeout: number, n
 }
 
 async function updateNotificationTable() {
-  let notificationDiv = document.querySelector('#notification_div');
-  if (notificationDiv) {
-    try {
-      const params = new URLSearchParams(window.location.search);
-      params.set('div-only', 'true');
-      params.set('sequence-number', String(++notificationSequenceNumber));
-      const response = await GET(`${appSubUrl}/notifications?${params.toString()}`);
+  const notificationDiv = document.querySelector('#notification_div');
+  if (!notificationDiv) return;
 
-      if (!response.ok) {
-        throw new Error('Failed to fetch notification table');
-      }
+  try {
+    const params = new URLSearchParams(window.location.search);
+    params.set('div-only', 'true');
+    params.set('sequence-number', String(++notificationSequenceNumber));
+    const response = await GET(`${appSubUrl}/notifications?${params.toString()}`);
 
-      const data = await response.text();
-      const el = createElementFromHTML(data);
-      if (parseInt(el.getAttribute('data-sequence-number')!) === notificationSequenceNumber) {
-        notificationDiv.outerHTML = data;
-        notificationDiv = document.querySelector('#notification_div')!;
-        window.htmx.process(notificationDiv); // when using htmx, we must always remember to process the new content changed by us
-      }
-    } catch (error) {
-      console.error(error);
+    if (!response.ok) {
+      throw new Error('Failed to fetch notification table');
     }
+
+    const data = await response.text();
+    const el = createElementFromHTML(data);
+    if (parseInt(el.getAttribute('data-sequence-number')!) === notificationSequenceNumber) {
+      notificationDiv.outerHTML = data;
+    }
+  } catch (error) {
+    console.error(error);
   }
 }
 

@@ -32,6 +32,7 @@ import (
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/storage"
+	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/services/context"
 
 	"github.com/golang-jwt/jwt/v5"
@@ -172,7 +173,7 @@ func DownloadHandler(ctx *context.Context) {
 	if len(filename) > 0 {
 		decodedFilename, err := base64.RawURLEncoding.DecodeString(filename)
 		if err == nil {
-			ctx.Resp.Header().Set("Content-Disposition", "attachment; filename=\""+string(decodedFilename)+"\"")
+			ctx.Resp.Header().Set("Content-Disposition", httplib.EncodeContentDispositionAttachment(string(decodedFilename)))
 			ctx.Resp.Header().Set("Access-Control-Expose-Headers", "Content-Disposition")
 		}
 	}
@@ -550,9 +551,9 @@ func authenticate(ctx *context.Context, repository *repo_model.Repository, autho
 	}
 
 	// it works for both anonymous request and signed-in user, then perm.CanAccess will do the permission check
-	perm, err := access_model.GetUserRepoPermission(ctx, repository, ctx.Doer)
+	perm, err := access_model.GetDoerRepoPermission(ctx, repository, ctx.Doer)
 	if err != nil {
-		log.Error("Unable to GetUserRepoPermission for user %-v in repo %-v Error: %v", ctx.Doer, repository, err)
+		log.Error("Unable to GetDoerRepoPermission for user %-v in repo %-v Error: %v", ctx.Doer, repository, err)
 		return false
 	}
 
@@ -604,6 +605,18 @@ func handleLFSToken(ctx stdCtx.Context, tokenSHA string, target *repo_model.Repo
 	if err != nil {
 		log.Error("Unable to GetUserById[%d]: Error: %v", claims.UserID, err)
 		return nil, err
+	}
+	if !u.IsActive || u.ProhibitLogin {
+		return nil, util.NewPermissionDeniedErrorf("not allowed to access any repository")
+	}
+
+	perm, err := access_model.GetDoerRepoPermission(ctx, target, u)
+	if err != nil {
+		log.Error("Unable to GetDoerRepoPermission for user[%d] repo[%d]: %v", claims.UserID, target.ID, err)
+		return nil, err
+	}
+	if !perm.CanAccess(mode, unit.TypeCode) {
+		return nil, util.NewPermissionDeniedErrorf("no permission to access the repository")
 	}
 	return u, nil
 }

@@ -11,26 +11,27 @@ export function initRepositoryActionView() {
   if (parentFullHeight) parentFullHeight.classList.add('tw-pb-0');
 
   const view = createApp(RepoActionView, {
-    runId: parseInt(el.getAttribute('data-run-id')!),
     jobId: parseInt(el.getAttribute('data-job-id')!),
-    actionsUrl: el.getAttribute('data-actions-url'),
+    actionsViewUrl: el.getAttribute('data-actions-view-url'),
     locale: {
       approve: el.getAttribute('data-locale-approve'),
       cancel: el.getAttribute('data-locale-cancel'),
       rerun: el.getAttribute('data-locale-rerun'),
       rerun_all: el.getAttribute('data-locale-rerun-all'),
       rerun_failed: el.getAttribute('data-locale-rerun-failed'),
+      latest: el.getAttribute('data-locale-latest'),
+      latestAttempt: el.getAttribute('data-locale-latest-attempt'),
+      attempt: el.getAttribute('data-locale-attempt'),
       scheduled: el.getAttribute('data-locale-runs-scheduled'),
       commit: el.getAttribute('data-locale-runs-commit'),
       pushedBy: el.getAttribute('data-locale-runs-pushed-by'),
-      workflowGraph: el.getAttribute('data-locale-runs-workflow-graph'),
       summary: el.getAttribute('data-locale-summary'),
       allJobs: el.getAttribute('data-locale-all-jobs'),
       triggeredVia: el.getAttribute('data-locale-triggered-via'),
       totalDuration: el.getAttribute('data-locale-total-duration'),
       artifactsTitle: el.getAttribute('data-locale-artifacts-title'),
-      areYouSure: el.getAttribute('data-locale-are-you-sure'),
       artifactExpired: el.getAttribute('data-locale-artifact-expired'),
+      artifactExpiresAt: el.getAttribute('data-locale-artifact-expires-at'),
       confirmDeleteArtifact: el.getAttribute('data-locale-confirm-delete-artifact'),
       showTimeStamps: el.getAttribute('data-locale-show-timestamps'),
       showLogSeconds: el.getAttribute('data-locale-show-log-seconds'),
@@ -48,6 +49,8 @@ export function initRepositoryActionView() {
       },
       logsAlwaysAutoScroll: el.getAttribute('data-locale-logs-always-auto-scroll'),
       logsAlwaysExpandRunning: el.getAttribute('data-locale-logs-always-expand-running'),
+      workflowFile: el.getAttribute('data-locale-workflow-file'),
+      runDetails: el.getAttribute('data-locale-run-details'),
     },
   });
   view.mount(el);

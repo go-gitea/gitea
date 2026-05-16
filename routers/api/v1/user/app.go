@@ -18,6 +18,7 @@ import (
 	"code.gitea.io/gitea/routers/api/v1/utils"
 	"code.gitea.io/gitea/services/context"
 	"code.gitea.io/gitea/services/convert"
+	"code.gitea.io/gitea/services/forms"
 )
 
 // ListAccessTokens list all the access tokens
@@ -228,7 +229,10 @@ func CreateOauth2Application(ctx *context.APIContext) {
 	//     "$ref": "#/responses/error"
 
 	data := web.GetForm(ctx).(*api.CreateOAuth2ApplicationOptions)
-
+	if invalidURI := forms.DetectInvalidOAuth2ApplicationRedirectURI(data.RedirectURIs); invalidURI != "" {
+		ctx.APIError(http.StatusBadRequest, "invalid redirect URI: "+invalidURI)
+		return
+	}
 	app, err := auth_model.CreateOAuth2Application(ctx, auth_model.CreateOAuth2ApplicationOptions{
 		Name:                       data.Name,
 		UserID:                     ctx.Doer.ID,
@@ -382,11 +386,17 @@ func UpdateOauth2Application(ctx *context.APIContext) {
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/OAuth2Application"
+	//   "400":
+	//     "$ref": "#/responses/error"
 	//   "404":
 	//     "$ref": "#/responses/notFound"
 	appID := ctx.PathParamInt64("id")
 
 	data := web.GetForm(ctx).(*api.CreateOAuth2ApplicationOptions)
+	if invalidURI := forms.DetectInvalidOAuth2ApplicationRedirectURI(data.RedirectURIs); invalidURI != "" {
+		ctx.APIError(http.StatusBadRequest, "invalid redirect URI: "+invalidURI)
+		return
+	}
 
 	app, err := auth_model.UpdateOAuth2Application(ctx, auth_model.UpdateOAuth2ApplicationOptions{
 		Name:                       data.Name,

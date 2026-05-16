@@ -4,7 +4,7 @@ export async function initRepoContributors() {
   const el = document.querySelector('#repo-contributors-chart');
   if (!el) return;
 
-  const {default: RepoContributors} = await import(/* webpackChunkName: "contributors-graph" */'../components/RepoContributors.vue');
+  const {default: RepoContributors} = await import('../components/RepoContributors.vue');
   try {
     const View = createApp(RepoContributors, {
       repoLink: el.getAttribute('data-repo-link'),

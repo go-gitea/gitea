@@ -3,11 +3,9 @@
 
 package charset
 
-// EscapeStatus represents the findings of the unicode escaper
+// EscapeStatus represents the findings of the Unicode escaper
 type EscapeStatus struct {
-	Escaped      bool
-	HasError     bool
-	HasBadRunes  bool
+	Escaped      bool // it means that some characters were escaped, and they can also be unescaped back
 	HasInvisible bool
 	HasAmbiguous bool
 }
@@ -19,8 +17,6 @@ func (status *EscapeStatus) Or(other *EscapeStatus) *EscapeStatus {
 		st = &EscapeStatus{}
 	}
 	st.Escaped = st.Escaped || other.Escaped
-	st.HasError = st.HasError || other.HasError
-	st.HasBadRunes = st.HasBadRunes || other.HasBadRunes
 	st.HasAmbiguous = st.HasAmbiguous || other.HasAmbiguous
 	st.HasInvisible = st.HasInvisible || other.HasInvisible
 	return st

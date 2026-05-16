@@ -44,9 +44,9 @@ func (b *Base) PathParamInt(p string) int {
 
 // SetPathParam set request path params into routes
 func (b *Base) SetPathParam(name, value string) {
-	if strings.HasPrefix(name, ":") {
-		setting.PanicInDevOrTesting("path param should not start with ':'")
-		name = name[1:]
-	}
 	chi.RouteContext(b).URLParams.Add(name, url.PathEscape(value))
+}
+
+func (b *Base) SetPathParamRaw(name, value string) {
+	chi.RouteContext(b).URLParams.Add(name, value)
 }

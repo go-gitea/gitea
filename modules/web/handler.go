@@ -4,9 +4,12 @@
 package web
 
 import (
+	"bufio"
 	"fmt"
+	"net"
 	"net/http"
 	"reflect"
+	"slices"
 
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/web/routing"
@@ -45,6 +48,13 @@ func (r *responseWriter) Write(bytes []byte) (int, error) {
 func (r *responseWriter) WriteHeader(statusCode int) {
 	r.status = statusCode
 	r.respWriter.WriteHeader(statusCode)
+}
+
+func (r *responseWriter) Hijack() (net.Conn, *bufio.ReadWriter, error) {
+	if hj, ok := r.respWriter.(http.Hijacker); ok {
+		return hj.Hijack()
+	}
+	return nil, nil, http.ErrNotSupported
 }
 
 var (
@@ -122,8 +132,8 @@ type middlewareProvider = func(next http.Handler) http.Handler
 
 func executeMiddlewaresHandler(w http.ResponseWriter, r *http.Request, middlewares []middlewareProvider, endpoint http.HandlerFunc) {
 	handler := endpoint
-	for i := len(middlewares) - 1; i >= 0; i-- {
-		handler = middlewares[i](handler).ServeHTTP
+	for _, middleware := range slices.Backward(middlewares) {
+		handler = middleware(handler).ServeHTTP
 	}
 	handler(w, r)
 }

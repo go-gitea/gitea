@@ -120,7 +120,7 @@ func transferOwnership(ctx context.Context, doer *user_model.User, newOwnerName 
 		if repoRenamed {
 			oldRelativePath, newRelativePath := repo_model.RelativePath(newOwnerName, repo.Name), repo_model.RelativePath(oldOwnerName, repo.Name)
 			if err := gitrepo.RenameRepository(ctx, repo_model.StorageRepo(oldRelativePath), repo_model.StorageRepo(newRelativePath)); err != nil {
-				log.Critical("Unable to move repository %s/%s directory from %s back to correct place %s: %v", oldOwnerName, repo.Name,
+				log.Error("Unable to move repository %s/%s directory from %s back to correct place %s: %v", oldOwnerName, repo.Name,
 					oldRelativePath, newRelativePath, err)
 			}
 		}
@@ -128,7 +128,7 @@ func transferOwnership(ctx context.Context, doer *user_model.User, newOwnerName 
 		if wikiRenamed {
 			oldRelativePath, newRelativePath := repo_model.RelativeWikiPath(newOwnerName, repo.Name), repo_model.RelativeWikiPath(oldOwnerName, repo.Name)
 			if err := gitrepo.RenameRepository(ctx, repo_model.StorageRepo(oldRelativePath), repo_model.StorageRepo(newRelativePath)); err != nil {
-				log.Critical("Unable to move wiki for repository %s/%s directory from %s back to correct place %s: %v", oldOwnerName, repo.Name,
+				log.Error("Unable to move wiki for repository %s/%s directory from %s back to correct place %s: %v", oldOwnerName, repo.Name,
 					oldRelativePath, newRelativePath, err)
 			}
 		}
@@ -539,9 +539,9 @@ func canUserCancelTransfer(ctx context.Context, r *repo_model.RepoTransfer, u *u
 		return r.Repo.OwnerID == u.ID
 	}
 
-	perm, err := access_model.GetUserRepoPermission(ctx, r.Repo, u)
+	perm, err := access_model.GetIndividualUserRepoPermission(ctx, r.Repo, u)
 	if err != nil {
-		log.Error("GetUserRepoPermission: %v", err)
+		log.Error("GetIndividualUserRepoPermission: %v", err)
 		return false
 	}
 	return perm.IsOwner()

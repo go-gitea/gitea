@@ -45,17 +45,6 @@
 					</div>
 				</li>
 			</ul>
-			<script>
-				document.addEventListener('gitea:index-ready', () => {
-					const $buttons = $('#devtest-button-samples').find('button.ui');
-
-					const $buttonStyles = $('input[name*="button-style"]');
-					$buttonStyles.on('click', () => $buttonStyles.map((_, el) => $buttons.toggleClass(el.value, el.checked)));
-
-					const $buttonStates = $('input[name*="button-state"]');
-					$buttonStates.on('click', () => $buttonStates.map((_, el) => $buttons.prop(el.value, el.checked)));
-				});
-			</script>
 		</div>
 	</div>
 
@@ -82,12 +71,6 @@
 			<p>loading ...</p>
 			<p>loading ...</p>
 		</div>
-	</div>
-
-	<div>
-		<h1>&lt;origin-url&gt;</h1>
-		<div><origin-url data-url="test/url"></origin-url></div>
-		<div><origin-url data-url="/test/url"></origin-url></div>
 	</div>
 
 	<div>

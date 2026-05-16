@@ -3,6 +3,8 @@
   height: auto;
 }
 
-.ap-terminal {
+/* Related: https://github.com/asciinema/asciinema-player/blob/develop/src/components/Terminal.js : <div class="ap-term" ...>
+Old PR: Fix UI regression of asciinema player https://github.com/go-gitea/gitea/pull/26159 */
+.ap-term {
   overflow: hidden !important;
 }

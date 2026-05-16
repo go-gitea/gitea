@@ -116,10 +116,7 @@ func CreateTeamInvite(ctx context.Context, doer *user_model.User, team *Team, em
 		}
 	}
 
-	token, err := util.CryptoRandomString(25)
-	if err != nil {
-		return nil, err
-	}
+	token := util.CryptoRandomString(25)
 
 	invite := &TeamInvite{
 		Token:     token,

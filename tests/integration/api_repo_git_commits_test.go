@@ -68,8 +68,7 @@ func TestAPIReposGitCommitList(t *testing.T) {
 		AddTokenAuth(token)
 	resp := MakeRequest(t, req, http.StatusOK)
 
-	var apiData []api.Commit
-	DecodeJSON(t, resp, &apiData)
+	apiData := DecodeJSON(t, resp, []api.Commit{})
 
 	assert.Len(t, apiData, 2)
 	assert.Equal(t, "cfe3b3c1fd36fba04f9183287b106497e1afe986", apiData[0].CommitMeta.SHA)
@@ -92,8 +91,7 @@ func TestAPIReposGitCommitListNotMaster(t *testing.T) {
 		AddTokenAuth(token)
 	resp := MakeRequest(t, req, http.StatusOK)
 
-	var apiData []api.Commit
-	DecodeJSON(t, resp, &apiData)
+	apiData := DecodeJSON(t, resp, []api.Commit{})
 
 	assert.Len(t, apiData, 3)
 	assert.Equal(t, "69554a64c1e6030f051e5c3f94bfbd773cd6a324", apiData[0].CommitMeta.SHA)
@@ -118,8 +116,7 @@ func TestAPIReposGitCommitListPage2Empty(t *testing.T) {
 		AddTokenAuth(token)
 	resp := MakeRequest(t, req, http.StatusOK)
 
-	var apiData []api.Commit
-	DecodeJSON(t, resp, &apiData)
+	apiData := DecodeJSON(t, resp, []api.Commit{})
 
 	assert.Empty(t, apiData)
 }
@@ -136,8 +133,7 @@ func TestAPIReposGitCommitListDifferentBranch(t *testing.T) {
 		AddTokenAuth(token)
 	resp := MakeRequest(t, req, http.StatusOK)
 
-	var apiData []api.Commit
-	DecodeJSON(t, resp, &apiData)
+	apiData := DecodeJSON(t, resp, []api.Commit{})
 
 	assert.Len(t, apiData, 1)
 	assert.Equal(t, "f27c2b2b03dcab38beaf89b0ab4ff61f6de63441", apiData[0].CommitMeta.SHA)
@@ -156,8 +152,7 @@ func TestAPIReposGitCommitListWithoutSelectFields(t *testing.T) {
 		AddTokenAuth(token)
 	resp := MakeRequest(t, req, http.StatusOK)
 
-	var apiData []api.Commit
-	DecodeJSON(t, resp, &apiData)
+	apiData := DecodeJSON(t, resp, []api.Commit{})
 
 	assert.Len(t, apiData, 1)
 	assert.Equal(t, "f27c2b2b03dcab38beaf89b0ab4ff61f6de63441", apiData[0].CommitMeta.SHA)
@@ -201,8 +196,7 @@ func TestGetFileHistory(t *testing.T) {
 		AddTokenAuth(token)
 	resp := MakeRequest(t, req, http.StatusOK)
 
-	var apiData []api.Commit
-	DecodeJSON(t, resp, &apiData)
+	apiData := DecodeJSON(t, resp, []api.Commit{})
 
 	assert.Len(t, apiData, 1)
 	assert.Equal(t, "f27c2b2b03dcab38beaf89b0ab4ff61f6de63441", apiData[0].CommitMeta.SHA)
@@ -222,8 +216,7 @@ func TestGetFileHistoryNotOnMaster(t *testing.T) {
 		AddTokenAuth(token)
 	resp := MakeRequest(t, req, http.StatusOK)
 
-	var apiData []api.Commit
-	DecodeJSON(t, resp, &apiData)
+	apiData := DecodeJSON(t, resp, []api.Commit{})
 
 	assert.Len(t, apiData, 1)
 	assert.Equal(t, "c8e31bc7688741a5287fcde4fbb8fc129ca07027", apiData[0].CommitMeta.SHA)

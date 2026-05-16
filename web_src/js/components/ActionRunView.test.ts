@@ -8,8 +8,14 @@ test('LogLineMessage', () => {
     '##[endgroup]': '<span class="log-msg log-cmd-endgroup"></span>',
     '::endgroup::': '<span class="log-msg log-cmd-endgroup"></span>',
 
-    // parser shouldn't do any trim, keep origin output as-is
-    '##[error] foo': '<span class="log-msg log-cmd-error"> foo</span>',
+    '##[error] foo': '<span class="log-msg log-cmd-error"><span class="log-msg-label">Error:</span><span> foo</span></span>',
+    '##[warning] foo': '<span class="log-msg log-cmd-warning"><span class="log-msg-label">Warning:</span><span> foo</span></span>',
+    '##[notice] foo': '<span class="log-msg log-cmd-notice"><span class="log-msg-label">Notice:</span><span> foo</span></span>',
+    '##[debug] foo': '<span class="log-msg log-cmd-debug"><span class="log-msg-label">Debug:</span><span> foo</span></span>',
+    '::error::foo': '<span class="log-msg log-cmd-error"><span class="log-msg-label">Error:</span><span> foo</span></span>',
+    '::warning file=test.js,line=1::foo': '<span class="log-msg log-cmd-warning"><span class="log-msg-label">Warning:</span><span> foo</span></span>',
+    '::notice::foo': '<span class="log-msg log-cmd-notice"><span class="log-msg-label">Notice:</span><span> foo</span></span>',
+    '::debug::foo': '<span class="log-msg log-cmd-debug"><span class="log-msg-label">Debug:</span><span> foo</span></span>',
     '[command] foo': '<span class="log-msg log-cmd-command"> foo</span>',
 
     // hidden is special, it is actually skipped before creating

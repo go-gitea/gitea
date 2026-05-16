@@ -19,15 +19,35 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestCreateForkNoLogin(t *testing.T) {
+func TestAPIFork(t *testing.T) {
 	defer tests.PrepareTestEnv(t)()
+	t.Run("CreateForkNoLogin", testCreateForkNoLogin)
+	t.Run("CreateForkOrgNoCreatePermission", testCreateForkOrgNoCreatePermission)
+	t.Run("APIForkListLimitedAndPrivateRepos", testAPIForkListLimitedAndPrivateRepos)
+	t.Run("GetPrivateReposForks", testGetPrivateReposForks)
+}
+
+func testCreateForkNoLogin(t *testing.T) {
 	req := NewRequestWithJSON(t, "POST", "/api/v1/repos/user2/repo1/forks", &api.CreateForkOption{})
 	MakeRequest(t, req, http.StatusUnauthorized)
 }
 
-func TestAPIForkListLimitedAndPrivateRepos(t *testing.T) {
-	defer tests.PrepareTestEnv(t)()
+func testCreateForkOrgNoCreatePermission(t *testing.T) {
+	user4Sess := loginUser(t, "user4")
+	org := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 3})
 
+	canCreate, err := org_model.OrgFromUser(org).CanCreateOrgRepo(t.Context(), 4)
+	assert.NoError(t, err)
+	assert.False(t, canCreate)
+
+	user4Token := getTokenForLoggedInUser(t, user4Sess, auth_model.AccessTokenScopeWriteRepository, auth_model.AccessTokenScopeWriteOrganization)
+	req := NewRequestWithJSON(t, "POST", "/api/v1/repos/user2/repo1/forks", &api.CreateForkOption{
+		Organization: &org.Name,
+	}).AddTokenAuth(user4Token)
+	MakeRequest(t, req, http.StatusForbidden)
+}
+
+func testAPIForkListLimitedAndPrivateRepos(t *testing.T) {
 	user1Sess := loginUser(t, "user1")
 	user1 := unittest.AssertExistsAndLoadBean(t, &user_model.User{Name: "user1"})
 
@@ -64,10 +84,7 @@ func TestAPIForkListLimitedAndPrivateRepos(t *testing.T) {
 
 		req := NewRequest(t, "GET", "/api/v1/repos/user2/repo1/forks")
 		resp := MakeRequest(t, req, http.StatusOK)
-
-		var forks []*api.Repository
-		DecodeJSON(t, resp, &forks)
-
+		forks := DecodeJSON(t, resp, []*api.Repository{})
 		assert.Empty(t, forks)
 		assert.Equal(t, "0", resp.Header().Get("X-Total-Count"))
 	})
@@ -78,9 +95,7 @@ func TestAPIForkListLimitedAndPrivateRepos(t *testing.T) {
 		req := NewRequest(t, "GET", "/api/v1/repos/user2/repo1/forks").AddTokenAuth(user1Token)
 		resp := MakeRequest(t, req, http.StatusOK)
 
-		var forks []*api.Repository
-		DecodeJSON(t, resp, &forks)
-
+		forks := DecodeJSON(t, resp, []*api.Repository{})
 		assert.Len(t, forks, 2)
 		assert.Equal(t, "2", resp.Header().Get("X-Total-Count"))
 
@@ -88,28 +103,22 @@ func TestAPIForkListLimitedAndPrivateRepos(t *testing.T) {
 
 		req = NewRequest(t, "GET", "/api/v1/repos/user2/repo1/forks").AddTokenAuth(user1Token)
 		resp = MakeRequest(t, req, http.StatusOK)
-
-		forks = []*api.Repository{}
-		DecodeJSON(t, resp, &forks)
-
+		forks = DecodeJSON(t, resp, []*api.Repository{})
 		assert.Len(t, forks, 2)
 		assert.Equal(t, "2", resp.Header().Get("X-Total-Count"))
 	})
 }
 
-func TestGetPrivateReposForks(t *testing.T) {
-	defer tests.PrepareTestEnv(t)()
-
+func testGetPrivateReposForks(t *testing.T) {
 	user1Sess := loginUser(t, "user1")
 	repo2 := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 2}) // private repository
 	privateOrg := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 23})
 	user1Token := getTokenForLoggedInUser(t, user1Sess, auth_model.AccessTokenScopeWriteRepository)
 
-	forkedRepoName := "forked-repo"
 	// create fork from a private repository
 	req := NewRequestWithJSON(t, "POST", "/api/v1/repos/"+repo2.FullName()+"/forks", &api.CreateForkOption{
 		Organization: &privateOrg.Name,
-		Name:         &forkedRepoName,
+		Name:         new("forked-repo"),
 	}).AddTokenAuth(user1Token)
 	MakeRequest(t, req, http.StatusAccepted)
 
@@ -117,8 +126,7 @@ func TestGetPrivateReposForks(t *testing.T) {
 	req = NewRequest(t, "GET", "/api/v1/repos/"+repo2.FullName()+"/forks").AddTokenAuth(user1Token)
 	resp := MakeRequest(t, req, http.StatusOK)
 
-	forks := []*api.Repository{}
-	DecodeJSON(t, resp, &forks)
+	forks := DecodeJSON(t, resp, []*api.Repository{})
 	assert.Len(t, forks, 1)
 	assert.Equal(t, "1", resp.Header().Get("X-Total-Count"))
 	assert.Equal(t, "forked-repo", forks[0].Name)

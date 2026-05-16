@@ -1,10 +1,10 @@
-window.__webpack_public_path__ = '';
+import './globals.ts';
 
 window.config = {
   appUrl: 'http://localhost:3000/',
   appSubUrl: '',
-  assetVersionEncoded: '',
-  assetUrlPrefix: '',
+  assetUrlPrefix: '/assets',
+  sharedWorkerUri: '',
   runModeIsProd: true,
   customEmojis: {},
   pageData: {},
@@ -12,4 +12,7 @@ window.config = {
   enableTimeTracking: true,
   mermaidMaxSourceCharacters: 5000,
   i18n: {},
+  frontendInited: false,
 };
+
+window.testModules = {};

@@ -9,16 +9,26 @@ import (
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
+	"code.gitea.io/gitea/modules/test"
 	webhook_module "code.gitea.io/gitea/modules/webhook"
 
 	"github.com/stretchr/testify/assert"
 )
 
+func fullWorkflowContent(part string) []byte {
+	return []byte(`
+name: test
+` + part + `
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo hello
+`)
+}
+
 func TestIsWorkflow(t *testing.T) {
-	oldDirs := setting.Actions.WorkflowDirs
-	defer func() {
-		setting.Actions.WorkflowDirs = oldDirs
-	}()
+	defer test.MockVariableValue(&setting.Actions.WorkflowDirs)()
 
 	tests := []struct {
 		name     string
@@ -218,7 +228,7 @@ func TestDetectMatched(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.desc, func(t *testing.T) {
-			evts, err := GetEventsFromContent([]byte(tc.yamlOn))
+			evts, err := GetEventsFromContent(fullWorkflowContent(tc.yamlOn))
 			assert.NoError(t, err)
 			assert.Len(t, evts, 1)
 			assert.Equal(t, tc.expected, detectMatched(nil, tc.commit, tc.triggedEvent, tc.payload, evts[0]))
@@ -373,7 +383,7 @@ func TestMatchIssuesEvent(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.desc, func(t *testing.T) {
-			evts, err := GetEventsFromContent([]byte(tc.yamlOn))
+			evts, err := GetEventsFromContent(fullWorkflowContent(tc.yamlOn))
 			assert.NoError(t, err)
 			assert.Len(t, evts, 1)
 

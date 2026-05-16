@@ -1,7 +1,7 @@
 import {createElementFromAttrs} from '../utils/dom.ts';
 import {renderAnsi} from '../render/ansi.ts';
 import {reactive} from 'vue';
-import type {ActionsArtifact, ActionsJob, ActionsRun, ActionsRunStatus} from '../modules/gitea-actions.ts';
+import type {ActionsArtifact, ActionsJob, ActionsRun, ActionsStatus} from '../modules/gitea-actions.ts';
 import type {IntervalId} from '../types.ts';
 import {POST} from '../modules/fetch.ts';
 
@@ -17,6 +17,9 @@ const LogLinePrefixCommandMap: Record<string, LogLineCommandName> = {
   '##[endgroup]': 'endgroup',
 
   '##[error]': 'error',
+  '##[warning]': 'warning',
+  '##[notice]': 'notice',
+  '##[debug]': 'debug',
   '[command]': 'command',
 
   // https://github.com/actions/toolkit/blob/master/docs/commands.md
@@ -26,13 +29,16 @@ const LogLinePrefixCommandMap: Record<string, LogLineCommandName> = {
   '::remove-matcher': 'hidden', // it has arguments
 };
 
+// Pattern for ::cmd:: and ::cmd args:: format (args are stripped for display)
+const LogLineCmdPattern = /^::(error|warning|notice|debug)(?:\s[^:]*)?::/;
+
 export type LogLine = {
   index: number;
   timestamp: number;
   message: string;
 };
 
-export type LogLineCommandName = 'group' | 'endgroup' | 'command' | 'error' | 'hidden';
+export type LogLineCommandName = 'group' | 'endgroup' | 'command' | 'error' | 'warning' | 'notice' | 'debug' | 'hidden';
 export type LogLineCommand = {
   name: LogLineCommandName,
   prefix: string,
@@ -45,28 +51,50 @@ export function parseLogLineCommand(line: LogLine): LogLineCommand | null {
       return {name: LogLinePrefixCommandMap[prefix], prefix};
     }
   }
+  // Handle ::cmd:: and ::cmd args:: format (runner may pass these through raw)
+  const match = LogLineCmdPattern.exec(line.message);
+  if (match) {
+    return {name: match[1] as LogLineCommandName, prefix: match[0]};
+  }
   return null;
 }
 
+const LogLineLabelMap: Partial<Record<LogLineCommandName, string>> = {
+  'error': 'Error',
+  'warning': 'Warning',
+  'notice': 'Notice',
+  'debug': 'Debug',
+};
+
 export function createLogLineMessage(line: LogLine, cmd: LogLineCommand | null) {
   const logMsgAttrs = {class: 'log-msg'};
-  if (cmd?.name) logMsgAttrs.class += ` log-cmd-${cmd?.name}`; // make it easier to add styles to some commands like "error"
+  if (cmd?.name) logMsgAttrs.class += ` log-cmd-${cmd.name}`; // make it easier to add styles to some commands like "error"
 
   // TODO: for some commands (::group::), the "prefix removal" works well, for some commands with "arguments" (::remove-matcher ...::),
   // it needs to do further processing in the future (fortunately, at the moment we don't need to handle these commands)
   const msgContent = cmd ? line.message.substring(cmd.prefix.length) : line.message;
 
   const logMsg = createElementFromAttrs('span', logMsgAttrs);
-  logMsg.innerHTML = renderAnsi(msgContent);
+  const label = cmd ? LogLineLabelMap[cmd.name] : null;
+  if (label) {
+    logMsg.append(createElementFromAttrs('span', {class: 'log-msg-label'}, `${label}:`));
+    const msgSpan = document.createElement('span');
+    msgSpan.innerHTML = ` ${renderAnsi(msgContent.trimStart())}`;
+    logMsg.append(msgSpan);
+  } else {
+    logMsg.innerHTML = renderAnsi(msgContent);
+  }
   return logMsg;
 }
 
 export function createEmptyActionsRun(): ActionsRun {
   return {
+    repoId: 0,
     link: '',
+    viewLink: '',
     title: '',
     titleHTML: '',
-    status: '' as ActionsRunStatus, // do not show the status before initialized, otherwise it would show an incorrect "error" icon
+    status: '' as ActionsStatus, // do not show the status before initialized, otherwise it would show an incorrect "error" icon
     canCancel: false,
     canApprove: false,
     canRerun: false,
@@ -76,6 +104,8 @@ export function createEmptyActionsRun(): ActionsRun {
     workflowID: '',
     workflowLink: '',
     isSchedule: false,
+    runAttempt: 0,
+    attempts: [],
     duration: '',
     triggeredAt: 0,
     triggerEvent: '',
@@ -98,7 +128,7 @@ export function createEmptyActionsRun(): ActionsRun {
   };
 }
 
-export function createActionRunViewStore(actionsUrl: string, runId: number) {
+export function createActionRunViewStore(viewUrl: string) {
   let loadingAbortController: AbortController | null = null;
   let intervalID: IntervalId | null = null;
   const viewData = reactive({
@@ -110,8 +140,7 @@ export function createActionRunViewStore(actionsUrl: string, runId: number) {
     const abortController = new AbortController();
     loadingAbortController = abortController;
     try {
-      const url = `${actionsUrl}/runs/${runId}`;
-      const resp = await POST(url, {signal: abortController.signal, data: {}});
+      const resp = await POST(viewUrl, {signal: abortController.signal, data: {}});
       const runResp = await resp.json();
       if (loadingAbortController !== abortController) return;
 

@@ -2,6 +2,7 @@ import {showTemporaryTooltip} from '../../modules/tippy.ts';
 import {POST} from '../../modules/fetch.ts';
 import {registerGlobalInitFunc} from '../../modules/observer.ts';
 import {queryElems} from '../../utils/dom.ts';
+import {errorMessage} from '../../modules/errors.ts';
 import {submitFormFetchAction} from '../common-fetch-action.ts';
 
 const {appSubUrl} = window.config;
@@ -26,7 +27,7 @@ function initSystemConfigAutoCheckbox(el: HTMLInputElement) {
       const json: Record<string, any> = await resp.json();
       if (json.errorMessage) throw new Error(json.errorMessage);
     } catch (ex) {
-      showTemporaryTooltip(el, ex.toString());
+      showTemporaryTooltip(el, errorMessage(ex));
       el.checked = !el.checked;
     }
   });

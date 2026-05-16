@@ -51,7 +51,7 @@ func MirrorSync(ctx *context.APIContext) {
 
 	repo := ctx.Repo.Repository
 
-	if !ctx.Repo.CanWrite(unit.TypeCode) {
+	if !ctx.Repo.Permission.CanWrite(unit.TypeCode) {
 		ctx.APIError(http.StatusForbidden, "Must have write access")
 	}
 
@@ -351,11 +351,7 @@ func CreatePushMirror(ctx *context.APIContext, mirrorOption *api.CreatePushMirro
 		return
 	}
 
-	remoteSuffix, err := util.CryptoRandomString(10)
-	if err != nil {
-		ctx.APIErrorInternal(err)
-		return
-	}
+	remoteSuffix := util.CryptoRandomString(10)
 
 	remoteAddress, err := util.SanitizeURL(mirrorOption.RemoteAddress)
 	if err != nil {

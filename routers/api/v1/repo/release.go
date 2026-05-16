@@ -22,7 +22,7 @@ import (
 )
 
 func canAccessReleaseDraft(ctx *context.APIContext) bool {
-	if !ctx.IsSigned || !ctx.Repo.CanWrite(unit.TypeReleases) {
+	if !ctx.IsSigned || !ctx.Repo.Permission.CanWrite(unit.TypeReleases) {
 		return false
 	}
 	if ctx.Data["IsApiToken"] != true {

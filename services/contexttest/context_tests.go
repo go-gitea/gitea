@@ -125,7 +125,7 @@ func LoadRepo(t *testing.T, ctx gocontext.Context, repoID int64) {
 	repo.Owner, err = user_model.GetUserByID(ctx, repo.Repository.OwnerID)
 	assert.NoError(t, err)
 	repo.RepoLink = repo.Repository.Link()
-	repo.Permission, err = access_model.GetUserRepoPermission(ctx, repo.Repository, doer)
+	repo.Permission, err = access_model.GetDoerRepoPermission(ctx, repo.Repository, doer)
 	assert.NoError(t, err)
 }
 

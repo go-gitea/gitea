@@ -183,3 +183,7 @@ func DetectContentType(data []byte) SniffedType {
 	}
 	return SniffedType{ct}
 }
+
+func FromContentType(contentType string) SniffedType {
+	return SniffedType{contentType}
+}

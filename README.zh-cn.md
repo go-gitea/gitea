@@ -8,7 +8,6 @@
 [![](https://www.codetriage.com/go-gitea/gitea/badges/users.svg)](https://www.codetriage.com/go-gitea/gitea "Help Contribute to Open Source")
 [![](https://opencollective.com/gitea/tiers/backers/badge.svg?label=backers&color=brightgreen)](https://opencollective.com/gitea "Become a backer/sponsor of gitea")
 [![](https://img.shields.io/badge/License-MIT-blue.svg)](https://opensource.org/licenses/MIT "License: MIT")
-[![Contribute with Gitpod](https://img.shields.io/badge/Contribute%20with-Gitpod-908a85?logo=gitpod&color=green)](https://gitpod.io/#https://github.com/go-gitea/gitea)
 [![](https://badges.crowdin.net/gitea/localized.svg)](https://translate.gitea.com "Crowdin")
 
 [English](./README.md) | [繁體中文](./README.zh-tw.md)
@@ -38,10 +37,6 @@
 从源代码树的根目录运行：
 
     TAGS="bindata" make build
-
-如果需要 SQLite 支持：
-
-    TAGS="bindata sqlite sqlite_unlock_notify" make build
 
 `build` 目标分为两个子目标：
 

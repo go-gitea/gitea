@@ -20,8 +20,7 @@ func testActionUserSignIn(t *testing.T) {
 		AddTokenAuth("8061e833a55f6fc0157c98b883e91fcfeeb1a71a")
 	resp := MakeRequest(t, req, http.StatusOK)
 
-	var u api.User
-	DecodeJSON(t, resp, &u)
+	u := DecodeJSON(t, resp, &api.User{})
 	assert.Equal(t, "gitea-actions", u.UserName)
 }
 

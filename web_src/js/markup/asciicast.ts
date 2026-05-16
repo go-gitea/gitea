@@ -3,8 +3,8 @@ import {queryElems} from '../utils/dom.ts';
 export async function initMarkupRenderAsciicast(elMarkup: HTMLElement): Promise<void> {
   queryElems(elMarkup, '.asciinema-player-container', async (el) => {
     const [player] = await Promise.all([
-      import(/* webpackChunkName: "asciinema-player" */'asciinema-player'),
-      import(/* webpackChunkName: "asciinema-player" */'asciinema-player/dist/bundle/asciinema-player.css'),
+      import('asciinema-player'),
+      import('asciinema-player/dist/bundle/asciinema-player.css'),
     ]);
 
     player.create(el.getAttribute('data-asciinema-player-src')!, el, {

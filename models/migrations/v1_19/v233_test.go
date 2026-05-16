@@ -6,7 +6,7 @@ package v1_19
 import (
 	"testing"
 
-	"code.gitea.io/gitea/models/migrations/base"
+	"code.gitea.io/gitea/models/migrations/migrationtest"
 	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/modules/secret"
 	"code.gitea.io/gitea/modules/setting"
@@ -39,7 +39,7 @@ func Test_AddHeaderAuthorizationEncryptedColWebhook(t *testing.T) {
 	}
 
 	// Prepare and load the testing database
-	x, deferable := base.PrepareTestEnv(t, 0, new(Webhook), new(ExpectedWebhook), new(HookTask))
+	x, deferable := migrationtest.PrepareTestEnv(t, 0, new(Webhook), new(ExpectedWebhook), new(HookTask))
 	defer deferable()
 	if x == nil || t.Failed() {
 		return

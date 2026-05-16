@@ -24,6 +24,7 @@ import (
 	"code.gitea.io/gitea/modules/lfs"
 	"code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/util"
+	"code.gitea.io/gitea/tests"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -136,7 +137,7 @@ func TestActionsJobTokenPermissiveAccess(t *testing.T) {
 				require.NoError(t, repo_model.UpdateRepoUnitConfig(t.Context(), repoActionsUnit))
 
 				// prepare task and its token
-				require.NoError(t, task.GenerateToken())
+				task.GenerateAndFillToken()
 				task.Status = actions_model.StatusRunning
 				task.IsForkPullRequest = tt.isFork
 				err := actions_model.UpdateTask(t.Context(), task, "token_hash", "token_salt", "token_last_eight", "status", "is_fork_pull_request")
@@ -207,8 +208,7 @@ func TestActionsCrossRepoAccess(t *testing.T) {
 				AutoInit: true,
 			}).AddTokenAuth(token)
 			resp := MakeRequest(t, req, http.StatusCreated)
-			var repo structs.Repository
-			DecodeJSON(t, resp, &repo)
+			repo := DecodeJSON(t, resp, &structs.Repository{})
 			return repo.ID
 		}
 
@@ -284,6 +284,65 @@ func TestActionsCrossRepoAccess(t *testing.T) {
 	})
 }
 
+func TestActionsJobTokenPermissions(t *testing.T) {
+	defer tests.PrepareTestEnv(t)()
+	t.Run("WriteIssue", TestActionsJobTokenPermissionsWriteIssue)
+}
+
+func TestActionsJobTokenPermissionsWriteIssue(t *testing.T) {
+	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
+	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 2})
+	task := unittest.AssertExistsAndLoadBean(t, &actions_model.ActionTask{ID: 53})
+	require.Equal(t, repo.ID, task.RepoID)
+
+	require.NoError(t, db.Insert(t.Context(), &repo_model.RepoUnit{
+		RepoID: repo.ID,
+		Type:   unit_model.TypeActions,
+		Config: &repo_model.ActionsConfig{},
+	}))
+
+	repoActionsUnit := repo.MustGetUnit(t.Context(), unit_model.TypeActions)
+	repoActionsCfg := repoActionsUnit.ActionsConfig()
+	repoActionsCfg.OverrideOwnerConfig = true
+	repoActionsCfg.TokenPermissionMode = repo_model.ActionsTokenPermissionModePermissive
+	repoActionsCfg.MaxTokenPermissions = nil
+	require.NoError(t, repo_model.UpdateRepoUnitConfig(t.Context(), repoActionsUnit))
+
+	task.GenerateAndFillToken()
+	task.Status = actions_model.StatusRunning
+	require.NoError(t, actions_model.UpdateTask(t.Context(), task, "token_hash", "token_salt", "token_last_eight", "status"))
+
+	session := loginUser(t, user.Name)
+	token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeWriteIssue, auth_model.AccessTokenScopeWriteRepository)
+
+	labelURL := fmt.Sprintf("/api/v1/repos/%s/%s/labels", user.Name, repo.Name)
+	req := NewRequestWithJSON(t, "POST", labelURL, &structs.CreateLabelOption{
+		Name:  "task-label",
+		Color: "0e8a16",
+	}).AddTokenAuth(token)
+	resp := MakeRequest(t, req, http.StatusCreated)
+	label := DecodeJSON(t, resp, &structs.Label{})
+
+	issueURL := fmt.Sprintf("/api/v1/repos/%s/%s/issues", user.Name, repo.Name)
+	req = NewRequestWithJSON(t, "POST", issueURL, &structs.CreateIssueOption{
+		Title: "issue for actions token label deletion",
+	}).AddTokenAuth(token)
+	resp = MakeRequest(t, req, http.StatusCreated)
+	issue := DecodeJSON(t, resp, &structs.Issue{})
+
+	taskToken := task.Token
+	require.NotEmpty(t, taskToken)
+
+	issueLabelsURL := fmt.Sprintf("/api/v1/repos/%s/%s/issues/%d/labels", user.Name, repo.Name, issue.Index)
+	req = NewRequestWithJSON(t, "POST", issueLabelsURL, &structs.IssueLabelsOption{
+		Labels: []any{label.ID},
+	}).AddTokenAuth(taskToken)
+	MakeRequest(t, req, http.StatusOK)
+
+	req = NewRequest(t, "DELETE", fmt.Sprintf("%s/%d", issueLabelsURL, label.ID)).AddTokenAuth(taskToken)
+	MakeRequest(t, req, http.StatusNoContent)
+}
+
 func createActionTask(t *testing.T, repoID int64, isFork bool) *actions_model.ActionTask {
 	job := &actions_model.ActionRunJob{
 		RepoID:            repoID,
@@ -299,7 +358,7 @@ func createActionTask(t *testing.T, repoID int64, isFork bool) *actions_model.Ac
 		Status:            actions_model.StatusRunning,
 		IsForkPullRequest: isFork,
 	}
-	require.NoError(t, task.GenerateToken())
+	task.GenerateAndFillToken()
 	require.NoError(t, db.Insert(t.Context(), task))
 	return task
 }

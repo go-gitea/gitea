@@ -91,14 +91,7 @@ input[type="checkbox"]:indeterminate::before {
   height: var(--checkbox-size);
 }
 
-.ui.checkbox input[type="checkbox"]:enabled,
-.ui.checkbox input[type="radio"]:enabled,
-.ui.checkbox label:enabled {
-  cursor: pointer;
-}
-
 .ui.checkbox label {
-  cursor: auto;
   position: relative;
   display: block;
 }
@@ -112,6 +105,7 @@ input[type="checkbox"]:indeterminate::before {
   vertical-align: middle;
 }
 
+.ui.disabled.checkbox input,
 .ui.disabled.checkbox label,
 .ui.checkbox input[disabled] ~ label {
   cursor: default !important;

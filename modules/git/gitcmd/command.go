@@ -57,14 +57,12 @@ type Command struct {
 }
 
 func logArgSanitize(arg string) string {
-	if strings.Contains(arg, "://") && strings.Contains(arg, "@") {
-		return util.SanitizeCredentialURLs(arg)
-	} else if filepath.IsAbs(arg) {
+	if filepath.IsAbs(arg) {
 		base := filepath.Base(arg)
 		dir := filepath.Dir(arg)
 		return ".../" + filepath.Join(filepath.Base(dir), base)
 	}
-	return arg
+	return util.SanitizeCredentialURLs(arg)
 }
 
 func (c *Command) LogString() string {
