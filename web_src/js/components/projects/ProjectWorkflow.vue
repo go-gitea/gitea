@@ -10,6 +10,7 @@ import WorkflowEditor from './WorkflowEditor.vue';
 const props = defineProps<{
   projectLink: string;
   eventId: string;
+  canWriteProjects: boolean;
   locale: {
     defaultWorkflows: string;
     moveToColumn: string;
@@ -68,6 +69,7 @@ const previousSelection = ref<SelectionSnapshot | null>(null);
 
 // Workflows with id=0 are always editable; saved workflows use _isEditing flag.
 const isInEditMode = computed(() => {
+  if (!props.canWriteProjects) return false;
   if (!store.selectedWorkflow) return false;
   return store.selectedWorkflow.id === 0 || Boolean(store.selectedWorkflow._isEditing);
 });
@@ -94,6 +96,7 @@ const isTemporaryWorkflow = (wf?: WorkflowEvent | null) => {
 
 // Clone is allowed when the selected workflow is saved and has no pending clone.
 const canCloneSelectedWorkflow = computed(() => {
+  if (!props.canWriteProjects) return false;
   const sel = store.selectedWorkflow;
   if (!sel || sel.id <= 0) return false;
   return !store.workflowEvents.some(
@@ -202,6 +205,7 @@ const removeTemporaryWorkflow = (wf?: WorkflowEvent | null) => {
 // ── Workflow actions ──────────────────────────────────────────────────────────
 
 const toggleEditMode = () => {
+  if (!props.canWriteProjects) return;
   if (!isInEditMode.value) {
     // Enter edit mode: snapshot current selection for Cancel.
     previousSelection.value = {
@@ -244,6 +248,7 @@ const toggleEditMode = () => {
 };
 
 const saveWorkflow = async () => {
+  if (!props.canWriteProjects) return;
   const ok = await store.saveWorkflow();
   if (ok) {
     previousSelection.value = null;
@@ -252,12 +257,13 @@ const saveWorkflow = async () => {
 };
 
 const toggleWorkflowStatus = async () => {
-  if (!store.selectedWorkflow) return;
+  if (!props.canWriteProjects || !store.selectedWorkflow) return;
   store.selectedWorkflow.enabled = !store.selectedWorkflow.enabled;
   await store.saveWorkflowStatus();
 };
 
 const deleteWorkflow = async () => {
+  if (!props.canWriteProjects) return;
   const current = store.selectedWorkflow;
   if (!current) return;
   if (!await confirmModal({content: props.locale.deleteConfirm, confirmButtonColor: 'red'})) return;
@@ -284,7 +290,7 @@ const deleteWorkflow = async () => {
 
   if (next) {
     await selectWorkflowItem(next);
-    if (!next.is_configured && next.id === 0) {
+    if (props.canWriteProjects && !next.is_configured && next.id === 0) {
       previousSelection.value = null;
       setEditMode(true);
       return;
@@ -299,6 +305,7 @@ const deleteWorkflow = async () => {
 };
 
 const cloneWorkflow = async (sourceWorkflow?: WorkflowEvent | null) => {
+  if (!props.canWriteProjects) return;
   if (!sourceWorkflow || !canCloneSelectedWorkflow.value) return;
 
   // Temporary clones use the event-type string as their event_id
@@ -405,6 +412,7 @@ onUnmounted(() => {
     />
     <WorkflowEditor
       :locale="locale"
+      :can-write-projects="canWriteProjects"
       :is-in-edit-mode="isInEditMode"
       :show-cancel-button="showCancelButton"
       :can-clone-selected-workflow="canCloneSelectedWorkflow"

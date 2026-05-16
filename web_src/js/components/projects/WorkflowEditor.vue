@@ -42,6 +42,7 @@ const props = defineProps<{
     clone: string;
     cloneTooltip: string;
   };
+  canWriteProjects: boolean;
   isInEditMode: boolean;
   showCancelButton: boolean;
   canCloneSelectedWorkflow: boolean;
@@ -115,7 +116,7 @@ const toggleLabel = (type: string, labelId: string) => {
 
         <div class="editor-actions-header">
           <!-- Edit-mode buttons -->
-          <template v-if="isInEditMode">
+          <template v-if="canWriteProjects && isInEditMode">
             <button v-if="showCancelButton" class="ui small button" @click="emit('toggle-edit-mode')">
               {{ locale.cancel }}
             </button>
@@ -128,7 +129,7 @@ const toggleLabel = (type: string, labelId: string) => {
           </template>
 
           <!-- View-mode buttons (saved workflows only) -->
-          <template v-else-if="store.selectedWorkflow.id > 0">
+          <template v-else-if="canWriteProjects && store.selectedWorkflow.id > 0">
             <button class="ui small primary button" @click="emit('toggle-edit-mode')">{{ locale.edit }}</button>
             <button
               class="ui small button"

@@ -120,9 +120,22 @@ func TestProjectWorkflowsPage(t *testing.T) {
 	// Verify project link is set
 	projectLink := workflowDiv.AttrOr("data-project-link", "")
 	assert.Equal(t, fmt.Sprintf("/%s/%s/projects/%d", user.Name, repo.Name, project.ID), projectLink, "Project link should be correct")
+	assert.Equal(t, "true", workflowDiv.AttrOr("data-can-write-projects", ""), "owners should be able to edit workflows")
 
-	// Test that unauthenticated users cannot access
+	// Test that unauthenticated users can read workflow information but cannot modify workflows.
 	req = NewRequest(t, "GET", fmt.Sprintf("/%s/%s/projects/%d/workflows", user.Name, repo.Name, project.ID))
+	resp = MakeRequest(t, req, http.StatusOK)
+	htmlDoc = NewHTMLParser(t, resp.Body)
+	workflowDiv = htmlDoc.Find("#project-workflows")
+	assert.Equal(t, "false", workflowDiv.AttrOr("data-can-write-projects", ""), "readers should not see workflow edit controls")
+
+	req = NewRequest(t, "GET", fmt.Sprintf("/%s/%s/projects/%d/workflows/events", user.Name, repo.Name, project.ID))
+	MakeRequest(t, req, http.StatusOK)
+
+	req = NewRequestWithBody(t, "POST",
+		fmt.Sprintf("/%s/%s/projects/%d/workflows/%s", user.Name, repo.Name, project.ID, project_model.WorkflowEventItemOpened),
+		strings.NewReader(`{"event_id":"item_opened"}`))
+	req.Header.Set("Content-Type", "application/json")
 	MakeRequest(t, req, http.StatusNotFound)
 
 	// Test accessing non-existent project workflows page

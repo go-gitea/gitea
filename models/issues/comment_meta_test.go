@@ -62,7 +62,7 @@ func TestBuildCreateCommentMetaData(t *testing.T) {
 	// Passing a value-type projectWorkflowDoer (not pointer) must NOT match
 	// the *projectWorkflowDoer assertion, so metadata must remain nil.
 	nilMetaDoer := &user_model.User{
-		ID:          1,
+		ID: 1,
 		ExtDoerData: projectWorkflowDoer{ // value, not *projectWorkflowDoer
 			projectTitle:         "WrongTitle",
 			projectWorkflowID:    99,

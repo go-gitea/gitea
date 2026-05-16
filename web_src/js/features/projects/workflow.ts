@@ -51,6 +51,7 @@ export async function initProjectWorkflow() {
   const View = createApp(ProjectWorkflow, {
     projectLink: workflowDiv.getAttribute('data-project-link')!,
     eventID: workflowDiv.getAttribute('data-event-id') ?? '',
+    canWriteProjects: workflowDiv.getAttribute('data-can-write-projects') === 'true',
     locale,
   });
   View.mount(workflowDiv);

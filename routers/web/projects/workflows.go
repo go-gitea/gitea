@@ -13,6 +13,7 @@ import (
 
 	"code.gitea.io/gitea/models/db"
 	project_model "code.gitea.io/gitea/models/project"
+	"code.gitea.io/gitea/models/unit"
 	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/modules/templates"
 	"code.gitea.io/gitea/services/context"
@@ -179,7 +180,7 @@ type WorkflowConfig struct {
 	IsConfigured  bool                                    `json:"is_configured"` // Whether this workflow is configured/saved
 }
 
-func WorkflowsEvents(ctx *context.Context, project *project_model.Project) {
+func renderWorkflowsEvents(ctx *context.Context, project *project_model.Project) {
 	workflows, err := project_model.FindWorkflowsByProjectID(ctx, project.ID)
 	if err != nil {
 		ctx.ServerError("FindWorkflowsByProjectID", err)
@@ -233,7 +234,7 @@ func WorkflowsEvents(ctx *context.Context, project *project_model.Project) {
 	ctx.JSON(http.StatusOK, outputWorkflows)
 }
 
-func WorkflowsOptions(ctx *context.Context, project *project_model.Project) {
+func renderWorkflowsOptions(ctx *context.Context, project *project_model.Project) {
 	columns, err := project.GetColumns(ctx)
 	if err != nil {
 		ctx.ServerError("GetProjectColumns", err)
@@ -308,6 +309,24 @@ func prepareProject(ctx *context.Context) *project_model.Project {
 	return p
 }
 
+func WorkflowsEvents(ctx *context.Context) {
+	p := prepareProject(ctx)
+	if p == nil {
+		return
+	}
+
+	renderWorkflowsEvents(ctx, p)
+}
+
+func WorkflowsOptions(ctx *context.Context) {
+	p := prepareProject(ctx)
+	if p == nil {
+		return
+	}
+
+	renderWorkflowsOptions(ctx, p)
+}
+
 func Workflows(ctx *context.Context) {
 	p := prepareProject(ctx)
 	if p == nil {
@@ -315,20 +334,13 @@ func Workflows(ctx *context.Context) {
 	}
 
 	workflowIDStr := ctx.PathParam("workflow_id")
-	if workflowIDStr == "events" {
-		WorkflowsEvents(ctx, p)
-		return
-	}
-	if workflowIDStr == "options" {
-		WorkflowsOptions(ctx, p)
-		return
-	}
 
 	ctx.Data["WorkflowEvents"] = project_model.GetWorkflowEvents()
 
 	ctx.Data["Title"] = ctx.Tr("projects.workflows")
 	ctx.Data["IsProjectsPage"] = true
 	ctx.Data["Project"] = p
+	ctx.Data["CanWriteProjects"] = canWriteProjectWorkflows(ctx, p)
 
 	workflows, err := project_model.FindWorkflowsByProjectID(ctx, p.ID)
 	if err != nil {
@@ -372,6 +384,16 @@ func Workflows(ctx *context.Context) {
 	} else {
 		ctx.HTML(http.StatusOK, tmplOrgWorkflows)
 	}
+}
+
+func canWriteProjectWorkflows(ctx *context.Context, project *project_model.Project) bool {
+	if project.Type == project_model.TypeRepository {
+		return ctx.Repo.Permission.CanWrite(unit.TypeProjects)
+	}
+	if ctx.ContextUser != nil && ctx.ContextUser.IsOrganization() {
+		return ctx.Org.CanWriteUnit(ctx, unit.TypeProjects)
+	}
+	return ctx.Doer != nil && ctx.ContextUser != nil && ctx.ContextUser.ID == ctx.Doer.ID
 }
 
 type WorkflowsPostForm struct {

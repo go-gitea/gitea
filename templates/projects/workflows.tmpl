@@ -2,6 +2,7 @@
 	<div id="project-workflows"
 		data-project-link="{{.ProjectLink}}"
 		data-event-id="{{.workflowIDStr}}"
+		data-can-write-projects="{{if .CanWriteProjects}}true{{else}}false{{end}}"
 		data-locale-default-workflows="{{ctx.Locale.Tr "projects.workflows.default_workflows"}}"
 		data-locale-view-workflow-configuration="{{ctx.Locale.Tr "projects.workflows.view_workflow_configuration"}}"
 		data-locale-configure-workflow="{{ctx.Locale.Tr "projects.workflows.configure_workflow"}}"
