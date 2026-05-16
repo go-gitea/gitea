@@ -12,9 +12,13 @@ import (
 	"code.gitea.io/gitea/modules/setting"
 )
 
-func BuildSignature(tag string, vals ...string) []byte {
+type tagType string
+
+// BuildSignature builds a hmac signature for the input values.
+// "tag" is an internal pre-defined static string to distinguish the signatures for different purpose.
+func BuildSignature(tag tagType, vals ...string) []byte {
 	m := hmac.New(sha256.New, setting.GetGeneralTokenSigningSecret())
-	_, _ = io.WriteString(m, tag)
+	_, _ = io.WriteString(m, string(tag))
 	var buf8 [8]byte
 	for _, v := range vals {
 		binary.LittleEndian.PutUint64(buf8[:], uint64(len(v)))
