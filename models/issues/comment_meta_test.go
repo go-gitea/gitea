@@ -47,8 +47,8 @@ func TestBuildCreateCommentMetaData(t *testing.T) {
 	// (which is *projectWorkflowDoer) would not match, ok==false, and all
 	// workflow fields would silently remain zero — caught here.
 	const (
-		wfID    = int64(42)
-		wfEvent = project_model.WorkflowEventItemOpened
+		wfID      = int64(42)
+		wfEvent   = project_model.WorkflowEventItemOpened
 		projTitle = "Kanban"
 	)
 	workflowDoer := NewProjectWorkflowDoer(projTitle, wfID, wfEvent)
