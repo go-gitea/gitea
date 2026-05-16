@@ -456,6 +456,22 @@ func TestGetUsersWhoCanCreateOrgRepo(t *testing.T) {
 	assert.NotNil(t, users[5])
 }
 
+func TestCanCreateOrgRepoByOwnerTeamWithoutFlag(t *testing.T) {
+	assert.NoError(t, unittest.PrepareTestDatabase())
+
+	org := unittest.AssertExistsAndLoadBean(t, &organization.Organization{ID: 3})
+	ownerTeam, err := org.GetOwnerTeam(t.Context())
+	require.NoError(t, err)
+
+	ownerTeam.CanCreateOrgRepo = false
+	_, err = db.GetEngine(t.Context()).ID(ownerTeam.ID).Cols("can_create_org_repo").Update(ownerTeam)
+	require.NoError(t, err)
+
+	ok, err := organization.CanCreateOrgRepo(t.Context(), org.ID, 2)
+	require.NoError(t, err)
+	assert.True(t, ok)
+}
+
 func TestUser_RemoveOrgRepo(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 	org := unittest.AssertExistsAndLoadBean(t, &organization.Organization{ID: 3})
