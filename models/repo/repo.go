@@ -153,10 +153,10 @@ const (
 // Repository represents a git repository.
 type Repository struct {
 	ID                  int64 `xorm:"pk autoincr"`
-	OwnerID             int64 `xorm:"UNIQUE(s) UNIQUE(g) index"`
+	OwnerID             int64 `xorm:"UNIQUE(s) index"`
 	OwnerName           string
 	Owner               *user_model.User   `xorm:"-"`
-	LowerName           string             `xorm:"UNIQUE(s) UNIQUE(g) INDEX NOT NULL"`
+	LowerName           string             `xorm:"UNIQUE(s) INDEX NOT NULL"`
 	Name                string             `xorm:"INDEX NOT NULL"`
 	Description         string             `xorm:"TEXT"`
 	Website             string             `xorm:"VARCHAR(2048)"`
@@ -220,7 +220,7 @@ type Repository struct {
 	UpdatedUnix  timeutil.TimeStamp `xorm:"INDEX updated"`
 	ArchivedUnix timeutil.TimeStamp `xorm:"DEFAULT 0"`
 
-	GroupID        int64 `xorm:"UNIQUE(g) INDEX DEFAULT 0"`
+	GroupID        int64 `xorm:"UNIQUE(s) INDEX DEFAULT 0"`
 	GroupSortOrder int   `xorm:"INDEX"`
 }
 
