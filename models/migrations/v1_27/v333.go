@@ -3,14 +3,18 @@
 
 package v1_27
 
-import (
-	"context"
+import "xorm.io/xorm"
 
-	"code.gitea.io/gitea/models/actions"
+func AddBranchProtectionBypassAllowlist(x *xorm.Engine) error {
+	type ProtectedBranch struct {
+		EnableBypassAllowlist  bool    `xorm:"NOT NULL DEFAULT false"`
+		BypassAllowlistUserIDs []int64 `xorm:"JSON TEXT"`
+		BypassAllowlistTeamIDs []int64 `xorm:"JSON TEXT"`
+	}
 
-	"xorm.io/xorm"
-)
-
-func AddActionRunJobSummaryTable(ctx context.Context, x *xorm.Engine) error {
-	return x.Sync(new(actions.ActionRunJobSummary))
+	_, err := x.SyncWithOptions(xorm.SyncOptions{
+		IgnoreConstrains: true,
+		IgnoreIndices:    true,
+	}, new(ProtectedBranch))
+	return err
 }

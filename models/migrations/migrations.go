@@ -410,7 +410,8 @@ func prepareMigrationTasks() []*migration {
 
 		newMigration(331, "Add ActionRunAttempt model and related action fields", v1_27.AddActionRunAttemptModel),
 		newMigration(332, "Add last_sync_unix to mirror", v1_27.AddLastSyncUnixToMirror),
-		newMigration(333, "Add ActionRunJobSummary table", v1_27.AddActionRunJobSummaryTable),
+		newMigration(333, "Add bypass allowlist to branch protection", v1_27.AddBranchProtectionBypassAllowlist),
+		newMigration(334, "Add ActionRunJobSummary table", v1_27.AddActionRunJobSummaryTable),
 	}
 	return preparedMigrations
 }
