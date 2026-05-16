@@ -115,9 +115,7 @@ const removeTemporaryWorkflow = (workflow?: WorkflowEvent | null) => {
     store.workflowEvents.splice(tempIndex, 1);
   }
 
-  if (typeof store.clearDraft === 'function') {
-    store.clearDraft(event_id);
-  }
+  store.clearDraft(event_id);
 };
 
 const toggleEditMode = () => {
@@ -245,15 +243,11 @@ const cloneWorkflow = (sourceWorkflow?: WorkflowEvent | null) => {
   // Generate a unique temporary ID for the cloned workflow
   const tempId = `${sourceWorkflow.workflow_event}`;
 
-  // Extract base name without any parenthetical descriptions
-  const baseName = (sourceWorkflow.display_name || sourceWorkflow.workflow_event || sourceWorkflow.event_id)
-    .replace(/\s*\([^)]*\)\s*/g, '');
-
   // Create a new workflow object based on the source
   const clonedWorkflow = {
     id: 0, // New workflow
     event_id: tempId,
-    display_name: `${baseName} (Copy)`,
+    display_name: sourceWorkflow.display_name || sourceWorkflow.workflow_event || sourceWorkflow.event_id,
     workflow_event: sourceWorkflow.workflow_event,
     _clonedFromEventId: sourceWorkflow.event_id,
     capabilities: sourceWorkflow.capabilities,
@@ -306,9 +300,6 @@ const selectWorkflowEvent = async (event: WorkflowEvent) => {
     store.selectedItem = event.event_id;
     store.selectedWorkflow = event;
 
-    // Wait for DOM update before proceeding
-    await nextTick();
-
     await store.loadWorkflowData(event.event_id);
 
     // Update URL without page reload
@@ -316,11 +307,6 @@ const selectWorkflowEvent = async (event: WorkflowEvent) => {
     window.history.pushState({event_id: event.event_id}, '', newUrl);
   } catch (error) {
     console.error('Error selecting workflow event:', error);
-    // On error, try to select the first available workflow instead of clearing
-    const items = workflowList.value;
-    if (items.length > 0 && items[0] !== event) {
-      selectWorkflowItem(items[0]);
-    }
   }
 };
 
@@ -388,23 +374,25 @@ const hasAvailableFilters = computed(() => {
   return (store.selectedWorkflow?.capabilities?.available_filters?.length ?? 0) > 0;
 });
 
-const hasFilter = (filterType: any) => {
+const hasFilter = (filterType: string) => {
   return store.selectedWorkflow?.capabilities?.available_filters?.includes(filterType);
 };
 
-const hasAction = (actionType: any) => {
+const hasAction = (actionType: string) => {
   return store.selectedWorkflow?.capabilities?.available_actions?.includes(actionType);
 };
 
-// Toggle label selection for add_labels, remove_labels, or filter_labels
-const toggleLabel = (type: string, labelId: any) => {
-  let labels;
+// Toggle label selection for filter_labels, add_labels, or remove_labels
+const toggleLabel = (type: string, labelId: string) => {
+  let labels: string[];
   if (type === 'filter_labels') {
     labels = store.workflowFilters.labels;
   } else if (type === 'add_labels') {
-    labels = (store.workflowActions as any)['addLabels'];
+    labels = store.workflowActions.add_labels;
   } else if (type === 'remove_labels') {
-    labels = (store.workflowActions as any)['removeLabels'];
+    labels = store.workflowActions.remove_labels;
+  } else {
+    return;
   }
   const index = labels.indexOf(labelId);
   if (index > -1) {
@@ -470,11 +458,8 @@ const getWorkflowDisplayName = (item: WorkflowListItem, _index: number) => {
 
   // Find the index of this workflow among same-type workflows
   const sameTypeIndex = orderedSameTypeWorkflows.findIndex((w: WorkflowListItem) => w.event_id === item.event_id);
-  // Extract base name without filter summary (remove anything in parentheses)
-  const baseName = displayName.replace(/\s*\([^)]*\)\s*$/g, '');
 
-  // Add numbering
-  return `${baseName} #${sameTypeIndex + 1}`;
+  return `${displayName} #${sameTypeIndex + 1}`;
 };
 
 
@@ -519,9 +504,8 @@ watch(() => store.workflowActions, () => {
 }, {deep: true});
 
 onMounted(async () => {
-  // Load all necessary data
-  store.workflowEvents = await store.loadEvents();
-  await store.loadProjectOptions();
+  // Load events and project options in parallel
+  await Promise.all([store.loadEvents(), store.loadProjectOptions()]);
 
   // Add native event listener to prevent conflicts with Gitea
   await nextTick();

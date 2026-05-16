@@ -2,6 +2,18 @@ import {reactive} from 'vue';
 import {GET, POST} from '../../modules/fetch.ts';
 import {showErrorToast} from '../../modules/toast.ts';
 
+// Minimum props the store needs from the Vue component
+type StoreProps = {
+  projectLink: string;
+  eventId: string;
+  locale: {
+    atLeastOneActionRequired: string;
+    saveWorkflowFailed: string;
+    updateWorkflowFailed: string;
+    deleteWorkflowFailed: string;
+  };
+};
+
 type WorkflowFilters = {
   issue_type: string;
   source_column: string;
@@ -138,10 +150,10 @@ const cloneActions = (actions: WorkflowActions): WorkflowActions => ({
   issue_state: actions.issue_state,
 });
 
-export function createWorkflowStore(props: any): WorkflowStoreState {
+export function createWorkflowStore(props: StoreProps): WorkflowStoreState {
   const store: WorkflowStoreState = reactive<WorkflowStoreState>({
     workflowEvents: [] as WorkflowEvent[],
-    selectedItem: props.event_id,
+    selectedItem: props.eventId || null,
     selectedWorkflow: null,
     projectColumns: [],
     projectLabels: [], // Add labels data
@@ -193,9 +205,6 @@ export function createWorkflowStore(props: any): WorkflowStoreState {
     async loadWorkflowData(event_id: string): Promise<void> {
       store.loading = true;
       try {
-        // Load project columns and labels for the dropdowns
-        await store.loadProjectOptions();
-
         const draft = store.getDraft(event_id);
         if (draft) {
           store.workflowFilters = cloneFilters(draft.filters);
