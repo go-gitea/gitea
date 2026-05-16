@@ -72,7 +72,7 @@ func PrepareTestEnv(t *testing.T, skip int, syncModels ...any) (*xorm.Engine, fu
 		if err := unittest.InitFixtures(
 			unittest.FixturesOptions{
 				Dir: fixturesDir,
-			}, x); err != nil {
+			}); err != nil {
 			t.Errorf("error whilst initializing fixtures from %s: %v", fixturesDir, err)
 			return x, deferFn
 		}
@@ -110,6 +110,7 @@ func mainTest(m *testing.M) int {
 	if err = git.InitFull(); err != nil {
 		return testlogger.MainErrorf("Unable to InitFull: %v", err)
 	}
+	setting.Database.SlowQueryThreshold = 0
 	setting.LoadDBSetting()
 	setting.InitLoggersForTest()
 	return m.Run()

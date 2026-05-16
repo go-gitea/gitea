@@ -41,10 +41,12 @@ export type CodemirrorEditor = {
   };
 };
 
+type LinguistLanguage = {name: string; extensions: string[]; filenames: string[]};
+
 export type CodemirrorModules = Awaited<ReturnType<typeof importCodemirror>>;
 
-async function importCodemirror() {
-  const [autocomplete, commands, language, languageData, lint, search, state, view, highlight, indentMarkers, vscodeKeymap] = await Promise.all([
+export async function importCodemirror() {
+  const [autocomplete, commands, language, languageData, lint, search, state, view, highlight, indentMarkers, vscodeKeymap, linguist] = await Promise.all([
     import('@codemirror/autocomplete'),
     import('@codemirror/commands'),
     import('@codemirror/language'),
@@ -56,8 +58,77 @@ async function importCodemirror() {
     import('@lezer/highlight'),
     import('@replit/codemirror-indentation-markers'),
     import('@replit/codemirror-vscode-keymap'),
+    import('../../../../assets/codemirror-languages.json'),
   ]);
-  return {autocomplete, commands, language, languageData, lint, search, state, view, highlight, indentMarkers, vscodeKeymap};
+  return {autocomplete, commands, language, languageData, lint, search, state, view, highlight, indentMarkers, vscodeKeymap, linguistLanguages: linguist.default as LinguistLanguage[]};
+}
+
+const escapeRegex = (s: string) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+const filenameUnion = (filenames: string[]) =>
+  filenames.length ? new RegExp(`^(${filenames.map(escapeRegex).join('|')})$`) : undefined;
+
+export function buildLanguageDescriptions(cm: CodemirrorModules): LanguageDescription[] {
+  const list: LanguageDescription[] = [
+    ...buildBaseLanguages(cm),
+    cm.language.LanguageDescription.of({
+      name: 'Markdown', extensions: ['md', 'markdown', 'mkd', 'mdown', 'mdwn', 'mkdn', 'mkdown'],
+      load: async () => (await import('@codemirror/lang-markdown')).markdown({codeLanguages: list}),
+    }),
+    cm.language.LanguageDescription.of({
+      name: 'Dockerfile', extensions: ['dockerfile', 'containerfile'],
+      filename: /^(Containerfile|Dockerfile)(\..+)?$/i,
+      load: async () => new cm.language.LanguageSupport(cm.language.StreamLanguage.define((await import('@codemirror/legacy-modes/mode/dockerfile')).dockerFile)),
+    }),
+    cm.language.LanguageDescription.of({
+      name: 'Elixir', extensions: ['ex', 'exs'],
+      load: async () => (await import('codemirror-lang-elixir')).elixir(),
+    }),
+    cm.language.LanguageDescription.of({
+      name: 'Nix', extensions: ['nix'],
+      load: async () => (await import('@replit/codemirror-lang-nix')).nix(),
+    }),
+    cm.language.LanguageDescription.of({
+      name: 'Svelte', extensions: ['svelte'],
+      load: async () => (await import('@replit/codemirror-lang-svelte')).svelte(),
+    }),
+    cm.language.LanguageDescription.of({
+      name: 'Makefile', extensions: ['mk', 'mak', 'make'], filename: /^(GNU|BSD)?[Mm]akefile(\..+)?$/,
+      load: async () => new cm.language.LanguageSupport(cm.language.StreamLanguage.define((await import('@codemirror/legacy-modes/mode/shell')).shell)),
+    }),
+    cm.language.LanguageDescription.of({
+      name: 'Dotenv', extensions: ['env'], filename: /^\.env(\..*)?$/,
+      load: async () => new cm.language.LanguageSupport(cm.language.StreamLanguage.define((await import('@codemirror/legacy-modes/mode/shell')).shell)),
+    }),
+    cm.language.LanguageDescription.of({
+      name: 'JSON5', extensions: ['json5', 'jsonc'],
+      load: async () => (await import('@codemirror/lang-json')).json(),
+    }),
+  ];
+  return list;
+}
+
+// Languages that the JSON omits because they're constructed manually above.
+const customNames = new Set(['Dockerfile', 'Markdown']);
+
+let baseLanguagesCache: LanguageDescription[] | null = null;
+function buildBaseLanguages(cm: CodemirrorModules): LanguageDescription[] {
+  if (baseLanguagesCache) return baseLanguagesCache;
+  const loadByName = new Map<string, LanguageDescription['load']>(
+    cm.languageData.languages.map((l: LanguageDescription) => [l.name, l.load.bind(l)]),
+  );
+  const overrides = cm.linguistLanguages
+    .filter((l) => loadByName.has(l.name))
+    .map((l) => cm.language.LanguageDescription.of({
+      name: l.name,
+      extensions: l.extensions,
+      filename: filenameUnion(l.filenames),
+      load: loadByName.get(l.name)!,
+    }));
+  const overrideNames = new Set(overrides.map((o) => o.name));
+  const fallback = cm.languageData.languages.filter(
+    (l: LanguageDescription) => !overrideNames.has(l.name) && !customNames.has(l.name),
+  );
+  return baseLanguagesCache = [...overrides, ...fallback];
 }
 
 function togglePreviewDisplay(previewable: boolean): void {
@@ -85,38 +156,7 @@ export async function createCodeEditor(textarea: HTMLTextAreaElement, filenameIn
   const previewableExts = new Set(config.previewableExtensions || []);
   const lineWrapExts = config.lineWrapExtensions || [];
   const cm = await importCodemirror();
-
-  const languageDescriptions: LanguageDescription[] = [
-    ...cm.languageData.languages.filter((l: LanguageDescription) => l.name !== 'Markdown'),
-    cm.language.LanguageDescription.of({
-      name: 'Markdown', extensions: ['md', 'markdown', 'mkd'],
-      load: async () => (await import('@codemirror/lang-markdown')).markdown({codeLanguages: languageDescriptions}),
-    }),
-    cm.language.LanguageDescription.of({
-      name: 'Elixir', extensions: ['ex', 'exs'],
-      load: async () => (await import('codemirror-lang-elixir')).elixir(),
-    }),
-    cm.language.LanguageDescription.of({
-      name: 'Nix', extensions: ['nix'],
-      load: async () => (await import('@replit/codemirror-lang-nix')).nix(),
-    }),
-    cm.language.LanguageDescription.of({
-      name: 'Svelte', extensions: ['svelte'],
-      load: async () => (await import('@replit/codemirror-lang-svelte')).svelte(),
-    }),
-    cm.language.LanguageDescription.of({
-      name: 'Makefile', filename: /^(GNUm|M|m)akefile$/,
-      load: async () => new cm.language.LanguageSupport(cm.language.StreamLanguage.define((await import('@codemirror/legacy-modes/mode/shell')).shell)),
-    }),
-    cm.language.LanguageDescription.of({
-      name: 'Dotenv', extensions: ['env'], filename: /^\.env(\..*)?$/,
-      load: async () => new cm.language.LanguageSupport(cm.language.StreamLanguage.define((await import('@codemirror/legacy-modes/mode/shell')).shell)),
-    }),
-    cm.language.LanguageDescription.of({
-      name: 'JSON5', extensions: ['json5', 'jsonc'],
-      load: async () => (await import('@codemirror/lang-json')).json(),
-    }),
-  ];
+  const languageDescriptions = buildLanguageDescriptions(cm);
   const matchedLang = cm.language.LanguageDescription.matchFilename(languageDescriptions, config.filename);
 
   const container = document.createElement('div');

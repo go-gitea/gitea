@@ -1,16 +1,16 @@
-<div class="flex-list">
+<div class="flex-divided-list items-with-main">
 	{{range .Repos}}
-		<div class="flex-item">
-			<div class="flex-item-leading">
+		<div class="item">
+			<div class="item-leading">
 				{{if $.ShowRepoOwnerAvatar}}
 					{{ctx.AvatarUtils.Avatar .Owner 24}}
 				{{else}}
 					{{template "repo/icon" .}}
 				{{end}}
 			</div>
-			<div class="flex-item-main">
-				<div class="flex-item-header">
-					<div class="flex-item-title">
+			<div class="item-main">
+				<div class="item-header">
+					<div class="item-title">
 						{{if and $.ShowRepoOwnerOnList .Owner}}
 						<a class="tw-text-primary name" href="{{.Owner.HomeLink}}">{{.Owner.Name}}</a>/
 						{{end}}
@@ -34,7 +34,7 @@
 							{{end}}
 						</span>
 					</div>
-					<div class="flex-item-trailing muted-links">
+					<div class="item-trailing muted-links">
 						{{if .PrimaryLanguage}}
 							<a class="flex-text-inline" href="?q={{$.Keyword}}&sort={{$.SortType}}&language={{.PrimaryLanguage.Language}}{{if $.TabName}}&tab={{$.TabName}}{{end}}">
 								<i class="color-icon tw-mr-2" style="background-color: {{.PrimaryLanguage.Color}}"></i>
@@ -55,7 +55,7 @@
 				</div>
 				{{$description := .DescriptionHTML ctx}}
 				{{if $description}}
-					<div class="flex-item-body">{{$description}}</div>
+					<div class="item-body">{{$description}}</div>
 				{{end}}
 				{{if .Topics}}
 					<div class="label-list">
@@ -64,7 +64,7 @@
 					{{end}}
 					</div>
 				{{end}}
-				<div class="flex-item-body">{{ctx.Locale.Tr "org.repo_updated"}} {{DateUtils.TimeSince .UpdatedUnix}}</div>
+				<div class="item-body">{{ctx.Locale.Tr "org.repo_updated"}} {{DateUtils.TimeSince .UpdatedUnix}}</div>
 			</div>
 		</div>
 	{{else}}

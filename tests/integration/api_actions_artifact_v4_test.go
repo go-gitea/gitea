@@ -398,7 +398,7 @@ func TestActionsArtifactV4UploadSingleFileWithChunksOutOfOrder(t *testing.T) {
 				defer test.MockVariableValue(&setting.Actions.ArtifactStorage.AzureBlobConfig.ServeDirect, entry.serveDirect)()
 			default:
 				if entry.serveDirect {
-					t.Skip()
+					t.Skip("for non-serve-direct only")
 				}
 			}
 			// acquire artifact upload url
@@ -529,7 +529,7 @@ func TestActionsArtifactV4DownloadSingle(t *testing.T) {
 				defer test.MockVariableValue(&setting.Actions.ArtifactStorage.MinioConfig.ServeDirect, entry.ServeDirect)()
 			default:
 				if entry.ServeDirect {
-					t.Skip()
+					t.Skip("for non-serve-direct only")
 				}
 			}
 

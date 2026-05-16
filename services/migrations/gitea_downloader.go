@@ -150,6 +150,7 @@ func (g *GiteaDownloader) GetRepoInfo(_ context.Context) (*base.Repository, erro
 		Owner:         repo.Owner.UserName,
 		IsPrivate:     repo.Private,
 		Description:   repo.Description,
+		Website:       repo.Website,
 		CloneURL:      repo.CloneURL,
 		OriginalURL:   repo.HTMLURL,
 		DefaultBranch: repo.DefaultBranch,

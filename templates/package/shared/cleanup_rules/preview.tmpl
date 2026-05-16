@@ -18,7 +18,12 @@
 			{{range .VersionsToRemove}}
 				<tr>
 					<td>{{.Package.Type.Name}}</td>
-					<td>{{.Package.Name}}</td>
+					<td>
+						{{.Package.Name}}
+						<span class="label-list">
+							{{template "package/shared/visibility_badge" dict "Package" .Package "Owner" .Owner}}
+						</span>
+					</td>
 					<td><a href="{{.VersionWebLink}}">{{.Version.Version}}</a></td>
 					<td><a href="{{.Creator.HomeLink}}">{{.Creator.Name}}</a></td>
 					<td>{{FileSize .CalculateBlobSize}}</td>

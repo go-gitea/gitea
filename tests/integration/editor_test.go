@@ -124,7 +124,7 @@ func testEditorActionEdit(t *testing.T, session *TestSession, user, repo, editor
 	resp := testEditorActionPostRequest(t, session, fmt.Sprintf("/%s/%s/%s/%s/%s", user, repo, editorAction, branch, filePath), params)
 	assert.Equal(t, http.StatusOK, resp.Code)
 	assert.NotEmpty(t, test.RedirectURL(resp))
-	req := NewRequest(t, "GET", path.Join(user, repo, "raw/branch", newBranchName, params["tree_path"]))
+	req := NewRequest(t, "GET", "/"+path.Join(user, repo, "raw/branch", newBranchName, params["tree_path"]))
 	resp = session.MakeRequest(t, req, http.StatusOK)
 	assert.Equal(t, params["content"], resp.Body.String())
 	return resp
@@ -330,18 +330,18 @@ index 0000000000..bbbbbbbbbb
 func testForkToEditFile(t *testing.T, session *TestSession, user, owner, repo, branch, filePath string) {
 	forkToEdit := func(t *testing.T, session *TestSession, owner, repo, operation, branch, filePath string) {
 		// visit the base repo, see the "Add File" button
-		req := NewRequest(t, "GET", path.Join(owner, repo))
+		req := NewRequest(t, "GET", "/"+path.Join(owner, repo))
 		resp := session.MakeRequest(t, req, http.StatusOK)
 		htmlDoc := NewHTMLParser(t, resp.Body)
 		AssertHTMLElement(t, htmlDoc, ".repo-add-file", 1)
 
 		// attempt to edit a file, see the guideline page
-		req = NewRequest(t, "GET", path.Join(owner, repo, operation, branch, filePath))
+		req = NewRequest(t, "GET", "/"+path.Join(owner, repo, operation, branch, filePath))
 		resp = session.MakeRequest(t, req, http.StatusOK)
 		assert.Contains(t, resp.Body.String(), "Fork Repository to Propose Changes")
 
 		// fork the repository
-		req = NewRequest(t, "POST", path.Join(owner, repo, "_fork", branch))
+		req = NewRequest(t, "POST", "/"+path.Join(owner, repo, "_fork", branch))
 		resp = session.MakeRequest(t, req, http.StatusOK)
 		assert.JSONEq(t, `{"redirect":""}`, resp.Body.String())
 	}
@@ -351,7 +351,7 @@ func testForkToEditFile(t *testing.T, session *TestSession, user, owner, repo, b
 		forkToEdit(t, session, owner, repo, "_edit", branch, filePath)
 
 		// Archive the repository
-		req := NewRequestWithValues(t, "POST", path.Join(user, repo, "settings"),
+		req := NewRequestWithValues(t, "POST", "/"+path.Join(user, repo, "settings"),
 			map[string]string{
 				"repo_name": repo,
 				"action":    "archive",
@@ -360,12 +360,12 @@ func testForkToEditFile(t *testing.T, session *TestSession, user, owner, repo, b
 		session.MakeRequest(t, req, http.StatusSeeOther)
 
 		// Check editing archived repository is disabled
-		req = NewRequest(t, "GET", path.Join(owner, repo, "_edit", branch, filePath)).SetHeader("Accept", "text/html")
+		req = NewRequest(t, "GET", "/"+path.Join(owner, repo, "_edit", branch, filePath)).SetHeader("Accept", "text/html")
 		resp := session.MakeRequest(t, req, http.StatusNotFound)
 		assert.Contains(t, resp.Body.String(), "You have forked this repository but your fork is not editable.")
 
 		// Unfork the repository
-		req = NewRequestWithValues(t, "POST", path.Join(user, repo, "settings"),
+		req = NewRequestWithValues(t, "POST", "/"+path.Join(user, repo, "settings"),
 			map[string]string{
 				"repo_name": repo,
 				"action":    "convert_fork",
@@ -381,7 +381,7 @@ func testForkToEditFile(t *testing.T, session *TestSession, user, owner, repo, b
 
 	t.Run("CheckBaseRepoForm", func(t *testing.T) {
 		// the base repo's edit form should have the correct action and upload links (pointing to the forked repo)
-		req := NewRequest(t, "GET", path.Join(owner, repo, "_upload", branch, filePath)+"?foo=bar")
+		req := NewRequest(t, "GET", "/"+path.Join(owner, repo, "_upload", branch, filePath)+"?foo=bar")
 		resp := session.MakeRequest(t, req, http.StatusOK)
 		htmlDoc := NewHTMLParser(t, resp.Body)
 
@@ -399,7 +399,7 @@ func testForkToEditFile(t *testing.T, session *TestSession, user, owner, repo, b
 	})
 
 	t.Run("ViewBaseEditFormAndCommitToFork", func(t *testing.T) {
-		req := NewRequest(t, "GET", path.Join(owner, repo, "_edit", branch, filePath))
+		req := NewRequest(t, "GET", "/"+path.Join(owner, repo, "_edit", branch, filePath))
 		resp := session.MakeRequest(t, req, http.StatusOK)
 		htmlDoc := NewHTMLParser(t, resp.Body)
 		editRequestForm := map[string]string{
@@ -437,16 +437,16 @@ func testEditFileNotAllowed(t *testing.T) {
 	for _, operation := range operations {
 		t.Run(operation, func(t *testing.T) {
 			// Branch does not exist
-			targetLink := path.Join("user2", "repo1", operation, "missing", "README.md")
+			targetLink := path.Join("/user2/repo1", operation, "missing", "README.md")
 			sessionUser1.MakeRequest(t, NewRequest(t, "GET", targetLink), http.StatusNotFound)
 
 			// Private repository
-			targetLink = path.Join("user2", "repo2", operation, "master", "Home.md")
+			targetLink = path.Join("/user2/repo2", operation, "master", "Home.md")
 			sessionUser1.MakeRequest(t, NewRequest(t, "GET", targetLink), http.StatusOK)
 			sessionUser4.MakeRequest(t, NewRequest(t, "GET", targetLink), http.StatusNotFound)
 
 			// Empty repository
-			targetLink = path.Join("org41", "repo61", operation, "master", "README.md")
+			targetLink = path.Join("/org41/repo61", operation, "master", "README.md")
 			sessionUser1.MakeRequest(t, NewRequest(t, "GET", targetLink), http.StatusNotFound)
 		})
 	}

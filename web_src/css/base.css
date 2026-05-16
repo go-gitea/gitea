@@ -872,13 +872,6 @@ table th[data-sortt-desc] .svg {
   align-items: stretch;
 }
 
-/* can be used to replace "ui relaxed list" or "tw-flex tw-flex-col tw-gap-xxx" when we need more flexible layout */
-.flex-relaxed-list {
-  display: flex;
-  flex-direction: column;
-  gap: var(--gap-block);
-}
-
 /* this is useful to make a left-right (e.g.: title .... operations) layout with default gap, and it wrap for small widths */
 .flex-left-right {
   display: flex;
