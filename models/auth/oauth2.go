@@ -5,10 +5,8 @@ package auth
 
 import (
 	"context"
-	"crypto/sha256"
 	"crypto/subtle"
 	"encoding/base32"
-	"encoding/base64"
 	"errors"
 	"fmt"
 	"net"
@@ -25,6 +23,7 @@ import (
 
 	uuid "github.com/google/uuid"
 	"golang.org/x/crypto/bcrypt"
+	"golang.org/x/oauth2"
 	"xorm.io/builder"
 	"xorm.io/xorm"
 )
@@ -32,7 +31,10 @@ import (
 // Authorization codes should expire within 10 minutes per https://datatracker.ietf.org/doc/html/rfc6749#section-4.1.2
 const oauth2AuthorizationCodeValidity = 10 * time.Minute
 
-var ErrOAuth2AuthorizationCodeInvalidated = errors.New("oauth2 authorization code already invalidated")
+var (
+	ErrOAuth2AuthorizationCodeInvalidated = errors.New("oauth2 authorization code already invalidated")
+	ErrOAuth2GrantStaleCounter            = errors.New("oauth2 grant state changed during token refresh")
+)
 
 // OAuth2Application represents an OAuth2 client (RFC 6749)
 type OAuth2Application struct {
@@ -442,8 +444,7 @@ func (code *OAuth2AuthorizationCode) requiresCodeVerifier() bool {
 func deriveCodeChallenge(method, verifier string) (string, bool) {
 	switch method {
 	case "S256":
-		hash := sha256.Sum256([]byte(verifier))
-		return base64.RawURLEncoding.EncodeToString(hash[:]), true
+		return oauth2.S256ChallengeFromVerifier(verifier), true
 	case "plain":
 		return verifier, true
 	default:
@@ -537,7 +538,7 @@ func (grant *OAuth2Grant) IncreaseCounter(ctx context.Context) error {
 		return err
 	}
 	if affected == 0 {
-		return errors.New("grant state changed during token refresh")
+		return ErrOAuth2GrantStaleCounter
 	}
 	grant.Counter++
 	return nil

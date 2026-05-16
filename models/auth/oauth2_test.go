@@ -4,8 +4,6 @@
 package auth_test
 
 import (
-	"crypto/sha256"
-	"encoding/base64"
 	"testing"
 	"time"
 
@@ -15,6 +13,7 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"golang.org/x/oauth2"
 )
 
 func TestOAuth2AuthorizationCode(t *testing.T) {
@@ -143,6 +142,12 @@ func TestOAuth2Application_ContainsRedirectURI_ASCIIOnlyNormalization(t *testing
 			redirectURI: "https://signİn.example.test/callback",
 			allowed:     false,
 		},
+		{
+			name:        "loopback-strips-port",
+			registered:  []string{"http://127.0.0.1/callback"},
+			redirectURI: "http://127.0.0.1:12345/callback",
+			allowed:     true,
+		},
 	}
 
 	for _, tc := range testCases {
@@ -237,8 +242,7 @@ func TestOAuth2Grant_IncreaseCounterRejectsStaleCounter(t *testing.T) {
 
 	assert.NoError(t, grant.IncreaseCounter(t.Context()))
 	err := stale.IncreaseCounter(t.Context())
-	assert.Error(t, err)
-	assert.Contains(t, err.Error(), "grant state changed during token refresh")
+	assert.ErrorIs(t, err, auth_model.ErrOAuth2GrantStaleCounter)
 }
 
 func TestOAuth2Grant_ScopeContains(t *testing.T) {
@@ -285,112 +289,36 @@ func TestRevokeOAuth2Grant(t *testing.T) {
 //////////////////// Authorization Code
 
 func TestOAuth2AuthorizationCode_ValidateCodeChallenge(t *testing.T) {
-	s256Verifier := "phase4-s256-verifier"
-	s256Sum := sha256.Sum256([]byte(s256Verifier))
-	missingVerifierSeed := "phase4-verifier-without-body"
-	missingVerifierSum := sha256.Sum256([]byte(missingVerifierSeed))
+	s256Verifier := "s256-verifier"
+	s256Challenge := oauth2.S256ChallengeFromVerifier(s256Verifier)
+	missingVerifierChallenge := oauth2.S256ChallengeFromVerifier("verifier-not-supplied")
 
 	testCases := []struct {
-		name     string
-		code     *auth_model.OAuth2AuthorizationCode
-		verifier string
-		valid    bool
+		name      string
+		method    string
+		challenge string
+		verifier  string
+		valid     bool
 	}{
-		{
-			name: "plain-success",
-			code: &auth_model.OAuth2AuthorizationCode{
-				CodeChallengeMethod: "plain",
-				CodeChallenge:       "plain-phase4-secret",
-			},
-			verifier: "plain-phase4-secret",
-			valid:    true,
-		},
-		{
-			name: "plain-failure",
-			code: &auth_model.OAuth2AuthorizationCode{
-				CodeChallengeMethod: "plain",
-				CodeChallenge:       "plain-phase4-secret",
-			},
-			verifier: "ierwgjoergjio",
-			valid:    false,
-		},
-		{
-			name: "s256-success",
-			code: &auth_model.OAuth2AuthorizationCode{
-				CodeChallengeMethod: "S256",
-				CodeChallenge:       base64.RawURLEncoding.EncodeToString(s256Sum[:]),
-			},
-			verifier: s256Verifier,
-			valid:    true,
-		},
-		{
-			name: "s256-failure",
-			code: &auth_model.OAuth2AuthorizationCode{
-				CodeChallengeMethod: "S256",
-				CodeChallenge:       base64.RawURLEncoding.EncodeToString(s256Sum[:]),
-			},
-			verifier: "wiogjerogorewngoenrgoiuenorg",
-			valid:    false,
-		},
-		{
-			name: "unsupported-method",
-			code: &auth_model.OAuth2AuthorizationCode{
-				CodeChallengeMethod: "monkey",
-				CodeChallenge:       "foiwgjioriogeiogjerger",
-			},
-			verifier: "foiwgjioriogeiogjerger",
-			valid:    false,
-		},
-		{
-			name: "no-pkce-configured",
-			code: &auth_model.OAuth2AuthorizationCode{
-				CodeChallengeMethod: "",
-				CodeChallenge:       "",
-			},
-			verifier: "",
-			valid:    true,
-		},
-		{
-			name: "s256-missing-verifier",
-			code: &auth_model.OAuth2AuthorizationCode{
-				CodeChallengeMethod: "S256",
-				CodeChallenge:       base64.RawURLEncoding.EncodeToString(missingVerifierSum[:]),
-			},
-			verifier: "",
-			valid:    false,
-		},
-		{
-			name: "plain-missing-verifier",
-			code: &auth_model.OAuth2AuthorizationCode{
-				CodeChallengeMethod: "plain",
-				CodeChallenge:       "plain-phase4-secret",
-			},
-			verifier: "",
-			valid:    false,
-		},
-		{
-			name: "missing-method-with-challenge",
-			code: &auth_model.OAuth2AuthorizationCode{
-				CodeChallengeMethod: "",
-				CodeChallenge:       "foierjiogerogerg",
-			},
-			verifier: "",
-			valid:    false,
-		},
-		{
-			name: "missing-method-rejects-even-matching-verifier",
-			code: &auth_model.OAuth2AuthorizationCode{
-				CodeChallengeMethod: "",
-				CodeChallenge:       "foierjiogerogerg",
-			},
-			verifier: "foierjiogerogerg",
-			valid:    false,
-		},
+		{"plain-success", "plain", "plain-secret", "plain-secret", true},
+		{"plain-failure", "plain", "plain-secret", "ierwgjoergjio", false},
+		{"s256-success", "S256", s256Challenge, s256Verifier, true},
+		{"s256-failure", "S256", s256Challenge, "wiogjerogorewngoenrgoiuenorg", false},
+		{"unsupported-method", "monkey", "foiwgjioriogeiogjerger", "foiwgjioriogeiogjerger", false},
+		{"no-pkce-configured", "", "", "", true},
+		{"s256-missing-verifier", "S256", missingVerifierChallenge, "", false},
+		{"plain-missing-verifier", "plain", "plain-secret", "", false},
+		{"missing-method-with-challenge", "", "foierjiogerogerg", "", false},
+		{"missing-method-rejects-even-matching-verifier", "", "foierjiogerogerg", "foierjiogerogerg", false},
 	}
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			assert.Equal(t, tc.valid, tc.code.ValidateCodeChallenge(tc.verifier))
+			code := &auth_model.OAuth2AuthorizationCode{
+				CodeChallengeMethod: tc.method,
+				CodeChallenge:       tc.challenge,
+			}
+			assert.Equal(t, tc.valid, code.ValidateCodeChallenge(tc.verifier))
 		})
 	}
 }
