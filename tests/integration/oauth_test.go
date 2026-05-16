@@ -1004,7 +1004,7 @@ func addOAuth2Source(t *testing.T, authName string, cfg oauth2.Source) {
 	require.NoError(t, err)
 }
 
-func createMockServer() *httptest.Server {
+func createOAuth2MockProvider() *httptest.Server {
 	var mockServer *httptest.Server
 	mockServer = httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
@@ -1033,7 +1033,7 @@ func createMockServer() *httptest.Server {
 func TestSignInOauthCallbackSyncSSHKeys(t *testing.T) {
 	defer tests.PrepareTestEnv(t)()
 
-	mockServer := createMockServer()
+	mockServer := createOAuth2MockProvider()
 	defer mockServer.Close()
 
 	ctx := t.Context()
@@ -1113,7 +1113,7 @@ func TestSignInOauthCallbackSyncSSHKeys(t *testing.T) {
 // Checks if an OAuth provider with spaces within the name does work,
 // with the encoding of its names in the URL (PR#37327)
 func testOAuthSourceSpecialChars(t *testing.T) {
-	mockServer := createMockServer()
+	mockServer := createOAuth2MockProvider()
 	defer mockServer.Close()
 
 	addOAuth2Source(t, "test space", oauth2.Source{
