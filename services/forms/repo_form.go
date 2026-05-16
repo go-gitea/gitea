@@ -142,7 +142,9 @@ type RepoSettingForm struct {
 	PullsAllowManualMerge            bool
 	PullsDefaultMergeStyle           string
 	EnableAutodetectManualMerge      bool
+	PullsAllowMergeUpdate            bool
 	PullsAllowRebaseUpdate           bool
+	PullsDefaultUpdateStyle          string
 	DefaultDeleteBranchAfterMerge    bool
 	DefaultAllowMaintainerEdit       bool
 	DefaultTargetBranch              string

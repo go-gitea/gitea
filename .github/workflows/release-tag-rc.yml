@@ -41,15 +41,20 @@ jobs:
           gpg_private_key: ${{ secrets.GPGSIGN_KEY }}
           passphrase: ${{ secrets.GPGSIGN_PASSPHRASE }}
       - name: sign binaries
+        env:
+          GPG_FINGERPRINT: ${{ steps.import_gpg.outputs.fingerprint }}
+          GPG_PASSPHRASE: ${{ secrets.GPGSIGN_PASSPHRASE }}
         run: |
           for f in dist/release/*; do
-            echo '${{ secrets.GPGSIGN_PASSPHRASE }}' | gpg --pinentry-mode loopback --passphrase-fd 0 --batch --yes --detach-sign -u ${{ steps.import_gpg.outputs.fingerprint }} --output "$f.asc" "$f"
+            echo "$GPG_PASSPHRASE" | gpg --pinentry-mode loopback --passphrase-fd 0 --batch --yes --detach-sign -u "$GPG_FINGERPRINT" --output "$f.asc" "$f"
           done
       # clean branch name to get the folder name in S3
       - name: Get cleaned branch name
         id: clean_name
+        env:
+          REF: ${{ github.ref }}
         run: |
-          REF_NAME=$(echo "${{ github.ref }}" | sed -e 's/refs\/heads\///' -e 's/refs\/tags\/v//' -e 's/release\/v//')
+          REF_NAME=$(echo "$REF" | sed -e 's/refs\/heads\///' -e 's/refs\/tags\/v//' -e 's/release\/v//')
           echo "Cleaned name is ${REF_NAME}"
           echo "branch=${REF_NAME}" >> "$GITHUB_OUTPUT"
       - name: configure aws
@@ -59,17 +64,21 @@ jobs:
           aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
       - name: upload binaries to s3
+        env:
+          AWS_S3_BUCKET: ${{ secrets.AWS_S3_BUCKET }}
+          BRANCH: ${{ steps.clean_name.outputs.branch }}
         run: |
-          aws s3 sync dist/release s3://${{ secrets.AWS_S3_BUCKET }}/gitea/${{ steps.clean_name.outputs.branch }} --no-progress
+          aws s3 sync dist/release "s3://$AWS_S3_BUCKET/gitea/$BRANCH" --no-progress
       - name: Install GH CLI
         uses: dev-hanz-ops/install-gh-cli-action@af38ce09b1ec248aeb08eea2b16bbecea9e059f8 # v0.2.1
         with:
           gh-cli-version: 2.39.1
       - name: create github release
-        run: |
-          gh release create ${{ github.ref_name }} --title ${{ github.ref_name }} --draft --notes-from-tag dist/release/*
         env:
           GITHUB_TOKEN: ${{ secrets.RELEASE_TOKEN }}
+          TAG: ${{ github.ref_name }}
+        run: |
+          gh release create "$TAG" --title "$TAG" --draft --notes-from-tag dist/release/*
 
   container:
     runs-on: namespace-profile-gitea-release-docker
