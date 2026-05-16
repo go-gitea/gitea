@@ -52,7 +52,7 @@ jobs:
 
       - run: make lint-spell
 
-      - if: needs.files-changed.outputs.templates == 'true' || needs.files-changed.outputs.yaml == 'true'
+      - if: needs.files-changed.outputs.templates == 'true' || needs.files-changed.outputs.yaml == 'true' || needs.files-changed.outputs.actions == 'true'
         uses: astral-sh/setup-uv@08807647e7069bb48b6ef5acd8ec9567f424441b # v8.1.0
       - if: needs.files-changed.outputs.templates == 'true' || needs.files-changed.outputs.yaml == 'true'
         run: uv python install 3.14 && make deps-py lint-templates lint-yaml
