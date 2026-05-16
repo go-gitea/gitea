@@ -72,8 +72,7 @@ jobs:
 	// run1 and job1 belong to repo1, success
 	req = NewRequest(t, "POST", fmt.Sprintf("/%s/%s/actions/runs/%d/jobs/%d", user2.Name, repo1.Name, run1.ID, job1.ID))
 	resp := user2Session.MakeRequest(t, req, http.StatusOK)
-	var viewResp actions_web.ViewResponse
-	DecodeJSON(t, resp, &viewResp)
+	viewResp := DecodeJSON(t, resp, &actions_web.ViewResponse{})
 	assert.Len(t, viewResp.State.Run.Jobs, 1)
 	assert.Equal(t, job1.ID, viewResp.State.Run.Jobs[0].ID)
 

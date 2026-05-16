@@ -11,7 +11,6 @@ import (
 	"net/url"
 	"path"
 	"strconv"
-	"strings"
 	"time"
 
 	actions_model "code.gitea.io/gitea/models/actions"
@@ -29,6 +28,7 @@ import (
 	"code.gitea.io/gitea/modules/actions"
 	"code.gitea.io/gitea/modules/container"
 	"code.gitea.io/gitea/modules/git"
+	"code.gitea.io/gitea/modules/httplib"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
@@ -37,7 +37,7 @@ import (
 	"code.gitea.io/gitea/services/gitdiff"
 
 	runnerv1 "code.gitea.io/actions-proto-go/runner/v1"
-	"github.com/nektos/act/pkg/model"
+	"gitea.com/gitea/runner/act/model"
 )
 
 // ToEmail convert models.EmailAddress to api.Email
@@ -215,7 +215,7 @@ func ToTag(repo *repo_model.Repository, t *git.Tag) *api.Tag {
 
 	return &api.Tag{
 		Name:       t.Name,
-		Message:    strings.TrimSpace(t.Message),
+		Message:    t.MessageUTF8(),
 		ID:         t.ID.String(),
 		Commit:     ToCommitMeta(repo, t),
 		ZipballURL: zipballURL,
@@ -223,14 +223,18 @@ func ToTag(repo *repo_model.Repository, t *git.Tag) *api.Tag {
 	}
 }
 
-// ToActionTask convert a actions_model.ActionTask to an api.ActionTask
+// ToActionTask convert an actions_model.ActionTask to an api.ActionTask
 func ToActionTask(ctx context.Context, t *actions_model.ActionTask) (*api.ActionTask, error) {
-	if err := t.LoadAttributes(ctx); err != nil {
+	// don't need Steps here, only need to load job and its run
+	if err := t.LoadJob(ctx); err != nil {
 		return nil, err
 	}
-
-	url := strings.TrimSuffix(setting.AppURL, "/") + t.GetRunLink()
-
+	if err := t.Job.LoadRun(ctx); err != nil {
+		return nil, err
+	}
+	if err := t.Job.Run.LoadRepo(ctx); err != nil {
+		return nil, err
+	}
 	return &api.ActionTask{
 		ID:           t.ID,
 		Name:         t.Job.Name,
@@ -241,23 +245,25 @@ func ToActionTask(ctx context.Context, t *actions_model.ActionTask) (*api.Action
 		DisplayTitle: t.Job.Run.Title,
 		Status:       t.Status.String(),
 		WorkflowID:   t.Job.Run.WorkflowID,
-		URL:          url,
+		URL:          httplib.MakeAbsoluteURL(ctx, t.Job.Run.Link()),
 		CreatedAt:    t.Created.AsLocalTime(),
 		UpdatedAt:    t.Updated.AsLocalTime(),
 		RunStartedAt: t.Started.AsLocalTime(),
 	}, nil
 }
 
-func ToActionWorkflowRun(ctx context.Context, repo *repo_model.Repository, run *actions_model.ActionRun, attempt *actions_model.ActionRunAttempt) (*api.ActionWorkflowRun, error) {
-	if err := run.LoadAttributes(ctx); err != nil {
+func ToActionWorkflowRun(ctx context.Context, run *actions_model.ActionRun, attempt *actions_model.ActionRunAttempt) (_ *api.ActionWorkflowRun, err error) {
+	if err := run.LoadRepo(ctx); err != nil {
+		return nil, err
+	}
+	if err := run.LoadTriggerUser(ctx); err != nil {
 		return nil, err
 	}
 
 	if attempt == nil {
-		if latestAttempt, has, err := run.GetLatestAttempt(ctx); err != nil {
+		attempt, _, err = run.GetLatestAttempt(ctx)
+		if err != nil {
 			return nil, err
-		} else if has {
-			attempt = latestAttempt
 		}
 	}
 
@@ -273,6 +279,7 @@ func ToActionWorkflowRun(ctx context.Context, repo *repo_model.Repository, run *
 	var previousAttemptURL *string
 
 	if attempt != nil {
+		attempt.Run = run
 		if err := attempt.LoadAttributes(ctx); err != nil {
 			return nil, err
 		}
@@ -282,16 +289,15 @@ func ToActionWorkflowRun(ctx context.Context, repo *repo_model.Repository, run *
 		completedAt = attempt.Stopped.AsLocalTime()
 		triggerUser = attempt.TriggerUser
 		if attempt.Attempt > 1 {
-			url := fmt.Sprintf("%s/actions/runs/%d/attempts/%d", repo.APIURL(), run.ID, attempt.Attempt-1)
-			previousAttemptURL = &url
+			previousAttemptURL = new(fmt.Sprintf("%s/actions/runs/%d/attempts/%d", run.Repo.APIURL(ctx), run.ID, attempt.Attempt-1))
 		}
 	}
 
 	return &api.ActionWorkflowRun{
 		ID:                 run.ID,
-		URL:                fmt.Sprintf("%s/actions/runs/%d", repo.APIURL(), run.ID),
+		URL:                fmt.Sprintf("%s/actions/runs/%d", run.Repo.APIURL(ctx), run.ID),
 		PreviousAttemptURL: previousAttemptURL,
-		HTMLURL:            run.HTMLURL(),
+		HTMLURL:            run.HTMLURL(ctx),
 		RunNumber:          run.Index,
 		RunAttempt:         runAttempt,
 		StartedAt:          startedAt,
@@ -303,39 +309,37 @@ func ToActionWorkflowRun(ctx context.Context, repo *repo_model.Repository, run *
 		Status:             status,
 		Conclusion:         conclusion,
 		Path:               fmt.Sprintf("%s@%s", run.WorkflowID, run.Ref),
-		Repository:         ToRepo(ctx, repo, access_model.Permission{AccessMode: perm.AccessModeNone}),
+		Repository:         ToRepo(ctx, run.Repo, access_model.Permission{AccessMode: perm.AccessModeNone}),
 		TriggerActor:       ToUser(ctx, triggerUser, nil),
 		Actor:              ToUser(ctx, actor, nil),
 	}, nil
 }
 
-func ToWorkflowRunAction(status actions_model.Status) string {
-	var action string
+func ToWorkflowRunAction(status actions_model.Status) (action string) {
 	switch status {
 	case actions_model.StatusWaiting, actions_model.StatusBlocked:
 		action = "requested"
 	case actions_model.StatusRunning:
 		action = "in_progress"
-	}
-	if status.IsDone() {
-		action = "completed"
+	default:
+		if status.IsDone() {
+			action = "completed"
+		} else {
+			setting.PanicInDevOrTesting("unknown action status: %v", status)
+		}
 	}
 	return action
 }
 
-func ToActionsStatus(status actions_model.Status) (string, string) {
-	var action string
-	var conclusion string
+func ToActionsStatus(status actions_model.Status) (action, conclusion string) {
 	switch status {
-	// This is a naming conflict of the webhook between Gitea and GitHub Actions
 	case actions_model.StatusWaiting:
-		action = "queued"
+		action = "queued" // "waiting" is a naming conflict of the webhook between Gitea and GitHub Actions
 	case actions_model.StatusBlocked:
-		action = "waiting"
+		action = "waiting" // naming conflict (as above)
 	case actions_model.StatusRunning:
 		action = "in_progress"
-	}
-	if status.IsDone() {
+	default:
 		action = "completed"
 		switch status {
 		case actions_model.StatusSuccess:
@@ -346,6 +350,8 @@ func ToActionsStatus(status actions_model.Status) (string, string) {
 			conclusion = "failure"
 		case actions_model.StatusSkipped:
 			conclusion = "skipped"
+		default:
+			setting.PanicInDevOrTesting("unknown action status: %v", status)
 		}
 	}
 	return action, conclusion
@@ -385,7 +391,7 @@ func ToActionWorkflowJob(ctx context.Context, repo *repo_model.Repository, task 
 				runnerName = runner.Name
 			}
 			for i, step := range task.Steps {
-				stepStatus, stepConclusion := ToActionsStatus(job.Status)
+				stepStatus, stepConclusion := ToActionsStatus(step.Status)
 				steps = append(steps, &api.ActionWorkflowStep{
 					Name:        step.Name,
 					Number:      int64(i),
@@ -401,11 +407,11 @@ func ToActionWorkflowJob(ctx context.Context, repo *repo_model.Repository, task 
 	return &api.ActionWorkflowJob{
 		ID: job.ID,
 		// missing api endpoint for this location
-		URL:     fmt.Sprintf("%s/actions/jobs/%d", repo.APIURL(), job.ID),
-		HTMLURL: fmt.Sprintf("%s/jobs/%d", job.Run.HTMLURL(), job.ID),
+		URL:     fmt.Sprintf("%s/actions/jobs/%d", repo.APIURL(ctx), job.ID),
+		HTMLURL: fmt.Sprintf("%s/jobs/%d", job.Run.HTMLURL(ctx), job.ID),
 		RunID:   job.RunID,
 		// Missing api endpoint for this location, artifacts are available under a nested url
-		RunURL:      fmt.Sprintf("%s/actions/runs/%d", repo.APIURL(), job.RunID),
+		RunURL:      fmt.Sprintf("%s/actions/runs/%d", repo.APIURL(ctx), job.RunID),
 		Name:        job.Name,
 		Labels:      job.RunsOn,
 		RunAttempt:  job.Attempt,
@@ -705,7 +711,7 @@ func ToOrganization(ctx context.Context, org *organization.Organization) *api.Or
 		Description:               org.Description,
 		Website:                   org.Website,
 		Location:                  org.Location,
-		Visibility:                org.Visibility.String(),
+		Visibility:                api.UserVisibility(org.Visibility.String()),
 		RepoAdminChangeTeamAccess: org.RepoAdminChangeTeamAccess,
 	}
 }
@@ -734,7 +740,7 @@ func ToTeams(ctx context.Context, teams []*organization.Team, loadOrgs bool) ([]
 			Description:             t.Description,
 			IncludesAllRepositories: t.IncludesAllRepositories,
 			CanCreateOrgRepo:        t.CanCreateOrgRepo,
-			Permission:              t.AccessMode.ToString(),
+			Permission:              api.AccessLevelName(t.AccessMode.ToString()),
 			Units:                   t.GetUnitNames(),
 			UnitsMap:                t.GetUnitsMap(),
 		}
@@ -763,7 +769,7 @@ func ToAnnotatedTag(ctx context.Context, repo *repo_model.Repository, t *git.Tag
 		Tag:          t.Name,
 		SHA:          t.ID.String(),
 		Object:       ToAnnotatedTagObject(repo, c),
-		Message:      t.Message,
+		Message:      t.MessageUTF8(),
 		URL:          repo.APIURL() + "/git/tags/" + t.ID.String(),
 		Tagger:       ToCommitUser(t.Tagger),
 		Verification: ToVerification(ctx, c),
@@ -832,7 +838,7 @@ func ToOAuth2Application(app *auth.OAuth2Application) *api.OAuth2Application {
 
 // ToLFSLock convert a LFSLock to api.LFSLock
 func ToLFSLock(ctx context.Context, l *git_model.LFSLock) *api.LFSLock {
-	u, err := user_model.GetPossibleUserByID(ctx, l.OwnerID)
+	_, u, err := user_model.GetPossibleUserByID(ctx, l.OwnerID)
 	if err != nil {
 		return nil
 	}

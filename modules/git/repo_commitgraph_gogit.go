@@ -17,21 +17,21 @@ import (
 )
 
 // CommitNodeIndex returns the index for walking commit graph
-func (r *Repository) CommitNodeIndex() (cgobject.CommitNodeIndex, *os.File) {
-	indexPath := filepath.Join(r.Path, "objects", "info", "commit-graph")
+func (repo *Repository) CommitNodeIndex() (cgobject.CommitNodeIndex, *os.File) {
+	indexPath := filepath.Join(repo.Path, "objects", "info", "commit-graph")
 
 	file, err := os.Open(indexPath)
 	if err == nil {
 		var index commitgraph.Index
 		index, err = commitgraph.OpenFileIndex(file)
 		if err == nil {
-			return cgobject.NewGraphCommitNodeIndex(index, r.gogitRepo.Storer), file
+			return cgobject.NewGraphCommitNodeIndex(index, repo.gogitRepo.Storer), file
 		}
 	}
 
 	if !os.IsNotExist(err) {
-		gitealog.Warn("Unable to read commit-graph for %s: %v", r.Path, err)
+		gitealog.Warn("Unable to read commit-graph for %s: %v", repo.Path, err)
 	}
 
-	return cgobject.NewObjectCommitNodeIndex(r.gogitRepo.Storer), nil
+	return cgobject.NewObjectCommitNodeIndex(repo.gogitRepo.Storer), nil
 }

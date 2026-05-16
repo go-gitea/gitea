@@ -20,7 +20,7 @@ test.describe('events', () => {
     await expect(badge).toBeHidden();
 
     // Create issue as another user — this generates a notification delivered via server push
-    await apiCreateIssue(request, owner, repoName, {title: 'events notification test', headers: apiUserHeaders(commenter)});
+    await apiCreateIssue(request, {owner, repo: repoName, title: 'events notification test', headers: apiUserHeaders(commenter)});
 
     // Wait for the notification badge to appear via server event
     await expect(badge).toBeVisible({timeout: 15000 * timeoutFactor});
@@ -37,7 +37,7 @@ test.describe('events', () => {
       loginUser(page, name),
       (async () => {
         await apiCreateRepo(request, {name, headers});
-        await apiCreateIssue(request, name, name, {title: 'events stopwatch test', headers});
+        await apiCreateIssue(request, {owner: name, repo: name, title: 'events stopwatch test', headers});
         await apiStartStopwatch(request, name, name, 1, {headers});
       })(),
     ]);
@@ -65,6 +65,13 @@ test.describe('events', () => {
 
     // Verify page2 is logged in
     await expect(page2.getByRole('link', {name: 'Sign In'})).toBeHidden();
+
+    // Give page2's SharedWorker time to register its SSE connection on the
+    // server — otherwise the logout event can race the connection and be
+    // silently dropped. See https://github.com/go-gitea/gitea/pull/37403
+    // In the future, we can set an attribute to HTML page when the connection is established,
+    // then here we can just wait for that attribute (it should also work for the planned WebSocket SharedWorker)
+    await page2.waitForTimeout(500); // eslint-disable-line playwright/no-wait-for-timeout
 
     // Logout from page1 — this sends a logout event to all tabs
     await page1.goto('/user/logout');

@@ -7,7 +7,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"slices"
 	"strings"
 	"time"
 
@@ -71,11 +70,11 @@ func init() {
 	db.RegisterModel(new(ActionRunIndex))
 }
 
-func (run *ActionRun) HTMLURL() string {
+func (run *ActionRun) HTMLURL(ctxOpt ...context.Context) string {
 	if run.Repo == nil {
 		return ""
 	}
-	return fmt.Sprintf("%s/actions/runs/%d", run.Repo.HTMLURL(), run.ID)
+	return fmt.Sprintf("%s/actions/runs/%d", run.Repo.HTMLURL(ctxOpt...), run.ID)
 }
 
 func (run *ActionRun) Link() string {
@@ -121,10 +120,6 @@ func (run *ActionRun) RefTooltip() string {
 
 // LoadAttributes load Repo TriggerUser if not loaded
 func (run *ActionRun) LoadAttributes(ctx context.Context) error {
-	if run == nil {
-		return nil
-	}
-
 	if err := run.LoadRepo(ctx); err != nil {
 		return err
 	}
@@ -133,19 +128,19 @@ func (run *ActionRun) LoadAttributes(ctx context.Context) error {
 		return err
 	}
 
-	if run.TriggerUser == nil {
-		u, err := user_model.GetPossibleUserByID(ctx, run.TriggerUserID)
-		if err != nil {
-			return err
-		}
-		run.TriggerUser = u
-	}
+	return run.LoadTriggerUser(ctx)
+}
 
-	return nil
+func (run *ActionRun) LoadTriggerUser(ctx context.Context) (err error) {
+	if run.TriggerUser != nil {
+		return nil
+	}
+	run.TriggerUserID, run.TriggerUser, err = user_model.GetPossibleUserByID(ctx, run.TriggerUserID)
+	return err
 }
 
 func (run *ActionRun) LoadRepo(ctx context.Context) error {
-	if run == nil || run.Repo != nil {
+	if run.Repo != nil {
 		return nil
 	}
 
@@ -228,30 +223,34 @@ func (run *ActionRun) IsSchedule() bool {
 }
 
 // UpdateRepoRunsNumbers updates the number of runs and closed runs of a repository.
-func UpdateRepoRunsNumbers(ctx context.Context, repo *repo_model.Repository) error {
-	_, err := db.GetEngine(ctx).ID(repo.ID).
-		NoAutoTime().
-		Cols("num_action_runs", "num_closed_action_runs").
-		SetExpr("num_action_runs",
-			builder.Select("count(*)").From("action_run").
-				Where(builder.Eq{"repo_id": repo.ID}),
-		).
-		SetExpr("num_closed_action_runs",
-			builder.Select("count(*)").From("action_run").
-				Where(builder.Eq{
-					"repo_id": repo.ID,
-				}.And(
-					builder.In("status",
-						StatusSuccess,
-						StatusFailure,
-						StatusCancelled,
-						StatusSkipped,
-					),
-				),
-				),
-		).
-		Update(repo)
-	return err
+// Callers MUST invoke this from outside any transaction that has X-locked action_run rows for the same repo, otherwise, transaction deadlock
+func UpdateRepoRunsNumbers(ctx context.Context, repoID int64) {
+	if db.InTransaction(ctx) {
+		setting.PanicInDevOrTesting("UpdateRepoRunsNumbers must not be called inside a transaction")
+	}
+
+	e := db.GetEngine(ctx)
+
+	numActionRuns, err := e.Where("repo_id = ?", repoID).Count(new(ActionRun))
+	if err != nil {
+		log.Error("UpdateRepoRunsNumbers count num_action_runs for repo %d: %v", repoID, err)
+		return
+	}
+
+	numClosedActionRuns, err := e.Where("repo_id = ?", repoID).
+		In("status", StatusSuccess, StatusFailure, StatusCancelled, StatusSkipped).
+		Count(new(ActionRun))
+	if err != nil {
+		log.Error("UpdateRepoRunsNumbers count num_closed_action_runs for repo %d: %v", repoID, err)
+		return
+	}
+
+	if _, err := e.ID(repoID).Cols("num_action_runs", "num_closed_action_runs").NoAutoTime().Update(&repo_model.Repository{
+		NumActionRuns:       int(numActionRuns),
+		NumClosedActionRuns: int(numClosedActionRuns),
+	}); err != nil {
+		log.Error("UpdateRepoRunsNumbers update repo %d: %v", repoID, err)
+	}
 }
 
 // CancelPreviousJobs cancels all previous jobs of the same repository, reference, workflow, and event.
@@ -417,18 +416,6 @@ func UpdateRun(ctx context.Context, run *ActionRun, cols ...string) error {
 	if affected == 0 {
 		return errors.New("run has changed")
 		// It's impossible that the run is not found, since Gitea never deletes runs.
-	}
-
-	if run.Status != 0 || slices.Contains(cols, "status") {
-		if run.RepoID == 0 {
-			setting.PanicInDevOrTesting("RepoID should not be 0")
-		}
-		if err = run.LoadRepo(ctx); err != nil {
-			return err
-		}
-		if err := UpdateRepoRunsNumbers(ctx, run.Repo); err != nil {
-			return err
-		}
 	}
 
 	return nil

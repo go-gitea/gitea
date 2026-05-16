@@ -89,7 +89,7 @@ func getUserOrgs(t *testing.T, userDoer, userCheck string) (orgs []*api.Organiza
 	req := NewRequest(t, "GET", fmt.Sprintf("/api/v1/users/%s/orgs", userCheck)).
 		AddTokenAuth(token)
 	resp := MakeRequest(t, req, http.StatusOK)
-	DecodeJSON(t, resp, &orgs)
+	orgs = DecodeJSON(t, resp, []*api.Organization{})
 	return orgs
 }
 
@@ -110,8 +110,7 @@ func TestMyOrgs(t *testing.T) {
 	req = NewRequest(t, "GET", "/api/v1/user/orgs").
 		AddTokenAuth(token)
 	resp := MakeRequest(t, req, http.StatusOK)
-	var orgs []*api.Organization
-	DecodeJSON(t, resp, &orgs)
+	orgs := DecodeJSON(t, resp, []*api.Organization{})
 	org3 := unittest.AssertExistsAndLoadBean(t, &user_model.User{Name: "org3"})
 	org17 := unittest.AssertExistsAndLoadBean(t, &user_model.User{Name: "org17"})
 	org35 := unittest.AssertExistsAndLoadBean(t, &user_model.User{Name: "private_org35"})
