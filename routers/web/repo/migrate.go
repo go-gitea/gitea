@@ -11,6 +11,7 @@ import (
 
 	admin_model "code.gitea.io/gitea/models/admin"
 	"code.gitea.io/gitea/models/db"
+	github_model "code.gitea.io/gitea/models/github"
 	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/git"
@@ -204,26 +205,48 @@ func MigratePost(ctx *context.Context) {
 		}
 	}
 
+	// If a GitHub App credential is supplied in the request
+	if form.GithubAppCredentialID > 0 {
+		// GitHub App credentials are only valid for GitHub service migrations
+		if form.Service != structs.GithubService {
+			ctx.Data["Err_Auth"] = true
+			ctx.RenderWithErrDeprecated(ctx.Tr("repo.migrate.github_app_requires_github_service"), tpl, form)
+			return
+		}
+
+		// Check if the user is the owner of the GitHub app credential
+		ownsGitHubApp, err := github_model.CheckGithubAppCredentialOwnership(ctx, form.GithubAppCredentialID, ctx.Doer.ID)
+		if err != nil {
+			ctx.ServerError("CheckGithubAppCredentialOwnership", err)
+			return
+		}
+		if !ownsGitHubApp {
+			ctx.NotFound(nil)
+			return
+		}
+	}
+
 	opts := migrations.MigrateOptions{
-		OriginalURL:    form.CloneAddr,
-		GitServiceType: form.Service,
-		CloneAddr:      remoteAddr,
-		RepoName:       form.RepoName,
-		Description:    form.Description,
-		Private:        form.Private || setting.Repository.ForcePrivate,
-		Mirror:         form.Mirror,
-		LFS:            form.LFS,
-		LFSEndpoint:    form.LFSEndpoint,
-		AuthUsername:   form.AuthUsername,
-		AuthPassword:   form.AuthPassword,
-		AuthToken:      form.AuthToken,
-		Wiki:           form.Wiki,
-		Issues:         form.Issues,
-		Milestones:     form.Milestones,
-		Labels:         form.Labels,
-		Comments:       form.Issues || form.PullRequests,
-		PullRequests:   form.PullRequests,
-		Releases:       form.Releases,
+		OriginalURL:           form.CloneAddr,
+		GitServiceType:        form.Service,
+		CloneAddr:             remoteAddr,
+		RepoName:              form.RepoName,
+		Description:           form.Description,
+		Private:               form.Private || setting.Repository.ForcePrivate,
+		Mirror:                form.Mirror,
+		LFS:                   form.LFS,
+		LFSEndpoint:           form.LFSEndpoint,
+		AuthUsername:          form.AuthUsername,
+		AuthPassword:          form.AuthPassword,
+		AuthToken:             form.AuthToken,
+		GithubAppCredentialID: form.GithubAppCredentialID,
+		Wiki:                  form.Wiki,
+		Issues:                form.Issues,
+		Milestones:            form.Milestones,
+		Labels:                form.Labels,
+		Comments:              form.Issues || form.PullRequests,
+		PullRequests:          form.PullRequests,
+		Releases:              form.Releases,
 	}
 	if opts.Mirror {
 		opts.Issues = false
@@ -263,6 +286,16 @@ func setMigrationContextData(ctx *context.Context, serviceType structs.GitServic
 	// Plain git should be first
 	ctx.Data["Services"] = append([]structs.GitServiceType{structs.PlainGitService}, structs.SupportedFullGitService...)
 	ctx.Data["service"] = serviceType
+
+	// Load GitHub App credentials for the current user if viewing GitHub migration
+	if serviceType == structs.GithubService && ctx.Doer != nil {
+		credentials, err := github_model.GetGithubAppCredentialsByOwnerID(ctx, ctx.Doer.ID)
+		if err != nil {
+			log.Error("Failed to load GitHub App credentials: %v", err)
+		} else {
+			ctx.Data["GitHubAppCredentials"] = credentials
+		}
+	}
 }
 
 func MigrateRetryPost(ctx *context.Context) {

@@ -96,3 +96,18 @@ func (f *AdminDashboardForm) Validate(req *http.Request, errs binding.Errors) bi
 	ctx := context.GetValidateContext(req)
 	return middleware.Validate(errs, ctx.Data, f, ctx.Locale)
 }
+
+// NewGitHubAppCredentialForm form for creating GitHub App credential
+type NewGitHubAppCredentialForm struct {
+	Name           string `binding:"Required;MaxSize(255)" locale:"settings.github_app_name"`
+	ClientID       string `binding:"Required" locale:"settings.github_client_id"`
+	InstallationID int64  `binding:"Required" locale:"settings.github_app_installation_id"`
+	PrivateKey     string `binding:"Required" locale:"settings.github_app_private_key"`
+	BaseURL        string `binding:"MaxSize(255)" locale:"settings.github_app_base_url"`
+}
+
+// Validate validates the fields
+func (f *NewGitHubAppCredentialForm) Validate(req *http.Request, errs binding.Errors) binding.Errors {
+	ctx := context.GetValidateContext(req)
+	return middleware.Validate(errs, ctx.Data, f, ctx.Locale)
+}

@@ -409,7 +409,11 @@ func prepareMigrationTasks() []*migration {
 		// Gitea 1.26.0 ends at migration ID number 330 (database version 331)
 
 		newMigration(331, "Add ActionRunAttempt model and related action fields", v1_27.AddActionRunAttemptModel),
+		// Gitea 1.27.0 ends at migration ID number 331 (database version 332)
+
 		newMigration(332, "Add last_sync_unix to mirror", v1_27.AddLastSyncUnixToMirror),
+		newMigration(333, "Add GitHub App credential table", v1_27.AddGithubAppCredentialTable),
+		newMigration(334, "Add GitHub App credential ID to mirror table", v1_27.AddGithubAppCredentialIDToMirror),
 	}
 	return preparedMigrations
 }

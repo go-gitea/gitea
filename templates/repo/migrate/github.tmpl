@@ -18,12 +18,38 @@
 					</span>
 				</div>
 
-				<div class="inline field {{if .Err_Auth}}error{{end}}">
+				<div class="inline field">
+					<label>{{ctx.Locale.Tr "repo.migrate.auth_method"}}</label>
+					<div class="ui selection dropdown">
+						<input type="hidden" name="auth_method" value="{{.auth_method}}">
+						<div class="default text">{{ctx.Locale.Tr "repo.migrate.auth_method_token"}}</div>
+						{{svg "octicon-triangle-down" 14 "dropdown icon"}}
+						<div class="menu">
+							<div class="item" data-value="token">{{ctx.Locale.Tr "repo.migrate.auth_method_token"}}</div>
+							<div class="item" data-value="github_app">{{ctx.Locale.Tr "repo.migrate.auth_method_github_app"}}</div>
+						</div>
+					</div>
+				</div>
+
+				<div id="auth_token_field" class="inline field {{if .Err_Auth}}error{{end}}">
 					<label for="auth_token">{{ctx.Locale.Tr "access_token"}}</label>
 					<input id="auth_token" name="auth_token" type="password" autocomplete="new-password" value="{{.auth_token}}" {{if not .auth_token}}data-need-clear="true"{{end}}>
 					<a target="_blank" href="https://docs.github.com/en/github/authenticating-to-github/creating-a-personal-access-token">{{svg "octicon-question"}}</a>
 					<span class="help">
 					{{ctx.Locale.Tr "repo.migrate.github_token_desc"}}
+					</span>
+				</div>
+
+				<div id="github_app_field" class="inline field {{if .Err_GithubAppCredential}}error{{end}}" style="display: none;">
+					<label for="github_app_credential_id">{{ctx.Locale.Tr "repo.migrate.github_app_credential"}}</label>
+					<select id="github_app_credential_id" name="github_app_credential_id" class="ui selection dropdown">
+						<option value="">{{ctx.Locale.Tr "repo.migrate.github_app_credential_select"}}</option>
+						{{range .GitHubAppCredentials}}
+							<option value="{{.ID}}" {{if eq $.github_app_credential_id .ID}}selected{{end}}>{{.Name}}</option>
+						{{end}}
+					</select>
+					<span class="help">
+						{{ctx.Locale.Tr "repo.migrate.github_app_credential_helper"}} <a href="{{AppSubUrl}}/user/settings/github_apps">{{ctx.Locale.Tr "repo.migrate.github_app_credential_manage"}}</a>
 					</span>
 				</div>
 

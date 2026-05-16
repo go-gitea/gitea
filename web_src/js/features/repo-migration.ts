@@ -78,3 +78,32 @@ function setLFSSettingsVisibility() {
   toggleElem(lfsSettings, visible);
   hideElem(lfsEndpoint);
 }
+
+export function initRepoMigrate() {
+  const authMethodDropdown = document.querySelector<HTMLInputElement>('input[name="auth_method"]');
+  if (!authMethodDropdown) return;
+
+  const authTokenField = document.querySelector<HTMLElement>('#auth_token_field');
+  const githubAppField = document.querySelector<HTMLElement>('#github_app_field');
+
+  function updateAuthFields() {
+    const authMethod = authMethodDropdown?.value || 'token';
+
+    if (authMethod === 'github_app') {
+      authTokenField?.style.setProperty('display', 'none');
+      githubAppField?.style.removeProperty('display');
+    } else {
+      authTokenField?.style.removeProperty('display');
+      githubAppField?.style.setProperty('display', 'none');
+    }
+  }
+
+  // Initialize on page load
+  updateAuthFields();
+
+  // Listen for changes using Fomantic UI's onChange callback
+  const dropdownParent = authMethodDropdown.closest('.ui.dropdown');
+  if (dropdownParent) {
+    $(dropdownParent).dropdown('setting', 'onChange', updateAuthFields);
+  }
+}

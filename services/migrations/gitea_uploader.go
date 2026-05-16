@@ -120,18 +120,19 @@ func (g *GiteaLocalUploader) CreateRepo(ctx context.Context, repo *base.Reposito
 	r.Website = repo.Website
 
 	r, err = repo_service.MigrateRepositoryGitData(ctx, owner, r, base.MigrateOptions{
-		RepoName:       g.repoName,
-		Description:    repo.Description,
-		OriginalURL:    repo.OriginalURL,
-		GitServiceType: opts.GitServiceType,
-		Mirror:         repo.IsMirror,
-		LFS:            opts.LFS,
-		LFSEndpoint:    opts.LFSEndpoint,
-		CloneAddr:      repo.CloneURL, // SECURITY: we will assume that this has already been checked
-		Private:        repo.IsPrivate,
-		Wiki:           opts.Wiki,
-		Releases:       opts.Releases, // if didn't get releases, then sync them from tags
-		MirrorInterval: opts.MirrorInterval,
+		RepoName:              g.repoName,
+		Description:           repo.Description,
+		OriginalURL:           repo.OriginalURL,
+		GitServiceType:        opts.GitServiceType,
+		Mirror:                repo.IsMirror,
+		LFS:                   opts.LFS,
+		LFSEndpoint:           opts.LFSEndpoint,
+		CloneAddr:             repo.CloneURL, // SECURITY: we will assume that this has already been checked
+		Private:               repo.IsPrivate,
+		Wiki:                  opts.Wiki,
+		Releases:              opts.Releases, // if didn't get releases, then sync them from tags
+		MirrorInterval:        opts.MirrorInterval,
+		GithubAppCredentialID: opts.GithubAppCredentialID,
 	}, NewMigrationHTTPTransport())
 
 	g.sameApp = strings.HasPrefix(repo.OriginalURL, setting.AppURL)

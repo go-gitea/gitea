@@ -14,10 +14,14 @@ import (
 	"strings"
 	"time"
 
+	github_model "code.gitea.io/gitea/models/github"
 	"code.gitea.io/gitea/modules/git"
+	gh "code.gitea.io/gitea/modules/github"
 	"code.gitea.io/gitea/modules/log"
 	base "code.gitea.io/gitea/modules/migration"
 	"code.gitea.io/gitea/modules/proxy"
+	"code.gitea.io/gitea/modules/secret"
+	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/structs"
 
 	"github.com/google/go-github/v85/github"
@@ -52,6 +56,11 @@ func (f *GithubDownloaderV3Factory) New(ctx context.Context, opts base.MigrateOp
 
 	log.Trace("Create github downloader BaseURL: %s %s/%s", baseURL, oldOwner, oldName)
 
+	// Check if GitHub App authentication is requested
+	if opts.GithubAppCredentialID > 0 {
+		return NewGithubDownloaderV3WithApp(ctx, baseURL, opts.GithubAppCredentialID, oldOwner, oldName)
+	}
+
 	return NewGithubDownloaderV3(ctx, baseURL, opts.AuthUsername, opts.AuthPassword, opts.AuthToken, oldOwner, oldName), nil
 }
 
@@ -70,6 +79,7 @@ type GithubDownloaderV3 struct {
 	repoName      string
 	userName      string
 	password      string
+	installToken  string // installation token from GitHub App auth, used for git clone
 	rates         []*github.Rate
 	curClientIdx  int
 	maxPerPage    int
@@ -118,6 +128,75 @@ func NewGithubDownloaderV3(_ context.Context, baseURL, userName, password, token
 	return &downloader
 }
 
+// NewGithubDownloaderV3WithApp creates a github Downloader using GitHub App authentication
+func NewGithubDownloaderV3WithApp(ctx context.Context, baseURL string, credentialID int64, repoOwner, repoName string) (*GithubDownloaderV3, error) {
+	// Get the GitHub App credential from database
+	cred, err := github_model.GetGithubAppCredentialByID(ctx, credentialID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get GitHub App credential: %w", err)
+	}
+
+	// Decrypt the private key
+	privateKey, err := secret.DecryptSecret(setting.SecretKey, cred.PrivateKeyEncrypted)
+	if err != nil {
+		return nil, fmt.Errorf("failed to decrypt private key: %w", err)
+	}
+
+	// Determine base URL for API
+	apiBaseURL := cred.BaseURL
+	if apiBaseURL == "" {
+		apiBaseURL = "https://api.github.com"
+	}
+
+	// Get installation access token
+	token, err := gh.GetGitHubAppInstallationToken(
+		ctx,
+		cred.ClientID,
+		cred.InstallationID,
+		privateKey,
+		apiBaseURL,
+		NewMigrationHTTPTransport(),
+	)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get GitHub App installation token: %w", err)
+	}
+
+	// Update Last Used
+	err = github_model.UpdateGithubAppCredentialLastUsed(ctx, credentialID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to update GitHub App LastUsed timestamp: %w", err)
+	}
+
+	downloader := &GithubDownloaderV3{
+		baseURL:      baseURL,
+		repoOwner:    repoOwner,
+		repoName:     repoName,
+		maxPerPage:   100,
+		installToken: token,
+	}
+
+	// Use the token directly with go-github's built-in authentication
+	// Create a simple HTTP client with the migration transport
+	httpClient := &http.Client{
+		Transport: NewMigrationHTTPTransport(),
+	}
+
+	// Create GitHub client and set the auth token
+	githubClient := github.NewClient(httpClient).WithAuthToken(token)
+
+	if apiBaseURL != "https://api.github.com" {
+		githubClient, err = githubClient.WithEnterpriseURLs(apiBaseURL, apiBaseURL)
+		if err != nil {
+			return nil, fmt.Errorf("failed to set enterprise URLs: %w", err)
+		}
+	}
+
+	downloader.clients = append(downloader.clients, githubClient)
+	downloader.rates = append(downloader.rates, nil)
+
+	return downloader, nil
+}
+
 // String implements Stringer
 func (g *GithubDownloaderV3) String() string {
 	return fmt.Sprintf("migration from github server %s %s/%s", g.baseURL, g.repoOwner, g.repoName)
@@ -133,7 +212,12 @@ func (g *GithubDownloaderV3) LogString() string {
 func (g *GithubDownloaderV3) addClient(client *http.Client, baseURL string) {
 	githubClient := github.NewClient(client)
 	if baseURL != "https://github.com" {
-		githubClient, _ = githubClient.WithEnterpriseURLs(baseURL, baseURL)
+		var err error
+		githubClient, err = githubClient.WithEnterpriseURLs(baseURL, baseURL)
+		if err != nil {
+			log.Error("Failed to set enterprise URLs for %s: %v", baseURL, err)
+			return
+		}
 	}
 	g.clients = append(g.clients, githubClient)
 	g.rates = append(g.rates, nil)
@@ -887,7 +971,10 @@ func (g *GithubDownloaderV3) FormatCloneURL(opts MigrateOptions, remoteAddr stri
 	if err != nil {
 		return "", err
 	}
-	if len(opts.AuthToken) > 0 {
+	if g.installToken != "" {
+		// GitHub App installation token for git clone
+		u.User = url.UserPassword("oauth2", g.installToken)
+	} else if len(opts.AuthToken) > 0 {
 		// "multiple tokens" are used to benefit more "API rate limit quota"
 		// git clone doesn't count for rate limits, so only use the first token.
 		// source: https://github.com/orgs/community/discussions/44515
