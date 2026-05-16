@@ -260,7 +260,7 @@ func (r *Router) normalizeRequestPath(resp http.ResponseWriter, req *http.Reques
 			// do not respond to other requests, to simulate a real sub-path environment
 			resp.Header().Add("Content-Type", "text/html; charset=utf-8")
 			resp.WriteHeader(http.StatusNotFound)
-			_, _ = resp.Write([]byte(htmlutil.HTMLFormat(`404 page not found, sub-path is: <a href="%s">%s</a>`, setting.AppSubURL, setting.AppSubURL)))
+			_, _ = htmlutil.HTMLPrintf(resp, `404 page not found, sub-path is: <a href="%s">%s</a>`, setting.AppSubURL, setting.AppSubURL)
 			return
 		}
 		normalized = true
