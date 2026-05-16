@@ -48,18 +48,6 @@ func GetGroupTeams(ctx context.Context, groupID int64) ([]*organization_model.Te
 		Find(&teams)
 }
 
-func IsGroupMember(ctx context.Context, groupID int64, user *user_model.User) (bool, error) {
-	if user == nil {
-		return false, nil
-	}
-	return db.GetEngine(ctx).
-		Where("`repo_group_team`.group_id = ?", groupID).
-		Join("INNER", "repo_group_team", "`repo_group_team`.team_id = `team_user`.team_id").
-		And("`team_user`.uid = ?", user.ID).
-		Table("team_user").
-		Exist()
-}
-
 func GetGroupRepos(ctx context.Context, groupID int64, doer *user_model.User) ([]*repo_model.Repository, error) {
 	sess := db.GetEngine(ctx)
 	repos := make([]*repo_model.Repository, 0)
