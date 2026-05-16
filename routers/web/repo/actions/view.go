@@ -322,9 +322,10 @@ type ViewJob struct {
 	Duration string   `json:"duration"`
 	Needs    []string `json:"needs,omitempty"`
 
-	// Reusable workflow fields. All zero/empty for plain (non-call) jobs.
+	ParentJobID int64 `json:"parentJobID"`
+
+	// Reusable workflow caller fields. Zero/empty for non-caller jobs.
 	IsReusableCaller bool   `json:"isReusableCaller"`
-	ParentJobID      int64  `json:"parentJobID"`
 	CallUses         string `json:"callUses,omitempty"`
 }
 
