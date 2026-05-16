@@ -152,7 +152,13 @@ func AccessibleGroupCondition(user *user_model.User, unitType unit.Type, minMode
 				userOrgTeamUnitGroupCond("`repo_group`.id", user.ID, unitType, includeAncestors),
 			)
 		}
-		cond = builder.Or(builder.And(builder.And(modeCond, unitCond), cond), universalGroupPermBuilder("`repo_group`.id", user.ID, true))
+		icond := builder.NewCond()
+		if minMode <= perm.AccessModeRead {
+			icond = builder.Or(builder.And(modeCond, unitCond), cond)
+		} else {
+			icond = builder.And(modeCond, unitCond)
+		}
+		cond = builder.Or(icond, universalGroupPermBuilder("`repo_group`.id", user.ID, true))
 	}
 	return cond
 }
