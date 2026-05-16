@@ -17,10 +17,7 @@ import (
 // createAgentListener creates a Windows named pipe listener for the SSH agent.
 // Returns the listener, pipe path, and a cleanup function for early-return error paths.
 func createAgentListener() (net.Listener, string, func(), error) {
-	agentID, err := util.CryptoRandomString(16)
-	if err != nil {
-		return nil, "", nil, fmt.Errorf("failed to generate agent ID: %w", err)
-	}
+	agentID := util.CryptoRandomString(16)
 	pipePath := `\\.\pipe\gitea-ssh-agent-` + agentID
 
 	listener, err := winio.ListenPipe(pipePath, nil)

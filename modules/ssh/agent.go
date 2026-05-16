@@ -166,11 +166,7 @@ func CreateTemporaryAgent(privateKey ed25519.PrivateKey) (string, func(), error)
 		return "", nil, err
 	}
 
-	agentID, err := util.CryptoRandomString(16)
-	if err != nil {
-		agent.Close()
-		return "", nil, fmt.Errorf("failed to generate agent ID: %w", err)
-	}
+	agentID := util.CryptoRandomString(16)
 
 	globalAgentManager.mu.Lock()
 	globalAgentManager.agents[agentID] = agent
