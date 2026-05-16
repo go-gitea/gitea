@@ -90,6 +90,10 @@ func (s Status) IsBlocked() bool {
 	return s == StatusBlocked
 }
 
+func (s Status) IsCancelling() bool {
+	return s == StatusCancelling
+}
+
 // In returns whether s is one of the given statuses
 func (s Status) In(statuses ...Status) bool {
 	return slices.Contains(statuses, s)
