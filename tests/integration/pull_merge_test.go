@@ -30,6 +30,7 @@ import (
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/git/gitcmd"
 	"code.gitea.io/gitea/modules/gitrepo"
+	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/modules/queue"
 	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
@@ -1108,7 +1109,8 @@ func TestPullForceMergeForBypassAllowlistUser(t *testing.T) {
 
 		testEditFile(t, bypassSession, bypassUser.Name, forkedName, "master", "README.md", "Hello, World (Bypass Allowlist)\n")
 		resp := testPullCreate(t, bypassSession, bypassUser.Name, forkedName, false, "master", "master", "Bypass allowlist merge test pull")
-		elem := strings.Split(test.RedirectURL(resp), "/")
+		pullURL := test.RedirectURL(resp)
+		elem := strings.Split(pullURL, "/")
 		assert.Equal(t, "pulls", elem[3])
 
 		prIndex, err := strconv.ParseInt(elem[4], 10, 64)
@@ -1127,6 +1129,16 @@ func TestPullForceMergeForBypassAllowlistUser(t *testing.T) {
 		defer testAPIDeleteBranchProtection(t, "master", http.StatusNoContent)
 
 		token := getTokenForLoggedInUser(t, bypassSession, auth_model.AccessTokenScopeWriteRepository)
+
+		resp = bypassSession.MakeRequest(t, NewRequest(t, "GET", pullURL), http.StatusOK)
+		htmlDoc := NewHTMLParser(t, resp.Body)
+		assert.Contains(t, htmlDoc.doc.Find(".merge-section").Text(), "You are allowed to bypass branch protection rules for this merge.")
+		mergeFormProps, exists := htmlDoc.doc.Find("#pull-request-merge-form").Attr("data-merge-form-props")
+		require.True(t, exists)
+		var mergeForm map[string]any
+		require.NoError(t, json.Unmarshal([]byte(mergeFormProps), &mergeForm))
+		assert.Equal(t, true, mergeForm["canMergeNow"])
+		assert.Equal(t, false, mergeForm["allOverridableChecksOk"])
 
 		mergeReq := func(forceMerge bool) *RequestWrapper {
 			return NewRequestWithValues(t, "POST", fmt.Sprintf("/api/v1/repos/user2/repo1/pulls/%d/merge", prIndex), map[string]string{

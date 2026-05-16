@@ -964,8 +964,13 @@ func (prInfo *pullRequestViewInfo) prepareMergeBox(ctx *context.Context, issue *
 	// {{$canMergeNow := and (or (and (not $.ProtectedBranch.BlockAdminMergeOverride) $.IsRepoAdmin) (not $notAllOverridableChecksOk)) (or (not .AllowMerge) (not .RequireSigned) .WillSign)}}
 	// HINT: legacy "(not .AllowMerge)" is not right (always false, does nothing), fixed here
 	// CanMergeNow means: if the doer has write permission, whether the PR can be merged now
-	adminCanOverrideBlockers := (prInfo.ProtectedBranchRule == nil || !prInfo.ProtectedBranchRule.BlockAdminMergeOverride) && isRepoAdmin
-	data.CanMergeNow = (!data.HasOverridableBlockers || adminCanOverrideBlockers) && // status checks are satisfied
+	data.canBypassProtection = isRepoAdmin
+	data.canBypassProtectionAsAdmin = isRepoAdmin
+	if ctx.IsSigned && prInfo.ProtectedBranchRule != nil {
+		data.canBypassProtection = git_model.CanBypassBranchProtection(ctx, prInfo.ProtectedBranchRule, ctx.Doer, isRepoAdmin)
+		data.canBypassProtectionAsAdmin = isRepoAdmin && !prInfo.ProtectedBranchRule.BlockAdminMergeOverride
+	}
+	data.CanMergeNow = (!data.HasOverridableBlockers || data.canBypassProtection) && // status checks are satisfied
 		(!data.requireSigned || data.willSign) // signing requirement is satisfied
 
 	prInfo.prepareMergeBoxFormProps(ctx)

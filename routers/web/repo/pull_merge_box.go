@@ -171,9 +171,13 @@ func (prInfo *pullRequestViewInfo) prepareMergeBoxInfoItems(ctx *context.Context
 
 	if data.CanMergeNow {
 		if data.HasOverridableBlockers {
+			prompt := ctx.Locale.Tr("repo.pulls.required_status_check_bypass_allowlist")
+			if data.canBypassProtectionAsAdmin {
+				prompt = ctx.Locale.Tr("repo.pulls.required_status_check_administrator")
+			}
 			prInfo.MergeBoxData.infoMergePrompts.AddInfoItem(
 				svg.RenderHTML("octicon-dot-fill"),
-				ctx.Locale.Tr("repo.pulls.required_status_check_administrator"),
+				prompt,
 			)
 		} else if pull.IsStatusMergeable() || pull.IsEmpty() {
 			prInfo.MergeBoxData.infoMergePrompts.AddInfoItem(

@@ -276,9 +276,10 @@ type pullMergeBoxData struct {
 	StatusCheckData   *pullCommitStatusCheckData
 	ShowStatusCheck   bool
 
-	HasOverridableBlockers bool
-	CanMergeNow            bool // PR is mergeable, either no blocker, or doer is admin and can bypass the blockers
-	allowMerge             bool // doer has permission to merge
+	HasOverridableBlockers                          bool
+	CanMergeNow                                     bool // PR is mergeable, either no blocker, or doer can bypass the blockers
+	allowMerge                                      bool // doer has permission to merge
+	canBypassProtection, canBypassProtectionAsAdmin bool
 
 	ShowUpdatePullInfo    bool
 	UpdateAllowed         bool
