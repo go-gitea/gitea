@@ -2,9 +2,9 @@ name: gitea
 summary: Gitea - A painless self-hosted Git service
 description: |
   The goal of this project is to make the easiest, fastest, and most painless
-  way of setting up a self-hosted Git service. With Go, this can be done with
-  an independent binary distribution across ALL platforms that Go supports,
-  including Linux, Mac OS X, Windows and ARM.
+  way of setting up a self-hosted Git service with GitHub-like experiences,
+  including issue tracking, code review, project management, wikis, package registry,
+  Gitea Actions and more.
 
 icon: public/assets/img/logo.png
 confinement: strict
@@ -53,31 +53,8 @@ parts:
     build-snaps: [ go/1.26/stable, node/24/stable ]
     build-environment:
       - LDFLAGS: ""
-    override-pull: |
-      craftctl default
-
-      git config --global --add safe.directory /root/parts/gitea/src
-      last_committed_tag="$(git for-each-ref --sort=taggerdate --format '%(tag)' refs/tags | tail -n 1)"
-      last_released_tag="$(snap info gitea | awk '$1 == "latest/candidate:" { print $2 }')"
-      # If the latest tag from the upstream project has not been released to
-      # stable, build that tag instead of master.
-      if [ "${last_committed_tag}" != "${last_released_tag}" ]; then
-        git fetch
-        git checkout "${last_committed_tag}"
-      fi
-
-      version="$(git describe --always | sed -e 's/-/+git/;y/-/./')"
-      [ -n "$(echo $version | grep "+git")" ] && grade=devel || grade=stable
-      craftctl set version="$version"
-      craftctl set grade="$grade"
-
-    override-build: |
-      set -x
-      npm install -g pnpm
-      TAGS="bindata pam cert" make build
-      install -D gitea "${SNAPCRAFT_PART_INSTALL}/gitea"
-      cp -r options "${SNAPCRAFT_PART_INSTALL}/"
-
+    override-pull: craftctl default && ./snap/part-gitea-pull.sh
+    override-build: ./snap/part-gitea-build.sh
     prime:
       - -etc
       - -usr/lib/systemd
