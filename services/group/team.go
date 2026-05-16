@@ -226,7 +226,7 @@ func RecalculateGroupAccess(ctx context.Context, g *group_model.Group, isNew boo
 func UpdateOrCreateGroupUnit(ctx context.Context, isNew bool, group *group_model.Group, team *org_model.Team, unit unit.Unit, mode perm.AccessMode) error {
 	sess := db.GetEngine(ctx)
 	if isNew {
-		if _, err := sess.Table("repo_group_unit").Insert(&group_model.RepoGroupUnit{
+		if _, err := sess.Table("repo_group_unit").MustCols("access_mode").Insert(&group_model.RepoGroupUnit{
 			Type:       unit.Type,
 			TeamID:     team.ID,
 			GroupID:    group.ID,
@@ -239,7 +239,7 @@ func UpdateOrCreateGroupUnit(ctx context.Context, isNew bool, group *group_model
 			"type":     unit.Type,
 			"team_id":  team.ID,
 			"group_id": group.ID,
-		}).Cols("access_mode").Update(&group_model.RepoGroupUnit{
+		}).MustCols("access_mode").Update(&group_model.RepoGroupUnit{
 			AccessMode: mode,
 		}); err != nil {
 			return err
