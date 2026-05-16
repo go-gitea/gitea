@@ -30,17 +30,17 @@ type globCompiler struct {
 	globPattern       []rune
 	regexpPattern     string
 	regexp            *regexp.Regexp
+	builder           strings.Builder
 	pos               int
 	negativeFlip      bool
 }
 
 // compileChars compiles character class patterns like [abc] or [!abc]
-func (g *globCompiler) compileChars() (string, error) {
-	var result strings.Builder
-	result.WriteByte('[')
+func (g *globCompiler) compileChars() error {
+	g.builder.WriteByte('[')
 	if g.pos < len(g.globPattern) && g.globPattern[g.pos] == '!' {
 		g.pos++
-		result.WriteByte('^')
+		g.builder.WriteByte('^')
 	}
 
 	for g.pos < len(g.globPattern) {
@@ -48,40 +48,34 @@ func (g *globCompiler) compileChars() (string, error) {
 		g.pos++
 
 		if c == ']' {
-			result.WriteByte(']')
-			return result.String(), nil
+			g.builder.WriteByte(']')
+			return nil
 		}
 
 		if c == '\\' {
 			if g.pos >= len(g.globPattern) {
-				return "", errors.New("unterminated character class escape")
+				return errors.New("unterminated character class escape")
 			}
-			result.WriteByte('\\')
-			result.WriteRune(g.globPattern[g.pos])
+			g.builder.WriteByte('\\')
+			g.builder.WriteRune(g.globPattern[g.pos])
 			g.pos++
 		} else {
-			result.WriteRune(c)
+			g.builder.WriteRune(c)
 		}
 	}
 
-	return "", errors.New("unterminated character class")
+	return errors.New("unterminated character class")
 }
 
 // compile compiles the glob pattern into a regular expression
-func (g *globCompiler) compile(subPattern bool) (string, error) {
-	var result strings.Builder
-
+func (g *globCompiler) compile(subPattern bool) error {
 	for g.pos < len(g.globPattern) {
 		c := g.globPattern[g.pos]
 		g.pos++
 
 		if subPattern && c == '}' {
-			var wrapped strings.Builder
-			wrapped.Grow(result.Len() + 2)
-			wrapped.WriteByte('(')
-			wrapped.WriteString(result.String())
-			wrapped.WriteByte(')')
-			return wrapped.String(), nil
+			g.builder.WriteByte(')')
+			return nil
 		}
 
 		switch c {
@@ -104,58 +98,55 @@ func (g *globCompiler) compile(subPattern bool) (string, error) {
 				} else {
 					g.pos++
 				}
-				result.WriteString(".*") // match any sequence of characters
+				g.builder.WriteString(".*") // match any sequence of characters
 			} else {
-				result.WriteString(g.nonSeparatorChars)
-				result.WriteByte('*') // match any sequence of non-separator characters
+				g.builder.WriteString(g.nonSeparatorChars)
+				g.builder.WriteByte('*') // match any sequence of non-separator characters
 			}
 		case '?':
 			if g.regexpQuestion {
-				result.WriteByte('?')
+				g.builder.WriteByte('?')
 			} else {
-				result.WriteString(g.nonSeparatorChars) // match any single non-separator character
+				g.builder.WriteString(g.nonSeparatorChars) // match any single non-separator character
 			}
 		case '+':
 			if g.regexpPlus {
-				result.WriteByte('+')
+				g.builder.WriteByte('+')
 			} else {
-				result.WriteByte('\\')
-				result.WriteRune(c)
+				g.builder.WriteByte('\\')
+				g.builder.WriteRune(c)
 			}
 		case '[':
-			chars, err := g.compileChars()
-			if err != nil {
-				return "", err
+			if err := g.compileChars(); err != nil {
+				return err
 			}
-			result.WriteString(chars)
 		case '{':
-			subResult, err := g.compile(true)
-			if err != nil {
-				return "", err
+			g.builder.WriteByte('(')
+			if err := g.compile(true); err != nil {
+				return err
 			}
-			result.WriteString(subResult)
 		case ',':
 			if subPattern {
-				result.WriteByte('|')
+				g.builder.WriteByte('|')
 			} else {
-				result.WriteByte(',')
+				g.builder.WriteByte(',')
 			}
 		case '\\':
 			if g.pos >= len(g.globPattern) {
-				return "", errors.New("no character to escape")
+				return errors.New("no character to escape")
 			}
-			result.WriteByte('\\')
-			result.WriteRune(g.globPattern[g.pos])
+			g.builder.WriteByte('\\')
+			g.builder.WriteRune(g.globPattern[g.pos])
 			g.pos++
 		case '.', '^', '$', '(', ')', '|':
-			result.WriteByte('\\')
-			result.WriteRune(c) // escape regexp special characters
+			g.builder.WriteByte('\\')
+			g.builder.WriteRune(c) // escape regexp special characters
 		default:
-			result.WriteRune(c)
+			g.builder.WriteRune(c)
 		}
 	}
 
-	return result.String(), nil
+	return nil
 }
 
 func initGlobCompiler(g *globCompiler, pattern string, separators []rune) (Glob, error) {
@@ -175,17 +166,12 @@ func initGlobCompiler(g *globCompiler, pattern string, separators []rune) (Glob,
 		g.pos++
 	}
 
-	compiled, err := g.compile(false)
-	if err != nil {
+	g.builder.WriteByte('^')
+	if err := g.compile(false); err != nil {
 		return nil, err
 	}
-
-	var regexpPattern strings.Builder
-	regexpPattern.Grow(len(compiled) + 2)
-	regexpPattern.WriteByte('^')
-	regexpPattern.WriteString(compiled)
-	regexpPattern.WriteByte('$')
-	g.regexpPattern = regexpPattern.String()
+	g.builder.WriteByte('$')
+	g.regexpPattern = g.builder.String()
 
 	regex, err := regexp.Compile(g.regexpPattern)
 	if err != nil {
