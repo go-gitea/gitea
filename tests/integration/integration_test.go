@@ -7,6 +7,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/base64"
+	"flag"
 	"fmt"
 	"hash"
 	"hash/fnv"
@@ -116,6 +117,11 @@ func testMain(m *testing.M) int {
 }
 
 func TestMain(m *testing.M) {
+	// -test.list must skip InitIntegrationTest, which requires a database.
+	flag.Parse()
+	if flag.Lookup("test.list").Value.String() != "" {
+		os.Exit(m.Run())
+	}
 	os.Exit(testMain(m))
 }
 

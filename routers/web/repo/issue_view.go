@@ -867,10 +867,8 @@ func (prInfo *pullRequestViewInfo) prepareMergeBox(ctx *context.Context, issue *
 
 	if !prInfo.IsPullRequestBroken {
 		data.ShowUpdatePullInfo = pull.CommitsBehind > 0 && !issue.IsClosed && !pull.IsChecking() && !pull.IsFilesConflicted() && !prInfo.IsPullRequestBroken
-		var err error
-		data.UpdateAllowed, data.UpdateByRebaseAllowed, err = pull_service.IsUserAllowedToUpdate(ctx, pull, ctx.Doer)
-		if err != nil {
-			ctx.ServerError("IsUserAllowedToUpdate", err)
+		prInfo.preparePullUpdateActions(ctx)
+		if ctx.Written() {
 			return
 		}
 	}
@@ -973,6 +971,45 @@ func (prInfo *pullRequestViewInfo) prepareMergeBox(ctx *context.Context, issue *
 	prInfo.prepareMergeBoxIconColor()
 
 	ctx.Data["PullMergeBoxData"] = prInfo.MergeBoxData
+}
+
+func (prInfo *pullRequestViewInfo) preparePullUpdateActions(ctx *context.Context) {
+	pull := prInfo.issue.PullRequest
+	data := prInfo.MergeBoxData
+	userUpdateStyles, err := pull_service.CheckUserAllowedToUpdate(ctx, pull, ctx.Doer)
+	if err != nil {
+		ctx.ServerError("IsUserAllowedToUpdate", err)
+		return
+	}
+	if !userUpdateStyles.MergeAllowed && !userUpdateStyles.RebaseAllowed {
+		return
+	}
+
+	issueLink := prInfo.issue.Link()
+	mergeAction := &pullUpdateAction{
+		URL:  issueLink + "/update?style=merge",
+		Text: ctx.Tr("repo.pulls.update_branch"),
+	}
+	rebaseAction := &pullUpdateAction{
+		URL:  issueLink + "/update?style=rebase",
+		Text: ctx.Tr("repo.pulls.update_branch_rebase"),
+	}
+
+	if userUpdateStyles.MergeAllowed {
+		data.UpdateStyleOptions = append(data.UpdateStyleOptions, mergeAction)
+	}
+	if userUpdateStyles.RebaseAllowed {
+		data.UpdateStyleOptions = append(data.UpdateStyleOptions, rebaseAction)
+	}
+
+	if userUpdateStyles.DefaultUpdateStyle == repo_model.UpdateStyleRebase && userUpdateStyles.RebaseAllowed {
+		data.UpdatePrimaryAction = rebaseAction
+	} else if userUpdateStyles.DefaultUpdateStyle == repo_model.UpdateStyleMerge && userUpdateStyles.MergeAllowed {
+		data.UpdatePrimaryAction = mergeAction
+	} else {
+		data.UpdatePrimaryAction = data.UpdateStyleOptions[0]
+	}
+	data.UpdatePrimaryAction.Selected = true
 }
 
 func (prInfo *pullRequestViewInfo) prepareMergeBoxProtectionChecks(ctx *context.Context) {

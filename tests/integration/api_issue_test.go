@@ -513,15 +513,14 @@ func testAPIIssueProjects(t *testing.T) {
 		Projects: []int64{1},
 	}).AddTokenAuth(token)
 	resp := MakeRequest(t, req, http.StatusCreated)
-	var apiIssue api.Issue
-	DecodeJSON(t, resp, &apiIssue)
+	apiIssue := DecodeJSON(t, resp, &api.Issue{})
 	assert.Len(t, apiIssue.Projects, 1)
 	assert.EqualValues(t, 1, apiIssue.Projects[0].ID)
 
 	// Get issue should include projects
 	req = NewRequest(t, "GET", fmt.Sprintf("%s/%d", urlStr, apiIssue.Index)).AddTokenAuth(token)
 	resp = MakeRequest(t, req, http.StatusOK)
-	DecodeJSON(t, resp, &apiIssue)
+	apiIssue = DecodeJSON(t, resp, &api.Issue{})
 	assert.Len(t, apiIssue.Projects, 1)
 	assert.EqualValues(t, 1, apiIssue.Projects[0].ID)
 
@@ -531,7 +530,7 @@ func testAPIIssueProjects(t *testing.T) {
 		Projects: &emptyProjects,
 	}).AddTokenAuth(token)
 	resp = MakeRequest(t, req, http.StatusCreated)
-	DecodeJSON(t, resp, &apiIssue)
+	apiIssue = DecodeJSON(t, resp, &api.Issue{})
 	assert.Empty(t, apiIssue.Projects)
 
 	// Edit issue to add project back
@@ -540,7 +539,7 @@ func testAPIIssueProjects(t *testing.T) {
 		Projects: &projects,
 	}).AddTokenAuth(token)
 	resp = MakeRequest(t, req, http.StatusCreated)
-	DecodeJSON(t, resp, &apiIssue)
+	apiIssue = DecodeJSON(t, resp, &api.Issue{})
 	assert.Len(t, apiIssue.Projects, 1)
 	assert.EqualValues(t, 1, apiIssue.Projects[0].ID)
 
