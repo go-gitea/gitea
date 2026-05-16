@@ -9,6 +9,7 @@ import (
 	"code.gitea.io/gitea/models/db"
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unittest"
+	user_model "code.gitea.io/gitea/models/user"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -152,4 +153,52 @@ func TestNewProtectBranchPriority(t *testing.T) {
 	savedPB2, err := GetFirstMatchProtectedBranchRule(t.Context(), repo.ID, "branch-2")
 	assert.NoError(t, err)
 	assert.Equal(t, int64(2), savedPB2.Priority)
+}
+
+func TestCanBypassBranchProtection(t *testing.T) {
+	assert.NoError(t, unittest.PrepareTestDatabase())
+
+	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 1}) // not in team 1
+	teamMember := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
+
+	pb := &ProtectedBranch{
+		EnableBypassAllowlist:  true,
+		BypassAllowlistUserIDs: []int64{user.ID},
+	}
+
+	testBypass := func(t *testing.T, expected bool, pb *ProtectedBranch, doer *user_model.User, isAdmin bool) {
+		assert.Equal(t, expected, CanBypassBranchProtection(t.Context(), pb, doer, isAdmin))
+	}
+	// User bypasses via explicit allowlist.
+	testBypass(t, true, pb, user, false)
+
+	// Non-admin cannot bypass when allowlist is disabled.
+	pb.EnableBypassAllowlist = false
+	testBypass(t, false, pb, user, false)
+
+	// Repo admin can bypass independently of allowlist when not blocked.
+	testBypass(t, true, pb, user, true)
+
+	// Admin override block still allows bypass for allowlisted users.
+	pb.EnableBypassAllowlist = true
+	pb.BlockAdminMergeOverride = true
+	testBypass(t, true, pb, user, false)
+
+	// admin cannot bypass without allowlist membership.
+	pb.BypassAllowlistUserIDs = nil
+	testBypass(t, false, pb, user, true)
+
+	// admin can bypass when allowlisted.
+	pb.BypassAllowlistUserIDs = []int64{user.ID}
+	testBypass(t, true, pb, user, true)
+
+	// User bypasses via team allowlist membership.
+	pb.EnableBypassAllowlist = true
+	pb.BlockAdminMergeOverride = false
+	pb.BypassAllowlistUserIDs = nil
+	pb.BypassAllowlistTeamIDs = []int64{1} // team 1 contains user 2 in test fixtures
+	testBypass(t, true, pb, teamMember, false)
+
+	// User does not bypass when not in allowlisted teams.
+	testBypass(t, false, pb, user, false)
 }

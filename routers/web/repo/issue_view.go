@@ -907,7 +907,7 @@ func (prInfo *pullRequestViewInfo) prepareMergeBox(ctx *context.Context, issue *
 		if !canWriteToHeadRepo { // maintainers maybe allowed to push to head repo even if they can't write to it
 			canWriteToHeadRepo = pull.AllowMaintainerEdit && perm.CanWrite(unit.TypeCode)
 		}
-		data.allowMerge, err = pull_service.IsUserAllowedToMerge(ctx, pull, perm, ctx.Doer)
+		data.hasPermToMerge, err = pull_service.IsUserAllowedToMerge(ctx, pull, perm, ctx.Doer)
 		if err != nil {
 			ctx.ServerError("IsUserAllowedToMerge", err)
 			return
@@ -954,16 +954,19 @@ func (prInfo *pullRequestViewInfo) prepareMergeBox(ctx *context.Context, issue *
 	// this logic is from:
 	// {{$notAllOverridableChecksOk := or .IsBlockedByApprovals .IsBlockedByRejection .IsBlockedByOfficialReviewRequests .IsBlockedByOutdatedBranch .IsBlockedByChangedProtectedFiles (and .EnableStatusCheck (not $requiredStatusCheckState.IsSuccess))}}
 	// HINT: if a PR's status is not mergeable, then it is a non-overridable blocker, such logic is handled separately (see IsStatusMergeable)
-	data.HasOverridableBlockers = data.isBlockedByApprovals || data.isBlockedByRejection ||
+	data.hasOverridableBlockers = data.isBlockedByApprovals || data.isBlockedByRejection ||
 		data.isBlockedByOfficialReviewRequests || data.isBlockedByOutdatedBranch || data.isBlockedByChangedProtectedFiles ||
 		data.hasStatusCheckBlocker
 
-	// this logic is from:
-	// {{$canMergeNow := and (or (and (not $.ProtectedBranch.BlockAdminMergeOverride) $.IsRepoAdmin) (not $notAllOverridableChecksOk)) (or (not .AllowMerge) (not .RequireSigned) .WillSign)}}
-	// HINT: legacy "(not .AllowMerge)" is not right (always false, does nothing), fixed here
+	data.canBypassProtection = isRepoAdmin
+	data.canBypassProtectionAsAdmin = isRepoAdmin
+	if ctx.IsSigned && prInfo.ProtectedBranchRule != nil {
+		data.canBypassProtection = git_model.CanBypassBranchProtection(ctx, prInfo.ProtectedBranchRule, ctx.Doer, isRepoAdmin)
+		data.canBypassProtectionAsAdmin = isRepoAdmin && !prInfo.ProtectedBranchRule.BlockAdminMergeOverride
+	}
+
 	// CanMergeNow means: if the doer has write permission, whether the PR can be merged now
-	adminCanOverrideBlockers := (prInfo.ProtectedBranchRule == nil || !prInfo.ProtectedBranchRule.BlockAdminMergeOverride) && isRepoAdmin
-	data.CanMergeNow = (!data.HasOverridableBlockers || adminCanOverrideBlockers) && // status checks are satisfied
+	data.canMergeNow = (!data.hasOverridableBlockers || data.canBypassProtection) && // status checks are satisfied
 		(!data.requireSigned || data.willSign) // signing requirement is satisfied
 
 	prInfo.prepareMergeBoxFormProps(ctx)

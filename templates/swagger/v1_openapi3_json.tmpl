@@ -2850,6 +2850,20 @@
             "type": "string",
             "x-go-name": "BranchName"
           },
+          "bypass_allowlist_teams": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "x-go-name": "BypassAllowlistTeams"
+          },
+          "bypass_allowlist_usernames": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "x-go-name": "BypassAllowlistUsernames"
+          },
           "created_at": {
             "format": "date-time",
             "type": "string",
@@ -2862,6 +2876,10 @@
           "enable_approvals_whitelist": {
             "type": "boolean",
             "x-go-name": "EnableApprovalsWhitelist"
+          },
+          "enable_bypass_allowlist": {
+            "type": "boolean",
+            "x-go-name": "EnableBypassAllowlist"
           },
           "enable_force_push": {
             "type": "boolean",
@@ -3724,6 +3742,20 @@
             "type": "string",
             "x-go-name": "BranchName"
           },
+          "bypass_allowlist_teams": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "x-go-name": "BypassAllowlistTeams"
+          },
+          "bypass_allowlist_usernames": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "x-go-name": "BypassAllowlistUsernames"
+          },
           "dismiss_stale_approvals": {
             "type": "boolean",
             "x-go-name": "DismissStaleApprovals"
@@ -3731,6 +3763,10 @@
           "enable_approvals_whitelist": {
             "type": "boolean",
             "x-go-name": "EnableApprovalsWhitelist"
+          },
+          "enable_bypass_allowlist": {
+            "type": "boolean",
+            "x-go-name": "EnableBypassAllowlist"
           },
           "enable_force_push": {
             "type": "boolean",
@@ -5100,6 +5136,20 @@
             "type": "boolean",
             "x-go-name": "BlockOnRejectedReviews"
           },
+          "bypass_allowlist_teams": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "x-go-name": "BypassAllowlistTeams"
+          },
+          "bypass_allowlist_usernames": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "x-go-name": "BypassAllowlistUsernames"
+          },
           "dismiss_stale_approvals": {
             "type": "boolean",
             "x-go-name": "DismissStaleApprovals"
@@ -5107,6 +5157,10 @@
           "enable_approvals_whitelist": {
             "type": "boolean",
             "x-go-name": "EnableApprovalsWhitelist"
+          },
+          "enable_bypass_allowlist": {
+            "type": "boolean",
+            "x-go-name": "EnableBypassAllowlist"
           },
           "enable_force_push": {
             "type": "boolean",
