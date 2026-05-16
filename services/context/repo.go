@@ -738,15 +738,15 @@ func repoAssignmentPreparePullRequests(ctx *Context, data *repoAssignmentPrepare
 	if repo.IsEmpty {
 		return
 	}
-	// Pull request is allowed if this is a fork repository, and base repository accepts pull requests.
-	if repo.BaseRepo != nil && repo.BaseRepo.AllowsPulls(ctx) {
+	baseRepo, err := repo.GetPullRequestDefaultBaseRepo(ctx)
+	if err != nil {
+		ctx.ServerError("GetPullRequestDefaultBaseRepo", err)
+		return
+	}
+	if baseRepo != nil {
 		// TODO: this (and below) "BaseRepo" var is not clear and should be removed in the future
-		ctx.Data["BaseRepo"] = repo.BaseRepo
-		InitRepoPullRequestCtx(ctx, repo.BaseRepo, repo)
-	} else if repo.AllowsPulls(ctx) {
-		// Or, this is repository accepts pull requests between branches.
-		ctx.Data["BaseRepo"] = repo
-		InitRepoPullRequestCtx(ctx, repo, repo)
+		ctx.Data["BaseRepo"] = baseRepo
+		InitRepoPullRequestCtx(ctx, baseRepo, repo)
 	}
 }
 

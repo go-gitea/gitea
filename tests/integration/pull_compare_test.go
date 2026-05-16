@@ -4,19 +4,23 @@
 package integration
 
 import (
+	"context"
 	"fmt"
 	"net/http"
 	"net/url"
 	"testing"
 
+	"code.gitea.io/gitea/models/db"
 	issues_model "code.gitea.io/gitea/models/issues"
 	repo_model "code.gitea.io/gitea/models/repo"
+	"code.gitea.io/gitea/models/unit"
 	"code.gitea.io/gitea/models/unittest"
 	"code.gitea.io/gitea/modules/test"
 	repo_service "code.gitea.io/gitea/services/repository"
 	"code.gitea.io/gitea/tests"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestPullCompare(t *testing.T) {
@@ -32,6 +36,50 @@ func TestPullCompare(t *testing.T) {
 		resp = MakeRequest(t, req, http.StatusSeeOther)
 		redirect = test.RedirectURL(resp)
 		assert.Equal(t, "/user12/repo10/compare/master...user13:foo?expand=1", redirect)
+	})
+
+	t.Run("ArchivedForkBaseUsesSelfAsDefaultTarget", func(t *testing.T) {
+		require.NoError(t, db.Insert(t.Context(), &repo_model.RepoUnit{RepoID: 11, Type: unit.TypePullRequests, Config: repo_model.DefaultPullRequestsConfig()}))
+
+		baseRepo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 10})
+		require.NoError(t, repo_model.SetArchiveRepoState(t.Context(), baseRepo, true))
+		t.Cleanup(func() {
+			assert.NoError(t, repo_model.SetArchiveRepoState(context.Background(), baseRepo, false))
+		})
+
+		session := loginUser(t, "user13")
+
+		req := NewRequest(t, "GET", "/user13/repo11/pulls/new/foo")
+		resp := session.MakeRequest(t, req, http.StatusSeeOther)
+		assert.Equal(t, "/user13/repo11/compare/master...foo?expand=1", test.RedirectURL(resp))
+
+		req = NewRequest(t, "GET", "/user13/repo11/pulls")
+		resp = session.MakeRequest(t, req, http.StatusOK)
+		htmlDoc := NewHTMLParser(t, resp.Body)
+		newPRButton := htmlDoc.doc.Find(".new-pr-button")
+		if assert.Equal(t, 1, newPRButton.Length()) {
+			href, exists := newPRButton.Attr("href")
+			if assert.True(t, exists) {
+				assert.Equal(t, "/user13/repo11/compare/master...master", href)
+			}
+			className, exists := newPRButton.Attr("class")
+			if assert.True(t, exists) {
+				assert.NotContains(t, className, "disabled")
+			}
+		}
+
+		req = NewRequest(t, "GET", "/user13/repo11")
+		resp = session.MakeRequest(t, req, http.StatusOK)
+		htmlDoc = NewHTMLParser(t, resp.Body)
+		codeButton := htmlDoc.doc.Find("#new-pull-request")
+		if assert.Equal(t, 1, codeButton.Length()) {
+			href, exists := codeButton.Attr("href")
+			if assert.True(t, exists) {
+				assert.Equal(t, "/user13/repo11/compare/master...master?expand=1", href)
+				resp = session.MakeRequest(t, NewRequest(t, "GET", href), http.StatusOK)
+				assert.Equal(t, http.StatusOK, resp.Code)
+			}
+		}
 	})
 
 	t.Run("ButtonsExist", func(t *testing.T) {

@@ -20,17 +20,18 @@ func prepareRecentlyPushedNewBranches(ctx *context.Context) {
 	if ctx.Doer == nil {
 		return
 	}
-	if err := ctx.Repo.Repository.GetBaseRepo(ctx); err != nil {
-		log.Error("GetBaseRepo: %v", err)
+	baseRepo, err := ctx.Repo.Repository.GetPullRequestDefaultBaseRepo(ctx)
+	if err != nil {
+		log.Error("GetPullRequestDefaultBaseRepo: %v", err)
+		return
+	}
+	if baseRepo == nil {
 		return
 	}
 
 	opts := git_model.FindRecentlyPushedNewBranchesOptions{
 		Repo:     ctx.Repo.Repository,
-		BaseRepo: ctx.Repo.Repository,
-	}
-	if ctx.Repo.Repository.IsFork {
-		opts.BaseRepo = ctx.Repo.Repository.BaseRepo
+		BaseRepo: baseRepo,
 	}
 
 	baseRepoPerm, err := access_model.GetDoerRepoPermission(ctx, opts.BaseRepo, ctx.Doer)
