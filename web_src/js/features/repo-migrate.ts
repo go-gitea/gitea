@@ -75,24 +75,24 @@ export function initRepoMigrationForm() {
   }
 
   function updateAuthFields() {
-    const url = cloneAddrInput.value.trim();
+    const url = cloneAddrInput!.value.trim();
     const isSSH = isSSHURL(url);
 
     if (isSSH) {
       // Disable auth fields for SSH URLs
-      authUsernameInput.disabled = true;
-      authPasswordInput.disabled = true;
-      authUsernameInput.value = '';
-      authPasswordInput.value = '';
-      authUsernameInput.parentElement?.classList.add('disabled');
-      authPasswordInput.parentElement?.classList.add('disabled');
-      showElem(sshHelpText);
+      authUsernameInput!.disabled = true;
+      authPasswordInput!.disabled = true;
+      authUsernameInput!.value = '';
+      authPasswordInput!.value = '';
+      authUsernameInput!.parentElement?.classList.add('disabled');
+      authPasswordInput!.parentElement?.classList.add('disabled');
+      showElem(sshHelpText!);
     } else {
-      authUsernameInput.disabled = false;
-      authPasswordInput.disabled = false;
-      authUsernameInput.parentElement?.classList.remove('disabled');
-      authPasswordInput.parentElement?.classList.remove('disabled');
-      hideElem(sshHelpText);
+      authUsernameInput!.disabled = false;
+      authPasswordInput!.disabled = false;
+      authUsernameInput!.parentElement?.classList.remove('disabled');
+      authPasswordInput!.parentElement?.classList.remove('disabled');
+      hideElem(sshHelpText!);
     }
   }
 
