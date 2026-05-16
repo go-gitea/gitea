@@ -180,7 +180,7 @@ func groupAssignment(ctx commonCtx, doer *user_model.User, isSigned bool, isAPI 
 			repoGroup.IsGroupAdmin = true
 			repoGroup.CanCreateRepoOrGroup = true
 		} else {
-			repoGroup.IsMember, err = shared_group.IsGroupMember(ctx, group.ID, doer)
+			repoGroup.IsMember, err = group.IsMemberOf(ctx, doer)
 			if err != nil {
 				handleOtherError("IsOrgMember", err)
 				return
@@ -377,12 +377,7 @@ func GroupAssignmentAPI(early404 bool) func(ctx *APIContext) {
 				ctx.APIErrorNotFound(nil)
 				return
 			}
-			if ctx.IsSigned {
-				if !canAccess && group.Visibility != structs.VisibleTypePublic {
-					ctx.APIErrorNotFound(nil)
-					return
-				}
-			}
+
 			if !canAccess && early404 {
 				ctx.APIErrorNotFound(nil)
 			}
