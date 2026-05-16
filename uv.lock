@@ -102,7 +102,7 @@ dev = [
 dev = [
     { name = "djlint", specifier = "==1.36.4" },
     { name = "yamllint", specifier = "==1.38.0" },
-    { name = "zizmor", specifier = ">=1.25.1" },
+    { name = "zizmor", specifier = "==1.25.1" },
 ]
 
 [[package]]
