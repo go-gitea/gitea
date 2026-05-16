@@ -539,6 +539,7 @@ func reqGroupMembership(mode perm.AccessMode, needsCreatePerm bool) func(ctx *co
 		var err error
 		isOrgOwner := false
 		isOrgAdmin := false
+		isOrgMember := false
 		g := ctx.RepoGroup.Group
 
 		if ctx.Doer != nil {
@@ -555,6 +556,12 @@ func reqGroupMembership(mode perm.AccessMode, needsCreatePerm bool) func(ctx *co
 			if isOrgOwner || isOrgAdmin {
 				return
 			}
+
+			isOrgMember, err = organization.IsOrganizationMember(ctx, g.OwnerID, ctx.Doer.ID)
+			if err != nil {
+				ctx.APIErrorInternal(err)
+				return
+			}
 		}
 
 		canAccess, err := ctx.RepoGroup.Group.CanAccessAtLevel(ctx, ctx.Doer, mode)
@@ -564,20 +571,24 @@ func reqGroupMembership(mode perm.AccessMode, needsCreatePerm bool) func(ctx *co
 		}
 		canAccess = canAccess && ctx.RepoGroup.DoerCanAccess()
 
-		if mode > perm.AccessModeRead && !canAccess {
+		if mode > perm.AccessModeRead && !canAccess && isOrgMember {
 			ctx.APIError(http.StatusForbidden, "")
-			return
-		}
-		if !canAccess {
-			ctx.APIErrorNotFound()
 			return
 		}
 		if needsCreatePerm {
 			canCreateIn := ctx.RepoGroup.CanCreateRepoOrGroup
 			if !canCreateIn && !(isOrgOwner || isOrgAdmin) {
-				ctx.APIError(http.StatusForbidden, fmt.Sprintf("User[%d] does not have permission to create new items in group[%d]", ctx.Doer.ID, g.ID))
+				if isOrgMember {
+					ctx.APIError(http.StatusForbidden, fmt.Sprintf("User[%d] does not have permission to create new items in group[%d]", ctx.Doer.ID, g.ID))
+				} else {
+					ctx.APIErrorNotFound()
+				}
 				return
 			}
+		}
+		if !canAccess {
+			ctx.APIErrorNotFound()
+			return
 		}
 	}
 }
