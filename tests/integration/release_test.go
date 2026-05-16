@@ -104,13 +104,7 @@ func TestCreateReleaseDraft(t *testing.T) {
 
 func TestCreateReleasePaging(t *testing.T) {
 	defer tests.PrepareTestEnv(t)()
-
-	oldAPIDefaultNum := setting.API.DefaultPagingNum
-	defer func() {
-		setting.API.DefaultPagingNum = oldAPIDefaultNum
-	}()
-	setting.API.DefaultPagingNum = 10
-
+	defer test.MockVariableValue(&setting.API.DefaultPagingNum, 10)()
 	session := loginUser(t, "user2")
 	// Create enough releases to have paging
 	for i := range 12 {
