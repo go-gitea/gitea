@@ -248,6 +248,9 @@ func NotifyWorkflowRunStatusUpdateWithReload(ctx context.Context, job *actions_m
 		return
 	}
 	notify_service.WorkflowRunStatusUpdate(ctx, job.Run.Repo, job.Run.TriggerUser, job.Run)
+
+	// Recomputes the repository's num_action_runs / num_closed_action_runs counters since the run's status changed
+	actions_model.UpdateRepoRunsNumbers(ctx, job.RepoID)
 }
 
 type jobStatusResolver struct {

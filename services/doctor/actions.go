@@ -105,6 +105,8 @@ func fixUnfinishedRunStatus(ctx context.Context, logger log.Logger, autofix bool
 			}
 			fixed++
 
+			actions_model.UpdateRepoRunsNumbers(ctx, run.RepoID)
+
 			return nil
 		},
 	)

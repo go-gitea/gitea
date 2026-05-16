@@ -52,6 +52,9 @@ func PrepareRunAndInsert(ctx context.Context, content []byte, run *actions_model
 		notify_service.WorkflowJobStatusUpdate(ctx, run.Repo, run.TriggerUser, job, nil)
 	}
 
+	// Recomputes the repository's num_action_runs / num_closed_action_runs counters since a new run is created
+	actions_model.UpdateRepoRunsNumbers(ctx, run.RepoID)
+
 	return nil
 }
 
