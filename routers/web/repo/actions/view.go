@@ -893,6 +893,7 @@ func getCurrentRunJobsByPathParam(ctx *context_module.Context) (*actions_model.A
 		ctx.NotFound(nil)
 		return nil, nil, nil
 	}
+	jobs.SortMatrixGroupsByName()
 
 	for _, job := range jobs {
 		job.Run = run
