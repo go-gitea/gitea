@@ -132,88 +132,59 @@ func UniqueKeyForReleaseNotification(releaseID int64) string {
 	return fmt.Sprintf("release-%d", releaseID)
 }
 
+// upsertNotificationByUniqueKey marks an existing notification unread (updating the doer)
+// or inserts newNotification if none exists for the user/unique_key pair.
+func upsertNotificationByUniqueKey(ctx context.Context, doerID int64, newNotification *Notification) error {
+	existing := new(Notification)
+	if _, err := db.GetEngine(ctx).
+		Where("user_id = ?", newNotification.UserID).
+		And("unique_key = ?", newNotification.UniqueKey).
+		Get(existing); err != nil {
+		return err
+	}
+	if existing.ID > 0 {
+		existing.Status = NotificationStatusUnread
+		existing.UpdatedBy = doerID
+		_, err := db.GetEngine(ctx).ID(existing.ID).Cols("status", "updated_by").Update(existing)
+		return err
+	}
+	return db.Insert(ctx, newNotification)
+}
+
 // CreateRepoTransferNotification creates a notification for the user a repository was transferred to
 func CreateRepoTransferNotification(ctx context.Context, doerID, repoID, receiverID int64) error {
-	uniqueKey := uniqueKeyForRepositoryNotification(repoID)
-	notification := new(Notification)
-	if _, err := db.GetEngine(ctx).
-		Where("user_id = ?", receiverID).
-		And("unique_key = ?", uniqueKey).
-		Get(notification); err != nil {
-		return err
-	}
-	if notification.ID > 0 {
-		notification.Status = NotificationStatusUnread
-		notification.UpdatedBy = doerID
-		_, err := db.GetEngine(ctx).ID(notification.ID).Cols("status", "updated_by").Update(notification)
-		return err
-	}
-
-	notification = &Notification{
+	return upsertNotificationByUniqueKey(ctx, doerID, &Notification{
 		UserID:    receiverID,
 		RepoID:    repoID,
 		Status:    NotificationStatusUnread,
 		UpdatedBy: doerID,
 		Source:    NotificationSourceRepository,
-		UniqueKey: uniqueKey,
-	}
-	return db.Insert(ctx, notification)
+		UniqueKey: uniqueKeyForRepositoryNotification(repoID),
+	})
 }
 
 func CreateCommitNotifications(ctx context.Context, doerID, repoID int64, commitID string, receiverID int64) error {
-	uniqueKey := uniqueKeyForCommitNotification(repoID, commitID)
-	notification := new(Notification)
-	if _, err := db.GetEngine(ctx).
-		Where("user_id = ?", receiverID).
-		And("unique_key = ?", uniqueKey).
-		Get(notification); err != nil {
-		return err
-	}
-	if notification.ID > 0 {
-		notification.Status = NotificationStatusUnread
-		notification.UpdatedBy = doerID
-		_, err := db.GetEngine(ctx).ID(notification.ID).Cols("status", "updated_by").Update(notification)
-		return err
-	}
-
-	notification = &Notification{
+	return upsertNotificationByUniqueKey(ctx, doerID, &Notification{
 		Source:    NotificationSourceCommit,
 		UserID:    receiverID,
 		RepoID:    repoID,
 		CommitID:  commitID,
-		UniqueKey: uniqueKey,
+		UniqueKey: uniqueKeyForCommitNotification(repoID, commitID),
 		Status:    NotificationStatusUnread,
 		UpdatedBy: doerID,
-	}
-	return db.Insert(ctx, notification)
+	})
 }
 
 func CreateOrUpdateReleaseNotifications(ctx context.Context, doerID, repoID, releaseID, receiverID int64) error {
-	uniqueKey := UniqueKeyForReleaseNotification(releaseID)
-	notification := new(Notification)
-	if _, err := db.GetEngine(ctx).
-		Where("user_id = ?", receiverID).
-		And("unique_key = ?", uniqueKey).
-		Get(notification); err != nil {
-		return err
-	}
-	if notification.ID > 0 {
-		notification.Status = NotificationStatusUnread
-		notification.UpdatedBy = doerID
-		_, err := db.GetEngine(ctx).ID(notification.ID).Cols("status", "updated_by").Update(notification)
-		return err
-	}
-
-	notification = &Notification{
+	return upsertNotificationByUniqueKey(ctx, doerID, &Notification{
 		Source:    NotificationSourceRelease,
 		RepoID:    repoID,
 		UserID:    receiverID,
 		Status:    NotificationStatusUnread,
 		ReleaseID: releaseID,
-		UniqueKey: uniqueKey,
+		UniqueKey: UniqueKeyForReleaseNotification(releaseID),
 		UpdatedBy: doerID,
-	}
-	return db.Insert(ctx, notification)
+	})
 }
 
 func createIssueNotification(ctx context.Context, userID int64, issue *issues_model.Issue, commentID, updatedByID int64) error {
