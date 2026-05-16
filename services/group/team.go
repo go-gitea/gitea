@@ -116,20 +116,30 @@ func UpdateGroupTeam(ctx context.Context, gt *group_model.RepoGroupTeam, unitMap
 	if _, err = sess.ID(gt.ID).AllCols().Update(gt); err != nil {
 		return fmt.Errorf("update: %w", err)
 	}
-	for _, groupUnit := range gt.Units {
-		groupUnit.TeamID = gt.TeamID
-		if v, ok := unitMap[groupUnit.Unit().NameKey]; ok {
-			actualPerm := perm.ParseAccessMode(v)
-			groupUnit.AccessMode = actualPerm
+	for k, v := range unitMap {
+		actualPerm := perm.ParseAccessMode(v)
+		unitValue := unit.Units[unit.TypeFromKey(k)]
+		groupUnit := &group_model.RepoGroupUnit{
+			AccessMode: actualPerm,
+			TeamID:     gt.TeamID,
+			GroupID:    gt.GroupID,
+			Type:       unitValue.Type,
 		}
-		if _, err = sess.
-			Where("team_id=?", gt.TeamID).
-			And("group_id=?", gt.GroupID).
-			And("type = ?", groupUnit.Type).
-			Update(groupUnit); err != nil {
-			return err
+		if _, ex := gt.UnitAccessModeEx(ctx, unitValue.Type); ex {
+			if _, err = sess.
+				Where("team_id=?", gt.TeamID).
+				And("group_id=?", gt.GroupID).
+				And("type = ?", groupUnit.Type).AllCols().
+				Update(groupUnit); err != nil {
+				return err
+			}
+		} else {
+			if _, err = sess.Insert(groupUnit); err != nil {
+				return err
+			}
 		}
 	}
+
 	return committer.Commit()
 }
 
