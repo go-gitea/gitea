@@ -27,7 +27,7 @@ jobs:
         ports:
           - "5432:5432"
       ldap:
-        image: gitea/test-openldap:latest
+        image: gitea/test-openldap:latest@sha256:4ac633b01d684e6b2a458cc0c8530c92f9b3702f6e040ce5f365607df34fbda0
         ports:
           - "389:389"
           - "636:636"
@@ -118,7 +118,7 @@ jobs:
         ports:
           - "7700:7700"
       redis:
-        image: redis
+        image: redis:latest@sha256:94ea4f5ccdaa6b154df99a792986ecb3ffbb3fe7722a197220477f1f3e65f9fe
         options: >- # wait until redis has started
           --health-cmd "redis-cli ping"
           --health-interval 5s
@@ -134,7 +134,7 @@ jobs:
         ports:
           - "9000:9000"
       devstoreaccount1.azurite.local: # https://github.com/Azure/Azurite/issues/1583
-        image: mcr.microsoft.com/azure-storage/azurite:latest
+        image: mcr.microsoft.com/azure-storage/azurite:latest@sha256:dae2a5f96553962901304b94e72ef87e299d0825e4b679673bcc527a25076fe4
         ports:
           - 10000:10000
     steps:
@@ -191,7 +191,7 @@ jobs:
         ports:
           - "9200:9200"
       smtpimap:
-        image: tabascoterrier/docker-imap-devel:latest
+        image: tabascoterrier/docker-imap-devel:latest@sha256:3fb7cf50b47693e7b80f6f74abea2def4d7386016931d61359864de8a0aba551
         ports:
           - "25:25"
           - "143:143"
@@ -235,7 +235,7 @@ jobs:
         ports:
           - "1433:1433"
       devstoreaccount1.azurite.local: # https://github.com/Azure/Azurite/issues/1583
-        image: mcr.microsoft.com/azure-storage/azurite:latest
+        image: mcr.microsoft.com/azure-storage/azurite:latest@sha256:dae2a5f96553962901304b94e72ef87e299d0825e4b679673bcc527a25076fe4
         ports:
           - 10000:10000
     steps:
