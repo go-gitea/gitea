@@ -172,6 +172,18 @@ func (g *Group) IsOwnedBy(ctx context.Context, userID int64) (bool, error) {
 		Exist()
 }
 
+func (g *Group) IsMemberOf(ctx context.Context, user *user_model.User) (bool, error) {
+	if user == nil {
+		return false, nil
+	}
+	return db.GetEngine(ctx).
+		Where("`repo_group_team`.group_id = ?", g.ID).
+		Join("INNER", "repo_group_team", "`repo_group_team`.team_id = `team_user`.team_id").
+		And("`team_user`.uid = ?", user.ID).
+		Table("team_user").
+		Exist()
+}
+
 func (g *Group) CanCreateIn(ctx context.Context, userID int64) (bool, error) {
 	cond := builder.Eq{
 		"team_user.uid":                 userID,
