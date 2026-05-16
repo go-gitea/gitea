@@ -6,6 +6,7 @@ package group
 import (
 	"context"
 	"fmt"
+	"strings"
 
 	"code.gitea.io/gitea/models/db"
 	group_model "code.gitea.io/gitea/models/group"
@@ -52,17 +53,33 @@ func AddTeamToGroup(ctx context.Context, group *group_model.Group, tname string,
 	if canCreateIn != nil {
 		canCreateInRepo = *canCreateIn
 	}
+	isNew := true
 	if err = group.LoadParentGroup(ctx); err != nil {
 		return err
 	}
 	err = group_model.AddTeamGroup(ctx, group.OwnerID, t.ID, group.ID, mode, canCreateInRepo)
 	if err != nil {
-		return err
-	}
-	for unitName, unitPerm := range unitMap {
-		err = UpdateOrCreateGroupUnit(ctx, true, group, t, unit.Units[unit.TypeFromKey(unitName)], perm.ParseAccessMode(unitPerm))
-		if err != nil {
+		if strings.Contains(err.Error(), "UNIQUE constraint failed") {
+			gt, err := group_model.FindGroupTeamByTeamID(ctx, group.ID, t.ID)
+			if err != nil {
+				return err
+			}
+			gt.CanCreateIn = canCreateInRepo
+			gt.AccessMode = mode
+			isNew = false
+			if err = UpdateGroupTeam(ctx, gt, unitMap); err != nil {
+				return err
+			}
+		} else {
 			return err
+		}
+	}
+	if isNew {
+		for unitName, unitPerm := range unitMap {
+			err = UpdateOrCreateGroupUnit(ctx, true, group, t, unit.Units[unit.TypeFromKey(unitName)], perm.ParseAccessMode(unitPerm))
+			if err != nil {
+				return err
+			}
 		}
 	}
 	return committer.Commit()
