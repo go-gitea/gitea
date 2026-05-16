@@ -30,7 +30,7 @@ type globCompiler struct {
 	globPattern       []rune
 	regexpPattern     string
 	regexp            *regexp.Regexp
-	builder           strings.Builder
+	builder           *strings.Builder
 	pos               int
 	negativeFlip      bool
 }
@@ -152,6 +152,7 @@ func (g *globCompiler) compile(subPattern bool) error {
 func initGlobCompiler(g *globCompiler, pattern string, separators []rune) (Glob, error) {
 	g.globPattern = []rune(pattern)
 	g.separators = separators
+	g.builder = new(strings.Builder)
 
 	// Escape separators for use in character class
 	escapedSeparators := regexp.QuoteMeta(string(separators))
@@ -172,6 +173,7 @@ func initGlobCompiler(g *globCompiler, pattern string, separators []rune) (Glob,
 	}
 	g.builder.WriteByte('$')
 	g.regexpPattern = g.builder.String()
+	g.builder = nil
 
 	regex, err := regexp.Compile(g.regexpPattern)
 	if err != nil {
