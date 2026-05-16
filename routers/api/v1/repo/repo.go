@@ -187,24 +187,11 @@ func Search(ctx *context.APIContext) {
 		opts.IsPrivate = optional.Some(ctx.FormBool("is_private"))
 	}
 
-	sortMode := ctx.FormString("sort")
-	if len(sortMode) > 0 {
-		sortOrder := ctx.FormString("order")
-		if len(sortOrder) == 0 {
-			sortOrder = "asc"
-		}
-		if searchModeMap, ok := repo_model.OrderByMap[sortOrder]; ok {
-			if orderBy, ok := searchModeMap[sortMode]; ok {
-				opts.OrderBy = orderBy
-			} else {
-				ctx.APIError(http.StatusUnprocessableEntity, fmt.Errorf("Invalid sort mode: \"%s\"", sortMode))
-				return
-			}
-		} else {
-			ctx.APIError(http.StatusUnprocessableEntity, fmt.Errorf("Invalid sort order: \"%s\"", sortOrder))
-			return
-		}
+	orderBy, ok := utils.ResolveSortOrder(ctx, repo_model.OrderByMap, "")
+	if !ok {
+		return
 	}
+	opts.OrderBy = orderBy
 
 	repos, count, err := repo_model.SearchRepository(ctx, opts)
 	if err != nil {
@@ -898,10 +885,20 @@ func updateRepoUnits(ctx *context.APIContext, opts api.EditRepoOption) error {
 			optional.AssignPtrValue(changed, &config.AllowFastForwardOnly, opts.AllowFastForwardOnly)
 			optional.AssignPtrValue(changed, &config.AllowManualMerge, opts.AllowManualMerge)
 			optional.AssignPtrValue(changed, &config.AutodetectManualMerge, opts.AutodetectManualMerge)
+			optional.AssignPtrValue(changed, &config.AllowMergeUpdate, opts.AllowMergeUpdate)
 			optional.AssignPtrValue(changed, &config.AllowRebaseUpdate, opts.AllowRebaseUpdate)
 			optional.AssignPtrValue(changed, &config.DefaultDeleteBranchAfterMerge, opts.DefaultDeleteBranchAfterMerge)
 			optional.AssignPtrValue(changed, &config.DefaultAllowMaintainerEdit, opts.DefaultAllowMaintainerEdit)
 			optional.AssignPtrString(changed, &config.DefaultMergeStyle, opts.DefaultMergeStyle)
+			optional.AssignPtrString(changed, &config.DefaultUpdateStyle, opts.DefaultUpdateStyle)
+			// only validate update-style fields when the caller is actually changing one of them,
+			// so unrelated PATCH calls don't reject historical configs.
+			if opts.AllowMergeUpdate != nil || opts.AllowRebaseUpdate != nil || opts.DefaultUpdateStyle != nil {
+				if err := config.ValidateUpdateSettings(); err != nil {
+					ctx.APIError(http.StatusUnprocessableEntity, err)
+					return err
+				}
+			}
 			if *changed || mustInsertPullRequestUnit {
 				units = append(units, repo_model.RepoUnit{
 					RepoID: repo.ID,

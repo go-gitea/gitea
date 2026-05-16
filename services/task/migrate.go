@@ -45,7 +45,7 @@ func runMigrateTask(ctx context.Context, t *admin_model.Task) (err error) {
 	defer func(ctx context.Context) {
 		if e := recover(); e != nil {
 			err = fmt.Errorf("PANIC whilst trying to do migrate task: %v", e)
-			log.Critical("PANIC during runMigrateTask[%d] by DoerID[%d] to RepoID[%d] for OwnerID[%d]: %v\nStacktrace: %v", t.ID, t.DoerID, t.RepoID, t.OwnerID, e, log.Stack(2))
+			log.Error("PANIC during runMigrateTask[%d] by DoerID[%d] to RepoID[%d] for OwnerID[%d]: %v\nStacktrace: %v", t.ID, t.DoerID, t.RepoID, t.OwnerID, e, log.Stack(2))
 		}
 		if err == nil {
 			err = admin_model.FinishMigrateTask(ctx, t)

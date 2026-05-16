@@ -1,0 +1,1277 @@
+[
+  {
+    "name": "APL",
+    "extensions": [
+      "apl",
+      "dyalog"
+    ],
+    "filenames": []
+  },
+  {
+    "name": "ASN.1",
+    "extensions": [
+      "asn",
+      "asn1"
+    ],
+    "filenames": []
+  },
+  {
+    "name": "Brainfuck",
+    "extensions": [
+      "b",
+      "bf"
+    ],
+    "filenames": []
+  },
+  {
+    "name": "C",
+    "extensions": [
+      "c",
+      "cats",
+      "h",
+      "idc"
+    ],
+    "filenames": []
+  },
+  {
+    "name": "C#",
+    "extensions": [
+      "cs",
+      "cake",
+      "csx",
+      "linq"
+    ],
+    "filenames": []
+  },
+  {
+    "name": "C++",
+    "extensions": [
+      "cpp",
+      "c++",
+      "cc",
+      "cp",
+      "cppm",
+      "cxx",
+      "h++",
+      "hh",
+      "hpp",
+      "hxx",
+      "inl",
+      "ipp",
+      "ixx",
+      "re",
+      "tcc",
+      "tpp",
+      "txx"
+    ],
+    "filenames": []
+  },
+  {
+    "name": "Clojure",
+    "extensions": [
+      "clj",
+      "bb",
+      "boot",
+      "cl2",
+      "cljc",
+      "cljscm",
+      "cljx",
+      "hic"
+    ],
+    "filenames": [
+      "riemann.config"
+    ]
+  },
+  {
+    "name": "CMake",
+    "extensions": [
+      "cmake"
+    ],
+    "filenames": [
+      "CMakeLists.txt"
+    ]
+  },
+  {
+    "name": "Cobol",
+    "extensions": [
+      "cob",
+      "cbl",
+      "ccp",
+      "cobol",
+      "cpy"
+    ],
+    "filenames": []
+  },
+  {
+    "name": "CoffeeScript",
+    "extensions": [
+      "coffee",
+      "_coffee",
+      "cake",
+      "cjsx",
+      "iced"
+    ],
+    "filenames": [
+      "Cakefile"
+    ]
+  },
+  {
+    "name": "Common Lisp",
+    "extensions": [
+      "lisp",
+      "asd",
+      "cl",
+      "l",
+      "lsp",
+      "ny",
+      "podsl",
+      "sexp"
+    ],
+    "filenames": []
+  },
+  {
+    "name": "CQL",
+    "extensions": [
+      "cql"
+    ],
+    "filenames": []
+  },
+  {
+    "name": "Crystal",
+    "extensions": [
+      "cr"
+    ],
+    "filenames": []
+  },
+  {
+    "name": "CSS",
+    "extensions": [
+      "css"
+    ],
+    "filenames": []
+  },
+  {
+    "name": "Cypher",
+    "extensions": [
+      "cyp",
+      "cypher"
+    ],
+    "filenames": []
+  },
+  {
+    "name": "Cython",
+    "extensions": [
+      "pyx",
+      "pxd",
+      "pxi"
+    ],
+    "filenames": []
+  },
+  {
+    "name": "D",
+    "extensions": [
+      "d",
+      "di"
+    ],
+    "filenames": []
+  },
+  {
+    "name": "Dart",
+    "extensions": [
+      "dart"
+    ],
+    "filenames": []
+  },
+  {
+    "name": "diff",
+    "extensions": [
+      "diff",
+      "patch"
+    ],
+    "filenames": []
+  },
+  {
+    "name": "Dylan",
+    "extensions": [
+      "dylan",
+      "dyl",
+      "intr",
+      "lid"
+    ],
+    "filenames": []
+  },
+  {
+    "name": "EBNF",
+    "extensions": [
+      "ebnf"
+    ],
+    "filenames": []
+  },
+  {
+    "name": "ECL",
+    "extensions": [
+      "ecl",
+      "eclxml"
+    ],
+    "filenames": []
+  },
+  {
+    "name": "edn",
+    "extensions": [
+      "edn"
+    ],
+    "filenames": []
+  },
+  {
+    "name": "Eiffel",
+    "extensions": [
+      "e"
+    ],
+    "filenames": []
+  },
+  {
+    "name": "Elm",
+    "extensions": [
+      "elm"
+    ],
+    "filenames": []
+  },
+  {
+    "name": "Erlang",
+    "extensions": [
+      "erl",
+      "app",
+      "es",
+      "escript",
+      "hrl",
+      "xrl",
+      "yrl"
+    ],
+    "filenames": [
+      "Emakefile",
+      "rebar.config",
+      "rebar.config.lock",
+      "rebar.lock"
+    ]
+  },
+  {
+    "name": "F#",
+    "extensions": [
+      "fs",
+      "fsi",
+      "fsx"
+    ],
+    "filenames": []
+  },
+  {
+    "name": "Factor",
+    "extensions": [
+      "factor"
+    ],
+    "filenames": [
+      ".factor-boot-rc",
+      ".factor-rc"
+    ]
+  },
+  {
+    "name": "Forth",
+    "extensions": [
+      "fth",
+      "4th",
+      "forth",
+      "fr",
+      "frt"
+    ],
+    "filenames": []
+  },
+  {
+    "name": "Fortran",
+    "extensions": [
+      "f",
+      "f77",
+      "for",
+      "fpp"
+    ],
+    "filenames": []
+  },
+  {
+    "name": "Gherkin",
+    "extensions": [
+      "feature",
+      "story"
+    ],
+    "filenames": []
+  },
+  {
+    "name": "Go",
+    "extensions": [
+      "go"
+    ],
+    "filenames": []
+  },
+  {
+    "name": "Groovy",
+    "extensions": [
+      "groovy",
+      "grt",
+      "gtpl",
+      "gvy"
+    ],
+    "filenames": [
+      "Jenkinsfile"
+    ]
+  },
+  {
+    "name": "Haskell",
+    "extensions": [
+      "hs",
+      "hs-boot",
+      "hsc"
+    ],
+    "filenames": []
+  },
+  {
+    "name": "Haxe",
+    "extensions": [
+      "hx",
+      "hxsl"
+    ],
+    "filenames": []
+  },
+  {
+    "name": "HTML",
+    "extensions": [
+      "html",
+      "hta",
+      "htm",
+      "xht",
+      "xhtml"
+    ],
+    "filenames": []
+  },
+  {
+    "name": "HTTP",
+    "extensions": [
+      "http"
+    ],
+    "filenames": []
+  },
+  {
+    "name": "HXML",
+    "extensions": [
+      "hxml"
+    ],
+    "filenames": []
+  },
+  {
+    "name": "IDL",
+    "extensions": [
+      "pro",
+      "dlm"
+    ],
+    "filenames": []
+  },
+  {
+    "name": "Java",
+    "extensions": [
+      "java",
+      "jav",
+      "jsh"
+    ],
+    "filenames": []
+  },
+  {
+    "name": "JavaScript",
+    "extensions": [
+      "js",
+      "_js",
+      "bones",
+      "cjs",
+      "es",
+      "es6",
+      "frag",
+      "gs",
+      "jake",
+      "javascript",
+      "jsb",
+      "jscad",
+      "jsfl",
+      "jslib",
+      "jsm",
+      "jspre",
+      "jss",
+      "mjs",
+      "njs",
+      "pac",
+      "sjs",
+      "ssjs",
+      "xsjs",
+      "xsjslib"
+    ],
+    "filenames": [
+      "Jakefile"
+    ]
+  },
+  {
+    "name": "Jinja",
+    "extensions": [
+      "jinja",
+      "j2",
+      "jinja2"
+    ],
+    "filenames": []
+  },
+  {
+    "name": "JSON",
+    "extensions": [
+      "json",
+      "4DForm",
+      "4DProject",
+      "avsc",
+      "geojson",
+      "gltf",
+      "har",
+      "ice",
+      "JSON-tmLanguage",
+      "jsonl",
+      "mcmeta",
+      "sarif",
+      "tact",
+      "tfstate",
+      "topojson",
+      "webapp",
+      "webmanifest",
+      "yy",
+      "yyp"
+    ],
+    "filenames": [
+      ".all-contributorsrc",
+      ".arcconfig",
+      ".auto-changelog",
+      ".c8rc",
+      ".htmlhintrc",
+      ".imgbotconfig",
+      ".nycrc",
+      ".tern-config",
+      ".tern-project",
+      ".watchmanconfig",
+      "MODULE.bazel.lock",
+      "Package.resolved",
+      "Pipfile.lock",
+      "bun.lock",
+      "composer.lock",
+      "deno.lock",
+      "flake.lock",
+      "mcmod.info"
+    ]
+  },
+  {
+    "name": "JSON-LD",
+    "extensions": [
+      "jsonld"
+    ],
+    "filenames": []
+  },
+  {
+    "name": "Julia",
+    "extensions": [
+      "jl"
+    ],
+    "filenames": []
+  },
+  {
+    "name": "Kotlin",
+    "extensions": [
+      "kt",
+      "ktm",
+      "kts"
+    ],
+    "filenames": []
+  },
+  {
+    "name": "LaTeX",
+    "extensions": [
+      "tex",
+      "aux",
+      "bbx",
+      "cbx",
+      "cls",
+      "dtx",
+      "ins",
+      "lbx",
+      "ltx",
+      "mkii",
+      "mkiv",
+      "mkvi",
+      "sty",
+      "toc"
+    ],
+    "filenames": []
+  },
+  {
+    "name": "LESS",
+    "extensions": [
+      "less"
+    ],
+    "filenames": []
+  },
+  {
+    "name": "Liquid",
+    "extensions": [
+      "liquid"
+    ],
+    "filenames": []
+  },
+  {
+    "name": "LiveScript",
+    "extensions": [
+      "ls",
+      "_ls"
+    ],
+    "filenames": [
+      "Slakefile"
+    ]
+  },
+  {
+    "name": "Lua",
+    "extensions": [
+      "lua",
+      "nse",
+      "p8",
+      "pd_lua",
+      "rbxs",
+      "rockspec",
+      "wlua"
+    ],
+    "filenames": [
+      ".luacheckrc"
+    ]
+  },
+  {
+    "name": "Modelica",
+    "extensions": [
+      "mo"
+    ],
+    "filenames": []
+  },
+  {
+    "name": "Nginx",
+    "extensions": [
+      "nginx",
+      "nginxconf",
+      "vhost"
+    ],
+    "filenames": [
+      "nginx.conf"
+    ]
+  },
+  {
+    "name": "NSIS",
+    "extensions": [
+      "nsi",
+      "nsh"
+    ],
+    "filenames": []
+  },
+  {
+    "name": "Objective-C",
+    "extensions": [],
+    "filenames": []
+  },
+  {
+    "name": "Objective-C++",
+    "extensions": [
+      "mm"
+    ],
+    "filenames": []
+  },
+  {
+    "name": "OCaml",
+    "extensions": [
+      "ml",
+      "eliom",
+      "eliomi",
+      "ml4",
+      "mli",
+      "mll",
+      "mly"
+    ],
+    "filenames": []
+  },
+  {
+    "name": "Oz",
+    "extensions": [
+      "oz"
+    ],
+    "filenames": []
+  },
+  {
+    "name": "Pascal",
+    "extensions": [
+      "pas",
+      "dfm",
+      "dpr",
+      "lpr",
+      "pascal"
+    ],
+    "filenames": []
+  },
+  {
+    "name": "Perl",
+    "extensions": [
+      "pl",
+      "al",
+      "perl",
+      "ph",
+      "plx",
+      "pm",
+      "psgi",
+      "t"
+    ],
+    "filenames": [
+      ".latexmkrc",
+      "Makefile.PL",
+      "Rexfile",
+      "ack",
+      "cpanfile",
+      "latexmkrc"
+    ]
+  },
+  {
+    "name": "PHP",
+    "extensions": [
+      "php",
+      "aw",
+      "ctp",
+      "php3",
+      "php4",
+      "php5",
+      "phps",
+      "phpt"
+    ],
+    "filenames": [
+      ".php",
+      ".php_cs",
+      ".php_cs.dist",
+      "Phakefile"
+    ]
+  },
+  {
+    "name": "PLSQL",
+    "extensions": [
+      "pls",
+      "bdy",
+      "ddl",
+      "fnc",
+      "pck",
+      "pkb",
+      "pks",
+      "plb",
+      "plsql",
+      "prc",
+      "spc",
+      "tpb",
+      "tps",
+      "trg",
+      "vw"
+    ],
+    "filenames": []
+  },
+  {
+    "name": "PowerShell",
+    "extensions": [
+      "ps1",
+      "psd1",
+      "psm1"
+    ],
+    "filenames": []
+  },
+  {
+    "name": "Properties files",
+    "extensions": [
+      "ini",
+      "cnf",
+      "dof",
+      "lektorproject",
+      "prefs",
+      "properties",
+      "url",
+      "conf"
+    ],
+    "filenames": [
+      ".buckconfig",
+      ".coveragerc",
+      ".flake8",
+      ".pylintrc",
+      "HOSTS",
+      "buildozer.spec",
+      "hosts",
+      "pylintrc",
+      "vlcrc",
+      ".editorconfig",
+      ".gitconfig",
+      ".npmrc"
+    ]
+  },
+  {
+    "name": "ProtoBuf",
+    "extensions": [
+      "proto"
+    ],
+    "filenames": []
+  },
+  {
+    "name": "Pug",
+    "extensions": [
+      "jade",
+      "pug"
+    ],
+    "filenames": []
+  },
+  {
+    "name": "Puppet",
+    "extensions": [
+      "pp"
+    ],
+    "filenames": [
+      "Modulefile"
+    ]
+  },
+  {
+    "name": "Python",
+    "extensions": [
+      "py",
+      "gyp",
+      "gypi",
+      "lmi",
+      "py3",
+      "pyde",
+      "pyi",
+      "pyp",
+      "pyt",
+      "pyw",
+      "rpy",
+      "tac",
+      "wsgi",
+      "xpy"
+    ],
+    "filenames": [
+      ".gclient",
+      "DEPS",
+      "SConscript",
+      "SConstruct",
+      "wscript",
+      "Snakefile"
+    ]
+  },
+  {
+    "name": "Q",
+    "extensions": [
+      "q"
+    ],
+    "filenames": []
+  },
+  {
+    "name": "R",
+    "extensions": [
+      "r",
+      "rd",
+      "rsx"
+    ],
+    "filenames": [
+      ".Rprofile",
+      "expr-dist"
+    ]
+  },
+  {
+    "name": "RPM Spec",
+    "extensions": [
+      "spec"
+    ],
+    "filenames": []
+  },
+  {
+    "name": "Ruby",
+    "extensions": [
+      "rb",
+      "builder",
+      "eye",
+      "gemspec",
+      "god",
+      "jbuilder",
+      "mspec",
+      "pluginspec",
+      "podspec",
+      "prawn",
+      "rabl",
+      "rake",
+      "rbi",
+      "rbuild",
+      "rbw",
+      "rbx",
+      "ru",
+      "ruby",
+      "thor",
+      "watchr"
+    ],
+    "filenames": [
+      ".irbrc",
+      ".pryrc",
+      ".simplecov",
+      "Appraisals",
+      "Berksfile",
+      "Brewfile",
+      "Buildfile",
+      "Capfile",
+      "Dangerfile",
+      "Deliverfile",
+      "Fastfile",
+      "Gemfile",
+      "Guardfile",
+      "Jarfile",
+      "Mavenfile",
+      "Podfile",
+      "Puppetfile",
+      "Rakefile",
+      "Snapfile",
+      "Steepfile",
+      "Thorfile",
+      "Vagrantfile",
+      "buildfile"
+    ]
+  },
+  {
+    "name": "Rust",
+    "extensions": [
+      "rs"
+    ],
+    "filenames": []
+  },
+  {
+    "name": "SAS",
+    "extensions": [
+      "sas"
+    ],
+    "filenames": []
+  },
+  {
+    "name": "Sass",
+    "extensions": [
+      "sass"
+    ],
+    "filenames": []
+  },
+  {
+    "name": "Scala",
+    "extensions": [
+      "scala",
+      "kojo",
+      "sbt",
+      "sc"
+    ],
+    "filenames": []
+  },
+  {
+    "name": "Scheme",
+    "extensions": [
+      "scm",
+      "sch",
+      "sld",
+      "sls",
+      "sps",
+      "ss"
+    ],
+    "filenames": []
+  },
+  {
+    "name": "SCSS",
+    "extensions": [
+      "scss"
+    ],
+    "filenames": []
+  },
+  {
+    "name": "Shell",
+    "extensions": [
+      "sh",
+      "bash",
+      "bats",
+      "command",
+      "ksh",
+      "sbatch",
+      "slurm",
+      "tmux",
+      "tool",
+      "trigger",
+      "zsh",
+      "zsh-theme"
+    ],
+    "filenames": [
+      ".bash_aliases",
+      ".bash_functions",
+      ".bash_history",
+      ".bash_logout",
+      ".bash_profile",
+      ".bashrc",
+      ".cshrc",
+      ".envrc",
+      ".flaskenv",
+      ".kshrc",
+      ".login",
+      ".profile",
+      ".tmux.conf",
+      ".xinitrc",
+      ".xsession",
+      ".zlogin",
+      ".zlogout",
+      ".zprofile",
+      ".zshenv",
+      ".zshrc",
+      "9fs",
+      "PKGBUILD",
+      "bash_aliases",
+      "bash_logout",
+      "bash_profile",
+      "bashrc",
+      "cshrc",
+      "gradlew",
+      "kshrc",
+      "login",
+      "man",
+      "mvnw",
+      "profile",
+      "tmux.conf",
+      "xinitrc",
+      "xsession",
+      "zlogin",
+      "zlogout",
+      "zprofile",
+      "zshenv",
+      "zshrc"
+    ]
+  },
+  {
+    "name": "Sieve",
+    "extensions": [
+      "sieve"
+    ],
+    "filenames": []
+  },
+  {
+    "name": "Smalltalk",
+    "extensions": [
+      "st"
+    ],
+    "filenames": []
+  },
+  {
+    "name": "SPARQL",
+    "extensions": [
+      "sparql",
+      "rq"
+    ],
+    "filenames": []
+  },
+  {
+    "name": "SQL",
+    "extensions": [
+      "sql",
+      "ddl",
+      "mysql",
+      "prc",
+      "tab",
+      "udf",
+      "viw"
+    ],
+    "filenames": []
+  },
+  {
+    "name": "Squirrel",
+    "extensions": [
+      "nut"
+    ],
+    "filenames": []
+  },
+  {
+    "name": "Stylus",
+    "extensions": [
+      "styl"
+    ],
+    "filenames": []
+  },
+  {
+    "name": "Swift",
+    "extensions": [
+      "swift"
+    ],
+    "filenames": []
+  },
+  {
+    "name": "SystemVerilog",
+    "extensions": [
+      "sv",
+      "svh",
+      "vh"
+    ],
+    "filenames": []
+  },
+  {
+    "name": "Tcl",
+    "extensions": [
+      "tcl",
+      "adp",
+      "sdc",
+      "tm",
+      "xdc"
+    ],
+    "filenames": [
+      "owh",
+      "starfield"
+    ]
+  },
+  {
+    "name": "Textile",
+    "extensions": [
+      "textile"
+    ],
+    "filenames": []
+  },
+  {
+    "name": "TOML",
+    "extensions": [
+      "toml"
+    ],
+    "filenames": [
+      "Cargo.lock",
+      "Cargo.toml.orig",
+      "Gopkg.lock",
+      "Pipfile",
+      "mise.local.lock",
+      "mise.lock",
+      "pdm.lock",
+      "poetry.lock",
+      "uv.lock"
+    ]
+  },
+  {
+    "name": "TSX",
+    "extensions": [
+      "tsx"
+    ],
+    "filenames": []
+  },
+  {
+    "name": "Turtle",
+    "extensions": [
+      "ttl"
+    ],
+    "filenames": []
+  },
+  {
+    "name": "TypeScript",
+    "extensions": [
+      "ts",
+      "cts",
+      "mts"
+    ],
+    "filenames": []
+  },
+  {
+    "name": "VBScript",
+    "extensions": [
+      "vbs"
+    ],
+    "filenames": []
+  },
+  {
+    "name": "Verilog",
+    "extensions": [
+      "veo"
+    ],
+    "filenames": []
+  },
+  {
+    "name": "VHDL",
+    "extensions": [
+      "vhdl",
+      "vhd",
+      "vhf",
+      "vhi",
+      "vho",
+      "vhs",
+      "vht",
+      "vhw"
+    ],
+    "filenames": []
+  },
+  {
+    "name": "Vue",
+    "extensions": [
+      "vue"
+    ],
+    "filenames": []
+  },
+  {
+    "name": "WebAssembly",
+    "extensions": [
+      "wast",
+      "wat"
+    ],
+    "filenames": []
+  },
+  {
+    "name": "XML",
+    "extensions": [
+      "xml",
+      "adml",
+      "admx",
+      "ant",
+      "axaml",
+      "axml",
+      "builds",
+      "ccproj",
+      "ccxml",
+      "clixml",
+      "cproject",
+      "cscfg",
+      "csdef",
+      "csl",
+      "csproj",
+      "ct",
+      "depproj",
+      "dita",
+      "ditamap",
+      "ditaval",
+      "dotsettings",
+      "filters",
+      "fsproj",
+      "fxml",
+      "glade",
+      "gml",
+      "gmx",
+      "gpx",
+      "grxml",
+      "gst",
+      "hzp",
+      "icls",
+      "iml",
+      "ivy",
+      "jelly",
+      "jsproj",
+      "kml",
+      "launch",
+      "mdpolicy",
+      "mjml",
+      "mod",
+      "mojo",
+      "mxml",
+      "natvis",
+      "ncl",
+      "ndproj",
+      "nproj",
+      "nuspec",
+      "odd",
+      "osm",
+      "pkgproj",
+      "pluginspec",
+      "proj",
+      "props",
+      "ps1xml",
+      "psc1",
+      "pt",
+      "pubxml",
+      "qhelp",
+      "rdf",
+      "res",
+      "resx",
+      "rss",
+      "sch",
+      "scxml",
+      "sfproj",
+      "shproj",
+      "slnx",
+      "srdf",
+      "storyboard",
+      "sublime-snippet",
+      "sw",
+      "targets",
+      "tml",
+      "typ",
+      "ui",
+      "urdf",
+      "ux",
+      "vbproj",
+      "vcxproj",
+      "vsixmanifest",
+      "vssettings",
+      "vstemplate",
+      "vxml",
+      "wixproj",
+      "workflow",
+      "wsdl",
+      "wsf",
+      "wxi",
+      "wxl",
+      "wxs",
+      "x3d",
+      "xacro",
+      "xaml",
+      "xib",
+      "xlf",
+      "xliff",
+      "xmi",
+      "xmp",
+      "xproj",
+      "xsd",
+      "xspec",
+      "xul",
+      "zcml"
+    ],
+    "filenames": [
+      ".classpath",
+      ".cproject",
+      ".project",
+      "App.config",
+      "NuGet.config",
+      "Settings.StyleCop",
+      "Web.Debug.config",
+      "Web.Release.config",
+      "Web.config",
+      "packages.config"
+    ]
+  },
+  {
+    "name": "XQuery",
+    "extensions": [
+      "xquery",
+      "xq",
+      "xql",
+      "xqm",
+      "xqy"
+    ],
+    "filenames": []
+  },
+  {
+    "name": "YAML",
+    "extensions": [
+      "yml",
+      "mir",
+      "reek",
+      "rviz",
+      "sublime-syntax",
+      "syntax",
+      "yaml",
+      "yaml-tmlanguage"
+    ],
+    "filenames": [
+      ".clang-format",
+      ".clang-tidy",
+      ".clangd",
+      ".gemrc",
+      "CITATION.cff",
+      "glide.lock",
+      "pixi.lock",
+      "yarn.lock"
+    ]
+  }
+]
