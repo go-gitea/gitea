@@ -3,15 +3,18 @@
 
 package v1_27
 
-import (
-	"xorm.io/xorm"
-)
+import "xorm.io/xorm"
 
-// AddBlockOnCodeownerReviews adds block on codeowner reviews branch protection
-func AddBlockOnCodeownerReviews(x *xorm.Engine) error {
+func AddBranchProtectionBypassAllowlist(x *xorm.Engine) error {
 	type ProtectedBranch struct {
-		BlockOnCodeownerReviews bool `xorm:"NOT NULL DEFAULT false"`
+		EnableBypassAllowlist  bool    `xorm:"NOT NULL DEFAULT false"`
+		BypassAllowlistUserIDs []int64 `xorm:"JSON TEXT"`
+		BypassAllowlistTeamIDs []int64 `xorm:"JSON TEXT"`
 	}
 
-	return x.Sync(new(ProtectedBranch))
+	_, err := x.SyncWithOptions(xorm.SyncOptions{
+		IgnoreConstrains: true,
+		IgnoreIndices:    true,
+	}, new(ProtectedBranch))
+	return err
 }

@@ -711,7 +711,19 @@ func CreateBranchProtection(ctx *context.APIContext) {
 		ctx.APIErrorInternal(err)
 		return
 	}
-	var whitelistTeams, forcePushAllowlistTeams, mergeWhitelistTeams, approvalsWhitelistTeams []int64
+	var bypassAllowlistUsers []int64
+	if form.EnableBypassAllowlist {
+		bypassAllowlistUsers, err = user_model.GetUserIDsByNames(ctx, form.BypassAllowlistUsernames, false)
+		if err != nil {
+			if user_model.IsErrUserNotExist(err) {
+				ctx.APIError(http.StatusUnprocessableEntity, err)
+				return
+			}
+			ctx.APIErrorInternal(err)
+			return
+		}
+	}
+	var whitelistTeams, forcePushAllowlistTeams, mergeWhitelistTeams, approvalsWhitelistTeams, bypassAllowlistTeams []int64
 	if repo.Owner.IsOrganization() {
 		whitelistTeams, err = organization.GetTeamIDsByNames(ctx, repo.OwnerID, form.PushWhitelistTeams, false)
 		if err != nil {
@@ -749,6 +761,17 @@ func CreateBranchProtection(ctx *context.APIContext) {
 			ctx.APIErrorInternal(err)
 			return
 		}
+		if form.EnableBypassAllowlist {
+			bypassAllowlistTeams, err = organization.GetTeamIDsByNames(ctx, repo.OwnerID, form.BypassAllowlistTeams, false)
+			if err != nil {
+				if organization.IsErrTeamNotExist(err) {
+					ctx.APIError(http.StatusUnprocessableEntity, err)
+					return
+				}
+				ctx.APIErrorInternal(err)
+				return
+			}
+		}
 	}
 
 	protectBranch = &git_model.ProtectedBranch{
@@ -762,6 +785,7 @@ func CreateBranchProtection(ctx *context.APIContext) {
 		EnableForcePushAllowlist:      form.EnablePush && form.EnableForcePush && form.EnableForcePushAllowlist,
 		ForcePushAllowlistDeployKeys:  form.EnablePush && form.EnableForcePush && form.EnableForcePushAllowlist && form.ForcePushAllowlistDeployKeys,
 		EnableMergeWhitelist:          form.EnableMergeWhitelist,
+		EnableBypassAllowlist:         form.EnableBypassAllowlist,
 		EnableStatusCheck:             form.EnableStatusCheck,
 		StatusCheckContexts:           form.StatusCheckContexts,
 		EnableApprovalsWhitelist:      form.EnableApprovalsWhitelist,
@@ -787,6 +811,8 @@ func CreateBranchProtection(ctx *context.APIContext) {
 		MergeTeamIDs:     mergeWhitelistTeams,
 		ApprovalsUserIDs: approvalsWhitelistUsers,
 		ApprovalsTeamIDs: approvalsWhitelistTeams,
+		BypassUserIDs:    bypassAllowlistUsers,
+		BypassTeamIDs:    bypassAllowlistTeams,
 	}); err != nil {
 		ctx.APIErrorInternal(err)
 		return
@@ -907,6 +933,10 @@ func EditBranchProtection(ctx *context.APIContext) {
 		protectBranch.EnableMergeWhitelist = *form.EnableMergeWhitelist
 	}
 
+	if form.EnableBypassAllowlist != nil {
+		protectBranch.EnableBypassAllowlist = *form.EnableBypassAllowlist
+	}
+
 	if form.EnableStatusCheck != nil {
 		protectBranch.EnableStatusCheck = *form.EnableStatusCheck
 	}
@@ -963,7 +993,7 @@ func EditBranchProtection(ctx *context.APIContext) {
 		protectBranch.BlockAdminMergeOverride = *form.BlockAdminMergeOverride
 	}
 
-	var whitelistUsers, forcePushAllowlistUsers, mergeWhitelistUsers, approvalsWhitelistUsers []int64
+	var whitelistUsers, forcePushAllowlistUsers, mergeWhitelistUsers, approvalsWhitelistUsers, bypassAllowlistUsers []int64
 	if form.PushWhitelistUsernames != nil {
 		whitelistUsers, err = user_model.GetUserIDsByNames(ctx, form.PushWhitelistUsernames, false)
 		if err != nil {
@@ -1016,8 +1046,21 @@ func EditBranchProtection(ctx *context.APIContext) {
 	} else {
 		approvalsWhitelistUsers = protectBranch.ApprovalsWhitelistUserIDs
 	}
+	if form.BypassAllowlistUsernames != nil {
+		bypassAllowlistUsers, err = user_model.GetUserIDsByNames(ctx, form.BypassAllowlistUsernames, false)
+		if err != nil {
+			if user_model.IsErrUserNotExist(err) {
+				ctx.APIError(http.StatusUnprocessableEntity, err)
+				return
+			}
+			ctx.APIErrorInternal(err)
+			return
+		}
+	} else {
+		bypassAllowlistUsers = protectBranch.BypassAllowlistUserIDs
+	}
 
-	var whitelistTeams, forcePushAllowlistTeams, mergeWhitelistTeams, approvalsWhitelistTeams []int64
+	var whitelistTeams, forcePushAllowlistTeams, mergeWhitelistTeams, approvalsWhitelistTeams, bypassAllowlistTeams []int64
 	if repo.Owner.IsOrganization() {
 		if form.PushWhitelistTeams != nil {
 			whitelistTeams, err = organization.GetTeamIDsByNames(ctx, repo.OwnerID, form.PushWhitelistTeams, false)
@@ -1071,6 +1114,23 @@ func EditBranchProtection(ctx *context.APIContext) {
 		} else {
 			approvalsWhitelistTeams = protectBranch.ApprovalsWhitelistTeamIDs
 		}
+		if form.BypassAllowlistTeams != nil {
+			bypassAllowlistTeams, err = organization.GetTeamIDsByNames(ctx, repo.OwnerID, form.BypassAllowlistTeams, false)
+			if err != nil {
+				if organization.IsErrTeamNotExist(err) {
+					ctx.APIError(http.StatusUnprocessableEntity, err)
+					return
+				}
+				ctx.APIErrorInternal(err)
+				return
+			}
+		} else {
+			bypassAllowlistTeams = protectBranch.BypassAllowlistTeamIDs
+		}
+	}
+	if !protectBranch.EnableBypassAllowlist {
+		bypassAllowlistUsers = nil
+		bypassAllowlistTeams = nil
 	}
 
 	err = git_model.UpdateProtectBranch(ctx, ctx.Repo.Repository, protectBranch, git_model.WhitelistOptions{
@@ -1082,6 +1142,8 @@ func EditBranchProtection(ctx *context.APIContext) {
 		MergeTeamIDs:     mergeWhitelistTeams,
 		ApprovalsUserIDs: approvalsWhitelistUsers,
 		ApprovalsTeamIDs: approvalsWhitelistTeams,
+		BypassUserIDs:    bypassAllowlistUsers,
+		BypassTeamIDs:    bypassAllowlistTeams,
 	})
 	if err != nil {
 		ctx.APIErrorInternal(err)
