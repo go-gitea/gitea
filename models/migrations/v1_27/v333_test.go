@@ -7,101 +7,54 @@ import (
 	"testing"
 
 	"code.gitea.io/gitea/models/migrations/migrationtest"
-	"code.gitea.io/gitea/modules/timeutil"
 
-	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
-type NotificationBefore331 struct {
-	ID     int64 `xorm:"pk autoincr"`
-	UserID int64 `xorm:"NOT NULL"`
-	RepoID int64 `xorm:"NOT NULL"`
+func Test_AddBranchProtectionBypassAllowlist(t *testing.T) {
+	type ProtectedBranch struct {
+		ID                     int64   `xorm:"pk autoincr"`
+		RepoID                 int64   `xorm:"INDEX"`
+		BranchName             string  `xorm:"INDEX"`
+		EnableBypassAllowlist  bool    `xorm:"NOT NULL DEFAULT false"`
+		BypassAllowlistUserIDs []int64 `xorm:"JSON TEXT"`
+		BypassAllowlistTeamIDs []int64 `xorm:"JSON TEXT"`
+	}
 
-	Status uint8 `xorm:"SMALLINT NOT NULL"`
-	Source uint8 `xorm:"SMALLINT NOT NULL"`
-
-	IssueID   int64 `xorm:"NOT NULL"`
-	CommitID  string
-	CommentID int64
-	ReleaseID int64
-
-	UpdatedBy int64 `xorm:"NOT NULL"`
-
-	CreatedUnix timeutil.TimeStamp `xorm:"created NOT NULL"`
-	UpdatedUnix timeutil.TimeStamp `xorm:"updated NOT NULL"`
-}
-
-func (NotificationBefore331) TableName() string {
-	return "notification"
-}
-
-func TestAddReleaseNotificationBackfillsNotificationDedupe(t *testing.T) {
-	x, deferable := migrationtest.PrepareTestEnv(t, 0, new(NotificationBefore331))
+	x, deferable := migrationtest.PrepareTestEnv(t, 0, new(ProtectedBranch))
 	defer deferable()
-	if x == nil || t.Failed() {
-		return
-	}
 
-	testData := []*NotificationBefore331{
-		{UserID: 1, RepoID: 1, Status: 1, Source: 1, IssueID: 42, UpdatedBy: 2},
-		{UserID: 1, RepoID: 1, Status: 1, Source: 2, IssueID: 43, UpdatedBy: 2},
-		{UserID: 1, RepoID: 2, Status: 1, Source: 3, CommitID: "abc123", UpdatedBy: 2},
-		{UserID: 1, RepoID: 3, Status: 1, Source: 5, ReleaseID: 7, UpdatedBy: 2},
-		{UserID: 1, RepoID: 4, Status: 1, Source: 4, UpdatedBy: 2},
-	}
-	for _, data := range testData {
-		_, err := x.Insert(data)
-		require.NoError(t, err)
-	}
+	// Test with default values
+	_, err := x.Insert(&ProtectedBranch{RepoID: 1, BranchName: "main"})
+	require.NoError(t, err)
 
-	require.NoError(t, AddReleaseNotification(x))
+	// Test with populated allowlist
+	_, err = x.Insert(&ProtectedBranch{
+		RepoID:                 1,
+		BranchName:             "develop",
+		EnableBypassAllowlist:  true,
+		BypassAllowlistUserIDs: []int64{1, 2, 3},
+		BypassAllowlistTeamIDs: []int64{10, 20},
+	})
+	require.NoError(t, err)
 
-	var notifications []*NotificationV331
-	require.NoError(t, x.Table("notification").Asc("id").Find(&notifications))
-	require.Len(t, notifications, len(testData))
+	require.NoError(t, AddBranchProtectionBypassAllowlist(x))
 
-	assert.Equal(t, "issue-42", notifications[0].UniqueKey)
+	// Verify the default values record
+	var pb ProtectedBranch
+	has, err := x.Where("repo_id = ? AND branch_name = ?", 1, "main").Get(&pb)
+	require.NoError(t, err)
+	require.True(t, has)
+	require.False(t, pb.EnableBypassAllowlist)
+	require.Nil(t, pb.BypassAllowlistUserIDs)
+	require.Nil(t, pb.BypassAllowlistTeamIDs)
 
-	assert.Equal(t, "pull-43", notifications[1].UniqueKey)
-
-	assert.Equal(t, "commit-2-abc123", notifications[2].UniqueKey)
-
-	assert.Equal(t, "release-7", notifications[3].UniqueKey)
-
-	assert.Equal(t, "repo-4", notifications[4].UniqueKey)
-}
-
-func TestAddReleaseNotificationDeduplicatesLegacyNotificationRows(t *testing.T) {
-	x, deferable := migrationtest.PrepareTestEnv(t, 0, new(NotificationBefore331))
-	defer deferable()
-	if x == nil || t.Failed() {
-		return
-	}
-
-	testData := []*NotificationBefore331{
-		{UserID: 1, RepoID: 2, Status: 2, Source: 3, CommitID: "abc123", UpdatedBy: 2, UpdatedUnix: 100},
-		{UserID: 1, RepoID: 2, Status: 1, Source: 3, CommitID: "abc123", UpdatedBy: 3, UpdatedUnix: 200},
-		{UserID: 1, RepoID: 2, Status: 3, Source: 3, CommitID: "abc123", UpdatedBy: 4, UpdatedUnix: 150},
-	}
-	for _, data := range testData {
-		_, err := x.Insert(data)
-		require.NoError(t, err)
-	}
-
-	existingNotifications := make([]*NotificationBefore331, 0, len(testData))
-	require.NoError(t, x.Table("notification").Desc("updated_unix", "id").Find(&existingNotifications))
-	require.NotEmpty(t, existingNotifications)
-	expectedKeeper := existingNotifications[0]
-
-	require.NoError(t, AddReleaseNotification(x))
-
-	var notifications []*NotificationV331
-	require.NoError(t, x.Table("notification").Find(&notifications))
-	require.Len(t, notifications, 1)
-
-	assert.Equal(t, "commit-2-abc123", notifications[0].UniqueKey)
-	assert.Equal(t, notificationStatusPinnedV331, notifications[0].Status)
-	assert.Equal(t, expectedKeeper.UpdatedBy, notifications[0].UpdatedBy)
-	assert.Equal(t, expectedKeeper.UpdatedUnix, notifications[0].UpdatedUnix)
+	// Verify the populated allowlist record
+	var pb2 ProtectedBranch
+	has, err = x.Where("repo_id = ? AND branch_name = ?", 1, "develop").Get(&pb2)
+	require.NoError(t, err)
+	require.True(t, has)
+	require.True(t, pb2.EnableBypassAllowlist)
+	require.Equal(t, []int64{1, 2, 3}, pb2.BypassAllowlistUserIDs)
+	require.Equal(t, []int64{10, 20}, pb2.BypassAllowlistTeamIDs)
 }

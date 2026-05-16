@@ -5,6 +5,7 @@ package log
 
 import (
 	"context"
+	"net/url"
 	"reflect"
 	"runtime"
 	"strings"
@@ -226,6 +227,8 @@ func (l *LoggerImpl) Log(skip int, event *Event, format string, logArgs ...any) 
 			}
 		} else if ls := asLogStringer(v); ls != nil {
 			msgArgs[i] = logStringFormatter{v: ls}
+		} else if str, ok := v.(string); ok {
+			msgArgs[i] = protectSensitiveInfo(str)
 		}
 	}
 
@@ -233,6 +236,24 @@ func (l *LoggerImpl) Log(skip int, event *Event, format string, logArgs ...any) 
 	event.msgFormat = format
 	event.msgArgs = msgArgs
 	l.SendLogEvent(event)
+}
+
+func protectSensitiveInfo(s string) string {
+	u, err := url.Parse(s)
+	if err != nil || (u.Scheme != "http" && u.Scheme != "https") || u.Host == "" {
+		return s
+	}
+	q := u.Query()
+	for _, vals := range q {
+		for i := range vals {
+			vals[i] = "_"
+		}
+	}
+	masked := &url.URL{Scheme: u.Scheme, Host: u.Host, Path: u.Path, RawQuery: q.Encode()}
+	if u.User != nil {
+		masked.User = url.User("_masked_")
+	}
+	return masked.String()
 }
 
 func (l *LoggerImpl) GetLevel() Level {
