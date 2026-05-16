@@ -15,6 +15,7 @@ import (
 	"code.gitea.io/gitea/modules/lfs"
 	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
+	"code.gitea.io/gitea/modules/test"
 	"code.gitea.io/gitea/tests"
 
 	"github.com/stretchr/testify/assert"
@@ -22,7 +23,7 @@ import (
 
 func TestAPILFSLocksNotStarted(t *testing.T) {
 	defer tests.PrepareTestEnv(t)()
-	setting.LFS.StartServer = false
+	defer test.MockVariableValue(&setting.LFS.StartServer, false)()
 	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
 	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
 
@@ -38,7 +39,7 @@ func TestAPILFSLocksNotStarted(t *testing.T) {
 
 func TestAPILFSLocksNotLogin(t *testing.T) {
 	defer tests.PrepareTestEnv(t)()
-	setting.LFS.StartServer = true
+	defer test.MockVariableValue(&setting.LFS.StartServer, true)()
 	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
 	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
 
@@ -51,7 +52,7 @@ func TestAPILFSLocksNotLogin(t *testing.T) {
 
 func TestAPILFSLocksLogged(t *testing.T) {
 	defer tests.PrepareTestEnv(t)()
-	setting.LFS.StartServer = true
+	defer test.MockVariableValue(&setting.LFS.StartServer, true)()
 	user2 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2}) // in org 3
 	user4 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 4}) // in org 3
 

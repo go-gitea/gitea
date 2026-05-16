@@ -6,7 +6,6 @@ package routing
 import (
 	"context"
 	"fmt"
-	"net/http"
 	"sync"
 	"time"
 
@@ -29,26 +28,21 @@ const (
 	EndEvent
 )
 
-// Printer is used to output the log for a request
-type Printer func(trigger Event, record *requestRecord)
+// logPrinterFunc is used to output the log for a request
+type logPrinterFunc func(trigger Event, record *requestRecord)
 
-type requestRecordsManager struct {
-	print Printer
-
-	lock sync.Mutex
-
-	requestRecords map[uint64]*requestRecord
-	count          uint64
+type loggerRequestManager struct {
+	logPrint   logPrinterFunc
+	reqRecords sync.Map // it only contains the active requests which haven't been detected as "slow"
 }
 
-func (manager *requestRecordsManager) startSlowQueryDetector(threshold time.Duration) {
+func (manager *loggerRequestManager) startSlowQueryDetector(threshold time.Duration) {
 	go graceful.GetManager().RunWithShutdownContext(func(ctx context.Context) {
 		ctx, _, finished := process.GetManager().AddTypedContext(ctx, "Service: SlowQueryDetector", process.SystemProcessType, true)
 		defer finished()
 		// This go-routine checks all active requests every second.
 		// If a request has been running for a long time (eg: /user/events), we also print a log with "still-executing" message
 		// After the "still-executing" log is printed, the record will be removed from the map to prevent from duplicated logs in future
-
 		// We do not care about accurate duration here. It just does the check periodically, 0.5s or 1.5s are all OK.
 		t := time.NewTicker(time.Second)
 		for {
@@ -58,69 +52,39 @@ func (manager *requestRecordsManager) startSlowQueryDetector(threshold time.Dura
 			case <-t.C:
 				now := time.Now()
 
-				var slowRequests []*requestRecord
-
-				// find all slow requests with lock
-				manager.lock.Lock()
-				for index, record := range manager.requestRecords {
-					if now.Sub(record.startTime) < threshold {
-						continue
-					}
-
-					slowRequests = append(slowRequests, record)
-					delete(manager.requestRecords, index)
-				}
-				manager.lock.Unlock()
-
 				// print logs for slow requests
-				for _, record := range slowRequests {
-					manager.print(StillExecutingEvent, record)
-				}
+				manager.reqRecords.Range(func(key, value any) bool {
+					index, record := key.(uint64), value.(*requestRecord)
+					if now.Sub(record.startTime) >= threshold {
+						manager.logPrint(StillExecutingEvent, record)
+						manager.reqRecords.Delete(index)
+					}
+					return true
+				})
 			}
 		}
 	})
 }
 
-func (manager *requestRecordsManager) handler(next http.Handler) http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
-		record := &requestRecord{
-			startTime:      time.Now(),
-			request:        req,
-			responseWriter: w,
+func (manager *loggerRequestManager) handleRequestRecord(record *requestRecord) func() {
+	manager.reqRecords.Store(record.index, record)
+	manager.logPrint(StartEvent, record)
+
+	return func() {
+		// just in case there is a panic. now the panics are all recovered in middleware.go
+		localPanicErr := recover()
+		if localPanicErr != nil {
+			record.lock.Lock()
+			record.panicError = fmt.Errorf("%v\n%s", localPanicErr, log.Stack(2))
+			record.lock.Unlock()
 		}
 
-		// generate a record index an insert into the map
-		manager.lock.Lock()
-		record.index = manager.count
-		manager.count++
-		manager.requestRecords[record.index] = record
-		manager.lock.Unlock()
+		manager.reqRecords.Delete(record.index)
+		manager.logPrint(EndEvent, record)
 
-		defer func() {
-			// just in case there is a panic. now the panics are all recovered in middleware.go
-			localPanicErr := recover()
-			if localPanicErr != nil {
-				record.lock.Lock()
-				record.panicError = fmt.Errorf("%v\n%s", localPanicErr, log.Stack(2))
-				record.lock.Unlock()
-			}
-
-			// remove from the record map
-			manager.lock.Lock()
-			delete(manager.requestRecords, record.index)
-			manager.lock.Unlock()
-
-			// log the end of the request
-			manager.print(EndEvent, record)
-
-			if localPanicErr != nil {
-				// the panic wasn't recovered before us, so we should pass it up, and let the framework handle the panic error
-				panic(localPanicErr)
-			}
-		}()
-
-		req = req.WithContext(context.WithValue(req.Context(), contextKey, record))
-		manager.print(StartEvent, record)
-		next.ServeHTTP(w, req)
-	})
+		if localPanicErr != nil {
+			// the panic wasn't recovered before us, so we should pass it up, and let the framework handle the panic error
+			panic(localPanicErr)
+		}
+	}
 }

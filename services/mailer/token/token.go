@@ -9,6 +9,7 @@ import (
 	"crypto/sha256"
 	"encoding/base32"
 	"fmt"
+	"strings"
 	"time"
 
 	user_model "code.gitea.io/gitea/models/user"
@@ -73,9 +74,11 @@ func CreateToken(ht HandlerType, user *user_model.User, data []byte) (string, er
 	return encodingWithoutPadding.EncodeToString(append([]byte{tokenVersion1}, packagedData...)), nil
 }
 
-// ExtractToken extracts the action/user tuple from the token and verifies the content
-func ExtractToken(ctx context.Context, token string) (HandlerType, *user_model.User, []byte, error) {
-	data, err := encodingWithoutPadding.DecodeString(token)
+// DecodeToken decodes the handler, user and payload from the token and verifies the content
+func DecodeToken(ctx context.Context, token string) (HandlerType, *user_model.User, []byte, error) {
+	// MTAs are permitted to alter the case of the local-part (RFC 5321 §2.4), so normalize
+	// to the base32 alphabet before decoding to survive a lowercased reply-to address.
+	data, err := encodingWithoutPadding.DecodeString(strings.ToUpper(token))
 	if err != nil {
 		return UnknownHandlerType, nil, nil, err
 	}
@@ -118,11 +121,11 @@ func ExtractToken(ctx context.Context, token string) (HandlerType, *user_model.U
 	return handlerType, user, innerPayload, nil
 }
 
-// generateHmac creates a trunkated HMAC for the given payload
+// generateHmac creates a truncated HMAC for the given payload
 func generateHmac(secret, payload []byte) []byte {
 	mac := crypto_hmac.New(sha256.New, secret)
 	mac.Write(payload)
 	hmac := mac.Sum(nil)
 
-	return hmac[:10] // RFC2104 recommends not using less then 80 bits
+	return hmac[:10] // RFC2104 recommends not using less than 80 bits
 }

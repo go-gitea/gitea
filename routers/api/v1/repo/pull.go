@@ -996,7 +996,7 @@ func MergePullRequest(ctx *context.APIContext) {
 				return
 			}
 			if strings.Contains(err.Error(), "Wrong commit ID") {
-				ctx.JSON(http.StatusConflict, err)
+				ctx.APIError(http.StatusConflict, err)
 				return
 			}
 			ctx.APIErrorInternal(err)
@@ -1253,15 +1253,17 @@ func UpdatePullRequest(ctx *context.APIContext) {
 		return
 	}
 
-	rebase := ctx.FormString("style") == "rebase"
+	// keep API back-compat: when no style is given, default to "merge" rather than the repo's DefaultUpdateStyle,
+	// so existing API clients keep getting a merge update.
+	rebase := repo_model.UpdateStyle(ctx.FormString("style", string(repo_model.UpdateStyleMerge))) == repo_model.UpdateStyleRebase
 
-	allowedUpdateByMerge, allowedUpdateByRebase, err := pull_service.IsUserAllowedToUpdate(ctx, pr, ctx.Doer)
+	userUpdateStyles, err := pull_service.CheckUserAllowedToUpdate(ctx, pr, ctx.Doer)
 	if err != nil {
 		ctx.APIErrorInternal(err)
 		return
 	}
 
-	if (!allowedUpdateByMerge && !rebase) || (rebase && !allowedUpdateByRebase) {
+	if (rebase && !userUpdateStyles.RebaseAllowed) || (!rebase && !userUpdateStyles.MergeAllowed) {
 		ctx.Status(http.StatusForbidden)
 		return
 	}

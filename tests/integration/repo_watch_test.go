@@ -10,12 +10,13 @@ import (
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unittest"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/test"
 )
 
 func TestRepoWatch(t *testing.T) {
 	onGiteaRun(t, func(t *testing.T, giteaURL *url.URL) {
 		// Test round-trip auto-watch
-		setting.Service.AutoWatchOnChanges = true
+		defer test.MockVariableValue(&setting.Service.AutoWatchOnChanges, true)()
 		session := loginUser(t, "user2")
 		unittest.AssertNotExistsBean(t, &repo_model.Watch{UserID: 2, RepoID: 3})
 		testEditFile(t, session, "org3", "repo3", "master", "README.md", "Hello, World (Edited for watch)\n")

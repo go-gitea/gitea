@@ -54,10 +54,6 @@ func ErrorWithSkip(skip int, format string, v ...any) {
 	Log(skip+1, ERROR, format, v...)
 }
 
-func Critical(format string, v ...any) {
-	Log(1, ERROR, format, v...)
-}
-
 var OsExiter = os.Exit
 
 // Fatal records fatal log and exit process
