@@ -3876,6 +3876,8 @@
   "projects.workflows.update_workflow_failed": "Failed to update workflow",
   "projects.workflows.delete_workflow_failed": "Failed to delete workflow",
   "projects.workflows.at_least_one_action_required": "At least one action must be configured",
+  "projects.workflows.clone_tooltip": "Clone this workflow",
+  "projects.workflows.delete_confirm": "Are you sure you want to delete this workflow?",
   "git.filemode.changed_filemode": "%[1]s → %[2]s",
   "git.filemode.directory": "Directory",
   "git.filemode.normal_file": "Regular",
@@ -3900,7 +3902,5 @@
   "actions.general.cross_repo_desc": "Allow the selected repositories to be accessed (read-only) by all the repositories in this owner with GITEA_TOKEN when running Actions jobs.",
   "actions.general.cross_repo_selected": "Selected repositories",
   "actions.general.cross_repo_target_repos": "Target Repositories",
-  "actions.general.cross_repo_add": "Add Target Repository",
-  "projects.workflows.clone_tooltip": "Clone this workflow",
-  "projects.workflows.delete_confirm": "Are you sure you want to delete this workflow?"
+  "actions.general.cross_repo_add": "Add Target Repository"
 }
