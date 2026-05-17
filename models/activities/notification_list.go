@@ -493,12 +493,17 @@ func (nl NotificationList) LoadCommitComments(ctx context.Context) error {
 		if n.Source != NotificationSourceCommit || n.CommitCommentID == 0 {
 			continue
 		}
-		if c, ok := loaded[n.CommitCommentID]; ok {
+		// Match by both id AND repo_id. CommitComment IDs are globally unique
+		// so a cross-repo match is unlikely, but the single-row helper
+		// GetCommitCommentByID enforces this pairing and the list path should
+		// stay consistent.
+		if c, ok := loaded[n.CommitCommentID]; ok && c.RepoID == n.RepoID {
 			n.CommitComment = c
 			continue
 		}
-		// Comment was deleted between notification creation and now: clear
-		// the dangling ID so HTMLURL / Link fall back to the bare commit.
+		// Comment was deleted (or repo-id mismatch) between notification
+		// creation and now: clear the dangling ID so HTMLURL/Link fall back
+		// to the bare commit.
 		n.CommitCommentID = 0
 	}
 	return nil

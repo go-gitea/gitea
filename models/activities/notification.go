@@ -128,22 +128,34 @@ func CreateCommitCommentNotification(ctx context.Context, doer *user_model.User,
 	return db.WithTx(ctx, func(ctx context.Context) error {
 		receiverIDs := make(map[int64]struct{})
 
-		// Notify the commit author if they map to a Gitea user
+		// Notify the commit author if they map to a Gitea user. A missing
+		// user is expected (commit author may not have a Gitea account); any
+		// other error is a real DB failure and should surface.
 		if commitAuthorEmail != "" {
 			author, err := user_model.GetUserByEmail(ctx, commitAuthorEmail)
-			if err == nil && author.ID != doer.ID {
-				receiverIDs[author.ID] = struct{}{}
+			switch {
+			case err == nil:
+				if author.ID != doer.ID {
+					receiverIDs[author.ID] = struct{}{}
+				}
+			case user_model.IsErrUserNotExist(err):
+				// commit author isn't a gitea user, skip silently
+			default:
+				return fmt.Errorf("GetUserByEmail: %w", err)
 			}
 		}
 
-		// Notify @mentioned users
+		// Notify @mentioned users. GetUserIDsByNames with non-existent users
+		// in the slice would normally fail; we already pass true (ignoreNonExisting)
+		// so any returned error here is a real DB failure.
 		if len(mentionedUsernames) > 0 {
 			mentionedIDs, err := user_model.GetUserIDsByNames(ctx, mentionedUsernames, true)
-			if err == nil {
-				for _, id := range mentionedIDs {
-					if id != doer.ID {
-						receiverIDs[id] = struct{}{}
-					}
+			if err != nil {
+				return fmt.Errorf("GetUserIDsByNames: %w", err)
+			}
+			for _, id := range mentionedIDs {
+				if id != doer.ID {
+					receiverIDs[id] = struct{}{}
 				}
 			}
 		}

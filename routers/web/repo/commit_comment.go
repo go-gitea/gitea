@@ -99,6 +99,15 @@ func CreateCommitComment(ctx *context.Context) {
 		}
 	}
 
+	// Reject coordinates that don't resolve to a real diff line. Without
+	// this a crafted POST can create invisible comments and mention-spam the
+	// repo with notifications that link to nothing. Commits with no parent
+	// (initial commit) have no diff so we skip the check for that case.
+	if parentSHA != "" && patch == "" {
+		ctx.JSONError("comment coordinates do not resolve to a line in this commit")
+		return
+	}
+
 	comment := &repo_model.CommitComment{
 		RepoID:    ctx.Repo.Repository.ID,
 		CommitSHA: fullSHA,
