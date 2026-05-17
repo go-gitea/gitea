@@ -22,10 +22,11 @@ import (
 )
 
 const (
-	groupOrgAdminTeam  = "group-admins"
-	groupOrgWriterTeam = "group-writers"
-	groupOrgReaderTeam = "group-readers"
-	groupOrgUnitTeam   = "unit-specialists"
+	groupOrgAdminTeam      = "group-admins"
+	groupOrgWriterTeam     = "group-writers"
+	groupOrgReaderTeam     = "group-readers"
+	groupOrgUnitTeam       = "unit-specialists"
+	groupOrgUnitWriterTeam = "unit-writer-specialists"
 )
 
 type commonGroupRepoTestData struct {
@@ -41,11 +42,12 @@ type commonGroupTestData struct {
 	childPrivate            *api.Group
 	privateGrandchildPublic *api.Group
 	repos                   commonGroupRepoTestData
-	teamMembers             map[string]groupAccessAndUser
+	teamMembers             map[string]*groupAccessAndUser
 }
 
 type groupAccessAndUser struct {
 	uid  int64
+	tid  int64
 	perm perm_model.AccessMode
 }
 
@@ -66,11 +68,12 @@ func createOrgWithGroups(t *testing.T) *commonGroupTestData {
 	resp := MakeRequest(t, req, http.StatusCreated)
 	apiOrg := DecodeJSON(t, resp, &api.Organization{})
 
-	teamPrivs := map[string]groupAccessAndUser{
-		groupOrgAdminTeam:  {uid: 4, perm: perm_model.AccessModeAdmin},
-		groupOrgWriterTeam: {uid: 5, perm: perm_model.AccessModeWrite},
-		groupOrgReaderTeam: {uid: 8, perm: perm_model.AccessModeRead},
-		groupOrgUnitTeam:   {uid: 13, perm: perm_model.AccessModeRead},
+	teamPrivs := map[string]*groupAccessAndUser{
+		groupOrgAdminTeam:      &groupAccessAndUser{uid: 4, perm: perm_model.AccessModeAdmin},
+		groupOrgWriterTeam:     &groupAccessAndUser{uid: 5, perm: perm_model.AccessModeWrite},
+		groupOrgReaderTeam:     &groupAccessAndUser{uid: 8, perm: perm_model.AccessModeRead},
+		groupOrgUnitTeam:       &groupAccessAndUser{uid: 13, perm: perm_model.AccessModeRead},
+		groupOrgUnitWriterTeam: &groupAccessAndUser{uid: 14, perm: perm_model.AccessModeWrite},
 	}
 
 	baseOrgURL := "/api/v1/orgs/" + apiOrg.Name
@@ -94,6 +97,7 @@ func createOrgWithGroups(t *testing.T) *commonGroupTestData {
 
 		mreq := NewRequestf(t, "PUT", "/api/v1/teams/%d/members/%s", team.ID, teamUser.Name).AddTokenAuth(token)
 		MakeRequest(t, mreq, http.StatusNoContent)
+		teamPrivs[k].tid = team.ID
 	}
 	rootPublic := createGroup(t, actor, apiOrg.Name, 0, &api.NewGroupOption{
 		Visibility: api.VisibleTypePublic,
@@ -133,6 +137,16 @@ func createOrgWithGroups(t *testing.T) *commonGroupTestData {
 	}
 
 	return val
+}
+
+func getGroup(t *testing.T, actor string, gid int64, expectedStatus int) *api.Group {
+	token := getUserToken(t, actor, auth_model.AccessTokenScopeWriteOrganization)
+	req := NewRequestf(t, "GET", "/api/v1/groups/%d", gid).AddTokenAuth(token)
+	res := MakeRequest(t, req, expectedStatus)
+	if expectedStatus == 200 {
+		return DecodeJSON(t, res, &api.Group{})
+	}
+	return nil
 }
 
 func getGroupSubgroups(t *testing.T, orgName, actor string, parentGroupID int64) []api.Group {
