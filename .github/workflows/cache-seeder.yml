@@ -20,6 +20,7 @@ on:
     paths:
       - "go.sum"
       - ".golangci.yml"
+      - "tools/customlint/**"
       - ".github/actions/go-cache/action.yml"
       - ".github/workflows/cache-seeder.yml"
 

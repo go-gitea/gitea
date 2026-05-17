@@ -62,6 +62,7 @@ require (
 	github.com/gogs/chardet v0.0.0-20211120154057-b7413eaefb8f
 	github.com/gogs/go-gogs-client v0.0.0-20210131175652-1d7215cd8d85
 	github.com/golang-jwt/jwt/v5 v5.3.1
+	github.com/golangci/plugin-module-register v0.1.2
 	github.com/google/go-github/v85 v85.0.0
 	github.com/google/licenseclassifier/v2 v2.0.0
 	github.com/google/pprof v0.0.0-20260402051712-545e8a4df936
@@ -117,6 +118,7 @@ require (
 	golang.org/x/sync v0.20.0
 	golang.org/x/sys v0.44.0
 	golang.org/x/text v0.36.0
+	golang.org/x/tools v0.44.0
 	google.golang.org/grpc v1.81.0
 	google.golang.org/protobuf v1.36.11
 	gopkg.in/ini.v1 v1.67.2
@@ -287,7 +289,6 @@ require (
 	go4.org v0.0.0-20260112195520-a5071408f32f // indirect
 	golang.org/x/mod v0.35.0 // indirect
 	golang.org/x/time v0.15.0 // indirect
-	golang.org/x/tools v0.44.0 // indirect
 	google.golang.org/genproto/googleapis/rpc v0.0.0-20260401020348-3a24fdc17823 // indirect
 	gopkg.in/warnings.v0 v0.1.2 // indirect
 	modernc.org/libc v1.72.0 // indirect

@@ -43,5 +43,5 @@ runs:
       uses: actions/cache@27d5ce7f107fe9357f9df03efb73ab90386fccae # v5.0.5
       with:
         path: ~/.cache/golangci-lint
-        key: golangci-${{ runner.os }}-${{ runner.arch }}-${{ inputs.cache-name }}-${{ hashFiles('go.sum', '.golangci.yml') }}
+        key: golangci-${{ runner.os }}-${{ runner.arch }}-${{ inputs.cache-name }}-${{ hashFiles('go.sum', '.golangci.yml', 'tools/customlint/**') }}
         restore-keys: golangci-${{ runner.os }}-${{ runner.arch }}-${{ inputs.cache-name }}
