@@ -4,12 +4,11 @@
 package v1_27
 
 import (
+	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/modules/timeutil"
-
-	"xorm.io/xorm"
 )
 
-func AddProjectWorkflow(x *xorm.Engine) error {
+func AddProjectWorkflow(x db.EngineMigration) error {
 	type ProjectWorkflow struct {
 		ID              int64
 		ProjectID       int64 `xorm:"INDEX"`
