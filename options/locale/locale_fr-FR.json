@@ -1958,7 +1958,6 @@
   "repo.signing.wont_sign.headsigned": "La fusion ne sera pas signée car la dernière révision n’est pas signée.",
   "repo.signing.wont_sign.commitssigned": "La fusion ne sera pas signée car ses révisions ne sont pas signées.",
   "repo.signing.wont_sign.approved": "La fusion ne sera pas signée car la demande d'ajout n'a pas été approuvée.",
-  "repo.signing.wont_sign.not_signed_in": "Vous n'êtes pas connecté.",
   "repo.ext_wiki": "Accès au wiki externe",
   "repo.ext_wiki.desc": "Lier un wiki externe.",
   "repo.wiki": "Wiki",

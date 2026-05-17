@@ -79,20 +79,14 @@ func (ut *RenderUtils) RenderCommitMessageLinkSubject(msg, urlDefault string, re
 
 // RenderCommitBody extracts the body of a commit message without its title.
 func (ut *RenderUtils) RenderCommitBody(msg string, repo *repo.Repository) template.HTML {
-	msgLine := strings.TrimSpace(msg)
-	lineEnd := strings.IndexByte(msgLine, '\n')
-	if lineEnd > 0 {
-		msgLine = msgLine[lineEnd+1:]
-	} else {
-		return ""
-	}
-	msgLine = strings.TrimLeftFunc(msgLine, unicode.IsSpace)
-	if len(msgLine) == 0 {
+	_, body, _ := strings.Cut(strings.TrimSpace(msg), "\n")
+	body = strings.TrimFunc(body, unicode.IsSpace)
+	if body == "" {
 		return ""
 	}
 
 	rctx := renderhelper.NewRenderContextRepoComment(ut.ctx, repo)
-	htmlContent := template.HTML(template.HTMLEscapeString(msgLine))
+	htmlContent := template.HTML(template.HTMLEscapeString(body))
 	renderedMessage, err := markup.PostProcessCommitMessage(rctx, htmlContent)
 	if err != nil {
 		log.Error("PostProcessCommitMessage: %v", err)

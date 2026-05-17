@@ -207,6 +207,9 @@ func processGiteaTemplateFile(ctx context.Context, tmpDir string, templateRepo, 
 }
 
 func generateRepoCommit(ctx context.Context, repo, templateRepo, generateRepo *repo_model.Repository, tmpDir string) error {
+	// set default branch based on whether it's specified in the newly generated repo or not
+	repo.DefaultBranch = util.IfZero(repo.DefaultBranch, util.IfZero(templateRepo.DefaultBranch, setting.Repository.DefaultBranch))
+
 	// Clone to temporary path and do the init commit.
 	if err := gitrepo.CloneRepoToLocal(ctx, templateRepo, tmpDir, git.CloneRepoOptions{
 		Depth:  1,
@@ -246,13 +249,7 @@ func generateRepoCommit(ctx context.Context, repo, templateRepo, generateRepo *r
 		return fmt.Errorf("failed to add submodules: %v", err)
 	}
 
-	// set default branch based on whether it's specified in the newly generated repo or not
-	defaultBranch := repo.DefaultBranch
-	if strings.TrimSpace(defaultBranch) == "" {
-		defaultBranch = templateRepo.DefaultBranch
-	}
-
-	return initRepoCommit(ctx, tmpDir, repo, repo.Owner, defaultBranch)
+	return initRepoCommit(ctx, tmpDir, repo, repo.Owner)
 }
 
 // GenerateGitContent generates git content from a template repository
@@ -266,17 +263,6 @@ func GenerateGitContent(ctx context.Context, templateRepo, generateRepo *repo_mo
 	if err = generateRepoCommit(ctx, generateRepo, templateRepo, generateRepo, tmpDir); err != nil {
 		return fmt.Errorf("generateRepoCommit: %w", err)
 	}
-
-	// re-fetch repo
-	if generateRepo, err = repo_model.GetRepositoryByID(ctx, generateRepo.ID); err != nil {
-		return fmt.Errorf("getRepositoryByID: %w", err)
-	}
-
-	// if there was no default branch supplied when generating the repo, use the default one from the template
-	if strings.TrimSpace(generateRepo.DefaultBranch) == "" {
-		generateRepo.DefaultBranch = templateRepo.DefaultBranch
-	}
-
 	if err = gitrepo.SetDefaultBranch(ctx, generateRepo, generateRepo.DefaultBranch); err != nil {
 		return fmt.Errorf("setDefaultBranch: %w", err)
 	}
@@ -290,6 +276,10 @@ func GenerateGitContent(ctx context.Context, templateRepo, generateRepo *repo_mo
 
 	if err := git_model.CopyLFS(ctx, generateRepo, templateRepo); err != nil {
 		return fmt.Errorf("failed to copy LFS: %w", err)
+	}
+
+	if _, err := repo_module.SyncRepoBranches(ctx, generateRepo.ID, 0); err != nil {
+		return fmt.Errorf("SyncRepoBranches: %w", err)
 	}
 	return nil
 }

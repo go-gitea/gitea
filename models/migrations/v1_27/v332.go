@@ -3,25 +3,19 @@
 
 package v1_27
 
-import (
-	"code.gitea.io/gitea/modules/timeutil"
+import "xorm.io/xorm"
 
-	"xorm.io/xorm"
-)
+type mirrorWithLastSyncUnix struct {
+	LastSyncUnix int64 `xorm:"INDEX"`
+}
 
-func AddCommitCommentTable(x *xorm.Engine) error {
-	type CommitComment struct {
-		ID          int64              `xorm:"pk autoincr"`
-		RepoID      int64              `xorm:"INDEX NOT NULL"`
-		CommitSHA   string             `xorm:"VARCHAR(64) INDEX NOT NULL"`
-		TreePath    string             `xorm:"VARCHAR(4000) NOT NULL"`
-		Line        int64              `xorm:"NOT NULL"`
-		PosterID    int64              `xorm:"INDEX NOT NULL"`
-		Content     string             `xorm:"LONGTEXT NOT NULL"`
-		Patch       string             `xorm:"LONGTEXT"`
-		CreatedUnix timeutil.TimeStamp `xorm:"INDEX created"`
-		UpdatedUnix timeutil.TimeStamp `xorm:"INDEX updated"`
-	}
+func (mirrorWithLastSyncUnix) TableName() string {
+	return "mirror"
+}
 
-	return x.Sync(new(CommitComment))
+func AddLastSyncUnixToMirror(x *xorm.Engine) error {
+	_, err := x.SyncWithOptions(xorm.SyncOptions{
+		IgnoreDropIndices: true,
+	}, new(mirrorWithLastSyncUnix))
+	return err
 }

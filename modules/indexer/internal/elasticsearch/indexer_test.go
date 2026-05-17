@@ -4,24 +4,19 @@
 package elasticsearch
 
 import (
-	"os"
 	"strings"
 	"testing"
+
+	"code.gitea.io/gitea/modules/test"
 
 	"github.com/stretchr/testify/require"
 )
 
 func newRealIndexer(t *testing.T) *Indexer {
 	t.Helper()
-	url := "http://elasticsearch:9200"
-	if os.Getenv("CI") == "" {
-		url = os.Getenv("TEST_ELASTICSEARCH_URL")
-		if url == "" {
-			t.Skip("TEST_ELASTICSEARCH_URL not set and not running in CI")
-		}
-	}
+	esURL := test.ExternalServiceHTTP(t, "TEST_ELASTICSEARCH_URL", "http://elasticsearch:9200")
 	indexName := "gitea_test_" + strings.ReplaceAll(strings.ToLower(t.Name()), "/", "_")
-	ix := NewIndexer(url, indexName, 1, `{"mappings":{"properties":{"x":{"type":"keyword"}}}}`)
+	ix := NewIndexer(esURL, indexName, 1, `{"mappings":{"properties":{"x":{"type":"keyword"}}}}`)
 	_, err := ix.Init(t.Context())
 	require.NoError(t, err)
 	t.Cleanup(ix.Close)
