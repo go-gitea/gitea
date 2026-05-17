@@ -170,7 +170,7 @@ func TeamAddPost(ctx *context.Context) {
 		}
 		return
 	}
-	has := group_model.HasTeamGroup(ctx, group.OwnerID, t.ID, group.ID)
+	has := group_model.HasTeamGroup(ctx, group.OwnerID, t.ID, group.ID, false)
 	if has {
 		ctx.Flash.Error(ctx.Tr("org.group.add_duplicate_team"))
 	} else {
