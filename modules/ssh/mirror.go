@@ -6,17 +6,18 @@ package ssh
 import (
 	"context"
 	"fmt"
-	"strings"
 
 	"code.gitea.io/gitea/models/db"
 	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
+	giturl "code.gitea.io/gitea/modules/git/url"
 	"code.gitea.io/gitea/modules/log"
 )
 
 // IsSSHURL checks if a URL is an SSH URL
-func IsSSHURL(url string) bool {
-	return strings.HasPrefix(url, "ssh://")
+func IsSSHURL(remote string) bool {
+	u, err := giturl.ParseGitURL(remote)
+	return err == nil && u.Scheme == "ssh"
 }
 
 // GetOrCreateSSHKeypairForUser gets or creates an SSH keypair for the given user
