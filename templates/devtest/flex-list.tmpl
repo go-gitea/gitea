@@ -101,26 +101,27 @@
 				<div class="item">item 2</div>
 			</div>
 		</div>
-		<h3>Flex List (with "ui segment fitted")</h3>
-		<div class="ui attached segment fitted">
-			<div class="flex-divided-list">
+		<h3>Flex List (with "ui segment fitted", items have their own padding)</h3>
+		<div class="ui fitted segment">
+			<div class="flex-divided-list items-px-default">
 				<div class="item">item 1</div>
 				<div class="item">item 2</div>
+				<div class="item">item 3</div>
 			</div>
 		</div>
 
-		<h3>If parent provides border or padding:</h3>
-		<div class="container-segmented tw-border tw-border-secondary">
+		<h3>If parent provides padding or items need their own flex and/or padding:</h3>
+		<div class="tw-border tw-border-secondary">
 			<div class="tw-m-3">before divider</div>
 			<div class="divider"></div>
-			<div class="flex-divided-list">
+			<div class="flex-divided-list flex-items-block items-px-default">
 				<div class="item">item 1</div>
 				<div class="item">item 2</div>
 			</div>
 			<div class="divider"></div>
 			<div class="tw-m-3">after divider</div>
 		</div>
-		<div class="container-padded tw-border tw-border-secondary tw-p-4 tw-my-2">
+		<div class="tw-border tw-border-secondary tw-p-4 tw-my-2">
 			<div>before divider</div>
 			<div class="divider"></div>
 			<div class="flex-divided-list">

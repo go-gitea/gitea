@@ -1,6 +1,6 @@
 import ELK from 'elkjs/lib/elk.bundled.js';
 import type {ElkNode, ElkExtendedEdge} from 'elkjs/lib/elk-api.js';
-import type {ActionsJob, ActionsRunStatus} from '../modules/gitea-actions.ts';
+import type {ActionsJob, ActionsStatus} from '../modules/gitea-actions.ts';
 
 export type GraphNodeType = 'job' | 'matrix' | 'group';
 
@@ -8,7 +8,7 @@ export type GraphNode = {
   id: string;
   type: GraphNodeType;
   name: string;
-  status: ActionsRunStatus;
+  status: ActionsStatus;
   duration: string;
   x: number;
   y: number;
@@ -116,8 +116,8 @@ function groupPanelHeight(rowCount: number, options: WorkflowGraphLayoutOptions)
   return rowCount * options.groupRowHeight + options.groupPadY * 2;
 }
 
-function compareStatusWorstFirst(a: ActionsRunStatus, b: ActionsRunStatus): number {
-  const rank = (s: ActionsRunStatus) => {
+function compareStatusWorstFirst(a: ActionsStatus, b: ActionsStatus): number {
+  const rank = (s: ActionsStatus) => {
     if (s === 'failure') return 0;
     if (s === 'cancelled') return 1;
     if (s === 'running') return 2;
@@ -130,7 +130,7 @@ function compareStatusWorstFirst(a: ActionsRunStatus, b: ActionsRunStatus): numb
   return rank(a) - rank(b);
 }
 
-function aggregateStatus(children: ActionsJob[]): ActionsRunStatus {
+function aggregateStatus(children: ActionsJob[]): ActionsStatus {
   return children.map((c) => c.status).slice().sort(compareStatusWorstFirst)[0] ?? 'unknown';
 }
 

@@ -12,7 +12,7 @@
 	{{ctx.ScriptImport "js/index.js" "module"}}
 	{{template "custom/footer" .}}
 	<script nonce="{{ctx.CspScriptNonce}}" type="module">
-	if (!window.config?.frontendInited) alert("Frontend is not initialized, check console errors or asset files.")
+	if (!window.config?.frontendInited && window.config?.runModeIsProd) alert("Frontend is not initialized, check console errors or asset files.");
 	</script>
 </body>
 </html>

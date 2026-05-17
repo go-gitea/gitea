@@ -1,8 +1,8 @@
 <div class="issue-content">
 	{{$createdStr:= DateUtils.TimeSince .Issue.CreatedUnix}}
-	<div class="issue-content-left comment-list prevent-before-timeline">
-		<div class="ui timeline">
-			<div id="{{.Issue.HashTag}}" class="timeline-item comment first">
+	<div class="issue-content-left">
+		<div class="comment-list">
+			<div id="{{.Issue.HashTag}}" class="timeline-item comment issue-content-comment">
 				{{if .Issue.OriginalAuthor}}
 				<span class="timeline-avatar">
 					{{ctx.AvatarUtils.Avatar nil 40}}
