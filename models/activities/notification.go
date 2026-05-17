@@ -343,12 +343,23 @@ func (n *Notification) loadComment(ctx context.Context) (err error) {
 	return nil
 }
 
-func (n *Notification) loadCommitComment(ctx context.Context) (err error) {
+func (n *Notification) loadCommitComment(ctx context.Context) error {
 	if n.Source != NotificationSourceCommit || n.CommitCommentID == 0 || n.CommitComment != nil {
 		return nil
 	}
-	n.CommitComment, err = repo_model.GetCommitCommentByID(ctx, n.RepoID, n.CommitCommentID)
-	return err
+	c, err := repo_model.GetCommitCommentByID(ctx, n.RepoID, n.CommitCommentID)
+	if err != nil {
+		// A commit comment can be deleted while notifications still reference
+		// it. Clear the dangling ID so the link falls back to the bare commit
+		// instead of bubbling a 500 through LoadAttributes.
+		if db.IsErrNotExist(err) {
+			n.CommitCommentID = 0
+			return nil
+		}
+		return err
+	}
+	n.CommitComment = c
+	return nil
 }
 
 func (n *Notification) loadUser(ctx context.Context) (err error) {

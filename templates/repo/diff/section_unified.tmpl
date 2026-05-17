@@ -52,10 +52,13 @@
 		{{end}}
 		{{/* Render commit comments (not PR review comments) */}}
 		{{if $ccFile}}
+			{{/* Render left and right comment buckets independently — a context line in
+				unified view has both LeftIdx and RightIdx, and either side may carry
+				comments authored from the equivalent split view. */}}
 			{{$rightCC := ""}}
 			{{if $line.RightIdx}}{{$rightCC = index $ccFile.Right $line.RightIdx}}{{end}}
 			{{$leftCC := ""}}
-			{{if and $line.LeftIdx (not $line.RightIdx)}}{{$leftCC = index $ccFile.Left $line.LeftIdx}}{{end}}
+			{{if $line.LeftIdx}}{{$leftCC = index $ccFile.Left $line.LeftIdx}}{{end}}
 			{{if or $rightCC $leftCC}}
 				<tr class="add-comment" data-line-type="{{.GetHTMLDiffLineType}}">
 					<td class="add-comment-left add-comment-right" colspan="5">

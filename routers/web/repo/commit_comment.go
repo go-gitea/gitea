@@ -45,8 +45,12 @@ func CreateCommitComment(ctx *context.Context) {
 	side := ctx.FormString("side")
 	line := ctx.FormInt64("line")
 
-	if content == "" || treePath == "" || line == 0 {
-		ctx.JSONError("content, path, and line are required")
+	if content == "" || treePath == "" || line <= 0 {
+		ctx.JSONError("content, path, and a positive line are required")
+		return
+	}
+	if side != "previous" && side != "proposed" {
+		ctx.JSONError("side must be either 'previous' or 'proposed'")
 		return
 	}
 
