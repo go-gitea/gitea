@@ -177,25 +177,35 @@ func runDoctorCheck(ctx context.Context, cmd *cli.Command) error {
 
 	if cmd.IsSet("list") {
 		w := tabwriter.NewWriter(os.Stdout, 0, 8, 1, '\t', 0)
-		_, _ = w.Write([]byte("Default\tName\tTitle\n"))
+		_, _ = w.Write([]byte("Default\tFix\tName\tTitle\n"))
 		doctor.SortChecks(doctor.Checks)
 		for _, check := range doctor.Checks {
 			if check.IsDefault {
 				_, _ = w.Write([]byte{'*'})
 			}
 			_, _ = w.Write([]byte{'\t'})
+			_, _ = w.Write([]byte(doctorCheckFixMode(check)))
+			_, _ = w.Write([]byte{'\t'})
 			_, _ = w.Write([]byte(check.Name))
 			_, _ = w.Write([]byte{'\t'})
 			_, _ = w.Write([]byte(check.Title))
 			_, _ = w.Write([]byte{'\n'})
 		}
-		return w.Flush()
+		if err := w.Flush(); err != nil {
+			return err
+		}
+		_, _ = fmt.Fprintln(os.Stdout, "Fix=safe runs in --all --fix; Fix=explicit is skipped by --all --fix and must be run with --run <name> --fix.")
+		return nil
 	}
 
 	var checks []*doctor.Check
+	var skippedChecks []*doctor.Check
 	if cmd.Bool("all") {
 		checks = make([]*doctor.Check, len(doctor.Checks))
 		copy(checks, doctor.Checks)
+		if cmd.Bool("fix") {
+			checks, skippedChecks = filterFixChecksForAll(checks)
+		}
 	} else if cmd.IsSet("run") {
 		addDefault := cmd.Bool("default")
 		runNamesSet := container.SetOf(cmd.StringSlice("run")...)
@@ -215,5 +225,32 @@ func runDoctorCheck(ctx context.Context, cmd *cli.Command) error {
 			}
 		}
 	}
+	if len(skippedChecks) > 0 {
+		names := make([]string, 0, len(skippedChecks))
+		for _, check := range skippedChecks {
+			names = append(names, check.Name)
+		}
+		_, _ = fmt.Fprintf(os.Stdout, "Skipping destructive checks from --all --fix: %s. Run them explicitly with --run <name> --fix after verifying the database.\n", strings.Join(names, ", "))
+	}
 	return doctor.RunChecks(ctx, colorize, cmd.Bool("fix"), checks)
+}
+
+func filterFixChecksForAll(checks []*doctor.Check) ([]*doctor.Check, []*doctor.Check) {
+	filtered := make([]*doctor.Check, 0, len(checks))
+	skipped := make([]*doctor.Check, 0)
+	for _, check := range checks {
+		if check.IsDestructive {
+			skipped = append(skipped, check)
+			continue
+		}
+		filtered = append(filtered, check)
+	}
+	return filtered, skipped
+}
+
+func doctorCheckFixMode(check *doctor.Check) string {
+	if check.IsDestructive {
+		return "explicit"
+	}
+	return "safe"
 }

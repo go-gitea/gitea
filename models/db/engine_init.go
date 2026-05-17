@@ -87,12 +87,7 @@ func UnsetDefaultEngine() {
 	}
 }
 
-// InitEngineWithMigration initializes a new xorm.Engine and sets it as the XORM's default context
-// This function must never call .Sync() if the provided migration function fails.
-// When called from the "doctor" command, the migration function is a version check
-// that prevents the doctor from fixing anything in the database if the migration level
-// is different from the expected value.
-func InitEngineWithMigration(ctx context.Context, migrateFunc func(context.Context, *xorm.Engine) error) (err error) {
+func initPreparedEngine(ctx context.Context) (err error) {
 	if err = InitEngine(ctx); err != nil {
 		return err
 	}
@@ -102,6 +97,28 @@ func InitEngineWithMigration(ctx context.Context, migrateFunc func(context.Conte
 	}
 
 	preprocessDatabaseCollation(xormEngine)
+	return nil
+}
+
+// InitEngineWithValidation initializes a new xorm.Engine, verifies the database state and leaves the schema unchanged.
+func InitEngineWithValidation(ctx context.Context, validateFunc func(context.Context, *xorm.Engine) error) error {
+	if err := initPreparedEngine(ctx); err != nil {
+		return err
+	}
+
+	if err := validateFunc(ctx, xormEngine); err != nil {
+		return fmt.Errorf("validate: %w", err)
+	}
+
+	return nil
+}
+
+// InitEngineWithMigration initializes a new xorm.Engine and sets it as the XORM's default context.
+// This function must never call .Sync() if the provided migration function fails.
+func InitEngineWithMigration(ctx context.Context, migrateFunc func(context.Context, *xorm.Engine) error) (err error) {
+	if err = initPreparedEngine(ctx); err != nil {
+		return err
+	}
 
 	// We have to run migrateFunc here in case the user is re-running installation on a previously created DB.
 	// If we do not then table schemas will be changed and there will be conflicts when the migrations run properly.

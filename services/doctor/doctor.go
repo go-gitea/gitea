@@ -27,6 +27,48 @@ type Check struct {
 	SkipDatabaseInitialization bool
 	Priority                   int
 	InitStorage                bool
+	IsDestructive              bool
+}
+
+type runStateKeyType struct{}
+
+type runState struct {
+	databaseTrusted      bool
+	safeFixModeAnnounced bool
+}
+
+var runStateKey = runStateKeyType{}
+
+func withRunState(ctx context.Context) context.Context {
+	return context.WithValue(ctx, runStateKey, &runState{databaseTrusted: true})
+}
+
+func getRunState(ctx context.Context) *runState {
+	state, _ := ctx.Value(runStateKey).(*runState)
+	return state
+}
+
+func markDatabaseUntrusted(ctx context.Context) {
+	if state := getRunState(ctx); state != nil {
+		state.databaseTrusted = false
+	}
+}
+
+func isDatabaseTrusted(ctx context.Context) bool {
+	state := getRunState(ctx)
+	return state == nil || state.databaseTrusted
+}
+
+func shouldAnnounceSafeFixMode(ctx context.Context, autofix bool) bool {
+	if !autofix {
+		return false
+	}
+	state := getRunState(ctx)
+	if state == nil || state.databaseTrusted || state.safeFixModeAnnounced {
+		return false
+	}
+	state.safeFixModeAnnounced = true
+	return true
 }
 
 func initDBSkipLogger(ctx context.Context) error {
@@ -81,6 +123,7 @@ var Checks []*Check
 
 // RunChecks runs the doctor checks for the provided list
 func RunChecks(ctx context.Context, colorize, autofix bool, checks []*Check) error {
+	ctx = withRunState(ctx)
 	SortChecks(checks)
 	// the checks output logs by a special logger, they do not use the default logger
 	logger := log.BaseLoggerToGeneralLogger(&doctorCheckLogger{colorize: colorize})
@@ -106,6 +149,10 @@ func RunChecks(ctx context.Context, colorize, autofix bool, checks []*Check) err
 			storageIsInit = true
 		}
 		logger.Info("\n[%d] %s", i+1, check.Title)
+		if autofix && check.IsDestructive && !isDatabaseTrusted(ctx) {
+			logger.Warn("Skipping destructive fix because the database could not be validated safely earlier in this run")
+			continue
+		}
 		if err := check.Run(ctx, loggerStep, autofix); err != nil {
 			if check.AbortIfFailed {
 				logger.Critical("FAIL")
@@ -114,6 +161,9 @@ func RunChecks(ctx context.Context, colorize, autofix bool, checks []*Check) err
 			logger.Error("ERROR")
 		} else {
 			logger.Info("OK")
+		}
+		if shouldAnnounceSafeFixMode(ctx, autofix) {
+			logger.Warn("Database validation failed earlier; continuing in safe-fix mode without destructive fixes")
 		}
 	}
 	logger.Info("\nAll done (checks: %d).", len(checks))

@@ -32,3 +32,21 @@ func TestDoctorRun(t *testing.T) {
 	err = app.Run(t.Context(), []string{"./gitea", "check", "--run", "test-check,no-such"})
 	assert.ErrorContains(t, err, `unknown checks: "no-such"`)
 }
+
+func TestFilterFixChecksForAll(t *testing.T) {
+	checks := []*doctor.Check{
+		{Name: "safe"},
+		{Name: "dangerous", IsDestructive: true},
+	}
+
+	filtered, skipped := filterFixChecksForAll(checks)
+	assert.Len(t, filtered, 1)
+	assert.Equal(t, "safe", filtered[0].Name)
+	assert.Len(t, skipped, 1)
+	assert.Equal(t, "dangerous", skipped[0].Name)
+}
+
+func TestDoctorCheckFixMode(t *testing.T) {
+	assert.Equal(t, "safe", doctorCheckFixMode(&doctor.Check{}))
+	assert.Equal(t, "explicit", doctorCheckFixMode(&doctor.Check{IsDestructive: true}))
+}

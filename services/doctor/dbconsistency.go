@@ -28,6 +28,7 @@ type consistencyCheck struct {
 func (c *consistencyCheck) Run(ctx context.Context, logger log.Logger, autofix bool) error {
 	count, err := c.Counter(ctx)
 	if err != nil {
+		markDatabaseUntrusted(ctx)
 		logger.Critical("Error: %v whilst counting %s", err, c.Name)
 		return err
 	}
@@ -35,6 +36,7 @@ func (c *consistencyCheck) Run(ctx context.Context, logger log.Logger, autofix b
 		if autofix {
 			var fixed int64
 			if fixed, err = c.Fixer(ctx); err != nil {
+				markDatabaseUntrusted(ctx)
 				logger.Critical("Error: %v whilst fixing %s", err, c.Name)
 				return err
 			}
@@ -249,7 +251,8 @@ func prepareDBConsistencyChecks() []consistencyCheck {
 
 func checkDBConsistency(ctx context.Context, logger log.Logger, autofix bool) error {
 	// make sure DB version is uptodate
-	if err := db.InitEngineWithMigration(ctx, migrations.EnsureUpToDate); err != nil {
+	if err := db.InitEngineWithValidation(ctx, migrations.EnsureUpToDate); err != nil {
+		markDatabaseUntrusted(ctx)
 		logger.Critical("Model version on the database does not match the current Gitea version. Model consistency will not be checked until the database is upgraded")
 		return err
 	}
@@ -265,10 +268,11 @@ func checkDBConsistency(ctx context.Context, logger log.Logger, autofix bool) er
 
 func init() {
 	Register(&Check{
-		Title:     "Check consistency of database",
-		Name:      "check-db-consistency",
-		IsDefault: false,
-		Run:       checkDBConsistency,
-		Priority:  3,
+		Title:         "Check consistency of database",
+		Name:          "check-db-consistency",
+		IsDefault:     false,
+		Run:           checkDBConsistency,
+		Priority:      3,
+		IsDestructive: true,
 	})
 }
