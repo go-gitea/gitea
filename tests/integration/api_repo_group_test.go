@@ -271,9 +271,23 @@ func testCreateGroup(t *testing.T) {
 			Description: "this should fail",
 		}, http.StatusUnprocessableEntity)
 	})
-	t.Run("DenyCreateSubgroup", func(t *testing.T) {
-		createGroup(t, "user13", data.org.Name, data.rootPublic.ID, &api.NewGroupOption{
+	t.Run("DenyCreateSubgroupToOutsider", func(t *testing.T) {
+		createGroup(t, "user15", data.org.Name, data.rootPublic.ID, &api.NewGroupOption{
 			Name:        "-",
+			Description: "should fail",
+		}, http.StatusNotFound)
+	})
+	t.Run("DenyCreateSubgroupToReaders", func(t *testing.T) {
+		editGroupTeam(t, actor, data.rootPublic.ID, groupOrgReaderTeam, &api.CreateOrUpdateRepoGroupTeamOption{
+			CanCreateIn: new(true),
+			Permission:  new(permToRepoWritePermission(data.teamMembers[groupOrgReaderTeam].perm)),
+			UnitsMap:    createUnitMapWith("read", "read"),
+		}, http.StatusNoContent)
+		unprivilegedActor := unittest.AssertExistsAndLoadBean(t, &user_model.User{
+			ID: data.teamMembers[groupOrgReaderTeam].uid,
+		})
+		createGroup(t, unprivilegedActor.Name, data.org.Name, data.rootPublic.ID, &api.NewGroupOption{
+			Name:        "...",
 			Description: "should fail",
 		}, http.StatusForbidden)
 	})
@@ -301,6 +315,26 @@ func testMoveGroup(t *testing.T) {
 				assert.Equal(t, ng.ID, g.ID)
 			}
 		})
+	})
+	t.Run("MoveGroupToInaccessibleParentFails", func(t *testing.T) {
+		unprivilegedActor := unittest.AssertExistsAndLoadBean(t, &user_model.User{
+			ID: data.teamMembers[groupOrgWriterTeam].uid,
+		})
+		addGroupTeam(t, actor, data.rootPublic.ID, groupOrgWriterTeam, &api.CreateOrUpdateRepoGroupTeamOption{
+			CanCreateIn: new(true),
+			Permission:  new(permToRepoWritePermission(data.teamMembers[groupOrgWriterTeam].perm)),
+			UnitsMap:    createUnitMapWith("write", "read"),
+		}, http.StatusNoContent)
+		groupToMove := createGroup(t, unprivilegedActor.Name, data.org.Name, data.rootPublic.ID, &api.NewGroupOption{
+			Name: "movable group 3",
+		}, http.StatusCreated)
+		moveGroup(t, unprivilegedActor.Name, groupToMove.ID, data.rootPrivate.ID, new(0), http.StatusForbidden)
+	})
+	t.Run("MoveGroupToAccessibleParent", func(t *testing.T) {
+		unprivilegedActor := unittest.AssertExistsAndLoadBean(t, &user_model.User{
+			ID: data.teamMembers[groupOrgWriterTeam].uid,
+		})
+		_ = unprivilegedActor
 	})
 }
 
