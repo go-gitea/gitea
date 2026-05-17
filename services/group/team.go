@@ -60,7 +60,10 @@ func AddTeamToGroup(ctx context.Context, group *group_model.Group, tname string,
 	}
 	err = group_model.AddTeamGroup(ctx, group.OwnerID, t.ID, group.ID, mode, canCreateInRepo)
 	if err != nil {
-		if strings.Contains(err.Error(), "UNIQUE constraint failed") {
+		asString := strings.ToLower(err.Error())
+		if strings.Contains(asString, "unique constraint failed") ||
+			strings.Contains(asString, "uqe") ||
+			strings.Contains(asString, "duplicate") {
 			gt, err := group_model.FindGroupTeamByTeamID(ctx, group.ID, t.ID)
 			if err != nil {
 				return err
