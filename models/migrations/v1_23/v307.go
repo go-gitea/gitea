@@ -4,12 +4,11 @@
 package v1_23
 
 import (
+	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/modules/timeutil"
-
-	"xorm.io/xorm"
 )
 
-func FixMilestoneNoDueDate(x *xorm.Engine) error {
+func FixMilestoneNoDueDate(x db.EngineMigration) error {
 	type Milestone struct {
 		DeadlineUnix timeutil.TimeStamp
 	}

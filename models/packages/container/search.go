@@ -223,7 +223,7 @@ func SearchImageTags(ctx context.Context, opts *ImageTagsSearchOptions) ([]*pack
 	opts.configureOrderBy(sess)
 
 	if opts.Paginator != nil {
-		sess = db.SetSessionPagination(sess, opts)
+		db.SetSessionPagination(sess, opts)
 	}
 
 	pvs := make([]*packages.PackageVersion, 0, 10)

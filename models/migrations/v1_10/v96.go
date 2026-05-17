@@ -6,13 +6,12 @@ package v1_10
 import (
 	"path/filepath"
 
+	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/util"
-
-	"xorm.io/xorm"
 )
 
-func DeleteOrphanedAttachments(x *xorm.Engine) error {
+func DeleteOrphanedAttachments(x db.EngineMigration) error {
 	type Attachment struct {
 		ID        int64  `xorm:"pk autoincr"`
 		UUID      string `xorm:"uuid UNIQUE"`

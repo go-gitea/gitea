@@ -15,7 +15,6 @@ import (
 	"code.gitea.io/gitea/modules/structs"
 
 	"xorm.io/builder"
-	"xorm.io/xorm"
 )
 
 // AdminUserOrderByMap represents all possible admin user search orders
@@ -65,7 +64,7 @@ func (opts *SearchUserOptions) ApplyPublicOnly(publicOnly bool) {
 	}
 }
 
-func (opts *SearchUserOptions) toSearchQueryBase(ctx context.Context) *xorm.Session {
+func (opts *SearchUserOptions) toSearchQueryBase(ctx context.Context) db.Session {
 	var cond builder.Cond
 	cond = builder.In("type", opts.Types)
 	if opts.IncludeReserved {
@@ -173,14 +172,15 @@ func SearchUsers(ctx context.Context, opts SearchUserOptions) (users []*User, _ 
 		opts.OrderBy = db.SearchOrderByAlphabetically
 	}
 
-	sessQuery := opts.toSearchQueryBase(ctx).OrderBy(opts.OrderBy.String())
+	sessQuery := opts.toSearchQueryBase(ctx)
 	defer sessQuery.Close()
+	sessQuery.OrderBy(opts.OrderBy.String())
 	if opts.Page > 0 {
-		sessQuery = db.SetSessionPagination(sessQuery, &opts)
+		db.SetSessionPagination(sessQuery, &opts)
 	}
 
 	// the sql may contain JOIN, so we must only select User related columns
-	sessQuery = sessQuery.Select("`user`.*")
+	sessQuery.Select("`user`.*")
 	users = make([]*User, 0, opts.PageSize)
 	return users, count, sessQuery.Find(&users)
 }
