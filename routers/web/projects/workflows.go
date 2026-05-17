@@ -565,5 +565,7 @@ func WorkflowsDelete(ctx *context.Context) {
 		return
 	}
 
-	ctx.JSONOK()
+	ctx.JSON(http.StatusOK, map[string]any{
+		"success": true,
+	})
 }
