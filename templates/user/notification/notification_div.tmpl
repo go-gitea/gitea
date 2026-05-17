@@ -40,7 +40,7 @@
 							{{else if $one.Release}}
 								{{$one.Release.Title}}
 							{{else if $one.Commit}}
-								{{$one.Commit.Summary}}
+								{{$one.Commit.MessageTitle}}
 							{{else}}
 								{{$one.Repository.FullName}}
 							{{end}}
