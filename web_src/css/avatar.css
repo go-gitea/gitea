@@ -12,10 +12,14 @@ img.ui.avatar,
   align-self: center;
   gap: 4px;
   white-space: nowrap;
+  vertical-align: middle;
+}
+
+.author-wrapper > a.muted,
+.author-wrapper > .authors-popup-trigger {
   overflow: hidden;
   text-overflow: ellipsis;
   max-width: 240px;
-  vertical-align: middle;
 }
 
 /* use semibold for latest commit author */
@@ -33,10 +37,9 @@ img.ui.avatar,
 
 .avatar-stack > * {
   margin-left: -16px;
-  transition: transform 0.15s ease;
+  transition: transform 0.15s ease, opacity 0.15s ease;
   position: relative;
   display: inline-flex;
-  border-radius: 50%;
 }
 
 .avatar-stack > *:last-child { margin-left: 0; }
@@ -55,22 +58,30 @@ img.ui.avatar,
 .avatar-stack:hover > *:nth-last-child(11) { transform: translateX(158px); }
 
 .avatar-stack .avatar {
-  border: 2px solid var(--color-body);
+  border: 1px solid var(--color-body);
   background: var(--color-body);
-  border-radius: 50%;
+  transition: border-color 0.15s ease, background-color 0.15s ease;
+}
+
+.avatar-stack:hover .avatar {
+  border-color: transparent;
+  background-color: transparent;
 }
 
 .avatar-stack-overflow-chip {
-  display: inline-flex;
   align-items: center;
   justify-content: center;
   width: 20px;
   height: 20px;
   font-weight: var(--font-weight-semibold);
-  border: 2px solid var(--color-body);
-  border-radius: 50%;
-  background: var(--color-secondary);
+  border: 1px solid var(--color-body);
+  border-radius: var(--border-radius);
   color: var(--color-text);
+  opacity: 0;
+}
+
+.avatar-stack:hover .avatar-stack-overflow-chip {
+  opacity: 1;
 }
 
 .authors-popup-trigger {

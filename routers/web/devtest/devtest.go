@@ -201,11 +201,11 @@ func prepareMockDataCoAuthorAvatars(ctx *context.Context) {
 		{Label: "unlinked author, no co-authors", AuthorSig: &git.Signature{Name: "External Contributor", Email: "external@example.com"}},
 		{Label: "1 linked co-author", AuthorUser: u0, AuthorSig: authorSig(u0), CoAuthors: []*user_model.CoAuthorUser{coLinked(u1)}},
 		{Label: "1 unlinked co-author", AuthorUser: u0, AuthorSig: authorSig(u0), CoAuthors: []*user_model.CoAuthorUser{coUnlinked("Bob Smith", "bob@example.com")}},
-		{Label: "2 co-authors (3 people)", AuthorUser: u0, AuthorSig: authorSig(u0), CoAuthors: []*user_model.CoAuthorUser{coLinked(u1), coUnlinked("Bob Smith", "bob@example.com")}},
+		{Label: "2 co-authors (3 people), u1 author", AuthorUser: u1, AuthorSig: authorSig(u1), CoAuthors: []*user_model.CoAuthorUser{coLinked(u0), coUnlinked("Bob Smith", "bob@example.com")}},
 		{Label: "3 co-authors mixed (4 people)", AuthorUser: u0, AuthorSig: authorSig(u0), CoAuthors: []*user_model.CoAuthorUser{coLinked(u1), coLinked(u2), coUnlinked("Bob Smith", "bob@example.com")}},
-		{Label: "9 co-authors (max visible, no overflow)", AuthorUser: u0, AuthorSig: authorSig(u0), CoAuthors: nUnlinked(9)},
+		{Label: "9 co-authors (max visible, no overflow), u2 author", AuthorUser: u2, AuthorSig: authorSig(u2), CoAuthors: nUnlinked(9)},
 		{Label: "10 co-authors (overflow +1)", AuthorUser: u0, AuthorSig: authorSig(u0), CoAuthors: nUnlinked(10)},
-		{Label: "15 co-authors (overflow +6)", AuthorUser: u0, AuthorSig: authorSig(u0), CoAuthors: nUnlinked(15)},
+		{Label: "15 co-authors (overflow +6), unlinked author", AuthorSig: &git.Signature{Name: "External Contributor", Email: "external@example.com"}, CoAuthors: nUnlinked(15)},
 		{Label: "30 co-authors (overflow +21)", AuthorUser: u0, AuthorSig: authorSig(u0), CoAuthors: nUnlinked(30)},
 	}
 }
