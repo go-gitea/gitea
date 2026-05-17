@@ -92,8 +92,8 @@ test('expanded matrix height includes summary and toggle rows', async () => {
   const expandedMatrix = expanded.nodes.find((n) => n.id === 'matrix:matrix-e2e');
 
   expect(collapsedMatrix?.displayHeight).toBeLessThan(expandedMatrix?.displayHeight ?? 0);
-  // 6 jobs * 26 row height + 40 header + 6 pad * 2 = 208
-  expect(expandedMatrix?.displayHeight).toBe(208);
+  // 14 label + 6 jobs * 28 row height + 8 pad * 2 + 16 toggle = 214
+  expect(expandedMatrix?.displayHeight).toBe(214);
 });
 
 test('every dependency is rendered as one routed edge', async () => {

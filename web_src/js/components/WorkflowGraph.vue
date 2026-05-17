@@ -308,29 +308,35 @@ function onNodeClick(job: GraphNode | ActionsJob, event: MouseEvent) {
             <title>Matrix: {{ job.matrixKey }}</title>
             <rect :x="job.x" :y="job.y" :width="nodeWidth" :height="job.displayHeight" rx="6" class="job-rect"/>
             <foreignObject :x="job.x" :y="job.y" :width="nodeWidth" :height="job.displayHeight" class="matrix-foreign-object">
-              <div class="matrix-panel" xmlns="http://www.w3.org/1999/xhtml">
-                <div class="matrix-panel-header" :class="{ expanded: isMatrixExpanded(job.matrixKey!) }" @click.stop="toggleMatrixExpanded(job.matrixKey!)">
-                  <ActionRunStatus :status="job.status"/>
-                  <span class="matrix-panel-summary">Matrix: {{ job.matrixKey }} - {{ job.jobs.length }} jobs</span>
-                  <SvgIcon name="octicon-chevron-right" :size="12" class="matrix-panel-chevron"/>
-                </div>
-                <div v-if="isMatrixExpanded(job.matrixKey!)" class="matrix-panel-jobs">
-                  <div
-                    v-for="ch in job.jobs"
-                    :key="ch.id"
-                    class="graph-list-row"
-                    @mouseenter="handleNodeMouseEnter(job.id)"
-                    @click.stop="onNodeClick(ch, $event)"
-                  >
-                    <div class="graph-list-row-main">
-                      <ActionRunStatus :status="ch.status"/>
-                      <span class="graph-list-row-name">{{ ch.name }}</span>
-                    </div>
-                    <span class="graph-list-row-duration">{{ ch.duration }}</span>
+              <div class="matrix-panel" xmlns="http://www.w3.org/1999/xhtml" @click.stop="toggleMatrixExpanded(job.matrixKey!)">
+                <template v-if="!isMatrixExpanded(job.matrixKey!)">
+                  <div class="matrix-panel-collapsed">
+                    <ActionRunStatus :status="job.status"/>
+                    <span class="matrix-panel-summary">{{ job.jobs!.length }} jobs completed</span>
                   </div>
-                </div>
+                  <span class="matrix-panel-toggle">Show all jobs</span>
+                </template>
+                <template v-else>
+                  <div class="matrix-panel-jobs">
+                    <div
+                      v-for="ch in job.jobs"
+                      :key="ch.id"
+                      class="graph-list-row"
+                      @mouseenter="handleNodeMouseEnter(job.id)"
+                      @click.stop="onNodeClick(ch, $event)"
+                    >
+                      <div class="graph-list-row-main">
+                        <ActionRunStatus :status="ch.status"/>
+                        <span class="graph-list-row-name">{{ ch.name }}</span>
+                      </div>
+                      <span class="graph-list-row-duration">{{ ch.duration }}</span>
+                    </div>
+                  </div>
+                  <span class="matrix-panel-toggle">Hide jobs</span>
+                </template>
               </div>
             </foreignObject>
+            <text :x="job.x + 12" :y="job.y + 4" class="matrix-label-text">Matrix: {{ job.matrixKey }}</text>
             <circle v-if="nodesWithIncomingEdge.has(job.id)" :cx="job.x" :cy="boxCenterY(job)" r="3.5" class="node-port"/>
             <circle v-if="nodesWithOutgoingEdge.has(job.id)" :cx="job.x + nodeWidth" :cy="boxCenterY(job)" r="3.5" class="node-port"/>
           </g>
@@ -461,13 +467,13 @@ function onNodeClick(job: GraphNode | ActionsJob, event: MouseEvent) {
 
 .node-edge {
   stroke: var(--color-secondary-dark-2);
-  stroke-width: 1.5;
+  stroke-width: 2;
   opacity: 0.9;
 }
 
 .highlighted-edge {
   stroke: var(--color-primary);
-  stroke-width: 1.5;
+  stroke-width: 2;
 }
 
 .job-node-group {
@@ -506,51 +512,45 @@ function onNodeClick(job: GraphNode | ActionsJob, event: MouseEvent) {
 .matrix-panel {
   display: flex;
   flex-direction: column;
+  cursor: pointer;
+  padding-top: 14px;
 }
 
-.matrix-panel:not(:has(.matrix-panel-jobs)) {
-  justify-content: center;
+.matrix-label-text {
+  font-size: 11px;
+  font-family: var(--fonts-regular);
+  fill: var(--color-text-light-2);
+  paint-order: stroke;
+  stroke: var(--color-box-body);
+  stroke-width: 8px;
+  stroke-linejoin: round;
+  pointer-events: none;
 }
 
-.matrix-panel-header {
+.matrix-panel-collapsed {
   display: flex;
   align-items: center;
-  gap: 8px;
-  padding: 8px 12px;
-  cursor: pointer;
-}
-
-.matrix-panel-header.expanded {
-  border-bottom: 1px solid var(--color-secondary);
+  gap: 6px;
+  padding: 0 12px;
 }
 
 .matrix-panel-summary {
-  flex: 1;
   font-size: 12px;
   font-weight: var(--font-weight-semibold);
-  line-height: 1.3;
   color: var(--color-text);
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
 }
 
-.matrix-panel-chevron {
-  flex-shrink: 0;
+.matrix-panel-toggle {
+  font-size: 11px;
   color: var(--color-text-light-2);
-  transition: transform 0.15s ease;
-}
-
-.matrix-panel-header.expanded .matrix-panel-chevron {
-  transform: rotate(90deg);
+  padding: 2px 12px 0;
 }
 
 .matrix-panel-jobs {
   display: flex;
   flex-direction: column;
   gap: 2px;
-  padding: 6px;
-  overflow-y: auto;
+  padding: 2px 6px 6px;
 }
 
 .grouped-panel {

@@ -50,7 +50,7 @@ export type WorkflowGraphLayoutOptions = {
   groupRowHeight: number;
   groupPadY: number;
   matrixCollapsedHeight: number;
-  matrixHeaderHeight: number;
+  matrixLabelHeight: number;
   matrixRowHeight: number;
   matrixPadY: number;
 };
@@ -76,10 +76,10 @@ const defaultLayoutOptions: WorkflowGraphLayoutOptions = {
   laneGap: 32,
   groupRowHeight: 28,
   groupPadY: 8,
-  matrixCollapsedHeight: 40,
-  matrixHeaderHeight: 40,
-  matrixRowHeight: 26,
-  matrixPadY: 6,
+  matrixCollapsedHeight: 72,
+  matrixLabelHeight: 14,
+  matrixRowHeight: 28,
+  matrixPadY: 8,
 };
 
 function canonicalKey(ids: Iterable<string>): string {
@@ -104,10 +104,12 @@ export function boxCenterY(node: GraphNode): number {
   return node.y + node.displayHeight / 2;
 }
 
+const matrixToggleHeight = 16;
+
 function matrixPanelHeight(rowCount: number, expanded: boolean, options: WorkflowGraphLayoutOptions): number {
   if (rowCount <= 0) return options.nodeHeight;
   if (!expanded) return options.matrixCollapsedHeight;
-  return options.matrixHeaderHeight + rowCount * options.matrixRowHeight + options.matrixPadY * 2;
+  return options.matrixLabelHeight + rowCount * options.matrixRowHeight + options.matrixPadY * 2 + matrixToggleHeight;
 }
 
 function groupPanelHeight(rowCount: number, options: WorkflowGraphLayoutOptions): number {
@@ -404,23 +406,6 @@ function buildNodeAdjacency(edges: Edge[]): NodeAdjacency {
 
 const cornerRadius = 8;
 
-// GitHub-style orthogonal edge: horizontal → small rounded 90° corner → vertical
-// → small rounded 90° corner → horizontal. Tight corners, no sweeping curves.
-function connectorPath(sx: number, sy: number, ex: number, ey: number, trackX?: number): string {
-  if (Math.abs(sy - ey) < 0.5) return `M ${sx} ${sy} H ${ex}`;
-  const vx = trackX ?? (sx + ex) / 2;
-  const dy = ey > sy ? 1 : -1;
-  const r = Math.min(cornerRadius, Math.abs(ey - sy) / 2, Math.abs(vx - sx), Math.abs(ex - vx));
-  return [
-    `M ${sx} ${sy}`,
-    `H ${vx - r}`,
-    `Q ${vx} ${sy} ${vx} ${sy + r * dy}`,
-    `V ${ey - r * dy}`,
-    `Q ${vx} ${ey} ${vx + r} ${ey}`,
-    `H ${ex}`,
-  ].join(' ');
-}
-
 // Sanitize ELK node IDs: ELK forbids '.' and ':' in identifiers.
 function toElkId(id: string): string {
   return id.replaceAll(':', '_').replaceAll('.', '_');
@@ -487,23 +472,46 @@ async function runElkLayout(
   }
 }
 
+// GitHub-style trunk routing: all edges from the same source use the same trackX
+// (vertical track in the column gap). Each edge draws its own vertical segment
+// from sourceY to targetY; the visual overlap at the same trackX creates the
+// shared trunk appearance. Highlighting one edge only lights up its own segment.
 function buildRoutedEdges(
   nodesById: Map<string, GraphNode>,
   edges: Edge[],
   options: WorkflowGraphLayoutOptions,
 ): Pick<WorkflowGraphModel, 'routedEdges' | 'sharedSegments'> {
   const routedEdges: RoutedEdge[] = [];
+
   for (const edge of edges) {
     const fromNode = nodesById.get(edge.fromId);
     const toNode = nodesById.get(edge.toId);
     if (!fromNode || !toNode) continue;
+
     const startX = fromNode.x + options.nodeWidth;
     const endX = toNode.x;
     const startY = boxCenterY(fromNode);
     const endY = boxCenterY(toNode);
-    // Place the vertical track right after the source column, matching GitHub style.
+
+    if (Math.abs(startY - endY) < 0.5) {
+      routedEdges.push({...edge, fromNode, toNode, path: `M ${startX} ${startY} H ${endX}`});
+      continue;
+    }
+
     const trackX = startX + options.columnGap / 2;
-    routedEdges.push({...edge, fromNode, toNode, path: connectorPath(startX, startY, endX, endY, trackX)});
+    const dy = endY > startY ? 1 : -1;
+    const r = Math.min(cornerRadius, Math.abs(endY - startY) / 2, Math.abs(trackX - startX), Math.abs(endX - trackX));
+
+    const path = [
+      `M ${startX} ${startY}`,
+      `H ${trackX - r}`,
+      `Q ${trackX} ${startY} ${trackX} ${startY + r * dy}`,
+      `V ${endY}`,
+      `M ${trackX} ${endY}`,
+      `H ${endX}`,
+    ].join(' ');
+
+    routedEdges.push({...edge, fromNode, toNode, path});
   }
 
   return {routedEdges, sharedSegments: []};
