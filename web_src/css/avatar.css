@@ -71,16 +71,22 @@ img.ui.avatar,
 .avatar-stack-overflow-chip {
   align-items: center;
   justify-content: center;
-  width: 20px;
+  width: 0;
   height: 20px;
-  font-weight: var(--font-weight-semibold);
-  border: 1px solid var(--color-body);
+  margin-left: 0;
+  border: 0 solid var(--color-body);
   border-radius: var(--border-radius);
   color: var(--color-text);
+  font-weight: var(--font-weight-semibold);
+  overflow: hidden;
   opacity: 0;
+  transition: all 0.15s ease;
 }
 
 .avatar-stack:hover .avatar-stack-overflow-chip {
+  width: 20px;
+  margin-left: -16px;
+  border-width: 1px;
   opacity: 1;
 }
 
