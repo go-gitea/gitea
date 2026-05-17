@@ -5,11 +5,11 @@ package v1_10
 
 import (
 	"code.gitea.io/gitea/modules/timeutil"
+	"code.gitea.io/gitea/models/db"
 
-	"xorm.io/xorm"
 )
 
-func AddTaskTable(x *xorm.Engine) error {
+func AddTaskTable(x db.EngineMigration) error {
 	// TaskType defines task type
 	type TaskType int
 

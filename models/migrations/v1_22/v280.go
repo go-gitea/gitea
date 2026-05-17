@@ -4,10 +4,11 @@
 package v1_22
 
 import (
-	"xorm.io/xorm"
+	"code.gitea.io/gitea/models/db"
+
 )
 
-func RenameUserThemes(x *xorm.Engine) error {
+func RenameUserThemes(x db.EngineMigration) error {
 	sess := x.NewSession()
 	defer sess.Close()
 

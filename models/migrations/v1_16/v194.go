@@ -4,12 +4,13 @@
 package v1_16
 
 import (
+	"code.gitea.io/gitea/models/db"
+
 	"fmt"
 
-	"xorm.io/xorm"
 )
 
-func AddBranchProtectionUnprotectedFilesColumn(x *xorm.Engine) error {
+func AddBranchProtectionUnprotectedFilesColumn(x db.EngineMigration) error {
 	type ProtectedBranch struct {
 		UnprotectedFilePatterns string `xorm:"TEXT"`
 	}

@@ -4,10 +4,11 @@
 package v1_14
 
 import (
-	"xorm.io/xorm"
+	"code.gitea.io/gitea/models/db"
+
 )
 
-func AddBlockOnOfficialReviewRequests(x *xorm.Engine) error {
+func AddBlockOnOfficialReviewRequests(x db.EngineMigration) error {
 	type ProtectedBranch struct {
 		BlockOnOfficialReviewRequests bool `xorm:"NOT NULL DEFAULT false"`
 	}

@@ -4,14 +4,15 @@
 package v1_22
 
 import (
+	"code.gitea.io/gitea/models/db"
+
 	"fmt"
 
-	"xorm.io/xorm"
 	"xorm.io/xorm/schemas"
 )
 
 // AddUniqueIndexForProjectIssue adds unique indexes for project issue table
-func AddUniqueIndexForProjectIssue(x *xorm.Engine) error {
+func AddUniqueIndexForProjectIssue(x db.EngineMigration) error {
 	// remove possible duplicated records in table project_issue
 	type result struct {
 		IssueID   int64

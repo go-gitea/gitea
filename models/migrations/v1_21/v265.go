@@ -4,10 +4,11 @@
 package v1_21
 
 import (
-	"xorm.io/xorm"
+	"code.gitea.io/gitea/models/db"
+
 )
 
-func AlterActionArtifactTable(x *xorm.Engine) error {
+func AlterActionArtifactTable(x db.EngineMigration) error {
 	// ActionArtifact is a file that is stored in the artifact storage.
 	type ActionArtifact struct {
 		RunID        int64  `xorm:"index unique(runid_name_path)"` // The run id of the artifact

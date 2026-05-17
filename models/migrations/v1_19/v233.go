@@ -7,6 +7,7 @@ import (
 	"fmt"
 
 	"code.gitea.io/gitea/modules/json"
+	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/modules/secret"
 	"code.gitea.io/gitea/modules/setting"
 
@@ -14,7 +15,7 @@ import (
 	"xorm.io/xorm"
 )
 
-func batchProcess[T any](x *xorm.Engine, buf []T, query func(limit, start int) *xorm.Session, process func(*xorm.Session, T) error) error {
+func batchProcess[T any](x db.EngineMigration, buf []T, query func(limit, start int) *xorm.Session, process func(*xorm.Session, T) error) error {
 	size := cap(buf)
 	start := 0
 	for {
@@ -51,7 +52,7 @@ func batchProcess[T any](x *xorm.Engine, buf []T, query func(limit, start int) *
 	}
 }
 
-func AddHeaderAuthorizationEncryptedColWebhook(x *xorm.Engine) error {
+func AddHeaderAuthorizationEncryptedColWebhook(x db.EngineMigration) error {
 	// Add the column to the table
 	type Webhook struct {
 		ID   int64  `xorm:"pk autoincr"`

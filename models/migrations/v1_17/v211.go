@@ -4,9 +4,10 @@
 package v1_17
 
 import (
-	"xorm.io/xorm"
+	"code.gitea.io/gitea/models/db"
+
 )
 
-func CreateForeignReferenceTable(_ *xorm.Engine) error {
+func CreateForeignReferenceTable(_ db.EngineMigration) error {
 	return nil // This table was dropped in v1_19/v237.go
 }

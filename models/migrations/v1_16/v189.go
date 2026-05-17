@@ -8,12 +8,12 @@ import (
 	"fmt"
 
 	"code.gitea.io/gitea/models/migrations/base"
+	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/modules/json"
 
-	"xorm.io/xorm"
 )
 
-func UnwrapLDAPSourceCfg(x *xorm.Engine) error {
+func UnwrapLDAPSourceCfg(x db.EngineMigration) error {
 	jsonUnmarshalHandleDoubleEncode := func(bs []byte, v any) error {
 		err := json.Unmarshal(bs, v)
 		if err != nil {

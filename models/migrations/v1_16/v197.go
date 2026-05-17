@@ -4,10 +4,11 @@
 package v1_16
 
 import (
-	"xorm.io/xorm"
+	"code.gitea.io/gitea/models/db"
+
 )
 
-func AddRenamedBranchTable(x *xorm.Engine) error {
+func AddRenamedBranchTable(x db.EngineMigration) error {
 	type RenamedBranch struct {
 		ID          int64 `xorm:"pk autoincr"`
 		RepoID      int64 `xorm:"INDEX NOT NULL"`

@@ -4,10 +4,11 @@
 package v1_21
 
 import (
-	"xorm.io/xorm"
+	"code.gitea.io/gitea/models/db"
+
 )
 
-func AddTriggerEventToActionRun(x *xorm.Engine) error {
+func AddTriggerEventToActionRun(x db.EngineMigration) error {
 	type ActionRun struct {
 		TriggerEvent string
 	}

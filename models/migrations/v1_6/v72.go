@@ -7,11 +7,11 @@ import (
 	"fmt"
 
 	"code.gitea.io/gitea/modules/timeutil"
+	"code.gitea.io/gitea/models/db"
 
-	"xorm.io/xorm"
 )
 
-func AddReview(x *xorm.Engine) error {
+func AddReview(x db.EngineMigration) error {
 	// Review see models/review.go
 	type Review struct {
 		ID          int64 `xorm:"pk autoincr"`

@@ -5,12 +5,12 @@ package v1_13
 
 import (
 	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/models/db"
 
 	"xorm.io/builder"
-	"xorm.io/xorm"
 )
 
-func SetIsArchivedToFalse(x *xorm.Engine) error {
+func SetIsArchivedToFalse(x db.EngineMigration) error {
 	type Repository struct {
 		IsArchived bool `xorm:"INDEX"`
 	}

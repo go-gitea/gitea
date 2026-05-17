@@ -5,11 +5,11 @@ package v1_21
 
 import (
 	"code.gitea.io/gitea/modules/timeutil"
+	"code.gitea.io/gitea/models/db"
 
-	"xorm.io/xorm"
 )
 
-func AddActionScheduleTable(x *xorm.Engine) error {
+func AddActionScheduleTable(x db.EngineMigration) error {
 	type ActionSchedule struct {
 		ID            int64
 		Title         string

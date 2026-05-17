@@ -5,11 +5,11 @@ package v1_17
 
 import (
 	"code.gitea.io/gitea/modules/timeutil"
+	"code.gitea.io/gitea/models/db"
 
-	"xorm.io/xorm"
 )
 
-func AddPackageTables(x *xorm.Engine) error {
+func AddPackageTables(x db.EngineMigration) error {
 	type Package struct {
 		ID               int64  `xorm:"pk autoincr"`
 		OwnerID          int64  `xorm:"UNIQUE(s) INDEX NOT NULL"`

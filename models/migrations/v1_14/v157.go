@@ -4,10 +4,11 @@
 package v1_14
 
 import (
-	"xorm.io/xorm"
+	"code.gitea.io/gitea/models/db"
+
 )
 
-func FixRepoTopics(x *xorm.Engine) error {
+func FixRepoTopics(x db.EngineMigration) error {
 	type Repository struct {
 		ID     int64    `xorm:"pk autoincr"`
 		Topics []string `xorm:"TEXT JSON"`

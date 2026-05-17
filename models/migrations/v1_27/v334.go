@@ -3,9 +3,12 @@
 
 package v1_27
 
-import "xorm.io/xorm"
+import (
+	"code.gitea.io/gitea/models/db"
+	"xorm.io/xorm"
+)
 
-func AddCancellingSupportToActionRunner(x *xorm.Engine) error {
+func AddCancellingSupportToActionRunner(x db.EngineMigration) error {
 	type ActionRunner struct {
 		HasCancellingSupport bool `xorm:"has_cancelling_support NOT NULL DEFAULT false"`
 	}

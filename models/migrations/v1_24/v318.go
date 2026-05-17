@@ -5,11 +5,12 @@ package v1_24
 
 import (
 	"code.gitea.io/gitea/models/perm"
+	"code.gitea.io/gitea/models/db"
 
 	"xorm.io/xorm"
 )
 
-func AddRepoUnitAnonymousAccessMode(x *xorm.Engine) error {
+func AddRepoUnitAnonymousAccessMode(x db.EngineMigration) error {
 	type RepoUnit struct { //revive:disable-line:exported
 		AnonymousAccessMode perm.AccessMode `xorm:"NOT NULL DEFAULT 0"`
 	}

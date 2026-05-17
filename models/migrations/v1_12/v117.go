@@ -4,10 +4,11 @@
 package v1_12
 
 import (
-	"xorm.io/xorm"
+	"code.gitea.io/gitea/models/db"
+
 )
 
-func AddBlockOnRejectedReviews(x *xorm.Engine) error {
+func AddBlockOnRejectedReviews(x db.EngineMigration) error {
 	type ProtectedBranch struct {
 		BlockOnRejectedReviews bool `xorm:"NOT NULL DEFAULT false"`
 	}

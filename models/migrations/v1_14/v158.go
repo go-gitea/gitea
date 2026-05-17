@@ -8,12 +8,12 @@ import (
 	"strconv"
 
 	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/modules/setting"
 
-	"xorm.io/xorm"
 )
 
-func UpdateCodeCommentReplies(x *xorm.Engine) error {
+func UpdateCodeCommentReplies(x db.EngineMigration) error {
 	type Comment struct {
 		ID          int64  `xorm:"pk autoincr"`
 		CommitSHA   string `xorm:"VARCHAR(40)"`

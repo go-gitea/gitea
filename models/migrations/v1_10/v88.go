@@ -4,17 +4,18 @@
 package v1_10
 
 import (
+	"code.gitea.io/gitea/models/db"
+
 	"crypto/sha1"
 	"fmt"
 
-	"xorm.io/xorm"
 )
 
 func hashContext(context string) string {
 	return fmt.Sprintf("%x", sha1.Sum([]byte(context)))
 }
 
-func AddCommitStatusContext(x *xorm.Engine) error {
+func AddCommitStatusContext(x db.EngineMigration) error {
 	type CommitStatus struct {
 		ID          int64  `xorm:"pk autoincr"`
 		ContextHash string `xorm:"char(40) index"`

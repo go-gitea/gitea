@@ -4,10 +4,11 @@
 package v1_20
 
 import (
-	"xorm.io/xorm"
+	"code.gitea.io/gitea/models/db"
+
 )
 
-func AddPinOrderToIssue(x *xorm.Engine) error {
+func AddPinOrderToIssue(x db.EngineMigration) error {
 	type Issue struct {
 		PinOrder int `xorm:"DEFAULT 0"`
 	}

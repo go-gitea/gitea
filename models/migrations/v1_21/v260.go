@@ -5,11 +5,11 @@ package v1_21
 
 import (
 	"code.gitea.io/gitea/models/migrations/base"
+	"code.gitea.io/gitea/models/db"
 
-	"xorm.io/xorm"
 )
 
-func DropCustomLabelsColumnOfActionRunner(x *xorm.Engine) error {
+func DropCustomLabelsColumnOfActionRunner(x db.EngineMigration) error {
 	sess := x.NewSession()
 	defer sess.Close()
 

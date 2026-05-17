@@ -4,12 +4,14 @@
 package v1_22
 
 import (
+	"code.gitea.io/gitea/models/db"
+
 	"time"
 
 	"xorm.io/xorm"
 )
 
-func AddPreviousDurationToActionRun(x *xorm.Engine) error {
+func AddPreviousDurationToActionRun(x db.EngineMigration) error {
 	type ActionRun struct {
 		PreviousDuration time.Duration
 	}

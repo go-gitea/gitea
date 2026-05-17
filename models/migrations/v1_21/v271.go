@@ -5,11 +5,11 @@ package v1_21
 
 import (
 	"code.gitea.io/gitea/modules/timeutil"
+	"code.gitea.io/gitea/models/db"
 
-	"xorm.io/xorm"
 )
 
-func AddArchivedUnixColumInLabelTable(x *xorm.Engine) error {
+func AddArchivedUnixColumInLabelTable(x db.EngineMigration) error {
 	type Label struct {
 		ArchivedUnix timeutil.TimeStamp `xorm:"DEFAULT NULL"`
 	}

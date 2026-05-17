@@ -7,11 +7,11 @@ import (
 	"fmt"
 
 	"code.gitea.io/gitea/modules/timeutil"
+	"code.gitea.io/gitea/models/db"
 
-	"xorm.io/xorm"
 )
 
-func AddCreatedAndUpdatedToMilestones(x *xorm.Engine) error {
+func AddCreatedAndUpdatedToMilestones(x db.EngineMigration) error {
 	type Milestone struct {
 		CreatedUnix timeutil.TimeStamp `xorm:"INDEX created"`
 		UpdatedUnix timeutil.TimeStamp `xorm:"INDEX updated"`

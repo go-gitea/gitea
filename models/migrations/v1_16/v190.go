@@ -4,12 +4,13 @@
 package v1_16
 
 import (
+	"code.gitea.io/gitea/models/db"
+
 	"fmt"
 
-	"xorm.io/xorm"
 )
 
-func AddAgitFlowPullRequest(x *xorm.Engine) error {
+func AddAgitFlowPullRequest(x db.EngineMigration) error {
 	type PullRequestFlow int
 
 	type PullRequest struct {

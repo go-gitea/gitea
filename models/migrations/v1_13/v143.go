@@ -5,11 +5,11 @@ package v1_13
 
 import (
 	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/models/db"
 
-	"xorm.io/xorm"
 )
 
-func RecalculateStars(x *xorm.Engine) (err error) {
+func RecalculateStars(x db.EngineMigration) (err error) {
 	// because of issue https://github.com/go-gitea/gitea/issues/11949,
 	// recalculate Stars number for all users to fully fix it.
 

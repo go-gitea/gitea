@@ -3,7 +3,10 @@
 
 package v1_27
 
-import "xorm.io/xorm"
+import (
+	"code.gitea.io/gitea/models/db"
+	"xorm.io/xorm"
+)
 
 type mirrorWithLastSyncUnix struct {
 	LastSyncUnix int64 `xorm:"INDEX"`
@@ -13,7 +16,7 @@ func (mirrorWithLastSyncUnix) TableName() string {
 	return "mirror"
 }
 
-func AddLastSyncUnixToMirror(x *xorm.Engine) error {
+func AddLastSyncUnixToMirror(x db.EngineMigration) error {
 	_, err := x.SyncWithOptions(xorm.SyncOptions{
 		IgnoreDropIndices: true,
 	}, new(mirrorWithLastSyncUnix))

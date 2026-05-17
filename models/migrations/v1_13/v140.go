@@ -7,12 +7,12 @@ import (
 	"fmt"
 
 	"code.gitea.io/gitea/models/migrations/base"
+	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/modules/setting"
 
-	"xorm.io/xorm"
 )
 
-func FixLanguageStatsToSaveSize(x *xorm.Engine) error {
+func FixLanguageStatsToSaveSize(x db.EngineMigration) error {
 	// LanguageStat see models/repo_language_stats.go
 	type LanguageStat struct {
 		Size int64 `xorm:"NOT NULL DEFAULT 0"`

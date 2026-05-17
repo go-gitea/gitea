@@ -4,10 +4,11 @@
 package v1_10
 
 import (
-	"xorm.io/xorm"
+	"code.gitea.io/gitea/models/db"
+
 )
 
-func ChangeSomeColumnsLengthOfExternalLoginUser(x *xorm.Engine) error {
+func ChangeSomeColumnsLengthOfExternalLoginUser(x db.EngineMigration) error {
 	type ExternalLoginUser struct {
 		AccessToken       string `xorm:"TEXT"`
 		AccessTokenSecret string `xorm:"TEXT"`

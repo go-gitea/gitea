@@ -7,11 +7,11 @@ import (
 	"strings"
 
 	"code.gitea.io/gitea/modules/json"
+	"code.gitea.io/gitea/models/db"
 
-	"xorm.io/xorm"
 )
 
-func ChangeContainerMetadataMultiArch(x *xorm.Engine) error {
+func ChangeContainerMetadataMultiArch(x db.EngineMigration) error {
 	sess := x.NewSession()
 	defer sess.Close()
 

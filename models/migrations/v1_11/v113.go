@@ -4,12 +4,13 @@
 package v1_11
 
 import (
+	"code.gitea.io/gitea/models/db"
+
 	"fmt"
 
-	"xorm.io/xorm"
 )
 
-func FeatureChangeTargetBranch(x *xorm.Engine) error {
+func FeatureChangeTargetBranch(x db.EngineMigration) error {
 	type Comment struct {
 		OldRef string
 		NewRef string

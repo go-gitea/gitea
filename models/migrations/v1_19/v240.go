@@ -7,10 +7,9 @@ import (
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/modules/timeutil"
 
-	"xorm.io/xorm"
 )
 
-func AddActionsTables(x *xorm.Engine) error {
+func AddActionsTables(x db.EngineMigration) error {
 	type ActionRunner struct {
 		ID          int64
 		UUID        string `xorm:"CHAR(36) UNIQUE"`

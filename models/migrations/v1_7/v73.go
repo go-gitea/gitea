@@ -4,10 +4,11 @@
 package v1_7
 
 import (
-	"xorm.io/xorm"
+	"code.gitea.io/gitea/models/db"
+
 )
 
-func AddMustChangePassword(x *xorm.Engine) error {
+func AddMustChangePassword(x db.EngineMigration) error {
 	// User see models/user.go
 	type User struct {
 		ID                 int64 `xorm:"pk autoincr"`

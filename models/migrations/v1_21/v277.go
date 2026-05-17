@@ -4,10 +4,11 @@
 package v1_21
 
 import (
-	"xorm.io/xorm"
+	"code.gitea.io/gitea/models/db"
+
 )
 
-func AddIndexToIssueUserIssueID(x *xorm.Engine) error {
+func AddIndexToIssueUserIssueID(x db.EngineMigration) error {
 	type IssueUser struct {
 		IssueID int64 `xorm:"INDEX"`
 	}

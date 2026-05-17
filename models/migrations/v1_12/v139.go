@@ -5,11 +5,11 @@ package v1_12
 
 import (
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/models/db"
 
-	"xorm.io/xorm"
 )
 
-func PrependRefsHeadsToIssueRefs(x *xorm.Engine) error {
+func PrependRefsHeadsToIssueRefs(x db.EngineMigration) error {
 	var query string
 
 	switch {

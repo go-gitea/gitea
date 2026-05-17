@@ -4,10 +4,11 @@
 package v1_21
 
 import (
-	"xorm.io/xorm"
+	"code.gitea.io/gitea/models/db"
+
 )
 
-func AddVersionToActionRunTable(x *xorm.Engine) error {
+func AddVersionToActionRunTable(x db.EngineMigration) error {
 	type ActionRun struct {
 		Version int `xorm:"version default 0"`
 	}

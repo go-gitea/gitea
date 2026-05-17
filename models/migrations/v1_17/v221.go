@@ -8,11 +8,11 @@ import (
 	"fmt"
 
 	"code.gitea.io/gitea/modules/timeutil"
+	"code.gitea.io/gitea/models/db"
 
-	"xorm.io/xorm"
 )
 
-func StoreWebauthnCredentialIDAsBytes(x *xorm.Engine) error {
+func StoreWebauthnCredentialIDAsBytes(x db.EngineMigration) error {
 	// Create webauthnCredential table
 	type webauthnCredential struct {
 		ID           int64 `xorm:"pk autoincr"`

@@ -4,12 +4,13 @@
 package v1_16
 
 import (
+	"code.gitea.io/gitea/models/db"
+
 	"fmt"
 
-	"xorm.io/xorm"
 )
 
-func AddAuthorizeColForTeamUnit(x *xorm.Engine) error {
+func AddAuthorizeColForTeamUnit(x db.EngineMigration) error {
 	type TeamUnit struct {
 		ID         int64 `xorm:"pk autoincr"`
 		OrgID      int64 `xorm:"INDEX"`

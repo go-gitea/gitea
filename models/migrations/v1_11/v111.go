@@ -4,13 +4,15 @@
 package v1_11
 
 import (
+	"code.gitea.io/gitea/models/db"
+
 	"fmt"
 	"slices"
 
 	"xorm.io/xorm"
 )
 
-func AddBranchProtectionCanPushAndEnableWhitelist(x *xorm.Engine) error {
+func AddBranchProtectionCanPushAndEnableWhitelist(x db.EngineMigration) error {
 	type ProtectedBranch struct {
 		CanPush                   bool    `xorm:"NOT NULL DEFAULT false"`
 		EnableApprovalsWhitelist  bool    `xorm:"NOT NULL DEFAULT false"`

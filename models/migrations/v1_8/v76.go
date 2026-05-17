@@ -7,11 +7,11 @@ import (
 	"fmt"
 
 	"code.gitea.io/gitea/modules/timeutil"
+	"code.gitea.io/gitea/models/db"
 
-	"xorm.io/xorm"
 )
 
-func AddPullRequestRebaseWithMerge(x *xorm.Engine) error {
+func AddPullRequestRebaseWithMerge(x db.EngineMigration) error {
 	// RepoUnit describes all units of a repository
 	type RepoUnit struct {
 		ID          int64

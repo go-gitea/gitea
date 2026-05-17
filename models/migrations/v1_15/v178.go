@@ -4,10 +4,11 @@
 package v1_15
 
 import (
-	"xorm.io/xorm"
+	"code.gitea.io/gitea/models/db"
+
 )
 
-func AddLFSMirrorColumns(x *xorm.Engine) error {
+func AddLFSMirrorColumns(x db.EngineMigration) error {
 	type Mirror struct {
 		LFS         bool   `xorm:"lfs_enabled NOT NULL DEFAULT false"`
 		LFSEndpoint string `xorm:"lfs_endpoint TEXT"`

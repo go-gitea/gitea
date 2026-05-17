@@ -4,10 +4,11 @@
 package v1_11
 
 import (
-	"xorm.io/xorm"
+	"code.gitea.io/gitea/models/db"
+
 )
 
-func AddTemplateToRepo(x *xorm.Engine) error {
+func AddTemplateToRepo(x db.EngineMigration) error {
 	type Repository struct {
 		IsTemplate bool  `xorm:"INDEX NOT NULL DEFAULT false"`
 		TemplateID int64 `xorm:"INDEX"`

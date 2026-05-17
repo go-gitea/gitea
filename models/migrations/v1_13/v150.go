@@ -5,12 +5,12 @@ package v1_13
 
 import (
 	"code.gitea.io/gitea/models/migrations/base"
+	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/modules/timeutil"
 
-	"xorm.io/xorm"
 )
 
-func AddPrimaryKeyToRepoTopic(x *xorm.Engine) error {
+func AddPrimaryKeyToRepoTopic(x db.EngineMigration) error {
 	// Topic represents a topic of repositories
 	type Topic struct {
 		ID          int64  `xorm:"pk autoincr"`

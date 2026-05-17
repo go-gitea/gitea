@@ -3,9 +3,11 @@
 
 package v1_16
 
-import "xorm.io/xorm"
+import (
+	"code.gitea.io/gitea/models/db"
+)
 
-func AddSSHKeyIsVerified(x *xorm.Engine) error {
+func AddSSHKeyIsVerified(x db.EngineMigration) error {
 	type PublicKey struct {
 		Verified bool `xorm:"NOT NULL DEFAULT false"`
 	}

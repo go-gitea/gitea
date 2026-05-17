@@ -4,7 +4,8 @@
 package v1_22
 
 import (
-	"xorm.io/xorm"
+	"code.gitea.io/gitea/models/db"
+
 )
 
 type BadgeUnique struct {
@@ -16,7 +17,7 @@ func (BadgeUnique) TableName() string {
 	return "badge"
 }
 
-func UseSlugInsteadOfIDForBadges(x *xorm.Engine) error {
+func UseSlugInsteadOfIDForBadges(x db.EngineMigration) error {
 	type Badge struct {
 		Slug string
 	}

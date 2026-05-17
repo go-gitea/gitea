@@ -4,10 +4,11 @@
 package v1_19
 
 import (
-	"xorm.io/xorm"
+	"code.gitea.io/gitea/models/db"
+
 )
 
-func AddIndexForHookTask(x *xorm.Engine) error {
+func AddIndexForHookTask(x db.EngineMigration) error {
 	type HookTask struct {
 		ID     int64  `xorm:"pk autoincr"`
 		HookID int64  `xorm:"index"`

@@ -4,12 +4,13 @@
 package v1_16
 
 import (
+	"code.gitea.io/gitea/models/db"
+
 	"fmt"
 
-	"xorm.io/xorm"
 )
 
-func AddColorColToProjectBoard(x *xorm.Engine) error {
+func AddColorColToProjectBoard(x db.EngineMigration) error {
 	type ProjectBoard struct {
 		Color string `xorm:"VARCHAR(7)"`
 	}

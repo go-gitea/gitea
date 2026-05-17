@@ -4,10 +4,11 @@
 package v1_19
 
 import (
-	"xorm.io/xorm"
+	"code.gitea.io/gitea/models/db"
+
 )
 
-func AddExclusiveLabel(x *xorm.Engine) error {
+func AddExclusiveLabel(x db.EngineMigration) error {
 	type Label struct {
 		Exclusive bool
 	}

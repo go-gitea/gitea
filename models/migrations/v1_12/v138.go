@@ -4,12 +4,13 @@
 package v1_12
 
 import (
+	"code.gitea.io/gitea/models/db"
+
 	"fmt"
 
-	"xorm.io/xorm"
 )
 
-func AddResolveDoerIDCommentColumn(x *xorm.Engine) error {
+func AddResolveDoerIDCommentColumn(x db.EngineMigration) error {
 	type Comment struct {
 		ResolveDoerID int64
 	}

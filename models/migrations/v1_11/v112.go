@@ -7,14 +7,14 @@ import (
 	"path/filepath"
 
 	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/util"
 
 	"xorm.io/builder"
-	"xorm.io/xorm"
 )
 
-func RemoveAttachmentMissedRepo(x *xorm.Engine) error {
+func RemoveAttachmentMissedRepo(x db.EngineMigration) error {
 	type Attachment struct {
 		UUID string `xorm:"uuid"`
 	}

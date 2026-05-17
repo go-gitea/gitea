@@ -5,13 +5,13 @@ package v1_22
 
 import (
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/modules/timeutil"
 
-	"xorm.io/xorm"
 )
 
 // CheckProjectColumnsConsistency ensures there is exactly one default board per project present
-func CheckProjectColumnsConsistency(x *xorm.Engine) error {
+func CheckProjectColumnsConsistency(x db.EngineMigration) error {
 	sess := x.NewSession()
 	defer sess.Close()
 
@@ -79,7 +79,7 @@ func CheckProjectColumnsConsistency(x *xorm.Engine) error {
 	return removeDuplicatedBoardDefault(x)
 }
 
-func removeDuplicatedBoardDefault(x *xorm.Engine) error {
+func removeDuplicatedBoardDefault(x db.EngineMigration) error {
 	type ProjectInfo struct {
 		ProjectID  int64
 		DefaultNum int

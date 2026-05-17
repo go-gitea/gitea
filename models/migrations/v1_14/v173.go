@@ -4,12 +4,13 @@
 package v1_14
 
 import (
+	"code.gitea.io/gitea/models/db"
+
 	"fmt"
 
-	"xorm.io/xorm"
 )
 
-func AddTimeIDCommentColumn(x *xorm.Engine) error {
+func AddTimeIDCommentColumn(x db.EngineMigration) error {
 	type Comment struct {
 		TimeID int64
 	}

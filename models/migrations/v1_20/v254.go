@@ -4,10 +4,11 @@
 package v1_20
 
 import (
-	"xorm.io/xorm"
+	"code.gitea.io/gitea/models/db"
+
 )
 
-func AddActionTaskOutputTable(x *xorm.Engine) error {
+func AddActionTaskOutputTable(x db.EngineMigration) error {
 	type ActionTaskOutput struct {
 		ID          int64
 		TaskID      int64  `xorm:"INDEX UNIQUE(task_id_output_key)"`

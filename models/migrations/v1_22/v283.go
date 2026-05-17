@@ -4,13 +4,14 @@
 package v1_22
 
 import (
+	"code.gitea.io/gitea/models/db"
+
 	"fmt"
 
-	"xorm.io/xorm"
 	"xorm.io/xorm/schemas"
 )
 
-func AddCombinedIndexToIssueUser(x *xorm.Engine) error {
+func AddCombinedIndexToIssueUser(x db.EngineMigration) error {
 	type OldIssueUser struct {
 		IssueID int64
 		UID     int64

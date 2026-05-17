@@ -4,12 +4,13 @@
 package v1_14
 
 import (
+	"code.gitea.io/gitea/models/db"
+
 	"fmt"
 
-	"xorm.io/xorm"
 )
 
-func AddUserRedirect(x *xorm.Engine) (err error) {
+func AddUserRedirect(x db.EngineMigration) (err error) {
 	type UserRedirect struct {
 		ID             int64  `xorm:"pk autoincr"`
 		LowerName      string `xorm:"UNIQUE(s) INDEX NOT NULL"`

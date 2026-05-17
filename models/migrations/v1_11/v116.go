@@ -4,10 +4,11 @@
 package v1_11
 
 import (
-	"xorm.io/xorm"
+	"code.gitea.io/gitea/models/db"
+
 )
 
-func ExtendTrackedTimes(x *xorm.Engine) error {
+func ExtendTrackedTimes(x db.EngineMigration) error {
 	type TrackedTime struct {
 		Time    int64 `xorm:"NOT NULL"`
 		Deleted bool  `xorm:"NOT NULL DEFAULT false"`

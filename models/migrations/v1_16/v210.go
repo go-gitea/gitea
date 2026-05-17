@@ -9,15 +9,15 @@ import (
 	"strings"
 
 	"code.gitea.io/gitea/models/migrations/base"
+	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/modules/timeutil"
 
 	"github.com/tstranex/u2f"
-	"xorm.io/xorm"
 	"xorm.io/xorm/schemas"
 )
 
 // v208 migration was completely broken
-func RemigrateU2FCredentials(x *xorm.Engine) error {
+func RemigrateU2FCredentials(x db.EngineMigration) error {
 	// Create webauthnCredential table
 	type webauthnCredential struct {
 		ID              int64 `xorm:"pk autoincr"`

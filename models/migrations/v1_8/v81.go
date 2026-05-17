@@ -4,13 +4,14 @@
 package v1_8
 
 import (
+	"code.gitea.io/gitea/models/db"
+
 	"fmt"
 
-	"xorm.io/xorm"
 	"xorm.io/xorm/schemas"
 )
 
-func ChangeU2FCounterType(x *xorm.Engine) error {
+func ChangeU2FCounterType(x db.EngineMigration) error {
 	var err error
 
 	switch x.Dialect().URI().DBType {

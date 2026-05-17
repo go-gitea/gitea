@@ -5,11 +5,12 @@ package v1_24
 
 import (
 	"code.gitea.io/gitea/modules/json"
+	"code.gitea.io/gitea/models/db"
 
 	"xorm.io/xorm"
 )
 
-func MigrateSkipTwoFactor(x *xorm.Engine) error {
+func MigrateSkipTwoFactor(x db.EngineMigration) error {
 	type LoginSource struct {
 		TwoFactorPolicy string `xorm:"two_factor_policy NOT NULL DEFAULT ''"`
 	}

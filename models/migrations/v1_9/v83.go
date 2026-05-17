@@ -5,11 +5,11 @@ package v1_9
 
 import (
 	"code.gitea.io/gitea/modules/timeutil"
+	"code.gitea.io/gitea/models/db"
 
-	"xorm.io/xorm"
 )
 
-func AddUploaderIDForAttachment(x *xorm.Engine) error {
+func AddUploaderIDForAttachment(x db.EngineMigration) error {
 	type Attachment struct {
 		ID            int64  `xorm:"pk autoincr"`
 		UUID          string `xorm:"uuid UNIQUE"`

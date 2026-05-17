@@ -4,12 +4,13 @@
 package v1_14
 
 import (
+	"code.gitea.io/gitea/models/db"
+
 	"fmt"
 
-	"xorm.io/xorm"
 )
 
-func AddSortingColToProjectBoard(x *xorm.Engine) error {
+func AddSortingColToProjectBoard(x db.EngineMigration) error {
 	type ProjectBoard struct {
 		Sorting int8 `xorm:"NOT NULL DEFAULT 0"`
 	}

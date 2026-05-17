@@ -12,6 +12,7 @@ import (
 	"strings"
 
 	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/modules/setting"
 
 	"xorm.io/xorm"
@@ -20,8 +21,8 @@ import (
 
 // RecreateTables will recreate the tables for the provided beans using the newly provided bean definition and move all data to that new table
 // WARNING: YOU MUST PROVIDE THE FULL BEAN DEFINITION
-func RecreateTables(beans ...any) func(*xorm.Engine) error {
-	return func(x *xorm.Engine) error {
+func RecreateTables(beans ...any) func(db.EngineMigration) error {
+	return func(x db.EngineMigration) error {
 		sess := x.NewSession()
 		defer sess.Close()
 		if err := sess.Begin(); err != nil {
@@ -474,7 +475,7 @@ func DropTableColumns(sess *xorm.Session, tableName string, columnNames ...strin
 }
 
 // ModifyColumn will modify column's type or other property. SQLITE is not supported
-func ModifyColumn(x *xorm.Engine, tableName string, col *schemas.Column) error {
+func ModifyColumn(x db.EngineMigration, tableName string, col *schemas.Column) error {
 	var indexes map[string]*schemas.Index
 	var err error
 	// MSSQL have to remove index at first, otherwise alter column will fail

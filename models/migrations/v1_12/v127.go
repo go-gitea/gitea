@@ -7,11 +7,11 @@ import (
 	"fmt"
 
 	"code.gitea.io/gitea/modules/timeutil"
+	"code.gitea.io/gitea/models/db"
 
-	"xorm.io/xorm"
 )
 
-func AddLanguageStats(x *xorm.Engine) error {
+func AddLanguageStats(x db.EngineMigration) error {
 	// LanguageStat see models/repo_language_stats.go
 	type LanguageStat struct {
 		ID          int64 `xorm:"pk autoincr"`

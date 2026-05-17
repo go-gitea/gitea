@@ -4,11 +4,12 @@
 package v1_18
 
 import (
-	"xorm.io/xorm"
+	"code.gitea.io/gitea/models/db"
+
 )
 
 // AddConfidentialColumnToOAuth2ApplicationTable: add ConfidentialClient column, setting existing rows to true
-func AddConfidentialClientColumnToOAuth2ApplicationTable(x *xorm.Engine) error {
+func AddConfidentialClientColumnToOAuth2ApplicationTable(x db.EngineMigration) error {
 	type oauth2Application struct {
 		ID                 int64
 		ConfidentialClient bool `xorm:"NOT NULL DEFAULT TRUE"`

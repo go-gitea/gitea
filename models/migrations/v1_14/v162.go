@@ -5,11 +5,11 @@ package v1_14
 
 import (
 	"code.gitea.io/gitea/models/migrations/base"
+	"code.gitea.io/gitea/models/db"
 
-	"xorm.io/xorm"
 )
 
-func ConvertWebhookTaskTypeToString(x *xorm.Engine) error {
+func ConvertWebhookTaskTypeToString(x db.EngineMigration) error {
 	const (
 		GOGS int = iota + 1
 		SLACK

@@ -5,11 +5,11 @@ package v1_21
 
 import (
 	"code.gitea.io/gitea/modules/timeutil"
+	"code.gitea.io/gitea/models/db"
 
-	"xorm.io/xorm"
 )
 
-func CreateActionTasksVersionTable(x *xorm.Engine) error {
+func CreateActionTasksVersionTable(x db.EngineMigration) error {
 	type ActionTasksVersion struct {
 		ID          int64 `xorm:"pk autoincr"`
 		OwnerID     int64 `xorm:"UNIQUE(owner_repo)"`

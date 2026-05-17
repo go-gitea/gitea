@@ -5,13 +5,13 @@ package v1_15
 
 import (
 	"code.gitea.io/gitea/modules/json"
+	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/modules/util"
 
 	"xorm.io/builder"
-	"xorm.io/xorm"
 )
 
-func DeleteMigrationCredentials(x *xorm.Engine) (err error) {
+func DeleteMigrationCredentials(x db.EngineMigration) (err error) {
 	// Task represents a task
 	type Task struct {
 		ID             int64

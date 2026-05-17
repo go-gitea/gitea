@@ -4,10 +4,11 @@
 package v1_18
 
 import (
-	"xorm.io/xorm"
+	"code.gitea.io/gitea/models/db"
+
 )
 
-func CreateUserBadgesTable(x *xorm.Engine) error {
+func CreateUserBadgesTable(x db.EngineMigration) error {
 	type Badge struct {
 		ID          int64 `xorm:"pk autoincr"`
 		Description string

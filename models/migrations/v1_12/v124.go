@@ -4,10 +4,11 @@
 package v1_12
 
 import (
-	"xorm.io/xorm"
+	"code.gitea.io/gitea/models/db"
+
 )
 
-func AddUserRepoMissingColumns(x *xorm.Engine) error {
+func AddUserRepoMissingColumns(x db.EngineMigration) error {
 	type VisibleType int
 	type User struct {
 		PasswdHashAlgo string      `xorm:"NOT NULL DEFAULT 'pbkdf2'"`

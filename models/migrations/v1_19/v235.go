@@ -4,10 +4,11 @@
 package v1_19
 
 import (
-	"xorm.io/xorm"
+	"code.gitea.io/gitea/models/db"
+
 )
 
-func AddIndexForAccessToken(x *xorm.Engine) error {
+func AddIndexForAccessToken(x db.EngineMigration) error {
 	type AccessToken struct {
 		TokenLastEight string `xorm:"INDEX token_last_eight"`
 	}

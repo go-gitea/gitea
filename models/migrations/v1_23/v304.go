@@ -3,9 +3,12 @@
 
 package v1_23
 
-import "xorm.io/xorm"
+import (
+	"code.gitea.io/gitea/models/db"
+	"xorm.io/xorm"
+)
 
-func AddIndexForReleaseSha1(x *xorm.Engine) error {
+func AddIndexForReleaseSha1(x db.EngineMigration) error {
 	type Release struct {
 		Sha1 string `xorm:"INDEX VARCHAR(64)"`
 	}

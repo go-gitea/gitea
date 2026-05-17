@@ -3,9 +3,12 @@
 
 package v1_23
 
-import "xorm.io/xorm"
+import (
+	"code.gitea.io/gitea/models/db"
+	"xorm.io/xorm"
+)
 
-func AddForcePushBranchProtection(x *xorm.Engine) error {
+func AddForcePushBranchProtection(x db.EngineMigration) error {
 	type ProtectedBranch struct {
 		CanForcePush                 bool    `xorm:"NOT NULL DEFAULT false"`
 		EnableForcePushAllowlist     bool    `xorm:"NOT NULL DEFAULT false"`
