@@ -369,13 +369,14 @@ func UpdateRunJob(ctx context.Context, job *ActionRunJob, cond builder.Cond, col
 		return 0, err
 	}
 
-	statusChanged := slices.Contains(cols, "status") || (len(cols) == 0 && job.Status != 0)
-
-	if affected == 0 || (!statusChanged && job.Status == 0) {
+	// xorm's Update writes only non-zero fields when cols is empty, so a zero job.Status
+	// with empty cols means status isn't actually being persisted — skip aggregation.
+	statusUpdated := slices.Contains(cols, "status") || (len(cols) == 0 && job.Status != 0)
+	if affected == 0 || !statusUpdated {
 		return affected, nil
 	}
 
-	if statusChanged && job.Status.IsWaiting() {
+	if statusUpdated && job.Status.IsWaiting() {
 		// if the status of job changes to waiting again, increase tasks version.
 		if err := IncreaseTaskVersion(ctx, job.OwnerID, job.RepoID); err != nil {
 			return 0, err
@@ -390,7 +391,7 @@ func UpdateRunJob(ctx context.Context, job *ActionRunJob, cond builder.Cond, col
 	}
 
 	// Reusable workflow caller's children cascade their status changes upward to the parent caller
-	if statusChanged && job.ParentJobID > 0 {
+	if statusUpdated && job.ParentJobID > 0 {
 		return affected, cascadeCallerStatus(ctx, job)
 	}
 
@@ -532,12 +533,13 @@ func aggregateReusableCallerStatus(jobs []*ActionRunJob) Status {
 func AggregateJobStatus(jobs []*ActionRunJob) Status {
 	allSuccessOrSkipped := len(jobs) != 0
 	allSkipped := len(jobs) != 0
-	var hasFailure, hasCancelled, hasWaiting, hasRunning, hasBlocked bool
+	var hasFailure, hasCancelled, hasCancelling, hasWaiting, hasRunning, hasBlocked bool
 	for _, job := range jobs {
 		allSuccessOrSkipped = allSuccessOrSkipped && (job.Status == StatusSuccess || job.Status == StatusSkipped)
 		allSkipped = allSkipped && job.Status == StatusSkipped
 		hasFailure = hasFailure || job.Status == StatusFailure
 		hasCancelled = hasCancelled || job.Status == StatusCancelled
+		hasCancelling = hasCancelling || job.Status == StatusCancelling
 		hasWaiting = hasWaiting || job.Status == StatusWaiting
 		hasRunning = hasRunning || job.Status == StatusRunning
 		hasBlocked = hasBlocked || job.Status == StatusBlocked
@@ -547,16 +549,20 @@ func AggregateJobStatus(jobs []*ActionRunJob) Status {
 		return StatusSkipped
 	case allSuccessOrSkipped:
 		return StatusSuccess
-	case hasCancelled:
-		return StatusCancelled
+	case hasCancelling:
+		return StatusCancelling
 	case hasRunning:
 		return StatusRunning
 	case hasWaiting:
 		return StatusWaiting
+	case hasBlocked:
+		// Blocked is still a pending state, so it should outrank terminal
+		// statuses like cancelled/failure when no job is waiting or running.
+		return StatusBlocked
+	case hasCancelled:
+		return StatusCancelled
 	case hasFailure:
 		return StatusFailure
-	case hasBlocked:
-		return StatusBlocked
 	default:
 		return StatusUnknown // it shouldn't happen
 	}
@@ -571,7 +577,7 @@ func CancelPreviousJobs(ctx context.Context, repoID int64, ref, workflowID strin
 		Ref:          ref,
 		WorkflowID:   workflowID,
 		TriggerEvent: event,
-		Status:       []Status{StatusRunning, StatusWaiting, StatusBlocked},
+		Status:       []Status{StatusRunning, StatusWaiting, StatusBlocked, StatusCancelling},
 	})
 	if err != nil {
 		return nil, err
@@ -619,6 +625,7 @@ func CancelPreviousJobsByJobConcurrency(ctx context.Context, job *ActionRunJob) 
 	statusFindOption := []Status{StatusWaiting, StatusBlocked}
 	if job.ConcurrencyCancel {
 		statusFindOption = append(statusFindOption, StatusRunning)
+		statusFindOption = append(statusFindOption, StatusCancelling)
 	}
 	attempts, jobs, err := GetConcurrentRunAttemptsAndJobs(ctx, job.RepoID, job.ConcurrencyGroup, statusFindOption)
 	if err != nil {
@@ -686,7 +693,7 @@ func cancelOneJob(ctx context.Context, job *ActionRunJob) (*ActionRunJob, error)
 		return job, nil
 	}
 	// Has a task: stop the task and re-read the row.
-	if err := StopTask(ctx, job.TaskID, StatusCancelled); err != nil {
+	if err := StopTask(ctx, job.TaskID, StatusCancelling); err != nil {
 		return nil, err
 	}
 	updated, err := GetRunJobByRunAndID(ctx, job.RunID, job.ID)
