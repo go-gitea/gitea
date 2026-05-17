@@ -35,7 +35,7 @@ func PickTask(ctx context.Context, runner *actions_model.ActionRunner) (*runnerv
 			return nil, false, err
 		}
 		if has {
-			if task.Status == actions_model.StatusWaiting || task.Status == actions_model.StatusRunning || task.Status == actions_model.StatusBlocked {
+			if task.Status.In(actions_model.StatusWaiting, actions_model.StatusRunning, actions_model.StatusBlocked, actions_model.StatusCancelling) {
 				return nil, false, nil
 			}
 			// task has been finished, remove it
