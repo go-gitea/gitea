@@ -1124,7 +1124,7 @@ func FindComments(ctx context.Context, opts *FindCommentsOptions) (CommentList, 
 	}
 
 	if opts.Page > 0 {
-		sess = db.SetSessionPagination(sess, opts)
+		db.SetSessionPagination(sess, opts)
 	}
 
 	// WARNING: If you change this order you will need to fix createCodeComment
