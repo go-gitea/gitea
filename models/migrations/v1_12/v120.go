@@ -3,10 +3,8 @@
 
 package v1_12
 
-import (
-	"code.gitea.io/gitea/models/db"
+import "code.gitea.io/gitea/models/db"
 
-)
 
 func AddOwnerNameOnRepository(x db.EngineMigration) error {
 	type Repository struct {

@@ -3,9 +3,8 @@
 
 package v1_8
 
-import (
-	"code.gitea.io/gitea/models/db"
-)
+import "code.gitea.io/gitea/models/db"
+
 
 func AddIsLockedToIssues(x db.EngineMigration) error {
 	// Issue see models/issue.go

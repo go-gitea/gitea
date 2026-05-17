@@ -3,10 +3,8 @@
 
 package v1_16
 
-import (
-	"code.gitea.io/gitea/models/db"
+import "code.gitea.io/gitea/models/db"
 
-)
 
 func AddProjectIssueSorting(x db.EngineMigration) error {
 	// ProjectIssue saves relation from issue to a project

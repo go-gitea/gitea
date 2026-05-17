@@ -3,9 +3,8 @@
 
 package v1_20
 
-import (
-	"code.gitea.io/gitea/models/db"
-)
+import "code.gitea.io/gitea/models/db"
+
 
 func AddVersionToActionRunner(x db.EngineMigration) error {
 	type ActionRunner struct {

@@ -3,10 +3,8 @@
 
 package v1_22
 
-import (
-	"code.gitea.io/gitea/models/db"
+import "code.gitea.io/gitea/models/db"
 
-)
 
 type BadgeUnique struct {
 	ID   int64  `xorm:"pk autoincr"`

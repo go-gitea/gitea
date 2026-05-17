@@ -3,10 +3,8 @@
 
 package v1_19
 
-import (
-	"code.gitea.io/gitea/models/db"
+import "code.gitea.io/gitea/models/db"
 
-)
 
 func AddScopeForAccessTokens(x db.EngineMigration) error {
 	type AccessToken struct {

@@ -3,10 +3,8 @@
 
 package v1_11
 
-import (
-	"code.gitea.io/gitea/models/db"
+import "code.gitea.io/gitea/models/db"
 
-)
 
 // RepoWatchMode specifies what kind of watch the user has on a repository
 type RepoWatchMode int8

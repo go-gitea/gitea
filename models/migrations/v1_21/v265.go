@@ -3,10 +3,8 @@
 
 package v1_21
 
-import (
-	"code.gitea.io/gitea/models/db"
+import "code.gitea.io/gitea/models/db"
 
-)
 
 func AlterActionArtifactTable(x db.EngineMigration) error {
 	// ActionArtifact is a file that is stored in the artifact storage.

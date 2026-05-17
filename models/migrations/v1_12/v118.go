@@ -3,10 +3,8 @@
 
 package v1_12
 
-import (
-	"code.gitea.io/gitea/models/db"
+import "code.gitea.io/gitea/models/db"
 
-)
 
 func AddReviewCommitAndStale(x db.EngineMigration) error {
 	type Review struct {

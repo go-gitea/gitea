@@ -3,9 +3,8 @@
 
 package v1_22
 
-import (
-	"code.gitea.io/gitea/models/db"
-)
+import "code.gitea.io/gitea/models/db"
+
 
 func AddCommitStatusSummary(x db.EngineMigration) error {
 	type CommitStatusSummary struct {

@@ -3,9 +3,8 @@
 
 package v1_10
 
-import (
-	"code.gitea.io/gitea/models/db"
-)
+import "code.gitea.io/gitea/models/db"
+
 
 func AddRepoAdminChangeTeamAccessColumnForUser(x db.EngineMigration) error {
 	type User struct {

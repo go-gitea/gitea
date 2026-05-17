@@ -3,10 +3,8 @@
 
 package v1_9
 
-import (
-	"code.gitea.io/gitea/models/db"
+import "code.gitea.io/gitea/models/db"
 
-)
 
 func AddAvatarFieldToRepository(x db.EngineMigration) error {
 	type Repository struct {

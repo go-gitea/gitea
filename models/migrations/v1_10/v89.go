@@ -3,9 +3,8 @@
 
 package v1_10
 
-import (
-	"code.gitea.io/gitea/models/db"
-)
+import "code.gitea.io/gitea/models/db"
+
 
 func AddOriginalMigrationInfo(x db.EngineMigration) error {
 	// Issue see models/issue.go

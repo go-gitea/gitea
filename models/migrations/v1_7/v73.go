@@ -3,10 +3,8 @@
 
 package v1_7
 
-import (
-	"code.gitea.io/gitea/models/db"
+import "code.gitea.io/gitea/models/db"
 
-)
 
 func AddMustChangePassword(x db.EngineMigration) error {
 	// User see models/user.go

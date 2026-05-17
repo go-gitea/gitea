@@ -3,10 +3,8 @@
 
 package v1_15
 
-import (
-	"code.gitea.io/gitea/models/db"
+import "code.gitea.io/gitea/models/db"
 
-)
 
 func AddLFSMirrorColumns(x db.EngineMigration) error {
 	type Mirror struct {

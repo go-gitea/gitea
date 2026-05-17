@@ -3,10 +3,8 @@
 
 package v1_14
 
-import (
-	"code.gitea.io/gitea/models/db"
+import "code.gitea.io/gitea/models/db"
 
-)
 
 // RemoveInvalidLabels looks through the database to look for comments and issue_labels
 // that refer to labels do not belong to the repository or organization that repository
