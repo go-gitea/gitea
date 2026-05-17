@@ -5,6 +5,7 @@ package v1_26
 
 import (
 	"code.gitea.io/gitea/models/db"
+
 	"xorm.io/xorm"
 )
 

@@ -4,9 +4,8 @@
 package v1_10
 
 import (
-	"code.gitea.io/gitea/modules/timeutil"
 	"code.gitea.io/gitea/models/db"
-
+	"code.gitea.io/gitea/modules/timeutil"
 )
 
 func AddTaskTable(x db.EngineMigration) error {

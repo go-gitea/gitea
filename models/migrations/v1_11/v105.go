@@ -5,7 +5,6 @@ package v1_11
 
 import "code.gitea.io/gitea/models/db"
 
-
 func AddTeamIncludesAllRepositories(x db.EngineMigration) error {
 	type Team struct {
 		ID                      int64 `xorm:"pk autoincr"`

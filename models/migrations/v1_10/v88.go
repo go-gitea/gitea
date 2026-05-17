@@ -4,11 +4,10 @@
 package v1_10
 
 import (
-	"code.gitea.io/gitea/models/db"
-
 	"crypto/sha1"
 	"fmt"
 
+	"code.gitea.io/gitea/models/db"
 )
 
 func hashContext(context string) string {

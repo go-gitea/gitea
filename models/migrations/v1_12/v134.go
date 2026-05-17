@@ -11,11 +11,10 @@ import (
 	"strings"
 	"time"
 
-	"code.gitea.io/gitea/modules/git/gitcmd"
 	"code.gitea.io/gitea/models/db"
+	"code.gitea.io/gitea/modules/git/gitcmd"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
-
 )
 
 func RefixMergeBase(ctx context.Context, x db.EngineMigration) error {

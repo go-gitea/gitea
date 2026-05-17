@@ -5,7 +5,6 @@ package v1_16
 
 import "code.gitea.io/gitea/models/db"
 
-
 func AddWebAuthnCred(x db.EngineMigration) error {
 	// NO-OP Don't migrate here - let v210 do this.
 

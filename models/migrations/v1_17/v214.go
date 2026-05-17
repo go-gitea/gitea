@@ -5,7 +5,6 @@ package v1_17
 
 import "code.gitea.io/gitea/models/db"
 
-
 func AddAutoMergeTable(x db.EngineMigration) error {
 	type MergeStyle string
 	type PullAutoMerge struct {

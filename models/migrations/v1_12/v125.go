@@ -4,10 +4,9 @@
 package v1_12
 
 import (
-	"code.gitea.io/gitea/models/db"
-
 	"fmt"
 
+	"code.gitea.io/gitea/models/db"
 )
 
 func AddReviewMigrateInfo(x db.EngineMigration) error {

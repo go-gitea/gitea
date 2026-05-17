@@ -4,9 +4,9 @@
 package v1_8
 
 import (
-	"code.gitea.io/gitea/models/db"
-
 	"fmt"
+
+	"code.gitea.io/gitea/models/db"
 
 	"xorm.io/xorm/schemas"
 )

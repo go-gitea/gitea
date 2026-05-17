@@ -4,9 +4,8 @@
 package v1_24
 
 import (
-	"code.gitea.io/gitea/models/migrations/base"
 	"code.gitea.io/gitea/models/db"
-
+	"code.gitea.io/gitea/models/migrations/base"
 )
 
 func MovePinOrderToTableIssuePin(x db.EngineMigration) error {

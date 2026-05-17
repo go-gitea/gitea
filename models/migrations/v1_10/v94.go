@@ -5,7 +5,6 @@ package v1_10
 
 import "code.gitea.io/gitea/models/db"
 
-
 func AddStatusCheckColumnsForProtectedBranches(x db.EngineMigration) error {
 	type ProtectedBranch struct {
 		EnableStatusCheck   bool     `xorm:"NOT NULL DEFAULT false"`

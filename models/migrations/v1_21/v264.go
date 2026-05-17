@@ -9,7 +9,6 @@ import (
 
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/modules/timeutil"
-
 )
 
 func AddBranchTable(x db.EngineMigration) error {

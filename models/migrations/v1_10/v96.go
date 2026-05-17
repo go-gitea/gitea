@@ -6,10 +6,9 @@ package v1_10
 import (
 	"path/filepath"
 
-	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/models/db"
+	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/util"
-
 )
 
 func DeleteOrphanedAttachments(x db.EngineMigration) error {

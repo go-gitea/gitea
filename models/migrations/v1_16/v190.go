@@ -4,10 +4,9 @@
 package v1_16
 
 import (
-	"code.gitea.io/gitea/models/db"
-
 	"fmt"
 
+	"code.gitea.io/gitea/models/db"
 )
 
 func AddAgitFlowPullRequest(x db.EngineMigration) error {

@@ -4,9 +4,8 @@
 package v1_18
 
 import (
-	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/models/db"
-
+	"code.gitea.io/gitea/modules/setting"
 )
 
 func AlterPublicGPGKeyContentFieldsToMediumText(x db.EngineMigration) error {

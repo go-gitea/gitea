@@ -4,9 +4,8 @@
 package v1_19
 
 import (
-	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/models/db"
-
+	"code.gitea.io/gitea/modules/setting"
 )
 
 // AlterPublicGPGKeyImportContentFieldToMediumText: set GPGKeyImport Content field to MEDIUMTEXT

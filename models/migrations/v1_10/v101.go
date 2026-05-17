@@ -5,7 +5,6 @@ package v1_10
 
 import "code.gitea.io/gitea/models/db"
 
-
 func ChangeSomeColumnsLengthOfExternalLoginUser(x db.EngineMigration) error {
 	type ExternalLoginUser struct {
 		AccessToken       string `xorm:"TEXT"`

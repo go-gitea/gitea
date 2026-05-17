@@ -5,7 +5,6 @@ package v1_26
 
 import "code.gitea.io/gitea/models/db"
 
-
 func FixMissedRepoIDWhenMigrateAttachments(x db.EngineMigration) error {
 	_, err := x.Exec("UPDATE `attachment` SET `repo_id` = (SELECT `repo_id` FROM `issue` WHERE `issue`.`id` = `attachment`.`issue_id`) WHERE `issue_id` > 0 AND (`repo_id` IS NULL OR `repo_id` = 0);")
 	if err != nil {

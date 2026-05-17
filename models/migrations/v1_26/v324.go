@@ -4,10 +4,9 @@
 package v1_26
 
 import (
-	"code.gitea.io/gitea/models/db"
-
 	"fmt"
 
+	"code.gitea.io/gitea/models/db"
 )
 
 func FixClosedMilestoneCompleteness(x db.EngineMigration) error {

@@ -5,7 +5,6 @@ package v1_20
 
 import "code.gitea.io/gitea/models/db"
 
-
 func AddActionTaskOutputTable(x db.EngineMigration) error {
 	type ActionTaskOutput struct {
 		ID          int64

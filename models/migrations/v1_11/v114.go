@@ -4,10 +4,9 @@
 package v1_11
 
 import (
-	"code.gitea.io/gitea/models/db"
-
 	"net/url"
 
+	"code.gitea.io/gitea/models/db"
 )
 
 func SanitizeOriginalURL(x db.EngineMigration) error {

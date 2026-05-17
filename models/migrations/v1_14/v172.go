@@ -4,9 +4,8 @@
 package v1_14
 
 import (
-	"code.gitea.io/gitea/modules/timeutil"
 	"code.gitea.io/gitea/models/db"
-
+	"code.gitea.io/gitea/modules/timeutil"
 )
 
 func AddSessionTable(x db.EngineMigration) error {

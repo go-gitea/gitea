@@ -4,10 +4,10 @@
 package v1_14
 
 import (
-	"code.gitea.io/gitea/models/db"
-
 	"crypto/sha256"
 	"encoding/hex"
+
+	"code.gitea.io/gitea/models/db"
 
 	"golang.org/x/crypto/argon2"
 	"golang.org/x/crypto/bcrypt"

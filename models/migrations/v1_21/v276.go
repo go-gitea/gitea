@@ -6,11 +6,10 @@ package v1_21
 import (
 	"context"
 
-	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/db"
+	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/modules/gitrepo"
 	"code.gitea.io/gitea/modules/setting"
-
 )
 
 func AddRemoteAddressToMirrors(x db.EngineMigration) error {

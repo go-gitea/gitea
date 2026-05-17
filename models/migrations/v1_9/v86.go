@@ -5,7 +5,6 @@ package v1_9
 
 import "code.gitea.io/gitea/models/db"
 
-
 func AddHTTPMethodToWebhook(x db.EngineMigration) error {
 	type Webhook struct {
 		HTTPMethod string `xorm:"http_method DEFAULT 'POST'"`

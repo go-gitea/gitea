@@ -7,11 +7,10 @@ import (
 	"context"
 	"fmt"
 
-	"code.gitea.io/gitea/models/migrations/base"
 	"code.gitea.io/gitea/models/db"
+	"code.gitea.io/gitea/models/migrations/base"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/timeutil"
-
 )
 
 func RenameCredentialIDBytes(x db.EngineMigration) error {

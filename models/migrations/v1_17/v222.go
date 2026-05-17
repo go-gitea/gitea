@@ -8,10 +8,9 @@ import (
 	"errors"
 	"fmt"
 
-	"code.gitea.io/gitea/models/migrations/base"
 	"code.gitea.io/gitea/models/db"
+	"code.gitea.io/gitea/models/migrations/base"
 	"code.gitea.io/gitea/modules/timeutil"
-
 )
 
 func DropOldCredentialIDColumn(x db.EngineMigration) error {

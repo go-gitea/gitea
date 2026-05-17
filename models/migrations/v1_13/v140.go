@@ -6,10 +6,9 @@ package v1_13
 import (
 	"fmt"
 
-	"code.gitea.io/gitea/models/migrations/base"
 	"code.gitea.io/gitea/models/db"
+	"code.gitea.io/gitea/models/migrations/base"
 	"code.gitea.io/gitea/modules/setting"
-
 )
 
 func FixLanguageStatsToSaveSize(x db.EngineMigration) error {

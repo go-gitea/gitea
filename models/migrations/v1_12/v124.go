@@ -5,7 +5,6 @@ package v1_12
 
 import "code.gitea.io/gitea/models/db"
 
-
 func AddUserRepoMissingColumns(x db.EngineMigration) error {
 	type VisibleType int
 	type User struct {

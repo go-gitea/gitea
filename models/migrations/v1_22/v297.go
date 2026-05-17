@@ -4,9 +4,8 @@
 package v1_22
 
 import (
-	"code.gitea.io/gitea/models/perm"
 	"code.gitea.io/gitea/models/db"
-
+	"code.gitea.io/gitea/models/perm"
 )
 
 func AddRepoUnitEveryoneAccessMode(x db.EngineMigration) error {

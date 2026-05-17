@@ -5,7 +5,6 @@ package v1_15
 
 import "code.gitea.io/gitea/models/db"
 
-
 func AddIssueResourceIndexTable(x db.EngineMigration) error {
 	type ResourceIndex struct {
 		GroupID  int64 `xorm:"pk"`

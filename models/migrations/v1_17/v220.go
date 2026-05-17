@@ -4,8 +4,8 @@
 package v1_17
 
 import (
-	packages_model "code.gitea.io/gitea/models/packages"
 	"code.gitea.io/gitea/models/db"
+	packages_model "code.gitea.io/gitea/models/packages"
 	container_module "code.gitea.io/gitea/modules/packages/container"
 
 	"xorm.io/xorm/schemas"

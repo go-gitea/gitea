@@ -5,7 +5,6 @@ package v1_21
 
 import "code.gitea.io/gitea/models/db"
 
-
 // UpdateActionsRefIndex updates the index of actions ref field
 func UpdateActionsRefIndex(x db.EngineMigration) error {
 	type ActionRun struct {

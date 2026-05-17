@@ -4,10 +4,9 @@
 package v1_21
 
 import (
-	"code.gitea.io/gitea/models/db"
-
 	"fmt"
 
+	"code.gitea.io/gitea/models/db"
 )
 
 // AddGitSizeAndLFSSizeToRepositoryTable: add GitSize and LFSSize columns to Repository

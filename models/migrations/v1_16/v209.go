@@ -5,7 +5,6 @@ package v1_16
 
 import "code.gitea.io/gitea/models/db"
 
-
 func IncreaseCredentialIDTo410(x db.EngineMigration) error {
 	// no-op
 	// v208 was completely wrong

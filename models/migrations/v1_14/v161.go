@@ -6,9 +6,8 @@ package v1_14
 import (
 	"context"
 
-	"code.gitea.io/gitea/models/migrations/base"
 	"code.gitea.io/gitea/models/db"
-
+	"code.gitea.io/gitea/models/migrations/base"
 )
 
 func ConvertTaskTypeToString(x db.EngineMigration) error {

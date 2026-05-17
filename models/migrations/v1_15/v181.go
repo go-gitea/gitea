@@ -4,10 +4,9 @@
 package v1_15
 
 import (
-	"code.gitea.io/gitea/models/db"
-
 	"strings"
 
+	"code.gitea.io/gitea/models/db"
 )
 
 func AddPrimaryEmail2EmailAddress(x db.EngineMigration) error {

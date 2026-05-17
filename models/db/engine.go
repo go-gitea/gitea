@@ -75,6 +75,7 @@ type Session interface {
 	Commit() error
 	IsInTx() bool
 	Rollback() error
+	Engine() *xorm.Engine
 }
 
 // EngineMigration is a xorm engine interface used for migrations.
@@ -82,6 +83,7 @@ type Session interface {
 // and are needed by the migration packages.
 type EngineMigration interface {
 	Engine
+	Close() error
 	DB() *core.DB
 	DBMetas() ([]*schemas.Table, error)
 	Dialect() dialects.Dialect

@@ -5,7 +5,6 @@ package v1_12
 
 import "code.gitea.io/gitea/models/db"
 
-
 func AddReactionOriginals(x db.EngineMigration) error {
 	type Reaction struct {
 		OriginalAuthorID int64 `xorm:"INDEX NOT NULL DEFAULT(0)"`

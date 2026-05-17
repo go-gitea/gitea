@@ -5,7 +5,6 @@ package v1_17
 
 import "code.gitea.io/gitea/models/db"
 
-
 func AddAllowMaintainerEdit(x db.EngineMigration) error {
 	// PullRequest represents relation between pull request and repositories.
 	type PullRequest struct {

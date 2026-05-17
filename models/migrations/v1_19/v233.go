@@ -6,16 +6,15 @@ package v1_19
 import (
 	"fmt"
 
-	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/models/db"
+	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/modules/secret"
 	"code.gitea.io/gitea/modules/setting"
 
 	"xorm.io/builder"
-	"xorm.io/xorm"
 )
 
-func batchProcess[T any](x db.EngineMigration, buf []T, query func(limit, start int) *xorm.Session, process func(*xorm.Session, T) error) error {
+func batchProcess[T any](x db.EngineMigration, buf []T, query func(limit, start int) db.Session, process func(db.Session, T) error) error {
 	size := cap(buf)
 	start := 0
 	for {
@@ -81,10 +80,10 @@ func AddHeaderAuthorizationEncryptedColWebhook(x db.EngineMigration) error {
 
 	err = batchProcess(x,
 		make([]*Webhook, 0, 50),
-		func(limit, start int) *xorm.Session {
+		func(limit, start int) db.Session {
 			return x.Where("type=?", "matrix").OrderBy("id").Limit(limit, start)
 		},
-		func(sess *xorm.Session, hook *Webhook) error {
+		func(sess db.Session, hook *Webhook) error {
 			// retrieve token from meta
 			var withToken MatrixMetaWithAccessToken
 			err := json.Unmarshal([]byte(hook.Meta), &withToken)
@@ -142,13 +141,13 @@ func AddHeaderAuthorizationEncryptedColWebhook(x db.EngineMigration) error {
 
 	err = batchProcess(x,
 		make([]*HookTask, 0, 50),
-		func(limit, start int) *xorm.Session {
+		func(limit, start int) db.Session {
 			return x.Where(builder.And(
 				builder.In("hook_id", builder.Select("id").From("webhook").Where(builder.Eq{"type": "matrix"})),
 				builder.Like{"payload_content", "access_token"},
 			)).OrderBy("id").Limit(limit, 0) // ignore the provided "start", since other payload were already converted and don't contain 'payload_content' anymore
 		},
-		func(sess *xorm.Session, hookTask *HookTask) error {
+		func(sess db.Session, hookTask *HookTask) error {
 			// retrieve token from payload_content
 			var withToken MatrixPayloadUnsafe
 			err := json.Unmarshal([]byte(hookTask.PayloadContent), &withToken)

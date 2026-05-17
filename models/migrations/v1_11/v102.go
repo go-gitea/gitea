@@ -4,9 +4,8 @@
 package v1_11
 
 import (
-	"code.gitea.io/gitea/models/migrations/base"
 	"code.gitea.io/gitea/models/db"
-
+	"code.gitea.io/gitea/models/migrations/base"
 )
 
 func DropColumnHeadUserNameOnPullRequest(x db.EngineMigration) error {

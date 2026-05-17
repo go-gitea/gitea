@@ -5,7 +5,6 @@ package v1_12
 
 import "code.gitea.io/gitea/models/db"
 
-
 func AddRequireSignedCommits(x db.EngineMigration) error {
 	type ProtectedBranch struct {
 		RequireSignedCommits bool `xorm:"NOT NULL DEFAULT false"`

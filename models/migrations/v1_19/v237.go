@@ -5,7 +5,6 @@ package v1_19
 
 import "code.gitea.io/gitea/models/db"
 
-
 func DropForeignReferenceTable(x db.EngineMigration) error {
 	// Drop the table introduced in `v211`, it's considered badly designed and doesn't look like to be used.
 	// See: https://github.com/go-gitea/gitea/issues/21086#issuecomment-1318217453

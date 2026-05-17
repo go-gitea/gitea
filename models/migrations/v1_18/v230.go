@@ -5,7 +5,6 @@ package v1_18
 
 import "code.gitea.io/gitea/models/db"
 
-
 // AddConfidentialColumnToOAuth2ApplicationTable: add ConfidentialClient column, setting existing rows to true
 func AddConfidentialClientColumnToOAuth2ApplicationTable(x db.EngineMigration) error {
 	type oauth2Application struct {

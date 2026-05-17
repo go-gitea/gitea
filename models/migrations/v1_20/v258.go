@@ -5,7 +5,6 @@ package v1_20
 
 import "code.gitea.io/gitea/models/db"
 
-
 func AddPinOrderToIssue(x db.EngineMigration) error {
 	type Issue struct {
 		PinOrder int `xorm:"DEFAULT 0"`

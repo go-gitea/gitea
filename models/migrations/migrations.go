@@ -9,8 +9,8 @@ import (
 	"errors"
 	"fmt"
 
-	"code.gitea.io/gitea/models/migrations/v1_10"
 	"code.gitea.io/gitea/models/db"
+	"code.gitea.io/gitea/models/migrations/v1_10"
 	"code.gitea.io/gitea/models/migrations/v1_11"
 	"code.gitea.io/gitea/models/migrations/v1_12"
 	"code.gitea.io/gitea/models/migrations/v1_13"

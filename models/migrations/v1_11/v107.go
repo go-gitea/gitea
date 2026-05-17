@@ -5,7 +5,6 @@ package v1_11
 
 import "code.gitea.io/gitea/models/db"
 
-
 func AddTemplateToRepo(x db.EngineMigration) error {
 	type Repository struct {
 		IsTemplate bool  `xorm:"INDEX NOT NULL DEFAULT false"`

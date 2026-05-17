@@ -4,9 +4,8 @@
 package v1_16
 
 import (
-	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/models/db"
-
+	"code.gitea.io/gitea/modules/setting"
 )
 
 func AlterIssueAndCommentTextFieldsToLongText(x db.EngineMigration) error {

@@ -5,7 +5,6 @@ package v1_21
 
 import "code.gitea.io/gitea/models/db"
 
-
 func AddTriggerEventToActionRun(x db.EngineMigration) error {
 	type ActionRun struct {
 		TriggerEvent string

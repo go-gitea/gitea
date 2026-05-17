@@ -5,7 +5,6 @@ package v1_19
 
 import "code.gitea.io/gitea/models/db"
 
-
 func AddIndexForHookTask(x db.EngineMigration) error {
 	type HookTask struct {
 		ID     int64  `xorm:"pk autoincr"`

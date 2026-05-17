@@ -4,10 +4,9 @@
 package v1_14
 
 import (
-	"code.gitea.io/gitea/models/db"
-
 	"fmt"
 
+	"code.gitea.io/gitea/models/db"
 )
 
 // DeleteOrphanedIssueLabels looks through the database for issue_labels where the label no longer exists and deletes them.

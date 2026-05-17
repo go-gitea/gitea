@@ -5,7 +5,6 @@ package v1_18
 
 import "code.gitea.io/gitea/models/db"
 
-
 func CreateUserBadgesTable(x db.EngineMigration) error {
 	type Badge struct {
 		ID          int64 `xorm:"pk autoincr"`

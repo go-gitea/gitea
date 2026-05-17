@@ -5,7 +5,6 @@ package v1_8
 
 import "code.gitea.io/gitea/models/db"
 
-
 func AddUserDefaultTheme(x db.EngineMigration) error {
 	type User struct {
 		Theme string `xorm:"VARCHAR(30) NOT NULL DEFAULT ''"`

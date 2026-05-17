@@ -5,7 +5,6 @@ package v1_13
 
 import "code.gitea.io/gitea/models/db"
 
-
 func AddTeamReviewRequestSupport(x db.EngineMigration) error {
 	type Review struct {
 		ReviewerTeamID int64 `xorm:"NOT NULL DEFAULT 0"`

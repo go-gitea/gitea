@@ -5,7 +5,6 @@ package v1_12
 
 import "code.gitea.io/gitea/models/db"
 
-
 func AddEmailHashTable(x db.EngineMigration) error {
 	// EmailHash represents a pre-generated hash map
 	type EmailHash struct {

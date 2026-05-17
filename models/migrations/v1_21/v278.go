@@ -5,7 +5,6 @@ package v1_21
 
 import "code.gitea.io/gitea/models/db"
 
-
 func AddIndexToCommentDependentIssueID(x db.EngineMigration) error {
 	type Comment struct {
 		DependentIssueID int64 `xorm:"index"`

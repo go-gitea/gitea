@@ -12,12 +12,11 @@ import (
 	"path/filepath"
 	"time"
 
-	"code.gitea.io/gitea/modules/container"
 	"code.gitea.io/gitea/models/db"
+	"code.gitea.io/gitea/modules/container"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/util"
-
 )
 
 func RenameExistingUserAvatarName(x db.EngineMigration) error {

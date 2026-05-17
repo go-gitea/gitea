@@ -4,8 +4,8 @@
 package v1_24
 
 import (
-	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/models/db"
+	"code.gitea.io/gitea/modules/json"
 
 	"xorm.io/xorm"
 )

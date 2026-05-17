@@ -4,10 +4,9 @@
 package v1_13
 
 import (
-	"code.gitea.io/gitea/models/db"
-
 	"fmt"
 
+	"code.gitea.io/gitea/models/db"
 )
 
 func AddKeepActivityPrivateUserColumn(x db.EngineMigration) error {

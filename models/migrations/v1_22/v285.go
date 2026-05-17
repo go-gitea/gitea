@@ -4,9 +4,9 @@
 package v1_22
 
 import (
-	"code.gitea.io/gitea/models/db"
-
 	"time"
+
+	"code.gitea.io/gitea/models/db"
 
 	"xorm.io/xorm"
 )

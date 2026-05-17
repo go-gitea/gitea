@@ -11,11 +11,10 @@ import (
 	"regexp"
 	"strings"
 
-	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/models/db"
+	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 
-	"xorm.io/xorm"
 	"xorm.io/xorm/schemas"
 )
 
@@ -42,7 +41,7 @@ func RecreateTables(beans ...any) func(db.EngineMigration) error {
 // RecreateTable will recreate the table using the newly provided bean definition and move all data to that new table
 // WARNING: YOU MUST PROVIDE THE FULL BEAN DEFINITION
 // WARNING: YOU MUST COMMIT THE SESSION AT THE END
-func RecreateTable(sess *xorm.Session, bean any) error {
+func RecreateTable(sess db.Session, bean any) error {
 	// TODO: This will not work if there are foreign keys
 
 	tableName := sess.Engine().TableName(bean)
@@ -305,7 +304,7 @@ func RecreateTable(sess *xorm.Session, bean any) error {
 }
 
 // WARNING: YOU MUST COMMIT THE SESSION AT THE END
-func DropTableColumns(sess *xorm.Session, tableName string, columnNames ...string) (err error) {
+func DropTableColumns(sess db.Session, tableName string, columnNames ...string) (err error) {
 	if tableName == "" || len(columnNames) == 0 {
 		return nil
 	}

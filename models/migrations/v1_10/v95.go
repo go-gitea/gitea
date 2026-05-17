@@ -5,7 +5,6 @@ package v1_10
 
 import "code.gitea.io/gitea/models/db"
 
-
 func AddCrossReferenceColumns(x db.EngineMigration) error {
 	// Comment see models/comment.go
 	type Comment struct {

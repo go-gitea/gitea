@@ -4,10 +4,9 @@
 package v1_13
 
 import (
-	"code.gitea.io/gitea/models/migrations/base"
 	"code.gitea.io/gitea/models/db"
+	"code.gitea.io/gitea/models/migrations/base"
 	"code.gitea.io/gitea/modules/timeutil"
-
 )
 
 func AddPrimaryKeyToRepoTopic(x db.EngineMigration) error {

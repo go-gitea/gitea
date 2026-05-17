@@ -4,9 +4,8 @@
 package v1_19
 
 import (
-	"code.gitea.io/gitea/modules/timeutil"
 	"code.gitea.io/gitea/models/db"
-
+	"code.gitea.io/gitea/modules/timeutil"
 )
 
 // AddUpdatedUnixToLFSMetaObject adds an updated column to the LFSMetaObject to allow for garbage collection

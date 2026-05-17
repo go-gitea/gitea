@@ -5,7 +5,6 @@ package v1_20
 
 import "code.gitea.io/gitea/models/db"
 
-
 func AddNeedApprovalToActionRun(x db.EngineMigration) error {
 	/*
 		New index: TriggerUserID

@@ -4,9 +4,8 @@
 package v1_14
 
 import (
-	"code.gitea.io/gitea/models/migrations/base"
 	"code.gitea.io/gitea/models/db"
-
+	"code.gitea.io/gitea/models/migrations/base"
 )
 
 func ConvertTopicNameFrom25To50(x db.EngineMigration) error {

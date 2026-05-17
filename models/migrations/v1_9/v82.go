@@ -7,11 +7,10 @@ import (
 	"context"
 	"fmt"
 
-	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/db"
+	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/gitrepo"
-
 )
 
 func FixReleaseSha1OnReleaseTable(ctx context.Context, x db.EngineMigration) error {

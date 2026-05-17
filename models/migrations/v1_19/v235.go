@@ -5,7 +5,6 @@ package v1_19
 
 import "code.gitea.io/gitea/models/db"
 
-
 func AddIndexForAccessToken(x db.EngineMigration) error {
 	type AccessToken struct {
 		TokenLastEight string `xorm:"INDEX token_last_eight"`

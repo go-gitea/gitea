@@ -5,7 +5,6 @@ package v1_22
 
 import "code.gitea.io/gitea/models/db"
 
-
 func AddIndexToPullAutoMergeDoerID(x db.EngineMigration) error {
 	type PullAutoMerge struct {
 		DoerID int64 `xorm:"INDEX NOT NULL"`

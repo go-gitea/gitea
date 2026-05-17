@@ -5,7 +5,6 @@ package v1_22
 
 import "code.gitea.io/gitea/models/db"
 
-
 func RenameUserThemes(x db.EngineMigration) error {
 	sess := x.NewSession()
 	defer sess.Close()

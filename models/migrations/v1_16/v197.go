@@ -5,7 +5,6 @@ package v1_16
 
 import "code.gitea.io/gitea/models/db"
 
-
 func AddRenamedBranchTable(x db.EngineMigration) error {
 	type RenamedBranch struct {
 		ID          int64 `xorm:"pk autoincr"`
