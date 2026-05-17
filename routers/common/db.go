@@ -15,8 +15,6 @@ import (
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/setting/config"
 	"code.gitea.io/gitea/services/versioned_migration"
-
-	"xorm.io/xorm"
 )
 
 // InitDBEngine In case of problems connecting to DB, retry connection. Eg, PGSQL in Docker Container on Synology
@@ -42,7 +40,7 @@ func InitDBEngine(ctx context.Context) (err error) {
 	return nil
 }
 
-func migrateWithSetting(ctx context.Context, x *xorm.Engine) error {
+func migrateWithSetting(ctx context.Context, x db.EngineMigration) error {
 	if setting.Database.AutoMigration {
 		return versioned_migration.Migrate(ctx, x)
 	}
