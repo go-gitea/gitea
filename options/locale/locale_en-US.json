@@ -166,6 +166,8 @@
   "search.words_tooltip": "Include only results that match the search term words",
   "search.regexp": "Regexp",
   "search.regexp_tooltip": "Include only results that match the regexp search term",
+  "search.zoekt": "Zoekt",
+  "search.zoekt_tooltip": "Include only results that match the Zoekt query syntax",
   "search.exact": "Exact",
   "search.exact_tooltip": "Include only results that match the exact search term",
   "search.repo_kind": "Search repos…",
