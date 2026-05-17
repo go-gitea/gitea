@@ -3,23 +3,16 @@
 
 package v1_27
 
-import (
-	"code.gitea.io/gitea/modules/timeutil"
+import "xorm.io/xorm"
 
-	"xorm.io/xorm"
-)
-
-func AddProjectWorkflow(x *xorm.Engine) error {
-	type ProjectWorkflow struct {
-		ID              int64
-		ProjectID       int64 `xorm:"INDEX"`
-		WorkflowEvent   string
-		WorkflowFilters string             `xorm:"TEXT JSON"`
-		WorkflowActions string             `xorm:"TEXT JSON"`
-		Enabled         bool               `xorm:"DEFAULT true"`
-		CreatedUnix     timeutil.TimeStamp `xorm:"created"`
-		UpdatedUnix     timeutil.TimeStamp `xorm:"updated"`
+func AddCancellingSupportToActionRunner(x *xorm.Engine) error {
+	type ActionRunner struct {
+		HasCancellingSupport bool `xorm:"has_cancelling_support NOT NULL DEFAULT false"`
 	}
 
-	return x.Sync(&ProjectWorkflow{})
+	_, err := x.SyncWithOptions(xorm.SyncOptions{
+		IgnoreConstrains:  true,
+		IgnoreDropIndices: true,
+	}, new(ActionRunner))
+	return err
 }
