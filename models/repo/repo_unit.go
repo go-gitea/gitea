@@ -125,7 +125,9 @@ type PullRequestsConfig struct {
 	AllowFastForwardOnly          bool
 	AllowManualMerge              bool
 	AutodetectManualMerge         bool
+	AllowMergeUpdate              bool
 	AllowRebaseUpdate             bool
+	DefaultUpdateStyle            UpdateStyle
 	DefaultDeleteBranchAfterMerge bool
 	DefaultMergeStyle             MergeStyle
 	DefaultAllowMaintainerEdit    bool
@@ -139,7 +141,9 @@ func DefaultPullRequestsConfig() *PullRequestsConfig {
 		AllowRebaseMerge:           true,
 		AllowSquash:                true,
 		AllowFastForwardOnly:       true,
+		AllowMergeUpdate:           true,
 		AllowRebaseUpdate:          true,
+		DefaultUpdateStyle:         UpdateStyleMerge,
 		DefaultAllowMaintainerEdit: true,
 	}
 	cfg.DefaultDeleteBranchAfterMerge = setting.Repository.PullRequest.DefaultDeleteBranchAfterMerge
@@ -152,7 +156,9 @@ func DefaultPullRequestsConfig() *PullRequestsConfig {
 func (cfg *PullRequestsConfig) FromDB(bs []byte) error {
 	// set default values for existing PullRequestConfig in DB
 	*cfg = *DefaultPullRequestsConfig()
-	return json.UnmarshalHandleDoubleEncode(bs, &cfg)
+	_ = json.UnmarshalHandleDoubleEncode(bs, &cfg) // don't let corrupted database value cause unnecessary 500 error
+	cfg.DefaultUpdateStyle = util.IfZero(cfg.DefaultUpdateStyle, UpdateStyleMerge)
+	return nil
 }
 
 // ToDB exports a PullRequestsConfig to a serialized format.
@@ -168,6 +174,32 @@ func (cfg *PullRequestsConfig) IsMergeStyleAllowed(mergeStyle MergeStyle) bool {
 		mergeStyle == MergeStyleSquash && cfg.AllowSquash ||
 		mergeStyle == MergeStyleFastForwardOnly && cfg.AllowFastForwardOnly ||
 		mergeStyle == MergeStyleManuallyMerged && cfg.AllowManualMerge
+}
+
+// IsUpdateStyleAllowed returns if a pull request branch update style is allowed
+func (cfg *PullRequestsConfig) IsUpdateStyleAllowed(updateStyle UpdateStyle) bool {
+	switch updateStyle {
+	case UpdateStyleMerge:
+		return cfg.AllowMergeUpdate
+	case UpdateStyleRebase:
+		return cfg.AllowRebaseUpdate
+	default:
+		return false
+	}
+}
+
+// ValidateUpdateSettings checks that the AllowMerge/RebaseUpdate flags and DefaultUpdateStyle are mutually consistent.
+func (cfg *PullRequestsConfig) ValidateUpdateSettings() error {
+	if cfg.DefaultUpdateStyle != UpdateStyleMerge && cfg.DefaultUpdateStyle != UpdateStyleRebase {
+		return util.NewInvalidArgumentErrorf("default update style must be merge or rebase")
+	}
+	if !cfg.AllowMergeUpdate && !cfg.AllowRebaseUpdate {
+		return util.NewInvalidArgumentErrorf("at least one pull request branch update style must be enabled")
+	}
+	if !cfg.IsUpdateStyleAllowed(cfg.DefaultUpdateStyle) {
+		return util.NewInvalidArgumentErrorf("default update style must be enabled")
+	}
+	return nil
 }
 
 func DefaultPullRequestsUnit(repoID int64) RepoUnit {

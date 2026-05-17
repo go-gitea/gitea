@@ -38,10 +38,6 @@
 
     TAGS="bindata" make build
 
-如果需要 SQLite 支持：
-
-    TAGS="bindata sqlite sqlite_unlock_notify" make build
-
 `build` 目标分为两个子目标：
 
 - `make backend` 需要 [Go Stable](https://go.dev/dl/)，所需版本在 [go.mod](/go.mod) 中定义。
