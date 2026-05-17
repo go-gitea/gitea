@@ -257,9 +257,10 @@ func testRepoGroupTeamAssignmentAndAccess(t *testing.T) {
 		t.Run("AssignmentTo_`"+c.teamName+"`", func(t *testing.T) {
 			caseActor := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: data.teamMembers[c.teamName].uid})
 
-			addGroupTeam(t, actor, ngrp.ID, c.teamName, &api.CreateOrUpdateRepoGroupTeamOption{
-				UnitsMap:   c.unitMap,
-				Permission: new(permToRepoWritePermission(data.teamMembers[c.teamName].perm)),
+			editGroupTeam(t, actor, ngrp.ID, c.teamName, &api.CreateOrUpdateRepoGroupTeamOption{
+				UnitsMap:    c.unitMap,
+				CanCreateIn: new(c.expectedStatuses.createGroup == http.StatusCreated),
+				Permission:  new(permToRepoWritePermission(data.teamMembers[c.teamName].perm)),
 			}, http.StatusNoContent)
 			team, err := org_model.GetTeam(t.Context(), data.org.ID, c.teamName)
 			assert.NoError(t, err)
@@ -275,7 +276,7 @@ func testRepoGroupTeamAssignmentAndAccess(t *testing.T) {
 			}, c.expectedStatuses.editGroup)
 
 			if i == 0 {
-				addGroupTeam(t, actor, ngrp.ID, groupOrgUnitTeam, &api.CreateOrUpdateRepoGroupTeamOption{
+				editGroupTeam(t, actor, ngrp.ID, groupOrgUnitTeam, &api.CreateOrUpdateRepoGroupTeamOption{
 					Permission: new(api.RepoWritePermissionWrite),
 				}, http.StatusNoContent)
 			}
