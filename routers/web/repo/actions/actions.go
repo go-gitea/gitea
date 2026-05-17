@@ -180,6 +180,19 @@ func prepareWorkflowTemplate(ctx *context.Context, commit *git.Commit) (workflow
 	}
 
 	ctx.Data["workflows"] = workflows
+	// WorkflowDisplayNames maps each workflow filename (the WorkflowID stored
+	// on ActionRun) to the human-friendly `name:` from the YAML, falling back
+	// to the filename when YAML doesn't declare one. Used by runs_list.tmpl
+	// so each run shows the configured workflow name instead of the file.
+	displayNames := make(map[string]string, len(workflows))
+	for _, w := range workflows {
+		name := w.Entry.Name()
+		if w.Workflow != nil && w.Workflow.Name != "" {
+			name = w.Workflow.Name
+		}
+		displayNames[w.Entry.Name()] = name
+	}
+	ctx.Data["WorkflowDisplayNames"] = displayNames
 	ctx.Data["RepoLink"] = ctx.Repo.Repository.Link()
 	ctx.Data["AllowDisableOrEnableWorkflow"] = ctx.Repo.Permission.IsAdmin()
 	actionsConfig := ctx.Repo.Repository.MustGetUnit(ctx, unit.TypeActions).ActionsConfig()

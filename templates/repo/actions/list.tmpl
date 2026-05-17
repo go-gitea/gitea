@@ -10,8 +10,8 @@
 				<div class="ui fluid vertical menu flex-items-block">
 					<a class="item {{if not $.CurWorkflow}}active{{end}}" href="?actor={{$.CurActor}}&status={{$.CurStatus}}">{{ctx.Locale.Tr "actions.runs.all_workflows"}}</a>
 					{{range .workflows}}
-						<a class="item {{if eq .Entry.Name $.CurWorkflow}}active{{end}}" href="?workflow={{.Entry.Name}}&actor={{$.CurActor}}&status={{$.CurStatus}}">
-							<span class="gt-ellipsis">{{.Entry.Name}}</span>
+						<a class="item {{if eq .Entry.Name $.CurWorkflow}}active{{end}}" href="?workflow={{.Entry.Name}}&actor={{$.CurActor}}&status={{$.CurStatus}}" data-tooltip-content="{{.Entry.Name}}">
+							<span class="gt-ellipsis">{{if and .Workflow .Workflow.Name}}{{.Workflow.Name}}{{else}}{{.Entry.Name}}{{end}}</span>
 
 							{{if .ErrMsg}}
 								<span class="flex-text-inline" data-tooltip-content="{{.ErrMsg}}">{{svg "octicon-alert" 16 "tw-text-red"}}</span>
