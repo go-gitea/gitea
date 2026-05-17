@@ -402,7 +402,7 @@ func GetIndividualUserRepoPermission(ctx context.Context, repo *repo_model.Repos
 	}()
 
 	group, err := group_model.GetGroupByID(ctx, repo.GroupID)
-	if err != nil {
+	if err != nil && !group_model.IsErrGroupNotExist(err) {
 		return perm, err
 	}
 	if err = repo.LoadUnits(ctx); err != nil {
