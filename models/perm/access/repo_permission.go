@@ -22,6 +22,7 @@ import (
 	"code.gitea.io/gitea/modules/container"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/util"
 )
 
@@ -400,13 +401,17 @@ func GetIndividualUserRepoPermission(ctx context.Context, repo *repo_model.Repos
 		log.Trace("Permission Loaded for user %-v in repo %-v, permissions: %-+v", user, repo, perm)
 	}()
 
+	group, err := group_model.GetGroupByID(ctx, repo.GroupID)
+	if err != nil {
+		return perm, err
+	}
 	if err = repo.LoadUnits(ctx); err != nil {
 		return perm, err
 	}
 	perm.units = repo.Units
 
 	// anonymous user visit private repo.
-	if user == nil && repo.IsPrivate {
+	if user == nil && (repo.IsPrivate || (group != nil && group.Visibility > structs.VisibleTypePublic)) {
 		perm.AccessMode = perm_model.AccessModeNone
 		return perm, nil
 	}
@@ -454,7 +459,11 @@ func GetIndividualUserRepoPermission(ctx context.Context, repo *repo_model.Repos
 	}
 
 	// now: the owner is visible to doer, if the repo is public, then the min access mode is read
-	minAccessMode := util.Iif(!repo.IsPrivate && !user.IsRestricted, perm_model.AccessModeRead, perm_model.AccessModeNone)
+	isGroupPrivate := false
+	if group != nil {
+		isGroupPrivate = group.Visibility > structs.VisibleTypeLimited
+	}
+	minAccessMode := util.Iif(!repo.IsPrivate && !isGroupPrivate && !user.IsRestricted, perm_model.AccessModeRead, perm_model.AccessModeNone)
 	perm.AccessMode = max(perm.AccessMode, minAccessMode)
 
 	// get units mode from teams
