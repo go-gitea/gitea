@@ -332,7 +332,7 @@ func testMoveGroup(t *testing.T) {
 		unprivilegedActor := unittest.AssertExistsAndLoadBean(t, &user_model.User{
 			ID: data.teamMembers[groupOrgWriterTeam].uid,
 		})
-		addGroupTeam(t, actor, data.rootPublic.ID, groupOrgWriterTeam, &api.CreateOrUpdateRepoGroupTeamOption{
+		editGroupTeam(t, actor, data.rootPublic.ID, groupOrgWriterTeam, &api.CreateOrUpdateRepoGroupTeamOption{
 			CanCreateIn: new(true),
 			Permission:  new(permToRepoWritePermission(data.teamMembers[groupOrgWriterTeam].perm)),
 			UnitsMap:    createUnitMapWith("write", "read"),
