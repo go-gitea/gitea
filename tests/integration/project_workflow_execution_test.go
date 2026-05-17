@@ -56,11 +56,14 @@ func testNewIssueReturnIssue(t *testing.T, session *TestSession, repo *repo_mode
 
 // testAddIssueToProject adds the issue to the project via web form if projectID == 0, it removes the issue from the project
 func testAddIssueToProject(t *testing.T, session *TestSession, userName, repoName string, projectID, issueID int64) {
-	addToProjectReq := NewRequestWithValues(t, "POST", fmt.Sprintf("/%s/%s/issues/projects",
-		userName, repoName),
+	projectValue := ""
+	if projectID > 0 {
+		projectValue = strconv.FormatInt(projectID, 10)
+	}
+	addToProjectReq := NewRequestWithValues(t, "POST", fmt.Sprintf("/%s/%s/issues/projects?issue_ids=%d",
+		userName, repoName, issueID),
 		map[string]string{
-			"id":        strconv.FormatInt(projectID, 10),
-			"issue_ids": strconv.FormatInt(issueID, 10),
+			"id": projectValue,
 		})
 	session.MakeRequest(t, addToProjectReq, http.StatusOK)
 }

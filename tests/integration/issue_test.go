@@ -139,12 +139,16 @@ func testNewIssue(t *testing.T, session *TestSession, user, repo string, opts ne
 	assert.True(t, exists, "The template has changed")
 
 	labelIDs := base.Int64sToStrings(opts.LabelIDs)
+	projectIDs := ""
+	if opts.ProjectID > 0 {
+		projectIDs = strconv.FormatInt(opts.ProjectID, 10)
+	}
 
 	req = NewRequestWithValues(t, "POST", link, map[string]string{
-		"title":      opts.Title,
-		"content":    opts.Content,
-		"project_id": strconv.FormatInt(opts.ProjectID, 10),
-		"label_ids":  strings.Join(labelIDs, ","),
+		"title":       opts.Title,
+		"content":     opts.Content,
+		"project_ids": projectIDs,
+		"label_ids":   strings.Join(labelIDs, ","),
 	})
 	resp = session.MakeRequest(t, req, http.StatusOK)
 

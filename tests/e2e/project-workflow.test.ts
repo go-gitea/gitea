@@ -12,23 +12,22 @@ import type {Page} from '@playwright/test';
 async function setupWorkflowPage(page: Page, repoName: string) {
   const user = env.GITEA_TEST_E2E_USER;
   const project = await createProject(page, {owner: user, repo: repoName, title: 'WF Project'});
-  await Promise.all([
-    createProjectColumn(page.request, user, repoName, String(project.id), 'Backlog'),
-    createProjectColumn(page.request, user, repoName, String(project.id), 'Done'),
-  ]);
+  // Create columns sequentially so their option order stays deterministic.
+  await createProjectColumn(page.request, user, repoName, String(project.id), 'Backlog');
+  await createProjectColumn(page.request, user, repoName, String(project.id), 'Done');
   await page.goto(`/${user}/${repoName}/projects/${project.id}/workflows`);
   await expect(page.locator('.workflow-sidebar')).toBeVisible();
   return project;
 }
 
-/** Click the first sidebar item and save it with the first column option. */
+/** Click the first sidebar item and save it with the Backlog column. */
 async function configureFirstWorkflow(page: Page) {
   const firstItem = page.locator('.workflow-item').first();
   await firstItem.click();
   await expect(editorActionButton(page, 'Save')).toBeVisible();
   // Use the "Move to column" action field specifically; the first select in the form
   // is "Apply to" (issue-type filter), not the column action select.
-  await moveToColumnSelect(page).selectOption({index: 1});
+  await moveToColumnSelect(page).selectOption({label: 'Backlog'});
   await clickEditorAction(page, 'Save');
   await expect(page.locator('.workflow-editor .workflow-status.status-enabled')).toBeVisible();
 }
@@ -76,10 +75,8 @@ test('project workflow: configure and toggle enable/disable', async ({page}) => 
 
   try {
     const project = await createProject(page, {owner: user, repo: repoName, title: 'Workflow Project'});
-    await Promise.all([
-      createProjectColumn(page.request, user, repoName, String(project.id), 'Backlog'),
-      createProjectColumn(page.request, user, repoName, String(project.id), 'Done'),
-    ]);
+    await createProjectColumn(page.request, user, repoName, String(project.id), 'Backlog');
+    await createProjectColumn(page.request, user, repoName, String(project.id), 'Done');
 
     await page.goto(`/${user}/${repoName}/projects/${project.id}/workflows`);
 
@@ -245,7 +242,7 @@ test('project workflow: "Apply to" filter persists across save and re-open', asy
     await applyToSelect(page).selectOption({label: 'Issues only'});
 
     // Set the required column action too.
-    await moveToColumnSelect(page).selectOption({index: 1});
+    await moveToColumnSelect(page).selectOption({label: 'Backlog'});
     await clickEditorAction(page, 'Save');
     await expect(page.locator('.workflow-editor .workflow-status.status-enabled')).toBeVisible();
 
@@ -264,11 +261,11 @@ test('project workflow: editing a saved workflow updates its configuration', asy
   await Promise.all([login(page), apiCreateRepo(page.request, {name: repoName})]);
   try {
     await setupWorkflowPage(page, repoName);
-    await configureFirstWorkflow(page);  // saves with 'Backlog' (index 1)
+    await configureFirstWorkflow(page);
 
-    // Edit the workflow and switch to the second column ('Done', index 2).
+    // Edit the workflow and switch to the Done column.
     await clickEditorAction(page, 'Edit');
-    await moveToColumnSelect(page).selectOption({index: 2});
+    await moveToColumnSelect(page).selectOption({label: 'Done'});
     await clickEditorAction(page, 'Save');
 
     // After save, view mode should reflect the updated column title.
