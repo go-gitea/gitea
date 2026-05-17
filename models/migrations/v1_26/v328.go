@@ -4,10 +4,12 @@
 package v1_26
 
 import (
+	"code.gitea.io/gitea/models/db"
+
 	"xorm.io/xorm"
 )
 
-func AddTokenPermissionsToActionRunJob(x *xorm.Engine) error {
+func AddTokenPermissionsToActionRunJob(x db.EngineMigration) error {
 	type ActionRunJob struct {
 		TokenPermissions string `xorm:"JSON TEXT"`
 	}
