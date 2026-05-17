@@ -84,7 +84,7 @@ export type WorkflowStoreState = {
   loadProjectOptions(): Promise<void>;
   loadWorkflowData(event_id: string): Promise<void>;
   saveWorkflow(): Promise<boolean>;
-  saveWorkflowStatus(): Promise<void>;
+  saveWorkflowStatus(desiredEnabled: boolean): Promise<void>;
   deleteWorkflow(): Promise<void>;
 };
 
@@ -275,13 +275,19 @@ export function createWorkflowStore(props: StoreProps): WorkflowStoreState {
           await store.loadEvents();
 
           const reloadedWorkflow = store.workflowEvents.find((w: WorkflowEvent) => w.event_id === result.workflow.event_id);
+          const savedWorkflow = {
+            ...result.workflow,
+            _isEditing: false,
+            is_configured: true,
+          } satisfies WorkflowEvent;
 
           if (reloadedWorkflow) {
+            reloadedWorkflow._isEditing = false;
             store.selectedWorkflow = reloadedWorkflow;
             store.selectedItem = reloadedWorkflow.event_id;
           } else {
-            store.selectedWorkflow = result.workflow;
-            store.selectedItem = result.workflow.event_id;
+            store.selectedWorkflow = savedWorkflow;
+            store.selectedItem = savedWorkflow.event_id;
           }
 
           store.workflowFilters = convertFilters(store.selectedWorkflow);
@@ -306,12 +312,12 @@ export function createWorkflowStore(props: StoreProps): WorkflowStoreState {
       }
     },
 
-    async saveWorkflowStatus(): Promise<void> {
+    async saveWorkflowStatus(desiredEnabled: boolean): Promise<void> {
       const selected = store.selectedWorkflow;
       if (!selected || selected.id === 0) return;
 
-      const desiredEnabled = Boolean(selected.enabled);
-      const previousEnabled = !desiredEnabled;
+      const previousEnabled = Boolean(selected.enabled);
+      selected.enabled = desiredEnabled;
 
       try {
         const formData = new FormData();

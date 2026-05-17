@@ -1170,6 +1170,17 @@ func Routes() *web.Router {
 					m.Post("/{workflow_id}/dispatches", reqRepoWriter(unit.TypeActions), bind(api.CreateActionWorkflowDispatch{}), repo.ActionsDispatchWorkflow)
 				}, context.ReferencesGitRepo(), reqToken(), reqRepoReader(unit.TypeActions))
 
+				m.Group("/projects/{project_id}/workflows", func() {
+					m.Get("", repo.ListProjectWorkflows)
+					m.Get("/options", repo.GetProjectWorkflowOptions)
+					m.Get("/{workflow_id}", repo.GetProjectWorkflow)
+					m.Post("", reqRepoWriter(unit.TypeProjects), bind(api.CreateProjectWorkflowOption{}), repo.CreateProjectWorkflow)
+					m.Patch("/{workflow_id}", reqRepoWriter(unit.TypeProjects), bind(api.EditProjectWorkflowOption{}), repo.UpdateProjectWorkflow)
+					m.Put("/{workflow_id}/enable", reqRepoWriter(unit.TypeProjects), repo.EnableProjectWorkflow)
+					m.Put("/{workflow_id}/disable", reqRepoWriter(unit.TypeProjects), repo.DisableProjectWorkflow)
+					m.Delete("/{workflow_id}", reqRepoWriter(unit.TypeProjects), repo.DeleteProjectWorkflow)
+				}, reqToken(), reqRepoReader(unit.TypeProjects))
+
 				m.Group("/actions/jobs", func() {
 					m.Get("/{job_id}", repo.GetWorkflowJob)
 					m.Get("/{job_id}/logs", repo.DownloadActionsRunJobLogs)

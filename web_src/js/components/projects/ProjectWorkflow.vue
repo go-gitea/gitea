@@ -67,15 +67,19 @@ const previousSelection = ref<SelectionSnapshot | null>(null);
 
 // ── Edit-mode state ───────────────────────────────────────────────────────────
 
-// Workflows with id=0 are always editable; saved workflows use _isEditing flag.
+// Dedicated reactive ref for tracking edit mode (more reliable than _isEditing on workflow objects).
+const editModeActive = ref(false);
+
+// Unsaved workflows (id=0) are always in edit mode; saved ones follow editModeActive.
 const isInEditMode = computed(() => {
   if (!props.canWriteProjects) return false;
   if (!store.selectedWorkflow) return false;
-  return store.selectedWorkflow.id === 0 || Boolean(store.selectedWorkflow._isEditing);
+  if (store.selectedWorkflow.id === 0) return true;
+  return editModeActive.value;
 });
 
 const setEditMode = (on: boolean) => {
-  if (store.selectedWorkflow) store.selectedWorkflow._isEditing = on;
+  editModeActive.value = on;
 };
 
 // Show cancel only when there is something meaningful to cancel to.
@@ -155,6 +159,7 @@ watch(() => store.workflowActions, persistDraft, {deep: true});
 const selectWorkflowEvent = async (event: WorkflowEvent) => {
   if (store.loading || store.selectedItem === event.event_id) return;
   try {
+    editModeActive.value = false; // exit edit mode when switching workflows
     store.selectedItem = event.event_id;
     store.selectedWorkflow = event;
     await store.loadWorkflowData(event.event_id);
@@ -204,7 +209,7 @@ const removeTemporaryWorkflow = (wf?: WorkflowEvent | null) => {
 
 // ── Workflow actions ──────────────────────────────────────────────────────────
 
-const toggleEditMode = () => {
+const toggleEditMode = async () => {
   if (!props.canWriteProjects) return;
   if (!isInEditMode.value) {
     // Enter edit mode: snapshot current selection for Cancel.
@@ -251,15 +256,17 @@ const saveWorkflow = async () => {
   if (!props.canWriteProjects) return;
   const ok = await store.saveWorkflow();
   if (ok) {
+    debouncedSelectWorkflowItem.cancel(); // prevent stale debounced click from overriding new selection
     previousSelection.value = null;
     setEditMode(false);
   }
 };
 
 const toggleWorkflowStatus = async () => {
-  if (!props.canWriteProjects || !store.selectedWorkflow) return;
-  store.selectedWorkflow.enabled = !store.selectedWorkflow.enabled;
-  await store.saveWorkflowStatus();
+  if (!props.canWriteProjects) return;
+  const wf = store.selectedWorkflow;
+  if (!wf) return;
+  await store.saveWorkflowStatus(!wf.enabled);
 };
 
 const deleteWorkflow = async () => {

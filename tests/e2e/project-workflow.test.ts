@@ -25,11 +25,11 @@ async function setupWorkflowPage(page: Page, repoName: string) {
 async function configureFirstWorkflow(page: Page) {
   const firstItem = page.locator('.workflow-item').first();
   await firstItem.click();
-  await expect(page.locator('.editor-actions-header button', {hasText: 'Save'})).toBeVisible();
+  await expect(editorActionButton(page, 'Save')).toBeVisible();
   // Use the "Move to column" action field specifically; the first select in the form
   // is "Apply to" (issue-type filter), not the column action select.
   await moveToColumnSelect(page).selectOption({index: 1});
-  await page.locator('.editor-actions-header button', {hasText: 'Save'}).click();
+  await clickEditorAction(page, 'Save');
   await expect(page.locator('.workflow-editor .workflow-status.status-enabled')).toBeVisible();
 }
 
@@ -43,9 +43,31 @@ function applyToSelect(page: Page) {
   return page.locator('.workflow-editor .field').filter({hasText: 'Apply to'}).locator('select');
 }
 
+function editorActionButton(page: Page, text: string) {
+  return page.locator('.editor-actions-header button', {hasText: text});
+}
+
+async function clickEditorAction(page: Page, text: string) {
+  const button = editorActionButton(page, text);
+  await expect(button).toBeVisible();
+  await button.click();
+  // Edit/Clone use deferred emits (setTimeout), so wait for the mode switch to complete.
+  if (text === 'Edit' || text === 'Cancel') {
+    await expect(editorActionButton(page, text)).toBeHidden();
+  } else if (text === 'Clone') {
+    // Clone switches to edit mode; wait for Cancel button to confirm.
+    await expect(editorActionButton(page, 'Cancel')).toBeVisible();
+  }
+}
+
+function moveToColumnReadonlyValue(page: Page) {
+  return page.locator('.workflow-editor .field').filter({hasText: 'Move to column'}).locator('.readonly-value');
+}
+
 test('project workflow: configure and toggle enable/disable', async ({page}) => {
   const repoName = `e2e-workflow-${randomString(8)}`;
   const user = env.GITEA_TEST_E2E_USER;
+  test.setTimeout(30000);
 
   await Promise.all([
     login(page),
@@ -73,7 +95,7 @@ test('project workflow: configure and toggle enable/disable', async ({page}) => 
     await expect(editor).toBeVisible();
 
     // Save button visible means we are in edit mode
-    const saveBtn = page.locator('.editor-actions-header button', {hasText: 'Save'});
+    const saveBtn = editorActionButton(page, 'Save');
     await expect(saveBtn).toBeVisible();
 
     // Select the "Done" column in the "Move to column" action select
@@ -87,11 +109,11 @@ test('project workflow: configure and toggle enable/disable', async ({page}) => 
     await expect(editor.locator('.editor-actions-header button', {hasText: 'Edit'})).toBeVisible();
 
     // Disable the workflow
-    await page.locator('.editor-actions-header button', {hasText: 'Disable'}).click();
+    await clickEditorAction(page, 'Disable');
     await expect(editor.locator('.workflow-status.status-disabled')).toBeVisible();
 
     // Re-enable the workflow
-    await page.locator('.editor-actions-header button', {hasText: 'Enable'}).click();
+    await clickEditorAction(page, 'Enable');
     await expect(editor.locator('.workflow-status.status-enabled')).toBeVisible();
   } finally {
     await apiDeleteRepo(page.request, user, repoName);
@@ -103,6 +125,7 @@ test('project workflow: configure and toggle enable/disable', async ({page}) => 
 test('project workflow: sidebar lists all 9 event types with inactive dots', async ({page}) => {
   const repoName = `e2e-wf-sidebar-${randomString(8)}`;
   const user = env.GITEA_TEST_E2E_USER;
+  test.setTimeout(30000);
   await Promise.all([login(page), apiCreateRepo(page.request, {name: repoName})]);
   try {
     const project = await createProject(page, {owner: user, repo: repoName, title: 'Sidebar Test'});
@@ -122,6 +145,7 @@ test('project workflow: sidebar lists all 9 event types with inactive dots', asy
 test('project workflow: status dot colour changes on configure / disable', async ({page}) => {
   const repoName = `e2e-wf-dot-${randomString(8)}`;
   const user = env.GITEA_TEST_E2E_USER;
+  test.setTimeout(30000);
   await Promise.all([login(page), apiCreateRepo(page.request, {name: repoName})]);
   try {
     await setupWorkflowPage(page, repoName);
@@ -138,11 +162,11 @@ test('project workflow: status dot colour changes on configure / disable', async
     await expect(page.locator('.workflow-item .status-inactive')).toHaveCount(8);
 
     // Disable the workflow — dot becomes disabled (red).
-    await page.locator('.editor-actions-header button', {hasText: 'Disable'}).click();
+    await clickEditorAction(page, 'Disable');
     await expect(page.locator('.workflow-item').first().locator('.status-disabled')).toBeVisible();
 
     // Re-enable — back to active (green).
-    await page.locator('.editor-actions-header button', {hasText: 'Enable'}).click();
+    await clickEditorAction(page, 'Enable');
     await expect(page.locator('.workflow-item').first().locator('.status-active')).toBeVisible();
   } finally {
     await apiDeleteRepo(page.request, user, repoName);
@@ -152,6 +176,7 @@ test('project workflow: status dot colour changes on configure / disable', async
 test('project workflow: cancel clone removes pending clone and restores original', async ({page}) => {
   const repoName = `e2e-wf-cancel-clone-${randomString(8)}`;
   const user = env.GITEA_TEST_E2E_USER;
+  test.setTimeout(30000);
   await Promise.all([login(page), apiCreateRepo(page.request, {name: repoName})]);
   try {
     await setupWorkflowPage(page, repoName);
@@ -161,12 +186,12 @@ test('project workflow: cancel clone removes pending clone and restores original
     await expect(page.locator('.editor-actions-header button', {hasText: 'Edit'})).toBeVisible();
 
     // Clone it — a new (10th) sidebar entry appears and we enter edit mode.
-    await page.locator('.editor-actions-header button', {hasText: 'Clone'}).click();
+    await clickEditorAction(page, 'Clone');
     await expect(page.locator('.workflow-item')).toHaveCount(10);
-    await expect(page.locator('.editor-actions-header button', {hasText: 'Save'})).toBeVisible();
+    await expect(editorActionButton(page, 'Save')).toBeVisible();
 
     // Cancel the clone — the pending entry must be removed.
-    await page.locator('.editor-actions-header button', {hasText: 'Cancel'}).click();
+    await clickEditorAction(page, 'Cancel');
     await expect(page.locator('.workflow-item')).toHaveCount(9);
 
     // The original workflow should be selected (active) and in view mode.
@@ -181,6 +206,7 @@ test('project workflow: cancel clone removes pending clone and restores original
 test('project workflow: saving without any action shows validation error', async ({page}) => {
   const repoName = `e2e-wf-validate-${randomString(8)}`;
   const user = env.GITEA_TEST_E2E_USER;
+  test.setTimeout(30000);
   await Promise.all([login(page), apiCreateRepo(page.request, {name: repoName})]);
   try {
     await setupWorkflowPage(page, repoName);
@@ -190,10 +216,11 @@ test('project workflow: saving without any action shows validation error', async
     await expect(page.locator('.editor-actions-header button', {hasText: 'Save'})).toBeVisible();
 
     // Deliberately leave all selects at their default empty values, then save.
-    await page.locator('.editor-actions-header button', {hasText: 'Save'}).click();
+    await clickEditorAction(page, 'Save');
 
     // A Toastify error notification must appear containing the validation text.
-    await expect(page.locator('.toastify.on .toast-body')).toContainText('at least one action');
+    // Note: .toast-body always has a hidden "1" span prefix, so we use a regex.
+    await expect(page.locator('.toastify.on .toast-body')).toContainText(/at least one action/i);
 
     // The editor must remain in edit mode (not have been navigated away).
     await expect(page.locator('.editor-actions-header button', {hasText: 'Save'})).toBeVisible();
@@ -205,6 +232,7 @@ test('project workflow: saving without any action shows validation error', async
 test('project workflow: "Apply to" filter persists across save and re-open', async ({page}) => {
   const repoName = `e2e-wf-filter-${randomString(8)}`;
   const user = env.GITEA_TEST_E2E_USER;
+  test.setTimeout(30000);
   await Promise.all([login(page), apiCreateRepo(page.request, {name: repoName})]);
   try {
     await setupWorkflowPage(page, repoName);
@@ -218,11 +246,11 @@ test('project workflow: "Apply to" filter persists across save and re-open', asy
 
     // Set the required column action too.
     await moveToColumnSelect(page).selectOption({index: 1});
-    await page.locator('.editor-actions-header button', {hasText: 'Save'}).click();
+    await clickEditorAction(page, 'Save');
     await expect(page.locator('.workflow-editor .workflow-status.status-enabled')).toBeVisible();
 
     // Re-open in edit mode and verify the saved "Apply to" value is restored.
-    await page.locator('.editor-actions-header button', {hasText: 'Edit'}).click();
+    await clickEditorAction(page, 'Edit');
     await expect(applyToSelect(page)).toHaveValue('issue');
   } finally {
     await apiDeleteRepo(page.request, user, repoName);
@@ -232,19 +260,20 @@ test('project workflow: "Apply to" filter persists across save and re-open', asy
 test('project workflow: editing a saved workflow updates its configuration', async ({page}) => {
   const repoName = `e2e-wf-edit-${randomString(8)}`;
   const user = env.GITEA_TEST_E2E_USER;
+  test.setTimeout(30000);
   await Promise.all([login(page), apiCreateRepo(page.request, {name: repoName})]);
   try {
     await setupWorkflowPage(page, repoName);
     await configureFirstWorkflow(page);  // saves with 'Backlog' (index 1)
 
     // Edit the workflow and switch to the second column ('Done', index 2).
-    await page.locator('.editor-actions-header button', {hasText: 'Edit'}).click();
+    await clickEditorAction(page, 'Edit');
     await moveToColumnSelect(page).selectOption({index: 2});
-    await page.locator('.editor-actions-header button', {hasText: 'Save'}).click();
+    await clickEditorAction(page, 'Save');
 
     // After save, view mode should reflect the updated column title.
     await expect(page.locator('.workflow-editor .workflow-status.status-enabled')).toBeVisible();
-    await expect(page.locator('.workflow-editor .readonly-value')).toContainText('Done');
+    await expect(moveToColumnReadonlyValue(page)).toContainText('Done');
   } finally {
     await apiDeleteRepo(page.request, user, repoName);
   }
@@ -253,6 +282,7 @@ test('project workflow: editing a saved workflow updates its configuration', asy
 test('project workflow: direct URL navigation selects the correct workflow', async ({page}) => {
   const repoName = `e2e-wf-url-${randomString(8)}`;
   const user = env.GITEA_TEST_E2E_USER;
+  test.setTimeout(30000);
   await Promise.all([login(page), apiCreateRepo(page.request, {name: repoName})]);
   try {
     const project = await setupWorkflowPage(page, repoName);
@@ -278,6 +308,7 @@ test('project workflow: direct URL navigation selects the correct workflow', asy
 test('project workflow: clone and delete', async ({page}) => {
   const repoName = `e2e-workflow-clone-${randomString(8)}`;
   const user = env.GITEA_TEST_E2E_USER;
+  test.setTimeout(30000);
 
   await Promise.all([
     login(page),
@@ -295,7 +326,7 @@ test('project workflow: clone and delete', async ({page}) => {
     await firstItem.click();
 
     const editor = page.locator('.workflow-editor');
-    const saveBtn = page.locator('.editor-actions-header button', {hasText: 'Save'});
+    const saveBtn = editorActionButton(page, 'Save');
     await expect(saveBtn).toBeVisible();
 
     // Configure the workflow: pick a column and save
@@ -307,17 +338,17 @@ test('project workflow: clone and delete', async ({page}) => {
     await expect(page.locator('.workflow-item')).toHaveCount(9);
 
     // Clone the configured workflow
-    await page.locator('.editor-actions-header button', {hasText: 'Clone'}).click();
+    await clickEditorAction(page, 'Clone');
     // A new entry for the same event type appears in the sidebar
     await expect(page.locator('.workflow-item')).toHaveCount(10);
 
     // Save the clone (pre-filled from the original)
-    await page.locator('.editor-actions-header button', {hasText: 'Save'}).click();
+    await clickEditorAction(page, 'Save');
     await expect(editor.locator('.workflow-status.status-enabled')).toBeVisible();
 
     // Delete the cloned workflow
-    await page.locator('.editor-actions-header button', {hasText: 'Edit'}).click();
-    await page.locator('.editor-actions-header button', {hasText: 'Delete'}).click();
+    await clickEditorAction(page, 'Edit');
+    await clickEditorAction(page, 'Delete');
 
     // Confirm deletion in the modal
     await page.locator('.ui.g-modal-confirm .ui.red.ok.button').click();

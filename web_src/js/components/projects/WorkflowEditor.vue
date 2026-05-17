@@ -56,6 +56,15 @@ const emit = defineEmits<{
   'clone-workflow': [sourceWorkflow: WorkflowEvent];
 }>();
 
+// Defer emits so click events fully complete before Vue re-renders and removes clicked buttons.
+const emitDeferred = (fn: () => void) => window.setTimeout(fn, 0);
+const deferToggleEditMode = () => emitDeferred(() => emit('toggle-edit-mode'));
+const deferToggleWorkflowStatus = () => emitDeferred(() => emit('toggle-workflow-status'));
+const deferCloneWorkflow = () => {
+  const wf = store.selectedWorkflow;
+  emitDeferred(() => emit('clone-workflow', wf!));
+};
+
 // Whether the given filter type is available for the selected workflow.
 const hasFilter = (type: string) =>
   store.selectedWorkflow?.capabilities?.available_filters?.includes(type) ?? false;
@@ -117,7 +126,7 @@ const toggleLabel = (type: string, labelId: string) => {
         <div class="editor-actions-header">
           <!-- Edit-mode buttons -->
           <template v-if="canWriteProjects && isInEditMode">
-            <button v-if="showCancelButton" class="ui small button" @click="emit('toggle-edit-mode')">
+            <button v-if="showCancelButton" class="ui small button" @click="deferToggleEditMode">
               {{ locale.cancel }}
             </button>
             <button class="ui small primary button" :disabled="store.saving" @click="emit('save-workflow')">
@@ -130,11 +139,11 @@ const toggleLabel = (type: string, labelId: string) => {
 
           <!-- View-mode buttons (saved workflows only) -->
           <template v-else-if="canWriteProjects && store.selectedWorkflow.id > 0">
-            <button class="ui small primary button" @click="emit('toggle-edit-mode')">{{ locale.edit }}</button>
+            <button class="ui small primary button" @click="deferToggleEditMode">{{ locale.edit }}</button>
             <button
               class="ui small button"
               :class="store.selectedWorkflow.enabled ? 'red' : 'green'"
-              @click="emit('toggle-workflow-status')"
+              @click="deferToggleWorkflowStatus"
             >
               {{ store.selectedWorkflow.enabled ? locale.disable : locale.enable }}
             </button>
@@ -142,7 +151,7 @@ const toggleLabel = (type: string, labelId: string) => {
               class="ui small button"
               :disabled="!canCloneSelectedWorkflow"
               :title="locale.cloneTooltip"
-              @click="emit('clone-workflow', store.selectedWorkflow)"
+              @click="deferCloneWorkflow"
             >
               {{ locale.clone }}
             </button>

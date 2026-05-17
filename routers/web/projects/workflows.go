@@ -463,13 +463,16 @@ func WorkflowsPost(ctx *context.Context) {
 		ctx.JSON(http.StatusOK, map[string]any{
 			"success": true,
 			"workflow": WorkflowConfig{
-				ID:          wf.ID,
-				EventID:     strconv.FormatInt(wf.ID, 10),
-				DisplayName: string(ctx.Tr(wf.WorkflowEvent.LangKey())),
-				Filters:     wf.WorkflowFilters,
-				Actions:     wf.WorkflowActions,
-				Summary:     workflowSummary,
-				Enabled:     wf.Enabled,
+				ID:            wf.ID,
+				EventID:       strconv.FormatInt(wf.ID, 10),
+				DisplayName:   string(ctx.Tr(wf.WorkflowEvent.LangKey())),
+				WorkflowEvent: string(wf.WorkflowEvent),
+				Capabilities:  project_model.GetWorkflowEventCapabilities()[wf.WorkflowEvent],
+				Filters:       wf.WorkflowFilters,
+				Actions:       wf.WorkflowActions,
+				Summary:       workflowSummary,
+				Enabled:       wf.Enabled,
+				IsConfigured:  true,
 			},
 		})
 		return
@@ -498,13 +501,16 @@ func WorkflowsPost(ctx *context.Context) {
 	ctx.JSON(http.StatusOK, map[string]any{
 		"success": true,
 		"workflow": WorkflowConfig{
-			ID:          wf.ID,
-			EventID:     strconv.FormatInt(wf.ID, 10),
-			DisplayName: string(ctx.Tr(wf.WorkflowEvent.LangKey())),
-			Filters:     wf.WorkflowFilters,
-			Actions:     wf.WorkflowActions,
-			Summary:     workflowSummary,
-			Enabled:     wf.Enabled,
+			ID:            wf.ID,
+			EventID:       strconv.FormatInt(wf.ID, 10),
+			DisplayName:   string(ctx.Tr(wf.WorkflowEvent.LangKey())),
+			WorkflowEvent: string(wf.WorkflowEvent),
+			Capabilities:  project_model.GetWorkflowEventCapabilities()[wf.WorkflowEvent],
+			Filters:       wf.WorkflowFilters,
+			Actions:       wf.WorkflowActions,
+			Summary:       workflowSummary,
+			Enabled:       wf.Enabled,
+			IsConfigured:  true,
 		},
 	})
 }
@@ -516,7 +522,7 @@ func WorkflowsStatus(ctx *context.Context) {
 	}
 
 	workflowID := ctx.PathParamInt64("workflow_id")
-	wf, err := project_model.GetWorkflowByProjectAndID(ctx, p.ID, workflowID)
+	_, err := project_model.GetWorkflowByProjectAndID(ctx, p.ID, workflowID)
 	if err != nil {
 		if db.IsErrNotExist(err) {
 			ctx.NotFound(nil)
@@ -545,7 +551,7 @@ func WorkflowsStatus(ctx *context.Context) {
 
 	ctx.JSON(http.StatusOK, map[string]any{
 		"success": true,
-		"enabled": wf.Enabled,
+		"enabled": enabled,
 	})
 }
 
