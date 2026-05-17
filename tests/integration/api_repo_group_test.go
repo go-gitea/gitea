@@ -69,11 +69,11 @@ func createOrgWithGroups(t *testing.T) *commonGroupTestData {
 	apiOrg := DecodeJSON(t, resp, &api.Organization{})
 
 	teamPrivs := map[string]*groupAccessAndUser{
-		groupOrgAdminTeam:      &groupAccessAndUser{uid: 4, perm: perm_model.AccessModeAdmin},
-		groupOrgWriterTeam:     &groupAccessAndUser{uid: 5, perm: perm_model.AccessModeWrite},
-		groupOrgReaderTeam:     &groupAccessAndUser{uid: 8, perm: perm_model.AccessModeRead},
-		groupOrgUnitTeam:       &groupAccessAndUser{uid: 13, perm: perm_model.AccessModeRead},
-		groupOrgUnitWriterTeam: &groupAccessAndUser{uid: 14, perm: perm_model.AccessModeWrite},
+		groupOrgAdminTeam:      {uid: 4, perm: perm_model.AccessModeAdmin},
+		groupOrgWriterTeam:     {uid: 5, perm: perm_model.AccessModeWrite},
+		groupOrgReaderTeam:     {uid: 8, perm: perm_model.AccessModeRead},
+		groupOrgUnitTeam:       {uid: 13, perm: perm_model.AccessModeRead},
+		groupOrgUnitWriterTeam: {uid: 14, perm: perm_model.AccessModeWrite},
 	}
 
 	baseOrgURL := "/api/v1/orgs/" + apiOrg.Name

@@ -1,3 +1,6 @@
+// Copyright 2026 The Gitea Authors. All rights reserved.
+// SPDX-License-Identifier: MIT
+
 package integration
 
 import (
@@ -15,10 +18,11 @@ import (
 	user_model "code.gitea.io/gitea/models/user"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/tests"
+
 	"github.com/stretchr/testify/assert"
 )
 
-func createUnitMapWith(basePerm string, excludedVal string, excludeUnits ...unit_model.Unit) map[string]string {
+func createUnitMapWith(basePerm, excludedVal string, excludeUnits ...unit_model.Unit) map[string]string {
 	ret := make(map[string]string)
 	excluded := make(map[unit_model.Type]bool)
 	for _, v := range excludeUnits {

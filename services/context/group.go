@@ -111,7 +111,7 @@ type GroupAssignmentOptions struct {
 	RequireGroupAdmin bool
 }
 
-func groupAssignment(ctx commonCtx, doer *user_model.User, isSigned bool, isAPI bool, handleNotFound func(error), handleOtherError func(string, error), assign func(repoGroup *RepoGroup)) {
+func groupAssignment(ctx commonCtx, doer *user_model.User, isSigned, isAPI bool, handleNotFound func(error), handleOtherError func(string, error), assign func(repoGroup *RepoGroup)) {
 	var err error
 	repoGroup := new(RepoGroup)
 	if repoGroup.Group == nil {
