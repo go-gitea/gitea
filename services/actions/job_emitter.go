@@ -523,14 +523,21 @@ func expandOnePlaceholder(ctx context.Context, run *actions_model.ActionRun, pla
 	}
 
 	giteaCtx := GenerateGiteaContext(ctx, run, runAttempt, nil)
+	cacheKey := computeMatrixCacheKey(placeholder.WorkflowPayload, placeholder.Needs, needsOutputs)
 	timings.startParse()
-	expanded, err := jobparser.ExpandDeferredMatrix(
-		placeholder.WorkflowPayload,
-		placeholder.Needs,
-		needsOutputs,
-		jobparser.WithVars(vars),
-		jobparser.WithGitContext(giteaCtx.ToGitHubContext()),
-	)
+	expanded, cacheHit := matrixCacheGet(cacheKey)
+	if !cacheHit {
+		expanded, err = jobparser.ExpandDeferredMatrix(
+			placeholder.WorkflowPayload,
+			placeholder.Needs,
+			needsOutputs,
+			jobparser.WithVars(vars),
+			jobparser.WithGitContext(giteaCtx.ToGitHubContext()),
+		)
+		if err == nil {
+			matrixCachePut(cacheKey, expanded)
+		}
+	}
 	timings.endParse()
 	if err != nil {
 		return fmt.Errorf("ExpandDeferredMatrix: %w", err)
