@@ -1,8 +1,18 @@
 {{if and ctx.RootData.SignedUserID (not ctx.RootData.Repository.IsArchived)}}
+	{{/* When a parent comment is passed (reply path), pre-fill side, line, and path so a
+		reply on an existing thread submits with the same coordinates as the parent. */}}
+	{{$side := ""}}
+	{{$line := ""}}
+	{{$path := ""}}
+	{{if $.comment}}
+		{{$side = $.comment.DiffSide}}
+		{{$line = $.comment.UnsignedLine}}
+		{{$path = $.comment.TreePath}}
+	{{end}}
 	<form class="ui form {{if $.hidden}}tw-hidden comment-form{{end}}" action="{{$.root.RepoLink}}/commit/{{$.root.CommitID}}/comment" method="post">
-		<input type="hidden" name="side" value="">
-		<input type="hidden" name="line" value="">
-		<input type="hidden" name="path" value="">
+		<input type="hidden" name="side" value="{{if eq $side "previous"}}previous{{else if eq $side "proposed"}}proposed{{end}}">
+		<input type="hidden" name="line" value="{{$line}}">
+		<input type="hidden" name="path" value="{{$path}}">
 		<div class="field">
 		{{template "shared/combomarkdowneditor" (dict
 			"CustomInit" true

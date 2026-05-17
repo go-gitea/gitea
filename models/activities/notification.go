@@ -154,16 +154,21 @@ func CreateCommitCommentNotification(ctx context.Context, doer *user_model.User,
 
 		// Filter recipients to those who can read code on this repo. Without
 		// this, commit-author or @mention notifications can reach users who
-		// have no visibility into a private repo.
+		// have no visibility into a private repo. Skip silently only when the
+		// recipient was deleted between mention-resolution and now; surface
+		// unexpected DB or permission errors so the caller can log them.
 		filtered := make(map[int64]struct{}, len(receiverIDs))
 		for uid := range receiverIDs {
 			recipient, err := user_model.GetUserByID(ctx, uid)
 			if err != nil {
-				continue
+				if user_model.IsErrUserNotExist(err) {
+					continue
+				}
+				return fmt.Errorf("GetUserByID [%d]: %w", uid, err)
 			}
 			perm, err := access.GetDoerRepoPermission(ctx, repo, recipient)
 			if err != nil {
-				continue
+				return fmt.Errorf("GetDoerRepoPermission [%d]: %w", uid, err)
 			}
 			if perm.CanRead(unit.TypeCode) {
 				filtered[uid] = struct{}{}

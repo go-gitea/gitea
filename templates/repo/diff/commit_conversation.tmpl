@@ -16,9 +16,14 @@
 						{{svg "octicon-arrow-down" 12}} {{ctx.Locale.Tr "repo.issues.next"}}
 					</button>
 				</div>
+				{{if and $.SignedUserID (not $.Repository.IsArchived)}}
+					<button class="comment-form-reply ui primary icon tiny button">
+						{{svg "octicon-reply" 12}}{{ctx.Locale.Tr "repo.diff.comment.reply"}}
+					</button>
+				{{end}}
 			</div>
 			{{if and $.SignedUserID (not $.Repository.IsArchived)}}
-				{{template "repo/diff/commit_comment_form" dict "hidden" true "root" $}}
+				{{template "repo/diff/commit_comment_form" dict "hidden" true "root" $ "comment" $comment}}
 			{{end}}
 		</div>
 	</div>

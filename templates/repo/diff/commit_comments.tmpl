@@ -14,7 +14,7 @@
 				</span>
 			</div>
 			<div class="comment-header-right">
-				{{if and $.root.IsSigned (eq $.root.SignedUserID .PosterID)}}
+				{{if and $.root.IsSigned (eq $.root.SignedUserID .PosterID) (not $.root.Repository.IsArchived)}}
 					<div class="item context js-aria-clickable delete-comment" data-comment-id="{{.HashTag}}" data-url="{{$.root.RepoLink}}/commit/{{.CommitSHA}}/comment/{{.ID}}/delete" data-locale="{{ctx.Locale.Tr "repo.issues.delete_comment_confirm"}}">
 						{{svg "octicon-trash" 14}}
 					</div>
