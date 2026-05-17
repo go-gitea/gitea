@@ -3,14 +3,25 @@
 
 package v1_27
 
-import "xorm.io/xorm"
+import (
+	"code.gitea.io/gitea/modules/timeutil"
 
-// AddCommitCommentIDToNotification adds a dedicated column for linking a
-// notification to a standalone commit comment. The existing comment_id column
-// stays reserved for the issue/PR Comment table.
-func AddCommitCommentIDToNotification(x *xorm.Engine) error {
-	type Notification struct {
-		CommitCommentID int64
+	"xorm.io/xorm"
+)
+
+func AddCommitCommentTable(x *xorm.Engine) error {
+	type CommitComment struct {
+		ID          int64              `xorm:"pk autoincr"`
+		RepoID      int64              `xorm:"INDEX NOT NULL"`
+		CommitSHA   string             `xorm:"VARCHAR(64) INDEX NOT NULL"`
+		TreePath    string             `xorm:"VARCHAR(4000) NOT NULL"`
+		Line        int64              `xorm:"NOT NULL"`
+		PosterID    int64              `xorm:"INDEX NOT NULL"`
+		Content     string             `xorm:"LONGTEXT NOT NULL"`
+		Patch       string             `xorm:"LONGTEXT"`
+		CreatedUnix timeutil.TimeStamp `xorm:"INDEX created"`
+		UpdatedUnix timeutil.TimeStamp `xorm:"INDEX updated"`
 	}
-	return x.Sync(new(Notification))
+
+	return x.Sync(new(CommitComment))
 }
