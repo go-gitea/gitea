@@ -467,7 +467,7 @@ func ChildGroupCond(ctx context.Context, doer *user_model.User, firstParent int6
 	}
 	var filter string
 
-	groupFilter := AccessibleGroupCondition(doer, unit.TypeInvalid, perm.AccessModeRead)
+	groupFilter := AccessibleGroupCondition(doer, unit.TypeInvalid, perm.AccessModeRead, false)
 	boundFilter, err := builder.ToBoundSQL(groupFilter)
 	if err == nil {
 		filter = "AND (" + boundFilter + ")"

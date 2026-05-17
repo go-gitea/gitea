@@ -111,7 +111,7 @@ func GetTopLevelGroupItemList(ctx context.Context, orgID int64, doer *user_model
 	if doer != nil {
 		doerID = doer.ID
 	}
-	groupCond := group_model.AccessibleGroupCondition(doer, unit.TypeInvalid, perm.AccessModeRead)
+	groupCond := group_model.AccessibleGroupCondition(doer, unit.TypeInvalid, perm.AccessModeRead, false)
 	if requireMember {
 		groupCond = groupCond.And(group_model.MemberCond("repo_group.id", 0, doer))
 	}

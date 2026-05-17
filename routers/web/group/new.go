@@ -40,7 +40,7 @@ func NewGroup(ctx *context.Context) {
 		CanCreateIn: optional.Some(true),
 		OwnerID:     ctx.Org.Organization.ID,
 	}
-	cond := group_model.AccessibleGroupCondition(ctx.Doer, unit_model.TypeInvalid, perm.AccessModeWrite)
+	cond := group_model.AccessibleGroupCondition(ctx.Doer, unit_model.TypeInvalid, perm.AccessModeWrite, false)
 	cond = cond.And(opts.ToConds())
 	groups, err := group_model.FindGroupsByCond(ctx, &group_model.FindGroupsOptions{
 		ListOptions: db.ListOptions{

@@ -729,7 +729,7 @@ func AccessibleRepositoryCondition(user *user_model.User, unitType unit.Type) bu
 		builder.In("repository.group_id",
 			builder.Select("id").
 				From("repo_group").
-				Where(group.AccessibleGroupCondition(user, unitType, perm.AccessModeRead))))
+				Where(group.AccessibleGroupCondition(user, unitType, perm.AccessModeRead, true))))
 	return cond
 }
 
