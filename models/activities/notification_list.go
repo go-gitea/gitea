@@ -178,10 +178,7 @@ func (nl NotificationList) LoadAttributes(ctx context.Context) error {
 	if _, err := nl.LoadComments(ctx); err != nil {
 		return err
 	}
-	if err := nl.LoadCommitComments(ctx); err != nil {
-		return err
-	}
-	return nil
+	return nl.LoadCommitComments(ctx)
 }
 
 func (nl NotificationList) getPendingRepoIDs() []int64 {
