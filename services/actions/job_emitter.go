@@ -437,9 +437,14 @@ func expandDeferredMatrixPlaceholders(ctx context.Context, run *actions_model.Ac
 			continue
 		}
 		allDone, allSucceed := needsReadyForExpansion(placeholder, byJobID)
-		if !allDone || !allSucceed {
-			// Either not yet ready, or an upstream failure: leave for the
-			// resolver to handle (it will keep blocked or skip).
+		if !allDone {
+			observeDeferredCheck()
+			continue
+		}
+		if !allSucceed {
+			// An upstream failure: leave for the resolver, which will skip
+			// the placeholder. No metric counter — that's a workflow
+			// outcome, not a matrix-expansion outcome.
 			continue
 		}
 		if err := expandOnePlaceholder(ctx, run, placeholder); err != nil {
@@ -478,7 +483,17 @@ func needsReadyForExpansion(placeholder *actions_model.ActionRunJob, byJobID map
 // expandOnePlaceholder builds the upstream needs-outputs map, calls
 // jobparser.ExpandDeferredMatrix, inserts N child RunJobs, and deletes the
 // placeholder row. All operations run in the caller's transaction.
-func expandOnePlaceholder(ctx context.Context, run *actions_model.ActionRun, placeholder *actions_model.ActionRunJob) error {
+func expandOnePlaceholder(ctx context.Context, run *actions_model.ActionRun, placeholder *actions_model.ActionRunJob) (err error) {
+	timings := newMatrixTimings()
+	childrenCount := 0
+	defer func() {
+		outcome := "success"
+		if err != nil {
+			outcome = "failure"
+		}
+		timings.end(outcome, childrenCount)
+	}()
+
 	taskNeeds, err := FindTaskNeeds(ctx, placeholder)
 	if err != nil {
 		return fmt.Errorf("FindTaskNeeds: %w", err)
@@ -508,6 +523,7 @@ func expandOnePlaceholder(ctx context.Context, run *actions_model.ActionRun, pla
 	}
 
 	giteaCtx := GenerateGiteaContext(ctx, run, runAttempt, nil)
+	timings.startParse()
 	expanded, err := jobparser.ExpandDeferredMatrix(
 		placeholder.WorkflowPayload,
 		placeholder.Needs,
@@ -515,6 +531,7 @@ func expandOnePlaceholder(ctx context.Context, run *actions_model.ActionRun, pla
 		jobparser.WithVars(vars),
 		jobparser.WithGitContext(giteaCtx.ToGitHubContext()),
 	)
+	timings.endParse()
 	if err != nil {
 		return fmt.Errorf("ExpandDeferredMatrix: %w", err)
 	}
@@ -569,9 +586,12 @@ func expandOnePlaceholder(ctx context.Context, run *actions_model.ActionRun, pla
 			MatrixValues:      matrixValues,
 		})
 	}
+	timings.startInsert()
 	if err := actions_model.InsertActionRunJobs(ctx, children); err != nil {
 		return fmt.Errorf("InsertActionRunJobs: %w", err)
 	}
+	timings.endInsert()
+	childrenCount = len(children)
 
 	if _, err := db.GetEngine(ctx).ID(placeholder.ID).Delete(&actions_model.ActionRunJob{}); err != nil {
 		return fmt.Errorf("delete placeholder %d: %w", placeholder.ID, err)
