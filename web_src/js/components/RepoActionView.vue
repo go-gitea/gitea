@@ -1,12 +1,12 @@
 <script setup lang="ts">
 import {SvgIcon} from '../svg.ts';
 import ActionStatusIcon from './ActionStatusIcon.vue';
-import {computed, toRefs} from 'vue';
+import {computed, ref, toRefs} from 'vue';
 import {POST, DELETE} from '../modules/fetch.ts';
 import ActionRunSummaryView from './ActionRunSummaryView.vue';
 import ActionRunJobView from './ActionRunJobView.vue';
 import type {ActionsRunAttempt} from '../modules/gitea-actions.ts';
-import {createActionRunViewStore, decorateJobsForMatrixGrouping} from './ActionRunView.ts';
+import {createActionRunViewStore, groupJobsByMatrix} from './ActionRunView.ts';
 import {buildArtifactTooltipHtml} from './ActionRunArtifacts.ts';
 
 defineOptions({
@@ -50,7 +50,22 @@ async function deleteArtifact(name: string) {
   await store.forceReloadCurrentRun();
 }
 
-const decoratedJobs = computed(() => decorateJobsForMatrixGrouping(run.value.jobs ?? []));
+const jobGroups = computed(() => groupJobsByMatrix(run.value.jobs ?? []));
+
+// Collapsed-by-user matrix groups (keyed by workflow jobId). Default: expanded.
+// The group that currently contains the selected job is force-expanded below.
+const collapsedGroups = ref<Set<string>>(new Set());
+function toggleGroup(jobId: string) {
+  if (collapsedGroups.value.has(jobId)) {
+    collapsedGroups.value.delete(jobId);
+  } else {
+    collapsedGroups.value.add(jobId);
+  }
+}
+function isGroupExpanded(group: {jobId: string; iterations: Array<{id: number}>}): boolean {
+  if (group.iterations.some((j) => j.id === props.jobId)) return true;
+  return !collapsedGroups.value.has(group.jobId);
+}
 </script>
 <template>
   <!-- make the view container full width to make users easier to read logs -->
@@ -154,14 +169,36 @@ const decoratedJobs = computed(() => decorateJobsForMatrixGrouping(run.value.job
         <div class="left-list-header">{{ locale.allJobs }}</div>
         <!-- unlike other lists, the items have paddings already -->
         <ul class="ui relaxed list flex-items-block tw-p-0">
-          <li class="item job-brief-item" v-for="{job, isMatrixChild} in decoratedJobs" :key="job.id" :class="[props.jobId === job.id ? 'selected' : '', isMatrixChild ? 'matrix-child' : '']">
-            <a class="tw-contents silenced" :href="job.link">
-              <ActionStatusIcon :locale-status="locale.status[job.status]" :status="job.status" icon-variant="circle-fill"/>
-              <span class="tw-flex-1 gt-ellipsis">{{ job.name }}</span>
-              <SvgIcon name="octicon-sync" role="button" :data-tooltip-content="locale.rerun" class="tw-cursor-pointer link-action interact-fg" :data-url="`${run.link}/jobs/${job.id}/rerun`" v-if="job.canRerun"/>
-              <span>{{ job.duration }}</span>
-            </a>
-          </li>
+          <template v-for="group in jobGroups" :key="group.jobId + ':' + group.iterations[0].id">
+            <!-- single iteration: render as a flat job item, no header -->
+            <li v-if="group.iterations.length === 1" class="item job-brief-item" :class="props.jobId === group.iterations[0].id ? 'selected' : ''">
+              <a class="tw-contents silenced" :href="group.iterations[0].link">
+                <ActionStatusIcon :locale-status="locale.status[group.iterations[0].status]" :status="group.iterations[0].status" icon-variant="circle-fill"/>
+                <span class="tw-flex-1 gt-ellipsis">{{ group.iterations[0].name }}</span>
+                <SvgIcon name="octicon-sync" role="button" :data-tooltip-content="locale.rerun" class="tw-cursor-pointer link-action interact-fg" :data-url="`${run.link}/jobs/${group.iterations[0].id}/rerun`" v-if="group.iterations[0].canRerun"/>
+                <span>{{ group.iterations[0].duration }}</span>
+              </a>
+            </li>
+            <!-- N>=2 iterations: synthetic header + indented children -->
+            <template v-else>
+              <li class="item job-brief-item matrix-group-header" @click="toggleGroup(group.jobId)">
+                <ActionStatusIcon :locale-status="locale.status[group.aggregateStatus]" :status="group.aggregateStatus" icon-variant="circle-fill"/>
+                <span class="tw-flex-1 gt-ellipsis">{{ group.jobId }}</span>
+                <span class="matrix-group-count">{{ group.iterations.length }}</span>
+                <SvgIcon :name="isGroupExpanded(group) ? 'octicon-chevron-down' : 'octicon-chevron-right'" :size="14"/>
+              </li>
+              <template v-if="isGroupExpanded(group)">
+                <li v-for="job in group.iterations" :key="job.id" class="item job-brief-item matrix-child" :class="props.jobId === job.id ? 'selected' : ''">
+                  <a class="tw-contents silenced" :href="job.link">
+                    <ActionStatusIcon :locale-status="locale.status[job.status]" :status="job.status" icon-variant="circle-fill"/>
+                    <span class="tw-flex-1 gt-ellipsis">{{ job.name }}</span>
+                    <SvgIcon name="octicon-sync" role="button" :data-tooltip-content="locale.rerun" class="tw-cursor-pointer link-action interact-fg" :data-url="`${run.link}/jobs/${job.id}/rerun`" v-if="job.canRerun"/>
+                    <span>{{ job.duration }}</span>
+                  </a>
+                </li>
+              </template>
+            </template>
+          </template>
         </ul>
 
         <!-- artifacts list -->
@@ -336,6 +373,20 @@ const decoratedJobs = computed(() => decorateJobsForMatrixGrouping(run.value.job
 
 .job-brief-item.matrix-child {
   padding-left: 24px;
+}
+
+.job-brief-item.matrix-group-header {
+  cursor: pointer;
+  user-select: none;
+  color: var(--color-text-light-2);
+}
+
+.matrix-group-count {
+  font-size: 12px;
+  color: var(--color-text-light-2);
+  padding: 0 4px;
+  background: var(--color-secondary-bg);
+  border-radius: var(--border-radius);
 }
 
 /* ================ */

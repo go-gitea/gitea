@@ -87,22 +87,52 @@ export function createLogLineMessage(line: LogLine, cmd: LogLineCommand | null) 
   return logMsg;
 }
 
-export type DecoratedActionsJob = {
-  job: ActionsJob;
-  isMatrixChild: boolean;
+export type JobGroup = {
+  // The workflow job id shared by every entry. Renders as the group header
+  // label when iterations.length > 1.
+  jobId: string;
+  iterations: ActionsJob[];
+  // Aggregate status across iterations — mirrors the backend
+  // AggregateJobStatus precedence (cancelling > running > waiting > blocked
+  // > cancelled > failure; all-success or all-skipped collapse).
+  aggregateStatus: ActionsStatus;
 };
 
-// decorateJobsForMatrixGrouping flags jobs that should render as indented
-// matrix children in the run sidebar. A job is a child when its predecessor
-// shares the same workflow jobId — which is what static and dynamic matrix
-// iterations have in common (see SortMatrixGroupsByName on the backend, which
-// keeps these contiguous). Matches GitHub's flat-with-indent UI: no separate
-// parent header row, just visual grouping by name prefix.
-export function decorateJobsForMatrixGrouping(jobs: ReadonlyArray<ActionsJob>): DecoratedActionsJob[] {
-  return jobs.map((job, i) => ({
-    job,
-    isMatrixChild: i > 0 && jobs[i - 1].jobId === job.jobId,
-  }));
+// groupJobsByMatrix walks the (already contiguous-by-jobId, thanks to the
+// backend's SortMatrixGroupsByName) job list and bundles consecutive entries
+// sharing a workflow jobId into a group. Single-entry groups render flat;
+// multi-entry groups render a synthetic header followed by indented children.
+// Matches GitHub's modern run-detail UI (one expandable header per matrix).
+export function groupJobsByMatrix(jobs: ReadonlyArray<ActionsJob>): JobGroup[] {
+  const groups: JobGroup[] = [];
+  for (const job of jobs) {
+    const last = groups[groups.length - 1];
+    if (last && last.jobId === job.jobId) {
+      last.iterations.push(job);
+    } else {
+      groups.push({jobId: job.jobId, iterations: [job], aggregateStatus: 'unknown'});
+    }
+  }
+  for (const g of groups) {
+    g.aggregateStatus = aggregateIterationStatus(g.iterations.map((j) => j.status));
+  }
+  return groups;
+}
+
+// aggregateIterationStatus mirrors models/actions/run_job.go AggregateJobStatus
+// so the synthetic group header reflects the same precedence the backend
+// would compute for an attempt-level status.
+export function aggregateIterationStatus(statuses: ReadonlyArray<ActionsStatus>): ActionsStatus {
+  if (statuses.length === 0) return 'unknown';
+  if (statuses.every((s) => s === 'skipped')) return 'skipped';
+  if (statuses.every((s) => s === 'success' || s === 'skipped')) return 'success';
+  if (statuses.some((s) => s === 'cancelling')) return 'cancelling';
+  if (statuses.some((s) => s === 'running')) return 'running';
+  if (statuses.some((s) => s === 'waiting')) return 'waiting';
+  if (statuses.some((s) => s === 'blocked')) return 'blocked';
+  if (statuses.some((s) => s === 'cancelled')) return 'cancelled';
+  if (statuses.some((s) => s === 'failure')) return 'failure';
+  return 'unknown';
 }
 
 export function createEmptyActionsRun(): ActionsRun {
