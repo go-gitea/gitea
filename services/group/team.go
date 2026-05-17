@@ -53,34 +53,18 @@ func AddTeamToGroup(ctx context.Context, group *group_model.Group, tname string,
 	if canCreateIn != nil {
 		canCreateInRepo = *canCreateIn
 	}
-	isNew := true
 	if err = group.LoadParentGroup(ctx); err != nil {
 		return err
 	}
-	ex := group_model.HasTeamGroup(ctx, group.OwnerID, t.ID, group.ID)
-	if ex {
-		gt, err := group_model.FindGroupTeamByTeamID(ctx, group.ID, t.ID)
-		if err != nil {
-			return err
-		}
-		gt.CanCreateIn = canCreateInRepo
-		gt.AccessMode = mode
-		isNew = false
-		if err = UpdateGroupTeam(ctx, gt, unitMap); err != nil {
-			return err
-		}
-	} else {
-		if err = group_model.AddTeamGroup(ctx, group.OwnerID, t.ID, group.ID, mode, canCreateInRepo); err != nil {
-			return err
-		}
+
+	if err = group_model.AddTeamGroup(ctx, group.OwnerID, t.ID, group.ID, mode, canCreateInRepo); err != nil {
+		return err
 	}
 
-	if isNew {
-		for unitName, unitPerm := range unitMap {
-			err = UpdateOrCreateGroupUnit(ctx, group, t, unit.Units[unit.TypeFromKey(unitName)], perm.ParseAccessMode(unitPerm))
-			if err != nil {
-				return err
-			}
+	for unitName, unitPerm := range unitMap {
+		err = UpdateOrCreateGroupUnit(ctx, group, t, unit.Units[unit.TypeFromKey(unitName)], perm.ParseAccessMode(unitPerm))
+		if err != nil {
+			return err
 		}
 	}
 	return committer.Commit()
