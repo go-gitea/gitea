@@ -15,6 +15,7 @@ import (
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/modules/actions"
 	"code.gitea.io/gitea/modules/httplib"
+	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/services/context"
 )
@@ -61,11 +62,12 @@ func DownloadActionsRunAllJobLogs(ctx *context.Base, ctxRepo *repo_model.Reposit
 
 	// Add each job's logs to the zip
 	for _, job := range runJobs {
-		if job.TaskID == 0 {
+		taskID := job.EffectiveTaskID()
+		if taskID == 0 {
 			continue // Skip jobs that haven't started
 		}
 
-		task, err := actions_model.GetTaskByID(ctx, job.TaskID)
+		task, err := actions_model.GetTaskByID(ctx, taskID)
 		if err != nil {
 			return fmt.Errorf("GetTaskByID for job %d: %w", job.ID, err)
 		}
@@ -74,7 +76,7 @@ func DownloadActionsRunAllJobLogs(ctx *context.Base, ctxRepo *repo_model.Reposit
 			continue
 		}
 
-		// Create file in zip with job name and task ID; sanitize to prevent Zip Slip
+		// Create file in zip with job name and task ID; sanitize job names for safe zip entry paths
 		safeJobName := strings.NewReplacer("/", "-", `\`, "-", "..", "__").Replace(job.Name)
 		fileName := fmt.Sprintf("%s-%s-%d.log", safeWorkflowName, safeJobName, task.ID)
 
@@ -93,7 +95,8 @@ func DownloadActionsRunAllJobLogs(ctx *context.Base, ctxRepo *repo_model.Reposit
 			_, err = io.Copy(zipFile, reader)
 			return err
 		}(); err != nil {
-			return fmt.Errorf("job %d: %w", job.ID, err)
+			log.Error("Failed to add logs for job %d to zip: %v", job.ID, err)
+			continue
 		}
 	}
 

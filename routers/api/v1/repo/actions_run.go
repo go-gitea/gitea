@@ -181,8 +181,14 @@ func ApproveWorkflowRun(ctx *context.APIContext) {
 		return
 	}
 
+	// GitHub-compatible: return 200 if already approved (idempotent)
 	if !run.NeedApproval {
-		ctx.APIError(http.StatusBadRequest, "Run does not require approval")
+		convertedRun, err := convert.ToActionWorkflowRun(ctx, ctx.Repo.Repository, run, nil)
+		if err != nil {
+			ctx.APIErrorInternal(err)
+			return
+		}
+		ctx.JSON(http.StatusOK, convertedRun)
 		return
 	}
 
@@ -195,14 +201,13 @@ func ApproveWorkflowRun(ctx *context.APIContext) {
 		return
 	}
 
-	// Reload run to reflect post-approval state.
-	updatedRun, has, err := db.GetByID[actions_model.ActionRun](ctx, runID)
-	if err != nil || !has {
-		ctx.APIErrorInternal(err)
-		return
-	}
+	// Update known-changed fields on the run object in memory.
+	// Note: the overall run status is updated asynchronously by the notifier,
+	// so the status field may still reflect the pre-approval state.
+	run.NeedApproval = false
+	run.ApprovedBy = ctx.Doer.ID
 
-	convertedRun, err := convert.ToActionWorkflowRun(ctx, ctx.Repo.Repository, updatedRun, nil)
+	convertedRun, err := convert.ToActionWorkflowRun(ctx, ctx.Repo.Repository, run, nil)
 	if err != nil {
 		ctx.APIErrorInternal(err)
 		return

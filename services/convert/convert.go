@@ -258,9 +258,8 @@ func ToActionTask(ctx context.Context, t *actions_model.ActionTask) (*api.Action
 }
 
 func ToActionWorkflowRun(ctx context.Context, repo *repo_model.Repository, run *actions_model.ActionRun, attempt *actions_model.ActionRunAttempt) (*api.ActionWorkflowRun, error) {
-	if run.Repo == nil {
-		run.Repo = repo
-	}
+	// caller-provided repo is the single source of truth for URL construction
+	run.Repo = repo
 	if err := run.LoadTriggerUser(ctx); err != nil {
 		return nil, err
 	}

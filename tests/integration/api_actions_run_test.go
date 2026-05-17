@@ -15,10 +15,10 @@ import (
 	actions_model "code.gitea.io/gitea/models/actions"
 	auth_model "code.gitea.io/gitea/models/auth"
 	"code.gitea.io/gitea/models/db"
+	"code.gitea.io/gitea/models/perm"
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unittest"
 	user_model "code.gitea.io/gitea/models/user"
-	"code.gitea.io/gitea/modules/json"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/timeutil"
 
@@ -63,9 +63,7 @@ func TestAPIActionsGetWorkflowRun(t *testing.T) {
 			AddTokenAuth(token)
 		resp := MakeRequest(t, req, http.StatusOK)
 
-		var jobList api.ActionWorkflowJobsResponse
-		err = json.Unmarshal(resp.Body.Bytes(), &jobList)
-		require.NoError(t, err)
+		jobList := DecodeJSON(t, resp, &api.ActionWorkflowJobsResponse{})
 
 		job198Idx := slices.IndexFunc(jobList.Entries, func(job *api.ActionWorkflowJob) bool { return job.ID == 198 })
 		require.NotEqual(t, -1, job198Idx, "expected to find job 198 in run 795 jobs list")
@@ -144,9 +142,7 @@ func testAPIActionsDeleteRunListArtifacts(t *testing.T, repo *repo_model.Reposit
 	req := NewRequest(t, "GET", fmt.Sprintf("/api/v1/repos/%s/actions/runs/795/artifacts", repo.FullName())).
 		AddTokenAuth(token)
 	resp := MakeRequest(t, req, http.StatusOK)
-	var listResp api.ActionArtifactsResponse
-	err := json.Unmarshal(resp.Body.Bytes(), &listResp)
-	assert.NoError(t, err)
+	listResp := DecodeJSON(t, resp, &api.ActionArtifactsResponse{})
 	assert.Len(t, listResp.Entries, artifacts)
 }
 
@@ -154,9 +150,7 @@ func testAPIActionsDeleteRunListTasks(t *testing.T, repo *repo_model.Repository,
 	req := NewRequest(t, "GET", fmt.Sprintf("/api/v1/repos/%s/actions/tasks", repo.FullName())).
 		AddTokenAuth(token)
 	resp := MakeRequest(t, req, http.StatusOK)
-	var listResp api.ActionTaskResponse
-	err := json.Unmarshal(resp.Body.Bytes(), &listResp)
-	assert.NoError(t, err)
+	listResp := DecodeJSON(t, resp, &api.ActionTaskResponse{})
 	findTask1 := false
 	findTask2 := false
 	for _, entry := range listResp.Entries {
@@ -199,9 +193,7 @@ func TestAPIActionsRerunWorkflowRun(t *testing.T) {
 			AddTokenAuth(writeToken)
 		resp := MakeRequest(t, req, http.StatusCreated)
 
-		var rerunResp api.ActionWorkflowRun
-		err := json.Unmarshal(resp.Body.Bytes(), &rerunResp)
-		require.NoError(t, err)
+		rerunResp := DecodeJSON(t, resp, &api.ActionWorkflowRun{})
 		assert.Equal(t, int64(795), rerunResp.ID)
 		assert.Equal(t, "queued", rerunResp.Status)
 		assert.Equal(t, "c2d72f548424103f01ee1dc02889c1e2bff816b0", rerunResp.HeadSha)
@@ -250,7 +242,11 @@ func TestAPIActionsCancelWorkflowRun(t *testing.T) {
 	t.Run("Success", func(t *testing.T) {
 		req := NewRequest(t, "POST", fmt.Sprintf("/api/v1/repos/%s/actions/runs/793/cancel", repo.FullName())).
 			AddTokenAuth(ownerToken)
-		MakeRequest(t, req, http.StatusOK)
+		resp := MakeRequest(t, req, http.StatusOK)
+		cancelledRun := DecodeJSON(t, resp, &api.ActionWorkflowRun{})
+		assert.Equal(t, int64(793), cancelledRun.ID)
+		assert.Equal(t, "completed", cancelledRun.Status)
+		assert.Equal(t, "cancelled", cancelledRun.Conclusion)
 	})
 
 	t.Run("NotFound", func(t *testing.T) {
@@ -357,20 +353,32 @@ jobs:
 			assert.Equal(t, actions_model.StatusWaiting, job.Status)
 		}
 
-		// Test approve already approved run (idempotency)
+		// Test approve already approved run (idempotency — returns 200 like GitHub)
 		req = NewRequest(t, "POST", fmt.Sprintf("/api/v1/repos/%s/actions/runs/%d/approve", baseRepo.FullName(), run.ID)).
 			AddTokenAuth(user2Token)
-		MakeRequest(t, req, http.StatusBadRequest)
+		resp = MakeRequest(t, req, http.StatusOK)
+		idempotentRun := DecodeJSON(t, resp, &api.ActionWorkflowRun{})
+		assert.NotEqual(t, "waiting", idempotentRun.Status, "already-approved run should not be blocked")
 
 		// Test approve non-existent run
 		req = NewRequest(t, "POST", fmt.Sprintf("/api/v1/repos/%s/actions/runs/999999/approve", baseRepo.FullName())).
 			AddTokenAuth(user2Token)
 		MakeRequest(t, req, http.StatusNotFound)
 
-		// Test approve by non-owner (user4 should get forbidden)
+		// Test approve by non-owner (user4 should get forbidden before being added as collaborator)
 		req = NewRequest(t, "POST", fmt.Sprintf("/api/v1/repos/%s/actions/runs/%d/approve", baseRepo.FullName(), run.ID)).
 			AddTokenAuth(user4Token)
 		MakeRequest(t, req, http.StatusForbidden)
+
+		// Add user4 as a collaborator with write access
+		doAPIAddCollaborator(user2APICtx, user4.Name, perm.AccessModeWrite)(t)
+
+		// Test approve by writer-but-non-admin (user4 should now succeed)
+		req = NewRequest(t, "POST", fmt.Sprintf("/api/v1/repos/%s/actions/runs/%d/approve", baseRepo.FullName(), run.ID)).
+			AddTokenAuth(user4Token)
+		resp = MakeRequest(t, req, http.StatusOK)
+		approvedRun := DecodeJSON(t, resp, &api.ActionWorkflowRun{})
+		assert.NotEqual(t, "waiting", approvedRun.Status, "approved run should not be blocked")
 	})
 }
 
@@ -400,9 +408,7 @@ func TestAPIActionsRerunWorkflowJob(t *testing.T) {
 			AddTokenAuth(writeToken)
 		resp := MakeRequest(t, req, http.StatusCreated)
 
-		var rerunResp api.ActionWorkflowJob
-		err := json.Unmarshal(resp.Body.Bytes(), &rerunResp)
-		require.NoError(t, err)
+		rerunResp := DecodeJSON(t, resp, &api.ActionWorkflowJob{})
 		job199Rerun := getLatestAttemptJobByTemplateJobID(t, 795, 199)
 		assert.Equal(t, job199Rerun.ID, rerunResp.ID)
 		assert.Equal(t, "queued", rerunResp.Status)
@@ -450,9 +456,7 @@ func TestAPIActionsListUserWorkflows(t *testing.T) {
 	t.Run("Runs", func(t *testing.T) {
 		req := NewRequest(t, "GET", "/api/v1/user/actions/runs").AddTokenAuth(token)
 		resp := MakeRequest(t, req, http.StatusOK)
-		var runs api.ActionWorkflowRunsResponse
-		err := json.Unmarshal(resp.Body.Bytes(), &runs)
-		require.NoError(t, err)
+		runs := DecodeJSON(t, resp, &api.ActionWorkflowRunsResponse{})
 
 		assert.Positive(t, runs.TotalCount)
 		assert.NotEmpty(t, runs.Entries)
@@ -468,9 +472,7 @@ func TestAPIActionsListUserWorkflows(t *testing.T) {
 	t.Run("Jobs", func(t *testing.T) {
 		req := NewRequest(t, "GET", "/api/v1/user/actions/jobs").AddTokenAuth(token)
 		resp := MakeRequest(t, req, http.StatusOK)
-		var jobs api.ActionWorkflowJobsResponse
-		err := json.Unmarshal(resp.Body.Bytes(), &jobs)
-		require.NoError(t, err)
+		jobs := DecodeJSON(t, resp, &api.ActionWorkflowJobsResponse{})
 
 		assert.Positive(t, jobs.TotalCount)
 		assert.NotEmpty(t, jobs.Entries)
@@ -492,9 +494,7 @@ func TestAPIActionsListRepoWorkflows(t *testing.T) {
 
 	req := NewRequest(t, "GET", fmt.Sprintf("/api/v1/repos/%s/actions/runs", repo.FullName())).AddTokenAuth(token)
 	resp := MakeRequest(t, req, http.StatusOK)
-	var runs api.ActionWorkflowRunsResponse
-	err := json.Unmarshal(resp.Body.Bytes(), &runs)
-	require.NoError(t, err)
+	runs := DecodeJSON(t, resp, &api.ActionWorkflowRunsResponse{})
 
 	assert.Positive(t, runs.TotalCount)
 	assert.NotEmpty(t, runs.Entries)
@@ -517,7 +517,28 @@ func TestAPIActionsGetWorkflowRunLogs(t *testing.T) {
 	t.Run("Success", func(t *testing.T) {
 		req := NewRequest(t, "GET", fmt.Sprintf("/api/v1/repos/%s/actions/runs/795/logs", repo.FullName())).
 			AddTokenAuth(token)
-		MakeRequest(t, req, http.StatusOK)
+		resp := MakeRequest(t, req, http.StatusOK)
+		assert.Equal(t, "application/zip", resp.Header().Get("Content-Type"))
+		assert.Contains(t, resp.Header().Get("Content-Disposition"), "attachment")
+		assert.Contains(t, resp.Header().Get("Content-Disposition"), ".zip")
+		body := resp.Body.Bytes()
+		require.NotEmpty(t, body)
+		assert.Equal(t, "PK", string(body[:2]), "response should be a valid zip file")
+	})
+
+	t.Run("RerunJobLogs", func(t *testing.T) {
+		// Rerun the workflow so latest-attempt jobs have SourceTaskID instead of TaskID
+		req := NewRequest(t, "POST", fmt.Sprintf("/api/v1/repos/%s/actions/runs/795/rerun", repo.FullName())).
+			AddTokenAuth(token)
+		MakeRequest(t, req, http.StatusCreated)
+
+		// Download logs for the latest attempt — should include rerun job logs via EffectiveTaskID
+		req = NewRequest(t, "GET", fmt.Sprintf("/api/v1/repos/%s/actions/runs/795/logs", repo.FullName())).
+			AddTokenAuth(token)
+		resp := MakeRequest(t, req, http.StatusOK)
+		body := resp.Body.Bytes()
+		require.NotEmpty(t, body)
+		assert.Equal(t, "PK", string(body[:2]), "response should be a valid zip file")
 	})
 
 	t.Run("NotFound", func(t *testing.T) {

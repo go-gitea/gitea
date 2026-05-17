@@ -199,15 +199,18 @@ func ListRuns(ctx *context.APIContext, ownerID, repoID int64) {
 		return
 	}
 
-	res.Entries = make([]*api.ActionWorkflowRun, len(runs))
+	res.Entries = make([]*api.ActionWorkflowRun, 0, len(runs))
 	for i := range runs {
+		if runs[i].Repo == nil {
+			continue // skip runs whose repository has been deleted
+		}
 		// TODO: load run attempts in batch
 		convertedRun, err := convert.ToActionWorkflowRun(ctx, runs[i].Repo, runs[i], nil)
 		if err != nil {
 			ctx.APIErrorInternal(err)
 			return
 		}
-		res.Entries[i] = convertedRun
+		res.Entries = append(res.Entries, convertedRun)
 	}
 	ctx.SetLinkHeader(total, listOptions.PageSize)
 	ctx.SetTotalCountHeader(total)
