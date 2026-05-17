@@ -18,8 +18,9 @@ func NotifyWorkflowJobsAndRunsStatusUpdate(ctx context.Context, jobs []*actions_
 		return
 	}
 
-	// The input jobs may belong to different runs, so track each affected run.
-	runs := make(map[int64]*actions_model.ActionRun, len(jobs))
+	// The input jobs may belong to different runs, so track each affected run ID
+	// and reload it later to avoid notifying with stale aggregate status.
+	runRepoIDs := make(map[int64]int64, len(jobs))
 	jobsByRunID := make(map[int64][]*actions_model.ActionRunJob)
 
 	for _, job := range jobs {
@@ -29,17 +30,15 @@ func NotifyWorkflowJobsAndRunsStatusUpdate(ctx context.Context, jobs []*actions_
 		}
 		CreateCommitStatusForRunJobs(ctx, job.Run, job)
 
-		if _, ok := runs[job.RunID]; !ok {
-			runs[job.RunID] = job.Run
-		}
+		runRepoIDs[job.RunID] = job.RepoID
 		if _, ok := jobsByRunID[job.RunID]; !ok {
 			jobsByRunID[job.RunID] = make([]*actions_model.ActionRunJob, 0)
 		}
 		jobsByRunID[job.RunID] = append(jobsByRunID[job.RunID], job)
 	}
 
-	for _, run := range runs {
-		NotifyWorkflowRunStatusUpdate(ctx, run)
+	for runID, repoID := range runRepoIDs {
+		NotifyWorkflowRunStatusUpdateWithReload(ctx, repoID, runID)
 	}
 
 	for _, jobs := range jobsByRunID {

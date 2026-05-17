@@ -404,19 +404,22 @@ func fillViewRunResponseSummary(ctx *context_module.Context, resp *ViewResponse,
 	resp.State.Run.Link = run.Link()
 	resp.State.Run.ViewLink = getRunViewLink(run, attempt)
 	resp.State.Run.Attempts = make([]*ViewRunAttempt, 0)
+	var effectiveStatus actions_model.Status
 	if attempt != nil {
+		effectiveStatus = attempt.Status
 		resp.State.Run.RunAttempt = attempt.Attempt
-		resp.State.Run.Status = attempt.Status.String()
-		resp.State.Run.Done = attempt.Status.IsDone()
 		resp.State.Run.Duration = attempt.Duration().String()
 		resp.State.Run.TriggeredAt = attempt.Created.AsTime().Unix()
 	} else {
-		resp.State.Run.Status = run.Status.String()
-		resp.State.Run.Done = run.Status.IsDone()
+		effectiveStatus = run.Status
 		resp.State.Run.Duration = run.Duration().String()
 		resp.State.Run.TriggeredAt = run.Created.AsTime().Unix()
 	}
-	resp.State.Run.CanCancel = isLatestAttempt && !resp.State.Run.Done && ctx.Repo.Permission.CanWrite(unit.TypeActions)
+	resp.State.Run.Status = effectiveStatus.String()
+	resp.State.Run.Done = effectiveStatus.IsDone()
+
+	// Hide the Cancel button once a cancel is already in cancelling progress
+	resp.State.Run.CanCancel = isLatestAttempt && !resp.State.Run.Done && !effectiveStatus.IsCancelling() && ctx.Repo.Permission.CanWrite(unit.TypeActions)
 	resp.State.Run.CanApprove = isLatestAttempt && run.NeedApproval && ctx.Repo.Permission.CanWrite(unit.TypeActions)
 	resp.State.Run.CanRerun = isLatestAttempt && resp.State.Run.Done && ctx.Repo.Permission.CanWrite(unit.TypeActions)
 	resp.State.Run.CanDeleteArtifact = resp.State.Run.Done && ctx.Repo.Permission.CanWrite(unit.TypeActions)
@@ -567,10 +570,14 @@ func convertToViewModel(ctx context.Context, locale translation.Locale, cursors 
 	steps := actions.FullSteps(task)
 
 	for _, v := range steps {
+		status := v.Status
+		if task.Status == actions_model.StatusCancelling && status.IsRunning() {
+			status = actions_model.StatusCancelling
+		}
 		viewJobs = append(viewJobs, &ViewJobStep{
 			Summary:  v.Name,
 			Duration: v.Duration().String(),
-			Status:   v.Status.String(),
+			Status:   status.String(),
 		})
 	}
 
