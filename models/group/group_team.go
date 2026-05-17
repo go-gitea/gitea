@@ -11,6 +11,7 @@ import (
 	"code.gitea.io/gitea/models/perm"
 	"code.gitea.io/gitea/models/unit"
 	"code.gitea.io/gitea/modules/log"
+	"xorm.io/builder"
 )
 
 // RepoGroupTeam represents a relation for a team's access to a group
@@ -47,12 +48,19 @@ func (g *RepoGroupTeam) UnitAccessModeEx(ctx context.Context, tp unit.Type) (acc
 }
 
 // HasTeamGroup returns true if the given group belongs to a team.
-func HasTeamGroup(ctx context.Context, orgID, teamID, groupID int64) bool {
+func HasTeamGroup(ctx context.Context, orgID, teamID, groupID int64, requireRead bool) bool {
+	var cond builder.Cond = builder.Eq{
+		"team_id":  teamID,
+		"group_id": groupID,
+		"org_id":   orgID,
+	}
+	if requireRead {
+		cond = cond.And(builder.Gte{
+			"access_mode": perm.AccessModeRead,
+		})
+	}
 	has, _ := db.GetEngine(ctx).
-		Where("org_id=?", orgID).
-		And("team_id=?", teamID).
-		And("group_id=?", groupID).
-		And("access_mode >= ?", perm.AccessModeRead).
+		Where(cond).
 		Get(new(RepoGroupTeam))
 	return has
 }

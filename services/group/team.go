@@ -27,7 +27,7 @@ func AddTeamToGroup(ctx context.Context, group *group_model.Group, tname string,
 	if err != nil {
 		return err
 	}
-	has := group_model.HasTeamGroup(ctx, group.OwnerID, t.ID, group.ID)
+	has := group_model.HasTeamGroup(ctx, group.OwnerID, t.ID, group.ID, false)
 	if has {
 		return fmt.Errorf("team '%s' already exists in group[%d]", tname, group.ID)
 	}

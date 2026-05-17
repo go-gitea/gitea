@@ -221,7 +221,7 @@ func IsTeam(ctx *context.APIContext) {
 		return
 	}
 
-	if group_model.HasTeamGroup(ctx, group.OwnerID, team.ID, group.ID) {
+	if group_model.HasTeamGroup(ctx, group.OwnerID, team.ID, group.ID, false) {
 		apiTeam, err := convert.ToTeam(ctx, team)
 		if err != nil {
 			ctx.APIErrorInternal(err)
@@ -271,7 +271,7 @@ func changeGroupTeam(ctx *context.APIContext, options *api.CreateOrUpdateRepoGro
 		return
 	}
 
-	groupHasTeam := group_model.HasTeamGroup(ctx, group.OwnerID, team.ID, gid)
+	groupHasTeam := group_model.HasTeamGroup(ctx, group.OwnerID, team.ID, gid, false)
 
 	if add {
 		if groupHasTeam {
