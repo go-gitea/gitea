@@ -204,7 +204,7 @@ Use one of these types:
 - `chore`: Maintenance changes that do not affect production code or should not appear in the changelog
 - `docs`: Documentation-only changes
 - `feat`: A larger user-facing feature, improvement, or new functionality
-- `enhancement`: Small or trivial user-facing improvements or UX polish (for example wording changes, color adjustments, spacing or padding tweaks, placeholders, small UI behavior improvements)
+- `enhance`: Small or trivial user-facing improvements or UX polish (for example wording changes, color adjustments, spacing or padding tweaks, placeholders, small UI behavior improvements)
 - `fix`: A bug fix, UX correction, or security-related dependency update
 - `perf`: Performance improvements (speed, memory, scalability)
 - `refactor`: A code change that neither fixes a bug nor adds a feature
@@ -217,7 +217,7 @@ Examples:
 ```text
 fix(web): prevent avatar upload crash on empty file
 feat(api): add pagination to repo hooks list
-enhancement(repo): improve diff toolbar spacing
+enhance(repo): improve diff toolbar spacing
 ci(workflows): lint PR titles in CI
 ```
 
@@ -233,7 +233,7 @@ Another requirement for merging PRs is that the PR is labeled correctly.\
 However, this is not your job as a contributor, but the job of the person merging your PR.\
 If you think that your PR was labeled incorrectly, or notice that it was merged without labels, please let us know.
 
-For pull requests that use a valid Conventional Commits title, CI automatically applies a matching `type/…` label when the title prefix is `feat`, `enhancement`, `fix`, `docs`, or `test` (for example `enhancement(web): …` receives `type/enhancement`).\
+For pull requests that use a valid Conventional Commits title, CI automatically applies a matching `type/…` label when the title prefix is `feat`, `enhance`, `fix`, `docs`, or `test` (for example `enhance(web): …` receives `type/enhancement`).\
 That label is kept in sync with the PR title when the title is edited.\
 Other title prefixes do not get an automatic `type/…` label; the merger still assigns the correct labels (including `type/…` when needed) for changelog and backport decisions.
 
