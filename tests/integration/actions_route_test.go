@@ -160,6 +160,10 @@ func testActionsRouteForLegacyIndexBasedURL(t *testing.T) {
 	collisionJobIdx0 := mkJob(2600, collisionRun.ID, "legacy-collision-job-1", collisionRun.CommitSHA)
 	collisionJobIdx1 := mkJob(2601, collisionRun.ID, "legacy-collision-job-2", collisionRun.CommitSHA)
 
+	// A run whose job has a smaller ID than the run itself (job_id < run_id)
+	jobSmallerThanRunRun := mkRun(5000, 5500, "legacy route job before run", "aaa007")
+	jobSmallerThanRunJob := mkJob(4500, jobSmallerThanRunRun.ID, "legacy-job-before-run-job", jobSmallerThanRunRun.CommitSHA)
+
 	// A small ID-based run/job pair that collides with a different legacy run/job index pair.
 	ambiguousIDRun := mkRun(3, 1, "legacy route ambiguous id", "aaa005")
 	ambiguousIDJob := mkJob(4, ambiguousIDRun.ID, "legacy-ambiguous-id-job", ambiguousIDRun.CommitSHA)
@@ -182,11 +186,12 @@ func testActionsRouteForLegacyIndexBasedURL(t *testing.T) {
 	targetAmbiguousLegacyJob := ambiguousLegacyJobs[int(ambiguousIDJob.ID)]
 
 	insertBeansWithExplicitIDs(t, "action_run",
-		smallIDRun, otherSmallRun, normalRun, ambiguousIDRun, ambiguousLegacyRun, collisionRun,
+		smallIDRun, otherSmallRun, normalRun, ambiguousIDRun, ambiguousLegacyRun, collisionRun, jobSmallerThanRunRun,
 	)
 	insertBeansWithExplicitIDs(t, "action_run_job",
 		smallIDJob, otherSmallJob, normalRunJob, ambiguousIDJob, collisionJobIdx0, collisionJobIdx1,
 		ambiguousLegacyJobIdx0, ambiguousLegacyJobIdx1, ambiguousLegacyJobIdx2, ambiguousLegacyJobIdx3, ambiguousLegacyJobIdx4, ambiguousLegacyJobIdx5,
+		jobSmallerThanRunJob,
 	)
 
 	t.Run("OnlyRunID", func(t *testing.T) {
@@ -219,6 +224,9 @@ func testActionsRouteForLegacyIndexBasedURL(t *testing.T) {
 		req := NewRequest(t, "GET", fmt.Sprintf("/%s/%s/actions/runs/%d/jobs/%d", user2.Name, repo.Name, smallIDRun.ID, smallIDJob.ID))
 		user2Session.MakeRequest(t, req, http.StatusOK)
 		req = NewRequest(t, "GET", fmt.Sprintf("/%s/%s/actions/runs/%d/jobs/%d", user2.Name, repo.Name, normalRun.ID, normalRunJob.ID))
+		user2Session.MakeRequest(t, req, http.StatusOK)
+		// URL must resolve even when job_id < run_id.
+		req = NewRequest(t, "GET", fmt.Sprintf("/%s/%s/actions/runs/%d/jobs/%d", user2.Name, repo.Name, jobSmallerThanRunRun.ID, jobSmallerThanRunJob.ID))
 		user2Session.MakeRequest(t, req, http.StatusOK)
 	})
 
