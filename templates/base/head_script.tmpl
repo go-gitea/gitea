@@ -19,8 +19,6 @@ If you introduce mistakes in it, Gitea JavaScript code wouldn't run correctly.
 		sharedWorkerUri: '{{AssetURI "js/eventsource.sharedworker.js"}}',
 		{{/* this global i18n object should only contain general texts. for specialized texts, it should be provided inside the related modules by: (1) API response (2) HTML data-attribute (3) PageData */}}
 		i18n: {
-			copy_success: {{ctx.Locale.Tr "copy_success"}},
-			copy_error: {{ctx.Locale.Tr "copy_error"}},
 			error_occurred: {{ctx.Locale.Tr "error.occurred"}},
 			remove_label_str: {{ctx.Locale.Tr "remove_label_str"}},
 			modal_confirm: {{ctx.Locale.Tr "modal.confirm"}},
