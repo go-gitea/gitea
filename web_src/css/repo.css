@@ -1050,7 +1050,7 @@ td .commit-summary {
 /* if the element is for a checkbox, then it should have a padding-left to align to the checkbox's text */
 .repository.settings.branches .branch-protection .ui.checkbox .help,
 .repository.settings.branches .branch-protection .checkbox-sub-item {
-  padding-left: 26px;
+  padding-left: 20px;
 }
 
 .repository.settings.branches .branch-protection .status-check-matched-mark {
