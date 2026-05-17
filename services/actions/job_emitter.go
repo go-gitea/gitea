@@ -501,6 +501,12 @@ func expandOnePlaceholder(ctx context.Context, run *actions_model.ActionRun, pla
 		return fmt.Errorf("no latest attempt for run %d", run.ID)
 	}
 
+	// GenerateGiteaContext reads run.TriggerUser and run.Repo, which are
+	// lazy-loaded — explicitly load them so the context build doesn't panic.
+	if err := run.LoadAttributes(ctx); err != nil {
+		return fmt.Errorf("run.LoadAttributes: %w", err)
+	}
+
 	giteaCtx := GenerateGiteaContext(ctx, run, runAttempt, nil)
 	expanded, err := jobparser.ExpandDeferredMatrix(
 		placeholder.WorkflowPayload,
