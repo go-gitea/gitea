@@ -142,16 +142,18 @@ async function deleteArtifact(name: string) {
     <div class="action-view-body">
       <div class="action-view-left">
         <!-- summary -->
-        <a class="action-view-sidebar-item flex-text-block silenced" :href="run.viewLink" :class="!props.jobId ? 'selected' : ''">
-          <SvgIcon name="octicon-home"/>
-          <span class="gt-ellipsis">{{ locale.summary }}</span>
-        </a>
+        <div class="flex-items-block action-view-sidebar-list">
+          <a class="item silenced" :href="run.viewLink" :class="!props.jobId ? 'selected' : ''">
+            <SvgIcon name="octicon-home"/>
+            <span class="gt-ellipsis">{{ locale.summary }}</span>
+          </a>
+        </div>
 
         <!-- jobs list -->
         <div class="ui divider"/>
         <div class="left-list-header">{{ locale.allJobs }}</div>
         <div class="flex-items-block action-view-sidebar-list">
-          <div class="item action-view-sidebar-item" v-for="job in run.jobs" :key="job.id" :class="props.jobId === job.id ? 'selected' : ''">
+          <div class="item" v-for="job in run.jobs" :key="job.id" :class="props.jobId === job.id ? 'selected' : ''">
             <a class="tw-contents silenced" :href="job.link">
               <ActionStatusIcon :locale-status="locale.status[job.status]" :status="job.status" icon-variant="circle-fill"/>
               <span class="tw-flex-1 gt-ellipsis">{{ job.name }}</span>
@@ -166,7 +168,7 @@ async function deleteArtifact(name: string) {
           <div class="ui divider"/>
           <div class="left-list-header">{{ locale.artifactsTitle }} ({{ artifacts.length }})</div>
           <div class="flex-items-block action-view-sidebar-list">
-            <div class="item action-view-sidebar-item" v-for="artifact in artifacts" :key="artifact.name">
+            <div class="item" v-for="artifact in artifacts" :key="artifact.name">
               <template v-if="artifact.status !== 'expired'">
                 <a
                   class="tw-flex-1 tw-min-w-0 flex-text-block silenced" target="_blank"
@@ -195,7 +197,7 @@ async function deleteArtifact(name: string) {
         <div class="ui divider"/>
         <div class="left-list-header">{{ locale.runDetails }}</div>
         <div class="flex-items-block action-view-sidebar-list">
-          <div class="item action-view-sidebar-item">
+          <div class="item">
             <a class="flex-text-block silenced" :href="`${run.link}/workflow`">
               <SvgIcon name="octicon-file-code" class="tw-text-text"/>
               <span class="gt-ellipsis">{{ locale.workflowFile }}</span>
@@ -312,16 +314,20 @@ async function deleteArtifact(name: string) {
   margin: var(--gap-block) 0;
 }
 
-.action-view-sidebar-item {
+.action-view-sidebar-list:first-child {
+  margin-top: 0;
+}
+
+.action-view-sidebar-list > .item {
   padding: 6px 10px;
   border-radius: var(--border-radius);
 }
 
-.action-view-sidebar-item:hover {
+.action-view-sidebar-list > .item:hover {
   background-color: var(--color-hover);
 }
 
-.action-view-sidebar-item.selected {
+.action-view-sidebar-list > .item.selected {
   font-weight: var(--font-weight-bold);
   background-color: var(--color-active);
 }
