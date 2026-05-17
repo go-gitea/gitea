@@ -334,13 +334,13 @@ func GetProjectWorkflowOptions(ctx *api_context.APIContext) {
 	}
 	options := &api.ProjectWorkflowOptions{
 		Columns: make([]*api.ProjectWorkflowColumnOption, 0, len(columns)),
-		Labels:  make([]*api.ProjectWorkflowLabelOption, 0, len(labels)),
+		Labels:  make([]*api.Label, 0, len(labels)),
 	}
 	for _, column := range columns {
 		options.Columns = append(options.Columns, &api.ProjectWorkflowColumnOption{ID: column.ID, Title: column.Title, Color: column.Color})
 	}
 	for _, label := range labels {
-		options.Labels = append(options.Labels, &api.ProjectWorkflowLabelOption{
+		options.Labels = append(options.Labels, &api.Label{
 			ID:             label.ID,
 			Name:           label.Name,
 			Color:          label.Color,

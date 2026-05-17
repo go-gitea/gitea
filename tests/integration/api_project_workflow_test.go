@@ -49,7 +49,7 @@ func TestAPIRepoProjectWorkflows(t *testing.T) {
 		var options api.ProjectWorkflowOptions
 		require.NoError(t, json.Unmarshal(resp.Body.Bytes(), &options))
 		assert.Contains(t, options.Columns, &api.ProjectWorkflowColumnOption{ID: column.ID, Title: column.Title, Color: column.Color})
-		assert.Contains(t, options.Labels, &api.ProjectWorkflowLabelOption{ID: label.ID, Name: label.Name, Color: label.Color, Description: label.Description, Exclusive: label.Exclusive, ExclusiveOrder: label.ExclusiveOrder})
+		assert.Contains(t, options.Labels, &api.Label{ID: label.ID, Name: label.Name, Color: label.Color, Description: label.Description, Exclusive: label.Exclusive, ExclusiveOrder: label.ExclusiveOrder})
 	})
 
 	var workflow api.ProjectWorkflow

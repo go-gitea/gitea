@@ -27558,6 +27558,12 @@
           "x-go-name": "Exclusive",
           "example": false
         },
+        "exclusive_order": {
+          "type": "integer",
+          "format": "int64",
+          "x-go-name": "ExclusiveOrder",
+          "example": 0
+        },
         "id": {
           "description": "ID is the unique identifier for the label",
           "type": "integer",
@@ -28812,39 +28818,6 @@
       },
       "x-go-package": "code.gitea.io/gitea/modules/structs"
     },
-    "ProjectWorkflowLabelOption": {
-      "type": "object",
-      "title": "ProjectWorkflowLabelOption represents a selectable project label.",
-      "properties": {
-        "color": {
-          "type": "string",
-          "x-go-name": "Color"
-        },
-        "description": {
-          "type": "string",
-          "x-go-name": "Description"
-        },
-        "exclusive": {
-          "type": "boolean",
-          "x-go-name": "Exclusive"
-        },
-        "exclusive_order": {
-          "type": "integer",
-          "format": "int64",
-          "x-go-name": "ExclusiveOrder"
-        },
-        "id": {
-          "type": "integer",
-          "format": "int64",
-          "x-go-name": "ID"
-        },
-        "name": {
-          "type": "string",
-          "x-go-name": "Name"
-        }
-      },
-      "x-go-package": "code.gitea.io/gitea/modules/structs"
-    },
     "ProjectWorkflowOptions": {
       "type": "object",
       "title": "ProjectWorkflowOptions represents the project workflow configuration options.",
@@ -28859,7 +28832,7 @@
         "labels": {
           "type": "array",
           "items": {
-            "$ref": "#/definitions/ProjectWorkflowLabelOption"
+            "$ref": "#/definitions/Label"
           },
           "x-go-name": "Labels"
         }

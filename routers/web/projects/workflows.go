@@ -15,6 +15,7 @@ import (
 	project_model "code.gitea.io/gitea/models/project"
 	"code.gitea.io/gitea/models/unit"
 	"code.gitea.io/gitea/modules/json"
+	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/templates"
 	"code.gitea.io/gitea/services/context"
 	project_service "code.gitea.io/gitea/services/projects"
@@ -241,14 +242,9 @@ func renderWorkflowsOptions(ctx *context.Context, project *project_model.Project
 		return
 	}
 
-	type Column struct {
-		ID    int64  `json:"id"`
-		Title string `json:"title"`
-		Color string `json:"color"`
-	}
-	outputColumns := make([]*Column, 0, len(columns))
+	outputColumns := make([]*api.ProjectWorkflowColumnOption, 0, len(columns))
 	for _, col := range columns {
-		outputColumns = append(outputColumns, &Column{
+		outputColumns = append(outputColumns, &api.ProjectWorkflowColumnOption{
 			ID:    col.ID,
 			Title: col.Title,
 			Color: col.Color,
@@ -261,17 +257,9 @@ func renderWorkflowsOptions(ctx *context.Context, project *project_model.Project
 		return
 	}
 
-	type Label struct {
-		ID             int64  `json:"id"`
-		Name           string `json:"name"`
-		Color          string `json:"color"`
-		Description    string `json:"description"`
-		Exclusive      bool   `json:"exclusive"`
-		ExclusiveOrder int    `json:"exclusiveOrder"`
-	}
-	outputLabels := make([]*Label, 0, len(labels))
+	outputLabels := make([]*api.Label, 0, len(labels))
 	for _, label := range labels {
-		outputLabels = append(outputLabels, &Label{
+		outputLabels = append(outputLabels, &api.Label{
 			ID:             label.ID,
 			Name:           label.Name,
 			Color:          label.Color,
@@ -281,9 +269,9 @@ func renderWorkflowsOptions(ctx *context.Context, project *project_model.Project
 		})
 	}
 
-	ctx.JSON(http.StatusOK, map[string]any{
-		"columns": outputColumns,
-		"labels":  outputLabels,
+	ctx.JSON(http.StatusOK, api.ProjectWorkflowOptions{
+		Columns: outputColumns,
+		Labels:  outputLabels,
 	})
 }
 

@@ -40,22 +40,11 @@ type ProjectWorkflowColumnOption struct {
 	Color string `json:"color"`
 }
 
-// ProjectWorkflowLabelOption represents a selectable project label.
-// swagger:model
-type ProjectWorkflowLabelOption struct {
-	ID             int64  `json:"id"`
-	Name           string `json:"name"`
-	Color          string `json:"color"`
-	Description    string `json:"description"`
-	Exclusive      bool   `json:"exclusive"`
-	ExclusiveOrder int    `json:"exclusive_order"`
-}
-
 // ProjectWorkflowOptions represents the project workflow configuration options.
 // swagger:model
 type ProjectWorkflowOptions struct {
 	Columns []*ProjectWorkflowColumnOption `json:"columns"`
-	Labels  []*ProjectWorkflowLabelOption  `json:"labels"`
+	Labels  []*Label                       `json:"labels"`
 }
 
 // ProjectWorkflowFilterOptions represents editable workflow filters.
