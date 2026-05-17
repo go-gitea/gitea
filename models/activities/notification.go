@@ -116,8 +116,10 @@ func init() {
 }
 
 // CreateCommitCommentNotification creates notifications for a commit comment.
-// It notifies the commit author (if they're a Gitea user) and any @mentioned users.
-func CreateCommitCommentNotification(ctx context.Context, doer *user_model.User, repo *repo_model.Repository, comment *issues_model.Comment, commitAuthorEmail string, mentionedUsernames []string) error {
+// It notifies the commit author (if they're a Gitea user) and any @mentioned
+// users. The caller passes raw fields so this package stays decoupled from the
+// standalone CommitComment model in models/issues.
+func CreateCommitCommentNotification(ctx context.Context, doer *user_model.User, repo *repo_model.Repository, commitSHA string, commitCommentID int64, commitAuthorEmail string, mentionedUsernames []string) error {
 	return db.WithTx(ctx, func(ctx context.Context) error {
 		receiverIDs := make(map[int64]struct{})
 
@@ -152,8 +154,8 @@ func CreateCommitCommentNotification(ctx context.Context, doer *user_model.User,
 				RepoID:    repo.ID,
 				Status:    NotificationStatusUnread,
 				Source:    NotificationSourceCommit,
-				CommitID:  comment.CommitSHA,
-				CommentID: comment.ID,
+				CommitID:  commitSHA,
+				CommentID: commitCommentID,
 				UpdatedBy: doer.ID,
 			})
 		}

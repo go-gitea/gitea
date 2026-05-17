@@ -95,25 +95,25 @@ func CreateCommitComment(ctx *context.Context) {
 		}
 	}
 
-	comment := &issues_model.Comment{
-		Type:      issues_model.CommentTypeCommitComment,
-		PosterID:  ctx.Doer.ID,
-		Poster:    ctx.Doer,
+	comment := &issues_model.CommitComment{
+		RepoID:    ctx.Repo.Repository.ID,
 		CommitSHA: fullSHA,
 		TreePath:  treePath,
 		Line:      line,
+		PosterID:  ctx.Doer.ID,
+		Poster:    ctx.Doer,
 		Content:   content,
 		Patch:     patch,
 	}
 
-	if err := issues_model.CreateCommitComment(ctx, ctx.Repo.Repository.ID, fullSHA, comment); err != nil {
+	if err := issues_model.CreateCommitComment(ctx, comment); err != nil {
 		ctx.ServerError("CreateCommitComment", err)
 		return
 	}
 
 	// Send notifications to commit author and @mentioned users
 	mentions := references.FindAllMentionsMarkdown(content)
-	if err := activities_model.CreateCommitCommentNotification(ctx, ctx.Doer, ctx.Repo.Repository, comment, commit.Author.Email, mentions); err != nil {
+	if err := activities_model.CreateCommitCommentNotification(ctx, ctx.Doer, ctx.Repo.Repository, fullSHA, comment.ID, commit.Author.Email, mentions); err != nil {
 		log.Error("CreateCommitCommentNotification: %v", err)
 	}
 
@@ -125,7 +125,7 @@ func CreateCommitComment(ctx *context.Context) {
 	}
 
 	ctx.Data["CommitID"] = fullSHA
-	ctx.Data["comments"] = []*issues_model.Comment{comment}
+	ctx.Data["comments"] = []*issues_model.CommitComment{comment}
 	ctx.HTML(http.StatusOK, tplCommitConversation)
 }
 
@@ -148,7 +148,7 @@ func DeleteCommitComment(ctx *context.Context) {
 		return
 	}
 
-	if err := issues_model.DeleteCommitComment(ctx, commentID); err != nil {
+	if err := issues_model.DeleteCommitComment(ctx, ctx.Repo.Repository.ID, commentID); err != nil {
 		ctx.ServerError("DeleteCommitComment", err)
 		return
 	}
