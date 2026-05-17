@@ -154,8 +154,8 @@ importers:
         specifier: 2.21.0
         version: 2.21.0
       elkjs:
-        specifier: 0.9.3
-        version: 0.9.3
+        specifier: 0.11.1
+        version: 0.11.1
       esbuild:
         specifier: 0.28.0
         version: 0.28.0
@@ -2383,6 +2383,9 @@ packages:
 
   electron-to-chromium@1.5.349:
     resolution: {integrity: sha512-QsWVGyRuY07Aqb234QytTfwd5d9AJlfNIQ5wIOl1L+PZDzI9d9+Fn0FRale/QYlFxt/bUnB0/nLd1jFPGxGK1A==}
+
+  elkjs@0.11.1:
+    resolution: {integrity: sha512-zxxR9k+rx5ktMwT/FwyLdPCrq7xN6e4VGGHH8hA01vVYKjTFik7nHOxBnAYtrgYUB1RpAiLvA1/U2YraWxyKKg==}
 
   elkjs@0.9.3:
     resolution: {integrity: sha512-f/ZeWvW/BCXbhGEf1Ujp29EASo/lk1FDnETgNKwJrsVvGZhUWCZyg3xLJjAsxfOmt8KjswHmI5EwCQcPMpOYhQ==}
@@ -6552,6 +6555,8 @@ snapshots:
       marked: 4.3.0
 
   electron-to-chromium@1.5.349: {}
+
+  elkjs@0.11.1: {}
 
   elkjs@0.9.3: {}
 
