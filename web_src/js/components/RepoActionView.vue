@@ -155,9 +155,9 @@ async function deleteArtifact(name: string) {
           <li class="item job-brief-item" v-for="job in run.jobs" :key="job.id" :class="props.jobId === job.id ? 'selected' : ''">
             <a class="tw-contents silenced" :href="job.link">
               <ActionStatusIcon :locale-status="locale.status[job.status]" :status="job.status" icon-variant="circle-fill"/>
-              <span class="tw-flex-1 gt-ellipsis">{{ job.name }}</span>
+              <span class="tw-flex-1 tw-min-w-0 gt-ellipsis">{{ job.name }}</span>
               <SvgIcon name="octicon-sync" role="button" :data-tooltip-content="locale.rerun" class="tw-cursor-pointer link-action interact-fg" :data-url="`${run.link}/jobs/${job.id}/rerun`" v-if="job.canRerun"/>
-              <span class="job-brief-duration" :data-tooltip-content="job.duration">{{ job.duration }}</span>
+              <span :data-tooltip-content="job.duration">{{ job.duration }}</span>
             </a>
           </li>
         </ul>
@@ -170,7 +170,7 @@ async function deleteArtifact(name: string) {
             <li class="item" v-for="artifact in artifacts" :key="artifact.name">
               <template v-if="artifact.status !== 'expired'">
                 <a
-                  class="tw-flex-1 flex-text-block muted" target="_blank"
+                  class="tw-flex-1 tw-min-w-0 flex-text-block muted" target="_blank"
                   :href="buildArtifactLink(artifact.name)"
                   :data-tooltip-content="buildArtifactTooltipHtml(artifact, locale.artifactExpiresAt)"
                   data-tooltip-render="html"
@@ -183,7 +183,7 @@ async function deleteArtifact(name: string) {
                   <SvgIcon name="octicon-trash"/>
                 </a>
               </template>
-              <span v-else class="flex-text-block tw-flex-1 tw-text-text-light-2">
+              <span v-else class="flex-text-block tw-flex-1 tw-min-w-0 tw-text-text-light-2">
                 <SvgIcon name="octicon-file-removed"/>
                 <span class="tw-flex-1 gt-ellipsis">{{ artifact.name }}</span>
                 <span class="ui label tw-flex-shrink-0">{{ locale.artifactExpired }}</span>
@@ -323,16 +323,6 @@ async function deleteArtifact(name: string) {
   gap: var(--gap-block);
 }
 
-.job-brief-duration {
-  flex-shrink: 0;
-  min-width: 9ch;
-  text-align: right;
-  white-space: nowrap;
-  font-variant-numeric: tabular-nums;
-  font-family: var(--fonts-monospace);
-  font-size: 12px;
-  color: var(--color-text-light-2);
-}
 
 .job-brief-item:hover {
   background-color: var(--color-hover);

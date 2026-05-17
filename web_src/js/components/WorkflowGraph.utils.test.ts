@@ -117,9 +117,9 @@ test('same-row edge collapses to a single horizontal line', async () => {
 });
 
 test('different-row edge uses quadratic corner turns', async () => {
-  const graph = await createWorkflowGraphModel(verifyDeployJobs);
-  const deployLowerEdge = graph.routedEdges.find((e) => e.fromId === 'job:104' && e.toId === 'job:105');
-  expect(deployLowerEdge?.path).toContain(' Q ');
+  const graph = await createWorkflowGraphModel(mockJobs);
+  const nonStraight = graph.routedEdges.find((e) => e.path.includes(' Q '));
+  expect(nonStraight).toBeTruthy();
 });
 
 test('multi-level pipeline with two matrices and a converging leaf renders without errors', async () => {

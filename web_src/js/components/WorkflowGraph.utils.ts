@@ -438,8 +438,7 @@ async function runElkLayout(
       'elk.algorithm': 'layered',
       'elk.direction': 'RIGHT',
       'elk.layered.layering.strategy': 'NETWORK_SIMPLEX',
-      'elk.layered.nodePlacement.strategy': 'BRANDES_KOEPF',
-      'elk.layered.nodePlacement.bk.fixedAlignment': 'BALANCED',
+      'elk.layered.nodePlacement.strategy': 'LINEAR_SEGMENTS',
       'elk.edgeRouting': 'ORTHOGONAL',
       'elk.layered.mergeEdges': 'true',
       'elk.layered.spacing.nodeNodeBetweenLayers': String(options.columnGap),
@@ -472,16 +471,37 @@ async function runElkLayout(
   }
 }
 
-// GitHub-style trunk routing: all edges from the same source use the same trackX
-// (vertical track in the column gap). Each edge draws its own vertical segment
-// from sourceY to targetY; the visual overlap at the same trackX creates the
-// shared trunk appearance. Highlighting one edge only lights up its own segment.
+// Edges from the same source share a trackX (vertical trunk in the column gap).
+// Different sources in the same column get distinct trackX positions so their
+// vertical segments don't overlap — this prevents unrelated nodes from looking
+// visually connected.
 function buildRoutedEdges(
   nodesById: Map<string, GraphNode>,
   edges: Edge[],
   options: WorkflowGraphLayoutOptions,
 ): Pick<WorkflowGraphModel, 'routedEdges' | 'sharedSegments'> {
   const routedEdges: RoutedEdge[] = [];
+
+  // Collect sources that need a vertical track per column gap.
+  const gapSources = new Map<number, Map<string, GraphNode>>();
+  for (const edge of edges) {
+    const fromNode = nodesById.get(edge.fromId);
+    const toNode = nodesById.get(edge.toId);
+    if (!fromNode || !toNode) continue;
+    if (Math.abs(boxCenterY(fromNode) - boxCenterY(toNode)) < 0.5) continue;
+    const gapX = fromNode.x + options.nodeWidth;
+    if (!gapSources.has(gapX)) gapSources.set(gapX, new Map());
+    gapSources.get(gapX)!.set(edge.fromId, fromNode);
+  }
+
+  // Distribute trackX positions evenly across each gap, sorted by source Y.
+  const trackXMap = new Map<string, number>();
+  for (const [gapX, sources] of gapSources) {
+    const sorted = Array.from(sources.values()).sort((a, b) => boxCenterY(a) - boxCenterY(b));
+    for (let i = 0; i < sorted.length; i++) {
+      trackXMap.set(`${sorted[i].id}:${gapX}`, gapX + options.columnGap * (i + 1) / (sorted.length + 1));
+    }
+  }
 
   for (const edge of edges) {
     const fromNode = nodesById.get(edge.fromId);
@@ -498,7 +518,7 @@ function buildRoutedEdges(
       continue;
     }
 
-    const trackX = startX + options.columnGap / 2;
+    const trackX = trackXMap.get(`${edge.fromId}:${startX}`) ?? (startX + options.columnGap / 2);
     const dy = endY > startY ? 1 : -1;
     const r = Math.min(cornerRadius, Math.abs(endY - startY) / 2, Math.abs(trackX - startX), Math.abs(endX - trackX));
 
@@ -506,8 +526,8 @@ function buildRoutedEdges(
       `M ${startX} ${startY}`,
       `H ${trackX - r}`,
       `Q ${trackX} ${startY} ${trackX} ${startY + r * dy}`,
-      `V ${endY}`,
-      `M ${trackX} ${endY}`,
+      `V ${endY - r * dy}`,
+      `Q ${trackX} ${endY} ${trackX + r} ${endY}`,
       `H ${endX}`,
     ].join(' ');
 
