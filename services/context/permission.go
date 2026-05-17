@@ -68,7 +68,7 @@ func CanWriteToBranch() func(ctx *Context) {
 // RequireUnitWriter returns a middleware for requiring repository write to one of the unit permission
 func RequireUnitWriter(unitTypes ...unit.Type) func(ctx *Context) {
 	return func(ctx *Context) {
-		if slices.ContainsFunc(unitTypes, ctx.Repo.Permission.CanWrite) || (ctx.RepoGroup != nil && slices.ContainsFunc(unitTypes, func(u unit.Type) bool {
+		if slices.ContainsFunc(unitTypes, ctx.Repo.Permission.CanWrite) || (ctx.RepoGroup.Group != nil && slices.ContainsFunc(unitTypes, func(u unit.Type) bool {
 			return ctx.RepoGroup.CanWriteUnit(ctx, ctx.Doer, u)
 		})) {
 			return
