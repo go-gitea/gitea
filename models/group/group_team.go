@@ -5,6 +5,7 @@ package group
 
 import (
 	"context"
+	"slices"
 
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/models/perm"
@@ -166,8 +167,8 @@ func GetNearestAncestorWithTeam(ctx context.Context, groupID, teamID int64) (*Re
 	}
 	// work our way up the target group's ancestry until we find a group assigned to the target team
 	var rgt *RepoGroupTeam
-	for i := len(teams) - 1; i >= 0; i-- {
-		rgt = teams[i]
+	for _, team := range teams {
+		rgt = team
 		if rgt != nil {
 			break
 		}
@@ -183,8 +184,7 @@ func FindNearestAncestorTeamsWithUser(ctx context.Context, groupID, userID int64
 	if err != nil {
 		return nil, err
 	}
-	for i := len(groups) - 1; i >= 0; i-- {
-		gid := groups[i]
+	for _, gid := range slices.Backward(groups) {
 		groupTeams, err = FindUserGroupTeams(ctx, gid, userID)
 		if err != nil {
 			return nil, err

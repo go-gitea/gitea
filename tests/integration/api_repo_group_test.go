@@ -212,19 +212,19 @@ func moveGroup(t *testing.T, actor string, groupID, newGroupID int64, pos *int, 
 	return nil
 }
 
-func editGroupTeam(t *testing.T, actor string, groupID int64, team string, options *api.CreateOrUpdateRepoGroupTeamOption, expectedStatus int) { //nolint:unused // WIP...
+func editGroupTeam(t *testing.T, actor string, groupID int64, team string, options *api.CreateOrUpdateRepoGroupTeamOption, expectedStatus int) {
 	token := getUserToken(t, actor, auth_model.AccessTokenScopeWriteOrganization)
 	req := NewRequestWithJSON(t, "PATCH", "/api/v1/groups/"+strconv.FormatInt(groupID, 10)+"/teams/"+team, options).AddTokenAuth(token)
 	MakeRequest(t, req, expectedStatus)
 }
 
-func addGroupTeam(t *testing.T, actor string, groupID int64, team string, options *api.CreateOrUpdateRepoGroupTeamOption, expectedStatus int) { //nolint:unused // WIP...
+func addGroupTeam(t *testing.T, actor string, groupID int64, team string, options *api.CreateOrUpdateRepoGroupTeamOption, expectedStatus int) {
 	token := getUserToken(t, actor, auth_model.AccessTokenScopeWriteOrganization)
 	req := NewRequestWithJSON(t, "PUT", "/api/v1/groups/"+strconv.FormatInt(groupID, 10)+"/teams/"+team, options).AddTokenAuth(token)
 	MakeRequest(t, req, expectedStatus)
 }
 
-func deleteGroupTeam(t *testing.T, actor string, groupID int64, team string, expectedStatus int) { //nolint:unused // WIP...
+func deleteGroupTeam(t *testing.T, actor string, groupID int64, team string, expectedStatus int) {
 	token := getUserToken(t, actor, auth_model.AccessTokenScopeWriteOrganization)
 	req := NewRequestf(t, "DELETE", "/api/v1/groups/%d/teams/%s", groupID, team).AddTokenAuth(token)
 	MakeRequest(t, req, expectedStatus)
@@ -264,6 +264,18 @@ func testCreateGroup(t *testing.T) {
 				Name:        "nested-group-" + strconv.FormatInt(i+1, 10),
 				Description: "Group nested " + strconv.FormatInt(i+1, 10) + " levels deep",
 			}, http.StatusCreated)
+			if (i+1)%3 == 0 {
+				opts := &api.CreateOrUpdateRepoGroupTeamOption{
+					CanCreateIn: new(true),
+					Permission:  new(permToRepoWritePermission(data.teamMembers[groupOrgWriterTeam].perm)),
+					UnitsMap:    createUnitMapWith("write", "read"),
+				}
+				if (i + 1) > 3 {
+					editGroupTeam(t, actor, ng.ID, groupOrgWriterTeam, opts, http.StatusNoContent)
+				} else {
+					addGroupTeam(t, actor, ng.ID, groupOrgWriterTeam, opts, http.StatusNoContent)
+				}
+			}
 			gid = ng.ID
 		}
 		createGroup(t, actor, data.org.Name, gid, &api.NewGroupOption{

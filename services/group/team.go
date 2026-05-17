@@ -267,7 +267,7 @@ func RecalculateGroupAccess(ctx context.Context, g *group_model.Group, isNew boo
 
 func UpdateOrCreateGroupUnit(ctx context.Context, group *group_model.Group, team *org_model.Team, unit unit.Unit, mode perm.AccessMode) error {
 	sess := db.GetEngine(ctx)
-	isNew := false
+	var isNew bool
 	gt, err := group_model.FindGroupTeamByTeamID(ctx, group.ID, team.ID)
 	if err != nil {
 		return err
