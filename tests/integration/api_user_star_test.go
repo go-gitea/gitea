@@ -17,6 +17,7 @@ import (
 	"code.gitea.io/gitea/tests"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestAPIStar(t *testing.T) {
@@ -162,8 +163,7 @@ func TestAPIStarPublicOnly(t *testing.T) {
 		AddTokenAuth(token)
 	resp := MakeRequest(t, req, http.StatusOK)
 
-	var repos []api.Repository
-	DecodeJSON(t, resp, &repos)
+	repos := DecodeJSON(t, resp, []api.Repository{})
 	if assert.Len(t, repos, 1) {
 		assert.Equal(t, "user5/repo4", repos[0].FullName)
 	}
@@ -171,8 +171,7 @@ func TestAPIStarPublicOnly(t *testing.T) {
 	req = NewRequest(t, "GET", "/api/v1/users/user2/starred").
 		AddTokenAuth(token)
 	resp = MakeRequest(t, req, http.StatusOK)
-	DecodeJSON(t, resp, &repos)
-	if assert.Len(t, repos, 1) {
-		assert.Equal(t, "user5/repo4", repos[0].FullName)
-	}
+	repos = DecodeJSON(t, resp, []api.Repository{})
+	require.Len(t, repos, 1)
+	assert.Equal(t, "user5/repo4", repos[0].FullName)
 }
