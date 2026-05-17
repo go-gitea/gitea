@@ -311,7 +311,7 @@ function onNodeClick(job: GraphNode | ActionsJob, event: MouseEvent) {
               <div class="matrix-panel" xmlns="http://www.w3.org/1999/xhtml" @click.stop="toggleMatrixExpanded(job.matrixKey!)">
                 <template v-if="!isMatrixExpanded(job.matrixKey!)">
                   <div class="matrix-panel-collapsed">
-                    <ActionStatusIcon :status="job.status"/>
+                    <ActionStatusIcon :status="job.status" icon-variant="circle-fill"/>
                     <span class="matrix-panel-summary">{{ job.jobs!.length }} jobs completed</span>
                   </div>
                   <span class="matrix-panel-toggle">Show all jobs</span>
@@ -326,7 +326,7 @@ function onNodeClick(job: GraphNode | ActionsJob, event: MouseEvent) {
                       @click.stop="onNodeClick(ch, $event)"
                     >
                       <div class="graph-list-row-main">
-                        <ActionStatusIcon :status="ch.status"/>
+                        <ActionStatusIcon :status="ch.status" icon-variant="circle-fill"/>
                         <span class="graph-list-row-name">{{ ch.name }}</span>
                       </div>
                       <span class="graph-list-row-duration">{{ ch.duration }}</span>
@@ -360,7 +360,7 @@ function onNodeClick(job: GraphNode | ActionsJob, event: MouseEvent) {
                   @click="onNodeClick(ch, $event)"
                 >
                   <div class="graph-list-row-main">
-                    <ActionStatusIcon :status="ch.status"/>
+                    <ActionStatusIcon :status="ch.status" icon-variant="circle-fill"/>
                     <span class="graph-list-row-name">{{ ch.name }}</span>
                   </div>
                   <span class="graph-list-row-duration">{{ ch.duration }}</span>
@@ -384,7 +384,7 @@ function onNodeClick(job: GraphNode | ActionsJob, event: MouseEvent) {
             <foreignObject :x="job.x + 10" :y="job.y + 6" :width="nodeWidth - 20" :height="job.displayHeight - 12">
               <div class="job-row job-card" xmlns="http://www.w3.org/1999/xhtml">
                 <div class="job-row-main">
-                  <ActionStatusIcon :status="job.status"/>
+                  <ActionStatusIcon :status="job.status" icon-variant="circle-fill"/>
                   <span class="job-name">{{ job.name }}</span>
                 </div>
                 <span class="job-duration">{{ job.duration }}</span>
