@@ -27,13 +27,13 @@ func FindGroupMembers(ctx context.Context, groupID int64, opts *organization_mod
 	if opts.PublicOnly() {
 		cond = cond.And(builder.Eq{"`org_user`.is_public": true})
 	}
-	sess := db.GetEngine(ctx).Where(builder.In("`user`.id", cond))
+	sess := db.GetEngine(ctx)
 	if opts.ListOptions.PageSize > 0 {
 		sess = db.SetSessionPagination(sess, opts)
 		users := make([]*user_model.User, 0, opts.ListOptions.PageSize)
 		return users, sess.Find(&users)
 	}
-
+	sess = sess.Where(builder.In("`user`.id", cond))
 	var users []*user_model.User
 	err := sess.Find(&users)
 	return users, err

@@ -302,10 +302,11 @@ func (opts FindGroupsOptions) ToConds() builder.Cond {
 }
 
 func FindGroups(ctx context.Context, opts *FindGroupsOptions) (RepoGroupList, error) {
-	sess := db.GetEngine(ctx).Where(opts.ToConds())
+	sess := db.GetEngine(ctx)
 	if opts.Page > 0 {
 		sess = db.SetSessionPagination(sess, opts)
 	}
+	sess = sess.Where(opts.ToConds())
 
 	groups := make([]*Group, 0, 10)
 	return groups, sess.
