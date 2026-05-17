@@ -10,6 +10,7 @@ import (
 
 	"code.gitea.io/gitea/modules/options"
 	repo_module "code.gitea.io/gitea/modules/repository"
+	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/tests"
 
@@ -22,8 +23,12 @@ func TestAPIListLicenseTemplates(t *testing.T) {
 	req := NewRequest(t, "GET", "/api/v1/licenses")
 	resp := MakeRequest(t, req, http.StatusOK)
 
-	// This tests if the API returns a list of strings
-	DecodeJSON(t, resp, []api.LicensesTemplateListEntry{})
+	licenseList := DecodeJSON(t, resp, []api.LicensesTemplateListEntry{})
+	assert.Contains(t, licenseList, api.LicensesTemplateListEntry{
+		Key:  "MIT",
+		Name: "MIT",
+		URL:  setting.AppURL + "api/v1/licenses/MIT",
+	})
 }
 
 func TestAPIGetLicenseTemplateInfo(t *testing.T) {

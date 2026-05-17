@@ -14,6 +14,7 @@ import (
 
 	"github.com/go-redsync/redsync/v4"
 	"github.com/go-redsync/redsync/v4/redis/goredis/v9"
+	"github.com/redis/go-redis/v9"
 )
 
 const redisLockKeyPrefix = "gitea:globallock:"
@@ -23,7 +24,8 @@ const redisLockKeyPrefix = "gitea:globallock:"
 var redisLockExpiry = 30 * time.Second
 
 type redisLocker struct {
-	rs *redsync.Redsync
+	conn redis.UniversalClient
+	rs   *redsync.Redsync
 
 	mutexM   sync.Map
 	closed   atomic.Bool
@@ -33,17 +35,13 @@ type redisLocker struct {
 var _ Locker = &redisLocker{}
 
 func NewRedisLocker(connection string) Locker {
+	conn := nosql.GetManager().GetRedisClient(connection)
 	l := &redisLocker{
-		rs: redsync.New(
-			goredis.NewPool(
-				nosql.GetManager().GetRedisClient(connection),
-			),
-		),
+		conn: conn,
+		rs:   redsync.New(goredis.NewPool(conn)),
 	}
-
 	l.extendWg.Add(1)
 	l.startExtend()
-
 	return l
 }
 
