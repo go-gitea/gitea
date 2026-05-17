@@ -63,12 +63,14 @@ func issueOAuthAuthorizationCode(t *testing.T, user *user_model.User, app *api.O
 	}
 	require.NoError(t, db.Insert(t.Context(), grant))
 
-	r1, _ := util.CryptoRandomBytes(12)
+	r1, err := util.CryptoRandomBytes(12)
+	require.NoError(t, err)
 
-	verifier := "phase3-verifier-" + string(r1)
+	verifier := "phase3-verifier-" + base64.RawURLEncoding.EncodeToString(r1)
 	challengeBytes := sha256.Sum256([]byte(verifier))
-	r2, _ := util.CryptoRandomBytes(10)
-	code := "phase3-code-" + string(r2)
+	r2, err := util.CryptoRandomBytes(10)
+	require.NoError(t, err)
+	code := "phase3-code-" + base64.RawURLEncoding.EncodeToString(r2)
 
 	require.NoError(t, db.Insert(t.Context(), &auth_model.OAuth2AuthorizationCode{
 		GrantID:             grant.ID,
