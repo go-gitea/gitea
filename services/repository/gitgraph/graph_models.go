@@ -15,6 +15,7 @@ import (
 	git_model "code.gitea.io/gitea/models/git"
 	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
+	"code.gitea.io/gitea/modules/container"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
 	asymkey_service "code.gitea.io/gitea/services/asymkey"
@@ -93,7 +94,7 @@ func (graph *Graph) AddCommit(row, column int, flowID int64, data []byte) error 
 // before finally retrieving the latest status
 func (graph *Graph) LoadAndProcessCommits(ctx context.Context, repository *repo_model.Repository, gitRepo *git.Repository) error {
 	var err error
-	emailSet := map[string]struct{}{}
+	emailSet := make(container.Set[string])
 	keyMap := map[string]bool{}
 
 	for _, c := range graph.Commits {
@@ -105,20 +106,16 @@ func (graph *Graph) LoadAndProcessCommits(ctx context.Context, repository *repo_
 			return fmt.Errorf("GetCommit: %s Error: %w", c.Rev, err)
 		}
 		if c.Commit.Author != nil {
-			emailSet[c.Commit.Author.Email] = struct{}{}
+			emailSet.Add(c.Commit.Author.Email)
 		}
 		for _, sig := range c.Commit.CoAuthorSignatures() {
-			emailSet[sig.Email] = struct{}{}
+			emailSet.Add(sig.Email)
 		}
 	}
 
-	allEmails := make([]string, 0, len(emailSet))
-	for email := range emailSet {
-		allEmails = append(allEmails, email)
-	}
 	var emailUserMap *user_model.EmailUserMap
-	if len(allEmails) > 0 {
-		emailUserMap, err = user_model.GetUsersByEmails(ctx, allEmails)
+	if len(emailSet) > 0 {
+		emailUserMap, err = user_model.GetUsersByEmails(ctx, emailSet.Values())
 		if err != nil {
 			log.Error("GetUsersByEmails: %v", err)
 		}
