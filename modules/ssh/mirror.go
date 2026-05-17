@@ -72,3 +72,35 @@ func GetSSHKeypairForURL(ctx context.Context, repo *repo_model.Repository, url s
 	}
 	return GetSSHKeypairForRepository(ctx, repo)
 }
+
+// SetupMirrorSSHAgent prepares SSH key-based authentication for a mirror or
+// migration git operation against remoteURL on behalf of repo. For non-SSH
+// URLs (or when no keypair is available) it is a no-op. The returned cleanup
+// is never nil and must always be called by the caller (typically via defer).
+func SetupMirrorSSHAgent(ctx context.Context, repo *repo_model.Repository, remoteURL string) (sshAuthSock string, cleanup func(), err error) {
+	noop := func() {}
+	if !IsSSHURL(remoteURL) {
+		return "", noop, nil
+	}
+
+	keypair, err := GetSSHKeypairForRepository(ctx, repo)
+	if err != nil {
+		return "", noop, fmt.Errorf("failed to get SSH keypair for repository: %w", err)
+	}
+	if keypair == nil {
+		return "", noop, nil
+	}
+
+	privateKey, err := keypair.GetDecryptedPrivateKey()
+	if err != nil {
+		return "", noop, fmt.Errorf("failed to decrypt SSH private key: %w", err)
+	}
+
+	socketPath, agentCleanup, err := CreateTemporaryAgent(privateKey)
+	if err != nil {
+		return "", noop, fmt.Errorf("failed to create SSH agent: %w", err)
+	}
+
+	log.Debug("SSH agent ready for mirror %s (socket: %s)", repo.FullName(), socketPath)
+	return socketPath, agentCleanup, nil
+}

@@ -23,7 +23,6 @@ import (
 	"code.gitea.io/gitea/modules/proxy"
 	repo_module "code.gitea.io/gitea/modules/repository"
 	"code.gitea.io/gitea/modules/setting"
-	ssh_module "code.gitea.io/gitea/modules/ssh"
 	"code.gitea.io/gitea/modules/timeutil"
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/services/migrations"
@@ -107,36 +106,6 @@ func checkRecoverableSyncError(stderrMessage string) bool {
 }
 
 // runSync returns true if sync finished without error.
-// setupSSHAuth sets up SSH authentication for git operations if needed.
-// It returns the SSH agent socket path, a cleanup function, and any error.
-// If the URL is not SSH or no keypair is found, it returns empty string with a no-op cleanup.
-func setupSSHAuth(ctx context.Context, repo *repo_model.Repository, remoteURL string) (string, func(), error) {
-	if !IsSSHURL(remoteURL) {
-		return "", func() {}, nil
-	}
-
-	keypair, err := GetSSHKeypairForURL(ctx, repo, remoteURL)
-	if err != nil {
-		return "", nil, fmt.Errorf("failed to get SSH keypair: %w", err)
-	}
-	if keypair == nil {
-		return "", func() {}, nil
-	}
-
-	privateKey, err := keypair.GetDecryptedPrivateKey()
-	if err != nil {
-		return "", nil, fmt.Errorf("failed to decrypt private key: %w", err)
-	}
-
-	socketPath, cleanup, err := ssh_module.CreateTemporaryAgent(privateKey)
-	if err != nil {
-		return "", nil, fmt.Errorf("failed to create SSH agent: %w", err)
-	}
-
-	log.Debug("SSH agent created for repository %s with socket: %s", repo.FullName(), socketPath)
-	return socketPath, cleanup, nil
-}
-
 func runSync(ctx context.Context, m *repo_model.Mirror) ([]*repo_module.SyncResult, bool) {
 	log.Trace("SyncMirrors [repo: %-v]: running git remote update...", m.Repo)
 
@@ -149,7 +118,7 @@ func runSync(ctx context.Context, m *repo_model.Mirror) ([]*repo_module.SyncResu
 	timeout := time.Duration(setting.Git.Timeout.Mirror) * time.Second
 
 	// Setup SSH authentication if needed
-	sshAuthSock, cleanup, sshErr := setupSSHAuth(ctx, m.Repo, remoteURL.String())
+	sshAuthSock, cleanup, sshErr := SetupMirrorSSHAgent(ctx, m.Repo, remoteURL.String())
 	if sshErr != nil {
 		log.Error("SyncMirrors [repo: %-v]: SSH setup error %v", m.Repo, sshErr)
 		return nil, false

@@ -28,34 +28,8 @@ import (
 	"code.gitea.io/gitea/modules/util"
 )
 
-func setupMigrationSSHAuth(ctx context.Context, repo *repo_model.Repository, remoteURL string) (string, func(), error) {
-	if !ssh_module.IsSSHURL(remoteURL) {
-		return "", func() {}, nil
-	}
-
-	keypair, err := ssh_module.GetSSHKeypairForRepository(ctx, repo)
-	if err != nil {
-		return "", nil, fmt.Errorf("failed to get SSH keypair for repository: %w", err)
-	}
-	if keypair == nil {
-		return "", func() {}, nil
-	}
-
-	privateKey, err := keypair.GetDecryptedPrivateKey()
-	if err != nil {
-		return "", nil, fmt.Errorf("failed to decrypt private key: %w", err)
-	}
-
-	socketPath, cleanup, err := ssh_module.CreateTemporaryAgent(privateKey)
-	if err != nil {
-		return "", nil, fmt.Errorf("failed to create SSH agent: %w", err)
-	}
-
-	return socketPath, cleanup, nil
-}
-
 func cloneExternalRepoWithSSHAuth(ctx context.Context, repo *repo_model.Repository, remoteURL string, storageRepo gitrepo.Repository, cloneOpts git.CloneRepoOptions) error {
-	sshAuthSock, cleanup, err := setupMigrationSSHAuth(ctx, repo, remoteURL)
+	sshAuthSock, cleanup, err := ssh_module.SetupMirrorSSHAgent(ctx, repo, remoteURL)
 	if err != nil {
 		return err
 	}

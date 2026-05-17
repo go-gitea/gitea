@@ -21,7 +21,6 @@ import (
 	"code.gitea.io/gitea/modules/proxy"
 	"code.gitea.io/gitea/modules/repository"
 	"code.gitea.io/gitea/modules/setting"
-	ssh_module "code.gitea.io/gitea/modules/ssh"
 	"code.gitea.io/gitea/modules/timeutil"
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/services/migrations"
@@ -168,36 +167,13 @@ func runPushSync(ctx context.Context, m *repo_model.PushMirror) error {
 		}
 
 		// Setup SSH authentication
-		if IsSSHURL(remoteURL.String()) {
-			if repo.Owner == nil {
-				if err := repo.LoadOwner(ctx); err != nil {
-					log.Error("Failed to load repository owner for %s: %v", repo.FullName(), err)
-					return util.SanitizeErrorCredentialURLs(err)
-				}
-			}
-			keypair, err := GetSSHKeypairForRepository(ctx, repo)
-			if err != nil {
-				log.Error("Failed to get SSH keypair for repository %s: %v", repo.FullName(), err)
-				return util.SanitizeErrorCredentialURLs(err)
-			}
-			if keypair != nil {
-				privateKey, err := keypair.GetDecryptedPrivateKey()
-				if err != nil {
-					log.Error("Failed to decrypt private key for repository %s: %v", repo.FullName(), err)
-					return util.SanitizeErrorCredentialURLs(err)
-				}
-
-				socketPath, cleanup, err := ssh_module.CreateTemporaryAgent(privateKey)
-				if err != nil {
-					log.Error("Failed to create SSH agent for repository %s: %v", repo.FullName(), err)
-					return util.SanitizeErrorCredentialURLs(err)
-				}
-				defer cleanup()
-
-				pushOpts.SSHAuthSock = socketPath
-				log.Debug("SSH agent created for push mirror %s with socket: %s", repo.FullName(), socketPath)
-			}
+		sshAuthSock, cleanup, err := SetupMirrorSSHAgent(ctx, repo, remoteURL.String())
+		if err != nil {
+			log.Error("Failed to set up SSH agent for push mirror %s: %v", repo.FullName(), err)
+			return util.SanitizeErrorCredentialURLs(err)
 		}
+		defer cleanup()
+		pushOpts.SSHAuthSock = sshAuthSock
 
 		if err := gitrepo.PushToExternal(ctx, storageRepo, pushOpts); err != nil {
 			log.Error("Error pushing %s mirror[%d] remote %s: %v", storageRepo.RelativePath(), m.ID, m.RemoteName, err)
