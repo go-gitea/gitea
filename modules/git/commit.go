@@ -104,7 +104,11 @@ func parseCoAuthorTrailer(line string) (*Signature, bool) {
 	if err != nil {
 		return nil, false
 	}
-	return &Signature{Name: addr.Name, Email: strings.ToLower(addr.Address)}, true
+	name := addr.Name
+	if name == "" {
+		name = addr.Address
+	}
+	return &Signature{Name: name, Email: strings.ToLower(addr.Address)}, true
 }
 
 // parseCoAuthorSignatures parses `Co-authored-by:` trailers from the trailing

@@ -266,6 +266,11 @@ func TestCoAuthorSignatures(t *testing.T) {
 			body: "title\n\nSigned-off-by: Jane <jane@example.com>",
 			want: nil,
 		},
+		{
+			name: "bare-address trailer falls back to address as name",
+			body: "title\n\nCo-authored-by: <jane@example.com>",
+			want: []Signature{{Name: "jane@example.com", Email: "jane@example.com"}},
+		},
 	}
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
