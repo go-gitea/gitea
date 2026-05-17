@@ -232,7 +232,7 @@ func SearchFiles(ctx context.Context, opts *PackageFileSearchOptions) ([]*Packag
 		Where(opts.toConds())
 
 	if opts.Paginator != nil {
-		sess = db.SetSessionPagination(sess, opts)
+		db.SetSessionPagination(sess, opts)
 	}
 
 	pfs := make([]*PackageFile, 0, 10)

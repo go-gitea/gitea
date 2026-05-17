@@ -25,7 +25,6 @@ import (
 	"code.gitea.io/gitea/modules/translation"
 
 	"xorm.io/builder"
-	"xorm.io/xorm"
 )
 
 // CommitStatus holds a single Status of a single Commit
@@ -329,7 +328,7 @@ type CommitStatusIndex struct {
 	MaxIndex int64  `xorm:"index"`
 }
 
-func makeRepoCommitQuery(ctx context.Context, repoID int64, sha string) *xorm.Session {
+func makeRepoCommitQuery(ctx context.Context, repoID int64, sha string) db.Session {
 	return db.GetEngine(ctx).Table(&CommitStatus{}).
 		Where("repo_id = ?", repoID).And("sha = ?", sha)
 }
@@ -337,12 +336,10 @@ func makeRepoCommitQuery(ctx context.Context, repoID int64, sha string) *xorm.Se
 // GetLatestCommitStatus returns all statuses with a unique context for a given commit.
 func GetLatestCommitStatus(ctx context.Context, repoID int64, sha string, listOptions db.ListOptions) ([]*CommitStatus, error) {
 	indices := make([]int64, 0, 10)
-	sess := makeRepoCommitQuery(ctx, repoID, sha).
-		Select("max( `index` ) as `index`").
-		GroupBy("context_hash").
-		OrderBy("max( `index` ) desc")
+	sess := makeRepoCommitQuery(ctx, repoID, sha)
+	sess.Select("max( `index` ) as `index`").GroupBy("context_hash").OrderBy("max( `index` ) desc")
 	if !listOptions.IsListAll() {
-		sess = db.SetSessionPagination(sess, &listOptions)
+		db.SetSessionPagination(sess, &listOptions)
 	}
 	if err := sess.Find(&indices); err != nil {
 		return nil, err
@@ -372,7 +369,7 @@ func GetLatestCommitStatusForPairs(ctx context.Context, repoSHAs []RepoSHA) (map
 
 	results := make([]result, 0, len(repoSHAs))
 
-	getBase := func() *xorm.Session {
+	getBase := func() db.Session {
 		return db.GetEngine(ctx).Table(&CommitStatus{})
 	}
 
@@ -425,7 +422,7 @@ func GetLatestCommitStatusForRepoCommitIDs(ctx context.Context, repoID int64, co
 		SHA   string
 	}
 
-	getBase := func() *xorm.Session {
+	getBase := func() db.Session {
 		return db.GetEngine(ctx).Table(&CommitStatus{}).Where("repo_id = ?", repoID)
 	}
 	results := make([]result, 0, len(commitIDs))
