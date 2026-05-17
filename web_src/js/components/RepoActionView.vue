@@ -150,7 +150,7 @@ async function deleteArtifact(name: string) {
         <!-- jobs list -->
         <div class="ui divider"/>
         <div class="left-list-header">{{ locale.allJobs }}</div>
-        <div class="flex-items-block">
+        <div class="flex-items-block action-view-sidebar-list">
           <div class="item action-view-sidebar-item" v-for="job in run.jobs" :key="job.id" :class="props.jobId === job.id ? 'selected' : ''">
             <a class="tw-contents silenced" :href="job.link">
               <ActionStatusIcon :locale-status="locale.status[job.status]" :status="job.status" icon-variant="circle-fill"/>
@@ -165,7 +165,7 @@ async function deleteArtifact(name: string) {
         <template v-if="artifacts.length > 0">
           <div class="ui divider"/>
           <div class="left-list-header">{{ locale.artifactsTitle }} ({{ artifacts.length }})</div>
-          <div class="flex-items-block">
+          <div class="flex-items-block action-view-sidebar-list">
             <div class="item action-view-sidebar-item" v-for="artifact in artifacts" :key="artifact.name">
               <template v-if="artifact.status !== 'expired'">
                 <a
@@ -194,7 +194,7 @@ async function deleteArtifact(name: string) {
         <!-- run details -->
         <div class="ui divider"/>
         <div class="left-list-header">{{ locale.runDetails }}</div>
-        <div class="flex-items-block">
+        <div class="flex-items-block action-view-sidebar-list">
           <div class="item action-view-sidebar-item">
             <a class="flex-text-block silenced" :href="`${run.link}/workflow`">
               <SvgIcon name="octicon-file-code" class="tw-text-text"/>
@@ -308,7 +308,7 @@ async function deleteArtifact(name: string) {
   color: var(--color-text-light-2);
 }
 
-.action-view-left .flex-items-block {
+.action-view-sidebar-list {
   margin: var(--gap-block) 0;
 }
 
