@@ -93,6 +93,7 @@ func TestAPIGroupTeam(t *testing.T) {
 	defer tests.PrepareTestEnv(t)()
 	t.Run("TeamAssignmentInheritance", testTeamAssignmentInheritance)
 	t.Run("TeamAssignmentAndAccess", testRepoGroupTeamAssignmentAndAccess)
+	t.Run("TeamAssignmentGeneral", testRepoGroupTeamAssignmentGeneral)
 }
 
 func testTeamAssignmentInheritance(t *testing.T) {
@@ -286,4 +287,35 @@ func testRepoGroupTeamAssignmentAndAccess(t *testing.T) {
 			}, c.expectedStatuses.updateTeam)
 		})
 	}
+}
+
+func testRepoGroupTeamAssignmentGeneral(t *testing.T) {
+	data := createOrgWithGroups(t)
+	excluded := []unit_model.Unit{
+		unit_model.Units[unit_model.TypeExternalWiki],
+		unit_model.Units[unit_model.TypeExternalTracker],
+	}
+	const actor = "user2"
+
+	t.Run("AssignAndUnassignToPrivateGroup", func(t *testing.T) {
+		unprivilegedActor := unittest.AssertExistsAndLoadBean(t, &user_model.User{
+			ID: data.teamMembers[groupOrgWriterTeam].uid,
+		})
+
+		expectFn := func(expectedReadStatus, expectedWriteStatus int) {
+			getGroup(t, unprivilegedActor.Name, data.rootPrivate.ID, expectedReadStatus)
+			createGroup(t, unprivilegedActor.Name, data.org.Name, data.rootPrivate.ID, &api.NewGroupOption{
+				Name: "a name",
+			}, expectedWriteStatus)
+		}
+		editGroupTeam(t, actor, data.rootPrivate.ID, groupOrgWriterTeam, &api.CreateOrUpdateRepoGroupTeamOption{
+			Permission:  new(api.RepoWritePermissionWrite),
+			UnitsMap:    createUnitMapWith("write", "read", excluded...),
+			CanCreateIn: new(true),
+		}, http.StatusNoContent)
+		expectFn(http.StatusOK, http.StatusCreated)
+
+		deleteGroupTeam(t, actor, data.rootPrivate.ID, groupOrgWriterTeam, http.StatusNoContent)
+		expectFn(http.StatusNotFound, http.StatusForbidden)
+	})
 }
