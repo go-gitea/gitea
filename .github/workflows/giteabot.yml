@@ -4,7 +4,7 @@ on:
   push:
     branches:
       - main
-  pull_request_target:
+  pull_request_target: # zizmor: ignore[dangerous-triggers] Required for Giteabot's write token; the job only runs a pinned action and never checks out PR HEAD.
     types:
       - opened
       - synchronize
