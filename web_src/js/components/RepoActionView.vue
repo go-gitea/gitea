@@ -6,7 +6,7 @@ import {POST, DELETE} from '../modules/fetch.ts';
 import ActionRunSummaryView from './ActionRunSummaryView.vue';
 import ActionRunJobView from './ActionRunJobView.vue';
 import type {ActionsRunAttempt} from '../modules/gitea-actions.ts';
-import {createActionRunViewStore, groupJobsByMatrix} from './ActionRunView.ts';
+import {createActionRunViewStore, groupJobsByMatrix, isMatrixGroupExpanded, toggleCollapsedMatrixGroup} from './ActionRunView.ts';
 import {buildArtifactTooltipHtml} from './ActionRunArtifacts.ts';
 
 defineOptions({
@@ -52,19 +52,14 @@ async function deleteArtifact(name: string) {
 
 const jobGroups = computed(() => groupJobsByMatrix(run.value.jobs ?? []));
 
-// Collapsed-by-user matrix groups (keyed by workflow jobId). Default: expanded.
-// The group that currently contains the selected job is force-expanded below.
+// User-collapsed matrix groups (keyed by workflow jobId). Default: expanded.
+// The group containing the currently selected job is force-expanded.
 const collapsedGroups = ref<Set<string>>(new Set());
 function toggleGroup(jobId: string) {
-  if (collapsedGroups.value.has(jobId)) {
-    collapsedGroups.value.delete(jobId);
-  } else {
-    collapsedGroups.value.add(jobId);
-  }
+  toggleCollapsedMatrixGroup(collapsedGroups.value, jobId);
 }
 function isGroupExpanded(group: {jobId: string; iterations: Array<{id: number}>}): boolean {
-  if (group.iterations.some((j) => j.id === props.jobId)) return true;
-  return !collapsedGroups.value.has(group.jobId);
+  return isMatrixGroupExpanded(group, props.jobId, collapsedGroups.value);
 }
 </script>
 <template>

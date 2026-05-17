@@ -1,4 +1,9 @@
-import {aggregateIterationStatus, groupJobsByMatrix} from './ActionRunView.ts';
+import {
+  aggregateIterationStatus,
+  groupJobsByMatrix,
+  isMatrixGroupExpanded,
+  toggleCollapsedMatrixGroup,
+} from './ActionRunView.ts';
 import type {ActionsJob, ActionsStatus} from '../modules/gitea-actions.ts';
 
 function makeJob(id: number, jobId: string, name = jobId, status: ActionsStatus = 'success'): ActionsJob {
@@ -75,6 +80,49 @@ describe('groupJobsByMatrix', () => {
       makeJob(2, 'test', 'test (b)', 'success'),
     ]);
     expect(out[0].aggregateStatus).toBe('success');
+  });
+});
+
+describe('isMatrixGroupExpanded', () => {
+  const group = {jobId: 'test', iterations: [{id: 1}, {id: 2}, {id: 3}]};
+
+  test('expanded by default when not collapsed', () => {
+    expect(isMatrixGroupExpanded(group, 0, new Set())).toBe(true);
+  });
+
+  test('collapsed when explicitly in the collapsed set', () => {
+    expect(isMatrixGroupExpanded(group, 0, new Set(['test']))).toBe(false);
+  });
+
+  test('force-expanded when the currently viewed job lives in the group', () => {
+    // Even though "test" is in collapsed, the user is viewing job 2 inside
+    // it — the group must stay expanded so they can see their own row.
+    expect(isMatrixGroupExpanded(group, 2, new Set(['test']))).toBe(true);
+  });
+
+  test('unaffected by collapse state of other groups', () => {
+    expect(isMatrixGroupExpanded(group, 0, new Set(['other-group']))).toBe(true);
+  });
+});
+
+describe('toggleCollapsedMatrixGroup', () => {
+  test('adds when missing', () => {
+    const s = new Set<string>();
+    toggleCollapsedMatrixGroup(s, 'build');
+    expect(s.has('build')).toBe(true);
+  });
+
+  test('removes when present', () => {
+    const s = new Set(['build']);
+    toggleCollapsedMatrixGroup(s, 'build');
+    expect(s.has('build')).toBe(false);
+  });
+
+  test('only affects the named group', () => {
+    const s = new Set(['build', 'test']);
+    toggleCollapsedMatrixGroup(s, 'build');
+    expect(s.has('build')).toBe(false);
+    expect(s.has('test')).toBe(true);
   });
 });
 

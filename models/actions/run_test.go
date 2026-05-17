@@ -44,3 +44,32 @@ func TestActionRun_Duration_NonNegative(t *testing.T) {
 	}
 	assert.Equal(t, time.Duration(0), run.Duration())
 }
+
+func TestInsertActionRunJobs(t *testing.T) {
+	assert.NoError(t, unittest.PrepareTestDatabase())
+
+	t.Run("empty slice is a no-op", func(t *testing.T) {
+		assert.NoError(t, InsertActionRunJobs(t.Context(), nil))
+		assert.NoError(t, InsertActionRunJobs(t.Context(), []*ActionRunJob{}))
+	})
+
+	t.Run("bulk-insert multiple rows", func(t *testing.T) {
+		// Use distinct, non-colliding RunID/Repo so we don't tangle with fixtures.
+		const runID = int64(987654)
+		batch := []*ActionRunJob{
+			{RunID: runID, RepoID: 1, OwnerID: 1, Name: "batch-a", JobID: "j", Status: StatusWaiting, MatrixValues: map[string]any{"k": "a"}},
+			{RunID: runID, RepoID: 1, OwnerID: 1, Name: "batch-b", JobID: "j", Status: StatusWaiting, MatrixValues: map[string]any{"k": "b"}},
+			{RunID: runID, RepoID: 1, OwnerID: 1, Name: "batch-c", JobID: "j", Status: StatusWaiting, MatrixValues: map[string]any{"k": "c"}},
+		}
+		assert.NoError(t, InsertActionRunJobs(t.Context(), batch))
+
+		var loaded []*ActionRunJob
+		assert.NoError(t, db.GetEngine(t.Context()).Where("run_id = ?", runID).OrderBy("id").Find(&loaded))
+		assert.Len(t, loaded, 3)
+		assert.Equal(t, "batch-a", loaded[0].Name)
+		assert.Equal(t, "batch-c", loaded[2].Name)
+		// MatrixValues round-trip through the JSON column.
+		assert.Equal(t, "a", loaded[0].MatrixValues["k"])
+		assert.Equal(t, "c", loaded[2].MatrixValues["k"])
+	})
+}

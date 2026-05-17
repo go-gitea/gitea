@@ -159,6 +159,26 @@ func TestReadWorkflow_WorkflowDispatchConfig(t *testing.T) {
 	}, workflowDispatch.Inputs[2])
 }
 
+func TestWorkflowDisplayName(t *testing.T) {
+	t.Run("falls back to filename when workflow is nil", func(t *testing.T) {
+		assert.Equal(t, "ci.yml", WorkflowDisplayName("ci.yml", nil))
+	})
+
+	t.Run("falls back to filename when YAML has no name", func(t *testing.T) {
+		assert.Equal(t, "ci.yml", WorkflowDisplayName("ci.yml", &act_model.Workflow{}))
+	})
+
+	t.Run("uses YAML name when present", func(t *testing.T) {
+		wf := &act_model.Workflow{Name: "Continuous Integration"}
+		assert.Equal(t, "Continuous Integration", WorkflowDisplayName("ci.yml", wf))
+	})
+
+	t.Run("YAML name with whitespace is preserved verbatim", func(t *testing.T) {
+		wf := &act_model.Workflow{Name: "  Deploy  "}
+		assert.Equal(t, "  Deploy  ", WorkflowDisplayName("d.yml", wf))
+	})
+}
+
 func Test_loadIsRefDeleted(t *testing.T) {
 	unittest.PrepareTestEnv(t)
 

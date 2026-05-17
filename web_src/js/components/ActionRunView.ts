@@ -119,6 +119,29 @@ export function groupJobsByMatrix(jobs: ReadonlyArray<ActionsJob>): JobGroup[] {
   return groups;
 }
 
+// isMatrixGroupExpanded decides whether the iterations of a matrix group
+// should currently be rendered in the sidebar. The group is always shown when
+// the currently selected job belongs to it (otherwise users couldn't see the
+// job they navigated to). Otherwise the explicit user-toggled `collapsed` set
+// wins.
+export function isMatrixGroupExpanded(
+  group: {jobId: string; iterations: ReadonlyArray<{id: number}>},
+  selectedJobId: number,
+  collapsed: ReadonlySet<string>,
+): boolean {
+  for (const j of group.iterations) {
+    if (j.id === selectedJobId) return true;
+  }
+  return !collapsed.has(group.jobId);
+}
+
+// toggleCollapsedMatrixGroup flips the collapsed state for one jobId. Mutates
+// the passed set so Vue's reactivity tracks the change.
+export function toggleCollapsedMatrixGroup(collapsed: Set<string>, jobId: string): void {
+  if (collapsed.has(jobId)) collapsed.delete(jobId);
+  else collapsed.add(jobId);
+}
+
 // aggregateIterationStatus mirrors models/actions/run_job.go AggregateJobStatus
 // so the synthetic group header reflects the same precedence the backend
 // would compute for an attempt-level status.

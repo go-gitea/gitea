@@ -44,6 +44,31 @@ type WorkflowInfo struct {
 	Workflow *act_model.Workflow
 }
 
+// WorkflowDisplayName returns the human-friendly `name:` from the parsed
+// workflow YAML when present, otherwise falls back to the filename. Kept as
+// a small standalone function so the fallback rule is easy to test (the
+// surrounding BuildWorkflowDisplayNames takes WorkflowInfo values whose
+// Entry field is a git.TreeEntry that's awkward to construct in unit tests).
+func WorkflowDisplayName(filename string, wf *act_model.Workflow) string {
+	if wf != nil && wf.Name != "" {
+		return wf.Name
+	}
+	return filename
+}
+
+// BuildWorkflowDisplayNames maps each workflow filename (the WorkflowID
+// stored on ActionRun) to the human-friendly `name:` from the YAML, falling
+// back to the filename when YAML doesn't declare one. Used by runs_list.tmpl
+// so each run shows the configured workflow name instead of the file.
+func BuildWorkflowDisplayNames(workflows []WorkflowInfo) map[string]string {
+	out := make(map[string]string, len(workflows))
+	for _, w := range workflows {
+		filename := w.Entry.Name()
+		out[filename] = WorkflowDisplayName(filename, w.Workflow)
+	}
+	return out
+}
+
 // MustEnableActions check if actions are enabled in settings
 func MustEnableActions(ctx *context.Context) {
 	if !setting.Actions.Enabled {
@@ -180,19 +205,7 @@ func prepareWorkflowTemplate(ctx *context.Context, commit *git.Commit) (workflow
 	}
 
 	ctx.Data["workflows"] = workflows
-	// WorkflowDisplayNames maps each workflow filename (the WorkflowID stored
-	// on ActionRun) to the human-friendly `name:` from the YAML, falling back
-	// to the filename when YAML doesn't declare one. Used by runs_list.tmpl
-	// so each run shows the configured workflow name instead of the file.
-	displayNames := make(map[string]string, len(workflows))
-	for _, w := range workflows {
-		name := w.Entry.Name()
-		if w.Workflow != nil && w.Workflow.Name != "" {
-			name = w.Workflow.Name
-		}
-		displayNames[w.Entry.Name()] = name
-	}
-	ctx.Data["WorkflowDisplayNames"] = displayNames
+	ctx.Data["WorkflowDisplayNames"] = BuildWorkflowDisplayNames(workflows)
 	ctx.Data["RepoLink"] = ctx.Repo.Repository.Link()
 	ctx.Data["AllowDisableOrEnableWorkflow"] = ctx.Repo.Permission.IsAdmin()
 	actionsConfig := ctx.Repo.Repository.MustGetUnit(ctx, unit.TypeActions).ActionsConfig()
