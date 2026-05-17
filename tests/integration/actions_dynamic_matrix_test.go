@@ -80,7 +80,7 @@ jobs:
 			"job2 (afile)":        true,
 			"job2 (another file)": true,
 		}
-		for i := 0; i < 2; i++ {
+		for range 2 {
 			child := runner.fetchTask(t)
 			name := getTaskJobNameByTaskID(t, token, user2.Name, apiRepo.Name, child.Id)
 			assert.True(t, expectedNames[name], "unexpected child task name: %q", name)
