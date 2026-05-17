@@ -17,6 +17,7 @@ import (
 	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
+	"code.gitea.io/gitea/modules/test"
 	"code.gitea.io/gitea/tests"
 
 	"github.com/stretchr/testify/assert"
@@ -335,11 +336,7 @@ func TestAPICron(t *testing.T) {
 
 func TestAPICreateUser_NotAllowedEmailDomain(t *testing.T) {
 	defer tests.PrepareTestEnv(t)()
-
-	setting.Service.EmailDomainAllowList = []glob.Glob{glob.MustCompile("example.org")}
-	defer func() {
-		setting.Service.EmailDomainAllowList = []glob.Glob{}
-	}()
+	defer test.MockVariableValue(&setting.Service.EmailDomainAllowList, []glob.Glob{glob.MustCompile("example.org")})()
 
 	adminUsername := "user1"
 	token := getUserToken(t, adminUsername, auth_model.AccessTokenScopeWriteAdmin)
@@ -360,11 +357,7 @@ func TestAPICreateUser_NotAllowedEmailDomain(t *testing.T) {
 
 func TestAPIEditUser_NotAllowedEmailDomain(t *testing.T) {
 	defer tests.PrepareTestEnv(t)()
-
-	setting.Service.EmailDomainAllowList = []glob.Glob{glob.MustCompile("example.org")}
-	defer func() {
-		setting.Service.EmailDomainAllowList = []glob.Glob{}
-	}()
+	defer test.MockVariableValue(&setting.Service.EmailDomainAllowList, []glob.Glob{glob.MustCompile("example.org")})()
 
 	adminUsername := "user1"
 	token := getUserToken(t, adminUsername, auth_model.AccessTokenScopeWriteAdmin)
