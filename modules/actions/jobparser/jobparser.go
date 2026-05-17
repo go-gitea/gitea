@@ -91,6 +91,7 @@ func Parse(content []byte, options ...ParseOption) ([]*SingleWorkflow, error) {
 				runsOn[i] = evaluator.Interpolate(v)
 			}
 			job.RawRunsOn = encodeRunsOn(runsOn)
+			interpolateStepNames(job, evaluator)
 			swf := &SingleWorkflow{
 				Name:           workflow.Name,
 				RawOn:          workflow.RawOn,
@@ -237,6 +238,7 @@ func ExpandDeferredMatrix(content []byte, needs []string, outputs map[string]map
 			runsOn[i] = iterEval.Interpolate(v)
 		}
 		clonedJob.RawRunsOn = encodeRunsOn(runsOn)
+		interpolateStepNames(clonedJob, iterEval)
 		swf := &SingleWorkflow{
 			Name:           workflow.Name,
 			RawOn:          workflow.RawOn,
@@ -251,6 +253,31 @@ func ExpandDeferredMatrix(content []byte, needs []string, outputs map[string]map
 		ret = append(ret, swf)
 	}
 	return ret, nil
+}
+
+// interpolateStepNames resolves `${{ ... }}` expressions in each step's
+// `name:` against the per-iteration evaluator (matrix + vars + inputs + needs).
+// Job.Clone shares the Steps slice's backing array, so we allocate a fresh
+// slice with copied *Step values before mutating — otherwise per-iteration
+// changes bleed back to every clone (the last write wins for all of them).
+// Empty names are left untouched; step `run:` content is interpolated later
+// at execution time by the runner.
+func interpolateStepNames(job *Job, evaluator *ExpressionEvaluator) {
+	if len(job.Steps) == 0 {
+		return
+	}
+	out := make([]*Step, len(job.Steps))
+	for i, step := range job.Steps {
+		if step == nil {
+			continue
+		}
+		clone := *step
+		if step.Name != "" {
+			clone.Name = evaluator.Interpolate(step.Name)
+		}
+		out[i] = &clone
+	}
+	job.Steps = out
 }
 
 // matrixOutputsRefRegex matches `${{ ... needs.<id>.outputs.<key> ... }}`

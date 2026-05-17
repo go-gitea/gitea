@@ -527,6 +527,7 @@ func expandOnePlaceholder(ctx context.Context, run *actions_model.ActionRun, pla
 		return fmt.Errorf("maxAttemptJobIDForAttempt: %w", err)
 	}
 
+	children := make([]*actions_model.ActionRunJob, 0, len(expanded))
 	for i, swf := range expanded {
 		id, job := swf.Job()
 		// Mirror InsertRun's payload contract: children are dispatched to
@@ -549,7 +550,7 @@ func expandOnePlaceholder(ctx context.Context, run *actions_model.ActionRun, pla
 			}
 		}
 
-		child := &actions_model.ActionRunJob{
+		children = append(children, &actions_model.ActionRunJob{
 			RunID:             placeholder.RunID,
 			RunAttemptID:      placeholder.RunAttemptID,
 			RepoID:            placeholder.RepoID,
@@ -566,10 +567,10 @@ func expandOnePlaceholder(ctx context.Context, run *actions_model.ActionRun, pla
 			Status:            actions_model.StatusWaiting,
 			TokenPermissions:  placeholder.TokenPermissions,
 			MatrixValues:      matrixValues,
-		}
-		if err := db.Insert(ctx, child); err != nil {
-			return fmt.Errorf("insert expanded child: %w", err)
-		}
+		})
+	}
+	if err := actions_model.InsertActionRunJobs(ctx, children); err != nil {
+		return fmt.Errorf("InsertActionRunJobs: %w", err)
 	}
 
 	if _, err := db.GetEngine(ctx).ID(placeholder.ID).Delete(&actions_model.ActionRunJob{}); err != nil {

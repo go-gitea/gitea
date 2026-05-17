@@ -95,6 +95,16 @@ func init() {
 	db.RegisterModel(new(ActionRunJob))
 }
 
+// InsertActionRunJobs bulk-inserts a batch of ActionRunJob records. Used by
+// the job emitter when expanding a deferred-matrix placeholder into N child
+// rows so the children land in a single round-trip.
+func InsertActionRunJobs(ctx context.Context, jobs []*ActionRunJob) error {
+	if len(jobs) == 0 {
+		return nil
+	}
+	return db.Insert(ctx, jobs)
+}
+
 func (job *ActionRunJob) Duration() time.Duration {
 	return calculateDuration(job.Started, job.Stopped, job.Status, job.Updated)
 }

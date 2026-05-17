@@ -120,6 +120,84 @@ func TestExpandDeferredMatrix(t *testing.T) {
 	assert.ElementsMatch(t, []string{"a", "b"}, got)
 }
 
+func TestExpandDeferredMatrixInterpolatesStepNames(t *testing.T) {
+	wf := []byte(`name: deferred-with-step-name
+on: push
+jobs:
+  prep:
+    runs-on: ubuntu-latest
+    outputs:
+      list: ${{ steps.s.outputs.list }}
+    steps:
+      - id: s
+        run: echo 'list=["alpha","beta"]' >> $GITHUB_OUTPUT
+  fan-out:
+    needs: prep
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        thing: ${{ fromJSON(needs.prep.outputs.list) }}
+    steps:
+      - name: Process ${{ matrix.thing }}
+        run: echo ${{ matrix.thing }}
+`)
+	parsed, err := Parse(wf)
+	require.NoError(t, err)
+	var placeholder *SingleWorkflow
+	for _, w := range parsed {
+		if id, _ := w.Job(); id == "fan-out" {
+			placeholder = w
+		}
+	}
+	require.NotNil(t, placeholder)
+	payload, err := placeholder.Marshal()
+	require.NoError(t, err)
+
+	expanded, err := ExpandDeferredMatrix(
+		payload,
+		[]string{"prep"},
+		map[string]map[string]string{"prep": {"list": `["alpha","beta"]`}},
+	)
+	require.NoError(t, err)
+	require.Len(t, expanded, 2)
+	got := map[string]bool{}
+	for _, w := range expanded {
+		_, job := w.Job()
+		require.NotNil(t, job)
+		require.Len(t, job.Steps, 1)
+		got[job.Steps[0].Name] = true
+	}
+	assert.True(t, got["Process alpha"], "step name for iteration alpha must be interpolated")
+	assert.True(t, got["Process beta"], "step name for iteration beta must be interpolated")
+}
+
+func TestParseStaticMatrixInterpolatesStepNames(t *testing.T) {
+	wf := []byte(`name: static-matrix
+on: push
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        os: [linux, darwin]
+    steps:
+      - name: Building on ${{ matrix.os }}
+        run: echo ${{ matrix.os }}
+`)
+	parsed, err := Parse(wf)
+	require.NoError(t, err)
+	require.Len(t, parsed, 2)
+	got := map[string]bool{}
+	for _, w := range parsed {
+		_, job := w.Job()
+		require.NotNil(t, job)
+		require.Len(t, job.Steps, 1)
+		got[job.Steps[0].Name] = true
+	}
+	assert.True(t, got["Building on linux"])
+	assert.True(t, got["Building on darwin"])
+}
+
 func TestExpandDeferredMatrixRequiresSingleJob(t *testing.T) {
 	// A workflow with two jobs in the payload should be rejected — the
 	// emitter only calls ExpandDeferredMatrix on a placeholder, which is
