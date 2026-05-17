@@ -6,7 +6,7 @@ import {POST, DELETE} from '../modules/fetch.ts';
 import ActionRunSummaryView from './ActionRunSummaryView.vue';
 import ActionRunJobView from './ActionRunJobView.vue';
 import type {ActionsRunAttempt} from '../modules/gitea-actions.ts';
-import {createActionRunViewStore} from './ActionRunView.ts';
+import {createActionRunViewStore, decorateJobsForMatrixGrouping} from './ActionRunView.ts';
 import {buildArtifactTooltipHtml} from './ActionRunArtifacts.ts';
 
 defineOptions({
@@ -50,18 +50,7 @@ async function deleteArtifact(name: string) {
   await store.forceReloadCurrentRun();
 }
 
-// Matrix iterations share the same workflow jobId (e.g. two "build (linux)"
-// and "build (windows)" siblings both carry jobId "build"). The backend
-// already keeps them contiguous via SortMatrixGroupsByName, so detecting
-// children is a simple "previous sibling shares jobId" check. Matches the
-// flat-with-indent visual GitHub uses.
-const decoratedJobs = computed(() => {
-  const list = run.value.jobs ?? [];
-  return list.map((job, i) => ({
-    job,
-    isMatrixChild: i > 0 && list[i - 1].jobId === job.jobId,
-  }));
-});
+const decoratedJobs = computed(() => decorateJobsForMatrixGrouping(run.value.jobs ?? []));
 </script>
 <template>
   <!-- make the view container full width to make users easier to read logs -->

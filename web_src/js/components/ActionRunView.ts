@@ -87,6 +87,24 @@ export function createLogLineMessage(line: LogLine, cmd: LogLineCommand | null) 
   return logMsg;
 }
 
+export type DecoratedActionsJob = {
+  job: ActionsJob;
+  isMatrixChild: boolean;
+};
+
+// decorateJobsForMatrixGrouping flags jobs that should render as indented
+// matrix children in the run sidebar. A job is a child when its predecessor
+// shares the same workflow jobId — which is what static and dynamic matrix
+// iterations have in common (see SortMatrixGroupsByName on the backend, which
+// keeps these contiguous). Matches GitHub's flat-with-indent UI: no separate
+// parent header row, just visual grouping by name prefix.
+export function decorateJobsForMatrixGrouping(jobs: ReadonlyArray<ActionsJob>): DecoratedActionsJob[] {
+  return jobs.map((job, i) => ({
+    job,
+    isMatrixChild: i > 0 && jobs[i - 1].jobId === job.jobId,
+  }));
+}
+
 export function createEmptyActionsRun(): ActionsRun {
   return {
     repoId: 0,
