@@ -1,10 +1,11 @@
 // Copyright 2026 The Gitea Authors. All rights reserved.
 // SPDX-License-Identifier: MIT
 
-package issues
+package repo
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"html/template"
 
@@ -12,6 +13,11 @@ import (
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/timeutil"
 )
+
+// ErrInvalidCommitCommentLine is returned when the comment line is zero. Diff
+// line numbers are signed (negative = old side, positive = new side) so zero
+// is never a valid value.
+var ErrInvalidCommitCommentLine = errors.New("commit comment line must be non-zero")
 
 // CommitComment is an inline comment on a commit diff. It is intentionally
 // a standalone model with no relation to the Issue/PR Comment system: there
@@ -158,8 +164,12 @@ func FindCommitCommentsForDiff(ctx context.Context, repoID int64, commitSHA stri
 	return result, nil
 }
 
-// CreateCommitComment inserts a new commit comment.
+// CreateCommitComment inserts a new commit comment. Line=0 is rejected
+// because diff coordinates are signed and zero has no diff-side meaning.
 func CreateCommitComment(ctx context.Context, c *CommitComment) error {
+	if c.Line == 0 {
+		return ErrInvalidCommitCommentLine
+	}
 	_, err := db.GetEngine(ctx).Insert(c)
 	return err
 }

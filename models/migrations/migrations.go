@@ -412,6 +412,7 @@ func prepareMigrationTasks() []*migration {
 		newMigration(332, "Add last_sync_unix to mirror", v1_27.AddLastSyncUnixToMirror),
 		newMigration(333, "Add bypass allowlist to branch protection", v1_27.AddBranchProtectionBypassAllowlist),
 		newMigration(334, "Add commit comment table", v1_27.AddCommitCommentTable),
+		newMigration(335, "Add commit_comment_id column to notification", v1_27.AddCommitCommentIDToNotification),
 	}
 	return preparedMigrations
 }

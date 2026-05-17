@@ -7,8 +7,8 @@ import (
 	"net/http"
 
 	activities_model "code.gitea.io/gitea/models/activities"
-	issues_model "code.gitea.io/gitea/models/issues"
 	"code.gitea.io/gitea/models/renderhelper"
+	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/markup/markdown"
@@ -41,12 +41,12 @@ func CreateCommitComment(ctx *context.Context) {
 	}
 
 	content := ctx.FormString("content")
-	treePath := ctx.FormString("tree_path")
+	treePath := ctx.FormString("path")
 	side := ctx.FormString("side")
 	line := ctx.FormInt64("line")
 
 	if content == "" || treePath == "" || line == 0 {
-		ctx.JSONError("content, tree_path, and line are required")
+		ctx.JSONError("content, path, and line are required")
 		return
 	}
 
@@ -95,7 +95,7 @@ func CreateCommitComment(ctx *context.Context) {
 		}
 	}
 
-	comment := &issues_model.CommitComment{
+	comment := &repo_model.CommitComment{
 		RepoID:    ctx.Repo.Repository.ID,
 		CommitSHA: fullSHA,
 		TreePath:  treePath,
@@ -106,7 +106,7 @@ func CreateCommitComment(ctx *context.Context) {
 		Patch:     patch,
 	}
 
-	if err := issues_model.CreateCommitComment(ctx, comment); err != nil {
+	if err := repo_model.CreateCommitComment(ctx, comment); err != nil {
 		ctx.ServerError("CreateCommitComment", err)
 		return
 	}
@@ -125,7 +125,7 @@ func CreateCommitComment(ctx *context.Context) {
 	}
 
 	ctx.Data["CommitID"] = fullSHA
-	ctx.Data["comments"] = []*issues_model.CommitComment{comment}
+	ctx.Data["comments"] = []*repo_model.CommitComment{comment}
 	ctx.HTML(http.StatusOK, tplCommitConversation)
 }
 
@@ -137,7 +137,7 @@ func DeleteCommitComment(ctx *context.Context) {
 		return
 	}
 
-	comment, err := issues_model.GetCommitCommentByID(ctx, ctx.Repo.Repository.ID, commentID)
+	comment, err := repo_model.GetCommitCommentByID(ctx, ctx.Repo.Repository.ID, commentID)
 	if err != nil {
 		ctx.NotFound(err)
 		return
@@ -148,7 +148,7 @@ func DeleteCommitComment(ctx *context.Context) {
 		return
 	}
 
-	if err := issues_model.DeleteCommitComment(ctx, ctx.Repo.Repository.ID, commentID); err != nil {
+	if err := repo_model.DeleteCommitComment(ctx, ctx.Repo.Repository.ID, commentID); err != nil {
 		ctx.ServerError("DeleteCommitComment", err)
 		return
 	}

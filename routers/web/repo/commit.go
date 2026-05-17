@@ -415,7 +415,7 @@ func Diff(ctx *context.Context) {
 	}
 
 	// Load inline commit comments for the diff view
-	commitComments, err := issues_model.FindCommitCommentsForDiff(ctx, ctx.Repo.Repository.ID, commitID)
+	commitComments, err := repo_model.FindCommitCommentsForDiff(ctx, ctx.Repo.Repository.ID, commitID)
 	if err != nil {
 		log.Error("FindCommitCommentsForDiff: %v", err)
 	}

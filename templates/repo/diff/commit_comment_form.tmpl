@@ -2,7 +2,7 @@
 	<form class="ui form {{if $.hidden}}tw-hidden comment-form{{end}}" action="{{$.root.RepoLink}}/commit/{{$.root.CommitID}}/comment" method="post">
 		<input type="hidden" name="side" value="">
 		<input type="hidden" name="line" value="">
-		<input type="hidden" name="tree_path" value="">
+		<input type="hidden" name="path" value="">
 		<div class="field">
 		{{template "shared/combomarkdowneditor" (dict
 			"CustomInit" true

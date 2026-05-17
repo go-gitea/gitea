@@ -12,7 +12,9 @@ import (
 	"code.gitea.io/gitea/models/db"
 	issues_model "code.gitea.io/gitea/models/issues"
 	"code.gitea.io/gitea/models/organization"
+	"code.gitea.io/gitea/models/perm/access"
 	repo_model "code.gitea.io/gitea/models/repo"
+	"code.gitea.io/gitea/models/unit"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/timeutil"
@@ -57,16 +59,18 @@ type Notification struct {
 	Status NotificationStatus `xorm:"SMALLINT NOT NULL"`
 	Source NotificationSource `xorm:"SMALLINT NOT NULL"`
 
-	IssueID   int64 `xorm:"NOT NULL"`
-	CommitID  string
-	CommentID int64
+	IssueID         int64 `xorm:"NOT NULL"`
+	CommitID        string
+	CommentID       int64
+	CommitCommentID int64
 
 	UpdatedBy int64 `xorm:"NOT NULL"`
 
-	Issue      *issues_model.Issue    `xorm:"-"`
-	Repository *repo_model.Repository `xorm:"-"`
-	Comment    *issues_model.Comment  `xorm:"-"`
-	User       *user_model.User       `xorm:"-"`
+	Issue         *issues_model.Issue       `xorm:"-"`
+	Repository    *repo_model.Repository    `xorm:"-"`
+	Comment       *issues_model.Comment     `xorm:"-"`
+	CommitComment *repo_model.CommitComment `xorm:"-"`
+	User          *user_model.User          `xorm:"-"`
 
 	CreatedUnix timeutil.TimeStamp `xorm:"created NOT NULL"`
 	UpdatedUnix timeutil.TimeStamp `xorm:"updated NOT NULL"`
@@ -118,7 +122,8 @@ func init() {
 // CreateCommitCommentNotification creates notifications for a commit comment.
 // It notifies the commit author (if they're a Gitea user) and any @mentioned
 // users. The caller passes raw fields so this package stays decoupled from the
-// standalone CommitComment model in models/issues.
+// standalone CommitComment model in models/repo. Recipients are filtered to
+// those with code read access on the repository so private repos do not leak.
 func CreateCommitCommentNotification(ctx context.Context, doer *user_model.User, repo *repo_model.Repository, commitSHA string, commitCommentID int64, commitAuthorEmail string, mentionedUsernames []string) error {
 	return db.WithTx(ctx, func(ctx context.Context) error {
 		receiverIDs := make(map[int64]struct{})
@@ -147,16 +152,38 @@ func CreateCommitCommentNotification(ctx context.Context, doer *user_model.User,
 			return nil
 		}
 
-		var notifications []*Notification
+		// Filter recipients to those who can read code on this repo. Without
+		// this, commit-author or @mention notifications can reach users who
+		// have no visibility into a private repo.
+		filtered := make(map[int64]struct{}, len(receiverIDs))
 		for uid := range receiverIDs {
+			recipient, err := user_model.GetUserByID(ctx, uid)
+			if err != nil {
+				continue
+			}
+			perm, err := access.GetDoerRepoPermission(ctx, repo, recipient)
+			if err != nil {
+				continue
+			}
+			if perm.CanRead(unit.TypeCode) {
+				filtered[uid] = struct{}{}
+			}
+		}
+
+		if len(filtered) == 0 {
+			return nil
+		}
+
+		var notifications []*Notification
+		for uid := range filtered {
 			notifications = append(notifications, &Notification{
-				UserID:    uid,
-				RepoID:    repo.ID,
-				Status:    NotificationStatusUnread,
-				Source:    NotificationSourceCommit,
-				CommitID:  commitSHA,
-				CommentID: commitCommentID,
-				UpdatedBy: doer.ID,
+				UserID:          uid,
+				RepoID:          repo.ID,
+				Status:          NotificationStatusUnread,
+				Source:          NotificationSourceCommit,
+				CommitID:        commitSHA,
+				CommitCommentID: commitCommentID,
+				UpdatedBy:       doer.ID,
 			})
 		}
 
@@ -262,6 +289,9 @@ func (n *Notification) LoadAttributes(ctx context.Context) (err error) {
 	if err = n.loadComment(ctx); err != nil {
 		return err
 	}
+	if err = n.loadCommitComment(ctx); err != nil {
+		return err
+	}
 	return err
 }
 
@@ -287,6 +317,12 @@ func (n *Notification) loadIssue(ctx context.Context) (err error) {
 }
 
 func (n *Notification) loadComment(ctx context.Context) (err error) {
+	// SourceCommit notifications use CommitCommentID, not CommentID. Skip the
+	// issue-Comment lookup so commit_comment.id values are never resolved
+	// against the issues.Comment table.
+	if n.Source == NotificationSourceCommit {
+		return nil
+	}
 	if n.Comment == nil && n.CommentID != 0 {
 		n.Comment, err = issues_model.GetCommentByID(ctx, n.CommentID)
 		if err != nil {
@@ -300,6 +336,14 @@ func (n *Notification) loadComment(ctx context.Context) (err error) {
 		}
 	}
 	return nil
+}
+
+func (n *Notification) loadCommitComment(ctx context.Context) (err error) {
+	if n.Source != NotificationSourceCommit || n.CommitCommentID == 0 || n.CommitComment != nil {
+		return nil
+	}
+	n.CommitComment, err = repo_model.GetCommitCommentByID(ctx, n.RepoID, n.CommitCommentID)
+	return err
 }
 
 func (n *Notification) loadUser(ctx context.Context) (err error) {
@@ -331,7 +375,11 @@ func (n *Notification) HTMLURL(ctx context.Context) string {
 		}
 		return n.Issue.HTMLURL(ctx)
 	case NotificationSourceCommit:
-		return n.Repository.HTMLURL(ctx) + "/commit/" + url.PathEscape(n.CommitID)
+		base := n.Repository.HTMLURL(ctx) + "/commit/" + url.PathEscape(n.CommitID)
+		if n.CommitCommentID != 0 {
+			return base + "#commitcomment-" + strconv.FormatInt(n.CommitCommentID, 10)
+		}
+		return base
 	case NotificationSourceRepository:
 		return n.Repository.HTMLURL(ctx)
 	}
@@ -347,7 +395,11 @@ func (n *Notification) Link(ctx context.Context) string {
 		}
 		return n.Issue.Link()
 	case NotificationSourceCommit:
-		return n.Repository.Link() + "/commit/" + url.PathEscape(n.CommitID)
+		base := n.Repository.Link() + "/commit/" + url.PathEscape(n.CommitID)
+		if n.CommitCommentID != 0 {
+			return base + "#commitcomment-" + strconv.FormatInt(n.CommitCommentID, 10)
+		}
+		return base
 	case NotificationSourceRepository:
 		return n.Repository.Link()
 	}
