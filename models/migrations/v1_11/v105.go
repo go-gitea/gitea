@@ -3,11 +3,9 @@
 
 package v1_11
 
-import (
-	"xorm.io/xorm"
-)
+import "code.gitea.io/gitea/models/db"
 
-func AddTeamIncludesAllRepositories(x *xorm.Engine) error {
+func AddTeamIncludesAllRepositories(x db.EngineMigration) error {
 	type Team struct {
 		ID                      int64 `xorm:"pk autoincr"`
 		IncludesAllRepositories bool  `xorm:"NOT NULL DEFAULT false"`

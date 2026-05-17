@@ -165,7 +165,7 @@ func FindReactions(ctx context.Context, opts FindReactionsOptions) (ReactionList
 		In("reaction.`type`", setting.UI.Reactions).
 		Asc("reaction.issue_id", "reaction.comment_id", "reaction.created_unix", "reaction.id")
 	if opts.Page > 0 {
-		sess = db.SetSessionPagination(sess, &opts)
+		db.SetSessionPagination(sess, &opts)
 
 		reactions := make([]*Reaction, 0, opts.PageSize)
 		count, err := sess.FindAndCount(&reactions)
