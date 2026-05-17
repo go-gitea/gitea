@@ -8,16 +8,15 @@ import (
 	"math"
 	"time"
 
+	"code.gitea.io/gitea/models/db"
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/modules/gitrepo"
 	"code.gitea.io/gitea/modules/graceful"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
-
-	"xorm.io/xorm"
 )
 
-func AddCommitDivergenceToPulls(x *xorm.Engine) error {
+func AddCommitDivergenceToPulls(x db.EngineMigration) error {
 	type Repository struct {
 		ID        int64 `xorm:"pk autoincr"`
 		OwnerID   int64 `xorm:"UNIQUE(s) index"`
