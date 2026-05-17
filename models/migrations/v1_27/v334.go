@@ -11,6 +11,7 @@ func AddCancellingSupportToActionRunner(x *xorm.Engine) error {
 	}
 
 	_, err := x.SyncWithOptions(xorm.SyncOptions{
+		IgnoreConstrains:  true,
 		IgnoreDropIndices: true,
 	}, new(ActionRunner))
 	return err
