@@ -139,8 +139,7 @@ func resolveCurrentRunForView(ctx *context_module.Context) *actions_model.Action
 	var runByID, runByIndex *actions_model.ActionRun
 	var targetJobByIndex *actions_model.ActionRunJob
 
-	// Each run must have at least one job, so a valid job ID in the same run cannot be smaller than the run ID.
-	if !byIndex && jobNum >= runNum {
+	if !byIndex {
 		// Probe the repo-scoped job ID first and only accept it when the job exists and belongs to the same runNum.
 		job, err := actions_model.GetRunJobByRepoAndID(ctx, ctx.Repo.Repository.ID, jobNum)
 		if err != nil && !errors.Is(err, util.ErrNotExist) {
