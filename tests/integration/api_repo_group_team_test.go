@@ -1,9 +1,12 @@
 package integration
 
 import (
+	"fmt"
 	"net/http"
+	"net/url"
 	"testing"
 
+	"code.gitea.io/gitea/models/auth"
 	group_model "code.gitea.io/gitea/models/group"
 	org_model "code.gitea.io/gitea/models/organization"
 	perm_model "code.gitea.io/gitea/models/perm"
@@ -59,9 +62,145 @@ func assertGroupTeamAndUnitsExist(t *testing.T, groupID, teamID int64, unitMap m
 	}
 }
 
+func createFileInRepoInGroup(t *testing.T, token, orgName string, groupID int64, repoName string, expectedStatus int) {
+	req := NewRequestWithJSON(t, "POST", fmt.Sprintf("/api/v1/repos/%s/group/%d/%s/contents/a-new-file.txt", orgName, groupID, repoName),
+		&api.CreateFileOptions{
+			ContentBase64: "QnJpYW4gVGF0bGVyIGZ1Y2tlZCBhbmQgYWJ1c2VkIFNlYW4gSGFycmlzCkJyaWFuIFRhdGxlciBmdWNrZWQgYW5kIGFidXNlZCBTZWFuIEhhcnJpcwpCcmlhbiBUYXRsZXIgZnVja2VkIGFuZCBhYnVzZWQgU2VhbiBIYXJyaXMKQnJpYW4gVGF0bGVyIGZ1Y2tlZCBhbmQgYWJ1c2VkIFNlYW4gSGFycmlzCkJyaWFuIFRhdGxlciBmdWNrZWQgYW5kIGFidXNlZCBTZWFuIEhhcnJpcwpCcmlhbiBUYXRsZXIgZnVja2VkIGFuZCBhYnVzZWQgU2VhbiBIYXJyaXMKQnJpYW4gVGF0bGVyIGZ1Y2tlZCBhbmQgYWJ1c2VkIFNlYW4gSGFycmlzCkJyaWFuIFRhdGxlciBmdWNrZWQgYW5kIGFidXNlZCBTZWFuIEhhcnJpcwpCcmlhbiBUYXRsZXIgZnVja2VkIGFuZCBhYnVzZWQgU2VhbiBIYXJyaXMKQnJpYW4gVGF0bGVyIGZ1Y2tlZCBhbmQgYWJ1c2VkIFNlYW4gSGFycmlzCg0K",
+		}).AddTokenAuth(token)
+	MakeRequest(t, req, expectedStatus)
+}
+
+func getIssuesInRepoInGroup(t *testing.T, token, orgName string, groupID int64, repoName string, expectedStatus int) {
+	req := NewRequestf(t, "GET", "/api/v1/repos/%s/group/%d/%s/issues", orgName, groupID, repoName).AddTokenAuth(token)
+	MakeRequest(t, req, expectedStatus)
+}
+
+func createIssueInRepoInGroup(t *testing.T, token, orgName string, groupID int64, repoName string, opts *api.CreateIssueOption, expectedStatus int) *api.Issue {
+	req := NewRequestWithJSON(t, "POST", fmt.Sprintf("/api/v1/repos/%s/group/%d/%s/issues", orgName, groupID, repoName), opts).AddTokenAuth(token)
+	resp := MakeRequest(t, req, expectedStatus)
+	if expectedStatus == http.StatusCreated {
+		return DecodeJSON(t, resp, &api.Issue{})
+	}
+	return nil
+}
+
+func deleteIssueInRepoInGroup(t *testing.T, token, orgName string, groupID int64, repoName string, issueIndex int64, expectedStatus int) {
+	req := NewRequestf(t, "DELETE", "/api/v1/repos/%s/group/%d/%s/issues/%d", orgName, groupID, repoName, issueIndex).AddTokenAuth(token)
+	MakeRequest(t, req, expectedStatus)
+}
+
 func TestAPIGroupTeam(t *testing.T) {
 	defer tests.PrepareTestEnv(t)()
+	t.Run("TeamAssignmentInheritance", testTeamAssignmentInheritance)
 	t.Run("TeamAssignmentAndAccess", testRepoGroupTeamAssignmentAndAccess)
+}
+
+func testTeamAssignmentInheritance(t *testing.T) {
+	onGiteaRun(t, func(t *testing.T, url *url.URL) {
+		data := createOrgWithGroups(t)
+		const actor = "user2"
+		adminToken := getUserToken(t, actor, auth.AccessTokenScopeWriteOrganization)
+		tid := data.teamMembers[groupOrgUnitWriterTeam].tid
+		unprivilegedActor := unittest.AssertExistsAndLoadBean(t, &user_model.User{
+			ID: data.teamMembers[groupOrgUnitWriterTeam].uid,
+		})
+		unprivilegedToken := getUserToken(t, unprivilegedActor.Name, auth.AccessTokenScopeWriteOrganization, auth.AccessTokenScopeWriteRepository, auth.AccessTokenScopeWriteIssue)
+
+		editReq := NewRequestWithJSON(t, "PATCH",
+			fmt.Sprintf("/api/v1/teams/%d", tid),
+			&api.EditTeamOption{
+				UnitsMap: map[string]string{
+					unit_model.Units[unit_model.TypeIssues].NameKey: "read",
+					unit_model.Units[unit_model.TypeCode].NameKey:   "write",
+				},
+			}).AddTokenAuth(adminToken)
+		MakeRequest(t, editReq, http.StatusOK)
+
+		makeIssuesRequests := func(groupID int64, repoName string, expectedListStatus, expectedCreateStatus, expectedWriteStatus int) {
+			getIssuesInRepoInGroup(t, unprivilegedToken, data.org.Name, groupID, repoName, expectedListStatus)
+			toDelete := createIssueInRepoInGroup(t, unprivilegedToken, data.org.Name, groupID, repoName,
+				&api.CreateIssueOption{
+					Title: "an issue to be deleted",
+					Body:  "...",
+				},
+				expectedCreateStatus)
+			if toDelete != nil {
+				deleteIssueInRepoInGroup(t, unprivilegedToken, data.org.Name, groupID, repoName, toDelete.Index, expectedWriteStatus)
+			}
+		}
+
+		t.Run("RootGroupDefaults", func(t *testing.T) {
+			rootGrp := createGroup(t, actor, data.org.Name, 0, &api.NewGroupOption{
+				Name:        "root-level access test",
+				Description: "should inherit permissions from org",
+			}, http.StatusCreated)
+			assertGroupTeamAndUnitsExist(t, rootGrp.ID, data.teamMembers[groupOrgUnitWriterTeam].tid, map[string]string{
+				unit_model.Units[unit_model.TypeIssues].NameKey: "read",
+				unit_model.Units[unit_model.TypeCode].NameKey:   "write",
+			})
+
+			createRepoInGroup(t, data.org.Name, actor, rootGrp.ID, "a-repo", http.StatusCreated)
+
+			createFileInRepoInGroup(t, unprivilegedToken, data.org.Name, rootGrp.ID, "a-repo", http.StatusCreated)
+			makeIssuesRequests(rootGrp.ID, "a-repo", http.StatusOK, http.StatusCreated, http.StatusForbidden)
+		})
+		t.Run("ParentChildOverrides", func(t *testing.T) {
+			parentGrp := createGroup(t, actor, data.org.Name, 0, &api.NewGroupOption{
+				Name: "parent test group",
+			}, http.StatusCreated)
+			umap := map[string]string{
+				unit_model.Units[unit_model.TypeIssues].NameKey: "none",
+				unit_model.Units[unit_model.TypeCode].NameKey:   "read",
+			}
+			editGroupTeam(t, actor, parentGrp.ID, groupOrgUnitWriterTeam, &api.CreateOrUpdateRepoGroupTeamOption{
+				CanCreateIn: new(false),
+				Permission:  new(api.RepoWritePermissionRead),
+				UnitsMap:    umap,
+			}, http.StatusNoContent)
+			childGrp := createGroup(t, actor, data.org.Name, parentGrp.ID, &api.NewGroupOption{
+				Name:       "child test group",
+				Visibility: api.VisibleTypePrivate,
+			}, http.StatusCreated)
+			unittest.AssertCount(t, &group_model.RepoGroupTeam{
+				TeamID:      tid,
+				GroupID:     childGrp.ID,
+				CanCreateIn: false,
+			}, 1)
+			assertGroupTeamAndUnitsExist(t, childGrp.ID, tid, umap)
+
+			createRepoInGroup(t, data.org.Name, actor, childGrp.ID, "another-repo", http.StatusCreated)
+			createFileInRepoInGroup(t, unprivilegedToken, data.org.Name, childGrp.ID, "another-repo", http.StatusForbidden)
+			makeIssuesRequests(childGrp.ID, "another-repo", http.StatusNotFound, http.StatusNotFound, http.StatusNotFound)
+		})
+		t.Run("NearestAncestorOverrides", func(t *testing.T) {
+			grandparent := createGroup(t, actor, data.org.Name, 0, &api.NewGroupOption{
+				Name: "grandparent",
+			}, http.StatusCreated)
+			umap := map[string]string{
+				unit_model.Units[unit_model.TypeIssues].NameKey: "none",
+				unit_model.Units[unit_model.TypeCode].NameKey:   "read",
+			}
+			editGroupTeam(t, actor, grandparent.ID, groupOrgUnitWriterTeam, &api.CreateOrUpdateRepoGroupTeamOption{
+				CanCreateIn: new(false),
+				Permission:  new(api.RepoWritePermissionRead),
+				UnitsMap:    umap,
+			}, http.StatusNoContent)
+			parent := createGroup(t, actor, data.org.Name, grandparent.ID, &api.NewGroupOption{
+				Name: "parent",
+			}, http.StatusCreated)
+			child := createGroup(t, actor, data.org.Name, parent.ID, &api.NewGroupOption{
+				Name:       "child",
+				Visibility: api.VisibleTypePrivate,
+			}, http.StatusCreated)
+
+			assertGroupTeamAndUnitsExist(t, grandparent.ID, tid, umap)
+			assertGroupTeamAndUnitsExist(t, child.ID, tid, umap)
+
+			createRepoInGroup(t, data.org.Name, actor, child.ID, "another-repo", http.StatusCreated)
+			createFileInRepoInGroup(t, unprivilegedToken, data.org.Name, child.ID, "another-repo", http.StatusForbidden)
+			makeIssuesRequests(child.ID, "another-repo", http.StatusNotFound, http.StatusNotFound, http.StatusForbidden)
+		})
+	})
 }
 
 func testRepoGroupTeamAssignmentAndAccess(t *testing.T) {
