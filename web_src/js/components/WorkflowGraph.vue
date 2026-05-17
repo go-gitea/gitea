@@ -15,6 +15,7 @@ import {
   getWorkflowGraphLayoutOptions,
   type GraphNode,
   type RoutedEdge,
+  type WorkflowGraphModel,
 } from './WorkflowGraph.utils.ts';
 
 interface StoredState {
@@ -82,7 +83,10 @@ const saveState = () => {
   localUserSettings.setJsonObject(settingKeyStates, Object.fromEntries(sortedStates));
 };
 
-const graphModel = computed(() => createWorkflowGraphModel(props.jobs, expandedMatrixKeys.value));
+const graphModel = ref<WorkflowGraphModel>({nodes: [], edges: [], routedEdges: [], sharedSegments: [], adjacency: {incomingByNodeId: new Map(), outgoingByNodeId: new Map()}});
+watch([() => props.jobs, expandedMatrixKeys], async ([jobs, keys]) => {
+  graphModel.value = await createWorkflowGraphModel(jobs, keys);
+}, {immediate: true});
 const jobsWithLayout = computed(() => graphModel.value.nodes);
 const edges = computed(() => graphModel.value.edges);
 const routedEdges = computed<RoutedEdge[]>(() => graphModel.value.routedEdges);

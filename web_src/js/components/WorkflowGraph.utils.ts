@@ -1,3 +1,5 @@
+import ELK from 'elkjs/lib/elk.bundled.js';
+import type {ElkNode, ElkExtendedEdge} from 'elkjs/lib/elk-api.js';
 import type {ActionsJob, ActionsRunStatus} from '../modules/gitea-actions.ts';
 
 export type GraphNodeType = 'job' | 'matrix' | 'group';
@@ -81,7 +83,7 @@ const defaultLayoutOptions: WorkflowGraphLayoutOptions = {
 };
 
 function canonicalKey(ids: Iterable<string>): string {
-  return Array.from(ids).sort().join('');
+  return Array.from(ids).sort().join('');
 }
 
 function graphIdForJob(job: ActionsJob): string {
@@ -298,7 +300,7 @@ function buildVisualGraph(
   for (const job of jobs) {
     if (matrixKeyFromJobName(job.name)) continue;
     const needsKey = canonicalKey(directNeedsByJobId.get(job.jobId) || []);
-    const childrenKey = (dependentsByJobId.get(job.jobId) || []).join('');
+    const childrenKey = (dependentsByJobId.get(job.jobId) || []).join('');
     if (!needsKey && !childrenKey) continue;
     const level = rawLevels.get(job.jobId) ?? 0;
     const key = `group:${level}:${needsKey}:${childrenKey}`;
@@ -400,102 +402,89 @@ function buildNodeAdjacency(edges: Edge[]): NodeAdjacency {
   return {incomingByNodeId, outgoingByNodeId};
 }
 
-function assignNodeLevels(nodes: GraphNode[], {incomingByNodeId}: NodeAdjacency): void {
-  const cache = new Map<string, number>();
-  function levelFor(id: string, visiting = new Set<string>()): number {
-    if (cache.has(id)) return cache.get(id)!;
-    if (visiting.has(id)) return 0;
-    visiting.add(id);
-    const incoming = incomingByNodeId.get(id) || [];
-    const level = incoming.length > 0 ?
-      Math.max(...incoming.map((fromId) => levelFor(fromId, visiting))) + 1 :
-      0;
-    visiting.delete(id);
-    cache.set(id, level);
-    return level;
-  }
-  for (const node of nodes) node.level = levelFor(node.id);
-}
+const cornerRadius = 8;
 
-// Roots stay in input order; later levels are sorted by the mean parent Y so that simple
-// chains stay on a straight horizontal line.
-function assignNodeCoordinates(nodesById: Map<string, GraphNode>, nodes: GraphNode[], adjacency: NodeAdjacency, options: WorkflowGraphLayoutOptions): void {
-  const {incomingByNodeId} = adjacency;
-  const inputRank = (node: GraphNode): number => Math.min(...node.jobs.map((j) => j.id));
-
-  const nodesByLevel = new Map<number, GraphNode[]>();
-  for (const node of nodes) {
-    if (!nodesByLevel.has(node.level)) nodesByLevel.set(node.level, []);
-    nodesByLevel.get(node.level)!.push(node);
-  }
-  const orderedLevels = Array.from(nodesByLevel.keys()).sort((a, b) => a - b);
-
-  // Initial X assignment and a default Y so barycenters can use a finite value.
-  for (const level of orderedLevels) {
-    const list = nodesByLevel.get(level)!;
-    list.sort((a, b) => inputRank(a) - inputRank(b));
-    let yCursor = options.margin;
-    for (const node of list) {
-      node.x = options.margin + level * (options.nodeWidth + options.columnGap);
-      node.y = yCursor;
-      yCursor += node.displayHeight + options.laneGap;
-    }
-  }
-
-  function packLevel(level: number, anchorOf: (n: GraphNode) => number): void {
-    const list = nodesByLevel.get(level)!;
-    const sorted = Array.from(list).sort((a, b) => anchorOf(a) - anchorOf(b) || inputRank(a) - inputRank(b));
-    let prevBottom = options.margin - options.laneGap;
-    for (const node of sorted) {
-      const desired = anchorOf(node) - node.displayHeight / 2;
-      node.y = Math.max(options.margin, desired, prevBottom + options.laneGap);
-      prevBottom = boxBottom(node);
-    }
-    nodesByLevel.set(level, sorted);
-  }
-
-  function meanCenterOf(ids: string[]): number | null {
-    if (ids.length === 0) return null;
-    let sum = 0;
-    for (const id of ids) sum += boxCenterY(nodesById.get(id)!);
-    return sum / ids.length;
-  }
-
-  // Down-only barycenter pass: each child is anchored to the median Y of its parents. Roots
-  // keep their initial input-rank position. This produces a "main chain on top" layout where
-  // job-100 → job-101 → job-102 stays on a straight horizontal line, mirroring the layout
-  // GitHub Actions uses.
-  for (const level of orderedLevels) {
-    if (level === 0) continue;
-    packLevel(level, (node) => meanCenterOf(incomingByNodeId.get(node.id) || []) ?? boxCenterY(node));
-  }
-}
-
-// Per-edge connector: source stub → cubic-bezier corner down/up to column midpoint →
-// vertical run → cubic-bezier corner back to horizontal → target stub. The corner radius is
-// fixed (not clamped to the row delta) so any two edges sharing the same source produce the
-// same source-side path and overlap into a single visual line until they diverge at the V.
-const cornerRadius = 24;
-
-function connectorPath(sx: number, sy: number, ex: number, ey: number): string {
+// GitHub-style orthogonal edge: horizontal → small rounded 90° corner → vertical
+// → small rounded 90° corner → horizontal. Tight corners, no sweeping curves.
+function connectorPath(sx: number, sy: number, ex: number, ey: number, trackX?: number): string {
   if (Math.abs(sy - ey) < 0.5) return `M ${sx} ${sy} H ${ex}`;
-  const midX = (sx + ex) / 2;
+  const vx = trackX ?? (sx + ex) / 2;
   const dy = ey > sy ? 1 : -1;
-  // Two fixed-radius corners need 2*cornerRadius of vertical room. With less room a backward
-  // V kink would form, so collapse to a single S-curve instead.
-  if (Math.abs(ey - sy) < cornerRadius * 2) {
-    const dx = (ex - sx) / 2;
-    return `M ${sx} ${sy} C ${sx + dx} ${sy} ${ex - dx} ${ey} ${ex} ${ey}`;
-  }
-  const half = cornerRadius / 2;
+  const r = Math.min(cornerRadius, Math.abs(ey - sy) / 2, Math.abs(vx - sx), Math.abs(ex - vx));
   return [
     `M ${sx} ${sy}`,
-    `H ${midX - cornerRadius}`,
-    `C ${midX - half} ${sy} ${midX} ${sy + half * dy} ${midX} ${sy + cornerRadius * dy}`,
-    `V ${ey - cornerRadius * dy}`,
-    `C ${midX} ${ey - half * dy} ${midX + half} ${ey} ${midX + cornerRadius} ${ey}`,
+    `H ${vx - r}`,
+    `Q ${vx} ${sy} ${vx} ${sy + r * dy}`,
+    `V ${ey - r * dy}`,
+    `Q ${vx} ${ey} ${vx + r} ${ey}`,
     `H ${ex}`,
   ].join(' ');
+}
+
+// Sanitize ELK node IDs: ELK forbids '.' and ':' in identifiers.
+function toElkId(id: string): string {
+  return id.replaceAll(':', '_').replaceAll('.', '_');
+}
+
+const elk = new ELK();
+
+async function runElkLayout(
+  nodes: GraphNode[],
+  edges: Edge[],
+  options: WorkflowGraphLayoutOptions,
+): Promise<void> {
+  const elkNodes: ElkNode[] = nodes.map((n) => ({
+    id: toElkId(n.id),
+    width: options.nodeWidth,
+    height: n.displayHeight,
+  }));
+
+  const elkEdges: ElkExtendedEdge[] = edges.map((e, i) => ({
+    id: `e${i}`,
+    sources: [toElkId(e.fromId)],
+    targets: [toElkId(e.toId)],
+  }));
+
+  const graph: ElkNode = {
+    id: 'root',
+    children: elkNodes,
+    edges: elkEdges,
+    layoutOptions: {
+      'elk.algorithm': 'layered',
+      'elk.direction': 'RIGHT',
+      'elk.layered.layering.strategy': 'NETWORK_SIMPLEX',
+      'elk.layered.nodePlacement.strategy': 'BRANDES_KOEPF',
+      'elk.layered.nodePlacement.bk.fixedAlignment': 'BALANCED',
+      'elk.edgeRouting': 'ORTHOGONAL',
+      'elk.layered.mergeEdges': 'true',
+      'elk.layered.spacing.nodeNodeBetweenLayers': String(options.columnGap),
+      'elk.spacing.nodeNode': String(options.laneGap),
+      'elk.padding': `[top=${options.margin},left=${options.margin},bottom=${options.margin},right=${options.margin}]`,
+    },
+  };
+
+  const result = await elk.layout(graph);
+
+  // Determine the layer (column index) for each node by sorting on x.
+  const elkChildMap = new Map<string, ElkNode>();
+  for (const child of result.children || []) elkChildMap.set(child.id, child);
+
+  // Collect unique x positions to compute layer indices.
+  const xValues = new Set<number>();
+  for (const child of result.children || []) xValues.add(Math.round(child.x!));
+  const sortedXs = Array.from(xValues).sort((a, b) => a - b);
+  const xToLayer = new Map<number, number>();
+  for (const [i, x] of sortedXs.entries()) xToLayer.set(x, i);
+
+  // Snap nodes to uniform column grid while keeping elkjs Y ordering.
+  for (const n of nodes) {
+    const elkNode = elkChildMap.get(toElkId(n.id));
+    if (!elkNode) continue;
+    const layer = xToLayer.get(Math.round(elkNode.x!)) ?? 0;
+    n.level = layer;
+    n.x = options.margin + layer * (options.nodeWidth + options.columnGap);
+    n.y = elkNode.y!;
+  }
 }
 
 function buildRoutedEdges(
@@ -512,23 +501,24 @@ function buildRoutedEdges(
     const endX = toNode.x;
     const startY = boxCenterY(fromNode);
     const endY = boxCenterY(toNode);
-    routedEdges.push({...edge, fromNode, toNode, path: connectorPath(startX, startY, endX, endY)});
+    // Place the vertical track right after the source column, matching GitHub style.
+    const trackX = startX + options.columnGap / 2;
+    routedEdges.push({...edge, fromNode, toNode, path: connectorPath(startX, startY, endX, endY, trackX)});
   }
 
   return {routedEdges, sharedSegments: []};
 }
 
-export function createWorkflowGraphModel(
+export async function createWorkflowGraphModel(
   jobs: ActionsJob[],
   expandedMatrixKeys: ReadonlySet<string> = new Set(),
   partialOptions: Partial<WorkflowGraphLayoutOptions> = {},
-): WorkflowGraphModel {
+): Promise<WorkflowGraphModel> {
   const options = {...defaultLayoutOptions, ...partialOptions};
   const {nodes, edges} = buildVisualGraph(jobs, expandedMatrixKeys, options);
   const nodesById = new Map(nodes.map((n) => [n.id, n]));
   const adjacency = buildNodeAdjacency(edges);
-  assignNodeLevels(nodes, adjacency);
-  assignNodeCoordinates(nodesById, nodes, adjacency, options);
+  await runElkLayout(nodes, edges, options);
   return {nodes, edges, ...buildRoutedEdges(nodesById, edges, options), adjacency};
 }
 
