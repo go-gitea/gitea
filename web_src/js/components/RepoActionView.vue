@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import {SvgIcon} from '../svg.ts';
 import ActionStatusIcon from './ActionStatusIcon.vue';
-import {toRefs} from 'vue';
+import {computed, toRefs} from 'vue';
 import {POST, DELETE} from '../modules/fetch.ts';
 import ActionRunSummaryView from './ActionRunSummaryView.vue';
 import ActionRunJobView from './ActionRunJobView.vue';
@@ -49,6 +49,19 @@ async function deleteArtifact(name: string) {
   await DELETE(buildArtifactLink(name));
   await store.forceReloadCurrentRun();
 }
+
+// Matrix iterations share the same workflow jobId (e.g. two "build (linux)"
+// and "build (windows)" siblings both carry jobId "build"). The backend
+// already keeps them contiguous via SortMatrixGroupsByName, so detecting
+// children is a simple "previous sibling shares jobId" check. Matches the
+// flat-with-indent visual GitHub uses.
+const decoratedJobs = computed(() => {
+  const list = run.value.jobs ?? [];
+  return list.map((job, i) => ({
+    job,
+    isMatrixChild: i > 0 && list[i - 1].jobId === job.jobId,
+  }));
+});
 </script>
 <template>
   <!-- make the view container full width to make users easier to read logs -->
@@ -152,7 +165,7 @@ async function deleteArtifact(name: string) {
         <div class="left-list-header">{{ locale.allJobs }}</div>
         <!-- unlike other lists, the items have paddings already -->
         <ul class="ui relaxed list flex-items-block tw-p-0">
-          <li class="item job-brief-item" v-for="job in run.jobs" :key="job.id" :class="props.jobId === job.id ? 'selected' : ''">
+          <li class="item job-brief-item" v-for="{job, isMatrixChild} in decoratedJobs" :key="job.id" :class="[props.jobId === job.id ? 'selected' : '', isMatrixChild ? 'matrix-child' : '']">
             <a class="tw-contents silenced" :href="job.link">
               <ActionStatusIcon :locale-status="locale.status[job.status]" :status="job.status" icon-variant="circle-fill"/>
               <span class="tw-flex-1 gt-ellipsis">{{ job.name }}</span>
@@ -330,6 +343,10 @@ async function deleteArtifact(name: string) {
 .job-brief-item.selected {
   font-weight: var(--font-weight-bold);
   background-color: var(--color-active);
+}
+
+.job-brief-item.matrix-child {
+  padding-left: 24px;
 }
 
 /* ================ */

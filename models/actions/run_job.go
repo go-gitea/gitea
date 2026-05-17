@@ -47,6 +47,16 @@ type ActionRunJob struct {
 	Needs  []string `xorm:"JSON TEXT"`
 	RunsOn []string `xorm:"JSON TEXT"`
 
+	// RawMatrix holds the unevaluated strategy.matrix YAML for jobs whose matrix
+	// references upstream job outputs (e.g. ${{ fromJSON(needs.X.outputs.Y) }}).
+	// Such jobs are persisted as a single placeholder RunJob at submission time;
+	// the job emitter expands them into N child RunJobs once all "needs:" finish.
+	// Empty for non-matrix jobs and for already-expanded matrix children.
+	RawMatrix string `xorm:"TEXT"`
+	// MatrixValues stores the concrete matrix combination for an expanded job
+	// (static or dynamic). Nil for non-matrix jobs and placeholders.
+	MatrixValues map[string]any `xorm:"JSON TEXT"`
+
 	TaskID       int64 // the task created by this job in its own attempt
 	SourceTaskID int64 `xorm:"NOT NULL DEFAULT 0"` // SourceTaskID points to a historical task when this job reuses an earlier attempt's result.
 

@@ -10,6 +10,7 @@ import (
 
 	actions_model "code.gitea.io/gitea/models/actions"
 	"code.gitea.io/gitea/models/db"
+	"code.gitea.io/gitea/modules/actions/jobparser"
 	"code.gitea.io/gitea/modules/container"
 	"code.gitea.io/gitea/modules/graceful"
 	"code.gitea.io/gitea/modules/log"
@@ -253,6 +254,21 @@ func checkJobsOfCurrentRunAttempt(ctx context.Context, run *actions_model.Action
 	resolver := newJobStatusResolver(jobs, vars)
 
 	if err = db.WithTx(ctx, func(ctx context.Context) error {
+		// Expand any deferred-matrix placeholders whose `needs` are now done
+		// and all succeeded. This must happen inside the transaction so the
+		// resolver below sees the newly created children atomically.
+		expanded, err := expandDeferredMatrixPlaceholders(ctx, run, jobs)
+		if err != nil {
+			return fmt.Errorf("expandDeferredMatrixPlaceholders: %w", err)
+		}
+		if expanded {
+			jobs, err = actions_model.GetRunJobsByRunAndAttemptID(ctx, run.ID, run.LatestAttemptID)
+			if err != nil {
+				return fmt.Errorf("reload jobs after matrix expansion: %w", err)
+			}
+			resolver = newJobStatusResolver(jobs, vars)
+		}
+
 		for _, job := range jobs {
 			job.Run = run
 		}
@@ -395,6 +411,183 @@ func (r *jobStatusResolver) resolve(ctx context.Context) map[int64]actions_model
 		}
 	}
 	return ret
+}
+
+// expandDeferredMatrixPlaceholders finds any deferred-matrix placeholder
+// jobs (RawMatrix != "") whose `needs:` are all done and all succeeded, and
+// expands them into N concrete child RunJobs — one per matrix combination.
+// The placeholder row is deleted; new child rows replace it.
+//
+// Placeholders whose needs aren't all done yet, or whose needs include a
+// failure/cancelled/skipped, are left untouched: the resolver downstream
+// either keeps them blocked or transitions them to Skipped via the standard
+// flow.
+//
+// Returns true if any placeholder was expanded (caller should reload jobs).
+func expandDeferredMatrixPlaceholders(ctx context.Context, run *actions_model.ActionRun, jobs []*actions_model.ActionRunJob) (bool, error) {
+	// Index jobs by JobID for the readiness check.
+	byJobID := make(map[string][]*actions_model.ActionRunJob, len(jobs))
+	for _, j := range jobs {
+		byJobID[j.JobID] = append(byJobID[j.JobID], j)
+	}
+
+	expanded := false
+	for _, placeholder := range jobs {
+		if placeholder.RawMatrix == "" || placeholder.Status != actions_model.StatusBlocked {
+			continue
+		}
+		allDone, allSucceed := needsReadyForExpansion(placeholder, byJobID)
+		if !allDone || !allSucceed {
+			// Either not yet ready, or an upstream failure: leave for the
+			// resolver to handle (it will keep blocked or skip).
+			continue
+		}
+		if err := expandOnePlaceholder(ctx, run, placeholder); err != nil {
+			return expanded, fmt.Errorf("expand placeholder job %d: %w", placeholder.ID, err)
+		}
+		expanded = true
+	}
+	return expanded, nil
+}
+
+// needsReadyForExpansion returns whether all of placeholder.Needs are present
+// and done in the snapshot, and whether they all succeeded (or were skipped,
+// which we treat as success for the purpose of expansion — same as the
+// resolver's standard `allSucceed` check).
+func needsReadyForExpansion(placeholder *actions_model.ActionRunJob, byJobID map[string][]*actions_model.ActionRunJob) (allDone, allSucceed bool) {
+	allDone, allSucceed = true, true
+	for _, needID := range placeholder.Needs {
+		siblings := byJobID[needID]
+		if len(siblings) == 0 {
+			// Need not present in this snapshot — treat as not done.
+			allDone = false
+			continue
+		}
+		for _, s := range siblings {
+			if !s.Status.IsDone() {
+				allDone = false
+			}
+			if s.Status.In(actions_model.StatusFailure, actions_model.StatusCancelled, actions_model.StatusSkipped) {
+				allSucceed = false
+			}
+		}
+	}
+	return allDone, allSucceed
+}
+
+// expandOnePlaceholder builds the upstream needs-outputs map, calls
+// jobparser.ExpandDeferredMatrix, inserts N child RunJobs, and deletes the
+// placeholder row. All operations run in the caller's transaction.
+func expandOnePlaceholder(ctx context.Context, run *actions_model.ActionRun, placeholder *actions_model.ActionRunJob) error {
+	taskNeeds, err := FindTaskNeeds(ctx, placeholder)
+	if err != nil {
+		return fmt.Errorf("FindTaskNeeds: %w", err)
+	}
+	needsOutputs := make(map[string]map[string]string, len(taskNeeds))
+	for needID, tn := range taskNeeds {
+		needsOutputs[needID] = tn.Outputs
+	}
+
+	vars, err := actions_model.GetVariablesOfRun(ctx, run)
+	if err != nil {
+		return fmt.Errorf("GetVariablesOfRun: %w", err)
+	}
+
+	runAttempt, has, err := run.GetLatestAttempt(ctx)
+	if err != nil {
+		return fmt.Errorf("GetLatestAttempt: %w", err)
+	}
+	if !has {
+		return fmt.Errorf("no latest attempt for run %d", run.ID)
+	}
+
+	giteaCtx := GenerateGiteaContext(ctx, run, runAttempt, nil)
+	expanded, err := jobparser.ExpandDeferredMatrix(
+		placeholder.WorkflowPayload,
+		placeholder.Needs,
+		needsOutputs,
+		jobparser.WithVars(vars),
+		jobparser.WithGitContext(giteaCtx.ToGitHubContext()),
+	)
+	if err != nil {
+		return fmt.Errorf("ExpandDeferredMatrix: %w", err)
+	}
+
+	// Allocate child AttemptJobIDs starting after the maximum currently in
+	// use within this attempt — keeps the (run_id, attempt_id, attempt_job_id)
+	// uniqueness invariant from migration v331.
+	maxAttemptJobID, err := maxAttemptJobIDForAttempt(ctx, run.ID, placeholder.RunAttemptID)
+	if err != nil {
+		return fmt.Errorf("maxAttemptJobIDForAttempt: %w", err)
+	}
+
+	for i, swf := range expanded {
+		id, job := swf.Job()
+		// Mirror InsertRun's payload contract: children are dispatched to
+		// runners, so their needs must be erased from the serialized payload.
+		job.EraseNeeds()
+		if err := swf.SetJob(id, job); err != nil {
+			return fmt.Errorf("SetJob: %w", err)
+		}
+		payload, err := swf.Marshal()
+		if err != nil {
+			return fmt.Errorf("marshal expanded SingleWorkflow: %w", err)
+		}
+
+		var pinned map[string][]any
+		_ = job.Strategy.RawMatrix.Decode(&pinned)
+		matrixValues := make(map[string]any, len(pinned))
+		for k, v := range pinned {
+			if len(v) == 1 {
+				matrixValues[k] = v[0]
+			}
+		}
+
+		child := &actions_model.ActionRunJob{
+			RunID:             placeholder.RunID,
+			RunAttemptID:      placeholder.RunAttemptID,
+			RepoID:            placeholder.RepoID,
+			OwnerID:           placeholder.OwnerID,
+			CommitSHA:         placeholder.CommitSHA,
+			IsForkPullRequest: placeholder.IsForkPullRequest,
+			Name:              util.EllipsisDisplayString(job.Name, 255),
+			Attempt:           placeholder.Attempt,
+			WorkflowPayload:   payload,
+			JobID:             id,
+			AttemptJobID:      maxAttemptJobID + int64(i+1),
+			Needs:             placeholder.Needs,
+			RunsOn:            job.RunsOn(),
+			Status:            actions_model.StatusWaiting,
+			TokenPermissions:  placeholder.TokenPermissions,
+			MatrixValues:      matrixValues,
+		}
+		if err := db.Insert(ctx, child); err != nil {
+			return fmt.Errorf("insert expanded child: %w", err)
+		}
+	}
+
+	if _, err := db.GetEngine(ctx).ID(placeholder.ID).Delete(&actions_model.ActionRunJob{}); err != nil {
+		return fmt.Errorf("delete placeholder %d: %w", placeholder.ID, err)
+	}
+
+	if err := actions_model.IncreaseTaskVersion(ctx, placeholder.OwnerID, placeholder.RepoID); err != nil {
+		return fmt.Errorf("IncreaseTaskVersion: %w", err)
+	}
+	return nil
+}
+
+// maxAttemptJobIDForAttempt returns the largest AttemptJobID currently in
+// use within a (run, attempt). Returns 0 when no rows exist.
+func maxAttemptJobIDForAttempt(ctx context.Context, runID, runAttemptID int64) (int64, error) {
+	var maxID int64
+	if _, err := db.GetEngine(ctx).
+		Select("COALESCE(MAX(attempt_job_id), 0)").
+		Table("action_run_job").
+		Where("run_id = ? AND run_attempt_id = ?", runID, runAttemptID).
+		Get(&maxID); err != nil {
+		return 0, err
+	}
+	return maxID, nil
 }
 
 func updateConcurrencyEvaluationForJobWithNeeds(ctx context.Context, actionRunJob *actions_model.ActionRunJob, vars map[string]string) error {

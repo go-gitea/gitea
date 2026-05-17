@@ -16,6 +16,30 @@ import (
 	"go.yaml.in/yaml/v4"
 )
 
+// extractMatrixValues decodes the pinned single-combination matrix that
+// jobparser writes back onto the parsed Job for an expanded static-matrix
+// iteration (shape: `{key: [single_value]}`). Returns nil for placeholders
+// (isDeferred=true) and for jobs without a matrix.
+func extractMatrixValues(rawMatrix yaml.Node, isDeferred bool) map[string]any {
+	if isDeferred || rawMatrix.Kind == 0 {
+		return nil
+	}
+	var pinned map[string][]any
+	if err := rawMatrix.Decode(&pinned); err != nil || len(pinned) == 0 {
+		return nil
+	}
+	values := make(map[string]any, len(pinned))
+	for k, v := range pinned {
+		if len(v) == 1 {
+			values[k] = v[0]
+		}
+	}
+	if len(values) == 0 {
+		return nil
+	}
+	return values
+}
+
 // PrepareRunAndInsert prepares a run and inserts it into the database
 // It parses the workflow content, evaluates concurrency if needed, and inserts the run and its jobs into the database.
 // The title will be cut off at 255 characters if it's longer than 255 characters.
@@ -131,14 +155,45 @@ func InsertRun(ctx context.Context, run *actions_model.ActionRun, content []byte
 		for i, v := range jobs {
 			id, job := v.Job()
 			needs := job.Needs()
-			if err := v.SetJob(id, job.EraseNeeds()); err != nil {
+
+			// Detect a deferred-matrix placeholder before erasing needs:
+			// the jobparser returned this SingleWorkflow without expanding
+			// strategy.matrix because the matrix references upstream
+			// `needs.X.outputs.Y` that aren't available yet. The job emitter
+			// will expand it into N children once needs are satisfied.
+			isDeferredMatrix := jobparser.MatrixDependsOnNeedsOutputs(job.Strategy.RawMatrix)
+			var rawMatrix string
+			if isDeferredMatrix {
+				rawMatrixBytes, err := yaml.Marshal(&job.Strategy.RawMatrix)
+				if err != nil {
+					return fmt.Errorf("marshal raw matrix: %w", err)
+				}
+				rawMatrix = string(rawMatrixBytes)
+			}
+
+			// Deferred-matrix placeholders are never dispatched to a runner —
+			// they exist only to be re-parsed by the job emitter once needs
+			// are satisfied. Keep their RawNeeds so the emitter can build a
+			// proper expression context (the interpreter resolves `needs.X.outputs.Y`
+			// only for jobs listed in the placeholder job's needs).
+			if !isDeferredMatrix {
+				job.EraseNeeds()
+			}
+			if err := v.SetJob(id, job); err != nil {
 				return err
 			}
 			payload, _ := v.Marshal()
 
 			shouldBlockJob := runAttempt.Status == actions_model.StatusBlocked || len(needs) > 0 || run.NeedApproval
 
-			job.Name = util.EllipsisDisplayString(job.Name, 255)
+			// Placeholders use the bare job id as their display name
+			// (matches GitHub's pre-expansion UI). Expanded matrix iterations
+			// keep the name produced by jobparser (e.g. "build (linux)").
+			displayName := job.Name
+			if isDeferredMatrix {
+				displayName = id
+			}
+			displayName = util.EllipsisDisplayString(displayName, 255)
 			runJob := &actions_model.ActionRunJob{
 				RunID:             run.ID,
 				RunAttemptID:      runAttempt.ID,
@@ -146,7 +201,7 @@ func InsertRun(ctx context.Context, run *actions_model.ActionRun, content []byte
 				OwnerID:           run.OwnerID,
 				CommitSHA:         run.CommitSHA,
 				IsForkPullRequest: run.IsForkPullRequest,
-				Name:              job.Name,
+				Name:              displayName,
 				Attempt:           runAttempt.Attempt,
 				WorkflowPayload:   payload,
 				JobID:             id,
@@ -154,6 +209,8 @@ func InsertRun(ctx context.Context, run *actions_model.ActionRun, content []byte
 				Needs:             needs,
 				RunsOn:            job.RunsOn(),
 				Status:            util.Iif(shouldBlockJob, actions_model.StatusBlocked, actions_model.StatusWaiting),
+				RawMatrix:         rawMatrix,
+				MatrixValues:      extractMatrixValues(job.Strategy.RawMatrix, isDeferredMatrix),
 			}
 			// Parse workflow/job permissions (no clamping here)
 			if perms := ExtractJobPermissionsFromWorkflow(v, job); perms != nil {
