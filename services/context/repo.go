@@ -12,11 +12,14 @@ import (
 	"net/http"
 	"net/url"
 	"path"
+	"regexp"
+	"strconv"
 	"strings"
 
 	asymkey_model "code.gitea.io/gitea/models/asymkey"
 	"code.gitea.io/gitea/models/db"
 	git_model "code.gitea.io/gitea/models/git"
+	group_model "code.gitea.io/gitea/models/group"
 	issues_model "code.gitea.io/gitea/models/issues"
 	access_model "code.gitea.io/gitea/models/perm/access"
 	repo_model "code.gitea.io/gitea/models/repo"
@@ -369,6 +372,7 @@ func ComposeGoGetImport(ctx context.Context, owner, repo string) string {
 func EarlyResponseForGoGetMeta(ctx *Context) {
 	username := ctx.PathParam("username")
 	reponame := strings.TrimSuffix(ctx.PathParam("reponame"), ".git")
+	groupID := ctx.PathParamInt64("group_id")
 	if username == "" || reponame == "" {
 		ctx.PlainText(http.StatusBadRequest, "invalid repository path")
 		return
@@ -376,14 +380,16 @@ func EarlyResponseForGoGetMeta(ctx *Context) {
 
 	var cloneURL string
 	if setting.Repository.GoGetCloneURLProtocol == "ssh" {
-		cloneURL = repo_model.ComposeSSHCloneURL(ctx.Doer, username, reponame)
+		cloneURL = repo_model.ComposeSSHCloneURL(ctx.Doer, username, reponame, groupID)
 	} else {
-		cloneURL = repo_model.ComposeHTTPSCloneURL(ctx, username, reponame)
+		cloneURL = repo_model.ComposeHTTPSCloneURL(ctx, username, reponame, groupID)
 	}
 	goImportContent := fmt.Sprintf("%s git %s", ComposeGoGetImport(ctx, username, reponame), cloneURL)
 	htmlMeta := fmt.Sprintf(`<meta name="go-import" content="%s">`, html.EscapeString(goImportContent))
 	ctx.PlainText(http.StatusOK, htmlMeta)
 }
+
+var pathRegex = regexp.MustCompile(`(?i).*/[a-z\-0-9_]+/(\d+/)?[a-z\-0-9_]`)
 
 // RedirectToRepo redirect to a differently-named repository
 func RedirectToRepo(ctx *Base, redirectRepoID int64) {
@@ -396,6 +402,8 @@ func RedirectToRepo(ctx *Base, redirectRepoID int64) {
 		ctx.HTTPError(http.StatusInternalServerError, "GetRepositoryByID")
 		return
 	}
+	pathRegex.ReplaceAllString(ctx.Req.URL.EscapedPath(),
+		url.PathEscape(repo.OwnerName)+"/$1"+url.PathEscape(repo.Name))
 
 	redirectPath := strings.Replace(
 		ctx.Req.URL.EscapedPath(),
@@ -461,9 +469,10 @@ func InitRepoPullRequestCtx(ctx *Context, base, head *repo_model.Repository) {
 }
 
 type repoAssignmentPrepareDataStruct struct {
-	ownerName string
-	repoName  string
-	repo      *repo_model.Repository
+	ownerName  string
+	repoName   string
+	rawGroupID string
+	repo       *repo_model.Repository
 }
 
 func repoAssignmentPreCheck(ctx *Context) {
@@ -481,13 +490,15 @@ func repoAssignmentPrepareData(ctx *Context) *repoAssignmentPrepareDataStruct {
 	// HINT: here it doesn't handle ".wiki" extension, it is handled in repoAssignmentAutoRedirectWiki, need to be refactored in the future
 	userName := ctx.PathParam("username")
 	repoName := ctx.PathParam("reponame")
+	group := ctx.PathParam("group_id")
+
 	repoName = strings.TrimSuffix(repoName, ".git")
 	if setting.Other.EnableFeed {
 		ctx.Data["EnableFeed"] = true
 		repoName = strings.TrimSuffix(repoName, ".rss")
 		repoName = strings.TrimSuffix(repoName, ".atom")
 	}
-	return &repoAssignmentPrepareDataStruct{ownerName: userName, repoName: repoName}
+	return &repoAssignmentPrepareDataStruct{ownerName: userName, repoName: repoName, rawGroupID: group}
 }
 
 func repoAssignmentPrepareOwner(ctx *Context, data *repoAssignmentPrepareDataStruct) {
@@ -525,7 +536,21 @@ func repoAssignmentPrepareOwner(ctx *Context, data *repoAssignmentPrepareDataStr
 }
 
 func repoAssignmentAutoRedirectWiki(ctx *Context, data *repoAssignmentPrepareDataStruct) {
-	userName, repoName := data.ownerName, data.repoName
+	userName, repoName, rawGroupID := data.ownerName, data.repoName, data.rawGroupID
+	var group string
+	if rawGroupID != "" {
+		gid, _ := strconv.ParseInt(rawGroupID, 10, 64)
+		if gid == 0 {
+			q := ctx.Req.URL.RawQuery
+			if q != "" {
+				q = "?" + q
+			}
+			ctx.Redirect(strings.Replace(ctx.Link, "/0/", "/", 1)+q, 307)
+			return
+		}
+		group += "/"
+	}
+
 	// redirect link to wiki
 	if strings.HasSuffix(repoName, ".wiki") {
 		// ctx.Req.URL.Path does not have the preceding appSubURL - any redirect must have this added
@@ -535,7 +560,7 @@ func repoAssignmentAutoRedirectWiki(ctx *Context, data *repoAssignmentPrepareDat
 		redirectRepoName += originalRepoName[len(redirectRepoName)+5:]
 		redirectPath := strings.Replace(
 			ctx.Req.URL.EscapedPath(),
-			url.PathEscape(userName)+"/"+url.PathEscape(originalRepoName),
+			url.PathEscape(userName)+"/"+group+url.PathEscape(originalRepoName),
 			url.PathEscape(userName)+"/"+url.PathEscape(redirectRepoName)+"/wiki",
 			1,
 		)
@@ -550,7 +575,8 @@ func repoAssignmentAutoRedirectWiki(ctx *Context, data *repoAssignmentPrepareDat
 func repoAssignmentPrepareRepo(ctx *Context, data *repoAssignmentPrepareDataStruct) {
 	repoName := data.repoName
 	// Get repository.
-	repo, err := repo_model.GetRepositoryByName(ctx, ctx.Repo.Owner.ID, repoName)
+	gid, _ := strconv.ParseInt(data.rawGroupID, 10, 64)
+	repo, err := repo_model.GetRepositoryByName(ctx, ctx.Repo.Owner.ID, gid, repoName)
 	if err != nil {
 		if repo_model.IsErrRepoNotExist(err) {
 			redirectRepoID, err := repo_model.LookupRedirect(ctx, ctx.Repo.Owner.ID, repoName)
@@ -568,6 +594,18 @@ func repoAssignmentPrepareRepo(ctx *Context, data *repoAssignmentPrepareDataStru
 		} else {
 			ctx.ServerError("GetRepositoryByName", err)
 		}
+		return
+	}
+	if repo.GroupID != gid {
+		ctx.NotFound(nil)
+	}
+
+	if gid > 0 {
+		GroupAssignmentWeb(GroupAssignmentOptions{
+			RequireMember: true,
+		})(ctx)
+	}
+	if ctx.Written() {
 		return
 	}
 	repo.Owner = ctx.Repo.Owner
@@ -608,6 +646,15 @@ func repoAssignmentPrepareTemplateData(ctx *Context, data *repoAssignmentPrepare
 	ctx.Data["Title"] = repo.Owner.Name + "/" + repo.Name
 	ctx.Data["PageTitleCommon"] = repo.Name + " - " + setting.AppName
 	ctx.Data["Repository"] = repo
+	if repo.GroupID > 0 {
+		if ctx.Data["Breadcrumbs"], err = group_model.GetParentGroupChain(ctx, repo.GroupID); err != nil {
+			ctx.ServerError("GetParentGroupChain", err)
+			return
+		}
+	} else {
+		ctx.Data["Breadcrumbs"] = nil
+	}
+
 	ctx.Data["Owner"] = ctx.Repo.Repository.Owner
 	ctx.Data["CanWriteCode"] = ctx.Repo.Permission.CanWrite(unit_model.TypeCode)
 	ctx.Data["CanWriteIssues"] = ctx.Repo.Permission.CanWrite(unit_model.TypeIssues)

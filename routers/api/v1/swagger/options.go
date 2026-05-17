@@ -233,4 +233,16 @@ type swaggerParameterBodies struct {
 
 	// in:body
 	LockIssueOption api.LockIssueOption
+
+	// in:body
+	NewGroupOption api.NewGroupOption
+
+	// in:body
+	EditGroupOption api.EditGroupOption
+
+	// in:body
+	MoveGroupOption api.MoveGroupOption
+
+	// in:body
+	CreateOrUpdateGroupTeamOption api.CreateOrUpdateRepoGroupTeamOption
 }

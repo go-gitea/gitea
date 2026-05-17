@@ -10,7 +10,11 @@
 				{{ctx.Locale.PrettyNumber .ClosedCount}}&nbsp;{{ctx.Locale.Tr "repo.issues.closed_title"}}
 			</a>
 		</div>
-		<a class="ui small primary button" href="{{$.Link}}/new">{{ctx.Locale.Tr "repo.projects.new"}}</a>
+		{{if not $.Group}}
+		<div class="tw-text-right">
+			<a class="ui small primary button" href="{{$.Link}}/new">{{ctx.Locale.Tr "repo.projects.new"}}</a>
+		</div>
+		{{end}}
 	</div>
 {{end}}
 

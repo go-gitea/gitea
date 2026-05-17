@@ -5,6 +5,7 @@ package common
 
 import (
 	"context"
+	"strconv"
 	"strings"
 
 	repo_model "code.gitea.io/gitea/models/repo"
@@ -20,6 +21,7 @@ type CompareRouterReq struct {
 	CompareSeparator string
 
 	HeadOwner    string
+	HeadGroupID  int64
 	HeadRepoName string
 	HeadOriRef   string
 }
@@ -30,16 +32,25 @@ func (cr *CompareRouterReq) DirectComparison() bool {
 	return cr.CompareSeparator == ".."
 }
 
-func parseHead(head string) (headOwnerName, headRepoName, headRef string) {
+func parseHead(head string) (headOwnerName, headRepoName string, headGroupID int64, headRef string) {
 	paths := strings.SplitN(head, ":", 2)
 	if len(paths) == 1 {
-		return "", "", paths[0]
+		/*var gid int64
+		_, rawGid, _ := strings.Cut(paths[0], "group/")
+		gid, _ = strconv.ParseInt(rawGid, 10, 64)*/
+
+		return "", "", 0, paths[0]
 	}
 	ownerRepo := strings.SplitN(paths[0], "/", 2)
 	if len(ownerRepo) == 1 {
-		return paths[0], "", paths[1]
+		// -1 means use base repo's group ID
+		return paths[0], "", -1, paths[1]
 	}
-	return ownerRepo[0], ownerRepo[1], paths[1]
+	var gid int64
+	_, rawGid, _ := strings.Cut(paths[0], "group/")
+	gid, _ = strconv.ParseInt(rawGid, 10, 64)
+
+	return ownerRepo[0], ownerRepo[1], gid, paths[1]
 }
 
 // ParseCompareRouterParam Get compare information from the router parameter.
@@ -79,9 +90,10 @@ func ParseCompareRouterParam(routerParam string) *CompareRouterReq {
 		sep = ".."
 		basePart, headPart, ok = strings.Cut(routerParam, sep)
 		if !ok {
-			headOwnerName, headRepoName, headRef := parseHead(routerParam)
+			headOwnerName, headRepoName, headGid, headRef := parseHead(routerParam)
 			return &CompareRouterReq{
 				HeadOriRef:       headRef,
+				HeadGroupID:      headGid,
 				HeadOwner:        headOwnerName,
 				HeadRepoName:     headRepoName,
 				CompareSeparator: "...",
@@ -91,7 +103,7 @@ func ParseCompareRouterParam(routerParam string) *CompareRouterReq {
 
 	ci := &CompareRouterReq{CompareSeparator: sep}
 	ci.BaseOriRef, ci.BaseOriRefSuffix = git.ParseRefSuffix(basePart)
-	ci.HeadOwner, ci.HeadRepoName, ci.HeadOriRef = parseHead(headPart)
+	ci.HeadOwner, ci.HeadRepoName, ci.HeadGroupID, ci.HeadOriRef = parseHead(headPart)
 	return ci
 }
 
@@ -150,7 +162,8 @@ func GetHeadOwnerAndRepo(ctx context.Context, baseRepo *repo_model.Repository, c
 		if compareReq.HeadOwner == baseRepo.Owner.Name && compareReq.HeadRepoName == baseRepo.Name {
 			headRepo = baseRepo
 		} else {
-			headRepo, err = repo_model.GetRepositoryByName(ctx, headOwner.ID, compareReq.HeadRepoName)
+			gid := util.Iif(compareReq.HeadGroupID == -1, baseRepo.GroupID, compareReq.HeadGroupID)
+			headRepo, err = repo_model.GetRepositoryByName(ctx, headOwner.ID, gid, compareReq.HeadRepoName)
 			if err != nil {
 				return nil, nil, err
 			}

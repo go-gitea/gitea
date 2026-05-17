@@ -42,7 +42,9 @@ interface Window {
       repoLink?: string,
       repoActivityTopAuthors?: any[],
       pullRequestMergeForm?: Record<string, any>,
-      dashboardRepoList?: Record<string, any>,
+      dashboardRepoList?: Record<string, any> & {
+        organizationName: string,
+      },
     },
     notificationSettings: {
       MinTimeout: number,

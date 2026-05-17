@@ -6,7 +6,12 @@
 			<div class="flex-text-block">
 				{{template "repo/icon" .}}
 				<div class="flex-text-block tw-flex-wrap tw-text-18">
-					<a class="muted tw-font-normal" href="{{.Owner.HomeLink}}">{{.Owner.Name}}</a>/<a class="muted" href="{{$.RepoLink}}">{{.Name}}</a>
+					<a class="muted tw-font-normal" href="{{.Owner.HomeLink}}">{{.Owner.Name}}</a>
+						{{- range $.Breadcrumbs -}}
+						/<a class="muted{{if eq .ID $.Group.ID}} tw-font-bold active{{else}} tw-font-normal{{end}}"
+								href="{{.GroupLink}}">{{.Name}}</a>
+						{{- end -}}
+						/<a class="muted" href="{{$.RepoLink}}">{{.Name}}</a>
 				</div>
 				<div class="flex-text-block tw-flex-wrap">
 					{{if .IsArchived}}

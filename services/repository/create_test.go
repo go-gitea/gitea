@@ -27,7 +27,7 @@ func TestCreateRepositoryDirectly(t *testing.T) {
 	assert.NoError(t, err)
 	assert.NotNil(t, createdRepo)
 
-	exist, err := util.IsExist(repo_model.RepoPath(user2.Name, createdRepo.Name))
+	exist, err := util.IsExist(repo_model.RepoPath(user2.Name, createdRepo.Name, createdRepo.GroupID))
 	assert.NoError(t, err)
 	assert.True(t, exist)
 
@@ -38,7 +38,7 @@ func TestCreateRepositoryDirectly(t *testing.T) {
 
 	// a failed creating because some mock data
 	// create the repository directory so that the creation will fail after database record created.
-	assert.NoError(t, os.MkdirAll(repo_model.RepoPath(user2.Name, createdRepo.Name), os.ModePerm))
+	assert.NoError(t, os.MkdirAll(repo_model.RepoPath(user2.Name, createdRepo.Name, createdRepo.GroupID), os.ModePerm))
 
 	createdRepo2, err := CreateRepositoryDirectly(t.Context(), user2, user2, CreateRepoOptions{
 		Name: "created-repo",
@@ -49,7 +49,7 @@ func TestCreateRepositoryDirectly(t *testing.T) {
 	// assert the cleanup is successful
 	unittest.AssertNotExistsBean(t, &repo_model.Repository{OwnerName: user2.Name, Name: createdRepo.Name})
 
-	exist, err = util.IsExist(repo_model.RepoPath(user2.Name, createdRepo.Name))
+	exist, err = util.IsExist(repo_model.RepoPath(user2.Name, createdRepo.Name, createdRepo.GroupID))
 	assert.NoError(t, err)
 	assert.False(t, exist)
 }

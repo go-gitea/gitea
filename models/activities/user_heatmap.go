@@ -7,6 +7,7 @@ import (
 	"context"
 
 	"code.gitea.io/gitea/models/db"
+	group_model "code.gitea.io/gitea/models/group"
 	"code.gitea.io/gitea/models/organization"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/setting"
@@ -21,15 +22,15 @@ type UserHeatmapData struct {
 
 // GetUserHeatmapDataByUser returns an array of UserHeatmapData, it checks whether doer can access user's activity
 func GetUserHeatmapDataByUser(ctx context.Context, user, doer *user_model.User) ([]*UserHeatmapData, error) {
-	return getUserHeatmapData(ctx, user, nil, doer)
+	return getUserHeatmapData(ctx, user, nil, nil, doer)
 }
 
 // GetUserHeatmapDataByOrgTeam returns an array of UserHeatmapData, it checks whether doer can access org's activity
-func GetUserHeatmapDataByOrgTeam(ctx context.Context, org *organization.Organization, team *organization.Team, doer *user_model.User) ([]*UserHeatmapData, error) {
-	return getUserHeatmapData(ctx, org.AsUser(), team, doer)
+func GetUserHeatmapDataByOrgTeam(ctx context.Context, org *organization.Organization, team *organization.Team, group *group_model.Group, doer *user_model.User) ([]*UserHeatmapData, error) {
+	return getUserHeatmapData(ctx, org.AsUser(), team, group, doer)
 }
 
-func getUserHeatmapData(ctx context.Context, user *user_model.User, team *organization.Team, doer *user_model.User) ([]*UserHeatmapData, error) {
+func getUserHeatmapData(ctx context.Context, user *user_model.User, team *organization.Team, group *group_model.Group, doer *user_model.User) ([]*UserHeatmapData, error) {
 	hdata := make([]*UserHeatmapData, 0)
 
 	if !ActivityReadable(user, doer) {
@@ -53,6 +54,7 @@ func getUserHeatmapData(ctx context.Context, user *user_model.User, team *organi
 		Actor:          doer,
 		IncludePrivate: true, // don't filter by private, as we already filter by repo access
 		IncludeDeleted: true,
+		RequestedGroup: group,
 		// * Heatmaps for individual users only include actions that the user themself did.
 		// * For organizations actions by all users that were made in owned
 		//   repositories are counted.

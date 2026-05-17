@@ -71,7 +71,7 @@ func testPackageCargo(t *testing.T, _ *neturl.URL) {
 	err := cargo_service.InitializeIndexRepository(t.Context(), user, user)
 	assert.NoError(t, err)
 
-	repo, err := repo_model.GetRepositoryByOwnerAndName(t.Context(), user.Name, cargo_service.IndexRepositoryName)
+	repo, err := repo_model.GetRepositoryByOwnerAndName(t.Context(), user.Name, cargo_service.IndexRepositoryName, 0)
 	assert.NotNil(t, repo)
 	assert.NoError(t, err)
 

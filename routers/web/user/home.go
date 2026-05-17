@@ -114,6 +114,7 @@ func Dashboard(ctx *context.Context) {
 	feeds, count, err := feed_service.GetFeedsForDashboard(ctx, activities_model.GetFeedsOptions{
 		RequestedUser:   ctxUser,
 		RequestedTeam:   ctx.Org.Team,
+		RequestedGroup:  ctx.RepoGroup.Group,
 		Actor:           ctx.Doer,
 		IncludePrivate:  true,
 		OnlyPerformedBy: false,
@@ -161,6 +162,9 @@ func Milestones(ctx *context.Context) {
 		AllLimited:    false, // Include also all public repositories of limited organisations
 		Archived:      optional.Some(false),
 		HasMilestones: optional.Some(true), // Just needs display repos has milestones
+	}
+	if ctx.RepoGroup.Group != nil {
+		repoOpts.GroupID = ctx.RepoGroup.Group.ID
 	}
 
 	if ctxUser.IsOrganization() && ctx.Org.Team != nil {
@@ -465,6 +469,9 @@ func buildIssueOverview(ctx *context.Context, unitType unit.Type) {
 	}
 	if opts.Team != nil {
 		repoOpts.TeamID = opts.Team.ID
+	}
+	if ctx.RepoGroup.Group != nil {
+		repoOpts.GroupID = ctx.RepoGroup.Group.ID
 	}
 	accessibleRepos := container.Set[int64]{}
 	{

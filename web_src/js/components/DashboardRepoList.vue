@@ -1,9 +1,10 @@
 <script lang="ts">
-import {nextTick, defineComponent} from 'vue';
+import { nextTick, defineComponent, computed, reactive } from 'vue';
 import {SvgIcon} from '../svg.ts';
 import {GET} from '../modules/fetch.ts';
 import {fomanticQuery} from '../modules/fomantic/base.ts';
 import type {SvgName} from '../svg.ts';
+import DashboardRepoGroup from './DashboardRepoGroup.vue';
 
 const {appSubUrl, assetUrlPrefix, pageData} = window.config;
 
@@ -22,17 +23,17 @@ type DashboardRepo = {
   locale_latest_commit_status_state?: string,
 };
 
-type CommitStatus = 'pending' | 'success' | 'error' | 'failure' | 'warning' | 'skipped';
+export type CommitStatus = 'pending' | 'success' | 'error' | 'failure' | 'warning' | 'skipped';
 
-type CommitStatusMap = {
-  [status in CommitStatus]: {
+export type CommitStatusMap = {
+  [ status in CommitStatus ]: {
     name: SvgName,
     color: string,
   };
 };
 
 // make sure this matches templates/repo/commit_status.tmpl
-const commitStatus: CommitStatusMap = {
+export const commitStatus: CommitStatusMap = {
   pending: {name: 'octicon-dot-fill', color: 'tw-text-yellow'},
   success: {name: 'octicon-check', color: 'tw-text-green'},
   error: {name: 'gitea-exclamation', color: 'tw-text-red'},
@@ -40,9 +41,30 @@ const commitStatus: CommitStatusMap = {
   warning: {name: 'gitea-exclamation', color: 'tw-text-yellow'},
   skipped: {name: 'octicon-skip', color: 'tw-text-text-light'},
 };
-
+export type GroupMapType = {
+  repos: any[]
+  subgroups: number[]
+  id: number
+  [ k: string ]: any
+}
 export default defineComponent({
-  components: {SvgIcon},
+  components: {SvgIcon, DashboardRepoGroup},
+  provide() {
+    return {
+      expandedGroups: this.expandedGroups,
+      searchURL: this.searchURL,
+      groups: this.groups,
+      repos: computed(() => this.computedRepos),
+      loadedMap: this.loadedMap,
+      orgName: this.organizationName,
+    };
+  },
+  setup() {
+    const groups = reactive(new Map<number, GroupMapType>());
+    const loadedMap = reactive(new Map<number, boolean>([[0, true]]));
+    const expandedGroups = reactive(new Set<number>())
+    return {groups, loadedMap, expandedGroups};
+  },
   data() {
     const params = new URLSearchParams(window.location.search);
     const tab = params.get('repo-search-tab') || 'repos';
@@ -55,6 +77,7 @@ export default defineComponent({
     return {
       tab,
       repos: [] as DashboardRepo[],
+      groupData: this.groups,
       reposTotalCount: null as number | null,
       reposFilter,
       archivedFilter,
@@ -129,13 +152,12 @@ export default defineComponent({
       activeIndex: -1, // don't select anything at load, first cursor down will select
     };
   },
-
   computed: {
     showMoreReposLink() {
       return this.repos.length > 0 && this.repos.length < this.counts[`${this.reposFilter}:${this.archivedFilter}:${this.privateFilter}`];
     },
     searchURL() {
-      return `${this.subUrl}/repo/search?sort=updated&order=desc&uid=${this.uid}&team_id=${this.teamId}&q=${this.searchQuery
+      return `${this.subUrl}/group/search?sort=updated&order=desc&uid=${this.uid}&team_id=${this.teamId}&q=${this.searchQuery
       }&page=${this.page}&limit=${this.searchLimit}&mode=${this.repoTypes[this.reposFilter].searchMode
       }${this.archivedFilter === 'archived' ? '&archived=true' : ''}${this.archivedFilter === 'unarchived' ? '&archived=false' : ''
       }${this.privateFilter === 'private' ? '&is_private=true' : ''}${this.privateFilter === 'public' ? '&is_private=false' : ''
@@ -155,6 +177,30 @@ export default defineComponent({
     },
     checkboxPrivateFilterProps() {
       return {checked: this.privateFilter === 'private', indeterminate: this.privateFilter === 'both'};
+    },
+    /*expandedGroups: {
+      get() {
+        return this.expandedGroupsRaw;
+      },
+      set(val: number[]) {
+        this.expandedGroupsRaw = val;
+      },
+    },*/
+    /*groups: {
+      get() {
+        return this.groupData ;
+      },
+      set(v: Map<number, GroupMapType>) {
+        for (const [k, val] of v) {
+          this.groupData.set(k, val);
+        }
+      },
+    },*/
+    computedRepos() {
+      return this.repos;
+    },
+    root() {
+      return [...(this.groups.get(0)?.subgroups ?? []), ...this.repos];
     },
   },
 
@@ -185,6 +231,9 @@ export default defineComponent({
     changeReposFilter(filter: string) {
       this.reposFilter = filter;
       this.repos = [];
+      this.groups.clear();
+      this.loadedMap.clear();
+      this.expandedGroups.clear()
       this.page = 1;
       this.counts[`${filter}:${this.archivedFilter}:${this.privateFilter}`] = 0;
       this.searchRepos();
@@ -261,6 +310,8 @@ export default defineComponent({
       }
       this.page = 1;
       this.repos = [];
+      this.groups = new Map();
+      this.loadedMap = new Map();
       this.counts[`${this.reposFilter}:${this.archivedFilter}:${this.privateFilter}`] = 0;
       this.searchRepos();
     },
@@ -276,6 +327,8 @@ export default defineComponent({
         this.page = 1;
       }
       this.repos = [];
+      this.groups = new Map();
+      this.loadedMap = new Map();
       this.counts[`${this.reposFilter}:${this.archivedFilter}:${this.privateFilter}`] = 0;
       await this.searchRepos();
     },
@@ -284,7 +337,7 @@ export default defineComponent({
       this.isLoading = true;
 
       const searchedMode = this.repoTypes[this.reposFilter].searchMode;
-      const searchedURL = this.searchURL;
+      const searchedURL = `${this.searchURL}&group_id=-1`;
       const searchedQuery = this.searchQuery;
 
       let response, json;
@@ -306,14 +359,14 @@ export default defineComponent({
         response = await GET(searchedURL);
         json = await response.json();
       } catch {
-        if (searchedURL === this.searchURL) {
+        if (searchedURL.startsWith(this.searchURL)) {
           this.isLoading = false;
         }
         return;
       }
 
-      if (searchedURL === this.searchURL) {
-        this.repos = json.data.map((webSearchRepo: any) => {
+      if (searchedURL.startsWith(searchedURL)) {
+        this.repos = json.data.repos.map((webSearchRepo: any) => {
           return {
             ...webSearchRepo.repository,
             latest_commit_status_state: webSearchRepo.latest_commit_status?.State, // if latest_commit_status is null, it means there is no commit status
@@ -321,7 +374,30 @@ export default defineComponent({
             locale_latest_commit_status_state: webSearchRepo.locale_latest_commit_status,
           };
         });
-        const count = Number(response.headers.get('X-Total-Count'));
+        let realRepos: any[] = this.repos;
+        if(window.location.pathname !== "/") {
+          realRepos = this.repos.filter((a: any) => !a.group_id)
+        }
+        this.groups.set(0, {
+          repos: realRepos,
+          subgroups: json.data.subgroups.map((g: any) => {
+            return g.group.id;
+          }),
+          data: {},
+          id: 0
+        });
+        for (const g of json.data.subgroups) {
+          this.groups.set(g.group.id, {
+            subgroups: g.subgroups.map((h: any) => h.group.id),
+            repos: g.repos,
+            ...g.group,
+            latest_commit_status_state: g.latest_commit_status?.State, // if latest_commit_status is null, it means there is no commit status
+            latest_commit_status_state_link: g.latest_commit_status?.TargetURL,
+            locale_latest_commit_status_state: g.locale_latest_commit_status,
+            id: g.group.id,
+          });
+        }
+        const count = this.repos.length;
         if (searchedQuery === '' && searchedMode === '' && this.archivedFilter === 'both') {
           this.reposTotalCount = count;
         }
@@ -422,7 +498,7 @@ export default defineComponent({
       <div v-else class="ui attached segment repos-search">
         <div class="ui small fluid action left icon input">
           <input type="search" spellcheck="false" maxlength="255" @input="changeReposFilter(reposFilter)" v-model="searchQuery" ref="search" @keydown="reposFilterKeyControl" :placeholder="textSearchRepos">
-          <i class="icon loading-icon-3px" :class="{'is-loading': isLoading}"><svg-icon name="octicon-search" :size="16"/></i>
+          <i class="icon loading-icon-3px" :class="{ 'is-loading': isLoading }"><svg-icon name="octicon-search" :size="16"/></i>
           <div class="ui dropdown icon button" :title="textFilter">
             <svg-icon name="octicon-filter" :size="16"/>
             <div class="menu">
@@ -451,23 +527,23 @@ export default defineComponent({
         </div>
         <overflow-menu class="ui secondary pointing tabular borderless menu repos-filter">
           <div class="overflow-menu-items tw-justify-center">
-            <a class="item" tabindex="0" :class="{active: reposFilter === 'all'}" @click="changeReposFilter('all')">
+            <a class="item" tabindex="0" :class="{ active: reposFilter === 'all' }" @click="changeReposFilter('all')">
               {{ textAll }}
               <div v-show="reposFilter === 'all'" class="ui circular mini grey label">{{ repoTypeCount }}</div>
             </a>
-            <a class="item" tabindex="0" :class="{active: reposFilter === 'sources'}" @click="changeReposFilter('sources')">
+            <a class="item" tabindex="0" :class="{ active: reposFilter === 'sources' }" @click="changeReposFilter('sources')">
               {{ textSources }}
               <div v-show="reposFilter === 'sources'" class="ui circular mini grey label">{{ repoTypeCount }}</div>
             </a>
-            <a class="item" tabindex="0" :class="{active: reposFilter === 'forks'}" @click="changeReposFilter('forks')">
+            <a class="item" tabindex="0" :class="{ active: reposFilter === 'forks' }" @click="changeReposFilter('forks')">
               {{ textForks }}
               <div v-show="reposFilter === 'forks'" class="ui circular mini grey label">{{ repoTypeCount }}</div>
             </a>
-            <a class="item" tabindex="0" :class="{active: reposFilter === 'mirrors'}" @click="changeReposFilter('mirrors')" v-if="isMirrorsEnabled">
+            <a class="item" tabindex="0" :class="{ active: reposFilter === 'mirrors' }" @click="changeReposFilter('mirrors')" v-if="isMirrorsEnabled">
               {{ textMirrors }}
               <div v-show="reposFilter === 'mirrors'" class="ui circular mini grey label">{{ repoTypeCount }}</div>
             </a>
-            <a class="item" tabindex="0" :class="{active: reposFilter === 'collaborative'}" @click="changeReposFilter('collaborative')">
+            <a class="item" tabindex="0" :class="{ active: reposFilter === 'collaborative' }" @click="changeReposFilter('collaborative')">
               {{ textCollaborative }}
               <div v-show="reposFilter === 'collaborative'" class="ui circular mini grey label">{{ repoTypeCount }}</div>
             </a>
@@ -475,45 +551,31 @@ export default defineComponent({
         </overflow-menu>
       </div>
       <div v-if="repos.length" class="ui attached table segment tw-rounded-b">
-        <ul class="repo-owner-name-list">
-          <li class="tw-flex tw-items-center tw-py-2" v-for="(repo, index) in repos" :class="{'active': index === activeIndex}" :key="repo.id">
-            <a class="repo-list-link muted" :href="repo.link">
-              <svg-icon :name="repoIcon(repo)" :size="16" class="repo-list-icon"/>
-              <div class="tw-inline-block tw-truncate">{{ repo.full_name }}</div>
-              <div v-if="repo.archived">
-                <svg-icon name="octicon-archive" :size="16"/>
-              </div>
-            </a>
-            <a class="tw-flex tw-items-center" v-if="repo.latest_commit_status_state" :href="repo.latest_commit_status_state_link || undefined" :data-tooltip-content="repo.locale_latest_commit_status_state">
-              <!-- the commit status icon logic is taken from templates/repo/commit_status.tmpl -->
-              <svg-icon :name="statusIcon(repo.latest_commit_status_state)" :class="'tw-ml-2 commit-status icon ' + statusColor(repo.latest_commit_status_state)" :size="16"/>
-            </a>
-          </li>
-        </ul>
+        <dashboard-repo-group :items="root" :depth="1" :cur-group="0" @load-changed="(nv: boolean) => (isLoading = nv)"/>
         <div v-if="showMoreReposLink" class="tw-text-center">
           <div class="divider tw-my-0"/>
           <div class="ui borderless pagination menu narrow tw-my-2">
             <a
-              class="item navigation tw-py-1" :class="{'disabled': page === 1}"
+              class="item navigation tw-py-1" :class="{ 'disabled': page === 1 }"
               @click="changePage(1)" :title="textFirstPage"
             >
               <svg-icon name="gitea-double-chevron-left" :size="16" class="tw-mr-1"/>
             </a>
             <a
-              class="item navigation tw-py-1" :class="{'disabled': page === 1}"
+              class="item navigation tw-py-1" :class="{ 'disabled': page === 1 }"
               @click="changePage(page - 1)" :title="textPreviousPage"
             >
               <svg-icon name="octicon-chevron-left" :size="16" class="tw-mr-1"/>
             </a>
             <a class="active item tw-py-1">{{ page }}</a>
             <a
-              class="item navigation" :class="{'disabled': page === finalPage}"
+              class="item navigation" :class="{ 'disabled': page === finalPage }"
               @click="changePage(page + 1)" :title="textNextPage"
             >
               <svg-icon name="octicon-chevron-right" :size="16" class="tw-ml-1"/>
             </a>
             <a
-              class="item navigation tw-py-1" :class="{'disabled': page === finalPage}"
+              class="item navigation tw-py-1" :class="{ 'disabled': page === finalPage }"
               @click="changePage(finalPage)" :title="textLastPage"
             >
               <svg-icon name="gitea-double-chevron-right" :size="16" class="tw-ml-1"/>
@@ -546,7 +608,7 @@ export default defineComponent({
               <div class="tw-inline-block tw-truncate">{{ org.full_name ? `${org.full_name} (${org.name})` : org.name }}</div>
               <div><!-- div to prevent underline of label on hover -->
                 <span class="ui tiny basic label" v-if="org.org_visibility !== 'public'">
-                  {{ org.org_visibility === 'limited' ? textOrgVisibilityLimited: textOrgVisibilityPrivate }}
+                  {{ org.org_visibility === 'limited' ? textOrgVisibilityLimited : textOrgVisibilityPrivate }}
                 </span>
               </div>
             </a>
@@ -614,6 +676,7 @@ ul li:not(:last-child) {
   margin-right: 3px;
 }
 
+/*eslint-disable-next-line vue-scoped-css/no-unused-selector*/
 .repo-owner-name-list li.active {
   background: var(--color-hover);
 }

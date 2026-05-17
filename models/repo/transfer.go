@@ -254,7 +254,7 @@ func CreatePendingRepositoryTransfer(ctx context.Context, doer, newOwner *user_m
 		}
 
 		// Check if new owner has repository with same name.
-		if has, err := IsRepositoryModelExist(ctx, newOwner, repo.Name); err != nil {
+		if has, err := IsRepositoryModelExist(ctx, newOwner, repo.Name, repo.GroupID); err != nil {
 			return fmt.Errorf("IsRepositoryExist: %w", err)
 		} else if has {
 			return ErrRepoAlreadyExist{

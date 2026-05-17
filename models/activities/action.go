@@ -15,6 +15,7 @@ import (
 	"time"
 
 	"code.gitea.io/gitea/models/db"
+	group_model "code.gitea.io/gitea/models/group"
 	issues_model "code.gitea.io/gitea/models/issues"
 	"code.gitea.io/gitea/models/organization"
 	repo_model "code.gitea.io/gitea/models/repo"
@@ -259,6 +260,14 @@ func (a *Action) GetRepoName(ctx context.Context) string {
 	return a.Repo.Name
 }
 
+func (a *Action) GetRepoGroup(ctx context.Context) string {
+	_ = a.LoadRepo(ctx)
+	if a.Repo == nil || a.Repo.GroupID == 0 {
+		return ""
+	}
+	return strconv.FormatInt(a.Repo.GroupID, 10)
+}
+
 // ShortRepoName returns the name of the action repository
 // trimmed to max 33 chars.
 func (a *Action) ShortRepoName(ctx context.Context) string {
@@ -267,19 +276,26 @@ func (a *Action) ShortRepoName(ctx context.Context) string {
 
 // GetRepoPath returns the virtual path to the action repository.
 func (a *Action) GetRepoPath(ctx context.Context) string {
-	return path.Join(a.GetRepoUserName(ctx), a.GetRepoName(ctx))
+	return path.Join(a.GetRepoUserName(ctx), a.GetRepoGroup(ctx), a.GetRepoName(ctx))
 }
 
 // ShortRepoPath returns the virtual path to the action repository
 // trimmed to max 20 + 1 + 33 chars.
 func (a *Action) ShortRepoPath(ctx context.Context) string {
-	return path.Join(a.ShortRepoUserName(ctx), a.ShortRepoName(ctx))
+	return path.Join(a.ShortRepoUserName(ctx), a.makeGroupSegment(ctx), a.GetRepoGroup(ctx), a.ShortRepoName(ctx))
 }
 
 // GetRepoLink returns relative link to action repository.
 func (a *Action) GetRepoLink(ctx context.Context) string {
 	// path.Join will skip empty strings
-	return path.Join(setting.AppSubURL, "/", url.PathEscape(a.GetRepoUserName(ctx)), url.PathEscape(a.GetRepoName(ctx)))
+	return path.Join(setting.AppSubURL, "/", url.PathEscape(a.GetRepoUserName(ctx)), a.makeGroupSegment(ctx), a.GetRepoGroup(ctx), url.PathEscape(a.GetRepoName(ctx)))
+}
+
+func (a *Action) makeGroupSegment(ctx context.Context) string {
+	if a.GetRepoGroup(ctx) != "" {
+		return "group"
+	}
+	return ""
 }
 
 // GetRepoAbsoluteLink returns the absolute link to action repository.
@@ -427,6 +443,7 @@ type GetFeedsOptions struct {
 	db.ListOptions
 	RequestedUser   *user_model.User       // the user we want activity for
 	RequestedTeam   *organization.Team     // the team we want activity for
+	RequestedGroup  *group_model.Group     // the group we want activity for
 	RequestedRepo   *repo_model.Repository // the repo we want activity for
 	Actor           *user_model.User       // the user viewing the activity
 	IncludePrivate  bool                   // include private actions
@@ -506,8 +523,22 @@ func ActivityQueryCondition(ctx context.Context, opts GetFeedsOptions) (builder.
 	if opts.Actor == nil || !opts.Actor.IsAdmin {
 		cond = cond.And(builder.In("repo_id", repo_model.AccessibleRepoIDsQuery(opts.Actor)))
 	}
-
-	if opts.RequestedRepo != nil {
+	if opts.RequestedGroup != nil {
+		var subCond builder.Cond
+		if childGroupCondIDs, err := group_model.ChildGroupCond(ctx, opts.Actor, opts.RequestedGroup.ID); err != nil {
+			subCond = builder.NotIn("`repository`.group_id")
+		} else {
+			subCond = builder.In("`repository`.group_id", childGroupCondIDs)
+		}
+		cond = cond.And(builder.In("`action`.repo_id",
+			builder.Select("id").
+				From("repository").
+				Where(builder.Or(
+					subCond,
+					builder.Eq{"`repository`.group_id": opts.RequestedGroup.ID}),
+				),
+		))
+	} else if opts.RequestedRepo != nil {
 		// repo's actions could have duplicate items, see the comment of NotifyWatchers
 		// so here we only filter the "original items", aka: user_id == act_user_id
 		cond = cond.And(

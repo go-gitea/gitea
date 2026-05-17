@@ -70,17 +70,21 @@ func testEditorCreateFile(t *testing.T) {
 	}, `Branch "master" already exists in this repository.`)
 }
 
-func testCreateFile(t *testing.T, session *TestSession, user, repo, baseBranchName, newBranchName, filePath, content string) {
+func testCreateFileInGroup(t *testing.T, session *TestSession, groupID int64, user, repo, baseBranchName, newBranchName, filePath, content string) {
 	commitChoice := "direct"
 	if newBranchName != "" && newBranchName != baseBranchName {
 		commitChoice = "commit-to-new-branch"
 	}
-	testEditorActionEdit(t, session, user, repo, "_new", baseBranchName, "", map[string]string{
+	testEditorActionEdit(t, session, groupID, user, repo, "_new", baseBranchName, "", map[string]string{
 		"tree_path":       filePath,
 		"content":         content,
 		"commit_choice":   commitChoice,
 		"new_branch_name": newBranchName,
 	})
+}
+
+func testCreateFile(t *testing.T, session *TestSession, user, repo, baseBranchName, newBranchName, filePath, content string) {
+	testCreateFileInGroup(t, session, 0, user, repo, baseBranchName, newBranchName, filePath, content)
 }
 
 func testEditorProtectedBranch(t *testing.T) {
@@ -118,10 +122,11 @@ func testEditorActionPostRequestError(t *testing.T, session *TestSession, reques
 	assert.Equal(t, errorMessage, test.ParseJSONError(resp.Body.Bytes()).ErrorMessage)
 }
 
-func testEditorActionEdit(t *testing.T, session *TestSession, user, repo, editorAction, branch, filePath string, params map[string]string) *httptest.ResponseRecorder {
+func testEditorActionEdit(t *testing.T, session *TestSession, groupID int64, user, repo, editorAction, branch, filePath string, params map[string]string) *httptest.ResponseRecorder {
 	params["tree_path"] = util.IfZero(params["tree_path"], filePath)
 	newBranchName := util.Iif(params["commit_choice"] == "direct", branch, params["new_branch_name"])
-	resp := testEditorActionPostRequest(t, session, fmt.Sprintf("/%s/%s/%s/%s/%s", user, repo, editorAction, branch, filePath), params)
+
+	resp := testEditorActionPostRequest(t, session, fmt.Sprintf("/%s/%s%s/%s/%s/%s", user, maybeGroupSegment(groupID), repo, editorAction, branch, filePath), params)
 	assert.Equal(t, http.StatusOK, resp.Code)
 	assert.NotEmpty(t, test.RedirectURL(resp))
 	req := NewRequest(t, "GET", "/"+path.Join(user, repo, "raw/branch", newBranchName, params["tree_path"]))
@@ -130,19 +135,27 @@ func testEditorActionEdit(t *testing.T, session *TestSession, user, repo, editor
 	return resp
 }
 
-func testEditFile(t *testing.T, session *TestSession, user, repo, branch, filePath, newContent string) {
-	testEditorActionEdit(t, session, user, repo, "_edit", branch, filePath, map[string]string{
+func testEditFileInGroup(t *testing.T, session *TestSession, groupID int64, user, repo, branch, filePath, newContent string) {
+	testEditorActionEdit(t, session, groupID, user, repo, "_edit", branch, filePath, map[string]string{
 		"content":       newContent,
 		"commit_choice": "direct",
 	})
 }
 
-func testEditFileToNewBranch(t *testing.T, session *TestSession, user, repo, branch, targetBranch, filePath, newContent string) {
-	testEditorActionEdit(t, session, user, repo, "_edit", branch, filePath, map[string]string{
+func testEditFile(t *testing.T, session *TestSession, user, repo, branch, filePath, newContent string) {
+	testEditFileInGroup(t, session, 0, user, repo, branch, filePath, newContent)
+}
+
+func testEditFileToNewBranchInGroup(t *testing.T, session *TestSession, groupID int64, user, repo, branch, targetBranch, filePath, newContent string) {
+	testEditorActionEdit(t, session, groupID, user, repo, "_edit", branch, filePath, map[string]string{
 		"content":         newContent,
 		"commit_choice":   "commit-to-new-branch",
 		"new_branch_name": targetBranch,
 	})
+}
+
+func testEditFileToNewBranch(t *testing.T, session *TestSession, user, repo, branch, targetBranch, filePath, newContent string) {
+	testEditFileToNewBranchInGroup(t, session, 0, user, repo, branch, targetBranch, filePath, newContent)
 }
 
 func testEditorDiffPreview(t *testing.T) {

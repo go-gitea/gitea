@@ -58,9 +58,10 @@ type Context struct {
 
 	ContextUser *user_model.User // the user which is being visited, in most cases it differs from Doer
 
-	Repo    *Repository
-	Org     *Organization
-	Package *Package
+	RepoGroup *RepoGroup
+	Repo      *Repository
+	Org       *Organization
+	Package   *Package
 }
 
 func init() {
@@ -127,10 +128,11 @@ func NewWebContext(base *Base, render Render, session session.Store) *Context {
 		Render:  render,
 		Session: session,
 
-		Cache: cache.GetCache(),
-		Link:  setting.AppSubURL + strings.TrimSuffix(base.Req.URL.EscapedPath(), "/"),
-		Repo:  &Repository{},
-		Org:   &Organization{},
+		Cache:     cache.GetCache(),
+		Link:      setting.AppSubURL + strings.TrimSuffix(base.Req.URL.EscapedPath(), "/"),
+		Repo:      &Repository{},
+		Org:       &Organization{},
+		RepoGroup: &RepoGroup{},
 	}
 	ctx.TemplateContext = NewTemplateContextForWeb(ctx, ctx.Base.Req, ctx.Base.Locale)
 	ctx.Flash = &middleware.Flash{DataStore: ctx, Values: url.Values{}}

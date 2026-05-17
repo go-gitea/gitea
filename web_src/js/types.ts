@@ -24,6 +24,7 @@ export type RepoOwnerPathInfo = {
 export type IssuePathInfo = {
   ownerName: string,
   repoName: string,
+  group: string,
   pathType: string,
   indexString: string,
 };

@@ -38,8 +38,8 @@
 									{{template "repo/icon" .}}
 								</div>
 								<div class="item-main">
-									<a class="item-title tw-text-primary" href="{{$.Org.HomeLink}}/{{.Name | PathEscape}}">
-										{{$.Org.Name}}/{{.Name}}
+									<a class="item-title tw-text-primary" href="{{(.Link)}}">
+										{{.FullName}}
 									</a>
 								</div>
 								<div class="item-trailing">

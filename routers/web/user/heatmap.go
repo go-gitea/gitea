@@ -6,6 +6,7 @@ package user
 import (
 	"net/http"
 	"net/url"
+	"strconv"
 
 	activities_model "code.gitea.io/gitea/models/activities"
 	"code.gitea.io/gitea/modules/setting"
@@ -26,7 +27,9 @@ func prepareHeatmapURL(ctx *context.Context) {
 
 	// for org or team
 	heatmapURL := ctx.Org.Organization.OrganisationLink() + "/dashboard/-/heatmap"
-	if ctx.Org.Team != nil {
+	if ctx.RepoGroup.Group != nil {
+		heatmapURL += "/group/" + url.PathEscape(strconv.FormatInt(ctx.RepoGroup.Group.ID, 10))
+	} else if ctx.Org.Team != nil {
 		heatmapURL += "/" + url.PathEscape(ctx.Org.Team.LowerName)
 	}
 	ctx.Data["HeatmapURL"] = heatmapURL
@@ -56,7 +59,7 @@ func DashboardHeatmap(ctx *context.Context) {
 	if ctx.Org.Organization == nil {
 		data, err = activities_model.GetUserHeatmapDataByUser(ctx, ctx.ContextUser, ctx.Doer)
 	} else {
-		data, err = activities_model.GetUserHeatmapDataByOrgTeam(ctx, ctx.Org.Organization, ctx.Org.Team, ctx.Doer)
+		data, err = activities_model.GetUserHeatmapDataByOrgTeam(ctx, ctx.Org.Organization, ctx.Org.Team, ctx.RepoGroup.Group, ctx.Doer)
 	}
 	if err != nil {
 		ctx.ServerError("GetUserHeatmapData", err)
