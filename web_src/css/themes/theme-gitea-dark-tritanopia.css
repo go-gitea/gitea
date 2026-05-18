@@ -8,7 +8,7 @@ gitea-theme-meta-info {
 
 /* blue/yellow colorblind-friendly colors */
 :root {
-  --color-diff-added-fg: #58a6ff;
+  --color-diff-added-fg: #65adff;
   --color-diff-added-linenum-bg: #243d5d;
   --color-diff-added-row-bg: #132339;
   --color-diff-added-word-bg: #214d87;

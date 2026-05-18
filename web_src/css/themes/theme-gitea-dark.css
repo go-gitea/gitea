@@ -163,14 +163,14 @@ gitea-theme-meta-info {
   --color-grey-light: #898d96;
   --color-gold: #b1983b;
   --color-white: #ffffff;
-  --color-diff-added-fg: #87ab63;
+  --color-diff-added-fg: #93b373;
   --color-diff-added-linenum-bg: #274227;
   --color-diff-added-row-bg: #203224;
   --color-diff-added-row-border: #314a37;
   --color-diff-added-word-bg: #3c653c;
   --color-diff-moved-row-bg: #818044;
   --color-diff-moved-row-border: #bcca6f;
-  --color-diff-removed-fg: #cc4848;
+  --color-diff-removed-fg: #ff8585;
   --color-diff-removed-linenum-bg: #482121;
   --color-diff-removed-row-bg: #301e1e;
   --color-diff-removed-row-border: #634343;
@@ -270,8 +270,8 @@ gitea-theme-meta-info {
   --color-syntax-keyword: #ff8854;
   --color-syntax-bool: #25bbc9;
   --color-syntax-control: #dd9e17;
-  --color-syntax-name: #c7a618;
-  --color-syntax-type: #eb8cb3;
+  --color-syntax-name: #fabd2f;
+  --color-syntax-type: #fabd2f;
   --color-syntax-number: #63b2dd;
   --color-syntax-operator: #ff8854;
   --color-syntax-regexp: #b89de4;
