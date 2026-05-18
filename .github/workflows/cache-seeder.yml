@@ -35,7 +35,7 @@ jobs:
           check-latest: true
           cache: false
       - uses: ./.github/actions/go-cache
-      - run: make deps-backend
+      - run: make deps-backend deps-tools
       - run: TAGS="bindata" make backend
       - run: TAGS="bindata gogit" GOEXPERIMENT="" make backend
       - name: warm test compile cache (bindata)
