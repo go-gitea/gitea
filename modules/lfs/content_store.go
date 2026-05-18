@@ -38,8 +38,17 @@ func NewContentStore() *ContentStore {
 func (s *ContentStore) Get(pointer Pointer) (storage.Object, error) {
 	f, err := s.Open(pointer.RelativePath())
 	if err != nil {
-		log.Error("Whilst trying to read LFS OID[%s]: Unable to open Error: %v", pointer.Oid, err)
-		return nil, err
+		if !os.IsNotExist(err) {
+			log.Error("Whilst trying to read LFS OID[%s]: Unable to open Error: %v", pointer.Oid, err)
+			return nil, err
+		}
+
+		// If not found, try legacy path
+		f, err = s.Open(pointer.LegacyRelativePath())
+		if err != nil {
+			log.Error("Whilst trying to read LFS OID[%s] at legacy path: Unable to open Error: %v", pointer.Oid, err)
+			return nil, err
+		}
 	}
 	return f, err
 }
@@ -80,27 +89,52 @@ func (s *ContentStore) Put(pointer Pointer, r io.Reader) error {
 // Exists returns true if the object exists in the content store.
 func (s *ContentStore) Exists(pointer Pointer) (bool, error) {
 	_, err := s.ObjectStorage.Stat(pointer.RelativePath())
-	if err != nil {
-		if os.IsNotExist(err) {
-			return false, nil
-		}
+	if err == nil {
+		return true, nil
+	}
+	if !os.IsNotExist(err) {
 		return false, err
 	}
-	return true, nil
+
+	// try legacy path
+	_, err = s.ObjectStorage.Stat(pointer.LegacyRelativePath())
+	if err == nil {
+		return true, nil
+	}
+	if !os.IsNotExist(err) {
+		return false, err
+	}
+
+	return false, nil
 }
 
 // Verify returns true if the object exists in the content store and size is correct.
 func (s *ContentStore) Verify(pointer Pointer) (bool, error) {
-	p := pointer.RelativePath()
-	fi, err := s.ObjectStorage.Stat(p)
-	if os.IsNotExist(err) || (err == nil && fi.Size() != pointer.Size) {
-		return false, nil
-	} else if err != nil {
-		log.Error("Unable stat file: %s for LFS OID[%s] Error: %v", p, pointer.Oid, err)
+	path := pointer.RelativePath()
+	fi, err := s.ObjectStorage.Stat(path)
+
+	// Try new path
+	if err == nil {
+		return fi.Size() == pointer.Size, nil
+	}
+	if !os.IsNotExist(err) {
+		log.Error("Unable to stat file: %s for LFS OID[%s] Error: %v", path, pointer.Oid, err)
 		return false, err
 	}
 
-	return true, nil
+	// Try legacy path
+	path = pointer.LegacyRelativePath()
+	fi, err = s.ObjectStorage.Stat(path)
+	if err == nil {
+		return fi.Size() == pointer.Size, nil
+	}
+	if !os.IsNotExist(err) {
+		log.Error("Unable to stat file: %s for LFS OID[%s] Error: %v", path, pointer.Oid, err)
+		return false, err
+	}
+
+	// Doesn't exist at either path
+	return false, nil
 }
 
 // ReadMetaObject will read a git_model.LFSMetaObject and return a reader
