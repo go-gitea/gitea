@@ -7,7 +7,14 @@ test('code-copy on fenced and indented blocks', async ({page, request}) => {
   const repoName = `e2e-code-copy-${randomString(8)}`;
   await apiCreateRepo(request, {name: repoName, autoInit: false});
 
-  const readme = '# code copy test\n\n```\nfenced content\n```\n\n    indented content\n';
+  const readme = `# code copy test
+
+\`\`\`
+fenced content
+\`\`\`
+
+    indented content
+`;
   await apiCreateFile(request, owner, repoName, 'README.md', readme, {newBranch: 'main'});
 
   await page.goto(`/${owner}/${repoName}`);
