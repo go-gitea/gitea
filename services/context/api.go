@@ -49,7 +49,8 @@ type APIContext struct {
 }
 
 // TokenCanAccessRepo reports whether the current API token is allowed to access the repository.
-func TokenCanAccessRepo(ctx *APIContext, repo *repo_model.Repository) bool {
+// A public-only token cannot reach a private repo; any other token is unrestricted by this check.
+func (ctx *APIContext) TokenCanAccessRepo(repo *repo_model.Repository) bool {
 	return repo == nil || !ctx.PublicOnly || !repo.IsPrivate
 }
 

@@ -1,4 +1,4 @@
-// Copyright 2025 The Gitea Authors. All rights reserved.
+// Copyright 2026 The Gitea Authors. All rights reserved.
 // SPDX-License-Identifier: MIT
 
 package integration
@@ -59,7 +59,7 @@ func TestAPIRepoByIDPublicOnly(t *testing.T) {
 
 	req = NewRequest(t, "GET", "/api/v1/repositories/2").
 		AddTokenAuth(token)
-	MakeRequest(t, req, http.StatusForbidden)
+	MakeRequest(t, req, http.StatusNotFound)
 }
 
 func TestAPIActivityFeedsPublicOnly(t *testing.T) {

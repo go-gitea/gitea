@@ -155,7 +155,7 @@ func TestAPIPublicOnlySelfUserRoutes(t *testing.T) {
 		privateRepo := DecodeJSON(t, resp, &api.Repository{})
 		require.Equal(t, "user2/"+privateRepoName, privateRepo.FullName)
 
-		MakeRequest(t, NewRequest(t, "GET", "/api/v1/repos/user2/"+privateRepoName).AddTokenAuth(publicOnlyReadRepoToken), http.StatusForbidden)
+		MakeRequest(t, NewRequest(t, "GET", "/api/v1/repos/user2/"+privateRepoName).AddTokenAuth(publicOnlyReadRepoToken), http.StatusNotFound)
 
 		resp = MakeRequest(t, NewRequest(t, "GET", "/api/v1/user/repos").AddTokenAuth(publicOnlyReadRepoToken), http.StatusOK)
 		repos := DecodeJSON(t, resp, []api.Repository{})

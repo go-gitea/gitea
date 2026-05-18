@@ -555,8 +555,8 @@ func GetByID(ctx *context.APIContext) {
 		}
 		return
 	}
-	if !context.TokenCanAccessRepo(ctx, repo) {
-		ctx.APIError(http.StatusForbidden, "token scope is limited to public repos")
+	if !ctx.TokenCanAccessRepo(repo) {
+		ctx.APIErrorNotFound()
 		return
 	}
 
