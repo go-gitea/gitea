@@ -11,7 +11,7 @@ import (
 
 // AddReusableWorkflowFieldsToActionRunJob adds the ActionRunJob columns that describe the reusable workflow caller hierarchy,
 // and the ActionRunAttemptJobIDIndex table backing run-wide AttemptJobID allocation.
-func AddReusableWorkflowFieldsToActionRunJob(x *xorm.Engine) error {
+func AddReusableWorkflowFieldsToActionRunJob(x db.EngineMigration) error {
 	type ActionRunJob struct {
 		IsReusableCaller        bool   `xorm:"index NOT NULL DEFAULT FALSE"`
 		ParentJobID             int64  `xorm:"index NOT NULL DEFAULT 0"`
