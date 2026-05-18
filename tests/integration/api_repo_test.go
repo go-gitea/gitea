@@ -725,4 +725,8 @@ func TestAPIRepoGetAssignees(t *testing.T) {
 	req = NewRequestf(t, "GET", "/api/v1/repos/%s/%s/assignees/%s", user.Name, repo.Name, nonAssignee.Name).
 		AddTokenAuth(token)
 	MakeRequest(t, req, http.StatusNotFound)
+
+	req = NewRequestf(t, "GET", "/api/v1/repos/%s/%s/assignees/%s", user.Name, repo.Name, "org3").
+		AddTokenAuth(token)
+	MakeRequest(t, req, http.StatusNotFound)
 }

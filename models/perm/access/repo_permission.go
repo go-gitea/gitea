@@ -24,6 +24,9 @@ import (
 	"code.gitea.io/gitea/modules/util"
 )
 
+// ErrOrganizationNotAssignee indicates that organizations cannot be assigned to issues or pull requests.
+var ErrOrganizationNotAssignee = util.NewInvalidArgumentErrorf("organization can't be added as assignee")
+
 // Permission contains all the permissions related variables to a repository for a user
 type Permission struct {
 	AccessMode perm_model.AccessMode
@@ -569,7 +572,7 @@ func HasAccessUnit(ctx context.Context, user *user_model.User, repo *repo_model.
 // Currently any write access (code, issues or pr's) is assignable, to match assignee list in user interface.
 func CanBeAssigned(ctx context.Context, user *user_model.User, repo *repo_model.Repository) (bool, error) {
 	if user.IsOrganization() {
-		return false, fmt.Errorf("organization can't be added as assignee [user_id: %d, repo_id: %d]", user.ID, repo.ID)
+		return false, util.ErrorWrap(ErrOrganizationNotAssignee, "organization can't be added as assignee [user_id: %d, repo_id: %d]", user.ID, repo.ID)
 	}
 	perm, err := GetIndividualUserRepoPermission(ctx, repo, user)
 	if err != nil {

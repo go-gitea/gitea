@@ -1498,7 +1498,7 @@ func Routes() *web.Router {
 						m.Combo("/assignees").
 							Post(reqToken(), mustNotBeArchived, bind(api.IssueAssigneesOption{}), repo.AddIssueAssignees).
 							Delete(reqToken(), mustNotBeArchived, bind(api.IssueAssigneesOption{}), repo.DeleteIssueAssignees)
-						m.Get("/assignees/{assignee}", repo.CheckIssueAssignee)
+						m.Get("/assignees/{assignee}", reqRepoReader(unit.TypeIssues), repo.CheckIssueAssignee)
 						m.Group("/comments", func() {
 							m.Combo("").Get(repo.ListIssueComments).
 								Post(reqToken(), mustNotBeArchived, bind(api.CreateIssueCommentOption{}), repo.CreateIssueComment)

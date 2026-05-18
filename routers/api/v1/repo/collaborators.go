@@ -412,7 +412,11 @@ func CheckRepoIssueAssignee(ctx *context.APIContext) {
 
 	canAssign, err := access_model.CanBeAssigned(ctx, assignee, ctx.Repo.Repository)
 	if err != nil {
-		ctx.APIErrorInternal(err)
+		if errors.Is(err, access_model.ErrOrganizationNotAssignee) {
+			ctx.APIErrorNotFound()
+		} else {
+			ctx.APIErrorInternal(err)
+		}
 		return
 	}
 

@@ -6,6 +6,7 @@ package issue
 import (
 	"testing"
 
+	"code.gitea.io/gitea/models/db"
 	issues_model "code.gitea.io/gitea/models/issues"
 	"code.gitea.io/gitea/models/unittest"
 	user_model "code.gitea.io/gitea/models/user"
@@ -43,4 +44,56 @@ func TestDeleteNotPassedAssignee(t *testing.T) {
 	assert.NoError(t, issue.LoadAssignees(t.Context()))
 	assert.Empty(t, issue.Assignees)
 	assert.Empty(t, issue.Assignee)
+}
+
+func TestAddAssigneeIfNotAssignedBlocked(t *testing.T) {
+	assert.NoError(t, unittest.PrepareTestDatabase())
+
+	issue, err := issues_model.GetIssueByID(t.Context(), 1)
+	assert.NoError(t, err)
+	assert.NoError(t, issue.LoadRepo(t.Context()))
+
+	doer, err := user_model.GetUserByID(t.Context(), 4)
+	assert.NoError(t, err)
+
+	assignee, err := user_model.GetUserByID(t.Context(), 2)
+	assert.NoError(t, err)
+
+	assert.NoError(t, db.Insert(t.Context(), &user_model.Blocking{
+		BlockerID: assignee.ID,
+		BlockeeID: doer.ID,
+	}))
+
+	_, err = AddAssigneeIfNotAssigned(t.Context(), issue, doer, assignee.ID, false)
+	assert.ErrorIs(t, err, user_model.ErrBlockedUser)
+
+	isAssigned, err := issues_model.IsUserAssignedToIssue(t.Context(), issue, assignee.ID)
+	assert.NoError(t, err)
+	assert.False(t, isAssigned)
+}
+
+func TestAddAssigneesBlockedIsAtomic(t *testing.T) {
+	assert.NoError(t, unittest.PrepareTestDatabase())
+
+	issue, err := issues_model.GetIssueByID(t.Context(), 1)
+	assert.NoError(t, err)
+	assert.NoError(t, issue.LoadAttributes(t.Context()))
+
+	doer, err := user_model.GetUserByID(t.Context(), 2)
+	assert.NoError(t, err)
+
+	blockedAssignee, err := user_model.GetUserByID(t.Context(), 40)
+	assert.NoError(t, err)
+
+	assert.NoError(t, db.Insert(t.Context(), &user_model.Blocking{
+		BlockerID: blockedAssignee.ID,
+		BlockeeID: doer.ID,
+	}))
+
+	err = AddAssignees(t.Context(), issue, doer, []int64{doer.ID, blockedAssignee.ID})
+	assert.ErrorIs(t, err, user_model.ErrBlockedUser)
+
+	assigneeIDs, err := issues_model.GetAssigneeIDsByIssue(t.Context(), issue.ID)
+	assert.NoError(t, err)
+	assert.ElementsMatch(t, []int64{1}, assigneeIDs)
 }

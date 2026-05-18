@@ -171,7 +171,11 @@ func CheckIssueAssignee(ctx *context.APIContext) {
 
 	canAssign, err := access_model.CanBeAssigned(ctx, assignee, ctx.Repo.Repository)
 	if err != nil {
-		ctx.APIErrorInternal(err)
+		if errors.Is(err, access_model.ErrOrganizationNotAssignee) {
+			ctx.APIErrorNotFound()
+		} else {
+			ctx.APIErrorInternal(err)
+		}
 		return
 	}
 	if !canAssign {
@@ -203,10 +207,11 @@ func updateIssueAssignees(ctx *context.APIContext, opts api.IssueAssigneesOption
 		return
 	}
 
-	assigneeIDs, err := issues_model.MakeIDsFromAPIAssigneesToAdd(ctx, "", opts.Assignees)
+	assigneeIDs, err := user_model.GetUserIDsByNames(ctx, opts.Assignees, false)
 	if err != nil {
-		if user_model.IsErrUserNotExist(err) {
-			ctx.APIError(http.StatusUnprocessableEntity, fmt.Sprintf("Assignee does not exist: [name: %s]", err))
+		var userNotExistErr user_model.ErrUserNotExist
+		if errors.As(err, &userNotExistErr) {
+			ctx.APIError(http.StatusUnprocessableEntity, fmt.Sprintf("Assignee does not exist: [name: %s]", userNotExistErr.Name))
 		} else {
 			ctx.APIErrorInternal(err)
 		}
@@ -222,6 +227,9 @@ func updateIssueAssignees(ctx *context.APIContext, opts api.IssueAssigneesOption
 	switch {
 	case errors.Is(err, user_model.ErrBlockedUser):
 		ctx.APIError(http.StatusForbidden, err)
+		return
+	case errors.Is(err, access_model.ErrOrganizationNotAssignee):
+		ctx.APIError(http.StatusUnprocessableEntity, err)
 		return
 	case repo_model.IsErrUserDoesNotHaveAccessToRepo(err):
 		ctx.APIError(http.StatusUnprocessableEntity, err)

@@ -13,6 +13,7 @@ import (
 	"time"
 
 	auth_model "code.gitea.io/gitea/models/auth"
+	"code.gitea.io/gitea/models/db"
 	issues_model "code.gitea.io/gitea/models/issues"
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unittest"
@@ -508,26 +509,80 @@ func testAPIIssueAssignees(t *testing.T) {
 	token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeWriteIssue)
 
 	urlStr := fmt.Sprintf("/api/v1/repos/%s/%s/issues/%d/assignees", owner.Name, repo.Name, issue.Index)
+	getAssigneeIDs := func(issueID int64) []int64 {
+		assigneeIDs, err := issues_model.GetAssigneeIDsByIssue(t.Context(), issueID)
+		assert.NoError(t, err)
+		return assigneeIDs
+	}
 
-	req := NewRequestWithJSON(t, "POST", urlStr, &api.IssueAssigneesOption{Assignees: []string{"user40"}}).
-		AddTokenAuth(token)
-	resp := MakeRequest(t, req, http.StatusCreated)
-	apiIssue := DecodeJSON(t, resp, &api.Issue{})
-	assert.Len(t, apiIssue.Assignees, 2)
-	assert.ElementsMatch(t, []int64{1, 40}, []int64{apiIssue.Assignees[0].ID, apiIssue.Assignees[1].ID})
+	t.Run("NonWriter", func(t *testing.T) {
+		req := NewRequestWithJSON(t, "POST", urlStr, &api.IssueAssigneesOption{Assignees: []string{"user40"}}).
+			AddTokenAuth(getUserToken(t, "user5", auth_model.AccessTokenScopeWriteIssue))
+		MakeRequest(t, req, http.StatusForbidden)
+	})
 
-	checkReq := NewRequest(t, "GET", fmt.Sprintf("%s/%s", urlStr, "user40")).AddTokenAuth(token)
-	MakeRequest(t, checkReq, http.StatusNoContent)
+	t.Run("MissingIssue", func(t *testing.T) {
+		req := NewRequestWithJSON(t, "POST", fmt.Sprintf("/api/v1/repos/%s/%s/issues/99999/assignees", owner.Name, repo.Name), &api.IssueAssigneesOption{Assignees: []string{"user40"}}).
+			AddTokenAuth(token)
+		MakeRequest(t, req, http.StatusNotFound)
+	})
 
-	checkReq = NewRequest(t, "GET", fmt.Sprintf("%s/%s", urlStr, "user5")).AddTokenAuth(token)
-	MakeRequest(t, checkReq, http.StatusNoContent)
+	t.Run("UnknownAssignee", func(t *testing.T) {
+		req := NewRequestWithJSON(t, "POST", urlStr, &api.IssueAssigneesOption{Assignees: []string{"does-not-exist"}}).
+			AddTokenAuth(token)
+		resp := MakeRequest(t, req, http.StatusUnprocessableEntity)
+		apiErr := DecodeJSON(t, resp, &api.APIError{})
+		assert.Equal(t, "Assignee does not exist: [name: does-not-exist]", apiErr.Message)
+	})
 
-	req = NewRequestWithJSON(t, "DELETE", urlStr, &api.IssueAssigneesOption{Assignees: []string{"user1"}}).
-		AddTokenAuth(token)
-	resp = MakeRequest(t, req, http.StatusOK)
-	apiIssue = DecodeJSON(t, resp, &api.Issue{})
-	assert.Len(t, apiIssue.Assignees, 1)
-	assert.Equal(t, int64(40), apiIssue.Assignees[0].ID)
+	t.Run("OrganizationAssignee", func(t *testing.T) {
+		req := NewRequestWithJSON(t, "POST", urlStr, &api.IssueAssigneesOption{Assignees: []string{"org3"}}).
+			AddTokenAuth(token)
+		MakeRequest(t, req, http.StatusUnprocessableEntity)
+
+		checkReq := NewRequest(t, "GET", fmt.Sprintf("%s/%s", urlStr, "org3")).AddTokenAuth(token)
+		MakeRequest(t, checkReq, http.StatusNotFound)
+	})
+
+	t.Run("BlockedAssigneeIsAtomic", func(t *testing.T) {
+		blockedIssue := unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{ID: 5})
+		blockedURL := fmt.Sprintf("/api/v1/repos/%s/%s/issues/%d/assignees", owner.Name, repo.Name, blockedIssue.Index)
+		blockedToken := getUserToken(t, "user40", auth_model.AccessTokenScopeWriteIssue)
+
+		assert.Empty(t, getAssigneeIDs(blockedIssue.ID))
+		assert.NoError(t, db.Insert(t.Context(), &user_model.Blocking{
+			BlockerID: owner.ID,
+			BlockeeID: 40,
+		}))
+
+		req := NewRequestWithJSON(t, "POST", blockedURL, &api.IssueAssigneesOption{Assignees: []string{"user1", "user2"}}).
+			AddTokenAuth(blockedToken)
+		MakeRequest(t, req, http.StatusForbidden)
+		assert.Empty(t, getAssigneeIDs(blockedIssue.ID))
+	})
+
+	t.Run("HappyPath", func(t *testing.T) {
+		req := NewRequestWithJSON(t, "POST", urlStr, &api.IssueAssigneesOption{Assignees: []string{"user40"}}).
+			AddTokenAuth(token)
+		resp := MakeRequest(t, req, http.StatusCreated)
+		apiIssue := DecodeJSON(t, resp, &api.Issue{})
+		assert.Len(t, apiIssue.Assignees, 2)
+		assert.ElementsMatch(t, []int64{1, 40}, []int64{apiIssue.Assignees[0].ID, apiIssue.Assignees[1].ID})
+
+		checkReq := NewRequest(t, "GET", fmt.Sprintf("%s/%s", urlStr, "user40")).AddTokenAuth(token)
+		MakeRequest(t, checkReq, http.StatusNoContent)
+
+		// This endpoint checks assignability, not current assignment membership.
+		checkReq = NewRequest(t, "GET", fmt.Sprintf("%s/%s", urlStr, "user5")).AddTokenAuth(token)
+		MakeRequest(t, checkReq, http.StatusNoContent)
+
+		req = NewRequestWithJSON(t, "DELETE", urlStr, &api.IssueAssigneesOption{Assignees: []string{"user1"}}).
+			AddTokenAuth(token)
+		resp = MakeRequest(t, req, http.StatusOK)
+		apiIssue = DecodeJSON(t, resp, &api.Issue{})
+		assert.Len(t, apiIssue.Assignees, 1)
+		assert.Equal(t, int64(40), apiIssue.Assignees[0].ID)
+	})
 }
 
 func testAPIIssueProjects(t *testing.T) {
