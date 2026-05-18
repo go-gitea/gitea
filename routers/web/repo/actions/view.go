@@ -219,6 +219,9 @@ func View(ctx *context_module.Context) {
 		ctx.Data["ActionsViewURL"] = run.Link()
 	}
 
+	ctx.Data["AnalysisRunLink"] = run.Link()
+	ctx.Data["AnalysisFailureTagsURL"] = ctx.Repo.RepoLink + "/actions/failure-tags"
+
 	ctx.HTML(http.StatusOK, tplViewActions)
 }
 

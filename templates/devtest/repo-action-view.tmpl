@@ -9,6 +9,8 @@
 	{{template "repo/actions/view_component" (dict
 		"JobID" (or .JobID 0)
 		"ActionsViewURL" $.ActionsViewURL
+		"AnalysisRunLink" $.AnalysisRunLink
+		"AnalysisFailureTagsURL" $.AnalysisFailureTagsURL
 	)}}
 </div>
 {{template "base/footer" .}}

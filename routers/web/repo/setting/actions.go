@@ -18,7 +18,20 @@ import (
 	repo_service "code.gitea.io/gitea/services/repository"
 )
 
-const tplRepoActionsGeneralSettings templates.TplName = "repo/settings/actions"
+const (
+	tplRepoActionsGeneralSettings templates.TplName = "repo/settings/actions"
+	tplRepoActionsFailureTags     templates.TplName = "repo/settings/actions_failure_tags"
+)
+
+// FailureTagsSettings renders the per-repo management page for action run failure tags.
+// CRUD itself is handled by the JSON API under /{owner}/{repo}/actions/failure-tags.
+func FailureTagsSettings(ctx *context.Context) {
+	ctx.Data["Title"] = ctx.Tr("actions.failure_tags")
+	ctx.Data["PageType"] = "failure-tags"
+	ctx.Data["PageIsActionsFailureTags"] = true
+	ctx.Data["FailureTagsAPI"] = ctx.Repo.RepoLink + "/actions/failure-tags"
+	ctx.HTML(http.StatusOK, tplRepoActionsFailureTags)
+}
 
 func ActionsGeneralSettings(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("actions.general")

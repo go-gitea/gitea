@@ -5,6 +5,7 @@ import {toRefs} from 'vue';
 import {POST, DELETE} from '../modules/fetch.ts';
 import ActionRunSummaryView from './ActionRunSummaryView.vue';
 import ActionRunJobView from './ActionRunJobView.vue';
+import ActionRunAnalysisPanel from './ActionRunAnalysisPanel.vue';
 import type {ActionsRunAttempt} from '../modules/gitea-actions.ts';
 import {createActionRunViewStore} from './ActionRunView.ts';
 import {buildArtifactTooltipHtml} from './ActionRunArtifacts.ts';
@@ -17,6 +18,11 @@ const props = defineProps<{
   jobId: number;
   actionsViewUrl: string;
   locale: Record<string, any>;
+  analysis?: {
+    runLink: string;
+    failureTagsUrl: string;
+    locale: Record<string, string>;
+  };
 }>();
 
 const locale = props.locale;
@@ -205,19 +211,29 @@ async function deleteArtifact(name: string) {
         </ul>
       </div>
 
-      <div class="action-view-right">
-        <ActionRunSummaryView
-          v-if="!props.jobId"
-          :store="store"
-          :locale="locale"
+      <div class="action-view-right-column">
+        <ActionRunAnalysisPanel
+          v-if="props.analysis && run.runAttempt"
+          :key="run.runAttempt"
+          :run-link="props.analysis.runLink"
+          :attempt="run.runAttempt"
+          :failure-tags-url="props.analysis.failureTagsUrl"
+          :locale="props.analysis.locale"
         />
-        <ActionRunJobView
-          v-else
-          :store="store"
-          :locale="locale"
-          :actions-view-url="props.actionsViewUrl"
-          :job-id="props.jobId"
-        />
+        <div class="action-view-right">
+          <ActionRunSummaryView
+            v-if="!props.jobId"
+            :store="store"
+            :locale="locale"
+          />
+          <ActionRunJobView
+            v-else
+            :store="store"
+            :locale="locale"
+            :actions-view-url="props.actionsViewUrl"
+            :job-id="props.jobId"
+          />
+        </div>
       </div>
     </div>
   </div>
@@ -335,11 +351,18 @@ async function deleteArtifact(name: string) {
 /* ================ */
 /* action view right */
 
+.action-view-right-column {
+  flex: 1;
+  width: 70%;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  min-width: 0;
+}
 .action-view-right {
   flex: 1;
   color: var(--color-console-fg-subtle);
   max-height: 100%;
-  width: 70%;
   display: flex;
   flex-direction: column;
   border: 1px solid var(--color-console-border);
@@ -371,7 +394,7 @@ async function deleteArtifact(name: string) {
   .action-view-body {
     flex-direction: column;
   }
-  .action-view-left, .action-view-right {
+  .action-view-left, .action-view-right-column {
     width: 100%;
   }
   .action-view-left {
