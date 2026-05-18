@@ -32,7 +32,6 @@ concurrency:
 jobs:
   giteabot:
     if: github.repository == 'go-gitea/gitea'
-    name: Run Giteabot (${{ github.event_name }})
     runs-on: ubuntu-latest
     timeout-minutes: 30
     steps:
