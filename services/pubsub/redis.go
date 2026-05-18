@@ -81,9 +81,13 @@ func (b *RedisBroker) Subscribe(topic string) (<-chan []byte, func()) {
 	// graceful.ShutdownContext so the reader loop dies cleanly on Gitea
 	// shutdown even if every local subscriber has already cancelled.
 	ctx, cancelCtx := context.WithCancel(graceful.GetManager().ShutdownContext())
-	ps := b.client.Subscribe(ctx)
+	ps := b.client.Subscribe(ctx, topic)
 	subscribeCtx, subscribeCancel := context.WithTimeout(ctx, redisSubscribeTimeout)
-	err := ps.Subscribe(subscribeCtx, topic)
+	// ps.Subscribe sends SUBSCRIBE but does not block for the server ack —
+	// without this Receive a Publish that fires immediately after Subscribe
+	// returns can outrun the server-side registration (notably miniredis in
+	// tests, where there's no network latency to mask the race).
+	_, err := ps.Receive(subscribeCtx)
 	subscribeCancel()
 	if err != nil {
 		cancelCtx()
