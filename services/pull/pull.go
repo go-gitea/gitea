@@ -510,14 +510,29 @@ func AddTestPullRequestTask(opts TestPullRequestOptions) {
 // checkIfPRContentChanged checks if diff to target branch has changed by push
 // A commit can be considered to leave the PR untouched if the patch/diff with its merge base is unchanged
 func checkIfPRContentChanged(ctx context.Context, pr *issues_model.PullRequest, oldCommitID, newCommitID string) (hasChanged bool, mergeBase string, err error) {
-	prCtx, cancel, err := createTemporaryRepoForPR(ctx, pr) // FIXME: why it still needs to create a temp repo, since the alongside calls like GetDiverging doesn't do so anymore
-	if err != nil {
-		log.Error("CreateTemporaryRepoForPR %-v: %v", pr, err)
-		return false, "", err
+	if err := pr.LoadHeadRepo(ctx); err != nil {
+		return false, "", fmt.Errorf("LoadHeadRepo: %w", err)
+	} else if pr.HeadRepo == nil {
+		return false, "", &repo_model.ErrRepoNotExist{ID: pr.HeadRepoID}
 	}
-	defer cancel()
+	if err := pr.LoadBaseRepo(ctx); err != nil {
+		return false, "", fmt.Errorf("LoadBaseRepo: %w", err)
+	} else if pr.BaseRepo == nil {
+		return false, "", &repo_model.ErrRepoNotExist{ID: pr.BaseRepoID}
+	}
 
-	mergeBase, err = gitrepo.MergeBase(ctx, pr.BaseRepo, pr.BaseBranch, pr.GetGitHeadRefName())
+	baseCommitID, err := gitrepo.GetFullCommitID(ctx, pr.BaseRepo, pr.BaseBranch)
+	if err != nil {
+		return false, "", fmt.Errorf("GetFullCommitID[%s]: %w", pr.BaseBranch, err)
+	}
+
+	if pr.BaseRepo.ID != pr.HeadRepo.ID && !gitrepo.IsReferenceExist(ctx, pr.HeadRepo, baseCommitID) {
+		if err := gitrepo.FetchRemoteCommit(ctx, pr.HeadRepo, pr.BaseRepo, baseCommitID); err != nil {
+			return false, "", fmt.Errorf("FetchRemoteCommit: %w", err)
+		}
+	}
+
+	mergeBase, err = gitrepo.MergeBase(ctx, pr.HeadRepo, baseCommitID, newCommitID)
 	if err != nil {
 		return false, "", fmt.Errorf("GetMergeBase: %w", err)
 	}
@@ -526,16 +541,14 @@ func checkIfPRContentChanged(ctx context.Context, pr *issues_model.PullRequest, 
 
 	stdoutReader, stdoutReaderClose := cmd.MakeStdoutPipe()
 	defer stdoutReaderClose()
-	if err := cmd.WithDir(prCtx.tmpBasePath).
-		WithPipelineFunc(func(ctx gitcmd.Context) error {
-			return util.IsEmptyReader(stdoutReader)
-		}).
-		RunWithStderr(ctx); err != nil {
+	if err := gitrepo.RunCmdWithStderr(ctx, pr.HeadRepo, cmd.WithPipelineFunc(func(ctx gitcmd.Context) error {
+		return util.IsEmptyReader(stdoutReader)
+	})); err != nil {
 		if errors.Is(err, util.ErrNotEmpty) {
 			return true, mergeBase, nil
 		}
 
-		log.Error("Unable to run diff on %s %s %s in tempRepo for PR[%d]%s/%s...%s/%s: Error: %v",
+		log.Error("Unable to run diff on %s %s %s in head repo for PR[%d]%s/%s...%s/%s: Error: %v",
 			newCommitID, oldCommitID, mergeBase,
 			pr.ID, pr.BaseRepo.FullName(), pr.BaseBranch, pr.HeadRepo.FullName(), pr.HeadBranch,
 			err)
