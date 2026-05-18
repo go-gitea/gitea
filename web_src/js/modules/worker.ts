@@ -86,7 +86,7 @@ function init() {
 }
 
 let initialized = false;
-export function onUserEvent<T extends UserEventType>(type: T, cb: Subscriber<T>) {
+export function onUserEvent<T extends UserEventType>(type: T, cb: Subscriber<T>): () => void {
   if (!initialized) {
     initialized = true;
     if (window.WebSocket && window.SharedWorker) {
@@ -100,5 +100,7 @@ export function onUserEvent<T extends UserEventType>(type: T, cb: Subscriber<T>)
     set = new Set();
     subscribers.set(type, set);
   }
-  set.add(cb as unknown as Subscriber);
+  const wrapped = cb as unknown as Subscriber;
+  set.add(wrapped);
+  return () => { set.delete(wrapped) };
 }

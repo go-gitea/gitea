@@ -16,6 +16,7 @@ import (
 )
 
 const (
+	redisPingTimeout      = 3 * time.Second
 	redisSubscribeTimeout = 5 * time.Second
 	redisPublishTimeout   = 2 * time.Second
 )
@@ -49,7 +50,12 @@ var _ Broker = (*RedisBroker)(nil)
 
 func NewRedisBroker(connStr string) (*RedisBroker, error) {
 	client := nosql.GetManager().GetRedisClient(connStr)
-	if err := client.Ping(graceful.GetManager().ShutdownContext()).Err(); err != nil {
+	// context.Background not graceful.ShutdownContext: this runs during boot,
+	// when ShutdownContext may not even be initialized yet, and would otherwise
+	// fail immediately with a misleading "context canceled" on late init.
+	pingCtx, cancel := context.WithTimeout(context.Background(), redisPingTimeout)
+	defer cancel()
+	if err := client.Ping(pingCtx).Err(); err != nil {
 		return nil, err
 	}
 	return &RedisBroker{
@@ -61,33 +67,56 @@ func NewRedisBroker(connStr string) (*RedisBroker, error) {
 func (b *RedisBroker) Subscribe(topic string) (<-chan []byte, func()) {
 	sub := &redisSub{ch: make(chan []byte, 8)}
 
+	// Fast path: topic already has a Redis subscription, just attach locally.
 	b.mu.Lock()
-	state, exists := b.topics[topic]
-	if !exists {
-		// graceful.ShutdownContext so the reader loop dies cleanly on Gitea shutdown
-		// even if every local subscriber has already cancelled.
-		ctx, cancel := context.WithCancel(graceful.GetManager().ShutdownContext())
-		ps := b.client.Subscribe(ctx)
-		subscribeCtx, subscribeCancel := context.WithTimeout(ctx, redisSubscribeTimeout)
-		err := ps.Subscribe(subscribeCtx, topic)
-		subscribeCancel()
-		if err != nil {
-			b.mu.Unlock()
-			cancel()
-			_ = ps.Close()
-			close(sub.ch)
-			log.Error("pubsub redis: subscribe %q: %v", topic, err)
-			return sub.ch, func() {}
-		}
-		state = &redisTopic{ps: ps, cancel: cancel}
-		b.topics[topic] = state
-		go b.readLoop(ctx, topic, ps)
+	if state, exists := b.topics[topic]; exists {
+		state.subs = append(state.subs, sub)
+		b.mu.Unlock()
+		return sub.ch, b.makeCancel(topic, sub)
 	}
-	state.subs = append(state.subs, sub)
 	b.mu.Unlock()
 
-	cancel := func() {
+	// Slow path: create the Redis subscription outside the broker mutex so
+	// other Subscribe/cancel calls aren't blocked on the network round-trip.
+	// graceful.ShutdownContext so the reader loop dies cleanly on Gitea
+	// shutdown even if every local subscriber has already cancelled.
+	ctx, cancelCtx := context.WithCancel(graceful.GetManager().ShutdownContext())
+	ps := b.client.Subscribe(ctx)
+	subscribeCtx, subscribeCancel := context.WithTimeout(ctx, redisSubscribeTimeout)
+	err := ps.Subscribe(subscribeCtx, topic)
+	subscribeCancel()
+	if err != nil {
+		cancelCtx()
+		_ = ps.Close()
+		close(sub.ch)
+		log.Error("pubsub redis: subscribe %q: %v", topic, err)
+		return sub.ch, func() {}
+	}
+
+	b.mu.Lock()
+	if existing, exists := b.topics[topic]; exists {
+		// Another goroutine won the create race; merge into theirs and discard ours.
+		existing.subs = append(existing.subs, sub)
+		b.mu.Unlock()
+		cancelCtx()
+		_ = ps.Close()
+		return sub.ch, b.makeCancel(topic, sub)
+	}
+	b.topics[topic] = &redisTopic{ps: ps, cancel: cancelCtx, subs: []*redisSub{sub}}
+	b.mu.Unlock()
+	go b.readLoop(ctx, topic, ps)
+	return sub.ch, b.makeCancel(topic, sub)
+}
+
+func (b *RedisBroker) makeCancel(topic string, sub *redisSub) func() {
+	return func() {
 		b.mu.Lock()
+		state, ok := b.topics[topic]
+		if !ok {
+			b.mu.Unlock()
+			sub.close()
+			return
+		}
 		for i, s := range state.subs {
 			if s == sub {
 				state.subs = append(state.subs[:i], state.subs[i+1:]...)
@@ -102,7 +131,6 @@ func (b *RedisBroker) Subscribe(topic string) (<-chan []byte, func()) {
 		b.mu.Unlock()
 		sub.close()
 	}
-	return sub.ch, cancel
 }
 
 func (b *RedisBroker) readLoop(ctx context.Context, topic string, ps *redis.PubSub) {
