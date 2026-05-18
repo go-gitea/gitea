@@ -12,7 +12,6 @@ import (
 	"strings"
 	"time"
 
-	activities_model "code.gitea.io/gitea/models/activities"
 	git_model "code.gitea.io/gitea/models/git"
 	issues_model "code.gitea.io/gitea/models/issues"
 	access_model "code.gitea.io/gitea/models/perm/access"
@@ -42,6 +41,7 @@ import (
 	git_service "code.gitea.io/gitea/services/git"
 	"code.gitea.io/gitea/services/gitdiff"
 	issue_service "code.gitea.io/gitea/services/issue"
+	"code.gitea.io/gitea/services/notifications"
 	notify_service "code.gitea.io/gitea/services/notify"
 	pull_service "code.gitea.io/gitea/services/pull"
 	repo_service "code.gitea.io/gitea/services/repository"
@@ -948,13 +948,9 @@ func MergePullRequest(ctx *context.APIContext) {
 
 	if ctx.IsSigned {
 		// Update issue-user.
-		changed, err := activities_model.SetIssueReadBy(ctx, pr.Issue.ID, ctx.Doer.ID)
-		if err != nil {
+		if err := notifications.SetIssueReadBy(ctx, pr.Issue.ID, ctx.Doer.ID); err != nil {
 			ctx.APIErrorInternal(err)
 			return
-		}
-		if changed {
-			notify_service.NotificationCountChange(ctx, ctx.Doer.ID)
 		}
 	}
 

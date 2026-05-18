@@ -24,7 +24,7 @@ import (
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/services/context"
 	issue_service "code.gitea.io/gitea/services/issue"
-	notify_service "code.gitea.io/gitea/services/notify"
+	"code.gitea.io/gitea/services/notifications"
 	pull_service "code.gitea.io/gitea/services/pull"
 )
 
@@ -150,11 +150,10 @@ func NotificationStatusPost(ctx *context.Context) {
 	default:
 		return // ignore user's invalid input
 	}
-	if _, err := activities_model.SetNotificationStatus(ctx, notificationID, ctx.Doer, newStatus); err != nil {
+	if _, err := notifications.SetNotificationStatus(ctx, notificationID, ctx.Doer, newStatus); err != nil {
 		ctx.ServerError("SetNotificationStatus", err)
 		return
 	}
-	notify_service.NotificationCountChange(ctx, ctx.Doer.ID)
 
 	prepareUserNotificationsData(ctx)
 	if ctx.Written() {
@@ -165,12 +164,10 @@ func NotificationStatusPost(ctx *context.Context) {
 
 // NotificationPurgePost is a route for 'purging' the list of notifications - marking all unread as read
 func NotificationPurgePost(ctx *context.Context) {
-	err := activities_model.UpdateNotificationStatuses(ctx, ctx.Doer, activities_model.NotificationStatusUnread, activities_model.NotificationStatusRead)
-	if err != nil {
-		ctx.ServerError("UpdateNotificationStatuses", err)
+	if err := notifications.MarkAllRead(ctx, ctx.Doer); err != nil {
+		ctx.ServerError("MarkAllRead", err)
 		return
 	}
-	notify_service.NotificationCountChange(ctx, ctx.Doer.ID)
 
 	ctx.Redirect(setting.AppSubURL+"/notifications", http.StatusSeeOther)
 }

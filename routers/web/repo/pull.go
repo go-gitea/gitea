@@ -15,7 +15,6 @@ import (
 	"strings"
 	"time"
 
-	activities_model "code.gitea.io/gitea/models/activities"
 	"code.gitea.io/gitea/models/db"
 	git_model "code.gitea.io/gitea/models/git"
 	issues_model "code.gitea.io/gitea/models/issues"
@@ -51,6 +50,7 @@ import (
 	"code.gitea.io/gitea/services/forms"
 	git_service "code.gitea.io/gitea/services/git"
 	"code.gitea.io/gitea/services/gitdiff"
+	"code.gitea.io/gitea/services/notifications"
 	notify_service "code.gitea.io/gitea/services/notify"
 	pull_service "code.gitea.io/gitea/services/pull"
 	repo_service "code.gitea.io/gitea/services/repository"
@@ -153,13 +153,9 @@ func getPullInfo(ctx *context.Context) (issue *issues_model.Issue, ok bool) {
 
 	if ctx.IsSigned {
 		// Update issue-user.
-		changed, err := activities_model.SetIssueReadBy(ctx, issue.ID, ctx.Doer.ID)
-		if err != nil {
+		if err := notifications.SetIssueReadBy(ctx, issue.ID, ctx.Doer.ID); err != nil {
 			ctx.ServerError("ReadBy", err)
 			return nil, false
-		}
-		if changed {
-			notify_service.NotificationCountChange(ctx, ctx.Doer.ID)
 		}
 	}
 
