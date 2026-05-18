@@ -153,7 +153,7 @@ func getPullInfo(ctx *context.Context) (issue *issues_model.Issue, ok bool) {
 
 	if ctx.IsSigned {
 		// Update issue-user.
-		if err := notifications.SetIssueReadBy(ctx, issue.ID, ctx.Doer.ID); err != nil {
+		if err := notifications.SetIssueReadBy(ctx, issue.ID, ctx.Doer); err != nil {
 			ctx.ServerError("ReadBy", err)
 			return nil, false
 		}

@@ -72,19 +72,15 @@ func requireRedis(t *testing.T) {
 
 func TestRedisBroker_SubscribePublish(t *testing.T) {
 	requireRedis(t)
+	topic := t.Name()
 
 	b, err := NewRedisBroker(testRedisConn)
 	require.NoError(t, err)
 
-	ch, cancel := b.Subscribe("pubsub-test-topic")
+	ch, cancel := b.Subscribe(topic)
 	defer cancel()
 
-	// Subscribe is racy with PUBLISH at the Redis layer (PUBLISH fans out only
-	// to active subscribers at the moment of publish). Wait briefly to let the
-	// SUBSCRIBE register before publishing.
-	time.Sleep(100 * time.Millisecond)
-
-	b.Publish("pubsub-test-topic", []byte("hello"))
+	b.Publish(topic, []byte("hello"))
 
 	select {
 	case msg := <-ch:
@@ -96,18 +92,18 @@ func TestRedisBroker_SubscribePublish(t *testing.T) {
 
 func TestRedisBroker_TopicIsolation(t *testing.T) {
 	requireRedis(t)
+	topicA := t.Name() + "-a"
+	topicB := t.Name() + "-b"
 
 	b, err := NewRedisBroker(testRedisConn)
 	require.NoError(t, err)
 
-	chA, cancelA := b.Subscribe("pubsub-test-a")
+	chA, cancelA := b.Subscribe(topicA)
 	defer cancelA()
-	chB, cancelB := b.Subscribe("pubsub-test-b")
+	chB, cancelB := b.Subscribe(topicB)
 	defer cancelB()
 
-	time.Sleep(100 * time.Millisecond)
-
-	b.Publish("pubsub-test-a", []byte("only-a"))
+	b.Publish(topicA, []byte("only-a"))
 
 	select {
 	case msg := <-chA:
@@ -124,6 +120,7 @@ func TestRedisBroker_TopicIsolation(t *testing.T) {
 
 func TestRedisBroker_FanOutToLocalSubscribers(t *testing.T) {
 	requireRedis(t)
+	topic := t.Name()
 
 	b, err := NewRedisBroker(testRedisConn)
 	require.NoError(t, err)
@@ -132,7 +129,7 @@ func TestRedisBroker_FanOutToLocalSubscribers(t *testing.T) {
 	channels := make([]<-chan []byte, n)
 	cancels := make([]func(), n)
 	for i := range n {
-		channels[i], cancels[i] = b.Subscribe("pubsub-test-fanout")
+		channels[i], cancels[i] = b.Subscribe(topic)
 	}
 	defer func() {
 		for _, c := range cancels {
@@ -140,8 +137,7 @@ func TestRedisBroker_FanOutToLocalSubscribers(t *testing.T) {
 		}
 	}()
 
-	time.Sleep(100 * time.Millisecond)
-	b.Publish("pubsub-test-fanout", []byte("broadcast"))
+	b.Publish(topic, []byte("broadcast"))
 
 	for i, ch := range channels {
 		select {
@@ -155,19 +151,20 @@ func TestRedisBroker_FanOutToLocalSubscribers(t *testing.T) {
 
 func TestRedisBroker_CancelClosesChannelAndCleansTopic(t *testing.T) {
 	requireRedis(t)
+	topic := t.Name()
 
 	b, err := NewRedisBroker(testRedisConn)
 	require.NoError(t, err)
 
-	ch, cancel := b.Subscribe("pubsub-test-cancel")
+	ch, cancel := b.Subscribe(topic)
 	cancel()
 
 	_, ok := <-ch
 	assert.False(t, ok, "channel must be closed after cancel")
 
-	b.mu.Lock()
-	_, present := b.topics["pubsub-test-cancel"]
-	b.mu.Unlock()
+	b.mu.RLock()
+	_, present := b.topics[topic]
+	b.mu.RUnlock()
 	assert.False(t, present, "topic state must be removed after last subscriber cancels")
 }
 

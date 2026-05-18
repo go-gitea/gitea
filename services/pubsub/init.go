@@ -14,9 +14,9 @@ import (
 // configured backend.
 func Init() error {
 	switch setting.Pubsub.Type {
-	case "memory":
+	case setting.PubsubTypeMemory:
 		DefaultBroker = NewMemoryBroker()
-	case "redis":
+	case setting.PubsubTypeRedis:
 		b, err := NewRedisBroker(setting.Pubsub.ConnStr)
 		if err != nil {
 			return fmt.Errorf("pubsub: init redis backend: %w", err)
