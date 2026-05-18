@@ -530,6 +530,7 @@ func testAPIPullContentVersion(t *testing.T, pullID int64) {
 
 	t.Run("EditWithoutVersion", func(t *testing.T) {
 		defer tests.PrintCurrentTest(t)()
+		waitForSQLiteConcurrentWrite(t)
 		req := NewRequestWithJSON(t, "PATCH", urlStr, api.EditPullRequestOption{
 			Body: new("edit without version succeeds"),
 		}).AddTokenAuth(token)
