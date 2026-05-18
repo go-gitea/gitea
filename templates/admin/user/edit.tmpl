@@ -58,7 +58,7 @@
 				</div>
 				<div class="field {{if .Err_FullName}}error{{end}}">
 					<label for="full_name">{{ctx.Locale.Tr "settings.full_name"}}</label>
-					<input id="full_name" name="full_name" value="{{.User.FullName}}" maxlength="100">
+					<input id="full_name" name="full_name" value="{{.User.FullName}}" maxlength="100" placeholder="John Doe">
 				</div>
 				<div class="required field {{if .Err_Email}}error{{end}}">
 					<label for="email">{{ctx.Locale.Tr "email"}}</label>

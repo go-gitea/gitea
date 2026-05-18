@@ -6,7 +6,7 @@
 	<form class="ui form" action="{{.BaseLink}}/feishu/{{or .Webhook.ID "new"}}" method="post">
 		<div class="required field {{if .Err_PayloadURL}}error{{end}}">
 			<label for="payload_url">{{ctx.Locale.Tr "repo.settings.payload_url"}}</label>
-			<input id="payload_url" name="payload_url" type="url" value="{{.Webhook.URL}}" autofocus required>
+			<input id="payload_url" name="payload_url" type="url" value="{{.Webhook.URL}}" autofocus required placeholder="https://example.com/webhook">
 		</div>
 		{{template "repo/settings/webhook/settings" dict "BaseLink" .BaseLink "Webhook" .Webhook "UseRequestSecret" "optional"}}
 	</form>

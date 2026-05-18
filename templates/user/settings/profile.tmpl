@@ -11,14 +11,14 @@
 						<span class="tw-text-red tw-hidden" id="name-change-prompt"> {{ctx.Locale.Tr "settings.change_username_prompt"}}</span>
 						<span class="tw-text-red tw-hidden" id="name-change-redirect-prompt"> {{ctx.Locale.Tr "settings.change_username_redirect_prompt"}}</span>
 					</label>
-					<input id="username" name="name" value="{{.SignedUser.Name}}" data-name="{{.SignedUser.Name}}" required {{if or (not .SignedUser.IsLocal) ($.UserDisabledFeatures.Contains "change_username") .IsReverseProxy}}disabled{{end}} maxlength="40">
+					<input id="username" name="name" value="{{.SignedUser.Name}}" data-name="{{.SignedUser.Name}}" required {{if or (not .SignedUser.IsLocal) ($.UserDisabledFeatures.Contains "change_username") .IsReverseProxy}}disabled{{end}} maxlength="40" placeholder="johndoe">
 					{{if or (not .SignedUser.IsLocal) ($.UserDisabledFeatures.Contains "change_username") .IsReverseProxy}}
 					<p class="help tw-text-blue">{{ctx.Locale.Tr "settings.password_username_disabled"}}</p>
 					{{end}}
 				</div>
 				<div class="field {{if .Err_FullName}}error{{end}}">
 					<label for="full_name">{{ctx.Locale.Tr "settings.full_name"}}</label>
-					<input id="full_name" name="full_name" value="{{.SignedUser.FullName}}" {{if ($.UserDisabledFeatures.Contains "change_full_name")}}disabled{{end}} maxlength="100">
+					<input id="full_name" name="full_name" value="{{.SignedUser.FullName}}" {{if ($.UserDisabledFeatures.Contains "change_full_name")}}disabled{{end}} maxlength="100" placeholder="John Doe">
 					{{if ($.UserDisabledFeatures.Contains "change_full_name")}}
 					<p class="help tw-text-blue">{{ctx.Locale.Tr "settings.password_full_name_disabled"}}</p>
 					{{end}}
@@ -30,15 +30,15 @@
 				<div class="field {{if .Err_Description}}error{{end}}">
 					{{/* it is rendered as markdown, but the length is limited, so at the moment we do not use the markdown editor here */}}
 					<label for="description">{{ctx.Locale.Tr "user.user_bio"}}</label>
-					<textarea id="description" name="description" rows="2" placeholder="{{ctx.Locale.Tr "settings.biography_placeholder"}}" maxlength="255">{{.SignedUser.Description}}</textarea>
+					<textarea id="description" name="description" rows="2" placeholder="I am a developer from San Francisco." maxlength="255">{{.SignedUser.Description}}</textarea>
 				</div>
 				<div class="field {{if .Err_Website}}error{{end}}">
 					<label for="website">{{ctx.Locale.Tr "settings.website"}}</label>
-					<input id="website" name="website" type="url" value="{{.SignedUser.Website}}" maxlength="255">
+					<input id="website" name="website" type="url" value="{{.SignedUser.Website}}" maxlength="255" placeholder="https://example.com">
 				</div>
 				<div class="field">
 					<label for="location">{{ctx.Locale.Tr "settings.location"}}</label>
-					<input id="location" name="location" placeholder="{{ctx.Locale.Tr "settings.location_placeholder"}}" value="{{.SignedUser.Location}}" maxlength="50">
+					<input id="location" name="location" placeholder="San Francisco, CA" value="{{.SignedUser.Location}}" maxlength="50">
 				</div>
 
 				<div class="divider"></div>
@@ -110,7 +110,7 @@
 				</div>
 				<div class="field tw-pl-4 {{if .Err_Gravatar}}error{{end}}">
 					<label for="gravatar">Avatar {{ctx.Locale.Tr "email"}}</label>
-					<input id="gravatar" name="gravatar" value="{{.SignedUser.AvatarEmail}}">
+					<input id="gravatar" name="gravatar" value="{{.SignedUser.AvatarEmail}}" placeholder="john@example.com">
 				</div>
 				{{end}}
 
