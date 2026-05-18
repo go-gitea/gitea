@@ -16,7 +16,7 @@ Almost all labels used inside Gitea can be classified as one of the following:
 - `modifies/…`: Determines which parts of the codebase are affected. These labels will be set through the CI.
 - `topic/…`:  Determines the conceptual component of Gitea that is affected, i.e. issues, projects, or authentication. At best, PRs should only target one component but there might be overlap. Must be set manually.
 - `type/…`: Determines the type of an issue or PR (feature, refactoring, docs, bug, …). If GitHub supported scoped labels, these labels would be exclusive, so you should set **exactly** one, not more or less (every PR should fall into one of the provided categories, and only one).
-- `issue/…` / `lgtm/…`: Labels that are specific to issues or PRs respectively and that are only necessary in a given context, i.e. `issue/not-a-bug` or `lgtm/need 2`
+- `issue/…`: Labels that are specific to issues and that are only necessary in a given context, i.e. `issue/not-a-bug`
 
 Every PR should be labeled correctly with every label that applies.
 
@@ -42,9 +42,9 @@ Maintainers are encouraged to review pull requests in areas where they have expe
 
 Changes to Gitea must be reviewed before they are accepted, including changes from owners and maintainers. The exception is critical bugs that prevent Gitea from compiling or starting.
 
-We require two maintainer approvals for every PR. When that is satisfied, your PR gets the `lgtm/done` label. After that, you mainly fix merge conflicts and respond to or implement maintainer requests; maintainers drive getting the PR merged.
+We require two maintainer approvals for every PR (enforced by GitHub's branch protection). After that is satisfied you mainly fix merge conflicts and respond to or implement maintainer requests; maintainers drive getting the PR merged.
 
-If a PR has `lgtm/done`, no open discussions, and no merge conflicts, any maintainer may add `reviewed/wait-merge`. That puts the PR in the merge queue. PRs are merged from the queue in the order of this list:
+Once a PR has the required approvals, no open discussions, and no merge conflicts, any maintainer may add `reviewed/wait-merge`. That puts the PR in the merge queue. PRs are merged from the queue in the order of this list:
 
 <https://github.com/go-gitea/gitea/pulls?q=is%3Apr+label%3Areviewed%2Fwait-merge+sort%3Acreated-asc+is%3Aopen>
 
