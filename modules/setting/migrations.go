@@ -11,9 +11,14 @@ var Migrations = struct {
 	BlockedDomains     string
 	AllowLocalNetworks bool
 	SkipTLSVerify      bool
+	// SSHHostKeyChecking controls StrictHostKeyChecking for SSH migrations/mirrors:
+	// "accept-new" (default, trust on first use, reject changed keys), "yes" (strict,
+	// host must already be known) or "no" (disable verification).
+	SSHHostKeyChecking string
 }{
-	MaxAttempts:  3,
-	RetryBackoff: 3,
+	MaxAttempts:        3,
+	RetryBackoff:       3,
+	SSHHostKeyChecking: "accept-new",
 }
 
 func loadMigrationsFrom(rootCfg ConfigProvider) {
@@ -25,4 +30,5 @@ func loadMigrationsFrom(rootCfg ConfigProvider) {
 	Migrations.BlockedDomains = sec.Key("BLOCKED_DOMAINS").MustString("")
 	Migrations.AllowLocalNetworks = sec.Key("ALLOW_LOCALNETWORKS").MustBool(false)
 	Migrations.SkipTLSVerify = sec.Key("SKIP_TLS_VERIFY").MustBool(false)
+	Migrations.SSHHostKeyChecking = sec.Key("SSH_HOST_KEY_CHECKING").In("accept-new", []string{"accept-new", "yes", "no"})
 }

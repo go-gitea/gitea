@@ -109,6 +109,7 @@ type CloneRepoOptions struct {
 	Depth         int
 	Filter        string
 	SkipTLSVerify bool
+	SSHAuthSock   string
 	SingleBranch  bool
 	Env           []string
 }
@@ -170,6 +171,7 @@ func Clone(ctx context.Context, from, to string, opts CloneRepoOptions) error {
 	return cmd.
 		WithTimeout(opts.Timeout).
 		WithEnv(envs).
+		WithSSHAuthSock(opts.SSHAuthSock).
 		RunWithStderr(ctx)
 }
 
@@ -183,6 +185,7 @@ type PushOptions struct {
 	Mirror         bool
 	Env            []string
 	Timeout        time.Duration
+	SSHAuthSock    string
 }
 
 // Push pushs local commits to given remote branch.
@@ -208,7 +211,7 @@ func Push(ctx context.Context, repoPath string, opts PushOptions) error {
 	}
 	cmd.AddDashesAndList(remoteBranchArgs...)
 
-	stdout, stderr, err := cmd.WithEnv(opts.Env).WithTimeout(opts.Timeout).WithDir(repoPath).RunStdString(ctx)
+	stdout, stderr, err := cmd.WithEnv(opts.Env).WithTimeout(opts.Timeout).WithDir(repoPath).WithSSHAuthSock(opts.SSHAuthSock).RunStdString(ctx)
 	if err != nil {
 		if strings.Contains(stderr, "non-fast-forward") {
 			return &ErrPushOutOfDate{StdOut: stdout, StdErr: stderr, Err: err}

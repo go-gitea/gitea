@@ -93,7 +93,10 @@ func SyncPushMirror(ctx context.Context, mirrorID int64) bool {
 		return false
 	}
 
-	_ = m.GetRepository(ctx)
+	if m.GetRepository(ctx) == nil {
+		log.Error("GetRepository [%d]: repository not found", mirrorID)
+		return false
+	}
 
 	m.LastError = ""
 
@@ -134,7 +137,7 @@ func runPushSync(ctx context.Context, m *repo_model.PushMirror) error {
 			return errors.New("Unexpected error")
 		}
 
-		if setting.LFS.StartServer {
+		if setting.LFS.StartServer && !IsSSHURL(remoteURL.String()) {
 			log.Trace("SyncMirrors [repo: %-v]: syncing LFS objects...", m.Repo)
 
 			gitRepo, err := gitrepo.OpenRepository(ctx, storageRepo)
@@ -154,13 +157,25 @@ func runPushSync(ctx context.Context, m *repo_model.PushMirror) error {
 		log.Trace("Pushing %s mirror[%d] remote %s", storageRepo.RelativePath(), m.ID, m.RemoteName)
 
 		envs := proxy.EnvWithProxy(remoteURL.URL)
-		if err := gitrepo.PushToExternal(ctx, storageRepo, git.PushOptions{
+
+		pushOpts := git.PushOptions{
 			Remote:  m.RemoteName,
 			Force:   true,
 			Mirror:  true,
 			Timeout: timeout,
 			Env:     envs,
-		}); err != nil {
+		}
+
+		// Setup SSH authentication
+		sshAuthSock, cleanup, err := SetupMirrorSSHAgent(ctx, repo, remoteURL.String())
+		if err != nil {
+			log.Error("Failed to set up SSH agent for push mirror %s: %v", repo.FullName(), err)
+			return util.SanitizeErrorCredentialURLs(err)
+		}
+		defer cleanup()
+		pushOpts.SSHAuthSock = sshAuthSock
+
+		if err := gitrepo.PushToExternal(ctx, storageRepo, pushOpts); err != nil {
 			log.Error("Error pushing %s mirror[%d] remote %s: %v", storageRepo.RelativePath(), m.ID, m.RemoteName, err)
 
 			return util.SanitizeErrorCredentialURLs(err)

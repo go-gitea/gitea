@@ -14106,6 +14106,95 @@
         ]
       }
     },
+    "/orgs/{org}/mirror-ssh-key": {
+      "get": {
+        "operationId": "orgGetMirrorSSHKey",
+        "parameters": [
+          {
+            "description": "name of the organization",
+            "in": "path",
+            "name": "org",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "fingerprint": {
+                      "type": "string"
+                    },
+                    "public_key": {
+                      "type": "string"
+                    }
+                  },
+                  "type": "object"
+                }
+              }
+            },
+            "description": "SSH public key"
+          },
+          "403": {
+            "$ref": "#/components/responses/forbidden"
+          },
+          "404": {
+            "$ref": "#/components/responses/notFound"
+          }
+        },
+        "summary": "Get SSH public key for organization mirroring",
+        "tags": [
+          "organization"
+        ]
+      }
+    },
+    "/orgs/{org}/mirror-ssh-key/regenerate": {
+      "post": {
+        "operationId": "orgRegenerateMirrorSSHKey",
+        "parameters": [
+          {
+            "description": "name of the organization",
+            "in": "path",
+            "name": "org",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "fingerprint": {
+                      "type": "string"
+                    },
+                    "public_key": {
+                      "type": "string"
+                    }
+                  },
+                  "type": "object"
+                }
+              }
+            },
+            "description": "New SSH public key"
+          },
+          "403": {
+            "$ref": "#/components/responses/forbidden"
+          }
+        },
+        "summary": "Regenerate SSH keypair for organization mirroring",
+        "tags": [
+          "organization"
+        ]
+      }
+    },
     "/orgs/{org}/public_members": {
       "get": {
         "operationId": "orgListPublicMembers",
@@ -32472,6 +32561,67 @@
           }
         },
         "summary": "Get a public key",
+        "tags": [
+          "user"
+        ]
+      }
+    },
+    "/user/mirror-ssh-key": {
+      "get": {
+        "operationId": "userGetMirrorSSHKey",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "fingerprint": {
+                      "type": "string"
+                    },
+                    "public_key": {
+                      "type": "string"
+                    }
+                  },
+                  "type": "object"
+                }
+              }
+            },
+            "description": "SSH public key"
+          },
+          "404": {
+            "$ref": "#/components/responses/notFound"
+          }
+        },
+        "summary": "Get SSH public key for user mirroring",
+        "tags": [
+          "user"
+        ]
+      }
+    },
+    "/user/mirror-ssh-key/regenerate": {
+      "post": {
+        "operationId": "userRegenerateMirrorSSHKey",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "fingerprint": {
+                      "type": "string"
+                    },
+                    "public_key": {
+                      "type": "string"
+                    }
+                  },
+                  "type": "object"
+                }
+              }
+            },
+            "description": "New SSH public key"
+          }
+        },
+        "summary": "Regenerate SSH keypair for user mirroring",
         "tags": [
           "user"
         ]

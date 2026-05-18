@@ -27,7 +27,7 @@ import {initRepoCodeView} from './features/repo-code.ts';
 import {initSshKeyFormParser} from './features/sshkey-helper.ts';
 import {initUserSettings} from './features/user-settings.ts';
 import {initRepoActivityTopAuthorsChart, initRepoArchiveLinks} from './features/repo-common.ts';
-import {initRepoMigrationStatusChecker} from './features/repo-migrate.ts';
+import {initRepoMigrationStatusChecker, initRepoMigrationForm} from './features/repo-migrate.ts';
 import {initRepoDiffView} from './features/repo-diff.ts';
 import {initOrgTeam} from './features/org-team.ts';
 import {initUserAuthWebAuthn, initUserAuthWebAuthnRegister} from './features/user-auth-webauthn.ts';
@@ -131,6 +131,7 @@ const initPerformanceTracer = callInitFunctions([
   initRepoIssueFilterItemLabel,
   initRepoMigration,
   initRepoMigrationStatusChecker,
+  initRepoMigrationForm,
   initRepoProjectsView,
   initRepoPullRequestReview,
   initRepoReleaseNew,
