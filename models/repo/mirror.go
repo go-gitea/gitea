@@ -6,10 +6,10 @@ package repo
 
 import (
 	"context"
-	"strings"
 	"time"
 
 	"code.gitea.io/gitea/models/db"
+	giturl "code.gitea.io/gitea/modules/git/url"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/timeutil"
 	"code.gitea.io/gitea/modules/util"
@@ -38,7 +38,8 @@ type Mirror struct {
 
 // IsSSHRemoteAddress returns true if the mirror's remote address uses SSH.
 func (m *Mirror) IsSSHRemoteAddress() bool {
-	return strings.HasPrefix(m.RemoteAddress, "ssh://")
+	u, err := giturl.ParseGitURL(m.RemoteAddress)
+	return err == nil && u.Scheme == "ssh"
 }
 
 func init() {
