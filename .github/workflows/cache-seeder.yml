@@ -66,6 +66,9 @@ jobs:
           cache-name: ${{ matrix.job }}
           lint-cache: "true"
       - run: make deps-backend deps-tools
+      - run: make generate-go # lint-go also lints with "bindata" tags which requires "_bindata.go"
+        env:
+          TAGS: ${{ matrix.tags }}
       - run: make ${{ matrix.target }}
         env:
           TAGS: ${{ matrix.tags }}
