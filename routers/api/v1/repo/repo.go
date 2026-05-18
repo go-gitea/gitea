@@ -134,9 +134,6 @@ func Search(ctx *context.APIContext) {
 	//     "$ref": "#/responses/validationError"
 
 	private := ctx.IsSigned && (ctx.FormString("private") == "" || ctx.FormBool("private"))
-	if ctx.PublicOnly {
-		private = false
-	}
 
 	opts := repo_model.SearchRepoOptions{
 		ListOptions:        utils.GetListOptions(ctx),
@@ -152,6 +149,7 @@ func Search(ctx *context.APIContext) {
 		StarredByID:        ctx.FormInt64("starredBy"),
 		IncludeDescription: ctx.FormBool("includeDesc"),
 	}
+	opts.ApplyPublicOnly(ctx.PublicOnly)
 
 	if ctx.FormString("template") != "" {
 		opts.Template = optional.Some(ctx.FormBool("template"))
@@ -555,6 +553,10 @@ func GetByID(ctx *context.APIContext) {
 		} else {
 			ctx.APIErrorInternal(err)
 		}
+		return
+	}
+	if !ctx.TokenCanAccessRepo(repo) {
+		ctx.APIErrorNotFound()
 		return
 	}
 
@@ -1309,6 +1311,7 @@ func ListRepoActivityFeeds(ctx *context.APIContext) {
 		Date:           ctx.FormString("date"),
 		ListOptions:    listOptions,
 	}
+	opts.ApplyPublicOnly(ctx.PublicOnly)
 
 	feeds, count, err := feed_service.GetFeeds(ctx, opts)
 	if err != nil {
