@@ -72,7 +72,7 @@ func loadDBSetting(rootCfg ConfigProvider) {
 	if Database.SQLiteBusyTimeout < 5000 {
 		Database.SQLiteBusyTimeout = defaultSQLiteBusyTimeout
 	}
-	Database.SQLiteJournalMode = sec.Key("SQLITE_JOURNAL_MODE").MustString("")
+	Database.SQLiteJournalMode = sec.Key("SQLITE_JOURNAL_MODE").MustString("WAL")
 
 	Database.MaxIdleConns = sec.Key("MAX_IDLE_CONNS").MustInt(2)
 	if Database.Type.IsMySQL() {
