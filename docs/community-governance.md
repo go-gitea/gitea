@@ -48,7 +48,7 @@ If a PR has `lgtm/done`, no open discussions, and no merge conflicts, any mainta
 
 <https://github.com/go-gitea/gitea/pulls?q=is%3Apr+label%3Areviewed%2Fwait-merge+sort%3Acreated-asc+is%3Aopen>
 
-Gitea uses its own tool, <https://github.com/GiteaBot/gitea-backporter>, to automate parts of the review process. The backporter:
+Gitea uses its own tool, <https://github.com/go-gitea/gitea/blob/main/.github/workflows/giteabot.yml>, to automate parts of the review process. The backporter:
 
 - Creates a backport PR when needed after the initial PR merges.
 - Removes the PR from the merge queue after it merges.
