@@ -47,6 +47,7 @@ import (
 	mirror_service "code.gitea.io/gitea/services/mirror"
 	"code.gitea.io/gitea/services/oauth2_provider"
 	packages_spec "code.gitea.io/gitea/services/packages/pkgspec"
+	"code.gitea.io/gitea/services/pubsub"
 	pull_service "code.gitea.io/gitea/services/pull"
 	release_service "code.gitea.io/gitea/services/release"
 	repo_service "code.gitea.io/gitea/services/repository"
@@ -155,6 +156,7 @@ func InitWebInstalled(ctx context.Context) {
 	mustInit(automerge.Init)
 	mustInit(task.Init)
 	mustInit(repo_migrations.Init)
+	mustInit(pubsub.Init)
 	mustInit(websocket_service.Init)
 	mustInitCtx(ctx, mailer_incoming.Init)
 
