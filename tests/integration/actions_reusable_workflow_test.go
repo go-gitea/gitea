@@ -4,10 +4,12 @@
 package integration
 
 import (
+	"encoding/base64"
 	"fmt"
 	"net/http"
 	"net/url"
 	"testing"
+	"time"
 
 	actions_model "code.gitea.io/gitea/models/actions"
 	auth_model "code.gitea.io/gitea/models/auth"
@@ -426,6 +428,112 @@ jobs:
 			assert.Equal(t, actions_model.StatusSuccess, crossJob.Status)
 			run = unittest.AssertExistsAndLoadBean(t, &actions_model.ActionRun{ID: run.ID})
 			assert.Equal(t, actions_model.StatusSuccess, run.Status)
+		})
+
+		t.Run("Missing callee file", func(t *testing.T) {
+			// A caller workflow references a callee path that does not exist in the repo.
+
+			apiRepo := createActionsTestRepo(t, user2Token, "caller-missing-callee", false)
+			repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: apiRepo.ID})
+
+			createRepoWorkflowFile(t, user2, repo, ".gitea/workflows/caller.yaml",
+				`name: Caller
+on: push
+jobs:
+  plain_job:
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo 'job'
+  call_missing:
+    uses: ./.gitea/workflows/does-not-exist.yml
+`)
+
+			assert.Equal(t, 0, unittest.GetCount(t, &actions_model.ActionRun{RepoID: repo.ID}))
+		})
+
+		t.Run("Fork PR with secrets: inherit does not leak base repo secrets", func(t *testing.T) {
+			// user2 owns the base repo, configures a secret, and registers a reusable workflow that declares a required secret.
+			// The caller workflow uses `secrets: inherit`.
+
+			apiBaseRepo := createActionsTestRepo(t, user2Token, "fork-pr-inherit-test", false)
+			baseRepo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: apiBaseRepo.ID})
+			user2APICtx := NewAPITestContext(t, baseRepo.OwnerName, baseRepo.Name, auth_model.AccessTokenScopeWriteRepository)
+			defer doAPIDeleteRepository(user2APICtx)(t)
+
+			// Real secret that must never reach a fork PR task.
+			req := NewRequestWithJSON(t, "PUT",
+				fmt.Sprintf("/api/v1/repos/%s/%s/actions/secrets/leaked_secret", baseRepo.OwnerName, baseRepo.Name),
+				api.CreateOrUpdateSecretOption{Data: "MUST-NOT-LEAK"}).AddTokenAuth(user2Token)
+			MakeRequest(t, req, http.StatusCreated)
+
+			runner := newMockRunner()
+			runner.registerAsRepoRunner(t, baseRepo.OwnerName, baseRepo.Name, "mock-fork-runner", []string{"ubuntu-latest"}, false)
+
+			createRepoWorkflowFile(t, user2, baseRepo, ".gitea/workflows/reusable.yaml",
+				`name: Reusable
+on:
+  workflow_call:
+    secrets:
+      leaked_secret:
+
+jobs:
+  callee:
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo
+`)
+			createRepoWorkflowFile(t, user2, baseRepo, ".gitea/workflows/caller.yaml",
+				`name: Caller
+on: pull_request
+jobs:
+  call_reusable:
+    uses: ./.gitea/workflows/reusable.yaml
+    secrets: inherit
+`)
+
+			// user4 forks
+			req = NewRequestWithJSON(t, "POST",
+				fmt.Sprintf("/api/v1/repos/%s/%s/forks", baseRepo.OwnerName, baseRepo.Name),
+				&api.CreateForkOption{Name: new("fork-pr-inherit-test-fork")}).AddTokenAuth(user4Token)
+			resp := MakeRequest(t, req, http.StatusAccepted)
+			apiForkRepo := DecodeJSON(t, resp, &api.Repository{})
+			forkRepo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: apiForkRepo.ID})
+			user4APICtx := NewAPITestContext(t, user4.Name, forkRepo.Name, auth_model.AccessTokenScopeWriteRepository)
+			defer doAPIDeleteRepository(user4APICtx)(t)
+
+			// user4 pushes a change on the fork and opens a PR to base
+			doAPICreateFile(user4APICtx, "user4-fix.txt", &api.CreateFileOptions{
+				FileOptions: api.FileOptions{
+					NewBranchName: "user4/branch",
+					Message:       "create user4-fix.txt",
+					Author:        api.Identity{Name: user4.Name, Email: user4.Email},
+					Committer:     api.Identity{Name: user4.Name, Email: user4.Email},
+					Dates:         api.CommitDateOptions{Author: time.Now(), Committer: time.Now()},
+				},
+				ContentBase64: base64.StdEncoding.EncodeToString([]byte("fix")),
+			})(t)
+			doAPICreatePullRequest(user4APICtx, baseRepo.OwnerName, baseRepo.Name, baseRepo.DefaultBranch, user4.Name+":user4/branch")(t)
+
+			// Approve the fork PR run.
+			forkRun := unittest.AssertExistsAndLoadBean(t, &actions_model.ActionRun{RepoID: baseRepo.ID, TriggerUserID: user4.ID})
+			assert.True(t, forkRun.IsForkPullRequest)
+			req = NewRequest(t, "POST", fmt.Sprintf("/%s/%s/actions/runs/%d/approve", baseRepo.OwnerName, baseRepo.Name, forkRun.ID))
+			user2Session.MakeRequest(t, req, http.StatusOK)
+
+			task := runner.fetchTask(t)
+			_, taskJob, taskRun := getTaskAndJobAndRunByTaskID(t, task.Id)
+			assert.Equal(t, "callee", taskJob.JobID)
+			assert.Equal(t, forkRun.ID, taskRun.ID)
+
+			// Only the auto-issued tokens should be present. The user-defined `leaked_secret` must not appear.
+			assert.Contains(t, task.Secrets, "GITEA_TOKEN")
+			assert.Contains(t, task.Secrets, "GITHUB_TOKEN")
+			assert.NotContains(t, task.Secrets, "leaked_secret")
+			for name, value := range task.Secrets {
+				assert.NotEqual(t, "MUST-NOT-LEAK", value, "secret %q leaked the base repo's secret value into a fork PR task", name)
+			}
+
+			runner.execTask(t, task, &mockTaskOutcome{result: runnerv1.Result_RESULT_SUCCESS})
 		})
 
 		t.Run("Caller alternates expanding across attempts", func(t *testing.T) {

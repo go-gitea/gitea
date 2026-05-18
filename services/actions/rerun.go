@@ -43,6 +43,8 @@ func GetFailedJobsForRerun(allJobs []*actions_model.ActionRunJob) []*actions_mod
 // rather than one big outer transaction:
 //   - execRerunPlan performs slow work (loading variables, YAML unmarshal, concurrency expression evaluation)
 //     before opening its own transaction, so the tx stays focused on inserts/updates.
+//     Caveat: reusable workflow caller expansion runs inside the tx because the caller row and its newly inserted children must commit atomically.
+//     Bounded by MaxReusableCallLevels, and rerun is not a hot path.
 //   - The legacy backfill is idempotent-friendly: if it succeeds but a later stage fails, a subsequent rerun
 //     will observe run.LatestAttemptID != 0 and skip the backfill, continuing naturally. No data corruption
 //     or stuck state results from partial progress.

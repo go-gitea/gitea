@@ -23,9 +23,9 @@ import (
 	"xorm.io/builder"
 )
 
-// MaxReusableCallDepth caps reusable workflow nesting at MaxReusableCallDepth-1 levels.
-// A top-level caller is depth 0; checkCallerChain rejects when the caller's own depth reaches MaxReusableCallDepth.
-const MaxReusableCallDepth = 10
+// MaxReusableCallLevels caps how deep a reusable workflow can nest:
+// a top-level caller may have at most MaxReusableCallLevels nested callers below it.
+const MaxReusableCallLevels = 9
 
 // loadReusableWorkflowSource resolves the workflow file referenced by a caller and returns its raw bytes.
 func loadReusableWorkflowSource(ctx context.Context, run *actions_model.ActionRun, ref *jobparser.UsesRef) ([]byte, error) {
@@ -75,7 +75,7 @@ func readWorkflowFromRepo(ctx context.Context, repo *repo_model.Repository, refO
 
 // checkCallerChain walks `caller`'s ancestor chain (via ParentJobID) and:
 //   - rejects cycles (caller.CallUses appearing in any ancestor's CallUses)
-//   - enforces MaxReusableCallDepth on caller's depth (top-level = 0)
+//   - enforces MaxReusableCallLevels on the number of ancestors above `caller`
 func checkCallerChain(ctx context.Context, caller *actions_model.ActionRunJob) error {
 	if caller.ParentJobID == 0 {
 		return nil // top-level caller: depth 0, no ancestors to walk
@@ -93,8 +93,8 @@ func checkCallerChain(ctx context.Context, caller *actions_model.ActionRunJob) e
 		}
 		current = next
 		depth++
-		if depth >= MaxReusableCallDepth {
-			return fmt.Errorf("reusable workflow call depth exceeds limit (%d) at %q", MaxReusableCallDepth, caller.CallUses)
+		if depth > MaxReusableCallLevels {
+			return fmt.Errorf("reusable workflow call exceeds the maximum nesting level of %d at %q", MaxReusableCallLevels, caller.CallUses)
 		}
 		if current.IsReusableCaller && current.CallUses != "" {
 			if visited.Contains(current.CallUses) {
@@ -146,6 +146,9 @@ func expandReusableWorkflowCaller(ctx context.Context, run *actions_model.Action
 	if err != nil {
 		return fmt.Errorf("caller secrets %q: %w", caller.JobID, err)
 	}
+	// Under `secrets: inherit` the caller forwards all of its own secrets verbatim and does NOT name them individually,
+	// so required-secret presence cannot be verified at expansion time and a missing required secret will surface at job runtime.
+	// This matches GitHub Actions' behavior.
 	if !inherit {
 		if err := jobparser.ValidateCallerSecrets(wcSpec, secretsMap); err != nil {
 			return fmt.Errorf("caller %q secrets: %w", caller.JobID, err)

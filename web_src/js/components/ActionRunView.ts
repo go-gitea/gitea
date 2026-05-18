@@ -182,7 +182,7 @@ export function createActionRunViewStore(viewUrl: string) {
     }
   };
 
-  return reactive({
+  return {
     viewData,
 
     async startPollingCurrentRun() {
@@ -199,7 +199,7 @@ export function createActionRunViewStore(viewUrl: string) {
       clearInterval(intervalID);
       intervalID = null;
     },
-  });
+  };
 }
 
 export type ActionRunViewStore = ReturnType<typeof createActionRunViewStore>;

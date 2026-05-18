@@ -14,6 +14,16 @@ import (
 )
 
 func TestParseWorkflowCallSpec(t *testing.T) {
+	t.Run("malformed YAML surfaces a parse error", func(t *testing.T) {
+		// Mismatched flow-sequence brackets — yaml.Unmarshal must reject this.
+		_, err := ParseWorkflowCallSpec([]byte(`name: bad
+on: [workflow_call
+jobs:
+  noop: { }
+`))
+		require.Error(t, err)
+	})
+
 	t.Run("workflow without on.workflow_call is rejected", func(t *testing.T) {
 		notCallable := []byte(`name: ordinary
 on: push

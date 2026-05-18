@@ -221,6 +221,8 @@ async function deleteArtifact(name: string) {
               class="job-brief-toggle"
               @click="toggleExpandedJob(item.job.id)"
               :title="isJobCollapsed(item.job.id) ? locale.expandCallerJobs : locale.collapseCallerJobs"
+              :aria-label="isJobCollapsed(item.job.id) ? locale.expandCallerJobs : locale.collapseCallerJobs"
+              :aria-expanded="!isJobCollapsed(item.job.id)"
             >
               <SvgIcon :name="isJobCollapsed(item.job.id) ? 'octicon-chevron-right' : 'octicon-chevron-down'" :size="14"/>
             </button>
