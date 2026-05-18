@@ -7,7 +7,6 @@ import (
 	"context"
 
 	asymkey_model "code.gitea.io/gitea/models/asymkey"
-	"code.gitea.io/gitea/models/db"
 	git_model "code.gitea.io/gitea/models/git"
 	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
@@ -73,17 +72,22 @@ func ConvertFromGitCommit(ctx context.Context, commits []*git.Commit, repo *repo
 func ParseCommitsWithStatus(ctx context.Context, oldCommits []*asymkey_model.SignCommit, repo *repo_model.Repository) ([]*git_model.SignCommitWithStatuses, error) {
 	newCommits := make([]*git_model.SignCommitWithStatuses, 0, len(oldCommits))
 
+	commitIDs := make([]string, 0, len(oldCommits))
+	for _, c := range oldCommits {
+		commitIDs = append(commitIDs, c.ID.String())
+	}
+
+	statusesMap, err := git_model.GetLatestCommitStatusForRepoCommitIDs(ctx, repo.ID, commitIDs)
+	if err != nil {
+		return nil, err
+	}
+
 	for _, c := range oldCommits {
 		commit := &git_model.SignCommitWithStatuses{
 			SignCommit: c,
 		}
-		statuses, err := git_model.GetLatestCommitStatus(ctx, repo.ID, commit.ID.String(), db.ListOptionsAll)
-		if err != nil {
-			return nil, err
-		}
-
-		commit.Statuses = statuses
-		commit.Status = git_model.CalcCommitStatus(statuses)
+		commit.Statuses = statusesMap[c.ID.String()]
+		commit.Status = git_model.CalcCommitStatus(commit.Statuses)
 		newCommits = append(newCommits, commit)
 	}
 	return newCommits, nil
