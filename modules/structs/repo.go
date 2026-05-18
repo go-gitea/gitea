@@ -113,11 +113,13 @@ type Repository struct {
 	AllowRebaseMerge              bool             `json:"allow_rebase_explicit"`
 	AllowSquash                   bool             `json:"allow_squash_merge"`
 	AllowFastForwardOnly          bool             `json:"allow_fast_forward_only_merge"`
+	AllowMergeUpdate              bool             `json:"allow_merge_update"`
 	AllowRebaseUpdate             bool             `json:"allow_rebase_update"`
 	AllowManualMerge              bool             `json:"allow_manual_merge"`
 	AutodetectManualMerge         bool             `json:"autodetect_manual_merge"`
 	DefaultDeleteBranchAfterMerge bool             `json:"default_delete_branch_after_merge"`
 	DefaultMergeStyle             string           `json:"default_merge_style"`
+	DefaultUpdateStyle            string           `json:"default_update_style"`
 	DefaultAllowMaintainerEdit    bool             `json:"default_allow_maintainer_edit"`
 	AvatarURL                     string           `json:"avatar_url"`
 	Internal                      bool             `json:"internal"`
@@ -224,12 +226,16 @@ type EditRepoOption struct {
 	AllowManualMerge *bool `json:"allow_manual_merge,omitempty"`
 	// either `true` to enable AutodetectManualMerge, or `false` to prevent it. Note: In some special cases, misjudgments can occur.
 	AutodetectManualMerge *bool `json:"autodetect_manual_merge,omitempty"`
+	// either `true` to allow updating pull request branch by merge, or `false` to prevent it.
+	AllowMergeUpdate *bool `json:"allow_merge_update,omitempty"`
 	// either `true` to allow updating pull request branch by rebase, or `false` to prevent it.
 	AllowRebaseUpdate *bool `json:"allow_rebase_update,omitempty"`
 	// set to `true` to delete pr branch after merge by default
 	DefaultDeleteBranchAfterMerge *bool `json:"default_delete_branch_after_merge,omitempty"`
 	// set to a merge style to be used by this repository: "merge", "rebase", "rebase-merge", "squash", or "fast-forward-only".
 	DefaultMergeStyle *string `json:"default_merge_style,omitempty"`
+	// set to an update style to be used by this repository: "merge" or "rebase".
+	DefaultUpdateStyle *string `json:"default_update_style,omitempty"`
 	// set to `true` to allow edits from maintainers by default
 	DefaultAllowMaintainerEdit *bool `json:"default_allow_maintainer_edit,omitempty"`
 	// set to `true` to archive this repository.

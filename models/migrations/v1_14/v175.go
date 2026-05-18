@@ -7,13 +7,12 @@ import (
 	"fmt"
 	"regexp"
 
+	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
-
-	"xorm.io/xorm"
 )
 
-func FixPostgresIDSequences(x *xorm.Engine) error {
+func FixPostgresIDSequences(x db.EngineMigration) error {
 	if !setting.Database.Type.IsPostgreSQL() {
 		return nil
 	}

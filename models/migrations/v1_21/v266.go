@@ -3,11 +3,9 @@
 
 package v1_21
 
-import (
-	"xorm.io/xorm"
-)
+import "code.gitea.io/gitea/models/db"
 
-func ReduceCommitStatus(x *xorm.Engine) error {
+func ReduceCommitStatus(x db.EngineMigration) error {
 	sess := x.NewSession()
 	defer sess.Close()
 

@@ -3,9 +3,9 @@
 
 package v1_10
 
-import "xorm.io/xorm"
+import "code.gitea.io/gitea/models/db"
 
-func AddStatusCheckColumnsForProtectedBranches(x *xorm.Engine) error {
+func AddStatusCheckColumnsForProtectedBranches(x db.EngineMigration) error {
 	type ProtectedBranch struct {
 		EnableStatusCheck   bool     `xorm:"NOT NULL DEFAULT false"`
 		StatusCheckContexts []string `xorm:"JSON TEXT"`
