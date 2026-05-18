@@ -220,9 +220,13 @@ const (
 	ProjectsModeNone ProjectsMode = "none"
 )
 
-// ProjectsConfig describes projects config
+// ProjectsConfig describes projects config.
+// Fields intentionally carry no json tags: omitempty on an int64 serializes
+// inconsistently across Gitea's jsonv1/jsonv2 backends. 0 = "don't auto-assign".
 type ProjectsConfig struct {
-	ProjectsMode ProjectsMode
+	ProjectsMode                    ProjectsMode
+	DefaultProjectIDForIssues       int64
+	DefaultProjectIDForPullRequests int64
 }
 
 // FromDB fills up a ProjectsConfig from serialized format.
@@ -243,6 +247,20 @@ func (cfg *ProjectsConfig) GetProjectsMode() ProjectsMode {
 	}
 
 	return ProjectsModeAll
+}
+
+func (cfg *ProjectsConfig) GetDefaultProjectIDForIssues() int64 {
+	if cfg == nil {
+		return 0
+	}
+	return cfg.DefaultProjectIDForIssues
+}
+
+func (cfg *ProjectsConfig) GetDefaultProjectIDForPullRequests() int64 {
+	if cfg == nil {
+		return 0
+	}
+	return cfg.DefaultProjectIDForPullRequests
 }
 
 func (cfg *ProjectsConfig) IsProjectsAllowed(m ProjectsMode) bool {

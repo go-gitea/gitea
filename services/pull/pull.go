@@ -52,6 +52,7 @@ type NewPullRequestOptions struct {
 	Reviewers       []*user_model.User
 	TeamReviewers   []*organization.Team
 	ProjectIDs      []int64
+	ProjectColumns  map[int64]int64
 }
 
 // NewPullRequest creates new pull request with labels for repository.
@@ -95,6 +96,10 @@ func NewPullRequest(ctx context.Context, opts *NewPullRequestOptions) error {
 		return err
 	}
 
+	// The repo's configured default project is NOT auto-applied here; it is
+	// only pre-selected on the new-PR page (see SeedDefaultProject). Whatever
+	// opts.ProjectIDs the caller passes is authoritative.
+
 	assigneeCommentMap := make(map[int64]*issues_model.Comment)
 
 	var reviewNotifiers []*issue_service.ReviewRequestNotifier
@@ -112,7 +117,7 @@ func NewPullRequest(ctx context.Context, opts *NewPullRequestOptions) error {
 		}
 
 		if len(opts.ProjectIDs) > 0 && canAssignProject {
-			if err := issues_model.IssueAssignOrRemoveProject(ctx, issue, issue.Poster, opts.ProjectIDs); err != nil {
+			if err := issues_model.IssueAssignOrRemoveProject(ctx, issue, issue.Poster, opts.ProjectIDs, opts.ProjectColumns); err != nil {
 				return err
 			}
 		}

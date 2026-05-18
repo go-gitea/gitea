@@ -630,6 +630,12 @@ func (cpi *comparePageInfoType) prepareCreatePullRequestPage(ctx *context.Contex
 			if ctx.Written() {
 				return
 			}
+			// The PR compare page has no ?project= query param, so SelectedProjectIDs
+			// is always empty here; SeedDefaultProject's own guard handles that.
+			pageMetaData.SeedDefaultProject(ctx, true)
+			if ctx.Written() {
+				return
+			}
 			_, templateErrs := setTemplateIfExists(ctx, pullRequestTemplateKey, pullRequestTemplateCandidates, pageMetaData)
 			if len(templateErrs) > 0 {
 				ctx.Flash.Warning(renderErrorOfTemplates(ctx, templateErrs), true)

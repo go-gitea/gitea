@@ -125,8 +125,10 @@ type RepoSettingForm struct {
 	ExternalTrackerRegexpPattern          string
 	EnableCloseIssuesViaCommitInAnyBranch bool
 
-	EnableProjects bool
-	ProjectsMode   string
+	EnableProjects                  bool
+	ProjectsMode                    string
+	DefaultProjectIDForIssues       int64
+	DefaultProjectIDForPullRequests int64
 
 	EnableReleases bool
 
@@ -415,6 +417,7 @@ type CreateIssueForm struct {
 	Title               string `binding:"Required;MaxSize(255)"`
 	AssigneeIDs         string `form:"assignee_ids"`
 	ReviewerIDs         string `form:"reviewer_ids"`
+	ProjectBoardIDs     string `form:"project_board_ids"`
 	Ref                 string `form:"ref"`
 	MilestoneID         int64
 	Content             string

@@ -6,13 +6,81 @@ package issue
 import (
 	"testing"
 
+	"code.gitea.io/gitea/models/db"
 	issues_model "code.gitea.io/gitea/models/issues"
+	project_model "code.gitea.io/gitea/models/project"
 	repo_model "code.gitea.io/gitea/models/repo"
+	"code.gitea.io/gitea/models/unit"
 	"code.gitea.io/gitea/models/unittest"
 	user_model "code.gitea.io/gitea/models/user"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
+
+// setRepoProjectsConfig writes a ProjectsConfig onto repo's projects unit.
+func setRepoProjectsConfig(t *testing.T, repo *repo_model.Repository, cfg *repo_model.ProjectsConfig) {
+	t.Helper()
+	repoUnit, err := repo.GetUnit(t.Context(), unit.TypeProjects)
+	require.NoError(t, err)
+	repoUnit.Config = cfg
+	_, err = db.GetEngine(t.Context()).ID(repoUnit.ID).Cols("config").Update(repoUnit)
+	require.NoError(t, err)
+}
+
+func newRepoProjectFor(t *testing.T, repo *repo_model.Repository, title string) *project_model.Project {
+	t.Helper()
+	p := &project_model.Project{
+		Title:        title,
+		RepoID:       repo.ID,
+		OwnerID:      repo.OwnerID,
+		Type:         project_model.TypeRepository,
+		TemplateType: project_model.TemplateTypeBasicKanban,
+		CreatorID:    repo.OwnerID,
+	}
+	require.NoError(t, project_model.NewProject(t.Context(), p))
+	return p
+}
+
+// GetDefaultProjectID is the single source of truth behind the new-issue/PR
+// page pre-selection (there is no server-side auto-assignment). These are the
+// behaviors that matter, tested at the fast service-unit layer rather than via
+// a fragile compare-page integration test.
+func TestGetDefaultProjectID(t *testing.T) {
+	require.NoError(t, unittest.PrepareTestDatabase())
+	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
+
+	issuesProj := newRepoProjectFor(t, repo, "Issues Default")
+	prsProj := newRepoProjectFor(t, repo, "PRs Default")
+
+	t.Run("issue and PR defaults are independent", func(t *testing.T) {
+		setRepoProjectsConfig(t, repo, &repo_model.ProjectsConfig{
+			ProjectsMode:                    repo_model.ProjectsModeRepo,
+			DefaultProjectIDForIssues:       issuesProj.ID,
+			DefaultProjectIDForPullRequests: prsProj.ID,
+		})
+		assert.Equal(t, issuesProj.ID, GetDefaultProjectID(t.Context(), repo, false))
+		assert.Equal(t, prsProj.ID, GetDefaultProjectID(t.Context(), repo, true))
+	})
+
+	t.Run("unconfigured default resolves to 0", func(t *testing.T) {
+		setRepoProjectsConfig(t, repo, &repo_model.ProjectsConfig{
+			ProjectsMode:              repo_model.ProjectsModeRepo,
+			DefaultProjectIDForIssues: 0,
+		})
+		assert.EqualValues(t, 0, GetDefaultProjectID(t.Context(), repo, false))
+	})
+
+	t.Run("closed default project resolves to 0", func(t *testing.T) {
+		setRepoProjectsConfig(t, repo, &repo_model.ProjectsConfig{
+			ProjectsMode:              repo_model.ProjectsModeRepo,
+			DefaultProjectIDForIssues: issuesProj.ID,
+		})
+		require.NoError(t, project_model.ChangeProjectStatusByRepoIDAndID(t.Context(), repo.ID, issuesProj.ID, true))
+		assert.EqualValues(t, 0, GetDefaultProjectID(t.Context(), repo, false),
+			"a closed default must not be pre-selected")
+	})
+}
 
 func TestGetRefEndNamesAndURLs(t *testing.T) {
 	issues := []*issues_model.Issue{

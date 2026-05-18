@@ -72,7 +72,21 @@ export class IssueSidebarComboList {
     if (!this.elList) return;
     const elEmptyTip = this.elList.querySelector(':scope > .item.empty-list')!;
     queryElemChildren(this.elList, '.item:not(.empty-list)', (el) => el.remove());
+
+    const isCreatePageProjectCombo = !this.updateUrl && this.container.classList.contains('sidebar-project-combo');
+
     for (const value of changedValues) {
+      if (isCreatePageProjectCombo) {
+        const tpl = document.querySelector<HTMLElement>(`.js-project-card-template[data-project-id="${CSS.escape(value)}"]`);
+        if (!tpl) continue;
+        const card = tpl.firstElementChild?.cloneNode(true) as HTMLElement | undefined;
+        if (!card) continue;
+        this.elList.append(card);
+        for (const sub of card.querySelectorAll<HTMLElement>('.issue-sidebar-combo')) {
+          new IssueSidebarComboList(sub).init();
+        }
+        continue;
+      }
       const el = this.elDropdown.querySelector<HTMLElement>(`.menu > .item[data-value="${CSS.escape(value)}"]`);
       if (!el) continue;
       const listItem = el.cloneNode(true) as HTMLElement;
@@ -81,6 +95,7 @@ export class IssueSidebarComboList {
     }
     const hasItems = Boolean(this.elList.querySelector('.item:not(.empty-list)'));
     toggleElem(elEmptyTip, !hasItems);
+    if (isCreatePageProjectCombo) this.recomputeProjectBoardCarrier();
   }
 
   async reloadPagePartially() {
@@ -136,11 +151,52 @@ export class IssueSidebarComboList {
     }
   }
 
+  // On the create page there is no POST/reload, so the column combo's visible
+  // label must be synced client-side from the checked menu item (the edit page
+  // gets this for free via reloadPagePartially).
+  syncDeferredColumnLabel() {
+    const elLabel = this.elDropdown.querySelector<HTMLElement>('.fixed-text');
+    if (!elLabel) return;
+    const elChecked = this.elDropdown.querySelector<HTMLElement>('.menu > .item.checked');
+    const elTriangle = elLabel.querySelector('svg');
+    queryElemChildren(elLabel, '.color-icon, .gt-ellipsis', (el) => el.remove());
+    const elText = document.createElement('div');
+    elText.classList.add('gt-ellipsis');
+    if (elChecked) {
+      const elColor = queryElemChildren(elChecked, '.color-icon')[0];
+      if (elColor) elLabel.insertBefore(elColor.cloneNode(true), elTriangle);
+      elText.textContent = elChecked.querySelector('.gt-ellipsis')?.textContent ?? '';
+    } else {
+      elText.textContent = elLabel.getAttribute('data-no-column-text') ?? '';
+    }
+    elLabel.insertBefore(elText, elTriangle);
+  }
+
+  recomputeProjectBoardCarrier() {
+    const carrier = document.querySelector<HTMLInputElement>('.js-project-board-ids');
+    if (!carrier) return; // not the create page
+    const pairs: string[] = [];
+    for (const combo of document.querySelectorAll<HTMLElement>('.sidebar-project-column-combo')) {
+      // skip the hidden card-clone source; only the visible selected cards count
+      if (combo.closest('.js-project-card-templates')) continue;
+      const projectId = combo.getAttribute('data-project-id');
+      if (!projectId) continue;
+      const elComboValue = queryElemChildren<HTMLInputElement>(combo, '.combo-value')[0];
+      const val = elComboValue?.value || '';
+      if (val) pairs.push(`${projectId}:${val}`);
+    }
+    carrier.value = pairs.join(',');
+  }
+
   async doUpdate() {
     const changedValues = this.collectCheckedValues();
     if (this.initialValues.join(',') === changedValues.join(',')) return;
     if (!this.updateUrl) this.updateUiList(changedValues);
     if (this.updateUrl) await this.updateToBackend(changedValues);
+    if (!this.updateUrl && this.container.classList.contains('sidebar-project-column-combo')) {
+      this.syncDeferredColumnLabel();
+      this.recomputeProjectBoardCarrier();
+    }
     this.initialValues = changedValues;
   }
 
@@ -158,7 +214,16 @@ export class IssueSidebarComboList {
     if (elItem.matches('.clear-selection')) {
       queryElems(this.elDropdown, '.menu > .item', (el) => el.classList.remove('checked'));
       this.elComboValue.value = '';
-      this.onChange();
+      // onChange only acts for single-select; on the create page (deferred,
+      // no updateUrl) the multi-select project combo needs doUpdate() to drop
+      // the now-unselected cards and refresh the carrier, otherwise a cleared
+      // default project keeps its stale card and still gets assigned. The edit
+      // path (updateUrl set) keeps its existing onChange()/onHide() behavior.
+      if (this.selectionMode !== 'single' && !this.updateUrl) {
+        this.doUpdate();
+      } else {
+        this.onChange();
+      }
       return;
     }
 
@@ -181,7 +246,17 @@ export class IssueSidebarComboList {
       }
     }
     this.elComboValue.value = this.collectCheckedValues().join(',');
-    this.onChange();
+    // On the create page (deferred, no updateUrl) the multi-select project
+    // combo must sync the rendered cards and the form carrier on every toggle:
+    // onChange() is a no-op for multi-select and onHide() only fires when the
+    // dropdown closes, so the form could be submitted with a stale carrier
+    // (or an orphaned card for a just-deselected project). The edit path
+    // (updateUrl set) keeps its existing onChange()/onHide() behavior.
+    if (this.selectionMode !== 'single' && !this.updateUrl) {
+      this.doUpdate();
+    } else {
+      this.onChange();
+    }
   }
 
   async onHide() {

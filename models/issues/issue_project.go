@@ -66,7 +66,15 @@ func LoadProjectIssueColumnMap(ctx context.Context, projectID, defaultColumnID i
 // and removes projects that are currently assigned but not in newProjectIDs.
 // If newProjectIDs is empty, all projects are removed from the issue.
 // When adding an issue to a project, it is placed in the project's default column.
-func IssueAssignOrRemoveProject(ctx context.Context, issue *Issue, doer *user_model.User, newProjectIDs []int64) error {
+// columnByProject (optional, pass at most one) maps projectID -> chosen columnID
+// for projects being added. Absent project, columnID 0, or a column that does
+// not belong to the project all fall back to the project's default column.
+// Existing callers that pass no map keep the previous default-column behavior.
+func IssueAssignOrRemoveProject(ctx context.Context, issue *Issue, doer *user_model.User, newProjectIDs []int64, columnByProject ...map[int64]int64) error {
+	var chosenColumns map[int64]int64
+	if len(columnByProject) > 0 {
+		chosenColumns = columnByProject[0]
+	}
 	return db.WithTx(ctx, func(ctx context.Context) error {
 		if err := issue.LoadRepo(ctx); err != nil {
 			return err
@@ -119,7 +127,17 @@ func IssueAssignOrRemoveProject(ctx context.Context, issue *Issue, doer *user_mo
 					return err
 				}
 
-				newSorting, err := project_model.GetColumnIssueNextSorting(ctx, projectID, defaultColumn.ID)
+				targetColumnID := defaultColumn.ID
+				if chosenColumns != nil {
+					if chosenID := chosenColumns[projectID]; chosenID != 0 {
+						chosenCol, err := project_model.GetColumn(ctx, chosenID)
+						if err == nil && chosenCol.ProjectID == projectID {
+							targetColumnID = chosenCol.ID
+						}
+					}
+				}
+
+				newSorting, err := project_model.GetColumnIssueNextSorting(ctx, projectID, targetColumnID)
 				if err != nil {
 					return err
 				}
@@ -127,7 +145,7 @@ func IssueAssignOrRemoveProject(ctx context.Context, issue *Issue, doer *user_mo
 				err = db.Insert(ctx, &project_model.ProjectIssue{
 					IssueID:         issue.ID,
 					ProjectID:       projectID,
-					ProjectColumnID: defaultColumn.ID,
+					ProjectColumnID: targetColumnID,
 					Sorting:         newSorting,
 				})
 				if err != nil {

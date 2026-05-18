@@ -42,6 +42,7 @@ type issueSidebarProjectCardData struct {
 type issueSidebarProjectsData struct {
 	SelectedProjectIDs []int64
 	ProjectCards       []*issueSidebarProjectCardData
+	AllProjectCards    []*issueSidebarProjectCardData
 
 	OpenProjects   []*project_model.Project
 	ClosedProjects []*project_model.Project
@@ -228,7 +229,28 @@ func (d *IssuePageMetaData) retrieveProjectData(ctx *context.Context) {
 	d.retrieveProjectCardsForExistingIssue(ctx)
 }
 
-func (d *IssuePageMetaData) SetSelectedProjectIDs(ids []int64) {
+// buildProjectCard returns a card populated with the project's columns and its
+// default column selected — the same shape an existing issue's card has, so the
+// create page renders the interactive column combo without a round-trip.
+func (d *IssuePageMetaData) buildProjectCard(ctx *context.Context, project *project_model.Project) *issueSidebarProjectCardData {
+	columns, err := project.GetColumns(ctx)
+	if err != nil {
+		ctx.ServerError("GetColumns", err)
+		return nil
+	}
+	selectedColumn, err := project.MustDefaultColumn(ctx)
+	if err != nil {
+		ctx.ServerError("MustDefaultColumn", err)
+		return nil
+	}
+	return &issueSidebarProjectCardData{
+		Project:        project,
+		Columns:        columns,
+		SelectedColumn: selectedColumn,
+	}
+}
+
+func (d *IssuePageMetaData) SetSelectedProjectIDs(ctx *context.Context, ids []int64) {
 	allProjects := map[int64]*project_model.Project{}
 	for _, p := range d.ProjectsData.OpenProjects {
 		allProjects[p.ID] = p
@@ -238,14 +260,64 @@ func (d *IssuePageMetaData) SetSelectedProjectIDs(ids []int64) {
 	}
 	for _, id := range ids {
 		if project, ok := allProjects[id]; ok {
-			d.ProjectsData.ProjectCards = append(d.ProjectsData.ProjectCards, &issueSidebarProjectCardData{Project: project})
+			card := d.buildProjectCard(ctx, project)
+			if card == nil {
+				return // ctx.ServerError already set
+			}
+			d.ProjectsData.ProjectCards = append(d.ProjectsData.ProjectCards, card)
 		}
 	}
 	d.ProjectsData.SelectedProjectIDs = ids
 }
 
+// SeedDefaultProject pre-selects the repo's configured default project for a
+// new issue/PR when the user did not request one via the URL, using the same
+// fully-populated card path as any other create-page selection.
+func (d *IssuePageMetaData) SeedDefaultProject(ctx *context.Context, isPR bool) {
+	if len(d.ProjectsData.SelectedProjectIDs) != 0 {
+		return // user already chose via ?project=
+	}
+	defaultProjectID := issue_service.GetDefaultProjectID(ctx, d.Repository, isPR)
+	if defaultProjectID == 0 {
+		return
+	}
+	allProjects := map[int64]*project_model.Project{}
+	for _, p := range d.ProjectsData.OpenProjects {
+		allProjects[p.ID] = p
+	}
+	project, ok := allProjects[defaultProjectID]
+	if !ok {
+		return // default not in the eligible set for this repo's mode
+	}
+	card := d.buildProjectCard(ctx, project)
+	if card == nil {
+		return // ctx.ServerError already set
+	}
+	d.ProjectsData.ProjectCards = append(d.ProjectsData.ProjectCards, card)
+	d.ProjectsData.SelectedProjectIDs = []int64{defaultProjectID}
+}
+
 func (d *IssuePageMetaData) retrieveProjectsDataForIssueWriter(ctx *context.Context) {
 	d.ProjectsData.OpenProjects, d.ProjectsData.ClosedProjects = retrieveProjectsInternal(ctx, ctx.Repo.Repository)
+	if d.Issue != nil {
+		return // existing issue: cards come from retrieveProjectCardsForExistingIssue
+	}
+	// Create page: pre-build a fully-populated card per selectable project so the
+	// client can clone the interactive column combo without a round-trip.
+	for _, p := range d.ProjectsData.OpenProjects {
+		card := d.buildProjectCard(ctx, p)
+		if card == nil {
+			return // ctx.ServerError already set
+		}
+		d.ProjectsData.AllProjectCards = append(d.ProjectsData.AllProjectCards, card)
+	}
+	for _, p := range d.ProjectsData.ClosedProjects {
+		card := d.buildProjectCard(ctx, p)
+		if card == nil {
+			return
+		}
+		d.ProjectsData.AllProjectCards = append(d.ProjectsData.AllProjectCards, card)
+	}
 }
 
 // repoReviewerSelection items to bee shown

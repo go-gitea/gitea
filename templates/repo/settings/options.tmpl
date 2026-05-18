@@ -451,32 +451,76 @@
 					</div>
 				</div>
 				<div class="field {{if not $isProjectsEnabled}} disabled{{end}} tw-pl-4" id="projects_box">
-					<p>
-						{{ctx.Locale.Tr "repo.settings.projects_mode_desc"}}
-					</p>
-					<div class="ui dropdown selection">
-						<select name="projects_mode">
-							<option value="repo" {{if or (not $isProjectsEnabled) (eq $projectsUnit.ProjectsConfig.GetProjectsMode "repo")}}selected{{end}}>{{ctx.Locale.Tr "repo.settings.projects_mode_repo"}}</option>
-							<option value="owner" {{if or (not $isProjectsEnabled) (eq $projectsUnit.ProjectsConfig.GetProjectsMode "owner")}}selected{{end}}>{{ctx.Locale.Tr "repo.settings.projects_mode_owner"}}</option>
-							<option value="all" {{if or (not $isProjectsEnabled) (eq $projectsUnit.ProjectsConfig.GetProjectsMode "all")}}selected{{end}}>{{ctx.Locale.Tr "repo.settings.projects_mode_all"}}</option>
-						</select>
-						{{svg "octicon-triangle-down" 14 "dropdown icon"}}
-						<div class="default text">
-							{{if (eq $projectsUnit.ProjectsConfig.GetProjectsMode "repo")}}
-								{{ctx.Locale.Tr "repo.settings.projects_mode_repo"}}
-							{{end}}
-							{{if (eq $projectsUnit.ProjectsConfig.GetProjectsMode "owner")}}
-								{{ctx.Locale.Tr "repo.settings.projects_mode_owner"}}
-							{{end}}
-							{{if (eq $projectsUnit.ProjectsConfig.GetProjectsMode "all")}}
-								{{ctx.Locale.Tr "repo.settings.projects_mode_all"}}
-							{{end}}
+					<div class="field">
+						<label>{{ctx.Locale.Tr "repo.settings.projects_mode_desc"}}</label>
+						<div class="ui dropdown selection">
+							<select name="projects_mode">
+								<option value="repo" {{if or (not $isProjectsEnabled) (eq $projectsUnit.ProjectsConfig.GetProjectsMode "repo")}}selected{{end}}>{{ctx.Locale.Tr "repo.settings.projects_mode_repo"}}</option>
+								<option value="owner" {{if or (not $isProjectsEnabled) (eq $projectsUnit.ProjectsConfig.GetProjectsMode "owner")}}selected{{end}}>{{ctx.Locale.Tr "repo.settings.projects_mode_owner"}}</option>
+								<option value="all" {{if or (not $isProjectsEnabled) (eq $projectsUnit.ProjectsConfig.GetProjectsMode "all")}}selected{{end}}>{{ctx.Locale.Tr "repo.settings.projects_mode_all"}}</option>
+							</select>
+							{{svg "octicon-triangle-down" 14 "dropdown icon"}}
+							<div class="default text">
+								{{if (eq $projectsUnit.ProjectsConfig.GetProjectsMode "repo")}}
+									{{ctx.Locale.Tr "repo.settings.projects_mode_repo"}}
+								{{end}}
+								{{if (eq $projectsUnit.ProjectsConfig.GetProjectsMode "owner")}}
+									{{ctx.Locale.Tr "repo.settings.projects_mode_owner"}}
+								{{end}}
+								{{if (eq $projectsUnit.ProjectsConfig.GetProjectsMode "all")}}
+									{{ctx.Locale.Tr "repo.settings.projects_mode_all"}}
+								{{end}}
+							</div>
+							<div class="menu">
+								<div class="item" data-value="repo">{{ctx.Locale.Tr "repo.settings.projects_mode_repo"}}</div>
+								<div class="item" data-value="owner">{{ctx.Locale.Tr "repo.settings.projects_mode_owner"}}</div>
+								<div class="item" data-value="all">{{ctx.Locale.Tr "repo.settings.projects_mode_all"}}</div>
+							</div>
 						</div>
-						<div class="menu">
-							<div class="item" data-value="repo">{{ctx.Locale.Tr "repo.settings.projects_mode_repo"}}</div>
-							<div class="item" data-value="owner">{{ctx.Locale.Tr "repo.settings.projects_mode_owner"}}</div>
-							<div class="item" data-value="all">{{ctx.Locale.Tr "repo.settings.projects_mode_all"}}</div>
+					</div>
+					<div class="field">
+						<label>{{ctx.Locale.Tr "repo.settings.projects_default_project_for_issues"}}</label>
+						<div class="ui search selection dropdown">
+							<select name="default_project_id_for_issues">
+								<option value="0">{{ctx.Locale.Tr "repo.settings.projects_default_project_dont_auto_assign"}}</option>
+								{{range .DefaultProjectOptions}}
+									<option value="{{.ID}}" data-project-scope="{{.Scope}}" {{if eq .ID $projectsUnit.ProjectsConfig.GetDefaultProjectIDForIssues}}selected{{end}}>{{.Title}}</option>
+								{{end}}
+							</select>
+							{{svg "octicon-triangle-down" 14 "dropdown icon"}}
+							<div class="default text">{{ctx.Locale.Tr "repo.settings.projects_default_project_dont_auto_assign"}}</div>
+							<div class="menu">
+								<div class="item" data-value="0">{{ctx.Locale.Tr "repo.settings.projects_default_project_dont_auto_assign"}}</div>
+								{{range .DefaultProjectOptions}}
+									<div class="item" data-value="{{.ID}}" data-project-scope="{{.Scope}}">{{.Title}}</div>
+								{{end}}
+							</div>
 						</div>
+						{{if .DefaultProjectIssuesUnavailable}}
+							<p class="help text yellow">{{ctx.Locale.Tr "repo.settings.projects_default_project_unavailable"}}</p>
+						{{end}}
+					</div>
+					<div class="field">
+						<label>{{ctx.Locale.Tr "repo.settings.projects_default_project_for_pull_requests"}}</label>
+						<div class="ui search selection dropdown">
+							<select name="default_project_id_for_pull_requests">
+								<option value="0">{{ctx.Locale.Tr "repo.settings.projects_default_project_dont_auto_assign"}}</option>
+								{{range .DefaultProjectOptions}}
+									<option value="{{.ID}}" data-project-scope="{{.Scope}}" {{if eq .ID $projectsUnit.ProjectsConfig.GetDefaultProjectIDForPullRequests}}selected{{end}}>{{.Title}}</option>
+								{{end}}
+							</select>
+							{{svg "octicon-triangle-down" 14 "dropdown icon"}}
+							<div class="default text">{{ctx.Locale.Tr "repo.settings.projects_default_project_dont_auto_assign"}}</div>
+							<div class="menu">
+								<div class="item" data-value="0">{{ctx.Locale.Tr "repo.settings.projects_default_project_dont_auto_assign"}}</div>
+								{{range .DefaultProjectOptions}}
+									<div class="item" data-value="{{.ID}}" data-project-scope="{{.Scope}}">{{.Title}}</div>
+								{{end}}
+							</div>
+						</div>
+						{{if .DefaultProjectPRsUnavailable}}
+							<p class="help text yellow">{{ctx.Locale.Tr "repo.settings.projects_default_project_unavailable"}}</p>
+						{{end}}
 					</div>
 				</div>
 

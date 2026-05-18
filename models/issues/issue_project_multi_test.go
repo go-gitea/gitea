@@ -147,3 +147,81 @@ func TestIssueMultipleProjects(t *testing.T) {
 		require.NoError(t, err)
 	})
 }
+
+func TestIssueAssignOrRemoveProjectColumn(t *testing.T) {
+	require.NoError(t, unittest.PrepareTestDatabase())
+
+	// project 1 (repo 1) has fixture columns: 1 "To Do" (default), 2, 3.
+	loadProjectAndColumns := func(t *testing.T) (proj *project_model.Project, defCol, nonDefault *project_model.Column) {
+		t.Helper()
+		proj = unittest.AssertExistsAndLoadBean(t, &project_model.Project{ID: 1})
+		cols, err := proj.GetColumns(t.Context())
+		require.NoError(t, err)
+		require.GreaterOrEqual(t, len(cols), 2, "fixture project 1 must have >=2 columns")
+		defCol, err = proj.MustDefaultColumn(t.Context())
+		require.NoError(t, err)
+		for _, c := range cols {
+			if c.ID != defCol.ID {
+				nonDefault = c
+				break
+			}
+		}
+		require.NotNil(t, nonDefault)
+		return proj, defCol, nonDefault
+	}
+
+	t.Run("DefaultColumnWhenNoMap", func(t *testing.T) {
+		issue := unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{ID: 1})
+		doer := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
+		proj, defCol, _ := loadProjectAndColumns(t)
+
+		require.NoError(t, issues_model.IssueAssignOrRemoveProject(t.Context(), issue, doer, []int64{proj.ID}))
+
+		pi := unittest.AssertExistsAndLoadBean(t, &project_model.ProjectIssue{IssueID: issue.ID, ProjectID: proj.ID})
+		assert.Equal(t, defCol.ID, pi.ProjectColumnID)
+
+		require.NoError(t, issues_model.IssueAssignOrRemoveProject(t.Context(), issue, doer, []int64{}))
+	})
+
+	t.Run("ChosenColumn", func(t *testing.T) {
+		issue := unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{ID: 1})
+		doer := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
+		proj, _, nonDefault := loadProjectAndColumns(t)
+
+		require.NoError(t, issues_model.IssueAssignOrRemoveProject(t.Context(), issue, doer,
+			[]int64{proj.ID}, map[int64]int64{proj.ID: nonDefault.ID}))
+
+		pi := unittest.AssertExistsAndLoadBean(t, &project_model.ProjectIssue{IssueID: issue.ID, ProjectID: proj.ID})
+		assert.Equal(t, nonDefault.ID, pi.ProjectColumnID)
+
+		require.NoError(t, issues_model.IssueAssignOrRemoveProject(t.Context(), issue, doer, []int64{}))
+	})
+
+	t.Run("ChosenColumnNotInProjectFallsBackToDefault", func(t *testing.T) {
+		issue := unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{ID: 1})
+		doer := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
+		proj, defCol, _ := loadProjectAndColumns(t)
+
+		require.NoError(t, issues_model.IssueAssignOrRemoveProject(t.Context(), issue, doer,
+			[]int64{proj.ID}, map[int64]int64{proj.ID: 99999}))
+
+		pi := unittest.AssertExistsAndLoadBean(t, &project_model.ProjectIssue{IssueID: issue.ID, ProjectID: proj.ID})
+		assert.Equal(t, defCol.ID, pi.ProjectColumnID)
+
+		require.NoError(t, issues_model.IssueAssignOrRemoveProject(t.Context(), issue, doer, []int64{}))
+	})
+
+	t.Run("ZeroColumnIDUsesDefault", func(t *testing.T) {
+		issue := unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{ID: 1})
+		doer := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
+		proj, defCol, _ := loadProjectAndColumns(t)
+
+		require.NoError(t, issues_model.IssueAssignOrRemoveProject(t.Context(), issue, doer,
+			[]int64{proj.ID}, map[int64]int64{proj.ID: 0}))
+
+		pi := unittest.AssertExistsAndLoadBean(t, &project_model.ProjectIssue{IssueID: issue.ID, ProjectID: proj.ID})
+		assert.Equal(t, defCol.ID, pi.ProjectColumnID)
+
+		require.NoError(t, issues_model.IssueAssignOrRemoveProject(t.Context(), issue, doer, []int64{}))
+	})
+}

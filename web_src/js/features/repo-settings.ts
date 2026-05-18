@@ -8,6 +8,13 @@ import {globMatch} from '../utils/glob.ts';
 
 const {appSubUrl} = window.config;
 
+const projectsModeAllowedScopes: Record<string, Set<string>> = {
+  repo: new Set(['repo']),
+  owner: new Set(['owner']),
+  all: new Set(['repo', 'owner']),
+  none: new Set<string>(),
+};
+
 function initRepoSettingsCollaboration() {
   // Change collaborator access mode
   for (const dropdownEl of queryElems(document, '.page-content.repository .ui.dropdown.access-mode')) {
@@ -129,6 +136,45 @@ function initRepoSettingsOptions() {
     const checkedVal = el.value;
     pageContent.querySelector('#tracker-issue-style-regex-box')!.classList.toggle('disabled', checkedVal !== 'regexp');
   }));
+
+  initDefaultProjectScopeFilter(pageContent);
+}
+
+export function initDefaultProjectScopeFilter(pageContent: Element) {
+  const modeSelect = pageContent.querySelector<HTMLSelectElement>('select[name="projects_mode"]');
+  if (!modeSelect) return;
+
+  const dropdowns = pageContent.querySelectorAll<HTMLSelectElement>(
+    'select[name="default_project_id_for_issues"], select[name="default_project_id_for_pull_requests"]',
+  );
+
+  const applyFilter = () => {
+    // Unknown mode (shouldn't happen) degrades to "show everything" rather than hiding all options.
+    const allowed = projectsModeAllowedScopes[modeSelect.value] ?? new Set(['repo', 'owner']);
+    for (const select of dropdowns) {
+      const fieldEl = select.closest('.field')!;
+      let selectedHidden = false;
+      for (const opt of select.querySelectorAll<HTMLOptionElement>('option')) {
+        const scope = opt.getAttribute('data-project-scope');
+        // value-0 ("Don't auto-assign") has no scope and is always shown
+        const visible = !scope || allowed.has(scope);
+        opt.hidden = !visible;
+        const item = fieldEl.querySelector<HTMLElement>(`.menu .item[data-value="${CSS.escape(opt.value)}"]`);
+        if (item) item.classList.toggle('tw-hidden', !visible);
+        if (!visible && opt.selected) selectedHidden = true;
+      }
+      if (selectedHidden) {
+        select.value = '0';
+        const $dropdown = fomanticQuery(fieldEl.querySelector('.ui.dropdown')!);
+        $dropdown.dropdown('set selected', '0');
+      }
+    }
+  };
+
+  modeSelect.addEventListener('change', applyFilter);
+  // Defer the initial pass so Fomantic has initialized the dropdown modules
+  // (set up after initRepoSettings runs); the change listener is immediate.
+  setTimeout(applyFilter, 0);
 }
 
 export function initRepoSettings() {

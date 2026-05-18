@@ -13,6 +13,47 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
+func TestProjectsConfigSerialization(t *testing.T) {
+	cfg := &ProjectsConfig{
+		ProjectsMode:                    ProjectsModeAll,
+		DefaultProjectIDForIssues:       42,
+		DefaultProjectIDForPullRequests: 7,
+	}
+
+	data, err := cfg.ToDB()
+	assert.NoError(t, err)
+
+	cfg2 := &ProjectsConfig{}
+	err = cfg2.FromDB(data)
+	assert.NoError(t, err)
+	assert.Equal(t, ProjectsModeAll, cfg2.GetProjectsMode())
+	assert.Equal(t, int64(42), cfg2.GetDefaultProjectIDForIssues())
+	assert.Equal(t, int64(7), cfg2.GetDefaultProjectIDForPullRequests())
+}
+
+func TestProjectsConfigDefaultValues(t *testing.T) {
+	cfg := &ProjectsConfig{}
+	err := cfg.FromDB([]byte("{}"))
+	assert.NoError(t, err)
+	assert.Equal(t, int64(0), cfg.GetDefaultProjectIDForIssues())
+	assert.Equal(t, int64(0), cfg.GetDefaultProjectIDForPullRequests())
+
+	var nilCfg *ProjectsConfig
+	assert.Equal(t, int64(0), nilCfg.GetDefaultProjectIDForIssues())
+	assert.Equal(t, int64(0), nilCfg.GetDefaultProjectIDForPullRequests())
+}
+
+func TestProjectsConfigIgnoresLegacyKeys(t *testing.T) {
+	// Rows written by the pre-split version carry the old keys.
+	// They must deserialize to the safe "don't auto-assign" default.
+	legacy := []byte(`{"ProjectsMode":"all","DefaultProjectID":99,"AutoAddNewIssuesToDefaultProject":true,"AutoAddNewPullRequestsToDefaultProject":true}`)
+	cfg := &ProjectsConfig{}
+	err := cfg.FromDB(legacy)
+	assert.NoError(t, err)
+	assert.Equal(t, int64(0), cfg.GetDefaultProjectIDForIssues())
+	assert.Equal(t, int64(0), cfg.GetDefaultProjectIDForPullRequests())
+}
+
 func TestActionsConfig(t *testing.T) {
 	cfg := &ActionsConfig{}
 	cfg.DisableWorkflow("test1.yaml")

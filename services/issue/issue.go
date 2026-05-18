@@ -14,6 +14,7 @@ import (
 	project_model "code.gitea.io/gitea/models/project"
 	repo_model "code.gitea.io/gitea/models/repo"
 	system_model "code.gitea.io/gitea/models/system"
+	unit_model "code.gitea.io/gitea/models/unit"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/gitrepo"
@@ -23,7 +24,14 @@ import (
 )
 
 // NewIssue creates new issue with labels for repository.
-func NewIssue(ctx context.Context, repo *repo_model.Repository, issue *issues_model.Issue, labelIDs []int64, uuids []string, assigneeIDs, projectIDs []int64) error {
+// columnByProject (optional, pass at most one) is forwarded to
+// IssueAssignOrRemoveProject; nil/absent keeps default-column behavior.
+//
+// The repo's configured default project is NOT auto-applied here: it is purely
+// a pre-selection on the new-issue page (see IssuePageMetaData.SeedDefaultProject).
+// Whatever projectIDs the caller passes is authoritative, so clearing the
+// pre-selected default on the form reliably creates an issue with no project.
+func NewIssue(ctx context.Context, repo *repo_model.Repository, issue *issues_model.Issue, labelIDs []int64, uuids []string, assigneeIDs, projectIDs []int64, columnByProject ...map[int64]int64) error {
 	if err := issue.LoadPoster(ctx); err != nil {
 		return err
 	}
@@ -42,7 +50,7 @@ func NewIssue(ctx context.Context, repo *repo_model.Repository, issue *issues_mo
 			}
 		}
 		if len(projectIDs) > 0 {
-			err := issues_model.IssueAssignOrRemoveProject(ctx, issue, issue.Poster, projectIDs)
+			err := issues_model.IssueAssignOrRemoveProject(ctx, issue, issue.Poster, projectIDs, columnByProject...)
 			if err != nil {
 				return err
 			}
@@ -178,6 +186,28 @@ func GetRefEndNamesAndURLs(issues []*issues_model.Issue, repoLink string) (map[i
 		}
 	}
 	return issueRefEndNames, issueRefURLs
+}
+
+func GetDefaultProjectID(ctx context.Context, repo *repo_model.Repository, isPR bool) int64 {
+	unit, err := repo.GetUnit(ctx, unit_model.TypeProjects)
+	if err != nil {
+		return 0
+	}
+	cfg := unit.ProjectsConfig()
+	var projectID int64
+	if isPR {
+		projectID = cfg.GetDefaultProjectIDForPullRequests()
+	} else {
+		projectID = cfg.GetDefaultProjectIDForIssues()
+	}
+	if projectID == 0 {
+		return 0
+	}
+	p, err := project_model.GetProjectByID(ctx, projectID)
+	if err != nil || p.IsClosed || !p.CanBeAccessedByOwnerRepo(repo.OwnerID, repo) {
+		return 0
+	}
+	return p.ID
 }
 
 // deleteIssue deletes the issue

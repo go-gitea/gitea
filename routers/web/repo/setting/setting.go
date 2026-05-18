@@ -13,9 +13,11 @@ import (
 
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/models/organization"
+	project_model "code.gitea.io/gitea/models/project"
 	repo_model "code.gitea.io/gitea/models/repo"
 	unit_model "code.gitea.io/gitea/models/unit"
 	user_model "code.gitea.io/gitea/models/user"
+	"code.gitea.io/gitea/modules/container"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/gitrepo"
 	"code.gitea.io/gitea/modules/indexer/code"
@@ -23,6 +25,7 @@ import (
 	"code.gitea.io/gitea/modules/indexer/stats"
 	"code.gitea.io/gitea/modules/lfs"
 	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/optional"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/templates"
@@ -133,8 +136,74 @@ func preparePullRequestSettings(ctx *context.Context) {
 	}
 }
 
+// settingsProjectOption is one selectable project in the default-project
+// dropdowns, tagged with the scope the client filter uses.
+type settingsProjectOption struct {
+	ID    int64
+	Title string
+	Scope string // "repo" or "owner"
+}
+
 // Settings show a repository's settings page
 func Settings(ctx *context.Context) {
+	repo := ctx.Repo.Repository
+	if !unit_model.TypeProjects.UnitGlobalDisabled() {
+		// Deliberately not reusing retrieveProjectsInternal: that helper filters
+		// by the stored ProjectsMode, but the settings form needs every repo- and
+		// owner-scope project tagged with its scope so the client filter can
+		// re-narrow live as the user changes the mode dropdown.
+		var opts []*settingsProjectOption
+
+		repoProjects, err := db.Find[project_model.Project](ctx, project_model.SearchOptions{
+			ListOptions: db.ListOptionsAll,
+			RepoID:      repo.ID,
+			IsClosed:    optional.Some(false),
+			Type:        project_model.TypeRepository,
+		})
+		if err != nil {
+			ctx.ServerError("FindRepoProjects", err)
+			return
+		}
+		for _, p := range repoProjects {
+			opts = append(opts, &settingsProjectOption{ID: p.ID, Title: p.Title, Scope: "repo"})
+		}
+
+		if err := repo.LoadOwner(ctx); err != nil {
+			ctx.ServerError("LoadOwner", err)
+			return
+		}
+		ownerProjectType := project_model.TypeIndividual
+		if repo.Owner.IsOrganization() {
+			ownerProjectType = project_model.TypeOrganization
+		}
+		ownerProjects, err := db.Find[project_model.Project](ctx, project_model.SearchOptions{
+			ListOptions: db.ListOptionsAll,
+			OwnerID:     repo.OwnerID,
+			IsClosed:    optional.Some(false),
+			Type:        ownerProjectType,
+		})
+		if err != nil {
+			ctx.ServerError("FindOwnerProjects", err)
+			return
+		}
+		for _, p := range ownerProjects {
+			opts = append(opts, &settingsProjectOption{ID: p.ID, Title: p.Title, Scope: "owner"})
+		}
+
+		ctx.Data["DefaultProjectOptions"] = opts
+
+		// Compute the "previously selected project is gone" warnings here, where
+		// the eligible set is known. Avoids needing a custom template helper.
+		optIDs := make(container.Set[int64], len(opts))
+		for _, o := range opts {
+			optIDs.Add(o.ID)
+		}
+		cfg := repo.MustGetUnit(ctx, unit_model.TypeProjects).ProjectsConfig()
+		issuesID := cfg.GetDefaultProjectIDForIssues()
+		prID := cfg.GetDefaultProjectIDForPullRequests()
+		ctx.Data["DefaultProjectIssuesUnavailable"] = issuesID != 0 && !optIDs.Contains(issuesID)
+		ctx.Data["DefaultProjectPRsUnavailable"] = prID != 0 && !optIDs.Contains(prID)
+	}
 	ctx.HTML(http.StatusOK, tplSettingsOptions)
 }
 
@@ -633,9 +702,45 @@ func handleSettingsPostAdvanced(ctx *context.Context) {
 	}
 
 	if form.EnableProjects && !unit_model.TypeProjects.UnitGlobalDisabled() {
-		units = append(units, newRepoUnit(repo, unit_model.TypeProjects, &repo_model.ProjectsConfig{
-			ProjectsMode: repo_model.ProjectsMode(form.ProjectsMode),
-		}))
+		mode := repo_model.ProjectsMode(form.ProjectsMode)
+		projectsCfg := &repo_model.ProjectsConfig{
+			ProjectsMode:                    mode,
+			DefaultProjectIDForIssues:       form.DefaultProjectIDForIssues,
+			DefaultProjectIDForPullRequests: form.DefaultProjectIDForPullRequests,
+		}
+
+		cleared := false
+		validateDefault := func(id int64) int64 {
+			if id == 0 {
+				return 0
+			}
+			p, err := project_model.GetProjectByID(ctx, id)
+			if err != nil || p.IsClosed || !p.CanBeAccessedByOwnerRepo(repo.OwnerID, repo) {
+				cleared = true
+				return 0
+			}
+			// The project's own scope must be permitted by the chosen mode.
+			// IsProjectsAllowed(scopeAsMode) answers "does the chosen mode allow
+			// a project of this scope" (repo->repo only, owner->owner only,
+			// all->both); it is the single mode/scope rule used elsewhere too.
+			projectScopeMode := repo_model.ProjectsModeOwner
+			if p.Type == project_model.TypeRepository {
+				projectScopeMode = repo_model.ProjectsModeRepo
+			}
+			if !projectsCfg.IsProjectsAllowed(projectScopeMode) {
+				cleared = true
+				return 0
+			}
+			return id
+		}
+
+		projectsCfg.DefaultProjectIDForIssues = validateDefault(projectsCfg.DefaultProjectIDForIssues)
+		projectsCfg.DefaultProjectIDForPullRequests = validateDefault(projectsCfg.DefaultProjectIDForPullRequests)
+		if cleared {
+			ctx.Flash.Warning(ctx.Tr("repo.settings.projects_default_project_cleared"))
+		}
+
+		units = append(units, newRepoUnit(repo, unit_model.TypeProjects, projectsCfg))
 	} else if !unit_model.TypeProjects.UnitGlobalDisabled() {
 		deleteUnitTypes = append(deleteUnitTypes, unit_model.TypeProjects)
 	}

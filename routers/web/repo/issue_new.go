@@ -122,8 +122,20 @@ func NewIssue(ctx *context.Context) {
 
 	pageMetaData.MilestonesData.SelectedMilestoneID = ctx.FormInt64("milestone")
 
-	pageMetaData.SetSelectedProjectIDs(parseProjectIDsFromQuery(ctx))
-	if len(pageMetaData.ProjectsData.SelectedProjectIDs) == 1 {
+	queryProjectIDs := parseProjectIDsFromQuery(ctx)
+	pageMetaData.SetSelectedProjectIDs(ctx, queryProjectIDs)
+	if ctx.Written() {
+		return
+	}
+	pageMetaData.SeedDefaultProject(ctx, false)
+	if ctx.Written() {
+		return
+	}
+	// Only return to the project board after creation when the user explicitly
+	// arrived in a single-project context via ?project=. A project that was
+	// merely pre-selected as the repo default must not hijack the redirect:
+	// the author expects to land on the new issue.
+	if len(queryProjectIDs) == 1 {
 		ctx.Data["redirect_after_creation"] = "project"
 	}
 
@@ -241,6 +253,7 @@ func ValidateRepoMetasForNewIssue(ctx *context.Context, form forms.CreateIssueFo
 	LabelIDs, AssigneeIDs []int64
 	MilestoneID           int64
 	ProjectIDs            []int64
+	ProjectColumns        map[int64]int64
 
 	Reviewers     []*user_model.User
 	TeamReviewers []*organization.Team
@@ -268,7 +281,10 @@ func ValidateRepoMetasForNewIssue(ctx *context.Context, form forms.CreateIssueFo
 	pageMetaData.MilestonesData.SelectedMilestoneID = form.MilestoneID
 
 	inputProjectIDs := ctx.FormStringInt64s("project_ids")
-	pageMetaData.SetSelectedProjectIDs(inputProjectIDs)
+	pageMetaData.SetSelectedProjectIDs(ctx, inputProjectIDs)
+	if ctx.Written() {
+		return ret
+	}
 
 	// prepare assignees
 	candidateAssignees := toSet(pageMetaData.AssigneesData.CandidateAssignees, func(user *user_model.User) int64 { return user.ID })
@@ -313,8 +329,39 @@ func ValidateRepoMetasForNewIssue(ctx *context.Context, form forms.CreateIssueFo
 		}
 	}
 
+	// Parse "projID:colID,projID:colID" from the create form. Only keep pairs
+	// whose project is in the validated project set; the column membership is
+	// re-checked in IssueAssignOrRemoveProject (defense in depth). Absent or
+	// invalid -> that project keeps its default column.
+	projectColumns := make(map[int64]int64)
+	if form.ProjectBoardIDs != "" {
+		validProjects := make(map[int64]bool, len(inputProjectIDs))
+		for _, pid := range inputProjectIDs {
+			validProjects[pid] = true
+		}
+		for pair := range strings.SplitSeq(form.ProjectBoardIDs, ",") {
+			pair = strings.TrimSpace(pair)
+			if pair == "" {
+				continue
+			}
+			parts := strings.SplitN(pair, ":", 2)
+			if len(parts) != 2 {
+				continue
+			}
+			pid, err1 := strconv.ParseInt(strings.TrimSpace(parts[0]), 10, 64)
+			cid, err2 := strconv.ParseInt(strings.TrimSpace(parts[1]), 10, 64)
+			if err1 != nil || err2 != nil {
+				continue
+			}
+			if validProjects[pid] && cid > 0 {
+				projectColumns[pid] = cid
+			}
+		}
+	}
+
 	// Return only the validated IDs.
 	ret.LabelIDs, ret.AssigneeIDs, ret.MilestoneID, ret.ProjectIDs = inputLabelIDs, inputAssigneeIDs, form.MilestoneID, inputProjectIDs
+	ret.ProjectColumns = projectColumns
 	ret.Reviewers, ret.TeamReviewers = reviewers, teamReviewers
 	return ret
 }
@@ -373,7 +420,7 @@ func NewIssuePost(ctx *context.Context) {
 		Ref:         form.Ref,
 	}
 
-	if err := issue_service.NewIssue(ctx, repo, issue, labelIDs, attachments, assigneeIDs, projectIDs); err != nil {
+	if err := issue_service.NewIssue(ctx, repo, issue, labelIDs, attachments, assigneeIDs, projectIDs, validateRet.ProjectColumns); err != nil {
 		if repo_model.IsErrUserDoesNotHaveAccessToRepo(err) {
 			ctx.HTTPError(http.StatusBadRequest, "UserDoesNotHaveAccessToRepo", err.Error())
 		} else if errors.Is(err, user_model.ErrBlockedUser) {

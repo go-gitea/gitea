@@ -1406,6 +1406,7 @@ func CompareAndPullRequestPost(ctx *context.Context) {
 		Reviewers:       validateRet.Reviewers,
 		TeamReviewers:   validateRet.TeamReviewers,
 		ProjectIDs:      projectIDs,
+		ProjectColumns:  validateRet.ProjectColumns,
 	}
 	if err := pull_service.NewPullRequest(ctx, prOpts); err != nil {
 		switch {
