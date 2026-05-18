@@ -27,7 +27,6 @@ jobs:
           cache: false
       - uses: ./.github/actions/go-cache
         with:
-          cache-name: lint-backend
           lint-cache: "true"
       - run: make deps-backend deps-tools
       - run: make lint-backend
@@ -76,8 +75,6 @@ jobs:
           check-latest: true
           cache: false
       - uses: ./.github/actions/go-cache
-        with:
-          cache-name: seed
       - run: make deps-backend deps-tools
       - run: make --always-make checks-backend # ensure the "go-licenses" make target runs
 
@@ -111,8 +108,6 @@ jobs:
           check-latest: true
           cache: false
       - uses: ./.github/actions/go-cache
-        with:
-          cache-name: seed
       - run: make deps-backend generate-go
       # no frontend build here as backend should be able to build, even without any frontend files
       # CGO is not used when cross-compile, so these steps also test if the code is compatible with CGO disabled
