@@ -9,14 +9,14 @@ import (
 	"fmt"
 	"strings"
 
+	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 
-	"xorm.io/xorm"
 	"xorm.io/xorm/schemas"
 )
 
-func SetDefaultPasswordToArgon2(x *xorm.Engine) error {
+func SetDefaultPasswordToArgon2(x db.EngineMigration) error {
 	switch {
 	case setting.Database.Type.IsMySQL():
 		_, err := x.Exec("ALTER TABLE `user` ALTER passwd_hash_algo SET DEFAULT 'argon2';")
