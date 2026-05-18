@@ -153,13 +153,13 @@ jobs:
       - run: make generate-go
         env:
           TAGS: bindata
-      - name: unit tests (bindata)
+      - name: unit-tests
         run: make test-backend
         env:
           GOTEST_FLAGS: -race -timeout=20m
           TAGS: bindata
           GITHUB_READ_TOKEN: ${{ secrets.GITHUB_READ_TOKEN }}
-      - name: unit tests (bindata gogit)
+      - name: unit-tests-gogit
         run: make test-backend
         env:
           GOTEST_FLAGS: -race -timeout=20m
