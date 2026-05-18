@@ -19,6 +19,7 @@ export function initRepositoryActionView() {
       failureTagsUrl: el.getAttribute('data-analysis-failure-tags-url')!,
       locale: {
         title: el.getAttribute('data-locale-analysis-title')!,
+        tabRun: el.getAttribute('data-locale-analysis-tab-run')!,
         add: el.getAttribute('data-locale-analysis-add')!,
         edit: el.getAttribute('data-locale-analysis-edit')!,
         delete: el.getAttribute('data-locale-analysis-delete')!,

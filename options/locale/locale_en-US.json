@@ -3783,6 +3783,7 @@
   "actions.runs.delete": "Delete workflow run",
   "actions.runs.cancel": "Cancel workflow run",
   "actions.runs.analysis.title": "Analysis",
+  "actions.runs.analysis.tab_run": "Run",
   "actions.runs.analysis.add": "Add analysis",
   "actions.runs.analysis.edit": "Edit",
   "actions.runs.analysis.delete": "Delete",
