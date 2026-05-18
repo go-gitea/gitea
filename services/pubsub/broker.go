@@ -1,79 +1,33 @@
 // Copyright 2026 The Gitea Authors. All rights reserved.
 // SPDX-License-Identifier: MIT
 
+// Package pubsub fans real-time events out to local WebSocket subscribers.
+// Backend is chosen at boot: in-process map (single-instance) or Redis
+// (multi-process). DefaultBroker is wired by Init from setting.Pubsub.
 package pubsub
 
-import (
-	"fmt"
-	"sync"
+import "fmt"
 
-	"code.gitea.io/gitea/modules/log"
-)
+type Broker interface {
+	// Subscribe returns a buffered channel of messages for topic, and a cancel
+	// func that closes the channel and removes the subscription. cancel is
+	// idempotent.
+	Subscribe(topic string) (<-chan []byte, func())
 
-type Broker struct {
-	mu   sync.RWMutex
-	subs map[string][]chan []byte
+	// Publish delivers msg to every subscriber of topic. Non-blocking: a slow
+	// subscriber drops messages rather than stalling the publisher.
+	Publish(topic string, msg []byte)
+
+	// HasTopicSubscribers is an optimization hint for publishers that would
+	// otherwise do a DB lookup just to discover nobody is listening. Backends
+	// that cannot answer cheaply across processes return true to be safe.
+	HasTopicSubscribers(topic string) bool
 }
 
-var DefaultBroker = NewBroker()
-
-func NewBroker() *Broker {
-	return &Broker{
-		subs: make(map[string][]chan []byte),
-	}
-}
-
-func (b *Broker) Subscribe(topic string) (<-chan []byte, func()) {
-	ch := make(chan []byte, 8)
-
-	b.mu.Lock()
-	b.subs[topic] = append(b.subs[topic], ch)
-	b.mu.Unlock()
-
-	var once sync.Once
-	cancel := func() {
-		once.Do(func() {
-			b.mu.Lock()
-			defer b.mu.Unlock()
-			subs := b.subs[topic]
-			for i, sub := range subs {
-				if sub == ch {
-					subs = append(subs[:i], subs[i+1:]...)
-					break
-				}
-			}
-			if len(subs) == 0 {
-				delete(b.subs, topic)
-			} else {
-				b.subs[topic] = subs
-			}
-			close(ch)
-		})
-	}
-	return ch, cancel
-}
+// DefaultBroker is set by Init. Tests and standalone callers that need a
+// broker without Init can assign a fresh MemoryBroker.
+var DefaultBroker Broker = NewMemoryBroker()
 
 func UserTopic(userID int64) string {
 	return fmt.Sprintf("user-%d", userID)
-}
-
-func (b *Broker) HasTopicSubscribers(topic string) bool {
-	b.mu.RLock()
-	defer b.mu.RUnlock()
-	return len(b.subs[topic]) > 0
-}
-
-// Non-blocking: slow subscribers drop. RLock held across fan-out to block
-// cancel() from closing a channel between slice read and send.
-func (b *Broker) Publish(topic string, msg []byte) {
-	b.mu.RLock()
-	defer b.mu.RUnlock()
-
-	for _, ch := range b.subs[topic] {
-		select {
-		case ch <- msg:
-		default:
-			log.Trace("pubsub: dropping message on topic %q — subscriber channel full", topic)
-		}
-	}
 }

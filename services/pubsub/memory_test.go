@@ -13,13 +13,13 @@ import (
 )
 
 func TestBroker_PublishWithoutSubscribers(t *testing.T) {
-	b := NewBroker()
+	b := NewMemoryBroker()
 	// Must not block or panic when no subscribers exist.
 	b.Publish("nobody", []byte("msg"))
 }
 
 func TestBroker_SubscribeReceivesPublishedMessages(t *testing.T) {
-	b := NewBroker()
+	b := NewMemoryBroker()
 	ch, cancel := b.Subscribe("topic")
 	defer cancel()
 
@@ -34,7 +34,7 @@ func TestBroker_SubscribeReceivesPublishedMessages(t *testing.T) {
 }
 
 func TestBroker_FanOutToAllSubscribers(t *testing.T) {
-	b := NewBroker()
+	b := NewMemoryBroker()
 	const n = 5
 	channels := make([]<-chan []byte, n)
 	cancels := make([]func(), n)
@@ -60,7 +60,7 @@ func TestBroker_FanOutToAllSubscribers(t *testing.T) {
 }
 
 func TestBroker_TopicIsolation(t *testing.T) {
-	b := NewBroker()
+	b := NewMemoryBroker()
 	chA, cancelA := b.Subscribe("a")
 	defer cancelA()
 	chB, cancelB := b.Subscribe("b")
@@ -82,7 +82,7 @@ func TestBroker_TopicIsolation(t *testing.T) {
 }
 
 func TestBroker_CancelStopsDelivery(t *testing.T) {
-	b := NewBroker()
+	b := NewMemoryBroker()
 	ch, cancel := b.Subscribe("topic")
 
 	cancel()
@@ -98,7 +98,7 @@ func TestBroker_CancelStopsDelivery(t *testing.T) {
 }
 
 func TestBroker_SlowSubscriberDoesNotBlockOthers(t *testing.T) {
-	b := NewBroker()
+	b := NewMemoryBroker()
 	_, cancelSlow := b.Subscribe("topic")
 	defer cancelSlow()
 	fast, cancelFast := b.Subscribe("topic")
@@ -135,7 +135,7 @@ func TestBroker_SlowSubscriberDoesNotBlockOthers(t *testing.T) {
 }
 
 func TestBroker_CancelDeletesEmptyTopic(t *testing.T) {
-	b := NewBroker()
+	b := NewMemoryBroker()
 	_, cancel := b.Subscribe("topic")
 	cancel()
 	b.mu.RLock()
@@ -145,7 +145,7 @@ func TestBroker_CancelDeletesEmptyTopic(t *testing.T) {
 }
 
 func TestBroker_ConcurrentPublishSubscribeCancel(t *testing.T) {
-	b := NewBroker()
+	b := NewMemoryBroker()
 
 	const writers = 4
 	const readers = 8
