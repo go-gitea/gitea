@@ -104,7 +104,6 @@ require (
 	github.com/urfave/cli-docs/v3 v3.1.0
 	github.com/urfave/cli/v3 v3.6.1
 	github.com/wneessen/go-mail v0.7.2
-	github.com/xeipuuv/gojsonschema v1.2.0
 	github.com/yohcop/openid-go v1.0.1
 	github.com/yuin/goldmark v1.8.2
 	github.com/yuin/goldmark-highlighting/v2 v2.0.0-20230729083705-37449abec8cc
@@ -272,8 +271,6 @@ require (
 	github.com/woodsbury/decimal128 v1.3.0 // indirect
 	github.com/x448/float16 v0.8.4 // indirect
 	github.com/xanzy/ssh-agent v0.3.3 // indirect
-	github.com/xeipuuv/gojsonpointer v0.0.0-20190905194746-02993c407bfb // indirect
-	github.com/xeipuuv/gojsonreference v0.0.0-20180127040603-bd5ef7bd5415 // indirect
 	github.com/xi2/xz v0.0.0-20171230120015-48954b6210f8 // indirect
 	github.com/zeebo/blake3 v0.2.4 // indirect
 	github.com/zeebo/xxh3 v1.1.0 // indirect
