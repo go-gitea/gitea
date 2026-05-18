@@ -3585,6 +3585,17 @@
             "required": true
           },
           {
+            "enum": [
+              "all",
+              "public",
+              "private"
+            ],
+            "type": "string",
+            "description": "filter by type, \"all\" (default), \"public\", or \"private\"",
+            "name": "type",
+            "in": "query"
+          },
+          {
             "type": "integer",
             "description": "page number of results to return (1-based)",
             "name": "page",
@@ -3603,6 +3614,9 @@
           },
           "404": {
             "$ref": "#/responses/notFound"
+          },
+          "422": {
+            "$ref": "#/responses/validationError"
           }
         }
       },
@@ -20484,6 +20498,17 @@
         "operationId": "userCurrentListRepos",
         "parameters": [
           {
+            "enum": [
+              "all",
+              "public",
+              "private"
+            ],
+            "type": "string",
+            "description": "filter by type, \"all\" (default), \"public\", or \"private\"",
+            "name": "type",
+            "in": "query"
+          },
+          {
             "type": "integer",
             "description": "page number of results to return (1-based)",
             "name": "page",
@@ -20499,6 +20524,9 @@
         "responses": {
           "200": {
             "$ref": "#/responses/RepositoryList"
+          },
+          "422": {
+            "$ref": "#/responses/validationError"
           }
         }
       },
@@ -21332,6 +21360,17 @@
             "required": true
           },
           {
+            "enum": [
+              "all",
+              "public",
+              "private"
+            ],
+            "type": "string",
+            "description": "filter by type, \"all\" (default), \"public\", or \"private\"",
+            "name": "type",
+            "in": "query"
+          },
+          {
             "type": "integer",
             "description": "page number of results to return (1-based)",
             "name": "page",
@@ -21350,6 +21389,9 @@
           },
           "404": {
             "$ref": "#/responses/notFound"
+          },
+          "422": {
+            "$ref": "#/responses/validationError"
           }
         }
       }

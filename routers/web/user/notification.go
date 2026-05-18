@@ -347,6 +347,11 @@ func NotificationWatching(ctx *context.Context) {
 	private := ctx.FormOptionalBool("private")
 	ctx.Data["IsPrivate"] = private
 
+	isPrivate := private
+	if !ctx.IsSigned {
+		isPrivate = optional.Some(false)
+	}
+
 	repos, count, err := repo_model.SearchRepository(ctx, repo_model.SearchRepoOptions{
 		ListOptions: db.ListOptions{
 			PageSize: setting.UI.User.RepoPagingNum,
@@ -355,7 +360,6 @@ func NotificationWatching(ctx *context.Context) {
 		Actor:              ctx.Doer,
 		Keyword:            keyword,
 		OrderBy:            orderBy,
-		Private:            ctx.IsSigned,
 		WatchedByID:        ctx.Doer.ID,
 		Collaborate:        optional.Some(false),
 		TopicOnly:          ctx.FormBool("topic"),
@@ -364,7 +368,7 @@ func NotificationWatching(ctx *context.Context) {
 		Fork:               fork,
 		Mirror:             mirror,
 		Template:           template,
-		IsPrivate:          private,
+		IsPrivate:          isPrivate,
 	})
 	if err != nil {
 		ctx.ServerError("SearchRepository", err)

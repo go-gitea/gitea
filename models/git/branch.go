@@ -475,7 +475,6 @@ func FindRecentlyPushedNewBranches(ctx context.Context, doer *user_model.User, o
 	// find all related repo ids
 	repoOpts := repo_model.SearchRepoOptions{
 		Actor:      doer,
-		Private:    true,
 		AllPublic:  false, // Include also all public repositories of users and public organisations
 		AllLimited: false, // Include also all public repositories of limited organisations
 		Fork:       optional.Some(true),

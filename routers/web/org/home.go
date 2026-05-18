@@ -15,6 +15,7 @@ import (
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/markup/markdown"
+	"code.gitea.io/gitea/modules/optional"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/templates"
 	"code.gitea.io/gitea/modules/util"
@@ -86,6 +87,13 @@ func home(ctx *context.Context, viewRepositories bool) {
 	private := ctx.FormOptionalBool("private")
 	ctx.Data["IsPrivate"] = private
 
+	isPrivate := private
+	if !ctx.IsSigned {
+		// Unauthenticated: always restrict to public repos,
+		// ignoring any ?private=true parameter to prevent private repo exposure.
+		isPrivate = optional.Some(false)
+	}
+
 	opts := &organization.FindOrgMembersOpts{
 		Doer:         ctx.Doer,
 		OrgID:        org.ID,
@@ -125,7 +133,6 @@ func home(ctx *context.Context, viewRepositories bool) {
 		Keyword:            keyword,
 		OwnerID:            org.ID,
 		OrderBy:            orderBy,
-		Private:            ctx.IsSigned,
 		Actor:              ctx.Doer,
 		Language:           language,
 		IncludeDescription: setting.UI.SearchRepoDescription,
@@ -133,7 +140,7 @@ func home(ctx *context.Context, viewRepositories bool) {
 		Fork:               fork,
 		Mirror:             mirror,
 		Template:           template,
-		IsPrivate:          private,
+		IsPrivate:          isPrivate,
 	})
 	if err != nil {
 		ctx.ServerError("SearchRepository", err)

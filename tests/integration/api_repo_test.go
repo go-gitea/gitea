@@ -80,8 +80,8 @@ func TestAPISearchRepo(t *testing.T) {
 		{
 			name: "RepositoriesMax50", requestURL: "/api/v1/repos/search?limit=50&private=false", expectedResults: expectedResults{
 				nil:   {count: 36},
-				user:  {count: 36},
-				user2: {count: 36},
+				user:  {count: 37},
+				user2: {count: 37},
 			},
 		},
 		{
@@ -230,6 +230,67 @@ func TestAPISearchRepo(t *testing.T) {
 			}
 		})
 	}
+}
+
+// TestAPISearchRepoLimitedOrgVisibility verifies that the public repo inside
+// a limited-visibility org is visible to authenticated users but hidden from
+// anonymous users when searching with private=false.
+func TestAPISearchRepoLimitedOrgVisibility(t *testing.T) {
+	defer tests.PrepareTestEnv(t)()
+
+	const repoName = "public_repo_on_limited_org"
+
+	// Verify fixture: limited_org (ID=22) is visibility=limited, repo 38 is public.
+	limitedOrg := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 22})
+	assert.Equal(t, "limited_org", limitedOrg.Name)
+	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 38})
+	assert.Equal(t, repoName, repo.Name, "fixture repo name mismatch")
+	assert.False(t, repo.IsPrivate, "fixture repo should be public")
+	assert.Equal(t, limitedOrg.ID, repo.OwnerID)
+
+	repoFullName := limitedOrg.Name + "/" + repoName
+
+	t.Run("AnonymousCannotSee", func(t *testing.T) {
+		// Anonymous search with private=false should return 36 public repos
+		// and must NOT include the public repo in the limited-visibility org.
+		req := NewRequest(t, "GET", "/api/v1/repos/search?limit=50&private=false")
+		resp := MakeRequest(t, req, http.StatusOK)
+		var body api.SearchResults
+		DecodeJSON(t, resp, &body)
+		assert.Len(t, body.Data, 36,
+			"anonymous user should see exactly 36 public repos (excluding limited-org repos)")
+		for _, r := range body.Data {
+			assert.NotEqual(t, repoFullName, r.FullName,
+				"anonymous user must not see public repo in limited-visibility org")
+		}
+	})
+
+	t.Run("AuthenticatedCanSee", func(t *testing.T) {
+		// Authenticated search with private=false should return 37 public repos
+		// including the public repo in the limited-visibility org.
+		user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 15})
+		session := loginUser(t, user.Name)
+		token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeReadRepository)
+
+		req := NewRequest(t, "GET", "/api/v1/repos/search?limit=50&private=false").
+			AddTokenAuth(token)
+		resp := MakeRequest(t, req, http.StatusOK)
+		var body api.SearchResults
+		DecodeJSON(t, resp, &body)
+		assert.Len(t, body.Data, 37,
+			"authenticated user should see exactly 37 public repos (including limited-org repos)")
+
+		found := false
+		for _, r := range body.Data {
+			if r.FullName == repoFullName {
+				found = true
+				assert.False(t, r.Private)
+				break
+			}
+		}
+		assert.True(t, found,
+			"authenticated user should see public repo in limited-visibility org")
+	})
 }
 
 var repoCache = make(map[int64]*repo_model.Repository)

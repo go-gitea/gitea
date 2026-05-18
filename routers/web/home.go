@@ -91,6 +91,7 @@ func HomeSitemap(ctx *context.Context) {
 			PageSize: 1,
 		},
 		Actor:     ctx.Doer,
+		IsPrivate: optional.Some(false),
 		AllPublic: true,
 	})
 	if err != nil {

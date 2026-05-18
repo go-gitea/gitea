@@ -4,33 +4,84 @@
 package user
 
 import (
+	"fmt"
 	"net/http"
 
+	"code.gitea.io/gitea/models/db"
 	access_model "code.gitea.io/gitea/models/perm/access"
 	repo_model "code.gitea.io/gitea/models/repo"
+	"code.gitea.io/gitea/models/unit"
 	user_model "code.gitea.io/gitea/models/user"
+	"code.gitea.io/gitea/modules/optional"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/routers/api/v1/utils"
 	"code.gitea.io/gitea/services/context"
 	"code.gitea.io/gitea/services/convert"
+
+	"xorm.io/builder"
 )
 
-// listUserRepos - List the repositories owned by the given user.
-func listUserRepos(ctx *context.APIContext, u *user_model.User, private bool) {
-	opts := utils.GetListOptions(ctx)
+// parseRepoTypeFilter parses the "type" query parameter into an IsPrivate filter.
+// Returns (filter, true) on success, or (zero, false) after writing a 422 response on invalid input.
+func parseRepoTypeFilter(ctx *context.APIContext) (optional.Option[bool], bool) {
+	switch ctx.FormString("type") {
+	case "", "all":
+		return optional.None[bool](), true
+	case "public":
+		return optional.Some(false), true
+	case "private":
+		return optional.Some(true), true
+	default:
+		ctx.APIError(http.StatusUnprocessableEntity, fmt.Sprintf("Invalid type=%q, must be one of: all, public, private", ctx.FormString("type")))
+		return optional.None[bool](), false
+	}
+}
 
-	repos, count, err := repo_model.GetUserRepositories(ctx, repo_model.SearchRepoOptions{
-		Actor:       u,
-		Private:     private,
-		ListOptions: opts,
-		OrderBy:     "id ASC",
-	})
-	if err != nil {
-		ctx.APIErrorInternal(err)
+// listUserRepos - List the repositories owned by the given user.
+// canSeePrivate indicates whether the caller is authorized to view private repos.
+func listUserRepos(ctx *context.APIContext, u *user_model.User, canSeePrivate bool) {
+	isPrivate, ok := parseRepoTypeFilter(ctx)
+	if !ok {
 		return
 	}
 
-	if err := repos.LoadAttributes(ctx); err != nil {
+	if !canSeePrivate {
+		// Caller is not authorized to see private repos (unauthenticated or
+		// public-only token scope). If type=private was requested explicitly,
+		// short-circuit so that neither the body nor X-Total-Count leaks
+		// private repo existence.
+		if isPrivate.Has() && isPrivate.Value() {
+			ctx.SetLinkHeader(0, utils.GetListOptions(ctx).PageSize)
+			ctx.SetTotalCountHeader(0)
+			ctx.JSON(http.StatusOK, &[]*api.Repository{})
+			return
+		}
+		// For type=all or type=public, restrict to public only.
+		isPrivate = optional.Some(false)
+	}
+
+	opts := repo_model.SearchRepoOptions{
+		ListOptions: utils.GetListOptions(ctx),
+		OrderBy:     db.SearchOrderByID,
+	}
+
+	// Build query condition: only repos owned by u, with optional visibility filter.
+	var cond builder.Cond = builder.Eq{"owner_id": u.ID}
+	if isPrivate.Has() {
+		cond = cond.And(builder.Eq{"is_private": isPrivate.Value()})
+	}
+
+	// Scope to repositories visible to the requester. For all callers who
+	// are not the owner and not an admin (including unauthenticated callers
+	// and public-only tokens), apply AccessibleRepositoryCondition so that
+	// both the result set and X-Total-Count only include repositories they
+	// can actually access.
+	if ctx.Doer == nil || (!ctx.Doer.IsAdmin && ctx.Doer.ID != u.ID) {
+		cond = cond.And(repo_model.AccessibleRepositoryCondition(ctx.Doer, unit.TypeInvalid))
+	}
+
+	repos, count, err := repo_model.SearchRepositoryByCondition(ctx, opts, cond, true)
+	if err != nil {
 		ctx.APIErrorInternal(err)
 		return
 	}
@@ -42,12 +93,10 @@ func listUserRepos(ctx *context.APIContext, u *user_model.User, private bool) {
 			ctx.APIErrorInternal(err)
 			return
 		}
-		if ctx.IsSigned && ctx.Doer.IsAdmin || permission.HasAnyUnitAccess() {
-			apiRepos = append(apiRepos, convert.ToRepo(ctx, repos[i], permission))
-		}
+		apiRepos = append(apiRepos, convert.ToRepo(ctx, repos[i], permission))
 	}
 
-	ctx.SetLinkHeader(count, opts.PageSize)
+	ctx.SetLinkHeader(count, opts.ListOptions.PageSize)
 	ctx.SetTotalCountHeader(count)
 	ctx.JSON(http.StatusOK, &apiRepos)
 }
@@ -65,6 +114,11 @@ func ListUserRepos(ctx *context.APIContext) {
 	//   description: username of the user whose owned repos are to be listed
 	//   type: string
 	//   required: true
+	// - name: type
+	//   in: query
+	//   description: filter by type, "all" (default), "public", or "private"
+	//   type: string
+	//   enum: [all, public, private]
 	// - name: page
 	//   in: query
 	//   description: page number of results to return (1-based)
@@ -78,8 +132,10 @@ func ListUserRepos(ctx *context.APIContext) {
 	//     "$ref": "#/responses/RepositoryList"
 	//   "404":
 	//     "$ref": "#/responses/notFound"
+	//   "422":
+	//     "$ref": "#/responses/validationError"
 
-	private := ctx.IsSigned
+	private := ctx.IsSigned && !ctx.PublicOnly
 	listUserRepos(ctx, ctx.ContextUser, private)
 }
 
@@ -91,6 +147,11 @@ func ListMyRepos(ctx *context.APIContext) {
 	// produces:
 	// - application/json
 	// parameters:
+	// - name: type
+	//   in: query
+	//   description: filter by type, "all" (default), "public", or "private"
+	//   type: string
+	//   enum: [all, public, private]
 	// - name: page
 	//   in: query
 	//   description: page number of results to return (1-based)
@@ -102,14 +163,34 @@ func ListMyRepos(ctx *context.APIContext) {
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/RepositoryList"
+	//   "422":
+	//     "$ref": "#/responses/validationError"
 
 	opts := repo_model.SearchRepoOptions{
 		ListOptions:        utils.GetListOptions(ctx),
 		Actor:              ctx.Doer,
 		OwnerID:            ctx.Doer.ID,
-		Private:            ctx.IsSigned,
 		IncludeDescription: true,
 	}
+
+	isPrivate, ok := parseRepoTypeFilter(ctx)
+	if !ok {
+		return
+	}
+
+	// Respect public-only token scopes: a public-only token must not
+	// be able to list or filter by private repositories.
+	if ctx.PublicOnly {
+		if isPrivate.Has() && isPrivate.Value() {
+			ctx.SetLinkHeader(0, opts.ListOptions.PageSize)
+			ctx.SetTotalCountHeader(0)
+			ctx.JSON(http.StatusOK, &[]*api.Repository{})
+			return
+		}
+		isPrivate = optional.Some(false)
+	}
+
+	opts.IsPrivate = isPrivate
 
 	repos, count, err := repo_model.SearchRepository(ctx, opts)
 	if err != nil {
@@ -148,6 +229,11 @@ func ListOrgRepos(ctx *context.APIContext) {
 	//   description: name of the organization
 	//   type: string
 	//   required: true
+	// - name: type
+	//   in: query
+	//   description: filter by type, "all" (default), "public", or "private"
+	//   type: string
+	//   enum: [all, public, private]
 	// - name: page
 	//   in: query
 	//   description: page number of results to return (1-based)
@@ -161,6 +247,8 @@ func ListOrgRepos(ctx *context.APIContext) {
 	//     "$ref": "#/responses/RepositoryList"
 	//   "404":
 	//     "$ref": "#/responses/notFound"
+	//   "422":
+	//     "$ref": "#/responses/validationError"
 
-	listUserRepos(ctx, ctx.Org.Organization.AsUser(), ctx.IsSigned)
+	listUserRepos(ctx, ctx.Org.Organization.AsUser(), ctx.IsSigned && !ctx.PublicOnly)
 }

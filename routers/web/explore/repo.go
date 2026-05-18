@@ -9,6 +9,7 @@ import (
 	"code.gitea.io/gitea/models/db"
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/optional"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/sitemap"
 	"code.gitea.io/gitea/modules/templates"
@@ -94,6 +95,13 @@ func RenderRepoSearch(ctx *context.Context, opts *RepoSearchOptions) {
 	private := ctx.FormOptionalBool("private")
 	ctx.Data["IsPrivate"] = private
 
+	isPrivate := private
+	if !opts.Private {
+		// Unauthenticated or public-only mode: always restrict to public repos,
+		// ignoring any ?private=true parameter to prevent private repo exposure.
+		isPrivate = optional.Some(false)
+	}
+
 	repos, count, err = repo_model.SearchRepository(ctx, repo_model.SearchRepoOptions{
 		ListOptions: db.ListOptions{
 			Page:     page,
@@ -101,7 +109,6 @@ func RenderRepoSearch(ctx *context.Context, opts *RepoSearchOptions) {
 		},
 		Actor:              ctx.Doer,
 		OrderBy:            orderBy,
-		Private:            opts.Private,
 		Keyword:            keyword,
 		OwnerID:            opts.OwnerID,
 		AllPublic:          true,
@@ -114,7 +121,7 @@ func RenderRepoSearch(ctx *context.Context, opts *RepoSearchOptions) {
 		Fork:               fork,
 		Mirror:             mirror,
 		Template:           template,
-		IsPrivate:          private,
+		IsPrivate:          isPrivate,
 	})
 	if err != nil {
 		ctx.ServerError("SearchRepository", err)

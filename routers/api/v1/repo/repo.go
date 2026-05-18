@@ -133,9 +133,10 @@ func Search(ctx *context.APIContext) {
 	//   "422":
 	//     "$ref": "#/responses/validationError"
 
-	private := ctx.IsSigned && (ctx.FormString("private") == "" || ctx.FormBool("private"))
-	if ctx.PublicOnly {
-		private = false
+	// Determine repository visibility filter based on authentication state
+	var isPrivate optional.Option[bool]
+	if !ctx.IsSigned || ctx.PublicOnly || (ctx.FormString("private") != "" && !ctx.FormBool("private")) {
+		isPrivate = optional.Some(false)
 	}
 
 	opts := repo_model.SearchRepoOptions{
@@ -147,7 +148,7 @@ func Search(ctx *context.APIContext) {
 		TeamID:             ctx.FormInt64("team_id"),
 		TopicOnly:          ctx.FormBool("topic"),
 		Collaborate:        optional.None[bool](),
-		Private:            private,
+		IsPrivate:          isPrivate,
 		Template:           optional.None[bool](),
 		StarredByID:        ctx.FormInt64("starredBy"),
 		IncludeDescription: ctx.FormBool("includeDesc"),
@@ -183,8 +184,15 @@ func Search(ctx *context.APIContext) {
 		opts.Archived = optional.Some(ctx.FormBool("archived"))
 	}
 
-	if ctx.FormString("is_private") != "" {
-		opts.IsPrivate = optional.Some(ctx.FormBool("is_private"))
+	// Only apply is_private when the caller is authenticated, not using a
+	// public-only token, and has not already forced public-only via private=false.
+	if ctx.FormString("is_private") != "" && ctx.IsSigned && !ctx.PublicOnly {
+		if ctx.FormString("private") != "" && !ctx.FormBool("private") {
+			// private=false already restricts to public; is_private=true would
+			// conflict, so ignore is_private to keep semantics unambiguous.
+		} else {
+			opts.IsPrivate = optional.Some(ctx.FormBool("is_private"))
+		}
 	}
 
 	orderBy, ok := utils.ResolveSortOrder(ctx, repo_model.OrderByMap, "")

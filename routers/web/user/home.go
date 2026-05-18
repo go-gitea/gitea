@@ -156,7 +156,6 @@ func Milestones(ctx *context.Context) {
 	repoOpts := repo_model.SearchRepoOptions{
 		Actor:         ctx.Doer,
 		OwnerID:       ctxUser.ID,
-		Private:       true,
 		AllPublic:     false, // Include also all public repositories of users and public organisations
 		AllLimited:    false, // Include also all public repositories of limited organisations
 		Archived:      optional.Some(false),
@@ -456,7 +455,6 @@ func buildIssueOverview(ctx *context.Context, unitType unit.Type) {
 	repoOpts := repo_model.SearchRepoOptions{
 		Actor:       ctx.Doer,
 		OwnerID:     ctxUser.ID,
-		Private:     true,
 		AllPublic:   false,
 		AllLimited:  false,
 		Collaborate: optional.None[bool](),

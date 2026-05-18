@@ -9,6 +9,7 @@ import (
 
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unittest"
+	"code.gitea.io/gitea/modules/optional"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/templates"
 	"code.gitea.io/gitea/services/context"
@@ -27,7 +28,7 @@ func TestArchivedIssues(t *testing.T) {
 	ctx.Req.Form.Set("state", "open")
 
 	// Assume: User 30 has access to two Repos with Issues, one of the Repos being archived.
-	repos, _, _ := repo_model.GetUserRepositories(t.Context(), repo_model.SearchRepoOptions{Actor: ctx.Doer})
+	repos, _, _ := repo_model.GetUserRepositories(t.Context(), repo_model.SearchRepoOptions{Actor: ctx.Doer, IsPrivate: optional.Some(false)})
 	assert.Len(t, repos, 3)
 	IsArchived := make(map[int64]bool)
 	NumIssues := make(map[int64]int)

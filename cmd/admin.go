@@ -118,7 +118,6 @@ func runRepoSyncReleases(ctx context.Context, _ *cli.Command) error {
 				PageSize: repo_model.RepositoryListDefaultPageSize,
 				Page:     page,
 			},
-			Private: true,
 		})
 		if err != nil {
 			return fmt.Errorf("SearchRepositoryByName: %w", err)

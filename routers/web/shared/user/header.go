@@ -164,13 +164,16 @@ func RenderUserOrgHeader(ctx *context.Context) (result *PrepareOwnerHeaderResult
 }
 
 func loadHeaderCount(ctx *context.Context) error {
-	repoCount, err := repo_model.CountRepository(ctx, repo_model.SearchRepoOptions{
+	repoOpts := repo_model.SearchRepoOptions{
 		Actor:              ctx.Doer,
 		OwnerID:            ctx.ContextUser.ID,
-		Private:            ctx.IsSigned,
 		Collaborate:        optional.Some(false),
 		IncludeDescription: setting.UI.SearchRepoDescription,
-	})
+	}
+	if !ctx.IsSigned {
+		repoOpts.IsPrivate = optional.Some(false)
+	}
+	repoCount, err := repo_model.CountRepository(ctx, repoOpts)
 	if err != nil {
 		return err
 	}

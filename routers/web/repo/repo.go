@@ -454,10 +454,13 @@ func SearchRepo(ctx *context.Context) {
 		TeamID:             ctx.FormInt64("team_id"),
 		TopicOnly:          ctx.FormBool("topic"),
 		Collaborate:        optional.None[bool](),
-		Private:            ctx.IsSigned && (ctx.FormString("private") == "" || ctx.FormBool("private")),
 		Template:           optional.None[bool](),
 		StarredByID:        ctx.FormInt64("starredBy"),
 		IncludeDescription: ctx.FormBool("includeDesc"),
+	}
+
+	if !ctx.IsSigned || (ctx.FormString("private") != "" && !ctx.FormBool("private")) {
+		opts.IsPrivate = optional.Some(false)
 	}
 
 	if ctx.FormString("template") != "" {
@@ -490,8 +493,15 @@ func SearchRepo(ctx *context.Context) {
 		opts.Archived = optional.Some(ctx.FormBool("archived"))
 	}
 
-	if ctx.FormString("is_private") != "" {
-		opts.IsPrivate = optional.Some(ctx.FormBool("is_private"))
+	// Only apply is_private when the caller is authenticated and has not
+	// already forced public-only via private=false.
+	if ctx.FormString("is_private") != "" && ctx.IsSigned {
+		if ctx.FormString("private") != "" && !ctx.FormBool("private") {
+			// private=false already restricts to public; is_private=true would
+			// conflict, so ignore is_private to keep semantics unambiguous.
+		} else {
+			opts.IsPrivate = optional.Some(ctx.FormBool("is_private"))
+		}
 	}
 
 	sortMode := ctx.FormString("sort")

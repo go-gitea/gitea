@@ -159,7 +159,7 @@ func ChangeOrganizationVisibility(ctx context.Context, org *org_model.Organizati
 		}
 
 		repos, _, err := repo_model.GetUserRepositories(ctx, repo_model.SearchRepoOptions{
-			Actor: org.AsUser(), Private: true, ListOptions: db.ListOptionsAll,
+			Actor: org.AsUser(), ListOptions: db.ListOptionsAll,
 		})
 		if err != nil {
 			return err

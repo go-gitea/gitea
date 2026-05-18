@@ -384,7 +384,6 @@ func DeleteOwnerRepositoriesDirectly(ctx context.Context, owner *user_model.User
 				PageSize: repo_model.RepositoryListDefaultPageSize,
 				Page:     1,
 			},
-			Private: true,
 			OwnerID: owner.ID,
 			Actor:   owner,
 		})

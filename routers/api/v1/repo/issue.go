@@ -37,7 +37,7 @@ import (
 // It returns repoIDs, allPublic flag, and any error that occurred.
 func buildSearchIssuesRepoIDs(ctx *context.APIContext) (repoIDs []int64, allPublic bool, err error) {
 	opts := repo_model.SearchRepoOptions{
-		Private:     false,
+		IsPrivate:   optional.Some(false),
 		AllPublic:   true,
 		TopicOnly:   false,
 		Collaborate: optional.None[bool](),
@@ -47,8 +47,10 @@ func buildSearchIssuesRepoIDs(ctx *context.APIContext) (repoIDs []int64, allPubl
 		Actor:   ctx.Doer,
 	}
 	if ctx.IsSigned {
-		opts.Private = !ctx.PublicOnly
 		opts.AllLimited = true
+		if !ctx.PublicOnly {
+			opts.IsPrivate = optional.None[bool]()
+		}
 	}
 	if ctx.FormString("owner") != "" {
 		owner, err := user_model.GetUserByName(ctx, ctx.FormString("owner"))

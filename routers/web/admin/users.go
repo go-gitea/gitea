@@ -273,7 +273,6 @@ func ViewUser(ctx *context.Context) {
 		ListOptions: db.ListOptionsAll,
 		OwnerID:     u.ID,
 		OrderBy:     db.SearchOrderByAlphabetically,
-		Private:     true,
 		Collaborate: optional.Some(false),
 	})
 	if err != nil {
