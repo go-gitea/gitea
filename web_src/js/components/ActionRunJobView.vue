@@ -215,7 +215,7 @@ async function copyStepOutput(event: MouseEvent, stepIndex: number) {
     const lines: string[] = [];
     for (const line of stepLog?.lines ?? []) {
       const cmd = parseLogLineCommand(line);
-      if (cmd?.name === 'hidden') continue;
+      if (cmd?.name === 'hidden' || cmd?.name === 'endgroup') continue;
       lines.push(createLogLineMessage(line, cmd).textContent ?? '');
     }
     return lines.join('\n');
