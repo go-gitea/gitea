@@ -212,6 +212,11 @@ func repoAssignment() func(ctx *context.APIContext) {
 			ctx.APIErrorNotFound()
 			return
 		}
+
+		if !ctx.TokenCanAccessRepo(repo) {
+			ctx.APIErrorNotFound()
+			return
+		}
 	}
 }
 
@@ -249,48 +254,63 @@ func checkTokenPublicOnly() func(ctx *context.APIContext) {
 			return
 		}
 
-		// public Only permission check
-		switch {
-		case auth_model.ContainsCategory(requiredScopeCategories, auth_model.AccessTokenScopeCategoryRepository):
-			if ctx.Repo.Repository != nil && ctx.Repo.Repository.IsPrivate {
-				ctx.APIError(http.StatusForbidden, "token scope is limited to public repos")
-				return
-			}
-		case auth_model.ContainsCategory(requiredScopeCategories, auth_model.AccessTokenScopeCategoryIssue):
-			if ctx.Repo.Repository != nil && ctx.Repo.Repository.IsPrivate {
-				ctx.APIError(http.StatusForbidden, "token scope is limited to public issues")
-				return
-			}
-		case auth_model.ContainsCategory(requiredScopeCategories, auth_model.AccessTokenScopeCategoryOrganization):
-			if ctx.Org.Organization != nil && ctx.Org.Organization.Visibility != api.VisibleTypePublic {
-				ctx.APIError(http.StatusForbidden, "token scope is limited to public orgs")
-				return
-			}
-			if ctx.ContextUser != nil && ctx.ContextUser.IsOrganization() && ctx.ContextUser.Visibility != api.VisibleTypePublic {
-				ctx.APIError(http.StatusForbidden, "token scope is limited to public orgs")
-				return
-			}
-		case auth_model.ContainsCategory(requiredScopeCategories, auth_model.AccessTokenScopeCategoryUser):
-			if ctx.ContextUser != nil && ctx.ContextUser.IsTokenAccessAllowed() && ctx.ContextUser.Visibility != api.VisibleTypePublic {
-				ctx.APIError(http.StatusForbidden, "token scope is limited to public users")
-				return
-			}
-		case auth_model.ContainsCategory(requiredScopeCategories, auth_model.AccessTokenScopeCategoryActivityPub):
-			if ctx.ContextUser != nil && ctx.ContextUser.IsTokenAccessAllowed() && ctx.ContextUser.Visibility != api.VisibleTypePublic {
-				ctx.APIError(http.StatusForbidden, "token scope is limited to public activitypub")
-				return
-			}
-		case auth_model.ContainsCategory(requiredScopeCategories, auth_model.AccessTokenScopeCategoryNotification):
-			if ctx.Repo.Repository != nil && ctx.Repo.Repository.IsPrivate {
-				ctx.APIError(http.StatusForbidden, "token scope is limited to public notifications")
-				return
-			}
-		case auth_model.ContainsCategory(requiredScopeCategories, auth_model.AccessTokenScopeCategoryPackage):
-			if ctx.Package != nil && ctx.Package.Owner.Visibility.IsPrivate() {
-				ctx.APIError(http.StatusForbidden, "token scope is limited to public packages")
-				return
+		for _, category := range requiredScopeCategories {
+			switch category {
+			case auth_model.AccessTokenScopeCategoryRepository:
+				if !ctx.TokenCanAccessRepo(ctx.Repo.Repository) {
+					ctx.APIError(http.StatusForbidden, "token scope is limited to public repos")
+					return
+				}
+			case auth_model.AccessTokenScopeCategoryIssue:
+				if !ctx.TokenCanAccessRepo(ctx.Repo.Repository) {
+					ctx.APIError(http.StatusForbidden, "token scope is limited to public issues")
+					return
+				}
+			case auth_model.AccessTokenScopeCategoryOrganization:
+				orgPrivate := ctx.Org.Organization != nil && !ctx.Org.Organization.Visibility.IsPublic()
+				userOrgPrivate := ctx.ContextUser != nil && ctx.ContextUser.IsOrganization() && !ctx.ContextUser.Visibility.IsPublic()
+				if orgPrivate || userOrgPrivate {
+					ctx.APIError(http.StatusForbidden, "token scope is limited to public orgs")
+					return
+				}
+			case auth_model.AccessTokenScopeCategoryUser:
+				if ctx.ContextUser != nil && ctx.ContextUser.IsTokenAccessAllowed() && !ctx.ContextUser.Visibility.IsPublic() {
+					ctx.APIError(http.StatusForbidden, "token scope is limited to public users")
+					return
+				}
+			case auth_model.AccessTokenScopeCategoryActivityPub:
+				if ctx.ContextUser != nil && ctx.ContextUser.IsTokenAccessAllowed() && !ctx.ContextUser.Visibility.IsPublic() {
+					ctx.APIError(http.StatusForbidden, "token scope is limited to public activitypub")
+					return
+				}
+			case auth_model.AccessTokenScopeCategoryNotification:
+				if !ctx.TokenCanAccessRepo(ctx.Repo.Repository) {
+					ctx.APIError(http.StatusForbidden, "token scope is limited to public notifications")
+					return
+				}
+			case auth_model.AccessTokenScopeCategoryPackage:
+				if ctx.Package != nil && ctx.Package.Owner.Visibility.IsPrivate() {
+					ctx.APIError(http.StatusForbidden, "token scope is limited to public packages")
+					return
+				}
 			}
 		}
+	}
+}
+
+func rejectPublicOnly() func(ctx *context.APIContext) {
+	return func(ctx *context.APIContext) {
+		if !ctx.PublicOnly {
+			return
+		}
+
+		ctx.APIError(http.StatusForbidden, "this endpoint is not available for public-only tokens")
+	}
+}
+
+func contextAuthenticatedUser() func(ctx *context.APIContext) {
+	return func(ctx *context.APIContext) {
+		ctx.ContextUser = ctx.Doer
 	}
 }
 
@@ -958,6 +978,8 @@ func Routes() *web.Router {
 		})
 
 		// Notifications (requires 'notifications' scope)
+		// The notifications API is not available for public-only tokens because a user's notifications mix
+		// public and private repository events in the same mailbox.
 		m.Group("/notifications", func() {
 			m.Combo("").
 				Get(reqToken(), notify.ListNotifications).
@@ -966,7 +988,7 @@ func Routes() *web.Router {
 			m.Combo("/threads/{id}").
 				Get(reqToken(), notify.GetThread).
 				Patch(reqToken(), notify.ReadThread)
-		}, tokenRequiresScopes(auth_model.AccessTokenScopeCategoryNotification))
+		}, tokenRequiresScopes(auth_model.AccessTokenScopeCategoryNotification), rejectPublicOnly())
 
 		// Users (requires user scope)
 		m.Group("/users", func() {
@@ -1014,8 +1036,9 @@ func Routes() *web.Router {
 			m.Group("/settings", func() {
 				m.Get("", user.GetUserSettings)
 				m.Patch("", bind(api.UserSettingsOptions{}), user.UpdateUserSettings)
-			}, reqToken())
-			m.Combo("/emails").
+			}, rejectPublicOnly())
+			// Email addresses are always private account data.
+			m.Combo("/emails", rejectPublicOnly()).
 				Get(user.ListEmails).
 				Post(bind(api.CreateEmailOption{}), user.AddEmail).
 				Delete(bind(api.DeleteEmailOption{}), user.DeleteEmail)
@@ -1047,7 +1070,7 @@ func Routes() *web.Router {
 
 				m.Get("/runs", reqToken(), user.ListWorkflowRuns)
 				m.Get("/jobs", reqToken(), user.ListWorkflowJobs)
-			})
+			}, rejectPublicOnly())
 
 			m.Get("/followers", user.ListMyFollowers)
 			m.Group("/following", func() {
@@ -1065,7 +1088,7 @@ func Routes() *web.Router {
 					Post(bind(api.CreateKeyOption{}), user.CreatePublicKey)
 				m.Combo("/{id}").Get(user.GetPublicKey).
 					Delete(user.DeletePublicKey)
-			})
+			}, rejectPublicOnly())
 
 			// (admin:application scope)
 			m.Group("/applications", func() {
@@ -1076,7 +1099,7 @@ func Routes() *web.Router {
 					Delete(user.DeleteOauth2Application).
 					Patch(bind(api.CreateOAuth2ApplicationOptions{}), user.UpdateOauth2Application).
 					Get(user.GetOauth2Application)
-			})
+			}, rejectPublicOnly())
 
 			// (admin:gpg_key scope)
 			m.Group("/gpg_keys", func() {
@@ -1084,13 +1107,13 @@ func Routes() *web.Router {
 					Post(bind(api.CreateGPGKeyOption{}), user.CreateGPGKey)
 				m.Combo("/{id}").Get(user.GetGPGKey).
 					Delete(user.DeleteGPGKey)
-			})
-			m.Get("/gpg_key_token", user.GetVerificationToken)
-			m.Post("/gpg_key_verify", bind(api.VerifyGPGKeyOption{}), user.VerifyUserGPGKey)
+			}, rejectPublicOnly())
+			m.Get("/gpg_key_token", rejectPublicOnly(), user.GetVerificationToken)
+			m.Post("/gpg_key_verify", rejectPublicOnly(), bind(api.VerifyGPGKeyOption{}), user.VerifyUserGPGKey)
 
 			// (repo scope)
 			m.Combo("/repos", tokenRequiresScopes(auth_model.AccessTokenScopeCategoryRepository)).Get(user.ListMyRepos).
-				Post(bind(api.CreateRepoOption{}), repo.Create)
+				Post(rejectPublicOnly(), bind(api.CreateRepoOption{}), repo.Create)
 
 			// (repo scope)
 			m.Group("/starred", func() {
@@ -1101,22 +1124,22 @@ func Routes() *web.Router {
 					m.Delete("", user.Unstar)
 				}, repoAssignment(), checkTokenPublicOnly())
 			}, reqStarsEnabled(), tokenRequiresScopes(auth_model.AccessTokenScopeCategoryRepository))
-			m.Get("/times", repo.ListMyTrackedTimes)
-			m.Get("/stopwatches", repo.GetStopwatches)
+			m.Get("/times", rejectPublicOnly(), repo.ListMyTrackedTimes)
+			m.Get("/stopwatches", rejectPublicOnly(), repo.GetStopwatches)
 			m.Get("/subscriptions", user.GetMyWatchedRepos)
-			m.Get("/teams", org.ListUserTeams)
+			m.Get("/teams", rejectPublicOnly(), org.ListUserTeams)
 			m.Group("/hooks", func() {
 				m.Combo("").Get(user.ListHooks).
 					Post(bind(api.CreateHookOption{}), user.CreateHook)
 				m.Combo("/{id}").Get(user.GetHook).
 					Patch(bind(api.EditHookOption{}), user.EditHook).
 					Delete(user.DeleteHook)
-			}, reqWebhooksEnabled())
+			}, reqWebhooksEnabled(), rejectPublicOnly())
 
 			m.Group("/avatar", func() {
 				m.Post("", bind(api.UpdateUserAvatarOption{}), user.UpdateAvatar)
 				m.Delete("", user.DeleteAvatar)
-			})
+			}, rejectPublicOnly())
 
 			m.Group("/blocks", func() {
 				m.Get("", user.ListBlocks)
@@ -1125,8 +1148,8 @@ func Routes() *web.Router {
 					m.Put("", user.BlockUser)
 					m.Delete("", user.UnblockUser)
 				}, context.UserAssignmentAPI(), checkTokenPublicOnly())
-			})
-		}, tokenRequiresScopes(auth_model.AccessTokenScopeCategoryUser), reqToken())
+			}, rejectPublicOnly())
+		}, tokenRequiresScopes(auth_model.AccessTokenScopeCategoryUser), reqToken(), contextAuthenticatedUser(), checkTokenPublicOnly())
 
 		// Repositories (requires repo scope, org scope)
 		m.Post("/org/{org}/repos",
@@ -1597,7 +1620,7 @@ func Routes() *web.Router {
 		}, reqToken(), tokenRequiresScopes(auth_model.AccessTokenScopeCategoryPackage), context.UserAssignmentAPI(), context.PackageAssignmentAPI(), reqPackageAccess(perm.AccessModeRead), checkTokenPublicOnly())
 
 		// Organizations
-		m.Get("/user/orgs", reqToken(), tokenRequiresScopes(auth_model.AccessTokenScopeCategoryUser, auth_model.AccessTokenScopeCategoryOrganization), org.ListMyOrgs)
+		m.Get("/user/orgs", reqToken(), tokenRequiresScopes(auth_model.AccessTokenScopeCategoryUser, auth_model.AccessTokenScopeCategoryOrganization), checkTokenPublicOnly(), org.ListMyOrgs)
 		m.Group("/users/{username}/orgs", func() {
 			m.Get("", reqToken(), org.ListUserOrgs)
 			m.Get("/{org}/permissions", reqToken(), org.GetUserOrgsPermissions)
