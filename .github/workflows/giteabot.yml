@@ -10,7 +10,6 @@ on:
   pull_request_target: # zizmor: ignore[dangerous-triggers]
     types:
       - opened
-      - synchronize
       - labeled
       - unlabeled
       - closed
