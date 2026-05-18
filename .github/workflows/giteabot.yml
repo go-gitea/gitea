@@ -14,13 +14,6 @@ on:
       - labeled
       - unlabeled
       - closed
-      - review_requested
-      - review_request_removed
-  pull_request_review:
-    types:
-      - submitted
-      - edited
-      - dismissed
   schedule:
     - cron: "15 3 * * *"
   workflow_dispatch:
@@ -29,7 +22,7 @@ permissions:
   contents: read
 
 concurrency:
-  group: ${{ format('{0}-{1}', github.workflow, (github.event_name == 'pull_request_target' || github.event_name == 'pull_request_review') && format('pr-{0}', github.event.pull_request.number) || 'maintenance') }}
+  group: ${{ format('{0}-{1}', github.workflow, github.event_name == 'pull_request_target' && format('pr-{0}', github.event.pull_request.number) || 'maintenance') }}
   cancel-in-progress: false
 
 jobs:
