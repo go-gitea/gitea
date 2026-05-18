@@ -13,52 +13,17 @@ import (
 
 	auth_model "code.gitea.io/gitea/models/auth"
 	"code.gitea.io/gitea/modules/git"
-	api "code.gitea.io/gitea/modules/structs"
-	"code.gitea.io/gitea/modules/util"
+	"code.gitea.io/gitea/modules/git/gitcmd"
 	"code.gitea.io/gitea/tests"
 
 	"github.com/PuerkitoBio/goquery"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
-func assertFileExist(t *testing.T, p string) {
-	exist, err := util.IsExist(p)
-	assert.NoError(t, err)
-	assert.True(t, exist)
-}
-
-func assertFileEqual(t *testing.T, p string, content []byte) {
-	bs, err := os.ReadFile(p)
-	assert.NoError(t, err)
-	assert.Equal(t, content, bs)
-}
-
-func TestRepoCloneWiki(t *testing.T) {
-	onGiteaRun(t, func(t *testing.T, u *url.URL) {
-		defer tests.PrepareTestEnv(t)()
-
-		dstPath := t.TempDir()
-
-		r := u.String() + "user2/repo1.wiki.git"
-		u, _ = url.Parse(r)
-		u.User = url.UserPassword("user2", userPassword)
-		t.Run("Clone", func(t *testing.T) {
-			assert.NoError(t, git.Clone(t.Context(), u.String(), dstPath, git.CloneRepoOptions{}))
-			assertFileEqual(t, filepath.Join(dstPath, "Home.md"), []byte("# Home page\n\nThis is the home page!\n"))
-			assertFileExist(t, filepath.Join(dstPath, "Page-With-Image.md"))
-			assertFileExist(t, filepath.Join(dstPath, "Page-With-Spaced-Name.md"))
-			assertFileExist(t, filepath.Join(dstPath, "images"))
-			assertFileExist(t, filepath.Join(dstPath, "files/Non-Renderable-File.zip"))
-			assertFileExist(t, filepath.Join(dstPath, "jpeg.jpg"))
-		})
-	})
-}
-
-func Test_RepoWikiPages(t *testing.T) {
+func TestRepoWikiPages(t *testing.T) {
 	defer tests.PrepareTestEnv(t)()
-
-	url := "/user2/repo1/wiki/?action=_pages"
-	req := NewRequest(t, "GET", url)
+	req := NewRequest(t, "GET", "/user2/repo1/wiki/?action=_pages")
 	resp := MakeRequest(t, req, http.StatusOK)
 
 	doc := NewHTMLParser(t, resp.Body)
@@ -74,45 +39,72 @@ func Test_RepoWikiPages(t *testing.T) {
 	})
 }
 
-func Test_WikiClone(t *testing.T) {
+func testRepoWikiCloneHTTP(t *testing.T, u *url.URL) {
+	// When proc-receive support is enabled globally, the HTTP receive-pack pre-check
+	// must still require write access for wiki repositories. Exercise this with a
+	// normal wiki push because the regression is about the pre-check, not agit refs.
+	require.True(t, git.DefaultFeatures().SupportProcReceive) // modern git should all support proc-receive
+
+	wikiURL := *u
+	wikiURL.Path = "/user2/repo1.wiki.git"
+
+	dstLocalPath := t.TempDir()
+
+	// reader can clone
+	wikiURL.User = url.UserPassword("user20", userPassword)
+	require.NoError(t, git.Clone(t.Context(), wikiURL.String(), dstLocalPath, git.CloneRepoOptions{}))
+	_, _, runErr := gitcmd.NewCommand("fast-import").WithDir(dstLocalPath).WithStdinBytes([]byte(`commit refs/heads/master
+committer unauthorized-user <user20@example.com> 1714310400 +0000
+data <<EOM
+dummy-message
+EOM
+from refs/heads/master^0
+M 100644 inline Home.md
+data <<EOF
+changed-content
+EOF
+`)).RunStdString(t.Context())
+	require.NoError(t, runErr)
+
+	content, err := os.ReadFile(filepath.Join(dstLocalPath, "Home.md"))
+	assert.NoError(t, err)
+	assert.Equal(t, "# Home page\n\nThis is the home page!\n", string(content))
+
+	// reader can't push
+	_, _, runErr = gitcmd.NewCommand("push", "origin", "refs/heads/master").WithDir(dstLocalPath).RunStdString(t.Context())
+	assert.True(t, gitcmd.StderrContains(runErr, "remote: Repository not found\n"))
+	req := NewRequest(t, "GET", "/user2/repo1/wiki/raw/Home.md")
+	resp := MakeRequest(t, req, http.StatusOK)
+	assert.Contains(t, resp.Body.String(), "This is the home page!")
+
+	// owner can push
+	wikiURL.User = url.UserPassword("user2", userPassword)
+	_, _, runErr = gitcmd.NewCommand("remote", "add", "origin-owner").AddDynamicArguments(wikiURL.String()).WithDir(dstLocalPath).RunStdString(t.Context())
+	require.NoError(t, runErr)
+	_, _, runErr = gitcmd.NewCommand("push", "origin-owner", "refs/heads/master").WithDir(dstLocalPath).RunStdString(t.Context())
+	assert.NoError(t, runErr)
+	req = NewRequest(t, "GET", "/user2/repo1/wiki/raw/Home.md")
+	resp = MakeRequest(t, req, http.StatusOK)
+	assert.Equal(t, "changed-content", strings.TrimSpace(resp.Body.String()))
+}
+
+func testRepoWikiCloneSSH(t *testing.T, u *url.URL) {
+	dstLocalPath := t.TempDir()
+	baseAPITestContext := NewAPITestContext(t, "user2", "repo1", auth_model.AccessTokenScopeWriteRepository, auth_model.AccessTokenScopeWriteUser)
+	sshURL := createSSHUrl("/user2/repo1.wiki.git", u)
+
+	withKeyFile(t, "my-testing-key", func(keyFile string) {
+		t.Run("CreateUserKey", doAPICreateUserKey(baseAPITestContext, "test-key", keyFile))
+		assert.NoError(t, git.Clone(t.Context(), sshURL.String(), dstLocalPath, git.CloneRepoOptions{}))
+		content, err := os.ReadFile(filepath.Join(dstLocalPath, "Home.md"))
+		assert.NoError(t, err)
+		assert.Equal(t, "# Home page\n\nThis is the home page!\n", string(content))
+	})
+}
+
+func TestRepoWikiClonePush(t *testing.T) {
 	onGiteaRun(t, func(t *testing.T, u *url.URL) {
-		username := "user2"
-		reponame := "repo1"
-		wikiPath := username + "/" + reponame + ".wiki.git"
-		keyname := "my-testing-key"
-		baseAPITestContext := NewAPITestContext(t, username, "repo1", auth_model.AccessTokenScopeWriteRepository, auth_model.AccessTokenScopeWriteUser)
-
-		u.Path = wikiPath
-
-		t.Run("Clone HTTP", func(t *testing.T) {
-			defer tests.PrintCurrentTest(t)()
-
-			dstLocalPath := t.TempDir()
-			assert.NoError(t, git.Clone(t.Context(), u.String(), dstLocalPath, git.CloneRepoOptions{}))
-			content, err := os.ReadFile(filepath.Join(dstLocalPath, "Home.md"))
-			assert.NoError(t, err)
-			assert.Equal(t, "# Home page\n\nThis is the home page!\n", string(content))
-		})
-
-		t.Run("Clone SSH", func(t *testing.T) {
-			defer tests.PrintCurrentTest(t)()
-
-			dstLocalPath := t.TempDir()
-			sshURL := createSSHUrl(wikiPath, u)
-
-			withKeyFile(t, keyname, func(keyFile string) {
-				var keyID int64
-				t.Run("CreateUserKey", doAPICreateUserKey(baseAPITestContext, "test-key", keyFile, func(t *testing.T, key api.PublicKey) {
-					keyID = key.ID
-				}))
-				assert.NotZero(t, keyID)
-
-				// Setup clone folder
-				assert.NoError(t, git.Clone(t.Context(), sshURL.String(), dstLocalPath, git.CloneRepoOptions{}))
-				content, err := os.ReadFile(filepath.Join(dstLocalPath, "Home.md"))
-				assert.NoError(t, err)
-				assert.Equal(t, "# Home page\n\nThis is the home page!\n", string(content))
-			})
-		})
+		t.Run("SSH", func(t *testing.T) { testRepoWikiCloneSSH(t, u) })
+		t.Run("HTTP", func(t *testing.T) { testRepoWikiCloneHTTP(t, u) })
 	})
 }

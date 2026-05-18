@@ -27,6 +27,7 @@ import (
 	"code.gitea.io/gitea/modules/gitrepo"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/structs"
+	"code.gitea.io/gitea/modules/test"
 	"code.gitea.io/gitea/services/migrations"
 	"code.gitea.io/gitea/tests"
 
@@ -36,11 +37,9 @@ import (
 
 func TestMigrateLocalPath(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
+	defer test.MockVariableValue(&setting.ImportLocalPaths, true)()
 
 	adminUser := unittest.AssertExistsAndLoadBean(t, &user_model.User{Name: "user1"})
-
-	old := setting.ImportLocalPaths
-	setting.ImportLocalPaths = true
 
 	basePath := t.TempDir()
 
@@ -57,22 +56,13 @@ func TestMigrateLocalPath(t *testing.T) {
 
 	err = migrations.IsMigrateURLAllowed(mixedcasePath, adminUser)
 	assert.NoError(t, err, "case mixedcase path")
-
-	setting.ImportLocalPaths = old
 }
 
 func TestMigrateGiteaForm(t *testing.T) {
 	onGiteaRun(t, func(t *testing.T, u *url.URL) {
-		AllowLocalNetworks := setting.Migrations.AllowLocalNetworks
-		setting.Migrations.AllowLocalNetworks = true
-		AppVer := setting.AppVer
 		// Gitea SDK (go-sdk) need to parse the AppVer from server response, so we must set it to a valid version string.
-		setting.AppVer = "1.16.0"
-		defer func() {
-			setting.Migrations.AllowLocalNetworks = AllowLocalNetworks
-			setting.AppVer = AppVer
-			migrations.Init()
-		}()
+		defer test.MockVariableValue(&setting.Migrations.AllowLocalNetworks, true)()
+		defer test.MockVariableValue(&setting.AppVer, "1.16.0")()
 		assert.NoError(t, migrations.Init())
 
 		ownerName := "user2"
@@ -232,14 +222,8 @@ done
 
 func Test_MigrateFromGiteaToGitea(t *testing.T) {
 	defer tests.PrepareTestEnv(t)()
-
-	AllowLocalNetworks := setting.Migrations.AllowLocalNetworks
-	setting.Migrations.AllowLocalNetworks = true
-	defer func() {
-		setting.Migrations.AllowLocalNetworks = AllowLocalNetworks
-		migrations.Init()
-	}()
-	require.NoError(t, migrations.Init())
+	defer test.MockVariableValue(&setting.Migrations.AllowLocalNetworks, true)()
+	assert.NoError(t, migrations.Init())
 
 	mockServer := setupGiteaMockServer(t)
 

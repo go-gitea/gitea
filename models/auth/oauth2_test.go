@@ -13,6 +13,7 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"golang.org/x/oauth2"
 )
 
 func TestOAuth2AuthorizationCode(t *testing.T) {
@@ -116,6 +117,47 @@ func TestOAuth2Application_ContainsRedirect_Slash(t *testing.T) {
 	assert.False(t, app.ContainsRedirectURI("http://127.0.0.1/other"))
 }
 
+func TestOAuth2Application_ContainsRedirectURI_ASCIIOnlyNormalization(t *testing.T) {
+	testCases := []struct {
+		name        string
+		registered  []string
+		redirectURI string
+		allowed     bool
+	}{
+		{
+			name:        "exact-match",
+			registered:  []string{"https://signin.example.test/callback"},
+			redirectURI: "https://signin.example.test/callback",
+			allowed:     true,
+		},
+		{
+			name:        "ascii-case-insensitive",
+			registered:  []string{"https://signin.example.test/callback"},
+			redirectURI: "https://signIN.example.test/callback",
+			allowed:     true,
+		},
+		{
+			name:        "non-ascii-not-folded",
+			registered:  []string{"https://signin.example.test/callback"},
+			redirectURI: "https://signİn.example.test/callback",
+			allowed:     false,
+		},
+		{
+			name:        "loopback-strips-port",
+			registered:  []string{"http://127.0.0.1/callback"},
+			redirectURI: "http://127.0.0.1:12345/callback",
+			allowed:     true,
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			app := &auth_model.OAuth2Application{RedirectURIs: tc.registered}
+			assert.Equal(t, tc.allowed, app.ContainsRedirectURI(tc.redirectURI))
+		})
+	}
+}
+
 func TestOAuth2Application_ValidateClientSecret(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 	app := unittest.AssertExistsAndLoadBean(t, &auth_model.OAuth2Application{ID: 1})
@@ -193,6 +235,16 @@ func TestOAuth2Grant_IncreaseCounter(t *testing.T) {
 	unittest.AssertExistsAndLoadBean(t, &auth_model.OAuth2Grant{ID: 1, Counter: 2})
 }
 
+func TestOAuth2Grant_IncreaseCounterRejectsStaleCounter(t *testing.T) {
+	assert.NoError(t, unittest.PrepareTestDatabase())
+	grant := unittest.AssertExistsAndLoadBean(t, &auth_model.OAuth2Grant{ID: 1, Counter: 1})
+	stale := *grant
+
+	assert.NoError(t, grant.IncreaseCounter(t.Context()))
+	err := stale.IncreaseCounter(t.Context())
+	assert.ErrorIs(t, err, auth_model.ErrOAuth2GrantStaleCounter)
+}
+
 func TestOAuth2Grant_ScopeContains(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 	grant := unittest.AssertExistsAndLoadBean(t, &auth_model.OAuth2Grant{ID: 1, Scope: "openid profile"})
@@ -237,35 +289,38 @@ func TestRevokeOAuth2Grant(t *testing.T) {
 //////////////////// Authorization Code
 
 func TestOAuth2AuthorizationCode_ValidateCodeChallenge(t *testing.T) {
-	// test plain
-	code := &auth_model.OAuth2AuthorizationCode{
-		CodeChallengeMethod: "plain",
-		CodeChallenge:       "test123",
-	}
-	assert.True(t, code.ValidateCodeChallenge("test123"))
-	assert.False(t, code.ValidateCodeChallenge("ierwgjoergjio"))
+	s256Verifier := "s256-verifier"
+	s256Challenge := oauth2.S256ChallengeFromVerifier(s256Verifier)
+	missingVerifierChallenge := oauth2.S256ChallengeFromVerifier("verifier-not-supplied")
 
-	// test S256
-	code = &auth_model.OAuth2AuthorizationCode{
-		CodeChallengeMethod: "S256",
-		CodeChallenge:       "CjvyTLSdR47G5zYenDA-eDWW4lRrO8yvjcWwbD_deOg",
+	testCases := []struct {
+		name      string
+		method    string
+		challenge string
+		verifier  string
+		valid     bool
+	}{
+		{"plain-success", "plain", "plain-secret", "plain-secret", true},
+		{"plain-failure", "plain", "plain-secret", "ierwgjoergjio", false},
+		{"s256-success", "S256", s256Challenge, s256Verifier, true},
+		{"s256-failure", "S256", s256Challenge, "wiogjerogorewngoenrgoiuenorg", false},
+		{"unsupported-method", "monkey", "foiwgjioriogeiogjerger", "foiwgjioriogeiogjerger", false},
+		{"no-pkce-configured", "", "", "", true},
+		{"s256-missing-verifier", "S256", missingVerifierChallenge, "", false},
+		{"plain-missing-verifier", "plain", "plain-secret", "", false},
+		{"missing-method-with-challenge", "", "foierjiogerogerg", "", false},
+		{"missing-method-rejects-even-matching-verifier", "", "foierjiogerogerg", "foierjiogerogerg", false},
 	}
-	assert.True(t, code.ValidateCodeChallenge("N1Zo9-8Rfwhkt68r1r29ty8YwIraXR8eh_1Qwxg7yQXsonBt"))
-	assert.False(t, code.ValidateCodeChallenge("wiogjerogorewngoenrgoiuenorg"))
 
-	// test unknown
-	code = &auth_model.OAuth2AuthorizationCode{
-		CodeChallengeMethod: "monkey",
-		CodeChallenge:       "foiwgjioriogeiogjerger",
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			code := &auth_model.OAuth2AuthorizationCode{
+				CodeChallengeMethod: tc.method,
+				CodeChallenge:       tc.challenge,
+			}
+			assert.Equal(t, tc.valid, code.ValidateCodeChallenge(tc.verifier))
+		})
 	}
-	assert.False(t, code.ValidateCodeChallenge("foiwgjioriogeiogjerger"))
-
-	// test no code challenge
-	code = &auth_model.OAuth2AuthorizationCode{
-		CodeChallengeMethod: "",
-		CodeChallenge:       "foierjiogerogerg",
-	}
-	assert.True(t, code.ValidateCodeChallenge(""))
 }
 
 func TestOAuth2AuthorizationCode_GenerateRedirectURI(t *testing.T) {

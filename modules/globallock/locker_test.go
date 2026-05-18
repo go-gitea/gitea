@@ -32,7 +32,7 @@ func newTestRedisLocker(t *testing.T) Locker {
 
 func TestLocker(t *testing.T) {
 	t.Run("redis", func(t *testing.T) {
-		test.MockVariableValue(&redisLockExpiry, 5*time.Second) // make it shorter for testing
+		defer test.MockVariableValue(&redisLockExpiry, 5*time.Second)() // make it shorter for testing
 		locker := newTestRedisLocker(t)
 		testLocker(t, locker)
 		testRedisLocker(t, locker.(*redisLocker))
