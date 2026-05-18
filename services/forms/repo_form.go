@@ -142,7 +142,9 @@ type RepoSettingForm struct {
 	PullsAllowManualMerge            bool
 	PullsDefaultMergeStyle           string
 	EnableAutodetectManualMerge      bool
+	PullsAllowMergeUpdate            bool
 	PullsAllowRebaseUpdate           bool
+	PullsDefaultUpdateStyle          string
 	DefaultDeleteBranchAfterMerge    bool
 	DefaultAllowMaintainerEdit       bool
 	DefaultTargetBranch              string
@@ -179,6 +181,9 @@ type ProtectBranchForm struct {
 	EnableMergeWhitelist          bool
 	MergeWhitelistUsers           string
 	MergeWhitelistTeams           string
+	EnableBypassAllowlist         bool
+	BypassAllowlistUsers          string
+	BypassAllowlistTeams          string
 	EnableStatusCheck             bool
 	StatusCheckContexts           string
 	RequiredApprovals             int64
@@ -200,10 +205,6 @@ type ProtectBranchForm struct {
 func (f *ProtectBranchForm) Validate(req *http.Request, errs binding.Errors) binding.Errors {
 	ctx := context.GetValidateContext(req)
 	return middleware.Validate(errs, ctx.Data, f, ctx.Locale)
-}
-
-type ProtectBranchPriorityForm struct {
-	IDs []int64
 }
 
 // WebhookForm form for changing web hook

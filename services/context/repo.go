@@ -173,6 +173,16 @@ func PrepareCommitFormOptions(ctx *Context, doer *user_model.User, targetRepo *r
 		protectedBranch.Repo = targetRepo
 		canPushWithProtection = protectedBranch.CanUserPush(ctx, doer)
 		protectionRequireSigned = protectedBranch.RequireSignedCommits
+		// If branch-wide push is restricted, allow direct commit when the
+		// URL-derived tree path matches an unprotected file pattern. The
+		// pre-receive hook re-checks every path the commit actually touches
+		// (e.g. rename source and destination).
+		if !canPushWithProtection && ctx.Repo.TreePath != "" && protectedBranch.UnprotectedFilePatterns != "" {
+			globs := protectedBranch.GetUnprotectedFilePatterns()
+			if protectedBranch.IsUnprotectedFile(globs, ctx.Repo.TreePath) {
+				canPushWithProtection = true
+			}
+		}
 	}
 
 	targetGitRepo, closer, err := gitrepo.RepositoryFromContextOrOpen(ctx, targetRepo)

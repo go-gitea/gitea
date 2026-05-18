@@ -151,16 +151,16 @@ func testAPICreateIssue(t *testing.T) {
 }
 
 func testAPICreateIssueParallel(t *testing.T) {
-	// FIXME: There seems to be a bug in github.com/mattn/go-sqlite3 with sqlite_unlock_notify, when doing concurrent writes to the same database,
+	// HINT: There seems to be a bug in github.com/mattn/go-sqlite3 with sqlite_unlock_notify, when doing concurrent writes to the same database,
 	// some requests may get stuck in "go-sqlite3.(*SQLiteRows).Next", "go-sqlite3.(*SQLiteStmt).exec" and "go-sqlite3.unlock_notify_wait",
-	// because the "unlock_notify_wait" never returns and the internal lock never gets releases.
+	// because the "unlock_notify_wait" never returns and the internal lock never gets released.
 	//
 	// The trigger is: a previous test created issues and made the real issue indexer queue start processing, then this test does concurrent writing.
 	// Adding this "Sleep" makes go-sqlite3 "finish" some internal operations before concurrent writes and then won't get stuck.
 	// To reproduce: make a new test run these 2 tests enough times:
 	// > func testBug() { for i := 0; i < 100; i++ { testAPICreateIssue(t); testAPICreateIssueParallel(t) } }
 	// Usually the test gets stuck in fewer than 10 iterations without this "sleep".
-	time.Sleep(time.Second)
+	time.Sleep(100 * time.Millisecond)
 
 	const body, title = "apiTestBody", "apiTestTitle"
 
@@ -600,15 +600,14 @@ func testAPIIssueProjects(t *testing.T) {
 		Projects: []int64{1},
 	}).AddTokenAuth(token)
 	resp := MakeRequest(t, req, http.StatusCreated)
-	var apiIssue api.Issue
-	DecodeJSON(t, resp, &apiIssue)
+	apiIssue := DecodeJSON(t, resp, &api.Issue{})
 	assert.Len(t, apiIssue.Projects, 1)
 	assert.EqualValues(t, 1, apiIssue.Projects[0].ID)
 
 	// Get issue should include projects
 	req = NewRequest(t, "GET", fmt.Sprintf("%s/%d", urlStr, apiIssue.Index)).AddTokenAuth(token)
 	resp = MakeRequest(t, req, http.StatusOK)
-	DecodeJSON(t, resp, &apiIssue)
+	apiIssue = DecodeJSON(t, resp, &api.Issue{})
 	assert.Len(t, apiIssue.Projects, 1)
 	assert.EqualValues(t, 1, apiIssue.Projects[0].ID)
 
@@ -618,7 +617,7 @@ func testAPIIssueProjects(t *testing.T) {
 		Projects: &emptyProjects,
 	}).AddTokenAuth(token)
 	resp = MakeRequest(t, req, http.StatusCreated)
-	DecodeJSON(t, resp, &apiIssue)
+	apiIssue = DecodeJSON(t, resp, &api.Issue{})
 	assert.Empty(t, apiIssue.Projects)
 
 	// Edit issue to add project back
@@ -627,7 +626,7 @@ func testAPIIssueProjects(t *testing.T) {
 		Projects: &projects,
 	}).AddTokenAuth(token)
 	resp = MakeRequest(t, req, http.StatusCreated)
-	DecodeJSON(t, resp, &apiIssue)
+	apiIssue = DecodeJSON(t, resp, &api.Issue{})
 	assert.Len(t, apiIssue.Projects, 1)
 	assert.EqualValues(t, 1, apiIssue.Projects[0].ID)
 

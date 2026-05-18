@@ -1,9 +1,9 @@
-{{if and .comment.Time (.ctxData.Repository.IsTimetrackerEnabled ctx)}} {{/* compatibility with time comments made before v1.14 */}}
+{{if and .comment.Time (ctx.RootData.Repository.IsTimetrackerEnabled ctx)}} {{/* compatibility with time comments made before v1.14 */}}
 	{{if (not .comment.Time.Deleted)}}
-		{{if (or .ctxData.IsAdmin (and .ctxData.IsSigned (eq .ctxData.SignedUserID .comment.PosterID)))}}
+		{{if (or ctx.RootData.IsAdmin (and ctx.RootData.IsSigned (eq ctx.RootData.SignedUserID .comment.PosterID)))}}
 			<span class="tw-ml-auto">
 				<button class="ui icon button compact mini link-action" data-tooltip-content="{{ctx.Locale.Tr "repo.issues.del_time"}}"
-								data-url="{{.ctxData.RepoLink}}/issues/{{.ctxData.Issue.Index}}/times/{{.comment.TimeID}}/delete?id={{.comment.Time.ID}}"
+								data-url="{{ctx.RootData.RepoLink}}/issues/{{ctx.RootData.Issue.Index}}/times/{{.comment.TimeID}}/delete?id={{.comment.Time.ID}}"
 								data-modal-confirm="{{ctx.Locale.Tr "repo.issues.del_time"}}"
 				>
 					{{svg "octicon-trash"}}

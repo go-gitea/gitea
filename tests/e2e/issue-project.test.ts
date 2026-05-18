@@ -335,7 +335,7 @@ test('filter issues with no project using project=-1', async ({page}) => {
     await expect(page.locator('#issue-list')).not.toContainText('Issue with project assigned');
 
     // Verify the last item in the list is NOT the issue with a project
-    const issueItems = page.locator('#issue-list .flex-item');
+    const issueItems = page.locator('#issue-list .item');
     const lastIssueItem = issueItems.last();
     await expect(lastIssueItem).not.toContainText('Issue with project assigned');
   } finally {

@@ -21,11 +21,6 @@ import (
 )
 
 func TestOrgTeamEmailInvite(t *testing.T) {
-	if setting.MailService == nil {
-		t.Skip()
-		return
-	}
-
 	defer tests.PrepareTestEnv(t)()
 
 	org := unittest.AssertExistsAndLoadBean(t, &organization.Organization{ID: 3})
@@ -68,11 +63,6 @@ func TestOrgTeamEmailInvite(t *testing.T) {
 
 // Check that users are redirected to accept the invitation correctly after login
 func TestOrgTeamEmailInviteRedirectsExistingUser(t *testing.T) {
-	if setting.MailService == nil {
-		t.Skip()
-		return
-	}
-
 	defer tests.PrepareTestEnv(t)()
 
 	org := unittest.AssertExistsAndLoadBean(t, &organization.Organization{ID: 3})
@@ -139,11 +129,6 @@ func TestOrgTeamEmailInviteRedirectsExistingUser(t *testing.T) {
 
 // Check that newly signed up users are redirected to accept the invitation correctly
 func TestOrgTeamEmailInviteRedirectsNewUser(t *testing.T) {
-	if setting.MailService == nil {
-		t.Skip()
-		return
-	}
-
 	defer tests.PrepareTestEnv(t)()
 
 	org := unittest.AssertExistsAndLoadBean(t, &organization.Organization{ID: 3})
@@ -211,11 +196,6 @@ func TestOrgTeamEmailInviteRedirectsNewUser(t *testing.T) {
 
 // Check that users are redirected correctly after confirming their email
 func TestOrgTeamEmailInviteRedirectsNewUserWithActivation(t *testing.T) {
-	if setting.MailService == nil {
-		t.Skip()
-		return
-	}
-
 	// enable email confirmation temporarily
 	defer test.MockVariableValue(&setting.Service.RegisterEmailConfirm, true)()
 	defer tests.PrepareTestEnv(t)()
@@ -281,11 +261,6 @@ func TestOrgTeamEmailInviteRedirectsNewUserWithActivation(t *testing.T) {
 // For example: an invite may have been created before the user account was created, but they may be
 // accepting the invite after having created an account separately
 func TestOrgTeamEmailInviteRedirectsExistingUserWithLogin(t *testing.T) {
-	if setting.MailService == nil {
-		t.Skip()
-		return
-	}
-
 	defer tests.PrepareTestEnv(t)()
 
 	org := unittest.AssertExistsAndLoadBean(t, &organization.Organization{ID: 3})

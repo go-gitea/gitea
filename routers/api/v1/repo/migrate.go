@@ -257,7 +257,7 @@ func handleRemoteAddrError(ctx *context.APIContext, err error) {
 		addrErr := err.(*git.ErrInvalidCloneAddr)
 		switch {
 		case addrErr.IsURLError:
-			ctx.APIError(http.StatusUnprocessableEntity, err)
+			ctx.APIError(http.StatusUnprocessableEntity, "The provided URL is invalid.")
 		case addrErr.IsPermissionDenied:
 			if addrErr.LocalPath {
 				ctx.APIError(http.StatusUnprocessableEntity, "You are not allowed to import local repositories.")

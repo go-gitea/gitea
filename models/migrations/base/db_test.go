@@ -6,17 +6,18 @@ package base
 import (
 	"testing"
 
+	"code.gitea.io/gitea/models/migrations/migrationtest"
 	"code.gitea.io/gitea/modules/timeutil"
 
 	"xorm.io/xorm/names"
 )
 
 func TestMain(m *testing.M) {
-	MainTest(m)
+	migrationtest.MainTest(m)
 }
 
 func Test_DropTableColumns(t *testing.T) {
-	x, deferable := PrepareTestEnv(t, 0)
+	x, deferable := migrationtest.PrepareTestEnv(t, 0)
 	defer deferable()
 	// FIXME: this logic seems wrong. Need to add an assertion here in the future, but it seems causing failure.
 	if x == nil || t.Failed() {
