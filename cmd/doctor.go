@@ -21,7 +21,6 @@ import (
 	"code.gitea.io/gitea/services/doctor"
 
 	"github.com/urfave/cli/v3"
-	"xorm.io/xorm"
 )
 
 func newDoctorCommand() *cli.Command {
@@ -132,7 +131,7 @@ func runRecreateTable(ctx context.Context, cmd *cli.Command) error {
 	}
 	recreateTables := migrate_base.RecreateTables(beans...)
 
-	return db.InitEngineWithMigration(context.Background(), func(ctx context.Context, x *xorm.Engine) error {
+	return db.InitEngineWithMigration(context.Background(), func(ctx context.Context, x db.EngineMigration) error {
 		if err := migrations.EnsureUpToDate(ctx, x); err != nil {
 			return err
 		}

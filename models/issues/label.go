@@ -396,7 +396,7 @@ func GetLabelsByRepoID(ctx context.Context, repoID int64, sortType string, listO
 	}
 
 	if listOptions.Page > 0 {
-		sess = db.SetSessionPagination(sess, &listOptions)
+		db.SetSessionPagination(sess, &listOptions)
 	}
 
 	return labels, sess.Find(&labels)
@@ -471,7 +471,7 @@ func GetLabelsByOrgID(ctx context.Context, orgID int64, sortType string, listOpt
 	}
 
 	if listOptions.Page > 0 {
-		sess = db.SetSessionPagination(sess, &listOptions)
+		db.SetSessionPagination(sess, &listOptions)
 	}
 
 	return labels, sess.Find(&labels)
