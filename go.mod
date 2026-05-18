@@ -28,6 +28,7 @@ require (
 	github.com/PuerkitoBio/goquery v1.12.0
 	github.com/SaveTheRbtz/zstd-seekable-format-go/pkg v0.8.0
 	github.com/alecthomas/chroma/v2 v2.24.1
+	github.com/alicebob/miniredis/v2 v2.38.0
 	github.com/aws/aws-sdk-go-v2/credentials v1.19.16
 	github.com/aws/aws-sdk-go-v2/service/codecommit v1.33.14
 	github.com/blakesmith/ar v0.0.0-20190502131153-809d4375e1fb
@@ -276,6 +277,7 @@ require (
 	github.com/xeipuuv/gojsonpointer v0.0.0-20190905194746-02993c407bfb // indirect
 	github.com/xeipuuv/gojsonreference v0.0.0-20180127040603-bd5ef7bd5415 // indirect
 	github.com/xi2/xz v0.0.0-20171230120015-48954b6210f8 // indirect
+	github.com/yuin/gopher-lua v1.1.1 // indirect
 	github.com/zeebo/blake3 v0.2.4 // indirect
 	github.com/zeebo/xxh3 v1.1.0 // indirect
 	go.etcd.io/bbolt v1.4.3 // indirect
