@@ -371,8 +371,8 @@ func preReceiveBranch(ctx *preReceiveContext, oldCommitID, newCommitID string, r
 			return
 		}
 
-		// If we're an admin for the repository we can ignore status checks, reviews and override protected files
-		if ctx.userPerm.IsAdmin() {
+		// If we can bypass branch protection we can ignore status checks, reviews and protected files
+		if git_model.CanBypassBranchProtection(ctx, protectBranch, ctx.user, ctx.userPerm.IsAdmin()) {
 			return
 		}
 

@@ -617,8 +617,32 @@
 						</div>
 						<div class="field">
 							<div class="ui checkbox">
-								<input name="pulls_allow_rebase_update" type="checkbox" {{if or (not $pullRequestEnabled) ($prUnit.PullRequestsConfig.AllowRebaseUpdate)}}checked{{end}}>
+								<input name="pulls_allow_merge_update" type="checkbox" {{if $prUnit.PullRequestsConfig.AllowMergeUpdate}}checked{{end}}>
+								<label>{{ctx.Locale.Tr "repo.settings.pulls.allow_merge_update"}}</label>
+							</div>
+						</div>
+						<div class="field">
+							<div class="ui checkbox">
+								<input name="pulls_allow_rebase_update" type="checkbox" {{if $prUnit.PullRequestsConfig.AllowRebaseUpdate}}checked{{end}}>
 								<label>{{ctx.Locale.Tr "repo.settings.pulls.allow_rebase_update"}}</label>
+							</div>
+						</div>
+						<div class="field">
+							<label>{{ctx.Locale.Tr "repo.settings.pulls.default_update_style"}}</label>
+							<div class="ui dropdown selection">
+								<select name="pulls_default_update_style">
+									{{range .PullsDefaultUpdateStyleOptions}}
+										<option value="{{.Value}}" {{if .Selected}}selected{{end}}>{{.Text}}</option>
+									{{end}}
+								</select>{{svg "octicon-triangle-down" 14 "dropdown icon"}}
+								<div class="default text">
+									{{.PullsDefaultUpdateStyleText}}
+								</div>
+								<div class="menu">
+									{{range .PullsDefaultUpdateStyleOptions}}
+										<div class="item" data-value="{{.Value}}">{{.Text}}</div>
+									{{end}}
+								</div>
 							</div>
 						</div>
 						<div class="field">

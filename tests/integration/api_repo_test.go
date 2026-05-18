@@ -17,10 +17,13 @@ import (
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
+	"code.gitea.io/gitea/modules/test"
+	"code.gitea.io/gitea/services/migrations"
 	repo_service "code.gitea.io/gitea/services/repository"
 	"code.gitea.io/gitea/tests"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestAPIUserReposNotLogin(t *testing.T) {
@@ -60,11 +63,7 @@ func TestAPISearchRepo(t *testing.T) {
 	user4 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 20})
 	orgUser := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 17})
 
-	oldAPIDefaultNum := setting.API.DefaultPagingNum
-	defer func() {
-		setting.API.DefaultPagingNum = oldAPIDefaultNum
-	}()
-	setting.API.DefaultPagingNum = 10
+	defer test.MockVariableValue(&setting.API.DefaultPagingNum, 10)()
 
 	// Map of expected results, where key is user for login
 	type expectedResults map[*user_model.User]struct {
@@ -367,6 +366,9 @@ func TestAPIRepoMigrate(t *testing.T) {
 	}
 
 	defer tests.PrepareTestEnv(t)()
+	defer test.MockVariableValue(&setting.Migrations.AllowLocalNetworks, false)()
+	require.NoError(t, migrations.Init())
+
 	for _, testCase := range testCases {
 		user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: testCase.ctxUserID})
 		session := loginUser(t, user.Name)
@@ -536,7 +538,6 @@ func TestAPIRepoTransfer(t *testing.T) {
 	session := loginUser(t, user.Name)
 	token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeWriteRepository, auth_model.AccessTokenScopeWriteUser)
 	repoName := "moveME"
-	apiRepo := new(api.Repository)
 	req := NewRequestWithJSON(t, "POST", "/api/v1/user/repos", &api.CreateRepoOption{
 		Name:        repoName,
 		Description: "repo move around",
@@ -545,7 +546,7 @@ func TestAPIRepoTransfer(t *testing.T) {
 		AutoInit:    true,
 	}).AddTokenAuth(token)
 	resp := MakeRequest(t, req, http.StatusCreated)
-	DecodeJSON(t, resp, apiRepo)
+	apiRepo := DecodeJSON(t, resp, &api.Repository{})
 
 	// start testing
 	for _, testCase := range testCases {
@@ -571,7 +572,6 @@ func transfer(t *testing.T) *repo_model.Repository {
 	session := loginUser(t, user.Name)
 	token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeWriteRepository, auth_model.AccessTokenScopeWriteUser)
 	repoName := "moveME"
-	apiRepo := new(api.Repository)
 	req := NewRequestWithJSON(t, "POST", "/api/v1/user/repos", &api.CreateRepoOption{
 		Name:        repoName,
 		Description: "repo move around",
@@ -581,7 +581,7 @@ func transfer(t *testing.T) *repo_model.Repository {
 	}).AddTokenAuth(token)
 
 	resp := MakeRequest(t, req, http.StatusCreated)
-	DecodeJSON(t, resp, apiRepo)
+	apiRepo := DecodeJSON(t, resp, &api.Repository{})
 
 	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: apiRepo.ID})
 	req = NewRequestWithJSON(t, "POST", fmt.Sprintf("/api/v1/repos/%s/%s/transfer", repo.OwnerName, repo.Name), &api.TransferRepoOption{
@@ -616,8 +616,7 @@ func TestAPIAcceptTransfer(t *testing.T) {
 	req = NewRequest(t, "POST", fmt.Sprintf("/api/v1/repos/%s/%s/transfer/accept", repo.OwnerName, repo.Name)).
 		AddTokenAuth(token)
 	resp := MakeRequest(t, req, http.StatusAccepted)
-	apiRepo := new(api.Repository)
-	DecodeJSON(t, resp, apiRepo)
+	apiRepo := DecodeJSON(t, resp, &api.Repository{})
 	assert.Equal(t, "user4", apiRepo.Owner.UserName)
 }
 
@@ -669,7 +668,6 @@ func TestAPIGenerateRepo(t *testing.T) {
 	}
 
 	// user
-	repo := new(api.Repository)
 	req := NewRequestWithJSON(t, "POST", fmt.Sprintf("/api/v1/repos/%s/%s/generate", templateRepo.OwnerName, templateRepo.Name), &api.GenerateRepoOption{
 		Owner:       user.Name,
 		Name:        "new-repo",
@@ -678,10 +676,10 @@ func TestAPIGenerateRepo(t *testing.T) {
 		GitContent:  true,
 	}).AddTokenAuth(token)
 	resp := MakeRequest(t, req, http.StatusCreated)
-	DecodeJSON(t, resp, repo)
+	apiRepo := DecodeJSON(t, resp, &api.Repository{})
 
-	assert.Equal(t, "new-repo", repo.Name)
-	assertGeneratedRepoIsUsable(t, user.Name, repo)
+	assert.Equal(t, "new-repo", apiRepo.Name)
+	assertGeneratedRepoIsUsable(t, user.Name, apiRepo)
 
 	// org
 	req = NewRequestWithJSON(t, "POST", fmt.Sprintf("/api/v1/repos/%s/%s/generate", templateRepo.OwnerName, templateRepo.Name), &api.GenerateRepoOption{
@@ -692,10 +690,10 @@ func TestAPIGenerateRepo(t *testing.T) {
 		GitContent:  true,
 	}).AddTokenAuth(token)
 	resp = MakeRequest(t, req, http.StatusCreated)
-	DecodeJSON(t, resp, repo)
+	apiRepo = DecodeJSON(t, resp, &api.Repository{})
 
-	assert.Equal(t, "new-repo", repo.Name)
-	assertGeneratedRepoIsUsable(t, "org3", repo)
+	assert.Equal(t, "new-repo", apiRepo.Name)
+	assertGeneratedRepoIsUsable(t, "org3", apiRepo)
 }
 
 func TestAPIRepoGetReviewers(t *testing.T) {

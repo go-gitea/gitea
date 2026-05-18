@@ -320,7 +320,7 @@ lint-md-fix: node_modules ## lint markdown files and fix issues
 
 .PHONY: lint-pr-title
 lint-pr-title: ## lint PR title against Conventional Commits (set PR_TITLE=...)
-	@node ./tools/lint-pr-title.js
+	@node ./tools/lint-pr-title.ts
 
 .PHONY: lint-spell
 lint-spell: ## lint spelling
@@ -344,8 +344,9 @@ lint-editorconfig:
 	@$(GO) run $(EDITORCONFIG_CHECKER_PACKAGE) $(EDITORCONFIG_FILES)
 
 .PHONY: lint-actions
-lint-actions: ## lint action workflow files
-	$(GO) run $(ACTIONLINT_PACKAGE)
+lint-actions: .venv ## lint action workflow files
+	@$(GO) run $(ACTIONLINT_PACKAGE)
+	@uv run --frozen zizmor --quiet --min-confidence=medium .github
 
 .PHONY: lint-templates
 lint-templates: .venv node_modules ## lint template files
