@@ -4,6 +4,7 @@
 package websocket
 
 import (
+	"bytes"
 	gocontext "context"
 	"time"
 
@@ -29,20 +30,19 @@ const (
 	closeCodeUnauthenticated gitea_ws.StatusCode = 3000
 )
 
-type logoutBrokerMsg struct {
-	Type      string `json:"type"`
-	SessionID string `json:"sessionID,omitempty"`
-}
-
 type logoutClientMsg struct {
 	Type string `json:"type"`
 	Data string `json:"data"`
 }
 
-// Translates the raw session ID into "here"/"elsewhere" so the client can tell
-// whether logout originated from this tab. Empty sessionID targets all sessions.
+var logoutTypeMarker = []byte(`"type":"logout"`)
+
+// Returns nil to drop the message rather than leak the raw session ID on marshal failure.
 func rewriteLogout(msg []byte, connSessionID string) []byte {
-	var lm logoutBrokerMsg
+	if !bytes.Contains(msg, logoutTypeMarker) {
+		return msg
+	}
+	var lm websocket_service.LogoutBrokerMsg
 	if err := json.Unmarshal(msg, &lm); err != nil || lm.Type != websocket_service.EventLogout {
 		return msg
 	}
@@ -52,7 +52,8 @@ func rewriteLogout(msg []byte, connSessionID string) []byte {
 	}
 	out, err := json.Marshal(logoutClientMsg{Type: websocket_service.EventLogout, Data: where})
 	if err != nil {
-		return msg
+		log.Error("websocket: marshal logout: %v", err)
+		return nil
 	}
 	return out
 }
@@ -100,6 +101,9 @@ func Serve(ctx *context.Context) {
 				return
 			}
 			msg = rewriteLogout(msg, sessionID)
+			if msg == nil {
+				continue
+			}
 			// Bound the write so a stalled/slow peer can't block this goroutine
 			// indefinitely and starve the ping ticker.
 			writeCtx, cancelWrite := gocontext.WithTimeout(wsCtx, writeTimeout)

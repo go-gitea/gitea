@@ -3,15 +3,15 @@
 
 package websocket
 
-type logoutEvent struct {
+// LogoutBrokerMsg is the bus-side wire format; the WS handler rewrites SessionID
+// into "here"/"elsewhere" per connection. Empty SessionID targets all sessions.
+type LogoutBrokerMsg struct {
 	Type      string `json:"type"`
 	SessionID string `json:"sessionID,omitempty"`
 }
 
-// sessionID identifies the session that is signing out so connected tabs can
-// distinguish the originating session from others.
 func PublishLogout(userID int64, sessionID string) {
-	publishUserEvent(userID, logoutEvent{
+	publishUserEvent(userID, LogoutBrokerMsg{
 		Type:      EventLogout,
 		SessionID: sessionID,
 	})

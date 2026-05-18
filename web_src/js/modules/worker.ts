@@ -5,10 +5,15 @@ const {appSubUrl, sharedWorkerUri} = window.config;
 type EventOf<T extends UserEventType> = Extract<UserEventMessage, {type: T}>;
 type Subscriber<T extends UserEventType = UserEventType> = (msg: EventOf<T>) => void;
 const subscribers = new Map<UserEventType, Set<Subscriber>>();
+// Suppress identical repeat pushes (Redis fan-out can emit dup counts) so subscribers don't refetch on no-ops.
+const lastPayload = new Map<UserEventType, string>();
 let fallbackSignalled = false;
 let sharedWorker: SharedWorker | null = null;
 
 function dispatch(msg: UserEventMessage) {
+  const serialized = JSON.stringify(msg);
+  if (lastPayload.get(msg.type) === serialized) return;
+  lastPayload.set(msg.type, serialized);
   const set = subscribers.get(msg.type);
   if (!set) return;
   for (const cb of set) cb(msg);
@@ -100,7 +105,7 @@ export function onUserEvent<T extends UserEventType>(type: T, cb: Subscriber<T>)
     set = new Set();
     subscribers.set(type, set);
   }
-  const wrapped = cb as unknown as Subscriber;
+  const wrapped: Subscriber = (msg) => cb(msg as EventOf<T>);
   set.add(wrapped);
   return () => { set.delete(wrapped) };
 }

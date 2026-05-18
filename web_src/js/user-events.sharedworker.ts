@@ -1,8 +1,9 @@
+import {serverEventTypes} from './types.ts';
 import type {ServerEventMessage, UserEventMessage} from './types.ts';
 
 function isServerEventMessage(msg: unknown): msg is ServerEventMessage {
   if (!msg || typeof msg !== 'object' || !('type' in msg)) return false;
-  return msg.type === 'notification-count' || msg.type === 'stopwatches' || msg.type === 'logout';
+  return (serverEventTypes as ReadonlyArray<string>).includes(msg.type as string);
 }
 
 class Source {
@@ -111,7 +112,7 @@ class WsSource {
       this.reconnectTimer = null;
       this.connect();
     }, delay);
-    this.reconnectDelay = Math.min(this.reconnectDelay * 2, 10000);
+    this.reconnectDelay = Math.min(this.reconnectDelay * 2, 60000);
   }
 
   close() {

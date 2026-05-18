@@ -76,6 +76,9 @@ export type ServerEventMessage =
   {type: 'stopwatches', data: Array<StopwatchData>} |
   {type: 'logout', data: 'here' | 'elsewhere'};
 
+// `satisfies` makes adding a new variant to ServerEventMessage without updating this array a type error.
+export const serverEventTypes = ['notification-count', 'stopwatches', 'logout'] as const satisfies ReadonlyArray<ServerEventMessage['type']>;
+
 export type UserEventMessage =
   ServerEventMessage |
   {type: 'push-unavailable'};

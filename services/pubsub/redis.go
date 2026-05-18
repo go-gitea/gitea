@@ -17,6 +17,8 @@ import (
 
 const (
 	redisPingTimeout      = 3 * time.Second
+	redisPingRetries      = 10
+	redisPingRetryDelay   = time.Second
 	redisSubscribeTimeout = 5 * time.Second
 	redisPublishTimeout   = 2 * time.Second
 )
@@ -50,12 +52,20 @@ var _ Broker = (*RedisBroker)(nil)
 
 func NewRedisBroker(connStr string) (*RedisBroker, error) {
 	client := nosql.GetManager().GetRedisClient(connStr)
-	// context.Background not graceful.ShutdownContext: this runs during boot,
-	// when ShutdownContext may not even be initialized yet, and would otherwise
-	// fail immediately with a misleading "context canceled" on late init.
-	pingCtx, cancel := context.WithTimeout(context.Background(), redisPingTimeout)
-	defer cancel()
-	if err := client.Ping(pingCtx).Err(); err != nil {
+	// context.Background not graceful.ShutdownContext: shutdown ctx may not be initialized at boot.
+	// Retry to ride out docker-compose start-order races (matches modules/queue).
+	var err error
+	for range redisPingRetries {
+		pingCtx, cancel := context.WithTimeout(context.Background(), redisPingTimeout)
+		err = client.Ping(pingCtx).Err()
+		cancel()
+		if err == nil {
+			break
+		}
+		log.Warn("pubsub redis: not ready, retrying in 1s: %v", err)
+		time.Sleep(redisPingRetryDelay)
+	}
+	if err != nil {
 		return nil, err
 	}
 	return &RedisBroker{

@@ -2,6 +2,7 @@ import {createTippy} from '../modules/tippy.ts';
 import {GET} from '../modules/fetch.ts';
 import {hideElem, queryElems, showElem} from '../utils/dom.ts';
 import {onUserEvent} from '../modules/worker.ts';
+import type {StopwatchData} from '../types.ts';
 
 const {appSubUrl, notificationSettings, enableTimeTracking} = window.config;
 
@@ -76,7 +77,7 @@ async function updateStopwatch() {
   return updateStopwatchData(data);
 }
 
-function updateStopwatchData(data: any) {
+function updateStopwatchData(data: Array<StopwatchData>) {
   const watch = data[0];
   const btnEls = document.querySelectorAll('.active-stopwatch');
   if (!watch) {

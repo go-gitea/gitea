@@ -410,12 +410,13 @@ func GetNotificationByID(ctx context.Context, notificationID int64) (*Notificati
 	return notification, nil
 }
 
-// UpdateNotificationStatuses updates the statuses of all of a user's notifications that are of the currentStatus type to the desiredStatus
-func UpdateNotificationStatuses(ctx context.Context, user *user_model.User, currentStatus, desiredStatus NotificationStatus) error {
+// UpdateNotificationStatuses updates the statuses of all of a user's notifications
+// that are of the currentStatus type to the desiredStatus. Returns the number of
+// rows actually changed so callers can skip downstream work on a no-op.
+func UpdateNotificationStatuses(ctx context.Context, user *user_model.User, currentStatus, desiredStatus NotificationStatus) (int64, error) {
 	n := &Notification{Status: desiredStatus, UpdatedBy: user.ID}
-	_, err := db.GetEngine(ctx).
+	return db.GetEngine(ctx).
 		Where("user_id = ? AND status = ?", user.ID, currentStatus).
 		Cols("status", "updated_by", "updated_unix").
 		Update(n)
-	return err
 }

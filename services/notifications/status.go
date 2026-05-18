@@ -49,9 +49,12 @@ func SetManyNotificationStatuses(ctx context.Context, ns []*activities_model.Not
 }
 
 func MarkAllRead(ctx context.Context, user *user_model.User) error {
-	if err := activities_model.UpdateNotificationStatuses(ctx, user, activities_model.NotificationStatusUnread, activities_model.NotificationStatusRead); err != nil {
+	changed, err := activities_model.UpdateNotificationStatuses(ctx, user, activities_model.NotificationStatusUnread, activities_model.NotificationStatusRead)
+	if err != nil {
 		return err
 	}
-	notify_service.NotificationCountChange(ctx, user.ID)
+	if changed > 0 {
+		notify_service.NotificationCountChange(ctx, user.ID)
+	}
 	return nil
 }

@@ -118,7 +118,8 @@ func TestUpdateNotificationStatuses(t *testing.T) {
 		&activities_model.Notification{UserID: user.ID, Status: activities_model.NotificationStatusRead})
 	notfPinned := unittest.AssertExistsAndLoadBean(t,
 		&activities_model.Notification{UserID: user.ID, Status: activities_model.NotificationStatusPinned})
-	assert.NoError(t, activities_model.UpdateNotificationStatuses(t.Context(), user, activities_model.NotificationStatusUnread, activities_model.NotificationStatusRead))
+	_, err := activities_model.UpdateNotificationStatuses(t.Context(), user, activities_model.NotificationStatusUnread, activities_model.NotificationStatusRead)
+	assert.NoError(t, err)
 	unittest.AssertExistsAndLoadBean(t,
 		&activities_model.Notification{ID: notfUnread.ID, Status: activities_model.NotificationStatusRead})
 	unittest.AssertExistsAndLoadBean(t,
