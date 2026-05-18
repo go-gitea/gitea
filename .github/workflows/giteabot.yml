@@ -35,8 +35,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 30
     steps:
-      # pull_request_target runs with a write token, so keep this pinned and do not check out PR HEAD here.
-      - uses: go-gitea/giteabot@761f9199f71c68ce2c76decf3dcf7ee76ca664ed # v1 branch @ 2026-04-25
+      - uses: go-gitea/giteabot@8996d0b0e6c4ab066e3adcaf2c49b5d4cd15d7af # v1.0.1
         with:
           github_token: ${{ secrets.GITEABOT_TOKEN }}
           gitea_fork: giteabot/gitea
