@@ -28,7 +28,7 @@ import (
 	webhook_module "code.gitea.io/gitea/modules/webhook"
 	"code.gitea.io/gitea/services/convert"
 
-	"github.com/nektos/act/pkg/model"
+	"gitea.com/gitea/runner/act/model"
 )
 
 type methodCtxKeyType struct{}
@@ -256,7 +256,7 @@ func skipWorkflows(ctx context.Context, input *notifyInput, commit *git.Commit) 
 				log.Debug("repo %s: skipped run for pr %v because of %s string", input.Repo.RelativePath(), input.PullRequest.Issue.ID, s)
 				return true
 			}
-			if strings.Contains(commit.CommitMessage, s) {
+			if strings.Contains(commit.MessageRaw, s) {
 				log.Debug("repo %s with commit %s: skipped run because of %s string", input.Repo.RelativePath(), commit.ID, s)
 				return true
 			}
@@ -320,7 +320,7 @@ func handleWorkflows(
 
 	for _, dwf := range detectedWorkflows {
 		run := &actions_model.ActionRun{
-			Title:             strings.SplitN(commit.CommitMessage, "\n", 2)[0],
+			Title:             commit.MessageTitle(),
 			RepoID:            input.Repo.ID,
 			Repo:              input.Repo,
 			OwnerID:           input.Repo.OwnerID,
@@ -362,7 +362,7 @@ func notifyRelease(ctx context.Context, doer *user_model.User, rel *repo_model.R
 		return
 	}
 
-	permission, _ := access_model.GetUserRepoPermission(ctx, rel.Repo, doer)
+	permission, _ := access_model.GetDoerRepoPermission(ctx, rel.Repo, doer)
 
 	newNotifyInput(rel.Repo, doer, webhook_module.HookEventRelease).
 		WithRef(git.RefNameFromTag(rel.TagName).String()).
@@ -413,8 +413,8 @@ func ifNeedApproval(ctx context.Context, run *actions_model.ActionRun, repo *rep
 	}
 
 	// don't need approval if the user can write
-	if perm, err := access_model.GetUserRepoPermission(ctx, repo, user); err != nil {
-		return false, fmt.Errorf("GetUserRepoPermission: %w", err)
+	if perm, err := access_model.GetDoerRepoPermission(ctx, repo, user); err != nil {
+		return false, fmt.Errorf("GetDoerRepoPermission: %w", err)
 	} else if perm.CanWrite(unit_model.TypeActions) {
 		log.Trace("do not need approval because user %d can write", user.ID)
 		return false, nil
@@ -483,7 +483,7 @@ func handleSchedules(
 		}
 
 		run := &actions_model.ActionSchedule{
-			Title:         strings.SplitN(commit.CommitMessage, "\n", 2)[0],
+			Title:         commit.MessageTitle(),
 			RepoID:        input.Repo.ID,
 			Repo:          input.Repo,
 			OwnerID:       input.Repo.OwnerID,

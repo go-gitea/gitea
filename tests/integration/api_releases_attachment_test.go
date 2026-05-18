@@ -61,8 +61,7 @@ func testAPIDraftReleaseAttachmentAccess(t *testing.T) {
 	MakeRequest(t, NewRequest(t, "GET", getURL).AddTokenAuth(ownerReadToken), http.StatusNotFound)
 	ownerToken := getUserToken(t, repoOwner.LowerName, auth_model.AccessTokenScopeWriteRepository)
 	resp := MakeRequest(t, NewRequest(t, "GET", listURL).AddTokenAuth(ownerToken), http.StatusOK)
-	var attachments []*api.Attachment
-	DecodeJSON(t, resp, &attachments)
+	attachments := DecodeJSON(t, resp, []*api.Attachment{})
 	if assert.Len(t, attachments, 1) {
 		assert.Equal(t, attachment.ID, attachments[0].ID)
 	}

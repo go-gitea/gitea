@@ -32,6 +32,12 @@ var (
 	ErrQuotaTotalCount = errors.New("maximum allowed package count exceeded")
 )
 
+type Specialization interface {
+	OnBeforeRemovePackageAll(ctx context.Context, doer *user_model.User, pkg *packages_model.Package, pds []*packages_model.PackageDescriptor) error
+	OnBeforeRemovePackageVersion(ctx context.Context, doer *user_model.User, pd *packages_model.PackageDescriptor) error
+	GetViewPackageVersionData(ctx context.Context, pd *packages_model.PackageDescriptor) (any, error)
+}
+
 // PackageInfo describes a package
 type PackageInfo struct {
 	Owner       *user_model.User
@@ -394,6 +400,8 @@ func CheckSizeQuotaExceeded(ctx context.Context, doer, owner *user_model.User, p
 		typeSpecificSize = setting.Packages.LimitSizeRubyGems
 	case packages_model.TypeSwift:
 		typeSpecificSize = setting.Packages.LimitSizeSwift
+	case packages_model.TypeTerraformState:
+		typeSpecificSize = setting.Packages.LimitSizeTerraformState
 	case packages_model.TypeVagrant:
 		typeSpecificSize = setting.Packages.LimitSizeVagrant
 	}
@@ -473,7 +481,11 @@ func RemovePackageVersion(ctx context.Context, doer *user_model.User, pv *packag
 	if err != nil {
 		return err
 	}
-
+	if err := GetSpecManager().Get(pd.Package.Type).OnBeforeRemovePackageVersion(ctx, doer, pd); err != nil {
+		return err
+	}
+	// HINT: PACKAGE-DEFER-STORAGE-DELETE: Blobs are not deleted immediately, instead they are deleted by the cleanup_packages cron task.
+	// If there are no more versions for the package, the same task removes that as well.
 	if err := db.WithTx(ctx, func(ctx context.Context) error {
 		log.Trace("Deleting package: %v", pv.ID)
 		return DeletePackageVersionAndReferences(ctx, pv)
@@ -532,16 +544,11 @@ func DeletePackageVersionAndReferences(ctx context.Context, pv *packages_model.P
 	if err := packages_model.DeleteAllProperties(ctx, packages_model.PropertyTypeVersion, pv.ID); err != nil {
 		return err
 	}
-
-	pfs, err := packages_model.GetFilesByVersionID(ctx, pv.ID)
-	if err != nil {
+	if err := packages_model.DeleteFilePropertiesByVersionID(ctx, pv.ID); err != nil {
 		return err
 	}
-
-	for _, pf := range pfs {
-		if err := DeletePackageFile(ctx, pf); err != nil {
-			return err
-		}
+	if err := packages_model.DeleteFilesByVersionID(ctx, pv.ID); err != nil {
+		return err
 	}
 
 	return packages_model.DeleteVersionByID(ctx, pv.ID)
@@ -599,7 +606,7 @@ func OpenBlobStream(pb *packages_model.PackageBlob) (io.ReadSeekCloser, error) {
 
 // OpenBlobForDownload returns the content of the specific package blob and increases the download counter.
 // If the storage supports direct serving and it's enabled, only the direct serving url is returned.
-func OpenBlobForDownload(ctx context.Context, pf *packages_model.PackageFile, pb *packages_model.PackageBlob, method string, serveDirectReqParams url.Values) (io.ReadSeekCloser, *url.URL, *packages_model.PackageFile, error) {
+func OpenBlobForDownload(ctx context.Context, pf *packages_model.PackageFile, pb *packages_model.PackageBlob, method string, serveDirectReqParams *storage.ServeDirectOptions) (io.ReadSeekCloser, *url.URL, *packages_model.PackageFile, error) {
 	key := packages_module.BlobHash256Key(pb.HashSHA256)
 
 	cs := packages_module.NewContentStore()
@@ -627,6 +634,50 @@ func OpenBlobForDownload(ctx context.Context, pf *packages_model.PackageFile, pb
 		}
 	}
 	return s, u, pf, nil
+}
+
+// RemovePackage deletes the package and all its versions
+func RemovePackage(ctx context.Context, doer *user_model.User, p *packages_model.Package) error {
+	pds, err := packages_model.GetAllPackageDescriptors(ctx, p)
+	if err != nil {
+		return err
+	}
+	if err := GetSpecManager().Get(p.Type).OnBeforeRemovePackageAll(ctx, doer, p, pds); err != nil {
+		return err
+	}
+
+	// HINT: PACKAGE-DEFER-STORAGE-DELETE: Blobs are not deleted immediately, instead they are deleted by cleanup_packages cron task.
+	err = db.WithTx(ctx, func(ctx context.Context) error {
+		err := packages_model.DeletePropertiesByPackageID(ctx, packages_model.PropertyTypePackage, p.ID)
+		if err != nil {
+			return err
+		}
+		err = packages_model.DeletePropertiesByPackageID(ctx, packages_model.PropertyTypeFile, p.ID)
+		if err != nil {
+			return err
+		}
+		err = packages_model.DeletePropertiesByPackageID(ctx, packages_model.PropertyTypeVersion, p.ID)
+		if err != nil {
+			return err
+		}
+		err = packages_model.DeleteFilesByPackageID(ctx, p.ID)
+		if err != nil {
+			return err
+		}
+		err = packages_model.DeleteVersionsByPackageID(ctx, p.ID)
+		if err != nil {
+			return err
+		}
+
+		return packages_model.DeletePackageByID(ctx, p.ID)
+	})
+	if err != nil {
+		return err
+	}
+	for _, pd := range pds {
+		notify_service.PackageDelete(ctx, doer, pd)
+	}
+	return nil
 }
 
 // RemoveAllPackages for User

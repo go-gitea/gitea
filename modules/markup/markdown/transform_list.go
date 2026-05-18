@@ -81,5 +81,16 @@ func (g *ASTTransformer) transformList(_ *markup.RenderContext, v *ast.List, rc 
 			v.AppendChild(v, newChild)
 		}
 	}
-	g.applyElementDir(v)
+
+	nestedList := false
+	for p := v.Parent(); p != nil; p = p.Parent() {
+		if _, ok := p.(*ast.List); ok {
+			nestedList = true
+			break
+		}
+	}
+	if !nestedList {
+		// "dir=auto" should be only added to top-level "ul". https://github.com/go-gitea/gitea/issues/35058
+		g.applyElementDir(v)
+	}
 }

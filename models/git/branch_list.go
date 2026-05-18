@@ -7,7 +7,6 @@ import (
 	"context"
 
 	"code.gitea.io/gitea/models/db"
-	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/container"
 	"code.gitea.io/gitea/modules/optional"
@@ -60,24 +59,6 @@ func (branches BranchList) LoadPusher(ctx context.Context) error {
 	return nil
 }
 
-func (branches BranchList) LoadRepo(ctx context.Context) error {
-	ids := container.FilterSlice(branches, func(branch *Branch) (int64, bool) {
-		return branch.RepoID, branch.RepoID > 0 && branch.Repo == nil
-	})
-
-	reposMap := make(map[int64]*repo_model.Repository, len(ids))
-	if err := db.GetEngine(ctx).In("id", ids).Find(&reposMap); err != nil {
-		return err
-	}
-	for _, branch := range branches {
-		if branch.RepoID <= 0 || branch.Repo != nil {
-			continue
-		}
-		branch.Repo = reposMap[branch.RepoID]
-	}
-	return nil
-}
-
 type FindBranchOptions struct {
 	db.ListOptions
 	RepoID             int64
@@ -120,7 +101,7 @@ func (opts FindBranchOptions) ToOrders() string {
 func FindBranchNames(ctx context.Context, opts FindBranchOptions) ([]string, error) {
 	sess := db.GetEngine(ctx).Select("name").Where(opts.ToConds())
 	if opts.PageSize > 0 && !opts.IsListAll() {
-		sess = db.SetSessionPagination(sess, &opts.ListOptions)
+		db.SetSessionPagination(sess, &opts.ListOptions)
 	}
 
 	var branches []string

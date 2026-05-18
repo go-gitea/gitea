@@ -36,6 +36,7 @@ func TestAggregateJobStatus(t *testing.T) {
 		{[]Status{StatusUnknown, StatusSkipped}, StatusUnknown},
 		{[]Status{StatusUnknown, StatusFailure}, StatusFailure},
 		{[]Status{StatusUnknown, StatusCancelled}, StatusCancelled},
+		{[]Status{StatusUnknown, StatusCancelling}, StatusCancelling},
 		{[]Status{StatusUnknown, StatusWaiting}, StatusWaiting},
 		{[]Status{StatusUnknown, StatusRunning}, StatusRunning},
 		{[]Status{StatusUnknown, StatusBlocked}, StatusBlocked},
@@ -45,6 +46,7 @@ func TestAggregateJobStatus(t *testing.T) {
 		{[]Status{StatusSuccess, StatusSkipped}, StatusSuccess}, // skipped doesn't affect success
 		{[]Status{StatusSuccess, StatusFailure}, StatusFailure},
 		{[]Status{StatusSuccess, StatusCancelled}, StatusCancelled},
+		{[]Status{StatusSuccess, StatusCancelling}, StatusCancelling},
 		{[]Status{StatusSuccess, StatusWaiting}, StatusWaiting},
 		{[]Status{StatusSuccess, StatusRunning}, StatusRunning},
 		{[]Status{StatusSuccess, StatusBlocked}, StatusBlocked},
@@ -54,9 +56,16 @@ func TestAggregateJobStatus(t *testing.T) {
 		{[]Status{StatusCancelled, StatusSuccess}, StatusCancelled},
 		{[]Status{StatusCancelled, StatusSkipped}, StatusCancelled},
 		{[]Status{StatusCancelled, StatusFailure}, StatusCancelled},
-		{[]Status{StatusCancelled, StatusWaiting}, StatusCancelled},
-		{[]Status{StatusCancelled, StatusRunning}, StatusCancelled},
-		{[]Status{StatusCancelled, StatusBlocked}, StatusCancelled},
+		{[]Status{StatusCancelled, StatusCancelling}, StatusCancelling},
+		{[]Status{StatusCancelled, StatusWaiting}, StatusWaiting},
+		{[]Status{StatusCancelled, StatusRunning}, StatusRunning},
+		{[]Status{StatusCancelled, StatusBlocked}, StatusBlocked},
+
+		{[]Status{StatusCancelling}, StatusCancelling},
+		{[]Status{StatusCancelling, StatusRunning}, StatusCancelling},
+		{[]Status{StatusCancelling, StatusWaiting}, StatusCancelling},
+		{[]Status{StatusCancelling, StatusFailure}, StatusCancelling},
+		{[]Status{StatusCancelling, StatusSkipped}, StatusCancelling},
 
 		// failure with other status, usually fail fast, but "running" wins to match GitHub's behavior
 		// another reason that we can't make "failure" wins over "running": it would cause a weird behavior that user cannot cancel a workflow or get current running workflows correctly by filter after a job fail.
@@ -64,9 +73,10 @@ func TestAggregateJobStatus(t *testing.T) {
 		{[]Status{StatusFailure, StatusSuccess}, StatusFailure},
 		{[]Status{StatusFailure, StatusSkipped}, StatusFailure},
 		{[]Status{StatusFailure, StatusCancelled}, StatusCancelled},
+		{[]Status{StatusFailure, StatusCancelling}, StatusCancelling},
 		{[]Status{StatusFailure, StatusWaiting}, StatusWaiting},
 		{[]Status{StatusFailure, StatusRunning}, StatusRunning},
-		{[]Status{StatusFailure, StatusBlocked}, StatusFailure},
+		{[]Status{StatusFailure, StatusBlocked}, StatusBlocked},
 
 		// skipped with other status
 		// "all skipped" is also considered as "mergeable" by "services/actions.toCommitStatus", the same as GitHub
@@ -74,6 +84,7 @@ func TestAggregateJobStatus(t *testing.T) {
 		{[]Status{StatusSkipped, StatusSuccess}, StatusSuccess},
 		{[]Status{StatusSkipped, StatusFailure}, StatusFailure},
 		{[]Status{StatusSkipped, StatusCancelled}, StatusCancelled},
+		{[]Status{StatusSkipped, StatusCancelling}, StatusCancelling},
 		{[]Status{StatusSkipped, StatusWaiting}, StatusWaiting},
 		{[]Status{StatusSkipped, StatusRunning}, StatusRunning},
 		{[]Status{StatusSkipped, StatusBlocked}, StatusBlocked},

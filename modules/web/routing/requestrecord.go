@@ -7,22 +7,25 @@ import (
 	"net/http"
 	"sync"
 	"time"
+
+	"code.gitea.io/gitea/modules/log"
 )
 
 type requestRecord struct {
-	// index of the record in the records map
-	index uint64
-
 	// immutable fields
-	startTime      time.Time
-	request        *http.Request
-	responseWriter http.ResponseWriter
+	index      uint64 // unique number (per process) for the request
+	startTime  time.Time
+	request    *http.Request
+	respWriter http.ResponseWriter
 
 	// mutex
 	lock sync.RWMutex
 
-	// mutable fields
+	// below are mutable fields
+	funcInfo *FuncInfo
+	// * for "mark as long polling"
 	isLongPolling bool
-	funcInfo      *FuncInfo
-	panicError    error
+	// * for router logger
+	logLevel   log.Level
+	panicError error
 }

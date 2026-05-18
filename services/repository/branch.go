@@ -359,7 +359,7 @@ func SyncBranchesToDB(ctx context.Context, repoID, pusherID int64, branchNames, 
 				RepoID:        repoID,
 				Name:          branchName,
 				CommitID:      commit.ID.String(),
-				CommitMessage: commit.Summary(),
+				CommitMessage: commit.MessageTitle(),
 				PusherID:      pusherID,
 				CommitTime:    timeutil.TimeStamp(commit.Committer.When.Unix()),
 			})
@@ -419,7 +419,7 @@ func RenameBranch(ctx context.Context, repo *repo_model.Repository, doer *user_m
 		return "", err
 	}
 
-	perm, err := access_model.GetUserRepoPermission(ctx, repo, doer)
+	perm, err := access_model.GetDoerRepoPermission(ctx, repo, doer)
 	if err != nil {
 		return "", err
 	}
@@ -555,7 +555,7 @@ func CanDeleteBranch(ctx context.Context, repo *repo_model.Repository, branchNam
 		return ErrBranchIsDefault
 	}
 
-	perm, err := access_model.GetUserRepoPermission(ctx, repo, doer)
+	perm, err := access_model.GetDoerRepoPermission(ctx, repo, doer)
 	if err != nil {
 		return err
 	}

@@ -4,7 +4,6 @@
 package validation
 
 import (
-	"net"
 	"net/url"
 	"regexp"
 	"slices"
@@ -16,22 +15,22 @@ import (
 )
 
 type globalVarsStruct struct {
-	externalTrackerRegex   *regexp.Regexp
-	validUsernamePattern   *regexp.Regexp
-	invalidUsernamePattern *regexp.Regexp
+	externalTrackerRegex    *regexp.Regexp
+	validUsernamePattern    *regexp.Regexp
+	invalidUsernamePattern  *regexp.Regexp
+	validBadgeSlugPattern   *regexp.Regexp
+	invalidBadgeSlugPattern *regexp.Regexp
 }
 
 var globalVars = sync.OnceValue(func() *globalVarsStruct {
 	return &globalVarsStruct{
-		externalTrackerRegex:   regexp.MustCompile(`({?)(?:user|repo|index)+?(}?)`),
-		validUsernamePattern:   regexp.MustCompile(`^[\da-zA-Z][-.\w]*$`),
-		invalidUsernamePattern: regexp.MustCompile(`[-._]{2,}|[-._]$`), // No consecutive or trailing non-alphanumeric chars
+		externalTrackerRegex:    regexp.MustCompile(`({?)(?:user|repo|index)+?(}?)`),
+		validUsernamePattern:    regexp.MustCompile(`^[\da-zA-Z][-.\w]*$`),
+		invalidUsernamePattern:  regexp.MustCompile(`[-._]{2,}|[-._]$`), // No consecutive or trailing non-alphanumeric chars
+		validBadgeSlugPattern:   regexp.MustCompile(`^[A-Za-z0-9][A-Za-z0-9._-]*$`),
+		invalidBadgeSlugPattern: regexp.MustCompile(`[-._]{2,}|[-._]$`),
 	}
 })
-
-func isLoopbackIP(ip string) bool {
-	return net.ParseIP(ip).IsLoopback()
-}
 
 // IsValidURL checks if URL is valid
 func IsValidURL(uri string) bool {
@@ -81,36 +80,9 @@ func IsEmailDomainListed(globs []glob.Glob, email string) bool {
 	return false
 }
 
-// IsAPIURL checks if URL is current Gitea instance API URL
-func IsAPIURL(uri string) bool {
-	return strings.HasPrefix(strings.ToLower(uri), strings.ToLower(setting.AppURL+"api"))
-}
-
-// IsValidExternalURL checks if URL is valid external URL
-func IsValidExternalURL(uri string) bool {
-	if !IsValidURL(uri) || IsAPIURL(uri) {
-		return false
-	}
-
-	u, err := url.ParseRequestURI(uri)
-	if err != nil {
-		return false
-	}
-
-	// Currently check only if not loopback IP is provided to keep compatibility
-	if isLoopbackIP(u.Hostname()) || strings.ToLower(u.Hostname()) == "localhost" {
-		return false
-	}
-
-	// TODO: Later it should be added to allow local network IP addresses
-	//       only if allowed by special setting
-
-	return true
-}
-
 // IsValidExternalTrackerURLFormat checks if URL matches required syntax for external trackers
 func IsValidExternalTrackerURLFormat(uri string) bool {
-	if !IsValidExternalURL(uri) {
+	if !IsValidURL(uri) {
 		return false
 	}
 	vars := globalVars()
@@ -130,4 +102,9 @@ func IsValidUsername(name string) bool {
 	// but it's easier to use positive and negative checks.
 	vars := globalVars()
 	return vars.validUsernamePattern.MatchString(name) && !vars.invalidUsernamePattern.MatchString(name)
+}
+
+func IsValidBadgeSlug(slug string) bool {
+	vars := globalVars()
+	return vars.validBadgeSlugPattern.MatchString(slug) && !vars.invalidBadgeSlugPattern.MatchString(slug)
 }

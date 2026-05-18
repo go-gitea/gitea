@@ -4,7 +4,7 @@ export async function initRepoRecentCommits() {
   const el = document.querySelector('#repo-recent-commits-chart');
   if (!el) return;
 
-  const {default: RepoRecentCommits} = await import(/* webpackChunkName: "recent-commits-graph" */'../components/RepoRecentCommits.vue');
+  const {default: RepoRecentCommits} = await import('../components/RepoRecentCommits.vue');
   try {
     const View = createApp(RepoRecentCommits, {
       locale: {

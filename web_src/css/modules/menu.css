@@ -173,10 +173,6 @@
   margin-top: 0.35714286em;
 }
 
-.ui.menu .pointing.dropdown.item .menu {
-  margin-top: 0.75em;
-}
-
 .ui.menu .item > .label:not(.floating) {
   margin-left: 1em;
   padding: 0.3em 0.78571429em;
@@ -187,9 +183,6 @@
   padding: 0.3em 0.78571429em;
   float: right;
   text-align: center;
-}
-.ui.menu .item > .floating.label {
-  padding: 0.3em 0.78571429em;
 }
 .ui.menu .item > .label {
   background: var(--color-label-bg);
@@ -266,20 +259,10 @@
   display: inherit;
 }
 
-.ui.menu:not(.vertical) .center.item {
-  display: flex;
-  margin-left: auto !important;
-  margin-right: auto !important;
-}
-
 .ui.menu .right.item::before,
 .ui.menu .right.menu > .item::before {
   right: auto;
   left: 0;
-}
-
-.ui.menu .center.item:last-child::before {
-  display: none;
 }
 
 .ui.vertical.menu {
@@ -380,9 +363,6 @@
   border: none;
   background: none transparent;
   border-bottom: 1px solid var(--color-secondary);
-}
-.ui.tabular.fluid.menu {
-  width: calc(100% + 2px) !important;
 }
 .ui.tabular.menu .item {
   background: transparent;
@@ -523,14 +503,6 @@
   background: var(--color-active);
 }
 
-.ui.secondary.item.menu {
-  margin-left: 0;
-  margin-right: 0;
-}
-.ui.secondary.item.menu .item:last-child {
-  margin-right: 0;
-}
-
 .ui.vertical.secondary.menu .item:not(.dropdown) > .menu {
   margin: 0 -0.92857143em;
 }
@@ -624,10 +596,6 @@
   .ui.stackable.menu .right.item {
     margin-left: 0 !important;
   }
-  .ui.stackable.menu .center.item {
-    margin-left: 0 !important;
-    margin-right: 0 !important;
-  }
   .ui.stackable.menu .right.menu,
   .ui.stackable.menu .left.menu {
     flex-direction: column;
@@ -635,8 +603,7 @@
 }
 
 .ui.borderless.menu .item::before,
-.ui.borderless.menu .item .menu .item::before,
-.ui.menu .borderless.item::before {
+.ui.borderless.menu .item .menu .item::before {
   background: none !important;
 }
 
@@ -646,18 +613,11 @@
   vertical-align: middle;
   flex-shrink: 0;
 }
-.ui.compact.vertical.menu {
-  display: inline-block;
-  width: auto !important;
-}
 .ui.compact.menu:not(.secondary) .item:last-child {
   border-radius: 0 0.28571429rem 0.28571429rem 0;
 }
 .ui.compact.menu .item:last-child::before {
   display: none;
-}
-.ui.compact.vertical.menu .item:last-child::before {
-  display: block;
 }
 
 .ui.menu.fluid,
@@ -674,9 +634,6 @@
   margin-right: 0 !important;
   text-align: center;
   justify-content: center;
-}
-.ui.attached.item.menu:not(.tabular) {
-  margin: 0 -1px !important;
 }
 .ui.item.menu .item:last-child::before {
   display: none;

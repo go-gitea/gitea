@@ -67,13 +67,13 @@
 			<input type="hidden" name="action" value="delete">
 			<div class="field">
 				<label>
-					{{ctx.Locale.Tr "repo.settings.transfer_form_title"}}
+					{{ctx.Locale.Tr "repo.settings.enter_repo_name_to_confirm"}}
 					<span class="tw-text-red">{{.Repository.Name}}</span>
 				</label>
 			</div>
 			<div class="required field">
-				<label for="repo_name_to_delete">{{ctx.Locale.Tr "repo.repo_name"}}</label>
-				<input id="repo_name_to_delete" name="repo_name" required>
+				<label>{{ctx.Locale.Tr "repo.repo_name"}}</label>
+				<input name="repo_name" required>
 			</div>
 
 			<div class="actions">

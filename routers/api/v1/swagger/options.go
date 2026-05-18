@@ -169,6 +169,9 @@ type swaggerParameterBodies struct {
 	CreatePullReviewComment api.CreatePullReviewComment
 
 	// in:body
+	CreatePullReviewCommentReplyOptions api.CreatePullReviewCommentReplyOptions
+
+	// in:body
 	SubmitPullReviewOptions api.SubmitPullReviewOptions
 
 	// in:body

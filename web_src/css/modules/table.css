@@ -226,17 +226,9 @@
 .ui.table td.six.wide {
   width: 37.5%;
 }
-.ui.table th.seven.wide,
-.ui.table td.seven.wide {
-  width: 43.75%;
-}
 .ui.table th.eight.wide,
 .ui.table td.eight.wide {
   width: 50%;
-}
-.ui.table th.nine.wide,
-.ui.table td.nine.wide {
-  width: 56.25%;
 }
 .ui.table th.ten.wide,
 .ui.table td.ten.wide {
@@ -245,26 +237,6 @@
 .ui.table th.eleven.wide,
 .ui.table td.eleven.wide {
   width: 68.75%;
-}
-.ui.table th.twelve.wide,
-.ui.table td.twelve.wide {
-  width: 75%;
-}
-.ui.table th.thirteen.wide,
-.ui.table td.thirteen.wide {
-  width: 81.25%;
-}
-.ui.table th.fourteen.wide,
-.ui.table td.fourteen.wide {
-  width: 87.5%;
-}
-.ui.table th.fifteen.wide,
-.ui.table td.fifteen.wide {
-  width: 93.75%;
-}
-.ui.table th.sixteen.wide,
-.ui.table td.sixteen.wide {
-  width: 100%;
 }
 
 .ui.basic.table {

@@ -14,7 +14,6 @@ import (
 	"code.gitea.io/gitea/modules/util"
 
 	"xorm.io/builder"
-	"xorm.io/xorm"
 )
 
 // ErrDuplicatePackageVersion indicates a duplicated package version error
@@ -157,6 +156,12 @@ func DeleteVersionByID(ctx context.Context, versionID int64) error {
 	return err
 }
 
+// DeleteVersionsByPackageID deletes all versions of a specific package
+func DeleteVersionsByPackageID(ctx context.Context, packageID int64) error {
+	_, err := db.GetEngine(ctx).Where(builder.Eq{"package_id": packageID}).Delete(&PackageVersion{})
+	return err
+}
+
 // HasVersionFileReferences checks if there are associated files
 func HasVersionFileReferences(ctx context.Context, versionID int64) (bool, error) {
 	return db.GetEngine(ctx).Get(&PackageFile{
@@ -291,11 +296,11 @@ func (opts *PackageSearchOptions) configureOrderBy(e db.Engine) {
 	e.Desc("package_version.id") // Sort by id for stable order with duplicates in the other field
 }
 
-func searchVersionsBySession(sess *xorm.Session, opts *PackageSearchOptions) ([]*PackageVersion, int64, error) {
+func searchVersionsBySession(sess db.Session, opts *PackageSearchOptions) ([]*PackageVersion, int64, error) {
 	opts.configureOrderBy(sess)
 	pvs := make([]*PackageVersion, 0, 10)
 	if opts.Paginator != nil {
-		sess = db.SetSessionPagination(sess, opts.Paginator)
+		db.SetSessionPagination(sess, opts.Paginator)
 		count, err := sess.FindAndCount(&pvs)
 		return pvs, count, err
 	}

@@ -1,0 +1,77 @@
+<div class="field">
+	<label>{{ctx.Locale.Tr "actions.general.token_permissions.maximum"}}</label>
+
+	<div class="help">
+		{{ctx.Locale.Tr "actions.general.token_permissions.maximum.description"}}
+		<br>
+		{{ctx.Locale.Tr "actions.general.token_permissions.fork_pr_note"}}
+	</div>
+
+	<div class="field">
+		<div class="ui checkbox">
+			<input type="checkbox" name="enable_max_permissions" {{if .EnableMaxTokenPermissions}}checked{{end}}>
+			<label>{{ctx.Locale.Tr "actions.general.token_permissions.customize_max_permissions"}}</label>
+		</div>
+	</div>
+
+	<table class="ui celled table js-permissions-table">
+		<thead>
+			<tr>
+				<th class="tw-w-2/5">{{ctx.Locale.Tr "units.unit"}}</th>
+				<th class="tw-text-center">{{ctx.Locale.Tr "org.teams.none_access"}}
+					<span class="tw-align-middle" data-tooltip-content="{{ctx.Locale.Tr "org.teams.none_access_helper"}}">{{svg "octicon-question" 16 "tw-ml-1"}}</span>
+				</th>
+				<th class="tw-text-center">{{ctx.Locale.Tr "org.teams.read_access"}}
+					<span class="tw-align-middle" data-tooltip-content="{{ctx.Locale.Tr "org.teams.read_access_helper"}}">{{svg "octicon-question" 16 "tw-ml-1"}}</span>
+				</th>
+				<th class="tw-text-center">{{ctx.Locale.Tr "org.teams.write_access"}}
+					<span class="tw-align-middle" data-tooltip-content="{{ctx.Locale.Tr "org.teams.write_access_helper"}}">{{svg "octicon-question" 16 "tw-ml-1"}}</span>
+				</th>
+			</tr>
+		</thead>
+		<tbody>
+			{{template "shared/actions/permissions_table_unit" (dict
+				"UnitType" ctx.Consts.RepoUnitTypeCode
+				"UnitDisplayName" (ctx.Locale.Tr "repo.code")
+				"UnitDisplayDesc" (ctx.Locale.Tr "repo.code.desc")
+				"UnitAccessMode" (index $.MaxTokenPermissions.UnitAccessModes ctx.Consts.RepoUnitTypeCode)
+			)}}
+			{{template "shared/actions/permissions_table_unit" (dict
+				"UnitType" ctx.Consts.RepoUnitTypeIssues
+				"UnitDisplayName" (ctx.Locale.Tr "repo.issues")
+				"UnitDisplayDesc" (ctx.Locale.Tr "repo.issues.desc")
+				"UnitAccessMode" (index $.MaxTokenPermissions.UnitAccessModes ctx.Consts.RepoUnitTypeIssues)
+			)}}
+			{{template "shared/actions/permissions_table_unit" (dict
+				"UnitType" ctx.Consts.RepoUnitTypePullRequests
+				"UnitDisplayName" (ctx.Locale.Tr "repo.pulls")
+				"UnitDisplayDesc" (ctx.Locale.Tr "repo.pulls.desc")
+				"UnitAccessMode" (index $.MaxTokenPermissions.UnitAccessModes ctx.Consts.RepoUnitTypePullRequests)
+			)}}
+			{{template "shared/actions/permissions_table_unit" (dict
+				"UnitType" ctx.Consts.RepoUnitTypeWiki
+				"UnitDisplayName" (ctx.Locale.Tr "repo.wiki")
+				"UnitDisplayDesc" (ctx.Locale.Tr "repo.wiki.desc")
+				"UnitAccessMode" (index $.MaxTokenPermissions.UnitAccessModes ctx.Consts.RepoUnitTypeWiki)
+			)}}
+			{{template "shared/actions/permissions_table_unit" (dict
+				"UnitType" ctx.Consts.RepoUnitTypeReleases
+				"UnitDisplayName" (ctx.Locale.Tr "repo.releases")
+				"UnitDisplayDesc" (ctx.Locale.Tr "repo.releases.desc")
+				"UnitAccessMode" (index $.MaxTokenPermissions.UnitAccessModes ctx.Consts.RepoUnitTypeReleases)
+			)}}
+			{{template "shared/actions/permissions_table_unit" (dict
+				"UnitType" ctx.Consts.RepoUnitTypeProjects
+				"UnitDisplayName" (ctx.Locale.Tr "repo.projects")
+				"UnitDisplayDesc" (ctx.Locale.Tr "repo.projects.desc")
+				"UnitAccessMode" (index $.MaxTokenPermissions.UnitAccessModes ctx.Consts.RepoUnitTypeProjects)
+			)}}
+			{{template "shared/actions/permissions_table_unit" (dict
+				"UnitType" ctx.Consts.RepoUnitTypeActions
+				"UnitDisplayName" (ctx.Locale.Tr "repo.actions")
+				"UnitDisplayDesc" (ctx.Locale.Tr "actions.unit.desc")
+				"UnitAccessMode" (index $.MaxTokenPermissions.UnitAccessModes ctx.Consts.RepoUnitTypeActions)
+			)}}
+		</tbody>
+	</table>
+</div>

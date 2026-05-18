@@ -212,6 +212,13 @@ type SearchRepoOptions struct {
 	OnlyShowRelevant bool
 }
 
+func (opts *SearchRepoOptions) ApplyPublicOnly(publicOnly bool) {
+	if publicOnly {
+		opts.Private = false
+		opts.AllLimited = false
+	}
+}
+
 // UserOwnedRepoCond returns user ownered repositories
 func UserOwnedRepoCond(userID int64) builder.Cond {
 	return builder.Eq{
@@ -777,4 +784,12 @@ func GetUserRepositories(ctx context.Context, opts SearchRepoOptions) (Repositor
 	sess = sess.Where(cond).OrderBy(opts.OrderBy.String())
 	repos := make(RepositoryList, 0, opts.PageSize)
 	return repos, count, db.SetSessionPagination(sess, &opts).Find(&repos)
+}
+
+func GetOwnerRepositoriesByIDs(ctx context.Context, ownerID int64, repoIDs []int64) (RepositoryList, error) {
+	if len(repoIDs) == 0 {
+		return RepositoryList{}, nil
+	}
+	repos := make(RepositoryList, 0, len(repoIDs))
+	return repos, db.GetEngine(ctx).Where(builder.Eq{"owner_id": ownerID}).In("id", repoIDs).Find(&repos)
 }

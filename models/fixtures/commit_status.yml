@@ -57,3 +57,5 @@
   context: deploy/awesomeness
   context_hash: ae9547713a6665fc4261d0756904932085a41cf2
   creator_id: 2
+
+# DO NOT add more test data in the fixtures, test case should prepare their own test data separately and clearly

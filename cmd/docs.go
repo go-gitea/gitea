@@ -13,23 +13,24 @@ import (
 	"github.com/urfave/cli/v3"
 )
 
-// CmdDocs represents the available docs sub-command.
-var CmdDocs = &cli.Command{
-	Name:        "docs",
-	Usage:       "Output CLI documentation",
-	Description: "A command to output Gitea's CLI documentation, optionally to a file.",
-	Action:      runDocs,
-	Flags: []cli.Flag{
-		&cli.BoolFlag{
-			Name:  "man",
-			Usage: "Output man pages instead",
+func newDocsCommand() *cli.Command {
+	return &cli.Command{
+		Name:        "docs",
+		Usage:       "Output CLI documentation",
+		Description: "A command to output Gitea's CLI documentation, optionally to a file.",
+		Action:      runDocs,
+		Flags: []cli.Flag{
+			&cli.BoolFlag{
+				Name:  "man",
+				Usage: "Output man pages instead",
+			},
+			&cli.StringFlag{
+				Name:    "output",
+				Aliases: []string{"o"},
+				Usage:   "Path to output to instead of stdout (will overwrite if exists)",
+			},
 		},
-		&cli.StringFlag{
-			Name:    "output",
-			Aliases: []string{"o"},
-			Usage:   "Path to output to instead of stdout (will overwrite if exists)",
-		},
-	},
+	}
 }
 
 func runDocs(_ context.Context, cmd *cli.Command) error {

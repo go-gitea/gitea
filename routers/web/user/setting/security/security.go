@@ -156,5 +156,4 @@ func loadSecurityData(ctx *context.Context) {
 		return
 	}
 	ctx.Data["OpenIDs"] = openid
-	ctx.Data["UserDisabledFeatures"] = user_model.DisabledFeaturesWithLoginType(ctx.Doer)
 }

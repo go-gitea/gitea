@@ -1,9 +1,9 @@
 # syntax=docker/dockerfile:1
-# Build frontend on the native platform to avoid QEMU-related issues with esbuild/webpack
+# Build frontend on the native platform to avoid QEMU-related issues with nodejs ecosystem
 FROM --platform=$BUILDPLATFORM docker.io/library/golang:1.26-alpine3.23 AS frontend-build
 RUN apk --no-cache add build-base git nodejs pnpm
 WORKDIR /src
-COPY package.json pnpm-lock.yaml .npmrc ./
+COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
 RUN --mount=type=cache,target=/root/.local/share/pnpm/store pnpm install --frozen-lockfile
 COPY --exclude=.git/ . .
 RUN make frontend
@@ -12,7 +12,7 @@ RUN make frontend
 FROM docker.io/library/golang:1.26-alpine3.23 AS build-env
 
 ARG GITEA_VERSION
-ARG TAGS="sqlite sqlite_unlock_notify"
+ARG TAGS=""
 ENV TAGS="bindata timetzdata $TAGS"
 ARG CGO_EXTRA_CFLAGS
 

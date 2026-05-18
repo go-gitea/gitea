@@ -15,40 +15,42 @@ import (
 	"github.com/urfave/cli/v3"
 )
 
-// CmdKeys represents the available keys sub-command
-var CmdKeys = &cli.Command{
-	Name:        "keys",
-	Usage:       "(internal) Should only be called by SSH server",
-	Hidden:      true, // internal commands shouldn't be visible
-	Description: "Queries the Gitea database to get the authorized command for a given ssh key fingerprint",
-	Before:      PrepareConsoleLoggerLevel(log.FATAL),
-	Action:      runKeys,
-	Flags: []cli.Flag{
-		&cli.StringFlag{
-			Name:    "expected",
-			Aliases: []string{"e"},
-			Value:   "git",
-			Usage:   "Expected user for whom provide key commands",
+// NewKeysCommand returns the internal SSH key lookup sub-command.
+func NewKeysCommand() *cli.Command {
+	return &cli.Command{
+		Name:        "keys",
+		Usage:       "(internal) Should only be called by SSH server",
+		Hidden:      true, // internal commands shouldn't be visible
+		Description: "Queries the Gitea database to get the authorized command for a given ssh key fingerprint",
+		Before:      PrepareConsoleLoggerLevel(log.FATAL),
+		Action:      runKeys,
+		Flags: []cli.Flag{
+			&cli.StringFlag{
+				Name:    "expected",
+				Aliases: []string{"e"},
+				Value:   "git",
+				Usage:   "Expected user for whom provide key commands",
+			},
+			&cli.StringFlag{
+				Name:    "username",
+				Aliases: []string{"u"},
+				Value:   "",
+				Usage:   "Username trying to log in by SSH",
+			},
+			&cli.StringFlag{
+				Name:    "type",
+				Aliases: []string{"t"},
+				Value:   "",
+				Usage:   "Type of the SSH key provided to the SSH Server (requires content to be provided too)",
+			},
+			&cli.StringFlag{
+				Name:    "content",
+				Aliases: []string{"k"},
+				Value:   "",
+				Usage:   "Base64 encoded content of the SSH key provided to the SSH Server (requires type to be provided too)",
+			},
 		},
-		&cli.StringFlag{
-			Name:    "username",
-			Aliases: []string{"u"},
-			Value:   "",
-			Usage:   "Username trying to log in by SSH",
-		},
-		&cli.StringFlag{
-			Name:    "type",
-			Aliases: []string{"t"},
-			Value:   "",
-			Usage:   "Type of the SSH key provided to the SSH Server (requires content to be provided too)",
-		},
-		&cli.StringFlag{
-			Name:    "content",
-			Aliases: []string{"k"},
-			Value:   "",
-			Usage:   "Base64 encoded content of the SSH key provided to the SSH Server (requires type to be provided too)",
-		},
-	},
+	}
 }
 
 func runKeys(ctx context.Context, c *cli.Command) error {

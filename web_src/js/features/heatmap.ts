@@ -45,7 +45,7 @@ export async function initHeatmap() {
       noDataText: el.getAttribute('data-locale-no-contributions'),
     };
 
-    const {default: ActivityHeatmap} = await import(/* webpackChunkName: "ActivityHeatmap" */ '../components/ActivityHeatmap.vue');
+    const {default: ActivityHeatmap} = await import('../components/ActivityHeatmap.vue');
     const View = createApp(ActivityHeatmap, {values, locale});
     View.mount(el);
     el.classList.remove('is-loading');

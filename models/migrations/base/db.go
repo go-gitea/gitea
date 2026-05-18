@@ -11,17 +11,17 @@ import (
 	"regexp"
 	"strings"
 
+	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 
-	"xorm.io/xorm"
 	"xorm.io/xorm/schemas"
 )
 
 // RecreateTables will recreate the tables for the provided beans using the newly provided bean definition and move all data to that new table
 // WARNING: YOU MUST PROVIDE THE FULL BEAN DEFINITION
-func RecreateTables(beans ...any) func(*xorm.Engine) error {
-	return func(x *xorm.Engine) error {
+func RecreateTables(beans ...any) func(db.EngineMigration) error {
+	return func(x db.EngineMigration) error {
 		sess := x.NewSession()
 		defer sess.Close()
 		if err := sess.Begin(); err != nil {
@@ -41,7 +41,7 @@ func RecreateTables(beans ...any) func(*xorm.Engine) error {
 // RecreateTable will recreate the table using the newly provided bean definition and move all data to that new table
 // WARNING: YOU MUST PROVIDE THE FULL BEAN DEFINITION
 // WARNING: YOU MUST COMMIT THE SESSION AT THE END
-func RecreateTable(sess *xorm.Session, bean any) error {
+func RecreateTable(sess db.Session, bean any) error {
 	// TODO: This will not work if there are foreign keys
 
 	tableName := sess.Engine().TableName(bean)
@@ -304,7 +304,7 @@ func RecreateTable(sess *xorm.Session, bean any) error {
 }
 
 // WARNING: YOU MUST COMMIT THE SESSION AT THE END
-func DropTableColumns(sess *xorm.Session, tableName string, columnNames ...string) (err error) {
+func DropTableColumns(sess db.Session, tableName string, columnNames ...string) (err error) {
 	if tableName == "" || len(columnNames) == 0 {
 		return nil
 	}
@@ -402,7 +402,7 @@ func DropTableColumns(sess *xorm.Session, tableName string, columnNames ...strin
 			cols += "DROP COLUMN `" + col + "` CASCADE"
 		}
 		if _, err := sess.Exec(fmt.Sprintf("ALTER TABLE `%s` %s", tableName, cols)); err != nil {
-			return fmt.Errorf("Drop table `%s` columns %v: %v", tableName, columnNames, err)
+			return fmt.Errorf("drop table `%s` columns %v: %w", tableName, columnNames, err)
 		}
 	case setting.Database.Type.IsMySQL():
 		// Drop indexes on columns first
@@ -430,7 +430,7 @@ func DropTableColumns(sess *xorm.Session, tableName string, columnNames ...strin
 			cols += "DROP COLUMN `" + col + "`"
 		}
 		if _, err := sess.Exec(fmt.Sprintf("ALTER TABLE `%s` %s", tableName, cols)); err != nil {
-			return fmt.Errorf("Drop table `%s` columns %v: %v", tableName, columnNames, err)
+			return fmt.Errorf("drop table `%s` columns %v: %w", tableName, columnNames, err)
 		}
 	case setting.Database.Type.IsMSSQL():
 		cols := ""
@@ -444,27 +444,27 @@ func DropTableColumns(sess *xorm.Session, tableName string, columnNames ...strin
 			tableName, strings.ReplaceAll(cols, "`", "'"))
 		constraints := make([]string, 0)
 		if err := sess.SQL(sql).Find(&constraints); err != nil {
-			return fmt.Errorf("Find constraints: %v", err)
+			return fmt.Errorf("find constraints: %w", err)
 		}
 		for _, constraint := range constraints {
 			if _, err := sess.Exec(fmt.Sprintf("ALTER TABLE `%s` DROP CONSTRAINT `%s`", tableName, constraint)); err != nil {
-				return fmt.Errorf("Drop table `%s` default constraint `%s`: %v", tableName, constraint, err)
+				return fmt.Errorf("drop table `%s` default constraint `%s`: %w", tableName, constraint, err)
 			}
 		}
 		sql = fmt.Sprintf("SELECT DISTINCT Name FROM sys.indexes INNER JOIN sys.index_columns ON indexes.index_id = index_columns.index_id AND indexes.object_id = index_columns.object_id WHERE indexes.object_id = OBJECT_ID('%[1]s') AND index_columns.column_id IN (SELECT column_id FROM sys.columns WHERE LOWER(name) IN (%[2]s) AND object_id = OBJECT_ID('%[1]s'))",
 			tableName, strings.ReplaceAll(cols, "`", "'"))
 		constraints = make([]string, 0)
 		if err := sess.SQL(sql).Find(&constraints); err != nil {
-			return fmt.Errorf("Find constraints: %v", err)
+			return fmt.Errorf("find constraints: %w", err)
 		}
 		for _, constraint := range constraints {
 			if _, err := sess.Exec(fmt.Sprintf("DROP INDEX `%[2]s` ON `%[1]s`", tableName, constraint)); err != nil {
-				return fmt.Errorf("Drop index `%[2]s` on `%[1]s`: %v", tableName, constraint, err)
+				return fmt.Errorf("drop index `%[2]s` on `%[1]s`: %[3]w", tableName, constraint, err)
 			}
 		}
 
 		if _, err := sess.Exec(fmt.Sprintf("ALTER TABLE `%s` DROP COLUMN %s", tableName, cols)); err != nil {
-			return fmt.Errorf("Drop table `%s` columns %v: %v", tableName, columnNames, err)
+			return fmt.Errorf("drop table `%s` columns %v: %w", tableName, columnNames, err)
 		}
 	default:
 		log.Fatal("Unrecognized DB")
@@ -474,7 +474,7 @@ func DropTableColumns(sess *xorm.Session, tableName string, columnNames ...strin
 }
 
 // ModifyColumn will modify column's type or other property. SQLITE is not supported
-func ModifyColumn(x *xorm.Engine, tableName string, col *schemas.Column) error {
+func ModifyColumn(x db.EngineMigration, tableName string, col *schemas.Column) error {
 	var indexes map[string]*schemas.Index
 	var err error
 	// MSSQL have to remove index at first, otherwise alter column will fail

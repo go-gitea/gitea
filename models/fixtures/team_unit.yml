@@ -340,3 +340,5 @@
   team_id: 24
   type: 1 # code
   access_mode: 2
+
+# DO NOT add more test data in the fixtures, test case should prepare their own test data separately and clearly

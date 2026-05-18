@@ -7,7 +7,6 @@ import (
 	"net/http"
 
 	"code.gitea.io/gitea/models/db"
-	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/models/webhook"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/templates"
@@ -25,7 +24,6 @@ func Webhooks(ctx *context.Context) {
 	ctx.Data["BaseLink"] = setting.AppSubURL + "/user/settings/hooks"
 	ctx.Data["BaseLinkNew"] = setting.AppSubURL + "/user/settings/hooks"
 	ctx.Data["Description"] = ctx.Tr("settings.hooks.desc")
-	ctx.Data["UserDisabledFeatures"] = user_model.DisabledFeaturesWithLoginType(ctx.Doer)
 
 	ws, err := db.Find[webhook.Webhook](ctx, webhook.ListWebhookOptions{OwnerID: ctx.Doer.ID})
 	if err != nil {

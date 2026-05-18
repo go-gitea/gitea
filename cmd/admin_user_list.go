@@ -14,16 +14,18 @@ import (
 	"github.com/urfave/cli/v3"
 )
 
-var microcmdUserList = &cli.Command{
-	Name:   "list",
-	Usage:  "List users",
-	Action: runListUsers,
-	Flags: []cli.Flag{
-		&cli.BoolFlag{
-			Name:  "admin",
-			Usage: "List only admin users",
+func newUserListCommand() *cli.Command {
+	return &cli.Command{
+		Name:   "list",
+		Usage:  "List users",
+		Action: runListUsers,
+		Flags: []cli.Flag{
+			&cli.BoolFlag{
+				Name:  "admin",
+				Usage: "List only admin users",
+			},
 		},
-	},
+	}
 }
 
 func runListUsers(ctx context.Context, c *cli.Command) error {

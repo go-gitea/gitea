@@ -67,7 +67,7 @@ func GetIssueWatch(ctx context.Context, userID, issueID int64) (iw *IssueWatch, 
 	return iw, exists, err
 }
 
-// CheckIssueWatch check if an user is watching an issue
+// CheckIssueWatch check if	a user is watching an issue
 // it takes participants and repo watch into account
 func CheckIssueWatch(ctx context.Context, user *user_model.User, issue *Issue) (bool, error) {
 	iw, exist, err := GetIssueWatch(ctx, user.ID, issue.ID)
@@ -106,7 +106,7 @@ func GetIssueWatchers(ctx context.Context, issueID int64, listOptions db.ListOpt
 		Join("INNER", "`user`", "`user`.id = `issue_watch`.user_id")
 
 	if listOptions.Page > 0 {
-		sess = db.SetSessionPagination(sess, &listOptions)
+		db.SetSessionPagination(sess, &listOptions)
 		watches := make([]*IssueWatch, 0, listOptions.PageSize)
 		return watches, sess.Find(&watches)
 	}

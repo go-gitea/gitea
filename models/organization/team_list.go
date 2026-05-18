@@ -85,10 +85,10 @@ func SearchTeam(ctx context.Context, opts *SearchTeamOptions) (TeamList, int64, 
 	if opts.UserID > 0 {
 		sess = sess.Join("INNER", "team_user", "team_user.team_id = team.id")
 	}
-	sess = db.SetSessionPagination(sess, opts)
+	db.SetSessionPagination(sess, opts)
 
 	teams := make([]*Team, 0, opts.PageSize)
-	count, err := sess.Where(cond).OrderBy("lower_name").FindAndCount(&teams)
+	count, err := sess.Where(cond).OrderBy("CASE WHEN name=? THEN '' ELSE lower_name END", OwnerTeamName).FindAndCount(&teams)
 	if err != nil {
 		return nil, 0, err
 	}

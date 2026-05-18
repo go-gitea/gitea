@@ -20,18 +20,21 @@ import (
 // getStarredRepos returns the repos that the user with the specified userID has
 // starred
 func getStarredRepos(ctx *context.APIContext, user *user_model.User, private bool) ([]*api.Repository, error) {
-	starredRepos, err := repo_model.GetStarredRepos(ctx, &repo_model.StarredReposOptions{
+	opts := &repo_model.StarredReposOptions{
 		ListOptions:    utils.GetListOptions(ctx),
 		StarrerID:      user.ID,
 		IncludePrivate: private,
-	})
+	}
+	opts.ApplyPublicOnly(ctx.PublicOnly)
+
+	starredRepos, err := repo_model.GetStarredRepos(ctx, opts)
 	if err != nil {
 		return nil, err
 	}
 
 	repos := make([]*api.Repository, len(starredRepos))
 	for i, starred := range starredRepos {
-		permission, err := access_model.GetUserRepoPermission(ctx, starred, user)
+		permission, err := access_model.GetIndividualUserRepoPermission(ctx, starred, user)
 		if err != nil {
 			return nil, err
 		}

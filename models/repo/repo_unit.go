@@ -5,8 +5,6 @@ package repo
 
 import (
 	"context"
-	"slices"
-	"strings"
 
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/models/perm"
@@ -127,7 +125,9 @@ type PullRequestsConfig struct {
 	AllowFastForwardOnly          bool
 	AllowManualMerge              bool
 	AutodetectManualMerge         bool
+	AllowMergeUpdate              bool
 	AllowRebaseUpdate             bool
+	DefaultUpdateStyle            UpdateStyle
 	DefaultDeleteBranchAfterMerge bool
 	DefaultMergeStyle             MergeStyle
 	DefaultAllowMaintainerEdit    bool
@@ -141,9 +141,12 @@ func DefaultPullRequestsConfig() *PullRequestsConfig {
 		AllowRebaseMerge:           true,
 		AllowSquash:                true,
 		AllowFastForwardOnly:       true,
+		AllowMergeUpdate:           true,
 		AllowRebaseUpdate:          true,
+		DefaultUpdateStyle:         UpdateStyleMerge,
 		DefaultAllowMaintainerEdit: true,
 	}
+	cfg.DefaultDeleteBranchAfterMerge = setting.Repository.PullRequest.DefaultDeleteBranchAfterMerge
 	cfg.DefaultMergeStyle = MergeStyle(setting.Repository.PullRequest.DefaultMergeStyle)
 	cfg.DefaultMergeStyle = util.IfZero(cfg.DefaultMergeStyle, MergeStyleMerge)
 	return cfg
@@ -153,7 +156,9 @@ func DefaultPullRequestsConfig() *PullRequestsConfig {
 func (cfg *PullRequestsConfig) FromDB(bs []byte) error {
 	// set default values for existing PullRequestConfig in DB
 	*cfg = *DefaultPullRequestsConfig()
-	return json.UnmarshalHandleDoubleEncode(bs, &cfg)
+	_ = json.UnmarshalHandleDoubleEncode(bs, &cfg) // don't let corrupted database value cause unnecessary 500 error
+	cfg.DefaultUpdateStyle = util.IfZero(cfg.DefaultUpdateStyle, UpdateStyleMerge)
+	return nil
 }
 
 // ToDB exports a PullRequestsConfig to a serialized format.
@@ -171,59 +176,34 @@ func (cfg *PullRequestsConfig) IsMergeStyleAllowed(mergeStyle MergeStyle) bool {
 		mergeStyle == MergeStyleManuallyMerged && cfg.AllowManualMerge
 }
 
+// IsUpdateStyleAllowed returns if a pull request branch update style is allowed
+func (cfg *PullRequestsConfig) IsUpdateStyleAllowed(updateStyle UpdateStyle) bool {
+	switch updateStyle {
+	case UpdateStyleMerge:
+		return cfg.AllowMergeUpdate
+	case UpdateStyleRebase:
+		return cfg.AllowRebaseUpdate
+	default:
+		return false
+	}
+}
+
+// ValidateUpdateSettings checks that the AllowMerge/RebaseUpdate flags and DefaultUpdateStyle are mutually consistent.
+func (cfg *PullRequestsConfig) ValidateUpdateSettings() error {
+	if cfg.DefaultUpdateStyle != UpdateStyleMerge && cfg.DefaultUpdateStyle != UpdateStyleRebase {
+		return util.NewInvalidArgumentErrorf("default update style must be merge or rebase")
+	}
+	if !cfg.AllowMergeUpdate && !cfg.AllowRebaseUpdate {
+		return util.NewInvalidArgumentErrorf("at least one pull request branch update style must be enabled")
+	}
+	if !cfg.IsUpdateStyleAllowed(cfg.DefaultUpdateStyle) {
+		return util.NewInvalidArgumentErrorf("default update style must be enabled")
+	}
+	return nil
+}
+
 func DefaultPullRequestsUnit(repoID int64) RepoUnit {
 	return RepoUnit{RepoID: repoID, Type: unit.TypePullRequests, Config: DefaultPullRequestsConfig()}
-}
-
-type ActionsConfig struct {
-	DisabledWorkflows []string
-	// CollaborativeOwnerIDs is a list of owner IDs used to share actions from private repos.
-	// Only workflows from the private repos whose owners are in CollaborativeOwnerIDs can access the current repo's actions.
-	CollaborativeOwnerIDs []int64
-}
-
-func (cfg *ActionsConfig) EnableWorkflow(file string) {
-	cfg.DisabledWorkflows = util.SliceRemoveAll(cfg.DisabledWorkflows, file)
-}
-
-func (cfg *ActionsConfig) ToString() string {
-	return strings.Join(cfg.DisabledWorkflows, ",")
-}
-
-func (cfg *ActionsConfig) IsWorkflowDisabled(file string) bool {
-	return slices.Contains(cfg.DisabledWorkflows, file)
-}
-
-func (cfg *ActionsConfig) DisableWorkflow(file string) {
-	if slices.Contains(cfg.DisabledWorkflows, file) {
-		return
-	}
-
-	cfg.DisabledWorkflows = append(cfg.DisabledWorkflows, file)
-}
-
-func (cfg *ActionsConfig) AddCollaborativeOwner(ownerID int64) {
-	if !slices.Contains(cfg.CollaborativeOwnerIDs, ownerID) {
-		cfg.CollaborativeOwnerIDs = append(cfg.CollaborativeOwnerIDs, ownerID)
-	}
-}
-
-func (cfg *ActionsConfig) RemoveCollaborativeOwner(ownerID int64) {
-	cfg.CollaborativeOwnerIDs = util.SliceRemoveAll(cfg.CollaborativeOwnerIDs, ownerID)
-}
-
-func (cfg *ActionsConfig) IsCollaborativeOwner(ownerID int64) bool {
-	return slices.Contains(cfg.CollaborativeOwnerIDs, ownerID)
-}
-
-// FromDB fills up a ActionsConfig from serialized format.
-func (cfg *ActionsConfig) FromDB(bs []byte) error {
-	return json.UnmarshalHandleDoubleEncode(bs, &cfg)
-}
-
-// ToDB exports a ActionsConfig to a serialized format.
-func (cfg *ActionsConfig) ToDB() ([]byte, error) {
-	return json.Marshal(cfg)
 }
 
 // ProjectsMode represents the projects enabled for a repository
@@ -279,7 +259,12 @@ func (cfg *ProjectsConfig) IsProjectsAllowed(m ProjectsMode) bool {
 func (r *RepoUnit) BeforeSet(colName string, val xorm.Cell) {
 	switch colName {
 	case "type":
-		switch unit.Type(db.Cell2Int64(val)) {
+		var err error
+		r.Type, _, err = db.CellToInt(val, unit.TypeInvalid)
+		if err != nil {
+			setting.PanicInDevOrTesting("Unable to convert repo unit (id=%d) type: %v", r.ID, err)
+		}
+		switch r.Type {
 		case unit.TypeExternalWiki:
 			r.Config = new(ExternalWikiConfig)
 		case unit.TypeExternalTracker:
@@ -296,6 +281,11 @@ func (r *RepoUnit) BeforeSet(colName string, val xorm.Cell) {
 			fallthrough
 		default:
 			r.Config = new(UnitConfig)
+		}
+	case "config":
+		if *val == nil {
+			// XROM doesn't call FromDB if the value is nil, but we need to set default values for the config fields
+			_ = r.Config.FromDB(nil)
 		}
 	}
 }
@@ -360,9 +350,9 @@ func getUnitsByRepoID(ctx context.Context, repoID int64) (units []*RepoUnit, err
 	return units, nil
 }
 
-// UpdateRepoUnit updates the provided repo unit
-func UpdateRepoUnit(ctx context.Context, unit *RepoUnit) error {
-	_, err := db.GetEngine(ctx).ID(unit.ID).Update(unit)
+// UpdateRepoUnitConfig updates the config of the provided repo unit
+func UpdateRepoUnitConfig(ctx context.Context, unit *RepoUnit) error {
+	_, err := db.GetEngine(ctx).ID(unit.ID).Cols("config").Update(unit)
 	return err
 }
 
