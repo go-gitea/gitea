@@ -141,21 +141,29 @@ func TestPullCreate_EmptyChangesWithDifferentCommits(t *testing.T) {
 func TestPullCreate_EmptyChangesWithSameCommits(t *testing.T) {
 	onGiteaRun(t, func(t *testing.T, u *url.URL) {
 		session := loginUser(t, "user1")
-		testRepoFork(t, session, "user2", "repo1", "user1", "repo1", "")
-		testCreateBranch(t, session, "user1", "repo1", "branch/master", "status1", http.StatusSeeOther)
-		url := path.Join("user1", "repo1", "compare", "master...status1")
-		req := NewRequestWithValues(t, "POST", url,
-			map[string]string{
-				"title": "pull request from status1",
-			},
-		)
-		session.MakeRequest(t, req, http.StatusOK)
-		req = NewRequest(t, "GET", "/user1/repo1/pulls/1")
-		resp := session.MakeRequest(t, req, http.StatusOK)
-		doc := NewHTMLParser(t, resp.Body)
 
+		testCreateBranch(t, session, "user2", "repo1", "branch/master", "empty-pr-branch", http.StatusSeeOther)
+		resp := testPullCreateDirectly(t, session, createPullRequestOptions{
+			BaseRepoOwner: "user2",
+			BaseRepoName:  "repo1",
+			BaseBranch:    "master",
+			HeadBranch:    "empty-pr-branch",
+			Title:         "empty pr test",
+		})
+		prURL := test.RedirectURL(resp)
+
+		// check the "merge box" text
+		req := NewRequest(t, "GET", prURL)
+		resp = session.MakeRequest(t, req, http.StatusOK)
+		doc := NewHTMLParser(t, resp.Body)
 		text := strings.TrimSpace(doc.doc.Find(".merge-section").Text())
 		assert.Contains(t, text, "This branch is already included in the target branch. There is nothing to merge.")
+
+		// check the "files" tab content
+		req = NewRequest(t, "GET", prURL+"/files")
+		resp = session.MakeRequest(t, req, http.StatusOK)
+		doc = NewHTMLParser(t, resp.Body)
+		assert.Equal(t, "Diff Content Not Available", strings.TrimSpace(doc.Find("#diff-container").Text()))
 	})
 }
 
