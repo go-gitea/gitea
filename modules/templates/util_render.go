@@ -9,6 +9,7 @@ import (
 	"html/template"
 	"math"
 	"net/url"
+	"path"
 	"regexp"
 	"strings"
 	"unicode"
@@ -241,6 +242,41 @@ func (ut *RenderUtils) MarkdownToHtml(input string) template.HTML { //nolint:rev
 		log.Error("RenderString: %v", err)
 	}
 	return output
+}
+
+func (ut *RenderUtils) PackageReadmeMarkdownToHtml(input string, repository *repo.Repository, currentTreePath string) template.HTML { //nolint:revive // variable naming triggers on Html, wants HTML
+	if repository == nil {
+		return ut.MarkdownToHtml(input)
+	}
+	currentTreePath = cleanPackageReadmeTreePath(currentTreePath)
+	defaultBranch := util.IfZero(repository.DefaultBranch, setting.Repository.DefaultBranch)
+	rctx := renderhelper.NewRenderContextRepoFile(ut.ctx, repository, renderhelper.RepoFileOptions{
+		CurrentRefSubURL: "branch/" + util.PathEscapeSegments(defaultBranch),
+		CurrentTreePath:  currentTreePath,
+	}).WithMarkupType(markdown.MarkupName)
+	output, err := markdown.RenderString(rctx, input)
+	if err != nil {
+		log.Error("RenderString: %v", err)
+	}
+	return output
+}
+
+func cleanPackageReadmeTreePath(treePath string) string {
+	treePath = strings.ReplaceAll(treePath, "\\", "/")
+	treePath = strings.Trim(strings.TrimSpace(treePath), "/")
+	if treePath == "" {
+		return ""
+	}
+	for _, segment := range strings.Split(treePath, "/") {
+		if segment == ".." {
+			return ""
+		}
+	}
+	treePath = path.Clean(treePath)
+	if treePath == "." || path.IsAbs(treePath) {
+		return ""
+	}
+	return treePath
 }
 
 func (ut *RenderUtils) RenderLabels(labels []*issues_model.Label, repoLink string, issue *issues_model.Issue) template.HTML {

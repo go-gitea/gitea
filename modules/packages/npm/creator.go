@@ -183,8 +183,9 @@ func (u *User) UnmarshalJSON(data []byte) error {
 
 // Repository https://github.com/npm/registry/blob/master/docs/REGISTRY-API.md#version
 type Repository struct {
-	Type string `json:"type"`
-	URL  string `json:"url"`
+	Type      string `json:"type"`
+	URL       string `json:"url"`
+	Directory string `json:"directory,omitempty"`
 }
 
 // PackageAttachment https://github.com/npm/registry/blob/master/docs/REGISTRY-API.md#package
