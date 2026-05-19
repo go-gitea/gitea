@@ -149,5 +149,22 @@ func TestAPIDownloadCompareDiffOrPatch(t *testing.T) {
 			req := NewRequest(t, "GET", "/api/v1/repos/user2/repo16/compare/master...good-sign.diff")
 			MakeRequest(t, req, http.StatusNotFound)
 		})
+
+		t.Run("CrossRepoFork", func(t *testing.T) {
+			defer tests.PrintCurrentTest(t)()
+
+			user13 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 13})
+			repo11 := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 11})
+			user13Sess := loginUser(t, "user13")
+			user13Token := getTokenForLoggedInUser(t, user13Sess, auth_model.AccessTokenScopeWriteRepository)
+
+			_, err := createFileInBranch(user13, repo11, createFileInBranchOptions{OldBranch: "master", NewBranch: "cross-repo-diff"}, map[string]string{"hello.txt": "hi\n"})
+			require.NoError(t, err)
+
+			req := NewRequest(t, "GET", "/api/v1/repos/user12/repo10/compare/master...user13:cross-repo-diff.diff").AddTokenAuth(user13Token)
+			resp := MakeRequest(t, req, http.StatusOK)
+			assert.Equal(t, "text/plain; charset=utf-8", resp.Header().Get("Content-Type"))
+			assert.Contains(t, resp.Body.String(), "diff --git ")
+		})
 	})
 }
