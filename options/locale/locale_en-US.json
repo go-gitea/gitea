@@ -3571,7 +3571,7 @@
   "packages.cran.registry": "Set up this registry in your <code>Rprofile.site</code> file:",
   "packages.cran.install": "To install the package, run the following command:",
   "packages.debian.registry": "Set up this registry from the command line:",
-  "packages.debian.registry.info": "Choose $distribution and $component from the list below.",
+  "packages.debian.registry.one_of_vars": "Choose one of:",
   "packages.debian.install": "To install the package, run the following command:",
   "packages.debian.repository": "Repository Info",
   "packages.debian.repository.distributions": "Distributions",
