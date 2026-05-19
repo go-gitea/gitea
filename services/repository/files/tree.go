@@ -13,6 +13,7 @@ import (
 	"strings"
 
 	repo_model "code.gitea.io/gitea/models/repo"
+	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/fileicon"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
@@ -158,13 +159,13 @@ func newTreeViewNodeFromEntry(ctx context.Context, repoLink string, renderedIcon
 }
 
 // sortTreeViewNodes list directory first and with alpha sequence
-func sortTreeViewNodes(nodes []*TreeViewNode) {
+func sortTreeViewNodes(nodes []*TreeViewNode, cmp func(s1, s2 string) int) {
 	sort.Slice(nodes, func(i, j int) bool {
 		a, b := nodes[i].sortLevel(), nodes[j].sortLevel()
 		if a != b {
 			return a < b
 		}
-		return nodes[i].EntryName < nodes[j].EntryName
+		return cmp(nodes[i].EntryName, nodes[j].EntryName) < 0
 	})
 }
 
@@ -192,7 +193,7 @@ func listTreeNodes(ctx context.Context, repoLink string, renderedIconPool *filei
 			}
 		}
 	}
-	sortTreeViewNodes(nodes)
+	sortTreeViewNodes(nodes, base.NaturalSortCompare)
 	return nodes, nil
 }
 
