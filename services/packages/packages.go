@@ -17,6 +17,7 @@ import (
 	packages_model "code.gitea.io/gitea/models/packages"
 	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
+	"code.gitea.io/gitea/modules/globallock"
 	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/optional"
@@ -78,8 +79,13 @@ func CreatePackageAndAddFile(ctx context.Context, pvci *PackageCreationInfo, pfc
 }
 
 // CreatePackageOrAddFileToExisting creates a package with a file or adds the file if the package exists already
-func CreatePackageOrAddFileToExisting(ctx context.Context, pvci *PackageCreationInfo, pfci *PackageFileCreationInfo) (*packages_model.PackageVersion, *packages_model.PackageFile, error) {
-	return createPackageAndAddFile(ctx, pvci, pfci, true)
+func CreatePackageOrAddFileToExisting(ctx context.Context, pvci *PackageCreationInfo, pfci *PackageFileCreationInfo) (pv *packages_model.PackageVersion, pf *packages_model.PackageFile, err error) {
+	lockKey := fmt.Sprintf("pkg-upsert-%v-%v-%v", pvci.PackageType, pvci.Name, pvci.Version)
+	err = globallock.LockAndDo(ctx, lockKey, func(ctx context.Context) error {
+		pv, pf, err = createPackageAndAddFile(ctx, pvci, pfci, true)
+		return err
+	})
+	return pv, pf, err
 }
 
 func createPackageAndAddFile(ctx context.Context, pvci *PackageCreationInfo, pfci *PackageFileCreationInfo, allowDuplicate bool) (*packages_model.PackageVersion, *packages_model.PackageFile, error) {

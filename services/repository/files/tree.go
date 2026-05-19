@@ -13,6 +13,7 @@ import (
 	"strings"
 
 	repo_model "code.gitea.io/gitea/models/repo"
+	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/fileicon"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
@@ -170,7 +171,7 @@ func sortTreeViewNodes(nodes []*TreeViewNode) {
 		if a != b {
 			return a < b
 		}
-		return nodes[i].EntryName < nodes[j].EntryName
+		return base.NaturalSortCompare(nodes[i].EntryName, nodes[j].EntryName) < 0
 	})
 }
 
