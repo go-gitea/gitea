@@ -766,20 +766,16 @@ func TestPackageContainer(t *testing.T) {
 
 		var wg sync.WaitGroup
 		for i := range 10 {
-			wg.Add(1)
-
 			content := []byte{byte(i)}
 			digest := fmt.Sprintf("sha256:%x", sha256.Sum256(content))
 
-			go func() {
-				defer wg.Done()
-
+			wg.Go(func() {
 				req := NewRequestWithBody(t, "POST", fmt.Sprintf("%s/blobs/uploads?digest=%s", url, digest), bytes.NewReader(content)).
 					AddTokenAuth(userToken)
 				resp := MakeRequest(t, req, http.StatusCreated)
 
 				assert.Equal(t, digest, resp.Header().Get("Docker-Content-Digest"))
-			}()
+			})
 		}
 		wg.Wait()
 	})

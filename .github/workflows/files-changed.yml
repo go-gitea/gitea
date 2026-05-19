@@ -66,11 +66,9 @@ jobs:
               - "options/locale/locale_en-US.json"
 
             frontend:
-              - "*.js"
               - "*.ts"
               - "web_src/**"
-              - "tools/*.js"
-              - "tools/*.ts"
+              - "tools/generate-svg.ts"
               - "assets/emoji.json"
               - "package.json"
               - "pnpm-lock.yaml"
@@ -102,8 +100,8 @@ jobs:
               - "Makefile"
 
             dockerfile:
-                - "Dockerfile"
-                - "Dockerfile.rootless"
+              - "Dockerfile"
+              - "Dockerfile.rootless"
 
             swagger:
               - "templates/swagger/v1_json.tmpl"

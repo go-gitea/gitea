@@ -11,6 +11,7 @@ import (
 	"io"
 	"strings"
 
+	"code.gitea.io/gitea/modules/htmlutil"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/markup"
 	"code.gitea.io/gitea/modules/markup/common"
@@ -266,7 +267,9 @@ func Render(ctx *markup.RenderContext, input io.Reader, output io.Writer) error 
 func RenderString(ctx *markup.RenderContext, content string) (template.HTML, error) {
 	var buf strings.Builder
 	if err := Render(ctx, strings.NewReader(content), &buf); err != nil {
-		return "", err
+		log.Warn("Unable to RenderString: %v, content: %s", err, giteautil.TruncateRunes(content, 200))
+		err = nil
+		return htmlutil.EscapeString(content), err
 	}
 	return template.HTML(buf.String()), nil
 }
