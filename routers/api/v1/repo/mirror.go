@@ -6,6 +6,7 @@ package repo
 import (
 	"errors"
 	"net/http"
+	"strings"
 	"time"
 
 	"code.gitea.io/gitea/models/db"
@@ -112,14 +113,17 @@ func PushMirrorSync(ctx *context.APIContext) {
 		ctx.APIError(http.StatusNotFound, err)
 		return
 	}
+
+	failedPushMirrors := make([]string, 0)
 	for _, mirror := range pushMirrors {
 		ok := mirror_service.SyncPushMirror(ctx, mirror.ID)
 		if !ok {
-			ctx.APIErrorInternal(errors.New("error occurred when syncing push mirror " + mirror.RemoteName))
-			return
+			failedPushMirrors = append(failedPushMirrors, mirror.RemoteName)
 		}
 	}
-
+	if len(failedPushMirrors) != 0 {
+		ctx.APIErrorInternal(errors.New("error occurred when syncing push mirrors : " + strings.Join(failedPushMirrors, ", ")))
+	}
 	ctx.Status(http.StatusOK)
 }
 
