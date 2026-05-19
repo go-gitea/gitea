@@ -92,3 +92,28 @@ func TestAPIWatch(t *testing.T) {
 		MakeRequest(t, req, http.StatusNoContent)
 	})
 }
+
+func TestAPIWatchPublicOnly(t *testing.T) {
+	defer tests.PrepareTestEnv(t)()
+
+	session := loginUser(t, "user1")
+	writeRepoToken := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeWriteRepository, auth_model.AccessTokenScopeReadUser)
+	publicOnlyToken := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopePublicOnly, auth_model.AccessTokenScopeReadUser, auth_model.AccessTokenScopeReadRepository)
+
+	MakeRequest(t, NewRequest(t, "PUT", "/api/v1/repos/user2/repo1/subscription").AddTokenAuth(writeRepoToken), http.StatusOK)
+	MakeRequest(t, NewRequest(t, "PUT", "/api/v1/repos/user2/repo2/subscription").AddTokenAuth(writeRepoToken), http.StatusOK)
+
+	resp := MakeRequest(t, NewRequest(t, "GET", "/api/v1/user/subscriptions").AddTokenAuth(publicOnlyToken), http.StatusOK)
+	repos := DecodeJSON(t, resp, []api.Repository{})
+	for _, r := range repos {
+		assert.False(t, r.Private, "private repo %s leaked via /user/subscriptions", r.FullName)
+	}
+	assert.NotContains(t, repoNames(repos), "user2/repo2")
+
+	resp = MakeRequest(t, NewRequest(t, "GET", "/api/v1/users/user1/subscriptions").AddTokenAuth(publicOnlyToken), http.StatusOK)
+	repos = DecodeJSON(t, resp, []api.Repository{})
+	for _, r := range repos {
+		assert.False(t, r.Private, "private repo %s leaked via /users/{username}/subscriptions", r.FullName)
+	}
+	assert.NotContains(t, repoNames(repos), "user2/repo2")
+}
