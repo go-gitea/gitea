@@ -40,7 +40,7 @@ docker run -e "POSTGRES_DB=test" -e "POSTGRES_USER=postgres" -e "POSTGRES_PASSWO
 Set up rustfs inside docker:
 
 ```
-docker run --rm -p 9000:9000 -e RUSTFS_ACCESS_KEY=123456 -e RUSTFS_SECRET_KEY=12345678 --name rustfs rustfs/rustfs:1.0.0-beta.1
+docker run --rm -p 9000:9000 -e RUSTFS_ACCESS_KEY=123456 -e RUSTFS_SECRET_KEY=12345678 --name rustfs rustfs/rustfs:1.0.0-beta.3
 ```
 
 Start tests based on the database container:
