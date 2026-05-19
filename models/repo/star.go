@@ -77,7 +77,7 @@ func GetStargazers(ctx context.Context, repo *Repository, opts db.ListOptions) (
 	sess := db.GetEngine(ctx).Where("star.repo_id = ?", repo.ID).
 		Join("LEFT", "star", "`user`.id = star.uid")
 	if opts.Page > 0 {
-		sess = db.SetSessionPagination(sess, &opts)
+		db.SetSessionPagination(sess, &opts)
 
 		users := make([]*user_model.User, 0, opts.PageSize)
 		return users, sess.Find(&users)

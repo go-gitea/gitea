@@ -1,11 +1,11 @@
 <!-- Keep in sync with templates/repo/icons/action_status.tmpl.
-    action status accepted: success, skipped, waiting, blocked, running, failure, cancelled, unknown.
+    action status accepted: success, skipped, waiting, blocked, running, failure, cancelled, cancelling, unknown.
 -->
 <script lang="ts" setup>
 import {SvgIcon} from '../svg.ts';
 
 const props = withDefaults(defineProps<{
-  status: 'success' | 'skipped' | 'waiting' | 'blocked' | 'running' | 'failure' | 'cancelled' | 'unknown',
+  status: 'success' | 'skipped' | 'waiting' | 'blocked' | 'running' | 'failure' | 'cancelled' | 'cancelling' | 'unknown',
   size?: number,
   className?: string,
   localeStatus?: string,
@@ -27,6 +27,7 @@ const circleFill = props.iconVariant === 'circle-fill';
     <SvgIcon name="octicon-circle" class="tw-text-text-light" :size="size" :class="className" v-else-if="status === 'waiting'"/>
     <SvgIcon name="octicon-blocked" class="tw-text-yellow" :size="size" :class="className" v-else-if="status === 'blocked'"/>
     <SvgIcon name="gitea-running" class="tw-text-yellow" :size="size" :class="'rotate-clockwise ' + className" v-else-if="status === 'running'"/>
+    <SvgIcon name="octicon-stop" class="tw-text-yellow" :size="size" :class="className" v-else-if="status === 'cancelling'"/>
     <SvgIcon :name="circleFill ? 'octicon-x-circle-fill' : 'octicon-x'" class="tw-text-red" :size="size" :class="className" v-else/><!-- failure, unknown -->
   </span>
 </template>

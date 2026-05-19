@@ -16,7 +16,6 @@ import (
 	"code.gitea.io/gitea/modules/util"
 
 	"xorm.io/builder"
-	"xorm.io/xorm"
 )
 
 // TrackedTime represents a time that was spent for a specific issue.
@@ -140,7 +139,7 @@ func (opts *FindTrackedTimesOptions) toSession(e db.Engine) db.Engine {
 	sess = sess.Where(opts.ToConds())
 
 	if opts.Page > 0 {
-		sess = db.SetSessionPagination(sess, opts)
+		db.SetSessionPagination(sess, opts)
 	}
 
 	return sess
@@ -344,7 +343,7 @@ func GetIssueTotalTrackedTime(ctx context.Context, opts *IssuesOptions, isClosed
 }
 
 func getIssueTotalTrackedTimeChunk(ctx context.Context, opts *IssuesOptions, isClosed optional.Option[bool], issueIDs []int64) (int64, error) {
-	sumSession := func(opts *IssuesOptions, issueIDs []int64) *xorm.Session {
+	sumSession := func(opts *IssuesOptions, issueIDs []int64) db.Session {
 		sess := db.GetEngine(ctx).
 			Table("tracked_time").
 			Where("tracked_time.deleted = ?", false).
@@ -359,7 +358,7 @@ func getIssueTotalTrackedTimeChunk(ctx context.Context, opts *IssuesOptions, isC
 
 	session := sumSession(opts, issueIDs)
 	if isClosed.Has() {
-		session = session.And("issue.is_closed = ?", isClosed.Value())
+		session.And("issue.is_closed = ?", isClosed.Value())
 	}
 	return session.SumInt(new(trackedTime), "tracked_time.time")
 }
