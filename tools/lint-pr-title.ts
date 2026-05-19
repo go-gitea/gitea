@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 import {env, exit} from 'node:process';
+import {allowedTypesList, parsePrTitle} from './pr-title.ts';
 
-const allowedTypes = 'build, chore, ci, docs, enhance, feat, fix, perf, refactor, revert, style, test';
 const title = env.PR_TITLE;
 
 if (!title) {
@@ -9,11 +9,9 @@ if (!title) {
   exit(1);
 }
 
-const validTitlePattern = new RegExp(`^(${allowedTypes.replaceAll(', ', '|')})(\\([\\w.-]+\\))?(!)?: .+$`);
-
-if (!validTitlePattern.test(title)) {
+if (!parsePrTitle(title)) {
   console.error(`Invalid PR title: ${title}`);
   console.error('Expected format: type(scope): subject');
-  console.error(`Allowed types: ${allowedTypes}`);
+  console.error(`Allowed types: ${allowedTypesList}`);
   exit(1);
 }
