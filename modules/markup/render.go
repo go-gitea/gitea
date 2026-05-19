@@ -198,15 +198,6 @@ func Render(rctx *RenderContext, origInput io.Reader, output io.Writer) error {
 	return RenderWithRenderer(rctx, renderer, input, output)
 }
 
-// RenderString renders Markup string to HTML with all specific handling stuff and return string
-func RenderString(ctx *RenderContext, content string) (string, error) {
-	var buf strings.Builder
-	if err := Render(ctx, strings.NewReader(content), &buf); err != nil {
-		return "", err
-	}
-	return buf.String(), nil
-}
-
 func RenderIFrame(ctx *RenderContext, opts *ExternalRendererOptions, output io.Writer) error {
 	ownerName, repoName := ctx.RenderOptions.Metas["user"], ctx.RenderOptions.Metas["repo"]
 	refSubURL := ctx.RenderOptions.Metas["RefTypeNameSubURL"]
