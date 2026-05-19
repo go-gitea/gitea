@@ -107,7 +107,7 @@ require (
 	github.com/yohcop/openid-go v1.0.1
 	github.com/yuin/goldmark v1.8.2
 	github.com/yuin/goldmark-highlighting/v2 v2.0.0-20230729083705-37449abec8cc
-	gitlab.com/gitlab-org/api/client-go/v2 v2.25.0
+	gitlab.com/gitlab-org/api/client-go/v2 v2.26.0
 	go.yaml.in/yaml/v4 v4.0.0-rc.3
 	golang.org/x/crypto v0.51.0
 	golang.org/x/image v0.40.0
