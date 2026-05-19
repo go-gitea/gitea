@@ -714,6 +714,8 @@ func indexCommit(commits []*git.Commit, commitID string) *git.Commit {
 
 // ViewPullFiles render pull request changed files list page
 func viewPullFiles(ctx *context.Context, beforeCommitID, afterCommitID string) {
+	var err error
+
 	ctx.Data["PageIsPullList"] = true
 	ctx.Data["PageIsPullFiles"] = true
 
@@ -740,43 +742,53 @@ func viewPullFiles(ctx *context.Context, beforeCommitID, afterCommitID string) {
 	}
 
 	isSingleCommit := beforeCommitID == "" && afterCommitID != ""
-	ctx.Data["IsShowingOnlySingleCommit"] = isSingleCommit
+	// FIXME: when afterCommitID==headCommitID, isSingleCommit and isShowAllCommits can be both true, which doesn't seem right
 	isShowAllCommits := (beforeCommitID == "" || beforeCommitID == prInfo.MergeBase) && (afterCommitID == "" || afterCommitID == headCommitID)
+
+	ctx.Data["IsShowingOnlySingleCommit"] = isSingleCommit
 	ctx.Data["IsShowingAllCommits"] = isShowAllCommits
 
-	if afterCommitID == "" || afterCommitID == headCommitID {
-		afterCommitID = headCommitID
-	}
+	// "commits list" is half-open, half-closed: (base, head]
+	// * base commit is not in the list
+	// * if the PR is empty, the list is also empty (head commit is not in the list)
+
+	afterCommitID = util.IfZero(afterCommitID, headCommitID)
 	afterCommit := indexCommit(prInfo.Commits, afterCommitID)
+	if afterCommit == nil && afterCommitID == headCommitID {
+		afterCommit, err = gitRepo.GetCommit(afterCommitID)
+		if err != nil {
+			ctx.ServerError("GetCommit(afterCommitID)", err)
+			return
+		}
+	}
 	if afterCommit == nil {
-		ctx.HTTPError(http.StatusBadRequest, "after commit not found in PR commits")
+		ctx.NotFound(nil)
 		return
 	}
 
 	var beforeCommit *git.Commit
-	if !isSingleCommit {
-		if beforeCommitID == "" || beforeCommitID == prInfo.MergeBase {
-			beforeCommitID = prInfo.MergeBase
-			// mergebase commit is not in the list of the pull request commits
-			beforeCommit, err = gitRepo.GetCommit(beforeCommitID)
-			if err != nil {
-				ctx.ServerError("GetCommit", err)
-				return
-			}
-		} else {
-			beforeCommit = indexCommit(prInfo.Commits, beforeCommitID)
-			if beforeCommit == nil {
-				ctx.HTTPError(http.StatusBadRequest, "before commit not found in PR commits")
-				return
-			}
-		}
-	} else {
+	if isSingleCommit {
 		beforeCommit, err = afterCommit.Parent(0)
 		if err != nil {
-			ctx.ServerError("Parent", err)
+			ctx.ServerError("afterCommit.Parent", err)
 			return
 		}
 		beforeCommitID = beforeCommit.ID.String()
+	} else {
+		beforeCommitID = util.IfZero(beforeCommitID, prInfo.MergeBase)
+		beforeCommit = indexCommit(prInfo.Commits, beforeCommitID)
+		if beforeCommit == nil && beforeCommitID == prInfo.MergeBase {
+			// mergebase commit is not in the list of the pull request commits
+			beforeCommit, err = gitRepo.GetCommit(beforeCommitID)
+			if err != nil {
+				ctx.ServerError("GetCommit(beforeCommitID)", err)
+				return
+			}
+		}
+	}
+	if beforeCommit == nil {
+		ctx.NotFound(nil)
+		return
 	}
 
 	ctx.Data["Username"] = ctx.Repo.Owner.Name
