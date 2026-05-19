@@ -214,7 +214,7 @@ func ToTag(repo *repo_model.Repository, t *git.Tag) *api.Tag {
 
 	return &api.Tag{
 		Name:       t.Name,
-		Message:    strings.TrimSpace(t.Message),
+		Message:    strings.ToValidUTF8(strings.TrimSpace(t.Message), "?"), // the trim is not right, 1.27 won't trim
 		ID:         t.ID.String(),
 		Commit:     ToCommitMeta(repo, t),
 		ZipballURL: zipballURL,
@@ -274,33 +274,31 @@ func ToActionWorkflowRun(ctx context.Context, repo *repo_model.Repository, run *
 	}, nil
 }
 
-func ToWorkflowRunAction(status actions_model.Status) string {
-	var action string
+func ToWorkflowRunAction(status actions_model.Status) (action string) {
 	switch status {
 	case actions_model.StatusWaiting, actions_model.StatusBlocked:
 		action = "requested"
 	case actions_model.StatusRunning:
 		action = "in_progress"
-	}
-	if status.IsDone() {
-		action = "completed"
+	default:
+		if status.IsDone() {
+			action = "completed"
+		} else {
+			setting.PanicInDevOrTesting("unknown action status: %v", status)
+		}
 	}
 	return action
 }
 
-func ToActionsStatus(status actions_model.Status) (string, string) {
-	var action string
-	var conclusion string
+func ToActionsStatus(status actions_model.Status) (action, conclusion string) {
 	switch status {
-	// This is a naming conflict of the webhook between Gitea and GitHub Actions
 	case actions_model.StatusWaiting:
-		action = "queued"
+		action = "queued" // "waiting" is a naming conflict of the webhook between Gitea and GitHub Actions
 	case actions_model.StatusBlocked:
-		action = "waiting"
+		action = "waiting" // naming conflict (as above)
 	case actions_model.StatusRunning:
 		action = "in_progress"
-	}
-	if status.IsDone() {
+	default:
 		action = "completed"
 		switch status {
 		case actions_model.StatusSuccess:
@@ -311,6 +309,8 @@ func ToActionsStatus(status actions_model.Status) (string, string) {
 			conclusion = "failure"
 		case actions_model.StatusSkipped:
 			conclusion = "skipped"
+		default:
+			setting.PanicInDevOrTesting("unknown action status: %v", status)
 		}
 	}
 	return action, conclusion
@@ -350,7 +350,7 @@ func ToActionWorkflowJob(ctx context.Context, repo *repo_model.Repository, task 
 				runnerName = runner.Name
 			}
 			for i, step := range task.Steps {
-				stepStatus, stepConclusion := ToActionsStatus(job.Status)
+				stepStatus, stepConclusion := ToActionsStatus(step.Status)
 				steps = append(steps, &api.ActionWorkflowStep{
 					Name:        step.Name,
 					Number:      int64(i),
@@ -728,7 +728,7 @@ func ToAnnotatedTag(ctx context.Context, repo *repo_model.Repository, t *git.Tag
 		Tag:          t.Name,
 		SHA:          t.ID.String(),
 		Object:       ToAnnotatedTagObject(repo, c),
-		Message:      t.Message,
+		Message:      strings.ToValidUTF8(t.Message, "?"),
 		URL:          repo.APIURL() + "/git/tags/" + t.ID.String(),
 		Tagger:       ToCommitUser(t.Tagger),
 		Verification: ToVerification(ctx, c),

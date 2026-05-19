@@ -124,6 +124,9 @@ func prepareRunRerun(ctx context.Context, repo *repo_model.Repository, run *acti
 		job.Run = run
 	}
 
+	// Recomputes the repository's num_action_runs / num_closed_action_runs counters since the run's status changed
+	actions_model.UpdateRepoRunsNumbers(ctx, run.RepoID)
+
 	notify_service.WorkflowRunStatusUpdate(ctx, run.Repo, run.TriggerUser, run)
 
 	return run.Status == actions_model.StatusBlocked, nil

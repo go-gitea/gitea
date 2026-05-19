@@ -847,7 +847,7 @@ func GetSquashMergeCommitMessages(ctx context.Context, pr *issues_model.PullRequ
 		maxMsgSize := setting.Repository.PullRequest.DefaultMergeMessageSize
 		for i := len(commits) - 1; i >= 0; i-- {
 			commit := commits[i]
-			msg := strings.TrimSpace(commit.CommitMessage)
+			msg := strings.TrimSpace(commit.Message())
 			if msg == "" {
 				continue
 			}

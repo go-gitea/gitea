@@ -13,6 +13,7 @@ import (
 	"path/filepath"
 	"sort"
 	"strings"
+	"unicode"
 
 	"code.gitea.io/gitea/models/db"
 	git_model "code.gitea.io/gitea/models/git"
@@ -413,6 +414,10 @@ func ParseCompareInfo(ctx *context.Context) *git_service.CompareInfo {
 
 	compareInfo, err := git_service.GetCompareInfo(ctx, baseRepo, headRepo, headGitRepo, baseRef, headRef, compareReq.DirectComparison(), fileOnly)
 	if err != nil {
+		if errors.Is(err, util.ErrNotExist) {
+			ctx.Data["IsNoMergeBase"] = true
+			return compareInfo
+		}
 		ctx.ServerError("GetCompareInfo", err)
 		return nil
 	}
@@ -425,17 +430,49 @@ func ParseCompareInfo(ctx *context.Context) *git_service.CompareInfo {
 	return compareInfo
 }
 
-func prepareNewPullRequestTitleContent(ci *git_service.CompareInfo, commits []*git_model.SignCommitWithStatuses) (title, content string) {
-	title = ci.HeadRef.ShortName()
+// autoTitleFromBranchName humanizes a branch name into a PR title.
+func autoTitleFromBranchName(name string) string {
+	var buf strings.Builder
+	var prevIsSpace bool
+	runes := []rune(name)
+	for i, r := range runes {
+		isSpace := unicode.IsSpace(r)
+		if r == '-' || r == '_' || isSpace {
+			if !prevIsSpace {
+				buf.WriteRune(' ')
+			}
+			prevIsSpace = true
+			continue
+		}
+		if !prevIsSpace && unicode.IsUpper(r) {
+			needSpace := i > 0 && unicode.IsLower(runes[i-1]) || i < len(runes)-1 && unicode.IsLower(runes[i+1])
+			if needSpace {
+				buf.WriteRune(' ')
+			}
+		}
+		buf.WriteRune(unicode.ToLower(r))
+		prevIsSpace = isSpace
+	}
+	out := strings.TrimSpace(buf.String())
+	if out == "" {
+		return out
+	}
+	outRunes := []rune(out)
+	outRunes[0] = unicode.ToUpper(outRunes[0])
+	return string(outRunes)
+}
 
-	if len(commits) > 0 {
+func prepareNewPullRequestTitleContent(ci *git_service.CompareInfo, commits []*git_model.SignCommitWithStatuses, defaultTitleSource string) (title, content string) {
+	useFirstCommitAsTitle := len(commits) == 1 || (defaultTitleSource == setting.RepoPRTitleSourceFirstCommit && len(commits) > 0)
+	if useFirstCommitAsTitle {
 		// the "commits" are from "ShowPrettyFormatLogToList", which is ordered from newest to oldest, here take the oldest one
 		c := commits[len(commits)-1]
 		title = strings.TrimSpace(c.UserCommit.Summary())
+	} else {
+		title = autoTitleFromBranchName(ci.HeadRef.ShortName())
 	}
 
 	if len(commits) == 1 {
-		// FIXME: GIT-COMMIT-MESSAGE-ENCODING: try to convert the encoding for commit message explicitly, ideally it should be done by a git commit struct method
 		c := commits[0]
 		_, content, _ = strings.Cut(strings.TrimSpace(c.UserCommit.CommitMessage), "\n")
 		content = strings.TrimSpace(content)
@@ -568,7 +605,7 @@ func PrepareCompareDiff(
 	ctx.Data["Commits"] = commits
 	ctx.Data["CommitCount"] = len(commits)
 
-	ctx.Data["title"], ctx.Data["content"] = prepareNewPullRequestTitleContent(ci, commits)
+	ctx.Data["title"], ctx.Data["content"] = prepareNewPullRequestTitleContent(ci, commits, setting.Repository.PullRequest.DefaultTitleSource)
 	ctx.Data["Username"] = ci.HeadRepo.OwnerName
 	ctx.Data["Reponame"] = ci.HeadRepo.Name
 
@@ -604,9 +641,18 @@ func CompareDiff(ctx *context.Context) {
 	ctx.Data["PullRequestWorkInProgressPrefixes"] = setting.Repository.PullRequest.WorkInProgressPrefixes
 	ctx.Data["CompareInfo"] = ci
 
-	nothingToCompare := PrepareCompareDiff(ctx, ci, gitdiff.GetWhitespaceFlag(ctx.Data["WhitespaceBehavior"].(string)))
-	if ctx.Written() {
-		return
+	var nothingToCompare bool
+	noMergeBase := ctx.Data["IsNoMergeBase"] == true
+	if noMergeBase {
+		ctx.Flash.Error(ctx.Tr("repo.pulls.no_common_history"), true)
+		ctx.Data["PageIsComparePull"] = false
+		ctx.Data["CommitCount"] = 0
+		nothingToCompare = true
+	} else {
+		nothingToCompare = PrepareCompareDiff(ctx, ci, gitdiff.GetWhitespaceFlag(ctx.Data["WhitespaceBehavior"].(string)))
+		if ctx.Written() {
+			return
+		}
 	}
 
 	baseTags, err := repo_model.GetTagNamesByRepoID(ctx, ctx.Repo.Repository.ID)
@@ -622,16 +668,13 @@ func CompareDiff(ctx *context.Context) {
 		return
 	}
 
-	headBranches, err := git_model.FindBranchNames(ctx, git_model.FindBranchOptions{
-		RepoID:          ci.HeadRepo.ID,
-		ListOptions:     db.ListOptionsAll,
-		IsDeletedBranch: optional.Some(false),
-	})
+	headBranches, headTags, err := getBranchesAndTagsForRepo(ctx, ci.HeadRepo)
 	if err != nil {
-		ctx.ServerError("GetBranches", err)
+		ctx.ServerError("GetBranchesAndTagsForRepo", err)
 		return
 	}
 	ctx.Data["HeadBranches"] = headBranches
+	ctx.Data["HeadTags"] = headTags
 
 	// For compare repo branches
 	PrepareBranchList(ctx)
@@ -639,12 +682,10 @@ func CompareDiff(ctx *context.Context) {
 		return
 	}
 
-	headTags, err := repo_model.GetTagNamesByRepoID(ctx, ci.HeadRepo.ID)
-	if err != nil {
-		ctx.ServerError("GetTagNamesByRepoID", err)
+	if noMergeBase {
+		ctx.HTML(http.StatusOK, tplCompare)
 		return
 	}
-	ctx.Data["HeadTags"] = headTags
 
 	if ctx.Data["PageIsComparePull"] == true {
 		pr, err := issues_model.GetUnmergedPullRequest(ctx, ci.HeadRepo.ID, ctx.Repo.Repository.ID, ci.HeadRef.ShortName(), ci.BaseRef.ShortName(), issues_model.PullRequestFlowGithub)
