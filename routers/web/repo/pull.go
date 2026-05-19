@@ -706,6 +706,7 @@ func viewPullFiles(ctx *context.Context, beforeCommitID, afterCommitID string) {
 	}
 
 	headCommitID := prCompareInfo.HeadCommitID
+	var err error
 	isSingleCommit := beforeCommitID == "" && afterCommitID != ""
 	ctx.Data["IsShowingOnlySingleCommit"] = isSingleCommit
 	isShowAllCommits := (beforeCommitID == "" || beforeCommitID == prCompareInfo.CompareBase) && (afterCommitID == "" || afterCommitID == headCommitID)
@@ -716,12 +717,19 @@ func viewPullFiles(ctx *context.Context, beforeCommitID, afterCommitID string) {
 	}
 	afterCommit := indexCommit(prCompareInfo.Commits, afterCommitID)
 	if afterCommit == nil {
-		ctx.HTTPError(http.StatusBadRequest, "after commit not found in PR commits")
-		return
+		if afterCommitID != headCommitID {
+			ctx.HTTPError(http.StatusBadRequest, "after commit not found in PR commits")
+			return
+		}
+
+		afterCommit, err = gitRepo.GetCommit(afterCommitID)
+		if err != nil {
+			ctx.ServerError("GetCommit", err)
+			return
+		}
 	}
 
 	var beforeCommit *git.Commit
-	var err error
 	if !isSingleCommit {
 		if beforeCommitID == "" || beforeCommitID == prCompareInfo.CompareBase {
 			beforeCommitID = prCompareInfo.CompareBase
