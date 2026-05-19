@@ -601,7 +601,7 @@ func TestMarkdownUlDir(t *testing.T) {
 `, string(result))
 }
 
-func TestMarkdownFencedCodeBlock(t *testing.T) {
+func TestMarkdownCodeBlock(t *testing.T) {
 	testRender := func(input, expected string) {
 		buffer, err := markdown.RenderString(markup.NewTestRenderContext(), input)
 		assert.NoError(t, err)
