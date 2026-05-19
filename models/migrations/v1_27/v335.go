@@ -4,7 +4,7 @@
 package v1_27
 
 import (
-	"xorm.io/xorm"
+	"code.gitea.io/gitea/models/db"
 )
 
 type RepoContributorDaily struct {
@@ -29,6 +29,6 @@ type RepoContributorMeta struct {
 }
 
 // AddRepoContributorDailyAndMeta creates tables for contributor daily stats.
-func AddRepoContributorDailyAndMeta(x *xorm.Engine) error {
+func AddRepoContributorDailyAndMeta(x db.EngineMigration) error {
 	return x.Sync(new(RepoContributorDaily), new(RepoContributorMeta))
 }

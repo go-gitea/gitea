@@ -39,6 +39,7 @@ type Engine interface {
 	Find(any, ...any) error
 	FindAndCount(any, ...any) (int64, error)
 	Get(beans ...any) (bool, error)
+	GroupBy(string) *xorm.Session
 	ID(any) *xorm.Session
 	In(string, ...any) *xorm.Session
 	Incr(column string, arg ...any) *xorm.Session
