@@ -71,9 +71,9 @@
 						</div>
 					</div>
 				</div>
-				<div class="milestone-list">
-					{{range .Milestones}}
-						<li class="milestone-card">
+			<div class="milestone-list">
+				{{range .Milestones}}
+					<li class="milestone-card">
 							<div class="milestone-header">
 								<h3 class="flex-text-block tw-m-0">
 									<span class="ui large label">
@@ -143,10 +143,18 @@
 								<div class="render-content markup">{{.RenderedContent}}</div>
 							{{end}}
 						</li>
-					{{end}}
+				{{end}}
 
-					{{template "base/paginate" .}}
-				</div>
+				{{if not .Milestones}}
+					<div class="empty-placeholder">
+						{{svg "octicon-milestone" 48}}
+						<h2>{{ctx.Locale.Tr "milestones.no_milestones"}}</h2>
+						<p>{{ctx.Locale.Tr "milestones.no_milestones_desc"}}</p>
+					</div>
+				{{end}}
+
+				{{template "base/paginate" .}}
+			</div>
 
 			</div>
 		</div>

@@ -72,8 +72,9 @@
 			</div>
 		</div>
 	{{else}}
-	<div>
-		{{ctx.Locale.Tr "search.no_results"}}
+	<div class="empty-placeholder">
+		{{svg "octicon-search" 48}}
+		<h2>{{ctx.Locale.Tr "search.no_results"}}</h2>
 	</div>
 	{{end}}
 </div>
