@@ -34,7 +34,7 @@ func Test_getStorageInheritNameSectionTypeForPackages(t *testing.T) {
 	// packages storage inherits from storage if nothing configured
 	iniStr := `
 [storage]
-STORAGE_TYPE = minio
+STORAGE_TYPE = s3
 `
 	cfg, err := NewConfigProviderFromData(iniStr)
 	assert.NoError(t, err)
@@ -46,7 +46,7 @@ STORAGE_TYPE = minio
 	// we can also configure packages storage directly
 	iniStr = `
 [storage.packages]
-STORAGE_TYPE = minio
+STORAGE_TYPE = s3
 `
 	cfg, err = NewConfigProviderFromData(iniStr)
 	assert.NoError(t, err)
@@ -58,10 +58,10 @@ STORAGE_TYPE = minio
 	// or we can indicate the storage type in the packages section
 	iniStr = `
 [packages]
-STORAGE_TYPE = my_minio
+STORAGE_TYPE = my_s3
 
-[storage.my_minio]
-STORAGE_TYPE = minio
+[storage.my_s3]
+STORAGE_TYPE = s3
 `
 	cfg, err = NewConfigProviderFromData(iniStr)
 	assert.NoError(t, err)
@@ -70,14 +70,14 @@ STORAGE_TYPE = minio
 	assert.EqualValues(t, "s3", Packages.Storage.Type)
 	assert.Equal(t, "packages/", Packages.Storage.S3Config.BasePath)
 
-	// or we can indicate the storage type  and minio base path in the packages section
+	// or we can indicate the storage type  and S3 base path in the packages section
 	iniStr = `
 [packages]
-STORAGE_TYPE = my_minio
+STORAGE_TYPE = my_s3
 S3_BASE_PATH = my_packages/
 
-[storage.my_minio]
-STORAGE_TYPE = minio
+[storage.my_s3]
+STORAGE_TYPE = s3
 `
 	cfg, err = NewConfigProviderFromData(iniStr)
 	assert.NoError(t, err)
@@ -94,7 +94,7 @@ func Test_PackageStorage1(t *testing.T) {
 S3_BASE_PATH = packages/
 SERVE_DIRECT = true
 [storage]
-STORAGE_TYPE            = minio
+STORAGE_TYPE            = s3
 S3_ENDPOINT = s3.my-domain.net
 S3_BUCKET = gitea
 S3_LOCATION = homenet
@@ -121,7 +121,7 @@ func Test_PackageStorage2(t *testing.T) {
 S3_BASE_PATH = packages/
 SERVE_DIRECT = true
 [storage]
-STORAGE_TYPE            = minio
+STORAGE_TYPE            = s3
 S3_ENDPOINT = s3.my-domain.net
 S3_BUCKET = gitea
 S3_LOCATION = homenet
@@ -149,7 +149,7 @@ STORAGE_TYPE            = my_cfg
 S3_BASE_PATH = my_packages/
 SERVE_DIRECT = true
 [storage.my_cfg]
-STORAGE_TYPE            = minio
+STORAGE_TYPE            = s3
 S3_ENDPOINT = s3.my-domain.net
 S3_BUCKET = gitea
 S3_LOCATION = homenet
@@ -177,7 +177,7 @@ STORAGE_TYPE            = my_cfg
 S3_BASE_PATH = my_packages/
 SERVE_DIRECT = true
 [storage.my_cfg]
-STORAGE_TYPE            = minio
+STORAGE_TYPE            = s3
 S3_ENDPOINT = s3.my-domain.net
 S3_BUCKET = gitea
 S3_LOCATION = homenet

@@ -12,7 +12,7 @@ import (
 func Test_getStorageInheritNameSectionTypeForLFS(t *testing.T) {
 	iniStr := `
 	[storage]
-	STORAGE_TYPE = minio
+	STORAGE_TYPE = s3
 	`
 	cfg, err := NewConfigProviderFromData(iniStr)
 	assert.NoError(t, err)
@@ -47,7 +47,7 @@ LFS_CONTENT_PATH = deprecatedpath
 
 	iniStr = `
 [storage.lfs]
-STORAGE_TYPE = minio
+STORAGE_TYPE = s3
 `
 	cfg, err = NewConfigProviderFromData(iniStr)
 	assert.NoError(t, err)
@@ -58,10 +58,10 @@ STORAGE_TYPE = minio
 
 	iniStr = `
 [lfs]
-STORAGE_TYPE = my_minio
+STORAGE_TYPE = my_s3
 
-[storage.my_minio]
-STORAGE_TYPE = minio
+[storage.my_s3]
+STORAGE_TYPE = s3
 `
 	cfg, err = NewConfigProviderFromData(iniStr)
 	assert.NoError(t, err)
@@ -72,11 +72,11 @@ STORAGE_TYPE = minio
 
 	iniStr = `
 [lfs]
-STORAGE_TYPE = my_minio
+STORAGE_TYPE = my_s3
 S3_BASE_PATH = my_lfs/
 
-[storage.my_minio]
-STORAGE_TYPE = minio
+[storage.my_s3]
+STORAGE_TYPE = s3
 `
 	cfg, err = NewConfigProviderFromData(iniStr)
 	assert.NoError(t, err)
@@ -89,7 +89,7 @@ STORAGE_TYPE = minio
 func Test_LFSStorage1(t *testing.T) {
 	iniStr := `
 [storage]
-STORAGE_TYPE = minio
+STORAGE_TYPE = s3
 `
 	cfg, err := NewConfigProviderFromData(iniStr)
 	assert.NoError(t, err)

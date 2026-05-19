@@ -20,7 +20,7 @@ S3_BUCKET = gitea-lfs
 S3_BUCKET = gitea-attachment
 
 [storage]
-STORAGE_TYPE = minio
+STORAGE_TYPE = s3
 S3_BUCKET = gitea-storage
 `
 	cfg, err := NewConfigProviderFromData(iniStr)
@@ -45,7 +45,7 @@ func Test_getStorageUseOtherNameAsType(t *testing.T) {
 STORAGE_TYPE = lfs
 
 [storage.lfs]
-STORAGE_TYPE = minio
+STORAGE_TYPE = s3
 S3_BUCKET = gitea-storage
 `
 	cfg, err := NewConfigProviderFromData(iniStr)
@@ -63,7 +63,7 @@ S3_BUCKET = gitea-storage
 func Test_getStorageInheritStorageType(t *testing.T) {
 	iniStr := `
 [storage]
-STORAGE_TYPE = minio
+STORAGE_TYPE = s3
 `
 	cfg, err := NewConfigProviderFromData(iniStr)
 	assert.NoError(t, err)
@@ -379,7 +379,7 @@ PATH = archives
 func Test_getStorageConfiguration23(t *testing.T) {
 	cfg, err := NewConfigProviderFromData(`
 [repo-archive]
-STORAGE_TYPE = minio
+STORAGE_TYPE = s3
 S3_ACCESS_KEY_ID = my_access_key
 S3_SECRET_ACCESS_KEY = my_secret_key
 `)
@@ -414,7 +414,7 @@ STORAGE_TYPE = my_archive
 
 [storage.my_archive]
 ; unsupported, storage type should be known type
-STORAGE_TYPE = unknown // should be local or minio
+STORAGE_TYPE = unknown // should be local or s3
 PATH = archives
 `)
 	assert.NoError(t, err)
@@ -424,7 +424,7 @@ PATH = archives
 func Test_getStorageConfiguration26(t *testing.T) {
 	cfg, err := NewConfigProviderFromData(`
 [repo-archive]
-STORAGE_TYPE = minio
+STORAGE_TYPE = s3
 S3_ACCESS_KEY_ID = my_access_key
 S3_SECRET_ACCESS_KEY = my_secret_key
 ; wrong configuration
@@ -439,7 +439,7 @@ S3_USE_SSL = abc
 func Test_getStorageConfiguration27(t *testing.T) {
 	cfg, err := NewConfigProviderFromData(`
 [storage.repo-archive]
-STORAGE_TYPE = minio
+STORAGE_TYPE = s3
 S3_ACCESS_KEY_ID = my_access_key
 S3_SECRET_ACCESS_KEY = my_secret_key
 S3_USE_SSL = true
@@ -455,7 +455,7 @@ S3_USE_SSL = true
 func Test_getStorageConfiguration28(t *testing.T) {
 	cfg, err := NewConfigProviderFromData(`
 [storage]
-STORAGE_TYPE = minio
+STORAGE_TYPE = s3
 S3_ACCESS_KEY_ID = my_access_key
 S3_SECRET_ACCESS_KEY = my_secret_key
 S3_USE_SSL = true
@@ -470,7 +470,7 @@ S3_BASE_PATH = /prefix
 
 	cfg, err = NewConfigProviderFromData(`
 [storage]
-STORAGE_TYPE = minio
+STORAGE_TYPE = s3
 S3_IAM_ENDPOINT = 127.0.0.1
 S3_USE_SSL = true
 S3_BASE_PATH = /prefix
@@ -483,7 +483,7 @@ S3_BASE_PATH = /prefix
 
 	cfg, err = NewConfigProviderFromData(`
 [storage]
-STORAGE_TYPE = minio
+STORAGE_TYPE = s3
 S3_ACCESS_KEY_ID = my_access_key
 S3_SECRET_ACCESS_KEY = my_secret_key
 S3_USE_SSL = true
@@ -501,7 +501,7 @@ S3_BASE_PATH = /lfs
 
 	cfg, err = NewConfigProviderFromData(`
 [storage]
-STORAGE_TYPE = minio
+STORAGE_TYPE = s3
 S3_ACCESS_KEY_ID = my_access_key
 S3_SECRET_ACCESS_KEY = my_secret_key
 S3_USE_SSL = true

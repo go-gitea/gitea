@@ -459,7 +459,7 @@ func PutBlobsUpload(ctx *context.Context) {
 		return
 	}
 
-	// Some SDK (e.g.: minio) will close the Reader if it is also a Closer after "uploading".
+	// Some SDKs (e.g.: minio-go) will close the Reader if it is also a Closer after "uploading".
 	// And we don't need to wrap the reader to anything else because the SDK will benefit from other interfaces like Seeker.
 	// It's safe to call Close twice, so ignore the error.
 	_ = uploader.Close()

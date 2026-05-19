@@ -165,7 +165,7 @@ func TestS3Credentials(t *testing.T) {
 
 		t.Run("FileMinio", func(t *testing.T) {
 			// prevent loading any actual credentials files from the user
-			t.Setenv("MINIO_SHARED_CREDENTIALS_FILE", "testdata/minio.json")
+			t.Setenv("MINIO_SHARED_CREDENTIALS_FILE", "testdata/s3.json")
 			t.Setenv("AWS_SHARED_CREDENTIALS_FILE", "testdata/fake")
 
 			creds := buildS3Credentials(cfg)

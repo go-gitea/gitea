@@ -14,7 +14,7 @@ import (
 func Test_getStorageInheritNameSectionTypeForActions(t *testing.T) {
 	iniStr := `
 	[storage]
-	STORAGE_TYPE = minio
+	STORAGE_TYPE = s3
 	`
 	cfg, err := NewConfigProviderFromData(iniStr)
 	assert.NoError(t, err)
@@ -27,7 +27,7 @@ func Test_getStorageInheritNameSectionTypeForActions(t *testing.T) {
 
 	iniStr = `
 [storage.actions_log]
-STORAGE_TYPE = minio
+STORAGE_TYPE = s3
 `
 	cfg, err = NewConfigProviderFromData(iniStr)
 	assert.NoError(t, err)
@@ -43,7 +43,7 @@ STORAGE_TYPE = minio
 STORAGE_TYPE = my_storage
 
 [storage.my_storage]
-STORAGE_TYPE = minio
+STORAGE_TYPE = s3
 `
 	cfg, err = NewConfigProviderFromData(iniStr)
 	assert.NoError(t, err)
@@ -59,7 +59,7 @@ STORAGE_TYPE = minio
 STORAGE_TYPE = my_storage
 
 [storage.my_storage]
-STORAGE_TYPE = minio
+STORAGE_TYPE = s3
 `
 	cfg, err = NewConfigProviderFromData(iniStr)
 	assert.NoError(t, err)
@@ -75,7 +75,7 @@ STORAGE_TYPE = minio
 STORAGE_TYPE = my_storage
 
 [storage.my_storage]
-STORAGE_TYPE = minio
+STORAGE_TYPE = s3
 `
 	cfg, err = NewConfigProviderFromData(iniStr)
 	assert.NoError(t, err)

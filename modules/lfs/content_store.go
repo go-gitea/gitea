@@ -120,7 +120,7 @@ type hashingReader struct {
 
 // recordError records the last error during the Save operation
 // Some callers of the Reader doesn't respect the returned "err"
-// For example, MinIO's Put will ignore errors if the written size could equal to expected size
+// For example, the S3 Put will ignore errors if the written size could equal to expected size
 // So we must remember the error by ourselves,
 // and later check again whether ErrSizeMismatch or ErrHashMismatch occurs during the Save operation
 func (r *hashingReader) recordError(err error) error {
