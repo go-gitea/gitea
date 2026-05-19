@@ -155,3 +155,44 @@ func TestMyOrgs(t *testing.T) {
 		},
 	}, orgs)
 }
+
+func TestMyOrgsPublicOnly(t *testing.T) {
+	defer tests.PrepareTestEnv(t)()
+
+	normalUsername := "user2"
+	token := getUserToken(t, normalUsername, auth_model.AccessTokenScopeReadOrganization, auth_model.AccessTokenScopeReadUser, auth_model.AccessTokenScopePublicOnly)
+	req := NewRequest(t, "GET", "/api/v1/user/orgs").
+		AddTokenAuth(token)
+	resp := MakeRequest(t, req, http.StatusOK)
+	var orgs []*api.Organization
+	DecodeJSON(t, resp, &orgs)
+	org3 := unittest.AssertExistsAndLoadBean(t, &user_model.User{Name: "org3"})
+	org17 := unittest.AssertExistsAndLoadBean(t, &user_model.User{Name: "org17"})
+
+	assert.Equal(t, []*api.Organization{
+		{
+			ID:          17,
+			Name:        org17.Name,
+			UserName:    org17.Name,
+			FullName:    org17.FullName,
+			Email:       org17.Email,
+			AvatarURL:   org17.AvatarLink(t.Context()),
+			Description: "",
+			Website:     "",
+			Location:    "",
+			Visibility:  "public",
+		},
+		{
+			ID:          3,
+			Name:        org3.Name,
+			UserName:    org3.Name,
+			FullName:    org3.FullName,
+			Email:       org3.Email,
+			AvatarURL:   org3.AvatarLink(t.Context()),
+			Description: "",
+			Website:     "",
+			Location:    "",
+			Visibility:  "public",
+		},
+	}, orgs)
+}
