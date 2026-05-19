@@ -17,6 +17,7 @@ import (
 
 type downloadScopeCase struct {
 	name         string
+	method       string
 	url          string
 	withScope    int
 	publicOnlyOK bool
@@ -89,67 +90,106 @@ func TestDownloadRepoContentTokenScopes(t *testing.T) {
 
 	cases := []downloadScopeCase{
 		{
+			name:         "PublicArchiveDownload",
+			method:       http.MethodGet,
+			url:          "/user2/repo1/archive/master.tar.gz",
+			withScope:    http.StatusOK,
+			publicOnlyOK: true,
+		},
+		{
+			name:         "PrivateArchiveDownload",
+			method:       http.MethodGet,
+			url:          "/user2/repo2/archive/master.tar.gz",
+			withScope:    http.StatusOK,
+			publicOnlyOK: false,
+		},
+		{
+			name:         "PublicArchiveInitiate",
+			method:       http.MethodPost,
+			url:          "/user2/repo1/archive/master.tar.gz",
+			withScope:    http.StatusOK,
+			publicOnlyOK: true,
+		},
+		{
+			name:         "PrivateArchiveInitiate",
+			method:       http.MethodPost,
+			url:          "/user2/repo2/archive/master.tar.gz",
+			withScope:    http.StatusOK,
+			publicOnlyOK: false,
+		},
+		{
 			name:         "PublicRawBlob",
+			method:       http.MethodGet,
 			url:          "/user2/repo1/raw/blob/4b4851ad51df6a7d9f25c979345979eaeb5b349f",
 			withScope:    http.StatusOK,
 			publicOnlyOK: true,
 		},
 		{
 			name:         "PublicRawBranch",
+			method:       http.MethodGet,
 			url:          "/user2/repo1/raw/branch/master/README.md",
 			withScope:    http.StatusOK,
 			publicOnlyOK: true,
 		},
 		{
 			name:         "PublicRawTag",
+			method:       http.MethodGet,
 			url:          "/user2/repo1/raw/tag/v1.1/README.md",
 			withScope:    http.StatusOK,
 			publicOnlyOK: true,
 		},
 		{
 			name:         "PublicRawCommit",
+			method:       http.MethodGet,
 			url:          "/user2/repo1/raw/commit/65f1bf27bc3bf70f64657658635e66094edbcb4d/README.md",
 			withScope:    http.StatusOK,
 			publicOnlyOK: true,
 		},
 		{
 			name:         "PublicMediaBlob",
+			method:       http.MethodGet,
 			url:          "/user2/repo1/media/blob/4b4851ad51df6a7d9f25c979345979eaeb5b349f",
 			withScope:    http.StatusOK,
 			publicOnlyOK: true,
 		},
 		{
 			name:         "PublicMediaBranch",
+			method:       http.MethodGet,
 			url:          "/user2/repo1/media/branch/master/README.md",
 			withScope:    http.StatusOK,
 			publicOnlyOK: true,
 		},
 		{
 			name:         "PublicMediaTag",
+			method:       http.MethodGet,
 			url:          "/user2/repo1/media/tag/v1.1/README.md",
 			withScope:    http.StatusOK,
 			publicOnlyOK: true,
 		},
 		{
 			name:         "PublicMediaCommit",
+			method:       http.MethodGet,
 			url:          "/user2/repo1/media/commit/65f1bf27bc3bf70f64657658635e66094edbcb4d/README.md",
 			withScope:    http.StatusOK,
 			publicOnlyOK: true,
 		},
 		{
 			name:         "PrivateRawBranch",
+			method:       http.MethodGet,
 			url:          "/user2/repo2/raw/branch/master/test.xml",
 			withScope:    http.StatusOK,
 			publicOnlyOK: false,
 		},
 		{
 			name:         "PrivateRawBlob",
+			method:       http.MethodGet,
 			url:          "/user2/repo2/raw/blob/6395b68e1feebb1e4c657b4f9f6ba2676a283c0b",
 			withScope:    http.StatusOK,
 			publicOnlyOK: false,
 		},
 		{
 			name:         "PrivateMediaBranch",
+			method:       http.MethodGet,
 			url:          "/user2/repo2/media/branch/master/test.xml",
 			withScope:    http.StatusOK,
 			publicOnlyOK: false,
@@ -158,14 +198,14 @@ func TestDownloadRepoContentTokenScopes(t *testing.T) {
 
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
-			MakeRequest(t, NewRequest(t, "GET", tc.url).AddTokenAuth(miscToken), http.StatusForbidden)
-			MakeRequest(t, NewRequest(t, "GET", tc.url).AddTokenAuth(ownerReadToken), tc.withScope)
+			MakeRequest(t, NewRequest(t, tc.method, tc.url).AddTokenAuth(miscToken), http.StatusForbidden)
+			MakeRequest(t, NewRequest(t, tc.method, tc.url).AddTokenAuth(ownerReadToken), tc.withScope)
 
 			publicOnlyStatus := http.StatusForbidden
 			if tc.publicOnlyOK {
 				publicOnlyStatus = tc.withScope
 			}
-			MakeRequest(t, NewRequest(t, "GET", tc.url).AddTokenAuth(publicOnlyToken), publicOnlyStatus)
+			MakeRequest(t, NewRequest(t, tc.method, tc.url).AddTokenAuth(publicOnlyToken), publicOnlyStatus)
 		})
 	}
 }
