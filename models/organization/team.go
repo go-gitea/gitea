@@ -74,6 +74,9 @@ const OwnerTeamName = "Owners"
 type Team struct {
 	ID                      int64 `xorm:"pk autoincr"`
 	OrgID                   int64 `xorm:"INDEX"`
+	// ParentTeamID is non-zero for sub-groups (teams nested under another team).
+	// When set, this team inherits members from the parent team.
+	ParentTeamID            int64 `xorm:"INDEX DEFAULT 0"`
 	LowerName               string
 	Name                    string
 	Description             string

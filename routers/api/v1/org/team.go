@@ -213,6 +213,7 @@ func CreateTeam(ctx *context.APIContext) {
 	teamPermission := perm.ParseAccessMode(string(form.Permission), perm.AccessModeNone, perm.AccessModeAdmin)
 	team := &organization.Team{
 		OrgID:                   ctx.Org.Organization.ID,
+		ParentTeamID:            form.ParentTeamID,
 		Name:                    form.Name,
 		Description:             form.Description,
 		IncludesAllRepositories: form.IncludesAllRepositories,

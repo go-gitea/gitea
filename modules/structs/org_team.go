@@ -8,6 +8,7 @@ package structs
 type Team struct {
 	// The unique identifier of the team
 	ID int64 `json:"id"`
+	ParentTeamID int64 `json:"parent_team_id"`
 	// The name of the team
 	Name string `json:"name"`
 	// The description of the team
@@ -30,6 +31,7 @@ type Team struct {
 type CreateTeamOption struct {
 	// required: true
 	Name string `json:"name" binding:"Required;AlphaDashDot;MaxSize(255)"`
+	ParentTeamID int64 `json:"parent_team_id"`
 	// The description of the team
 	Description string `json:"description" binding:"MaxSize(255)"`
 	// Whether the team has access to all repositories in the organization
