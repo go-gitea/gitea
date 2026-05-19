@@ -1,7 +1,9 @@
 name: labeler
 
 on:
-  pull_request_target:
+  # pull_request_target is required to label PRs from forks; jobs only use pinned
+  # actions or base-branch checkout, never PR-head code.
+  pull_request_target: # zizmor: ignore[dangerous-triggers]
     types: [opened, synchronize, reopened, edited, ready_for_review]
 
 concurrency:
