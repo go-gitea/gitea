@@ -159,13 +159,13 @@ func newTreeViewNodeFromEntry(ctx context.Context, repoLink string, renderedIcon
 }
 
 // sortTreeViewNodes list directory first and with alpha sequence
-func sortTreeViewNodes(nodes []*TreeViewNode, cmp func(s1, s2 string) int) {
+func sortTreeViewNodes(nodes []*TreeViewNode) {
 	sort.Slice(nodes, func(i, j int) bool {
 		a, b := nodes[i].sortLevel(), nodes[j].sortLevel()
 		if a != b {
 			return a < b
 		}
-		return cmp(nodes[i].EntryName, nodes[j].EntryName) < 0
+		return base.NaturalSortCompare(nodes[i].EntryName, nodes[j].EntryName) < 0
 	})
 }
 
@@ -193,7 +193,7 @@ func listTreeNodes(ctx context.Context, repoLink string, renderedIconPool *filei
 			}
 		}
 	}
-	sortTreeViewNodes(nodes, base.NaturalSortCompare)
+	sortTreeViewNodes(nodes)
 	return nodes, nil
 }
 
