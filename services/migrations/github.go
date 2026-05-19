@@ -576,6 +576,29 @@ func (g *GithubDownloaderV3) getComments(ctx context.Context, commentable base.C
 	return allComments, nil
 }
 
+func (g *GithubDownloaderV3) fillPullRequestHeadSHA(ctx context.Context, pr *base.PullRequest) error {
+	if pr.Head.SHA != "" {
+		return nil
+	}
+
+	g.waitAndPickClient(ctx)
+	patch, resp, err := g.getClient().PullRequests.GetRaw(ctx, g.repoOwner, g.repoName, int(pr.ForeignIndex), github.RawOptions{Type: github.Patch})
+	if resp != nil {
+		g.setRate(&resp.Rate)
+	}
+	if err != nil {
+		return err
+	}
+
+	headSHA, err := parsePatchHeadSHA(strings.NewReader(patch))
+	if err != nil {
+		return err
+	}
+
+	pr.Head.SHA = headSHA
+	return nil
+}
+
 // GetAllComments returns repository comments according page and perPageSize
 func (g *GithubDownloaderV3) GetAllComments(ctx context.Context, page, perPage int) ([]*base.Comment, bool, error) {
 	var (
@@ -747,6 +770,9 @@ func (g *GithubDownloaderV3) GetPullRequests(ctx context.Context, page, perPage 
 
 		// SECURITY: Ensure that the PR is safe
 		_ = CheckAndEnsureSafePR(allPRs[len(allPRs)-1], g.baseURL, g)
+		if err := g.fillPullRequestHeadSHA(ctx, allPRs[len(allPRs)-1]); err != nil {
+			log.Warn("PR #%d in %s unable to resolve head SHA: %v", allPRs[len(allPRs)-1].Number, g, err)
+		}
 	}
 
 	return allPRs, len(prs) < perPage, nil

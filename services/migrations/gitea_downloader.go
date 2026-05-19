@@ -4,6 +4,7 @@
 package migrations
 
 import (
+	"bytes"
 	"context"
 	"errors"
 	"fmt"
@@ -515,6 +516,25 @@ func (g *GiteaDownloader) GetComments(ctx context.Context, commentable base.Comm
 	return allComments, true, nil
 }
 
+func (g *GiteaDownloader) fillPullRequestHeadSHA(_ context.Context, pr *base.PullRequest) error {
+	if pr.Head.SHA != "" {
+		return nil
+	}
+
+	patch, _, err := g.client.GetPullRequestPatch(g.repoOwner, g.repoName, pr.ForeignIndex)
+	if err != nil {
+		return err
+	}
+
+	headSHA, err := parsePatchHeadSHA(bytes.NewReader(patch))
+	if err != nil {
+		return err
+	}
+
+	pr.Head.SHA = headSHA
+	return nil
+}
+
 // GetPullRequests returns pull requests according page and perPage
 func (g *GiteaDownloader) GetPullRequests(ctx context.Context, page, perPage int) ([]*base.PullRequest, bool, error) {
 	if perPage > g.maxPerPage {
@@ -626,6 +646,9 @@ func (g *GiteaDownloader) GetPullRequests(ctx context.Context, page, perPage int
 		})
 		// SECURITY: Ensure that the PR is safe
 		_ = CheckAndEnsureSafePR(allPRs[len(allPRs)-1], g.baseURL, g)
+		if err := g.fillPullRequestHeadSHA(ctx, allPRs[len(allPRs)-1]); err != nil {
+			log.Warn("PR #%d in %s unable to resolve head SHA: %v", allPRs[len(allPRs)-1].Number, g, err)
+		}
 	}
 
 	isEnd := len(prs) < perPage
