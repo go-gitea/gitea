@@ -203,7 +203,7 @@ func Render(rctx *RenderContext, origInput io.Reader, output io.Writer) error {
 func RenderString(ctx *RenderContext, content string) template.HTML {
 	var buf strings.Builder
 	if err := Render(ctx, strings.NewReader(content), &buf); err != nil {
-		log.Warn("Unable to RenderString: %v, content: %s", err, giteautil.TruncateRunes(content, 200))
+		log.Warn("Unable to RenderString: %v, content: %s", err, util.TruncateRunes(content, 200))
 		return htmlutil.EscapeString(content)
 	}
 	return template.HTML(buf.String())
