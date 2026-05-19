@@ -123,6 +123,7 @@ func PushMirrorSync(ctx *context.APIContext) {
 	}
 	if len(failedPushMirrors) != 0 {
 		ctx.APIErrorInternal(errors.New("error occurred when syncing push mirrors: " + strings.Join(failedPushMirrors, ", ")))
+		return
 	}
 	ctx.Status(http.StatusOK)
 }
