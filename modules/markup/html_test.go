@@ -24,11 +24,18 @@ var (
 	localMetas        = map[string]string{"user": testRepoOwnerName, "repo": testRepoName}
 )
 
+func testRenderString(ctx *markup.RenderContext, content string) (string, error) {
+	var buf strings.Builder
+	err := markup.Render(ctx, strings.NewReader(content), &buf)
+	return buf.String(), err
+}
+
 func TestRender_Commits(t *testing.T) {
 	test := func(input, expected string) {
 		rctx := markup.NewTestRenderContext(markup.TestAppURL, localMetas).WithRelativePath("a.md")
-		buffer := markup.RenderString(rctx, input)
-		assert.Equal(t, strings.TrimSpace(expected), strings.TrimSpace(string(buffer)))
+		buffer, err := testRenderString(rctx, input)
+		assert.NoError(t, err)
+		assert.Equal(t, strings.TrimSpace(expected), strings.TrimSpace(buffer))
 	}
 
 	sha := "65f1bf27bc3bf70f64657658635e66094edbcb4d"
@@ -74,8 +81,9 @@ func TestRender_CrossReferences(t *testing.T) {
 	defer testModule.MockVariableValue(&markup.RenderBehaviorForTesting.DisableAdditionalAttributes, true)()
 	test := func(input, expected string) {
 		rctx := markup.NewTestRenderContext(markup.TestAppURL, localMetas).WithRelativePath("a.md")
-		buffer := markup.RenderString(rctx, input)
-		assert.Equal(t, strings.TrimSpace(expected), strings.TrimSpace(string(buffer)))
+		buffer, err := testRenderString(rctx, input)
+		assert.NoError(t, err)
+		assert.Equal(t, strings.TrimSpace(expected), strings.TrimSpace(buffer))
 	}
 
 	test(
@@ -117,8 +125,9 @@ func TestRender_links(t *testing.T) {
 	setting.AppURL = markup.TestAppURL
 	defer testModule.MockVariableValue(&markup.RenderBehaviorForTesting.DisableAdditionalAttributes, true)()
 	test := func(input, expected string) {
-		buffer := markup.RenderString(markup.NewTestRenderContext().WithRelativePath("a.md"), input)
-		assert.Equal(t, strings.TrimSpace(expected), strings.TrimSpace(string(buffer)))
+		buffer, err := testRenderString(markup.NewTestRenderContext().WithRelativePath("a.md"), input)
+		assert.NoError(t, err)
+		assert.Equal(t, strings.TrimSpace(expected), strings.TrimSpace(buffer))
 	}
 
 	oldCustomURLSchemes := setting.Markdown.CustomURLSchemes
@@ -231,8 +240,9 @@ func TestRender_email(t *testing.T) {
 	setting.AppURL = markup.TestAppURL
 	defer testModule.MockVariableValue(&markup.RenderBehaviorForTesting.DisableAdditionalAttributes, true)()
 	test := func(input, expected string) {
-		res := markup.RenderString(markup.NewTestRenderContext().WithRelativePath("a.md"), input)
-		assert.Equal(t, strings.TrimSpace(expected), strings.TrimSpace(string(res)), "input: %s", input)
+		res, err := testRenderString(markup.NewTestRenderContext().WithRelativePath("a.md"), input)
+		assert.NoError(t, err)
+		assert.Equal(t, strings.TrimSpace(expected), strings.TrimSpace(res), "input: %s", input)
 	}
 
 	// Text that should be turned into email link
@@ -317,8 +327,9 @@ func TestRender_emoji(t *testing.T) {
 
 	test := func(input, expected string) {
 		expected = strings.ReplaceAll(expected, "&", "&amp;")
-		buffer := markup.RenderString(markup.NewTestRenderContext().WithRelativePath("a.md"), input)
-		assert.Equal(t, strings.TrimSpace(expected), strings.TrimSpace(string(buffer)))
+		buffer, err := testRenderString(markup.NewTestRenderContext().WithRelativePath("a.md"), input)
+		assert.NoError(t, err)
+		assert.Equal(t, strings.TrimSpace(expected), strings.TrimSpace(buffer))
 	}
 
 	// Make sure we can successfully match every emoji in our dataset with regex
@@ -489,6 +500,7 @@ func Test_ParseClusterFuzz(t *testing.T) {
 
 	res.Reset()
 	err = markup.PostProcessDefault(markup.NewTestRenderContext(localMetas), strings.NewReader(data), &res)
+
 	assert.NoError(t, err)
 	assert.NotContains(t, res.String(), "<html")
 }
@@ -578,6 +590,7 @@ func TestIssue18471(t *testing.T) {
 
 	var res strings.Builder
 	err := markup.PostProcessDefault(markup.NewTestRenderContext(localMetas), strings.NewReader(data), &res)
+
 	assert.NoError(t, err)
 	assert.Equal(t, `<a href="`+markup.TestAppURL+`org/repo/compare/783b039...da951ce" class="compare"><code>783b039...da951ce</code></a>`, res.String())
 }
