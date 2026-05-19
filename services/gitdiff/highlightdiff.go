@@ -43,9 +43,9 @@ func extractDiffTokenRemainingFullTag(s string) (token, after string, valid bool
 }
 
 // Returned token:
-// * full tag with content: "<<span>content</span>>", it is used to optimize diff results to highlight the whole changed symbol
-// * opening/closing tag: "<span ...>" or "</span>"
-// * HTML entity: "&lt;"
+//   - full tag with content: "<<span>content</span>>", it is used to optimize diff results to highlight the whole changed symbol
+//   - opening/closing tag: "<span ...>" or "</span>"
+//   - HTML entity: "&lt;"
 func extractDiffToken(s string) (before, token, after string, valid bool) {
 	for pos1 := 0; pos1 < len(s); pos1++ {
 		switch s[pos1] {
@@ -56,8 +56,10 @@ func extractDiffToken(s string) (before, token, after string, valid bool) {
 			}
 			before, token, after = s[:pos1], s[pos1:pos1+pos2+1], s[pos1+pos2+1:]
 
-			if !strings.HasPrefix(token, "</") {
+			if !strings.HasPrefix(token, "</") && !isVoidElement(token) {
 				// try to extract full tag with content, e.g. `<<span>content</span>>`, to optimize diff results
+				// (skip void elements like <img>, otherwise we'd greedily pair them with an unrelated closer,
+				// for example `<img></p>` would be bundled as `<<img></p>>`)
 				if fullTokenRemaining, fullTokenAfter, ok := extractDiffTokenRemainingFullTag(after); ok {
 					return before, "<" + token + fullTokenRemaining + ">", fullTokenAfter, true
 				}
@@ -75,7 +77,8 @@ func extractDiffToken(s string) (before, token, after string, valid bool) {
 }
 
 // highlightCodeDiff is used to do diff with highlighted HTML code.
-// It totally depends on Chroma's valid HTML output and its structure, do not use these functions for other purposes.
+// It is used both for Chroma's syntax-highlighted HTML and for diffing arbitrary rendered HTML
+// (for example markdown output via diffHTMLWithHighlight).
 // The HTML tags and entities will be replaced by Unicode placeholders: "<span>{TEXT}</span>" => "\uE000{TEXT}\uE001"
 // These Unicode placeholders are friendly to the diff.
 // Then after diff, the placeholders in diff result will be recovered to the HTML tags and entities.
@@ -211,6 +214,57 @@ func (hcd *highlightCodeDiff) diffLineWithHighlight(lineType DiffLineType, codeA
 	return hcd.recoverOneDiff(buf.String())
 }
 
+// diffHTMLWithHighlight produces a unified rich diff between two HTML fragments,
+// wrapping inserted runs in <span class="added-code"> and deleted runs in
+// <span class="removed-code">. It reuses the same tag/entity placeholder logic
+// as diffLineWithHighlight so that HTML structure on both sides is preserved
+// and diff wrappers are closed correctly around unbalanced tags. Use this for
+// rendered content (e.g. Markdown) where both old and new text must be visible.
+func (hcd *highlightCodeDiff) diffHTMLWithHighlight(oldHTML, newHTML template.HTML) template.HTML {
+	hcd.collectUsedRunes(oldHTML)
+	hcd.collectUsedRunes(newHTML)
+
+	convertedOld := hcd.convertToPlaceholders(oldHTML)
+	convertedNew := hcd.convertToPlaceholders(newHTML)
+
+	dmp := defaultDiffMatchPatch()
+	diffs := dmp.DiffMain(convertedOld, convertedNew, true)
+	diffs = dmp.DiffCleanupSemantic(diffs)
+
+	if hcd.diffCodeClose == 0 {
+		hcd.diffCodeAddedOpen = hcd.registerTokenAsPlaceholder(`<span class="added-code">`)
+		hcd.diffCodeRemovedOpen = hcd.registerTokenAsPlaceholder(`<span class="removed-code">`)
+		hcd.diffCodeClose = hcd.registerTokenAsPlaceholder(`</span><!-- diff-code-close -->`)
+	}
+
+	buf := bytes.NewBuffer(nil)
+	for _, diff := range diffs {
+		switch diff.Type {
+		case diffmatchpatch.DiffEqual:
+			buf.WriteString(diff.Text)
+		case diffmatchpatch.DiffInsert:
+			// if the placeholder map is exhausted we fall back to emitting the
+			// inserted text without a wrapper, mirroring diffLineWithHighlight
+			if hcd.diffCodeClose != 0 {
+				buf.WriteRune(hcd.diffCodeAddedOpen)
+				buf.WriteString(diff.Text)
+				buf.WriteRune(hcd.diffCodeClose)
+			} else {
+				buf.WriteString(diff.Text)
+			}
+		case diffmatchpatch.DiffDelete:
+			if hcd.diffCodeClose != 0 {
+				buf.WriteRune(hcd.diffCodeRemovedOpen)
+				buf.WriteString(diff.Text)
+				buf.WriteRune(hcd.diffCodeClose)
+			} else {
+				buf.WriteString(diff.Text)
+			}
+		}
+	}
+	return hcd.recoverOneDiff(buf.String())
+}
+
 func (hcd *highlightCodeDiff) registerTokenAsPlaceholder(token string) rune {
 	recovered := token
 	if token[0] == '<' && token[1] != '<' {
@@ -226,6 +280,28 @@ func (hcd *highlightCodeDiff) registerTokenAsPlaceholder(token string) rune {
 		}
 	}
 	return placeholder
+}
+
+// isVoidElement reports whether a tag name is an HTML void element that must not appear on the tag stack
+// (it has no closing tag). See https://html.spec.whatwg.org/multipage/syntax.html#void-elements .
+func isVoidElement(tag string) bool {
+	start := 1
+	if len(tag) > 1 && tag[1] == '/' {
+		start = 2
+	}
+	end := start
+	for end < len(tag) {
+		c := tag[end]
+		if !('a' <= c && c <= 'z' || 'A' <= c && c <= 'Z' || '0' <= c && c <= '9') {
+			break
+		}
+		end++
+	}
+	switch strings.ToLower(tag[start:end]) {
+	case "area", "base", "br", "col", "embed", "hr", "img", "input", "link", "meta", "source", "track", "wbr":
+		return true
+	}
+	return false
 }
 
 // convertToPlaceholders totally depends on Chroma's valid HTML output and its structure, do not use these functions for other purposes.
@@ -266,7 +342,12 @@ func (hcd *highlightCodeDiff) convertToPlaceholders(htmlContent template.HTML) s
 			} else {
 				// opening tag
 				tokenInMap = token
-				tagStack = append(tagStack, token)
+				// void elements (e.g. <img>, <br>, <hr>) have no closing tag; keeping them on the
+				// stack would later pair them with an unrelated closer or emit a spurious `</img>`
+				// from the auto-close pass in recoverOneDiff.
+				if !isVoidElement(token) {
+					tagStack = append(tagStack, token)
+				}
 			}
 		} else if token[0] == '&' { // for HTML entity
 			tokenInMap = token
@@ -369,6 +450,15 @@ func (hcd *highlightCodeDiff) recoverOneDiff(str string) template.HTML {
 			if placeholder == hcd.diffCodeAddedOpen || placeholder == hcd.diffCodeRemovedOpen {
 				diffCodeOpenTag = recovered
 				recovered = ""
+			} else if isVoidElement(recovered) {
+				// Void elements carry no content to host the diff wrapper, so when they land
+				// inside a diff region wrap them explicitly; otherwise emit them as-is.
+				if diffCodeOpenTag != "" {
+					sb.WriteString(diffCodeOpenTag)
+					sb.WriteString(recovered)
+					sb.WriteString(diffCodeCloseTag)
+					recovered = ""
+				}
 			} else {
 				tagStack = append(tagStack, recovered)
 			}

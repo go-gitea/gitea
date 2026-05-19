@@ -816,6 +816,15 @@ td .commit-summary {
   border: 0;
 }
 
+.repository .rich-diff {
+  padding: 16px;
+  overflow: auto;
+}
+
+.repository .rich-diff :is(del, span).removed-code {
+  text-decoration: line-through;
+}
+
 .repository .diff-detail-box {
   display: flex;
   justify-content: space-between;

@@ -7,9 +7,11 @@ import (
 	gocontext "context"
 	"encoding/csv"
 	"errors"
+	"html/template"
 	"io"
 	"net/http"
 	"net/url"
+	"path"
 	"path/filepath"
 	"sort"
 	"strings"
@@ -19,6 +21,7 @@ import (
 	git_model "code.gitea.io/gitea/models/git"
 	issues_model "code.gitea.io/gitea/models/issues"
 	access_model "code.gitea.io/gitea/models/perm/access"
+	"code.gitea.io/gitea/models/renderhelper"
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unit"
 	user_model "code.gitea.io/gitea/models/user"
@@ -86,6 +89,7 @@ func setCompareContext(ctx *context.Context, before, head *git.Commit, headOwner
 	setPathsCompareContext(ctx, before, head, headOwner, headName)
 	setImageCompareContext(ctx)
 	setCsvCompareContext(ctx)
+	setRichDiffCompareContext(ctx)
 }
 
 // SourceCommitURL creates a relative URL for a commit in the given repository
@@ -188,6 +192,53 @@ func setCsvCompareContext(ctx *context.Context) {
 		}
 		return CsvDiffResult{sections, ""}
 	}
+}
+
+// setRichDiffCompareContext sets context data that is required by the rich-diff compare template.
+// Any renderer that emits inline HTML (markdown, orgmode, ...) is eligible; csv and iframe-only
+// external renderers are excluded via markup.IsInlineHTMLRenderer. The actual diff is loaded
+// lazily per file via RichDiffComparePost so a compare view with many files does not pay the
+// render cost during template execution.
+func setRichDiffCompareContext(ctx *context.Context) {
+	ctx.Data["IsRichDiffFile"] = func(diffFile *gitdiff.DiffFile) bool {
+		return markup.IsInlineHTMLRenderer(markup.DetectRendererTypeByFilename(diffFile.Name))
+	}
+}
+
+// errRichDiffTooLarge signals that a blob exceeds the rich-diff size
+// limit; the caller surfaces the "file suppressed" message and skips rendering.
+var errRichDiffTooLarge = errors.New("blob too large for rich diff")
+
+// renderRichDiffBlob renders a single blob to inline HTML using the general
+// markup renderer, with a size guard and a repo-aware render context so
+// relative links resolve against the given commit.
+func renderRichDiffBlob(ctx *context.Context, blob *git.Blob, name string, commit *git.Commit) (template.HTML, error) {
+	if blob == nil {
+		return "", nil
+	}
+	if setting.UI.MaxDisplayFileSize > 0 && blob.Size() > setting.UI.MaxDisplayFileSize {
+		return "", errRichDiffTooLarge
+	}
+	reader, err := blob.DataAsync()
+	if err != nil {
+		return "", err
+	}
+	defer reader.Close()
+
+	var refPath string
+	if commit != nil {
+		refPath = "commit/" + commit.ID.String()
+	}
+	rctx := renderhelper.NewRenderContextRepoFile(ctx, ctx.Repo.Repository, renderhelper.RepoFileOptions{
+		CurrentRefSubURL: refPath,
+		CurrentTreePath:  path.Dir(name),
+	}).WithRelativePath(name)
+
+	var buf strings.Builder
+	if err := markup.Render(rctx, charset.ToUTF8WithFallbackReader(reader, charset.ConvertOpts{}), &buf); err != nil {
+		return "", err
+	}
+	return template.HTML(buf.String()), nil
 }
 
 type comparePageInfoType struct {
