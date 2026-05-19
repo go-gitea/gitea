@@ -4,7 +4,7 @@
 package renderhelper
 
 import (
-	"strings"
+	"html/template"
 	"testing"
 
 	repo_model "code.gitea.io/gitea/models/repo"
@@ -26,11 +26,10 @@ func TestRepoWiki(t *testing.T) {
 #1
 @user2
 `)
-		assert.Equal(t, strings.TrimSpace(
-			`<p><a href="/user2/repo1/commit/65f1bf27bc3bf70f64657658635e66094edbcb4d" rel="nofollow"><code>65f1bf27bc</code></a>
+		assert.Equal(t, template.HTML(`<p><a href="/user2/repo1/commit/65f1bf27bc3bf70f64657658635e66094edbcb4d" rel="nofollow"><code>65f1bf27bc</code></a>
 <a href="/user2/repo1/issues/1" class="ref-issue" rel="nofollow">#1</a>
 <a href="/user2" rel="nofollow">@user2</a></p>
-`), strings.TrimSpace(string(rendered)))
+`), rendered)
 	})
 
 	t.Run("AbsoluteAndRelative", func(t *testing.T) {
@@ -41,12 +40,11 @@ func TestRepoWiki(t *testing.T) {
 ![/image](/image)
 ![./image](./image)
 `)
-		assert.Equal(t, strings.TrimSpace(
-			`<p><a href="/user2/repo1/wiki/test" rel="nofollow">/test</a>
+		assert.Equal(t, template.HTML(`<p><a href="/user2/repo1/wiki/test" rel="nofollow">/test</a>
 <a href="/user2/repo1/wiki/test" rel="nofollow">./test</a>
 <a href="/user2/repo1/wiki/image" target="_blank" rel="nofollow noopener"><img src="/user2/repo1/wiki/raw/image" alt="/image"/></a>
 <a href="/user2/repo1/wiki/image" target="_blank" rel="nofollow noopener"><img src="/user2/repo1/wiki/raw/image" alt="./image"/></a></p>
-`), strings.TrimSpace(string(rendered)))
+`), rendered)
 	})
 
 	t.Run("PathInTag", func(t *testing.T) {
@@ -55,8 +53,8 @@ func TestRepoWiki(t *testing.T) {
 <img src="LINK">
 <video src="LINK">
 `)
-		assert.Equal(t, strings.TrimSpace(`<a href="/user2/repo1/wiki/LINK" target="_blank" rel="nofollow noopener"><img src="/user2/repo1/wiki/raw/LINK"/></a>
+		assert.Equal(t, template.HTML(`<a href="/user2/repo1/wiki/LINK" target="_blank" rel="nofollow noopener"><img src="/user2/repo1/wiki/raw/LINK"/></a>
 <video src="/user2/repo1/wiki/raw/LINK">
-</video>`), strings.TrimSpace(string(rendered)))
+</video>`), rendered)
 	})
 }

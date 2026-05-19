@@ -4,7 +4,7 @@
 package renderhelper
 
 import (
-	"strings"
+	"html/template"
 	"testing"
 
 	repo_model "code.gitea.io/gitea/models/repo"
@@ -27,11 +27,10 @@ func TestRepoComment(t *testing.T) {
 #1
 @user2
 `)
-		assert.Equal(t, strings.TrimSpace(
-			`<p><a href="/user2/repo1/commit/65f1bf27bc3bf70f64657658635e66094edbcb4d" rel="nofollow"><code>65f1bf27bc</code></a><br/>
+		assert.Equal(t, template.HTML(`<p><a href="/user2/repo1/commit/65f1bf27bc3bf70f64657658635e66094edbcb4d" rel="nofollow"><code>65f1bf27bc</code></a><br/>
 <a href="/user2/repo1/issues/1" class="ref-issue" rel="nofollow">#1</a><br/>
 <a href="/user2" rel="nofollow">@user2</a></p>
-`), strings.TrimSpace(string(rendered)))
+`), rendered)
 	})
 
 	t.Run("AbsoluteAndRelative", func(t *testing.T) {
@@ -45,12 +44,11 @@ func TestRepoComment(t *testing.T) {
 ![/image](/image)
 ![./image](./image)
 `)
-		assert.Equal(t, strings.TrimSpace(
-			`<p><a href="/user2/repo1/test" rel="nofollow">/test</a><br/>
+		assert.Equal(t, template.HTML(`<p><a href="/user2/repo1/test" rel="nofollow">/test</a><br/>
 <a href="/user2/repo1/test" rel="nofollow">./test</a><br/>
 <a href="/user2/repo1/image" target="_blank" rel="nofollow noopener"><img src="/user2/repo1/image" alt="/image"/></a><br/>
 <a href="/user2/repo1/image" target="_blank" rel="nofollow noopener"><img src="/user2/repo1/image" alt="./image"/></a></p>
-`), strings.TrimSpace(string(rendered)))
+`), rendered)
 	})
 
 	t.Run("WithCurrentRefSubURL", func(t *testing.T) {
@@ -64,16 +62,16 @@ func TestRepoComment(t *testing.T) {
 ![/image](/image)
 ![./image](./image)
 `)
-		assert.Equal(t, strings.TrimSpace(`<p><a href="/user2/repo1/test" rel="nofollow">/test</a><br/>
+		assert.Equal(t, template.HTML(`<p><a href="/user2/repo1/test" rel="nofollow">/test</a><br/>
 <a href="/user2/repo1/commit/1234/test" rel="nofollow">./test</a><br/>
 <a href="/user2/repo1/image" target="_blank" rel="nofollow noopener"><img src="/user2/repo1/image" alt="/image"/></a><br/>
 <a href="/user2/repo1/commit/1234/image" target="_blank" rel="nofollow noopener"><img src="/user2/repo1/commit/1234/image" alt="./image"/></a></p>
-`), strings.TrimSpace(string(rendered)))
+`), rendered)
 	})
 
 	t.Run("NoRepo", func(t *testing.T) {
 		rctx := NewRenderContextRepoComment(t.Context(), nil).WithMarkupType(markdown.MarkupName)
 		rendered := markup.RenderString(rctx, "any")
-		assert.Equal(t, strings.TrimSpace("<p>any</p>\n"), strings.TrimSpace(string(rendered)))
+		assert.Equal(t, template.HTML("<p>any</p>\n"), rendered)
 	})
 }
