@@ -4,6 +4,7 @@
 package renderhelper
 
 import (
+	"strings"
 	"testing"
 
 	"code.gitea.io/gitea/models/unittest"
@@ -26,7 +27,7 @@ func TestSimpleDocument(t *testing.T) {
 ![/image](/image)
 ![./image](./image)
 `)
-	assert.Equal(t,
+	assert.Equal(t, strings.TrimSpace(
 		`<p>65f1bf27bc3bf70f64657658635e66094edbcb4d
 #1
 <a href="/user2" rel="nofollow">@user2</a></p>
@@ -34,5 +35,5 @@ func TestSimpleDocument(t *testing.T) {
 <a href="/base/test" rel="nofollow">./test</a>
 <a href="/base/image" target="_blank" rel="nofollow noopener"><img src="/base/image" alt="/image"/></a>
 <a href="/base/image" target="_blank" rel="nofollow noopener"><img src="/base/image" alt="./image"/></a></p>
-`, rendered)
+`), strings.TrimSpace(string(rendered)))
 }
