@@ -43,6 +43,7 @@ const props = defineProps<{
   jobs: ActionsJob[];
   runLink: string;
   workflowId: string;
+  locale: Record<string, any>;
 }>()
 
 const settingKeyStates = 'actions-graph-states';
@@ -543,11 +544,11 @@ function onNodeClick(job: JobNode, event: MouseEvent) {
 <template>
   <div class="workflow-graph" v-if="jobs.length > 0">
     <div class="graph-header">
-      <h4 class="graph-title">Workflow Dependencies</h4>
+      <h4 class="graph-title">{{ locale.workflowDependencies }}</h4>
       <div class="graph-stats">
-        {{ jobs.length }} jobs • {{ edges.length }} dependencies
+        {{ locale.graphJobsCount.replace('%d', jobs.length) }} • {{ locale.graphDependenciesCount.replace('%d', edges.length) }}
         <span v-if="graphMetrics">
-          • <span class="graph-metrics">{{ graphMetrics.successRate }} success</span>
+          • <span class="graph-metrics">{{ locale.graphSuccessRate.replace('%s', graphMetrics.successRate) }}</span>
         </span>
       </div>
       <div class="flex-text-block">
@@ -556,14 +557,14 @@ function onNodeClick(job: JobNode, event: MouseEvent) {
           @click="zoomIn"
           class="ui compact tiny icon button"
           :disabled="!canZoomIn"
-          :title="canZoomIn ? 'Zoom in (Ctrl/Cmd + scroll on graph)' : 'Already at 100% zoom'"
+          :title="canZoomIn ? locale.graphZoomIn : locale.graphZoomMax"
         >
           <SvgIcon name="octicon-zoom-in" :size="12"/>
         </button>
-        <button type="button" @click="resetView" class="ui compact tiny icon button" title="Reset view">
+        <button type="button" @click="resetView" class="ui compact tiny icon button" :title="locale.graphResetView">
           <SvgIcon name="octicon-sync" :size="12"/>
         </button>
-        <button type="button" @click="zoomOut" class="ui compact tiny icon button" title="Zoom out (Ctrl/Cmd + scroll on graph)">
+        <button type="button" @click="zoomOut" class="ui compact tiny icon button" :title="locale.graphZoomOut">
           <SvgIcon name="octicon-zoom-out" :size="12"/>
         </button>
       </div>
