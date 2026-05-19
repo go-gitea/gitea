@@ -4,7 +4,12 @@
 package common
 
 import (
+	"archive/zip"
+	"errors"
 	"fmt"
+	"io"
+	"os"
+	"path/filepath"
 	"strings"
 
 	actions_model "code.gitea.io/gitea/models/actions"
@@ -24,6 +29,87 @@ func DownloadActionsRunJobLogsWithID(ctx *context.Base, ctxRepo *repo_model.Repo
 		return fmt.Errorf("LoadRepo: %w", err)
 	}
 	return DownloadActionsRunJobLogs(ctx, ctxRepo, job)
+}
+
+func DownloadActionsRunAllJobLogs(ctx *context.Base, ctxRepo *repo_model.Repository, runID int64) error {
+	runJobs, err := actions_model.GetLatestAttemptJobsByRepoAndRunID(ctx, ctxRepo.ID, runID)
+	if err != nil {
+		return fmt.Errorf("GetLatestAttemptJobsByRepoAndRunID: %w", err)
+	}
+
+	if len(runJobs) == 0 {
+		return util.NewNotExistErrorf("no jobs found for run %d", runID)
+	}
+
+	// Load run for workflow name
+	if err := runJobs[0].LoadRun(ctx); err != nil {
+		return fmt.Errorf("LoadRun: %w", err)
+	}
+
+	workflowName := strings.TrimSuffix(filepath.Base(runJobs[0].Run.WorkflowID), filepath.Ext(runJobs[0].Run.WorkflowID))
+	safeWorkflowName := strings.NewReplacer(`"`, "", "\r", "", "\n", "", "/", "-", `\`, "-").Replace(workflowName)
+
+	// Pre-validate and open all log readers to prevent errors after headers are sent
+	var readers []io.ReadCloser
+	var fileNames []string
+	for _, job := range runJobs {
+		if job.TaskID == 0 {
+			continue // Skip jobs that haven't started
+		}
+
+		task, err := actions_model.GetTaskByID(ctx, job.TaskID)
+		if err != nil {
+			return fmt.Errorf("GetTaskByID for job %d: %w", job.ID, err)
+		}
+
+		if task.LogExpired || task.LogLength == 0 {
+			continue
+		}
+
+		reader, err := actions.OpenLogs(ctx, task.LogInStorage, task.LogFilename)
+		if err != nil {
+			return fmt.Errorf("OpenLogs for job %d: %w", job.ID, err)
+		}
+
+		// Create file in zip with job name and task ID; sanitize to prevent Zip Slip
+		safeJobName := strings.NewReplacer("/", "-", `\`, "-", "..", "__", `"`, "", "\r", "", "\n", "").Replace(job.Name)
+		fileName := fmt.Sprintf("%s-%s-%d.log", safeWorkflowName, safeJobName, task.ID)
+
+		readers = append(readers, reader)
+		fileNames = append(fileNames, fileName)
+	}
+
+	// Set headers for zip download
+	ctx.Resp.Header().Set("Content-Type", "application/zip")
+	ctx.Resp.Header().Set("Content-Disposition", fmt.Sprintf(`attachment; filename="%s-run-%d-logs.zip"`, safeWorkflowName, runID))
+
+	// Create zip writer
+	zipWriter := zip.NewWriter(ctx.Resp)
+	defer zipWriter.Close()
+
+	// Add each job's logs to the zip
+	for i, reader := range readers {
+		zipFile, err := zipWriter.Create(fileNames[i])
+		if err != nil {
+			// Close all readers on error
+			for _, r := range readers {
+				r.Close()
+			}
+			return err
+		}
+
+		_, err = io.Copy(zipFile, reader)
+		reader.Close()
+		if err != nil {
+			// Close remaining readers
+			for j := i + 1; j < len(readers); j++ {
+				readers[j].Close()
+			}
+			return err
+		}
+	}
+
+	return nil
 }
 
 func DownloadActionsRunJobLogs(ctx *context.Base, ctxRepo *repo_model.Repository, curJob *actions_model.ActionRunJob) error {
@@ -49,8 +135,15 @@ func DownloadActionsRunJobLogs(ctx *context.Base, ctxRepo *repo_model.Repository
 		return util.NewNotExistErrorf("logs have been cleaned up")
 	}
 
+	if task.LogLength == 0 {
+		return util.NewNotExistErrorf("logs not found")
+	}
+
 	reader, err := actions.OpenLogs(ctx, task.LogInStorage, task.LogFilename)
 	if err != nil {
+		if errors.Is(err, os.ErrNotExist) || errors.Is(err, util.ErrNotExist) {
+			return util.NewNotExistErrorf("logs not found")
+		}
 		return fmt.Errorf("OpenLogs: %w", err)
 	}
 	defer reader.Close()

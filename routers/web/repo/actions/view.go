@@ -14,7 +14,6 @@ import (
 	"net/http"
 	"net/url"
 	"strconv"
-	"time"
 
 	actions_model "code.gitea.io/gitea/models/actions"
 	"code.gitea.io/gitea/models/db"
@@ -27,6 +26,7 @@ import (
 	"code.gitea.io/gitea/modules/httplib"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/storage"
+	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/templates"
 	"code.gitea.io/gitea/modules/translation"
 	"code.gitea.io/gitea/modules/util"
@@ -563,9 +563,16 @@ func fillViewRunResponseCurrentJob(ctx *context_module.Context, resp *ViewRespon
 	}
 }
 
+func toAPILogCursors(cursors []LogCursor) []api.ActionLogCursor {
+	result := make([]api.ActionLogCursor, len(cursors))
+	for i, c := range cursors {
+		result[i] = api.ActionLogCursor{Step: c.Step, Cursor: c.Cursor, Expanded: c.Expanded}
+	}
+	return result
+}
+
 func convertToViewModel(ctx context.Context, locale translation.Locale, cursors []LogCursor, task *actions_model.ActionTask) ([]*ViewJobStep, []*ViewStepLog, error) {
 	var viewJobs []*ViewJobStep
-	var logs []*ViewStepLog
 
 	steps := actions.FullSteps(task)
 
@@ -581,69 +588,27 @@ func convertToViewModel(ctx context.Context, locale translation.Locale, cursors 
 		})
 	}
 
-	for _, cursor := range cursors {
-		if !cursor.Expanded {
-			continue
-		}
+	apiLogs, err := actions_service.ReadStepLogs(ctx, toAPILogCursors(cursors), task, locale.TrString("actions.runs.expire_log_message"))
+	if err != nil {
+		return nil, nil, err
+	}
 
-		step := steps[cursor.Step]
-
-		// if task log is expired, return a consistent log line
-		if task.LogExpired {
-			if cursor.Cursor == 0 {
-				logs = append(logs, &ViewStepLog{
-					Step:   cursor.Step,
-					Cursor: 1,
-					Lines: []*ViewStepLogLine{
-						{
-							Index:   1,
-							Message: locale.TrString("actions.runs.expire_log_message"),
-							// Timestamp doesn't mean anything when the log is expired.
-							// Set it to the task's updated time since it's probably the time when the log has expired.
-							Timestamp: float64(task.Updated.AsTime().UnixNano()) / float64(time.Second),
-						},
-					},
-					Started: int64(step.Started),
-				})
-			}
-			continue
-		}
-
-		logLines := make([]*ViewStepLogLine, 0) // marshal to '[]' instead fo 'null' in json
-
-		index := step.LogIndex + cursor.Cursor
-		validCursor := cursor.Cursor >= 0 &&
-			// !(cursor.Cursor < step.LogLength) when the frontend tries to fetch next line before it's ready.
-			// So return the same cursor and empty lines to let the frontend retry.
-			cursor.Cursor < step.LogLength &&
-			// !(index < task.LogIndexes[index]) when task data is older than step data.
-			// It can be fixed by making sure write/read tasks and steps in the same transaction,
-			// but it's easier to just treat it as fetching the next line before it's ready.
-			index < int64(len(task.LogIndexes))
-
-		if validCursor {
-			length := step.LogLength - cursor.Cursor
-			offset := task.LogIndexes[index]
-			logRows, err := actions.ReadLogs(ctx, task.LogInStorage, task.LogFilename, offset, length)
-			if err != nil {
-				return nil, nil, fmt.Errorf("actions.ReadLogs: %w", err)
-			}
-
-			for i, row := range logRows {
-				logLines = append(logLines, &ViewStepLogLine{
-					Index:     cursor.Cursor + int64(i) + 1, // start at 1
-					Message:   row.Content,
-					Timestamp: float64(row.Time.AsTime().UnixNano()) / float64(time.Second),
-				})
+	logs := make([]*ViewStepLog, len(apiLogs))
+	for i, l := range apiLogs {
+		lines := make([]*ViewStepLogLine, len(l.Lines))
+		for j, line := range l.Lines {
+			lines[j] = &ViewStepLogLine{
+				Index:     line.Index,
+				Message:   line.Message,
+				Timestamp: line.Timestamp,
 			}
 		}
-
-		logs = append(logs, &ViewStepLog{
-			Step:    cursor.Step,
-			Cursor:  cursor.Cursor + int64(len(logLines)),
-			Lines:   logLines,
-			Started: int64(step.Started),
-		})
+		logs[i] = &ViewStepLog{
+			Step:    l.Step,
+			Cursor:  l.Cursor,
+			Lines:   lines,
+			Started: l.Started,
+		}
 	}
 
 	return viewJobs, logs, nil
