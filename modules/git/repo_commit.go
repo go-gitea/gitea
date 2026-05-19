@@ -15,6 +15,11 @@ import (
 	"code.gitea.io/gitea/modules/setting"
 )
 
+const (
+	FollowRenameYes = true
+	FollowRenameNo  = false
+)
+
 // GetBranchCommitID returns last commit ID string of given branch.
 func (repo *Repository) GetBranchCommitID(name string) (string, error) {
 	return repo.GetRefCommitID(BranchPrefix + name)
@@ -216,19 +221,29 @@ func (repo *Repository) FileChangedBetweenCommits(filename, id1, id2 string) (bo
 }
 
 type CommitsByFileAndRangeOptions struct {
-	Revision string
-	File     string
-	Not      string
-	Page     int
-	Since    string
-	Until    string
+	Revision     string
+	File         string
+	Not          string
+	Page         int
+	Since        string
+	Until        string
+	FollowRename bool
 }
 
 // CommitsByFileAndRange return the commits according revision file and the page
 func (repo *Repository) CommitsByFileAndRange(opts CommitsByFileAndRangeOptions) ([]*Commit, error) {
-	gitCmd := gitcmd.NewCommand("rev-list").
-		AddOptionFormat("--max-count=%d", setting.Git.CommitsRangeSize).
+	var gitCmd *gitcmd.Command
+
+	if !opts.FollowRename {
+		gitCmd = gitcmd.NewCommand("rev-list")
+	} else {
+		gitCmd = gitcmd.NewCommand("--no-pager", "log").
+			AddOptionFormat("--pretty=tformat:%%H").
+			AddOptionFormat("--follow")
+	}
+	gitCmd = gitCmd.AddOptionFormat("--max-count=%d", setting.Git.CommitsRangeSize).
 		AddOptionFormat("--skip=%d", (opts.Page-1)*setting.Git.CommitsRangeSize)
+
 	gitCmd.AddDynamicArguments(opts.Revision)
 
 	if opts.Not != "" {

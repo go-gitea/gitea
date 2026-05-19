@@ -43,3 +43,33 @@ func TestGetLatestCommitTime(t *testing.T) {
 	// ce064814f4a0d337b333e646ece456cd39fab612 (refs/heads/master)
 	assert.EqualValues(t, 1668354014, lct.Unix())
 }
+
+// repo7_rename has 2 commits, the first adds a.txt and the second rename a.txt to b.txt
+
+func TestFileCommitsCountWithoutRename(t *testing.T) {
+	renameRepo7 := &mockRepository{path: "repo7_rename"}
+
+	commitsCount, err := CommitsCount(t.Context(), renameRepo7,
+		CommitsCountOptions{
+			Revision:     []string{"05f331b6ef83f1d02b42ee0fefe28e321cf94e8c"},
+			RelPath:      []string{"b.txt"},
+			FollowRename: false,
+		})
+
+	assert.NoError(t, err)
+	assert.Equal(t, int64(1), commitsCount)
+}
+
+func TestFileCommitsCountWithRename(t *testing.T) {
+	renameRepo7 := &mockRepository{path: "repo7_rename"}
+
+	commitsCount, err := CommitsCount(t.Context(), renameRepo7,
+		CommitsCountOptions{
+			Revision:     []string{"05f331b6ef83f1d02b42ee0fefe28e321cf94e8c"},
+			RelPath:      []string{"b.txt"},
+			FollowRename: true,
+		})
+
+	assert.NoError(t, err)
+	assert.Equal(t, int64(2), commitsCount)
+}
