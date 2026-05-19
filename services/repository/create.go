@@ -152,6 +152,16 @@ func initRepository(ctx context.Context, u *user_model.User, repo *repo_model.Re
 		return fmt.Errorf("createDelegateHooks: %w", err)
 	}
 
+	repo.DefaultBranch = util.IfZero(opts.DefaultBranch, setting.Repository.DefaultBranch)
+	repo.DefaultWikiBranch = setting.Repository.DefaultBranch
+	if !opts.AutoInit {
+		repo.IsEmpty = true
+	}
+
+	if err = repo_model.UpdateRepositoryColsNoAutoTime(ctx, repo, "is_empty", "default_branch", "default_wiki_branch"); err != nil {
+		return fmt.Errorf("updateRepository: %w", err)
+	}
+
 	// Initialize repository according to user's choice.
 	if opts.AutoInit {
 		tmpDir, cleanup, err := setting.AppDataTempDir("git-repo-content").MkdirTempRandom("repos-" + repo.Name)
@@ -165,39 +175,22 @@ func initRepository(ctx context.Context, u *user_model.User, repo *repo_model.Re
 		}
 
 		// Apply changes and commit.
-		if err = initRepoCommit(ctx, tmpDir, repo, u, opts.DefaultBranch); err != nil {
+		if err = initRepoCommit(ctx, tmpDir, repo, u); err != nil {
 			return fmt.Errorf("initRepoCommit: %w", err)
 		}
 	}
 
-	// Re-fetch the repository from database before updating it (else it would
-	// override changes that were done earlier with sql)
+	if err = gitrepo.SetDefaultBranch(ctx, repo, repo.DefaultBranch); err != nil {
+		return fmt.Errorf("setDefaultBranch: %w", err)
+	}
+
+	// Re-fetch the repository from database before updating it (keep changes that were done earlier with SQL)
 	if repo, err = repo_model.GetRepositoryByID(ctx, repo.ID); err != nil {
 		return fmt.Errorf("getRepositoryByID: %w", err)
 	}
 
-	if !opts.AutoInit {
-		repo.IsEmpty = true
-	}
-
-	repo.DefaultBranch = setting.Repository.DefaultBranch
-	repo.DefaultWikiBranch = setting.Repository.DefaultBranch
-
-	if len(opts.DefaultBranch) > 0 {
-		repo.DefaultBranch = opts.DefaultBranch
-		if err = gitrepo.SetDefaultBranch(ctx, repo, repo.DefaultBranch); err != nil {
-			return fmt.Errorf("setDefaultBranch: %w", err)
-		}
-
-		if !repo.IsEmpty {
-			if _, err := repo_module.SyncRepoBranches(ctx, repo.ID, u.ID); err != nil {
-				return fmt.Errorf("SyncRepoBranches: %w", err)
-			}
-		}
-	}
-
-	if err = repo_model.UpdateRepositoryColsNoAutoTime(ctx, repo, "is_empty", "default_branch", "default_wiki_branch"); err != nil {
-		return fmt.Errorf("updateRepository: %w", err)
+	if _, err := repo_module.SyncRepoBranches(ctx, repo.ID, u.ID); err != nil {
+		return fmt.Errorf("SyncRepoBranches: %w", err)
 	}
 
 	if err = repo_module.UpdateRepoSize(ctx, repo); err != nil {

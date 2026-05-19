@@ -1,21 +1,21 @@
 {{$data := $.MergeBoxData}}
-{{$issueLink := $.IssueLink}}
 <div class="tw-w-full flex-left-right">
 	<div class="flex-text-block">
 		{{svg "octicon-alert"}}
 		{{ctx.Locale.Tr "repo.pulls.outdated_with_base_branch"}}
 	</div>
-	{{if $data.UpdateAllowed}}
-	<div class="ui buttons" data-global-init="initRepoPullRequestUpdate">
-		<button class="ui button link-action" data-url="{{$issueLink}}/update">
-			{{ctx.Locale.Tr "repo.pulls.update_branch"}}
+	{{if $data.UpdatePrimaryAction}}
+	<div class="ui buttons"{{if $data.UpdateStyleOptions}} data-global-init="initRepoPullRequestUpdate"{{end}}>
+		<button class="ui button link-action" data-url="{{$data.UpdatePrimaryAction.URL}}">
+			{{$data.UpdatePrimaryAction.Text}}
 		</button>
-		{{if $data.UpdateByRebaseAllowed}}
+		{{if gt (len $data.UpdateStyleOptions) 1}}
 		<div class="ui dropdown icon button">
 			{{svg "octicon-triangle-down"}}
 			<div class="menu">
-				<a class="item selected" data-update-url="{{$issueLink}}/update">{{ctx.Locale.Tr "repo.pulls.update_branch"}}</a>
-				<a class="item" data-update-url="{{$issueLink}}/update?style=rebase">{{ctx.Locale.Tr "repo.pulls.update_branch_rebase"}}</a>
+				{{range $data.UpdateStyleOptions}}
+					<a class="item {{if .Selected}}selected{{end}}" data-update-url="{{.URL}}">{{.Text}}</a>
+				{{end}}
 			</div>
 		</div>
 		{{end}}

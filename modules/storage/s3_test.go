@@ -11,20 +11,18 @@ import (
 	"testing"
 
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/test"
 
 	"github.com/minio/minio-go/v7"
 	"github.com/stretchr/testify/assert"
 )
 
 func TestS3Storage(t *testing.T) {
-	if os.Getenv("CI") == "" {
-		t.Skip("s3 storage not present outside of CI")
-		return
-	}
+	endpoint := test.ExternalServiceHTTP(t, "TEST_S3_ENDPOINT", "s3:9000")
 	storageType := setting.S3StorageType
 	config := &setting.Storage{
 		S3Config: setting.S3StorageConfig{
-			Endpoint:        "s3:9000",
+			Endpoint:        endpoint,
 			AccessKeyID:     "123456",
 			SecretAccessKey: "12345678",
 			Bucket:          "gitea",

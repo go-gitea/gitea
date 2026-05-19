@@ -4,12 +4,11 @@
 package v1_8
 
 import (
+	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/modules/setting"
-
-	"xorm.io/xorm"
 )
 
-func AddCanCloseIssuesViaCommitInAnyBranch(x *xorm.Engine) error {
+func AddCanCloseIssuesViaCommitInAnyBranch(x db.EngineMigration) error {
 	type Repository struct {
 		ID                              int64 `xorm:"pk autoincr"`
 		CloseIssuesViaCommitInAnyBranch bool  `xorm:"NOT NULL DEFAULT false"`
