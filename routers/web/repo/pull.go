@@ -709,6 +709,7 @@ func viewPullFiles(ctx *context.Context, beforeCommitID, afterCommitID string) {
 
 	headCommitID := prCompareInfo.HeadCommitID
 	isSingleCommit := beforeCommitID == "" && afterCommitID != ""
+	// FIXME: when afterCommitID==headCommitID, isSingleCommit and isShowAllCommits can be both true, which doesn't seem right
 	isShowAllCommits := (beforeCommitID == "" || beforeCommitID == prCompareInfo.CompareBase) && (afterCommitID == "" || afterCommitID == headCommitID)
 
 	ctx.Data["IsShowingOnlySingleCommit"] = isSingleCommit
