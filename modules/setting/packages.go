@@ -42,10 +42,13 @@ var (
 		LimitSizeTerraformState int64
 		LimitSizeVagrant        int64
 
-		DefaultRPMSignEnabled bool
+		DefaultRPMSignEnabled     bool
+		RetainMavenSnapshotBuilds int
+		DebugMavenCleanup         bool
 	}{
-		Enabled:              true,
-		LimitTotalOwnerCount: -1,
+		Enabled:                   true,
+		LimitTotalOwnerCount:      -1,
+		RetainMavenSnapshotBuilds: -1,
 	}
 )
 
@@ -90,6 +93,8 @@ func loadPackagesFrom(rootCfg ConfigProvider) (err error) {
 	Packages.LimitSizeTerraformState = mustBytes(sec, "LIMIT_SIZE_TERRAFORM_STATE")
 	Packages.LimitSizeVagrant = mustBytes(sec, "LIMIT_SIZE_VAGRANT")
 	Packages.DefaultRPMSignEnabled = sec.Key("DEFAULT_RPM_SIGN_ENABLED").MustBool(false)
+	Packages.RetainMavenSnapshotBuilds = sec.Key("RETAIN_MAVEN_SNAPSHOT_BUILDS").MustInt(Packages.RetainMavenSnapshotBuilds)
+	Packages.DebugMavenCleanup = sec.Key("DEBUG_MAVEN_CLEANUP").MustBool(true)
 	return nil
 }
 
