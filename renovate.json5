@@ -8,9 +8,11 @@
   "schedule": ["* * * * 1"], // dependency update PRs weekly, vulnerabilityAlerts bypasses this
   "minimumReleaseAge": "5 days",
   "semanticCommits": "enabled",
+  "semanticCommitType": "chore",
   "osvVulnerabilityAlerts": true,
   "vulnerabilityAlerts": {
     "enabled": true,
+    "semanticCommitType": "fix",
   },
   "customManagers": [
     {
