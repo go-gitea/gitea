@@ -142,6 +142,18 @@ func TestAPIDownloadCompareDiffOrPatch(t *testing.T) {
 			MakeRequest(t, req, http.StatusNotFound)
 		})
 
+		t.Run("SingleRefImplicitBase", func(t *testing.T) {
+			defer tests.PrintCurrentTest(t)()
+
+			// No `...`/`..` separator: parseCompareInfo defaults the base to the
+			// repo's PR target branch (master for repo20) and compares it against
+			// the given head.
+			req := NewRequest(t, "GET", "/api/v1/repos/user2/repo20/compare/add-csv.diff").AddTokenAuth(token)
+			resp := MakeRequest(t, req, http.StatusOK)
+			assert.Equal(t, "text/plain; charset=utf-8", resp.Header().Get("Content-Type"))
+			assert.Contains(t, resp.Body.String(), "diff --git ")
+		})
+
 		t.Run("PrivateRepoAnonymous", func(t *testing.T) {
 			defer tests.PrintCurrentTest(t)()
 
