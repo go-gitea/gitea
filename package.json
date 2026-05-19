@@ -51,7 +51,7 @@
     "idiomorph": "0.7.4",
     "jquery": "4.0.0",
     "js-yaml": "4.1.1",
-    "katex": "0.16.45",
+    "katex": "0.16.46",
     "mermaid": "11.15.0",
     "online-3d-viewer": "0.18.0",
     "pdfobject": "2.3.1",
@@ -123,6 +123,6 @@
     "typescript-eslint": "8.59.3",
     "updates": "17.16.11",
     "vitest": "4.1.6",
-    "vue-tsc": "3.2.8"
+    "vue-tsc": "3.2.9"
   }
 }
