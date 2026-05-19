@@ -27,8 +27,7 @@ var (
 func TestRender_Commits(t *testing.T) {
 	test := func(input, expected string) {
 		rctx := markup.NewTestRenderContext(markup.TestAppURL, localMetas).WithRelativePath("a.md")
-		buffer, err := markup.RenderString(rctx, input)
-		assert.NoError(t, err)
+		buffer := markup.RenderString(rctx, input)
 		assert.Equal(t, strings.TrimSpace(expected), strings.TrimSpace(buffer))
 	}
 
@@ -75,8 +74,7 @@ func TestRender_CrossReferences(t *testing.T) {
 	defer testModule.MockVariableValue(&markup.RenderBehaviorForTesting.DisableAdditionalAttributes, true)()
 	test := func(input, expected string) {
 		rctx := markup.NewTestRenderContext(markup.TestAppURL, localMetas).WithRelativePath("a.md")
-		buffer, err := markup.RenderString(rctx, input)
-		assert.NoError(t, err)
+		buffer := markup.RenderString(rctx, input)
 		assert.Equal(t, strings.TrimSpace(expected), strings.TrimSpace(buffer))
 	}
 
@@ -119,8 +117,7 @@ func TestRender_links(t *testing.T) {
 	setting.AppURL = markup.TestAppURL
 	defer testModule.MockVariableValue(&markup.RenderBehaviorForTesting.DisableAdditionalAttributes, true)()
 	test := func(input, expected string) {
-		buffer, err := markup.RenderString(markup.NewTestRenderContext().WithRelativePath("a.md"), input)
-		assert.NoError(t, err)
+		buffer := markup.RenderString(markup.NewTestRenderContext().WithRelativePath("a.md"), input)
 		assert.Equal(t, strings.TrimSpace(expected), strings.TrimSpace(buffer))
 	}
 
@@ -234,8 +231,7 @@ func TestRender_email(t *testing.T) {
 	setting.AppURL = markup.TestAppURL
 	defer testModule.MockVariableValue(&markup.RenderBehaviorForTesting.DisableAdditionalAttributes, true)()
 	test := func(input, expected string) {
-		res, err := markup.RenderString(markup.NewTestRenderContext().WithRelativePath("a.md"), input)
-		assert.NoError(t, err)
+		res := markup.RenderString(markup.NewTestRenderContext().WithRelativePath("a.md"), input)
 		assert.Equal(t, strings.TrimSpace(expected), strings.TrimSpace(res), "input: %s", input)
 	}
 
@@ -321,8 +317,7 @@ func TestRender_emoji(t *testing.T) {
 
 	test := func(input, expected string) {
 		expected = strings.ReplaceAll(expected, "&", "&amp;")
-		buffer, err := markup.RenderString(markup.NewTestRenderContext().WithRelativePath("a.md"), input)
-		assert.NoError(t, err)
+		buffer := markup.RenderString(markup.NewTestRenderContext().WithRelativePath("a.md"), input)
 		assert.Equal(t, strings.TrimSpace(expected), strings.TrimSpace(buffer))
 	}
 
@@ -379,7 +374,6 @@ func TestRender_ShortLinks(t *testing.T) {
 
 	test := func(input, expected string) {
 		buffer, err := markdown.RenderString(markup.NewTestRenderContext(tree), input)
-		assert.NoError(t, err)
 		assert.Equal(t, strings.TrimSpace(expected), strings.TrimSpace(string(buffer)))
 	}
 
@@ -487,15 +481,12 @@ func Test_ParseClusterFuzz(t *testing.T) {
 
 	var res strings.Builder
 	err := markup.PostProcessDefault(markup.NewTestRenderContext(localMetas), strings.NewReader(data), &res)
-	assert.NoError(t, err)
 	assert.NotContains(t, res.String(), "<html")
 
 	data = "<!DOCTYPE html>\n<A><maTH><tr><MN><bodY ÿ><temPlate></template><tH><tr></A><tH><d<bodY "
 
 	res.Reset()
 	err = markup.PostProcessDefault(markup.NewTestRenderContext(localMetas), strings.NewReader(data), &res)
-
-	assert.NoError(t, err)
 	assert.NotContains(t, res.String(), "<html")
 }
 
@@ -506,7 +497,6 @@ func TestPostProcess(t *testing.T) {
 	test := func(input, expected string) {
 		var res strings.Builder
 		err := markup.PostProcessDefault(markup.NewTestRenderContext(markup.TestAppURL, map[string]string{"user": "go-gitea", "repo": "gitea"}), strings.NewReader(input), &res)
-		assert.NoError(t, err)
 		assert.Equal(t, strings.TrimSpace(expected), strings.TrimSpace(res.String()))
 	}
 
@@ -553,7 +543,6 @@ func TestIssue16020(t *testing.T) {
 
 	var res strings.Builder
 	err := markup.PostProcessDefault(markup.NewTestRenderContext(localMetas), strings.NewReader(data), &res)
-	assert.NoError(t, err)
 	assert.Equal(t, data, res.String())
 }
 
@@ -574,7 +563,6 @@ func TestFuzz(t *testing.T) {
 	s := "t/l/issues/8#/../../a"
 	renderContext := markup.NewTestRenderContext()
 	err := markup.PostProcessDefault(renderContext, strings.NewReader(s), io.Discard)
-	assert.NoError(t, err)
 }
 
 func TestIssue18471(t *testing.T) {
@@ -584,8 +572,6 @@ func TestIssue18471(t *testing.T) {
 
 	var res strings.Builder
 	err := markup.PostProcessDefault(markup.NewTestRenderContext(localMetas), strings.NewReader(data), &res)
-
-	assert.NoError(t, err)
 	assert.Equal(t, `<a href="`+markup.TestAppURL+`org/repo/compare/783b039...da951ce" class="compare"><code>783b039...da951ce</code></a>`, res.String())
 }
 

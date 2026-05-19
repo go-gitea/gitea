@@ -16,7 +16,7 @@ import (
 func TestSimpleDocument(t *testing.T) {
 	unittest.PrepareTestEnv(t)
 	rctx := NewRenderContextSimpleDocument(t.Context(), "/base").WithMarkupType(markdown.MarkupName)
-	rendered, err := markup.RenderString(rctx, `
+	rendered := markup.RenderString(rctx, `
 65f1bf27bc3bf70f64657658635e66094edbcb4d
 #1
 @user2
@@ -26,7 +26,6 @@ func TestSimpleDocument(t *testing.T) {
 ![/image](/image)
 ![./image](./image)
 `)
-	assert.NoError(t, err)
 	assert.Equal(t,
 		`<p>65f1bf27bc3bf70f64657658635e66094edbcb4d
 #1

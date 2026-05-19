@@ -21,12 +21,11 @@ func TestRepoComment(t *testing.T) {
 
 	t.Run("AutoLink", func(t *testing.T) {
 		rctx := NewRenderContextRepoComment(t.Context(), repo1).WithMarkupType(markdown.MarkupName)
-		rendered, err := markup.RenderString(rctx, `
+		rendered := markup.RenderString(rctx, `
 65f1bf27bc3bf70f64657658635e66094edbcb4d
 #1
 @user2
 `)
-		assert.NoError(t, err)
 		assert.Equal(t,
 			`<p><a href="/user2/repo1/commit/65f1bf27bc3bf70f64657658635e66094edbcb4d" rel="nofollow"><code>65f1bf27bc</code></a><br/>
 <a href="/user2/repo1/issues/1" class="ref-issue" rel="nofollow">#1</a><br/>
@@ -39,13 +38,12 @@ func TestRepoComment(t *testing.T) {
 
 		// It is Gitea's old behavior, the relative path is resolved to the repo path
 		// It is different from GitHub, GitHub resolves relative links to current page's path
-		rendered, err := markup.RenderString(rctx, `
+		rendered := markup.RenderString(rctx, `
 [/test](/test)
 [./test](./test)
 ![/image](/image)
 ![./image](./image)
 `)
-		assert.NoError(t, err)
 		assert.Equal(t,
 			`<p><a href="/user2/repo1/test" rel="nofollow">/test</a><br/>
 <a href="/user2/repo1/test" rel="nofollow">./test</a><br/>
@@ -59,13 +57,12 @@ func TestRepoComment(t *testing.T) {
 			WithMarkupType(markdown.MarkupName)
 
 		// the ref path is only used to render commit message: a commit message is rendered at the commit page with its commit ID path
-		rendered, err := markup.RenderString(rctx, `
+		rendered := markup.RenderString(rctx, `
 [/test](/test)
 [./test](./test)
 ![/image](/image)
 ![./image](./image)
 `)
-		assert.NoError(t, err)
 		assert.Equal(t, `<p><a href="/user2/repo1/test" rel="nofollow">/test</a><br/>
 <a href="/user2/repo1/commit/1234/test" rel="nofollow">./test</a><br/>
 <a href="/user2/repo1/image" target="_blank" rel="nofollow noopener"><img src="/user2/repo1/image" alt="/image"/></a><br/>
@@ -75,8 +72,7 @@ func TestRepoComment(t *testing.T) {
 
 	t.Run("NoRepo", func(t *testing.T) {
 		rctx := NewRenderContextRepoComment(t.Context(), nil).WithMarkupType(markdown.MarkupName)
-		rendered, err := markup.RenderString(rctx, "any")
-		assert.NoError(t, err)
+		rendered := markup.RenderString(rctx, "any")
 		assert.Equal(t, "<p>any</p>\n", rendered)
 	})
 }

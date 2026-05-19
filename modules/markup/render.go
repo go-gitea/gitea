@@ -16,6 +16,7 @@ import (
 	"time"
 
 	"code.gitea.io/gitea/modules/htmlutil"
+	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/markup/internal"
 	"code.gitea.io/gitea/modules/public"
 	"code.gitea.io/gitea/modules/setting"
@@ -198,13 +199,14 @@ func Render(rctx *RenderContext, origInput io.Reader, output io.Writer) error {
 	return RenderWithRenderer(rctx, renderer, input, output)
 }
 
-// RenderString renders Markup string to HTML with all specific handling stuff and return string
-func RenderString(ctx *RenderContext, content string) (string, error) {
+// RenderString renders Markup string to HTML with all specific handling stuff and return HTML.
+func RenderString(ctx *RenderContext, content string) template.HTML {
 	var buf strings.Builder
 	if err := Render(ctx, strings.NewReader(content), &buf); err != nil {
-		return "", err
+		log.Warn("Unable to RenderString: %v, content: %s", err, util.TruncateRunes(content, 200))
+		return htmlutil.EscapeString(content)
 	}
-	return buf.String(), nil
+	return template.HTML(buf.String())
 }
 
 func RenderIFrame(ctx *RenderContext, opts *ExternalRendererOptions, output io.Writer) error {
