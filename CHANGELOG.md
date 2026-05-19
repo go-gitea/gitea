@@ -7,6 +7,39 @@ been added to each release, please refer to the [blog](https://blog.gitea.com).
 ## [1.26.2](https://github.com/go-gitea/gitea/releases/tag/1.26.2) - 2026-05-06
 
 * BUGFIXES
+  * fix(permissions): Fix reading permission
+  * fix(actions): make artifact signature payloads unambiguous
+  * fix: Unify public-only token filtering in API queries and repo access checks (#37118)
+  * fix!: add DEFAULT_TITLE_SOURCE setting for pull request title default behavior (#37465)
+  * fix: Add missed token scope checking (#37735)
+  * fix: Allow direct commits for unprotected files with push restrictions (#37657)
+  * fix(oauth): bind token exchanges to the original client request (#37704)
+  * fix(actions): wrong assumption that run id always >= job id (#37737)
+  * fix(oauth): strengthen PKCE validation and refresh token replay protection (#37706)
+  * fix(web): enforce token scopes on raw, media, and attachment downloads (#37698)
+  * fix(auth): set User-Agent on avatar fetch and sync avatar on link-account register (#37564) (#37588)
+  * fix(security): enforce wiki git writes and LFS token access at request time (#37695)
+  * fix(actions): deadlock between PrepareRunAndInsert and UpdateTaskByState (#37692)
+  * fix(repo): /generate must sync the branch table for the new repo (#37693)
+  * feat(api): encrypt AWS creds (#37679)
+  * build: Fix snap build (1.26)
+  * fix(actions): run TransferLogs on UpdateLog{Rows:[], NoMore:true} (#37631)
+  * fix(deps): update dependency mermaid to v11.15.0 [security], add e2e test
+  * fix show correct mergebase
+  * fix(packages): Add label for private and internal package and fix composor package source permission check (#37610)
+  * fix: make clone URL respect public URL detection setting (#37615)
+  * chore(deps): bump go-git/go-git/v5 to 5.19.0 (#37608)
+  * fix: "run as root" check (#37622)
+  * chore(deps): update dependency go to v1.26.3 (#37601)
+  * Compare dropdown fails when selecting branch with no common merge-base (#37470)
+  * fix: treat email addresses case-insensitively (#37600)
+  * fix(actions): fix blank lines after ::endgroup:: (#37597)
+  * fix(git): Fix smart http request scope bug (#37583)
+  * fix(actions): report individual step status in workflow job API response (#37592)
+  * fix: Invalid UTF-8 commit messages in JSON API responses (#37542)
+  * fix: use consistent GetUser family functions (#37553)
+  * fix(api): return 409 message instead of empty JSON for wrong commit id (#37572)
+  * fix(actions): prevent panic when workflow contains null jobs (#37570)
   * Make ServeSetHeaders default to download attachment if filename exists (#37552) (#37555)
   * Fix(actions): validate workflow param to prevent 500 error (#37546) (#37554)
   * Don't unblock run-level-concurrency-blocked runs in the resolver (#37461) (#37538)
@@ -23,6 +56,7 @@ been added to each release, please refer to the [blog](https://blog.gitea.com).
   * Remove excessive quote from terraform instructions (#37424) (#37426)
   * Fix color regressions, add `priority` color (#37417) (#37421)
   * Fix attachment Content-Security-Policy (#37455) (#37464)
+
 * MISC
   * Add CurrentURL template variable back (#37444) (#37449)
 
