@@ -6,6 +6,7 @@ package integration
 import (
 	"net/http"
 	"net/url"
+	"strings"
 	"testing"
 
 	"code.gitea.io/gitea/modules/test"
@@ -85,8 +86,6 @@ func TestPullDiff_EmptyPR(t *testing.T) {
 		req := NewRequest(t, "GET", prURL+"/files")
 		resp = session.MakeRequest(t, req, http.StatusOK)
 		doc := NewHTMLParser(t, resp.Body)
-
-		assert.Equal(t, 0, doc.doc.Find(".file-content").Length())
-		assert.False(t, doc.doc.Find(".js-btn-review").HasClass("disabled"))
+		assert.Equal(t, "Diff Content Not Available", strings.TrimSpace(doc.Find("#diff-container").Text()))
 	})
 }
