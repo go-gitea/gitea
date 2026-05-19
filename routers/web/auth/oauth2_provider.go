@@ -286,6 +286,14 @@ func AuthorizeOAuth(ctx *context.Context) {
 	// Redirect if user already granted access and the application is confidential or trusted otherwise
 	// I.e. always require authorization for untrusted public clients as recommended by RFC 6749 Section 10.2
 	if (app.ConfidentialClient || app.SkipSecondaryAuthorization) && grant != nil {
+		// Update the grant scope if the requested scope has changed, so that
+		// confidential/trusted clients always get a token with the current scope.
+		if grant.Scope != form.Scope {
+			if err := grant.SetScope(ctx, form.Scope); err != nil {
+				handleServerError(ctx, form.State, form.RedirectURI)
+				return
+			}
+		}
 		code, err := grant.GenerateNewAuthorizationCode(ctx, form.RedirectURI, form.CodeChallenge, form.CodeChallengeMethod)
 		if err != nil {
 			handleServerError(ctx, form.State, form.RedirectURI)
@@ -388,12 +396,14 @@ func GrantApplicationOAuth(ctx *context.Context) {
 			return
 		}
 	} else if grant.Scope != form.Scope {
-		handleAuthorizeError(ctx, AuthorizeError{
-			State:            form.State,
-			ErrorDescription: "a grant exists with different scope",
-			ErrorCode:        ErrorCodeServerError,
-		}, form.RedirectURI)
-		return
+		// The user has re-authorized with a different scope. Update the
+		// existing grant to match the newly consented scope. This avoids
+		// an infinite redirect loop when the OAuth2 client changes its
+		// requested scope after the initial authorization.
+		if err := grant.SetScope(ctx, form.Scope); err != nil {
+			handleServerError(ctx, form.State, form.RedirectURI)
+			return
+		}
 	}
 
 	if len(form.Nonce) > 0 {
