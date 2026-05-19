@@ -7,8 +7,12 @@ been added to each release, please refer to the [blog](https://blog.gitea.com).
 ## [1.26.2](https://github.com/go-gitea/gitea/releases/tag/1.26.2) - 2026-05-06
 
 * BUGFIXES
-  * fix(permissions): Fix reading permission
-  * fix(actions): make artifact signature payloads unambiguous
+  * fix(pull): handle empty pull request files view to allow reviews (#37783)
+  * fix(markup): make RenderString never fail (#37779)
+  * fix: add natural sort to sortTreeViewNodes (#37772)
+  * fix: package creation unique conflict (#37774)
+  * fix(permissions): Fix reading permission (#37769)
+  * fix(actions): make artifact signature payloads unambiguous (#37707)
   * fix: Unify public-only token filtering in API queries and repo access checks (#37118)
   * fix!: add DEFAULT_TITLE_SOURCE setting for pull request title default behavior (#37465)
   * fix: Add missed token scope checking (#37735)
