@@ -305,6 +305,49 @@
 					{{end}}
 					</div>
 				</div>
+				<h5 class="ui dividing header">{{ctx.Locale.Tr "repo.settings.protect_bypass_allowlist"}}</h5>
+				<div class="grouped fields">
+					<div class="field">
+						<div class="ui checkbox">
+							<input name="enable_bypass_allowlist" type="checkbox" class="toggle-target-enabled" data-target="#bypass_allowlist_box" {{if .Rule.EnableBypassAllowlist}}checked{{end}}>
+							<label>{{ctx.Locale.Tr "repo.settings.protect_enable_bypass_allowlist"}}</label>
+							<p class="help">{{ctx.Locale.Tr "repo.settings.protect_enable_bypass_allowlist_desc"}}</p>
+						</div>
+					</div>
+					<div id="bypass_allowlist_box" class="grouped fields {{if not .Rule.EnableBypassAllowlist}}disabled{{end}}">
+						<div class="checkbox-sub-item field">
+							<label>{{ctx.Locale.Tr "repo.settings.protect_bypass_allowlist_users"}}</label>
+							<div class="ui multiple search selection dropdown">
+								<input type="hidden" name="bypass_allowlist_users" value="{{.bypass_allowlist_users}}">
+								<div class="default text">{{ctx.Locale.Tr "search.user_kind"}}</div>
+								<div class="menu">
+								{{range .Users}}
+									<div class="item" data-value="{{.ID}}">
+										{{ctx.AvatarUtils.Avatar . 28 "mini"}}{{template "repo/search_name" .}}
+									</div>
+								{{end}}
+								</div>
+							</div>
+						</div>
+					{{if .Owner.IsOrganization}}
+						<div class="checkbox-sub-item field">
+							<label>{{ctx.Locale.Tr "repo.settings.protect_bypass_allowlist_teams"}}</label>
+							<div class="ui multiple search selection dropdown">
+								<input type="hidden" name="bypass_allowlist_teams" value="{{.bypass_allowlist_teams}}">
+								<div class="default text">{{ctx.Locale.Tr "search.team_kind"}}</div>
+								<div class="menu">
+								{{range .Teams}}
+									<div class="item" data-value="{{.ID}}">
+										{{svg "octicon-people"}}
+									{{.Name}}
+									</div>
+								{{end}}
+								</div>
+							</div>
+						</div>
+					{{end}}
+					</div>
+				</div>
 				<div class="field">
 					<div class="ui checkbox">
 						<input name="block_on_rejected_reviews" type="checkbox" {{if .Rule.BlockOnRejectedReviews}}checked{{end}}>

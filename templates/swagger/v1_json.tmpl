@@ -22720,6 +22720,20 @@
           "type": "string",
           "x-go-name": "BranchName"
         },
+        "bypass_allowlist_teams": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "x-go-name": "BypassAllowlistTeams"
+        },
+        "bypass_allowlist_usernames": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "x-go-name": "BypassAllowlistUsernames"
+        },
         "created_at": {
           "type": "string",
           "format": "date-time",
@@ -22732,6 +22746,10 @@
         "enable_approvals_whitelist": {
           "type": "boolean",
           "x-go-name": "EnableApprovalsWhitelist"
+        },
+        "enable_bypass_allowlist": {
+          "type": "boolean",
+          "x-go-name": "EnableBypassAllowlist"
         },
         "enable_force_push": {
           "type": "boolean",
@@ -23650,6 +23668,20 @@
           "type": "string",
           "x-go-name": "BranchName"
         },
+        "bypass_allowlist_teams": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "x-go-name": "BypassAllowlistTeams"
+        },
+        "bypass_allowlist_usernames": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "x-go-name": "BypassAllowlistUsernames"
+        },
         "dismiss_stale_approvals": {
           "type": "boolean",
           "x-go-name": "DismissStaleApprovals"
@@ -23657,6 +23689,10 @@
         "enable_approvals_whitelist": {
           "type": "boolean",
           "x-go-name": "EnableApprovalsWhitelist"
+        },
+        "enable_bypass_allowlist": {
+          "type": "boolean",
+          "x-go-name": "EnableBypassAllowlist"
         },
         "enable_force_push": {
           "type": "boolean",
@@ -25057,6 +25093,20 @@
           "type": "boolean",
           "x-go-name": "BlockOnRejectedReviews"
         },
+        "bypass_allowlist_teams": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "x-go-name": "BypassAllowlistTeams"
+        },
+        "bypass_allowlist_usernames": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "x-go-name": "BypassAllowlistUsernames"
+        },
         "dismiss_stale_approvals": {
           "type": "boolean",
           "x-go-name": "DismissStaleApprovals"
@@ -25064,6 +25114,10 @@
         "enable_approvals_whitelist": {
           "type": "boolean",
           "x-go-name": "EnableApprovalsWhitelist"
+        },
+        "enable_bypass_allowlist": {
+          "type": "boolean",
+          "x-go-name": "EnableBypassAllowlist"
         },
         "enable_force_push": {
           "type": "boolean",
@@ -25579,6 +25633,11 @@
           "type": "boolean",
           "x-go-name": "AllowMerge"
         },
+        "allow_merge_update": {
+          "description": "either `true` to allow updating pull request branch by merge, or `false` to prevent it.",
+          "type": "boolean",
+          "x-go-name": "AllowMergeUpdate"
+        },
         "allow_rebase": {
           "description": "either `true` to allow rebase-merging pull requests, or `false` to prevent rebase-merging.",
           "type": "boolean",
@@ -25628,6 +25687,11 @@
           "description": "set to a merge style to be used by this repository: \"merge\", \"rebase\", \"rebase-merge\", \"squash\", or \"fast-forward-only\".",
           "type": "string",
           "x-go-name": "DefaultMergeStyle"
+        },
+        "default_update_style": {
+          "description": "set to an update style to be used by this repository: \"merge\" or \"rebase\".",
+          "type": "string",
+          "x-go-name": "DefaultUpdateStyle"
         },
         "description": {
           "description": "a short description of the repository.",
@@ -29054,6 +29118,10 @@
           "type": "boolean",
           "x-go-name": "AllowMerge"
         },
+        "allow_merge_update": {
+          "type": "boolean",
+          "x-go-name": "AllowMergeUpdate"
+        },
         "allow_rebase": {
           "type": "boolean",
           "x-go-name": "AllowRebase"
@@ -29120,6 +29188,10 @@
         "default_target_branch": {
           "type": "string",
           "x-go-name": "DefaultTargetBranch"
+        },
+        "default_update_style": {
+          "type": "string",
+          "x-go-name": "DefaultUpdateStyle"
         },
         "description": {
           "type": "string",

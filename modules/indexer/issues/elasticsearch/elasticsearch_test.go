@@ -7,27 +7,18 @@ import (
 	"fmt"
 	"net/http"
 	"net/url"
-	"os"
 	"testing"
 	"time"
 
 	"code.gitea.io/gitea/modules/indexer/issues/internal/tests"
+	"code.gitea.io/gitea/modules/test"
 
 	"github.com/stretchr/testify/require"
 )
 
 func TestElasticsearchIndexer(t *testing.T) {
 	// The elasticsearch instance started by pull-db-tests.yml > test-unit > services > elasticsearch
-	rawURL := "http://elastic:changeme@elasticsearch:9200"
-
-	if os.Getenv("CI") == "" {
-		// Make it possible to run tests against a local elasticsearch instance
-		rawURL = os.Getenv("TEST_ELASTICSEARCH_URL")
-		if rawURL == "" {
-			t.Skip("TEST_ELASTICSEARCH_URL not set and not running in CI")
-			return
-		}
-	}
+	rawURL := test.ExternalServiceHTTP(t, "TEST_ELASTICSEARCH_URL", "http://elastic:changeme@elasticsearch:9200")
 
 	// Go's net/http does not auto-attach URL userinfo as Basic Auth, so extract
 	// it and set the header explicitly; otherwise auth-enforced clusters answer

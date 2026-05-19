@@ -9,6 +9,7 @@ import (
 	"errors"
 	"fmt"
 
+	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/models/migrations/v1_10"
 	"code.gitea.io/gitea/models/migrations/v1_11"
 	"code.gitea.io/gitea/models/migrations/v1_12"
@@ -35,7 +36,6 @@ import (
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 
-	"xorm.io/xorm"
 	"xorm.io/xorm/names"
 )
 
@@ -44,23 +44,23 @@ const minDBVersion = 70 // Gitea 1.5.3
 type migration struct {
 	idNumber    int64 // DB version is "the last migration's idNumber" + 1
 	description string
-	migrate     func(context.Context, *xorm.Engine) error
+	migrate     func(context.Context, db.EngineMigration) error
 }
 
 // newMigration creates a new migration
-func newMigration[T func(*xorm.Engine) error | func(context.Context, *xorm.Engine) error](idNumber int64, desc string, fn T) *migration {
+func newMigration[T func(db.EngineMigration) error | func(context.Context, db.EngineMigration) error](idNumber int64, desc string, fn T) *migration {
 	m := &migration{idNumber: idNumber, description: desc}
 	var ok bool
-	if m.migrate, ok = any(fn).(func(context.Context, *xorm.Engine) error); !ok {
-		m.migrate = func(ctx context.Context, x *xorm.Engine) error {
-			return any(fn).(func(*xorm.Engine) error)(x)
+	if m.migrate, ok = any(fn).(func(context.Context, db.EngineMigration) error); !ok {
+		m.migrate = func(ctx context.Context, x db.EngineMigration) error {
+			return any(fn).(func(db.EngineMigration) error)(x)
 		}
 	}
 	return m
 }
 
 // Migrate executes the migration
-func (m *migration) Migrate(ctx context.Context, x *xorm.Engine) error {
+func (m *migration) Migrate(ctx context.Context, x db.EngineMigration) error {
 	return m.migrate(ctx, x)
 }
 
@@ -71,7 +71,7 @@ type Version struct {
 }
 
 // Use noopMigration when there is a migration that has been no-oped
-var noopMigration = func(_ *xorm.Engine) error { return nil }
+var noopMigration = func(_ db.EngineMigration) error { return nil }
 
 var preparedMigrations []*migration
 
@@ -410,13 +410,15 @@ func prepareMigrationTasks() []*migration {
 
 		newMigration(331, "Add ActionRunAttempt model and related action fields", v1_27.AddActionRunAttemptModel),
 		newMigration(332, "Add last_sync_unix to mirror", v1_27.AddLastSyncUnixToMirror),
-		newMigration(333, "Add contributor daily stats tables", v1_27.AddRepoContributorDailyAndMeta),
+		newMigration(333, "Add bypass allowlist to branch protection", v1_27.AddBranchProtectionBypassAllowlist),
+		newMigration(334, "Add cancelling support to action runners", v1_27.AddCancellingSupportToActionRunner),
+		newMigration(335, "Add contributor daily stats tables", v1_27.AddRepoContributorDailyAndMeta),
 	}
 	return preparedMigrations
 }
 
 // GetCurrentDBVersion returns the current db version
-func GetCurrentDBVersion(x *xorm.Engine) (int64, error) {
+func GetCurrentDBVersion(x db.EngineMigration) (int64, error) {
 	if err := x.Sync(new(Version)); err != nil {
 		return -1, fmt.Errorf("sync: %w", err)
 	}
@@ -449,7 +451,7 @@ func ExpectedDBVersion() int64 {
 }
 
 // EnsureUpToDate will check if the db is at the correct version
-func EnsureUpToDate(ctx context.Context, x *xorm.Engine) error {
+func EnsureUpToDate(ctx context.Context, x db.EngineMigration) error {
 	currentDB, err := GetCurrentDBVersion(x)
 	if err != nil {
 		return err
@@ -481,7 +483,7 @@ func migrationIDNumberToDBVersion(idNumber int64) int64 {
 }
 
 // Migrate database to current version
-func Migrate(ctx context.Context, x *xorm.Engine) error {
+func Migrate(ctx context.Context, x db.EngineMigration) error {
 	migrations := prepareMigrationTasks()
 	maxDBVer := calcDBVersion(migrations)
 
@@ -500,7 +502,7 @@ func Migrate(ctx context.Context, x *xorm.Engine) error {
 		// XORM model framework will create all tables when initializing.
 		currentVersion.ID = 0
 		currentVersion.Version = maxDBVer
-		if _, err = x.InsertOne(currentVersion); err != nil {
+		if _, err = x.Insert(currentVersion); err != nil {
 			return fmt.Errorf("insert: %w", err)
 		}
 	}

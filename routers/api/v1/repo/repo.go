@@ -134,9 +134,6 @@ func Search(ctx *context.APIContext) {
 	//     "$ref": "#/responses/validationError"
 
 	private := ctx.IsSigned && (ctx.FormString("private") == "" || ctx.FormBool("private"))
-	if ctx.PublicOnly {
-		private = false
-	}
 
 	opts := repo_model.SearchRepoOptions{
 		ListOptions:        utils.GetListOptions(ctx),
@@ -152,6 +149,7 @@ func Search(ctx *context.APIContext) {
 		StarredByID:        ctx.FormInt64("starredBy"),
 		IncludeDescription: ctx.FormBool("includeDesc"),
 	}
+	opts.ApplyPublicOnly(ctx.PublicOnly)
 
 	if ctx.FormString("template") != "" {
 		opts.Template = optional.Some(ctx.FormBool("template"))
@@ -557,6 +555,10 @@ func GetByID(ctx *context.APIContext) {
 		}
 		return
 	}
+	if !ctx.TokenCanAccessRepo(repo) {
+		ctx.APIErrorNotFound()
+		return
+	}
 
 	permission, err := access_model.GetDoerRepoPermission(ctx, repo, ctx.Doer)
 	if err != nil {
@@ -885,10 +887,20 @@ func updateRepoUnits(ctx *context.APIContext, opts api.EditRepoOption) error {
 			optional.AssignPtrValue(changed, &config.AllowFastForwardOnly, opts.AllowFastForwardOnly)
 			optional.AssignPtrValue(changed, &config.AllowManualMerge, opts.AllowManualMerge)
 			optional.AssignPtrValue(changed, &config.AutodetectManualMerge, opts.AutodetectManualMerge)
+			optional.AssignPtrValue(changed, &config.AllowMergeUpdate, opts.AllowMergeUpdate)
 			optional.AssignPtrValue(changed, &config.AllowRebaseUpdate, opts.AllowRebaseUpdate)
 			optional.AssignPtrValue(changed, &config.DefaultDeleteBranchAfterMerge, opts.DefaultDeleteBranchAfterMerge)
 			optional.AssignPtrValue(changed, &config.DefaultAllowMaintainerEdit, opts.DefaultAllowMaintainerEdit)
 			optional.AssignPtrString(changed, &config.DefaultMergeStyle, opts.DefaultMergeStyle)
+			optional.AssignPtrString(changed, &config.DefaultUpdateStyle, opts.DefaultUpdateStyle)
+			// only validate update-style fields when the caller is actually changing one of them,
+			// so unrelated PATCH calls don't reject historical configs.
+			if opts.AllowMergeUpdate != nil || opts.AllowRebaseUpdate != nil || opts.DefaultUpdateStyle != nil {
+				if err := config.ValidateUpdateSettings(); err != nil {
+					ctx.APIError(http.StatusUnprocessableEntity, err)
+					return err
+				}
+			}
 			if *changed || mustInsertPullRequestUnit {
 				units = append(units, repo_model.RepoUnit{
 					RepoID: repo.ID,
@@ -1299,6 +1311,7 @@ func ListRepoActivityFeeds(ctx *context.APIContext) {
 		Date:           ctx.FormString("date"),
 		ListOptions:    listOptions,
 	}
+	opts.ApplyPublicOnly(ctx.PublicOnly)
 
 	feeds, count, err := feed_service.GetFeeds(ctx, opts)
 	if err != nil {

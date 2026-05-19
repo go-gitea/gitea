@@ -63,17 +63,14 @@ func TestDataAsyncDoubleRead_Issue29101(t *testing.T) {
 
 		var data1, data2 []byte
 		wg := sync.WaitGroup{}
-		wg.Add(2)
-		go func() {
+		wg.Go(func() {
 			data1, _ = io.ReadAll(r1)
 			assert.NoError(t, err)
-			wg.Done()
-		}()
-		go func() {
+		})
+		wg.Go(func() {
 			data2, _ = io.ReadAll(r2)
 			assert.NoError(t, err)
-			wg.Done()
-		}()
+		})
 		wg.Wait()
 		assert.Equal(t, testContent, data1)
 		assert.Equal(t, testContent, data2)

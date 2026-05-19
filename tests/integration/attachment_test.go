@@ -14,6 +14,7 @@ import (
 	"strings"
 	"testing"
 
+	auth_model "code.gitea.io/gitea/models/auth"
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/modules/storage"
 	"code.gitea.io/gitea/modules/test"
@@ -25,6 +26,15 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
+
+type attachmentScopeCase struct {
+	name                  string
+	url                   string
+	readIssueStatus       int
+	readRepoStatus        int
+	publicOnlyIssueStatus int
+	publicOnlyRepoStatus  int
+}
 
 func testGeneratePngBytes() []byte {
 	myImage := image.NewRGBA(image.Rect(0, 0, 32, 32))
@@ -199,4 +209,101 @@ func testDeleteAttachmentPermissions(t *testing.T) {
 
 	// test deleting release attachment from another repo
 	testDeleteReleaseAttachment(t, ownerSession, "/user2/repo2", crossRepoUUID, http.StatusBadRequest)
+}
+
+func TestAttachmentTokenScopes(t *testing.T) {
+	defer tests.PrepareTestEnv(t)()
+
+	for _, uuid := range []string{
+		"a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11",
+		"a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a12",
+		"a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a19",
+		"a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a22",
+	} {
+		_, err := storage.Attachments.Save(repo_model.AttachmentRelativePath(uuid), strings.NewReader("hello world"), -1)
+		require.NoError(t, err)
+	}
+
+	readIssueToken := getUserToken(t, "user2", auth_model.AccessTokenScopeReadIssue)
+	readRepoToken := getUserToken(t, "user2", auth_model.AccessTokenScopeReadRepository)
+	miscToken := getUserToken(t, "user2", auth_model.AccessTokenScopeReadMisc)
+	publicOnlyIssueToken := getUserToken(t, "user2", auth_model.AccessTokenScopeReadIssue, auth_model.AccessTokenScopePublicOnly)
+	publicOnlyRepoToken := getUserToken(t, "user2", auth_model.AccessTokenScopeReadRepository, auth_model.AccessTokenScopePublicOnly)
+
+	cases := []attachmentScopeCase{
+		{
+			name:                  "GlobalPublicIssueAttachment",
+			url:                   "/attachments/a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11",
+			readIssueStatus:       http.StatusOK,
+			readRepoStatus:        http.StatusForbidden,
+			publicOnlyIssueStatus: http.StatusOK,
+			publicOnlyRepoStatus:  http.StatusForbidden,
+		},
+		{
+			name:                  "RepoPublicIssueAttachment",
+			url:                   "/user2/repo1/attachments/a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11",
+			readIssueStatus:       http.StatusOK,
+			readRepoStatus:        http.StatusForbidden,
+			publicOnlyIssueStatus: http.StatusOK,
+			publicOnlyRepoStatus:  http.StatusForbidden,
+		},
+		{
+			name:                  "GlobalPrivateIssueAttachment",
+			url:                   "/attachments/a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a12",
+			readIssueStatus:       http.StatusOK,
+			readRepoStatus:        http.StatusForbidden,
+			publicOnlyIssueStatus: http.StatusForbidden,
+			publicOnlyRepoStatus:  http.StatusForbidden,
+		},
+		{
+			name:                  "RepoPrivateIssueAttachment",
+			url:                   "/user2/repo2/attachments/a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a12",
+			readIssueStatus:       http.StatusOK,
+			readRepoStatus:        http.StatusForbidden,
+			publicOnlyIssueStatus: http.StatusForbidden,
+			publicOnlyRepoStatus:  http.StatusForbidden,
+		},
+		{
+			name:                  "GlobalPublicReleaseAttachment",
+			url:                   "/attachments/a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a19",
+			readIssueStatus:       http.StatusForbidden,
+			readRepoStatus:        http.StatusOK,
+			publicOnlyIssueStatus: http.StatusForbidden,
+			publicOnlyRepoStatus:  http.StatusOK,
+		},
+		{
+			name:                  "RepoPublicReleaseAttachment",
+			url:                   "/user2/repo1/releases/attachments/a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a19",
+			readIssueStatus:       http.StatusForbidden,
+			readRepoStatus:        http.StatusOK,
+			publicOnlyIssueStatus: http.StatusForbidden,
+			publicOnlyRepoStatus:  http.StatusOK,
+		},
+		{
+			name:                  "GlobalPrivateReleaseAttachment",
+			url:                   "/attachments/a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a22",
+			readIssueStatus:       http.StatusForbidden,
+			readRepoStatus:        http.StatusOK,
+			publicOnlyIssueStatus: http.StatusForbidden,
+			publicOnlyRepoStatus:  http.StatusForbidden,
+		},
+		{
+			name:                  "RepoPrivateReleaseAttachment",
+			url:                   "/user2/repo2/releases/attachments/a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a22",
+			readIssueStatus:       http.StatusForbidden,
+			readRepoStatus:        http.StatusOK,
+			publicOnlyIssueStatus: http.StatusForbidden,
+			publicOnlyRepoStatus:  http.StatusForbidden,
+		},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			MakeRequest(t, NewRequest(t, "GET", tc.url).AddTokenAuth(miscToken), http.StatusForbidden)
+			MakeRequest(t, NewRequest(t, "GET", tc.url).AddTokenAuth(readIssueToken), tc.readIssueStatus)
+			MakeRequest(t, NewRequest(t, "GET", tc.url).AddTokenAuth(readRepoToken), tc.readRepoStatus)
+			MakeRequest(t, NewRequest(t, "GET", tc.url).AddTokenAuth(publicOnlyIssueToken), tc.publicOnlyIssueStatus)
+			MakeRequest(t, NewRequest(t, "GET", tc.url).AddTokenAuth(publicOnlyRepoToken), tc.publicOnlyRepoStatus)
+		})
+	}
 }

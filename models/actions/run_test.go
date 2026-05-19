@@ -29,8 +29,7 @@ func TestUpdateRepoRunsNumbers(t *testing.T) {
 	assert.Equal(t, 2, repo.NumClosedActionRuns)
 
 	// now update will correct them, only num_actionr_runs and num_closed_action_runs should be updated
-	err = UpdateRepoRunsNumbers(t.Context(), repo)
-	assert.NoError(t, err)
+	UpdateRepoRunsNumbers(t.Context(), repo.ID)
 	repo = unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 4})
 	assert.Equal(t, 4, repo.NumActionRuns)
 	assert.Equal(t, 3, repo.NumClosedActionRuns)
