@@ -105,16 +105,6 @@ func handleSignInError(ctx *context.Context, userName string, ptrForm any, tmpl 
 		log.Info("Failed authentication attempt for %s from %s: %v", userName, ctx.RemoteAddr(), err)
 		ctx.Data["Title"] = ctx.Tr("auth.prohibit_login")
 		ctx.HTML(http.StatusOK, "user/auth/prohibit_login")
-	} else if user_model.IsErrUserInactive(err) {
-		ctx.Data["user_exists"] = true
-		if setting.Service.RegisterEmailConfirm {
-			ctx.Data["Title"] = ctx.Tr("auth.active_your_account")
-			ctx.HTML(http.StatusOK, TplActivate)
-		} else {
-			log.Info("Failed authentication attempt for %s from %s: %v", userName, ctx.RemoteAddr(), err)
-			ctx.Data["Title"] = ctx.Tr("auth.prohibit_login")
-			ctx.HTML(http.StatusOK, "user/auth/prohibit_login")
-		}
 	} else {
 		ctx.ServerError(invoker, err)
 	}

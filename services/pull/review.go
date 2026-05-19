@@ -35,7 +35,7 @@ func isErrBlameNotFoundOrNotEnoughLines(err error) bool {
 	return notFound || notEnoughLines
 }
 
-// ErrDismissRequestOnClosedPR represents an error when an user tries to dismiss a review associated to a closed or merged PR.
+// ErrDismissRequestOnClosedPR represents an error when a user tries to dismiss a review associated to a closed or merged PR.
 type ErrDismissRequestOnClosedPR struct{}
 
 // IsErrDismissRequestOnClosedPR checks if an error is an ErrDismissRequestOnClosedPR.
@@ -52,7 +52,7 @@ func (err ErrDismissRequestOnClosedPR) Unwrap() error {
 	return util.ErrPermissionDenied
 }
 
-// ErrSubmitReviewOnClosedPR represents an error when an user tries to submit an approve or reject review associated to a closed or merged PR.
+// ErrSubmitReviewOnClosedPR represents an error when a user tries to submit an approve or reject review associated to a closed or merged PR.
 var ErrSubmitReviewOnClosedPR = errors.New("can't submit review for a closed or merged PR")
 
 // LineBlame returns the latest commit at the given line

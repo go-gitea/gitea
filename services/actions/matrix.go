@@ -42,7 +42,7 @@ func checkTaskNeedsReady(ctx context.Context, job *actions_model.ActionRunJob) (
 	log.Debug("Found %d task needs for job %d (JobID: %s)", len(taskNeeds), job.ID, job.JobID)
 
 	// Check if any task needs are not done
-	pendingNeeds := []string{}
+	var pendingNeeds []string
 	for jobID, taskNeed := range taskNeeds {
 		if !taskNeed.Result.IsDone() {
 			pendingNeeds = append(pendingNeeds, fmt.Sprintf("%s(%s)", jobID, taskNeed.Result))
@@ -123,11 +123,10 @@ func HasMatrixWithNeeds(rawStrategy string) bool {
 	return strings.Contains(matrixStr, "needs.")
 }
 
-// ReEvaluateMatrixForJobWithNeeds re-evaluates the matrix strategy of a job using outputs from dependent jobs
-// If the matrix depends on job outputs and all dependent jobs are done, it will:
-// 1. Evaluate the matrix with the job outputs
-// 2. Create new ActionRunJobs for each matrix combination
-// 3. Return the newly created jobs
+// ReEvaluateMatrixForJobWithNeeds re-evaluates the matrix strategy of a job once all its
+// dependent jobs are done. It expands the matrix using job outputs and inserts the resulting
+// ActionRunJobs. The original placeholder job is marked as evaluated and skipped.
+// Returns nil, nil if the job is not ready yet or has nothing to do.
 func ReEvaluateMatrixForJobWithNeeds(ctx context.Context, job *actions_model.ActionRunJob, vars map[string]string) ([]*actions_model.ActionRunJob, error) {
 	startTime := time.Now()
 
@@ -136,167 +135,127 @@ func ReEvaluateMatrixForJobWithNeeds(ctx context.Context, job *actions_model.Act
 	}
 
 	if !HasMatrixWithNeeds(job.RawStrategy) {
-		// Mark as evaluated since there's no needs-dependent matrix
-		if err := markMatrixAsEvaluatedAndSkip(ctx, job, "no needs-dependent matrix found"); err != nil {
-			return nil, err
-		}
-		return nil, nil
+		return nil, markMatrixAsEvaluatedAndSkip(ctx, job, "no needs-dependent matrix found")
 	}
 
 	log.Debug("Starting matrix re-evaluation for job %d (JobID: %s)", job.ID, job.JobID)
 
+	// skipWithError marks the job as evaluated+skipped and wraps any secondary error.
+	skipWithError := func(reason string, origErr error) ([]*actions_model.ActionRunJob, error) {
+		if markErr := markMatrixAsEvaluatedAndSkip(ctx, job, reason); markErr != nil {
+			return nil, fmt.Errorf("%w; additionally failed to mark as evaluated: %v", origErr, markErr)
+		}
+		return nil, origErr
+	}
+
 	// Check if dependencies are ready BEFORE doing expensive parsing
 	taskNeeds, allDone, err := checkTaskNeedsReady(ctx, job)
 	if err != nil {
-		errMsg := fmt.Sprintf("failed to check task needs for job %d (JobID: %s): %v", job.ID, job.JobID, err)
-		log.Error("Matrix re-evaluation error: %s", errMsg)
-		// Mark as evaluated to prevent retrying a fundamentally broken job
-		if markErr := markMatrixAsEvaluatedAndSkip(ctx, job, fmt.Sprintf("task needs check failed: %v", err)); markErr != nil {
-			return nil, fmt.Errorf("%s; additionally failed to mark as evaluated: %w", errMsg, markErr)
-		}
-		return nil, fmt.Errorf("check task needs: %w", err)
+		log.Error("Matrix re-evaluation error for job %d: check task needs: %v", job.ID, err)
+		return skipWithError(fmt.Sprintf("task needs check failed: %v", err), fmt.Errorf("check task needs: %w", err))
 	}
-
 	if !allDone {
-		// Dependencies not ready yet, try again later
-		return nil, nil
+		return nil, nil // wait for dependencies
 	}
 
-	// Merge vars with needs outputs
 	mergedVars := mergeNeedsIntoVars(vars, taskNeeds)
-	log.Debug("Merged %d variables with needs outputs for job %d", len(mergedVars), job.ID)
 
-	// Load the original run to get workflow context
+	// Load run and its attributes for expression evaluation context
 	if job.Run == nil {
 		if err := job.LoadRun(ctx); err != nil {
-			errMsg := fmt.Sprintf("failed to load run for job %d (JobID: %s): %v", job.ID, job.JobID, err)
-			log.Error("Matrix re-evaluation error: %s", errMsg)
 			GetMatrixMetrics().RecordReevaluation(time.Since(startTime), false, 0)
 			return nil, fmt.Errorf("load run: %w", err)
 		}
 	}
-
-	// Verify run is not nil after loading
 	if job.Run == nil {
-		errMsg := fmt.Sprintf("run is nil for job %d (JobID: %s) after loading", job.ID, job.JobID)
-		log.Error("Matrix re-evaluation error: %s", errMsg)
 		GetMatrixMetrics().RecordReevaluation(time.Since(startTime), false, 0)
-		return nil, errors.New("run not found: nil run")
+		return nil, errors.New("run not found after loading")
 	}
-
-	// Load run attributes (TriggerUser, Repo, etc.)
 	if err := job.Run.LoadAttributes(ctx); err != nil {
-		errMsg := fmt.Sprintf("failed to load run attributes for job %d (JobID: %s): %v", job.ID, job.JobID, err)
-		log.Error("Matrix re-evaluation error: %s", errMsg)
 		GetMatrixMetrics().RecordReevaluation(time.Since(startTime), false, 0)
 		return nil, fmt.Errorf("load run attributes: %w", err)
 	}
 
-	// Create the giteaCtx for expression evaluation
-	giteaCtx := GenerateGiteaContext(job.Run, job)
+	giteaCtx := GenerateGiteaContext(ctx, job.Run, nil, job)
 
-	// Convert taskNeeds to job outputs format for jobparser
-	jobOutputs := make(map[string]map[string]string)
-	jobResults := make(map[string]string)
-	for jobID, taskNeed := range taskNeeds {
-		jobOutputs[jobID] = taskNeed.Outputs
-		jobResults[jobID] = taskNeed.Result.String()
+	jobOutputs := make(map[string]map[string]string, len(taskNeeds))
+	jobResults := make(map[string]string, len(taskNeeds))
+	for jobID, need := range taskNeeds {
+		jobOutputs[jobID] = need.Outputs
+		jobResults[jobID] = need.Result.String()
 	}
 
-	// We need to construct a workflow that includes both this job AND its dependencies
-	// so that the jobparser can resolve needs.*.outputs.* expressions
+	// Build a minimal workflow containing this job and stubs for its dependencies,
+	// so the jobparser can resolve needs.*.outputs.* expressions.
 	workflowYAML, err := constructWorkflowWithNeeds(job, taskNeeds)
 	if err != nil {
-		errMsg := fmt.Sprintf("failed to construct workflow for job %d (JobID: %s): %v", job.ID, job.JobID, err)
-		log.Error("Matrix re-evaluation error: %s", errMsg)
+		log.Error("Matrix re-evaluation error for job %d: construct workflow: %v", job.ID, err)
 		GetMatrixMetrics().RecordReevaluation(time.Since(startTime), false, 0)
-		// Mark as evaluated and skip to prevent retrying
-		if markErr := markMatrixAsEvaluatedAndSkip(ctx, job, fmt.Sprintf("workflow construction failed: %v", err)); markErr != nil {
-			return nil, fmt.Errorf("%s; additionally failed to mark as evaluated: %w", errMsg, markErr)
-		}
-		return nil, fmt.Errorf("construct workflow: %w", err)
+		return skipWithError(fmt.Sprintf("workflow construction failed: %v", err), fmt.Errorf("construct workflow: %w", err))
 	}
 
-	// Try to get cached parse result to avoid expensive re-parsing
+	// Track cache hit/miss for metrics (actual caching of parsed objects is future work)
 	cacheKey := computeCacheKey(workflowYAML, taskNeeds)
-	cache := getWorkflowParseCache()
-
-	if cache != nil {
+	if cache := getWorkflowParseCache(); cache != nil {
 		if _, hit := cache.Get(cacheKey); hit {
-			log.Debug("Cache hit for workflow parse (job %d, key: %s)", job.ID, cacheKey[:16])
+			log.Debug("Cache hit for workflow parse (job %d, key: %.16s)", job.ID, cacheKey)
 			GetMatrixMetrics().RecordCacheHit()
-			// Note: We can't directly cache SingleWorkflow objects yet (they're not serializable)
-			// This is for future optimization - for now just track metrics
 		} else {
 			GetMatrixMetrics().RecordCacheMiss()
 		}
 	}
 
-	// Parse the constructed workflow with job outputs to expand the matrix
-	parseStartTime := time.Now()
-	jobs, err := jobparser.Parse(
+	parseStart := time.Now()
+	parsedJobs, err := jobparser.Parse(
 		workflowYAML,
 		jobparser.WithVars(mergedVars),
 		jobparser.WithGitContext(giteaCtx.ToGitHubContext()),
 		jobparser.WithJobOutputs(jobOutputs),
 		jobparser.WithJobResults(jobResults),
 	)
-	parseTime := time.Since(parseStartTime)
-	GetMatrixMetrics().RecordParseTime(parseTime)
+	GetMatrixMetrics().RecordParseTime(time.Since(parseStart))
 
 	if err != nil {
-		errMsg := fmt.Sprintf("failed to parse workflow payload for job %d (JobID: %s) during matrix expansion: %v", job.ID, job.JobID, err)
-		log.Error("Matrix parse error: %s. RawStrategy: %s", errMsg, job.RawStrategy)
+		log.Error("Matrix parse error for job %d (RawStrategy: %s): %v", job.ID, job.RawStrategy, err)
 		GetMatrixMetrics().RecordReevaluation(time.Since(startTime), false, 0)
-		// Mark as evaluated to avoid repeated parse attempts
+		// Don't propagate parse errors — mark as evaluated to avoid retry loops
 		if markErr := markMatrixAsEvaluatedAndSkip(ctx, job, fmt.Sprintf("parse failed: %v", err)); markErr != nil {
-			return nil, fmt.Errorf("%s; additionally failed to mark as evaluated: %w", errMsg, markErr)
+			return nil, fmt.Errorf("parse workflow: %w; additionally failed to mark as evaluated: %v", err, markErr)
 		}
 		return nil, nil
 	}
 
-	// Cache successful parse result
-	if cache != nil && len(jobs) > 0 {
+	if len(parsedJobs) == 0 {
+		log.Debug("No jobs generated from matrix expansion for job %d (JobID: %s)", job.ID, job.JobID)
+		GetMatrixMetrics().RecordReevaluation(time.Since(startTime), false, 0)
+		return nil, markMatrixAsEvaluatedAndSkip(ctx, job, "no jobs generated from matrix expansion")
+	}
+
+	// Cache successful parse result (YAML payload for metrics tracking)
+	if cache := getWorkflowParseCache(); cache != nil && len(parsedJobs) > 0 {
 		cache.Set(cacheKey, workflowYAML)
 	}
 
-	if len(jobs) == 0 {
-		log.Debug("No jobs generated from matrix expansion for job %d (JobID: %s)", job.ID, job.JobID)
-		GetMatrixMetrics().RecordReevaluation(time.Since(startTime), false, 0)
-		if err := markMatrixAsEvaluatedAndSkip(ctx, job, "no jobs generated from matrix expansion"); err != nil {
-			return nil, err
-		}
-		return nil, nil
-	}
+	log.Debug("Parsed %d matrix combinations for job %d (JobID: %s)", len(parsedJobs), job.ID, job.JobID)
 
-	log.Debug("Parsed %d matrix combinations for job %d (JobID: %s)", len(jobs), job.ID, job.JobID)
-
-	// Create new ActionRunJobs for each parsed workflow (each matrix combination)
-	newJobs := make([]*actions_model.ActionRunJob, 0)
-
-	for i, parsedSingleWorkflow := range jobs {
-		id, jobDef := parsedSingleWorkflow.Job()
+	var newJobs []*actions_model.ActionRunJob
+	for i, sw := range parsedJobs {
+		id, jobDef := sw.Job()
 		if jobDef == nil {
 			log.Warn("Skipped nil jobDef at index %d for job %d (JobID: %s)", i, job.ID, job.JobID)
 			continue
 		}
-
-		// Skip the original job ID - we only want the matrix-expanded versions
 		if id == job.JobID {
-			log.Debug("Skipped original job ID %s in matrix expansion for job %d", id, job.ID)
+			// Skip the original placeholder — we only want the expanded matrix entries
 			continue
 		}
-
-		// Erase needs from the payload before storing
 		needs := jobDef.Needs()
-		if err := parsedSingleWorkflow.SetJob(id, jobDef.EraseNeeds()); err != nil {
+		if err := sw.SetJob(id, jobDef.EraseNeeds()); err != nil {
 			log.Error("Failed to erase needs from job %s (matrix expansion for job %d): %v", id, job.ID, err)
 			continue
 		}
-
-		payload, _ := parsedSingleWorkflow.Marshal()
-
-		newJob := &actions_model.ActionRunJob{
+		payload, _ := sw.Marshal()
+		newJobs = append(newJobs, &actions_model.ActionRunJob{
 			RunID:             job.RunID,
 			RepoID:            job.RepoID,
 			OwnerID:           job.OwnerID,
@@ -308,45 +267,34 @@ func ReEvaluateMatrixForJobWithNeeds(ctx context.Context, job *actions_model.Act
 			Needs:             needs,
 			RunsOn:            jobDef.RunsOn(),
 			Status:            actions_model.StatusBlocked,
-		}
-
-		newJobs = append(newJobs, newJob)
+		})
 	}
 
-	// If no new jobs were created, mark as evaluated and skip
 	if len(newJobs) == 0 {
-		log.Warn("No valid jobs created from matrix expansion for job %d (JobID: %s). Original jobs: %d", job.ID, job.JobID, len(jobs))
+		log.Warn("No valid jobs created from matrix expansion for job %d (JobID: %s), total parsed: %d", job.ID, job.JobID, len(parsedJobs))
 		GetMatrixMetrics().RecordReevaluation(time.Since(startTime), false, 0)
-		if err := markMatrixAsEvaluatedAndSkip(ctx, job, fmt.Sprintf("no valid jobs created (original jobs: %d)", len(jobs))); err != nil {
-			return nil, err
-		}
-		return nil, nil
+		return nil, markMatrixAsEvaluatedAndSkip(ctx, job, fmt.Sprintf("no valid jobs created (parsed: %d)", len(parsedJobs)))
 	}
 
-	// Insert the new jobs into database
-	insertStartTime := time.Now()
+	insertStart := time.Now()
 	if err := actions_model.InsertActionRunJobs(ctx, newJobs); err != nil {
-		insertTime := time.Since(insertStartTime)
-		GetMatrixMetrics().RecordInsertTime(insertTime)
-		errMsg := fmt.Sprintf("failed to insert %d new matrix jobs for job %d (JobID: %s): %v", len(newJobs), job.ID, job.JobID, err)
-		log.Error("Matrix insertion error: %s", errMsg)
+		log.Error("Matrix insertion error: failed to insert %d new matrix jobs for job %d (JobID: %s): %v", len(newJobs), job.ID, job.JobID, err)
+		GetMatrixMetrics().RecordInsertTime(time.Since(insertStart))
 		GetMatrixMetrics().RecordReevaluation(time.Since(startTime), false, 0)
 		return nil, fmt.Errorf("insert new jobs: %w", err)
 	}
-	insertTime := time.Since(insertStartTime)
-	GetMatrixMetrics().RecordInsertTime(insertTime)
+	GetMatrixMetrics().RecordInsertTime(time.Since(insertStart))
 
-	// Mark the original placeholder job as evaluated and skipped so it is never run
+	// Mark the placeholder job as evaluated and skipped so it is never run
 	if err := markMatrixAsEvaluatedAndSkip(ctx, job, fmt.Sprintf("successfully created %d new jobs", len(newJobs))); err != nil {
+		// Non-fatal: new jobs are already inserted
 		log.Error("Failed to mark placeholder job %d as evaluated after creating %d new jobs: %v", job.ID, len(newJobs), err)
-		// Don't fail the whole operation if we can't update the placeholder
 	}
 
 	totalTime := time.Since(startTime)
 	GetMatrixMetrics().RecordReevaluation(totalTime, true, int64(len(newJobs)))
-
-	log.Info("Successfully completed matrix re-evaluation for job %d (JobID: %s): created %d new jobs from %d matrix combinations (total: %dms, parse: %dms, insert: %dms)",
-		job.ID, job.JobID, len(newJobs), len(jobs), totalTime.Milliseconds(), parseTime.Milliseconds(), insertTime.Milliseconds())
+	log.Info("Matrix re-evaluation complete for job %d (JobID: %s): %d new jobs in %dms",
+		job.ID, job.JobID, len(newJobs), totalTime.Milliseconds())
 
 	return newJobs, nil
 }

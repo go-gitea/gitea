@@ -4,20 +4,20 @@
 			{{ctx.Locale.Tr "settings.manage_access_token"}}
 		</h4>
 		<div class="ui attached segment">
-			<div class="flex-list">
-				<div class="flex-item">
+			<div class="flex-divided-list items-with-main">
+				<div class="item">
 					{{ctx.Locale.Tr "settings.tokens_desc"}}
 				</div>
 				{{range .Tokens}}
-					<div class="flex-item">
-						<div class="flex-item-leading">
+					<div class="item">
+						<div class="item-leading">
 							<span class="{{if .HasRecentActivity}}tw-text-green{{end}}" {{if .HasRecentActivity}}data-tooltip-content="{{ctx.Locale.Tr "settings.token_state_desc"}}"{{end}}>
 								{{svg "fontawesome-send" 32}}
 							</span>
 						</div>
-						<div class="flex-item-main">
+						<div class="item-main">
 							<details>
-								<summary><span class="flex-item-title">{{.Name}}</span></summary>
+								<summary><span class="item-title">{{.Name}}</span></summary>
 								<p class="tw-my-1">
 									{{ctx.Locale.Tr "settings.repo_and_org_access"}}:
 									{{if .DisplayPublicOnly}}
@@ -35,11 +35,11 @@
 								{{end}}
 								</ul>
 							</details>
-							<div class="flex-item-body">
+							<div class="item-body">
 								<i>{{ctx.Locale.Tr "settings.added_on" (DateUtils.AbsoluteShort .CreatedUnix)}} — {{svg "octicon-info"}} {{if .HasUsed}}{{ctx.Locale.Tr "settings.last_used"}} <span {{if .HasRecentActivity}}class="tw-text-green"{{end}}>{{DateUtils.AbsoluteShort .UpdatedUnix}}</span>{{else}}{{ctx.Locale.Tr "settings.no_activity"}}{{end}}</i>
 							</div>
 						</div>
-						<div class="flex-item-trailing">
+						<div class="item-trailing">
 								<button class="ui red tiny button delete-button" data-modal-id="delete-token" data-url="{{$.Link}}/delete" data-id="{{.ID}}">
 									{{svg "octicon-trash"}}
 									{{ctx.Locale.Tr "settings.delete_token"}}

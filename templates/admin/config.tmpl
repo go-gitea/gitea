@@ -244,8 +244,6 @@
 					<dd>{{.CacheInterval}} {{ctx.Locale.Tr "tool.raw_seconds"}}</dd>
 				{{end}}
 				{{if .CacheConn}}
-					<dt>{{ctx.Locale.Tr "admin.config.cache_conn"}}</dt>
-					<dd>{{.CacheConn}}</dd>
 					<dt>{{ctx.Locale.Tr "admin.config.cache_item_ttl"}}</dt>
 					<dd>{{.CacheItemTTL}}</dd>
 				{{end}}
@@ -266,8 +264,6 @@
 			<dl class="admin-dl-horizontal">
 				<dt>{{ctx.Locale.Tr "admin.config.session_provider"}}</dt>
 				<dd>{{.SessionConfig.Provider}}</dd>
-				<dt>{{ctx.Locale.Tr "admin.config.provider_config"}}</dt>
-				<dd>{{if .SessionConfig.ProviderConfig}}{{.SessionConfig.ProviderConfig}}{{else}}-{{end}}</dd>
 				<dt>{{ctx.Locale.Tr "admin.config.cookie_name"}}</dt>
 				<dd>{{.SessionConfig.CookieName}}</dd>
 				<dt>{{ctx.Locale.Tr "admin.config.gc_interval_time"}}</dt>

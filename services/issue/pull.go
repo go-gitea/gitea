@@ -133,7 +133,7 @@ func PullRequestCodeOwnersReview(ctx context.Context, pr *issues_model.PullReque
 		if u.ID != issue.Poster.ID && !contain(latestReviews, u) {
 			comment, err := issues_model.AddReviewRequest(ctx, issue, u, issue.Poster, true)
 			if err != nil {
-				log.Warn("Failed add assignee user: %s to PR review: %s#%d, error: %s", u.Name, pr.BaseRepo.Name, pr.ID, err)
+				log.Warn("Failed add review user: %s to PR review: %s#%d, error: %s", u.Name, pr.BaseRepo.Name, pr.ID, err)
 				return nil, err
 			}
 			if comment == nil { // comment maybe nil if review type is ReviewTypeRequest
@@ -150,7 +150,7 @@ func PullRequestCodeOwnersReview(ctx context.Context, pr *issues_model.PullReque
 	for _, t := range uniqTeams {
 		comment, err := issues_model.AddTeamReviewRequest(ctx, issue, t, issue.Poster, true)
 		if err != nil {
-			log.Warn("Failed add assignee team: %s to PR review: %s#%d, error: %s", t.Name, pr.BaseRepo.Name, pr.ID, err)
+			log.Warn("Failed add reviewer team: %s to PR review: %s#%d, error: %s", t.Name, pr.BaseRepo.Name, pr.ID, err)
 			return nil, err
 		}
 		if comment == nil { // comment maybe nil if review type is ReviewTypeRequest

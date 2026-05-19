@@ -10,18 +10,18 @@
 				</div>
 			</h4>
 			<div class="ui attached segment">
-				<div class="flex-list">
-					<div class="flex-item">
+				<div class="flex-divided-list items-with-main">
+					<div class="item">
 						{{if .Badge.ImageURL}}
-						<div class="flex-item-leading">
+						<div class="item-leading">
 							<img width="64" height="64" src="{{.Badge.ImageURL}}" alt="{{.Badge.Description}}" data-tooltip-content="{{.Badge.Description}}">
 						</div>
 						{{end}}
-						<div class="flex-item-main">
-							<div class="flex-item-title">
+						<div class="item-main">
+							<div class="item-title">
 								{{.Badge.Slug}}
 							</div>
-							<div class="flex-item-body">
+							<div class="item-body">
 								{{.Badge.Description}}
 							</div>
 						</div>

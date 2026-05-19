@@ -111,7 +111,7 @@ func ListTasks() TaskTable {
 				spec = tags[1] // the second tag is the task spec
 			}
 			next, _ = e.NextRun()
-			prev, _ = e.LastRun()
+			prev, _ = e.LastRunStartedAt()
 		}
 
 		task.lock.Lock()

@@ -32,11 +32,6 @@ const (
 	ContentTypeSubmodule ContentType = "submodule" // submodule content type (submodule)
 )
 
-// String gets the string of ContentType
-func (ct *ContentType) String() string {
-	return string(*ct)
-}
-
 type GetContentsOrListOptions struct {
 	TreePath                 string
 	IncludeSingleFileContent bool // include the file's content when the tree path is a file

@@ -37,18 +37,18 @@
 			</h4>
 
 			<div class="ui attached segment">
-				<div class="flex-list" id="protected-branches-list" data-update-priority-url="{{$.Repository.Link}}/settings/branches/priority">
+				<div class="flex-divided-list items-with-main" id="protected-branches-list" data-update-priority-url="{{$.Repository.Link}}/settings/branches/priority">
 					{{range .ProtectedBranches}}
-						<div class="flex-item tw-items-center item" data-id="{{.ID}}" >
+						<div class="item tw-items-center" data-id="{{.ID}}" >
 							<div class="drag-handle tw-cursor-grab">
 								{{svg "octicon-grabber" 16}}
 							</div>
-							<div class="flex-item-main">
-								<div class="flex-item-title">
+							<div class="item-main">
+								<div class="item-title">
 									<div class="ui basic primary label">{{.RuleName}}</div>
 								</div>
 							</div>
-							<div class="flex-item-trailing">
+							<div class="item-trailing">
 								<a class="ui tiny button" href="{{$.Repository.Link}}/settings/branches/edit?rule_name={{.RuleName}}">{{ctx.Locale.Tr "repo.settings.edit_protected_branch"}}</a>
 								<button class="ui red tiny button link-action" data-modal-confirm="#repo-branch-protection-delete-modal" data-url="{{$.Repository.Link}}/settings/branches/{{.ID}}/delete?id={{.ID}}">
 									{{ctx.Locale.Tr "repo.settings.protected_branch.delete_rule"}}
@@ -56,7 +56,7 @@
 							</div>
 						</div>
 					{{else}}
-						<div class="flex-item tw-text-center">
+						<div class="item tw-text-center">
 							{{ctx.Locale.Tr "repo.settings.no_protected_branch"}}
 						</div>
 					{{end}}

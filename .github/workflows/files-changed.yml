@@ -15,19 +15,24 @@ on:
         value: ${{ jobs.detect.outputs.templates }}
       docker:
         value: ${{ jobs.detect.outputs.docker }}
+      dockerfile:
+        value: ${{ jobs.detect.outputs.dockerfile }}
       swagger:
         value: ${{ jobs.detect.outputs.swagger }}
       yaml:
         value: ${{ jobs.detect.outputs.yaml }}
       json:
         value: ${{ jobs.detect.outputs.json }}
+      e2e:
+        value: ${{ jobs.detect.outputs.e2e }}
+
+permissions:
+  contents: read
 
 jobs:
   detect:
     runs-on: ubuntu-latest
     timeout-minutes: 3
-    permissions:
-      contents: read
     outputs:
       backend: ${{ steps.changes.outputs.backend }}
       frontend: ${{ steps.changes.outputs.frontend }}
@@ -35,12 +40,14 @@ jobs:
       actions: ${{ steps.changes.outputs.actions }}
       templates: ${{ steps.changes.outputs.templates }}
       docker: ${{ steps.changes.outputs.docker }}
+      dockerfile: ${{ steps.changes.outputs.dockerfile }}
       swagger: ${{ steps.changes.outputs.swagger }}
       yaml: ${{ steps.changes.outputs.yaml }}
       json: ${{ steps.changes.outputs.json }}
+      e2e: ${{ steps.changes.outputs.e2e }}
     steps:
-      - uses: actions/checkout@v6
-      - uses: dorny/paths-filter@v4
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+      - uses: dorny/paths-filter@fbd0ab8f3e69293af611ebaee6363fc25e6d187d # v4.0.1
         id: changes
         with:
           filters: |
@@ -91,6 +98,10 @@ jobs:
               - "docker/**"
               - "Makefile"
 
+            dockerfile:
+                - "Dockerfile"
+                - "Dockerfile.rootless"
+
             swagger:
               - "templates/swagger/v1_json.tmpl"
               - "templates/swagger/v1_input.json"
@@ -107,3 +118,8 @@ jobs:
 
             json:
               - "**/*.json"
+
+            e2e:
+              - "tests/e2e/**"
+              - "tools/test-e2e.sh"
+              - "playwright.config.ts"

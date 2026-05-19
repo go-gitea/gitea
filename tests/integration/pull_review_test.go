@@ -264,13 +264,13 @@ func testSubmitReview(t *testing.T, session *TestSession, owner, repo, pullNumbe
 		"type":      reviewType,
 	}
 
-	submitURL := path.Join(owner, repo, "pulls", pullNumber, "files", "reviews", "submit")
+	submitURL := "/" + path.Join(owner, repo, "pulls", pullNumber, "files", "reviews", "submit")
 	req := NewRequestWithValues(t, "POST", submitURL, options)
 	return session.MakeRequest(t, req, expectedSubmitStatus)
 }
 
 func testIssueClose(t *testing.T, session *TestSession, owner, repo, issueNumber string) *httptest.ResponseRecorder {
-	closeURL := path.Join(owner, repo, "issues", issueNumber, "comments")
+	closeURL := "/" + path.Join(owner, repo, "issues", issueNumber, "comments")
 
 	options := map[string]string{
 		"status": "close",

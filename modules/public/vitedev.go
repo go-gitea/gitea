@@ -87,6 +87,7 @@ func getViteDevProxy() *httputil.ReverseProxy {
 // the Vite dev server port from the port file written by the viteDevServerPortPlugin.
 // It is needed because there are container-based development, only Gitea web server's port is exposed.
 func ViteDevMiddleware(next http.Handler) http.Handler {
+	markLongPolling := routing.MarkLongPolling()
 	return http.HandlerFunc(func(resp http.ResponseWriter, req *http.Request) {
 		if !isViteDevRequest(req) {
 			next.ServeHTTP(resp, req)
@@ -97,8 +98,7 @@ func ViteDevMiddleware(next http.Handler) http.Handler {
 			next.ServeHTTP(resp, req)
 			return
 		}
-		routing.MarkLongPolling(resp, req)
-		proxy.ServeHTTP(resp, req)
+		markLongPolling(proxy).ServeHTTP(resp, req)
 	})
 }
 

@@ -40,10 +40,11 @@ func RenderFile(ctx *context.Context) {
 	defer blobReader.Close()
 
 	rctx := renderhelper.NewRenderContextRepoFile(ctx, ctx.Repo.Repository, renderhelper.RepoFileOptions{
-		CurrentRefPath:  ctx.Repo.RefTypeNameSubURL(),
-		CurrentTreePath: path.Dir(ctx.Repo.TreePath),
+		CurrentRefSubURL: ctx.Repo.RefTypeNameSubURL(),
+		CurrentTreePath:  path.Dir(ctx.Repo.TreePath),
 	}).WithRelativePath(ctx.Repo.TreePath).WithStandalonePage(markup.StandalonePageOptions{
-		CurrentWebTheme: ctx.TemplateContext.CurrentWebTheme(),
+		CurrentWebTheme:   ctx.TemplateContext.CurrentWebTheme(),
+		RenderQueryString: ctx.Req.URL.RawQuery,
 	})
 	renderer, rendererInput, err := rctx.DetectMarkupRendererByReader(blobReader)
 	if err != nil {

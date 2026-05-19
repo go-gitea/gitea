@@ -10,9 +10,9 @@ package templates
 import (
 	"sync"
 
-	_ "embed"
-
 	"code.gitea.io/gitea/modules/assetfs"
+
+	_ "embed"
 )
 
 //go:embed bindata.dat

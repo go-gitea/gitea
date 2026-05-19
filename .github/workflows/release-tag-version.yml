@@ -18,16 +18,16 @@ jobs:
       contents: read
       packages: write # to publish to ghcr.io
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
       # fetch all commits instead of only the last as some branches are long lived and could have many between versions
       # fetch all tags to ensure that "git describe" reports expected Gitea version, eg. v1.21.0-dev-1-g1234567
       - run: git fetch --unshallow --quiet --tags --force
-      - uses: actions/setup-go@v6
+      - uses: actions/setup-go@4a3601121dd01d1626a1e23e37211e3254c1c06c # v6.4.0
         with:
           go-version-file: go.mod
           check-latest: true
-      - uses: pnpm/action-setup@v5
-      - uses: actions/setup-node@v6
+      - uses: pnpm/action-setup@fc06bc1257f339d1d5d8b3a19a8cae5388b55320 # v5.0.0
+      - uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e # v6.4.0
         with:
           node-version: 24
           cache: pnpm
@@ -39,7 +39,7 @@ jobs:
           TAGS: bindata sqlite sqlite_unlock_notify
       - name: import gpg key
         id: import_gpg
-        uses: crazy-max/ghaction-import-gpg@v7
+        uses: crazy-max/ghaction-import-gpg@2dc316deee8e90f13e1a351ab510b4d5bc0c82cd # v7.0.0
         with:
           gpg_private_key: ${{ secrets.GPGSIGN_KEY }}
           passphrase: ${{ secrets.GPGSIGN_PASSPHRASE }}
@@ -56,7 +56,7 @@ jobs:
           echo "Cleaned name is ${REF_NAME}"
           echo "branch=${REF_NAME}" >> "$GITHUB_OUTPUT"
       - name: configure aws
-        uses: aws-actions/configure-aws-credentials@v6
+        uses: aws-actions/configure-aws-credentials@ec61189d14ec14c8efccab744f656cffd0e33f37 # v6.1.0
         with:
           aws-region: ${{ secrets.AWS_REGION }}
           aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
@@ -65,7 +65,7 @@ jobs:
         run: |
           aws s3 sync dist/release s3://${{ secrets.AWS_S3_BUCKET }}/gitea/${{ steps.clean_name.outputs.branch }} --no-progress
       - name: Install GH CLI
-        uses: dev-hanz-ops/install-gh-cli-action@v0.2.1
+        uses: dev-hanz-ops/install-gh-cli-action@af38ce09b1ec248aeb08eea2b16bbecea9e059f8 # v0.2.1
         with:
           gh-cli-version: 2.39.1
       - name: create github release
@@ -80,13 +80,13 @@ jobs:
       contents: read
       packages: write # to publish to ghcr.io
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
       # fetch all commits instead of only the last as some branches are long lived and could have many between versions
       # fetch all tags to ensure that "git describe" reports expected Gitea version, eg. v1.21.0-dev-1-g1234567
       - run: git fetch --unshallow --quiet --tags --force
-      - uses: docker/setup-qemu-action@v4
-      - uses: docker/setup-buildx-action@v4
-      - uses: docker/metadata-action@v6
+      - uses: docker/setup-qemu-action@ce360397dd3f832beb865e1373c09c0e9f86d70a # v4.0.0
+      - uses: docker/setup-buildx-action@4d04d5d9486b7bd6fa91e7baf45bbb4f8b9deedd # v4.0.0
+      - uses: docker/metadata-action@030e881283bb7a6894de51c315a6bfe6a94e05cf # v6.0.0
         id: meta
         with:
           images: |-
@@ -103,7 +103,7 @@ jobs:
             type=semver,pattern={{major}}.{{minor}}
           annotations: |
             org.opencontainers.image.authors="maintainers@gitea.io"
-      - uses: docker/metadata-action@v6
+      - uses: docker/metadata-action@030e881283bb7a6894de51c315a6bfe6a94e05cf # v6.0.0
         id: meta_rootless
         with:
           images: |-
@@ -124,18 +124,18 @@ jobs:
           annotations: |
             org.opencontainers.image.authors="maintainers@gitea.io"
       - name: Login to Docker Hub
-        uses: docker/login-action@v4
+        uses: docker/login-action@4907a6ddec9925e35a0a9e82d7399ccc52663121 # v4.1.0
         with:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
       - name: Login to GHCR using PAT
-        uses: docker/login-action@v4
+        uses: docker/login-action@4907a6ddec9925e35a0a9e82d7399ccc52663121 # v4.1.0
         with:
           registry: ghcr.io
           username: ${{ github.repository_owner }}
           password: ${{ secrets.GITHUB_TOKEN }}
       - name: build regular container image
-        uses: docker/build-push-action@v7
+        uses: docker/build-push-action@bcafcacb16a39f128d818304e6c9c0c18556b85f # v7.1.0
         with:
           context: .
           platforms: linux/amd64,linux/arm64,linux/riscv64
@@ -143,7 +143,7 @@ jobs:
           tags: ${{ steps.meta.outputs.tags }}
           annotations: ${{ steps.meta.outputs.annotations }}
       - name: build rootless container image
-        uses: docker/build-push-action@v7
+        uses: docker/build-push-action@bcafcacb16a39f128d818304e6c9c0c18556b85f # v7.1.0
         with:
           context: .
           platforms: linux/amd64,linux/arm64,linux/riscv64

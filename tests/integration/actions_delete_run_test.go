@@ -136,7 +136,7 @@ jobs:
 			runID = run.ID
 		}
 
-		jobs, err := actions_model.GetRunJobsByRunID(t.Context(), runID)
+		jobs, err := actions_model.GetLatestAttemptJobsByRepoAndRunID(t.Context(), apiRepo.ID, runID)
 		assert.NoError(t, err)
 
 		for i := 0; i < len(testCase.outcomes); i++ {

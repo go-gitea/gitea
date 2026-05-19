@@ -51,11 +51,13 @@ func TestAPIIssuesReactions(t *testing.T) {
 		Reaction: "rocket",
 	}).AddTokenAuth(token)
 	resp := MakeRequest(t, req, http.StatusCreated)
-	var apiNewReaction api.Reaction
-	DecodeJSON(t, resp, &apiNewReaction)
+	apiNewReaction := DecodeJSON(t, resp, &api.Reaction{})
 
 	// Add existing reaction
-	MakeRequest(t, req, http.StatusForbidden)
+	req = NewRequestWithJSON(t, "POST", urlStr, &api.EditReactionOption{
+		Reaction: "rocket",
+	}).AddTokenAuth(token)
+	MakeRequest(t, req, http.StatusOK)
 
 	// Blocked user can't react to comment
 	user34 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 34})
@@ -68,15 +70,14 @@ func TestAPIIssuesReactions(t *testing.T) {
 	req = NewRequest(t, "GET", urlStr).
 		AddTokenAuth(token)
 	resp = MakeRequest(t, req, http.StatusOK)
-	var apiReactions []*api.Reaction
-	DecodeJSON(t, resp, &apiReactions)
+	apiReactions := DecodeJSON(t, resp, []*api.Reaction{})
 	expectResponse := make(map[int]api.Reaction)
 	expectResponse[0] = api.Reaction{
 		User:     convert.ToUser(t.Context(), user2, user2),
 		Reaction: "eyes",
 		Created:  time.Unix(1573248003, 0),
 	}
-	expectResponse[1] = apiNewReaction
+	expectResponse[1] = *apiNewReaction
 	assert.Len(t, apiReactions, 2)
 	for i, r := range apiReactions {
 		assert.Equal(t, expectResponse[i].Reaction, r.Reaction)
@@ -138,18 +139,19 @@ func TestAPICommentReactions(t *testing.T) {
 		Reaction: "+1",
 	}).AddTokenAuth(token)
 	resp := MakeRequest(t, req, http.StatusCreated)
-	var apiNewReaction api.Reaction
-	DecodeJSON(t, resp, &apiNewReaction)
+	apiNewReaction := DecodeJSON(t, resp, &api.Reaction{})
 
 	// Add existing reaction
-	MakeRequest(t, req, http.StatusForbidden)
+	req = NewRequestWithJSON(t, "POST", urlStr, &api.EditReactionOption{
+		Reaction: "+1",
+	}).AddTokenAuth(token)
+	MakeRequest(t, req, http.StatusOK)
 
 	// Get end result of reaction list of issue #1
 	req = NewRequest(t, "GET", urlStr).
 		AddTokenAuth(token)
 	resp = MakeRequest(t, req, http.StatusOK)
-	var apiReactions []*api.Reaction
-	DecodeJSON(t, resp, &apiReactions)
+	apiReactions := DecodeJSON(t, resp, []*api.Reaction{})
 	expectResponse := make(map[int]api.Reaction)
 	expectResponse[0] = api.Reaction{
 		User:     convert.ToUser(t.Context(), user2, user2),
@@ -161,7 +163,7 @@ func TestAPICommentReactions(t *testing.T) {
 		Reaction: "laugh",
 		Created:  time.Unix(1573248005, 0),
 	}
-	expectResponse[2] = apiNewReaction
+	expectResponse[2] = *apiNewReaction
 	assert.Len(t, apiReactions, 3)
 	for i, r := range apiReactions {
 		assert.Equal(t, expectResponse[i].Reaction, r.Reaction)

@@ -10,6 +10,7 @@ import (
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unittest"
 	user_model "code.gitea.io/gitea/models/user"
+	"code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/util"
 
 	"github.com/stretchr/testify/assert"
@@ -59,5 +60,12 @@ func TestOrg(t *testing.T) {
 		user := unittest.AssertExistsAndLoadBean(t, &organization.Organization{ID: 5})
 		assert.Error(t, DeleteOrganization(t.Context(), user, false))
 		unittest.CheckConsistencyFor(t, &user_model.User{}, &organization.Team{})
+	})
+
+	t.Run("ChangeVisibilityWithUserFork", func(t *testing.T) {
+		// org 19 has a repository 27 which has a forked repository 29 by user 20
+		org := unittest.AssertExistsAndLoadBean(t, &organization.Organization{ID: 19})
+		require.NoError(t, ChangeOrganizationVisibility(t.Context(), org, structs.VisibleTypePrivate))
+		unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: org.ID, Visibility: structs.VisibleTypePrivate})
 	})
 }

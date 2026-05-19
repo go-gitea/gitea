@@ -115,6 +115,7 @@ func (g *RepositoryDumper) CreateRepo(ctx context.Context, repo *base.Repository
 		"name":         repo.Name,
 		"owner":        repo.Owner,
 		"description":  repo.Description,
+		"website":      repo.Website,
 		"clone_addr":   opts.CloneAddr,
 		"original_url": repo.OriginalURL,
 		"is_private":   opts.Private,

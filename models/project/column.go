@@ -185,7 +185,7 @@ func deleteColumnByID(ctx context.Context, columnID int64) error {
 		return err
 	}
 
-	if err = column.moveIssuesToAnotherColumn(ctx, defaultColumn); err != nil {
+	if err = moveIssuesToAnotherColumn(ctx, column, defaultColumn); err != nil {
 		return err
 	}
 
@@ -334,20 +334,6 @@ func SetDefaultColumn(ctx context.Context, projectID, columnID int64) error {
 			Where(builder.Eq{"project_id": projectID}).
 			Cols("`default`").Update(&Column{Default: true})
 		return err
-	})
-}
-
-// UpdateColumnSorting update project column sorting
-func UpdateColumnSorting(ctx context.Context, cl ColumnList) error {
-	return db.WithTx(ctx, func(ctx context.Context) error {
-		for i := range cl {
-			if _, err := db.GetEngine(ctx).ID(cl[i].ID).Cols(
-				"sorting",
-			).Update(cl[i]); err != nil {
-				return err
-			}
-		}
-		return nil
 	})
 }
 

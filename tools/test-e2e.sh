@@ -95,10 +95,11 @@ GITEA_TEST_E2E_EMAIL="$GITEA_TEST_E2E_USER@$GITEA_TEST_E2E_DOMAIN"
   --must-change-password=false \
   --admin
 
-# timeout multiplier, CI runners are slower
+# timeout multiplier to make the tests pass on slow CI runners while using
+# factor 1 on a fast local machine like a MacBook Pro M1+
 if [ -z "${GITEA_TEST_E2E_TIMEOUT_FACTOR:-}" ]; then
   if [ -n "${CI:-}" ]; then
-    GITEA_TEST_E2E_TIMEOUT_FACTOR=3
+    GITEA_TEST_E2E_TIMEOUT_FACTOR=4
   else
     GITEA_TEST_E2E_TIMEOUT_FACTOR=1
   fi

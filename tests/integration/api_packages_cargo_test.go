@@ -134,8 +134,7 @@ func testPackageCargo(t *testing.T, _ *neturl.URL) {
 				AddBasicAuth(user.Name)
 			resp := MakeRequest(t, req, http.StatusBadRequest)
 
-			var status cargo_router.StatusResponse
-			DecodeJSON(t, resp, &status)
+			status := DecodeJSON(t, resp, &cargo_router.StatusResponse{})
 			assert.False(t, status.OK)
 
 			content = createPackage("test", "-1.0.0")
@@ -144,7 +143,7 @@ func testPackageCargo(t *testing.T, _ *neturl.URL) {
 				AddBasicAuth(user.Name)
 			resp = MakeRequest(t, req, http.StatusBadRequest)
 
-			DecodeJSON(t, resp, &status)
+			status = DecodeJSON(t, resp, &cargo_router.StatusResponse{})
 			assert.False(t, status.OK)
 		})
 
@@ -174,8 +173,7 @@ func testPackageCargo(t *testing.T, _ *neturl.URL) {
 				AddBasicAuth(user.Name)
 			resp := MakeRequest(t, req, http.StatusOK)
 
-			var status cargo_router.StatusResponse
-			DecodeJSON(t, resp, &status)
+			status := DecodeJSON(t, resp, &cargo_router.StatusResponse{})
 			assert.True(t, status.OK)
 
 			pvs, err := packages.GetVersionsByPackageType(t.Context(), user.ID, packages.TypeCargo)
@@ -320,8 +318,7 @@ func testPackageCargo(t *testing.T, _ *neturl.URL) {
 				AddBasicAuth(user.Name)
 			resp := MakeRequest(t, req, http.StatusOK)
 
-			var result cargo_router.SearchResult
-			DecodeJSON(t, resp, &result)
+			result := DecodeJSON(t, resp, &cargo_router.SearchResult{})
 
 			assert.Equal(t, c.ExpectedTotal, result.Meta.Total, "case %d: unexpected total hits", i)
 			assert.Len(t, result.Crates, c.ExpectedResults, "case %d: unexpected result count", i)
@@ -335,8 +332,7 @@ func testPackageCargo(t *testing.T, _ *neturl.URL) {
 			AddBasicAuth(user.Name)
 		resp := MakeRequest(t, req, http.StatusOK)
 
-		var status cargo_router.StatusResponse
-		DecodeJSON(t, resp, &status)
+		status := DecodeJSON(t, resp, &cargo_router.StatusResponse{})
 		assert.True(t, status.OK)
 
 		content := readGitContent(t, cargo_service.BuildPackagePath(packageName))
@@ -355,8 +351,7 @@ func testPackageCargo(t *testing.T, _ *neturl.URL) {
 			AddBasicAuth(user.Name)
 		resp := MakeRequest(t, req, http.StatusOK)
 
-		var status cargo_router.StatusResponse
-		DecodeJSON(t, resp, &status)
+		status := DecodeJSON(t, resp, &cargo_router.StatusResponse{})
 		assert.True(t, status.OK)
 
 		content := readGitContent(t, cargo_service.BuildPackagePath(packageName))
@@ -374,8 +369,7 @@ func testPackageCargo(t *testing.T, _ *neturl.URL) {
 		req := NewRequest(t, "GET", fmt.Sprintf("%s/%s/owners", url, neturl.PathEscape(packageName)))
 		resp := MakeRequest(t, req, http.StatusOK)
 
-		var owners cargo_router.Owners
-		DecodeJSON(t, resp, &owners)
+		owners := DecodeJSON(t, resp, &cargo_router.Owners{})
 
 		assert.Len(t, owners.Users, 1)
 		assert.Equal(t, user.ID, owners.Users[0].ID)

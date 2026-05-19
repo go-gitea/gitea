@@ -30,7 +30,7 @@
 							{{$commitBaseLink = printf "%s/wiki/commit" $commitRepoLink}}
 						{{else if $.PageIsPullCommits}}
 							{{$commitBaseLink = printf "%s/pulls/%d/commits" $commitRepoLink $.Issue.Index}}
-						{{else if $.Reponame}}
+						{{else}}
 							{{$commitBaseLink = printf "%s/commit" $commitRepoLink}}
 						{{end}}
 						{{template "repo/commit_sign_badge" dict "Commit" . "CommitBaseLink" $commitBaseLink "CommitSignVerification" .Verification}}

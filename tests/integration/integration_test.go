@@ -87,16 +87,19 @@ func testMain(m *testing.M) int {
 	graceful.InitManager(managerCtx)
 	defer cancel()
 
-	tests.InitTest()
+	err := tests.InitIntegrationTest()
+	if err != nil {
+		return testlogger.MainErrorf("InitTest error: %v", err)
+	}
 	testWebRoutes = routers.NormalRoutes()
 
-	err := unittest.InitFixtures(
+	err = unittest.InitFixtures(
 		unittest.FixturesOptions{
-			Dir: filepath.Join(filepath.Dir(setting.AppPath), "models/fixtures/"),
+			Dir: filepath.Join(setting.GetGiteaTestSourceRoot(), "models/fixtures/"),
 		},
 	)
 	if err != nil {
-		testlogger.Panicf("InitFixtures: %v", err)
+		return testlogger.MainErrorf("InitFixtures: %v", err)
 	}
 
 	// FIXME: the console logger is deleted by mistake, so if there is any `log.Fatal`, developers won't see any error message.
@@ -323,13 +326,17 @@ func NewRequestWithJSON(t testing.TB, method, urlStr string, v any) *RequestWrap
 
 func NewRequestWithBody(t testing.TB, method, urlStr string, body io.Reader) *RequestWrapper {
 	t.Helper()
-	if !strings.HasPrefix(urlStr, "http") && !strings.HasPrefix(urlStr, "/") {
-		urlStr = "/" + urlStr
+	if !strings.HasPrefix(urlStr, "http:") && !strings.HasPrefix(urlStr, "https:") && !strings.HasPrefix(urlStr, "/") {
+		t.Fatalf("invalid url str: %s", urlStr)
 	}
 	req, err := http.NewRequest(method, urlStr, body)
 	require.NoError(t, err)
 	if req.URL.User != nil {
 		req.Header.Set("Authorization", "Basic "+base64.StdEncoding.EncodeToString([]byte(req.URL.User.String())))
+	}
+	req.RequestURI = req.URL.Path
+	if req.URL.RawQuery != "" {
+		req.RequestURI += "?" + req.URL.RawQuery
 	}
 	return &RequestWrapper{req}
 }
@@ -404,7 +411,7 @@ func logUnexpectedResponse(t testing.TB, recorder *httptest.ResponseRecorder) {
 	if err != nil {
 		return // probably a non-HTML response
 	}
-	errMsg := htmlDoc.Find(".ui.negative.message").Text()
+	errMsg := htmlDoc.Find(".ui.negative.message:not(.tw-hidden)").Text()
 	if len(errMsg) > 0 {
 		t.Log("A flash error message was found:", errMsg)
 	}

@@ -1568,8 +1568,7 @@ jobs:
 				Name: new("close-pull-request-with-path-fork"),
 			}).AddTokenAuth(user4Token)
 		resp := MakeRequest(t, req, http.StatusAccepted)
-		var apiForkRepo api.Repository
-		DecodeJSON(t, resp, &apiForkRepo)
+		apiForkRepo := DecodeJSON(t, resp, &api.Repository{})
 		forkRepo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: apiForkRepo.ID})
 		user4APICtx := NewAPITestContext(t, user4.Name, forkRepo.Name, auth_model.AccessTokenScopeWriteRepository)
 

@@ -5,6 +5,7 @@ package templates
 
 import (
 	"context"
+	"fmt"
 	"html/template"
 	"io"
 	"net/http"
@@ -36,7 +37,11 @@ func (r *pageRenderer) funcMapDummy() template.FuncMap {
 }
 
 func (r *pageRenderer) TemplateLookup(tmpl string, templateCtx context.Context) (TemplateExecutor, error) { //nolint:revive // we don't use ctx, only pass it to the template executor
-	return r.tmplRenderer.Templates().Executor(tmpl, r.funcMap(templateCtx))
+	tmpls := r.tmplRenderer.Templates()
+	if tmpls == nil {
+		return nil, fmt.Errorf("no templates defined for %s", tmpl)
+	}
+	return tmpls.Executor(tmpl, r.funcMap(templateCtx))
 }
 
 func (r *pageRenderer) HTML(w io.Writer, status int, tplName TplName, data any, templateCtx context.Context) error { //nolint:revive // we don't use ctx, only pass it to the template executor

@@ -8,13 +8,19 @@ description: |
 
 icon: public/assets/img/logo.png
 confinement: strict
-base: core22
+base: core24
 adopt-info: gitea
 
-architectures:
-  - build-on: armhf
-  - build-on: amd64
-  - build-on: arm64
+platforms:
+  armhf:
+    build-on: [armhf]
+    build-for: [armhf]
+  amd64:
+    build-on: [amd64]
+    build-for: [amd64]
+  arm64:
+    build-on: [arm64]
+    build-for: [arm64]
 
 environment:
   GITEA_CUSTOM: "$SNAP_COMMON"

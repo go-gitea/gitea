@@ -101,6 +101,7 @@ func (g *GiteaLocalUploader) CreateRepo(ctx context.Context, repo *base.Reposito
 		r, err = repo_service.CreateRepositoryDirectly(ctx, g.doer, owner, repo_service.CreateRepoOptions{
 			Name:           g.repoName,
 			Description:    repo.Description,
+			Website:        repo.Website,
 			OriginalURL:    repo.OriginalURL,
 			GitServiceType: opts.GitServiceType,
 			IsPrivate:      opts.Private || setting.Repository.ForcePrivate,
@@ -115,6 +116,7 @@ func (g *GiteaLocalUploader) CreateRepo(ctx context.Context, repo *base.Reposito
 	}
 	r.DefaultBranch = repo.DefaultBranch
 	r.Description = repo.Description
+	r.Website = repo.Website
 
 	r, err = repo_service.MigrateRepositoryGitData(ctx, owner, r, base.MigrateOptions{
 		RepoName:       g.repoName,

@@ -198,6 +198,23 @@ func PackageVersionMetadata(ctx *context.Context) {
 	}
 
 	metadata := pd.Metadata.(*swift_module.Metadata)
+	repositoryURLs := make([]string, 0, len(pd.VersionProperties))
+	for _, property := range pd.VersionProperties {
+		if property.Name == swift_module.PropertyRepositoryURL {
+			repositoryURLs = append(repositoryURLs, property.Value)
+		}
+	}
+
+	var author *swift_module.Person
+	if metadata.Author.Name != "" || metadata.Author.GivenName != "" || metadata.Author.MiddleName != "" || metadata.Author.FamilyName != "" {
+		author = &swift_module.Person{
+			Type:       "Person",
+			Name:       metadata.Author.Name,
+			GivenName:  metadata.Author.GivenName,
+			MiddleName: metadata.Author.MiddleName,
+			FamilyName: metadata.Author.FamilyName,
+		}
+	}
 
 	setResponseHeaders(ctx.Resp, &headers{})
 
@@ -220,18 +237,14 @@ func PackageVersionMetadata(ctx *context.Context) {
 			Keywords:       metadata.Keywords,
 			CodeRepository: metadata.RepositoryURL,
 			License:        metadata.License,
+			LicenseURL:     metadata.LicenseURL,
+			Author:         author,
 			ProgrammingLanguage: swift_module.ProgrammingLanguage{
 				Type: "ComputerLanguage",
 				Name: "Swift",
 				URL:  "https://swift.org",
 			},
-			Author: swift_module.Person{
-				Type:       "Person",
-				Name:       metadata.Author.String(),
-				GivenName:  metadata.Author.GivenName,
-				MiddleName: metadata.Author.MiddleName,
-				FamilyName: metadata.Author.FamilyName,
-			},
+			RepositoryURLs: repositoryURLs,
 		},
 	})
 }

@@ -37,6 +37,42 @@ type ServeHeaderOptions struct {
 	LastModified  time.Time
 }
 
+const (
+	// Disable JS execution on the same origin, since we serve the file from the same origin as Gitea server.
+	// This rule can be relaxed in the future as long as it is properly sandboxed.
+	// "style-src" is for SVG inline styles (from Display SVG files as images instead of text #14101)
+	serveHeaderCspDefault = "default-src 'none'; style-src 'unsafe-inline'; sandbox"
+
+	// No sandbox attribute for PDF as it breaks rendering in at least Safari.
+	// This should generally be safe as scripts inside PDF can not escape the PDF document.
+	// See https://bugs.chromium.org/p/chromium/issues/detail?id=413851 for more discussion.
+	// HINT: PDF-RENDER-SANDBOX: PDF won't render in sandboxed context
+	serveHeaderCspPdf = "default-src 'none'; style-src 'unsafe-inline'"
+
+	// For audios and videos, actually it doesn't really need CSP (just like Gitea <= 1.25)
+	serveHeaderCspAudioVideo = ""
+)
+
+func serveSetHeaderContentRelated(w http.ResponseWriter, contentType string) {
+	header := w.Header()
+	contentType = util.IfZero(contentType, typesniffer.MimeTypeApplicationOctetStream)
+	header.Set("Content-Type", contentType)
+	header.Set("X-Content-Type-Options", "nosniff")
+
+	csp := serveHeaderCspDefault
+	if strings.HasPrefix(contentType, "application/pdf") {
+		csp = serveHeaderCspPdf
+	}
+	if strings.HasPrefix(contentType, "video/") || strings.HasPrefix(contentType, "audio/") {
+		csp = serveHeaderCspAudioVideo
+	}
+	if csp != "" {
+		header.Set("Content-Security-Policy", csp)
+	} else {
+		header.Del("Content-Security-Policy")
+	}
+}
+
 // ServeSetHeaders sets necessary content serve headers
 func ServeSetHeaders(w http.ResponseWriter, opts ServeHeaderOptions) {
 	header := w.Header()
@@ -46,24 +82,11 @@ func ServeSetHeaders(w http.ResponseWriter, opts ServeHeaderOptions) {
 		w.Header().Add(gzhttp.HeaderNoCompression, "1")
 	}
 
-	contentType := util.IfZero(opts.ContentType, typesniffer.MimeTypeApplicationOctetStream)
-	header.Set("Content-Type", contentType)
-	header.Set("X-Content-Type-Options", "nosniff")
+	serveSetHeaderContentRelated(w, opts.ContentType)
 
 	if opts.ContentLength != nil {
 		header.Set("Content-Length", strconv.FormatInt(*opts.ContentLength, 10))
 	}
-
-	// Disable script execution of HTML/SVG files, since we serve the file from the same origin as Gitea server
-	header.Set("Content-Security-Policy", "default-src 'none'; style-src 'unsafe-inline'; sandbox")
-	if strings.Contains(contentType, "application/pdf") {
-		// no sandbox attribute for PDF as it breaks rendering in at least safari. this
-		// should generally be safe as scripts inside PDF can not escape the PDF document
-		// see https://bugs.chromium.org/p/chromium/issues/detail?id=413851 for more discussion
-		// HINT: PDF-RENDER-SANDBOX: PDF won't render in sandboxed context
-		header.Set("Content-Security-Policy", "default-src 'none'; style-src 'unsafe-inline'")
-	}
-
 	if opts.Filename != "" && opts.ContentDisposition != "" {
 		header.Set("Content-Disposition", encodeContentDisposition(opts.ContentDisposition, path.Base(opts.Filename)))
 		header.Set("Access-Control-Expose-Headers", "Content-Disposition")

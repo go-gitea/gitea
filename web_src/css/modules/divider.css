@@ -36,3 +36,11 @@ h4.divider {
 .divider.divider-text::after {
   margin-left: .75em;
 }
+
+.inline-divider {
+  display: inline-block;
+  border-left: 1px solid var(--color-secondary);
+  overflow: hidden;
+  width: 1px;
+  margin: 0 var(--gap-inline);
+}
