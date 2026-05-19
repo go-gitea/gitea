@@ -593,15 +593,12 @@ AZURE_BLOB_BASE_PATH = /lfs
 }
 
 func Test_getStorageDeprecatedMinioKeys(t *testing.T) {
-	resetStartupProblems := func(t *testing.T) {
-		t.Helper()
-		saved := StartupProblems
-		StartupProblems = nil
-		t.Cleanup(func() { StartupProblems = saved })
-	}
-
 	t.Run("legacy MINIO_ keys still populate config", func(t *testing.T) {
-		resetStartupProblems(t)
+		savedProblems := StartupProblems
+		StartupProblems = nil
+		defer func() { StartupProblems = savedProblems }()
+
+		legacyKeys := []string{"MINIO_ENDPOINT", "MINIO_ACCESS_KEY_ID", "MINIO_SECRET_ACCESS_KEY", "MINIO_BUCKET", "MINIO_BASE_PATH", "MINIO_USE_SSL"}
 		cfg, err := NewConfigProviderFromData(`
 [storage]
 STORAGE_TYPE = minio
@@ -623,13 +620,13 @@ MINIO_USE_SSL = true
 
 		joined := strings.Join(StartupProblems, "\n")
 		assert.Contains(t, joined, "STORAGE_TYPE = minio")
-		assert.Contains(t, joined, "MINIO_ENDPOINT")
-		assert.Contains(t, joined, "MINIO_BUCKET")
-		assert.Contains(t, joined, minioToS3RemovalVersion)
+		for _, k := range legacyKeys {
+			assert.Contains(t, joined, k, "expected deprecation warning for %s", k)
+		}
+		assert.Contains(t, joined, MinioToS3RemovalVersion)
 	})
 
 	t.Run("S3_ takes precedence when both are set", func(t *testing.T) {
-		resetStartupProblems(t)
 		cfg, err := NewConfigProviderFromData(`
 [storage]
 STORAGE_TYPE = minio
