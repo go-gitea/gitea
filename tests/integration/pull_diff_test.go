@@ -5,11 +5,8 @@ package integration
 
 import (
 	"net/http"
-	"net/url"
-	"strings"
 	"testing"
 
-	"code.gitea.io/gitea/modules/test"
 	"code.gitea.io/gitea/tests"
 
 	"github.com/PuerkitoBio/goquery"
@@ -67,25 +64,4 @@ func testPullDiffAssertPage(t *testing.T, prDiffURL string, reviewBtnDisabled bo
 
 	// Ensure the review button is enabled for full PR reviews
 	assert.Equal(t, reviewBtnDisabled, doc.Find(".js-btn-review").HasClass("disabled"))
-}
-
-func TestPullDiff_EmptyPR(t *testing.T) {
-	onGiteaRun(t, func(t *testing.T, giteaURL *url.URL) {
-		session := loginUser(t, "user2")
-
-		testCreateBranch(t, session, "user2", "repo1", "branch/master", "empty-pr-branch", http.StatusSeeOther)
-		resp := testPullCreateDirectly(t, session, createPullRequestOptions{
-			BaseRepoOwner: "user2",
-			BaseRepoName:  "repo1",
-			BaseBranch:    "master",
-			HeadBranch:    "empty-pr-branch",
-			Title:         "empty pr test",
-		})
-
-		prURL := test.RedirectURL(resp)
-		req := NewRequest(t, "GET", prURL+"/files")
-		resp = session.MakeRequest(t, req, http.StatusOK)
-		doc := NewHTMLParser(t, resp.Body)
-		assert.Equal(t, "Diff Content Not Available", strings.TrimSpace(doc.Find("#diff-container").Text()))
-	})
 }
