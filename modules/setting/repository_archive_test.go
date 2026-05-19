@@ -49,7 +49,7 @@ STORAGE_TYPE = s3
 	assert.EqualValues(t, "s3", RepoArchive.Storage.Type)
 	assert.Equal(t, "repo-archive/", RepoArchive.Storage.S3Config.BasePath)
 
-	// or we can indicate the storage type  and S3 base path in the packages section
+	// or we can indicate the storage type and S3 base path in the packages section
 	iniStr = `
 [repo-archive]
 STORAGE_TYPE = my_s3

@@ -70,7 +70,7 @@ STORAGE_TYPE = s3
 	assert.EqualValues(t, "s3", Packages.Storage.Type)
 	assert.Equal(t, "packages/", Packages.Storage.S3Config.BasePath)
 
-	// or we can indicate the storage type  and S3 base path in the packages section
+	// or we can indicate the storage type and S3 base path in the packages section
 	iniStr = `
 [packages]
 STORAGE_TYPE = my_s3
