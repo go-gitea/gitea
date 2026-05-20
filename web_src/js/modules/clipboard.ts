@@ -28,17 +28,11 @@ export async function copyToClipboard(content: ClippieContent | (() => Promise<C
         }
       }
     }
-    if (content) success = await clippie(content);
+    success = await clippie(content);
   } catch (err) {
     console.error(err);
   }
-  if (target) {
-    if (content) {
-      showCopyFeedback(target, success);
-    } else {
-      pendingFeedback.delete(target);
-    }
-  }
+  if (target) showCopyFeedback(target, success);
   return success;
 }
 
@@ -89,12 +83,12 @@ export function initGlobalCopyToClipboardListener() {
       }
     }
 
-    if (text && target.getAttribute('data-clipboard-text-type') === 'url') {
+    if (text === null) return;
+
+    if (target.getAttribute('data-clipboard-text-type') === 'url') {
       text = toAbsoluteUrl(text);
     }
 
-    if (text) {
-      await copyToClipboard(text, target);
-    }
+    await copyToClipboard(text, target);
   });
 }
