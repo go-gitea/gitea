@@ -278,10 +278,11 @@ function appendLogs(stepIndex: number, startTime: number, logLines: LogLine[]) {
   }
 }
 
-// cursor is used to indicate the last position of the logs
-// it's only used by backend, frontend just reads it and passes it back, it can be any type.
-// for example: make cursor=null means the first time to fetch logs, cursor=eof means no more logs, etc
-type LogCursor = {step: number, cursor: string | null, expanded: boolean};
+// "cursor" is used to indicate the last position of the logs.
+// It's only used by backend, frontend just reads it and passes it back, it can be any type.
+// Frontend knows nothing about its type, never uses its value.
+// For example: backend can make cursor=null means the first time to fetch logs, cursor=1234 for a position, cursor=eof for no more logs, etc.
+type LogCursor = {step: number, cursor: any, expanded: boolean};
 
 async function fetchJobData(logCursors: LogCursor[], signal?: AbortSignal): Promise<JobData> {
   const resp = await POST(props.actionsViewUrl, {signal, data: {logCursors}});
