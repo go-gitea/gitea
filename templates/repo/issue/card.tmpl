@@ -64,7 +64,7 @@
 	{{if or .Labels .Assignees}}
 	<div class="issue-card-bottom">
 		{{/* the labels container must always be present, to help the assignees list right-aligned */}}
-		<div class="issue-card-bottom-part labels-list flex-items-block">
+		<div class="issue-card-bottom-part labels-list">
 			{{range $label := .Labels}}
 				{{$link := print $.Issue.Repo.Link "/issues"}}
 				{{$link = QueryBuild $link "labels" $label.ID}}
