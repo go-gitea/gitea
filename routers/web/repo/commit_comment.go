@@ -69,8 +69,6 @@ func CreateCommitComment(ctx *context.Context) {
 	}
 	fullSHA := commit.ID.String()
 
-	// Generate diff context patch around the commented line
-	var patch string
 	var parentSHA string
 	if commit.ParentCount() > 0 {
 		parentID, err := commit.ParentID(0)
@@ -78,6 +76,20 @@ func CreateCommitComment(ctx *context.Context) {
 			parentSHA = parentID.String()
 		}
 	}
+
+	// Root commits (no parent) only have a "new" side, so reject any
+	// comment that targets the old side of a non-existent diff.
+	if parentSHA == "" && line < 0 {
+		ctx.JSONError("cannot comment on the previous side of a root commit")
+		return
+	}
+
+	// Generate diff context patch around the commented line. For commits
+	// with a parent we diff against it; for root commits we still
+	// validate against the file tree via the unchanged-line fallback so
+	// that a crafted POST cannot create an invisible comment with no
+	// real coordinate.
+	var patch string
 	if parentSHA != "" {
 		absLine := line
 		isOld := line < 0
@@ -91,19 +103,15 @@ func CreateCommitComment(ctx *context.Context) {
 		if err != nil {
 			log.Debug("GetFileDiffCutAroundLine failed for commit comment: %v", err)
 		}
-		if patch == "" {
-			patch, err = gitdiff.GeneratePatchForUnchangedLine(ctx.Repo.GitRepo, fullSHA, treePath, line, setting.UI.CodeCommentLines)
-			if err != nil {
-				log.Debug("GeneratePatchForUnchangedLine failed for commit comment: %v", err)
-			}
+	}
+	if patch == "" {
+		patch, err = gitdiff.GeneratePatchForUnchangedLine(ctx.Repo.GitRepo, fullSHA, treePath, line, setting.UI.CodeCommentLines)
+		if err != nil {
+			log.Debug("GeneratePatchForUnchangedLine failed for commit comment: %v", err)
 		}
 	}
 
-	// Reject coordinates that don't resolve to a real diff line. Without
-	// this a crafted POST can create invisible comments and mention-spam the
-	// repo with notifications that link to nothing. Commits with no parent
-	// (initial commit) have no diff so we skip the check for that case.
-	if parentSHA != "" && patch == "" {
+	if patch == "" {
 		ctx.JSONError("comment coordinates do not resolve to a line in this commit")
 		return
 	}
