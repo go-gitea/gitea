@@ -24592,6 +24592,16 @@
           "x-go-enum-desc": "read RepoWritePermissionRead\nwrite RepoWritePermissionWrite\nadmin RepoWritePermissionAdmin",
           "x-go-name": "Permission"
         },
+        "privacy": {
+          "description": "Team privacy within the organization. Defaults to \"secret\".\nsecret TeamPrivacySecret\nclosed TeamPrivacyClosed",
+          "type": "string",
+          "enum": [
+            "secret",
+            "closed"
+          ],
+          "x-go-enum-desc": "secret TeamPrivacySecret\nclosed TeamPrivacyClosed",
+          "x-go-name": "Privacy"
+        },
         "units": {
           "type": "array",
           "items": {
@@ -25741,6 +25751,16 @@
           ],
           "x-go-enum-desc": "read RepoWritePermissionRead\nwrite RepoWritePermissionWrite\nadmin RepoWritePermissionAdmin",
           "x-go-name": "Permission"
+        },
+        "privacy": {
+          "description": "Team privacy within the organization. When omitted, privacy is left\nunchanged.\nsecret TeamPrivacySecret\nclosed TeamPrivacyClosed",
+          "type": "string",
+          "enum": [
+            "secret",
+            "closed"
+          ],
+          "x-go-enum-desc": "secret TeamPrivacySecret\nclosed TeamPrivacyClosed",
+          "x-go-name": "Privacy"
         },
         "units": {
           "type": "array",
@@ -29568,6 +29588,16 @@
           ],
           "x-go-enum-desc": "none AccessLevelNameNone\nread AccessLevelNameRead\nwrite AccessLevelNameWrite\nadmin AccessLevelNameAdmin\nowner AccessLevelNameOwner",
           "x-go-name": "Permission"
+        },
+        "privacy": {
+          "description": "Team privacy within the organization. \"secret\" teams are only listable\nby members and org owners; \"closed\" teams are listable by any\norganization member.\nsecret TeamPrivacySecret\nclosed TeamPrivacyClosed",
+          "type": "string",
+          "enum": [
+            "secret",
+            "closed"
+          ],
+          "x-go-enum-desc": "secret TeamPrivacySecret\nclosed TeamPrivacyClosed",
+          "x-go-name": "Privacy"
         },
         "units": {
           "type": "array",

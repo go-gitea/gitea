@@ -76,11 +76,12 @@ func Teams(ctx *context.Context) {
 			return nil, 0, err
 		}
 		opts := &org_model.SearchTeamOptions{
-			OrgID:       org.ID,
-			UserID:      util.Iif(shouldSeeAllOrgTeams, 0, ctx.Doer.ID),
-			Keyword:     keyword,
-			IncludeDesc: true,
-			ListOptions: db.ListOptions{Page: page, PageSize: pagingNum},
+			OrgID:          org.ID,
+			UserID:         util.Iif(shouldSeeAllOrgTeams, 0, ctx.Doer.ID),
+			Keyword:        keyword,
+			IncludeDesc:    true,
+			IncludeVisible: !shouldSeeAllOrgTeams && ctx.Org.IsMember,
+			ListOptions:    db.ListOptions{Page: page, PageSize: pagingNum},
 		}
 		return org_model.SearchTeam(ctx, opts)
 	}
@@ -377,6 +378,7 @@ func NewTeamPost(ctx *context.Context) {
 		AccessMode:              teamPermission,
 		IncludesAllRepositories: includesAllRepositories,
 		CanCreateOrgRepo:        form.CanCreateOrgRepo,
+		Privacy:                 org_model.NormalizeTeamPrivacy(form.Privacy),
 	}
 
 	units := make([]*org_model.TeamUnit, 0, len(unitPerms))
@@ -556,8 +558,11 @@ func EditTeamPost(ctx *context.Context) {
 			t.IncludesAllRepositories = includesAllRepositories
 		}
 		t.CanCreateOrgRepo = form.CanCreateOrgRepo
+		t.Privacy = org_model.NormalizeTeamPrivacy(form.Privacy)
 	} else {
 		t.CanCreateOrgRepo = true
+		// The owner team must remain listable to all org members.
+		t.Privacy = org_model.TeamPrivacyClosed
 	}
 
 	t.Description = form.Description

@@ -70,6 +70,14 @@ func (err ErrTeamNotExist) Unwrap() error {
 // OwnerTeamName return the owner team name
 const OwnerTeamName = "Owners"
 
+// Team privacy values, matching the GitHub Teams API. "secret" teams are
+// only visible to members and org owners (legacy behavior); "closed" teams
+// are listable by any member of the parent organization.
+const (
+	TeamPrivacySecret = "secret"
+	TeamPrivacyClosed = "closed"
+)
+
 // Team represents a organization team.
 type Team struct {
 	ID                      int64 `xorm:"pk autoincr"`
@@ -84,6 +92,22 @@ type Team struct {
 	Units                   []*TeamUnit `xorm:"-"`
 	IncludesAllRepositories bool        `xorm:"NOT NULL DEFAULT false"`
 	CanCreateOrgRepo        bool        `xorm:"NOT NULL DEFAULT false"`
+	Privacy                 string      `xorm:"'team_privacy' VARCHAR(16) NOT NULL DEFAULT 'secret'"`
+}
+
+// IsVisible reports whether the team can be listed by org members who are not
+// members of the team itself. Equivalent to Privacy == "closed".
+func (t *Team) IsVisible() bool {
+	return t.Privacy == TeamPrivacyClosed
+}
+
+// NormalizeTeamPrivacy returns a valid privacy value. Any input other than
+// "closed" is normalized to "secret".
+func NormalizeTeamPrivacy(s string) string {
+	if s == TeamPrivacyClosed {
+		return TeamPrivacyClosed
+	}
+	return TeamPrivacySecret
 }
 
 func init() {

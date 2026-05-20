@@ -27,6 +27,28 @@ import (
 	repo_service "code.gitea.io/gitea/services/repository"
 )
 
+// applyTeamVisibilityFilter narrows opts to the set of teams the caller is
+// entitled to see. Privileged callers (site admins and org owners) are left
+// unfiltered — they already see every team in the org. Other org members are
+// restricted to teams they belong to plus teams marked visible to all org
+// members (UserID + IncludeVisible together express that union in
+// SearchTeamOptions).
+func applyTeamVisibilityFilter(ctx *context.APIContext, opts *organization.SearchTeamOptions) error {
+	if ctx.Doer.IsAdmin {
+		return nil
+	}
+	isOwner, err := organization.IsOrganizationOwner(ctx, ctx.Org.Organization.ID, ctx.Doer.ID)
+	if err != nil {
+		return err
+	}
+	if isOwner {
+		return nil
+	}
+	opts.UserID = ctx.Doer.ID
+	opts.IncludeVisible = true
+	return nil
+}
+
 // ListTeams list all the teams of an organization
 func ListTeams(ctx *context.APIContext) {
 	// swagger:operation GET /orgs/{org}/teams organization orgListTeams
@@ -55,10 +77,15 @@ func ListTeams(ctx *context.APIContext) {
 	//     "$ref": "#/responses/notFound"
 
 	listOptions := utils.GetListOptions(ctx)
-	teams, count, err := organization.SearchTeam(ctx, &organization.SearchTeamOptions{
+	opts := &organization.SearchTeamOptions{
 		ListOptions: listOptions,
 		OrgID:       ctx.Org.Organization.ID,
-	})
+	}
+	if err := applyTeamVisibilityFilter(ctx, opts); err != nil {
+		ctx.APIErrorInternal(err)
+		return
+	}
+	teams, count, err := organization.SearchTeam(ctx, opts)
 	if err != nil {
 		ctx.APIErrorInternal(err)
 		return
@@ -218,6 +245,7 @@ func CreateTeam(ctx *context.APIContext) {
 		IncludesAllRepositories: form.IncludesAllRepositories,
 		CanCreateOrgRepo:        form.CanCreateOrgRepo,
 		AccessMode:              teamPermission,
+		Privacy:                 organization.NormalizeTeamPrivacy(string(form.Privacy)),
 	}
 
 	if team.AccessMode < perm.AccessModeAdmin {
@@ -293,6 +321,10 @@ func EditTeam(ctx *context.APIContext) {
 
 	if form.Description != nil {
 		team.Description = *form.Description
+	}
+
+	if form.Privacy != nil && !team.IsOwnerTeam() {
+		team.Privacy = organization.NormalizeTeamPrivacy(string(*form.Privacy))
 	}
 
 	isAuthChanged := false
@@ -806,9 +838,9 @@ func SearchTeam(ctx *context.APIContext) {
 		ListOptions: listOptions,
 	}
 
-	// Only admin is allowed to search for all teams
-	if !ctx.Doer.IsAdmin {
-		opts.UserID = ctx.Doer.ID
+	if err := applyTeamVisibilityFilter(ctx, opts); err != nil {
+		ctx.APIErrorInternal(err)
+		return
 	}
 
 	teams, maxResults, err := organization.SearchTeam(ctx, opts)

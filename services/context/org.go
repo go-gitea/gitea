@@ -187,9 +187,13 @@ func OrgAssignment(orgAssignmentOpts OrgAssignmentOptions) func(ctx *Context) {
 					return
 				}
 			} else {
-				ctx.Org.Teams, err = org.GetUserTeams(ctx, ctx.Doer.ID)
+				ctx.Org.Teams, _, err = organization.SearchTeam(ctx, &organization.SearchTeamOptions{
+					OrgID:          org.ID,
+					UserID:         ctx.Doer.ID,
+					IncludeVisible: true,
+				})
 				if err != nil {
-					ctx.ServerError("GetUserTeams", err)
+					ctx.ServerError("SearchTeam", err)
 					return
 				}
 			}
@@ -203,7 +207,6 @@ func OrgAssignment(orgAssignmentOpts OrgAssignmentOptions) func(ctx *Context) {
 				if strings.EqualFold(team.LowerName, teamName) {
 					teamExists = true
 					ctx.Org.Team = team
-					ctx.Org.IsTeamMember = true
 					ctx.Data["Team"] = ctx.Org.Team
 					break
 				}
@@ -214,13 +217,23 @@ func OrgAssignment(orgAssignmentOpts OrgAssignmentOptions) func(ctx *Context) {
 				return
 			}
 
+			// Membership in a visible team is not implied by its presence in
+			// ctx.Org.Teams; admins/org owners keep the privileged flag set
+			// earlier in this function.
+			if !ctx.Org.IsOwner {
+				ctx.Org.IsTeamMember, err = organization.IsTeamMember(ctx, org.ID, ctx.Org.Team.ID, ctx.Doer.ID)
+				if err != nil {
+					ctx.ServerError("IsTeamMember", err)
+					return
+				}
+			}
 			ctx.Data["IsTeamMember"] = ctx.Org.IsTeamMember
 			if opts.RequireTeamMember && !ctx.Org.IsTeamMember {
 				ctx.NotFound(err)
 				return
 			}
 
-			ctx.Org.IsTeamAdmin = ctx.Org.Team.IsOwnerTeam() || ctx.Org.Team.HasAdminAccess()
+			ctx.Org.IsTeamAdmin = ctx.Org.IsOwner || (ctx.Org.IsTeamMember && (ctx.Org.Team.IsOwnerTeam() || ctx.Org.Team.HasAdminAccess()))
 			ctx.Data["IsTeamAdmin"] = ctx.Org.IsTeamAdmin
 			if opts.RequireTeamAdmin && !ctx.Org.IsTeamAdmin {
 				ctx.NotFound(err)

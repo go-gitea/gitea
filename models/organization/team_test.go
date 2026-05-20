@@ -172,6 +172,56 @@ func TestGetUserOrgTeams(t *testing.T) {
 	test(3, unittest.NonexistentID)
 }
 
+func TestSearchTeamIncludeVisible(t *testing.T) {
+	assert.NoError(t, unittest.PrepareTestDatabase())
+
+	const orgID int64 = 3
+	// User 5 is an org member but only belongs to team 1 (Owners) — make sure
+	// they don't see team 2 (default secret) but do see a freshly added visible
+	// team they are not a member of.
+	visible := &organization.Team{
+		OrgID:      orgID,
+		LowerName:  "visible-team",
+		Name:       "visible-team",
+		AccessMode: 1, // read
+		Privacy:    organization.TeamPrivacyClosed,
+	}
+	assert.NoError(t, db.Insert(t.Context(), visible))
+	t.Cleanup(func() {
+		_, _ = db.GetEngine(t.Context()).ID(visible.ID).Delete(&organization.Team{})
+	})
+
+	teams, _, err := organization.SearchTeam(t.Context(), &organization.SearchTeamOptions{
+		OrgID:          orgID,
+		UserID:         2,
+		IncludeVisible: true,
+	})
+	assert.NoError(t, err)
+	ids := make(map[int64]bool, len(teams))
+	for _, team := range teams {
+		assert.Equal(t, orgID, team.OrgID)
+		ids[team.ID] = true
+	}
+	// user 2 is in team 1 and team 2 in org 3, plus should see the new visible team.
+	assert.True(t, ids[1], "expected to see team 1 (member)")
+	assert.True(t, ids[2], "expected to see team 2 (member)")
+	assert.True(t, ids[visible.ID], "expected to see visible team")
+
+	// user 5 is only an org member in team 1, must not see secret team 2 but must see the visible one.
+	teams, _, err = organization.SearchTeam(t.Context(), &organization.SearchTeamOptions{
+		OrgID:          orgID,
+		UserID:         5,
+		IncludeVisible: true,
+	})
+	assert.NoError(t, err)
+	ids = make(map[int64]bool, len(teams))
+	for _, team := range teams {
+		ids[team.ID] = true
+	}
+	assert.False(t, ids[2], "user 5 must not see secret team 2")
+	assert.True(t, ids[visible.ID], "user 5 must see the visible team")
+}
+
 func TestHasTeamRepo(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 

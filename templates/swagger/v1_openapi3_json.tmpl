@@ -4762,6 +4762,14 @@
           "permission": {
             "$ref": "#/components/schemas/RepoWritePermission"
           },
+          "privacy": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/TeamPrivacy"
+              }
+            ],
+            "description": "Team privacy within the organization. Defaults to \"secret\".\nsecret TeamPrivacySecret\nclosed TeamPrivacyClosed"
+          },
           "units": {
             "example": [
               "repo.actions",
@@ -5899,6 +5907,14 @@
           },
           "permission": {
             "$ref": "#/components/schemas/RepoWritePermission"
+          },
+          "privacy": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/TeamPrivacy"
+              }
+            ],
+            "description": "Team privacy within the organization. When omitted, privacy is left\nunchanged.\nsecret TeamPrivacySecret\nclosed TeamPrivacyClosed"
           },
           "units": {
             "example": [
@@ -9766,6 +9782,14 @@
           "permission": {
             "$ref": "#/components/schemas/AccessLevelName"
           },
+          "privacy": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/TeamPrivacy"
+              }
+            ],
+            "description": "Team privacy within the organization. \"secret\" teams are only listable\nby members and org owners; \"closed\" teams are listable by any\norganization member.\nsecret TeamPrivacySecret\nclosed TeamPrivacyClosed"
+          },
           "units": {
             "example": [
               "repo.code",
@@ -9803,6 +9827,13 @@
         },
         "type": "object",
         "x-go-package": "code.gitea.io/gitea/modules/structs"
+      },
+      "TeamPrivacy": {
+        "enum": [
+          "secret",
+          "closed"
+        ],
+        "type": "string"
       },
       "TimeStamp": {
         "description": "TimeStamp defines a timestamp",

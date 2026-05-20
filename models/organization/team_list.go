@@ -50,6 +50,10 @@ type SearchTeamOptions struct {
 	Keyword     string
 	OrgID       int64
 	IncludeDesc bool
+	// IncludeVisible, when combined with UserID, also returns teams whose
+	// privacy is "closed" (i.e. visible to all org members) even if the user
+	// is not a member of them.
+	IncludeVisible bool
 }
 
 func (opts *SearchTeamOptions) toCond() builder.Cond {
@@ -69,7 +73,14 @@ func (opts *SearchTeamOptions) toCond() builder.Cond {
 	}
 
 	if opts.UserID > 0 {
-		cond = cond.And(builder.Eq{"team_user.uid": opts.UserID})
+		if opts.IncludeVisible {
+			cond = cond.And(builder.Or(
+				builder.Eq{"team_user.uid": opts.UserID},
+				builder.Eq{"`team`.team_privacy": TeamPrivacyClosed},
+			))
+		} else {
+			cond = cond.And(builder.Eq{"team_user.uid": opts.UserID})
+		}
 	}
 
 	return cond
@@ -83,7 +94,11 @@ func SearchTeam(ctx context.Context, opts *SearchTeamOptions) (TeamList, int64, 
 	cond := opts.toCond()
 
 	if opts.UserID > 0 {
-		sess = sess.Join("INNER", "team_user", "team_user.team_id = team.id")
+		if opts.IncludeVisible {
+			sess = sess.Join("LEFT", "team_user", "team_user.team_id = team.id AND team_user.uid = ?", opts.UserID)
+		} else {
+			sess = sess.Join("INNER", "team_user", "team_user.team_id = team.id")
+		}
 	}
 	db.SetSessionPagination(sess, opts)
 
