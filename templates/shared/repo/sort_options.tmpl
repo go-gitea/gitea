@@ -1,0 +1,24 @@
+{{define "shared/repo/sort_option"}}
+	{{if eq .Kind "select"}}
+		<option value="{{.Value}}" {{if eq .CurrentSort .Value}}selected{{end}}>{{.Label}}</option>
+	{{else}}
+		<label class="{{if eq .CurrentSort .Value}}active {{end}}item"><input hidden type="radio" name="sort" {{if eq .CurrentSort .Value}}checked{{end}} value="{{.Value}}"> {{.Label}}</label>
+	{{end}}
+{{end}}
+
+{{define "shared/repo/sort_options"}}
+	{{template "shared/repo/sort_option" dict "CurrentSort" .CurrentSort "Kind" .Kind "Value" "newest" "Label" (ctx.Locale.Tr "repo.issues.filter_sort.latest")}}
+	{{template "shared/repo/sort_option" dict "CurrentSort" .CurrentSort "Kind" .Kind "Value" "oldest" "Label" (ctx.Locale.Tr "repo.issues.filter_sort.oldest")}}
+	{{template "shared/repo/sort_option" dict "CurrentSort" .CurrentSort "Kind" .Kind "Value" "alphabetically" "Label" (ctx.Locale.Tr "repo.issues.label.filter_sort.alphabetically")}}
+	{{template "shared/repo/sort_option" dict "CurrentSort" .CurrentSort "Kind" .Kind "Value" "reversealphabetically" "Label" (ctx.Locale.Tr "repo.issues.label.filter_sort.reverse_alphabetically")}}
+	{{template "shared/repo/sort_option" dict "CurrentSort" .CurrentSort "Kind" .Kind "Value" "recentupdate" "Label" (ctx.Locale.Tr "repo.issues.filter_sort.recentupdate")}}
+	{{template "shared/repo/sort_option" dict "CurrentSort" .CurrentSort "Kind" .Kind "Value" "leastupdate" "Label" (ctx.Locale.Tr "repo.issues.filter_sort.leastupdate")}}
+	{{if not .DisableStars}}
+		{{template "shared/repo/sort_option" dict "CurrentSort" .CurrentSort "Kind" .Kind "Value" "moststars" "Label" (ctx.Locale.Tr "repo.issues.filter_sort.moststars")}}
+		{{template "shared/repo/sort_option" dict "CurrentSort" .CurrentSort "Kind" .Kind "Value" "feweststars" "Label" (ctx.Locale.Tr "repo.issues.filter_sort.feweststars")}}
+	{{end}}
+	{{template "shared/repo/sort_option" dict "CurrentSort" .CurrentSort "Kind" .Kind "Value" "mostforks" "Label" (ctx.Locale.Tr "repo.issues.filter_sort.mostforks")}}
+	{{template "shared/repo/sort_option" dict "CurrentSort" .CurrentSort "Kind" .Kind "Value" "fewestforks" "Label" (ctx.Locale.Tr "repo.issues.filter_sort.fewestforks")}}
+	{{template "shared/repo/sort_option" dict "CurrentSort" .CurrentSort "Kind" .Kind "Value" "size" "Label" (ctx.Locale.Tr "repo.issues.label.filter_sort.by_size")}}
+	{{template "shared/repo/sort_option" dict "CurrentSort" .CurrentSort "Kind" .Kind "Value" "reversesize" "Label" (ctx.Locale.Tr "repo.issues.label.filter_sort.reverse_by_size")}}
+{{end}}

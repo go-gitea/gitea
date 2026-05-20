@@ -316,13 +316,27 @@ func testOrgSettings(t *testing.T) {
 	session := loginUser(t, "user2")
 
 	req := NewRequestWithValues(t, "POST", "/org/org3/settings", map[string]string{
-		"full_name": "org3 new full name",
-		"email":     "org3-new-email@example.com",
+		"full_name":         "org3 new full name",
+		"email":             "org3-new-email@example.com",
+		"repo_default_sort": "reversealphabetically",
 	})
 	session.MakeRequest(t, req, http.StatusSeeOther)
 	org := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 3})
 	assert.Equal(t, "org3 new full name", org.FullName)
 	assert.Equal(t, "org3-new-email@example.com", org.Email)
+	repoDefaultSort, err := user_model.GetUserSetting(t.Context(), org.ID, user_model.SettingsKeyOrgRepoDefaultSort)
+	require.NoError(t, err)
+	assert.Equal(t, "reversealphabetically", repoDefaultSort)
+
+	req = NewRequest(t, "GET", "/org3")
+	resp := session.MakeRequest(t, req, http.StatusOK)
+	htmlDoc := NewHTMLParser(t, resp.Body)
+	sel := htmlDoc.doc.Find("a.name")
+	expectedRepos := []string{"repo5", "repo3", "repo21"}
+	assert.Len(t, expectedRepos, len(sel.Nodes))
+	for i := range expectedRepos {
+		assert.Equal(t, expectedRepos[i], strings.TrimSpace(sel.Eq(i).Text()))
+	}
 
 	req = NewRequestWithValues(t, "POST", "/org/org3/settings", map[string]string{
 		"email": "", // empty email means "clear email"
@@ -331,4 +345,7 @@ func testOrgSettings(t *testing.T) {
 	org = unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 3})
 	assert.Equal(t, "org3 new full name", org.FullName)
 	assert.Empty(t, org.Email)
+	repoDefaultSort, err = user_model.GetUserSetting(t.Context(), org.ID, user_model.SettingsKeyOrgRepoDefaultSort)
+	require.NoError(t, err)
+	assert.Equal(t, "reversealphabetically", repoDefaultSort)
 }

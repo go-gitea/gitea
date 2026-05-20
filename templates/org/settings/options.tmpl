@@ -38,9 +38,18 @@
 				</div>
 			</div>
 
-			{{if .SignedUser.IsAdmin}}
 			<div class="divider"></div>
 
+			<div class="field {{if .Err_RepoDefaultSort}}error{{end}}">
+				<label for="repo_default_sort">{{ctx.Locale.Tr "org.settings.repo_default_sort"}}</label>
+				<select id="repo_default_sort" name="repo_default_sort" class="ui dropdown">
+					<option value="" {{if eq .RepoDefaultSort ""}}selected{{end}}>{{ctx.Locale.Tr "org.settings.repo_default_sort_default"}}</option>
+					{{template "shared/repo/sort_options" dict "CurrentSort" .RepoDefaultSort "DisableStars" false "Kind" "select"}}
+				</select>
+				<p class="help">{{ctx.Locale.Tr "org.settings.repo_default_sort_desc"}}</p>
+			</div>
+
+			{{if .SignedUser.IsAdmin}}
 			<div class="inline field {{if .Err_MaxRepoCreation}}error{{end}}">
 				<label for="max_repo_creation">{{ctx.Locale.Tr "admin.users.max_repo_creation"}}</label>
 				<input id="max_repo_creation" name="max_repo_creation" type="number" min="-1" value="{{.Org.MaxRepoCreation}}">
