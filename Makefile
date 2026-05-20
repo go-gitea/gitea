@@ -318,14 +318,6 @@ lint-md: node_modules ## lint markdown files
 lint-md-fix: node_modules ## lint markdown files and fix issues
 	pnpm exec markdownlint --fix *.md
 
-.PHONY: lint-pr-title
-lint-pr-title: ## lint PR title against Conventional Commits (set PR_TITLE=...)
-	@node ./tools/lint-pr-title.ts
-
-.PHONY: set-pr-labels
-set-pr-labels: ## sync type/… and pr/breaking labels from PR title (set PR_TITLE=..., PR_NUMBER=..., GITHUB_TOKEN=...)
-	@node ./tools/set-pr-labels.ts
-
 .PHONY: lint-spell
 lint-spell: ## lint spelling
 	@git ls-files $(SPELLCHECK_FILES) | xargs go run $(MISSPELL_PACKAGE) -dict assets/misspellings.csv -error
