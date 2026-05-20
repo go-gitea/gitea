@@ -258,44 +258,30 @@ a.ui.ui.ui.grey.label:hover {
   font-size: 1rem;
 }
 
+/* labels-list layout: .labels-list > a.item > span.ui.label */
 .labels-list {
-  display: inline-flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 4px;
-  max-width: 100%;
+  max-width: 100%; /* for ellipsis */
   font-size: var(--font-size-label); /* must match the label font size, otherwise the height mismatches */
 }
 
-.labels-list > a {
-  display: inline-flex;
+.labels-list > .item {
   max-width: 100%; /* for ellipsis */
 }
 
-.labels-list > a:hover {
+.labels-list a:hover {
   text-decoration: none;
+}
+
+#issue-list .labels-list > a,
+.timeline-item.event .labels-list > a {
+  margin-right: 4px; /* margin-right (not margin-left) keeps wrapped labels left-aligned */
+  vertical-align: 1.5px; /* compensates inline-flex baseline so labels center with text */
 }
 
 .labels-list .ui.label {
   min-height: 20px;
   padding-top: 0;
   padding-bottom: 0;
-  line-height: var(--line-height-default);
-}
-
-#issue-list .item-title .labels-list,
-.timeline-item.event .labels-list {
-  display: inline;
-}
-
-#issue-list .item-title .labels-list > a,
-.timeline-item.event .labels-list > a {
-  margin-right: 4px; /* margin-right (not margin-left) keeps wrapped labels left-aligned */
-  vertical-align: 1.5px; /* compensates inline-flex baseline so labels center with text */
-}
-
-#issue-list .item-title .labels-list > a {
-  margin-block: 2px; /* row gap; timeline relies on parent line-height instead */
 }
 
 /* Scoped labels with different colors on left and right */

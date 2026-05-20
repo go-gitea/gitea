@@ -64,11 +64,11 @@
 	{{if or .Labels .Assignees}}
 	<div class="issue-card-bottom">
 		{{/* the labels container must always be present, to help the assignees list right-aligned */}}
-		<div class="issue-card-bottom-part labels-list">
+		<div class="issue-card-bottom-part labels-list flex-items-block">
 			{{range $label := .Labels}}
 				{{$link := print $.Issue.Repo.Link "/issues"}}
 				{{$link = QueryBuild $link "labels" $label.ID}}
-				{{ctx.RenderUtils.RenderLabelWithLink $label $link}}
+				<a class="item" href="{{$link}}">{{ctx.RenderUtils.RenderLabel $label}}</a>
 			{{end}}
 		</div>
 		{{if .Assignees}}
