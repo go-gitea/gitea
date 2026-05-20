@@ -87,7 +87,7 @@ type ObjectStorage interface {
 	// end user (browser) will use this URL to access the file directly from the object storage, bypassing Gitea server.
 	// Usually the link is time-limited (a few minutes) and contains a signature to ensure security.
 	// The generated URL must NOT use the same origin as Gitea server, otherwise it will cause security issues.
-	// * method defines which HTTP method is permitted for certain storage providers (e.g., MinIO).
+	// * method defines which HTTP method is permitted for certain storage providers (e.g., S3).
 	// * opt allows customizing the Content-Type and Content-Disposition headers.
 	// TODO: need to merge "ServeDirect()" check into this function, avoid duplicate code and potential inconsistency.
 	ServeDirectURL(path, name, method string, opt *ServeDirectOptions) (*url.URL, error)

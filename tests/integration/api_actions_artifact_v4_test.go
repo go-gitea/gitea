@@ -525,8 +525,8 @@ func TestActionsArtifactV4DownloadSingle(t *testing.T) {
 			switch setting.Actions.ArtifactStorage.Type {
 			case setting.AzureBlobStorageType:
 				defer test.MockVariableValue(&setting.Actions.ArtifactStorage.AzureBlobConfig.ServeDirect, entry.ServeDirect)()
-			case setting.MinioStorageType:
-				defer test.MockVariableValue(&setting.Actions.ArtifactStorage.MinioConfig.ServeDirect, entry.ServeDirect)()
+			case setting.S3StorageType:
+				defer test.MockVariableValue(&setting.Actions.ArtifactStorage.S3Config.ServeDirect, entry.ServeDirect)()
 			default:
 				if entry.ServeDirect {
 					t.Skip("for non-serve-direct only")
