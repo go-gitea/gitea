@@ -202,7 +202,6 @@ function endLogGroup(stepIndex: number) {
   el._stepLogsActiveContainer = undefined;
 }
 
-// always fetches: the DOM can be stale if the step was collapsed while still streaming
 async function copyStepOutput(event: MouseEvent, stepIndex: number) {
   await copyToClipboard(async () => {
     const data = await fetchJobData([{step: stepIndex, cursor: null, expanded: true}]);
