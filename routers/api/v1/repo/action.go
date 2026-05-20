@@ -772,6 +772,11 @@ func (Action) ListWorkflowRuns(ctx *context.APIContext) {
 	//   description: triggering sha of the workflow run
 	//   type: string
 	//   required: false
+	// - name: exclude_pull_requests
+	//   in: query
+	//   description: if true, the `pull_requests` field on each returned run is emptied
+	//   type: boolean
+	//   required: false
 	// - name: page
 	//   in: query
 	//   description: page number of results to return (1-based)
@@ -790,7 +795,7 @@ func (Action) ListWorkflowRuns(ctx *context.APIContext) {
 
 	repoID := ctx.Repo.Repository.ID
 
-	shared.ListRuns(ctx, 0, repoID)
+	shared.ListRuns(ctx, 0, repoID, "")
 }
 
 var _ actions_service.API = new(Action)
@@ -965,6 +970,101 @@ func ActionsGetWorkflow(ctx *context.APIContext) {
 	}
 
 	ctx.JSON(http.StatusOK, workflow)
+}
+
+func ActionsListWorkflowRuns(ctx *context.APIContext) {
+	// swagger:operation GET /repos/{owner}/{repo}/actions/workflows/{workflow_id}/runs repository ActionsListWorkflowRuns
+	// ---
+	// summary: List runs for a workflow
+	// produces:
+	// - application/json
+	// parameters:
+	// - name: owner
+	//   in: path
+	//   description: owner of the repo
+	//   type: string
+	//   required: true
+	// - name: repo
+	//   in: path
+	//   description: name of the repo
+	//   type: string
+	//   required: true
+	// - name: workflow_id
+	//   in: path
+	//   description: id of the workflow, must be the workflow file name (e.g. `build.yml`)
+	//   type: string
+	//   required: true
+	// - name: event
+	//   in: query
+	//   description: workflow event name
+	//   type: string
+	//   required: false
+	// - name: branch
+	//   in: query
+	//   description: workflow branch
+	//   type: string
+	//   required: false
+	// - name: status
+	//   in: query
+	//   description: workflow status (pending, queued, in_progress, failure, success, skipped)
+	//   type: string
+	//   required: false
+	// - name: actor
+	//   in: query
+	//   description: triggered by user
+	//   type: string
+	//   required: false
+	// - name: head_sha
+	//   in: query
+	//   description: triggering sha of the workflow run
+	//   type: string
+	//   required: false
+	// - name: exclude_pull_requests
+	//   in: query
+	//   description: if true, the `pull_requests` field on each returned run is emptied
+	//   type: boolean
+	//   required: false
+	// - name: page
+	//   in: query
+	//   description: page number of results to return (1-based)
+	//   type: integer
+	// - name: limit
+	//   in: query
+	//   description: page size of results
+	//   type: integer
+	// responses:
+	//   "200":
+	//     "$ref": "#/responses/WorkflowRunsList"
+	//   "400":
+	//     "$ref": "#/responses/error"
+	//   "403":
+	//     "$ref": "#/responses/forbidden"
+	//   "404":
+	//     "$ref": "#/responses/notFound"
+
+	workflowID := ctx.PathParam("workflow_id")
+	// Existing runs prove the workflow is/was valid and cover historical workflows
+	// whose file was later removed. Fall back to a git lookup for never-run workflows.
+	runExists, err := db.Exist[actions_model.ActionRun](ctx, actions_model.FindRunOptions{
+		RepoID:     ctx.Repo.Repository.ID,
+		WorkflowID: workflowID,
+	}.ToConds())
+	if err != nil {
+		ctx.APIErrorInternal(err)
+		return
+	}
+	if !runExists {
+		if _, err := convert.GetActionWorkflow(ctx, ctx.Repo.GitRepo, ctx.Repo.Repository, workflowID); err != nil {
+			if errors.Is(err, util.ErrNotExist) {
+				ctx.APIError(http.StatusNotFound, err)
+			} else {
+				ctx.APIErrorInternal(err)
+			}
+			return
+		}
+	}
+
+	shared.ListRuns(ctx, 0, ctx.Repo.Repository.ID, workflowID)
 }
 
 func ActionsDisableWorkflow(ctx *context.APIContext) {
@@ -1242,7 +1342,7 @@ func GetWorkflowRun(ctx *context.APIContext) {
 		return
 	}
 
-	convertedRun, err := convert.ToActionWorkflowRun(ctx, run, nil)
+	convertedRun, err := convert.ToActionWorkflowRun(ctx, run, nil, false)
 	if err != nil {
 		ctx.APIErrorInternal(err)
 		return
@@ -1291,7 +1391,7 @@ func GetWorkflowRunAttempt(ctx *context.APIContext) {
 		return
 	}
 
-	convertedRun, err := convert.ToActionWorkflowRun(ctx, run, attempt)
+	convertedRun, err := convert.ToActionWorkflowRun(ctx, run, attempt, false)
 	if err != nil {
 		ctx.APIErrorInternal(err)
 		return
@@ -1346,7 +1446,7 @@ func RerunWorkflowRun(ctx *context.APIContext) {
 		return
 	}
 
-	convertedRun, err := convert.ToActionWorkflowRun(ctx, run, nil)
+	convertedRun, err := convert.ToActionWorkflowRun(ctx, run, nil, false)
 	if err != nil {
 		ctx.APIErrorInternal(err)
 		return
