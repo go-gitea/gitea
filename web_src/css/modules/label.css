@@ -258,8 +258,10 @@ a.ui.ui.ui.grey.label:hover {
   font-size: 1rem;
 }
 
-/* labels-list layout: .labels-list > a.item > span.ui.label */
+/* labels-list layout: span.labels-list > a.item > span.ui.label */
 .labels-list {
+  /* by default, the labels list is rendered as "display: inline" */
+  display: inline;
   max-width: 100%; /* for ellipsis */
   font-size: var(--font-size-label); /* must match the label font size, otherwise the height mismatches */
 }
@@ -272,16 +274,21 @@ a.ui.ui.ui.grey.label:hover {
   text-decoration: none;
 }
 
-#issue-list .labels-list > a,
-.timeline-item.event .labels-list > a {
-  margin-right: 4px; /* margin-right (not margin-left) keeps wrapped labels left-aligned */
-  vertical-align: 1.5px; /* compensates inline-flex baseline so labels center with text */
-}
-
 .labels-list .ui.label {
   min-height: 20px;
   padding-top: 0;
   padding-bottom: 0;
+}
+
+/* to align with different font sizes, these styles need to be written separately */
+#issue-list .labels-list > .item {
+  margin-right: 4px; /* margin-right (not margin-left) keeps wrapped labels left-aligned */
+  vertical-align: 2.5px; /* compensates inline-flex baseline so labels center with text */
+}
+
+.timeline-item .labels-list > .item {
+  margin-right: 4px;
+  vertical-align: 1.5px;
 }
 
 /* Scoped labels with different colors on left and right */
