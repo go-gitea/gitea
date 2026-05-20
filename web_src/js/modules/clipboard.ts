@@ -1,13 +1,15 @@
 import {clippie, type ClippieContent} from 'clippie';
+import {showTemporaryTooltip} from './tippy.ts';
 import {toAbsoluteUrl} from '../utils.ts';
 import {svg} from '../svg.ts';
 import {createElementFromHTML} from '../utils/dom.ts';
 
+const {copy_success, copy_error} = window.config.i18n;
 const pendingFeedback = new WeakSet<HTMLElement>();
 
-/** Copy `content` to the clipboard. If `target` is given, the first `<svg>` it contains shows
- *  success/fail feedback and repeated clicks on the same target are ignored. When `content` is
- *  a function, `target` also shows a spinner while it resolves. */
+/** Copy `content` to the clipboard. If `target` is given, its `.octicon-copy` is swapped to show
+ *  success/fail feedback (or a tooltip if it has none), and repeated clicks on the same target are
+ *  ignored. When `content` is a function, `target` also shows a spinner while it resolves. */
 export async function copyToClipboard(content: ClippieContent | (() => Promise<ClippieContent>), target?: HTMLElement): Promise<boolean> {
   if (target && pendingFeedback.has(target)) return false;
   if (target) pendingFeedback.add(target);
@@ -15,7 +17,7 @@ export async function copyToClipboard(content: ClippieContent | (() => Promise<C
   try {
     if (typeof content === 'function') {
       if (target) {
-        const svgEl = target.querySelector('svg');
+        const svgEl = target.querySelector<SVGElement>('.octicon-copy');
         if (svgEl) target.style.setProperty('--loading-size', `${svgEl.getAttribute('width')!}px`);
         target.classList.add('is-loading', 'loading-icon-2px');
       }
@@ -37,8 +39,10 @@ export async function copyToClipboard(content: ClippieContent | (() => Promise<C
 }
 
 function showCopyFeedback(target: HTMLElement, success: boolean) {
-  const origSvg = target.querySelector('svg');
+  const origSvg = target.querySelector<SVGElement>('.octicon-copy');
   if (!origSvg) {
+    // menu items have no copy icon, so show a tooltip on the menu button instead
+    showTemporaryTooltip(target, success ? copy_success : copy_error);
     pendingFeedback.delete(target);
     return;
   }
