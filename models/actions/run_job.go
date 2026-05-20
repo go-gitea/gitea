@@ -113,7 +113,7 @@ type ActionRunJob struct {
 // Use GetNextAttemptJobID to allocate the next ID for a run.
 type ActionRunAttemptJobIDIndex db.ResourceIndex
 
-// GetNextAttemptJobID atomically allocates the next AttemptJobID fo a job in the given run.
+// GetNextAttemptJobID atomically allocates the next AttemptJobID for a job in the given run.
 // AttemptJobIDs are unique within a single attempt and stable across attempts for the same logical job
 func GetNextAttemptJobID(ctx context.Context, runID int64) (int64, error) {
 	return db.GetNextResourceIndex(ctx, "action_run_attempt_job_id_index", runID)
