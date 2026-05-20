@@ -7,9 +7,10 @@ import {createElementFromHTML} from '../utils/dom.ts';
 const {copy_success, copy_error} = window.config.i18n;
 const pendingFeedback = new WeakSet<HTMLElement>();
 
-/** Copy `content` to the clipboard. If `target` is given, its `.octicon-copy` is swapped to show
- *  success/fail feedback (or a tooltip if it has none), and repeated clicks on the same target are
- *  ignored. When `content` is a function, `target` also shows a spinner while it resolves. */
+/** Copy `content` to the clipboard. `target` is used to:
+ *  - avoid duplicate copy actions (especially when the content will be fetched from an async function)
+ *  - provide feedback to end users (its `.octicon-copy` is swapped to show success/fail feedback, or a tooltip if it has none)
+ *  When `content` is a function, `target` also shows a spinner while it resolves. */
 export async function copyToClipboard(target: HTMLElement, content: ClippieContent | (() => Promise<ClippieContent>)) {
   if (pendingFeedback.has(target)) return;
   pendingFeedback.add(target);
@@ -34,7 +35,8 @@ export async function copyToClipboard(target: HTMLElement, content: ClippieConte
   pendingFeedback.delete(target);
 }
 
-export async function copyTextToClipboard(content: string): Promise<boolean> {
+/** copy the copiable content to clipboard, return "true" on success, otherwise "false" */
+export async function copyContentToClipboard(content: ClippieContent): Promise<boolean> {
   return await clippie(content);
 }
 
