@@ -4,7 +4,7 @@ This changelog goes through the changes that have been made in each release
 without substantial changes to our git log; to see the highlights of what has
 been added to each release, please refer to the [blog](https://blog.gitea.com).
 
-## [1.26.2](https://github.com/go-gitea/gitea/releases/tag/1.26.2) - 2026-05-06
+## [1.26.2](https://github.com/go-gitea/gitea/releases/tag/1.26.2) - 2026-05-20
 
 * SECURITY
   * fix(permissions): Fix reading permission (#37769)
