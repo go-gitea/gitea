@@ -1,9 +1,7 @@
 import {clippie, type ClippieContent} from 'clippie';
-import {toAbsoluteUrl, convertImage} from '../utils.ts';
+import {toAbsoluteUrl} from '../utils.ts';
 import {svg} from '../svg.ts';
 import {createElementFromHTML} from '../utils/dom.ts';
-import {GET} from './fetch.ts';
-import {registerGlobalEventFunc} from './observer.ts';
 
 const pendingFeedback = new WeakSet<HTMLElement>();
 
@@ -98,26 +96,5 @@ export function initGlobalCopyToClipboardListener() {
     if (text) {
       await copyToClipboard(text, target);
     }
-  });
-}
-
-export function initCopyContent() {
-  registerGlobalEventFunc('click', 'onCopyContentButtonClick', async (btn: HTMLElement) => {
-    if (btn.classList.contains('disabled') || btn.classList.contains('is-loading')) return;
-    await copyToClipboard(async () => {
-      const rawFileLink = btn.getAttribute('data-raw-file-link');
-      if (!rawFileLink) {
-        const lineEls = document.querySelectorAll('.file-view .lines-code');
-        return Array.from(lineEls, (el) => el.textContent).join('');
-      }
-      const res = await GET(rawFileLink, {credentials: 'include', redirect: 'follow'});
-      const contentType = res.headers.get('content-type')!;
-      if (contentType.startsWith('image/') && !contentType.startsWith('image/svg')) {
-        // browsers only accept image/png in the clipboard, convert other raster formats
-        const blob = await res.blob();
-        return contentType === 'image/png' ? blob : convertImage(blob, 'image/png');
-      }
-      return await res.text();
-    }, btn);
   });
 }

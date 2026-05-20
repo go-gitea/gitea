@@ -2,7 +2,8 @@ import '../fomantic/build/fomantic.js';
 import '../css/index.css';
 
 import {initDashboardRepoList} from './features/dashboard.ts';
-import {initGlobalCopyToClipboardListener, initCopyContent} from './modules/clipboard.ts';
+import {initGlobalCopyToClipboardListener} from './modules/clipboard.ts';
+import {initCopyContent} from './features/copycontent.ts';
 import {initRepoGraphGit} from './features/repo-graph.ts';
 import {initHeatmap} from './features/heatmap.ts';
 import {initImageDiff} from './features/imagediff.ts';
