@@ -6,6 +6,7 @@ package issue
 import (
 	"context"
 
+	"code.gitea.io/gitea/models/db"
 	issues_model "code.gitea.io/gitea/models/issues"
 	access_model "code.gitea.io/gitea/models/perm/access"
 	repo_model "code.gitea.io/gitea/models/repo"
@@ -81,31 +82,48 @@ func UpdateAssignees(ctx context.Context, issue *issues_model.Issue, oneAssignee
 			return err
 		}
 
-		if user_model.IsUserBlockedBy(ctx, doer, assignee.ID) {
-			return user_model.ErrBlockedUser
+		if err := validateAssignee(ctx, issue, doer, assignee); err != nil {
+			return err
 		}
 
 		allNewAssignees = append(allNewAssignees, assignee)
 	}
 
-	// Delete all old assignees not passed
-	if err = DeleteNotPassedAssignee(ctx, issue, doer, allNewAssignees); err != nil {
-		return err
-	}
-
-	// Add all new assignees
-	// Update the assignee. The function will check if the user exists, is already
-	// assigned (which he shouldn't as we deleted all assignees before) and
-	// has access to the repo.
-	for _, assignee := range allNewAssignees {
-		// Extra method to prevent double adding (which would result in removing)
-		_, err = AddAssigneeIfNotAssigned(ctx, issue, doer, assignee.ID, true)
-		if err != nil {
+	return db.WithTx(ctx, func(ctx context.Context) error {
+		// Delete all old assignees not passed.
+		if err = DeleteNotPassedAssignee(ctx, issue, doer, allNewAssignees); err != nil {
 			return err
 		}
+
+		// Add all new assignees.
+		// Update the assignee. The function will check if the user exists, is already
+		// assigned (which he shouldn't as we deleted all assignees before) and
+		// has access to the repo.
+		for _, assignee := range allNewAssignees {
+			// Extra method to prevent double adding (which would result in removing).
+			if _, err = AddAssigneeIfNotAssigned(ctx, issue, doer, assignee.ID, true); err != nil {
+				return err
+			}
+		}
+
+		return nil
+	})
+}
+
+func validateAssignee(ctx context.Context, issue *issues_model.Issue, doer, assignee *user_model.User) error {
+	if user_model.IsUserBlockedBy(ctx, doer, assignee.ID) {
+		return user_model.ErrBlockedUser
 	}
 
-	return err
+	valid, err := access_model.CanBeAssigned(ctx, assignee, issue.Repo)
+	if err != nil {
+		return err
+	}
+	if !valid {
+		return repo_model.ErrUserDoesNotHaveAccessToRepo{UserID: assignee.ID, RepoName: issue.Repo.Name}
+	}
+
+	return nil
 }
 
 // AddAssigneeIfNotAssigned adds an assignee only if he isn't already assigned to the issue.
@@ -117,7 +135,7 @@ func AddAssigneeIfNotAssigned(ctx context.Context, issue *issues_model.Issue, do
 	}
 
 	// Check if the user is already assigned
-	isAssigned, err := issues_model.IsUserAssignedToIssue(ctx, issue, assignee)
+	isAssigned, err := issues_model.IsUserAssignedToIssue(ctx, issue, assigneeID)
 	if err != nil {
 		return nil, err
 	}
@@ -126,12 +144,8 @@ func AddAssigneeIfNotAssigned(ctx context.Context, issue *issues_model.Issue, do
 		return nil, nil //nolint:nilnil // return nil because the user is already assigned
 	}
 
-	valid, err := access_model.CanBeAssigned(ctx, assignee, issue.Repo, issue.IsPull)
-	if err != nil {
+	if err := validateAssignee(ctx, issue, doer, assignee); err != nil {
 		return nil, err
-	}
-	if !valid {
-		return nil, repo_model.ErrUserDoesNotHaveAccessToRepo{UserID: assigneeID, RepoName: issue.Repo.Name}
 	}
 
 	if notify {
@@ -140,4 +154,57 @@ func AddAssigneeIfNotAssigned(ctx context.Context, issue *issues_model.Issue, do
 	}
 	_, comment, err = issues_model.ToggleIssueAssignee(ctx, issue, doer, assigneeID)
 	return comment, err
+}
+
+// AddAssignees adds multiple assignees to an issue atomically.
+func AddAssignees(ctx context.Context, issue *issues_model.Issue, doer *user_model.User, assigneeIDs []int64) error {
+	return db.WithTx(ctx, func(ctx context.Context) error {
+		pendingAssigneeIDs := make([]int64, 0, len(assigneeIDs))
+		for _, assigneeID := range assigneeIDs {
+			isAssigned, err := issues_model.IsUserAssignedToIssue(ctx, issue, assigneeID)
+			if err != nil {
+				return err
+			}
+			if isAssigned {
+				continue
+			}
+
+			assignee, err := user_model.GetUserByID(ctx, assigneeID)
+			if err != nil {
+				return err
+			}
+			if err := validateAssignee(ctx, issue, doer, assignee); err != nil {
+				return err
+			}
+
+			pendingAssigneeIDs = append(pendingAssigneeIDs, assigneeID)
+		}
+
+		for _, assigneeID := range pendingAssigneeIDs {
+			if _, err := AddAssigneeIfNotAssigned(ctx, issue, doer, assigneeID, true); err != nil {
+				return err
+			}
+		}
+
+		return nil
+	})
+}
+
+// RemoveAssignees removes multiple assignees from an issue atomically.
+func RemoveAssignees(ctx context.Context, issue *issues_model.Issue, doer *user_model.User, assigneeIDs []int64) error {
+	return db.WithTx(ctx, func(ctx context.Context) error {
+		for _, assigneeID := range assigneeIDs {
+			isAssigned, err := issues_model.IsUserAssignedToIssue(ctx, issue, assigneeID)
+			if err != nil {
+				return err
+			}
+			if !isAssigned {
+				continue
+			}
+			if _, _, err := ToggleAssigneeWithNotify(ctx, issue, doer, assigneeID); err != nil {
+				return err
+			}
+		}
+		return nil
+	})
 }

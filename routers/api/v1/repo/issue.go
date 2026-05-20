@@ -676,7 +676,7 @@ func CreateIssue(ctx *context.APIContext) {
 				return
 			}
 
-			valid, err := access_model.CanBeAssigned(ctx, assignee, ctx.Repo.Repository, false)
+			valid, err := access_model.CanBeAssigned(ctx, assignee, ctx.Repo.Repository)
 			if err != nil {
 				ctx.APIErrorInternal(err)
 				return

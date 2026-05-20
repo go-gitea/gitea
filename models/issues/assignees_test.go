@@ -40,7 +40,7 @@ func TestUpdateAssignee(t *testing.T) {
 	assert.NoError(t, err)
 
 	// Check if he got removed
-	isAssigned, err := issues_model.IsUserAssignedToIssue(t.Context(), issue, user1)
+	isAssigned, err := issues_model.IsUserAssignedToIssue(t.Context(), issue, user1.ID)
 	assert.NoError(t, err)
 	assert.False(t, isAssigned)
 
@@ -56,12 +56,12 @@ func TestUpdateAssignee(t *testing.T) {
 	}
 
 	// Check if the user is assigned
-	isAssigned, err = issues_model.IsUserAssignedToIssue(t.Context(), issue, user2)
+	isAssigned, err = issues_model.IsUserAssignedToIssue(t.Context(), issue, user2.ID)
 	assert.NoError(t, err)
 	assert.True(t, isAssigned)
 
 	// This user should not be assigned
-	isAssigned, err = issues_model.IsUserAssignedToIssue(t.Context(), issue, &user_model.User{ID: 4})
+	isAssigned, err = issues_model.IsUserAssignedToIssue(t.Context(), issue, 4)
 	assert.NoError(t, err)
 	assert.False(t, isAssigned)
 }

@@ -125,6 +125,11 @@ type EditIssueOption struct {
 	ContentVersion *int `json:"content_version"`
 }
 
+// IssueAssigneesOption options for adding/removing issue assignees
+type IssueAssigneesOption struct {
+	Assignees []string `json:"assignees"`
+}
+
 // EditDeadlineOption options for creating a deadline
 type EditDeadlineOption struct {
 	// required:true
