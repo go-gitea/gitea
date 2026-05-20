@@ -12,6 +12,7 @@ import (
 	"code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/services/context"
 	"code.gitea.io/gitea/services/convert"
+	"code.gitea.io/gitea/services/notifications"
 )
 
 // ListNotifications list users's notification threads
@@ -160,14 +161,13 @@ func ReadNotifications(ctx *context.APIContext) {
 		targetStatus = activities_model.NotificationStatusRead
 	}
 
-	changed := make([]*structs.NotificationThread, 0, len(nl))
-
-	for _, n := range nl {
-		notif, err := activities_model.SetNotificationStatus(ctx, n.ID, ctx.Doer, targetStatus)
-		if err != nil {
-			ctx.APIErrorInternal(err)
-			return
-		}
+	updated, err := notifications.SetManyNotificationStatuses(ctx, nl, ctx.Doer, targetStatus)
+	if err != nil {
+		ctx.APIErrorInternal(err)
+		return
+	}
+	changed := make([]*structs.NotificationThread, 0, len(updated))
+	for _, notif := range updated {
 		_ = notif.LoadAttributes(ctx)
 		changed = append(changed, convert.ToNotificationThread(ctx, notif))
 	}

@@ -12,6 +12,7 @@ import (
 	issues_model "code.gitea.io/gitea/models/issues"
 	"code.gitea.io/gitea/services/context"
 	"code.gitea.io/gitea/services/convert"
+	"code.gitea.io/gitea/services/notifications"
 )
 
 // GetThread get notification by ID
@@ -88,7 +89,7 @@ func ReadThread(ctx *context.APIContext) {
 		targetStatus = activities_model.NotificationStatusRead
 	}
 
-	notif, err := activities_model.SetNotificationStatus(ctx, n.ID, ctx.Doer, targetStatus)
+	notif, err := notifications.SetNotificationStatus(ctx, n.ID, ctx.Doer, targetStatus)
 	if err != nil {
 		ctx.APIErrorInternal(err)
 		return

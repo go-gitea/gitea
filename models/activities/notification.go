@@ -336,30 +336,33 @@ func GetUIDsAndNotificationCounts(ctx context.Context, since, until timeutil.Tim
 	return res, db.GetEngine(ctx).SQL(sql, NotificationStatusUnread, since, until).Find(&res)
 }
 
-// SetIssueReadBy sets issue to be read by given user.
-func SetIssueReadBy(ctx context.Context, issueID, userID int64) error {
+// SetIssueReadBy sets issue to be read by given user. The bool result is true
+// when the unread count actually decreased, so callers can skip a push on no-op.
+func SetIssueReadBy(ctx context.Context, issueID, userID int64) (bool, error) {
 	if err := issues_model.UpdateIssueUserByRead(ctx, userID, issueID); err != nil {
-		return err
+		return false, err
 	}
 
 	return setIssueNotificationStatusReadIfUnread(ctx, userID, issueID)
 }
 
-func setIssueNotificationStatusReadIfUnread(ctx context.Context, userID, issueID int64) error {
+func setIssueNotificationStatusReadIfUnread(ctx context.Context, userID, issueID int64) (bool, error) {
 	notification, err := GetIssueNotification(ctx, userID, issueID)
 	// ignore if not exists
 	if err != nil {
-		return nil
+		return false, nil
 	}
 
 	if notification.Status != NotificationStatusUnread {
-		return nil
+		return false, nil
 	}
 
 	notification.Status = NotificationStatusRead
 
-	_, err = db.GetEngine(ctx).ID(notification.ID).Cols("status").Update(notification)
-	return err
+	if _, err := db.GetEngine(ctx).ID(notification.ID).Cols("status").Update(notification); err != nil {
+		return false, err
+	}
+	return true, nil
 }
 
 // SetRepoReadBy sets repo to be visited by given user.
@@ -407,12 +410,13 @@ func GetNotificationByID(ctx context.Context, notificationID int64) (*Notificati
 	return notification, nil
 }
 
-// UpdateNotificationStatuses updates the statuses of all of a user's notifications that are of the currentStatus type to the desiredStatus
-func UpdateNotificationStatuses(ctx context.Context, user *user_model.User, currentStatus, desiredStatus NotificationStatus) error {
+// UpdateNotificationStatuses updates the statuses of all of a user's notifications
+// that are of the currentStatus type to the desiredStatus. Returns the number of
+// rows actually changed so callers can skip downstream work on a no-op.
+func UpdateNotificationStatuses(ctx context.Context, user *user_model.User, currentStatus, desiredStatus NotificationStatus) (int64, error) {
 	n := &Notification{Status: desiredStatus, UpdatedBy: user.ID}
-	_, err := db.GetEngine(ctx).
+	return db.GetEngine(ctx).
 		Where("user_id = ? AND status = ?", user.ID, currentStatus).
 		Cols("status", "updated_by", "updated_unix").
 		Update(n)
-	return err
 }

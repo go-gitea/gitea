@@ -28,7 +28,6 @@ import (
 	"code.gitea.io/gitea/routers/web/admin"
 	"code.gitea.io/gitea/routers/web/auth"
 	"code.gitea.io/gitea/routers/web/devtest"
-	"code.gitea.io/gitea/routers/web/events"
 	"code.gitea.io/gitea/routers/web/explore"
 	"code.gitea.io/gitea/routers/web/feed"
 	"code.gitea.io/gitea/routers/web/healthcheck"
@@ -42,6 +41,7 @@ import (
 	"code.gitea.io/gitea/routers/web/user"
 	user_setting "code.gitea.io/gitea/routers/web/user/setting"
 	"code.gitea.io/gitea/routers/web/user/setting/security"
+	gitea_websocket "code.gitea.io/gitea/routers/web/websocket"
 	auth_service "code.gitea.io/gitea/services/auth"
 	"code.gitea.io/gitea/services/context"
 	"code.gitea.io/gitea/services/forms"
@@ -589,7 +589,7 @@ func registerWebRoutes(m *web.Router, webAuth *AuthMiddleware) {
 		})
 	}, reqSignOut)
 
-	m.Any("/user/events", routing.MarkLongPolling(), events.Events)
+	m.Get("/-/ws", routing.MarkLongPolling(), gitea_websocket.Serve)
 
 	m.Group("/login/oauth", func() {
 		m.Group("", func() {

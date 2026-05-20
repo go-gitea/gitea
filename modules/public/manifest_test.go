@@ -30,10 +30,10 @@ func TestViteManifest(t *testing.T) {
 		"src": "web_src/css/themes/theme-gitea-dark.css",
 		"isEntry": true
 	},
-	"web_src/js/features/eventsource.sharedworker.ts": {
-		"file": "js/eventsource.sharedworker.Dug1twio.js",
-		"name": "eventsource.sharedworker",
-		"src": "web_src/js/features/eventsource.sharedworker.ts",
+	"web_src/js/user-events.sharedworker.ts": {
+		"file": "js/user-events.sharedworker.Dug1twio.js",
+		"name": "user-events.sharedworker",
+		"src": "web_src/js/user-events.sharedworker.ts",
 		"isEntry": true
 	},
 	"_chunk.js": {
@@ -55,7 +55,7 @@ func TestViteManifest(t *testing.T) {
 
 		// JS entries
 		assert.Equal(t, "js/index.C6Z2MRVQ.js", paths["js/index.js"])
-		assert.Equal(t, "js/eventsource.sharedworker.Dug1twio.js", paths["js/eventsource.sharedworker.js"])
+		assert.Equal(t, "js/user-events.sharedworker.Dug1twio.js", paths["js/user-events.sharedworker.js"])
 
 		// Associated CSS from JS entries
 		assert.Equal(t, "css/index.B3zrQPqD.css", paths["css/index.css"])
@@ -70,7 +70,7 @@ func TestViteManifest(t *testing.T) {
 		assert.Equal(t, "index", names["js/index.C6Z2MRVQ.js"])
 		assert.Equal(t, "index", names["css/index.B3zrQPqD.css"])
 		assert.Equal(t, "theme-gitea-dark", names["css/theme-gitea-dark.CyAaQnn5.css"])
-		assert.Equal(t, "eventsource.sharedworker", names["js/eventsource.sharedworker.Dug1twio.js"])
+		assert.Equal(t, "user-events.sharedworker", names["js/user-events.sharedworker.Dug1twio.js"])
 
 		// Test Asset related functions
 		assert.Equal(t, "/assets/js/index.C6Z2MRVQ.js", AssetURI("js/index.js"))

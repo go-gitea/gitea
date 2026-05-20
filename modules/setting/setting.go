@@ -221,6 +221,7 @@ func LoadSettings() {
 	loadServiceFrom(CfgProvider)
 	loadOAuth2ClientFrom(CfgProvider)
 	loadCacheFrom(CfgProvider)
+	loadPubsubFrom(CfgProvider)
 	loadSessionFrom(CfgProvider)
 	loadCorsFrom(CfgProvider)
 	loadMailsFrom(CfgProvider)

@@ -12,7 +12,6 @@ import (
 	"code.gitea.io/gitea/models"
 	authmodel "code.gitea.io/gitea/models/auth"
 	"code.gitea.io/gitea/modules/cache"
-	"code.gitea.io/gitea/modules/eventsource"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/git/gitcmd"
 	"code.gitea.io/gitea/modules/log"
@@ -48,6 +47,7 @@ import (
 	mirror_service "code.gitea.io/gitea/services/mirror"
 	"code.gitea.io/gitea/services/oauth2_provider"
 	packages_spec "code.gitea.io/gitea/services/packages/pkgspec"
+	"code.gitea.io/gitea/services/pubsub"
 	pull_service "code.gitea.io/gitea/services/pull"
 	release_service "code.gitea.io/gitea/services/release"
 	repo_service "code.gitea.io/gitea/services/repository"
@@ -55,6 +55,7 @@ import (
 	"code.gitea.io/gitea/services/task"
 	"code.gitea.io/gitea/services/uinotification"
 	"code.gitea.io/gitea/services/webhook"
+	websocket_service "code.gitea.io/gitea/services/websocket"
 )
 
 func mustInit(fn func() error) {
@@ -155,7 +156,8 @@ func InitWebInstalled(ctx context.Context) {
 	mustInit(automerge.Init)
 	mustInit(task.Init)
 	mustInit(repo_migrations.Init)
-	eventsource.GetManager().Init()
+	mustInit(pubsub.Init)
+	mustInit(websocket_service.Init)
 	mustInitCtx(ctx, mailer_incoming.Init)
 
 	mustInitCtx(ctx, syncAppConfForGit)

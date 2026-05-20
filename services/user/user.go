@@ -16,7 +16,6 @@ import (
 	repo_model "code.gitea.io/gitea/models/repo"
 	system_model "code.gitea.io/gitea/models/system"
 	user_model "code.gitea.io/gitea/models/user"
-	"code.gitea.io/gitea/modules/eventsource"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/storage"
@@ -28,6 +27,7 @@ import (
 	"code.gitea.io/gitea/services/packages"
 	container_service "code.gitea.io/gitea/services/packages/container"
 	repo_service "code.gitea.io/gitea/services/repository"
+	websocket_service "code.gitea.io/gitea/services/websocket"
 )
 
 // RenameUser renames a user
@@ -147,9 +147,7 @@ func DeleteUser(ctx context.Context, u *user_model.User, purge bool) error {
 
 		// Force any logged in sessions to log out
 		// FIXME: We also need to tell the session manager to log them out too.
-		eventsource.GetManager().SendMessage(u.ID, &eventsource.Event{
-			Name: "logout",
-		})
+		websocket_service.PublishLogout(u.ID, "")
 
 		// Delete all repos belonging to this user
 		// Now this is not within a transaction because there are internal transactions within the DeleteRepository

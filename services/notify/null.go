@@ -219,3 +219,6 @@ func (*NullNotifier) WorkflowRunStatusUpdate(ctx context.Context, repo *repo_mod
 
 func (*NullNotifier) WorkflowJobStatusUpdate(ctx context.Context, repo *repo_model.Repository, sender *user_model.User, job *actions_model.ActionRunJob, task *actions_model.ActionTask) {
 }
+
+func (*NullNotifier) NotificationCountChange(_ context.Context, _ int64) {
+}

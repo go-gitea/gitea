@@ -28,6 +28,7 @@ require (
 	github.com/PuerkitoBio/goquery v1.12.0
 	github.com/SaveTheRbtz/zstd-seekable-format-go/pkg v0.8.0
 	github.com/alecthomas/chroma/v2 v2.24.1
+	github.com/alicebob/miniredis/v2 v2.38.0
 	github.com/aws/aws-sdk-go-v2/credentials v1.19.16
 	github.com/aws/aws-sdk-go-v2/service/codecommit v1.33.14
 	github.com/blakesmith/ar v0.0.0-20190502131153-809d4375e1fb
@@ -37,6 +38,7 @@ require (
 	github.com/caddyserver/certmagic v0.25.3
 	github.com/charmbracelet/git-lfs-transfer v0.1.1-0.20260309112543-12416315a635
 	github.com/chi-middleware/proxy v1.1.1
+	github.com/coder/websocket v1.8.14
 	github.com/dimiro1/reply v0.0.0-20200315094148-d0136a4c9e21
 	github.com/dlclark/regexp2 v1.12.0
 	github.com/dsnet/compress v0.0.2-0.20230904184137-39efe44ab707
@@ -272,6 +274,7 @@ require (
 	github.com/x448/float16 v0.8.4 // indirect
 	github.com/xanzy/ssh-agent v0.3.3 // indirect
 	github.com/xi2/xz v0.0.0-20171230120015-48954b6210f8 // indirect
+	github.com/yuin/gopher-lua v1.1.1 // indirect
 	github.com/zeebo/blake3 v0.2.4 // indirect
 	github.com/zeebo/xxh3 v1.1.0 // indirect
 	go.etcd.io/bbolt v1.4.3 // indirect

@@ -62,3 +62,30 @@ export type FomanticInitFunction = {
 export type GitRefType = 'branch' | 'tag';
 
 export type Promisable<T> = T | Promise<T>; // stricter than type-fest which uses PromiseLike
+
+export type StopwatchData = {
+  repo_owner_name: string,
+  repo_name: string,
+  issue_index: number,
+  seconds: number,
+};
+
+// keep in sync with services/websocket/events.go
+export type ServerEventMessage =
+  {type: 'notification-count', count: number} |
+  {type: 'stopwatches', data: Array<StopwatchData>} |
+  {type: 'logout', data: 'here' | 'elsewhere'};
+
+// `satisfies` makes adding a new variant to ServerEventMessage without updating this array a type error.
+export const serverEventTypes = ['notification-count', 'stopwatches', 'logout'] as const satisfies ReadonlyArray<ServerEventMessage['type']>;
+
+export type UserEventMessage =
+  ServerEventMessage |
+  {type: 'push-unavailable'};
+
+export type UserEventType = UserEventMessage['type'];
+
+export type WorkerInboundMessage =
+  UserEventMessage |
+  {type: 'error', message?: string} |
+  {type: 'close'};

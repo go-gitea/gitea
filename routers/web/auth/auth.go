@@ -16,7 +16,6 @@ import (
 	"code.gitea.io/gitea/models/db"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/auth/password"
-	"code.gitea.io/gitea/modules/eventsource"
 	"code.gitea.io/gitea/modules/httplib"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/optional"
@@ -34,6 +33,7 @@ import (
 	"code.gitea.io/gitea/services/forms"
 	"code.gitea.io/gitea/services/mailer"
 	user_service "code.gitea.io/gitea/services/user"
+	websocket_service "code.gitea.io/gitea/services/websocket"
 
 	"github.com/markbates/goth"
 )
@@ -471,10 +471,7 @@ func HandleSignOut(ctx *context.Context) {
 // SignOut sign out from login status
 func SignOut(ctx *context.Context) {
 	if ctx.Doer != nil {
-		eventsource.GetManager().SendMessageBlocking(ctx.Doer.ID, &eventsource.Event{
-			Name: "logout",
-			Data: ctx.Session.ID(),
-		})
+		websocket_service.PublishLogout(ctx.Doer.ID, ctx.Session.ID())
 	}
 
 	// prepare the sign-out URL before destroying the session
