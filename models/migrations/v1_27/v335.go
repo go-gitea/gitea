@@ -4,12 +4,13 @@
 package v1_27
 
 import (
+	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/modules/timeutil"
 
 	"xorm.io/xorm"
 )
 
-func AddCommitCommentTable(x *xorm.Engine) error {
+func AddCommitCommentTable(x db.EngineMigration) error {
 	type CommitComment struct {
 		ID          int64              `xorm:"pk autoincr"`
 		RepoID      int64              `xorm:"INDEX NOT NULL"`
@@ -23,5 +24,9 @@ func AddCommitCommentTable(x *xorm.Engine) error {
 		UpdatedUnix timeutil.TimeStamp `xorm:"INDEX updated"`
 	}
 
-	return x.Sync(new(CommitComment))
+	_, err := x.SyncWithOptions(xorm.SyncOptions{
+		IgnoreConstrains:  true,
+		IgnoreDropIndices: true,
+	}, new(CommitComment))
+	return err
 }
