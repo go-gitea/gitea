@@ -5,6 +5,8 @@ package v1_27
 
 import (
 	"code.gitea.io/gitea/models/db"
+
+	"xorm.io/xorm"
 )
 
 // AddBlockOnCodeownerReviews adds block on codeowner reviews branch protection
@@ -13,5 +15,9 @@ func AddBlockOnCodeownerReviews(x db.EngineMigration) error {
 		BlockOnCodeownerReviews bool `xorm:"NOT NULL DEFAULT false"`
 	}
 
-	return x.Sync(new(ProtectedBranch))
+	_, err := x.SyncWithOptions(xorm.SyncOptions{
+		IgnoreConstrains:  true,
+		IgnoreDropIndices: true,
+	}, new(ProtectedBranch))
+	return err
 }
