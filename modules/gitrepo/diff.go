@@ -26,13 +26,13 @@ func GetDiffShortStatByCmdArgs(ctx context.Context, repo Repository, trustedArgs
 		return 0, 0, 0, err
 	}
 
-	return parseDiffStat(stdout)
+	return ParseDiffStat(stdout)
 }
 
 var shortStatFormat = regexp.MustCompile(
 	`\s*(\d+) files? changed(?:, (\d+) insertions?\(\+\))?(?:, (\d+) deletions?\(-\))?`)
 
-func parseDiffStat(stdout string) (numFiles, totalAdditions, totalDeletions int, err error) {
+func ParseDiffStat(stdout string) (numFiles, totalAdditions, totalDeletions int, err error) {
 	if len(stdout) == 0 || stdout == "\n" {
 		return 0, 0, 0, nil
 	}

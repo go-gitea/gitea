@@ -66,10 +66,16 @@ async function fetchGraphData() {
     } while (response.status === 202);
     if (response.ok) {
       const dayDataObj: DayDataObject = await response.json();
-      const start = Object.values(dayDataObj)[0].week;
+      const values = Object.values(dayDataObj);
+      if (values.length === 0) {
+        data.value = [];
+        errorText.value = '';
+        return;
+      }
+      const start = Math.min(...values.map((entry) => entry.week));
       const end = firstStartDateAfterDate(new Date());
       const startDays = startDaysBetween(start, end);
-      data.value = fillEmptyStartDaysWithZeroes(startDays, dayDataObj).slice(-52);
+      data.value = fillEmptyStartDaysWithZeroes(startDays, dayDataObj);
       errorText.value = '';
     } else {
       errorText.value = response.statusText;
@@ -124,7 +130,7 @@ const options: ChartOptions<'bar'> = {
 <template>
   <div>
     <div class="ui header">
-      {{ isLoading ? locale.loadingTitle : errorText ? locale.loadingTitleFailed: "Number of commits in the past year" }}
+      {{ isLoading ? locale.loadingTitle : errorText ? locale.loadingTitleFailed: "Commits over time" }}
     </div>
     <div class="tw-flex ui segment main-graph">
       <div v-if="isLoading || errorText !== ''" class="tw-m-auto">

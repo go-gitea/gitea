@@ -95,6 +95,7 @@ export default defineComponent({
     totalStats: {} as Record<string, any>,
     sortedContributors: {} as Record<string, any>,
     type: 'commits',
+    timeRange: 'all',
     contributorsStats: {} as Record<string, any>,
     xAxisStart: null as number | null,
     xAxisEnd: null as number | null,
@@ -106,21 +107,63 @@ export default defineComponent({
 
     fomanticQuery('#repo-contributors').dropdown({
       onChange: (val: string) => {
-        this.xAxisMin = this.xAxisStart;
-        this.xAxisMax = this.xAxisEnd;
         this.type = val;
         this.sortContributors();
       },
     });
+
+    fomanticQuery('#repo-contributors-time-range').dropdown({
+      onChange: (val: string) => {
+        this.timeRange = val;
+        this.fetchGraphData();
+      },
+    });
   },
   methods: {
+    getTimeRangeParams() {
+      if (this.timeRange === 'all') return null;
+
+      const months = Number(this.timeRange);
+      const rangeEnd = firstStartDateAfterDate(new Date());
+      const rangeStart = dayjs.utc(rangeEnd).subtract(months, 'month').startOf('day').valueOf();
+      return {from: rangeStart, to: rangeEnd};
+    },
+
+    applyTimeRange() {
+      if (!this.xAxisStart || !this.xAxisEnd) return;
+
+      if (this.timeRange === 'all') {
+        this.xAxisMin = this.xAxisStart;
+        this.xAxisMax = this.xAxisEnd;
+        return;
+      }
+
+      const months = Number(this.timeRange);
+      this.xAxisMin = dayjs.utc(this.xAxisEnd).subtract(months, 'month').startOf('day').valueOf();
+      this.xAxisMax = this.xAxisEnd;
+    },
+
     sortContributors() {
       const contributors: Record<string, any> = this.filterContributorWeeksByDateRange();
-      const criteria = `total_${this.type}`;
+      const criteria = this.type === 'additions_deletions' ? 'total_additions_deletions' : `total_${this.type}`;
       this.sortedContributors = Object.values(contributors)
         .filter((contributor) => contributor[criteria] !== 0)
         .sort((a, b) => a[criteria] > b[criteria] ? -1 : a[criteria] === b[criteria] ? 0 : 1)
         .slice(0, 100);
+    },
+
+    getWeekContribution(week: Record<string, number>) {
+      if (this.type === 'additions_deletions') {
+        return week.additions + week.deletions;
+      }
+      return week[this.type];
+    },
+
+    getContributionTypeLabel(type: string) {
+      if (type === 'additions_deletions') {
+        return `${this.locale.contributionType.additions} + ${this.locale.contributionType.deletions}`;
+      }
+      return this.locale.contributionType[type];
     },
 
     getContributorSearchQuery(contributorEmail: string) {
@@ -136,8 +179,16 @@ export default defineComponent({
       this.isLoading = true;
       try {
         let response: Response;
+        const rangeParams = this.getTimeRangeParams();
+        const params = new URLSearchParams();
+        if (rangeParams) {
+          params.set('from', String(rangeParams.from));
+          params.set('to', String(rangeParams.to));
+        }
+        const rangeQuery = params.toString();
+        const dataUrl = rangeQuery ? `${this.repoLink}/activity/contributors/data?${rangeQuery}` : `${this.repoLink}/activity/contributors/data`;
         do {
-          response = await GET(`${this.repoLink}/activity/contributors/data`);
+          response = await GET(dataUrl);
           if (response.status === 202) {
             await sleep(1000); // wait for 1 second before retrying
           }
@@ -149,12 +200,16 @@ export default defineComponent({
           total.weeks = Object.fromEntries(Object.entries(total.weeks).sort());
 
           const weekValues = Object.values(total.weeks);
-          this.xAxisStart = weekValues[0].week;
-          this.xAxisEnd = firstStartDateAfterDate(new Date());
+          if (rangeParams) {
+            this.xAxisStart = rangeParams.from;
+            this.xAxisEnd = rangeParams.to;
+          } else {
+            this.xAxisEnd = firstStartDateAfterDate(new Date());
+            this.xAxisStart = weekValues[0]?.week ?? this.xAxisEnd;
+          }
           const startDays = startDaysBetween(this.xAxisStart, this.xAxisEnd);
           total.weeks = fillEmptyStartDaysWithZeroes(startDays, total.weeks);
-          this.xAxisMin = this.xAxisStart;
-          this.xAxisMax = this.xAxisEnd;
+          this.applyTimeRange();
           this.contributorsStats = {};
           for (const [email, user] of Object.entries(other)) {
             user.weeks = fillEmptyStartDaysWithZeroes(startDays, user.weeks);
@@ -181,6 +236,7 @@ export default defineComponent({
         user.total_commits = 0;
         user.total_additions = 0;
         user.total_deletions = 0;
+        user.total_additions_deletions = 0;
         user.max_contribution_type = 0;
         const filteredWeeks = user.weeks.filter((week: Record<string, number>) => {
           const oneWeek = 7 * 24 * 60 * 60 * 1000;
@@ -188,8 +244,10 @@ export default defineComponent({
             user.total_commits += week.commits;
             user.total_additions += week.additions;
             user.total_deletions += week.deletions;
-            if (week[this.type] > user.max_contribution_type) {
-              user.max_contribution_type = week[this.type];
+            user.total_additions_deletions += week.additions + week.deletions;
+            const contributionValue = this.getWeekContribution(week);
+            if (contributionValue > user.max_contribution_type) {
+              user.max_contribution_type = contributionValue;
             }
             return true;
           }
@@ -212,7 +270,7 @@ export default defineComponent({
       // Normally, chartjs handles this automatically, but it will resize the graph when you
       // zoom, pan etc. I think resizing the graph makes it harder to compare things visually.
       const maxValue = Math.max(
-        ...this.totalStats.weeks.map((o: Record<string, any>) => o[this.type]),
+        ...this.totalStats.weeks.map((o: Record<string, any>) => this.getWeekContribution(o)),
       );
       const [coefficient, exp] = maxValue.toExponential().split('e').map(Number);
       if (coefficient % 1 === 0) return maxValue;
@@ -232,12 +290,13 @@ export default defineComponent({
     },
 
     toGraphData(data: Array<Record<string, any>>): ChartData<'line'> {
+      const hasSinglePoint = data.length <= 1;
       return {
         datasets: [
           {
-            data: data.map((i) => ({x: i.week, y: i[this.type]})),
-            pointRadius: 0,
-            pointHitRadius: 0,
+            data: data.map((i) => ({x: i.week, y: this.getWeekContribution(i)})),
+            pointRadius: hasSinglePoint ? 3 : 0,
+            pointHitRadius: hasSinglePoint ? 3 : 0,
             fill: 'start',
             backgroundColor: chartJsColors[this.type],
             borderWidth: 0,
@@ -370,7 +429,7 @@ export default defineComponent({
         <!-- Contribution type -->
         <div class="ui floating dropdown jump" id="repo-contributors">
           <div class="ui basic compact button">
-            <span class="not-mobile">{{ locale.filterLabel }}</span> <strong>{{ locale.contributionType[type] }}</strong>
+            <span class="not-mobile">{{ locale.filterLabel }}</span> <strong>{{ getContributionTypeLabel(type) }}</strong>
             <svg-icon name="octicon-triangle-down" :size="14"/>
           </div>
           <div class="left menu">
@@ -383,6 +442,24 @@ export default defineComponent({
             <div :class="['item', {'selected': type === 'deletions'}]" data-value="deletions">
               {{ locale.contributionType.deletions }}
             </div>
+            <div :class="['item', {'selected': type === 'additions_deletions'}]" data-value="additions_deletions">
+              {{ getContributionTypeLabel('additions_deletions') }}
+            </div>
+          </div>
+        </div>
+        <div class="ui floating dropdown jump tw-ml-2" id="repo-contributors-time-range">
+          <div class="ui basic compact button">
+            <span class="not-mobile">Time range</span> <strong>{{ timeRange === 'all' ? 'All' : `Last ${timeRange} Month` }}</strong>
+            <svg-icon name="octicon-triangle-down" :size="14"/>
+          </div>
+          <div class="left menu">
+            <div :class="['item', {'selected': timeRange === 'all'}]" data-value="all">All</div>
+            <div :class="['item', {'selected': timeRange === '1'}]" data-value="1">Last Month</div>
+            <div :class="['item', {'selected': timeRange === '3'}]" data-value="3">Last 3 Month</div>
+            <div :class="['item', {'selected': timeRange === '6'}]" data-value="6">Last 6 Month</div>
+            <div :class="['item', {'selected': timeRange === '12'}]" data-value="12">Last 12 Month</div>
+            <div :class="['item', {'selected': timeRange === '24'}]" data-value="24">Last 24 Month</div>
+            <div :class="['item', {'selected': timeRange === '36'}]" data-value="36">Last 36 Month</div>
           </div>
         </div>
       </div>
@@ -399,7 +476,7 @@ export default defineComponent({
         </div>
       </div>
       <ChartLine
-        v-memo="[totalStats.weeks, type]" v-if="Object.keys(totalStats).length !== 0"
+        v-memo="[totalStats.weeks, type, xAxisMin, xAxisMax]" v-if="Object.keys(totalStats).length !== 0"
         :data="toGraphData(totalStats.weeks)" :options="getOptions('main')"
       />
     </div>

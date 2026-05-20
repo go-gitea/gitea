@@ -6,15 +6,15 @@ package activities
 import (
 	"context"
 	"fmt"
-	"sort"
 	"time"
 
+	"code.gitea.io/gitea/models/avatars"
 	"code.gitea.io/gitea/models/db"
 	issues_model "code.gitea.io/gitea/models/issues"
 	repo_model "code.gitea.io/gitea/models/repo"
+	contribution_model "code.gitea.io/gitea/models/repo/contribution"
 	user_model "code.gitea.io/gitea/models/user"
-	"code.gitea.io/gitea/modules/git"
-	"code.gitea.io/gitea/modules/gitrepo"
+	"code.gitea.io/gitea/modules/container"
 
 	"xorm.io/builder"
 )
@@ -26,6 +26,15 @@ type ActivityAuthorData struct {
 	AvatarLink string `json:"avatar_link"`
 	HomeLink   string `json:"home_link"`
 	Commits    int64  `json:"commits"`
+}
+
+// CodeActivityStats represents git statistics data
+type CodeActivityStats struct {
+	AuthorCount  int64
+	CommitCount  int64
+	ChangedFiles int64
+	Additions    int64
+	Deletions    int64
 }
 
 // ActivityStats represents issue and pull request information.
@@ -42,12 +51,12 @@ type ActivityStats struct {
 	UnresolvedIssues            issues_model.IssueList
 	PublishedReleases           []*repo_model.Release
 	PublishedReleaseAuthorCount int64
-	Code                        *git.CodeActivityStats
+	Code                        *CodeActivityStats
 }
 
 // GetActivityStats return stats for repository at given time range
 func GetActivityStats(ctx context.Context, repo *repo_model.Repository, timeFrom time.Time, releases, issues, prs, code bool) (*ActivityStats, error) {
-	stats := &ActivityStats{Code: &git.CodeActivityStats{}}
+	stats := &ActivityStats{Code: &CodeActivityStats{}}
 	if releases {
 		if err := stats.FillReleases(ctx, repo.ID, timeFrom); err != nil {
 			return nil, fmt.Errorf("FillReleases: %w", err)
@@ -67,80 +76,88 @@ func GetActivityStats(ctx context.Context, repo *repo_model.Repository, timeFrom
 		return nil, fmt.Errorf("FillUnresolvedIssues: %w", err)
 	}
 	if code {
-		gitRepo, closer, err := gitrepo.RepositoryFromContextOrOpen(ctx, repo)
+		codeStats, err := getCodeActivityStats(ctx, repo, timeFrom)
 		if err != nil {
-			return nil, fmt.Errorf("OpenRepository: %w", err)
+			return nil, err
 		}
-		defer closer.Close()
-
-		code, err := gitRepo.GetCodeActivityStats(timeFrom, repo.DefaultBranch)
-		if err != nil {
-			return nil, fmt.Errorf("FillFromGit: %w", err)
-		}
-		stats.Code = code
+		stats.Code = codeStats
 	}
 	return stats, nil
 }
 
 // GetActivityStatsTopAuthors returns top author stats for git commits for all branches
 func GetActivityStatsTopAuthors(ctx context.Context, repo *repo_model.Repository, timeFrom time.Time, count int) ([]*ActivityAuthorData, error) {
-	gitRepo, closer, err := gitrepo.RepositoryFromContextOrOpen(ctx, repo)
+	stats, err := contribution_model.GetContributorActivity(ctx, repo, timeFrom, count)
 	if err != nil {
-		return nil, fmt.Errorf("OpenRepository: %w", err)
+		return nil, err
 	}
-	defer closer.Close()
+	if len(stats) == 0 {
+		return []*ActivityAuthorData{}, nil
+	}
 
-	code, err := gitRepo.GetCodeActivityStats(timeFrom, "")
+	return ActivityStats2AuthorData(ctx, stats, 24)
+}
+
+func ActivityStats2AuthorData(ctx context.Context, stats []*contribution_model.ContributorSummary, avatarSize int) ([]*ActivityAuthorData, error) {
+	userIDs := container.Set[int64]{}
+	for _, stat := range stats {
+		if stat.UserID > 0 {
+			userIDs.Add(stat.UserID)
+		}
+	}
+
+	userMap, err := user_model.GetUsersMapByIDs(ctx, userIDs.Values())
 	if err != nil {
-		return nil, fmt.Errorf("FillFromGit: %w", err)
+		return nil, err
 	}
-	if code.Authors == nil {
-		return nil, nil
-	}
-	users := make(map[int64]*ActivityAuthorData)
-	var unknownUserID int64
-	unknownUserAvatarLink := user_model.NewGhostUser().AvatarLink(ctx)
-	for _, v := range code.Authors {
-		if len(v.Email) == 0 {
+
+	contributors := make([]*ActivityAuthorData, 0, len(stats))
+	gitUserAvatarLink := user_model.NewGhostUser().AvatarLinkWithSize(ctx, avatarSize)
+	for _, stat := range stats {
+		user := userMap[stat.UserID]
+		if user == nil {
+			avatarLink := avatars.GenerateEmailAvatarFastLink(ctx, stat.Email, avatarSize)
+			if avatarLink == "" {
+				avatarLink = gitUserAvatarLink
+			}
+			contributors = append(contributors, &ActivityAuthorData{
+				Name:       stat.AuthorName,
+				AvatarLink: avatarLink,
+				Commits:    stat.Commits,
+			})
 			continue
 		}
-		u, err := user_model.GetUserByEmail(ctx, v.Email)
-		if u == nil || user_model.IsErrUserNotExist(err) {
-			unknownUserID--
-			users[unknownUserID] = &ActivityAuthorData{
-				Name:       v.Name,
-				AvatarLink: unknownUserAvatarLink,
-				Commits:    v.Commits,
-			}
-			continue
-		}
-		if err != nil {
-			return nil, err
-		}
-		if user, ok := users[u.ID]; !ok {
-			users[u.ID] = &ActivityAuthorData{
-				Name:       u.DisplayName(),
-				Login:      u.LowerName,
-				AvatarLink: u.AvatarLink(ctx),
-				HomeLink:   u.HomeLink(),
-				Commits:    v.Commits,
-			}
-		} else {
-			user.Commits += v.Commits
-		}
-	}
-	v := make([]*ActivityAuthorData, 0, len(users))
-	for _, u := range users {
-		v = append(v, u)
+		contributors = append(contributors, &ActivityAuthorData{
+			Name:       user.DisplayName(),
+			Login:      user.LowerName,
+			AvatarLink: user.AvatarLinkWithSize(ctx, avatarSize),
+			HomeLink:   user.HomeLink(),
+			Commits:    stat.Commits,
+		})
 	}
 
-	sort.Slice(v, func(i, j int) bool {
-		return v[i].Commits > v[j].Commits
-	})
+	return contributors, nil
+}
 
-	cnt := min(count, len(v))
+func getCodeActivityStats(ctx context.Context, repo *repo_model.Repository, timeFrom time.Time) (*CodeActivityStats, error) {
+	start := contribution_model.NewContributorDayStart(timeFrom.UTC())
 
-	return v[:cnt], nil
+	var res CodeActivityStats
+	_, err := db.GetEngine(ctx).
+		SQL("SELECT COALESCE(SUM(additions), 0) AS additions, COALESCE(SUM(deletions), 0) AS deletions, COALESCE(SUM(commits), 0) AS commit_count, COALESCE(SUM(changed_files), 0) AS changed_files FROM repo_contributor_daily WHERE repo_id=? AND day_start >= ?", repo.ID, start).
+		Get(&res)
+	if err != nil {
+		return nil, err
+	}
+
+	_, err = db.GetEngine(ctx).
+		SQL("SELECT COUNT(*) AS author_count FROM (SELECT user_id, email, author_name FROM repo_contributor_daily WHERE repo_id=? AND day_start >= ? GROUP BY user_id, email, author_name) temp", repo.ID, start).
+		Get(&res)
+	if err != nil {
+		return nil, err
+	}
+
+	return &res, nil
 }
 
 // ActivePRCount returns total active pull request count

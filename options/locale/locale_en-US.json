@@ -3005,6 +3005,7 @@
   "admin.dashboard.sync_branch.started": "Branches Sync started",
   "admin.dashboard.sync_tag.started": "Tags Sync started",
   "admin.dashboard.rebuild_issue_indexer": "Rebuild issue indexer",
+  "admin.dashboard.rebuild_contributor_stats": "Rebuild contributor stats",
   "admin.dashboard.sync_repo_licenses": "Sync repo licenses",
   "admin.users.user_manage_panel": "User Account Management",
   "admin.users.new_account": "Create User Account",

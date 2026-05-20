@@ -11,9 +11,11 @@ import (
 	"strings"
 	"time"
 
+	"code.gitea.io/gitea/models/activities"
 	"code.gitea.io/gitea/models/db"
 	git_model "code.gitea.io/gitea/models/git"
 	repo_model "code.gitea.io/gitea/models/repo"
+	contribution_model "code.gitea.io/gitea/models/repo/contribution"
 	unit_model "code.gitea.io/gitea/models/unit"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/git"
@@ -162,6 +164,33 @@ func prepareHomeSidebarLanguageStats(ctx *context.Context) {
 	}
 
 	ctx.Data["LanguageStats"] = langs
+}
+
+func prepareHomeSidebarContributors(ctx *context.Context) {
+	if ctx.Repo.Repository.IsEmpty {
+		return
+	}
+	const contributorLimit = 12
+	summaries, total, err := contribution_model.GetRepoTopContributors(ctx, ctx.Repo.Repository.ID, contributorLimit)
+	if err != nil {
+		log.Error("GetRepoTopContributors: %v", err)
+		return
+	}
+	if total == 0 {
+		if err := repo_service.RequestContributorStatsRebuild(ctx, ctx.Repo.Repository.ID); err != nil && !errors.Is(err, repo_service.ErrAwaitGeneration) {
+			log.Error("RequestContributorStatsRebuild %s/%s failed: %v", ctx.Repo.Repository.OwnerName, ctx.Repo.Repository.Name, err)
+		}
+		return
+	}
+
+	contributors, err := activities.ActivityStats2AuthorData(ctx, summaries, 36)
+	if err != nil {
+		log.Error("ActivityStats2AuthorData: %v", err)
+		return
+	}
+
+	ctx.Data["RepoTopContributors"] = contributors
+	ctx.Data["RepoContributorCount"] = total
 }
 
 func prepareHomeSidebarLatestRelease(ctx *context.Context) {
@@ -444,6 +473,7 @@ func Home(ctx *context.Context) {
 			prepareHomeSidebarLicenses,
 			prepareHomeSidebarCitationFile(entry),
 			prepareHomeSidebarLanguageStats,
+			prepareHomeSidebarContributors,
 			prepareHomeSidebarLatestRelease,
 		)
 	}

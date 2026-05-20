@@ -8386,6 +8386,60 @@
         }
       }
     },
+    "/repos/{owner}/{repo}/contributors": {
+      "get": {
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "repository"
+        ],
+        "summary": "List repository contributors",
+        "operationId": "repoListContributors",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "owner of the repo",
+            "name": "owner",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "name of the repo",
+            "name": "repo",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "boolean",
+            "description": "include anonymous contributors",
+            "name": "anon",
+            "in": "query"
+          },
+          {
+            "type": "integer",
+            "description": "page number of results to return (1-based)",
+            "name": "page",
+            "in": "query"
+          },
+          {
+            "type": "integer",
+            "description": "page size of results",
+            "name": "limit",
+            "in": "query"
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/responses/ContributorList"
+          },
+          "404": {
+            "$ref": "#/responses/notFound"
+          }
+        }
+      }
+    },
     "/repos/{owner}/{repo}/diffpatch": {
       "post": {
         "consumes": [
@@ -23207,6 +23261,12 @@
           "format": "int64",
           "x-go-name": "Additions"
         },
+        "changed_files": {
+          "description": "ChangedFiles is the number of files changed",
+          "type": "integer",
+          "format": "int64",
+          "x-go-name": "ChangedFiles"
+        },
         "deletions": {
           "description": "Deletions is the number of lines deleted",
           "type": "integer",
@@ -23443,6 +23503,74 @@
           "description": "URL is the API URL for this file or directory",
           "type": "string",
           "x-go-name": "URL"
+        }
+      },
+      "x-go-package": "code.gitea.io/gitea/modules/structs"
+    },
+    "Contributor": {
+      "type": "object",
+      "title": "Contributor represents a repository contributor.",
+      "properties": {
+        "additions": {
+          "description": "Additions is the number of lines added by the contributor",
+          "type": "integer",
+          "format": "int64",
+          "x-go-name": "Additions"
+        },
+        "avatar_url": {
+          "description": "URL to the user's avatar, used by non-git only user",
+          "type": "string",
+          "x-go-name": "AvatarURL"
+        },
+        "commits": {
+          "description": "Commits is the number of commits made by the contributor",
+          "type": "integer",
+          "format": "int64",
+          "x-go-name": "Commits"
+        },
+        "contributions": {
+          "description": "Contributions is the number of commits made by the contributor for Github API compatibility",
+          "type": "integer",
+          "format": "int64",
+          "x-go-name": "Contributions"
+        },
+        "deletions": {
+          "description": "Deletions is the number of lines deleted by the contributor",
+          "type": "integer",
+          "format": "int64",
+          "x-go-name": "Deletions"
+        },
+        "email": {
+          "description": "Email of the contributor",
+          "type": "string",
+          "x-go-name": "Email"
+        },
+        "fileschanged": {
+          "description": "FilesChanged is the number of files changed by the contributor",
+          "type": "integer",
+          "format": "int64",
+          "x-go-name": "FilesChanged"
+        },
+        "html_url": {
+          "description": "URL to the user's gitea page, used by non-git only user",
+          "type": "string",
+          "x-go-name": "HTMLURL"
+        },
+        "id": {
+          "description": "user id, used by non-git only user",
+          "type": "integer",
+          "format": "int64",
+          "x-go-name": "ID"
+        },
+        "login": {
+          "description": "user login name, used by non-git only user",
+          "type": "string",
+          "x-go-name": "Login"
+        },
+        "name": {
+          "description": "Name of the contributor",
+          "type": "string",
+          "x-go-name": "Name"
         }
       },
       "x-go-package": "code.gitea.io/gitea/modules/structs"
@@ -30657,6 +30785,15 @@
       "description": "ContentsResponse",
       "schema": {
         "$ref": "#/definitions/ContentsResponse"
+      }
+    },
+    "ContributorList": {
+      "description": "ContributorList",
+      "schema": {
+        "type": "array",
+        "items": {
+          "$ref": "#/definitions/Contributor"
+        }
       }
     },
     "CronList": {

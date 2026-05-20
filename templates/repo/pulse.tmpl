@@ -81,12 +81,12 @@
 {{end}}
 
 {{if .Permission.CanRead ctx.Consts.RepoUnitTypeCode}}
-	{{if eq .Activity.Code.CommitCountInAllBranches 0}}
+	{{if eq .Activity.Code.CommitCount 0}}
 		<div class="ui tw-text-center segment">
 		<h4 class="ui header">{{ctx.Locale.Tr "repo.activity.no_git_activity"}}</h4>
 		</div>
 	{{end}}
-	{{if gt .Activity.Code.CommitCountInAllBranches 0}}
+	{{if gt .Activity.Code.CommitCount 0}}
 		<div class="ui attached segment horizontal segments">
 			<div class="ui attached segment text">
 				{{ctx.Locale.Tr "repo.activity.git_stats_exclude_merges"}}
@@ -94,8 +94,6 @@
 				{{ctx.Locale.TrN .Activity.Code.AuthorCount "repo.activity.git_stats_pushed_1" "repo.activity.git_stats_pushed_n"}}
 				<strong>{{ctx.Locale.TrN .Activity.Code.CommitCount "repo.activity.git_stats_commit_1" "repo.activity.git_stats_commit_n" .Activity.Code.CommitCount}}</strong>
 				{{ctx.Locale.Tr "repo.activity.git_stats_push_to_branch" .Repository.DefaultBranch}}
-				<strong>{{ctx.Locale.TrN .Activity.Code.CommitCountInAllBranches "repo.activity.git_stats_commit_1" "repo.activity.git_stats_commit_n" .Activity.Code.CommitCountInAllBranches}}</strong>
-				{{ctx.Locale.Tr "repo.activity.git_stats_push_to_all_branches"}}
 				{{ctx.Locale.Tr "repo.activity.git_stats_on_default_branch" .Repository.DefaultBranch}}
 				<strong>{{ctx.Locale.TrN .Activity.Code.ChangedFiles "repo.activity.git_stats_file_1" "repo.activity.git_stats_file_n" .Activity.Code.ChangedFiles}}</strong>
 				{{ctx.Locale.TrN .Activity.Code.ChangedFiles "repo.activity.git_stats_files_changed_1" "repo.activity.git_stats_files_changed_n"}}
