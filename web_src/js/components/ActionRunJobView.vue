@@ -5,7 +5,7 @@ import ActionStatusIcon from './ActionStatusIcon.vue';
 import {addDelegatedEventListener, createElementFromAttrs, toggleElem} from '../utils/dom.ts';
 import {formatDatetime, formatDatetimeISO} from '../utils/time.ts';
 import {POST} from '../modules/fetch.ts';
-import {copyToClipboard} from '../features/clipboard.ts';
+import {copyToClipboard} from '../modules/clipboard.ts';
 import type {IntervalId} from '../types.ts';
 import {toggleFullScreen} from '../utils.ts';
 import {localUserSettings} from '../modules/user-settings.ts';
@@ -204,7 +204,7 @@ function endLogGroup(stepIndex: number) {
 
 // always fetches: the DOM can be stale if the step was collapsed while still streaming
 async function copyStepOutput(event: MouseEvent, stepIndex: number) {
-  await copyToClipboard(event.currentTarget as HTMLElement, async () => {
+  await copyToClipboard(async () => {
     const data = await fetchJobData([{step: stepIndex, cursor: null, expanded: true}]);
     const stepLog = data.logs.stepsLog?.find((s) => s.step === stepIndex);
     const lines: string[] = [];
@@ -216,7 +216,7 @@ async function copyStepOutput(event: MouseEvent, stepIndex: number) {
       lines.push(`${ts} ${msg}`);
     }
     return lines.join('\n');
-  });
+  }, event.currentTarget as HTMLElement);
 }
 
 // show/hide the step logs for a step

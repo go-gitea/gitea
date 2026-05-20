@@ -1,6 +1,6 @@
 import {svg} from '../svg.ts';
 import {html} from '../utils/html.ts';
-import {copyToClipboard} from './clipboard.ts';
+import {copyToClipboard} from '../modules/clipboard.ts';
 import {GET, POST} from '../modules/fetch.ts';
 import {showErrorToast} from '../modules/toast.ts';
 import {createElementFromHTML, createElementFromAttrs} from '../utils/dom.ts';
@@ -45,13 +45,13 @@ export function generateMarkdownLinkForAttachment(file: Partial<CustomDropzoneFi
 function addCopyLink(file: Partial<CustomDropzoneFile>) {
   // Create a "Copy Link" element, to conveniently copy the image or file link as Markdown to the clipboard
   // The "<a>" element has a hardcoded cursor: pointer because the default is overridden by .dropzone
-  const copyLinkEl = createElementFromHTML(`
+  const copyLinkEl = createElementFromHTML<HTMLDivElement>(`
 <div class="tw-text-center">
   <a href="#" class="tw-cursor-pointer">${svg('octicon-copy', 14)} Copy link</a>
 </div>`);
   copyLinkEl.addEventListener('click', async (e) => {
     e.preventDefault();
-    await copyToClipboard(copyLinkEl, generateMarkdownLinkForAttachment(file));
+    await copyToClipboard(generateMarkdownLinkForAttachment(file), copyLinkEl);
   });
   file.previewTemplate!.append(copyLinkEl);
 }
