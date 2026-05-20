@@ -980,6 +980,39 @@
         },
         "description": "PackageList"
       },
+      "ProjectWorkflow": {
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ProjectWorkflow"
+            }
+          }
+        },
+        "description": "ProjectWorkflow"
+      },
+      "ProjectWorkflowList": {
+        "content": {
+          "application/json": {
+            "schema": {
+              "items": {
+                "$ref": "#/components/schemas/ProjectWorkflow"
+              },
+              "type": "array"
+            }
+          }
+        },
+        "description": "ProjectWorkflowList"
+      },
+      "ProjectWorkflowOptions": {
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ProjectWorkflowOptions"
+            }
+          }
+        },
+        "description": "ProjectWorkflowOptions"
+      },
       "PublicKey": {
         "content": {
           "application/json": {
@@ -7202,6 +7235,12 @@
             "type": "boolean",
             "x-go-name": "Exclusive"
           },
+          "exclusive_order": {
+            "example": 0,
+            "format": "int64",
+            "type": "integer",
+            "x-go-name": "ExclusiveOrder"
+          },
           "id": {
             "description": "ID is the unique identifier for the label",
             "format": "int64",
@@ -8377,6 +8416,136 @@
             "x-go-name": "Updated"
           }
         },
+        "type": "object",
+        "x-go-package": "code.gitea.io/gitea/modules/structs"
+      },
+      "ProjectWorkflow": {
+        "properties": {
+          "actions": {
+            "items": {
+              "$ref": "#/components/schemas/ProjectWorkflowRule"
+            },
+            "type": "array",
+            "x-go-name": "Actions"
+          },
+          "capabilities": {
+            "$ref": "#/components/schemas/ProjectWorkflowCapabilities"
+          },
+          "display_name": {
+            "type": "string",
+            "x-go-name": "DisplayName"
+          },
+          "enabled": {
+            "type": "boolean",
+            "x-go-name": "Enabled"
+          },
+          "event_id": {
+            "type": "string",
+            "x-go-name": "EventID"
+          },
+          "filters": {
+            "items": {
+              "$ref": "#/components/schemas/ProjectWorkflowRule"
+            },
+            "type": "array",
+            "x-go-name": "Filters"
+          },
+          "id": {
+            "format": "int64",
+            "type": "integer",
+            "x-go-name": "ID"
+          },
+          "is_configured": {
+            "type": "boolean",
+            "x-go-name": "IsConfigured"
+          },
+          "summary": {
+            "type": "string",
+            "x-go-name": "Summary"
+          },
+          "workflow_event": {
+            "type": "string",
+            "x-go-name": "WorkflowEvent"
+          }
+        },
+        "title": "ProjectWorkflow represents a project workflow.",
+        "type": "object",
+        "x-go-package": "code.gitea.io/gitea/modules/structs"
+      },
+      "ProjectWorkflowCapabilities": {
+        "properties": {
+          "available_actions": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "x-go-name": "AvailableActions"
+          },
+          "available_filters": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "x-go-name": "AvailableFilters"
+          }
+        },
+        "title": "ProjectWorkflowCapabilities describes which filters and actions an event supports.",
+        "type": "object",
+        "x-go-package": "code.gitea.io/gitea/modules/structs"
+      },
+      "ProjectWorkflowColumnOption": {
+        "properties": {
+          "color": {
+            "type": "string",
+            "x-go-name": "Color"
+          },
+          "id": {
+            "format": "int64",
+            "type": "integer",
+            "x-go-name": "ID"
+          },
+          "title": {
+            "type": "string",
+            "x-go-name": "Title"
+          }
+        },
+        "title": "ProjectWorkflowColumnOption represents a selectable project column.",
+        "type": "object",
+        "x-go-package": "code.gitea.io/gitea/modules/structs"
+      },
+      "ProjectWorkflowOptions": {
+        "properties": {
+          "columns": {
+            "items": {
+              "$ref": "#/components/schemas/ProjectWorkflowColumnOption"
+            },
+            "type": "array",
+            "x-go-name": "Columns"
+          },
+          "labels": {
+            "items": {
+              "$ref": "#/components/schemas/Label"
+            },
+            "type": "array",
+            "x-go-name": "Labels"
+          }
+        },
+        "title": "ProjectWorkflowOptions represents the project workflow configuration options.",
+        "type": "object",
+        "x-go-package": "code.gitea.io/gitea/modules/structs"
+      },
+      "ProjectWorkflowRule": {
+        "properties": {
+          "type": {
+            "type": "string",
+            "x-go-name": "Type"
+          },
+          "value": {
+            "type": "string",
+            "x-go-name": "Value"
+          }
+        },
+        "title": "ProjectWorkflowRule represents a workflow filter or action item.",
         "type": "object",
         "x-go-package": "code.gitea.io/gitea/modules/structs"
       },
@@ -25640,6 +25809,559 @@
         "summary": "Mark notification threads as read, pinned or unread on a specific repo",
         "tags": [
           "notification"
+        ]
+      }
+    },
+    "/repos/{owner}/{repo}/projects/{project_id}/workflows": {
+      "get": {
+        "operationId": "ListProjectWorkflows",
+        "parameters": [
+          {
+            "description": "owner of the repo",
+            "in": "path",
+            "name": "owner",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "name of the repo",
+            "in": "path",
+            "name": "repo",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "id of the project",
+            "in": "path",
+            "name": "project_id",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/components/responses/ProjectWorkflowList"
+          },
+          "403": {
+            "$ref": "#/components/responses/forbidden"
+          },
+          "404": {
+            "$ref": "#/components/responses/notFound"
+          }
+        },
+        "summary": "List project workflows",
+        "tags": [
+          "repository"
+        ]
+      },
+      "post": {
+        "operationId": "CreateProjectWorkflow",
+        "parameters": [
+          {
+            "description": "owner of the repo",
+            "in": "path",
+            "name": "owner",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "name of the repo",
+            "in": "path",
+            "name": "repo",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "id of the project",
+            "in": "path",
+            "name": "project_id",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "properties": {
+                  "actions": {
+                    "properties": {
+                      "add_labels": {
+                        "items": {
+                          "type": "string"
+                        },
+                        "type": "array"
+                      },
+                      "column": {
+                        "type": "string"
+                      },
+                      "issue_state": {
+                        "type": "string"
+                      },
+                      "remove_labels": {
+                        "items": {
+                          "type": "string"
+                        },
+                        "type": "array"
+                      }
+                    },
+                    "type": "object"
+                  },
+                  "event_id": {
+                    "type": "string"
+                  },
+                  "filters": {
+                    "properties": {
+                      "issue_type": {
+                        "type": "string"
+                      },
+                      "labels": {
+                        "items": {
+                          "type": "string"
+                        },
+                        "type": "array"
+                      },
+                      "source_column": {
+                        "type": "string"
+                      },
+                      "target_column": {
+                        "type": "string"
+                      }
+                    },
+                    "type": "object"
+                  }
+                },
+                "required": [
+                  "event_id"
+                ],
+                "type": "object"
+              }
+            }
+          },
+          "x-originalParamName": "body"
+        },
+        "responses": {
+          "201": {
+            "$ref": "#/components/responses/ProjectWorkflow"
+          },
+          "403": {
+            "$ref": "#/components/responses/forbidden"
+          },
+          "404": {
+            "$ref": "#/components/responses/notFound"
+          },
+          "422": {
+            "$ref": "#/components/responses/validationError"
+          }
+        },
+        "summary": "Create a project workflow",
+        "tags": [
+          "repository"
+        ]
+      }
+    },
+    "/repos/{owner}/{repo}/projects/{project_id}/workflows/options": {
+      "get": {
+        "operationId": "GetProjectWorkflowOptions",
+        "parameters": [
+          {
+            "description": "owner of the repo",
+            "in": "path",
+            "name": "owner",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "name of the repo",
+            "in": "path",
+            "name": "repo",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "id of the project",
+            "in": "path",
+            "name": "project_id",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/components/responses/ProjectWorkflowOptions"
+          },
+          "403": {
+            "$ref": "#/components/responses/forbidden"
+          },
+          "404": {
+            "$ref": "#/components/responses/notFound"
+          }
+        },
+        "summary": "Get project workflow options",
+        "tags": [
+          "repository"
+        ]
+      }
+    },
+    "/repos/{owner}/{repo}/projects/{project_id}/workflows/{workflow_id}": {
+      "delete": {
+        "operationId": "DeleteProjectWorkflow",
+        "parameters": [
+          {
+            "description": "owner of the repo",
+            "in": "path",
+            "name": "owner",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "name of the repo",
+            "in": "path",
+            "name": "repo",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "id of the project",
+            "in": "path",
+            "name": "project_id",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "description": "id of the workflow",
+            "in": "path",
+            "name": "workflow_id",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "No Content"
+          },
+          "403": {
+            "$ref": "#/components/responses/forbidden"
+          },
+          "404": {
+            "$ref": "#/components/responses/notFound"
+          }
+        },
+        "summary": "Delete a project workflow",
+        "tags": [
+          "repository"
+        ]
+      },
+      "get": {
+        "operationId": "GetProjectWorkflow",
+        "parameters": [
+          {
+            "description": "owner of the repo",
+            "in": "path",
+            "name": "owner",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "name of the repo",
+            "in": "path",
+            "name": "repo",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "id of the project",
+            "in": "path",
+            "name": "project_id",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "description": "id of the workflow",
+            "in": "path",
+            "name": "workflow_id",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/components/responses/ProjectWorkflow"
+          },
+          "403": {
+            "$ref": "#/components/responses/forbidden"
+          },
+          "404": {
+            "$ref": "#/components/responses/notFound"
+          }
+        },
+        "summary": "Get a project workflow",
+        "tags": [
+          "repository"
+        ]
+      },
+      "patch": {
+        "operationId": "UpdateProjectWorkflow",
+        "parameters": [
+          {
+            "description": "owner of the repo",
+            "in": "path",
+            "name": "owner",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "name of the repo",
+            "in": "path",
+            "name": "repo",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "id of the project",
+            "in": "path",
+            "name": "project_id",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "description": "id of the workflow",
+            "in": "path",
+            "name": "workflow_id",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "properties": {
+                  "actions": {
+                    "properties": {
+                      "add_labels": {
+                        "items": {
+                          "type": "string"
+                        },
+                        "type": "array"
+                      },
+                      "column": {
+                        "type": "string"
+                      },
+                      "issue_state": {
+                        "type": "string"
+                      },
+                      "remove_labels": {
+                        "items": {
+                          "type": "string"
+                        },
+                        "type": "array"
+                      }
+                    },
+                    "type": "object"
+                  },
+                  "filters": {
+                    "properties": {
+                      "issue_type": {
+                        "type": "string"
+                      },
+                      "labels": {
+                        "items": {
+                          "type": "string"
+                        },
+                        "type": "array"
+                      },
+                      "source_column": {
+                        "type": "string"
+                      },
+                      "target_column": {
+                        "type": "string"
+                      }
+                    },
+                    "type": "object"
+                  }
+                },
+                "type": "object"
+              }
+            }
+          },
+          "x-originalParamName": "body"
+        },
+        "responses": {
+          "200": {
+            "$ref": "#/components/responses/ProjectWorkflow"
+          },
+          "403": {
+            "$ref": "#/components/responses/forbidden"
+          },
+          "404": {
+            "$ref": "#/components/responses/notFound"
+          },
+          "422": {
+            "$ref": "#/components/responses/validationError"
+          }
+        },
+        "summary": "Update a project workflow",
+        "tags": [
+          "repository"
+        ]
+      }
+    },
+    "/repos/{owner}/{repo}/projects/{project_id}/workflows/{workflow_id}/disable": {
+      "put": {
+        "operationId": "DisableProjectWorkflow",
+        "parameters": [
+          {
+            "description": "owner of the repo",
+            "in": "path",
+            "name": "owner",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "name of the repo",
+            "in": "path",
+            "name": "repo",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "id of the project",
+            "in": "path",
+            "name": "project_id",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "description": "id of the workflow",
+            "in": "path",
+            "name": "workflow_id",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "No Content"
+          },
+          "403": {
+            "$ref": "#/components/responses/forbidden"
+          },
+          "404": {
+            "$ref": "#/components/responses/notFound"
+          }
+        },
+        "summary": "Disable a project workflow",
+        "tags": [
+          "repository"
+        ]
+      }
+    },
+    "/repos/{owner}/{repo}/projects/{project_id}/workflows/{workflow_id}/enable": {
+      "put": {
+        "operationId": "EnableProjectWorkflow",
+        "parameters": [
+          {
+            "description": "owner of the repo",
+            "in": "path",
+            "name": "owner",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "name of the repo",
+            "in": "path",
+            "name": "repo",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "id of the project",
+            "in": "path",
+            "name": "project_id",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "description": "id of the workflow",
+            "in": "path",
+            "name": "workflow_id",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "No Content"
+          },
+          "403": {
+            "$ref": "#/components/responses/forbidden"
+          },
+          "404": {
+            "$ref": "#/components/responses/notFound"
+          }
+        },
+        "summary": "Enable a project workflow",
+        "tags": [
+          "repository"
         ]
       }
     },

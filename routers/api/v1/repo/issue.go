@@ -916,7 +916,7 @@ func EditIssue(ctx *context.APIContext) {
 
 	// Update projects if provided
 	if canWrite && form.Projects != nil {
-		if err := issues_model.IssueAssignOrRemoveProject(ctx, issue, ctx.Doer, *form.Projects); err != nil {
+		if err := issue_service.AssignOrRemoveProjects(ctx, issue, ctx.Doer, *form.Projects); err != nil {
 			if errors.Is(err, util.ErrPermissionDenied) || errors.Is(err, util.ErrNotExist) {
 				ctx.APIError(http.StatusBadRequest, err)
 			} else {
