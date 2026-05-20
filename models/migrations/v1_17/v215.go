@@ -4,13 +4,12 @@
 package v1_17
 
 import (
+	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/models/pull"
 	"code.gitea.io/gitea/modules/timeutil"
-
-	"xorm.io/xorm"
 )
 
-func AddReviewViewedFiles(x *xorm.Engine) error {
+func AddReviewViewedFiles(x db.EngineMigration) error {
 	type ReviewState struct {
 		ID           int64                       `xorm:"pk autoincr"`
 		UserID       int64                       `xorm:"NOT NULL UNIQUE(pull_commit_user)"`

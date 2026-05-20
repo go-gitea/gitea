@@ -3,11 +3,9 @@
 
 package v1_9
 
-import (
-	"xorm.io/xorm"
-)
+import "code.gitea.io/gitea/models/db"
 
-func AddGPGKeyImport(x *xorm.Engine) error {
+func AddGPGKeyImport(x db.EngineMigration) error {
 	type GPGKeyImport struct {
 		KeyID   string `xorm:"pk CHAR(16) NOT NULL"`
 		Content string `xorm:"TEXT NOT NULL"`

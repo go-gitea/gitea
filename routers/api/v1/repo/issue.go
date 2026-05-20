@@ -47,9 +47,10 @@ func buildSearchIssuesRepoIDs(ctx *context.APIContext) (repoIDs []int64, allPubl
 		Actor:   ctx.Doer,
 	}
 	if ctx.IsSigned {
-		opts.Private = !ctx.PublicOnly
+		opts.Private = true
 		opts.AllLimited = true
 	}
+	opts.ApplyPublicOnly(ctx.PublicOnly)
 	if ctx.FormString("owner") != "" {
 		owner, err := user_model.GetUserByName(ctx, ctx.FormString("owner"))
 		if err != nil {

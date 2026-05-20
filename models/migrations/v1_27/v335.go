@@ -6,9 +6,9 @@ package v1_27
 import (
 	"fmt"
 
+	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/modules/timeutil"
 
-	"xorm.io/xorm"
 	"xorm.io/xorm/schemas"
 )
 
@@ -148,7 +148,7 @@ func uniqueKeyV331(source NotificationSourceV331, repoID, issueID, releaseID int
 	}
 }
 
-func backfillNotificationUniqueKeyV331(x *xorm.Engine) error {
+func backfillNotificationUniqueKeyV331(x db.EngineMigration) error {
 	const batchSize = 50
 	lastID := int64(0)
 
@@ -199,7 +199,7 @@ func mergeNotificationStatusV331(notifications []*NotificationV331Backfill) noti
 	return mergedStatus
 }
 
-func dedupeNotificationRowsV331(x *xorm.Engine) error {
+func dedupeNotificationRowsV331(x db.EngineMigration) error {
 	var duplicatedNotifications []notificationV331Duplicate
 	if err := x.SQL(`
 		SELECT user_id, unique_key, COUNT(1) AS cnt
@@ -241,7 +241,7 @@ func dedupeNotificationRowsV331(x *xorm.Engine) error {
 	return nil
 }
 
-func AddReleaseNotification(x *xorm.Engine) error {
+func AddReleaseNotification(x db.EngineMigration) error {
 	if err := x.Sync(new(NotificationV331Backfill)); err != nil {
 		return err
 	}
