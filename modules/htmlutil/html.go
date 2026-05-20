@@ -83,3 +83,34 @@ func HTMLPrintTag(w io.Writer, tag template.HTML, attrs map[string]string) (writ
 	written += n
 	return written, err
 }
+
+func EscapeString(s string) template.HTML {
+	return template.HTML(template.HTMLEscapeString(s))
+}
+
+type HTMLBuilder struct {
+	sb strings.Builder
+}
+
+func (b *HTMLBuilder) WriteString(s string) *HTMLBuilder {
+	b.sb.WriteString(template.HTMLEscapeString(s))
+	return b
+}
+
+func (b *HTMLBuilder) WriteHTML(s template.HTML) *HTMLBuilder {
+	b.sb.WriteString(string(s))
+	return b
+}
+
+func (b *HTMLBuilder) WriteFormat(fmt template.HTML, args ...any) *HTMLBuilder {
+	_, _ = HTMLPrintf(&b.sb, fmt, args...)
+	return b
+}
+
+func (b *HTMLBuilder) HTMLString() template.HTML {
+	return template.HTML(b.sb.String())
+}
+
+func (b *HTMLBuilder) String() string {
+	return b.sb.String()
+}

@@ -4,12 +4,11 @@
 package v1_11
 
 import (
+	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/models/migrations/base"
-
-	"xorm.io/xorm"
 )
 
-func RemoveLabelUneededCols(x *xorm.Engine) error {
+func RemoveLabelUneededCols(x db.EngineMigration) error {
 	// Make sure the columns exist before dropping them
 	type Label struct {
 		QueryString string

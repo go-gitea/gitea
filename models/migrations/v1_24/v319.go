@@ -4,10 +4,12 @@
 package v1_24
 
 import (
+	"code.gitea.io/gitea/models/db"
+
 	"xorm.io/xorm"
 )
 
-func AddExclusiveOrderColumnToLabelTable(x *xorm.Engine) error {
+func AddExclusiveOrderColumnToLabelTable(x db.EngineMigration) error {
 	type Label struct {
 		ExclusiveOrder int `xorm:"DEFAULT 0"`
 	}

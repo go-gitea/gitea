@@ -1,7 +1,7 @@
 import {GET, request} from '../modules/fetch.ts';
 import {hideToastsAll, showErrorToast} from '../modules/toast.ts';
 import {addDelegatedEventListener, createElementFromHTML} from '../utils/dom.ts';
-import {errorMessage} from '../modules/errors.ts';
+import {errorMessage, errorName} from '../modules/errors.ts';
 import {confirmModal, createConfirmModal} from './comp/ConfirmModal.ts';
 import {ignoreAreYouSure} from '../vendor/jquery.are-you-sure.ts';
 import {registerGlobalSelectorFunc} from '../modules/observer.ts';
@@ -138,7 +138,7 @@ async function performActionRequest(el: HTMLElement, opt: FetchActionOpts) {
     }
     await handleFetchActionError(resp);
   } catch (err) {
-    if ((err as Error).name !== 'AbortError') {
+    if (errorName(err) !== 'AbortError') {
       console.error(`Fetch action request error:`, err);
       showErrorToast(`Error: ${errorMessage(err)}`);
     }

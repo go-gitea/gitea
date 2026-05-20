@@ -6,6 +6,7 @@ package setting
 
 import (
 	"errors"
+	"html/template"
 	"net/http"
 	"strings"
 	"time"
@@ -49,6 +50,12 @@ const (
 	tplDeployKeys      templates.TplName = "repo/settings/deploy_keys"
 )
 
+type selectOption struct {
+	Value    string
+	Text     template.HTML
+	Selected bool
+}
+
 // SettingsCtxData is a middleware that sets all the general context data for the
 // settings template.
 func SettingsCtxData(ctx *context.Context) {
@@ -66,6 +73,7 @@ func SettingsCtxData(ctx *context.Context) {
 	ctx.Data["SigningKeyAvailable"] = signing != nil
 	ctx.Data["SigningSettings"] = setting.Repository.Signing
 	ctx.Data["IsRepoIndexerEnabled"] = setting.Indexer.RepoIndexerEnabled
+	preparePullRequestSettings(ctx)
 
 	if ctx.Doer.IsAdmin {
 		if setting.Indexer.RepoIndexerEnabled {
@@ -93,6 +101,35 @@ func SettingsCtxData(ctx *context.Context) {
 	repo_router.PrepareBranchList(ctx)
 	if ctx.Written() {
 		return
+	}
+}
+
+func preparePullRequestSettings(ctx *context.Context) {
+	defaultUpdateStyle := repo_model.UpdateStyleMerge
+	if ctx.Repo.Repository.UnitEnabled(ctx, unit_model.TypePullRequests) {
+		prUnit := ctx.Repo.Repository.MustGetUnit(ctx, unit_model.TypePullRequests)
+		defaultUpdateStyle = util.IfZero(prUnit.PullRequestsConfig().DefaultUpdateStyle, repo_model.UpdateStyleMerge)
+	}
+
+	updateBranchText := ctx.Tr("repo.pulls.update_branch")
+	rebaseUpdateText := ctx.Tr("repo.pulls.update_branch_rebase")
+	defaultUpdateStyleText := updateBranchText
+	if defaultUpdateStyle == repo_model.UpdateStyleRebase {
+		defaultUpdateStyleText = rebaseUpdateText
+	}
+
+	ctx.Data["PullsDefaultUpdateStyleText"] = defaultUpdateStyleText
+	ctx.Data["PullsDefaultUpdateStyleOptions"] = []selectOption{
+		{
+			Value:    string(repo_model.UpdateStyleMerge),
+			Text:     updateBranchText,
+			Selected: defaultUpdateStyle == repo_model.UpdateStyleMerge,
+		},
+		{
+			Value:    string(repo_model.UpdateStyleRebase),
+			Text:     rebaseUpdateText,
+			Selected: defaultUpdateStyle == repo_model.UpdateStyleRebase,
+		},
 	}
 }
 
@@ -616,7 +653,8 @@ func handleSettingsPostAdvanced(ctx *context.Context) {
 	}
 
 	if form.EnablePulls && !unit_model.TypePullRequests.UnitGlobalDisabled() {
-		units = append(units, newRepoUnit(repo, unit_model.TypePullRequests, &repo_model.PullRequestsConfig{
+		defaultUpdateStyle := util.IfZero(repo_model.UpdateStyle(form.PullsDefaultUpdateStyle), repo_model.UpdateStyleMerge)
+		prConfig := &repo_model.PullRequestsConfig{
 			IgnoreWhitespaceConflicts:     form.PullsIgnoreWhitespace,
 			AllowMerge:                    form.PullsAllowMerge,
 			AllowRebase:                   form.PullsAllowRebase,
@@ -625,12 +663,20 @@ func handleSettingsPostAdvanced(ctx *context.Context) {
 			AllowFastForwardOnly:          form.PullsAllowFastForwardOnly,
 			AllowManualMerge:              form.PullsAllowManualMerge,
 			AutodetectManualMerge:         form.EnableAutodetectManualMerge,
+			AllowMergeUpdate:              form.PullsAllowMergeUpdate,
 			AllowRebaseUpdate:             form.PullsAllowRebaseUpdate,
+			DefaultUpdateStyle:            defaultUpdateStyle,
 			DefaultDeleteBranchAfterMerge: form.DefaultDeleteBranchAfterMerge,
 			DefaultMergeStyle:             repo_model.MergeStyle(form.PullsDefaultMergeStyle),
 			DefaultAllowMaintainerEdit:    form.DefaultAllowMaintainerEdit,
 			DefaultTargetBranch:           strings.TrimSpace(form.DefaultTargetBranch),
-		}))
+		}
+		if err := prConfig.ValidateUpdateSettings(); err != nil {
+			ctx.Flash.Error(err.Error())
+			ctx.Redirect(repo.Link() + "/settings")
+			return
+		}
+		units = append(units, newRepoUnit(repo, unit_model.TypePullRequests, prConfig))
 	} else if !unit_model.TypePullRequests.UnitGlobalDisabled() {
 		deleteUnitTypes = append(deleteUnitTypes, unit_model.TypePullRequests)
 	}

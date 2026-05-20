@@ -133,13 +133,11 @@ func testViewRepoWithCache(t *testing.T) {
 	// no last commit cache
 	testView(t)
 	// enable last commit cache for all repositories
-	oldCommitsCount := setting.CacheService.LastCommit.CommitsCount
-	setting.CacheService.LastCommit.CommitsCount = 0
+	defer test.MockVariableValue(&setting.CacheService.LastCommit.CommitsCount, 0)()
 	// first view will not hit the cache
 	testView(t)
 	// second view will hit the cache
 	testView(t)
-	setting.CacheService.LastCommit.CommitsCount = oldCommitsCount
 }
 
 func testViewRepoPrivate(t *testing.T) {

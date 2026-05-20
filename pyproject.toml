@@ -7,6 +7,7 @@ requires-python = ">=3.10"
 dev = [
   "djlint==1.36.4",
   "yamllint==1.38.0",
+  "zizmor==1.25.1",
 ]
 
 [tool.djlint]
