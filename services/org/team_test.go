@@ -6,8 +6,10 @@ package org
 import (
 	"fmt"
 	"strings"
+	"sync"
 	"testing"
 
+	"code.gitea.io/gitea/models/db"
 	issues_model "code.gitea.io/gitea/models/issues"
 	"code.gitea.io/gitea/models/organization"
 	"code.gitea.io/gitea/models/perm"
@@ -327,4 +329,40 @@ func TestIncludesAllRepositoriesTeams(t *testing.T) {
 		}
 	}
 	assert.NoError(t, DeleteOrganization(t.Context(), org, false), "DeleteOrganization")
+}
+
+func TestTeamMemberConcurrentAddRemoveIdempotent(t *testing.T) {
+	assert.NoError(t, unittest.PrepareTestDatabase())
+
+	ctx := t.Context()
+	team := unittest.AssertExistsAndLoadBean(t, &organization.Team{ID: 2})
+	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 4})
+
+	var wg sync.WaitGroup
+	for range 8 {
+		wg.Go(func() {
+			assert.NoError(t, AddTeamMember(ctx, team, user))
+		})
+	}
+	wg.Wait()
+
+	count, err := db.GetEngine(ctx).Count(&organization.TeamUser{OrgID: team.OrgID, TeamID: team.ID, UID: user.ID})
+	assert.NoError(t, err)
+	assert.EqualValues(t, 1, count)
+
+	for range 8 {
+		wg.Go(func() {
+			assert.NoError(t, RemoveTeamMember(ctx, team, user))
+		})
+	}
+	wg.Wait()
+
+	count, err = db.GetEngine(ctx).Count(&organization.TeamUser{OrgID: team.OrgID, TeamID: team.ID, UID: user.ID})
+	assert.NoError(t, err)
+	assert.EqualValues(t, 0, count)
+
+	team = unittest.AssertExistsAndLoadBean(t, &organization.Team{ID: team.ID})
+	memberCount, err := db.GetEngine(ctx).Count(&organization.TeamUser{OrgID: team.OrgID, TeamID: team.ID})
+	assert.NoError(t, err)
+	assert.EqualValues(t, team.NumMembers, memberCount)
 }

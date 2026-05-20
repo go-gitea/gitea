@@ -233,13 +233,20 @@ func AddTeamMember(ctx context.Context, team *organization.Team, user *user_mode
 
 		sess := db.GetEngine(ctx)
 
-		if err := db.Insert(ctx, &organization.TeamUser{
-			UID:    user.ID,
-			OrgID:  team.OrgID,
-			TeamID: team.ID,
-		}); err != nil {
+		res, err := sess.Exec("INSERT INTO team_user (org_id, team_id, uid) SELECT ?, ?, ? WHERE NOT EXISTS (SELECT 1 FROM team_user WHERE org_id=? AND team_id=? AND uid=?)",
+			team.OrgID, team.ID, user.ID, team.OrgID, team.ID, user.ID)
+		if err != nil {
 			return err
-		} else if _, err := sess.Incr("num_members").ID(team.ID).Update(new(organization.Team)); err != nil {
+		}
+		rowsAffected, err := res.RowsAffected()
+		if err != nil {
+			return err
+		}
+		if rowsAffected == 0 {
+			return nil
+		}
+
+		if _, err := sess.Incr("num_members").ID(team.ID).Update(new(organization.Team)); err != nil {
 			return err
 		}
 
@@ -285,8 +292,6 @@ func removeTeamMember(ctx context.Context, team *organization.Team, user *user_m
 		return organization.ErrLastOrgOwner{UID: user.ID}
 	}
 
-	team.NumMembers--
-
 	repos, err := repo_model.GetTeamRepositories(ctx, &repo_model.SearchTeamRepoOptions{
 		TeamID: team.ID,
 	})
@@ -294,17 +299,23 @@ func removeTeamMember(ctx context.Context, team *organization.Team, user *user_m
 		return err
 	}
 
-	if _, err := e.Delete(&organization.TeamUser{
+	rowsAffected, err := e.Delete(&organization.TeamUser{
 		UID:    user.ID,
 		OrgID:  team.OrgID,
 		TeamID: team.ID,
-	}); err != nil {
+	})
+	if err != nil {
 		return err
-	} else if _, err = e.
-		ID(team.ID).
-		Cols("num_members").
-		Update(team); err != nil {
+	}
+	if rowsAffected == 0 {
+		return nil
+	}
+
+	if _, err = e.Decr("num_members").ID(team.ID).Update(new(organization.Team)); err != nil {
 		return err
+	}
+	if team.NumMembers > 0 {
+		team.NumMembers--
 	}
 
 	// Delete access to team repositories. If any user or repo is missing, we can continue.
