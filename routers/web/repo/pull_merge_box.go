@@ -115,9 +115,17 @@ func (prInfo *pullRequestViewInfo) prepareMergeBoxInfoItems(ctx *context.Context
 			detailItems = detailItems[:10]
 			detailItems = append(detailItems, "...")
 		}
+		conflictInfoHTML := ctx.Locale.Tr("repo.pulls.files_conflicted")
+		if prInfo.MergeBoxData.ConflictResolutionURL != "" {
+			conflictInfoHTML += htmlutil.HTMLFormat(
+				` <a href="%s">%s</a>`,
+				prInfo.MergeBoxData.ConflictResolutionURL,
+				ctx.Locale.Tr("repo.pulls.conflict_resolution_link"),
+			)
+		}
 		prInfo.MergeBoxData.infoCommitBlockers.AddInfoItem(
 			svg.RenderHTML("octicon-x"),
-			ctx.Locale.Tr("repo.pulls.files_conflicted"),
+			conflictInfoHTML,
 			detailItems,
 		)
 	}

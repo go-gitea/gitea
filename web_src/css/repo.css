@@ -2007,3 +2007,101 @@ tbody.commit-list {
 .branch-selector-dropdown .scrolling.menu .loading-indicator {
   height: 4em;
 }
+
+/* Conflict resolution editor */
+#conflict-editor-root {
+  height: calc(100vh - 130px);
+  min-height: 400px;
+}
+
+.conflict-sidebar {
+  background-color: var(--color-body);
+}
+
+.conflict-file-list {
+  flex: 1;
+  overflow-y: auto;
+  min-height: 0;
+}
+
+.conflict-file-item {
+  border-left: 3px solid transparent;
+  user-select: none;
+  transition: background-color 0.1s;
+}
+
+.conflict-file-item:hover {
+  background-color: var(--color-hover);
+}
+
+.conflict-file-item.active {
+  background-color: var(--color-primary-alpha-10);
+  border-left-color: var(--color-primary);
+  font-weight: var(--font-weight-semibold);
+}
+
+.conflict-file-item .conflict-file-status-icon {
+  color: var(--color-orange);
+  font-weight: var(--font-weight-bold);
+}
+
+.conflict-file-item.resolved .conflict-file-status-icon {
+  color: var(--color-green);
+}
+
+.conflict-editor-area {
+  background-color: var(--color-code-bg);
+  overflow: hidden;
+}
+
+.conflict-editor-area .conflict-editor-hint {
+  display: none;
+}
+
+.conflict-editor-hint.has-markers {
+  display: block;
+  background-color: var(--color-yellow-alpha-20);
+  color: var(--color-text);
+}
+
+.conflict-editor-hint.has-markers::before {
+  content: attr(data-hint);
+}
+
+.conflict-editor-hint.clean {
+  display: block;
+  background-color: var(--color-green-alpha-10);
+  color: var(--color-green);
+}
+
+.conflict-editor-hint.clean::before {
+  content: attr(data-hint);
+}
+
+.conflict-editor-hint.resolved {
+  display: block;
+  background-color: var(--color-green-alpha-10);
+  color: var(--color-green);
+}
+
+.conflict-editor-hint.resolved::before {
+  content: attr(data-hint);
+}
+
+/* Make CodeMirror fill the editor area in the conflict resolution page */
+.pull-conflict-resolution .code-editor-container .cm-editor {
+  max-height: none;
+  height: 100%;
+}
+
+.pull-conflict-resolution .code-editor-container {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+/* editor loading placeholder in conflict editor */
+.conflict-editor-area .editor-loading.is-loading {
+  height: 100%;
+  min-height: 200px;
+}

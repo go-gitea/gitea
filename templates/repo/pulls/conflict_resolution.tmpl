@@ -1,0 +1,86 @@
+{{template "base/head" .}}
+<div role="main" aria-label="{{.Title}}" class="page-content repository pull-conflict-resolution">
+	{{template "repo/header" .}}
+	<div class="ui container fluid padded tw-flex tw-flex-col">
+		{{template "base/alert" .}}
+		<div id="conflict-editor-root"
+			data-global-init="initRepoConflictEditor"
+			data-conflicted-files="{{JsonUtils.EncodeToString .PullRequest.ConflictedFiles}}"
+			data-file-content-url="{{.FileContentURL}}"
+			data-resolve-url="{{.ResolveConflictsURL}}"
+			data-initial-file="{{.InitialFilePath}}"
+			data-default-commit-msg="{{ctx.Locale.TrString "repo.pulls.conflict_resolution_batch_commit_message"}}"
+			data-msg-has-markers="{{ctx.Locale.TrString "repo.pulls.conflict_resolution_has_markers"}}"
+			data-msg-mark-resolved="{{ctx.Locale.TrString "repo.pulls.conflict_resolution_marked_resolved"}}"
+			data-msg-commit-merge="{{ctx.Locale.TrString "repo.pulls.conflict_resolution_commit"}}"
+			data-msg-unresolved-first="{{ctx.Locale.TrString "repo.pulls.conflict_resolution_unresolved_first"}}"
+			data-hint-has-markers="{{ctx.Locale.TrString "repo.pulls.conflict_resolution_hint_markers"}}"
+			data-hint-clean="{{ctx.Locale.TrString "repo.pulls.conflict_resolution_hint_clean"}}"
+			data-hint-resolved="{{ctx.Locale.TrString "repo.pulls.conflict_resolution_hint_resolved"}}"
+			class="tw-flex tw-flex-col lg:tw-flex-row tw-gap-3"
+		>
+			{{/* LEFT / TOP sidebar: file list + commit panel */}}
+			<div class="conflict-sidebar tw-flex tw-flex-col tw-flex-shrink-0
+					lg:tw-w-64 tw-border tw-border-secondary tw-rounded">
+				<div class="tw-px-3 tw-pt-3 tw-pb-2 tw-font-semibold tw-text-sm tw-border-b tw-border-secondary">
+					{{ctx.Locale.TrN (len .PullRequest.ConflictedFiles)
+						"repo.pulls.num_conflicting_files_1"
+						"repo.pulls.num_conflicting_files_n"
+						(len .PullRequest.ConflictedFiles)}}
+				</div>
+				<div class="conflict-file-list">
+					{{range .PullRequest.ConflictedFiles}}
+					<div class="conflict-file-item tw-flex tw-items-center tw-gap-2 tw-px-3 tw-py-2 tw-cursor-pointer tw-text-sm"
+						data-path="{{.}}" title="{{.}}">
+						<span class="conflict-file-status-icon tw-font-mono tw-w-4 tw-text-center tw-flex-shrink-0"
+							title="Unresolved">&#9675;</span>
+						<span class="tw-truncate">{{.}}</span>
+					</div>
+					{{end}}
+				</div>
+				{{/* Commit panel at the bottom of the sidebar */}}
+				<div class="tw-border-t tw-border-secondary tw-px-3 tw-py-3 tw-flex tw-flex-col tw-gap-2 tw-mt-auto">
+					<div class="tw-text-xs tw-text-text-light">
+						{{ctx.Locale.Tr "repo.pulls.conflict_resolution_commit_to" .PullRequest.HeadBranch}}
+					</div>
+					<input class="conflict-commit-message tw-w-full" type="text" maxlength="100"
+						placeholder="{{ctx.Locale.TrString "repo.pulls.conflict_resolution_batch_commit_message"}}"
+					>
+					<button class="conflict-commit-btn ui primary small fluid button" disabled>
+						{{ctx.Locale.Tr "repo.pulls.conflict_resolution_commit"}}
+						(0/{{len .PullRequest.ConflictedFiles}})
+					</button>
+					<a class="ui small fluid button" href="{{.Issue.Link}}">{{ctx.Locale.Tr "repo.editor.cancel_lower"}}</a>
+				</div>
+			</div>
+
+			{{/* RIGHT / BOTTOM: editor area */}}
+			<div class="conflict-editor-area tw-flex tw-flex-col tw-flex-1 tw-min-w-0
+					tw-border tw-border-secondary tw-rounded tw-overflow-hidden">
+				<div class="tw-flex tw-items-center tw-justify-between tw-gap-2
+						tw-px-3 tw-py-2 tw-border-b tw-border-secondary tw-flex-shrink-0 tw-bg-body">
+					<div class="tw-flex tw-items-center tw-gap-2 tw-min-w-0">
+						{{svg "octicon-file" 14 "tw-flex-shrink-0 tw-text-text-light"}}
+						<span class="conflict-current-file-path tw-font-mono tw-text-sm tw-truncate"></span>
+					</div>
+					<button class="conflict-mark-resolved-btn ui green small compact button tw-flex-shrink-0">
+						{{svg "octicon-check" 14}} {{ctx.Locale.Tr "repo.pulls.conflict_resolution_mark_resolved"}}
+					</button>
+				</div>
+				{{/* Dynamic hint bar updated by JS */}}
+				<div class="conflict-editor-hint tw-px-3 tw-py-1 tw-text-xs tw-flex-shrink-0"
+					data-hint=""></div>
+				{{/* CodeMirror area: tw-flex-1 makes it fill remaining height */}}
+				<div class="tw-flex-1 tw-overflow-hidden">
+					<textarea id="edit_area" class="tw-hidden"
+						data-id="conflict-editor"
+						data-code-editor-config="{{JsonUtils.EncodeToString $.CodeEditorConfig}}"
+						placeholder="{{ctx.Locale.Tr "editor.code_editor.placeholder"}}"
+					></textarea>
+					<div class="editor-loading is-loading"></div>
+				</div>
+			</div>
+		</div>
+	</div>
+</div>
+{{template "base/footer" .}}

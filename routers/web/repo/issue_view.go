@@ -923,6 +923,11 @@ func (prInfo *pullRequestViewInfo) prepareMergeBox(ctx *context.Context, issue *
 	data.ShowMergeInstructions = canWriteToHeadRepo
 	data.ShowPullCommands = pull.HeadRepo != nil && !pull.HasMerged && !issue.IsClosed
 
+	// Show the conflict-resolution link when the doer can push to the head branch.
+	if canWriteToHeadRepo && pull.IsFilesConflicted() && !pull.HasMerged && !issue.IsClosed {
+		data.ConflictResolutionURL = issue.Link() + "/conflicts/editor"
+	}
+
 	prInfo.prepareMergeBoxProtectionChecks(ctx)
 	if ctx.Written() {
 		return

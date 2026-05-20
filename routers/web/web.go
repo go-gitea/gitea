@@ -1627,6 +1627,12 @@ func registerWebRoutes(m *web.Router, webAuth *AuthMiddleware) {
 			m.Post("/update", repo.UpdatePullRequest)
 			m.Post("/set_allow_maintainer_edit", web.Bind(forms.UpdateAllowEditsForm{}), repo.SetAllowEdits)
 			m.Post("/cleanup", context.RepoMustNotBeArchived(), repo.CleanUpPullRequest)
+			m.Group("/conflicts", func() {
+				m.Get("/editor", repo.ResolveConflictsEditorRedirect)
+				m.Get("/editor/*", repo.ResolveConflictsEditor)
+				m.Get("/file-content", repo.GetConflictedFileContentJSON)
+				m.Post("/resolve", context.RepoMustNotBeArchived(), repo.ResolveConflictsBatchPost)
+			}, context.RepoMustNotBeArchived(), reqSignIn)
 			m.Group("/files", func() {
 				m.Get("", repo.SetEditorconfigIfExists, repo.SetDiffViewStyle, repo.SetWhitespaceBehavior, repo.SetShowOutdatedComments, repo.ViewPullFilesForAllCommitsOfPr)
 				m.Get("/{shaFrom:[a-f0-9]{7,64}}..{shaTo:[a-f0-9]{7,64}}", repo.SetEditorconfigIfExists, repo.SetDiffViewStyle, repo.SetWhitespaceBehavior, repo.SetShowOutdatedComments, repo.ViewPullFilesForRange)

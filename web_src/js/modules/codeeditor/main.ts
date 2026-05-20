@@ -282,7 +282,8 @@ export async function createCodeEditor(textarea: HTMLTextAreaElement, filenameIn
     compartments: {wordWrap, language, tabSize, indentUnit: indentUnitComp, lint: lintComp},
   };
 
-  const elEditorOptions = textarea.closest('form')!.querySelector('.code-editor-options');
+  // Use optional chaining: textarea may not be inside a <form> (e.g. the conflict resolver).
+  const elEditorOptions = textarea.closest('form')?.querySelector('.code-editor-options');
   if (elEditorOptions) {
     const indentStyleSelect = elEditorOptions.querySelector<HTMLSelectElement>('.js-indent-style-select')!;
     const indentSizeSelect = elEditorOptions.querySelector<HTMLSelectElement>('.js-indent-size-select')!;
