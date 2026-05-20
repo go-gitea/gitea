@@ -184,14 +184,12 @@ func TestRepoCommitsStatusParallel(t *testing.T) {
 
 	var wg sync.WaitGroup
 	for i := range 10 {
-		wg.Add(1)
-		go func(parentT *testing.T, i int) {
-			parentT.Run(fmt.Sprintf("ParallelCreateStatus_%d", i), func(t *testing.T) {
+		wg.Go(func() {
+			t.Run(fmt.Sprintf("ParallelCreateStatus_%d", i), func(t *testing.T) {
 				ctx := NewAPITestContext(t, "user2", "repo1", auth_model.AccessTokenScopeWriteRepository)
 				doAPICreateCommitStatusTest(ctx, path.Base(commitURL), commitstatus.CommitStatusPending, "testci")(t)
-				wg.Done()
 			})
-		}(t, i)
+		})
 	}
 	wg.Wait()
 }

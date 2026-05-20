@@ -54,6 +54,12 @@ type FindOrgOptions struct {
 	IncludeVisibility structs.VisibleType
 }
 
+func (opts *FindOrgOptions) ApplyPublicOnly(publicOnly bool) {
+	if publicOnly {
+		opts.IncludeVisibility = structs.VisibleTypePublic
+	}
+}
+
 func queryUserOrgIDs(userID int64, includePrivate bool) *builder.Builder {
 	cond := builder.Eq{"uid": userID}
 	if !includePrivate {

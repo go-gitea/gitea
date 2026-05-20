@@ -17,6 +17,7 @@ import (
 	"code.gitea.io/gitea/tests"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestAPIStar(t *testing.T) {
@@ -152,4 +153,25 @@ func TestAPIStarDisabled(t *testing.T) {
 			AddTokenAuth(tokenWithUserScope)
 		MakeRequest(t, req, http.StatusForbidden)
 	})
+}
+
+func TestAPIStarPublicOnly(t *testing.T) {
+	defer tests.PrepareTestEnv(t)()
+
+	token := getUserToken(t, "user2", auth_model.AccessTokenScopeReadUser, auth_model.AccessTokenScopeReadRepository, auth_model.AccessTokenScopePublicOnly)
+	req := NewRequest(t, "GET", "/api/v1/user/starred").
+		AddTokenAuth(token)
+	resp := MakeRequest(t, req, http.StatusOK)
+
+	repos := DecodeJSON(t, resp, []api.Repository{})
+	if assert.Len(t, repos, 1) {
+		assert.Equal(t, "user5/repo4", repos[0].FullName)
+	}
+
+	req = NewRequest(t, "GET", "/api/v1/users/user2/starred").
+		AddTokenAuth(token)
+	resp = MakeRequest(t, req, http.StatusOK)
+	repos = DecodeJSON(t, resp, []api.Repository{})
+	require.Len(t, repos, 1)
+	assert.Equal(t, "user5/repo4", repos[0].FullName)
 }
