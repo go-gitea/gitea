@@ -456,7 +456,7 @@ func cascadeCallerStatus(ctx context.Context, child *ActionRunJob) error {
 	return RefreshReusableCallerStatus(ctx, parent)
 }
 
-// RefreshReusableCallerStatus recomputes a reusable workflow caller's Status from its current direct children and persists the change.
+// RefreshReusableCallerStatus recomputes a reusable workflow caller's Status, Started and Stopped from its current direct children and persists the change.
 // No-op if caller is not a reusable caller.
 func RefreshReusableCallerStatus(ctx context.Context, caller *ActionRunJob) error {
 	if !caller.IsReusableCaller {
@@ -473,10 +473,9 @@ func RefreshReusableCallerStatus(ctx context.Context, caller *ActionRunJob) erro
 		caller.Status = newStatus
 		cols = append(cols, "status")
 	}
-	// Skipped subtrees never executed - leave Started/Stopped untouched
 	if newStatus != StatusSkipped {
 		now := timeutil.TimeStampNow()
-		if caller.Started.IsZero() && newStatus != StatusBlocked {
+		if caller.Started.IsZero() && newStatus == StatusRunning {
 			caller.Started = now
 			cols = append(cols, "started")
 		}
