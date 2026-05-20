@@ -1585,6 +1585,7 @@ tbody.commit-list {
 
 #diff-container {
   display: flex;
+  gap: var(--page-spacing);
 }
 
 #diff-file-boxes {
