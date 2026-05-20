@@ -21,4 +21,16 @@ func TestBuildSignature(t *testing.T) {
 	a = BuildSignature("v1", "x")
 	b = BuildSignature("v2", "x")
 	assert.NotEqual(t, a, b)
+
+	a = BuildSignature("v0", "x")
+	b = BuildSignature("v0x")
+	assert.NotEqual(t, a, b)
+
+	a = BuildSignature("v0", "", "x")
+	b = BuildSignature("v0", "x", "")
+	assert.NotEqual(t, a, b)
+
+	a = BuildSignature("v0")
+	b = BuildSignature("v0")
+	assert.Equal(t, a, b)
 }
