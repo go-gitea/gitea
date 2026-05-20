@@ -83,8 +83,7 @@ export function initGlobalCopyToClipboardListener() {
         throw new Error(`Unsupported element for clipboard target: ${textSelector}`);
       }
     }
-
-    if (text === null) return;
+    // now, text can not be null
 
     if (target.getAttribute('data-clipboard-text-type') === 'url') {
       text = toAbsoluteUrl(text);
