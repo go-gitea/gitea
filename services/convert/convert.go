@@ -596,9 +596,6 @@ func ListActionWorkflows(ctx context.Context, gitrepo *git.Repository, repo *rep
 }
 
 func GetActionWorkflow(ctx context.Context, gitrepo *git.Repository, repo *repo_model.Repository, workflowID string) (*api.ActionWorkflow, error) {
-	if repo.DefaultBranch == "" {
-		return nil, util.NewNotExistErrorf("workflow %q not found", workflowID)
-	}
 	defaultBranchCommit, err := gitrepo.GetBranchCommit(repo.DefaultBranch)
 	if err != nil {
 		return nil, err
