@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import {SvgIcon} from '../svg.ts';
 import ActionStatusIcon from './ActionStatusIcon.vue';
-import {toRefs} from 'vue';
+import {computed, toRefs} from 'vue';
 import {POST, DELETE} from '../modules/fetch.ts';
 import ActionRunSummaryView from './ActionRunSummaryView.vue';
 import ActionRunJobView from './ActionRunJobView.vue';
@@ -22,6 +22,11 @@ const props = defineProps<{
 const locale = props.locale;
 const store = createActionRunViewStore(props.actionsViewUrl);
 const {currentRun: run, runArtifacts: artifacts} = toRefs(store.viewData);
+const visibleJobSummaries = computed(() => {
+  const summaries = run.value.jobSummaries || [];
+  if (!props.jobId) return summaries;
+  return summaries.filter((summary) => summary.jobId === props.jobId);
+});
 
 function formatAttemptTitle(attempt: ActionsRunAttempt) {
   return attempt.latest ? `${locale.latestAttempt} #${attempt.attempt}` : `${locale.attempt} #${attempt.attempt}`;
@@ -206,18 +211,34 @@ async function deleteArtifact(name: string) {
       </div>
 
       <div class="action-view-right">
-        <ActionRunSummaryView
-          v-if="!props.jobId"
-          :store="store"
-          :locale="locale"
-        />
-        <ActionRunJobView
-          v-else
-          :store="store"
-          :locale="locale"
-          :actions-view-url="props.actionsViewUrl"
-          :job-id="props.jobId"
-        />
+        <div v-if="!props.jobId" class="action-view-right-panel">
+          <ActionRunSummaryView
+            :store="store"
+            :locale="locale"
+          />
+        </div>
+        <div v-else class="action-view-right-panel">
+          <ActionRunJobView
+            :store="store"
+            :locale="locale"
+            :actions-view-url="props.actionsViewUrl"
+            :job-id="props.jobId"
+          />
+        </div>
+        <div v-if="visibleJobSummaries.length" class="action-view-right-panel job-summary-section">
+          <div class="job-summary-section-header">
+            {{ locale.jobSummaries }}
+          </div>
+          <div class="job-summary-list">
+            <div v-for="s in visibleJobSummaries" :key="s.jobId" class="job-summary-item">
+              <div class="job-summary-header">
+                <strong class="gt-ellipsis">{{ s.jobName || `Job ${s.jobId}` }}</strong>
+              </div>
+              <!-- eslint-disable-next-line vue/no-v-html -->
+              <div class="markup job-summary-body" v-html="s.summaryHTML"/>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
   </div>
@@ -342,25 +363,32 @@ async function deleteArtifact(name: string) {
   width: 70%;
   display: flex;
   flex-direction: column;
+  gap: 12px;
+}
+
+.action-view-right-panel {
   border: 1px solid var(--color-console-border);
   border-radius: var(--border-radius);
   background: var(--color-console-bg);
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
 }
 
 /* begin fomantic button overrides */
 
-.action-view-right .ui.button,
-.action-view-right .ui.button:focus {
+.action-view-right-panel .ui.button,
+.action-view-right-panel .ui.button:focus {
   background: transparent;
   color: var(--color-console-fg-subtle);
 }
 
-.action-view-right .ui.button:hover {
+.action-view-right-panel .ui.button:hover {
   background: var(--color-console-hover-bg);
   color: var(--color-console-fg);
 }
 
-.action-view-right .ui.button:active {
+.action-view-right-panel .ui.button:active {
   background: var(--color-console-active-bg);
   color: var(--color-console-fg);
 }
@@ -377,5 +405,40 @@ async function deleteArtifact(name: string) {
   .action-view-left {
     max-width: none;
   }
+}
+
+.job-summary-section {
+  overflow: hidden;
+}
+
+.job-summary-section-header {
+  padding: 12px;
+  border-bottom: 1px solid var(--color-console-border);
+  background: var(--color-console-bg);
+  color: var(--color-console-fg);
+  font-weight: var(--font-weight-semibold);
+}
+
+.job-summary-list {
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.job-summary-item {
+  padding: 12px;
+  border-radius: var(--border-radius);
+  background: var(--color-console-hover-bg);
+  border: 1px solid var(--color-console-border);
+}
+
+.job-summary-header {
+  color: var(--color-console-fg);
+  margin-bottom: 8px;
+}
+
+.job-summary-body {
+  color: var(--color-console-fg);
 }
 </style>

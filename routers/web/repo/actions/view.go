@@ -299,6 +299,8 @@ type ViewResponse struct {
 			Duration     string `json:"duration"`
 			TriggeredAt  int64  `json:"triggeredAt"`  // unix seconds for relative time
 			TriggerEvent string `json:"triggerEvent"` // e.g. pull_request, push, schedule
+
+			JobSummaries []*ViewJobSummary `json:"jobSummaries,omitempty"`
 		} `json:"run"`
 		CurrentJob struct {
 			Title  string         `json:"title"`
@@ -320,6 +322,12 @@ type ViewJob struct {
 	CanRerun bool     `json:"canRerun"`
 	Duration string   `json:"duration"`
 	Needs    []string `json:"needs,omitempty"`
+}
+
+type ViewJobSummary struct {
+	JobID       int64         `json:"jobId"`
+	JobName     string        `json:"jobName"`
+	SummaryHTML template.HTML `json:"summaryHTML"`
 }
 
 type ViewRunAttempt struct {
@@ -499,12 +507,40 @@ func fillViewRunResponseSummary(ctx *context_module.Context, resp *ViewResponse,
 	}
 	resp.State.Run.TriggerEvent = run.TriggerEvent
 
-	// Legacy runs (LatestAttemptID == 0) have no attempt; their artifacts all share run_attempt_id=0,
-	// so passing 0 here scopes to this run's legacy artifacts only.
+	// Legacy runs (LatestAttemptID == 0) have no attempt; their artifacts and summaries all
+	// share run_attempt_id=0, so passing 0 here scopes to this run's legacy rows only.
 	var runAttemptID int64
 	if attempt != nil {
 		runAttemptID = attempt.ID
 	}
+
+	// Each step's markdown is rendered independently so an unclosed construct
+	// in one step can't bleed into the next.
+	summaries, err := actions_model.ListActionRunJobSummariesByRunAttempt(ctx, ctx.Repo.Repository.ID, run.ID, runAttemptID)
+	if err != nil {
+		ctx.ServerError("ListActionRunJobSummariesByRunAttempt", err)
+		return
+	}
+	if len(summaries) > 0 {
+		jobNameByID := make(map[int64]string, len(jobs))
+		for _, j := range jobs {
+			jobNameByID[j.ID] = j.Name
+		}
+		renderUtils := templates.NewRenderUtils(ctx)
+		var current *ViewJobSummary
+		for _, s := range summaries {
+			if s.ContentType != actions_model.JobSummaryContentTypeMarkdown {
+				log.Warn("Skip unsupported job summary content type %q for run %d job %d step %d", s.ContentType, s.RunID, s.JobID, s.StepIndex)
+				continue
+			}
+			if current == nil || current.JobID != s.JobID {
+				current = &ViewJobSummary{JobID: s.JobID, JobName: jobNameByID[s.JobID]}
+				resp.State.Run.JobSummaries = append(resp.State.Run.JobSummaries, current)
+			}
+			current.SummaryHTML += renderUtils.MarkdownToHtml(s.Content)
+		}
+	}
+
 	arts, err := actions_model.ListUploadedArtifactsMetaByRunAttempt(ctx, ctx.Repo.Repository.ID, run.ID, runAttemptID)
 	if err != nil {
 		ctx.ServerError("ListUploadedArtifactsMetaByRunAttempt", err)
