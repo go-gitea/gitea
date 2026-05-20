@@ -38,6 +38,10 @@ export async function copyToClipboard(content: ClippieContent | (() => Promise<C
   return success;
 }
 
+export async function copyTextToClipboard(content: string): Promise<boolean> {
+  return await clippie(content);
+}
+
 function showCopyFeedback(target: HTMLElement, success: boolean) {
   const origSvg = target.querySelector<SVGElement>('.octicon-copy');
   if (!origSvg) {
