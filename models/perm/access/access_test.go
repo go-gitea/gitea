@@ -26,6 +26,7 @@ func TestAccess(t *testing.T) {
 	t.Run("RecalculateAccesses2", testRecalculateAccesses2)
 	t.Run("RecalculateAccessesUpdateMode", testRecalculateAccessesUpdateMode)
 	t.Run("RecalculateAccessesRemoveAccess", testRecalculateAccessesRemoveAccess)
+	t.Run("RecalculateUserAccess", testRecalculateUserAccess)
 }
 
 func testAccessLevel(t *testing.T) {
@@ -200,4 +201,36 @@ func testRecalculateAccessesRemoveAccess(t *testing.T) {
 	has, err = db.GetEngine(t.Context()).Get(removedAccess)
 	assert.NoError(t, err)
 	assert.False(t, has, "Access should be deleted after removing collaboration")
+}
+
+func testRecalculateUserAccess(t *testing.T) {
+	t.Run("NoAccessForUserWithoutCollaboration", func(t *testing.T) {
+		repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 4})
+		assert.NoError(t, repo.LoadOwner(t.Context()))
+
+		userID := int64(8)
+		_, _ = db.GetEngine(t.Context()).Where("user_id = ? AND repo_id = ?", userID, repo.ID).Delete(&access_model.Access{})
+		assert.NoError(t, access_model.RecalculateUserAccess(t.Context(), repo, userID))
+
+		access := &access_model.Access{UserID: userID, RepoID: repo.ID}
+		has, err := db.GetEngine(t.Context()).Get(access)
+		assert.NoError(t, err)
+		assert.False(t, has, "User without collaboration/team membership should have no access record")
+	})
+
+	t.Run("CollaboratorGetsAccess", func(t *testing.T) {
+		repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 4})
+		assert.NoError(t, repo.LoadOwner(t.Context()))
+
+		userID := int64(4)
+		_ = db.Insert(t.Context(), &repo_model.Collaboration{UserID: userID, RepoID: repo.ID, Mode: perm_model.AccessModeWrite})
+
+		assert.NoError(t, access_model.RecalculateUserAccess(t.Context(), repo, userID))
+
+		access := &access_model.Access{UserID: userID, RepoID: repo.ID}
+		has, err := db.GetEngine(t.Context()).Get(access)
+		assert.NoError(t, err)
+		assert.True(t, has)
+		assert.Equal(t, perm_model.AccessModeWrite, access.Mode)
+	})
 }
