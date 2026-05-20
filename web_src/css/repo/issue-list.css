@@ -34,8 +34,11 @@
   }
 }
 
-#issue-list .item-title {
-  display: block; /* override flex-list inline-flex so labels flow with the title text */
+#issue-list .issue-item-title {
+  font-size: 16px;
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-text);
+  text-decoration: none;
 }
 
 #issue-list .branches {
