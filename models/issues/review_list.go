@@ -121,7 +121,7 @@ func FindReviews(ctx context.Context, opts FindReviewOptions) (ReviewList, error
 	reviews := make([]*Review, 0, 10)
 	sess := db.GetEngine(ctx).Where(opts.toCond())
 	if opts.Page > 0 && !opts.IsListAll() {
-		sess = db.SetSessionPagination(sess, &opts)
+		db.SetSessionPagination(sess, &opts)
 	}
 	return reviews, sess.
 		Asc("created_unix").
@@ -135,7 +135,7 @@ func FindLatestReviews(ctx context.Context, opts FindReviewOptions) (ReviewList,
 	cond := opts.toCond()
 	sess := db.GetEngine(ctx).Where(cond)
 	if opts.Page > 0 {
-		sess = db.SetSessionPagination(sess, &opts)
+		db.SetSessionPagination(sess, &opts)
 	}
 
 	sess.In("id", builder.

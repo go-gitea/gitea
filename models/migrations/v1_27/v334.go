@@ -4,14 +4,19 @@
 package v1_27
 
 import (
+	"code.gitea.io/gitea/models/db"
+
 	"xorm.io/xorm"
 )
 
-// AddBlockOnCodeownerReviews adds block on codeowner reviews branch protection
-func AddBlockOnCodeownerReviews(x *xorm.Engine) error {
-	type ProtectedBranch struct {
-		BlockOnCodeownerReviews bool `xorm:"NOT NULL DEFAULT false"`
+func AddCancellingSupportToActionRunner(x db.EngineMigration) error {
+	type ActionRunner struct {
+		HasCancellingSupport bool `xorm:"has_cancelling_support NOT NULL DEFAULT false"`
 	}
 
-	return x.Sync(new(ProtectedBranch))
+	_, err := x.SyncWithOptions(xorm.SyncOptions{
+		IgnoreConstrains:  true,
+		IgnoreDropIndices: true,
+	}, new(ActionRunner))
+	return err
 }
