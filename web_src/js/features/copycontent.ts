@@ -6,7 +6,7 @@ import {registerGlobalEventFunc} from '../modules/observer.ts';
 export function initCopyContent() {
   registerGlobalEventFunc('click', 'onCopyContentButtonClick', async (btn: HTMLElement) => {
     if (btn.classList.contains('disabled') || btn.classList.contains('is-loading')) return;
-    await copyToClipboard(async () => {
+    await copyToClipboard(btn, async () => {
       const rawFileLink = btn.getAttribute('data-raw-file-link');
       if (!rawFileLink) {
         const lineEls = document.querySelectorAll('.file-view .lines-code');
@@ -20,6 +20,6 @@ export function initCopyContent() {
         return contentType === 'image/png' ? blob : convertImage(blob, 'image/png');
       }
       return await res.text();
-    }, btn);
+    });
   });
 }

@@ -51,7 +51,7 @@ function addCopyLink(file: Partial<CustomDropzoneFile>) {
 </div>`);
   copyLinkEl.addEventListener('click', async (e) => {
     e.preventDefault();
-    await copyToClipboard(generateMarkdownLinkForAttachment(file), copyLinkEl);
+    await copyToClipboard(copyLinkEl, generateMarkdownLinkForAttachment(file));
   });
   file.previewTemplate!.append(copyLinkEl);
 }

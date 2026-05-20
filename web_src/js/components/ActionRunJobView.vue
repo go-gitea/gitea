@@ -203,7 +203,7 @@ function endLogGroup(stepIndex: number) {
 }
 
 async function copyStepOutput(event: MouseEvent, stepIndex: number) {
-  await copyToClipboard(async () => {
+  await copyToClipboard(event.currentTarget as HTMLElement, async () => {
     const data = await fetchJobData([{step: stepIndex, cursor: null, expanded: true}]);
     const stepLog = data.logs.stepsLog?.find((s) => s.step === stepIndex);
     const lines: string[] = [];
@@ -215,7 +215,7 @@ async function copyStepOutput(event: MouseEvent, stepIndex: number) {
       lines.push(`${ts} ${msg}`);
     }
     return lines.join('\n');
-  }, event.currentTarget as HTMLElement);
+  });
 }
 
 // show/hide the step logs for a step
