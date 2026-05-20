@@ -133,6 +133,9 @@ type Repository struct {
 	RepoTransfer     *RepoTransfer `json:"repo_transfer,omitempty"`
 	Topics           []string      `json:"topics"`
 	Licenses         []string      `json:"licenses"`
+
+	GroupID        int64 `json:"group_id"`
+	GroupSortOrder int   `json:"group_sort_order"`
 }
 
 // CreateRepoOption options when creating repository
@@ -166,6 +169,8 @@ type CreateRepoOption struct {
 	TrustModel string `json:"trust_model"`
 	// ObjectFormatName of the underlying git repository, empty string for default (sha1)
 	ObjectFormatName ObjectFormatName `json:"object_format_name" binding:"MaxSize(6)"`
+	// GroupID of the group which will contain this repository. ignored if the repo owner is not an organization.
+	GroupID int64 `json:"group_id"`
 }
 
 // EditRepoOption options when editing a repository's properties

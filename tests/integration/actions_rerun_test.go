@@ -48,7 +48,7 @@ func TestActionsRerun(t *testing.T) {
 
 		wfTreePath := ".gitea/workflows/actions-rerun-workflow-1.yml"
 		wfFileContent := `name: actions-rerun-workflow-1
-on:
+on: 
   push:
     paths:
       - '.gitea/workflows/actions-rerun-workflow-1.yml'

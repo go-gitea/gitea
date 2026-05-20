@@ -265,6 +265,7 @@ func Diff(ctx *context.Context) {
 
 	userName := ctx.Repo.Owner.Name
 	repoName := ctx.Repo.Repository.Name
+	repoGroup := ctx.Repo.Repository.GroupID
 	commitID := ctx.PathParam("sha")
 
 	diffBlobExcerptData := &gitdiff.DiffBlobExcerptData{
@@ -348,7 +349,7 @@ func Diff(ctx *context.Context) {
 		}
 		parentCommitID = parentCommit.ID.String()
 	}
-	setCompareContext(ctx, parentCommit, commit, userName, repoName)
+	setCompareContext(ctx, parentCommit, commit, userName, repoName, repoGroup)
 	ctx.Data["Title"] = commit.MessageTitle() + " · " + base.ShortSha(commitID)
 	ctx.Data["Commit"] = commit
 	ctx.Data["Diff"] = diff

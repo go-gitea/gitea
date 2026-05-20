@@ -109,7 +109,7 @@ func UpdatePackageIndexIfExists(ctx context.Context, doer, owner *user_model.Use
 	// We do not want to force the creation of the repo here
 	// cargo http index does not rely on the repo itself,
 	// so if the repo does not exist, we just do nothing.
-	repo, err := repo_model.GetRepositoryByOwnerAndName(ctx, owner.Name, IndexRepositoryName)
+	repo, err := repo_model.GetRepositoryByOwnerAndName(ctx, owner.Name, IndexRepositoryName, 0)
 	if err != nil {
 		if errors.Is(err, util.ErrNotExist) {
 			return nil
@@ -208,7 +208,7 @@ func addOrUpdatePackageIndex(ctx context.Context, t *files_service.TemporaryUplo
 }
 
 func getOrCreateIndexRepository(ctx context.Context, doer, owner *user_model.User) (*repo_model.Repository, error) {
-	repo, err := repo_model.GetRepositoryByOwnerAndName(ctx, owner.Name, IndexRepositoryName)
+	repo, err := repo_model.GetRepositoryByOwnerAndName(ctx, owner.Name, IndexRepositoryName, 0)
 	if err != nil {
 		if errors.Is(err, util.ErrNotExist) {
 			repo, err = repo_service.CreateRepositoryDirectly(ctx, doer, owner, repo_service.CreateRepoOptions{

@@ -412,6 +412,7 @@ func prepareMigrationTasks() []*migration {
 		newMigration(332, "Add last_sync_unix to mirror", v1_27.AddLastSyncUnixToMirror),
 		newMigration(333, "Add bypass allowlist to branch protection", v1_27.AddBranchProtectionBypassAllowlist),
 		newMigration(334, "Add cancelling support to action runners", v1_27.AddCancellingSupportToActionRunner),
+		newMigration(335, "Add group columns to repository table", v1_27.AddGroupColumnsToRepositoryTable),
 	}
 	return preparedMigrations
 }
