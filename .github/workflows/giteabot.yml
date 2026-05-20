@@ -45,7 +45,7 @@ jobs:
     steps:
       # pull_request_review runs without repository secrets on fork PRs, so fall
       # back to the workflow token for the non-backport checks handled here.
-      - uses: go-gitea/giteabot@40d7c74f93d479578978c4ef47a655a467b8dab1 # Add config options (#5)
+      - uses: go-gitea/giteabot@d4f19d5b4a88059d8c3ca78d660631506fc0c286 # add retry logic to giteabot
         with:
           github_token: ${{ secrets.GITEABOT_TOKEN || github.token }}
           checks: ${{ github.event.inputs.checks || 'labels,merge_queue,lock,feedback,last_call,milestones,lgtm,translation_comment,pr_actions' }}
