@@ -258,10 +258,10 @@ a.ui.ui.ui.grey.label:hover {
   font-size: 1rem;
 }
 
-/* labels-list layout: span.labels-list > a.item > span.ui.label */
+/* labels-list layout: span.labels-list > a.item > span.ui.label,
+by default, the labels list is rendered as "display: inline",
+it can also be rendered as flex by adding flex-related classes (the general ".item" selector also applies) */
 .labels-list {
-  /* by default, the labels list is rendered as "display: inline" */
-  display: inline;
   max-width: 100%; /* for ellipsis */
   font-size: var(--font-size-label); /* must match the label font size, otherwise the height mismatches */
 }

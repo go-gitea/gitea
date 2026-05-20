@@ -19,7 +19,7 @@
 						<a class="issue-item-title" href="{{if .Link}}{{.Link}}{{else}}{{$.Link}}/{{.Index}}{{end}}">{{.Title | ctx.RenderUtils.RenderIssueSimpleTitle}}</a>
 						{{if .IsPull}}
 							{{if (index $.CommitStatuses .PullRequest.ID)}}
-								<span class="tw-align-[2px]">{{/* make the "flex" children aligin with parent "inline" */}}
+								<span class="tw-align-[1px]">{{/* make the "flex" children aligin with parent "inline" */}}
 								{{template "repo/commit_statuses" dict "Status" (index $.CommitLastStatus .PullRequest.ID) "Statuses" (index $.CommitStatuses .PullRequest.ID)}}
 								</span>
 							{{end}}
