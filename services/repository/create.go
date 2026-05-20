@@ -466,11 +466,5 @@ func updateGitRepoAfterCreate(ctx context.Context, repo *repo_model.Repository) 
 	if err := CheckDaemonExportOK(ctx, repo); err != nil {
 		return fmt.Errorf("checkDaemonExportOK: %w", err)
 	}
-
-	if stdout, _, err := gitrepo.RunCmdString(ctx, repo,
-		gitcmd.NewCommand("update-server-info")); err != nil {
-		log.Error("CreateRepository(git update-server-info) in %v: Stdout: %s\nError: %v", repo, stdout, err)
-		return fmt.Errorf("CreateRepository(git update-server-info): %w", err)
-	}
 	return nil
 }
