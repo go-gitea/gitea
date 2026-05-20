@@ -8,9 +8,11 @@ import (
 	"fmt"
 	"net/http"
 
+	actions_model "code.gitea.io/gitea/models/actions"
 	"code.gitea.io/gitea/models/organization"
 	packages_model "code.gitea.io/gitea/models/packages"
 	"code.gitea.io/gitea/models/perm"
+	access_model "code.gitea.io/gitea/models/perm/access"
 	"code.gitea.io/gitea/models/unit"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/setting"
@@ -122,7 +124,16 @@ func determineAccessMode(ctx *Base, pkgOwner, doer *user_model.User) (perm.Acces
 		return perm.AccessModeNone, nil
 	}
 
-	// TODO: ActionUser permission check
+	if taskID, ok := user_model.GetActionsUserTaskID(doer); ok {
+		actionAccessMode, err := determineActionsPackageAccessMode(ctx, pkgOwner, doer, taskID)
+		if err != nil {
+			return perm.AccessModeNone, err
+		}
+		if actionAccessMode != perm.AccessModeNone {
+			return actionAccessMode, nil
+		}
+	}
+
 	accessMode := perm.AccessModeNone
 	if pkgOwner.IsOrganization() {
 		org := organization.OrgFromUser(pkgOwner)
@@ -167,6 +178,28 @@ func determineAccessMode(ctx *Base, pkgOwner, doer *user_model.User) (perm.Acces
 	}
 
 	return accessMode, nil
+}
+
+func determineActionsPackageAccessMode(ctx *Base, pkgOwner, doer *user_model.User, taskID int64) (perm.AccessMode, error) {
+	task, err := actions_model.GetTaskByID(ctx, taskID)
+	if err != nil {
+		return perm.AccessModeNone, err
+	}
+	if err := task.LoadJob(ctx); err != nil {
+		return perm.AccessModeNone, err
+	}
+	if err := task.Job.LoadRepo(ctx); err != nil {
+		return perm.AccessModeNone, err
+	}
+	if task.Job.Repo.OwnerID != pkgOwner.ID {
+		return perm.AccessModeNone, nil
+	}
+
+	repoPerm, err := access_model.GetActionsUserRepoPermission(ctx, task.Job.Repo, doer, taskID)
+	if err != nil {
+		return perm.AccessModeNone, err
+	}
+	return repoPerm.UnitAccessMode(unit.TypePackages), nil
 }
 
 // PackageContexter initializes a package context for a request.
