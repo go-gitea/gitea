@@ -22,7 +22,7 @@ func TestRenderCodePreview(t *testing.T) {
 		},
 	})
 	test := func(input, expected string) {
-		buffer, err := markup.RenderString(markup.NewTestRenderContext().WithMarkupType(markdown.MarkupName), input)
+		buffer, err := testRenderString(markup.NewTestRenderContext().WithMarkupType(markdown.MarkupName), input)
 		assert.NoError(t, err)
 		assert.Equal(t, strings.TrimSpace(expected), strings.TrimSpace(buffer))
 	}

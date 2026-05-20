@@ -237,7 +237,7 @@ var (
 			AddCoCommitterTrailers:                   true,
 			RetargetChildrenOnMerge:                  true,
 			DelayCheckForInactiveDays:                7,
-			DefaultTitleSource:                       RepoPRTitleSourceFirstCommit,
+			DefaultTitleSource:                       RepoPRTitleSourceAuto,
 		},
 
 		// Issue settings

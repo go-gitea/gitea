@@ -11,15 +11,14 @@ import (
 	"strings"
 	"time"
 
+	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/git/gitcmd"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
-
-	"xorm.io/xorm"
 )
 
-func FixMergeBase(ctx context.Context, x *xorm.Engine) error {
+func FixMergeBase(ctx context.Context, x db.EngineMigration) error {
 	type Repository struct {
 		ID        int64 `xorm:"pk autoincr"`
 		OwnerID   int64 `xorm:"UNIQUE(s) index"`
