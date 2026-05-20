@@ -69,7 +69,7 @@ let dateFormat: Intl.DateTimeFormat;
 export function formatDatetimeISO(unixSeconds: number): string {
   const base = new Date(unixSeconds * 1000).toISOString().slice(0, 19);
   const frac = unixSeconds - Math.floor(unixSeconds);
-  const fracInt = Math.min(Math.round(frac * 10_000_000), 9_999_999);
+  const fracInt = Math.floor(frac * 10_000_000);
   return `${base}.${String(fracInt).padStart(7, '0')}Z`;
 }
 
