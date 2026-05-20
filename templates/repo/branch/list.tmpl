@@ -29,8 +29,8 @@
 								</div>
 								<p class="info tw-flex tw-items-center tw-my-1">{{svg "octicon-git-commit" 16 "tw-mr-1"}}<a href="{{.RepoLink}}/commit/{{PathEscape .DefaultBranchBranch.DBBranch.CommitID}}">{{ShortSha .DefaultBranchBranch.DBBranch.CommitID}}</a> · <span class="commit-message">{{ctx.RenderUtils.RenderCommitMessage .DefaultBranchBranch.DBBranch.CommitMessage .Repository}}</span> · {{ctx.Locale.Tr "org.repo_updated"}} {{DateUtils.TimeSince .DefaultBranchBranch.DBBranch.CommitTime}}{{if .DefaultBranchBranch.DBBranch.Pusher}} &nbsp;{{template "shared/user/avatarlink" dict "user" .DefaultBranchBranch.DBBranch.Pusher}}{{template "shared/user/namelink" .DefaultBranchBranch.DBBranch.Pusher}}{{end}}</p>
 							</td>
-							{{/* FIXME: here and below, the tw-overflow-visible is not quite right but it is still needed the moment: to show the important buttons when the width is narrow */}}
-							<td class="tw-text-right tw-overflow-visible">
+							<td>
+								<div class="tw-flex tw-flex-wrap tw-justify-end">
 								{{if and $.IsWriter $.Repository.CanContentChange (not .IsDeleted)}}
 									<button class="btn interact-bg show-create-branch-modal tw-p-2"
 										data-modal="#create-branch-modal"
@@ -63,6 +63,7 @@
 										{{svg "octicon-pencil"}}
 									</button>
 								{{end}}
+								</div>
 							</td>
 						</tr>
 					</tbody>
@@ -71,9 +72,7 @@
 		{{end}}
 
 		<h4 class="ui top attached header">
-			<div class="flex-text-block">
-				{{ctx.Locale.Tr "repo.branches"}}
-			</div>
+			{{ctx.Locale.Tr "repo.branches"}}
 		</h4>
 
 		<div class="ui attached segment">
@@ -155,7 +154,6 @@
 									{{end}}
 								{{end}}
 							</td>
-							{{/* FIXME: here and above, the tw-overflow-visible is not quite right */}}
 							<td class="three wide">
 								<div class="tw-flex tw-flex-wrap tw-justify-end">
 								{{if and $.IsWriter $.Repository.CanContentChange (not .DBBranch.IsDeleted)}}
