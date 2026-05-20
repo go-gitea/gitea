@@ -126,6 +126,7 @@ func TestGetConflictedFileContentNotConflicted(t *testing.T) {
 // PR as mergeable.
 func TestCommitConflictResolution(t *testing.T) {
 	require.NoError(t, unittest.PrepareTestDatabase())
+	mockCheckQueue(t)
 	pr, conflictFile := setupConflictPR(t)
 
 	doer := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
@@ -155,6 +156,7 @@ func TestCommitConflictResolution(t *testing.T) {
 // commit has exactly two parents: the old head tip and the base branch tip.
 func TestCommitConflictResolutionMergeCommitParents(t *testing.T) {
 	require.NoError(t, unittest.PrepareTestDatabase())
+	mockCheckQueue(t)
 	pr, conflictFile := setupConflictPR(t)
 	doer := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
 
@@ -207,4 +209,14 @@ func buildTestCommitEnv(doer *user_model.User) []string {
 		"GIT_COMMITTER_EMAIL=" + sig.Email,
 		"GIT_COMMITTER_DATE=2025-01-01T00:00:00+00:00",
 	}
+}
+
+// mockCheckQueue replaces AddPullRequestToCheckQueue with a no-op for the
+// duration of the test (the real queue is uninitialized in unit tests and
+// panics on Push).
+func mockCheckQueue(t *testing.T) {
+	t.Helper()
+	orig := AddPullRequestToCheckQueue
+	AddPullRequestToCheckQueue = func(int64) {}
+	t.Cleanup(func() { AddPullRequestToCheckQueue = orig })
 }

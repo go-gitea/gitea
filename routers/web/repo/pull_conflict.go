@@ -4,17 +4,17 @@
 package repo
 
 import (
-	"encoding/json"
 	"net/http"
 	"os"
 	"path"
-	"slices"
 	"strings"
 	"time"
 
 	issues_model "code.gitea.io/gitea/models/issues"
 	access_model "code.gitea.io/gitea/models/perm/access"
 	"code.gitea.io/gitea/models/unit"
+	"code.gitea.io/gitea/modules/gitrepo"
+	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/markup"
 	"code.gitea.io/gitea/modules/setting"
@@ -102,8 +102,12 @@ func ResolveConflictsEditor(ctx *context.Context) {
 		return
 	}
 
+	// ConflictedFiles only stores the first MaxConflictedDetectFiles entries, so we
+	// cannot use it to gate access to files beyond that limit.  Path safety is
+	// ensured by conflictEditorFilePath (rejects ".."), and authorization by
+	// checkConflictWriteAccess.
 	filePath := conflictEditorFilePath(ctx)
-	if filePath == "" || !slices.Contains(pull.ConflictedFiles, filePath) {
+	if filePath == "" {
 		ctx.NotFound(nil)
 		return
 	}
@@ -130,6 +134,10 @@ func ResolveConflictsEditor(ctx *context.Context) {
 	ctx.Data["CodeEditorConfig"] = editorCfg
 	ctx.Data["ResolveConflictsURL"] = issue.Link() + "/conflicts/resolve"
 	ctx.Data["FileContentURL"] = issue.Link() + "/conflicts/file-content"
+	// Indicate whether there may be more conflicted files beyond the stored list.
+	// ConflictedFiles is capped at MaxConflictedDetectFiles; reaching the cap
+	// means further conflicted files exist that are not shown in the sidebar.
+	ctx.Data["ConflictedFilesMaybeTruncated"] = len(pull.ConflictedFiles) >= gitrepo.MaxConflictedDetectFiles
 	ctx.HTML(http.StatusOK, tplConflictResolution)
 }
 
@@ -148,7 +156,7 @@ func GetConflictedFileContentJSON(ctx *context.Context) {
 	}
 
 	filePath := ctx.FormString("path")
-	if filePath == "" || strings.Contains(filePath, "..") || !slices.Contains(pull.ConflictedFiles, filePath) {
+	if filePath == "" || strings.Contains(filePath, "..") {
 		ctx.NotFound(nil)
 		return
 	}
@@ -251,10 +259,6 @@ func ResolveConflictsBatchPost(ctx *context.Context) {
 		})
 		return
 	}
-
-	// Mark PR as "checking" so the PR page shows an in-progress state and
-	// auto-refreshes instead of still showing the stale conflict status.
-	pull_service.StartPullRequestCheckImmediately(ctx, pull)
 
 	ctx.JSON(http.StatusOK, map[string]string{"redirect": issue.Link()})
 }

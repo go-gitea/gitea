@@ -38,6 +38,11 @@
 					</div>
 					{{end}}
 				</div>
+				{{if .ConflictedFilesMaybeTruncated}}
+				<div class="tw-px-3 tw-py-2 tw-text-xs tw-text-text-light tw-italic">
+					{{ctx.Locale.Tr "repo.pulls.conflict_resolution_more_files"}}
+				</div>
+				{{end}}
 				{{/* Commit panel at the bottom of the sidebar */}}
 				<div class="tw-border-t tw-border-secondary tw-px-3 tw-py-3 tw-flex tw-flex-col tw-gap-2 tw-mt-auto">
 					<div class="tw-text-xs tw-text-text-light">

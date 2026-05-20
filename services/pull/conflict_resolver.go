@@ -16,89 +16,124 @@ import (
 	"code.gitea.io/gitea/modules/git/gitcmd"
 	"code.gitea.io/gitea/modules/gitrepo"
 	repo_module "code.gitea.io/gitea/modules/repository"
-	"code.gitea.io/gitea/modules/util"
 )
 
-// GetConflictedFileContent creates a temporary repo for the PR, performs a
-// three-way merge for the given file path, and returns the file content with
-// standard git conflict markers so the user can resolve it in the web editor.
-// The HEAD branch changes are labeled with pr.HeadBranch and the base branch
-// changes are labeled with pr.BaseBranch.
+// GetConflictedFileContent performs a 3-way merge for filePath and returns the
+// file content with standard git conflict markers.
+//
+// It works directly against the real head/base repository directories using
+// git cat-file and git merge-file, avoiding the expensive full clone performed
+// by createTemporaryRepoForPR.  Only a tiny temp directory holding the three
+// extracted blob files is created.
+//
+// pr.MergeBase must be populated (stored in the DB after the conflict check).
 func GetConflictedFileContent(ctx context.Context, pr *issues_model.PullRequest, filePath string) (string, error) {
-	prCtx, cancel, err := createTemporaryRepoForPR(ctx, pr)
-	if err != nil {
-		return "", fmt.Errorf("createTemporaryRepoForPR: %w", err)
+	if loadErr := pr.LoadBaseRepo(ctx); loadErr != nil {
+		return "", fmt.Errorf("load base repo: %w", loadErr)
 	}
-	defer cancel()
-
-	tmpDir := prCtx.tmpBasePath
-
-	// Find the common ancestor commit of both branches.
-	mergeBase, _, err := gitcmd.NewCommand("merge-base", "--").
-		AddDynamicArguments(tmpRepoBaseBranch, tmpRepoTrackingBranch).
-		WithDir(tmpDir).RunStdString(ctx)
-	if err != nil {
-		return "", fmt.Errorf("merge-base: %w", err)
-	}
-	mergeBase = strings.TrimSpace(mergeBase)
-
-	// Retrieve blob SHAs from each version: ancestor, base branch (ours), head branch (theirs).
-	ancestorSHA, _ := getBlobSHAFromRef(ctx, tmpDir, mergeBase, filePath)
-	ourSHA, err := getBlobSHAFromRef(ctx, tmpDir, tmpRepoBaseBranch, filePath)
-	if err != nil {
-		return "", fmt.Errorf("cannot locate %q in base branch: %w", filePath, err)
-	}
-	theirSHA, err := getBlobSHAFromRef(ctx, tmpDir, tmpRepoTrackingBranch, filePath)
-	if err != nil {
-		return "", fmt.Errorf("cannot locate %q in head branch: %w", filePath, err)
+	if loadErr := pr.LoadHeadRepo(ctx); loadErr != nil {
+		return "", fmt.Errorf("load head repo: %w", loadErr)
 	}
 
-	// Unpack blobs into temp files so git merge-file can operate on them.
-	// "theirs" = head branch (what the user pushed), shown as <<<<<<< in output.
-	theirFile, err := unpackBlob(ctx, tmpDir, theirSHA)
-	if err != nil {
-		return "", fmt.Errorf("unpack head blob: %w", err)
+	baseRepoPath := pr.BaseRepo.RepoPath()
+
+	// For same-repo PRs the head path is identical; for forks use the fork's path.
+	headRepoPath := baseRepoPath
+	if !pr.IsSameRepo() {
+		headRepoPath = pr.HeadRepo.RepoPath()
 	}
-	defer util.Remove(theirFile)
+
+	// Resolve branch tips directly from the real repositories.
+	baseTipSHA, _, gitErr := gitcmd.NewCommand("rev-parse").
+		AddDynamicArguments(git.BranchPrefix + pr.BaseBranch).
+		WithDir(baseRepoPath).RunStdString(ctx)
+	if gitErr != nil {
+		return "", fmt.Errorf("rev-parse base branch: %w", gitErr)
+	}
+	baseTipSHA = strings.TrimSpace(baseTipSHA)
+
+	headTipSHA, _, gitErr := gitcmd.NewCommand("rev-parse").
+		AddDynamicArguments(git.BranchPrefix + pr.HeadBranch).
+		WithDir(headRepoPath).RunStdString(ctx)
+	if gitErr != nil {
+		return "", fmt.Errorf("rev-parse head branch: %w", gitErr)
+	}
+	headTipSHA = strings.TrimSpace(headTipSHA)
+
+	// Prefer the stored merge base (set by the conflict check); recompute only
+	// if it is missing.
+	mergeBaseSHA := pr.MergeBase
+	if mergeBaseSHA == "" {
+		var mbErr error
+		mergeBaseSHA, mbErr = gitrepo.MergeBase(ctx, pr.BaseRepo, baseTipSHA, headTipSHA)
+		if mbErr != nil {
+			return "", fmt.Errorf("compute merge-base: %w", mbErr)
+		}
+	}
+
+	// Resolve blob SHAs. Ancestor and base blobs are in the base repo.
+	// Head blob is in the head repo (fork or same).
+	ancestorBlobSHA, _ := getBlobSHAFromRef(ctx, baseRepoPath, mergeBaseSHA, filePath)
+
+	baseBlobSHA, refErr := getBlobSHAFromRef(ctx, baseRepoPath, baseTipSHA, filePath)
+	if refErr != nil {
+		return "", fmt.Errorf("file %q not found in base branch: %w", filePath, refErr)
+	}
+
+	headBlobSHA, refErr := getBlobSHAFromRef(ctx, headRepoPath, headTipSHA, filePath)
+	if refErr != nil {
+		return "", fmt.Errorf("file %q not found in head branch: %w", filePath, refErr)
+	}
+
+	// Create a minimal temp directory for the three plain content files.
+	// git merge-file works on regular files and does not require a git repo.
+	tmpDir, tmpErr := os.MkdirTemp("", "gitea-conflict-*")
+	if tmpErr != nil {
+		return "", fmt.Errorf("create temp dir: %w", tmpErr)
+	}
+	defer os.RemoveAll(tmpDir)
+
+	// Extract blobs via git cat-file blob.
+	headFile, exErr := extractBlobToTempFile(ctx, headRepoPath, headBlobSHA, tmpDir, "head")
+	if exErr != nil {
+		return "", fmt.Errorf("extract head blob: %w", exErr)
+	}
+
+	baseFile, exErr := extractBlobToTempFile(ctx, baseRepoPath, baseBlobSHA, tmpDir, "base")
+	if exErr != nil {
+		return "", fmt.Errorf("extract base blob: %w", exErr)
+	}
 
 	var ancestorFile string
-	if ancestorSHA != "" {
-		ancestorFile, err = unpackBlob(ctx, tmpDir, ancestorSHA)
-		if err != nil {
-			return "", fmt.Errorf("unpack ancestor blob: %w", err)
+	if ancestorBlobSHA != "" {
+		ancestorFile, exErr = extractBlobToTempFile(ctx, baseRepoPath, ancestorBlobSHA, tmpDir, "ancestor")
+		if exErr != nil {
+			return "", fmt.Errorf("extract ancestor blob: %w", exErr)
 		}
-		defer util.Remove(ancestorFile)
 	} else {
-		// File was added independently on both branches; use an empty ancestor.
-		f, ferr := os.CreateTemp(tmpDir, "empty-ancestor-*")
+		// File added independently on both branches — use an empty ancestor.
+		f, ferr := os.CreateTemp(tmpDir, "ancestor-empty-*")
 		if ferr != nil {
-			return "", fmt.Errorf("create empty ancestor file: %w", ferr)
+			return "", fmt.Errorf("create empty ancestor: %w", ferr)
 		}
 		f.Close()
 		ancestorFile = f.Name()
-		defer util.Remove(ancestorFile)
 	}
 
-	ourFile, err := unpackBlob(ctx, tmpDir, ourSHA)
-	if err != nil {
-		return "", fmt.Errorf("unpack base blob: %w", err)
-	}
-	defer util.Remove(ourFile)
-
-	// git merge-file <current> <base/ancestor> <other>
-	// current = head branch (theirFile) -> labeled HeadBranch in <<<<<<< line
-	// other   = base branch (ourFile)   -> labeled BaseBranch in >>>>>>> line
-	// A non-zero exit code is expected when there are unresolvable conflicts.
+	// git merge-file <current> <ancestor> <other>
+	// current = head file  -> labeled HeadBranch in <<<<<<< line
+	// other   = base file  -> labeled BaseBranch in >>>>>>> line
+	// Non-zero exit is expected when conflicts remain unresolvable.
 	_ = gitcmd.NewCommand("merge-file", "-L").
 		AddDynamicArguments(pr.HeadBranch).
 		AddArguments("-L", "base", "-L").
 		AddDynamicArguments(pr.BaseBranch).
-		AddDynamicArguments(theirFile, ancestorFile, ourFile).
-		WithDir(tmpDir).RunWithStderr(ctx)
+		AddDynamicArguments(headFile, ancestorFile, baseFile).
+		WithDir(baseRepoPath).RunWithStderr(ctx)
 
-	content, err := os.ReadFile(theirFile)
-	if err != nil {
-		return "", fmt.Errorf("read merged file: %w", err)
+	content, readErr := os.ReadFile(headFile)
+	if readErr != nil {
+		return "", fmt.Errorf("read merged file: %w", readErr)
 	}
 	return string(content), nil
 }
@@ -109,50 +144,83 @@ type ResolvedFile struct {
 	Content string
 }
 
-// CommitConflictResolution creates a proper merge commit on the head branch
-// that incorporates the resolved file contents. Using git plumbing (read-tree,
-// update-index, write-tree, commit-tree) means we never need a working-tree
-// checkout in the temp repo. The commit has TWO parents – the old head tip and
-// the current base branch tip – exactly like a "merge base into head" commit.
-// With this ancestry, the PR conflict check will find the base tip as a
-// reachable ancestor of head and report no conflicts.
+// CommitConflictResolution creates a merge commit on the head branch whose
+// second parent is the current base branch tip.  This makes the PR conflict
+// check find no conflicts.  After a successful push the function schedules an
+// immediate re-check so the merge box updates without waiting for the next
+// page load.
 func CommitConflictResolution(
 	ctx context.Context,
 	pr *issues_model.PullRequest,
 	doer *user_model.User,
 	resolvedFiles []ResolvedFile,
 	commitMsg string,
-	commitEnv []string, // GIT_AUTHOR_*/GIT_COMMITTER_* already set by caller
+	commitEnv []string,
 ) error {
-	prCtx, cancel, err := createTemporaryRepoForPR(ctx, pr)
-	if err != nil {
-		return fmt.Errorf("createTemporaryRepoForPR: %w", err)
+	if loadErr := pr.LoadBaseRepo(ctx); loadErr != nil {
+		return fmt.Errorf("load base repo: %w", loadErr)
 	}
-	defer cancel()
+	if loadErr := pr.LoadHeadRepo(ctx); loadErr != nil {
+		return fmt.Errorf("load head repo: %w", loadErr)
+	}
 
-	tmpDir := prCtx.tmpBasePath
+	baseRepoPath := pr.BaseRepo.RepoPath()
+	headRepoPath := pr.HeadRepo.RepoPath()
+
+	// Resolve current branch tips from the real repositories.
+	baseTipSHA, _, gitErr := gitcmd.NewCommand("rev-parse").
+		AddDynamicArguments(git.BranchPrefix + pr.BaseBranch).
+		WithDir(baseRepoPath).RunStdString(ctx)
+	if gitErr != nil {
+		return fmt.Errorf("rev-parse base: %w", gitErr)
+	}
+	baseTipSHA = strings.TrimSpace(baseTipSHA)
+
+	headTipSHA, _, gitErr := gitcmd.NewCommand("rev-parse").
+		AddDynamicArguments(git.BranchPrefix + pr.HeadBranch).
+		WithDir(headRepoPath).RunStdString(ctx)
+	if gitErr != nil {
+		return fmt.Errorf("rev-parse head: %w", gitErr)
+	}
+	headTipSHA = strings.TrimSpace(headTipSHA)
+
+	// Build a minimal bare git repository using only Go file operations—
+	// no git init or git fetch needed. Alternates make both repos' objects
+	// readable; new objects are written to tmpDir and pushed to head repo.
+	tmpDir, tmpErr := os.MkdirTemp("", "gitea-conflict-merge-*")
+	if tmpErr != nil {
+		return fmt.Errorf("create temp dir: %w", tmpErr)
+	}
+	defer os.RemoveAll(tmpDir)
+
+	if initErr := initMinimalBareRepo(tmpDir, pr, baseTipSHA, headTipSHA); initErr != nil {
+		return fmt.Errorf("init minimal bare repo: %w", initErr)
+	}
+
+	// tmpDir is now a bare git repo with:
+	//   refs/heads/base     -> baseTipSHA
+	//   refs/heads/tracking -> headTipSHA
+	//   objects via alternates pointing to the real repos
 
 	// 1. Load the tracking-branch tree into the index (no checkout needed).
-	if err := gitcmd.NewCommand("read-tree").
+	if gitErr := gitcmd.NewCommand("read-tree").
 		AddDynamicArguments(tmpRepoTrackingBranch).
-		WithDir(tmpDir).RunWithStderr(ctx); err != nil {
-		return fmt.Errorf("read-tree: %w", err)
+		WithDir(tmpDir).RunWithStderr(ctx); gitErr != nil {
+		return fmt.Errorf("read-tree: %w", gitErr)
 	}
 
 	// 2. Write each resolved file as a blob and stage it.
 	for _, f := range resolvedFiles {
 		content := strings.ReplaceAll(f.Content, "\r", "")
 
-		// Write blob object to the object store.
-		blobHash, _, err := gitcmd.NewCommand("hash-object", "-w", "--stdin").
+		blobHash, _, gitErr := gitcmd.NewCommand("hash-object", "-w", "--stdin").
 			WithStdinBytes([]byte(content)).
 			WithDir(tmpDir).RunStdString(ctx)
-		if err != nil {
-			return fmt.Errorf("hash-object %s: %w", f.Path, err)
+		if gitErr != nil {
+			return fmt.Errorf("hash-object %s: %w", f.Path, gitErr)
 		}
 		blobHash = strings.TrimSpace(blobHash)
 
-		// Preserve the original file mode (default to 100644).
 		mode := "100644"
 		if out, _, _ := gitcmd.NewCommand("ls-tree").
 			AddDynamicArguments(tmpRepoTrackingBranch, f.Path).
@@ -162,74 +230,62 @@ func CommitConflictResolution(
 			}
 		}
 
-		// Stage the new blob (cacheinfo format: mode,hash,path).
-		if err := gitcmd.NewCommand("update-index", "--cacheinfo").
+		if gitErr := gitcmd.NewCommand("update-index", "--cacheinfo").
 			AddDynamicArguments(mode + "," + blobHash + "," + f.Path).
-			WithDir(tmpDir).RunWithStderr(ctx); err != nil {
-			return fmt.Errorf("update-index %s: %w", f.Path, err)
+			WithDir(tmpDir).RunWithStderr(ctx); gitErr != nil {
+			return fmt.Errorf("update-index %s: %w", f.Path, gitErr)
 		}
 	}
 
-	// 3. Build the new tree object from the updated index.
-	newTreeHash, _, err := gitcmd.NewCommand("write-tree").
+	// 3. Build the new tree object.
+	newTreeHash, _, gitErr := gitcmd.NewCommand("write-tree").
 		WithDir(tmpDir).RunStdString(ctx)
-	if err != nil {
-		return fmt.Errorf("write-tree: %w", err)
+	if gitErr != nil {
+		return fmt.Errorf("write-tree: %w", gitErr)
 	}
 	newTreeHash = strings.TrimSpace(newTreeHash)
 
-	// 4. Resolve parent commit SHAs.
-	trackingHash, _, err := gitcmd.NewCommand("rev-parse").
-		AddDynamicArguments(tmpRepoTrackingBranch).
-		WithDir(tmpDir).RunStdString(ctx)
-	if err != nil {
-		return fmt.Errorf("rev-parse tracking: %w", err)
-	}
-	trackingHash = strings.TrimSpace(trackingHash)
-
-	baseHash, _, err := gitcmd.NewCommand("rev-parse").
-		AddDynamicArguments(tmpRepoBaseBranch).
-		WithDir(tmpDir).RunStdString(ctx)
-	if err != nil {
-		return fmt.Errorf("rev-parse base: %w", err)
-	}
-	baseHash = strings.TrimSpace(baseHash)
+	// 4. Parent SHAs were already resolved from the real repos above.
 
 	// 5. Create the merge commit: parent1 = old head tip, parent2 = base tip.
-	newCommitHash, _, err := gitcmd.NewCommand("commit-tree").
+	newCommitHash, _, gitErr := gitcmd.NewCommand("commit-tree").
 		AddDynamicArguments(newTreeHash).
-		AddArguments("-p").AddDynamicArguments(trackingHash).
-		AddArguments("-p").AddDynamicArguments(baseHash).
+		AddArguments("-p").AddDynamicArguments(headTipSHA).
+		AddArguments("-p").AddDynamicArguments(baseTipSHA).
 		AddArguments("-m").AddDynamicArguments(commitMsg).
 		WithEnv(commitEnv).
 		WithDir(tmpDir).RunStdString(ctx)
-	if err != nil {
-		return fmt.Errorf("commit-tree: %w", err)
+	if gitErr != nil {
+		return fmt.Errorf("commit-tree: %w", gitErr)
 	}
 	newCommitHash = strings.TrimSpace(newCommitHash)
 
-	// 6. Push the new commit to the actual head repository.
-	// Use InternalPushingEnvironment to bypass server-side git hooks; the
-	// caller (ResolveConflictsBatchPost) explicitly triggers StartPullRequestCheckImmediately
-	// which queues the re-check, making the hook's AddTestPullRequestTask redundant.
+	// 6. Push to the actual head repository.
+	// InternalPushingEnvironment bypasses server-side hooks; the re-check is
+	// triggered explicitly in step 7.
 	pushEnv := repo_module.InternalPushingEnvironment(doer, pr.HeadRepo)
-	if err := gitrepo.PushFromLocal(ctx, tmpDir, pr.HeadRepo, git.PushOptions{
+	if pushErr := gitrepo.PushFromLocal(ctx, tmpDir, pr.HeadRepo, git.PushOptions{
 		Branch: newCommitHash + ":" + git.BranchPrefix + pr.HeadBranch,
 		Env:    pushEnv,
-	}); err != nil {
-		return fmt.Errorf("push to head repo: %w", err)
+	}); pushErr != nil {
+		return fmt.Errorf("push to head repo: %w", pushErr)
 	}
+
+	// 7. Schedule an immediate re-check so the PR page shows "checking" /
+	// "mergeable" without waiting for a subsequent page load or git-hook.
+	StartPullRequestCheckImmediately(ctx, pr)
 
 	return nil
 }
 
-// getBlobSHAFromRef returns the blob object SHA for filePath at the given git ref.
-func getBlobSHAFromRef(ctx context.Context, tmpDir, ref, filePath string) (string, error) {
-	out, _, err := gitcmd.NewCommand("ls-tree", "--").
+// getBlobSHAFromRef returns the blob object SHA for filePath at the given git
+// ref (branch name or commit SHA) inside repoPath.
+func getBlobSHAFromRef(ctx context.Context, repoPath, ref, filePath string) (string, error) {
+	out, _, gitErr := gitcmd.NewCommand("ls-tree", "--").
 		AddDynamicArguments(ref, filePath).
-		WithDir(tmpDir).RunStdString(ctx)
-	if err != nil {
-		return "", err
+		WithDir(repoPath).RunStdString(ctx)
+	if gitErr != nil {
+		return "", gitErr
 	}
 	out = strings.TrimSpace(out)
 	if out == "" {
@@ -243,11 +299,82 @@ func getBlobSHAFromRef(ctx context.Context, tmpDir, ref, filePath string) (strin
 	return fields[2], nil
 }
 
-// unpackBlob extracts a git blob object to a temporary file and returns its path.
-func unpackBlob(ctx context.Context, tmpDir, sha string) (string, error) {
-	out, _, err := gitcmd.NewCommand("unpack-file").AddDynamicArguments(sha).WithDir(tmpDir).RunStdString(ctx)
-	if err != nil {
-		return "", fmt.Errorf("unpack-file %s: %w", sha, err)
+// extractBlobToTempFile reads a git blob from repoPath via `git cat-file blob`
+// and writes it to a new temp file inside tmpDir, returning the full path.
+func extractBlobToTempFile(ctx context.Context, repoPath, sha, tmpDir, label string) (string, error) {
+	data, _, gitErr := gitcmd.NewCommand("cat-file", "blob").
+		AddDynamicArguments(sha).
+		WithDir(repoPath).RunStdBytes(ctx)
+	if gitErr != nil {
+		return "", fmt.Errorf("cat-file blob %s (%s): %w", sha, label, gitErr)
 	}
-	return filepath.Join(tmpDir, strings.TrimSpace(out)), nil
+	f, ferr := os.CreateTemp(tmpDir, label+"-*")
+	if ferr != nil {
+		return "", ferr
+	}
+	defer f.Close()
+	if _, werr := f.Write(data); werr != nil {
+		return "", werr
+	}
+	return filepath.Join(tmpDir, filepath.Base(f.Name())), nil
+}
+
+// initMinimalBareRepo creates a minimal bare git repository in dir using only
+// Go file operations (no git init, no git fetch).  The repository's object
+// store is wired via alternates to the real base and head repositories, making
+// all existing git objects readable without copying them.  Two fake branch refs
+// are written so subsequent git plumbing commands can address the branch tips
+// by the conventional names (tmpRepoBaseBranch / tmpRepoTrackingBranch).
+func initMinimalBareRepo(dir string, pr *issues_model.PullRequest, baseTipSHA, headTipSHA string) error {
+	// Create the minimum directory structure required for a bare git repo.
+	for _, sub := range []string{
+		filepath.Join(dir, "objects", "info"),
+		filepath.Join(dir, "objects", "pack"),
+		filepath.Join(dir, "refs", "heads"),
+	} {
+		if err := os.MkdirAll(sub, 0o755); err != nil {
+			return err
+		}
+	}
+
+	// HEAD must exist for git to recognise the directory as a repo.
+	if err := os.WriteFile(
+		filepath.Join(dir, "HEAD"),
+		[]byte("ref: refs/heads/"+tmpRepoTrackingBranch+"\n"),
+		0o644,
+	); err != nil {
+		return err
+	}
+
+	// alternates: make both repos' objects readable from this bare repo.
+	// For same-repo PRs the base and head paths are identical; write the
+	// path once (deduplication is not required but keeps the file tidy).
+	baseObjPath := filepath.Join(pr.BaseRepo.RepoPath(), "objects")
+	headObjPath := filepath.Join(pr.HeadRepo.RepoPath(), "objects")
+	alternates := baseObjPath + "\n"
+	if !pr.IsSameRepo() {
+		alternates += headObjPath + "\n"
+	}
+	if err := os.WriteFile(
+		filepath.Join(dir, "objects", "info", "alternates"),
+		[]byte(alternates),
+		0o644,
+	); err != nil {
+		return err
+	}
+
+	// Write fake branch refs so git plumbing commands can address both tips.
+	for name, sha := range map[string]string{
+		tmpRepoBaseBranch:     baseTipSHA,
+		tmpRepoTrackingBranch: headTipSHA,
+	} {
+		if err := os.WriteFile(
+			filepath.Join(dir, "refs", "heads", name),
+			[]byte(sha+"\n"),
+			0o644,
+		); err != nil {
+			return err
+		}
+	}
+	return nil
 }

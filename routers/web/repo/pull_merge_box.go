@@ -6,6 +6,7 @@ package repo
 import (
 	"html/template"
 
+	"code.gitea.io/gitea/modules/gitrepo"
 	"code.gitea.io/gitea/modules/htmlutil"
 	"code.gitea.io/gitea/modules/svg"
 	"code.gitea.io/gitea/modules/util"
@@ -17,6 +18,9 @@ type pullMergeBoxInfoItem struct {
 	SvgIconHTML template.HTML
 	InfoHTML    template.HTML
 	ListItems   []template.HTML
+	// ActionHTML is optional HTML rendered as a button/link on the right side
+	// of the item row (uses flex-left-right layout when non-empty).
+	ActionHTML template.HTML
 }
 
 type pullMergeBoxInfoItemCollection struct {
@@ -111,22 +115,29 @@ func (prInfo *pullRequestViewInfo) prepareMergeBoxInfoItems(ctx *context.Context
 		if len(detailItems) == 0 {
 			detailItems = append(detailItems, ctx.Locale.Tr("repo.pulls.files_conflicted_no_listed_files"))
 		}
-		if len(detailItems) > 10 {
-			detailItems = detailItems[:10]
+		// ConflictedFiles is stored with a cap of MaxConflictedDetectFiles.
+		// When the list is at that cap there may be additional conflicted files
+		// that were not recorded, so append "..." to signal this to the user.
+		if len(detailItems) >= gitrepo.MaxConflictedDetectFiles {
 			detailItems = append(detailItems, "...")
 		}
 		conflictInfoHTML := ctx.Locale.Tr("repo.pulls.files_conflicted")
+		var resolveActionHTML template.HTML
 		if prInfo.MergeBoxData.ConflictResolutionURL != "" {
-			conflictInfoHTML += htmlutil.HTMLFormat(
-				` <a href="%s">%s</a>`,
+			resolveActionHTML = htmlutil.HTMLFormat(
+				`<a class="ui mini compact basic button" href="%s">%s</a>`,
 				prInfo.MergeBoxData.ConflictResolutionURL,
 				ctx.Locale.Tr("repo.pulls.conflict_resolution_link"),
 			)
 		}
-		prInfo.MergeBoxData.infoCommitBlockers.AddInfoItem(
-			svg.RenderHTML("octicon-x"),
-			conflictInfoHTML,
-			detailItems,
+		prInfo.MergeBoxData.infoCommitBlockers.items = append(
+			prInfo.MergeBoxData.infoCommitBlockers.items,
+			&pullMergeBoxInfoItem{
+				SvgIconHTML: svg.RenderHTML("octicon-x"),
+				InfoHTML:    conflictInfoHTML,
+				ListItems:   detailItems,
+				ActionHTML:  resolveActionHTML,
+			},
 		)
 	}
 

@@ -1821,6 +1821,7 @@
   "repo.pulls.conflict_resolution_commit": "Commit merge",
   "repo.pulls.conflict_resolution_commit_to": "Changes will be committed to %s",
   "repo.pulls.conflict_resolution_unresolved_first": "Please resolve all conflict markers first.",
+  "repo.pulls.conflict_resolution_more_files": "There may be additional conflicting files not shown above. Resolve all files, then commit.",
   "repo.pulls.conflict_resolution_commit_failed": "Failed to commit the resolved files. Please try again.",
   "repo.pulls.conflict_resolution_hint_markers": "Still contains conflict markers — resolve them, then click “Mark as resolved”",
   "repo.pulls.conflict_resolution_hint_clean": "No conflict markers detected — click “Mark as resolved” when ready",
