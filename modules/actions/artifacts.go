@@ -4,6 +4,10 @@
 package actions
 
 import (
+	"crypto/hmac"
+	"crypto/sha256"
+	"encoding/binary"
+	"io"
 	"net/http"
 	"strings"
 
@@ -14,6 +18,22 @@ import (
 	"code.gitea.io/gitea/modules/storage"
 	"code.gitea.io/gitea/services/context"
 )
+
+type tagType string
+
+// BuildSignature builds a hmac signature for the input values.
+// "tag" is an internal pre-defined static string to distinguish the signatures for different purpose.
+func BuildSignature(tag tagType, vals ...string) []byte {
+	m := hmac.New(sha256.New, setting.GetGeneralTokenSigningSecret())
+	_, _ = io.WriteString(m, string(tag))
+	var buf8 [8]byte
+	for _, v := range vals {
+		binary.LittleEndian.PutUint64(buf8[:], uint64(len(v)))
+		_, _ = m.Write(buf8[:])
+		_, _ = io.WriteString(m, v)
+	}
+	return m.Sum(nil)
+}
 
 // IsArtifactV4 detects whether the artifact is likely from v4.
 // V4 backend stores the files as a single combined zip file per artifact, and ensures ContentEncoding contains a slash
