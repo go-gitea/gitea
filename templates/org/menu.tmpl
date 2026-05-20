@@ -12,7 +12,7 @@
 					<div class="ui small label">{{.RepoCount}}</div>
 				{{end}}
 			</a>
-			{{if .CanReadProjects}}
+			{{if and .IsProjectsEnabled .CanReadProjects}}
 			<a class="{{if .PageIsViewProjects}}active {{end}}item" href="{{$.Org.HomeLink}}/-/projects">
 				{{svg "octicon-project-symlink"}} {{ctx.Locale.Tr "user.projects"}}
 				{{if .ProjectCount}}

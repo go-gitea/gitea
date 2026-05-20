@@ -8,6 +8,9 @@ import (
 	"testing"
 
 	"code.gitea.io/gitea/models/unittest"
+	"code.gitea.io/gitea/modules/container"
+	"code.gitea.io/gitea/modules/setting"
+	test "code.gitea.io/gitea/modules/test"
 	"code.gitea.io/gitea/modules/web"
 	"code.gitea.io/gitea/routers/web/org"
 	"code.gitea.io/gitea/services/contexttest"
@@ -53,6 +56,17 @@ func TestAddColumnToProjectPostRejectsForeignProjects(t *testing.T) {
 	web.SetForm(ctx, &forms.EditProjectColumnForm{Title: "foreign"})
 
 	org.AddColumnToProjectPost(ctx)
+
+	assert.Equal(t, http.StatusNotFound, ctx.Resp.WrittenStatus())
+}
+
+func TestMustEnableProjectsDisabled(t *testing.T) {
+	unittest.PrepareTestEnv(t)
+	defer test.MockVariableValue(&setting.Admin.UserDisabledFeatures, container.SetOf(setting.UserFeatureProjects))()
+
+	ctx, _ := contexttest.MockContext(t, "user2/-/projects")
+
+	org.MustEnableProjects(ctx)
 
 	assert.Equal(t, http.StatusNotFound, ctx.Resp.WrittenStatus())
 }

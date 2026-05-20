@@ -1090,7 +1090,7 @@ func registerWebRoutes(m *web.Router, webAuth *AuthMiddleware) {
 		}
 
 		// at the moment, only editing "owner-level projects" need to "mention", maybe in the future we can relax the permission check
-		m.Get("/mentions-in-owner", reqUnitAccess(unit.TypeProjects, perm.AccessModeWrite, true), org.GetMentionsInOwner)
+		m.Get("/mentions-in-owner", org.MustEnableProjects, reqUnitAccess(unit.TypeProjects, perm.AccessModeWrite, true), org.GetMentionsInOwner)
 
 		m.Get("/repositories", org.Repositories)
 		m.Get("/heatmap", user.DashboardHeatmap)
@@ -1126,7 +1126,7 @@ func registerWebRoutes(m *web.Router, webAuth *AuthMiddleware) {
 					return
 				}
 			})
-		}, reqUnitAccess(unit.TypeProjects, perm.AccessModeRead, true), individualPermsChecker)
+		}, org.MustEnableProjects, reqUnitAccess(unit.TypeProjects, perm.AccessModeRead, true), individualPermsChecker)
 
 		m.Group("", func() {
 			m.Get("/code", user.CodeSearch)
