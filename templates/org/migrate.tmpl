@@ -1,0 +1,160 @@
+{{template "base/head" .}}
+<div role="main" aria-label="{{.Title}}" class="page-content organization new migrate">
+	<div class="ui container medium-width">
+		<h3 class="ui top attached header">
+			{{ctx.Locale.Tr "org.migrate.title"}}
+		</h3>
+		<div class="ui attached segment">
+			{{template "base/alert" .}}
+			<form class="ui form left-right-form" action="{{.Link}}" method="post">
+				{{.CsrfTokenHtml}}
+
+				<div class="inline required field {{if .Err_CloneAddr}}error{{end}}">
+					<label for="clone_addr">{{ctx.Locale.Tr "repo.migrate.clone_address"}}</label>
+					<input id="clone_addr" name="clone_addr" value="{{.clone_addr}}" autofocus required>
+					<span class="help">{{ctx.Locale.Tr "org.migrate.clone_address_desc"}}</span>
+				</div>
+
+				<div class="inline field">
+					<label for="service">{{ctx.Locale.Tr "org.migrate.service"}}</label>
+					<select id="service" name="service" class="ui selection dropdown">
+						{{range .Services}}
+							<option value="{{.}}" {{if eq $.service .}}selected{{end}}>{{.Title}}</option>
+						{{end}}
+					</select>
+				</div>
+
+				<div class="inline required field">
+					<label for="source_org_name">{{ctx.Locale.Tr "org.migrate.source_org_name"}}</label>
+					<input id="source_org_name" name="source_org_name" value="{{.source_org_name}}" required>
+					<span class="help">{{ctx.Locale.Tr "org.migrate.source_org_name_desc"}}</span>
+				</div>
+
+				<div id="auth_token_field" class="inline field {{if .Err_Auth}}error{{end}}">
+					<label for="auth_token">{{ctx.Locale.Tr "access_token"}}</label>
+					<input id="auth_token" name="auth_token" type="password" autocomplete="new-password" value="{{.auth_token}}">
+					<span class="help">{{ctx.Locale.Tr "repo.migrate.github_token_desc"}}</span>
+				</div>
+				<div id="auth_username_field" class="inline field {{if .Err_Auth}}error{{end}}">
+					<label for="auth_username">{{ctx.Locale.Tr "username"}}</label>
+					<input id="auth_username" name="auth_username" value="{{.auth_username}}">
+				</div>
+				<div id="auth_password_field" class="inline field {{if .Err_Auth}}error{{end}}">
+					<label for="auth_password">{{ctx.Locale.Tr "password"}}</label>
+					<input id="auth_password" name="auth_password" type="password" value="{{.auth_password}}">
+				</div>
+
+				{{if not .DisableNewPullMirrors}}
+				<div class="inline field">
+					<label>{{ctx.Locale.Tr "repo.migrate_options"}}</label>
+					<div class="ui checkbox">
+						<input id="mirror" name="mirror" type="checkbox" {{if .mirror}} checked{{end}}>
+						<label>{{ctx.Locale.Tr "org.migrate.mirror_helper"}}</label>
+					</div>
+				</div>
+				{{end}}
+				{{if .LFSActive}}
+				<div class="inline field">
+					<label></label>
+					<div class="ui checkbox">
+						<input id="lfs" name="lfs" type="checkbox" {{if .lfs}} checked{{end}}>
+						<label>{{ctx.Locale.Tr "repo.migrate_options_lfs"}}</label>
+					</div>
+					<span id="lfs_settings" class="tw-hidden">(<a id="lfs_settings_show" href="#">{{ctx.Locale.Tr "repo.settings.advanced_settings"}}</a>)</span>
+				</div>
+				<div id="lfs_endpoint" class="tw-hidden">
+					<span class="help">{{ctx.Locale.Tr "repo.migrate_options_lfs_endpoint.description" "https://github.com/git-lfs/git-lfs/blob/main/docs/api/server-discovery.md#server-discovery"}}{{if .ContextUser.CanImportLocal}} {{ctx.Locale.Tr "repo.migrate_options_lfs_endpoint.description.local"}}{{end}}</span>
+					<div class="inline field {{if .Err_LFSEndpoint}}error{{end}}">
+						<label>{{ctx.Locale.Tr "repo.migrate_options_lfs_endpoint.label"}}</label>
+						<input name="lfs_endpoint" value="{{.lfs_endpoint}}" placeholder="{{ctx.Locale.Tr "repo.migrate_options_lfs_endpoint.placeholder"}}">
+					</div>
+				</div>
+				{{end}}
+
+				<div class="inline field">
+					<label>{{ctx.Locale.Tr "repo.migrate_items"}}</label>
+					<div class="ui checkbox">
+						<input name="wiki" type="checkbox" {{if .wiki}}checked{{end}}>
+						<label>{{ctx.Locale.Tr "repo.migrate_items_wiki"}}</label>
+					</div>
+				</div>
+				<div id="migrate_items" class="inline field">
+					<span class="help">{{ctx.Locale.Tr "repo.migrate.migrate_items_options"}}</span>
+					<div class="inline field">
+						<label></label>
+						<div class="ui checkbox">
+							<input name="labels" type="checkbox" {{if .labels}}checked{{end}}>
+							<label>{{ctx.Locale.Tr "repo.migrate_items_labels"}}</label>
+						</div>
+						<div class="ui checkbox">
+							<input name="issues" type="checkbox" {{if .issues}}checked{{end}}>
+							<label>{{ctx.Locale.Tr "repo.migrate_items_issues"}}</label>
+						</div>
+					</div>
+					<div class="inline field">
+						<label></label>
+						<div class="ui checkbox">
+							<input name="pull_requests" type="checkbox" {{if .pull_requests}}checked{{end}}>
+							<label>{{ctx.Locale.Tr "repo.migrate_items_pullrequests"}}</label>
+						</div>
+						<div class="ui checkbox">
+							<input name="releases" type="checkbox" {{if .releases}}checked{{end}}>
+							<label>{{ctx.Locale.Tr "repo.migrate_items_releases"}}</label>
+						</div>
+						<div class="ui checkbox">
+							<input name="release_assets" type="checkbox" {{if .release_assets}}checked{{end}}>
+							<label>{{ctx.Locale.Tr "repo.migrate_items_release_assets"}}</label>
+						</div>
+					</div>
+					<div class="inline field">
+						<label></label>
+						<div class="ui checkbox">
+							<input name="milestones" type="checkbox" {{if .milestones}}checked{{end}}>
+							<label>{{ctx.Locale.Tr "repo.migrate_items_milestones"}}</label>
+						</div>
+					</div>
+				</div>
+
+				<div class="divider"></div>
+
+				<div class="inline required field {{if .Err_TargetOrgName}}error{{end}}">
+					<label>{{ctx.Locale.Tr "org.migrate.target_org_name"}}</label>
+					<div class="ui selection owner dropdown ellipsis-text-items">
+						<input type="hidden" id="target_org_name" name="target_org_name" value="{{.target_org_name}}" required>
+						<span class="text">{{ctx.Locale.Tr "org.migrate.select_target_org"}}</span>
+						{{svg "octicon-triangle-down" 14 "dropdown icon"}}
+						<div class="menu">
+							{{range .Orgs}}
+								<div class="item" data-value="{{.Name}}" title="{{.Name}}">
+									{{ctx.AvatarUtils.Avatar . 28 "mini"}}
+									{{.ShortName 40}}
+								</div>
+							{{end}}
+						</div>
+					</div>
+				</div>
+
+				<div class="inline field">
+					<label>{{ctx.Locale.Tr "repo.visibility"}}</label>
+					<div class="ui checkbox">
+						{{if .IsForcedPrivate}}
+							<input name="private" type="checkbox" checked disabled>
+							<label>{{ctx.Locale.Tr "repo.visibility_helper_forced"}}</label>
+						{{else}}
+							<input name="private" type="checkbox" {{if .private}}checked{{end}}>
+							<label>{{ctx.Locale.Tr "org.migrate.private_helper"}}</label>
+						{{end}}
+					</div>
+				</div>
+
+				<div class="inline field">
+					<label></label>
+					<button class="ui primary button">
+						{{ctx.Locale.Tr "org.migrate.submit"}}
+					</button>
+				</div>
+			</form>
+		</div>
+	</div>
+</div>
+{{template "base/footer" .}}

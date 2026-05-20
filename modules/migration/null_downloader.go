@@ -83,3 +83,8 @@ func (n NullDownloader) FormatCloneURL(opts MigrateOptions, remoteAddr string) (
 func (n NullDownloader) SupportGetRepoComments() bool {
 	return false
 }
+
+// GetOrgRepositories returns all repositories in an organization
+func (n NullDownloader) GetOrgRepositories(_ context.Context, orgName string, page, perPage int) ([]*Repository, bool, error) {
+	return nil, false, ErrNotSupported{Entity: "OrgRepositories"}
+}

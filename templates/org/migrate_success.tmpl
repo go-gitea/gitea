@@ -1,0 +1,58 @@
+{{template "base/head" .}}
+<div role="main" aria-label="{{.Title}}" class="page-content organization migrate success">
+	<div class="ui container medium-width">
+		<h3 class="ui top attached header">
+			{{ctx.Locale.Tr "org.migrate.success_title"}}
+		</h3>
+		<div class="ui attached segment">
+			<div class="ui success message">
+				<p>{{ctx.Locale.Tr "org.migrate.success" .TargetOrgName}}</p>
+			</div>
+
+			<div class="ui segment">
+				<h4>{{ctx.Locale.Tr "org.migrate.result"}}</h4>
+				<div class="ui list">
+					<div class="item">
+						<strong>{{ctx.Locale.Tr "org.migrate.total_repos"}}:</strong> {{.Result.TotalRepos}}
+					</div>
+					<div class="item">
+						<strong>{{ctx.Locale.Tr "org.migrate.migrated_repos"}}:</strong> {{len .Result.MigratedRepos}}
+					</div>
+					{{if .Result.FailedRepos}}
+					<div class="item">
+						<strong>{{ctx.Locale.Tr "org.migrate.failed_repos"}}:</strong> {{len .Result.FailedRepos}}
+						<ul class="ui list">
+							{{range .Result.FailedRepos}}
+							<li>
+								<strong>{{.RepoName}}</strong>: {{.Error}}
+							</li>
+							{{end}}
+						</ul>
+					</div>
+					{{end}}
+				</div>
+			</div>
+
+			{{if .Result.MigratedRepos}}
+			<div class="ui segment">
+				<h4>{{ctx.Locale.Tr "org.migrate.migrated_repos_list"}}</h4>
+				<ul>
+					{{range .Result.MigratedRepos}}
+					<li>{{.}}</li>
+					{{end}}
+				</ul>
+			</div>
+			{{end}}
+
+			<div class="inline field">
+				<a class="ui primary button" href="{{AppSubUrl}}/org/{{.TargetOrgName}}">
+					{{ctx.Locale.Tr "org.migrate.view_org"}}
+				</a>
+				<a class="ui button" href="{{AppSubUrl}}/org/migrate">
+					{{ctx.Locale.Tr "org.migrate.migrate_another"}}
+				</a>
+			</div>
+		</div>
+	</div>
+</div>
+{{template "base/footer" .}}

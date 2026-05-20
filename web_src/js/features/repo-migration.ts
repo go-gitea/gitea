@@ -11,7 +11,76 @@ const lfsSettings = document.querySelector<HTMLElement>('#lfs_settings')!;
 const lfsEndpoint = document.querySelector<HTMLElement>('#lfs_endpoint')!;
 const items = document.querySelectorAll<HTMLInputElement>('#migrate_items input[type=checkbox]');
 
+export function initOrgMigration() {
+  const orgService = document.querySelector<HTMLInputElement>('#service');
+  const orgToken = document.querySelector<HTMLInputElement>('#auth_token');
+  const orgUser = document.querySelector<HTMLInputElement>('#auth_username');
+  const orgPass = document.querySelector<HTMLInputElement>('#auth_password');
+  if (!orgToken || !orgService) return;
+  if (!document.querySelector('.page-content.organization.migrate')) return;
+
+  const orgTokenField = document.querySelector<HTMLElement>('#auth_token_field');
+  const orgUserField = document.querySelector<HTMLElement>('#auth_username_field');
+  const orgPassField = document.querySelector<HTMLElement>('#auth_password_field');
+  const orgItems = document.querySelectorAll<HTMLInputElement>('#migrate_items input[type=checkbox]');
+
+  // Service types that support token auth (same as TokenAuth() in structs)
+  // GithubService = 2, GiteaService = 3, GitlabService = 4
+  const tokenAuthServices = [2, 3, 4];
+
+  const checkOrgAuthFields = () => {
+    const serviceType = Number(orgService.value);
+    const useTokenAuth = tokenAuthServices.includes(serviceType);
+
+    if (orgTokenField) toggleElem(orgTokenField, useTokenAuth);
+    if (orgUserField) toggleElem(orgUserField, !useTokenAuth);
+    if (orgPassField) toggleElem(orgPassField, !useTokenAuth);
+  };
+
+  const checkOrgItems = () => {
+    const serviceType = Number(orgService.value);
+    const useTokenAuth = tokenAuthServices.includes(serviceType);
+
+    let enable: boolean;
+    if (useTokenAuth) {
+      enable = orgToken.value !== '';
+    } else {
+      enable = (orgUser?.value !== '') || (orgPass?.value !== '');
+    }
+    for (const item of orgItems) item.disabled = !enable;
+  };
+
+  checkOrgAuthFields();
+  checkOrgItems();
+
+  orgService.addEventListener('change', () => {
+    checkOrgAuthFields();
+    checkOrgItems();
+  });
+  orgToken.addEventListener('input', checkOrgItems);
+  orgUser?.addEventListener('input', checkOrgItems);
+  orgPass?.addEventListener('input', checkOrgItems);
+
+  const orgLfs = document.querySelector<HTMLInputElement>('#lfs');
+  const orgLfsSettings = document.querySelector<HTMLElement>('#lfs_settings');
+  const orgLfsEndpoint = document.querySelector<HTMLElement>('#lfs_endpoint');
+  if (orgLfs && orgLfsSettings && orgLfsEndpoint) {
+    const setOrgLFSVisibility = () => {
+      toggleElem(orgLfsSettings, orgLfs.checked);
+      hideElem(orgLfsEndpoint);
+    };
+    setOrgLFSVisibility();
+    orgLfs.addEventListener('change', setOrgLFSVisibility);
+    document.querySelector('#lfs_settings_show')?.addEventListener('click', (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      showElem(orgLfsEndpoint);
+    });
+  }
+}
+
 export function initRepoMigration() {
+  if (!document.querySelector('.page-content.repository.migrate')) return;
   checkAuth();
   setLFSSettingsVisibility();
 

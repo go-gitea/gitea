@@ -41,3 +41,10 @@ type swaggerResponseOrganizationPermissions struct {
 	// in:body
 	Body api.OrganizationPermissions `json:"body"`
 }
+
+// OrgMigrationResult
+// swagger:response OrgMigrationResult
+type swaggerResponseOrgMigrationResult struct {
+	// in:body
+	Body api.OrgMigrationResult `json:"body"`
+}

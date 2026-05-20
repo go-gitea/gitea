@@ -687,3 +687,45 @@ func (d *OneDevDownloader) tryGetUser(ctx context.Context, userID int64) *onedev
 
 	return user
 }
+
+// GetOrgRepositories returns all repositories in an organization
+func (d *OneDevDownloader) GetOrgRepositories(ctx context.Context, orgName string, page, perPage int) ([]*base.Repository, bool, error) {
+	rawProjects := make([]struct {
+		ID          int64  `json:"id"`
+		Name        string `json:"name"`
+		Path        string `json:"path"`
+		Description string `json:"description"`
+	}, 0, perPage)
+
+	err := d.callAPI(
+		ctx,
+		"/~api/projects",
+		map[string]string{
+			"query":  `"Path" starts with "` + orgName + `/"`,
+			"offset": strconv.Itoa((page - 1) * perPage),
+			"count":  strconv.Itoa(perPage),
+		},
+		&rawProjects,
+	)
+	if err != nil {
+		return nil, false, err
+	}
+
+	result := make([]*base.Repository, 0, len(rawProjects))
+	for _, project := range rawProjects {
+		cloneURL, err := d.baseURL.Parse(project.Path)
+		if err != nil {
+			return nil, false, err
+		}
+
+		result = append(result, &base.Repository{
+			Name:        project.Name,
+			Owner:       orgName,
+			Description: project.Description,
+			CloneURL:    cloneURL.String(),
+			OriginalURL: cloneURL.String(),
+		})
+	}
+
+	return result, len(result) < perPage, nil
+}

@@ -24,6 +24,9 @@ type Downloader interface {
 	GetPullRequests(ctx context.Context, page, perPage int) ([]*PullRequest, bool, error)
 	GetReviews(ctx context.Context, reviewable Reviewable) ([]*Review, error)
 	FormatCloneURL(opts MigrateOptions, remoteAddr string) (string, error)
+	// GetOrgRepositories returns all repositories in an organization with pagination
+	// The bool return indicates if there are more results
+	GetOrgRepositories(ctx context.Context, orgName string, page, perPage int) ([]*Repository, bool, error)
 }
 
 // DownloaderFactory defines an interface to match a downloader implementation and create a downloader
