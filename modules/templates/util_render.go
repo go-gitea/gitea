@@ -422,7 +422,11 @@ func (ut *RenderUtils) appendAvatarStackChild(b *htmlutil.HTMLBuilder, u *user_m
 }
 
 // CoAuthorAvatars renders the avatar stack plus a label: `name` / `a and b` / `N people` (opens popup).
-func (ut *RenderUtils) CoAuthorAvatars(authorUser *user_model.User, authorSig *git.Signature, coAuthors []*user_model.CoAuthorUser) template.HTML {
+func (ut *RenderUtils) CoAuthorAvatars(data *user_model.CoAuthorAvatarData) template.HTML {
+	if data == nil {
+		return ""
+	}
+	authorUser, authorSig, coAuthors := data.AuthorUser, data.AuthorSig, data.CoAuthors
 	locale := ut.ctx.Value(translation.ContextKey).(translation.Locale)
 
 	var b htmlutil.HTMLBuilder

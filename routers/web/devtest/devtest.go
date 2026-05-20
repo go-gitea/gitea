@@ -191,22 +191,24 @@ func prepareMockDataCoAuthorAvatars(ctx *context.Context) {
 	}
 
 	type scenario struct {
-		Label      string
-		AuthorUser *user_model.User
-		AuthorSig  *git.Signature
-		CoAuthors  []*user_model.CoAuthorUser
+		Label string
+		Data  *user_model.CoAuthorAvatarData
 	}
+	mk := func(author *user_model.User, sig *git.Signature, co []*user_model.CoAuthorUser) *user_model.CoAuthorAvatarData {
+		return &user_model.CoAuthorAvatarData{AuthorUser: author, AuthorSig: sig, CoAuthors: co}
+	}
+	extSig := &git.Signature{Name: "External Contributor", Email: "external@example.com"}
 	ctx.Data["CoAuthorScenarios"] = []scenario{
-		{Label: "linked author, no co-authors", AuthorUser: u0, AuthorSig: authorSig(u0)},
-		{Label: "unlinked author, no co-authors", AuthorSig: &git.Signature{Name: "External Contributor", Email: "external@example.com"}},
-		{Label: "1 linked co-author", AuthorUser: u0, AuthorSig: authorSig(u0), CoAuthors: []*user_model.CoAuthorUser{coLinked(u1)}},
-		{Label: "1 unlinked co-author", AuthorUser: u0, AuthorSig: authorSig(u0), CoAuthors: []*user_model.CoAuthorUser{coUnlinked("Bob Smith", "bob@example.com")}},
-		{Label: "2 co-authors (3 people), u1 author", AuthorUser: u1, AuthorSig: authorSig(u1), CoAuthors: []*user_model.CoAuthorUser{coLinked(u0), coUnlinked("Bob Smith", "bob@example.com")}},
-		{Label: "3 co-authors mixed (4 people)", AuthorUser: u0, AuthorSig: authorSig(u0), CoAuthors: []*user_model.CoAuthorUser{coLinked(u1), coLinked(u2), coUnlinked("Bob Smith", "bob@example.com")}},
-		{Label: "9 co-authors (max visible, no overflow), u2 author", AuthorUser: u2, AuthorSig: authorSig(u2), CoAuthors: nUnlinked(9)},
-		{Label: "10 co-authors (overflow +1)", AuthorUser: u0, AuthorSig: authorSig(u0), CoAuthors: nUnlinked(10)},
-		{Label: "15 co-authors (overflow +6), unlinked author", AuthorSig: &git.Signature{Name: "External Contributor", Email: "external@example.com"}, CoAuthors: nUnlinked(15)},
-		{Label: "30 co-authors (overflow +21)", AuthorUser: u0, AuthorSig: authorSig(u0), CoAuthors: nUnlinked(30)},
+		{Label: "linked author, no co-authors", Data: mk(u0, authorSig(u0), nil)},
+		{Label: "unlinked author, no co-authors", Data: mk(nil, extSig, nil)},
+		{Label: "1 linked co-author", Data: mk(u0, authorSig(u0), []*user_model.CoAuthorUser{coLinked(u1)})},
+		{Label: "1 unlinked co-author", Data: mk(u0, authorSig(u0), []*user_model.CoAuthorUser{coUnlinked("Bob Smith", "bob@example.com")})},
+		{Label: "2 co-authors (3 people), u1 author", Data: mk(u1, authorSig(u1), []*user_model.CoAuthorUser{coLinked(u0), coUnlinked("Bob Smith", "bob@example.com")})},
+		{Label: "3 co-authors mixed (4 people)", Data: mk(u0, authorSig(u0), []*user_model.CoAuthorUser{coLinked(u1), coLinked(u2), coUnlinked("Bob Smith", "bob@example.com")})},
+		{Label: "9 co-authors (max visible, no overflow), u2 author", Data: mk(u2, authorSig(u2), nUnlinked(9))},
+		{Label: "10 co-authors (overflow +1)", Data: mk(u0, authorSig(u0), nUnlinked(10))},
+		{Label: "15 co-authors (overflow +6), unlinked author", Data: mk(nil, extSig, nUnlinked(15))},
+		{Label: "30 co-authors (overflow +21)", Data: mk(u0, authorSig(u0), nUnlinked(30))},
 	}
 }
 

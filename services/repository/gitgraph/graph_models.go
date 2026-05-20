@@ -280,3 +280,15 @@ type Commit struct {
 func (c *Commit) OnlyRelation() bool {
 	return c.Row == -1
 }
+
+// CoAuthorAvatarData returns the view-model for rendering this commit's author + co-authors.
+func (c *Commit) CoAuthorAvatarData() *user_model.CoAuthorAvatarData {
+	if c == nil {
+		return nil
+	}
+	var sig *git.Signature
+	if c.Commit != nil {
+		sig = c.Commit.Author
+	}
+	return &user_model.CoAuthorAvatarData{AuthorUser: c.User, AuthorSig: sig, CoAuthors: c.CoAuthors}
+}

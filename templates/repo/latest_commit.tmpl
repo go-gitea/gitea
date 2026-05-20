@@ -2,7 +2,7 @@
 {{if not .LatestCommit}}
 	…
 {{else}}
-	{{ctx.RenderUtils.CoAuthorAvatars .LatestCommitUser .LatestCommit.Author .LatestCommitCoAuthors}}
+	{{ctx.RenderUtils.CoAuthorAvatars .LatestCommitCoAuthorData}}
 
 	{{template "repo/commit_sign_badge" dict "Commit" .LatestCommit "CommitBaseLink" (print .RepoLink "/commit") "CommitSignVerification" .LatestCommitVerification}}
 

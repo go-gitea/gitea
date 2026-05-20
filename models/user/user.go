@@ -1160,6 +1160,25 @@ type UserCommit struct { //revive:disable-line:exported
 	*git.Commit
 }
 
+// CoAuthorAvatarData is the view-model for the CoAuthorAvatars template helper.
+type CoAuthorAvatarData struct {
+	AuthorUser *User
+	AuthorSig  *git.Signature
+	CoAuthors  []*CoAuthorUser
+}
+
+// CoAuthorAvatarData returns the view-model for rendering this commit's author + co-authors.
+func (uc *UserCommit) CoAuthorAvatarData() *CoAuthorAvatarData {
+	if uc == nil {
+		return nil
+	}
+	var sig *git.Signature
+	if uc.Commit != nil {
+		sig = uc.Commit.Author
+	}
+	return &CoAuthorAvatarData{AuthorUser: uc.User, AuthorSig: sig, CoAuthors: uc.CoAuthors}
+}
+
 // ValidateCommitWithEmail check if author's e-mail of commit is corresponding to a user.
 func ValidateCommitWithEmail(ctx context.Context, c *git.Commit) *User {
 	if c.Author == nil {

@@ -8,7 +8,7 @@
 			{{range $s := .CoAuthorScenarios}}
 				<tr>
 					<td>{{$s.Label}}</td>
-					<td>{{ctx.RenderUtils.CoAuthorAvatars $s.AuthorUser $s.AuthorSig $s.CoAuthors}}</td>
+					<td>{{ctx.RenderUtils.CoAuthorAvatars $s.Data}}</td>
 				</tr>
 			{{end}}
 			</tbody>

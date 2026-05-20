@@ -244,8 +244,12 @@ func TestCoAuthorAvatars(t *testing.T) {
 		return &user_model.CoAuthorUser{TrailerSignature: &git.Signature{Name: name, Email: email}}
 	}
 
+	mkData := func(co []*user_model.CoAuthorUser) *user_model.CoAuthorAvatarData {
+		return &user_model.CoAuthorAvatarData{AuthorSig: authorSig, CoAuthors: co}
+	}
+
 	t.Run("zero co-authors renders bare author, no label", func(t *testing.T) {
-		got := string(ut.CoAuthorAvatars(nil, authorSig, nil))
+		got := string(ut.CoAuthorAvatars(mkData(nil)))
 		assert.Contains(t, got, `<span class="author-wrapper">`)
 		assert.Contains(t, got, "Alice")
 		assert.NotContains(t, got, "coauthor_and")
@@ -253,7 +257,7 @@ func TestCoAuthorAvatars(t *testing.T) {
 	})
 
 	t.Run("single co-author uses and label", func(t *testing.T) {
-		got := string(ut.CoAuthorAvatars(nil, authorSig, []*user_model.CoAuthorUser{mkCo("Bob", "bob@example.com")}))
+		got := string(ut.CoAuthorAvatars(mkData([]*user_model.CoAuthorUser{mkCo("Bob", "bob@example.com")})))
 		assert.Contains(t, got, "repo.commits.coauthor_and")
 		assert.Contains(t, got, "Bob")
 		assert.NotContains(t, got, "coauthor_people")
@@ -261,8 +265,8 @@ func TestCoAuthorAvatars(t *testing.T) {
 	})
 
 	t.Run("two co-authors switches to N people label with tippy popup", func(t *testing.T) {
-		got := string(ut.CoAuthorAvatars(nil, authorSig,
-			[]*user_model.CoAuthorUser{mkCo("Bob", "bob@example.com"), mkCo("Carol", "carol@example.com")}))
+		got := string(ut.CoAuthorAvatars(mkData(
+			[]*user_model.CoAuthorUser{mkCo("Bob", "bob@example.com"), mkCo("Carol", "carol@example.com")})))
 		assert.Contains(t, got, "repo.commits.coauthor_people:3")
 		assert.NotContains(t, got, "repo.commits.coauthor_and")
 		assert.Contains(t, got, `data-global-init="initAuthorsPopup"`)
@@ -275,7 +279,7 @@ func TestCoAuthorAvatars(t *testing.T) {
 		for i := range cos {
 			cos[i] = mkCo("X", "x@example.com")
 		}
-		got := string(ut.CoAuthorAvatars(nil, authorSig, cos))
+		got := string(ut.CoAuthorAvatars(mkData(cos)))
 		assert.Contains(t, got, `class="avatar-stack-overflow-chip`)
 		assert.Contains(t, got, "+2")
 		assert.Contains(t, got, "repo.commits.coauthor_people:12")

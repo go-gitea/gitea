@@ -29,7 +29,7 @@ type PushCommit struct {
 	AuthorName     string
 	CommitterEmail string
 	CommitterName  string
-	CoAuthors      []*git.Signature `json:",omitempty"`
+	CoAuthors      []*git.Signature
 	Timestamp      time.Time
 }
 
