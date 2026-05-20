@@ -32,8 +32,8 @@
 					{{range .PullRequest.ConflictedFiles}}
 					<div class="conflict-file-item tw-flex tw-items-center tw-gap-2 tw-px-3 tw-py-2 tw-cursor-pointer tw-text-sm"
 						data-path="{{.}}" title="{{.}}">
-						<span class="conflict-file-status-icon tw-font-mono tw-w-4 tw-text-center tw-flex-shrink-0"
-							title="Unresolved">&#9675;</span>
+					<span class="conflict-file-status-icon tw-font-mono tw-w-4 tw-text-center tw-flex-shrink-0"
+							title="Unresolved">○</span>
 						<span class="tw-truncate">{{.}}</span>
 					</div>
 					{{end}}

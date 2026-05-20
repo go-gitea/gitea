@@ -76,10 +76,10 @@ registerGlobalInitFunc('initRepoConflictEditor', async (elRoot: HTMLElement) => 
       item.classList.toggle('unresolved', state.status === 'unresolved');
       const icon = item.querySelector<HTMLElement>('.conflict-file-status-icon')!;
       if (state.status === 'resolved') {
-        icon.innerHTML = '&#10003;'; // checkmark
+        icon.textContent = '✓'; // checkmark (U+2713)
         icon.title = 'Resolved';
       } else {
-        icon.innerHTML = '&#9675;'; // hollow circle
+        icon.textContent = '○'; // hollow circle (U+25CB)
         icon.title = 'Unresolved';
       }
     }
