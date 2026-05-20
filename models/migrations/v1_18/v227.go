@@ -4,9 +4,8 @@
 package v1_18
 
 import (
+	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/modules/timeutil"
-
-	"xorm.io/xorm"
 )
 
 type SystemSetting struct {
@@ -18,6 +17,6 @@ type SystemSetting struct {
 	Updated      timeutil.TimeStamp `xorm:"updated"`
 }
 
-func CreateSystemSettingsTable(x *xorm.Engine) error {
+func CreateSystemSettingsTable(x db.EngineMigration) error {
 	return x.Sync(new(SystemSetting))
 }

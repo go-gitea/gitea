@@ -3,25 +3,22 @@
 
 package v1_27
 
-import "xorm.io/xorm"
+import (
+	"code.gitea.io/gitea/models/db"
 
-type teamWithPrivacy struct {
-	TeamPrivacy string `xorm:"VARCHAR(16) NOT NULL DEFAULT 'secret'"`
-}
+	"xorm.io/xorm"
+)
 
-func (teamWithPrivacy) TableName() string {
-	return "team"
-}
-
-func AddPrivacyToTeam(x *xorm.Engine) error {
-	if _, err := x.SyncWithOptions(xorm.SyncOptions{
-		IgnoreDropIndices: true,
-	}, new(teamWithPrivacy)); err != nil {
-		return err
+func AddBranchProtectionBypassAllowlist(x db.EngineMigration) error {
+	type ProtectedBranch struct {
+		EnableBypassAllowlist  bool    `xorm:"NOT NULL DEFAULT false"`
+		BypassAllowlistUserIDs []int64 `xorm:"JSON TEXT"`
+		BypassAllowlistTeamIDs []int64 `xorm:"JSON TEXT"`
 	}
 
-	// Owner teams must remain listable to all org members; new orgs create
-	// them as "closed", so make existing owner teams closed too.
-	_, err := x.Exec("UPDATE `team` SET team_privacy = ? WHERE lower_name = ?", "closed", "owners")
+	_, err := x.SyncWithOptions(xorm.SyncOptions{
+		IgnoreConstrains: true,
+		IgnoreIndices:    true,
+	}, new(ProtectedBranch))
 	return err
 }

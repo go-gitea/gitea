@@ -601,7 +601,7 @@ func TestMarkdownUlDir(t *testing.T) {
 `, string(result))
 }
 
-func TestMarkdownFencedCodeBlock(t *testing.T) {
+func TestMarkdownCodeBlock(t *testing.T) {
 	testRender := func(input, expected string) {
 		buffer, err := markdown.RenderString(markup.NewTestRenderContext(), input)
 		assert.NoError(t, err)
@@ -618,4 +618,6 @@ func TestMarkdownFencedCodeBlock(t *testing.T) {
 	testRender("```js:app.ts\ncode\n```", jsCommon)
 	testRender("```js,ignore\ncode\n```", jsCommon)
 	testRender("```js ignore\ncode\n```", jsCommon)
+	testRender("    code\n", prefix+`<code>code`+nl+`</code>`+suffix)
+	testRender("    <script>alert(1)</script>\n", prefix+`<code>&lt;script&gt;alert(1)&lt;/script&gt;`+nl+`</code>`+suffix)
 }
