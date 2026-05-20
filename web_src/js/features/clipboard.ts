@@ -1,34 +1,34 @@
 import {toAbsoluteUrl} from '../utils.ts';
-import {clippie} from 'clippie';
+import {clippie, type ClippieCopyable} from 'clippie';
 import {svg} from '../svg.ts';
 import {createElementFromHTML} from '../utils/dom.ts';
 
 const pendingFeedback = new WeakSet<Element>();
 
-type CopyContent = string | Blob;
-
-export async function copyToClipboard(target: Element, content: CopyContent | (() => Promise<CopyContent>)): Promise<boolean> {
+export async function copyToClipboard(target: Element, source: ClippieCopyable | (() => Promise<ClippieCopyable>)): Promise<boolean> {
   if (pendingFeedback.has(target)) return false;
   pendingFeedback.add(target);
-  let resolved: CopyContent = '';
+  const el = target as HTMLElement;
+  let success = false;
   try {
-    if (typeof content === 'function') {
+    let content: ClippieCopyable;
+    if (typeof source === 'function') {
       const width = target.querySelector('svg')?.getAttribute('width') ?? '16';
-      (target as HTMLElement).style.setProperty('--loading-size', `${width}px`);
-      target.classList.add('is-loading', 'loading-icon-2px');
+      el.style.setProperty('--loading-size', `${width}px`);
+      el.classList.add('is-loading', 'loading-icon-2px');
       try {
-        resolved = await content();
+        content = await source();
       } finally {
-        target.classList.remove('is-loading', 'loading-icon-2px');
-        (target as HTMLElement).style.removeProperty('--loading-size');
+        el.classList.remove('is-loading', 'loading-icon-2px');
+        el.style.removeProperty('--loading-size');
       }
     } else {
-      resolved = content;
+      content = source;
     }
+    success = Boolean(content) && await clippie(content);
   } catch (err) {
     console.error(err);
   }
-  const success = Boolean(resolved) && await clippie(resolved);
   showCopyFeedback(target, success);
   return success;
 }
@@ -39,21 +39,21 @@ function showCopyFeedback(target: Element, success: boolean) {
     pendingFeedback.delete(target);
     return;
   }
-  const newSvg = replaceWithFeedbackSvg(origSvg, success);
+  const restore = replaceWithFeedbackSvg(origSvg, success);
   setTimeout(() => {
-    newSvg.replaceWith(origSvg);
+    restore();
     pendingFeedback.delete(target);
   }, 1000);
 }
 
-function replaceWithFeedbackSvg(origSvg: SVGElement, success: boolean): SVGElement {
+function replaceWithFeedbackSvg(origSvg: SVGElement, success: boolean): () => void {
   const size = Number(origSvg.getAttribute('width')!);
   const {icon, color} = success ?
     {icon: 'octicon-check', color: 'tw-text-green'} as const :
     {icon: 'octicon-x', color: 'tw-text-red'} as const;
   const newSvg = createElementFromHTML<SVGElement>(svg(icon, size, color));
   origSvg.replaceWith(newSvg);
-  return newSvg;
+  return () => newSvg.replaceWith(origSvg);
 }
 
 // Enable clipboard copy from HTML attributes. These properties are supported:

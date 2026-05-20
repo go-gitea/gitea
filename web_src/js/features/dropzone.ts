@@ -50,9 +50,8 @@ function addCopyLink(file: Partial<CustomDropzoneFile>) {
   <a href="#" class="tw-cursor-pointer">${svg('octicon-copy', 14)} Copy link</a>
 </div>`);
   copyLinkEl.addEventListener('click', async (e) => {
-    const target = e.currentTarget as Element;
     e.preventDefault();
-    await copyToClipboard(target, generateMarkdownLinkForAttachment(file));
+    await copyToClipboard(copyLinkEl, generateMarkdownLinkForAttachment(file));
   });
   file.previewTemplate!.append(copyLinkEl);
 }

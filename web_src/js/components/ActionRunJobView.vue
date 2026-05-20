@@ -3,7 +3,7 @@ import {nextTick, onBeforeUnmount, onMounted, ref, toRefs, watch} from 'vue';
 import {SvgIcon} from '../svg.ts';
 import ActionStatusIcon from './ActionStatusIcon.vue';
 import {addDelegatedEventListener, createElementFromAttrs, toggleElem} from '../utils/dom.ts';
-import {formatDatetime} from '../utils/time.ts';
+import {formatDatetime, formatDatetimeISO} from '../utils/time.ts';
 import {POST} from '../modules/fetch.ts';
 import {copyToClipboard} from '../features/clipboard.ts';
 import type {IntervalId} from '../types.ts';
@@ -202,21 +202,18 @@ function endLogGroup(stepIndex: number) {
   el._stepLogsActiveContainer = undefined;
 }
 
-// fetches logs on demand when the step is collapsed; otherwise reads the rendered DOM
+// always fetches: the DOM can be stale if the step was collapsed while still streaming
 async function copyStepOutput(event: MouseEvent, stepIndex: number) {
   await copyToClipboard(event.currentTarget as HTMLElement, async () => {
-    const el = getJobStepLogsContainer(stepIndex);
-    const loaded = el.querySelectorAll('.log-msg');
-    if (loaded.length) {
-      return Array.from(loaded).map((n) => n.textContent ?? '').join('\n');
-    }
     const data = await fetchJobData([{step: stepIndex, cursor: null, expanded: true}]);
     const stepLog = data.logs.stepsLog?.find((s) => s.step === stepIndex);
     const lines: string[] = [];
     for (const line of stepLog?.lines ?? []) {
       const cmd = parseLogLineCommand(line);
       if (cmd?.name === 'hidden' || cmd?.name === 'endgroup') continue;
-      lines.push(createLogLineMessage(line, cmd).textContent ?? '');
+      const ts = formatDatetimeISO(line.timestamp);
+      const msg = createLogLineMessage(line, cmd).textContent ?? '';
+      lines.push(`${ts} ${msg}`);
     }
     return lines.join('\n');
   });
@@ -237,7 +234,7 @@ function createLogLine(stepIndex: number, startTime: number, line: LogLine, cmd:
     String(line.index),
   );
   const logTimeStamp = createElementFromAttrs('span', {class: 'log-time-stamp'},
-    formatDatetime(new Date(line.timestamp * 1000)), // for "Show timestamps"
+    formatDatetime(line.timestamp * 1000),
   );
   const logMsg = createLogLineMessage(line, cmd);
   const seconds = Math.floor(line.timestamp - startTime);
@@ -486,8 +483,9 @@ async function hashChangeListener() {
         <span class="step-summary-msg gt-ellipsis">{{ jobStep.summary }}</span>
         <button
           v-if="isExpandable(jobStep.status)"
-          class="btn interact-fg"
-          :data-tooltip-content="locale.copyStepOutput"
+          class="btn interact-fg step-copy-btn"
+          :aria-label="locale.copyOutput"
+          :data-tooltip-content="locale.copyOutput"
           @click.stop="copyStepOutput($event, stepIdx)"
         >
           <SvgIcon name="octicon-copy" :size="14"/>
@@ -591,6 +589,22 @@ async function hashChangeListener() {
 
 .job-step-container .job-step-summary .step-summary-msg {
   flex: 1;
+}
+
+.job-step-container .job-step-summary .step-copy-btn {
+  visibility: hidden;
+  margin: 0 4px;
+}
+
+.job-step-container .job-step-summary:hover .step-copy-btn,
+.job-step-container .job-step-summary.selected .step-copy-btn {
+  visibility: visible;
+}
+
+@media (hover: none) {
+  .job-step-container .job-step-summary:focus-within .step-copy-btn {
+    visibility: visible;
+  }
 }
 
 .job-step-container .job-step-summary.selected {
