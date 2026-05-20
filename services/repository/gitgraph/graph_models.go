@@ -15,6 +15,7 @@ import (
 	git_model "code.gitea.io/gitea/models/git"
 	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
+	"code.gitea.io/gitea/modules/container"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
 	asymkey_service "code.gitea.io/gitea/services/asymkey"
@@ -93,9 +94,7 @@ func (graph *Graph) AddCommit(row, column int, flowID int64, data []byte) error 
 // before finally retrieving the latest status
 func (graph *Graph) LoadAndProcessCommits(ctx context.Context, repository *repo_model.Repository, gitRepo *git.Repository) error {
 	var err error
-	var ok bool
-
-	emails := map[string]*user_model.User{}
+	emailSet := make(container.Set[string])
 	keyMap := map[string]bool{}
 
 	for _, c := range graph.Commits {
@@ -106,14 +105,30 @@ func (graph *Graph) LoadAndProcessCommits(ctx context.Context, repository *repo_
 		if err != nil {
 			return fmt.Errorf("GetCommit: %s Error: %w", c.Rev, err)
 		}
-
 		if c.Commit.Author != nil {
-			email := c.Commit.Author.Email
-			if c.User, ok = emails[email]; !ok {
-				c.User, _ = user_model.GetUserByEmail(ctx, email)
-				emails[email] = c.User
-			}
+			emailSet.Add(c.Commit.Author.Email)
 		}
+		for _, sig := range c.Commit.CoAuthorSignatures() {
+			emailSet.Add(sig.Email)
+		}
+	}
+
+	var emailUserMap *user_model.EmailUserMap
+	if len(emailSet) > 0 {
+		emailUserMap, err = user_model.GetUsersByEmails(ctx, emailSet.Values())
+		if err != nil {
+			log.Error("GetUsersByEmails: %v", err)
+		}
+	}
+
+	for _, c := range graph.Commits {
+		if c.Commit == nil {
+			continue
+		}
+		if c.Commit.Author != nil && emailUserMap != nil {
+			c.User = emailUserMap.GetByEmail(c.Commit.Author.Email)
+		}
+		c.CoAuthors = user_model.CoAuthorUsersFromSigs(c.Commit.CoAuthorSignatures(), emailUserMap)
 
 		c.Verification = asymkey_service.ParseCommitWithSignature(ctx, c.Commit)
 
@@ -248,6 +263,7 @@ func newRefsFromRefNames(refNames []byte) []git.Reference {
 type Commit struct {
 	Commit       *git.Commit
 	User         *user_model.User
+	CoAuthors    []*user_model.CoAuthorUser
 	Verification *asymkey_model.CommitVerification
 	Status       *git_model.CommitStatus
 	Flow         int64
@@ -263,4 +279,16 @@ type Commit struct {
 // OnlyRelation returns whether this a relation only commit
 func (c *Commit) OnlyRelation() bool {
 	return c.Row == -1
+}
+
+// CoAuthorAvatarData returns the view-model for rendering this commit's author + co-authors.
+func (c *Commit) CoAuthorAvatarData() *user_model.CoAuthorAvatarData {
+	if c == nil {
+		return nil
+	}
+	var sig *git.Signature
+	if c.Commit != nil {
+		sig = c.Commit.Author
+	}
+	return &user_model.CoAuthorAvatarData{AuthorUser: c.User, AuthorSig: sig, CoAuthors: c.CoAuthors}
 }

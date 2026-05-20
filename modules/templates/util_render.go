@@ -10,14 +10,17 @@ import (
 	"math"
 	"net/url"
 	"regexp"
+	"slices"
 	"strings"
 	"unicode"
 
 	issues_model "code.gitea.io/gitea/models/issues"
 	"code.gitea.io/gitea/models/renderhelper"
 	"code.gitea.io/gitea/models/repo"
+	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/charset"
 	"code.gitea.io/gitea/modules/emoji"
+	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/htmlutil"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/markup"
@@ -323,4 +326,157 @@ func (ut *RenderUtils) RenderUnicodeEscapeToggleTd(combined, escapeStatus *chars
 		return ""
 	}
 	return `<td class="lines-escape">` + ut.RenderUnicodeEscapeToggleButton(escapeStatus) + `</td>`
+}
+
+// commitAuthorSearchURL rejects whitespace because the search parser splits on it.
+func (ut *RenderUtils) commitAuthorSearchURL(value string) template.URL {
+	if value == "" || strings.ContainsAny(value, " \t\r\n") {
+		return ""
+	}
+	data := ut.ctx.GetData()
+	repoLink, _ := data["RepoLink"].(string)
+	refSubURL, _ := data["RefTypeNameSubURL"].(string)
+	if repoLink == "" || refSubURL == "" {
+		return ""
+	}
+	return template.URL(repoLink + "/commits/" + refSubURL + "/search?q=" + url.QueryEscape("author:"+value))
+}
+
+func authorSearchEmail(u *user_model.User, sig *git.Signature) string {
+	if sig != nil && sig.Email != "" {
+		return sig.Email
+	}
+	if u != nil {
+		return u.Email
+	}
+	return ""
+}
+
+func (ut *RenderUtils) authorHref(u *user_model.User, sig *git.Signature) template.URL {
+	var fallback string
+	switch {
+	case u != nil:
+		fallback = u.HomeLink()
+	case sig != nil && sig.Email != "":
+		fallback = "mailto:" + sig.Email
+	default:
+		return ""
+	}
+	if href := ut.commitAuthorSearchURL(authorSearchEmail(u, sig)); href != "" {
+		return href
+	}
+	return template.URL(fallback)
+}
+
+func (ut *RenderUtils) authorAvatar(u *user_model.User, sig *git.Signature) template.HTML {
+	au := NewAvatarUtils(ut.ctx)
+	if u != nil {
+		return au.Avatar(u, 20)
+	}
+	return au.AvatarByEmail(sig.Email, sig.Name, 20)
+}
+
+func authorDisplayName(u *user_model.User, sig *git.Signature) string {
+	if u != nil {
+		return u.GetDisplayName()
+	}
+	return sig.Name
+}
+
+// AvatarStack emits children in reverse paint order so CSS `flex-direction: row-reverse` places the author leftmost and last-painted (on top).
+func (ut *RenderUtils) AvatarStack(authorUser *user_model.User, authorSig *git.Signature, coAuthors []*user_model.CoAuthorUser) template.HTML {
+	if authorUser == nil && authorSig == nil {
+		return ""
+	}
+
+	const maxCo = 9
+	visibleCo := coAuthors
+	overflow := 0
+	if len(coAuthors) > maxCo {
+		visibleCo = coAuthors[:maxCo]
+		overflow = len(coAuthors) - maxCo
+	}
+
+	var b htmlutil.HTMLBuilder
+	b.WriteHTML(`<span class="avatar-stack">`)
+
+	if overflow > 0 {
+		b.WriteFormat(`<span class="avatar-stack-overflow-chip tw-text-xs" aria-label="+%d more">+%d</span>`, overflow, overflow)
+	}
+	for _, co := range slices.Backward(visibleCo) {
+		ut.appendAvatarStackChild(&b, co.GiteaUser, co.TrailerSignature)
+	}
+	ut.appendAvatarStackChild(&b, authorUser, authorSig)
+
+	b.WriteHTML(`</span>`)
+	return b.HTMLString()
+}
+
+func (ut *RenderUtils) appendAvatarStackChild(b *htmlutil.HTMLBuilder, u *user_model.User, sig *git.Signature) {
+	avatar := ut.authorAvatar(u, sig)
+	if href := ut.authorHref(u, sig); href != "" {
+		b.WriteFormat(`<a href="%s">%s</a>`, href, avatar)
+	} else {
+		b.WriteFormat(`<span>%s</span>`, avatar)
+	}
+}
+
+// CoAuthorAvatars renders the avatar stack plus a label: `name` / `a and b` / `N people` (opens popup).
+func (ut *RenderUtils) CoAuthorAvatars(data *user_model.CoAuthorAvatarData) template.HTML {
+	if data == nil {
+		return ""
+	}
+	authorUser, authorSig, coAuthors := data.AuthorUser, data.AuthorSig, data.CoAuthors
+	locale := ut.ctx.Value(translation.ContextKey).(translation.Locale)
+
+	var b htmlutil.HTMLBuilder
+	b.WriteHTML(`<span class="author-wrapper">`)
+	b.WriteHTML(ut.AvatarStack(authorUser, authorSig, coAuthors))
+
+	switch len(coAuthors) {
+	case 0:
+		b.WriteHTML(ut.authorNameLinkHTML(authorUser, authorSig))
+	case 1:
+		b.WriteHTML(ut.authorNameLinkHTML(authorUser, authorSig))
+		b.WriteFormat(`<span>%s</span>`, locale.Tr("repo.commits.coauthor_and"))
+		b.WriteHTML(ut.authorNameLinkHTML(coAuthors[0].GiteaUser, coAuthors[0].TrailerSignature))
+	default:
+		b.WriteFormat(`<button type="button" class="authors-popup-trigger" data-global-init="initAuthorsPopup">%s</button>`,
+			locale.Tr("repo.commits.coauthor_people", len(coAuthors)+1))
+		b.WriteHTML(`<div class="tippy-target"><div class="authors-popup">`)
+		b.WriteHTML(ut.participantRowHTML(authorUser, authorSig))
+		for _, co := range coAuthors {
+			b.WriteHTML(ut.participantRowHTML(co.GiteaUser, co.TrailerSignature))
+		}
+		b.WriteHTML(`</div></div>`)
+	}
+
+	b.WriteHTML(`</span>`)
+	return b.HTMLString()
+}
+
+// authorNameLinkHTML prefers (in order): commits-by-author search, `GetShortDisplayNameLinkHTML` (keeps alt-name tooltip), `mailto:`, bare name.
+func (ut *RenderUtils) authorNameLinkHTML(u *user_model.User, sig *git.Signature) template.HTML {
+	if href := ut.commitAuthorSearchURL(authorSearchEmail(u, sig)); href != "" {
+		return htmlutil.HTMLFormat(`<a class="muted" href="%s">%s</a>`, href, authorDisplayName(u, sig))
+	}
+	if u != nil {
+		return u.GetShortDisplayNameLinkHTML()
+	}
+	if sig == nil {
+		return ""
+	}
+	if sig.Email != "" {
+		return htmlutil.HTMLFormat(`<a class="muted" href="mailto:%s">%s</a>`, sig.Email, sig.Name)
+	}
+	return template.HTML(template.HTMLEscapeString(sig.Name))
+}
+
+func (ut *RenderUtils) participantRowHTML(u *user_model.User, sig *git.Signature) template.HTML {
+	avatar := ut.authorAvatar(u, sig)
+	name := authorDisplayName(u, sig)
+	if href := ut.authorHref(u, sig); href != "" {
+		return htmlutil.HTMLFormat(`<a class="silenced flex-text-block" href="%s">%s<span>%s</span></a>`, href, avatar, name)
+	}
+	return htmlutil.HTMLFormat(`<span class="flex-text-block">%s<span>%s</span></span>`, avatar, name)
 }

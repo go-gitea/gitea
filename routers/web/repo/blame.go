@@ -29,12 +29,14 @@ import (
 type blameRow struct {
 	RowNumber int
 
-	Avatar         template.HTML
 	PreviousSha    string
 	PreviousShaURL string
 	CommitURL      string
 	CommitMessage  string
 	CommitSince    template.HTML
+	AuthorUser     *user_model.User
+	CoAuthors      []*user_model.CoAuthorUser
+	Author         *git.Signature
 
 	Code         template.HTML
 	EscapeStatus *charset.EscapeStatus
@@ -221,13 +223,10 @@ func processBlameParts(ctx *context.Context, blameParts []*gitrepo.BlamePart) ma
 	return commitNames
 }
 
-func renderBlameFillFirstBlameRow(repoLink string, avatarUtils *templates.AvatarUtils, part *gitrepo.BlamePart, commit *user_model.UserCommit, br *blameRow) {
-	if commit.User != nil {
-		br.Avatar = avatarUtils.Avatar(commit.User, 18)
-	} else {
-		br.Avatar = avatarUtils.AvatarByEmail(commit.Author.Email, commit.Author.Name, 18)
-	}
-
+func fillFirstBlameRow(repoLink string, part *gitrepo.BlamePart, commit *user_model.UserCommit, br *blameRow) {
+	br.AuthorUser = commit.User
+	br.CoAuthors = commit.CoAuthors
+	br.Author = commit.Author
 	br.PreviousSha = part.PreviousSha
 	br.PreviousShaURL = fmt.Sprintf("%s/blame/commit/%s/%s", repoLink, url.PathEscape(part.PreviousSha), util.PathEscapeSegments(part.PreviousPath))
 	br.CommitURL = fmt.Sprintf("%s/commit/%s", repoLink, url.PathEscape(part.Sha))
@@ -243,7 +242,6 @@ func renderBlame(ctx *context.Context, blameParts []*gitrepo.BlamePart, commitNa
 
 	buf := &bytes.Buffer{}
 	rows := make([]*blameRow, 0)
-	avatarUtils := templates.NewAvatarUtils(ctx)
 	rowNumber := 0 // will be 1-based
 	for _, part := range blameParts {
 		for partLineIdx, line := range part.Lines {
@@ -258,7 +256,7 @@ func renderBlame(ctx *context.Context, blameParts []*gitrepo.BlamePart, commitNa
 			}
 
 			if partLineIdx == 0 {
-				renderBlameFillFirstBlameRow(ctx.Repo.RepoLink, avatarUtils, part, commitNames[part.Sha], br)
+				fillFirstBlameRow(ctx.Repo.RepoLink, part, commitNames[part.Sha], br)
 			}
 		}
 	}

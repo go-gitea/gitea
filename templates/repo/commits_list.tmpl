@@ -2,9 +2,9 @@
 	<table class="ui very basic table unstackable" id="commits-table">
 		<thead>
 			<tr>
-				<th class="three wide">{{ctx.Locale.Tr "repo.commits.author"}}</th>
+				<th class="four wide">{{ctx.Locale.Tr "repo.commits.author"}}</th>
 				<th class="two wide sha">{{StringUtils.ToUpper $.Repository.ObjectFormatName}}</th>
-				<th class="eight wide message">{{ctx.Locale.Tr "repo.commits.message"}}</th>
+				<th class="seven wide message">{{ctx.Locale.Tr "repo.commits.message"}}</th>
 				<th class="two wide tw-text-right">{{ctx.Locale.Tr "repo.commits.date"}}</th>
 				<th class="one wide"></th>
 			</tr>
@@ -14,15 +14,7 @@
 			{{range $commit := .Commits}}
 				<tr>
 					<td class="author">
-						<span class="author-wrapper">
-							{{- if .User -}}
-								{{- ctx.AvatarUtils.Avatar .User 20 "tw-mr-2" -}}
-								{{- .User.GetShortDisplayNameLinkHTML -}}
-							{{- else -}}
-								{{- ctx.AvatarUtils.AvatarByEmail .Author.Email .Author.Name 20 "tw-mr-2" -}}
-								{{- .Author.Name -}}
-							{{- end -}}
-						</span>
+						{{ctx.RenderUtils.CoAuthorAvatars .CoAuthorAvatarData}}
 					</td>
 					<td class="sha">
 						{{$commitBaseLink := ""}}

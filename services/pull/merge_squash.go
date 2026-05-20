@@ -65,9 +65,7 @@ func doMergeStyleSquash(ctx *mergeContext, message string) error {
 	}
 
 	if setting.Repository.PullRequest.AddCoCommitterTrailers && ctx.committer.String() != sig.String() {
-		// add trailer
-		message = AddCommitMessageTailer(message, "Co-authored-by", sig.String())
-		message = AddCommitMessageTailer(message, "Co-committed-by", sig.String()) // FIXME: this one should be removed, it is not really used or widely used
+		message = AddCommitMessageTailer(message, git.CoAuthoredByTrailer, sig.String())
 	}
 	cmdCommit := gitcmd.NewCommand("commit").
 		AddOptionFormat("--author='%s <%s>'", sig.Name, sig.Email).

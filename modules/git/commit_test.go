@@ -208,3 +208,97 @@ func Test_GetCommitBranchStart(t *testing.T) {
 	assert.NotEmpty(t, startCommitID)
 	assert.Equal(t, "95bb4d39648ee7e325106df01a621c530863a653", startCommitID)
 }
+
+func TestCoAuthorSignatures(t *testing.T) {
+	cases := []struct {
+		name string
+		body string
+		want []Signature
+	}{
+		{
+			name: "empty",
+			body: "title",
+			want: nil,
+		},
+		{
+			name: "single co-author",
+			body: "title\n\nbody text\n\nCo-authored-by: Jane <jane@example.com>",
+			want: []Signature{{Name: "Jane", Email: "jane@example.com"}},
+		},
+		{
+			name: "case insensitive token",
+			body: "title\n\nCo-Authored-By: Jane <Jane@Example.com>\nco-authored-by: Bob <bob@example.com>",
+			want: []Signature{
+				{Name: "Jane", Email: "jane@example.com"},
+				{Name: "Bob", Email: "bob@example.com"},
+			},
+		},
+		{
+			name: "dedup by lowercased email",
+			body: "title\n\nCo-authored-by: Jane <jane@example.com>\nCo-authored-by: Janey <JANE@example.com>",
+			want: []Signature{{Name: "Jane", Email: "jane@example.com"}},
+		},
+		{
+			name: "in-body trailer ignored, only last paragraph counts",
+			body: "title\n\nCo-authored-by: Mallory <mallory@example.com>\n\nactual body explaining revert\n\nCo-authored-by: Jane <jane@example.com>",
+			want: []Signature{{Name: "Jane", Email: "jane@example.com"}},
+		},
+		{
+			name: "body text in trailing paragraph rejects co-author line",
+			body: "title\n\nbody text\nCo-authored-by: Jane <jane@example.com>",
+			want: nil,
+		},
+		{
+			name: "missing brackets is ignored",
+			body: "title\n\nCo-authored-by: Jane jane@example.com",
+			want: nil,
+		},
+		{
+			name: "CRLF line endings",
+			body: "title\r\n\r\nCo-authored-by: Jane <jane@example.com>\r\nCo-authored-by: Bob <bob@example.com>",
+			want: []Signature{
+				{Name: "Jane", Email: "jane@example.com"},
+				{Name: "Bob", Email: "bob@example.com"},
+			},
+		},
+		{
+			name: "non-trailer line",
+			body: "title\n\nSigned-off-by: Jane <jane@example.com>",
+			want: nil,
+		},
+		{
+			name: "bare-address trailer falls back to address as name",
+			body: "title\n\nCo-authored-by: <jane@example.com>",
+			want: []Signature{{Name: "jane@example.com", Email: "jane@example.com"}},
+		},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			cm := CommitMessage{MessageRaw: tc.body}
+			got := cm.parseCoAuthorSignatures()
+			assert.Len(t, got, len(tc.want))
+			for i, w := range tc.want {
+				if i >= len(got) {
+					break
+				}
+				assert.Equal(t, w.Name, got[i].Name, "name[%d]", i)
+				assert.Equal(t, w.Email, got[i].Email, "email[%d]", i)
+			}
+		})
+	}
+}
+
+func TestCommitCoAuthorSignaturesFiltersAuthorAndCommitter(t *testing.T) {
+	c := &Commit{
+		Author:    &Signature{Name: "Jane", Email: "jane@example.com"},
+		Committer: &Signature{Name: "Bob", Email: "bob@example.com"},
+		CommitMessage: CommitMessage{MessageRaw: "title\n\n" +
+			"Co-authored-by: Jane Self <jane@example.com>\n" +
+			"Co-authored-by: Bob Self <BOB@example.com>\n" +
+			"Co-authored-by: Carol <carol@example.com>"},
+	}
+	got := c.CoAuthorSignatures()
+	if assert.Len(t, got, 1) {
+		assert.Equal(t, "carol@example.com", got[0].Email)
+	}
+}

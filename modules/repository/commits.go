@@ -29,6 +29,7 @@ type PushCommit struct {
 	AuthorName     string
 	CommitterEmail string
 	CommitterName  string
+	CoAuthors      []*git.Signature
 	Timestamp      time.Time
 }
 
@@ -157,8 +158,46 @@ func CommitToPushCommit(commit *git.Commit) *PushCommit {
 		AuthorName:     commit.Author.Name,
 		CommitterEmail: commit.Committer.Email,
 		CommitterName:  commit.Committer.Name,
+		CoAuthors:      commit.CoAuthorSignatures(),
 		Timestamp:      commit.Author.When,
 	}
+}
+
+// AuthorSignature returns the push commit author as a git signature.
+func (pc *PushCommit) AuthorSignature() *git.Signature {
+	return &git.Signature{Email: pc.AuthorEmail, Name: pc.AuthorName}
+}
+
+// AuthorUser resolves the author email to a Gitea user via per-request cache, nil if no match.
+func (pc *PushCommit) AuthorUser(ctx context.Context) *user_model.User {
+	c := cache.GetContextCache(ctx)
+	key := "email:" + pc.AuthorEmail
+	if c != nil {
+		if v, has := c.Get(cachegroup.User, key); has {
+			u, _ := v.(*user_model.User)
+			return u
+		}
+	}
+	u, err := user_model.GetUserByEmail(ctx, pc.AuthorEmail)
+	if err != nil && !user_model.IsErrUserNotExist(err) {
+		log.Error("GetUserByEmail: %v", err)
+	}
+	if c != nil {
+		c.Put(cachegroup.User, key, u)
+	}
+	return u
+}
+
+// CoAuthorUsers returns co-authors in the template view shape, without resolved Gitea users.
+func (pc *PushCommit) CoAuthorUsers() []*user_model.CoAuthorUser {
+	if len(pc.CoAuthors) == 0 {
+		return nil
+	}
+	coAuthors := make([]*user_model.CoAuthorUser, len(pc.CoAuthors))
+	for i, sig := range pc.CoAuthors {
+		coAuthors[i] = &user_model.CoAuthorUser{TrailerSignature: sig}
+	}
+	return coAuthors
 }
 
 // GitToPushCommits transforms a list of git.Commits to PushCommits type.

@@ -133,7 +133,19 @@ func loadLatestCommitData(ctx *context.Context, latestCommit *git.Commit) bool {
 			return false
 		}
 		ctx.Data["LatestCommitVerification"] = verification
-		ctx.Data["LatestCommitUser"] = user_model.ValidateCommitWithEmail(ctx, latestCommit)
+		latestCommitUser := user_model.ValidateCommitWithEmail(ctx, latestCommit)
+
+		var latestCommitCoAuthors []*user_model.CoAuthorUser
+		if coAuthors, err := user_model.CoAuthorsFromCommit(ctx, latestCommit); err != nil {
+			log.Error("CoAuthorsFromCommit: %v", err)
+		} else {
+			latestCommitCoAuthors = coAuthors
+		}
+		ctx.Data["LatestCommitCoAuthorData"] = &user_model.CoAuthorAvatarData{
+			AuthorUser: latestCommitUser,
+			AuthorSig:  latestCommit.Author,
+			CoAuthors:  latestCommitCoAuthors,
+		}
 
 		statuses, err := git_model.GetLatestCommitStatus(ctx, ctx.Repo.Repository.ID, latestCommit.ID.String(), db.ListOptionsAll)
 		if err != nil {
