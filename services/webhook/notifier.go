@@ -6,6 +6,7 @@ package webhook
 import (
 	"context"
 	"errors"
+	"strings"
 
 	actions_model "code.gitea.io/gitea/models/actions"
 	git_model "code.gitea.io/gitea/models/git"
@@ -750,6 +751,12 @@ func (m *webhookNotifier) PullRequestReview(ctx context.Context, pr *issues_mode
 		return
 	}
 
+	// A Comment-type review with empty body is a synthetic wrapper created to publish
+	// standalone code comments; the per-comment PullRequestCodeComment events carry them.
+	if review.Type == issues_model.ReviewTypeComment && strings.TrimSpace(review.Content) == "" {
+		return
+	}
+
 	if err := pr.LoadIssue(ctx); err != nil {
 		log.Error("LoadIssue: %v", err)
 		return
@@ -770,6 +777,43 @@ func (m *webhookNotifier) PullRequestReview(ctx context.Context, pr *issues_mode
 		Review: &api.ReviewPayload{
 			Type:    string(reviewHookType),
 			Content: review.Content,
+		},
+	}); err != nil {
+		log.Error("PrepareWebhooks: %v", err)
+	}
+}
+
+func (m *webhookNotifier) PullRequestCodeComment(ctx context.Context, pr *issues_model.PullRequest, comment *issues_model.Comment, _ []*user_model.User) {
+	if err := pr.LoadIssue(ctx); err != nil {
+		log.Error("LoadIssue: %v", err)
+		return
+	}
+	if err := pr.Issue.LoadRepo(ctx); err != nil {
+		log.Error("LoadRepo: %v", err)
+		return
+	}
+	if comment.Poster == nil {
+		if err := comment.LoadPoster(ctx); err != nil {
+			log.Error("LoadPoster: %v", err)
+			return
+		}
+	}
+
+	permission, err := access_model.GetIndividualUserRepoPermission(ctx, pr.Issue.Repo, comment.Poster)
+	if err != nil {
+		log.Error("GetIndividualUserRepoPermission: %v", err)
+		return
+	}
+
+	if err := PrepareWebhooks(ctx, EventSource{Repository: pr.Issue.Repo}, webhook_module.HookEventPullRequestReviewComment, &api.PullRequestPayload{
+		Action:      api.HookIssueReviewed,
+		Index:       pr.Issue.Index,
+		PullRequest: convert.ToAPIPullRequest(ctx, pr, comment.Poster),
+		Repository:  convert.ToRepo(ctx, pr.Issue.Repo, permission),
+		Sender:      convert.ToUser(ctx, comment.Poster, nil),
+		Review: &api.ReviewPayload{
+			Type:    string(webhook_module.HookEventPullRequestReviewComment),
+			Content: comment.Content,
 		},
 	}); err != nil {
 		log.Error("PrepareWebhooks: %v", err)
