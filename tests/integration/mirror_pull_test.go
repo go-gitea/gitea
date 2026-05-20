@@ -51,7 +51,7 @@ func TestMirrorPull(t *testing.T) {
 	assert.NoError(t, err)
 	assert.True(t, mirrorRepo.IsMirror, "expected pull-mirror repo to be marked as a mirror immediately after its creation")
 
-	mirrorRepo, err = repo_service.MigrateRepositoryGitData(ctx, user, mirrorRepo, opts, nil)
+	mirrorRepo, err = repo_service.MigrateRepositoryGitData(ctx, user, mirrorRepo, opts, nil, nil)
 	assert.NoError(t, err)
 
 	// these units should have been enabled

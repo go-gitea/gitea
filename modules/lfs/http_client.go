@@ -34,7 +34,7 @@ func (c *HTTPClient) BatchSize() int {
 	return setting.LFSClient.BatchSize
 }
 
-func newHTTPClient(endpoint *url.URL, httpTransport *http.Transport) *HTTPClient {
+func newHTTPClient(endpoint *url.URL, httpTransport *http.Transport, checkRedirect func(req *http.Request, via []*http.Request) error) *HTTPClient {
 	if httpTransport == nil {
 		httpTransport = &http.Transport{
 			Proxy: proxy.Proxy(),
@@ -42,7 +42,8 @@ func newHTTPClient(endpoint *url.URL, httpTransport *http.Transport) *HTTPClient
 	}
 
 	hc := &http.Client{
-		Transport: httpTransport,
+		Transport:     httpTransport,
+		CheckRedirect: checkRedirect,
 	}
 
 	basic := &BasicTransferAdapter{hc}

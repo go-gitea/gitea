@@ -90,6 +90,7 @@ func NewOneDevDownloader(ctx context.Context, baseURL *url.URL, username, passwo
 					}
 					return httpTransport.RoundTrip(req.WithContext(ctx))
 				}),
+			CheckRedirect: CheckMigrateRedirect,
 		},
 		userMap:      make(map[int64]*onedevUser),
 		milestoneMap: make(map[int64]string),

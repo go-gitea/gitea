@@ -162,7 +162,7 @@ func testScheduleUpdateMirrorSync(t *testing.T) {
 		}, false)
 		assert.NoError(t, err)
 		assert.True(t, mirrorRepo.IsMirror)
-		mirrorRepo, err = repo_service.MigrateRepositoryGitData(t.Context(), user, mirrorRepo, opts, nil)
+		mirrorRepo, err = repo_service.MigrateRepositoryGitData(t.Context(), user, mirrorRepo, opts, nil, nil)
 		assert.NoError(t, err)
 		mirrorContext := NewAPITestContext(t, user.Name, mirrorRepo.Name, auth_model.AccessTokenScopeWriteRepository)
 

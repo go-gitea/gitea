@@ -100,6 +100,7 @@ func NewGithubDownloaderV3(_ context.Context, baseURL, userName, password, token
 					Base:   NewMigrationHTTPTransport(),
 					Source: oauth2.ReuseTokenSource(nil, ts),
 				},
+				CheckRedirect: CheckMigrateRedirect,
 			}
 
 			downloader.addClient(client, baseURL)
@@ -111,7 +112,8 @@ func NewGithubDownloaderV3(_ context.Context, baseURL, userName, password, token
 			return proxy.Proxy()(req)
 		}
 		client := &http.Client{
-			Transport: transport,
+			Transport:     transport,
+			CheckRedirect: CheckMigrateRedirect,
 		}
 		downloader.addClient(client, baseURL)
 	}

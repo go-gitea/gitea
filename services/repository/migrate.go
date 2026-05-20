@@ -72,7 +72,7 @@ func cloneWiki(ctx context.Context, repo *repo_model.Repository, opts migration.
 // MigrateRepositoryGitData starts migrating git related data after created migrating repository
 func MigrateRepositoryGitData(ctx context.Context, u *user_model.User,
 	repo *repo_model.Repository, opts migration.MigrateOptions,
-	httpTransport *http.Transport,
+	httpTransport *http.Transport, checkRedirect func(req *http.Request, via []*http.Request) error,
 ) (*repo_model.Repository, error) {
 	if u.IsOrganization() {
 		t, err := organization.OrgFromUser(u).GetOwnerTeam(ctx)
@@ -160,7 +160,7 @@ func MigrateRepositoryGitData(ctx context.Context, u *user_model.User,
 
 		if opts.LFS {
 			endpoint := lfs.DetermineEndpoint(opts.CloneAddr, opts.LFSEndpoint)
-			lfsClient := lfs.NewClient(endpoint, httpTransport)
+			lfsClient := lfs.NewClient(endpoint, httpTransport, checkRedirect)
 			if err = repo_module.StoreMissingLfsObjectsInRepository(ctx, repo, gitRepo, lfsClient); err != nil {
 				log.Error("Failed to store missing LFS objects for repository: %v", err)
 				return repo, fmt.Errorf("StoreMissingLfsObjectsInRepository: %w", err)

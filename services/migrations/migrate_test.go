@@ -5,12 +5,16 @@ package migrations
 
 import (
 	"net"
+	"net/http"
+	"net/url"
 	"path/filepath"
 	"testing"
 
 	"code.gitea.io/gitea/models/unittest"
 	user_model "code.gitea.io/gitea/models/user"
+	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/test"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -112,4 +116,44 @@ func TestAllowBlockList(t *testing.T) {
 
 	// reset to allow local networks (mock servers use 127.0.0.1)
 	init("", "", true)
+}
+
+func TestCheckMigrateRedirect(t *testing.T) {
+	assert.NoError(t, unittest.PrepareTestDatabase())
+
+	defer test.MockVariableValue(&setting.Migrations.AllowedDomains, "")()
+	defer test.MockVariableValue(&setting.Migrations.BlockedDomains, "")()
+	defer test.MockVariableValue(&setting.Migrations.AllowLocalNetworks, false)()
+
+	assert.NoError(t, Init())
+
+	err := CheckMigrateRedirect(&http.Request{URL: &url.URL{Scheme: "https", Host: "1.2.3.4"}}, nil)
+	assert.NoError(t, err)
+
+	err = CheckMigrateRedirect(&http.Request{URL: &url.URL{Scheme: "https", Host: "127.0.0.1"}}, nil)
+	assert.Error(t, err)
+	var addrErr *git.ErrInvalidCloneAddr
+	assert.ErrorAs(t, err, &addrErr)
+	assert.True(t, addrErr.IsPermissionDenied)
+
+	err = CheckMigrateRedirect(&http.Request{URL: nil}, nil)
+	assert.Error(t, err)
+	assert.ErrorAs(t, err, &addrErr)
+	assert.True(t, addrErr.IsURLError)
+
+	err = CheckMigrateRedirect(&http.Request{URL: &url.URL{Scheme: "file", Host: "example.com"}}, nil)
+	assert.Error(t, err)
+	assert.ErrorAs(t, err, &addrErr)
+	assert.True(t, addrErr.IsProtocolInvalid)
+	assert.True(t, addrErr.IsPermissionDenied)
+
+	err = CheckMigrateRedirect(&http.Request{URL: &url.URL{Scheme: "https"}}, nil)
+	assert.Error(t, err)
+	assert.ErrorAs(t, err, &addrErr)
+	assert.True(t, addrErr.IsURLError)
+
+	setting.Migrations.AllowLocalNetworks = true
+	assert.NoError(t, Init())
+	err = CheckMigrateRedirect(&http.Request{URL: &url.URL{Scheme: "https", Host: "127.0.0.1"}}, nil)
+	assert.NoError(t, err)
 }
