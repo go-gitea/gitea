@@ -414,7 +414,7 @@ func (n *Notification) IconHTML(ctx context.Context) template.HTML {
 		// n.Issue should be loaded before calling this method
 		return n.Issue.IconHTML(ctx)
 	case NotificationSourceCommit:
-		return svg.RenderHTML("octicon-commit", 16, "tw-text-grey")
+		return svg.RenderHTML("octicon-git-commit", 16, "tw-text-grey")
 	case NotificationSourceRepository:
 		return svg.RenderHTML("octicon-repo", 16, "tw-text-grey")
 	case NotificationSourceRelease:
