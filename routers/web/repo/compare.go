@@ -605,6 +605,48 @@ func CompareDiff(ctx *context.Context) {
 	ctx.HTML(http.StatusOK, tplCompare)
 }
 
+// DownloadCompareDiff render a comparison's raw unified diff
+func DownloadCompareDiff(ctx *context.Context) {
+	downloadCompareDiffOrPatch(ctx, false)
+}
+
+// DownloadComparePatch render a comparison as a git format-patch
+func DownloadComparePatch(ctx *context.Context) {
+	downloadCompareDiffOrPatch(ctx, true)
+}
+
+func downloadCompareDiffOrPatch(ctx *context.Context, patch bool) {
+	// The route captures `basehead` separately so the `.diff`/`.patch` suffix
+	// is stripped. parseCompareInfo reads the catch-all `*` param, so override
+	// it with the suffix-free value.
+	ctx.SetPathParamRaw("*", ctx.PathParam("basehead"))
+
+	cpi := newComparePageInfo()
+	if err := cpi.parseCompareInfo(ctx); err != nil {
+		if errors.Is(err, util.ErrNotExist) || errors.Is(err, util.ErrInvalidArgument) {
+			ctx.NotFound(nil)
+		} else {
+			ctx.ServerError("ParseCompareInfo", err)
+		}
+		return
+	}
+	ci := cpi.compareInfo
+
+	ctx.Resp.Header().Set("Content-Type", "text/plain; charset=utf-8")
+	compareArg := ci.BaseCommitID + ci.CompareSeparator + ci.HeadCommitID
+
+	var err error
+	if patch {
+		err = ci.HeadGitRepo.GetPatch(compareArg, ctx.Resp)
+	} else {
+		err = ci.HeadGitRepo.GetDiff(compareArg, ctx.Resp)
+	}
+	if err != nil {
+		ctx.ServerError("DownloadCompareDiffOrPatch", err)
+		return
+	}
+}
+
 func (cpi *comparePageInfoType) prepareCreatePullRequestPage(ctx *context.Context) {
 	ci := cpi.compareInfo
 	if cpi.allowCreatePull {

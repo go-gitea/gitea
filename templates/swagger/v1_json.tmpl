@@ -7994,6 +7994,60 @@
         }
       }
     },
+    "/repos/{owner}/{repo}/compare/{basehead}.{diffType}": {
+      "get": {
+        "produces": [
+          "text/plain"
+        ],
+        "tags": [
+          "repository"
+        ],
+        "summary": "Get a comparison's diff or patch between two refs",
+        "operationId": "repoDownloadCompareDiffOrPatch",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "owner of the repo",
+            "name": "owner",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "name of the repo",
+            "name": "repo",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "compare two refs as `base...head` (or `base..head`); refs may be branches, tags, full or short SHAs, including branch names that contain slashes.",
+            "name": "basehead",
+            "in": "path",
+            "required": true
+          },
+          {
+            "enum": [
+              "diff",
+              "patch"
+            ],
+            "type": "string",
+            "description": "whether the output is diff or patch",
+            "name": "diffType",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/responses/string"
+          },
+          "404": {
+            "$ref": "#/responses/notFound"
+          }
+        }
+      }
+    },
     "/repos/{owner}/{repo}/contents": {
       "get": {
         "description": "This API follows GitHub's design, and it is not easy to use. Recommend users to use our \"contents-ext\" API instead.",

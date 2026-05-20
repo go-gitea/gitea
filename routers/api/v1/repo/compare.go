@@ -88,3 +88,68 @@ func CompareDiff(ctx *context.APIContext) {
 		Commits:      apiCommits,
 	})
 }
+
+// DownloadCompareDiffOrPatch render a comparison's raw diff or patch
+func DownloadCompareDiffOrPatch(ctx *context.APIContext) {
+	// swagger:operation GET /repos/{owner}/{repo}/compare/{basehead}.{diffType} repository repoDownloadCompareDiffOrPatch
+	// ---
+	// summary: Get a comparison's diff or patch between two refs
+	// produces:
+	// - text/plain
+	// parameters:
+	// - name: owner
+	//   in: path
+	//   description: owner of the repo
+	//   type: string
+	//   required: true
+	// - name: repo
+	//   in: path
+	//   description: name of the repo
+	//   type: string
+	//   required: true
+	// - name: basehead
+	//   in: path
+	//   description: compare two refs as `base...head` (or `base..head`); refs may be branches, tags, full or short SHAs, including branch names that contain slashes.
+	//   type: string
+	//   required: true
+	// - name: diffType
+	//   in: path
+	//   description: whether the output is diff or patch
+	//   type: string
+	//   enum: [diff, patch]
+	//   required: true
+	// responses:
+	//   "200":
+	//     "$ref": "#/responses/string"
+	//   "404":
+	//     "$ref": "#/responses/notFound"
+
+	if ctx.Repo.GitRepo == nil {
+		var err error
+		ctx.Repo.GitRepo, err = gitrepo.RepositoryFromRequestContextOrOpen(ctx, ctx.Repo.Repository)
+		if err != nil {
+			ctx.APIErrorInternal(err)
+			return
+		}
+	}
+
+	compareInfo, closer := parseCompareInfo(ctx, ctx.PathParam("basehead"))
+	if ctx.Written() {
+		return
+	}
+	defer closer()
+
+	ctx.Resp.Header().Set("Content-Type", "text/plain; charset=utf-8")
+	compareArg := compareInfo.BaseCommitID + compareInfo.CompareSeparator + compareInfo.HeadCommitID
+
+	var err error
+	if ctx.PathParam("diffType") == "patch" {
+		err = compareInfo.HeadGitRepo.GetPatch(compareArg, ctx.Resp)
+	} else {
+		err = compareInfo.HeadGitRepo.GetDiff(compareArg, ctx.Resp)
+	}
+	if err != nil {
+		ctx.APIErrorInternal(err)
+		return
+	}
+}
