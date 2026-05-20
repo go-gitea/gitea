@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: MIT
 
 import {expect, test} from '@playwright/test';
-import {apiCreateBranch, apiCreateFile, apiCreatePR, apiCreateUser, apiUserHeaders, loginUser, randomString, timeoutFactor} from './utils.ts';
+import {apiCreateBranch, apiCreateFile, apiCreatePR, apiCreateUser, apiUpdateFile, apiUserHeaders, loginUser, randomString, timeoutFactor} from './utils.ts';
 
 /**
  * Creates a PR where `feat` and `main` both modify the same line in `conflict.txt`,
@@ -16,10 +16,10 @@ async function setupConflictPR(request: Parameters<typeof apiCreateFile>[0], own
 
   // Branch off for the feature branch and make a diverging change.
   await apiCreateBranch(request, owner, repo, 'feat');
-  await apiCreateFile(request, owner, repo, 'conflict.txt', 'feature change\n', {branch: 'feat', message: 'feat change'});
+  await apiUpdateFile(request, owner, repo, 'conflict.txt', 'feature change\n', {branch: 'feat', message: 'feat change'});
 
   // Make a conflicting change on main AFTER the branch was created.
-  await apiCreateFile(request, owner, repo, 'conflict.txt', 'main change\n', {branch: 'main', message: 'main change'});
+  await apiUpdateFile(request, owner, repo, 'conflict.txt', 'main change\n', {branch: 'main', message: 'main change'});
 
   // Create the PR.
   const prIndex = await apiCreatePR(request, owner, repo, 'feat', 'main', 'conflict pr', {headers});
@@ -118,10 +118,10 @@ test('pr conflict resolve — file switching saves content', async ({page, reque
   await apiCreateFile(request, owner, repo, 'file-a.txt', 'ancestor a\n', {branch: 'main', message: 'add files'});
   await apiCreateFile(request, owner, repo, 'file-b.txt', 'ancestor b\n', {branch: 'main', message: 'add file-b'});
   await apiCreateBranch(request, owner, repo, 'feat');
-  await apiCreateFile(request, owner, repo, 'file-a.txt', 'feat change a\n', {branch: 'feat', message: 'feat a'});
-  await apiCreateFile(request, owner, repo, 'file-b.txt', 'feat change b\n', {branch: 'feat', message: 'feat b'});
-  await apiCreateFile(request, owner, repo, 'file-a.txt', 'main change a\n', {branch: 'main', message: 'main a'});
-  await apiCreateFile(request, owner, repo, 'file-b.txt', 'main change b\n', {branch: 'main', message: 'main b'});
+  await apiUpdateFile(request, owner, repo, 'file-a.txt', 'feat change a\n', {branch: 'feat', message: 'feat a'});
+  await apiUpdateFile(request, owner, repo, 'file-b.txt', 'feat change b\n', {branch: 'feat', message: 'feat b'});
+  await apiUpdateFile(request, owner, repo, 'file-a.txt', 'main change a\n', {branch: 'main', message: 'main a'});
+  await apiUpdateFile(request, owner, repo, 'file-b.txt', 'main change b\n', {branch: 'main', message: 'main b'});
   const prIndex = await apiCreatePR(request, owner, repo, 'feat', 'main', 'two-file conflict', {headers});
 
   await loginUser(page, owner);

@@ -28,8 +28,8 @@ func setupConflictPR(t *testing.T) (pr *issues_model.PullRequest, conflictFile s
 	require.NoError(t, pr.LoadHeadRepo(t.Context()))
 
 	conflictFile = "conflict.txt"
-	baseBranch := fmt.Sprintf("test-cr-base-%s", t.Name())
-	headBranch := fmt.Sprintf("test-cr-head-%s", t.Name())
+	baseBranch := "test-cr-base-" + t.Name()
+	headBranch := "test-cr-head-" + t.Name()
 	// Sanitize branch names (test names may contain '/')
 	baseBranch = strings.ReplaceAll(baseBranch, "/", "-")
 	headBranch = strings.ReplaceAll(headBranch, "/", "-")
