@@ -239,6 +239,7 @@ func ToActionTask(ctx context.Context, t *actions_model.ActionTask) (*api.Action
 	if err := t.Job.Run.LoadRepo(ctx); err != nil {
 		return nil, err
 	}
+
 	return &api.ActionTask{
 		ID:           t.ID,
 		Name:         t.Job.Name,
@@ -249,25 +250,25 @@ func ToActionTask(ctx context.Context, t *actions_model.ActionTask) (*api.Action
 		DisplayTitle: t.Job.Run.Title,
 		Status:       t.Status.String(),
 		WorkflowID:   t.Job.Run.WorkflowID,
-		URL:          httplib.MakeAbsoluteURL(ctx, t.Job.Run.Link()),
+		URL:          httplib.MakeAbsoluteURL(ctx, t.GetRunLink()),
 		CreatedAt:    t.Created.AsLocalTime(),
 		UpdatedAt:    t.Updated.AsLocalTime(),
 		RunStartedAt: t.Started.AsLocalTime(),
 	}, nil
 }
 
-func ToActionWorkflowRun(ctx context.Context, run *actions_model.ActionRun, attempt *actions_model.ActionRunAttempt) (_ *api.ActionWorkflowRun, err error) {
-	if err := run.LoadRepo(ctx); err != nil {
-		return nil, err
-	}
+func ToActionWorkflowRun(ctx context.Context, repo *repo_model.Repository, run *actions_model.ActionRun, attempt *actions_model.ActionRunAttempt) (*api.ActionWorkflowRun, error) {
+	// caller-provided repo is the single source of truth for URL construction
+	run.Repo = repo
 	if err := run.LoadTriggerUser(ctx); err != nil {
 		return nil, err
 	}
 
 	if attempt == nil {
-		attempt, _, err = run.GetLatestAttempt(ctx)
-		if err != nil {
+		if latestAttempt, has, err := run.GetLatestAttempt(ctx); err != nil {
 			return nil, err
+		} else if has {
+			attempt = latestAttempt
 		}
 	}
 
@@ -293,17 +294,19 @@ func ToActionWorkflowRun(ctx context.Context, run *actions_model.ActionRun, atte
 		completedAt = attempt.Stopped.AsLocalTime()
 		triggerUser = attempt.TriggerUser
 		if attempt.Attempt > 1 {
-			previousAttemptURL = new(fmt.Sprintf("%s/actions/runs/%d/attempts/%d", run.Repo.APIURL(ctx), run.ID, attempt.Attempt-1))
+			url := fmt.Sprintf("%s/actions/runs/%d/attempts/%d", repo.APIURL(ctx), run.ID, attempt.Attempt-1)
+			previousAttemptURL = &url
 		}
 	}
 
 	return &api.ActionWorkflowRun{
 		ID:                 run.ID,
-		URL:                fmt.Sprintf("%s/actions/runs/%d", run.Repo.APIURL(ctx), run.ID),
+		URL:                fmt.Sprintf("%s/actions/runs/%d", repo.APIURL(ctx), run.ID),
 		PreviousAttemptURL: previousAttemptURL,
 		HTMLURL:            run.HTMLURL(ctx),
 		RunNumber:          run.Index,
 		RunAttempt:         runAttempt,
+		CreatedAt:          run.Created.AsLocalTime(),
 		StartedAt:          startedAt,
 		CompletedAt:        completedAt,
 		Event:              run.TriggerEvent,
@@ -313,7 +316,7 @@ func ToActionWorkflowRun(ctx context.Context, run *actions_model.ActionRun, atte
 		Status:             status,
 		Conclusion:         conclusion,
 		Path:               fmt.Sprintf("%s@%s", run.WorkflowID, run.Ref),
-		Repository:         ToRepo(ctx, run.Repo, access_model.Permission{AccessMode: perm.AccessModeNone}),
+		Repository:         ToRepo(ctx, repo, access_model.Permission{AccessMode: perm.AccessModeNone}),
 		TriggerActor:       ToUser(ctx, triggerUser, nil),
 		Actor:              ToUser(ctx, actor, nil),
 	}, nil
