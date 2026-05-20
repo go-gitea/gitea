@@ -234,7 +234,7 @@ function createLogLine(stepIndex: number, startTime: number, line: LogLine, cmd:
     String(line.index),
   );
   const logTimeStamp = createElementFromAttrs('span', {class: 'log-time-stamp'},
-    formatDatetime(line.timestamp * 1000),
+    formatDatetime(line.timestamp * 1000), // for "Show timestamps"
   );
   const logMsg = createLogLineMessage(line, cmd);
   const seconds = Math.floor(line.timestamp - startTime);
@@ -279,7 +279,9 @@ function appendLogs(stepIndex: number, startTime: number, logLines: LogLine[]) {
   }
 }
 
-// cursor indicates the last log position; the frontend treats it as opaque and passes it back to the backend
+// cursor is used to indicate the last position of the logs
+// it's only used by backend, frontend just reads it and passes it back, it can be any type.
+// for example: make cursor=null means the first time to fetch logs, cursor=eof means no more logs, etc
 type LogCursor = {step: number, cursor: string | null, expanded: boolean};
 
 async function fetchJobData(logCursors: LogCursor[], signal?: AbortSignal): Promise<JobData> {
