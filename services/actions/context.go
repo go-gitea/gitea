@@ -15,6 +15,7 @@ import (
 	"code.gitea.io/gitea/modules/container"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/json"
+	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/optional"
 	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
@@ -106,9 +107,13 @@ func GenerateGiteaContext(ctx context.Context, run *actions_model.ActionRun, att
 			// FIXME: If the run is triggered by "workflow_dispatch", the original inputs of "workflow_dispatch" will be overridden.
 			// If necessary, the caller can send these values to the called workflow via `with:`.
 			caller, err := actions_model.GetRunJobByRunAndID(ctx, job.RunID, job.ParentJobID)
-			if err == nil && caller.CallPayload != "" {
+			if err != nil {
+				log.Error("GenerateGiteaContext: load caller job %d of job %d: %v", job.ParentJobID, job.ID, err)
+			} else if caller.CallPayload != "" {
 				var cp api.WorkflowCallPayload
-				if err := json.Unmarshal([]byte(caller.CallPayload), &cp); err == nil && cp.Inputs != nil {
+				if err := json.Unmarshal([]byte(caller.CallPayload), &cp); err != nil {
+					log.Error("GenerateGiteaContext: decode CallPayload of caller %d: %v", caller.ID, err)
+				} else if cp.Inputs != nil {
 					event["inputs"] = cp.Inputs
 				}
 			}

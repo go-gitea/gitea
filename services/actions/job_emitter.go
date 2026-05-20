@@ -417,7 +417,8 @@ func (r *jobStatusResolver) resolve(ctx context.Context) map[int64]actions_model
 
 		shouldStartJob, err := evaluateJobIf(ctx, actionRunJob.Run, nil, actionRunJob, r.vars, allSucceed)
 		if err != nil {
-			log.Debug("evaluateJobIf failed, job will stay blocked: job: %d, err: %v", id, err)
+			// TODO: surface deterministic expression errors to users by failing the job with a message.
+			log.Error("evaluateJobIf failed, job will stay blocked: job: %d, err: %v", id, err)
 			continue
 		}
 

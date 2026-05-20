@@ -106,8 +106,14 @@ func checkCallerChain(ctx context.Context, caller *actions_model.ActionRunJob) e
 	return nil
 }
 
-// expandReusableWorkflowCaller loads and parses the target reusable workflow.
+// expandReusableWorkflowCaller loads and parses the target reusable workflow and inserts the caller's direct child jobs.
+// It expands only ONE level: a child that is itself a reusable caller is inserted Blocked and expanded later by a subsequent resolver pass.
 // It does NOT schedule a follow-up resolver pass; the caller of this function is responsible for emitting.
+//
+// All call sites (PrepareRunAndInsert, execRerunPlan, checkJobsOfCurrentRunAttempt, ApproveRuns) invoke this inside their enclosing write transaction,
+// because the caller row update and the child-row inserts must commit atomically.
+// Be aware this is not cheap inside a tx: it does a git read, YAML parsing, and `${{ }}` expression evaluation.
+// None of the call sites is hot: each caller is expanded once per attempt.
 func expandReusableWorkflowCaller(ctx context.Context, run *actions_model.ActionRun, attempt *actions_model.ActionRunAttempt, caller *actions_model.ActionRunJob, vars map[string]string) error {
 	// Already expanded by an earlier call, skip
 	if caller.IsExpanded {

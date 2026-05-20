@@ -466,7 +466,8 @@ func RefreshReusableCallerStatus(ctx context.Context, caller *ActionRunJob) erro
 	if err != nil {
 		return err
 	}
-	newStatus := aggregateReusableCallerStatus(children)
+
+	newStatus := AggregateJobStatus(children)
 	cols := make([]string, 0, 3)
 	if caller.Status != newStatus {
 		caller.Status = newStatus
@@ -489,45 +490,6 @@ func RefreshReusableCallerStatus(ctx context.Context, caller *ActionRunJob) erro
 	}
 	_, err = UpdateRunJob(ctx, caller, nil, cols...)
 	return err
-}
-
-// aggregateReusableCallerStatus derives a reusable workflow caller's status from its direct children.
-//
-// Unlike AggregateJobStatus, a reusable workflow caller can only be Done when all its children are Done.
-//
-// Two-stage rule:
-//  1. If any child is not Done, return Running > Waiting > Blocked. The caller is still in progress.
-//  2. Once every child is Done, defer to AggregateJobStatus for the terminal status.
-func aggregateReusableCallerStatus(jobs []*ActionRunJob) Status {
-	var hasRunning, hasWaiting, hasBlocked, allDone bool
-	allDone = len(jobs) != 0
-	for _, j := range jobs {
-		if j.Status.IsDone() {
-			continue
-		}
-		allDone = false
-		switch j.Status {
-		case StatusRunning:
-			hasRunning = true
-		case StatusWaiting:
-			hasWaiting = true
-		case StatusBlocked:
-			hasBlocked = true
-		}
-	}
-	if !allDone {
-		switch {
-		case hasRunning:
-			return StatusRunning
-		case hasWaiting:
-			return StatusWaiting
-		case hasBlocked:
-			return StatusBlocked
-		default:
-			return StatusUnknown // it shouldn't happen
-		}
-	}
-	return AggregateJobStatus(jobs)
 }
 
 func AggregateJobStatus(jobs []*ActionRunJob) Status {
