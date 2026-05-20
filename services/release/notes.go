@@ -32,18 +32,16 @@ func GenerateReleaseNotes(ctx context.Context, repo *repo_model.Repository, gitR
 		return "", err
 	}
 
-	if opts.PreviousTag == "" {
-		// no previous tag, usually due to there is no tag in the repo, use the same content as GitHub
-		content := fmt.Sprintf("**Full Changelog**: %s/commits/tag/%s\n", repo.HTMLURL(ctx), util.PathEscapeSegments(opts.TagName))
-		return content, nil
+	baseCommitID := ""
+	if opts.PreviousTag != "" {
+		baseCommit, err := gitRepo.GetCommit(opts.PreviousTag)
+		if err != nil {
+			return "", util.ErrorWrapTranslatable(util.ErrNotExist, "repo.release.generate_notes_tag_not_found", opts.TagName)
+		}
+		baseCommitID = baseCommit.ID.String()
 	}
 
-	baseCommit, err := gitRepo.GetCommit(opts.PreviousTag)
-	if err != nil {
-		return "", util.ErrorWrapTranslatable(util.ErrNotExist, "repo.release.generate_notes_tag_not_found", opts.TagName)
-	}
-
-	commits, err := gitRepo.CommitsBetweenIDs(headCommit.ID.String(), baseCommit.ID.String())
+	commits, err := gitRepo.CommitsBetweenIDs(headCommit.ID.String(), baseCommitID)
 	if err != nil {
 		return "", fmt.Errorf("CommitsBetweenIDs: %w", err)
 	}
@@ -58,7 +56,13 @@ func GenerateReleaseNotes(ctx context.Context, repo *repo_model.Repository, gitR
 		return "", err
 	}
 
-	content := buildReleaseNotesContent(ctx, repo, opts.TagName, opts.PreviousTag, prs, contributors, newContributors)
+	fullChangelogURL := ""
+	if opts.PreviousTag == "" {
+		// Keep the first-release changelog link aligned with GitHub, while collecting PRs from full history.
+		fullChangelogURL = fmt.Sprintf("%s/commits/tag/%s", repo.HTMLURL(ctx), util.PathEscapeSegments(opts.TagName))
+	}
+
+	content := buildReleaseNotesContent(ctx, repo, opts.TagName, opts.PreviousTag, prs, contributors, newContributors, fullChangelogURL)
 	return content, nil
 }
 
@@ -107,7 +111,7 @@ func collectPullRequestsFromCommits(ctx context.Context, repoID int64, commits [
 	return prs, nil
 }
 
-func buildReleaseNotesContent(ctx context.Context, repo *repo_model.Repository, tagName, baseRef string, prs []*issues_model.PullRequest, contributors []*user_model.User, newContributors []*issues_model.PullRequest) string {
+func buildReleaseNotesContent(ctx context.Context, repo *repo_model.Repository, tagName, baseRef string, prs []*issues_model.PullRequest, contributors []*user_model.User, newContributors []*issues_model.PullRequest, fullChangelogURL string) string {
 	var builder strings.Builder
 	builder.WriteString("## What's Changed\n")
 
@@ -136,8 +140,12 @@ func buildReleaseNotesContent(ctx context.Context, repo *repo_model.Repository, 
 	}
 
 	builder.WriteString("**Full Changelog**: ")
-	compareURL := fmt.Sprintf("%s/compare/%s...%s", repo.HTMLURL(ctx), util.PathEscapeSegments(baseRef), util.PathEscapeSegments(tagName))
-	fmt.Fprintf(&builder, "[%s...%s](%s)", baseRef, tagName, compareURL)
+	if fullChangelogURL != "" {
+		builder.WriteString(fullChangelogURL)
+	} else {
+		compareURL := fmt.Sprintf("%s/compare/%s...%s", repo.HTMLURL(ctx), util.PathEscapeSegments(baseRef), util.PathEscapeSegments(tagName))
+		fmt.Fprintf(&builder, "[%s...%s](%s)", baseRef, tagName, compareURL)
+	}
 	builder.WriteByte('\n')
 	return builder.String()
 }
