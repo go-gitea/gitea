@@ -13993,6 +13993,756 @@
         }
       }
     },
+    "/repos/{owner}/{repo}/projects": {
+      "get": {
+        "description": "Gitea projects only contain issues — note cards and pull requests are not modeled as project items.",
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "repository"
+        ],
+        "summary": "List projects in a repository",
+        "operationId": "repoListProjects",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "owner of the repo",
+            "name": "owner",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "name of the repo",
+            "name": "repo",
+            "in": "path",
+            "required": true
+          },
+          {
+            "enum": [
+              "open",
+              "closed",
+              "all"
+            ],
+            "type": "string",
+            "default": "open",
+            "description": "State of the project (open, closed, all)",
+            "name": "state",
+            "in": "query"
+          },
+          {
+            "type": "integer",
+            "description": "page number of results",
+            "name": "page",
+            "in": "query"
+          },
+          {
+            "type": "integer",
+            "description": "page size of results",
+            "name": "limit",
+            "in": "query"
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/responses/ProjectList"
+          },
+          "404": {
+            "$ref": "#/responses/notFound"
+          }
+        }
+      },
+      "post": {
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "repository"
+        ],
+        "summary": "Create a new project",
+        "operationId": "repoCreateProject",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "owner of the repo",
+            "name": "owner",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "name of the repo",
+            "name": "repo",
+            "in": "path",
+            "required": true
+          },
+          {
+            "name": "body",
+            "in": "body",
+            "schema": {
+              "$ref": "#/definitions/CreateProjectOption"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "$ref": "#/responses/Project"
+          },
+          "404": {
+            "$ref": "#/responses/notFound"
+          },
+          "422": {
+            "$ref": "#/responses/validationError"
+          }
+        }
+      }
+    },
+    "/repos/{owner}/{repo}/projects/{id}": {
+      "get": {
+        "description": "Gitea projects only contain issues — note cards and pull requests are not modeled as project items.",
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "repository"
+        ],
+        "summary": "Get a single project",
+        "operationId": "repoGetProject",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "owner of the repo",
+            "name": "owner",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "name of the repo",
+            "name": "repo",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "integer",
+            "format": "int64",
+            "description": "id of the project",
+            "name": "id",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/responses/Project"
+          },
+          "404": {
+            "$ref": "#/responses/notFound"
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "repository"
+        ],
+        "summary": "Delete a project",
+        "operationId": "repoDeleteProject",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "owner of the repo",
+            "name": "owner",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "name of the repo",
+            "name": "repo",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "integer",
+            "format": "int64",
+            "description": "id of the project",
+            "name": "id",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "204": {
+            "$ref": "#/responses/empty"
+          },
+          "404": {
+            "$ref": "#/responses/notFound"
+          }
+        }
+      },
+      "patch": {
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "repository"
+        ],
+        "summary": "Edit a project",
+        "operationId": "repoEditProject",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "owner of the repo",
+            "name": "owner",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "name of the repo",
+            "name": "repo",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "integer",
+            "format": "int64",
+            "description": "id of the project",
+            "name": "id",
+            "in": "path",
+            "required": true
+          },
+          {
+            "name": "body",
+            "in": "body",
+            "schema": {
+              "$ref": "#/definitions/EditProjectOption"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/responses/Project"
+          },
+          "404": {
+            "$ref": "#/responses/notFound"
+          },
+          "422": {
+            "$ref": "#/responses/validationError"
+          }
+        }
+      }
+    },
+    "/repos/{owner}/{repo}/projects/{id}/columns": {
+      "get": {
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "repository"
+        ],
+        "summary": "List columns in a project",
+        "operationId": "repoListProjectColumns",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "owner of the repo",
+            "name": "owner",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "name of the repo",
+            "name": "repo",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "integer",
+            "format": "int64",
+            "description": "id of the project",
+            "name": "id",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "integer",
+            "description": "page number of results to return (1-based)",
+            "name": "page",
+            "in": "query"
+          },
+          {
+            "type": "integer",
+            "description": "page size of results",
+            "name": "limit",
+            "in": "query"
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/responses/ProjectColumnList"
+          },
+          "404": {
+            "$ref": "#/responses/notFound"
+          }
+        }
+      },
+      "post": {
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "repository"
+        ],
+        "summary": "Create a new column in a project",
+        "operationId": "repoCreateProjectColumn",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "owner of the repo",
+            "name": "owner",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "name of the repo",
+            "name": "repo",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "integer",
+            "format": "int64",
+            "description": "id of the project",
+            "name": "id",
+            "in": "path",
+            "required": true
+          },
+          {
+            "name": "body",
+            "in": "body",
+            "schema": {
+              "$ref": "#/definitions/CreateProjectColumnOption"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "$ref": "#/responses/ProjectColumn"
+          },
+          "403": {
+            "$ref": "#/responses/forbidden"
+          },
+          "404": {
+            "$ref": "#/responses/notFound"
+          },
+          "422": {
+            "$ref": "#/responses/validationError"
+          }
+        }
+      }
+    },
+    "/repos/{owner}/{repo}/projects/{id}/columns/{column_id}": {
+      "delete": {
+        "tags": [
+          "repository"
+        ],
+        "summary": "Delete a project column",
+        "operationId": "repoDeleteProjectColumn",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "owner of the repo",
+            "name": "owner",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "name of the repo",
+            "name": "repo",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "integer",
+            "format": "int64",
+            "description": "id of the project",
+            "name": "id",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "integer",
+            "format": "int64",
+            "description": "id of the column",
+            "name": "column_id",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "204": {
+            "$ref": "#/responses/empty"
+          },
+          "403": {
+            "$ref": "#/responses/forbidden"
+          },
+          "404": {
+            "$ref": "#/responses/notFound"
+          }
+        }
+      },
+      "patch": {
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "repository"
+        ],
+        "summary": "Edit a project column",
+        "operationId": "repoEditProjectColumn",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "owner of the repo",
+            "name": "owner",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "name of the repo",
+            "name": "repo",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "integer",
+            "format": "int64",
+            "description": "id of the project",
+            "name": "id",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "integer",
+            "format": "int64",
+            "description": "id of the column",
+            "name": "column_id",
+            "in": "path",
+            "required": true
+          },
+          {
+            "name": "body",
+            "in": "body",
+            "schema": {
+              "$ref": "#/definitions/EditProjectColumnOption"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/responses/ProjectColumn"
+          },
+          "403": {
+            "$ref": "#/responses/forbidden"
+          },
+          "404": {
+            "$ref": "#/responses/notFound"
+          },
+          "422": {
+            "$ref": "#/responses/validationError"
+          }
+        }
+      }
+    },
+    "/repos/{owner}/{repo}/projects/{id}/columns/{column_id}/issues": {
+      "get": {
+        "description": "Gitea projects only contain issues — note cards and pull requests are not modeled as project items.",
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "repository"
+        ],
+        "summary": "List issues in a project column",
+        "operationId": "repoListProjectColumnIssues",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "owner of the repo",
+            "name": "owner",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "name of the repo",
+            "name": "repo",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "integer",
+            "format": "int64",
+            "description": "id of the project",
+            "name": "id",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "integer",
+            "format": "int64",
+            "description": "id of the column",
+            "name": "column_id",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "integer",
+            "description": "page number of results to return (1-based)",
+            "name": "page",
+            "in": "query"
+          },
+          {
+            "type": "integer",
+            "description": "page size of results",
+            "name": "limit",
+            "in": "query"
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/responses/IssueList"
+          },
+          "404": {
+            "$ref": "#/responses/notFound"
+          }
+        }
+      }
+    },
+    "/repos/{owner}/{repo}/projects/{id}/columns/{column_id}/issues/{issue_id}": {
+      "post": {
+        "description": "Gitea projects only contain issues — note cards and pull requests cannot be added.",
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "repository"
+        ],
+        "summary": "Add an issue to a project column",
+        "operationId": "repoAddIssueToProjectColumn",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "owner of the repo",
+            "name": "owner",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "name of the repo",
+            "name": "repo",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "integer",
+            "format": "int64",
+            "description": "id of the project",
+            "name": "id",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "integer",
+            "format": "int64",
+            "description": "id of the column",
+            "name": "column_id",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "integer",
+            "format": "int64",
+            "description": "id of the issue",
+            "name": "issue_id",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "201": {
+            "$ref": "#/responses/empty"
+          },
+          "403": {
+            "$ref": "#/responses/forbidden"
+          },
+          "404": {
+            "$ref": "#/responses/notFound"
+          },
+          "422": {
+            "$ref": "#/responses/validationError"
+          }
+        }
+      },
+      "delete": {
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "repository"
+        ],
+        "summary": "Remove an issue from a project column",
+        "operationId": "repoRemoveIssueFromProjectColumn",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "owner of the repo",
+            "name": "owner",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "name of the repo",
+            "name": "repo",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "integer",
+            "format": "int64",
+            "description": "id of the project",
+            "name": "id",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "integer",
+            "format": "int64",
+            "description": "id of the column",
+            "name": "column_id",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "integer",
+            "format": "int64",
+            "description": "id of the issue",
+            "name": "issue_id",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "204": {
+            "$ref": "#/responses/empty"
+          },
+          "403": {
+            "$ref": "#/responses/forbidden"
+          },
+          "404": {
+            "$ref": "#/responses/notFound"
+          },
+          "422": {
+            "$ref": "#/responses/validationError"
+          }
+        }
+      }
+    },
+    "/repos/{owner}/{repo}/projects/{id}/issues/{issue_id}/move": {
+      "post": {
+        "description": "Atomically moves an existing project issue into a different column, optionally setting its sorting position.",
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "repository"
+        ],
+        "summary": "Move an issue between columns of a project",
+        "operationId": "repoMoveProjectIssue",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "owner of the repo",
+            "name": "owner",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "name of the repo",
+            "name": "repo",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "integer",
+            "format": "int64",
+            "description": "id of the project",
+            "name": "id",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "integer",
+            "format": "int64",
+            "description": "id of the issue",
+            "name": "issue_id",
+            "in": "path",
+            "required": true
+          },
+          {
+            "name": "body",
+            "in": "body",
+            "schema": {
+              "$ref": "#/definitions/MoveProjectIssueOption"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "$ref": "#/responses/empty"
+          },
+          "403": {
+            "$ref": "#/responses/forbidden"
+          },
+          "404": {
+            "$ref": "#/responses/notFound"
+          },
+          "422": {
+            "$ref": "#/responses/validationError"
+          }
+        }
+      }
+    },
     "/repos/{owner}/{repo}/pulls": {
       "get": {
         "produces": [
@@ -24156,6 +24906,53 @@
       },
       "x-go-package": "code.gitea.io/gitea/modules/structs"
     },
+    "CreateProjectColumnOption": {
+      "description": "CreateProjectColumnOption represents options for creating a project column",
+      "type": "object",
+      "required": [
+        "title"
+      ],
+      "properties": {
+        "color": {
+          "description": "Column color in 6-digit hex format, e.g. #FF0000",
+          "type": "string",
+          "x-go-name": "Color"
+        },
+        "title": {
+          "type": "string",
+          "x-go-name": "Title"
+        }
+      },
+      "x-go-package": "code.gitea.io/gitea/modules/structs"
+    },
+    "CreateProjectOption": {
+      "description": "CreateProjectOption represents options for creating a project",
+      "type": "object",
+      "required": [
+        "title"
+      ],
+      "properties": {
+        "card_type": {
+          "description": "Card type: \"text_only\" or \"images_and_text\"",
+          "type": "string",
+          "x-go-name": "CardType"
+        },
+        "description": {
+          "type": "string",
+          "x-go-name": "Description"
+        },
+        "template_type": {
+          "description": "Template type: \"none\", \"basic_kanban\" or \"bug_triage\"",
+          "type": "string",
+          "x-go-name": "TemplateType"
+        },
+        "title": {
+          "type": "string",
+          "x-go-name": "Title"
+        }
+      },
+      "x-go-package": "code.gitea.io/gitea/modules/structs"
+    },
     "CreatePullRequestOption": {
       "description": "CreatePullRequestOption options when creating a pull request",
       "type": "object",
@@ -25357,6 +26154,56 @@
           "description": "The website URL of the organization",
           "type": "string",
           "x-go-name": "Website"
+        }
+      },
+      "x-go-package": "code.gitea.io/gitea/modules/structs"
+    },
+    "EditProjectColumnOption": {
+      "description": "EditProjectColumnOption represents options for editing a project column",
+      "type": "object",
+      "properties": {
+        "color": {
+          "description": "Column color in 6-digit hex format, e.g. #FF0000",
+          "type": "string",
+          "x-go-name": "Color"
+        },
+        "sorting": {
+          "type": "integer",
+          "format": "int64",
+          "x-go-name": "Sorting"
+        },
+        "title": {
+          "type": "string",
+          "x-go-name": "Title"
+        }
+      },
+      "x-go-package": "code.gitea.io/gitea/modules/structs"
+    },
+    "EditProjectOption": {
+      "description": "EditProjectOption represents options for editing a project",
+      "type": "object",
+      "properties": {
+        "card_type": {
+          "description": "Card type: \"text_only\" or \"images_and_text\"",
+          "type": "string",
+          "x-go-name": "CardType"
+        },
+        "description": {
+          "type": "string",
+          "x-go-name": "Description"
+        },
+        "state": {
+          "type": "string",
+          "enum": [
+            "open",
+            "closed"
+          ],
+          "x-go-enum-desc": "open StateOpen  StateOpen pr is opened\nclosed StateClosed  StateClosed pr is closed",
+          "x-go-name": "State"
+        },
+        "title": {
+          "type": "string",
+          "x-go-name": "Title"
         }
       },
       "x-go-package": "code.gitea.io/gitea/modules/structs"
@@ -27458,6 +28305,28 @@
       },
       "x-go-package": "code.gitea.io/gitea/modules/structs"
     },
+    "MoveProjectIssueOption": {
+      "description": "MoveProjectIssueOption represents options for moving an issue between columns",
+      "type": "object",
+      "required": [
+        "column_id"
+      ],
+      "properties": {
+        "column_id": {
+          "description": "Target column to move the issue into",
+          "type": "integer",
+          "format": "int64",
+          "x-go-name": "ColumnID"
+        },
+        "sorting": {
+          "description": "Optional sorting position within the target column",
+          "type": "integer",
+          "format": "int64",
+          "x-go-name": "Sorting"
+        }
+      },
+      "x-go-package": "code.gitea.io/gitea/modules/structs"
+    },
     "NewIssuePinsAllowed": {
       "description": "NewIssuePinsAllowed represents an API response that says if new Issue Pins are allowed",
       "type": "object",
@@ -28139,62 +29008,145 @@
       "x-go-package": "code.gitea.io/gitea/modules/structs"
     },
     "Project": {
-      "description": "Project represents a project",
+      "description": "Gitea projects can only contain issues — note cards and pull requests are\nnot modeled as project items.",
       "type": "object",
+      "title": "Project represents a project.",
       "properties": {
+        "card_type": {
+          "description": "Card type: \"text_only\" or \"images_and_text\"",
+          "type": "string",
+          "x-go-name": "CardType"
+        },
         "closed_at": {
           "type": "string",
           "format": "date-time",
-          "x-go-name": "Closed"
+          "x-go-name": "ClosedAt"
         },
         "created_at": {
           "type": "string",
           "format": "date-time",
-          "x-go-name": "Created"
+          "x-go-name": "CreatedAt"
         },
-        "creator_id": {
-          "description": "CreatorID is the user who created the project",
-          "type": "integer",
-          "format": "int64",
-          "x-go-name": "CreatorID"
+        "creator": {
+          "$ref": "#/definitions/User"
         },
         "description": {
-          "description": "Description provides details about the project",
           "type": "string",
           "x-go-name": "Description"
         },
+        "html_url": {
+          "type": "string",
+          "x-go-name": "HTMLURL"
+        },
         "id": {
-          "description": "ID is the unique identifier for the project",
           "type": "integer",
           "format": "int64",
           "x-go-name": "ID"
         },
-        "is_closed": {
-          "description": "IsClosed indicates if the project is closed",
-          "type": "boolean",
-          "x-go-name": "IsClosed"
+        "num_closed_issues": {
+          "type": "integer",
+          "format": "int64",
+          "x-go-name": "NumClosedIssues"
+        },
+        "num_issues": {
+          "type": "integer",
+          "format": "int64",
+          "x-go-name": "NumIssues"
+        },
+        "num_open_issues": {
+          "type": "integer",
+          "format": "int64",
+          "x-go-name": "NumOpenIssues"
         },
         "owner_id": {
-          "description": "OwnerID is the owner of the project (for org-level projects)",
           "type": "integer",
           "format": "int64",
           "x-go-name": "OwnerID"
         },
         "repo_id": {
-          "description": "RepoID is the repository this project belongs to (for repo-level projects)",
           "type": "integer",
           "format": "int64",
           "x-go-name": "RepoID"
         },
+        "state": {
+          "type": "string",
+          "enum": [
+            "open",
+            "closed"
+          ],
+          "x-go-enum-desc": "open StateOpen  StateOpen pr is opened\nclosed StateClosed  StateClosed pr is closed",
+          "x-go-name": "State"
+        },
+        "template_type": {
+          "description": "Template type: \"none\", \"basic_kanban\" or \"bug_triage\"",
+          "type": "string",
+          "x-go-name": "TemplateType"
+        },
         "title": {
-          "description": "Title is the title of the project",
+          "type": "string",
+          "x-go-name": "Title"
+        },
+        "type": {
+          "description": "Project type: \"individual\", \"repository\" or \"organization\"",
+          "type": "string",
+          "x-go-name": "Type"
+        },
+        "updated_at": {
+          "type": "string",
+          "format": "date-time",
+          "x-go-name": "UpdatedAt"
+        }
+      },
+      "x-go-package": "code.gitea.io/gitea/modules/structs"
+    },
+    "ProjectColumn": {
+      "description": "ProjectColumn represents a project column (board)",
+      "type": "object",
+      "properties": {
+        "color": {
+          "type": "string",
+          "x-go-name": "Color"
+        },
+        "created_at": {
+          "type": "string",
+          "format": "date-time",
+          "x-go-name": "CreatedAt"
+        },
+        "creator": {
+          "$ref": "#/definitions/User"
+        },
+        "default": {
+          "type": "boolean",
+          "x-go-name": "Default"
+        },
+        "id": {
+          "type": "integer",
+          "format": "int64",
+          "x-go-name": "ID"
+        },
+        "num_issues": {
+          "type": "integer",
+          "format": "int64",
+          "x-go-name": "NumIssues"
+        },
+        "project_id": {
+          "type": "integer",
+          "format": "int64",
+          "x-go-name": "ProjectID"
+        },
+        "sorting": {
+          "type": "integer",
+          "format": "int64",
+          "x-go-name": "Sorting"
+        },
+        "title": {
           "type": "string",
           "x-go-name": "Title"
         },
         "updated_at": {
           "type": "string",
           "format": "date-time",
-          "x-go-name": "Updated"
+          "x-go-name": "UpdatedAt"
         }
       },
       "x-go-package": "code.gitea.io/gitea/modules/structs"
@@ -31041,6 +31993,36 @@
         }
       }
     },
+    "Project": {
+      "description": "Project",
+      "schema": {
+        "$ref": "#/definitions/Project"
+      }
+    },
+    "ProjectColumn": {
+      "description": "ProjectColumn",
+      "schema": {
+        "$ref": "#/definitions/ProjectColumn"
+      }
+    },
+    "ProjectColumnList": {
+      "description": "ProjectColumnList",
+      "schema": {
+        "type": "array",
+        "items": {
+          "$ref": "#/definitions/ProjectColumn"
+        }
+      }
+    },
+    "ProjectList": {
+      "description": "ProjectList",
+      "schema": {
+        "type": "array",
+        "items": {
+          "$ref": "#/definitions/Project"
+        }
+      }
+    },
     "PublicKey": {
       "description": "PublicKey",
       "schema": {
@@ -31508,7 +32490,7 @@
     "parameterBodies": {
       "description": "parameterBodies",
       "schema": {
-        "$ref": "#/definitions/LockIssueOption"
+        "$ref": "#/definitions/MoveProjectIssueOption"
       }
     },
     "redirect": {

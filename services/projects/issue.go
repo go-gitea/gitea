@@ -17,6 +17,10 @@ import (
 	"code.gitea.io/gitea/modules/optional"
 )
 
+// ErrIssueNotInProject is returned when MoveIssuesOnProjectColumn is asked to move
+// issues that aren't yet attached to the column's project.
+var ErrIssueNotInProject = errors.New("all issues have to be added to a project first")
+
 // MoveIssuesOnProjectColumn moves or keeps issues in a column and sorts them inside that column
 func MoveIssuesOnProjectColumn(ctx context.Context, doer *user_model.User, column *project_model.Column, sortedIssueIDs map[int64]int64) error {
 	return db.WithTx(ctx, func(ctx context.Context) error {
@@ -32,7 +36,7 @@ func MoveIssuesOnProjectColumn(ctx context.Context, doer *user_model.User, colum
 			return err
 		}
 		if int(count) != len(sortedIssueIDs) {
-			return errors.New("all issues have to be added to a project first")
+			return ErrIssueNotInProject
 		}
 
 		issues, err := issues_model.GetIssuesByIDs(ctx, issueIDs)
@@ -63,7 +67,6 @@ func MoveIssuesOnProjectColumn(ctx context.Context, doer *user_model.User, colum
 			if err != nil {
 				return err
 			}
-
 			projectColumnID := projectColumnMap[column.ProjectID]
 
 			if projectColumnID != column.ID {
@@ -82,16 +85,7 @@ func MoveIssuesOnProjectColumn(ctx context.Context, doer *user_model.User, colum
 				}
 			}
 
-			// Update the column and sorting for this specific issue in this specific project.
-			// IMPORTANT: The WHERE clause must include both issue_id AND project_id to ensure
-			// that moving an issue's column in one project doesn't affect its column in other
-			// projects when the issue is assigned to multiple projects.
-			_, err = db.GetEngine(ctx).Table("project_issue").
-				Where("issue_id = ? AND project_id = ?", issueID, column.ProjectID).
-				Update(map[string]any{
-					"project_board_id": column.ID,
-					"sorting":          sorting,
-				})
+			_, err = db.Exec(ctx, "UPDATE `project_issue` SET project_board_id=?, sorting=? WHERE issue_id=?", column.ID, sorting, issueID)
 			if err != nil {
 				return err
 			}
@@ -129,7 +123,7 @@ func LoadIssuesAssigneesForProject(ctx context.Context, issuesMap map[int64]issu
 func LoadIssuesFromProject(ctx context.Context, project *project_model.Project, opts *issues_model.IssuesOptions) (results map[int64]issues_model.IssueList, _ error) {
 	issueList, err := issues_model.Issues(ctx, opts.Copy(func(o *issues_model.IssuesOptions) {
 		o.ProjectIDs = []int64{project.ID}
-		o.SortType = "project-column-sorting"
+		o.SortType = issues_model.SortTypeProjectColumnSorting
 	}))
 	if err != nil {
 		return nil, err

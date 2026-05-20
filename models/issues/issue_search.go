@@ -21,7 +21,11 @@ import (
 	"xorm.io/builder"
 )
 
-const ScopeSortPrefix = "scope-"
+const (
+	ScopeSortPrefix = "scope-"
+	// SortTypeProjectColumnSorting orders issues within a project column by their project_issue.sorting value.
+	SortTypeProjectColumnSorting = "project-column-sorting"
+)
 
 // IssuesOptions represents options of an issue.
 type IssuesOptions struct { //nolint:revive // export stutter
@@ -121,7 +125,7 @@ func applySorts(sess db.Session, sortType string, priorityRepoID int64) {
 			"ELSE 2 END ASC", priorityRepoID).
 			Desc("issue.created_unix").
 			Desc("issue.id")
-	case "project-column-sorting":
+	case SortTypeProjectColumnSorting:
 		sess.Asc("project_issue.sorting").Desc("issue.created_unix").Desc("issue.id")
 	default:
 		sess.Desc("issue.created_unix").Desc("issue.id")

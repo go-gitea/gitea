@@ -337,20 +337,6 @@ func SetDefaultColumn(ctx context.Context, projectID, columnID int64) error {
 	})
 }
 
-func GetColumnsByIDs(ctx context.Context, projectID int64, columnsIDs []int64) (ColumnList, error) {
-	columns := make([]*Column, 0, 5)
-	if len(columnsIDs) == 0 {
-		return columns, nil
-	}
-	if err := db.GetEngine(ctx).
-		Where("project_id =?", projectID).
-		In("id", columnsIDs).
-		OrderBy("sorting").Find(&columns); err != nil {
-		return nil, err
-	}
-	return columns, nil
-}
-
 // MoveColumnsOnProject sorts columns in a project
 func MoveColumnsOnProject(ctx context.Context, project *Project, sortedColumnIDs map[int64]int64) error {
 	return db.WithTx(ctx, func(ctx context.Context) error {
