@@ -22,7 +22,8 @@ import (
 // - For collaborator, all users that have read access or higher to the repository.
 // - For repository under organization, users under the teams which have read permission or higher of pull request unit
 // - Owner will be listed if it's not an organization, not the poster and not in the list of reviewers
-func GetReviewers(ctx context.Context, repo *repo_model.Repository, doerID, posterID int64) ([]*user_model.User, error) {
+// - Users with visibility the doer cannot see are filtered out via BuildCanSeeUserCondition
+func GetReviewers(ctx context.Context, repo *repo_model.Repository, doer *user_model.User, posterID int64) ([]*user_model.User, error) {
 	if err := repo.LoadOwner(ctx); err != nil {
 		return nil, err
 	}
@@ -53,8 +54,17 @@ func GetReviewers(ctx context.Context, repo *repo_model.Repository, doerID, post
 	// and just waste 1 unit is cheaper than re-allocate memory once.
 	users := make([]*user_model.User, 0, len(uniqueUserIDs)+1)
 	if len(uniqueUserIDs) > 0 {
-		if err := e.In("id", uniqueUserIDs.Values()).
-			Where(builder.Eq{"`user`.is_active": true}).
+		cond := builder.And(
+			builder.In("`user`.id", uniqueUserIDs.Values()),
+			builder.Eq{"`user`.is_active": true},
+		)
+		// Hide users the doer cannot see (visibility=private when not in same org/self).
+		// BuildCanSeeUserCondition returns nil for admins (no extra filter).
+		// Regression guard for issue #37371.
+		if visCond := user_model.BuildCanSeeUserCondition(doer); visCond != nil {
+			cond = cond.And(visCond)
+		}
+		if err := e.Where(cond).
 			OrderBy(user_model.GetOrderByName()).
 			Find(&users); err != nil {
 			return nil, err

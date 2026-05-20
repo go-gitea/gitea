@@ -317,7 +317,7 @@ func (d *IssuePageMetaData) retrieveReviewersData(ctx *context.Context) {
 
 	if data.CanChooseReviewer {
 		var err error
-		reviewers, err = pull_service.GetReviewers(ctx, repo, ctx.Doer.ID, posterID)
+		reviewers, err = pull_service.GetReviewers(ctx, repo, ctx.Doer, posterID)
 		if err != nil {
 			ctx.ServerError("GetReviewers", err)
 			return
