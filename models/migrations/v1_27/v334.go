@@ -4,13 +4,19 @@
 package v1_27
 
 import (
-	"context"
-
-	"code.gitea.io/gitea/models/actions"
+	"code.gitea.io/gitea/models/db"
 
 	"xorm.io/xorm"
 )
 
-func AddActionRunJobSummaryTable(ctx context.Context, x *xorm.Engine) error {
-	return x.Sync(new(actions.ActionRunJobSummary))
+func AddCancellingSupportToActionRunner(x db.EngineMigration) error {
+	type ActionRunner struct {
+		HasCancellingSupport bool `xorm:"has_cancelling_support NOT NULL DEFAULT false"`
+	}
+
+	_, err := x.SyncWithOptions(xorm.SyncOptions{
+		IgnoreConstrains:  true,
+		IgnoreDropIndices: true,
+	}, new(ActionRunner))
+	return err
 }

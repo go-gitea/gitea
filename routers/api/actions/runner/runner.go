@@ -7,6 +7,7 @@ import (
 	"context"
 	"errors"
 	"net/http"
+	"slices"
 
 	actions_model "code.gitea.io/gitea/models/actions"
 	repo_model "code.gitea.io/gitea/models/repo"
@@ -22,6 +23,7 @@ import (
 	gouuid "github.com/google/uuid"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
+	"google.golang.org/protobuf/proto"
 )
 
 func NewRunnerServiceHandler() (string, http.Handler) {
@@ -67,17 +69,19 @@ func (s *Service) Register(
 	}
 
 	labels := req.Msg.Labels
+	hasCancellingSupport, _ := runnerRequestHasCancellingCapability(req.Msg)
 
 	// create new runner
 	name := util.EllipsisDisplayString(req.Msg.Name, 255)
 	runner := &actions_model.ActionRunner{
-		UUID:        gouuid.New().String(),
-		Name:        name,
-		OwnerID:     runnerToken.OwnerID,
-		RepoID:      runnerToken.RepoID,
-		Version:     req.Msg.Version,
-		AgentLabels: labels,
-		Ephemeral:   req.Msg.Ephemeral,
+		UUID:                 gouuid.New().String(),
+		Name:                 name,
+		OwnerID:              runnerToken.OwnerID,
+		RepoID:               runnerToken.RepoID,
+		Version:              req.Msg.Version,
+		AgentLabels:          labels,
+		Ephemeral:            req.Msg.Ephemeral,
+		HasCancellingSupport: hasCancellingSupport,
 	}
 	runner.GenerateAndFillToken()
 
@@ -107,14 +111,53 @@ func (s *Service) Register(
 	return res, nil
 }
 
+// runnerCapabilityCancelling is the wire string the runner advertises in its
+// capabilities list to indicate it understands the transitional cancelling
+// state and will run post-step cleanup before finalizing the task.
+const runnerCapabilityCancelling = "cancelling"
+
+type capabilityGetter interface {
+	GetCapabilities() []string
+}
+
+type declareRequest interface {
+	proto.Message
+	GetVersion() string
+	GetLabels() []string
+}
+
+func runnerRequestHasCancellingCapability(req proto.Message) (bool, bool) {
+	if req == nil {
+		return false, false
+	}
+
+	if typedReq, ok := any(req).(capabilityGetter); ok {
+		return slices.Contains(typedReq.GetCapabilities(), runnerCapabilityCancelling), true
+	}
+
+	return false, false
+}
+
+func applyDeclareRequestToRunner(runner *actions_model.ActionRunner, req declareRequest) []string {
+	runner.AgentLabels = req.GetLabels()
+	runner.Version = req.GetVersion()
+
+	cols := []string{"agent_labels", "version"}
+	hasCancellingSupport, capabilityStateKnown := runnerRequestHasCancellingCapability(req)
+	if capabilityStateKnown && runner.HasCancellingSupport != hasCancellingSupport {
+		runner.HasCancellingSupport = hasCancellingSupport
+		cols = append(cols, "has_cancelling_support")
+	}
+
+	return cols
+}
+
 func (s *Service) Declare(
 	ctx context.Context,
 	req *connect.Request[runnerv1.DeclareRequest],
 ) (*connect.Response[runnerv1.DeclareResponse], error) {
 	runner := GetRunner(ctx)
-	runner.AgentLabels = req.Msg.Labels
-	runner.Version = req.Msg.Version
-	if err := actions_model.UpdateRunner(ctx, runner, "agent_labels", "version"); err != nil {
+	if err := actions_model.UpdateRunner(ctx, runner, applyDeclareRequestToRunner(runner, req.Msg)...); err != nil {
 		return nil, status.Errorf(codes.Internal, "update runner: %v", err)
 	}
 

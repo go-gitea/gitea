@@ -108,7 +108,7 @@ func testAPIListIssuesPublicOnly(t *testing.T) {
 
 	publicOnlyToken := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeReadIssue, auth_model.AccessTokenScopePublicOnly)
 	req = NewRequest(t, "GET", link.String()).AddTokenAuth(publicOnlyToken)
-	MakeRequest(t, req, http.StatusForbidden)
+	MakeRequest(t, req, http.StatusNotFound)
 }
 
 func testAPICreateIssue(t *testing.T) {
@@ -171,9 +171,8 @@ func testAPICreateIssueParallel(t *testing.T) {
 
 	var wg sync.WaitGroup
 	for i := range 10 {
-		wg.Add(1)
-		go func(parentT *testing.T, i int) {
-			parentT.Run(fmt.Sprintf("ParallelCreateIssue_%d", i), func(t *testing.T) {
+		wg.Go(func() {
+			t.Run(fmt.Sprintf("ParallelCreateIssue_%d", i), func(t *testing.T) {
 				newTitle := title + strconv.Itoa(i)
 				newBody := body + strconv.Itoa(i)
 				req := NewRequestWithJSON(t, "POST", urlStr, &api.CreateIssueOption{
@@ -192,10 +191,8 @@ func testAPICreateIssueParallel(t *testing.T) {
 					Content:    newBody,
 					Title:      newTitle,
 				})
-
-				wg.Done()
 			})
-		}(t, i)
+		})
 	}
 	wg.Wait()
 }

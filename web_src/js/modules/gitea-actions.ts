@@ -1,5 +1,5 @@
 // see "models/actions/status.go", if it needs to be used somewhere else, move it to a shared file like "types/actions.ts"
-export type ActionsStatus = 'unknown' | 'waiting' | 'running' | 'success' | 'failure' | 'cancelled' | 'skipped' | 'blocked';
+export type ActionsStatus = 'unknown' | 'waiting' | 'running' | 'cancelling' | 'success' | 'failure' | 'cancelled' | 'skipped' | 'blocked';
 export type ActionsArtifactStatus = 'expired' | 'completed';
 
 export type ActionsRun = {

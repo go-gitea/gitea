@@ -144,7 +144,7 @@ func CleanupEphemeralRunners(ctx context.Context) error {
 		From(builder.Select("*").From("`action_runner`"), "`action_runner`"). // mysql needs this redundant subquery
 		Join("INNER", "`action_task`", "`action_task`.`runner_id` = `action_runner`.`id`").
 		Where(builder.Eq{"`action_runner`.`ephemeral`": true}).
-		And(builder.NotIn("`action_task`.`status`", actions_model.StatusWaiting, actions_model.StatusRunning, actions_model.StatusBlocked))
+		And(builder.NotIn("`action_task`.`status`", actions_model.StatusWaiting, actions_model.StatusRunning, actions_model.StatusBlocked, actions_model.StatusCancelling))
 	b := builder.Delete(builder.In("id", subQuery)).From("`action_runner`")
 	res, err := db.GetEngine(ctx).Exec(b)
 	if err != nil {
