@@ -44,23 +44,31 @@ type RepositoryMeta struct {
 	FullName string `json:"full_name"`
 }
 
+// ProjectMeta basic project info as embedded in issue/PR responses
+type ProjectMeta struct {
+	ID       int64  `json:"id"`
+	Title    string `json:"title"`
+	ColumnID int64  `json:"column_id"`
+	Column   string `json:"column"`
+}
+
 // Issue represents an issue in a repository
 // swagger:model
 type Issue struct {
-	ID               int64         `json:"id"`
-	URL              string        `json:"url"`
-	HTMLURL          string        `json:"html_url"`
-	Index            int64         `json:"number"`
-	Poster           *User         `json:"user"`
-	OriginalAuthor   string        `json:"original_author"`
-	OriginalAuthorID int64         `json:"original_author_id"`
-	Title            string        `json:"title"`
-	Body             string        `json:"body"`
-	Ref              string        `json:"ref"`
-	Attachments      []*Attachment `json:"assets"`
-	Labels           []*Label      `json:"labels"`
-	Milestone        *Milestone    `json:"milestone"`
-	Projects         []*Project    `json:"projects"`
+	ID               int64          `json:"id"`
+	URL              string         `json:"url"`
+	HTMLURL          string         `json:"html_url"`
+	Index            int64          `json:"number"`
+	Poster           *User          `json:"user"`
+	OriginalAuthor   string         `json:"original_author"`
+	OriginalAuthorID int64          `json:"original_author_id"`
+	Title            string         `json:"title"`
+	Body             string         `json:"body"`
+	Ref              string         `json:"ref"`
+	Attachments      []*Attachment  `json:"assets"`
+	Labels           []*Label       `json:"labels"`
+	Milestone        *Milestone     `json:"milestone"`
+	Projects         []*ProjectMeta `json:"projects"`
 	// deprecated
 	Assignee  *User     `json:"assignee"`
 	Assignees []*User   `json:"assignees"`

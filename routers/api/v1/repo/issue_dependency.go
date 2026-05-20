@@ -10,6 +10,7 @@ import (
 	issues_model "code.gitea.io/gitea/models/issues"
 	access_model "code.gitea.io/gitea/models/perm/access"
 	repo_model "code.gitea.io/gitea/models/repo"
+	"code.gitea.io/gitea/modules/cache"
 	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/web"
@@ -142,7 +143,7 @@ func GetIssueDependencies(ctx *context.APIContext) {
 	}
 	ctx.SetLinkHeader(total, listOptions.PageSize)
 	ctx.SetTotalCountHeader(total)
-	ctx.JSON(http.StatusOK, convert.ToAPIIssueList(ctx, ctx.Doer, blockerIssues))
+	ctx.JSON(http.StatusOK, convert.ToAPIIssueList(ctx, ctx.Doer, blockerIssues, convert.ToIssueOptions{PermCache: cache.NewEphemeralCache()}))
 }
 
 // CreateIssueDependency create a new issue dependencies
@@ -203,7 +204,7 @@ func CreateIssueDependency(ctx *context.APIContext) {
 		return
 	}
 
-	ctx.JSON(http.StatusCreated, convert.ToAPIIssue(ctx, ctx.Doer, target))
+	ctx.JSON(http.StatusCreated, convert.ToAPIIssue(ctx, ctx.Doer, target, convert.ToIssueOptions{PermCache: cache.NewEphemeralCache()}))
 }
 
 // RemoveIssueDependency remove an issue dependency
@@ -264,7 +265,7 @@ func RemoveIssueDependency(ctx *context.APIContext) {
 		return
 	}
 
-	ctx.JSON(http.StatusCreated, convert.ToAPIIssue(ctx, ctx.Doer, target))
+	ctx.JSON(http.StatusCreated, convert.ToAPIIssue(ctx, ctx.Doer, target, convert.ToIssueOptions{PermCache: cache.NewEphemeralCache()}))
 }
 
 // GetIssueBlocks list issues that are blocked by this issue
@@ -367,7 +368,7 @@ func GetIssueBlocks(ctx *context.APIContext) {
 		issues = append(issues, &depMeta.Issue)
 	}
 
-	ctx.JSON(http.StatusOK, convert.ToAPIIssueList(ctx, ctx.Doer, issues))
+	ctx.JSON(http.StatusOK, convert.ToAPIIssueList(ctx, ctx.Doer, issues, convert.ToIssueOptions{PermCache: cache.NewEphemeralCache()}))
 }
 
 // CreateIssueBlocking block the issue given in the body by the issue in path
@@ -424,7 +425,7 @@ func CreateIssueBlocking(ctx *context.APIContext) {
 		return
 	}
 
-	ctx.JSON(http.StatusCreated, convert.ToAPIIssue(ctx, ctx.Doer, dependency))
+	ctx.JSON(http.StatusCreated, convert.ToAPIIssue(ctx, ctx.Doer, dependency, convert.ToIssueOptions{PermCache: cache.NewEphemeralCache()}))
 }
 
 // RemoveIssueBlocking unblock the issue given in the body by the issue in path
@@ -481,7 +482,7 @@ func RemoveIssueBlocking(ctx *context.APIContext) {
 		return
 	}
 
-	ctx.JSON(http.StatusCreated, convert.ToAPIIssue(ctx, ctx.Doer, dependency))
+	ctx.JSON(http.StatusCreated, convert.ToAPIIssue(ctx, ctx.Doer, dependency, convert.ToIssueOptions{PermCache: cache.NewEphemeralCache()}))
 }
 
 func getParamsIssue(ctx *context.APIContext) *issues_model.Issue {
