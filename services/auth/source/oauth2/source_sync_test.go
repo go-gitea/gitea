@@ -95,7 +95,21 @@ func TestSource(t *testing.T) {
 
 			u, err := user_model.GetUserByID(t.Context(), user.ID)
 			assert.NoError(t, err)
-			assert.False(t, u.IsActive)
+			assert.True(t, u.IsActive)
+		})
+
+		t.Run("unexpected error", func(t *testing.T) {
+			err := source.refresh(t.Context(), provider, &user_model.ExternalLoginUser{
+				ExternalID:    "external",
+				UserID:        user.ID,
+				LoginSourceID: user.LoginSource,
+				RefreshToken:  "error",
+			})
+			assert.ErrorContains(t, err, "refresh failed")
+
+			u, err := user_model.GetUserByID(t.Context(), user.ID)
+			assert.NoError(t, err)
+			assert.True(t, u.IsActive)
 		})
 	})
 }
