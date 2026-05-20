@@ -1,6 +1,6 @@
 import {clippie, type ClippieContent} from 'clippie';
 import {showTemporaryTooltip} from './tippy.ts';
-import {sleep, toAbsoluteUrl} from '../utils.ts';
+import {sleep} from '../utils.ts';
 import {svg} from '../svg.ts';
 import {createElementFromHTML} from '../utils/dom.ts';
 
@@ -63,7 +63,6 @@ function replaceWithFeedbackSvg(origSvg: SVGElement, success: boolean): () => vo
 // Enable clipboard copy from HTML attributes. These properties are supported:
 // - data-clipboard-text: Direct text to copy
 // - data-clipboard-target: Holds a selector for an element. "value" of <input> or <textarea>, or "textContent" of <div> will be copied
-// - data-clipboard-text-type: When set to 'url' will convert relative to absolute urls
 export function initGlobalCopyToClipboardListener() {
   document.addEventListener('click', async (e) => {
     const target = (e.target as HTMLElement).closest<HTMLElement>('[data-clipboard-text], [data-clipboard-target]');
@@ -84,11 +83,6 @@ export function initGlobalCopyToClipboardListener() {
       }
     }
     // now, text can not be null
-
-    if (target.getAttribute('data-clipboard-text-type') === 'url') {
-      text = toAbsoluteUrl(text);
-    }
-
     await copyToClipboard(target, text);
   });
 }
