@@ -13,6 +13,8 @@ import (
 	"code.gitea.io/gitea/models/unit"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/container"
+	"code.gitea.io/gitea/modules/git"
+	"code.gitea.io/gitea/modules/gitrepo"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/util"
 
@@ -24,11 +26,12 @@ type FindNotificationOptions struct {
 	db.ListOptions
 	UserID            int64
 	RepoID            int64
-	IssueID           int64
 	Status            []NotificationStatus
 	Source            []NotificationSource
 	UpdatedAfterUnix  int64
 	UpdatedBeforeUnix int64
+
+	uniqueKey string
 }
 
 // ToCond will convert each condition into a xorm-Cond
@@ -40,17 +43,17 @@ func (opts FindNotificationOptions) ToConds() builder.Cond {
 	if opts.RepoID != 0 {
 		cond = cond.And(builder.Eq{"notification.repo_id": opts.RepoID})
 	}
-	if opts.IssueID != 0 {
-		cond = cond.And(builder.Eq{"notification.issue_id": opts.IssueID})
+	if opts.uniqueKey != "" {
+		cond = cond.And(builder.Eq{"notification.unique_key": opts.uniqueKey})
 	}
-	if len(opts.Status) > 0 {
+	if opts.uniqueKey == "" && len(opts.Status) > 0 {
 		if len(opts.Status) == 1 {
 			cond = cond.And(builder.Eq{"notification.status": opts.Status[0]})
 		} else {
 			cond = cond.And(builder.In("notification.status", opts.Status))
 		}
 	}
-	if len(opts.Source) > 0 {
+	if opts.uniqueKey == "" && len(opts.Source) > 0 {
 		cond = cond.And(builder.In("notification.source", opts.Source))
 	}
 	if opts.UpdatedAfterUnix != 0 {
@@ -66,6 +69,22 @@ func (opts FindNotificationOptions) ToOrders() string {
 	return "notification.updated_unix DESC"
 }
 
+func (opts *FindNotificationOptions) setUniqueKey(uniqueKey string) {
+	opts.uniqueKey = uniqueKey
+}
+
+func (opts *FindNotificationOptions) FilterByIssue(issueID int64, isPull bool) {
+	opts.setUniqueKey(uniqueKeyForIssueNotification(issueID, isPull))
+}
+
+func (opts *FindNotificationOptions) FilterByCommit(repoID int64, commitID string) {
+	opts.setUniqueKey(uniqueKeyForCommitNotification(repoID, commitID))
+}
+
+func (opts *FindNotificationOptions) FilterByRelease(releaseID int64) {
+	opts.setUniqueKey(UniqueKeyForReleaseNotification(releaseID))
+}
+
 // CreateOrUpdateIssueNotifications creates an issue notification
 // for each watcher, or updates it if already exists
 // receiverID > 0 just send to receiver, else send to all watcher
@@ -78,13 +97,6 @@ func CreateOrUpdateIssueNotifications(ctx context.Context, issueID, commentID, n
 func createOrUpdateIssueNotifications(ctx context.Context, issueID, commentID, notificationAuthorID, receiverID int64) error {
 	// init
 	var toNotify container.Set[int64]
-	notifications, err := db.Find[Notification](ctx, FindNotificationOptions{
-		IssueID: issueID,
-	})
-	if err != nil {
-		return err
-	}
-
 	issue, err := issues_model.GetIssueByID(ctx, issueID)
 	if err != nil {
 		return err
@@ -148,7 +160,13 @@ func createOrUpdateIssueNotifications(ctx context.Context, issueID, commentID, n
 			continue
 		}
 
-		if notificationExists(notifications, issue.ID, userID) {
+		existing, err := GetIssueNotification(ctx, userID, issue.ID)
+		if err != nil {
+			if !db.IsErrNotExist(err) {
+				return err
+			}
+		}
+		if existing != nil && existing.ID > 0 {
 			if err = updateIssueNotification(ctx, userID, issue.ID, commentID, notificationAuthorID); err != nil {
 				return err
 			}
@@ -166,16 +184,29 @@ type NotificationList []*Notification
 
 // LoadAttributes load Repo Issue User and Comment if not loaded
 func (nl NotificationList) LoadAttributes(ctx context.Context) error {
-	if _, _, err := nl.LoadRepos(ctx); err != nil {
+	repos, _, err := nl.LoadRepos(ctx)
+	if err != nil {
+		return err
+	}
+	if err := repos.LoadAttributes(ctx); err != nil {
 		return err
 	}
 	if _, err := nl.LoadIssues(ctx); err != nil {
+		return err
+	}
+	if err = nl.LoadIssuePullRequests(ctx); err != nil {
 		return err
 	}
 	if _, err := nl.LoadUsers(ctx); err != nil {
 		return err
 	}
 	if _, err := nl.LoadComments(ctx); err != nil {
+		return err
+	}
+	if _, err = nl.LoadCommits(ctx); err != nil {
+		return err
+	}
+	if _, err := nl.LoadReleases(ctx); err != nil {
 		return err
 	}
 	return nil
@@ -447,6 +478,89 @@ func (nl NotificationList) LoadComments(ctx context.Context) ([]int, error) {
 			notification.Comment.Issue = notification.Issue
 		}
 	}
+	return failures, nil
+}
+
+func (nl NotificationList) getPendingReleaseIDs() []int64 {
+	ids := make(container.Set[int64], len(nl))
+	for _, notification := range nl {
+		if notification.Release != nil {
+			continue
+		}
+		if notification.ReleaseID > 0 {
+			ids.Add(notification.ReleaseID)
+		}
+	}
+	return ids.Values()
+}
+
+func (nl NotificationList) LoadReleases(ctx context.Context) ([]int, error) {
+	if len(nl) == 0 {
+		return []int{}, nil
+	}
+
+	releaseIDs := nl.getPendingReleaseIDs()
+	releases := make(map[int64]*repo_model.Release, len(releaseIDs))
+	if err := db.GetEngine(ctx).In("id", releaseIDs).Find(&releases); err != nil {
+		return nil, err
+	}
+
+	failures := []int{}
+	for i, notification := range nl {
+		if notification.ReleaseID > 0 && notification.Release == nil {
+			if releases[notification.ReleaseID] == nil {
+				log.Error("Notification[%d]: ReleaseID[%d] failed to load", notification.ID, notification.ReleaseID)
+				failures = append(failures, i)
+				continue
+			}
+			notification.Release = releases[notification.ReleaseID]
+			notification.Release.Repo = notification.Repository
+		}
+	}
+	return failures, nil
+}
+
+func (nl NotificationList) LoadCommits(ctx context.Context) ([]int, error) {
+	if len(nl) == 0 {
+		return []int{}, nil
+	}
+
+	_, _, err := nl.LoadRepos(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	failures := []int{}
+	repos := make(map[int64]*git.Repository, len(nl))
+	for i, n := range nl {
+		if n.Source != NotificationSourceCommit || n.CommitID == "" {
+			continue
+		}
+
+		repo, ok := repos[n.RepoID]
+		if !ok {
+			repo, err = gitrepo.OpenRepository(ctx, n.Repository)
+			if err != nil {
+				log.Error("Notification[%d]: Failed to get repo for commit %s: %v", n.ID, n.CommitID, err)
+				failures = append(failures, i)
+				continue
+			}
+			repos[n.RepoID] = repo
+		}
+		n.Commit, err = repo.GetCommit(n.CommitID)
+		if err != nil {
+			log.Error("Notification[%d]: Failed to get repo for commit %s: %v", n.ID, n.CommitID, err)
+			failures = append(failures, i)
+			continue
+		}
+	}
+
+	for _, repo := range repos {
+		if err := repo.Close(); err != nil {
+			log.Error("Failed to close repository: %v", err)
+		}
+	}
+
 	return failures, nil
 }
 
