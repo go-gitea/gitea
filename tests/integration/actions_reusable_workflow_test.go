@@ -70,7 +70,7 @@ on:
       needs_out:
         type: string
     secrets:
-      parent_token:
+      PARENT_TOKEN:
     outputs:
       r1_out:
         value: ${{ jobs.reusable1_job2.outputs.r1j2_out }}
@@ -139,7 +139,7 @@ jobs:
       parent_var: ${{ vars.myvar }}
       needs_out: ${{ needs.caller_job1.outputs.prepared }}
     secrets:
-      parent_token: ${{ secrets.mysecret }}
+      PARENT_TOKEN: ${{ secrets.mysecret }}
 
   caller_job3:
     needs: [caller_job2]
@@ -211,7 +211,7 @@ jobs:
 				if assert.Len(t, r1Job1Task.Secrets, 3) {
 					assert.Contains(t, r1Job1Task.Secrets, "GITEA_TOKEN")
 					assert.Contains(t, r1Job1Task.Secrets, "GITHUB_TOKEN")
-					assert.Equal(t, "secRET-t0Ken", r1Job1Task.Secrets["parent_token"])
+					assert.Equal(t, "secRET-t0Ken", r1Job1Task.Secrets["PARENT_TOKEN"])
 				}
 				customRunner.fetchNoTask(t)
 				defaultRunner.execTask(t, r1Job1Task, &mockTaskOutcome{
