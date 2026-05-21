@@ -3,7 +3,7 @@ description: Set up go and restore caches
 
 inputs:
   cache:
-    description: Restore the go caches via go-cache. Disable for jobs that don't build Go.
+    description: Restore the Go caches via go-cache.
     default: "true"
   lint-cache:
     description: Forwarded to go-cache to also restore the golangci-lint cache.
