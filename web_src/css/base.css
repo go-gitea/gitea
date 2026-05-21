@@ -309,8 +309,8 @@ a.suppressed:hover {
 a:focus-visible,
 button:focus-visible,
 [role="button"]:focus-visible {
-  outline: 1px solid var(--color-primary);
-  outline-offset: -1px;
+  outline: 2px solid var(--color-primary);
+  outline-offset: -2px;
 }
 
 a.silenced:hover {
