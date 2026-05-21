@@ -226,3 +226,10 @@ type RunDetails struct {
 	RunURL        string `json:"run_url"`
 	HTMLURL       string `json:"html_url"`
 }
+
+// ActionRunsBulkResult is returned by bulk cancel/delete endpoints
+// swagger:model
+type ActionRunsBulkResult struct {
+	// number of runs affected
+	Count int `json:"count"`
+}
