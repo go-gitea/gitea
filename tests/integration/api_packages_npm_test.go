@@ -13,6 +13,7 @@ import (
 
 	auth_model "code.gitea.io/gitea/models/auth"
 	"code.gitea.io/gitea/models/packages"
+	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unittest"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/packages/npm"
@@ -39,6 +40,7 @@ func TestPackageNpm(t *testing.T) {
 	packageBinPath := "./cli.sh"
 	repoType := "gitea"
 	repoURL := "http://localhost:3000/gitea/test.git"
+	repoDirectory := "packages/test-package"
 
 	data := "H4sIAAAAAAAA/ytITM5OTE/VL4DQelnF+XkMVAYGBgZmJiYK2MRBwNDcSIHB2NTMwNDQzMwAqA7IMDUxA9LUdgg2UFpcklgEdAql5kD8ogCnhwio5lJQUMpLzE1VslJQcihOzi9I1S9JLS7RhSYIJR2QgrLUouLM/DyQGkM9Az1D3YIiqExKanFyUWZBCVQ2BKhVwQVJDKwosbQkI78IJO/tZ+LsbRykxFXLNdA+HwWjYBSMgpENACgAbtAACAAA"
 
@@ -67,8 +69,10 @@ func TestPackageNpm(t *testing.T) {
 					},
 					"repository": {
 						"type": "` + repoType + `",
-						"url": "` + repoURL + `"
+						"url": "` + repoURL + `",
+						"directory": "` + repoDirectory + `"
 					},
+					"readme": "[docs](docs/usage.md)\n![logo](logo.png)",
 					"peerDependencies": {
 						"tea": "2.x",
 						"soy-milk": "1.2"
@@ -280,6 +284,31 @@ func TestPackageNpm(t *testing.T) {
 			assert.Equal(t, c.ExpectedTotal, result.Total, "case %d: unexpected total hits", i)
 			assert.Len(t, result.Objects, c.ExpectedResults, "case %d: unexpected result count", i)
 		}
+	})
+
+	t.Run("WebViewReadmeRepoLinks", func(t *testing.T) {
+		defer tests.PrintCurrentTest(t)()
+
+		pvs, err := packages.GetVersionsByPackageType(t.Context(), user.ID, packages.TypeNpm)
+		assert.NoError(t, err)
+		assert.Len(t, pvs, 1)
+
+		// link the package to a repository so README relative links resolve against
+		// repository files instead of the site root
+		repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
+		assert.NoError(t, packages.SetRepositoryLink(t.Context(), pvs[0].PackageID, repo.ID))
+
+		req := NewRequest(t, "GET", fmt.Sprintf("/%s/-/packages/npm/%s/%s", user.Name, url.PathEscape(packageName), packageVersion)).
+			AddBasicAuth(user.Name)
+		body := MakeRequest(t, req, http.StatusOK).Body.String()
+
+		// repository.directory roots the relative links at the package source directory
+		srcBase := fmt.Sprintf("%s/src/branch/%s/%s", repo.Link(), repo.DefaultBranch, repoDirectory)
+		mediaBase := fmt.Sprintf("%s/media/branch/%s/%s", repo.Link(), repo.DefaultBranch, repoDirectory)
+		assert.Contains(t, body, fmt.Sprintf(`href="%s/docs/usage.md"`, srcBase))
+		assert.Contains(t, body, fmt.Sprintf(`src="%s/logo.png"`, mediaBase))
+		// the previous behavior resolved relative links against the site root
+		assert.NotContains(t, body, `href="/docs/usage.md"`)
 	})
 
 	t.Run("Delete", func(t *testing.T) {
