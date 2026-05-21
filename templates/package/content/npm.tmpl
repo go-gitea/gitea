@@ -25,7 +25,7 @@
 		<div class="ui attached segment">
 			{{if .PackageDescriptor.Metadata.Readme}}
 				<div class="markup markdown">
-					{{ctx.RenderUtils.PackageReadmeMarkdownToHtml .PackageDescriptor.Metadata.Readme .PackageDescriptor.Repository .PackageDescriptor.Metadata.Repository.Directory}}
+					{{ctx.RenderUtils.PackageMarkdownToHtml .PackageDescriptor.Metadata.Readme .PackageDescriptor.Repository .PackageDescriptor.Metadata.Repository.Directory}}
 				</div>
 			{{else if .PackageDescriptor.Metadata.Description}}
 				{{.PackageDescriptor.Metadata.Description}}

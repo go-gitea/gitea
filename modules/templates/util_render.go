@@ -11,6 +11,7 @@ import (
 	"net/url"
 	"path"
 	"regexp"
+	"slices"
 	"strings"
 	"unicode"
 
@@ -244,15 +245,24 @@ func (ut *RenderUtils) MarkdownToHtml(input string) template.HTML { //nolint:rev
 	return output
 }
 
-func (ut *RenderUtils) PackageReadmeMarkdownToHtml(input string, repository *repo.Repository, currentTreePath string) template.HTML { //nolint:revive // variable naming triggers on Html, wants HTML
+// PackageMarkdownToHtml renders package page markdown (READMEs, descriptions, release
+// notes) in the context of the package's linked repository, so relative links and images
+// resolve against repository files instead of the site root. When the package is not linked
+// to a repository it falls back to plain document rendering.
+//
+// Links resolve against the repository's default branch: package metadata does not record
+// which commit a version was published from, so the default branch is a best-effort base.
+// The optional currentTreePath roots rendering in a subdirectory (e.g. npm's
+// repository.directory for monorepo packages) so links resolve relative to the package source.
+func (ut *RenderUtils) PackageMarkdownToHtml(input string, repository *repo.Repository, currentTreePath ...string) template.HTML { //nolint:revive // variable naming triggers on Html, wants HTML
 	if repository == nil {
 		return ut.MarkdownToHtml(input)
 	}
-	currentTreePath = cleanPackageReadmeTreePath(currentTreePath)
+	treePath := cleanPackageTreePath(util.OptionalArg(currentTreePath))
 	defaultBranch := util.IfZero(repository.DefaultBranch, setting.Repository.DefaultBranch)
 	rctx := renderhelper.NewRenderContextRepoFile(ut.ctx, repository, renderhelper.RepoFileOptions{
-		CurrentRefSubURL: "branch/" + util.PathEscapeSegments(defaultBranch),
-		CurrentTreePath:  currentTreePath,
+		CurrentRefSubURL: path.Join("branch", util.PathEscapeSegments(defaultBranch)),
+		CurrentTreePath:  treePath,
 	}).WithMarkupType(markdown.MarkupName)
 	output, err := markdown.RenderString(rctx, input)
 	if err != nil {
@@ -261,16 +271,14 @@ func (ut *RenderUtils) PackageReadmeMarkdownToHtml(input string, repository *rep
 	return output
 }
 
-func cleanPackageReadmeTreePath(treePath string) string {
+func cleanPackageTreePath(treePath string) string {
 	treePath = strings.ReplaceAll(treePath, "\\", "/")
 	treePath = strings.Trim(strings.TrimSpace(treePath), "/")
 	if treePath == "" {
 		return ""
 	}
-	for _, segment := range strings.Split(treePath, "/") {
-		if segment == ".." {
-			return ""
-		}
+	if slices.Contains(strings.Split(treePath, "/"), "..") {
+		return ""
 	}
 	treePath = path.Clean(treePath)
 	if treePath == "." || path.IsAbs(treePath) {
