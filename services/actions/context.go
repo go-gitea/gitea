@@ -217,6 +217,11 @@ func FindTaskNeeds(ctx context.Context, job *actions_model.ActionRunJob) (map[st
 
 // computeReusableCallerOutputs returns the workflow_call outputs of a reusable caller by recursing into its child subtree.
 func computeReusableCallerOutputs(ctx context.Context, caller *actions_model.ActionRunJob, allJobs []*actions_model.ActionRunJob) (map[string]string, error) {
+	if !caller.IsExpanded {
+		//  A caller that was never expanded (e.g. Skipped because its `if:` was false) has no workflow_call outputs, return early.
+		return map[string]string{}, nil
+	}
+
 	directChildren := make([]*actions_model.ActionRunJob, 0)
 	for _, j := range allJobs {
 		if j.ParentJobID == caller.ID {

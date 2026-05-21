@@ -227,21 +227,28 @@ const directNeedsByScopedKey = computed(() => buildDirectNeedsMap(props.jobs));
 
 const edges = computed<Edge[]>(() => {
   const edgesList: Edge[] = [];
-  const jobsByScopedKey = new Map<string, ActionsJob>();
+  // Store every job per scoped key, not just one: matrix-expanded jobs share same jobId
+  const jobsByScopedKey = new Map<string, ActionsJob[]>();
 
   for (const job of props.jobs) {
-    jobsByScopedKey.set(scopedKey(job), job);
+    const key = scopedKey(job);
+    const existing = jobsByScopedKey.get(key);
+    if (existing) {
+      existing.push(job);
+    } else {
+      jobsByScopedKey.set(key, [job]);
+    }
   }
 
   for (const job of props.jobs) {
     for (const needKey of directNeedsByScopedKey.value.get(scopedKey(job)) || []) {
-      const upstreamJob = jobsByScopedKey.get(needKey);
-      if (!upstreamJob) continue;
-      edgesList.push({
-        fromId: upstreamJob.id,
-        toId: job.id,
-        key: `${upstreamJob.id}-${job.id}`,
-      });
+      for (const upstreamJob of jobsByScopedKey.get(needKey) || []) {
+        edgesList.push({
+          fromId: upstreamJob.id,
+          toId: job.id,
+          key: `${upstreamJob.id}-${job.id}`,
+        });
+      }
     }
   }
 

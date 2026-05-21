@@ -191,6 +191,27 @@ func TestComputeReusableCallerOutputs(t *testing.T) {
 		assert.Empty(t, out)
 	})
 
+	t.Run("unexpanded (skipped) caller yields empty outputs without error", func(t *testing.T) {
+		run := insertRun(t, "skipped-caller.yaml")
+		// A reusable caller skipped before expansion: IsExpanded=false, empty ReusableWorkflowContent, no children.
+		caller := &actions_model.ActionRunJob{
+			RunID:            run.ID,
+			RepoID:           run.RepoID,
+			OwnerID:          run.OwnerID,
+			CommitSHA:        run.CommitSHA,
+			Name:             "caller",
+			JobID:            "caller",
+			Attempt:          1,
+			Status:           actions_model.StatusSkipped,
+			IsReusableCaller: true,
+			IsExpanded:       false,
+		}
+		require.NoError(t, db.Insert(ctx, caller))
+		out, err := computeReusableCallerOutputs(ctx, caller, allJobsOfRun(t, run.ID))
+		require.NoError(t, err)
+		assert.Empty(t, out)
+	})
+
 	t.Run("literal output value passes through", func(t *testing.T) {
 		run := insertRun(t, "literal-out.yaml")
 		caller := insertCaller(t, run, "caller", 0, `on:
