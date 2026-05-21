@@ -52,6 +52,14 @@ export function initRepositoryActionView() {
       logsAlwaysExpandRunning: el.getAttribute('data-locale-logs-always-expand-running'),
       workflowFile: el.getAttribute('data-locale-workflow-file'),
       runDetails: el.getAttribute('data-locale-run-details'),
+      workflowDependencies: el.getAttribute('data-locale-workflow-dependencies'),
+      graphJobsCount: el.getAttribute('data-locale-graph-jobs-count'),
+      graphDependenciesCount: el.getAttribute('data-locale-graph-dependencies-count'),
+      graphSuccessRate: el.getAttribute('data-locale-graph-success-rate'),
+      graphZoomIn: el.getAttribute('data-locale-graph-zoom-in'),
+      graphZoomMax: el.getAttribute('data-locale-graph-zoom-max'),
+      graphZoomOut: el.getAttribute('data-locale-graph-zoom-out'),
+      graphResetView: el.getAttribute('data-locale-graph-reset-view'),
     },
   });
   view.mount(el);
