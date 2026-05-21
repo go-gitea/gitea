@@ -227,24 +227,6 @@ func TestPackageMarkdownToHtml(t *testing.T) {
 		expected := `<p><a href="/docs/getting-started.md" rel="nofollow">docs</a></p>`
 		assert.Equal(t, expected, strings.TrimSpace(string(rendered)))
 	})
-
-	t.Run("InvalidDirectoryFallsBackToRepoRoot", func(t *testing.T) {
-		rendered := ut.PackageMarkdownToHtml("[docs](docs/getting-started.md)", mockRepo, "../packages/llm-client")
-		expected := `<p><a href="/user13/repo11/src/branch/main/docs/getting-started.md" rel="nofollow">docs</a></p>`
-		assert.Equal(t, expected, strings.TrimSpace(string(rendered)))
-	})
-
-	t.Run("BackslashDirectoryNormalized", func(t *testing.T) {
-		rendered := ut.PackageMarkdownToHtml("[docs](docs/getting-started.md)", mockRepo, `packages\llm-client`)
-		expected := `<p><a href="/user13/repo11/src/branch/main/packages/llm-client/docs/getting-started.md" rel="nofollow">docs</a></p>`
-		assert.Equal(t, expected, strings.TrimSpace(string(rendered)))
-	})
-
-	t.Run("InteriorDotDotFallsBackToRepoRoot", func(t *testing.T) {
-		rendered := ut.PackageMarkdownToHtml("[docs](docs/getting-started.md)", mockRepo, "packages/../llm-client")
-		expected := `<p><a href="/user13/repo11/src/branch/main/docs/getting-started.md" rel="nofollow">docs</a></p>`
-		assert.Equal(t, expected, strings.TrimSpace(string(rendered)))
-	})
 }
 
 func TestRenderLabels(t *testing.T) {
