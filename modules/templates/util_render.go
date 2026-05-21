@@ -244,13 +244,13 @@ func (ut *RenderUtils) MarkdownToHtml(input string) template.HTML { //nolint:rev
 	return output
 }
 
-// PackageMarkdownToHtml renders package page markdown so relative links resolve against the
+// RenderPackageMarkdown renders package page Markdown so relative links resolve against the
 // linked repository's default branch instead of the site root, falling back to plain rendering
-// when there is no linked repository. currentTreePath optionally roots links in a subdirectory
+// when there is no linked repository. pkgTreePath optionally roots links in a subdirectory
 // (e.g. npm's repository.directory for monorepo packages).
-func (ut *RenderUtils) PackageMarkdownToHtml(input string, repo *repo.Repository, pkgTreePath ...string) template.HTML { //nolint:revive // variable naming triggers on Html, wants HTML
+func (ut *RenderUtils) RenderPackageMarkdown(input string, repo *repo.Repository, pkgTreePath ...string) template.HTML {
 	if repo == nil {
-		return ut.MarkdownToHtml(input)
+		return `<div class="markup markdown">` + ut.MarkdownToHtml(input) + `</div>`
 	}
 	rctx := renderhelper.NewRenderContextRepoFile(ut.ctx, repo, renderhelper.RepoFileOptions{
 		CurrentRefSubURL: git.RefNameFromBranch(repo.DefaultBranch).RefWebLinkPath(),
@@ -260,7 +260,7 @@ func (ut *RenderUtils) PackageMarkdownToHtml(input string, repo *repo.Repository
 	if err != nil {
 		log.Error("RenderString: %v", err)
 	}
-	return output
+	return `<div class="markup markdown">` + output + `</div>`
 }
 
 func (ut *RenderUtils) RenderLabels(labels []*issues_model.Label, repoLink string, issue *issues_model.Issue) template.HTML {

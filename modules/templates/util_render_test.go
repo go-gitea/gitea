@@ -194,7 +194,7 @@ space</p>
 	assert.Equal(t, expected, string(newTestRenderUtils(t).MarkdownToHtml(testInput())))
 }
 
-func TestPackageMarkdownToHtml(t *testing.T) {
+func TestRenderPackageMarkdown(t *testing.T) {
 	defer test.MockVariableValue(&markup.RenderBehaviorForTesting.DisableAdditionalAttributes, true)()
 	mockRepo := &repo.Repository{
 		ID: 1, OwnerName: "user13", Name: "repo11", DefaultBranch: "main",
@@ -204,27 +204,24 @@ func TestPackageMarkdownToHtml(t *testing.T) {
 	ut := newTestRenderUtils(t)
 
 	t.Run("LinkedRepoWithDirectory", func(t *testing.T) {
-		rendered := ut.PackageMarkdownToHtml("[docs](docs/getting-started.md)\n![logo](logo.png)", mockRepo, "packages/llm-client")
-		expected := `<p><a href="/user13/repo11/src/branch/main/packages/llm-client/docs/getting-started.md" rel="nofollow">docs</a>
-<a href="/user13/repo11/src/branch/main/packages/llm-client/logo.png" target="_blank" rel="nofollow noopener"><img src="/user13/repo11/media/branch/main/packages/llm-client/logo.png" alt="logo"/></a></p>`
-		assert.Equal(t, expected, strings.TrimSpace(string(rendered)))
-	})
-
-	t.Run("LinkedRepoWithoutTreePathArg", func(t *testing.T) {
-		rendered := ut.PackageMarkdownToHtml("[docs](docs/getting-started.md)", mockRepo)
-		expected := `<p><a href="/user13/repo11/src/branch/main/docs/getting-started.md" rel="nofollow">docs</a></p>`
+		rendered := ut.RenderPackageMarkdown("[docs](docs/getting-started.md)\n![logo](logo.png)", mockRepo, "pkg-subdir")
+		expected := `<div class="markup markdown"><p><a href="/user13/repo11/src/branch/main/pkg-subdir/docs/getting-started.md" rel="nofollow">docs</a>
+<a href="/user13/repo11/src/branch/main/pkg-subdir/logo.png" target="_blank" rel="nofollow noopener"><img src="/user13/repo11/media/branch/main/pkg-subdir/logo.png" alt="logo"/></a></p>
+</div>`
 		assert.Equal(t, expected, strings.TrimSpace(string(rendered)))
 	})
 
 	t.Run("LinkedRepoWithEmptyDirectory", func(t *testing.T) {
-		rendered := ut.PackageMarkdownToHtml("[docs](docs/getting-started.md)", mockRepo, "")
-		expected := `<p><a href="/user13/repo11/src/branch/main/docs/getting-started.md" rel="nofollow">docs</a></p>`
+		rendered := ut.RenderPackageMarkdown("[docs](docs/getting-started.md)", mockRepo, "")
+		expected := `<div class="markup markdown"><p><a href="/user13/repo11/src/branch/main/docs/getting-started.md" rel="nofollow">docs</a></p>
+</div>`
 		assert.Equal(t, expected, strings.TrimSpace(string(rendered)))
 	})
 
 	t.Run("UnlinkedRepo", func(t *testing.T) {
-		rendered := ut.PackageMarkdownToHtml("[docs](docs/getting-started.md)", nil, "packages/llm-client")
-		expected := `<p><a href="/docs/getting-started.md" rel="nofollow">docs</a></p>`
+		rendered := ut.RenderPackageMarkdown("[docs](docs/getting-started.md)", nil, "pkg-subdir")
+		expected := `<div class="markup markdown"><p><a href="/docs/getting-started.md" rel="nofollow">docs</a></p>
+</div>`
 		assert.Equal(t, expected, strings.TrimSpace(string(rendered)))
 	})
 }
