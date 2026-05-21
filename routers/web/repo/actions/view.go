@@ -35,7 +35,7 @@ import (
 	actions_service "code.gitea.io/gitea/services/actions"
 	context_module "code.gitea.io/gitea/services/context"
 
-	"github.com/nektos/act/pkg/model"
+	"gitea.com/gitea/runner/act/model"
 )
 
 func findCurrentJobByPathParam(ctx *context_module.Context, jobs []*actions_model.ActionRunJob) (job *actions_model.ActionRunJob, hasPathParam bool) {
@@ -138,8 +138,7 @@ func resolveCurrentRunForView(ctx *context_module.Context) *actions_model.Action
 	var runByID, runByIndex *actions_model.ActionRun
 	var targetJobByIndex *actions_model.ActionRunJob
 
-	// Each run must have at least one job, so a valid job ID in the same run cannot be smaller than the run ID.
-	if !byIndex && jobNum >= runNum {
+	if !byIndex {
 		// Probe the repo-scoped job ID first and only accept it when the job exists and belongs to the same runNum.
 		job, err := actions_model.GetRunJobByRepoAndID(ctx, ctx.Repo.Repository.ID, jobNum)
 		if err != nil && !errors.Is(err, util.ErrNotExist) {
@@ -405,19 +404,22 @@ func fillViewRunResponseSummary(ctx *context_module.Context, resp *ViewResponse,
 	resp.State.Run.Link = run.Link()
 	resp.State.Run.ViewLink = getRunViewLink(run, attempt)
 	resp.State.Run.Attempts = make([]*ViewRunAttempt, 0)
+	var effectiveStatus actions_model.Status
 	if attempt != nil {
+		effectiveStatus = attempt.Status
 		resp.State.Run.RunAttempt = attempt.Attempt
-		resp.State.Run.Status = attempt.Status.String()
-		resp.State.Run.Done = attempt.Status.IsDone()
 		resp.State.Run.Duration = attempt.Duration().String()
 		resp.State.Run.TriggeredAt = attempt.Created.AsTime().Unix()
 	} else {
-		resp.State.Run.Status = run.Status.String()
-		resp.State.Run.Done = run.Status.IsDone()
+		effectiveStatus = run.Status
 		resp.State.Run.Duration = run.Duration().String()
 		resp.State.Run.TriggeredAt = run.Created.AsTime().Unix()
 	}
-	resp.State.Run.CanCancel = isLatestAttempt && !resp.State.Run.Done && ctx.Repo.Permission.CanWrite(unit.TypeActions)
+	resp.State.Run.Status = effectiveStatus.String()
+	resp.State.Run.Done = effectiveStatus.IsDone()
+
+	// Hide the Cancel button once a cancel is already in cancelling progress
+	resp.State.Run.CanCancel = isLatestAttempt && !resp.State.Run.Done && !effectiveStatus.IsCancelling() && ctx.Repo.Permission.CanWrite(unit.TypeActions)
 	resp.State.Run.CanApprove = isLatestAttempt && run.NeedApproval && ctx.Repo.Permission.CanWrite(unit.TypeActions)
 	resp.State.Run.CanRerun = isLatestAttempt && resp.State.Run.Done && ctx.Repo.Permission.CanWrite(unit.TypeActions)
 	resp.State.Run.CanDeleteArtifact = resp.State.Run.Done && ctx.Repo.Permission.CanWrite(unit.TypeActions)
@@ -568,10 +570,14 @@ func convertToViewModel(ctx context.Context, locale translation.Locale, cursors 
 	steps := actions.FullSteps(task)
 
 	for _, v := range steps {
+		status := v.Status
+		if task.Status == actions_model.StatusCancelling && status.IsRunning() {
+			status = actions_model.StatusCancelling
+		}
 		viewJobs = append(viewJobs, &ViewJobStep{
 			Summary:  v.Name,
 			Duration: v.Duration().String(),
-			Status:   v.Status.String(),
+			Status:   status.String(),
 		})
 	}
 
@@ -893,6 +899,7 @@ func getCurrentRunJobsByPathParam(ctx *context_module.Context) (*actions_model.A
 		ctx.NotFound(nil)
 		return nil, nil, nil
 	}
+	jobs.SortMatrixGroupsByName()
 
 	for _, job := range jobs {
 		job.Run = run
@@ -972,8 +979,8 @@ func ArtifactsDownloadView(ctx *context_module.Context) {
 	// A v4 Artifact may only contain a single file
 	// Multiple files are uploaded as a single file archive
 	// All other cases fall back to the legacy v1–v3 zip handling below
-	if len(artifacts) == 1 && actions.IsArtifactV4(artifacts[0]) {
-		err := actions.DownloadArtifactV4(ctx.Base, artifacts[0])
+	if len(artifacts) == 1 && actions_service.IsArtifactV4(artifacts[0]) {
+		err := actions_service.DownloadArtifactV4(ctx.Base, artifacts[0])
 		if err != nil {
 			ctx.ServerError("DownloadArtifactV4", err)
 			return
@@ -1072,7 +1079,7 @@ func EnableWorkflowFile(ctx *context_module.Context) {
 func disableOrEnableWorkflowFile(ctx *context_module.Context, isEnable bool) {
 	workflow := ctx.FormString("workflow")
 	if len(workflow) == 0 {
-		ctx.ServerError("workflow", nil)
+		ctx.JSONError("workflow is required")
 		return
 	}
 

@@ -34,7 +34,7 @@ import (
 func getIssuesSelection(t testing.TB, htmlDoc *HTMLDoc) *goquery.Selection {
 	issueList := htmlDoc.doc.Find("#issue-list")
 	assert.Equal(t, 1, issueList.Length())
-	return issueList.Find(".item").Find(".issue-title")
+	return issueList.Find(".item").Find(".issue-item-title")
 }
 
 func getIssue(t *testing.T, repoID int64, issueSelection *goquery.Selection) *issues_model.Issue {
@@ -692,9 +692,9 @@ func TestIssueReferenceURL(t *testing.T) {
 	htmlDoc := NewHTMLParser(t, resp.Body)
 
 	// the "reference" uses relative URLs, then JS code will convert them to absolute URLs for current origin, in case users are using multiple domains
-	ref, _ := htmlDoc.Find(`.timeline-item.comment.first .reference-issue`).Attr("data-reference")
+	ref, _ := htmlDoc.Find(`.timeline-item.comment.issue-content-comment .reference-issue`).Attr("data-reference")
 	assert.Equal(t, "/user2/repo1/issues/1#issue-1", ref)
 
-	ref, _ = htmlDoc.Find(`.timeline-item.comment:not(.first) .reference-issue`).Attr("data-reference")
+	ref, _ = htmlDoc.Find(`.timeline-item.comment:not(.issue-content-comment) .reference-issue`).Attr("data-reference")
 	assert.Equal(t, "/user2/repo1/issues/1#issuecomment-2", ref)
 }

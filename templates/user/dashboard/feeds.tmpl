@@ -88,13 +88,13 @@
 					{{$repoLink := (.GetRepoLink ctx)}}
 					{{$repo := .Repo}}
 					<div class="tw-flex tw-flex-col tw-gap-1">
-						{{range $push.Commits}}
+						{{range $pushCommit := $push.Commits}}
 							{{$commitLink := printf "%s/commit/%s" $repoLink .Sha1}}
 							<div class="flex-text-block">
 								<img loading="lazy" alt class="ui avatar" src="{{$push.AvatarLink ctx .AuthorEmail}}" title="{{.AuthorName}}" width="16" height="16">
 								<a class="ui sha label" href="{{$commitLink}}">{{ShortSha .Sha1}}</a>
 								<span class="tw-inline-block tw-truncate">
-									{{ctx.RenderUtils.RenderCommitMessage .Message $repo}}
+									{{ctx.RenderUtils.RenderCommitMessage $pushCommit.Message $repo}}
 								</span>
 							</div>
 						{{end}}
@@ -107,7 +107,7 @@
 				{{else if .GetOpType.InActions "create_pull_request"}}
 					<span class="tw-inline-block tw-truncate issue title">{{index .GetIssueInfos 1 | ctx.RenderUtils.RenderIssueSimpleTitle}}</span>
 				{{else if .GetOpType.InActions "comment_issue" "approve_pull_request" "reject_pull_request" "comment_pull"}}
-					<a href="{{.GetCommentLink ctx}}" class="tw-inline-block tw-truncate tw-self-start issue title">{{(.GetIssueTitle ctx) | ctx.RenderUtils.RenderIssueSimpleTitle}}</a>
+					<a href="{{.GetCommentLink ctx}}" class="tw-inline-block tw-truncate tw-max-w-full tw-self-start issue title">{{(.GetIssueTitle ctx) | ctx.RenderUtils.RenderIssueSimpleTitle}}</a>
 					{{$comment := index .GetIssueInfos 1}}
 					{{if $comment}}
 						<div class="render-content markup truncated-markup">{{ctx.RenderUtils.MarkdownToHtml $comment}}</div>

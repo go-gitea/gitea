@@ -11,19 +11,6 @@ import (
 	"code.gitea.io/gitea/modules/web/types"
 )
 
-// NewLoggerHandler is a handler that will log routing to the router log taking account of
-// routing information
-func NewLoggerHandler() func(next http.Handler) http.Handler {
-	manager := requestRecordsManager{
-		requestRecords: map[uint64]*requestRecord{},
-	}
-	manager.startSlowQueryDetector(3 * time.Second)
-
-	logger := log.GetLogger("router")
-	manager.print = logPrinter(logger)
-	return manager.handler
-}
-
 var (
 	startMessage          = log.NewColoredValue("started  ", log.DEBUG.ColorAttributes()...)
 	slowMessage           = log.NewColoredValue("slow     ", log.WARN.ColorAttributes()...)
@@ -89,7 +76,7 @@ func logPrinter(logger log.Logger) func(trigger Event, record *requestRecord) {
 		}
 
 		var status int
-		if v, ok := record.responseWriter.(types.ResponseStatusProvider); ok {
+		if v, ok := record.respWriter.(types.ResponseStatusProvider); ok {
 			status = v.WrittenStatus()
 		}
 		logLevel := record.logLevel

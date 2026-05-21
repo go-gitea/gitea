@@ -2,7 +2,7 @@ name: cron-renovate
 
 on:
   schedule:
-    - cron: "0 1 * * *" # daily at 01:00 UTC
+    - cron: "23 * * * *" # hourly at :23
   workflow_dispatch:
 
 concurrency:
@@ -21,12 +21,12 @@ jobs:
     timeout-minutes: 30
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
-      - uses: renovatebot/github-action@f66d8679fcfcfa051abde6e7a623007173bf5164 # v46.1.12
+      - uses: renovatebot/github-action@693b9ef15eec82123529a37c782242f091365961 # v46.1.14
         with:
           renovate-version: ${{ env.RENOVATE_VERSION }}
           configurationFile: renovate.json5
           token: ${{ secrets.RENOVATE_TOKEN }}
         env:
           RENOVATE_BINARY_SOURCE: install # auto-install go/node toolchains needed by post-upgrade tasks.
-          RENOVATE_ALLOWED_POST_UPGRADE_COMMANDS: '["^make (tidy|svg)$"]'
+          RENOVATE_ALLOWED_POST_UPGRADE_COMMANDS: '["^make (tidy|svg nolyfill)$"]'
           RENOVATE_REPOSITORIES: '["go-gitea/gitea"]'

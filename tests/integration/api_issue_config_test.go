@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"testing"
 
+	auth_model "code.gitea.io/gitea/models/auth"
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unittest"
 	user_model "code.gitea.io/gitea/models/user"
@@ -175,4 +176,20 @@ func TestAPIRepoValidateIssueConfig(t *testing.T) {
 		assert.False(t, issueConfigValidation.Valid)
 		assert.NotEmpty(t, issueConfigValidation.Message)
 	})
+}
+
+func TestAPIRepoIssueConfigRequiresCodeUnit(t *testing.T) {
+	defer tests.PrepareTestEnv(t)()
+
+	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 24})
+	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
+	token := getUserToken(t, user.Name, auth_model.AccessTokenScopeReadRepository)
+
+	for _, path := range []string{
+		fmt.Sprintf("/api/v1/repos/%s/issue_config", repo.FullName()),
+		fmt.Sprintf("/api/v1/repos/%s/issue_config/validate", repo.FullName()),
+	} {
+		req := NewRequest(t, "GET", path).AddTokenAuth(token)
+		MakeRequest(t, req, http.StatusForbidden)
+	}
 }

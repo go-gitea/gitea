@@ -3,9 +3,9 @@
 
 package v1_10
 
-import "xorm.io/xorm"
+import "code.gitea.io/gitea/models/db"
 
-func AddOriginalAuthorOnMigratedReleases(x *xorm.Engine) error {
+func AddOriginalAuthorOnMigratedReleases(x db.EngineMigration) error {
 	type Release struct {
 		ID               int64
 		OriginalAuthor   string

@@ -276,13 +276,15 @@ type pullMergeBoxData struct {
 	StatusCheckData   *pullCommitStatusCheckData
 	ShowStatusCheck   bool
 
-	HasOverridableBlockers bool
-	CanMergeNow            bool // PR is mergeable, either no blocker, or doer is admin and can bypass the blockers
-	allowMerge             bool // doer has permission to merge
+	hasOverridableBlockers     bool
+	canMergeNow                bool // PR is mergeable, either no blocker, or doer can bypass the blockers
+	hasPermToMerge             bool // doer has permission to merge
+	canBypassProtection        bool
+	canBypassProtectionAsAdmin bool
 
-	ShowUpdatePullInfo    bool
-	UpdateAllowed         bool
-	UpdateByRebaseAllowed bool
+	ShowUpdatePullInfo  bool
+	UpdatePrimaryAction *pullUpdateAction
+	UpdateStyleOptions  []*pullUpdateAction
 
 	MergeFormProps        map[string]any
 	ShowPullCommands      bool
@@ -306,6 +308,12 @@ type pullMergeBoxData struct {
 	infoMergePrompts       pullMergeBoxInfoItemCollection
 
 	InfoSections []*pullInfoSection
+}
+
+type pullUpdateAction struct {
+	URL      string
+	Text     template.HTML
+	Selected bool
 }
 
 // pullRequestViewInfo is a structured type for viewing pull request
@@ -675,6 +683,8 @@ func indexCommit(commits []*git.Commit, commitID string) *git.Commit {
 
 // ViewPullFiles render pull request changed files list page
 func viewPullFiles(ctx *context.Context, beforeCommitID, afterCommitID string) {
+	var err error
+
 	ctx.Data["PageIsPullList"] = true
 	ctx.Data["PageIsPullFiles"] = true
 
@@ -699,44 +709,53 @@ func viewPullFiles(ctx *context.Context, beforeCommitID, afterCommitID string) {
 
 	headCommitID := prCompareInfo.HeadCommitID
 	isSingleCommit := beforeCommitID == "" && afterCommitID != ""
-	ctx.Data["IsShowingOnlySingleCommit"] = isSingleCommit
+	// FIXME: when afterCommitID==headCommitID, isSingleCommit and isShowAllCommits can be both true, which doesn't seem right
 	isShowAllCommits := (beforeCommitID == "" || beforeCommitID == prCompareInfo.CompareBase) && (afterCommitID == "" || afterCommitID == headCommitID)
+
+	ctx.Data["IsShowingOnlySingleCommit"] = isSingleCommit
 	ctx.Data["IsShowingAllCommits"] = isShowAllCommits
 
-	if afterCommitID == "" || afterCommitID == headCommitID {
-		afterCommitID = headCommitID
-	}
+	// "commits list" is half-open, half-closed: (base, head]
+	// * base commit is not in the list
+	// * if the PR is empty, the list is also empty (head commit is not in the list)
+
+	afterCommitID = util.IfZero(afterCommitID, headCommitID)
 	afterCommit := indexCommit(prCompareInfo.Commits, afterCommitID)
+	if afterCommit == nil && afterCommitID == headCommitID {
+		afterCommit, err = gitRepo.GetCommit(afterCommitID)
+		if err != nil {
+			ctx.ServerError("GetCommit(afterCommitID)", err)
+			return
+		}
+	}
 	if afterCommit == nil {
-		ctx.HTTPError(http.StatusBadRequest, "after commit not found in PR commits")
+		ctx.NotFound(nil)
 		return
 	}
 
 	var beforeCommit *git.Commit
-	var err error
-	if !isSingleCommit {
-		if beforeCommitID == "" || beforeCommitID == prCompareInfo.CompareBase {
-			beforeCommitID = prCompareInfo.CompareBase
-			// merge base commit is not in the list of the pull request commits
-			beforeCommit, err = gitRepo.GetCommit(beforeCommitID)
-			if err != nil {
-				ctx.ServerError("GetCommit", err)
-				return
-			}
-		} else {
-			beforeCommit = indexCommit(prCompareInfo.Commits, beforeCommitID)
-			if beforeCommit == nil {
-				ctx.HTTPError(http.StatusBadRequest, "before commit not found in PR commits")
-				return
-			}
-		}
-	} else {
+	if isSingleCommit {
 		beforeCommit, err = afterCommit.Parent(0)
 		if err != nil {
-			ctx.ServerError("Parent", err)
+			ctx.ServerError("afterCommit.Parent", err)
 			return
 		}
 		beforeCommitID = beforeCommit.ID.String()
+	} else {
+		beforeCommitID = util.IfZero(beforeCommitID, prCompareInfo.CompareBase)
+		beforeCommit = indexCommit(prCompareInfo.Commits, beforeCommitID)
+		if beforeCommit == nil && beforeCommitID == prCompareInfo.CompareBase {
+			// base commit is not in the list of the pull request commits
+			beforeCommit, err = gitRepo.GetCommit(beforeCommitID)
+			if err != nil {
+				ctx.ServerError("GetCommit(beforeCommitID)", err)
+				return
+			}
+		}
+	}
+	if beforeCommit == nil {
+		ctx.NotFound(nil)
+		return
 	}
 
 	ctx.Data["CompareInfo"] = prCompareInfo
@@ -957,8 +976,6 @@ func UpdatePullRequest(ctx *context.Context) {
 		return
 	}
 
-	rebase := ctx.FormString("style") == "rebase"
-
 	if err := issue.PullRequest.LoadBaseRepo(ctx); err != nil {
 		ctx.ServerError("LoadBaseRepo", err)
 		return
@@ -968,23 +985,22 @@ func UpdatePullRequest(ctx *context.Context) {
 		return
 	}
 
-	allowedUpdateByMerge, allowedUpdateByRebase, err := pull_service.IsUserAllowedToUpdate(ctx, issue.PullRequest, ctx.Doer)
+	userUpdateStyles, err := pull_service.CheckUserAllowedToUpdate(ctx, issue.PullRequest, ctx.Doer)
 	if err != nil {
 		ctx.ServerError("IsUserAllowedToMerge", err)
 		return
 	}
 
-	// ToDo: add check if maintainers are allowed to change branch ... (need migration & co)
-	if (!allowedUpdateByMerge && !rebase) || (rebase && !allowedUpdateByRebase) {
-		ctx.Flash.Error(ctx.Tr("repo.pulls.update_not_allowed"))
-		ctx.Redirect(issue.Link())
+	rebase := ctx.FormString("style", string(userUpdateStyles.DefaultUpdateStyle)) == string(repo_model.UpdateStyleRebase)
+	if (rebase && !userUpdateStyles.RebaseAllowed) || (!rebase && !userUpdateStyles.MergeAllowed) {
+		ctx.JSONError(ctx.Tr("repo.pulls.update_not_allowed"))
 		return
 	}
 
 	// default merge commit message
 	message := fmt.Sprintf("Merge branch '%s' into %s", issue.PullRequest.BaseBranch, issue.PullRequest.HeadBranch)
 
-	// The update process should not be cancelled by the user
+	// The update process should not be canceled by the user
 	// so we set the context to be a background context
 	if err = pull_service.Update(graceful.GetManager().ShutdownContext(), issue.PullRequest, ctx.Doer, message, rebase); err != nil {
 		if pull_service.IsErrMergeConflicts(err) {
@@ -998,8 +1014,7 @@ func UpdatePullRequest(ctx *context.Context) {
 				ctx.ServerError("UpdatePullRequest.HTMLString", err)
 				return
 			}
-			ctx.Flash.Error(flashError)
-			ctx.Redirect(issue.Link())
+			ctx.JSONError(flashError)
 			return
 		} else if pull_service.IsErrRebaseConflicts(err) {
 			conflictError := err.(pull_service.ErrRebaseConflicts)
@@ -1012,19 +1027,18 @@ func UpdatePullRequest(ctx *context.Context) {
 				ctx.ServerError("UpdatePullRequest.HTMLString", err)
 				return
 			}
-			ctx.Flash.Error(flashError)
-			ctx.Redirect(issue.Link())
+			ctx.JSONError(flashError)
 			return
 		}
-		ctx.Flash.Error(err.Error())
-		ctx.Redirect(issue.Link())
+		log.Error("Update pull request failed: %v", err)
+		ctx.JSONError("Unable to update pull request")
 		return
 	}
 
-	time.Sleep(1 * time.Second)
+	time.Sleep(100 * time.Millisecond) // TODO: it is really questionable whether the Sleep is useful here, need to figure out
 
 	ctx.Flash.Success(ctx.Tr("repo.pulls.update_branch_success"))
-	ctx.Redirect(issue.Link())
+	ctx.JSONRedirect(issue.Link())
 }
 
 // MergePullRequest response for merging pull request

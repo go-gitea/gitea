@@ -98,7 +98,7 @@ func (g *Manager) RunAtTerminate(terminate func()) {
 			defer g.terminateWaitGroup.Done()
 			defer func() {
 				if err := recover(); err != nil {
-					log.Critical("PANIC during RunAtTerminate: %v\nStacktrace: %s", err, log.Stack(2))
+					log.Error("PANIC during RunAtTerminate: %v\nStacktrace: %s", err, log.Stack(2))
 				}
 			}()
 			terminate()
@@ -113,7 +113,7 @@ func (g *Manager) RunAtShutdown(ctx context.Context, shutdown func()) {
 		func() {
 			defer func() {
 				if err := recover(); err != nil {
-					log.Critical("PANIC during RunAtShutdown: %v\nStacktrace: %s", err, log.Stack(2))
+					log.Error("PANIC during RunAtShutdown: %v\nStacktrace: %s", err, log.Stack(2))
 				}
 			}()
 			select {

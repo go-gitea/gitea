@@ -4,21 +4,22 @@
 package v1_27
 
 import (
+	"code.gitea.io/gitea/models/db"
+
 	"xorm.io/xorm"
 )
 
-// AddMatrixEvaluationColumnsToActionRunJob adds RawStrategy and IsMatrixEvaluated columns
-// to support deferred matrix expansion for jobs whose matrix depends on other jobs' outputs.
-func AddMatrixEvaluationColumnsToActionRunJob(x *xorm.Engine) error {
-	// ActionRunJob maps to the "action_run_job" table by xorm naming convention.
-	type ActionRunJob struct {
-		RawStrategy       string `xorm:"TEXT"`
-		IsMatrixEvaluated bool
-	}
-	if _, err := x.SyncWithOptions(xorm.SyncOptions{
+type mirrorWithLastSyncUnix struct {
+	LastSyncUnix int64 `xorm:"INDEX"`
+}
+
+func (mirrorWithLastSyncUnix) TableName() string {
+	return "mirror"
+}
+
+func AddLastSyncUnixToMirror(x db.EngineMigration) error {
+	_, err := x.SyncWithOptions(xorm.SyncOptions{
 		IgnoreDropIndices: true,
-	}, new(ActionRunJob)); err != nil {
-		return err
-	}
-	return nil
+	}, new(mirrorWithLastSyncUnix))
+	return err
 }
