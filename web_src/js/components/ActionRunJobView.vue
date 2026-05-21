@@ -3,8 +3,9 @@ import {nextTick, onBeforeUnmount, onMounted, ref, toRefs, watch} from 'vue';
 import {SvgIcon} from '../svg.ts';
 import ActionStatusIcon from './ActionStatusIcon.vue';
 import {addDelegatedEventListener, createElementFromAttrs, toggleElem} from '../utils/dom.ts';
-import {formatDatetime} from '../utils/time.ts';
+import {formatDatetime, formatDatetimeISO} from '../utils/time.ts';
 import {POST} from '../modules/fetch.ts';
+import {copyToClipboardWithFeedback} from '../modules/clipboard.ts';
 import type {IntervalId} from '../types.ts';
 import {toggleFullScreen} from '../utils.ts';
 import {localUserSettings} from '../modules/user-settings.ts';
@@ -201,6 +202,22 @@ function endLogGroup(stepIndex: number) {
   el._stepLogsActiveContainer = undefined;
 }
 
+async function copyStepOutput(event: MouseEvent, stepIndex: number) {
+  await copyToClipboardWithFeedback(event.currentTarget as HTMLElement, async () => {
+    const data = await fetchJobData([{step: stepIndex, cursor: null, expanded: true}]);
+    const stepLog = data.logs.stepsLog?.find((s) => s.step === stepIndex);
+    const lines: string[] = [];
+    for (const line of stepLog?.lines ?? []) {
+      const cmd = parseLogLineCommand(line);
+      if (cmd?.name === 'hidden' || cmd?.name === 'endgroup') continue;
+      const ts = formatDatetimeISO(line.timestamp);
+      const msg = createLogLineMessage(line, cmd).textContent ?? '';
+      lines.push(`${ts} ${msg}`);
+    }
+    return lines.join('\n');
+  });
+}
+
 // show/hide the step logs for a step
 function toggleStepLogs(idx: number) {
   currentJobStepsStates.value[idx].expanded = !currentJobStepsStates.value[idx].expanded;
@@ -216,7 +233,7 @@ function createLogLine(stepIndex: number, startTime: number, line: LogLine, cmd:
     String(line.index),
   );
   const logTimeStamp = createElementFromAttrs('span', {class: 'log-time-stamp'},
-    formatDatetime(new Date(line.timestamp * 1000)), // for "Show timestamps"
+    formatDatetime(line.timestamp * 1000), // for "Show timestamps"
   );
   const logMsg = createLogLineMessage(line, cmd);
   const seconds = Math.floor(line.timestamp - startTime);
@@ -261,17 +278,14 @@ function appendLogs(stepIndex: number, startTime: number, logLines: LogLine[]) {
   }
 }
 
-async function fetchJobData(abortController: AbortController): Promise<JobData> {
-  const logCursors = currentJobStepsStates.value.map((it, idx) => {
-    // cursor is used to indicate the last position of the logs
-    // it's only used by backend, frontend just reads it and passes it back, it can be any type.
-    // for example: make cursor=null means the first time to fetch logs, cursor=eof means no more logs, etc
-    return {step: idx, cursor: it.cursor, expanded: it.expanded};
-  });
-  const resp = await POST(props.actionsViewUrl, {
-    signal: abortController.signal,
-    data: {logCursors},
-  });
+// "cursor" is used to indicate the last position of the logs.
+// It's only used by backend, frontend just reads it and passes it back, it can be any type.
+// Frontend knows nothing about its type, never uses its value.
+// For example: backend can make cursor=null means the first time to fetch logs, cursor=1234 for a position, cursor=eof for no more logs, etc.
+type LogCursor = {step: number, cursor: any, expanded: boolean};
+
+async function fetchJobData(logCursors: LogCursor[], signal?: AbortSignal): Promise<JobData> {
+  const resp = await POST(props.actionsViewUrl, {signal, data: {logCursors}});
   return await resp.json();
 }
 
@@ -286,7 +300,8 @@ async function loadJob() {
   const abortController = new AbortController();
   loadingAbortController = abortController;
   try {
-    const runJobResp = await fetchJobData(abortController);
+    const logCursors = currentJobStepsStates.value.map((it, idx) => ({step: idx, cursor: it.cursor, expanded: it.expanded}));
+    const runJobResp = await fetchJobData(logCursors, abortController.signal);
     if (loadingAbortController !== abortController) return;
 
     // FIXME: this logic is quite hacky and dirty, it should be refactored in a better way in the future
@@ -459,15 +474,24 @@ async function hashChangeListener() {
         <SvgIcon
           v-if="isDone(run.status) && currentJobStepsStates[stepIdx].expanded && currentJobStepsStates[stepIdx].cursor === null"
           name="gitea-running"
-          class="tw-mr-2 rotate-clockwise"
+          class="rotate-clockwise"
         />
         <SvgIcon
           v-else
           :name="currentJobStepsStates[stepIdx].expanded ? 'octicon-chevron-down' : 'octicon-chevron-right'"
-          :class="['tw-mr-2', !isExpandable(jobStep.status) && 'tw-invisible']"
+          :class="[!isExpandable(jobStep.status) && 'tw-invisible']"
         />
-        <ActionStatusIcon :status="jobStep.status" icon-variant="circle-fill" class="tw-mr-2"/>
+        <ActionStatusIcon :status="jobStep.status" icon-variant="circle-fill"/>
         <span class="step-summary-msg gt-ellipsis">{{ jobStep.summary }}</span>
+        <button
+          v-if="isExpandable(jobStep.status)"
+          class="btn interact-fg step-copy-btn"
+          :aria-label="locale.copyOutput"
+          :data-tooltip-content="locale.copyOutput"
+          @click.stop="copyStepOutput($event, stepIdx)"
+        >
+          <SvgIcon name="octicon-copy" :size="14"/>
+        </button>
         <span class="step-summary-duration">{{ jobStep.duration }}</span>
       </div>
       <!-- the log elements could be a lot, do not use v-if to destroy/reconstruct the DOM,
@@ -552,6 +576,7 @@ async function hashChangeListener() {
   padding: 5px 10px;
   display: flex;
   align-items: center;
+  gap: 8px;
   border-radius: var(--border-radius);
 }
 
@@ -568,8 +593,20 @@ async function hashChangeListener() {
   flex: 1;
 }
 
-.job-step-container .job-step-summary .step-summary-duration {
-  margin-left: 16px;
+.job-step-container .job-step-summary .step-copy-btn {
+  visibility: hidden;
+  margin: 0 4px;
+}
+
+.job-step-container .job-step-summary:hover .step-copy-btn,
+.job-step-container .job-step-summary.selected .step-copy-btn {
+  visibility: visible;
+}
+
+@media (hover: none) {
+  .job-step-container .job-step-summary:focus-within .step-copy-btn {
+    visibility: visible;
+  }
 }
 
 .job-step-container .job-step-summary.selected {
