@@ -305,6 +305,14 @@ a.suppressed:hover {
   color: inherit;
 }
 
+/* keyboard focus ring for interactive elements */
+a:focus-visible,
+button:focus-visible,
+[role="button"]:focus-visible {
+  outline: 1px solid var(--color-primary);
+  outline-offset: -1px;
+}
+
 a.silenced:hover {
   text-decoration-line: none;
 }
