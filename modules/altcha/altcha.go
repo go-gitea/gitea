@@ -1,3 +1,6 @@
+// Copyright 2026 The Gitea Authors. All rights reserved.
+// SPDX-License-Identifier: MIT
+
 package altcha
 
 import (
@@ -7,9 +10,10 @@ import (
 	"crypto/sha256"
 	"encoding/base64"
 	"encoding/hex"
-	"encoding/json"
+	"errors"
 	"fmt"
 
+	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/modules/setting"
 )
 
@@ -54,7 +58,11 @@ func GenerateChallenge(ctx context.Context) (any, error) {
 	if err != nil {
 		return nil, err
 	}
+<<<<<<< HEAD
 
+=======
+	
+>>>>>>> 6ff278a9cc9050976922ce6adc90b9edcdc7c48b
 	// Create a random number between 0 and maxNumber
 	num := (int(b[0])<<24 | int(b[1])<<16 | int(b[2])<<8 | int(b[3])) % maxNumber
 	if num < 0 {
@@ -62,7 +70,7 @@ func GenerateChallenge(ctx context.Context) (any, error) {
 	}
 
 	// Calculate challenge = SHA256(salt + num)
-	hash := sha256.Sum256([]byte(fmt.Sprintf("%s%d", salt, num)))
+	hash := sha256.Sum256(fmt.Appendf(nil, "%s%d", salt, num))
 	challengeStr := hex.EncodeToString(hash[:])
 
 	// Calculate signature = HMAC-SHA256(challenge, secret)
@@ -82,7 +90,7 @@ func GenerateChallenge(ctx context.Context) (any, error) {
 // Verify verifies the ALTCHA payload
 func Verify(ctx context.Context, payloadStr string) (bool, error) {
 	if payloadStr == "" {
-		return false, fmt.Errorf("empty payload")
+		return false, errors.New("empty payload")
 	}
 
 	decoded, err := base64.StdEncoding.DecodeString(payloadStr)
@@ -104,15 +112,15 @@ func Verify(ctx context.Context, payloadStr string) (bool, error) {
 	expectedSignature := hex.EncodeToString(mac.Sum(nil))
 
 	if payload.Signature != expectedSignature {
-		return false, fmt.Errorf("invalid signature")
+		return false, errors.New("invalid signature")
 	}
 
 	// 2. Verify challenge computation
-	hash := sha256.Sum256([]byte(fmt.Sprintf("%s%d", payload.Salt, payload.Number)))
+	hash := sha256.Sum256(fmt.Appendf(nil, "%s%d", payload.Salt, payload.Number))
 	expectedChallenge := hex.EncodeToString(hash[:])
 
 	if payload.Challenge != expectedChallenge {
-		return false, fmt.Errorf("invalid challenge")
+		return false, errors.New("invalid challenge")
 	}
 
 	return true, nil
