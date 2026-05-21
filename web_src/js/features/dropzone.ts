@@ -1,6 +1,6 @@
 import {svg} from '../svg.ts';
 import {html} from '../utils/html.ts';
-import {copyToClipboard} from '../modules/clipboard.ts';
+import {copyToClipboardWithFeedback} from '../modules/clipboard.ts';
 import {GET, POST} from '../modules/fetch.ts';
 import {showErrorToast} from '../modules/toast.ts';
 import {createElementFromHTML, createElementFromAttrs} from '../utils/dom.ts';
@@ -51,7 +51,7 @@ function addCopyLink(file: Partial<CustomDropzoneFile>) {
 </div>`);
   copyLinkEl.addEventListener('click', async (e) => {
     e.preventDefault();
-    await copyToClipboard(copyLinkEl, generateMarkdownLinkForAttachment(file));
+    await copyToClipboardWithFeedback(copyLinkEl, generateMarkdownLinkForAttachment(file));
   });
   file.previewTemplate!.append(copyLinkEl);
 }

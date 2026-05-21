@@ -5,7 +5,7 @@ import ActionStatusIcon from './ActionStatusIcon.vue';
 import {addDelegatedEventListener, createElementFromAttrs, toggleElem} from '../utils/dom.ts';
 import {formatDatetime, formatDatetimeISO} from '../utils/time.ts';
 import {POST} from '../modules/fetch.ts';
-import {copyToClipboard} from '../modules/clipboard.ts';
+import {copyToClipboardWithFeedback} from '../modules/clipboard.ts';
 import type {IntervalId} from '../types.ts';
 import {toggleFullScreen} from '../utils.ts';
 import {localUserSettings} from '../modules/user-settings.ts';
@@ -203,7 +203,7 @@ function endLogGroup(stepIndex: number) {
 }
 
 async function copyStepOutput(event: MouseEvent, stepIndex: number) {
-  await copyToClipboard(event.currentTarget as HTMLElement, async () => {
+  await copyToClipboardWithFeedback(event.currentTarget as HTMLElement, async () => {
     const data = await fetchJobData([{step: stepIndex, cursor: null, expanded: true}]);
     const stepLog = data.logs.stepsLog?.find((s) => s.step === stepIndex);
     const lines: string[] = [];

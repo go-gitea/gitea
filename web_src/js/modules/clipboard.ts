@@ -8,7 +8,7 @@ const {copy_success, copy_error} = window.config.i18n;
 const pendingFeedback = new WeakSet<HTMLElement>();
 
 /** copy the copiable content to clipboard, return "true" on success, otherwise "false" */
-export async function copyContentToClipboard(content: ClippieContent): Promise<boolean> {
+export async function copyToClipboard(content: ClippieContent): Promise<boolean> {
   return await clippie(content);
 }
 
@@ -16,7 +16,7 @@ export async function copyContentToClipboard(content: ClippieContent): Promise<b
  *  - avoid duplicate copy actions (especially when the content will be fetched from an async function)
  *  - provide feedback to end users (its `.octicon-copy` is swapped to show success/fail feedback, or a tooltip if it has none)
  *  When `content` is a function, `target` also shows a spinner while it resolves. */
-export async function copyToClipboard(target: HTMLElement, content: ClippieContent | (() => Promise<ClippieContent>)) {
+export async function copyToClipboardWithFeedback(target: HTMLElement, content: ClippieContent | (() => Promise<ClippieContent>)) {
   if (pendingFeedback.has(target)) return;
   pendingFeedback.add(target);
 
@@ -35,7 +35,7 @@ export async function copyToClipboard(target: HTMLElement, content: ClippieConte
         target.style.removeProperty('--loading-size');
       }
     }
-    success = await copyContentToClipboard(content);
+    success = await copyToClipboard(content);
   } catch (err) {
     console.error(err);
   }
@@ -85,6 +85,6 @@ export function initGlobalCopyToClipboardListener() {
       }
     }
     // now, text can not be null
-    await copyToClipboard(target, text);
+    await copyToClipboardWithFeedback(target, text);
   });
 }
