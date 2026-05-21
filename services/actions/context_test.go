@@ -173,11 +173,18 @@ func TestComputeReusableCallerOutputs(t *testing.T) {
 		return job
 	}
 
-	allJobsOfRun := func(t *testing.T, runID int64) []*actions_model.ActionRunJob {
+	// childrenByParentOfRun returns the run's jobs indexed by ParentJobID, the shape computeReusableCallerOutputs expects.
+	childrenByParentOfRun := func(t *testing.T, runID int64) map[int64][]*actions_model.ActionRunJob {
 		t.Helper()
 		all, err := db.Find[actions_model.ActionRunJob](ctx, actions_model.FindRunJobOptions{RunID: runID})
 		require.NoError(t, err)
-		return all
+		index := make(map[int64][]*actions_model.ActionRunJob)
+		for _, j := range all {
+			if j.ParentJobID != 0 {
+				index[j.ParentJobID] = append(index[j.ParentJobID], j)
+			}
+		}
+		return index
 	}
 
 	t.Run("returns empty when callee declares no outputs", func(t *testing.T) {
@@ -186,7 +193,7 @@ func TestComputeReusableCallerOutputs(t *testing.T) {
   workflow_call:
     outputs: {}
 `, "")
-		out, err := computeReusableCallerOutputs(ctx, caller, allJobsOfRun(t, run.ID))
+		out, err := computeReusableCallerOutputs(ctx, caller, childrenByParentOfRun(t, run.ID))
 		require.NoError(t, err)
 		assert.Empty(t, out)
 	})
@@ -207,7 +214,7 @@ func TestComputeReusableCallerOutputs(t *testing.T) {
 			IsExpanded:       false,
 		}
 		require.NoError(t, db.Insert(ctx, caller))
-		out, err := computeReusableCallerOutputs(ctx, caller, allJobsOfRun(t, run.ID))
+		out, err := computeReusableCallerOutputs(ctx, caller, childrenByParentOfRun(t, run.ID))
 		require.NoError(t, err)
 		assert.Empty(t, out)
 	})
@@ -220,7 +227,7 @@ func TestComputeReusableCallerOutputs(t *testing.T) {
       hello:
         value: world
 `, "")
-		out, err := computeReusableCallerOutputs(ctx, caller, allJobsOfRun(t, run.ID))
+		out, err := computeReusableCallerOutputs(ctx, caller, childrenByParentOfRun(t, run.ID))
 		require.NoError(t, err)
 		assert.Equal(t, map[string]string{"hello": "world"}, out)
 	})
@@ -235,7 +242,7 @@ func TestComputeReusableCallerOutputs(t *testing.T) {
 `, "")
 		insertChildJobAndTask(t, run, "child", caller.ID, map[string]string{"foo": "bar"})
 
-		out, err := computeReusableCallerOutputs(ctx, caller, allJobsOfRun(t, run.ID))
+		out, err := computeReusableCallerOutputs(ctx, caller, childrenByParentOfRun(t, run.ID))
 		require.NoError(t, err)
 		assert.Equal(t, map[string]string{"result": "bar"}, out)
 	})
@@ -256,7 +263,7 @@ func TestComputeReusableCallerOutputs(t *testing.T) {
         value: ${{ inputs.env }}
 `, string(payload))
 
-		out, err := computeReusableCallerOutputs(ctx, caller, allJobsOfRun(t, run.ID))
+		out, err := computeReusableCallerOutputs(ctx, caller, childrenByParentOfRun(t, run.ID))
 		require.NoError(t, err)
 		assert.Equal(t, map[string]string{"env": "staging"}, out)
 	})
@@ -277,7 +284,7 @@ func TestComputeReusableCallerOutputs(t *testing.T) {
 `, "")
 		insertChildJobAndTask(t, run, "leaf", inner.ID, map[string]string{"foo": "bubble-value"})
 
-		out, err := computeReusableCallerOutputs(ctx, outer, allJobsOfRun(t, run.ID))
+		out, err := computeReusableCallerOutputs(ctx, outer, childrenByParentOfRun(t, run.ID))
 		require.NoError(t, err)
 		assert.Equal(t, map[string]string{"bubbled": "bubble-value"}, out)
 	})
@@ -293,7 +300,7 @@ func TestComputeReusableCallerOutputs(t *testing.T) {
 		insertChildJobAndTask(t, run, "matrix", caller.ID, map[string]string{"foo": ""})
 		insertChildJobAndTask(t, run, "matrix", caller.ID, map[string]string{"foo": "filled"})
 
-		out, err := computeReusableCallerOutputs(ctx, caller, allJobsOfRun(t, run.ID))
+		out, err := computeReusableCallerOutputs(ctx, caller, childrenByParentOfRun(t, run.ID))
 		require.NoError(t, err)
 		assert.Equal(t, map[string]string{"foo": "filled"}, out)
 	})

@@ -201,7 +201,8 @@ func InsertRun(ctx context.Context, run *actions_model.ActionRun, content []byte
 				}
 			}
 
-			hasWaitingJobs = hasWaitingJobs || runJob.Status == actions_model.StatusWaiting
+			// A reusable caller is never dispatched to a runner, so it must not drive the task-version bump.
+			hasWaitingJobs = hasWaitingJobs || (runJob.Status == actions_model.StatusWaiting && !isReusableWorkflowCaller)
 			if err := db.Insert(ctx, runJob); err != nil {
 				return err
 			}
@@ -210,6 +211,10 @@ func InsertRun(ctx context.Context, run *actions_model.ActionRun, content []byte
 			if isReusableWorkflowCaller && runJob.Status == actions_model.StatusWaiting {
 				if err := expandReusableWorkflowCaller(ctx, run, runAttempt, runJob, vars); err != nil {
 					return fmt.Errorf("inline trigger caller %d ready: %w", runJob.ID, err)
+				}
+				// refresh the caller status
+				if err := actions_model.RefreshReusableCallerStatus(ctx, runJob); err != nil {
+					return fmt.Errorf("refresh caller %d status: %w", runJob.ID, err)
 				}
 				hasWaitingCallerJobs = true
 			}

@@ -173,12 +173,16 @@ func FindTaskNeeds(ctx context.Context, job *actions_model.ActionRunJob) (map[st
 	}
 
 	jobIDJobs := make(map[string][]*actions_model.ActionRunJob)
+	// childrenByParent indexes every job by its ParentJobID
+	childrenByParent := make(map[int64][]*actions_model.ActionRunJob)
 	for _, candidate := range jobs {
-		// `needs` references are scope-bound: only candidates in the same caller scope match.
-		if candidate.ParentJobID != job.ParentJobID {
-			continue
+		if candidate.ParentJobID != 0 {
+			childrenByParent[candidate.ParentJobID] = append(childrenByParent[candidate.ParentJobID], candidate)
 		}
-		jobIDJobs[candidate.JobID] = append(jobIDJobs[candidate.JobID], candidate)
+		// `needs` references are scope-bound: only candidates in the same caller scope match.
+		if candidate.ParentJobID == job.ParentJobID {
+			jobIDJobs[candidate.JobID] = append(jobIDJobs[candidate.JobID], candidate)
+		}
 	}
 
 	ret := make(map[string]*TaskNeed, len(needs))
@@ -194,7 +198,7 @@ func FindTaskNeeds(ctx context.Context, job *actions_model.ActionRunJob) (map[st
 			var outputs map[string]string
 			var err error
 			if candidate.IsReusableCaller {
-				outputs, err = computeReusableCallerOutputs(ctx, candidate, jobs)
+				outputs, err = computeReusableCallerOutputs(ctx, candidate, childrenByParent)
 			} else {
 				outputs, err = loadJobTaskOutputs(ctx, candidate)
 			}
@@ -216,18 +220,13 @@ func FindTaskNeeds(ctx context.Context, job *actions_model.ActionRunJob) (map[st
 }
 
 // computeReusableCallerOutputs returns the workflow_call outputs of a reusable caller by recursing into its child subtree.
-func computeReusableCallerOutputs(ctx context.Context, caller *actions_model.ActionRunJob, allJobs []*actions_model.ActionRunJob) (map[string]string, error) {
+func computeReusableCallerOutputs(ctx context.Context, caller *actions_model.ActionRunJob, childrenByParent map[int64][]*actions_model.ActionRunJob) (map[string]string, error) {
 	if !caller.IsExpanded {
 		//  A caller that was never expanded (e.g. Skipped because its `if:` was false) has no workflow_call outputs, return early.
 		return map[string]string{}, nil
 	}
 
-	directChildren := make([]*actions_model.ActionRunJob, 0)
-	for _, j := range allJobs {
-		if j.ParentJobID == caller.ID {
-			directChildren = append(directChildren, j)
-		}
-	}
+	directChildren := childrenByParent[caller.ID]
 
 	if err := caller.LoadRun(ctx); err != nil {
 		return nil, err
@@ -246,7 +245,7 @@ func computeReusableCallerOutputs(ctx context.Context, caller *actions_model.Act
 		var outs map[string]string
 		switch {
 		case child.IsReusableCaller:
-			outs, err = computeReusableCallerOutputs(ctx, child, allJobs)
+			outs, err = computeReusableCallerOutputs(ctx, child, childrenByParent)
 		default:
 			outs, err = loadJobTaskOutputs(ctx, child)
 		}

@@ -298,10 +298,15 @@ func execRerunPlan(ctx context.Context, plan *rerunPlan) (*actions_model.ActionR
 				if err := expandReusableWorkflowCaller(ctx, plan.run, newAttempt, newJob, vars); err != nil {
 					return fmt.Errorf("inline trigger caller %d ready: %w", newJob.ID, err)
 				}
+				// refresh the caller status
+				if err := actions_model.RefreshReusableCallerStatus(ctx, newJob); err != nil {
+					return fmt.Errorf("refresh caller %d status: %w", newJob.ID, err)
+				}
 				hasWaitingCallerJobs = true
 			}
 
-			hasWaitingJobs = hasWaitingJobs || newJob.Status == actions_model.StatusWaiting
+			// A reusable caller is never dispatched to a runner, so it must not drive the task-version bump.
+			hasWaitingJobs = hasWaitingJobs || (newJob.Status == actions_model.StatusWaiting && !newJob.IsReusableCaller)
 			newJobs = append(newJobs, newJob)
 		}
 
