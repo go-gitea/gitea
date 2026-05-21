@@ -9,9 +9,7 @@ import (
 	"html/template"
 	"math"
 	"net/url"
-	"path"
 	"regexp"
-	"slices"
 	"strings"
 	"unicode"
 
@@ -20,6 +18,7 @@ import (
 	"code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/modules/charset"
 	"code.gitea.io/gitea/modules/emoji"
+	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/htmlutil"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/markup"
@@ -249,14 +248,13 @@ func (ut *RenderUtils) MarkdownToHtml(input string) template.HTML { //nolint:rev
 // linked repository's default branch instead of the site root, falling back to plain rendering
 // when there is no linked repository. currentTreePath optionally roots links in a subdirectory
 // (e.g. npm's repository.directory for monorepo packages).
-func (ut *RenderUtils) PackageMarkdownToHtml(input string, repository *repo.Repository, currentTreePath ...string) template.HTML { //nolint:revive // variable naming triggers on Html, wants HTML
-	if repository == nil {
+func (ut *RenderUtils) PackageMarkdownToHtml(input string, repo *repo.Repository, pkgTreePath ...string) template.HTML { //nolint:revive // variable naming triggers on Html, wants HTML
+	if repo == nil {
 		return ut.MarkdownToHtml(input)
 	}
-	defaultBranch := util.IfZero(repository.DefaultBranch, setting.Repository.DefaultBranch)
-	rctx := renderhelper.NewRenderContextRepoFile(ut.ctx, repository, renderhelper.RepoFileOptions{
-		CurrentRefSubURL: "branch/" + util.PathEscapeSegments(defaultBranch),
-		CurrentTreePath:  util.OptionalArg(currentTreePath),
+	rctx := renderhelper.NewRenderContextRepoFile(ut.ctx, repo, renderhelper.RepoFileOptions{
+		CurrentRefSubURL: git.RefNameFromBranch(repository.DefaultBranch).RefWebLinkPath(),
+		CurrentTreePath:  util.OptionalArg(pkgTreePath),
 	})
 	output, err := markdown.RenderString(rctx, input)
 	if err != nil {
