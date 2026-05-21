@@ -1,5 +1,5 @@
 name: node-setup
-description: Set up pnpm and Node.js.
+description: Set up pnpm and node and restore caches
 
 inputs:
   cache:
