@@ -1,5 +1,5 @@
 name: go-setup
-description: Set up Go and restore the go module, build, and golangci-lint caches.
+description: Set up go and restore caches
 
 inputs:
   cache:
