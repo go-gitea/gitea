@@ -27,14 +27,14 @@ jobs:
         ports:
           - "5432:5432"
       ldap:
-        image: gitea/test-openldap:latest
+        image: gitea/test-openldap:latest@sha256:4ac633b01d684e6b2a458cc0c8530c92f9b3702f6e040ce5f365607df34fbda0
         ports:
           - "389:389"
           - "636:636"
       minio:
         # as github actions doesn't support "entrypoint", we need to use a non-official image
         # that has a custom entrypoint set to "minio server /data"
-        image: bitnamilegacy/minio:2023.12.23
+        image: bitnamilegacy/minio:2025.7.23
         env:
           MINIO_ROOT_USER: 123456
           MINIO_ROOT_PASSWORD: 12345678
@@ -62,6 +62,8 @@ jobs:
         run: GITEA_TEST_DATABASE=pgsql make test-integration
         timeout-minutes: 50
         env:
+          # pgsql is chosen to be the unlucky one to run with the slow "race detector", it is about 60% slower.
+          GOTEST_FLAGS: -race -timeout=40m
           TAGS: bindata gogit
           TEST_LDAP: 1
 
@@ -82,7 +84,7 @@ jobs:
       - run: make deps-backend
       - run: make backend
         env:
-          TAGS: bindata gogit sqlite sqlite_unlock_notify
+          TAGS: bindata gogit
           GOEXPERIMENT:
       - name: run migration tests
         run: GITEA_TEST_DATABASE=sqlite make test-migration
@@ -92,9 +94,10 @@ jobs:
         run: GITEA_TEST_DATABASE=sqlite make test-integration
         timeout-minutes: 50
         env:
+          # sqlite driver can contain large amount of Golang code, so don't use race detector for it, otherwise, extremely slow
+          GOTEST_FLAGS: -timeout=40m
           TAGS: bindata gogit
           GOEXPERIMENT:
-          GOTEST_FLAGS: -race -timeout=40m
 
   test-unit:
     if: needs.files-changed.outputs.backend == 'true' || needs.files-changed.outputs.actions == 'true'
@@ -102,7 +105,7 @@ jobs:
     runs-on: ubuntu-latest
     services:
       elasticsearch:
-        image: docker.elastic.co/elasticsearch/elasticsearch:8.19.14
+        image: docker.elastic.co/elasticsearch/elasticsearch:8.19.15
         env:
           discovery.type: single-node
           xpack.security.enabled: false
@@ -115,7 +118,7 @@ jobs:
         ports:
           - "7700:7700"
       redis:
-        image: redis
+        image: redis:latest@sha256:94ea4f5ccdaa6b154df99a792986ecb3ffbb3fe7722a197220477f1f3e65f9fe
         options: >- # wait until redis has started
           --health-cmd "redis-cli ping"
           --health-interval 5s
@@ -124,14 +127,14 @@ jobs:
         ports:
           - 6379:6379
       minio:
-        image: bitnamilegacy/minio:2021.12.29
+        image: bitnamilegacy/minio:2025.7.23
         env:
-          MINIO_ACCESS_KEY: 123456
-          MINIO_SECRET_KEY: 12345678
+          MINIO_ROOT_USER: 123456
+          MINIO_ROOT_PASSWORD: 12345678
         ports:
           - "9000:9000"
       devstoreaccount1.azurite.local: # https://github.com/Azure/Azurite/issues/1583
-        image: mcr.microsoft.com/azure-storage/azurite:latest
+        image: mcr.microsoft.com/azure-storage/azurite:latest@sha256:dae2a5f96553962901304b94e72ef87e299d0825e4b679673bcc527a25076fe4
         ports:
           - 10000:10000
     steps:
@@ -154,15 +157,15 @@ jobs:
       - name: unit-tests
         run: make test-backend test-check
         env:
-          TAGS: bindata sqlite sqlite_unlock_notify
           GOTEST_FLAGS: -race -timeout=20m
+          TAGS: bindata
           GITHUB_READ_TOKEN: ${{ secrets.GITHUB_READ_TOKEN }}
       - name: unit-tests-gogit
         run: make test-backend test-check
         env:
-          TAGS: bindata gogit sqlite sqlite_unlock_notify
-          GOEXPERIMENT:
           GOTEST_FLAGS: -race -timeout=20m
+          TAGS: bindata gogit
+          GOEXPERIMENT:
           GITHUB_READ_TOKEN: ${{ secrets.GITHUB_READ_TOKEN }}
 
   test-mysql:
@@ -181,14 +184,14 @@ jobs:
         options: >-
           --mount type=tmpfs,destination=/bitnami/mysql/data
       elasticsearch:
-        image: docker.elastic.co/elasticsearch/elasticsearch:8.19.14
+        image: docker.elastic.co/elasticsearch/elasticsearch:8.19.15
         env:
           discovery.type: single-node
           xpack.security.enabled: false
         ports:
           - "9200:9200"
       smtpimap:
-        image: tabascoterrier/docker-imap-devel:latest
+        image: tabascoterrier/docker-imap-devel:latest@sha256:3fb7cf50b47693e7b80f6f74abea2def4d7386016931d61359864de8a0aba551
         ports:
           - "25:25"
           - "143:143"
@@ -232,7 +235,7 @@ jobs:
         ports:
           - "1433:1433"
       devstoreaccount1.azurite.local: # https://github.com/Azure/Azurite/issues/1583
-        image: mcr.microsoft.com/azure-storage/azurite:latest
+        image: mcr.microsoft.com/azure-storage/azurite:latest@sha256:dae2a5f96553962901304b94e72ef87e299d0825e4b679673bcc527a25076fe4
         ports:
           - 10000:10000
     steps:

@@ -8,6 +8,7 @@ import (
 	"fmt"
 
 	"code.gitea.io/gitea/models/db"
+	"code.gitea.io/gitea/models/perm"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/log"
 
@@ -104,7 +105,7 @@ func IsPublicMembership(ctx context.Context, orgID, uid int64) (bool, error) {
 // CanCreateOrgRepo returns true if user can create repo in organization
 func CanCreateOrgRepo(ctx context.Context, orgID, uid int64) (bool, error) {
 	return db.GetEngine(ctx).
-		Where(builder.Eq{"team.can_create_org_repo": true}).
+		Where(builder.Eq{"team.can_create_org_repo": true}.Or(builder.Eq{"team.authorize": perm.AccessModeOwner})).
 		Join("INNER", "team_user", "team_user.team_id = team.id").
 		And("team_user.uid = ?", uid).
 		And("team_user.org_id = ?", orgID).

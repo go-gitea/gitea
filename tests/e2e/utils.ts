@@ -47,6 +47,20 @@ export async function apiCreateRepo(requestContext: APIRequestContext, {name, au
   }), 'apiCreateRepo');
 }
 
+export async function apiCreateOrg(requestContext: APIRequestContext, name: string, {headers}: {headers?: Record<string, string>} = {}) {
+  await apiRetry(() => requestContext.post(`${baseUrl()}/api/v1/orgs`, {
+    headers: headers || apiHeaders(),
+    data: {username: name},
+  }), 'apiCreateOrg');
+}
+
+export async function apiCreateTeam(requestContext: APIRequestContext, org: string, name: string, {permission = 'read', units = ['repo.code'], headers}: {permission?: string; units?: Array<string>; headers?: Record<string, string>} = {}) {
+  await apiRetry(() => requestContext.post(`${baseUrl()}/api/v1/orgs/${org}/teams`, {
+    headers: headers || apiHeaders(),
+    data: {name, permission, units},
+  }), 'apiCreateTeam');
+}
+
 export async function apiStartStopwatch(requestContext: APIRequestContext, owner: string, repo: string, issueIndex: number, {headers}: {headers?: Record<string, string>} = {}) {
   await apiRetry(() => requestContext.post(`${baseUrl()}/api/v1/repos/${owner}/${repo}/issues/${issueIndex}/stopwatch/start`, {
     headers: headers || apiHeaders(),

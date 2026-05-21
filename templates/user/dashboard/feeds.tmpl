@@ -88,13 +88,13 @@
 					{{$repoLink := (.GetRepoLink ctx)}}
 					{{$repo := .Repo}}
 					<div class="tw-flex tw-flex-col tw-gap-1">
-						{{range $push.Commits}}
+						{{range $pushCommit := $push.Commits}}
 							{{$commitLink := printf "%s/commit/%s" $repoLink .Sha1}}
 							<div class="flex-text-block">
 								<img loading="lazy" alt class="ui avatar" src="{{$push.AvatarLink ctx .AuthorEmail}}" title="{{.AuthorName}}" width="16" height="16">
 								<a class="ui sha label" href="{{$commitLink}}">{{ShortSha .Sha1}}</a>
 								<span class="tw-inline-block tw-truncate">
-									{{ctx.RenderUtils.RenderCommitMessage .Message $repo}}
+									{{ctx.RenderUtils.RenderCommitMessage $pushCommit.Message $repo}}
 								</span>
 							</div>
 						{{end}}

@@ -13,6 +13,7 @@ import (
 	"code.gitea.io/gitea/modules/indexer/issues/internal"
 	"code.gitea.io/gitea/modules/indexer/issues/internal/tests"
 	"code.gitea.io/gitea/modules/json"
+	"code.gitea.io/gitea/modules/test"
 
 	"github.com/meilisearch/meilisearch-go"
 	"github.com/stretchr/testify/assert"
@@ -21,18 +22,8 @@ import (
 
 func TestMeilisearchIndexer(t *testing.T) {
 	// The meilisearch instance started by pull-db-tests.yml > test-unit > services > meilisearch
-	url := "http://meilisearch:7700"
-	key := "" // auth has been disabled in test environment
-
-	if os.Getenv("CI") == "" {
-		// Make it possible to run tests against a local meilisearch instance
-		url = os.Getenv("TEST_MEILISEARCH_URL")
-		if url == "" {
-			t.Skip("TEST_MEILISEARCH_URL not set and not running in CI")
-			return
-		}
-		key = os.Getenv("TEST_MEILISEARCH_KEY")
-	}
+	url := test.ExternalServiceHTTP(t, "TEST_MEILISEARCH_URL", "http://meilisearch:7700")
+	key := os.Getenv("TEST_MEILISEARCH_KEY")
 
 	require.Eventually(t, func() bool {
 		resp, err := http.Get(url)

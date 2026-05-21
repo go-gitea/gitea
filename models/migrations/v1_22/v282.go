@@ -3,11 +3,9 @@
 
 package v1_22
 
-import (
-	"xorm.io/xorm"
-)
+import "code.gitea.io/gitea/models/db"
 
-func AddIndexToPullAutoMergeDoerID(x *xorm.Engine) error {
+func AddIndexToPullAutoMergeDoerID(x db.EngineMigration) error {
 	type PullAutoMerge struct {
 		DoerID int64 `xorm:"INDEX NOT NULL"`
 	}

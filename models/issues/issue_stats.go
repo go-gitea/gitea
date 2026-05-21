@@ -10,7 +10,6 @@ import (
 	"code.gitea.io/gitea/models/db"
 
 	"xorm.io/builder"
-	"xorm.io/xorm"
 )
 
 // IssueStats represents issue statistic information.
@@ -35,12 +34,10 @@ const (
 	FilterModeYourRepositories
 )
 
-const (
-	// MaxQueryParameters represents the max query parameters
-	// When queries are broken down in parts because of the number
-	// of parameters, attempt to break by this amount
-	MaxQueryParameters = 300
-)
+// MaxQueryParameters represents the max query parameters
+// When queries are broken down in parts because of the number
+// of parameters, attempt to break by this amount
+var MaxQueryParameters = 300
 
 // CountIssuesByRepo map from repoID to number of issues matching the options
 func CountIssuesByRepo(ctx context.Context, opts *IssuesOptions) (map[int64]int64, error) {
@@ -131,7 +128,7 @@ func getIssueStatsChunk(ctx context.Context, opts *IssuesOptions, issueIDs []int
 	return stats, err
 }
 
-func applyIssuesOptions(sess *xorm.Session, opts *IssuesOptions, issueIDs []int64) *xorm.Session {
+func applyIssuesOptions(sess db.Session, opts *IssuesOptions, issueIDs []int64) db.Session {
 	if len(opts.RepoIDs) > 1 {
 		sess.In("issue.repo_id", opts.RepoIDs)
 	} else if len(opts.RepoIDs) == 1 {

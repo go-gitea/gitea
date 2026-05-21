@@ -3,11 +3,9 @@
 
 package v1_12
 
-import (
-	"xorm.io/xorm"
-)
+import "code.gitea.io/gitea/models/db"
 
-func AddReactionOriginals(x *xorm.Engine) error {
+func AddReactionOriginals(x db.EngineMigration) error {
 	type Reaction struct {
 		OriginalAuthorID int64 `xorm:"INDEX NOT NULL DEFAULT(0)"`
 		OriginalAuthor   string
