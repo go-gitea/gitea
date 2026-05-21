@@ -253,7 +253,7 @@ func (ut *RenderUtils) PackageMarkdownToHtml(input string, repo *repo.Repository
 		return ut.MarkdownToHtml(input)
 	}
 	rctx := renderhelper.NewRenderContextRepoFile(ut.ctx, repo, renderhelper.RepoFileOptions{
-		CurrentRefSubURL: git.RefNameFromBranch(repository.DefaultBranch).RefWebLinkPath(),
+		CurrentRefSubURL: git.RefNameFromBranch(repo.DefaultBranch).RefWebLinkPath(),
 		CurrentTreePath:  util.OptionalArg(pkgTreePath),
 	})
 	output, err := markdown.RenderString(rctx, input)
