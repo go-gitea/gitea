@@ -253,12 +253,11 @@ func (ut *RenderUtils) PackageMarkdownToHtml(input string, repository *repo.Repo
 	if repository == nil {
 		return ut.MarkdownToHtml(input)
 	}
-	treePath := cleanPackageTreePath(util.OptionalArg(currentTreePath))
 	defaultBranch := util.IfZero(repository.DefaultBranch, setting.Repository.DefaultBranch)
 	rctx := renderhelper.NewRenderContextRepoFile(ut.ctx, repository, renderhelper.RepoFileOptions{
-		CurrentRefSubURL: path.Join("branch", util.PathEscapeSegments(defaultBranch)),
-		CurrentTreePath:  treePath,
-	}).WithMarkupType(markdown.MarkupName)
+		CurrentRefSubURL: "branch/" + util.PathEscapeSegments(defaultBranch),
+		CurrentTreePath:  util.OptionalArg(currentTreePath),
+	})
 	output, err := markdown.RenderString(rctx, input)
 	if err != nil {
 		log.Error("RenderString: %v", err)
