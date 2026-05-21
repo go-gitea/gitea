@@ -181,7 +181,7 @@ func (u *User) UnmarshalJSON(data []byte) error {
 	return nil
 }
 
-// Repository https://github.com/npm/registry/blob/master/docs/REGISTRY-API.md#version
+// Repository https://docs.npmjs.com/cli/v11/configuring-npm/package-json#repository
 type Repository struct {
 	Type      string `json:"type"`
 	URL       string `json:"url"`
