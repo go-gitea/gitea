@@ -3,10 +3,10 @@ description: Set up go and restore caches
 
 inputs:
   cache:
-    description: Restore the Go caches via go-cache.
+    description: Restore go caches
     default: "true"
   lint-cache:
-    description: Forwarded to go-cache to also restore the golangci-lint cache.
+    description: Also restore the golangci-lint cache
     default: "false"
 
 runs:

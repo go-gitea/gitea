@@ -3,7 +3,7 @@ description: Set up pnpm and node and restore caches
 
 inputs:
   cache:
-    description: Cache pnpm downloads keyed on pnpm-lock.yaml.
+    description: Cache pnpm downloads
     default: "true"
 
 runs:

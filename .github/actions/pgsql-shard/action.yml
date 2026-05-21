@@ -1,15 +1,15 @@
 name: pgsql-shard
-description: Run one shard of the pgsql integration tests.
+description: Run one pgsql integration test shard
 
 inputs:
   shard:
-    description: This shard's 1-based index.
+    description: Shard index
     required: true
   total-shards:
-    description: Total number of shards (must match the number of shard jobs).
+    description: Total shard count
     required: true
   run-migration:
-    description: Also run the migration tests (only needed on one shard).
+    description: Also run migration tests
     default: "false"
 
 runs:
