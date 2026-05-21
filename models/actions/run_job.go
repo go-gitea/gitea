@@ -376,7 +376,8 @@ func UpdateRunJob(ctx context.Context, job *ActionRunJob, cond builder.Cond, col
 		return affected, nil
 	}
 
-	if statusUpdated && job.Status.IsWaiting() {
+	// Reusable workflow caller jobs are never picked up by runners, so they don't need a task-version bump.
+	if statusUpdated && job.Status.IsWaiting() && !job.IsReusableCaller {
 		// if the status of job changes to waiting again, increase tasks version.
 		if err := IncreaseTaskVersion(ctx, job.OwnerID, job.RepoID); err != nil {
 			return 0, err
