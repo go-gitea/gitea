@@ -113,7 +113,8 @@ const jobsWithLayout = computed<JobNode[]>(() => {
     let maxJobsPerLevel = 0;
 
     props.jobs.forEach(job => {
-      const level = levels.get(scopedKey(job)) || levels.get(job.name) || 0;
+      // `?? 0`, not `|| 0`: a root job's level is 0, which `||` would wrongly discard.
+      const level = levels.get(scopedKey(job)) ?? 0;
 
       if (!jobsByLevel[level]) {
         jobsByLevel[level] = [];
@@ -527,7 +528,6 @@ function computeJobLevels(jobs: ActionsJob[]): Map<string, number> {
 
     const level = maxLevel + 1;
     levels.set(scoped, level);
-    levels.set(job.name, level);
 
     recursionStack.delete(scoped);
     return level;
