@@ -266,22 +266,6 @@ func (ut *RenderUtils) PackageMarkdownToHtml(input string, repository *repo.Repo
 	return output
 }
 
-func cleanPackageTreePath(treePath string) string {
-	treePath = strings.ReplaceAll(treePath, "\\", "/")
-	treePath = strings.Trim(strings.TrimSpace(treePath), "/")
-	if treePath == "" {
-		return ""
-	}
-	if slices.Contains(strings.Split(treePath, "/"), "..") {
-		return ""
-	}
-	treePath = path.Clean(treePath)
-	if treePath == "." || path.IsAbs(treePath) {
-		return ""
-	}
-	return treePath
-}
-
 func (ut *RenderUtils) RenderLabels(labels []*issues_model.Label, repoLink string, issue *issues_model.Issue) template.HTML {
 	isPullRequest := issue != nil && issue.IsPull
 	baseLink := fmt.Sprintf("%s/%s", repoLink, util.Iif(isPullRequest, "pulls", "issues"))
