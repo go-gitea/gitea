@@ -735,6 +735,6 @@ async function hashChangeListener() {
 }
 
 .job-log-group-summary > .job-log-line .log-msg {
-  margin-left: 21px; /* clear the disclosure marker rendered in the content column */
+  margin-left: 21px;
 }
 </style>
