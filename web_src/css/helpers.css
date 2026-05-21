@@ -30,6 +30,24 @@ Gitea's private styles use `g-` prefix.
 .interact-bg:hover { background: var(--color-hover) !important; }
 .interact-bg:active { background: var(--color-active) !important; }
 
+/* primary-color dot centered on the top-right corner of the element */
+.indicator-dot {
+  position: relative;
+}
+
+.indicator-dot::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--color-primary);
+  border: 1px solid var(--color-secondary);
+  transform: translate(50%, -50%);
+}
+
 @media (max-width: 767.98px) {
   /* double selector so it wins over .tw-flex (old .gt-df) etc */
   .not-mobile.not-mobile {

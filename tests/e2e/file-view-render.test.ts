@@ -1,13 +1,13 @@
 import {env} from 'node:process';
 import {expect, test} from '@playwright/test';
-import {apiCreateRepo, apiCreateFile, assertFlushWithParent, assertNoJsError, login, randomString} from './utils.ts';
+import {apiCreateRepo, apiCreateFiles, assertFlushWithParent, assertNoJsError, login, randomString} from './utils.ts';
 
 test('3d model file', async ({page, request}) => {
   const repoName = `e2e-3d-render-${randomString(8)}`;
   const owner = env.GITEA_TEST_E2E_USER;
   await apiCreateRepo(request, {name: repoName});
   const stl = 'solid test\nfacet normal 0 0 1\nouter loop\nvertex 0 0 0\nvertex 1 0 0\nvertex 0 1 0\nendloop\nendfacet\nendsolid test\n';
-  await apiCreateFile(request, owner, repoName, 'test.stl', stl);
+  await apiCreateFiles(request, owner, repoName, [{path: 'test.stl', content: stl}]);
   await page.goto(`/${owner}/${repoName}/src/branch/main/test.stl?display=rendered`);
   const iframe = page.locator('iframe.external-render-iframe');
   await expect(iframe).toBeVisible();
@@ -30,7 +30,7 @@ test('pdf file', async ({page, request}) => {
   const repoName = `e2e-pdf-render-${randomString(8)}`;
   const owner = env.GITEA_TEST_E2E_USER;
   await apiCreateRepo(request, {name: repoName});
-  await apiCreateFile(request, owner, repoName, 'test.pdf', '%PDF-1.0\n%%EOF\n');
+  await apiCreateFiles(request, owner, repoName, [{path: 'test.pdf', content: '%PDF-1.0\n%%EOF\n'}]);
   await page.goto(`/${owner}/${repoName}/src/branch/main/test.pdf`);
   const container = page.locator('.file-view-render-container');
   await expect(container).toHaveAttribute('data-render-name', 'pdf-viewer');
@@ -47,8 +47,8 @@ test('asciicast file', async ({page, request}) => {
   const branchEnc = encodeURIComponent(branch);
   await Promise.all([apiCreateRepo(request, {name: repoName, autoInit: false}), login(page)]);
   const cast = '{"version": 2, "width": 80, "height": 24}\n[0.0, "o", "hi"]\n';
-  // on an empty repo, apiCreateFile with newBranch creates that branch as the initial commit
-  await apiCreateFile(request, owner, repoName, 'readme.cast', cast, {newBranch: branch});
+  // on an empty repo, apiCreateFiles with newBranch creates that branch as the initial commit
+  await apiCreateFiles(request, owner, repoName, [{path: 'readme.cast', content: cast}], {newBranch: branch});
   await page.goto(`/${owner}/${repoName}/src/branch/${branchEnc}`);
   const container = page.locator('.asciinema-player-container');
   await expect(container).toHaveAttribute('data-asciinema-player-src', `/${owner}/${repoName}/raw/branch/${branchEnc}/readme.cast`);
