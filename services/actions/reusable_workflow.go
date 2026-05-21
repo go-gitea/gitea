@@ -28,6 +28,9 @@ import (
 const MaxReusableCallLevels = 9
 
 // loadReusableWorkflowSource resolves the workflow file referenced by a caller and returns its raw bytes.
+// Same-repo calls are pinned to the run's commit SHA, so they stay stable across reruns.
+// Cross-repo calls resolve the caller-specified "@ref" each time the caller is (re-)expanded, so a moving ref
+// (e.g. a branch) can resolve to newer content on a rerun than the original attempt ran.
 func loadReusableWorkflowSource(ctx context.Context, run *actions_model.ActionRun, ref *jobparser.UsesRef) ([]byte, error) {
 	if err := run.LoadAttributes(ctx); err != nil {
 		return nil, err

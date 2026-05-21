@@ -9,6 +9,7 @@ import (
 	"regexp"
 	"strings"
 
+	"code.gitea.io/gitea/modules/container"
 	"code.gitea.io/gitea/modules/util"
 
 	"gitea.com/gitea/runner/act/exprparser"
@@ -286,6 +287,9 @@ var callerSecretValueRegexp = regexp.MustCompile(`^\s*\$\{\{\s*secrets\.([A-Za-z
 // ParseCallerSecrets decodes a caller's "secrets:" YAML node into one of two forms:
 //   - inherit == true: the caller wrote `secrets: inherit`; mapping is nil
 //   - inherit == false, mapping == {alias: source_name}: explicit mapping. Each value must be of the form `${{ secrets.NAME }}`.
+//
+// Both alias and source name are upper-cased: secret names are case-insensitive (matching GitHub),
+// and Gitea stores secrets upper-cased, so this keeps lookups and schema validation consistent.
 func ParseCallerSecrets(node yaml.Node) (inherit bool, mapping map[string]string, err error) {
 	if node.IsZero() {
 		return false, nil, nil
@@ -308,7 +312,7 @@ func ParseCallerSecrets(node yaml.Node) (inherit bool, mapping map[string]string
 		if len(matches) != 2 {
 			return false, nil, fmt.Errorf("caller secret %q value must be of the form ${{ secrets.NAME }}", k.Value)
 		}
-		out[k.Value] = matches[1]
+		out[strings.ToUpper(k.Value)] = strings.ToUpper(matches[1])
 	}
 	return false, out, nil
 }
@@ -318,16 +322,21 @@ func ValidateCallerSecrets(spec *WorkflowCallSpec, mapping map[string]string) er
 	if spec == nil {
 		return errors.New("ValidateCallerSecrets: nil workflow_call spec")
 	}
+	// Secret names are case-insensitive, so compare declared names and caller aliases upper-cased.
+	declaredNames := make(container.Set[string], len(spec.Secrets))
+	for name := range spec.Secrets {
+		declaredNames.Add(strings.ToUpper(name))
+	}
+	provided := make(container.Set[string], len(mapping))
 	for alias := range mapping {
-		if _, ok := spec.Secrets[alias]; !ok {
+		up := strings.ToUpper(alias)
+		provided.Add(up)
+		if !declaredNames.Contains(up) {
 			return fmt.Errorf("caller secret %q is not declared in the called workflow's on.workflow_call.secrets", alias)
 		}
 	}
 	for name, sec := range spec.Secrets {
-		if !sec.Required {
-			continue
-		}
-		if _, ok := mapping[name]; !ok {
+		if sec.Required && !provided.Contains(strings.ToUpper(name)) {
 			return fmt.Errorf("required secret %q is not provided by the caller", name)
 		}
 	}

@@ -290,6 +290,15 @@ DB_PASS:    ${{ secrets.PROD_DB_PASS }}
 		}, mapping)
 	})
 
+	t.Run("alias and source names are upper-cased", func(t *testing.T) {
+		inherit, mapping, err := ParseCallerSecrets(secretYAMLNode(t, `
+deploy_key: ${{ secrets.gitea_deploy_key }}
+`))
+		require.NoError(t, err)
+		assert.False(t, inherit)
+		assert.Equal(t, map[string]string{"DEPLOY_KEY": "GITEA_DEPLOY_KEY"}, mapping)
+	})
+
 	t.Run("mapping value not in ${{ secrets.NAME }} form is rejected", func(t *testing.T) {
 		// plain string
 		_, _, err := ParseCallerSecrets(secretYAMLNode(t, `KEY: not-an-expression`))
@@ -355,6 +364,13 @@ func TestValidateCallerSecrets(t *testing.T) {
 		err := ValidateCallerSecrets(spec, map[string]string{"X": "Y"})
 		require.Error(t, err)
 		assert.Contains(t, err.Error(), `caller secret "X"`)
+	})
+
+	t.Run("name matching is case-insensitive", func(t *testing.T) {
+		// declared name and caller alias differ only in case; both should match.
+		spec := specWith(map[string]SecretSpec{"deploy_key": {Required: true}})
+		mapping := map[string]string{"DEPLOY_KEY": "PROD_DEPLOY_KEY"}
+		require.NoError(t, ValidateCallerSecrets(spec, mapping))
 	})
 
 	t.Run("nil spec is rejected", func(t *testing.T) {
