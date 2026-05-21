@@ -15,17 +15,19 @@
 
 			<div class="item-main">
 				<div class="item-header">
-					<div class="item-title">
-						<a class="tw-no-underline issue-title" href="{{if .Link}}{{.Link}}{{else}}{{$.Link}}/{{.Index}}{{end}}">{{.Title | ctx.RenderUtils.RenderIssueSimpleTitle}}</a>
+					<div>
+						<a class="issue-item-title" href="{{if .Link}}{{.Link}}{{else}}{{$.Link}}/{{.Index}}{{end}}">{{.Title | ctx.RenderUtils.RenderIssueSimpleTitle}}</a>
 						{{if .IsPull}}
 							{{if (index $.CommitStatuses .PullRequest.ID)}}
+								<span class="tw-align-[1px]">{{/* make the "flex" children align with parent "inline" */}}
 								{{template "repo/commit_statuses" dict "Status" (index $.CommitLastStatus .PullRequest.ID) "Statuses" (index $.CommitStatuses .PullRequest.ID)}}
+								</span>
 							{{end}}
 						{{end}}
 						<span class="labels-list">
-							{{range .Labels}}
-								<a href="?q={{$.Keyword}}&type={{$.ViewType}}&state={{$.State}}&labels={{.ID}}{{if ne $.listType "milestone"}}&milestone={{$.MilestoneID}}{{end}}&assignee={{$.AssigneeID}}&poster={{$.PosterID}}{{if $.ShowArchivedLabels}}&archived=true{{end}}">{{ctx.RenderUtils.RenderLabel .}}</a>
-							{{end}}
+							{{- range .Labels -}}
+								<a class="item" href="?q={{$.Keyword}}&type={{$.ViewType}}&state={{$.State}}&labels={{.ID}}{{if ne $.listType "milestone"}}&milestone={{$.MilestoneID}}{{end}}&assignee={{$.AssigneeID}}&poster={{$.PosterID}}{{if $.ShowArchivedLabels}}&archived=true{{end}}">{{ctx.RenderUtils.RenderLabel .}}</a>
+							{{- end -}}
 						</span>
 					</div>
 					{{if .TotalTrackedTime}}

@@ -105,6 +105,7 @@
   "copy_error": "Copy failed",
   "copy_type_unsupported": "This file type cannot be copied",
   "copy_filename": "Copy filename",
+  "copy_output": "Copy output",
   "write": "Write",
   "preview": "Preview",
   "loading": "Loading…",
