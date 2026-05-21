@@ -1147,7 +1147,7 @@ func Routes() *web.Router {
 					m.Put("", user.BlockUser)
 					m.Delete("", user.UnblockUser)
 				}, context.UserAssignmentAPI(), checkTokenPublicOnly())
-    }, rejectPublicOnly())
+			}, rejectPublicOnly())
 
 			m.Group("/mirror-ssh-key", func() {
 				m.Get("", user.GetMirrorSSHKey)
