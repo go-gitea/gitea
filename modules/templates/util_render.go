@@ -245,15 +245,10 @@ func (ut *RenderUtils) MarkdownToHtml(input string) template.HTML { //nolint:rev
 	return output
 }
 
-// PackageMarkdownToHtml renders package page markdown (READMEs, descriptions, release
-// notes) in the context of the package's linked repository, so relative links and images
-// resolve against repository files instead of the site root. When the package is not linked
-// to a repository it falls back to plain document rendering.
-//
-// Links resolve against the repository's default branch: package metadata does not record
-// which commit a version was published from, so the default branch is a best-effort base.
-// The optional currentTreePath roots rendering in a subdirectory (e.g. npm's
-// repository.directory for monorepo packages) so links resolve relative to the package source.
+// PackageMarkdownToHtml renders package page markdown so relative links resolve against the
+// linked repository's default branch instead of the site root, falling back to plain rendering
+// when there is no linked repository. currentTreePath optionally roots links in a subdirectory
+// (e.g. npm's repository.directory for monorepo packages).
 func (ut *RenderUtils) PackageMarkdownToHtml(input string, repository *repo.Repository, currentTreePath ...string) template.HTML { //nolint:revive // variable naming triggers on Html, wants HTML
 	if repository == nil {
 		return ut.MarkdownToHtml(input)
