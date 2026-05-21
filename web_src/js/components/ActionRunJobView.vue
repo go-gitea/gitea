@@ -426,7 +426,7 @@ async function hashChangeListener() {
     </div>
     <div class="job-info-header-right">
       <div class="ui top right pointing dropdown custom jump item" @click.stop="menuVisible = !menuVisible" @keyup.enter="menuVisible = !menuVisible">
-        <button class="ui button tw-px-3">
+        <button class="btn interact-bg tw-p-2">
           <SvgIcon name="octicon-gear" :size="18"/>
         </button>
         <div class="menu transition action-job-menu" :class="{visible: menuVisible}" v-if="menuVisible" v-cloak>
@@ -478,8 +478,9 @@ async function hashChangeListener() {
         />
         <SvgIcon
           v-else
-          :name="currentJobStepsStates[stepIdx].expanded ? 'octicon-chevron-down' : 'octicon-chevron-right'"
-          :class="[!isExpandable(jobStep.status) && 'tw-invisible']"
+          name="octicon-chevron-right"
+          class="tw-mr-2 step-summary-chevron"
+          :class="{'tw-invisible': !isExpandable(jobStep.status)}"
         />
         <ActionStatusIcon :status="jobStep.status" icon-variant="circle-fill"/>
         <span class="step-summary-msg gt-ellipsis">{{ jobStep.summary }}</span>
@@ -587,6 +588,14 @@ async function hashChangeListener() {
 .job-step-container .job-step-summary.step-expandable:hover {
   color: var(--color-console-fg);
   background: var(--color-console-hover-bg);
+}
+
+.job-step-container .job-step-summary .step-summary-chevron {
+  transition: transform 0.1s ease;
+}
+
+.job-step-container .job-step-summary.selected .step-summary-chevron {
+  transform: rotate(90deg);
 }
 
 .job-step-container .job-step-summary .step-summary-msg {
@@ -744,13 +753,25 @@ async function hashChangeListener() {
 }
 
 .job-log-group-summary {
+  cursor: pointer;
   position: relative;
+  display: list-item;
+  list-style: disclosure-closed inside;
+  padding-left: 58px; /* line-num gutter (48px) + log-msg margin (10px), so the marker sits in the content column */
+}
+
+.job-log-group[open] > .job-log-group-summary {
+  list-style-type: disclosure-open;
 }
 
 .job-log-group-summary > .job-log-line {
   position: absolute;
   inset: 0;
-  z-index: -1; /* to avoid hiding the triangle of the "details" element */
+  z-index: -1; /* sit behind the disclosure marker */
   overflow: hidden;
+}
+
+.job-log-group-summary > .job-log-line .log-msg {
+  margin-left: 21px;
 }
 </style>
