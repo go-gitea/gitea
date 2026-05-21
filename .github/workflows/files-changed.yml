@@ -130,4 +130,3 @@ jobs:
             shell:
               - "**/*.sh"
               - ".shellcheckrc"
-              - "Makefile"
