@@ -471,12 +471,8 @@ func (cpi *comparePageInfoType) prepareCompareDiff(ctx *context.Context, whitesp
 		ctx.ServerError("GetDiff", err)
 		return
 	}
-	diffShortStat, err := gitdiff.GetDiffShortStat(ctx, ci.HeadRepo, ci.HeadGitRepo, beforeCommitID, headCommitID)
-	if err != nil {
-		ctx.ServerError("GetDiffShortStat", err)
-		return
-	}
-	ctx.Data["DiffShortStat"] = diffShortStat
+	setDiffShortStatPlaceholderData(ctx, len(diff.Files), buildDiffShortStatURL(ci.HeadRepo.Link()+"/diff-shortstat", beforeCommitID, headCommitID, "detail"), "")
+	diffShortStat := ctx.Data["DiffShortStat"].(*gitdiff.DiffShortStat)
 	ctx.Data["Diff"] = diff
 	ctx.Data["DiffBlobExcerptData"] = &gitdiff.DiffBlobExcerptData{
 		BaseLink:      ci.HeadRepo.Link() + "/blob_excerpt",

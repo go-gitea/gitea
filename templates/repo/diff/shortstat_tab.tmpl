@@ -1,0 +1,10 @@
+{{if .DiffShortStatTabURL}}
+	<div class="flex-text-block tw-flex-shrink-0 tw-text-[13px] tw-ml-auto tw-pl-3 tw-font-semibold" data-fetch-url="{{.DiffShortStatTabURL}}" data-fetch-trigger="load">
+		<span>
+			<span class="tw-text-diff-added-fg">+...</span>
+			<span class="tw-text-diff-removed-fg">-...</span>
+		</span>
+	</div>
+{{else if or .DiffShortStat.TotalAddition .DiffShortStat.TotalDeletion}}
+	{{template "repo/diff/stats" dict "Addition" .DiffShortStat.TotalAddition "Deletion" .DiffShortStat.TotalDeletion "Classes" "tw-ml-auto tw-pl-3 tw-font-semibold"}}
+{{end}}

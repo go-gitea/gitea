@@ -2566,6 +2566,7 @@
   "repo.diff.whitespace_ignore_amount_changes": "Ignore changes in amount of whitespace",
   "repo.diff.whitespace_ignore_at_eol": "Ignore changes in whitespace at EOL",
   "repo.diff.stats_desc": "<strong> %d changed files</strong> with <strong>%d additions</strong> and <strong>%d deletions</strong>",
+  "repo.diff.stats_desc_files": "<strong> %d changed files</strong>",
   "repo.diff.stats_desc_file": "%d changes: %d additions and %d deletions",
   "repo.diff.bin": "BIN",
   "repo.diff.bin_not_shown": "Binary file not shown.",

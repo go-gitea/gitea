@@ -1271,6 +1271,7 @@ func registerWebRoutes(m *web.Router, webAuth *AuthMiddleware) {
 		m.Combo("/compare/*", repo.MustBeNotEmpty, repo.SetEditorconfigIfExists).
 			Get(repo.SetDiffViewStyle, repo.SetWhitespaceBehavior, repo.CompareDiff).
 			Post(reqSignIn, context.RepoMustNotBeArchived(), reqUnitPullsReader, repo.MustAllowPulls, web.Bind(forms.CreateIssueForm{}), repo.SetWhitespaceBehavior, repo.CompareAndPullRequestPost)
+		m.Get("/diff-shortstat", repo.MustBeNotEmpty, repo.DiffShortStat)
 		m.Get("/pulls/new/*", repo.PullsNewRedirect)
 	}, optSignIn, context.RepoAssignment, reqUnitCodeReader)
 	// end "/{username}/{reponame}": repo code: find, compare, list
@@ -1576,6 +1577,7 @@ func registerWebRoutes(m *web.Router, webAuth *AuthMiddleware) {
 			Get(repo.Wiki).
 			Post(context.RepoMustNotBeArchived(), reqSignIn, reqUnitWikiWriter, web.Bind(forms.NewWikiForm{}), repo.WikiPost)
 		m.Get("/blob_excerpt/{sha}", repo.SetEditorconfigIfExists, repo.SetDiffViewStyle, repo.ExcerptBlob)
+		m.Get("/diff-shortstat", repo.WikiDiffShortStat)
 		m.Get("/commit/{sha:[a-f0-9]{7,64}}", repo.SetEditorconfigIfExists, repo.SetDiffViewStyle, repo.SetWhitespaceBehavior, repo.Diff)
 		m.Get("/commit/{sha:[a-f0-9]{7,64}}.{ext:patch|diff}", repo.RawDiff)
 		m.Get("/raw/*", repo.WikiRaw)
@@ -1614,6 +1616,7 @@ func registerWebRoutes(m *web.Router, webAuth *AuthMiddleware) {
 		m.Get("/{type:pulls}", repo.Issues)
 		m.Group("/{type:pulls}/{index}", func() {
 			m.Get("", repo.SetEditorconfigIfExists, repo.SetWhitespaceBehavior, repo.GetPullDiffStats, repo.ViewIssue)
+			m.Get("/diff-shortstat", repo.PullDiffShortStat)
 			m.Get(".diff", repo.DownloadPullDiff)
 			m.Get(".patch", repo.DownloadPullPatch)
 			m.Get("/merge_box", repo.ViewPullMergeBox)

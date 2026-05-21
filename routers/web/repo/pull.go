@@ -209,13 +209,9 @@ func GetPullDiffStats(ctx *context.Context) {
 		log.Error("Failed to GetRefCommitID: %v, repo: %v", err, ctx.Repo.Repository.FullName())
 		return
 	}
-	diffShortStat, err := gitdiff.GetDiffShortStat(ctx, ctx.Repo.Repository, ctx.Repo.GitRepo, mergeBaseCommitID, headCommitID)
-	if err != nil {
-		log.Error("Failed to GetDiffShortStat: %v, repo: %v", err, ctx.Repo.Repository.FullName())
-		return
-	}
 
-	ctx.Data["DiffShortStat"] = diffShortStat
+	diffShortStatURL := issue.Link() + "/diff-shortstat"
+	setDiffShortStatPlaceholderData(ctx, 0, "", buildDiffShortStatURL(diffShortStatURL, mergeBaseCommitID, headCommitID, "tab"))
 }
 
 func GetMergedBaseCommitID(ctx *context.Context, issue *issues_model.Issue) string {
@@ -802,12 +798,13 @@ func viewPullFiles(ctx *context.Context, beforeCommitID, afterCommitID string) {
 		}
 	}
 
-	diffShortStat, err := gitdiff.GetDiffShortStat(ctx, ctx.Repo.Repository, ctx.Repo.GitRepo, beforeCommitID, afterCommitID)
-	if err != nil {
-		ctx.ServerError("GetDiffShortStat", err)
-		return
+	changedFiles := len(diff.Files)
+	if isShowAllCommits {
+		changedFiles = prCompareInfo.NumFiles
 	}
-	ctx.Data["DiffShortStat"] = diffShortStat
+	diffShortStatURL := issue.Link() + "/diff-shortstat"
+	setDiffShortStatPlaceholderData(ctx, changedFiles, buildDiffShortStatURL(diffShortStatURL, beforeCommitID, afterCommitID, "detail"), buildDiffShortStatURL(diffShortStatURL, beforeCommitID, afterCommitID, "tab"))
+	diffShortStat := ctx.Data["DiffShortStat"].(*gitdiff.DiffShortStat)
 	ctx.Data["NumViewedFiles"] = numViewedFiles
 
 	ctx.PageData["prReview"] = map[string]any{
