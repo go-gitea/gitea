@@ -27,7 +27,6 @@ jobs:
           cache: false
       - uses: ./.github/actions/go-cache
         with:
-          cache-name: lint-backend
           lint-cache: "true"
       - run: make deps-backend deps-tools
       - run: TAGS="bindata" make generate-go # lint-go also lints with "bindata" tags which requires "_bindata.go"
@@ -47,8 +46,6 @@ jobs:
       - uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e # v6.4.0
         with:
           node-version: 24
-          cache: pnpm
-          cache-dependency-path: pnpm-lock.yaml
 
       - run: make lint-spell
 
@@ -77,9 +74,6 @@ jobs:
           check-latest: true
           cache: false
       - uses: ./.github/actions/go-cache
-        with:
-          cache-name: checks-backend
-          build-cache: "false"
       - run: make deps-backend deps-tools
       - run: make --always-make checks-backend # ensure the "go-licenses" make target runs
 
@@ -113,8 +107,6 @@ jobs:
           check-latest: true
           cache: false
       - uses: ./.github/actions/go-cache
-        with:
-          cache-name: compliance-backend
       - run: make deps-backend generate-go
       # no frontend build here as backend should be able to build, even without any frontend files
       # CGO is not used when cross-compile, so these steps also test if the code is compatible with CGO disabled
