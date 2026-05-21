@@ -29,4 +29,16 @@
 		<div id="captcha" data-captcha-type="cf-turnstile" data-sitekey="{{.CfTurnstileSitekey}}"></div>
 	</div>
 	<script nonce="{{ctx.CspScriptNonce}}" defer src='https://challenges.cloudflare.com/turnstile/v0/api.js'></script>
+{{else if eq .CaptchaType "altcha"}}
+	<div class="inline field tw-text-center">
+		<altcha-widget id="captcha" data-captcha-type="altcha"
+			{{if .AltchaSitekey}}
+			sitekey="{{.AltchaSitekey}}"
+			{{else}}
+			challengeurl="{{AppSubUrl}}/user/captcha/altcha"
+			{{end}}
+			hidefooter
+		></altcha-widget>
+	</div>
+	<script nonce="{{ctx.CspScriptNonce}}" defer src="https://cdn.jsdelivr.net/npm/altcha/dist/altcha.min.js"></script>
 {{end}}{{end}}

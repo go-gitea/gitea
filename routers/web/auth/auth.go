@@ -66,6 +66,7 @@ func prepareCommonAuthPageData(ctx *context.Context, opt CommonAuthOptions) {
 		ctx.Data["McaptchaSitekey"] = setting.Service.McaptchaSitekey
 		ctx.Data["McaptchaURL"] = strings.TrimSuffix(setting.Service.McaptchaURL, "/")
 		ctx.Data["CfTurnstileSitekey"] = setting.Service.CfTurnstileSitekey
+		ctx.Data["AltchaSitekey"] = setting.Service.AltchaSitekey
 		if setting.Service.CaptchaType == setting.ImageCaptcha {
 			ctx.Data["Captcha"] = context.GetImageCaptcha()
 		}
