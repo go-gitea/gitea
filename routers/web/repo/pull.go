@@ -298,6 +298,7 @@ type pullMergeBoxData struct {
 	isBlockedByApprovals              bool
 	isBlockedByRejection              bool
 	isBlockedByOfficialReviewRequests bool
+	isBlockedByCodeowners             bool
 	isBlockedByOutdatedBranch         bool
 	isBlockedByChangedProtectedFiles  bool
 	requireSigned, willSign           bool

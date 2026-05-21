@@ -12,6 +12,7 @@ import (
 	"testing"
 
 	"code.gitea.io/gitea/models/db"
+	git_model "code.gitea.io/gitea/models/git"
 	issues_model "code.gitea.io/gitea/models/issues"
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unittest"
@@ -19,6 +20,7 @@ import (
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/test"
 	issue_service "code.gitea.io/gitea/services/issue"
+	pull_service "code.gitea.io/gitea/services/pull"
 	repo_service "code.gitea.io/gitea/services/repository"
 	files_service "code.gitea.io/gitea/services/repository/files"
 	"code.gitea.io/gitea/tests"
@@ -49,6 +51,8 @@ func TestPullView_ReviewerMissed(t *testing.T) {
 func TestPullView_CodeOwner(t *testing.T) {
 	onGiteaRun(t, func(t *testing.T, u *url.URL) {
 		user2 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
+		user5 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 5})
+		user8 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 8})
 
 		// Create the repo.
 		repo, err := repo_service.CreateRepositoryDirectly(t.Context(), user2, user2, repo_service.CreateRepoOptions{
@@ -58,6 +62,17 @@ func TestPullView_CodeOwner(t *testing.T) {
 			ObjectFormatName: git.Sha1ObjectFormat.Name(),
 			DefaultBranch:    "master",
 		}, true)
+		assert.NoError(t, err)
+
+		// create code owner branch protection
+		protectBranch := git_model.ProtectedBranch{
+			BlockOnCodeownerReviews: true,
+			RepoID:                  repo.ID,
+			RuleName:                "master",
+			CanPush:                 true,
+		}
+
+		err = pull_service.CreateOrUpdateProtectedBranch(t.Context(), repo, &protectBranch, git_model.WhitelistOptions{})
 		assert.NoError(t, err)
 
 		// add CODEOWNERS to default branch
@@ -96,7 +111,7 @@ func TestPullView_CodeOwner(t *testing.T) {
 			assert.NoError(t, pr.LoadIssue(t.Context()))
 
 			// update the file on the pr branch
-			_, err = files_service.ChangeRepoFiles(t.Context(), repo, user2, &files_service.ChangeRepoFilesOptions{
+			resp, err := files_service.ChangeRepoFiles(t.Context(), repo, user2, &files_service.ChangeRepoFilesOptions{
 				OldBranch: "codeowner-basebranch",
 				Files: []*files_service.ChangeRepoFile{
 					{
@@ -124,6 +139,66 @@ func TestPullView_CodeOwner(t *testing.T) {
 			prUpdated2 := unittest.AssertExistsAndLoadBean(t, &issues_model.PullRequest{ID: pr.ID})
 			assert.NoError(t, prUpdated2.LoadIssue(t.Context()))
 			assert.Equal(t, "Test Pull Request2", prUpdated2.Issue.Title)
+
+			// ensure it cannot be merged
+			hasCodeownerReviews := issue_service.HasAllRequiredCodeownerReviews(t.Context(), &protectBranch, pr)
+			assert.False(t, hasCodeownerReviews)
+
+			_, _, err = issues_model.SubmitReview(t.Context(), user5, pr.Issue, issues_model.ReviewTypeApprove, "Very good", resp.Commit.SHA, false, make([]string, 0))
+			assert.NoError(t, err)
+
+			// should still fail (we also need user8)
+			hasCodeownerReviews = issue_service.HasAllRequiredCodeownerReviews(t.Context(), &protectBranch, pr)
+			assert.False(t, hasCodeownerReviews)
+
+			_, _, err = issues_model.SubmitReview(t.Context(), user8, pr.Issue, issues_model.ReviewTypeApprove, "Very good", resp.Commit.SHA, false, make([]string, 0))
+			assert.NoError(t, err)
+
+			// now we should be able to merge
+			hasCodeownerReviews = issue_service.HasAllRequiredCodeownerReviews(t.Context(), &protectBranch, pr)
+			assert.True(t, hasCodeownerReviews)
+		})
+
+		t.Run("Dismissed Code Owner Review", func(t *testing.T) {
+			_, err := files_service.ChangeRepoFiles(t.Context(), repo, user2, &files_service.ChangeRepoFilesOptions{
+				NewBranch: "codeowner-dismiss-branch",
+				Files: []*files_service.ChangeRepoFile{
+					{
+						Operation:     "update",
+						TreePath:      "README.md",
+						ContentReader: strings.NewReader("# New README content\n"),
+					},
+				},
+			})
+			assert.NoError(t, err)
+
+			session := loginUser(t, "user2")
+			testPullCreate(t, session, "user2", "test_codeowner", false, repo.DefaultBranch, "codeowner-dismiss-branch", "Test Code Owner Dismissal")
+
+			pr := unittest.AssertExistsAndLoadBean(t, &issues_model.PullRequest{BaseRepoID: repo.ID, HeadBranch: "codeowner-dismiss-branch"})
+			unittest.AssertExistsAndLoadBean(t, &issues_model.Review{IssueID: pr.IssueID, Type: issues_model.ReviewTypeRequest, ReviewerID: 5})
+
+			hasCodeownerReviews := issue_service.HasAllRequiredCodeownerReviews(t.Context(), &protectBranch, pr)
+			assert.False(t, hasCodeownerReviews)
+
+			_, _, err = issues_model.SubmitReview(t.Context(), user5, pr.Issue, issues_model.ReviewTypeApprove, " LGTM", "", false, make([]string, 0))
+			assert.NoError(t, err)
+
+			hasCodeownerReviews = issue_service.HasAllRequiredCodeownerReviews(t.Context(), &protectBranch, pr)
+			assert.True(t, hasCodeownerReviews)
+
+			review := unittest.AssertExistsAndLoadBean(t, &issues_model.Review{IssueID: pr.IssueID, ReviewerID: 5, Type: issues_model.ReviewTypeApprove})
+			assert.False(t, review.Dismissed)
+
+			err = issues_model.DismissReview(t.Context(), review, true)
+			assert.NoError(t, err)
+
+			review, err = issues_model.GetReviewByID(t.Context(), review.ID)
+			assert.NoError(t, err)
+			assert.True(t, review.Dismissed)
+
+			hasCodeownerReviews = issue_service.HasAllRequiredCodeownerReviews(t.Context(), &protectBranch, pr)
+			assert.False(t, hasCodeownerReviews)
 		})
 
 		// change the default branch CODEOWNERS file to change README.md's codeowner
@@ -140,7 +215,7 @@ func TestPullView_CodeOwner(t *testing.T) {
 
 		t.Run("Second Pull Request", func(t *testing.T) {
 			// create a new branch to prepare for pull request
-			_, err = files_service.ChangeRepoFiles(t.Context(), repo, user2, &files_service.ChangeRepoFilesOptions{
+			resp, err := files_service.ChangeRepoFiles(t.Context(), repo, user2, &files_service.ChangeRepoFilesOptions{
 				NewBranch: "codeowner-basebranch2",
 				Files: []*files_service.ChangeRepoFile{
 					{
@@ -158,6 +233,16 @@ func TestPullView_CodeOwner(t *testing.T) {
 
 			pr := unittest.AssertExistsAndLoadBean(t, &issues_model.PullRequest{BaseRepoID: repo.ID, HeadBranch: "codeowner-basebranch2"})
 			unittest.AssertExistsAndLoadBean(t, &issues_model.Review{IssueID: pr.IssueID, Type: issues_model.ReviewTypeRequest, ReviewerID: 8})
+
+			// should need user8 approval only now
+			hasCodeownerReviews := issue_service.HasAllRequiredCodeownerReviews(t.Context(), &protectBranch, pr)
+			assert.False(t, hasCodeownerReviews)
+
+			_, _, err = issues_model.SubmitReview(t.Context(), user8, pr.Issue, issues_model.ReviewTypeApprove, "Very good", resp.Commit.SHA, false, make([]string, 0))
+			assert.NoError(t, err)
+
+			hasCodeownerReviews = issue_service.HasAllRequiredCodeownerReviews(t.Context(), &protectBranch, pr)
+			assert.True(t, hasCodeownerReviews)
 		})
 
 		t.Run("Forked Repo Pull Request", func(t *testing.T) {
@@ -169,7 +254,7 @@ func TestPullView_CodeOwner(t *testing.T) {
 			assert.NoError(t, err)
 
 			// create a new branch to prepare for pull request
-			_, err = files_service.ChangeRepoFiles(t.Context(), forkedRepo, user5, &files_service.ChangeRepoFilesOptions{
+			resp, err := files_service.ChangeRepoFiles(t.Context(), forkedRepo, user5, &files_service.ChangeRepoFilesOptions{
 				NewBranch: "codeowner-basebranch-forked",
 				Files: []*files_service.ChangeRepoFile{
 					{
@@ -210,6 +295,23 @@ func TestPullView_CodeOwner(t *testing.T) {
 
 			pr = unittest.AssertExistsAndLoadBean(t, &issues_model.PullRequest{BaseRepoID: repo.ID, HeadRepoID: forkedRepo.ID, HeadBranch: "codeowner-basebranch-forked"})
 			unittest.AssertExistsAndLoadBean(t, &issues_model.Review{IssueID: pr.IssueID, Type: issues_model.ReviewTypeRequest, ReviewerID: 8})
+
+			// will also need user8 for this
+			hasCodeownerReviews := issue_service.HasAllRequiredCodeownerReviews(t.Context(), &protectBranch, pr)
+			assert.False(t, hasCodeownerReviews)
+
+			_, _, err = issues_model.SubmitReview(t.Context(), user5, pr.Issue, issues_model.ReviewTypeApprove, "Very good", resp.Commit.SHA, false, make([]string, 0))
+			assert.NoError(t, err)
+
+			// should still fail (user5 is not a code owner for this PR)
+			hasCodeownerReviews = issue_service.HasAllRequiredCodeownerReviews(t.Context(), &protectBranch, pr)
+			assert.False(t, hasCodeownerReviews)
+
+			_, _, err = issues_model.SubmitReview(t.Context(), user8, pr.Issue, issues_model.ReviewTypeApprove, "Very good", resp.Commit.SHA, false, make([]string, 0))
+			assert.NoError(t, err)
+
+			hasCodeownerReviews = issue_service.HasAllRequiredCodeownerReviews(t.Context(), &protectBranch, pr)
+			assert.True(t, hasCodeownerReviews)
 		})
 	})
 }
