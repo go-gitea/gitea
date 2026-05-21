@@ -17,3 +17,7 @@
 - For CSS layout, prefer `flex-*` helpers over per-child `tw-ml-*` / `tw-mr-*` margins; fall back to `tw-*` utilities when specificity requires `!important`
 - Include authorship attribution in issue and pull request comments
 - Add `Co-Authored-By` lines to all commits, indicating name and model used
+
+---
+
+- For DevOps/operations involving the internal Gitea instance, read `.codex/ops/devops.md` first. Do not read `.codex/ops/devops.md` for normal code changes or unrelated tasks.

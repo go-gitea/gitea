@@ -1,0 +1,40 @@
+name: sync-upstream-main
+
+on:
+  schedule:
+    - cron: "17 * * * *" # hourly at :17
+  workflow_dispatch:
+
+concurrency:
+  group: sync-upstream-main
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    if: github.repository == 'moonbitlang/gitea'
+    steps:
+      - name: Check sync token
+        env:
+          SYNC_MAIN_TOKEN: ${{ secrets.SYNC_MAIN_TOKEN }}
+        run: |
+          if [ -z "${SYNC_MAIN_TOKEN}" ]; then
+            echo "::error title=Missing secret::Set SYNC_MAIN_TOKEN with contents and workflows write access"
+            exit 1
+          fi
+
+      - uses: actions/checkout@v6
+        with:
+          ref: main
+          fetch-depth: 0
+          token: ${{ secrets.SYNC_MAIN_TOKEN }}
+
+      - name: Fast-forward main from upstream
+        run: |
+          set -euo pipefail
+          git remote add upstream https://github.com/go-gitea/gitea.git
+          git fetch upstream main
+          git push origin upstream/main:main
