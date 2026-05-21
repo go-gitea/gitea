@@ -73,8 +73,7 @@ export function formatDatetimeISO(unixSeconds: number): string {
   return `${base}.${String(fracInt).padStart(7, '0')}Z`;
 }
 
-/** Format a Date object to document's locale, but with 24h format from user's current locale because this
- *  option is a personal preference of the user, not something that the document's locale should dictate. */
+/** Format a Date to a localized format, for example "21 May 2026, 14:30:45". */
 export function formatDatetime(date: Date | number): string {
   if (!dateFormat) {
     dateFormat = new Intl.DateTimeFormat(getCurrentLocale(), {
@@ -82,7 +81,7 @@ export function formatDatetime(date: Date | number): string {
       month: 'short',
       year: 'numeric',
       hour: '2-digit',
-      hour12: new Intl.DateTimeFormat([], {hour: 'numeric'}).resolvedOptions().hour12,
+      hourCycle: new Intl.DateTimeFormat([], {hour: 'numeric'}).resolvedOptions().hourCycle === 'h12' ? 'h12' : 'h23',
       minute: '2-digit',
       second: '2-digit',
     });
