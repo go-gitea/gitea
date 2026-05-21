@@ -37,16 +37,16 @@ Set up a pgsql database inside docker:
 docker run -e "POSTGRES_DB=test" -e "POSTGRES_USER=postgres" -e "POSTGRES_PASSWORD=postgres" -p 5432:5432 --rm --name pgsql postgres:latest #(just ctrl-c to stop db and clean the container)
 ```
 
-Set up minio inside docker:
+Set up rustfs inside docker:
 
 ```
-docker run --rm -p 9000:9000 -e MINIO_ROOT_USER=123456 -e MINIO_ROOT_PASSWORD=12345678 --name minio bitnamilegacy/minio:2023.8.31
+docker run --rm -p 9000:9000 -e RUSTFS_ACCESS_KEY=123456 -e RUSTFS_SECRET_KEY=12345678 --name rustfs rustfs/rustfs:1.0.0-beta.3
 ```
 
 Start tests based on the database container:
 
 ```
-GITEA_TEST_DATABASE=pgsql TEST_MINIO_ENDPOINT=localhost:9000 TEST_PGSQL_HOST=localhost:5432 TEST_PGSQL_DBNAME=postgres TEST_PGSQL_USERNAME=postgres TEST_PGSQL_PASSWORD=postgres make test-integration
+GITEA_TEST_DATABASE=pgsql TEST_S3_ENDPOINT=localhost:9000 TEST_PGSQL_HOST=localhost:5432 TEST_PGSQL_DBNAME=postgres TEST_PGSQL_USERNAME=postgres TEST_PGSQL_PASSWORD=postgres make test-integration
 ```
 
 ## Run mssql integration tests

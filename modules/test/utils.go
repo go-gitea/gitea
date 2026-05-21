@@ -168,7 +168,7 @@ func ExternalServiceHTTP(t TestingT, envVarName, def string) string {
 			t.Fatalf("%s is not set, but skipping is not allowed in CI", envVarName)
 		}
 	}
-	// minio's endpoint is "host:port" pattern
+	// S3-compatible endpoints follow the "host:port" pattern
 	testURL := util.Iif(strings.Contains(val, "://"), val, "http://"+val)
 	resp, err := http.Get(testURL)
 	if err != nil {

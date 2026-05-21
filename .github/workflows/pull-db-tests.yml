@@ -35,13 +35,11 @@ jobs:
         ports:
           - "389:389"
           - "636:636"
-      minio:
-        # as github actions doesn't support "entrypoint", we need to use a non-official image
-        # that has a custom entrypoint set to "minio server /data"
-        image: bitnamilegacy/minio:2025.7.23
+      s3:
+        image: rustfs/rustfs:1.0.0-beta.3@sha256:378642b05b7dcb4849fb77ebe6aca4ced1c3f66e7e504247df95a5c9018d3358
         env:
-          MINIO_ROOT_USER: 123456
-          MINIO_ROOT_PASSWORD: 12345678
+          RUSTFS_ACCESS_KEY: 123456
+          RUSTFS_SECRET_KEY: 12345678
         ports:
           - "9000:9000"
     steps:
@@ -53,7 +51,7 @@ jobs:
           cache: false
       - uses: ./.github/actions/go-cache
       - name: Add hosts to /etc/hosts
-        run: '[ -e "/.dockerenv" ] || [ -e "/run/.containerenv" ] || echo "127.0.0.1 pgsql ldap minio" | sudo tee -a /etc/hosts'
+        run: '[ -e "/.dockerenv" ] || [ -e "/run/.containerenv" ] || echo "127.0.0.1 pgsql ldap s3" | sudo tee -a /etc/hosts'
       - run: make deps-backend
       - run: make backend
         env:
@@ -128,11 +126,11 @@ jobs:
           --health-retries 10
         ports:
           - 6379:6379
-      minio:
-        image: bitnamilegacy/minio:2025.7.23
+      s3:
+        image: rustfs/rustfs:1.0.0-beta.3@sha256:378642b05b7dcb4849fb77ebe6aca4ced1c3f66e7e504247df95a5c9018d3358
         env:
-          MINIO_ROOT_USER: 123456
-          MINIO_ROOT_PASSWORD: 12345678
+          RUSTFS_ACCESS_KEY: 123456
+          RUSTFS_SECRET_KEY: 12345678
         ports:
           - "9000:9000"
       devstoreaccount1.azurite.local: # https://github.com/Azure/Azurite/issues/1583
@@ -148,7 +146,7 @@ jobs:
           cache: false
       - uses: ./.github/actions/go-cache
       - name: Add hosts to /etc/hosts
-        run: '[ -e "/.dockerenv" ] || [ -e "/run/.containerenv" ] || echo "127.0.0.1 minio devstoreaccount1.azurite.local mysql elasticsearch meilisearch smtpimap" | sudo tee -a /etc/hosts'
+        run: '[ -e "/.dockerenv" ] || [ -e "/run/.containerenv" ] || echo "127.0.0.1 s3 devstoreaccount1.azurite.local mysql elasticsearch meilisearch smtpimap" | sudo tee -a /etc/hosts'
       - run: make deps-backend
       - run: make generate-go
         env:
