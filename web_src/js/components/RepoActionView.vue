@@ -154,11 +154,11 @@ async function deleteArtifact(name: string) {
         <div class="left-list-header">{{ locale.allJobs }}</div>
         <div class="flex-items-block action-view-sidebar-list">
           <div class="item" v-for="job in run.jobs" :key="job.id" :class="props.jobId === job.id ? 'selected' : ''">
-            <a class="tw-contents silenced" :href="job.link">
+            <a class="flex-text-block tw-flex-1 silenced" :href="job.link">
               <ActionStatusIcon :locale-status="locale.status[job.status]" :status="job.status" icon-variant="circle-fill"/>
               <span class="tw-flex-1 gt-ellipsis">{{ job.name }}</span>
-              <SvgIcon name="octicon-sync" role="button" :data-tooltip-content="locale.rerun" class="tw-cursor-pointer link-action interact-fg" :data-url="`${run.link}/jobs/${job.id}/rerun`" v-if="job.canRerun"/>
-              <span>{{ job.duration }}</span>
+              <SvgIcon name="octicon-sync" role="button" :data-tooltip-content="locale.rerun" class="job-rerun-button tw-cursor-pointer link-action interact-fg" :data-url="`${run.link}/jobs/${job.id}/rerun`" v-if="job.canRerun"/>
+              <span class="job-duration">{{ job.duration }}</span>
             </a>
           </div>
         </div>
@@ -330,6 +330,22 @@ async function deleteArtifact(name: string) {
 .action-view-sidebar-list > .item.selected {
   font-weight: var(--font-weight-bold);
   background-color: var(--color-active);
+}
+
+/* the re-run button replaces the duration on hover/focus, like GitHub */
+.action-view-sidebar-list > .item .job-rerun-button {
+  display: none;
+}
+
+.action-view-sidebar-list > .item:hover .job-rerun-button,
+.action-view-sidebar-list > .item:focus-within .job-rerun-button {
+  display: inline-flex;
+}
+
+/* only swap out the duration when a re-run button exists to take its place */
+.action-view-sidebar-list > .item:hover .job-rerun-button ~ .job-duration,
+.action-view-sidebar-list > .item:focus-within .job-rerun-button ~ .job-duration {
+  display: none;
 }
 
 /* ================ */
