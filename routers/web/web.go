@@ -284,6 +284,7 @@ func Routes() *web.Router {
 	if setting.Service.EnableCaptcha {
 		// The captcha http.Handler should only fire on /captcha/* so we can just mount this on that url
 		routes.Methods("GET,HEAD", "/captcha/*", append(mid, captcha.Captchaer(context.GetImageCaptcha()))...)
+		routes.Methods("GET,HEAD", "/user/captcha/altcha", append(mid, auth.GenerateAltchaChallenge)...)
 	}
 
 	if setting.Metrics.Enabled {

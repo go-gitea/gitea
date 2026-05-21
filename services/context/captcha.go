@@ -8,6 +8,7 @@ import (
 	"image/color"
 	"sync"
 
+	"code.gitea.io/gitea/modules/altcha"
 	"code.gitea.io/gitea/modules/cache"
 	"code.gitea.io/gitea/modules/hcaptcha"
 	"code.gitea.io/gitea/modules/log"
@@ -50,6 +51,7 @@ const (
 	hCaptchaResponseField    = "h-captcha-response"
 	mCaptchaResponseField    = "mcaptcha__token" // this form key is hard-coded in the mcaptcha frontend library
 	cfTurnstileResponseField = "cf-turnstile-response"
+	altchaResponseField      = "altcha"
 )
 
 // VerifyCaptcha verifies Captcha data
@@ -72,6 +74,8 @@ func VerifyCaptcha(ctx *Context, tpl templates.TplName, form any) {
 		valid, err = mcaptcha.Verify(ctx, ctx.Req.Form.Get(mCaptchaResponseField))
 	case setting.CfTurnstile:
 		valid, err = turnstile.Verify(ctx, ctx.Req.Form.Get(cfTurnstileResponseField))
+	case setting.Altcha:
+		valid, err = altcha.Verify(ctx, ctx.Req.Form.Get(altchaResponseField))
 	default:
 		ctx.ServerError("Unknown Captcha Type", fmt.Errorf("unknown Captcha Type: %s", setting.Service.CaptchaType))
 		return
