@@ -78,6 +78,9 @@ func ApproveRuns(ctx context.Context, repo *repo_model.Repository, doer *user_mo
 					if err := expandReusableWorkflowCaller(ctx, run, attempt, job, vars); err != nil {
 						return fmt.Errorf("expand caller %d on approval: %w", job.ID, err)
 					}
+					if err := actions_model.RefreshReusableCallerStatus(ctx, job); err != nil {
+						return fmt.Errorf("refresh caller %d status after approval-time expansion: %w", job.ID, err)
+					}
 					expandedCallerRunIDs.Add(run.ID)
 				}
 			}
