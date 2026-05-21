@@ -1,10 +1,11 @@
 <script setup lang="ts">
 import {SvgIcon} from '../svg.ts';
 import ActionStatusIcon from './ActionStatusIcon.vue';
-import {toRefs} from 'vue';
+import {ref, toRefs} from 'vue';
 import {POST, DELETE} from '../modules/fetch.ts';
 import ActionRunSummaryView from './ActionRunSummaryView.vue';
 import ActionRunJobView from './ActionRunJobView.vue';
+import ActionRunAnalysisPanel from './ActionRunAnalysisPanel.vue';
 import type {ActionsRunAttempt} from '../modules/gitea-actions.ts';
 import {createActionRunViewStore} from './ActionRunView.ts';
 import {buildArtifactTooltipHtml} from './ActionRunArtifacts.ts';
@@ -17,11 +18,17 @@ const props = defineProps<{
   jobId: number;
   actionsViewUrl: string;
   locale: Record<string, any>;
+  analysis?: {
+    runLink: string;
+    failureTagsUrl: string;
+    locale: Record<string, string>;
+  };
 }>();
 
 const locale = props.locale;
 const store = createActionRunViewStore(props.actionsViewUrl);
 const {currentRun: run, runArtifacts: artifacts} = toRefs(store.viewData);
+const activeTab = ref<'run' | 'analysis'>('run');
 
 function formatAttemptTitle(attempt: ActionsRunAttempt) {
   return attempt.latest ? `${locale.latestAttempt} #${attempt.attempt}` : `${locale.attempt} #${attempt.attempt}`;
@@ -205,19 +212,37 @@ async function deleteArtifact(name: string) {
         </ul>
       </div>
 
-      <div class="action-view-right">
-        <ActionRunSummaryView
-          v-if="!props.jobId"
-          :store="store"
-          :locale="locale"
+      <div class="action-view-right-column">
+        <div v-if="props.analysis && run.runAttempt" class="ui tabular menu action-view-tab-menu">
+          <a class="item" :class="{active: activeTab === 'run'}" @click="activeTab = 'run'">
+            {{ props.analysis.locale.tabRun }}
+          </a>
+          <a class="item" :class="{active: activeTab === 'analysis'}" @click="activeTab = 'analysis'">
+            {{ props.analysis.locale.title }}
+          </a>
+        </div>
+        <ActionRunAnalysisPanel
+          v-if="props.analysis && run.runAttempt && activeTab === 'analysis'"
+          :key="run.runAttempt"
+          :run-link="props.analysis.runLink"
+          :attempt="run.runAttempt"
+          :failure-tags-url="props.analysis.failureTagsUrl"
+          :locale="props.analysis.locale"
         />
-        <ActionRunJobView
-          v-else
-          :store="store"
-          :locale="locale"
-          :actions-view-url="props.actionsViewUrl"
-          :job-id="props.jobId"
-        />
+        <div v-show="!props.analysis || !run.runAttempt || activeTab === 'run'" class="action-view-right">
+          <ActionRunSummaryView
+            v-if="!props.jobId"
+            :store="store"
+            :locale="locale"
+          />
+          <ActionRunJobView
+            v-else
+            :store="store"
+            :locale="locale"
+            :actions-view-url="props.actionsViewUrl"
+            :job-id="props.jobId"
+          />
+        </div>
       </div>
     </div>
   </div>
@@ -335,11 +360,24 @@ async function deleteArtifact(name: string) {
 /* ================ */
 /* action view right */
 
+.action-view-right-column {
+  flex: 1;
+  width: 70%;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+.action-view-tab-menu {
+  margin-bottom: -1px !important; /* overlap tab bottom border with content top border */
+}
+.action-view-tab-menu + .action-view-right {
+  border-top-left-radius: 0;
+  border-top-right-radius: 0;
+}
 .action-view-right {
   flex: 1;
   color: var(--color-console-fg-subtle);
   max-height: 100%;
-  width: 70%;
   display: flex;
   flex-direction: column;
   border: 1px solid var(--color-console-border);
@@ -371,7 +409,7 @@ async function deleteArtifact(name: string) {
   .action-view-body {
     flex-direction: column;
   }
-  .action-view-left, .action-view-right {
+  .action-view-left, .action-view-right-column {
     width: 100%;
   }
   .action-view-left {

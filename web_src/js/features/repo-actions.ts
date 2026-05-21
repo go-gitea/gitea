@@ -10,9 +10,27 @@ export function initRepositoryActionView() {
   const parentFullHeight = document.querySelector<HTMLElement>('body > div.full.height');
   if (parentFullHeight) parentFullHeight.classList.add('tw-pb-0');
 
+  const analysisRunLink = el.getAttribute('data-analysis-run-link');
   const view = createApp(RepoActionView, {
     jobId: parseInt(el.getAttribute('data-job-id')!),
     actionsViewUrl: el.getAttribute('data-actions-view-url'),
+    analysis: analysisRunLink ? {
+      runLink: analysisRunLink,
+      failureTagsUrl: el.getAttribute('data-analysis-failure-tags-url')!,
+      locale: {
+        title: el.getAttribute('data-locale-analysis-title')!,
+        tabRun: el.getAttribute('data-locale-analysis-tab-run')!,
+        add: el.getAttribute('data-locale-analysis-add')!,
+        edit: el.getAttribute('data-locale-analysis-edit')!,
+        delete: el.getAttribute('data-locale-analysis-delete')!,
+        save: el.getAttribute('data-locale-analysis-save')!,
+        cancel: el.getAttribute('data-locale-analysis-cancel')!,
+        notePlaceholder: el.getAttribute('data-locale-analysis-placeholder')!,
+        tagsLabel: el.getAttribute('data-locale-analysis-tags')!,
+        empty: el.getAttribute('data-locale-analysis-empty')!,
+        confirmDelete: el.getAttribute('data-locale-analysis-confirm-delete')!,
+      },
+    } : undefined,
     locale: {
       approve: el.getAttribute('data-locale-approve'),
       cancel: el.getAttribute('data-locale-cancel'),

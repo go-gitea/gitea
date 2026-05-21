@@ -66,13 +66,74 @@ func generateMockStepsLog(logCur actions.LogCursor, opts generateMockStepsLogOpt
 }
 
 func MockActionsView(ctx *context.Context) {
-	if runID := ctx.PathParamInt64("run"); runID == 0 {
+	runID := ctx.PathParamInt64("run")
+	if runID == 0 {
 		ctx.Redirect("/repo-action-view/runs/10")
 		return
 	}
 	ctx.Data["JobID"] = ctx.PathParamInt64("job")
 	ctx.Data["ActionsViewURL"] = ctx.Req.URL.Path
+	ctx.Data["AnalysisRunLink"] = setting.AppSubURL + "/devtest/repo-action-view/runs/" + strconv.FormatInt(runID, 10)
+	ctx.Data["AnalysisFailureTagsURL"] = setting.AppSubURL + "/devtest/repo-action-view/failure-tags"
 	ctx.HTML(http.StatusOK, "devtest/repo-action-view")
+}
+
+// mockFailureTags is the canned tag taxonomy returned by the devtest failure-tags endpoint.
+var mockFailureTags = []map[string]any{
+	{"id": 1, "name": "flaky-test", "color": "#d73a4a", "description": "Test passed on rerun"},
+	{"id": 2, "name": "infra", "color": "#0075ca", "description": "CI infrastructure problem"},
+	{"id": 3, "name": "oom", "color": "#a2eeef", "description": "Out of memory"},
+	{"id": 4, "name": "timeout", "color": "#7057ff", "description": "Job exceeded time budget"},
+}
+
+// MockActionsFailureTags returns the mock tag taxonomy for the devtest action view.
+func MockActionsFailureTags(ctx *context.Context) {
+	ctx.JSON(http.StatusOK, mockFailureTags)
+}
+
+// MockActionsAnalysis returns a canned analysis payload that varies by run + attempt so the
+// devtest page exercises empty/filled and multi-tag UI states.
+func MockActionsAnalysis(ctx *context.Context) {
+	runID := ctx.PathParamInt64("run")
+	attempt := ctx.FormInt64("attempt")
+	if attempt == 0 {
+		attempt = 1
+	}
+
+	type tag struct {
+		ID    int64  `json:"id"`
+		Name  string `json:"name"`
+		Color string `json:"color"`
+	}
+	resp := struct {
+		Exists    bool   `json:"exists"`
+		Note      string `json:"note"`
+		Tags      []tag  `json:"tags"`
+		CanEdit   bool   `json:"canEdit"`
+		UpdatedAt int64  `json:"updatedAt,omitempty"`
+	}{Tags: []tag{}, CanEdit: true}
+
+	switch {
+	case runID == 10 && attempt == 3:
+		resp.Exists = true
+		resp.Note = "Latest attempt passed after retry — flagged as flaky for tracking."
+		resp.Tags = []tag{{ID: 1, Name: "flaky-test", Color: "#d73a4a"}}
+		resp.UpdatedAt = time.Now().Add(-time.Hour).Unix()
+	case runID == 10 && attempt == 2:
+		resp.Exists = true
+		resp.Note = "Runner ran out of memory while compiling. See logs around line 1200.\n\nNeed to bump the runner class."
+		resp.Tags = []tag{
+			{ID: 2, Name: "infra", Color: "#0075ca"},
+			{ID: 3, Name: "oom", Color: "#a2eeef"},
+		}
+		resp.UpdatedAt = time.Now().Add(-2 * time.Hour).Unix()
+	case runID == 30:
+		resp.Exists = true
+		resp.Note = "Hit the global 6h job timeout."
+		resp.Tags = []tag{{ID: 4, Name: "timeout", Color: "#7057ff"}}
+		resp.UpdatedAt = time.Now().Add(-30 * time.Minute).Unix()
+	}
+	ctx.JSON(http.StatusOK, resp)
 }
 
 func MockActionsRunsJobs(ctx *context.Context) {

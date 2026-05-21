@@ -38,5 +38,21 @@
 		data-locale-download-logs="{{ctx.Locale.Tr "download_logs"}}"
 		data-locale-logs-always-auto-scroll="{{ctx.Locale.Tr "actions.logs.always_auto_scroll"}}"
 		data-locale-logs-always-expand-running="{{ctx.Locale.Tr "actions.logs.always_expand_running"}}"
+
+		{{if .AnalysisRunLink}}
+		data-analysis-run-link="{{.AnalysisRunLink}}"
+		data-analysis-failure-tags-url="{{.AnalysisFailureTagsURL}}"
+		data-locale-analysis-title="{{ctx.Locale.Tr "actions.runs.analysis.title"}}"
+		data-locale-analysis-tab-run="{{ctx.Locale.Tr "actions.runs.analysis.tab_run"}}"
+		data-locale-analysis-add="{{ctx.Locale.Tr "actions.runs.analysis.add"}}"
+		data-locale-analysis-edit="{{ctx.Locale.Tr "actions.runs.analysis.edit"}}"
+		data-locale-analysis-delete="{{ctx.Locale.Tr "actions.runs.analysis.delete"}}"
+		data-locale-analysis-save="{{ctx.Locale.Tr "save"}}"
+		data-locale-analysis-cancel="{{ctx.Locale.Tr "cancel"}}"
+		data-locale-analysis-placeholder="{{ctx.Locale.Tr "actions.runs.analysis.placeholder"}}"
+		data-locale-analysis-tags="{{ctx.Locale.Tr "actions.runs.analysis.tags"}}"
+		data-locale-analysis-empty="{{ctx.Locale.Tr "actions.runs.analysis.empty"}}"
+		data-locale-analysis-confirm-delete="{{ctx.Locale.Tr "actions.runs.analysis.confirm_delete"}}"
+		{{end}}
 >
 </div>

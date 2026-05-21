@@ -1239,6 +1239,7 @@ func registerWebRoutes(m *web.Router, webAuth *AuthMiddleware) {
 				})
 				m.Post("/token_permissions", repo_setting.UpdateTokenPermissions)
 			})
+			m.Get("/failure-tags", repo_setting.FailureTagsSettings)
 		}, actions.MustEnableActions)
 		// the follow handler must be under "settings", otherwise this incomplete repo can't be accessed
 		m.Group("/migrate", func() {
@@ -1546,6 +1547,11 @@ func registerWebRoutes(m *web.Router, webAuth *AuthMiddleware) {
 					Get(actions.View).
 					Post(web.Bind(actions.ViewRequest{}), actions.ViewPost)
 			})
+			m.Group("/analysis", func() {
+				m.Get("", actions.GetAttemptAnalysis)
+				m.Put("", reqRepoActionsWriter, web.Bind(actions.AnalysisRequest{}), actions.PutAttemptAnalysis)
+				m.Delete("", reqRepoActionsWriter, actions.DeleteAttemptAnalysis)
+			})
 			m.Group("/jobs/{job}", func() {
 				m.Combo("").
 					Get(actions.View).
@@ -1564,6 +1570,13 @@ func registerWebRoutes(m *web.Router, webAuth *AuthMiddleware) {
 		})
 		m.Group("/workflows/{workflow_name}", func() {
 			m.Get("/badge.svg", webAuth.AllowBasic, webAuth.AllowOAuth2, actions.GetWorkflowBadge)
+		})
+		m.Group("/failure-tags", func() {
+			m.Get("", actions.ListFailureTags)
+			m.Post("", reqRepoActionsWriter, web.Bind(actions.FailureTagRequest{}), actions.CreateFailureTag)
+			m.Combo("/{id}").
+				Put(reqRepoActionsWriter, web.Bind(actions.FailureTagRequest{}), actions.UpdateFailureTag).
+				Delete(reqRepoActionsWriter, actions.DeleteFailureTag)
 		})
 	}, optSignIn, context.RepoAssignment, repo.MustBeNotEmpty, reqRepoActionsReader, actions.MustEnableActions)
 	// end "/{username}/{reponame}/actions"
@@ -1767,6 +1780,8 @@ func registerWebRoutes(m *web.Router, webAuth *AuthMiddleware) {
 			m.Post("/repo-action-view/runs/{run}", web.Bind(actions.ViewRequest{}), devtest.MockActionsRunsJobs)
 			m.Post("/repo-action-view/runs/{run}/attempts/{attempt}", web.Bind(actions.ViewRequest{}), devtest.MockActionsRunsJobs)
 			m.Post("/repo-action-view/runs/{run}/jobs/{job}", web.Bind(actions.ViewRequest{}), devtest.MockActionsRunsJobs)
+			m.Get("/repo-action-view/runs/{run}/analysis", devtest.MockActionsAnalysis)
+			m.Get("/repo-action-view/failure-tags", devtest.MockActionsFailureTags)
 		})
 	}
 
