@@ -8,6 +8,7 @@ import (
 	"errors"
 	"fmt"
 
+	"gitea.com/gitea/runner/act/exprparser"
 	"gitea.com/gitea/runner/act/model"
 	"go.yaml.in/yaml/v4"
 )
@@ -400,32 +401,35 @@ func ParseRawOn(rawOn *yaml.Node) ([]*Event, error) {
 							}
 							acts[act] = []string{t}
 						case yaml.MappingNode:
-							if k != "workflow_dispatch" || act != "inputs" {
-								return nil, fmt.Errorf("map should only for workflow_dispatch but %s: %#v", act, content)
-							}
+							switch {
+							case k == "workflow_dispatch" && act == "inputs":
+								var key string
+								for i, vv := range content.Content {
+									if i%2 == 0 {
+										if vv.Kind != yaml.ScalarNode {
+											return nil, fmt.Errorf("key type not string: %#v", vv)
+										}
+										key = ""
+										if err := vv.Decode(&key); err != nil {
+											return nil, err
+										}
+									} else {
+										if vv.Kind != yaml.MappingNode {
+											return nil, fmt.Errorf("key type not map(%s): %#v", key, vv)
+										}
 
-							var key string
-							for i, vv := range content.Content {
-								if i%2 == 0 {
-									if vv.Kind != yaml.ScalarNode {
-										return nil, fmt.Errorf("key type not string: %#v", vv)
+										input := WorkflowDispatchInput{}
+										if err := vv.Decode(&input); err != nil {
+											return nil, err
+										}
+										input.Name = key
+										inputs = append(inputs, input)
 									}
-									key = ""
-									if err := vv.Decode(&key); err != nil {
-										return nil, err
-									}
-								} else {
-									if vv.Kind != yaml.MappingNode {
-										return nil, fmt.Errorf("key type not map(%s): %#v", key, vv)
-									}
-
-									input := WorkflowDispatchInput{}
-									if err := vv.Decode(&input); err != nil {
-										return nil, err
-									}
-									input.Name = key
-									inputs = append(inputs, input)
 								}
+							case k == "workflow_call" && (act == "inputs" || act == "outputs" || act == "secrets"):
+								// Accepted; the detailed schema is parsed by ParseWorkflowCallSpec
+							default:
+								return nil, fmt.Errorf("map should only be used for workflow_dispatch.inputs or workflow_call.{inputs,outputs,secrets} but %s: %#v", act, content)
 							}
 						default:
 							return nil, fmt.Errorf("unknown on type: %#v", content)
@@ -452,6 +456,26 @@ func ParseRawOn(rawOn *yaml.Node) ([]*Event, error) {
 	default:
 		return nil, fmt.Errorf("unknown on type: %v", rawOn.Kind)
 	}
+}
+
+func EvaluateJobIfExpression(jobID string, job *Job, gitCtx map[string]any, results map[string]*JobResult, vars map[string]string, inputs map[string]any) (bool, error) {
+	actJob := &model.Job{
+		Strategy: &model.Strategy{
+			FailFastString:    job.Strategy.FailFastString,
+			MaxParallelString: job.Strategy.MaxParallelString,
+			RawMatrix:         job.Strategy.RawMatrix,
+		},
+	}
+	evaluator := NewExpressionEvaluator(NewInterpeter(jobID, actJob, nil, toGitContext(gitCtx), results, vars, inputs))
+	expr, err := rewriteSubExpression(job.If.Value, false)
+	if err != nil {
+		return false, err
+	}
+	result, err := evaluator.evaluate(expr, exprparser.DefaultStatusCheckSuccess)
+	if err != nil {
+		return false, err
+	}
+	return exprparser.IsTruthy(result), nil
 }
 
 // parseMappingNode parse a mapping node and preserve order.

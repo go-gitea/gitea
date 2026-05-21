@@ -10,6 +10,7 @@ import (
 	actions_model "code.gitea.io/gitea/models/actions"
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/modules/actions/jobparser"
+	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/util"
 
 	act_model "gitea.com/gitea/runner/act/model"
@@ -55,6 +56,7 @@ func PrepareRunAndInsert(ctx context.Context, content []byte, run *actions_model
 // The title will be cut off at 255 characters if it's longer than 255 characters.
 func InsertRun(ctx context.Context, run *actions_model.ActionRun, content []byte, vars map[string]string, inputs map[string]any, wfRawConcurrency *act_model.RawConcurrency) error {
 	var cancelledConcurrencyJobs []*actions_model.ActionRunJob
+	var hasWaitingCallerJobs bool
 	if err := db.WithTx(ctx, func(ctx context.Context) error {
 		index, err := db.GetNextResourceIndex(ctx, "action_run_index", run.RepoID)
 		if err != nil {
@@ -128,7 +130,7 @@ func InsertRun(ctx context.Context, run *actions_model.ActionRun, content []byte
 		runJobs := make([]*actions_model.ActionRunJob, 0, len(jobs))
 		var hasWaitingJobs bool
 
-		for i, v := range jobs {
+		for _, v := range jobs {
 			id, job := v.Job()
 			needs := job.Needs()
 			if err := v.SetJob(id, job.EraseNeeds()); err != nil {
@@ -136,7 +138,13 @@ func InsertRun(ctx context.Context, run *actions_model.ActionRun, content []byte
 			}
 			payload, _ := v.Marshal()
 
+			isReusableWorkflowCaller := job.Uses != ""
 			shouldBlockJob := runAttempt.Status == actions_model.StatusBlocked || len(needs) > 0 || run.NeedApproval
+
+			attemptJobID, err := actions_model.GetNextAttemptJobID(ctx, run.ID)
+			if err != nil {
+				return fmt.Errorf("alloc attempt_job_id: %w", err)
+			}
 
 			job.Name = util.EllipsisDisplayString(job.Name, 255)
 			runJob := &actions_model.ActionRunJob{
@@ -150,7 +158,7 @@ func InsertRun(ctx context.Context, run *actions_model.ActionRun, content []byte
 				Attempt:           runAttempt.Attempt,
 				WorkflowPayload:   payload,
 				JobID:             id,
-				AttemptJobID:      int64(i + 1),
+				AttemptJobID:      attemptJobID,
 				Needs:             needs,
 				RunsOn:            job.RunsOn(),
 				Status:            util.Iif(shouldBlockJob, actions_model.StatusBlocked, actions_model.StatusWaiting),
@@ -158,6 +166,11 @@ func InsertRun(ctx context.Context, run *actions_model.ActionRun, content []byte
 			// Parse workflow/job permissions (no clamping here)
 			if perms := ExtractJobPermissionsFromWorkflow(v, job); perms != nil {
 				runJob.TokenPermissions = perms
+			}
+
+			if isReusableWorkflowCaller {
+				runJob.IsReusableCaller = true
+				runJob.CallUses = job.Uses
 			}
 
 			// check job concurrency
@@ -188,9 +201,22 @@ func InsertRun(ctx context.Context, run *actions_model.ActionRun, content []byte
 				}
 			}
 
-			hasWaitingJobs = hasWaitingJobs || runJob.Status == actions_model.StatusWaiting
+			// A reusable caller is never dispatched to a runner, so it must not drive the task-version bump.
+			hasWaitingJobs = hasWaitingJobs || (runJob.Status == actions_model.StatusWaiting && !isReusableWorkflowCaller)
 			if err := db.Insert(ctx, runJob); err != nil {
 				return err
+			}
+
+			// expand reusable caller
+			if isReusableWorkflowCaller && runJob.Status == actions_model.StatusWaiting {
+				if err := expandReusableWorkflowCaller(ctx, run, runAttempt, runJob, vars); err != nil {
+					return fmt.Errorf("inline trigger caller %d ready: %w", runJob.ID, err)
+				}
+				// refresh the caller status
+				if err := actions_model.RefreshReusableCallerStatus(ctx, runJob); err != nil {
+					return fmt.Errorf("refresh caller %d status: %w", runJob.ID, err)
+				}
+				hasWaitingCallerJobs = true
 			}
 
 			runJobs = append(runJobs, runJob)
@@ -215,6 +241,13 @@ func InsertRun(ctx context.Context, run *actions_model.ActionRun, content []byte
 
 	NotifyWorkflowJobsAndRunsStatusUpdate(ctx, cancelledConcurrencyJobs)
 	EmitJobsIfReadyByJobs(cancelledConcurrencyJobs)
+
+	// Post-commit kick for expanded callers: let job_emitter resolve its child jobs
+	if hasWaitingCallerJobs {
+		if err := EmitJobsIfReadyByRun(run.ID); err != nil {
+			log.Error("emit run %d after InsertRun: %v", run.ID, err)
+		}
+	}
 
 	return nil
 }

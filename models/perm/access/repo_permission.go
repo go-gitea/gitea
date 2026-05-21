@@ -655,3 +655,32 @@ func CheckRepoUnitUser(ctx context.Context, repo *repo_model.Repository, user *u
 func PermissionNoAccess() Permission {
 	return Permission{AccessMode: perm_model.AccessModeNone}
 }
+
+// CanReadWorkflowCrossRepo checks whether the run can read workflow files from targetRepo
+func CanReadWorkflowCrossRepo(ctx context.Context, targetRepo *repo_model.Repository, run *actions_model.ActionRun) (bool, error) {
+	if err := run.LoadRepo(ctx); err != nil {
+		return false, err
+	}
+
+	if checkSameOwnerCrossRepoAccess(ctx, run.Repo, targetRepo, run.IsForkPullRequest) {
+		return true, nil
+	}
+
+	// Cross-owner: respect target repo's collaborative-owner allowlist on the Actions unit.
+	// The `run.Repo.IsPrivate` guard is intentional, it matches GitHub Actions' behavior:
+	// Access is allowed only from private repositories.
+	// See: https://docs.github.com/en/repositories/managing-your-repositorys-settings-and-features/enabling-features-for-your-repository/managing-github-actions-settings-for-a-repository#allowing-access-to-components-in-a-private-repository
+	if run.Repo.IsPrivate {
+		if actionsUnit, err := targetRepo.GetUnit(ctx, unit.TypeActions); err == nil {
+			if actionsUnit.ActionsConfig().IsCollaborativeOwner(run.Repo.OwnerID) {
+				return true, nil
+			}
+		}
+	}
+
+	botPerm, err := GetIndividualUserRepoPermission(ctx, targetRepo, user_model.NewActionsUser())
+	if err != nil {
+		return false, err
+	}
+	return botPerm.AccessMode >= perm_model.AccessModeRead, nil
+}

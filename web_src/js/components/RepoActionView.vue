@@ -1,12 +1,12 @@
 <script setup lang="ts">
 import {SvgIcon} from '../svg.ts';
 import ActionStatusIcon from './ActionStatusIcon.vue';
-import {toRefs} from 'vue';
+import {computed, ref, toRefs} from 'vue';
 import {POST, DELETE} from '../modules/fetch.ts';
 import ActionRunSummaryView from './ActionRunSummaryView.vue';
 import ActionRunJobView from './ActionRunJobView.vue';
-import type {ActionsRunAttempt} from '../modules/gitea-actions.ts';
-import {createActionRunViewStore} from './ActionRunView.ts';
+import type {ActionsJob, ActionsRunAttempt} from '../modules/gitea-actions.ts';
+import {buildJobsByParentJobID, createActionRunViewStore} from './ActionRunView.ts';
 import {buildArtifactTooltipHtml} from './ActionRunArtifacts.ts';
 
 defineOptions({
@@ -22,6 +22,62 @@ const props = defineProps<{
 const locale = props.locale;
 const store = createActionRunViewStore(props.actionsViewUrl);
 const {currentRun: run, runArtifacts: artifacts} = toRefs(store.viewData);
+
+type JobListItem = {
+  job: ActionsJob;
+  depth: number;
+  hasChildren: boolean;
+};
+
+// Caller jobs default to collapsed. Membership in this set means "user has manually expanded this caller"
+const expandedJobIDs = ref(new Set<number>());
+
+function toggleExpandedJob(jobID: number) {
+  const next = new Set(expandedJobIDs.value);
+  if (next.has(jobID)) {
+    next.delete(jobID);
+  } else {
+    next.add(jobID);
+  }
+  expandedJobIDs.value = next;
+}
+
+// When a child job is currently selected, force-expand the chain of caller ancestors
+const forcedExpandedJobIDs = computed(() => {
+  const expanded = new Set<number>();
+  if (!props.jobId) return expanded;
+  const jobsByID = new Map((run.value.jobs || []).map((job) => [job.id, job]));
+  let cur = jobsByID.get(props.jobId);
+  while (cur?.parentJobID) {
+    expanded.add(cur.parentJobID);
+    cur = jobsByID.get(cur.parentJobID);
+  }
+  return expanded;
+});
+
+function isJobCollapsed(jobID: number) {
+  return !expandedJobIDs.value.has(jobID) && !forcedExpandedJobIDs.value.has(jobID);
+}
+
+const visibleJobListItems = computed<JobListItem[]>(() => {
+  const jobs = [...(run.value.jobs || [])].sort((a, b) => a.id - b.id);
+  const childrenByParent = buildJobsByParentJobID(jobs);
+
+  const result: JobListItem[] = [];
+  const stack: Array<{job: ActionsJob; depth: number}> = [];
+  const top = childrenByParent.get(0) || [];
+  for (let i = top.length - 1; i >= 0; i--) stack.push({job: top[i], depth: 0});
+
+  while (stack.length > 0) {
+    const {job, depth} = stack.pop()!;
+    const children = childrenByParent.get(job.id) || [];
+    const hasChildren = children.length > 0;
+    result.push({job, depth, hasChildren});
+    if (hasChildren && isJobCollapsed(job.id)) continue;
+    for (let i = children.length - 1; i >= 0; i--) stack.push({job: children[i], depth: depth + 1});
+  }
+  return result;
+});
 
 function formatAttemptTitle(attempt: ActionsRunAttempt) {
   return attempt.latest ? `${locale.latestAttempt} #${attempt.attempt}` : `${locale.attempt} #${attempt.attempt}`;
@@ -152,12 +208,30 @@ async function deleteArtifact(name: string) {
         <div class="left-list-header">{{ locale.allJobs }}</div>
         <!-- unlike other lists, the items have paddings already -->
         <ul class="ui relaxed list flex-items-block tw-p-0">
-          <li class="item job-brief-item" v-for="job in run.jobs" :key="job.id" :class="props.jobId === job.id ? 'selected' : ''">
-            <a class="tw-contents silenced" :href="job.link">
-              <ActionStatusIcon :locale-status="locale.status[job.status]" :status="job.status" icon-variant="circle-fill"/>
-              <span class="tw-flex-1 gt-ellipsis">{{ job.name }}</span>
-              <SvgIcon name="octicon-sync" role="button" :data-tooltip-content="locale.rerun" class="tw-cursor-pointer link-action interact-fg" :data-url="`${run.link}/jobs/${job.id}/rerun`" v-if="job.canRerun"/>
-              <span>{{ job.duration }}</span>
+          <li
+            class="item job-brief-item"
+            :class="{'selected': props.jobId === item.job.id}"
+            :style="{paddingLeft: `${10 + item.depth * 16}px`}"
+            v-for="item in visibleJobListItems"
+            :key="item.job.id"
+          >
+            <button
+              v-if="item.hasChildren"
+              type="button"
+              class="job-brief-toggle"
+              @click="toggleExpandedJob(item.job.id)"
+              :title="isJobCollapsed(item.job.id) ? locale.expandCallerJobs : locale.collapseCallerJobs"
+              :aria-label="isJobCollapsed(item.job.id) ? locale.expandCallerJobs : locale.collapseCallerJobs"
+              :aria-expanded="!isJobCollapsed(item.job.id)"
+            >
+              <SvgIcon :name="isJobCollapsed(item.job.id) ? 'octicon-chevron-right' : 'octicon-chevron-down'" :size="14"/>
+            </button>
+            <span v-else class="job-brief-toggle-placeholder"/>
+            <a class="tw-contents silenced" :href="item.job.link">
+              <ActionStatusIcon :locale-status="locale.status[item.job.status]" :status="item.job.status" icon-variant="circle-fill"/>
+              <span class="tw-flex-1 gt-ellipsis">{{ item.job.name }}</span>
+              <SvgIcon name="octicon-sync" role="button" :data-tooltip-content="locale.rerun" class="tw-cursor-pointer link-action interact-fg" :data-url="`${run.link}/jobs/${item.job.id}/rerun`" v-if="item.job.canRerun"/>
+              <span>{{ item.job.duration }}</span>
             </a>
           </li>
         </ul>
@@ -330,6 +404,23 @@ async function deleteArtifact(name: string) {
 .job-brief-item.selected {
   font-weight: var(--font-weight-bold);
   background-color: var(--color-active);
+}
+
+.job-brief-toggle,
+.job-brief-toggle-placeholder {
+  width: 18px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.job-brief-toggle {
+  border: none;
+  padding: 0;
+  background: transparent;
+  cursor: pointer;
+  color: inherit;
 }
 
 /* ================ */

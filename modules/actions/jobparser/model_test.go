@@ -254,6 +254,28 @@ func TestParseRawOn(t *testing.T) {
 				},
 			},
 		},
+		{
+			// workflow_call.{inputs,outputs,secrets} are valid mapping nodes; their detailed schema is parsed by ParseWorkflowCallSpec,
+			// so parseRawOn just needs to accept them and surface the event name.
+			input: `on:
+  workflow_call:
+    inputs:
+      env:
+        type: string
+        required: true
+    outputs:
+      sha:
+        value: ${{ jobs.build.outputs.commit }}
+    secrets:
+      DEPLOY_KEY:
+        required: true
+`,
+			result: []*Event{
+				{
+					Name: "workflow_call",
+				},
+			},
+		},
 	}
 	for _, kase := range kases {
 		t.Run(kase.input, func(t *testing.T) {

@@ -1,20 +1,22 @@
 <script setup lang="ts">
-import {nextTick, onBeforeUnmount, onMounted, ref, toRefs, watch} from 'vue';
+import {computed, nextTick, onBeforeUnmount, onMounted, ref, toRefs, watch} from 'vue';
 import {SvgIcon} from '../svg.ts';
 import ActionStatusIcon from './ActionStatusIcon.vue';
+import WorkflowGraph from './WorkflowGraph.vue';
 import {addDelegatedEventListener, createElementFromAttrs, toggleElem} from '../utils/dom.ts';
 import {formatDatetime} from '../utils/time.ts';
 import {POST} from '../modules/fetch.ts';
 import type {IntervalId} from '../types.ts';
 import {toggleFullScreen} from '../utils.ts';
 import {localUserSettings} from '../modules/user-settings.ts';
-import type {ActionsArtifact, ActionsRun, ActionsStatus} from '../modules/gitea-actions.ts';
+import type {ActionsArtifact, ActionsJob, ActionsRun, ActionsStatus} from '../modules/gitea-actions.ts';
 import {
   type ActionRunViewStore,
+  collectCallerChildJobs,
   createLogLineMessage,
   type LogLine,
   type LogLineCommand,
-  parseLogLineCommand
+  parseLogLineCommand,
 } from './ActionRunView.ts';
 
 function isLogElementInViewport(el: Element, {extraViewPortHeight}={extraViewPortHeight: 0}): boolean {
@@ -114,6 +116,15 @@ const currentJob = ref<CurrentJob>({
 });
 const stepsContainer = ref<HTMLElement | null>(null);
 const jobStepLogs = ref<Array<StepContainerElement | undefined>>([]);
+
+// Reusable workflow caller view: when the selected job is a caller node, the right pane
+// shows the children list rather than step logs (callers don't run on a runner).
+const selectedJob = computed<ActionsJob | undefined>(() => (run.value.jobs || []).find((it) => it.id === props.jobId));
+const isCallerJob = computed(() => Boolean(selectedJob.value?.isReusableCaller));
+const callerChildJobs = computed<ActionsJob[]>(() => {
+  if (!isCallerJob.value) return [];
+  return collectCallerChildJobs(run.value.jobs || [], props.jobId);
+});
 
 watch(optionAlwaysAutoScroll, () => {
   saveLocaleStorageOptions();
@@ -402,11 +413,17 @@ async function hashChangeListener() {
 <template>
   <div class="job-info-header">
     <div class="job-info-header-left gt-ellipsis">
-      <h3 class="job-info-header-title gt-ellipsis">
-        {{ currentJob.title }}
-      </h3>
+      <div class="job-info-header-title-row">
+        <h3 class="job-info-header-title gt-ellipsis">
+          {{ isCallerJob ? selectedJob?.name : currentJob.title }}
+        </h3>
+        <span v-if="isCallerJob && selectedJob?.callUses" class="ui label job-info-header-uses">
+          <span>uses:</span>
+          <span class="gt-ellipsis">{{ selectedJob.callUses }}</span>
+        </span>
+      </div>
       <p class="job-info-header-detail">
-        {{ currentJob.detail }}
+        {{ isCallerJob && selectedJob ? locale.status[selectedJob.status] : currentJob.detail }}
       </p>
     </div>
     <div class="job-info-header-right">
@@ -445,8 +462,21 @@ async function hashChangeListener() {
       </div>
     </div>
   </div>
+  <!-- Caller (reusable workflow) view: render the direct children's dependency graph,
+       mirroring the run summary's WorkflowGraph but scoped to this caller's subtree.
+       The caller's name + uses path + status all live in job-info-header above. -->
+  <div class="caller-children-container" v-if="isCallerJob">
+    <WorkflowGraph
+      v-if="callerChildJobs.length > 0"
+      :store="store"
+      :jobs="callerChildJobs"
+      :run-link="run.link"
+      :workflow-id="`${run.workflowID}#caller-${props.jobId}`"
+    />
+  </div>
+
   <!-- always create the node because we have our own event listeners on it, don't use "v-if" -->
-  <div class="job-step-container" ref="stepsContainer" v-show="currentJob.steps.length">
+  <div class="job-step-container" ref="stepsContainer" v-show="!isCallerJob && currentJob.steps.length">
     <div class="job-step-section" v-for="(jobStep, stepIdx) in currentJob.steps" :key="stepIdx">
       <div
         class="job-step-summary"
@@ -522,7 +552,8 @@ async function hashChangeListener() {
   border-radius: 3px;
 }
 
-.job-info-header:has(+ .job-step-container) {
+.job-info-header:has(+ .job-step-container),
+.job-info-header:has(+ .caller-children-container) {
   border-radius: var(--border-radius) var(--border-radius) 0 0;
 }
 
@@ -539,6 +570,29 @@ async function hashChangeListener() {
 
 .job-info-header-left {
   flex: 1;
+  min-width: 0;
+}
+
+.job-info-header-title-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
+.job-info-header-uses {
+  display: inline-flex !important;
+  align-items: baseline;
+  gap: 4px;
+  min-width: 0;
+}
+
+.caller-children-container {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  border-top: 1px solid var(--color-console-border);
+  color: var(--color-console-fg);
 }
 
 .job-step-container {
