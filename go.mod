@@ -86,7 +86,6 @@ require (
 	github.com/microsoft/go-mssqldb v1.9.7
 	github.com/minio/minio-go/v7 v7.1.0
 	github.com/msteinert/pam/v2 v2.1.0
-	github.com/nektos/act v0.0.0-00010101000000-000000000000
 	github.com/niklasfasching/go-org v1.9.1
 	github.com/opencontainers/go-digest v1.0.0
 	github.com/opencontainers/image-spec v1.1.1
@@ -306,8 +305,6 @@ ignore (
 replace github.com/jaytaylor/html2text => github.com/Necoro/html2text v0.0.0-20250804200300-7bf1ce1c7347 // jaytaylor/html2text is unmaintained
 
 replace github.com/nektos/act => gitea.com/gitea/act v0.262.0 // gitea maintains its own package
-
-replace github.com/urfave/cli/v3 => github.com/urfave/cli/v3 v3.4.1 // v3.6.2 breaks -c flag parsing in help commands
 
 replace go.yaml.in/yaml/v4 => go.yaml.in/yaml/v4 v4.0.0-rc.3 // rc.4 changes block scalar serialization, wait for stable release
 
