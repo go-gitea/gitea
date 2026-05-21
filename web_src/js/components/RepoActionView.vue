@@ -332,7 +332,7 @@ async function deleteArtifact(name: string) {
   background-color: var(--color-active);
 }
 
-/* the re-run button replaces the duration on hover/focus, like GitHub */
+/* the re-run button replaces the duration on hover/focus */
 .action-view-sidebar-list > .item .job-rerun-button {
   display: none;
 }
