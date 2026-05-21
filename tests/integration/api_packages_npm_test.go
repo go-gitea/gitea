@@ -21,6 +21,7 @@ import (
 	"code.gitea.io/gitea/tests"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestPackageNpm(t *testing.T) {
@@ -40,7 +41,7 @@ func TestPackageNpm(t *testing.T) {
 	packageBinPath := "./cli.sh"
 	repoType := "gitea"
 	repoURL := "http://localhost:3000/gitea/test.git"
-	repoDirectory := "packages/test-package"
+	repoDirectory := "package-subdir"
 
 	data := "H4sIAAAAAAAA/ytITM5OTE/VL4DQelnF+XkMVAYGBgZmJiYK2MRBwNDcSIHB2NTMwNDQzMwAqA7IMDUxA9LUdgg2UFpcklgEdAql5kD8ogCnhwio5lJQUMpLzE1VslJQcihOzi9I1S9JLS7RhSYIJR2QgrLUouLM/DyQGkM9Az1D3YIiqExKanFyUWZBCVQ2BKhVwQVJDKwosbQkI78IJO/tZ+LsbRykxFXLNdA+HwWjYBSMgpENACgAbtAACAAA"
 
@@ -291,7 +292,7 @@ func TestPackageNpm(t *testing.T) {
 
 		pvs, err := packages.GetVersionsByPackageType(t.Context(), user.ID, packages.TypeNpm)
 		assert.NoError(t, err)
-		assert.Len(t, pvs, 1)
+		require.Len(t, pvs, 1)
 
 		// link the package to a repository so README relative links resolve against
 		// repository files instead of the site root
@@ -300,15 +301,12 @@ func TestPackageNpm(t *testing.T) {
 
 		req := NewRequest(t, "GET", fmt.Sprintf("/%s/-/packages/npm/%s/%s", user.Name, url.PathEscape(packageName), packageVersion)).
 			AddBasicAuth(user.Name)
-		body := MakeRequest(t, req, http.StatusOK).Body.String()
-
-		// repository.directory roots the relative links at the package source directory
-		srcBase := fmt.Sprintf("%s/src/branch/%s/%s", repo.Link(), repo.DefaultBranch, repoDirectory)
-		mediaBase := fmt.Sprintf("%s/media/branch/%s/%s", repo.Link(), repo.DefaultBranch, repoDirectory)
-		assert.Contains(t, body, fmt.Sprintf(`href="%s/docs/usage.md"`, srcBase))
-		assert.Contains(t, body, fmt.Sprintf(`src="%s/logo.png"`, mediaBase))
-		// the previous behavior resolved relative links against the site root
-		assert.NotContains(t, body, `href="/docs/usage.md"`)
+		resp := MakeRequest(t, req, http.StatusOK)
+		doc := NewHTMLParser(t, resp.Body)
+		rendered, _ := doc.Find(".markup.markdown").Html()
+		assert.Equal(t, `<p dir="auto"><a href="/user2/repo1/src/branch/master/package-subdir/docs/usage.md" rel="nofollow">docs</a>
+<a href="/user2/repo1/src/branch/master/package-subdir/logo.png" target="_blank" rel="nofollow noopener"><img src="/user2/repo1/media/branch/master/package-subdir/logo.png" alt="logo" loading="lazy"/></a></p>
+`, rendered)
 	})
 
 	t.Run("Delete", func(t *testing.T) {
