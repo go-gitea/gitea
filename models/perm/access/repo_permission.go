@@ -13,6 +13,7 @@ import (
 
 	actions_model "gitea.dev/models/actions"
 	"gitea.dev/models/db"
+	group_model "gitea.dev/models/group"
 	"gitea.dev/models/organization"
 	perm_model "gitea.dev/models/perm"
 	repo_model "gitea.dev/models/repo"
@@ -21,6 +22,7 @@ import (
 	"gitea.dev/modules/container"
 	"gitea.dev/modules/log"
 	"gitea.dev/modules/setting"
+	"gitea.dev/modules/structs"
 	"gitea.dev/modules/util"
 )
 
@@ -399,13 +401,17 @@ func GetIndividualUserRepoPermission(ctx context.Context, repo *repo_model.Repos
 		log.Trace("Permission Loaded for user %-v in repo %-v, permissions: %-+v", user, repo, perm)
 	}()
 
+	group, err := group_model.GetGroupByID(ctx, repo.GroupID)
+	if err != nil && !group_model.IsErrGroupNotExist(err) {
+		return perm, err
+	}
 	if err = repo.LoadUnits(ctx); err != nil {
 		return perm, err
 	}
 	perm.units = repo.Units
 
 	// anonymous user visit private repo.
-	if user == nil && repo.IsPrivate {
+	if user == nil && (repo.IsPrivate || (group != nil && group.Visibility > structs.VisibleTypePublic)) {
 		perm.AccessMode = perm_model.AccessModeNone
 		return perm, nil
 	}
@@ -453,7 +459,16 @@ func GetIndividualUserRepoPermission(ctx context.Context, repo *repo_model.Repos
 	}
 
 	// now: the owner is visible to doer, if the repo is public, then the min access mode is read
-	minAccessMode := util.Iif(!repo.IsPrivate && !user.IsRestricted, perm_model.AccessModeRead, perm_model.AccessModeNone)
+	isGroupPrivate := false
+	if group != nil {
+		isGroupPrivate = group.Visibility > structs.VisibleTypeLimited
+		isPrivateBecauseOfParent, err := group.IsPrivateBecauseOfParentPermissions(ctx, user)
+		if err != nil {
+			return perm, err
+		}
+		isGroupPrivate = isGroupPrivate || isPrivateBecauseOfParent
+	}
+	minAccessMode := util.Iif(!repo.IsPrivate && !isGroupPrivate && !user.IsRestricted, perm_model.AccessModeRead, perm_model.AccessModeNone)
 	perm.AccessMode = max(perm.AccessMode, minAccessMode)
 
 	// get units mode from teams
@@ -482,7 +497,6 @@ func GetIndividualUserRepoPermission(ctx context.Context, repo *repo_model.Repos
 			return perm, nil
 		}
 	}
-
 	for _, u := range repo.Units {
 		for _, team := range teams {
 			teamMode, _ := team.UnitAccessModeEx(ctx, u.Type)
