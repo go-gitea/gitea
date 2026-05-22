@@ -436,6 +436,12 @@ type GetFeedsOptions struct {
 	DontCount       bool                   // do counting in GetFeeds
 }
 
+func (opts *GetFeedsOptions) ApplyPublicOnly(publicOnly bool) {
+	if publicOnly {
+		opts.IncludePrivate = false
+	}
+}
+
 // ActivityReadable return whether doer can read activities of user
 func ActivityReadable(user, doer *user_model.User) bool {
 	return !user.KeepActivityPrivate ||
