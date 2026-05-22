@@ -32,6 +32,11 @@ func GenerateReleaseNotes(ctx context.Context, repo *repo_model.Repository, gitR
 		return "", err
 	}
 
+	isFirstRelease, err := isFirstReleaseTag(gitRepo, opts.TagName)
+	if err != nil {
+		return "", fmt.Errorf("isFirstReleaseTag: %w", err)
+	}
+
 	baseCommitID := ""
 	if opts.PreviousTag != "" {
 		baseCommit, err := gitRepo.GetCommit(opts.PreviousTag)
@@ -39,6 +44,8 @@ func GenerateReleaseNotes(ctx context.Context, repo *repo_model.Repository, gitR
 			return "", util.ErrorWrapTranslatable(util.ErrNotExist, "repo.release.generate_notes_tag_not_found", opts.TagName)
 		}
 		baseCommitID = baseCommit.ID.String()
+	} else if !isFirstRelease {
+		return "", util.ErrorWrapTranslatable(util.ErrNotExist, "repo.release.generate_notes_tag_not_found", opts.TagName)
 	}
 
 	commits, err := gitRepo.CommitsBetweenIDs(headCommit.ID.String(), baseCommitID)
@@ -57,13 +64,28 @@ func GenerateReleaseNotes(ctx context.Context, repo *repo_model.Repository, gitR
 	}
 
 	fullChangelogURL := ""
-	if opts.PreviousTag == "" {
+	if isFirstRelease {
 		// Keep the first-release changelog link aligned with GitHub, while collecting PRs from full history.
 		fullChangelogURL = fmt.Sprintf("%s/commits/tag/%s", repo.HTMLURL(ctx), util.PathEscapeSegments(opts.TagName))
 	}
 
 	content := buildReleaseNotesContent(ctx, repo, opts.TagName, opts.PreviousTag, prs, contributors, newContributors, fullChangelogURL)
 	return content, nil
+}
+
+func isFirstReleaseTag(gitRepo *git.Repository, tagName string) (bool, error) {
+	tags, _, err := gitRepo.GetTagInfos(0, 0)
+	if err != nil {
+		return false, err
+	}
+
+	for _, tag := range tags {
+		if tag.Name != tagName {
+			return false, nil
+		}
+	}
+
+	return true, nil
 }
 
 func resolveHeadCommit(gitRepo *git.Repository, tagName, tagTarget string) (*git.Commit, error) {

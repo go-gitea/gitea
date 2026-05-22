@@ -25,6 +25,7 @@ func TestGenerateReleaseNotes(t *testing.T) {
 		repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
 		gitRepo, err := gitrepo.OpenRepository(t.Context(), repo)
 		require.NoError(t, err)
+		t.Cleanup(func() { gitRepo.Close() })
 
 		mergedCommit := "90c1019714259b24fb81711d4416ac0f18667dfa"
 		createMergedPullRequest(t, repo, mergedCommit, 5, "Release notes test pull request")
@@ -53,6 +54,7 @@ func TestGenerateReleaseNotes(t *testing.T) {
 		repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 16})
 		gitRepo, err := gitrepo.OpenRepository(t.Context(), repo)
 		require.NoError(t, err)
+		t.Cleanup(func() { gitRepo.Close() })
 
 		createMergedPullRequest(t, repo, "69554a64c1e6030f051e5c3f94bfbd773cd6a324", 5, "Initial tag PR 1")
 		createMergedPullRequest(t, repo, "27566bd5738fc8b4e3fef3c5e72cce608537bd95", 4, "Initial tag PR 2")
@@ -77,6 +79,19 @@ func TestGenerateReleaseNotes(t *testing.T) {
 		assert.Contains(t, content, "* @user4 made their first contribution in [#")
 		assert.Contains(t, content, "* @user8 made their first contribution in [#")
 		assert.Contains(t, content, "**Full Changelog**: https://try.gitea.io/user2/repo16/commits/tag/v0.1.0\n")
+	})
+
+	t.Run("EmptyPreviousTagWithExistingTags", func(t *testing.T) {
+		repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
+		gitRepo, err := gitrepo.OpenRepository(t.Context(), repo)
+		require.NoError(t, err)
+		t.Cleanup(func() { gitRepo.Close() })
+
+		_, err = GenerateReleaseNotes(t.Context(), repo, gitRepo, GenerateReleaseNotesOptions{
+			TagName:   "v1.2.0",
+			TagTarget: repo.DefaultBranch,
+		})
+		require.Error(t, err)
 	})
 }
 
