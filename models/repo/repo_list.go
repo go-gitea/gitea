@@ -9,6 +9,7 @@ import (
 	"strings"
 
 	"gitea.dev/models/db"
+	"gitea.dev/models/group"
 	"gitea.dev/models/perm"
 	"gitea.dev/models/unit"
 	user_model "gitea.dev/models/user"
@@ -704,7 +705,11 @@ func AccessibleRepositoryCondition(user *user_model.User, unitType unit.Type) bu
 			cond = userAllPublicRepoCond(cond, orgVisibilityLimit)
 		}
 	}
-
+	cond = cond.Or(
+		builder.In("repository.group_id",
+			builder.Select("id").
+				From("repo_group").
+				Where(group.AccessibleGroupCondition(user))))
 	return cond
 }
 
