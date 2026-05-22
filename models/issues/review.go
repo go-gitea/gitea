@@ -483,6 +483,14 @@ func SubmitReview(ctx context.Context, doer *user_model.User, issue *Issue, revi
 		if _, err := sess.ID(review.ID).Cols("content, type, official, commit_id, stale").Update(review); err != nil {
 			return nil, nil, err
 		}
+
+		// make sure the stale review request is cleared, consistent with CreateReview
+		if reviewType != ReviewTypePending {
+			if _, err := sess.Where(builder.Eq{"reviewer_id": doer.ID, "issue_id": issue.ID, "type": ReviewTypeRequest}).
+				Delete(new(Review)); err != nil {
+				return nil, nil, err
+			}
+		}
 	}
 
 	comm, err := CreateComment(ctx, &CreateCommentOptions{
