@@ -96,7 +96,7 @@ func (g *Group) LoadSubgroups(ctx context.Context, recursive bool) error {
 }
 
 func (g *Group) LoadAccessibleSubgroups(ctx context.Context, recursive bool, doer *user_model.User, requireMember bool) error {
-	cond := AccessibleGroupCondition(doer, unit.TypeInvalid, perm.AccessModeRead, false)
+	cond := AccessibleGroupCondition(doer)
 	if requireMember {
 		cond = builder.And(MemberCond("`repo_group`.parent_group_id", g.ID, doer), cond)
 	}
@@ -162,7 +162,7 @@ func (g *Group) CanAccessUnitAtLevel(ctx context.Context, user *user_model.User,
 			return g.CanCreateIn(ctx, user.ID)
 		}
 	}
-	orCond := builder.Or(AccessibleGroupCondition(user, u, level, true))
+	orCond := builder.Or(AccessibleGroupCondition(user))
 	isMember, err := g.IsMemberOf(ctx, user)
 	if err != nil {
 		return false, err
@@ -379,7 +379,7 @@ func groupHierarchyCTEBuilder(cond builder.Cond) string {
 }
 
 func AccessibleParentGroupCond(ctx context.Context, idStr string, user *user_model.User) builder.Cond {
-	accessibleCond := AccessibleGroupCondition(user, unit.TypeInvalid, perm.AccessModeRead, false)
+	accessibleCond := AccessibleGroupCondition(user)
 	unionSQL := groupHierarchyCTEBuilder(
 		accessibleCond.And(builder.Eq{
 			"parent_group_id": 0,
