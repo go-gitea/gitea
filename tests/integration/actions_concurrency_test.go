@@ -53,7 +53,7 @@ func TestWorkflowConcurrency(t *testing.T) {
 
 		wf1TreePath := ".gitea/workflows/concurrent-workflow-1.yml"
 		wf1FileContent := `name: concurrent-workflow-1
-on:
+on: 
   push:
     paths:
       - '.gitea/workflows/concurrent-workflow-1.yml'
@@ -67,7 +67,7 @@ jobs:
 `
 		wf2TreePath := ".gitea/workflows/concurrent-workflow-2.yml"
 		wf2FileContent := `name: concurrent-workflow-2
-on:
+on: 
   push:
     paths:
       - '.gitea/workflows/concurrent-workflow-2.yml'
@@ -81,7 +81,7 @@ jobs:
 `
 		wf3TreePath := ".gitea/workflows/concurrent-workflow-3.yml"
 		wf3FileContent := `name: concurrent-workflow-3
-on:
+on: 
   push:
     paths:
       - '.gitea/workflows/concurrent-workflow-3.yml'
@@ -161,7 +161,7 @@ func TestWorkflowConcurrencyShort(t *testing.T) {
 
 		wf1TreePath := ".gitea/workflows/concurrent-workflow-1.yml"
 		wf1FileContent := `name: concurrent-workflow-1
-on:
+on: 
   push:
     paths:
       - '.gitea/workflows/concurrent-workflow-1.yml'
@@ -174,7 +174,7 @@ jobs:
 `
 		wf2TreePath := ".gitea/workflows/concurrent-workflow-2.yml"
 		wf2FileContent := `name: concurrent-workflow-2
-on:
+on: 
   push:
     paths:
       - '.gitea/workflows/concurrent-workflow-2.yml'
@@ -187,7 +187,7 @@ jobs:
 `
 		wf3TreePath := ".gitea/workflows/concurrent-workflow-3.yml"
 		wf3FileContent := `name: concurrent-workflow-3
-on:
+on: 
   push:
     paths:
       - '.gitea/workflows/concurrent-workflow-3.yml'
@@ -266,7 +266,7 @@ func TestWorkflowConcurrencyShortJson(t *testing.T) {
 
 		wf1TreePath := ".gitea/workflows/concurrent-workflow-1.yml"
 		wf1FileContent := `name: concurrent-workflow-1
-on:
+on: 
   push:
     paths:
       - '.gitea/workflows/concurrent-workflow-1.yml'
@@ -283,7 +283,7 @@ jobs:
 `
 		wf2TreePath := ".gitea/workflows/concurrent-workflow-2.yml"
 		wf2FileContent := `name: concurrent-workflow-2
-on:
+on: 
   push:
     paths:
       - '.gitea/workflows/concurrent-workflow-2.yml'
@@ -300,7 +300,7 @@ jobs:
 `
 		wf3TreePath := ".gitea/workflows/concurrent-workflow-3.yml"
 		wf3FileContent := `name: concurrent-workflow-3
-on:
+on: 
   push:
     paths:
       - '.gitea/workflows/concurrent-workflow-3.yml'
@@ -529,7 +529,7 @@ func TestJobConcurrency(t *testing.T) {
 
 		wf1TreePath := ".gitea/workflows/concurrent-workflow-1.yml"
 		wf1FileContent := `name: concurrent-workflow-1
-on:
+on: 
   push:
     paths:
       - '.gitea/workflows/concurrent-workflow-1.yml'
@@ -543,7 +543,7 @@ jobs:
 `
 		wf2TreePath := ".gitea/workflows/concurrent-workflow-2.yml"
 		wf2FileContent := `name: concurrent-workflow-2
-on:
+on: 
   push:
     paths:
       - '.gitea/workflows/concurrent-workflow-2.yml'
@@ -551,7 +551,7 @@ jobs:
   wf2-job1:
     runs-on: runner2
     outputs:
-      version: ${{ steps.version_step.outputs.app_version }}
+      version: ${{ steps.version_step.outputs.app_version }} 
     steps:
       - id: version_step
         run: echo "app_version=v1.23.0" >> "$GITHUB_OUTPUT"
@@ -565,7 +565,7 @@ jobs:
 `
 		wf3TreePath := ".gitea/workflows/concurrent-workflow-3.yml"
 		wf3FileContent := `name: concurrent-workflow-3
-on:
+on: 
   push:
     paths:
       - '.gitea/workflows/concurrent-workflow-3.yml'
@@ -678,7 +678,7 @@ func TestMatrixConcurrency(t *testing.T) {
 
 		wf1TreePath := ".gitea/workflows/concurrent-workflow-1.yml"
 		wf1FileContent := `name: concurrent-workflow-1
-on:
+on: 
   push:
     paths:
       - '.gitea/workflows/concurrent-workflow-1.yml'
@@ -696,7 +696,7 @@ jobs:
 
 		wf2TreePath := ".gitea/workflows/concurrent-workflow-2.yml"
 		wf2FileContent := `name: concurrent-workflow-2
-on:
+on: 
   push:
     paths:
       - '.gitea/workflows/concurrent-workflow-2.yml'
@@ -1238,7 +1238,7 @@ func TestWorkflowAndJobConcurrency(t *testing.T) {
 
 		wf1TreePath := ".gitea/workflows/concurrent-workflow-1.yml"
 		wf1FileContent := `name: concurrent-workflow-1
-on:
+on: 
   push:
     paths:
       - '.gitea/workflows/concurrent-workflow-1.yml'
@@ -1260,7 +1260,7 @@ jobs:
 `
 		wf2TreePath := ".gitea/workflows/concurrent-workflow-2.yml"
 		wf2FileContent := `name: concurrent-workflow-2
-on:
+on: 
   push:
     paths:
       - '.gitea/workflows/concurrent-workflow-2.yml'
@@ -1282,7 +1282,7 @@ jobs:
 `
 		wf3TreePath := ".gitea/workflows/concurrent-workflow-3.yml"
 		wf3FileContent := `name: concurrent-workflow-3
-on:
+on: 
   push:
     paths:
       - '.gitea/workflows/concurrent-workflow-3.yml'
@@ -1299,7 +1299,7 @@ jobs:
 
 		wf4TreePath := ".gitea/workflows/concurrent-workflow-4.yml"
 		wf4FileContent := `name: concurrent-workflow-4
-on:
+on: 
   push:
     paths:
       - '.gitea/workflows/concurrent-workflow-4.yml'
@@ -1502,7 +1502,7 @@ func TestAbandonConcurrentRun(t *testing.T) {
 
 		wf1TreePath := ".gitea/workflows/workflow-1.yml"
 		wf1FileContent := `name: Workflow-1
-on:
+on: 
   push:
     paths:
       - '.gitea/workflows/workflow-1.yml'
@@ -1521,7 +1521,7 @@ jobs:
 
 		wf2TreePath := ".gitea/workflows/workflow-2.yml"
 		wf2FileContent := `name: Workflow-2
-on:
+on: 
   push:
     paths:
       - '.gitea/workflows/workflow-2.yml'
@@ -1604,7 +1604,7 @@ func TestRunAndJobWithSameConcurrencyGroup(t *testing.T) {
 
 		wf1TreePath := ".gitea/workflows/concurrent-workflow-1.yml"
 		wf1FileContent := `name: concurrent-workflow-1
-on:
+on: 
   push:
     paths:
       - '.gitea/workflows/concurrent-workflow-1.yml'
@@ -1618,7 +1618,7 @@ jobs:
 `
 		wf2TreePath := ".gitea/workflows/concurrent-workflow-2.yml"
 		wf2FileContent := `name: concurrent-workflow-2
-on:
+on: 
   push:
     paths:
       - '.gitea/workflows/concurrent-workflow-2.yml'
@@ -1632,7 +1632,7 @@ jobs:
 `
 		wf3TreePath := ".gitea/workflows/concurrent-workflow-3.yml"
 		wf3FileContent := `name: concurrent-workflow-3
-on:
+on: 
   push:
     paths:
       - '.gitea/workflows/concurrent-workflow-3.yml'
