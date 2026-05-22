@@ -2067,7 +2067,11 @@ func buildSignature(endp string, expires, artifactID int64) []byte {
 }
 
 func buildDownloadRawEndpoint(repo *repo_model.Repository, artifactID int64) string {
-	return fmt.Sprintf("api/v1/repos/%s/%s/actions/artifacts/%d/zip/raw", url.PathEscape(repo.OwnerName), url.PathEscape(repo.Name), artifactID)
+	var groupSegment string
+	if repo.GroupID > 0 {
+		groupSegment = fmt.Sprintf("%d/", repo.GroupID)
+	}
+	return fmt.Sprintf("api/v1/repos/%s/%s%s/actions/artifacts/%d/zip/raw", url.PathEscape(repo.OwnerName), groupSegment, url.PathEscape(repo.Name), artifactID)
 }
 
 func buildSigURL(ctx go_context.Context, endPoint string, artifactID int64) string {
