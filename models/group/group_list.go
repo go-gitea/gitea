@@ -6,8 +6,7 @@ package group
 import (
 	"context"
 
-	"code.gitea.io/gitea/models/perm"
-	"code.gitea.io/gitea/models/unit"
+	"code.gitea.io/gitea/models/db"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/structs"
 
@@ -47,10 +46,7 @@ func MemberCond(idStr string, groupID int64, user *user_model.User) builder.Cond
 }
 
 // AccessibleGroupCondition returns a condition that matches groups which a user can access via the specified unit
-func AccessibleGroupCondition(user *user_model.User, unitType unit.Type, minMode perm.AccessMode, includeAncestors bool) builder.Cond {
-	_ = unitType
-	_ = minMode
-	_ = includeAncestors
+func AccessibleGroupCondition(user *user_model.User) builder.Cond {
 	if user != nil && user.IsAdmin {
 		return builder.Expr("1 = 1")
 	}
@@ -71,7 +67,10 @@ func AccessibleGroupCondition(user *user_model.User, unitType unit.Type, minMode
 		cond = cond.Or(condAnd)
 	}
 	if user != nil && user.ID > 0 {
-		cond = cond.Or(builder.In("`repo_group`.owner_id", orgMembershipGroupBuilder(user.ID)))
+		adminSubquery := builder.Dialect(db.BuilderDialect()).Select("1").
+			From("`user`").
+			Where(builder.Eq{"`user`.is_admin": true, "`user`.`id`": user.ID})
+		cond = cond.Or(builder.In("`repo_group`.owner_id", orgMembershipGroupBuilder(user.ID)), builder.Exists(adminSubquery))
 	}
 	return cond
 }

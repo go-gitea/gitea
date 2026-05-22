@@ -120,7 +120,7 @@ func (w *WebSearchGroup) doLoadChildren(opts *WebSearchOptions) error {
 	}
 	w.Subgroups = make([]*WebSearchGroup, 0)
 
-	gcond := group_model.AccessibleGroupCondition(opts.Actor, unit.TypeInvalid, perm.AccessModeRead, false)
+	gcond := group_model.AccessibleGroupCondition(opts.Actor)
 	if w.Group != nil {
 		gcond = gcond.And(group_model.MemberCond("repo_group.id", w.Group.ID, opts.Actor))
 	}
