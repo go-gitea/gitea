@@ -213,7 +213,7 @@ window.customElements.define('overflow-menu', class extends HTMLElement {
         if (newWidth !== this.lastWidth) {
           requestAnimationFrame(() => {
             this.updateItems();
-            this.setAttribute('data-ready', ''); // reveal once arranged; see [data-ready] CSS
+            this.setAttribute('data-ready', '');
           });
           this.lastWidth = newWidth;
         }
