@@ -29,6 +29,7 @@
   size: 0
   is_fsck_enabled: true
   close_issues_via_commit_in_any_branch: false
+  group_id: 0
 
 -
   id: 2
@@ -60,6 +61,7 @@
   size: 0
   is_fsck_enabled: true
   close_issues_via_commit_in_any_branch: true
+  group_id: 0
 
 -
   id: 3
@@ -91,6 +93,7 @@
   size: 0
   is_fsck_enabled: true
   close_issues_via_commit_in_any_branch: false
+  group_id: 0
 
 -
   id: 4
@@ -124,6 +127,7 @@
   size: 0
   is_fsck_enabled: true
   close_issues_via_commit_in_any_branch: false
+  group_id: 0
 
 -
   id: 5
@@ -154,6 +158,8 @@
   size: 0
   is_fsck_enabled: true
   close_issues_via_commit_in_any_branch: false
+  group_id: 0
+  group_sort_order: 1
 
 -
   id: 6
@@ -184,6 +190,7 @@
   size: 0
   is_fsck_enabled: true
   close_issues_via_commit_in_any_branch: false
+  group_id: 0
 
 -
   id: 7
@@ -214,6 +221,7 @@
   size: 0
   is_fsck_enabled: true
   close_issues_via_commit_in_any_branch: false
+  group_id: 0
 
 -
   id: 8
@@ -244,6 +252,7 @@
   size: 0
   is_fsck_enabled: true
   close_issues_via_commit_in_any_branch: false
+  group_id: 0
 
 -
   id: 9
@@ -274,6 +283,7 @@
   size: 0
   is_fsck_enabled: true
   close_issues_via_commit_in_any_branch: false
+  group_id: 0
 
 -
   id: 10
@@ -305,6 +315,7 @@
   size: 0
   is_fsck_enabled: true
   close_issues_via_commit_in_any_branch: false
+  group_id: 0
 
 -
   id: 11
@@ -336,6 +347,7 @@
   size: 0
   is_fsck_enabled: true
   close_issues_via_commit_in_any_branch: false
+  group_id: 0
 
 -
   id: 12
@@ -366,6 +378,7 @@
   size: 0
   is_fsck_enabled: true
   close_issues_via_commit_in_any_branch: false
+  group_id: 0
 
 -
   id: 13
@@ -396,6 +409,7 @@
   size: 0
   is_fsck_enabled: true
   close_issues_via_commit_in_any_branch: false
+  group_id: 0
 
 -
   id: 14
@@ -427,6 +441,7 @@
   size: 0
   is_fsck_enabled: true
   close_issues_via_commit_in_any_branch: false
+  group_id: 0
 
 -
   id: 15
@@ -458,6 +473,7 @@
   size: 0
   is_fsck_enabled: true
   close_issues_via_commit_in_any_branch: false
+  group_id: 0
 
 -
   id: 16
@@ -489,6 +505,7 @@
   size: 0
   is_fsck_enabled: true
   close_issues_via_commit_in_any_branch: false
+  group_id: 0
 
 -
   id: 17
@@ -519,6 +536,7 @@
   size: 0
   is_fsck_enabled: true
   close_issues_via_commit_in_any_branch: false
+  group_id: 0
 
 -
   id: 18
@@ -549,6 +567,7 @@
   size: 0
   is_fsck_enabled: true
   close_issues_via_commit_in_any_branch: false
+  group_id: 0
 
 -
   id: 19
@@ -579,6 +598,7 @@
   size: 0
   is_fsck_enabled: true
   close_issues_via_commit_in_any_branch: false
+  group_id: 0
 
 -
   id: 20
@@ -609,6 +629,7 @@
   size: 0
   is_fsck_enabled: true
   close_issues_via_commit_in_any_branch: false
+  group_id: 0
 
 -
   id: 21
@@ -639,6 +660,7 @@
   size: 0
   is_fsck_enabled: true
   close_issues_via_commit_in_any_branch: false
+  group_id: 0
 
 -
   id: 22
@@ -669,6 +691,7 @@
   size: 0
   is_fsck_enabled: true
   close_issues_via_commit_in_any_branch: false
+  group_id: 0
 
 -
   id: 23
@@ -699,6 +722,8 @@
   size: 0
   is_fsck_enabled: true
   close_issues_via_commit_in_any_branch: false
+  group_id: 0
+  group_sort_order: 0
 
 -
   id: 24
@@ -729,6 +754,8 @@
   size: 0
   is_fsck_enabled: true
   close_issues_via_commit_in_any_branch: false
+  group_id: 0
+  group_sort_order: 1
 
 -
   id: 25
@@ -759,6 +786,7 @@
   size: 0
   is_fsck_enabled: true
   close_issues_via_commit_in_any_branch: false
+  group_id: 0
 
 -
   id: 26
@@ -789,6 +817,7 @@
   size: 0
   is_fsck_enabled: true
   close_issues_via_commit_in_any_branch: false
+  group_id: 0
 
 -
   id: 27
@@ -819,6 +848,8 @@
   size: 0
   is_fsck_enabled: true
   close_issues_via_commit_in_any_branch: false
+  group_id: 0
+  group_sort_order: 0
 
 -
   id: 28
@@ -849,6 +880,8 @@
   size: 0
   is_fsck_enabled: true
   close_issues_via_commit_in_any_branch: false
+  group_id: 0
+  group_sort_order: 1
 
 -
   id: 29
@@ -879,6 +912,7 @@
   size: 0
   is_fsck_enabled: true
   close_issues_via_commit_in_any_branch: false
+  group_id: 0
 
 -
   id: 30
@@ -909,6 +943,7 @@
   size: 0
   is_fsck_enabled: true
   close_issues_via_commit_in_any_branch: false
+  group_id: 0
 
 -
   id: 31
@@ -940,6 +975,7 @@
   size: 0
   is_fsck_enabled: true
   close_issues_via_commit_in_any_branch: false
+  group_id: 0
 
 -
   id: 32 # org public repo
@@ -970,6 +1006,8 @@
   size: 0
   is_fsck_enabled: true
   close_issues_via_commit_in_any_branch: false
+  group_id: 0
+  group_sort_order: 2
 
 -
   id: 33
@@ -1001,6 +1039,7 @@
   size: 0
   is_fsck_enabled: true
   close_issues_via_commit_in_any_branch: false
+  group_id: 0
 
 -
   id: 34
@@ -1031,6 +1070,7 @@
   size: 0
   is_fsck_enabled: true
   close_issues_via_commit_in_any_branch: false
+  group_id: 0
 
 -
   id: 35
@@ -1061,6 +1101,7 @@
   size: 0
   is_fsck_enabled: true
   close_issues_via_commit_in_any_branch: false
+  group_id: 0
 
 -
   id: 36
@@ -1092,6 +1133,7 @@
   size: 0
   is_fsck_enabled: true
   close_issues_via_commit_in_any_branch: false
+  group_id: 0
 
 -
   id: 37
@@ -1123,6 +1165,7 @@
   size: 0
   is_fsck_enabled: true
   close_issues_via_commit_in_any_branch: false
+  group_id: 0
 
 -
   id: 38
@@ -1154,6 +1197,8 @@
   size: 0
   is_fsck_enabled: true
   close_issues_via_commit_in_any_branch: false
+  group_id: 0
+  group_sort_order: 0
 
 -
   id: 39
@@ -1185,6 +1230,8 @@
   size: 0
   is_fsck_enabled: true
   close_issues_via_commit_in_any_branch: false
+  group_id: 0
+  group_sort_order: 1
 
 -
   id: 40
@@ -1216,6 +1263,8 @@
   size: 0
   is_fsck_enabled: true
   close_issues_via_commit_in_any_branch: false
+  group_id: 0
+  group_sort_order: 0
 
 -
   id: 41
@@ -1247,6 +1296,8 @@
   size: 0
   is_fsck_enabled: true
   close_issues_via_commit_in_any_branch: false
+  group_id: 0
+  group_sort_order: 1
 
 -
   id: 42
@@ -1278,6 +1329,7 @@
   size: 0
   is_fsck_enabled: true
   close_issues_via_commit_in_any_branch: false
+  group_id: 0
 
 -
   id: 43
@@ -1308,6 +1360,8 @@
   size: 0
   is_fsck_enabled: true
   close_issues_via_commit_in_any_branch: false
+  group_id: 0
+  group_sort_order: 0
 
 -
   id: 44
@@ -1339,6 +1393,7 @@
   size: 0
   is_fsck_enabled: true
   close_issues_via_commit_in_any_branch: false
+  group_id: 0
 
 -
   id: 45
@@ -1369,6 +1424,7 @@
   size: 0
   is_fsck_enabled: true
   close_issues_via_commit_in_any_branch: false
+  group_id: 0
 
 -
   id: 46
@@ -1400,6 +1456,8 @@
   size: 0
   is_fsck_enabled: true
   close_issues_via_commit_in_any_branch: false
+  group_id: 0
+  group_sort_order: 1
 
 -
   id: 47
@@ -1431,6 +1489,8 @@
   size: 0
   is_fsck_enabled: true
   close_issues_via_commit_in_any_branch: false
+  group_id: 0
+  group_sort_order: 2
 
 -
   id: 48
@@ -1462,6 +1522,8 @@
   size: 0
   is_fsck_enabled: true
   close_issues_via_commit_in_any_branch: false
+  group_id: 0
+  group_sort_order: 3
 
 -
   id: 49
@@ -1493,6 +1555,7 @@
   size: 0
   is_fsck_enabled: true
   close_issues_via_commit_in_any_branch: false
+  group_id: 0
 
 -
   id: 50
@@ -1524,6 +1587,7 @@
   size: 0
   is_fsck_enabled: true
   close_issues_via_commit_in_any_branch: false
+  group_id: 0
 
 -
   id: 51
@@ -1555,6 +1619,7 @@
   size: 0
   is_fsck_enabled: true
   close_issues_via_commit_in_any_branch: false
+  group_id: 0
 
 -
   id: 52
@@ -1586,6 +1651,7 @@
   size: 0
   is_fsck_enabled: true
   close_issues_via_commit_in_any_branch: false
+  group_id: 0
 
 -
   id: 53
@@ -1614,6 +1680,7 @@
   size: 0
   is_fsck_enabled: true
   close_issues_via_commit_in_any_branch: false
+  group_id: 0
 
 -
   id: 54
@@ -1695,6 +1762,7 @@
   size: 0
   is_fsck_enabled: true
   close_issues_via_commit_in_any_branch: false
+  group_id: 0
 
 -
   id: 60
@@ -1726,6 +1794,7 @@
   size: 0
   is_fsck_enabled: true
   close_issues_via_commit_in_any_branch: false
+  group_id: 0
 
 -
   id: 61
@@ -1757,6 +1826,8 @@
   size: 0
   is_fsck_enabled: true
   close_issues_via_commit_in_any_branch: false
+  group_id: 0
+  group_sort_order: 0
 
 -
   id: 62
@@ -1788,5 +1859,7 @@
   size: 0
   is_fsck_enabled: true
   close_issues_via_commit_in_any_branch: false
+  group_id: 0
+  group_sort_order: 0
 
 # DO NOT add more test data in the fixtures, test case should prepare their own test data separately and clearly
