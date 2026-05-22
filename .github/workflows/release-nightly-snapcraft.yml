@@ -30,7 +30,7 @@ jobs:
             --build-for=amd64,arm64,armhf
 
       - name: List built snaps
-        run: ls -lah *.snap
+        run: ls -lah | grep '\.snap$'
 
       - name: Upload and release snapcraft nightly build
         run: |
