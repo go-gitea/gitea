@@ -71,13 +71,9 @@ function lintPrTitle(): void {
 
 // Command: sync the title-derived labels onto the PR via the GitHub API.
 async function setPrLabels(): Promise<void> {
-  if (!env.PR_TITLE) {
-    console.error('Missing PR_TITLE');
+  if (!env.PR_TITLE || !env.GITHUB_TOKEN || !env.GITHUB_REPOSITORY || !env.PR_NUMBER) {
+    console.error('set-pr-labels requires PR_TITLE, GITHUB_TOKEN, GITHUB_REPOSITORY and PR_NUMBER');
     exit(1);
-  }
-  if (!env.GITHUB_TOKEN || !env.GITHUB_REPOSITORY || !env.PR_NUMBER) {
-    console.info('Skipping PR label sync (GITHUB_TOKEN, GITHUB_REPOSITORY, or PR_NUMBER not set)');
-    exit(0);
   }
 
   const labelsUrl = `https://api.github.com/repos/${env.GITHUB_REPOSITORY}/issues/${env.PR_NUMBER}/labels`;
