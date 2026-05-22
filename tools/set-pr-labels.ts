@@ -1,84 +1,53 @@
 #!/usr/bin/env node
 import {env, exit} from 'node:process';
-import {labelsForPrTitle, managedLabels} from './pr-title.ts';
+import {labelsForPrTitle, removableLabels} from './pr-title.ts';
 
-const title = env.PR_TITLE;
-
-if (!title) {
+if (!env.PR_TITLE) {
   console.error('Missing PR_TITLE');
   exit(1);
 }
 
-const token = env.GITHUB_TOKEN;
-const repository = env.GITHUB_REPOSITORY;
-const prNumber = env.PR_NUMBER;
-
-if (!token || !repository || !prNumber) {
+if (!env.GITHUB_TOKEN || !env.GITHUB_REPOSITORY || !env.PR_NUMBER) {
   console.info('Skipping PR label sync (GITHUB_TOKEN, GITHUB_REPOSITORY, or PR_NUMBER not set)');
   exit(0);
 }
 
-const [owner, repo] = repository.split('/');
-if (!owner || !repo) {
-  console.error(`Invalid GITHUB_REPOSITORY: ${repository}`);
-  exit(1);
-}
+const labelsUrl = `https://api.github.com/repos/${env.GITHUB_REPOSITORY}/issues/${env.PR_NUMBER}/labels`;
 
-const apiBase = `https://api.github.com/repos/${owner}/${repo}`;
-
-async function githubRequest(path: string, options: {method?: string; body?: unknown} = {}): Promise<unknown> {
-  const response = await fetch(`${apiBase}${path}`, {
-    method: options.method ?? 'GET',
+async function request(url: string, method = 'GET', body?: unknown): Promise<Response> {
+  const response = await fetch(url, {
+    method,
     headers: {
       Accept: 'application/vnd.github+json',
-      Authorization: `Bearer ${token}`,
+      Authorization: `Bearer ${env.GITHUB_TOKEN}`,
       'X-GitHub-Api-Version': '2022-11-28',
-      ...(options.body ? {'Content-Type': 'application/json'} : {}),
+      ...(body ? {'Content-Type': 'application/json'} : {}),
     },
-    body: options.body ? JSON.stringify(options.body) : undefined,
+    body: body ? JSON.stringify(body) : undefined,
   });
-
   if (!response.ok) {
-    const body = await response.text();
-    throw new Error(`GitHub API ${options.method ?? 'GET'} ${path} failed (${response.status}): ${body}`);
+    throw new Error(`GitHub API ${method} ${url} failed (${response.status}): ${await response.text()}`);
   }
-
-  if (response.status === 204) return null;
-  return response.json();
+  return response;
 }
-
-async function getCurrentLabelNames(): Promise<string[]> {
-  const labels = await githubRequest(`/issues/${prNumber}/labels`) as Array<{name: string}>;
-  return labels.map((label) => label.name);
-}
-
-async function addLabels(names: string[]): Promise<void> {
-  if (names.length === 0) return;
-  await githubRequest(`/issues/${prNumber}/labels`, {method: 'POST', body: {labels: names}});
-}
-
-async function removeLabel(name: string): Promise<void> {
-  await githubRequest(`/issues/${prNumber}/labels/${encodeURIComponent(name)}`, {method: 'DELETE'});
-}
-
-const desiredLabels = labelsForPrTitle(title);
 
 try {
-  const currentLabels = await getCurrentLabelNames();
-  const labelsToRemove = managedLabels.filter((name) => currentLabels.includes(name) && !desiredLabels.includes(name));
-  const labelsToAdd = desiredLabels.filter((name) => !currentLabels.includes(name));
+  const desired = labelsForPrTitle(env.PR_TITLE);
+  const response = await request(`${labelsUrl}?per_page=100`);
+  const current = ((await response.json()) as Array<{name: string}>).map((label) => label.name);
 
-  for (const name of labelsToRemove) {
-    await removeLabel(name);
-    console.info(`Removed label ${name}`);
+  const toAdd = desired.filter((name) => !current.includes(name));
+  const toRemove = removableLabels.filter((name) => current.includes(name) && !desired.includes(name));
+
+  if (toAdd.length) {
+    await request(labelsUrl, 'POST', {labels: toAdd});
+    console.info(`Added labels: ${toAdd.join(', ')}`);
   }
-
-  if (labelsToAdd.length > 0) {
-    await addLabels(labelsToAdd);
-    console.info(`Added labels: ${labelsToAdd.join(', ')}`);
+  for (const name of toRemove) {
+    await request(`${labelsUrl}/${encodeURIComponent(name)}`, 'DELETE');
+    console.info(`Removed label: ${name}`);
   }
-
-  if (labelsToRemove.length === 0 && labelsToAdd.length === 0) {
+  if (!toAdd.length && !toRemove.length) {
     console.info('PR labels already in sync');
   }
 } catch (error) {

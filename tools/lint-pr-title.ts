@@ -11,7 +11,7 @@ if (!title) {
 
 if (!parsePrTitle(title)) {
   console.error(`Invalid PR title: ${title}`);
-  console.error('Expected format: type(scope): subject');
+  console.error('Expected format: type(scope): subject (scope optional, append "!" for breaking changes)');
   console.error(`Allowed types: ${allowedTypesList}`);
   exit(1);
 }
