@@ -6,6 +6,7 @@ package user
 import (
 	"net/http"
 	"net/url"
+	"strconv"
 
 	activities_model "gitea.dev/models/activities"
 	group_model "gitea.dev/models/group"
@@ -27,7 +28,9 @@ func prepareHeatmapURL(ctx *context.Context) {
 
 	// for org or team
 	heatmapURL := ctx.Org.Organization.OrganisationLink() + "/dashboard/-/heatmap"
-	if ctx.Org.Team != nil {
+	if ctx.RepoGroup.Group != nil {
+		heatmapURL += "/group/" + url.PathEscape(strconv.FormatInt(ctx.RepoGroup.Group.ID, 10))
+	} else if ctx.Org.Team != nil {
 		heatmapURL += "/" + url.PathEscape(ctx.Org.Team.LowerName)
 	}
 	ctx.Data["HeatmapURL"] = heatmapURL
