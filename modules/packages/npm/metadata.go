@@ -24,4 +24,13 @@ type Metadata struct {
 	Bin                     map[string]string `json:"bin,omitempty"`
 	Readme                  string            `json:"readme,omitempty"`
 	Repository              Repository        `json:"repository"`
+	HasInstallScript        bool              `json:"hasInstallScript,omitempty"`
+	HasShrinkwrap           bool              `json:"hasShrinkwrap,omitempty"`
+	Engines                 map[string]string `json:"engines,omitempty"`
+	CPU                     []string          `json:"cpu,omitempty"`
+	OS                      []string          `json:"os,omitempty"`
+	Directories             map[string]string `json:"directories,omitempty"`
+	Funding                 any               `json:"funding,omitempty"`
+	AcceptDependencies      map[string]string `json:"accept_dependencies,omitempty"`
+	Deprecated              string            `json:"deprecated,omitempty"`
 }

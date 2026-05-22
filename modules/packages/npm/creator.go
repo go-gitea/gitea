@@ -4,7 +4,9 @@
 package npm
 
 import (
+	"archive/tar"
 	"bytes"
+	"compress/gzip"
 	"crypto/sha1"
 	"crypto/sha512"
 	"encoding/base64"
@@ -108,6 +110,16 @@ type PackageMetadataVersion struct {
 	Readme               string              `json:"readme,omitempty"`
 	Dist                 PackageDistribution `json:"dist"`
 	Maintainers          []User              `json:"maintainers,omitempty"`
+	Scripts              map[string]string   `json:"scripts,omitempty"`
+	HasInstallScript     bool                `json:"hasInstallScript,omitempty"`
+	HasShrinkwrap        bool                `json:"_hasShrinkwrap,omitempty"`
+	Engines              map[string]string   `json:"engines,omitempty"`
+	CPU                  []string            `json:"cpu,omitempty"`
+	OS                   []string            `json:"os,omitempty"`
+	Directories          map[string]string   `json:"directories,omitempty"`
+	Funding              any                 `json:"funding,omitempty"`
+	AcceptDependencies   map[string]string   `json:"acceptDependencies,omitempty"`
+	Deprecated           string              `json:"deprecated,omitempty"`
 }
 
 // PackageDistribution https://github.com/npm/registry/blob/master/docs/REGISTRY-API.md#version
@@ -277,6 +289,16 @@ func ParsePackage(r io.Reader) (*Package, error) {
 			meta.Bin = Bin{name: cmd}
 		}
 
+		hasInstallScript := meta.HasInstallScript
+		if !hasInstallScript {
+			for _, scriptName := range []string{"preinstall", "install", "postinstall"} {
+				if script, ok := meta.Scripts[scriptName]; ok && strings.TrimSpace(script) != "" {
+					hasInstallScript = true
+					break
+				}
+			}
+		}
+
 		p := &Package{
 			Name:     meta.Name,
 			Version:  v.String(),
@@ -298,6 +320,14 @@ func ParsePackage(r io.Reader) (*Package, error) {
 				Bin:                     meta.Bin,
 				Readme:                  meta.Readme,
 				Repository:              meta.Repository,
+				HasInstallScript:        hasInstallScript,
+				Engines:                 meta.Engines,
+				CPU:                     meta.CPU,
+				OS:                      meta.OS,
+				Directories:             meta.Directories,
+				Funding:                 meta.Funding,
+				AcceptDependencies:      meta.AcceptDependencies,
+				Deprecated:              meta.Deprecated,
 			},
 		}
 
@@ -344,10 +374,42 @@ func ParsePackage(r io.Reader) (*Package, error) {
 			return nil, ErrInvalidIntegrity
 		}
 
+		// Detect npm-shrinkwrap.json inside the tarball; this is authoritative
+		// for _hasShrinkwrap and overrides whatever the client claimed.
+		p.Metadata.HasShrinkwrap = tarballHasShrinkwrap(data)
+
 		return p, nil
 	}
 
 	return nil, ErrInvalidPackage
+}
+
+// tarballHasShrinkwrap reports whether the npm tarball contains an
+// npm-shrinkwrap.json file at the package root (one directory deep, as
+// produced by `npm pack`). Failures to decompress or read the archive return
+// false rather than an error so publishing is not blocked.
+func tarballHasShrinkwrap(data []byte) bool {
+	gr, err := gzip.NewReader(bytes.NewReader(data))
+	if err != nil {
+		return false
+	}
+	defer gr.Close()
+
+	tr := tar.NewReader(gr)
+	for {
+		hdr, err := tr.Next()
+		if err == io.EOF {
+			return false
+		}
+		if err != nil {
+			return false
+		}
+		name := strings.TrimPrefix(hdr.Name, "./")
+		// npm pack puts files under a single root directory (usually "package/").
+		if strings.Count(name, "/") == 1 && strings.HasSuffix(name, "/npm-shrinkwrap.json") {
+			return true
+		}
+	}
 }
 
 func validateName(name string) bool {
@@ -358,4 +420,55 @@ func validateName(name string) bool {
 		return false
 	}
 	return nameMatch.MatchString(name)
+}
+
+// PackageDeprecation is the result of parsing an npm deprecate request body.
+// Versions maps a version string to its deprecation message; an empty message
+// means "undeprecate".
+type PackageDeprecation struct {
+	PackageName string
+	Versions    map[string]string
+}
+
+// IsDeprecateRequest returns true if the body looks like an npm deprecate
+// request (i.e. has no package attachments with data). It does not validate
+// the rest of the document.
+func IsDeprecateRequest(body []byte) bool {
+	var u struct {
+		Attachments map[string]*PackageAttachment `json:"_attachments"`
+	}
+	if err := json.Unmarshal(body, &u); err != nil {
+		return false
+	}
+	for _, a := range u.Attachments {
+		if a != nil && len(a.Data) > 0 {
+			return false
+		}
+	}
+	return true
+}
+
+// ParsePackageDeprecation parses an npm deprecate request body into a list of
+// per-version deprecation messages. The npm CLI sends the full package
+// document with the `deprecated` string field set (or cleared) on each
+// affected version.
+func ParsePackageDeprecation(r io.Reader) (*PackageDeprecation, error) {
+	var upload packageUpload
+	if err := json.NewDecoder(r).Decode(&upload); err != nil {
+		return nil, err
+	}
+	if !validateName(upload.Name) {
+		return nil, ErrInvalidPackageName
+	}
+	d := &PackageDeprecation{
+		PackageName: upload.Name,
+		Versions:    make(map[string]string, len(upload.Versions)),
+	}
+	for v, meta := range upload.Versions {
+		if meta == nil {
+			continue
+		}
+		d.Versions[v] = meta.Deprecated
+	}
+	return d, nil
 }
