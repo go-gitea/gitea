@@ -187,6 +187,7 @@ Gitea or set your environment appropriately.`, "")
 	// the environment is set by serv command
 	isWiki, _ := strconv.ParseBool(os.Getenv(repo_module.EnvRepoIsWiki))
 	username := os.Getenv(repo_module.EnvRepoUsername)
+	groupID, _ := strconv.ParseInt(os.Getenv(repo_module.EnvRepoGroupID), 10, 64)
 	reponame := os.Getenv(repo_module.EnvRepoName)
 	userID, _ := strconv.ParseInt(os.Getenv(repo_module.EnvPusherID), 10, 64)
 	prID, _ := strconv.ParseInt(os.Getenv(repo_module.EnvPRID), 10, 64)
@@ -257,7 +258,7 @@ Gitea or set your environment appropriately.`, "")
 				hookOptions.OldCommitIDs = oldCommitIDs
 				hookOptions.NewCommitIDs = newCommitIDs
 				hookOptions.RefFullNames = refFullNames
-				extra := private.HookPreReceive(ctx, username, reponame, hookOptions)
+				extra := private.HookPreReceive(ctx, username, reponame, groupID, hookOptions)
 				if extra.HasError() {
 					return fail(ctx, extra.UserMsg, "HookPreReceive(batch) failed: %v", extra.Error)
 				}
@@ -283,7 +284,7 @@ Gitea or set your environment appropriately.`, "")
 
 		fmt.Fprintf(out, " Checking %d references\n", count)
 
-		extra := private.HookPreReceive(ctx, username, reponame, hookOptions)
+		extra := private.HookPreReceive(ctx, username, reponame, groupID, hookOptions)
 		if extra.HasError() {
 			return fail(ctx, extra.UserMsg, "HookPreReceive(last) failed: %v", extra.Error)
 		}
@@ -354,6 +355,7 @@ Gitea or set your environment appropriately.`, "")
 	pusherID, _ := strconv.ParseInt(os.Getenv(repo_module.EnvPusherID), 10, 64)
 	prID, _ := strconv.ParseInt(os.Getenv(repo_module.EnvPRID), 10, 64)
 	pusherName := os.Getenv(repo_module.EnvPusherName)
+	groupID, _ := strconv.ParseInt(os.Getenv(repo_module.EnvRepoGroupID), 10, 64)
 
 	hookOptions := private.HookOptions{
 		UserName:                        pusherName,
@@ -384,7 +386,7 @@ Gitea or set your environment appropriately.`, "")
 		hookOptions.OldCommitIDs = oldCommitIDs
 		hookOptions.NewCommitIDs = newCommitIDs
 		hookOptions.RefFullNames = refFullNames
-		resp, extra := private.HookPostReceive(ctx, repoUser, repoName, hookOptions)
+		resp, extra := private.HookPostReceive(ctx, repoUser, repoName, groupID, hookOptions)
 		if extra.HasError() {
 			return fail(ctx, extra.UserMsg, "HookPostReceive failed: %v", extra.Error)
 		}
@@ -482,6 +484,7 @@ Gitea or set your environment appropriately.`, "")
 	repoName := os.Getenv(repo_module.EnvRepoName)
 	pusherID, _ := strconv.ParseInt(os.Getenv(repo_module.EnvPusherID), 10, 64)
 	pusherName := os.Getenv(repo_module.EnvPusherName)
+	groupID, _ := strconv.ParseInt(os.Getenv(repo_module.EnvRepoGroupID), 10, 64)
 
 	// 1. Version and features negotiation.
 	// S: PKT-LINE(version=1\0push-options atomic...) / PKT-LINE(version=1\n)
@@ -596,7 +599,7 @@ Gitea or set your environment appropriately.`, "")
 	}
 
 	// 3. run hook
-	resp, extra := private.HookProcReceive(ctx, repoUser, repoName, hookOptions)
+	resp, extra := private.HookProcReceive(ctx, repoUser, repoName, groupID, hookOptions)
 	if extra.HasError() {
 		return fail(ctx, extra.UserMsg, "HookProcReceive failed: %v", extra.Error)
 	}
