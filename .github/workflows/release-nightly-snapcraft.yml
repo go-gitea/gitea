@@ -1,0 +1,42 @@
+name: release-nightly-snapcraft
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build-and-publish:
+    runs-on: ubuntu-latest
+
+    env:
+      SNAPCRAFT_STORE_CREDENTIALS: ${{ secrets.SNAPCRAFT_STORE_CREDENTIALS }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Install snapcraft
+        run: sudo snap install snapcraft --classic
+
+      - name: Remote build
+        run: |
+          snapcraft remote-build \
+            --launchpad-accept-public-upload \
+            --build-for=amd64,arm64,armhf
+
+      - name: List built snaps
+        run: ls -lah *.snap
+
+      - name: Upload and release snapcraft nightly build
+        run: |
+          set -euo pipefail
+
+          for snap in ./*.snap; do
+            echo "Uploading $snap to edge"
+            snapcraft upload --release="latest/edge" "$snap"
+          done
