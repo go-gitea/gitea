@@ -66,6 +66,7 @@ import {initActionsPermissionsForm} from './features/common-actions-permissions.
 import {initRefIssueContextPopup} from './features/ref-issue.ts';
 import {initGlobalShortcut} from './modules/shortcut.ts';
 import {initDevtest} from './modules/devtest.ts';
+import {initCommonGroup, initGroup} from './features/group.ts';
 
 const initStartTime = performance.now();
 const initPerformanceTracer = callInitFunctions([
@@ -160,6 +161,9 @@ const initPerformanceTracer = callInitFunctions([
   initOAuth2SettingsDisableCheckbox,
 
   initRepoFileView,
+
+  initCommonGroup,
+  initGroup,
   initActionsPermissionsForm,
 
   initDevtest,
