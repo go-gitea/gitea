@@ -33,7 +33,11 @@
 					</div>
 					<div class="divider"></div>
 				{{end}}
-
+				<div class="ui five wide column">
+					<div class="tw-mb-4">
+						{{template "group/sidebar/menu" .}}
+					</div>
+				</div>
 				{{if and .ShowMemberAndTeamTab .ShowOrgProfileReadmeSelector}}
 				<div class="tw-my-4">
 					<div id="org-home-view-as-dropdown" class="ui dropdown jump">
@@ -56,44 +60,50 @@
 				{{end}}
 
 				{{if .NumMembers}}
-					<h4 class="ui top attached header flex-left-right">
-						<strong>{{ctx.Locale.Tr "org.members"}}</strong>
-						<a class="tw-text-text-light flex-text-inline" href="{{.OrgLink}}/members"><span>{{.NumMembers}}</span> {{svg "octicon-chevron-right"}}</a>
-					</h4>
-					{{/* gap 8px below is specifically chosen to make sure a full line of avatars can exactly fit the segment width */}}
+				<h4 class="ui top attached header flex-left-right">
+					<strong >{{ctx.Locale.Tr "org.members"}}</strong>
+					<a class="tw-text-text-light flex-text-inline" href="{{.OrgLink}}/members"><span>{{.NumMembers}}</span> {{svg "octicon-chevron-right"}}</a>
+				</h4>
+				{{/* gap 8px below is specifically chosen to make sure a full line of avatars can exactly fit the segment width */}}
 					<div class="ui attached segment flex-text-block tw-flex-wrap tw-gap-[8px]">
-						{{range $memberUser := .OrgOverviewMembers}}
-							{{if or $.IsOrganizationMember (call $.IsPublicMember $memberUser.ID)}}
-								{{template "shared/user/avatarlink" dict "user" $memberUser "size" 32 "tooltip" true}}
-							{{end}}
-						{{end}}
-					</div>
+					{{range $memberUser := .OrgOverviewMembers}}
+					{{if or $.IsOrganizationMember (call $.IsPublicMember $memberUser.ID)}}
+					{{template "shared/user/avatarlink" dict "user" $memberUser "size" 32 "tooltip" true}}
+					{{end}}
+					{{end}}
+				</div>
 				{{end}}
 				{{if .IsOrganizationMember}}
-					<div class="ui top attached header flex-left-right">
-						<strong>{{ctx.Locale.Tr "org.teams"}}</strong>
-						<a class="tw-text-text-light flex-text-inline" href="{{.OrgLink}}/teams"><span>{{.Org.NumTeams}}</span> {{svg "octicon-chevron-right"}}</a>
-					</div>
-					<div class="ui attached segment">
+				<div class="ui top attached header flex-left-right">
+					<strong>{{ctx.Locale.Tr "org.teams"}}</strong>
+					<a class="tw-text-text-light flex-text-inline" href="{{.OrgLink}}/teams"><span>{{.Org.NumTeams}}</span> {{svg "octicon-chevron-right"}}</a>
+				</div>
+				<div class="ui attached segment">
 						<div class="flex-relaxed-list">
-						{{range .OrgOverviewTeams}}
-							<div>
-								<a href="{{$.OrgLink}}/teams/{{.LowerName | PathEscape}}"><strong>{{.Name}}</strong></a>
-								<p class="tw-text-text-light">
-									<a class="muted" href="{{$.OrgLink}}/teams/{{.LowerName | PathEscape}}"><strong>{{.NumMembers}}</strong> {{ctx.Locale.Tr "org.lower_members"}}</a> ·
-									<a class="muted" href="{{$.OrgLink}}/teams/{{.LowerName | PathEscape}}/repositories"><strong>{{.NumRepos}}</strong> {{ctx.Locale.Tr "org.lower_repositories"}}</a>
-								</p>
-							</div>
-						{{end}}
-						</div>
+					{{range .OrgOverviewTeams}}
+					<div>
+						<a href="{{$.OrgLink}}/teams/{{.LowerName | PathEscape}}"><strong>{{.Name}}</strong></a>
+						<p class="tw-text-text-light">
+							<a class="muted" href="{{$.OrgLink}}/teams/{{.LowerName | PathEscape}}"><strong>{{.NumMembers}}</strong> {{ctx.Locale.Tr "org.lower_members"}}
+							</a> ·
+							<a class="muted" href="{{$.OrgLink}}/teams/{{.LowerName | PathEscape}}/repositories"><strong>{{.NumRepos}}</strong> {{ctx.Locale.Tr "org.lower_repositories"}}
+							</a>
+						</p>
 					</div>
-					{{if .IsOrganizationOwner}}
-						<div class="ui bottom attached segment">
-							<a class="ui primary small button" href="{{.OrgLink}}/teams/new">{{ctx.Locale.Tr "org.create_new_team"}}</a>
-						</div>
 					{{end}}
+						</div>
+				</div>
+				{{if .IsOrganizationOwner}}
+				<div class="ui bottom attached segment">
+					<a class="ui primary small button" href="{{.OrgLink}}/teams/new">{{ctx.Locale.Tr "org.create_new_team"}}</a>
+				</div>
+				{{end}}
 				{{end}}
 			</div>
+			{{else}}
+				<div class="ui five wide column">
+					{{template "group/sidebar/menu" .}}
+				</div>
 			{{end}}
 		</div>
 	</div>
