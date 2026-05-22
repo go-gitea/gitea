@@ -31,6 +31,7 @@ import (
 	"gitea.dev/routers/web/events"
 	"gitea.dev/routers/web/explore"
 	"gitea.dev/routers/web/feed"
+	"gitea.dev/routers/web/group"
 	"gitea.dev/routers/web/healthcheck"
 	"gitea.dev/routers/web/misc"
 	"gitea.dev/routers/web/org"
@@ -955,16 +956,40 @@ func registerWebRoutes(m *web.Router, webAuth *AuthMiddleware) {
 		m.Group("/{org}", func() {
 			m.Get("/dashboard", user.Dashboard)
 			m.Get("/dashboard/{team}", user.Dashboard)
+			m.Get("/dashboard/group/{group_id}", ctxDataSet("PageIsGroupDashboard", true), context.GroupAssignmentWeb(context.GroupAssignmentOptions{RequireMember: true}), user.Dashboard)
 			m.Get("/dashboard/-/heatmap", user.DashboardHeatmap)
+			m.Get("/dashboard/-/heatmap/group/{group_id}", context.GroupAssignmentWeb(context.GroupAssignmentOptions{RequireMember: true}), user.DashboardHeatmap)
 			m.Get("/dashboard/-/heatmap/{team}", user.DashboardHeatmap)
 			m.Get("/issues", user.Issues)
 			m.Get("/issues/{team}", user.Issues)
+			m.Get("/issues/group/{group_id}", context.GroupAssignmentWeb(context.GroupAssignmentOptions{RequireMember: true}), user.Issues)
 			m.Get("/pulls", user.Pulls)
 			m.Get("/pulls/{team}", user.Pulls)
+			m.Get("/pulls/group/{group_id}", context.GroupAssignmentWeb(context.GroupAssignmentOptions{RequireMember: true}), user.Pulls)
 			m.Get("/milestones", reqMilestonesDashboardPageEnabled, user.Milestones)
 			m.Get("/milestones/{team}", reqMilestonesDashboardPageEnabled, user.Milestones)
+			m.Get("/milestones/group/{group_id}", reqMilestonesDashboardPageEnabled, user.Milestones)
 			m.Post("/members/action/{action}", org.MembersAction)
 			m.Get("/teams", org.Teams)
+
+			m.Group("/groups", func() {
+				m.Combo("/new").
+					Get(group.NewGroup).
+					Post(web.Bind(forms.CreateGroupForm{}), group.NewGroupPost)
+				m.Group("/{group_id}", func() {
+					m.Group("/settings", func() {
+						m.Combo("").
+							Get(group.Settings).
+							Post(web.Bind(forms.UpdateGroupSettingForm{}), group.SettingsPost)
+						m.Post("/avatar", web.Bind(forms.AvatarForm{}), group.SettingsAvatar)
+						m.Post("/avatar/delete", group.SettingsDeleteAvatar)
+					}, ctxDataSet("PageIsGroupSettings", true))
+				}, context.GroupAssignmentWeb(context.GroupAssignmentOptions{
+					RequireMember:     true,
+					RequireOwner:      false,
+					RequireGroupAdmin: true,
+				}))
+			})
 		}, context.OrgAssignment(context.OrgAssignmentOptions{RequireMember: true, RequireTeamMember: true}))
 
 		m.Group("/{org}", func() {
@@ -1068,6 +1093,11 @@ func registerWebRoutes(m *web.Router, webAuth *AuthMiddleware) {
 	}, reqSignIn)
 	// end "/org": most org routes
 
+	m.Group("/group", func() {
+		m.Get("/search", group.SearchGroup)
+	}, reqSignIn)
+	// end "/group": search
+
 	m.Group("/repo", func() {
 		m.Get("/create", repo.Create)
 		m.Post("/create", web.Bind(forms.CreateRepoForm{}), repo.CreatePost)
@@ -1146,6 +1176,18 @@ func registerWebRoutes(m *web.Router, webAuth *AuthMiddleware) {
 		}, reqUnitAccess(unit.TypeCode, perm.AccessModeRead, false), individualPermsChecker)
 	}, optSignIn, context.UserAssignmentWeb(), context.OrgAssignment(context.OrgAssignmentOptions{}))
 	// end "/{username}/-": packages, projects, code
+	m.Group("/{username}/groups", func() {
+		m.Group("/{group_id}", func() {
+			m.Get("", group.Home)
+		}, context.GroupAssignmentWeb(context.GroupAssignmentOptions{}))
+	}, optSignIn, context.UserAssignmentWeb(), context.OrgAssignment(context.OrgAssignmentOptions{}))
+
+	m.Group("/{username}/groups", func() {
+		m.Post("/items/move", group.MoveGroupItem)
+	}, context.UserAssignmentWeb(), context.OrgAssignment(context.OrgAssignmentOptions{
+		RequireMember: true,
+	}))
+	// end "/{username}/groups"
 
 	common.RegisterRepoRouteGroup(m, "/{username}/{reponame}/-", nil, func() {
 		m.Group("/migrate", func() {
