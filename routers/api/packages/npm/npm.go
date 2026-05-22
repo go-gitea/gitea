@@ -17,6 +17,7 @@ import (
 	access_model "gitea.dev/models/perm/access"
 	repo_model "gitea.dev/models/repo"
 	"gitea.dev/models/unit"
+	"gitea.dev/modules/json"
 	"gitea.dev/modules/optional"
 	packages_module "gitea.dev/modules/packages"
 	npm_module "gitea.dev/modules/packages/npm"
@@ -154,7 +155,21 @@ func DownloadPackageFileByName(ctx *context.Context) {
 
 // UploadPackage creates a new package
 func UploadPackage(ctx *context.Context) {
-	npmPackage, err := npm_module.ParsePackage(ctx.Req.Body)
+	body, err := io.ReadAll(ctx.Req.Body)
+	if err != nil {
+		apiError(ctx, http.StatusInternalServerError, err)
+		return
+	}
+
+	// `npm deprecate` reuses the same PUT endpoint, but sends the package
+	// document with no `_attachments`. Detect that case and update the
+	// stored metadata instead of creating a new version.
+	if npm_module.IsDeprecateRequest(body) {
+		deprecatePackage(ctx, body)
+		return
+	}
+
+	npmPackage, err := npm_module.ParsePackage(bytes.NewReader(body))
 	if err != nil {
 		if errors.Is(err, util.ErrInvalidArgument) {
 			apiError(ctx, http.StatusBadRequest, err)
@@ -249,6 +264,57 @@ func UploadPackage(ctx *context.Context) {
 // DeletePreview does nothing
 // The client tells the server what package version it knows about after deleting a version.
 func DeletePreview(ctx *context.Context) {
+	ctx.Status(http.StatusOK)
+}
+
+// deprecatePackage handles an `npm deprecate` request, which is a PUT to the
+// package URL with no attachments and a `deprecated` string set on each
+// affected version (empty string means undeprecate).
+func deprecatePackage(ctx *context.Context, body []byte) {
+	dep, err := npm_module.ParsePackageDeprecation(bytes.NewReader(body))
+	if err != nil {
+		if errors.Is(err, util.ErrInvalidArgument) {
+			apiError(ctx, http.StatusBadRequest, err)
+		} else {
+			apiError(ctx, http.StatusInternalServerError, err)
+		}
+		return
+	}
+
+	for version, message := range dep.Versions {
+		pv, err := packages_model.GetVersionByNameAndVersion(ctx, ctx.Package.Owner.ID, packages_model.TypeNpm, dep.PackageName, version)
+		if err != nil {
+			if errors.Is(err, packages_model.ErrPackageNotExist) {
+				continue
+			}
+			apiError(ctx, http.StatusInternalServerError, err)
+			return
+		}
+
+		metadata := &npm_module.Metadata{}
+		if err := json.Unmarshal([]byte(pv.MetadataJSON), metadata); err != nil {
+			apiError(ctx, http.StatusInternalServerError, err)
+			return
+		}
+
+		if metadata.Deprecated == message {
+			continue
+		}
+		metadata.Deprecated = message
+
+		raw, err := json.Marshal(metadata)
+		if err != nil {
+			apiError(ctx, http.StatusInternalServerError, err)
+			return
+		}
+		pv.MetadataJSON = string(raw)
+
+		if err := packages_model.UpdateVersion(ctx, pv); err != nil {
+			apiError(ctx, http.StatusInternalServerError, err)
+			return
+		}
+	}
+
 	ctx.Status(http.StatusOK)
 }
 
