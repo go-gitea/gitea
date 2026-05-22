@@ -9,6 +9,7 @@ import (
 
 	"gitea.dev/models/organization"
 	"gitea.dev/models/perm"
+	shared_group "gitea.dev/models/shared/group"
 	"gitea.dev/models/unit"
 	user_model "gitea.dev/models/user"
 	"gitea.dev/modules/markup"
@@ -259,6 +260,20 @@ func OrgAssignment(orgAssignmentOpts OrgAssignmentOptions) func(ctx *Context) {
 				return
 			}
 			ctx.Data["RenderedDescription"] = content
+		}
+		ctx.Data["AsGroupItem"] = func(v any) shared_group.Item {
+			if gi, ok := v.(shared_group.Item); ok {
+				return gi
+			}
+			return nil
+		}
+		ctx.Data["GroupNavItems"] = shared_group.GetTopLevelGroupItemList(ctx, ctx.ContextUser.ID, ctx.Doer, false)
+		ctx.Data["GroupIsCurrent"] = groupIsCurrent(ctx)
+		ctx.Data["GroupHasChild"] = func(it shared_group.Item) bool {
+			if ctx.RepoGroup == nil || ctx.RepoGroup.Group == nil {
+				return false
+			}
+			return shared_group.ItemHasChild(ctx, it, ctx.RepoGroup.Group.ID, ctx.Doer, false)
 		}
 	}
 }
