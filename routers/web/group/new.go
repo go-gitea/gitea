@@ -8,7 +8,6 @@ import (
 
 	"code.gitea.io/gitea/models/db"
 	group_model "code.gitea.io/gitea/models/group"
-	"code.gitea.io/gitea/models/perm"
 	unit_model "code.gitea.io/gitea/models/unit"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/optional"
@@ -40,7 +39,7 @@ func NewGroup(ctx *context.Context) {
 		CanCreateIn: optional.Some(true),
 		OwnerID:     ctx.Org.Organization.ID,
 	}
-	cond := group_model.AccessibleGroupCondition(ctx.Doer, unit_model.TypeInvalid, perm.AccessModeWrite, false)
+	cond := group_model.AccessibleGroupCondition(ctx.Doer)
 	cond = cond.And(opts.ToConds())
 	groups, err := group_model.FindGroupsByCond(ctx, &group_model.FindGroupsOptions{
 		ListOptions: db.ListOptions{
