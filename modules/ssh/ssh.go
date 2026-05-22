@@ -6,11 +6,12 @@ package ssh
 import (
 	"bytes"
 	"context"
+	"crypto/ed25519"
 	"crypto/rand"
-	"crypto/rsa"
 	"crypto/x509"
 	"encoding/pem"
 	"errors"
+	"fmt"
 	"io"
 	"net"
 	"os"
@@ -379,8 +380,7 @@ func Listen(host string, port int, ciphers, keyExchanges, macs []string) {
 
 	for _, key := range keys {
 		log.Info("Adding SSH host key: %s", key)
-		err := srv.SetOption(ssh.HostKeyFile(key))
-		if err != nil {
+		if err := addHostKey(&srv, key); err != nil {
 			log.Error("Failed to set Host Key. %s", err)
 		}
 	}
@@ -392,16 +392,52 @@ func Listen(host string, port int, ciphers, keyExchanges, macs []string) {
 	}()
 }
 
-// GenKeyPair make a pair of public and private keys for SSH access.
-// Public key is encoded in the format for inclusion in an OpenSSH authorized_keys file.
-// Private Key generated is PEM encoded
-func GenKeyPair(keyPath string) error {
-	privateKey, err := rsa.GenerateKey(rand.Reader, 4096)
+// addHostKey loads a private key from keyPath, restricts RSA signers to
+// rsa-sha2-256/512 (dropping the legacy ssh-rsa/SHA-1 algorithm)
+func addHostKey(srv *ssh.Server, keyPath string) error {
+	pemBytes, err := os.ReadFile(keyPath)
 	if err != nil {
 		return err
 	}
 
-	privateKeyPEM := &pem.Block{Type: "RSA PRIVATE KEY", Bytes: x509.MarshalPKCS1PrivateKey(privateKey)}
+	signer, err := gossh.ParsePrivateKey(pemBytes)
+	if err != nil {
+		return err
+	}
+
+	// RSA keys support three algorithms.
+	// Restrict to the two SHA-2 variants so that the
+	// server never advertises or accepts ssh-rsa during the handshake.
+	if signer.PublicKey().Type() == gossh.KeyAlgoRSA {
+		algSigner, ok := signer.(gossh.AlgorithmSigner)
+		if !ok {
+			return fmt.Errorf("SSH: RSA key %s does not implement AlgorithmSigner", keyPath)
+		}
+		signer, err = gossh.NewSignerWithAlgorithms(algSigner, []string{gossh.KeyAlgoRSASHA256, gossh.KeyAlgoRSASHA512})
+		if err != nil {
+			return err
+		}
+	}
+
+	srv.AddHostKey(signer)
+	return nil
+}
+
+// GenKeyPair generates an Ed25519 SSH host key pair.
+// The private key is written to keyPath in OpenSSH PEM format.
+// The public key is written to keyPath+".pub" in authorized_keys format.
+func GenKeyPair(keyPath string) error {
+	_, privateKey, err := ed25519.GenerateKey(rand.Reader)
+	if err != nil {
+		return err
+	}
+
+	privKeyBytes, err := x509.MarshalPKCS8PrivateKey(privateKey)
+	if err != nil {
+		return err
+	}
+
+	privateKeyPEM := &pem.Block{Type: "PRIVATE KEY", Bytes: privKeyBytes}
 	f, err := os.OpenFile(keyPath, os.O_RDWR|os.O_CREATE|os.O_TRUNC, 0o600)
 	if err != nil {
 		return err
@@ -417,7 +453,7 @@ func GenKeyPair(keyPath string) error {
 	}
 
 	// generate public key
-	pub, err := gossh.NewPublicKey(&privateKey.PublicKey)
+	pub, err := gossh.NewPublicKey(privateKey.Public())
 	if err != nil {
 		return err
 	}

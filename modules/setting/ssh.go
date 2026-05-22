@@ -15,6 +15,36 @@ import (
 	gossh "golang.org/x/crypto/ssh"
 )
 
+// defaultServerCiphers is the default list of ciphers for the built-in SSH server.
+// Excludes insecure legacy ciphers (3des-cbc, arcfour*).
+var defaultServerCiphers = []string{
+	"chacha20-poly1305@openssh.com",
+	"aes128-gcm@openssh.com",
+	"aes256-gcm@openssh.com",
+	"aes128-ctr",
+	"aes192-ctr",
+	"aes256-ctr",
+}
+
+// defaultServerKeyExchanges is the default list of key exchange algorithms.
+// Excludes NIST P-curves (ecdh-sha2-nistp*) and SHA-1 based exchanges.
+var defaultServerKeyExchanges = []string{
+	"curve25519-sha256",
+	"curve25519-sha256@libssh.org",
+	"diffie-hellman-group14-sha256",
+	"diffie-hellman-group16-sha512",
+	"diffie-hellman-group-exchange-sha256",
+}
+
+// defaultServerMACs is the default list of MAC algorithms.
+// Excludes hmac-sha1 and hmac-sha1-96.
+var defaultServerMACs = []string{
+	"hmac-sha2-256-etm@openssh.com",
+	"hmac-sha2-512-etm@openssh.com",
+	"hmac-sha2-256",
+	"hmac-sha2-512",
+}
+
 var SSH = struct {
 	Disabled                              bool               `ini:"DISABLE_SSH"`
 	StartBuiltinServer                    bool               `ini:"START_SSH_SERVER"`
@@ -53,7 +83,10 @@ var SSH = struct {
 	Port:                          22,
 	MinimumKeySizeCheck:           true,
 	MinimumKeySizes:               map[string]int{"ed25519": 256, "ed25519-sk": 256, "ecdsa": 256, "ecdsa-sk": 256, "rsa": 3071},
-	ServerHostKeys:                []string{"ssh/gitea.rsa", "ssh/gogs.rsa"},
+	ServerCiphers:                 defaultServerCiphers,
+	ServerKeyExchanges:            defaultServerKeyExchanges,
+	ServerMACs:                    defaultServerMACs,
+	ServerHostKeys:                []string{"ssh/gitea.ed25519", "ssh/gitea.rsa", "ssh/gogs.rsa"},
 	AuthorizedKeysCommandTemplate: "{{.AppPath}} --config={{.CustomConf}} serv key-{{.Key.ID}}",
 	PerWriteTimeout:               PerWriteTimeout,
 	PerWritePerKbTimeout:          PerWritePerKbTimeout,
@@ -110,13 +143,13 @@ func loadSSHFrom(rootCfg ConfigProvider) {
 	}
 
 	serverCiphers := sec.Key("SSH_SERVER_CIPHERS").Strings(",")
-	SSH.ServerCiphers = util.Iif(len(serverCiphers) > 0, serverCiphers, nil)
+	SSH.ServerCiphers = util.Iif(len(serverCiphers) > 0, serverCiphers, defaultServerCiphers)
 
 	serverKeyExchanges := sec.Key("SSH_SERVER_KEY_EXCHANGES").Strings(",")
-	SSH.ServerKeyExchanges = util.Iif(len(serverKeyExchanges) > 0, serverKeyExchanges, nil)
+	SSH.ServerKeyExchanges = util.Iif(len(serverKeyExchanges) > 0, serverKeyExchanges, defaultServerKeyExchanges)
 
 	serverMACs := sec.Key("SSH_SERVER_MACS").Strings(",")
-	SSH.ServerMACs = util.Iif(len(serverMACs) > 0, serverMACs, nil)
+	SSH.ServerMACs = util.Iif(len(serverMACs) > 0, serverMACs, defaultServerMACs)
 
 	for i, key := range SSH.ServerHostKeys {
 		if !filepath.IsAbs(key) {
