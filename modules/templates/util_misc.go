@@ -58,6 +58,7 @@ type Actioner interface {
 	GetActUserName(ctx context.Context) string
 	GetRepoUserName(ctx context.Context) string
 	GetRepoName(ctx context.Context) string
+	GetRepoGroup(ctx context.Context) string
 	GetRepoPath(ctx context.Context) string
 	GetRepoLink(ctx context.Context) string
 	GetBranch() string
