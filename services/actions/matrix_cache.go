@@ -6,7 +6,7 @@ package actions
 import (
 	"crypto/sha256"
 	"encoding/hex"
-	"fmt"
+	"errors"
 	"sync"
 
 	lru "github.com/hashicorp/golang-lru/v2"
@@ -50,14 +50,12 @@ func computeCacheKey(workflowYAML []byte, taskNeeds map[string]*TaskNeed) string
 	h.Write(workflowYAML)
 
 	// Add outputs in deterministic order (sorted by job ID)
-	if taskNeeds != nil {
-		for jobID, need := range taskNeeds {
-			h.Write([]byte(jobID))
-			if need.Outputs != nil {
-				for k, v := range need.Outputs {
-					h.Write([]byte(k))
-					h.Write([]byte(v))
-				}
+	for jobID, need := range taskNeeds {
+		h.Write([]byte(jobID))
+		if need.Outputs != nil {
+			for k, v := range need.Outputs {
+				h.Write([]byte(k))
+				h.Write([]byte(v))
 			}
 		}
 	}
@@ -88,7 +86,7 @@ func (c *WorkflowParseCache) Set(key string, value []byte) {
 // Stats returns cache statistics for monitoring
 func (c *WorkflowParseCache) Stats() (size int, err error) {
 	if c == nil || c.cache == nil {
-		return 0, fmt.Errorf("cache not initialized")
+		return 0, errors.New("cache not initialized")
 	}
 	c.mu.RLock()
 	defer c.mu.RUnlock()

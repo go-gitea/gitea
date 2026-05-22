@@ -11,6 +11,7 @@ import (
 
 	"gitea.com/gitea/runner/act/exprparser"
 	"gitea.com/gitea/runner/act/model"
+	"code.gitea.io/gitea/modules/log"
 	"go.yaml.in/yaml/v4"
 )
 
@@ -88,10 +89,13 @@ func Parse(content []byte, options ...ParseOption) ([]*SingleWorkflow, error) {
 		// Create an evaluator with access to needs/outputs for matrix evaluation
 		matrixEvaluator := NewExpressionEvaluator(NewInterpeter(id, &evaluatedJob, nil, pc.gitContext, results, pc.vars, pc.inputs))
 
-		// Evaluate the matrix before expanding it
+		// Evaluate the matrix before expanding it.
+		// If evaluation fails (e.g. expression references unresolved job outputs),
+		// continue with the unevaluated matrix — the job will be created as a
+		// placeholder and re-evaluated by ReEvaluateMatrixForJobWithNeeds later.
 		if evaluatedJob.Strategy != nil && evaluatedJob.Strategy.RawMatrix.Kind != 0 {
 			if err := matrixEvaluator.EvaluateYamlNode(&evaluatedJob.Strategy.RawMatrix); err != nil {
-				return nil, fmt.Errorf("error evaluating matrix for job %s: %w", id, err)
+				log.Debug("matrix evaluation deferred for job %s (unresolved expression): %v", id, err)
 			}
 		}
 

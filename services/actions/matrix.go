@@ -245,8 +245,8 @@ func ReEvaluateMatrixForJobWithNeeds(ctx context.Context, job *actions_model.Act
 			log.Warn("Skipped nil jobDef at index %d for job %d (JobID: %s)", i, job.ID, job.JobID)
 			continue
 		}
-		if id == job.JobID {
-			// Skip the original placeholder — we only want the expanded matrix entries
+		if id != job.JobID {
+			// Skip dependency stubs — we only want matrix-expanded entries for the target job
 			continue
 		}
 		needs := jobDef.Needs()
@@ -266,7 +266,8 @@ func ReEvaluateMatrixForJobWithNeeds(ctx context.Context, job *actions_model.Act
 			JobID:             id,
 			Needs:             needs,
 			RunsOn:            jobDef.RunsOn(),
-			Status:            actions_model.StatusBlocked,
+			// All dependency jobs are already done at this point; start as Waiting.
+			Status: actions_model.StatusWaiting,
 		})
 	}
 
