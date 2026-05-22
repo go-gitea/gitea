@@ -119,6 +119,7 @@ jobs:
         env:
           discovery.type: single-node
           xpack.security.enabled: false
+          ES_JAVA_OPTS: "-Xms512m -Xmx512m" # reduce from ES default of 50%
         ports:
           - "9200:9200"
       meilisearch:
@@ -192,6 +193,7 @@ jobs:
         env:
           discovery.type: single-node
           xpack.security.enabled: false
+          ES_JAVA_OPTS: "-Xms512m -Xmx512m" # reduce from ES default of 50%
         ports:
           - "9200:9200"
       smtpimap:
