@@ -71,8 +71,10 @@ if [ "$CMD" = "install" ]; then
   if [ "$PLAYWRIGHT_MODE" = "local" ]; then
     # on GitHub Actions VMs, playwright's system deps are pre-installed
     if [ -z "${GITHUB_ACTIONS:-}" ]; then
+      # shellcheck disable=SC2086 # flag string
       pnpm exec playwright install --with-deps chromium firefox ${PLAYWRIGHT_FLAGS:-}
     else
+      # shellcheck disable=SC2086 # flag string
       pnpm exec playwright install chromium firefox ${PLAYWRIGHT_FLAGS:-}
     fi
   else
