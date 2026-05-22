@@ -14,14 +14,11 @@ jobs:
   files-changed:
     uses: ./.github/workflows/files-changed.yml
 
-  test-pgsql-shards:
+  test-pgsql-shard-1:
     if: needs.files-changed.outputs.backend == 'true' || needs.files-changed.outputs.actions == 'true'
     needs: files-changed
     runs-on: ubuntu-latest
-    strategy:
-      fail-fast: false
-      matrix:
-        shard: [1, 2]
+    timeout-minutes: 50
     services:
       pgsql:
         image: postgres:14
@@ -46,31 +43,47 @@ jobs:
           - "9000:9000"
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
-      - uses: actions/setup-go@4a3601121dd01d1626a1e23e37211e3254c1c06c # v6.4.0
+      - uses: ./.github/actions/go-setup
+      - uses: ./.github/actions/pgsql-shard
         with:
-          go-version-file: go.mod
-          check-latest: true
-          cache: false
-      - uses: ./.github/actions/go-cache
-      - name: Add hosts to /etc/hosts
-        run: '[ -e "/.dockerenv" ] || [ -e "/run/.containerenv" ] || echo "127.0.0.1 pgsql ldap minio" | sudo tee -a /etc/hosts'
-      - run: make deps-backend
-      - run: make backend
+          shard: 1
+          total-shards: 2
+          run-migration: "true"
+
+  test-pgsql-shard-2:
+    if: needs.files-changed.outputs.backend == 'true' || needs.files-changed.outputs.actions == 'true'
+    needs: files-changed
+    runs-on: ubuntu-latest
+    timeout-minutes: 50
+    services:
+      pgsql:
+        image: postgres:14
         env:
-          TAGS: bindata
-      - name: run migration tests
-        if: matrix.shard == 1
-        run: GITEA_TEST_DATABASE=pgsql make test-migration
-      - name: run tests
-        run: GITEA_TEST_DATABASE=pgsql make test-integration
-        timeout-minutes: 50
+          POSTGRES_DB: test
+          POSTGRES_PASSWORD: postgres
+        ports:
+          - "5432:5432"
+      ldap:
+        image: gitea/test-openldap:latest@sha256:4ac633b01d684e6b2a458cc0c8530c92f9b3702f6e040ce5f365607df34fbda0
+        ports:
+          - "389:389"
+          - "636:636"
+      minio:
+        # as github actions doesn't support "entrypoint", we need to use a non-official image
+        # that has a custom entrypoint set to "minio server /data"
+        image: bitnamilegacy/minio:2025.7.23
         env:
-          # pgsql is chosen to be the unlucky one to run with the slow "race detector", it is about 60% slower.
-          GOTEST_FLAGS: -race -timeout=40m
-          TAGS: bindata gogit
-          TEST_LDAP: 1
-          TEST_SHARD: ${{ matrix.shard }}
-          TEST_TOTAL_SHARDS: ${{ strategy.job-total }}
+          MINIO_ROOT_USER: 123456
+          MINIO_ROOT_PASSWORD: 12345678
+        ports:
+          - "9000:9000"
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+      - uses: ./.github/actions/go-setup
+      - uses: ./.github/actions/pgsql-shard
+        with:
+          shard: 2
+          total-shards: 2
 
   test-sqlite:
     if: needs.files-changed.outputs.backend == 'true' || needs.files-changed.outputs.actions == 'true'
@@ -78,12 +91,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
-      - uses: actions/setup-go@4a3601121dd01d1626a1e23e37211e3254c1c06c # v6.4.0
-        with:
-          go-version-file: go.mod
-          check-latest: true
-          cache: false
-      - uses: ./.github/actions/go-cache
+      - uses: ./.github/actions/go-setup
       - run: make deps-backend
       - run: make backend
         env:
@@ -141,12 +149,7 @@ jobs:
           - 10000:10000
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
-      - uses: actions/setup-go@4a3601121dd01d1626a1e23e37211e3254c1c06c # v6.4.0
-        with:
-          go-version-file: go.mod
-          check-latest: true
-          cache: false
-      - uses: ./.github/actions/go-cache
+      - uses: ./.github/actions/go-setup
       - name: Add hosts to /etc/hosts
         run: '[ -e "/.dockerenv" ] || [ -e "/run/.containerenv" ] || echo "127.0.0.1 minio devstoreaccount1.azurite.local mysql elasticsearch meilisearch smtpimap" | sudo tee -a /etc/hosts'
       - run: make deps-backend
@@ -200,12 +203,7 @@ jobs:
           - "993:993"
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
-      - uses: actions/setup-go@4a3601121dd01d1626a1e23e37211e3254c1c06c # v6.4.0
-        with:
-          go-version-file: go.mod
-          check-latest: true
-          cache: false
-      - uses: ./.github/actions/go-cache
+      - uses: ./.github/actions/go-setup
       - name: Add hosts to /etc/hosts
         run: '[ -e "/.dockerenv" ] || [ -e "/run/.containerenv" ] || echo "127.0.0.1 mysql elasticsearch smtpimap" | sudo tee -a /etc/hosts'
       - run: make deps-backend
@@ -238,12 +236,7 @@ jobs:
           - 10000:10000
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
-      - uses: actions/setup-go@4a3601121dd01d1626a1e23e37211e3254c1c06c # v6.4.0
-        with:
-          go-version-file: go.mod
-          check-latest: true
-          cache: false
-      - uses: ./.github/actions/go-cache
+      - uses: ./.github/actions/go-setup
       - name: Add hosts to /etc/hosts
         run: '[ -e "/.dockerenv" ] || [ -e "/run/.containerenv" ] || echo "127.0.0.1 mssql devstoreaccount1.azurite.local" | sudo tee -a /etc/hosts'
       - run: make deps-backend
