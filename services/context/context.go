@@ -58,9 +58,10 @@ type Context struct {
 
 	ContextUser *user_model.User // the user which is being visited, in most cases it differs from Doer
 
-	Repo    *Repository
-	Org     *Organization
-	Package *Package
+	RepoGroup *RepoGroup
+	Repo      *Repository
+	Org       *Organization
+	Package   *Package
 }
 
 func init() {
