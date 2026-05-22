@@ -77,3 +77,41 @@ func SliceNilAsEmpty[T any](a []T) []T {
 	}
 	return a
 }
+
+func SliceMap[T, R any](slice []T, mapper func(it T) R) []R {
+	ret := make([]R, 0)
+	for _, it := range slice {
+		ret = append(ret, mapper(it))
+	}
+	return ret
+}
+
+func SliceRemove[T any](slice []T, oldIndex int) []T {
+	if len(slice) == 0 {
+		return slice
+	}
+	oldIndex = max(0, min(oldIndex, len(slice)-1))
+	withoutCurrent := slice[0:oldIndex]
+	itemsUpper := slice[min(oldIndex+1, len(slice)-1):]
+	withoutCurrent = append(withoutCurrent, itemsUpper...)
+	return withoutCurrent
+}
+
+func SliceInsert[T any](slice []T, item T, newIndex int) []T {
+	if len(slice) == 0 {
+		return slice
+	}
+	oldLen := len(slice)
+	newIndex = min(newIndex, len(slice))
+	if newIndex < 0 {
+		newIndex = len(slice)
+	}
+	newSlice := make([]T, 0)
+
+	newSlice = append(newSlice, slice[:newIndex]...)
+	newSlice = append(newSlice, item)
+	if newIndex < oldLen {
+		newSlice = append(newSlice, slice[newIndex:]...)
+	}
+	return newSlice
+}
