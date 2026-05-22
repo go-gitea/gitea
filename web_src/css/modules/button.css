@@ -337,6 +337,11 @@
   padding: 0;
 }
 
+.btn:disabled {
+  opacity: var(--opacity-disabled);
+  cursor: default;
+}
+
 .btn:hover,
 .btn:active {
   background: none;
