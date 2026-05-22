@@ -18,6 +18,7 @@ import (
 type RenderCodePreviewOptions struct {
 	FullURL   string
 	OwnerName string
+	GroupID   int64
 	RepoName  string
 	CommitID  string
 	FilePath  string
@@ -34,10 +35,14 @@ func renderCodeBlock(ctx *RenderContext, node *html.Node) (urlPosStart, urlPosSt
 	opts := RenderCodePreviewOptions{
 		FullURL:   node.Data[m[0]:m[1]],
 		OwnerName: node.Data[m[2]:m[3]],
-		RepoName:  node.Data[m[4]:m[5]],
-		CommitID:  node.Data[m[6]:m[7]],
-		FilePath:  node.Data[m[8]:m[9]],
 	}
+	if len(m) >= 12 {
+		opts.GroupID, _ = strconv.ParseInt(node.Data[m[4]:m[5]], 10, 64)
+		opts.RepoName, opts.CommitID, opts.FilePath = node.Data[m[6]:m[7]], node.Data[m[8]:m[9]], node.Data[m[10]:m[11]]
+	} else {
+		opts.RepoName, opts.CommitID, opts.FilePath = node.Data[m[4]:m[5]], node.Data[m[6]:m[7]], node.Data[m[8]:m[9]]
+	}
+
 	if !httplib.IsCurrentGiteaSiteURL(ctx, opts.FullURL) {
 		return 0, 0, "", nil
 	}
