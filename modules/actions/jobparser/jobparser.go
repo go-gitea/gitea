@@ -9,9 +9,10 @@ import (
 	"sort"
 	"strings"
 
+	"code.gitea.io/gitea/modules/log"
+
 	"gitea.com/gitea/runner/act/exprparser"
 	"gitea.com/gitea/runner/act/model"
-	"code.gitea.io/gitea/modules/log"
 	"go.yaml.in/yaml/v4"
 )
 

@@ -8,6 +8,7 @@ import (
 	"errors"
 	"fmt"
 	"maps"
+	"sort"
 	"strings"
 	"time"
 
@@ -348,6 +349,35 @@ func constructWorkflowWithNeeds(job *actions_model.ActionRunJob, taskNeeds map[s
 
 	// Add the actual job we want to expand (with matrix and needs)
 	maps.Copy(newJobs, jobsSection)
+
+	// The WorkflowPayload may contain a normalised/wrapped matrix (e.g.
+	// version: ["${{ fromJson(...) }}"]). Restore the original scalar expression
+	// from RawStrategy so jobparser.Parse() can expand it correctly with job outputs.
+	// Also drop the pre-baked "name" so jobparser regenerates it per matrix combination
+	// (e.g. "build (1)", "build (2)", …) instead of "build (Array)".
+	// Critically, re-add "needs" because EraseNeeds() removed them from WorkflowPayload:
+	// without needs, NewInterpeter builds an empty Needs context and
+	// "needs.generate.outputs.*" expressions can never be evaluated.
+	if targetJobDef, ok := newJobs[job.JobID]; ok {
+		if targetJobMap, ok := targetJobDef.(map[string]any); ok {
+			delete(targetJobMap, "name")
+			// Restore needs from taskNeeds keys so the expression evaluator
+			// can resolve needs.<jobID>.outputs.* references.
+			needsKeys := make([]string, 0, len(taskNeeds))
+			for needJobID := range taskNeeds {
+				needsKeys = append(needsKeys, needJobID)
+			}
+			sort.Strings(needsKeys)
+			targetJobMap["needs"] = needsKeys
+			if job.RawStrategy != "" {
+				var rawStrategyMap map[string]any
+				if err := yaml.Unmarshal([]byte(job.RawStrategy), &rawStrategyMap); err == nil {
+					targetJobMap["strategy"] = rawStrategyMap
+				}
+			}
+			newJobs[job.JobID] = targetJobMap
+		}
+	}
 
 	// Construct the full workflow
 	workflow := map[string]any{
