@@ -212,7 +212,7 @@ async function deleteArtifact(name: string) {
           <div
             class="item job-brief-item"
             :class="{'selected': props.jobId === item.job.id}"
-            :style="{paddingLeft: `${10 + item.depth * 16}px`}"
+            :style="{paddingLeft: `${item.depth * 16}px`}"
             v-for="item in visibleJobListItems"
             :key="item.job.id"
           >
@@ -408,11 +408,16 @@ async function deleteArtifact(name: string) {
 
 .job-brief-toggle,
 .job-brief-toggle-placeholder {
-  width: 18px;
+  width: 14px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
+  margin-right: calc(4px - var(--gap-block));
+}
+
+.action-view-sidebar-list > .item:not(.job-brief-item) {
+  padding-left: 18px;
 }
 
 .job-brief-toggle {
@@ -429,13 +434,13 @@ async function deleteArtifact(name: string) {
 }
 
 .action-view-sidebar-list > .item:hover .job-rerun-button,
-.action-view-sidebar-list > .item:focus-within .job-rerun-button {
+.action-view-sidebar-list > .item:has(a:focus) .job-rerun-button {
   display: inline-flex;
 }
 
 /* only swap out the duration when a re-run button exists to take its place */
 .action-view-sidebar-list > .item:hover .job-rerun-button ~ .job-duration,
-.action-view-sidebar-list > .item:focus-within .job-rerun-button ~ .job-duration {
+.action-view-sidebar-list > .item:has(a:focus) .job-rerun-button ~ .job-duration {
   display: none;
 }
 
