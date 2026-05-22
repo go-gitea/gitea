@@ -555,6 +555,11 @@ overflow-menu {
   position: relative;
 }
 
+/* Hide until JS arranged items, the `:defined` keeps it visible when JS is disabled */
+overflow-menu:defined:not([data-ready]) {
+  visibility: hidden;
+}
+
 overflow-menu .overflow-menu-popup {
   position: absolute;
   top: calc(100% + 8px);

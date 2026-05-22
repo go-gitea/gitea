@@ -14,6 +14,12 @@
   width: initial;
 }
 
+/* Stable badge width so a differently-sized count doesn't reflow the row. */
+overflow-menu.repos-filter .overflow-menu-items .ui.label {
+  min-width: 1.5rem;
+  font-variant-numeric: tabular-nums;
+}
+
 .dashboard.feeds .filter.menu .item,
 .dashboard.issues .filter.menu .item {
   text-align: left;
