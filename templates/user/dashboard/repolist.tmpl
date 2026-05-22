@@ -47,6 +47,9 @@ const data = {
 {{if .Team}}
 data.teamId = {{.Team.ID}};
 {{end}}
+{{if .Group}}
+data.groupId = {{.Group.ID}}
+{{end}}
 
 {{if not .ContextUser.IsOrganization}}
 data.organizations = [{{range .Orgs}}{'name': {{.Name}}, 'full_name': {{.FullName}}, 'num_repos': {{.NumRepos}}, 'org_visibility': {{.Visibility}}},{{end}}];
@@ -55,6 +58,7 @@ data.organizationsTotalCount = {{.UserOrgsCount}};
 data.canCreateOrganization = {{.SignedUser.CanCreateOrganization}};
 {{else}}
 data.organizationId = {{.ContextUser.ID}};
+data.organizationName = {{.ContextUser.LowerName}}
 {{end}}
 
 window.config.pageData.dashboardRepoList = data;
