@@ -84,6 +84,7 @@ jobs:
 
             actions:
               - ".github/workflows/*"
+              - ".github/actions/**"
               - "Makefile"
 
             templates:
