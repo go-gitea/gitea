@@ -555,7 +555,7 @@ overflow-menu {
   position: relative;
 }
 
-/* Hide until JS arranged items, the `:defined` keeps it visible when JS is disabled */
+/* Hide until JS has arranged the items, `:defined` keeps it visible when JS is disabled */
 overflow-menu:defined:not([data-ready]) {
   visibility: hidden;
 }
