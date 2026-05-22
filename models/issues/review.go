@@ -484,7 +484,7 @@ func SubmitReview(ctx context.Context, doer *user_model.User, issue *Issue, revi
 			return nil, nil, err
 		}
 
-		// make sure the stale review request is cleared, consistent with CreateReview
+		// make sure the leftover review request is cleared, consistent with CreateReview
 		if reviewType != ReviewTypePending {
 			if _, err := sess.Where(builder.Eq{"reviewer_id": doer.ID, "issue_id": issue.ID, "type": ReviewTypeRequest}).
 				Delete(new(Review)); err != nil {
