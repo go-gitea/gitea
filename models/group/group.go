@@ -5,6 +5,7 @@ package group
 
 import (
 	"context"
+	"fmt"
 	"net/url"
 	"slices"
 	"strconv"
@@ -137,4 +138,19 @@ func (g *Group) LoadOwner(ctx context.Context) error {
 
 func (g *Group) ShortName(length int) string {
 	return util.EllipsisDisplayString(g.Name, length)
+}
+
+// Depth retrieves the depth/nesting level of this group
+func (g *Group) Depth(ctx context.Context) (d int) {
+	pgids, err := GetParentGroupIDChain(ctx, g.ID)
+	if err != nil {
+		return 0
+	}
+	return len(pgids) - 1
+}
+
+// DisplayLeftMargin generates a value for the left margin
+// displayed on the frontend beside this group
+func (g *Group) DisplayLeftMargin(ctx context.Context) string {
+	return fmt.Sprintf("%drem", g.Depth(ctx)+1)
 }
