@@ -42,6 +42,7 @@ import (
 type requestContext struct {
 	User          string
 	Repo          string
+	GroupID       int64
 	Authorization string
 	RepoGitURL    string
 }
@@ -423,11 +424,14 @@ func decodeJSON(req *http.Request, v any) error {
 func getRequestContext(ctx *context.Context) *requestContext {
 	ownerName := ctx.PathParam("username")
 	repoName := strings.TrimSuffix(ctx.PathParam("reponame"), ".git")
+	gid := ctx.PathParamInt64("group_id")
+	groupSegment := util.Iif(gid != 0, fmt.Sprintf("group/%d/", gid), "")
 	return &requestContext{
 		User:          ownerName,
 		Repo:          repoName,
+		GroupID:       gid,
 		Authorization: ctx.Req.Header.Get("Authorization"),
-		RepoGitURL:    httplib.GuessCurrentAppURL(ctx) + url.PathEscape(ownerName) + "/" + url.PathEscape(repoName+".git"),
+		RepoGitURL:    httplib.GuessCurrentAppURL(ctx) + url.PathEscape(ownerName) + "/" + groupSegment + url.PathEscape(repoName+".git"),
 	}
 }
 
