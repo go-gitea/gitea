@@ -139,7 +139,7 @@ func createOrgWithGroups(t *testing.T) *commonGroupTestData {
 	return val
 }
 
-func getGroup(t *testing.T, actor string, gid int64, expectedStatus int) *api.Group {
+func getGroup(t *testing.T, actor string, gid int64, expectedStatus int) *api.Group { //nolint:unused // might need this later
 	token := getUserToken(t, actor, auth_model.AccessTokenScopeWriteOrganization)
 	req := NewRequestf(t, "GET", "/api/v1/groups/%d", gid).AddTokenAuth(token)
 	res := MakeRequest(t, req, expectedStatus)
@@ -189,7 +189,7 @@ func createGroup(t *testing.T, actor, orgName string, parentGroupID int64, optio
 	return nil
 }
 
-func editGroup(t *testing.T, actor string, groupID int64, options *api.EditGroupOption, expectedStatus int) *api.Group {
+func editGroup(t *testing.T, actor string, groupID int64, options *api.EditGroupOption, expectedStatus int) *api.Group { //nolint:unused // might need this later
 	token := getUserToken(t, actor, auth_model.AccessTokenScopeWriteOrganization)
 	req := NewRequestWithJSON(t, "PATCH", "/api/v1/groups/"+strconv.FormatInt(groupID, 10), options).AddTokenAuth(token)
 	resp := MakeRequest(t, req, expectedStatus)
