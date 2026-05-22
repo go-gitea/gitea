@@ -128,10 +128,11 @@ func NewWebContext(base *Base, render Render, session session.Store) *Context {
 		Render:  render,
 		Session: session,
 
-		Cache: cache.GetCache(),
-		Link:  setting.AppSubURL + strings.TrimSuffix(base.Req.URL.EscapedPath(), "/"),
-		Repo:  &Repository{},
-		Org:   &Organization{},
+		Cache:     cache.GetCache(),
+		Link:      setting.AppSubURL + strings.TrimSuffix(base.Req.URL.EscapedPath(), "/"),
+		Repo:      &Repository{},
+		Org:       &Organization{},
+		RepoGroup: &RepoGroup{},
 	}
 	ctx.TemplateContext = NewTemplateContextForWeb(ctx, ctx.Base.Req, ctx.Base.Locale)
 	ctx.Flash = &middleware.Flash{DataStore: ctx, Values: url.Values{}}
