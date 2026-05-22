@@ -1,8 +1,6 @@
 #!/usr/bin/env node
 import {argv, env, exit} from 'node:process';
 
-// Shared PR-title parsing and label mapping (Conventional Commits).
-
 const allowedTypes = [
   'build',
   'chore',
