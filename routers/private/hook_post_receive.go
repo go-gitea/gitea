@@ -46,6 +46,7 @@ func hookPostReceiveCollectPushUpdates(opts *private.HookOptions, repo *repo_mod
 				NewCommitID:  opts.NewCommitIDs[i],
 				PusherID:     opts.UserID,
 				PusherName:   opts.UserName,
+				RepoGroupID:  repo.GroupID,
 				RepoUserName: repo.OwnerName,
 				RepoName:     repo.Name,
 			}
@@ -107,7 +108,8 @@ func HookPostReceive(ctx *gitea_context.PrivateContext) {
 
 	ownerName := ctx.PathParam("owner")
 	repoName := ctx.PathParam("repo")
-	repo := loadRepository(ctx, ownerName, repoName)
+	groupID := ctx.PathParamInt64("group_id")
+	repo := loadRepository(ctx, ownerName, repoName, groupID)
 	if ctx.Written() {
 		return
 	}
