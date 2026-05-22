@@ -63,7 +63,7 @@ func TestForkRepositoryCleanup(t *testing.T) {
 	assert.NoError(t, err)
 	assert.NotNil(t, fork)
 
-	exist, err := util.IsExist(repo_model.RepoPath(user2.Name, "test"))
+	exist, err := util.IsExist(repo_model.RepoPath(user2.Name, "test", 0))
 	assert.NoError(t, err)
 	assert.True(t, exist)
 
@@ -72,7 +72,7 @@ func TestForkRepositoryCleanup(t *testing.T) {
 
 	// a failed creating because some mock data
 	// create the repository directory so that the creation will fail after database record created.
-	assert.NoError(t, os.MkdirAll(repo_model.RepoPath(user2.Name, "test"), os.ModePerm))
+	assert.NoError(t, os.MkdirAll(repo_model.RepoPath(user2.Name, "test", 0), os.ModePerm))
 
 	fork2, err := ForkRepository(t.Context(), user2, user2, ForkRepoOptions{
 		BaseRepo: repo10,
@@ -84,7 +84,7 @@ func TestForkRepositoryCleanup(t *testing.T) {
 	// assert the cleanup is successful
 	unittest.AssertNotExistsBean(t, &repo_model.Repository{OwnerName: user2.Name, Name: "test"})
 
-	exist, err = util.IsExist(repo_model.RepoPath(user2.Name, "test"))
+	exist, err = util.IsExist(repo_model.RepoPath(user2.Name, "test", 0))
 	assert.NoError(t, err)
 	assert.False(t, exist)
 }
