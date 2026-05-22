@@ -105,7 +105,7 @@ func httpBase(ctx *context.Context, optGitService ...string) *serviceHandler {
 	}
 
 	repoExist := true
-	repo, err := repo_model.GetRepositoryByName(ctx, owner.ID, repoName)
+	repo, err := repo_model.GetRepositoryByName(ctx, owner.ID, ctx.PathParamInt64("group_id"), repoName)
 	if err != nil {
 		if !repo_model.IsErrRepoNotExist(err) {
 			ctx.ServerError("GetRepositoryByName", err)

@@ -454,7 +454,7 @@ func getAuthenticatedMeta(ctx *context.Context, rc *requestContext, p lfs_module
 }
 
 func getAuthenticatedRepository(ctx *context.Context, rc *requestContext, requireWrite bool) *repo_model.Repository {
-	repository, err := repo_model.GetRepositoryByOwnerAndName(ctx, rc.User, rc.Repo)
+	repository, err := repo_model.GetRepositoryByOwnerAndName(ctx, rc.User, rc.Repo, rc.GroupID)
 	if err != nil {
 		log.Error("Unable to get repository: %s/%s Error: %v", rc.User, rc.Repo, err)
 		writeStatus(ctx, http.StatusNotFound)
