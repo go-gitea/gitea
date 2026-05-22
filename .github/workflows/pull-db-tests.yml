@@ -85,7 +85,6 @@ jobs:
           shard: 2
           total-shards: 2
 
-  # sqlite doubles as the smoke test when CI workflows or actions change
   test-sqlite:
     if: needs.files-changed.outputs.backend == 'true' || needs.files-changed.outputs.actions == 'true'
     needs: files-changed
