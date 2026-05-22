@@ -203,8 +203,17 @@ func runServ(ctx context.Context, c *cli.Command) error {
 
 	repoPath := strings.TrimPrefix(sshCmdArgs[1], "/")
 	repoPathFields := strings.SplitN(repoPath, "/", 2)
+	rawGroup, _, _ := strings.Cut(repoPathFields[1], "/")
+	var groupID int64
 	if len(repoPathFields) != 2 {
-		return fail(ctx, "Invalid repository path", "Invalid repository path: %v", repoPath)
+		if len(repoPathFields) == 3 {
+			groupID, err = strconv.ParseInt(rawGroup, 10, 64)
+			if err != nil {
+				return fail(ctx, "Invalid repository path", "Invalid repository path: %v", repoPath)
+			}
+		} else {
+			return fail(ctx, "Invalid repository path", "Invalid repository path: %v", repoPath)
+		}
 	}
 
 	username := repoPathFields[0]
@@ -254,16 +263,16 @@ func runServ(ctx context.Context, c *cli.Command) error {
 		return fail(ctx, "Unknown git command", "Unknown git command %s %s", verb, lfsVerb)
 	}
 
-	results, extra := private.ServCommand(ctx, keyID, username, reponame, requestedMode, verb, lfsVerb)
+	results, extra := private.ServCommand(ctx, keyID, username, reponame, groupID, requestedMode, verb, lfsVerb)
 	if extra.HasError() {
 		return fail(ctx, extra.UserMsg, "ServCommand failed: %s", extra.Error)
 	}
 
 	// because the original repoPath maybe redirected, we need to use the returned actual repository information
 	if results.IsWiki {
-		repoPath = repo_model.RelativeWikiPath(results.OwnerName, results.RepoName)
+		repoPath = repo_model.RelativeWikiPath(results.OwnerName, results.RepoName, groupID)
 	} else {
-		repoPath = repo_model.RelativePath(results.OwnerName, results.RepoName)
+		repoPath = repo_model.RelativePath(results.OwnerName, results.RepoName, groupID)
 	}
 
 	// LFS SSH protocol
@@ -327,6 +336,7 @@ func runServ(ctx context.Context, c *cli.Command) error {
 		repo_module.EnvRepoUsername+"="+results.OwnerName,
 		repo_module.EnvPusherName+"="+results.UserName,
 		repo_module.EnvPusherEmail+"="+results.UserEmail,
+		repo_module.EnvRepoGroupID+"="+strconv.FormatInt(groupID, 10),
 		repo_module.EnvPusherID+"="+strconv.FormatInt(results.UserID, 10),
 		repo_module.EnvRepoID+"="+strconv.FormatInt(results.RepoID, 10),
 		repo_module.EnvPRID+"="+strconv.Itoa(0),
