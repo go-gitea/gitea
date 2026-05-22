@@ -25,7 +25,21 @@ test.describe('jupyter notebook rendering', () => {
       metadata: {}, nbformat: 4, nbformat_minor: 5,
     });
 
+    // Notebook with markdown image reference
+    const notebookWithImage = JSON.stringify({
+      cells: [
+        {cell_type: 'markdown', source: '![test image](test-image.png)'},
+      ],
+      metadata: {}, nbformat: 4, nbformat_minor: 5,
+    });
+
+    // Create a 1x1 red PNG image (decode base64 to binary string for btoa)
+    const redPixelPngBase64 = 'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8DwHwAFBQIAX8jx0gAAAABJRU5ErkJggg==';
+    const redPixelPng = atob(redPixelPngBase64);
+
     await apiCreateFile(request, owner, repoName, 'test.ipynb', notebook);
+    await apiCreateFile(request, owner, repoName, 'image-test.ipynb', notebookWithImage);
+    await apiCreateFile(request, owner, repoName, 'test-image.png', redPixelPng);
   });
 
   test('renders markdown cells', async ({page}) => {
@@ -58,5 +72,23 @@ test.describe('jupyter notebook rendering', () => {
     await page.goto(`/${owner}/${repoName}/src/branch/main/test.ipynb`);
     await assertNoJsError(page);
     await expect(page.frameLocator('iframe.external-render-iframe').locator('.error-output')).toBeVisible();
+  });
+
+  test('renders markdown images with correct URLs', async ({page}) => {
+    await login(page);
+    await page.goto(`/${owner}/${repoName}/src/branch/main/image-test.ipynb`);
+    await assertNoJsError(page);
+    const frame = page.frameLocator('iframe.external-render-iframe');
+
+    // Wait for the markdown cell to be rendered
+    await expect(frame.locator('.cell.markdown')).toBeVisible();
+
+    // Check if image exists
+    const img = frame.locator('.cell.markdown img');
+    await expect(img).toBeVisible({timeout: 10000});
+
+    // Verify the image src is transformed to raw GitHub URL format
+    const src = await img.getAttribute('src');
+    expect(src).toContain('test-image.png');
   });
 });

@@ -5,11 +5,13 @@ package context
 
 import (
 	"context"
+	"fmt"
 	"html"
 	"html/template"
 	"net/http"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 
 	"code.gitea.io/gitea/modules/httplib"
@@ -86,17 +88,34 @@ func (c TemplateContext) AppFullLink(link ...string) template.URL {
 	if len(link) == 0 {
 		return template.URL(s)
 	}
-	return template.URL(s + "/" + strings.TrimPrefix(link[0], "/"))
+	return template.URL(s + strings.TrimPrefix(link[0], "/"))
 }
+
+var globalVars = sync.OnceValue(func() (ret struct {
+	scriptImportRemainingPart string
+},
+) {
+	// add onerror handler to alert users when the script fails to load:
+	// * for end users: there were many users reporting that "UI doesn't work", actually they made mistakes in their config
+	// * for developers: help them to remember to run "make watch-frontend" to build frontend assets
+	// the message will be directly put in the onerror JS code's string
+	onScriptErrorPrompt := `Please make sure the asset files can be accessed.`
+	if !setting.IsProd {
+		onScriptErrorPrompt += `\n\nFor development, run: make watch-frontend.`
+	}
+	onScriptErrorJS := fmt.Sprintf(`alert('Failed to load asset file from ' + this.src + '. %s')`, onScriptErrorPrompt)
+	ret.scriptImportRemainingPart = `onerror="` + html.EscapeString(onScriptErrorJS) + `"></script>`
+	return ret
+})
 
 func (c TemplateContext) ScriptImport(path string, typ ...string) template.HTML {
 	if len(typ) > 0 {
 		if typ[0] == "module" {
-			return template.HTML(`<script nonce="` + c.CspScriptNonce() + `" type="module" src="` + html.EscapeString(public.AssetURI(path)) + `"></script>`)
+			return template.HTML(`<script nonce="` + c.CspScriptNonce() + `" type="module" src="` + html.EscapeString(public.AssetURI(path)) + `" ` + globalVars().scriptImportRemainingPart)
 		}
 		panic("unsupported script type: " + typ[0])
 	}
-	return template.HTML(`<script nonce="` + c.CspScriptNonce() + `" src="` + html.EscapeString(public.AssetURI(path)) + `"></script>`)
+	return template.HTML(`<script nonce="` + c.CspScriptNonce() + `" src="` + html.EscapeString(public.AssetURI(path)) + `" ` + globalVars().scriptImportRemainingPart)
 }
 
 func (c TemplateContext) CspScriptNonce() (ret string) {
@@ -129,11 +148,13 @@ func (c TemplateContext) HeadMetaContentSecurityPolicy() template.HTML {
 	//    * Maybe this approach should be avoided, don't make the config system too complex, just let users use A
 	return template.HTML(`<meta http-equiv="Content-Security-Policy" content="` +
 		// allow all by default (the same as old releases with no CSP)
-		// maybe some images or markup (external) renders need "data:", need to investigate
+		// "data:" is used to load the manifest in head (maybe also need to be refactored in the future)
+		// maybe some images are also loaded by "data:", need to investigate
 		`default-src * data:;` +
 
 		// enforce nonce for all scripts, disallow inline scripts
-		`script-src * 'nonce-` + c.CspScriptNonce() + `';` +
+		// 'wasm-unsafe-eval' is needed for WebAssembly (e.g., Shiki syntax highlighter in Jupyter notebooks)
+		`script-src * 'nonce-` + c.CspScriptNonce() + `' 'wasm-unsafe-eval';` +
 
 		// it seems that Vue needs the unsafe-inline, and our custom colors (e.g.: label) also need it
 		`style-src * 'unsafe-inline';` +

@@ -1,5 +1,6 @@
 import type {FrontendRenderFunc} from '../plugin.ts';
 import {marked} from 'marked';
+import {codeToHtml} from 'shiki';
 import '../../../css/features/jupyter.css';
 
 // Helper to create elements with properties
@@ -14,21 +15,89 @@ function createElement<K extends keyof HTMLElementTagNameMap>(
   return el;
 }
 
-// Render markdown using marked library
-function renderMarkdown(markdown: string): HTMLElement {
-  const container = document.createElement('div');
-  container.className = 'markup';
-  container.innerHTML = marked.parse(markdown) as string;
-  return container;
+// Render markdown using marked library with image URL resolution
+function renderMarkdown(markdown: string, treePath: string, mediaPrefix: string): HTMLElement {
+  const markupContainer = document.createElement('div');
+  markupContainer.className = 'markup';
+
+  // Parse markdown first
+  const html = marked.parse(markdown) as string;
+  markupContainer.innerHTML = html;
+
+  // Post-process images to fix relative URLs
+  for (const img of markupContainer.querySelectorAll('img')) {
+    const src = img.getAttribute('src');
+    if (src && !src.startsWith('http://') && !src.startsWith('https://') && !src.startsWith('data:') && !src.startsWith('/')) {
+      // Construct image path relative to notebook location
+      const notebookDir = treePath.substring(0, treePath.lastIndexOf('/'));
+      const imagePath = notebookDir ? `${notebookDir}/${src}` : src;
+
+      // Use media prefix from backend to construct full URL
+      img.src = `${mediaPrefix}/${imagePath}`;
+    }
+  }
+
+  return markupContainer;
+}
+
+// Highlight code using Shiki with theme detection
+async function highlightCode(code: string, language: string): Promise<string> {
+  try {
+    // Detect if dark mode is active using Gitea's theme attribute
+    const isDark = document.documentElement.getAttribute('data-gitea-theme-dark') === 'true';
+
+    return await codeToHtml(code, {
+      lang: language,
+      theme: isDark ? 'github-dark' : 'github-light',
+      transformers: [
+        {
+          pre(node) {
+            // Remove inline background style to use Gitea's CSS
+            if (node.properties.style && typeof node.properties.style === 'string') {
+              // Remove background-color but keep color
+              node.properties.style = (node.properties.style)
+                .replace(/background-color:[^;]+;?/g, '');
+            }
+          },
+        },
+      ],
+    });
+  } catch (error) {
+    console.warn('Shiki highlighting failed:', error);
+    // Fallback to plain code
+    const pre = document.createElement('pre');
+    const codeEl = document.createElement('code');
+    codeEl.className = `chroma language-${language}`;
+    codeEl.textContent = code;
+    pre.append(codeEl);
+    return pre.outerHTML;
+  }
 }
 
 export const frontendRender: FrontendRenderFunc = async (opts) => {
   try {
     const notebook = JSON.parse(opts.contentString());
 
+    // Only support nbformat 4+
+    if (notebook.nbformat && notebook.nbformat < 4) {
+      const messageDiv = document.createElement('div');
+      messageDiv.style.padding = '16px';
+      messageDiv.style.color = 'var(--color-text-light-2)';
+      messageDiv.style.border = '1px solid var(--color-secondary)';
+      messageDiv.style.borderRadius = '4px';
+      messageDiv.style.backgroundColor = 'var(--color-secondary-alpha-10)';
+      messageDiv.textContent = `This notebook uses an older format (nbformat ${notebook.nbformat}). Only nbformat 4+ is supported for rendering. Please upgrade the notebook in Jupyter or view the raw JSON below.`;
+      opts.container.append(messageDiv);
+      return false;
+    }
+
     if (!notebook.cells || !Array.isArray(notebook.cells)) {
       throw new Error('Invalid notebook format: missing or invalid cells array');
     }
+
+    // Get media prefix from container data attribute
+    const viewerContainer = document.querySelector<HTMLElement>('#frontend-render-viewer');
+    const mediaPrefix = viewerContainer?.getAttribute('data-media-prefix') || '';
 
     // Detect language from notebook metadata
     const language = notebook.metadata?.language_info?.name ||
@@ -47,7 +116,7 @@ export const frontendRender: FrontendRenderFunc = async (opts) => {
       if (cell.cell_type === 'markdown') {
         const inputDiv = createElement('div', {className: 'input markup'});
         const source = Array.isArray(cell.source) ? cell.source.join('') : (cell.source || '');
-        inputDiv.append(renderMarkdown(source));
+        inputDiv.append(renderMarkdown(source, opts.treePath, mediaPrefix));
         cellDiv.append(inputDiv);
       } else if (cell.cell_type === 'code') {
         const inputWrapper = createElement('div', {className: 'input-wrapper'});
@@ -60,12 +129,12 @@ export const frontendRender: FrontendRenderFunc = async (opts) => {
 
         const inputDiv = createElement('div', {className: 'input'});
 
-        const pre = document.createElement('pre');
-        const code = createElement('code', {className: `language-${language}`});
         const source = Array.isArray(cell.source) ? cell.source.join('') : (cell.source || '');
-        code.textContent = source;
-        pre.append(code);
-        inputDiv.append(pre);
+
+        // Highlight code with Shiki
+        const highlightedHtml = await highlightCode(source, language);
+        inputDiv.innerHTML = highlightedHtml;
+
         inputWrapper.append(inputDiv);
         cellDiv.append(inputWrapper);
 

@@ -186,7 +186,16 @@
   margin: 10px 0;
 }
 
-.jupyter-notebook .cell.code .output table img {
-  margin: 0;
-  width: auto;
+.jupyter-notebook .input pre.shiki {
+  background: transparent;
+  --shiki-color-text: var(--color-text);
+  --shiki-token-constant: var(--color-syntax-number);
+  --shiki-token-string: var(--color-syntax-string);
+  --shiki-token-comment: var(--color-syntax-comment);
+  --shiki-token-keyword: var(--color-syntax-keyword);
+  --shiki-token-parameter: var(--color-syntax-variable);
+  --shiki-token-function: var(--color-syntax-entity);
+  --shiki-token-string-expression: var(--color-syntax-string);
+  --shiki-token-punctuation: var(--color-text);
+  --shiki-token-link: var(--color-syntax-link);
 }

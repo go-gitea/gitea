@@ -54,7 +54,7 @@ func (p *frontendRenderer) SanitizerRules() []setting.MarkupSanitizerRule {
 func (p *frontendRenderer) GetExternalRendererOptions() (ret markup.ExternalRendererOptions) {
 	ret.SanitizerDisabled = true
 	ret.DisplayInIframe = true
-	ret.ContentSandbox = "allow-scripts allow-forms allow-modals allow-popups allow-downloads"
+	ret.ContentSandbox = "allow-scripts allow-same-origin allow-forms allow-modals allow-popups allow-downloads"
 	return ret
 }
 
@@ -83,12 +83,13 @@ func (p *frontendRenderer) Render(ctx *markup.RenderContext, input io.Reader, ou
 	<meta name="viewport" content="width=device-width, initial-scale=1">
 </head>
 <body>
-	<div id="frontend-render-viewer" data-frontend-renders="%s" data-file-tree-path="%s"></div>
+	<div id="frontend-render-viewer" data-frontend-renders="%s" data-file-tree-path="%s" data-media-prefix="%s"></div>
 	<textarea id="frontend-render-data" data-content-encoding="%s" hidden>%s</textarea>
 	<script nonce type="module" src="%s"></script>
 </body>
 </html>`,
 		p.name, ctx.RenderOptions.RelativePath,
+		ctx.RenderHelper.ResolveLink("", markup.LinkTypeMedia),
 		contentEncoding, contentString,
 		public.AssetURI("js/external-render-frontend.js"))
 	return err
