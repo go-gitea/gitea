@@ -310,6 +310,7 @@ func TestSubmitReviewClearsStaleReviewRequest(t *testing.T) {
 	assert.NoError(t, issue.LoadRepo(t.Context()))
 	assert.NoError(t, issue.Repo.LoadOwner(t.Context()))
 	reviewer := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 1})
+	doer := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
 
 	// the reviewer is requested to review the pull request
 	requestReview, err := issues_model.CreateReview(t.Context(), issues_model.CreateReviewOptions{
@@ -335,6 +336,11 @@ func TestSubmitReviewClearsStaleReviewRequest(t *testing.T) {
 	assert.Equal(t, issues_model.ReviewTypeComment, review.Type)
 
 	unittest.AssertNotExistsBean(t, &issues_model.Review{ID: requestReview.ID})
+
+	// the reviewer can be re-requested afterwards (no-op before the fix)
+	comment, err := issues_model.AddReviewRequest(t.Context(), issue, reviewer, doer, false)
+	assert.NoError(t, err)
+	assert.NotNil(t, comment)
 }
 
 func TestAddReviewRequest(t *testing.T) {
