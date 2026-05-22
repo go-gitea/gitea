@@ -9,9 +9,7 @@ import (
 
 	"code.gitea.io/gitea/models/db"
 	group_model "code.gitea.io/gitea/models/group"
-	"code.gitea.io/gitea/models/perm"
 	repo_model "code.gitea.io/gitea/models/repo"
-	"code.gitea.io/gitea/models/unit"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/log"
 
@@ -111,7 +109,7 @@ func GetTopLevelGroupItemList(ctx context.Context, orgID int64, doer *user_model
 	if doer != nil {
 		doerID = doer.ID
 	}
-	groupCond := group_model.AccessibleGroupCondition(doer, unit.TypeInvalid, perm.AccessModeRead, false)
+	groupCond := group_model.AccessibleGroupCondition(doer)
 	if requireMember {
 		groupCond = groupCond.And(group_model.MemberCond("repo_group.id", 0, doer))
 	}
