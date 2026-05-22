@@ -20,7 +20,7 @@ const allowedTypes = [
 type CommitType = typeof allowedTypes[number];
 
 const allowedTypesList = allowedTypes.join(', ');
-const titlePattern = new RegExp(`^(${allowedTypes.join('|')})(\\([\\w.-]+\\))?(!)?: .+$`);
+const titlePattern = new RegExp(`^(${allowedTypes.join('|')})(\\([\\w/.-]+\\))?(!)?: .+$`);
 
 function parsePrTitle(title: string): {type: CommitType; breaking: boolean} | null {
   const match = titlePattern.exec(title);
