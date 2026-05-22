@@ -64,12 +64,12 @@ func (repo *Repository) getTag(tagID ObjectID, name string) (*Tag, error) {
 			return nil, err
 		}
 		tag := &Tag{
-			Name:    name,
-			ID:      tagID,
-			Object:  commitID,
-			Type:    tp,
-			Tagger:  commit.Committer,
-			Message: commit.Message(),
+			Name:          name,
+			ID:            tagID,
+			Object:        commitID,
+			Type:          tp,
+			Tagger:        commit.Committer,
+			CommitMessage: CommitMessage{MessageRaw: commit.CommitMessage.MessageRaw},
 		}
 
 		repo.tagCache.Set(tagID.String(), tag)
@@ -86,12 +86,12 @@ func (repo *Repository) getTag(tagID ObjectID, name string) (*Tag, error) {
 	}
 
 	tag := &Tag{
-		Name:    name,
-		ID:      tagID,
-		Object:  commitID.Type().MustID(gogitTag.Target[:]),
-		Type:    tp,
-		Tagger:  &gogitTag.Tagger,
-		Message: gogitTag.Message,
+		Name:          name,
+		ID:            tagID,
+		Object:        commitID.Type().MustID(gogitTag.Target[:]),
+		Type:          tp,
+		Tagger:        &gogitTag.Tagger,
+		CommitMessage: CommitMessage{MessageRaw: gogitTag.Message},
 	}
 
 	repo.tagCache.Set(tagID.String(), tag)

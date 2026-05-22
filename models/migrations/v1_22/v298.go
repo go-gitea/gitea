@@ -3,8 +3,8 @@
 
 package v1_22
 
-import "xorm.io/xorm"
+import "code.gitea.io/gitea/models/db"
 
-func DropWronglyCreatedTable(x *xorm.Engine) error {
+func DropWronglyCreatedTable(x db.EngineMigration) error {
 	return x.DropTables("o_auth2_application")
 }

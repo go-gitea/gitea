@@ -52,7 +52,7 @@ func (m *Manager) GetRedisClient(connection string) (client redis.UniversalClien
 		defer func() {
 			recovered = recover()
 			if recovered != nil {
-				log.Critical("PANIC during GetRedisClient: %v\nStacktrace: %s", recovered, log.Stack(2))
+				log.Error("PANIC during GetRedisClient: %v\nStacktrace: %s", recovered, log.Stack(2))
 			}
 			close(done)
 		}()

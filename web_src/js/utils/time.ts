@@ -65,18 +65,25 @@ export function fillEmptyStartDaysWithZeroes(startDays: number[], data: DayDataO
 
 let dateFormat: Intl.DateTimeFormat;
 
-/** Format a Date object to document's locale, but with 24h format from user's current locale because this
- *  option is a personal preference of the user, not something that the document's locale should dictate. */
+// ISO 8601 UTC with 7-digit fractional seconds, matching Go's `2006-01-02T15:04:05.0000000Z07:00`
+export function formatDatetimeISO(unixSeconds: number): string {
+  const base = new Date(unixSeconds * 1000).toISOString().slice(0, 19);
+  const frac = unixSeconds - Math.floor(unixSeconds);
+  const fracInt = Math.floor(frac * 10_000_000);
+  return `${base}.${String(fracInt).padStart(7, '0')}Z`;
+}
+
+/** Format a Date to a localized format, for example "21 May 2026, 14:30:45". */
 export function formatDatetime(date: Date | number): string {
   if (!dateFormat) {
-    // TODO: replace `hour12` with `Intl.Locale.prototype.getHourCycles` once there is broad browser support
     dateFormat = new Intl.DateTimeFormat(getCurrentLocale(), {
-      day: 'numeric',
+      day: '2-digit',
       month: 'short',
       year: 'numeric',
-      hour: 'numeric',
-      hour12: !Number.isInteger(Number(new Intl.DateTimeFormat([], {hour: 'numeric'}).format())),
+      hour: '2-digit',
+      hourCycle: new Intl.DateTimeFormat([], {hour: 'numeric'}).resolvedOptions().hourCycle === 'h12' ? 'h12' : 'h23',
       minute: '2-digit',
+      second: '2-digit',
     });
   }
   return dateFormat.format(date);

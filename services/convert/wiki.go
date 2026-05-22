@@ -28,7 +28,7 @@ func ToWikiCommit(commit *git.Commit) *api.WikiCommit {
 			},
 			Date: commit.Committer.When.UTC().Format(time.RFC3339),
 		},
-		Message: commit.CommitMessage,
+		Message: commit.MessageUTF8(),
 	}
 }
 

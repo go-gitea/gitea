@@ -6,31 +6,39 @@ package globallock
 import (
 	"context"
 	"sync"
+	"sync/atomic"
 
 	"code.gitea.io/gitea/modules/setting"
 )
 
 var (
-	defaultLocker Locker
-	initOnce      sync.Once
-	initFunc      = func() {
-		switch setting.GlobalLock.ServiceType {
-		case "redis":
-			defaultLocker = NewRedisLocker(setting.GlobalLock.ServiceConnStr)
-		case "memory":
-			fallthrough
-		default:
-			defaultLocker = NewMemoryLocker()
-		}
-	} // define initFunc as a variable to make it possible to change it in tests
+	defaultLocker atomic.Pointer[Locker]
+	defaultMutex  sync.Mutex
 )
+
+func initDefaultLocker() Locker {
+	switch setting.GlobalLock.ServiceType {
+	case "redis":
+		return NewRedisLocker(setting.GlobalLock.ServiceConnStr)
+	default: // "memory"
+		return NewMemoryLocker()
+	}
+}
 
 // DefaultLocker returns the default locker.
 func DefaultLocker() Locker {
-	initOnce.Do(func() {
-		initFunc()
-	})
-	return defaultLocker
+	ptr := defaultLocker.Load()
+	if ptr == nil {
+		defaultMutex.Lock()
+		ptr = defaultLocker.Load()
+		if ptr == nil {
+			ptr = new(initDefaultLocker())
+			defaultLocker.Store(ptr)
+		}
+		defaultMutex.Unlock()
+		ptr = defaultLocker.Load()
+	}
+	return *ptr
 }
 
 // Lock tries to acquire a lock for the given key, it uses the default locker.

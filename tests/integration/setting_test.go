@@ -16,9 +16,7 @@ import (
 
 func TestSettingShowUserEmailExplore(t *testing.T) {
 	defer tests.PrepareTestEnv(t)()
-
-	showUserEmail := setting.UI.ShowUserEmail
-	setting.UI.ShowUserEmail = true
+	defer test.MockVariableValue(&setting.UI.ShowUserEmail, true)()
 
 	session := loginUser(t, "user2")
 	req := NewRequest(t, "GET", "/explore/users?sort=alphabetically")
@@ -38,8 +36,6 @@ func TestSettingShowUserEmailExplore(t *testing.T) {
 		htmlDoc.doc.Find(".explore.users").Text(),
 		"user34@example.com",
 	)
-
-	setting.UI.ShowUserEmail = showUserEmail
 }
 
 func TestSettingShowUserEmailProfile(t *testing.T) {

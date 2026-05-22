@@ -86,6 +86,7 @@ function initAdminAuthentication() {
     const provider = document.querySelector<HTMLInputElement>('#oauth2_provider')!.value;
     switch (provider) {
       case 'openidConnect':
+      case 'aws-cognito':
         document.querySelector<HTMLInputElement>('.open_id_connect_auto_discovery_url input')!.setAttribute('required', 'required');
         showElem('.open_id_connect_auto_discovery_url');
         showElem('.open_id_connect_external_id_claim');

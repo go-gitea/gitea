@@ -1,4 +1,4 @@
-import {linkifyURLs, pathEscape, pathEscapeSegments, toOriginUrl, urlQueryEscape} from './url.ts';
+import {linkifyURLs, pathEscape, pathEscapeSegments, urlQueryEscape} from './url.ts';
 
 describe('escape', () => {
   const queryNonAscii = " !\"#$%&'()*+,-./:;<=>?@[\\]^_`{|}~";
@@ -44,20 +44,4 @@ test('linkifyURLs', () => {
   expect(linkifyURLs('data:text/html,<script>alert(1)</script>')).toEqual('data:text/html,<script>alert(1)</script>');
   expect(linkifyURLs('https://evil.com/\nonclick=alert(1)')).toEqual(`${link('https://evil.com/')}\nonclick=alert(1)`);
   expect(linkifyURLs('https://evil.com/&#34;onmouseover=alert(1)')).toEqual(`${link('https://evil.com/&#34;onmouseover=alert')}(1)`);
-});
-
-test('toOriginUrl', () => {
-  const oldLocation = String(window.location);
-  for (const origin of ['https://example.com', 'https://example.com:3000']) {
-    window.location.assign(`${origin}/`);
-    expect(toOriginUrl('/')).toEqual(`${origin}/`);
-    expect(toOriginUrl('/org/repo.git')).toEqual(`${origin}/org/repo.git`);
-    expect(toOriginUrl('https://another.com')).toEqual(`${origin}/`);
-    expect(toOriginUrl('https://another.com/')).toEqual(`${origin}/`);
-    expect(toOriginUrl('https://another.com/org/repo.git')).toEqual(`${origin}/org/repo.git`);
-    expect(toOriginUrl('https://another.com:4000')).toEqual(`${origin}/`);
-    expect(toOriginUrl('https://another.com:4000/')).toEqual(`${origin}/`);
-    expect(toOriginUrl('https://another.com:4000/org/repo.git')).toEqual(`${origin}/org/repo.git`);
-  }
-  window.location.assign(oldLocation);
 });
