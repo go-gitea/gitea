@@ -43,10 +43,13 @@ endif
 TAGS ?=
 TAGS_EVIDENCE := $(MAKE_EVIDENCE_DIR)/tags
 
+CGO_TAGS := sqlite_mattn pam
+
 CGO_ENABLED ?= 0
-ifneq (,$(findstring sqlite_mattn,$(TAGS))$(findstring pam,$(TAGS)))
+ifneq ($(strip $(filter $(CGO_TAGS),$(TAGS))),)
 	CGO_ENABLED = 1
 endif
+RELEASE_USE_XGO := $(if $(strip $(filter $(CGO_TAGS),$(TAGS))),yes,)
 
 STATIC ?=
 EXTLDFLAGS ?=
@@ -521,22 +524,58 @@ $(DIST_DIRS):
 
 .PHONY: release-windows
 release-windows: | $(DIST_DIRS)
+
+ifeq ($(RELEASE_USE_XGO),yes)
 	CGO_CFLAGS="$(CGO_CFLAGS)" $(GO) run $(XGO_PACKAGE) -go $(XGO_VERSION) -buildmode exe -dest $(DIST)/binaries -tags 'osusergo $(TAGS)' -ldflags '-s -w -linkmode external -extldflags "-static" $(LDFLAGS)' -targets 'windows/*' -out gitea-$(VERSION) .
 ifeq (,$(findstring gogit,$(TAGS)))
 	CGO_CFLAGS="$(CGO_CFLAGS)" $(GO) run $(XGO_PACKAGE) -go $(XGO_VERSION) -buildmode exe -dest $(DIST)/binaries -tags 'osusergo gogit $(TAGS)' -ldflags '-s -w -linkmode external -extldflags "-static" $(LDFLAGS)' -targets 'windows/*' -out gitea-$(VERSION)-gogit .
 endif
+else
+	CGO_ENABLED=0 GOOS=windows GOARCH=386 $(GO) build -buildmode=exe -tags 'osusergo $(TAGS)' -ldflags '-s -w $(LDFLAGS)' -o $(DIST)/binaries/gitea-$(VERSION)-windows-4.0-386.exe .
+	CGO_ENABLED=0 GOOS=windows GOARCH=amd64 $(GO) build -buildmode=exe -tags 'osusergo $(TAGS)' -ldflags '-s -w $(LDFLAGS)' -o $(DIST)/binaries/gitea-$(VERSION)-windows-4.0-amd64.exe .
+	CGO_ENABLED=0 GOOS=windows GOARCH=arm64 $(GO) build -buildmode=exe -tags 'osusergo $(TAGS)' -ldflags '-s -w $(LDFLAGS)' -o $(DIST)/binaries/gitea-$(VERSION)-windows-4.0-arm64.exe .
+ifeq (,$(findstring gogit,$(TAGS)))
+	CGO_ENABLED=0 GOOS=windows GOARCH=386 $(GO) build -buildmode=exe -tags 'osusergo gogit $(TAGS)' -ldflags '-s -w $(LDFLAGS)' -o $(DIST)/binaries/gitea-$(VERSION)-gogit-windows-4.0-386.exe .
+	CGO_ENABLED=0 GOOS=windows GOARCH=amd64 $(GO) build -buildmode=exe -tags 'osusergo gogit $(TAGS)' -ldflags '-s -w $(LDFLAGS)' -o $(DIST)/binaries/gitea-$(VERSION)-gogit-windows-4.0-amd64.exe .
+	CGO_ENABLED=0 GOOS=windows GOARCH=arm64 $(GO) build -buildmode=exe -tags 'osusergo gogit $(TAGS)' -ldflags '-s -w $(LDFLAGS)' -o $(DIST)/binaries/gitea-$(VERSION)-gogit-windows-4.0-arm64.exe .
+endif
+endif
 
 .PHONY: release-linux
 release-linux: | $(DIST_DIRS)
+
+ifeq ($(RELEASE_USE_XGO),yes)
 	CGO_CFLAGS="$(CGO_CFLAGS)" $(GO) run $(XGO_PACKAGE) -go $(XGO_VERSION) -dest $(DIST)/binaries -tags 'netgo osusergo $(TAGS)' -ldflags '-s -w -linkmode external -extldflags "-static" $(LDFLAGS)' -targets '$(LINUX_ARCHS)' -out gitea-$(VERSION) .
+else
+	@for target in $(subst $(COMMA), ,$(LINUX_ARCHS)); do \
+		goarch=$${target##*/}; \
+		goarm=; \
+		if [ "$${goarch#arm-}" != "$$goarch" ]; then \
+			goarm=$${goarch#arm-}; \
+			goarch=arm; \
+		fi; \
+		CGO_ENABLED=0 GOOS="$${target%%/*}" GOARCH="$$goarch" GOARM="$$goarm" $(GO) build -tags 'netgo osusergo $(TAGS)' -ldflags '-s -w $(LDFLAGS)' -o $(DIST)/binaries/gitea-$(VERSION)-linux-$${target##*/} . || exit $$?; \
+	done
+endif
 
 .PHONY: release-darwin
 release-darwin: | $(DIST_DIRS)
+
+ifeq ($(RELEASE_USE_XGO),yes)
 	CGO_CFLAGS="$(CGO_CFLAGS)" $(GO) run $(XGO_PACKAGE) -go $(XGO_VERSION) -dest $(DIST)/binaries -tags 'netgo osusergo $(TAGS)' -ldflags '-s -w $(LDFLAGS)' -targets 'darwin-10.12/amd64,darwin-10.12/arm64' -out gitea-$(VERSION) .
+else
+	CGO_ENABLED=0 GOOS=darwin GOARCH=amd64 $(GO) build -tags 'netgo osusergo $(TAGS)' -ldflags '-s -w $(LDFLAGS)' -o $(DIST)/binaries/gitea-$(VERSION)-darwin-10.12-amd64 .
+	CGO_ENABLED=0 GOOS=darwin GOARCH=arm64 $(GO) build -tags 'netgo osusergo $(TAGS)' -ldflags '-s -w $(LDFLAGS)' -o $(DIST)/binaries/gitea-$(VERSION)-darwin-10.12-arm64 .
+endif
 
 .PHONY: release-freebsd
 release-freebsd: | $(DIST_DIRS)
+
+ifeq ($(RELEASE_USE_XGO),yes)
 	CGO_CFLAGS="$(CGO_CFLAGS)" $(GO) run $(XGO_PACKAGE) -go $(XGO_VERSION) -dest $(DIST)/binaries -tags 'netgo osusergo $(TAGS)' -ldflags '-s -w $(LDFLAGS)' -targets 'freebsd/amd64' -out gitea-$(VERSION) .
+else
+	CGO_ENABLED=0 GOOS=freebsd GOARCH=amd64 $(GO) build -tags 'netgo osusergo $(TAGS)' -ldflags '-s -w $(LDFLAGS)' -o $(DIST)/binaries/gitea-$(VERSION)-freebsd14-amd64 .
+endif
 
 .PHONY: release-copy
 release-copy: | $(DIST_DIRS)
