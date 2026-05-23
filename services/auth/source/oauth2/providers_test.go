@@ -4,6 +4,7 @@
 package oauth2
 
 import (
+	"errors"
 	"time"
 
 	"github.com/markbates/goth"
@@ -39,6 +40,8 @@ func (p *fakeProvider) RefreshToken(refreshToken string) (*oauth2.Token, error) 
 		return nil, &oauth2.RetrieveError{
 			ErrorCode: "invalid_grant",
 		}
+	case "error":
+		return nil, errors.New("refresh failed")
 	default:
 		return &oauth2.Token{
 			AccessToken:  "token",
