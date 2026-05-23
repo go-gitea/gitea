@@ -43,6 +43,8 @@ const props = defineProps<{
   jobs: ActionsJob[];
   runLink: string;
   workflowId: string;
+  workflowLink: string;
+  triggerEvent: string;
 }>()
 
 const settingKeyStates = 'actions-graph-states';
@@ -330,19 +332,10 @@ const routedEdges = computed<RoutedEdge[]>(() => {
 
 const graphMetrics = computed(() => {
   const successCount = jobsWithLayout.value.filter(job => job.status === 'success').length;
-
-  const levels = new Map<number, number>();
-  jobsWithLayout.value.forEach(job => {
-    const count = levels.get(job.level) || 0;
-    levels.set(job.level, count + 1);
-  })
-  const parallelism = Math.max(...Array.from(levels.values()), 0);
-
   return {
     successRate: `${((successCount / jobsWithLayout.value.length) * 100).toFixed(0)}%`,
-    parallelism,
   };
-})
+});
 
 const nodeHeight = 52;
 const verticalSpacing = 90;
@@ -543,14 +536,16 @@ function onNodeClick(job: JobNode, event: MouseEvent) {
 <template>
   <div class="workflow-graph" v-if="jobs.length > 0">
     <div class="graph-header">
-      <h4 class="graph-title">Workflow Dependencies</h4>
+      <div class="graph-workflow-info">
+        <a v-if="workflowLink" class="graph-workflow-name silenced" :href="workflowLink">{{ workflowId }}</a>
+        <span v-else class="graph-workflow-name">{{ workflowId }}</span>
+        <div v-if="triggerEvent" class="graph-workflow-trigger">on: {{ triggerEvent }}</div>
+      </div>
       <div class="graph-stats">
         {{ jobs.length }} jobs • {{ edges.length }} dependencies
-        <span v-if="graphMetrics">
-          • <span class="graph-metrics">{{ graphMetrics.successRate }} success</span>
-        </span>
+        • <span class="graph-metrics">{{ graphMetrics.successRate }} success</span>
       </div>
-      <div class="flex-text-block">
+      <div class="flex-text-block graph-controls">
         <button
           type="button"
           @click="zoomIn"
@@ -676,20 +671,29 @@ function onNodeClick(job: JobNode, event: MouseEvent) {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 8px 14px;
-  background: var(--color-box-header);
-  border-bottom: 1px solid var(--color-secondary);
+  padding: 16px 16px 8px;
+  background: var(--color-console-bg);
   gap: var(--gap-block);
   flex-wrap: wrap;
 }
 
-.graph-title {
-  margin: 0;
+.graph-workflow-info {
+  min-width: 0;
+}
+
+.graph-workflow-name {
+  display: block;
   color: var(--color-text);
   font-size: 16px;
   font-weight: var(--font-weight-semibold);
-  flex: 1;
-  min-width: 200px;
+  line-height: 1.25;
+}
+
+.graph-workflow-trigger {
+  margin-top: 4px;
+  color: var(--color-text-light-2);
+  font-size: 12px;
+  line-height: 1.4;
 }
 
 .graph-stats {
@@ -699,11 +703,17 @@ function onNodeClick(job: JobNode, event: MouseEvent) {
   color: var(--color-text-light-1);
   font-size: 13px;
   white-space: nowrap;
+  margin-left: auto;
+  padding: 0 16px;
 }
 
 .graph-metrics {
-  color: var(--color-primary);
+  color: var(--color-text-light-1);
   font-weight: var(--font-weight-medium);
+}
+
+.graph-controls {
+  flex-shrink: 0;
 }
 
 .graph-container {

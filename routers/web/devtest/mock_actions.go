@@ -87,29 +87,39 @@ func MockActionsRunsJobs(ctx *context.Context) {
 	resp.State.Run.TitleHTML = `mock run title <a href="/">link</a>`
 	resp.State.Run.Link = setting.AppSubURL + "/devtest/repo-action-view/runs/" + strconv.FormatInt(runID, 10)
 	resp.State.Run.CanDeleteArtifact = true
-	resp.State.Run.WorkflowID = "workflow-id"
-	resp.State.Run.WorkflowLink = "./workflow-link"
+	resp.State.Run.WorkflowID = "workflow-id.yml"
 	resp.State.Run.TriggerEvent = "push"
+	user2, _ := user_model.GetUserByID(ctx, 2)
+	if user2 == nil {
+		user2 = &user_model.User{Name: "user2"}
+	}
+	user3, _ := user_model.GetUserByID(ctx, 1)
+	if user3 == nil {
+		user3 = &user_model.User{Name: "user3"}
+	}
 	resp.State.Run.Commit = actions.ViewCommit{
 		ShortSha: "ccccdddd",
 		Link:     "./commit-link",
 		Pusher: actions.ViewUser{
-			DisplayName: "pusher user",
-			Link:        "./pusher-link",
+			DisplayName: user2.GetDisplayName(),
+			Link:        user2.HomeLink(),
+			AvatarLink:  user2.AvatarLinkWithSize(ctx, 16),
 		},
 		Branch: actions.ViewBranch{
-			Name:      "commit-branch",
+			Name:      "user2:commit-branch",
 			Link:      "./branch-link",
 			IsDeleted: false,
 		},
+	}
+	resp.State.Run.PullRequest = &actions.ViewPullRequest{
+		Index: "#37658",
+		Link:  "./pull/37658",
 	}
 	now := time.Now()
 	currentAttemptNum := int64(1)
 	if attemptID > 0 {
 		currentAttemptNum = attemptID
 	}
-	user2 := &user_model.User{Name: "user2"}
-	user3 := &user_model.User{Name: "user3"}
 	attempts := []*actions_model.ActionRunAttempt{{
 		Attempt:       1,
 		Status:        actions_model.StatusSuccess,
@@ -168,15 +178,16 @@ func MockActionsRunsJobs(ctx *context.Context) {
 			}
 		}
 		resp.State.Run.Attempts = append(resp.State.Run.Attempts, &actions.ViewRunAttempt{
-			Attempt:         attempt.Attempt,
-			Status:          attempt.Status.String(),
-			Done:            attempt.Status.IsDone(),
-			Link:            link,
-			Current:         current,
-			Latest:          attempt.Attempt == latestAttempt.Attempt,
-			TriggeredAt:     attempt.Created.AsTime().Unix(),
-			TriggerUserName: attempt.TriggerUser.GetDisplayName(),
-			TriggerUserLink: attempt.TriggerUser.HomeLink(),
+			Attempt:           attempt.Attempt,
+			Status:            attempt.Status.String(),
+			Done:              attempt.Status.IsDone(),
+			Link:              link,
+			Current:           current,
+			Latest:            attempt.Attempt == latestAttempt.Attempt,
+			TriggeredAt:       attempt.Created.AsTime().Unix(),
+			TriggerUserName:   attempt.TriggerUser.GetDisplayName(),
+			TriggerUserLink:   attempt.TriggerUser.HomeLink(),
+			TriggerUserAvatar: attempt.TriggerUser.AvatarLinkWithSize(ctx, 16),
 		})
 	}
 	isLatestAttempt := currentAttemptNum == latestAttempt.Attempt

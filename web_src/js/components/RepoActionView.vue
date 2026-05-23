@@ -118,26 +118,6 @@ async function deleteArtifact(name: string) {
           </div>
         </div>
       </div>
-      <div class="action-commit-summary">
-        <span>
-          <a v-if="run.workflowLink" class="muted" :href="run.workflowLink"><b>{{ run.workflowID }}</b></a>
-          <b v-else>{{ run.workflowID }}</b>
-          :
-        </span>
-        <template v-if="run.isSchedule">
-          {{ locale.scheduled }}
-        </template>
-        <template v-else>
-          {{ locale.commit }}
-          <a class="muted" :href="run.commit.link">{{ run.commit.shortSHA }}</a>
-          {{ locale.pushedBy }}
-          <a class="muted" :href="run.commit.pusher.link">{{ run.commit.pusher.displayName }}</a>
-        </template>
-        <span class="ui label tw-max-w-full" v-if="run.commit.shortSHA">
-          <span v-if="run.commit.branch.isDeleted" class="gt-ellipsis tw-line-through" :data-tooltip-content="run.commit.branch.name">{{ run.commit.branch.name }}</span>
-          <a v-else class="gt-ellipsis" :href="run.commit.branch.link" :data-tooltip-content="run.commit.branch.name">{{ run.commit.branch.name }}</a>
-        </span>
-      </div>
     </div>
     <div class="action-view-body">
       <div class="action-view-left">
@@ -211,6 +191,7 @@ async function deleteArtifact(name: string) {
           v-if="!props.jobId"
           :store="store"
           :locale="locale"
+          :artifact-count="artifacts.length"
         />
         <ActionRunJobView
           v-else
@@ -262,21 +243,6 @@ async function deleteArtifact(name: string) {
 .action-info-summary .ui.button {
   margin: 0;
   white-space: nowrap;
-}
-
-.action-commit-summary {
-  display: flex;
-  align-items: center;
-  flex-wrap: wrap;
-  gap: 5px;
-  margin-left: 28px;
-}
-
-@media (max-width: 767.98px) {
-  .action-commit-summary {
-    margin-left: 0;
-    margin-top: 8px;
-  }
 }
 
 /* ================ */

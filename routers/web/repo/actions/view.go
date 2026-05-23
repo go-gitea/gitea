@@ -14,6 +14,7 @@ import (
 	"net/http"
 	"net/url"
 	"strconv"
+	"strings"
 	"time"
 
 	actions_model "code.gitea.io/gitea/models/actions"
@@ -295,6 +296,7 @@ type ViewResponse struct {
 			Attempts          []*ViewRunAttempt `json:"attempts"`
 			Jobs              []*ViewJob        `json:"jobs"`
 			Commit            ViewCommit        `json:"commit"`
+			PullRequest       *ViewPullRequest  `json:"pullRequest,omitempty"`
 			// Summary view: run duration and trigger time/event
 			Duration     string `json:"duration"`
 			TriggeredAt  int64  `json:"triggeredAt"`  // unix seconds for relative time
@@ -323,15 +325,21 @@ type ViewJob struct {
 }
 
 type ViewRunAttempt struct {
-	Attempt         int64  `json:"attempt"`
-	Status          string `json:"status"`
-	Done            bool   `json:"done"`
-	Link            string `json:"link"`
-	Current         bool   `json:"current"`
-	Latest          bool   `json:"latest"`
-	TriggeredAt     int64  `json:"triggeredAt"`
-	TriggerUserName string `json:"triggerUserName"`
-	TriggerUserLink string `json:"triggerUserLink"`
+	Attempt           int64  `json:"attempt"`
+	Status            string `json:"status"`
+	Done              bool   `json:"done"`
+	Link              string `json:"link"`
+	Current           bool   `json:"current"`
+	Latest            bool   `json:"latest"`
+	TriggeredAt       int64  `json:"triggeredAt"`
+	TriggerUserName   string `json:"triggerUserName"`
+	TriggerUserLink   string `json:"triggerUserLink"`
+	TriggerUserAvatar string `json:"triggerUserAvatar"`
+}
+
+type ViewPullRequest struct {
+	Index string `json:"index"`
+	Link  string `json:"link"`
 }
 
 type ViewCommit struct {
@@ -344,6 +352,7 @@ type ViewCommit struct {
 type ViewUser struct {
 	DisplayName string `json:"displayName"`
 	Link        string `json:"link"`
+	AvatarLink  string `json:"avatarLink,omitempty"`
 }
 
 type ViewBranch struct {
@@ -369,6 +378,74 @@ type ViewStepLogLine struct {
 	Index     int64   `json:"index"`
 	Message   string  `json:"message"`
 	Timestamp float64 `json:"timestamp"`
+}
+
+func viewPullRequestFromRun(run *actions_model.ActionRun) *ViewPullRequest {
+	if run.Repo == nil {
+		return nil
+	}
+	refName := git.RefName(run.Ref)
+	if refName.IsPull() {
+		return &ViewPullRequest{
+			Index: "#" + refName.ShortName(),
+			Link:  run.RefLink(),
+		}
+	}
+	prPayload, err := run.GetPullRequestEventPayload()
+	if err != nil || prPayload.Index <= 0 {
+		return nil
+	}
+	return &ViewPullRequest{
+		Index: fmt.Sprintf("#%d", prPayload.Index),
+		Link:  fmt.Sprintf("%s/pulls/%d", run.Repo.Link(), prPayload.Index),
+	}
+}
+
+func viewSummaryBranchFromRun(ctx context.Context, run *actions_model.ActionRun) ViewBranch {
+	refName := git.RefName(run.Ref)
+	if prPayload, err := run.GetPullRequestEventPayload(); err == nil && prPayload.PullRequest != nil && prPayload.PullRequest.Head != nil {
+		head := prPayload.PullRequest.Head
+		name := head.Name
+		if name == "" {
+			name = git.RefName(head.Ref).ShortName()
+		}
+		if head.Repository != nil && run.Repo != nil && head.RepoID > 0 && head.RepoID != run.Repo.ID {
+			ownerName := ""
+			if head.Repository.Owner != nil {
+				ownerName = head.Repository.Owner.UserName
+			} else if head.Repository.FullName != "" {
+				ownerName, _, _ = strings.Cut(head.Repository.FullName, "/")
+			}
+			if ownerName != "" && !strings.Contains(name, ":") {
+				name = ownerName + ":" + name
+			}
+		}
+		link := ""
+		if head.Repository != nil && head.Ref != "" {
+			repoLink := head.Repository.Link
+			if repoLink == "" {
+				repoLink = head.Repository.HTMLURL
+			}
+			if repoLink != "" {
+				link = repoLink + "/src/" + git.RefName(head.Ref).RefWebLinkPath()
+			}
+		}
+		return ViewBranch{Name: name, Link: link}
+	}
+
+	branch := ViewBranch{
+		Name: run.PrettyRef(),
+		Link: run.RefLink(),
+	}
+	if refName.IsBranch() {
+		b, err := git_model.GetBranch(ctx, run.RepoID, refName.ShortName())
+		if err != nil && !git_model.IsErrBranchNotExist(err) {
+			log.Error("GetBranch: %v", err)
+		} else if git_model.IsErrBranchNotExist(err) || (b != nil && b.IsDeleted) {
+			branch.IsDeleted = true
+		}
+	}
+	return branch
 }
 
 func ViewPost(ctx *context_module.Context) {
@@ -461,42 +538,32 @@ func fillViewRunResponseSummary(ctx *context_module.Context, resp *ViewResponse,
 	}
 	for _, runAttempt := range attempts {
 		resp.State.Run.Attempts = append(resp.State.Run.Attempts, &ViewRunAttempt{
-			Attempt:         runAttempt.Attempt,
-			Status:          runAttempt.Status.String(),
-			Done:            runAttempt.Status.IsDone(),
-			Link:            getRunViewLink(run, runAttempt),
-			Current:         runAttempt.ID == attempt.ID,
-			Latest:          runAttempt.ID == run.LatestAttemptID,
-			TriggeredAt:     runAttempt.Created.AsTime().Unix(),
-			TriggerUserName: runAttempt.TriggerUser.GetDisplayName(),
-			TriggerUserLink: runAttempt.TriggerUser.HomeLink(),
+			Attempt:           runAttempt.Attempt,
+			Status:            runAttempt.Status.String(),
+			Done:              runAttempt.Status.IsDone(),
+			Link:              getRunViewLink(run, runAttempt),
+			Current:           runAttempt.ID == attempt.ID,
+			Latest:            runAttempt.ID == run.LatestAttemptID,
+			TriggeredAt:       runAttempt.Created.AsTime().Unix(),
+			TriggerUserName:   runAttempt.TriggerUser.GetDisplayName(),
+			TriggerUserLink:   runAttempt.TriggerUser.HomeLink(),
+			TriggerUserAvatar: runAttempt.TriggerUser.AvatarLinkWithSize(ctx, 16),
 		})
 	}
 
 	pusher := ViewUser{
 		DisplayName: run.TriggerUser.GetDisplayName(),
 		Link:        run.TriggerUser.HomeLink(),
-	}
-	branch := ViewBranch{
-		Name: run.PrettyRef(),
-		Link: run.RefLink(),
-	}
-	refName := git.RefName(run.Ref)
-	if refName.IsBranch() {
-		b, err := git_model.GetBranch(ctx, ctx.Repo.Repository.ID, refName.ShortName())
-		if err != nil && !git_model.IsErrBranchNotExist(err) {
-			log.Error("GetBranch: %v", err)
-		} else if git_model.IsErrBranchNotExist(err) || (b != nil && b.IsDeleted) {
-			branch.IsDeleted = true
-		}
+		AvatarLink:  run.TriggerUser.AvatarLinkWithSize(ctx, 16),
 	}
 
 	resp.State.Run.Commit = ViewCommit{
 		ShortSha: base.ShortSha(run.CommitSHA),
 		Link:     fmt.Sprintf("%s/commit/%s", run.Repo.Link(), run.CommitSHA),
 		Pusher:   pusher,
-		Branch:   branch,
+		Branch:   viewSummaryBranchFromRun(ctx, run),
 	}
+	resp.State.Run.PullRequest = viewPullRequestFromRun(run)
 	resp.State.Run.TriggerEvent = run.TriggerEvent
 
 	// Legacy runs (LatestAttemptID == 0) have no attempt; their artifacts all share run_attempt_id=0,
