@@ -21,7 +21,7 @@ func DownloadActionsRunJobLogs(ctx *context.APIContext) {
 	// parameters:
 	// - name: owner
 	//   in: path
-	//   description: name of the owner
+	//   description: owner of the repo
 	//   type: string
 	//   required: true
 	// - name: repo
@@ -43,9 +43,13 @@ func DownloadActionsRunJobLogs(ctx *context.APIContext) {
 	//     "$ref": "#/responses/notFound"
 
 	jobID := ctx.PathParamInt64("job_id")
-	curJob, err := actions_model.GetRunJobByID(ctx, jobID)
+	curJob, err := actions_model.GetRunJobByRepoAndID(ctx, ctx.Repo.Repository.ID, jobID)
 	if err != nil {
-		ctx.APIErrorInternal(err)
+		if errors.Is(err, util.ErrNotExist) {
+			ctx.APIErrorNotFound(err)
+		} else {
+			ctx.APIErrorInternal(err)
+		}
 		return
 	}
 	if err = curJob.LoadRepo(ctx); err != nil {

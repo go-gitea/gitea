@@ -1,11 +1,9 @@
 // Copyright 2023 The Gitea Authors. All rights reserved.
 // SPDX-License-Identifier: MIT
 
-package v1_22 //nolint
+package v1_22
 
-import (
-	"xorm.io/xorm"
-)
+import "code.gitea.io/gitea/models/db"
 
 type BadgeUnique struct {
 	ID   int64  `xorm:"pk autoincr"`
@@ -16,7 +14,7 @@ func (BadgeUnique) TableName() string {
 	return "badge"
 }
 
-func UseSlugInsteadOfIDForBadges(x *xorm.Engine) error {
+func UseSlugInsteadOfIDForBadges(x db.EngineMigration) error {
 	type Badge struct {
 		Slug string
 	}

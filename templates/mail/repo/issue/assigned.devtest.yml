@@ -1,0 +1,11 @@
+Subject: Issue assigned
+Link: http://localhost
+
+Issue:
+  Index: 1
+  Repo:
+    FullName: Repo/Name
+    HTMLURL: http://localhost/issue
+
+Doer:
+  Name: DoerName

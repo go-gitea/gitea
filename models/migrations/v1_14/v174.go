@@ -1,15 +1,15 @@
 // Copyright 2021 The Gitea Authors. All rights reserved.
 // SPDX-License-Identifier: MIT
 
-package v1_14 //nolint
+package v1_14
 
 import (
 	"fmt"
 
-	"xorm.io/xorm"
+	"code.gitea.io/gitea/models/db"
 )
 
-func AddRepoTransfer(x *xorm.Engine) error {
+func AddRepoTransfer(x db.EngineMigration) error {
 	type RepoTransfer struct {
 		ID          int64 `xorm:"pk autoincr"`
 		DoerID      int64

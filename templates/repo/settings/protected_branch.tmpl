@@ -1,4 +1,4 @@
-{{template "repo/settings/layout_head" (dict "ctxData" . "pageClass" "repository settings branches")}}
+{{template "repo/settings/layout_head" (dict "pageClass" "repository settings branches")}}
 	<div class="repo-setting-content">
 		<form class="ui form" action="{{.Link}}" method="post">
 			<h4 class="ui top attached header">
@@ -27,7 +27,6 @@
 					<p class="help tw-ml-0">{{ctx.Locale.Tr "repo.settings.protect_unprotected_file_patterns_desc" "https://pkg.go.dev/github.com/gobwas/glob#Compile" "github.com/gobwas/glob"}}</p>
 				</div>
 
-				{{.CsrfTokenHtml}}
 				<h5 class="ui dividing header">{{ctx.Locale.Tr "repo.settings.event_push"}}</h5>
 				<div class="field">
 					<div class="ui radio checkbox">
@@ -292,6 +291,49 @@
 							<label>{{ctx.Locale.Tr "repo.settings.protect_merge_whitelist_teams"}}</label>
 							<div class="ui multiple search selection dropdown">
 								<input type="hidden" name="merge_whitelist_teams" value="{{.merge_whitelist_teams}}">
+								<div class="default text">{{ctx.Locale.Tr "search.team_kind"}}</div>
+								<div class="menu">
+								{{range .Teams}}
+									<div class="item" data-value="{{.ID}}">
+										{{svg "octicon-people"}}
+									{{.Name}}
+									</div>
+								{{end}}
+								</div>
+							</div>
+						</div>
+					{{end}}
+					</div>
+				</div>
+				<h5 class="ui dividing header">{{ctx.Locale.Tr "repo.settings.protect_bypass_allowlist"}}</h5>
+				<div class="grouped fields">
+					<div class="field">
+						<div class="ui checkbox">
+							<input name="enable_bypass_allowlist" type="checkbox" class="toggle-target-enabled" data-target="#bypass_allowlist_box" {{if .Rule.EnableBypassAllowlist}}checked{{end}}>
+							<label>{{ctx.Locale.Tr "repo.settings.protect_enable_bypass_allowlist"}}</label>
+							<p class="help">{{ctx.Locale.Tr "repo.settings.protect_enable_bypass_allowlist_desc"}}</p>
+						</div>
+					</div>
+					<div id="bypass_allowlist_box" class="grouped fields {{if not .Rule.EnableBypassAllowlist}}disabled{{end}}">
+						<div class="checkbox-sub-item field">
+							<label>{{ctx.Locale.Tr "repo.settings.protect_bypass_allowlist_users"}}</label>
+							<div class="ui multiple search selection dropdown">
+								<input type="hidden" name="bypass_allowlist_users" value="{{.bypass_allowlist_users}}">
+								<div class="default text">{{ctx.Locale.Tr "search.user_kind"}}</div>
+								<div class="menu">
+								{{range .Users}}
+									<div class="item" data-value="{{.ID}}">
+										{{ctx.AvatarUtils.Avatar . 28 "mini"}}{{template "repo/search_name" .}}
+									</div>
+								{{end}}
+								</div>
+							</div>
+						</div>
+					{{if .Owner.IsOrganization}}
+						<div class="checkbox-sub-item field">
+							<label>{{ctx.Locale.Tr "repo.settings.protect_bypass_allowlist_teams"}}</label>
+							<div class="ui multiple search selection dropdown">
+								<input type="hidden" name="bypass_allowlist_teams" value="{{.bypass_allowlist_teams}}">
 								<div class="default text">{{ctx.Locale.Tr "search.team_kind"}}</div>
 								<div class="menu">
 								{{range .Teams}}

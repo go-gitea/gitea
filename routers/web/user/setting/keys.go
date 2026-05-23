@@ -35,7 +35,6 @@ func Keys(ctx *context.Context) {
 	ctx.Data["DisableSSH"] = setting.SSH.Disabled
 	ctx.Data["BuiltinSSH"] = setting.SSH.StartBuiltinServer
 	ctx.Data["AllowPrincipals"] = setting.SSH.AuthorizedPrincipalsEnabled
-	ctx.Data["UserDisabledFeatures"] = user_model.DisabledFeaturesWithLoginType(ctx.Doer)
 
 	loadKeysData(ctx)
 
@@ -45,12 +44,11 @@ func Keys(ctx *context.Context) {
 // KeysPost response for change user's SSH/GPG keys
 func KeysPost(ctx *context.Context) {
 	form := web.GetForm(ctx).(*forms.AddKeyForm)
-	ctx.Data["Title"] = ctx.Tr("settings")
+	ctx.Data["Title"] = ctx.Tr("settings_title")
 	ctx.Data["PageIsSettingsKeys"] = true
 	ctx.Data["DisableSSH"] = setting.SSH.Disabled
 	ctx.Data["BuiltinSSH"] = setting.SSH.StartBuiltinServer
 	ctx.Data["AllowPrincipals"] = setting.SSH.AuthorizedPrincipalsEnabled
-	ctx.Data["UserDisabledFeatures"] = user_model.DisabledFeaturesWithLoginType(ctx.Doer)
 
 	if ctx.HasError() {
 		loadKeysData(ctx)
@@ -77,7 +75,7 @@ func KeysPost(ctx *context.Context) {
 				loadKeysData(ctx)
 
 				ctx.Data["Err_Content"] = true
-				ctx.RenderWithErr(ctx.Tr("settings.ssh_principal_been_used"), tplSettingsKeys, &form)
+				ctx.RenderWithErrDeprecated(ctx.Tr("settings.ssh_principal_been_used"), tplSettingsKeys, &form)
 			default:
 				ctx.ServerError("AddPrincipalKey", err)
 			}
@@ -108,7 +106,7 @@ func KeysPost(ctx *context.Context) {
 				loadKeysData(ctx)
 
 				ctx.Data["Err_Content"] = true
-				ctx.RenderWithErr(ctx.Tr("settings.gpg_key_id_used"), tplSettingsKeys, &form)
+				ctx.RenderWithErrDeprecated(ctx.Tr("settings.gpg_key_id_used"), tplSettingsKeys, &form)
 			case asymkey_model.IsErrGPGInvalidTokenSignature(err):
 				loadKeysData(ctx)
 				ctx.Data["Err_Content"] = true
@@ -116,7 +114,7 @@ func KeysPost(ctx *context.Context) {
 				keyID := err.(asymkey_model.ErrGPGInvalidTokenSignature).ID
 				ctx.Data["KeyID"] = keyID
 				ctx.Data["PaddedKeyID"] = asymkey_model.PaddedKeyID(keyID)
-				ctx.RenderWithErr(ctx.Tr("settings.gpg_invalid_token_signature"), tplSettingsKeys, &form)
+				ctx.RenderWithErrDeprecated(ctx.Tr("settings.gpg_invalid_token_signature"), tplSettingsKeys, &form)
 			case asymkey_model.IsErrGPGNoEmailFound(err):
 				loadKeysData(ctx)
 
@@ -125,7 +123,7 @@ func KeysPost(ctx *context.Context) {
 				keyID := err.(asymkey_model.ErrGPGNoEmailFound).ID
 				ctx.Data["KeyID"] = keyID
 				ctx.Data["PaddedKeyID"] = asymkey_model.PaddedKeyID(keyID)
-				ctx.RenderWithErr(ctx.Tr("settings.gpg_no_key_email_found"), tplSettingsKeys, &form)
+				ctx.RenderWithErrDeprecated(ctx.Tr("settings.gpg_no_key_email_found"), tplSettingsKeys, &form)
 			default:
 				ctx.ServerError("AddPublicKey", err)
 			}
@@ -159,7 +157,7 @@ func KeysPost(ctx *context.Context) {
 				keyID := err.(asymkey_model.ErrGPGInvalidTokenSignature).ID
 				ctx.Data["KeyID"] = keyID
 				ctx.Data["PaddedKeyID"] = asymkey_model.PaddedKeyID(keyID)
-				ctx.RenderWithErr(ctx.Tr("settings.gpg_invalid_token_signature"), tplSettingsKeys, &form)
+				ctx.RenderWithErrDeprecated(ctx.Tr("settings.gpg_invalid_token_signature"), tplSettingsKeys, &form)
 			default:
 				ctx.ServerError("VerifyGPG", err)
 			}
@@ -187,19 +185,19 @@ func KeysPost(ctx *context.Context) {
 			return
 		}
 
-		if _, err = asymkey_model.AddPublicKey(ctx, ctx.Doer.ID, form.Title, content, 0); err != nil {
+		if _, err = asymkey_model.AddPublicKey(ctx, ctx.Doer.ID, form.Title, content, 0, false); err != nil {
 			ctx.Data["HasSSHError"] = true
 			switch {
 			case asymkey_model.IsErrKeyAlreadyExist(err):
 				loadKeysData(ctx)
 
 				ctx.Data["Err_Content"] = true
-				ctx.RenderWithErr(ctx.Tr("settings.ssh_key_been_used"), tplSettingsKeys, &form)
+				ctx.RenderWithErrDeprecated(ctx.Tr("settings.ssh_key_been_used"), tplSettingsKeys, &form)
 			case asymkey_model.IsErrKeyNameAlreadyUsed(err):
 				loadKeysData(ctx)
 
 				ctx.Data["Err_Title"] = true
-				ctx.RenderWithErr(ctx.Tr("settings.ssh_key_name_used"), tplSettingsKeys, &form)
+				ctx.RenderWithErrDeprecated(ctx.Tr("settings.ssh_key_name_used"), tplSettingsKeys, &form)
 			case asymkey_model.IsErrKeyUnableVerify(err):
 				ctx.Flash.Info(ctx.Tr("form.unable_verify_ssh_key"))
 				ctx.Redirect(setting.AppSubURL + "/user/settings/keys")
@@ -230,7 +228,7 @@ func KeysPost(ctx *context.Context) {
 				loadKeysData(ctx)
 				ctx.Data["Err_Signature"] = true
 				ctx.Data["Fingerprint"] = err.(asymkey_model.ErrSSHInvalidTokenSignature).Fingerprint
-				ctx.RenderWithErr(ctx.Tr("settings.ssh_invalid_token_signature"), tplSettingsKeys, &form)
+				ctx.RenderWithErrDeprecated(ctx.Tr("settings.ssh_invalid_token_signature"), tplSettingsKeys, &form)
 			default:
 				ctx.ServerError("VerifySSH", err)
 			}
@@ -325,7 +323,7 @@ func loadKeysData(ctx *context.Context) {
 	ctx.Data["GPGKeys"] = gpgkeys
 	tokenToSign := asymkey_model.VerificationToken(ctx.Doer, 1)
 
-	// generate a new aes cipher using the csrfToken
+	// generate a new aes cipher using the token
 	ctx.Data["TokenToSign"] = tokenToSign
 
 	principals, err := db.Find[asymkey_model.PublicKey](ctx, asymkey_model.FindPublicKeyOptions{
@@ -341,5 +339,4 @@ func loadKeysData(ctx *context.Context) {
 
 	ctx.Data["VerifyingID"] = ctx.FormString("verify_gpg")
 	ctx.Data["VerifyingFingerprint"] = ctx.FormString("verify_ssh")
-	ctx.Data["UserDisabledFeatures"] = user_model.DisabledFeaturesWithLoginType(ctx.Doer)
 }

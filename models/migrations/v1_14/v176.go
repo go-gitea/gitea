@@ -1,16 +1,14 @@
 // Copyright 2021 The Gitea Authors. All rights reserved.
 // SPDX-License-Identifier: MIT
 
-package v1_14 //nolint
+package v1_14
 
-import (
-	"xorm.io/xorm"
-)
+import "code.gitea.io/gitea/models/db"
 
 // RemoveInvalidLabels looks through the database to look for comments and issue_labels
 // that refer to labels do not belong to the repository or organization that repository
 // that the issue is in
-func RemoveInvalidLabels(x *xorm.Engine) error {
+func RemoveInvalidLabels(x db.EngineMigration) error {
 	type Comment struct {
 		ID      int64 `xorm:"pk autoincr"`
 		Type    int   `xorm:"INDEX"`

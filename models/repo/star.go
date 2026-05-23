@@ -11,7 +11,7 @@ import (
 	"code.gitea.io/gitea/modules/timeutil"
 )
 
-// Star represents a starred repo by an user.
+// Star represents a starred repo by a user.
 type Star struct {
 	ID          int64              `xorm:"pk autoincr"`
 	UID         int64              `xorm:"UNIQUE(s)"`
@@ -25,48 +25,45 @@ func init() {
 
 // StarRepo or unstar repository.
 func StarRepo(ctx context.Context, doer *user_model.User, repo *Repository, star bool) error {
-	ctx, committer, err := db.TxContext(ctx)
-	if err != nil {
-		return err
-	}
-	defer committer.Close()
-	staring := IsStaring(ctx, doer.ID, repo.ID)
+	return db.WithTx(ctx, func(ctx context.Context) error {
+		staring := IsStaring(ctx, doer.ID, repo.ID)
 
-	if star {
-		if user_model.IsUserBlockedBy(ctx, doer, repo.OwnerID) {
-			return user_model.ErrBlockedUser
+		if star {
+			if user_model.IsUserBlockedBy(ctx, doer, repo.OwnerID) {
+				return user_model.ErrBlockedUser
+			}
+
+			if staring {
+				return nil
+			}
+
+			if err := db.Insert(ctx, &Star{UID: doer.ID, RepoID: repo.ID}); err != nil {
+				return err
+			}
+			if _, err := db.Exec(ctx, "UPDATE `repository` SET num_stars = num_stars + 1 WHERE id = ?", repo.ID); err != nil {
+				return err
+			}
+			if _, err := db.Exec(ctx, "UPDATE `user` SET num_stars = num_stars + 1 WHERE id = ?", doer.ID); err != nil {
+				return err
+			}
+		} else {
+			if !staring {
+				return nil
+			}
+
+			if _, err := db.DeleteByBean(ctx, &Star{UID: doer.ID, RepoID: repo.ID}); err != nil {
+				return err
+			}
+			if _, err := db.Exec(ctx, "UPDATE `repository` SET num_stars = num_stars - 1 WHERE id = ?", repo.ID); err != nil {
+				return err
+			}
+			if _, err := db.Exec(ctx, "UPDATE `user` SET num_stars = num_stars - 1 WHERE id = ?", doer.ID); err != nil {
+				return err
+			}
 		}
 
-		if staring {
-			return nil
-		}
-
-		if err := db.Insert(ctx, &Star{UID: doer.ID, RepoID: repo.ID}); err != nil {
-			return err
-		}
-		if _, err := db.Exec(ctx, "UPDATE `repository` SET num_stars = num_stars + 1 WHERE id = ?", repo.ID); err != nil {
-			return err
-		}
-		if _, err := db.Exec(ctx, "UPDATE `user` SET num_stars = num_stars + 1 WHERE id = ?", doer.ID); err != nil {
-			return err
-		}
-	} else {
-		if !staring {
-			return nil
-		}
-
-		if _, err := db.DeleteByBean(ctx, &Star{UID: doer.ID, RepoID: repo.ID}); err != nil {
-			return err
-		}
-		if _, err := db.Exec(ctx, "UPDATE `repository` SET num_stars = num_stars - 1 WHERE id = ?", repo.ID); err != nil {
-			return err
-		}
-		if _, err := db.Exec(ctx, "UPDATE `user` SET num_stars = num_stars - 1 WHERE id = ?", doer.ID); err != nil {
-			return err
-		}
-	}
-
-	return committer.Commit()
+		return nil
+	})
 }
 
 // IsStaring checks if user has starred given repository.
@@ -80,7 +77,7 @@ func GetStargazers(ctx context.Context, repo *Repository, opts db.ListOptions) (
 	sess := db.GetEngine(ctx).Where("star.repo_id = ?", repo.ID).
 		Join("LEFT", "star", "`user`.id = star.uid")
 	if opts.Page > 0 {
-		sess = db.SetSessionPagination(sess, &opts)
+		db.SetSessionPagination(sess, &opts)
 
 		users := make([]*user_model.User, 0, opts.PageSize)
 		return users, sess.Find(&users)

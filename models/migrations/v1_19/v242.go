@@ -1,16 +1,15 @@
 // Copyright 2023 The Gitea Authors. All rights reserved.
 // SPDX-License-Identifier: MIT
 
-package v1_19 //nolint
+package v1_19
 
 import (
+	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/modules/setting"
-
-	"xorm.io/xorm"
 )
 
 // AlterPublicGPGKeyImportContentFieldToMediumText: set GPGKeyImport Content field to MEDIUMTEXT
-func AlterPublicGPGKeyImportContentFieldToMediumText(x *xorm.Engine) error {
+func AlterPublicGPGKeyImportContentFieldToMediumText(x db.EngineMigration) error {
 	sess := x.NewSession()
 	defer sess.Close()
 	if err := sess.Begin(); err != nil {

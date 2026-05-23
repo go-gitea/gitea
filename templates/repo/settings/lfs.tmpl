@@ -1,4 +1,4 @@
-{{template "repo/settings/layout_head" (dict "ctxData" . "pageClass" "repository settings lfs")}}
+{{template "repo/settings/layout_head" (dict "pageClass" "repository settings lfs")}}
 	<div class="repo-setting-content">
 		<h4 class="ui top attached header">
 			{{ctx.Locale.Tr "repo.settings.lfs_filelist"}} ({{ctx.Locale.Tr "admin.total" .Total}})
@@ -43,7 +43,6 @@
 						{{ctx.Locale.Tr "repo.settings.lfs_delete_warning"}}
 					</p>
 					<form class="ui form" action="{{$.Link}}/delete/{{.Oid}}" method="post">
-						{{$.CsrfTokenHtml}}
 						{{template "base/modal_actions_confirm"}}
 					</form>
 				</div>

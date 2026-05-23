@@ -1,10 +1,10 @@
 // Copyright 2021 The Gitea Authors. All rights reserved.
 // SPDX-License-Identifier: MIT
 
-package v1_14 //nolint
+package v1_14
 
-import "xorm.io/xorm"
+import "code.gitea.io/gitea/models/db"
 
-func RecreateUserTableToFixDefaultValues(_ *xorm.Engine) error {
+func RecreateUserTableToFixDefaultValues(_ db.EngineMigration) error {
 	return nil
 }

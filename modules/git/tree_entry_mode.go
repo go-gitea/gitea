@@ -4,7 +4,6 @@
 package git
 
 import (
-	"fmt"
 	"strconv"
 )
 
@@ -15,7 +14,7 @@ type EntryMode int
 // one of these.
 const (
 	// EntryModeNoEntry is possible if the file was added or removed in a commit. In the case of
-	// added the base commit will not have the file in its tree so a mode of 0o000000 is used.
+	// when adding the base commit doesn't have the file in its tree, a mode of 0o000000 is used.
 	EntryModeNoEntry EntryMode = 0o000000
 
 	EntryModeBlob    EntryMode = 0o100644
@@ -30,21 +29,64 @@ func (e EntryMode) String() string {
 	return strconv.FormatInt(int64(e), 8)
 }
 
-func ParseEntryMode(mode string) (EntryMode, error) {
+// IsSubModule if the entry is a submodule
+func (e EntryMode) IsSubModule() bool {
+	return e == EntryModeCommit
+}
+
+// IsDir if the entry is a sub dir
+func (e EntryMode) IsDir() bool {
+	return e == EntryModeTree
+}
+
+// IsLink if the entry is a symlink
+func (e EntryMode) IsLink() bool {
+	return e == EntryModeSymlink
+}
+
+// IsRegular if the entry is a regular file
+func (e EntryMode) IsRegular() bool {
+	return e == EntryModeBlob
+}
+
+// IsExecutable if the entry is an executable file (not necessarily binary)
+func (e EntryMode) IsExecutable() bool {
+	return e == EntryModeExec
+}
+
+func ParseEntryMode(mode string) EntryMode {
 	switch mode {
 	case "000000":
-		return EntryModeNoEntry, nil
+		return EntryModeNoEntry
 	case "100644":
-		return EntryModeBlob, nil
+		return EntryModeBlob
 	case "100755":
-		return EntryModeExec, nil
+		return EntryModeExec
 	case "120000":
-		return EntryModeSymlink, nil
+		return EntryModeSymlink
 	case "160000":
-		return EntryModeCommit, nil
-	case "040000", "040755": // git uses 040000 for tree object, but some users may get 040755 for unknown reasons
-		return EntryModeTree, nil
+		return EntryModeCommit
+	case "040000", "40000": // leading-zero is optional
+		return EntryModeTree
 	default:
-		return 0, fmt.Errorf("unparsable entry mode: %s", mode)
+		// if the faster path didn't work, try parsing the mode as an integer and masking off the file type bits
+		// git uses 040000 for tree object, but some users may get 040755 from non-standard git implementations
+		m, _ := strconv.ParseInt(mode, 8, 32)
+		modeInt := EntryMode(m)
+		switch modeInt & 0o770000 {
+		case 0o040000:
+			return EntryModeTree
+		case 0o160000:
+			return EntryModeCommit
+		case 0o120000:
+			return EntryModeSymlink
+		case 0o100000:
+			if modeInt&0o777 == 0o755 {
+				return EntryModeExec
+			}
+			return EntryModeBlob
+		default:
+			return EntryModeNoEntry
+		}
 	}
 }

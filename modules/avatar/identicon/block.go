@@ -24,8 +24,8 @@ func drawBlock(img *image.Paletted, x, y, size, angle int, points []int) {
 		rotate(points, m, m, angle)
 	}
 
-	for i := 0; i < size; i++ {
-		for j := 0; j < size; j++ {
+	for i := range size {
+		for j := range size {
 			if pointInPolygon(i, j, points) {
 				img.SetColorIndex(x+i, y+j, 1)
 			}

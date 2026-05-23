@@ -37,7 +37,10 @@ h4.divider {
   margin-left: .75em;
 }
 
-.ui.dropdown .menu > .divider {
-  border-top: 1px solid var(--color-secondary);
-  margin: 4px 0;
+.inline-divider {
+  display: inline-block;
+  border-left: 1px solid var(--color-secondary);
+  overflow: hidden;
+  width: 1px;
+  margin: 0 var(--gap-inline);
 }

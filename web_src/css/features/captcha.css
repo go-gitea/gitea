@@ -1,0 +1,33 @@
+.m-captcha-style {
+  width: 100%;
+  height: 5em;
+  vertical-align: middle;
+  display: inline-block;
+}
+
+@media (min-width: 768px) {
+  .g-recaptcha-style,
+  .h-captcha-style {
+    margin: 0 auto !important;
+    width: 304px;
+    padding-left: 30px;
+  }
+  .g-recaptcha-style iframe,
+  .h-captcha-style iframe {
+    border-radius: var(--border-radius) !important;
+    width: 302px !important;
+    height: 76px !important;
+  }
+  .m-captcha-style {
+    max-width: 450px;
+  }
+}
+
+@media (max-height: 575px) {
+  #rc-imageselect, /* google recaptcha */
+  .g-recaptcha-style,
+  .h-captcha-style {
+    transform: scale(0.77);
+    transform-origin: 0 0;
+  }
+}

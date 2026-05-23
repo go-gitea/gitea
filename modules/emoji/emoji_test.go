@@ -7,13 +7,12 @@ package emoji
 import (
 	"testing"
 
+	"code.gitea.io/gitea/modules/container"
+	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/test"
+
 	"github.com/stretchr/testify/assert"
 )
-
-func TestDumpInfo(t *testing.T) {
-	t.Logf("codes: %d", len(codeMap))
-	t.Logf("aliases: %d", len(aliasMap))
-}
 
 func TestLookup(t *testing.T) {
 	a := FromCode("\U0001f37a")
@@ -24,7 +23,6 @@ func TestLookup(t *testing.T) {
 	assert.Equal(t, a, b)
 	assert.Equal(t, b, c)
 	assert.Equal(t, c, d)
-	assert.Equal(t, a, d)
 
 	m := FromCode("\U0001f44d")
 	n := FromAlias(":thumbsup:")
@@ -32,7 +30,20 @@ func TestLookup(t *testing.T) {
 
 	assert.Equal(t, m, n)
 	assert.Equal(t, m, o)
-	assert.Equal(t, n, o)
+
+	defer test.MockVariableValue(&setting.UI.EnabledEmojisSet, container.SetOf("thumbsup"))()
+	defer globalVarsStore.Store(nil)
+	globalVarsStore.Store(nil)
+	a = FromCode("\U0001f37a")
+	c = FromAlias(":beer:")
+	m = FromCode("\U0001f44d")
+	n = FromAlias(":thumbsup:")
+	o = FromAlias("+1")
+	assert.Nil(t, a)
+	assert.Nil(t, c)
+	assert.NotNil(t, m)
+	assert.NotNil(t, n)
+	assert.Nil(t, o)
 }
 
 func TestReplacers(t *testing.T) {

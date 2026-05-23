@@ -10,14 +10,16 @@ import (
 	"strings"
 	"testing"
 
-	"code.gitea.io/gitea/models/db"
+	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unittest"
 	user_model "code.gitea.io/gitea/models/user"
+	"code.gitea.io/gitea/modules/git/gitcmd"
 	"code.gitea.io/gitea/modules/test"
 	repo_service "code.gitea.io/gitea/services/repository"
 	"code.gitea.io/gitea/tests"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestCompareTag(t *testing.T) {
@@ -125,10 +127,42 @@ func TestCompareBranches(t *testing.T) {
 	inspectCompare(t, htmlDoc, diffCount, diffChanges)
 }
 
+func TestCompareBranchesNoCommonMergeBase(t *testing.T) {
+	defer tests.PrepareTestEnv(t)()
+
+	user2 := unittest.AssertExistsAndLoadBean(t, &user_model.User{Name: "user2"})
+	repo1 := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{OwnerID: user2.ID, Name: "repo1"})
+
+	repoPath := repo_model.RepoPath(user2.Name, repo1.Name)
+	_, _, runErr := gitcmd.NewCommand("fast-import").WithDir(repoPath).WithStdinBytes([]byte(strings.TrimSpace(`
+commit refs/heads/unrelated-history
+committer User <user@example.com> 1714310400 +0000
+data 13
+Second commit
+M 100644 inline file2.txt
+data 12
+Hello from 2
+`))).RunStdString(t.Context())
+	require.NoError(t, runErr)
+
+	session := loginUser(t, "user2")
+	req := NewRequest(t, "GET", "/user2/repo1/compare/master...unrelated-history")
+	resp := session.MakeRequest(t, req, http.StatusOK)
+	body := resp.Body.String()
+	htmlDoc := NewHTMLParser(t, resp.Body)
+
+	selection := htmlDoc.doc.Find(".ui.dropdown.select-branch")
+	assert.Lenf(t, selection.Nodes, 2, "The template has changed")
+	assert.Contains(t, body, "These branches do not share a common merge base")
+	assert.Equal(t, 1, htmlDoc.doc.Find(`a.item[href="/user2/repo1/compare/master...unrelated-history"]`).Length())
+	assert.Equal(t, 1, htmlDoc.doc.Find(`a.item[href="/user2/repo1/compare/master...master"]`).Length())
+	assert.Equal(t, 0, htmlDoc.doc.Find(".pullrequest-form").Length())
+}
+
 func TestCompareCodeExpand(t *testing.T) {
 	onGiteaRun(t, func(t *testing.T, u *url.URL) {
 		user1 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 1})
-		repo, err := repo_service.CreateRepositoryDirectly(db.DefaultContext, user1, user1, repo_service.CreateRepoOptions{
+		repo, err := repo_service.CreateRepositoryDirectly(t.Context(), user1, user1, repo_service.CreateRepoOptions{
 			Name:          "test_blob_excerpt",
 			Readme:        "Default",
 			AutoInit:      true,
@@ -148,12 +182,12 @@ func TestCompareCodeExpand(t *testing.T) {
 		req := NewRequest(t, "GET", "/user1/test_blob_excerpt/compare/main...user2/test_blob_excerpt-fork:forked-branch")
 		resp := session.MakeRequest(t, req, http.StatusOK)
 		htmlDoc := NewHTMLParser(t, resp.Body)
-		els := htmlDoc.Find(`button.code-expander-button[hx-get]`)
+		els := htmlDoc.Find(`button.code-expander-button[data-fetch-url]`)
 
 		// all the links in the comparison should be to the forked repo&branch
 		assert.NotZero(t, els.Length())
 		for i := 0; i < els.Length(); i++ {
-			link := els.Eq(i).AttrOr("hx-get", "")
+			link := els.Eq(i).AttrOr("data-fetch-url", "")
 			assert.True(t, strings.HasPrefix(link, "/user2/test_blob_excerpt-fork/blob_excerpt/"))
 		}
 	})

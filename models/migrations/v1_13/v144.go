@@ -1,16 +1,16 @@
 // Copyright 2020 The Gitea Authors. All rights reserved.
 // SPDX-License-Identifier: MIT
 
-package v1_13 //nolint
+package v1_13
 
 import (
+	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/modules/log"
 
 	"xorm.io/builder"
-	"xorm.io/xorm"
 )
 
-func UpdateMatrixWebhookHTTPMethod(x *xorm.Engine) error {
+func UpdateMatrixWebhookHTTPMethod(x db.EngineMigration) error {
 	matrixHookTaskType := 9 // value comes from the models package
 	type Webhook struct {
 		HTTPMethod string

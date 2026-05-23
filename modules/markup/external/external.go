@@ -15,14 +15,41 @@ import (
 	"code.gitea.io/gitea/modules/markup"
 	"code.gitea.io/gitea/modules/process"
 	"code.gitea.io/gitea/modules/setting"
+
+	"github.com/kballard/go-shellquote"
 )
 
 // RegisterRenderers registers all supported third part renderers according settings
 func RegisterRenderers() {
+	markup.RegisterRenderer(&frontendRenderer{
+		name: "openapi-swagger",
+		patterns: []string{
+			"openapi.yaml",
+			"openapi.yml",
+			"openapi.json",
+			"swagger.yaml",
+			"swagger.yml",
+			"swagger.json",
+		},
+	})
+
+	markup.RegisterRenderer(&frontendRenderer{
+		name: "viewer-3d",
+		patterns: []string{
+			// It needs more logic to make it overall right (render a text 3D model automatically):
+			// we need to distinguish the ambiguous filename extensions.
+			// For example: "*.amf, *.obj, *.off, *.step" might be or not be a 3D model file.
+			// So when it is a text file, we can't assume that "we only render it by 3D plugin",
+			// otherwise the end users would be impossible to view its real content when the file is not a 3D model.
+			"*.3dm", "*.3ds", "*.3mf", "*.amf", "*.bim", "*.brep",
+			"*.dae", "*.fbx", "*.fcstd", "*.glb", "*.gltf",
+			"*.ifc", "*.igs", "*.iges", "*.stp", "*.step",
+			"*.stl", "*.obj", "*.off", "*.ply", "*.wrl",
+		},
+	})
+
 	for _, renderer := range setting.ExternalMarkupRenderers {
-		if renderer.Enabled && renderer.Command != "" && len(renderer.FileExtensions) > 0 {
-			markup.RegisterRenderer(&Renderer{renderer})
-		}
+		markup.RegisterRenderer(&Renderer{renderer})
 	}
 }
 
@@ -36,34 +63,27 @@ var (
 	_ markup.ExternalRenderer    = (*Renderer)(nil)
 )
 
-// Name returns the external tool name
 func (p *Renderer) Name() string {
 	return p.MarkupName
 }
 
-// NeedPostProcess implements markup.Renderer
 func (p *Renderer) NeedPostProcess() bool {
 	return p.MarkupRenderer.NeedPostProcess
 }
 
-// Extensions returns the supported extensions of the tool
-func (p *Renderer) Extensions() []string {
-	return p.FileExtensions
+func (p *Renderer) FileNamePatterns() []string {
+	return p.FilePatterns
 }
 
-// SanitizerRules implements markup.Renderer
 func (p *Renderer) SanitizerRules() []setting.MarkupSanitizerRule {
 	return p.MarkupSanitizerRules
 }
 
-// SanitizerDisabled disabled sanitize if return true
-func (p *Renderer) SanitizerDisabled() bool {
-	return p.RenderContentMode == setting.RenderContentModeNoSanitizer || p.RenderContentMode == setting.RenderContentModeIframe
-}
-
-// DisplayInIFrame represents whether render the content with an iframe
-func (p *Renderer) DisplayInIFrame() bool {
-	return p.RenderContentMode == setting.RenderContentModeIframe
+func (p *Renderer) GetExternalRendererOptions() (ret markup.ExternalRendererOptions) {
+	ret.SanitizerDisabled = p.RenderContentMode == setting.RenderContentModeNoSanitizer || p.RenderContentMode == setting.RenderContentModeIframe
+	ret.DisplayInIframe = p.RenderContentMode == setting.RenderContentModeIframe
+	ret.ContentSandbox = p.RenderContentSandbox
+	return ret
 }
 
 func envMark(envName string) string {
@@ -81,7 +101,10 @@ func (p *Renderer) Render(ctx *markup.RenderContext, input io.Reader, output io.
 		envMark("GITEA_PREFIX_SRC"), baseLinkSrc,
 		envMark("GITEA_PREFIX_RAW"), baseLinkRaw,
 	).Replace(p.Command)
-	commands := strings.Fields(command)
+	commands, err := shellquote.Split(command)
+	if err != nil || len(commands) == 0 {
+		return fmt.Errorf("%s invalid command %q: %w", p.Name(), p.Command, err)
+	}
 	args := commands[1:]
 
 	if p.IsInputFile {

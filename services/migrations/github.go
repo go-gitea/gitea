@@ -20,7 +20,7 @@ import (
 	"code.gitea.io/gitea/modules/proxy"
 	"code.gitea.io/gitea/modules/structs"
 
-	"github.com/google/go-github/v61/github"
+	"github.com/google/go-github/v86/github"
 	"golang.org/x/oauth2"
 )
 
@@ -89,8 +89,8 @@ func NewGithubDownloaderV3(_ context.Context, baseURL, userName, password, token
 	}
 
 	if token != "" {
-		tokens := strings.Split(token, ",")
-		for _, token := range tokens {
+		tokens := strings.SplitSeq(token, ",")
+		for token := range tokens {
 			token = strings.TrimSpace(token)
 			ts := oauth2.StaticTokenSource(
 				&oauth2.Token{AccessToken: token},
@@ -205,6 +205,7 @@ func (g *GithubDownloaderV3) GetRepoInfo(ctx context.Context) (*base.Repository,
 		Name:          gr.GetName(),
 		IsPrivate:     gr.GetPrivate(),
 		Description:   gr.GetDescription(),
+		Website:       gr.GetHomepage(),
 		OriginalURL:   gr.GetHTMLURL(),
 		CloneURL:      gr.GetCloneURL(),
 		DefaultBranch: gr.GetDefaultBranch(),
@@ -322,11 +323,13 @@ func (g *GithubDownloaderV3) convertGithubRelease(ctx context.Context, rel *gith
 	httpClient := NewMigrationHTTPClient()
 
 	for _, asset := range rel.Assets {
-		assetID := *asset.ID // Don't optimize this, for closure we need a local variable
+		assetID := asset.GetID() // Don't optimize this, for closure we need a local variable TODO: no need to do so in new Golang
+		if assetID == 0 {
+			continue
+		}
 		r.Assets = append(r.Assets, &base.ReleaseAsset{
 			ID:            asset.GetID(),
 			Name:          asset.GetName(),
-			ContentType:   asset.ContentType,
 			Size:          asset.Size,
 			DownloadCount: asset.DownloadCount,
 			Created:       asset.CreatedAt.Time,
@@ -351,7 +354,8 @@ func (g *GithubDownloaderV3) convertGithubRelease(ctx context.Context, rel *gith
 
 				// Prevent open redirect
 				if !hasBaseURL(redirectURL, g.baseURL) &&
-					!hasBaseURL(redirectURL, "https://objects.githubusercontent.com/") {
+					!hasBaseURL(redirectURL, "https://objects.githubusercontent.com/") &&
+					!hasBaseURL(redirectURL, "https://release-assets.githubusercontent.com/") {
 					WarnAndNotice("Unexpected AssetURL for assetID[%d] in %s: %s", asset.GetID(), g, redirectURL)
 
 					return io.NopCloser(strings.NewReader(redirectURL)), nil
@@ -441,9 +445,11 @@ func (g *GithubDownloaderV3) GetIssues(ctx context.Context, page, perPage int) (
 		if !g.SkipReactions {
 			for i := 1; ; i++ {
 				g.waitAndPickClient(ctx)
-				res, resp, err := g.getClient().Reactions.ListIssueReactions(ctx, g.repoOwner, g.repoName, issue.GetNumber(), &github.ListOptions{
-					Page:    i,
-					PerPage: perPage,
+				res, resp, err := g.getClient().Reactions.ListIssueReactions(ctx, g.repoOwner, g.repoName, issue.GetNumber(), &github.ListReactionOptions{
+					ListOptions: github.ListOptions{
+						Page:    i,
+						PerPage: perPage,
+					},
 				})
 				if err != nil {
 					return nil, false, err
@@ -527,9 +533,11 @@ func (g *GithubDownloaderV3) getComments(ctx context.Context, commentable base.C
 			if !g.SkipReactions {
 				for i := 1; ; i++ {
 					g.waitAndPickClient(ctx)
-					res, resp, err := g.getClient().Reactions.ListIssueCommentReactions(ctx, g.repoOwner, g.repoName, comment.GetID(), &github.ListOptions{
-						Page:    i,
-						PerPage: g.maxPerPage,
+					res, resp, err := g.getClient().Reactions.ListIssueCommentReactions(ctx, g.repoOwner, g.repoName, comment.GetID(), &github.ListReactionOptions{
+						ListOptions: github.ListOptions{
+							Page:    i,
+							PerPage: g.maxPerPage,
+						},
 					})
 					if err != nil {
 						return nil, err
@@ -602,9 +610,11 @@ func (g *GithubDownloaderV3) GetAllComments(ctx context.Context, page, perPage i
 		if !g.SkipReactions {
 			for i := 1; ; i++ {
 				g.waitAndPickClient(ctx)
-				res, resp, err := g.getClient().Reactions.ListIssueCommentReactions(ctx, g.repoOwner, g.repoName, comment.GetID(), &github.ListOptions{
-					Page:    i,
-					PerPage: g.maxPerPage,
+				res, resp, err := g.getClient().Reactions.ListIssueCommentReactions(ctx, g.repoOwner, g.repoName, comment.GetID(), &github.ListReactionOptions{
+					ListOptions: github.ListOptions{
+						Page:    i,
+						PerPage: g.maxPerPage,
+					},
 				})
 				if err != nil {
 					return nil, false, err
@@ -673,9 +683,11 @@ func (g *GithubDownloaderV3) GetPullRequests(ctx context.Context, page, perPage 
 		if !g.SkipReactions {
 			for i := 1; ; i++ {
 				g.waitAndPickClient(ctx)
-				res, resp, err := g.getClient().Reactions.ListIssueReactions(ctx, g.repoOwner, g.repoName, pr.GetNumber(), &github.ListOptions{
-					Page:    i,
-					PerPage: perPage,
+				res, resp, err := g.getClient().Reactions.ListIssueReactions(ctx, g.repoOwner, g.repoName, pr.GetNumber(), &github.ListReactionOptions{
+					ListOptions: github.ListOptions{
+						Page:    i,
+						PerPage: perPage,
+					},
 				})
 				if err != nil {
 					return nil, false, err
@@ -760,9 +772,11 @@ func (g *GithubDownloaderV3) convertGithubReviewComments(ctx context.Context, cs
 		if !g.SkipReactions {
 			for i := 1; ; i++ {
 				g.waitAndPickClient(ctx)
-				res, resp, err := g.getClient().Reactions.ListPullRequestCommentReactions(ctx, g.repoOwner, g.repoName, c.GetID(), &github.ListOptions{
-					Page:    i,
-					PerPage: g.maxPerPage,
+				res, resp, err := g.getClient().Reactions.ListPullRequestCommentReactions(ctx, g.repoOwner, g.repoName, c.GetID(), &github.ListReactionOptions{
+					ListOptions: github.ListOptions{
+						Page:    i,
+						PerPage: g.maxPerPage,
+					},
 				})
 				if err != nil {
 					return nil, err
@@ -848,28 +862,22 @@ func (g *GithubDownloaderV3) GetReviews(ctx context.Context, reviewable base.Rev
 		opt.Page = resp.NextPage
 	}
 	// Get requested reviews
-	for {
-		g.waitAndPickClient(ctx)
-		reviewers, resp, err := g.getClient().PullRequests.ListReviewers(ctx, g.repoOwner, g.repoName, int(reviewable.GetForeignIndex()), opt)
-		if err != nil {
-			return nil, fmt.Errorf("error while listing repos: %w", err)
-		}
-		g.setRate(&resp.Rate)
-		for _, user := range reviewers.Users {
-			r := &base.Review{
-				ReviewerID:   user.GetID(),
-				ReviewerName: user.GetLogin(),
-				State:        base.ReviewStateRequestReview,
-				IssueIndex:   reviewable.GetLocalIndex(),
-			}
-			allReviews = append(allReviews, r)
-		}
-		// TODO: Handle Team requests
-		if resp.NextPage == 0 {
-			break
-		}
-		opt.Page = resp.NextPage
+	g.waitAndPickClient(ctx)
+	reviewers, resp, err := g.getClient().PullRequests.ListReviewers(ctx, g.repoOwner, g.repoName, int(reviewable.GetForeignIndex()))
+	if err != nil {
+		return nil, fmt.Errorf("error while listing repos: %w", err)
 	}
+	g.setRate(&resp.Rate)
+	for _, user := range reviewers.Users {
+		r := &base.Review{
+			ReviewerID:   user.GetID(),
+			ReviewerName: user.GetLogin(),
+			State:        base.ReviewStateRequestReview,
+			IssueIndex:   reviewable.GetLocalIndex(),
+		}
+		allReviews = append(allReviews, r)
+	}
+	// TODO: Handle Team requests
 	return allReviews, nil
 }
 

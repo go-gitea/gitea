@@ -37,25 +37,25 @@ func TestPassword(t *testing.T) {
 
 	count, err := client.CheckPassword("", false)
 	assert.ErrorIs(t, err, ErrEmptyPassword, "blank input should return ErrEmptyPassword")
-	assert.Equal(t, -1, count)
+	assert.EqualValues(t, -1, count)
 
 	count, err = client.CheckPassword("pwned", false)
 	assert.NoError(t, err)
-	assert.Equal(t, 1, count)
+	assert.EqualValues(t, 1, count)
 
 	count, err = client.CheckPassword("notpwned", false)
 	assert.NoError(t, err)
-	assert.Equal(t, 0, count)
+	assert.EqualValues(t, 0, count)
 
 	count, err = client.CheckPassword("paddedpwned", true)
 	assert.NoError(t, err)
-	assert.Equal(t, 1, count)
+	assert.EqualValues(t, 1, count)
 
 	count, err = client.CheckPassword("paddednotpwned", true)
 	assert.NoError(t, err)
-	assert.Equal(t, 0, count)
+	assert.EqualValues(t, 0, count)
 
 	count, err = client.CheckPassword("paddednotpwnedzero", true)
 	assert.NoError(t, err)
-	assert.Equal(t, 0, count)
+	assert.EqualValues(t, 0, count)
 }

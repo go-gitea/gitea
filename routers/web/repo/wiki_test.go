@@ -9,7 +9,6 @@ import (
 	"net/url"
 	"testing"
 
-	"code.gitea.io/gitea/models/db"
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unittest"
 	"code.gitea.io/gitea/modules/git"
@@ -17,6 +16,7 @@ import (
 	"code.gitea.io/gitea/modules/web"
 	"code.gitea.io/gitea/services/contexttest"
 	"code.gitea.io/gitea/services/forms"
+	repo_service "code.gitea.io/gitea/services/repository"
 	wiki_service "code.gitea.io/gitea/services/wiki"
 
 	"github.com/stretchr/testify/assert"
@@ -29,7 +29,7 @@ const (
 )
 
 func wikiEntry(t *testing.T, repo *repo_model.Repository, wikiName wiki_service.WebPath) *git.TreeEntry {
-	wikiRepo, err := gitrepo.OpenRepository(git.DefaultContext, repo.WikiStorageRepo())
+	wikiRepo, err := gitrepo.OpenRepository(t.Context(), repo.WikiStorageRepo())
 	assert.NoError(t, err)
 	defer wikiRepo.Close()
 	commit, err := wikiRepo.GetBranchCommit("master")
@@ -164,7 +164,7 @@ func TestEditWiki(t *testing.T) {
 	EditWiki(ctx)
 	assert.Equal(t, http.StatusOK, ctx.Resp.WrittenStatus())
 	assert.EqualValues(t, "Home", ctx.Data["Title"])
-	assert.Equal(t, wikiContent(t, ctx.Repo.Repository, "Home"), ctx.Data["content"])
+	assert.Equal(t, wikiContent(t, ctx.Repo.Repository, "Home"), ctx.Data["WikiEditContent"])
 
 	ctx, _ = contexttest.MockContext(t, "user2/repo1/wiki/jpeg.jpg?action=_edit")
 	ctx.SetPathParam("*", "jpeg.jpg")
@@ -241,11 +241,16 @@ func TestDefaultWikiBranch(t *testing.T) {
 
 	// repo with no wiki
 	repoWithNoWiki := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 2})
-	assert.False(t, repoWithNoWiki.HasWiki())
-	assert.NoError(t, wiki_service.ChangeDefaultWikiBranch(db.DefaultContext, repoWithNoWiki, "main"))
+	assert.False(t, repo_service.HasWiki(t.Context(), repoWithNoWiki))
+	assert.NoError(t, wiki_service.ChangeDefaultWikiBranch(t.Context(), repoWithNoWiki, "main"))
 
 	// repo with wiki
-	assert.NoError(t, repo_model.UpdateRepositoryCols(db.DefaultContext, &repo_model.Repository{ID: 1, DefaultWikiBranch: "wrong-branch"}))
+	assert.NoError(t, repo_model.UpdateRepositoryColsNoAutoTime(
+		t.Context(),
+		&repo_model.Repository{ID: 1, DefaultWikiBranch: "wrong-branch"},
+		"default_wiki_branch",
+	),
+	)
 
 	ctx, _ := contexttest.MockContext(t, "user2/repo1/wiki")
 	ctx.SetPathParam("*", "Home")
@@ -256,17 +261,17 @@ func TestDefaultWikiBranch(t *testing.T) {
 	assert.Equal(t, "master", ctx.Repo.Repository.DefaultWikiBranch)
 
 	// invalid branch name should fail
-	assert.Error(t, wiki_service.ChangeDefaultWikiBranch(db.DefaultContext, repo, "the bad name"))
+	assert.Error(t, wiki_service.ChangeDefaultWikiBranch(t.Context(), repo, "the bad name"))
 	repo = unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
 	assert.Equal(t, "master", repo.DefaultWikiBranch)
 
 	// the same branch name, should succeed (actually a no-op)
-	assert.NoError(t, wiki_service.ChangeDefaultWikiBranch(db.DefaultContext, repo, "master"))
+	assert.NoError(t, wiki_service.ChangeDefaultWikiBranch(t.Context(), repo, "master"))
 	repo = unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
 	assert.Equal(t, "master", repo.DefaultWikiBranch)
 
 	// change to another name
-	assert.NoError(t, wiki_service.ChangeDefaultWikiBranch(db.DefaultContext, repo, "main"))
+	assert.NoError(t, wiki_service.ChangeDefaultWikiBranch(t.Context(), repo, "main"))
 	repo = unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
 	assert.Equal(t, "main", repo.DefaultWikiBranch)
 }

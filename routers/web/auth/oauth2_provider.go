@@ -15,7 +15,7 @@ import (
 
 	"code.gitea.io/gitea/models/auth"
 	user_model "code.gitea.io/gitea/models/user"
-	"code.gitea.io/gitea/modules/base"
+	"code.gitea.io/gitea/modules/auth/httpauth"
 	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
@@ -108,9 +108,8 @@ func InfoOAuth(ctx *context.Context) {
 
 	var accessTokenScope auth.AccessTokenScope
 	if auHead := ctx.Req.Header.Get("Authorization"); auHead != "" {
-		auths := strings.Fields(auHead)
-		if len(auths) == 2 && (auths[0] == "token" || strings.ToLower(auths[0]) == "bearer") {
-			accessTokenScope, _ = auth_service.GetOAuthAccessTokenScopeAndUserID(ctx, auths[1])
+		if parsed, ok := httpauth.ParseAuthorizationHeader(auHead); ok && parsed.BearerToken != nil {
+			accessTokenScope, _ = auth_service.GetOAuthAccessTokenScopeAndUserID(ctx, parsed.BearerToken.Token)
 		}
 	}
 
@@ -127,18 +126,12 @@ func InfoOAuth(ctx *context.Context) {
 	ctx.JSON(http.StatusOK, response)
 }
 
-func parseBasicAuth(ctx *context.Context) (username, password string, err error) {
-	authHeader := ctx.Req.Header.Get("Authorization")
-	if authType, authData, ok := strings.Cut(authHeader, " "); ok && strings.EqualFold(authType, "Basic") {
-		return base.BasicAuthDecode(authData)
-	}
-	return "", "", errors.New("invalid basic authentication")
-}
-
 // IntrospectOAuth introspects an oauth token
 func IntrospectOAuth(ctx *context.Context) {
 	clientIDValid := false
-	if clientID, clientSecret, err := parseBasicAuth(ctx); err == nil {
+	authHeader := ctx.Req.Header.Get("Authorization")
+	if parsed, ok := httpauth.ParseAuthorizationHeader(authHeader); ok && parsed.BasicAuth != nil {
+		clientID, clientSecret := parsed.BasicAuth.Username, parsed.BasicAuth.Password
 		app, err := auth.GetOAuth2ApplicationByClientID(ctx, clientID)
 		if err != nil && !auth.IsErrOauthClientIDInvalid(err) {
 			// this is likely a database error; log it and respond without details
@@ -170,9 +163,7 @@ func IntrospectOAuth(ctx *context.Context) {
 			if err == nil && app != nil {
 				response.Active = true
 				response.Scope = grant.Scope
-				response.Issuer = setting.AppURL
-				response.Audience = []string{app.ClientID}
-				response.Subject = strconv.FormatInt(grant.UserID, 10)
+				response.RegisteredClaims = oauth2_provider.NewJwtRegisteredClaimsFromUser(app.ClientID, grant.UserID, nil /*exp*/)
 			}
 			if user, err := user_model.GetUserByID(ctx, grant.UserID); err == nil {
 				response.Username = user.Name
@@ -189,11 +180,11 @@ func AuthorizeOAuth(ctx *context.Context) {
 	errs := binding.Errors{}
 	errs = form.Validate(ctx.Req, errs)
 	if len(errs) > 0 {
-		errstring := ""
+		var errstring strings.Builder
 		for _, e := range errs {
-			errstring += e.Error() + "\n"
+			errstring.WriteString(e.Error() + "\n")
 		}
-		ctx.ServerError("AuthorizeOAuth: Validate: ", fmt.Errorf("errors occurred during validation: %s", errstring))
+		ctx.ServerError("AuthorizeOAuth: Validate: ", fmt.Errorf("errors occurred during validation: %s", errstring.String()))
 		return
 	}
 
@@ -240,8 +231,7 @@ func AuthorizeOAuth(ctx *context.Context) {
 
 	// pkce support
 	switch form.CodeChallengeMethod {
-	case "S256":
-	case "plain":
+	case "S256", "plain":
 		if err := ctx.Session.Set("CodeChallengeMethod", form.CodeChallengeMethod); err != nil {
 			handleAuthorizeError(ctx, AuthorizeError{
 				ErrorCode:        ErrorCodeServerError,
@@ -432,7 +422,14 @@ func GrantApplicationOAuth(ctx *context.Context) {
 
 // OIDCWellKnown generates JSON so OIDC clients know Gitea's capabilities
 func OIDCWellKnown(ctx *context.Context) {
-	ctx.Data["SigningKey"] = oauth2_provider.DefaultSigningKey
+	if !setting.OAuth2.Enabled {
+		http.NotFound(ctx.Resp, ctx.Req)
+		return
+	}
+	jwtRegisteredClaims := oauth2_provider.NewJwtRegisteredClaimsFromUser("well-known", 0, nil)
+	ctx.Data["OidcIssuer"] = jwtRegisteredClaims.Issuer // use the consistent issuer from the JWT registered claims
+	ctx.Data["OidcBaseUrl"] = strings.TrimSuffix(setting.AppURL, "/")
+	ctx.Data["SigningKeyMethodAlg"] = oauth2_provider.DefaultSigningKey.SigningMethod().Alg()
 	ctx.JSONTemplate("user/auth/oidc_wellknown")
 }
 
@@ -465,16 +462,16 @@ func AccessTokenOAuth(ctx *context.Context) {
 	form := *web.GetForm(ctx).(*forms.AccessTokenForm)
 	// if there is no ClientID or ClientSecret in the request body, fill these fields by the Authorization header and ensure the provided field matches the Authorization header
 	if form.ClientID == "" || form.ClientSecret == "" {
-		authHeader := ctx.Req.Header.Get("Authorization")
-		if authType, authData, ok := strings.Cut(authHeader, " "); ok && strings.EqualFold(authType, "Basic") {
-			clientID, clientSecret, err := base.BasicAuthDecode(authData)
-			if err != nil {
+		if authHeader := ctx.Req.Header.Get("Authorization"); authHeader != "" {
+			parsed, ok := httpauth.ParseAuthorizationHeader(authHeader)
+			if !ok || parsed.BasicAuth == nil {
 				handleAccessTokenError(ctx, oauth2_provider.AccessTokenError{
 					ErrorCode:        oauth2_provider.AccessTokenErrorCodeInvalidRequest,
 					ErrorDescription: "cannot parse basic auth header",
 				})
 				return
 			}
+			clientID, clientSecret := parsed.BasicAuth.Username, parsed.BasicAuth.Password
 			// validate that any fields present in the form match the Basic auth header
 			if form.ClientID != "" && form.ClientID != clientID {
 				handleAccessTokenError(ctx, oauth2_provider.AccessTokenError{
@@ -564,6 +561,13 @@ func handleRefreshToken(ctx *context.Context, form forms.AccessTokenForm, server
 		})
 		return
 	}
+	if grant.ApplicationID != app.ID {
+		handleAccessTokenError(ctx, oauth2_provider.AccessTokenError{
+			ErrorCode:        oauth2_provider.AccessTokenErrorCodeInvalidGrant,
+			ErrorDescription: "refresh token belongs to a different client",
+		})
+		return
+	}
 
 	// check if token got already used
 	if setting.OAuth2.InvalidateRefreshTokens && (grant.Counter != token.Counter || token.Counter == 0) {
@@ -617,11 +621,26 @@ func handleAuthorizationCode(ctx *context.Context, form forms.AccessTokenForm, s
 		})
 		return
 	}
+	if authorizationCode.IsExpired() {
+		_ = authorizationCode.Invalidate(ctx)
+		handleAccessTokenError(ctx, oauth2_provider.AccessTokenError{
+			ErrorCode:        oauth2_provider.AccessTokenErrorCodeInvalidGrant,
+			ErrorDescription: "authorization code expired",
+		})
+		return
+	}
 	// check if code verifier authorizes the client, PKCE support
 	if !authorizationCode.ValidateCodeChallenge(form.CodeVerifier) {
 		handleAccessTokenError(ctx, oauth2_provider.AccessTokenError{
 			ErrorCode:        oauth2_provider.AccessTokenErrorCodeUnauthorizedClient,
 			ErrorDescription: "failed PKCE code challenge",
+		})
+		return
+	}
+	if authorizationCode.RedirectURI != "" && form.RedirectURI != authorizationCode.RedirectURI {
+		handleAccessTokenError(ctx, oauth2_provider.AccessTokenError{
+			ErrorCode:        oauth2_provider.AccessTokenErrorCodeInvalidGrant,
+			ErrorDescription: "redirect_uri differs from the original authorization request",
 		})
 		return
 	}
@@ -635,10 +654,17 @@ func handleAuthorizationCode(ctx *context.Context, form forms.AccessTokenForm, s
 	}
 	// remove token from database to deny duplicate usage
 	if err := authorizationCode.Invalidate(ctx); err != nil {
+		errDescription := "cannot process your request"
+		errCode := oauth2_provider.AccessTokenErrorCodeInvalidRequest
+		if errors.Is(err, auth.ErrOAuth2AuthorizationCodeInvalidated) {
+			errDescription = "authorization code already used"
+			errCode = oauth2_provider.AccessTokenErrorCodeInvalidGrant
+		}
 		handleAccessTokenError(ctx, oauth2_provider.AccessTokenError{
-			ErrorCode:        oauth2_provider.AccessTokenErrorCodeInvalidRequest,
-			ErrorDescription: "cannot proceed your request",
+			ErrorCode:        errCode,
+			ErrorDescription: errDescription,
 		})
+		return
 	}
 	resp, tokenErr := oauth2_provider.NewAccessTokenResponse(ctx, authorizationCode.Grant, serverKey, clientKey)
 	if tokenErr != nil {

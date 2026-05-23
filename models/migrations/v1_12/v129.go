@@ -1,13 +1,11 @@
 // Copyright 2020 The Gitea Authors. All rights reserved.
 // SPDX-License-Identifier: MIT
 
-package v1_12 //nolint
+package v1_12
 
-import (
-	"xorm.io/xorm"
-)
+import "code.gitea.io/gitea/models/db"
 
-func PurgeUnusedDependencies(x *xorm.Engine) error {
+func PurgeUnusedDependencies(x db.EngineMigration) error {
 	if _, err := x.Exec("DELETE FROM issue_dependency WHERE issue_id NOT IN (SELECT id FROM issue)"); err != nil {
 		return err
 	}

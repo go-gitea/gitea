@@ -1,17 +1,18 @@
 import {isDocumentFragmentOrElementNode} from '../utils/dom.ts';
-import type {Promisable} from 'type-fest';
+import type {Promisable} from '../types.ts';
 import type {InitPerformanceTracer} from './init.ts';
+import {initAriaLabels} from './fomantic/base.ts';
 
 let globalSelectorObserverInited = false;
 
-type SelectorHandler = {selector: string, handler: (el: HTMLElement) => void};
-const selectorHandlers: SelectorHandler[] = [];
+type SelectorHandler<T extends Element> = {selector: string, handler: (el: T) => void};
+const selectorHandlers: SelectorHandler<Element>[] = [];
 
 type GlobalEventFunc<T extends HTMLElement, E extends Event> = (el: T, e: E) => Promisable<void>;
 const globalEventFuncs: Record<string, GlobalEventFunc<HTMLElement, Event>> = {};
 
-type GlobalInitFunc<T extends HTMLElement> = (el: T) => Promisable<void>;
-const globalInitFuncs: Record<string, GlobalInitFunc<HTMLElement>> = {};
+type GlobalInitFunc<T extends Element> = (el: T) => Promisable<void>;
+const globalInitFuncs: Record<string, GlobalInitFunc<Element>> = {};
 
 // It handles the global events for all `<div data-global-click="onSomeElemClick"></div>` elements.
 export function registerGlobalEventFunc<T extends HTMLElement, E extends Event>(event: string, name: string, func: GlobalEventFunc<T, E>) {
@@ -23,31 +24,32 @@ export function registerGlobalEventFunc<T extends HTMLElement, E extends Event>(
 // ATTENTION: For most cases, it's recommended to use registerGlobalInitFunc instead,
 // Because this selector-based approach is less efficient and less maintainable.
 // But if there are already a lot of elements on many pages, this selector-based approach is more convenient for exiting code.
-export function registerGlobalSelectorFunc(selector: string, handler: (el: HTMLElement) => void) {
-  selectorHandlers.push({selector, handler});
+export function registerGlobalSelectorFunc<T extends Element>(selector: string, handler: (el: T) => void) {
+  selectorHandlers.push({selector, handler: handler as (el: Element) => void});
   // Then initAddedElementObserver will call this handler for all existing elements after all handlers are added.
   // This approach makes the init stage only need to do one "querySelectorAll".
   if (!globalSelectorObserverInited) return;
-  for (const el of document.querySelectorAll<HTMLElement>(selector)) {
+  for (const el of document.querySelectorAll<T>(selector)) {
     handler(el);
   }
 }
 
 // It handles the global init functions for all `<div data-global-int="initSomeElem"></div>` elements.
 export function registerGlobalInitFunc<T extends HTMLElement>(name: string, handler: GlobalInitFunc<T>) {
-  globalInitFuncs[name] = handler as GlobalInitFunc<HTMLElement>;
+  globalInitFuncs[name] = handler as GlobalInitFunc<Element>;
   // The "global init" functions are managed internally and called by callGlobalInitFunc
   // They must be ready before initGlobalSelectorObserver is called.
   if (globalSelectorObserverInited) throw new Error('registerGlobalInitFunc() must be called before initGlobalSelectorObserver()');
 }
 
-function callGlobalInitFunc(el: HTMLElement) {
-  const initFunc = el.getAttribute('data-global-init');
+function callGlobalInitFunc(el: Element) {
+  // TODO: GLOBAL-INIT-MULTIPLE-FUNCTIONS: maybe in the future we need to extend it to support multiple functions, for example: `data-global-init="func1 func2 func3"`
+  const initFunc = el.getAttribute('data-global-init')!;
   const func = globalInitFuncs[initFunc];
   if (!func) throw new Error(`Global init function "${initFunc}" not found`);
 
   // when an element node is removed and added again, it should not be re-initialized again.
-  type GiteaGlobalInitElement = Partial<HTMLElement> & {_giteaGlobalInited: boolean};
+  type GiteaGlobalInitElement = Partial<Element> & {_giteaGlobalInited: boolean};
   if ((el as GiteaGlobalInitElement)._giteaGlobalInited) return;
   (el as GiteaGlobalInitElement)._giteaGlobalInited = true;
 
@@ -66,7 +68,7 @@ function attachGlobalEvents() {
   });
 }
 
-export function initGlobalSelectorObserver(perfTracer?: InitPerformanceTracer): void {
+export function initGlobalSelectorObserver(perfTracer: InitPerformanceTracer | null): void {
   if (globalSelectorObserverInited) throw new Error('initGlobalSelectorObserver() already called');
   globalSelectorObserverInited = true;
 
@@ -79,20 +81,23 @@ export function initGlobalSelectorObserver(perfTracer?: InitPerformanceTracer): 
       const mutation = mutationList[i];
       const len = mutation.addedNodes.length;
       for (let i = 0; i < len; i++) {
-        const addedNode = mutation.addedNodes[i] as HTMLElement;
+        const addedNode = mutation.addedNodes[i] as ParentNode;
         if (!isDocumentFragmentOrElementNode(addedNode)) continue;
 
+        initAriaLabels(addedNode);
         for (const {selector, handler} of selectorHandlers) {
-          if (addedNode.matches(selector)) {
+          if ((addedNode instanceof Element) && addedNode.matches(selector)) {
             handler(addedNode);
           }
-          for (const el of addedNode.querySelectorAll<HTMLElement>(selector)) {
+          for (const el of addedNode.querySelectorAll?.<HTMLElement>(selector) ?? []) {
             handler(el);
           }
         }
       }
     }
   });
+
+  initAriaLabels(document);
   if (perfTracer) {
     for (const {selector, handler} of selectorHandlers) {
       perfTracer.recordCall(`initGlobalSelectorObserver ${selector}`, () => {

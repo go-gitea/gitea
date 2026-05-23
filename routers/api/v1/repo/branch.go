@@ -80,7 +80,7 @@ func GetBranch(ctx *context.APIContext) {
 		return
 	}
 
-	br, err := convert.ToBranch(ctx, ctx.Repo.Repository, branchName, c, branchProtection, ctx.Doer, ctx.Repo.IsAdmin())
+	br, err := convert.ToBranch(ctx, ctx.Repo.Repository, branchName, c, branchProtection, ctx.Doer, ctx.Repo.Permission.IsAdmin())
 	if err != nil {
 		ctx.APIErrorInternal(err)
 		return
@@ -150,12 +150,12 @@ func DeleteBranch(ctx *context.APIContext) {
 		}
 	}
 
-	if err := repo_service.DeleteBranch(ctx, ctx.Doer, ctx.Repo.Repository, ctx.Repo.GitRepo, branchName, nil); err != nil {
+	if err := repo_service.DeleteBranch(ctx, ctx.Doer, ctx.Repo.Repository, ctx.Repo.GitRepo, branchName); err != nil {
 		switch {
 		case git.IsErrBranchNotExist(err):
 			ctx.APIErrorNotFound(err)
 		case errors.Is(err, repo_service.ErrBranchIsDefault):
-			ctx.APIError(http.StatusForbidden, errors.New("can not delete default branch"))
+			ctx.APIError(http.StatusForbidden, errors.New("can not delete default or pull request target branch"))
 		case errors.Is(err, git_model.ErrBranchIsProtected):
 			ctx.APIError(http.StatusForbidden, errors.New("branch protected"))
 		default:
@@ -224,9 +224,9 @@ func CreateBranch(ctx *context.APIContext) {
 			ctx.APIErrorInternal(err)
 			return
 		}
-	} else if len(opt.OldBranchName) > 0 { //nolint
-		if gitrepo.IsBranchExist(ctx, ctx.Repo.Repository, opt.OldBranchName) { //nolint
-			oldCommit, err = ctx.Repo.GitRepo.GetBranchCommit(opt.OldBranchName) //nolint
+	} else if len(opt.OldBranchName) > 0 { //nolint:staticcheck // deprecated field
+		if exist, _ := git_model.IsBranchExist(ctx, ctx.Repo.Repository.ID, opt.OldBranchName); exist { //nolint:staticcheck // deprecated field
+			oldCommit, err = ctx.Repo.GitRepo.GetBranchCommit(opt.OldBranchName) //nolint:staticcheck // deprecated field
 			if err != nil {
 				ctx.APIErrorInternal(err)
 				return
@@ -243,7 +243,7 @@ func CreateBranch(ctx *context.APIContext) {
 		}
 	}
 
-	err = repo_service.CreateNewBranchFromCommit(ctx, ctx.Doer, ctx.Repo.Repository, ctx.Repo.GitRepo, oldCommit.ID.String(), opt.BranchName)
+	err = repo_service.CreateNewBranchFromCommit(ctx, ctx.Doer, ctx.Repo.Repository, oldCommit.ID.String(), opt.BranchName)
 	if err != nil {
 		if git_model.IsErrBranchNotExist(err) {
 			ctx.APIError(http.StatusNotFound, "The old branch does not exist")
@@ -271,7 +271,7 @@ func CreateBranch(ctx *context.APIContext) {
 		return
 	}
 
-	br, err := convert.ToBranch(ctx, ctx.Repo.Repository, opt.BranchName, commit, branchProtection, ctx.Doer, ctx.Repo.IsAdmin())
+	br, err := convert.ToBranch(ctx, ctx.Repo.Repository, opt.BranchName, commit, branchProtection, ctx.Doer, ctx.Repo.Permission.IsAdmin())
 	if err != nil {
 		ctx.APIErrorInternal(err)
 		return
@@ -366,7 +366,7 @@ func ListBranches(ctx *context.APIContext) {
 			}
 
 			branchProtection := rules.GetFirstMatched(branches[i].Name)
-			apiBranch, err := convert.ToBranch(ctx, ctx.Repo.Repository, branches[i].Name, c, branchProtection, ctx.Doer, ctx.Repo.IsAdmin())
+			apiBranch, err := convert.ToBranch(ctx, ctx.Repo.Repository, branches[i].Name, c, branchProtection, ctx.Doer, ctx.Repo.Permission.IsAdmin())
 			if err != nil {
 				ctx.APIErrorInternal(err)
 				return
@@ -375,16 +375,16 @@ func ListBranches(ctx *context.APIContext) {
 		}
 	}
 
-	ctx.SetLinkHeader(int(totalNumOfBranches), listOptions.PageSize)
+	ctx.SetLinkHeader(totalNumOfBranches, listOptions.PageSize)
 	ctx.SetTotalCountHeader(totalNumOfBranches)
 	ctx.JSON(http.StatusOK, apiBranches)
 }
 
-// UpdateBranch updates a repository's branch.
+// UpdateBranch moves a branch reference to a new commit.
 func UpdateBranch(ctx *context.APIContext) {
-	// swagger:operation PATCH /repos/{owner}/{repo}/branches/{branch} repository repoUpdateBranch
+	// swagger:operation PUT /repos/{owner}/{repo}/branches/{branch} repository repoUpdateBranch
 	// ---
-	// summary: Update a branch
+	// summary: Update a branch reference to a new commit
 	// consumes:
 	// - application/json
 	// produces:
@@ -416,10 +416,85 @@ func UpdateBranch(ctx *context.APIContext) {
 	//     "$ref": "#/responses/forbidden"
 	//   "404":
 	//     "$ref": "#/responses/notFound"
+	//   "409":
+	//     "$ref": "#/responses/conflict"
 	//   "422":
 	//     "$ref": "#/responses/validationError"
 
 	opt := web.GetForm(ctx).(*api.UpdateBranchRepoOption)
+
+	branchName := ctx.PathParam("*")
+	repo := ctx.Repo.Repository
+
+	if repo.IsEmpty {
+		ctx.APIError(http.StatusNotFound, "Git Repository is empty.")
+		return
+	}
+
+	if repo.IsMirror {
+		ctx.APIError(http.StatusForbidden, "Git Repository is a mirror.")
+		return
+	}
+
+	// permission check has been done in api.go
+	if err := repo_service.UpdateBranch(ctx, repo, ctx.Repo.GitRepo, ctx.Doer, branchName, opt.NewCommitID, opt.OldCommitID, opt.Force); err != nil {
+		switch {
+		case git_model.IsErrBranchNotExist(err):
+			ctx.APIErrorNotFound(err)
+		case errors.Is(err, util.ErrInvalidArgument):
+			ctx.APIError(http.StatusUnprocessableEntity, err)
+		case git.IsErrPushRejected(err):
+			rej := err.(*git.ErrPushRejected)
+			ctx.APIError(http.StatusForbidden, rej.Message)
+		default:
+			ctx.APIErrorInternal(err)
+		}
+		return
+	}
+
+	ctx.Status(http.StatusNoContent)
+}
+
+// RenameBranch renames a repository's branch.
+func RenameBranch(ctx *context.APIContext) {
+	// swagger:operation PATCH /repos/{owner}/{repo}/branches/{branch} repository repoRenameBranch
+	// ---
+	// summary: Rename a branch
+	// consumes:
+	// - application/json
+	// produces:
+	// - application/json
+	// parameters:
+	// - name: owner
+	//   in: path
+	//   description: owner of the repo
+	//   type: string
+	//   required: true
+	// - name: repo
+	//   in: path
+	//   description: name of the repo
+	//   type: string
+	//   required: true
+	// - name: branch
+	//   in: path
+	//   description: name of the branch
+	//   type: string
+	//   required: true
+	// - name: body
+	//   in: body
+	//   schema:
+	//     "$ref": "#/definitions/RenameBranchRepoOption"
+	// responses:
+	//   "204":
+	//     "$ref": "#/responses/empty"
+	//   "403":
+	//     "$ref": "#/responses/forbidden"
+	//   "404":
+	//     "$ref": "#/responses/notFound"
+	//   "422":
+	//     "$ref": "#/responses/validationError"
+
+	opt := web.GetForm(ctx).(*api.RenameBranchRepoOption)
 
 	oldName := ctx.PathParam("*")
 	repo := ctx.Repo.Repository
@@ -434,13 +509,13 @@ func UpdateBranch(ctx *context.APIContext) {
 		return
 	}
 
-	msg, err := repo_service.RenameBranch(ctx, repo, ctx.Doer, ctx.Repo.GitRepo, oldName, opt.Name)
+	msg, err := repo_service.RenameBranch(ctx, repo, ctx.Doer, oldName, opt.Name)
 	if err != nil {
 		switch {
 		case repo_model.IsErrUserDoesNotHaveAccessToRepo(err):
 			ctx.APIError(http.StatusForbidden, "User must be a repo or site admin to rename default or protected branches.")
 		case errors.Is(err, git_model.ErrBranchIsProtected):
-			ctx.APIError(http.StatusForbidden, "Branch is protected by glob-based protection rules.")
+			ctx.APIError(http.StatusForbidden, "Failed to rename branch due to branch protection rules.")
 		default:
 			ctx.APIErrorInternal(err)
 		}
@@ -488,7 +563,7 @@ func GetBranchProtection(ctx *context.APIContext) {
 	//     "$ref": "#/responses/notFound"
 
 	repo := ctx.Repo.Repository
-	bpName := ctx.PathParam("name")
+	bpName := ctx.PathParam("*")
 	bp, err := git_model.GetProtectedBranchRuleByName(ctx, repo.ID, bpName)
 	if err != nil {
 		ctx.APIErrorInternal(err)
@@ -579,7 +654,7 @@ func CreateBranchProtection(ctx *context.APIContext) {
 
 	ruleName := form.RuleName
 	if ruleName == "" {
-		ruleName = form.BranchName //nolint
+		ruleName = form.BranchName //nolint:staticcheck // deprecated field
 	}
 	if len(ruleName) == 0 {
 		ctx.APIError(http.StatusBadRequest, "both rule_name and branch_name are empty")
@@ -636,7 +711,19 @@ func CreateBranchProtection(ctx *context.APIContext) {
 		ctx.APIErrorInternal(err)
 		return
 	}
-	var whitelistTeams, forcePushAllowlistTeams, mergeWhitelistTeams, approvalsWhitelistTeams []int64
+	var bypassAllowlistUsers []int64
+	if form.EnableBypassAllowlist {
+		bypassAllowlistUsers, err = user_model.GetUserIDsByNames(ctx, form.BypassAllowlistUsernames, false)
+		if err != nil {
+			if user_model.IsErrUserNotExist(err) {
+				ctx.APIError(http.StatusUnprocessableEntity, err)
+				return
+			}
+			ctx.APIErrorInternal(err)
+			return
+		}
+	}
+	var whitelistTeams, forcePushAllowlistTeams, mergeWhitelistTeams, approvalsWhitelistTeams, bypassAllowlistTeams []int64
 	if repo.Owner.IsOrganization() {
 		whitelistTeams, err = organization.GetTeamIDsByNames(ctx, repo.OwnerID, form.PushWhitelistTeams, false)
 		if err != nil {
@@ -674,6 +761,17 @@ func CreateBranchProtection(ctx *context.APIContext) {
 			ctx.APIErrorInternal(err)
 			return
 		}
+		if form.EnableBypassAllowlist {
+			bypassAllowlistTeams, err = organization.GetTeamIDsByNames(ctx, repo.OwnerID, form.BypassAllowlistTeams, false)
+			if err != nil {
+				if organization.IsErrTeamNotExist(err) {
+					ctx.APIError(http.StatusUnprocessableEntity, err)
+					return
+				}
+				ctx.APIErrorInternal(err)
+				return
+			}
+		}
 	}
 
 	protectBranch = &git_model.ProtectedBranch{
@@ -687,6 +785,7 @@ func CreateBranchProtection(ctx *context.APIContext) {
 		EnableForcePushAllowlist:      form.EnablePush && form.EnableForcePush && form.EnableForcePushAllowlist,
 		ForcePushAllowlistDeployKeys:  form.EnablePush && form.EnableForcePush && form.EnableForcePushAllowlist && form.ForcePushAllowlistDeployKeys,
 		EnableMergeWhitelist:          form.EnableMergeWhitelist,
+		EnableBypassAllowlist:         form.EnableBypassAllowlist,
 		EnableStatusCheck:             form.EnableStatusCheck,
 		StatusCheckContexts:           form.StatusCheckContexts,
 		EnableApprovalsWhitelist:      form.EnableApprovalsWhitelist,
@@ -711,6 +810,8 @@ func CreateBranchProtection(ctx *context.APIContext) {
 		MergeTeamIDs:     mergeWhitelistTeams,
 		ApprovalsUserIDs: approvalsWhitelistUsers,
 		ApprovalsTeamIDs: approvalsWhitelistTeams,
+		BypassUserIDs:    bypassAllowlistUsers,
+		BypassTeamIDs:    bypassAllowlistTeams,
 	}); err != nil {
 		ctx.APIErrorInternal(err)
 		return
@@ -770,7 +871,7 @@ func EditBranchProtection(ctx *context.APIContext) {
 	//     "$ref": "#/responses/repoArchivedError"
 	form := web.GetForm(ctx).(*api.EditBranchProtectionOption)
 	repo := ctx.Repo.Repository
-	bpName := ctx.PathParam("name")
+	bpName := ctx.PathParam("*")
 	protectBranch, err := git_model.GetProtectedBranchRuleByName(ctx, repo.ID, bpName)
 	if err != nil {
 		ctx.APIErrorInternal(err)
@@ -831,6 +932,10 @@ func EditBranchProtection(ctx *context.APIContext) {
 		protectBranch.EnableMergeWhitelist = *form.EnableMergeWhitelist
 	}
 
+	if form.EnableBypassAllowlist != nil {
+		protectBranch.EnableBypassAllowlist = *form.EnableBypassAllowlist
+	}
+
 	if form.EnableStatusCheck != nil {
 		protectBranch.EnableStatusCheck = *form.EnableStatusCheck
 	}
@@ -883,7 +988,7 @@ func EditBranchProtection(ctx *context.APIContext) {
 		protectBranch.BlockAdminMergeOverride = *form.BlockAdminMergeOverride
 	}
 
-	var whitelistUsers, forcePushAllowlistUsers, mergeWhitelistUsers, approvalsWhitelistUsers []int64
+	var whitelistUsers, forcePushAllowlistUsers, mergeWhitelistUsers, approvalsWhitelistUsers, bypassAllowlistUsers []int64
 	if form.PushWhitelistUsernames != nil {
 		whitelistUsers, err = user_model.GetUserIDsByNames(ctx, form.PushWhitelistUsernames, false)
 		if err != nil {
@@ -897,7 +1002,7 @@ func EditBranchProtection(ctx *context.APIContext) {
 	} else {
 		whitelistUsers = protectBranch.WhitelistUserIDs
 	}
-	if form.ForcePushAllowlistDeployKeys != nil {
+	if form.ForcePushAllowlistUsernames != nil {
 		forcePushAllowlistUsers, err = user_model.GetUserIDsByNames(ctx, form.ForcePushAllowlistUsernames, false)
 		if err != nil {
 			if user_model.IsErrUserNotExist(err) {
@@ -936,8 +1041,21 @@ func EditBranchProtection(ctx *context.APIContext) {
 	} else {
 		approvalsWhitelistUsers = protectBranch.ApprovalsWhitelistUserIDs
 	}
+	if form.BypassAllowlistUsernames != nil {
+		bypassAllowlistUsers, err = user_model.GetUserIDsByNames(ctx, form.BypassAllowlistUsernames, false)
+		if err != nil {
+			if user_model.IsErrUserNotExist(err) {
+				ctx.APIError(http.StatusUnprocessableEntity, err)
+				return
+			}
+			ctx.APIErrorInternal(err)
+			return
+		}
+	} else {
+		bypassAllowlistUsers = protectBranch.BypassAllowlistUserIDs
+	}
 
-	var whitelistTeams, forcePushAllowlistTeams, mergeWhitelistTeams, approvalsWhitelistTeams []int64
+	var whitelistTeams, forcePushAllowlistTeams, mergeWhitelistTeams, approvalsWhitelistTeams, bypassAllowlistTeams []int64
 	if repo.Owner.IsOrganization() {
 		if form.PushWhitelistTeams != nil {
 			whitelistTeams, err = organization.GetTeamIDsByNames(ctx, repo.OwnerID, form.PushWhitelistTeams, false)
@@ -991,6 +1109,23 @@ func EditBranchProtection(ctx *context.APIContext) {
 		} else {
 			approvalsWhitelistTeams = protectBranch.ApprovalsWhitelistTeamIDs
 		}
+		if form.BypassAllowlistTeams != nil {
+			bypassAllowlistTeams, err = organization.GetTeamIDsByNames(ctx, repo.OwnerID, form.BypassAllowlistTeams, false)
+			if err != nil {
+				if organization.IsErrTeamNotExist(err) {
+					ctx.APIError(http.StatusUnprocessableEntity, err)
+					return
+				}
+				ctx.APIErrorInternal(err)
+				return
+			}
+		} else {
+			bypassAllowlistTeams = protectBranch.BypassAllowlistTeamIDs
+		}
+	}
+	if !protectBranch.EnableBypassAllowlist {
+		bypassAllowlistUsers = nil
+		bypassAllowlistTeams = nil
 	}
 
 	err = git_model.UpdateProtectBranch(ctx, ctx.Repo.Repository, protectBranch, git_model.WhitelistOptions{
@@ -1002,6 +1137,8 @@ func EditBranchProtection(ctx *context.APIContext) {
 		MergeTeamIDs:     mergeWhitelistTeams,
 		ApprovalsUserIDs: approvalsWhitelistUsers,
 		ApprovalsTeamIDs: approvalsWhitelistTeams,
+		BypassUserIDs:    bypassAllowlistUsers,
+		BypassTeamIDs:    bypassAllowlistTeams,
 	})
 	if err != nil {
 		ctx.APIErrorInternal(err)
@@ -1011,7 +1148,11 @@ func EditBranchProtection(ctx *context.APIContext) {
 	isPlainRule := !git_model.IsRuleNameSpecial(bpName)
 	var isBranchExist bool
 	if isPlainRule {
-		isBranchExist = gitrepo.IsBranchExist(ctx, ctx.Repo.Repository, bpName)
+		isBranchExist, err = git_model.IsBranchExist(ctx, ctx.Repo.Repository.ID, bpName)
+		if err != nil {
+			ctx.APIErrorInternal(err)
+			return
+		}
 	}
 
 	if isBranchExist {
@@ -1089,7 +1230,7 @@ func DeleteBranchProtection(ctx *context.APIContext) {
 	//     "$ref": "#/responses/notFound"
 
 	repo := ctx.Repo.Repository
-	bpName := ctx.PathParam("name")
+	bpName := ctx.PathParam("*")
 	bp, err := git_model.GetProtectedBranchRuleByName(ctx, repo.ID, bpName)
 	if err != nil {
 		ctx.APIErrorInternal(err)
@@ -1181,7 +1322,7 @@ func MergeUpstream(ctx *context.APIContext) {
 	//   "404":
 	//     "$ref": "#/responses/notFound"
 	form := web.GetForm(ctx).(*api.MergeUpstreamRequest)
-	mergeStyle, err := repo_service.MergeUpstream(ctx, ctx.Doer, ctx.Repo.Repository, form.Branch)
+	mergeStyle, err := repo_service.MergeUpstream(ctx, ctx.Doer, ctx.Repo.Repository, form.Branch, form.FfOnly)
 	if err != nil {
 		if errors.Is(err, util.ErrInvalidArgument) {
 			ctx.APIError(http.StatusBadRequest, err)

@@ -7,7 +7,6 @@ import (
 	"context"
 	"fmt"
 	"slices"
-	"time"
 
 	issues_model "code.gitea.io/gitea/models/issues"
 	org_model "code.gitea.io/gitea/models/organization"
@@ -17,22 +16,6 @@ import (
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 )
-
-func getMergeBase(repo *git.Repository, pr *issues_model.PullRequest, baseBranch, headBranch string) (string, error) {
-	// Add a temporary remote
-	tmpRemote := fmt.Sprintf("mergebase-%d-%d", pr.ID, time.Now().UnixNano())
-	if err := repo.AddRemote(tmpRemote, repo.Path, false); err != nil {
-		return "", fmt.Errorf("AddRemote: %w", err)
-	}
-	defer func() {
-		if err := repo.RemoveRemote(tmpRemote); err != nil {
-			log.Error("getMergeBase: RemoveRemote: %v", err)
-		}
-	}()
-
-	mergeBase, _, err := repo.GetMergeBase(tmpRemote, baseBranch, headBranch)
-	return mergeBase, err
-}
 
 type ReviewRequestNotifier struct {
 	Comment    *issues_model.Comment
@@ -48,10 +31,6 @@ func IsCodeOwnerFile(f string) bool {
 }
 
 func PullRequestCodeOwnersReview(ctx context.Context, pr *issues_model.PullRequest) ([]*ReviewRequestNotifier, error) {
-	return PullRequestCodeOwnersReviewSpecialCommits(ctx, pr, "", "") // no commit is provided, then it uses PR's base&head branch
-}
-
-func PullRequestCodeOwnersReviewSpecialCommits(ctx context.Context, pr *issues_model.PullRequest, startCommitID, endCommitID string) ([]*ReviewRequestNotifier, error) {
 	if err := pr.LoadIssue(ctx); err != nil {
 		return nil, err
 	}
@@ -100,19 +79,14 @@ func PullRequestCodeOwnersReviewSpecialCommits(ctx context.Context, pr *issues_m
 		return nil, nil
 	}
 
-	if startCommitID == "" && endCommitID == "" {
-		// get the mergebase
-		mergeBase, err := getMergeBase(repo, pr, git.BranchPrefix+pr.BaseBranch, pr.GetGitRefName())
-		if err != nil {
-			return nil, err
-		}
-		startCommitID = mergeBase
-		endCommitID = pr.GetGitRefName()
+	// get the mergebase
+	mergeBase, err := gitrepo.MergeBase(ctx, pr.BaseRepo, git.BranchPrefix+pr.BaseBranch, pr.GetGitHeadRefName())
+	if err != nil {
+		return nil, err
 	}
-
 	// https://github.com/go-gitea/gitea/issues/29763, we need to get the files changed
 	// between the merge base and the head commit but not the base branch and the head commit
-	changedFiles, err := repo.GetFilesChangedBetween(startCommitID, endCommitID)
+	changedFiles, err := repo.GetFilesChangedBetween(mergeBase, pr.GetGitHeadRefName())
 	if err != nil {
 		return nil, err
 	}
@@ -121,7 +95,9 @@ func PullRequestCodeOwnersReviewSpecialCommits(ctx context.Context, pr *issues_m
 	uniqTeams := make(map[string]*org_model.Team)
 	for _, rule := range rules {
 		for _, f := range changedFiles {
-			if (rule.Rule.MatchString(f) && !rule.Negative) || (!rule.Rule.MatchString(f) && rule.Negative) {
+			shouldMatch := !rule.Negative
+			matched, _ := rule.Rule.MatchString(f) // err only happens when timeouts, any error can be considered as not matched
+			if matched == shouldMatch {
 				for _, u := range rule.Users {
 					uniqUsers[u.ID] = u
 				}
@@ -138,11 +114,26 @@ func PullRequestCodeOwnersReviewSpecialCommits(ctx context.Context, pr *issues_m
 		return nil, err
 	}
 
+	// load all reviews from database
+	latestReviews, _, err := issues_model.GetReviewsByIssueID(ctx, pr.IssueID)
+	if err != nil {
+		return nil, err
+	}
+
+	contain := func(list issues_model.ReviewList, u *user_model.User) bool {
+		for _, review := range list {
+			if review.ReviewerTeamID == 0 && review.ReviewerID == u.ID {
+				return true
+			}
+		}
+		return false
+	}
+
 	for _, u := range uniqUsers {
-		if u.ID != issue.Poster.ID {
-			comment, err := issues_model.AddReviewRequest(ctx, issue, u, issue.Poster)
+		if u.ID != issue.Poster.ID && !contain(latestReviews, u) {
+			comment, err := issues_model.AddReviewRequest(ctx, issue, u, issue.Poster, true)
 			if err != nil {
-				log.Warn("Failed add assignee user: %s to PR review: %s#%d, error: %s", u.Name, pr.BaseRepo.Name, pr.ID, err)
+				log.Warn("Failed add review user: %s to PR review: %s#%d, error: %s", u.Name, pr.BaseRepo.Name, pr.ID, err)
 				return nil, err
 			}
 			if comment == nil { // comment maybe nil if review type is ReviewTypeRequest
@@ -155,10 +146,11 @@ func PullRequestCodeOwnersReviewSpecialCommits(ctx context.Context, pr *issues_m
 			})
 		}
 	}
+
 	for _, t := range uniqTeams {
-		comment, err := issues_model.AddTeamReviewRequest(ctx, issue, t, issue.Poster)
+		comment, err := issues_model.AddTeamReviewRequest(ctx, issue, t, issue.Poster, true)
 		if err != nil {
-			log.Warn("Failed add assignee team: %s to PR review: %s#%d, error: %s", t.Name, pr.BaseRepo.Name, pr.ID, err)
+			log.Warn("Failed add reviewer team: %s to PR review: %s#%d, error: %s", t.Name, pr.BaseRepo.Name, pr.ID, err)
 			return nil, err
 		}
 		if comment == nil { // comment maybe nil if review type is ReviewTypeRequest

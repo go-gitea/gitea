@@ -1,0 +1,96 @@
+text-expander .suggestions,
+.tribute-container {
+  position: absolute;
+  max-height: min(300px, 95vh);
+  max-width: min(500px, 95vw);
+  overflow-x: hidden;
+  overflow-y: auto;
+  white-space: nowrap;
+  background: var(--color-menu);
+  box-shadow: 0 6px 18px var(--color-shadow);
+  border-radius: var(--border-radius);
+  border: 1px solid var(--color-secondary);
+  z-index: 100; /* needs to be > 20 to be on top of dropzone's .dz-details */
+}
+
+text-expander {
+  display: block;
+  position: relative;
+}
+
+text-expander .suggestions {
+  padding: 0;
+  margin-top: 24px;
+  list-style: none;
+}
+
+text-expander .suggestions li,
+.tribute-item {
+  display: flex;
+  align-items: center;
+  cursor: pointer;
+  gap: 6px;
+  font-weight: var(--font-weight-medium);
+}
+
+text-expander .suggestions li,
+.tribute-container li {
+  padding: 3px 6px;
+}
+
+text-expander .suggestions li + li,
+.tribute-container li + li {
+  border-top: 1px solid var(--color-secondary);
+}
+
+text-expander .suggestions li:first-child {
+  border-radius: var(--border-radius) var(--border-radius) 0 0;
+}
+
+text-expander .suggestions li:last-child {
+  border-radius: 0 0 var(--border-radius) var(--border-radius);
+}
+
+text-expander .suggestions li:only-child {
+  border-radius: var(--border-radius);
+}
+
+text-expander .suggestions .fullname,
+.tribute-container li .fullname {
+  font-weight: var(--font-weight-normal);
+  color: var(--color-text-light-1);
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+text-expander .suggestions li:hover,
+text-expander .suggestions li:hover *,
+text-expander .suggestions li[aria-selected="true"],
+text-expander .suggestions li[aria-selected="true"] *,
+.tribute-container li.highlight,
+.tribute-container li.highlight * {
+  background: var(--color-primary);
+  color: var(--color-primary-contrast);
+}
+
+text-expander .suggestions img,
+.tribute-item img {
+  width: 21px;
+  height: 21px;
+  object-fit: contain;
+  aspect-ratio: 1;
+}
+
+.tribute-container {
+  display: block;
+}
+
+.tribute-container ul {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.tribute-container li.no-match {
+  cursor: default;
+}

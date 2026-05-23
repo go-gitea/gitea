@@ -1,15 +1,14 @@
 // Copyright 2020 The Gitea Authors. All rights reserved.
 // SPDX-License-Identifier: MIT
 
-package v1_13 //nolint
+package v1_13
 
 import (
+	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/modules/timeutil"
-
-	"xorm.io/xorm"
 )
 
-func CreateReviewsForCodeComments(x *xorm.Engine) error {
+func CreateReviewsForCodeComments(x db.EngineMigration) error {
 	// Review
 	type Review struct {
 		ID               int64 `xorm:"pk autoincr"`

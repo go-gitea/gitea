@@ -1,15 +1,14 @@
 // Copyright 2021 The Gitea Authors. All rights reserved.
 // SPDX-License-Identifier: MIT
 
-package v1_15 //nolint
+package v1_15
 
 import (
+	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/models/migrations/base"
-
-	"xorm.io/xorm"
 )
 
-func DropWebhookColumns(x *xorm.Engine) error {
+func DropWebhookColumns(x db.EngineMigration) error {
 	// Make sure the columns exist before dropping them
 	type Webhook struct {
 		Signature string `xorm:"TEXT"`

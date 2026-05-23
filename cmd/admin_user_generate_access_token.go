@@ -4,50 +4,50 @@
 package cmd
 
 import (
+	"context"
 	"errors"
 	"fmt"
 
 	auth_model "code.gitea.io/gitea/models/auth"
 	user_model "code.gitea.io/gitea/models/user"
 
-	"github.com/urfave/cli/v2"
+	"github.com/urfave/cli/v3"
 )
 
-var microcmdUserGenerateAccessToken = &cli.Command{
-	Name:  "generate-access-token",
-	Usage: "Generate an access token for a specific user",
-	Flags: []cli.Flag{
-		&cli.StringFlag{
-			Name:    "username",
-			Aliases: []string{"u"},
-			Usage:   "Username",
+func newUserGenerateAccessTokenCommand() *cli.Command {
+	return &cli.Command{
+		Name:  "generate-access-token",
+		Usage: "Generate an access token for a specific user",
+		Flags: []cli.Flag{
+			&cli.StringFlag{
+				Name:    "username",
+				Aliases: []string{"u"},
+				Usage:   "Username",
+			},
+			&cli.StringFlag{
+				Name:    "token-name",
+				Aliases: []string{"t"},
+				Usage:   "Token name",
+				Value:   "gitea-admin",
+			},
+			&cli.BoolFlag{
+				Name:  "raw",
+				Usage: "Display only the token value",
+			},
+			&cli.StringFlag{
+				Name:  "scopes",
+				Value: "all",
+				Usage: `Comma separated list of scopes to apply to access token, examples: "all", "public-only,read:issue", "write:repository,write:user"`,
+			},
 		},
-		&cli.StringFlag{
-			Name:    "token-name",
-			Aliases: []string{"t"},
-			Usage:   "Token name",
-			Value:   "gitea-admin",
-		},
-		&cli.BoolFlag{
-			Name:  "raw",
-			Usage: "Display only the token value",
-		},
-		&cli.StringFlag{
-			Name:  "scopes",
-			Value: "all",
-			Usage: `Comma separated list of scopes to apply to access token, examples: "all", "public-only,read:issue", "write:repository,write:user"`,
-		},
-	},
-	Action: runGenerateAccessToken,
+		Action: runGenerateAccessToken,
+	}
 }
 
-func runGenerateAccessToken(c *cli.Context) error {
+func runGenerateAccessToken(ctx context.Context, c *cli.Command) error {
 	if !c.IsSet("username") {
 		return errors.New("you must provide a username to generate a token for")
 	}
-
-	ctx, cancel := installSignals()
-	defer cancel()
 
 	if err := initDB(ctx); err != nil {
 		return err

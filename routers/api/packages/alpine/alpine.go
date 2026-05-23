@@ -25,9 +25,8 @@ import (
 )
 
 func apiError(ctx *context.Context, status int, obj any) {
-	helper.LogAndProcessError(ctx, status, obj, func(message string) {
-		ctx.PlainText(status, message)
-	})
+	message := helper.ProcessErrorForUser(ctx, status, obj)
+	ctx.PlainText(status, message)
 }
 
 func GetRepositoryKey(ctx *context.Context) {
@@ -55,7 +54,7 @@ func GetRepositoryKey(ctx *context.Context) {
 		return
 	}
 
-	ctx.ServeContent(strings.NewReader(pub), &context.ServeHeaderOptions{
+	ctx.ServeContent(strings.NewReader(pub), context.ServeHeaderOptions{
 		ContentType: "application/x-pem-file",
 		Filename:    fmt.Sprintf("%s@%s.rsa.pub", ctx.Package.Owner.LowerName, hex.EncodeToString(fingerprint)),
 	})
@@ -68,13 +67,14 @@ func GetRepositoryFile(ctx *context.Context) {
 		return
 	}
 
-	s, u, pf, err := packages_service.GetFileStreamByPackageVersion(
+	s, u, pf, err := packages_service.OpenFileForDownloadByPackageVersion(
 		ctx,
 		pv,
 		&packages_service.PackageFileInfo{
 			Filename:     alpine_service.IndexArchiveFilename,
 			CompositeKey: fmt.Sprintf("%s|%s|%s", ctx.PathParam("branch"), ctx.PathParam("repository"), ctx.PathParam("architecture")),
 		},
+		ctx.Req.Method,
 	)
 	if err != nil {
 		if errors.Is(err, util.ErrNotExist) {
@@ -216,7 +216,7 @@ func DownloadPackageFile(ctx *context.Context) {
 		}
 	}
 
-	s, u, pf, err := packages_service.GetPackageFileStream(ctx, pfs[0])
+	s, u, pf, err := packages_service.OpenFileForDownload(ctx, pfs[0], ctx.Req.Method)
 	if err != nil {
 		if errors.Is(err, util.ErrNotExist) {
 			apiError(ctx, http.StatusNotFound, err)

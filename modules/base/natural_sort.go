@@ -41,8 +41,8 @@ func naturalSortAdvance(str string, pos int) (end int, isNumber bool) {
 	return end, isNumber
 }
 
-// NaturalSortLess compares two strings so that they could be sorted in natural order
-func NaturalSortLess(s1, s2 string) bool {
+// NaturalSortCompare compares two strings so that they could be sorted in natural order
+func NaturalSortCompare(s1, s2 string) int {
 	// There is a bug in Golang's collate package: https://github.com/golang/go/issues/67997
 	// text/collate: CompareString(collate.Numeric) returns wrong result for "0.0" vs "1.0" #67997
 	// So we need to handle the number parts by ourselves
@@ -55,16 +55,16 @@ func NaturalSortLess(s1, s2 string) bool {
 		if isNum1 && isNum2 {
 			if part1 != part2 {
 				if len(part1) != len(part2) {
-					return len(part1) < len(part2)
+					return len(part1) - len(part2)
 				}
-				return part1 < part2
+				return c.CompareString(part1, part2)
 			}
 		} else {
 			if cmp := c.CompareString(part1, part2); cmp != 0 {
-				return cmp < 0
+				return cmp
 			}
 		}
 		pos1, pos2 = end1, end2
 	}
-	return len(s1) < len(s2)
+	return len(s1) - len(s2)
 }

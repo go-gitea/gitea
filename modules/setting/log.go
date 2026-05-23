@@ -227,8 +227,8 @@ func initLoggerByName(manager *log.LoggerManager, rootCfg ConfigProvider, logger
 	}
 
 	var eventWriters []log.EventWriter
-	modes := strings.Split(modeVal, ",")
-	for _, modeName := range modes {
+	modes := strings.SplitSeq(modeVal, ",")
+	for modeName := range modes {
 		modeName = strings.TrimSpace(modeName)
 		if modeName == "" {
 			continue
@@ -256,7 +256,7 @@ func initLoggerByName(manager *log.LoggerManager, rootCfg ConfigProvider, logger
 }
 
 func InitSQLLoggersForCli(level log.Level) {
-	log.SetConsoleLogger("xorm", "console", level)
+	log.SetupStderrLogger("xorm", "console-stderr", level)
 }
 
 func IsAccessLogEnabled() bool {

@@ -1,13 +1,11 @@
 // Copyright 2021 The Gitea Authors. All rights reserved.
 // SPDX-License-Identifier: MIT
 
-package v1_15 //nolint
+package v1_15
 
-import (
-	"xorm.io/xorm"
-)
+import "code.gitea.io/gitea/models/db"
 
-func AddRepoArchiver(x *xorm.Engine) error {
+func AddRepoArchiver(x db.EngineMigration) error {
 	// RepoArchiver represents all archivers
 	type RepoArchiver struct {
 		ID          int64 `xorm:"pk autoincr"`

@@ -1,18 +1,17 @@
 // Copyright 2021 The Gitea Authors. All rights reserved.
 // SPDX-License-Identifier: MIT
 
-package v1_15 //nolint
+package v1_15
 
 import (
 	"fmt"
 	"time"
 
+	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/modules/timeutil"
-
-	"xorm.io/xorm"
 )
 
-func CreatePushMirrorTable(x *xorm.Engine) error {
+func CreatePushMirrorTable(x db.EngineMigration) error {
 	type PushMirror struct {
 		ID         int64 `xorm:"pk autoincr"`
 		RepoID     int64 `xorm:"INDEX"`

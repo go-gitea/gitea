@@ -166,6 +166,11 @@ func GetAttachmentByReleaseIDFileName(ctx context.Context, releaseID int64, file
 	return attach, nil
 }
 
+func GetUnlinkedAttachmentsByUserID(ctx context.Context, userID int64) ([]*Attachment, error) {
+	attachments := make([]*Attachment, 0, 10)
+	return attachments, db.GetEngine(ctx).Where("uploader_id = ? AND issue_id = 0 AND release_id = 0 AND comment_id = 0", userID).Find(&attachments)
+}
+
 // DeleteAttachment deletes the given attachment and optionally the associated file.
 func DeleteAttachment(ctx context.Context, a *Attachment, remove bool) error {
 	_, err := DeleteAttachments(ctx, []*Attachment{a}, remove)

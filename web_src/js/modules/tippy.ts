@@ -1,7 +1,8 @@
 import tippy, {followCursor} from 'tippy.js';
 import {isDocumentFragmentOrElementNode} from '../utils/dom.ts';
-import {formatDatetime} from '../utils/time.ts';
 import type {Content, Instance, Placement, Props} from 'tippy.js';
+import {html} from '../utils/html.ts';
+import {stripTags} from '../utils.ts';
 
 type TippyOpts = {
   role?: string,
@@ -9,7 +10,7 @@ type TippyOpts = {
 } & Partial<Props>;
 
 const visibleInstances = new Set<Instance>();
-const arrowSvg = `<svg width="16" height="7"><path d="m0 7 8-7 8 7Z" class="tippy-svg-arrow-outer"/><path d="m0 8 8-7 8 7Z" class="tippy-svg-arrow-inner"/></svg>`;
+const arrowSvg = html`<svg width="16" height="7"><path d="m0 7 8-7 8 7Z" class="tippy-svg-arrow-outer"/><path d="m0 8 8-7 8 7Z" class="tippy-svg-arrow-inner"/></svg>`;
 
 export function createTippy(target: Element, opts: TippyOpts = {}): Instance {
   // the callback functions should be destructured from opts,
@@ -40,6 +41,7 @@ export function createTippy(target: Element, opts: TippyOpts = {}): Instance {
         }
       }
       visibleInstances.add(instance);
+      target.setAttribute('aria-controls', instance.popper.id);
       return onShow?.(instance);
     },
     arrow: arrow ?? (theme === 'bare' ? false : arrowSvg),
@@ -66,7 +68,7 @@ export function createTippy(target: Element, opts: TippyOpts = {}): Instance {
  *
  * Note: "tooltip" doesn't equal to "tippy". "tooltip" means a auto-popup content, it just uses tippy as the implementation.
  */
-function attachTooltip(target: Element, content: Content = null): Instance {
+function attachTooltip(target: Element, content: Content | null = null): Instance | null {
   switchTitleToTooltip(target);
 
   content = content ?? target.getAttribute('data-tooltip-content');
@@ -84,6 +86,7 @@ function attachTooltip(target: Element, content: Content = null): Instance {
     role: 'tooltip',
     theme: 'tooltip',
     hideOnClick,
+    allowHTML: target.getAttribute('data-tooltip-render') === 'html',
     placement: target.getAttribute('data-tooltip-placement') as Placement || 'top-start',
     followCursor: target.getAttribute('data-tooltip-follow-cursor') as Props['followCursor'] || false,
     ...(target.getAttribute('data-tooltip-interactive') === 'true' ? {interactive: true, aria: {content: 'describedby', expanded: false}} : {}),
@@ -98,20 +101,10 @@ function attachTooltip(target: Element, content: Content = null): Instance {
 }
 
 function switchTitleToTooltip(target: Element): void {
-  let title = target.getAttribute('title');
+  const title = target.getAttribute('title');
   if (title) {
-    // apply custom formatting to relative-time's tooltips
-    if (target.tagName.toLowerCase() === 'relative-time') {
-      const datetime = target.getAttribute('datetime');
-      if (datetime) {
-        title = formatDatetime(new Date(datetime));
-      }
-    }
     target.setAttribute('data-tooltip-content', title);
     target.setAttribute('aria-label', title);
-    // keep the attribute, in case there are some other "[title]" selectors
-    // and to prevent infinite loop with <relative-time> which will re-add
-    // title if it is absent
     target.setAttribute('title', '');
   }
 }
@@ -123,7 +116,7 @@ function switchTitleToTooltip(target: Element): void {
  * The tippy by default uses "mouseenter" event to show, so we use "mouseover" event to switch to tippy
  */
 function lazyTooltipOnMouseHover(this: HTMLElement, e: Event): void {
-  e.target.removeEventListener('mouseover', lazyTooltipOnMouseHover, true);
+  (e.target as HTMLElement).removeEventListener('mouseover', lazyTooltipOnMouseHover, true);
   attachTooltip(this);
 }
 
@@ -136,7 +129,10 @@ function attachLazyTooltip(el: HTMLElement): void {
   if (!el.hasAttribute('aria-label')) {
     const content = el.getAttribute('data-tooltip-content');
     if (content) {
-      el.setAttribute('aria-label', content);
+      const isHtml = el.getAttribute('data-tooltip-render') === 'html';
+      let ariaLabelValue = content;
+      if (isHtml) ariaLabelValue = stripTags(content).replace(/\s+/g, ' ').trim();
+      el.setAttribute('aria-label', ariaLabelValue);
     }
   }
 }
@@ -153,7 +149,7 @@ export function initGlobalTooltips(): void {
   const observerConnect = (observer: MutationObserver) => observer.observe(document, {
     subtree: true,
     childList: true,
-    attributeFilter: ['data-tooltip-content', 'title'],
+    attributeFilter: ['data-tooltip-content'],
   });
   const observer = new MutationObserver((mutationList, observer) => {
     const pending = observer.takeRecords();
@@ -180,13 +176,26 @@ export function initGlobalTooltips(): void {
 }
 
 export function showTemporaryTooltip(target: Element, content: Content): void {
-  // if the target is inside a dropdown, the menu will be hidden soon
-  // so display the tooltip on the dropdown instead
-  target = target.closest('.ui.dropdown') || target;
-  const tippy = target._tippy ?? attachTooltip(target, content);
-  tippy.setContent(content);
-  if (!tippy.state.isShown) tippy.show();
-  tippy.setProps({
+  // if the target is inside a dropdown or tippy popup, the menu will be hidden soon
+  // so display the tooltip on the "aria-controls" element or dropdown instead
+  let refClientRect: DOMRect | undefined;
+  const popupTippyId = target.closest(`[data-tippy-root]`)?.id;
+  if (popupTippyId) {
+    // for example, the "Copy Permalink" button in the "File View" page for the selected lines
+    target = document.body;
+    refClientRect = document.querySelector(`[aria-controls="${CSS.escape(popupTippyId)}"]`)?.getBoundingClientRect();
+    refClientRect = refClientRect ?? new DOMRect(0, 0, 0, 0); // fallback to empty rect if not found, tippy doesn't accept null
+  } else {
+    // for example, the "Copy Link" button in the issue header dropdown menu
+    target = target.closest('.ui.dropdown') ?? target;
+    refClientRect = target.getBoundingClientRect();
+  }
+  const tooltipTippy = target._tippy ?? attachTooltip(target, content);
+  tooltipTippy.setContent(content);
+  tooltipTippy.setProps({getReferenceClientRect: () => refClientRect});
+  if (!tooltipTippy.state.isShown) tooltipTippy.show();
+
+  tooltipTippy.setProps({
     onHidden: (tippy) => {
       // reset the default tooltip content, if no default, then this temporary tooltip could be destroyed
       if (!attachTooltip(target)) {
@@ -194,4 +203,16 @@ export function showTemporaryTooltip(target: Element, content: Content): void {
       }
     },
   });
+
+  // on elements where the tooltip is re-located like "Copy Link" inside fomantic dropdowns, tippy.js gets
+  // no `mouseout` event and the tooltip stays visible, hide it with timeout.
+  if (!popupTippyId) {
+    setTimeout(() => {
+      if (tooltipTippy.state.isVisible) tooltipTippy.hide();
+    }, 1500);
+  }
+}
+
+export function getAttachedTippyInstance(el: Element): Instance | null {
+  return el._tippy ?? null;
 }

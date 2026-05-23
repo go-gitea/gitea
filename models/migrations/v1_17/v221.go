@@ -1,18 +1,17 @@
 // Copyright 2022 The Gitea Authors. All rights reserved.
 // SPDX-License-Identifier: MIT
 
-package v1_17 //nolint
+package v1_17
 
 import (
 	"encoding/base32"
 	"fmt"
 
+	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/modules/timeutil"
-
-	"xorm.io/xorm"
 )
 
-func StoreWebauthnCredentialIDAsBytes(x *xorm.Engine) error {
+func StoreWebauthnCredentialIDAsBytes(x db.EngineMigration) error {
 	// Create webauthnCredential table
 	type webauthnCredential struct {
 		ID           int64 `xorm:"pk autoincr"`

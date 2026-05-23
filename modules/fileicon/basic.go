@@ -6,22 +6,26 @@ package fileicon
 import (
 	"html/template"
 
-	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/svg"
+	"code.gitea.io/gitea/modules/util"
 )
 
-func BasicThemeIcon(entry *git.TreeEntry) template.HTML {
+func BasicEntryIconName(entry *EntryInfo) string {
 	svgName := "octicon-file"
 	switch {
-	case entry.IsLink():
+	case entry.EntryMode.IsLink():
 		svgName = "octicon-file-symlink-file"
-		if te, err := entry.FollowLink(); err == nil && te.IsDir() {
+		if entry.SymlinkToMode.IsDir() {
 			svgName = "octicon-file-directory-symlink"
 		}
-	case entry.IsDir():
-		svgName = "octicon-file-directory-fill"
-	case entry.IsSubModule():
+	case entry.EntryMode.IsDir():
+		svgName = util.Iif(entry.IsOpen, "octicon-file-directory-open-fill", "octicon-file-directory-fill")
+	case entry.EntryMode.IsSubModule():
 		svgName = "octicon-file-submodule"
 	}
-	return svg.RenderHTML(svgName)
+	return svgName
+}
+
+func BasicEntryIconHTML(entry *EntryInfo) template.HTML {
+	return svg.RenderHTML(BasicEntryIconName(entry))
 }

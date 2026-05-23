@@ -1,13 +1,11 @@
 // Copyright 2019 The Gitea Authors. All rights reserved.
 // SPDX-License-Identifier: MIT
 
-package v1_11 //nolint
+package v1_11
 
-import (
-	"xorm.io/xorm"
-)
+import "code.gitea.io/gitea/models/db"
 
-func AddWhitelistDeployKeysToBranches(x *xorm.Engine) error {
+func AddWhitelistDeployKeysToBranches(x db.EngineMigration) error {
 	type ProtectedBranch struct {
 		ID                  int64
 		WhitelistDeployKeys bool `xorm:"NOT NULL DEFAULT false"`

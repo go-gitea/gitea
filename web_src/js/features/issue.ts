@@ -1,6 +1,6 @@
 import type {Issue} from '../types.ts';
 
-// the getIssueIcon/getIssueColor logic should be kept the same as "templates/shared/issueicon.tmpl"
+// the getIssueIcon/getIssueColorClass logic should be kept the same as "templates/shared/issueicon.tmpl"
 
 export function getIssueIcon(issue: Issue) {
   if (issue.pull_request) {
@@ -21,21 +21,21 @@ export function getIssueIcon(issue: Issue) {
   return 'octicon-issue-closed'; // Closed Issue
 }
 
-export function getIssueColor(issue: Issue) {
+export function getIssueColorClass(issue: Issue) {
   if (issue.pull_request) {
     if (issue.state === 'open') {
       if (issue.pull_request.draft) {
-        return 'grey'; // WIP PR
+        return 'tw-text-text-light'; // WIP PR
       }
-      return 'green'; // Open PR
+      return 'tw-text-green'; // Open PR
     } else if (issue.pull_request.merged) {
-      return 'purple'; // Merged PR
+      return 'tw-text-purple'; // Merged PR
     }
-    return 'red'; // Closed PR
+    return 'tw-text-red'; // Closed PR
   }
 
   if (issue.state === 'open') {
-    return 'green'; // Open Issue
+    return 'tw-text-green'; // Open Issue
   }
-  return 'red'; // Closed Issue
+  return 'tw-text-red'; // Closed Issue
 }

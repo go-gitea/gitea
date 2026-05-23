@@ -4,31 +4,28 @@
 package migrations
 
 import (
-	"net/http"
 	"os"
+	"path/filepath"
+	"runtime"
 	"testing"
 	"time"
 
+	"code.gitea.io/gitea/models/unittest"
 	base "code.gitea.io/gitea/modules/migration"
 
 	"github.com/stretchr/testify/assert"
 )
 
 func TestGogsDownloadRepo(t *testing.T) {
-	// Skip tests if Gogs token is not found
-	gogsPersonalAccessToken := os.Getenv("GOGS_READ_TOKEN")
-	if len(gogsPersonalAccessToken) == 0 {
-		t.Skip("skipped test because GOGS_READ_TOKEN was not in the environment")
-	}
+	token := os.Getenv("GOGS_READ_TOKEN")
+	liveMode := token != ""
 
-	resp, err := http.Get("https://try.gogs.io/lunnytest/TESTREPO")
-	if err != nil || resp.StatusCode/100 != 2 {
-		// skip and don't run test
-		t.Skipf("visit test repo failed, ignored")
-		return
-	}
+	_, callerFile, _, _ := runtime.Caller(0)
+	fixtureDir := filepath.Join(filepath.Dir(callerFile), "_mock_data/TestGogsDownloadRepo")
+	mockServer := unittest.NewMockWebServer(t, "https://try.gogs.io", fixtureDir, liveMode)
+
 	ctx := t.Context()
-	downloader := NewGogsDownloader(ctx, "https://try.gogs.io", "", "", gogsPersonalAccessToken, "lunnytest", "TESTREPO")
+	downloader := NewGogsDownloader(ctx, mockServer.URL, "", "", token, "lunnytest", "TESTREPO")
 	repo, err := downloader.GetRepoInfo(ctx)
 	assert.NoError(t, err)
 
@@ -36,8 +33,8 @@ func TestGogsDownloadRepo(t *testing.T) {
 		Name:          "TESTREPO",
 		Owner:         "lunnytest",
 		Description:   "",
-		CloneURL:      "https://try.gogs.io/lunnytest/TESTREPO.git",
-		OriginalURL:   "https://try.gogs.io/lunnytest/TESTREPO",
+		CloneURL:      mockServer.URL + "/lunnytest/TESTREPO.git",
+		OriginalURL:   mockServer.URL + "/lunnytest/TESTREPO",
 		DefaultBranch: "master",
 	}, repo)
 

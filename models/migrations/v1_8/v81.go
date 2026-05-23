@@ -1,16 +1,17 @@
 // Copyright 2019 The Gitea Authors. All rights reserved.
 // SPDX-License-Identifier: MIT
 
-package v1_8 //nolint
+package v1_8
 
 import (
 	"fmt"
 
-	"xorm.io/xorm"
+	"code.gitea.io/gitea/models/db"
+
 	"xorm.io/xorm/schemas"
 )
 
-func ChangeU2FCounterType(x *xorm.Engine) error {
+func ChangeU2FCounterType(x db.EngineMigration) error {
 	var err error
 
 	switch x.Dialect().URI().DBType {

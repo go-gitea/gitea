@@ -63,8 +63,8 @@ func TestGPGKeys(t *testing.T) {
 			t.Run("CreateInvalidGPGKey", func(t *testing.T) {
 				testCreateInvalidGPGKey(t, tc.makeRequest, tc.token, tc.results[4])
 			})
-			t.Run("CreateNoneRegistredEmailGPGKey", func(t *testing.T) {
-				testCreateNoneRegistredEmailGPGKey(t, tc.makeRequest, tc.token, tc.results[5])
+			t.Run("CreateNoneRegisteredEmailGPGKey", func(t *testing.T) {
+				testCreateNoneRegisteredEmailGPGKey(t, tc.makeRequest, tc.token, tc.results[5])
 			})
 			t.Run("CreateValidGPGKey", func(t *testing.T) {
 				testCreateValidGPGKey(t, tc.makeRequest, tc.token, tc.results[6])
@@ -77,12 +77,10 @@ func TestGPGKeys(t *testing.T) {
 
 	// Check state after basic add
 	t.Run("CheckState", func(t *testing.T) {
-		var keys []*api.GPGKey
-
 		req := NewRequest(t, "GET", "/api/v1/user/gpg_keys"). // GET all keys
 									AddTokenAuth(tokenWithGPGKeyScope)
 		resp := MakeRequest(t, req, http.StatusOK)
-		DecodeJSON(t, resp, &keys)
+		keys := DecodeJSON(t, resp, []*api.GPGKey{})
 		assert.Len(t, keys, 1)
 
 		primaryKey1 := keys[0] // Primary key 1
@@ -95,11 +93,10 @@ func TestGPGKeys(t *testing.T) {
 		assert.Equal(t, "70D7C694D17D03AD", subKey.KeyID)
 		assert.Empty(t, subKey.Emails)
 
-		var key api.GPGKey
 		req = NewRequest(t, "GET", "/api/v1/user/gpg_keys/"+strconv.FormatInt(primaryKey1.ID, 10)). // Primary key 1
 														AddTokenAuth(tokenWithGPGKeyScope)
 		resp = MakeRequest(t, req, http.StatusOK)
-		DecodeJSON(t, resp, &key)
+		key := DecodeJSON(t, resp, &api.GPGKey{})
 		assert.Equal(t, "38EA3BCED732982C", key.KeyID)
 		assert.Len(t, key.Emails, 1)
 		assert.Equal(t, "user2@example.com", key.Emails[0].Email)
@@ -108,7 +105,7 @@ func TestGPGKeys(t *testing.T) {
 		req = NewRequest(t, "GET", "/api/v1/user/gpg_keys/"+strconv.FormatInt(subKey.ID, 10)). // Subkey of 38EA3BCED732982C
 													AddTokenAuth(tokenWithGPGKeyScope)
 		resp = MakeRequest(t, req, http.StatusOK)
-		DecodeJSON(t, resp, &key)
+		key = DecodeJSON(t, resp, &api.GPGKey{})
 		assert.Equal(t, "70D7C694D17D03AD", key.KeyID)
 		assert.Empty(t, key.Emails)
 	})
@@ -116,29 +113,26 @@ func TestGPGKeys(t *testing.T) {
 	// Check state after basic add
 	t.Run("CheckCommits", func(t *testing.T) {
 		t.Run("NotSigned", func(t *testing.T) {
-			var branch api.Branch
 			req := NewRequest(t, "GET", "/api/v1/repos/user2/repo16/branches/not-signed").
 				AddTokenAuth(token)
 			resp := MakeRequest(t, req, http.StatusOK)
-			DecodeJSON(t, resp, &branch)
+			branch := DecodeJSON(t, resp, &api.Branch{})
 			assert.False(t, branch.Commit.Verification.Verified)
 		})
 
 		t.Run("SignedWithNotValidatedEmail", func(t *testing.T) {
-			var branch api.Branch
 			req := NewRequest(t, "GET", "/api/v1/repos/user2/repo16/branches/good-sign-not-yet-validated").
 				AddTokenAuth(token)
 			resp := MakeRequest(t, req, http.StatusOK)
-			DecodeJSON(t, resp, &branch)
+			branch := DecodeJSON(t, resp, &api.Branch{})
 			assert.False(t, branch.Commit.Verification.Verified)
 		})
 
 		t.Run("SignedWithValidEmail", func(t *testing.T) {
-			var branch api.Branch
 			req := NewRequest(t, "GET", "/api/v1/repos/user2/repo16/branches/good-sign").
 				AddTokenAuth(token)
 			resp := MakeRequest(t, req, http.StatusOK)
-			DecodeJSON(t, resp, &branch)
+			branch := DecodeJSON(t, resp, &api.Branch{})
 			assert.True(t, branch.Commit.Verification.Verified)
 		})
 	})
@@ -179,7 +173,7 @@ func testCreateInvalidGPGKey(t *testing.T, makeRequest makeRequestFunc, token st
 	testCreateGPGKey(t, makeRequest, token, expected, "invalid_key")
 }
 
-func testCreateNoneRegistredEmailGPGKey(t *testing.T, makeRequest makeRequestFunc, token string, expected int) {
+func testCreateNoneRegisteredEmailGPGKey(t *testing.T, makeRequest makeRequestFunc, token string, expected int) {
 	testCreateGPGKey(t, makeRequest, token, expected, `-----BEGIN PGP PUBLIC KEY BLOCK-----
 
 mQENBFmGUygBCACjCNbKvMGgp0fd5vyFW9olE1CLCSyyF9gQN2hSuzmZLuAZF2Kh

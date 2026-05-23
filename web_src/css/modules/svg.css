@@ -1,15 +1,18 @@
-.svg {
+/* some material icons have "fill=none" (e.g.: ".txt -> document"), so the CSS styles shouldn't overwrite it,
+ and material icons should have no "fill" set explicitly, otherwise some like ".editorconfig" won't render correctly */
+.svg:not(.git-entry-icon) {
   display: inline-block;
   vertical-align: text-top;
   fill: currentcolor;
 }
 
-.svg.git-entry-icon {
-  fill: transparent; /* some material icons have dark background fill, so need to reset */
-}
-
-.middle .svg {
-  vertical-align: middle;
+/* some browsers like Chrome have a bug: when a SVG is in a "display: none" container and referenced
+ somewhere else by `<use href="#id">`, it won't be rendered correctly. e.g.: ".kts -> kotlin" */
+.svg-icon-container {
+  position: absolute;
+  width: 0;
+  height: 0;
+  overflow: hidden;
 }
 
 /* prevent SVGs from shrinking, like in space-starved flexboxes. the sizes
@@ -43,3 +46,9 @@
 .svg[width="36"] { min-width: 36px; }
 .svg[width="48"] { min-width: 48px; }
 .svg[width="56"] { min-width: 56px; }
+
+/* when the svg is used in menu or item, it's certain that we don't want it to be shrunk */
+.menu .svg,
+.item .svg {
+  flex-shrink: 0;
+}

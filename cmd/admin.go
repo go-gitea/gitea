@@ -15,64 +15,71 @@ import (
 	"code.gitea.io/gitea/modules/log"
 	repo_module "code.gitea.io/gitea/modules/repository"
 
-	"github.com/urfave/cli/v2"
+	"github.com/urfave/cli/v3"
 )
 
-var (
-	// CmdAdmin represents the available admin sub-command.
-	CmdAdmin = &cli.Command{
+func newAdminCommand() *cli.Command {
+	return &cli.Command{
 		Name:  "admin",
 		Usage: "Perform common administrative operations",
-		Subcommands: []*cli.Command{
-			subcmdUser,
-			subcmdRepoSyncReleases,
-			subcmdRegenerate,
-			subcmdAuth,
-			subcmdSendMail,
+		Commands: []*cli.Command{
+			newUserCommand(),
+			newRepoSyncReleasesCommand(),
+			newRegenerateCommand(),
+			newAuthCommand(),
+			newSendMailCommand(),
 		},
 	}
+}
 
-	subcmdRepoSyncReleases = &cli.Command{
+func newRepoSyncReleasesCommand() *cli.Command {
+	return &cli.Command{
 		Name:   "repo-sync-releases",
 		Usage:  "Synchronize repository releases with tags",
 		Action: runRepoSyncReleases,
 	}
+}
 
-	subcmdRegenerate = &cli.Command{
+func newRegenerateCommand() *cli.Command {
+	return &cli.Command{
 		Name:  "regenerate",
 		Usage: "Regenerate specific files",
-		Subcommands: []*cli.Command{
-			microcmdRegenHooks,
-			microcmdRegenKeys,
+		Commands: []*cli.Command{
+			newRegenerateHooksCommand(),
+			newRegenerateKeysCommand(),
 		},
 	}
+}
 
-	subcmdAuth = &cli.Command{
+func newAuthCommand() *cli.Command {
+	return &cli.Command{
 		Name:  "auth",
 		Usage: "Modify external auth providers",
-		Subcommands: []*cli.Command{
-			microcmdAuthAddOauth,
-			microcmdAuthUpdateOauth,
-			microcmdAuthAddLdapBindDn,
-			microcmdAuthUpdateLdapBindDn,
-			microcmdAuthAddLdapSimpleAuth,
-			microcmdAuthUpdateLdapSimpleAuth,
-			microcmdAuthAddSMTP,
-			microcmdAuthUpdateSMTP,
-			microcmdAuthList,
-			microcmdAuthDelete,
+		Commands: []*cli.Command{
+			microcmdAuthAddOauth(),
+			microcmdAuthUpdateOauth(),
+			microcmdAuthAddLdapBindDn(),
+			microcmdAuthUpdateLdapBindDn(),
+			microcmdAuthAddLdapSimpleAuth(),
+			microcmdAuthUpdateLdapSimpleAuth(),
+			microcmdAuthAddSMTP(),
+			microcmdAuthUpdateSMTP(),
+			newAuthListCommand(),
+			newAuthDeleteCommand(),
 		},
 	}
+}
 
-	subcmdSendMail = &cli.Command{
+func newSendMailCommand() *cli.Command {
+	return &cli.Command{
 		Name:   "sendmail",
 		Usage:  "Send a message to all users",
 		Action: runSendMail,
 		Flags: []cli.Flag{
 			&cli.StringFlag{
-				Name:  "title",
-				Usage: `a title of a message`,
-				Value: "",
+				Name:     "title",
+				Usage:    "a title of a message",
+				Required: true,
 			},
 			&cli.StringFlag{
 				Name:  "content",
@@ -86,28 +93,27 @@ var (
 			},
 		},
 	}
+}
 
-	idFlag = &cli.Int64Flag{
+func idFlag() *cli.Int64Flag {
+	return &cli.Int64Flag{
 		Name:  "id",
 		Usage: "ID of authentication source",
 	}
-)
+}
 
-func runRepoSyncReleases(_ *cli.Context) error {
-	ctx, cancel := installSignals()
-	defer cancel()
-
+func runRepoSyncReleases(ctx context.Context, _ *cli.Command) error {
 	if err := initDB(ctx); err != nil {
 		return err
 	}
 
-	if err := git.InitSimple(ctx); err != nil {
+	if err := git.InitSimple(); err != nil {
 		return err
 	}
 
 	log.Trace("Synchronizing repository releases (this may take a while)")
 	for page := 1; ; page++ {
-		repos, count, err := repo_model.SearchRepositoryByName(ctx, &repo_model.SearchRepoOptions{
+		repos, count, err := repo_model.SearchRepositoryByName(ctx, repo_model.SearchRepoOptions{
 			ListOptions: db.ListOptions{
 				PageSize: repo_model.RepositoryListDefaultPageSize,
 				Page:     page,
@@ -122,7 +128,7 @@ func runRepoSyncReleases(_ *cli.Context) error {
 		}
 		log.Trace("Processing next %d repos of %d", len(repos), count)
 		for _, repo := range repos {
-			log.Trace("Synchronizing repo %s with path %s", repo.FullName(), repo.RepoPath())
+			log.Trace("Synchronizing repo %s with path %s", repo.FullName(), repo.RelativePath())
 			gitRepo, err := gitrepo.OpenRepository(ctx, repo)
 			if err != nil {
 				log.Warn("OpenRepository: %v", err)
@@ -135,7 +141,7 @@ func runRepoSyncReleases(_ *cli.Context) error {
 			}
 			log.Trace(" currentNumReleases is %d, running SyncReleasesWithTags", oldnum)
 
-			if err = repo_module.SyncReleasesWithTags(ctx, repo, gitRepo); err != nil {
+			if _, err = repo_module.SyncReleasesWithTags(ctx, repo, gitRepo); err != nil {
 				log.Warn(" SyncReleasesWithTags: %v", err)
 				gitRepo.Close()
 				continue
@@ -148,7 +154,7 @@ func runRepoSyncReleases(_ *cli.Context) error {
 				continue
 			}
 
-			log.Trace(" repo %s releases synchronized to tags: from %d to %d",
+			log.Trace("repo %s releases synchronized to tags: from %d to %d",
 				repo.FullName(), oldnum, count)
 			gitRepo.Close()
 		}

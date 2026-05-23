@@ -1,12 +1,11 @@
 // Copyright 2024 The Gitea Authors. All rights reserved.
 // SPDX-License-Identifier: MIT
 
-package v1_22 //nolint
+package v1_22
 
 import (
+	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/modules/timeutil"
-
-	"xorm.io/xorm"
 )
 
 type Blocking struct {
@@ -21,6 +20,6 @@ func (*Blocking) TableName() string {
 	return "user_blocking"
 }
 
-func AddUserBlockingTable(x *xorm.Engine) error {
+func AddUserBlockingTable(x db.EngineMigration) error {
 	return x.Sync(&Blocking{})
 }

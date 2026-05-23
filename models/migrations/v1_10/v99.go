@@ -1,15 +1,14 @@
 // Copyright 2019 The Gitea Authors. All rights reserved.
 // SPDX-License-Identifier: MIT
 
-package v1_10 //nolint
+package v1_10
 
 import (
+	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/modules/timeutil"
-
-	"xorm.io/xorm"
 )
 
-func AddTaskTable(x *xorm.Engine) error {
+func AddTaskTable(x db.EngineMigration) error {
 	// TaskType defines task type
 	type TaskType int
 

@@ -10,26 +10,11 @@ import (
 
 // https://docs.github.com/en/rest/actions/self-hosted-runners?apiVersion=2022-11-28#create-a-registration-token-for-an-organization
 
-// GetRegistrationToken returns the token to register global runners
-func GetRegistrationToken(ctx *context.APIContext) {
-	// swagger:operation GET /admin/runners/registration-token admin adminGetRunnerRegistrationToken
-	// ---
-	// summary: Get an global actions runner registration token
-	// produces:
-	// - application/json
-	// parameters:
-	// responses:
-	//   "200":
-	//     "$ref": "#/responses/RegistrationToken"
-
-	shared.GetRegistrationToken(ctx, 0, 0)
-}
-
 // CreateRegistrationToken returns the token to register global runners
 func CreateRegistrationToken(ctx *context.APIContext) {
 	// swagger:operation POST /admin/actions/runners/registration-token admin adminCreateRunnerRegistrationToken
 	// ---
-	// summary: Get an global actions runner registration token
+	// summary: Get a global actions runner registration token
 	// produces:
 	// - application/json
 	// parameters:
@@ -47,9 +32,15 @@ func ListRunners(ctx *context.APIContext) {
 	// summary: Get all runners
 	// produces:
 	// - application/json
+	// parameters:
+	// - name: disabled
+	//   in: query
+	//   description: filter by disabled status (true or false)
+	//   type: boolean
+	//   required: false
 	// responses:
 	//   "200":
-	//     "$ref": "#/definitions/ActionRunnersResponse"
+	//     "$ref": "#/responses/RunnerList"
 	//   "400":
 	//     "$ref": "#/responses/error"
 	//   "404":
@@ -57,11 +48,11 @@ func ListRunners(ctx *context.APIContext) {
 	shared.ListRunners(ctx, 0, 0)
 }
 
-// GetRunner get an global runner
+// GetRunner get a global runner
 func GetRunner(ctx *context.APIContext) {
 	// swagger:operation GET /admin/actions/runners/{runner_id} admin getAdminRunner
 	// ---
-	// summary: Get an global runner
+	// summary: Get a global runner
 	// produces:
 	// - application/json
 	// parameters:
@@ -72,7 +63,7 @@ func GetRunner(ctx *context.APIContext) {
 	//   required: true
 	// responses:
 	//   "200":
-	//     "$ref": "#/definitions/ActionRunner"
+	//     "$ref": "#/responses/Runner"
 	//   "400":
 	//     "$ref": "#/responses/error"
 	//   "404":
@@ -80,11 +71,11 @@ func GetRunner(ctx *context.APIContext) {
 	shared.GetRunner(ctx, 0, 0, ctx.PathParamInt64("runner_id"))
 }
 
-// DeleteRunner delete an global runner
+// DeleteRunner delete a global runner
 func DeleteRunner(ctx *context.APIContext) {
 	// swagger:operation DELETE /admin/actions/runners/{runner_id} admin deleteAdminRunner
 	// ---
-	// summary: Delete an global runner
+	// summary: Delete a global runner
 	// produces:
 	// - application/json
 	// parameters:
@@ -101,4 +92,35 @@ func DeleteRunner(ctx *context.APIContext) {
 	//   "404":
 	//     "$ref": "#/responses/notFound"
 	shared.DeleteRunner(ctx, 0, 0, ctx.PathParamInt64("runner_id"))
+}
+
+// UpdateRunner update a global runner
+func UpdateRunner(ctx *context.APIContext) {
+	// swagger:operation PATCH /admin/actions/runners/{runner_id} admin updateAdminRunner
+	// ---
+	// summary: Update a global runner
+	// consumes:
+	// - application/json
+	// produces:
+	// - application/json
+	// parameters:
+	// - name: runner_id
+	//   in: path
+	//   description: id of the runner
+	//   type: string
+	//   required: true
+	// - name: body
+	//   in: body
+	//   schema:
+	//     "$ref": "#/definitions/EditActionRunnerOption"
+	// responses:
+	//   "200":
+	//     "$ref": "#/responses/Runner"
+	//   "400":
+	//     "$ref": "#/responses/error"
+	//   "404":
+	//     "$ref": "#/responses/notFound"
+	//   "422":
+	//     "$ref": "#/responses/validationError"
+	shared.UpdateRunner(ctx, 0, 0, ctx.PathParamInt64("runner_id"))
 }

@@ -27,7 +27,7 @@ func TokenFilterConstructor(config map[string]any, cache *registry.Cache) (analy
 
 func (s *TokenFilter) Filter(input analysis.TokenStream) analysis.TokenStream {
 	if len(input) == 1 {
-		// if there is only one token, we dont need to generate the reversed chain
+		// if there is only one token, we don't need to generate the reversed chain
 		return generatePathTokens(input, false)
 	}
 
@@ -51,7 +51,7 @@ func generatePathTokens(input analysis.TokenStream, reversed bool) analysis.Toke
 		slices.Reverse(input)
 	}
 
-	for i := 0; i < len(input); i++ {
+	for i := range input {
 		var sb strings.Builder
 		sb.Write(input[0].Term)
 

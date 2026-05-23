@@ -65,14 +65,11 @@ func init() {
 
 // GenerateScratchToken recreates the scratch token the user is using.
 func (t *TwoFactor) GenerateScratchToken() (string, error) {
-	tokenBytes, err := util.CryptoRandomBytes(6)
-	if err != nil {
-		return "", err
-	}
+	tokenBytes := util.CryptoRandomBytes(6)
 	// these chars are specially chosen, avoid ambiguous chars like `0`, `O`, `1`, `I`.
 	const base32Chars = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789"
 	token := base32.NewEncoding(base32Chars).WithPadding(base32.NoPadding).EncodeToString(tokenBytes)
-	t.ScratchSalt, _ = util.CryptoRandomString(10)
+	t.ScratchSalt = util.CryptoRandomString(10)
 	t.ScratchHash = HashToken(token, t.ScratchSalt)
 	return token, nil
 }
@@ -111,11 +108,11 @@ func (t *TwoFactor) SetSecret(secretString string) error {
 func (t *TwoFactor) ValidateTOTP(passcode string) (bool, error) {
 	decodedStoredSecret, err := base64.StdEncoding.DecodeString(t.Secret)
 	if err != nil {
-		return false, err
+		return false, fmt.Errorf("ValidateTOTP invalid base64: %w", err)
 	}
 	secretBytes, err := secret.AesDecrypt(t.getEncryptionKey(), decodedStoredSecret)
 	if err != nil {
-		return false, err
+		return false, fmt.Errorf("ValidateTOTP unable to decrypt (maybe SECRET_KEY is wrong): %w", err)
 	}
 	secretStr := string(secretBytes)
 	return totp.Validate(passcode, secretStr), nil
@@ -163,4 +160,14 @@ func DeleteTwoFactorByID(ctx context.Context, id, userID int64) error {
 		return ErrTwoFactorNotEnrolled{userID}
 	}
 	return nil
+}
+
+func HasTwoFactorOrWebAuthn(ctx context.Context, id int64) (bool, error) {
+	has, err := HasTwoFactorByUID(ctx, id)
+	if err != nil {
+		return false, err
+	} else if has {
+		return true, nil
+	}
+	return HasWebAuthnRegistrationsByUID(ctx, id)
 }

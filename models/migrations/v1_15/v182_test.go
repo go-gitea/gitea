@@ -1,12 +1,12 @@
 // Copyright 2021 The Gitea Authors. All rights reserved.
 // SPDX-License-Identifier: MIT
 
-package v1_15 //nolint
+package v1_15
 
 import (
 	"testing"
 
-	"code.gitea.io/gitea/models/migrations/base"
+	"code.gitea.io/gitea/models/migrations/migrationtest"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -20,7 +20,7 @@ func Test_AddIssueResourceIndexTable(t *testing.T) {
 	}
 
 	// Prepare and load the testing database
-	x, deferable := base.PrepareTestEnv(t, 0, new(Issue))
+	x, deferable := migrationtest.PrepareTestEnv(t, 0, new(Issue))
 	if x == nil || t.Failed() {
 		defer deferable()
 		return

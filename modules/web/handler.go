@@ -4,9 +4,12 @@
 package web
 
 import (
+	"bufio"
 	"fmt"
+	"net"
 	"net/http"
 	"reflect"
+	"slices"
 
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/web/routing"
@@ -16,7 +19,7 @@ import (
 var responseStatusProviders = map[reflect.Type]func(req *http.Request) types.ResponseStatusProvider{}
 
 func RegisterResponseStatusProvider[T any](fn func(req *http.Request) types.ResponseStatusProvider) {
-	responseStatusProviders[reflect.TypeOf((*T)(nil)).Elem()] = fn
+	responseStatusProviders[reflect.TypeFor[T]()] = fn
 }
 
 // responseWriter is a wrapper of http.ResponseWriter, to check whether the response has been written
@@ -47,9 +50,16 @@ func (r *responseWriter) WriteHeader(statusCode int) {
 	r.respWriter.WriteHeader(statusCode)
 }
 
+func (r *responseWriter) Hijack() (net.Conn, *bufio.ReadWriter, error) {
+	if hj, ok := r.respWriter.(http.Hijacker); ok {
+		return hj.Hijack()
+	}
+	return nil, nil, http.ErrNotSupported
+}
+
 var (
-	httpReqType    = reflect.TypeOf((*http.Request)(nil))
-	respWriterType = reflect.TypeOf((*http.ResponseWriter)(nil)).Elem()
+	httpReqType    = reflect.TypeFor[*http.Request]()
+	respWriterType = reflect.TypeFor[http.ResponseWriter]()
 )
 
 // preCheckHandler checks whether the handler is valid, developers could get first-time feedback, all mistakes could be found at startup
@@ -70,7 +80,8 @@ func preCheckHandler(fn reflect.Value, argsIn []reflect.Value) {
 
 func prepareHandleArgsIn(resp http.ResponseWriter, req *http.Request, fn reflect.Value, fnInfo *routing.FuncInfo) []reflect.Value {
 	defer func() {
-		if err := recover(); err != nil {
+		if recovered := recover(); recovered != nil {
+			err := fmt.Errorf("%v\n%s", recovered, log.Stack(2))
 			log.Error("unable to prepare handler arguments for %s: %v", fnInfo.String(), err)
 			panic(err)
 		}
@@ -117,7 +128,17 @@ func hasResponseBeenWritten(argsIn []reflect.Value) bool {
 	return false
 }
 
-func wrapHandlerProvider[T http.Handler](hp func(next http.Handler) T, funcInfo *routing.FuncInfo) func(next http.Handler) http.Handler {
+type middlewareProvider = func(next http.Handler) http.Handler
+
+func executeMiddlewaresHandler(w http.ResponseWriter, r *http.Request, middlewares []middlewareProvider, endpoint http.HandlerFunc) {
+	handler := endpoint
+	for _, middleware := range slices.Backward(middlewares) {
+		handler = middleware(handler).ServeHTTP
+	}
+	handler(w, r)
+}
+
+func wrapHandlerProvider[T http.Handler](hp func(next http.Handler) T, funcInfo *routing.FuncInfo) middlewareProvider {
 	return func(next http.Handler) http.Handler {
 		h := hp(next) // this handle could be dynamically generated, so we can't use it for debug info
 		return http.HandlerFunc(func(resp http.ResponseWriter, req *http.Request) {
@@ -129,14 +150,14 @@ func wrapHandlerProvider[T http.Handler](hp func(next http.Handler) T, funcInfo 
 
 // toHandlerProvider converts a handler to a handler provider
 // A handler provider is a function that takes a "next" http.Handler, it can be used as a middleware
-func toHandlerProvider(handler any) func(next http.Handler) http.Handler {
+func toHandlerProvider(handler any) middlewareProvider {
 	funcInfo := routing.GetFuncInfo(handler)
 	fn := reflect.ValueOf(handler)
 	if fn.Type().Kind() != reflect.Func {
 		panic(fmt.Sprintf("handler must be a function, but got %s", fn.Type()))
 	}
 
-	if hp, ok := handler.(func(next http.Handler) http.Handler); ok {
+	if hp, ok := handler.(middlewareProvider); ok {
 		return wrapHandlerProvider(hp, funcInfo)
 	} else if hp, ok := handler.(func(http.Handler) http.HandlerFunc); ok {
 		return wrapHandlerProvider(hp, funcInfo)

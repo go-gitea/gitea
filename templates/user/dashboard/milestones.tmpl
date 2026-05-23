@@ -26,7 +26,7 @@
 										{{- end -}}
 									{{- end -}}
 								]&sort={{$.SortType}}&state={{$.State}}&q={{$.Keyword}}" title="{{.FullName}}">
-								<span class="text truncate">{{$Repo.FullName}}</span>
+								<span class="tw-inline-block tw-truncate tw-w-3/4">{{$Repo.FullName}}</span>
 								<div class="ui {{if $.IsShowClosed}}red{{else}}green{{end}} label">{{index $.Counts $Repo.ID}}</div>
 							</a>
 						{{end}}
@@ -116,7 +116,7 @@
 											{{ctx.Locale.Tr "repo.milestones.closed" $closedDate}}
 										{{else}}
 											{{if .DeadlineString}}
-												<span class="flex-text-inline {{if .IsOverdue}}text red{{end}}">
+												<span class="flex-text-inline {{if .IsOverdue}}tw-text-red{{end}}">
 													{{svg "octicon-calendar" 14}}
 													{{DateUtils.AbsoluteShort (.DeadlineString|DateUtils.ParseLegacy)}}
 												</span>

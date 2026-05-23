@@ -5,28 +5,47 @@ package markup
 
 import (
 	"context"
+	"net/url"
+	"path"
 	"strings"
 
 	"code.gitea.io/gitea/modules/httplib"
 	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/modules/util"
 )
 
+// resolveLinkRelative tries to resolve the link relative to the "{base}/{cur}", and returns the final link.
+// It only resolves the link, doesn't do any sanitization or validation, invalid links will be returned as is.
 func resolveLinkRelative(ctx context.Context, base, cur, link string, absolute bool) (finalLink string) {
-	if IsFullURLString(link) {
-		return link
+	linkURL, err := url.Parse(link)
+	if err != nil {
+		return link // invalid URL, return as is
 	}
+	if linkURL.Scheme != "" || linkURL.Host != "" {
+		return link // absolute URL, return as is
+	}
+
 	if strings.HasPrefix(link, "/") {
 		if strings.HasPrefix(link, base) && strings.Count(base, "/") >= 4 {
-			// a trick to tolerate that some users were using absolut paths (the old gitea's behavior)
+			// a trick to tolerate that some users were using absolute paths (the old Gitea's behavior)
+			// if the link is likely "{base}/src/main" while "{base}" is something like "/owner/repo"
 			finalLink = link
 		} else {
-			finalLink = util.URLJoin(base, "./", link)
+			// need to resolve the link relative to "{base}"
+			cur = ""
 		}
-	} else {
-		finalLink = util.URLJoin(base, "./", cur, link)
+	} // else: link is relative to "{base}/{cur}"
+
+	if finalLink == "" {
+		finalLink = strings.TrimSuffix(base, "/") + path.Join("/"+cur, "/"+linkURL.EscapedPath())
+		finalLink = strings.TrimSuffix(finalLink, "/")
+		if linkURL.RawQuery != "" {
+			finalLink += "?" + linkURL.RawQuery
+		}
+		if linkURL.Fragment != "" {
+			finalLink += "#" + linkURL.Fragment
+		}
 	}
-	finalLink = strings.TrimSuffix(finalLink, "/")
+
 	if absolute {
 		finalLink = httplib.MakeAbsoluteURL(ctx, finalLink)
 	}

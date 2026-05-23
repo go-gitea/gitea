@@ -1,12 +1,12 @@
 // Copyright 2021 The Gitea Authors. All rights reserved.
 // SPDX-License-Identifier: MIT
 
-package v1_16 //nolint
+package v1_16
 
 import (
 	"testing"
 
-	"code.gitea.io/gitea/models/migrations/base"
+	"code.gitea.io/gitea/models/migrations/migrationtest"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -31,7 +31,7 @@ func Test_AddRepoIDForAttachment(t *testing.T) {
 	}
 
 	// Prepare and load the testing database
-	x, deferrable := base.PrepareTestEnv(t, 0, new(Attachment), new(Issue), new(Release))
+	x, deferrable := migrationtest.PrepareTestEnv(t, 0, new(Attachment), new(Issue), new(Release))
 	defer deferrable()
 	if x == nil || t.Failed() {
 		return

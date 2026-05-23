@@ -30,7 +30,7 @@ func (actions ActionList) getUserIDs() []int64 {
 
 func (actions ActionList) LoadActUsers(ctx context.Context) (map[int64]*user_model.User, error) {
 	if len(actions) == 0 {
-		return nil, nil
+		return nil, nil //nolint:nilnil // returns nil when there are no actions
 	}
 
 	userIDs := actions.getUserIDs()
@@ -242,7 +242,7 @@ func GetFeeds(ctx context.Context, opts GetFeedsOptions) (ActionList, int64, err
 
 	if opts.Page < 10 { // TODO: why it's 10 but other values? It's an experience value.
 		sess := db.GetEngine(ctx).Where(cond)
-		sess = db.SetSessionPagination(sess, &opts)
+		db.SetSessionPagination(sess, &opts)
 
 		if opts.DontCount {
 			err = sess.Desc("`action`.created_unix").Find(&actions)
@@ -255,7 +255,7 @@ func GetFeeds(ctx context.Context, opts GetFeedsOptions) (ActionList, int64, err
 	} else {
 		// First, only query which IDs are necessary, and only then query all actions to speed up the overall query
 		sess := db.GetEngine(ctx).Where(cond).Select("`action`.id")
-		sess = db.SetSessionPagination(sess, &opts)
+		db.SetSessionPagination(sess, &opts)
 
 		actionIDs := make([]int64, 0, opts.PageSize)
 		if err := sess.Table("action").Desc("`action`.created_unix").Find(&actionIDs); err != nil {
@@ -281,10 +281,4 @@ func GetFeeds(ctx context.Context, opts GetFeedsOptions) (ActionList, int64, err
 	}
 
 	return actions, count, nil
-}
-
-func CountUserFeeds(ctx context.Context, userID int64) (int64, error) {
-	return db.GetEngine(ctx).Where("user_id = ?", userID).
-		And("is_deleted = ?", false).
-		Count(&Action{})
 }

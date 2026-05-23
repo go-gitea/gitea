@@ -22,7 +22,7 @@ func CreateRepo(ctx *context.APIContext) {
 	// parameters:
 	// - name: username
 	//   in: path
-	//   description: username of the user. This user will own the created repository
+	//   description: username of the user who will own the created repository
 	//   type: string
 	//   required: true
 	// - name: repository

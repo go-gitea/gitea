@@ -6,6 +6,7 @@ package repo
 import (
 	"errors"
 	"net/http"
+	"strings"
 	"time"
 
 	"code.gitea.io/gitea/models/db"
@@ -51,7 +52,7 @@ func MirrorSync(ctx *context.APIContext) {
 
 	repo := ctx.Repo.Repository
 
-	if !ctx.Repo.CanWrite(unit.TypeCode) {
+	if !ctx.Repo.Permission.CanWrite(unit.TypeCode) {
 		ctx.APIError(http.StatusForbidden, "Must have write access")
 	}
 
@@ -101,6 +102,8 @@ func PushMirrorSync(ctx *context.APIContext) {
 	//     "$ref": "#/responses/forbidden"
 	//   "404":
 	//     "$ref": "#/responses/notFound"
+	//   "422":
+	//     "$ref": "#/responses/validationError"
 
 	if !setting.Mirror.Enabled {
 		ctx.APIError(http.StatusBadRequest, "Mirror feature is disabled")
@@ -112,14 +115,18 @@ func PushMirrorSync(ctx *context.APIContext) {
 		ctx.APIError(http.StatusNotFound, err)
 		return
 	}
+
+	failedPushMirrors := make([]string, 0)
 	for _, mirror := range pushMirrors {
 		ok := mirror_service.SyncPushMirror(ctx, mirror.ID)
 		if !ok {
-			ctx.APIErrorInternal(errors.New("error occurred when syncing push mirror " + mirror.RemoteName))
-			return
+			failedPushMirrors = append(failedPushMirrors, mirror.RemoteName)
 		}
 	}
-
+	if len(failedPushMirrors) != 0 {
+		ctx.APIError(http.StatusUnprocessableEntity, "error occurred when syncing push mirrors: "+strings.Join(failedPushMirrors, ", "))
+		return
+	}
 	ctx.Status(http.StatusOK)
 }
 
@@ -179,7 +186,7 @@ func ListPushMirrors(ctx *context.APIContext) {
 			responsePushMirrors = append(responsePushMirrors, m)
 		}
 	}
-	ctx.SetLinkHeader(len(responsePushMirrors), utils.GetListOptions(ctx).PageSize)
+	ctx.SetLinkHeader(int64(len(responsePushMirrors)), utils.GetListOptions(ctx).PageSize)
 	ctx.SetTotalCountHeader(count)
 	ctx.JSON(http.StatusOK, responsePushMirrors)
 }
@@ -351,11 +358,7 @@ func CreatePushMirror(ctx *context.APIContext, mirrorOption *api.CreatePushMirro
 		return
 	}
 
-	remoteSuffix, err := util.CryptoRandomString(10)
-	if err != nil {
-		ctx.APIErrorInternal(err)
-		return
-	}
+	remoteSuffix := util.CryptoRandomString(10)
 
 	remoteAddress, err := util.SanitizeURL(mirrorOption.RemoteAddress)
 	if err != nil {

@@ -1,12 +1,12 @@
 // Copyright 2021 The Gitea Authors. All rights reserved.
 // SPDX-License-Identifier: MIT
 
-package v1_14 //nolint
+package v1_14
 
 import (
 	"testing"
 
-	"code.gitea.io/gitea/models/migrations/base"
+	"code.gitea.io/gitea/models/migrations/migrationtest"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -47,7 +47,7 @@ func Test_RemoveInvalidLabels(t *testing.T) {
 	}
 
 	// load and prepare the test database
-	x, deferable := base.PrepareTestEnv(t, 0, new(Comment), new(Issue), new(Repository), new(IssueLabel), new(Label))
+	x, deferable := migrationtest.PrepareTestEnv(t, 0, new(Comment), new(Issue), new(Repository), new(IssueLabel), new(Label))
 	if x == nil || t.Failed() {
 		defer deferable()
 		return

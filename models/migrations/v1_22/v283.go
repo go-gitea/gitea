@@ -1,16 +1,17 @@
 // Copyright 2023 The Gitea Authors. All rights reserved.
 // SPDX-License-Identifier: MIT
 
-package v1_22 //nolint
+package v1_22
 
 import (
 	"fmt"
 
-	"xorm.io/xorm"
+	"code.gitea.io/gitea/models/db"
+
 	"xorm.io/xorm/schemas"
 )
 
-func AddCombinedIndexToIssueUser(x *xorm.Engine) error {
+func AddCombinedIndexToIssueUser(x db.EngineMigration) error {
 	type OldIssueUser struct {
 		IssueID int64
 		UID     int64

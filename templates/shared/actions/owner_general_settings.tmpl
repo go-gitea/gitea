@@ -1,0 +1,58 @@
+<h4 class="ui top attached header">
+	{{ctx.Locale.Tr "actions.general.cross_repo"}}
+</h4>
+<div class="ui attached segment">
+	<form class="ui form form-fetch-action " action="{{.Link}}" method="post">
+		<!-- Cross-Repository Access -->
+		<div class="help">{{ctx.Locale.Tr "actions.general.cross_repo_desc"}}</div>
+
+		<!-- Allowed Repositories List -->
+		<div class="field tw-mt-4">
+			<h5 class="ui header">
+				{{ctx.Locale.Tr "actions.general.cross_repo_target_repos"}}
+			</h5>
+			<div class="ui attached segment tw-p-2">
+				<div class="ui divided relaxed list flex-items-block muted-links">
+					{{range $repo := .AllowedRepos}}
+					<div class="item">
+						{{template "repo/icon" $repo}}
+						<a class="tw-flex-1" href="{{$repo.Link}}">{{$repo.FullName}}</a>
+						<button class="ui red compact tiny button link-action" type="button" data-url="?cross_repo_remove_target_id={{$repo.ID}}">{{ctx.Locale.Tr "remove"}}</button>
+					</div>
+					{{else}}
+					<div class="item">
+						{{ctx.Locale.Tr "org.repos.none"}}
+					</div>
+					{{end}}
+				</div>
+			</div>
+
+			<h5 class="ui header">
+				{{ctx.Locale.Tr "actions.general.cross_repo_add"}}
+			</h5>
+			<div class="flex-text-block">
+				<div data-global-init="initSearchRepoBox" data-uid="{{.OwnerID}}" data-exclusive="true" class="ui search tw-flex-1">
+					<div class="ui input">
+						<input class="prompt" name="cross_repo_add_target_name" required placeholder="{{ctx.Locale.Tr "search.repo_kind"}}" autocomplete="off">
+					</div>
+				</div>
+				<button class="ui primary button" type="submit" name="cross_repo_add_target" value="true">{{ctx.Locale.Tr "add"}}</button>
+			</div>
+		</div>
+	</form>
+</div>
+
+<h4 class="ui top attached header">
+	{{ctx.Locale.Tr "actions.general.permissions"}}
+</h4>
+<div class="ui attached segment">
+	<form class="ui form form-fetch-action" action="{{.Link}}" method="post" data-global-init="initOwnerActionsPermissionsForm">
+		{{template "shared/actions/permission_mode_select" .}}
+		<div class="divider"></div>
+		{{template "shared/actions/permissions_table" .}}
+
+		<div class="field">
+			<button class="ui primary button">{{ctx.Locale.Tr "repo.settings.update_settings"}}</button>
+		</div>
+	</form>
+</div>

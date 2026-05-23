@@ -40,9 +40,8 @@ var versionMatcher = regexp.MustCompile(`\Av?` +
 	`\z`)
 
 func apiError(ctx *context.Context, status int, obj any) {
-	helper.LogAndProcessError(ctx, status, obj, func(message string) {
-		ctx.PlainText(status, message)
-	})
+	message := helper.ProcessErrorForUser(ctx, status, obj)
+	ctx.PlainText(status, message)
 }
 
 // PackageMetadata returns the metadata for a single package
@@ -82,7 +81,7 @@ func DownloadPackageFile(ctx *context.Context) {
 	packageVersion := ctx.PathParam("version")
 	filename := ctx.PathParam("filename")
 
-	s, u, pf, err := packages_service.GetFileStreamByPackageNameAndVersion(
+	s, u, pf, err := packages_service.OpenFileForDownloadByPackageNameAndVersion(
 		ctx,
 		&packages_service.PackageInfo{
 			Owner:       ctx.Package.Owner,
@@ -93,6 +92,7 @@ func DownloadPackageFile(ctx *context.Context) {
 		&packages_service.PackageFileInfo{
 			Filename: filename,
 		},
+		ctx.Req.Method,
 	)
 	if err != nil {
 		if errors.Is(err, packages_model.ErrPackageNotExist) || errors.Is(err, packages_model.ErrPackageFileNotExist) {

@@ -1,15 +1,14 @@
 // Copyright 2019 The Gitea Authors. All rights reserved.
 // SPDX-License-Identifier: MIT
 
-package v1_11 //nolint
+package v1_11
 
 import (
+	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/models/migrations/base"
-
-	"xorm.io/xorm"
 )
 
-func DropColumnHeadUserNameOnPullRequest(x *xorm.Engine) error {
+func DropColumnHeadUserNameOnPullRequest(x db.EngineMigration) error {
 	sess := x.NewSession()
 	defer sess.Close()
 	if err := sess.Begin(); err != nil {

@@ -86,17 +86,9 @@ func RemoveAllRepositoriesFromTeam(ctx context.Context, t *organization.Team) (e
 		return nil
 	}
 
-	ctx, committer, err := db.TxContext(ctx)
-	if err != nil {
-		return err
-	}
-	defer committer.Close()
-
-	if err = removeAllRepositoriesFromTeam(ctx, t); err != nil {
-		return err
-	}
-
-	return committer.Commit()
+	return db.WithTx(ctx, func(ctx context.Context) error {
+		return removeAllRepositoriesFromTeam(ctx, t)
+	})
 }
 
 // removeAllRepositoriesFromTeam removes all repositories from team and recalculates access
@@ -116,7 +108,7 @@ func removeAllRepositoriesFromTeam(ctx context.Context, t *organization.Team) (e
 			return err
 		}
 
-		// Remove watches from all users and now unaccessible repos
+		// Remove watches from all users and now inaccessible repos
 		for _, user := range t.Members {
 			has, err := access_model.HasAnyUnitAccess(ctx, user.ID, repo)
 			if err != nil {
@@ -167,17 +159,9 @@ func RemoveRepositoryFromTeam(ctx context.Context, t *organization.Team, repoID 
 		return err
 	}
 
-	ctx, committer, err := db.TxContext(ctx)
-	if err != nil {
-		return err
-	}
-	defer committer.Close()
-
-	if err = removeRepositoryFromTeam(ctx, t, repo, true); err != nil {
-		return err
-	}
-
-	return committer.Commit()
+	return db.WithTx(ctx, func(ctx context.Context) error {
+		return removeRepositoryFromTeam(ctx, t, repo, true)
+	})
 }
 
 // removeRepositoryFromTeam removes a repository from a team and recalculates access

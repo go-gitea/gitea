@@ -1,13 +1,11 @@
 // Copyright 2022 The Gitea Authors. All rights reserved.
 // SPDX-License-Identifier: MIT
 
-package v1_16 //nolint
+package v1_16
 
-import (
-	"xorm.io/xorm"
-)
+import "code.gitea.io/gitea/models/db"
 
-func IncreaseCredentialIDTo410(x *xorm.Engine) error {
+func IncreaseCredentialIDTo410(x db.EngineMigration) error {
 	// no-op
 	// v208 was completely wrong
 	// So now we have to no-op again.

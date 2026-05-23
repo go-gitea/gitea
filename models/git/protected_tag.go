@@ -11,9 +11,8 @@ import (
 
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/models/organization"
+	"code.gitea.io/gitea/modules/glob"
 	"code.gitea.io/gitea/modules/timeutil"
-
-	"github.com/gobwas/glob"
 )
 
 // ProtectedTag struct
@@ -105,7 +104,7 @@ func GetProtectedTagByID(ctx context.Context, id int64) (*ProtectedTag, error) {
 		return nil, err
 	}
 	if !has {
-		return nil, nil
+		return nil, nil //nolint:nilnil // return nil to indicate that the object does not exist
 	}
 	return tag, nil
 }
@@ -118,7 +117,7 @@ func GetProtectedTagByNamePattern(ctx context.Context, repoID int64, pattern str
 		return nil, err
 	}
 	if !has {
-		return nil, nil
+		return nil, nil //nolint:nilnil // return nil to indicate that the object does not exist
 	}
 	return tag, nil
 }

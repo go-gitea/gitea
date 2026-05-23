@@ -12,7 +12,7 @@ import (
 )
 
 func tokens(s string) (a []any) {
-	for _, v := range strings.Fields(s) {
+	for v := range strings.FieldsSeq(s) {
 		a = append(a, v)
 	}
 	return a

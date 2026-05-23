@@ -6,47 +6,36 @@ package templates
 
 import (
 	"fmt"
-	"html"
 	"html/template"
 	"net/url"
 	"strconv"
 	"strings"
 	"time"
 
-	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/htmlutil"
 	"code.gitea.io/gitea/modules/markup"
+	"code.gitea.io/gitea/modules/public"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/svg"
 	"code.gitea.io/gitea/modules/templates/eval"
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/services/gitdiff"
-	"code.gitea.io/gitea/services/webtheme"
 )
 
-// NewFuncMap returns functions for injecting to templates
-func NewFuncMap() template.FuncMap {
+func newFuncMapWebPage() template.FuncMap {
 	return map[string]any{
-		"ctx": func() any { return nil }, // template context function
-
 		"DumpVar": dumpVar,
 		"NIL":     func() any { return nil },
 
 		// -----------------------------------------------------------------
 		// html/template related functions
-		"dict":         dict, // it's lowercase because this name has been widely used. Our other functions should have uppercase names.
-		"Iif":          iif,
-		"Eval":         evalTokens,
-		"SafeHTML":     safeHTML,
-		"HTMLFormat":   htmlFormat,
-		"HTMLEscape":   htmlEscape,
-		"QueryEscape":  queryEscape,
-		"QueryBuild":   QueryBuild,
-		"JSEscape":     jsEscapeSafe,
-		"SanitizeHTML": SanitizeHTML,
-		"URLJoin":      util.URLJoin,
-		"DotEscape":    dotEscape,
+		"dict":        dict, // it's lowercase because this name has been widely used. Our other functions should have uppercase names.
+		"Iif":         iif,
+		"Eval":        evalTokens,
+		"HTMLFormat":  htmlFormat,
+		"QueryEscape": queryEscape,
+		"QueryBuild":  QueryBuild,
 
 		"PathEscape":         url.PathEscape,
 		"PathEscapeSegments": util.PathEscapeSegments,
@@ -67,6 +56,7 @@ func NewFuncMap() template.FuncMap {
 
 		// -----------------------------------------------------------------
 		// time / number / format
+		"ShortSha": base.ShortSha,
 		"FileSize": base.FileSize,
 		"CountFmt": countFmt,
 		"Sec2Hour": util.SecToHours,
@@ -76,6 +66,8 @@ func NewFuncMap() template.FuncMap {
 		"LoadTimes": func(startTime time.Time) string {
 			return strconv.FormatInt(time.Since(startTime).Nanoseconds()/1e6, 10) + "ms"
 		},
+
+		"AssetURI": public.AssetURI,
 
 		// -----------------------------------------------------------------
 		// setting
@@ -88,24 +80,11 @@ func NewFuncMap() template.FuncMap {
 		"AssetUrlPrefix": func() string {
 			return setting.StaticURLPrefix + "/assets"
 		},
-		"AppUrl": func() string {
-			// The usage of AppUrl should be avoided as much as possible,
-			// because the AppURL(ROOT_URL) may not match user's visiting site and the ROOT_URL in app.ini may be incorrect.
-			// And it's difficult for Gitea to guess absolute URL correctly with zero configuration,
-			// because Gitea doesn't know whether the scheme is HTTP or HTTPS unless the reverse proxy could tell Gitea.
-			return setting.AppURL
-		},
 		"AppVer": func() string {
 			return setting.AppVer
 		},
-		"AppDomain": func() string { // documented in mail-templates.md
+		"AppDomain": func() string { // TODO: helm registry still uses it, need to use current request host in the future
 			return setting.Domain
-		},
-		"AssetVersion": func() string {
-			return setting.AssetVersion
-		},
-		"DefaultShowFullName": func() bool {
-			return setting.UI.DefaultShowFullName
 		},
 		"ShowFooterTemplateLoadTime": func() bool {
 			return setting.Other.ShowFooterTemplateLoadTime
@@ -134,7 +113,6 @@ func NewFuncMap() template.FuncMap {
 		"DisableWebhooks": func() bool {
 			return setting.DisableWebhooks
 		},
-		"UserThemeName": userThemeName,
 		"NotificationSettings": func() map[string]any {
 			return map[string]any{
 				"MinTimeout":            int(setting.UI.Notification.MinTimeout / time.Millisecond),
@@ -153,58 +131,18 @@ func NewFuncMap() template.FuncMap {
 		"ReactionToEmoji": reactionToEmoji,
 
 		// -----------------------------------------------------------------
-		// misc
-		"ShortSha":                 base.ShortSha,
-		"ActionContent2Commits":    ActionContent2Commits,
-		"IsMultilineCommitMessage": isMultilineCommitMessage,
-		"CommentMustAsDiff":        gitdiff.CommentMustAsDiff,
-		"MirrorRemoteAddress":      mirrorRemoteAddress,
+		// misc (TODO: move them to MiscUtils to avoid bloating the main func map)
+		"ActionContent2Commits": ActionContent2Commits,
+		"CommentMustAsDiff":     gitdiff.CommentMustAsDiff,
+		"MirrorRemoteAddress":   mirrorRemoteAddress,
 
 		"FilenameIsImage": filenameIsImage,
 		"TabSizeClass":    tabSizeClass,
-
-		// for backward compatibility only, do not use them anymore
-		"TimeSince":     timeSinceLegacy,
-		"TimeSinceUnix": timeSinceLegacy,
-		"DateTime":      dateTimeLegacy,
-
-		"RenderEmoji":      renderEmojiLegacy,
-		"RenderLabel":      renderLabelLegacy,
-		"RenderLabels":     renderLabelsLegacy,
-		"RenderIssueTitle": renderIssueTitleLegacy,
-
-		"RenderMarkdownToHtml": renderMarkdownToHtmlLegacy,
-
-		"RenderCommitMessage":            renderCommitMessageLegacy,
-		"RenderCommitMessageLinkSubject": renderCommitMessageLinkSubjectLegacy,
-		"RenderCommitBody":               renderCommitBodyLegacy,
 	}
 }
 
-// safeHTML render raw as HTML
-func safeHTML(s any) template.HTML {
-	switch v := s.(type) {
-	case string:
-		return template.HTML(v)
-	case template.HTML:
-		return v
-	}
-	panic(fmt.Sprintf("unexpected type %T", s))
-}
-
-// SanitizeHTML sanitizes the input by pre-defined markdown rules
-func SanitizeHTML(s string) template.HTML {
-	return template.HTML(markup.Sanitize(s))
-}
-
-func htmlEscape(s any) template.HTML {
-	switch v := s.(type) {
-	case string:
-		return template.HTML(html.EscapeString(v))
-	case template.HTML:
-		return v
-	}
-	panic(fmt.Sprintf("unexpected type %T", s))
+func sanitizeHTML(msg string) template.HTML {
+	return markup.Sanitize(msg)
 }
 
 func htmlFormat(s any, args ...any) template.HTML {
@@ -221,17 +159,8 @@ func htmlFormat(s any, args ...any) template.HTML {
 	panic(fmt.Sprintf("unexpected type %T", s))
 }
 
-func jsEscapeSafe(s string) template.HTML {
-	return template.HTML(template.JSEscapeString(s))
-}
-
 func queryEscape(s string) template.URL {
 	return template.URL(url.QueryEscape(s))
-}
-
-// dotEscape wraps a dots in names with ZWJ [U+200D] in order to prevent auto-linkers from detecting these as urls
-func dotEscape(raw string) string {
-	return strings.ReplaceAll(raw, ".", "\u200d.\u200d")
 }
 
 // iif is an "inline-if", similar util.Iif[T] but templates need the non-generic version,
@@ -260,16 +189,6 @@ func isTemplateTruthy(v any) bool {
 func evalTokens(tokens ...any) (any, error) {
 	n, err := eval.Expr(tokens...)
 	return n.Value, err
-}
-
-func userThemeName(user *user_model.User) string {
-	if user == nil || user.Theme == "" {
-		return setting.UI.DefaultTheme
-	}
-	if webtheme.IsThemeAvailable(user.Theme) {
-		return user.Theme
-	}
-	return setting.UI.DefaultTheme
 }
 
 func isQueryParamEmpty(v any) bool {
@@ -366,8 +285,4 @@ func QueryBuild(a ...any) template.URL {
 		}
 	}
 	return template.URL(s)
-}
-
-func panicIfDevOrTesting() {
-	setting.PanicInDevOrTesting("legacy template functions are for backward compatibility only, do not use them in new code")
 }

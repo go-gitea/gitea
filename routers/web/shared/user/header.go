@@ -4,6 +4,7 @@
 package user
 
 import (
+	"errors"
 	"net/url"
 
 	"code.gitea.io/gitea/models/db"
@@ -47,13 +48,12 @@ func prepareContextForProfileBigAvatar(ctx *context.Context) {
 		ctx.Data["RenderedDescription"] = content
 	}
 
-	showPrivate := ctx.IsSigned && (ctx.Doer.IsAdmin || ctx.Doer.ID == ctx.ContextUser.ID)
 	orgs, err := db.Find[organization.Organization](ctx, organization.FindOrgOptions{
-		UserID:         ctx.ContextUser.ID,
-		IncludePrivate: showPrivate,
+		UserID:            ctx.ContextUser.ID,
+		IncludeVisibility: organization.DoerViewOtherVisibility(ctx.Doer, ctx.ContextUser),
 		ListOptions: db.ListOptions{
 			Page: 1,
-			// query one more results (without a separate counting) to see whether we need to add the "show more orgs" link
+			// query one more result (without a separate counting) to see whether we need to add the "show more orgs" link
 			PageSize: setting.UI.User.OrgPagingNum + 1,
 		},
 	})
@@ -84,10 +84,9 @@ func prepareContextForProfileBigAvatar(ctx *context.Context) {
 	}
 
 	if ctx.Doer != nil {
-		if block, err := user_model.GetBlocking(ctx, ctx.Doer.ID, ctx.ContextUser.ID); err != nil {
+		ctx.Data["UserBlocking"], err = user_model.GetBlocking(ctx, ctx.Doer.ID, ctx.ContextUser.ID)
+		if err != nil && !errors.Is(err, util.ErrNotExist) {
 			ctx.ServerError("GetBlocking", err)
-		} else {
-			ctx.Data["UserBlocking"] = block
 		}
 	}
 }
@@ -102,7 +101,7 @@ func FindOwnerProfileReadme(ctx *context.Context, doer *user_model.User, optProf
 		return nil, nil
 	}
 
-	perm, err := access_model.GetUserRepoPermission(ctx, profileDbRepo, doer)
+	perm, err := access_model.GetDoerRepoPermission(ctx, profileDbRepo, doer)
 	if err != nil {
 		log.Error("FindOwnerProfileReadme failed to GetRepositoryByName: %v", err)
 		return nil, nil
@@ -165,7 +164,7 @@ func RenderUserOrgHeader(ctx *context.Context) (result *PrepareOwnerHeaderResult
 }
 
 func loadHeaderCount(ctx *context.Context) error {
-	repoCount, err := repo_model.CountRepository(ctx, &repo_model.SearchRepoOptions{
+	repoCount, err := repo_model.CountRepository(ctx, repo_model.SearchRepoOptions{
 		Actor:              ctx.Doer,
 		OwnerID:            ctx.ContextUser.ID,
 		Private:            ctx.IsSigned,

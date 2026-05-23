@@ -12,11 +12,13 @@ import (
 	"strings"
 	"testing"
 
+	"code.gitea.io/gitea/modules/typesniffer"
+
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
-func TestServeContentByReader(t *testing.T) {
+func TestServeUserContentByReader(t *testing.T) {
 	data := "0123456789abcdef"
 
 	test := func(t *testing.T, expectedStatusCode int, expectedContent string) {
@@ -27,7 +29,7 @@ func TestServeContentByReader(t *testing.T) {
 		}
 		reader := strings.NewReader(data)
 		w := httptest.NewRecorder()
-		ServeContentByReader(r, w, int64(len(data)), reader, &ServeHeaderOptions{})
+		ServeUserContentByReader(r, w, int64(len(data)), reader, ServeHeaderOptions{})
 		assert.Equal(t, expectedStatusCode, w.Code)
 		if expectedStatusCode == http.StatusPartialContent || expectedStatusCode == http.StatusOK {
 			assert.Equal(t, strconv.Itoa(len(expectedContent)), w.Header().Get("Content-Length"))
@@ -58,7 +60,7 @@ func TestServeContentByReader(t *testing.T) {
 	})
 }
 
-func TestServeContentByReadSeeker(t *testing.T) {
+func TestServeUserContentByFile(t *testing.T) {
 	data := "0123456789abcdef"
 	tmpFile := t.TempDir() + "/test"
 	err := os.WriteFile(tmpFile, []byte(data), 0o644)
@@ -76,7 +78,7 @@ func TestServeContentByReadSeeker(t *testing.T) {
 		defer seekReader.Close()
 
 		w := httptest.NewRecorder()
-		ServeContentByReadSeeker(r, w, nil, seekReader, &ServeHeaderOptions{})
+		ServeUserContentByFile(r, w, seekReader, ServeHeaderOptions{})
 		assert.Equal(t, expectedStatusCode, w.Code)
 		if expectedStatusCode == http.StatusPartialContent || expectedStatusCode == http.StatusOK {
 			assert.Equal(t, strconv.Itoa(len(expectedContent)), w.Header().Get("Content-Length"))
@@ -105,4 +107,37 @@ func TestServeContentByReadSeeker(t *testing.T) {
 	t.Run("_range_1-99999", func(t *testing.T) {
 		test(t, http.StatusPartialContent, data[1:])
 	})
+}
+
+func TestServeSetHeaderContentRelated(t *testing.T) {
+	cases := []struct {
+		contentType string
+		csp         string
+	}{
+		{"", serveHeaderCspDefault},
+		{"any", serveHeaderCspDefault},
+		{"application/pdf", serveHeaderCspPdf},
+		{"application/pdf; other", serveHeaderCspPdf},
+		{"audio/mp4", serveHeaderCspAudioVideo},
+		{"video/ogg; other", serveHeaderCspAudioVideo},
+		{typesniffer.MimeTypeImageSvg, serveHeaderCspDefault},
+	}
+	for _, c := range cases {
+		w := httptest.NewRecorder()
+		serveSetHeaderContentRelated(w, c.contentType)
+		csp := w.Header().Get("Content-Security-Policy")
+		assert.Equal(t, c.csp, csp, "content-type: %s", c.contentType)
+		assert.Equal(t, "nosniff", w.Header().Get("X-Content-Type-Options")) // it should always be there
+	}
+
+	// make sure sandboxed
+	require.Contains(t, serveHeaderCspDefault, "; sandbox")
+}
+
+func TestServeSetHeaders(t *testing.T) {
+	w := httptest.NewRecorder()
+	ServeSetHeaders(w, ServeHeaderOptions{Filename: "foo.zip"})
+	assert.Equal(t, "attachment; filename=foo.zip", w.Header().Get("Content-Disposition"))
+	ServeSetHeaders(w, ServeHeaderOptions{Filename: "foo.zip", ContentDisposition: ContentDispositionInline})
+	assert.Equal(t, "inline; filename=foo.zip", w.Header().Get("Content-Disposition"))
 }

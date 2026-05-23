@@ -90,7 +90,7 @@ func GetBlocking(ctx context.Context, blockerID, blockeeID int64) (*Blocking, er
 		return nil, err
 	}
 	if len(blocks) == 0 {
-		return nil, nil
+		return nil, util.NewNotExistErrorf("blocking record doesn't exist")
 	}
 	return blocks[0], nil
 }

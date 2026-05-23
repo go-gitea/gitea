@@ -4,31 +4,31 @@
 package cmd
 
 import (
+	"context"
 	"fmt"
 	"os"
 	"text/tabwriter"
 
 	user_model "code.gitea.io/gitea/models/user"
 
-	"github.com/urfave/cli/v2"
+	"github.com/urfave/cli/v3"
 )
 
-var microcmdUserList = &cli.Command{
-	Name:   "list",
-	Usage:  "List users",
-	Action: runListUsers,
-	Flags: []cli.Flag{
-		&cli.BoolFlag{
-			Name:  "admin",
-			Usage: "List only admin users",
+func newUserListCommand() *cli.Command {
+	return &cli.Command{
+		Name:   "list",
+		Usage:  "List users",
+		Action: runListUsers,
+		Flags: []cli.Flag{
+			&cli.BoolFlag{
+				Name:  "admin",
+				Usage: "List only admin users",
+			},
 		},
-	},
+	}
 }
 
-func runListUsers(c *cli.Context) error {
-	ctx, cancel := installSignals()
-	defer cancel()
-
+func runListUsers(ctx context.Context, c *cli.Command) error {
 	if err := initDB(ctx); err != nil {
 		return err
 	}

@@ -13,6 +13,7 @@ import (
 
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/util"
 )
 
 func Init() error {
@@ -23,9 +24,11 @@ func Init() error {
 
 	if setting.SSH.StartBuiltinServer {
 		Listen(setting.SSH.ListenHost, setting.SSH.ListenPort, setting.SSH.ServerCiphers, setting.SSH.ServerKeyExchanges, setting.SSH.ServerMACs)
-		log.Info("SSH server started on %s. Cipher list (%v), key exchange algorithms (%v), MACs (%v)",
+		log.Info("SSH server started on %q. Ciphers: %v, key exchange algorithms: %v, MACs: %v",
 			net.JoinHostPort(setting.SSH.ListenHost, strconv.Itoa(setting.SSH.ListenPort)),
-			setting.SSH.ServerCiphers, setting.SSH.ServerKeyExchanges, setting.SSH.ServerMACs,
+			util.Iif[any](setting.SSH.ServerCiphers == nil, "default", setting.SSH.ServerCiphers),
+			util.Iif[any](setting.SSH.ServerKeyExchanges == nil, "default", setting.SSH.ServerKeyExchanges),
+			util.Iif[any](setting.SSH.ServerMACs == nil, "default", setting.SSH.ServerMACs),
 		)
 		return nil
 	}

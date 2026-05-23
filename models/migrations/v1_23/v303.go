@@ -1,9 +1,11 @@
 // Copyright 2024 The Gitea Authors. All rights reserved.
 // SPDX-License-Identifier: MIT
 
-package v1_23 //nolint
+package v1_23
 
 import (
+	"code.gitea.io/gitea/models/db"
+
 	"xorm.io/xorm"
 )
 
@@ -14,10 +16,14 @@ type CommentMetaData struct {
 	ProjectTitle       string `json:"project_title"`
 }
 
-func AddCommentMetaDataColumn(x *xorm.Engine) error {
+func AddCommentMetaDataColumn(x db.EngineMigration) error {
 	type Comment struct {
 		CommentMetaData *CommentMetaData `xorm:"JSON TEXT"` // put all non-index metadata in a single field
 	}
 
-	return x.Sync(new(Comment))
+	_, err := x.SyncWithOptions(xorm.SyncOptions{
+		IgnoreConstrains: true,
+		IgnoreIndices:    true,
+	}, new(Comment))
+	return err
 }

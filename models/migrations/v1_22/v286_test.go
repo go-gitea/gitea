@@ -1,18 +1,18 @@
 // Copyright 2023 The Gitea Authors. All rights reserved.
 // SPDX-License-Identifier: MIT
 
-package v1_22 //nolint
+package v1_22
 
 import (
 	"testing"
 
-	"code.gitea.io/gitea/models/migrations/base"
+	"code.gitea.io/gitea/models/db"
+	"code.gitea.io/gitea/models/migrations/migrationtest"
 
 	"github.com/stretchr/testify/assert"
-	"xorm.io/xorm"
 )
 
-func PrepareOldRepository(t *testing.T) (*xorm.Engine, func()) {
+func PrepareOldRepository(t *testing.T) (db.EngineMigration, func()) {
 	type Repository struct { // old struct
 		ID int64 `xorm:"pk autoincr"`
 	}
@@ -64,7 +64,7 @@ func PrepareOldRepository(t *testing.T) (*xorm.Engine, func()) {
 	}
 
 	// Prepare and load the testing database
-	return base.PrepareTestEnv(t, 0,
+	return migrationtest.PrepareTestEnv(t, 0,
 		new(Repository),
 		new(CommitStatus),
 		new(RepoArchiver),

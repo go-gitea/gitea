@@ -1,10 +1,13 @@
-{{if .HeatmapData}}
+{{if .EnableHeatmap}}
+{{/*HINT: USER-ACTIVITY-PUSH-COMMITS: it only uses the doer's action time, it doesn't use git commit's time */}}
+<div class="activity-heatmap-container">
 	<div id="user-heatmap" class="is-loading"
-		data-heatmap-data="{{JsonUtils.EncodeToString .HeatmapData}}"
-		data-locale-total-contributions="{{ctx.Locale.Tr "heatmap.number_of_contributions_in_the_last_12_months" (ctx.Locale.PrettyNumber .HeatmapTotalContributions)}}"
+		data-heatmap-url="{{.HeatmapURL}}"
+		data-locale-total-contributions="{{ctx.Locale.Tr "heatmap.number_of_contributions_in_the_last_12_months" "%s"}}"
 		data-locale-no-contributions="{{ctx.Locale.Tr "heatmap.no_contributions"}}"
 		data-locale-more="{{ctx.Locale.Tr "heatmap.more"}}"
 		data-locale-less="{{ctx.Locale.Tr "heatmap.less"}}"
 	></div>
-	<div class="divider"></div>
+</div>
+<div class="divider"></div>
 {{end}}

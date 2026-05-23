@@ -8,7 +8,6 @@ import (
 	"testing"
 	"time"
 
-	"code.gitea.io/gitea/models/db"
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unittest"
 	"code.gitea.io/gitea/modules/git"
@@ -50,7 +49,7 @@ func TestPushCommits_ToAPIPayloadCommits(t *testing.T) {
 	pushCommits.HeadCommit = &PushCommit{Sha1: "69554a6"}
 
 	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 16})
-	payloadCommits, headCommit, err := pushCommits.ToAPIPayloadCommits(git.DefaultContext, repo)
+	payloadCommits, headCommit, err := pushCommits.ToAPIPayloadCommits(t.Context(), repo)
 	assert.NoError(t, err)
 	assert.Len(t, payloadCommits, 3)
 	assert.NotNil(t, headCommit)
@@ -125,11 +124,11 @@ func TestPushCommits_AvatarLink(t *testing.T) {
 
 	assert.Equal(t,
 		"/avatars/ab53a2911ddf9b4817ac01ddcd3d975f?size="+strconv.Itoa(28*setting.Avatar.RenderedSizeFactor),
-		pushCommits.AvatarLink(db.DefaultContext, "user2@example.com"))
+		pushCommits.AvatarLink(t.Context(), "user2@example.com"))
 
 	assert.Equal(t,
 		"/assets/img/avatar_default.png",
-		pushCommits.AvatarLink(db.DefaultContext, "nonexistent@example.com"))
+		pushCommits.AvatarLink(t.Context(), "nonexistent@example.com"))
 }
 
 func TestCommitToPushCommit(t *testing.T) {
@@ -146,7 +145,7 @@ func TestCommitToPushCommit(t *testing.T) {
 		ID:            sha1,
 		Author:        sig,
 		Committer:     sig,
-		CommitMessage: "Commit Message",
+		CommitMessage: git.CommitMessage{MessageRaw: "Commit Message"},
 	})
 	assert.Equal(t, hexString, pushCommit.Sha1)
 	assert.Equal(t, "Commit Message", pushCommit.Message)
@@ -177,13 +176,13 @@ func TestListToPushCommits(t *testing.T) {
 			ID:            hash1,
 			Author:        sig,
 			Committer:     sig,
-			CommitMessage: "Message1",
+			CommitMessage: git.CommitMessage{MessageRaw: "Message1"},
 		},
 		{
 			ID:            hash2,
 			Author:        sig,
 			Committer:     sig,
-			CommitMessage: "Message2",
+			CommitMessage: git.CommitMessage{MessageRaw: "Message2"},
 		},
 	}
 
@@ -200,5 +199,3 @@ func TestListToPushCommits(t *testing.T) {
 		assert.Equal(t, now, pushCommits.Commits[1].Timestamp)
 	}
 }
-
-// TODO TestPushUpdate

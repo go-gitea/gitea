@@ -1,18 +1,17 @@
 // Copyright 2018 The Gitea Authors. All rights reserved.
 // SPDX-License-Identifier: MIT
 
-package v1_6 //nolint
+package v1_6
 
 import (
 	"fmt"
 	"time"
 
+	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/modules/setting"
-
-	"xorm.io/xorm"
 )
 
-func AddIssueDependencies(x *xorm.Engine) (err error) {
+func AddIssueDependencies(x db.EngineMigration) (err error) {
 	type IssueDependency struct {
 		ID           int64     `xorm:"pk autoincr"`
 		UserID       int64     `xorm:"NOT NULL"`

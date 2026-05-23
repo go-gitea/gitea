@@ -36,21 +36,24 @@ func (f *CreateOrgForm) Validate(req *http.Request, errs binding.Errors) binding
 
 // UpdateOrgSettingForm form for updating organization settings
 type UpdateOrgSettingForm struct {
-	Name                      string `binding:"Required;Username;MaxSize(40)" locale:"org.org_name_holder"`
-	FullName                  string `binding:"MaxSize(100)"`
-	Email                     string `binding:"MaxSize(255)"`
-	Description               string `binding:"MaxSize(255)"`
-	Website                   string `binding:"ValidUrl;MaxSize(255)"`
-	Location                  string `binding:"MaxSize(50)"`
-	Visibility                structs.VisibleType
-	MaxRepoCreation           int
-	RepoAdminChangeTeamAccess bool
+	FullName                  *string `binding:"MaxSize(100)"`
+	Email                     *string `binding:"MaxSize(255)"`
+	Description               *string `binding:"MaxSize(255)"`
+	Website                   *string `binding:"ValidUrl;MaxSize(255)"`
+	Location                  *string `binding:"MaxSize(50)"`
+	MaxRepoCreation           *int
+	RepoAdminChangeTeamAccess *bool
 }
 
 // Validate validates the fields
 func (f *UpdateOrgSettingForm) Validate(req *http.Request, errs binding.Errors) binding.Errors {
 	ctx := context.GetValidateContext(req)
 	return middleware.Validate(errs, ctx.Data, f, ctx.Locale)
+}
+
+type RenameOrgForm struct {
+	OrgName    string `binding:"Required"`
+	NewOrgName string `binding:"Required;Username;MaxSize(40)" locale:"org.org_name_holder"`
 }
 
 // ___________

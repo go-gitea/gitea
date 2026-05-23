@@ -17,8 +17,8 @@
 					{{template "user/dashboard/feeds" .}}
 				{{else if eq .TabName "stars"}}
 					<div class="stars">
-						{{template "shared/repo_search" .}}
-						{{template "explore/repo_list" .}}
+						{{template "shared/repo/search" .}}
+						{{template "shared/repo/list" .}}
 						{{template "base/paginate" .}}
 					</div>
 				{{else if eq .TabName "following"}}
@@ -30,8 +30,8 @@
 				{{else if eq .TabName "organizations"}}
 					{{template "repo/user_cards" .}}
 				{{else}}
-					{{template "shared/repo_search" .}}
-					{{template "explore/repo_list" .}}
+					{{template "shared/repo/search" .}}
+					{{template "shared/repo/list" .}}
 					{{template "base/paginate" .}}
 				{{end}}
 			</div>

@@ -1,9 +1,11 @@
 // Copyright 2024 The Gitea Authors. All rights reserved.
 // SPDX-License-Identifier: MIT
 
-package v1_24 //nolint
+package v1_24
 
 import (
+	"code.gitea.io/gitea/models/db"
+
 	"xorm.io/xorm"
 )
 
@@ -16,6 +18,10 @@ func (pullAutoMerge) TableName() string {
 	return "pull_auto_merge"
 }
 
-func AddDeleteBranchAfterMergeForAutoMerge(x *xorm.Engine) error {
-	return x.Sync(new(pullAutoMerge))
+func AddDeleteBranchAfterMergeForAutoMerge(x db.EngineMigration) error {
+	_, err := x.SyncWithOptions(xorm.SyncOptions{
+		IgnoreConstrains: true,
+		IgnoreIndices:    true,
+	}, new(pullAutoMerge))
+	return err
 }

@@ -7,7 +7,9 @@ package git
 
 import (
 	"context"
+	"fmt"
 	"io"
+	"strings"
 
 	"code.gitea.io/gitea/modules/log"
 
@@ -29,24 +31,28 @@ func GetNote(ctx context.Context, repo *Repository, commitID string, note *Note)
 	}
 
 	remainingCommitID := commitID
-	path := ""
-	currentTree := notes.Tree.gogitTree
+	var path strings.Builder
+	currentTree, err := notes.Tree.gogitTreeObject()
+	if err != nil {
+		return fmt.Errorf("unable to get tree object for notes commit %q: %w", notes.ID.String(), err)
+	}
+
 	log.Trace("Found tree with ID %q while searching for git note corresponding to the commit %q", currentTree.Entries[0].Name, commitID)
 	var file *object.File
 	for len(remainingCommitID) > 2 {
 		file, err = currentTree.File(remainingCommitID)
 		if err == nil {
-			path += remainingCommitID
+			path.WriteString(remainingCommitID)
 			break
 		}
 		if err == object.ErrFileNotFound {
 			currentTree, err = currentTree.Tree(remainingCommitID[0:2])
-			path += remainingCommitID[0:2] + "/"
+			path.WriteString(remainingCommitID[0:2] + "/")
 			remainingCommitID = remainingCommitID[2:]
 		}
 		if err != nil {
 			if err == object.ErrDirectoryNotFound {
-				return ErrNotExist{ID: remainingCommitID, RelPath: path}
+				return ErrNotExist{ID: remainingCommitID, RelPath: path.String()}
 			}
 			log.Error("Unable to find git note corresponding to the commit %q. Error: %v", commitID, err)
 			return err
@@ -78,12 +84,12 @@ func GetNote(ctx context.Context, repo *Repository, commitID string, note *Note)
 		return err
 	}
 
-	lastCommits, err := GetLastCommitForPaths(ctx, nil, commitNode, "", []string{path})
+	lastCommits, err := GetLastCommitForPaths(ctx, nil, commitNode, "", []string{path.String()})
 	if err != nil {
-		log.Error("Unable to get the commit for the path %q. Error: %v", path, err)
+		log.Error("Unable to get the commit for the path %q. Error: %v", path.String(), err)
 		return err
 	}
-	note.Commit = lastCommits[path]
+	note.Commit = lastCommits[path.String()]
 
 	return nil
 }

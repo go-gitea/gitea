@@ -39,8 +39,7 @@ func TestAPIPinIssue(t *testing.T) {
 	// Check if the Issue is pinned
 	req = NewRequest(t, "GET", fmt.Sprintf("/api/v1/repos/%s/%s/issues/%d", repo.OwnerName, repo.Name, issue.Index))
 	resp := MakeRequest(t, req, http.StatusOK)
-	var issueAPI api.Issue
-	DecodeJSON(t, resp, &issueAPI)
+	issueAPI := DecodeJSON(t, resp, &api.Issue{})
 	assert.Equal(t, 1, issueAPI.PinOrder)
 }
 
@@ -64,8 +63,7 @@ func TestAPIUnpinIssue(t *testing.T) {
 	// Check if the Issue is pinned
 	req = NewRequest(t, "GET", fmt.Sprintf("/api/v1/repos/%s/%s/issues/%d", repo.OwnerName, repo.Name, issue.Index))
 	resp := MakeRequest(t, req, http.StatusOK)
-	var issueAPI api.Issue
-	DecodeJSON(t, resp, &issueAPI)
+	issueAPI := DecodeJSON(t, resp, &api.Issue{})
 	assert.Equal(t, 1, issueAPI.PinOrder)
 
 	// Unpin the Issue
@@ -76,7 +74,7 @@ func TestAPIUnpinIssue(t *testing.T) {
 	// Check if the Issue is no longer pinned
 	req = NewRequest(t, "GET", fmt.Sprintf("/api/v1/repos/%s/%s/issues/%d", repo.OwnerName, repo.Name, issue.Index))
 	resp = MakeRequest(t, req, http.StatusOK)
-	DecodeJSON(t, resp, &issueAPI)
+	issueAPI = DecodeJSON(t, resp, &api.Issue{})
 	assert.Equal(t, 0, issueAPI.PinOrder)
 }
 
@@ -101,8 +99,7 @@ func TestAPIMoveIssuePin(t *testing.T) {
 	// Check if the first Issue is pinned at position 1
 	req = NewRequest(t, "GET", fmt.Sprintf("/api/v1/repos/%s/%s/issues/%d", repo.OwnerName, repo.Name, issue.Index))
 	resp := MakeRequest(t, req, http.StatusOK)
-	var issueAPI api.Issue
-	DecodeJSON(t, resp, &issueAPI)
+	issueAPI := DecodeJSON(t, resp, &api.Issue{})
 	assert.Equal(t, 1, issueAPI.PinOrder)
 
 	// Pin the second Issue
@@ -118,15 +115,13 @@ func TestAPIMoveIssuePin(t *testing.T) {
 	// Check if the first Issue is pinned at position 2
 	req = NewRequest(t, "GET", fmt.Sprintf("/api/v1/repos/%s/%s/issues/%d", repo.OwnerName, repo.Name, issue.Index))
 	resp = MakeRequest(t, req, http.StatusOK)
-	var issueAPI3 api.Issue
-	DecodeJSON(t, resp, &issueAPI3)
+	issueAPI3 := DecodeJSON(t, resp, &api.Issue{})
 	assert.Equal(t, 2, issueAPI3.PinOrder)
 
 	// Check if the second Issue is pinned at position 1
 	req = NewRequest(t, "GET", fmt.Sprintf("/api/v1/repos/%s/%s/issues/%d", repo.OwnerName, repo.Name, issue2.Index))
 	resp = MakeRequest(t, req, http.StatusOK)
-	var issueAPI4 api.Issue
-	DecodeJSON(t, resp, &issueAPI4)
+	issueAPI4 := DecodeJSON(t, resp, &api.Issue{})
 	assert.Equal(t, 1, issueAPI4.PinOrder)
 }
 
@@ -150,8 +145,7 @@ func TestAPIListPinnedIssues(t *testing.T) {
 	// Check if the Issue is in the List
 	req = NewRequest(t, "GET", fmt.Sprintf("/api/v1/repos/%s/%s/issues/pinned", repo.OwnerName, repo.Name))
 	resp := MakeRequest(t, req, http.StatusOK)
-	var issueList []api.Issue
-	DecodeJSON(t, resp, &issueList)
+	issueList := DecodeJSON(t, resp, []api.Issue{})
 
 	assert.Len(t, issueList, 1)
 	assert.Equal(t, issue.ID, issueList[0].ID)
@@ -166,8 +160,7 @@ func TestAPIListPinnedPullrequests(t *testing.T) {
 
 	req := NewRequest(t, "GET", fmt.Sprintf("/api/v1/repos/%s/%s/pulls/pinned", repo.OwnerName, repo.Name))
 	resp := MakeRequest(t, req, http.StatusOK)
-	var prList []api.PullRequest
-	DecodeJSON(t, resp, &prList)
+	prList := DecodeJSON(t, resp, []api.PullRequest{})
 
 	assert.Empty(t, prList)
 }
@@ -181,8 +174,7 @@ func TestAPINewPinAllowed(t *testing.T) {
 	req := NewRequest(t, "GET", fmt.Sprintf("/api/v1/repos/%s/%s/new_pin_allowed", owner.Name, repo.Name))
 	resp := MakeRequest(t, req, http.StatusOK)
 
-	var newPinsAllowed api.NewIssuePinsAllowed
-	DecodeJSON(t, resp, &newPinsAllowed)
+	newPinsAllowed := DecodeJSON(t, resp, &api.NewIssuePinsAllowed{})
 
 	assert.True(t, newPinsAllowed.Issues)
 	assert.True(t, newPinsAllowed.PullRequests)

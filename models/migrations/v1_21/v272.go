@@ -1,12 +1,11 @@
 // Copyright 2023 The Gitea Authors. All rights reserved.
 // SPDX-License-Identifier: MIT
 
-package v1_21 //nolint
-import (
-	"xorm.io/xorm"
-)
+package v1_21
 
-func AddVersionToActionRunTable(x *xorm.Engine) error {
+import "code.gitea.io/gitea/models/db"
+
+func AddVersionToActionRunTable(x db.EngineMigration) error {
 	type ActionRun struct {
 		Version int `xorm:"version default 0"`
 	}

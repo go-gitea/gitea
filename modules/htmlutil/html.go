@@ -6,7 +6,9 @@ package htmlutil
 import (
 	"fmt"
 	"html/template"
+	"io"
 	"slices"
+	"strings"
 )
 
 // ParseSizeAndClass get size and class from string with default values
@@ -30,7 +32,10 @@ func ParseSizeAndClass(defaultSize int, defaultClass string, others ...any) (int
 	return size, class
 }
 
-func HTMLFormat(s template.HTML, rawArgs ...any) template.HTML {
+func htmlFormatArgs(s template.HTML, rawArgs []any) []any {
+	if !strings.Contains(string(s), "%") || len(rawArgs) == 0 {
+		panic("HTMLFormat requires one or more arguments")
+	}
 	args := slices.Clone(rawArgs)
 	for i, v := range args {
 		switch v := v.(type) {
@@ -38,11 +43,74 @@ func HTMLFormat(s template.HTML, rawArgs ...any) template.HTML {
 			// for most basic types (including template.HTML which is safe), just do nothing and use it
 		case string:
 			args[i] = template.HTMLEscapeString(v)
+		case template.URL:
+			args[i] = template.HTMLEscapeString(string(v))
 		case fmt.Stringer:
 			args[i] = template.HTMLEscapeString(v.String())
 		default:
 			args[i] = template.HTMLEscapeString(fmt.Sprint(v))
 		}
 	}
-	return template.HTML(fmt.Sprintf(string(s), args...))
+	return args
+}
+
+func HTMLFormat(s template.HTML, rawArgs ...any) template.HTML {
+	return template.HTML(fmt.Sprintf(string(s), htmlFormatArgs(s, rawArgs)...))
+}
+
+func HTMLPrintf(w io.Writer, s template.HTML, rawArgs ...any) (int, error) {
+	return fmt.Fprintf(w, string(s), htmlFormatArgs(s, rawArgs)...)
+}
+
+func HTMLPrint(w io.Writer, s template.HTML) (int, error) {
+	return io.WriteString(w, string(s))
+}
+
+func HTMLPrintTag(w io.Writer, tag template.HTML, attrs map[string]string) (written int, err error) {
+	n, err := io.WriteString(w, "<"+string(tag))
+	written += n
+	if err != nil {
+		return written, err
+	}
+	for k, v := range attrs {
+		n, err = fmt.Fprintf(w, ` %s="%s"`, template.HTMLEscapeString(k), template.HTMLEscapeString(v))
+		written += n
+		if err != nil {
+			return written, err
+		}
+	}
+	n, err = io.WriteString(w, ">")
+	written += n
+	return written, err
+}
+
+func EscapeString(s string) template.HTML {
+	return template.HTML(template.HTMLEscapeString(s))
+}
+
+type HTMLBuilder struct {
+	sb strings.Builder
+}
+
+func (b *HTMLBuilder) WriteString(s string) *HTMLBuilder {
+	b.sb.WriteString(template.HTMLEscapeString(s))
+	return b
+}
+
+func (b *HTMLBuilder) WriteHTML(s template.HTML) *HTMLBuilder {
+	b.sb.WriteString(string(s))
+	return b
+}
+
+func (b *HTMLBuilder) WriteFormat(fmt template.HTML, args ...any) *HTMLBuilder {
+	_, _ = HTMLPrintf(&b.sb, fmt, args...)
+	return b
+}
+
+func (b *HTMLBuilder) HTMLString() template.HTML {
+	return template.HTML(b.sb.String())
+}
+
+func (b *HTMLBuilder) String() string {
+	return b.sb.String()
 }

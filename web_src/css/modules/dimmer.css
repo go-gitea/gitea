@@ -20,7 +20,7 @@
   opacity: 1;
 }
 
-.ui.dimmer > * {
+.ui.dimmer > .ui.modal {
   position: static;
   margin-top: auto !important;
   margin-bottom: auto !important;

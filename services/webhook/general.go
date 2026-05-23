@@ -317,11 +317,42 @@ func getStatusPayloadInfo(p *api.CommitStatusPayload, linkFormatter linkFormatte
 	text = fmt.Sprintf("Commit Status changed: %s - %s", refLink, p.Description)
 	color = greenColor
 	if withSender {
-		if user_model.IsGiteaActionsUserName(p.Sender.UserName) {
+		if user_model.GetSystemUserByName(p.Sender.UserName) != nil {
 			text += " by " + p.Sender.FullName
 		} else {
 			text += " by " + linkFormatter(setting.AppURL+url.PathEscape(p.Sender.UserName), p.Sender.UserName)
 		}
+	}
+
+	return text, color
+}
+
+func getWorkflowRunPayloadInfo(p *api.WorkflowRunPayload, linkFormatter linkFormatter, withSender bool) (text string, color int) {
+	description := p.WorkflowRun.Conclusion
+	if description == "" {
+		description = p.WorkflowRun.Status
+	}
+	refLink := linkFormatter(p.WorkflowRun.HTMLURL, fmt.Sprintf("%s(#%d)", p.WorkflowRun.DisplayTitle, p.WorkflowRun.ID)+"["+base.ShortSha(p.WorkflowRun.HeadSha)+"]:"+description)
+
+	text = fmt.Sprintf("Workflow Run %s: %s", p.Action, refLink)
+	switch description {
+	case "waiting":
+		color = orangeColor
+	case "queued":
+		color = orangeColorLight
+	case "success":
+		color = greenColor
+	case "failure":
+		color = redColor
+	case "cancelled":
+		color = yellowColor
+	case "skipped":
+		color = purpleColor
+	default:
+		color = greyColor
+	}
+	if withSender {
+		text += " by " + linkFormatter(setting.AppURL+url.PathEscape(p.Sender.UserName), p.Sender.UserName)
 	}
 
 	return text, color
@@ -380,6 +411,7 @@ func ToHook(repoLink string, w *webhook_model.Webhook) (*api.Hook, error) {
 
 	return &api.Hook{
 		ID:                  w.ID,
+		Name:                w.Name,
 		Type:                w.Type,
 		URL:                 fmt.Sprintf("%s/settings/hooks/%d", repoLink, w.ID),
 		Active:              w.IsActive,

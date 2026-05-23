@@ -7,7 +7,6 @@ import (
 	"slices"
 	"testing"
 
-	"code.gitea.io/gitea/models/db"
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unittest"
 	"code.gitea.io/gitea/modules/cache"
@@ -20,7 +19,7 @@ func TestRepository_ContributorsGraph(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 
 	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 2})
-	assert.NoError(t, repo.LoadOwner(db.DefaultContext))
+	assert.NoError(t, repo.LoadOwner(t.Context()))
 	mockCache, err := cache.NewStringCache(setting.Cache{})
 	assert.NoError(t, err)
 

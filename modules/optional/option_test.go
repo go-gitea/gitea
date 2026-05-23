@@ -56,6 +56,12 @@ func TestOption(t *testing.T) {
 	opt3 := optional.FromNonDefault(1)
 	assert.True(t, opt3.Has())
 	assert.Equal(t, int(1), opt3.Value())
+
+	opt4 := optional.FromMapLookup(map[string]int{"a": 1}, "a")
+	assert.True(t, opt4.Has())
+	assert.Equal(t, 1, opt4.Value())
+	opt4 = optional.FromMapLookup(map[string]int{"a": 1}, "b")
+	assert.False(t, opt4.Has())
 }
 
 func Test_ParseBool(t *testing.T) {

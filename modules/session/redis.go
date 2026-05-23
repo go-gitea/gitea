@@ -1,18 +1,6 @@
 // Copyright 2013 Beego Authors
 // Copyright 2014 The Macaron Authors
 // Copyright 2020 The Gitea Authors. All rights reserved.
-//
-// Licensed under the Apache License, Version 2.0 (the "License"): you may
-// not use this file except in compliance with the License. You may obtain
-// a copy of the License at
-//
-//     http://www.apache.org/licenses/LICENSE-2.0
-//
-// Unless required by applicable law or agreed to in writing, software
-// distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
-// WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
-// License for the specific language governing permissions and limitations
-// under the License.
 // SPDX-License-Identifier: Apache-2.0
 
 package session
@@ -135,10 +123,12 @@ func (p *RedisProvider) Init(maxlifetime int64, configs string) (err error) {
 // Read returns raw session store by session ID.
 func (p *RedisProvider) Read(sid string) (session.RawStore, error) {
 	psid := p.prefix + sid
-	if !p.Exist(sid) {
+	if exist, err := p.Exist(sid); err == nil && !exist {
 		if err := p.c.Set(graceful.GetManager().HammerContext(), psid, "", p.duration).Err(); err != nil {
 			return nil, err
 		}
+	} else if err != nil {
+		return nil, err
 	}
 
 	var kv map[any]any
@@ -159,9 +149,9 @@ func (p *RedisProvider) Read(sid string) (session.RawStore, error) {
 }
 
 // Exist returns true if session with given ID exists.
-func (p *RedisProvider) Exist(sid string) bool {
+func (p *RedisProvider) Exist(sid string) (bool, error) {
 	v, err := p.c.Exists(graceful.GetManager().HammerContext(), p.prefix+sid).Result()
-	return err == nil && v == 1
+	return err == nil && v == 1, err
 }
 
 // Destroy deletes a session by session ID.
@@ -174,13 +164,18 @@ func (p *RedisProvider) Regenerate(oldsid, sid string) (_ session.RawStore, err 
 	poldsid := p.prefix + oldsid
 	psid := p.prefix + sid
 
-	if p.Exist(sid) {
+	if exist, err := p.Exist(sid); err != nil {
+		return nil, err
+	} else if exist {
 		return nil, fmt.Errorf("new sid '%s' already exists", sid)
-	} else if !p.Exist(oldsid) {
+	}
+	if exist, err := p.Exist(oldsid); err == nil && !exist {
 		// Make a fake old session.
-		if err = p.c.Set(graceful.GetManager().HammerContext(), poldsid, "", p.duration).Err(); err != nil {
+		if err := p.c.Set(graceful.GetManager().HammerContext(), poldsid, "", p.duration).Err(); err != nil {
 			return nil, err
 		}
+	} else if err != nil {
+		return nil, err
 	}
 
 	// do not use Rename here, because the old sid and new sid may be in different redis cluster slot.
@@ -211,12 +206,9 @@ func (p *RedisProvider) Regenerate(oldsid, sid string) (_ session.RawStore, err 
 }
 
 // Count counts and returns number of sessions.
-func (p *RedisProvider) Count() int {
+func (p *RedisProvider) Count() (int, error) {
 	size, err := p.c.DBSize(graceful.GetManager().HammerContext()).Result()
-	if err != nil {
-		return 0
-	}
-	return int(size)
+	return int(size), err
 }
 
 // GC calls GC to clean expired sessions.

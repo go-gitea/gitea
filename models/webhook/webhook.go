@@ -126,6 +126,7 @@ type Webhook struct {
 	OwnerID                   int64 `xorm:"INDEX"`
 	IsSystemWebhook           bool
 	URL                       string `xorm:"url TEXT"`
+	Name                      string `xorm:"VARCHAR(255) NOT NULL DEFAULT ''"`
 	HTTPMethod                string `xorm:"http_method"`
 	ContentType               HookContentType
 	Secret                    string `xorm:"TEXT"`
@@ -240,7 +241,7 @@ func CreateWebhooks(ctx context.Context, ws []*Webhook) error {
 	if len(ws) == 0 {
 		return nil
 	}
-	for i := 0; i < len(ws); i++ {
+	for i := range ws {
 		ws[i].Type = strings.TrimSpace(ws[i].Type)
 	}
 	return db.Insert(ctx, ws)
@@ -319,21 +320,16 @@ func UpdateWebhookLastStatus(ctx context.Context, w *Webhook) error {
 // DeleteWebhookByID uses argument bean as query condition,
 // ID must be specified and do not assign unnecessary fields.
 func DeleteWebhookByID(ctx context.Context, id int64) (err error) {
-	ctx, committer, err := db.TxContext(ctx)
-	if err != nil {
-		return err
-	}
-	defer committer.Close()
-
-	if count, err := db.DeleteByID[Webhook](ctx, id); err != nil {
-		return err
-	} else if count == 0 {
-		return ErrWebhookNotExist{ID: id}
-	} else if _, err = db.DeleteByBean(ctx, &HookTask{HookID: id}); err != nil {
-		return err
-	}
-
-	return committer.Commit()
+	return db.WithTx(ctx, func(ctx context.Context) error {
+		if count, err := db.DeleteByID[Webhook](ctx, id); err != nil {
+			return err
+		} else if count == 0 {
+			return ErrWebhookNotExist{ID: id}
+		} else if _, err = db.DeleteByBean(ctx, &HookTask{HookID: id}); err != nil {
+			return err
+		}
+		return nil
+	})
 }
 
 // DeleteWebhookByRepoID deletes webhook of repository by given ID.

@@ -10,7 +10,6 @@ import (
 	"testing"
 
 	auth_model "code.gitea.io/gitea/models/auth"
-	"code.gitea.io/gitea/models/db"
 	issues_model "code.gitea.io/gitea/models/issues"
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unittest"
@@ -35,8 +34,7 @@ func TestAPIListRepoComments(t *testing.T) {
 	req := NewRequest(t, "GET", link.String())
 	resp := MakeRequest(t, req, http.StatusOK)
 
-	var apiComments []*api.Comment
-	DecodeJSON(t, resp, &apiComments)
+	apiComments := DecodeJSON(t, resp, []*api.Comment{})
 	assert.Len(t, apiComments, 2)
 	for _, apiComment := range apiComments {
 		c := &issues_model.Comment{ID: apiComment.ID}
@@ -53,7 +51,7 @@ func TestAPIListRepoComments(t *testing.T) {
 	link.RawQuery = query.Encode()
 	req = NewRequest(t, "GET", link.String())
 	resp = MakeRequest(t, req, http.StatusOK)
-	DecodeJSON(t, resp, &apiComments)
+	apiComments = DecodeJSON(t, resp, []*api.Comment{})
 	assert.Len(t, apiComments, 1)
 	assert.EqualValues(t, 2, apiComments[0].ID)
 
@@ -62,7 +60,7 @@ func TestAPIListRepoComments(t *testing.T) {
 	link.RawQuery = query.Encode()
 	req = NewRequest(t, "GET", link.String())
 	resp = MakeRequest(t, req, http.StatusOK)
-	DecodeJSON(t, resp, &apiComments)
+	apiComments = DecodeJSON(t, resp, []*api.Comment{})
 	assert.Len(t, apiComments, 1)
 	assert.EqualValues(t, 3, apiComments[0].ID)
 }
@@ -81,8 +79,7 @@ func TestAPIListIssueComments(t *testing.T) {
 		AddTokenAuth(token)
 	resp := MakeRequest(t, req, http.StatusOK)
 
-	var comments []*api.Comment
-	DecodeJSON(t, resp, &comments)
+	comments := DecodeJSON(t, resp, []*api.Comment{})
 	expectedCount := unittest.GetCount(t, &issues_model.Comment{IssueID: issue.ID},
 		unittest.Cond("type = ?", issues_model.CommentTypeComment))
 	assert.Len(t, comments, expectedCount)
@@ -104,8 +101,7 @@ func TestAPICreateComment(t *testing.T) {
 	}).AddTokenAuth(token)
 	resp := MakeRequest(t, req, http.StatusCreated)
 
-	var updatedComment api.Comment
-	DecodeJSON(t, resp, &updatedComment)
+	updatedComment := DecodeJSON(t, resp, &api.Comment{})
 	assert.Equal(t, commentBody, updatedComment.Body)
 	unittest.AssertExistsAndLoadBean(t, &issues_model.Comment{ID: updatedComment.ID, IssueID: issue.ID, Content: commentBody})
 
@@ -140,7 +136,7 @@ func TestAPIGetComment(t *testing.T) {
 	defer tests.PrepareTestEnv(t)()
 
 	comment := unittest.AssertExistsAndLoadBean(t, &issues_model.Comment{ID: 2})
-	assert.NoError(t, comment.LoadIssue(db.DefaultContext))
+	assert.NoError(t, comment.LoadIssue(t.Context()))
 	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: comment.Issue.RepoID})
 	repoOwner := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: repo.OwnerID})
 
@@ -151,11 +147,10 @@ func TestAPIGetComment(t *testing.T) {
 		AddTokenAuth(token)
 	resp := MakeRequest(t, req, http.StatusOK)
 
-	var apiComment api.Comment
-	DecodeJSON(t, resp, &apiComment)
+	apiComment := DecodeJSON(t, resp, &api.Comment{})
 
-	assert.NoError(t, comment.LoadPoster(db.DefaultContext))
-	expect := convert.ToAPIComment(db.DefaultContext, repo, comment)
+	assert.NoError(t, comment.LoadPoster(t.Context()))
+	expect := convert.ToAPIComment(t.Context(), repo, comment)
 
 	assert.Equal(t, expect.ID, apiComment.ID)
 	assert.Equal(t, expect.Poster.FullName, apiComment.Poster.FullName)
@@ -175,7 +170,7 @@ func TestAPIGetSystemUserComment(t *testing.T) {
 		user_model.NewActionsUser(),
 	} {
 		body := "Hello " + systemUser.Name
-		comment, err := issues_model.CreateComment(db.DefaultContext, &issues_model.CreateCommentOptions{
+		comment, err := issues_model.CreateComment(t.Context(), &issues_model.CreateCommentOptions{
 			Type:    issues_model.CommentTypeComment,
 			Doer:    systemUser,
 			Repo:    repo,
@@ -187,12 +182,11 @@ func TestAPIGetSystemUserComment(t *testing.T) {
 		req := NewRequestf(t, "GET", "/api/v1/repos/%s/%s/issues/comments/%d", repoOwner.Name, repo.Name, comment.ID)
 		resp := MakeRequest(t, req, http.StatusOK)
 
-		var apiComment api.Comment
-		DecodeJSON(t, resp, &apiComment)
+		apiComment := DecodeJSON(t, resp, &api.Comment{})
 
 		if assert.NotNil(t, apiComment.Poster) {
 			if assert.Equal(t, systemUser.ID, apiComment.Poster.ID) {
-				assert.NoError(t, comment.LoadPoster(db.DefaultContext))
+				assert.NoError(t, comment.LoadPoster(t.Context()))
 				assert.Equal(t, systemUser.Name, apiComment.Poster.UserName)
 			}
 		}
@@ -231,8 +225,7 @@ func TestAPIEditComment(t *testing.T) {
 	}).AddTokenAuth(token)
 	resp := MakeRequest(t, req, http.StatusOK)
 
-	var updatedComment api.Comment
-	DecodeJSON(t, resp, &updatedComment)
+	updatedComment := DecodeJSON(t, resp, &api.Comment{})
 	assert.Equal(t, comment.ID, updatedComment.ID)
 	assert.Equal(t, newCommentBody, updatedComment.Body)
 	unittest.AssertExistsAndLoadBean(t, &issues_model.Comment{ID: comment.ID, IssueID: issue.ID, Content: newCommentBody})
@@ -279,8 +272,7 @@ func TestAPIListIssueTimeline(t *testing.T) {
 
 	// check if lens of list returned by API and
 	// lists extracted directly from DB are the same
-	var comments []*api.TimelineComment
-	DecodeJSON(t, resp, &comments)
+	comments := DecodeJSON(t, resp, []*api.TimelineComment{})
 	expectedCount := unittest.GetCount(t, &issues_model.Comment{IssueID: issue.ID})
 	assert.Len(t, comments, expectedCount)
 }

@@ -12,6 +12,7 @@ import (
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/optional"
+	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/timeutil"
 	"code.gitea.io/gitea/modules/util"
 
@@ -58,6 +59,15 @@ var Names = map[Type]string{
 // Config represents login config as far as the db is concerned
 type Config interface {
 	convert.Conversion
+	SetAuthSource(*Source)
+}
+
+type ConfigBase struct {
+	AuthSource *Source
+}
+
+func (p *ConfigBase) SetAuthSource(s *Source) {
+	p.AuthSource = s
 }
 
 // SkipVerifiable configurations provide a IsSkipVerify to check if SkipVerify is set
@@ -90,7 +100,7 @@ var registeredConfigs = map[Type]func() Config{}
 
 // RegisterTypeConfig register a config for a provided type
 func RegisterTypeConfig(typ Type, exemplar Config) {
-	if reflect.TypeOf(exemplar).Kind() == reflect.Ptr {
+	if reflect.TypeOf(exemplar).Kind() == reflect.Pointer {
 		// Pointer:
 		registeredConfigs[typ] = func() Config {
 			return reflect.New(reflect.ValueOf(exemplar).Elem().Type()).Interface().(Config)
@@ -104,19 +114,15 @@ func RegisterTypeConfig(typ Type, exemplar Config) {
 	}
 }
 
-// SourceSettable configurations can have their authSource set on them
-type SourceSettable interface {
-	SetAuthSource(*Source)
-}
-
 // Source represents an external way for authorizing users.
 type Source struct {
-	ID            int64 `xorm:"pk autoincr"`
-	Type          Type
-	Name          string             `xorm:"UNIQUE"`
-	IsActive      bool               `xorm:"INDEX NOT NULL DEFAULT false"`
-	IsSyncEnabled bool               `xorm:"INDEX NOT NULL DEFAULT false"`
-	Cfg           convert.Conversion `xorm:"TEXT"`
+	ID              int64 `xorm:"pk autoincr"`
+	Type            Type
+	Name            string `xorm:"UNIQUE"` // it can be the OIDC's provider name, see services/auth/source/oauth2/source_register.go: RegisterSource
+	IsActive        bool   `xorm:"INDEX NOT NULL DEFAULT false"`
+	IsSyncEnabled   bool   `xorm:"INDEX NOT NULL DEFAULT false"`
+	TwoFactorPolicy string `xorm:"two_factor_policy NOT NULL DEFAULT ''"`
+	Cfg             Config `xorm:"TEXT"`
 
 	CreatedUnix timeutil.TimeStamp `xorm:"INDEX created"`
 	UpdatedUnix timeutil.TimeStamp `xorm:"INDEX updated"`
@@ -134,15 +140,16 @@ func init() {
 // BeforeSet is invoked from XORM before setting the value of a field of this object.
 func (source *Source) BeforeSet(colName string, val xorm.Cell) {
 	if colName == "type" {
-		typ := Type(db.Cell2Int64(val))
+		typ, _, err := db.CellToInt(val, NoType)
+		if err != nil {
+			setting.PanicInDevOrTesting("Unable to convert login source (id=%d) type: %v", source.ID, err)
+		}
 		constructor, ok := registeredConfigs[typ]
 		if !ok {
 			return
 		}
 		source.Cfg = constructor()
-		if settable, ok := source.Cfg.(SourceSettable); ok {
-			settable.SetAuthSource(source)
-		}
+		source.Cfg.SetAuthSource(source)
 	}
 }
 
@@ -200,6 +207,10 @@ func (source *Source) SkipVerify() bool {
 	return ok && skipVerifiable.IsSkipVerify()
 }
 
+func (source *Source) TwoFactorShouldSkip() bool {
+	return source.TwoFactorPolicy == "skip"
+}
+
 // CreateSource inserts a AuthSource in the DB if not already
 // existing with the given name.
 func CreateSource(ctx context.Context, source *Source) error {
@@ -223,9 +234,7 @@ func CreateSource(ctx context.Context, source *Source) error {
 		return nil
 	}
 
-	if settable, ok := source.Cfg.(SourceSettable); ok {
-		settable.SetAuthSource(source)
-	}
+	source.Cfg.SetAuthSource(source)
 
 	registerableSource, ok := source.Cfg.(RegisterableSource)
 	if !ok {
@@ -320,9 +329,7 @@ func UpdateSource(ctx context.Context, source *Source) error {
 		return nil
 	}
 
-	if settable, ok := source.Cfg.(SourceSettable); ok {
-		settable.SetAuthSource(source)
-	}
+	source.Cfg.SetAuthSource(source)
 
 	registerableSource, ok := source.Cfg.(RegisterableSource)
 	if !ok {
@@ -331,7 +338,7 @@ func UpdateSource(ctx context.Context, source *Source) error {
 
 	err = registerableSource.RegisterSource()
 	if err != nil {
-		// restore original values since we cannot update the provider it self
+		// restore original values since we cannot update the provider itself
 		if _, err := db.GetEngine(ctx).ID(source.ID).AllCols().Update(originalSource); err != nil {
 			log.Error("UpdateSource: Error while wrapOpenIDConnectInitializeError: %v", err)
 		}

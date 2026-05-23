@@ -1,13 +1,11 @@
 // Copyright 2023 The Gitea Authors. All rights reserved.
 // SPDX-License-Identifier: MIT
 
-package v1_22 //nolint
+package v1_22
 
-import (
-	"xorm.io/xorm"
-)
+import "code.gitea.io/gitea/models/db"
 
-func AddIndexToPullAutoMergeDoerID(x *xorm.Engine) error {
+func AddIndexToPullAutoMergeDoerID(x db.EngineMigration) error {
 	type PullAutoMerge struct {
 		DoerID int64 `xorm:"INDEX NOT NULL"`
 	}

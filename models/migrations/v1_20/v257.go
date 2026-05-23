@@ -1,15 +1,14 @@
 // Copyright 2023 The Gitea Authors. All rights reserved.
 // SPDX-License-Identifier: MIT
 
-package v1_20 //nolint
+package v1_20
 
 import (
+	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/modules/timeutil"
-
-	"xorm.io/xorm"
 )
 
-func CreateActionArtifactTable(x *xorm.Engine) error {
+func CreateActionArtifactTable(x db.EngineMigration) error {
 	// ActionArtifact is a file that is stored in the artifact storage.
 	type ActionArtifact struct {
 		ID                 int64 `xorm:"pk autoincr"`

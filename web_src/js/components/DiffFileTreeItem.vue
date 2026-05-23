@@ -1,6 +1,6 @@
 <script lang="ts" setup>
 import {SvgIcon, type SvgName} from '../svg.ts';
-import {ref} from 'vue';
+import {shallowRef} from 'vue';
 import {type DiffStatus, type DiffTreeEntry, diffTreeStore} from '../modules/diff-file.ts';
 
 const props = defineProps<{
@@ -8,26 +8,19 @@ const props = defineProps<{
 }>();
 
 const store = diffTreeStore();
-const collapsed = ref(props.item.IsViewed);
+const collapsed = shallowRef(props.item.IsViewed);
 
 function getIconForDiffStatus(pType: DiffStatus) {
   const diffTypes: Record<DiffStatus, { name: SvgName, classes: Array<string> }> = {
-    '': {name: 'octicon-blocked', classes: ['text', 'red']}, // unknown case
-    'added': {name: 'octicon-diff-added', classes: ['text', 'green']},
-    'modified': {name: 'octicon-diff-modified', classes: ['text', 'yellow']},
-    'deleted': {name: 'octicon-diff-removed', classes: ['text', 'red']},
-    'renamed': {name: 'octicon-diff-renamed', classes: ['text', 'teal']},
-    'copied': {name: 'octicon-diff-renamed', classes: ['text', 'green']},
-    'typechange': {name: 'octicon-diff-modified', classes: ['text', 'green']}, // there is no octicon for copied, so renamed should be ok
+    '': {name: 'octicon-blocked', classes: ['tw-text-red']}, // unknown case
+    'added': {name: 'octicon-diff-added', classes: ['tw-text-green']},
+    'modified': {name: 'octicon-diff-modified', classes: ['tw-text-yellow']},
+    'deleted': {name: 'octicon-diff-removed', classes: ['tw-text-red']},
+    'renamed': {name: 'octicon-diff-renamed', classes: ['tw-text-teal']},
+    'copied': {name: 'octicon-diff-renamed', classes: ['tw-text-green']},
+    'typechange': {name: 'octicon-diff-modified', classes: ['tw-text-green']}, // there is no octicon for copied, so renamed should be ok
   };
   return diffTypes[pType] ?? diffTypes[''];
-}
-
-function entryIcon(entry: DiffTreeEntry) {
-  if (entry.EntryMode === 'commit') {
-    return 'octicon-file-submodule';
-  }
-  return 'octicon-file';
 }
 </script>
 
@@ -36,10 +29,8 @@ function entryIcon(entry: DiffTreeEntry) {
     <div class="item-directory" :class="{ 'viewed': item.IsViewed }" :title="item.DisplayName" @click.stop="collapsed = !collapsed">
       <!-- directory -->
       <SvgIcon :name="collapsed ? 'octicon-chevron-right' : 'octicon-chevron-down'"/>
-      <SvgIcon
-        class="text primary"
-        :name="collapsed ? 'octicon-file-directory-fill' : 'octicon-file-directory-open-fill'"
-      />
+      <!-- eslint-disable-next-line vue/no-v-html -->
+      <span class="tw-contents" v-html="collapsed ? store.folderIcon : store.folderOpenIcon"/>
       <span class="gt-ellipsis">{{ item.DisplayName }}</span>
     </div>
 
@@ -53,7 +44,8 @@ function entryIcon(entry: DiffTreeEntry) {
     :title="item.DisplayName" :href="'#diff-' + item.NameHash"
   >
     <!-- file -->
-    <SvgIcon :name="entryIcon(item)"/>
+    <!-- eslint-disable-next-line vue/no-v-html -->
+    <span class="tw-contents" v-html="item.FileIcon"/>
     <span class="gt-ellipsis tw-flex-1">{{ item.DisplayName }}</span>
     <SvgIcon
       :name="getIconForDiffStatus(item.DiffStatus).name"

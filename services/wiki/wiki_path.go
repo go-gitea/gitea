@@ -129,8 +129,8 @@ func GitPathToWebPath(s string) (wp WebPath, err error) {
 func WebPathToUserTitle(s WebPath) (dir, display string) {
 	dir = path.Dir(string(s))
 	display = path.Base(string(s))
-	if strings.HasSuffix(display, ".md") {
-		display = strings.TrimSuffix(display, ".md")
+	if before, ok := strings.CutSuffix(display, ".md"); ok {
+		display = before
 		display, _ = url.PathUnescape(display)
 	}
 	display, _ = unescapeSegment(display)
@@ -165,7 +165,7 @@ func ToWikiPageMetaData(wikiName WebPath, lastCommit *git.Commit, repo *repo_mod
 	_, title := WebPathToUserTitle(wikiName)
 	return &api.WikiPageMetaData{
 		Title:      title,
-		HTMLURL:    util.URLJoin(repo.HTMLURL(), "wiki", subURL),
+		HTMLURL:    repo.HTMLURL() + "/wiki/" + subURL,
 		SubURL:     subURL,
 		LastCommit: convert.ToWikiCommit(lastCommit),
 	}

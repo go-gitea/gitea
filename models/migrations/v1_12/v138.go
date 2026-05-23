@@ -1,15 +1,15 @@
 // Copyright 2020 The Gitea Authors. All rights reserved.
 // SPDX-License-Identifier: MIT
 
-package v1_12 //nolint
+package v1_12
 
 import (
 	"fmt"
 
-	"xorm.io/xorm"
+	"code.gitea.io/gitea/models/db"
 )
 
-func AddResolveDoerIDCommentColumn(x *xorm.Engine) error {
+func AddResolveDoerIDCommentColumn(x db.EngineMigration) error {
 	type Comment struct {
 		ResolveDoerID int64
 	}

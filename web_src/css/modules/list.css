@@ -5,7 +5,6 @@
   list-style-type: none;
   margin: 1em 0;
   padding: 0;
-  font-size: 1em;
 }
 
 .ui.list:first-child {
@@ -24,15 +23,6 @@
   table-layout: fixed;
   list-style-type: none;
   list-style-position: outside;
-}
-
-.ui.list > .list > .item::after,
-.ui.list > .item::after {
-  content: "";
-  display: block;
-  height: 0;
-  clear: both;
-  visibility: hidden;
 }
 
 .ui.list .list:not(.icon) {

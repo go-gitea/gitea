@@ -12,7 +12,6 @@
 	<div class="ui attached segment">
 		{{if .EnablePasswordSignInForm}}
 		<form class="ui form" action="{{.SignInLink}}" method="post">
-			{{.CsrfTokenHtml}}
 			<div class="required field {{if and (.Err_UserName) (or (not .LinkAccountMode) (and .LinkAccountMode .LinkAccountModeSignIn))}}error{{end}}">
 				<label for="user_name">{{ctx.Locale.Tr "home.uname_holder"}}</label>
 				<input id="user_name" type="text" name="user_name" value="{{.user_name}}" autofocus required tabindex="1">
@@ -47,14 +46,13 @@
 				</button>
 			</div>
 		</form>
-		{{end}}{{/*if .EnablePasswordSignInForm*/}}
-		{{/* "oauth_container" contains not only "oauth2" methods, but also "OIDC" and "SSPI" methods */}}
-		{{$showOAuth2Methods := or .OAuth2Providers .EnableOpenIDSignIn .EnableSSPI}}
-		{{if and $showOAuth2Methods .EnablePasswordSignInForm}}
+		{{end}}{{/*end if .EnablePasswordSignInForm*/}}
+		{{$showExternalAuthMethods := or .OAuth2Providers .EnableOpenIDSignIn .EnableSSPI}}
+		{{if and $showExternalAuthMethods .EnablePasswordSignInForm}}
 			<div class="divider divider-text">{{ctx.Locale.Tr "sign_in_or"}}</div>
 		{{end}}
-		{{if $showOAuth2Methods}}
-			{{template "user/auth/oauth_container" .}}
+		{{if $showExternalAuthMethods}}
+			{{template "user/auth/external_auth_methods" .}}
 		{{end}}
 	</div>
 </div>

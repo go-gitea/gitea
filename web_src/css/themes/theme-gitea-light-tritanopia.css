@@ -1,0 +1,15 @@
+@import "./theme-gitea-light.css";
+
+gitea-theme-meta-info {
+  --theme-display-name: "Light";
+  --theme-colorblind-type: "blue-yellow";
+  --theme-color-scheme: "light";
+}
+
+/* blue/yellow colorblind-friendly colors */
+:root {
+  --color-diff-added-fg: #2185d0;
+  --color-diff-added-linenum-bg: #b6e3ff;
+  --color-diff-added-row-bg: #ddf4ff;
+  --color-diff-added-word-bg: #b6e3ff;
+}

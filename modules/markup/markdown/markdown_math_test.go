@@ -31,6 +31,10 @@ func TestMathRender(t *testing.T) {
 			`<p><code class="language-math">a</code></p>` + nl,
 		},
 		{
+			"$a$$b$",
+			`<p><code class="language-math">a</code><code class="language-math">b</code></p>` + nl,
+		},
+		{
 			"$a$ $b$",
 			`<p><code class="language-math">a</code> <code class="language-math">b</code></p>` + nl,
 		},
@@ -59,7 +63,7 @@ func TestMathRender(t *testing.T) {
 			`<p>a$b $a a$b b$</p>` + nl,
 		},
 		{
-			"a$x$",
+			"a$x$", // Pattern: "word$other$" The real world example is: "Price is between US$1 and US$2.", so don't parse this.
 			`<p>a$x$</p>` + nl,
 		},
 		{
@@ -69,6 +73,10 @@ func TestMathRender(t *testing.T) {
 		{
 			"$a$ ($b$) [$c$] {$d$}",
 			`<p><code class="language-math">a</code> (<code class="language-math">b</code>) [$c$] {$d$}</p>` + nl,
+		},
+		{
+			"[$a$](link)",
+			`<p><a href="/link" rel="nofollow"><code class="language-math">a</code></a></p>` + nl,
 		},
 		{
 			"$$a$$",

@@ -11,7 +11,7 @@ import (
 )
 
 func TestGrepSearch(t *testing.T) {
-	repo, err := openRepositoryWithDefaultContext(filepath.Join(testReposDir, "language_stats_repo"))
+	repo, err := OpenRepository(t.Context(), filepath.Join(testReposDir, "language_stats_repo"))
 	assert.NoError(t, err)
 	defer repo.Close()
 

@@ -5,15 +5,16 @@ package validation
 
 import (
 	"fmt"
+	"io"
 	"regexp"
 	"strings"
 
 	"code.gitea.io/gitea/modules/auth"
 	"code.gitea.io/gitea/modules/git"
-	"code.gitea.io/gitea/modules/util"
+	"code.gitea.io/gitea/modules/glob"
+	"code.gitea.io/gitea/modules/json"
 
 	"gitea.com/go-chi/binding"
-	"github.com/gobwas/glob"
 )
 
 const (
@@ -27,12 +28,28 @@ const (
 	ErrUsername = "UsernameError"
 	// ErrInvalidGroupTeamMap is returned when a group team mapping is invalid
 	ErrInvalidGroupTeamMap = "InvalidGroupTeamMap"
+	// ErrInvalidBadgeSlug is returned when a badge slug is invalid
+	ErrInvalidBadgeSlug = "InvalidBadgeSlug"
 )
+
+type jsonProvider struct{}
+
+func (j jsonProvider) Marshal(v any) ([]byte, error) { return json.Marshal(v) }
+
+func (j jsonProvider) Unmarshal(data []byte, v any) error { return json.Unmarshal(data, v) }
+
+func (j jsonProvider) NewDecoder(reader io.Reader) binding.JSONDecoder {
+	return json.NewDecoder(reader)
+}
+
+func (j jsonProvider) NewEncoder(writer io.Writer) binding.JSONEncoder {
+	return json.NewEncoder(writer)
+}
 
 // AddBindingRules adds additional binding rules
 func AddBindingRules() {
+	binding.JSONProvider = jsonProvider{}
 	addGitRefNameBindingRule()
-	addValidURLListBindingRule()
 	addValidURLBindingRule()
 	addValidSiteURLBindingRule()
 	addGlobPatternRule()
@@ -40,6 +57,7 @@ func AddBindingRules() {
 	addGlobOrRegexPatternRule()
 	addUsernamePatternRule()
 	addValidGroupTeamMapRule()
+	addSlugPatternRule()
 }
 
 func addGitRefNameBindingRule() {
@@ -56,33 +74,6 @@ func addGitRefNameBindingRule() {
 				return false, errs
 			}
 			return true, errs
-		},
-	})
-}
-
-func addValidURLListBindingRule() {
-	// URL validation rule
-	binding.AddRule(&binding.Rule{
-		IsMatch: func(rule string) bool {
-			return rule == "ValidUrlList"
-		},
-		IsValid: func(errs binding.Errors, name string, val any) (bool, binding.Errors) {
-			str := fmt.Sprintf("%v", val)
-			if len(str) == 0 {
-				errs.Add([]string{name}, binding.ERR_URL, "Url")
-				return false, errs
-			}
-
-			ok := true
-			urls := util.SplitTrimSpace(str, "\n")
-			for _, u := range urls {
-				if !IsValidURL(u) {
-					ok = false
-					errs.Add([]string{name}, binding.ERR_URL, u)
-				}
-			}
-
-			return ok, errs
 		},
 	})
 }
@@ -118,6 +109,22 @@ func addValidSiteURLBindingRule() {
 				return false, errs
 			}
 
+			return true, errs
+		},
+	})
+}
+
+func addSlugPatternRule() {
+	binding.AddRule(&binding.Rule{
+		IsMatch: func(rule string) bool {
+			return rule == "BadgeSlug"
+		},
+		IsValid: func(errs binding.Errors, name string, val any) (bool, binding.Errors) {
+			str := fmt.Sprintf("%v", val)
+			if !IsValidBadgeSlug(str) {
+				errs.Add([]string{name}, ErrInvalidBadgeSlug, "invalid badge slug")
+				return false, errs
+			}
 			return true, errs
 		},
 	})
@@ -215,17 +222,17 @@ func addValidGroupTeamMapRule() {
 }
 
 func portOnly(hostport string) string {
-	colon := strings.IndexByte(hostport, ':')
-	if colon == -1 {
+	_, after, ok := strings.Cut(hostport, ":")
+	if !ok {
 		return ""
 	}
-	if i := strings.Index(hostport, "]:"); i != -1 {
-		return hostport[i+len("]:"):]
+	if _, after2, ok2 := strings.Cut(hostport, "]:"); ok2 {
+		return after2
 	}
 	if strings.Contains(hostport, "]") {
 		return ""
 	}
-	return hostport[colon+len(":"):]
+	return after
 }
 
 func validPort(p string) bool {

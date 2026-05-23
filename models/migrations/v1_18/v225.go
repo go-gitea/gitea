@@ -1,15 +1,14 @@
 // Copyright 2022 The Gitea Authors. All rights reserved.
 // SPDX-License-Identifier: MIT
 
-package v1_18 //nolint
+package v1_18
 
 import (
+	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/modules/setting"
-
-	"xorm.io/xorm"
 )
 
-func AlterPublicGPGKeyContentFieldsToMediumText(x *xorm.Engine) error {
+func AlterPublicGPGKeyContentFieldsToMediumText(x db.EngineMigration) error {
 	sess := x.NewSession()
 	defer sess.Close()
 	if err := sess.Begin(); err != nil {

@@ -15,6 +15,7 @@ import (
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unit"
 	"code.gitea.io/gitea/modules/git"
+	"code.gitea.io/gitea/modules/gitrepo"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/optional"
 	repo_module "code.gitea.io/gitea/modules/repository"
@@ -38,17 +39,15 @@ const (
 func Branches(ctx *context.Context) {
 	ctx.Data["Title"] = "Branches"
 	ctx.Data["AllowsPulls"] = ctx.Repo.Repository.AllowsPulls(ctx)
-	ctx.Data["IsWriter"] = ctx.Repo.CanWrite(unit.TypeCode)
+	ctx.Data["IsWriter"] = ctx.Repo.Permission.CanWrite(unit.TypeCode)
 	ctx.Data["IsMirror"] = ctx.Repo.Repository.IsMirror
-	ctx.Data["CanPull"] = ctx.Repo.CanWrite(unit.TypeCode) ||
+	// TODO: Can be replaced by ctx.Repo.PullRequestCtx.CanCreateNewPull()
+	ctx.Data["CanPull"] = ctx.Repo.Permission.CanWrite(unit.TypeCode) ||
 		(ctx.IsSigned && repo_model.HasForkedRepo(ctx, ctx.Doer.ID, ctx.Repo.Repository.ID))
 	ctx.Data["PageIsViewCode"] = true
 	ctx.Data["PageIsBranches"] = true
 
-	page := ctx.FormInt("page")
-	if page <= 1 {
-		page = 1
-	}
+	page := max(ctx.FormInt("page"), 1)
 	pageSize := setting.Git.BranchesRangeSize
 
 	kw := ctx.FormString("q")
@@ -69,7 +68,7 @@ func Branches(ctx *context.Context) {
 		ctx.ServerError("LoadBranches", err)
 		return
 	}
-	if !ctx.Repo.CanRead(unit.TypeActions) {
+	if !ctx.Repo.Permission.CanRead(unit.TypeActions) {
 		for key := range commitStatuses {
 			git_model.CommitStatusesHideActionsURL(ctx, commitStatuses[key])
 		}
@@ -85,7 +84,7 @@ func Branches(ctx *context.Context) {
 	ctx.Data["CommitStatus"] = commitStatus
 	ctx.Data["CommitStatuses"] = commitStatuses
 	ctx.Data["DefaultBranchBranch"] = defaultBranch
-	pager := context.NewPagination(int(branchesCount), pageSize, page, 5)
+	pager := context.NewPagination(branchesCount, pageSize, page, 5)
 	pager.AddParamFromRequest(ctx.Req)
 	ctx.Data["Page"] = pager
 	ctx.HTML(http.StatusOK, tplBranch)
@@ -96,7 +95,7 @@ func DeleteBranchPost(ctx *context.Context) {
 	defer jsonRedirectBranches(ctx)
 	branchName := ctx.FormString("name")
 
-	if err := repo_service.DeleteBranch(ctx, ctx.Doer, ctx.Repo.Repository, ctx.Repo.GitRepo, branchName, nil); err != nil {
+	if err := repo_service.DeleteBranch(ctx, ctx.Doer, ctx.Repo.Repository, ctx.Repo.GitRepo, branchName); err != nil {
 		switch {
 		case git.IsErrBranchNotExist(err):
 			log.Debug("DeleteBranch: Can't delete non existing branch '%s'", branchName)
@@ -136,8 +135,7 @@ func RestoreBranchPost(ctx *context.Context) {
 		return
 	}
 
-	if err := git.Push(ctx, ctx.Repo.Repository.RepoPath(), git.PushOptions{
-		Remote: ctx.Repo.Repository.RepoPath(),
+	if err := gitrepo.Push(ctx, ctx.Repo.Repository, ctx.Repo.Repository, git.PushOptions{
 		Branch: fmt.Sprintf("%s:%s%s", deletedBranch.CommitID, git.BranchPrefix, deletedBranch.Name),
 		Env:    repo_module.PushingEnvironment(ctx.Doer, ctx.Repo.Repository),
 	}); err != nil {
@@ -197,9 +195,9 @@ func CreateBranch(ctx *context.Context) {
 		}
 		err = release_service.CreateNewTag(ctx, ctx.Doer, ctx.Repo.Repository, target, form.NewBranchName, "")
 	} else if ctx.Repo.RefFullName.IsBranch() {
-		err = repo_service.CreateNewBranch(ctx, ctx.Doer, ctx.Repo.Repository, ctx.Repo.GitRepo, ctx.Repo.BranchName, form.NewBranchName)
+		err = repo_service.CreateNewBranch(ctx, ctx.Doer, ctx.Repo.Repository, ctx.Repo.BranchName, form.NewBranchName)
 	} else {
-		err = repo_service.CreateNewBranchFromCommit(ctx, ctx.Doer, ctx.Repo.Repository, ctx.Repo.GitRepo, ctx.Repo.CommitID, form.NewBranchName)
+		err = repo_service.CreateNewBranchFromCommit(ctx, ctx.Doer, ctx.Repo.Repository, ctx.Repo.CommitID, form.NewBranchName)
 	}
 	if err != nil {
 		if release_service.IsErrProtectedTagName(err) {
@@ -233,7 +231,7 @@ func CreateBranch(ctx *context.Context) {
 				flashError, err := ctx.RenderToHTML(tplAlertDetails, map[string]any{
 					"Message": ctx.Tr("repo.editor.push_rejected"),
 					"Summary": ctx.Tr("repo.editor.push_rejected_summary"),
-					"Details": utils.SanitizeFlashErrorString(e.Message),
+					"Details": utils.EscapeFlashErrorString(e.Message),
 				})
 				if err != nil {
 					ctx.ServerError("UpdatePullRequest.HTMLString", err)
@@ -261,10 +259,10 @@ func CreateBranch(ctx *context.Context) {
 
 func MergeUpstream(ctx *context.Context) {
 	branchName := ctx.FormString("branch")
-	_, err := repo_service.MergeUpstream(ctx, ctx.Doer, ctx.Repo.Repository, branchName)
+	_, err := repo_service.MergeUpstream(ctx, ctx.Doer, ctx.Repo.Repository, branchName, false)
 	if err != nil {
 		if errors.Is(err, util.ErrNotExist) {
-			ctx.JSONError(ctx.Tr("error.not_found"))
+			ctx.JSONErrorNotFound()
 			return
 		} else if pull_service.IsErrMergeConflicts(err) {
 			ctx.JSONError(ctx.Tr("repo.pulls.merge_conflict"))

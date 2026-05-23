@@ -1,14 +1,15 @@
 // Copyright 2018 The Gitea Authors. All rights reserved.
 // SPDX-License-Identifier: MIT
 
-package v1_7 //nolint
+package v1_7
 
 import (
+	"code.gitea.io/gitea/models/db"
+
 	"xorm.io/builder"
-	"xorm.io/xorm"
 )
 
-func ClearNonusedData(x *xorm.Engine) error {
+func ClearNonusedData(x db.EngineMigration) error {
 	condDelete := func(colName string) builder.Cond {
 		return builder.NotIn(colName, builder.Select("id").From("`user`"))
 	}

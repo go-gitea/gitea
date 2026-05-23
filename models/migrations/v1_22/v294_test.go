@@ -1,13 +1,12 @@
 // Copyright 2024 The Gitea Authors. All rights reserved.
 // SPDX-License-Identifier: MIT
 
-package v1_22 //nolint
+package v1_22
 
 import (
-	"slices"
 	"testing"
 
-	"code.gitea.io/gitea/models/migrations/base"
+	"code.gitea.io/gitea/models/migrations/migrationtest"
 
 	"github.com/stretchr/testify/assert"
 	"xorm.io/xorm/schemas"
@@ -21,7 +20,7 @@ func Test_AddUniqueIndexForProjectIssue(t *testing.T) {
 	}
 
 	// Prepare and load the testing database
-	x, deferable := base.PrepareTestEnv(t, 0, new(ProjectIssue))
+	x, deferable := migrationtest.PrepareTestEnv(t, 0, new(ProjectIssue))
 	defer deferable()
 	if x == nil || t.Failed() {
 		return
@@ -44,7 +43,7 @@ func Test_AddUniqueIndexForProjectIssue(t *testing.T) {
 	for _, index := range tables[0].Indexes {
 		if index.Type == schemas.UniqueType {
 			found = true
-			slices.Equal(index.Cols, []string{"project_id", "issue_id"})
+			assert.ElementsMatch(t, index.Cols, []string{"project_id", "issue_id"})
 			break
 		}
 	}

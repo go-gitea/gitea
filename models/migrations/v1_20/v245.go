@@ -1,18 +1,17 @@
 // Copyright 2023 The Gitea Authors. All rights reserved.
 // SPDX-License-Identifier: MIT
 
-package v1_20 //nolint
+package v1_20
 
 import (
 	"context"
 
+	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/models/migrations/base"
 	"code.gitea.io/gitea/modules/setting"
-
-	"xorm.io/xorm"
 )
 
-func RenameWebhookOrgToOwner(x *xorm.Engine) error {
+func RenameWebhookOrgToOwner(x db.EngineMigration) error {
 	type Webhook struct {
 		OrgID int64 `xorm:"INDEX"`
 	}

@@ -117,36 +117,19 @@ func DeleteUploads(ctx context.Context, uploads ...*Upload) (err error) {
 		return nil
 	}
 
-	ctx, committer, err := db.TxContext(ctx)
-	if err != nil {
-		return err
-	}
-	defer committer.Close()
-
 	ids := make([]int64, len(uploads))
-	for i := 0; i < len(uploads); i++ {
+	for i := range uploads {
 		ids[i] = uploads[i].ID
 	}
 	if err = db.DeleteByIDs[Upload](ctx, ids...); err != nil {
 		return fmt.Errorf("delete uploads: %w", err)
 	}
 
-	if err = committer.Commit(); err != nil {
-		return err
-	}
-
 	for _, upload := range uploads {
 		localPath := upload.LocalPath()
-		isFile, err := util.IsFile(localPath)
-		if err != nil {
-			log.Error("Unable to check if %s is a file. Error: %v", localPath, err)
-		}
-		if !isFile {
-			continue
-		}
-
 		if err := util.Remove(localPath); err != nil {
-			return fmt.Errorf("remove upload: %w", err)
+			// just continue, don't fail the whole operation if a file is missing (removed by others)
+			log.Error("unable to remove upload file %s: %v", localPath, err)
 		}
 	}
 

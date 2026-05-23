@@ -58,6 +58,9 @@ func TestSanitizer(t *testing.T) {
 		`<a href="cbthunderlink://somebase64string)">my custom URL scheme</a>`, `<a href="cbthunderlink://somebase64string)" rel="nofollow">my custom URL scheme</a>`,
 		`<a href="matrix:roomid/psumPMeAfzgAeQpXMG:feneas.org?action=join">my custom URL scheme</a>`, `<a href="matrix:roomid/psumPMeAfzgAeQpXMG:feneas.org?action=join" rel="nofollow">my custom URL scheme</a>`,
 
+		// picture
+		`<picture><source media="a"><source media="b"><img alt="c" src="d"></picture>`, `<picture><source media="a"><source media="b"><img alt="c" src="d"></picture>`,
+
 		// Disallow dangerous url schemes
 		`<a href="javascript:alert('xss')">bad</a>`, `bad`,
 		`<a href="vbscript:no">bad</a>`, `bad`,
@@ -69,6 +72,6 @@ func TestSanitizer(t *testing.T) {
 	}
 
 	for i := 0; i < len(testCases); i += 2 {
-		assert.Equal(t, testCases[i+1], Sanitize(testCases[i]))
+		assert.Equal(t, testCases[i+1], string(Sanitize(testCases[i])))
 	}
 }

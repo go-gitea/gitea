@@ -77,17 +77,14 @@ func apiError(ctx *context.Context, status int, obj any) {
 		Detail string `json:"detail"`
 	}
 
-	helper.LogAndProcessError(ctx, status, obj, func(message string) {
-		setResponseHeaders(ctx.Resp, &headers{
-			Status:      status,
-			ContentType: "application/problem+json",
-		})
-		if err := json.NewEncoder(ctx.Resp).Encode(Problem{
-			Status: status,
-			Detail: message,
-		}); err != nil {
-			log.Error("JSON encode: %v", err)
-		}
+	message := helper.ProcessErrorForUser(ctx, status, obj)
+	setResponseHeaders(ctx.Resp, &headers{
+		Status:      status,
+		ContentType: "application/problem+json",
+	})
+	_ = json.NewEncoder(ctx.Resp).Encode(Problem{
+		Status: status,
+		Detail: message,
 	})
 }
 
@@ -201,6 +198,23 @@ func PackageVersionMetadata(ctx *context.Context) {
 	}
 
 	metadata := pd.Metadata.(*swift_module.Metadata)
+	repositoryURLs := make([]string, 0, len(pd.VersionProperties))
+	for _, property := range pd.VersionProperties {
+		if property.Name == swift_module.PropertyRepositoryURL {
+			repositoryURLs = append(repositoryURLs, property.Value)
+		}
+	}
+
+	var author *swift_module.Person
+	if metadata.Author.Name != "" || metadata.Author.GivenName != "" || metadata.Author.MiddleName != "" || metadata.Author.FamilyName != "" {
+		author = &swift_module.Person{
+			Type:       "Person",
+			Name:       metadata.Author.Name,
+			GivenName:  metadata.Author.GivenName,
+			MiddleName: metadata.Author.MiddleName,
+			FamilyName: metadata.Author.FamilyName,
+		}
+	}
 
 	setResponseHeaders(ctx.Resp, &headers{})
 
@@ -223,17 +237,14 @@ func PackageVersionMetadata(ctx *context.Context) {
 			Keywords:       metadata.Keywords,
 			CodeRepository: metadata.RepositoryURL,
 			License:        metadata.License,
+			LicenseURL:     metadata.LicenseURL,
+			Author:         author,
 			ProgrammingLanguage: swift_module.ProgrammingLanguage{
 				Type: "ComputerLanguage",
 				Name: "Swift",
 				URL:  "https://swift.org",
 			},
-			Author: swift_module.Person{
-				Type:       "Person",
-				GivenName:  metadata.Author.GivenName,
-				MiddleName: metadata.Author.MiddleName,
-				FamilyName: metadata.Author.FamilyName,
-			},
+			RepositoryURLs: repositoryURLs,
 		},
 	})
 }
@@ -283,7 +294,7 @@ func DownloadManifest(ctx *context.Context) {
 		filename = fmt.Sprintf("Package@swift-%s.swift", swiftVersion)
 	}
 
-	ctx.ServeContent(strings.NewReader(m.Content), &context.ServeHeaderOptions{
+	ctx.ServeContent(strings.NewReader(m.Content), context.ServeHeaderOptions{
 		ContentType:  "text/x-swift",
 		Filename:     filename,
 		LastModified: pv.CreatedUnix.AsLocalTime(),
@@ -302,7 +313,7 @@ func formFileOptionalReadCloser(ctx *context.Context, formKey string) (io.ReadCl
 
 	content := ctx.Req.FormValue(formKey)
 	if content == "" {
-		return nil, nil
+		return nil, nil //nolint:nilnil // return nil to indicate that the content does not exist
 	}
 	return io.NopCloser(strings.NewReader(content)), nil
 }
@@ -429,7 +440,7 @@ func DownloadPackageFile(ctx *context.Context) {
 
 	pf := pd.Files[0].File
 
-	s, u, _, err := packages_service.GetPackageFileStream(ctx, pf)
+	s, u, _, err := packages_service.OpenFileForDownload(ctx, pf, ctx.Req.Method)
 	if err != nil {
 		apiError(ctx, http.StatusInternalServerError, err)
 		return
@@ -439,7 +450,7 @@ func DownloadPackageFile(ctx *context.Context) {
 		Digest: pd.Files[0].Blob.HashSHA256,
 	})
 
-	helper.ServePackageFile(ctx, s, u, pf, &context.ServeHeaderOptions{
+	helper.ServePackageFile(ctx, s, u, pf, context.ServeHeaderOptions{
 		Filename:     pf.Name,
 		ContentType:  "application/zip",
 		LastModified: pf.CreatedUnix.AsLocalTime(),

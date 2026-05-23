@@ -4,6 +4,7 @@
 package testlogger
 
 import (
+	"context"
 	"fmt"
 	"os"
 	"runtime"
@@ -89,10 +90,10 @@ func (w *testLoggerWriterCloser) Reset() {
 	w.Unlock()
 }
 
-// Printf takes a format and args and prints the string to os.Stdout
-func Printf(format string, args ...any) {
+// stdoutPrintf takes a format and args and prints the string to os.Stdout
+func stdoutPrintf(format string, args ...any) {
 	if !log.CanColorStdout {
-		for i := 0; i < len(args); i++ {
+		for i := range args {
 			if c, ok := args[i].(*log.ColoredValue); ok {
 				args[i] = c.Value()
 			}
@@ -108,30 +109,33 @@ func PrintCurrentTest(t testing.TB, skip ...int) func() {
 	actualSkip := util.OptionalArg(skip) + 1
 	_, filename, line, _ := runtime.Caller(actualSkip)
 
-	Printf("=== %s (%s:%d)\n", log.NewColoredValue(t.Name()), strings.TrimPrefix(filename, prefix), line)
+	getRuntimeStackAll := func() string {
+		stack := make([]byte, 1024*1024)
+		n := runtime.Stack(stack, true)
+		return util.UnsafeBytesToString(stack[:n])
+	}
+
+	deferHasRun := false
+	t.Cleanup(func() {
+		if !deferHasRun {
+			stdoutPrintf("!!! %s: defer function hasn't been run but Cleanup is called, usually caused by panic\n", t.Name())
+		}
+	})
+	stdoutPrintf("=== %s (%s:%d)\n", log.NewColoredValue(t.Name()), strings.TrimPrefix(filename, prefix), line)
 
 	WriterCloser.pushT(t)
 	timeoutChecker := time.AfterFunc(TestTimeout, func() {
-		l := 128 * 1024
-		var stack []byte
-		for {
-			stack = make([]byte, l)
-			n := runtime.Stack(stack, true)
-			if n <= l {
-				stack = stack[:n]
-				break
-			}
-			l = n
-		}
-		Printf("!!! %s ... timeout: %v ... stacktrace:\n%s\n\n", log.NewColoredValue(t.Name(), log.Bold, log.FgRed), TestTimeout, string(stack))
+		stdoutPrintf("!!! %s ... timeout: %v ... stacktrace:\n%s\n\n", log.NewColoredValue(t.Name(), log.Bold, log.FgRed), TestTimeout, getRuntimeStackAll())
 	})
 	return func() {
+		deferHasRun = true
 		flushStart := time.Now()
 		slowFlushChecker := time.AfterFunc(TestSlowFlush, func() {
-			Printf("+++ %s ... still flushing after %v ...\n", log.NewColoredValue(t.Name(), log.Bold, log.FgRed), TestSlowFlush)
+			stdoutPrintf("+++ %s ... still flushing after %v ...\n", log.NewColoredValue(t.Name(), log.Bold, log.FgRed), TestSlowFlush)
 		})
 		if err := queue.GetManager().FlushAll(t.Context(), -1); err != nil {
-			t.Errorf("Flushing queues failed with error %v", err)
+			// if panic occurs, then the t.Context() is also cancelled ahead, so here it shows "context canceled" error.
+			t.Errorf("Flushing queues failed with error %q, cause %q", err, context.Cause(t.Context()))
 		}
 		slowFlushChecker.Stop()
 		timeoutChecker.Stop()
@@ -139,7 +143,7 @@ func PrintCurrentTest(t testing.TB, skip ...int) func() {
 		runDuration := time.Since(runStart)
 		flushDuration := time.Since(flushStart)
 		if runDuration > TestSlowRun {
-			Printf("+++ %s is a slow test (run: %v, flush: %v)\n", log.NewColoredValue(t.Name(), log.Bold, log.FgYellow), runDuration, flushDuration)
+			stdoutPrintf("+++ %s is a slow test (run: %v, flush: %v)\n", log.NewColoredValue(t.Name(), log.Bold, log.FgYellow), runDuration, flushDuration)
 		}
 		WriterCloser.popT()
 	}
@@ -167,19 +171,10 @@ func Init() {
 	prefix = strings.TrimSuffix(filename, relFilePath)
 
 	log.RegisterEventWriter("test", newTestLoggerWriter)
-
-	duration, err := time.ParseDuration(os.Getenv("GITEA_TEST_SLOW_RUN"))
-	if err == nil && duration > 0 {
-		TestSlowRun = duration
-	}
-
-	duration, err = time.ParseDuration(os.Getenv("GITEA_TEST_SLOW_FLUSH"))
-	if err == nil && duration > 0 {
-		TestSlowFlush = duration
-	}
 }
 
-func Fatalf(format string, args ...any) {
-	Printf(format+"\n", args...)
-	os.Exit(1)
+// MainErrorf is used to report an error from TestMain and return a non-zero value to indicate the failure
+func MainErrorf(msg string, a ...any) int {
+	_, _ = fmt.Fprintf(os.Stderr, msg+"\n", a...)
+	return 1
 }

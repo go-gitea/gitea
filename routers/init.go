@@ -14,7 +14,7 @@ import (
 	"code.gitea.io/gitea/modules/cache"
 	"code.gitea.io/gitea/modules/eventsource"
 	"code.gitea.io/gitea/modules/git"
-	"code.gitea.io/gitea/modules/highlight"
+	"code.gitea.io/gitea/modules/git/gitcmd"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/markup"
 	"code.gitea.io/gitea/modules/markup/external"
@@ -23,7 +23,6 @@ import (
 	"code.gitea.io/gitea/modules/storage"
 	"code.gitea.io/gitea/modules/svg"
 	"code.gitea.io/gitea/modules/system"
-	"code.gitea.io/gitea/modules/templates"
 	"code.gitea.io/gitea/modules/translation"
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/modules/web"
@@ -48,6 +47,7 @@ import (
 	repo_migrations "code.gitea.io/gitea/services/migrations"
 	mirror_service "code.gitea.io/gitea/services/mirror"
 	"code.gitea.io/gitea/services/oauth2_provider"
+	packages_spec "code.gitea.io/gitea/services/packages/pkgspec"
 	pull_service "code.gitea.io/gitea/services/pull"
 	release_service "code.gitea.io/gitea/services/release"
 	repo_service "code.gitea.io/gitea/services/repository"
@@ -111,10 +111,10 @@ func InitWebInstallPage(ctx context.Context) {
 	mustInit(svg.Init)
 }
 
-// InitWebInstalled is for global installed configuration.
+// InitWebInstalled is for the global configuration of an installed instance
 func InitWebInstalled(ctx context.Context) {
-	mustInitCtx(ctx, git.InitFull)
-	log.Info("Git version: %s (home: %s)", git.DefaultFeatures().VersionInfo(), git.HomeDir())
+	mustInit(git.InitFull)
+	log.Info("Git version: %s (home: %s)", git.DefaultFeatures().VersionInfo(), gitcmd.HomeDir())
 	if !git.DefaultFeatures().SupportHashSha256 {
 		log.Warn("sha256 hash support is disabled - requires Git >= 2.42." + util.Iif(git.DefaultFeatures().UsingGogit, " Gogit is currently unsupported.", ""))
 	}
@@ -131,15 +131,8 @@ func InitWebInstalled(ctx context.Context) {
 	mustInit(uinotification.Init)
 	mustInitCtx(ctx, archiver.Init)
 
-	highlight.NewContext()
 	external.RegisterRenderers()
 	markup.Init(markup_service.FormalRenderHelperFuncs())
-
-	if setting.EnableSQLite3 {
-		log.Info("SQLite3 support is enabled")
-	} else if setting.Database.Type.IsSQLite3() {
-		log.Fatal("SQLite3 support is disabled, but it is used for database setting. Please get or build a Gitea release with SQLite3 support.")
-	}
 
 	mustInitCtx(ctx, common.InitDBEngine)
 	log.Info("ORM engine initialization successful!")
@@ -151,6 +144,7 @@ func InitWebInstalled(ctx context.Context) {
 	mustInitCtx(ctx, models.Init)
 	mustInitCtx(ctx, authmodel.Init)
 	mustInitCtx(ctx, repo_service.Init)
+	mustInit(packages_spec.InitManager)
 
 	// Booting long running goroutines.
 	mustInit(indexer_service.Init)
@@ -176,14 +170,15 @@ func InitWebInstalled(ctx context.Context) {
 	mustInit(repo_service.InitLicenseClassifier)
 
 	// Finally start up the cron
-	cron.NewContext(ctx)
+	cron.Init(ctx)
 }
 
 // NormalRoutes represents non install routes
 func NormalRoutes() *web.Router {
-	_ = templates.HTMLRenderer()
 	r := web.NewRouter()
-	r.Use(common.ProtocolMiddlewares()...)
+	r.BeforeRouting(common.ProtocolMiddlewares()...)
+
+	r.AfterRouting(common.MaintenanceModeHandler())
 
 	r.Mount("/", web_routers.Routes())
 	r.Mount("/api/v1", apiv1.Routes())

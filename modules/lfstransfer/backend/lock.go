@@ -69,7 +69,7 @@ func (g *giteaLockBackend) Create(path, refname string) (transfer.Lock, error) {
 	var respBody lfslock.LFSLockResponse
 	err = json.Unmarshal(respBytes, &respBody)
 	if err != nil {
-		g.logger.Log("json umarshal error", err)
+		g.logger.Log("json unmarshal error", err)
 		return nil, err
 	}
 
@@ -202,7 +202,7 @@ func (g *giteaLockBackend) queryLocks(v url.Values) ([]transfer.Lock, string, er
 	var respBody lfslock.LFSLockList
 	err = json.Unmarshal(respBytes, &respBody)
 	if err != nil {
-		g.logger.Log("json umarshal error", err)
+		g.logger.Log("json unmarshal error", err)
 		return nil, "", err
 	}
 

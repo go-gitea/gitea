@@ -76,13 +76,8 @@ func GetScheduledMergeByPullID(ctx context.Context, pullID int64) (bool, *AutoMe
 		return false, nil, err
 	}
 
-	doer, err := user_model.GetUserByID(ctx, scheduledPRM.DoerID)
-	if err != nil {
-		return false, nil, err
-	}
-
-	scheduledPRM.Doer = doer
-	return true, scheduledPRM, nil
+	scheduledPRM.DoerID, scheduledPRM.Doer, err = user_model.GetPossibleUserByID(ctx, scheduledPRM.DoerID)
+	return true, scheduledPRM, err
 }
 
 // DeleteScheduledAutoMerge delete a scheduled pull request

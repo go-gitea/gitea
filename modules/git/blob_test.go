@@ -16,7 +16,7 @@ import (
 func TestBlob_Data(t *testing.T) {
 	output := "file2\n"
 	bareRepo1Path := filepath.Join(testReposDir, "repo1_bare")
-	repo, err := openRepositoryWithDefaultContext(bareRepo1Path)
+	repo, err := OpenRepository(t.Context(), bareRepo1Path)
 	require.NoError(t, err)
 	defer repo.Close()
 
@@ -36,7 +36,7 @@ func TestBlob_Data(t *testing.T) {
 
 func Benchmark_Blob_Data(b *testing.B) {
 	bareRepo1Path := filepath.Join(testReposDir, "repo1_bare")
-	repo, err := openRepositoryWithDefaultContext(bareRepo1Path)
+	repo, err := OpenRepository(b.Context(), bareRepo1Path)
 	if err != nil {
 		b.Fatal(err)
 	}

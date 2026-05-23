@@ -7,11 +7,11 @@ import (
 	"testing"
 
 	"code.gitea.io/gitea/models/db"
+	"code.gitea.io/gitea/models/unittest"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/test"
 
 	"github.com/stretchr/testify/assert"
-	"xorm.io/xorm"
 )
 
 type TestCollationTbl struct {
@@ -20,7 +20,7 @@ type TestCollationTbl struct {
 }
 
 func TestDatabaseCollation(t *testing.T) {
-	x := db.GetEngine(db.DefaultContext).(*xorm.Engine)
+	x := unittest.GetXORMEngine()
 
 	// all created tables should use case-sensitive collation by default
 	_, _ = x.Exec("DROP TABLE IF EXISTS test_collation_tbl")

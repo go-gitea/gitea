@@ -1,13 +1,13 @@
 // Copyright 2024 The Gitea Authors. All rights reserved.
 // SPDX-License-Identifier: MIT
 
-package v1_22 //nolint
+package v1_22
 
 import (
 	"strconv"
 	"testing"
 
-	"code.gitea.io/gitea/models/migrations/base"
+	"code.gitea.io/gitea/models/migrations/migrationtest"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -20,7 +20,7 @@ func Test_UpdateBadgeColName(t *testing.T) {
 	}
 
 	// Prepare and load the testing database
-	x, deferable := base.PrepareTestEnv(t, 0, new(Badge))
+	x, deferable := migrationtest.PrepareTestEnv(t, 0, new(Badge))
 	defer deferable()
 	if x == nil || t.Failed() {
 		return

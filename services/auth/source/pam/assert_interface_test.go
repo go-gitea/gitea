@@ -15,7 +15,6 @@ import (
 type sourceInterface interface {
 	auth.PasswordAuthenticator
 	auth_model.Config
-	auth_model.SourceSettable
 }
 
 var _ (sourceInterface) = &pam.Source{}

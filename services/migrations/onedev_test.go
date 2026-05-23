@@ -4,36 +4,37 @@
 package migrations
 
 import (
-	"net/http"
 	"net/url"
+	"os"
+	"path/filepath"
+	"runtime"
 	"testing"
 	"time"
 
+	"code.gitea.io/gitea/models/unittest"
 	base "code.gitea.io/gitea/modules/migration"
 
 	"github.com/stretchr/testify/assert"
 )
 
 func TestOneDevDownloadRepo(t *testing.T) {
-	resp, err := http.Get("https://code.onedev.io/projects/go-gitea-test_repo")
-	if err != nil || resp.StatusCode != http.StatusOK {
-		t.Skipf("Can't access test repo, skipping %s", t.Name())
-	}
+	liveMode := os.Getenv("ONEDEV_LIVE") != ""
 
-	u, _ := url.Parse("https://code.onedev.io")
+	_, callerFile, _, _ := runtime.Caller(0)
+	fixtureDir := filepath.Join(filepath.Dir(callerFile), "_mock_data/TestOneDevDownloadRepo")
+	mockServer := unittest.NewMockWebServer(t, "https://code.onedev.io", fixtureDir, liveMode)
+
+	u, _ := url.Parse(mockServer.URL)
 	ctx := t.Context()
 	downloader := NewOneDevDownloader(ctx, u, "", "", "go-gitea-test_repo")
-	if err != nil {
-		t.Fatalf("NewOneDevDownloader is nil: %v", err)
-	}
 	repo, err := downloader.GetRepoInfo(ctx)
 	assert.NoError(t, err)
 	assertRepositoryEqual(t, &base.Repository{
 		Name:        "go-gitea-test_repo",
 		Owner:       "",
 		Description: "Test repository for testing migration from OneDev to gitea",
-		CloneURL:    "https://code.onedev.io/go-gitea-test_repo",
-		OriginalURL: "https://code.onedev.io/projects/go-gitea-test_repo",
+		CloneURL:    mockServer.URL + "/go-gitea-test_repo",
+		OriginalURL: mockServer.URL + "/go-gitea-test_repo",
 	}, repo)
 
 	milestones, err := downloader.GetMilestones(ctx)
@@ -44,10 +45,12 @@ func TestOneDevDownloadRepo(t *testing.T) {
 			Title:    "1.0.0",
 			Deadline: &deadline,
 			Closed:   &deadline,
+			State:    "closed",
 		},
 		{
 			Title:       "1.1.0",
 			Description: "next things?",
+			State:       "open",
 		},
 	}, milestones)
 
@@ -103,6 +106,7 @@ func TestOneDevDownloadRepo(t *testing.T) {
 	assertCommentsEqual(t, []*base.Comment{
 		{
 			IssueIndex: 4,
+			PosterID:   336,
 			PosterName: "User 336",
 			Created:    time.Unix(1628549791, 128000000),
 			Updated:    time.Unix(1628549791, 128000000),
@@ -117,6 +121,7 @@ func TestOneDevDownloadRepo(t *testing.T) {
 			Number:     5,
 			Title:      "Pull to add a new file",
 			Content:    "just do some git stuff",
+			PosterID:   336,
 			PosterName: "User 336",
 			State:      "open",
 			Created:    time.Unix(1628550076, 25000000),
@@ -141,6 +146,7 @@ func TestOneDevDownloadRepo(t *testing.T) {
 	assertReviewsEqual(t, []*base.Review{
 		{
 			IssueIndex:   5,
+			ReviewerID:   317,
 			ReviewerName: "User 317",
 			State:        "PENDING",
 		},

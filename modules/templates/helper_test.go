@@ -5,6 +5,7 @@ package templates
 
 import (
 	"html/template"
+	"net/url"
 	"strings"
 	"testing"
 
@@ -57,12 +58,8 @@ func TestSubjectBodySeparator(t *testing.T) {
 		"Insufficient\n--\nSeparators")
 }
 
-func TestJSEscapeSafe(t *testing.T) {
-	assert.EqualValues(t, `\u0026\u003C\u003E\'\"`, jsEscapeSafe(`&<>'"`))
-}
-
 func TestSanitizeHTML(t *testing.T) {
-	assert.Equal(t, template.HTML(`<a href="/" rel="nofollow">link</a> xss <div>inline</div>`), SanitizeHTML(`<a href="/">link</a> <a href="javascript:">xss</a> <div style="dangerous">inline</div>`))
+	assert.Equal(t, template.HTML(`<a href="/" rel="nofollow">link</a> xss <div>inline</div>`), sanitizeHTML(`<a href="/">link</a> <a href="javascript:">xss</a> <div style="dangerous">inline</div>`))
 }
 
 func TestTemplateIif(t *testing.T) {
@@ -171,4 +168,23 @@ func TestQueryBuild(t *testing.T) {
 		assert.Equal(t, "&a=b&c=d", string(QueryBuild("&a=b&c=d&e=f", "e", "")))
 		assert.Equal(t, "&a=b&c=d&e=f", string(QueryBuild("&a=b&c=d&e=f", "k", "")))
 	})
+}
+
+const queryNonASCII = " !\"#$%&'()*+,-./:;<=>?@[\\]^_`{|}~" // all non-letter & non-number chars
+
+func TestQueryEscape(t *testing.T) {
+	// this test is a reference for "urlQueryEscape" in JS
+	// Special case for space encoding:
+	// * RFC 3986: Uniform Resource Identifier (URI): %20
+	// * WHATWG HTML: application/x-www-form-urlencoded: +
+	// * JavaScript: encodeURIComponent() uses "%20". URLSearchParams uses "+"
+	// * Golang: QueryEscape uses "+"
+	expected := "+%21%22%23%24%25%26%27%28%29%2A%2B%2C-.%2F%3A%3B%3C%3D%3E%3F%40%5B%5C%5D%5E_%60%7B%7C%7D~"
+	assert.Equal(t, expected, url.QueryEscape(queryNonASCII))
+}
+
+func TestPathEscape(t *testing.T) {
+	// this test is a reference for "pathEscape" in JS
+	expected := "%20%21%22%23$%25&%27%28%29%2A+%2C-.%2F:%3B%3C=%3E%3F@%5B%5C%5D%5E_%60%7B%7C%7D~"
+	assert.Equal(t, expected, url.PathEscape(queryNonASCII))
 }

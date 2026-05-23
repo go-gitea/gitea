@@ -7,9 +7,12 @@ import (
 	"bytes"
 	"context"
 	"fmt"
+	"slices"
 
+	access_model "code.gitea.io/gitea/models/perm/access"
 	"code.gitea.io/gitea/models/renderhelper"
 	repo_model "code.gitea.io/gitea/models/repo"
+	"code.gitea.io/gitea/models/unit"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/markup/markdown"
@@ -19,7 +22,7 @@ import (
 	sender_service "code.gitea.io/gitea/services/mailer/sender"
 )
 
-const tplNewReleaseMail templates.TplName = "release"
+const tplNewReleaseMail templates.TplName = "repo/release"
 
 func generateMessageIDForRelease(release *repo_model.Release) string {
 	return fmt.Sprintf("<%s/releases/%d@%s>", release.Repo.FullName(), release.ID, setting.Domain)
@@ -43,6 +46,16 @@ func MailNewRelease(ctx context.Context, rel *repo_model.Release) {
 		log.Error("user_model.GetMailableUsersByIDs: %v", err)
 		return
 	}
+
+	if err := rel.LoadRepo(ctx); err != nil {
+		log.Error("rel.LoadRepo: %v", err)
+		return
+	}
+
+	// delete publisher or any users with no permission
+	recipients = slices.DeleteFunc(recipients, func(u *user_model.User) bool {
+		return u.ID == rel.PublisherID || !access_model.CheckRepoUnitUser(ctx, rel.Repo, u, unit.TypeReleases)
+	})
 
 	langMap := make(map[string][]*user_model.User)
 	for _, user := range recipients {
@@ -79,7 +92,7 @@ func mailNewRelease(ctx context.Context, lang string, tos []*user_model.User, re
 
 	var mailBody bytes.Buffer
 
-	if err := bodyTemplates.ExecuteTemplate(&mailBody, string(tplNewReleaseMail), mailMeta); err != nil {
+	if err := LoadedTemplates().BodyTemplates.ExecuteTemplate(&mailBody, string(tplNewReleaseMail), mailMeta); err != nil {
 		log.Error("ExecuteTemplate [%s]: %v", string(tplNewReleaseMail)+"/body", err)
 		return
 	}

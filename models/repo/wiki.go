@@ -7,11 +7,9 @@ package repo
 import (
 	"context"
 	"fmt"
-	"path/filepath"
 	"strings"
 
 	user_model "code.gitea.io/gitea/models/user"
-	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/util"
 )
 
@@ -77,21 +75,12 @@ func (repo *Repository) WikiCloneLink(ctx context.Context, doer *user_model.User
 	return repo.cloneLink(ctx, doer, repo.Name+".wiki")
 }
 
-// WikiPath returns wiki data path by given user and repository name.
-func WikiPath(userName, repoName string) string {
-	return filepath.Join(user_model.UserPath(userName), strings.ToLower(repoName)+".wiki.git")
+func RelativeWikiPath(ownerName, repoName string) string {
+	return strings.ToLower(ownerName) + "/" + strings.ToLower(repoName) + ".wiki.git"
 }
 
-// WikiPath returns wiki data path for given repository.
-func (repo *Repository) WikiPath() string {
-	return WikiPath(repo.OwnerName, repo.Name)
-}
-
-// HasWiki returns true if repository has wiki.
-func (repo *Repository) HasWiki() bool {
-	isDir, err := util.IsDir(repo.WikiPath())
-	if err != nil {
-		log.Error("Unable to check if %s is a directory: %v", repo.WikiPath(), err)
-	}
-	return isDir
+// WikiStorageRepo returns the storage repo for the wiki
+// The wiki repository should have the same object format as the code repository
+func (repo *Repository) WikiStorageRepo() StorageRepo {
+	return StorageRepo(RelativeWikiPath(repo.OwnerName, repo.Name))
 }

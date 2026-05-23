@@ -1,13 +1,13 @@
 // Copyright 2022 The Gitea Authors. All rights reserved.
 // SPDX-License-Identifier: MIT
 
-package v1_18 //nolint
+package v1_18
 
 import (
 	"testing"
 
 	"code.gitea.io/gitea/models/issues"
-	"code.gitea.io/gitea/models/migrations/base"
+	"code.gitea.io/gitea/models/migrations/migrationtest"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -16,7 +16,7 @@ func Test_UpdateOpenMilestoneCounts(t *testing.T) {
 	type ExpectedMilestone issues.Milestone
 
 	// Prepare and load the testing database
-	x, deferable := base.PrepareTestEnv(t, 0, new(issues.Milestone), new(ExpectedMilestone), new(issues.Issue))
+	x, deferable := migrationtest.PrepareTestEnv(t, 0, new(issues.Milestone), new(ExpectedMilestone), new(issues.Issue))
 	defer deferable()
 	if x == nil || t.Failed() {
 		return

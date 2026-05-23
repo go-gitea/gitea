@@ -15,6 +15,7 @@ import (
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/gitrepo"
 	"code.gitea.io/gitea/modules/json"
+	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/timeutil"
 	git_service "code.gitea.io/gitea/services/git"
 	notify_service "code.gitea.io/gitea/services/notify"
@@ -76,6 +77,12 @@ func CreateIssueComment(ctx context.Context, doer *user_model.User, repo *repo_m
 	}
 
 	mentions, err := issues_model.FindAndUpdateIssueMentions(ctx, issue, doer, comment.Content)
+	if err != nil {
+		return nil, err
+	}
+
+	// reload issue to ensure it has the latest data, especially the number of comments
+	issue, err = issues_model.GetIssueByID(ctx, issue.ID)
 	if err != nil {
 		return nil, err
 	}
@@ -145,15 +152,15 @@ func DeleteComment(ctx context.Context, doer *user_model.User, comment *issues_m
 }
 
 // LoadCommentPushCommits Load push commits
-func LoadCommentPushCommits(ctx context.Context, c *issues_model.Comment) (err error) {
+func LoadCommentPushCommits(ctx context.Context, c *issues_model.Comment) error {
 	if c.Content == "" || c.Commits != nil || c.Type != issues_model.CommentTypePullRequestPush {
 		return nil
 	}
 
 	var data issues_model.PushActionContent
-	err = json.Unmarshal([]byte(c.Content), &data)
-	if err != nil {
-		return err
+	if err := json.Unmarshal([]byte(c.Content), &data); err != nil {
+		log.Debug("Unmarshal: %v", err) // no need to show 500 error to end user when the JSON is broken
+		return nil
 	}
 
 	c.IsForcePush = data.IsForcePush
@@ -162,9 +169,15 @@ func LoadCommentPushCommits(ctx context.Context, c *issues_model.Comment) (err e
 		if len(data.CommitIDs) != 2 {
 			return nil
 		}
-		c.OldCommit = data.CommitIDs[0]
-		c.NewCommit = data.CommitIDs[1]
+		c.OldCommit, c.NewCommit = data.CommitIDs[0], data.CommitIDs[1]
 	} else {
+		if err := c.LoadIssue(ctx); err != nil {
+			return err
+		}
+		if err := c.Issue.LoadRepo(ctx); err != nil {
+			return err
+		}
+
 		gitRepo, closer, err := gitrepo.RepositoryFromContextOrOpen(ctx, c.Issue.Repo)
 		if err != nil {
 			return err
@@ -173,10 +186,11 @@ func LoadCommentPushCommits(ctx context.Context, c *issues_model.Comment) (err e
 
 		c.Commits, err = git_service.ConvertFromGitCommit(ctx, gitRepo.GetCommitsFromIDs(data.CommitIDs), c.Issue.Repo)
 		if err != nil {
-			return err
+			log.Debug("ConvertFromGitCommit: %v", err) // no need to show 500 error to end user when the commit does not exist
+		} else {
+			c.CommitsNum = int64(len(c.Commits))
 		}
-		c.CommitsNum = int64(len(c.Commits))
 	}
 
-	return err
+	return nil
 }

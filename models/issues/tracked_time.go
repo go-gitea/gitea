@@ -16,7 +16,6 @@ import (
 	"code.gitea.io/gitea/modules/util"
 
 	"xorm.io/builder"
-	"xorm.io/xorm"
 )
 
 // TrackedTime represents a time that was spent for a specific issue.
@@ -140,7 +139,7 @@ func (opts *FindTrackedTimesOptions) toSession(e db.Engine) db.Engine {
 	sess = sess.Where(opts.ToConds())
 
 	if opts.Page > 0 {
-		sess = db.SetSessionPagination(sess, opts)
+		db.SetSessionPagination(sess, opts)
 	}
 
 	return sess
@@ -168,35 +167,31 @@ func GetTrackedSeconds(ctx context.Context, opts FindTrackedTimesOptions) (track
 
 // AddTime will add the given time (in seconds) to the issue
 func AddTime(ctx context.Context, user *user_model.User, issue *Issue, amount int64, created time.Time) (*TrackedTime, error) {
-	ctx, committer, err := db.TxContext(ctx)
-	if err != nil {
-		return nil, err
-	}
-	defer committer.Close()
+	return db.WithTx2(ctx, func(ctx context.Context) (*TrackedTime, error) {
+		t, err := addTime(ctx, user, issue, amount, created)
+		if err != nil {
+			return nil, err
+		}
 
-	t, err := addTime(ctx, user, issue, amount, created)
-	if err != nil {
-		return nil, err
-	}
+		if err := issue.LoadRepo(ctx); err != nil {
+			return nil, err
+		}
 
-	if err := issue.LoadRepo(ctx); err != nil {
-		return nil, err
-	}
+		if _, err := CreateComment(ctx, &CreateCommentOptions{
+			Issue: issue,
+			Repo:  issue.Repo,
+			Doer:  user,
+			// Content before v1.21 did store the formatted string instead of seconds,
+			// so use "|" as delimiter to mark the new format
+			Content: fmt.Sprintf("|%d", amount),
+			Type:    CommentTypeAddTimeManual,
+			TimeID:  t.ID,
+		}); err != nil {
+			return nil, err
+		}
 
-	if _, err := CreateComment(ctx, &CreateCommentOptions{
-		Issue: issue,
-		Repo:  issue.Repo,
-		Doer:  user,
-		// Content before v1.21 did store the formatted string instead of seconds,
-		// so use "|" as delimiter to mark the new format
-		Content: fmt.Sprintf("|%d", amount),
-		Type:    CommentTypeAddTimeManual,
-		TimeID:  t.ID,
-	}); err != nil {
-		return nil, err
-	}
-
-	return t, committer.Commit()
+		return t, nil
+	})
 }
 
 func addTime(ctx context.Context, user *user_model.User, issue *Issue, amount int64, created time.Time) (*TrackedTime, error) {
@@ -241,72 +236,58 @@ func TotalTimesForEachUser(ctx context.Context, options *FindTrackedTimesOptions
 
 // DeleteIssueUserTimes deletes times for issue
 func DeleteIssueUserTimes(ctx context.Context, issue *Issue, user *user_model.User) error {
-	ctx, committer, err := db.TxContext(ctx)
-	if err != nil {
-		return err
-	}
-	defer committer.Close()
+	return db.WithTx(ctx, func(ctx context.Context) error {
+		opts := FindTrackedTimesOptions{
+			IssueID: issue.ID,
+			UserID:  user.ID,
+		}
 
-	opts := FindTrackedTimesOptions{
-		IssueID: issue.ID,
-		UserID:  user.ID,
-	}
+		removedTime, err := deleteTimes(ctx, opts)
+		if err != nil {
+			return err
+		}
+		if removedTime == 0 {
+			return db.ErrNotExist{Resource: "tracked_time"}
+		}
 
-	removedTime, err := deleteTimes(ctx, opts)
-	if err != nil {
+		if err := issue.LoadRepo(ctx); err != nil {
+			return err
+		}
+		_, err = CreateComment(ctx, &CreateCommentOptions{
+			Issue: issue,
+			Repo:  issue.Repo,
+			Doer:  user,
+			// Content before v1.21 did store the formatted string instead of seconds,
+			// so use "|" as delimiter to mark the new format
+			Content: fmt.Sprintf("|%d", removedTime),
+			Type:    CommentTypeDeleteTimeManual,
+		})
 		return err
-	}
-	if removedTime == 0 {
-		return db.ErrNotExist{Resource: "tracked_time"}
-	}
-
-	if err := issue.LoadRepo(ctx); err != nil {
-		return err
-	}
-	if _, err := CreateComment(ctx, &CreateCommentOptions{
-		Issue: issue,
-		Repo:  issue.Repo,
-		Doer:  user,
-		// Content before v1.21 did store the formatted string instead of seconds,
-		// so use "|" as delimiter to mark the new format
-		Content: fmt.Sprintf("|%d", removedTime),
-		Type:    CommentTypeDeleteTimeManual,
-	}); err != nil {
-		return err
-	}
-
-	return committer.Commit()
+	})
 }
 
 // DeleteTime delete a specific Time
 func DeleteTime(ctx context.Context, t *TrackedTime) error {
-	ctx, committer, err := db.TxContext(ctx)
-	if err != nil {
-		return err
-	}
-	defer committer.Close()
+	return db.WithTx(ctx, func(ctx context.Context) error {
+		if err := t.LoadAttributes(ctx); err != nil {
+			return err
+		}
 
-	if err := t.LoadAttributes(ctx); err != nil {
-		return err
-	}
+		if err := deleteTime(ctx, t); err != nil {
+			return err
+		}
 
-	if err := deleteTime(ctx, t); err != nil {
+		_, err := CreateComment(ctx, &CreateCommentOptions{
+			Issue: t.Issue,
+			Repo:  t.Issue.Repo,
+			Doer:  t.User,
+			// Content before v1.21 did store the formatted string instead of seconds,
+			// so use "|" as delimiter to mark the new format
+			Content: fmt.Sprintf("|%d", t.Time),
+			Type:    CommentTypeDeleteTimeManual,
+		})
 		return err
-	}
-
-	if _, err := CreateComment(ctx, &CreateCommentOptions{
-		Issue: t.Issue,
-		Repo:  t.Issue.Repo,
-		Doer:  t.User,
-		// Content before v1.21 did store the formatted string instead of seconds,
-		// so use "|" as delimiter to mark the new format
-		Content: fmt.Sprintf("|%d", t.Time),
-		Type:    CommentTypeDeleteTimeManual,
-	}); err != nil {
-		return err
-	}
-
-	return committer.Commit()
+	})
 }
 
 func deleteTimes(ctx context.Context, opts FindTrackedTimesOptions) (removedTime int64, err error) {
@@ -329,13 +310,13 @@ func deleteTime(ctx context.Context, t *TrackedTime) error {
 }
 
 // GetTrackedTimeByID returns raw TrackedTime without loading attributes by id
-func GetTrackedTimeByID(ctx context.Context, id int64) (*TrackedTime, error) {
+func GetTrackedTimeByID(ctx context.Context, issueID, trackedTimeID int64) (*TrackedTime, error) {
 	time := new(TrackedTime)
-	has, err := db.GetEngine(ctx).ID(id).Get(time)
+	has, err := db.GetEngine(ctx).ID(trackedTimeID).Where("issue_id = ?", issueID).Get(time)
 	if err != nil {
 		return nil, err
 	} else if !has {
-		return nil, db.ErrNotExist{Resource: "tracked_time", ID: id}
+		return nil, db.ErrNotExist{Resource: "tracked_time", ID: trackedTimeID}
 	}
 	return time, nil
 }
@@ -350,10 +331,7 @@ func GetIssueTotalTrackedTime(ctx context.Context, opts *IssuesOptions, isClosed
 	// we get the statistics in smaller chunks and get accumulates
 	var accum int64
 	for i := 0; i < len(opts.IssueIDs); {
-		chunk := i + MaxQueryParameters
-		if chunk > len(opts.IssueIDs) {
-			chunk = len(opts.IssueIDs)
-		}
+		chunk := min(i+MaxQueryParameters, len(opts.IssueIDs))
 		time, err := getIssueTotalTrackedTimeChunk(ctx, opts, isClosed, opts.IssueIDs[i:chunk])
 		if err != nil {
 			return 0, err
@@ -365,7 +343,7 @@ func GetIssueTotalTrackedTime(ctx context.Context, opts *IssuesOptions, isClosed
 }
 
 func getIssueTotalTrackedTimeChunk(ctx context.Context, opts *IssuesOptions, isClosed optional.Option[bool], issueIDs []int64) (int64, error) {
-	sumSession := func(opts *IssuesOptions, issueIDs []int64) *xorm.Session {
+	sumSession := func(opts *IssuesOptions, issueIDs []int64) db.Session {
 		sess := db.GetEngine(ctx).
 			Table("tracked_time").
 			Where("tracked_time.deleted = ?", false).
@@ -380,7 +358,7 @@ func getIssueTotalTrackedTimeChunk(ctx context.Context, opts *IssuesOptions, isC
 
 	session := sumSession(opts, issueIDs)
 	if isClosed.Has() {
-		session = session.And("issue.is_closed = ?", isClosed.Value())
+		session.And("issue.is_closed = ?", isClosed.Value())
 	}
 	return session.SumInt(new(trackedTime), "tracked_time.time")
 }

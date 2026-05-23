@@ -4,42 +4,30 @@
 package rubygems
 
 import (
-	"archive/tar"
-	"bytes"
-	"encoding/base64"
-	"io"
 	"testing"
+
+	"code.gitea.io/gitea/modules/test"
 
 	"github.com/stretchr/testify/assert"
 )
 
 func TestParsePackageMetaData(t *testing.T) {
-	createArchive := func(filename string, content []byte) io.Reader {
-		var buf bytes.Buffer
-		tw := tar.NewWriter(&buf)
-		hdr := &tar.Header{
-			Name: filename,
-			Mode: 0o600,
-			Size: int64(len(content)),
-		}
-		tw.WriteHeader(hdr)
-		tw.Write(content)
-		tw.Close()
-		return &buf
-	}
-
 	t.Run("MissingMetadataFile", func(t *testing.T) {
-		data := createArchive("dummy.txt", []byte{0})
-
+		data := test.WriteTarArchive(map[string]string{"dummy.txt": ""})
 		rp, err := ParsePackageMetaData(data)
 		assert.ErrorIs(t, err, ErrMissingMetadataFile)
 		assert.Nil(t, rp)
 	})
 
 	t.Run("Valid", func(t *testing.T) {
-		content, _ := base64.StdEncoding.DecodeString("H4sICHC/I2EEAG1ldGFkYXRhAAEeAOH/bmFtZTogZwp2ZXJzaW9uOgogIHZlcnNpb246IDEKWw35Tx4AAAA=")
-		data := createArchive("metadata.gz", content)
-
+		metadataContent := test.CompressGzip(`
+name: g
+version:
+  version: 1
+`)
+		data := test.WriteTarArchive(map[string]string{
+			"metadata.gz": metadataContent.String(),
+		})
 		rp, err := ParsePackageMetaData(data)
 		assert.NoError(t, err)
 		assert.NotNil(t, rp)
@@ -47,17 +35,86 @@ func TestParsePackageMetaData(t *testing.T) {
 }
 
 func TestParseMetadataFile(t *testing.T) {
-	content, _ := base64.StdEncoding.DecodeString(`H4sIAMe7I2ECA9VVTW/UMBC9+1eYXvaUbJpSQBZUHJAqDlwK4kCFIseZzZrGH9iTqisEv52Js9nd
-0KqggiqRXWnX45n3ZuZ5nCzL+JPQ15ulq7+AQnEORoj3HpReaSVRO8usNCB4qxEku4YQySbuCPo4
-bjHOd07HeZGfMt9JXLlgBB9imOxx7UIULOPnCZMMLsDXXgeiYbW2jQ6C0y9TELBSa6kJ6/IzaySS
-R1mUx1nxIitPeFGI9M2L6eGfWAMebANWaUgktzN9M3lsKNmxutBb1AYyCibbNhsDFu+q9GK/Tc4z
-d2IcLBl9js5eHaXFsLyvXeNz0LQyL/YoLx8EsiCMBZlx46k6sS2PDD5AgA5kJPNKdhH2elWzOv7n
-uv9Q9Aau/6ngP84elvNpXh5oRVlB5/yW7BH0+qu0G4gqaI/JdEHBFBS5l+pKtsARIjIwUnfj8Le0
-+TrdJLl2DG5A9SjrjgZ1mG+4QbAD+G4ZZBUap6qVnnzGf6Rwp+vliBRqtnYGPBEKvkb0USyXE8mS
-dVoR6hj07u0HZgAl3SRS8G/fmXcRK20jyq6rDMSYQFgidamqkXbbuspLXE/0k7GphtKqe67GuRC/
-yjAbmt9LsOMp8xMamFkSQ38fP5EFjdz8LA4do2C69VvqWXAJgrPbKZb58/xZXrKoW6ttW13Bhvzi
-4ftn7/yUxd4YGcglvTmmY8aGY3ZwRn4CqcWcidUGAAA=`)
-	rp, err := parseMetadataFile(bytes.NewReader(content))
+	content := test.CompressGzip(`--- !ruby/object:Gem::Specification
+name: gitea
+version: !ruby/object:Gem::Version
+  version: 1.0.5
+platform: ruby
+authors:
+- Gitea
+autorequire:
+bindir: bin
+cert_chain: []
+date: 2021-08-23 00:00:00.000000000 Z
+dependencies:
+- !ruby/object:Gem::Dependency
+  name: runtime-dep
+  requirement: !ruby/object:Gem::Requirement
+    requirements:
+    - - ">="
+      - !ruby/object:Gem::Version
+        version: 1.2.0
+    - - "<"
+      - !ruby/object:Gem::Version
+        version: '2.0'
+  type: :runtime
+  prerelease: false
+  version_requirements: !ruby/object:Gem::Requirement
+    requirements:
+    - - ">="
+      - !ruby/object:Gem::Version
+        version: 1.2.0
+    - - "<"
+      - !ruby/object:Gem::Version
+        version: '2.0'
+- !ruby/object:Gem::Dependency
+  name: dev-dep
+  requirement: !ruby/object:Gem::Requirement
+    requirements:
+    - - "~>"
+      - !ruby/object:Gem::Version
+        version: '0'
+  type: :development
+  prerelease: false
+  version_requirements: !ruby/object:Gem::Requirement
+    requirements:
+    - - "~>"
+      - !ruby/object:Gem::Version
+        version: '5.2'
+description: RubyGems package test
+email: rubygems@gitea.io
+executables: []
+extensions: []
+extra_rdoc_files: []
+files:
+- lib/gitea.rb
+homepage: https://gitea.io/
+licenses:
+- MIT
+metadata: {}
+post_install_message:
+rdoc_options: []
+require_paths:
+- lib
+required_ruby_version: !ruby/object:Gem::Requirement
+  requirements:
+  - - ">="
+    - !ruby/object:Gem::Version
+      version: 2.3.0
+required_rubygems_version: !ruby/object:Gem::Requirement
+  requirements:
+  - - ">="
+    - !ruby/object:Gem::Version
+      version: '0'
+requirements: []
+rubyforge_project:
+rubygems_version: 2.7.6.2
+signing_key:
+specification_version: 4
+summary: Gitea package
+test_files: []
+`)
+	rp, err := parseMetadataFile(content)
 	assert.NoError(t, err)
 	assert.NotNil(t, rp)
 
@@ -84,5 +141,5 @@ yjAbmt9LsOMp8xMamFkSQ38fP5EFjdz8LA4do2C69VvqWXAJgrPbKZb58/xZXrKoW6ttW13Bhvzi
 	assert.Equal(t, "dev-dep", rp.Metadata.DevelopmentDependencies[0].Name)
 	assert.Len(t, rp.Metadata.DevelopmentDependencies[0].Version, 1)
 	assert.Equal(t, "~>", rp.Metadata.DevelopmentDependencies[0].Version[0].Restriction)
-	assert.Equal(t, "5.2", rp.Metadata.DevelopmentDependencies[0].Version[0].Version)
+	assert.Equal(t, "0", rp.Metadata.DevelopmentDependencies[0].Version[0].Version)
 }

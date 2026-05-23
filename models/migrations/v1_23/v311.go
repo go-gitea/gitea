@@ -1,16 +1,21 @@
 // Copyright 2024 The Gitea Authors. All rights reserved.
 // SPDX-License-Identifier: MIT
 
-package v1_23 //nolint
+package v1_23
 
 import (
+	"code.gitea.io/gitea/models/db"
+
 	"xorm.io/xorm"
 )
 
-func AddTimeEstimateColumnToIssueTable(x *xorm.Engine) error {
+func AddTimeEstimateColumnToIssueTable(x db.EngineMigration) error {
 	type Issue struct {
 		TimeEstimate int64 `xorm:"NOT NULL DEFAULT 0"`
 	}
-
-	return x.Sync(new(Issue))
+	_, err := x.SyncWithOptions(xorm.SyncOptions{
+		IgnoreConstrains: true,
+		IgnoreIndices:    true,
+	}, new(Issue))
+	return err
 }

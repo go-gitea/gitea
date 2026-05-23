@@ -1,13 +1,11 @@
 // Copyright 2022 The Gitea Authors. All rights reserved.
 // SPDX-License-Identifier: MIT
 
-package v1_17 //nolint
+package v1_17
 
-import (
-	"xorm.io/xorm"
-)
+import "code.gitea.io/gitea/models/db"
 
-func AddAllowMaintainerEdit(x *xorm.Engine) error {
+func AddAllowMaintainerEdit(x db.EngineMigration) error {
 	// PullRequest represents relation between pull request and repositories.
 	type PullRequest struct {
 		AllowMaintainerEdit bool `xorm:"NOT NULL DEFAULT false"`

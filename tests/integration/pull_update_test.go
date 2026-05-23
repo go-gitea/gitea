@@ -11,16 +11,19 @@ import (
 	"time"
 
 	auth_model "code.gitea.io/gitea/models/auth"
-	"code.gitea.io/gitea/models/db"
 	issues_model "code.gitea.io/gitea/models/issues"
+	"code.gitea.io/gitea/models/perm"
+	repo_model "code.gitea.io/gitea/models/repo"
+	"code.gitea.io/gitea/models/unit"
 	"code.gitea.io/gitea/models/unittest"
 	user_model "code.gitea.io/gitea/models/user"
-	"code.gitea.io/gitea/modules/git"
+	"code.gitea.io/gitea/modules/gitrepo"
 	pull_service "code.gitea.io/gitea/services/pull"
 	repo_service "code.gitea.io/gitea/services/repository"
 	files_service "code.gitea.io/gitea/services/repository/files"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestAPIPullUpdate(t *testing.T) {
@@ -29,14 +32,16 @@ func TestAPIPullUpdate(t *testing.T) {
 		user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
 		org26 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 26})
 		pr := createOutdatedPR(t, user, org26)
+		require.NoError(t, pr.LoadBaseRepo(t.Context()))
+		require.NoError(t, pr.LoadIssue(t.Context()))
 
 		// Test GetDiverging
-		diffCount, err := pull_service.GetDiverging(git.DefaultContext, pr)
-		assert.NoError(t, err)
+		diffCount, err := gitrepo.GetDivergingCommits(t.Context(), pr.BaseRepo, pr.BaseBranch, pr.GetGitHeadRefName())
+		require.NoError(t, err)
 		assert.Equal(t, 1, diffCount.Behind)
 		assert.Equal(t, 1, diffCount.Ahead)
-		assert.NoError(t, pr.LoadBaseRepo(db.DefaultContext))
-		assert.NoError(t, pr.LoadIssue(db.DefaultContext))
+		assert.Equal(t, diffCount.Behind, pr.CommitsBehind)
+		assert.Equal(t, diffCount.Ahead, pr.CommitsAhead)
 
 		session := loginUser(t, "user2")
 		token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeWriteRepository)
@@ -45,11 +50,43 @@ func TestAPIPullUpdate(t *testing.T) {
 		session.MakeRequest(t, req, http.StatusOK)
 
 		// Test GetDiverging after update
-		diffCount, err = pull_service.GetDiverging(git.DefaultContext, pr)
-		assert.NoError(t, err)
+		diffCount, err = gitrepo.GetDivergingCommits(t.Context(), pr.BaseRepo, pr.BaseBranch, pr.GetGitHeadRefName())
+		require.NoError(t, err)
 		assert.Equal(t, 0, diffCount.Behind)
 		assert.Equal(t, 2, diffCount.Ahead)
+		assert.Eventually(t, func() bool {
+			pr := unittest.AssertExistsAndLoadBean(t, &issues_model.PullRequest{ID: pr.ID})
+			return diffCount.Behind == pr.CommitsBehind && diffCount.Ahead == pr.CommitsAhead
+		}, 5*time.Second, 20*time.Millisecond)
 	})
+}
+
+func updateRepoPullRequestConfig(t *testing.T, repoID int64, update func(*repo_model.PullRequestsConfig)) {
+	t.Helper()
+
+	repoUnit := unittest.AssertExistsAndLoadBean(t, &repo_model.RepoUnit{RepoID: repoID, Type: unit.TypePullRequests})
+	update(repoUnit.PullRequestsConfig())
+	assert.NoError(t, repo_model.UpdateRepoUnitConfig(t.Context(), repoUnit))
+}
+
+func enableRepoAllowUpdateWithRebase(t *testing.T, repoID int64, allow bool) {
+	updateRepoPullRequestConfig(t, repoID, func(c *repo_model.PullRequestsConfig) { c.AllowRebaseUpdate = allow })
+}
+
+// setupOutdatedPRWithConfig creates an outdated PR (user2 base, org26 fork), loads its
+// base repo, head repo, and issue, then applies the supplied PullRequestsConfig mutation.
+func setupOutdatedPRWithConfig(t *testing.T, mutate func(*repo_model.PullRequestsConfig)) *issues_model.PullRequest {
+	t.Helper()
+	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
+	org26 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 26})
+	pr := createOutdatedPR(t, user, org26)
+	require.NoError(t, pr.LoadBaseRepo(t.Context()))
+	require.NoError(t, pr.LoadHeadRepo(t.Context()))
+	require.NoError(t, pr.LoadIssue(t.Context()))
+	if mutate != nil {
+		updateRepoPullRequestConfig(t, pr.BaseRepo.ID, mutate)
+	}
+	return pr
 }
 
 func TestAPIPullUpdateByRebase(t *testing.T) {
@@ -58,31 +95,93 @@ func TestAPIPullUpdateByRebase(t *testing.T) {
 		user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
 		org26 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 26})
 		pr := createOutdatedPR(t, user, org26)
+		assert.NoError(t, pr.LoadBaseRepo(t.Context()))
 
 		// Test GetDiverging
-		diffCount, err := pull_service.GetDiverging(git.DefaultContext, pr)
+		diffCount, err := gitrepo.GetDivergingCommits(t.Context(), pr.BaseRepo, pr.BaseBranch, pr.GetGitHeadRefName())
 		assert.NoError(t, err)
 		assert.Equal(t, 1, diffCount.Behind)
 		assert.Equal(t, 1, diffCount.Ahead)
-		assert.NoError(t, pr.LoadBaseRepo(db.DefaultContext))
-		assert.NoError(t, pr.LoadIssue(db.DefaultContext))
+		assert.NoError(t, pr.LoadIssue(t.Context()))
+
+		enableRepoAllowUpdateWithRebase(t, pr.BaseRepo.ID, false)
 
 		session := loginUser(t, "user2")
 		token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeWriteRepository)
 		req := NewRequestf(t, "POST", "/api/v1/repos/%s/%s/pulls/%d/update?style=rebase", pr.BaseRepo.OwnerName, pr.BaseRepo.Name, pr.Issue.Index).
 			AddTokenAuth(token)
+		session.MakeRequest(t, req, http.StatusForbidden)
+
+		enableRepoAllowUpdateWithRebase(t, pr.BaseRepo.ID, true)
+		assert.NoError(t, pr.LoadHeadRepo(t.Context()))
+
+		// use a user which have write access to the pr but not write permission to the head repository to do the rebase
+		user40 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 40})
+		err = repo_service.AddOrUpdateCollaborator(t.Context(), pr.BaseRepo, user40, perm.AccessModeWrite)
+		assert.NoError(t, err)
+		token40 := getUserToken(t, "user40", auth_model.AccessTokenScopeWriteRepository)
+
+		req = NewRequestf(t, "POST", "/api/v1/repos/%s/%s/pulls/%d/update?style=rebase", pr.BaseRepo.OwnerName, pr.BaseRepo.Name, pr.Issue.Index).
+			AddTokenAuth(token40)
+		session.MakeRequest(t, req, http.StatusForbidden)
+
+		err = repo_service.AddOrUpdateCollaborator(t.Context(), pr.HeadRepo, user40, perm.AccessModeWrite)
+		assert.NoError(t, err)
+
+		req = NewRequestf(t, "POST", "/api/v1/repos/%s/%s/pulls/%d/update?style=rebase", pr.BaseRepo.OwnerName, pr.BaseRepo.Name, pr.Issue.Index).
+			AddTokenAuth(token40)
 		session.MakeRequest(t, req, http.StatusOK)
 
 		// Test GetDiverging after update
-		diffCount, err = pull_service.GetDiverging(git.DefaultContext, pr)
+		diffCount, err = gitrepo.GetDivergingCommits(t.Context(), pr.BaseRepo, pr.BaseBranch, pr.GetGitHeadRefName())
 		assert.NoError(t, err)
 		assert.Equal(t, 0, diffCount.Behind)
 		assert.Equal(t, 1, diffCount.Ahead)
 	})
 }
 
+// TestAPIPullUpdateStyleSettings first checks that a disabled explicit style is
+// forbidden, then guards back-compat: even when the repo's DefaultUpdateStyle is
+// rebase, an API call with no `style` parameter must still perform a merge
+// update so existing API clients don't silently flip behavior.
+func TestAPIPullUpdateStyleSettings(t *testing.T) {
+	onGiteaRun(t, func(t *testing.T, giteaURL *url.URL) {
+		pr := setupOutdatedPRWithConfig(t, func(c *repo_model.PullRequestsConfig) {
+			c.AllowMergeUpdate = false
+			c.AllowRebaseUpdate = true
+			c.DefaultUpdateStyle = repo_model.UpdateStyleRebase
+		})
+
+		user40 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 40})
+		require.NoError(t, repo_service.AddOrUpdateCollaborator(t.Context(), pr.BaseRepo, user40, perm.AccessModeWrite))
+		require.NoError(t, repo_service.AddOrUpdateCollaborator(t.Context(), pr.HeadRepo, user40, perm.AccessModeWrite))
+
+		session := loginUser(t, "user40")
+		token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeWriteRepository)
+
+		req := NewRequestf(t, "POST", "/api/v1/repos/%s/%s/pulls/%d/update?style=merge", pr.BaseRepo.OwnerName, pr.BaseRepo.Name, pr.Issue.Index).
+			AddTokenAuth(token)
+		session.MakeRequest(t, req, http.StatusForbidden)
+
+		updateRepoPullRequestConfig(t, pr.BaseRepo.ID, func(c *repo_model.PullRequestsConfig) {
+			c.AllowMergeUpdate = true
+		})
+
+		req = NewRequestf(t, "POST", "/api/v1/repos/%s/%s/pulls/%d/update", pr.BaseRepo.OwnerName, pr.BaseRepo.Name, pr.Issue.Index).
+			AddTokenAuth(token)
+		session.MakeRequest(t, req, http.StatusOK)
+
+		// merge update produces a merge commit on top of the head commit (Ahead=2),
+		// rebase update would replay the head commit alone (Ahead=1).
+		diffCount, err := gitrepo.GetDivergingCommits(t.Context(), pr.BaseRepo, pr.BaseBranch, pr.GetGitHeadRefName())
+		require.NoError(t, err)
+		assert.Equal(t, 0, diffCount.Behind)
+		assert.Equal(t, 2, diffCount.Ahead)
+	})
+}
+
 func createOutdatedPR(t *testing.T, actor, forkOrg *user_model.User) *issues_model.PullRequest {
-	baseRepo, err := repo_service.CreateRepository(db.DefaultContext, actor, actor, repo_service.CreateRepoOptions{
+	baseRepo, err := repo_service.CreateRepository(t.Context(), actor, actor, repo_service.CreateRepoOptions{
 		Name:        "repo-pr-update",
 		Description: "repo-tmp-pr-update description",
 		AutoInit:    true,
@@ -94,7 +193,7 @@ func createOutdatedPR(t *testing.T, actor, forkOrg *user_model.User) *issues_mod
 	assert.NoError(t, err)
 	assert.NotEmpty(t, baseRepo)
 
-	headRepo, err := repo_service.ForkRepository(git.DefaultContext, actor, forkOrg, repo_service.ForkRepoOptions{
+	headRepo, err := repo_service.ForkRepository(t.Context(), actor, forkOrg, repo_service.ForkRepoOptions{
 		BaseRepo:    baseRepo,
 		Name:        "repo-pr-update",
 		Description: "desc",
@@ -103,7 +202,7 @@ func createOutdatedPR(t *testing.T, actor, forkOrg *user_model.User) *issues_mod
 	assert.NotEmpty(t, headRepo)
 
 	// create a commit on base Repo
-	_, err = files_service.ChangeRepoFiles(git.DefaultContext, baseRepo, actor, &files_service.ChangeRepoFilesOptions{
+	_, err = files_service.ChangeRepoFiles(t.Context(), baseRepo, actor, &files_service.ChangeRepoFilesOptions{
 		Files: []*files_service.ChangeRepoFile{
 			{
 				Operation:     "create",
@@ -130,7 +229,7 @@ func createOutdatedPR(t *testing.T, actor, forkOrg *user_model.User) *issues_mod
 	assert.NoError(t, err)
 
 	// create a commit on head Repo
-	_, err = files_service.ChangeRepoFiles(git.DefaultContext, headRepo, actor, &files_service.ChangeRepoFilesOptions{
+	_, err = files_service.ChangeRepoFiles(t.Context(), headRepo, actor, &files_service.ChangeRepoFilesOptions{
 		Files: []*files_service.ChangeRepoFile{
 			{
 				Operation:     "create",
@@ -174,11 +273,11 @@ func createOutdatedPR(t *testing.T, actor, forkOrg *user_model.User) *issues_mod
 		Type:       issues_model.PullRequestGitea,
 	}
 	prOpts := &pull_service.NewPullRequestOptions{Repo: baseRepo, Issue: pullIssue, PullRequest: pullRequest}
-	err = pull_service.NewPullRequest(git.DefaultContext, prOpts)
+	err = pull_service.NewPullRequest(t.Context(), prOpts)
 	assert.NoError(t, err)
 
 	issue := unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{Title: "Test Pull -to-update-"})
-	assert.NoError(t, issue.LoadPullRequest(db.DefaultContext))
+	assert.NoError(t, issue.LoadPullRequest(t.Context()))
 
 	return issue.PullRequest
 }

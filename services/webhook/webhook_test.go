@@ -11,8 +11,10 @@ import (
 	"code.gitea.io/gitea/models/unittest"
 	user_model "code.gitea.io/gitea/models/user"
 	webhook_model "code.gitea.io/gitea/models/webhook"
+	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
+	"code.gitea.io/gitea/modules/test"
 	webhook_module "code.gitea.io/gitea/modules/webhook"
 	"code.gitea.io/gitea/services/convert"
 
@@ -20,7 +22,17 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestWebhook_GetSlackHook(t *testing.T) {
+func TestWebhookService(t *testing.T) {
+	unittest.PrepareTestEnv(t)
+	t.Run("GetSlackHook", testWebhookGetSlackHook)
+	t.Run("PrepareWebhooks", testWebhookPrepare)
+	t.Run("PrepareBranchFilterMatch", testWebhookPrepareBranchFilterMatch)
+	t.Run("PrepareBranchFilterNoMatch", testWebhookPrepareBranchFilterNoMatch)
+	t.Run("WebhookUserMail", testWebhookUserMail)
+	t.Run("CheckBranchFilter", testWebhookCheckBranchFilter)
+}
+
+func testWebhookGetSlackHook(t *testing.T) {
 	w := &webhook_model.Webhook{
 		Meta: `{"channel": "foo", "username": "username", "color": "blue"}`,
 	}
@@ -32,60 +44,91 @@ func TestWebhook_GetSlackHook(t *testing.T) {
 	}, *slackHook)
 }
 
-func TestPrepareWebhooks(t *testing.T) {
-	assert.NoError(t, unittest.PrepareTestDatabase())
-
+func testWebhookPrepare(t *testing.T) {
 	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
-	hookTasks := []*webhook_model.HookTask{
-		{HookID: 1, EventType: webhook_module.HookEventPush},
+	hook := &webhook_model.Webhook{
+		RepoID:      repo.ID,
+		URL:         "http://localhost/gitea-webhook-test-prepare_webhooks",
+		ContentType: webhook_model.ContentTypeJSON,
+		Events:      `{"push_only":true}`,
+		IsActive:    true,
 	}
-	for _, hookTask := range hookTasks {
-		unittest.AssertNotExistsBean(t, hookTask)
-	}
-	assert.NoError(t, PrepareWebhooks(db.DefaultContext, EventSource{Repository: repo}, webhook_module.HookEventPush, &api.PushPayload{Commits: []*api.PayloadCommit{{}}}))
-	for _, hookTask := range hookTasks {
-		unittest.AssertExistsAndLoadBean(t, hookTask)
-	}
+	require.NoError(t, db.Insert(t.Context(), hook))
+
+	hookTask := &webhook_model.HookTask{HookID: hook.ID, EventType: webhook_module.HookEventPush}
+	unittest.AssertNotExistsBean(t, hookTask)
+	err := PrepareWebhooks(t.Context(), EventSource{Repository: repo}, webhook_module.HookEventPush, &api.PushPayload{Commits: []*api.PayloadCommit{{}}})
+	require.NoError(t, err)
+	unittest.AssertExistsAndLoadBean(t, hookTask)
 }
 
-func TestPrepareWebhooksBranchFilterMatch(t *testing.T) {
-	assert.NoError(t, unittest.PrepareTestDatabase())
-
+func testWebhookPrepareBranchFilterMatch(t *testing.T) {
 	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 2})
-	hookTasks := []*webhook_model.HookTask{
-		{HookID: 4, EventType: webhook_module.HookEventPush},
+	hook := &webhook_model.Webhook{
+		RepoID:      repo.ID,
+		URL:         "http://localhost/gitea-webhook-test-branch_filter_match",
+		ContentType: webhook_model.ContentTypeJSON,
+		Events:      `{"push_only":true,"branch_filter":"{master,feature*}"}`,
+		IsActive:    true,
 	}
-	for _, hookTask := range hookTasks {
-		unittest.AssertNotExistsBean(t, hookTask)
-	}
+	require.NoError(t, db.Insert(t.Context(), hook))
+
+	hookTask := &webhook_model.HookTask{HookID: hook.ID, EventType: webhook_module.HookEventPush}
+	unittest.AssertNotExistsBean(t, hookTask)
 	// this test also ensures that * doesn't handle / in any special way (like shell would)
-	assert.NoError(t, PrepareWebhooks(db.DefaultContext, EventSource{Repository: repo}, webhook_module.HookEventPush, &api.PushPayload{Ref: "refs/heads/feature/7791", Commits: []*api.PayloadCommit{{}}}))
-	for _, hookTask := range hookTasks {
-		unittest.AssertExistsAndLoadBean(t, hookTask)
-	}
+	err := PrepareWebhooks(t.Context(), EventSource{Repository: repo}, webhook_module.HookEventPush, &api.PushPayload{Ref: "refs/heads/feature/7791", Commits: []*api.PayloadCommit{{}}})
+	require.NoError(t, err)
+	unittest.AssertExistsAndLoadBean(t, hookTask)
 }
 
-func TestPrepareWebhooksBranchFilterNoMatch(t *testing.T) {
-	assert.NoError(t, unittest.PrepareTestDatabase())
-
+func testWebhookPrepareBranchFilterNoMatch(t *testing.T) {
 	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 2})
-	hookTasks := []*webhook_model.HookTask{
-		{HookID: 4, EventType: webhook_module.HookEventPush},
+	hook := &webhook_model.Webhook{
+		RepoID:      repo.ID,
+		URL:         "http://localhost/gitea-webhook-test-branch_filter_no_match",
+		ContentType: webhook_model.ContentTypeJSON,
+		Events:      `{"push_only":true,"branch_filter":"{master,feature*}"}`,
+		IsActive:    true,
 	}
-	for _, hookTask := range hookTasks {
-		unittest.AssertNotExistsBean(t, hookTask)
-	}
-	assert.NoError(t, PrepareWebhooks(db.DefaultContext, EventSource{Repository: repo}, webhook_module.HookEventPush, &api.PushPayload{Ref: "refs/heads/fix_weird_bug"}))
+	require.NoError(t, db.Insert(t.Context(), hook))
 
-	for _, hookTask := range hookTasks {
-		unittest.AssertNotExistsBean(t, hookTask)
-	}
+	hookTask := &webhook_model.HookTask{HookID: hook.ID, EventType: webhook_module.HookEventPush}
+	unittest.AssertNotExistsBean(t, hookTask)
+	err := PrepareWebhooks(t.Context(), EventSource{Repository: repo}, webhook_module.HookEventPush, &api.PushPayload{Ref: "refs/heads/fix_weird_bug"})
+	require.NoError(t, err)
+	unittest.AssertNotExistsBean(t, hookTask)
 }
 
-func TestWebhookUserMail(t *testing.T) {
-	require.NoError(t, unittest.PrepareTestDatabase())
-	setting.Service.NoReplyAddress = "no-reply.com"
+func testWebhookUserMail(t *testing.T) {
+	defer test.MockVariableValue(&setting.Service.NoReplyAddress, "no-reply.com")()
 	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 1})
-	assert.Equal(t, user.GetPlaceholderEmail(), convert.ToUser(db.DefaultContext, user, nil).Email)
-	assert.Equal(t, user.Email, convert.ToUser(db.DefaultContext, user, user).Email)
+	assert.Equal(t, user.GetPlaceholderEmail(), convert.ToUser(t.Context(), user, nil).Email)
+	assert.Equal(t, user.Email, convert.ToUser(t.Context(), user, user).Email)
+}
+
+func testWebhookCheckBranchFilter(t *testing.T) {
+	cases := []struct {
+		filter string
+		ref    git.RefName
+		match  bool
+	}{
+		{"", "any-ref", true},
+		{"*", "any-ref", true},
+		{"**", "any-ref", true},
+
+		{"main", git.RefNameFromBranch("main"), true},
+		{"main", git.RefNameFromTag("main"), false},
+
+		{"feature/*", git.RefNameFromBranch("feature"), false},
+		{"feature/*", git.RefNameFromBranch("feature/foo"), true},
+		{"feature/*", git.RefNameFromTag("feature/foo"), false},
+
+		{"{refs/heads/feature/*,refs/tags/release/*}", git.RefNameFromBranch("feature/foo"), true},
+		{"{refs/heads/feature/*,refs/tags/release/*}", git.RefNameFromBranch("main"), false},
+		{"{refs/heads/feature/*,refs/tags/release/*}", git.RefNameFromTag("release/bar"), true},
+		{"{refs/heads/feature/*,refs/tags/release/*}", git.RefNameFromTag("dev"), false},
+	}
+	for _, v := range cases {
+		assert.Equal(t, v.match, checkBranchFilter(v.filter, v.ref), "filter: %q ref: %q", v.filter, v.ref)
+	}
 }

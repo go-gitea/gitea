@@ -1,13 +1,11 @@
 // Copyright 2019 The Gitea Authors. All rights reserved.
 // SPDX-License-Identifier: MIT
 
-package v1_10 //nolint
+package v1_10
 
-import (
-	"xorm.io/xorm"
-)
+import "code.gitea.io/gitea/models/db"
 
-func ChangeSomeColumnsLengthOfExternalLoginUser(x *xorm.Engine) error {
+func ChangeSomeColumnsLengthOfExternalLoginUser(x db.EngineMigration) error {
 	type ExternalLoginUser struct {
 		AccessToken       string `xorm:"TEXT"`
 		AccessTokenSecret string `xorm:"TEXT"`

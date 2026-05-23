@@ -4,6 +4,7 @@
 package markup
 
 import (
+	"html/template"
 	"io"
 	"net/url"
 	"regexp"
@@ -29,6 +30,9 @@ func (st *Sanitizer) createDefaultPolicy() *bluemonday.Policy {
 	// Chroma always uses 1-2 letters for style names, we could tolerate it at the moment
 	policy.AllowAttrs("class").Matching(regexp.MustCompile(`^\w{0,2}$`)).OnElements("span")
 
+	// Line numbers on codepreview
+	policy.AllowAttrs("data-line-number").OnElements("span")
+
 	// Custom URL-Schemes
 	if len(setting.Markdown.CustomURLSchemes) > 0 {
 		policy.AllowURLSchemes(setting.Markdown.CustomURLSchemes...)
@@ -51,6 +55,13 @@ func (st *Sanitizer) createDefaultPolicy() *bluemonday.Policy {
 	policy.AllowStyles("color", "background-color").OnElements("div", "span", "p", "tr", "th", "td")
 
 	policy.AllowAttrs("src", "autoplay", "controls").OnElements("video")
+
+	// Native support of "<picture><source media=... srcset=...><img src=...></picture>"
+	// ATTENTION: it only works with "auto" theme, because "media" query doesn't work with the theme chosen by end user manually.
+	// For example: browser's color scheme is "dark", but end user chooses "light" theme. Maybe it needs JS to help to make it work.
+	policy.AllowAttrs("media", "srcset").OnElements("source")
+
+	policy.AllowAttrs("loading").OnElements("img")
 
 	// Allow generally safe attributes (reference: https://github.com/jch/html-pipeline)
 	generalSafeAttrs := []string{
@@ -75,11 +86,12 @@ func (st *Sanitizer) createDefaultPolicy() *bluemonday.Policy {
 		"data-markdown-generated-content", "data-attr-class",
 	}
 	generalSafeElements := []string{
-		"h1", "h2", "h3", "h4", "h5", "h6", "h7", "h8", "br", "b", "i", "strong", "em", "a", "pre", "code", "img", "tt",
+		"h1", "h2", "h3", "h4", "h5", "h6", "h7", "h8", "br", "b", "center", "i", "strong", "em", "a", "pre", "code", "img", "tt",
 		"div", "ins", "del", "sup", "sub", "p", "ol", "ul", "table", "thead", "tbody", "tfoot", "blockquote", "label",
 		"dl", "dt", "dd", "kbd", "q", "samp", "var", "hr", "ruby", "rt", "rp", "li", "tr", "td", "th", "s", "strike", "summary",
 		"details", "caption", "figure", "figcaption",
 		"abbr", "bdo", "cite", "dfn", "mark", "small", "span", "time", "video", "wbr",
+		"picture", "source",
 	}
 	// FIXME: Need to handle longdesc in img but there is no easy way to do it
 	policy.AllowAttrs(generalSafeAttrs...).OnElements(generalSafeElements...)
@@ -90,9 +102,9 @@ func (st *Sanitizer) createDefaultPolicy() *bluemonday.Policy {
 	return policy
 }
 
-// Sanitize takes a string that contains a HTML fragment or document and applies policy whitelist.
-func Sanitize(s string) string {
-	return GetDefaultSanitizer().defaultPolicy.Sanitize(s)
+// Sanitize use default sanitizer policy to sanitize a string
+func Sanitize(s string) template.HTML {
+	return template.HTML(GetDefaultSanitizer().defaultPolicy.Sanitize(s))
 }
 
 // SanitizeReader sanitizes a Reader

@@ -19,76 +19,79 @@ import (
 	"code.gitea.io/gitea/services/convert"
 	"code.gitea.io/gitea/services/migrations"
 
-	"github.com/urfave/cli/v2"
+	"github.com/urfave/cli/v3"
 )
 
-// CmdDumpRepository represents the available dump repository sub-command.
-var CmdDumpRepository = &cli.Command{
-	Name:        "dump-repo",
-	Usage:       "Dump the repository from git/github/gitea/gitlab",
-	Description: "This is a command for dumping the repository data.",
-	Action:      runDumpRepository,
-	Flags: []cli.Flag{
-		&cli.StringFlag{
-			Name:  "git_service",
-			Value: "",
-			Usage: "Git service, git, github, gitea, gitlab. If clone_addr could be recognized, this could be ignored.",
-		},
-		&cli.StringFlag{
-			Name:    "repo_dir",
-			Aliases: []string{"r"},
-			Value:   "./data",
-			Usage:   "Repository dir path to store the data",
-		},
-		&cli.StringFlag{
-			Name:  "clone_addr",
-			Value: "",
-			Usage: "The URL will be clone, currently could be a git/github/gitea/gitlab http/https URL",
-		},
-		&cli.StringFlag{
-			Name:  "auth_username",
-			Value: "",
-			Usage: "The username to visit the clone_addr",
-		},
-		&cli.StringFlag{
-			Name:  "auth_password",
-			Value: "",
-			Usage: "The password to visit the clone_addr",
-		},
-		&cli.StringFlag{
-			Name:  "auth_token",
-			Value: "",
-			Usage: "The personal token to visit the clone_addr",
-		},
-		&cli.StringFlag{
-			Name:  "owner_name",
-			Value: "",
-			Usage: "The data will be stored on a directory with owner name if not empty",
-		},
-		&cli.StringFlag{
-			Name:  "repo_name",
-			Value: "",
-			Usage: "The data will be stored on a directory with repository name if not empty",
-		},
-		&cli.StringFlag{
-			Name:  "units",
-			Value: "",
-			Usage: `Which items will be migrated, one or more units should be separated as comma.
+func newDumpRepositoryCommand() *cli.Command {
+	return &cli.Command{
+		Name:        "dump-repo",
+		Usage:       "Dump the repository from git/github/gitea/gitlab",
+		Description: "This is a command for dumping the repository data.",
+		Action:      runDumpRepository,
+		Flags: []cli.Flag{
+			&cli.StringFlag{
+				Name:  "git_service",
+				Value: "",
+				Usage: "Git service, git, github, gitea, gitlab. If clone_addr could be recognized, this could be ignored.",
+			},
+			&cli.StringFlag{
+				Name:    "repo_dir",
+				Aliases: []string{"r"},
+				Value:   "./data",
+				Usage:   "Repository dir path to store the data",
+			},
+			&cli.StringFlag{
+				Name:  "clone_addr",
+				Value: "",
+				Usage: "The URL will be clone, currently could be a git/github/gitea/gitlab http/https URL",
+			},
+			&cli.StringFlag{
+				Name:  "auth_username",
+				Value: "",
+				Usage: "The username to visit the clone_addr",
+			},
+			&cli.StringFlag{
+				Name:  "auth_password",
+				Value: "",
+				Usage: "The password to visit the clone_addr",
+			},
+			&cli.StringFlag{
+				Name:  "auth_token",
+				Value: "",
+				Usage: "The personal token to visit the clone_addr",
+			},
+			&cli.StringFlag{
+				Name:  "owner_name",
+				Value: "",
+				Usage: "The data will be stored on a directory with owner name if not empty",
+			},
+			&cli.StringFlag{
+				Name:  "repo_name",
+				Value: "",
+				Usage: "The data will be stored on a directory with repository name if not empty",
+			},
+			&cli.StringFlag{
+				Name:  "units",
+				Value: "",
+				Usage: `Which items will be migrated, one or more units should be separated as comma.
 wiki, issues, labels, releases, release_assets, milestones, pull_requests, comments are allowed. Empty means all units.`,
+			},
 		},
-	},
+	}
 }
 
-func runDumpRepository(ctx *cli.Context) error {
-	stdCtx, cancel := installSignals()
-	defer cancel()
+func runDumpRepository(ctx context.Context, cmd *cli.Command) error {
+	setupConsoleLogger(log.INFO, log.CanColorStderr, os.Stderr)
 
-	if err := initDB(stdCtx); err != nil {
+	setting.DisableLoggerInit()
+	setting.LoadSettings() // cannot access skip_tls_verify settings otherwise
+
+	if err := initDB(ctx); err != nil {
 		return err
 	}
 
 	// migrations.GiteaLocalUploader depends on git module
-	if err := git.InitSimple(context.Background()); err != nil {
+	if err := git.InitSimple(); err != nil {
 		return err
 	}
 
@@ -100,8 +103,8 @@ func runDumpRepository(ctx *cli.Context) error {
 
 	var (
 		serviceType structs.GitServiceType
-		cloneAddr   = ctx.String("clone_addr")
-		serviceStr  = ctx.String("git_service")
+		cloneAddr   = cmd.String("clone_addr")
+		serviceStr  = cmd.String("git_service")
 	)
 
 	if strings.HasPrefix(strings.ToLower(cloneAddr), "https://github.com/") {
@@ -119,13 +122,13 @@ func runDumpRepository(ctx *cli.Context) error {
 	opts := base.MigrateOptions{
 		GitServiceType: serviceType,
 		CloneAddr:      cloneAddr,
-		AuthUsername:   ctx.String("auth_username"),
-		AuthPassword:   ctx.String("auth_password"),
-		AuthToken:      ctx.String("auth_token"),
-		RepoName:       ctx.String("repo_name"),
+		AuthUsername:   cmd.String("auth_username"),
+		AuthPassword:   cmd.String("auth_password"),
+		AuthToken:      cmd.String("auth_token"),
+		RepoName:       cmd.String("repo_name"),
 	}
 
-	if len(ctx.String("units")) == 0 {
+	if len(cmd.String("units")) == 0 {
 		opts.Wiki = true
 		opts.Issues = true
 		opts.Milestones = true
@@ -135,8 +138,8 @@ func runDumpRepository(ctx *cli.Context) error {
 		opts.PullRequests = true
 		opts.ReleaseAssets = true
 	} else {
-		units := strings.Split(ctx.String("units"), ",")
-		for _, unit := range units {
+		units := strings.SplitSeq(cmd.String("units"), ",")
+		for unit := range units {
 			switch strings.ToLower(strings.TrimSpace(unit)) {
 			case "":
 				continue
@@ -164,7 +167,7 @@ func runDumpRepository(ctx *cli.Context) error {
 
 	// the repo_dir will be removed if error occurs in DumpRepository
 	// make sure the directory doesn't exist or is empty, prevent from deleting user files
-	repoDir := ctx.String("repo_dir")
+	repoDir := cmd.String("repo_dir")
 	if exists, err := util.IsExist(repoDir); err != nil {
 		return fmt.Errorf("unable to stat repo_dir %q: %w", repoDir, err)
 	} else if exists {
@@ -177,9 +180,9 @@ func runDumpRepository(ctx *cli.Context) error {
 	}
 
 	if err := migrations.DumpRepository(
-		context.Background(),
+		ctx,
 		repoDir,
-		ctx.String("owner_name"),
+		cmd.String("owner_name"),
 		opts,
 	); err != nil {
 		log.Fatal("Failed to dump repository: %v", err)

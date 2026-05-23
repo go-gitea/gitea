@@ -1,16 +1,16 @@
 // Copyright 2021 The Gitea Authors. All rights reserved.
 // SPDX-License-Identifier: MIT
 
-package v1_15 //nolint
+package v1_15
 
 import (
+	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/models/migrations/base"
 
-	"xorm.io/xorm"
 	"xorm.io/xorm/schemas"
 )
 
-func ConvertAvatarURLToText(x *xorm.Engine) error {
+func ConvertAvatarURLToText(x db.EngineMigration) error {
 	dbType := x.Dialect().URI().DBType
 	if dbType == schemas.SQLITE { // For SQLITE, varchar or char will always be represented as TEXT
 		return nil

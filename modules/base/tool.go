@@ -8,13 +8,10 @@ import (
 	"crypto/sha1"
 	"crypto/sha256"
 	"crypto/subtle"
-	"encoding/base64"
 	"encoding/hex"
-	"errors"
 	"fmt"
 	"hash"
 	"strconv"
-	"strings"
 	"time"
 
 	"code.gitea.io/gitea/modules/setting"
@@ -34,19 +31,6 @@ func EncodeSha256(str string) string {
 // It is DEPRECATED and will be removed in the future.
 func ShortSha(sha1 string) string {
 	return util.TruncateRunes(sha1, 10)
-}
-
-// BasicAuthDecode decode basic auth string
-func BasicAuthDecode(encoded string) (string, string, error) {
-	s, err := base64.StdEncoding.DecodeString(encoded)
-	if err != nil {
-		return "", "", err
-	}
-
-	if username, password, ok := strings.Cut(string(s), ":"); ok {
-		return username, password, nil
-	}
-	return "", "", errors.New("invalid basic authentication")
 }
 
 // VerifyTimeLimitCode verify time limit code

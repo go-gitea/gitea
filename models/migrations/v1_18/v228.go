@@ -1,15 +1,14 @@
 // Copyright 2022 The Gitea Authors. All rights reserved.
 // SPDX-License-Identifier: MIT
 
-package v1_18 //nolint
+package v1_18
 
 import (
+	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/modules/timeutil"
-
-	"xorm.io/xorm"
 )
 
-func AddTeamInviteTable(x *xorm.Engine) error {
+func AddTeamInviteTable(x db.EngineMigration) error {
 	type TeamInvite struct {
 		ID          int64              `xorm:"pk autoincr"`
 		Token       string             `xorm:"UNIQUE(token) INDEX NOT NULL DEFAULT ''"`

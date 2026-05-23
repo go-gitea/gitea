@@ -17,6 +17,8 @@ import (
 
 // Source holds configuration for SSPI single sign-on.
 type Source struct {
+	auth.ConfigBase `json:"-"`
+
 	AutoCreateUsers      bool
 	AutoActivateUsers    bool
 	StripDomainNames     bool

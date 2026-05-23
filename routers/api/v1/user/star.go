@@ -20,18 +20,21 @@ import (
 // getStarredRepos returns the repos that the user with the specified userID has
 // starred
 func getStarredRepos(ctx *context.APIContext, user *user_model.User, private bool) ([]*api.Repository, error) {
-	starredRepos, err := repo_model.GetStarredRepos(ctx, &repo_model.StarredReposOptions{
+	opts := &repo_model.StarredReposOptions{
 		ListOptions:    utils.GetListOptions(ctx),
 		StarrerID:      user.ID,
 		IncludePrivate: private,
-	})
+	}
+	opts.ApplyPublicOnly(ctx.PublicOnly)
+
+	starredRepos, err := repo_model.GetStarredRepos(ctx, opts)
 	if err != nil {
 		return nil, err
 	}
 
 	repos := make([]*api.Repository, len(starredRepos))
 	for i, starred := range starredRepos {
-		permission, err := access_model.GetUserRepoPermission(ctx, starred, user)
+		permission, err := access_model.GetIndividualUserRepoPermission(ctx, starred, user)
 		if err != nil {
 			return nil, err
 		}
@@ -50,7 +53,7 @@ func GetStarredRepos(ctx *context.APIContext) {
 	// parameters:
 	// - name: username
 	//   in: path
-	//   description: username of user
+	//   description: username of the user whose starred repos are to be listed
 	//   type: string
 	//   required: true
 	// - name: page
@@ -76,6 +79,7 @@ func GetStarredRepos(ctx *context.APIContext) {
 		return
 	}
 
+	ctx.SetLinkHeader(int64(ctx.ContextUser.NumStars), utils.GetListOptions(ctx).PageSize)
 	ctx.SetTotalCountHeader(int64(ctx.ContextUser.NumStars))
 	ctx.JSON(http.StatusOK, &repos)
 }
@@ -107,6 +111,7 @@ func GetMyStarredRepos(ctx *context.APIContext) {
 		ctx.APIErrorInternal(err)
 	}
 
+	ctx.SetLinkHeader(int64(ctx.Doer.NumStars), utils.GetListOptions(ctx).PageSize)
 	ctx.SetTotalCountHeader(int64(ctx.Doer.NumStars))
 	ctx.JSON(http.StatusOK, &repos)
 }

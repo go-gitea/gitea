@@ -27,21 +27,19 @@ func getUpdateFileOptions() *api.UpdateFileOptions {
 	content := "This is updated text"
 	contentEncoded := base64.StdEncoding.EncodeToString([]byte(content))
 	return &api.UpdateFileOptions{
-		DeleteFileOptions: api.DeleteFileOptions{
-			FileOptions: api.FileOptions{
-				BranchName:    "master",
-				NewBranchName: "master",
-				Message:       "My update of new/file.txt",
-				Author: api.Identity{
-					Name:  "John Doe",
-					Email: "johndoe@example.com",
-				},
-				Committer: api.Identity{
-					Name:  "Anne Doe",
-					Email: "annedoe@example.com",
-				},
+		SHA: "103ff9234cefeee5ec5361d22b49fbb04d385885",
+		FileOptions: api.FileOptions{
+			BranchName:    "master",
+			NewBranchName: "master",
+			Message:       "My update of new/file.txt",
+			Author: api.Identity{
+				Name:  "John Doe",
+				Email: "johndoe@example.com",
 			},
-			SHA: "103ff9234cefeee5ec5361d22b49fbb04d385885",
+			Committer: api.Identity{
+				Name:  "Anne Doe",
+				Email: "annedoe@example.com",
+			},
 		},
 		ContentBase64: contentEncoded,
 	}
@@ -60,9 +58,9 @@ func getExpectedFileResponseForUpdate(info apiFileResponseInfo) *api.FileRespons
 			Name:              path.Base(info.treePath),
 			Path:              info.treePath,
 			SHA:               sha,
-			LastCommitSHA:     info.lastCommitSHA,
-			LastCommitterDate: info.lastCommitterWhen,
-			LastAuthorDate:    info.lastAuthorWhen,
+			LastCommitSHA:     new(info.lastCommitSHA),
+			LastCommitterDate: new(info.lastCommitterWhen),
+			LastAuthorDate:    new(info.lastAuthorWhen),
 			Type:              "file",
 			Size:              20,
 			Encoding:          &encoding,
@@ -149,8 +147,7 @@ func TestAPIUpdateFile(t *testing.T) {
 				lastCommitterWhen: lasCommit.Committer.When,
 				lastAuthorWhen:    lasCommit.Author.When,
 			})
-			var fileResponse api.FileResponse
-			DecodeJSON(t, resp, &fileResponse)
+			fileResponse := DecodeJSON(t, resp, &api.FileResponse{})
 			normalizeFileContentResponseCommitTime(fileResponse.Content)
 			assert.Equal(t, expectedFileResponse.Content, fileResponse.Content)
 			assert.Equal(t, expectedFileResponse.Commit.SHA, fileResponse.Commit.SHA)
@@ -169,8 +166,7 @@ func TestAPIUpdateFile(t *testing.T) {
 		req := NewRequestWithJSON(t, "PUT", fmt.Sprintf("/api/v1/repos/%s/%s/contents/%s", user2.Name, repo1.Name, treePath), &updateFileOptions).
 			AddTokenAuth(token2)
 		resp := MakeRequest(t, req, http.StatusOK)
-		var fileResponse api.FileResponse
-		DecodeJSON(t, resp, &fileResponse)
+		fileResponse := DecodeJSON(t, resp, &api.FileResponse{})
 		expectedSHA := "08bd14b2e2852529157324de9c226b3364e76136"
 		expectedHTMLURL := fmt.Sprintf(setting.AppURL+"user2/repo1/src/branch/new_branch/update/file%d.txt", fileID)
 		expectedDownloadURL := fmt.Sprintf(setting.AppURL+"user2/repo1/raw/branch/new_branch/update/file%d.txt", fileID)
@@ -178,6 +174,15 @@ func TestAPIUpdateFile(t *testing.T) {
 		assert.Equal(t, expectedHTMLURL, *fileResponse.Content.HTMLURL)
 		assert.Equal(t, expectedDownloadURL, *fileResponse.Content.DownloadURL)
 		assert.Equal(t, updateFileOptions.Message+"\n", fileResponse.Commit.Message)
+
+		// Test updating a file without SHA (should create the file)
+		updateFileOptions = getUpdateFileOptions()
+		updateFileOptions.SHA = ""
+		req = NewRequestWithJSON(t, "PUT", "/api/v1/repos/user2/repo1/contents/update-create.txt", &updateFileOptions).AddTokenAuth(token2)
+		resp = MakeRequest(t, req, http.StatusCreated)
+		fileResponse = DecodeJSON(t, resp, &api.FileResponse{})
+		assert.Equal(t, "08bd14b2e2852529157324de9c226b3364e76136", fileResponse.Content.SHA)
+		assert.Equal(t, setting.AppURL+"user2/repo1/raw/branch/master/update-create.txt", *fileResponse.Content.DownloadURL)
 
 		// Test updating a file and renaming it
 		updateFileOptions = getUpdateFileOptions()
@@ -190,7 +195,7 @@ func TestAPIUpdateFile(t *testing.T) {
 		req = NewRequestWithJSON(t, "PUT", fmt.Sprintf("/api/v1/repos/%s/%s/contents/%s", user2.Name, repo1.Name, treePath), &updateFileOptions).
 			AddTokenAuth(token2)
 		resp = MakeRequest(t, req, http.StatusOK)
-		DecodeJSON(t, resp, &fileResponse)
+		fileResponse = DecodeJSON(t, resp, &api.FileResponse{})
 		expectedSHA = "08bd14b2e2852529157324de9c226b3364e76136"
 		expectedHTMLURL = fmt.Sprintf(setting.AppURL+"user2/repo1/src/branch/master/rename/update/file%d.txt", fileID)
 		expectedDownloadURL = fmt.Sprintf(setting.AppURL+"user2/repo1/raw/branch/master/rename/update/file%d.txt", fileID)
@@ -208,7 +213,7 @@ func TestAPIUpdateFile(t *testing.T) {
 		req = NewRequestWithJSON(t, "PUT", fmt.Sprintf("/api/v1/repos/%s/%s/contents/%s", user2.Name, repo1.Name, treePath), &updateFileOptions).
 			AddTokenAuth(token2)
 		resp = MakeRequest(t, req, http.StatusOK)
-		DecodeJSON(t, resp, &fileResponse)
+		fileResponse = DecodeJSON(t, resp, &api.FileResponse{})
 		expectedMessage := "Update " + treePath + "\n"
 		assert.Equal(t, expectedMessage, fileResponse.Commit.Message)
 
@@ -222,12 +227,11 @@ func TestAPIUpdateFile(t *testing.T) {
 		req = NewRequestWithJSON(t, "PUT", fmt.Sprintf("/api/v1/repos/%s/%s/contents/%s", user2.Name, repo1.Name, treePath), &updateFileOptions).
 			AddTokenAuth(token2)
 		resp = MakeRequest(t, req, http.StatusUnprocessableEntity)
-		expectedAPIError := context.APIError{
+		expectedAPIError := &context.APIError{
 			Message: "sha does not match [given: " + updateFileOptions.SHA + ", expected: " + correctSHA + "]",
 			URL:     setting.API.SwaggerURL,
 		}
-		var apiError context.APIError
-		DecodeJSON(t, resp, &apiError)
+		apiError := DecodeJSON(t, resp, &context.APIError{})
 		assert.Equal(t, expectedAPIError, apiError)
 
 		// Test creating a file in repo1 by user4 who does not have write access

@@ -10,7 +10,9 @@ import (
 
 	issues_model "code.gitea.io/gitea/models/issues"
 	project_model "code.gitea.io/gitea/models/project"
+	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/modules/structs"
+	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/modules/web/middleware"
 	"code.gitea.io/gitea/services/context"
 	"code.gitea.io/gitea/services/webhook"
@@ -27,9 +29,9 @@ type CreateRepoForm struct {
 	DefaultBranch string `binding:"GitRefName;MaxSize(100)"`
 	AutoInit      bool
 	Gitignores    string
-	IssueLabels   string
-	License       string
-	Readme        string
+	IssueLabels   string `binding:"MaxSize(255)"`
+	License       string `binding:"MaxSize(100)"`
+	Readme        string `binding:"MaxSize(255)"`
 	Template      bool
 
 	RepoTemplate    int64
@@ -41,7 +43,7 @@ type CreateRepoForm struct {
 	Labels          bool
 	ProtectedBranch bool
 
-	ForkSingleBranch string
+	ForkSingleBranch string `binding:"MaxSize(255)"`
 	ObjectFormatName string
 }
 
@@ -104,7 +106,6 @@ type RepoSettingForm struct {
 	PushMirrorPassword     string
 	PushMirrorSyncOnCommit bool
 	PushMirrorInterval     string
-	Private                bool
 	Template               bool
 	EnablePrune            bool
 
@@ -141,16 +142,15 @@ type RepoSettingForm struct {
 	PullsAllowManualMerge            bool
 	PullsDefaultMergeStyle           string
 	EnableAutodetectManualMerge      bool
+	PullsAllowMergeUpdate            bool
 	PullsAllowRebaseUpdate           bool
+	PullsDefaultUpdateStyle          string
 	DefaultDeleteBranchAfterMerge    bool
 	DefaultAllowMaintainerEdit       bool
+	DefaultTargetBranch              string
 	EnableTimetracker                bool
 	AllowOnlyContributorsToTrackTime bool
 	EnableIssueDependencies          bool
-
-	EnableActions bool
-
-	IsArchived bool
 
 	// Signing Settings
 	TrustModel string
@@ -181,6 +181,9 @@ type ProtectBranchForm struct {
 	EnableMergeWhitelist          bool
 	MergeWhitelistUsers           string
 	MergeWhitelistTeams           string
+	EnableBypassAllowlist         bool
+	BypassAllowlistUsers          string
+	BypassAllowlistTeams          string
 	EnableStatusCheck             bool
 	StatusCheckContexts           string
 	RequiredApprovals             int64
@@ -204,12 +207,9 @@ func (f *ProtectBranchForm) Validate(req *http.Request, errs binding.Errors) bin
 	return middleware.Validate(errs, ctx.Data, f, ctx.Locale)
 }
 
-type ProtectBranchPriorityForm struct {
-	IDs []int64
-}
-
 // WebhookForm form for changing web hook
 type WebhookForm struct {
+	Name                     string `binding:"MaxSize(255)"`
 	Events                   string
 	Create                   bool
 	Delete                   bool
@@ -233,10 +233,12 @@ type WebhookForm struct {
 	Release                  bool
 	Package                  bool
 	Status                   bool
+	WorkflowRun              bool
 	WorkflowJob              bool
 	Active                   bool
 	BranchFilter             string `binding:"GlobPattern"`
 	AuthorizationHeader      string
+	Secret                   string
 }
 
 // PushOnly if the hook will be triggered when push
@@ -259,7 +261,6 @@ type NewWebhookForm struct {
 	PayloadURL  string `binding:"Required;ValidUrl"`
 	HTTPMethod  string `binding:"Required;In(POST,GET)"`
 	ContentType int    `binding:"Required"`
-	Secret      string
 	WebhookForm
 }
 
@@ -273,7 +274,6 @@ func (f *NewWebhookForm) Validate(req *http.Request, errs binding.Errors) bindin
 type NewGogshookForm struct {
 	PayloadURL  string `binding:"Required;ValidUrl"`
 	ContentType int    `binding:"Required"`
-	Secret      string
 	WebhookForm
 }
 
@@ -410,22 +410,13 @@ func (f *NewPackagistHookForm) Validate(req *http.Request, errs binding.Errors) 
 	return middleware.Validate(errs, ctx.Data, f, ctx.Locale)
 }
 
-// .___
-// |   | ______ ________ __   ____
-// |   |/  ___//  ___/  |  \_/ __ \
-// |   |\___ \ \___ \|  |  /\  ___/
-// |___/____  >____  >____/  \___  >
-//          \/     \/            \/
-
 // CreateIssueForm form for creating issue
 type CreateIssueForm struct {
 	Title               string `binding:"Required;MaxSize(255)"`
-	LabelIDs            string `form:"label_ids"`
 	AssigneeIDs         string `form:"assignee_ids"`
 	ReviewerIDs         string `form:"reviewer_ids"`
 	Ref                 string `form:"ref"`
 	MilestoneID         int64
-	ProjectID           int64
 	Content             string
 	Files               []string
 	AllowMaintainerEdit bool
@@ -532,15 +523,48 @@ func (f *InitializeLabelsForm) Validate(req *http.Request, errs binding.Errors) 
 // swagger:model MergePullRequestOption
 type MergePullRequestForm struct {
 	// required: true
-	// enum: merge,rebase,rebase-merge,squash,fast-forward-only,manually-merged
-	Do                     string `binding:"Required;In(merge,rebase,rebase-merge,squash,fast-forward-only,manually-merged)"`
-	MergeTitleField        string
-	MergeMessageField      string
-	MergeCommitID          string // only used for manually-merged
+	// enum: ["merge","rebase","rebase-merge","squash","fast-forward-only","manually-merged"]
+	Do                     string `json:"do" binding:"Required;In(merge,rebase,rebase-merge,squash,fast-forward-only,manually-merged)"`
+	MergeTitleField        string `json:"merge_title_field,omitempty"`
+	MergeMessageField      string `json:"merge_message_field,omitempty"`
+	MergeCommitID          string `json:"merge_commit_id,omitempty"` // only used for manually-merged
 	HeadCommitID           string `json:"head_commit_id,omitempty"`
 	ForceMerge             bool   `json:"force_merge,omitempty"`
 	MergeWhenChecksSucceed bool   `json:"merge_when_checks_succeed,omitempty"`
-	DeleteBranchAfterMerge bool   `json:"delete_branch_after_merge,omitempty"`
+	DeleteBranchAfterMerge *bool  `json:"delete_branch_after_merge,omitempty"`
+}
+
+func (f *MergePullRequestForm) UnmarshalJSON(b []byte) error {
+	// This is for backward compatibility, to support both field names like "do" and "Do",
+	// because old code doesn't have "json" tag for these fields
+	type aux struct {
+		Do1                string `json:"do"`
+		Do2                string `json:"Do"`
+		MergeTitleField1   string `json:"merge_title_field"`
+		MergeTitleField2   string `json:"MergeTitleField"`
+		MergeMessageField1 string `json:"merge_message_field"`
+		MergeMessageField2 string `json:"MergeMessageField"`
+		MergeCommitID1     string `json:"merge_commit_id"`
+		MergeCommitID2     string `json:"MergeCommitID"`
+
+		HeadCommitID           string `json:"head_commit_id"`
+		ForceMerge             bool   `json:"force_merge"`
+		MergeWhenChecksSucceed bool   `json:"merge_when_checks_succeed"`
+		DeleteBranchAfterMerge *bool  `json:"delete_branch_after_merge"`
+	}
+	var a aux
+	if err := json.Unmarshal(b, &a); err != nil {
+		return err
+	}
+	f.Do = util.IfZero(a.Do1, a.Do2)
+	f.MergeTitleField = util.IfZero(a.MergeTitleField1, a.MergeTitleField2)
+	f.MergeMessageField = util.IfZero(a.MergeMessageField1, a.MergeMessageField2)
+	f.MergeCommitID = util.IfZero(a.MergeCommitID1, a.MergeCommitID2)
+	f.HeadCommitID = a.HeadCommitID
+	f.ForceMerge = a.ForceMerge
+	f.MergeWhenChecksSucceed = a.MergeWhenChecksSucceed
+	f.DeleteBranchAfterMerge = a.DeleteBranchAfterMerge
+	return nil
 }
 
 // Validate validates the fields
@@ -643,6 +667,19 @@ func (f *NewReleaseForm) Validate(req *http.Request, errs binding.Errors) bindin
 	return middleware.Validate(errs, ctx.Data, f, ctx.Locale)
 }
 
+// GenerateReleaseNotesForm retrieves release notes recommendations.
+type GenerateReleaseNotesForm struct {
+	TagName     string `form:"tag_name" binding:"Required;GitRefName;MaxSize(255)"`
+	TagTarget   string `form:"tag_target" binding:"MaxSize(255)"`
+	PreviousTag string `form:"previous_tag" binding:"MaxSize(255)"`
+}
+
+// Validate validates the fields
+func (f *GenerateReleaseNotesForm) Validate(req *http.Request, errs binding.Errors) binding.Errors {
+	ctx := context.GetValidateContext(req)
+	return middleware.Validate(errs, ctx.Data, f, ctx.Locale)
+}
+
 // EditReleaseForm form for changing release
 type EditReleaseForm struct {
 	Title      string `form:"title" binding:"Required;MaxSize(255)"`
@@ -679,129 +716,6 @@ func (f *NewWikiForm) Validate(req *http.Request, errs binding.Errors) binding.E
 	return middleware.Validate(errs, ctx.Data, f, ctx.Locale)
 }
 
-// ___________    .___.__  __
-// \_   _____/  __| _/|__|/  |_
-//  |    __)_  / __ | |  \   __\
-//  |        \/ /_/ | |  ||  |
-// /_______  /\____ | |__||__|
-//         \/      \/
-
-// EditRepoFileForm form for changing repository file
-type EditRepoFileForm struct {
-	TreePath      string `binding:"Required;MaxSize(500)"`
-	Content       string
-	CommitSummary string `binding:"MaxSize(100)"`
-	CommitMessage string
-	CommitChoice  string `binding:"Required;MaxSize(50)"`
-	NewBranchName string `binding:"GitRefName;MaxSize(100)"`
-	LastCommit    string
-	Signoff       bool
-	CommitEmail   string
-}
-
-// Validate validates the fields
-func (f *EditRepoFileForm) Validate(req *http.Request, errs binding.Errors) binding.Errors {
-	ctx := context.GetValidateContext(req)
-	return middleware.Validate(errs, ctx.Data, f, ctx.Locale)
-}
-
-// EditPreviewDiffForm form for changing preview diff
-type EditPreviewDiffForm struct {
-	Content string
-}
-
-// Validate validates the fields
-func (f *EditPreviewDiffForm) Validate(req *http.Request, errs binding.Errors) binding.Errors {
-	ctx := context.GetValidateContext(req)
-	return middleware.Validate(errs, ctx.Data, f, ctx.Locale)
-}
-
-// _________ .__                                 __________.__        __
-// \_   ___ \|  |__   __________________ ___.__. \______   \__| ____ |  | __
-// /    \  \/|  |  \_/ __ \_  __ \_  __ <   |  |  |     ___/  |/ ___\|  |/ /
-// \     \___|   Y  \  ___/|  | \/|  | \/\___  |  |    |   |  \  \___|    <
-//  \______  /___|  /\___  >__|   |__|   / ____|  |____|   |__|\___  >__|_ \
-//         \/     \/     \/              \/                        \/     \/
-
-// CherryPickForm form for changing repository file
-type CherryPickForm struct {
-	CommitSummary string `binding:"MaxSize(100)"`
-	CommitMessage string
-	CommitChoice  string `binding:"Required;MaxSize(50)"`
-	NewBranchName string `binding:"GitRefName;MaxSize(100)"`
-	LastCommit    string
-	Revert        bool
-	Signoff       bool
-	CommitEmail   string
-}
-
-// Validate validates the fields
-func (f *CherryPickForm) Validate(req *http.Request, errs binding.Errors) binding.Errors {
-	ctx := context.GetValidateContext(req)
-	return middleware.Validate(errs, ctx.Data, f, ctx.Locale)
-}
-
-//  ____ ___        .__                    .___
-// |    |   \______ |  |   _________     __| _/
-// |    |   /\____ \|  |  /  _ \__  \   / __ |
-// |    |  / |  |_> >  |_(  <_> ) __ \_/ /_/ |
-// |______/  |   __/|____/\____(____  /\____ |
-//           |__|                   \/      \/
-//
-
-// UploadRepoFileForm form for uploading repository file
-type UploadRepoFileForm struct {
-	TreePath      string `binding:"MaxSize(500)"`
-	CommitSummary string `binding:"MaxSize(100)"`
-	CommitMessage string
-	CommitChoice  string `binding:"Required;MaxSize(50)"`
-	NewBranchName string `binding:"GitRefName;MaxSize(100)"`
-	Files         []string
-	Signoff       bool
-	CommitEmail   string
-}
-
-// Validate validates the fields
-func (f *UploadRepoFileForm) Validate(req *http.Request, errs binding.Errors) binding.Errors {
-	ctx := context.GetValidateContext(req)
-	return middleware.Validate(errs, ctx.Data, f, ctx.Locale)
-}
-
-// RemoveUploadFileForm form for removing uploaded file
-type RemoveUploadFileForm struct {
-	File string `binding:"Required;MaxSize(50)"`
-}
-
-// Validate validates the fields
-func (f *RemoveUploadFileForm) Validate(req *http.Request, errs binding.Errors) binding.Errors {
-	ctx := context.GetValidateContext(req)
-	return middleware.Validate(errs, ctx.Data, f, ctx.Locale)
-}
-
-// ________         .__          __
-// \______ \   ____ |  |   _____/  |_  ____
-// |    |  \_/ __ \|  | _/ __ \   __\/ __ \
-// |    `   \  ___/|  |_\  ___/|  | \  ___/
-// /_______  /\___  >____/\___  >__|  \___  >
-//         \/     \/          \/          \/
-
-// DeleteRepoFileForm form for deleting repository file
-type DeleteRepoFileForm struct {
-	CommitSummary string `binding:"MaxSize(100)"`
-	CommitMessage string
-	CommitChoice  string `binding:"Required;MaxSize(50)"`
-	NewBranchName string `binding:"GitRefName;MaxSize(100)"`
-	LastCommit    string
-	Signoff       bool
-	CommitEmail   string
-}
-
-// Validate validates the fields
-func (f *DeleteRepoFileForm) Validate(req *http.Request, errs binding.Errors) binding.Errors {
-	ctx := context.GetValidateContext(req)
-	return middleware.Validate(errs, ctx.Data, f, ctx.Locale)
-}
-
 // ___________.__                 ___________                     __
 // \__    ___/|__| _____   ____   \__    ___/___________    ____ |  | __ ___________
 // |    |   |  |/     \_/ __ \    |    |  \_  __ \__  \ _/ ___\|  |/ // __ \_  __ \
@@ -824,15 +738,4 @@ func (f *AddTimeManuallyForm) Validate(req *http.Request, errs binding.Errors) b
 // SaveTopicForm form for save topics for repository
 type SaveTopicForm struct {
 	Topics []string `binding:"topics;Required;"`
-}
-
-// DeadlineForm hold the validation rules for deadlines
-type DeadlineForm struct {
-	DateString string `form:"date" binding:"Required;Size(10)"`
-}
-
-// Validate validates the fields
-func (f *DeadlineForm) Validate(req *http.Request, errs binding.Errors) binding.Errors {
-	ctx := context.GetValidateContext(req)
-	return middleware.Validate(errs, ctx.Data, f, ctx.Locale)
 }

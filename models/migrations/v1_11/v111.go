@@ -1,15 +1,16 @@
 // Copyright 2019 The Gitea Authors. All rights reserved.
 // SPDX-License-Identifier: MIT
 
-package v1_11 //nolint
+package v1_11
 
 import (
 	"fmt"
+	"slices"
 
-	"xorm.io/xorm"
+	"code.gitea.io/gitea/models/db"
 )
 
-func AddBranchProtectionCanPushAndEnableWhitelist(x *xorm.Engine) error {
+func AddBranchProtectionCanPushAndEnableWhitelist(x db.EngineMigration) error {
 	type ProtectedBranch struct {
 		CanPush                   bool    `xorm:"NOT NULL DEFAULT false"`
 		EnableApprovalsWhitelist  bool    `xorm:"NOT NULL DEFAULT false"`
@@ -131,7 +132,7 @@ func AddBranchProtectionCanPushAndEnableWhitelist(x *xorm.Engine) error {
 	}
 
 	// getUserRepoPermission static function based on issues_model.IsOfficialReviewer at 5d78792385
-	getUserRepoPermission := func(sess *xorm.Session, repo *Repository, user *User) (Permission, error) {
+	getUserRepoPermission := func(sess db.Session, repo *Repository, user *User) (Permission, error) {
 		var perm Permission
 
 		repoOwner := new(User)
@@ -304,7 +305,7 @@ func AddBranchProtectionCanPushAndEnableWhitelist(x *xorm.Engine) error {
 	}
 
 	// isOfficialReviewer static function based on 5d78792385
-	isOfficialReviewer := func(sess *xorm.Session, issueID int64, reviewer *User) (bool, error) {
+	isOfficialReviewer := func(sess db.Session, issueID int64, reviewer *User) (bool, error) {
 		pr := new(PullRequest)
 		has, err := sess.ID(issueID).Get(pr)
 		if err != nil {
@@ -344,10 +345,8 @@ func AddBranchProtectionCanPushAndEnableWhitelist(x *xorm.Engine) error {
 			}
 			return AccessModeWrite <= perm.UnitsMode[UnitTypeCode], nil
 		}
-		for _, id := range protectedBranch.ApprovalsWhitelistUserIDs {
-			if id == reviewer.ID {
-				return true, nil
-			}
+		if slices.Contains(protectedBranch.ApprovalsWhitelistUserIDs, reviewer.ID) {
+			return true, nil
 		}
 
 		// isUserInTeams
@@ -409,7 +408,7 @@ func AddBranchProtectionCanPushAndEnableWhitelist(x *xorm.Engine) error {
 
 			official, err := isOfficialReviewer(sess, review.IssueID, reviewer)
 			if err != nil {
-				// Branch might not be proteced or other error, ignore it.
+				// Branch might not be protected or other error, ignore it.
 				continue
 			}
 			review.Official = official

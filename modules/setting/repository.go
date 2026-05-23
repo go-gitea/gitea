@@ -18,6 +18,12 @@ const (
 	RepoCreatingPublic             = "public"
 )
 
+// enumerates the values for [repository.pull-request] DEFAULT_TITLE_SOURCE
+const (
+	RepoPRTitleSourceFirstCommit = "first-commit"
+	RepoPRTitleSourceAuto        = "auto"
+)
+
 // ItemsPerPage maximum items per page in forks, watchers and stars of a repo
 const ItemsPerPage = 40
 
@@ -54,6 +60,12 @@ var (
 		AllowForkWithoutMaximumLimit            bool
 		AllowForkIntoSameOwner                  bool
 
+		// StreamArchives makes Gitea stream git archive files to the client directly instead of creating an archive first.
+		// Ideally all users should use this streaming method. However, at the moment we don't know whether there are
+		// any users who still need the old behavior, so we introduce this option, intentionally not documenting it.
+		// After one or two releases, if no one complains, we will remove this option and always use streaming.
+		StreamArchives bool
+
 		// Repository editor settings
 		Editor struct {
 			LineWrapExtensions []string
@@ -80,9 +92,10 @@ var (
 			DefaultMergeMessageOfficialApproversOnly bool
 			PopulateSquashCommentWithCommitMessages  bool
 			AddCoCommitterTrailers                   bool
-			TestConflictingPatchesWithGitApply       bool
 			RetargetChildrenOnMerge                  bool
 			DelayCheckForInactiveDays                int
+			DefaultDeleteBranchAfterMerge            bool
+			DefaultTitleSource                       string
 		} `ini:"repository.pull-request"`
 
 		// Issue Setting
@@ -94,17 +107,21 @@ var (
 		Release struct {
 			AllowedTypes     string
 			DefaultPagingNum int
+			FileMaxSize      int64
+			MaxFiles         int64
 		} `ini:"repository.release"`
 
 		Signing struct {
 			SigningKey        string
 			SigningName       string
 			SigningEmail      string
+			SigningFormat     string
 			InitialCommit     []string
 			CRUDActions       []string `ini:"CRUD_ACTIONS"`
 			Merges            []string
 			Wiki              []string
 			DefaultTrustModel string
+			TrustedSSHKeys    []string `ini:"TRUSTED_SSH_KEYS"`
 		} `ini:"repository.signing"`
 	}{
 		DetectedCharsetsOrder: []string{
@@ -165,6 +182,7 @@ var (
 		DisableStars:                            false,
 		DefaultBranch:                           "main",
 		AllowForkWithoutMaximumLimit:            true,
+		StreamArchives:                          true,
 
 		// Repository editor settings
 		Editor: struct {
@@ -199,9 +217,10 @@ var (
 			DefaultMergeMessageOfficialApproversOnly bool
 			PopulateSquashCommentWithCommitMessages  bool
 			AddCoCommitterTrailers                   bool
-			TestConflictingPatchesWithGitApply       bool
 			RetargetChildrenOnMerge                  bool
 			DelayCheckForInactiveDays                int
+			DefaultDeleteBranchAfterMerge            bool
+			DefaultTitleSource                       string
 		}{
 			WorkInProgressPrefixes: []string{"WIP:", "[WIP]"},
 			// Same as GitHub. See
@@ -218,6 +237,7 @@ var (
 			AddCoCommitterTrailers:                   true,
 			RetargetChildrenOnMerge:                  true,
 			DelayCheckForInactiveDays:                7,
+			DefaultTitleSource:                       RepoPRTitleSourceAuto,
 		},
 
 		// Issue settings
@@ -232,9 +252,13 @@ var (
 		Release: struct {
 			AllowedTypes     string
 			DefaultPagingNum int
+			FileMaxSize      int64
+			MaxFiles         int64
 		}{
 			AllowedTypes:     "",
 			DefaultPagingNum: 10,
+			FileMaxSize:      2048,
+			MaxFiles:         5,
 		},
 
 		// Signing settings
@@ -242,20 +266,24 @@ var (
 			SigningKey        string
 			SigningName       string
 			SigningEmail      string
+			SigningFormat     string
 			InitialCommit     []string
 			CRUDActions       []string `ini:"CRUD_ACTIONS"`
 			Merges            []string
 			Wiki              []string
 			DefaultTrustModel string
+			TrustedSSHKeys    []string `ini:"TRUSTED_SSH_KEYS"`
 		}{
 			SigningKey:        "default",
 			SigningName:       "",
 			SigningEmail:      "",
+			SigningFormat:     "openpgp", // git.SigningKeyFormatOpenPGP
 			InitialCommit:     []string{"always"},
 			CRUDActions:       []string{"pubkey", "twofa", "parentsigned"},
 			Merges:            []string{"pubkey", "twofa", "basesigned", "commitssigned"},
 			Wiki:              []string{"never"},
 			DefaultTrustModel: "collaborator",
+			TrustedSSHKeys:    []string{},
 		},
 	}
 	RepoRootPath string

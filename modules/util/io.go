@@ -29,7 +29,7 @@ func ReadAtMost(r io.Reader, buf []byte) (n int, err error) {
 // ReadWithLimit reads at most "limit" bytes from r into buf.
 // If EOF or ErrUnexpectedEOF occurs while reading, err will be nil.
 func ReadWithLimit(r io.Reader, n int) (buf []byte, err error) {
-	return readWithLimit(r, 1024, n)
+	return readWithLimit(r, 4*1024, n)
 }
 
 func readWithLimit(r io.Reader, batch, limit int) ([]byte, error) {

@@ -1,15 +1,15 @@
 // Copyright 2021 The Gitea Authors. All rights reserved.
 // SPDX-License-Identifier: MIT
 
-package v1_16 //nolint
+package v1_16
 
 import (
 	"fmt"
 
-	"xorm.io/xorm"
+	"code.gitea.io/gitea/models/db"
 )
 
-func AddTableCommitStatusIndex(x *xorm.Engine) error {
+func AddTableCommitStatusIndex(x db.EngineMigration) error {
 	// CommitStatusIndex represents a table for commit status index
 	type CommitStatusIndex struct {
 		ID       int64

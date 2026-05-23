@@ -1,0 +1,8 @@
+@import "./theme-gitea-light-tritanopia.css" (prefers-color-scheme: light);
+@import "./theme-gitea-dark-tritanopia.css" (prefers-color-scheme: dark);
+
+gitea-theme-meta-info {
+  --theme-display-name: "Auto";
+  --theme-colorblind-type: "blue-yellow";
+  --theme-color-scheme: "auto";
+}

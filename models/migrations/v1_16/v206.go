@@ -1,15 +1,15 @@
 // Copyright 2022 The Gitea Authors. All rights reserved.
 // SPDX-License-Identifier: MIT
 
-package v1_16 //nolint
+package v1_16
 
 import (
 	"fmt"
 
-	"xorm.io/xorm"
+	"code.gitea.io/gitea/models/db"
 )
 
-func AddAuthorizeColForTeamUnit(x *xorm.Engine) error {
+func AddAuthorizeColForTeamUnit(x db.EngineMigration) error {
 	type TeamUnit struct {
 		ID         int64 `xorm:"pk autoincr"`
 		OrgID      int64 `xorm:"INDEX"`

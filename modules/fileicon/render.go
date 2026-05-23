@@ -7,7 +7,6 @@ import (
 	"html/template"
 	"strings"
 
-	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/setting"
 )
 
@@ -26,7 +25,7 @@ func (p *RenderedIconPool) RenderToHTML() template.HTML {
 		return ""
 	}
 	sb := &strings.Builder{}
-	sb.WriteString(`<div class=tw-hidden>`)
+	sb.WriteString(`<div class="svg-icon-container">`)
 	for _, icon := range p.IconSVGs {
 		sb.WriteString(string(icon))
 	}
@@ -34,19 +33,15 @@ func (p *RenderedIconPool) RenderToHTML() template.HTML {
 	return template.HTML(sb.String())
 }
 
-// TODO: use an interface or struct to replace "*git.TreeEntry", to decouple the fileicon module from git module
-
-func RenderEntryIcon(renderedIconPool *RenderedIconPool, entry *git.TreeEntry) template.HTML {
-	if setting.UI.FileIconTheme == "material" {
-		return DefaultMaterialIconProvider().FileIcon(renderedIconPool, entry)
+func RenderEntryIconHTML(renderedIconPool *RenderedIconPool, entry *EntryInfo) template.HTML {
+	// Use folder theme for directories and symlinks to directories
+	theme := setting.UI.FileIconTheme
+	if entry.EntryMode.IsDir() || (entry.EntryMode.IsLink() && entry.SymlinkToMode.IsDir()) {
+		theme = setting.UI.FolderIconTheme
 	}
-	return BasicThemeIcon(entry)
-}
 
-func RenderEntryIconOpen(renderedIconPool *RenderedIconPool, entry *git.TreeEntry) template.HTML {
-	// TODO: add "open icon" support
-	if setting.UI.FileIconTheme == "material" {
-		return DefaultMaterialIconProvider().FileIcon(renderedIconPool, entry)
+	if theme == "material" {
+		return DefaultMaterialIconProvider().EntryIconHTML(renderedIconPool, entry)
 	}
-	return BasicThemeIcon(entry)
+	return BasicEntryIconHTML(entry)
 }

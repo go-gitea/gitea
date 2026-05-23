@@ -10,22 +10,20 @@ import (
 	actions_model "code.gitea.io/gitea/models/actions"
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/modules/actions"
+	"code.gitea.io/gitea/modules/httplib"
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/services/context"
 )
 
-func DownloadActionsRunJobLogsWithIndex(ctx *context.Base, ctxRepo *repo_model.Repository, runID, jobIndex int64) error {
-	runJobs, err := actions_model.GetRunJobsByRunID(ctx, runID)
+func DownloadActionsRunJobLogsWithID(ctx *context.Base, ctxRepo *repo_model.Repository, runID, jobID int64) error {
+	job, err := actions_model.GetRunJobByRunAndID(ctx, runID, jobID)
 	if err != nil {
-		return fmt.Errorf("GetRunJobsByRunID: %w", err)
+		return err
 	}
-	if err = runJobs.LoadRepos(ctx); err != nil {
-		return fmt.Errorf("LoadRepos: %w", err)
+	if err := job.LoadRepo(ctx); err != nil {
+		return fmt.Errorf("LoadRepo: %w", err)
 	}
-	if jobIndex < 0 || jobIndex >= int64(len(runJobs)) {
-		return util.NewNotExistErrorf("job index is out of range: %d", jobIndex)
-	}
-	return DownloadActionsRunJobLogs(ctx, ctxRepo, runJobs[jobIndex])
+	return DownloadActionsRunJobLogs(ctx, ctxRepo, job)
 }
 
 func DownloadActionsRunJobLogs(ctx *context.Base, ctxRepo *repo_model.Repository, curJob *actions_model.ActionRunJob) error {
@@ -33,7 +31,8 @@ func DownloadActionsRunJobLogs(ctx *context.Base, ctxRepo *repo_model.Repository
 		return util.NewNotExistErrorf("job not found")
 	}
 
-	if curJob.TaskID == 0 {
+	taskID := curJob.EffectiveTaskID()
+	if taskID == 0 {
 		return util.NewNotExistErrorf("job not started")
 	}
 
@@ -41,7 +40,7 @@ func DownloadActionsRunJobLogs(ctx *context.Base, ctxRepo *repo_model.Repository
 		return fmt.Errorf("LoadRun: %w", err)
 	}
 
-	task, err := actions_model.GetTaskByID(ctx, curJob.TaskID)
+	task, err := actions_model.GetTaskByID(ctx, taskID)
 	if err != nil {
 		return fmt.Errorf("GetTaskByID: %w", err)
 	}
@@ -60,12 +59,11 @@ func DownloadActionsRunJobLogs(ctx *context.Base, ctxRepo *repo_model.Repository
 	if p := strings.Index(workflowName, "."); p > 0 {
 		workflowName = workflowName[0:p]
 	}
-	ctx.ServeContent(reader, &context.ServeHeaderOptions{
+	ctx.ServeContent(reader, context.ServeHeaderOptions{
 		Filename:           fmt.Sprintf("%v-%v-%v.log", workflowName, curJob.Name, task.ID),
 		ContentLength:      &task.LogSize,
-		ContentType:        "text/plain",
-		ContentTypeCharset: "utf-8",
-		Disposition:        "attachment",
+		ContentType:        "text/plain; charset=utf-8",
+		ContentDisposition: httplib.ContentDispositionAttachment,
 	})
 	return nil
 }

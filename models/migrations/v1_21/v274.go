@@ -1,16 +1,16 @@
 // Copyright 2023 The Gitea Authors. All rights reserved.
 // SPDX-License-Identifier: MIT
 
-package v1_21 //nolint
+package v1_21
+
 import (
 	"time"
 
+	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/modules/timeutil"
-
-	"xorm.io/xorm"
 )
 
-func AddExpiredUnixColumnInActionArtifactTable(x *xorm.Engine) error {
+func AddExpiredUnixColumnInActionArtifactTable(x db.EngineMigration) error {
 	type ActionArtifact struct {
 		ExpiredUnix timeutil.TimeStamp `xorm:"index"` // time when the artifact will be expired
 	}
@@ -20,7 +20,7 @@ func AddExpiredUnixColumnInActionArtifactTable(x *xorm.Engine) error {
 	return updateArtifactsExpiredUnixTo90Days(x)
 }
 
-func updateArtifactsExpiredUnixTo90Days(x *xorm.Engine) error {
+func updateArtifactsExpiredUnixTo90Days(x db.EngineMigration) error {
 	sess := x.NewSession()
 	defer sess.Close()
 

@@ -1,20 +1,19 @@
 // Copyright 2022 The Gitea Authors. All rights reserved.
 // SPDX-License-Identifier: MIT
 
-package v1_17 //nolint
+package v1_17
 
 import (
 	"context"
 	"errors"
 	"fmt"
 
+	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/models/migrations/base"
 	"code.gitea.io/gitea/modules/timeutil"
-
-	"xorm.io/xorm"
 )
 
-func DropOldCredentialIDColumn(x *xorm.Engine) error {
+func DropOldCredentialIDColumn(x db.EngineMigration) error {
 	// This migration maybe rerun so that we should check if it has been run
 	credentialIDExist, err := x.Dialect().IsColumnExist(x.DB(), context.Background(), "webauthn_credential", "credential_id")
 	if err != nil {

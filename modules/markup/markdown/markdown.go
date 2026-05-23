@@ -5,11 +5,13 @@
 package markdown
 
 import (
+	"bytes"
 	"errors"
 	"html/template"
 	"io"
 	"strings"
 
+	"code.gitea.io/gitea/modules/htmlutil"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/markup"
 	"code.gitea.io/gitea/modules/markup/common"
@@ -20,11 +22,12 @@ import (
 	chromahtml "github.com/alecthomas/chroma/v2/formatters/html"
 	"github.com/yuin/goldmark"
 	highlighting "github.com/yuin/goldmark-highlighting/v2"
-	meta "github.com/yuin/goldmark-meta"
+	"github.com/yuin/goldmark/ast"
 	"github.com/yuin/goldmark/extension"
 	"github.com/yuin/goldmark/parser"
 	"github.com/yuin/goldmark/renderer"
 	"github.com/yuin/goldmark/renderer/html"
+	"github.com/yuin/goldmark/text"
 	"github.com/yuin/goldmark/util"
 )
 
@@ -57,7 +60,7 @@ func (l *limitWriter) Write(data []byte) (int, error) {
 
 // newParserContext creates a parser.Context with the render context set
 func newParserContext(ctx *markup.RenderContext) parser.Context {
-	pc := parser.NewContext(parser.WithIDs(newPrefixedIDs()))
+	pc := parser.NewContext()
 	pc.Set(renderContextKey, ctx)
 	return pc
 }
@@ -70,10 +73,6 @@ type GlodmarkRender struct {
 
 func (r *GlodmarkRender) Convert(source []byte, writer io.Writer, opts ...parser.ParseOption) error {
 	return r.goldmarkMarkdown.Convert(source, writer, opts...)
-}
-
-func (r *GlodmarkRender) Renderer() renderer.Renderer {
-	return r.goldmarkMarkdown.Renderer()
 }
 
 func (r *GlodmarkRender) highlightingRenderer(w util.BufWriter, c highlighting.CodeBlockContext, entering bool) {
@@ -101,12 +100,48 @@ func (r *GlodmarkRender) highlightingRenderer(w util.BufWriter, c highlighting.C
 	}
 }
 
+type goldmarkEmphasisParser struct {
+	parser.InlineParser
+}
+
+func goldmarkNewEmphasisParser() parser.InlineParser {
+	return &goldmarkEmphasisParser{parser.NewEmphasisParser()}
+}
+
+func (s *goldmarkEmphasisParser) Parse(parent ast.Node, block text.Reader, pc parser.Context) ast.Node {
+	line, _ := block.PeekLine()
+	if len(line) > 1 && line[0] == '_' {
+		// a special trick to avoid parsing emphasis in filenames like "module/__init__.py"
+		end := bytes.IndexByte(line[1:], '_')
+		mark := bytes.Index(line, []byte("_.py"))
+		// check whether the "end" matches "_.py" or "__.py"
+		if mark != -1 && (end == mark || end == mark-1) {
+			return nil
+		}
+	}
+	return s.InlineParser.Parse(parent, block, pc)
+}
+
+func goldmarkDefaultParser() parser.Parser {
+	return parser.NewParser(parser.WithBlockParsers(parser.DefaultBlockParsers()...),
+		parser.WithInlineParsers([]util.PrioritizedValue{
+			util.Prioritized(parser.NewCodeSpanParser(), 100),
+			util.Prioritized(parser.NewLinkParser(), 200),
+			util.Prioritized(parser.NewAutoLinkParser(), 300),
+			util.Prioritized(parser.NewRawHTMLParser(), 400),
+			util.Prioritized(goldmarkNewEmphasisParser(), 500),
+		}...),
+		parser.WithParagraphTransformers(parser.DefaultParagraphTransformers()...),
+	)
+}
+
 // SpecializedMarkdown sets up the Gitea specific markdown extensions
 func SpecializedMarkdown(ctx *markup.RenderContext) *GlodmarkRender {
 	// TODO: it could use a pool to cache the renderers to reuse them with different contexts
 	// at the moment it is fast enough (see the benchmarks)
 	r := &GlodmarkRender{ctx: ctx}
 	r.goldmarkMarkdown = goldmark.New(
+		goldmark.WithParser(goldmarkDefaultParser()),
 		goldmark.WithExtensions(
 			extension.NewTable(extension.WithTableCellAlignMethod(extension.TableCellAlignAttribute)),
 			extension.Strikethrough,
@@ -127,11 +162,9 @@ func SpecializedMarkdown(ctx *markup.RenderContext) *GlodmarkRender {
 				ParseBlockDollar:         setting.Markdown.MathCodeBlockOptions.ParseBlockDollar,
 				ParseBlockSquareBrackets: setting.Markdown.MathCodeBlockOptions.ParseBlockSquareBrackets, //  this is a bad syntax "\[ ... \]", it conflicts with normal markdown escaping
 			}),
-			meta.Meta,
 		),
 		goldmark.WithParserOptions(
 			parser.WithAttribute(),
-			parser.WithAutoHeadingID(),
 			parser.WithASTTransformers(util.Prioritized(NewASTTransformer(&ctx.RenderInternal), 10000)),
 		),
 		goldmark.WithRendererOptions(html.WithUnsafe()),
@@ -182,10 +215,7 @@ func render(ctx *markup.RenderContext, input io.Reader, output io.Writer) error 
 	rc := &RenderConfig{Meta: markup.RenderMetaAsDetails}
 	buf, _ = ExtractMetadataBytes(buf, rc)
 
-	metaLength := bufWithMetadataLength - len(buf)
-	if metaLength < 0 {
-		metaLength = 0
-	}
+	metaLength := max(bufWithMetadataLength-len(buf), 0)
 	rc.metaLength = metaLength
 
 	pc.Set(renderConfigKey, rc)
@@ -205,30 +235,24 @@ func init() {
 	markup.RegisterRenderer(Renderer{})
 }
 
-// Renderer implements markup.Renderer
 type Renderer struct{}
 
 var _ markup.PostProcessRenderer = (*Renderer)(nil)
 
-// Name implements markup.Renderer
 func (Renderer) Name() string {
 	return MarkupName
 }
 
-// NeedPostProcess implements markup.PostProcessRenderer
 func (Renderer) NeedPostProcess() bool { return true }
 
-// Extensions implements markup.Renderer
-func (Renderer) Extensions() []string {
-	return setting.Markdown.FileExtensions
+func (Renderer) FileNamePatterns() []string {
+	return setting.Markdown.FileNamePatterns
 }
 
-// SanitizerRules implements markup.Renderer
 func (Renderer) SanitizerRules() []setting.MarkupSanitizerRule {
 	return []setting.MarkupSanitizerRule{}
 }
 
-// Render implements markup.Renderer
 func (Renderer) Render(ctx *markup.RenderContext, input io.Reader, output io.Writer) error {
 	return render(ctx, input, output)
 }
@@ -243,7 +267,9 @@ func Render(ctx *markup.RenderContext, input io.Reader, output io.Writer) error 
 func RenderString(ctx *markup.RenderContext, content string) (template.HTML, error) {
 	var buf strings.Builder
 	if err := Render(ctx, strings.NewReader(content), &buf); err != nil {
-		return "", err
+		log.Warn("Unable to RenderString: %v, content: %s", err, giteautil.TruncateRunes(content, 200))
+		err = nil
+		return htmlutil.EscapeString(content), err
 	}
 	return template.HTML(buf.String()), nil
 }

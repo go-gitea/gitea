@@ -1,13 +1,11 @@
 // Copyright 2020 The Gitea Authors. All rights reserved.
 // SPDX-License-Identifier: MIT
 
-package v1_12 //nolint
+package v1_12
 
-import (
-	"xorm.io/xorm"
-)
+import "code.gitea.io/gitea/models/db"
 
-func AddRequireSignedCommits(x *xorm.Engine) error {
+func AddRequireSignedCommits(x db.EngineMigration) error {
 	type ProtectedBranch struct {
 		RequireSignedCommits bool `xorm:"NOT NULL DEFAULT false"`
 	}

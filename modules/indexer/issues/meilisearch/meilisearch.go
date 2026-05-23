@@ -14,12 +14,13 @@ import (
 	indexer_internal "code.gitea.io/gitea/modules/indexer/internal"
 	inner_meilisearch "code.gitea.io/gitea/modules/indexer/internal/meilisearch"
 	"code.gitea.io/gitea/modules/indexer/issues/internal"
+	"code.gitea.io/gitea/modules/json"
 
 	"github.com/meilisearch/meilisearch-go"
 )
 
 const (
-	issueIndexerLatestVersion = 4
+	issueIndexerLatestVersion = 5
 
 	// TODO: make this configurable if necessary
 	maxTotalHits = 10000
@@ -70,8 +71,8 @@ func NewIndexer(url, apiKey, indexerName string) *Indexer {
 			"label_ids",
 			"no_label",
 			"milestone_id",
-			"project_id",
-			"project_board_id",
+			"project_ids",
+			"no_project",
 			"poster_id",
 			"assignee_id",
 			"mention_ids",
@@ -106,7 +107,8 @@ func (b *Indexer) Index(_ context.Context, issues ...*internal.IndexerData) erro
 		return nil
 	}
 	for _, issue := range issues {
-		_, err := b.inner.Client.Index(b.inner.VersionedIndexName()).AddDocuments(issue)
+		// use default primary key which should be "id"
+		_, err := b.inner.Client.Index(b.inner.VersionedIndexName()).AddDocuments(issue, nil)
 		if err != nil {
 			return err
 		}
@@ -122,7 +124,7 @@ func (b *Indexer) Delete(_ context.Context, ids ...int64) error {
 	}
 
 	for _, id := range ids {
-		_, err := b.inner.Client.Index(b.inner.VersionedIndexName()).DeleteDocument(strconv.FormatInt(id, 10))
+		_, err := b.inner.Client.Index(b.inner.VersionedIndexName()).DeleteDocument(strconv.FormatInt(id, 10), nil)
 		if err != nil {
 			return err
 		}
@@ -180,11 +182,11 @@ func (b *Indexer) Search(ctx context.Context, options *internal.SearchOptions) (
 		query.And(inner_meilisearch.NewFilterIn("milestone_id", options.MilestoneIDs...))
 	}
 
-	if options.ProjectID.Has() {
-		query.And(inner_meilisearch.NewFilterEq("project_id", options.ProjectID.Value()))
-	}
-	if options.ProjectColumnID.Has() {
-		query.And(inner_meilisearch.NewFilterEq("project_board_id", options.ProjectColumnID.Value()))
+	if options.NoProjectOnly {
+		query.And(inner_meilisearch.NewFilterEq("no_project", true))
+	} else if len(options.ProjectIDs) > 0 {
+		// FIXME: ISSUE-MULTIPLE-PROJECTS-FILTER: this logic is not right, it should use "AND" but not "OR"
+		query.And(inner_meilisearch.NewFilterIn("project_ids", options.ProjectIDs...))
 	}
 
 	if options.PosterID != "" {
@@ -299,18 +301,13 @@ func doubleQuoteKeyword(k string) string {
 func convertHits(searchRes *meilisearch.SearchResponse) ([]internal.Match, error) {
 	hits := make([]internal.Match, 0, len(searchRes.Hits))
 	for _, hit := range searchRes.Hits {
-		hit, ok := hit.(map[string]any)
-		if !ok {
-			return nil, ErrMalformedResponse
-		}
-
-		issueID, ok := hit["id"].(float64)
-		if !ok {
+		var issueID int64
+		if err := json.Unmarshal(hit["id"], &issueID); err != nil {
 			return nil, ErrMalformedResponse
 		}
 
 		hits = append(hits, internal.Match{
-			ID: int64(issueID),
+			ID: issueID,
 		})
 	}
 	return hits, nil

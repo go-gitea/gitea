@@ -21,7 +21,7 @@ import (
 // It can use different underlying (base) queue types
 type WorkerPoolQueue[T any] struct {
 	ctxRun       context.Context
-	ctxRunCancel context.CancelFunc
+	ctxRunCancel process.FinishedFunc
 
 	shutdownDone    chan struct{}
 	shutdownTimeout atomic.Int64 // in case some buggy handlers (workers) would hang forever, "shutdown" should finish in predictable time

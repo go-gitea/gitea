@@ -7,6 +7,7 @@ import (
 	"errors"
 	"fmt"
 	"path/filepath"
+	"slices"
 	"strings"
 )
 
@@ -30,12 +31,7 @@ var storageTypes = []StorageType{
 
 // IsValidStorageType returns true if the given storage type is valid
 func IsValidStorageType(storageType StorageType) bool {
-	for _, t := range storageTypes {
-		if t == storageType {
-			return true
-		}
-	}
-	return false
+	return slices.Contains(storageTypes, storageType)
 }
 
 // MinioStorageConfig represents the configuration for a minio storage
@@ -162,7 +158,7 @@ const (
 	targetSecIsSec                                  // target section is from the name seciont [name]
 )
 
-func getStorageSectionByType(rootCfg ConfigProvider, typ string) (ConfigSection, targetSecType, error) { //nolint:unparam
+func getStorageSectionByType(rootCfg ConfigProvider, typ string) (ConfigSection, targetSecType, error) { //nolint:unparam // FIXME: targetSecType is always 0, wrong design?
 	targetSec, err := rootCfg.GetSection(storageSectionName + "." + typ)
 	if err != nil {
 		if !IsValidStorageType(StorageType(typ)) {
@@ -176,11 +172,11 @@ func getStorageSectionByType(rootCfg ConfigProvider, typ string) (ConfigSection,
 	targetType := targetSec.Key("STORAGE_TYPE").String()
 	if targetType == "" {
 		if !IsValidStorageType(StorageType(typ)) {
-			return nil, 0, fmt.Errorf("unknow storage type %q", typ)
+			return nil, 0, fmt.Errorf("unknown storage type %q", typ)
 		}
 		targetSec.Key("STORAGE_TYPE").SetValue(typ)
 	} else if !IsValidStorageType(StorageType(targetType)) {
-		return nil, 0, fmt.Errorf("unknow storage type %q for section storage.%v", targetType, typ)
+		return nil, 0, fmt.Errorf("unknown storage type %q for section storage.%v", targetType, typ)
 	}
 
 	return targetSec, targetSecIsTyp, nil
@@ -206,7 +202,7 @@ func getStorageTargetSection(rootCfg ConfigProvider, name, typ string, sec Confi
 		}
 	}
 
-	// check stoarge name thirdly
+	// check storage name thirdly
 	targetSec, _ := rootCfg.GetSection(storageSectionName + "." + name)
 	if targetSec != nil {
 		targetType := targetSec.Key("STORAGE_TYPE").String()
@@ -287,7 +283,7 @@ func getStorageForLocal(targetSec, overrideSec ConfigSection, tp targetSecType, 
 	return &storage, nil
 }
 
-func getStorageForMinio(targetSec, overrideSec ConfigSection, tp targetSecType, name string) (*Storage, error) { //nolint:dupl
+func getStorageForMinio(targetSec, overrideSec ConfigSection, tp targetSecType, name string) (*Storage, error) { //nolint:dupl // duplicates azure setup
 	var storage Storage
 	storage.Type = StorageType(targetSec.Key("STORAGE_TYPE").String())
 	if err := targetSec.MapTo(&storage.MinioConfig); err != nil {
@@ -316,7 +312,7 @@ func getStorageForMinio(targetSec, overrideSec ConfigSection, tp targetSecType, 
 	return &storage, nil
 }
 
-func getStorageForAzureBlob(targetSec, overrideSec ConfigSection, tp targetSecType, name string) (*Storage, error) { //nolint:dupl
+func getStorageForAzureBlob(targetSec, overrideSec ConfigSection, tp targetSecType, name string) (*Storage, error) { //nolint:dupl // duplicates minio setup
 	var storage Storage
 	storage.Type = StorageType(targetSec.Key("STORAGE_TYPE").String())
 	if err := targetSec.MapTo(&storage.AzureBlobConfig); err != nil {

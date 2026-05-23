@@ -6,27 +6,35 @@ package user
 import (
 	"testing"
 
-	"code.gitea.io/gitea/models/db"
-
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
 func TestSystemUser(t *testing.T) {
-	u, err := GetPossibleUserByID(db.DefaultContext, -1)
+	uid, u, err := GetPossibleUserByID(t.Context(), -1)
 	require.NoError(t, err)
+	assert.Equal(t, int64(-1), uid)
 	assert.Equal(t, "Ghost", u.Name)
 	assert.Equal(t, "ghost", u.LowerName)
 	assert.True(t, u.IsGhost())
-	assert.True(t, IsGhostUserName("gHost"))
 
-	u, err = GetPossibleUserByID(db.DefaultContext, -2)
+	u = GetSystemUserByName("gHost")
+	require.NotNil(t, u)
+	assert.Equal(t, "Ghost", u.Name)
+
+	uid, u, err = GetPossibleUserByID(t.Context(), -2)
 	require.NoError(t, err)
+	assert.Equal(t, int64(-2), uid)
 	assert.Equal(t, "gitea-actions", u.Name)
 	assert.Equal(t, "gitea-actions", u.LowerName)
 	assert.True(t, u.IsGiteaActions())
-	assert.True(t, IsGiteaActionsUserName("Gitea-actionS"))
 
-	_, err = GetPossibleUserByID(db.DefaultContext, -3)
-	require.Error(t, err)
+	u = GetSystemUserByName("Gitea-actionS")
+	require.NotNil(t, u)
+	assert.Equal(t, "Gitea Actions", u.FullName)
+
+	uid, u, err = GetPossibleUserByID(t.Context(), 999999)
+	require.NoError(t, err)
+	assert.Equal(t, int64(-1), uid)
+	assert.Equal(t, "Ghost", u.Name)
 }

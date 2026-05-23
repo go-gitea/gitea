@@ -1,19 +1,18 @@
 // Copyright 2021 The Gitea Authors. All rights reserved.
 // SPDX-License-Identifier: MIT
 
-package v1_15 //nolint
+package v1_15
 
 import (
 	"context"
 	"fmt"
 
+	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/models/migrations/base"
 	"code.gitea.io/gitea/modules/setting"
-
-	"xorm.io/xorm"
 )
 
-func RenameTaskErrorsToMessage(x *xorm.Engine) error {
+func RenameTaskErrorsToMessage(x db.EngineMigration) error {
 	type Task struct {
 		Errors string `xorm:"TEXT"` // if task failed, saved the error reason
 		Type   int

@@ -1,13 +1,11 @@
 // Copyright 2018 The Gitea Authors. All rights reserved.
 // SPDX-License-Identifier: MIT
 
-package v1_7 //nolint
+package v1_7
 
-import (
-	"xorm.io/xorm"
-)
+import "code.gitea.io/gitea/models/db"
 
-func AddMustChangePassword(x *xorm.Engine) error {
+func AddMustChangePassword(x db.EngineMigration) error {
 	// User see models/user.go
 	type User struct {
 		ID                 int64 `xorm:"pk autoincr"`

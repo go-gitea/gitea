@@ -57,8 +57,18 @@ func Test_Checker(t *testing.T) {
 		assert.Equal(t, expectedAttrs(), attrs["i-am-a-python.p"])
 	})
 
+	t.Run("Run git check-attr in bare repository using index", func(t *testing.T) {
+		attrs, err := CheckAttributes(t.Context(), gitRepo, "", CheckAttributeOpts{
+			Filenames:  []string{"i-am-a-python.p"},
+			Attributes: LinguistAttributes,
+		})
+		assert.NoError(t, err)
+		assert.Len(t, attrs, 1)
+		assert.Equal(t, expectedAttrs(), attrs["i-am-a-python.p"])
+	})
+
 	if !git.DefaultFeatures().SupportCheckAttrOnBare {
-		t.Skip("git version 2.40 is required to support run check-attr on bare repo")
+		t.Skip("git version 2.40 is required to support run check-attr on bare repo without using index")
 		return
 	}
 

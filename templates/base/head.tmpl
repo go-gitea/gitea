@@ -1,13 +1,14 @@
 <!DOCTYPE html>
-<html lang="{{ctx.Locale.Lang}}" data-theme="{{UserThemeName .SignedUser}}">
+<html lang="{{ctx.Locale.Lang}}" data-theme="{{ctx.CurrentWebTheme.InternalName}}">
 <head>
+	{{ctx.HeadMetaContentSecurityPolicy}}
 	<meta name="viewport" content="width=device-width, initial-scale=1">
-	<title>{{if .Title}}{{.Title}} - {{end}}{{if .Repository.Name}}{{.Repository.Name}} - {{end}}{{AppName}}</title>
-	{{if .ManifestData}}<link rel="manifest" href="data:{{.ManifestData}}">{{end}}
+	<title>{{if .Title}}{{.Title}} - {{end}}{{.PageTitleCommon}}</title>
+	<link rel="manifest" href="{{AssetUrlPrefix}}/site-manifest.json">
 	<meta name="author" content="{{if .Repository}}{{.Owner.Name}}{{else}}{{MetaAuthor}}{{end}}">
 	<meta name="description" content="{{if .Repository}}{{.Repository.Name}}{{if .Repository.Description}} - {{.Repository.Description}}{{end}}{{else}}{{MetaDescription}}{{end}}">
 	<meta name="keywords" content="{{MetaKeywords}}">
-	<meta name="referrer" content="no-referrer">
+	<meta name="referrer" content="same-origin">{{/* required by: 1. "redirect_to" cookie; 2. cross-origin protection */}}
 {{if .GoGetImport}}
 	<meta name="go-import" content="{{.GoGetImport}} git {{.RepoCloneLink.HTTPS}}">
 	<meta name="go-source" content="{{.GoGetImport}} _ {{.GoDocDirectory}} {{.GoDocFile}}">
@@ -18,12 +19,12 @@
 {{end}}
 	<link rel="icon" href="{{AssetUrlPrefix}}/img/favicon.svg" type="image/svg+xml">
 	<link rel="alternate icon" href="{{AssetUrlPrefix}}/img/favicon.png" type="image/png">
-	{{template "base/head_script" .}}
 	{{template "base/head_opengraph" .}}
 	{{template "base/head_style" .}}
+	{{template "base/head_script" .}}
 	{{template "custom/header" .}}
 </head>
-<body hx-headers='{"x-csrf-token": "{{.CsrfToken}}"}' hx-swap="outerHTML" hx-ext="morph" hx-push-url="false">
+<body>
 	{{template "custom/body_outer_pre" .}}
 
 	<div class="full height">

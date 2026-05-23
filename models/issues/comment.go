@@ -7,8 +7,10 @@ package issues
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"html/template"
+	"slices"
 	"strconv"
 	"unicode/utf8"
 
@@ -19,7 +21,10 @@ import (
 	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/container"
+	"code.gitea.io/gitea/modules/htmlutil"
+	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/markup"
 	"code.gitea.io/gitea/modules/optional"
 	"code.gitea.io/gitea/modules/references"
 	"code.gitea.io/gitea/modules/structs"
@@ -196,12 +201,7 @@ func (t CommentType) HasMailReplySupport() bool {
 }
 
 func (t CommentType) CountedAsConversation() bool {
-	for _, ct := range ConversationCountedCommentType() {
-		if t == ct {
-			return true
-		}
-	}
-	return false
+	return slices.Contains(ConversationCountedCommentType(), t)
 }
 
 // ConversationCountedCommentType returns the comment types that are counted as a conversation
@@ -237,11 +237,17 @@ func (r RoleInRepo) LocaleHelper(lang translation.Locale) string {
 	return lang.TrString("repo.issues.role." + string(r) + "_helper")
 }
 
+type SpecialDoerNameType string
+
+const SpecialDoerNameCodeOwners SpecialDoerNameType = "CODEOWNERS"
+
 // CommentMetaData stores metadata for a comment, these data will not be changed once inserted into database
 type CommentMetaData struct {
 	ProjectColumnID    int64  `json:"project_column_id,omitempty"`
 	ProjectColumnTitle string `json:"project_column_title,omitempty"`
 	ProjectTitle       string `json:"project_title,omitempty"`
+
+	SpecialDoerName SpecialDoerNameType `json:"special_doer_name,omitempty"` // e.g. "CODEOWNERS" for CODEOWNERS-triggered review requests
 }
 
 // Comment represents a comment in commit and issue page.
@@ -283,8 +289,8 @@ type Comment struct {
 	DependentIssue   *Issue `xorm:"-"`
 
 	CommitID        int64
-	Line            int64 // - previous line / + proposed line
-	TreePath        string
+	Line            int64         // - previous line / + proposed line
+	TreePath        string        `xorm:"VARCHAR(4000)"` // SQLServer only supports up to 4000
 	Content         string        `xorm:"LONGTEXT"`
 	ContentVersion  int           `xorm:"NOT NULL DEFAULT 0"`
 	RenderedContent template.HTML `xorm:"-"`
@@ -323,21 +329,34 @@ type Comment struct {
 	RefIssue   *Issue                 `xorm:"-"`
 	RefComment *Comment               `xorm:"-"`
 
-	Commits     []*git_model.SignCommitWithStatuses `xorm:"-"`
-	OldCommit   string                              `xorm:"-"`
-	NewCommit   string                              `xorm:"-"`
-	CommitsNum  int64                               `xorm:"-"`
-	IsForcePush bool                                `xorm:"-"`
+	Commits    []*git_model.SignCommitWithStatuses `xorm:"-"`
+	OldCommit  string                              `xorm:"-"`
+	NewCommit  string                              `xorm:"-"`
+	CommitsNum int64                               `xorm:"-"`
+
+	// Templates still use it. It is not persisted in database, it is only set when creating or loading
+	IsForcePush bool `xorm:"-"`
 }
 
 func init() {
 	db.RegisterModel(new(Comment))
 }
 
-// PushActionContent is content of push pull comment
+// PushActionContent is content of pull request's push comment
 type PushActionContent struct {
-	IsForcePush bool     `json:"is_force_push"`
-	CommitIDs   []string `json:"commit_ids"`
+	IsForcePush bool `json:"is_force_push"`
+	// if IsForcePush=true, CommitIDs contains the commit pair [old head, new head]
+	// if IsForcePush=false, CommitIDs contains the new commits newly pushed to the head branch
+	CommitIDs []string `json:"commit_ids"`
+}
+
+func (c *Comment) GetPushActionContent() (*PushActionContent, error) {
+	if c.Type != CommentTypePullRequestPush {
+		return nil, errors.New("not a pull request push comment")
+	}
+	var data PushActionContent
+	_ = json.Unmarshal(util.UnsafeStringToBytes(c.Content), &data)
+	return &data, nil
 }
 
 // LoadIssue loads the issue reference for the comment
@@ -381,16 +400,7 @@ func (c *Comment) LoadPoster(ctx context.Context) (err error) {
 	if c.Poster != nil {
 		return nil
 	}
-
-	c.Poster, err = user_model.GetPossibleUserByID(ctx, c.PosterID)
-	if err != nil {
-		if user_model.IsErrUserNotExist(err) {
-			c.PosterID = user_model.GhostUserID
-			c.Poster = user_model.NewGhostUser()
-		} else {
-			log.Error("getUserByID[%d]: %v", c.ID, err)
-		}
-	}
+	c.PosterID, c.Poster, err = user_model.GetPossibleUserByID(ctx, c.PosterID)
 	return err
 }
 
@@ -418,7 +428,7 @@ func (c *Comment) HTMLURL(ctx context.Context) string {
 		log.Error("loadRepo(%d): %v", c.Issue.RepoID, err)
 		return ""
 	}
-	return c.Issue.HTMLURL() + c.hashLink(ctx)
+	return c.Issue.HTMLURL(ctx) + c.hashLink(ctx)
 }
 
 // Link formats a relative URL-string to the issue-comment
@@ -487,7 +497,7 @@ func (c *Comment) IssueURL(ctx context.Context) string {
 		log.Error("loadRepo(%d): %v", c.Issue.RepoID, err)
 		return ""
 	}
-	return c.Issue.HTMLURL()
+	return c.Issue.HTMLURL(ctx)
 }
 
 // PRURL formats a URL-string to the pull-request
@@ -507,7 +517,7 @@ func (c *Comment) PRURL(ctx context.Context) string {
 	if !c.Issue.IsPull {
 		return ""
 	}
-	return c.Issue.HTMLURL()
+	return c.Issue.HTMLURL(ctx)
 }
 
 // CommentHashTag returns unique hash tag for comment id.
@@ -523,6 +533,12 @@ func (c *Comment) HashTag() string {
 // EventTag returns unique event hash tag for comment.
 func (c *Comment) EventTag() string {
 	return fmt.Sprintf("event-%d", c.ID)
+}
+
+func (c *Comment) GetSanitizedContentHTML() template.HTML {
+	// mainly for type=4 CommentTypeCommitRef
+	// the content is a link like <a href="{RepoLink}/commit/{CommitID}">message title</a> (from CreateRefComment)
+	return markup.Sanitize(c.Content)
 }
 
 // LoadLabel if comment.Type is CommentTypeLabel, then load Label
@@ -614,7 +630,7 @@ func UpdateCommentAttachments(ctx context.Context, c *Comment, uuids []string) e
 		if err != nil {
 			return fmt.Errorf("getAttachmentsByUUIDs [uuids: %v]: %w", uuids, err)
 		}
-		for i := 0; i < len(attachments); i++ {
+		for i := range attachments {
 			attachments[i].IssueID = c.IssueID
 			attachments[i].CommentID = c.ID
 			if err := repo_model.UpdateAttachment(ctx, attachments[i]); err != nil {
@@ -696,7 +712,7 @@ func (c *Comment) LoadTime(ctx context.Context) error {
 		return nil
 	}
 	var err error
-	c.Time, err = GetTrackedTimeByID(ctx, c.TimeID)
+	c.Time, err = GetTrackedTimeByID(ctx, c.IssueID, c.TimeID)
 	return err
 }
 
@@ -719,7 +735,8 @@ func (c *Comment) LoadReactions(ctx context.Context, repo *repo_model.Repository
 	return nil
 }
 
-func (c *Comment) loadReview(ctx context.Context) (err error) {
+// LoadReview loads the associated review
+func (c *Comment) LoadReview(ctx context.Context) (err error) {
 	if c.ReviewID == 0 {
 		return nil
 	}
@@ -734,11 +751,6 @@ func (c *Comment) loadReview(ctx context.Context) (err error) {
 	}
 	c.Review.Issue = c.Issue
 	return nil
-}
-
-// LoadReview loads the associated review
-func (c *Comment) LoadReview(ctx context.Context) error {
-	return c.loadReview(ctx)
 }
 
 // DiffSide returns "previous" if Comment.Line is a LOC of the previous changes and "proposed" if it is a LOC of the proposed changes.
@@ -772,83 +784,111 @@ func (c *Comment) CodeCommentLink(ctx context.Context) string {
 	return fmt.Sprintf("%s/files#%s", c.Issue.Link(), c.HashTag())
 }
 
+func (c *Comment) MetaSpecialDoerTr(locale translation.Locale) template.HTML {
+	if c.CommentMetaData == nil {
+		return ""
+	}
+	if c.CommentMetaData.SpecialDoerName == SpecialDoerNameCodeOwners {
+		return locale.Tr("repo.issues.review.codeowners_rules")
+	}
+	return htmlutil.HTMLFormat("%s", c.CommentMetaData.SpecialDoerName)
+}
+
+func (c *Comment) TimelineRequestedReviewTr(locale translation.Locale, createdStr template.HTML) template.HTML {
+	if c.AssigneeID > 0 {
+		// it guarantees LoadAssigneeUserAndTeam has been called, and c.Assignee is Ghost user but not nil if the user doesn't exist
+		if c.RemovedAssignee {
+			if c.PosterID == c.AssigneeID {
+				return locale.Tr("repo.issues.review.remove_review_request_self", createdStr)
+			}
+			return locale.Tr("repo.issues.review.remove_review_request", c.Assignee.GetDisplayName(), createdStr)
+		}
+		return locale.Tr("repo.issues.review.add_review_request", c.Assignee.GetDisplayName(), createdStr)
+	}
+	teamName := "Ghost Team"
+	if c.AssigneeTeam != nil {
+		teamName = c.AssigneeTeam.Name
+	}
+	if c.RemovedAssignee {
+		return locale.Tr("repo.issues.review.remove_review_request", teamName, createdStr)
+	}
+	return locale.Tr("repo.issues.review.add_review_request", teamName, createdStr)
+}
+
 // CreateComment creates comment with context
 func CreateComment(ctx context.Context, opts *CreateCommentOptions) (_ *Comment, err error) {
-	ctx, committer, err := db.TxContext(ctx)
-	if err != nil {
-		return nil, err
-	}
-	defer committer.Close()
-
-	e := db.GetEngine(ctx)
-	var LabelID int64
-	if opts.Label != nil {
-		LabelID = opts.Label.ID
-	}
-
-	var commentMetaData *CommentMetaData
-	if opts.ProjectColumnTitle != "" {
-		commentMetaData = &CommentMetaData{
-			ProjectColumnID:    opts.ProjectColumnID,
-			ProjectColumnTitle: opts.ProjectColumnTitle,
-			ProjectTitle:       opts.ProjectTitle,
+	return db.WithTx2(ctx, func(ctx context.Context) (*Comment, error) {
+		var LabelID int64
+		if opts.Label != nil {
+			LabelID = opts.Label.ID
 		}
-	}
 
-	comment := &Comment{
-		Type:             opts.Type,
-		PosterID:         opts.Doer.ID,
-		Poster:           opts.Doer,
-		IssueID:          opts.Issue.ID,
-		LabelID:          LabelID,
-		OldMilestoneID:   opts.OldMilestoneID,
-		MilestoneID:      opts.MilestoneID,
-		OldProjectID:     opts.OldProjectID,
-		ProjectID:        opts.ProjectID,
-		TimeID:           opts.TimeID,
-		RemovedAssignee:  opts.RemovedAssignee,
-		AssigneeID:       opts.AssigneeID,
-		AssigneeTeamID:   opts.AssigneeTeamID,
-		CommitID:         opts.CommitID,
-		CommitSHA:        opts.CommitSHA,
-		Line:             opts.LineNum,
-		Content:          opts.Content,
-		OldTitle:         opts.OldTitle,
-		NewTitle:         opts.NewTitle,
-		OldRef:           opts.OldRef,
-		NewRef:           opts.NewRef,
-		DependentIssueID: opts.DependentIssueID,
-		TreePath:         opts.TreePath,
-		ReviewID:         opts.ReviewID,
-		Patch:            opts.Patch,
-		RefRepoID:        opts.RefRepoID,
-		RefIssueID:       opts.RefIssueID,
-		RefCommentID:     opts.RefCommentID,
-		RefAction:        opts.RefAction,
-		RefIsPull:        opts.RefIsPull,
-		IsForcePush:      opts.IsForcePush,
-		Invalidated:      opts.Invalidated,
-		CommentMetaData:  commentMetaData,
-	}
-	if _, err = e.Insert(comment); err != nil {
-		return nil, err
-	}
+		var commentMetaData *CommentMetaData
+		if opts.ProjectColumnTitle != "" {
+			commentMetaData = &CommentMetaData{
+				ProjectColumnID:    opts.ProjectColumnID,
+				ProjectColumnTitle: opts.ProjectColumnTitle,
+				ProjectTitle:       opts.ProjectTitle,
+			}
+		}
+		if opts.SpecialDoerName != "" {
+			commentMetaData = &CommentMetaData{
+				SpecialDoerName: opts.SpecialDoerName,
+			}
+		}
 
-	if err = opts.Repo.LoadOwner(ctx); err != nil {
-		return nil, err
-	}
+		comment := &Comment{
+			Type:             opts.Type,
+			PosterID:         opts.Doer.ID,
+			Poster:           opts.Doer,
+			IssueID:          opts.Issue.ID,
+			LabelID:          LabelID,
+			OldMilestoneID:   opts.OldMilestoneID,
+			MilestoneID:      opts.MilestoneID,
+			OldProjectID:     opts.OldProjectID,
+			ProjectID:        opts.ProjectID,
+			TimeID:           opts.TimeID,
+			RemovedAssignee:  opts.RemovedAssignee,
+			AssigneeID:       opts.AssigneeID,
+			AssigneeTeamID:   opts.AssigneeTeamID,
+			CommitID:         opts.CommitID,
+			CommitSHA:        opts.CommitSHA,
+			Line:             opts.LineNum,
+			Content:          opts.Content,
+			OldTitle:         opts.OldTitle,
+			NewTitle:         opts.NewTitle,
+			OldRef:           opts.OldRef,
+			NewRef:           opts.NewRef,
+			DependentIssueID: opts.DependentIssueID,
+			TreePath:         opts.TreePath,
+			ReviewID:         opts.ReviewID,
+			Patch:            opts.Patch,
+			RefRepoID:        opts.RefRepoID,
+			RefIssueID:       opts.RefIssueID,
+			RefCommentID:     opts.RefCommentID,
+			RefAction:        opts.RefAction,
+			RefIsPull:        opts.RefIsPull,
+			IsForcePush:      opts.IsForcePush,
+			Invalidated:      opts.Invalidated,
+			CommentMetaData:  commentMetaData,
+		}
+		if err = db.Insert(ctx, comment); err != nil {
+			return nil, err
+		}
 
-	if err = updateCommentInfos(ctx, opts, comment); err != nil {
-		return nil, err
-	}
+		if err = opts.Repo.LoadOwner(ctx); err != nil {
+			return nil, err
+		}
 
-	if err = comment.AddCrossReferences(ctx, opts.Doer, false); err != nil {
-		return nil, err
-	}
-	if err = committer.Commit(); err != nil {
-		return nil, err
-	}
-	return comment, nil
+		if err = updateCommentInfos(ctx, opts, comment); err != nil {
+			return nil, err
+		}
+
+		if err = comment.AddCrossReferences(ctx, opts.Doer, false); err != nil {
+			return nil, err
+		}
+		return comment, nil
+	})
 }
 
 func updateCommentInfos(ctx context.Context, opts *CreateCommentOptions, comment *Comment) (err error) {
@@ -860,7 +900,7 @@ func updateCommentInfos(ctx context.Context, opts *CreateCommentOptions, comment
 		}
 		if comment.ReviewID != 0 {
 			if comment.Review == nil {
-				if err := comment.loadReview(ctx); err != nil {
+				if err := comment.LoadReview(ctx); err != nil {
 					return err
 				}
 			}
@@ -878,10 +918,7 @@ func updateCommentInfos(ctx context.Context, opts *CreateCommentOptions, comment
 		if err = UpdateCommentAttachments(ctx, comment, opts.Attachments); err != nil {
 			return err
 		}
-	case CommentTypeReopen, CommentTypeClose:
-		if err = repo_model.UpdateRepoIssueNumbers(ctx, opts.Issue.RepoID, opts.Issue.IsPull, true); err != nil {
-			return err
-		}
+		// comment type reopen and close event have their own logic to update numbers but not here
 	}
 	// update the issue's updated_unix column
 	return UpdateIssueCols(ctx, opts.Issue, "updated_unix")
@@ -995,6 +1032,7 @@ type CreateCommentOptions struct {
 	RefIsPull          bool
 	IsForcePush        bool
 	Invalidated        bool
+	SpecialDoerName    SpecialDoerNameType // e.g. "CODEOWNERS" for CODEOWNERS-triggered review requests
 }
 
 // GetCommentByID returns the comment by given ID.
@@ -1005,6 +1043,20 @@ func GetCommentByID(ctx context.Context, id int64) (*Comment, error) {
 		return nil, err
 	} else if !has {
 		return nil, ErrCommentNotExist{id, 0}
+	}
+	return c, nil
+}
+
+func GetCommentWithRepoID(ctx context.Context, repoID, commentID int64) (*Comment, error) {
+	c, err := GetCommentByID(ctx, commentID)
+	if err != nil {
+		return nil, err
+	}
+	if err := c.LoadIssue(ctx); err != nil {
+		return nil, err
+	}
+	if c.Issue.RepoID != repoID {
+		return nil, ErrCommentNotExist{commentID, 0}
 	}
 	return c, nil
 }
@@ -1072,7 +1124,7 @@ func FindComments(ctx context.Context, opts *FindCommentsOptions) (CommentList, 
 	}
 
 	if opts.Page > 0 {
-		sess = db.SetSessionPagination(sess, opts)
+		db.SetSessionPagination(sess, opts)
 	}
 
 	// WARNING: If you change this order you will need to fix createCodeComment
@@ -1100,33 +1152,21 @@ func UpdateCommentInvalidate(ctx context.Context, c *Comment) error {
 
 // UpdateComment updates information of comment.
 func UpdateComment(ctx context.Context, c *Comment, contentVersion int, doer *user_model.User) error {
-	ctx, committer, err := db.TxContext(ctx)
-	if err != nil {
-		return err
-	}
-	defer committer.Close()
-	sess := db.GetEngine(ctx)
+	return db.WithTx(ctx, func(ctx context.Context) error {
+		c.ContentVersion = contentVersion + 1
 
-	c.ContentVersion = contentVersion + 1
-
-	affected, err := sess.ID(c.ID).AllCols().Where("content_version = ?", contentVersion).Update(c)
-	if err != nil {
-		return err
-	}
-	if affected == 0 {
-		return ErrCommentAlreadyChanged
-	}
-	if err := c.LoadIssue(ctx); err != nil {
-		return err
-	}
-	if err := c.AddCrossReferences(ctx, doer, true); err != nil {
-		return err
-	}
-	if err := committer.Commit(); err != nil {
-		return fmt.Errorf("Commit: %w", err)
-	}
-
-	return nil
+		affected, err := db.GetEngine(ctx).ID(c.ID).AllCols().Where("content_version = ?", contentVersion).Update(c)
+		if err != nil {
+			return err
+		}
+		if affected == 0 {
+			return ErrCommentAlreadyChanged
+		}
+		if err := c.LoadIssue(ctx); err != nil {
+			return err
+		}
+		return c.AddCrossReferences(ctx, doer, true)
+	})
 }
 
 // DeleteComment deletes the comment
@@ -1285,31 +1325,28 @@ func InsertIssueComments(ctx context.Context, comments []*Comment) error {
 		return comment.IssueID, true
 	})
 
-	ctx, committer, err := db.TxContext(ctx)
-	if err != nil {
-		return err
-	}
-	defer committer.Close()
-	for _, comment := range comments {
-		if _, err := db.GetEngine(ctx).NoAutoTime().Insert(comment); err != nil {
-			return err
+	return db.WithTx(ctx, func(ctx context.Context) error {
+		for _, comment := range comments {
+			if _, err := db.GetEngine(ctx).NoAutoTime().Insert(comment); err != nil {
+				return err
+			}
+
+			for _, reaction := range comment.Reactions {
+				reaction.IssueID = comment.IssueID
+				reaction.CommentID = comment.ID
+			}
+			if len(comment.Reactions) > 0 {
+				if err := db.Insert(ctx, comment.Reactions); err != nil {
+					return err
+				}
+			}
 		}
 
-		for _, reaction := range comment.Reactions {
-			reaction.IssueID = comment.IssueID
-			reaction.CommentID = comment.ID
-		}
-		if len(comment.Reactions) > 0 {
-			if err := db.Insert(ctx, comment.Reactions); err != nil {
+		for _, issueID := range issueIDs {
+			if err := UpdateIssueNumComments(ctx, issueID); err != nil {
 				return err
 			}
 		}
-	}
-
-	for _, issueID := range issueIDs {
-		if err := UpdateIssueNumComments(ctx, issueID); err != nil {
-			return err
-		}
-	}
-	return committer.Commit()
+		return nil
+	})
 }

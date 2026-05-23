@@ -98,8 +98,10 @@ func home(ctx *context.Context, viewRepositories bool) {
 		ctx.ServerError("FindOrgMembers", err)
 		return
 	}
-	ctx.Data["Members"] = members
-	ctx.Data["Teams"] = ctx.Org.Teams
+
+	const orgOverviewTeamsLimit = 5
+	ctx.Data["OrgOverviewMembers"] = members
+	ctx.Data["OrgOverviewTeams"] = ctx.Org.Teams[:min(len(ctx.Org.Teams), orgOverviewTeamsLimit)]
 	ctx.Data["DisableNewPullMirrors"] = setting.Mirror.DisableNewPull
 	ctx.Data["ShowMemberAndTeamTab"] = ctx.Org.IsMember || len(members) > 0
 
@@ -115,7 +117,7 @@ func home(ctx *context.Context, viewRepositories bool) {
 	ctx.Data["PageIsViewOverview"] = isViewOverview
 	ctx.Data["ShowOrgProfileReadmeSelector"] = isViewOverview && prepareResult.ProfilePublicReadmeBlob != nil && prepareResult.ProfilePrivateReadmeBlob != nil
 
-	repos, count, err := repo_model.SearchRepository(ctx, &repo_model.SearchRepoOptions{
+	repos, count, err := repo_model.SearchRepository(ctx, repo_model.SearchRepoOptions{
 		ListOptions: db.ListOptions{
 			PageSize: setting.UI.User.RepoPagingNum,
 			Page:     page,
@@ -141,7 +143,7 @@ func home(ctx *context.Context, viewRepositories bool) {
 	ctx.Data["Repos"] = repos
 	ctx.Data["Total"] = count
 
-	pager := context.NewPagination(int(count), setting.UI.User.RepoPagingNum, page, 5)
+	pager := context.NewPagination(count, setting.UI.User.RepoPagingNum, page, 5)
 	pager.AddParamFromRequest(ctx.Req)
 	ctx.Data["Page"] = pager
 
@@ -180,7 +182,7 @@ func prepareOrgProfileReadme(ctx *context.Context, prepareResult *shared_user.Pr
 	}
 
 	rctx := renderhelper.NewRenderContextRepoFile(ctx, profileRepo, renderhelper.RepoFileOptions{
-		CurrentRefPath: path.Join("branch", util.PathEscapeSegments(profileRepo.DefaultBranch)),
+		CurrentRefSubURL: path.Join("branch", util.PathEscapeSegments(profileRepo.DefaultBranch)),
 	})
 	ctx.Data["ProfileReadmeContent"], err = markdown.RenderString(rctx, readmeBytes)
 	if err != nil {

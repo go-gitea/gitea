@@ -11,7 +11,9 @@ import (
 )
 
 // Source is a password authentication service
-type Source struct{}
+type Source struct {
+	auth.ConfigBase `json:"-"`
+}
 
 // FromDB fills up an OAuth2Config from serialized format.
 func (source *Source) FromDB(bs []byte) error {

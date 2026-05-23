@@ -1,20 +1,19 @@
 // Copyright 2019 The Gitea Authors. All rights reserved.
 // SPDX-License-Identifier: MIT
 
-package v1_9 //nolint
+package v1_9
 
 import (
 	"fmt"
 
+	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/models/migrations/base"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/timeutil"
 	"code.gitea.io/gitea/modules/util"
-
-	"xorm.io/xorm"
 )
 
-func HashAppToken(x *xorm.Engine) error {
+func HashAppToken(x db.EngineMigration) error {
 	// AccessToken see models/token.go
 	type AccessToken struct {
 		ID             int64 `xorm:"pk autoincr"`
@@ -65,10 +64,7 @@ func HashAppToken(x *xorm.Engine) error {
 
 		for _, token := range tokens {
 			// generate salt
-			salt, err := util.CryptoRandomString(10)
-			if err != nil {
-				return err
-			}
+			salt := util.CryptoRandomString(10)
 			token.TokenSalt = salt
 			token.TokenHash = base.HashToken(token.Sha1, salt)
 			if len(token.Sha1) < 8 {
@@ -101,7 +97,7 @@ func HashAppToken(x *xorm.Engine) error {
 	return resyncHashAppTokenWithUniqueHash(x)
 }
 
-func resyncHashAppTokenWithUniqueHash(x *xorm.Engine) error {
+func resyncHashAppTokenWithUniqueHash(x db.EngineMigration) error {
 	// AccessToken see models/token.go
 	type AccessToken struct {
 		TokenHash string `xorm:"UNIQUE"` // sha256 of token - we will ensure UNIQUE later

@@ -69,21 +69,12 @@ func changeMilestoneAssign(ctx context.Context, doer *user_model.User, issue *is
 
 // ChangeMilestoneAssign changes assignment of milestone for issue.
 func ChangeMilestoneAssign(ctx context.Context, issue *issues_model.Issue, doer *user_model.User, oldMilestoneID int64) (err error) {
-	dbCtx, committer, err := db.TxContext(ctx)
-	if err != nil {
+	if err := db.WithTx(ctx, func(dbCtx context.Context) error {
+		return changeMilestoneAssign(dbCtx, doer, issue, oldMilestoneID)
+	}); err != nil {
 		return err
-	}
-	defer committer.Close()
-
-	if err = changeMilestoneAssign(dbCtx, doer, issue, oldMilestoneID); err != nil {
-		return err
-	}
-
-	if err = committer.Commit(); err != nil {
-		return fmt.Errorf("Commit: %w", err)
 	}
 
 	notify_service.IssueChangeMilestone(ctx, doer, issue, oldMilestoneID)
-
 	return nil
 }

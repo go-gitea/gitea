@@ -5,23 +5,23 @@ export function initUserCheckAppUrl() {
   checkAppUrlScheme();
 }
 
-export function initUserAuthOauth2() {
-  const outer = document.querySelector('#oauth2-login-navigator');
-  if (!outer) return;
-  const inner = document.querySelector('#oauth2-login-navigator-inner');
+export function initUserExternalLogins() {
+  const container = document.querySelector('#external-login-navigator');
+  if (!container) return;
 
-  checkAppUrl();
-
-  for (const link of outer.querySelectorAll('.oauth-login-link')) {
+  // whether the auth method requires app url check (need consistent ROOT_URL with visited URL)
+  let needCheckAppUrl = false;
+  for (const link of container.querySelectorAll('.external-login-link')) {
+    needCheckAppUrl = needCheckAppUrl || link.getAttribute('data-require-appurl-check') === 'true';
     link.addEventListener('click', () => {
-      inner.classList.add('tw-invisible');
-      outer.classList.add('is-loading');
+      container.classList.add('is-loading');
       setTimeout(() => {
-        // recover previous content to let user try again
-        // usually redirection will be performed before this action
-        outer.classList.remove('is-loading');
-        inner.classList.remove('tw-invisible');
+        // recover previous content to let user try again, usually redirection will be performed before this action
+        container.classList.remove('is-loading');
       }, 5000);
     });
+  }
+  if (needCheckAppUrl) {
+    checkAppUrl();
   }
 }

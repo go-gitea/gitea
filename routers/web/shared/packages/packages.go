@@ -8,7 +8,6 @@ import (
 	"net/http"
 	"time"
 
-	"code.gitea.io/gitea/models/db"
 	packages_model "code.gitea.io/gitea/models/packages"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/log"
@@ -159,11 +158,17 @@ func SetRulePreviewContext(ctx *context.Context, owner *user_model.User) {
 			PackageID:  p.ID,
 			IsInternal: optional.Some(false),
 			Sort:       packages_model.SortCreatedDesc,
-			Paginator:  db.NewAbsoluteListOptions(pcr.KeepCount, 200),
 		})
 		if err != nil {
 			ctx.ServerError("SearchVersions", err)
 			return
+		}
+		if pcr.KeepCount > 0 {
+			if pcr.KeepCount < len(pvs) {
+				pvs = pvs[pcr.KeepCount:]
+			} else {
+				pvs = nil
+			}
 		}
 		for _, pv := range pvs {
 			if skip, err := container_service.ShouldBeSkipped(ctx, pcr, p, pv); err != nil {
@@ -177,7 +182,6 @@ func SetRulePreviewContext(ctx *context.Context, owner *user_model.User) {
 			if pcr.MatchFullName {
 				toMatch = p.LowerName + "/" + pv.LowerVersion
 			}
-
 			if pcr.KeepPatternMatcher != nil && pcr.KeepPatternMatcher.MatchString(toMatch) {
 				continue
 			}

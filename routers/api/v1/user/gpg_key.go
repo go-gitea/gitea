@@ -53,7 +53,7 @@ func ListGPGKeys(ctx *context.APIContext) {
 	// parameters:
 	// - name: username
 	//   in: path
-	//   description: username of user
+	//   description: username of the user whose GPG key list is to be obtained
 	//   type: string
 	//   required: true
 	// - name: page
@@ -281,11 +281,7 @@ func DeleteGPGKey(ctx *context.APIContext) {
 	}
 
 	if err := asymkey_model.DeleteGPGKey(ctx, ctx.Doer, ctx.PathParamInt64("id")); err != nil {
-		if asymkey_model.IsErrGPGKeyAccessDenied(err) {
-			ctx.APIError(http.StatusForbidden, "You do not have access to this key")
-		} else {
-			ctx.APIErrorInternal(err)
-		}
+		ctx.APIErrorInternal(err)
 		return
 	}
 
@@ -295,8 +291,6 @@ func DeleteGPGKey(ctx *context.APIContext) {
 // HandleAddGPGKeyError handle add GPGKey error
 func HandleAddGPGKeyError(ctx *context.APIContext, err error, token string) {
 	switch {
-	case asymkey_model.IsErrGPGKeyAccessDenied(err):
-		ctx.APIError(http.StatusUnprocessableEntity, "You do not have access to this GPG key")
 	case asymkey_model.IsErrGPGKeyIDAlreadyUsed(err):
 		ctx.APIError(http.StatusUnprocessableEntity, "A key with the same id already exists")
 	case asymkey_model.IsErrGPGKeyParsing(err):

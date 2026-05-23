@@ -18,19 +18,21 @@ func TestSource(t *testing.T) {
 
 	source := &Source{
 		Provider: "fake",
-		authSource: &auth.Source{
-			ID:            12,
-			Type:          auth.OAuth2,
-			Name:          "fake",
-			IsActive:      true,
-			IsSyncEnabled: true,
+		ConfigBase: auth.ConfigBase{
+			AuthSource: &auth.Source{
+				ID:            12,
+				Type:          auth.OAuth2,
+				Name:          "fake",
+				IsActive:      true,
+				IsSyncEnabled: true,
+			},
 		},
 	}
 
 	user := &user_model.User{
 		LoginName:   "external",
 		LoginType:   auth.OAuth2,
-		LoginSource: source.authSource.ID,
+		LoginSource: source.AuthSource.ID,
 		Name:        "test",
 		Email:       "external@example.com",
 	}
@@ -47,7 +49,7 @@ func TestSource(t *testing.T) {
 	err = user_model.LinkExternalToUser(t.Context(), user, e)
 	assert.NoError(t, err)
 
-	provider, err := createProvider(source.authSource.Name, source)
+	provider, err := createProvider(source.AuthSource.Name, source)
 	assert.NoError(t, err)
 
 	t.Run("refresh", func(t *testing.T) {

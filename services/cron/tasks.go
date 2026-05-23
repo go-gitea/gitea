@@ -14,11 +14,14 @@ import (
 	"code.gitea.io/gitea/models/db"
 	system_model "code.gitea.io/gitea/models/system"
 	user_model "code.gitea.io/gitea/models/user"
+	"code.gitea.io/gitea/modules/globallock"
 	"code.gitea.io/gitea/modules/graceful"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/process"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/translation"
+
+	"github.com/go-co-op/gocron/v2"
 )
 
 var (
@@ -54,7 +57,7 @@ func (t *Task) IsEnabled() bool {
 
 // GetConfig will return a copy of the task's config
 func (t *Task) GetConfig() Config {
-	if reflect.TypeOf(t.config).Kind() == reflect.Ptr {
+	if reflect.TypeOf(t.config).Kind() == reflect.Pointer {
 		// Pointer:
 		return reflect.New(reflect.ValueOf(t.config).Elem().Type()).Interface().(Config)
 	}
@@ -71,20 +74,30 @@ func (t *Task) Run() {
 	}, t.config)
 }
 
+func getCronTaskLockKey(name string) string {
+	return "cron_task:" + name
+}
+
 // RunWithUser will run the task incrementing the cron counter at the time with User
 func (t *Task) RunWithUser(doer *user_model.User, config Config) {
-	if !taskStatusTable.StartIfNotRunning(t.Name) {
+	locked, releaser, err := globallock.TryLock(graceful.GetManager().ShutdownContext(), getCronTaskLockKey(t.Name))
+	if err != nil {
+		log.Error("Failed to acquire lock for cron task %q: %v", t.Name, err)
 		return
 	}
+	if !locked {
+		log.Trace("a cron task %q is already running", t.Name)
+		return
+	}
+	defer releaser()
+
 	t.lock.Lock()
 	if config == nil {
 		config = t.config
 	}
 	t.ExecTimes++
 	t.lock.Unlock()
-	defer func() {
-		taskStatusTable.Stop(t.Name)
-	}()
+
 	graceful.GetManager().RunWithShutdownContext(func(baseCtx context.Context) {
 		defer func() {
 			if err := recover(); err != nil {
@@ -213,12 +226,13 @@ func RegisterTaskFatal(name string, config Config, fun func(context.Context, *us
 
 func addTaskToScheduler(task *Task) error {
 	tags := []string{task.Name, task.config.GetSchedule()} // name and schedule can't be get from job, so we add them as tag
-	if scheduleHasSeconds(task.config.GetSchedule()) {
-		scheduler = scheduler.CronWithSeconds(task.config.GetSchedule())
-	} else {
-		scheduler = scheduler.Cron(task.config.GetSchedule())
-	}
-	if _, err := scheduler.Tag(tags...).Do(task.Run); err != nil {
+	withSeconds := scheduleHasSeconds(task.config.GetSchedule())
+	_, err := scheduler.NewJob(
+		gocron.CronJob(task.config.GetSchedule(), withSeconds),
+		gocron.NewTask(task.Run),
+		gocron.WithTags(tags...),
+	)
+	if err != nil {
 		log.Error("Unable to register cron task with name: %s Error: %v", task.Name, err)
 		return err
 	}

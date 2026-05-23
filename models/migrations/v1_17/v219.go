@@ -1,18 +1,17 @@
 // Copyright 2022 The Gitea Authors. All rights reserved.
 // SPDX-License-Identifier: MIT
 
-package v1_17 //nolint
+package v1_17
 
 import (
 	"time"
 
+	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/modules/timeutil"
-
-	"xorm.io/xorm"
 )
 
-func AddSyncOnCommitColForPushMirror(x *xorm.Engine) error {
+func AddSyncOnCommitColForPushMirror(x db.EngineMigration) error {
 	type PushMirror struct {
 		ID         int64            `xorm:"pk autoincr"`
 		RepoID     int64            `xorm:"INDEX"`

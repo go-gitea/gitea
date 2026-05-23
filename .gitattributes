@@ -8,3 +8,4 @@
 /vendor/** -text -eol linguist-vendored
 /web_src/js/vendor/** -text -eol linguist-vendored
 Dockerfile.* linguist-language=Dockerfile
+Makefile.* linguist-language=Makefile

@@ -7,8 +7,7 @@ package models
 import (
 	"context"
 	"strconv"
-
-	_ "image/jpeg" // Needed for jpeg support
+	"strings"
 
 	"code.gitea.io/gitea/models/db"
 	issues_model "code.gitea.io/gitea/models/issues"
@@ -16,6 +15,8 @@ import (
 	"code.gitea.io/gitea/models/unit"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/log"
+
+	_ "image/jpeg" // Needed for jpeg support
 
 	"xorm.io/builder"
 )
@@ -86,11 +87,20 @@ func labelStatsCorrectNumClosedIssuesRepo(ctx context.Context, id int64) error {
 	return err
 }
 
-var milestoneStatsQueryNumIssues = "SELECT `milestone`.id FROM `milestone` WHERE `milestone`.num_closed_issues!=(SELECT COUNT(*) FROM `issue` WHERE `issue`.milestone_id=`milestone`.id AND `issue`.is_closed=?) OR `milestone`.num_issues!=(SELECT COUNT(*) FROM `issue` WHERE `issue`.milestone_id=`milestone`.id)"
+func milestoneStatsQueryNumIssuesSQL() string {
+	sql := `
+SELECT "milestone".id FROM "milestone"
+WHERE (
+	"milestone".num_closed_issues != (SELECT COUNT(*) FROM "issue" WHERE "issue".milestone_id="milestone".id AND "issue".is_closed=?)
+	OR "milestone".num_issues != (SELECT COUNT(*) FROM "issue" WHERE "issue".milestone_id="milestone".id)
+)
+`
+	return strings.TrimSpace(strings.ReplaceAll(sql, "\"", "`"))
+}
 
 func milestoneStatsCorrectNumIssuesRepo(ctx context.Context, id int64) error {
 	e := db.GetEngine(ctx)
-	results, err := e.Query(milestoneStatsQueryNumIssues+" AND `milestone`.repo_id = ?", true, id)
+	results, err := e.Query(milestoneStatsQueryNumIssuesSQL()+" AND `milestone`.repo_id = ?", true, id)
 	if err != nil {
 		return err
 	}
@@ -192,7 +202,7 @@ func CheckRepoStats(ctx context.Context) error {
 		},
 		// Milestone.Num{,Closed}Issues
 		{
-			statsQuery(milestoneStatsQueryNumIssues, true),
+			statsQuery(milestoneStatsQueryNumIssuesSQL(), true),
 			issues_model.UpdateMilestoneCounters,
 			"milestone count 'num_closed_issues' and 'num_issues'",
 		},
@@ -290,19 +300,14 @@ func UpdateRepoStats(ctx context.Context, id int64) error {
 }
 
 func updateUserStarNumbers(ctx context.Context, users []user_model.User) error {
-	ctx, committer, err := db.TxContext(ctx)
-	if err != nil {
-		return err
-	}
-	defer committer.Close()
-
-	for _, user := range users {
-		if _, err = db.Exec(ctx, "UPDATE `user` SET num_stars=(SELECT COUNT(*) FROM `star` WHERE uid=?) WHERE id=?", user.ID, user.ID); err != nil {
-			return err
+	return db.WithTx(ctx, func(ctx context.Context) error {
+		for _, user := range users {
+			if _, err := db.Exec(ctx, "UPDATE `user` SET num_stars=(SELECT COUNT(*) FROM `star` WHERE uid=?) WHERE id=?", user.ID, user.ID); err != nil {
+				return err
+			}
 		}
-	}
-
-	return committer.Commit()
+		return nil
+	})
 }
 
 // DoctorUserStarNum recalculate Stars number for all user

@@ -25,7 +25,7 @@ func TestAction_GetRepoPath(t *testing.T) {
 	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
 	owner := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: repo.OwnerID})
 	action := &activities_model.Action{RepoID: repo.ID}
-	assert.Equal(t, path.Join(owner.Name, repo.Name), action.GetRepoPath(db.DefaultContext))
+	assert.Equal(t, path.Join(owner.Name, repo.Name), action.GetRepoPath(t.Context()))
 }
 
 func TestAction_GetRepoLink(t *testing.T) {
@@ -37,9 +37,9 @@ func TestAction_GetRepoLink(t *testing.T) {
 	defer test.MockVariableValue(&setting.AppURL, "https://try.gitea.io/suburl/")()
 	defer test.MockVariableValue(&setting.AppSubURL, "/suburl")()
 	expected := path.Join(setting.AppSubURL, owner.Name, repo.Name)
-	assert.Equal(t, expected, action.GetRepoLink(db.DefaultContext))
-	assert.Equal(t, repo.HTMLURL(), action.GetRepoAbsoluteLink(db.DefaultContext))
-	assert.Equal(t, comment.HTMLURL(db.DefaultContext), action.GetCommentHTMLURL(db.DefaultContext))
+	assert.Equal(t, expected, action.GetRepoLink(t.Context()))
+	assert.Equal(t, repo.HTMLURL(), action.GetRepoAbsoluteLink(t.Context()))
+	assert.Equal(t, comment.HTMLURL(t.Context()), action.GetCommentHTMLURL(t.Context()))
 }
 
 func TestActivityReadable(t *testing.T) {
@@ -91,37 +91,37 @@ func TestConsistencyUpdateAction(t *testing.T) {
 	unittest.AssertExistsAndLoadBean(t, &activities_model.Action{
 		ID: int64(id),
 	})
-	_, err := db.GetEngine(db.DefaultContext).Exec(`UPDATE action SET created_unix = '' WHERE id = ?`, id)
+	_, err := db.GetEngine(t.Context()).Exec(`UPDATE action SET created_unix = '' WHERE id = ?`, id)
 	assert.NoError(t, err)
 	actions := make([]*activities_model.Action, 0, 1)
 	//
 	// XORM returns an error when created_unix is a string
 	//
-	err = db.GetEngine(db.DefaultContext).Where("id = ?", id).Find(&actions)
+	err = db.GetEngine(t.Context()).Where("id = ?", id).Find(&actions)
 	if assert.Error(t, err) {
 		assert.Contains(t, err.Error(), "type string to a int64: invalid syntax")
 	}
 	//
 	// Get rid of incorrectly set created_unix
 	//
-	count, err := activities_model.CountActionCreatedUnixString(db.DefaultContext)
+	count, err := activities_model.CountActionCreatedUnixString(t.Context())
 	assert.NoError(t, err)
 	assert.EqualValues(t, 1, count)
-	count, err = activities_model.FixActionCreatedUnixString(db.DefaultContext)
+	count, err = activities_model.FixActionCreatedUnixString(t.Context())
 	assert.NoError(t, err)
 	assert.EqualValues(t, 1, count)
 
-	count, err = activities_model.CountActionCreatedUnixString(db.DefaultContext)
+	count, err = activities_model.CountActionCreatedUnixString(t.Context())
 	assert.NoError(t, err)
 	assert.EqualValues(t, 0, count)
-	count, err = activities_model.FixActionCreatedUnixString(db.DefaultContext)
+	count, err = activities_model.FixActionCreatedUnixString(t.Context())
 	assert.NoError(t, err)
 	assert.EqualValues(t, 0, count)
 
 	//
 	// XORM must be happy now
 	//
-	assert.NoError(t, db.GetEngine(db.DefaultContext).Where("id = ?", id).Find(&actions))
+	assert.NoError(t, db.GetEngine(t.Context()).Where("id = ?", id).Find(&actions))
 	unittest.CheckConsistencyFor(t, &activities_model.Action{})
 }
 
@@ -133,19 +133,19 @@ func TestDeleteIssueActions(t *testing.T) {
 	assert.NotEqual(t, issue.ID, issue.Index) // it needs to use different ID/Index to test the DeleteIssueActions to delete some actions by IssueIndex
 
 	// insert a comment
-	err := db.Insert(db.DefaultContext, &issue_model.Comment{Type: issue_model.CommentTypeComment, IssueID: issue.ID})
+	err := db.Insert(t.Context(), &issue_model.Comment{Type: issue_model.CommentTypeComment, IssueID: issue.ID})
 	assert.NoError(t, err)
 	comment := unittest.AssertExistsAndLoadBean(t, &issue_model.Comment{Type: issue_model.CommentTypeComment, IssueID: issue.ID})
 
 	// truncate action table and insert some actions
-	err = db.TruncateBeans(db.DefaultContext, &activities_model.Action{})
+	err = db.TruncateBeans(t.Context(), &activities_model.Action{})
 	assert.NoError(t, err)
-	err = db.Insert(db.DefaultContext, &activities_model.Action{
+	err = db.Insert(t.Context(), &activities_model.Action{
 		OpType:    activities_model.ActionCommentIssue,
 		CommentID: comment.ID,
 	})
 	assert.NoError(t, err)
-	err = db.Insert(db.DefaultContext, &activities_model.Action{
+	err = db.Insert(t.Context(), &activities_model.Action{
 		OpType:  activities_model.ActionCreateIssue,
 		RepoID:  issue.RepoID,
 		Content: fmt.Sprintf("%d|content...", issue.Index),
@@ -154,6 +154,6 @@ func TestDeleteIssueActions(t *testing.T) {
 
 	// assert that the actions exist, then delete them
 	unittest.AssertCount(t, &activities_model.Action{}, 2)
-	assert.NoError(t, activities_model.DeleteIssueActions(db.DefaultContext, issue.RepoID, issue.ID, issue.Index))
+	assert.NoError(t, activities_model.DeleteIssueActions(t.Context(), issue.RepoID, issue.ID, issue.Index))
 	unittest.AssertCount(t, &activities_model.Action{}, 0)
 }

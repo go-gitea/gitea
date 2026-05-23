@@ -6,8 +6,8 @@
 		{{if $pageMeta.Issue}}data-update-url="{{$pageMeta.RepoLink}}/issues/request_review?issue_ids={{$pageMeta.Issue.ID}}"{{end}}
 >
 	<input type="hidden" class="combo-value" name="reviewer_ids">{{/* match CreateIssueForm */}}
-	<div class="ui dropdown text-flex-grow {{if or (not $hasCandidates) (not $data.CanChooseReviewer)}}disabled{{end}}">
-		<a class="text muted">
+	<div class="ui dropdown full-width {{if or (not $hasCandidates) (not $data.CanChooseReviewer)}}disabled{{end}}">
+		<a class="fixed-text muted">
 			<strong>{{ctx.Locale.Tr "repo.issues.review.reviewers"}}</strong> {{if $data.CanChooseReviewer}}{{svg "octicon-gear"}}{{end}}
 		</a>
 		<div class="menu flex-items-menu">
@@ -43,7 +43,7 @@
 		</div>
 	</div>
 
-	<div class="ui relaxed list flex-items-block tw-my-4">
+	<div class="ui relaxed list flex-items-block">
 		<span class="item empty-list {{if or $data.OriginalReviews $data.CurrentPullReviewers}}tw-hidden{{end}}">
 			{{ctx.Locale.Tr "repo.issues.new.no_reviewers"}}
 		</span>
@@ -82,7 +82,7 @@
 						{{end}}
 					{{end}}
 					<span {{if .Review.TooltipContent}}data-tooltip-content="{{ctx.Locale.Tr .Review.TooltipContent}}"{{end}}>
-						{{svg (printf "octicon-%s" .Review.Type.Icon) 16 (printf "text %s" (.Review.HTMLTypeColorName))}}
+						{{svg (printf "octicon-%s" .Review.Type.Icon) 16 .Review.HTMLTypeColorClass}}
 					</span>
 				</div>
 			</div>
@@ -98,7 +98,7 @@
 				</div>
 				<div class="flex-text-inline">
 					<span {{if .TooltipContent}}data-tooltip-content="{{ctx.Locale.Tr .TooltipContent}}"{{end}}>
-						{{svg (printf "octicon-%s" .Type.Icon) 16 (printf "text %s" (.HTMLTypeColorName))}}
+						{{svg (printf "octicon-%s" .Type.Icon) 16 .HTMLTypeColorClass}}
 					</span>
 				</div>
 			</div>
@@ -115,7 +115,6 @@
 				{{ctx.Locale.Tr "repo.issues.dismiss_review_warning"}}
 			</div>
 			<form class="ui form" action="{{$pageMeta.RepoLink}}/issues/dismiss_review" method="post">
-				{{ctx.RootData.CsrfTokenHtml}}
 				<input type="hidden" class="reviewer-id" name="review_id">
 				<div class="field">
 					<label for="issue-sidebar-dismiss-review-message">{{ctx.Locale.Tr "action.review_dismissed_reason"}}</label>

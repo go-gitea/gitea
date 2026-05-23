@@ -22,7 +22,7 @@ func TestBlockUser(t *testing.T) {
 	defer tests.PrepareTestEnv(t)()
 
 	countStars := func(t *testing.T, repoOwnerID, starrerID int64) int64 {
-		count, err := db.Count[repo_model.Repository](db.DefaultContext, &repo_model.StarredReposOptions{
+		count, err := db.Count[repo_model.Repository](t.Context(), &repo_model.StarredReposOptions{
 			StarrerID:      starrerID,
 			RepoOwnerID:    repoOwnerID,
 			IncludePrivate: true,
@@ -32,7 +32,7 @@ func TestBlockUser(t *testing.T) {
 	}
 
 	countWatches := func(t *testing.T, repoOwnerID, watcherID int64) int64 {
-		count, err := db.Count[repo_model.Repository](db.DefaultContext, &repo_model.WatchedReposOptions{
+		count, err := db.Count[repo_model.Repository](t.Context(), &repo_model.WatchedReposOptions{
 			WatcherID:   watcherID,
 			RepoOwnerID: repoOwnerID,
 		})
@@ -41,7 +41,7 @@ func TestBlockUser(t *testing.T) {
 	}
 
 	countRepositoryTransfers := func(t *testing.T, senderID, recipientID int64) int64 {
-		transfers, err := repo_model.GetPendingRepositoryTransfers(db.DefaultContext, &repo_model.PendingRepositoryTransferOptions{
+		transfers, err := repo_model.GetPendingRepositoryTransfers(t.Context(), &repo_model.PendingRepositoryTransferOptions{
 			SenderID:    senderID,
 			RecipientID: recipientID,
 		})
@@ -50,7 +50,7 @@ func TestBlockUser(t *testing.T) {
 	}
 
 	countAssignedIssues := func(t *testing.T, repoOwnerID, assigneeID int64) int64 {
-		_, count, err := issues_model.GetAssignedIssues(db.DefaultContext, &issues_model.AssignedIssuesOptions{
+		_, count, err := issues_model.GetAssignedIssues(t.Context(), &issues_model.AssignedIssuesOptions{
 			AssigneeID:  assigneeID,
 			RepoOwnerID: repoOwnerID,
 		})
@@ -59,7 +59,7 @@ func TestBlockUser(t *testing.T) {
 	}
 
 	countCollaborations := func(t *testing.T, repoOwnerID, collaboratorID int64) int64 {
-		count, err := db.Count[repo_model.Collaboration](db.DefaultContext, &repo_model.FindCollaborationOptions{
+		count, err := db.Count[repo_model.Collaboration](t.Context(), &repo_model.FindCollaborationOptions{
 			CollaboratorID: collaboratorID,
 			RepoOwnerID:    repoOwnerID,
 		})
@@ -116,8 +116,7 @@ func TestBlockUser(t *testing.T) {
 				AddTokenAuth(blockerToken)
 			resp := MakeRequest(t, req, http.StatusOK)
 
-			var users []api.User
-			DecodeJSON(t, resp, &users)
+			users := DecodeJSON(t, resp, []api.User{})
 
 			assert.Len(t, users, 1)
 			assert.Equal(t, blockeeName, users[0].UserName)
@@ -143,8 +142,7 @@ func TestBlockUser(t *testing.T) {
 				AddTokenAuth(blockerToken)
 			resp := MakeRequest(t, req, http.StatusOK)
 
-			var users []api.User
-			DecodeJSON(t, resp, &users)
+			users := DecodeJSON(t, resp, []api.User{})
 
 			assert.Empty(t, users)
 		})
@@ -206,8 +204,7 @@ func TestBlockUser(t *testing.T) {
 				AddTokenAuth(doerToken)
 			resp := MakeRequest(t, req, http.StatusOK)
 
-			var users []api.User
-			DecodeJSON(t, resp, &users)
+			users := DecodeJSON(t, resp, []api.User{})
 
 			assert.Len(t, users, 1)
 			assert.Equal(t, blockeeName, users[0].UserName)
@@ -233,8 +230,7 @@ func TestBlockUser(t *testing.T) {
 				AddTokenAuth(doerToken)
 			resp := MakeRequest(t, req, http.StatusOK)
 
-			var users []api.User
-			DecodeJSON(t, resp, &users)
+			users := DecodeJSON(t, resp, []api.User{})
 
 			assert.Empty(t, users)
 		})

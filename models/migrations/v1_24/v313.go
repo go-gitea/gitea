@@ -1,15 +1,14 @@
 // Copyright 2025 The Gitea Authors. All rights reserved.
 // SPDX-License-Identifier: MIT
 
-package v1_24 //nolint
+package v1_24
 
 import (
+	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/models/migrations/base"
-
-	"xorm.io/xorm"
 )
 
-func MovePinOrderToTableIssuePin(x *xorm.Engine) error {
+func MovePinOrderToTableIssuePin(x db.EngineMigration) error {
 	type IssuePin struct {
 		ID       int64 `xorm:"pk autoincr"`
 		RepoID   int64 `xorm:"UNIQUE(s) NOT NULL"`

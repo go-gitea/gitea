@@ -43,7 +43,7 @@ func AddIssueSubscription(ctx *context.APIContext) {
 	//   required: true
 	// - name: user
 	//   in: path
-	//   description: user to subscribe
+	//   description: username of the user to subscribe the issue to
 	//   type: string
 	//   required: true
 	// responses:
@@ -87,7 +87,7 @@ func DelIssueSubscription(ctx *context.APIContext) {
 	//   required: true
 	// - name: user
 	//   in: path
-	//   description: user witch unsubscribe
+	//   description: username of the user to unsubscribe from an issue
 	//   type: string
 	//   required: true
 	// responses:
@@ -138,7 +138,7 @@ func setIssueSubscription(ctx *context.APIContext, watch bool) {
 		return
 	}
 
-	// If watch state wont change
+	// If watch state won't change
 	if current == watch {
 		ctx.Status(http.StatusOK)
 		return

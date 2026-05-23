@@ -49,7 +49,7 @@ func RenderNewCodeCommentForm(ctx *context.Context) {
 	ctx.Data["PageIsPullFiles"] = true
 	ctx.Data["Issue"] = issue
 	ctx.Data["CurrentReview"] = currentReview
-	pullHeadCommitID, err := ctx.Repo.GitRepo.GetRefCommitID(issue.PullRequest.GetGitRefName())
+	pullHeadCommitID, err := ctx.Repo.GitRepo.GetRefCommitID(issue.PullRequest.GetGitHeadRefName())
 	if err != nil {
 		ctx.ServerError("GetRefCommitID", err)
 		return
@@ -72,7 +72,7 @@ func CreateCodeComment(ctx *context.Context) {
 	}
 
 	if ctx.HasError() {
-		ctx.Flash.Error(ctx.Data["ErrorMsg"].(string))
+		ctx.Flash.Error(ctx.GetErrMsg())
 		ctx.Redirect(fmt.Sprintf("%s/pulls/%d/files", ctx.Repo.RepoLink, issue.Index))
 		return
 	}
@@ -169,7 +169,7 @@ func UpdateResolveConversation(ctx *context.Context) {
 func renderConversation(ctx *context.Context, comment *issues_model.Comment, origin string) {
 	ctx.Data["PageIsPullFiles"] = origin == "diff"
 
-	showOutdatedComments := origin == "timeline" || ctx.Data["ShowOutdatedComments"].(bool)
+	showOutdatedComments := origin == "timeline" || GetShowOutdatedComments(ctx)
 	comments, err := issues_model.FetchCodeCommentsByLine(ctx, comment.Issue, ctx.Doer, comment.TreePath, comment.Line, showOutdatedComments)
 	if err != nil {
 		ctx.ServerError("FetchCodeCommentsByLine", err)
@@ -199,7 +199,7 @@ func renderConversation(ctx *context.Context, comment *issues_model.Comment, ori
 		ctx.ServerError("comment.Issue.LoadPullRequest", err)
 		return
 	}
-	pullHeadCommitID, err := ctx.Repo.GitRepo.GetRefCommitID(comment.Issue.PullRequest.GetGitRefName())
+	pullHeadCommitID, err := ctx.Repo.GitRepo.GetRefCommitID(comment.Issue.PullRequest.GetGitHeadRefName())
 	if err != nil {
 		ctx.ServerError("GetRefCommitID", err)
 		return
@@ -230,7 +230,7 @@ func SubmitReview(ctx *context.Context) {
 		return
 	}
 	if ctx.HasError() {
-		ctx.Flash.Error(ctx.Data["ErrorMsg"].(string))
+		ctx.Flash.Error(ctx.GetErrMsg())
 		ctx.JSONRedirect(fmt.Sprintf("%s/pulls/%d/files", ctx.Repo.RepoLink, issue.Index))
 		return
 	}
@@ -331,7 +331,7 @@ func UpdateViewedFiles(ctx *context.Context) {
 		updatedFiles[file] = state
 	}
 
-	if err := pull_model.UpdateReviewState(ctx, ctx.Doer.ID, pull.ID, data.HeadCommitSHA, updatedFiles); err != nil {
+	if _, err := pull_model.UpdateReviewState(ctx, ctx.Doer.ID, pull.ID, data.HeadCommitSHA, updatedFiles); err != nil {
 		ctx.ServerError("UpdateReview", err)
 	}
 }

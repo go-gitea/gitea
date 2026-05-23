@@ -17,7 +17,10 @@ import (
 	"code.gitea.io/gitea/models/perm"
 	access_model "code.gitea.io/gitea/models/perm/access"
 	repo_model "code.gitea.io/gitea/models/repo"
+	"code.gitea.io/gitea/models/unit"
 	"code.gitea.io/gitea/modules/base"
+	"code.gitea.io/gitea/modules/glob"
+	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/modules/templates"
 	"code.gitea.io/gitea/modules/web"
 	"code.gitea.io/gitea/routers/web/repo"
@@ -25,8 +28,6 @@ import (
 	"code.gitea.io/gitea/services/forms"
 	pull_service "code.gitea.io/gitea/services/pull"
 	"code.gitea.io/gitea/services/repository"
-
-	"github.com/gobwas/glob"
 )
 
 const (
@@ -73,23 +74,23 @@ func SettingsProtectedBranch(c *context.Context) {
 
 	c.Data["PageIsSettingsBranches"] = true
 	c.Data["Title"] = c.Locale.TrString("repo.settings.protected_branch") + " - " + rule.RuleName
-
-	users, err := access_model.GetRepoReaders(c, c.Repo.Repository)
+	users, err := access_model.GetUsersWithUnitAccess(c, c.Repo.Repository, perm.AccessModeRead, unit.TypePullRequests)
 	if err != nil {
-		c.ServerError("Repo.Repository.GetReaders", err)
+		c.ServerError("GetUsersWithUnitAccess", err)
 		return
 	}
 	c.Data["Users"] = users
 	c.Data["whitelist_users"] = strings.Join(base.Int64sToStrings(rule.WhitelistUserIDs), ",")
 	c.Data["force_push_allowlist_users"] = strings.Join(base.Int64sToStrings(rule.ForcePushAllowlistUserIDs), ",")
 	c.Data["merge_whitelist_users"] = strings.Join(base.Int64sToStrings(rule.MergeWhitelistUserIDs), ",")
+	c.Data["bypass_allowlist_users"] = strings.Join(base.Int64sToStrings(rule.BypassAllowlistUserIDs), ",")
 	c.Data["approvals_whitelist_users"] = strings.Join(base.Int64sToStrings(rule.ApprovalsWhitelistUserIDs), ",")
 	c.Data["status_check_contexts"] = strings.Join(rule.StatusCheckContexts, "\n")
 	contexts, _ := git_model.FindRepoRecentCommitStatusContexts(c, c.Repo.Repository.ID, 7*24*time.Hour) // Find last week status check contexts
 	c.Data["recent_status_checks"] = contexts
 
 	if c.Repo.Owner.IsOrganization() {
-		teams, err := organization.OrgFromUser(c.Repo.Owner).TeamsWithAccessToRepo(c, c.Repo.Repository.ID, perm.AccessModeRead)
+		teams, err := organization.GetTeamsWithAccessToAnyRepoUnit(c, c.Repo.Owner.ID, c.Repo.Repository.ID, perm.AccessModeRead, unit.TypeCode, unit.TypePullRequests)
 		if err != nil {
 			c.ServerError("Repo.Owner.TeamsWithAccessToRepo", err)
 			return
@@ -98,6 +99,7 @@ func SettingsProtectedBranch(c *context.Context) {
 		c.Data["whitelist_teams"] = strings.Join(base.Int64sToStrings(rule.WhitelistTeamIDs), ",")
 		c.Data["force_push_allowlist_teams"] = strings.Join(base.Int64sToStrings(rule.ForcePushAllowlistTeamIDs), ",")
 		c.Data["merge_whitelist_teams"] = strings.Join(base.Int64sToStrings(rule.MergeWhitelistTeamIDs), ",")
+		c.Data["bypass_allowlist_teams"] = strings.Join(base.Int64sToStrings(rule.BypassAllowlistTeamIDs), ",")
 		c.Data["approvals_whitelist_teams"] = strings.Join(base.Int64sToStrings(rule.ApprovalsWhitelistTeamIDs), ",")
 	}
 
@@ -155,7 +157,7 @@ func SettingsProtectedBranchPost(ctx *context.Context) {
 		}
 	}
 
-	var whitelistUsers, whitelistTeams, forcePushAllowlistUsers, forcePushAllowlistTeams, mergeWhitelistUsers, mergeWhitelistTeams, approvalsWhitelistUsers, approvalsWhitelistTeams []int64
+	var whitelistUsers, whitelistTeams, forcePushAllowlistUsers, forcePushAllowlistTeams, mergeWhitelistUsers, mergeWhitelistTeams, approvalsWhitelistUsers, approvalsWhitelistTeams, bypassAllowlistUsers, bypassAllowlistTeams []int64
 	protectBranch.RuleName = f.RuleName
 	if f.RequiredApprovals < 0 {
 		ctx.Flash.Error(ctx.Tr("repo.settings.protected_branch_required_approvals_min"))
@@ -215,6 +217,16 @@ func SettingsProtectedBranchPost(ctx *context.Context) {
 		}
 	}
 
+	protectBranch.EnableBypassAllowlist = f.EnableBypassAllowlist
+	if f.EnableBypassAllowlist {
+		if strings.TrimSpace(f.BypassAllowlistUsers) != "" {
+			bypassAllowlistUsers, _ = base.StringsToInt64s(strings.Split(f.BypassAllowlistUsers, ","))
+		}
+		if strings.TrimSpace(f.BypassAllowlistTeams) != "" {
+			bypassAllowlistTeams, _ = base.StringsToInt64s(strings.Split(f.BypassAllowlistTeams, ","))
+		}
+	}
+
 	protectBranch.EnableStatusCheck = f.EnableStatusCheck
 	if f.EnableStatusCheck {
 		patterns := strings.Split(strings.ReplaceAll(f.StatusCheckContexts, "\r", "\n"), "\n")
@@ -271,6 +283,8 @@ func SettingsProtectedBranchPost(ctx *context.Context) {
 		MergeTeamIDs:     mergeWhitelistTeams,
 		ApprovalsUserIDs: approvalsWhitelistUsers,
 		ApprovalsTeamIDs: approvalsWhitelistTeams,
+		BypassUserIDs:    bypassAllowlistUsers,
+		BypassTeamIDs:    bypassAllowlistTeams,
 	}); err != nil {
 		ctx.ServerError("CreateOrUpdateProtectedBranch", err)
 		return
@@ -313,10 +327,14 @@ func DeleteProtectedBranchRulePost(ctx *context.Context) {
 }
 
 func UpdateBranchProtectionPriories(ctx *context.Context) {
-	form := web.GetForm(ctx).(*forms.ProtectBranchPriorityForm)
-	repo := ctx.Repo.Repository
-
-	if err := git_model.UpdateProtectBranchPriorities(ctx, repo, form.IDs); err != nil {
+	var form struct {
+		IDs []int64 `json:"ids"`
+	}
+	if err := json.NewDecoder(ctx.Req.Body).Decode(&form); err != nil {
+		ctx.JSONError("invalid argument")
+		return
+	}
+	if err := git_model.UpdateProtectBranchPriorities(ctx, ctx.Repo.Repository, form.IDs); err != nil {
 		ctx.ServerError("UpdateProtectBranchPriorities", err)
 		return
 	}
@@ -337,7 +355,7 @@ func RenameBranchPost(ctx *context.Context) {
 		return
 	}
 
-	msg, err := repository.RenameBranch(ctx, ctx.Repo.Repository, ctx.Doer, ctx.Repo.GitRepo, form.From, form.To)
+	msg, err := repository.RenameBranch(ctx, ctx.Repo.Repository, ctx.Doer, form.From, form.To)
 	if err != nil {
 		switch {
 		case repo_model.IsErrUserDoesNotHaveAccessToRepo(err):

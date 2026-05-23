@@ -9,18 +9,19 @@ import (
 	"fmt"
 	"html/template"
 	"net/http"
-	"path"
 	"strings"
 
 	asymkey_model "code.gitea.io/gitea/models/asymkey"
 	"code.gitea.io/gitea/models/db"
 	git_model "code.gitea.io/gitea/models/git"
+	issues_model "code.gitea.io/gitea/models/issues"
 	"code.gitea.io/gitea/models/renderhelper"
 	repo_model "code.gitea.io/gitea/models/repo"
 	unit_model "code.gitea.io/gitea/models/unit"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/charset"
+	"code.gitea.io/gitea/modules/fileicon"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/gitrepo"
 	"code.gitea.io/gitea/modules/log"
@@ -66,10 +67,7 @@ func Commits(ctx *context.Context) {
 
 	commitsCount := ctx.Repo.CommitsCount
 
-	page := ctx.FormInt("page")
-	if page <= 1 {
-		page = 1
-	}
+	page := max(ctx.FormInt("page"), 1)
 
 	pageSize := ctx.FormInt("limit")
 	if pageSize <= 0 {
@@ -77,7 +75,7 @@ func Commits(ctx *context.Context) {
 	}
 
 	// Both `git log branchName` and `git log commitId` work.
-	commits, err := ctx.Repo.Commit.CommitsByRange(page, pageSize, "")
+	commits, err := ctx.Repo.Commit.CommitsByRange(page, pageSize, "", "", "")
 	if err != nil {
 		ctx.ServerError("CommitsByRange", err)
 		return
@@ -98,11 +96,9 @@ func Commits(ctx *context.Context) {
 	} else {
 		ctx.Data["CommitsTagsMap"] = commitsTagsMap
 	}
-	ctx.Data["Username"] = ctx.Repo.Owner.Name
-	ctx.Data["Reponame"] = ctx.Repo.Repository.Name
 	ctx.Data["CommitCount"] = commitsCount
 
-	pager := context.NewPagination(int(commitsCount), pageSize, page, 5)
+	pager := context.NewPagination(commitsCount, pageSize, page, 5)
 	pager.AddParamFromRequest(ctx.Req)
 	ctx.Data["Page"] = pager
 	ctx.HTML(http.StatusOK, tplCommits)
@@ -165,13 +161,13 @@ func Graph(ctx *context.Context) {
 
 	ctx.Data["AllRefs"] = gitRefs
 
-	ctx.Data["Username"] = ctx.Repo.Owner.Name
-	ctx.Data["Reponame"] = ctx.Repo.Repository.Name
-
-	paginator := context.NewPagination(int(graphCommitsCount), setting.UI.GraphMaxCommitNum, page, 5)
-	paginator.AddParamFromRequest(ctx.Req)
+	divOnly := ctx.FormBool("div-only")
+	queryParams := ctx.Req.URL.Query()
+	queryParams.Del("div-only")
+	paginator := context.NewPagination(graphCommitsCount, setting.UI.GraphMaxCommitNum, page, 5)
+	paginator.AddParamFromQuery(queryParams)
 	ctx.Data["Page"] = paginator
-	if ctx.FormBool("div-only") {
+	if divOnly {
 		ctx.HTML(http.StatusOK, tplGraphDiv)
 		return
 	}
@@ -208,8 +204,6 @@ func SearchCommits(ctx *context.Context) {
 	if all {
 		ctx.Data["All"] = true
 	}
-	ctx.Data["Username"] = ctx.Repo.Owner.Name
-	ctx.Data["Reponame"] = ctx.Repo.Repository.Name
 	ctx.HTML(http.StatusOK, tplCommits)
 }
 
@@ -220,7 +214,7 @@ func FileHistory(ctx *context.Context) {
 		return
 	}
 
-	commitsCount, err := ctx.Repo.GitRepo.FileCommitsCount(ctx.Repo.RefFullName.ShortName(), ctx.Repo.TreePath)
+	commitsCount, err := gitrepo.FileCommitsCount(ctx, ctx.Repo.Repository, ctx.Repo.RefFullName.ShortName(), ctx.Repo.TreePath)
 	if err != nil {
 		ctx.ServerError("FileCommitsCount", err)
 		return
@@ -229,10 +223,7 @@ func FileHistory(ctx *context.Context) {
 		return
 	}
 
-	page := ctx.FormInt("page")
-	if page <= 1 {
-		page = 1
-	}
+	page := max(ctx.FormInt("page"), 1)
 
 	commits, err := ctx.Repo.GitRepo.CommitsByFileAndRange(
 		git.CommitsByFileAndRangeOptions{
@@ -250,12 +241,10 @@ func FileHistory(ctx *context.Context) {
 		return
 	}
 
-	ctx.Data["Username"] = ctx.Repo.Owner.Name
-	ctx.Data["Reponame"] = ctx.Repo.Repository.Name
 	ctx.Data["FileTreePath"] = ctx.Repo.TreePath
 	ctx.Data["CommitCount"] = commitsCount
 
-	pager := context.NewPagination(int(commitsCount), setting.Git.CommitsRangeSize, page, 5)
+	pager := context.NewPagination(commitsCount, setting.Git.CommitsRangeSize, page, 5)
 	pager.AddParamFromRequest(ctx.Req)
 	ctx.Data["Page"] = pager
 	ctx.HTML(http.StatusOK, tplCommits)
@@ -277,20 +266,24 @@ func Diff(ctx *context.Context) {
 	userName := ctx.Repo.Owner.Name
 	repoName := ctx.Repo.Repository.Name
 	commitID := ctx.PathParam("sha")
-	var (
-		gitRepo *git.Repository
-		err     error
-	)
+
+	diffBlobExcerptData := &gitdiff.DiffBlobExcerptData{
+		BaseLink:      ctx.Repo.RepoLink + "/blob_excerpt",
+		DiffStyle:     GetDiffViewStyle(ctx),
+		AfterCommitID: commitID,
+	}
+	gitRepo := ctx.Repo.GitRepo
+	var gitRepoStore gitrepo.Repository = ctx.Repo.Repository
 
 	if ctx.Data["PageIsWiki"] != nil {
-		gitRepo, err = gitrepo.OpenRepository(ctx, ctx.Repo.Repository.WikiStorageRepo())
+		var err error
+		gitRepoStore = ctx.Repo.Repository.WikiStorageRepo()
+		gitRepo, err = gitrepo.RepositoryFromRequestContextOrOpen(ctx, gitRepoStore)
 		if err != nil {
 			ctx.ServerError("Repo.GitRepo.GetCommit", err)
 			return
 		}
-		defer gitRepo.Close()
-	} else {
-		gitRepo = ctx.Repo.GitRepo
+		diffBlobExcerptData.BaseLink = ctx.Repo.RepoLink + "/wiki/blob_excerpt"
 	}
 
 	commit, err := gitRepo.GetCommit(commitID)
@@ -313,19 +306,19 @@ func Diff(ctx *context.Context) {
 		maxLines, maxFiles = -1, -1
 	}
 
-	diff, err := gitdiff.GetDiffForRender(ctx, gitRepo, &gitdiff.DiffOptions{
+	diff, err := gitdiff.GetDiffForRender(ctx, ctx.Repo.RepoLink, gitRepo, &gitdiff.DiffOptions{
 		AfterCommitID:      commitID,
 		SkipTo:             ctx.FormString("skip-to"),
 		MaxLines:           maxLines,
 		MaxLineCharacters:  setting.Git.MaxGitDiffLineCharacters,
 		MaxFiles:           maxFiles,
-		WhitespaceBehavior: gitdiff.GetWhitespaceFlag(ctx.Data["WhitespaceBehavior"].(string)),
+		WhitespaceBehavior: gitdiff.GetWhitespaceFlag(GetWhitespaceBehavior(ctx)),
 	}, files...)
 	if err != nil {
 		ctx.NotFound(err)
 		return
 	}
-	diffShortStat, err := gitdiff.GetDiffShortStat(gitRepo, "", commitID)
+	diffShortStat, err := gitdiff.GetDiffShortStat(ctx, gitRepoStore, gitRepo, "", commitID)
 	if err != nil {
 		ctx.ServerError("GetDiffShortStat", err)
 		return
@@ -344,8 +337,6 @@ func Diff(ctx *context.Context) {
 
 	ctx.Data["CommitID"] = commitID
 	ctx.Data["AfterCommitID"] = commitID
-	ctx.Data["Username"] = userName
-	ctx.Data["Reponame"] = repoName
 
 	var parentCommit *git.Commit
 	var parentCommitID string
@@ -358,9 +349,10 @@ func Diff(ctx *context.Context) {
 		parentCommitID = parentCommit.ID.String()
 	}
 	setCompareContext(ctx, parentCommit, commit, userName, repoName)
-	ctx.Data["Title"] = commit.Summary() + " · " + base.ShortSha(commitID)
+	ctx.Data["Title"] = commit.MessageTitle() + " · " + base.ShortSha(commitID)
 	ctx.Data["Commit"] = commit
 	ctx.Data["Diff"] = diff
+	ctx.Data["DiffBlobExcerptData"] = diffBlobExcerptData
 
 	if !fileOnly {
 		diffTree, err := gitdiff.GetDiffTree(ctx, gitRepo, false, parentCommitID, commitID)
@@ -369,14 +361,18 @@ func Diff(ctx *context.Context) {
 			return
 		}
 
-		ctx.PageData["DiffFileTree"] = transformDiffTreeForWeb(diffTree, nil)
+		renderedIconPool := fileicon.NewRenderedIconPool()
+		ctx.PageData["DiffFileTree"] = transformDiffTreeForWeb(renderedIconPool, diffTree, nil)
+		ctx.PageData["FolderIcon"] = fileicon.RenderEntryIconHTML(renderedIconPool, fileicon.EntryInfoFolder())
+		ctx.PageData["FolderOpenIcon"] = fileicon.RenderEntryIconHTML(renderedIconPool, fileicon.EntryInfoFolderOpen())
+		ctx.Data["FileIconPoolHTML"] = renderedIconPool.RenderToHTML()
 	}
 
-	statuses, _, err := git_model.GetLatestCommitStatus(ctx, ctx.Repo.Repository.ID, commitID, db.ListOptionsAll)
+	statuses, err := git_model.GetLatestCommitStatus(ctx, ctx.Repo.Repository.ID, commitID, db.ListOptionsAll)
 	if err != nil {
 		log.Error("GetLatestCommitStatus: %v", err)
 	}
-	if !ctx.Repo.CanRead(unit_model.TypeActions) {
+	if !ctx.Repo.Permission.CanRead(unit_model.TypeActions) {
 		git_model.CommitStatusesHideActionsURL(ctx, statuses)
 	}
 
@@ -401,12 +397,20 @@ func Diff(ctx *context.Context) {
 	if err == nil {
 		ctx.Data["NoteCommit"] = note.Commit
 		ctx.Data["NoteAuthor"] = user_model.ValidateCommitWithEmail(ctx, note.Commit)
-		rctx := renderhelper.NewRenderContextRepoComment(ctx, ctx.Repo.Repository, renderhelper.RepoCommentOptions{CurrentRefPath: path.Join("commit", util.PathEscapeSegments(commitID))})
-		ctx.Data["NoteRendered"], err = markup.PostProcessCommitMessage(rctx, template.HTMLEscapeString(string(charset.ToUTF8WithFallback(note.Message, charset.ConvertOpts{}))))
+		rctx := renderhelper.NewRenderContextRepoComment(ctx, ctx.Repo.Repository, renderhelper.RepoCommentOptions{CurrentRefSubURL: "commit/" + util.PathEscapeSegments(commitID)})
+		htmlMessage := template.HTML(template.HTMLEscapeString(string(charset.ToUTF8WithFallback(note.Message, charset.ConvertOpts{}))))
+		ctx.Data["NoteRendered"], err = markup.PostProcessCommitMessage(rctx, htmlMessage)
 		if err != nil {
 			ctx.ServerError("PostProcessCommitMessage", err)
 			return
 		}
+	} else if !git.IsErrNotExist(err) {
+		log.Error("GetNote: %v", err)
+	}
+
+	pr, _ := issues_model.GetPullRequestByMergedCommit(ctx, ctx.Repo.Repository.ID, commitID)
+	if pr != nil {
+		ctx.Data["MergedPRIssueNumber"] = pr.Index
 	}
 
 	ctx.HTML(http.StatusOK, tplCommitPage)
@@ -450,8 +454,11 @@ func processGitCommits(ctx *context.Context, gitCommits []*git.Commit) ([]*git_m
 	if err != nil {
 		return nil, err
 	}
-	if !ctx.Repo.CanRead(unit_model.TypeActions) {
+	if !ctx.Repo.Permission.CanRead(unit_model.TypeActions) {
 		for _, commit := range commits {
+			if commit.Status == nil {
+				continue
+			}
 			commit.Status.HideActionsURL(ctx)
 			git_model.CommitStatusesHideActionsURL(ctx, commit.Statuses)
 		}

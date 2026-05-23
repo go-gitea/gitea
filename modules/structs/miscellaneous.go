@@ -5,13 +5,17 @@ package structs
 
 // SearchResults results of a successful search
 type SearchResults struct {
-	OK   bool          `json:"ok"`
+	// OK indicates if the search was successful
+	OK bool `json:"ok"`
+	// Data contains the repository search results
 	Data []*Repository `json:"data"`
 }
 
 // SearchError error of a failed search
 type SearchError struct {
-	OK    bool   `json:"ok"`
+	// OK indicates the search status (always false for errors)
+	OK bool `json:"ok"`
+	// Error contains the error message
 	Error string `json:"error"`
 }
 
@@ -73,33 +77,46 @@ type MarkdownRender string
 
 // ServerVersion wraps the version of the server
 type ServerVersion struct {
+	// Version is the server version string
 	Version string `json:"version"`
 }
 
 // GitignoreTemplateInfo name and text of a gitignore template
 type GitignoreTemplateInfo struct {
-	Name   string `json:"name"`
+	// Name is the name of the gitignore template
+	Name string `json:"name"`
+	// Source contains the content of the gitignore template
 	Source string `json:"source"`
 }
 
 // LicensesListEntry is used for the API
 type LicensesTemplateListEntry struct {
-	Key  string `json:"key"`
+	// Key is the unique identifier for the license template
+	Key string `json:"key"`
+	// Name is the display name of the license
 	Name string `json:"name"`
-	URL  string `json:"url"`
+	// URL is the reference URL for the license
+	URL string `json:"url"`
 }
 
 // LicensesInfo contains information about a License
 type LicenseTemplateInfo struct {
-	Key            string `json:"key"`
-	Name           string `json:"name"`
-	URL            string `json:"url"`
+	// Key is the unique identifier for the license template
+	Key string `json:"key"`
+	// Name is the display name of the license
+	Name string `json:"name"`
+	// URL is the reference URL for the license
+	URL string `json:"url"`
+	// Implementation contains license implementation details
 	Implementation string `json:"implementation"`
-	Body           string `json:"body"`
+	// Body contains the full text of the license
+	Body string `json:"body"`
 }
 
 // APIError is an api error with a message
 type APIError struct {
+	// Message contains the error description
 	Message string `json:"message"`
-	URL     string `json:"url"`
+	// URL contains the documentation URL for this error
+	URL string `json:"url"`
 }

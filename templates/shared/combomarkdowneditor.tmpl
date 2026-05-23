@@ -2,9 +2,7 @@
 * CustomInit: do not initialize the editor automatically
 * ContainerId: id attribute for the container element
 * ContainerClasses: additional classes for the container element
-* MarkdownPreviewInRepo: the repo to preview markdown
-* MarkdownPreviewContext: preview context (the related url path when rendering) for the preview tab, eg: repo link or user home link
-* MarkdownPreviewMode: content mode for the editor, eg: wiki, comment or default
+* MarkdownEditorContext: the context data for the editor, see backend MarkdownEditorContext
 * TextareaName: name attribute for the textarea
 * TextareaContent: content for the textarea
 * TextareaMaxLength: maxlength attribute for the textarea
@@ -14,25 +12,26 @@
 * DisableAutosize: whether to disable automatic height resizing
 */}}
 {{$ariaLabel := or .TextareaAriaLabel .TextareaPlaceholder}}
-{{$repo := .MarkdownPreviewInRepo}}
-{{$previewContext := .MarkdownPreviewContext}}
-{{$previewMode := .MarkdownPreviewMode}}
-{{$previewUrl := print AppSubUrl "/-/markup"}}
-{{if $repo}}
-	{{$previewUrl = print $repo.Link "/markup"}}
-{{end}}
+{{$editorContext := .MarkdownEditorContext}}
+{{$previewMode := or $editorContext.PreviewMode ""}}
+{{$previewContext := or $editorContext.PreviewContext ""}}
+{{$previewLink := or $editorContext.PreviewLink (print AppSubUrl "/-/markup")}}
+{{$mentionsLink := or $editorContext.MentionsLink ""}}
 {{$supportEasyMDE := or (eq $previewMode "comment") (eq $previewMode "wiki")}}
 <div {{if .ContainerId}}id="{{.ContainerId}}"{{end}} class="combo-markdown-editor {{if .CustomInit}}custom-init{{end}} {{.ContainerClasses}}"
 		data-dropzone-parent-container="{{.DropzoneParentContainer}}"
 		data-content-mode="{{$previewMode}}"
 		data-support-easy-mde="{{$supportEasyMDE}}"
-		data-preview-url="{{$previewUrl}}"
+		data-preview-url="{{$previewLink}}"
 		data-preview-context="{{$previewContext}}"
+		{{if $mentionsLink}}data-mentions-url="{{$mentionsLink}}"{{end}}
 >
+	{{if ne $previewMode "none"}}
 	<div class="ui top tabular menu">
 		<a class="active item" data-tab-for="markdown-writer">{{template "shared/misc/tabtitle" (ctx.Locale.Tr "write")}}</a>
 		<a class="item" data-tab-for="markdown-previewer">{{template "shared/misc/tabtitle" (ctx.Locale.Tr "preview")}}</a>
 	</div>
+	{{end}}
 	<div class="ui tab active" data-tab-panel="markdown-writer">
 		<markdown-toolbar>
 			<div class="markdown-toolbar-group">
@@ -43,6 +42,7 @@
 			<div class="markdown-toolbar-group">
 				<md-bold class="markdown-toolbar-button" data-tooltip-content="{{ctx.Locale.Tr "editor.buttons.bold.tooltip"}}">{{svg "octicon-bold"}}</md-bold>
 				<md-italic class="markdown-toolbar-button" data-tooltip-content="{{ctx.Locale.Tr "editor.buttons.italic.tooltip"}}">{{svg "octicon-italic"}}</md-italic>
+				<md-strikethrough class="markdown-toolbar-button" data-tooltip-content="{{ctx.Locale.Tr "editor.buttons.strikethrough.tooltip"}}">{{svg "octicon-strikethrough"}}</md-strikethrough>
 			</div>
 			<div class="markdown-toolbar-group">
 				<md-quote class="markdown-toolbar-button" data-tooltip-content="{{ctx.Locale.Tr "editor.buttons.quote.tooltip"}}">{{svg "octicon-quote"}}</md-quote>
@@ -55,7 +55,7 @@
 				<md-task-list class="markdown-toolbar-button" data-tooltip-content="{{ctx.Locale.Tr "editor.buttons.list.task.tooltip"}}">{{svg "octicon-tasklist"}}</md-task-list>
 				<button class="markdown-toolbar-button markdown-button-table-add" data-tooltip-content="{{ctx.Locale.Tr "editor.buttons.table.add.tooltip"}}">{{svg "octicon-table"}}</button>
 			</div>
-			{{if eq $previewMode "comment"}}
+			{{if $mentionsLink}}
 			<div class="markdown-toolbar-group">
 				<md-mention class="markdown-toolbar-button" data-tooltip-content="{{ctx.Locale.Tr "editor.buttons.mention.tooltip"}}">{{svg "octicon-mention"}}</md-mention>
 				<md-ref class="markdown-toolbar-button" data-tooltip-content="{{ctx.Locale.Tr "editor.buttons.ref.tooltip"}}">{{svg "octicon-cross-reference"}}</md-ref>
@@ -75,8 +75,8 @@
 				{{if .DisableAutosize}}data-disable-autosize="{{.DisableAutosize}}"{{end}}
 			>{{.TextareaContent}}</textarea>
 		</text-expander>
-		<script>
-			if (localStorage?.getItem('markdown-editor-monospace') === 'true') {
+		<script nonce="{{ctx.CspScriptNonce}}">
+			if (window.localUserSettings.getBoolean('markdown-editor-monospace')) {
 				document.querySelector('.markdown-text-editor').classList.add('tw-font-mono');
 			}
 		</script>
@@ -86,9 +86,9 @@
 	</div>
 	<div class="markdown-add-table-panel tippy-target">
 		<div class="ui form tw-p-4 flex-text-block">
-			<input type="number" name="rows" min="1" value="3" size="3" class="tw-w-24" data-tooltip-content="{{ctx.Locale.Tr "editor.buttons.table.rows"}}">
+			<input type="number" min="1" value="3" size="3" class="add-table-rows tw-w-24" data-tooltip-content="{{ctx.Locale.Tr "editor.buttons.table.rows"}}">
 			x
-			<input type="number" name="cols" min="1" value="3" size="3" class="tw-w-24" data-tooltip-content="{{ctx.Locale.Tr "editor.buttons.table.cols"}}">
+			<input type="number" min="1" value="3" size="3" class="add-table-cols tw-w-24" data-tooltip-content="{{ctx.Locale.Tr "editor.buttons.table.cols"}}">
 			<button class="ui button primary" type="button">{{ctx.Locale.Tr "editor.buttons.table.add.insert"}}</button>
 		</div>
 	</div>

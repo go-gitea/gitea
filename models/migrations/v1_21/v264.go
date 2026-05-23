@@ -1,7 +1,7 @@
 // Copyright 2023 The Gitea Authors. All rights reserved.
 // SPDX-License-Identifier: MIT
 
-package v1_21 //nolint
+package v1_21
 
 import (
 	"context"
@@ -9,11 +9,9 @@ import (
 
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/modules/timeutil"
-
-	"xorm.io/xorm"
 )
 
-func AddBranchTable(x *xorm.Engine) error {
+func AddBranchTable(x db.EngineMigration) error {
 	type Branch struct {
 		ID            int64
 		RepoID        int64  `xorm:"UNIQUE(s)"`

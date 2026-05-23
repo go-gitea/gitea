@@ -161,7 +161,6 @@ func sessionHandler(session ssh.Session) {
 	process.SetSysProcAttribute(cmd)
 
 	wg := &sync.WaitGroup{}
-	wg.Add(2)
 
 	if err = cmd.Start(); err != nil {
 		log.Error("SSH: Start: %v", err)
@@ -175,21 +174,19 @@ func sessionHandler(session ssh.Session) {
 		}
 	}()
 
-	go func() {
-		defer wg.Done()
+	wg.Go(func() {
 		defer stdout.Close()
 		if _, err := io.Copy(session, stdout); err != nil {
 			log.Error("Failed to write stdout to session. %s", err)
 		}
-	}()
+	})
 
-	go func() {
-		defer wg.Done()
+	wg.Go(func() {
 		defer stderr.Close()
 		if _, err := io.Copy(session.Stderr(), stderr); err != nil {
 			log.Error("Failed to write stderr to session. %s", err)
 		}
-	}()
+	})
 
 	// Ensure all the output has been written before we wait on the command
 	// to exit.
@@ -339,7 +336,7 @@ func sshConnectionFailed(conn net.Conn, err error) {
 	log.Warn("Failed authentication attempt from %s", conn.RemoteAddr())
 }
 
-// Listen starts a SSH server listens on given port.
+// Listen starts an SSH server listening on given port.
 func Listen(host string, port int, ciphers, keyExchanges, macs []string) {
 	srv := ssh.Server{
 		Addr:             net.JoinHostPort(host, strconv.Itoa(port)),

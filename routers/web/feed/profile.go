@@ -54,7 +54,7 @@ func showUserFeed(ctx *context.Context, formatType string) {
 		return
 	}
 
-	rctx := renderhelper.NewRenderContextSimpleDocument(ctx, ctx.ContextUser.HTMLURL())
+	rctx := renderhelper.NewRenderContextSimpleDocument(ctx, ctx.ContextUser.HTMLURL(ctx))
 	ctxUserDescription, err := markdown.RenderString(rctx,
 		ctx.ContextUser.Description)
 	if err != nil {
@@ -64,7 +64,7 @@ func showUserFeed(ctx *context.Context, formatType string) {
 
 	feed := &feeds.Feed{
 		Title:       ctx.Locale.TrString("home.feed_of", ctx.ContextUser.DisplayName()),
-		Link:        &feeds.Link{Href: ctx.ContextUser.HTMLURL()},
+		Link:        &feeds.Link{Href: ctx.ContextUser.HTMLURL(ctx)},
 		Description: string(ctxUserDescription),
 		Created:     time.Now(),
 	}

@@ -1,0 +1,26 @@
+.global-shortcut-wrapper {
+  position: relative;
+}
+
+kbd {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 18px;
+  padding: 2px 4px;
+  font-size: 11px;
+  line-height: 1;
+  color: var(--color-text-light-2);
+  background-color: var(--color-box-body);
+  border: 1px solid var(--color-secondary);
+  border-radius: var(--border-radius);
+  box-shadow: var(--box-shadow-kbd);
+}
+
+.global-shortcut-wrapper > kbd {
+  position: absolute;
+  right: 6px;
+  top: 50%;
+  transform: translateY(-50%);
+  pointer-events: none;
+}

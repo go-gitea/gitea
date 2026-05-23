@@ -9,15 +9,24 @@ import (
 
 // DeployKey a deploy key
 type DeployKey struct {
-	ID          int64  `json:"id"`
-	KeyID       int64  `json:"key_id"`
-	Key         string `json:"key"`
-	URL         string `json:"url"`
-	Title       string `json:"title"`
+	// ID is the unique identifier for the deploy key
+	ID int64 `json:"id"`
+	// KeyID is the associated public key ID
+	KeyID int64 `json:"key_id"`
+	// Key contains the actual SSH key content
+	Key string `json:"key"`
+	// URL is the API URL for this deploy key
+	URL string `json:"url"`
+	// Title is the human-readable name for the key
+	Title string `json:"title"`
+	// Fingerprint is the key's fingerprint
 	Fingerprint string `json:"fingerprint"`
 	// swagger:strfmt date-time
-	Created    time.Time   `json:"created_at"`
-	ReadOnly   bool        `json:"read_only"`
+	// Created is the time when the deploy key was added
+	Created time.Time `json:"created_at"`
+	// ReadOnly indicates if the key has read-only access
+	ReadOnly bool `json:"read_only"`
+	// Repository is the repository this deploy key belongs to
 	Repository *Repository `json:"repository,omitempty"`
 }
 

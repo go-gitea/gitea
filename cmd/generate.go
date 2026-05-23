@@ -5,6 +5,7 @@
 package cmd
 
 import (
+	"context"
 	"bufio"
 	"encoding/pem"
 	"fmt"
@@ -14,63 +15,71 @@ import (
 	"code.gitea.io/gitea/modules/generate"
 
 	"github.com/mattn/go-isatty"
-	"github.com/urfave/cli/v2"
+	"github.com/urfave/cli/v3"
 	"golang.org/x/crypto/ssh"
 )
 
-var (
-	// CmdGenerate represents the available generate sub-command.
-	CmdGenerate = &cli.Command{
+func newGenerateCommand() *cli.Command {
+	return &cli.Command{
 		Name:  "generate",
 		Usage: "Generate Gitea's secrets/keys/tokens",
-		Subcommands: []*cli.Command{
-			subcmdSecret,
-			subcmdKeygen,
+		Commands: []*cli.Command{
+			newGenerateSecretCommand(),
+			newGenerateSSHKeysCommand(),
 		},
 	}
+}
 
-	subcmdSecret = &cli.Command{
+func newGenerateSecretCommand() *cli.Command {
+	return &cli.Command{
 		Name:  "secret",
 		Usage: "Generate a secret token",
-		Subcommands: []*cli.Command{
-			microcmdGenerateInternalToken,
-			microcmdGenerateLfsJwtSecret,
-			microcmdGenerateSecretKey,
+		Commands: []*cli.Command{
+			newGenerateInternalTokenCommand(),
+			newGenerateLfsJWTSecretCommand(),
+			newGenerateSecretKeyCommand(),
 		},
 	}
-	keygenFlags = []cli.Flag{
-		&cli.StringFlag{Name: "bits", Aliases: []string{"b"}, Usage: "Number of bits in the key, ignored when key is ed25519"},
-		&cli.StringFlag{Name: "type", Aliases: []string{"t"}, Value: "ed25519", Usage: "Keytype to generate"},
-		&cli.StringFlag{Name: "file", Aliases: []string{"f"}, Usage: "Specifies the filename of the key file", Required: true},
-	}
-	subcmdKeygen = &cli.Command{
+}
+func newGenerateSSHKeysCommand() *cli.Command{
+	return &cli.Command{
 		Name:   "ssh-keygen",
 		Usage:  "Generate a ssh keypair",
-		Flags:  keygenFlags,
+		Flags:  []cli.Flag{
+			&cli.StringFlag{Name: "bits", Aliases: []string{"b"}, Usage: "Number of bits in the key, ignored when key is ed25519"},
+			&cli.StringFlag{Name: "type", Aliases: []string{"t"}, Value: "ed25519", Usage: "Keytype to generate"},
+			&cli.StringFlag{Name: "file", Aliases: []string{"f"}, Usage: "Specifies the filename of the key file", Required: true},
+			},
 		Action: runGenerateKeyPair,
 	}
+}
 
-	microcmdGenerateInternalToken = &cli.Command{
+func newGenerateInternalTokenCommand() *cli.Command {
+	return &cli.Command{
 		Name:   "INTERNAL_TOKEN",
 		Usage:  "Generate a new INTERNAL_TOKEN",
 		Action: runGenerateInternalToken,
 	}
+}
 
-	microcmdGenerateLfsJwtSecret = &cli.Command{
+func newGenerateLfsJWTSecretCommand() *cli.Command {
+	return &cli.Command{
 		Name:    "JWT_SECRET",
 		Aliases: []string{"LFS_JWT_SECRET"},
 		Usage:   "Generate a new JWT_SECRET",
 		Action:  runGenerateLfsJwtSecret,
 	}
+}
 
-	microcmdGenerateSecretKey = &cli.Command{
+func newGenerateSecretKeyCommand() *cli.Command {
+	return &cli.Command{
 		Name:   "SECRET_KEY",
 		Usage:  "Generate a new SECRET_KEY",
 		Action: runGenerateSecretKey,
 	}
-)
+}
 
-func runGenerateInternalToken(c *cli.Context) error {
+func runGenerateInternalToken(_ context.Context, c *cli.Command) error {
 	internalToken, err := generate.NewInternalToken()
 	if err != nil {
 		return err
@@ -85,12 +94,8 @@ func runGenerateInternalToken(c *cli.Context) error {
 	return nil
 }
 
-func runGenerateLfsJwtSecret(c *cli.Context) error {
-	_, jwtSecretBase64, err := generate.NewJwtSecretWithBase64()
-	if err != nil {
-		return err
-	}
-
+func runGenerateLfsJwtSecret(_ context.Context, c *cli.Command) error {
+	_, jwtSecretBase64 := generate.NewJwtSecretWithBase64()
 	fmt.Printf("%s", jwtSecretBase64)
 
 	if isatty.IsTerminal(os.Stdout.Fd()) {
@@ -100,12 +105,13 @@ func runGenerateLfsJwtSecret(c *cli.Context) error {
 	return nil
 }
 
-func runGenerateSecretKey(c *cli.Context) error {
+func runGenerateSecretKey(_ context.Context, c *cli.Command) error {
 	secretKey, err := generate.NewSecretKey()
 	if err != nil {
 		return err
 	}
 
+	// codeql[disable-next-line=go/clear-text-logging]
 	fmt.Printf("%s", secretKey)
 
 	if isatty.IsTerminal(os.Stdout.Fd()) {

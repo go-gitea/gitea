@@ -1,14 +1,11 @@
 .breadcrumb {
   display: flex;
-  flex-wrap: wrap;
   align-items: center;
+  flex-wrap: wrap;
   gap: 3px;
+  overflow-wrap: anywhere;
 }
 
 .breadcrumb .breadcrumb-divider {
   color: var(--color-text-light-2);
-}
-
-.breadcrumb > * {
-  display: inline;
 }

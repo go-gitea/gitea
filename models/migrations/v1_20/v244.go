@@ -1,13 +1,11 @@
 // Copyright 2023 The Gitea Authors. All rights reserved.
 // SPDX-License-Identifier: MIT
 
-package v1_20 //nolint
+package v1_20
 
-import (
-	"xorm.io/xorm"
-)
+import "code.gitea.io/gitea/models/db"
 
-func AddNeedApprovalToActionRun(x *xorm.Engine) error {
+func AddNeedApprovalToActionRun(x db.EngineMigration) error {
 	/*
 		New index: TriggerUserID
 		New fields: NeedApproval, ApprovedBy

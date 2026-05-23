@@ -91,7 +91,7 @@ func (e *MarshalEncoder) marshal(v any) error {
 	val := reflect.ValueOf(v)
 	typ := reflect.TypeOf(v)
 
-	if typ.Kind() == reflect.Ptr {
+	if typ.Kind() == reflect.Pointer {
 		val = val.Elem()
 		typ = typ.Elem()
 	}
@@ -250,7 +250,7 @@ func (e *MarshalEncoder) marshalArray(arr reflect.Value) error {
 		return err
 	}
 
-	for i := 0; i < length; i++ {
+	for i := range length {
 		if err := e.marshal(arr.Index(i).Interface()); err != nil {
 			return err
 		}

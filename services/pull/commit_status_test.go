@@ -8,58 +8,85 @@ import (
 	"testing"
 
 	git_model "code.gitea.io/gitea/models/git"
-	"code.gitea.io/gitea/modules/structs"
+	"code.gitea.io/gitea/modules/commitstatus"
 
 	"github.com/stretchr/testify/assert"
 )
 
 func TestMergeRequiredContextsCommitStatus(t *testing.T) {
-	testCases := [][]*git_model.CommitStatus{
+	cases := []struct {
+		commitStatuses   []*git_model.CommitStatus
+		requiredContexts []string
+		expected         commitstatus.CommitStatusState
+	}{
 		{
-			{Context: "Build 1", State: structs.CommitStatusSuccess},
-			{Context: "Build 2", State: structs.CommitStatusSuccess},
-			{Context: "Build 3", State: structs.CommitStatusSuccess},
+			commitStatuses:   []*git_model.CommitStatus{},
+			requiredContexts: []string{},
+			expected:         commitstatus.CommitStatusPending,
 		},
 		{
-			{Context: "Build 1", State: structs.CommitStatusSuccess},
-			{Context: "Build 2", State: structs.CommitStatusSuccess},
-			{Context: "Build 2t", State: structs.CommitStatusPending},
+			commitStatuses: []*git_model.CommitStatus{
+				{Context: "Build xxx", State: commitstatus.CommitStatusSkipped},
+			},
+			requiredContexts: []string{"Build*"},
+			expected:         commitstatus.CommitStatusSuccess,
 		},
 		{
-			{Context: "Build 1", State: structs.CommitStatusSuccess},
-			{Context: "Build 2", State: structs.CommitStatusSuccess},
-			{Context: "Build 2t", State: structs.CommitStatusFailure},
+			commitStatuses: []*git_model.CommitStatus{
+				{Context: "Build 1", State: commitstatus.CommitStatusSkipped},
+				{Context: "Build 2", State: commitstatus.CommitStatusSuccess},
+				{Context: "Build 3", State: commitstatus.CommitStatusSuccess},
+			},
+			requiredContexts: []string{"Build*"},
+			expected:         commitstatus.CommitStatusSuccess,
 		},
 		{
-			{Context: "Build 1", State: structs.CommitStatusSuccess},
-			{Context: "Build 2", State: structs.CommitStatusSuccess},
-			{Context: "Build 2t", State: structs.CommitStatusSuccess},
+			commitStatuses: []*git_model.CommitStatus{
+				{Context: "Build 1", State: commitstatus.CommitStatusSuccess},
+				{Context: "Build 2", State: commitstatus.CommitStatusSuccess},
+				{Context: "Build 2t", State: commitstatus.CommitStatusPending},
+			},
+			requiredContexts: []string{"Build*", "Build 2t*"},
+			expected:         commitstatus.CommitStatusPending,
 		},
 		{
-			{Context: "Build 1", State: structs.CommitStatusSuccess},
-			{Context: "Build 2", State: structs.CommitStatusSuccess},
-			{Context: "Build 2t", State: structs.CommitStatusSuccess},
+			commitStatuses: []*git_model.CommitStatus{
+				{Context: "Build 1", State: commitstatus.CommitStatusSuccess},
+				{Context: "Build 2", State: commitstatus.CommitStatusSuccess},
+				{Context: "Build 2t", State: commitstatus.CommitStatusFailure},
+			},
+			requiredContexts: []string{"Build*", "Build 2t*"},
+			expected:         commitstatus.CommitStatusFailure,
+		},
+		{
+			commitStatuses: []*git_model.CommitStatus{
+				{Context: "Build 1", State: commitstatus.CommitStatusSuccess},
+				{Context: "Build 2", State: commitstatus.CommitStatusSuccess},
+				{Context: "Build 2t", State: commitstatus.CommitStatusFailure},
+			},
+			requiredContexts: []string{"Build*"},
+			expected:         commitstatus.CommitStatusFailure,
+		},
+		{
+			commitStatuses: []*git_model.CommitStatus{
+				{Context: "Build 1", State: commitstatus.CommitStatusSuccess},
+				{Context: "Build 2", State: commitstatus.CommitStatusSuccess},
+				{Context: "Build 2t", State: commitstatus.CommitStatusSuccess},
+			},
+			requiredContexts: []string{"Build*", "Build 2t*", "Build 3*"},
+			expected:         commitstatus.CommitStatusPending,
+		},
+		{
+			commitStatuses: []*git_model.CommitStatus{
+				{Context: "Build 1", State: commitstatus.CommitStatusSuccess},
+				{Context: "Build 2", State: commitstatus.CommitStatusSuccess},
+				{Context: "Build 2t", State: commitstatus.CommitStatusSuccess},
+			},
+			requiredContexts: []string{"Build*", "Build *", "Build 2t*", "Build 1*"},
+			expected:         commitstatus.CommitStatusSuccess,
 		},
 	}
-	testCasesRequiredContexts := [][]string{
-		{"Build*"},
-		{"Build*", "Build 2t*"},
-		{"Build*", "Build 2t*"},
-		{"Build*", "Build 2t*", "Build 3*"},
-		{"Build*", "Build *", "Build 2t*", "Build 1*"},
-	}
-
-	testCasesExpected := []structs.CommitStatusState{
-		structs.CommitStatusSuccess,
-		structs.CommitStatusPending,
-		structs.CommitStatusFailure,
-		structs.CommitStatusPending,
-		structs.CommitStatusSuccess,
-	}
-
-	for i, commitStatuses := range testCases {
-		if MergeRequiredContextsCommitStatus(commitStatuses, testCasesRequiredContexts[i]) != testCasesExpected[i] {
-			assert.Fail(t, "Test case failed", "Test case %d failed", i+1)
-		}
+	for i, c := range cases {
+		assert.Equal(t, c.expected, MergeRequiredContextsCommitStatus(c.commitStatuses, c.requiredContexts), "case %d", i)
 	}
 }

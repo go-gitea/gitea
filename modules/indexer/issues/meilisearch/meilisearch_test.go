@@ -12,6 +12,8 @@ import (
 
 	"code.gitea.io/gitea/modules/indexer/issues/internal"
 	"code.gitea.io/gitea/modules/indexer/issues/internal/tests"
+	"code.gitea.io/gitea/modules/json"
+	"code.gitea.io/gitea/modules/test"
 
 	"github.com/meilisearch/meilisearch-go"
 	"github.com/stretchr/testify/assert"
@@ -20,22 +22,16 @@ import (
 
 func TestMeilisearchIndexer(t *testing.T) {
 	// The meilisearch instance started by pull-db-tests.yml > test-unit > services > meilisearch
-	url := "http://meilisearch:7700"
-	key := "" // auth has been disabled in test environment
-
-	if os.Getenv("CI") == "" {
-		// Make it possible to run tests against a local meilisearch instance
-		url = os.Getenv("TEST_MEILISEARCH_URL")
-		if url == "" {
-			t.Skip("TEST_MEILISEARCH_URL not set and not running in CI")
-			return
-		}
-		key = os.Getenv("TEST_MEILISEARCH_KEY")
-	}
+	url := test.ExternalServiceHTTP(t, "TEST_MEILISEARCH_URL", "http://meilisearch:7700")
+	key := os.Getenv("TEST_MEILISEARCH_KEY")
 
 	require.Eventually(t, func() bool {
 		resp, err := http.Get(url)
-		return err == nil && resp.StatusCode == http.StatusOK
+		if err != nil {
+			return false
+		}
+		defer resp.Body.Close()
+		return resp.StatusCode == http.StatusOK
 	}, time.Minute, time.Second, "Expected meilisearch to be up")
 
 	indexer := NewIndexer(url, key, fmt.Sprintf("test_meilisearch_indexer_%d", time.Now().Unix()))
@@ -45,30 +41,42 @@ func TestMeilisearchIndexer(t *testing.T) {
 }
 
 func TestConvertHits(t *testing.T) {
+	convert := func(d any) []byte {
+		b, _ := json.Marshal(d)
+		return b
+	}
+
 	_, err := convertHits(&meilisearch.SearchResponse{
-		Hits: []any{"aa", "bb", "cc", "dd"},
+		Hits: []meilisearch.Hit{
+			{
+				"aa": convert(1),
+				"bb": convert(2),
+				"cc": convert(3),
+				"dd": convert(4),
+			},
+		},
 	})
 	assert.ErrorIs(t, err, ErrMalformedResponse)
 
 	validResponse := &meilisearch.SearchResponse{
-		Hits: []any{
-			map[string]any{
-				"id":       float64(11),
-				"title":    "a title",
-				"content":  "issue body with no match",
-				"comments": []any{"hey whats up?", "I'm currently bowling", "nice"},
+		Hits: []meilisearch.Hit{
+			{
+				"id":       convert(float64(11)),
+				"title":    convert("a title"),
+				"content":  convert("issue body with no match"),
+				"comments": convert([]any{"hey whats up?", "I'm currently bowling", "nice"}),
 			},
-			map[string]any{
-				"id":       float64(22),
-				"title":    "Bowling as title",
-				"content":  "",
-				"comments": []any{},
+			{
+				"id":       convert(float64(22)),
+				"title":    convert("Bowling as title"),
+				"content":  convert(""),
+				"comments": convert([]any{}),
 			},
-			map[string]any{
-				"id":       float64(33),
-				"title":    "Bowl-ing as fuzzy match",
-				"content":  "",
-				"comments": []any{},
+			{
+				"id":       convert(float64(33)),
+				"title":    convert("Bowl-ing as fuzzy match"),
+				"content":  convert(""),
+				"comments": convert([]any{}),
 			},
 		},
 	}

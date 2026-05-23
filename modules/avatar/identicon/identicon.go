@@ -8,13 +8,14 @@ package identicon
 
 import (
 	"crypto/sha256"
-	"errors"
-	"fmt"
 	"image"
 	"image/color"
 )
 
-const minImageSize = 16
+const (
+	minImageSize = 16
+	maxImageSize = 2048
+)
 
 // Identicon is used to generate pseudo-random avatars
 type Identicon struct {
@@ -24,25 +25,17 @@ type Identicon struct {
 	rect       image.Rectangle
 }
 
-// New returns an Identicon struct with the correct settings
-// size image size
-// back background color
-// fore all possible foreground colors. only one foreground color will be picked randomly for one image
-func New(size int, back color.Color, fore ...color.Color) (*Identicon, error) {
-	if len(fore) == 0 {
-		return nil, errors.New("foreground is not set")
-	}
-
-	if size < minImageSize {
-		return nil, fmt.Errorf("size %d is smaller than min size %d", size, minImageSize)
-	}
-
+// New returns an Identicon struct.
+// Only one foreground color will be picked randomly for one image.
+func New(size int, backColor color.Color, foreColors []color.Color) *Identicon {
+	size = max(size, minImageSize)
+	size = min(size, maxImageSize)
 	return &Identicon{
-		foreColors: fore,
-		backColor:  back,
+		foreColors: foreColors,
+		backColor:  backColor,
 		size:       size,
 		rect:       image.Rect(0, 0, size, size),
-	}, nil
+	}
 }
 
 // Make generates an avatar by data
@@ -70,7 +63,7 @@ func (i *Identicon) render(c, b1, b2, b1Angle, b2Angle, foreColor int) image.Ima
 /*
 # Algorithm
 
-Origin: An image is splitted into 9 areas
+Origin: An image is split into 9 areas
 
 ```
   -------------
@@ -134,7 +127,7 @@ func drawBlocks(p *image.Paletted, size int, c, b1, b2 blockFunc, b1Angle, b2Ang
 
 	// then we make it left-right mirror, so we didn't draw 3/6/9 before
 	for x := 0; x < size/2; x++ {
-		for y := 0; y < size; y++ {
+		for y := range size {
 			p.SetColorIndex(size-x, y, p.ColorIndexAt(x, y))
 		}
 	}

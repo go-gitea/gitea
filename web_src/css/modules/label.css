@@ -4,25 +4,20 @@
 .ui.label {
   display: inline-flex;
   align-items: center;
-  gap: .25rem;
-  min-width: 0;
   vertical-align: middle;
-  line-height: 1;
+  gap: var(--gap-inline);
+  min-width: 0;
+  max-width: 100%;
   background: var(--color-label-bg);
   color: var(--color-label-text);
-  padding: 0.3em 0.5em;
-  font-size: 0.85714286rem;
+  padding: 2px 6px;
+  font-size: var(--font-size-label);
   font-weight: var(--font-weight-medium);
   border: 0 solid transparent;
-  border-radius: 0.28571429rem;
+  border-radius: var(--border-radius);
   white-space: nowrap;
-}
-
-.ui.label:first-child {
-  margin-left: 0;
-}
-.ui.label:last-child {
-  margin-right: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 a.ui.label {
@@ -94,15 +89,10 @@ a.ui.label:hover {
   color: var(--color-label-text);
 }
 
-.ui.label.visible:not(.dropdown) {
-  display: inline-block !important;
-}
-
 .ui.basic.label {
   background: var(--color-button);
   border: 1px solid var(--color-light-border);
   color: var(--color-text-light);
-  padding: calc(0.5833em - 1px) calc(0.833em - 1px);
 }
 a.ui.basic.label:hover {
   text-decoration: none;
@@ -194,12 +184,6 @@ a.ui.ui.ui.basic.yellow.label:hover {
   border-color: var(--color-yellow-dark-1);
   color: var(--color-yellow-dark-1);
 }
-.ui.ui.ui.olive.label {
-  background: var(--color-olive);
-  border-color: var(--color-olive);
-  color: var(--color-white);
-}
-
 .ui.ui.ui.green.label {
   background: var(--color-green);
   border-color: var(--color-green);
@@ -231,16 +215,6 @@ a.ui.ui.ui.purple.label:hover {
   border-color: var(--color-purple-dark-1);
   color: var(--color-white);
 }
-.ui.ui.ui.basic.purple.label {
-  background: transparent;
-  border-color: var(--color-purple);
-  color: var(--color-purple);
-}
-a.ui.ui.ui.basic.purple.label:hover {
-  background: transparent;
-  border-color: var(--color-purple-dark-1);
-  color: var(--color-purple-dark-1);
-}
 
 .ui.ui.ui.grey.label {
   background: var(--color-label-bg);
@@ -252,17 +226,8 @@ a.ui.ui.ui.grey.label:hover {
   border-color: var(--color-label-hover-bg);
   color: var(--color-white);
 }
-.ui.ui.ui.basic.grey.label {
-  background: transparent;
-  border-color: var(--color-label-bg);
-  color: var(--color-label-text);
-}
-a.ui.ui.ui.basic.grey.label:hover {
-  background: transparent;
-  border-color: var(--color-label-hover-bg);
-  color: var(--color-label-hover-bg);
-}
 
+/* "horizontal label" is actually "fat label" which has enough padding spaces to be used standalone in headers */
 .ui.horizontal.label {
   margin: 0 0.5em 0 0;
   padding: 0.4em 0.833em;
@@ -291,4 +256,67 @@ a.ui.ui.ui.basic.grey.label:hover {
 }
 .ui.large.label {
   font-size: 1rem;
+}
+
+/* labels-list layout: span.labels-list > a.item > span.ui.label,
+by default, the labels list is rendered as "display: inline",
+it can also be rendered as flex by adding flex-related classes (the general ".item" selector also applies) */
+.labels-list {
+  max-width: 100%; /* for ellipsis */
+  font-size: var(--font-size-label); /* must match the label font size, otherwise the height mismatches */
+}
+
+.labels-list > .item {
+  max-width: 100%; /* for ellipsis */
+}
+
+.labels-list a:hover {
+  text-decoration: none;
+}
+
+.labels-list .ui.label {
+  min-height: 20px;
+  padding-top: 0;
+  padding-bottom: 0;
+}
+
+/* to align with different font sizes, these styles need to be written separately */
+#issue-list .labels-list > .item {
+  margin-right: 4px; /* margin-right (not margin-left) keeps wrapped labels left-aligned */
+  vertical-align: 2.5px; /* compensates inline-flex baseline so labels center with text */
+}
+
+.timeline-item .labels-list > .item {
+  margin-right: 4px;
+  vertical-align: 1.5px;
+}
+
+/* Scoped labels with different colors on left and right */
+.ui.label.scope-parent {
+  background: none !important;
+  padding: 0 !important;
+  gap: 0 !important;
+}
+
+.ui.label.scope-parent > .ui.label {
+  margin: 0 !important; /* scoped label's margin is handled by the parent */
+}
+
+.ui.label.scope-left {
+  border-bottom-right-radius: 0;
+  border-top-right-radius: 0;
+}
+
+.ui.label.scope-middle {
+  border-radius: 0;
+}
+
+.ui.label.scope-right {
+  border-bottom-left-radius: 0;
+  border-top-left-radius: 0;
+}
+
+.ui.label.archived-label {
+  filter: grayscale(0.5);
+  opacity: 0.5;
 }

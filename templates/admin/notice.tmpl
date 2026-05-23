@@ -1,9 +1,9 @@
-{{template "admin/layout_head" (dict "ctxData" . "pageClass" "admin notice")}}
+{{template "admin/layout_head" (dict "pageClass" "admin notice")}}
 	<div class="admin-setting-content">
 		<h4 class="ui top attached header">
 			{{ctx.Locale.Tr "admin.notices.system_notice_list"}} ({{ctx.Locale.Tr "admin.total" .Total}})
 		</h4>
-		<table class="ui attached segment select selectable striped table unstackable g-table-auto-ellipsis">
+		<table class="ui attached segment select selectable table unstackable g-table-auto-ellipsis">
 			<thead>
 				<tr>
 					<th></th>
@@ -34,10 +34,9 @@
 							<th></th>
 							<th colspan="5">
 								<form class="tw-float-right" method="post" action="{{AppSubUrl}}/-/admin/notices/empty">
-									{{.CsrfTokenHtml}}
 									<button type="submit" class="ui red small button">{{ctx.Locale.Tr "admin.notices.delete_all"}}</button>
 								</form>
-								<div class="ui floating upward dropdown small button">{{/* TODO: Make this dropdown accessible */}}
+								<div class="ui floating upward dropdown small button">
 									<span class="text">{{ctx.Locale.Tr "admin.notices.operations"}}</span>
 									<div class="menu">
 										<div class="item select action" data-action="select-all">
@@ -51,7 +50,7 @@
 										</div>
 									</div>
 								</div>
-								<button class="ui small button" id="delete-selection" data-link="{{.Link}}/delete" data-redirect="?page={{.Page.Paginater.Current}}">
+								<button class="ui small button" id="delete-selection" data-link="{{.Link}}/delete">
 									<span class="text">{{ctx.Locale.Tr "admin.notices.delete_selected"}}</span>
 								</button>
 							</th>

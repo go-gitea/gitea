@@ -28,8 +28,8 @@ func Test_NewIssueUsers(t *testing.T) {
 	}
 
 	// artificially insert new issue
-	require.NoError(t, db.Insert(db.DefaultContext, newIssue))
-	require.NoError(t, issues_model.NewIssueUsers(db.DefaultContext, repo, newIssue))
+	require.NoError(t, db.Insert(t.Context(), newIssue))
+	require.NoError(t, issues_model.NewIssueUsers(t.Context(), repo, newIssue))
 
 	// issue_user table should now have entries for new issue
 	unittest.AssertExistsAndLoadBean(t, &issues_model.IssueUser{IssueID: newIssue.ID, UID: newIssue.PosterID})
@@ -40,13 +40,13 @@ func TestUpdateIssueUserByRead(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 	issue := unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{ID: 1})
 
-	assert.NoError(t, issues_model.UpdateIssueUserByRead(db.DefaultContext, 4, issue.ID))
+	assert.NoError(t, issues_model.UpdateIssueUserByRead(t.Context(), 4, issue.ID))
 	unittest.AssertExistsAndLoadBean(t, &issues_model.IssueUser{IssueID: issue.ID, UID: 4}, "is_read=1")
 
-	assert.NoError(t, issues_model.UpdateIssueUserByRead(db.DefaultContext, 4, issue.ID))
+	assert.NoError(t, issues_model.UpdateIssueUserByRead(t.Context(), 4, issue.ID))
 	unittest.AssertExistsAndLoadBean(t, &issues_model.IssueUser{IssueID: issue.ID, UID: 4}, "is_read=1")
 
-	assert.NoError(t, issues_model.UpdateIssueUserByRead(db.DefaultContext, unittest.NonexistentID, unittest.NonexistentID))
+	assert.NoError(t, issues_model.UpdateIssueUserByRead(t.Context(), unittest.NonexistentID, unittest.NonexistentID))
 }
 
 func TestUpdateIssueUsersByMentions(t *testing.T) {
@@ -54,7 +54,7 @@ func TestUpdateIssueUsersByMentions(t *testing.T) {
 	issue := unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{ID: 1})
 
 	uids := []int64{2, 5}
-	assert.NoError(t, issues_model.UpdateIssueUsersByMentions(db.DefaultContext, issue.ID, uids))
+	assert.NoError(t, issues_model.UpdateIssueUsersByMentions(t.Context(), issue.ID, uids))
 	for _, uid := range uids {
 		unittest.AssertExistsAndLoadBean(t, &issues_model.IssueUser{IssueID: issue.ID, UID: uid}, "is_mentioned=1")
 	}

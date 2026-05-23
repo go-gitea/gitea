@@ -36,8 +36,7 @@ func TestAPIAdminOrgCreate(t *testing.T) {
 			AddTokenAuth(token)
 		resp := MakeRequest(t, req, http.StatusCreated)
 
-		var apiOrg api.Organization
-		DecodeJSON(t, resp, &apiOrg)
+		apiOrg := DecodeJSON(t, resp, &api.Organization{})
 
 		assert.Equal(t, org.UserName, apiOrg.Name)
 		assert.Equal(t, org.FullName, apiOrg.FullName)

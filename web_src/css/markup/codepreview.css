@@ -5,6 +5,7 @@
 }
 
 .markup .code-preview-container .code-preview-header {
+  color: var(--color-text-light-1);
   border-bottom: 1px solid var(--color-secondary);
   padding: 0.5em;
   font-size: 12px;

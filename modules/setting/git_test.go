@@ -6,6 +6,8 @@ package setting
 import (
 	"testing"
 
+	"code.gitea.io/gitea/modules/test"
+
 	"github.com/stretchr/testify/assert"
 )
 
@@ -36,12 +38,8 @@ diff.algorithm = other
 }
 
 func TestGitReflog(t *testing.T) {
-	oldGit := Git
-	oldGitConfig := GitConfig
-	defer func() {
-		Git = oldGit
-		GitConfig = oldGitConfig
-	}()
+	defer test.MockVariableValue(&Git)
+	defer test.MockVariableValue(&GitConfig)
 
 	// default reflog config without legacy options
 	cfg, err := NewConfigProviderFromData(``)

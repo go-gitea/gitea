@@ -10,7 +10,6 @@ import (
 	"testing"
 
 	auth_model "code.gitea.io/gitea/models/auth"
-	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/models/organization"
 	"code.gitea.io/gitea/models/perm"
 	"code.gitea.io/gitea/models/repo"
@@ -38,11 +37,10 @@ func TestAPITeam(t *testing.T) {
 		AddTokenAuth(token)
 	resp := MakeRequest(t, req, http.StatusOK)
 
-	var apiTeam api.Team
-	DecodeJSON(t, resp, &apiTeam)
+	apiTeam := DecodeJSON(t, resp, &api.Team{})
 	assert.Equal(t, team.ID, apiTeam.ID)
 	assert.Equal(t, team.Name, apiTeam.Name)
-	assert.Equal(t, convert.ToOrganization(db.DefaultContext, org), apiTeam.Organization)
+	assert.Equal(t, convert.ToOrganization(t.Context(), org), apiTeam.Organization)
 
 	// non team member user will not access the teams details
 	teamUser2 := unittest.AssertExistsAndLoadBean(t, &organization.TeamUser{ID: 3})
@@ -75,12 +73,11 @@ func TestAPITeam(t *testing.T) {
 	req = NewRequestWithJSON(t, "POST", fmt.Sprintf("/api/v1/orgs/%s/teams", org.Name), teamToCreate).
 		AddTokenAuth(token)
 	resp = MakeRequest(t, req, http.StatusCreated)
-	apiTeam = api.Team{}
-	DecodeJSON(t, resp, &apiTeam)
-	checkTeamResponse(t, "CreateTeam1", &apiTeam, teamToCreate.Name, teamToCreate.Description, teamToCreate.IncludesAllRepositories,
-		"none", teamToCreate.Units, nil)
+	apiTeam = DecodeJSON(t, resp, &api.Team{})
+	checkTeamResponse(t, "CreateTeam1", apiTeam, teamToCreate.Name, teamToCreate.Description, teamToCreate.IncludesAllRepositories,
+		api.AccessLevelNameNone, teamToCreate.Units, nil)
 	checkTeamBean(t, apiTeam.ID, teamToCreate.Name, teamToCreate.Description, teamToCreate.IncludesAllRepositories,
-		"none", teamToCreate.Units, nil)
+		api.AccessLevelNameNone, teamToCreate.Units, nil)
 	teamID := apiTeam.ID
 
 	// Edit team.
@@ -97,12 +94,11 @@ func TestAPITeam(t *testing.T) {
 	req = NewRequestWithJSON(t, "PATCH", fmt.Sprintf("/api/v1/teams/%d", teamID), teamToEdit).
 		AddTokenAuth(token)
 	resp = MakeRequest(t, req, http.StatusOK)
-	apiTeam = api.Team{}
-	DecodeJSON(t, resp, &apiTeam)
-	checkTeamResponse(t, "EditTeam1", &apiTeam, teamToEdit.Name, *teamToEdit.Description, *teamToEdit.IncludesAllRepositories,
-		teamToEdit.Permission, unit.AllUnitKeyNames(), nil)
+	apiTeam = DecodeJSON(t, resp, &api.Team{})
+	checkTeamResponse(t, "EditTeam1", apiTeam, teamToEdit.Name, *teamToEdit.Description, *teamToEdit.IncludesAllRepositories,
+		api.AccessLevelName(teamToEdit.Permission), unit.AllUnitKeyNames(), nil)
 	checkTeamBean(t, apiTeam.ID, teamToEdit.Name, *teamToEdit.Description, *teamToEdit.IncludesAllRepositories,
-		teamToEdit.Permission, unit.AllUnitKeyNames(), nil)
+		api.AccessLevelName(teamToEdit.Permission), unit.AllUnitKeyNames(), nil)
 
 	// Edit team Description only
 	editDescription = "first team"
@@ -110,23 +106,21 @@ func TestAPITeam(t *testing.T) {
 	req = NewRequestWithJSON(t, "PATCH", fmt.Sprintf("/api/v1/teams/%d", teamID), teamToEditDesc).
 		AddTokenAuth(token)
 	resp = MakeRequest(t, req, http.StatusOK)
-	apiTeam = api.Team{}
-	DecodeJSON(t, resp, &apiTeam)
-	checkTeamResponse(t, "EditTeam1_DescOnly", &apiTeam, teamToEdit.Name, *teamToEditDesc.Description, *teamToEdit.IncludesAllRepositories,
-		teamToEdit.Permission, unit.AllUnitKeyNames(), nil)
+	apiTeam = DecodeJSON(t, resp, &api.Team{})
+	checkTeamResponse(t, "EditTeam1_DescOnly", apiTeam, teamToEdit.Name, *teamToEditDesc.Description, *teamToEdit.IncludesAllRepositories,
+		api.AccessLevelName(teamToEdit.Permission), unit.AllUnitKeyNames(), nil)
 	checkTeamBean(t, apiTeam.ID, teamToEdit.Name, *teamToEditDesc.Description, *teamToEdit.IncludesAllRepositories,
-		teamToEdit.Permission, unit.AllUnitKeyNames(), nil)
+		api.AccessLevelName(teamToEdit.Permission), unit.AllUnitKeyNames(), nil)
 
 	// Read team.
 	teamRead := unittest.AssertExistsAndLoadBean(t, &organization.Team{ID: teamID})
-	assert.NoError(t, teamRead.LoadUnits(db.DefaultContext))
+	assert.NoError(t, teamRead.LoadUnits(t.Context()))
 	req = NewRequestf(t, "GET", "/api/v1/teams/%d", teamID).
 		AddTokenAuth(token)
 	resp = MakeRequest(t, req, http.StatusOK)
-	apiTeam = api.Team{}
-	DecodeJSON(t, resp, &apiTeam)
-	checkTeamResponse(t, "ReadTeam1", &apiTeam, teamRead.Name, *teamToEditDesc.Description, teamRead.IncludesAllRepositories,
-		teamRead.AccessMode.ToString(), teamRead.GetUnitNames(), teamRead.GetUnitsMap())
+	apiTeam = DecodeJSON(t, resp, &api.Team{})
+	checkTeamResponse(t, "ReadTeam1", apiTeam, teamRead.Name, *teamToEditDesc.Description, teamRead.IncludesAllRepositories,
+		api.AccessLevelName(teamRead.AccessMode.ToString()), teamRead.GetUnitNames(), teamRead.GetUnitsMap())
 
 	// Delete team.
 	req = NewRequestf(t, "DELETE", "/api/v1/teams/%d", teamID).
@@ -146,12 +140,11 @@ func TestAPITeam(t *testing.T) {
 	req = NewRequestWithJSON(t, "POST", fmt.Sprintf("/api/v1/orgs/%s/teams", org.Name), teamToCreate).
 		AddTokenAuth(token)
 	resp = MakeRequest(t, req, http.StatusCreated)
-	apiTeam = api.Team{}
-	DecodeJSON(t, resp, &apiTeam)
-	checkTeamResponse(t, "CreateTeam2", &apiTeam, teamToCreate.Name, teamToCreate.Description, teamToCreate.IncludesAllRepositories,
-		"none", nil, teamToCreate.UnitsMap)
+	apiTeam = DecodeJSON(t, resp, &api.Team{})
+	checkTeamResponse(t, "CreateTeam2", apiTeam, teamToCreate.Name, teamToCreate.Description, teamToCreate.IncludesAllRepositories,
+		api.AccessLevelNameNone, nil, teamToCreate.UnitsMap)
 	checkTeamBean(t, apiTeam.ID, teamToCreate.Name, teamToCreate.Description, teamToCreate.IncludesAllRepositories,
-		"none", nil, teamToCreate.UnitsMap)
+		api.AccessLevelNameNone, nil, teamToCreate.UnitsMap)
 	teamID = apiTeam.ID
 
 	// Edit team.
@@ -168,12 +161,11 @@ func TestAPITeam(t *testing.T) {
 	req = NewRequestWithJSON(t, "PATCH", fmt.Sprintf("/api/v1/teams/%d", teamID), teamToEdit).
 		AddTokenAuth(token)
 	resp = MakeRequest(t, req, http.StatusOK)
-	apiTeam = api.Team{}
-	DecodeJSON(t, resp, &apiTeam)
-	checkTeamResponse(t, "EditTeam2", &apiTeam, teamToEdit.Name, *teamToEdit.Description, *teamToEdit.IncludesAllRepositories,
-		"none", nil, teamToEdit.UnitsMap)
+	apiTeam = DecodeJSON(t, resp, &api.Team{})
+	checkTeamResponse(t, "EditTeam2", apiTeam, teamToEdit.Name, *teamToEdit.Description, *teamToEdit.IncludesAllRepositories,
+		api.AccessLevelNameNone, nil, teamToEdit.UnitsMap)
 	checkTeamBean(t, apiTeam.ID, teamToEdit.Name, *teamToEdit.Description, *teamToEdit.IncludesAllRepositories,
-		"none", nil, teamToEdit.UnitsMap)
+		api.AccessLevelNameNone, nil, teamToEdit.UnitsMap)
 
 	// Edit team Description only
 	editDescription = "second team"
@@ -181,23 +173,21 @@ func TestAPITeam(t *testing.T) {
 	req = NewRequestWithJSON(t, "PATCH", fmt.Sprintf("/api/v1/teams/%d", teamID), teamToEditDesc).
 		AddTokenAuth(token)
 	resp = MakeRequest(t, req, http.StatusOK)
-	apiTeam = api.Team{}
-	DecodeJSON(t, resp, &apiTeam)
-	checkTeamResponse(t, "EditTeam2_DescOnly", &apiTeam, teamToEdit.Name, *teamToEditDesc.Description, *teamToEdit.IncludesAllRepositories,
-		"none", nil, teamToEdit.UnitsMap)
+	apiTeam = DecodeJSON(t, resp, &api.Team{})
+	checkTeamResponse(t, "EditTeam2_DescOnly", apiTeam, teamToEdit.Name, *teamToEditDesc.Description, *teamToEdit.IncludesAllRepositories,
+		api.AccessLevelNameNone, nil, teamToEdit.UnitsMap)
 	checkTeamBean(t, apiTeam.ID, teamToEdit.Name, *teamToEditDesc.Description, *teamToEdit.IncludesAllRepositories,
-		"none", nil, teamToEdit.UnitsMap)
+		api.AccessLevelNameNone, nil, teamToEdit.UnitsMap)
 
 	// Read team.
 	teamRead = unittest.AssertExistsAndLoadBean(t, &organization.Team{ID: teamID})
 	req = NewRequestf(t, "GET", "/api/v1/teams/%d", teamID).
 		AddTokenAuth(token)
 	resp = MakeRequest(t, req, http.StatusOK)
-	apiTeam = api.Team{}
-	DecodeJSON(t, resp, &apiTeam)
-	assert.NoError(t, teamRead.LoadUnits(db.DefaultContext))
-	checkTeamResponse(t, "ReadTeam2", &apiTeam, teamRead.Name, *teamToEditDesc.Description, teamRead.IncludesAllRepositories,
-		teamRead.AccessMode.ToString(), teamRead.GetUnitNames(), teamRead.GetUnitsMap())
+	apiTeam = DecodeJSON(t, resp, &api.Team{})
+	assert.NoError(t, teamRead.LoadUnits(t.Context()))
+	checkTeamResponse(t, "ReadTeam2", apiTeam, teamRead.Name, *teamToEditDesc.Description, teamRead.IncludesAllRepositories,
+		api.AccessLevelName(teamRead.AccessMode.ToString()), teamRead.GetUnitNames(), teamRead.GetUnitsMap())
 
 	// Delete team.
 	req = NewRequestf(t, "DELETE", "/api/v1/teams/%d", teamID).
@@ -215,8 +205,7 @@ func TestAPITeam(t *testing.T) {
 	req = NewRequestWithJSON(t, "POST", fmt.Sprintf("/api/v1/orgs/%s/teams", org.Name), teamToCreate).
 		AddTokenAuth(token)
 	resp = MakeRequest(t, req, http.StatusCreated)
-	apiTeam = api.Team{}
-	DecodeJSON(t, resp, &apiTeam)
+	apiTeam = DecodeJSON(t, resp, &api.Team{})
 	for _, ut := range unit.AllRepoUnitTypes {
 		up := perm.AccessModeAdmin
 		if ut == unit.TypeExternalTracker || ut == unit.TypeExternalWiki {
@@ -238,7 +227,7 @@ func TestAPITeam(t *testing.T) {
 	unittest.AssertNotExistsBean(t, &organization.Team{ID: teamID})
 }
 
-func checkTeamResponse(t *testing.T, testName string, apiTeam *api.Team, name, description string, includesAllRepositories bool, permission string, units []string, unitsMap map[string]string) {
+func checkTeamResponse(t *testing.T, testName string, apiTeam *api.Team, name, description string, includesAllRepositories bool, permission api.AccessLevelName, units []string, unitsMap map[string]string) {
 	t.Run(testName, func(t *testing.T) {
 		assert.Equal(t, name, apiTeam.Name, "name")
 		assert.Equal(t, description, apiTeam.Description, "description")
@@ -255,10 +244,10 @@ func checkTeamResponse(t *testing.T, testName string, apiTeam *api.Team, name, d
 	})
 }
 
-func checkTeamBean(t *testing.T, id int64, name, description string, includesAllRepositories bool, permission string, units []string, unitsMap map[string]string) {
+func checkTeamBean(t *testing.T, id int64, name, description string, includesAllRepositories bool, permission api.AccessLevelName, units []string, unitsMap map[string]string) {
 	team := unittest.AssertExistsAndLoadBean(t, &organization.Team{ID: id})
-	assert.NoError(t, team.LoadUnits(db.DefaultContext), "LoadUnits")
-	apiTeam, err := convert.ToTeam(db.DefaultContext, team)
+	assert.NoError(t, team.LoadUnits(t.Context()), "LoadUnits")
+	apiTeam, err := convert.ToTeam(t.Context(), team)
 	assert.NoError(t, err)
 	checkTeamResponse(t, fmt.Sprintf("checkTeamBean/%s_%s", name, description), apiTeam, name, description, includesAllRepositories, permission, units, unitsMap)
 }
@@ -274,13 +263,11 @@ func TestAPITeamSearch(t *testing.T) {
 	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
 	org := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 17})
 
-	var results TeamSearchResults
-
 	token := getUserToken(t, user.Name, auth_model.AccessTokenScopeReadOrganization)
 	req := NewRequestf(t, "GET", "/api/v1/orgs/%s/teams/search?q=%s", org.Name, "_team").
 		AddTokenAuth(token)
 	resp := MakeRequest(t, req, http.StatusOK)
-	DecodeJSON(t, resp, &results)
+	results := DecodeJSON(t, resp, &TeamSearchResults{})
 	assert.NotEmpty(t, results.Data)
 	assert.Len(t, results.Data, 1)
 	assert.Equal(t, "test_team", results.Data[0].Name)
@@ -301,13 +288,11 @@ func TestAPIGetTeamRepo(t *testing.T) {
 	teamRepo := unittest.AssertExistsAndLoadBean(t, &repo.Repository{ID: 24})
 	team := unittest.AssertExistsAndLoadBean(t, &organization.Team{ID: 5})
 
-	var results api.Repository
-
 	token := getUserToken(t, user.Name, auth_model.AccessTokenScopeReadOrganization)
 	req := NewRequestf(t, "GET", "/api/v1/teams/%d/repos/%s/", team.ID, teamRepo.FullName()).
 		AddTokenAuth(token)
 	resp := MakeRequest(t, req, http.StatusOK)
-	DecodeJSON(t, resp, &results)
+	DecodeJSON(t, resp, &api.Repository{})
 	assert.Equal(t, "big_test_private_4", teamRepo.Name)
 
 	// no access if not organization member

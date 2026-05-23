@@ -4,6 +4,7 @@
 package cmd
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"os"
@@ -11,11 +12,11 @@ import (
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/private"
 
-	"github.com/urfave/cli/v2"
+	"github.com/urfave/cli/v3"
 )
 
-var (
-	defaultLoggingFlags = []cli.Flag{
+func defaultLoggingFlags() []cli.Flag {
+	return []cli.Flag{
 		&cli.StringFlag{
 			Name:  "logger",
 			Usage: `Logger name - will default to "default"`,
@@ -56,11 +57,13 @@ var (
 			Name: "debug",
 		},
 	}
+}
 
-	subcmdLogging = &cli.Command{
+func newLoggingCommand() *cli.Command {
+	return &cli.Command{
 		Name:  "logging",
 		Usage: "Adjust logging commands",
-		Subcommands: []*cli.Command{
+		Commands: []*cli.Command{
 			{
 				Name:  "pause",
 				Usage: "Pause logging (Gitea will buffer logs up to a certain point and will drop them after that point)",
@@ -104,11 +107,11 @@ var (
 			}, {
 				Name:  "add",
 				Usage: "Add a logger",
-				Subcommands: []*cli.Command{
+				Commands: []*cli.Command{
 					{
 						Name:  "file",
 						Usage: "Add a file logger",
-						Flags: append(defaultLoggingFlags, []cli.Flag{
+						Flags: append(defaultLoggingFlags(), []cli.Flag{
 							&cli.StringFlag{
 								Name:    "filename",
 								Aliases: []string{"f"},
@@ -118,7 +121,6 @@ var (
 								Name:    "rotate",
 								Aliases: []string{"r"},
 								Usage:   "Rotate logs",
-								Value:   true,
 							},
 							&cli.Int64Flag{
 								Name:    "max-size",
@@ -129,7 +131,6 @@ var (
 								Name:    "daily",
 								Aliases: []string{"d"},
 								Usage:   "Rotate logs daily",
-								Value:   true,
 							},
 							&cli.IntFlag{
 								Name:    "max-days",
@@ -140,7 +141,6 @@ var (
 								Name:    "compress",
 								Aliases: []string{"z"},
 								Usage:   "Compress rotated logs",
-								Value:   true,
 							},
 							&cli.IntFlag{
 								Name:    "compression-level",
@@ -152,7 +152,7 @@ var (
 					}, {
 						Name:  "conn",
 						Usage: "Add a net conn logger",
-						Flags: append(defaultLoggingFlags, []cli.Flag{
+						Flags: append(defaultLoggingFlags(), []cli.Flag{
 							&cli.BoolFlag{
 								Name:    "reconnect-on-message",
 								Aliases: []string{"R"},
@@ -193,12 +193,9 @@ var (
 			},
 		},
 	}
-)
+}
 
-func runRemoveLogger(c *cli.Context) error {
-	ctx, cancel := installSignals()
-	defer cancel()
-
+func runRemoveLogger(ctx context.Context, c *cli.Command) error {
 	setup(ctx, c.Bool("debug"))
 	logger := c.String("logger")
 	if len(logger) == 0 {
@@ -210,10 +207,7 @@ func runRemoveLogger(c *cli.Context) error {
 	return handleCliResponseExtra(extra)
 }
 
-func runAddConnLogger(c *cli.Context) error {
-	ctx, cancel := installSignals()
-	defer cancel()
-
+func runAddConnLogger(ctx context.Context, c *cli.Command) error {
 	setup(ctx, c.Bool("debug"))
 	vals := map[string]any{}
 	mode := "conn"
@@ -237,13 +231,10 @@ func runAddConnLogger(c *cli.Context) error {
 	if c.IsSet("reconnect-on-message") {
 		vals["reconnectOnMsg"] = c.Bool("reconnect-on-message")
 	}
-	return commonAddLogger(c, mode, vals)
+	return commonAddLogger(ctx, c, mode, vals)
 }
 
-func runAddFileLogger(c *cli.Context) error {
-	ctx, cancel := installSignals()
-	defer cancel()
-
+func runAddFileLogger(ctx context.Context, c *cli.Command) error {
 	setup(ctx, c.Bool("debug"))
 	vals := map[string]any{}
 	mode := "file"
@@ -270,10 +261,10 @@ func runAddFileLogger(c *cli.Context) error {
 	if c.IsSet("compression-level") {
 		vals["compressionLevel"] = c.Int("compression-level")
 	}
-	return commonAddLogger(c, mode, vals)
+	return commonAddLogger(ctx, c, mode, vals)
 }
 
-func commonAddLogger(c *cli.Context, mode string, vals map[string]any) error {
+func commonAddLogger(ctx context.Context, c *cli.Command, mode string, vals map[string]any) error {
 	if len(c.String("level")) > 0 {
 		vals["level"] = log.LevelFromString(c.String("level")).String()
 	}
@@ -300,46 +291,33 @@ func commonAddLogger(c *cli.Context, mode string, vals map[string]any) error {
 	if c.IsSet("writer") {
 		writer = c.String("writer")
 	}
-	ctx, cancel := installSignals()
-	defer cancel()
 
 	extra := private.AddLogger(ctx, logger, writer, mode, vals)
 	return handleCliResponseExtra(extra)
 }
 
-func runPauseLogging(c *cli.Context) error {
-	ctx, cancel := installSignals()
-	defer cancel()
-
+func runPauseLogging(ctx context.Context, c *cli.Command) error {
 	setup(ctx, c.Bool("debug"))
 	userMsg := private.PauseLogging(ctx)
 	_, _ = fmt.Fprintln(os.Stdout, userMsg)
 	return nil
 }
 
-func runResumeLogging(c *cli.Context) error {
-	ctx, cancel := installSignals()
-	defer cancel()
-
+func runResumeLogging(ctx context.Context, c *cli.Command) error {
 	setup(ctx, c.Bool("debug"))
 	userMsg := private.ResumeLogging(ctx)
 	_, _ = fmt.Fprintln(os.Stdout, userMsg)
 	return nil
 }
 
-func runReleaseReopenLogging(c *cli.Context) error {
-	ctx, cancel := installSignals()
-	defer cancel()
-
+func runReleaseReopenLogging(ctx context.Context, c *cli.Command) error {
 	setup(ctx, c.Bool("debug"))
 	userMsg := private.ReleaseReopenLogging(ctx)
 	_, _ = fmt.Fprintln(os.Stdout, userMsg)
 	return nil
 }
 
-func runSetLogSQL(c *cli.Context) error {
-	ctx, cancel := installSignals()
-	defer cancel()
+func runSetLogSQL(ctx context.Context, c *cli.Command) error {
 	setup(ctx, c.Bool("debug"))
 
 	extra := private.SetLogSQL(ctx, !c.Bool("off"))

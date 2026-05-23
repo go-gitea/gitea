@@ -14,6 +14,9 @@ import (
 	"unicode"
 
 	issues_model "code.gitea.io/gitea/models/issues"
+	"code.gitea.io/gitea/models/renderhelper"
+	"code.gitea.io/gitea/models/repo"
+	"code.gitea.io/gitea/modules/charset"
 	"code.gitea.io/gitea/modules/emoji"
 	"code.gitea.io/gitea/modules/htmlutil"
 	"code.gitea.io/gitea/modules/log"
@@ -21,8 +24,10 @@ import (
 	"code.gitea.io/gitea/modules/markup/markdown"
 	"code.gitea.io/gitea/modules/reqctx"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/svg"
 	"code.gitea.io/gitea/modules/translation"
 	"code.gitea.io/gitea/modules/util"
+	"code.gitea.io/gitea/services/webtheme"
 )
 
 type RenderUtils struct {
@@ -34,25 +39,25 @@ func NewRenderUtils(ctx reqctx.RequestContext) *RenderUtils {
 }
 
 // RenderCommitMessage renders commit message with XSS-safe and special links.
-func (ut *RenderUtils) RenderCommitMessage(msg string, metas map[string]string) template.HTML {
-	cleanMsg := template.HTMLEscapeString(msg)
-	// we can safely assume that it will not return any error, since there
-	// shouldn't be any special HTML.
-	fullMessage, err := markup.PostProcessCommitMessage(markup.NewRenderContext(ut.ctx).WithMetas(metas), cleanMsg)
+func (ut *RenderUtils) RenderCommitMessage(msg string, repo *repo.Repository) template.HTML {
+	cleanMsg := template.HTML(template.HTMLEscapeString(msg))
+	// we can safely assume that it will not return any error, since there shouldn't be any special HTML.
+	// "repo" can be nil when rendering commit messages for deleted repositories in a user's dashboard feed.
+	fullMessage, err := markup.PostProcessCommitMessage(renderhelper.NewRenderContextRepoComment(ut.ctx, repo), cleanMsg)
 	if err != nil {
 		log.Error("PostProcessCommitMessage: %v", err)
 		return ""
 	}
-	msgLines := strings.Split(strings.TrimSpace(fullMessage), "\n")
+	msgLines := strings.Split(strings.TrimSpace(string(fullMessage)), "\n")
 	if len(msgLines) == 0 {
-		return template.HTML("")
+		return ""
 	}
 	return renderCodeBlock(template.HTML(msgLines[0]))
 }
 
 // RenderCommitMessageLinkSubject renders commit message as a XSS-safe link to
 // the provided default url, handling for special links without email to links.
-func (ut *RenderUtils) RenderCommitMessageLinkSubject(msg, urlDefault string, metas map[string]string) template.HTML {
+func (ut *RenderUtils) RenderCommitMessageLinkSubject(msg, urlDefault string, repo *repo.Repository) template.HTML {
 	msgLine := strings.TrimLeftFunc(msg, unicode.IsSpace)
 	lineEnd := strings.IndexByte(msgLine, '\n')
 	if lineEnd > 0 {
@@ -63,9 +68,8 @@ func (ut *RenderUtils) RenderCommitMessageLinkSubject(msg, urlDefault string, me
 		return ""
 	}
 
-	// we can safely assume that it will not return any error, since there
-	// shouldn't be any special HTML.
-	renderedMessage, err := markup.PostProcessCommitMessageSubject(markup.NewRenderContext(ut.ctx).WithMetas(metas), urlDefault, template.HTMLEscapeString(msgLine))
+	// we can safely assume that it will not return any error, since there shouldn't be any special HTML.
+	renderedMessage, err := markup.PostProcessCommitMessageSubject(renderhelper.NewRenderContextRepoComment(ut.ctx, repo), urlDefault, template.HTMLEscapeString(msgLine))
 	if err != nil {
 		log.Error("PostProcessCommitMessageSubject: %v", err)
 		return ""
@@ -74,25 +78,21 @@ func (ut *RenderUtils) RenderCommitMessageLinkSubject(msg, urlDefault string, me
 }
 
 // RenderCommitBody extracts the body of a commit message without its title.
-func (ut *RenderUtils) RenderCommitBody(msg string, metas map[string]string) template.HTML {
-	msgLine := strings.TrimSpace(msg)
-	lineEnd := strings.IndexByte(msgLine, '\n')
-	if lineEnd > 0 {
-		msgLine = msgLine[lineEnd+1:]
-	} else {
-		return ""
-	}
-	msgLine = strings.TrimLeftFunc(msgLine, unicode.IsSpace)
-	if len(msgLine) == 0 {
+func (ut *RenderUtils) RenderCommitBody(msg string, repo *repo.Repository) template.HTML {
+	_, body, _ := strings.Cut(strings.TrimSpace(msg), "\n")
+	body = strings.TrimFunc(body, unicode.IsSpace)
+	if body == "" {
 		return ""
 	}
 
-	renderedMessage, err := markup.PostProcessCommitMessage(markup.NewRenderContext(ut.ctx).WithMetas(metas), template.HTMLEscapeString(msgLine))
+	rctx := renderhelper.NewRenderContextRepoComment(ut.ctx, repo)
+	htmlContent := template.HTML(template.HTMLEscapeString(body))
+	renderedMessage, err := markup.PostProcessCommitMessage(rctx, htmlContent)
 	if err != nil {
 		log.Error("PostProcessCommitMessage: %v", err)
 		return ""
 	}
-	return template.HTML(renderedMessage)
+	return renderedMessage
 }
 
 // Match text that is between back ticks.
@@ -105,8 +105,8 @@ func renderCodeBlock(htmlEscapedTextToRender template.HTML) template.HTML {
 }
 
 // RenderIssueTitle renders issue/pull title with defined post processors
-func (ut *RenderUtils) RenderIssueTitle(text string, metas map[string]string) template.HTML {
-	renderedText, err := markup.PostProcessIssueTitle(markup.NewRenderContext(ut.ctx).WithMetas(metas), template.HTMLEscapeString(text))
+func (ut *RenderUtils) RenderIssueTitle(text string, repo *repo.Repository) template.HTML {
+	renderedText, err := markup.PostProcessIssueTitle(renderhelper.NewRenderContextRepoComment(ut.ctx, repo), template.HTMLEscapeString(text))
 	if err != nil {
 		log.Error("PostProcessIssueTitle: %v", err)
 		return ""
@@ -121,7 +121,6 @@ func (ut *RenderUtils) RenderIssueSimpleTitle(text string) template.HTML {
 	return ret
 }
 
-// RenderLabel renders a label
 func (ut *RenderUtils) RenderLabel(label *issues_model.Label) template.HTML {
 	locale := ut.ctx.Value(translation.ContextKey).(translation.Locale)
 	var extraCSSClasses string
@@ -136,7 +135,7 @@ func (ut *RenderUtils) RenderLabel(label *issues_model.Label) template.HTML {
 
 	if labelScope == "" {
 		// Regular label
-		return htmlutil.HTMLFormat(`<div class="ui label %s" style="color: %s !important; background-color: %s !important;" data-tooltip-content title="%s">%s</div>`,
+		return htmlutil.HTMLFormat(`<span class="ui label %s" style="color: %s !important; background-color: %s !important;" data-tooltip-content title="%s"><span class="gt-ellipsis">%s</span></span>`,
 			extraCSSClasses, textColor, label.Color, descriptionText, ut.RenderEmoji(label.Name))
 	}
 
@@ -151,7 +150,7 @@ func (ut *RenderUtils) RenderLabel(label *issues_model.Label) template.HTML {
 	// Ensure we add the same amount of contrast also near 0 and 1.
 	darken := contrast + math.Max(luminance+contrast-1.0, 0.0)
 	lighten := contrast + math.Max(contrast-luminance, 0.0)
-	// Compute factor to keep RGB values proportional.
+	// Compute the factor to keep RGB values proportional.
 	darkenFactor := math.Max(luminance-darken, 0.0) / math.Max(luminance, 1.0/255.0)
 	lightenFactor := math.Min(luminance+lighten, 1.0) / math.Max(luminance, 1.0/255.0)
 
@@ -190,8 +189,7 @@ func (ut *RenderUtils) RenderLabel(label *issues_model.Label) template.HTML {
 		`</span>`,
 		extraCSSClasses, descriptionText,
 		textColor, scopeColor, scopeHTML,
-		textColor, itemColor, itemHTML,
-	)
+		textColor, itemColor, itemHTML)
 }
 
 // RenderEmoji renders html text with emoji post processors
@@ -217,7 +215,7 @@ func reactionToEmoji(reaction string) template.HTML {
 	return template.HTML(fmt.Sprintf(`<img alt=":%s:" src="%s/assets/img/emoji/%s.png"></img>`, reaction, setting.StaticURLPrefix, url.PathEscape(reaction)))
 }
 
-func (ut *RenderUtils) MarkdownToHtml(input string) template.HTML { //nolint:revive
+func (ut *RenderUtils) MarkdownToHtml(input string) template.HTML { //nolint:revive // variable naming triggers on Html, wants HTML
 	output, err := markdown.RenderString(markup.NewRenderContext(ut.ctx).WithMetas(markup.ComposeSimpleDocumentMetas()), input)
 	if err != nil {
 		log.Error("RenderString: %v", err)
@@ -228,14 +226,82 @@ func (ut *RenderUtils) MarkdownToHtml(input string) template.HTML { //nolint:rev
 func (ut *RenderUtils) RenderLabels(labels []*issues_model.Label, repoLink string, issue *issues_model.Issue) template.HTML {
 	isPullRequest := issue != nil && issue.IsPull
 	baseLink := fmt.Sprintf("%s/%s", repoLink, util.Iif(isPullRequest, "pulls", "issues"))
-	htmlCode := `<span class="labels-list">`
+	var htmlCode htmlutil.HTMLBuilder
+	htmlCode.WriteHTML(`<span class="labels-list">`)
 	for _, label := range labels {
 		// Protect against nil value in labels - shouldn't happen but would cause a panic if so
 		if label == nil {
 			continue
 		}
-		htmlCode += fmt.Sprintf(`<a href="%s?labels=%d">%s</a>`, baseLink, label.ID, ut.RenderLabel(label))
+		htmlCode.WriteFormat(`<a class="item" href="%s?labels=%d">`, baseLink, label.ID)
+		htmlCode.WriteHTML(ut.RenderLabel(label))
+		htmlCode.WriteHTML("</a>")
 	}
-	htmlCode += "</span>"
-	return template.HTML(htmlCode)
+	htmlCode.WriteHTML("</span>")
+	return htmlCode.HTMLString()
+}
+
+func (ut *RenderUtils) RenderThemeItem(info *webtheme.ThemeMetaInfo, iconSize int) template.HTML {
+	svgName := "octicon-paintbrush"
+	switch info.ColorScheme {
+	case "dark":
+		svgName = "octicon-moon"
+	case "light":
+		svgName = "octicon-sun"
+	case "auto":
+		svgName = "gitea-eclipse"
+	}
+	icon := svg.RenderHTML(svgName, iconSize)
+	extraIcon := svg.RenderHTML(info.GetExtraIconName(), iconSize)
+	return htmlutil.HTMLFormat(`<div class="theme-menu-item" data-tooltip-content="%s">%s %s %s</div>`, info.GetDescription(), icon, info.DisplayName, extraIcon)
+}
+
+func (ut *RenderUtils) RenderFlashMessage(typ, msg string) template.HTML {
+	msg = strings.TrimSpace(msg)
+	if msg == "" {
+		return ""
+	}
+
+	cls := typ
+	// legacy logic: "negative" for error, "positive" for success
+	switch cls {
+	case "error":
+		cls = "negative"
+	case "success":
+		cls = "positive"
+	}
+
+	var msgContent template.HTML
+	if strings.Contains(msg, "</pre>") || strings.Contains(msg, "</details>") || strings.Contains(msg, "</ul>") || strings.Contains(msg, "</div>") {
+		// If the message contains some known "block" elements, no need to do more alignment or line-break processing, just sanitize it directly.
+		msgContent = sanitizeHTML(msg)
+	} else if !strings.Contains(msg, "\n") {
+		// If the message is a single line, center-align it by wrapping it
+		msgContent = htmlutil.HTMLFormat(`<div class="tw-text-center">%s</div>`, sanitizeHTML(msg))
+	} else {
+		// For a multi-line message, preserve line breaks, and left-align it.
+		msgContent = htmlutil.HTMLFormat(`%s`, sanitizeHTML(strings.ReplaceAll(msg, "\n", "<br>")))
+	}
+	return htmlutil.HTMLFormat(`<div class="ui %s message flash-message flash-%s">%s</div>`, cls, typ, msgContent)
+}
+
+func (ut *RenderUtils) RenderUnicodeEscapeToggleButton(escapeStatus *charset.EscapeStatus) template.HTML {
+	if escapeStatus == nil || !escapeStatus.Escaped {
+		return ""
+	}
+	locale := ut.ctx.Value(translation.ContextKey).(translation.Locale)
+	var title template.HTML
+	if escapeStatus.HasAmbiguous {
+		title += locale.Tr("repo.ambiguous_runes_line")
+	} else if escapeStatus.HasInvisible {
+		title += locale.Tr("repo.invisible_runes_line")
+	}
+	return htmlutil.HTMLFormat(`<button type="button" class="toggle-escape-button btn interact-bg" title="%s"></button>`, title)
+}
+
+func (ut *RenderUtils) RenderUnicodeEscapeToggleTd(combined, escapeStatus *charset.EscapeStatus) template.HTML {
+	if combined == nil || !combined.Escaped {
+		return ""
+	}
+	return `<td class="lines-escape">` + ut.RenderUnicodeEscapeToggleButton(escapeStatus) + `</td>`
 }

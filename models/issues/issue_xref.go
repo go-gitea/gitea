@@ -207,7 +207,7 @@ func (issue *Issue) verifyReferencedIssue(stdCtx context.Context, ctx *crossRefe
 
 	// Check doer permissions; set action to None if the doer can't change the destination
 	if refIssue.RepoID != ctx.OrigIssue.RepoID || ref.Action != references.XRefActionNone {
-		perm, err := access_model.GetUserRepoPermission(stdCtx, refIssue.Repo, ctx.Doer)
+		perm, err := access_model.GetDoerRepoPermission(stdCtx, refIssue.Repo, ctx.Doer)
 		if err != nil {
 			return nil, references.XRefActionNone, err
 		}
@@ -235,7 +235,7 @@ func (issue *Issue) verifyReferencedIssue(stdCtx context.Context, ctx *crossRefe
 
 // AddCrossReferences add cross references
 func (c *Comment) AddCrossReferences(stdCtx context.Context, doer *user_model.User, removeOld bool) error {
-	if c.Type != CommentTypeCode && c.Type != CommentTypeComment {
+	if !c.Type.HasContentSupport() {
 		return nil
 	}
 	if err := c.LoadIssue(stdCtx); err != nil {

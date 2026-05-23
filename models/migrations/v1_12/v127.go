@@ -1,17 +1,16 @@
 // Copyright 2020 The Gitea Authors. All rights reserved.
 // SPDX-License-Identifier: MIT
 
-package v1_12 //nolint
+package v1_12
 
 import (
 	"fmt"
 
+	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/modules/timeutil"
-
-	"xorm.io/xorm"
 )
 
-func AddLanguageStats(x *xorm.Engine) error {
+func AddLanguageStats(x db.EngineMigration) error {
 	// LanguageStat see models/repo_language_stats.go
 	type LanguageStat struct {
 		ID          int64 `xorm:"pk autoincr"`

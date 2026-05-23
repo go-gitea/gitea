@@ -1,17 +1,12 @@
 import {isObject} from '../utils.ts';
 import type {RequestOpts} from '../types.ts';
 
-const {csrfToken} = window.config;
-
-// safe HTTP methods that don't need a csrf token
-const safeMethods = new Set(['GET', 'HEAD', 'OPTIONS', 'TRACE']);
-
 // fetch wrapper, use below method name functions and the `data` option to pass in data
-// which will automatically set an appropriate headers. For json content, only object
+// which will automatically set an appropriate headers. For JSON content, only object
 // and array types are currently supported.
 export function request(url: string, {method = 'GET', data, headers = {}, ...other}: RequestOpts = {}): Promise<Response> {
-  let body: string | FormData | URLSearchParams;
-  let contentType: string;
+  let body: string | FormData | URLSearchParams | undefined;
+  let contentType: string | undefined;
   if (data instanceof FormData || data instanceof URLSearchParams) {
     body = data;
   } else if (isObject(data) || Array.isArray(data)) {
@@ -19,18 +14,13 @@ export function request(url: string, {method = 'GET', data, headers = {}, ...oth
     body = JSON.stringify(data);
   }
 
-  const headersMerged = new Headers({
-    ...(!safeMethods.has(method) && {'x-csrf-token': csrfToken}),
-    ...(contentType && {'content-type': contentType}),
-  });
-
-  for (const [name, value] of Object.entries(headers)) {
-    headersMerged.set(name, value);
+  headers = new Headers(headers);
+  if (!headers.has('content-type') && contentType) {
+    headers.set('content-type', contentType);
   }
-
-  return fetch(url, {
+  return fetch(url, { // eslint-disable-line no-restricted-globals
     method,
-    headers: headersMerged,
+    headers,
     ...other,
     ...(body && {body}),
   });

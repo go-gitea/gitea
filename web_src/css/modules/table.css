@@ -167,6 +167,11 @@
   text-overflow: ellipsis;
 }
 
+.ui.selectable.table > tbody > tr:hover,
+.ui.table tbody tr td.selectable:hover {
+  background: var(--color-hover);
+}
+
 .ui.attached.table {
   top: 0;
   bottom: 0;
@@ -189,11 +194,6 @@
 }
 .ui[class*="bottom attached"].table:last-child {
   margin-bottom: 0;
-}
-
-.ui.striped.table > tr:nth-child(2n),
-.ui.striped.table > tbody > tr:nth-child(2n) {
-  background: var(--color-light);
 }
 
 .ui.table[class*="single line"],
@@ -226,17 +226,9 @@
 .ui.table td.six.wide {
   width: 37.5%;
 }
-.ui.table th.seven.wide,
-.ui.table td.seven.wide {
-  width: 43.75%;
-}
 .ui.table th.eight.wide,
 .ui.table td.eight.wide {
   width: 50%;
-}
-.ui.table th.nine.wide,
-.ui.table td.nine.wide {
-  width: 56.25%;
 }
 .ui.table th.ten.wide,
 .ui.table td.ten.wide {
@@ -245,26 +237,6 @@
 .ui.table th.eleven.wide,
 .ui.table td.eleven.wide {
   width: 68.75%;
-}
-.ui.table th.twelve.wide,
-.ui.table td.twelve.wide {
-  width: 75%;
-}
-.ui.table th.thirteen.wide,
-.ui.table td.thirteen.wide {
-  width: 81.25%;
-}
-.ui.table th.fourteen.wide,
-.ui.table td.fourteen.wide {
-  width: 87.5%;
-}
-.ui.table th.fifteen.wide,
-.ui.table td.fifteen.wide {
-  width: 93.75%;
-}
-.ui.table th.sixteen.wide,
-.ui.table td.sixteen.wide {
-  width: 100%;
 }
 
 .ui.basic.table {
@@ -286,33 +258,9 @@
 .ui.basic.table > tr > td {
   background: transparent;
 }
-.ui.basic.striped.table > tbody > tr:nth-child(2n) {
-  background: var(--color-light);
-}
 
 .ui[class*="very basic"].table {
   border: none;
-}
-.ui[class*="very basic"].table:not(.striped) > tr > th:first-child,
-.ui[class*="very basic"].table:not(.striped) > thead > tr > th:first-child,
-.ui[class*="very basic"].table:not(.striped) > tbody > tr > th:first-child,
-.ui[class*="very basic"].table:not(.striped) > tfoot > tr > th:first-child,
-.ui[class*="very basic"].table:not(.striped) > tr > td:first-child,
-.ui[class*="very basic"].table:not(.striped) > tbody > tr > td:first-child,
-.ui[class*="very basic"].table:not(.striped) > tfoot > tr > td:first-child {
-  padding-left: 0;
-}
-.ui[class*="very basic"].table:not(.striped) > tr > th:last-child,
-.ui[class*="very basic"].table:not(.striped) > thead > tr > th:last-child,
-.ui[class*="very basic"].table:not(.striped) > tbody > tr > th:last-child,
-.ui[class*="very basic"].table:not(.striped) > tfoot > tr > th:last-child,
-.ui[class*="very basic"].table:not(.striped) > tr > td:last-child,
-.ui[class*="very basic"].table:not(.striped) > tbody > tr > td:last-child,
-.ui[class*="very basic"].table:not(.striped) > tfoot > tr > td:last-child {
-  padding-right: 0;
-}
-.ui[class*="very basic"].table:not(.striped) > thead > tr:first-child > th {
-  padding-top: 0;
 }
 
 .ui.celled.table > tr > th,

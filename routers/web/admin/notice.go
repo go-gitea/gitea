@@ -26,10 +26,7 @@ func Notices(ctx *context.Context) {
 	ctx.Data["PageIsAdminNotices"] = true
 
 	total := system_model.CountNotices(ctx)
-	page := ctx.FormInt("page")
-	if page <= 1 {
-		page = 1
-	}
+	page := max(ctx.FormInt("page"), 1)
 
 	notices, err := system_model.Notices(ctx, page, setting.UI.Admin.NoticePagingNum)
 	if err != nil {
@@ -40,7 +37,7 @@ func Notices(ctx *context.Context) {
 
 	ctx.Data["Total"] = total
 
-	ctx.Data["Page"] = context.NewPagination(int(total), setting.UI.Admin.NoticePagingNum, page, 5)
+	ctx.Data["Page"] = context.NewPagination(total, setting.UI.Admin.NoticePagingNum, page, 5)
 
 	ctx.HTML(http.StatusOK, tplNotices)
 }

@@ -1,13 +1,11 @@
 // Copyright 2022 The Gitea Authors. All rights reserved.
 // SPDX-License-Identifier: MIT
 
-package v1_19 //nolint
+package v1_19
 
-import (
-	"xorm.io/xorm"
-)
+import "code.gitea.io/gitea/models/db"
 
-func AddIndexForHookTask(x *xorm.Engine) error {
+func AddIndexForHookTask(x db.EngineMigration) error {
 	type HookTask struct {
 		ID     int64  `xorm:"pk autoincr"`
 		HookID int64  `xorm:"index"`

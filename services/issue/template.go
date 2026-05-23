@@ -5,7 +5,6 @@ package issue
 
 import (
 	"fmt"
-	"io"
 	"net/url"
 	"path"
 	"strings"
@@ -15,6 +14,7 @@ import (
 	"code.gitea.io/gitea/modules/issue/template"
 	"code.gitea.io/gitea/modules/log"
 	api "code.gitea.io/gitea/modules/structs"
+	"code.gitea.io/gitea/modules/util"
 
 	"gopkg.in/yaml.v3"
 )
@@ -65,7 +65,7 @@ func GetTemplateConfig(gitRepo *git.Repository, path string, commit *git.Commit)
 
 	defer reader.Close()
 
-	configContent, err := io.ReadAll(reader)
+	configContent, err := util.ReadWithLimit(reader, 1024*1024)
 	if err != nil {
 		return GetDefaultTemplateConfig(), err
 	}

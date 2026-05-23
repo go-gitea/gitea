@@ -212,7 +212,7 @@ func EventFormatTextMessage(mode *WriterMode, event *Event, msgFormat string, ms
 			}
 		}
 		if hasColorValue {
-			msg = []byte(fmt.Sprintf(msgFormat, msgArgs...))
+			msg = fmt.Appendf(nil, msgFormat, msgArgs...)
 		}
 	}
 	// try to re-use the pre-formatted simple text message
@@ -243,8 +243,8 @@ func EventFormatTextMessage(mode *WriterMode, event *Event, msgFormat string, ms
 	buf = append(buf, msg...)
 
 	if event.Stacktrace != "" && mode.StacktraceLevel <= event.Level {
-		lines := bytes.Split([]byte(event.Stacktrace), []byte("\n"))
-		for _, line := range lines {
+		lines := bytes.SplitSeq([]byte(event.Stacktrace), []byte("\n"))
+		for line := range lines {
 			buf = append(buf, "\n\t"...)
 			buf = append(buf, line...)
 		}

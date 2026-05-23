@@ -25,6 +25,7 @@ import (
 	"code.gitea.io/gitea/modules/optional"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/util"
+	"code.gitea.io/gitea/routers/common"
 	"code.gitea.io/gitea/routers/web/shared/issue"
 	shared_user "code.gitea.io/gitea/routers/web/shared/user"
 	"code.gitea.io/gitea/services/context"
@@ -37,6 +38,14 @@ func retrieveProjectsForIssueList(ctx *context.Context, repo *repo_model.Reposit
 	ctx.Data["OpenProjects"], ctx.Data["ClosedProjects"] = retrieveProjectsInternal(ctx, repo)
 }
 
+// parseProjectIDsFromQuery parses the comma-separated `project` (preferred) or `projects`
+// query parameter into a slice of int64 IDs.
+func parseProjectIDsFromQuery(ctx *context.Context) []int64 {
+	// FIXME: ISSUE-MULTIPLE-PROJECTS-FILTER: no multiple project filter support yet
+	// Although here parses the project parameter as a slice, the "search" logic is wrong
+	return ctx.FormStringInt64s("project")
+}
+
 // SearchIssues searches for issues across the repositories that the user has access to
 func SearchIssues(ctx *context.Context) {
 	before, since, err := context.GetQueryBeforeSince(ctx.Base)
@@ -45,15 +54,7 @@ func SearchIssues(ctx *context.Context) {
 		return
 	}
 
-	var isClosed optional.Option[bool]
-	switch ctx.FormString("state") {
-	case "closed":
-		isClosed = optional.Some(true)
-	case "all":
-		isClosed = optional.None[bool]()
-	default:
-		isClosed = optional.Some(false)
-	}
+	isClosed := common.ParseIssueFilterStateIsClosed(ctx.FormString("state"))
 
 	var (
 		repoIDs   []int64
@@ -61,7 +62,7 @@ func SearchIssues(ctx *context.Context) {
 	)
 	{
 		// find repos user can access (for issue search)
-		opts := &repo_model.SearchRepoOptions{
+		opts := repo_model.SearchRepoOptions{
 			Private:     false,
 			AllPublic:   true,
 			TopicOnly:   false,
@@ -163,10 +164,7 @@ func SearchIssues(ctx *context.Context) {
 		}
 	}
 
-	projectID := optional.None[int64]()
-	if v := ctx.FormInt64("project"); v > 0 {
-		projectID = optional.Some(v)
-	}
+	includedProjectIDs := parseProjectIDsFromQuery(ctx)
 
 	// this api is also used in UI,
 	// so the default limit is set to fit UI needs
@@ -189,7 +187,7 @@ func SearchIssues(ctx *context.Context) {
 		IsClosed:            isClosed,
 		IncludedAnyLabelIDs: includedAnyLabels,
 		MilestoneIDs:        includedMilestones,
-		ProjectID:           projectID,
+		ProjectIDs:          includedProjectIDs,
 		SortBy:              issue_indexer.SortByCreatedDesc,
 	}
 
@@ -268,15 +266,7 @@ func SearchRepoIssuesJSON(ctx *context.Context) {
 		return
 	}
 
-	var isClosed optional.Option[bool]
-	switch ctx.FormString("state") {
-	case "closed":
-		isClosed = optional.Some(true)
-	case "all":
-		isClosed = optional.None[bool]()
-	default:
-		isClosed = optional.Some(false)
-	}
+	isClosed := common.ParseIssueFilterStateIsClosed(ctx.FormString("state"))
 
 	keyword := ctx.FormTrim("q")
 	if strings.IndexByte(keyword, 0) >= 0 {
@@ -313,11 +303,6 @@ func SearchRepoIssuesJSON(ctx *context.Context) {
 		}
 	}
 
-	projectID := optional.None[int64]()
-	if v := ctx.FormInt64("project"); v > 0 {
-		projectID = optional.Some(v)
-	}
-
 	isPull := optional.None[bool]()
 	switch ctx.FormString("type") {
 	case "pulls":
@@ -345,13 +330,20 @@ func SearchRepoIssuesJSON(ctx *context.Context) {
 			Page:     ctx.FormInt("page"),
 			PageSize: convert.ToCorrectPageSize(ctx.FormInt("limit")),
 		},
-		Keyword:   keyword,
-		RepoIDs:   []int64{ctx.Repo.Repository.ID},
-		IsPull:    isPull,
-		IsClosed:  isClosed,
-		ProjectID: projectID,
-		SortBy:    issue_indexer.SortByCreatedDesc,
+		Keyword:  keyword,
+		RepoIDs:  []int64{ctx.Repo.Repository.ID},
+		IsPull:   isPull,
+		IsClosed: isClosed,
+		SortBy:   issue_indexer.SortByCreatedDesc,
 	}
+
+	projectIDs := parseProjectIDsFromQuery(ctx)
+	if len(projectIDs) == 1 && projectIDs[0] == -1 {
+		searchOpt.NoProjectOnly = true
+	} else if len(projectIDs) > 0 {
+		searchOpt.ProjectIDs = projectIDs
+	}
+
 	if since != 0 {
 		searchOpt.UpdatedAfterUnix = optional.Some(since)
 	}
@@ -398,7 +390,7 @@ func BatchDeleteIssues(ctx *context.Context) {
 		return
 	}
 	for _, issue := range issues {
-		if err := issue_service.DeleteIssue(ctx, ctx.Doer, ctx.Repo.GitRepo, issue); err != nil {
+		if err := issue_service.DeleteIssue(ctx, ctx.Doer, issue); err != nil {
 			ctx.ServerError("DeleteIssue", err)
 			return
 		}
@@ -477,19 +469,12 @@ func renderMilestones(ctx *context.Context) {
 		return
 	}
 
-	openMilestones, closedMilestones := issues_model.MilestoneList{}, issues_model.MilestoneList{}
-	for _, milestone := range milestones {
-		if milestone.IsClosed {
-			closedMilestones = append(closedMilestones, milestone)
-		} else {
-			openMilestones = append(openMilestones, milestone)
-		}
-	}
+	openMilestones, closedMilestones := issues_model.MilestoneList(milestones).SplitByOpenClosed()
 	ctx.Data["OpenMilestones"] = openMilestones
 	ctx.Data["ClosedMilestones"] = closedMilestones
 }
 
-func prepareIssueFilterAndList(ctx *context.Context, milestoneID, projectID int64, isPullOption optional.Option[bool]) {
+func prepareIssueFilterAndList(ctx *context.Context, milestoneID int64, projectIDs []int64, isPullOption optional.Option[bool]) {
 	var err error
 	viewType := ctx.FormString("type")
 	sortType := ctx.FormString("sort")
@@ -542,7 +527,7 @@ func prepareIssueFilterAndList(ctx *context.Context, milestoneID, projectID int6
 		RepoIDs:           []int64{repo.ID},
 		LabelIDs:          preparedLabelFilter.SelectedLabelIDs,
 		MilestoneIDs:      mileIDs,
-		ProjectID:         projectID,
+		ProjectIDs:        projectIDs,
 		AssigneeID:        assigneeID,
 		MentionedID:       mentionedID,
 		PosterID:          posterUserID,
@@ -551,6 +536,7 @@ func prepareIssueFilterAndList(ctx *context.Context, milestoneID, projectID int6
 		IsPull:            isPullOption,
 		IssueIDs:          nil,
 	}
+
 	if keyword != "" {
 		keywordMatchedIssueIDs, _, err = issue_indexer.SearchIssues(ctx, issue_indexer.ToSearchOptions(keyword, statsOpts))
 		if err != nil {
@@ -580,17 +566,10 @@ func prepareIssueFilterAndList(ctx *context.Context, milestoneID, projectID int6
 		}
 	}
 
-	var isShowClosed optional.Option[bool]
-	switch ctx.FormString("state") {
-	case "closed":
-		isShowClosed = optional.Some(true)
-	case "all":
-		isShowClosed = optional.None[bool]()
-	default:
-		isShowClosed = optional.Some(false)
-	}
+	isShowClosed := common.ParseIssueFilterStateIsClosed(ctx.FormString("state"))
+
 	// if there are closed issues and no open issues, default to showing all issues
-	if len(ctx.FormString("state")) == 0 && issueStats.OpenCount == 0 && issueStats.ClosedCount != 0 {
+	if ctx.FormString("state") == "" && issueStats.OpenCount == 0 && issueStats.ClosedCount != 0 {
 		isShowClosed = optional.None[bool]()
 	}
 
@@ -604,9 +583,9 @@ func prepareIssueFilterAndList(ctx *context.Context, milestoneID, projectID int6
 	}
 
 	// prepare pager
-	total := int(issueStats.OpenCount + issueStats.ClosedCount)
+	total := issueStats.OpenCount + issueStats.ClosedCount
 	if isShowClosed.Has() {
-		total = util.Iif(isShowClosed.Value(), int(issueStats.ClosedCount), int(issueStats.OpenCount))
+		total = util.Iif(isShowClosed.Value(), issueStats.ClosedCount, issueStats.OpenCount)
 	}
 	page := max(ctx.FormInt("page"), 1)
 	pager := context.NewPagination(total, setting.UI.IssuePagingNum, page, 5)
@@ -629,7 +608,7 @@ func prepareIssueFilterAndList(ctx *context.Context, milestoneID, projectID int6
 			ReviewRequestedID: reviewRequestedID,
 			ReviewedID:        reviewedID,
 			MilestoneIDs:      mileIDs,
-			ProjectID:         projectID,
+			ProjectIDs:        projectIDs,
 			IsClosed:          isShowClosed,
 			IsPull:            isPullOption,
 			LabelIDs:          preparedLabelFilter.SelectedLabelIDs,
@@ -670,7 +649,7 @@ func prepareIssueFilterAndList(ctx *context.Context, milestoneID, projectID int6
 		ctx.ServerError("GetIssuesAllCommitStatus", err)
 		return
 	}
-	if !ctx.Repo.CanRead(unit.TypeActions) {
+	if !ctx.Repo.Permission.CanRead(unit.TypeActions) {
 		for key := range commitStatuses {
 			git_model.CommitStatusesHideActionsURL(ctx, commitStatuses[key])
 		}
@@ -691,10 +670,7 @@ func prepareIssueFilterAndList(ctx *context.Context, milestoneID, projectID int6
 		ctx.ServerError("GetRepoAssignees", err)
 		return
 	}
-	handleMentionableAssigneesAndTeams(ctx, shared_user.MakeSelfOnTop(ctx.Doer, assigneeUsers))
-	if ctx.Written() {
-		return
-	}
+	ctx.Data["Assignees"] = shared_user.MakeSelfOnTop(ctx.Doer, assigneeUsers)
 
 	ctx.Data["IssueRefEndNames"], ctx.Data["IssueRefURLs"] = issue_service.GetRefEndNamesAndURLs(issues, ctx.Repo.RepoLink)
 
@@ -732,7 +708,7 @@ func prepareIssueFilterAndList(ctx *context.Context, milestoneID, projectID int6
 	showArchivedLabels := ctx.FormBool("archived_labels")
 	ctx.Data["ShowArchivedLabels"] = showArchivedLabels
 	ctx.Data["PinnedIssues"] = pinned
-	ctx.Data["IsRepoAdmin"] = ctx.IsSigned && (ctx.Repo.IsAdmin() || ctx.Doer.IsAdmin)
+	ctx.Data["IsRepoAdmin"] = ctx.IsSigned && (ctx.Repo.Permission.IsAdmin() || ctx.Doer.IsAdmin)
 	ctx.Data["IssueStats"] = issueStats
 	ctx.Data["OpenCount"] = issueStats.OpenCount
 	ctx.Data["ClosedCount"] = issueStats.ClosedCount
@@ -740,7 +716,7 @@ func prepareIssueFilterAndList(ctx *context.Context, milestoneID, projectID int6
 	ctx.Data["ViewType"] = viewType
 	ctx.Data["SortType"] = sortType
 	ctx.Data["MilestoneID"] = milestoneID
-	ctx.Data["ProjectID"] = projectID
+	ctx.Data["ProjectIDs"] = projectIDs
 	ctx.Data["AssigneeID"] = assigneeID
 	ctx.Data["PosterUsername"] = posterUsername
 	ctx.Data["Keyword"] = keyword
@@ -767,6 +743,10 @@ func Issues(ctx *context.Context) {
 		}
 		ctx.Data["Title"] = ctx.Tr("repo.pulls")
 		ctx.Data["PageIsPullList"] = true
+		prepareRecentlyPushedNewBranches(ctx)
+		if ctx.Written() {
+			return
+		}
 	} else {
 		MustEnableIssues(ctx)
 		if ctx.Written() {
@@ -777,7 +757,9 @@ func Issues(ctx *context.Context) {
 		ctx.Data["NewIssueChooseTemplate"] = issue_service.HasTemplatesOrContactLinks(ctx.Repo.Repository, ctx.Repo.GitRepo)
 	}
 
-	prepareIssueFilterAndList(ctx, ctx.FormInt64("milestone"), ctx.FormInt64("project"), optional.Some(isPullList))
+	projectIDs := parseProjectIDsFromQuery(ctx)
+
+	prepareIssueFilterAndList(ctx, ctx.FormInt64("milestone"), projectIDs, optional.Some(isPullList))
 	if ctx.Written() {
 		return
 	}
@@ -787,7 +769,7 @@ func Issues(ctx *context.Context) {
 		return
 	}
 
-	ctx.Data["CanWriteIssuesOrPulls"] = ctx.Repo.CanWriteIssuesOrPulls(isPullList)
+	ctx.Data["CanWriteIssuesOrPulls"] = ctx.Repo.Permission.CanWriteIssuesOrPulls(isPullList)
 
 	ctx.HTML(http.StatusOK, tplIssues)
 }

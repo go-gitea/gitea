@@ -1,11 +1,11 @@
-{{template "admin/layout_head" (dict "ctxData" . "pageClass" "admin monitor")}}
+{{template "admin/layout_head" (dict "pageClass" "admin monitor")}}
 <div class="admin-setting-content">
 	<h4 class="ui top attached header">
 		{{ctx.Locale.Tr "admin.monitor.cron"}}
 	</h4>
 	<div class="ui attached table segment">
 		<form method="post" action="{{AppSubUrl}}/-/admin">
-			<table class="ui very basic striped table unstackable tw-mb-0">
+			<table class="ui very basic table unstackable tw-mb-0">
 				<thead>
 					<tr>
 						<th></th>
@@ -32,7 +32,6 @@
 				</tbody>
 			</table>
 			<input type="hidden" name="from" value="monitor">
-			{{.CsrfTokenHtml}}
 		</form>
 	</div>
 </div>

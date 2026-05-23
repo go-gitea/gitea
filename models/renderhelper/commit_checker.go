@@ -47,7 +47,7 @@ func (c *commitChecker) IsCommitIDExisting(commitID string) bool {
 		c.gitRepo, c.gitRepoCloser = r, closer
 	}
 
-	exist = c.gitRepo.IsReferenceExist(commitID) // Don't use IsObjectExist since it doesn't support short hashs with gogit edition.
+	exist = c.gitRepo.IsReferenceExist(commitID) // Don't use IsObjectExist since it doesn't support short hashes with gogit edition.
 	c.commitCache[commitID] = exist
 	return exist
 }

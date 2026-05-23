@@ -54,6 +54,10 @@ func isAlphanumeric(b byte) bool {
 	return (b >= 'a' && b <= 'z') || (b >= 'A' && b <= 'Z') || (b >= '0' && b <= '9')
 }
 
+func isInMarkdownLinkText(block text.Reader, lineAfter []byte) bool {
+	return block.PrecendingCharacter() == '[' && bytes.HasPrefix(lineAfter, []byte("]("))
+}
+
 // Parse parses the current line and returns a result of parsing.
 func (parser *inlineParser) Parse(parent ast.Node, block text.Reader, pc parser.Context) ast.Node {
 	line, _ := block.PeekLine()
@@ -115,7 +119,9 @@ func (parser *inlineParser) Parse(parent ast.Node, block text.Reader, pc parser.
 			}
 			// check valid ending character
 			isValidEndingChar := isPunctuation(succeedingCharacter) || isParenthesesClose(succeedingCharacter) ||
-				succeedingCharacter == ' ' || succeedingCharacter == '\n' || succeedingCharacter == 0
+				succeedingCharacter == ' ' || succeedingCharacter == '\n' || succeedingCharacter == 0 ||
+				succeedingCharacter == '$' ||
+				isInMarkdownLinkText(block, line[i+len(stopMark):])
 			if checkSurrounding && !isValidEndingChar {
 				break
 			}

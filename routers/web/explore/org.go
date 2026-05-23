@@ -22,7 +22,7 @@ func Organizations(ctx *context.Context) {
 
 	ctx.Data["UsersPageIsDisabled"] = setting.Service.Explore.DisableUsersPage
 	ctx.Data["CodePageIsDisabled"] = setting.Service.Explore.DisableCodePage
-	ctx.Data["Title"] = ctx.Tr("explore")
+	ctx.Data["Title"] = ctx.Tr("explore_title")
 	ctx.Data["PageIsExplore"] = true
 	ctx.Data["PageIsExploreOrganizations"] = true
 	ctx.Data["IsRepoIndexerEnabled"] = setting.Indexer.RepoIndexerEnabled
@@ -44,9 +44,9 @@ func Organizations(ctx *context.Context) {
 		ctx.SetFormString("sort", sortOrder)
 	}
 
-	RenderUserSearch(ctx, &user_model.SearchUserOptions{
+	RenderUserSearch(ctx, user_model.SearchUserOptions{
 		Actor:       ctx.Doer,
-		Type:        user_model.UserTypeOrganization,
+		Types:       []user_model.UserType{user_model.UserTypeOrganization},
 		ListOptions: db.ListOptions{PageSize: setting.UI.ExplorePagingNum},
 		Visible:     visibleTypes,
 

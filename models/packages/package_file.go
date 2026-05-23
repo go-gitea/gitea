@@ -68,7 +68,7 @@ func TryInsertFile(ctx context.Context, pf *PackageFile) (*PackageFile, error) {
 // GetFilesByVersionID gets all files of a version
 func GetFilesByVersionID(ctx context.Context, versionID int64) ([]*PackageFile, error) {
 	pfs := make([]*PackageFile, 0, 10)
-	return pfs, db.GetEngine(ctx).Where("version_id = ?", versionID).Find(&pfs)
+	return pfs, db.GetEngine(ctx).Where("version_id = ?", versionID).OrderBy("lower_name, created_unix, id").Find(&pfs)
 }
 
 // GetFileForVersionByID gets a file of a version by id
@@ -112,6 +112,25 @@ func GetFileForVersionByName(ctx context.Context, versionID int64, name, key str
 // DeleteFileByID deletes a file
 func DeleteFileByID(ctx context.Context, fileID int64) error {
 	_, err := db.GetEngine(ctx).ID(fileID).Delete(&PackageFile{})
+	return err
+}
+
+// DeleteFilesByPackageID deletes all files of a specific package
+// Versions must not be deleted prior to this call
+func DeleteFilesByPackageID(ctx context.Context, packageID int64) error {
+	deleteStmt := builder.Delete(builder.In("version_id", builder.Select("package_version.id").From("package_version").Where(builder.Eq{"package_id": packageID}))).From("package_file")
+	_, err := db.GetEngine(ctx).Exec(deleteStmt)
+	return err
+}
+
+// DeleteFilesByVersionID deletes all files of a specific version
+func DeleteFilesByVersionID(ctx context.Context, versionID int64) error {
+	_, err := db.GetEngine(ctx).Where("version_id = ?", versionID).Delete(&PackageFile{})
+	return err
+}
+
+func UpdateFile(ctx context.Context, pf *PackageFile, cols []string) error {
+	_, err := db.GetEngine(ctx).ID(pf.ID).Cols(cols...).Update(pf)
 	return err
 }
 
@@ -213,7 +232,7 @@ func SearchFiles(ctx context.Context, opts *PackageFileSearchOptions) ([]*Packag
 		Where(opts.toConds())
 
 	if opts.Paginator != nil {
-		sess = db.SetSessionPagination(sess, opts)
+		db.SetSessionPagination(sess, opts)
 	}
 
 	pfs := make([]*PackageFile, 0, 10)

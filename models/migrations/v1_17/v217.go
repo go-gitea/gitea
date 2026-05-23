@@ -1,15 +1,14 @@
 // Copyright 2022 The Gitea Authors. All rights reserved.
 // SPDX-License-Identifier: MIT
 
-package v1_17 //nolint
+package v1_17
 
 import (
+	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/modules/setting"
-
-	"xorm.io/xorm"
 )
 
-func AlterHookTaskTextFieldsToLongText(x *xorm.Engine) error {
+func AlterHookTaskTextFieldsToLongText(x db.EngineMigration) error {
 	sess := x.NewSession()
 	defer sess.Close()
 	if err := sess.Begin(); err != nil {

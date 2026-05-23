@@ -12,6 +12,7 @@ import (
 	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/util"
+	"code.gitea.io/gitea/modules/web"
 	"code.gitea.io/gitea/routers/api/v1/utils"
 	"code.gitea.io/gitea/services/context"
 	"code.gitea.io/gitea/services/convert"
@@ -46,11 +47,13 @@ func ListRunners(ctx *context.APIContext, ownerID, repoID int64) {
 	if ownerID != 0 && repoID != 0 {
 		setting.PanicInDevOrTesting("ownerID and repoID should not be both set")
 	}
-	runners, total, err := db.FindAndCount[actions_model.ActionRunner](ctx, &actions_model.FindRunnerOptions{
+	opts := &actions_model.FindRunnerOptions{
 		OwnerID:     ownerID,
 		RepoID:      repoID,
 		ListOptions: utils.GetListOptions(ctx),
-	})
+	}
+	opts.IsDisabled = ctx.FormOptionalBool("disabled")
+	runners, total, err := db.FindAndCount[actions_model.ActionRunner](ctx, opts)
 	if err != nil {
 		ctx.APIErrorInternal(err)
 		return
@@ -67,6 +70,28 @@ func ListRunners(ctx *context.APIContext, ownerID, repoID int64) {
 	ctx.JSON(http.StatusOK, &res)
 }
 
+func getRunnerByID(ctx *context.APIContext, ownerID, repoID, runnerID int64) (*actions_model.ActionRunner, bool) {
+	if ownerID != 0 && repoID != 0 {
+		setting.PanicInDevOrTesting("ownerID and repoID should not be both set")
+	}
+
+	runner, err := actions_model.GetRunnerByID(ctx, runnerID)
+	if err != nil {
+		if errors.Is(err, util.ErrNotExist) {
+			ctx.APIErrorNotFound("Runner not found")
+		} else {
+			ctx.APIErrorInternal(err)
+		}
+		return nil, false
+	}
+
+	if !runner.EditableInContext(ownerID, repoID) {
+		ctx.APIErrorNotFound("No permission to access this runner")
+		return nil, false
+	}
+	return runner, true
+}
+
 // GetRunner get the runner for api route validated ownerID and repoID
 // ownerID == 0 and repoID == 0 means any runner including global runners
 // ownerID == 0 and repoID != 0 means any runner for the given repo
@@ -77,13 +102,8 @@ func GetRunner(ctx *context.APIContext, ownerID, repoID, runnerID int64) {
 	if ownerID != 0 && repoID != 0 {
 		setting.PanicInDevOrTesting("ownerID and repoID should not be both set")
 	}
-	runner, err := actions_model.GetRunnerByID(ctx, runnerID)
-	if err != nil {
-		ctx.APIErrorNotFound(err)
-		return
-	}
-	if !runner.EditableInContext(ownerID, repoID) {
-		ctx.APIErrorNotFound("No permission to get this runner")
+	runner, ok := getRunnerByID(ctx, ownerID, repoID, runnerID)
+	if !ok {
 		return
 	}
 	ctx.JSON(http.StatusOK, convert.ToActionRunner(ctx, runner))
@@ -96,23 +116,35 @@ func GetRunner(ctx *context.APIContext, ownerID, repoID, runnerID int64) {
 // ownerID != 0 and repoID != 0 undefined behavior
 // Access rights are checked at the API route level
 func DeleteRunner(ctx *context.APIContext, ownerID, repoID, runnerID int64) {
-	if ownerID != 0 && repoID != 0 {
-		setting.PanicInDevOrTesting("ownerID and repoID should not be both set")
-	}
-	runner, err := actions_model.GetRunnerByID(ctx, runnerID)
-	if err != nil {
-		ctx.APIErrorInternal(err)
-		return
-	}
-	if !runner.EditableInContext(ownerID, repoID) {
-		ctx.APIErrorNotFound("No permission to delete this runner")
+	runner, ok := getRunnerByID(ctx, ownerID, repoID, runnerID)
+	if !ok {
 		return
 	}
 
-	err = actions_model.DeleteRunner(ctx, runner.ID)
+	err := actions_model.DeleteRunner(ctx, runner.ID)
 	if err != nil {
 		ctx.APIErrorInternal(err)
 		return
 	}
 	ctx.Status(http.StatusNoContent)
+}
+
+func UpdateRunner(ctx *context.APIContext, ownerID, repoID, runnerID int64) {
+	runner, ok := getRunnerByID(ctx, ownerID, repoID, runnerID)
+	if !ok {
+		return
+	}
+
+	form := web.GetForm(ctx).(*api.EditActionRunnerOption)
+	if form.Disabled == nil {
+		ctx.APIError(http.StatusUnprocessableEntity, "[Disabled]: Required")
+		return
+	}
+
+	if err := actions_model.SetRunnerDisabled(ctx, runner, *form.Disabled); err != nil {
+		ctx.APIErrorInternal(err)
+		return
+	}
+
+	GetRunner(ctx, ownerID, repoID, runnerID)
 }

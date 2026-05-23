@@ -123,8 +123,8 @@ func ForkRepository(ctx context.Context, doer, owner *user_model.User, opts Fork
 	// WARNING: Don't override all later err with local variables
 	defer func() {
 		if err != nil {
-			// we can not use the ctx because it maybe canceled or timeout
-			cleanupRepository(doer, repo.ID)
+			// we can not use `ctx` because it may be canceled or timed out
+			cleanupRepository(repo)
 		}
 	}()
 
@@ -146,14 +146,16 @@ func ForkRepository(ctx context.Context, doer, owner *user_model.User, opts Fork
 	}
 
 	// 3 - Clone the repository
-	cloneCmd := git.NewCommand("clone", "--bare")
-	if opts.SingleBranch != "" {
-		cloneCmd.AddArguments("--single-branch", "--branch").AddDynamicArguments(opts.SingleBranch)
+	cloneOpts := git.CloneRepoOptions{
+		Bare:    true,
+		Timeout: 10 * time.Minute,
 	}
-	var stdout []byte
-	if stdout, _, err = cloneCmd.AddDynamicArguments(opts.BaseRepo.RepoPath(), repo.RepoPath()).
-		RunStdBytes(ctx, &git.RunOpts{Timeout: 10 * time.Minute}); err != nil {
-		log.Error("Fork Repository (git clone) Failed for %v (from %v):\nStdout: %s\nError: %v", repo, opts.BaseRepo, stdout, err)
+	if opts.SingleBranch != "" {
+		cloneOpts.SingleBranch = true
+		cloneOpts.Branch = opts.SingleBranch
+	}
+	if err = gitrepo.Clone(ctx, opts.BaseRepo, repo, cloneOpts); err != nil {
+		log.Error("Fork Repository (git clone) Failed for %v (from %v):\nError: %v", repo, opts.BaseRepo, err)
 		return nil, fmt.Errorf("git clone: %w", err)
 	}
 
@@ -175,10 +177,10 @@ func ForkRepository(ctx context.Context, doer, owner *user_model.User, opts Fork
 	}
 	defer gitRepo.Close()
 
-	if _, err = repo_module.SyncRepoBranchesWithRepo(ctx, repo, gitRepo, doer.ID); err != nil {
+	if _, _, err = repo_module.SyncRepoBranchesWithRepo(ctx, repo, gitRepo, doer.ID); err != nil {
 		return nil, fmt.Errorf("SyncRepoBranchesWithRepo: %w", err)
 	}
-	if err = repo_module.SyncReleasesWithTags(ctx, repo, gitRepo); err != nil {
+	if _, err = repo_module.SyncReleasesWithTags(ctx, repo, gitRepo); err != nil {
 		return nil, fmt.Errorf("Sync releases from git tags failed: %v", err)
 	}
 
@@ -198,7 +200,7 @@ func ForkRepository(ctx context.Context, doer, owner *user_model.User, opts Fork
 
 	// 8 - update repository status to be ready
 	repo.Status = repo_model.RepositoryReady
-	if err = repo_model.UpdateRepositoryCols(ctx, repo, "status"); err != nil {
+	if err = repo_model.UpdateRepositoryColsWithAutoTime(ctx, repo, "status"); err != nil {
 		return nil, fmt.Errorf("UpdateRepositoryCols: %w", err)
 	}
 
@@ -209,7 +211,7 @@ func ForkRepository(ctx context.Context, doer, owner *user_model.User, opts Fork
 
 // ConvertForkToNormalRepository convert the provided repo from a forked repo to normal repo
 func ConvertForkToNormalRepository(ctx context.Context, repo *repo_model.Repository) error {
-	err := db.WithTx(ctx, func(ctx context.Context) error {
+	return db.WithTx(ctx, func(ctx context.Context) error {
 		repo, err := repo_model.GetRepositoryByID(ctx, repo.ID)
 		if err != nil {
 			return err
@@ -226,16 +228,8 @@ func ConvertForkToNormalRepository(ctx context.Context, repo *repo_model.Reposit
 
 		repo.IsFork = false
 		repo.ForkID = 0
-
-		if err := updateRepository(ctx, repo, false); err != nil {
-			log.Error("Unable to update repository %-v whilst converting from fork. Error: %v", repo, err)
-			return err
-		}
-
-		return nil
+		return repo_model.UpdateRepositoryColsNoAutoTime(ctx, repo, "is_fork", "fork_id")
 	})
-
-	return err
 }
 
 type findForksOptions struct {

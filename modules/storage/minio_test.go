@@ -11,25 +11,42 @@ import (
 	"testing"
 
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/test"
 
 	"github.com/minio/minio-go/v7"
 	"github.com/stretchr/testify/assert"
 )
 
-func TestMinioStorageIterator(t *testing.T) {
-	if os.Getenv("CI") == "" {
-		t.Skip("minioStorage not present outside of CI")
-		return
-	}
-	testStorageIterator(t, setting.MinioStorageType, &setting.Storage{
+func TestMinioStorage(t *testing.T) {
+	endpoint := test.ExternalServiceHTTP(t, "TEST_MINIO_ENDPOINT", "minio:9000")
+	storageType := setting.MinioStorageType
+	config := &setting.Storage{
 		MinioConfig: setting.MinioStorageConfig{
-			Endpoint:        "minio:9000",
+			Endpoint:        endpoint,
 			AccessKeyID:     "123456",
 			SecretAccessKey: "12345678",
 			Bucket:          "gitea",
 			Location:        "us-east-1",
 		},
-	})
+	}
+	table := []struct {
+		name string
+		test func(t *testing.T, typStr Type, cfg *setting.Storage)
+	}{
+		{
+			name: "iterator",
+			test: testStorageIterator,
+		},
+		{
+			name: "testBlobStorageURLContentTypeAndDisposition",
+			test: testBlobStorageURLContentTypeAndDisposition,
+		},
+	}
+	for _, entry := range table {
+		t.Run(entry.name, func(t *testing.T) {
+			entry.test(t, storageType, config)
+		})
+	}
 }
 
 func TestMinioStoragePath(t *testing.T) {

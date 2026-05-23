@@ -1,15 +1,15 @@
 // Copyright 2020 The Gitea Authors. All rights reserved.
 // SPDX-License-Identifier: MIT
 
-package v1_14 //nolint
+package v1_14
 
 import (
 	"fmt"
 
-	"xorm.io/xorm"
+	"code.gitea.io/gitea/models/db"
 )
 
-func AddChangedProtectedFilesPullRequestColumn(x *xorm.Engine) error {
+func AddChangedProtectedFilesPullRequestColumn(x db.EngineMigration) error {
 	type PullRequest struct {
 		ChangedProtectedFiles []string `xorm:"TEXT JSON"`
 	}

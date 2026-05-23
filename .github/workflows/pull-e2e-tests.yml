@@ -7,30 +7,31 @@ concurrency:
   group: ${{ github.workflow }}-${{ github.head_ref || github.run_id }}
   cancel-in-progress: true
 
+permissions:
+  contents: read
+
 jobs:
   files-changed:
     uses: ./.github/workflows/files-changed.yml
 
   test-e2e:
-    # the "test-e2e" won't pass, and it seems that there is no useful test, so skip
-    # if: needs.files-changed.outputs.backend == 'true' || needs.files-changed.outputs.frontend == 'true' || needs.files-changed.outputs.actions == 'true'
-    if: false
+    if: needs.files-changed.outputs.backend == 'true' || needs.files-changed.outputs.frontend == 'true' || needs.files-changed.outputs.e2e == 'true'
     needs: files-changed
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-go@v5
-        with:
-          go-version-file: go.mod
-          check-latest: true
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 22
-          cache: npm
-          cache-dependency-path: package-lock.json
-      - run: make deps-frontend frontend deps-backend
-      - run: npx playwright install --with-deps
-      - run: make test-e2e-sqlite
-        timeout-minutes: 40
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+      - uses: ./.github/actions/go-setup
+      - uses: ./.github/actions/node-setup
+      - run: make deps-frontend
+      - run: make frontend
+      - run: make deps-backend
+      - run: make backend
         env:
-          USE_REPO_TEST_DIR: 1
+          TAGS: bindata
+      - run: make playwright
+      - run: make test-e2e
+        timeout-minutes: 10
+        env:
+          TAGS: bindata
+          FORCE_COLOR: 1
+          GITEA_TEST_E2E_DEBUG: 1

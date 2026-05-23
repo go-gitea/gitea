@@ -6,21 +6,14 @@ package doctor
 import (
 	"context"
 	"fmt"
-	"os"
-	"os/exec"
-	"path/filepath"
-	"strings"
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/models/db"
 	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
-	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/gitrepo"
 	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/structs"
-	"code.gitea.io/gitea/modules/util"
 
 	lru "github.com/hashicorp/golang-lru/v2"
 	"xorm.io/builder"
@@ -35,16 +28,6 @@ func iterateRepositories(ctx context.Context, each func(*repo_model.Repository) 
 		},
 	)
 	return err
-}
-
-func checkScriptType(ctx context.Context, logger log.Logger, autofix bool) error {
-	path, err := exec.LookPath(setting.ScriptType)
-	if err != nil {
-		logger.Critical("ScriptType \"%q\" is not on the current PATH. Error: %v", setting.ScriptType, err)
-		return fmt.Errorf("ScriptType \"%q\" is not on the current PATH. Error: %w", setting.ScriptType, err)
-	}
-	logger.Info("ScriptType %s is on the current PATH at %s", setting.ScriptType, path)
-	return nil
 }
 
 func checkHooks(ctx context.Context, logger log.Logger, autofix bool) error {
@@ -85,48 +68,6 @@ func checkUserStarNum(ctx context.Context, logger log.Logger, autofix bool) erro
 	return nil
 }
 
-func checkEnablePushOptions(ctx context.Context, logger log.Logger, autofix bool) error {
-	numRepos := 0
-	numNeedUpdate := 0
-
-	if err := iterateRepositories(ctx, func(repo *repo_model.Repository) error {
-		numRepos++
-		r, err := gitrepo.OpenRepository(ctx, repo)
-		if err != nil {
-			return err
-		}
-		defer r.Close()
-
-		if autofix {
-			_, _, err := git.NewCommand("config", "receive.advertisePushOptions", "true").RunStdString(ctx, &git.RunOpts{Dir: r.Path})
-			return err
-		}
-
-		value, _, err := git.NewCommand("config", "receive.advertisePushOptions").RunStdString(ctx, &git.RunOpts{Dir: r.Path})
-		if err != nil {
-			return err
-		}
-
-		result, valid := git.ParseBool(strings.TrimSpace(value))
-		if !result || !valid {
-			numNeedUpdate++
-			logger.Info("%s: does not have receive.advertisePushOptions set correctly: %q", repo.FullName(), value)
-		}
-		return nil
-	}); err != nil {
-		logger.Critical("Unable to EnablePushOptions: %v", err)
-		return err
-	}
-
-	if autofix {
-		logger.Info("Enabled push options for %d repositories.", numRepos)
-	} else {
-		logger.Info("Checked %d repositories, %d need updates.", numRepos, numNeedUpdate)
-	}
-
-	return nil
-}
-
 func checkDaemonExport(ctx context.Context, logger log.Logger, autofix bool) error {
 	numRepos := 0
 	numNeedUpdate := 0
@@ -148,10 +89,10 @@ func checkDaemonExport(ctx context.Context, logger log.Logger, autofix bool) err
 		}
 
 		// Create/Remove git-daemon-export-ok for git-daemon...
-		daemonExportFile := filepath.Join(repo.RepoPath(), `git-daemon-export-ok`)
-		isExist, err := util.IsExist(daemonExportFile)
+		daemonExportFile := `git-daemon-export-ok`
+		isExist, err := gitrepo.IsRepoFileExist(ctx, repo, daemonExportFile)
 		if err != nil {
-			log.Error("Unable to check if %s exists. Error: %v", daemonExportFile, err)
+			log.Error("Unable to check if %s:%s exists. Error: %v", repo.FullName(), daemonExportFile, err)
 			return err
 		}
 		isPublic := !repo.IsPrivate && repo.Owner.Visibility == structs.VisibleTypePublic
@@ -160,12 +101,12 @@ func checkDaemonExport(ctx context.Context, logger log.Logger, autofix bool) err
 			numNeedUpdate++
 			if autofix {
 				if !isPublic && isExist {
-					if err = util.Remove(daemonExportFile); err != nil {
-						log.Error("Failed to remove %s: %v", daemonExportFile, err)
+					if err = gitrepo.RemoveRepoFileOrDir(ctx, repo, daemonExportFile); err != nil {
+						log.Error("Failed to remove %s:%s: %v", repo.FullName(), daemonExportFile, err)
 					}
 				} else if isPublic && !isExist {
-					if f, err := os.Create(daemonExportFile); err != nil {
-						log.Error("Failed to create %s: %v", daemonExportFile, err)
+					if f, err := gitrepo.CreateRepoFile(ctx, repo, daemonExportFile); err != nil {
+						log.Error("Failed to create %s:%s: %v", repo.FullName(), daemonExportFile, err)
 					} else {
 						f.Close()
 					}
@@ -196,16 +137,16 @@ func checkCommitGraph(ctx context.Context, logger log.Logger, autofix bool) erro
 
 		commitGraphExists := func() (bool, error) {
 			// Check commit-graph exists
-			commitGraphFile := filepath.Join(repo.RepoPath(), `objects/info/commit-graph`)
-			isExist, err := util.IsExist(commitGraphFile)
+			commitGraphFile := `objects/info/commit-graph`
+			isExist, err := gitrepo.IsRepoFileExist(ctx, repo, commitGraphFile)
 			if err != nil {
 				logger.Error("Unable to check if %s exists. Error: %v", commitGraphFile, err)
 				return false, err
 			}
 
 			if !isExist {
-				commitGraphsDir := filepath.Join(repo.RepoPath(), `objects/info/commit-graphs`)
-				isExist, err = util.IsExist(commitGraphsDir)
+				commitGraphsDir := `objects/info/commit-graphs`
+				isExist, err = gitrepo.IsRepoDirExist(ctx, repo, commitGraphsDir)
 				if err != nil {
 					logger.Error("Unable to check if %s exists. Error: %v", commitGraphsDir, err)
 					return false, err
@@ -221,7 +162,7 @@ func checkCommitGraph(ctx context.Context, logger log.Logger, autofix bool) erro
 		if !isExist {
 			numNeedUpdate++
 			if autofix {
-				if err := git.WriteCommitGraph(ctx, repo.RepoPath()); err != nil {
+				if err := gitrepo.WriteCommitGraph(ctx, repo); err != nil {
 					logger.Error("Unable to write commit-graph in %s. Error: %v", repo.FullName(), err)
 					return err
 				}
@@ -254,13 +195,6 @@ func checkCommitGraph(ctx context.Context, logger log.Logger, autofix bool) erro
 
 func init() {
 	Register(&Check{
-		Title:     "Check if SCRIPT_TYPE is available",
-		Name:      "script-type",
-		IsDefault: false,
-		Run:       checkScriptType,
-		Priority:  5,
-	})
-	Register(&Check{
 		Title:     "Check if hook files are up-to-date and executable",
 		Name:      "hooks",
 		IsDefault: false,
@@ -273,13 +207,6 @@ func init() {
 		IsDefault: false,
 		Run:       checkUserStarNum,
 		Priority:  6,
-	})
-	Register(&Check{
-		Title:     "Check that all git repositories have receive.advertisePushOptions set to true",
-		Name:      "enable-push-options",
-		IsDefault: false,
-		Run:       checkEnablePushOptions,
-		Priority:  7,
 	})
 	Register(&Check{
 		Title:     "Check git-daemon-export-ok files",

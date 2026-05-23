@@ -1,15 +1,14 @@
 // Copyright 2020 The Gitea Authors. All rights reserved.
 // SPDX-License-Identifier: MIT
 
-package v1_13 //nolint
+package v1_13
 
 import (
+	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/modules/timeutil"
-
-	"xorm.io/xorm"
 )
 
-func AddProjectsInfo(x *xorm.Engine) error {
+func AddProjectsInfo(x db.EngineMigration) error {
 	// Create new tables
 	type (
 		ProjectType      uint8

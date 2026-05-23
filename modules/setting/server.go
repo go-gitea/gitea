@@ -4,7 +4,6 @@
 package setting
 
 import (
-	"encoding/base64"
 	"net"
 	"net/url"
 	"os"
@@ -13,9 +12,7 @@ import (
 	"strings"
 	"time"
 
-	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/util"
 )
 
 // Scheme describes protocol types
@@ -44,6 +41,7 @@ const (
 const (
 	PublicURLAuto   = "auto"
 	PublicURLLegacy = "legacy"
+	PublicURLNever  = "never"
 )
 
 // Server settings
@@ -72,9 +70,6 @@ var (
 	// It maps to ini:"LOCAL_ROOT_URL" in [server]
 	LocalURL string
 
-	// AssetVersion holds an opaque value that is used for cache-busting assets
-	AssetVersion string
-
 	// appTempPathInternal is the temporary path for the app, it is only an internal variable
 	// DO NOT use it directly, always use AppDataTempDir
 	appTempPathInternal string
@@ -91,7 +86,6 @@ var (
 	RedirectOtherPort          bool
 	RedirectorUseProxyProtocol bool
 	PortToRedirect             string
-	OfflineMode                bool
 	CertFile                   string
 	KeyFile                    string
 	StaticRootPath             string
@@ -116,70 +110,8 @@ var (
 	StartupTimeout             time.Duration
 	PerWriteTimeout            = 30 * time.Second
 	PerWritePerKbTimeout       = 10 * time.Second
-	StaticURLPrefix            string
-	AbsoluteAssetURL           string
-
-	ManifestData string
+	StaticURLPrefix            string // no trailing slash, defaults to AppSubURL, the URL can be relative or absolute
 )
-
-// MakeManifestData generates web app manifest JSON
-func MakeManifestData(appName, appURL, absoluteAssetURL string) []byte {
-	type manifestIcon struct {
-		Src   string `json:"src"`
-		Type  string `json:"type"`
-		Sizes string `json:"sizes"`
-	}
-
-	type manifestJSON struct {
-		Name      string         `json:"name"`
-		ShortName string         `json:"short_name"`
-		StartURL  string         `json:"start_url"`
-		Icons     []manifestIcon `json:"icons"`
-	}
-
-	bytes, err := json.Marshal(&manifestJSON{
-		Name:      appName,
-		ShortName: appName,
-		StartURL:  appURL,
-		Icons: []manifestIcon{
-			{
-				Src:   absoluteAssetURL + "/assets/img/logo.png",
-				Type:  "image/png",
-				Sizes: "512x512",
-			},
-			{
-				Src:   absoluteAssetURL + "/assets/img/logo.svg",
-				Type:  "image/svg+xml",
-				Sizes: "512x512",
-			},
-		},
-	})
-	if err != nil {
-		log.Error("unable to marshal manifest JSON. Error: %v", err)
-		return make([]byte, 0)
-	}
-
-	return bytes
-}
-
-// MakeAbsoluteAssetURL returns the absolute asset url prefix without a trailing slash
-func MakeAbsoluteAssetURL(appURL, staticURLPrefix string) string {
-	parsedPrefix, err := url.Parse(strings.TrimSuffix(staticURLPrefix, "/"))
-	if err != nil {
-		log.Fatal("Unable to parse STATIC_URL_PREFIX: %v", err)
-	}
-
-	if err == nil && parsedPrefix.Hostname() == "" {
-		if staticURLPrefix == "" {
-			return strings.TrimSuffix(appURL, "/")
-		}
-
-		// StaticURLPrefix is just a path
-		return util.URLJoin(appURL, strings.TrimSuffix(staticURLPrefix, "/"))
-	}
-
-	return strings.TrimSuffix(staticURLPrefix, "/")
-}
 
 func loadServerFrom(rootCfg ConfigProvider) {
 	sec := rootCfg.Section("server")
@@ -235,9 +167,6 @@ func loadServerFrom(rootCfg ConfigProvider) {
 				deprecatedSetting(rootCfg, "server", "LETSENCRYPT_EMAIL", "server", "ACME_EMAIL", "v1.19.0")
 				AcmeEmail = sec.Key("LETSENCRYPT_EMAIL").MustString("")
 			}
-			if AcmeEmail == "" {
-				log.Fatal("ACME Email is not set (ACME_EMAIL).")
-			}
 		} else {
 			CertFile = sec.Key("CERT_FILE").String()
 			KeyFile = sec.Key("KEY_FILE").String()
@@ -275,7 +204,7 @@ func loadServerFrom(rootCfg ConfigProvider) {
 			HTTPAddr = filepath.Join(AppWorkPath, HTTPAddr)
 		}
 	default:
-		log.Fatal("Invalid PROTOCOL %q", Protocol)
+		log.Fatal("Invalid PROTOCOL %q", protocolCfg)
 	}
 	UseProxyProtocol = sec.Key("USE_PROXY_PROTOCOL").MustBool(false)
 	ProxyProtocolTLSBridging = sec.Key("PROXY_PROTOCOL_TLS_BRIDGING").MustBool(false)
@@ -289,8 +218,8 @@ func loadServerFrom(rootCfg ConfigProvider) {
 
 	defaultAppURL := string(Protocol) + "://" + Domain + ":" + HTTPPort
 	AppURL = sec.Key("ROOT_URL").MustString(defaultAppURL)
-	PublicURLDetection = sec.Key("PUBLIC_URL_DETECTION").MustString(PublicURLLegacy)
-	if PublicURLDetection != PublicURLAuto && PublicURLDetection != PublicURLLegacy {
+	PublicURLDetection = sec.Key("PUBLIC_URL_DETECTION").MustString(PublicURLAuto)
+	if PublicURLDetection != PublicURLAuto && PublicURLDetection != PublicURLLegacy && PublicURLDetection != PublicURLNever {
 		log.Fatal("Invalid PUBLIC_URL_DETECTION value: %s", PublicURLDetection)
 	}
 
@@ -319,12 +248,6 @@ func loadServerFrom(rootCfg ConfigProvider) {
 		Domain = urlHostname
 	}
 
-	AbsoluteAssetURL = MakeAbsoluteAssetURL(AppURL, StaticURLPrefix)
-	AssetVersion = strings.ReplaceAll(AppVer, "+", "~") // make sure the version string is clear (no real escaping is needed)
-
-	manifestBytes := MakeManifestData(AppName, AppURL, AbsoluteAssetURL)
-	ManifestData = `application/json;base64,` + base64.StdEncoding.EncodeToString(manifestBytes)
-
 	var defaultLocalURL string
 	switch Protocol {
 	case HTTPUnix:
@@ -349,7 +272,6 @@ func loadServerFrom(rootCfg ConfigProvider) {
 	RedirectOtherPort = sec.Key("REDIRECT_OTHER_PORT").MustBool(false)
 	PortToRedirect = sec.Key("PORT_TO_REDIRECT").MustString("80")
 	RedirectorUseProxyProtocol = sec.Key("REDIRECTOR_USE_PROXY_PROTOCOL").MustBool(UseProxyProtocol)
-	OfflineMode = sec.Key("OFFLINE_MODE").MustBool(true)
 	if len(StaticRootPath) == 0 {
 		StaticRootPath = AppWorkPath
 	}
@@ -372,6 +294,10 @@ func loadServerFrom(rootCfg ConfigProvider) {
 			log.Fatal("APP_TEMP_PATH %q is not accessible: %v", appTempPathInternal, err)
 		}
 	}
+
+	// TODO: GOLANG-HTTP-TMPDIR: Some Golang packages (like "http") use os.TempDir() to create temporary files when uploading files.
+	// So ideally we should set the TMPDIR environment variable to make them use our managed temp directory.
+	// But there is no clear place to set it currently, for example: when running "install" page, the AppDataPath is not ready yet, then AppDataTempDir won't work
 
 	EnableGzip = sec.Key("ENABLE_GZIP").MustBool()
 	EnablePprof = sec.Key("ENABLE_PPROF").MustBool(false)

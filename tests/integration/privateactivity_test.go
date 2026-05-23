@@ -48,7 +48,6 @@ func testPrivateActivityDoSomethingForActionEntries(t *testing.T) {
 func testPrivateActivityHelperEnablePrivateActivity(t *testing.T) {
 	session := loginUser(t, privateActivityTestUser)
 	req := NewRequestWithValues(t, "POST", "/user/settings", map[string]string{
-		"_csrf":                 GetUserCSRFToken(t, session),
 		"name":                  privateActivityTestUser,
 		"email":                 privateActivityTestUser + "@example.com",
 		"language":              "en-US",
@@ -58,7 +57,7 @@ func testPrivateActivityHelperEnablePrivateActivity(t *testing.T) {
 }
 
 func testPrivateActivityHelperHasVisibleActivitiesInHTMLDoc(htmlDoc *HTMLDoc) bool {
-	return htmlDoc.doc.Find("#activity-feed").Find(".flex-item").Length() > 0
+	return htmlDoc.doc.Find("#activity-feed").Find(".item").Length() > 0
 }
 
 func testPrivateActivityHelperHasVisibleActivitiesFromSession(t *testing.T, session *TestSession) bool {
@@ -118,8 +117,7 @@ func testPrivateActivityHelperHasHeatmapContentFromPublic(t *testing.T) bool {
 	req := NewRequestf(t, "GET", "/api/v1/users/%s/heatmap", privateActivityTestUser)
 	resp := MakeRequest(t, req, http.StatusOK)
 
-	var items []*activities_model.UserHeatmapData
-	DecodeJSON(t, resp, &items)
+	items := DecodeJSON(t, resp, []*activities_model.UserHeatmapData{})
 
 	return len(items) != 0
 }
@@ -131,8 +129,7 @@ func testPrivateActivityHelperHasHeatmapContentFromSession(t *testing.T, session
 		AddTokenAuth(token)
 	resp := session.MakeRequest(t, req, http.StatusOK)
 
-	var items []*activities_model.UserHeatmapData
-	DecodeJSON(t, resp, &items)
+	items := DecodeJSON(t, resp, []*activities_model.UserHeatmapData{})
 
 	return len(items) != 0
 }

@@ -108,9 +108,9 @@ func extractMailHeaderAndContent(t *testing.T, mail string) (map[string]string, 
 	}
 	content := strings.TrimSpace("boundary=" + parts[1])
 
-	hParts := strings.Split(parts[0], "\n")
+	hParts := strings.SplitSeq(parts[0], "\n")
 
-	for _, hPart := range hParts {
+	for hPart := range hParts {
 		parts := strings.SplitN(hPart, ":", 2)
 		hk := strings.TrimSpace(parts[0])
 		if hk != "" {

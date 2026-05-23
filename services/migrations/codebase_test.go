@@ -6,39 +6,34 @@ package migrations
 import (
 	"net/url"
 	"os"
+	"path/filepath"
+	"runtime"
 	"testing"
 	"time"
 
+	"code.gitea.io/gitea/models/unittest"
 	base "code.gitea.io/gitea/modules/migration"
 
 	"github.com/stretchr/testify/assert"
 )
 
 func TestCodebaseDownloadRepo(t *testing.T) {
-	// Skip tests if Codebase token is not found
-	cloneUser := os.Getenv("CODEBASE_CLONE_USER")
-	clonePassword := os.Getenv("CODEBASE_CLONE_PASSWORD")
 	apiUser := os.Getenv("CODEBASE_API_USER")
 	apiPassword := os.Getenv("CODEBASE_API_TOKEN")
-	if apiUser == "" || apiPassword == "" {
-		t.Skip("skipped test because a CODEBASE_ variable was not in the environment")
-	}
+	liveMode := apiUser != "" && apiPassword != ""
+
+	_, callerFile, _, _ := runtime.Caller(0)
+	fixtureDir := filepath.Join(filepath.Dir(callerFile), "_mock_data/TestCodebaseDownloadRepo")
+	mockServer := unittest.NewMockWebServer(t, "https://api3.codebasehq.com", fixtureDir, liveMode)
 
 	cloneAddr := "https://gitea-test.codebasehq.com/gitea-test/test.git"
-	u, _ := url.Parse(cloneAddr)
-	if cloneUser != "" {
-		u.User = url.UserPassword(cloneUser, clonePassword)
-	}
+	projectURL, _ := url.Parse(cloneAddr)
+	projectURL.User = nil
+
 	ctx := t.Context()
-	factory := &CodebaseDownloaderFactory{}
-	downloader, err := factory.New(ctx, base.MigrateOptions{
-		CloneAddr:    u.String(),
-		AuthUsername: apiUser,
-		AuthPassword: apiPassword,
-	})
-	if err != nil {
-		t.Fatalf("Error creating Codebase downloader: %v", err)
-	}
+	downloader := NewCodebaseDownloader(ctx, projectURL, "gitea-test", "test", apiUser, apiPassword)
+	downloader.baseURL, _ = url.Parse(mockServer.URL)
+
 	repo, err := downloader.GetRepoInfo(ctx)
 	assert.NoError(t, err)
 	assertRepositoryEqual(t, &base.Repository{
@@ -54,12 +49,12 @@ func TestCodebaseDownloadRepo(t *testing.T) {
 	assertMilestonesEqual(t, []*base.Milestone{
 		{
 			Title:    "Milestone1",
-			Deadline: timePtr(time.Date(2021, time.September, 16, 0, 0, 0, 0, time.UTC)),
+			Deadline: new(time.Date(2021, time.September, 16, 0, 0, 0, 0, time.UTC)),
 		},
 		{
 			Title:    "Milestone2",
-			Deadline: timePtr(time.Date(2021, time.September, 17, 0, 0, 0, 0, time.UTC)),
-			Closed:   timePtr(time.Date(2021, time.September, 17, 0, 0, 0, 0, time.UTC)),
+			Deadline: new(time.Date(2021, time.September, 17, 0, 0, 0, 0, time.UTC)),
+			Closed:   new(time.Date(2021, time.September, 17, 0, 0, 0, 0, time.UTC)),
 			State:    "closed",
 		},
 	}, milestones)
@@ -144,6 +139,6 @@ func TestCodebaseDownloadRepo(t *testing.T) {
 	}, prs)
 
 	rvs, err := downloader.GetReviews(ctx, prs[0])
-	assert.NoError(t, err)
+	assert.Error(t, err)
 	assert.Empty(t, rvs)
 }

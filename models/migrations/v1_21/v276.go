@@ -1,23 +1,18 @@
 // Copyright 2023 The Gitea Authors. All rights reserved.
 // SPDX-License-Identifier: MIT
 
-package v1_21 //nolint
+package v1_21
 
 import (
 	"context"
-	"fmt"
-	"path/filepath"
-	"strings"
 
-	"code.gitea.io/gitea/modules/git"
-	giturl "code.gitea.io/gitea/modules/git/url"
+	"code.gitea.io/gitea/models/db"
+	repo_model "code.gitea.io/gitea/models/repo"
+	"code.gitea.io/gitea/modules/gitrepo"
 	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/modules/util"
-
-	"xorm.io/xorm"
 )
 
-func AddRemoteAddressToMirrors(x *xorm.Engine) error {
+func AddRemoteAddressToMirrors(x db.EngineMigration) error {
 	type Mirror struct {
 		RemoteAddress string `xorm:"VARCHAR(2048)"`
 	}
@@ -37,7 +32,7 @@ func AddRemoteAddressToMirrors(x *xorm.Engine) error {
 	return migratePushMirrors(x)
 }
 
-func migratePullMirrors(x *xorm.Engine) error {
+func migratePullMirrors(x db.EngineMigration) error {
 	type Mirror struct {
 		ID            int64  `xorm:"pk autoincr"`
 		RepoID        int64  `xorm:"INDEX"`
@@ -99,7 +94,7 @@ func migratePullMirrors(x *xorm.Engine) error {
 	return sess.Commit()
 }
 
-func migratePushMirrors(x *xorm.Engine) error {
+func migratePushMirrors(x db.EngineMigration) error {
 	type PushMirror struct {
 		ID            int64 `xorm:"pk autoincr"`
 		RepoID        int64 `xorm:"INDEX"`
@@ -163,16 +158,13 @@ func migratePushMirrors(x *xorm.Engine) error {
 }
 
 func getRemoteAddress(ownerName, repoName, remoteName string) (string, error) {
-	repoPath := filepath.Join(setting.RepoRootPath, strings.ToLower(ownerName), strings.ToLower(repoName)+".git")
-	if exist, _ := util.IsExist(repoPath); !exist {
+	ctx := context.Background()
+	relativePath := repo_model.RelativePath(ownerName, repoName)
+	if exist, _ := gitrepo.IsRepositoryExist(ctx, repo_model.StorageRepo(relativePath)); !exist {
 		return "", nil
 	}
-	remoteURL, err := git.GetRemoteAddress(context.Background(), repoPath, remoteName)
-	if err != nil {
-		return "", fmt.Errorf("get remote %s's address of %s/%s failed: %v", remoteName, ownerName, repoName, err)
-	}
 
-	u, err := giturl.ParseGitURL(remoteURL)
+	u, err := gitrepo.GitRemoteGetURL(ctx, repo_model.StorageRepo(relativePath), remoteName)
 	if err != nil {
 		return "", err
 	}

@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"net/url"
 
+	"code.gitea.io/gitea/models/db"
 	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/cache"
@@ -53,8 +54,11 @@ func (l PackagePropertyList) GetByName(name string) string {
 
 // PackageDescriptor describes a package
 type PackageDescriptor struct {
-	Package           *Package
-	Owner             *user_model.User
+	// basic package info
+	Package *Package
+	Owner   *user_model.User
+
+	// package version info
 	Repository        *repo_model.Repository
 	Version           *PackageVersion
 	SemVer            *version.Version
@@ -77,19 +81,24 @@ func (pd *PackageDescriptor) PackageWebLink() string {
 	return fmt.Sprintf("%s/-/packages/%s/%s", pd.Owner.HomeLink(), string(pd.Package.Type), url.PathEscape(pd.Package.LowerName))
 }
 
+// PackageSettingsLink returns the relative package settings link
+func (pd *PackageDescriptor) PackageSettingsLink() string {
+	return fmt.Sprintf("%s/-/packages/settings/%s/%s", pd.Owner.HomeLink(), string(pd.Package.Type), url.PathEscape(pd.Package.LowerName))
+}
+
 // VersionWebLink returns the relative package version web link
 func (pd *PackageDescriptor) VersionWebLink() string {
 	return fmt.Sprintf("%s/%s", pd.PackageWebLink(), url.PathEscape(pd.Version.LowerVersion))
 }
 
 // PackageHTMLURL returns the absolute package HTML URL
-func (pd *PackageDescriptor) PackageHTMLURL() string {
-	return fmt.Sprintf("%s/-/packages/%s/%s", pd.Owner.HTMLURL(), string(pd.Package.Type), url.PathEscape(pd.Package.LowerName))
+func (pd *PackageDescriptor) PackageHTMLURL(ctx context.Context) string {
+	return fmt.Sprintf("%s/-/packages/%s/%s", pd.Owner.HTMLURL(ctx), string(pd.Package.Type), url.PathEscape(pd.Package.LowerName))
 }
 
 // VersionHTMLURL returns the absolute package version HTML URL
-func (pd *PackageDescriptor) VersionHTMLURL() string {
-	return fmt.Sprintf("%s/%s", pd.PackageHTMLURL(), url.PathEscape(pd.Version.LowerVersion))
+func (pd *PackageDescriptor) VersionHTMLURL(ctx context.Context) string {
+	return fmt.Sprintf("%s/%s", pd.PackageHTMLURL(ctx), url.PathEscape(pd.Version.LowerVersion))
 }
 
 // CalculateBlobSize returns the total blobs size in bytes
@@ -103,10 +112,10 @@ func (pd *PackageDescriptor) CalculateBlobSize() int64 {
 
 // GetPackageDescriptor gets the package description for a version
 func GetPackageDescriptor(ctx context.Context, pv *PackageVersion) (*PackageDescriptor, error) {
-	return getPackageDescriptor(ctx, pv, cache.NewEphemeralCache())
+	return GetPackageDescriptorWithCache(ctx, pv, cache.NewEphemeralCache())
 }
 
-func getPackageDescriptor(ctx context.Context, pv *PackageVersion, c *cache.EphemeralCache) (*PackageDescriptor, error) {
+func GetPackageDescriptorWithCache(ctx context.Context, pv *PackageVersion, c *cache.EphemeralCache) (*PackageDescriptor, error) {
 	p, err := cache.GetWithEphemeralCache(ctx, c, "package", pv.PackageID, GetPackageByID)
 	if err != nil {
 		return nil, err
@@ -203,6 +212,8 @@ func getPackageDescriptor(ctx context.Context, pv *PackageVersion, c *cache.Ephe
 		metadata = &rubygems.Metadata{}
 	case TypeSwift:
 		metadata = &swift.Metadata{}
+	case TypeTerraformState:
+		// terraform packages have no metadata
 	case TypeVagrant:
 		metadata = &vagrant.Metadata{}
 	default:
@@ -267,10 +278,19 @@ func GetPackageDescriptors(ctx context.Context, pvs []*PackageVersion) ([]*Packa
 	return getPackageDescriptors(ctx, pvs, cache.NewEphemeralCache())
 }
 
+// GetAllPackageDescriptors gets all package descriptors for a package
+func GetAllPackageDescriptors(ctx context.Context, p *Package) ([]*PackageDescriptor, error) {
+	pvs := make([]*PackageVersion, 0, 10)
+	if err := db.GetEngine(ctx).Where("package_id = ?", p.ID).Find(&pvs); err != nil {
+		return nil, err
+	}
+	return getPackageDescriptors(ctx, pvs, cache.NewEphemeralCache())
+}
+
 func getPackageDescriptors(ctx context.Context, pvs []*PackageVersion, c *cache.EphemeralCache) ([]*PackageDescriptor, error) {
 	pds := make([]*PackageDescriptor, 0, len(pvs))
 	for _, pv := range pvs {
-		pd, err := getPackageDescriptor(ctx, pv, c)
+		pd, err := GetPackageDescriptorWithCache(ctx, pv, c)
 		if err != nil {
 			return nil, err
 		}

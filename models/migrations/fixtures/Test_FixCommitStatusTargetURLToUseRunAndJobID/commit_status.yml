@@ -1,0 +1,51 @@
+# type CommitStatus struct {
+#   ID        int64 `xorm:"pk autoincr"`
+#   RepoID    int64 `xorm:"index"`
+#   SHA       string
+#   TargetURL string
+# }
+-
+  id: 10010
+  repo_id: 100
+  sha: sha-shared
+  target_url: /testuser/repo1/actions/runs/7/jobs/0
+-
+  id: 10011
+  repo_id: 100
+  sha: sha-shared
+  target_url: /testuser/repo1/actions/runs/7/jobs/1
+-
+  id: 10012
+  repo_id: 100
+  sha: sha-shared
+  target_url: /testuser/repo1/actions/runs/8/jobs/0
+-
+  id: 10013
+  repo_id: 100
+  sha: sha-other
+  target_url: /testuser/repo1/actions/runs/9/jobs/0
+-
+  id: 10014
+  repo_id: 100
+  sha: sha-shared
+  target_url: /otheruser/badrepo/actions/runs/7/jobs/0
+-
+  id: 10015
+  repo_id: 100
+  sha: sha-shared
+  target_url: /testuser/repo1/actions/runs/10/jobs/0
+-
+  id: 10016
+  repo_id: 100
+  sha: sha-shared
+  target_url: /testuser/repo1/actions/runs/7/jobs/3
+-
+  id: 10017
+  repo_id: 100
+  sha: sha-shared
+  target_url: https://ci.example.com/build/123
+-
+  id: 10018
+  repo_id: 100
+  sha: sha-shared
+  target_url: /testuser/repo1/actions/runs/990/jobs/997

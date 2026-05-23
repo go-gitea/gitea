@@ -13,6 +13,7 @@ import (
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/test"
 	"code.gitea.io/gitea/modules/util"
+	"code.gitea.io/gitea/modules/web/types"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/stretchr/testify/assert"
@@ -30,12 +31,78 @@ func chiURLParamsToMap(chiCtx *chi.Context) map[string]string {
 	return util.Iif(len(m) == 0, nil, m)
 }
 
+type testResult struct {
+	method          string
+	pathParams      map[string]string
+	handlerMarks    []string
+	chiRoutePattern *string
+}
+
+type testRecorder struct {
+	res testResult
+}
+
+func (r *testRecorder) reset() {
+	r.res = testResult{}
+}
+
+func (r *testRecorder) handle(optMark ...string) func(resp http.ResponseWriter, req *http.Request) {
+	mark := util.OptionalArg(optMark, "")
+	return func(resp http.ResponseWriter, req *http.Request) {
+		chiCtx := chi.RouteContext(req.Context())
+		r.res.method = req.Method
+		r.res.pathParams = chiURLParamsToMap(chiCtx)
+		r.res.chiRoutePattern = new(chiCtx.RoutePattern())
+		if mark != "" {
+			r.res.handlerMarks = append(r.res.handlerMarks, mark)
+		}
+	}
+}
+
+func (r *testRecorder) provider(optMark ...string) func(next http.Handler) http.Handler {
+	return func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(resp http.ResponseWriter, req *http.Request) {
+			r.handle(optMark...)(resp, req)
+			next.ServeHTTP(resp, req)
+		})
+	}
+}
+
+func (r *testRecorder) stop(optMark ...string) func(resp http.ResponseWriter, req *http.Request) {
+	mark := util.OptionalArg(optMark, "")
+	return func(resp http.ResponseWriter, req *http.Request) {
+		if stop := req.FormValue("stop"); stop != "" && (mark == "" || mark == stop) {
+			r.handle(stop)(resp, req)
+			resp.WriteHeader(http.StatusOK)
+		} else if mark != "" {
+			r.res.handlerMarks = append(r.res.handlerMarks, mark)
+		}
+	}
+}
+
+func (r *testRecorder) test(t *testing.T, rt *Router, methodPath string, expected testResult) {
+	r.reset()
+	methodPathFields := strings.Fields(methodPath)
+	req, err := http.NewRequest(methodPathFields[0], methodPathFields[1], nil)
+	assert.NoError(t, err)
+
+	buff := &bytes.Buffer{}
+	httpRecorder := httptest.NewRecorder()
+	httpRecorder.Body = buff
+	rt.ServeHTTP(httpRecorder, req)
+	if expected.chiRoutePattern == nil {
+		r.res.chiRoutePattern = nil
+	}
+	assert.Equal(t, expected, r.res)
+}
+
 func TestPathProcessor(t *testing.T) {
 	testProcess := func(pattern, uri string, expectedPathParams map[string]string) {
 		chiCtx := chi.NewRouteContext()
 		chiCtx.RouteMethod = "GET"
-		p := newRouterPathMatcher("GET", pattern, http.NotFound)
-		assert.True(t, p.matchPath(chiCtx, uri), "use pattern %s to process uri %s", pattern, uri)
+		p := newRouterPathMatcher("GET", patternRegexp(pattern), http.NotFound)
+		shouldProcess := expectedPathParams != nil
+		assert.Equal(t, shouldProcess, p.matchPath(chiCtx, uri), "use pattern %s to process uri %s", pattern, uri)
 		assert.Equal(t, expectedPathParams, chiURLParamsToMap(chiCtx), "use pattern %s to process uri %s", pattern, uri)
 	}
 
@@ -48,38 +115,17 @@ func TestPathProcessor(t *testing.T) {
 	testProcess("/<p1:*>/<p2>", "/a", map[string]string{"p1": "", "p2": "a"})
 	testProcess("/<p1:*>/<p2>", "/a/b", map[string]string{"p1": "a", "p2": "b"})
 	testProcess("/<p1:*>/<p2>", "/a/b/c", map[string]string{"p1": "a/b", "p2": "c"})
+	testProcess("/<p1:*>/part/<p2>", "/a/part/c", map[string]string{"p1": "a", "p2": "c"})
+	testProcess("/<p1:*>/part/<p2>", "/part/c", map[string]string{"p1": "", "p2": "c"})
+	testProcess("/<p1:*>/part/<p2>", "/a/other-part/c", nil)
+	testProcess("/<p1:*>-part/<p2>", "/a-other-part/c", map[string]string{"p1": "a-other", "p2": "c"})
 }
 
 func TestRouter(t *testing.T) {
-	buff := &bytes.Buffer{}
-	recorder := httptest.NewRecorder()
-	recorder.Body = buff
-
-	type resultStruct struct {
-		method      string
-		pathParams  map[string]string
-		handlerMark string
-	}
-	var res resultStruct
-
-	h := func(optMark ...string) func(resp http.ResponseWriter, req *http.Request) {
-		mark := util.OptionalArg(optMark, "")
-		return func(resp http.ResponseWriter, req *http.Request) {
-			res.method = req.Method
-			res.pathParams = chiURLParamsToMap(chi.RouteContext(req.Context()))
-			res.handlerMark = mark
-		}
-	}
-
-	stopMark := func(optMark ...string) func(resp http.ResponseWriter, req *http.Request) {
-		mark := util.OptionalArg(optMark, "")
-		return func(resp http.ResponseWriter, req *http.Request) {
-			if stop := req.FormValue("stop"); stop != "" && (mark == "" || mark == stop) {
-				h(stop)(resp, req)
-				resp.WriteHeader(http.StatusOK)
-			}
-		}
-	}
+	type resultStruct = testResult
+	resRecorder := &testRecorder{}
+	h := resRecorder.handle
+	stopMark := resRecorder.stop
 
 	r := NewRouter()
 	r.NotFound(h("not-found:/"))
@@ -108,7 +154,7 @@ func TestRouter(t *testing.T) {
 					m.Delete("", h())
 				})
 				m.PathGroup("/*", func(g *RouterPathGroup) {
-					g.MatchPath("GET", `/<dir:*>/<file:[a-z]{1,2}>`, stopMark("s2"), h("match-path"))
+					g.MatchPattern("GET", g.PatternRegexp(`/<dir:*>/<file:[a-z]{1,2}>`, stopMark("s2")), stopMark("s3"), h("match-path"))
 				}, stopMark("s1"))
 			})
 		})
@@ -116,41 +162,44 @@ func TestRouter(t *testing.T) {
 
 	testRoute := func(t *testing.T, methodPath string, expected resultStruct) {
 		t.Run(methodPath, func(t *testing.T) {
-			res = resultStruct{}
-			methodPathFields := strings.Fields(methodPath)
-			req, err := http.NewRequest(methodPathFields[0], methodPathFields[1], nil)
-			assert.NoError(t, err)
-			r.ServeHTTP(recorder, req)
-			assert.Equal(t, expected, res)
+			resRecorder.test(t, r, methodPath, expected)
 		})
 	}
 
 	t.Run("RootRouter", func(t *testing.T) {
-		testRoute(t, "GET /the-user/the-repo/other", resultStruct{method: "GET", handlerMark: "not-found:/"})
+		testRoute(t, "GET /the-user/the-repo/other", resultStruct{
+			method:          "GET",
+			handlerMarks:    []string{"not-found:/"},
+			chiRoutePattern: new(""),
+		})
 		testRoute(t, "GET /the-user/the-repo/pulls", resultStruct{
-			method:      "GET",
-			pathParams:  map[string]string{"username": "the-user", "reponame": "the-repo", "type": "pulls"},
-			handlerMark: "list-issues-b",
+			method:       "GET",
+			pathParams:   map[string]string{"username": "the-user", "reponame": "the-repo", "type": "pulls"},
+			handlerMarks: []string{"list-issues-b"},
 		})
 		testRoute(t, "GET /the-user/the-repo/issues/123", resultStruct{
-			method:      "GET",
-			pathParams:  map[string]string{"username": "the-user", "reponame": "the-repo", "type": "issues", "index": "123"},
-			handlerMark: "view-issue",
+			method:          "GET",
+			pathParams:      map[string]string{"username": "the-user", "reponame": "the-repo", "type": "issues", "index": "123"},
+			handlerMarks:    []string{"view-issue"},
+			chiRoutePattern: new("/{username}/{reponame}/{type:issues|pulls}/{index}"),
 		})
 		testRoute(t, "GET /the-user/the-repo/issues/123?stop=hijack", resultStruct{
-			method:      "GET",
-			pathParams:  map[string]string{"username": "the-user", "reponame": "the-repo", "type": "issues", "index": "123"},
-			handlerMark: "hijack",
+			method:       "GET",
+			pathParams:   map[string]string{"username": "the-user", "reponame": "the-repo", "type": "issues", "index": "123"},
+			handlerMarks: []string{"hijack"},
 		})
 		testRoute(t, "POST /the-user/the-repo/issues/123/update", resultStruct{
-			method:      "POST",
-			pathParams:  map[string]string{"username": "the-user", "reponame": "the-repo", "index": "123"},
-			handlerMark: "update-issue",
+			method:       "POST",
+			pathParams:   map[string]string{"username": "the-user", "reponame": "the-repo", "index": "123"},
+			handlerMarks: []string{"update-issue"},
 		})
 	})
 
 	t.Run("Sub Router", func(t *testing.T) {
-		testRoute(t, "GET /api/v1/other", resultStruct{method: "GET", handlerMark: "not-found:/api/v1"})
+		testRoute(t, "GET /api/v1/other", resultStruct{
+			method:       "GET",
+			handlerMarks: []string{"not-found:/api/v1"},
+		})
 		testRoute(t, "GET /api/v1/repos/the-user/the-repo/branches", resultStruct{
 			method:     "GET",
 			pathParams: map[string]string{"username": "the-user", "reponame": "the-repo"},
@@ -179,31 +228,38 @@ func TestRouter(t *testing.T) {
 
 	t.Run("MatchPath", func(t *testing.T) {
 		testRoute(t, "GET /api/v1/repos/the-user/the-repo/branches/d1/d2/fn", resultStruct{
-			method:      "GET",
-			pathParams:  map[string]string{"username": "the-user", "reponame": "the-repo", "*": "d1/d2/fn", "dir": "d1/d2", "file": "fn"},
-			handlerMark: "match-path",
+			method:       "GET",
+			pathParams:   map[string]string{"username": "the-user", "reponame": "the-repo", "*": "d1/d2/fn", "dir": "d1/d2", "file": "fn"},
+			handlerMarks: []string{"s1", "s2", "s3", "match-path"},
 		})
 		testRoute(t, "GET /api/v1/repos/the-user/the-repo/branches/d1%2fd2/fn", resultStruct{
-			method:      "GET",
-			pathParams:  map[string]string{"username": "the-user", "reponame": "the-repo", "*": "d1%2fd2/fn", "dir": "d1%2fd2", "file": "fn"},
-			handlerMark: "match-path",
+			method:       "GET",
+			pathParams:   map[string]string{"username": "the-user", "reponame": "the-repo", "*": "d1%2fd2/fn", "dir": "d1%2fd2", "file": "fn"},
+			handlerMarks: []string{"s1", "s2", "s3", "match-path"},
 		})
 		testRoute(t, "GET /api/v1/repos/the-user/the-repo/branches/d1/d2/000", resultStruct{
-			method:      "GET",
-			pathParams:  map[string]string{"reponame": "the-repo", "username": "the-user", "*": "d1/d2/000"},
-			handlerMark: "not-found:/api/v1",
+			method:       "GET",
+			pathParams:   map[string]string{"reponame": "the-repo", "username": "the-user", "*": "d1/d2/000"},
+			handlerMarks: []string{"s1", "not-found:/api/v1"},
 		})
 
 		testRoute(t, "GET /api/v1/repos/the-user/the-repo/branches/d1/d2/fn?stop=s1", resultStruct{
-			method:      "GET",
-			pathParams:  map[string]string{"username": "the-user", "reponame": "the-repo", "*": "d1/d2/fn"},
-			handlerMark: "s1",
+			method:       "GET",
+			pathParams:   map[string]string{"username": "the-user", "reponame": "the-repo", "*": "d1/d2/fn"},
+			handlerMarks: []string{"s1"},
 		})
 
 		testRoute(t, "GET /api/v1/repos/the-user/the-repo/branches/d1/d2/fn?stop=s2", resultStruct{
-			method:      "GET",
-			pathParams:  map[string]string{"username": "the-user", "reponame": "the-repo", "*": "d1/d2/fn", "dir": "d1/d2", "file": "fn"},
-			handlerMark: "s2",
+			method:       "GET",
+			pathParams:   map[string]string{"username": "the-user", "reponame": "the-repo", "*": "d1/d2/fn", "dir": "d1/d2", "file": "fn"},
+			handlerMarks: []string{"s1", "s2"},
+		})
+
+		testRoute(t, "GET /api/v1/repos/the-user/the-repo/branches/d1/d2/fn?stop=s3", resultStruct{
+			method:          "GET",
+			pathParams:      map[string]string{"username": "the-user", "reponame": "the-repo", "*": "d1/d2/fn", "dir": "d1/d2", "file": "fn"},
+			handlerMarks:    []string{"s1", "s2", "s3"},
+			chiRoutePattern: new("/api/v1/repos/{username}/{reponame}/branches/<dir:*>/<file:[a-z]{1,2}>"),
 		})
 	})
 }
@@ -247,4 +303,40 @@ func TestRouteNormalizePath(t *testing.T) {
 	testPath("/v2", paths{EscapedPath: "/v2", RawPath: "/v2", Path: "/v2"})
 	testPath("/v2/", paths{EscapedPath: "/v2", RawPath: "/v2", Path: "/v2"})
 	testPath("/v2/%2f", paths{EscapedPath: "/v2/%2f", RawPath: "/v2/%2f", Path: "/v2//"})
+}
+
+func TestPreMiddlewareProvider(t *testing.T) {
+	resRecorder := &testRecorder{}
+	h := resRecorder.handle
+	p := resRecorder.provider
+
+	root := NewRouter()
+	root.BeforeRouting(h("before-root"))
+	root.AfterRouting(h("root"))
+	root.Get("/a/1", h("mid"), types.PreMiddlewareProvider(p("pre-root")), h("end1"))
+
+	sub := NewRouter()
+	sub.BeforeRouting(h("before-sub"))
+	sub.AfterRouting(h("sub"))
+	sub.Get("/2", h("mid"), types.PreMiddlewareProvider(p("pre-sub")), h("end2"))
+	sub.NotFound(h("not-found"))
+
+	root.Mount("/a", sub)
+
+	resRecorder.test(t, root, "GET /a/1", testResult{
+		method:       "GET",
+		handlerMarks: []string{"before-root", "pre-root", "root", "mid", "end1"},
+	})
+	resRecorder.test(t, root, "GET /a/2", testResult{
+		method:       "GET",
+		handlerMarks: []string{"before-root", "root", "before-sub", "pre-sub", "sub", "mid", "end2"},
+	})
+	resRecorder.test(t, root, "GET /no-such", testResult{
+		method:       "GET",
+		handlerMarks: []string{"before-root"},
+	})
+	resRecorder.test(t, root, "GET /a/no-such", testResult{
+		method:       "GET",
+		handlerMarks: []string{"before-root", "root", "before-sub", "sub", "not-found"},
+	})
 }

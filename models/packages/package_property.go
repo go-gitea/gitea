@@ -5,6 +5,7 @@ package packages
 
 import (
 	"context"
+	"errors"
 
 	"code.gitea.io/gitea/models/db"
 
@@ -32,7 +33,7 @@ type PackageProperty struct {
 	RefType PropertyType `xorm:"INDEX NOT NULL"`
 	RefID   int64        `xorm:"INDEX NOT NULL"`
 	Name    string       `xorm:"INDEX NOT NULL"`
-	Value   string       `xorm:"TEXT NOT NULL"`
+	Value   string       `xorm:"LONGTEXT NOT NULL"`
 }
 
 // InsertProperty creates a property
@@ -51,18 +52,32 @@ func InsertProperty(ctx context.Context, refType PropertyType, refID int64, name
 // GetProperties gets all properties
 func GetProperties(ctx context.Context, refType PropertyType, refID int64) ([]*PackageProperty, error) {
 	pps := make([]*PackageProperty, 0, 10)
-	return pps, db.GetEngine(ctx).Where("ref_type = ? AND ref_id = ?", refType, refID).Find(&pps)
+	return pps, db.GetEngine(ctx).Where("ref_type = ? AND ref_id = ?", refType, refID).OrderBy("id").Find(&pps)
 }
 
 // GetPropertiesByName gets all properties with a specific name
 func GetPropertiesByName(ctx context.Context, refType PropertyType, refID int64, name string) ([]*PackageProperty, error) {
 	pps := make([]*PackageProperty, 0, 10)
-	return pps, db.GetEngine(ctx).Where("ref_type = ? AND ref_id = ? AND name = ?", refType, refID, name).Find(&pps)
+	return pps, db.GetEngine(ctx).Where("ref_type = ? AND ref_id = ? AND name = ?", refType, refID, name).OrderBy("id").Find(&pps)
 }
 
 // UpdateProperty updates a property
 func UpdateProperty(ctx context.Context, pp *PackageProperty) error {
 	_, err := db.GetEngine(ctx).ID(pp.ID).Update(pp)
+	return err
+}
+
+func InsertOrUpdateProperty(ctx context.Context, refType PropertyType, refID int64, name, value string) error {
+	pp := PackageProperty{RefType: refType, RefID: refID, Name: name}
+	ok, err := db.GetEngine(ctx).Get(&pp)
+	if err != nil {
+		return err
+	}
+	if ok {
+		_, err = db.GetEngine(ctx).Where("ref_type=? AND ref_id=? AND name=?", refType, refID, name).Cols("value").Update(&PackageProperty{Value: value})
+		return err
+	}
+	_, err = InsertProperty(ctx, refType, refID, name, value)
 	return err
 }
 
@@ -72,14 +87,54 @@ func DeleteAllProperties(ctx context.Context, refType PropertyType, refID int64)
 	return err
 }
 
+// DeletePropertiesByPackageID deletes properties of a typed linked to the package
+// Use to avoid for loops in mass deletion of properties
+func DeletePropertiesByPackageID(ctx context.Context, refType PropertyType, packageID int64) error {
+	var deleteStmt *builder.Builder
+
+	switch refType {
+	case PropertyTypeFile:
+		deleteStmt = builder.Delete(
+			// Delete all properties that are attached to a file and are in ids from a subquery
+			// which returns ids from the package_file table joined on package_version to link it with package id
+			builder.Eq{"ref_type": PropertyTypeFile}, builder.In("ref_id",
+				builder.Select("package_file.id").From("package_file").
+					LeftJoin("package_version", "package_file.version_id = package_version.id").
+					Where(builder.Eq{"package_version.package_id": packageID}))).From("package_property")
+	case PropertyTypeVersion:
+		// Delete all properties that are attached to a version and are in ids from subquery to the package_version filtered by package id
+		deleteStmt = builder.Delete(
+			builder.Eq{"ref_type": PropertyTypeVersion}, builder.In("ref_id",
+				builder.Select("package_version.id").From("package_version").
+					Where(builder.Eq{"package_version.package_id": packageID}))).From("package_property")
+	case PropertyTypePackage:
+		// Delete all properties that are attached to a package and their reference links to the given package ID
+		deleteStmt = builder.Delete(
+			builder.Eq{"ref_type": PropertyTypePackage}, builder.Eq{"ref_id": packageID}).
+			From("package_property")
+	default:
+		return errors.New("invalid ref type")
+	}
+
+	_, err := db.GetEngine(ctx).Exec(deleteStmt)
+	return err
+}
+
+// DeleteFilePropertiesByVersionID deletes all file properties linked to specific version
+func DeleteFilePropertiesByVersionID(ctx context.Context, versionID int64) error {
+	deleteStmt := builder.Delete(builder.Eq{"ref_type": PropertyTypeFile}, builder.In("ref_id", builder.Select("id").From("package_file").Where(builder.Eq{"version_id": versionID}))).From("package_property")
+	_, err := db.GetEngine(ctx).Exec(deleteStmt)
+	return err
+}
+
 // DeletePropertyByID deletes a property
 func DeletePropertyByID(ctx context.Context, propertyID int64) error {
 	_, err := db.GetEngine(ctx).ID(propertyID).Delete(&PackageProperty{})
 	return err
 }
 
-// DeletePropertyByName deletes properties by name
-func DeletePropertyByName(ctx context.Context, refType PropertyType, refID int64, name string) error {
+// DeletePropertiesByName deletes properties by name
+func DeletePropertiesByName(ctx context.Context, refType PropertyType, refID int64, name string) error {
 	_, err := db.GetEngine(ctx).Where("ref_type = ? AND ref_id = ? AND name = ?", refType, refID, name).Delete(&PackageProperty{})
 	return err
 }

@@ -1,13 +1,11 @@
 // Copyright 2021 The Gitea Authors. All rights reserved.
 // SPDX-License-Identifier: MIT
 
-package v1_15 //nolint
+package v1_15
 
-import (
-	"xorm.io/xorm"
-)
+import "code.gitea.io/gitea/models/db"
 
-func AddIssueResourceIndexTable(x *xorm.Engine) error {
+func AddIssueResourceIndexTable(x db.EngineMigration) error {
 	type ResourceIndex struct {
 		GroupID  int64 `xorm:"pk"`
 		MaxIndex int64 `xorm:"index"`

@@ -1,15 +1,15 @@
 // Copyright 2021 The Gitea Authors. All rights reserved.
 // SPDX-License-Identifier: MIT
 
-package v1_16 //nolint
+package v1_16
 
 import (
 	"fmt"
 
-	"xorm.io/xorm"
+	"code.gitea.io/gitea/models/db"
 )
 
-func CreateUserSettingsTable(x *xorm.Engine) error {
+func CreateUserSettingsTable(x db.EngineMigration) error {
 	type UserSetting struct {
 		ID           int64  `xorm:"pk autoincr"`
 		UserID       int64  `xorm:"index unique(key_userid)"`              // to load all of someone's settings

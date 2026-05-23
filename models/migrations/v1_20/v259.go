@@ -1,15 +1,14 @@
 // Copyright 2023 The Gitea Authors. All rights reserved.
 // SPDX-License-Identifier: MIT
 
-package v1_20 //nolint
+package v1_20
 
 import (
 	"fmt"
 	"strings"
 
+	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/modules/log"
-
-	"xorm.io/xorm"
 )
 
 // unknownAccessTokenScope represents the scope for an access token that isn't
@@ -319,7 +318,7 @@ type AccessToken struct {
 	Scope string
 }
 
-func ConvertScopedAccessTokens(x *xorm.Engine) error {
+func ConvertScopedAccessTokens(x db.EngineMigration) error {
 	var tokens []*AccessToken
 
 	if err := x.Find(&tokens); err != nil {
@@ -329,7 +328,7 @@ func ConvertScopedAccessTokens(x *xorm.Engine) error {
 	for _, token := range tokens {
 		var scopes []string
 		allNewScopesMap := make(map[AccessTokenScope]bool)
-		for _, oldScope := range strings.Split(token.Scope, ",") {
+		for oldScope := range strings.SplitSeq(token.Scope, ",") {
 			if newScopes, exists := accessTokenScopeMap[OldAccessTokenScope(oldScope)]; exists {
 				for _, newScope := range newScopes {
 					allNewScopesMap[newScope] = true

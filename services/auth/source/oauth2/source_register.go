@@ -9,13 +9,13 @@ import (
 
 // RegisterSource causes an OAuth2 configuration to be registered
 func (source *Source) RegisterSource() error {
-	err := RegisterProviderWithGothic(source.authSource.Name, source)
-	return wrapOpenIDConnectInitializeError(err, source.authSource.Name, source)
+	err := RegisterProviderWithGothic(source.AuthSource.Name, source)
+	return wrapOpenIDConnectInitializeError(err, source.AuthSource.Name, source)
 }
 
 // UnregisterSource causes an OAuth2 configuration to be unregistered
 func (source *Source) UnregisterSource() error {
-	RemoveProviderFromGothic(source.authSource.Name)
+	RemoveProviderFromGothic(source.AuthSource.Name)
 	return nil
 }
 

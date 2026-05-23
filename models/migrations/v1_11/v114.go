@@ -1,15 +1,15 @@
 // Copyright 2019 The Gitea Authors. All rights reserved.
 // SPDX-License-Identifier: MIT
 
-package v1_11 //nolint
+package v1_11
 
 import (
 	"net/url"
 
-	"xorm.io/xorm"
+	"code.gitea.io/gitea/models/db"
 )
 
-func SanitizeOriginalURL(x *xorm.Engine) error {
+func SanitizeOriginalURL(x db.EngineMigration) error {
 	type Repository struct {
 		ID          int64
 		OriginalURL string `xorm:"VARCHAR(2048)"`

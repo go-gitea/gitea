@@ -1,12 +1,12 @@
 // Copyright 2023 The Gitea Authors. All rights reserved.
 // SPDX-License-Identifier: MIT
 
-package v1_20 //nolint
+package v1_20
 
 import (
+	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/modules/timeutil"
 
-	"xorm.io/xorm"
 	"xorm.io/xorm/schemas"
 )
 
@@ -40,6 +40,6 @@ func (a *Action) TableIndices() []*schemas.Index {
 	return indices
 }
 
-func ImproveActionTableIndices(x *xorm.Engine) error {
+func ImproveActionTableIndices(x db.EngineMigration) error {
 	return x.Sync(new(Action))
 }

@@ -1,18 +1,17 @@
 // Copyright 2020 The Gitea Authors. All rights reserved.
 // SPDX-License-Identifier: MIT
 
-package v1_13 //nolint
+package v1_13
 
 import (
 	"fmt"
 
+	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/models/migrations/base"
 	"code.gitea.io/gitea/modules/setting"
-
-	"xorm.io/xorm"
 )
 
-func FixLanguageStatsToSaveSize(x *xorm.Engine) error {
+func FixLanguageStatsToSaveSize(x db.EngineMigration) error {
 	// LanguageStat see models/repo_language_stats.go
 	type LanguageStat struct {
 		Size int64 `xorm:"NOT NULL DEFAULT 0"`
@@ -21,12 +20,7 @@ func FixLanguageStatsToSaveSize(x *xorm.Engine) error {
 	// RepoIndexerType specifies the repository indexer type
 	type RepoIndexerType int
 
-	const (
-		// RepoIndexerTypeCode code indexer - 0
-		RepoIndexerTypeCode RepoIndexerType = iota //nolint:unused
-		// RepoIndexerTypeStats repository stats indexer - 1
-		RepoIndexerTypeStats
-	)
+	const RepoIndexerTypeStats RepoIndexerType = 1
 
 	// RepoIndexerStatus see models/repo_indexer.go
 	type RepoIndexerStatus struct {

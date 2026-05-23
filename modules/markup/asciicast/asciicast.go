@@ -20,14 +20,12 @@ func init() {
 // See https://github.com/asciinema/asciinema/blob/develop/doc/asciicast-v2.md
 type Renderer struct{}
 
-// Name implements markup.Renderer
 func (Renderer) Name() string {
 	return "asciicast"
 }
 
-// Extensions implements markup.Renderer
-func (Renderer) Extensions() []string {
-	return []string{".cast"}
+func (Renderer) FileNamePatterns() []string {
+	return []string{"*.cast"}
 }
 
 const (
@@ -35,12 +33,10 @@ const (
 	playerSrcAttr   = "data-asciinema-player-src"
 )
 
-// SanitizerRules implements markup.Renderer
 func (Renderer) SanitizerRules() []setting.MarkupSanitizerRule {
 	return []setting.MarkupSanitizerRule{{Element: "div", AllowAttr: playerSrcAttr}}
 }
 
-// Render implements markup.Renderer
 func (Renderer) Render(ctx *markup.RenderContext, _ io.Reader, output io.Writer) error {
 	rawURL := fmt.Sprintf("%s/%s/%s/raw/%s/%s",
 		setting.AppSubURL,

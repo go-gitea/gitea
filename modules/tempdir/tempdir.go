@@ -19,7 +19,7 @@ type TempDir struct {
 }
 
 func (td *TempDir) JoinPath(elems ...string) string {
-	return filepath.Join(append([]string{td.base, td.sub}, elems...)...)
+	return filepath.Join(append([]string{td.base, td.sub}, filepath.Join(elems...))...)
 }
 
 // MkdirAllSub works like os.MkdirAll, but the base directory must exist

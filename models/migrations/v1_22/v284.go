@@ -1,12 +1,15 @@
 // Copyright 2023 The Gitea Authors. All rights reserved.
 // SPDX-License-Identifier: MIT
 
-package v1_22 //nolint
+package v1_22
+
 import (
+	"code.gitea.io/gitea/models/db"
+
 	"xorm.io/xorm"
 )
 
-func AddIgnoreStaleApprovalsColumnToProtectedBranchTable(x *xorm.Engine) error {
+func AddIgnoreStaleApprovalsColumnToProtectedBranchTable(x db.EngineMigration) error {
 	type ProtectedBranch struct {
 		IgnoreStaleApprovals bool `xorm:"NOT NULL DEFAULT false"`
 	}

@@ -12,7 +12,7 @@ import (
 
 func TestGetNotes(t *testing.T) {
 	bareRepo1Path := filepath.Join(testReposDir, "repo1_bare")
-	bareRepo1, err := openRepositoryWithDefaultContext(bareRepo1Path)
+	bareRepo1, err := OpenRepository(t.Context(), bareRepo1Path)
 	assert.NoError(t, err)
 	defer bareRepo1.Close()
 
@@ -25,7 +25,7 @@ func TestGetNotes(t *testing.T) {
 
 func TestGetNestedNotes(t *testing.T) {
 	repoPath := filepath.Join(testReposDir, "repo3_notes")
-	repo, err := openRepositoryWithDefaultContext(repoPath)
+	repo, err := OpenRepository(t.Context(), repoPath)
 	assert.NoError(t, err)
 	defer repo.Close()
 
@@ -40,12 +40,12 @@ func TestGetNestedNotes(t *testing.T) {
 
 func TestGetNonExistentNotes(t *testing.T) {
 	bareRepo1Path := filepath.Join(testReposDir, "repo1_bare")
-	bareRepo1, err := openRepositoryWithDefaultContext(bareRepo1Path)
+	bareRepo1, err := OpenRepository(t.Context(), bareRepo1Path)
 	assert.NoError(t, err)
 	defer bareRepo1.Close()
 
 	note := Note{}
 	err = GetNote(t.Context(), bareRepo1, "non_existent_sha", &note)
 	assert.Error(t, err)
-	assert.IsType(t, ErrNotExist{}, err)
+	assert.ErrorAs(t, err, &ErrNotExist{})
 }

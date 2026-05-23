@@ -12,12 +12,10 @@ import (
 	"code.gitea.io/gitea/models/db"
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unit"
+	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/timeutil"
 	webhook_module "code.gitea.io/gitea/modules/webhook"
-	notify_service "code.gitea.io/gitea/services/notify"
-
-	"github.com/nektos/act/pkg/jobparser"
 )
 
 // StartScheduleTasks start the task
@@ -53,20 +51,6 @@ func startTasks(ctx context.Context) error {
 
 		// Loop through each spec and create a schedule task for it
 		for _, row := range specs {
-			// cancel running jobs if the event is push
-			if row.Schedule.Event == webhook_module.HookEventPush {
-				// cancel running jobs of the same workflow
-				if err := CancelPreviousJobs(
-					ctx,
-					row.RepoID,
-					row.Schedule.Ref,
-					row.Schedule.WorkflowID,
-					webhook_module.HookEventSchedule,
-				); err != nil {
-					log.Error("CancelPreviousJobs: %v", err)
-				}
-			}
-
 			if row.Repo.IsArchived {
 				// Skip if the repo is archived
 				continue
@@ -84,7 +68,7 @@ func startTasks(ctx context.Context) error {
 				continue
 			}
 
-			if err := CreateScheduleTask(ctx, row.Schedule); err != nil {
+			if err := CreateScheduleTask(ctx, row); err != nil {
 				log.Error("CreateScheduleTask: %v", err)
 				return err
 			}
@@ -114,9 +98,12 @@ func startTasks(ctx context.Context) error {
 	return nil
 }
 
-// CreateScheduleTask creates a scheduled task from a cron action schedule.
+// CreateScheduleTask creates a scheduled task from a cron action schedule spec.
 // It creates an action run based on the schedule, inserts it into the database, and creates commit statuses for each job.
-func CreateScheduleTask(ctx context.Context, cron *actions_model.ActionSchedule) error {
+func CreateScheduleTask(ctx context.Context, spec *actions_model.ActionScheduleSpec) error {
+	cron := spec.Schedule
+	eventPayload := withScheduleInEventPayload(cron.EventPayload, spec.Spec)
+
 	// Create a new action run based on the schedule
 	run := &actions_model.ActionRun{
 		Title:         cron.Title,
@@ -127,40 +114,48 @@ func CreateScheduleTask(ctx context.Context, cron *actions_model.ActionSchedule)
 		Ref:           cron.Ref,
 		CommitSHA:     cron.CommitSHA,
 		Event:         cron.Event,
-		EventPayload:  cron.EventPayload,
+		EventPayload:  eventPayload,
 		TriggerEvent:  string(webhook_module.HookEventSchedule),
 		ScheduleID:    cron.ID,
 		Status:        actions_model.StatusWaiting,
 	}
 
-	vars, err := actions_model.GetVariablesOfRun(ctx, run)
-	if err != nil {
-		log.Error("GetVariablesOfRun: %v", err)
-		return err
-	}
-
-	// Parse the workflow specification from the cron schedule
-	workflows, err := jobparser.Parse(cron.Content, jobparser.WithVars(vars))
-	if err != nil {
-		return err
-	}
-
+	// FIXME cron.Content might be outdated if the workflow file has been changed.
+	// Load the latest sha from default branch
 	// Insert the action run and its associated jobs into the database
-	if err := actions_model.InsertRun(ctx, run, workflows); err != nil {
+	if err := PrepareRunAndInsert(ctx, cron.Content, run, nil); err != nil {
 		return err
-	}
-	allJobs, err := db.Find[actions_model.ActionRunJob](ctx, actions_model.FindRunJobOptions{RunID: run.ID})
-	if err != nil {
-		log.Error("FindRunJobs: %v", err)
-	}
-	err = run.LoadAttributes(ctx)
-	if err != nil {
-		log.Error("LoadAttributes: %v", err)
-	}
-	for _, job := range allJobs {
-		notify_service.WorkflowJobStatusUpdate(ctx, run.Repo, run.TriggerUser, job, nil)
 	}
 
 	// Return nil if no errors occurred
 	return nil
+}
+
+func withScheduleInEventPayload(eventPayload, schedule string) string {
+	if schedule == "" {
+		return eventPayload
+	}
+
+	// eventPayload originates from json.Marshal(input.Payload) in handleSchedules,
+	// so a nil payload is stored as the literal "null" and pre-existing rows may be
+	// empty. Both cases start from a fresh map so the schedule field can still be set.
+	var event map[string]any
+	if eventPayload != "" {
+		if err := json.Unmarshal([]byte(eventPayload), &event); err != nil {
+			log.Error("withScheduleInEventPayload: unmarshal: %v", err)
+			return eventPayload
+		}
+	}
+	if event == nil {
+		event = map[string]any{}
+	}
+
+	event["schedule"] = schedule
+	updatedPayload, err := json.Marshal(event)
+	if err != nil {
+		log.Error("withScheduleInEventPayload: marshal: %v", err)
+		return eventPayload
+	}
+
+	return string(updatedPayload)
 }

@@ -4,20 +4,20 @@
 package integration
 
 import (
-	"archive/zip"
 	"bytes"
 	"io"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
 
 	"code.gitea.io/gitea/models/auth"
-	"code.gitea.io/gitea/models/db"
 	git_model "code.gitea.io/gitea/models/git"
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/modules/lfs"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/test"
 	"code.gitea.io/gitea/routers/web"
 	"code.gitea.io/gitea/tests"
 
@@ -25,27 +25,27 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func storeObjectInRepo(t *testing.T, repositoryID int64, content *[]byte) string {
-	pointer, err := lfs.GeneratePointer(bytes.NewReader(*content))
+func storeObjectInRepo(t *testing.T, repositoryID int64, content string) string {
+	pointer, err := lfs.GeneratePointer(strings.NewReader(content))
 	assert.NoError(t, err)
 
-	_, err = git_model.NewLFSMetaObject(db.DefaultContext, repositoryID, pointer)
+	_, err = git_model.NewLFSMetaObject(t.Context(), repositoryID, pointer)
 	assert.NoError(t, err)
 	contentStore := lfs.NewContentStore()
 	exist, err := contentStore.Exists(pointer)
 	assert.NoError(t, err)
 	if !exist {
-		err := contentStore.Put(pointer, bytes.NewReader(*content))
+		err := contentStore.Put(pointer, strings.NewReader(content))
 		assert.NoError(t, err)
 	}
 	return pointer.Oid
 }
 
-func storeAndGetLfsToken(t *testing.T, content *[]byte, extraHeader *http.Header, expectedStatus int, ts ...auth.AccessTokenScope) *httptest.ResponseRecorder {
-	repo, err := repo_model.GetRepositoryByOwnerAndName(db.DefaultContext, "user2", "repo1")
+func storeAndGetLfsToken(t *testing.T, content string, extraHeader *http.Header, expectedStatus int, ts ...auth.AccessTokenScope) *httptest.ResponseRecorder {
+	repo, err := repo_model.GetRepositoryByOwnerAndName(t.Context(), "user2", "repo1")
 	assert.NoError(t, err)
 	oid := storeObjectInRepo(t, repo.ID, content)
-	defer git_model.RemoveLFSMetaObjectByOid(db.DefaultContext, repo.ID, oid)
+	defer git_model.RemoveLFSMetaObjectByOid(t.Context(), repo.ID, oid)
 
 	token := getUserToken(t, "user2", ts...)
 
@@ -66,11 +66,11 @@ func storeAndGetLfsToken(t *testing.T, content *[]byte, extraHeader *http.Header
 	return resp
 }
 
-func storeAndGetLfs(t *testing.T, content *[]byte, extraHeader *http.Header, expectedStatus int) *httptest.ResponseRecorder {
-	repo, err := repo_model.GetRepositoryByOwnerAndName(db.DefaultContext, "user2", "repo1")
+func storeAndGetLfs(t *testing.T, content string, extraHeader *http.Header, expectedStatus int) *httptest.ResponseRecorder {
+	repo, err := repo_model.GetRepositoryByOwnerAndName(t.Context(), "user2", "repo1")
 	assert.NoError(t, err)
 	oid := storeObjectInRepo(t, repo.ID, content)
-	defer git_model.RemoveLFSMetaObjectByOid(db.DefaultContext, repo.ID, oid)
+	defer git_model.RemoveLFSMetaObjectByOid(t.Context(), repo.ID, oid)
 
 	session := loginUser(t, "user2")
 
@@ -90,104 +90,84 @@ func storeAndGetLfs(t *testing.T, content *[]byte, extraHeader *http.Header, exp
 	return resp
 }
 
-func checkResponseTestContentEncoding(t *testing.T, content *[]byte, resp *httptest.ResponseRecorder, expectGzip bool) {
+func checkResponseTestContentEncoding(t *testing.T, content string, resp *httptest.ResponseRecorder, expectGzip bool) {
 	contentEncoding := resp.Header().Get("Content-Encoding")
 	if !expectGzip || !setting.EnableGzip {
 		assert.NotContains(t, contentEncoding, "gzip")
-
-		result := resp.Body.Bytes()
-		assert.Equal(t, *content, result)
+		assert.Equal(t, content, resp.Body.String())
 	} else {
 		assert.Contains(t, contentEncoding, "gzip")
-		gzippReader, err := gzipp.NewReader(resp.Body)
+		gzipReader, err := gzipp.NewReader(resp.Body)
 		assert.NoError(t, err)
-		result, err := io.ReadAll(gzippReader)
+		result, err := io.ReadAll(gzipReader)
 		assert.NoError(t, err)
-		assert.Equal(t, *content, result)
+		assert.Equal(t, content, string(result))
 	}
 }
 
-func TestGetLFSSmall(t *testing.T) {
+func TestLFSGetObject(t *testing.T) {
 	defer tests.PrepareTestEnv(t)()
-	content := []byte("A very small file\n")
-
-	resp := storeAndGetLfs(t, &content, nil, http.StatusOK)
-	checkResponseTestContentEncoding(t, &content, resp, false)
+	t.Run("GetLFSSmall", testGetLFSSmall)
+	t.Run("GetLFSSmallToken", testGetLFSSmallToken)
+	t.Run("GetLFSSmallTokenFail", testGetLFSSmallTokenFail)
+	t.Run("GetLFSLarge", testGetLFSLarge)
+	t.Run("GetLFSGzip", testGetLFSGzip)
+	t.Run("GetLFSZip", testGetLFSZip)
+	t.Run("GetLFSRangeNo", testGetLFSRangeNo)
+	t.Run("GetLFSRange", testGetLFSRange)
 }
 
-func TestGetLFSSmallToken(t *testing.T) {
-	defer tests.PrepareTestEnv(t)()
-	content := []byte("A very small file\n")
-
-	resp := storeAndGetLfsToken(t, &content, nil, http.StatusOK, auth.AccessTokenScopePublicOnly, auth.AccessTokenScopeReadRepository)
-	checkResponseTestContentEncoding(t, &content, resp, false)
+func testGetLFSSmall(t *testing.T) {
+	content := "A very small file\n"
+	resp := storeAndGetLfs(t, content, nil, http.StatusOK)
+	checkResponseTestContentEncoding(t, content, resp, false)
 }
 
-func TestGetLFSSmallTokenFail(t *testing.T) {
-	defer tests.PrepareTestEnv(t)()
-	content := []byte("A very small file\n")
-
-	storeAndGetLfsToken(t, &content, nil, http.StatusForbidden, auth.AccessTokenScopeReadNotification)
+func testGetLFSSmallToken(t *testing.T) {
+	content := "A very small file\n"
+	resp := storeAndGetLfsToken(t, content, nil, http.StatusOK, auth.AccessTokenScopePublicOnly, auth.AccessTokenScopeReadRepository)
+	checkResponseTestContentEncoding(t, content, resp, false)
 }
 
-func TestGetLFSLarge(t *testing.T) {
-	defer tests.PrepareTestEnv(t)()
-	content := make([]byte, web.GzipMinSize*10)
-	for i := range content {
-		content[i] = byte(i % 256)
-	}
-
-	resp := storeAndGetLfs(t, &content, nil, http.StatusOK)
-	checkResponseTestContentEncoding(t, &content, resp, true)
+func testGetLFSSmallTokenFail(t *testing.T) {
+	content := "A very small file\n"
+	storeAndGetLfsToken(t, content, nil, http.StatusForbidden, auth.AccessTokenScopeReadNotification)
 }
 
-func TestGetLFSGzip(t *testing.T) {
-	defer tests.PrepareTestEnv(t)()
-	b := make([]byte, web.GzipMinSize*10)
-	for i := range b {
-		b[i] = byte(i % 256)
-	}
-	outputBuffer := bytes.NewBuffer([]byte{})
-	gzippWriter := gzipp.NewWriter(outputBuffer)
-	gzippWriter.Write(b)
-	gzippWriter.Close()
-	content := outputBuffer.Bytes()
-
-	resp := storeAndGetLfs(t, &content, nil, http.StatusOK)
-	checkResponseTestContentEncoding(t, &content, resp, false)
+func testGetLFSLarge(t *testing.T) {
+	content := strings.Repeat("a", web.GzipMinSize*10)
+	resp := storeAndGetLfs(t, content, nil, http.StatusOK)
+	checkResponseTestContentEncoding(t, content, resp, true)
 }
 
-func TestGetLFSZip(t *testing.T) {
-	defer tests.PrepareTestEnv(t)()
-	b := make([]byte, web.GzipMinSize*10)
-	for i := range b {
-		b[i] = byte(i % 256)
-	}
-	outputBuffer := bytes.NewBuffer([]byte{})
-	zipWriter := zip.NewWriter(outputBuffer)
-	fileWriter, err := zipWriter.Create("default")
-	assert.NoError(t, err)
-	fileWriter.Write(b)
-	zipWriter.Close()
-	content := outputBuffer.Bytes()
-
-	resp := storeAndGetLfs(t, &content, nil, http.StatusOK)
-	checkResponseTestContentEncoding(t, &content, resp, false)
+func testGetLFSGzip(t *testing.T) {
+	s := strings.Repeat("a", web.GzipMinSize*10)
+	outputBuffer := &bytes.Buffer{}
+	gzipWriter := gzipp.NewWriter(outputBuffer)
+	_, _ = gzipWriter.Write([]byte(s))
+	_ = gzipWriter.Close()
+	content := outputBuffer.String()
+	resp := storeAndGetLfs(t, content, nil, http.StatusOK)
+	checkResponseTestContentEncoding(t, content, resp, false)
 }
 
-func TestGetLFSRangeNo(t *testing.T) {
-	defer tests.PrepareTestEnv(t)()
-	content := []byte("123456789\n")
-
-	resp := storeAndGetLfs(t, &content, nil, http.StatusOK)
-	assert.Equal(t, content, resp.Body.Bytes())
+func testGetLFSZip(t *testing.T) {
+	b := strings.Repeat("a", web.GzipMinSize*10)
+	content := test.WriteZipArchive(map[string]string{"default": b}).String()
+	resp := storeAndGetLfs(t, content, nil, http.StatusOK)
+	checkResponseTestContentEncoding(t, content, resp, false)
 }
 
-func TestGetLFSRange(t *testing.T) {
-	defer tests.PrepareTestEnv(t)()
-	content := []byte("123456789\n")
+func testGetLFSRangeNo(t *testing.T) {
+	content := "123456789\n"
+	resp := storeAndGetLfs(t, content, nil, http.StatusOK)
+	assert.Equal(t, content, resp.Body.String())
+}
 
-	tests := []struct {
+func testGetLFSRange(t *testing.T) {
+	content := "123456789\n"
+
+	cases := []struct {
 		in     string
 		out    string
 		status int
@@ -208,12 +188,12 @@ func TestGetLFSRange(t *testing.T) {
 		{"foobar", "123456789\n", http.StatusOK},
 	}
 
-	for _, tt := range tests {
+	for _, tt := range cases {
 		t.Run(tt.in, func(t *testing.T) {
 			h := http.Header{
 				"Range": []string{tt.in},
 			}
-			resp := storeAndGetLfs(t, &content, &h, tt.status)
+			resp := storeAndGetLfs(t, content, &h, tt.status)
 			if tt.status == http.StatusPartialContent || tt.status == http.StatusOK {
 				assert.Equal(t, tt.out, resp.Body.String())
 			} else {

@@ -20,89 +20,89 @@ import (
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/services/doctor"
 
-	"github.com/urfave/cli/v2"
-	"xorm.io/xorm"
+	"github.com/urfave/cli/v3"
 )
 
-// CmdDoctor represents the available doctor sub-command.
-var CmdDoctor = &cli.Command{
-	Name:        "doctor",
-	Usage:       "Diagnose and optionally fix problems, convert or re-create database tables",
-	Description: "A command to diagnose problems with the current Gitea instance according to the given configuration. Some problems can optionally be fixed by modifying the database or data storage.",
-
-	Subcommands: []*cli.Command{
-		cmdDoctorCheck,
-		cmdRecreateTable,
-		cmdDoctorConvert,
-	},
+func newDoctorCommand() *cli.Command {
+	return &cli.Command{
+		Name:        "doctor",
+		Usage:       "Diagnose and optionally fix problems, convert or re-create database tables",
+		Description: "A command to diagnose problems with the current Gitea instance according to the given configuration. Some problems can optionally be fixed by modifying the database or data storage.",
+		Commands: []*cli.Command{
+			newDoctorCheckCommand(),
+			newRecreateTableCommand(),
+			newDoctorConvertCommand(),
+		},
+	}
 }
 
-var cmdDoctorCheck = &cli.Command{
-	Name:        "check",
-	Usage:       "Diagnose and optionally fix problems",
-	Description: "A command to diagnose problems with the current Gitea instance according to the given configuration. Some problems can optionally be fixed by modifying the database or data storage.",
-	Action:      runDoctorCheck,
-	Flags: []cli.Flag{
-		&cli.BoolFlag{
-			Name:  "list",
-			Usage: "List the available checks",
+func newDoctorCheckCommand() *cli.Command {
+	return &cli.Command{
+		Name:        "check",
+		Usage:       "Diagnose and optionally fix problems",
+		Description: "A command to diagnose problems with the current Gitea instance according to the given configuration. Some problems can optionally be fixed by modifying the database or data storage.",
+		Action:      runDoctorCheck,
+		Flags: []cli.Flag{
+			&cli.BoolFlag{
+				Name:  "list",
+				Usage: "List the available checks",
+			},
+			&cli.BoolFlag{
+				Name:  "default",
+				Usage: "Run the default checks (if neither --run or --all is set, this is the default behaviour)",
+			},
+			&cli.StringSliceFlag{
+				Name:  "run",
+				Usage: "Run the provided checks - (if --default is set, the default checks will also run)",
+			},
+			&cli.BoolFlag{
+				Name:  "all",
+				Usage: "Run all the available checks",
+			},
+			&cli.BoolFlag{
+				Name:  "fix",
+				Usage: "Automatically fix what we can",
+			},
+			&cli.StringFlag{
+				Name:  "log-file",
+				Usage: `Name of the log file (no verbose log output by default). Set to "-" to output to stdout`,
+			},
+			&cli.BoolFlag{
+				Name:    "color",
+				Aliases: []string{"H"},
+				Usage:   "Use color for outputted information",
+			},
 		},
-		&cli.BoolFlag{
-			Name:  "default",
-			Usage: "Run the default checks (if neither --run or --all is set, this is the default behaviour)",
-		},
-		&cli.StringSliceFlag{
-			Name:  "run",
-			Usage: "Run the provided checks - (if --default is set, the default checks will also run)",
-		},
-		&cli.BoolFlag{
-			Name:  "all",
-			Usage: "Run all the available checks",
-		},
-		&cli.BoolFlag{
-			Name:  "fix",
-			Usage: "Automatically fix what we can",
-		},
-		&cli.StringFlag{
-			Name:  "log-file",
-			Usage: `Name of the log file (no verbose log output by default). Set to "-" to output to stdout`,
-		},
-		&cli.BoolFlag{
-			Name:    "color",
-			Aliases: []string{"H"},
-			Usage:   "Use color for outputted information",
-		},
-	},
+	}
 }
 
-var cmdRecreateTable = &cli.Command{
-	Name:      "recreate-table",
-	Usage:     "Recreate tables from XORM definitions and copy the data.",
-	ArgsUsage: "[TABLE]... : (TABLEs to recreate - leave blank for all)",
-	Flags: []cli.Flag{
-		&cli.BoolFlag{
-			Name:  "debug",
-			Usage: "Print SQL commands sent",
+func newRecreateTableCommand() *cli.Command {
+	return &cli.Command{
+		Name:      "recreate-table",
+		Usage:     "Recreate tables from XORM definitions and copy the data.",
+		ArgsUsage: "[TABLE]... : (TABLEs to recreate - leave blank for all)",
+		Flags: []cli.Flag{
+			&cli.BoolFlag{
+				Name:  "debug",
+				Usage: "Print SQL commands sent",
+			},
 		},
-	},
-	Description: `The database definitions Gitea uses change across versions, sometimes changing default values and leaving old unused columns.
+		Description: `The database definitions Gitea uses change across versions, sometimes changing default values and leaving old unused columns.
 
 This command will cause Xorm to recreate tables, copying over the data and deleting the old table.
 
 You should back-up your database before doing this and ensure that your database is up-to-date first.`,
-	Action: runRecreateTable,
+		Action: runRecreateTable,
+	}
 }
 
-func runRecreateTable(ctx *cli.Context) error {
-	stdCtx, cancel := installSignals()
-	defer cancel()
-
+func runRecreateTable(ctx context.Context, cmd *cli.Command) error {
 	// Redirect the default golog to here
 	golog.SetFlags(0)
 	golog.SetPrefix("")
 	golog.SetOutput(log.LoggerToWriter(log.GetLogger(log.DEFAULT).Info))
 
-	debug := ctx.Bool("debug")
+	debug := cmd.Bool("debug")
 	setting.MustInstalled()
 	setting.LoadDBSetting()
 
@@ -113,15 +113,15 @@ func runRecreateTable(ctx *cli.Context) error {
 	}
 
 	setting.Database.LogSQL = debug
-	if err := db.InitEngine(stdCtx); err != nil {
+	if err := db.InitEngine(ctx); err != nil {
 		fmt.Println(err)
 		fmt.Println("Check if you are using the right config file. You can use a --config directive to specify one.")
 		return nil
 	}
 
-	args := ctx.Args()
-	names := make([]string, 0, ctx.NArg())
-	for i := 0; i < ctx.NArg(); i++ {
+	args := cmd.Args()
+	names := make([]string, 0, cmd.NArg())
+	for i := 0; i < cmd.NArg(); i++ {
 		names = append(names, args.Get(i))
 	}
 
@@ -131,7 +131,7 @@ func runRecreateTable(ctx *cli.Context) error {
 	}
 	recreateTables := migrate_base.RecreateTables(beans...)
 
-	return db.InitEngineWithMigration(stdCtx, func(ctx context.Context, x *xorm.Engine) error {
+	return db.InitEngineWithMigration(context.Background(), func(ctx context.Context, x db.EngineMigration) error {
 		if err := migrations.EnsureUpToDate(ctx, x); err != nil {
 			return err
 		}
@@ -139,11 +139,11 @@ func runRecreateTable(ctx *cli.Context) error {
 	})
 }
 
-func setupDoctorDefaultLogger(ctx *cli.Context, colorize bool) {
+func setupDoctorDefaultLogger(cmd *cli.Command, colorize bool) {
 	// Silence the default loggers
 	setupConsoleLogger(log.FATAL, log.CanColorStderr, os.Stderr)
 
-	logFile := ctx.String("log-file")
+	logFile := cmd.String("log-file")
 	switch logFile {
 	case "":
 		return // if no doctor log-file is set, do not show any log from default logger
@@ -161,23 +161,20 @@ func setupDoctorDefaultLogger(ctx *cli.Context, colorize bool) {
 	}
 }
 
-func runDoctorCheck(ctx *cli.Context) error {
-	stdCtx, cancel := installSignals()
-	defer cancel()
-
+func runDoctorCheck(ctx context.Context, cmd *cli.Command) error {
 	colorize := log.CanColorStdout
-	if ctx.IsSet("color") {
-		colorize = ctx.Bool("color")
+	if cmd.IsSet("color") {
+		colorize = cmd.Bool("color")
 	}
 
-	setupDoctorDefaultLogger(ctx, colorize)
+	setupDoctorDefaultLogger(cmd, colorize)
 
 	// Finally redirect the default golang's log to here
 	golog.SetFlags(0)
 	golog.SetPrefix("")
 	golog.SetOutput(log.LoggerToWriter(log.GetLogger(log.DEFAULT).Info))
 
-	if ctx.IsSet("list") {
+	if cmd.IsSet("list") {
 		w := tabwriter.NewWriter(os.Stdout, 0, 8, 1, '\t', 0)
 		_, _ = w.Write([]byte("Default\tName\tTitle\n"))
 		doctor.SortChecks(doctor.Checks)
@@ -195,12 +192,12 @@ func runDoctorCheck(ctx *cli.Context) error {
 	}
 
 	var checks []*doctor.Check
-	if ctx.Bool("all") {
+	if cmd.Bool("all") {
 		checks = make([]*doctor.Check, len(doctor.Checks))
 		copy(checks, doctor.Checks)
-	} else if ctx.IsSet("run") {
-		addDefault := ctx.Bool("default")
-		runNamesSet := container.SetOf(ctx.StringSlice("run")...)
+	} else if cmd.IsSet("run") {
+		addDefault := cmd.Bool("default")
+		runNamesSet := container.SetOf(cmd.StringSlice("run")...)
 		for _, check := range doctor.Checks {
 			if (addDefault && check.IsDefault) || runNamesSet.Contains(check.Name) {
 				checks = append(checks, check)
@@ -217,5 +214,5 @@ func runDoctorCheck(ctx *cli.Context) error {
 			}
 		}
 	}
-	return doctor.RunChecks(stdCtx, colorize, ctx.Bool("fix"), checks)
+	return doctor.RunChecks(ctx, colorize, cmd.Bool("fix"), checks)
 }

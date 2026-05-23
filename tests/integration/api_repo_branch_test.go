@@ -29,10 +29,10 @@ func TestAPIRepoBranchesPlain(t *testing.T) {
 		user1 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 1})
 		session := loginUser(t, user1.LowerName)
 
-		// public only token should be forbidden
+		// public-only token cannot see a private repo
 		publicOnlyToken := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopePublicOnly, auth_model.AccessTokenScopeWriteRepository)
 		link, _ := url.Parse(fmt.Sprintf("/api/v1/repos/org3/%s/branches", repo3.Name)) // a plain repo
-		MakeRequest(t, NewRequest(t, "GET", link.String()).AddTokenAuth(publicOnlyToken), http.StatusForbidden)
+		MakeRequest(t, NewRequest(t, "GET", link.String()).AddTokenAuth(publicOnlyToken), http.StatusNotFound)
 
 		token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeWriteRepository)
 		resp := MakeRequest(t, NewRequest(t, "GET", link.String()).AddTokenAuth(token), http.StatusOK)
@@ -46,7 +46,7 @@ func TestAPIRepoBranchesPlain(t *testing.T) {
 		assert.Equal(t, "master", branches[1].Name)
 
 		link2, _ := url.Parse(fmt.Sprintf("/api/v1/repos/org3/%s/branches/test_branch", repo3.Name))
-		MakeRequest(t, NewRequest(t, "GET", link2.String()).AddTokenAuth(publicOnlyToken), http.StatusForbidden)
+		MakeRequest(t, NewRequest(t, "GET", link2.String()).AddTokenAuth(publicOnlyToken), http.StatusNotFound)
 
 		resp = MakeRequest(t, NewRequest(t, "GET", link2.String()).AddTokenAuth(token), http.StatusOK)
 		bs, err = io.ReadAll(resp.Body)
@@ -55,7 +55,7 @@ func TestAPIRepoBranchesPlain(t *testing.T) {
 		assert.NoError(t, json.Unmarshal(bs, &branch))
 		assert.Equal(t, "test_branch", branch.Name)
 
-		MakeRequest(t, NewRequest(t, "POST", link.String()).AddTokenAuth(publicOnlyToken), http.StatusForbidden)
+		MakeRequest(t, NewRequest(t, "POST", link.String()).AddTokenAuth(publicOnlyToken), http.StatusNotFound)
 
 		req := NewRequest(t, "POST", link.String()).AddTokenAuth(token)
 		req.Header.Add("Content-Type", "application/json")
@@ -81,7 +81,7 @@ func TestAPIRepoBranchesPlain(t *testing.T) {
 
 		link3, _ := url.Parse(fmt.Sprintf("/api/v1/repos/org3/%s/branches/test_branch2", repo3.Name))
 		MakeRequest(t, NewRequest(t, "DELETE", link3.String()), http.StatusNotFound)
-		MakeRequest(t, NewRequest(t, "DELETE", link3.String()).AddTokenAuth(publicOnlyToken), http.StatusForbidden)
+		MakeRequest(t, NewRequest(t, "DELETE", link3.String()).AddTokenAuth(publicOnlyToken), http.StatusNotFound)
 
 		MakeRequest(t, NewRequest(t, "DELETE", link3.String()).AddTokenAuth(token), http.StatusNoContent)
 		assert.NoError(t, err)
@@ -121,10 +121,10 @@ func TestAPIRepoBranchesMirror(t *testing.T) {
 	resp = MakeRequest(t, req, http.StatusForbidden)
 	bs, err = io.ReadAll(resp.Body)
 	assert.NoError(t, err)
-	assert.Equal(t, "{\"message\":\"Git Repository is a mirror.\",\"url\":\""+setting.AppURL+"api/swagger\"}\n", string(bs))
+	assert.JSONEq(t, "{\"message\":\"Git Repository is a mirror.\",\"url\":\""+setting.AppURL+"api/swagger\"}", string(bs))
 
 	resp = MakeRequest(t, NewRequest(t, "DELETE", link2.String()).AddTokenAuth(token), http.StatusForbidden)
 	bs, err = io.ReadAll(resp.Body)
 	assert.NoError(t, err)
-	assert.Equal(t, "{\"message\":\"Git Repository is a mirror.\",\"url\":\""+setting.AppURL+"api/swagger\"}\n", string(bs))
+	assert.JSONEq(t, "{\"message\":\"Git Repository is a mirror.\",\"url\":\""+setting.AppURL+"api/swagger\"}", string(bs))
 }

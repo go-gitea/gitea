@@ -1,15 +1,15 @@
 // Copyright 2021 The Gitea Authors. All rights reserved.
 // SPDX-License-Identifier: MIT
 
-package v1_15 //nolint
+package v1_15
 
 import (
 	"strings"
 
-	"xorm.io/xorm"
+	"code.gitea.io/gitea/models/db"
 )
 
-func AddPrimaryEmail2EmailAddress(x *xorm.Engine) error {
+func AddPrimaryEmail2EmailAddress(x db.EngineMigration) error {
 	type User struct {
 		ID       int64  `xorm:"pk autoincr"`
 		Email    string `xorm:"NOT NULL"`

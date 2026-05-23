@@ -152,7 +152,7 @@ func BuildPackageIndex(ctx context.Context, p *packages_model.Package) (*bytes.B
 		return nil, fmt.Errorf("SearchVersions[%s]: %w", p.Name, err)
 	}
 	if len(pvs) == 0 {
-		return nil, nil
+		return nil, nil //nolint:nilnil // return nil to indicate that the package has no versions
 	}
 
 	pds, err := packages_model.GetPackageDescriptors(ctx, pvs)
@@ -306,11 +306,11 @@ func alterRepositoryContent(ctx context.Context, doer *user_model.User, repo *re
 		return err
 	}
 
-	return t.Push(ctx, doer, commitHash, repo.DefaultBranch)
+	return t.Push(ctx, doer, commitHash, repo.DefaultBranch, false)
 }
 
 func writeObjectToIndex(ctx context.Context, t *files_service.TemporaryUploadRepository, path string, r io.Reader) error {
-	hash, err := t.HashObject(ctx, r)
+	hash, err := t.HashObjectAndWrite(ctx, r)
 	if err != nil {
 		return err
 	}

@@ -14,10 +14,10 @@ import (
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/container"
 	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/timeutil"
 	"code.gitea.io/gitea/modules/util"
 
 	"xorm.io/builder"
-	"xorm.io/xorm"
 )
 
 // PullRequestsOptions holds the options for PRs
@@ -31,7 +31,7 @@ type PullRequestsOptions struct {
 	BaseBranch  string
 }
 
-func listPullRequestStatement(ctx context.Context, baseRepoID int64, opts *PullRequestsOptions) *xorm.Session {
+func listPullRequestStatement(ctx context.Context, baseRepoID int64, opts *PullRequestsOptions) db.Session {
 	sess := db.GetEngine(ctx).Where("pull_request.base_repo_id=?", baseRepoID)
 
 	if opts.BaseBranch != "" {
@@ -70,38 +70,69 @@ func GetUnmergedPullRequestsByHeadInfo(ctx context.Context, repoID int64, branch
 }
 
 // CanMaintainerWriteToBranch check whether user is a maintainer and could write to the branch
-func CanMaintainerWriteToBranch(ctx context.Context, p access_model.Permission, branch string, user *user_model.User) bool {
-	if p.CanWrite(unit.TypeCode) {
-		return true
+func CanMaintainerWriteToBranch(ctx context.Context, headPerm access_model.Permission, headBranch string, doer *user_model.User) bool {
+	can, err := canMaintainerWriteToBranch(ctx, headPerm, headBranch, doer)
+	if err != nil {
+		log.Error("CanMaintainerWriteToBranch: %v", err)
+		return false
+	}
+	return can
+}
+
+func canMaintainerWriteToBranch(ctx context.Context, headPerm access_model.Permission, headBranch string, doer *user_model.User) (bool, error) {
+	if headPerm.CanWrite(unit.TypeCode) {
+		return true, nil
 	}
 
 	// the code below depends on units to get the repository ID, not ideal but just keep it for now
-	firstUnitRepoID := p.GetFirstUnitRepoID()
+	firstUnitRepoID := headPerm.GetFirstUnitRepoID()
 	if firstUnitRepoID == 0 {
-		return false
+		return false, nil
 	}
 
-	prs, err := GetUnmergedPullRequestsByHeadInfo(ctx, firstUnitRepoID, branch)
+	prs, err := GetUnmergedPullRequestsByHeadInfo(ctx, firstUnitRepoID, headBranch)
 	if err != nil {
-		return false
+		return false, err
 	}
-
+	if _, err := prs.LoadIssues(ctx); err != nil {
+		return false, err
+	}
 	for _, pr := range prs {
-		if pr.AllowMaintainerEdit {
-			err = pr.LoadBaseRepo(ctx)
-			if err != nil {
-				continue
-			}
-			prPerm, err := access_model.GetUserRepoPermission(ctx, pr.BaseRepo, user)
-			if err != nil {
-				continue
-			}
-			if prPerm.CanWrite(unit.TypeCode) {
-				return true
-			}
+		if !pr.AllowMaintainerEdit {
+			continue
+		}
+
+		// check the PR's poster's permissions
+		// If a "reader" poster created the PR in base repo from head repo, even if it is allowed to be edited by maintainers,
+		// the maintainers should not be allowed to write, because they don't really have "write" permission in the head repo
+		if err := pr.Issue.LoadPoster(ctx); err != nil {
+			return false, err
+		}
+		if err := pr.LoadHeadRepo(ctx); err != nil {
+			return false, err
+		}
+		posterHeadPerm, err := access_model.GetIndividualUserRepoPermission(ctx, pr.HeadRepo, pr.Issue.Poster)
+		if err != nil {
+			return false, err
+		}
+		if !posterHeadPerm.CanWrite(unit.TypeCode) {
+			continue
+		}
+
+		// check the doer's permission
+		// Only allow the doer to edit the PR if they have write access to the base repository
+		if err := pr.LoadBaseRepo(ctx); err != nil {
+			return false, err
+		}
+		doerBasePerm, err := access_model.GetIndividualUserRepoPermission(ctx, pr.BaseRepo, doer)
+		if err != nil {
+			return false, err
+		}
+		if doerBasePerm.CanWrite(unit.TypeCode) {
+			return true, nil
 		}
 	}
-	return false
+	return false, nil
 }
 
 // HasUnmergedPullRequestsByHeadInfo checks if there are open and not merged pull request
@@ -152,7 +183,8 @@ func PullRequests(ctx context.Context, baseRepoID int64, opts *PullRequestsOptio
 	applySorts(findSession, opts.SortType, 0)
 	findSession = db.SetSessionPagination(findSession, opts)
 	prs := make([]*PullRequest, 0, opts.PageSize)
-	return prs, maxResults, findSession.Find(&prs)
+	found := findSession.Find(&prs)
+	return prs, maxResults, found
 }
 
 // PullRequestList defines a list of pull requests
@@ -323,12 +355,26 @@ func (prs PullRequestList) LoadReviews(ctx context.Context) (ReviewList, error) 
 
 // HasMergedPullRequestInRepo returns whether the user(poster) has merged pull-request in the repo
 func HasMergedPullRequestInRepo(ctx context.Context, repoID, posterID int64) (bool, error) {
-	return db.GetEngine(ctx).
+	return HasMergedPullRequestInRepoBefore(ctx, repoID, posterID, 0, 0)
+}
+
+// HasMergedPullRequestInRepoBefore returns whether the user has a merged PR before a timestamp (0 = no limit)
+func HasMergedPullRequestInRepoBefore(ctx context.Context, repoID, posterID int64, beforeUnix timeutil.TimeStamp, excludePullID int64) (bool, error) {
+	sess := db.GetEngine(ctx).
 		Join("INNER", "pull_request", "pull_request.issue_id = issue.id").
 		Where("repo_id=?", repoID).
 		And("poster_id=?", posterID).
 		And("is_pull=?", true).
-		And("pull_request.has_merged=?", true).
+		And("pull_request.has_merged=?", true)
+
+	if beforeUnix > 0 {
+		sess.And("pull_request.merged_unix < ?", beforeUnix)
+	}
+	if excludePullID > 0 {
+		sess.And("pull_request.id != ?", excludePullID)
+	}
+
+	return sess.
 		Select("issue.id").
 		Limit(1).
 		Get(new(Issue))

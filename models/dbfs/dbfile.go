@@ -46,10 +46,7 @@ func (f *file) readAt(fileMeta *dbfsMeta, offset int64, p []byte) (n int, err er
 	blobPos := int(offset % f.blockSize)
 	blobOffset := offset - int64(blobPos)
 	blobRemaining := int(f.blockSize) - blobPos
-	needRead := len(p)
-	if needRead > blobRemaining {
-		needRead = blobRemaining
-	}
+	needRead := min(len(p), blobRemaining)
 	if blobOffset+int64(blobPos)+int64(needRead) > fileMeta.FileSize {
 		needRead = int(fileMeta.FileSize - blobOffset - int64(blobPos))
 	}
@@ -66,14 +63,8 @@ func (f *file) readAt(fileMeta *dbfsMeta, offset int64, p []byte) (n int, err er
 		blobData = nil
 	}
 
-	canCopy := len(blobData) - blobPos
-	if canCopy <= 0 {
-		canCopy = 0
-	}
-	realRead := needRead
-	if realRead > canCopy {
-		realRead = canCopy
-	}
+	canCopy := max(len(blobData)-blobPos, 0)
+	realRead := min(needRead, canCopy)
 	if realRead > 0 {
 		copy(p[:realRead], fileData.BlobData[blobPos:blobPos+realRead])
 	}
@@ -84,7 +75,7 @@ func (f *file) readAt(fileMeta *dbfsMeta, offset int64, p []byte) (n int, err er
 }
 
 func (f *file) Read(p []byte) (n int, err error) {
-	if f.metaID == 0 || !f.allowRead {
+	if !f.allowRead {
 		return 0, os.ErrInvalid
 	}
 
@@ -98,7 +89,7 @@ func (f *file) Read(p []byte) (n int, err error) {
 }
 
 func (f *file) Write(p []byte) (n int, err error) {
-	if f.metaID == 0 || !f.allowWrite {
+	if !f.allowWrite {
 		return 0, os.ErrInvalid
 	}
 
@@ -113,10 +104,7 @@ func (f *file) Write(p []byte) (n int, err error) {
 		blobPos := int(f.offset % f.blockSize)
 		blobOffset := f.offset - int64(blobPos)
 		blobRemaining := int(f.blockSize) - blobPos
-		needWrite := len(p)
-		if needWrite > blobRemaining {
-			needWrite = blobRemaining
-		}
+		needWrite := min(len(p), blobRemaining)
 		buf := make([]byte, f.blockSize)
 		readBytes, err := f.readAt(fileMeta, blobOffset, buf)
 		if err != nil && !errors.Is(err, io.EOF) {
@@ -196,10 +184,6 @@ func (f *file) Close() error {
 }
 
 func (f *file) Stat() (os.FileInfo, error) {
-	if f.metaID == 0 {
-		return nil, os.ErrInvalid
-	}
-
 	fileMeta, err := findFileMetaByID(f.ctx, f.metaID)
 	if err != nil {
 		return nil, err
@@ -244,14 +228,16 @@ func (f *file) open(flag int) (err error) {
 				if f.metaID != 0 {
 					return os.ErrExist
 				}
-			} else {
-				// create a new file if none exists.
-				if f.metaID == 0 {
-					if err = f.createEmpty(); err != nil {
-						return err
-					}
+			}
+			// create a new file if not exists.
+			if f.metaID == 0 {
+				if err = f.createEmpty(); err != nil {
+					return err
 				}
 			}
+		}
+		if f.metaID == 0 {
+			return os.ErrNotExist
 		}
 		if flag&os.O_TRUNC != 0 {
 			if err = f.truncate(); err != nil {
@@ -264,7 +250,7 @@ func (f *file) open(flag int) (err error) {
 			}
 		}
 		return nil
-	}
+	} // end if: allowWrite
 
 	// read only mode
 	if f.metaID == 0 {
@@ -334,9 +320,6 @@ func (f *file) delete() error {
 }
 
 func (f *file) size() (int64, error) {
-	if f.metaID == 0 {
-		return 0, os.ErrNotExist
-	}
 	fileMeta, err := findFileMetaByID(f.ctx, f.metaID)
 	if err != nil {
 		return 0, err
@@ -351,7 +334,7 @@ func findFileMetaByID(ctx context.Context, metaID int64) (*dbfsMeta, error) {
 	} else if ok {
 		return &fileMeta, nil
 	}
-	return nil, nil
+	return nil, os.ErrNotExist
 }
 
 func buildPath(path string) string {

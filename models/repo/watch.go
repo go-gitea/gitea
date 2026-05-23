@@ -152,7 +152,7 @@ func GetRepoWatchers(ctx context.Context, repoID int64, opts db.ListOptions) ([]
 		Join("LEFT", "watch", "`user`.id=`watch`.user_id").
 		And("`watch`.mode<>?", WatchModeDont)
 	if opts.Page > 0 {
-		sess = db.SetSessionPagination(sess, &opts)
+		db.SetSessionPagination(sess, &opts)
 		users := make([]*user_model.User, 0, opts.PageSize)
 
 		return users, sess.Find(&users)
@@ -175,4 +175,14 @@ func WatchIfAuto(ctx context.Context, userID, repoID int64, isWrite bool) error 
 		return nil
 	}
 	return watchRepoMode(ctx, watch, WatchModeAuto)
+}
+
+// ClearRepoWatches clears all watches for a repository and from the user that watched it.
+// Used when a repository is set to private.
+func ClearRepoWatches(ctx context.Context, repoID int64) error {
+	if _, err := db.Exec(ctx, "UPDATE `repository` SET num_watches = 0 WHERE id = ?", repoID); err != nil {
+		return err
+	}
+
+	return db.DeleteBeans(ctx, Watch{RepoID: repoID})
 }

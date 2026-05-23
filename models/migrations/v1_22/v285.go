@@ -1,15 +1,17 @@
 // Copyright 2023 The Gitea Authors. All rights reserved.
 // SPDX-License-Identifier: MIT
 
-package v1_22 //nolint
+package v1_22
 
 import (
 	"time"
 
+	"code.gitea.io/gitea/models/db"
+
 	"xorm.io/xorm"
 )
 
-func AddPreviousDurationToActionRun(x *xorm.Engine) error {
+func AddPreviousDurationToActionRun(x db.EngineMigration) error {
 	type ActionRun struct {
 		PreviousDuration time.Duration
 	}

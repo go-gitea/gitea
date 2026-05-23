@@ -1,12 +1,12 @@
 // Copyright 2020 The Gitea Authors. All rights reserved.
 // SPDX-License-Identifier: MIT
 
-package v1_14 //nolint
+package v1_14
 
 import (
 	"fmt"
 
-	"xorm.io/xorm"
+	"code.gitea.io/gitea/models/db"
 )
 
 // OAuth2Grant here is a snapshot of models.OAuth2Grant for this version
@@ -29,7 +29,7 @@ func (grant *OAuth2Grant) TableName() string {
 	return "oauth2_grant"
 }
 
-func AddScopeAndNonceColumnsToOAuth2Grant(x *xorm.Engine) error {
+func AddScopeAndNonceColumnsToOAuth2Grant(x db.EngineMigration) error {
 	if err := x.Sync(new(OAuth2Grant)); err != nil {
 		return fmt.Errorf("Sync: %w", err)
 	}

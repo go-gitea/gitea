@@ -6,7 +6,6 @@ package db
 import (
 	"context"
 	"fmt"
-	"strings"
 
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
@@ -24,42 +23,31 @@ func init() {
 
 // newXORMEngine returns a new XORM engine from the configuration
 func newXORMEngine() (*xorm.Engine, error) {
-	connStr, err := setting.DBConnStr()
+	connOpts := GlobalConnOptions()
+	driver, connStr, err := ConnStr(connOpts)
 	if err != nil {
 		return nil, err
 	}
 
-	var engine *xorm.Engine
-
-	if setting.Database.Type.IsPostgreSQL() && len(setting.Database.Schema) > 0 {
-		// OK whilst we sort out our schema issues - create a schema aware postgres
-		registerPostgresSchemaDriver()
-		engine, err = xorm.NewEngine("postgresschema", connStr)
-	} else {
-		engine, err = xorm.NewEngine(setting.Database.Type.String(), connStr)
-	}
-
+	engine, err := xorm.NewEngine(driver, connStr)
 	if err != nil {
 		return nil, err
 	}
-	switch setting.Database.Type {
-	case "mysql":
+	switch {
+	case connOpts.Type.IsMySQL():
 		engine.Dialect().SetParams(map[string]string{"rowFormat": "DYNAMIC"})
-	case "mssql":
+	case connOpts.Type.IsMSSQL():
 		engine.Dialect().SetParams(map[string]string{"DEFAULT_VARCHAR": "nvarchar"})
 	}
-	engine.SetSchema(setting.Database.Schema)
+	engine.SetSchema(connOpts.Schema)
 	return engine, nil
 }
 
-// InitEngine initializes the xorm.Engine and sets it as db.DefaultContext
+// InitEngine initializes the xorm.Engine and sets it as XORM's default context
 func InitEngine(ctx context.Context) error {
 	xe, err := newXORMEngine()
 	if err != nil {
-		if strings.Contains(err.Error(), "SQLite3 support") {
-			return fmt.Errorf(`sqlite3 requires: -tags sqlite,sqlite_unlock_notify%s%w`, "\n", err)
-		}
-		return fmt.Errorf("failed to connect to database: %w", err)
+		return fmt.Errorf("failed to init database engine: %w", err)
 	}
 
 	xe.SetMapper(names.GonicMapper{})
@@ -70,7 +58,6 @@ func InitEngine(ctx context.Context) error {
 	xe.SetMaxOpenConns(setting.Database.MaxOpenConns)
 	xe.SetMaxIdleConns(setting.Database.MaxIdleConns)
 	xe.SetConnMaxLifetime(setting.Database.ConnMaxLifetime)
-	xe.SetDefaultContext(ctx)
 
 	if setting.Database.SlowQueryThreshold > 0 {
 		xe.AddHook(&EngineHook{
@@ -86,27 +73,26 @@ func InitEngine(ctx context.Context) error {
 // SetDefaultEngine sets the default engine for db
 func SetDefaultEngine(ctx context.Context, eng *xorm.Engine) {
 	xormEngine = eng
-	DefaultContext = &Context{Context: ctx, engine: xormEngine}
+	xormEngine.SetDefaultContext(ctx)
 }
 
 // UnsetDefaultEngine closes and unsets the default engine
 // We hope the SetDefaultEngine and UnsetDefaultEngine can be paired, but it's impossible now,
-// there are many calls to InitEngine -> SetDefaultEngine directly to overwrite the `xormEngine` and DefaultContext without close
+// there are many calls to InitEngine -> SetDefaultEngine directly to overwrite the `xormEngine` and `xormContext` without close
 // Global database engine related functions are all racy and there is no graceful close right now.
 func UnsetDefaultEngine() {
 	if xormEngine != nil {
 		_ = xormEngine.Close()
 		xormEngine = nil
 	}
-	DefaultContext = nil
 }
 
-// InitEngineWithMigration initializes a new xorm.Engine and sets it as the db.DefaultContext
+// InitEngineWithMigration initializes a new xorm.Engine and sets it as the XORM's default context
 // This function must never call .Sync() if the provided migration function fails.
 // When called from the "doctor" command, the migration function is a version check
 // that prevents the doctor from fixing anything in the database if the migration level
 // is different from the expected value.
-func InitEngineWithMigration(ctx context.Context, migrateFunc func(context.Context, *xorm.Engine) error) (err error) {
+func InitEngineWithMigration(ctx context.Context, migrateFunc func(context.Context, EngineMigration) error) (err error) {
 	if err = InitEngine(ctx); err != nil {
 		return err
 	}

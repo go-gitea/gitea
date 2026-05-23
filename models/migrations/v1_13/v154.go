@@ -1,15 +1,14 @@
 // Copyright 2020 The Gitea Authors. All rights reserved.
 // SPDX-License-Identifier: MIT
 
-package v1_13 //nolint
+package v1_13
 
 import (
+	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/modules/timeutil"
-
-	"xorm.io/xorm"
 )
 
-func AddTimeStamps(x *xorm.Engine) error {
+func AddTimeStamps(x db.EngineMigration) error {
 	// this will add timestamps where it is useful to have
 
 	// Star represents a starred repo by an user.

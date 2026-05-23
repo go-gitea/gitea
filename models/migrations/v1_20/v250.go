@@ -1,17 +1,16 @@
 // Copyright 2023 The Gitea Authors. All rights reserved.
 // SPDX-License-Identifier: MIT
 
-package v1_20 //nolint
+package v1_20
 
 import (
 	"strings"
 
+	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/modules/json"
-
-	"xorm.io/xorm"
 )
 
-func ChangeContainerMetadataMultiArch(x *xorm.Engine) error {
+func ChangeContainerMetadataMultiArch(x db.EngineMigration) error {
 	sess := x.NewSession()
 	defer sess.Close()
 

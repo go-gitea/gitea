@@ -356,7 +356,7 @@ func DeleteTime(ctx *context.APIContext) {
 		return
 	}
 
-	time, err := issues_model.GetTrackedTimeByID(ctx, ctx.PathParamInt64("id"))
+	time, err := issues_model.GetTrackedTimeByID(ctx, issue.ID, ctx.PathParamInt64("id"))
 	if err != nil {
 		if db.IsErrNotExist(err) {
 			ctx.APIErrorNotFound(err)
@@ -405,7 +405,7 @@ func ListTrackedTimesByUser(ctx *context.APIContext) {
 	//   required: true
 	// - name: user
 	//   in: path
-	//   description: username of user
+	//   description: username of the user whose tracked times are to be listed
 	//   type: string
 	//   required: true
 	// responses:

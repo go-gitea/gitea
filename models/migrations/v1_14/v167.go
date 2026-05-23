@@ -1,15 +1,15 @@
 // Copyright 2021 The Gitea Authors. All rights reserved.
 // SPDX-License-Identifier: MIT
 
-package v1_14 //nolint
+package v1_14
 
 import (
 	"fmt"
 
-	"xorm.io/xorm"
+	"code.gitea.io/gitea/models/db"
 )
 
-func AddUserRedirect(x *xorm.Engine) (err error) {
+func AddUserRedirect(x db.EngineMigration) (err error) {
 	type UserRedirect struct {
 		ID             int64  `xorm:"pk autoincr"`
 		LowerName      string `xorm:"UNIQUE(s) INDEX NOT NULL"`

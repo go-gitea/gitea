@@ -36,22 +36,11 @@ _testmain.go
 coverage.all
 cpu.out
 
-/modules/migration/bindata.go
-/modules/migration/bindata.go.hash
-/modules/options/bindata.go
-/modules/options/bindata.go.hash
-/modules/public/bindata.go
-/modules/public/bindata.go.hash
-/modules/templates/bindata.go
-/modules/templates/bindata.go.hash
-
 *.db
 *.log
 
 /gitea
-/gitea-vet
 /debug
-/integrations.test
 
 /bin
 /dist
@@ -63,17 +52,12 @@ cpu.out
 /indexers
 /log
 /tests/integration/gitea-integration-*
-/tests/integration/indexers-*
-/tests/e2e/gitea-e2e-*
-/tests/e2e/indexers-*
-/tests/e2e/reports
-/tests/e2e/test-artifacts
-/tests/e2e/test-snapshots
 /tests/*.ini
 /node_modules
 /yarn.lock
 /yarn-error.log
 /npm-debug.log*
+/pnpm-debug.log*
 /public/assets/js
 /public/assets/css
 /public/assets/fonts
@@ -82,6 +66,9 @@ cpu.out
 /VERSION
 /.air
 /.go-licenses
+/Dockerfile
+/Dockerfile.rootless
+/.venv
 
 # Files and folders that were previously generated
 /public/assets/img/webpack

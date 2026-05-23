@@ -13,6 +13,7 @@ import (
 	"code.gitea.io/gitea/modules/reqctx"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/web/middleware"
+	"code.gitea.io/gitea/modules/web/types"
 
 	"gitea.com/go-chi/binding"
 	"github.com/go-chi/chi/v5"
@@ -41,7 +42,10 @@ func GetForm(dataStore reqctx.RequestDataStore) any {
 
 // Router defines a route based on chi's router
 type Router struct {
-	chiRouter      *chi.Mux
+	chiRouter *chi.Mux
+
+	afterRouting []any
+
 	curGroupPrefix string
 	curMiddlewares []any
 }
@@ -52,16 +56,23 @@ func NewRouter() *Router {
 	return &Router{chiRouter: r}
 }
 
-// Use supports two middlewares
-func (r *Router) Use(middlewares ...any) {
+// BeforeRouting adds middlewares which will be executed before the request path gets routed
+// It should only be used for framework-level global middlewares when it needs to change request method & path.
+func (r *Router) BeforeRouting(middlewares ...any) {
 	for _, m := range middlewares {
-		if m != nil {
+		if !isNilOrFuncNil(m) {
 			r.chiRouter.Use(toHandlerProvider(m))
 		}
 	}
 }
 
-// Group mounts a sub-Router along a `pattern` string.
+// AfterRouting adds middlewares which will be executed after the request path gets routed
+// It can see the routed path and resolved path parameters
+func (r *Router) AfterRouting(middlewares ...any) {
+	r.afterRouting = append(r.afterRouting, middlewares...)
+}
+
+// Group mounts a sub-router along a "pattern" string.
 func (r *Router) Group(pattern string, fn func(), middlewares ...any) {
 	previousGroupPrefix := r.curGroupPrefix
 	previousMiddlewares := r.curMiddlewares
@@ -93,40 +104,58 @@ func isNilOrFuncNil(v any) bool {
 	return r.Kind() == reflect.Func && r.IsNil()
 }
 
-func wrapMiddlewareAndHandler(curMiddlewares, h []any) ([]func(http.Handler) http.Handler, http.HandlerFunc) {
-	handlerProviders := make([]func(http.Handler) http.Handler, 0, len(curMiddlewares)+len(h)+1)
-	for _, m := range curMiddlewares {
-		if !isNilOrFuncNil(m) {
-			handlerProviders = append(handlerProviders, toHandlerProvider(m))
+func wrapMiddlewareAppendPre(all []middlewareProvider, middlewares []any) []middlewareProvider {
+	for _, m := range middlewares {
+		if h, ok := m.(types.PreMiddlewareProvider); ok && h != nil {
+			all = append(all, toHandlerProvider(middlewareProvider(h)))
 		}
 	}
+	return all
+}
+
+func wrapMiddlewareAppendNormal(all []middlewareProvider, middlewares []any) []middlewareProvider {
+	for _, m := range middlewares {
+		if _, ok := m.(types.PreMiddlewareProvider); !ok && !isNilOrFuncNil(m) {
+			all = append(all, toHandlerProvider(m))
+		}
+	}
+	return all
+}
+
+func wrapMiddlewareAndHandler(useMiddlewares, curMiddlewares, h []any) (_ []middlewareProvider, _ http.HandlerFunc, hasPreMiddlewares bool) {
 	if len(h) == 0 {
 		panic("no endpoint handler provided")
 	}
-	for i, m := range h {
-		if !isNilOrFuncNil(m) {
-			handlerProviders = append(handlerProviders, toHandlerProvider(m))
-		} else if i == len(h)-1 {
-			panic("endpoint handler can't be nil")
-		}
+	if isNilOrFuncNil(h[len(h)-1]) {
+		panic("endpoint handler can't be nil")
 	}
+
+	handlerProviders := make([]middlewareProvider, 0, len(useMiddlewares)+len(curMiddlewares)+len(h)+1)
+	handlerProviders = wrapMiddlewareAppendPre(handlerProviders, useMiddlewares)
+	handlerProviders = wrapMiddlewareAppendPre(handlerProviders, curMiddlewares)
+	handlerProviders = wrapMiddlewareAppendPre(handlerProviders, h)
+	hasPreMiddlewares = len(handlerProviders) > 0
+	handlerProviders = wrapMiddlewareAppendNormal(handlerProviders, useMiddlewares)
+	handlerProviders = wrapMiddlewareAppendNormal(handlerProviders, curMiddlewares)
+	handlerProviders = wrapMiddlewareAppendNormal(handlerProviders, h)
+
 	middlewares := handlerProviders[:len(handlerProviders)-1]
 	handlerFunc := handlerProviders[len(handlerProviders)-1](nil).ServeHTTP
 	mockPoint := RouterMockPoint(MockAfterMiddlewares)
 	if mockPoint != nil {
 		middlewares = append(middlewares, mockPoint)
 	}
-	return middlewares, handlerFunc
+	return middlewares, handlerFunc, hasPreMiddlewares
 }
 
 // Methods adds the same handlers for multiple http "methods" (separated by ",").
 // If any method is invalid, the lower level router will panic.
 func (r *Router) Methods(methods, pattern string, h ...any) {
-	middlewares, handlerFunc := wrapMiddlewareAndHandler(r.curMiddlewares, h)
+	middlewares, handlerFunc, _ := wrapMiddlewareAndHandler(r.afterRouting, r.curMiddlewares, h)
 	fullPattern := r.getPattern(pattern)
 	if strings.Contains(methods, ",") {
-		methods := strings.Split(methods, ",")
-		for _, method := range methods {
+		methods := strings.SplitSeq(methods, ",")
+		for method := range methods {
 			r.chiRouter.With(middlewares...).Method(strings.TrimSpace(method), fullPattern, handlerFunc)
 		}
 	} else {
@@ -134,15 +163,19 @@ func (r *Router) Methods(methods, pattern string, h ...any) {
 	}
 }
 
-// Mount attaches another Router along ./pattern/*
+// Mount attaches another Router along "/pattern/*"
 func (r *Router) Mount(pattern string, subRouter *Router) {
-	subRouter.Use(r.curMiddlewares...)
-	r.chiRouter.Mount(r.getPattern(pattern), subRouter.chiRouter)
+	handlerProviders := make([]middlewareProvider, 0, len(r.afterRouting)+len(r.curMiddlewares))
+	handlerProviders = wrapMiddlewareAppendPre(handlerProviders, r.afterRouting)
+	handlerProviders = wrapMiddlewareAppendPre(handlerProviders, r.curMiddlewares)
+	handlerProviders = wrapMiddlewareAppendNormal(handlerProviders, r.afterRouting)
+	handlerProviders = wrapMiddlewareAppendNormal(handlerProviders, r.curMiddlewares)
+	r.chiRouter.With(handlerProviders...).Mount(r.getPattern(pattern), subRouter.chiRouter)
 }
 
 // Any delegate requests for all methods
 func (r *Router) Any(pattern string, h ...any) {
-	middlewares, handlerFunc := wrapMiddlewareAndHandler(r.curMiddlewares, h)
+	middlewares, handlerFunc, _ := wrapMiddlewareAndHandler(r.afterRouting, r.curMiddlewares, h)
 	r.chiRouter.With(middlewares...).HandleFunc(r.getPattern(pattern), handlerFunc)
 }
 
@@ -178,12 +211,16 @@ func (r *Router) Patch(pattern string, h ...any) {
 
 // ServeHTTP implements http.Handler
 func (r *Router) ServeHTTP(w http.ResponseWriter, req *http.Request) {
+	// TODO: need to move it to the top-level common middleware, otherwise each "Mount" will cause it to be executed multiple times, which is inefficient.
 	r.normalizeRequestPath(w, req, r.chiRouter)
 }
 
 // NotFound defines a handler to respond whenever a route could not be found.
 func (r *Router) NotFound(h http.HandlerFunc) {
-	r.chiRouter.NotFound(h)
+	middlewares, handlerFunc, _ := wrapMiddlewareAndHandler(r.afterRouting, r.curMiddlewares, []any{h})
+	r.chiRouter.NotFound(func(w http.ResponseWriter, r *http.Request) {
+		executeMiddlewaresHandler(w, r, middlewares, handlerFunc)
+	})
 }
 
 func (r *Router) normalizeRequestPath(resp http.ResponseWriter, req *http.Request, next http.Handler) {
@@ -223,7 +260,7 @@ func (r *Router) normalizeRequestPath(resp http.ResponseWriter, req *http.Reques
 			// do not respond to other requests, to simulate a real sub-path environment
 			resp.Header().Add("Content-Type", "text/html; charset=utf-8")
 			resp.WriteHeader(http.StatusNotFound)
-			_, _ = resp.Write([]byte(htmlutil.HTMLFormat(`404 page not found, sub-path is: <a href="%s">%s</a>`, setting.AppSubURL, setting.AppSubURL)))
+			_, _ = htmlutil.HTMLPrintf(resp, `404 page not found, sub-path is: <a href="%s">%s</a>`, setting.AppSubURL, setting.AppSubURL)
 			return
 		}
 		normalized = true

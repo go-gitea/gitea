@@ -32,7 +32,7 @@ type LocaleStore interface {
 	// HasLang returns whether a given language is present in the store
 	HasLang(langName string) bool
 	// AddLocaleByIni adds a new language to the store
-	AddLocaleByIni(langName, langDesc string, source, moreSource []byte) error
+	AddLocaleByJSON(langName, langDesc string, source, moreSource []byte) error
 }
 
 // ResetDefaultLocales resets the current default locales

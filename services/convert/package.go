@@ -16,7 +16,7 @@ import (
 func ToPackage(ctx context.Context, pd *packages.PackageDescriptor, doer *user_model.User) (*api.Package, error) {
 	var repo *api.Repository
 	if pd.Repository != nil {
-		permission, err := access_model.GetUserRepoPermission(ctx, pd.Repository, doer)
+		permission, err := access_model.GetDoerRepoPermission(ctx, pd.Repository, doer)
 		if err != nil {
 			return nil, err
 		}
@@ -35,7 +35,7 @@ func ToPackage(ctx context.Context, pd *packages.PackageDescriptor, doer *user_m
 		Name:       pd.Package.Name,
 		Version:    pd.Version.Version,
 		CreatedAt:  pd.Version.CreatedUnix.AsTime(),
-		HTMLURL:    pd.VersionHTMLURL(),
+		HTMLURL:    pd.VersionHTMLURL(ctx),
 	}, nil
 }
 

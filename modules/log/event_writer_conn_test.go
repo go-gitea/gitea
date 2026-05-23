@@ -62,11 +62,9 @@ func TestConnLogger(t *testing.T) {
 	}
 	expected := fmt.Sprintf("%s%s %s:%d:%s [%c] %s\n", prefix, dateString, event.Filename, event.Line, event.Caller, strings.ToUpper(event.Level.String())[0], event.MsgSimpleText)
 	var wg sync.WaitGroup
-	wg.Add(1)
-	go func() {
-		defer wg.Done()
+	wg.Go(func() {
 		listenReadAndClose(t, l, expected)
-	}()
+	})
 	logger.SendLogEvent(&event)
 	wg.Wait()
 

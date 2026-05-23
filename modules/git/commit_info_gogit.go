@@ -7,6 +7,7 @@ package git
 
 import (
 	"context"
+	"maps"
 	"path"
 
 	"github.com/emirpasic/gods/trees/binaryheap"
@@ -16,7 +17,7 @@ import (
 )
 
 // GetCommitsInfo gets information of all commits that are corresponding to these entries
-func (tes Entries) GetCommitsInfo(ctx context.Context, commit *Commit, treePath string) ([]CommitInfo, *Commit, error) {
+func (tes Entries) GetCommitsInfo(ctx context.Context, repoLink string, commit *Commit, treePath string) ([]CommitInfo, *Commit, error) {
 	entryPaths := make([]string, len(tes)+1)
 	// Get the commit for the treePath itself
 	entryPaths[0] = ""
@@ -47,9 +48,7 @@ func (tes Entries) GetCommitsInfo(ctx context.Context, commit *Commit, treePath 
 				return nil, nil, err
 			}
 
-			for k, v := range revs2 {
-				revs[k] = v
-			}
+			maps.Copy(revs, revs2)
 		}
 	} else {
 		revs, err = GetLastCommitForPaths(ctx, nil, c, treePath, entryPaths)
@@ -71,22 +70,12 @@ func (tes Entries) GetCommitsInfo(ctx context.Context, commit *Commit, treePath 
 			commitsInfo[i].Commit = entryCommit
 		}
 
-		// If the entry is a submodule add a submodule file for this
+		// If the entry is a submodule, add a submodule file for this
 		if entry.IsSubModule() {
-			subModuleURL := ""
-			var fullPath string
-			if len(treePath) > 0 {
-				fullPath = treePath + "/" + entry.Name()
-			} else {
-				fullPath = entry.Name()
-			}
-			if subModule, err := commit.GetSubModule(fullPath); err != nil {
+			commitsInfo[i].SubmoduleFile, err = GetCommitInfoSubmoduleFile(repoLink, path.Join(treePath, entry.Name()), commit, entry.ID)
+			if err != nil {
 				return nil, nil, err
-			} else if subModule != nil {
-				subModuleURL = subModule.URL
 			}
-			subModuleFile := NewCommitSubmoduleFile(subModuleURL, entry.ID.String())
-			commitsInfo[i].SubmoduleFile = subModuleFile
 		}
 	}
 
@@ -211,7 +200,7 @@ heaploop:
 		// Load the parent commits for the one we are currently examining
 		numParents := current.commit.NumParents()
 		var parents []cgobject.CommitNode
-		for i := 0; i < numParents; i++ {
+		for i := range numParents {
 			parent, err := current.commit.ParentNode(i)
 			if err != nil {
 				break
@@ -283,9 +272,8 @@ heaploop:
 
 				if len(newRemainingPaths) == 0 {
 					break
-				} else {
-					remainingPaths = newRemainingPaths
 				}
+				remainingPaths = newRemainingPaths
 			}
 		}
 	}

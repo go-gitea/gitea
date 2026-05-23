@@ -1,16 +1,15 @@
 // Copyright 2020 The Gitea Authors. All rights reserved.
 // SPDX-License-Identifier: MIT
 
-package v1_12 //nolint
+package v1_12
 
 import (
+	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/modules/setting"
-
-	"xorm.io/xorm"
 )
 
-func ExpandWebhooks(x *xorm.Engine) error {
+func ExpandWebhooks(x db.EngineMigration) error {
 	type HookEvents struct {
 		Create               bool `json:"create"`
 		Delete               bool `json:"delete"`

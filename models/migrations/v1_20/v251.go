@@ -1,15 +1,14 @@
 // Copyright 2023 The Gitea Authors. All rights reserved.
 // SPDX-License-Identifier: MIT
 
-package v1_20 //nolint
+package v1_20
 
 import (
+	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/modules/log"
-
-	"xorm.io/xorm"
 )
 
-func FixIncorrectOwnerTeamUnitAccessMode(x *xorm.Engine) error {
+func FixIncorrectOwnerTeamUnitAccessMode(x db.EngineMigration) error {
 	type UnitType int
 	type AccessMode int
 

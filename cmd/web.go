@@ -8,13 +8,12 @@ import (
 	"fmt"
 	"net"
 	"net/http"
+	"net/http/pprof"
 	"os"
 	"path/filepath"
 	"strconv"
 	"strings"
 	"time"
-
-	_ "net/http/pprof" // Used for debugging if enabled and a web server is running
 
 	"code.gitea.io/gitea/modules/container"
 	"code.gitea.io/gitea/modules/graceful"
@@ -23,53 +22,55 @@ import (
 	"code.gitea.io/gitea/modules/process"
 	"code.gitea.io/gitea/modules/public"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/templates"
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/routers"
 	"code.gitea.io/gitea/routers/install"
 
 	"github.com/felixge/fgprof"
-	"github.com/urfave/cli/v2"
+	"github.com/urfave/cli/v3"
 )
 
 // PIDFile could be set from build tag
 var PIDFile = "/run/gitea.pid"
 
-// CmdWeb represents the available web sub-command.
-var CmdWeb = &cli.Command{
-	Name:  "web",
-	Usage: "Start Gitea web server",
-	Description: `Gitea web server is the only thing you need to run,
+func newWebCommand() *cli.Command {
+	return &cli.Command{
+		Name:  "web",
+		Usage: "Start Gitea web server",
+		Description: `Gitea web server is the only thing you need to run,
 and it takes care of all the other things for you`,
-	Before: PrepareConsoleLoggerLevel(log.INFO),
-	Action: runWeb,
-	Flags: []cli.Flag{
-		&cli.StringFlag{
-			Name:    "port",
-			Aliases: []string{"p"},
-			Value:   "3000",
-			Usage:   "Temporary port number to prevent conflict",
+		Before: PrepareConsoleLoggerLevel(log.INFO),
+		Action: runWeb,
+		Flags: []cli.Flag{
+			&cli.StringFlag{
+				Name:    "port",
+				Aliases: []string{"p"},
+				Value:   "3000",
+				Usage:   "Temporary port number to prevent conflict",
+			},
+			&cli.StringFlag{
+				Name:  "install-port",
+				Value: "3000",
+				Usage: "Temporary port number to run the install page on to prevent conflict",
+			},
+			&cli.StringFlag{
+				Name:    "pid",
+				Aliases: []string{"P"},
+				Value:   PIDFile,
+				Usage:   "Custom pid file path",
+			},
+			&cli.BoolFlag{
+				Name:    "quiet",
+				Aliases: []string{"q"},
+				Usage:   "Only display Fatal logging errors until logging is set-up",
+			},
+			&cli.BoolFlag{
+				Name:  "verbose",
+				Usage: "Set initial logging to TRACE level until logging is properly set-up",
+			},
 		},
-		&cli.StringFlag{
-			Name:  "install-port",
-			Value: "3000",
-			Usage: "Temporary port number to run the install page on to prevent conflict",
-		},
-		&cli.StringFlag{
-			Name:    "pid",
-			Aliases: []string{"P"},
-			Value:   PIDFile,
-			Usage:   "Custom pid file path",
-		},
-		&cli.BoolFlag{
-			Name:    "quiet",
-			Aliases: []string{"q"},
-			Usage:   "Only display Fatal logging errors until logging is set-up",
-		},
-		&cli.BoolFlag{
-			Name:  "verbose",
-			Usage: "Set initial logging to TRACE level until logging is properly set-up",
-		},
-	},
+	}
 }
 
 func runHTTPRedirector() {
@@ -130,42 +131,39 @@ func showWebStartupMessage(msg string) {
 	}
 }
 
-func serveInstall(ctx *cli.Context) error {
+func serveInstall(cmd *cli.Command) error {
 	showWebStartupMessage("Prepare to run install page")
 
 	routers.InitWebInstallPage(graceful.GetManager().HammerContext())
 
 	// Flag for port number in case first time run conflict
-	if ctx.IsSet("port") {
-		if err := setPort(ctx.String("port")); err != nil {
+	if cmd.IsSet("port") {
+		if err := setPort(cmd.String("port")); err != nil {
 			return err
 		}
 	}
-	if ctx.IsSet("install-port") {
-		if err := setPort(ctx.String("install-port")); err != nil {
+	if cmd.IsSet("install-port") {
+		if err := setPort(cmd.String("install-port")); err != nil {
 			return err
 		}
 	}
 	c := install.Routes()
 	err := listen(c, false)
 	if err != nil {
-		log.Critical("Unable to open listener for installer. Is Gitea already running?")
+		log.Error("Unable to open listener for installer. Is Gitea already running?")
 		graceful.GetManager().DoGracefulShutdown()
 	}
 	select {
 	case <-graceful.GetManager().IsShutdown():
 		<-graceful.GetManager().Done()
 		log.Info("PID: %d Gitea Web Finished", os.Getpid())
-		log.GetManager().Close()
 		return err
 	default:
 	}
 	return nil
 }
 
-func serveInstalled(ctx *cli.Context) error {
-	setting.InitCfgProvider(setting.CustomConf)
-	setting.LoadCommonSettings()
+func serveInstalled(c *cli.Command) error {
 	setting.MustInstalled()
 
 	showWebStartupMessage("Prepare to run web server")
@@ -218,8 +216,8 @@ func serveInstalled(ctx *cli.Context) error {
 	setting.AppDataTempDir("").RemoveOutdated(3 * 24 * time.Hour)
 
 	// Override the provided port number within the configuration
-	if ctx.IsSet("port") {
-		if err := setPort(ctx.String("port")); err != nil {
+	if c.IsSet("port") {
+		if err := setPort(c.String("port")); err != nil {
 			return err
 		}
 	}
@@ -231,27 +229,31 @@ func serveInstalled(ctx *cli.Context) error {
 	err := listen(webRoutes, true)
 	<-graceful.GetManager().Done()
 	log.Info("PID: %d Gitea Web Finished", os.Getpid())
-	log.GetManager().Close()
 	return err
 }
 
 func servePprof() {
-	http.DefaultServeMux.Handle("/debug/fgprof", fgprof.Handler())
-	_, _, finished := process.GetManager().AddTypedContext(context.Background(), "Web: PProf Server", process.SystemProcessType, true)
-	// The pprof server is for debug purpose only, it shouldn't be exposed on public network. At the moment it's not worth to introduce a configurable option for it.
+	mux := http.NewServeMux()
+	mux.HandleFunc("/debug/pprof/", pprof.Index)
+	mux.HandleFunc("/debug/pprof/cmdline", pprof.Cmdline)
+	mux.HandleFunc("/debug/pprof/profile", pprof.Profile)
+	mux.HandleFunc("/debug/pprof/symbol", pprof.Symbol)
+	mux.HandleFunc("/debug/pprof/trace", pprof.Trace)
+	mux.Handle("/debug/fgprof", fgprof.Handler())
+	// FIXME: it should use a proper context
+	_, _, finished := process.GetManager().AddTypedContext(context.TODO(), "Web: PProf Server", process.SystemProcessType, true)
+	// The pprof server is for debug purpose only, it shouldn't be exposed on public network. At the moment, it's not worth introducing a configurable option for it.
 	log.Info("Starting pprof server on localhost:6060")
-	log.Info("Stopped pprof server: %v", http.ListenAndServe("localhost:6060", nil))
+	log.Info("Stopped pprof server: %v", http.ListenAndServe("localhost:6060", mux))
 	finished()
 }
 
-func runWeb(ctx *cli.Context) error {
-	defer func() {
-		if panicked := recover(); panicked != nil {
-			log.Fatal("PANIC: %v\n%s", panicked, log.Stack(2))
-		}
-	}()
+func runWeb(ctx context.Context, cmd *cli.Command) error {
+	if subCmdName, valid := isValidDefaultSubCommand(cmd); !valid {
+		return fmt.Errorf("unknown command: %s", subCmdName)
+	}
 
-	managerCtx, cancel := context.WithCancel(context.Background())
+	managerCtx, cancel := context.WithCancel(ctx)
 	graceful.InitManager(managerCtx)
 	defer cancel()
 
@@ -262,12 +264,16 @@ func runWeb(ctx *cli.Context) error {
 	}
 
 	// Set pid file setting
-	if ctx.IsSet("pid") {
-		createPIDFile(ctx.String("pid"))
+	if cmd.IsSet("pid") {
+		createPIDFile(cmd.String("pid"))
 	}
 
+	// init the HTML renderer and load templates, if error happens, it will report the error immediately and exit with error log
+	// in dev mode, it won't exit, but watch the template files for changes
+	_ = templates.PageRenderer()
+
 	if !setting.InstallLock {
-		if err := serveInstall(ctx); err != nil {
+		if err := serveInstall(cmd); err != nil {
 			return err
 		}
 	} else {
@@ -278,7 +284,7 @@ func runWeb(ctx *cli.Context) error {
 		go servePprof()
 	}
 
-	return serveInstalled(ctx)
+	return serveInstalled(cmd)
 }
 
 func setPort(port string) error {
@@ -369,7 +375,7 @@ func listen(m http.Handler, handleRedirector bool) error {
 		log.Fatal("Invalid protocol: %s", setting.Protocol)
 	}
 	if err != nil {
-		log.Critical("Failed to start server: %v", err)
+		log.Error("Failed to start server: %v", err)
 	}
 	log.Info("HTTP Listener: %s Closed", listenAddr)
 	return err

@@ -1,19 +1,18 @@
 // Copyright 2021 The Gitea Authors. All rights reserved.
 // SPDX-License-Identifier: MIT
 
-package v1_16 //nolint
+package v1_16
 
 import (
 	"encoding/binary"
 	"fmt"
 
+	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/models/migrations/base"
 	"code.gitea.io/gitea/modules/json"
-
-	"xorm.io/xorm"
 )
 
-func UnwrapLDAPSourceCfg(x *xorm.Engine) error {
+func UnwrapLDAPSourceCfg(x db.EngineMigration) error {
 	jsonUnmarshalHandleDoubleEncode := func(bs []byte, v any) error {
 		err := json.Unmarshal(bs, v)
 		if err != nil {

@@ -47,7 +47,8 @@ type Metadata struct {
 	Keywords      []string             `json:"keywords,omitempty"`
 	RepositoryURL string               `json:"repository_url,omitempty"`
 	License       string               `json:"license,omitempty"`
-	Author        Person               `json:"author,omitempty"`
+	LicenseURL    string               `json:"license_url,omitempty"`
+	Author        Person               `json:"author"`
 	Manifests     map[string]*Manifest `json:"manifests,omitempty"`
 }
 
@@ -67,7 +68,8 @@ type SoftwareSourceCode struct {
 	Keywords            []string            `json:"keywords,omitempty"`
 	CodeRepository      string              `json:"codeRepository,omitempty"`
 	License             string              `json:"license,omitempty"`
-	Author              Person              `json:"author"`
+	LicenseURL          string              `json:"licenseURL,omitempty"`
+	Author              *Person             `json:"author,omitempty"`
 	ProgrammingLanguage ProgrammingLanguage `json:"programmingLanguage"`
 	RepositoryURLs      []string            `json:"repositoryURLs,omitempty"`
 }
@@ -82,6 +84,7 @@ type ProgrammingLanguage struct {
 // https://schema.org/Person
 type Person struct {
 	Type       string `json:"@type,omitempty"`
+	Name       string `json:"name,omitempty"` // inherited from https://schema.org/Thing
 	GivenName  string `json:"givenName,omitempty"`
 	MiddleName string `json:"middleName,omitempty"`
 	FamilyName string `json:"familyName,omitempty"`
@@ -180,19 +183,30 @@ func ParsePackage(sr io.ReaderAt, size int64, mr io.Reader) (*Package, error) {
 		if err := json.NewDecoder(mr).Decode(&ssc); err != nil {
 			return nil, err
 		}
-
 		p.Metadata.Description = ssc.Description
 		p.Metadata.Keywords = ssc.Keywords
 		p.Metadata.License = ssc.License
-		p.Metadata.Author = Person{
-			GivenName:  ssc.Author.GivenName,
-			MiddleName: ssc.Author.MiddleName,
-			FamilyName: ssc.Author.FamilyName,
+		p.Metadata.LicenseURL = ssc.LicenseURL
+		if ssc.Author != nil {
+			author := Person{
+				Name:       ssc.Author.Name,
+				GivenName:  ssc.Author.GivenName,
+				MiddleName: ssc.Author.MiddleName,
+				FamilyName: ssc.Author.FamilyName,
+			}
+			// If Name is not provided, generate it from individual name components
+			if author.Name == "" {
+				author.Name = author.String()
+			}
+			p.Metadata.Author = author
 		}
 
 		p.Metadata.RepositoryURL = ssc.CodeRepository
 		if !validation.IsValidURL(p.Metadata.RepositoryURL) {
 			p.Metadata.RepositoryURL = ""
+		}
+		if !validation.IsValidURL(p.Metadata.LicenseURL) {
+			p.Metadata.LicenseURL = ""
 		}
 
 		p.RepositoryURLs = ssc.RepositoryURLs

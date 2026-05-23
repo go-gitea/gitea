@@ -7,8 +7,8 @@ const pass = document.querySelector<HTMLInputElement>('#auth_password');
 const token = document.querySelector<HTMLInputElement>('#auth_token');
 const mirror = document.querySelector<HTMLInputElement>('#mirror');
 const lfs = document.querySelector<HTMLInputElement>('#lfs');
-const lfsSettings = document.querySelector<HTMLElement>('#lfs_settings');
-const lfsEndpoint = document.querySelector<HTMLElement>('#lfs_endpoint');
+const lfsSettings = document.querySelector<HTMLElement>('#lfs_settings')!;
+const lfsEndpoint = document.querySelector<HTMLElement>('#lfs_endpoint')!;
 const items = document.querySelectorAll<HTMLInputElement>('#migrate_items input[type=checkbox]');
 
 export function initRepoMigration() {
@@ -34,8 +34,12 @@ export function initRepoMigration() {
     elCloneAddr.addEventListener('input', () => {
       if (repoNameChanged) return;
       let repoNameFromUrl = elCloneAddr.value.split(/[?#]/)[0];
-      repoNameFromUrl = /^(.*\/)?((.+?)\/?)$/.exec(repoNameFromUrl)[3];
-      repoNameFromUrl = repoNameFromUrl.split(/[?#]/)[0];
+      const parts = /^(.*\/)?((.+?)\/?)$/.exec(repoNameFromUrl);
+      if (!parts || parts.length < 4) {
+        elRepoName.value = '';
+        return;
+      }
+      repoNameFromUrl = parts[3].split(/[?#]/)[0];
       elRepoName.value = sanitizeRepoName(repoNameFromUrl);
     });
   }
@@ -49,7 +53,7 @@ function checkAuth() {
 }
 
 function checkItems(tokenAuth: boolean) {
-  let enableItems = false;
+  let enableItems: boolean;
   if (tokenAuth) {
     enableItems = token?.value !== '';
   } else {

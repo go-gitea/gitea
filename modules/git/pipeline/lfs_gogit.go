@@ -6,11 +6,10 @@
 package pipeline
 
 import (
-	"bufio"
+	"fmt"
 	"io"
 	"sort"
 	"strings"
-	"sync"
 
 	"code.gitea.io/gitea/modules/git"
 
@@ -24,7 +23,6 @@ func FindLFSFile(repo *git.Repository, objectID git.ObjectID) ([]*LFSResult, err
 	resultsMap := map[string]*LFSResult{}
 	results := make([]*LFSResult, 0)
 
-	basePath := repo.Path
 	gogitRepo := repo.GoGitRepo()
 
 	commitsIter, err := gogitRepo.Log(&gogit.LogOptions{
@@ -32,7 +30,7 @@ func FindLFSFile(repo *git.Repository, objectID git.ObjectID) ([]*LFSResult, err
 		All:   true,
 	})
 	if err != nil {
-		return nil, lfsError("failed to get GoGit CommitsIter", err)
+		return nil, fmt.Errorf("LFS error occurred, failed to get GoGit CommitsIter: err: %w", err)
 	}
 
 	err = commitsIter.ForEach(func(gitCommit *object.Commit) error {
@@ -66,7 +64,7 @@ func FindLFSFile(repo *git.Repository, objectID git.ObjectID) ([]*LFSResult, err
 		return nil
 	})
 	if err != nil && err != io.EOF {
-		return nil, lfsError("failure in CommitIter.ForEach", err)
+		return nil, fmt.Errorf("LFS error occurred, failure in CommitIter.ForEach: %w", err)
 	}
 
 	for _, result := range resultsMap {
@@ -82,65 +80,6 @@ func FindLFSFile(repo *git.Repository, objectID git.ObjectID) ([]*LFSResult, err
 	}
 
 	sort.Sort(lfsResultSlice(results))
-
-	// Should really use a go-git function here but name-rev is not completed and recapitulating it is not simple
-	shasToNameReader, shasToNameWriter := io.Pipe()
-	nameRevStdinReader, nameRevStdinWriter := io.Pipe()
-	errChan := make(chan error, 1)
-	wg := sync.WaitGroup{}
-	wg.Add(3)
-
-	go func() {
-		defer wg.Done()
-		scanner := bufio.NewScanner(nameRevStdinReader)
-		i := 0
-		for scanner.Scan() {
-			line := scanner.Text()
-			if len(line) == 0 {
-				continue
-			}
-			result := results[i]
-			result.FullCommitName = line
-			result.BranchName = strings.Split(line, "~")[0]
-			i++
-		}
-	}()
-	go NameRevStdin(repo.Ctx, shasToNameReader, nameRevStdinWriter, &wg, basePath)
-	go func() {
-		defer wg.Done()
-		defer shasToNameWriter.Close()
-		for _, result := range results {
-			i := 0
-			if i < len(result.SHA) {
-				n, err := shasToNameWriter.Write([]byte(result.SHA)[i:])
-				if err != nil {
-					errChan <- err
-					break
-				}
-				i += n
-			}
-			n := 0
-			for n < 1 {
-				n, err = shasToNameWriter.Write([]byte{'\n'})
-				if err != nil {
-					errChan <- err
-					break
-				}
-
-			}
-
-		}
-	}()
-
-	wg.Wait()
-
-	select {
-	case err, has := <-errChan:
-		if has {
-			return nil, lfsError("unable to obtain name for LFS files", err)
-		}
-	default:
-	}
-
-	return results, nil
+	err = fillResultNameRev(repo.Ctx, repo.Path, results)
+	return results, err
 }

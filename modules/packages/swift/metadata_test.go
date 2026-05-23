@@ -4,10 +4,11 @@
 package swift
 
 import (
-	"archive/zip"
 	"bytes"
 	"strings"
 	"testing"
+
+	"code.gitea.io/gitea/modules/test"
 
 	"github.com/hashicorp/go-version"
 	"github.com/stretchr/testify/assert"
@@ -18,36 +19,24 @@ const (
 	packageVersion       = "1.0.1"
 	packageDescription   = "Package Description"
 	packageRepositoryURL = "https://gitea.io/gitea/gitea"
+	packageLicenseURL    = "https://opensource.org/license/mit"
 	packageAuthor        = "KN4CK3R"
 	packageLicense       = "MIT"
 )
 
 func TestParsePackage(t *testing.T) {
-	createArchive := func(files map[string][]byte) *bytes.Reader {
-		var buf bytes.Buffer
-		zw := zip.NewWriter(&buf)
-		for filename, content := range files {
-			w, _ := zw.Create(filename)
-			w.Write(content)
-		}
-		zw.Close()
-		return bytes.NewReader(buf.Bytes())
-	}
-
 	t.Run("MissingManifestFile", func(t *testing.T) {
-		data := createArchive(map[string][]byte{"dummy.txt": {}})
-
-		p, err := ParsePackage(data, data.Size(), nil)
+		data := test.WriteZipArchive(map[string]string{"dummy.txt": ""})
+		p, err := ParsePackage(bytes.NewReader(data.Bytes()), int64(data.Len()), nil)
 		assert.Nil(t, p)
 		assert.ErrorIs(t, err, ErrMissingManifestFile)
 	})
 
 	t.Run("ManifestFileTooLarge", func(t *testing.T) {
-		data := createArchive(map[string][]byte{
-			"Package.swift": make([]byte, maxManifestFileSize+1),
+		data := test.WriteZipArchive(map[string]string{
+			"Package.swift": strings.Repeat("a", maxManifestFileSize+1),
 		})
-
-		p, err := ParsePackage(data, data.Size(), nil)
+		p, err := ParsePackage(bytes.NewReader(data.Bytes()), int64(data.Len()), nil)
 		assert.Nil(t, p)
 		assert.ErrorIs(t, err, ErrManifestFileTooLarge)
 	})
@@ -56,12 +45,12 @@ func TestParsePackage(t *testing.T) {
 		content1 := "// swift-tools-version:5.7\n//\n//  Package.swift"
 		content2 := "// swift-tools-version:5.6\n//\n//  Package@swift-5.6.swift"
 
-		data := createArchive(map[string][]byte{
-			"Package.swift":           []byte(content1),
-			"Package@swift-5.5.swift": []byte(content2),
+		data := test.WriteZipArchive(map[string]string{
+			"Package.swift":           content1,
+			"Package@swift-5.5.swift": content2,
 		})
 
-		p, err := ParsePackage(data, data.Size(), nil)
+		p, err := ParsePackage(bytes.NewReader(data.Bytes()), int64(data.Len()), nil)
 		assert.NotNil(t, p)
 		assert.NoError(t, err)
 
@@ -77,14 +66,13 @@ func TestParsePackage(t *testing.T) {
 	})
 
 	t.Run("WithMetadata", func(t *testing.T) {
-		data := createArchive(map[string][]byte{
-			"Package.swift": []byte("// swift-tools-version:5.7\n//\n//  Package.swift"),
+		data := test.WriteZipArchive(map[string]string{
+			"Package.swift": "// swift-tools-version:5.7\n//\n//  Package.swift",
 		})
 
 		p, err := ParsePackage(
-			data,
-			data.Size(),
-			strings.NewReader(`{"name":"`+packageName+`","version":"`+packageVersion+`","description":"`+packageDescription+`","keywords":["swift","package"],"license":"`+packageLicense+`","codeRepository":"`+packageRepositoryURL+`","author":{"givenName":"`+packageAuthor+`"},"repositoryURLs":["`+packageRepositoryURL+`"]}`),
+			bytes.NewReader(data.Bytes()), int64(data.Len()),
+			strings.NewReader(`{"name":"`+packageName+`","version":"`+packageVersion+`","description":"`+packageDescription+`","keywords":["swift","package"],"license":"`+packageLicense+`","licenseURL":"`+packageLicenseURL+`","codeRepository":"`+packageRepositoryURL+`","author":{"givenName":"`+packageAuthor+`"},"repositoryURLs":["`+packageRepositoryURL+`"]}`),
 		)
 		assert.NotNil(t, p)
 		assert.NoError(t, err)
@@ -97,9 +85,63 @@ func TestParsePackage(t *testing.T) {
 		assert.Equal(t, packageDescription, p.Metadata.Description)
 		assert.ElementsMatch(t, []string{"swift", "package"}, p.Metadata.Keywords)
 		assert.Equal(t, packageLicense, p.Metadata.License)
+		assert.Equal(t, packageLicenseURL, p.Metadata.LicenseURL)
+		assert.Equal(t, packageAuthor, p.Metadata.Author.Name)
 		assert.Equal(t, packageAuthor, p.Metadata.Author.GivenName)
 		assert.Equal(t, packageRepositoryURL, p.Metadata.RepositoryURL)
 		assert.ElementsMatch(t, []string{packageRepositoryURL}, p.RepositoryURLs)
+	})
+
+	t.Run("WithExplicitNameField", func(t *testing.T) {
+		data := test.WriteZipArchive(map[string]string{
+			"Package.swift": "// swift-tools-version:5.7\n//\n//  Package.swift",
+		})
+
+		authorName := "John Doe"
+		p, err := ParsePackage(
+			bytes.NewReader(data.Bytes()), int64(data.Len()),
+			strings.NewReader(`{"name":"`+packageName+`","version":"`+packageVersion+`","description":"`+packageDescription+`","author":{"name":"`+authorName+`","givenName":"John","familyName":"Doe"}}`),
+		)
+		assert.NotNil(t, p)
+		assert.NoError(t, err)
+
+		assert.Equal(t, authorName, p.Metadata.Author.Name)
+		assert.Equal(t, "John", p.Metadata.Author.GivenName)
+		assert.Equal(t, "Doe", p.Metadata.Author.FamilyName)
+	})
+
+	t.Run("WithEmptyJSONMetadata", func(t *testing.T) {
+		data := test.WriteZipArchive(map[string]string{
+			"Package.swift": "// swift-tools-version:5.7\n//\n//  Package.swift",
+		})
+
+		p, err := ParsePackage(
+			bytes.NewReader(data.Bytes()), int64(data.Len()),
+			strings.NewReader(`{}`),
+		)
+		assert.NotNil(t, p)
+		assert.NoError(t, err)
+		assert.NotNil(t, p.Metadata)
+		assert.Empty(t, p.Metadata.Author.Name)
+		assert.Empty(t, p.RepositoryURLs)
+	})
+
+	t.Run("NameFieldGeneration", func(t *testing.T) {
+		data := test.WriteZipArchive(map[string]string{
+			"Package.swift": "// swift-tools-version:5.7\n//\n//  Package.swift",
+		})
+
+		// Test with only individual name components - Name should be auto-generated
+		p, err := ParsePackage(
+			bytes.NewReader(data.Bytes()), int64(data.Len()),
+			strings.NewReader(`{"author":{"givenName":"John","middleName":"Q","familyName":"Doe"}}`),
+		)
+		assert.NotNil(t, p)
+		assert.NoError(t, err)
+		assert.Equal(t, "John Q Doe", p.Metadata.Author.Name)
+		assert.Equal(t, "John", p.Metadata.Author.GivenName)
+		assert.Equal(t, "Q", p.Metadata.Author.MiddleName)
+		assert.Equal(t, "Doe", p.Metadata.Author.FamilyName)
 	})
 }
 
@@ -140,5 +182,45 @@ func TestTrimmedVersionString(t *testing.T) {
 
 	for _, c := range cases {
 		assert.Equal(t, c.Expected, TrimmedVersionString(c.Version))
+	}
+}
+
+func TestPersonNameString(t *testing.T) {
+	cases := []struct {
+		Name     string
+		Person   Person
+		Expected string
+	}{
+		{
+			Name:     "GivenNameOnly",
+			Person:   Person{GivenName: "John"},
+			Expected: "John",
+		},
+		{
+			Name:     "GivenAndFamily",
+			Person:   Person{GivenName: "John", FamilyName: "Doe"},
+			Expected: "John Doe",
+		},
+		{
+			Name:     "FullName",
+			Person:   Person{GivenName: "John", MiddleName: "Q", FamilyName: "Doe"},
+			Expected: "John Q Doe",
+		},
+		{
+			Name:     "MiddleAndFamily",
+			Person:   Person{MiddleName: "Q", FamilyName: "Doe"},
+			Expected: "Q Doe",
+		},
+		{
+			Name:     "Empty",
+			Person:   Person{},
+			Expected: "",
+		},
+	}
+
+	for _, c := range cases {
+		t.Run(c.Name, func(t *testing.T) {
+			assert.Equal(t, c.Expected, c.Person.String())
+		})
 	}
 }

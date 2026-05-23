@@ -38,6 +38,7 @@ const (
 	HookEventPullRequestReview HookEventType = "pull_request_review"
 	// Actions event only
 	HookEventSchedule    HookEventType = "schedule"
+	HookEventWorkflowRun HookEventType = "workflow_run"
 	HookEventWorkflowJob HookEventType = "workflow_job"
 )
 
@@ -67,6 +68,7 @@ func AllEvents() []HookEventType {
 		HookEventRelease,
 		HookEventPackage,
 		HookEventStatus,
+		HookEventWorkflowRun,
 		HookEventWorkflowJob,
 	}
 }
@@ -94,6 +96,20 @@ func (h HookEventType) Event() string {
 
 func (h HookEventType) IsPullRequest() bool {
 	return h.Event() == "pull_request"
+}
+
+// IsPullRequestReview returns true for pull request review events
+// (approved, rejected, comment). These events use the same PullRequestPayload
+// as regular pull_request events.
+func (h HookEventType) IsPullRequestReview() bool {
+	switch h {
+	case HookEventPullRequestReviewApproved,
+		HookEventPullRequestReviewRejected,
+		HookEventPullRequestReviewComment:
+		return true
+	default:
+		return false
+	}
 }
 
 // HookType is the type of a webhook

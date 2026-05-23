@@ -1,14 +1,14 @@
 // Copyright 2023 The Gitea Authors. All rights reserved.
 // SPDX-License-Identifier: MIT
 
-package v1_21 //nolint
-import (
-	"code.gitea.io/gitea/modules/timeutil"
+package v1_21
 
-	"xorm.io/xorm"
+import (
+	"code.gitea.io/gitea/models/db"
+	"code.gitea.io/gitea/modules/timeutil"
 )
 
-func AddActionScheduleTable(x *xorm.Engine) error {
+func AddActionScheduleTable(x db.EngineMigration) error {
 	type ActionSchedule struct {
 		ID            int64
 		Title         string

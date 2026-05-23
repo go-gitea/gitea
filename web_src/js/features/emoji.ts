@@ -1,4 +1,5 @@
 import emojis from '../../../assets/emoji.json' with {type: 'json'};
+import {html} from '../utils/html.ts';
 
 const {assetUrlPrefix, customEmojis} = window.config;
 
@@ -24,12 +25,11 @@ for (const key of emojiKeys) {
 export function emojiHTML(name: string) {
   let inner;
   if (Object.hasOwn(customEmojis, name)) {
-    inner = `<img alt=":${name}:" src="${assetUrlPrefix}/img/emoji/${name}.png">`;
+    inner = html`<img alt=":${name}:" src="${assetUrlPrefix}/img/emoji/${name}.png">`;
   } else {
     inner = emojiString(name);
   }
-
-  return `<span class="emoji" title=":${name}:">${inner}</span>`;
+  return html`<span class="emoji" title=":${name}:">${inner}</span>`;
 }
 
 // retrieve string for given emoji name

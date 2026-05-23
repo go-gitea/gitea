@@ -19,11 +19,11 @@ func (p *fakeProvider) Name() string {
 func (p *fakeProvider) SetName(name string) {}
 
 func (p *fakeProvider) BeginAuth(state string) (goth.Session, error) {
-	return nil, nil
+	return nil, nil //nolint:nilnil // the auth method is not applicable
 }
 
 func (p *fakeProvider) UnmarshalSession(string) (goth.Session, error) {
-	return nil, nil
+	return nil, nil //nolint:nilnil // the auth method is not applicable
 }
 
 func (p *fakeProvider) FetchUser(goth.Session) (goth.User, error) {

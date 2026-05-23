@@ -6,12 +6,16 @@ package markup
 import (
 	"bytes"
 	"fmt"
+	"html/template"
 	"io"
 	"regexp"
+	"slices"
 	"strings"
 	"sync"
 
+	"code.gitea.io/gitea/modules/htmlutil"
 	"code.gitea.io/gitea/modules/markup/common"
+	"code.gitea.io/gitea/modules/translation"
 
 	"golang.org/x/net/html"
 	"golang.org/x/net/html/atom"
@@ -59,7 +63,7 @@ var globalVars = sync.OnceValue(func() *globalVarsType {
 	v.shortLinkPattern = regexp.MustCompile(`\[\[(.*?)\]\](\w*)`)
 
 	// anyHashPattern splits url containing SHA into parts
-	v.anyHashPattern = regexp.MustCompile(`https?://(?:\S+/){4,5}([0-9a-f]{40,64})(/[-+~%./\w]+)?(\?[-+~%.\w&=]+)?(#[-+~%.\w]+)?`)
+	v.anyHashPattern = regexp.MustCompile(`https?://(?:\S+/){4,5}([0-9a-f]{40,64})((\.\w+)*)(/[-+~%./\w]+)?(\?[-+~%.\w&=]+)?(#[-+~%.\w]+)?`)
 
 	// comparePattern matches "http://domain/org/repo/compare/COMMIT1...COMMIT2#hash"
 	v.comparePattern = regexp.MustCompile(`https?://(?:\S+/){4,5}([0-9a-f]{7,64})(\.\.\.?)([0-9a-f]{7,64})?(#[-+~_%.a-zA-Z0-9]+)?`)
@@ -86,8 +90,8 @@ var globalVars = sync.OnceValue(func() *globalVarsType {
 	// codePreviewPattern matches "http://domain/.../{owner}/{repo}/src/commit/{commit}/{filepath}#L10-L20"
 	v.codePreviewPattern = regexp.MustCompile(`https?://\S+/([^\s/]+)/([^\s/]+)/src/commit/([0-9a-f]{7,64})(/\S+)#(L\d+(-L\d+)?)`)
 
-	// cleans: "<foo/bar", "<any words/", ("<html", "<head", "<script", "<style")
-	v.tagCleaner = regexp.MustCompile(`(?i)<(/?\w+/\w+|/[\w ]+/|/?(html|head|script|style\b))`)
+	// cleans: "<foo/bar", "<any words/", ("<html", "<head", "<script", "<style", "<?", "<%")
+	v.tagCleaner = regexp.MustCompile(`(?i)<(/?\w+/\w+|/[\w ]+/|/?(html|head|script|style|%|\?)\b)`)
 	v.nulCleaner = strings.NewReplacer("\000", "")
 	return v
 })
@@ -109,13 +113,7 @@ func CustomLinkURLSchemes(schemes []string) {
 		if !validScheme.MatchString(s) {
 			continue
 		}
-		without := false
-		for _, sna := range xurls.SchemesNoAuthority {
-			if s == sna {
-				without = true
-				break
-			}
-		}
+		without := slices.Contains(xurls.SchemesNoAuthority, s)
 		if without {
 			s += ":"
 		} else {
@@ -152,9 +150,9 @@ func PostProcessDefault(ctx *RenderContext, input io.Reader, output io.Writer) e
 	return postProcess(ctx, procs, input, output)
 }
 
-// PostProcessCommitMessage will use the same logic as PostProcess, but will disable
-// the shortLinkProcessor.
-func PostProcessCommitMessage(ctx *RenderContext, content string) (string, error) {
+// PostProcessCommitMessage will use the same logic as PostProcess, but will disable the shortLinkProcessor.
+// FIXME: this function and its family have a very strange design: it takes HTML as input and output, processes the "escaped" content.
+func PostProcessCommitMessage(ctx *RenderContext, content template.HTML) (template.HTML, error) {
 	procs := []processor{
 		fullIssuePatternProcessor,
 		comparePatternProcessor,
@@ -168,7 +166,8 @@ func PostProcessCommitMessage(ctx *RenderContext, content string) (string, error
 		emojiProcessor,
 		emojiShortCodeProcessor,
 	}
-	return postProcessString(ctx, procs, content)
+	s, err := postProcessString(ctx, procs, string(content))
+	return template.HTML(s), err
 }
 
 var emojiProcessors = []processor{
@@ -239,6 +238,49 @@ func postProcessString(ctx *RenderContext, procs []processor, content string) (s
 	return buf.String(), nil
 }
 
+func RenderTocHeadingItems(ctx *RenderContext, nodeDetailsAttrs map[string]string, out io.Writer) {
+	locale, ok := ctx.Value(translation.ContextKey).(translation.Locale)
+	if !ok {
+		locale = translation.NewLocale("")
+	}
+	_, _ = htmlutil.HTMLPrintTag(out, "details", nodeDetailsAttrs)
+	_, _ = htmlutil.HTMLPrintf(out, "<summary>%s</summary>\n", locale.TrString("toc"))
+
+	baseLevel := 6
+	for _, header := range ctx.TocHeadingItems {
+		if header.HeadingLevel < baseLevel {
+			baseLevel = header.HeadingLevel
+		}
+	}
+
+	currentLevel := baseLevel
+	indent := []byte{' ', ' '}
+	_, _ = htmlutil.HTMLPrint(out, "<ul>\n")
+	for _, header := range ctx.TocHeadingItems {
+		for currentLevel < header.HeadingLevel {
+			_, _ = out.Write(indent)
+			_, _ = htmlutil.HTMLPrint(out, "<ul>\n")
+			indent = append(indent, ' ', ' ')
+			currentLevel++
+		}
+		for currentLevel > header.HeadingLevel {
+			indent = indent[:len(indent)-2]
+			_, _ = out.Write(indent)
+			_, _ = htmlutil.HTMLPrint(out, "</ul>\n")
+			currentLevel--
+		}
+		_, _ = out.Write(indent)
+		_, _ = htmlutil.HTMLPrintf(out, "<li><a href=\"#%s\">%s</a></li>\n", header.AnchorID, header.InnerText)
+	}
+	for currentLevel > baseLevel {
+		indent = indent[:len(indent)-2]
+		_, _ = out.Write(indent)
+		_, _ = htmlutil.HTMLPrint(out, "</ul>\n")
+		currentLevel--
+	}
+	_, _ = htmlutil.HTMLPrint(out, "</ul>\n</details>\n")
+}
+
 func postProcess(ctx *RenderContext, procs []processor, input io.Reader, output io.Writer) error {
 	if !ctx.usedByRender && ctx.RenderHelper != nil {
 		defer ctx.RenderHelper.CleanUp()
@@ -253,7 +295,7 @@ func postProcess(ctx *RenderContext, procs []processor, input io.Reader, output 
 	node, err := html.Parse(io.MultiReader(
 		// prepend "<html><body>"
 		strings.NewReader("<html><body>"),
-		// Strip out nuls - they're always invalid
+		// strip out NULLs (they're always invalid), and escape known tags
 		bytes.NewReader(globalVars().tagCleaner.ReplaceAll([]byte(globalVars().nulCleaner.Replace(string(rawHTML))), []byte("&lt;$1"))),
 		// close the tags
 		strings.NewReader("</body></html>"),
@@ -289,6 +331,9 @@ func postProcess(ctx *RenderContext, procs []processor, input io.Reader, output 
 	}
 
 	// Render everything to buf.
+	if ctx.TocShowInSection == TocShowInMain && len(ctx.TocHeadingItems) > 0 {
+		RenderTocHeadingItems(ctx, nil, output)
+	}
 	for _, node := range newNodes {
 		if err := html.Render(output, node); err != nil {
 			return fmt.Errorf("markup.postProcess: html.Render: %w", err)
@@ -319,7 +364,8 @@ func visitNode(ctx *RenderContext, procs []processor, node *html.Node) *html.Nod
 		return node.NextSibling
 	}
 
-	processNodeAttrID(node)
+	processNodeHeadingAndID(ctx, node)
+	processFootnoteNode(ctx, node) // FIXME: the footnote processing should be done in the "footnote.go" renderer directly
 
 	if isEmojiNode(node) {
 		// TextNode emoji will be converted to `<span class="emoji">`, then the next iteration will visit the "span"

@@ -73,7 +73,7 @@ func ListIssueComments(ctx *context.APIContext) {
 		ctx.APIErrorInternal(err)
 		return
 	}
-	if !ctx.Repo.CanReadIssuesOrPulls(issue.IsPull) {
+	if !ctx.Repo.Permission.CanReadIssuesOrPulls(issue.IsPull) {
 		ctx.APIErrorNotFound()
 		return
 	}
@@ -219,7 +219,7 @@ func isXRefCommentAccessible(ctx stdCtx.Context, user *user_model.User, c *issue
 		if err != nil {
 			return false
 		}
-		perm, err := access_model.GetUserRepoPermission(ctx, c.RefRepo, user)
+		perm, err := access_model.GetDoerRepoPermission(ctx, c.RefRepo, user)
 		if err != nil {
 			return false
 		}
@@ -279,8 +279,8 @@ func ListRepoIssueComments(ctx *context.APIContext) {
 	}
 
 	var isPull optional.Option[bool]
-	canReadIssue := ctx.Repo.CanRead(unit.TypeIssues)
-	canReadPull := ctx.Repo.CanRead(unit.TypePullRequests)
+	canReadIssue := ctx.Repo.Permission.CanRead(unit.TypeIssues)
+	canReadPull := ctx.Repo.Permission.CanRead(unit.TypePullRequests)
 	if canReadIssue && canReadPull {
 		isPull = optional.None[bool]()
 	} else if canReadIssue {
@@ -386,12 +386,12 @@ func CreateIssueComment(ctx *context.APIContext) {
 		return
 	}
 
-	if !ctx.Repo.CanReadIssuesOrPulls(issue.IsPull) {
+	if !ctx.Repo.Permission.CanReadIssuesOrPulls(issue.IsPull) {
 		ctx.APIErrorNotFound()
 		return
 	}
 
-	if issue.IsLocked && !ctx.Repo.CanWriteIssuesOrPulls(issue.IsPull) && !ctx.Doer.IsAdmin {
+	if issue.IsLocked && !ctx.Repo.Permission.CanWriteIssuesOrPulls(issue.IsPull) && !ctx.Doer.IsAdmin {
 		ctx.APIError(http.StatusForbidden, errors.New(ctx.Locale.TrString("repo.issues.comment_on_locked")))
 		return
 	}
@@ -445,7 +445,7 @@ func GetIssueComment(ctx *context.APIContext) {
 	//   "404":
 	//     "$ref": "#/responses/notFound"
 
-	comment, err := issues_model.GetCommentByID(ctx, ctx.PathParamInt64("id"))
+	comment, err := issues_model.GetCommentWithRepoID(ctx, ctx.Repo.Repository.ID, ctx.PathParamInt64("id"))
 	if err != nil {
 		if issues_model.IsErrCommentNotExist(err) {
 			ctx.APIErrorNotFound(err)
@@ -455,16 +455,7 @@ func GetIssueComment(ctx *context.APIContext) {
 		return
 	}
 
-	if err = comment.LoadIssue(ctx); err != nil {
-		ctx.APIErrorInternal(err)
-		return
-	}
-	if comment.Issue.RepoID != ctx.Repo.Repository.ID {
-		ctx.Status(http.StatusNotFound)
-		return
-	}
-
-	if !ctx.Repo.CanReadIssuesOrPulls(comment.Issue.IsPull) {
+	if !ctx.Repo.Permission.CanReadIssuesOrPulls(comment.Issue.IsPull) {
 		ctx.APIErrorNotFound()
 		return
 	}
@@ -579,7 +570,7 @@ func EditIssueCommentDeprecated(ctx *context.APIContext) {
 }
 
 func editIssueComment(ctx *context.APIContext, form api.EditIssueCommentOption) {
-	comment, err := issues_model.GetCommentByID(ctx, ctx.PathParamInt64("id"))
+	comment, err := issues_model.GetCommentWithRepoID(ctx, ctx.Repo.Repository.ID, ctx.PathParamInt64("id"))
 	if err != nil {
 		if issues_model.IsErrCommentNotExist(err) {
 			ctx.APIErrorNotFound(err)
@@ -589,17 +580,7 @@ func editIssueComment(ctx *context.APIContext, form api.EditIssueCommentOption) 
 		return
 	}
 
-	if err := comment.LoadIssue(ctx); err != nil {
-		ctx.APIErrorInternal(err)
-		return
-	}
-
-	if comment.Issue.RepoID != ctx.Repo.Repository.ID {
-		ctx.Status(http.StatusNotFound)
-		return
-	}
-
-	if !ctx.IsSigned || (ctx.Doer.ID != comment.PosterID && !ctx.Repo.CanWriteIssuesOrPulls(comment.Issue.IsPull)) {
+	if !ctx.IsSigned || (ctx.Doer.ID != comment.PosterID && !ctx.Repo.Permission.CanWriteIssuesOrPulls(comment.Issue.IsPull)) {
 		ctx.Status(http.StatusForbidden)
 		return
 	}
@@ -609,15 +590,17 @@ func editIssueComment(ctx *context.APIContext, form api.EditIssueCommentOption) 
 		return
 	}
 
-	oldContent := comment.Content
-	comment.Content = form.Body
-	if err := issue_service.UpdateComment(ctx, comment, comment.ContentVersion, ctx.Doer, oldContent); err != nil {
-		if errors.Is(err, user_model.ErrBlockedUser) {
-			ctx.APIError(http.StatusForbidden, err)
-		} else {
-			ctx.APIErrorInternal(err)
+	if form.Body != comment.Content {
+		oldContent := comment.Content
+		comment.Content = form.Body
+		if err := issue_service.UpdateComment(ctx, comment, comment.ContentVersion, ctx.Doer, oldContent); err != nil {
+			if errors.Is(err, user_model.ErrBlockedUser) {
+				ctx.APIError(http.StatusForbidden, err)
+			} else {
+				ctx.APIErrorInternal(err)
+			}
+			return
 		}
-		return
 	}
 
 	ctx.JSON(http.StatusOK, convert.ToAPIComment(ctx, ctx.Repo.Repository, comment))
@@ -696,7 +679,7 @@ func DeleteIssueCommentDeprecated(ctx *context.APIContext) {
 }
 
 func deleteIssueComment(ctx *context.APIContext) {
-	comment, err := issues_model.GetCommentByID(ctx, ctx.PathParamInt64("id"))
+	comment, err := issues_model.GetCommentWithRepoID(ctx, ctx.Repo.Repository.ID, ctx.PathParamInt64("id"))
 	if err != nil {
 		if issues_model.IsErrCommentNotExist(err) {
 			ctx.APIErrorNotFound(err)
@@ -706,21 +689,11 @@ func deleteIssueComment(ctx *context.APIContext) {
 		return
 	}
 
-	if err := comment.LoadIssue(ctx); err != nil {
-		ctx.APIErrorInternal(err)
-		return
-	}
-
-	if comment.Issue.RepoID != ctx.Repo.Repository.ID {
-		ctx.Status(http.StatusNotFound)
-		return
-	}
-
-	if !ctx.IsSigned || (ctx.Doer.ID != comment.PosterID && !ctx.Repo.CanWriteIssuesOrPulls(comment.Issue.IsPull)) {
+	if !ctx.IsSigned || (ctx.Doer.ID != comment.PosterID && !ctx.Repo.Permission.CanWriteIssuesOrPulls(comment.Issue.IsPull)) {
 		ctx.Status(http.StatusForbidden)
 		return
-	} else if comment.Type != issues_model.CommentTypeComment {
-		ctx.Status(http.StatusNoContent)
+	} else if !comment.Type.HasContentSupport() {
+		ctx.Status(http.StatusBadRequest)
 		return
 	}
 

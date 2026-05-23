@@ -97,6 +97,65 @@ STORAGE_TYPE = minio
 	assert.Equal(t, "actions_artifacts", filepath.Base(Actions.ArtifactStorage.Path))
 }
 
+func Test_WorkflowDirs(t *testing.T) {
+	oldActions := Actions
+	defer func() {
+		Actions = oldActions
+	}()
+
+	tests := []struct {
+		name     string
+		iniStr   string
+		wantDirs []string
+		wantErr  bool
+	}{
+		{
+			name:     "default",
+			iniStr:   `[actions]`,
+			wantDirs: []string{".gitea/workflows", ".github/workflows"},
+		},
+		{
+			name:     "single dir",
+			iniStr:   "[actions]\nWORKFLOW_DIRS = .github/workflows",
+			wantDirs: []string{".github/workflows"},
+		},
+		{
+			name:     "custom order",
+			iniStr:   "[actions]\nWORKFLOW_DIRS = .github/workflows,.gitea/workflows",
+			wantDirs: []string{".github/workflows", ".gitea/workflows"},
+		},
+		{
+			name:     "whitespace trimming",
+			iniStr:   "[actions]\nWORKFLOW_DIRS = .gitea/workflows , .github/workflows ",
+			wantDirs: []string{".gitea/workflows", ".github/workflows"},
+		},
+		{
+			name:     "trailing slash normalization",
+			iniStr:   "[actions]\nWORKFLOW_DIRS = .gitea/workflows/,.github/workflows/",
+			wantDirs: []string{".gitea/workflows", ".github/workflows"},
+		},
+		{
+			name:    "only commas and whitespace",
+			iniStr:  "[actions]\nWORKFLOW_DIRS = , , ,",
+			wantErr: true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			cfg, err := NewConfigProviderFromData(tt.iniStr)
+			require.NoError(t, err)
+			err = loadActionsFrom(cfg)
+			if tt.wantErr {
+				require.Error(t, err)
+				return
+			}
+			require.NoError(t, err)
+			assert.Equal(t, tt.wantDirs, Actions.WorkflowDirs)
+		})
+	}
+}
+
 func Test_getDefaultActionsURLForActions(t *testing.T) {
 	oldActions := Actions
 	oldAppURL := AppURL

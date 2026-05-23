@@ -1,15 +1,14 @@
 // Copyright 2023 The Gitea Authors. All rights reserved.
 // SPDX-License-Identifier: MIT
 
-package v1_22 //nolint
+package v1_22
 
 import (
+	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/modules/timeutil"
-
-	"xorm.io/xorm"
 )
 
-func CreateAuthTokenTable(x *xorm.Engine) error {
+func CreateAuthTokenTable(x db.EngineMigration) error {
 	type AuthToken struct {
 		ID          string `xorm:"pk"`
 		TokenHash   string

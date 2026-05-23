@@ -9,6 +9,9 @@ import (
 	"net/url"
 	"testing"
 
+	auth_model "code.gitea.io/gitea/models/auth"
+	repo_model "code.gitea.io/gitea/models/repo"
+	"code.gitea.io/gitea/models/unittest"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/test"
 	"code.gitea.io/gitea/modules/util"
@@ -20,7 +23,9 @@ import (
 func TestGitSmartHTTP(t *testing.T) {
 	onGiteaRun(t, func(t *testing.T, u *url.URL) {
 		testGitSmartHTTP(t, u)
+		testGitSmartHTTPTokenScopes(t)
 		testRenamedRepoRedirect(t)
+		testGitArchiveRemote(t, u)
 	})
 }
 
@@ -79,6 +84,42 @@ func testGitSmartHTTP(t *testing.T, u *url.URL) {
 	}
 }
 
+func testGitSmartHTTPTokenScopes(t *testing.T) {
+	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 2, OwnerName: "user2", Name: "repo2"})
+	require.True(t, repo.IsPrivate)
+
+	session := loginUser(t, "user2")
+	badToken := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeReadNotification)
+	readToken := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeReadRepository)
+	writeToken := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeWriteRepository)
+	publicOnlyToken := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopePublicOnly, auth_model.AccessTokenScopeReadRepository)
+
+	t.Run("upload-pack requires read repository scope", func(t *testing.T) {
+		path := "/user2/repo2/info/refs?service=git-upload-pack"
+
+		MakeRequest(t, NewRequest(t, "GET", path).AddBasicAuth(badToken, "x-oauth-basic"), http.StatusForbidden)
+		MakeRequest(t, NewRequest(t, "GET", path).AddTokenAuth(badToken), http.StatusForbidden)
+
+		resp := MakeRequest(t, NewRequest(t, "GET", path).AddTokenAuth(readToken), http.StatusOK)
+		assert.Contains(t, resp.Body.String(), "refs/heads/master")
+	})
+
+	t.Run("receive-pack requires write repository scope", func(t *testing.T) {
+		path := "/user2/repo2/info/refs?service=git-receive-pack"
+
+		MakeRequest(t, NewRequest(t, "GET", path).AddBasicAuth(readToken, "x-oauth-basic"), http.StatusForbidden)
+		MakeRequest(t, NewRequest(t, "GET", path).AddTokenAuth(readToken), http.StatusForbidden)
+
+		resp := MakeRequest(t, NewRequest(t, "GET", path).AddTokenAuth(writeToken), http.StatusOK)
+		assert.Contains(t, resp.Body.String(), "refs/heads/master")
+	})
+
+	t.Run("public-only scope rejects private repo", func(t *testing.T) {
+		path := "/user2/repo2/info/refs?service=git-upload-pack"
+		MakeRequest(t, NewRequest(t, "GET", path).AddTokenAuth(publicOnlyToken), http.StatusForbidden)
+	})
+}
+
 func testRenamedRepoRedirect(t *testing.T) {
 	defer test.MockVariableValue(&setting.Service.RequireSignInViewStrict, true)()
 
@@ -95,4 +136,11 @@ func testRenamedRepoRedirect(t *testing.T) {
 	req = NewRequest(t, "GET", redirect).AddBasicAuth("user2")
 	resp = MakeRequest(t, req, http.StatusOK)
 	assert.Contains(t, resp.Body.String(), "65f1bf27bc3bf70f64657658635e66094edbcb4d\trefs/tags/v1.1")
+}
+
+func testGitArchiveRemote(t *testing.T, u *url.URL) {
+	u = u.JoinPath("user27/repo49.git")
+	t.Run("Fetch HEAD archive", doGitRemoteArchive(u.String(), "HEAD"))
+	t.Run("Fetch HEAD archive subpath", doGitRemoteArchive(u.String(), "HEAD", "test"))
+	t.Run("list compression options", doGitRemoteArchive(u.String(), "--list"))
 }

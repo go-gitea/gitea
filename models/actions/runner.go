@@ -5,6 +5,7 @@ package actions
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"strings"
 	"time"
@@ -13,6 +14,7 @@ import (
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/shared/types"
 	user_model "code.gitea.io/gitea/models/user"
+	"code.gitea.io/gitea/modules/container"
 	"code.gitea.io/gitea/modules/optional"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/timeutil"
@@ -60,6 +62,10 @@ type ActionRunner struct {
 	AgentLabels []string `xorm:"TEXT"`
 	// Store if this is a runner that only ever get one single job assigned
 	Ephemeral bool `xorm:"ephemeral NOT NULL DEFAULT false"`
+	// Store if this runner is disabled and should not pick up new jobs
+	IsDisabled bool `xorm:"is_disabled NOT NULL DEFAULT false"`
+	// Store if this runner supports the StatusCancelling flow
+	HasCancellingSupport bool `xorm:"has_cancelling_support NOT NULL DEFAULT false"`
 
 	Created timeutil.TimeStamp `xorm:"created"`
 	Updated timeutil.TimeStamp `xorm:"updated"`
@@ -167,9 +173,15 @@ func (r *ActionRunner) LoadAttributes(ctx context.Context) error {
 	return nil
 }
 
-func (r *ActionRunner) GenerateToken() (err error) {
-	r.Token, r.TokenSalt, r.TokenHash, _, err = generateSaltedToken()
-	return err
+func (r *ActionRunner) GenerateAndFillToken() {
+	r.Token, r.TokenSalt, r.TokenHash, _ = generateSaltedToken()
+}
+
+// CanMatchLabels checks whether the runner's labels can match a job's "runs-on"
+// See https://docs.github.com/en/actions/reference/workflows-and-actions/workflow-syntax#jobsjob_idruns-on
+func (r *ActionRunner) CanMatchLabels(jobRunsOn []string) bool {
+	runnerLabelSet := container.SetOf(r.AgentLabels...)
+	return runnerLabelSet.Contains(jobRunsOn...) // match all labels
 }
 
 func init() {
@@ -190,6 +202,7 @@ type FindRunnerOptions struct {
 	Sort          string
 	Filter        string
 	IsOnline      optional.Option[bool]
+	IsDisabled    optional.Option[bool]
 	WithAvailable bool // not only runners belong to, but also runners can be used
 }
 
@@ -229,6 +242,10 @@ func (opts FindRunnerOptions) ToConds() builder.Cond {
 		} else {
 			cond = cond.And(builder.Lte{"last_online": time.Now().Add(-RunnerOfflineTime).Unix()})
 		}
+	}
+
+	if opts.IsDisabled.Has() {
+		cond = cond.And(builder.Eq{"is_disabled": opts.IsDisabled.Value()})
 	}
 	return cond
 }
@@ -288,6 +305,20 @@ func UpdateRunner(ctx context.Context, r *ActionRunner, cols ...string) error {
 	return err
 }
 
+func SetRunnerDisabled(ctx context.Context, runner *ActionRunner, isDisabled bool) error {
+	if runner.IsDisabled == isDisabled {
+		return nil
+	}
+
+	return db.WithTx(ctx, func(ctx context.Context) error {
+		runner.IsDisabled = isDisabled
+		if err := UpdateRunner(ctx, runner, "is_disabled"); err != nil {
+			return err
+		}
+		return IncreaseTaskVersion(ctx, runner.OwnerID, runner.RepoID)
+	})
+}
+
 // DeleteRunner deletes a runner by given ID.
 func DeleteRunner(ctx context.Context, id int64) error {
 	if _, err := GetRunnerByID(ctx, id); err != nil {
@@ -295,6 +326,23 @@ func DeleteRunner(ctx context.Context, id int64) error {
 	}
 
 	_, err := db.DeleteByID[ActionRunner](ctx, id)
+	return err
+}
+
+// DeleteEphemeralRunner deletes a ephemeral runner by given ID.
+func DeleteEphemeralRunner(ctx context.Context, id int64) error {
+	runner, err := GetRunnerByID(ctx, id)
+	if err != nil {
+		if errors.Is(err, util.ErrNotExist) {
+			return nil
+		}
+		return err
+	}
+	if !runner.Ephemeral {
+		return nil
+	}
+
+	_, err = db.DeleteByID[ActionRunner](ctx, id)
 	return err
 }
 

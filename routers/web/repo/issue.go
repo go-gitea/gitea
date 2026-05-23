@@ -14,13 +14,13 @@ import (
 
 	"code.gitea.io/gitea/models/db"
 	issues_model "code.gitea.io/gitea/models/issues"
-	"code.gitea.io/gitea/models/organization"
 	access_model "code.gitea.io/gitea/models/perm/access"
 	project_model "code.gitea.io/gitea/models/project"
 	"code.gitea.io/gitea/models/renderhelper"
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unit"
 	user_model "code.gitea.io/gitea/models/user"
+	"code.gitea.io/gitea/modules/htmlutil"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/markup/markdown"
 	"code.gitea.io/gitea/modules/optional"
@@ -81,7 +81,7 @@ func MustAllowUserComment(ctx *context.Context) {
 		return
 	}
 
-	if issue.IsLocked && !ctx.Repo.CanWriteIssuesOrPulls(issue.IsPull) && !ctx.Doer.IsAdmin {
+	if issue.IsLocked && !ctx.Repo.Permission.CanWriteIssuesOrPulls(issue.IsPull) && !ctx.Doer.IsAdmin {
 		ctx.Flash.Error(ctx.Tr("repo.issues.comment_on_locked"))
 		ctx.Redirect(issue.Link())
 		return
@@ -90,8 +90,8 @@ func MustAllowUserComment(ctx *context.Context) {
 
 // MustEnableIssues check if repository enable internal issues
 func MustEnableIssues(ctx *context.Context) {
-	if !ctx.Repo.CanRead(unit.TypeIssues) &&
-		!ctx.Repo.CanRead(unit.TypeExternalTracker) {
+	if !ctx.Repo.Permission.CanRead(unit.TypeIssues) &&
+		!ctx.Repo.Permission.CanRead(unit.TypeExternalTracker) {
 		ctx.NotFound(nil)
 		return
 	}
@@ -105,14 +105,9 @@ func MustEnableIssues(ctx *context.Context) {
 
 // MustAllowPulls check if repository enable pull requests and user have right to do that
 func MustAllowPulls(ctx *context.Context) {
-	if !ctx.Repo.Repository.CanEnablePulls() || !ctx.Repo.CanRead(unit.TypePullRequests) {
+	if !ctx.Repo.Repository.CanEnablePulls() || !ctx.Repo.Permission.CanRead(unit.TypePullRequests) {
 		ctx.NotFound(nil)
 		return
-	}
-
-	// User can send pull request if owns a forked repository.
-	if ctx.IsSigned && repo_model.HasForkedRepo(ctx, ctx.Doer.ID, ctx.Repo.Repository.ID) {
-		ctx.Repo.PullRequest.Allowed = true
 	}
 }
 
@@ -200,8 +195,8 @@ func GetActionIssue(ctx *context.Context) *issues_model.Issue {
 }
 
 func checkIssueRights(ctx *context.Context, issue *issues_model.Issue) {
-	if issue.IsPull && !ctx.Repo.CanRead(unit.TypePullRequests) ||
-		!issue.IsPull && !ctx.Repo.CanRead(unit.TypeIssues) {
+	if issue.IsPull && !ctx.Repo.Permission.CanRead(unit.TypePullRequests) ||
+		!issue.IsPull && !ctx.Repo.Permission.CanRead(unit.TypeIssues) {
 		ctx.NotFound(nil)
 	}
 }
@@ -212,7 +207,7 @@ func getActionIssues(ctx *context.Context) issues_model.IssueList {
 		return nil
 	}
 	issueIDs := make([]int64, 0, 10)
-	for _, stringIssueID := range strings.Split(commaSeparatedIssueIDs, ",") {
+	for stringIssueID := range strings.SplitSeq(commaSeparatedIssueIDs, ",") {
 		issueID, err := strconv.ParseInt(stringIssueID, 10, 64)
 		if err != nil {
 			ctx.ServerError("ParseInt", err)
@@ -226,8 +221,8 @@ func getActionIssues(ctx *context.Context) issues_model.IssueList {
 		return nil
 	}
 	// Check access rights for all issues
-	issueUnitEnabled := ctx.Repo.CanRead(unit.TypeIssues)
-	prUnitEnabled := ctx.Repo.CanRead(unit.TypePullRequests)
+	issueUnitEnabled := ctx.Repo.Permission.CanRead(unit.TypeIssues)
+	prUnitEnabled := ctx.Repo.Permission.CanRead(unit.TypePullRequests)
 	for _, issue := range issues {
 		if issue.RepoID != ctx.Repo.Repository.ID {
 			ctx.NotFound(errors.New("some issue's RepoID is incorrect"))
@@ -259,13 +254,13 @@ func GetIssueInfo(ctx *context.Context) {
 
 	if issue.IsPull {
 		// Need to check if Pulls are enabled and we can read Pulls
-		if !ctx.Repo.Repository.CanEnablePulls() || !ctx.Repo.CanRead(unit.TypePullRequests) {
+		if !ctx.Repo.Repository.CanEnablePulls() || !ctx.Repo.Permission.CanRead(unit.TypePullRequests) {
 			ctx.HTTPError(http.StatusNotFound)
 			return
 		}
 	} else {
 		// Need to check if Issues are enabled and we can read Issues
-		if !ctx.Repo.CanRead(unit.TypeIssues) {
+		if !ctx.Repo.Permission.CanRead(unit.TypeIssues) {
 			ctx.HTTPError(http.StatusNotFound)
 			return
 		}
@@ -284,7 +279,7 @@ func UpdateIssueTitle(ctx *context.Context) {
 		return
 	}
 
-	if !ctx.IsSigned || (!issue.IsPoster(ctx.Doer.ID) && !ctx.Repo.CanWriteIssuesOrPulls(issue.IsPull)) {
+	if !ctx.IsSigned || (!issue.IsPoster(ctx.Doer.ID) && !ctx.Repo.Permission.CanWriteIssuesOrPulls(issue.IsPull)) {
 		ctx.HTTPError(http.StatusForbidden)
 		return
 	}
@@ -312,7 +307,7 @@ func UpdateIssueRef(ctx *context.Context) {
 		return
 	}
 
-	if !ctx.IsSigned || (!issue.IsPoster(ctx.Doer.ID) && !ctx.Repo.CanWriteIssuesOrPulls(issue.IsPull)) || issue.IsPull {
+	if !ctx.IsSigned || (!issue.IsPoster(ctx.Doer.ID) && !ctx.Repo.Permission.CanWriteIssuesOrPulls(issue.IsPull)) || issue.IsPull {
 		ctx.HTTPError(http.StatusForbidden)
 		return
 	}
@@ -336,7 +331,7 @@ func UpdateIssueContent(ctx *context.Context) {
 		return
 	}
 
-	if !ctx.IsSigned || (ctx.Doer.ID != issue.PosterID && !ctx.Repo.CanWriteIssuesOrPulls(issue.IsPull)) {
+	if !ctx.IsSigned || (ctx.Doer.ID != issue.PosterID && !ctx.Repo.Permission.CanWriteIssuesOrPulls(issue.IsPull)) {
 		ctx.HTTPError(http.StatusForbidden)
 		return
 	}
@@ -364,7 +359,9 @@ func UpdateIssueContent(ctx *context.Context) {
 		}
 	}
 
-	rctx := renderhelper.NewRenderContextRepoComment(ctx, ctx.Repo.Repository)
+	rctx := renderhelper.NewRenderContextRepoComment(ctx, ctx.Repo.Repository, renderhelper.RepoCommentOptions{
+		FootnoteContextID: "0",
+	})
 	content, err := markdown.RenderString(rctx, issue.Content)
 	if err != nil {
 		ctx.ServerError("RenderString", err)
@@ -372,7 +369,7 @@ func UpdateIssueContent(ctx *context.Context) {
 	}
 
 	ctx.JSON(http.StatusOK, map[string]any{
-		"content":        content,
+		"content":        commentContentHTML(ctx, content),
 		"contentVersion": issue.ContentVersion,
 		"attachments":    attachmentsHTML(ctx, issue.Attachments, issue.Content),
 	})
@@ -390,7 +387,7 @@ func UpdateIssueDeadline(ctx *context.Context) {
 		return
 	}
 
-	if !ctx.Repo.CanWriteIssuesOrPulls(issue.IsPull) {
+	if !ctx.Repo.Permission.CanWriteIssuesOrPulls(issue.IsPull) {
 		ctx.HTTPError(http.StatusForbidden, "", "Not repo writer")
 		return
 	}
@@ -418,6 +415,16 @@ func UpdateIssueMilestone(ctx *context.Context) {
 			continue
 		}
 		issue.MilestoneID = milestoneID
+		if milestoneID > 0 {
+			var err error
+			issue.Milestone, err = issues_model.GetMilestoneByRepoID(ctx, ctx.Repo.Repository.ID, milestoneID)
+			if err != nil {
+				ctx.ServerError("GetMilestoneByRepoID", err)
+				return
+			}
+		} else {
+			issue.Milestone = nil
+		}
 		if err := issue_service.ChangeMilestoneAssign(ctx, issue, ctx.Doer, oldMilestoneID); err != nil {
 			ctx.ServerError("ChangeMilestoneAssign", err)
 			return
@@ -479,7 +486,7 @@ func ChangeIssueReaction(ctx *context.Context) {
 		return
 	}
 
-	if !ctx.IsSigned || (ctx.Doer.ID != issue.PosterID && !ctx.Repo.CanReadIssuesOrPulls(issue.IsPull)) {
+	if !ctx.IsSigned || (ctx.Doer.ID != issue.PosterID && !ctx.Repo.Permission.CanReadIssuesOrPulls(issue.IsPull)) {
 		if log.IsTrace() {
 			if ctx.IsSigned {
 				issueType := "issues"
@@ -622,6 +629,13 @@ func updateAttachments(ctx *context.Context, item any, files []string) error {
 	return err
 }
 
+func commentContentHTML(ctx *context.Context, content template.HTML) template.HTML {
+	if strings.TrimSpace(string(content)) == "" {
+		return htmlutil.HTMLFormat(`<span class="no-content">%s</span>`, ctx.Tr("repo.issues.no_content"))
+	}
+	return content
+}
+
 func attachmentsHTML(ctx *context.Context, attachments []*repo_model.Attachment, content string) template.HTML {
 	attachHTML, err := ctx.RenderToHTML(tplAttachment, map[string]any{
 		"ctxData":     ctx.Data,
@@ -633,48 +647,4 @@ func attachmentsHTML(ctx *context.Context, attachments []*repo_model.Attachment,
 		return ""
 	}
 	return attachHTML
-}
-
-// handleMentionableAssigneesAndTeams gets all teams that current user can mention, and fills the assignee users to the context data
-func handleMentionableAssigneesAndTeams(ctx *context.Context, assignees []*user_model.User) {
-	// TODO: need to figure out how many places this is really used, and rename it to "MentionableAssignees"
-	// at the moment it is used on the issue list page, for the markdown editor mention
-	ctx.Data["Assignees"] = assignees
-
-	if ctx.Doer == nil || !ctx.Repo.Owner.IsOrganization() {
-		return
-	}
-
-	var isAdmin bool
-	var err error
-	var teams []*organization.Team
-	org := organization.OrgFromUser(ctx.Repo.Owner)
-	// Admin has super access.
-	if ctx.Doer.IsAdmin {
-		isAdmin = true
-	} else {
-		isAdmin, err = org.IsOwnedBy(ctx, ctx.Doer.ID)
-		if err != nil {
-			ctx.ServerError("IsOwnedBy", err)
-			return
-		}
-	}
-
-	if isAdmin {
-		teams, err = org.LoadTeams(ctx)
-		if err != nil {
-			ctx.ServerError("LoadTeams", err)
-			return
-		}
-	} else {
-		teams, err = org.GetUserTeams(ctx, ctx.Doer.ID)
-		if err != nil {
-			ctx.ServerError("GetUserTeams", err)
-			return
-		}
-	}
-
-	ctx.Data["MentionableTeams"] = teams
-	ctx.Data["MentionableTeamsOrg"] = ctx.Repo.Owner.Name
-	ctx.Data["MentionableTeamsOrgAvatar"] = ctx.Repo.Owner.AvatarLink(ctx)
 }

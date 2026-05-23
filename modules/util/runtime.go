@@ -5,9 +5,13 @@ package util
 
 import "runtime"
 
-func CallerFuncName(skip int) string {
+func CallerFuncName(optSkipParent ...int) string {
 	pc := make([]uintptr, 1)
-	runtime.Callers(skip+1, pc)
+	skipParent := 0
+	if len(optSkipParent) > 0 {
+		skipParent = optSkipParent[0]
+	}
+	runtime.Callers(skipParent+1 /*this*/ +1 /*runtime*/, pc)
 	funcName := runtime.FuncForPC(pc[0]).Name()
 	return funcName
 }

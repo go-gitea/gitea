@@ -9,9 +9,11 @@ import (
 	"fmt"
 	"net/http"
 	"net/url"
+	"slices"
 	"strconv"
 	"strings"
 
+	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unit"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/cache"
@@ -44,6 +46,12 @@ type APIContext struct {
 	Org        *APIOrganization
 	Package    *Package
 	PublicOnly bool // Whether the request is for a public endpoint
+}
+
+// TokenCanAccessRepo reports whether the current API token is allowed to access the repository.
+// A public-only token cannot reach a private repo; any other token is unrestricted by this check.
+func (ctx *APIContext) TokenCanAccessRepo(repo *repo_model.Repository) bool {
+	return repo == nil || !ctx.PublicOnly || !repo.IsPrivate
 }
 
 func init() {
@@ -162,7 +170,7 @@ func GetAPIContext(req *http.Request) *APIContext {
 	return req.Context().Value(apiContextKey).(*APIContext)
 }
 
-func genAPILinks(curURL *url.URL, total, pageSize, curPage int) []string {
+func genAPILinks(curURL *url.URL, total int64, pageSize, curPage int) []string {
 	page := NewPagination(total, pageSize, curPage, 0)
 	paginater := page.Paginater
 	links := make([]string, 0, 4)
@@ -203,7 +211,8 @@ func genAPILinks(curURL *url.URL, total, pageSize, curPage int) []string {
 }
 
 // SetLinkHeader sets pagination link header by given total number and page size.
-func (ctx *APIContext) SetLinkHeader(total, pageSize int) {
+// "count" is usually from database result "count int64", so it also uses int64,
+func (ctx *APIContext) SetLinkHeader(total int64, pageSize int) {
 	links := genAPILinks(ctx.Req.URL, total, pageSize, ctx.FormInt("page"))
 
 	if len(links) > 0 {
@@ -220,23 +229,20 @@ func APIContexter() func(http.Handler) http.Handler {
 			ctx := &APIContext{
 				Base:  base,
 				Cache: cache.GetCache(),
-				Repo:  &Repository{PullRequest: &PullRequest{}},
+				Repo:  &Repository{},
 				Org:   &APIOrganization{},
 			}
 
 			ctx.SetContextValue(apiContextKey, ctx)
 
-			// If request sends files, parse them here otherwise the Query() can't be parsed and the CsrfToken will be invalid.
+			// FIXME: GLOBAL-PARSE-FORM: see more details in another FIXME comment
 			if ctx.Req.Method == http.MethodPost && strings.Contains(ctx.Req.Header.Get("Content-Type"), "multipart/form-data") {
-				if err := ctx.Req.ParseMultipartForm(setting.Attachment.MaxSize << 20); err != nil && !strings.Contains(err.Error(), "EOF") { // 32MB max size
-					ctx.APIErrorInternal(err)
+				if !ctx.ParseMultipartForm() {
 					return
 				}
 			}
 
 			httpcache.SetCacheControlInHeader(ctx.Resp.Header(), &httpcache.CacheControlOptions{NoTransform: true})
-			ctx.Resp.Header().Set(`X-Frame-Options`, setting.CORSConfig.XFrameOptions)
-
 			next.ServeHTTP(ctx.Resp, ctx.Req)
 		})
 	}
@@ -245,7 +251,7 @@ func APIContexter() func(http.Handler) http.Handler {
 // APIErrorNotFound handles 404s for APIContext
 // String will replace message, errors will be added to a slice
 func (ctx *APIContext) APIErrorNotFound(objs ...any) {
-	message := ctx.Locale.TrString("error.not_found")
+	var message string
 	var errs []string
 	for _, obj := range objs {
 		// Ignore nil
@@ -259,9 +265,8 @@ func (ctx *APIContext) APIErrorNotFound(objs ...any) {
 			message = obj.(string)
 		}
 	}
-
 	ctx.JSON(http.StatusNotFound, map[string]any{
-		"message": message,
+		"message": util.IfZero(message, "not found"), // do not use locale in API
 		"url":     setting.API.SwaggerURL,
 		"errors":  errs,
 	})
@@ -324,24 +329,6 @@ func RepoRefForAPI(next http.Handler) http.Handler {
 	})
 }
 
-// HasAPIError returns true if error occurs in form validation.
-func (ctx *APIContext) HasAPIError() bool {
-	hasErr, ok := ctx.Data["HasError"]
-	if !ok {
-		return false
-	}
-	return hasErr.(bool)
-}
-
-// GetErrMsg returns error message in form validation.
-func (ctx *APIContext) GetErrMsg() string {
-	msg, _ := ctx.Data["ErrorMsg"].(string)
-	if msg == "" {
-		msg = "invalid form data"
-	}
-	return msg
-}
-
 // NotFoundOrServerError use error check function to determine if the error
 // is about not found. It responds with 404 status code for not found error,
 // or error context description for logging purpose of 500 server error.
@@ -360,16 +347,10 @@ func (ctx *APIContext) IsUserSiteAdmin() bool {
 
 // IsUserRepoAdmin returns true if current user is admin in current repo
 func (ctx *APIContext) IsUserRepoAdmin() bool {
-	return ctx.Repo.IsAdmin()
+	return ctx.Repo.Permission.IsAdmin()
 }
 
 // IsUserRepoWriter returns true if current user has "write" privilege in current repo
 func (ctx *APIContext) IsUserRepoWriter(unitTypes []unit.Type) bool {
-	for _, unitType := range unitTypes {
-		if ctx.Repo.CanWrite(unitType) {
-			return true
-		}
-	}
-
-	return false
+	return slices.ContainsFunc(unitTypes, ctx.Repo.Permission.CanWrite)
 }

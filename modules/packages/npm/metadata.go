@@ -12,7 +12,7 @@ type Metadata struct {
 	Name                    string            `json:"name,omitempty"`
 	Description             string            `json:"description,omitempty"`
 	Author                  string            `json:"author,omitempty"`
-	License                 string            `json:"license,omitempty"`
+	License                 License           `json:"license,omitempty"`
 	ProjectURL              string            `json:"project_url,omitempty"`
 	Keywords                []string          `json:"keywords,omitempty"`
 	Dependencies            map[string]string `json:"dependencies,omitempty"`
@@ -23,5 +23,5 @@ type Metadata struct {
 	OptionalDependencies    map[string]string `json:"optional_dependencies,omitempty"`
 	Bin                     map[string]string `json:"bin,omitempty"`
 	Readme                  string            `json:"readme,omitempty"`
-	Repository              Repository        `json:"repository,omitempty"`
+	Repository              Repository        `json:"repository"`
 }

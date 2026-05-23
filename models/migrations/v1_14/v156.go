@@ -1,18 +1,18 @@
 // Copyright 2020 The Gitea Authors. All rights reserved.
 // SPDX-License-Identifier: MIT
 
-package v1_14 //nolint
+package v1_14
 
 import (
+	"context"
 	"fmt"
 	"path/filepath"
 	"strings"
 
+	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
-
-	"xorm.io/xorm"
 )
 
 // Copy paste from models/repo.go because we cannot import models package
@@ -24,7 +24,7 @@ func userPath(userName string) string {
 	return filepath.Join(setting.RepoRootPath, strings.ToLower(userName))
 }
 
-func FixPublisherIDforTagReleases(x *xorm.Engine) error {
+func FixPublisherIDforTagReleases(ctx context.Context, x db.EngineMigration) error {
 	type Release struct {
 		ID          int64
 		RepoID      int64
@@ -108,7 +108,7 @@ func FixPublisherIDforTagReleases(x *xorm.Engine) error {
 						return err
 					}
 				}
-				gitRepo, err = git.OpenRepository(git.DefaultContext, repoPath(repo.OwnerName, repo.Name))
+				gitRepo, err = git.OpenRepository(ctx, repoPath(repo.OwnerName, repo.Name))
 				if err != nil {
 					log.Error("Error whilst opening git repo for [%d]%s/%s. Error: %v", repo.ID, repo.OwnerName, repo.Name, err)
 					return err

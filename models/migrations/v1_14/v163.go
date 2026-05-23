@@ -1,15 +1,14 @@
 // Copyright 2020 The Gitea Authors. All rights reserved.
 // SPDX-License-Identifier: MIT
 
-package v1_14 //nolint
+package v1_14
 
 import (
+	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/models/migrations/base"
-
-	"xorm.io/xorm"
 )
 
-func ConvertTopicNameFrom25To50(x *xorm.Engine) error {
+func ConvertTopicNameFrom25To50(x db.EngineMigration) error {
 	type Topic struct {
 		ID          int64  `xorm:"pk autoincr"`
 		Name        string `xorm:"UNIQUE VARCHAR(50)"`

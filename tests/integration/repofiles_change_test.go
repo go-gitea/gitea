@@ -5,6 +5,7 @@ package integration
 
 import (
 	"fmt"
+	"net/http"
 	"net/url"
 	"path"
 	"strings"
@@ -12,7 +13,6 @@ import (
 	"time"
 
 	repo_model "code.gitea.io/gitea/models/repo"
-	"code.gitea.io/gitea/models/unittest"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/gitrepo"
 	"code.gitea.io/gitea/modules/setting"
@@ -21,6 +21,7 @@ import (
 	files_service "code.gitea.io/gitea/services/repository/files"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func getCreateRepoFilesOptions(repo *repo_model.Repository) *files_service.ChangeRepoFilesOptions {
@@ -58,52 +59,37 @@ func getUpdateRepoFilesOptions(repo *repo_model.Repository) *files_service.Chang
 	}
 }
 
-func getDeleteRepoFilesOptions(repo *repo_model.Repository) *files_service.ChangeRepoFilesOptions {
+func getUpdateRepoFilesRenameOptions(repo *repo_model.Repository) *files_service.ChangeRepoFilesOptions {
 	return &files_service.ChangeRepoFilesOptions{
 		Files: []*files_service.ChangeRepoFile{
+			// move normally
 			{
-				Operation: "delete",
-				TreePath:  "README.md",
-				SHA:       "4b4851ad51df6a7d9f25c979345979eaeb5b349f",
+				Operation:    "rename",
+				FromTreePath: "README.md",
+				TreePath:     "README.txt",
+			},
+			// move from in lfs
+			{
+				Operation:    "rename",
+				FromTreePath: "crypt.bin",
+				TreePath:     "crypt1.bin",
+			},
+			// move from lfs to normal
+			{
+				Operation:    "rename",
+				FromTreePath: "jpeg.jpg",
+				TreePath:     "jpeg.jpeg",
+			},
+			// move from normal to lfs
+			{
+				Operation:    "rename",
+				FromTreePath: "CONTRIBUTING.md",
+				TreePath:     "CONTRIBUTING.md.bin",
 			},
 		},
-		LastCommitID: "",
-		OldBranch:    repo.DefaultBranch,
-		NewBranch:    repo.DefaultBranch,
-		Message:      "Deletes README.md",
-		Author: &files_service.IdentityOptions{
-			GitUserName:  "Bob Smith",
-			GitUserEmail: "bob@smith.com",
-		},
-		Committer: nil,
-	}
-}
-
-func getExpectedFileResponseForRepoFilesDelete() *api.FileResponse {
-	// Just returns fields that don't change, i.e. fields with commit SHAs and dates can't be determined
-	return &api.FileResponse{
-		Content: nil,
-		Commit: &api.FileCommitResponse{
-			Author: &api.CommitUser{
-				Identity: api.Identity{
-					Name:  "Bob Smith",
-					Email: "bob@smith.com",
-				},
-			},
-			Committer: &api.CommitUser{
-				Identity: api.Identity{
-					Name:  "Bob Smith",
-					Email: "bob@smith.com",
-				},
-			},
-			Message: "Deletes README.md\n",
-		},
-		Verification: &api.PayloadCommitVerification{
-			Verified:  false,
-			Reason:    "gpg.error.not_signed_commit",
-			Signature: "",
-			Payload:   "",
-		},
+		OldBranch: repo.DefaultBranch,
+		NewBranch: repo.DefaultBranch,
+		Message:   "Rename files",
 	}
 }
 
@@ -120,9 +106,9 @@ func getExpectedFileResponseForRepoFilesCreate(commitID string, lastCommit *git.
 			Name:              path.Base(treePath),
 			Path:              treePath,
 			SHA:               "103ff9234cefeee5ec5361d22b49fbb04d385885",
-			LastCommitSHA:     lastCommit.ID.String(),
-			LastCommitterDate: lastCommit.Committer.When,
-			LastAuthorDate:    lastCommit.Author.When,
+			LastCommitSHA:     new(lastCommit.ID.String()),
+			LastCommitterDate: new(lastCommit.Committer.When),
+			LastAuthorDate:    new(lastCommit.Author.When),
 			Type:              "file",
 			Size:              18,
 			Encoding:          &encoding,
@@ -146,14 +132,14 @@ func getExpectedFileResponseForRepoFilesCreate(commitID string, lastCommit *git.
 			Author: &api.CommitUser{
 				Identity: api.Identity{
 					Name:  "User Two",
-					Email: "user2@noreply.example.org",
+					Email: "2+user2@noreply.example.org",
 				},
 				Date: time.Now().UTC().Format(time.RFC3339),
 			},
 			Committer: &api.CommitUser{
 				Identity: api.Identity{
 					Name:  "User Two",
-					Email: "user2@noreply.example.org",
+					Email: "2+user2@noreply.example.org",
 				},
 				Date: time.Now().UTC().Format(time.RFC3339),
 			},
@@ -163,7 +149,7 @@ func getExpectedFileResponseForRepoFilesCreate(commitID string, lastCommit *git.
 					SHA: "65f1bf27bc3bf70f64657658635e66094edbcb4d",
 				},
 			},
-			Message: "Updates README.md\n",
+			Message: "Creates new/file.txt\n",
 			Tree: &api.CommitMeta{
 				URL: setting.AppURL + "api/v1/repos/user2/repo1/git/trees/f93e3a1a1525fb5b91020da86e44810c87a2d7bc",
 				SHA: "f93e3a1a1525fb5b91020git dda86e44810c87a2d7bc",
@@ -190,9 +176,9 @@ func getExpectedFileResponseForRepoFilesUpdate(commitID, filename, lastCommitSHA
 			Name:              filename,
 			Path:              filename,
 			SHA:               "dbf8d00e022e05b7e5cf7e535de857de57925647",
-			LastCommitSHA:     lastCommitSHA,
-			LastCommitterDate: lastCommitterWhen,
-			LastAuthorDate:    lastAuthorWhen,
+			LastCommitSHA:     new(lastCommitSHA),
+			LastCommitterDate: new(lastCommitterWhen),
+			LastAuthorDate:    new(lastAuthorWhen),
 			Type:              "file",
 			Size:              43,
 			Encoding:          &encoding,
@@ -216,14 +202,14 @@ func getExpectedFileResponseForRepoFilesUpdate(commitID, filename, lastCommitSHA
 			Author: &api.CommitUser{
 				Identity: api.Identity{
 					Name:  "User Two",
-					Email: "user2@noreply.example.org",
+					Email: "2+user2@noreply.example.org",
 				},
 				Date: time.Now().UTC().Format(time.RFC3339),
 			},
 			Committer: &api.CommitUser{
 				Identity: api.Identity{
 					Name:  "User Two",
-					Email: "user2@noreply.example.org",
+					Email: "2+user2@noreply.example.org",
 				},
 				Date: time.Now().UTC().Format(time.RFC3339),
 			},
@@ -237,6 +223,114 @@ func getExpectedFileResponseForRepoFilesUpdate(commitID, filename, lastCommitSHA
 			Tree: &api.CommitMeta{
 				URL: setting.AppURL + "api/v1/repos/user2/repo1/git/trees/f93e3a1a1525fb5b91020da86e44810c87a2d7bc",
 				SHA: "f93e3a1a1525fb5b91020da86e44810c87a2d7bc",
+			},
+		},
+		Verification: &api.PayloadCommitVerification{
+			Verified:  false,
+			Reason:    "gpg.error.not_signed_commit",
+			Signature: "",
+			Payload:   "",
+		},
+	}
+}
+
+func getExpectedFileResponseForRepoFilesUpdateRename(commitID, lastCommitSHA string) *api.FilesResponse {
+	details := []struct {
+		filename, sha, content string
+		size                   int64
+		lfsOid                 *string
+		lfsSize                *int64
+	}{
+		{
+			filename: "README.txt",
+			sha:      "8276d2a29779af982c0afa976bdb793b52d442a8",
+			size:     22,
+			content:  "IyBBbiBMRlMtZW5hYmxlZCByZXBvCg==",
+		},
+		{
+			filename: "crypt1.bin",
+			sha:      "d4a41a0d4db4949e129bd22f871171ea988103ef",
+			size:     129,
+			content:  "dmVyc2lvbiBodHRwczovL2dpdC1sZnMuZ2l0aHViLmNvbS9zcGVjL3YxCm9pZCBzaGEyNTY6MmVjY2RiNDM4MjVkMmE0OWQ5OWQ1NDJkYWEyMDA3NWNmZjFkOTdkOWQyMzQ5YTg5NzdlZmU5YzAzNjYxNzM3YwpzaXplIDIwNDgK",
+			lfsOid:   new("2eccdb43825d2a49d99d542daa20075cff1d97d9d2349a8977efe9c03661737c"),
+			lfsSize:  new(int64(2048)),
+		},
+		{
+			filename: "jpeg.jpeg",
+			sha:      "71911bf48766c7181518c1070911019fbb00b1fc",
+			size:     107,
+			content:  "/9j/2wBDAAMCAgICAgMCAgIDAwMDBAYEBAQEBAgGBgUGCQgKCgkICQkKDA8MCgsOCwkJDRENDg8QEBEQCgwSExIQEw8QEBD/yQALCAABAAEBAREA/8wABgAQEAX/2gAIAQEAAD8A0s8g/9k=",
+		},
+		{
+			filename: "CONTRIBUTING.md.bin",
+			sha:      "2b6c6c4eaefa24b22f2092c3d54b263ff26feb58",
+			size:     127,
+			content:  "dmVyc2lvbiBodHRwczovL2dpdC1sZnMuZ2l0aHViLmNvbS9zcGVjL3YxCm9pZCBzaGEyNTY6N2I2YjJjODhkYmE5Zjc2MGExYTU4NDY5YjY3ZmVlMmI2OThlZjdlOTM5OWM0Y2E0ZjM0YTE0Y2NiZTM5ZjYyMwpzaXplIDI3Cg==",
+			lfsOid:   new("7b6b2c88dba9f760a1a58469b67fee2b698ef7e9399c4ca4f34a14ccbe39f623"),
+			lfsSize:  new(int64(27)),
+		},
+	}
+
+	var responses []*api.ContentsResponse
+	for _, detail := range details {
+		selfURL := setting.AppURL + "api/v1/repos/user2/lfs/contents/" + detail.filename + "?ref=master"
+		htmlURL := setting.AppURL + "user2/lfs/src/branch/master/" + detail.filename
+		gitURL := setting.AppURL + "api/v1/repos/user2/lfs/git/blobs/" + detail.sha
+		downloadURL := setting.AppURL + "user2/lfs/raw/branch/master/" + detail.filename
+		// don't set time related fields because there might be different time in one operation
+		responses = append(responses, &api.ContentsResponse{
+			Name:          detail.filename,
+			Path:          detail.filename,
+			SHA:           detail.sha,
+			LastCommitSHA: new(lastCommitSHA),
+			Type:          "file",
+			Size:          detail.size,
+			Encoding:      new("base64"),
+			Content:       &detail.content,
+			URL:           &selfURL,
+			HTMLURL:       &htmlURL,
+			GitURL:        &gitURL,
+			DownloadURL:   &downloadURL,
+			Links: &api.FileLinksResponse{
+				Self:    &selfURL,
+				GitURL:  &gitURL,
+				HTMLURL: &htmlURL,
+			},
+			LfsOid:  detail.lfsOid,
+			LfsSize: detail.lfsSize,
+		})
+	}
+
+	return &api.FilesResponse{
+		Files: responses,
+		Commit: &api.FileCommitResponse{
+			CommitMeta: api.CommitMeta{
+				URL: setting.AppURL + "api/v1/repos/user2/lfs/git/commits/" + commitID,
+				SHA: commitID,
+			},
+			HTMLURL: setting.AppURL + "user2/lfs/commit/" + commitID,
+			Author: &api.CommitUser{
+				Identity: api.Identity{
+					Name:  "User Two",
+					Email: "2+user2@noreply.example.org",
+				},
+			},
+			Committer: &api.CommitUser{
+				Identity: api.Identity{
+					Name:  "User Two",
+					Email: "2+user2@noreply.example.org",
+				},
+			},
+			Parents: []*api.CommitMeta{
+				{
+					URL: setting.AppURL + "api/v1/repos/user2/lfs/git/commits/73cf03db6ece34e12bf91e8853dc58f678f2f82d",
+					SHA: "73cf03db6ece34e12bf91e8853dc58f678f2f82d",
+				},
+			},
+			Message: "Rename files\n",
+			Tree: &api.CommitMeta{
+				URL: setting.AppURL + "api/v1/repos/user2/lfs/git/trees/5307376dc3a5557dc1c403c29a8984668ca9ecb5",
+				SHA: "5307376dc3a5557dc1c403c29a8984668ca9ecb5",
 			},
 		},
 		Verification: &api.PayloadCommitVerification{
@@ -264,11 +358,11 @@ func TestChangeRepoFilesForCreate(t *testing.T) {
 		opts := getCreateRepoFilesOptions(repo)
 
 		// test
-		filesResponse, err := files_service.ChangeRepoFiles(git.DefaultContext, repo, doer, opts)
+		filesResponse, err := files_service.ChangeRepoFiles(t.Context(), repo, doer, opts)
 
 		// asserts
 		assert.NoError(t, err)
-		gitRepo, _ := gitrepo.OpenRepository(git.DefaultContext, repo)
+		gitRepo, _ := gitrepo.OpenRepository(t.Context(), repo)
 		defer gitRepo.Close()
 
 		commitID, _ := gitRepo.GetBranchCommitID(opts.NewBranch)
@@ -301,11 +395,11 @@ func TestChangeRepoFilesForUpdate(t *testing.T) {
 		opts := getUpdateRepoFilesOptions(repo)
 
 		// test
-		filesResponse, err := files_service.ChangeRepoFiles(git.DefaultContext, repo, doer, opts)
+		filesResponse, err := files_service.ChangeRepoFiles(t.Context(), repo, doer, opts)
 
 		// asserts
 		assert.NoError(t, err)
-		gitRepo, _ := gitrepo.OpenRepository(git.DefaultContext, repo)
+		gitRepo, _ := gitrepo.OpenRepository(t.Context(), repo)
 		defer gitRepo.Close()
 
 		commit, _ := gitRepo.GetBranchCommit(opts.NewBranch)
@@ -337,11 +431,11 @@ func TestChangeRepoFilesForUpdateWithFileMove(t *testing.T) {
 		opts.Files[0].TreePath = "README_new.md" // new file name, README_new.md
 
 		// test
-		filesResponse, err := files_service.ChangeRepoFiles(git.DefaultContext, repo, doer, opts)
+		filesResponse, err := files_service.ChangeRepoFiles(t.Context(), repo, doer, opts)
 
 		// asserts
 		assert.NoError(t, err)
-		gitRepo, _ := gitrepo.OpenRepository(git.DefaultContext, repo)
+		gitRepo, _ := gitrepo.OpenRepository(t.Context(), repo)
 		defer gitRepo.Close()
 
 		commit, _ := gitRepo.GetBranchCommit(opts.NewBranch)
@@ -369,6 +463,38 @@ func TestChangeRepoFilesForUpdateWithFileMove(t *testing.T) {
 	})
 }
 
+func TestChangeRepoFilesForUpdateWithFileRename(t *testing.T) {
+	onGiteaRun(t, func(t *testing.T, u *url.URL) {
+		ctx, _ := contexttest.MockContext(t, "user2/lfs")
+		ctx.SetPathParam("id", "54")
+		contexttest.LoadRepo(t, ctx, 54)
+		contexttest.LoadRepoCommit(t, ctx)
+		contexttest.LoadUser(t, ctx, 2)
+		contexttest.LoadGitRepo(t, ctx)
+		defer ctx.Repo.GitRepo.Close()
+
+		repo := ctx.Repo.Repository
+		opts := getUpdateRepoFilesRenameOptions(repo)
+
+		// test
+		filesResponse, err := files_service.ChangeRepoFiles(t.Context(), repo, ctx.Doer, opts)
+
+		// asserts
+		assert.NoError(t, err)
+		gitRepo, _ := gitrepo.OpenRepository(t.Context(), repo)
+		defer gitRepo.Close()
+
+		commit, _ := gitRepo.GetBranchCommit(repo.DefaultBranch)
+		lastCommit, _ := commit.GetCommitByPath(opts.Files[0].TreePath)
+		expectedFileResponse := getExpectedFileResponseForRepoFilesUpdateRename(commit.ID.String(), lastCommit.ID.String())
+		for _, file := range filesResponse.Files {
+			file.LastCommitterDate, file.LastAuthorDate = nil, nil // there might be different time in one operation, so we ignore them
+		}
+		assert.Len(t, filesResponse.Files, 4)
+		assert.Equal(t, expectedFileResponse.Files, filesResponse.Files)
+	})
+}
+
 // Test opts with branch names removed, should get same results as above test
 func TestChangeRepoFilesWithoutBranchNames(t *testing.T) {
 	// setup
@@ -388,11 +514,11 @@ func TestChangeRepoFilesWithoutBranchNames(t *testing.T) {
 		opts.NewBranch = ""
 
 		// test
-		filesResponse, err := files_service.ChangeRepoFiles(git.DefaultContext, repo, doer, opts)
+		filesResponse, err := files_service.ChangeRepoFiles(t.Context(), repo, doer, opts)
 
 		// asserts
 		assert.NoError(t, err)
-		gitRepo, _ := gitrepo.OpenRepository(git.DefaultContext, repo)
+		gitRepo, _ := gitrepo.OpenRepository(t.Context(), repo)
 		defer gitRepo.Close()
 
 		commit, _ := gitRepo.GetBranchCommit(repo.DefaultBranch)
@@ -403,75 +529,88 @@ func TestChangeRepoFilesWithoutBranchNames(t *testing.T) {
 }
 
 func TestChangeRepoFilesForDelete(t *testing.T) {
-	onGiteaRun(t, testDeleteRepoFiles)
-}
+	onGiteaRun(t, func(t *testing.T, u *url.URL) {
+		ctx, _ := contexttest.MockContext(t, "user2/repo1")
+		ctx.SetPathParam("id", "1")
+		contexttest.LoadRepo(t, ctx, 1)
+		contexttest.LoadRepoCommit(t, ctx)
+		contexttest.LoadUser(t, ctx, 2)
+		contexttest.LoadGitRepo(t, ctx)
+		defer ctx.Repo.GitRepo.Close()
+		repo := ctx.Repo.Repository
+		doer := ctx.Doer
 
-func testDeleteRepoFiles(t *testing.T, u *url.URL) {
-	// setup
-	unittest.PrepareTestEnv(t)
-	ctx, _ := contexttest.MockContext(t, "user2/repo1")
-	ctx.SetPathParam("id", "1")
-	contexttest.LoadRepo(t, ctx, 1)
-	contexttest.LoadRepoCommit(t, ctx)
-	contexttest.LoadUser(t, ctx, 2)
-	contexttest.LoadGitRepo(t, ctx)
-	defer ctx.Repo.GitRepo.Close()
-	repo := ctx.Repo.Repository
-	doer := ctx.Doer
-	opts := getDeleteRepoFilesOptions(repo)
+		t.Run("Delete README.md by commit", func(t *testing.T) {
+			urlRaw := "/user2/repo1/raw/branch/branch2/README.md"
+			MakeRequest(t, NewRequest(t, "GET", urlRaw), http.StatusOK)
+			opts := &files_service.ChangeRepoFilesOptions{
+				OldBranch:    "branch2",
+				LastCommitID: "985f0301dba5e7b34be866819cd15ad3d8f508ee",
+				Files: []*files_service.ChangeRepoFile{
+					{
+						Operation: "delete",
+						TreePath:  "README.md",
+					},
+				},
+				Message: "test message",
+			}
+			filesResponse, err := files_service.ChangeRepoFiles(t.Context(), repo, doer, opts)
+			require.NoError(t, err)
+			assert.NotNil(t, filesResponse)
+			assert.Nil(t, filesResponse.Files[0])
+			assert.Equal(t, "test message\n", filesResponse.Commit.Message)
+			MakeRequest(t, NewRequest(t, "GET", urlRaw), http.StatusNotFound)
+		})
 
-	t.Run("Delete README.md file", func(t *testing.T) {
-		filesResponse, err := files_service.ChangeRepoFiles(git.DefaultContext, repo, doer, opts)
-		assert.NoError(t, err)
-		expectedFileResponse := getExpectedFileResponseForRepoFilesDelete()
-		assert.NotNil(t, filesResponse)
-		assert.Nil(t, filesResponse.Files[0])
-		assert.Equal(t, expectedFileResponse.Commit.Message, filesResponse.Commit.Message)
-		assert.Equal(t, expectedFileResponse.Commit.Author.Identity, filesResponse.Commit.Author.Identity)
-		assert.Equal(t, expectedFileResponse.Commit.Committer.Identity, filesResponse.Commit.Committer.Identity)
-		assert.Equal(t, expectedFileResponse.Verification, filesResponse.Verification)
-	})
+		t.Run("Delete README.md with options", func(t *testing.T) {
+			urlRaw := "/user2/repo1/raw/branch/master/README.md"
+			MakeRequest(t, NewRequest(t, "GET", urlRaw), http.StatusOK)
+			opts := &files_service.ChangeRepoFilesOptions{
+				Files: []*files_service.ChangeRepoFile{
+					{
+						Operation: "delete",
+						TreePath:  "README.md",
+						SHA:       "4b4851ad51df6a7d9f25c979345979eaeb5b349f",
+					},
+				},
+				OldBranch: repo.DefaultBranch,
+				NewBranch: repo.DefaultBranch,
+				Message:   "Message for deleting README.md",
+				Author:    &files_service.IdentityOptions{GitUserName: "Bob Smith", GitUserEmail: "bob@smith.com"},
+			}
+			filesResponse, err := files_service.ChangeRepoFiles(t.Context(), repo, doer, opts)
+			require.NoError(t, err)
+			require.NotNil(t, filesResponse)
+			assert.Nil(t, filesResponse.Files[0])
+			assert.Equal(t, "Message for deleting README.md\n", filesResponse.Commit.Message)
+			assert.Equal(t, api.Identity{Name: "Bob Smith", Email: "bob@smith.com"}, filesResponse.Commit.Author.Identity)
+			assert.Equal(t, api.Identity{Name: "Bob Smith", Email: "bob@smith.com"}, filesResponse.Commit.Committer.Identity)
+			assert.Equal(t, &api.PayloadCommitVerification{Reason: "gpg.error.not_signed_commit"}, filesResponse.Verification)
+			MakeRequest(t, NewRequest(t, "GET", urlRaw), http.StatusNotFound)
+		})
 
-	t.Run("Verify README.md has been deleted", func(t *testing.T) {
-		filesResponse, err := files_service.ChangeRepoFiles(git.DefaultContext, repo, doer, opts)
-		assert.Nil(t, filesResponse)
-		expectedError := "repository file does not exist [path: " + opts.Files[0].TreePath + "]"
-		assert.EqualError(t, err, expectedError)
-	})
-}
-
-// Test opts with branch names removed, same results
-func TestChangeRepoFilesForDeleteWithoutBranchNames(t *testing.T) {
-	onGiteaRun(t, testDeleteRepoFilesWithoutBranchNames)
-}
-
-func testDeleteRepoFilesWithoutBranchNames(t *testing.T, u *url.URL) {
-	// setup
-	unittest.PrepareTestEnv(t)
-	ctx, _ := contexttest.MockContext(t, "user2/repo1")
-	ctx.SetPathParam("id", "1")
-	contexttest.LoadRepo(t, ctx, 1)
-	contexttest.LoadRepoCommit(t, ctx)
-	contexttest.LoadUser(t, ctx, 2)
-	contexttest.LoadGitRepo(t, ctx)
-	defer ctx.Repo.GitRepo.Close()
-
-	repo := ctx.Repo.Repository
-	doer := ctx.Doer
-	opts := getDeleteRepoFilesOptions(repo)
-	opts.OldBranch = ""
-	opts.NewBranch = ""
-
-	t.Run("Delete README.md without Branch Name", func(t *testing.T) {
-		filesResponse, err := files_service.ChangeRepoFiles(git.DefaultContext, repo, doer, opts)
-		assert.NoError(t, err)
-		expectedFileResponse := getExpectedFileResponseForRepoFilesDelete()
-		assert.NotNil(t, filesResponse)
-		assert.Nil(t, filesResponse.Files[0])
-		assert.Equal(t, expectedFileResponse.Commit.Message, filesResponse.Commit.Message)
-		assert.Equal(t, expectedFileResponse.Commit.Author.Identity, filesResponse.Commit.Author.Identity)
-		assert.Equal(t, expectedFileResponse.Commit.Committer.Identity, filesResponse.Commit.Committer.Identity)
-		assert.Equal(t, expectedFileResponse.Verification, filesResponse.Verification)
+		t.Run("Delete directory", func(t *testing.T) {
+			urlRaw := "/user2/repo1/raw/branch/sub-home-md-img-check/docs/README.md"
+			MakeRequest(t, NewRequest(t, "GET", urlRaw), http.StatusOK)
+			opts := &files_service.ChangeRepoFilesOptions{
+				OldBranch:    "sub-home-md-img-check",
+				LastCommitID: "4649299398e4d39a5c09eb4f534df6f1e1eb87cc",
+				Files: []*files_service.ChangeRepoFile{
+					{
+						Operation:         "delete",
+						TreePath:          "docs",
+						DeleteRecursively: true,
+					},
+				},
+				Message: "test message",
+			}
+			filesResponse, err := files_service.ChangeRepoFiles(t.Context(), repo, doer, opts)
+			require.NoError(t, err)
+			assert.NotNil(t, filesResponse)
+			assert.Nil(t, filesResponse.Files[0])
+			assert.Equal(t, "test message\n", filesResponse.Commit.Message)
+			MakeRequest(t, NewRequest(t, "GET", urlRaw), http.StatusNotFound)
+		})
 	})
 }
 
@@ -492,7 +631,7 @@ func TestChangeRepoFilesErrors(t *testing.T) {
 		t.Run("bad branch", func(t *testing.T) {
 			opts := getUpdateRepoFilesOptions(repo)
 			opts.OldBranch = "bad_branch"
-			filesResponse, err := files_service.ChangeRepoFiles(git.DefaultContext, repo, doer, opts)
+			filesResponse, err := files_service.ChangeRepoFiles(t.Context(), repo, doer, opts)
 			assert.Error(t, err)
 			assert.Nil(t, filesResponse)
 			expectedError := fmt.Sprintf("branch does not exist [repo_id: %d name: %s]", repo.ID, opts.OldBranch)
@@ -503,7 +642,7 @@ func TestChangeRepoFilesErrors(t *testing.T) {
 			opts := getUpdateRepoFilesOptions(repo)
 			origSHA := opts.Files[0].SHA
 			opts.Files[0].SHA = "bad_sha"
-			filesResponse, err := files_service.ChangeRepoFiles(git.DefaultContext, repo, doer, opts)
+			filesResponse, err := files_service.ChangeRepoFiles(t.Context(), repo, doer, opts)
 			assert.Nil(t, filesResponse)
 			assert.Error(t, err)
 			expectedError := "sha does not match [given: " + opts.Files[0].SHA + ", expected: " + origSHA + "]"
@@ -513,7 +652,7 @@ func TestChangeRepoFilesErrors(t *testing.T) {
 		t.Run("new branch already exists", func(t *testing.T) {
 			opts := getUpdateRepoFilesOptions(repo)
 			opts.NewBranch = "develop"
-			filesResponse, err := files_service.ChangeRepoFiles(git.DefaultContext, repo, doer, opts)
+			filesResponse, err := files_service.ChangeRepoFiles(t.Context(), repo, doer, opts)
 			assert.Nil(t, filesResponse)
 			assert.Error(t, err)
 			expectedError := "branch already exists [name: " + opts.NewBranch + "]"
@@ -523,7 +662,7 @@ func TestChangeRepoFilesErrors(t *testing.T) {
 		t.Run("treePath is empty:", func(t *testing.T) {
 			opts := getUpdateRepoFilesOptions(repo)
 			opts.Files[0].TreePath = ""
-			filesResponse, err := files_service.ChangeRepoFiles(git.DefaultContext, repo, doer, opts)
+			filesResponse, err := files_service.ChangeRepoFiles(t.Context(), repo, doer, opts)
 			assert.Nil(t, filesResponse)
 			assert.Error(t, err)
 			expectedError := "path contains a malformed path component [path: ]"
@@ -533,7 +672,7 @@ func TestChangeRepoFilesErrors(t *testing.T) {
 		t.Run("treePath is a git directory:", func(t *testing.T) {
 			opts := getUpdateRepoFilesOptions(repo)
 			opts.Files[0].TreePath = ".git"
-			filesResponse, err := files_service.ChangeRepoFiles(git.DefaultContext, repo, doer, opts)
+			filesResponse, err := files_service.ChangeRepoFiles(t.Context(), repo, doer, opts)
 			assert.Nil(t, filesResponse)
 			assert.Error(t, err)
 			expectedError := "path contains a malformed path component [path: " + opts.Files[0].TreePath + "]"
@@ -543,7 +682,7 @@ func TestChangeRepoFilesErrors(t *testing.T) {
 		t.Run("create file that already exists", func(t *testing.T) {
 			opts := getCreateRepoFilesOptions(repo)
 			opts.Files[0].TreePath = "README.md" // already exists
-			fileResponse, err := files_service.ChangeRepoFiles(git.DefaultContext, repo, doer, opts)
+			fileResponse, err := files_service.ChangeRepoFiles(t.Context(), repo, doer, opts)
 			assert.Nil(t, fileResponse)
 			assert.Error(t, err)
 			expectedError := "repository file already exists [path: " + opts.Files[0].TreePath + "]"

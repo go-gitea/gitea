@@ -1,17 +1,18 @@
 // Copyright 2024 The Gitea Authors. All rights reserved.
 // SPDX-License-Identifier: MIT
 
-package v1_22 //nolint
+package v1_22
 
 import (
 	"fmt"
 
-	"xorm.io/xorm"
+	"code.gitea.io/gitea/models/db"
+
 	"xorm.io/xorm/schemas"
 )
 
 // AddUniqueIndexForProjectIssue adds unique indexes for project issue table
-func AddUniqueIndexForProjectIssue(x *xorm.Engine) error {
+func AddUniqueIndexForProjectIssue(x db.EngineMigration) error {
 	// remove possible duplicated records in table project_issue
 	type result struct {
 		IssueID   int64

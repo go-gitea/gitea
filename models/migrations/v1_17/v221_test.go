@@ -1,13 +1,13 @@
 // Copyright 2022 The Gitea Authors. All rights reserved.
 // SPDX-License-Identifier: MIT
 
-package v1_17 //nolint
+package v1_17
 
 import (
 	"encoding/base32"
 	"testing"
 
-	"code.gitea.io/gitea/models/migrations/base"
+	"code.gitea.io/gitea/models/migrations/migrationtest"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -38,7 +38,7 @@ func Test_StoreWebauthnCredentialIDAsBytes(t *testing.T) {
 	}
 
 	// Prepare and load the testing database
-	x, deferable := base.PrepareTestEnv(t, 0, new(WebauthnCredential), new(ExpectedWebauthnCredential))
+	x, deferable := migrationtest.PrepareTestEnv(t, 0, new(WebauthnCredential), new(ExpectedWebauthnCredential))
 	defer deferable()
 	if x == nil || t.Failed() {
 		return

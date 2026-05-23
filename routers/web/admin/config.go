@@ -5,10 +5,8 @@
 package admin
 
 import (
+	"errors"
 	"net/http"
-	"net/url"
-	"strconv"
-	"strings"
 
 	system_model "code.gitea.io/gitea/models/system"
 	"code.gitea.io/gitea/modules/cache"
@@ -27,7 +25,7 @@ import (
 
 const (
 	tplConfig         templates.TplName = "admin/config"
-	tplConfigSettings templates.TplName = "admin/config_settings"
+	tplConfigSettings templates.TplName = "admin/config_settings/config_settings"
 )
 
 // SendTestMail send test mail to confirm mail service is OK
@@ -59,63 +57,6 @@ func TestCache(ctx *context.Context) {
 	ctx.Redirect(setting.AppSubURL + "/-/admin/config")
 }
 
-func shadowPasswordKV(cfgItem, splitter string) string {
-	fields := strings.Split(cfgItem, splitter)
-	for i := 0; i < len(fields); i++ {
-		if strings.HasPrefix(fields[i], "password=") {
-			fields[i] = "password=******"
-			break
-		}
-	}
-	return strings.Join(fields, splitter)
-}
-
-func shadowURL(provider, cfgItem string) string {
-	u, err := url.Parse(cfgItem)
-	if err != nil {
-		log.Error("Shadowing Password for %v failed: %v", provider, err)
-		return cfgItem
-	}
-	if u.User != nil {
-		atIdx := strings.Index(cfgItem, "@")
-		if atIdx > 0 {
-			colonIdx := strings.LastIndex(cfgItem[:atIdx], ":")
-			if colonIdx > 0 {
-				return cfgItem[:colonIdx+1] + "******" + cfgItem[atIdx:]
-			}
-		}
-	}
-	return cfgItem
-}
-
-func shadowPassword(provider, cfgItem string) string {
-	switch provider {
-	case "redis":
-		return shadowPasswordKV(cfgItem, ",")
-	case "mysql":
-		// root:@tcp(localhost:3306)/macaron?charset=utf8
-		atIdx := strings.Index(cfgItem, "@")
-		if atIdx > 0 {
-			colonIdx := strings.Index(cfgItem[:atIdx], ":")
-			if colonIdx > 0 {
-				return cfgItem[:colonIdx+1] + "******" + cfgItem[atIdx:]
-			}
-		}
-		return cfgItem
-	case "postgres":
-		// user=jiahuachen dbname=macaron port=5432 sslmode=disable
-		if !strings.HasPrefix(cfgItem, "postgres://") {
-			return shadowPasswordKV(cfgItem, " ")
-		}
-		fallthrough
-	case "couchbase":
-		return shadowURL(provider, cfgItem)
-		// postgres://pqgotest:password@localhost/pqgotest?sslmode=verify-full
-		// Notice: use shadowURL
-	}
-	return cfgItem
-}
-
 // Config show admin config page
 func Config(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("admin.config_summary")
@@ -123,10 +64,7 @@ func Config(ctx *context.Context) {
 	ctx.Data["PageIsAdminConfigSummary"] = true
 
 	ctx.Data["CustomConf"] = setting.CustomConf
-	ctx.Data["AppUrl"] = setting.AppURL
 	ctx.Data["AppBuiltWith"] = setting.AppBuiltWith
-	ctx.Data["Domain"] = setting.Domain
-	ctx.Data["OfflineMode"] = setting.OfflineMode
 	ctx.Data["RunUser"] = setting.RunUser
 	ctx.Data["RunMode"] = util.ToTitleCase(setting.RunMode)
 	ctx.Data["GitVersion"] = git.DefaultFeatures().VersionInfo()
@@ -145,7 +83,6 @@ func Config(ctx *context.Context) {
 	ctx.Data["Service"] = setting.Service
 	ctx.Data["DbCfg"] = setting.Database
 	ctx.Data["Webhook"] = setting.Webhook
-
 	ctx.Data["MailerEnabled"] = false
 	if setting.MailService != nil {
 		ctx.Data["MailerEnabled"] = true
@@ -154,8 +91,6 @@ func Config(ctx *context.Context) {
 
 	ctx.Data["CacheAdapter"] = setting.CacheService.Adapter
 	ctx.Data["CacheInterval"] = setting.CacheService.Interval
-
-	ctx.Data["CacheConn"] = shadowPassword(setting.CacheService.Adapter, setting.CacheService.Conn)
 	ctx.Data["CacheItemTTL"] = setting.CacheService.TTL
 
 	sessionCfg := setting.SessionConfig
@@ -173,7 +108,7 @@ func Config(ctx *context.Context) {
 		sessionCfg.Secure = realSession.Secure
 		sessionCfg.Domain = realSession.Domain
 	}
-	sessionCfg.ProviderConfig = shadowPassword(sessionCfg.Provider, sessionCfg.ProviderConfig)
+	sessionCfg.ProviderConfig = ""
 	ctx.Data["SessionConfig"] = sessionCfg
 
 	ctx.Data["Git"] = setting.Git
@@ -191,65 +126,57 @@ func ConfigSettings(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("admin.config_settings")
 	ctx.Data["PageIsAdminConfig"] = true
 	ctx.Data["PageIsAdminConfigSettings"] = true
-	ctx.Data["DefaultOpenWithEditorAppsString"] = setting.DefaultOpenWithEditorApps().ToTextareaString()
 	ctx.HTML(http.StatusOK, tplConfigSettings)
 }
 
+func validateConfigKeyValue(dynKey, input string) error {
+	opt := config.GetConfigOption(dynKey)
+	if opt == nil {
+		return util.NewInvalidArgumentErrorf("unknown config key: %s", dynKey)
+	}
+
+	const limit = 64 * 1024
+	if len(input) > limit {
+		return util.NewInvalidArgumentErrorf("value length exceeds limit of %d", limit)
+	}
+
+	if !json.Valid([]byte(input)) {
+		return util.NewInvalidArgumentErrorf("invalid json value for key: %s", dynKey)
+	}
+	return nil
+}
+
 func ChangeConfig(ctx *context.Context) {
-	key := strings.TrimSpace(ctx.FormString("key"))
-	value := ctx.FormString("value")
-	cfg := setting.Config()
+	_ = ctx.Req.ParseForm()
+	configKeys := ctx.Req.Form["key"]
+	configValues := ctx.Req.Form["value"]
+	configSettings := map[string]string{}
+loop:
+	for i, key := range configKeys {
+		if i >= len(configValues) {
+			ctx.JSONError(ctx.Tr("admin.config.set_setting_failed", key))
+			break loop
+		}
+		value := configValues[i]
 
-	marshalBool := func(v string) (string, error) { //nolint:unparam
-		if b, _ := strconv.ParseBool(v); b {
-			return "true", nil
-		}
-		return "false", nil
-	}
-	marshalOpenWithApps := func(value string) (string, error) {
-		lines := strings.Split(value, "\n")
-		var openWithEditorApps setting.OpenWithEditorAppsType
-		for _, line := range lines {
-			line = strings.TrimSpace(line)
-			if line == "" {
-				continue
-			}
-			displayName, openURL, ok := strings.Cut(line, "=")
-			displayName, openURL = strings.TrimSpace(displayName), strings.TrimSpace(openURL)
-			if !ok || displayName == "" || openURL == "" {
-				continue
-			}
-			openWithEditorApps = append(openWithEditorApps, setting.OpenWithEditorApp{
-				DisplayName: strings.TrimSpace(displayName),
-				OpenURL:     strings.TrimSpace(openURL),
-			})
-		}
-		b, err := json.Marshal(openWithEditorApps)
+		err := validateConfigKeyValue(key, value)
 		if err != nil {
-			return "", err
+			if errors.Is(err, util.ErrInvalidArgument) {
+				ctx.JSONError(err.Error())
+			} else {
+				ctx.JSONError(ctx.Tr("admin.config.set_setting_failed", key))
+			}
+			break loop
 		}
-		return string(b), nil
+		configSettings[key] = value
 	}
-	marshallers := map[string]func(string) (string, error){
-		cfg.Picture.DisableGravatar.DynKey():       marshalBool,
-		cfg.Picture.EnableFederatedAvatar.DynKey(): marshalBool,
-		cfg.Repository.OpenWithEditorApps.DynKey(): marshalOpenWithApps,
-	}
-	marshaller, hasMarshaller := marshallers[key]
-	if !hasMarshaller {
-		ctx.JSONError(ctx.Tr("admin.config.set_setting_failed", key))
+	if ctx.Written() {
 		return
 	}
-	marshaledValue, err := marshaller(value)
-	if err != nil {
-		ctx.JSONError(ctx.Tr("admin.config.set_setting_failed", key))
+	if err := system_model.SetSettings(ctx, configSettings); err != nil {
+		ctx.ServerError("SetSettings", err)
 		return
 	}
-	if err = system_model.SetSettings(ctx, map[string]string{key: marshaledValue}); err != nil {
-		ctx.JSONError(ctx.Tr("admin.config.set_setting_failed", key))
-		return
-	}
-
 	config.GetDynGetter().InvalidateCache()
 	ctx.JSONOK()
 }

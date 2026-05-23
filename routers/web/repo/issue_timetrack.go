@@ -60,7 +60,7 @@ func DeleteTime(c *context.Context) {
 		return
 	}
 
-	t, err := issues_model.GetTrackedTimeByID(c, c.PathParamInt64("timeid"))
+	t, err := issues_model.GetTrackedTimeByID(c, issue.ID, c.PathParamInt64("timeid"))
 	if err != nil {
 		if db.IsErrNotExist(err) {
 			c.NotFound(err)
@@ -91,7 +91,7 @@ func UpdateIssueTimeEstimate(ctx *context.Context) {
 		return
 	}
 
-	if !ctx.IsSigned || (!issue.IsPoster(ctx.Doer.ID) && !ctx.Repo.CanWriteIssuesOrPulls(issue.IsPull)) {
+	if !ctx.IsSigned || (!issue.IsPoster(ctx.Doer.ID) && !ctx.Repo.Permission.CanWriteIssuesOrPulls(issue.IsPull)) {
 		ctx.HTTPError(http.StatusForbidden)
 		return
 	}

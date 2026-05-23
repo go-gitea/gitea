@@ -29,19 +29,19 @@ type RenderInternal struct {
 	secureIDPrefix string
 }
 
-func (r *RenderInternal) Init(output io.Writer) io.WriteCloser {
+func (r *RenderInternal) Init(output io.Writer, extraHeadHTML template.HTML) io.WriteCloser {
 	buf := make([]byte, 12)
 	_, err := rand.Read(buf)
 	if err != nil {
 		panic("unable to generate secure id")
 	}
-	return r.init(base64.URLEncoding.EncodeToString(buf), output)
+	return r.init(base64.URLEncoding.EncodeToString(buf), output, extraHeadHTML)
 }
 
-func (r *RenderInternal) init(secID string, output io.Writer) io.WriteCloser {
+func (r *RenderInternal) init(secID string, output io.Writer, extraHeadHTML template.HTML) io.WriteCloser {
 	r.secureID = secID
 	r.secureIDPrefix = r.secureID + ":"
-	return &finalProcessor{renderInternal: r, output: output}
+	return &finalProcessor{renderInternal: r, output: output, extraHeadHTML: extraHeadHTML}
 }
 
 func (r *RenderInternal) RecoverProtectedValue(v string) (string, bool) {
@@ -77,6 +77,7 @@ func (r *RenderInternal) ProtectSafeAttrs(content template.HTML) template.HTML {
 }
 
 func (r *RenderInternal) FormatWithSafeAttrs(w io.Writer, fmt template.HTML, a ...any) error {
-	_, err := w.Write([]byte(r.ProtectSafeAttrs(htmlutil.HTMLFormat(fmt, a...))))
+	htmlStr := r.ProtectSafeAttrs(htmlutil.HTMLFormat(fmt, a...))
+	_, err := io.WriteString(w, string(htmlStr))
 	return err
 }

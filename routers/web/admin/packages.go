@@ -24,10 +24,7 @@ const (
 
 // Packages shows all packages
 func Packages(ctx *context.Context) {
-	page := ctx.FormInt("page")
-	if page <= 1 {
-		page = 1
-	}
+	page := max(ctx.FormInt("page"), 1)
 	query := ctx.FormTrim("q")
 	packageType := ctx.FormTrim("type")
 	sort := ctx.FormTrim("sort")
@@ -76,7 +73,7 @@ func Packages(ctx *context.Context) {
 	ctx.Data["TotalBlobSize"] = totalBlobSize - totalUnreferencedBlobSize
 	ctx.Data["TotalUnreferencedBlobSize"] = totalUnreferencedBlobSize
 
-	pager := context.NewPagination(int(total), setting.UI.PackagesPagingNum, page, 5)
+	pager := context.NewPagination(total, setting.UI.PackagesPagingNum, page, 5)
 	pager.AddParamFromRequest(ctx.Req)
 	ctx.Data["Page"] = pager
 
@@ -96,7 +93,7 @@ func DeletePackageVersion(ctx *context.Context) {
 		return
 	}
 
-	ctx.Flash.Success(ctx.Tr("packages.settings.delete.success"))
+	ctx.Flash.Success(ctx.Tr("packages.settings.delete.version.success"))
 	ctx.JSONRedirect(setting.AppSubURL + "/-/admin/packages?page=" + url.QueryEscape(ctx.FormString("page")) + "&q=" + url.QueryEscape(ctx.FormString("q")) + "&type=" + url.QueryEscape(ctx.FormString("type")))
 }
 

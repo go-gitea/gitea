@@ -1,13 +1,20 @@
 // Copyright 2024 The Gitea Authors. All rights reserved.
 // SPDX-License-Identifier: MIT
 
-package v1_23 //nolint
+package v1_23
 
-import "xorm.io/xorm"
+import (
+	"code.gitea.io/gitea/models/db"
 
-func AddIndexForReleaseSha1(x *xorm.Engine) error {
+	"xorm.io/xorm"
+)
+
+func AddIndexForReleaseSha1(x db.EngineMigration) error {
 	type Release struct {
 		Sha1 string `xorm:"INDEX VARCHAR(64)"`
 	}
-	return x.Sync(new(Release))
+	_, err := x.SyncWithOptions(xorm.SyncOptions{
+		IgnoreDropIndices: true,
+	}, new(Release))
+	return err
 }

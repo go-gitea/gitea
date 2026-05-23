@@ -14,7 +14,6 @@ import (
 
 type sourceInterface interface {
 	auth_model.Config
-	auth_model.SourceSettable
 	auth_model.RegisterableSource
 	auth.PasswordAuthenticator
 }

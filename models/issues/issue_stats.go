@@ -10,7 +10,6 @@ import (
 	"code.gitea.io/gitea/models/db"
 
 	"xorm.io/builder"
-	"xorm.io/xorm"
 )
 
 // IssueStats represents issue statistic information.
@@ -35,12 +34,10 @@ const (
 	FilterModeYourRepositories
 )
 
-const (
-	// MaxQueryParameters represents the max query parameters
-	// When queries are broken down in parts because of the number
-	// of parameters, attempt to break by this amount
-	MaxQueryParameters = 300
-)
+// MaxQueryParameters represents the max query parameters
+// When queries are broken down in parts because of the number
+// of parameters, attempt to break by this amount
+var MaxQueryParameters = 300
 
 // CountIssuesByRepo map from repoID to number of issues matching the options
 func CountIssuesByRepo(ctx context.Context, opts *IssuesOptions) (map[int64]int64, error) {
@@ -94,10 +91,7 @@ func GetIssueStats(ctx context.Context, opts *IssuesOptions) (*IssueStats, error
 	// ids in a temporary table and join from them.
 	accum := &IssueStats{}
 	for i := 0; i < len(opts.IssueIDs); {
-		chunk := i + MaxQueryParameters
-		if chunk > len(opts.IssueIDs) {
-			chunk = len(opts.IssueIDs)
-		}
+		chunk := min(i+MaxQueryParameters, len(opts.IssueIDs))
 		stats, err := getIssueStatsChunk(ctx, opts, opts.IssueIDs[i:chunk])
 		if err != nil {
 			return nil, err
@@ -134,7 +128,7 @@ func getIssueStatsChunk(ctx context.Context, opts *IssuesOptions, issueIDs []int
 	return stats, err
 }
 
-func applyIssuesOptions(sess *xorm.Session, opts *IssuesOptions, issueIDs []int64) *xorm.Session {
+func applyIssuesOptions(sess db.Session, opts *IssuesOptions, issueIDs []int64) db.Session {
 	if len(opts.RepoIDs) > 1 {
 		sess.In("issue.repo_id", opts.RepoIDs)
 	} else if len(opts.RepoIDs) == 1 {

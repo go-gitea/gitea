@@ -13,6 +13,7 @@ import (
 	"time"
 
 	"code.gitea.io/gitea/modules/gtprof"
+	"code.gitea.io/gitea/modules/util"
 )
 
 // TODO: This packages still uses a singleton for the Manager.
@@ -27,12 +28,14 @@ var (
 	DefaultContext = context.Background()
 )
 
-// IDType is a pid type
-type IDType string
+type (
+	// IDType is a pid type
+	IDType string
 
-// FinishedFunc is a function that marks that the process is finished and can be removed from the process table
-// - it is simply an alias for context.CancelFunc and is only for documentary purposes
-type FinishedFunc = context.CancelFunc
+	CancelCauseFunc func(cause ...error)
+	// FinishedFunc is a function that marks that the process is finished and can be removed from the process table
+	FinishedFunc func()
+)
 
 var (
 	traceDisabled atomic.Int64
@@ -84,6 +87,10 @@ func GetManager() *Manager {
 	return manager
 }
 
+func cancelCauseFunc(cancelCause context.CancelCauseFunc) CancelCauseFunc {
+	return func(cause ...error) { cancelCause(util.OptionalArg(cause)) }
+}
+
 // AddContext creates a new context and adds it as a process. Once the process is finished, finished must be called
 // to remove the process from the process table. It should not be called until the process is finished but must always be called.
 //
@@ -92,11 +99,10 @@ func GetManager() *Manager {
 //
 // Most processes will not need to use the cancel function but there will be cases whereby you want to cancel the process but not immediately remove it from the
 // process table.
-func (pm *Manager) AddContext(parent context.Context, description string) (ctx context.Context, cancel context.CancelFunc, finished FinishedFunc) {
-	ctx, cancel = context.WithCancel(parent)
-
-	ctx, _, finished = pm.Add(ctx, description, cancel, NormalProcessType, true)
-
+func (pm *Manager) AddContext(parent context.Context, description string) (context.Context, CancelCauseFunc, FinishedFunc) {
+	ctx, ctxCancel := context.WithCancelCause(parent)
+	cancel := cancelCauseFunc(ctxCancel)
+	ctx, _, finished := pm.Add(ctx, description, cancel, NormalProcessType, true)
 	return ctx, cancel, finished
 }
 
@@ -108,11 +114,10 @@ func (pm *Manager) AddContext(parent context.Context, description string) (ctx c
 //
 // Most processes will not need to use the cancel function but there will be cases whereby you want to cancel the process but not immediately remove it from the
 // process table.
-func (pm *Manager) AddTypedContext(parent context.Context, description, processType string, currentlyRunning bool) (ctx context.Context, cancel context.CancelFunc, finished FinishedFunc) {
-	ctx, cancel = context.WithCancel(parent)
-
-	ctx, _, finished = pm.Add(ctx, description, cancel, processType, currentlyRunning)
-
+func (pm *Manager) AddTypedContext(parent context.Context, description, processType string, currentlyRunning bool) (context.Context, CancelCauseFunc, FinishedFunc) {
+	ctx, ctxCancel := context.WithCancelCause(parent)
+	cancel := cancelCauseFunc(ctxCancel)
+	ctx, _, finished := pm.Add(ctx, description, cancel, processType, currentlyRunning)
 	return ctx, cancel, finished
 }
 
@@ -124,21 +129,23 @@ func (pm *Manager) AddTypedContext(parent context.Context, description, processT
 //
 // Most processes will not need to use the cancel function but there will be cases whereby you want to cancel the process but not immediately remove it from the
 // process table.
-func (pm *Manager) AddContextTimeout(parent context.Context, timeout time.Duration, description string) (ctx context.Context, cancel context.CancelFunc, finished FinishedFunc) {
+func (pm *Manager) AddContextTimeout(parent context.Context, timeout time.Duration, description string) (context.Context, CancelCauseFunc, FinishedFunc) {
 	if timeout <= 0 {
 		// it's meaningless to use timeout <= 0, and it must be a bug! so we must panic here to tell developers to make the timeout correct
 		panic("the timeout must be greater than zero, otherwise the context will be cancelled immediately")
 	}
-
-	ctx, cancel = context.WithTimeout(parent, timeout)
-
-	ctx, _, finished = pm.Add(ctx, description, cancel, NormalProcessType, true)
-
+	ctx, ctxCancelTimeout := context.WithTimeout(parent, timeout)
+	ctx, ctxCancelCause := context.WithCancelCause(ctx)
+	cancel := func(cause ...error) {
+		ctxCancelCause(util.OptionalArg(cause))
+		ctxCancelTimeout()
+	}
+	ctx, _, finished := pm.Add(ctx, description, cancel, NormalProcessType, true)
 	return ctx, cancel, finished
 }
 
 // Add create a new process
-func (pm *Manager) Add(ctx context.Context, description string, cancel context.CancelFunc, processType string, currentlyRunning bool) (context.Context, IDType, FinishedFunc) {
+func (pm *Manager) Add(ctx context.Context, description string, cancel CancelCauseFunc, processType string, currentlyRunning bool) (context.Context, IDType, FinishedFunc) {
 	parentPID := GetParentPID(ctx)
 
 	pm.mutex.Lock()

@@ -13,7 +13,7 @@ import (
 )
 
 func getCacheKey(repoPath, commitID, entryPath string) string {
-	hashBytes := sha256.Sum256([]byte(fmt.Sprintf("%s:%s:%s", repoPath, commitID, entryPath)))
+	hashBytes := sha256.Sum256(fmt.Appendf(nil, "%s:%s:%s", repoPath, commitID, entryPath))
 	return fmt.Sprintf("last_commit:%x", hashBytes)
 }
 
@@ -55,12 +55,12 @@ func (c *LastCommitCache) Put(ref, entryPath, commitID string) error {
 // Get gets the last commit information by commit id and entry path
 func (c *LastCommitCache) Get(ref, entryPath string) (*Commit, error) {
 	if c == nil || c.cache == nil {
-		return nil, nil
+		return nil, nil //nolint:nilnil // return nil when cache is not available
 	}
 
 	commitID, ok := c.cache.Get(getCacheKey(c.repoPath, ref, entryPath))
 	if !ok || commitID == "" {
-		return nil, nil
+		return nil, nil //nolint:nilnil // return nil when cache miss
 	}
 
 	log.Debug("LastCommitCache hit level 1: [%s:%s:%s]", ref, entryPath, commitID)

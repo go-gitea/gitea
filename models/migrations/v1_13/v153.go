@@ -1,13 +1,11 @@
 // Copyright 2020 The Gitea Authors. All rights reserved.
 // SPDX-License-Identifier: MIT
 
-package v1_13 //nolint
+package v1_13
 
-import (
-	"xorm.io/xorm"
-)
+import "code.gitea.io/gitea/models/db"
 
-func AddTeamReviewRequestSupport(x *xorm.Engine) error {
+func AddTeamReviewRequestSupport(x db.EngineMigration) error {
 	type Review struct {
 		ReviewerTeamID int64 `xorm:"NOT NULL DEFAULT 0"`
 	}

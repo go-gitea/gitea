@@ -32,16 +32,10 @@ type Repository struct {
 
 	gogitRepo    *gogit.Repository
 	gogitStorage *filesystem.Storage
-	gpgSettings  *GPGSettings
 
 	Ctx             context.Context
 	LastCommitCache *LastCommitCache
 	objectFormat    ObjectFormat
-}
-
-// openRepositoryWithDefaultContext opens the repository at the given path with DefaultContext.
-func openRepositoryWithDefaultContext(repoPath string) (*Repository, error) {
-	return OpenRepository(DefaultContext, repoPath)
 }
 
 // OpenRepository opens the repository at the given path within the context.Context
