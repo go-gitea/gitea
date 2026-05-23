@@ -364,6 +364,10 @@ func RedirectDownload(ctx *context.Context) {
 
 // Download an archive of a repository
 func Download(ctx *context.Context) {
+	if !checkDownloadTokenScope(ctx) {
+		return
+	}
+
 	aReq, err := archiver_service.NewRequest(ctx.Repo.Repository, ctx.Repo.GitRepo, ctx.PathParam("*"), ctx.FormStrings("path"))
 	if err != nil {
 		if errors.Is(err, util.ErrInvalidArgument) {
@@ -389,6 +393,10 @@ func Download(ctx *context.Context) {
 // a request that's already in-progress, but the archiver service will just
 // kind of drop it on the floor if this is the case.
 func InitiateDownload(ctx *context.Context) {
+	if !checkDownloadTokenScope(ctx) {
+		return
+	}
+
 	paths := ctx.FormStrings("path")
 	if setting.Repository.StreamArchives || len(paths) > 0 {
 		ctx.JSON(http.StatusOK, map[string]any{

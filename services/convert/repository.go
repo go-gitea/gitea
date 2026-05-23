@@ -98,11 +98,13 @@ func innerToRepo(ctx context.Context, repo *repo_model.Repository, permissionInR
 	allowRebaseMerge := false
 	allowSquash := false
 	allowFastForwardOnly := false
+	allowMergeUpdate := false
 	allowRebaseUpdate := false
 	allowManualMerge := true
 	autodetectManualMerge := false
 	defaultDeleteBranchAfterMerge := false
 	defaultMergeStyle := repo_model.MergeStyleMerge
+	defaultUpdateStyle := repo_model.UpdateStyleMerge
 	defaultAllowMaintainerEdit := false
 	defaultTargetBranch := ""
 	if unit, err := repo.GetUnit(ctx, unit_model.TypePullRequests); err == nil {
@@ -114,11 +116,13 @@ func innerToRepo(ctx context.Context, repo *repo_model.Repository, permissionInR
 		allowRebaseMerge = config.AllowRebaseMerge
 		allowSquash = config.AllowSquash
 		allowFastForwardOnly = config.AllowFastForwardOnly
+		allowMergeUpdate = config.AllowMergeUpdate
 		allowRebaseUpdate = config.AllowRebaseUpdate
 		allowManualMerge = config.AllowManualMerge
 		autodetectManualMerge = config.AutodetectManualMerge
 		defaultDeleteBranchAfterMerge = config.DefaultDeleteBranchAfterMerge
 		defaultMergeStyle = config.DefaultMergeStyle
+		defaultUpdateStyle = config.DefaultUpdateStyle
 		defaultAllowMaintainerEdit = config.DefaultAllowMaintainerEdit
 		defaultTargetBranch = config.DefaultTargetBranch
 	}
@@ -240,11 +244,13 @@ func innerToRepo(ctx context.Context, repo *repo_model.Repository, permissionInR
 		AllowRebaseMerge:              allowRebaseMerge,
 		AllowSquash:                   allowSquash,
 		AllowFastForwardOnly:          allowFastForwardOnly,
+		AllowMergeUpdate:              allowMergeUpdate,
 		AllowRebaseUpdate:             allowRebaseUpdate,
 		AllowManualMerge:              allowManualMerge,
 		AutodetectManualMerge:         autodetectManualMerge,
 		DefaultDeleteBranchAfterMerge: defaultDeleteBranchAfterMerge,
 		DefaultMergeStyle:             string(defaultMergeStyle),
+		DefaultUpdateStyle:            string(defaultUpdateStyle),
 		DefaultAllowMaintainerEdit:    defaultAllowMaintainerEdit,
 		DefaultTargetBranch:           defaultTargetBranch,
 		AvatarURL:                     repo.AvatarLink(ctx),

@@ -36,11 +36,16 @@ func ListJobs(ctx *context.APIContext, ownerID, repoID, runID int64, runAttemptI
 		setting.PanicInDevOrTesting("ownerID and repoID should not be both set")
 	}
 	listOptions := utils.GetListOptions(ctx)
+	orderBy, ok := utils.ResolveSortOrder(ctx, actions_model.JobOrderByMap, actions_model.JobOrderByMap["asc"]["id"])
+	if !ok {
+		return
+	}
 	opts := actions_model.FindRunJobOptions{
 		OwnerID:     ownerID,
 		RepoID:      repoID,
 		RunID:       runID,
 		ListOptions: listOptions,
+		OrderBy:     orderBy,
 	}
 	if runID > 0 {
 		opts.RunAttemptID = runAttemptID

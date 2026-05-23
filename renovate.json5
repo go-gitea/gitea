@@ -2,7 +2,7 @@
   "$schema": "https://docs.renovatebot.com/renovate-schema.json",
   "extends": ["config:recommended", "helpers:pinGitHubActionDigests", "customManagers:githubActionsVersions"],
   "configMigration": true,
-  "enabledManagers": ["github-actions", "gomod", "npm", "pep621", "nix", "custom.regex"],
+  "enabledManagers": ["github-actions", "gomod", "npm", "pep621", "nix", "custom.regex", "dockerfile"],
   "labels": ["dependencies"],
   "branchPrefix": "renovate/",
   "schedule": ["* * * * 1"], // dependency update PRs weekly, vulnerabilityAlerts bypasses this
@@ -20,6 +20,7 @@
       "managerFilePatterns": ["/(^|/)Makefile$/"],
       "matchStrings": [
         "[A-Z_]+_PACKAGE\\s*\\?=\\s*(?<depName>[^@\\s]+?)(?:/cmd/[^@/\\s]+)?@(?<currentValue>\\S+)\\s+# renovate: datasource=(?<datasource>\\S+)",
+        "[A-Z_]+_IMAGE\\s*\\?=\\s*(?<depName>[^:\\s]+):(?<currentValue>[^@\\s]+)@(?<currentDigest>sha256:[a-f0-9]+)\\s+# renovate: datasource=(?<datasource>\\S+)",
       ],
     },
   ],
@@ -116,6 +117,10 @@
     {
       "groupName": "nix dependencies",
       "matchManagers": ["nix"],
+    },
+    {
+      "groupName": "docker dependencies",
+      "matchManagers": ["dockerfile"],
     },
   ],
 }

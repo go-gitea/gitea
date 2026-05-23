@@ -1560,6 +1560,9 @@ jobs:
 		// run2 is blocked because it is blocked by workflow1's concurrency group "test-group"
 		assert.Equal(t, actions_model.StatusBlocked, run2.Status)
 
+		// complete wf1-job1
+		runner.execTask(t, w1j1Task, &mockTaskOutcome{result: runnerv1.Result_RESULT_SUCCESS})
+
 		// mock time
 		fakeNow := now.Add(setting.Actions.AbandonedJobTimeout)
 		timeutil.MockSet(fakeNow)
