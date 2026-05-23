@@ -8,14 +8,6 @@
 				{{end}}
 			</a>
 			{{if or .IsGroupOwner .IsGroupAdmin}}
-				<a class="{{if $.PageIsGroupTeams}}active {{end}}item" href="{{$.OrgGroupLink}}/teams">
-					{{svg "octicon-people"}} {{ctx.Locale.Tr "org.teams"}}
-					{{if .NumTeams}}
-						<div class="ui small label">{{.NumTeams}}</div>
-					{{end}}
-				</a>
-			{{end}}
-			{{if or .IsGroupOwner .IsGroupAdmin}}
 				<span class="item-flex-space"></span>
 				<a class="{{if .PageIsGroupSettings}}active {{end}}item" href="{{$.OrgGroupLink}}/settings">
 					{{svg "octicon-tools"}} {{ctx.Locale.Tr "repo.settings"}}
