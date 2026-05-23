@@ -45,6 +45,7 @@ func assertGroupOrder(t *testing.T, pgid int64, expectedIDs []int64) {
 	err := e.Where(builder.Eq{"parent_group_id": pgid}).Asc("sort_order").Find(&groups)
 	mappedIDs := util.SliceMap(groups, getID)
 	assert.NoError(t, err)
+	assert.Len(t, groups, len(expectedIDs))
 	for i, group := range mappedIDs {
 		assert.Equal(t, expectedIDs[i], group)
 		assert.Equal(t, i, groups[i].SortOrder)
@@ -102,5 +103,45 @@ func TestMoveGroup(t *testing.T) {
 		end := util.SliceMap(groups[4:], getID)
 		onlyItem := []int64{groups[3].ID}
 		assertGroupOrder(t, parentGroup.ID, combineSlices(first, end, onlyItem))
+	})
+	t.Run("ToEmptyParent", func(t *testing.T) {
+		oldParent, groups := createParentGroup(t)
+		newParent := createTestGroup(t, "empty parent", 0)
+		err := group_model.MoveGroup(t.Context(), groups[3], newParent.ID, 0)
+		assert.NoError(t, err)
+		first := util.SliceMap(groups[0:3], getID)
+		end := util.SliceMap(groups[4:], getID)
+		assertGroupOrder(t, oldParent.ID, combineSlices(first, end))
+		assertGroupOrder(t, newParent.ID, []int64{groups[3].ID})
+	})
+	t.Run("ToDifferentParentWithSiblings", func(t *testing.T) {
+		oldParent, groups := createParentGroup(t)
+		newParent, newSiblings := createParentGroup(t)
+		err := group_model.MoveGroup(t.Context(), groups[3], newParent.ID, 1)
+		assert.NoError(t, err)
+		first := util.SliceMap(groups[0:3], getID)
+		end := util.SliceMap(groups[4:], getID)
+		assertGroupOrder(t, oldParent.ID, combineSlices(first, end))
+		assertGroupOrder(t, newParent.ID, combineSlices(
+			util.SliceMap(newSiblings[0:1], getID),
+			[]int64{groups[3].ID},
+			util.SliceMap(newSiblings[1:], getID),
+		))
+	})
+	t.Run("RejectsMovingUnderSelf", func(t *testing.T) {
+		parentGroup, _ := createParentGroup(t)
+		err := group_model.MoveGroup(t.Context(), parentGroup, parentGroup.ID, 0)
+		assert.ErrorIs(t, err, util.ErrInvalidArgument)
+		reloaded, err := group_model.GetGroupByID(t.Context(), parentGroup.ID)
+		assert.NoError(t, err)
+		assert.EqualValues(t, 0, reloaded.ParentGroupID)
+	})
+	t.Run("RejectsMovingUnderDescendant", func(t *testing.T) {
+		parentGroup, groups := createParentGroup(t)
+		child := createTestGroup(t, "child group", groups[3].ID)
+		err := group_model.MoveGroup(t.Context(), groups[3], child.ID, 0)
+		assert.ErrorIs(t, err, util.ErrInvalidArgument)
+		assertGroupOrder(t, parentGroup.ID, util.SliceMap(groups, getID))
+		assertGroupOrder(t, groups[3].ID, []int64{child.ID})
 	})
 }
