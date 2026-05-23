@@ -82,17 +82,46 @@ func List(ctx *context.Context) {
 	if ctx.Written() {
 		return
 	}
+	otherWorkflows := prepareOtherWorkflows(ctx, workflows, curWorkflowID)
+	if ctx.Written() {
+		return
+	}
 	prepareWorkflowDispatchTemplate(ctx, workflows, curWorkflowID)
 	if ctx.Written() {
 		return
 	}
 
-	prepareWorkflowList(ctx, workflows)
+	prepareWorkflowList(ctx, workflows, otherWorkflows)
 	if ctx.Written() {
 		return
 	}
 
 	ctx.HTML(http.StatusOK, tplListActions)
+}
+
+// prepareOtherWorkflows surfaces historical runs whose workflow file no longer
+// exists on the default branch (renamed, removed, or only on other branches).
+func prepareOtherWorkflows(ctx *context.Context, workflows []WorkflowInfo, curWorkflowID string) []string {
+	listed := make(container.Set[string], len(workflows))
+	for _, w := range workflows {
+		listed.Add(w.Entry.Name())
+	}
+
+	var other []string
+	if ctx.Repo.Repository.NumActionRuns > 0 {
+		ids, err := actions_model.GetRunWorkflowIDs(ctx, ctx.Repo.Repository.ID)
+		if err != nil {
+			ctx.ServerError("GetRunWorkflowIDs", err)
+			return nil
+		}
+		other = container.FilterSlice(ids, func(id string) (string, bool) {
+			return id, id != "" && !listed.Contains(id)
+		})
+	}
+
+	ctx.Data["otherWorkflows"] = other
+	ctx.Data["CurWorkflowIsListed"] = curWorkflowID == "" || listed.Contains(curWorkflowID)
+	return other
 }
 
 func WorkflowDispatchInputs(ctx *context.Context) {
@@ -245,7 +274,7 @@ func prepareWorkflowDispatchTemplate(ctx *context.Context, workflowInfos []Workf
 	ctx.Data["Tags"] = tags
 }
 
-func prepareWorkflowList(ctx *context.Context, workflows []WorkflowInfo) {
+func prepareWorkflowList(ctx *context.Context, workflows []WorkflowInfo, otherWorkflows []string) {
 	actorID := ctx.FormInt64("actor")
 	status := ctx.FormInt("status")
 	workflowID := ctx.FormString("workflow")
@@ -353,7 +382,7 @@ func prepareWorkflowList(ctx *context.Context, workflows []WorkflowInfo) {
 	pager := context.NewPagination(total, opts.PageSize, opts.Page, 5)
 	pager.AddParamFromRequest(ctx.Req)
 	ctx.Data["Page"] = pager
-	ctx.Data["HasWorkflowsOrRuns"] = len(workflows) > 0 || len(runs) > 0
+	ctx.Data["HasWorkflowsOrRuns"] = len(workflows) > 0 || len(otherWorkflows) > 0 || len(runs) > 0
 
 	ctx.Data["CanWriteRepoUnitActions"] = ctx.Repo.Permission.CanWrite(unit.TypeActions)
 }
