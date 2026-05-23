@@ -15,7 +15,7 @@ jobs:
     uses: ./.github/workflows/files-changed.yml
 
   test-pgsql-shard-1:
-    if: needs.files-changed.outputs.backend == 'true' || needs.files-changed.outputs.actions == 'true'
+    if: needs.files-changed.outputs.backend == 'true'
     needs: files-changed
     runs-on: ubuntu-latest
     timeout-minutes: 50
@@ -51,7 +51,7 @@ jobs:
           run-migration: "true"
 
   test-pgsql-shard-2:
-    if: needs.files-changed.outputs.backend == 'true' || needs.files-changed.outputs.actions == 'true'
+    if: needs.files-changed.outputs.backend == 'true'
     needs: files-changed
     runs-on: ubuntu-latest
     timeout-minutes: 50
@@ -110,7 +110,7 @@ jobs:
           GOEXPERIMENT:
 
   test-unit:
-    if: needs.files-changed.outputs.backend == 'true' || needs.files-changed.outputs.actions == 'true'
+    if: needs.files-changed.outputs.backend == 'true'
     needs: files-changed
     runs-on: ubuntu-latest
     services:
@@ -119,6 +119,7 @@ jobs:
         env:
           discovery.type: single-node
           xpack.security.enabled: false
+          ES_JAVA_OPTS: "-Xms512m -Xmx512m" # reduce from ES default of 50%
         ports:
           - "9200:9200"
       meilisearch:
@@ -173,7 +174,7 @@ jobs:
       - run: make test-check
 
   test-mysql:
-    if: needs.files-changed.outputs.backend == 'true' || needs.files-changed.outputs.actions == 'true'
+    if: needs.files-changed.outputs.backend == 'true'
     needs: files-changed
     runs-on: ubuntu-latest
     services:
@@ -192,6 +193,7 @@ jobs:
         env:
           discovery.type: single-node
           xpack.security.enabled: false
+          ES_JAVA_OPTS: "-Xms512m -Xmx512m" # reduce from ES default of 50%
         ports:
           - "9200:9200"
       smtpimap:
@@ -218,7 +220,7 @@ jobs:
           TEST_INDEXER_CODE_ES_URL: "http://elastic:changeme@elasticsearch:9200"
 
   test-mssql:
-    if: needs.files-changed.outputs.backend == 'true' || needs.files-changed.outputs.actions == 'true'
+    if: needs.files-changed.outputs.backend == 'true'
     needs: files-changed
     runs-on: ubuntu-latest
     services:

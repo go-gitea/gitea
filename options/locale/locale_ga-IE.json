@@ -105,6 +105,7 @@
   "copy_error": "Theip ar an gcóipeáil",
   "copy_type_unsupported": "Ní féidir an cineál comhaid seo a chóipeáil",
   "copy_filename": "Cóipeáil ainm comhaid",
+  "copy_output": "Cóipeáil aschur",
   "write": "Scríobh",
   "preview": "Réamhamharc",
   "loading": "Á lódáil...",
