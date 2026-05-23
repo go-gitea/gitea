@@ -183,10 +183,10 @@ func (issues IssueList) LoadMilestones(ctx context.Context) error {
 	return nil
 }
 
-// LoadProjects loads projects (and column placement) for every issue
-// in the list. Populates both Issue.Projects (used by web UI) and
-// Issue.LoadedProjects (used by the API converter). Uses one batched
-// query per chunk of db.DefaultMaxInSize issue IDs.
+// LoadProjects loads projects for every issue in the list into
+// Issue.Projects, along with each issue's column placement cached for
+// retrieval via Issue.ProjectColumn. Uses one batched query per chunk
+// of db.DefaultMaxInSize issue IDs.
 func (issues IssueList) LoadProjects(ctx context.Context) error {
 	issueIDs := issues.getIssueIDs()
 
@@ -197,7 +197,11 @@ func (issues IssueList) LoadProjects(ctx context.Context) error {
 		ColumnTitle            string `xorm:"'column_title'"`
 	}
 
-	loadedByIssue := make(map[int64][]*LoadedProject, len(issueIDs))
+	type issuePlacement struct {
+		project *project_model.Project
+		column  projectColumn
+	}
+	placementsByIssue := make(map[int64][]issuePlacement, len(issueIDs))
 	left := len(issueIDs)
 	for left > 0 {
 		limit := min(left, db.DefaultMaxInSize)
@@ -215,10 +219,9 @@ func (issues IssueList) LoadProjects(ctx context.Context) error {
 			return err
 		}
 		for _, r := range rows {
-			loadedByIssue[r.IssueID] = append(loadedByIssue[r.IssueID], &LoadedProject{
-				Project:     r.Project,
-				ColumnID:    r.ProjectColumnID,
-				ColumnTitle: r.ColumnTitle,
+			placementsByIssue[r.IssueID] = append(placementsByIssue[r.IssueID], issuePlacement{
+				project: r.Project,
+				column:  projectColumn{ID: r.ProjectColumnID, Title: r.ColumnTitle},
 			})
 		}
 		left -= limit
@@ -226,10 +229,12 @@ func (issues IssueList) LoadProjects(ctx context.Context) error {
 	}
 
 	for _, issue := range issues {
-		issue.LoadedProjects = loadedByIssue[issue.ID]
-		issue.Projects = make([]*project_model.Project, 0, len(issue.LoadedProjects))
-		for _, lp := range issue.LoadedProjects {
-			issue.Projects = append(issue.Projects, lp.Project)
+		placements := placementsByIssue[issue.ID]
+		issue.Projects = make([]*project_model.Project, 0, len(placements))
+		issue.projectColumns = make(map[int64]projectColumn, len(placements))
+		for _, p := range placements {
+			issue.Projects = append(issue.Projects, p.project)
+			issue.projectColumns[p.project.ID] = p.column
 		}
 		issue.isProjectsLoaded = true
 	}

@@ -86,17 +86,15 @@ func TestIssueListLoadProjectsWithColumns(t *testing.T) {
 	list := issues_model.IssueList{issue1, issue5}
 	require.NoError(t, list.LoadProjects(t.Context()))
 
-	require.Len(t, issue1.LoadedProjects, 1)
-	assert.Equal(t, int64(1), issue1.LoadedProjects[0].Project.ID)
-	assert.Equal(t, int64(1), issue1.LoadedProjects[0].ColumnID)
-	assert.Equal(t, "To Do", issue1.LoadedProjects[0].ColumnTitle)
-
-	require.Len(t, issue5.LoadedProjects, 1)
-	assert.Equal(t, int64(1), issue5.LoadedProjects[0].Project.ID)
-	assert.Equal(t, int64(3), issue5.LoadedProjects[0].ColumnID)
-	assert.Equal(t, "Done", issue5.LoadedProjects[0].ColumnTitle)
-
-	// Issue.Projects should also be populated (web-UI fallback).
 	require.Len(t, issue1.Projects, 1)
 	assert.Equal(t, int64(1), issue1.Projects[0].ID)
+	colID, colTitle := issue1.ProjectColumn(1)
+	assert.Equal(t, int64(1), colID)
+	assert.Equal(t, "To Do", colTitle)
+
+	require.Len(t, issue5.Projects, 1)
+	assert.Equal(t, int64(1), issue5.Projects[0].ID)
+	colID, colTitle = issue5.ProjectColumn(1)
+	assert.Equal(t, int64(3), colID)
+	assert.Equal(t, "Done", colTitle)
 }

@@ -116,8 +116,9 @@ func toIssue(ctx context.Context, doer *user_model.User, issue *issues_model.Iss
 	if err := issue.LoadProjects(ctx); err != nil {
 		return &api.Issue{}
 	}
-	for _, lp := range issue.LoadedProjects {
-		if pm := ToAPIProjectMeta(ctx, opts.PermCache, doer, lp); pm != nil {
+	for _, p := range issue.Projects {
+		columnID, columnTitle := issue.ProjectColumn(p.ID)
+		if pm := ToAPIProjectMeta(ctx, opts.PermCache, doer, p, columnID, columnTitle); pm != nil {
 			apiIssue.Projects = append(apiIssue.Projects, pm)
 		}
 	}

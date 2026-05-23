@@ -6,7 +6,6 @@ package convert
 import (
 	"context"
 
-	issues_model "code.gitea.io/gitea/models/issues"
 	"code.gitea.io/gitea/models/organization"
 	"code.gitea.io/gitea/models/perm"
 	project_model "code.gitea.io/gitea/models/project"
@@ -76,20 +75,21 @@ func canDoerSeeProject(ctx context.Context, permCache *cache.EphemeralCache, doe
 	return accessMode >= perm.AccessModeRead
 }
 
-// ToAPIProjectMeta projects a LoadedProject into the embed shape used
-// in issue/PR API responses. Returns nil if the doer cannot see this
-// project (visibility filter for org/user-level projects).
-func ToAPIProjectMeta(ctx context.Context, permCache *cache.EphemeralCache, doer *user_model.User, lp *issues_model.LoadedProject) *api.ProjectMeta {
-	if lp == nil || lp.Project == nil {
+// ToAPIProjectMeta projects a project and the issue's column placement
+// within it into the embed shape used in issue/PR API responses. Returns
+// nil if the doer cannot see this project (visibility filter for
+// org/user-level projects).
+func ToAPIProjectMeta(ctx context.Context, permCache *cache.EphemeralCache, doer *user_model.User, p *project_model.Project, columnID int64, columnTitle string) *api.ProjectMeta {
+	if p == nil {
 		return nil
 	}
-	if !canDoerSeeProject(ctx, permCache, doer, lp.Project) {
+	if !canDoerSeeProject(ctx, permCache, doer, p) {
 		return nil
 	}
 	return &api.ProjectMeta{
-		ID:       lp.Project.ID,
-		Title:    lp.Project.Title,
-		ColumnID: lp.ColumnID,
-		Column:   lp.ColumnTitle,
+		ID:       p.ID,
+		Title:    p.Title,
+		ColumnID: columnID,
+		Column:   columnTitle,
 	}
 }
