@@ -5,8 +5,8 @@
 package cmd
 
 import (
-	"context"
 	"bufio"
+	"context"
 	"encoding/pem"
 	"fmt"
 	"os"
@@ -41,15 +41,16 @@ func newGenerateSecretCommand() *cli.Command {
 		},
 	}
 }
-func newGenerateSSHKeysCommand() *cli.Command{
+
+func newGenerateSSHKeysCommand() *cli.Command {
 	return &cli.Command{
-		Name:   "ssh-keygen",
-		Usage:  "Generate a ssh keypair",
-		Flags:  []cli.Flag{
+		Name:  "ssh-keygen",
+		Usage: "Generate a ssh keypair",
+		Flags: []cli.Flag{
 			&cli.StringFlag{Name: "bits", Aliases: []string{"b"}, Usage: "Number of bits in the key, ignored when key is ed25519"},
 			&cli.StringFlag{Name: "type", Aliases: []string{"t"}, Value: "ed25519", Usage: "Keytype to generate"},
 			&cli.StringFlag{Name: "file", Aliases: []string{"f"}, Usage: "Specifies the filename of the key file", Required: true},
-			},
+		},
 		Action: runGenerateKeyPair,
 	}
 }
