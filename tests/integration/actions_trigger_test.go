@@ -947,8 +947,8 @@ func TestWorkflowDispatchPublicApiRequiresWorkflowDispatchTrigger(t *testing.T) 
 			DefaultBranch: "main",
 			IsPrivate:     false,
 		})
-		assert.NoError(t, err)
-		assert.NotEmpty(t, repo)
+		require.NoError(t, err)
+		require.NotNil(t, repo)
 
 		addWorkflowToBaseResp, err := files_service.ChangeRepoFiles(t.Context(), repo, user2, &files_service.ChangeRepoFilesOptions{
 			Files: []*files_service.ChangeRepoFile{
@@ -982,8 +982,8 @@ jobs:
 				Committer: time.Now(),
 			},
 		})
-		assert.NoError(t, err)
-		assert.NotEmpty(t, addWorkflowToBaseResp)
+		require.NoError(t, err)
+		require.NotNil(t, addWorkflowToBaseResp)
 
 		values := url.Values{}
 		values.Set("ref", "main")
