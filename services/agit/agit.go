@@ -286,7 +286,7 @@ func ProcReceive(ctx context.Context, repo *repo_model.Repository, gitRepo *git.
 		} else if commentCreated {
 			notify_service.PullRequestPushCommits(ctx, pusher, pr, comment)
 		}
-		notify_service.PullRequestSynchronized(ctx, pusher, pr)
+		notify_service.PullRequestSynchronized(ctx, pusher, pr, oldCommitID, opts.NewCommitIDs[i])
 
 		results = append(results, private.HookProcReceiveRefResult{
 			OldOID:            oldCommitID,

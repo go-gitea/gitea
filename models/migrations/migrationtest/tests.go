@@ -16,7 +16,6 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"xorm.io/xorm"
 	"xorm.io/xorm/schemas"
 )
 
@@ -24,7 +23,7 @@ import (
 // Provide models to be sync'd with the database - in particular any models you expect fixtures to be loaded from.
 //
 // fixtures in `models/migrations/fixtures/<TestName>` will be loaded automatically
-func PrepareTestEnv(t *testing.T, skip int, syncModels ...any) (*xorm.Engine, func()) {
+func PrepareTestEnv(t *testing.T, skip int, syncModels ...any) (db.EngineMigration, func()) {
 	t.Helper()
 	ourSkip := 2
 	ourSkip += skip
@@ -89,7 +88,7 @@ func PrepareTestEnv(t *testing.T, skip int, syncModels ...any) (*xorm.Engine, fu
 	return x, deferFn
 }
 
-func LoadTableSchemasMap(t *testing.T, x *xorm.Engine) map[string]*schemas.Table {
+func LoadTableSchemasMap(t *testing.T, x db.EngineMigration) map[string]*schemas.Table {
 	tables, err := x.DBMetas()
 	require.NoError(t, err)
 	tableMap := make(map[string]*schemas.Table)
