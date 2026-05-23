@@ -120,7 +120,7 @@ func (w *WebSearchGroup) doLoadChildren(opts *WebSearchOptions) error {
 
 	gcond := group_model.AccessibleGroupCondition(opts.Actor)
 	if w.Group != nil {
-		gcond = gcond.And(group_model.MemberCond("repo_group.id", w.Group.ID, opts.Actor))
+		gcond = gcond.And(group_model.MemberCond("repo_group.parent_group_id", w.Group.ID, opts.Actor))
 	}
 
 	groups, err := group_model.FindGroupsByCond(opts.Ctx, opts.GroupOpts,
