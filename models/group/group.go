@@ -418,6 +418,25 @@ func UpdateGroup(ctx context.Context, group *Group) error {
 
 func MoveGroup(ctx context.Context, group *Group, newParent int64, newSortOrder int) error {
 	sess := db.GetEngine(ctx)
+	if newParent == group.ID {
+		return util.NewInvalidArgumentErrorf("cannot move group %d under itself", group.ID)
+	}
+
+	parentGroupChain, err := GetParentGroupChain(ctx, newParent)
+	if err != nil {
+		return err
+	}
+	for _, parent := range parentGroupChain {
+		if parent.ID == group.ID {
+			return util.NewInvalidArgumentErrorf("cannot move group %d under one of its descendants", group.ID)
+		}
+	}
+	if len(parentGroupChain) >= 20 {
+		return ErrGroupTooDeep{
+			ID: group.ID,
+		}
+	}
+
 	ng, err := GetGroupByID(ctx, newParent)
 	if err != nil && !IsErrGroupNotExist(err) {
 		return err
@@ -442,17 +461,14 @@ func MoveGroup(ctx context.Context, group *Group, newParent int64, newSortOrder 
 			return err
 		}
 	}
-	siblings = util.SliceInsert(util.SliceRemove(tmpSiblings, group.SortOrder), group, newSortOrder)
 
-	parentGroupChain, err := GetParentGroupChain(ctx, newParent)
-	if err != nil {
-		return err
-	}
-	if len(parentGroupChain) >= 20 {
-		return ErrGroupTooDeep{
-			ID: group.ID,
+	for _, sibling := range tmpSiblings {
+		if sibling.ID != group.ID {
+			siblings = append(siblings, sibling)
 		}
 	}
+	siblings = util.SliceInsert(siblings, group, newSortOrder)
+
 	err = group.LoadOwner(ctx)
 	if err != nil {
 		return err
@@ -474,8 +490,8 @@ func MoveGroup(ctx context.Context, group *Group, newParent int64, newSortOrder 
 		}
 	}
 
-	if group.ParentGroup != nil && newParent != 0 {
-		group.ParentGroup = nil
+	group.ParentGroup = nil
+	if newParent != 0 {
 		if err = group.LoadParentGroup(ctx); err != nil {
 			return err
 		}
