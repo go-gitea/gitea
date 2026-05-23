@@ -29,8 +29,8 @@ type OrderedMap struct {
 }
 
 func (o OrderedMap) Get(key string) (any, bool) {
-	if _, ok := o.indices[key]; ok {
-		return o.Pairs[o.indices[key]].Value, true
+	if v, ok := o.indices[key]; ok {
+		return o.Pairs[v].Value, true
 	}
 	return nil, false
 }

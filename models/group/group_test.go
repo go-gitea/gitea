@@ -4,6 +4,7 @@ package group_test
 
 import (
 	"fmt"
+	"slices"
 	"testing"
 
 	"code.gitea.io/gitea/models/db"
@@ -56,14 +57,6 @@ func getID(it *group_model.Group) int64 {
 	return it.ID
 }
 
-func combineSlices[E any](sl ...[]E) []E {
-	final := make([]E, 0)
-	for _, subslice := range sl {
-		final = append(final, subslice...)
-	}
-	return final
-}
-
 func TestMoveGroup(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 	t.Run("NewPositionBeforeOldPosition", func(t *testing.T) {
@@ -74,7 +67,7 @@ func TestMoveGroup(t *testing.T) {
 		first = append(first, groups[3].ID)
 		middle := util.SliceMap(groups[1:3], getID)
 		end := util.SliceMap(groups[4:], getID)
-		assertGroupOrder(t, parentGroup.ID, combineSlices(first, middle, end))
+		assertGroupOrder(t, parentGroup.ID, slices.Concat(first, middle, end))
 	})
 	t.Run("NewPositionAfterOldPosition", func(t *testing.T) {
 		parentGroup, groups := createParentGroup(t)
@@ -84,7 +77,7 @@ func TestMoveGroup(t *testing.T) {
 		middle := util.SliceMap(groups[4:5], getID)
 		middle = append(middle, groups[3].ID)
 		end := util.SliceMap(groups[5:], getID)
-		assertGroupOrder(t, parentGroup.ID, combineSlices(first, middle, end))
+		assertGroupOrder(t, parentGroup.ID, slices.Concat(first, middle, end))
 	})
 	t.Run("ToFirst", func(t *testing.T) {
 		parentGroup, groups := createParentGroup(t)
@@ -93,7 +86,7 @@ func TestMoveGroup(t *testing.T) {
 		first := util.SliceMap(groups[0:3], getID)
 		end := util.SliceMap(groups[4:], getID)
 		onlyItem := []int64{groups[3].ID}
-		assertGroupOrder(t, parentGroup.ID, combineSlices(onlyItem, first, end))
+		assertGroupOrder(t, parentGroup.ID, slices.Concat(onlyItem, first, end))
 	})
 	t.Run("ToLast", func(t *testing.T) {
 		parentGroup, groups := createParentGroup(t)
@@ -102,7 +95,7 @@ func TestMoveGroup(t *testing.T) {
 		first := util.SliceMap(groups[0:3], getID)
 		end := util.SliceMap(groups[4:], getID)
 		onlyItem := []int64{groups[3].ID}
-		assertGroupOrder(t, parentGroup.ID, combineSlices(first, end, onlyItem))
+		assertGroupOrder(t, parentGroup.ID, slices.Concat(first, end, onlyItem))
 	})
 	t.Run("ToEmptyParent", func(t *testing.T) {
 		oldParent, groups := createParentGroup(t)
@@ -111,7 +104,7 @@ func TestMoveGroup(t *testing.T) {
 		assert.NoError(t, err)
 		first := util.SliceMap(groups[0:3], getID)
 		end := util.SliceMap(groups[4:], getID)
-		assertGroupOrder(t, oldParent.ID, combineSlices(first, end))
+		assertGroupOrder(t, oldParent.ID, slices.Concat(first, end))
 		assertGroupOrder(t, newParent.ID, []int64{groups[3].ID})
 	})
 	t.Run("ToDifferentParentWithSiblings", func(t *testing.T) {
@@ -121,8 +114,8 @@ func TestMoveGroup(t *testing.T) {
 		assert.NoError(t, err)
 		first := util.SliceMap(groups[0:3], getID)
 		end := util.SliceMap(groups[4:], getID)
-		assertGroupOrder(t, oldParent.ID, combineSlices(first, end))
-		assertGroupOrder(t, newParent.ID, combineSlices(
+		assertGroupOrder(t, oldParent.ID, slices.Concat(first, end))
+		assertGroupOrder(t, newParent.ID, slices.Concat(
 			util.SliceMap(newSiblings[0:1], getID),
 			[]int64{groups[3].ID},
 			util.SliceMap(newSiblings[1:], getID),

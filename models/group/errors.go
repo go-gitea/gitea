@@ -14,7 +14,7 @@ type ErrGroupNotExist struct {
 	ID int64
 }
 
-// IsErrGroupNotExist checks if an error is a ErrCommentNotExist.
+// IsErrGroupNotExist checks if an error is a ErrGroupNotExist.
 func IsErrGroupNotExist(err error) bool {
 	var errGroupNotExist ErrGroupNotExist
 	ok := errors.As(err, &errGroupNotExist)
@@ -41,6 +41,10 @@ func IsErrGroupTooDeep(err error) bool {
 
 func (err ErrGroupTooDeep) Error() string {
 	return fmt.Sprintf("group has reached or exceeded the subgroup nesting limit [id: %d]", err.ID)
+}
+
+func (err ErrGroupTooDeep) Unwrap() error {
+	return util.ErrorWrap(util.ErrInvalidArgument, "group has reached or exceeded the subgroup nesting limit [id: %d]", err.ID)
 }
 
 type ErrUserDoesNotHaveAccessToGroup struct {

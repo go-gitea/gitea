@@ -411,7 +411,10 @@ func GetIndividualUserRepoPermission(ctx context.Context, repo *repo_model.Repos
 	perm.units = repo.Units
 
 	// anonymous user visit private repo.
-	if user == nil && (repo.IsPrivate || (group != nil && group.Visibility > structs.VisibleTypePublic)) {
+	if user == nil && (repo.IsPrivate || (group != nil && slices.Contains([]structs.VisibleType{
+		structs.VisibleTypeLimited,
+		structs.VisibleTypePrivate,
+	}, group.Visibility))) {
 		perm.AccessMode = perm_model.AccessModeNone
 		return perm, nil
 	}
@@ -461,7 +464,7 @@ func GetIndividualUserRepoPermission(ctx context.Context, repo *repo_model.Repos
 	// now: the owner is visible to doer, if the repo is public, then the min access mode is read
 	isGroupPrivate := false
 	if group != nil {
-		isGroupPrivate = group.Visibility > structs.VisibleTypeLimited
+		isGroupPrivate = group.Visibility == structs.VisibleTypePrivate
 		isPrivateBecauseOfParent, err := group.IsPrivateBecauseOfParentPermissions(ctx, user)
 		if err != nil {
 			return perm, err

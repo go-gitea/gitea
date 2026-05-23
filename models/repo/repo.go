@@ -733,7 +733,7 @@ func ComposeSSHCloneURL(doer *user_model.User, ownerName, repoName string, group
 
 // ComposeTeaCloneCommand returns Tea CLI clone command based on the given owner and repository name.
 func ComposeTeaCloneCommand(ctx context.Context, owner, repo string, groupID int64) string {
-	return fmt.Sprintf("tea clone %s/%s%s", url.PathEscape(owner), url.PathEscape(repo), groupSegmentWithTrailingSlash(groupID))
+	return fmt.Sprintf("tea clone %s/%s%s", url.PathEscape(owner), groupSegmentWithTrailingSlash(groupID), url.PathEscape(repo))
 }
 
 func (repo *Repository) cloneLink(ctx context.Context, doer *user_model.User, repoPathName string, groupID int64) *CloneLink {
@@ -817,11 +817,6 @@ func (err ErrRepoNotExist) Unwrap() error {
 // GetRepositoryByOwnerAndName returns the repository by given owner name and repo name
 func GetRepositoryByOwnerAndName(ctx context.Context, ownerName, repoName string, groupID int64) (*Repository, error) {
 	var repo Repository
-	var gid any = groupID
-	if groupID == 0 {
-		gid = nil
-	}
-	_ = gid
 	has, err := db.GetEngine(ctx).Table("repository").Select("repository.*").
 		Join("INNER", "`user`", "`user`.id = repository.owner_id").
 		Where("repository.lower_name = ?", strings.ToLower(repoName)).

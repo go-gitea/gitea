@@ -106,11 +106,8 @@ type GroupAssignmentOptions struct {
 func groupAssignment(ctx commonCtx, doer *user_model.User, isSigned, _ bool, handleNotFound func(error), handleOtherError func(string, error), assign func(repoGroup *RepoGroup)) {
 	var err error
 	repoGroup := new(RepoGroup)
-	if repoGroup.Group == nil {
-		err = getGroupByParams(ctx, repoGroup, handleNotFound, handleOtherError)
-	}
+	err = getGroupByParams(ctx, repoGroup, handleNotFound, handleOtherError)
 	if err != nil {
-		handleOtherError("GetGroupByParams", err)
 		return
 	}
 	if ctx.Written() {
@@ -134,7 +131,7 @@ func groupAssignment(ctx commonCtx, doer *user_model.User, isSigned, _ bool, han
 			return
 		}
 	}
-	ownerAsOrg := (*organization.Organization)(group.Owner)
+	ownerAsOrg := organization.OrgFromUser(group.Owner)
 	var orgWideAdmin, orgWideOwner, isOwnedBy bool
 
 	if isSigned {
@@ -263,9 +260,6 @@ func GroupAssignmentWeb(args GroupAssignmentOptions) func(ctx *Context) {
 				ctx.ServerError("GetParentGroupChain", err)
 				return
 			}
-			if repoGroup == nil {
-				repoGroup = &RepoGroup{}
-			}
 			if !ctx.IsSigned {
 				ctx.Data["SignedUser"] = &user_model.User{}
 			}
@@ -294,6 +288,7 @@ func GroupAssignmentAPI(early404 bool) func(ctx *APIContext) {
 
 			if !canAccess && early404 {
 				ctx.APIErrorNotFound(nil)
+				return
 			}
 			ctx.RepoGroup = repoGroup
 		})
