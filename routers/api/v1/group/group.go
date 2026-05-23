@@ -31,6 +31,8 @@ func createCommonGroup(ctx *context.APIContext, parentGroupID, ownerID int64) *a
 		if err != nil {
 			if group_model.IsErrGroupNotExist(err) {
 				ctx.APIErrorNotFound()
+			} else {
+				ctx.APIErrorInternal(err)
 			}
 			return nil
 		}
@@ -122,11 +124,9 @@ func NewSubGroup(ctx *context.APIContext) {
 	//     "$ref": "#/responses/notFound"
 	//   "422":
 	//     "$ref": "#/responses/validationError"
-	var (
-		group *api.Group
-	)
+
 	gid := ctx.PathParamInt64("group_id")
-	group = createCommonGroup(ctx, gid, 0)
+	group := createCommonGroup(ctx, gid, 0)
 	if !ctx.Written() {
 		ctx.JSON(http.StatusCreated, group)
 	}

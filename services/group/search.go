@@ -94,7 +94,7 @@ func (w *WebSearchGroup) doLoadChildren(opts *WebSearchOptions) error {
 	})
 	latestCommitStatuses, err := commitstatus_service.FindReposLatestCommitStatuses(opts.Ctx, repos)
 	if err != nil {
-		log.Error("FindReposLastestCommitStatuses: %v", err)
+		log.Error("FindReposLatestCommitStatuses: %v", err)
 		return err
 	}
 	latestIdx := -1

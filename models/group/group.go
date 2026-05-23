@@ -16,13 +16,14 @@ import (
 	"code.gitea.io/gitea/models/unit"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/optional"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/util"
 
 	"xorm.io/builder"
 )
+
+const NestingLimit = 20
 
 // Group represents a group of repositories for a user or organization
 type Group struct {
@@ -59,7 +60,7 @@ func init() {
 }
 
 func (g *Group) doLoadSubgroups(ctx context.Context, recursive bool, cond builder.Cond, currentLevel int) error {
-	if currentLevel >= 20 {
+	if currentLevel >= NestingLimit {
 		return ErrGroupTooDeep{
 			g.ID,
 		}
@@ -254,7 +255,6 @@ type FindGroupsOptions struct {
 	db.ListOptions
 	OwnerID       int64
 	ParentGroupID int64
-	CanCreateIn   optional.Option[bool]
 	ActorID       int64
 	Name          string
 }
@@ -264,15 +264,8 @@ func (opts FindGroupsOptions) ToConds() builder.Cond {
 	if opts.OwnerID != 0 {
 		cond = cond.And(builder.Eq{"owner_id": opts.OwnerID})
 	}
-	if opts.ParentGroupID > 0 {
+	if opts.ParentGroupID >= 0 {
 		cond = cond.And(builder.Eq{"parent_group_id": opts.ParentGroupID})
-	} else if opts.ParentGroupID == 0 {
-		cond = cond.And(builder.Eq{"parent_group_id": 0})
-	}
-	if opts.CanCreateIn.Has() && opts.ActorID > 0 {
-		if !opts.CanCreateIn.Value() {
-			cond = cond.And(builder.Expr("1 = 0"))
-		}
 	}
 	if opts.Name != "" {
 		cond = cond.And(builder.Eq{"lower_name": opts.Name})
@@ -331,13 +324,13 @@ func UpdateGroupOwnerName(ctx context.Context, oldUser, newUser string) error {
 
 // GetParentGroupChain returns a slice containing a group and its ancestors
 func GetParentGroupChain(ctx context.Context, groupID int64) (RepoGroupList, error) {
-	groupList := make([]*Group, 0, 20)
+	groupList := make([]*Group, 0, NestingLimit)
 	currentGroupID := groupID
 	for {
 		if currentGroupID < 1 {
 			break
 		}
-		if len(groupList) >= 20 {
+		if len(groupList) >= NestingLimit {
 			return nil, ErrGroupTooDeep{currentGroupID}
 		}
 		currentGroup, err := GetGroupByID(ctx, currentGroupID)
@@ -464,7 +457,7 @@ func MoveGroup(ctx context.Context, group *Group, newParent int64, newSortOrder 
 			return util.NewInvalidArgumentErrorf("cannot move group %d under one of its descendants", group.ID)
 		}
 	}
-	if len(parentGroupChain) >= 20 {
+	if len(parentGroupChain) >= NestingLimit {
 		return ErrGroupTooDeep{
 			ID: group.ID,
 		}
@@ -513,7 +506,6 @@ func MoveGroup(ctx context.Context, group *Group, newParent int64, newSortOrder 
 	group.ParentGroupID = newParent
 	group.SortOrder = newSortOrder
 	for i, gg := range siblings {
-		log.Info("ITEM %+v", gg)
 		gg.SortOrder = i
 		if _, err = sess.Table(group.TableName()).
 			ID(gg.ID).
@@ -558,6 +550,9 @@ func GetOwnerByGroupID(ctx context.Context, groupID int64) (*user_model.User, er
 	user := new(user_model.User)
 	has, err := e.Join("INNER", tableName, fmt.Sprintf("`%s`.owner_id = `user`.`id`", tableName)).
 		Where(builder.Eq{fmt.Sprintf("`%s`.id", tableName): groupID}).Get(user)
+	if err != nil {
+		return nil, err
+	}
 	if !has {
 		return nil, user_model.ErrUserNotExist{}
 	}
