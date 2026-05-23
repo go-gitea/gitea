@@ -92,15 +92,12 @@ func SliceRemove[T any](slice []T, oldIndex int) []T {
 	}
 	oldIndex = max(0, min(oldIndex, len(slice)-1))
 	withoutCurrent := slice[0:oldIndex]
-	itemsUpper := slice[min(oldIndex+1, len(slice)-1):]
+	itemsUpper := slice[oldIndex+1:]
 	withoutCurrent = append(withoutCurrent, itemsUpper...)
 	return withoutCurrent
 }
 
 func SliceInsert[T any](slice []T, item T, newIndex int) []T {
-	if len(slice) == 0 {
-		return slice
-	}
 	oldLen := len(slice)
 	newIndex = min(newIndex, len(slice))
 	if newIndex < 0 {
