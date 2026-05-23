@@ -54,7 +54,7 @@ func (p *frontendRenderer) SanitizerRules() []setting.MarkupSanitizerRule {
 func (p *frontendRenderer) GetExternalRendererOptions() (ret markup.ExternalRendererOptions) {
 	ret.SanitizerDisabled = true
 	ret.DisplayInIframe = true
-	ret.ContentSandbox = "allow-scripts allow-same-origin allow-forms allow-modals allow-popups allow-downloads"
+	ret.ContentSandbox = "allow-scripts allow-forms allow-modals allow-popups allow-downloads"
 	return ret
 }
 

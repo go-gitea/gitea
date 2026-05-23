@@ -1,7 +1,22 @@
 import type {FrontendRenderFunc} from '../plugin.ts';
 import {marked} from 'marked';
-import {codeToHtml} from 'shiki';
+import {createHighlighter} from 'shiki';
+import {createJavaScriptRegexEngine} from '@shikijs/engine-javascript';
 import '../../../css/features/jupyter.css';
+
+// Create highlighter instance with JavaScript engine
+let highlighterPromise: Promise<any> | null = null;
+async function getHighlighter() {
+  if (!highlighterPromise) {
+    const jsEngine = createJavaScriptRegexEngine();
+    highlighterPromise = createHighlighter({
+      themes: ['github-light', 'github-dark'],
+      langs: ['python', 'javascript', 'typescript', 'r', 'julia', 'sql', 'bash', 'ruby'],
+      engine: jsEngine,
+    });
+  }
+  return highlighterPromise;
+}
 
 // Helper to create elements with properties
 function createElement<K extends keyof HTMLElementTagNameMap>(
@@ -40,28 +55,20 @@ function renderMarkdown(markdown: string, treePath: string, mediaPrefix: string)
   return markupContainer;
 }
 
-// Highlight code using Shiki with theme detection
+// Highlight code using Shiki with JavaScript regex engine (no WASM)
 async function highlightCode(code: string, language: string): Promise<string> {
   try {
     // Detect if dark mode is active using Gitea's theme attribute
     const isDark = document.documentElement.getAttribute('data-gitea-theme-dark') === 'true';
 
-    return await codeToHtml(code, {
+    const highlighter = await getHighlighter();
+    const html = highlighter.codeToHtml(code, {
       lang: language,
       theme: isDark ? 'github-dark' : 'github-light',
-      transformers: [
-        {
-          pre(node) {
-            // Remove inline background style to use Gitea's CSS
-            if (node.properties.style && typeof node.properties.style === 'string') {
-              // Remove background-color but keep color
-              node.properties.style = (node.properties.style)
-                .replace(/background-color:[^;]+;?/g, '');
-            }
-          },
-        },
-      ],
     });
+
+    // Remove background color from the HTML
+    return html.replace(/background-color:[^;]+;?/g, '');
   } catch (error) {
     console.warn('Shiki highlighting failed:', error);
     // Fallback to plain code

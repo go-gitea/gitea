@@ -34,6 +34,7 @@
     "@replit/codemirror-lang-svelte": "6.0.0",
     "@replit/codemirror-vscode-keymap": "6.0.2",
     "@resvg/resvg-wasm": "2.6.2",
+    "@shikijs/engine-javascript": "4.1.0",
     "@vitejs/plugin-vue": "6.0.6",
     "ansi_up": "6.0.6",
     "asciinema-player": "3.15.1",
