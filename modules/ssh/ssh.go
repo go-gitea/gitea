@@ -8,7 +8,6 @@ import (
 	"context"
 	"crypto/ed25519"
 	"crypto/rand"
-	"crypto/x509"
 	"encoding/pem"
 	"errors"
 	"fmt"
@@ -424,20 +423,20 @@ func addHostKey(srv *ssh.Server, keyPath string) error {
 }
 
 // GenKeyPair generates an Ed25519 SSH host key pair.
-// The private key is written to keyPath in OpenSSH PEM format.
-// The public key is written to keyPath+".pub" in authorized_keys format.
+// The private key is written to keyPath in OpenSSH native format so that both
+// the built-in server (gossh.ParsePrivateKey) and the system ssh binary can
+// load it. The public key is written to keyPath+".pub" in authorized_keys format.
 func GenKeyPair(keyPath string) error {
 	_, privateKey, err := ed25519.GenerateKey(rand.Reader)
 	if err != nil {
 		return err
 	}
 
-	privKeyBytes, err := x509.MarshalPKCS8PrivateKey(privateKey)
+	privateKeyPEM, err := gossh.MarshalPrivateKey(privateKey, "")
 	if err != nil {
 		return err
 	}
 
-	privateKeyPEM := &pem.Block{Type: "PRIVATE KEY", Bytes: privKeyBytes}
 	f, err := os.OpenFile(keyPath, os.O_RDWR|os.O_CREATE|os.O_TRUNC, 0o600)
 	if err != nil {
 		return err

@@ -14,10 +14,9 @@ import (
 	"testing"
 
 	"github.com/gliderlabs/ssh"
-	gossh "golang.org/x/crypto/ssh"
-
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	gossh "golang.org/x/crypto/ssh"
 )
 
 func TestGenKeyPair(t *testing.T) {
@@ -38,11 +37,12 @@ func TestGenKeyPair(t *testing.T) {
 	block, rest := pem.Decode(privPEM)
 	require.NotNil(t, block, "expected PEM block in private key file")
 	assert.Empty(t, rest, "unexpected trailing data in private key file")
-	assert.Equal(t, "PRIVATE KEY", block.Type)
+	assert.Equal(t, "OPENSSH PRIVATE KEY", block.Type)
 
-	key, err := x509.ParsePKCS8PrivateKey(block.Bytes)
+	key, err := gossh.ParseRawPrivateKey(privPEM)
 	require.NoError(t, err)
-	_, ok := key.(ed25519.PrivateKey)
+
+	_, ok := key.(*ed25519.PrivateKey)
 	assert.True(t, ok, "expected Ed25519 private key, got %T", key)
 }
 
