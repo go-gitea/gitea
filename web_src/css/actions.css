@@ -5,14 +5,14 @@
 /* Force the nested workflow list inside the toggleable group to match the
    top-level item styling — Fomantic's submenu rules shrink and bolden them. */
 .actions-other-workflows > summary {
-  font-weight: normal !important;
+  font-weight: var(--font-weight-normal) !important;
 }
 .actions-other-workflows .menu {
   margin: 0 !important;
 }
 .actions-other-workflows .menu > .item {
   font-size: 1em !important;
-  font-weight: normal !important;
+  font-weight: var(--font-weight-normal) !important;
   padding: 0.92857143em 1.14285714em !important;
 }
 .actions-other-workflows .menu > .item.active {
