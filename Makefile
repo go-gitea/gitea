@@ -20,6 +20,9 @@ SWAGGER_PACKAGE ?= github.com/go-swagger/go-swagger/cmd/swagger@v0.33.2 # renova
 XGO_PACKAGE ?= src.techknowlogick.com/xgo@v1.9.0 # renovate: datasource=go
 GOVULNCHECK_PACKAGE ?= golang.org/x/vuln/cmd/govulncheck@v1.3.0 # renovate: datasource=go
 ACTIONLINT_PACKAGE ?= github.com/rhysd/actionlint/cmd/actionlint@v1.7.12 # renovate: datasource=go
+SHELLCHECK_IMAGE ?= docker.io/koalaman/shellcheck:v0.11.0@sha256:61862eba1fcf09a484ebcc6feea46f1782532571a34ed51fedf90dd25f925a8d # renovate: datasource=docker
+
+CONTAINER_RUNTIME ?= $(shell hash docker >/dev/null 2>&1 && echo docker || echo podman)
 
 HAS_GO := $(shell hash $(GO) > /dev/null 2>&1 && echo yes)
 ifeq ($(HAS_GO), yes)
@@ -271,7 +274,7 @@ checks-frontend: lockfile-check svg-check ## check frontend files
 checks-backend: tidy-check swagger-check openapi3-check fmt-check swagger-validate security-check ## check backend files
 
 .PHONY: lint
-lint: lint-frontend lint-backend lint-templates lint-swagger lint-spell lint-md lint-actions lint-json lint-yaml ## lint everything
+lint: lint-frontend lint-backend lint-templates lint-swagger lint-spell lint-md lint-actions lint-json lint-yaml lint-shell ## lint everything
 
 .PHONY: lint-fix
 lint-fix: lint-frontend-fix lint-backend-fix lint-spell-fix ## lint everything and fix issues
@@ -347,6 +350,10 @@ lint-editorconfig:
 lint-actions: .venv ## lint action workflow files
 	@$(GO) run $(ACTIONLINT_PACKAGE)
 	@uv run --frozen zizmor --quiet --min-confidence=medium .github
+
+.PHONY: lint-shell
+lint-shell: ## lint shell scripts
+	@SHELLCHECK_IMAGE=$(SHELLCHECK_IMAGE) CONTAINER_RUNTIME=$(CONTAINER_RUNTIME) ./tools/lint-shell.sh $$(git ls-files '*.sh')
 
 .PHONY: lint-templates
 lint-templates: .venv node_modules ## lint template files
@@ -445,7 +452,11 @@ test-integration:
 	@# would flood output per passing test. testcache can't help these tests anyway —
 	@# they mutate the work directory, so cache inputs change between runs.
 	$(GO) test $(GOTEST_FLAGS) -tags '$(TAGS)' -c code.gitea.io/gitea/tests/integration -o ./test-integration-$(GITEA_TEST_DATABASE).test
-	./test-integration-$(GITEA_TEST_DATABASE).test
+	./tools/test-integration.sh ./test-integration-$(GITEA_TEST_DATABASE).test
+
+.PHONY: test-integration-compile
+test-integration-compile:
+	$(GO) test $(GOTEST_FLAGS) -tags '$(TAGS)' -c -o /dev/null code.gitea.io/gitea/tests/integration
 
 .PHONY: test-integration\#%
 test-integration\#%:
@@ -469,11 +480,11 @@ migrations.individual.test\#%:
 
 .PHONY: playwright
 playwright: deps-frontend
-	@./tools/test-e2e.sh install
+	@CONTAINER_RUNTIME=$(CONTAINER_RUNTIME) ./tools/test-e2e.sh install
 
 .PHONY: test-e2e
 test-e2e: playwright frontend backend
-	@EXECUTABLE=$(EXECUTABLE) ./tools/test-e2e.sh run $(GITEA_TEST_E2E_FLAGS)
+	@CONTAINER_RUNTIME=$(CONTAINER_RUNTIME) EXECUTABLE=$(EXECUTABLE) ./tools/test-e2e.sh run $(GITEA_TEST_E2E_FLAGS)
 
 .PHONY: build
 build: frontend backend ## build everything
