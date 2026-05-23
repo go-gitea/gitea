@@ -4,13 +4,21 @@
 package v1_27
 
 import (
+	"code.gitea.io/gitea/models/db"
+
 	"xorm.io/xorm"
 )
 
-func AddIndexIssueDependencyDependencyID(x *xorm.Engine) error {
-	type IssueDependency struct {
-		DependencyID int64 `xorm:"INDEX"`
+func AddBranchProtectionBypassAllowlist(x db.EngineMigration) error {
+	type ProtectedBranch struct {
+		EnableBypassAllowlist  bool    `xorm:"NOT NULL DEFAULT false"`
+		BypassAllowlistUserIDs []int64 `xorm:"JSON TEXT"`
+		BypassAllowlistTeamIDs []int64 `xorm:"JSON TEXT"`
 	}
-	_, err := x.SyncWithOptions(xorm.SyncOptions{IgnoreDropIndices: true}, new(IssueDependency))
+
+	_, err := x.SyncWithOptions(xorm.SyncOptions{
+		IgnoreConstrains: true,
+		IgnoreIndices:    true,
+	}, new(ProtectedBranch))
 	return err
 }

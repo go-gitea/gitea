@@ -129,8 +129,7 @@ func TestLFSLockView(t *testing.T) {
 		req.Header.Set("Accept", lfs.AcceptHeader)
 		req.Header.Set("Content-Type", lfs.MediaType)
 		resp := session.MakeRequest(t, req, http.StatusCreated)
-		lockResp := &api.LFSLockResponse{}
-		DecodeJSON(t, resp, lockResp)
+		lockResp := DecodeJSON(t, resp, &api.LFSLockResponse{})
 		lockID = lockResp.Lock.ID
 	}
 	defer func() {
