@@ -106,10 +106,10 @@ func HookPostReceive(ctx *gitea_context.PrivateContext) {
 			}
 
 			if update.IsDelRef() {
-				if err := git_model.AddDeletedBranch(ctx, repo.ID, update.RefFullName.BranchName(), update.PusherID); err != nil {
-					log.Error("Failed to add deleted branch: %s/%s Error: %v", ownerName, repoName, err)
+				if err := git_model.MarkBranchAsDeleted(ctx, repo.ID, update.RefFullName.BranchName(), update.PusherID); err != nil {
+					log.Error("Failed to mark branch as deleted: %s/%s Error: %v", ownerName, repoName, err)
 					ctx.JSON(http.StatusInternalServerError, private.HookPostReceiveResult{
-						Err: fmt.Sprintf("Failed to add deleted branch: %s/%s Error: %v", ownerName, repoName, err),
+						Err: fmt.Sprintf("Failed to mark branch as deleted: %s/%s Error: %v", ownerName, repoName, err),
 					})
 					return
 				}
@@ -192,7 +192,7 @@ func HookPostReceive(ctx *gitea_context.PrivateContext) {
 			})
 			return
 		}
-		perm, err := access_model.GetUserRepoPermission(ctx, repo, pusher)
+		perm, err := access_model.GetDoerRepoPermission(ctx, repo, pusher)
 		if err != nil {
 			log.Error("Failed to Update: %s/%s Error: %v", ownerName, repoName, err)
 			ctx.JSON(http.StatusInternalServerError, private.HookPostReceiveResult{

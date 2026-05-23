@@ -38,6 +38,7 @@ import (
 	files_service "code.gitea.io/gitea/services/repository/files"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestPullRequestTargetEvent(t *testing.T) {
@@ -437,7 +438,7 @@ jobs:
 		assert.NotNil(t, run)
 
 		// delete the branch
-		err = repo_service.DeleteBranch(t.Context(), user2, repo, gitRepo, "test-create-branch", nil)
+		err = repo_service.DeleteBranch(t.Context(), user2, repo, gitRepo, "test-create-branch")
 		assert.NoError(t, err)
 		run = unittest.AssertExistsAndLoadBean(t, &actions_model.ActionRun{
 			Title:      "add workflow",
@@ -898,6 +899,27 @@ jobs:
 		_ = MakeRequest(t, req, http.StatusNoContent)
 
 		run := unittest.AssertExistsAndLoadBean(t, &actions_model.ActionRun{
+			Title:      "add workflow",
+			RepoID:     repo.ID,
+			Event:      "workflow_dispatch",
+			Ref:        "refs/heads/main",
+			WorkflowID: "dispatch.yml",
+			CommitSHA:  branch.CommitID,
+		})
+		assert.NotNil(t, run)
+
+		// Now trigger with rundetails
+		values.Set("return_run_details", "true")
+
+		req = NewRequestWithURLValues(t, "POST", fmt.Sprintf("/api/v1/repos/%s/actions/workflows/dispatch.yml/dispatches", repo.FullName()), values).
+			AddTokenAuth(token)
+		resp := MakeRequest(t, req, http.StatusOK)
+		runDetails := &api.RunDetails{}
+		require.NoError(t, json.NewDecoder(resp.Body).Decode(runDetails))
+		assert.NotEqual(t, 0, runDetails.WorkflowRunID)
+
+		run = unittest.AssertExistsAndLoadBean(t, &actions_model.ActionRun{
+			ID:         runDetails.WorkflowRunID,
 			Title:      "add workflow",
 			RepoID:     repo.ID,
 			Event:      "workflow_dispatch",
@@ -1546,8 +1568,7 @@ jobs:
 				Name: new("close-pull-request-with-path-fork"),
 			}).AddTokenAuth(user4Token)
 		resp := MakeRequest(t, req, http.StatusAccepted)
-		var apiForkRepo api.Repository
-		DecodeJSON(t, resp, &apiForkRepo)
+		apiForkRepo := DecodeJSON(t, resp, &api.Repository{})
 		forkRepo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: apiForkRepo.ID})
 		user4APICtx := NewAPITestContext(t, user4.Name, forkRepo.Name, auth_model.AccessTokenScopeWriteRepository)
 
@@ -1780,7 +1801,7 @@ jobs:
 		testEditFile(t, session, "user2", repoName, repo.DefaultBranch, "dir1/dir1.txt", "11")
 		// update by rebase
 		req := NewRequest(t, "POST", fmt.Sprintf("/%s/%s/pulls/%d/update?style=rebase", "user2", repoName, apiPull.Index))
-		session.MakeRequest(t, req, http.StatusSeeOther)
+		session.MakeRequest(t, req, http.StatusOK)
 		runner.fetchNoTask(t)
 	})
 }

@@ -4,6 +4,7 @@
 package auth
 
 import (
+	"errors"
 	"fmt"
 	"html"
 	"html/template"
@@ -560,6 +561,13 @@ func handleRefreshToken(ctx *context.Context, form forms.AccessTokenForm, server
 		})
 		return
 	}
+	if grant.ApplicationID != app.ID {
+		handleAccessTokenError(ctx, oauth2_provider.AccessTokenError{
+			ErrorCode:        oauth2_provider.AccessTokenErrorCodeInvalidGrant,
+			ErrorDescription: "refresh token belongs to a different client",
+		})
+		return
+	}
 
 	// check if token got already used
 	if setting.OAuth2.InvalidateRefreshTokens && (grant.Counter != token.Counter || token.Counter == 0) {
@@ -613,11 +621,26 @@ func handleAuthorizationCode(ctx *context.Context, form forms.AccessTokenForm, s
 		})
 		return
 	}
+	if authorizationCode.IsExpired() {
+		_ = authorizationCode.Invalidate(ctx)
+		handleAccessTokenError(ctx, oauth2_provider.AccessTokenError{
+			ErrorCode:        oauth2_provider.AccessTokenErrorCodeInvalidGrant,
+			ErrorDescription: "authorization code expired",
+		})
+		return
+	}
 	// check if code verifier authorizes the client, PKCE support
 	if !authorizationCode.ValidateCodeChallenge(form.CodeVerifier) {
 		handleAccessTokenError(ctx, oauth2_provider.AccessTokenError{
 			ErrorCode:        oauth2_provider.AccessTokenErrorCodeUnauthorizedClient,
 			ErrorDescription: "failed PKCE code challenge",
+		})
+		return
+	}
+	if authorizationCode.RedirectURI != "" && form.RedirectURI != authorizationCode.RedirectURI {
+		handleAccessTokenError(ctx, oauth2_provider.AccessTokenError{
+			ErrorCode:        oauth2_provider.AccessTokenErrorCodeInvalidGrant,
+			ErrorDescription: "redirect_uri differs from the original authorization request",
 		})
 		return
 	}
@@ -631,9 +654,15 @@ func handleAuthorizationCode(ctx *context.Context, form forms.AccessTokenForm, s
 	}
 	// remove token from database to deny duplicate usage
 	if err := authorizationCode.Invalidate(ctx); err != nil {
+		errDescription := "cannot process your request"
+		errCode := oauth2_provider.AccessTokenErrorCodeInvalidRequest
+		if errors.Is(err, auth.ErrOAuth2AuthorizationCodeInvalidated) {
+			errDescription = "authorization code already used"
+			errCode = oauth2_provider.AccessTokenErrorCodeInvalidGrant
+		}
 		handleAccessTokenError(ctx, oauth2_provider.AccessTokenError{
-			ErrorCode:        oauth2_provider.AccessTokenErrorCodeInvalidRequest,
-			ErrorDescription: "cannot proceed your request",
+			ErrorCode:        errCode,
+			ErrorDescription: errDescription,
 		})
 		return
 	}

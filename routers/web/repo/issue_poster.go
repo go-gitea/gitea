@@ -10,7 +10,6 @@ import (
 
 	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
-	"code.gitea.io/gitea/modules/setting"
 	shared_user "code.gitea.io/gitea/routers/web/shared/user"
 	"code.gitea.io/gitea/services/context"
 )
@@ -34,7 +33,7 @@ func IssuePullPosters(ctx *context.Context) {
 func issuePosters(ctx *context.Context, isPullList bool) {
 	repo := ctx.Repo.Repository
 	search := strings.TrimSpace(ctx.FormString("q"))
-	posters, err := repo_model.GetIssuePostersWithSearch(ctx, repo, isPullList, search, setting.UI.DefaultShowFullName)
+	posters, err := repo_model.GetIssuePostersWithSearch(ctx, repo, isPullList, search)
 	if err != nil {
 		ctx.JSON(http.StatusInternalServerError, err)
 		return
@@ -54,9 +53,7 @@ func issuePosters(ctx *context.Context, isPullList bool) {
 	resp.Results = make([]*userSearchInfo, len(posters))
 	for i, user := range posters {
 		resp.Results[i] = &userSearchInfo{UserID: user.ID, UserName: user.Name, AvatarLink: user.AvatarLink(ctx)}
-		if setting.UI.DefaultShowFullName {
-			resp.Results[i].FullName = user.FullName
-		}
+		resp.Results[i].FullName = user.FullName
 	}
 	ctx.JSON(http.StatusOK, resp)
 }

@@ -15,8 +15,8 @@ import (
 	"github.com/urfave/cli/v3"
 )
 
-var (
-	defaultLoggingFlags = []cli.Flag{
+func defaultLoggingFlags() []cli.Flag {
+	return []cli.Flag{
 		&cli.StringFlag{
 			Name:  "logger",
 			Usage: `Logger name - will default to "default"`,
@@ -57,8 +57,10 @@ var (
 			Name: "debug",
 		},
 	}
+}
 
-	subcmdLogging = &cli.Command{
+func newLoggingCommand() *cli.Command {
+	return &cli.Command{
 		Name:  "logging",
 		Usage: "Adjust logging commands",
 		Commands: []*cli.Command{
@@ -109,7 +111,7 @@ var (
 					{
 						Name:  "file",
 						Usage: "Add a file logger",
-						Flags: append(defaultLoggingFlags, []cli.Flag{
+						Flags: append(defaultLoggingFlags(), []cli.Flag{
 							&cli.StringFlag{
 								Name:    "filename",
 								Aliases: []string{"f"},
@@ -150,7 +152,7 @@ var (
 					}, {
 						Name:  "conn",
 						Usage: "Add a net conn logger",
-						Flags: append(defaultLoggingFlags, []cli.Flag{
+						Flags: append(defaultLoggingFlags(), []cli.Flag{
 							&cli.BoolFlag{
 								Name:    "reconnect-on-message",
 								Aliases: []string{"R"},
@@ -191,7 +193,7 @@ var (
 			},
 		},
 	}
-)
+}
 
 func runRemoveLogger(ctx context.Context, c *cli.Command) error {
 	setup(ctx, c.Bool("debug"))

@@ -31,7 +31,7 @@ func listUserFollowers(ctx *context.APIContext, u *user_model.User) {
 		return
 	}
 
-	ctx.SetLinkHeader(int(count), listOptions.PageSize)
+	ctx.SetLinkHeader(count, listOptions.PageSize)
 	ctx.SetTotalCountHeader(count)
 	responseAPIUsers(ctx, users)
 }
@@ -97,7 +97,7 @@ func listUserFollowing(ctx *context.APIContext, u *user_model.User) {
 		return
 	}
 
-	ctx.SetLinkHeader(int(count), listOptions.PageSize)
+	ctx.SetLinkHeader(count, listOptions.PageSize)
 	ctx.SetTotalCountHeader(count)
 	responseAPIUsers(ctx, users)
 }

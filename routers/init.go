@@ -47,6 +47,7 @@ import (
 	repo_migrations "code.gitea.io/gitea/services/migrations"
 	mirror_service "code.gitea.io/gitea/services/mirror"
 	"code.gitea.io/gitea/services/oauth2_provider"
+	packages_spec "code.gitea.io/gitea/services/packages/pkgspec"
 	pull_service "code.gitea.io/gitea/services/pull"
 	release_service "code.gitea.io/gitea/services/release"
 	repo_service "code.gitea.io/gitea/services/repository"
@@ -133,12 +134,6 @@ func InitWebInstalled(ctx context.Context) {
 	external.RegisterRenderers()
 	markup.Init(markup_service.FormalRenderHelperFuncs())
 
-	if setting.EnableSQLite3 {
-		log.Info("SQLite3 support is enabled")
-	} else if setting.Database.Type.IsSQLite3() {
-		log.Fatal("SQLite3 support is disabled, but it is used for database setting. Please get or build a Gitea release with SQLite3 support.")
-	}
-
 	mustInitCtx(ctx, common.InitDBEngine)
 	log.Info("ORM engine initialization successful!")
 	mustInit(system.Init)
@@ -149,6 +144,7 @@ func InitWebInstalled(ctx context.Context) {
 	mustInitCtx(ctx, models.Init)
 	mustInitCtx(ctx, authmodel.Init)
 	mustInitCtx(ctx, repo_service.Init)
+	mustInit(packages_spec.InitManager)
 
 	// Booting long running goroutines.
 	mustInit(indexer_service.Init)
@@ -180,7 +176,9 @@ func InitWebInstalled(ctx context.Context) {
 // NormalRoutes represents non install routes
 func NormalRoutes() *web.Router {
 	r := web.NewRouter()
-	r.Use(common.ProtocolMiddlewares()...)
+	r.BeforeRouting(common.ProtocolMiddlewares()...)
+
+	r.AfterRouting(common.MaintenanceModeHandler())
 
 	r.Mount("/", web_routers.Routes())
 	r.Mount("/api/v1", apiv1.Routes())

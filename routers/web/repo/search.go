@@ -32,7 +32,7 @@ func Search(ctx *context.Context) {
 		page = 1
 	}
 
-	var total int
+	var total int64
 	var searchResults []*code_indexer.Result
 	var searchResultLanguages []*code_indexer.SearchResultLanguages
 	if setting.Indexer.RepoIndexerEnabled {

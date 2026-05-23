@@ -25,8 +25,7 @@ func assertTimeEqual(t *testing.T, expected, actual time.Time) {
 func assertTimePtrEqual(t *testing.T, expected, actual *time.Time) {
 	if expected == nil {
 		assert.Nil(t, actual)
-	} else {
-		assert.NotNil(t, actual)
+	} else if assert.NotNil(t, actual) {
 		assertTimeEqual(t, *expected, *actual)
 	}
 }
@@ -211,6 +210,7 @@ func assertRepositoryEqual(t *testing.T, expected, actual *base.Repository) {
 	assert.Equal(t, expected.IsPrivate, actual.IsPrivate)
 	assert.Equal(t, expected.IsMirror, actual.IsMirror)
 	assert.Equal(t, expected.Description, actual.Description)
+	assert.Equal(t, expected.Website, actual.Website)
 	assert.Equal(t, expected.CloneURL, actual.CloneURL)
 	assert.Equal(t, expected.OriginalURL, actual.OriginalURL)
 	assert.Equal(t, expected.DefaultBranch, actual.DefaultBranch)
@@ -218,7 +218,7 @@ func assertRepositoryEqual(t *testing.T, expected, actual *base.Repository) {
 
 func assertReviewEqual(t *testing.T, expected, actual *base.Review) {
 	assert.Equal(t, expected.ID, actual.ID, "ID")
-	assert.Equal(t, expected.IssueIndex, actual.IssueIndex, "IsssueIndex")
+	assert.Equal(t, expected.IssueIndex, actual.IssueIndex, "IssueIndex")
 	assert.Equal(t, expected.ReviewerID, actual.ReviewerID, "ReviewerID")
 	assert.Equal(t, expected.ReviewerName, actual.ReviewerName, "ReviewerName")
 	assert.Equal(t, expected.Official, actual.Official, "Official")

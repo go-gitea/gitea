@@ -18,8 +18,10 @@
 @import "./modules/checkbox.css";
 @import "./modules/dimmer.css";
 @import "./modules/modal.css";
+@import "./modules/search.css";
 @import "./modules/tab.css";
 @import "./modules/form.css";
+@import "./modules/dropdown.css";
 @import "./modules/shortcut.css";
 
 @import "./modules/tippy.css";
@@ -29,17 +31,18 @@
 @import "./modules/toast.css";
 @import "./modules/svg.css";
 @import "./modules/flexcontainer.css";
+@import "./modules/codeeditor.css";
+@import "./modules/chroma.css";
+@import "./modules/charescape.css";
 
 @import "./shared/flex-list.css";
 @import "./shared/milestone.css";
-@import "./shared/repoorg.css";
 @import "./shared/settings.css";
 
 @import "./features/dropzone.css";
 @import "./features/gitgraph.css";
 @import "./features/heatmap.css";
 @import "./features/imagediff.css";
-@import "./features/codeeditor.css";
 @import "./features/projects.css";
 @import "./features/expander.css";
 @import "./features/cropper.css";
@@ -51,8 +54,6 @@
 @import "./markup/codepreview.css";
 @import "./markup/asciicast.css";
 
-@import "./chroma/base.css";
-@import "./codemirror/base.css";
 @import "./font_i18n.css";
 @import "./base.css";
 @import "./home.css";
@@ -66,7 +67,6 @@
 @import "./repo/list-header.css";
 @import "./repo/file-view.css";
 @import "./repo/wiki.css";
-@import "./repo/header.css";
 @import "./repo/home.css";
 @import "./repo/home-file-list.css";
 @import "./repo/reactions.css";
@@ -74,7 +74,6 @@
 @import "./repo/commit-sign.css";
 @import "./repo/packages.css";
 
-@import "./editor/fileeditor.css";
 @import "./editor/combomarkdowneditor.css";
 
 @import "./org.css";

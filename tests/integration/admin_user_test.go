@@ -43,10 +43,10 @@ func TestAdminViewUser(t *testing.T) {
 func TestAdminEditUser(t *testing.T) {
 	defer tests.PrepareTestEnv(t)()
 
-	testSuccessfullEdit(t, user_model.User{ID: 2, Name: "newusername", LoginName: "otherlogin", Email: "new@e-mail.gitea"})
+	testSuccessfulEdit(t, user_model.User{ID: 2, Name: "newusername", LoginName: "otherlogin", Email: "new@e-mail.gitea"})
 }
 
-func testSuccessfullEdit(t *testing.T, formData user_model.User) {
+func testSuccessfulEdit(t *testing.T, formData user_model.User) {
 	makeRequest(t, formData, http.StatusSeeOther)
 }
 

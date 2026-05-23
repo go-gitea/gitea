@@ -62,6 +62,7 @@ func getUserHeatmapData(ctx context.Context, user *user_model.User, team *organi
 		return nil, err
 	}
 
+	// HINT: USER-ACTIVITY-PUSH-COMMITS: it only uses the doer's action time, it doesn't use git commit's time
 	return hdata, db.GetEngine(ctx).
 		Select(groupBy+" AS timestamp, count(user_id) as contributions").
 		Table("action").

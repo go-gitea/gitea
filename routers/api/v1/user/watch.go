@@ -18,18 +18,21 @@ import (
 
 // getWatchedRepos returns the repos that the user with the specified userID is watching
 func getWatchedRepos(ctx *context.APIContext, user *user_model.User, private bool) ([]*api.Repository, int64, error) {
-	watchedRepos, total, err := repo_model.GetWatchedRepos(ctx, &repo_model.WatchedReposOptions{
+	opts := &repo_model.WatchedReposOptions{
 		ListOptions:    utils.GetListOptions(ctx),
 		WatcherID:      user.ID,
 		IncludePrivate: private,
-	})
+	}
+	opts.ApplyPublicOnly(ctx.PublicOnly)
+
+	watchedRepos, total, err := repo_model.GetWatchedRepos(ctx, opts)
 	if err != nil {
 		return nil, 0, err
 	}
 
 	repos := make([]*api.Repository, len(watchedRepos))
 	for i, watched := range watchedRepos {
-		permission, err := access_model.GetUserRepoPermission(ctx, watched, user)
+		permission, err := access_model.GetIndividualUserRepoPermission(ctx, watched, user)
 		if err != nil {
 			return nil, 0, err
 		}
@@ -71,7 +74,7 @@ func GetWatchedRepos(ctx *context.APIContext) {
 		ctx.APIErrorInternal(err)
 	}
 
-	ctx.SetLinkHeader(int(total), utils.GetListOptions(ctx).PageSize)
+	ctx.SetLinkHeader(total, utils.GetListOptions(ctx).PageSize)
 	ctx.SetTotalCountHeader(total)
 	ctx.JSON(http.StatusOK, &repos)
 }
@@ -100,7 +103,7 @@ func GetMyWatchedRepos(ctx *context.APIContext) {
 	if err != nil {
 		ctx.APIErrorInternal(err)
 	}
-	ctx.SetLinkHeader(int(total), utils.GetListOptions(ctx).PageSize)
+	ctx.SetLinkHeader(total, utils.GetListOptions(ctx).PageSize)
 	ctx.SetTotalCountHeader(total)
 	ctx.JSON(http.StatusOK, &repos)
 }

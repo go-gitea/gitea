@@ -8,7 +8,6 @@ import (
 	"errors"
 	"fmt"
 	"path"
-	"strconv"
 	"strings"
 
 	actions_model "code.gitea.io/gitea/models/actions"
@@ -56,21 +55,21 @@ func CreateCommitStatusForRunJobs(ctx context.Context, run *actions_model.Action
 func GetRunsFromCommitStatuses(ctx context.Context, statuses []*git_model.CommitStatus) ([]*actions_model.ActionRun, error) {
 	runMap := make(map[int64]*actions_model.ActionRun)
 	for _, status := range statuses {
-		runIndex, _, ok := status.ParseGiteaActionsTargetURL(ctx)
+		runID, _, ok := status.ParseGiteaActionsTargetURL(ctx)
 		if !ok {
 			continue
 		}
-		_, ok = runMap[runIndex]
+		_, ok = runMap[runID]
 		if !ok {
-			run, err := actions_model.GetRunByIndex(ctx, status.RepoID, runIndex)
+			run, err := actions_model.GetRunByRepoAndID(ctx, status.RepoID, runID)
 			if err != nil {
 				if errors.Is(err, util.ErrNotExist) {
 					// the run may be deleted manually, just skip it
 					continue
 				}
-				return nil, fmt.Errorf("GetRunByIndex: %w", err)
+				return nil, fmt.Errorf("GetRunByRepoAndID: %w", err)
 			}
-			runMap[runIndex] = run
+			runMap[runID] = run
 		}
 	}
 	runs := make([]*actions_model.ActionRun, 0, len(runMap))
@@ -143,60 +142,59 @@ func createCommitStatus(ctx context.Context, repo *repo_model.Repository, event,
 	if wfs, err := jobparser.Parse(job.WorkflowPayload); err == nil && len(wfs) > 0 {
 		runName = wfs[0].Name
 	}
-	ctxName := fmt.Sprintf("%s / %s (%s)", runName, job.Name, event)
-	ctxName = strings.TrimSpace(ctxName) // git_model.NewCommitStatus also trims spaces
+	ctxName := strings.TrimSpace(fmt.Sprintf("%s / %s (%s)", runName, job.Name, event)) // git_model.NewCommitStatus also trims spaces
 	state := toCommitStatus(job.Status)
-	if statuses, err := git_model.GetLatestCommitStatus(ctx, repo.ID, commitID, db.ListOptionsAll); err == nil {
-		for _, v := range statuses {
-			if v.Context == ctxName {
-				if v.State == state {
-					// no need to update
-					return nil
-				}
-				break
-			}
-		}
-	} else {
+	targetURL := fmt.Sprintf("%s/jobs/%d", run.Link(), job.ID)
+	description := toCommitStatusDescription(job)
+
+	statuses, err := git_model.GetLatestCommitStatus(ctx, repo.ID, commitID, db.ListOptionsAll)
+	if err != nil {
 		return fmt.Errorf("GetLatestCommitStatus: %w", err)
 	}
-
-	var description string
-	switch job.Status {
-	// TODO: if we want support description in different languages, we need to support i18n placeholders in it
-	case actions_model.StatusSuccess:
-		description = fmt.Sprintf("Successful in %s", job.Duration())
-	case actions_model.StatusFailure:
-		description = fmt.Sprintf("Failing after %s", job.Duration())
-	case actions_model.StatusCancelled:
-		description = "Has been cancelled"
-	case actions_model.StatusSkipped:
-		description = "Has been skipped"
-	case actions_model.StatusRunning:
-		description = "Has started running"
-	case actions_model.StatusWaiting:
-		description = "Waiting to run"
-	case actions_model.StatusBlocked:
-		description = "Blocked by required conditions"
-	default:
-		description = "Unknown status: " + strconv.Itoa(int(job.Status))
-	}
-
-	index, err := getIndexOfJob(ctx, job)
-	if err != nil {
-		return fmt.Errorf("getIndexOfJob: %w", err)
+	for _, v := range statuses {
+		if v.Context == ctxName {
+			if v.State == state && v.TargetURL == targetURL && v.Description == description {
+				return nil
+			}
+			break
+		}
 	}
 
 	creator := user_model.NewActionsUser()
 	status := git_model.CommitStatus{
 		SHA:         commitID,
-		TargetURL:   fmt.Sprintf("%s/jobs/%d", run.Link(), index),
+		TargetURL:   targetURL,
 		Description: description,
 		Context:     ctxName,
-		CreatorID:   creator.ID,
 		State:       state,
+		CreatorID:   creator.ID,
 	}
 
 	return commitstatus_service.CreateCommitStatus(ctx, repo, creator, commitID, &status)
+}
+
+func toCommitStatusDescription(job *actions_model.ActionRunJob) string {
+	switch job.Status {
+	// TODO: if we want support description in different languages, we need to support i18n placeholders in it
+	case actions_model.StatusSuccess:
+		return fmt.Sprintf("Successful in %s", job.Duration())
+	case actions_model.StatusFailure:
+		return fmt.Sprintf("Failing after %s", job.Duration())
+	case actions_model.StatusCancelled:
+		return fmt.Sprintf("Canceled after %s", job.Duration())
+	case actions_model.StatusSkipped:
+		return "Skipped"
+	case actions_model.StatusRunning:
+		return "In progress"
+	case actions_model.StatusCancelling:
+		return "Canceling"
+	case actions_model.StatusWaiting:
+		return "Waiting to run"
+	case actions_model.StatusBlocked:
+		return "Blocked by required conditions"
+	default:
+		return fmt.Sprintf("Unknown status: %d", job.Status)
+	}
 }
 
 func toCommitStatus(status actions_model.Status) commitstatus.CommitStatusState {
@@ -205,25 +203,11 @@ func toCommitStatus(status actions_model.Status) commitstatus.CommitStatusState 
 		return commitstatus.CommitStatusSuccess
 	case actions_model.StatusFailure, actions_model.StatusCancelled:
 		return commitstatus.CommitStatusFailure
-	case actions_model.StatusWaiting, actions_model.StatusBlocked, actions_model.StatusRunning:
+	case actions_model.StatusWaiting, actions_model.StatusBlocked, actions_model.StatusRunning, actions_model.StatusCancelling:
 		return commitstatus.CommitStatusPending
 	case actions_model.StatusSkipped:
 		return commitstatus.CommitStatusSkipped
 	default:
 		return commitstatus.CommitStatusError
 	}
-}
-
-func getIndexOfJob(ctx context.Context, job *actions_model.ActionRunJob) (int, error) {
-	// TODO: store job index as a field in ActionRunJob to avoid this
-	jobs, err := actions_model.GetRunJobsByRunID(ctx, job.RunID)
-	if err != nil {
-		return 0, err
-	}
-	for i, v := range jobs {
-		if v.ID == job.ID {
-			return i, nil
-		}
-	}
-	return 0, nil
 }

@@ -113,7 +113,7 @@ func createOrUpdateIssueNotifications(ctx context.Context, issueID, commentID, n
 		}
 		toNotify.AddMultiple(issueParticipants...)
 
-		// dont notify user who cause notification
+		// don't notify user who cause notification
 		delete(toNotify, notificationAuthorID)
 		// explicit unwatch on issue
 		issueUnWatches, err := issues_model.GetIssueWatchersIDs(ctx, issueID, false)

@@ -16,9 +16,11 @@ import (
 // Security settings
 var Security = struct {
 	// TODO: move more settings to this struct in future
-	XFrameOptions string
+	XFrameOptions       string
+	XContentTypeOptions string
 }{
-	XFrameOptions: "SAMEORIGIN",
+	XFrameOptions:       "SAMEORIGIN",
+	XContentTypeOptions: "nosniff",
 }
 
 var (
@@ -31,6 +33,7 @@ var (
 	ReverseProxyAuthEmail              string
 	ReverseProxyAuthFullName           string
 	ReverseProxyLimit                  int
+	ReverseProxyLogoutRedirect         string
 	ReverseProxyTrustedProxies         []string
 	MinPasswordLength                  int
 	ImportLocalPaths                   bool
@@ -124,6 +127,7 @@ func loadSecurityFrom(rootCfg ConfigProvider) {
 	ReverseProxyAuthFullName = sec.Key("REVERSE_PROXY_AUTHENTICATION_FULL_NAME").MustString("X-WEBAUTH-FULLNAME")
 
 	ReverseProxyLimit = sec.Key("REVERSE_PROXY_LIMIT").MustInt(1)
+	ReverseProxyLogoutRedirect = sec.Key("REVERSE_PROXY_LOGOUT_REDIRECT").String()
 	ReverseProxyTrustedProxies = sec.Key("REVERSE_PROXY_TRUSTED_PROXIES").Strings(",")
 	if len(ReverseProxyTrustedProxies) == 0 {
 		ReverseProxyTrustedProxies = []string{"127.0.0.0/8", "::1/128"}
@@ -151,6 +155,8 @@ func loadSecurityFrom(rootCfg ConfigProvider) {
 	} else {
 		Security.XFrameOptions = rootCfg.Section("cors").Key("X_FRAME_OPTIONS").MustString(Security.XFrameOptions)
 	}
+
+	Security.XContentTypeOptions = sec.Key("X_CONTENT_TYPE_OPTIONS").MustString(Security.XContentTypeOptions)
 
 	twoFactorAuth := sec.Key("TWO_FACTOR_AUTH").String()
 	switch twoFactorAuth {

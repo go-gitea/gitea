@@ -25,107 +25,108 @@ import (
 	"github.com/urfave/cli/v3"
 )
 
-// CmdMigrateStorage represents the available migrate storage sub-command.
-var CmdMigrateStorage = &cli.Command{
-	Name:        "migrate-storage",
-	Usage:       "Migrate the storage",
-	Description: "Copies stored files from storage configured in app.ini to parameter-configured storage",
-	Action:      runMigrateStorage,
-	Flags: []cli.Flag{
-		&cli.StringFlag{
-			Name:    "type",
-			Aliases: []string{"t"},
-			Value:   "",
-			Usage:   "Type of stored files to copy.  Allowed types: 'attachments', 'lfs', 'avatars', 'repo-avatars', 'repo-archivers', 'packages', 'actions-log', 'actions-artifacts'",
+func newMigrateStorageCommand() *cli.Command {
+	return &cli.Command{
+		Name:        "migrate-storage",
+		Usage:       "Migrate the storage",
+		Description: "Copies stored files from storage configured in app.ini to parameter-configured storage",
+		Action:      runMigrateStorage,
+		Flags: []cli.Flag{
+			&cli.StringFlag{
+				Name:    "type",
+				Aliases: []string{"t"},
+				Value:   "",
+				Usage:   "Type of stored files to copy.  Allowed types: 'attachments', 'lfs', 'avatars', 'repo-avatars', 'repo-archivers', 'packages', 'actions-log', 'actions-artifacts'",
+			},
+			&cli.StringFlag{
+				Name:    "storage",
+				Aliases: []string{"s"},
+				Value:   "",
+				Usage:   "New storage type: local (default), minio or azureblob",
+			},
+			&cli.StringFlag{
+				Name:    "path",
+				Aliases: []string{"p"},
+				Value:   "",
+				Usage:   "New storage placement if store is local (leave blank for default)",
+			},
+			// Minio Storage special configurations
+			&cli.StringFlag{
+				Name:  "minio-endpoint",
+				Value: "",
+				Usage: "Minio storage endpoint",
+			},
+			&cli.StringFlag{
+				Name:  "minio-access-key-id",
+				Value: "",
+				Usage: "Minio storage accessKeyID",
+			},
+			&cli.StringFlag{
+				Name:  "minio-secret-access-key",
+				Value: "",
+				Usage: "Minio storage secretAccessKey",
+			},
+			&cli.StringFlag{
+				Name:  "minio-bucket",
+				Value: "",
+				Usage: "Minio storage bucket",
+			},
+			&cli.StringFlag{
+				Name:  "minio-location",
+				Value: "",
+				Usage: "Minio storage location to create bucket",
+			},
+			&cli.StringFlag{
+				Name:  "minio-base-path",
+				Value: "",
+				Usage: "Minio storage base path on the bucket",
+			},
+			&cli.BoolFlag{
+				Name:  "minio-use-ssl",
+				Usage: "Enable SSL for minio",
+			},
+			&cli.BoolFlag{
+				Name:  "minio-insecure-skip-verify",
+				Usage: "Skip SSL verification",
+			},
+			&cli.StringFlag{
+				Name:  "minio-checksum-algorithm",
+				Value: "",
+				Usage: "Minio checksum algorithm (default/md5)",
+			},
+			&cli.StringFlag{
+				Name:  "minio-bucket-lookup-type",
+				Value: "",
+				Usage: "Minio bucket lookup type",
+			},
+			// Azure Blob Storage special configurations
+			&cli.StringFlag{
+				Name:  "azureblob-endpoint",
+				Value: "",
+				Usage: "Azure Blob storage endpoint",
+			},
+			&cli.StringFlag{
+				Name:  "azureblob-account-name",
+				Value: "",
+				Usage: "Azure Blob storage account name",
+			},
+			&cli.StringFlag{
+				Name:  "azureblob-account-key",
+				Value: "",
+				Usage: "Azure Blob storage account key",
+			},
+			&cli.StringFlag{
+				Name:  "azureblob-container",
+				Value: "",
+				Usage: "Azure Blob storage container",
+			},
+			&cli.StringFlag{
+				Name:  "azureblob-base-path",
+				Value: "",
+				Usage: "Azure Blob storage base path",
+			},
 		},
-		&cli.StringFlag{
-			Name:    "storage",
-			Aliases: []string{"s"},
-			Value:   "",
-			Usage:   "New storage type: local (default), minio or azureblob",
-		},
-		&cli.StringFlag{
-			Name:    "path",
-			Aliases: []string{"p"},
-			Value:   "",
-			Usage:   "New storage placement if store is local (leave blank for default)",
-		},
-		// Minio Storage special configurations
-		&cli.StringFlag{
-			Name:  "minio-endpoint",
-			Value: "",
-			Usage: "Minio storage endpoint",
-		},
-		&cli.StringFlag{
-			Name:  "minio-access-key-id",
-			Value: "",
-			Usage: "Minio storage accessKeyID",
-		},
-		&cli.StringFlag{
-			Name:  "minio-secret-access-key",
-			Value: "",
-			Usage: "Minio storage secretAccessKey",
-		},
-		&cli.StringFlag{
-			Name:  "minio-bucket",
-			Value: "",
-			Usage: "Minio storage bucket",
-		},
-		&cli.StringFlag{
-			Name:  "minio-location",
-			Value: "",
-			Usage: "Minio storage location to create bucket",
-		},
-		&cli.StringFlag{
-			Name:  "minio-base-path",
-			Value: "",
-			Usage: "Minio storage base path on the bucket",
-		},
-		&cli.BoolFlag{
-			Name:  "minio-use-ssl",
-			Usage: "Enable SSL for minio",
-		},
-		&cli.BoolFlag{
-			Name:  "minio-insecure-skip-verify",
-			Usage: "Skip SSL verification",
-		},
-		&cli.StringFlag{
-			Name:  "minio-checksum-algorithm",
-			Value: "",
-			Usage: "Minio checksum algorithm (default/md5)",
-		},
-		&cli.StringFlag{
-			Name:  "minio-bucket-lookup-type",
-			Value: "",
-			Usage: "Minio bucket lookup type",
-		},
-		// Azure Blob Storage special configurations
-		&cli.StringFlag{
-			Name:  "azureblob-endpoint",
-			Value: "",
-			Usage: "Azure Blob storage endpoint",
-		},
-		&cli.StringFlag{
-			Name:  "azureblob-account-name",
-			Value: "",
-			Usage: "Azure Blob storage account name",
-		},
-		&cli.StringFlag{
-			Name:  "azureblob-account-key",
-			Value: "",
-			Usage: "Azure Blob storage account key",
-		},
-		&cli.StringFlag{
-			Name:  "azureblob-container",
-			Value: "",
-			Usage: "Azure Blob storage container",
-		},
-		&cli.StringFlag{
-			Name:  "azureblob-base-path",
-			Value: "",
-			Usage: "Azure Blob storage base path",
-		},
-	},
+	}
 }
 
 func migrateAttachments(ctx context.Context, dstStorage storage.ObjectStorage) error {

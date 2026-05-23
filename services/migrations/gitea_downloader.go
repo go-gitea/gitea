@@ -150,6 +150,7 @@ func (g *GiteaDownloader) GetRepoInfo(_ context.Context) (*base.Repository, erro
 		Owner:         repo.Owner.UserName,
 		IsPrivate:     repo.Private,
 		Description:   repo.Description,
+		Website:       repo.Website,
 		CloneURL:      repo.CloneURL,
 		OriginalURL:   repo.HTMLURL,
 		DefaultBranch: repo.DefaultBranch,
@@ -186,7 +187,7 @@ func (g *GiteaDownloader) GetMilestones(ctx context.Context) ([]*base.Milestone,
 		}
 
 		for i := range ms {
-			// old gitea instances dont have this information
+			// old gitea instances don't have this information
 			createdAT := time.Time{}
 			var updatedAT *time.Time
 			if ms[i].Closed != nil {

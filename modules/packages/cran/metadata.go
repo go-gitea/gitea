@@ -34,7 +34,7 @@ var (
 var (
 	fieldPattern         = regexp.MustCompile(`\A\S+:`)
 	namePattern          = regexp.MustCompile(`\A[a-zA-Z][a-zA-Z0-9\.]*[a-zA-Z0-9]\z`)
-	versionPattern       = regexp.MustCompile(`\A[0-9]+(?:[.\-][0-9]+){1,3}\z`)
+	versionPattern       = regexp.MustCompile(`\A[0-9]+(?:[.\-][0-9]+)+\z`)
 	authorReplacePattern = regexp.MustCompile(`[\[\(].+?[\]\)]`)
 )
 

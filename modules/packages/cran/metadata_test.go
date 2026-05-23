@@ -128,10 +128,19 @@ func TestParseDescription(t *testing.T) {
 	})
 
 	t.Run("InvalidVersion", func(t *testing.T) {
-		for _, version := range []string{"1", "1 0", "1.2.3.4.5", "1-2-3-4-5", "1.", "1.0.", "1-", "1-0-"} {
+		for _, version := range []string{"1", "1 0", "1.", "1.0.", "1-", "1-0-"} {
 			p, err := ParseDescription(createDescription(packageName, version))
 			assert.Nil(t, p)
 			assert.ErrorIs(t, err, ErrInvalidVersion)
+		}
+	})
+
+	t.Run("ValidVersionManyComponents", func(t *testing.T) {
+		for _, version := range []string{"0.3.4.0.2", "1.2.3.4.5", "1-2-3-4-5"} {
+			p, err := ParseDescription(createDescription(packageName, version))
+			assert.NoError(t, err)
+			assert.NotNil(t, p)
+			assert.Equal(t, version, p.Version)
 		}
 	})
 

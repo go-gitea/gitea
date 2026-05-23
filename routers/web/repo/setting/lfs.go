@@ -54,7 +54,7 @@ func LFSFiles(ctx *context.Context) {
 	}
 	ctx.Data["Total"] = total
 
-	pager := context.NewPagination(int(total), setting.UI.ExplorePagingNum, page, 5)
+	pager := context.NewPagination(total, setting.UI.ExplorePagingNum, page, 5)
 	ctx.Data["Title"] = ctx.Tr("repo.settings.lfs")
 	ctx.Data["PageIsSettingsLFS"] = true
 	lfsMetaObjects, err := git_model.GetLFSMetaObjects(ctx, ctx.Repo.Repository.ID, pager.Paginater.Current(), setting.UI.ExplorePagingNum)
@@ -83,7 +83,7 @@ func LFSLocks(ctx *context.Context) {
 	}
 	ctx.Data["Total"] = total
 
-	pager := context.NewPagination(int(total), setting.UI.ExplorePagingNum, page, 5)
+	pager := context.NewPagination(total, setting.UI.ExplorePagingNum, page, 5)
 	ctx.Data["Title"] = ctx.Tr("repo.settings.lfs_locks")
 	ctx.Data["PageIsSettingsLFS"] = true
 	lfsLocks, err := git_model.GetLFSLockByRepoID(ctx, ctx.Repo.Repository.ID, pager.Paginater.Current(), setting.UI.ExplorePagingNum)
@@ -301,13 +301,13 @@ func LFSFileGet(ctx *context.Context) {
 			if index != len(lines)-1 {
 				line += "\n"
 			}
-			output.WriteString(fmt.Sprintf(`<li class="L%d" rel="L%d">%s</li>`, index+1, index+1, line))
+			fmt.Fprintf(&output, `<li class="L%d" rel="L%d">%s</li>`, index+1, index+1, line)
 		}
 		ctx.Data["FileContent"] = gotemplate.HTML(output.String())
 
 		output.Reset()
 		for i := 0; i < len(lines); i++ {
-			output.WriteString(fmt.Sprintf(`<span id="L%d">%d</span>`, i+1, i+1))
+			fmt.Fprintf(&output, `<span id="L%d">%d</span>`, i+1, i+1)
 		}
 		ctx.Data["LineNums"] = gotemplate.HTML(output.String())
 

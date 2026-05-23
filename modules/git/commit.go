@@ -11,19 +11,28 @@ import (
 	"os/exec"
 	"strings"
 
+	"code.gitea.io/gitea/modules/charset"
 	"code.gitea.io/gitea/modules/git/gitcmd"
 	"code.gitea.io/gitea/modules/util"
 )
+
+type CommitMessage struct {
+	MessageRaw   string
+	messageUTF8  *string
+	messageTitle *string
+	messageBody  *string
+}
 
 // Commit represents a git commit.
 type Commit struct {
 	Tree // FIXME: bad design, this field can be nil if the commit is from "last commit cache"
 
-	ID            ObjectID
-	Author        *Signature // never nil
-	Committer     *Signature // never nil
-	CommitMessage string
-	Signature     *CommitSignature
+	CommitMessage
+
+	ID        ObjectID
+	Author    *Signature // never nil
+	Committer *Signature // never nil
+	Signature *CommitSignature
 
 	Parents        []ObjectID // ID strings
 	submoduleCache *ObjectCache[*SubModule]
@@ -35,19 +44,28 @@ type CommitSignature struct {
 	Payload   string
 }
 
-// Message returns the commit message. Same as retrieving CommitMessage directly.
-func (c *Commit) Message() string {
-	// FIXME: GIT-COMMIT-MESSAGE-ENCODING: this logic is not right
-	// * When need to use commit message in templates/database, it should be valid UTF-8
-	// * When need to get the original commit message, it should just use "c.CommitMessage"
-	// It's not easy to refactor at the moment, many templates need to be updated and tested
-	return c.CommitMessage
+func (c *CommitMessage) MessageUTF8() string {
+	if c.messageUTF8 == nil {
+		bs := charset.ToUTF8(util.UnsafeStringToBytes(c.MessageRaw), charset.ConvertOpts{ErrorReplacement: []byte{'?'}})
+		c.messageUTF8 = new(util.UnsafeBytesToString(bs))
+	}
+	return *c.messageUTF8
 }
 
-// Summary returns first line of commit message.
-// The string is forced to be valid UTF8
-func (c *Commit) Summary() string {
-	return strings.ToValidUTF8(strings.Split(strings.TrimSpace(c.CommitMessage), "\n")[0], "?")
+func (c *CommitMessage) MessageTitle() string {
+	if c.messageTitle == nil {
+		s, _, _ := strings.Cut(strings.TrimSpace(c.MessageUTF8()), "\n")
+		c.messageTitle = new(strings.TrimSpace(s))
+	}
+	return *c.messageTitle
+}
+
+func (c *CommitMessage) MessageBody() string {
+	if c.messageBody == nil {
+		_, s, _ := strings.Cut(strings.TrimSpace(c.MessageUTF8()), "\n")
+		c.messageBody = new(strings.TrimSpace(s))
+	}
+	return *c.messageBody
 }
 
 // ParentID returns oid of n-th parent (0-based index).
@@ -84,50 +102,6 @@ func (c *Commit) GetCommitByPath(relpath string) (*Commit, error) {
 		return c.repo.LastCommitCache.GetCommitByPath(c.ID.String(), relpath)
 	}
 	return c.repo.getCommitByPathWithID(c.ID, relpath)
-}
-
-// AddChanges marks local changes to be ready for commit.
-func AddChanges(ctx context.Context, repoPath string, all bool, files ...string) error {
-	cmd := gitcmd.NewCommand().AddArguments("add")
-	if all {
-		cmd.AddArguments("--all")
-	}
-	cmd.AddDashesAndList(files...)
-	_, _, err := cmd.WithDir(repoPath).RunStdString(ctx)
-	return err
-}
-
-// CommitChangesOptions the options when a commit created
-type CommitChangesOptions struct {
-	Committer *Signature
-	Author    *Signature
-	Message   string
-}
-
-// CommitChanges commits local changes with given committer, author and message.
-// If author is nil, it will be the same as committer.
-func CommitChanges(ctx context.Context, repoPath string, opts CommitChangesOptions) error {
-	cmd := gitcmd.NewCommand()
-	if opts.Committer != nil {
-		cmd.AddOptionValues("-c", "user.name="+opts.Committer.Name)
-		cmd.AddOptionValues("-c", "user.email="+opts.Committer.Email)
-	}
-	cmd.AddArguments("commit")
-
-	if opts.Author == nil {
-		opts.Author = opts.Committer
-	}
-	if opts.Author != nil {
-		cmd.AddOptionFormat("--author='%s <%s>'", opts.Author.Name, opts.Author.Email)
-	}
-	cmd.AddOptionFormat("--message=%s", opts.Message)
-
-	_, _, err := cmd.WithDir(repoPath).RunStdString(ctx)
-	// No stderr but exit status 1 means nothing to commit.
-	if gitcmd.IsErrorExitCode(err, 1) {
-		return nil
-	}
-	return err
 }
 
 // CommitsByRange returns the specific page commits before current revision, every page's number default by CommitsRangeSize
@@ -289,27 +263,6 @@ func (c *Commit) GetFileContent(filename string, limit int) (string, error) {
 		return "", err
 	}
 	return string(bytes), nil
-}
-
-// GetBranchName gets the closest branch name (as returned by 'git name-rev --name-only')
-func (c *Commit) GetBranchName() (string, error) {
-	cmd := gitcmd.NewCommand("name-rev")
-	if DefaultFeatures().CheckVersionAtLeast("2.13.0") {
-		cmd.AddArguments("--exclude", "refs/tags/*")
-	}
-	cmd.AddArguments("--name-only", "--no-undefined").AddDynamicArguments(c.ID.String())
-	data, _, err := cmd.WithDir(c.repo.Path).RunStdString(c.repo.Ctx)
-	if err != nil {
-		// handle special case where git can not describe commit
-		if strings.Contains(err.Error(), "cannot describe") {
-			return "", nil
-		}
-
-		return "", err
-	}
-
-	// name-rev commitID output will be "master" or "master~12"
-	return strings.SplitN(strings.TrimSpace(data), "~", 2)[0], nil
 }
 
 // GetFullCommitID returns full length (40) of commit ID by given short SHA in a repository.

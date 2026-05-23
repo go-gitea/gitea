@@ -14,6 +14,7 @@ import (
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/optional"
 	"code.gitea.io/gitea/modules/user"
+	"code.gitea.io/gitea/modules/util"
 )
 
 // settings
@@ -28,8 +29,10 @@ var (
 	CfgProvider ConfigProvider
 	IsWindows   bool
 
-	// IsInTesting indicates whether the testing is running. A lot of unreliable code causes a lot of nonsense error logs during testing
-	// TODO: this is only a temporary solution, we should make the test code more reliable
+	// IsInTesting indicates whether the testing is running (unit test or integration test). It can be used for:
+	// * Skip nonsense error logs during testing caused by unreliable code (TODO: this is only a temporary solution, we should make the test code more reliable)
+	// * Panic in dev or testing mode to make the problem more obvious and easier to debug
+	// * Mock some functions or options to make testing easier (eg: session store, time, URL detection, etc.)
 	IsInTesting = false
 )
 
@@ -39,9 +42,9 @@ func init() {
 		AppVer = "dev"
 	}
 
-	// We can rely on log.CanColorStdout being set properly because modules/log/console_windows.go comes before modules/setting/setting.go lexicographically
+	// FIXME: the logger shouldn't be initialized here, the app entry should initialize the logger
 	// By default set this logger at Info - we'll change it later, but we need to start with something.
-	log.SetConsoleLogger(log.DEFAULT, "console", log.INFO)
+	log.SetupStderrLogger(log.DEFAULT, "console-stderr", log.INFO)
 }
 
 // IsRunUserMatchCurrentUser returns false if configured run user does not match
@@ -55,6 +58,10 @@ func IsRunUserMatchCurrentUser(runUser string) (string, bool) {
 
 	currentUser := user.CurrentUsername()
 	return currentUser, runUser == currentUser
+}
+
+func IsInE2eTesting() bool {
+	return os.Getenv("GITEA_TEST_E2E") == "true"
 }
 
 // PrepareAppDataPath creates app data directory if necessary
@@ -157,32 +164,38 @@ func loadCommonSettingsFrom(cfg ConfigProvider) error {
 
 func loadRunModeFrom(rootCfg ConfigProvider) {
 	rootSec := rootCfg.Section("")
+	mustNotRunAsRoot(rootSec)
+
+	runModeValue := os.Getenv("GITEA_RUN_MODE")
+	runModeValue = util.IfZero(runModeValue, rootSec.Key("RUN_MODE").String())
+	// non-dev mode is treated as prod mode, to protect users from accidentally running in dev mode if there is a typo in this value.
+	IsProd = !strings.EqualFold(runModeValue, "dev") // TODO: can use case-sensitive comparing in the future
+	RunMode = util.Iif(IsProd, "prod", "dev")
+
+	// there is a separate check: mustCurrentRunUserMatch (IsRunUserMatchCurrentUser)
 	RunUser = rootSec.Key("RUN_USER").MustString(user.CurrentUsername())
+}
+
+func mustNotRunAsRoot(rootSec ConfigSection) {
+	if os.Getuid() != 0 {
+		return
+	}
+
+	mustRunAsRoot := os.Getenv("SNAP") != "" && os.Getenv("SNAP_NAME") != "" // snap container runs the app as uid=0
+	if mustRunAsRoot {
+		return
+	}
 
 	// The following is a purposefully undocumented option. Please do not run Gitea as root. It will only cause future headaches.
 	// Please don't use root as a bandaid to "fix" something that is broken, instead the broken thing should instead be fixed properly.
-	unsafeAllowRunAsRoot := ConfigSectionKeyBool(rootSec, "I_AM_BEING_UNSAFE_RUNNING_AS_ROOT")
-	unsafeAllowRunAsRoot = unsafeAllowRunAsRoot || optional.ParseBool(os.Getenv("GITEA_I_AM_BEING_UNSAFE_RUNNING_AS_ROOT")).Value()
-	RunMode = os.Getenv("GITEA_RUN_MODE")
-	if RunMode == "" {
-		RunMode = rootSec.Key("RUN_MODE").MustString("prod")
-	}
+	allowRunAsRoot := ConfigSectionKeyBool(rootSec, "I_AM_BEING_UNSAFE_RUNNING_AS_ROOT") || // check gitea config
+		optional.ParseBool(os.Getenv("GITEA_I_AM_BEING_UNSAFE_RUNNING_AS_ROOT")).Value() // check gitea env var
 
-	// non-dev mode is treated as prod mode, to protect users from accidentally running in dev mode if there is a typo in this value.
-	RunMode = strings.ToLower(RunMode)
-	if RunMode != "dev" {
-		RunMode = "prod"
+	if !allowRunAsRoot {
+		// Special thanks to VLC which inspired the wording of this messaging.
+		log.Fatal("Gitea is not supposed to be run as root. If you need to use privileged TCP ports please instead use `setcap` and the `cap_net_bind_service` permission.")
 	}
-	IsProd = RunMode != "dev"
-
-	// check if we run as root
-	if os.Getuid() == 0 {
-		if !unsafeAllowRunAsRoot {
-			// Special thanks to VLC which inspired the wording of this messaging.
-			log.Fatal("Gitea is not supposed to be run as root. Sorry. If you need to use privileged TCP ports please instead use setcap and the `cap_net_bind_service` permission")
-		}
-		log.Critical("You are running Gitea using the root user, and have purposely chosen to skip built-in protections around this. You have been warned against this.")
-	}
+	log.Warn("You are running Gitea using the root user, and have purposely chosen to skip built-in protections around this. You have been warned against this.")
 }
 
 // HasInstallLock checks the install-lock in ConfigProvider directly, because sometimes the config file is not loaded into setting variables yet.
@@ -195,7 +208,7 @@ func mustCurrentRunUserMatch(rootCfg ConfigProvider) {
 	if HasInstallLock(rootCfg) {
 		currentUser, match := IsRunUserMatchCurrentUser(RunUser)
 		if !match {
-			log.Fatal("Expect user '%s' but current user is: %s", RunUser, currentUser)
+			log.Fatal("Expect user '%s' (RUN_USER in app.ini) but current user is: %s", RunUser, currentUser)
 		}
 	}
 }
@@ -226,7 +239,7 @@ func LoadSettings() {
 func LoadSettingsForInstall() {
 	loadDBSetting(CfgProvider)
 	loadServiceFrom(CfgProvider)
-	loadMailerFrom(CfgProvider)
+	loadMailsFrom(CfgProvider)
 }
 
 var configuredPaths = make(map[string]string)

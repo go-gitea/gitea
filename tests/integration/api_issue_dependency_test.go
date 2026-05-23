@@ -29,7 +29,7 @@ func enableRepoDependencies(t *testing.T, repoID int64) {
 
 	repoUnit := unittest.AssertExistsAndLoadBean(t, &repo_model.RepoUnit{RepoID: repoID, Type: unit.TypeIssues})
 	repoUnit.IssuesConfig().EnableDependencies = true
-	assert.NoError(t, repo_model.UpdateRepoUnit(t.Context(), repoUnit))
+	assert.NoError(t, repo_model.UpdateRepoUnitConfig(t.Context(), repoUnit))
 }
 
 func TestAPICreateIssueDependencyCrossRepoPermission(t *testing.T) {

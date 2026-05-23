@@ -13,22 +13,17 @@ import (
 	"time"
 
 	auth_model "code.gitea.io/gitea/models/auth"
+	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/timeutil"
 	"code.gitea.io/gitea/modules/util"
 )
 
-func generateSaltedToken() (string, string, string, string, error) {
-	salt, err := util.CryptoRandomString(10)
-	if err != nil {
-		return "", "", "", "", err
-	}
-	buf, err := util.CryptoRandomBytes(20)
-	if err != nil {
-		return "", "", "", "", err
-	}
+func generateSaltedToken() (string, string, string, string) {
+	salt := util.CryptoRandomString(10)
+	buf := util.CryptoRandomBytes(20)
 	token := hex.EncodeToString(buf)
 	hash := auth_model.HashToken(token, salt)
-	return token, salt, hash, token[len(token)-8:], nil
+	return token, salt, hash, token[len(token)-8:]
 }
 
 /*
@@ -72,13 +67,25 @@ func (indexes *LogIndexes) ToDB() ([]byte, error) {
 
 var timeSince = time.Since
 
-func calculateDuration(started, stopped timeutil.TimeStamp, status Status) time.Duration {
+// calculateDuration computes wall time for a run, job, task, or step. When status is terminal
+// but stopped is missing or inconsistent with started, fallbackEnd (typically the row Updated
+// time) is used so duration still reflects approximate elapsed time instead of 0 or a negative.
+func calculateDuration(started, stopped timeutil.TimeStamp, status Status, fallbackEnd timeutil.TimeStamp) time.Duration {
 	if started == 0 {
 		return 0
 	}
 	s := started.AsTime()
 	if status.IsDone() {
-		return stopped.AsTime().Sub(s)
+		end := stopped
+		if stopped.IsZero() || stopped < started {
+			if !fallbackEnd.IsZero() && fallbackEnd >= started {
+				end = fallbackEnd
+			} else {
+				log.Trace("actions: invalid duration timestamps (started=%d, stopped=%d, fallbackEnd=%d, status=%s)", started, stopped, fallbackEnd, status)
+				return 0
+			}
+		}
+		return end.AsTime().Sub(s)
 	}
 	return timeSince(s).Truncate(time.Second)
 }

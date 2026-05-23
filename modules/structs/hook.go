@@ -19,6 +19,8 @@ var ErrInvalidReceiveHook = errors.New("Invalid JSON payload received over webho
 type Hook struct {
 	// The unique identifier of the webhook
 	ID int64 `json:"id"`
+	// Optional human-readable name for the webhook
+	Name string `json:"name"`
 	// The type of the webhook (e.g., gitea, slack, discord)
 	Type string `json:"type"`
 	// Branch filter pattern to determine which branches trigger the webhook
@@ -51,7 +53,7 @@ type CreateHookOptionConfig map[string]string
 // CreateHookOption options when create a hook
 type CreateHookOption struct {
 	// required: true
-	// enum: dingtalk,discord,gitea,gogs,msteams,slack,telegram,feishu,wechatwork,packagist
+	// enum: ["dingtalk","discord","gitea","gogs","msteams","slack","telegram","feishu","wechatwork","packagist"]
 	// The type of the webhook to create
 	Type string `json:"type" binding:"Required"`
 	// required: true
@@ -66,6 +68,8 @@ type CreateHookOption struct {
 	// default: false
 	// Whether the webhook should be active upon creation
 	Active bool `json:"active"`
+	// Optional human-readable name for the webhook
+	Name string `json:"name" binding:"MaxSize(255)"`
 }
 
 // EditHookOption options when modify one hook
@@ -80,6 +84,8 @@ type EditHookOption struct {
 	AuthorizationHeader string `json:"authorization_header"`
 	// Whether the webhook is active and will be triggered
 	Active *bool `json:"active"`
+	// Optional human-readable name
+	Name *string `json:"name,omitzero" binding:"MaxSize(255)"`
 }
 
 // Payloader payload is some part of one hook
@@ -428,6 +434,10 @@ type ChangesPayload struct {
 type PullRequestPayload struct {
 	// The action performed on the pull request
 	Action HookIssueAction `json:"action"`
+	// The SHA of the most recent commit on the PR head branch before the push
+	Before string `json:"before,omitempty"`
+	// The SHA of the most recent commit on the PR head branch after the push
+	After string `json:"after,omitempty"`
 	// The index number of the pull request
 	Index int64 `json:"number"`
 	// Changes made to the pull request (for edit actions)

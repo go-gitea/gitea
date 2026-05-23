@@ -7,6 +7,7 @@ import (
 	"context"
 	"errors"
 	"net/http"
+	"slices"
 
 	actions_model "code.gitea.io/gitea/models/actions"
 	repo_model "code.gitea.io/gitea/models/repo"
@@ -15,7 +16,6 @@ import (
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/util"
 	actions_service "code.gitea.io/gitea/services/actions"
-	notify_service "code.gitea.io/gitea/services/notify"
 
 	runnerv1 "code.gitea.io/actions-proto-go/runner/v1"
 	"code.gitea.io/actions-proto-go/runner/v1/runnerv1connect"
@@ -23,6 +23,7 @@ import (
 	gouuid "github.com/google/uuid"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
+	"google.golang.org/protobuf/proto"
 )
 
 func NewRunnerServiceHandler() (string, http.Handler) {
@@ -68,21 +69,21 @@ func (s *Service) Register(
 	}
 
 	labels := req.Msg.Labels
+	hasCancellingSupport, _ := runnerRequestHasCancellingCapability(req.Msg)
 
 	// create new runner
 	name := util.EllipsisDisplayString(req.Msg.Name, 255)
 	runner := &actions_model.ActionRunner{
-		UUID:        gouuid.New().String(),
-		Name:        name,
-		OwnerID:     runnerToken.OwnerID,
-		RepoID:      runnerToken.RepoID,
-		Version:     req.Msg.Version,
-		AgentLabels: labels,
-		Ephemeral:   req.Msg.Ephemeral,
+		UUID:                 gouuid.New().String(),
+		Name:                 name,
+		OwnerID:              runnerToken.OwnerID,
+		RepoID:               runnerToken.RepoID,
+		Version:              req.Msg.Version,
+		AgentLabels:          labels,
+		Ephemeral:            req.Msg.Ephemeral,
+		HasCancellingSupport: hasCancellingSupport,
 	}
-	if err := runner.GenerateToken(); err != nil {
-		return nil, errors.New("can't generate token")
-	}
+	runner.GenerateAndFillToken()
 
 	// create new runner
 	if err := actions_model.CreateRunner(ctx, runner); err != nil {
@@ -110,14 +111,53 @@ func (s *Service) Register(
 	return res, nil
 }
 
+// runnerCapabilityCancelling is the wire string the runner advertises in its
+// capabilities list to indicate it understands the transitional cancelling
+// state and will run post-step cleanup before finalizing the task.
+const runnerCapabilityCancelling = "cancelling"
+
+type capabilityGetter interface {
+	GetCapabilities() []string
+}
+
+type declareRequest interface {
+	proto.Message
+	GetVersion() string
+	GetLabels() []string
+}
+
+func runnerRequestHasCancellingCapability(req proto.Message) (bool, bool) {
+	if req == nil {
+		return false, false
+	}
+
+	if typedReq, ok := any(req).(capabilityGetter); ok {
+		return slices.Contains(typedReq.GetCapabilities(), runnerCapabilityCancelling), true
+	}
+
+	return false, false
+}
+
+func applyDeclareRequestToRunner(runner *actions_model.ActionRunner, req declareRequest) []string {
+	runner.AgentLabels = req.GetLabels()
+	runner.Version = req.GetVersion()
+
+	cols := []string{"agent_labels", "version"}
+	hasCancellingSupport, capabilityStateKnown := runnerRequestHasCancellingCapability(req)
+	if capabilityStateKnown && runner.HasCancellingSupport != hasCancellingSupport {
+		runner.HasCancellingSupport = hasCancellingSupport
+		cols = append(cols, "has_cancelling_support")
+	}
+
+	return cols
+}
+
 func (s *Service) Declare(
 	ctx context.Context,
 	req *connect.Request[runnerv1.DeclareRequest],
 ) (*connect.Response[runnerv1.DeclareResponse], error) {
 	runner := GetRunner(ctx)
-	runner.AgentLabels = req.Msg.Labels
-	runner.Version = req.Msg.Version
-	if err := actions_model.UpdateRunner(ctx, runner, "agent_labels", "version"); err != nil {
+	if err := actions_model.UpdateRunner(ctx, runner, applyDeclareRequestToRunner(runner, req.Msg)...); err != nil {
 		return nil, status.Errorf(codes.Internal, "update runner: %v", err)
 	}
 
@@ -156,10 +196,16 @@ func (s *Service) FetchTask(
 	}
 
 	if tasksVersion != latestVersion {
+		// Re-load runner from DB so task assignment uses current IsDisabled state
+		// (avoids race where disable commits while this request still has stale runner).
+		freshRunner, err := actions_model.GetRunnerByUUID(ctx, runner.UUID)
+		if err != nil {
+			return nil, status.Errorf(codes.Internal, "get runner: %v", err)
+		}
 		// if the task version in request is not equal to the version in db,
 		// it means there may still be some tasks that haven't been assigned.
 		// try to pick a task for the runner that send the request.
-		if t, ok, err := actions_service.PickTask(ctx, runner); err != nil {
+		if t, ok, err := actions_service.PickTask(ctx, freshRunner); err != nil {
 			log.Error("pick task failed: %v", err)
 			return nil, status.Errorf(codes.Internal, "pick task: %v", err)
 		} else if ok {
@@ -220,7 +266,7 @@ func (s *Service) UpdateTask(
 	actions_service.CreateCommitStatusForRunJobs(ctx, task.Job.Run, task.Job)
 
 	if task.Status.IsDone() {
-		notify_service.WorkflowJobStatusUpdate(ctx, task.Job.Run.Repo, task.Job.Run.TriggerUser, task.Job, task)
+		actions_service.NotifyWorkflowJobStatusUpdateWithTask(ctx, task.Job, task)
 	}
 
 	if req.Msg.State.Result != runnerv1.Result_RESULT_UNSPECIFIED {
@@ -228,7 +274,7 @@ func (s *Service) UpdateTask(
 			log.Error("Emit ready jobs of run %d: %v", task.Job.RunID, err)
 		}
 		if task.Job.Run.Status.IsDone() {
-			actions_service.NotifyWorkflowRunStatusUpdateWithReload(ctx, task.Job)
+			actions_service.NotifyWorkflowRunStatusUpdateWithReload(ctx, task.Job.RepoID, task.Job.RunID)
 		}
 	}
 
@@ -258,7 +304,16 @@ func (s *Service) UpdateLog(
 	}
 	ack := task.LogLength
 
-	if len(req.Msg.Rows) == 0 || req.Msg.Index > ack || int64(len(req.Msg.Rows))+req.Msg.Index <= ack {
+	// Trim rows the runner already had acked.
+	var rows []*runnerv1.LogRow
+	if req.Msg.Index <= ack && int64(len(req.Msg.Rows))+req.Msg.Index > ack {
+		rows = req.Msg.Rows[ack-req.Msg.Index:]
+	}
+
+	// Bail unless we have new rows or a NoMore to finalize. Even with
+	// NoMore, bail when the runner has outrun the server — archiving a
+	// log with a gap is worse than asking it to retry.
+	if len(rows) == 0 && (!req.Msg.NoMore || req.Msg.Index > ack) {
 		res.Msg.AckIndex = ack
 		return res, nil
 	}
@@ -267,10 +322,12 @@ func (s *Service) UpdateLog(
 		return nil, status.Errorf(codes.AlreadyExists, "log file has been archived")
 	}
 
-	rows := req.Msg.Rows[ack-req.Msg.Index:]
+	// WriteLogs is called even with no rows: with offset==0 it bootstraps
+	// an empty DBFS file so TransferLogs below has something to read when
+	// the runner finalizes a task that produced no log output.
 	ns, err := actions.WriteLogs(ctx, task.LogFilename, task.LogSize, rows)
 	if err != nil {
-		return nil, status.Errorf(codes.Internal, "write logs: %v", err)
+		return nil, status.Errorf(codes.Internal, "unable to append logs to dbfs file: %v", err)
 	}
 	task.LogLength += int64(len(rows))
 	for _, n := range ns {

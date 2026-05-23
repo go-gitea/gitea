@@ -139,7 +139,7 @@ func Test_CalcCommitStatus(t *testing.T) {
 				},
 			},
 			expected: &git_model.CommitStatus{
-				State: commitstatus.CommitStatusPending,
+				State: commitstatus.CommitStatusFailure,
 			},
 		},
 		{
@@ -243,7 +243,7 @@ func TestCommitStatusesHideActionsURL(t *testing.T) {
 	statuses := []*git_model.CommitStatus{
 		{
 			RepoID:    repo.ID,
-			TargetURL: fmt.Sprintf("%s/jobs/%d", run.Link(), run.Index),
+			TargetURL: fmt.Sprintf("%s/jobs/%d", run.Link(), run.ID),
 		},
 		{
 			RepoID:    repo.ID,

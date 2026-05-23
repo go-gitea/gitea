@@ -28,23 +28,24 @@ const (
 	hookBatchSize = 500
 )
 
-var (
-	// CmdHook represents the available hooks sub-command.
-	CmdHook = &cli.Command{
+func newHookCommand() *cli.Command {
+	return &cli.Command{
 		Name:        "hook",
 		Usage:       "(internal) Should only be called by Git",
 		Hidden:      true, // internal commands shouldn't be visible
 		Description: "Delegate commands to corresponding Git hooks",
 		Before:      PrepareConsoleLoggerLevel(log.FATAL),
 		Commands: []*cli.Command{
-			subcmdHookPreReceive,
-			subcmdHookUpdate,
-			subcmdHookPostReceive,
-			subcmdHookProcReceive,
+			newHookPreReceiveCommand(),
+			newHookUpdateCommand(),
+			newHookPostReceiveCommand(),
+			newHookProcReceiveCommand(),
 		},
 	}
+}
 
-	subcmdHookPreReceive = &cli.Command{
+func newHookPreReceiveCommand() *cli.Command {
+	return &cli.Command{
 		Name:        "pre-receive",
 		Usage:       "Delegate pre-receive Git hook",
 		Description: "This command should only be called by Git",
@@ -55,7 +56,10 @@ var (
 			},
 		},
 	}
-	subcmdHookUpdate = &cli.Command{
+}
+
+func newHookUpdateCommand() *cli.Command {
+	return &cli.Command{
 		Name:        "update",
 		Usage:       "Delegate update Git hook",
 		Description: "This command should only be called by Git",
@@ -66,7 +70,10 @@ var (
 			},
 		},
 	}
-	subcmdHookPostReceive = &cli.Command{
+}
+
+func newHookPostReceiveCommand() *cli.Command {
+	return &cli.Command{
 		Name:        "post-receive",
 		Usage:       "Delegate post-receive Git hook",
 		Description: "This command should only be called by Git",
@@ -77,8 +84,11 @@ var (
 			},
 		},
 	}
-	// Note: new hook since git 2.29
-	subcmdHookProcReceive = &cli.Command{
+}
+
+// Note: new hook since git 2.29
+func newHookProcReceiveCommand() *cli.Command {
+	return &cli.Command{
 		Name:        "proc-receive",
 		Usage:       "Delegate proc-receive Git hook",
 		Description: "This command should only be called by Git",
@@ -89,7 +99,7 @@ var (
 			},
 		},
 	}
-)
+}
 
 type delayWriter struct {
 	internal io.Writer
@@ -194,7 +204,7 @@ Gitea or set your environment appropriately.`, "")
 	userID, _ := strconv.ParseInt(os.Getenv(repo_module.EnvPusherID), 10, 64)
 	prID, _ := strconv.ParseInt(os.Getenv(repo_module.EnvPRID), 10, 64)
 	deployKeyID, _ := strconv.ParseInt(os.Getenv(repo_module.EnvDeployKeyID), 10, 64)
-	actionPerm, _ := strconv.Atoi(os.Getenv(repo_module.EnvActionPerm))
+	actionsTaskID, _ := strconv.ParseInt(os.Getenv(repo_module.EnvActionsTaskID), 10, 64)
 
 	hookOptions := private.HookOptions{
 		UserID:                          userID,
@@ -204,7 +214,8 @@ Gitea or set your environment appropriately.`, "")
 		GitPushOptions:                  pushOptions(),
 		PullRequestID:                   prID,
 		DeployKeyID:                     deployKeyID,
-		ActionPerm:                      actionPerm,
+		ActionsTaskID:                   actionsTaskID,
+		IsWiki:                          isWiki,
 	}
 
 	scanner := bufio.NewScanner(os.Stdin)
@@ -274,6 +285,9 @@ Gitea or set your environment appropriately.`, "")
 			fmt.Fprintf(out, "\n")
 			lastline = 0
 		}
+	}
+	if err := scanner.Err(); err != nil {
+		return fail(ctx, "Hook failed: stdin read error", "scanner error: %v", err)
 	}
 
 	if count > 0 {
@@ -366,6 +380,7 @@ Gitea or set your environment appropriately.`, "")
 		GitPushOptions:                  pushOptions(),
 		PullRequestID:                   prID,
 		PushTrigger:                     repo_module.PushTrigger(os.Getenv(repo_module.EnvPushTrigger)),
+		IsWiki:                          isWiki,
 	}
 	oldCommitIDs := make([]string, hookBatchSize)
 	newCommitIDs := make([]string, hookBatchSize)
@@ -412,6 +427,11 @@ Gitea or set your environment appropriately.`, "")
 			results = append(results, resp.Results...)
 			count = 0
 		}
+	}
+	if err := scanner.Err(); err != nil {
+		_ = dWriter.Close()
+		hookPrintResults(results)
+		return fail(ctx, "Hook failed: stdin read error", "scanner error: %v", err)
 	}
 
 	if count == 0 {
@@ -513,6 +533,7 @@ Gitea or set your environment appropriately.`, "")
 
 	reader := bufio.NewReader(os.Stdin)
 	repoUser := os.Getenv(repo_module.EnvRepoUsername)
+	isWiki, _ := strconv.ParseBool(os.Getenv(repo_module.EnvRepoIsWiki))
 	repoName := os.Getenv(repo_module.EnvRepoName)
 	pusherID, _ := strconv.ParseInt(os.Getenv(repo_module.EnvPusherID), 10, 64)
 	pusherName := os.Getenv(repo_module.EnvPusherName)
@@ -590,6 +611,7 @@ Gitea or set your environment appropriately.`, "")
 		UserName:       pusherName,
 		UserID:         pusherID,
 		GitPushOptions: make(map[string]string),
+		IsWiki:         isWiki,
 	}
 	hookOptions.OldCommitIDs = make([]string, 0, hookBatchSize)
 	hookOptions.NewCommitIDs = make([]string, 0, hookBatchSize)

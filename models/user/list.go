@@ -24,7 +24,7 @@ func (users UserList) GetUserIDs() []int64 {
 	return userIDs
 }
 
-// GetTwoFaStatus return state of 2FA enrollement
+// GetTwoFaStatus return state of 2FA enrollment
 func (users UserList) GetTwoFaStatus(ctx context.Context) map[int64]bool {
 	results := make(map[int64]bool, len(users))
 	for _, user := range users {

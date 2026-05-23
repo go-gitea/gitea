@@ -5,13 +5,14 @@ package common
 
 import (
 	"fmt"
-	"log"
 	"net/http"
 	"strings"
 
 	"code.gitea.io/gitea/modules/cache"
 	"code.gitea.io/gitea/modules/gtprof"
 	"code.gitea.io/gitea/modules/httplib"
+	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/public"
 	"code.gitea.io/gitea/modules/reqctx"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/web/routing"
@@ -27,20 +28,38 @@ func ProtocolMiddlewares() (handlers []any) {
 	// the order is important
 	handlers = append(handlers, ChiRoutePathHandler())   // make sure chi has correct paths
 	handlers = append(handlers, RequestContextHandler()) //	prepare the context and panic recovery
+	handlers = append(handlers, SecurityHeadersHandler())
 
 	if setting.ReverseProxyLimit > 0 && len(setting.ReverseProxyTrustedProxies) > 0 {
 		handlers = append(handlers, ForwardedHeadersHandler(setting.ReverseProxyLimit, setting.ReverseProxyTrustedProxies))
 	}
 
-	if setting.IsRouteLogEnabled() {
-		handlers = append(handlers, routing.NewLoggerHandler())
-	}
+	handlers = append(handlers, routing.NewRequestInfoHandler())
 
 	if setting.IsAccessLogEnabled() {
 		handlers = append(handlers, context.AccessLogger())
 	}
 
+	if !setting.IsProd {
+		handlers = append(handlers, public.ViteDevMiddleware)
+	}
+
 	return handlers
+}
+
+// SecurityHeadersHandler sets headers globally for every response that leaves Gitea.
+func SecurityHeadersHandler() func(http.Handler) http.Handler {
+	return func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(resp http.ResponseWriter, req *http.Request) {
+			if setting.Security.XContentTypeOptions != "unset" {
+				resp.Header().Set("X-Content-Type-Options", setting.Security.XContentTypeOptions)
+			}
+			if setting.Security.XFrameOptions != "unset" {
+				resp.Header().Set("X-Frame-Options", setting.Security.XFrameOptions)
+			}
+			next.ServeHTTP(resp, req)
+		})
+	}
 }
 
 func RequestContextHandler() func(h http.Handler) http.Handler {
@@ -63,8 +82,8 @@ func RequestContextHandler() func(h http.Handler) http.Handler {
 			}()
 
 			defer func() {
-				if err := recover(); err != nil {
-					RenderPanicErrorPage(respWriter, req, err) // it should never panic
+				if recovered := recover(); recovered != nil {
+					renderPanicErrorPage(respWriter, req, recovered) // it should never panic, and it handles the stack trace internally
 				}
 			}()
 
@@ -130,7 +149,7 @@ func MustInitSessioner() func(next http.Handler) http.Handler {
 		Domain:         setting.SessionConfig.Domain,
 	})
 	if err != nil {
-		log.Fatalf("common.Sessioner failed: %v", err)
+		log.Fatal("common.Sessioner failed: %v", err)
 	}
 	return middleware
 }

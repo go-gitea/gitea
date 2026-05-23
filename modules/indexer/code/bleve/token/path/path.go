@@ -27,7 +27,7 @@ func TokenFilterConstructor(config map[string]any, cache *registry.Cache) (analy
 
 func (s *TokenFilter) Filter(input analysis.TokenStream) analysis.TokenStream {
 	if len(input) == 1 {
-		// if there is only one token, we dont need to generate the reversed chain
+		// if there is only one token, we don't need to generate the reversed chain
 		return generatePathTokens(input, false)
 	}
 

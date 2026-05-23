@@ -15,6 +15,7 @@ import (
 
 	actions_model "code.gitea.io/gitea/models/actions"
 	auth_model "code.gitea.io/gitea/models/auth"
+	"code.gitea.io/gitea/models/db"
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unittest"
 	user_model "code.gitea.io/gitea/models/user"
@@ -22,11 +23,13 @@ import (
 	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
+	"code.gitea.io/gitea/modules/timeutil"
 	actions_service "code.gitea.io/gitea/services/actions"
 
 	runnerv1 "code.gitea.io/actions-proto-go/runner/v1"
 	"connectrpc.com/connect"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestJobWithNeeds(t *testing.T) {
@@ -156,8 +159,7 @@ jobs:
 				req := NewRequest(t, "GET", fmt.Sprintf("/api/v1/repos/%s/%s/actions/tasks", user2.Name, apiRepo.Name)).
 					AddTokenAuth(token)
 				resp := MakeRequest(t, req, http.StatusOK)
-				var actionTaskRespAfter api.ActionTaskResponse
-				DecodeJSON(t, resp, &actionTaskRespAfter)
+				actionTaskRespAfter := DecodeJSON(t, resp, &api.ActionTaskResponse{})
 				for _, apiTask := range actionTaskRespAfter.Entries {
 					if apiTask.HeadSHA != fileResp.Commit.SHA {
 						continue
@@ -347,6 +349,121 @@ jobs:
 			})
 		}
 	})
+}
+
+func TestRunnerDisableEnable(t *testing.T) {
+	onGiteaRun(t, func(t *testing.T, _ *url.URL) {
+		user2 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
+		session := loginUser(t, user2.Name)
+		token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeWriteRepository, auth_model.AccessTokenScopeWriteUser)
+
+		t.Run("BasicDisableEnable", func(t *testing.T) {
+			testData := prepareRunnerDisableEnableTest(t, user2, token, "actions-runner-disable-enable", "mock-runner", "runner-disable-enable")
+
+			task1 := testData.runner.fetchTask(t)
+			require.NotNil(t, task1)
+
+			triggerRunnerDisableEnableRun(t, user2, token, testData.repo, "second-push.txt")
+
+			req := newRunnerUpdateRequest(t, fmt.Sprintf("/api/v1/repos/%s/%s/actions/runners/%d", user2.Name, testData.repo.Name, testData.runnerID), true).AddTokenAuth(token)
+			MakeRequest(t, req, http.StatusOK)
+
+			testData.runner.execTask(t, task1, &mockTaskOutcome{result: runnerv1.Result_RESULT_SUCCESS})
+			testData.runner.fetchNoTask(t, 2*time.Second)
+
+			req = newRunnerUpdateRequest(t, fmt.Sprintf("/api/v1/repos/%s/%s/actions/runners/%d", user2.Name, testData.repo.Name, testData.runnerID), false).AddTokenAuth(token)
+			MakeRequest(t, req, http.StatusOK)
+
+			task2 := testData.runner.fetchTask(t, 5*time.Second)
+			require.NotNil(t, task2)
+			testData.runner.execTask(t, task2, &mockTaskOutcome{result: runnerv1.Result_RESULT_SUCCESS})
+		})
+
+		t.Run("TasksVersionPath", func(t *testing.T) {
+			testData := prepareRunnerDisableEnableTest(t, user2, token, "actions-runner-version-path", "mock-runner-version-path", "runner-version-path")
+
+			var firstVersion int64
+			var task1 *runnerv1.Task
+			ddl := time.Now().Add(5 * time.Second)
+			for time.Now().Before(ddl) {
+				task1, firstVersion = testData.runner.fetchTaskOnce(t, 0)
+				if task1 != nil {
+					break
+				}
+				time.Sleep(200 * time.Millisecond)
+			}
+			require.NotNil(t, task1, "expected to receive first task")
+			require.NotZero(t, firstVersion, "response TasksVersion should be set")
+
+			// Trigger a second run so there is a pending job after we re-enable the runner
+			triggerRunnerDisableEnableRun(t, user2, token, testData.repo, "second-push.txt")
+			time.Sleep(500 * time.Millisecond) // allow workflow run to be created
+
+			req := newRunnerUpdateRequest(t, fmt.Sprintf("/api/v1/repos/%s/%s/actions/runners/%d", user2.Name, testData.repo.Name, testData.runnerID), true).AddTokenAuth(token)
+			MakeRequest(t, req, http.StatusOK)
+
+			testData.runner.execTask(t, task1, &mockTaskOutcome{result: runnerv1.Result_RESULT_SUCCESS})
+
+			// Fetch with the version we had before disable. Server has bumped version on disable,
+			// so we enter PickTask with a re-loaded runner (disabled) and get no task.
+			taskAfterDisable, _ := testData.runner.fetchTaskOnce(t, firstVersion)
+			assert.Nil(t, taskAfterDisable, "disabled runner must not receive a task when sending previous TasksVersion")
+
+			req = newRunnerUpdateRequest(t, fmt.Sprintf("/api/v1/repos/%s/%s/actions/runners/%d", user2.Name, testData.repo.Name, testData.runnerID), false).AddTokenAuth(token)
+			MakeRequest(t, req, http.StatusOK)
+
+			task2 := testData.runner.fetchTask(t, 5*time.Second)
+			require.NotNil(t, task2, "after re-enable runner should receive tasks again")
+			testData.runner.execTask(t, task2, &mockTaskOutcome{result: runnerv1.Result_RESULT_SUCCESS})
+		})
+	})
+}
+
+type runnerDisableEnableTestData struct {
+	repo     *api.Repository
+	runner   *mockRunner
+	runnerID int64
+}
+
+func prepareRunnerDisableEnableTest(t *testing.T, user *user_model.User, authToken, repoName, runnerName, workflowName string) *runnerDisableEnableTestData {
+	t.Helper()
+
+	apiRepo := createActionsTestRepo(t, authToken, repoName, false)
+	runner := newMockRunner()
+	runner.registerAsRepoRunner(t, user.Name, apiRepo.Name, runnerName, []string{"ubuntu-latest"}, false)
+
+	wfTreePath := fmt.Sprintf(".gitea/workflows/%s.yml", workflowName)
+	wfContent := fmt.Sprintf(`name: %s
+on: [push]
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo %s
+`, workflowName, workflowName)
+	opts := getWorkflowCreateFileOptions(user, apiRepo.DefaultBranch, "create workflow", wfContent)
+	createWorkflowFile(t, authToken, user.Name, apiRepo.Name, wfTreePath, opts)
+
+	return &runnerDisableEnableTestData{
+		repo:     apiRepo,
+		runner:   runner,
+		runnerID: getRepoRunnerID(t, authToken, user.Name, apiRepo.Name),
+	}
+}
+
+func triggerRunnerDisableEnableRun(t *testing.T, user *user_model.User, authToken string, repo *api.Repository, treePath string) {
+	t.Helper()
+	opts := getWorkflowCreateFileOptions(user, repo.DefaultBranch, "second push", "second run")
+	createWorkflowFile(t, authToken, user.Name, repo.Name, treePath, opts)
+}
+
+func getRepoRunnerID(t *testing.T, authToken, ownerName, repoName string) int64 {
+	t.Helper()
+	req := NewRequest(t, "GET", fmt.Sprintf("/api/v1/repos/%s/%s/actions/runners", ownerName, repoName)).AddTokenAuth(authToken)
+	resp := MakeRequest(t, req, http.StatusOK)
+	runnerList := DecodeJSON(t, resp, &api.ActionRunnersResponse{})
+	require.Len(t, runnerList.Entries, 1)
+	return runnerList.Entries[0].ID
 }
 
 func TestActionsGiteaContext(t *testing.T) {
@@ -590,9 +707,8 @@ func createActionsTestRepo(t *testing.T, authToken, repoName string, isPrivate b
 		DefaultBranch: "main",
 	}).AddTokenAuth(authToken)
 	resp := MakeRequest(t, req, http.StatusCreated)
-	var apiRepo api.Repository
-	DecodeJSON(t, resp, &apiRepo)
-	return &apiRepo
+	apiRepo := DecodeJSON(t, resp, &api.Repository{})
+	return apiRepo
 }
 
 func getWorkflowCreateFileOptions(u *user_model.User, branch, msg, content string) *api.CreateFileOptions {
@@ -621,9 +737,8 @@ func createWorkflowFile(t *testing.T, authToken, ownerName, repoName, treePath s
 	req := NewRequestWithJSON(t, "POST", fmt.Sprintf("/api/v1/repos/%s/%s/contents/%s", ownerName, repoName, treePath), opts).
 		AddTokenAuth(authToken)
 	resp := MakeRequest(t, req, http.StatusCreated)
-	var fileResponse api.FileResponse
-	DecodeJSON(t, resp, &fileResponse)
-	return &fileResponse
+	fileResponse := DecodeJSON(t, resp, &api.FileResponse{})
+	return fileResponse
 }
 
 // getTaskJobNameByTaskID get the job name of the task by task ID
@@ -633,12 +748,169 @@ func getTaskJobNameByTaskID(t *testing.T, authToken, ownerName, repoName string,
 	req := NewRequest(t, "GET", fmt.Sprintf("/api/v1/repos/%s/%s/actions/tasks", ownerName, repoName)).
 		AddTokenAuth(authToken)
 	resp := MakeRequest(t, req, http.StatusOK)
-	var taskRespBefore api.ActionTaskResponse
-	DecodeJSON(t, resp, &taskRespBefore)
+	taskRespBefore := DecodeJSON(t, resp, &api.ActionTaskResponse{})
 	for _, apiTask := range taskRespBefore.Entries {
 		if apiTask.ID == taskID {
 			return apiTask.Name
 		}
 	}
 	return ""
+}
+
+// TestLegacyRunsInCronTasks verifies that the background cron tasks correctly handle runs/jobs
+// created before migration v331 (legacy data with LatestAttemptID=0 and jobs with RunAttemptID=0).
+func TestLegacyRunsInCronTasks(t *testing.T) {
+	onGiteaRun(t, func(t *testing.T, _ *url.URL) {
+		user2 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
+		session := loginUser(t, user2.Name)
+		token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeWriteRepository, auth_model.AccessTokenScopeWriteUser)
+
+		apiRepo := createActionsTestRepo(t, token, "actions-legacy-cron", false)
+		repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: apiRepo.ID})
+		httpContext := NewAPITestContext(t, user2.Name, repo.Name, auth_model.AccessTokenScopeWriteRepository)
+		defer doAPIDeleteRepository(httpContext)(t)
+
+		// Far-past timestamp so the queries match regardless of the configured timeouts.
+		oldTS := timeutil.TimeStamp(time.Now().Add(-30 * 24 * time.Hour).Unix())
+
+		// insertLegacyRunJob inserts a run + job without an ActionRunAttempt record, simulating data created before migration v331 (LatestAttemptID=0, job.RunAttemptID=0, job.AttemptJobID=0).
+		insertLegacyRunJob := func(t *testing.T, index int64, runStatus, jobStatus actions_model.Status) (*actions_model.ActionRun, *actions_model.ActionRunJob) {
+			t.Helper()
+
+			run := &actions_model.ActionRun{
+				Title:         fmt.Sprintf("legacy run %d", index),
+				RepoID:        repo.ID,
+				OwnerID:       repo.OwnerID,
+				WorkflowID:    fmt.Sprintf("legacy-%d.yml", index),
+				Index:         index,
+				TriggerUserID: user2.ID,
+				Ref:           "refs/heads/" + repo.DefaultBranch,
+				CommitSHA:     "0000000000000000000000000000000000000000",
+				Event:         "workflow_dispatch",
+				TriggerEvent:  "workflow_dispatch",
+				EventPayload:  "{}",
+				Status:        runStatus,
+			}
+			require.NoError(t, db.Insert(t.Context(), run))
+
+			job := &actions_model.ActionRunJob{
+				RunID:        run.ID,
+				RepoID:       repo.ID,
+				OwnerID:      repo.OwnerID,
+				CommitSHA:    run.CommitSHA,
+				Name:         "legacy-job",
+				Attempt:      1,
+				JobID:        "legacy-job",
+				RunsOn:       []string{"ubuntu-latest"},
+				Status:       jobStatus,
+				RunAttemptID: 0,
+				AttemptJobID: 0,
+			}
+			require.NoError(t, db.Insert(t.Context(), job))
+
+			// backfill timestamps so the cron task queries can match them.
+			_, err := db.GetEngine(t.Context()).Exec("UPDATE action_run SET created=?, updated=? WHERE id=?", int64(oldTS), int64(oldTS), run.ID)
+			require.NoError(t, err)
+			_, err = db.GetEngine(t.Context()).Exec("UPDATE action_run_job SET created=?, updated=? WHERE id=?", int64(oldTS), int64(oldTS), job.ID)
+			require.NoError(t, err)
+			run.Created, run.Updated = oldTS, oldTS
+			job.Created, job.Updated = oldTS, oldTS
+			return run, job
+		}
+
+		t.Run("StopZombieTasks", func(t *testing.T) {
+			run, job := insertLegacyRunJob(t, 10, actions_model.StatusRunning, actions_model.StatusRunning)
+
+			task := &actions_model.ActionTask{
+				JobID:     job.ID,
+				Attempt:   1,
+				Status:    actions_model.StatusRunning,
+				Started:   oldTS,
+				RepoID:    repo.ID,
+				OwnerID:   repo.OwnerID,
+				CommitSHA: run.CommitSHA,
+			}
+			task.GenerateAndFillToken()
+			require.NoError(t, db.Insert(t.Context(), task))
+			_, err := db.GetEngine(t.Context()).Exec("UPDATE action_task SET updated=? WHERE id=?", int64(oldTS), task.ID)
+			require.NoError(t, err)
+			job.TaskID = task.ID
+			_, err = db.GetEngine(t.Context()).ID(job.ID).Cols("task_id").Update(job)
+			require.NoError(t, err)
+
+			require.NoError(t, actions_service.StopZombieTasks(t.Context()))
+
+			gotTask := unittest.AssertExistsAndLoadBean(t, &actions_model.ActionTask{ID: task.ID})
+			assert.Equal(t, actions_model.StatusFailure, gotTask.Status)
+			gotJob := unittest.AssertExistsAndLoadBean(t, &actions_model.ActionRunJob{ID: job.ID})
+			assert.Equal(t, actions_model.StatusFailure, gotJob.Status)
+			gotRun := unittest.AssertExistsAndLoadBean(t, &actions_model.ActionRun{ID: run.ID})
+			assert.Equal(t, actions_model.StatusFailure, gotRun.Status)
+		})
+
+		t.Run("StopEndlessTasks", func(t *testing.T) {
+			run, job := insertLegacyRunJob(t, 20, actions_model.StatusRunning, actions_model.StatusRunning)
+
+			task := &actions_model.ActionTask{
+				JobID:     job.ID,
+				Attempt:   1,
+				Status:    actions_model.StatusRunning,
+				Started:   oldTS,
+				RepoID:    repo.ID,
+				OwnerID:   repo.OwnerID,
+				CommitSHA: run.CommitSHA,
+			}
+			task.GenerateAndFillToken()
+			require.NoError(t, db.Insert(t.Context(), task))
+			job.TaskID = task.ID
+			_, err := db.GetEngine(t.Context()).ID(job.ID).Cols("task_id").Update(job)
+			require.NoError(t, err)
+
+			require.NoError(t, actions_service.StopEndlessTasks(t.Context()))
+
+			gotTask := unittest.AssertExistsAndLoadBean(t, &actions_model.ActionTask{ID: task.ID})
+			assert.Equal(t, actions_model.StatusFailure, gotTask.Status)
+			gotJob := unittest.AssertExistsAndLoadBean(t, &actions_model.ActionRunJob{ID: job.ID})
+			assert.Equal(t, actions_model.StatusFailure, gotJob.Status)
+			gotRun := unittest.AssertExistsAndLoadBean(t, &actions_model.ActionRun{ID: run.ID})
+			assert.Equal(t, actions_model.StatusFailure, gotRun.Status)
+		})
+
+		t.Run("CancelAbandonedJobs", func(t *testing.T) {
+			run, job := insertLegacyRunJob(t, 30, actions_model.StatusWaiting, actions_model.StatusWaiting)
+
+			require.NoError(t, actions_service.CancelAbandonedJobs(t.Context()))
+
+			gotJob := unittest.AssertExistsAndLoadBean(t, &actions_model.ActionRunJob{ID: job.ID})
+			assert.Equal(t, actions_model.StatusCancelled, gotJob.Status)
+			gotRun := unittest.AssertExistsAndLoadBean(t, &actions_model.ActionRun{ID: run.ID})
+			assert.Equal(t, actions_model.StatusCancelled, gotRun.Status)
+		})
+
+		t.Run("Cleanup", func(t *testing.T) {
+			run, _ := insertLegacyRunJob(t, 40, actions_model.StatusSuccess, actions_model.StatusSuccess)
+
+			expiredArtifact := &actions_model.ActionArtifact{
+				RunID:                 run.ID,
+				RunAttemptID:          0, // legacy artifact
+				RepoID:                repo.ID,
+				OwnerID:               repo.OwnerID,
+				CommitSHA:             run.CommitSHA,
+				StoragePath:           fmt.Sprintf("artifacts/legacy-expired-%d.zip", run.ID),
+				FileSize:              1,
+				FileCompressedSize:    1,
+				ContentEncodingOrType: actions_model.ContentTypeZip,
+				ArtifactPath:          "legacy-expired.zip",
+				ArtifactName:          "legacy-expired",
+				Status:                actions_model.ArtifactStatusUploadConfirmed,
+				ExpiredUnix:           oldTS,
+			}
+			require.NoError(t, db.Insert(t.Context(), expiredArtifact))
+
+			require.NoError(t, actions_service.Cleanup(t.Context()))
+
+			gotArtifact := unittest.AssertExistsAndLoadBean(t, &actions_model.ActionArtifact{ID: expiredArtifact.ID})
+			assert.Equal(t, actions_model.ArtifactStatusExpired, gotArtifact.Status)
+		})
+	})
 }

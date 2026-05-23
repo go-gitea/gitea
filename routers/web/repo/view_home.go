@@ -31,7 +31,7 @@ import (
 )
 
 func checkOutdatedBranch(ctx *context.Context) {
-	if !(ctx.Repo.IsAdmin() || ctx.Repo.IsOwner()) {
+	if !(ctx.Repo.Permission.IsAdmin() || ctx.Repo.Permission.IsOwner()) {
 		return
 	}
 
@@ -69,9 +69,6 @@ func prepareHomeSidebarRepoTopics(ctx *context.Context) {
 func prepareOpenWithEditorApps(ctx *context.Context) {
 	var tmplApps []map[string]any
 	apps := setting.Config().Repository.OpenWithEditorApps.Value(ctx)
-	if len(apps) == 0 {
-		apps = setting.DefaultOpenWithEditorApps()
-	}
 	for _, app := range apps {
 		schema, _, _ := strings.Cut(app.OpenURL, ":")
 
@@ -279,7 +276,7 @@ func handleRepoViewSubmodule(ctx *context.Context, commitSubmoduleFile *git.Comm
 	redirectLink := submoduleWebLink.CommitWebLink
 	if isViewHomeOnlyContent(ctx) {
 		ctx.Resp.Header().Set("Content-Type", "text/html; charset=utf-8")
-		_, _ = ctx.Resp.Write([]byte(htmlutil.HTMLFormat(`<a href="%s">%s</a>`, redirectLink, redirectLink)))
+		_, _ = htmlutil.HTMLPrintf(ctx.Resp, `<a href="%s">%s</a>`, redirectLink, redirectLink)
 	} else if !httplib.IsCurrentGiteaSiteURL(ctx, redirectLink) {
 		// don't auto-redirect to external URL, to avoid open redirect or phishing
 		ctx.Data["NotFoundPrompt"] = redirectLink

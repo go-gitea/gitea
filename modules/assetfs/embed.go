@@ -260,7 +260,7 @@ func (fi *embeddedFileInfo) Mode() fs.FileMode {
 }
 
 func (fi *embeddedFileInfo) ModTime() time.Time {
-	return getExecutableModTime()
+	return GetExecutableModTime()
 }
 
 func (fi *embeddedFileInfo) IsDir() bool {
@@ -279,9 +279,9 @@ func (fi *embeddedFileInfo) Info() (fs.FileInfo, error) {
 	return fi, nil
 }
 
-// getExecutableModTime returns the modification time of the executable file.
+// GetExecutableModTime returns the modification time of the executable file.
 // In bindata, we can't use the ModTime of the files because we need to make the build reproducible
-var getExecutableModTime = sync.OnceValue(func() (modTime time.Time) {
+var GetExecutableModTime = sync.OnceValue(func() (modTime time.Time) {
 	exePath, err := os.Executable()
 	if err != nil {
 		return modTime

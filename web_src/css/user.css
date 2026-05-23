@@ -92,13 +92,29 @@
 }
 
 .user-badges {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, 64px);
-  gap: 2px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin: 0;
+  min-width: 0;
+}
+
+.user-badge-item {
+  display: inline-flex;
+  flex: 0 0 auto;
+  min-width: max-content;
 }
 
 .user-badges img {
   object-fit: contain;
+}
+
+.user-badge-chip {
+  max-width: none !important;
+  overflow: visible !important;
+  text-overflow: clip !important;
+  white-space: nowrap;
+  min-width: max-content;
 }
 
 #readme_profile {

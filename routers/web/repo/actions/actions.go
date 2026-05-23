@@ -28,7 +28,7 @@ import (
 	"code.gitea.io/gitea/services/context"
 	"code.gitea.io/gitea/services/convert"
 
-	act_model "github.com/nektos/act/pkg/model"
+	act_model "gitea.com/gitea/runner/act/model"
 	"go.yaml.in/yaml/v4"
 )
 
@@ -57,7 +57,7 @@ func MustEnableActions(ctx *context.Context) {
 	}
 
 	if ctx.Repo.Repository != nil {
-		if !ctx.Repo.CanRead(unit.TypeActions) {
+		if !ctx.Repo.Permission.CanRead(unit.TypeActions) {
 			ctx.NotFound(nil)
 			return
 		}
@@ -151,6 +151,11 @@ func prepareWorkflowTemplate(ctx *context.Context, commit *git.Commit) (workflow
 			workflows = append(workflows, workflow)
 			continue
 		}
+		if err := actions.ValidateWorkflowContent(content); err != nil {
+			workflow.ErrMsg = ctx.Locale.TrString("actions.runs.invalid_workflow_helper", err.Error())
+			workflows = append(workflows, workflow)
+			continue
+		}
 		workflow.Workflow = wf
 		// The workflow must contain at least one job without "needs". Otherwise, a deadlock will occur and no jobs will be able to run.
 		hasJobWithoutNeeds := false
@@ -176,7 +181,7 @@ func prepareWorkflowTemplate(ctx *context.Context, commit *git.Commit) (workflow
 
 	ctx.Data["workflows"] = workflows
 	ctx.Data["RepoLink"] = ctx.Repo.Repository.Link()
-	ctx.Data["AllowDisableOrEnableWorkflow"] = ctx.Repo.IsAdmin()
+	ctx.Data["AllowDisableOrEnableWorkflow"] = ctx.Repo.Permission.IsAdmin()
 	actionsConfig := ctx.Repo.Repository.MustGetUnit(ctx, unit.TypeActions).ActionsConfig()
 	ctx.Data["ActionsConfig"] = actionsConfig
 	ctx.Data["CurWorkflow"] = curWorkflowID
@@ -187,7 +192,7 @@ func prepareWorkflowTemplate(ctx *context.Context, commit *git.Commit) (workflow
 
 func prepareWorkflowDispatchTemplate(ctx *context.Context, workflowInfos []WorkflowInfo, curWorkflowID string) {
 	actionsConfig := ctx.Repo.Repository.MustGetUnit(ctx, unit.TypeActions).ActionsConfig()
-	if curWorkflowID == "" || !ctx.Repo.CanWrite(unit.TypeActions) || actionsConfig.IsWorkflowDisabled(curWorkflowID) {
+	if curWorkflowID == "" || !ctx.Repo.Permission.CanWrite(unit.TypeActions) || actionsConfig.IsWorkflowDisabled(curWorkflowID) {
 		return
 	}
 
@@ -306,7 +311,7 @@ func prepareWorkflowList(ctx *context.Context, workflows []WorkflowInfo) {
 		if !run.Status.In(actions_model.StatusWaiting, actions_model.StatusRunning) {
 			continue
 		}
-		jobs, err := actions_model.GetRunJobsByRunID(ctx, run.ID)
+		jobs, err := actions_model.GetLatestAttemptJobsByRepoAndRunID(ctx, run.RepoID, run.ID)
 		if err != nil {
 			ctx.ServerError("GetRunJobsByRunID", err)
 			return
@@ -315,9 +320,13 @@ func prepareWorkflowList(ctx *context.Context, workflows []WorkflowInfo) {
 			if !job.Status.IsWaiting() {
 				continue
 			}
+			if err := actions.ValidateWorkflowContent(job.WorkflowPayload); err != nil {
+				runErrors[run.ID] = ctx.Locale.TrString("actions.runs.invalid_workflow_helper", err.Error())
+				break
+			}
 			hasOnlineRunner := false
 			for _, runner := range runners {
-				if runner.CanMatchLabels(job.RunsOn) {
+				if !runner.IsDisabled && runner.CanMatchLabels(job.RunsOn) {
 					hasOnlineRunner = true
 					break
 				}
@@ -341,12 +350,12 @@ func prepareWorkflowList(ctx *context.Context, workflows []WorkflowInfo) {
 
 	ctx.Data["StatusInfoList"] = actions_model.GetStatusInfoList(ctx, ctx.Locale)
 
-	pager := context.NewPagination(int(total), opts.PageSize, opts.Page, 5)
+	pager := context.NewPagination(total, opts.PageSize, opts.Page, 5)
 	pager.AddParamFromRequest(ctx.Req)
 	ctx.Data["Page"] = pager
 	ctx.Data["HasWorkflowsOrRuns"] = len(workflows) > 0 || len(runs) > 0
 
-	ctx.Data["CanWriteRepoUnitActions"] = ctx.Repo.CanWrite(unit.TypeActions)
+	ctx.Data["CanWriteRepoUnitActions"] = ctx.Repo.Permission.CanWrite(unit.TypeActions)
 }
 
 // loadIsRefDeleted loads the IsRefDeleted field for each run in the list.

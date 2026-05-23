@@ -48,21 +48,6 @@ func (err ErrIssueNotExist) Unwrap() error {
 	return util.ErrNotExist
 }
 
-// ErrNewIssueInsert is used when the INSERT statement in newIssue fails
-type ErrNewIssueInsert struct {
-	OriginalError error
-}
-
-// IsErrNewIssueInsert checks if an error is a ErrNewIssueInsert.
-func IsErrNewIssueInsert(err error) bool {
-	_, ok := err.(ErrNewIssueInsert)
-	return ok
-}
-
-func (err ErrNewIssueInsert) Error() string {
-	return err.OriginalError.Error()
-}
-
 var ErrIssueAlreadyChanged = util.NewInvalidArgumentErrorf("the issue is already changed")
 
 // Issue represents an issue or pull request of repository.
@@ -74,17 +59,18 @@ type Issue struct {
 	PosterID          int64                  `xorm:"INDEX"`
 	Poster            *user_model.User       `xorm:"-"`
 	OriginalAuthor    string
-	OriginalAuthorID  int64                  `xorm:"index"`
-	Title             string                 `xorm:"name"`
-	Content           string                 `xorm:"LONGTEXT"`
-	RenderedContent   template.HTML          `xorm:"-"`
-	ContentVersion    int                    `xorm:"NOT NULL DEFAULT 0"`
-	Labels            []*Label               `xorm:"-"`
-	isLabelsLoaded    bool                   `xorm:"-"`
-	MilestoneID       int64                  `xorm:"INDEX"`
-	Milestone         *Milestone             `xorm:"-"`
-	isMilestoneLoaded bool                   `xorm:"-"`
-	Project           *project_model.Project `xorm:"-"`
+	OriginalAuthorID  int64                    `xorm:"index"`
+	Title             string                   `xorm:"name"`
+	Content           string                   `xorm:"LONGTEXT"`
+	RenderedContent   template.HTML            `xorm:"-"`
+	ContentVersion    int                      `xorm:"NOT NULL DEFAULT 0"`
+	Labels            []*Label                 `xorm:"-"`
+	isLabelsLoaded    bool                     `xorm:"-"`
+	MilestoneID       int64                    `xorm:"INDEX"`
+	Milestone         *Milestone               `xorm:"-"`
+	isMilestoneLoaded bool                     `xorm:"-"`
+	Projects          []*project_model.Project `xorm:"-"`
+	isProjectsLoaded  bool                     `xorm:"-"`
 	Priority          int
 	AssigneeID        int64            `xorm:"-"`
 	Assignee          *user_model.User `xorm:"-"`
@@ -190,17 +176,10 @@ func (issue *Issue) IsTimetrackerEnabled(ctx context.Context) bool {
 
 // LoadPoster loads poster
 func (issue *Issue) LoadPoster(ctx context.Context) (err error) {
-	if issue.Poster == nil && issue.PosterID != 0 {
-		issue.Poster, err = user_model.GetPossibleUserByID(ctx, issue.PosterID)
-		if err != nil {
-			issue.PosterID = user_model.GhostUserID
-			issue.Poster = user_model.NewGhostUser()
-			if !user_model.IsErrUserNotExist(err) {
-				return fmt.Errorf("getUserByID.(poster) [%d]: %w", issue.PosterID, err)
-			}
-			return nil
-		}
+	if issue.Poster != nil {
+		return nil
 	}
+	issue.PosterID, issue.Poster, err = user_model.GetPossibleUserByID(ctx, issue.PosterID)
 	return err
 }
 
@@ -327,7 +306,7 @@ func (issue *Issue) LoadAttributes(ctx context.Context) (err error) {
 		return err
 	}
 
-	if err = issue.LoadProject(ctx); err != nil {
+	if err = issue.LoadProjects(ctx); err != nil {
 		return err
 	}
 
@@ -377,6 +356,7 @@ func (issue *Issue) ResetAttributesLoaded() {
 	issue.isMilestoneLoaded = false
 	issue.isAttachmentsLoaded = false
 	issue.isAssigneeLoaded = false
+	issue.isProjectsLoaded = false
 }
 
 // GetIsRead load the `IsRead` field of the issue
@@ -592,6 +572,17 @@ func GetIssueByID(ctx context.Context, id int64) (*Issue, error) {
 	return issue, nil
 }
 
+func GetIssueByRepoID(ctx context.Context, repoID, issueID int64) (*Issue, error) {
+	issue := new(Issue)
+	has, err := db.GetEngine(ctx).ID(issueID).Where("repo_id=?", repoID).Get(issue)
+	if err != nil {
+		return nil, err
+	} else if !has {
+		return nil, ErrIssueNotExist{issueID, repoID, 0}
+	}
+	return issue, nil
+}
+
 // GetIssuesByIDs return issues with the given IDs.
 // If keepOrder is true, the order of the returned issues will be the same as the given IDs.
 func GetIssuesByIDs(ctx context.Context, issueIDs []int64, keepOrder ...bool) (IssueList, error) {
@@ -691,7 +682,7 @@ func (issue *Issue) BlockedByDependencies(ctx context.Context, opts db.ListOptio
 		// sort by repo id then created date, with the issues of the same repo at the beginning of the list
 		OrderBy("CASE WHEN issue.repo_id = ? THEN 0 ELSE issue.repo_id END, issue.created_unix DESC", issue.RepoID)
 	if opts.Page > 0 {
-		sess = db.SetSessionPagination(sess, &opts)
+		db.SetSessionPagination(sess, &opts)
 	}
 	total, err = sess.FindAndCount(&issueDeps)
 

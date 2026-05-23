@@ -72,7 +72,7 @@ type ChangeFileOperation struct {
 	// indicates what to do with the file: "create" for creating a new file, "update" for updating an existing file,
 	// "upload" for creating or updating a file, "rename" for renaming a file, and "delete" for deleting an existing file.
 	// required: true
-	// enum: create,update,upload,rename,delete
+	// enum: ["create","update","upload","rename","delete"]
 	Operation string `json:"operation" binding:"Required"`
 	// path to the existing or new file
 	// required: true

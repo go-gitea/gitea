@@ -77,7 +77,7 @@ func (fc feishuConvertor) Push(p *api.PushPayload) (FeishuPayload, error) {
 	)
 
 	var text strings.Builder
-	text.WriteString(fmt.Sprintf("[%s:%s] %s\r\n", p.Repo.FullName, branchName, commitDesc))
+	fmt.Fprintf(&text, "[%s:%s] %s\r\n", p.Repo.FullName, branchName, commitDesc)
 	// for each commit, generate attachment text
 	for i, commit := range p.Commits {
 		var authorName string

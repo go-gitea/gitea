@@ -72,7 +72,7 @@ type componentStatus struct {
 // And keep in mind: this health check should NEVER be used as a "restart" trigger, for example: Docker's "HEALTHCHECK".
 // * If Gitea is upgrading and migrating database, there will be a long time before this endpoint starts to return "pass" status.
 // In this case, if the checker restarts Gitea just because it doesn't get "pass" status in short time,
-// the instance will just be restarted again and again before the migation finishes and the sitution just goes worse.
+// the instance will just be restarted again and again before the migration finishes and the situation just goes worse.
 func Check(w http.ResponseWriter, r *http.Request) {
 	rsp := response{
 		Status:      pass,
@@ -111,16 +111,10 @@ func checkDatabase(ctx context.Context, checks checks) status {
 	}
 
 	if setting.Database.Type.IsSQLite3() && st.Status == pass {
-		if !setting.EnableSQLite3 {
+		if _, err := os.Stat(setting.Database.Path); err != nil {
 			st.Status = fail
 			st.Time = getCheckTime()
-			log.Error("SQLite3 health check failed with error: %v", "this Gitea binary is built without SQLite3 enabled")
-		} else {
-			if _, err := os.Stat(setting.Database.Path); err != nil {
-				st.Status = fail
-				st.Time = getCheckTime()
-				log.Error("SQLite3 file exists check failed with error: %v", err)
-			}
+			log.Error("SQLite3 file exists check failed with error: %v", err)
 		}
 	}
 

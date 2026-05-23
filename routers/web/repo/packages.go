@@ -59,12 +59,12 @@ func Packages(ctx *context.Context) {
 	ctx.Data["PackageType"] = packageType
 	ctx.Data["AvailableTypes"] = packages.TypeList
 	ctx.Data["HasPackages"] = hasPackages
-	ctx.Data["CanWritePackages"] = ctx.Repo.CanWrite(unit.TypePackages) || ctx.IsUserSiteAdmin()
+	ctx.Data["CanWritePackages"] = ctx.Repo.Permission.CanWrite(unit.TypePackages) || ctx.IsUserSiteAdmin()
 	ctx.Data["PackageDescriptors"] = pds
 	ctx.Data["Total"] = total
 	ctx.Data["RepositoryAccessMap"] = map[int64]bool{ctx.Repo.Repository.ID: true} // There is only the current repository
 
-	pager := context.NewPagination(int(total), setting.UI.PackagesPagingNum, page, 5)
+	pager := context.NewPagination(total, setting.UI.PackagesPagingNum, page, 5)
 	pager.AddParamFromRequest(ctx.Req)
 	ctx.Data["Page"] = pager
 

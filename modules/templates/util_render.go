@@ -16,6 +16,7 @@ import (
 	issues_model "code.gitea.io/gitea/models/issues"
 	"code.gitea.io/gitea/models/renderhelper"
 	"code.gitea.io/gitea/models/repo"
+	"code.gitea.io/gitea/modules/charset"
 	"code.gitea.io/gitea/modules/emoji"
 	"code.gitea.io/gitea/modules/htmlutil"
 	"code.gitea.io/gitea/modules/log"
@@ -39,7 +40,7 @@ func NewRenderUtils(ctx reqctx.RequestContext) *RenderUtils {
 
 // RenderCommitMessage renders commit message with XSS-safe and special links.
 func (ut *RenderUtils) RenderCommitMessage(msg string, repo *repo.Repository) template.HTML {
-	cleanMsg := template.HTMLEscapeString(msg)
+	cleanMsg := template.HTML(template.HTMLEscapeString(msg))
 	// we can safely assume that it will not return any error, since there shouldn't be any special HTML.
 	// "repo" can be nil when rendering commit messages for deleted repositories in a user's dashboard feed.
 	fullMessage, err := markup.PostProcessCommitMessage(renderhelper.NewRenderContextRepoComment(ut.ctx, repo), cleanMsg)
@@ -47,7 +48,7 @@ func (ut *RenderUtils) RenderCommitMessage(msg string, repo *repo.Repository) te
 		log.Error("PostProcessCommitMessage: %v", err)
 		return ""
 	}
-	msgLines := strings.Split(strings.TrimSpace(fullMessage), "\n")
+	msgLines := strings.Split(strings.TrimSpace(string(fullMessage)), "\n")
 	if len(msgLines) == 0 {
 		return ""
 	}
@@ -78,24 +79,20 @@ func (ut *RenderUtils) RenderCommitMessageLinkSubject(msg, urlDefault string, re
 
 // RenderCommitBody extracts the body of a commit message without its title.
 func (ut *RenderUtils) RenderCommitBody(msg string, repo *repo.Repository) template.HTML {
-	msgLine := strings.TrimSpace(msg)
-	lineEnd := strings.IndexByte(msgLine, '\n')
-	if lineEnd > 0 {
-		msgLine = msgLine[lineEnd+1:]
-	} else {
-		return ""
-	}
-	msgLine = strings.TrimLeftFunc(msgLine, unicode.IsSpace)
-	if len(msgLine) == 0 {
+	_, body, _ := strings.Cut(strings.TrimSpace(msg), "\n")
+	body = strings.TrimFunc(body, unicode.IsSpace)
+	if body == "" {
 		return ""
 	}
 
-	renderedMessage, err := markup.PostProcessCommitMessage(renderhelper.NewRenderContextRepoComment(ut.ctx, repo), template.HTMLEscapeString(msgLine))
+	rctx := renderhelper.NewRenderContextRepoComment(ut.ctx, repo)
+	htmlContent := template.HTML(template.HTMLEscapeString(body))
+	renderedMessage, err := markup.PostProcessCommitMessage(rctx, htmlContent)
 	if err != nil {
 		log.Error("PostProcessCommitMessage: %v", err)
 		return ""
 	}
-	return template.HTML(renderedMessage)
+	return renderedMessage
 }
 
 // Match text that is between back ticks.
@@ -124,23 +121,7 @@ func (ut *RenderUtils) RenderIssueSimpleTitle(text string) template.HTML {
 	return ret
 }
 
-func (ut *RenderUtils) RenderLabelWithLink(label *issues_model.Label, link any) template.HTML {
-	var attrHref template.HTML
-	switch link.(type) {
-	case template.URL, string:
-		attrHref = htmlutil.HTMLFormat(`href="%s"`, link)
-	default:
-		panic(fmt.Sprintf("unexpected type %T for link", link))
-	}
-	return ut.renderLabelWithTag(label, "a", attrHref)
-}
-
 func (ut *RenderUtils) RenderLabel(label *issues_model.Label) template.HTML {
-	return ut.renderLabelWithTag(label, "span", "")
-}
-
-// RenderLabel renders a label
-func (ut *RenderUtils) renderLabelWithTag(label *issues_model.Label, tagName, tagAttrs template.HTML) template.HTML {
 	locale := ut.ctx.Value(translation.ContextKey).(translation.Locale)
 	var extraCSSClasses string
 	textColor := util.ContrastColor(label.Color)
@@ -154,8 +135,8 @@ func (ut *RenderUtils) renderLabelWithTag(label *issues_model.Label, tagName, ta
 
 	if labelScope == "" {
 		// Regular label
-		return htmlutil.HTMLFormat(`<%s %s class="ui label %s" style="color: %s !important; background-color: %s !important;" data-tooltip-content title="%s"><span class="gt-ellipsis">%s</span></%s>`,
-			tagName, tagAttrs, extraCSSClasses, textColor, label.Color, descriptionText, ut.RenderEmoji(label.Name), tagName)
+		return htmlutil.HTMLFormat(`<span class="ui label %s" style="color: %s !important; background-color: %s !important;" data-tooltip-content title="%s"><span class="gt-ellipsis">%s</span></span>`,
+			extraCSSClasses, textColor, label.Color, descriptionText, ut.RenderEmoji(label.Name))
 	}
 
 	// Scoped label
@@ -190,29 +171,25 @@ func (ut *RenderUtils) renderLabelWithTag(label *issues_model.Label, tagName, ta
 
 	if label.ExclusiveOrder > 0 {
 		// <scope> | <label> | <order>
-		return htmlutil.HTMLFormat(`<%s %s class="ui label %s scope-parent" data-tooltip-content title="%s">`+
+		return htmlutil.HTMLFormat(`<span class="ui label %s scope-parent" data-tooltip-content title="%s">`+
 			`<div class="ui label scope-left" style="color: %s !important; background-color: %s !important">%s</div>`+
 			`<div class="ui label scope-middle" style="color: %s !important; background-color: %s !important">%s</div>`+
 			`<div class="ui label scope-right">%d</div>`+
-			`</%s>`,
-			tagName, tagAttrs,
+			`</span>`,
 			extraCSSClasses, descriptionText,
 			textColor, scopeColor, scopeHTML,
 			textColor, itemColor, itemHTML,
-			label.ExclusiveOrder,
-			tagName)
+			label.ExclusiveOrder)
 	}
 
 	// <scope> | <label>
-	return htmlutil.HTMLFormat(`<%s %s class="ui label %s scope-parent" data-tooltip-content title="%s">`+
+	return htmlutil.HTMLFormat(`<span class="ui label %s scope-parent" data-tooltip-content title="%s">`+
 		`<div class="ui label scope-left" style="color: %s !important; background-color: %s !important">%s</div>`+
 		`<div class="ui label scope-right" style="color: %s !important; background-color: %s !important">%s</div>`+
-		`</%s>`,
-		tagName, tagAttrs,
+		`</span>`,
 		extraCSSClasses, descriptionText,
 		textColor, scopeColor, scopeHTML,
-		textColor, itemColor, itemHTML,
-		tagName)
+		textColor, itemColor, itemHTML)
 }
 
 // RenderEmoji renders html text with emoji post processors
@@ -249,18 +226,19 @@ func (ut *RenderUtils) MarkdownToHtml(input string) template.HTML { //nolint:rev
 func (ut *RenderUtils) RenderLabels(labels []*issues_model.Label, repoLink string, issue *issues_model.Issue) template.HTML {
 	isPullRequest := issue != nil && issue.IsPull
 	baseLink := fmt.Sprintf("%s/%s", repoLink, util.Iif(isPullRequest, "pulls", "issues"))
-	var htmlCode strings.Builder
-	htmlCode.WriteString(`<span class="labels-list">`)
+	var htmlCode htmlutil.HTMLBuilder
+	htmlCode.WriteHTML(`<span class="labels-list">`)
 	for _, label := range labels {
 		// Protect against nil value in labels - shouldn't happen but would cause a panic if so
 		if label == nil {
 			continue
 		}
-		link := fmt.Sprintf("%s?labels=%d", baseLink, label.ID)
-		htmlCode.WriteString(string(ut.RenderLabelWithLink(label, template.URL(link))))
+		htmlCode.WriteFormat(`<a class="item" href="%s?labels=%d">`, baseLink, label.ID)
+		htmlCode.WriteHTML(ut.RenderLabel(label))
+		htmlCode.WriteHTML("</a>")
 	}
-	htmlCode.WriteString("</span>")
-	return template.HTML(htmlCode.String())
+	htmlCode.WriteHTML("</span>")
+	return htmlCode.HTMLString()
 }
 
 func (ut *RenderUtils) RenderThemeItem(info *webtheme.ThemeMetaInfo, iconSize int) template.HTML {
@@ -276,4 +254,54 @@ func (ut *RenderUtils) RenderThemeItem(info *webtheme.ThemeMetaInfo, iconSize in
 	icon := svg.RenderHTML(svgName, iconSize)
 	extraIcon := svg.RenderHTML(info.GetExtraIconName(), iconSize)
 	return htmlutil.HTMLFormat(`<div class="theme-menu-item" data-tooltip-content="%s">%s %s %s</div>`, info.GetDescription(), icon, info.DisplayName, extraIcon)
+}
+
+func (ut *RenderUtils) RenderFlashMessage(typ, msg string) template.HTML {
+	msg = strings.TrimSpace(msg)
+	if msg == "" {
+		return ""
+	}
+
+	cls := typ
+	// legacy logic: "negative" for error, "positive" for success
+	switch cls {
+	case "error":
+		cls = "negative"
+	case "success":
+		cls = "positive"
+	}
+
+	var msgContent template.HTML
+	if strings.Contains(msg, "</pre>") || strings.Contains(msg, "</details>") || strings.Contains(msg, "</ul>") || strings.Contains(msg, "</div>") {
+		// If the message contains some known "block" elements, no need to do more alignment or line-break processing, just sanitize it directly.
+		msgContent = sanitizeHTML(msg)
+	} else if !strings.Contains(msg, "\n") {
+		// If the message is a single line, center-align it by wrapping it
+		msgContent = htmlutil.HTMLFormat(`<div class="tw-text-center">%s</div>`, sanitizeHTML(msg))
+	} else {
+		// For a multi-line message, preserve line breaks, and left-align it.
+		msgContent = htmlutil.HTMLFormat(`%s`, sanitizeHTML(strings.ReplaceAll(msg, "\n", "<br>")))
+	}
+	return htmlutil.HTMLFormat(`<div class="ui %s message flash-message flash-%s">%s</div>`, cls, typ, msgContent)
+}
+
+func (ut *RenderUtils) RenderUnicodeEscapeToggleButton(escapeStatus *charset.EscapeStatus) template.HTML {
+	if escapeStatus == nil || !escapeStatus.Escaped {
+		return ""
+	}
+	locale := ut.ctx.Value(translation.ContextKey).(translation.Locale)
+	var title template.HTML
+	if escapeStatus.HasAmbiguous {
+		title += locale.Tr("repo.ambiguous_runes_line")
+	} else if escapeStatus.HasInvisible {
+		title += locale.Tr("repo.invisible_runes_line")
+	}
+	return htmlutil.HTMLFormat(`<button type="button" class="toggle-escape-button btn interact-bg" title="%s"></button>`, title)
+}
+
+func (ut *RenderUtils) RenderUnicodeEscapeToggleTd(combined, escapeStatus *charset.EscapeStatus) template.HTML {
+	if combined == nil || !combined.Escaped {
+		return ""
+	}
+	return `<td class="lines-escape">` + ut.RenderUnicodeEscapeToggleButton(escapeStatus) + `</td>`
 }

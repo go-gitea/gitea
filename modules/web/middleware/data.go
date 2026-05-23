@@ -7,6 +7,7 @@ import (
 	"context"
 	"time"
 
+	"code.gitea.io/gitea/modules/public"
 	"code.gitea.io/gitea/modules/reqctx"
 	"code.gitea.io/gitea/modules/setting"
 )
@@ -36,5 +37,6 @@ func CommonTemplateContextData() reqctx.ContextData {
 		"PageStartTime":      time.Now(),
 
 		"RunModeIsProd": setting.IsProd,
+		"ViteModeIsDev": public.IsViteDevMode(),
 	}
 }

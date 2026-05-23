@@ -40,6 +40,9 @@ The DBFS solution:
 * In the future, when Gitea action needs to limit the log size (other CI/CD services also do so), it's easier to calculate the log file size.
 * Even sometimes the UI needs to render the tailing lines, the tailing lines can be found be counting the "\n" from the end of the file by seek.
   The seeking and finding is not the fastest way, but it's still acceptable and won't affect the performance too much.
+
+Limitations of the DBFS solution:
+* Not fully POSIX-compliant, some behaviors may be different from the real filesystem, especially for concurrent read/write
 */
 
 type dbfsMeta struct {

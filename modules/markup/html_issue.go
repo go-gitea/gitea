@@ -4,6 +4,7 @@
 package markup
 
 import (
+	"fmt"
 	"strconv"
 	"strings"
 
@@ -162,7 +163,7 @@ func issueIndexPatternProcessor(ctx *RenderContext, node *html.Node) {
 			issueOwner := util.Iif(ref.Owner == "", ctx.RenderOptions.Metas["user"], ref.Owner)
 			issueRepo := util.Iif(ref.Owner == "", ctx.RenderOptions.Metas["repo"], ref.Name)
 			issuePath := util.Iif(ref.IsPull, "pulls", "issues")
-			linkHref := "/:root/" + util.URLJoin(issueOwner, issueRepo, issuePath, ref.Issue)
+			linkHref := fmt.Sprintf("/:root/%s/%s/%s/%s", issueOwner, issueRepo, issuePath, ref.Issue)
 
 			// at the moment, only render the issue index in a full line (or simple line) as icon+title
 			// otherwise it would be too noisy for "take #1 as an example" in a sentence

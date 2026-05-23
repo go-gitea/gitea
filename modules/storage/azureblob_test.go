@@ -5,30 +5,46 @@ package storage
 
 import (
 	"io"
-	"os"
 	"strings"
 	"testing"
 
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/test"
 
 	"github.com/stretchr/testify/assert"
 )
 
-func TestAzureBlobStorageIterator(t *testing.T) {
-	if os.Getenv("CI") == "" {
-		t.Skip("azureBlobStorage not present outside of CI")
-		return
-	}
-	testStorageIterator(t, setting.AzureBlobStorageType, &setting.Storage{
+func TestAzureBlobStorage(t *testing.T) {
+	endpoint := test.ExternalServiceHTTP(t, "TEST_AZURESTORAGE_ENDPOINT", "http://devstoreaccount1.azurite.local:10000")
+	storageType := setting.AzureBlobStorageType
+	config := &setting.Storage{
 		AzureBlobConfig: setting.AzureBlobStorageConfig{
 			// https://learn.microsoft.com/azure/storage/common/storage-use-azurite?tabs=visual-studio-code#ip-style-url
-			Endpoint: "http://devstoreaccount1.azurite.local:10000",
+			Endpoint: endpoint,
 			// https://learn.microsoft.com/azure/storage/common/storage-use-azurite?tabs=visual-studio-code#well-known-storage-account-and-key
 			AccountName: "devstoreaccount1",
 			AccountKey:  "Eby8vdM02xNOcqFlqUwJPLlmEtlCDXJ1OUzFT50uSRZ6IFsuFq2UVErCz4I6tq/K1SZFPTOtr/KBHBeksoGMGw==",
 			Container:   "test",
 		},
-	})
+	}
+	table := []struct {
+		name string
+		test func(t *testing.T, typStr Type, cfg *setting.Storage)
+	}{
+		{
+			name: "iterator",
+			test: testStorageIterator,
+		},
+		{
+			name: "testBlobStorageURLContentTypeAndDisposition",
+			test: testBlobStorageURLContentTypeAndDisposition,
+		},
+	}
+	for _, entry := range table {
+		t.Run(entry.name, func(t *testing.T) {
+			entry.test(t, storageType, config)
+		})
+	}
 }
 
 func TestAzureBlobStoragePath(t *testing.T) {
@@ -58,15 +74,11 @@ func TestAzureBlobStoragePath(t *testing.T) {
 }
 
 func Test_azureBlobObject(t *testing.T) {
-	if os.Getenv("CI") == "" {
-		t.Skip("azureBlobStorage not present outside of CI")
-		return
-	}
-
+	endpoint := test.ExternalServiceHTTP(t, "TEST_AZURESTORAGE_ENDPOINT", "http://devstoreaccount1.azurite.local:10000")
 	s, err := NewStorage(setting.AzureBlobStorageType, &setting.Storage{
 		AzureBlobConfig: setting.AzureBlobStorageConfig{
 			// https://learn.microsoft.com/azure/storage/common/storage-use-azurite?tabs=visual-studio-code#ip-style-url
-			Endpoint: "http://devstoreaccount1.azurite.local:10000",
+			Endpoint: endpoint,
 			// https://learn.microsoft.com/azure/storage/common/storage-use-azurite?tabs=visual-studio-code#well-known-storage-account-and-key
 			AccountName: "devstoreaccount1",
 			AccountKey:  "Eby8vdM02xNOcqFlqUwJPLlmEtlCDXJ1OUzFT50uSRZ6IFsuFq2UVErCz4I6tq/K1SZFPTOtr/KBHBeksoGMGw==",

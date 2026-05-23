@@ -1,4 +1,4 @@
-{{template "admin/layout_head" (dict "ctxData" . "pageClass" "admin user")}}
+{{template "admin/layout_head" (dict "pageClass" "admin user")}}
 	<div class="admin-setting-content">
 		<h4 class="ui top attached header">
 			{{ctx.Locale.Tr "admin.packages.package_manage_panel"}} ({{ctx.Locale.Tr "admin.total" .TotalCount}},
@@ -89,7 +89,7 @@
 	</div>
 
 <form class="ui small modal form-fetch-action" method="post" id="admin-package-delete-modal">
-	<div class="header">{{svg "octicon-trash"}} {{ctx.Locale.Tr "packages.settings.delete"}}</div>
+	<div class="header">{{svg "octicon-trash"}} {{ctx.Locale.Tr "packages.settings.delete.version"}}</div>
 	<div class="content">
 		{{ctx.Locale.Tr "packages.settings.delete.notice" (HTMLFormat `<span class="%s"></span>` "package-name") (HTMLFormat `<span class="%s"></span>` "package-version")}}
 	</div>

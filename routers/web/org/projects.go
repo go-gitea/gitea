@@ -11,7 +11,6 @@ import (
 
 	"code.gitea.io/gitea/models/db"
 	issues_model "code.gitea.io/gitea/models/issues"
-	org_model "code.gitea.io/gitea/models/organization"
 	project_model "code.gitea.io/gitea/models/project"
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unit"
@@ -34,14 +33,6 @@ const (
 	tplProjectsNew  templates.TplName = "org/projects/new"
 	tplProjectsView templates.TplName = "org/projects/view"
 )
-
-// MustEnableProjects check if projects are enabled in settings
-func MustEnableProjects(ctx *context.Context) {
-	if unit.TypeProjects.UnitGlobalDisabled() {
-		ctx.NotFound(nil)
-		return
-	}
-}
 
 // Projects renders the home page of projects
 func Projects(ctx *context.Context) {
@@ -114,12 +105,7 @@ func Projects(ctx *context.Context) {
 		project.RenderedContent = renderUtils.MarkdownToHtml(project.Description)
 	}
 
-	numPages := 0
-	if total > 0 {
-		numPages = (int(total) - 1/setting.UI.IssuePagingNum)
-	}
-
-	pager := context.NewPagination(int(total), setting.UI.IssuePagingNum, page, numPages)
+	pager := context.NewPagination(total, setting.UI.IssuePagingNum, page, 5)
 	pager.AddParamFromRequest(ctx.Req)
 	ctx.Data["Page"] = pager
 
@@ -464,9 +450,9 @@ func ViewProject(ctx *context.Context) {
 	ctx.Data["MilestoneID"] = milestoneID
 
 	// Get assignees.
-	assigneeUsers, err := org_model.GetOrgAssignees(ctx, project.OwnerID)
+	assigneeUsers, err := project_service.LoadIssuesAssigneesForProject(ctx, issuesMap)
 	if err != nil {
-		ctx.ServerError("GetRepoAssignees", err)
+		ctx.ServerError("LoadIssuesAssigneesForProject", err)
 		return
 	}
 	ctx.Data["Assignees"] = shared_user.MakeSelfOnTop(ctx.Doer, assigneeUsers)

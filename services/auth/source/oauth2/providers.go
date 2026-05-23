@@ -20,6 +20,7 @@ import (
 	"code.gitea.io/gitea/modules/setting"
 
 	"github.com/markbates/goth"
+	"github.com/markbates/goth/providers/openidConnect"
 )
 
 // Provider is an interface for describing a single OAuth2 provider
@@ -61,7 +62,7 @@ func (p *AuthSourceProvider) DisplayName() string {
 
 func (p *AuthSourceProvider) IconHTML(size int) template.HTML {
 	if p.iconURL != "" {
-		img := fmt.Sprintf(`<img class="tw-object-contain tw-mr-2" width="%d" height="%d" src="%s" alt="%s">`,
+		img := fmt.Sprintf(`<img class="tw-object-contain" width="%d" height="%d" src="%s" alt="%s">`,
 			size,
 			size,
 			html.EscapeString(p.iconURL), html.EscapeString(p.DisplayName()),
@@ -195,6 +196,26 @@ func ClearProviders() {
 	defer gothRWMutex.Unlock()
 
 	goth.ClearProviders()
+}
+
+// GetOIDCEndSessionEndpoint returns the OIDC end_session_endpoint for the
+// given provider name. Returns "" if the provider is not OIDC or doesn't
+// advertise an end_session_endpoint in its discovery document.
+func GetOIDCEndSessionEndpoint(providerName string) string {
+	gothRWMutex.RLock()
+	defer gothRWMutex.RUnlock()
+
+	provider, ok := goth.GetProviders()[providerName]
+	if !ok {
+		return ""
+	}
+
+	oidcProvider, ok := provider.(*openidConnect.Provider)
+	if !ok || oidcProvider.OpenIDConfig == nil {
+		return ""
+	}
+
+	return oidcProvider.OpenIDConfig.EndSessionEndpoint
 }
 
 var ErrAuthSourceNotActivated = errors.New("auth source is not activated")

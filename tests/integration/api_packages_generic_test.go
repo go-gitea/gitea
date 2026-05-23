@@ -7,7 +7,9 @@ import (
 	"bytes"
 	"fmt"
 	"io"
+	"mime"
 	"net/http"
+	neturl "net/url"
 	"testing"
 
 	"code.gitea.io/gitea/models/packages"
@@ -140,11 +142,12 @@ func TestPackageGeneric(t *testing.T) {
 		t.Run("ServeDirect", func(t *testing.T) {
 			defer tests.PrintCurrentTest(t)()
 
-			if setting.Packages.Storage.Type == setting.MinioStorageType {
+			switch setting.Packages.Storage.Type {
+			case setting.MinioStorageType:
 				defer test.MockVariableValue(&setting.Packages.Storage.MinioConfig.ServeDirect, true)()
-			} else if setting.Packages.Storage.Type == setting.AzureBlobStorageType {
+			case setting.AzureBlobStorageType:
 				defer test.MockVariableValue(&setting.Packages.Storage.AzureBlobConfig.ServeDirect, true)()
-			} else {
+			default:
 				t.Skip("Test skipped for non-Minio-storage and non-AzureBlob-storage.")
 			}
 
@@ -171,6 +174,27 @@ func TestPackageGeneric(t *testing.T) {
 			assert.Equal(t, content, body)
 
 			checkDownloadCount(3)
+		})
+
+		t.Run("WebAssetUsesFilename", func(t *testing.T) {
+			defer tests.PrintCurrentTest(t)()
+
+			pvs, err := packages.GetVersionsByPackageType(t.Context(), user.ID, packages.TypeGeneric)
+			assert.NoError(t, err)
+			assert.Len(t, pvs, 1)
+
+			pfs, err := packages.GetFilesByVersionID(t.Context(), pvs[0].ID)
+			assert.NoError(t, err)
+			assert.NotEmpty(t, pfs)
+
+			req = NewRequest(t, "GET", fmt.Sprintf("/%s/-/packages/generic/%s/%s/files/%d", user.Name, neturl.PathEscape(packageName), neturl.PathEscape(packageVersion), pfs[0].ID))
+			resp = MakeRequest(t, req, http.StatusOK)
+			assert.Equal(t, content, resp.Body.Bytes())
+
+			disposition, params, err := mime.ParseMediaType(resp.Header().Get("Content-Disposition"))
+			assert.NoError(t, err)
+			assert.Equal(t, "attachment", disposition)
+			assert.Equal(t, pfs[0].Name, params["filename"])
 		})
 	})
 

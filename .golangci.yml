@@ -51,8 +51,14 @@ linters:
               desc: do not use the go-chi cache package, use gitea's cache system
             - pkg: github.com/pkg/errors
               desc: use builtin errors package instead
-            - pkg: github.com/go-ap/errors
-              desc: use builtin errors package instead
+        migrations:
+          files:
+            - '**/models/migrations/**/*.go'
+          deny:
+            - pkg: code.gitea.io/gitea/models$
+              desc: migrations must not depend on the models package
+            - pkg: code.gitea.io/gitea/modules/structs
+              desc: migrations must not depend on modules/structs (API structures change over time)
     nolintlint:
       allow-unused: false
       require-explanation: true
@@ -142,9 +148,6 @@ linters:
           - unused
         text: (?i)swagger
       - linters:
-          - staticcheck
-        text: (?i)argument x is overwritten before first use
-      - linters:
           - gocritic
         text: '(?i)commentFormatting: put a space between `//` and comment text'
       - linters:
@@ -163,9 +166,16 @@ issues:
   max-same-issues: 0
 formatters:
   enable:
-    - gofmt
+    - gci
     - gofumpt
   settings:
+    gci:
+      custom-order: true
+      sections:
+        - standard
+        - prefix(code.gitea.io/gitea)
+        - blank
+        - default
     gofumpt:
       extra-rules: true
   exclusions:
@@ -175,9 +185,6 @@ formatters:
       - .venv
       - public
       - web_src
-      - third_party$
-      - builtin$
-      - examples$
 
 run:
   timeout: 10m

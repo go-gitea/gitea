@@ -9,7 +9,6 @@ import (
 
 	activities_model "code.gitea.io/gitea/models/activities"
 	user_model "code.gitea.io/gitea/models/user"
-	"code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/routers/api/v1/utils"
 	"code.gitea.io/gitea/services/context"
 	"code.gitea.io/gitea/services/convert"
@@ -69,19 +68,16 @@ func Search(ctx *context.APIContext) {
 		maxResults = 1
 		users = []*user_model.User{user_model.NewActionsUser()}
 	default:
-		var visible []structs.VisibleType
-		if ctx.PublicOnly {
-			visible = []structs.VisibleType{structs.VisibleTypePublic}
-		}
-		users, maxResults, err = user_model.SearchUsers(ctx, user_model.SearchUserOptions{
+		opts := user_model.SearchUserOptions{
 			Actor:         ctx.Doer,
 			Keyword:       ctx.FormTrim("q"),
 			UID:           uid,
 			Types:         []user_model.UserType{user_model.UserTypeIndividual},
 			SearchByEmail: true,
-			Visible:       visible,
 			ListOptions:   listOptions,
-		})
+		}
+		opts.ApplyPublicOnly(ctx.PublicOnly)
+		users, maxResults, err = user_model.SearchUsers(ctx, opts)
 		if err != nil {
 			ctx.JSON(http.StatusInternalServerError, map[string]any{
 				"ok":    false,
@@ -91,7 +87,7 @@ func Search(ctx *context.APIContext) {
 		}
 	}
 
-	ctx.SetLinkHeader(int(maxResults), listOptions.PageSize)
+	ctx.SetLinkHeader(maxResults, listOptions.PageSize)
 	ctx.SetTotalCountHeader(maxResults)
 
 	ctx.JSON(http.StatusOK, map[string]any{
@@ -214,6 +210,7 @@ func ListUserActivityFeeds(ctx *context.APIContext) {
 		Date:            ctx.FormString("date"),
 		ListOptions:     listOptions,
 	}
+	opts.ApplyPublicOnly(ctx.PublicOnly)
 
 	feeds, count, err := feed_service.GetFeeds(ctx, opts)
 	if err != nil {

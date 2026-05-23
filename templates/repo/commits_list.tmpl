@@ -11,21 +11,18 @@
 		</thead>
 		<tbody class="commit-list">
 			{{$commitRepoLink := $.RepoLink}}{{if $.CommitRepoLink}}{{$commitRepoLink = $.CommitRepoLink}}{{end}}
-			{{range .Commits}}
+			{{range $commit := .Commits}}
 				<tr>
 					<td class="author">
-						<div class="tw-flex">
-							{{$userName := .Author.Name}}
-							{{if .User}}
-								{{if and .User.FullName DefaultShowFullName}}
-									{{$userName = .User.FullName}}
-								{{end}}
-								{{ctx.AvatarUtils.Avatar .User 28 "tw-mr-2"}}<a class="muted author-wrapper" href="{{.User.HomeLink}}">{{$userName}}</a>
-							{{else}}
-								{{ctx.AvatarUtils.AvatarByEmail .Author.Email .Author.Name 28 "tw-mr-2"}}
-								<span class="author-wrapper">{{$userName}}</span>
-							{{end}}
-						</div>
+						<span class="author-wrapper">
+							{{- if .User -}}
+								{{- ctx.AvatarUtils.Avatar .User 20 "tw-mr-2" -}}
+								{{- .User.GetShortDisplayNameLinkHTML -}}
+							{{- else -}}
+								{{- ctx.AvatarUtils.AvatarByEmail .Author.Email .Author.Name 20 "tw-mr-2" -}}
+								{{- .Author.Name -}}
+							{{- end -}}
+						</span>
 					</td>
 					<td class="sha">
 						{{$commitBaseLink := ""}}
@@ -33,7 +30,7 @@
 							{{$commitBaseLink = printf "%s/wiki/commit" $commitRepoLink}}
 						{{else if $.PageIsPullCommits}}
 							{{$commitBaseLink = printf "%s/pulls/%d/commits" $commitRepoLink $.Issue.Index}}
-						{{else if $.Reponame}}
+						{{else}}
 							{{$commitBaseLink = printf "%s/commit" $commitRepoLink}}
 						{{end}}
 						{{template "repo/commit_sign_badge" dict "Commit" . "CommitBaseLink" $commitBaseLink "CommitSignVerification" .Verification}}
@@ -41,18 +38,22 @@
 					<td class="message">
 						<span class="message-wrapper">
 						{{if $.PageIsWiki}}
-							<span class="commit-summary {{if gt .ParentCount 1}} grey text{{end}}" title="{{.Summary}}">{{.Summary | ctx.RenderUtils.RenderEmoji}}</span>
+							<span class="commit-summary {{if gt $commit.ParentCount 1}} grey text{{end}}" title="{{$commit.MessageTitle}}">
+								{{$commit.MessageTitle | ctx.RenderUtils.RenderEmoji}}
+							</span>
 						{{else}}
-							{{$commitLink:= printf "%s/commit/%s" $commitRepoLink (PathEscape .ID.String)}}
-							<span class="commit-summary {{if gt .ParentCount 1}} grey text{{end}}" title="{{.Summary}}">{{ctx.RenderUtils.RenderCommitMessageLinkSubject .Message $commitLink $.Repository}}</span>
+							{{$commitLink:= printf "%s/commit/%s" $commitRepoLink (PathEscape $commit.ID.String)}}
+							<span class="commit-summary {{if gt $commit.ParentCount 1}} grey text{{end}}" title="{{$commit.MessageTitle}}">
+								{{ctx.RenderUtils.RenderCommitMessageLinkSubject $commit.MessageUTF8 $commitLink $.Repository}}
+							</span>
 						{{end}}
 						</span>
-						{{if IsMultilineCommitMessage .Message}}
+						{{if $commit.MessageBody}}
 						<button class="ui button ellipsis-button" aria-expanded="false" data-global-click="onRepoEllipsisButtonClick">...</button>
 						{{end}}
 						{{template "repo/commit_statuses" dict "Status" .Status "Statuses" .Statuses}}
-						{{if IsMultilineCommitMessage .Message}}
-						<pre class="commit-body tw-hidden">{{ctx.RenderUtils.RenderCommitBody .Message $.Repository}}</pre>
+						{{if $commit.MessageBody}}
+						<pre class="commit-body tw-hidden">{{ctx.RenderUtils.RenderCommitBody $commit.MessageUTF8 $.Repository}}</pre>
 						{{end}}
 						{{if $.CommitsTagsMap}}
 							{{range (index $.CommitsTagsMap .ID.String)}}

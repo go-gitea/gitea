@@ -169,6 +169,9 @@ type swaggerParameterBodies struct {
 	CreatePullReviewComment api.CreatePullReviewComment
 
 	// in:body
+	CreatePullReviewCommentReplyOptions api.CreatePullReviewCommentReplyOptions
+
+	// in:body
 	SubmitPullReviewOptions api.SubmitPullReviewOptions
 
 	// in:body
@@ -224,6 +227,9 @@ type swaggerParameterBodies struct {
 
 	// in:body
 	UpdateVariableOption api.UpdateVariableOption
+
+	// in:body
+	EditActionRunnerOption api.EditActionRunnerOption
 
 	// in:body
 	LockIssueOption api.LockIssueOption

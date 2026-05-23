@@ -6,7 +6,7 @@ package v1_22
 import (
 	"testing"
 
-	"code.gitea.io/gitea/models/migrations/base"
+	"code.gitea.io/gitea/models/migrations/migrationtest"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -21,7 +21,7 @@ func Test_AddCombinedIndexToIssueUser(t *testing.T) {
 	}
 
 	// Prepare and load the testing database
-	x, deferable := base.PrepareTestEnv(t, 0, new(IssueUser))
+	x, deferable := migrationtest.PrepareTestEnv(t, 0, new(IssueUser))
 	defer deferable()
 
 	assert.NoError(t, AddCombinedIndexToIssueUser(x))

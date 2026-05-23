@@ -134,7 +134,7 @@ func executeCleanupOneRule(ctx context.Context, pcr *packages_model.PackageClean
 				return fmt.Errorf("CleanupRule [%d]: rpm.BuildAllRepositoryFiles failed: %w", pcr.ID, err)
 			}
 		case packages_model.TypeArch:
-			release, err := arch_service.AquireRegistryLock(ctx, pcr.OwnerID)
+			release, err := arch_service.AcquireRegistryLock(ctx, pcr.OwnerID)
 			if err != nil {
 				return err
 			}
@@ -184,6 +184,7 @@ func CleanupExpiredData(ctx context.Context, olderThan time.Duration) error {
 			}
 		}
 
+		// HINT: PACKAGE-DEFER-STORAGE-DELETE: Handle blob deletion for package storage
 		pbs, err = packages_model.FindExpiredUnreferencedBlobs(ctx, olderThan)
 		if err != nil {
 			return err

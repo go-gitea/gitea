@@ -1,26 +1,24 @@
 import {svg} from '../svg.ts';
 import {html} from '../utils/html.ts';
-import {clippie} from 'clippie';
-import {showTemporaryTooltip} from '../modules/tippy.ts';
+import {copyToClipboardWithFeedback} from '../modules/clipboard.ts';
 import {GET, POST} from '../modules/fetch.ts';
 import {showErrorToast} from '../modules/toast.ts';
 import {createElementFromHTML, createElementFromAttrs} from '../utils/dom.ts';
+import {errorMessage} from '../modules/errors.ts';
 import {isImageFile, isVideoFile} from '../utils.ts';
-import type {DropzoneFile, DropzoneOptions} from 'dropzone/index.js';
+import type Dropzone from '@deltablot/dropzone';
 
-const {i18n} = window.config;
-
-type CustomDropzoneFile = DropzoneFile & {uuid: string};
+type CustomDropzoneFile = Dropzone.DropzoneFile & {uuid: string};
 
 // dropzone has its owner event dispatcher (emitter)
 export const DropzoneCustomEventReloadFiles = 'dropzone-custom-reload-files';
 export const DropzoneCustomEventRemovedFile = 'dropzone-custom-removed-file';
 export const DropzoneCustomEventUploadDone = 'dropzone-custom-upload-done';
 
-async function createDropzone(el: HTMLElement, opts: DropzoneOptions) {
+async function createDropzone(el: HTMLElement, opts: Dropzone.DropzoneOptions) {
   const [{default: Dropzone}] = await Promise.all([
-    import(/* webpackChunkName: "dropzone" */'dropzone'),
-    import(/* webpackChunkName: "dropzone" */'dropzone/dist/dropzone.css'),
+    import('@deltablot/dropzone'),
+    import('@deltablot/dropzone/dist/dropzone.css'),
   ]);
   return new Dropzone(el, opts);
 }
@@ -47,14 +45,13 @@ export function generateMarkdownLinkForAttachment(file: Partial<CustomDropzoneFi
 function addCopyLink(file: Partial<CustomDropzoneFile>) {
   // Create a "Copy Link" element, to conveniently copy the image or file link as Markdown to the clipboard
   // The "<a>" element has a hardcoded cursor: pointer because the default is overridden by .dropzone
-  const copyLinkEl = createElementFromHTML(`
+  const copyLinkEl = createElementFromHTML<HTMLDivElement>(`
 <div class="tw-text-center">
   <a href="#" class="tw-cursor-pointer">${svg('octicon-copy', 14)} Copy link</a>
 </div>`);
   copyLinkEl.addEventListener('click', async (e) => {
     e.preventDefault();
-    const success = await clippie(generateMarkdownLinkForAttachment(file));
-    showTemporaryTooltip(e.target as Element, success ? i18n.copy_success : i18n.copy_error);
+    await copyToClipboardWithFeedback(copyLinkEl, generateMarkdownLinkForAttachment(file));
   });
   file.previewTemplate!.append(copyLinkEl);
 }
@@ -149,7 +146,7 @@ export async function initDropzone(dropzoneEl: HTMLElement) {
     } catch (error) {
       // TODO: if listing the existing attachments failed, it should stop from operating the content or attachments,
       //  otherwise the attachments might be lost.
-      showErrorToast(`Failed to load attachments: ${error}`);
+      showErrorToast(`Failed to load attachments: ${errorMessage(error)}`);
       console.error(error);
     }
   });

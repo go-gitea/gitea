@@ -3,21 +3,22 @@ import {setFileFolding} from './file-fold.ts';
 import {POST} from '../modules/fetch.ts';
 
 const {pageData} = window.config;
-const prReview = pageData.prReview || {};
+// it is undefined on most pages, fortunately, when it is accessed by the related functions, it exists
+const prReview = pageData.prReview!;
 const viewedStyleClass = 'viewed-file-checked-form';
 const viewedCheckboxSelector = '.viewed-file-form'; // Selector under which all "Viewed" checkbox forms can be found
 const expandFilesBtnSelector = '#expand-files-btn';
 const collapseFilesBtnSelector = '#collapse-files-btn';
 
-// Refreshes the summary of viewed files if present
+// Refreshes the summary of viewed files
 // The data used will be window.config.pageData.prReview.numberOf{Viewed}Files
 function refreshViewedFilesSummary() {
-  const viewedFilesProgress = document.querySelector('#viewed-files-summary');
-  viewedFilesProgress?.setAttribute('value', prReview.numberOfViewedFiles);
-  const summaryLabel = document.querySelector('#viewed-files-summary-label')!;
-  if (summaryLabel) summaryLabel.innerHTML = summaryLabel.getAttribute('data-text-changed-template')!
-    .replace('%[1]d', prReview.numberOfViewedFiles)
-    .replace('%[2]d', prReview.numberOfFiles);
+  const viewedFilesProgress = document.querySelector('#viewed-files-summary')!;
+  viewedFilesProgress.setAttribute('value', String(prReview.numberOfViewedFiles));
+  const summaryLabel = document.querySelector<HTMLElement>('#viewed-files-summary-label')!;
+  summaryLabel.textContent = summaryLabel.getAttribute('data-text-changed-template')!
+    .replace('%[1]d', String(prReview.numberOfViewedFiles))
+    .replace('%[2]d', String(prReview.numberOfFiles));
 }
 
 // Initializes a listener for all children of the given html element

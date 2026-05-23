@@ -165,7 +165,7 @@ func ToWikiPageMetaData(wikiName WebPath, lastCommit *git.Commit, repo *repo_mod
 	_, title := WebPathToUserTitle(wikiName)
 	return &api.WikiPageMetaData{
 		Title:      title,
-		HTMLURL:    util.URLJoin(repo.HTMLURL(), "wiki", subURL),
+		HTMLURL:    repo.HTMLURL() + "/wiki/" + subURL,
 		SubURL:     subURL,
 		LastCommit: convert.ToWikiCommit(lastCommit),
 	}

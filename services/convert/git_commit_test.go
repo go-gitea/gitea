@@ -11,7 +11,6 @@ import (
 	"code.gitea.io/gitea/models/unittest"
 	"code.gitea.io/gitea/modules/git"
 	api "code.gitea.io/gitea/modules/structs"
-	"code.gitea.io/gitea/modules/util"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -22,12 +21,12 @@ func TestToCommitMeta(t *testing.T) {
 	sha1 := git.Sha1ObjectFormat
 	signature := &git.Signature{Name: "Test Signature", Email: "test@email.com", When: time.Unix(0, 0)}
 	tag := &git.Tag{
-		Name:    "Test Tag",
-		ID:      sha1.EmptyObjectID(),
-		Object:  sha1.EmptyObjectID(),
-		Type:    "Test Type",
-		Tagger:  signature,
-		Message: "Test Message",
+		Name:          "Test Tag",
+		ID:            sha1.EmptyObjectID(),
+		Object:        sha1.EmptyObjectID(),
+		Type:          "Test Type",
+		Tagger:        signature,
+		CommitMessage: git.CommitMessage{MessageRaw: "Test Message"},
 	}
 
 	commitMeta := ToCommitMeta(headRepo, tag)
@@ -35,7 +34,7 @@ func TestToCommitMeta(t *testing.T) {
 	assert.NotNil(t, commitMeta)
 	assert.Equal(t, &api.CommitMeta{
 		SHA:     sha1.EmptyObjectID().String(),
-		URL:     util.URLJoin(headRepo.APIURL(), "git/commits", sha1.EmptyObjectID().String()),
+		URL:     headRepo.APIURL() + "/git/commits/" + sha1.EmptyObjectID().String(),
 		Created: time.Unix(0, 0),
 	}, commitMeta)
 }

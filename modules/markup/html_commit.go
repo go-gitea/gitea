@@ -4,13 +4,13 @@
 package markup
 
 import (
+	"fmt"
 	"slices"
 	"strings"
 
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/httplib"
 	"code.gitea.io/gitea/modules/references"
-	"code.gitea.io/gitea/modules/util"
 
 	"golang.org/x/net/html"
 	"golang.org/x/net/html/atom"
@@ -219,7 +219,7 @@ func hashCurrentPatternProcessor(ctx *RenderContext, node *html.Node) {
 			continue
 		}
 
-		link := "/:root/" + util.URLJoin(ctx.RenderOptions.Metas["user"], ctx.RenderOptions.Metas["repo"], "commit", hash)
+		link := fmt.Sprintf("/:root/%s/%s/commit/%s", ctx.RenderOptions.Metas["user"], ctx.RenderOptions.Metas["repo"], hash)
 		replaceContent(node, m[2], m[3], createCodeLink(link, base.ShortSha(hash), "commit"))
 		start = 0
 		node = node.NextSibling.NextSibling
@@ -236,7 +236,7 @@ func commitCrossReferencePatternProcessor(ctx *RenderContext, node *html.Node) {
 		}
 
 		refText := ref.Owner + "/" + ref.Name + "@" + base.ShortSha(ref.CommitSha)
-		linkHref := "/:root/" + util.URLJoin(ref.Owner, ref.Name, "commit", ref.CommitSha)
+		linkHref := fmt.Sprintf("/:root/%s/%s/commit/%s", ref.Owner, ref.Name, ref.CommitSha)
 		link := createLink(ctx, linkHref, refText, "commit")
 
 		replaceContent(node, ref.RefLocation.Start, ref.RefLocation.End, link)

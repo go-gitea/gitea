@@ -6,9 +6,9 @@ package integration
 import (
 	"bytes"
 	"context"
+	"encoding/base64"
+	"flag"
 	"fmt"
-	"hash"
-	"hash/fnv"
 	"io"
 	"net/http"
 	"net/http/cookiejar"
@@ -36,48 +36,9 @@ import (
 
 	"github.com/PuerkitoBio/goquery"
 	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
-	"github.com/xeipuuv/gojsonschema"
 )
 
 var testWebRoutes *web.Router
-
-type NilResponseRecorder struct {
-	httptest.ResponseRecorder
-	Length int
-}
-
-func (n *NilResponseRecorder) Write(b []byte) (int, error) {
-	n.Length += len(b)
-	return len(b), nil
-}
-
-// NewRecorder returns an initialized ResponseRecorder.
-func NewNilResponseRecorder() *NilResponseRecorder {
-	return &NilResponseRecorder{
-		ResponseRecorder: *httptest.NewRecorder(),
-	}
-}
-
-type NilResponseHashSumRecorder struct {
-	httptest.ResponseRecorder
-	Hash   hash.Hash
-	Length int
-}
-
-func (n *NilResponseHashSumRecorder) Write(b []byte) (int, error) {
-	_, _ = n.Hash.Write(b)
-	n.Length += len(b)
-	return len(b), nil
-}
-
-// NewRecorder returns an initialized ResponseRecorder.
-func NewNilResponseHashSumRecorder() *NilResponseHashSumRecorder {
-	return &NilResponseHashSumRecorder{
-		Hash:             fnv.New32(),
-		ResponseRecorder: *httptest.NewRecorder(),
-	}
-}
 
 func testMain(m *testing.M) int {
 	defer log.GetManager().Close()
@@ -86,16 +47,19 @@ func testMain(m *testing.M) int {
 	graceful.InitManager(managerCtx)
 	defer cancel()
 
-	tests.InitTest()
+	err := tests.InitIntegrationTest()
+	if err != nil {
+		return testlogger.MainErrorf("InitTest error: %v", err)
+	}
 	testWebRoutes = routers.NormalRoutes()
 
-	err := unittest.InitFixtures(
+	err = unittest.InitFixtures(
 		unittest.FixturesOptions{
-			Dir: filepath.Join(filepath.Dir(setting.AppPath), "models/fixtures/"),
+			Dir: filepath.Join(setting.GetGiteaTestSourceRoot(), "models/fixtures/"),
 		},
 	)
 	if err != nil {
-		testlogger.Panicf("InitFixtures: %v", err)
+		return testlogger.MainErrorf("InitFixtures: %v", err)
 	}
 
 	// FIXME: the console logger is deleted by mistake, so if there is any `log.Fatal`, developers won't see any error message.
@@ -112,6 +76,11 @@ func testMain(m *testing.M) int {
 }
 
 func TestMain(m *testing.M) {
+	// -test.list must skip InitIntegrationTest, which requires a database.
+	flag.Parse()
+	if flag.Lookup("test.list").Value.String() != "" {
+		os.Exit(m.Run())
+	}
 	os.Exit(testMain(m))
 }
 
@@ -167,42 +136,6 @@ func (s *TestSession) MakeRequest(t testing.TB, rw *RequestWrapper, expectedStat
 	return resp
 }
 
-func (s *TestSession) MakeRequestNilResponseRecorder(t testing.TB, rw *RequestWrapper, expectedStatus int) *NilResponseRecorder {
-	t.Helper()
-	req := rw.Request
-	baseURL, err := url.Parse(setting.AppURL)
-	assert.NoError(t, err)
-	for _, c := range s.jar.Cookies(baseURL) {
-		req.AddCookie(c)
-	}
-	resp := MakeRequestNilResponseRecorder(t, rw, expectedStatus)
-
-	ch := http.Header{}
-	ch.Add("Cookie", strings.Join(resp.Header()["Set-Cookie"], ";"))
-	cr := http.Request{Header: ch}
-	s.jar.SetCookies(baseURL, cr.Cookies())
-
-	return resp
-}
-
-func (s *TestSession) MakeRequestNilResponseHashSumRecorder(t testing.TB, rw *RequestWrapper, expectedStatus int) *NilResponseHashSumRecorder {
-	t.Helper()
-	req := rw.Request
-	baseURL, err := url.Parse(setting.AppURL)
-	assert.NoError(t, err)
-	for _, c := range s.jar.Cookies(baseURL) {
-		req.AddCookie(c)
-	}
-	resp := MakeRequestNilResponseHashSumRecorder(t, rw, expectedStatus)
-
-	ch := http.Header{}
-	ch.Add("Cookie", strings.Join(resp.Header()["Set-Cookie"], ";"))
-	cr := http.Request{Header: ch}
-	s.jar.SetCookies(baseURL, cr.Cookies())
-
-	return resp
-}
-
 const userPassword = "password"
 
 func emptyTestSession(t testing.TB) *TestSession {
@@ -245,20 +178,24 @@ func loginUserWithPassword(t testing.TB, userName, password string) *TestSession
 }
 
 // token has to be unique this counter take care of
-var tokenCounter int64
+var tokenCounter atomic.Int64
 
 // getTokenForLoggedInUser returns a token for a logged-in user.
 func getTokenForLoggedInUser(t testing.TB, session *TestSession, scopes ...auth.AccessTokenScope) string {
 	t.Helper()
 	urlValues := url.Values{}
-	urlValues.Add("name", fmt.Sprintf("api-testing-token-%d", atomic.AddInt64(&tokenCounter, 1)))
+	urlValues.Add("name", fmt.Sprintf("api-testing-token-%d", tokenCounter.Add(1)))
 	for _, scope := range scopes {
 		urlValues.Add("scope-dummy", string(scope)) // it only needs to start with "scope-" to be accepted
 	}
 	req := NewRequestWithURLValues(t, "POST", "/user/settings/applications", urlValues)
 	session.MakeRequest(t, req, http.StatusSeeOther)
 	flashes := session.GetCookieFlashMessage()
-	return flashes.InfoMsg
+	assert.NotNil(t, flashes)
+	if flashes != nil {
+		return flashes.InfoMsg
+	}
+	return ""
 }
 
 type RequestWrapper struct {
@@ -322,13 +259,18 @@ func NewRequestWithJSON(t testing.TB, method, urlStr string, v any) *RequestWrap
 
 func NewRequestWithBody(t testing.TB, method, urlStr string, body io.Reader) *RequestWrapper {
 	t.Helper()
-	if !strings.HasPrefix(urlStr, "http") && !strings.HasPrefix(urlStr, "/") {
-		urlStr = "/" + urlStr
+	if !strings.HasPrefix(urlStr, "http:") && !strings.HasPrefix(urlStr, "https:") && !strings.HasPrefix(urlStr, "/") {
+		t.Fatalf("invalid url str: %s", urlStr)
 	}
 	req, err := http.NewRequest(method, urlStr, body)
 	assert.NoError(t, err)
-	req.RequestURI = urlStr
-
+	if req.URL.User != nil {
+		req.Header.Set("Authorization", "Basic "+base64.StdEncoding.EncodeToString([]byte(req.URL.User.String())))
+	}
+	req.RequestURI = req.URL.Path
+	if req.URL.RawQuery != "" {
+		req.RequestURI += "?" + req.URL.RawQuery
+	}
 	return &RequestWrapper{req}
 }
 
@@ -341,39 +283,16 @@ func MakeRequest(t testing.TB, rw *RequestWrapper, expectedStatus int) *httptest
 	if req.RemoteAddr == "" {
 		req.RemoteAddr = "test-mock:12345"
 	}
+	// Ensure unknown contentLength is seen as -1
+	if req.Body != nil && req.ContentLength == 0 {
+		req.ContentLength = -1
+	}
 	testWebRoutes.ServeHTTP(recorder, req)
 	if expectedStatus != NoExpectedStatus {
 		if expectedStatus != recorder.Code {
 			logUnexpectedResponse(t, recorder)
-			require.Equal(t, expectedStatus, recorder.Code, "Request: %s %s", req.Method, req.URL.String())
-		}
-	}
-	return recorder
-}
-
-func MakeRequestNilResponseRecorder(t testing.TB, rw *RequestWrapper, expectedStatus int) *NilResponseRecorder {
-	t.Helper()
-	req := rw.Request
-	recorder := NewNilResponseRecorder()
-	testWebRoutes.ServeHTTP(recorder, req)
-	if expectedStatus != NoExpectedStatus {
-		if !assert.Equal(t, expectedStatus, recorder.Code,
-			"Request: %s %s", req.Method, req.URL.String()) {
-			logUnexpectedResponse(t, &recorder.ResponseRecorder)
-		}
-	}
-	return recorder
-}
-
-func MakeRequestNilResponseHashSumRecorder(t testing.TB, rw *RequestWrapper, expectedStatus int) *NilResponseHashSumRecorder {
-	t.Helper()
-	req := rw.Request
-	recorder := NewNilResponseHashSumRecorder()
-	testWebRoutes.ServeHTTP(recorder, req)
-	if expectedStatus != NoExpectedStatus {
-		if !assert.Equal(t, expectedStatus, recorder.Code,
-			"Request: %s %s", req.Method, req.URL.String()) {
-			logUnexpectedResponse(t, &recorder.ResponseRecorder)
+			// don't use "require" which exits the test case and makes "wait group" wait forever
+			assert.Equal(t, expectedStatus, recorder.Code, "Request: %s %s", req.Method, req.URL.String())
 		}
 	}
 	return recorder
@@ -398,35 +317,18 @@ func logUnexpectedResponse(t testing.TB, recorder *httptest.ResponseRecorder) {
 	if err != nil {
 		return // probably a non-HTML response
 	}
-	errMsg := htmlDoc.Find(".ui.negative.message").Text()
+	errMsg := htmlDoc.Find(".ui.negative.message:not(.tw-hidden)").Text()
 	if len(errMsg) > 0 {
 		t.Log("A flash error message was found:", errMsg)
 	}
 }
 
-func DecodeJSON(t testing.TB, resp *httptest.ResponseRecorder, v any) {
+func DecodeJSON[T any](t testing.TB, resp *httptest.ResponseRecorder, v T) (ret T) {
 	t.Helper()
 
 	// FIXME: JSON-KEY-CASE: for testing purpose only, because many structs don't provide `json` tags, they just use capitalized field names
 	decoder := json.NewDecoderCaseInsensitive(resp.Body)
-	require.NoError(t, decoder.Decode(v))
-}
-
-func VerifyJSONSchema(t testing.TB, resp *httptest.ResponseRecorder, schemaFile string) {
-	t.Helper()
-
-	schemaFilePath := filepath.Join(filepath.Dir(setting.AppPath), "tests", "integration", "schemas", schemaFile)
-	_, schemaFileErr := os.Stat(schemaFilePath)
-	assert.NoError(t, schemaFileErr)
-
-	schema, schemaFileReadErr := os.ReadFile(schemaFilePath)
-	assert.NoError(t, schemaFileReadErr)
-	assert.NotEmpty(t, schema)
-
-	nodeinfoSchema := gojsonschema.NewStringLoader(string(schema))
-	nodeinfoString := gojsonschema.NewStringLoader(resp.Body.String())
-	result, schemaValidationErr := gojsonschema.Validate(nodeinfoSchema, nodeinfoString)
-	assert.NoError(t, schemaValidationErr)
-	assert.Empty(t, result.Errors())
-	assert.True(t, result.Valid())
+	// don't use "require" which exits the test case and makes "wait group" wait forever
+	assert.NoError(t, decoder.Decode(&v))
+	return v
 }

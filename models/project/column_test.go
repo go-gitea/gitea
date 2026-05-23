@@ -59,7 +59,7 @@ func Test_moveIssuesToAnotherColumn(t *testing.T) {
 	assert.Len(t, issues, 1)
 	assert.EqualValues(t, 3, issues[0].ID)
 
-	err = column1.moveIssuesToAnotherColumn(t.Context(), column2)
+	err = moveIssuesToAnotherColumn(t.Context(), column1, column2)
 	assert.NoError(t, err)
 
 	issues, err = column1.GetIssues(t.Context())

@@ -104,7 +104,7 @@ func (s *ContentStore) Verify(pointer Pointer) (bool, error) {
 }
 
 // ReadMetaObject will read a git_model.LFSMetaObject and return a reader
-func ReadMetaObject(pointer Pointer) (io.ReadSeekCloser, error) {
+func ReadMetaObject(pointer Pointer) (storage.Object, error) {
 	contentStore := NewContentStore()
 	return contentStore.Get(pointer)
 }

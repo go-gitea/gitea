@@ -29,17 +29,26 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestAPIListReleasesWithWriteToken(t *testing.T) {
+func TestAPIReleaseRead(t *testing.T) {
 	defer tests.PrepareTestEnv(t)()
+	t.Run("DraftReleaseAttachmentAccess", testAPIDraftReleaseAttachmentAccess)
+	t.Run("ListReleasesWithWriteToken", testAPIListReleasesWithWriteToken)
+	t.Run("ListReleasesWithReadToken", testAPIListReleasesWithReadToken)
+	t.Run("GetDraftRelease", testAPIGetDraftRelease)
+	t.Run("GetLatestRelease", testAPIGetLatestRelease)
+	t.Run("GetReleaseByTag", testAPIGetReleaseByTag)
+	t.Run("GetDraftReleaseByTag", testAPIGetDraftReleaseByTag)
+	t.Run("EditReleaseAttachmentWithUnallowedFile", testAPIEditReleaseAttachmentWithUnallowedFile) // failed attempt, so it is also a read test
+}
 
+func testAPIListReleasesWithWriteToken(t *testing.T) {
 	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
 	user2 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
 	token := getUserToken(t, user2.LowerName, auth_model.AccessTokenScopeWriteRepository)
 
 	link, _ := url.Parse(fmt.Sprintf("/api/v1/repos/%s/%s/releases", user2.Name, repo.Name))
 	resp := MakeRequest(t, NewRequest(t, "GET", link.String()).AddTokenAuth(token), http.StatusOK)
-	var apiReleases []*api.Release
-	DecodeJSON(t, resp, &apiReleases)
+	apiReleases := DecodeJSON(t, resp, []*api.Release{})
 	if assert.Len(t, apiReleases, 3) {
 		for _, release := range apiReleases {
 			switch release.ID {
@@ -69,7 +78,7 @@ func TestAPIListReleasesWithWriteToken(t *testing.T) {
 			req.AddTokenAuth(token)
 		}
 		resp = MakeRequest(t, req, http.StatusOK)
-		DecodeJSON(t, resp, &apiReleases)
+		apiReleases = DecodeJSON(t, resp, []*api.Release{})
 		assert.Len(t, apiReleases, expectedLength, msgAndArgs)
 	}
 
@@ -81,17 +90,14 @@ func TestAPIListReleasesWithWriteToken(t *testing.T) {
 	testFilterByLen(true, url.Values{"draft": {"true"}, "pre-release": {"true"}}, 0, "there is no pre-release draft")
 }
 
-func TestAPIListReleasesWithReadToken(t *testing.T) {
-	defer tests.PrepareTestEnv(t)()
-
+func testAPIListReleasesWithReadToken(t *testing.T) {
 	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
 	user2 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
 	token := getUserToken(t, user2.LowerName, auth_model.AccessTokenScopeReadRepository)
 
 	link, _ := url.Parse(fmt.Sprintf("/api/v1/repos/%s/%s/releases", user2.Name, repo.Name))
 	resp := MakeRequest(t, NewRequest(t, "GET", link.String()).AddTokenAuth(token), http.StatusOK)
-	var apiReleases []*api.Release
-	DecodeJSON(t, resp, &apiReleases)
+	apiReleases := DecodeJSON(t, resp, []*api.Release{})
 	if assert.Len(t, apiReleases, 2) {
 		for _, release := range apiReleases {
 			switch release.ID {
@@ -117,7 +123,7 @@ func TestAPIListReleasesWithReadToken(t *testing.T) {
 			req.AddTokenAuth(token)
 		}
 		resp = MakeRequest(t, req, http.StatusOK)
-		DecodeJSON(t, resp, &apiReleases)
+		apiReleases = DecodeJSON(t, resp, []*api.Release{})
 		assert.Len(t, apiReleases, expectedLength, msgAndArgs)
 	}
 
@@ -129,9 +135,7 @@ func TestAPIListReleasesWithReadToken(t *testing.T) {
 	testFilterByLen(true, url.Values{"draft": {"true"}, "pre-release": {"true"}}, 0, "there is no pre-release draft")
 }
 
-func TestAPIGetDraftRelease(t *testing.T) {
-	defer tests.PrepareTestEnv(t)()
-
+func testAPIGetDraftRelease(t *testing.T) {
 	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
 	release := unittest.AssertExistsAndLoadBean(t, &repo_model.Release{ID: 4})
 	owner := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: repo.OwnerID})
@@ -146,8 +150,7 @@ func TestAPIGetDraftRelease(t *testing.T) {
 
 	ownerToken := getUserToken(t, owner.LowerName, auth_model.AccessTokenScopeWriteRepository)
 	resp := MakeRequest(t, NewRequest(t, "GET", urlStr).AddTokenAuth(ownerToken), http.StatusOK)
-	var apiRelease api.Release
-	DecodeJSON(t, resp, &apiRelease)
+	apiRelease := DecodeJSON(t, resp, &api.Release{})
 	assert.Equal(t, release.Title, apiRelease.Title)
 }
 
@@ -163,8 +166,7 @@ func createNewReleaseUsingAPI(t *testing.T, token string, owner *user_model.User
 	}).AddTokenAuth(token)
 	resp := MakeRequest(t, req, http.StatusCreated)
 
-	var newRelease api.Release
-	DecodeJSON(t, resp, &newRelease)
+	newRelease := DecodeJSON(t, resp, &api.Release{})
 	rel := &repo_model.Release{
 		ID:      newRelease.ID,
 		TagName: newRelease.TagName,
@@ -173,7 +175,7 @@ func createNewReleaseUsingAPI(t *testing.T, token string, owner *user_model.User
 	unittest.AssertExistsAndLoadBean(t, rel)
 	assert.Equal(t, newRelease.Note, rel.Note)
 
-	return &newRelease
+	return newRelease
 }
 
 func TestAPICreateAndUpdateRelease(t *testing.T) {
@@ -201,8 +203,7 @@ func TestAPICreateAndUpdateRelease(t *testing.T) {
 		AddTokenAuth(token)
 	resp := MakeRequest(t, req, http.StatusOK)
 
-	var release api.Release
-	DecodeJSON(t, resp, &release)
+	release := DecodeJSON(t, resp, &api.Release{})
 
 	assert.Equal(t, newRelease.TagName, release.TagName)
 	assert.Equal(t, newRelease.Title, release.Title)
@@ -218,7 +219,7 @@ func TestAPICreateAndUpdateRelease(t *testing.T) {
 	}).AddTokenAuth(token)
 	resp = MakeRequest(t, req, http.StatusOK)
 
-	DecodeJSON(t, resp, &newRelease)
+	newRelease = DecodeJSON(t, resp, &api.Release{})
 	rel := &repo_model.Release{
 		ID:      newRelease.ID,
 		TagName: newRelease.TagName,
@@ -300,24 +301,19 @@ func TestAPICreateReleaseGivenInvalidTarget(t *testing.T) {
 	MakeRequest(t, req, http.StatusNotFound)
 }
 
-func TestAPIGetLatestRelease(t *testing.T) {
-	defer tests.PrepareTestEnv(t)()
-
+func testAPIGetLatestRelease(t *testing.T) {
 	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
 	owner := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: repo.OwnerID})
 
 	req := NewRequest(t, "GET", fmt.Sprintf("/api/v1/repos/%s/%s/releases/latest", owner.Name, repo.Name))
 	resp := MakeRequest(t, req, http.StatusOK)
 
-	var release *api.Release
-	DecodeJSON(t, resp, &release)
+	release := DecodeJSON(t, resp, &api.Release{})
 
 	assert.Equal(t, "testing-release", release.Title)
 }
 
-func TestAPIGetReleaseByTag(t *testing.T) {
-	defer tests.PrepareTestEnv(t)()
-
+func testAPIGetReleaseByTag(t *testing.T) {
 	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
 	owner := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: repo.OwnerID})
 
@@ -326,8 +322,7 @@ func TestAPIGetReleaseByTag(t *testing.T) {
 	req := NewRequest(t, "GET", fmt.Sprintf("/api/v1/repos/%s/%s/releases/tags/%s", owner.Name, repo.Name, tag))
 	resp := MakeRequest(t, req, http.StatusOK)
 
-	var release *api.Release
-	DecodeJSON(t, resp, &release)
+	release := DecodeJSON(t, resp, &api.Release{})
 
 	assert.Equal(t, "testing-release", release.Title)
 
@@ -336,14 +331,11 @@ func TestAPIGetReleaseByTag(t *testing.T) {
 	req = NewRequest(t, "GET", fmt.Sprintf("/api/v1/repos/%s/%s/releases/tags/%s", owner.Name, repo.Name, nonexistingtag))
 	resp = MakeRequest(t, req, http.StatusNotFound)
 
-	var err *api.APIError
-	DecodeJSON(t, resp, &err)
+	err := DecodeJSON(t, resp, &api.APIError{})
 	assert.NotEmpty(t, err.Message)
 }
 
-func TestAPIGetDraftReleaseByTag(t *testing.T) {
-	defer tests.PrepareTestEnv(t)()
-
+func testAPIGetDraftReleaseByTag(t *testing.T) {
 	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
 	owner := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: repo.OwnerID})
 
@@ -356,8 +348,7 @@ func TestAPIGetDraftReleaseByTag(t *testing.T) {
 	token := getUserToken(t, "user40", auth_model.AccessTokenScopeReadRepository)
 	req = NewRequest(t, "GET", fmt.Sprintf("/api/v1/repos/%s/%s/releases/tags/%s", owner.Name, repo.Name, tag)).AddTokenAuth(token)
 	resp := MakeRequest(t, req, http.StatusOK)
-	release := api.Release{}
-	DecodeJSON(t, resp, &release)
+	release := DecodeJSON(t, resp, &api.Release{})
 	assert.Equal(t, "draft-release", release.Title)
 
 	// remove user 40 access from the repository
@@ -372,8 +363,7 @@ func TestAPIGetDraftReleaseByTag(t *testing.T) {
 	user2Token := getUserToken(t, "user2", auth_model.AccessTokenScopeReadRepository)
 	req = NewRequest(t, "GET", fmt.Sprintf("/api/v1/repos/%s/%s/releases/tags/%s", owner.Name, repo.Name, tag)).AddTokenAuth(user2Token)
 	resp = MakeRequest(t, req, http.StatusOK)
-	release = api.Release{}
-	DecodeJSON(t, resp, &release)
+	release = DecodeJSON(t, resp, &api.Release{})
 	assert.Equal(t, "draft-release", release.Title)
 }
 
@@ -422,7 +412,7 @@ func TestAPIUploadAssetRelease(t *testing.T) {
 		defer tests.PrintCurrentTest(t)()
 		const filename = "image.png"
 
-		performUpload := func(t *testing.T, uploadURL string, buf []byte, expectedStatus int) *httptest.ResponseRecorder {
+		performUpload := func(t *testing.T, uploadURL string, _ []byte, _ int) *httptest.ResponseRecorder {
 			body := &bytes.Buffer{}
 			writer := multipart.NewWriter(body)
 			part, err := writer.CreateFormFile("attachment", filename)
@@ -442,15 +432,13 @@ func TestAPIUploadAssetRelease(t *testing.T) {
 
 		t.Run("UploadDefaultName", func(t *testing.T) {
 			resp := performUpload(t, assetURL, bufImageBytes, http.StatusCreated)
-			var attachment api.Attachment
-			DecodeJSON(t, resp, &attachment)
+			attachment := DecodeJSON(t, resp, &api.Attachment{})
 			assert.Equal(t, filename, attachment.Name)
 			assert.EqualValues(t, 104, attachment.Size)
 		})
 		t.Run("UploadWithName", func(t *testing.T) {
 			resp := performUpload(t, assetURL+"?name=test-asset", bufImageBytes, http.StatusCreated)
-			var attachment api.Attachment
-			DecodeJSON(t, resp, &attachment)
+			attachment := DecodeJSON(t, resp, &api.Attachment{})
 			assert.Equal(t, "test-asset", attachment.Name)
 			assert.EqualValues(t, 104, attachment.Size)
 		})
@@ -468,8 +456,7 @@ func TestAPIUploadAssetRelease(t *testing.T) {
 		req = NewRequestWithBody(t, http.MethodPost, assetURL+"?name=stream.bin", bytes.NewReader(bufImageBytes)).AddTokenAuth(token)
 		resp := MakeRequest(t, req, http.StatusCreated)
 
-		var attachment api.Attachment
-		DecodeJSON(t, resp, &attachment)
+		attachment := DecodeJSON(t, resp, &api.Attachment{})
 
 		assert.Equal(t, "stream.bin", attachment.Name)
 		assert.EqualValues(t, 104, attachment.Size)

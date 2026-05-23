@@ -1,0 +1,9 @@
+name: free-disk-space
+description: Free space on / before large cache restores
+
+# Delete preinstalled toolchains which gitea doesn't use
+runs:
+  using: composite
+  steps:
+    - shell: bash
+      run: sudo rm -rf /usr/local/lib/android /usr/local/.ghcup /opt/ghc /usr/share/dotnet

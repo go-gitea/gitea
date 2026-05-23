@@ -169,7 +169,7 @@ func UploadPackage(ctx *context.Context) {
 		canWrite := repo.OwnerID == ctx.Doer.ID
 
 		if !canWrite {
-			perms, err := access_model.GetUserRepoPermission(ctx, repo, ctx.Doer)
+			perms, err := access_model.GetDoerRepoPermission(ctx, repo, ctx.Doer)
 			if err != nil {
 				apiError(ctx, http.StatusInternalServerError, err)
 				return

@@ -5,7 +5,6 @@ package integration
 
 import (
 	"context"
-	"encoding/hex"
 	"fmt"
 	"io"
 	mathRand "math/rand/v2"
@@ -199,10 +198,10 @@ func lfsCommitAndPushTest(t *testing.T, dstPath string, sizes ...int) (pushedFil
 		_, _, err = gitcmd.NewCommand("lfs").AddArguments("track").AddDynamicArguments(prefix + "*").
 			WithDir(dstPath).RunStdString(t.Context())
 		assert.NoError(t, err)
-		err = git.AddChanges(t.Context(), dstPath, false, ".gitattributes")
+		err = gitAddChangesDeprecated(t.Context(), dstPath, false, ".gitattributes")
 		assert.NoError(t, err)
 
-		err = git.CommitChanges(t.Context(), dstPath, git.CommitChangesOptions{
+		err = gitCommitChangesDeprecated(t.Context(), dstPath, gitCommitChangesOptions{
 			Committer: &git.Signature{
 				Email: "user2@example.com",
 				Name:  "User Two",
@@ -246,8 +245,8 @@ func rawTest(t *testing.T, ctx *APITestContext, little, big, littleLFS, bigLFS s
 
 		// Request raw paths
 		req := NewRequest(t, "GET", path.Join("/", username, reponame, "/raw/branch/master/", little))
-		resp := session.MakeRequestNilResponseRecorder(t, req, http.StatusOK)
-		assert.Equal(t, testFileSizeSmall, resp.Length)
+		resp := session.MakeRequest(t, req, http.StatusOK)
+		assert.Equal(t, testFileSizeSmall, resp.Body.Len())
 
 		if setting.LFS.StartServer {
 			req = NewRequest(t, "GET", path.Join("/", username, reponame, "/raw/branch/master/", littleLFS))
@@ -261,8 +260,8 @@ func rawTest(t *testing.T, ctx *APITestContext, little, big, littleLFS, bigLFS s
 
 		if !testing.Short() {
 			req = NewRequest(t, "GET", path.Join("/", username, reponame, "/raw/branch/master/", big))
-			resp := session.MakeRequestNilResponseRecorder(t, req, http.StatusOK)
-			assert.Equal(t, testFileSizeLarge, resp.Length)
+			resp := session.MakeRequest(t, req, http.StatusOK)
+			assert.Equal(t, testFileSizeLarge, resp.Body.Len())
 
 			if setting.LFS.StartServer {
 				req = NewRequest(t, "GET", path.Join("/", username, reponame, "/raw/branch/master/", bigLFS))
@@ -287,22 +286,22 @@ func mediaTest(t *testing.T, ctx *APITestContext, little, big, littleLFS, bigLFS
 
 		// Request media paths
 		req := NewRequest(t, "GET", path.Join("/", username, reponame, "/media/branch/master/", little))
-		resp := session.MakeRequestNilResponseRecorder(t, req, http.StatusOK)
-		assert.Equal(t, testFileSizeSmall, resp.Length)
+		resp := session.MakeRequest(t, req, http.StatusOK)
+		assert.Equal(t, testFileSizeSmall, resp.Body.Len())
 
 		req = NewRequest(t, "GET", path.Join("/", username, reponame, "/media/branch/master/", littleLFS))
-		resp = session.MakeRequestNilResponseRecorder(t, req, http.StatusOK)
-		assert.Equal(t, testFileSizeSmall, resp.Length)
+		resp = session.MakeRequest(t, req, http.StatusOK)
+		assert.Equal(t, testFileSizeSmall, resp.Body.Len())
 
 		if !testing.Short() {
 			req = NewRequest(t, "GET", path.Join("/", username, reponame, "/media/branch/master/", big))
-			resp = session.MakeRequestNilResponseRecorder(t, req, http.StatusOK)
-			assert.Equal(t, testFileSizeLarge, resp.Length)
+			resp = session.MakeRequest(t, req, http.StatusOK)
+			assert.Equal(t, testFileSizeLarge, resp.Body.Len())
 
 			if setting.LFS.StartServer {
 				req = NewRequest(t, "GET", path.Join("/", username, reponame, "/media/branch/master/", bigLFS))
-				resp = session.MakeRequestNilResponseRecorder(t, req, http.StatusOK)
-				assert.Equal(t, testFileSizeLarge, resp.Length)
+				resp = session.MakeRequest(t, req, http.StatusOK)
+				assert.Equal(t, testFileSizeLarge, resp.Body.Len())
 			}
 		}
 	})
@@ -347,11 +346,11 @@ func generateCommitWithNewData(ctx context.Context, size int, repoPath, email, f
 	_ = tmpFile.Close()
 
 	// Commit
-	err = git.AddChanges(ctx, repoPath, false, filepath.Base(tmpFile.Name()))
+	err = gitAddChangesDeprecated(ctx, repoPath, false, filepath.Base(tmpFile.Name()))
 	if err != nil {
 		return "", err
 	}
-	err = git.CommitChanges(ctx, repoPath, git.CommitChangesOptions{
+	err = gitCommitChangesDeprecated(ctx, repoPath, gitCommitChangesOptions{
 		Committer: &git.Signature{
 			Email: email,
 			Name:  fullName,
@@ -560,13 +559,11 @@ func doMergeFork(ctx, baseCtx APITestContext, baseBranch, headBranch string) fun
 		t.Run("EnsureCanSeePull", doEnsureCanSeePull(baseCtx, pr))
 
 		// Then get the diff string
-		var diffHash string
-		var diffLength int
+		var diffContent string
 		t.Run("GetDiff", func(t *testing.T) {
 			req := NewRequest(t, "GET", fmt.Sprintf("/%s/%s/pulls/%d.diff", url.PathEscape(baseCtx.Username), url.PathEscape(baseCtx.Reponame), pr.Index))
-			resp := ctx.Session.MakeRequestNilResponseHashSumRecorder(t, req, http.StatusOK)
-			diffHash = string(resp.Hash.Sum(nil))
-			diffLength = resp.Length
+			resp := ctx.Session.MakeRequest(t, req, http.StatusOK)
+			diffContent = resp.Body.String()
 		})
 
 		// Now: Merge the PR & make sure that doesn't break the PR page or change its diff
@@ -578,17 +575,17 @@ func doMergeFork(ctx, baseCtx APITestContext, baseBranch, headBranch string) fun
 			assert.NoError(t, err)
 			assert.Equal(t, oldMergeBase, pr2.MergeBase)
 		})
-		t.Run("EnsurDiffNoChange", doEnsureDiffNoChange(baseCtx, pr, diffHash, diffLength))
+		t.Run("EnsurDiffNoChange", doEnsureDiffNoChange(baseCtx, pr, diffContent))
 
 		// Then: Delete the head branch & make sure that doesn't break the PR page or change its diff
 		t.Run("DeleteHeadBranch", doBranchDelete(baseCtx, baseCtx.Username, baseCtx.Reponame, headBranch))
 		t.Run("EnsureCanSeePull", doEnsureCanSeePull(baseCtx, pr))
-		t.Run("EnsureDiffNoChange", doEnsureDiffNoChange(baseCtx, pr, diffHash, diffLength))
+		t.Run("EnsureDiffNoChange", doEnsureDiffNoChange(baseCtx, pr, diffContent))
 
 		// Delete the head repository & make sure that doesn't break the PR page or change its diff
 		t.Run("DeleteHeadRepository", doAPIDeleteRepository(ctx))
 		t.Run("EnsureCanSeePull", doEnsureCanSeePull(baseCtx, pr))
-		t.Run("EnsureDiffNoChange", doEnsureDiffNoChange(baseCtx, pr, diffHash, diffLength))
+		t.Run("EnsureDiffNoChange", doEnsureDiffNoChange(baseCtx, pr, diffContent))
 	}
 }
 
@@ -632,15 +629,12 @@ func doEnsureCanSeePull(ctx APITestContext, pr api.PullRequest) func(t *testing.
 	}
 }
 
-func doEnsureDiffNoChange(ctx APITestContext, pr api.PullRequest, diffHash string, diffLength int) func(t *testing.T) {
+func doEnsureDiffNoChange(ctx APITestContext, pr api.PullRequest, diffContent string) func(t *testing.T) {
 	return func(t *testing.T) {
 		req := NewRequest(t, "GET", fmt.Sprintf("/%s/%s/pulls/%d.diff", url.PathEscape(ctx.Username), url.PathEscape(ctx.Reponame), pr.Index))
-		resp := ctx.Session.MakeRequestNilResponseHashSumRecorder(t, req, http.StatusOK)
-		actual := string(resp.Hash.Sum(nil))
-		actualLength := resp.Length
-
-		equal := diffHash == actual
-		assert.True(t, equal, "Unexpected change in the diff string: expected hash: %s size: %d but was actually: %s size: %d", hex.EncodeToString([]byte(diffHash)), diffLength, hex.EncodeToString([]byte(actual)), actualLength)
+		resp := ctx.Session.MakeRequest(t, req, http.StatusOK)
+		actual := resp.Body.String()
+		assert.Equal(t, diffContent, actual)
 	}
 }
 
@@ -837,10 +831,10 @@ func doCreateAgitFlowPull(dstPath string, ctx *APITestContext, headBranch string
 			err := os.WriteFile(path.Join(dstPath, "test_file"), []byte("## test content"), 0o666)
 			require.NoError(t, err)
 
-			err = git.AddChanges(t.Context(), dstPath, true)
+			err = gitAddChangesDeprecated(t.Context(), dstPath, true)
 			assert.NoError(t, err)
 
-			err = git.CommitChanges(t.Context(), dstPath, git.CommitChangesOptions{
+			err = gitCommitChangesDeprecated(t.Context(), dstPath, gitCommitChangesOptions{
 				Committer: &git.Signature{
 					Email: "user2@example.com",
 					Name:  "user2",
@@ -909,10 +903,10 @@ func doCreateAgitFlowPull(dstPath string, ctx *APITestContext, headBranch string
 			err := os.WriteFile(path.Join(dstPath, "test_file"), []byte("## test content \n ## test content 2"), 0o666)
 			require.NoError(t, err)
 
-			err = git.AddChanges(t.Context(), dstPath, true)
+			err = gitAddChangesDeprecated(t.Context(), dstPath, true)
 			assert.NoError(t, err)
 
-			err = git.CommitChanges(t.Context(), dstPath, git.CommitChangesOptions{
+			err = gitCommitChangesDeprecated(t.Context(), dstPath, gitCommitChangesOptions{
 				Committer: &git.Signature{
 					Email: "user2@example.com",
 					Name:  "user2",

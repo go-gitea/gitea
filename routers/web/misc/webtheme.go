@@ -37,6 +37,6 @@ func WebThemeApply(ctx *context.Context) {
 		opts := &user_service.UpdateOptions{Theme: optional.Some(themeName)}
 		_ = user_service.UpdateUser(ctx, ctx.Doer, opts)
 	} else {
-		middleware.SetSiteCookie(ctx.Resp, "gitea_theme", themeName, 0)
+		middleware.SetSiteCookie(ctx.Resp, middleware.CookieTheme, themeName, 0)
 	}
 }

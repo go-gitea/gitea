@@ -5,15 +5,15 @@ package auth
 
 import (
 	"context"
-	"crypto/sha256"
+	"crypto/subtle"
 	"encoding/base32"
-	"encoding/base64"
 	"errors"
 	"fmt"
 	"net"
 	"net/url"
 	"slices"
 	"strings"
+	"time"
 
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/modules/container"
@@ -23,8 +23,17 @@ import (
 
 	uuid "github.com/google/uuid"
 	"golang.org/x/crypto/bcrypt"
+	"golang.org/x/oauth2"
 	"xorm.io/builder"
 	"xorm.io/xorm"
+)
+
+// Authorization codes should expire within 10 minutes per https://datatracker.ietf.org/doc/html/rfc6749#section-4.1.2
+const oauth2AuthorizationCodeValidity = 10 * time.Minute
+
+var (
+	ErrOAuth2AuthorizationCodeInvalidated = errors.New("oauth2 authorization code already invalidated")
+	ErrOAuth2GrantStaleCounter            = errors.New("oauth2 grant state changed during token refresh")
 )
 
 // OAuth2Application represents an OAuth2 client (RFC 6749)
@@ -145,30 +154,40 @@ func (app *OAuth2Application) ContainsRedirectURI(redirectURI string) bool {
 	// https://www.rfc-editor.org/rfc/rfc6819#section-5.2.3.3
 	// https://openid.net/specs/openid-connect-core-1_0.html#AuthRequest
 	// https://datatracker.ietf.org/doc/html/draft-ietf-oauth-security-topics-12#section-3.1
-	contains := func(s string) bool {
-		s = strings.TrimSuffix(strings.ToLower(s), "/")
-		for _, u := range app.RedirectURIs {
-			if strings.TrimSuffix(strings.ToLower(u), "/") == s {
+	redirectCandidates := []string{redirectURI}
+	if !app.ConfidentialClient {
+		loopbackRedirect, ok := normalizePublicClientRedirectURI(redirectURI)
+		if ok {
+			redirectCandidates = append(redirectCandidates, loopbackRedirect)
+		}
+	}
+
+	for _, candidate := range redirectCandidates {
+		normalizedCandidate := normalizeRedirectURIForComparison(candidate)
+		for _, registeredURI := range app.RedirectURIs {
+			if normalizeRedirectURIForComparison(registeredURI) == normalizedCandidate {
 				return true
 			}
 		}
-		return false
 	}
-	if !app.ConfidentialClient {
-		uri, err := url.Parse(redirectURI)
-		// ignore port for http loopback uris following https://datatracker.ietf.org/doc/html/rfc8252#section-7.3
-		if err == nil && uri.Scheme == "http" && uri.Port() != "" {
-			ip := net.ParseIP(uri.Hostname())
-			if ip != nil && ip.IsLoopback() {
-				// strip port
-				uri.Host = uri.Hostname()
-				if contains(uri.String()) {
-					return true
-				}
-			}
-		}
+
+	return false
+}
+
+func normalizeRedirectURIForComparison(redirectURI string) string {
+	return strings.TrimSuffix(util.ToLowerASCII(redirectURI), "/")
+}
+
+func normalizePublicClientRedirectURI(redirectURI string) (string, bool) {
+	parsedURI, err := url.Parse(redirectURI)
+	if err != nil || parsedURI.Scheme != "http" || parsedURI.Port() == "" {
+		return "", false
 	}
-	return contains(redirectURI)
+	if ip := net.ParseIP(parsedURI.Hostname()); ip == nil || !ip.IsLoopback() {
+		return "", false
+	}
+	parsedURI.Host = parsedURI.Hostname()
+	return parsedURI.String(), true
 }
 
 // Base32 characters, but lowercased.
@@ -179,10 +198,7 @@ var base32Lower = base32.NewEncoding(lowerBase32Chars).WithPadding(base32.NoPadd
 
 // GenerateClientSecret will generate the client secret and returns the plaintext and saves the hash at the database
 func (app *OAuth2Application) GenerateClientSecret(ctx context.Context) (string, error) {
-	rBytes, err := util.CryptoRandomBytes(32)
-	if err != nil {
-		return "", err
-	}
+	rBytes := util.CryptoRandomBytes(32)
 	// Add a prefix to the base32, this is in order to make it easier
 	// for code scanners to grab sensitive tokens.
 	clientSecret := "gto_" + base32Lower.EncodeToString(rBytes)
@@ -214,7 +230,7 @@ func (app *OAuth2Application) GetGrantByUserID(ctx context.Context, userID int64
 	return grant, nil
 }
 
-// CreateGrant generates a grant for an user
+// CreateGrant generates a grant for a user
 func (app *OAuth2Application) CreateGrant(ctx context.Context, userID int64, scope string) (*OAuth2Grant, error) {
 	grant := &OAuth2Grant{
 		ApplicationID: app.ID,
@@ -386,6 +402,14 @@ func (code *OAuth2AuthorizationCode) TableName() string {
 	return "oauth2_authorization_code"
 }
 
+// IsExpired reports whether the authorization code is expired.
+func (code *OAuth2AuthorizationCode) IsExpired() bool {
+	if code.ValidUntil.IsZero() {
+		return true
+	}
+	return code.ValidUntil <= timeutil.TimeStampNow()
+}
+
 // GenerateRedirectURI generates a redirect URI for a successful authorization request. State will be used if not empty.
 func (code *OAuth2AuthorizationCode) GenerateRedirectURI(state string) (*url.URL, error) {
 	redirect, err := url.Parse(code.RedirectURI)
@@ -403,26 +427,44 @@ func (code *OAuth2AuthorizationCode) GenerateRedirectURI(state string) (*url.URL
 
 // Invalidate deletes the auth code from the database to invalidate this code
 func (code *OAuth2AuthorizationCode) Invalidate(ctx context.Context) error {
-	_, err := db.GetEngine(ctx).ID(code.ID).NoAutoCondition().Delete(code)
-	return err
+	affected, err := db.GetEngine(ctx).ID(code.ID).NoAutoCondition().Delete(code)
+	if err != nil {
+		return err
+	}
+	if affected == 0 {
+		return ErrOAuth2AuthorizationCodeInvalidated
+	}
+	return nil
+}
+
+func (code *OAuth2AuthorizationCode) requiresCodeVerifier() bool {
+	return code.CodeChallengeMethod != "" || code.CodeChallenge != ""
+}
+
+func deriveCodeChallenge(method, verifier string) (string, bool) {
+	switch method {
+	case "S256":
+		return oauth2.S256ChallengeFromVerifier(verifier), true
+	case "plain":
+		return verifier, true
+	default:
+		return "", false
+	}
 }
 
 // ValidateCodeChallenge validates the given verifier against the saved code challenge. This is part of the PKCE implementation.
 func (code *OAuth2AuthorizationCode) ValidateCodeChallenge(verifier string) bool {
-	switch code.CodeChallengeMethod {
-	case "S256":
-		// base64url(SHA256(verifier)) see https://tools.ietf.org/html/rfc7636#section-4.6
-		h := sha256.Sum256([]byte(verifier))
-		hashedVerifier := base64.RawURLEncoding.EncodeToString(h[:])
-		return hashedVerifier == code.CodeChallenge
-	case "plain":
-		return verifier == code.CodeChallenge
-	case "":
+	if !code.requiresCodeVerifier() {
 		return true
-	default:
-		// unsupported method -> return false
+	}
+	if verifier == "" || code.CodeChallengeMethod == "" {
 		return false
 	}
+	expectedChallenge, ok := deriveCodeChallenge(code.CodeChallengeMethod, verifier)
+	if !ok {
+		return false
+	}
+	return subtle.ConstantTimeCompare([]byte(expectedChallenge), []byte(code.CodeChallenge)) == 1
 }
 
 // GetOAuth2AuthorizationByCode returns an authorization by its code
@@ -444,7 +486,7 @@ func GetOAuth2AuthorizationByCode(ctx context.Context, code string) (auth *OAuth
 
 //////////////////////////////////////////////////////
 
-// OAuth2Grant represents the permission of an user for a specific application to access resources
+// OAuth2Grant represents the permission of a user for a specific application to access resources
 type OAuth2Grant struct {
 	ID            int64              `xorm:"pk autoincr"`
 	UserID        int64              `xorm:"INDEX unique(user_application)"`
@@ -464,14 +506,12 @@ func (grant *OAuth2Grant) TableName() string {
 
 // GenerateNewAuthorizationCode generates a new authorization code for a grant and saves it to the database
 func (grant *OAuth2Grant) GenerateNewAuthorizationCode(ctx context.Context, redirectURI, codeChallenge, codeChallengeMethod string) (code *OAuth2AuthorizationCode, err error) {
-	rBytes, err := util.CryptoRandomBytes(32)
-	if err != nil {
-		return &OAuth2AuthorizationCode{}, err
-	}
+	rBytes := util.CryptoRandomBytes(32)
 	// Add a prefix to the base32, this is in order to make it easier
 	// for code scanners to grab sensitive tokens.
 	codeSecret := "gta_" + base32Lower.EncodeToString(rBytes)
 
+	validUntil := time.Now().Add(oauth2AuthorizationCodeValidity)
 	code = &OAuth2AuthorizationCode{
 		Grant:               grant,
 		GrantID:             grant.ID,
@@ -479,6 +519,7 @@ func (grant *OAuth2Grant) GenerateNewAuthorizationCode(ctx context.Context, redi
 		Code:                codeSecret,
 		CodeChallenge:       codeChallenge,
 		CodeChallengeMethod: codeChallengeMethod,
+		ValidUntil:          timeutil.TimeStamp(validUntil.Unix()),
 	}
 	if err := db.Insert(ctx, code); err != nil {
 		return nil, err
@@ -488,15 +529,18 @@ func (grant *OAuth2Grant) GenerateNewAuthorizationCode(ctx context.Context, redi
 
 // IncreaseCounter increases the counter and updates the grant
 func (grant *OAuth2Grant) IncreaseCounter(ctx context.Context) error {
-	_, err := db.GetEngine(ctx).ID(grant.ID).Incr("counter").Update(new(OAuth2Grant))
+	affected, err := db.GetEngine(ctx).
+		Where("id = ?", grant.ID).
+		And("counter = ?", grant.Counter).
+		Incr("counter").
+		Update(new(OAuth2Grant))
 	if err != nil {
 		return err
 	}
-	updatedGrant, err := GetOAuth2GrantByID(ctx, grant.ID)
-	if err != nil {
-		return err
+	if affected == 0 {
+		return ErrOAuth2GrantStaleCounter
 	}
-	grant.Counter = updatedGrant.Counter
+	grant.Counter++
 	return nil
 }
 
@@ -611,7 +655,7 @@ func GetActiveOAuth2SourceByAuthName(ctx context.Context, name string) (*Source,
 	}
 
 	if !has {
-		return nil, fmt.Errorf("oauth2 source not found, name: %q", name)
+		return nil, util.NewNotExistErrorf("oauth2 source not found, name: %q", name)
 	}
 
 	return authSource, nil

@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"net/http"
 	"path"
+	"strings"
 	"sync"
 	"testing"
 
@@ -37,7 +38,7 @@ func TestRepoCommits(t *testing.T) {
 		doc.doc.Find("#commits-table .commit-id-short").Each(func(i int, s *goquery.Selection) {
 			commits = append(commits, path.Base(s.AttrOr("href", "")))
 		})
-		doc.doc.Find("#commits-table .author-wrapper").Each(func(i int, s *goquery.Selection) {
+		doc.doc.Find("#commits-table .author-wrapper a").Each(func(i int, s *goquery.Selection) {
 			userHrefs = append(userHrefs, s.AttrOr("href", ""))
 		})
 		assert.Equal(t, []string{"69554a64c1e6030f051e5c3f94bfbd773cd6a324", "27566bd5738fc8b4e3fef3c5e72cce608537bd95", "5099b81332712fe655e34e8dd63574f503f61811"}, commits)
@@ -49,7 +50,7 @@ func TestRepoCommits(t *testing.T) {
 		resp := session.MakeRequest(t, req, http.StatusOK)
 		doc := NewHTMLParser(t, resp.Body)
 		commitHref := doc.doc.Find(".latest-commit .commit-id-short").AttrOr("href", "")
-		authorHref := doc.doc.Find(".latest-commit .author-wrapper").AttrOr("href", "")
+		authorHref := doc.doc.Find(".latest-commit .author-wrapper a").AttrOr("href", "")
 		assert.Equal(t, "/user2/repo16/commit/69554a64c1e6030f051e5c3f94bfbd773cd6a324", commitHref)
 		assert.Equal(t, "/user2", authorHref)
 	})
@@ -65,8 +66,7 @@ func TestRepoCommits(t *testing.T) {
 		commitHref := doc.doc.Find("#commits-table tr:first-child .commit-id-short").AttrOr("href", "")
 		assert.Equal(t, "/user2/repo1/commit/985f0301dba5e7b34be866819cd15ad3d8f508ee", commitHref)
 		authorElem := doc.doc.Find("#commits-table tr:first-child .author-wrapper")
-		assert.Equal(t, "6543", authorElem.Text())
-		assert.Equal(t, "span", authorElem.Nodes[0].Data)
+		assert.Equal(t, "6543", strings.TrimSpace(authorElem.Text()))
 	})
 
 	t.Run("LastCommitNonExistingCommiter", func(t *testing.T) {
@@ -76,8 +76,7 @@ func TestRepoCommits(t *testing.T) {
 		commitHref := doc.doc.Find(".latest-commit .commit-id-short").AttrOr("href", "")
 		assert.Equal(t, "/user2/repo1/commit/985f0301dba5e7b34be866819cd15ad3d8f508ee", commitHref)
 		authorElem := doc.doc.Find(".latest-commit .author-wrapper")
-		assert.Equal(t, "6543", authorElem.Text())
-		assert.Equal(t, "span", authorElem.Nodes[0].Data)
+		assert.Equal(t, "6543", strings.TrimSpace(authorElem.Text()))
 	})
 }
 
@@ -181,14 +180,12 @@ func TestRepoCommitsStatusParallel(t *testing.T) {
 
 	var wg sync.WaitGroup
 	for i := range 10 {
-		wg.Add(1)
-		go func(parentT *testing.T, i int) {
-			parentT.Run(fmt.Sprintf("ParallelCreateStatus_%d", i), func(t *testing.T) {
+		wg.Go(func() {
+			t.Run(fmt.Sprintf("ParallelCreateStatus_%d", i), func(t *testing.T) {
 				ctx := NewAPITestContext(t, "user2", "repo1", auth_model.AccessTokenScopeWriteRepository)
 				doAPICreateCommitStatusTest(ctx, path.Base(commitURL), commitstatus.CommitStatusPending, "testci")(t)
-				wg.Done()
 			})
-		}(t, i)
+		})
 	}
 	wg.Wait()
 }

@@ -125,7 +125,7 @@ func ListRepoNotifications(ctx *context.APIContext) {
 		return
 	}
 
-	ctx.SetLinkHeader(int(totalCount), opts.PageSize)
+	ctx.SetLinkHeader(totalCount, opts.PageSize)
 	ctx.SetTotalCountHeader(totalCount)
 	ctx.JSON(http.StatusOK, convert.ToNotifications(ctx, nl))
 }
