@@ -1,0 +1,5 @@
+{{if .RichDiffError}}
+	<div class="ui center">{{.RichDiffError}}</div>
+{{else}}
+	<div class="rich-diff markup">{{.RichDiff}}</div>
+{{end}}

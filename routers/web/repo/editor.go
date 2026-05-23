@@ -18,6 +18,7 @@ import (
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/httplib"
 	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/markup"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/templates"
 	"code.gitea.io/gitea/modules/util"
@@ -29,12 +30,13 @@ import (
 )
 
 const (
-	tplEditFile        templates.TplName = "repo/editor/edit"
-	tplEditDiffPreview templates.TplName = "repo/editor/diff_preview"
-	tplDeleteFile      templates.TplName = "repo/editor/delete"
-	tplUploadFile      templates.TplName = "repo/editor/upload"
-	tplPatchFile       templates.TplName = "repo/editor/patch"
-	tplCherryPick      templates.TplName = "repo/editor/cherry_pick"
+	tplEditFile            templates.TplName = "repo/editor/edit"
+	tplEditDiffPreview     templates.TplName = "repo/editor/diff_preview"
+	tplRenderedDiffPreview templates.TplName = "repo/editor/rendered_diff_preview"
+	tplDeleteFile          templates.TplName = "repo/editor/delete"
+	tplUploadFile          templates.TplName = "repo/editor/upload"
+	tplPatchFile           templates.TplName = "repo/editor/patch"
+	tplCherryPick          templates.TplName = "repo/editor/cherry_pick"
 
 	editorCommitChoiceDirect    string = "direct"
 	editorCommitChoiceNewBranch string = "commit-to-new-branch"
@@ -325,6 +327,8 @@ func EditFile(ctx *context.Context) {
 		editorConfig.Filename = ""
 	}
 	ctx.Data["CodeEditorConfig"] = editorConfig
+	renderer := markup.DetectRendererTypeByFilename(ctx.Repo.TreePath)
+	ctx.Data["IsRichDiffFile"] = markup.IsInlineHTMLRenderer(renderer)
 	ctx.HTML(http.StatusOK, tplEditFile)
 }
 
