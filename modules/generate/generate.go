@@ -104,7 +104,7 @@ func commonKeyGen(keytype string, bits int) (publicKey, privateKey crypto.Public
 	case "ed25519":
 		return ed25519.GenerateKey(rand.Reader)
 	case "ecdsa":
-		curve, err := getElipticCurve(bits)
+		curve, err := getEllipticCurve(bits)
 		if err != nil {
 			return nil, nil, err
 		}
@@ -118,7 +118,7 @@ func commonKeyGen(keytype string, bits int) (publicKey, privateKey crypto.Public
 	}
 }
 
-func getElipticCurve(bits int) (elliptic.Curve, error) {
+func getEllipticCurve(bits int) (elliptic.Curve, error) {
 	switch bits {
 	case 256:
 		return elliptic.P256(), nil
