@@ -638,7 +638,7 @@ jobs:
 				return false
 			}
 			if latestCommitStatuses[0].State == commitstatus.CommitStatusPending {
-				insertFakeStatus(t, repo, sha, latestCommitStatuses[0].TargetURL, latestCommitStatuses[0].Context)
+				insertFakeStatus(t, repo, sha, latestCommitStatuses[0])
 				return true
 			}
 			return false
@@ -680,14 +680,18 @@ func checkCommitStatusAndInsertFakeStatus(t *testing.T, repo *repo_model.Reposit
 	assert.Len(t, latestCommitStatuses, 1)
 	assert.Equal(t, commitstatus.CommitStatusPending, latestCommitStatuses[0].State)
 
-	insertFakeStatus(t, repo, sha, latestCommitStatuses[0].TargetURL, latestCommitStatuses[0].Context)
+	insertFakeStatus(t, repo, sha, latestCommitStatuses[0])
 }
 
-func insertFakeStatus(t *testing.T, repo *repo_model.Repository, sha, targetURL, context string) {
+// insertFakeStatus inserts a success status that lands in the same dedupe
+// group as `prev` — the actions runner mixes the workflow file path into
+// ContextHash, so we must reuse it (rather than recomputing from Context).
+func insertFakeStatus(t *testing.T, repo *repo_model.Repository, sha string, prev *git_model.CommitStatus) {
 	err := commitstatus_service.CreateCommitStatus(t.Context(), repo, user_model.NewActionsUser(), sha, &git_model.CommitStatus{
-		State:     commitstatus.CommitStatusSuccess,
-		TargetURL: targetURL,
-		Context:   context,
+		State:       commitstatus.CommitStatusSuccess,
+		TargetURL:   prev.TargetURL,
+		Context:     prev.Context,
+		ContextHash: prev.ContextHash,
 	})
 	assert.NoError(t, err)
 }
@@ -822,7 +826,7 @@ jobs:
 				return false
 			}
 			if latestCommitStatuses[0].State == commitstatus.CommitStatusPending {
-				insertFakeStatus(t, repo, sha, latestCommitStatuses[0].TargetURL, latestCommitStatuses[0].Context)
+				insertFakeStatus(t, repo, sha, latestCommitStatuses[0])
 				return true
 			}
 			return false

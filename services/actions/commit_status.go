@@ -149,6 +149,12 @@ func createCommitStatus(ctx context.Context, repo *repo_model.Repository, event,
 	// even though they render identically — matching GitHub's behavior
 	// (issue #35699).
 	ctxHash := git_model.HashCommitStatusContext(ctxName + "\x00" + run.WorkflowID)
+	// Pre-fix rows were hashed from Context alone. If a pre-existing row with
+	// the legacy hash is still the "latest" for this SHA, reuse that hash so
+	// the new row supersedes it; otherwise the old pending status would stay
+	// stuck forever (it lives in its own dedupe group). Only relevant for
+	// in-flight workflows at upgrade time.
+	legacyHash := git_model.HashCommitStatusContext(ctxName)
 	state := toCommitStatus(job.Status)
 	targetURL := fmt.Sprintf("%s/jobs/%d", run.Link(), job.ID)
 	description := toCommitStatusDescription(job)
@@ -156,6 +162,12 @@ func createCommitStatus(ctx context.Context, repo *repo_model.Repository, event,
 	statuses, err := git_model.GetLatestCommitStatus(ctx, repo.ID, commitID, db.ListOptionsAll)
 	if err != nil {
 		return fmt.Errorf("GetLatestCommitStatus: %w", err)
+	}
+	for _, v := range statuses {
+		if v.ContextHash == legacyHash && v.Context == ctxName {
+			ctxHash = legacyHash
+			break
+		}
 	}
 	for _, v := range statuses {
 		if v.ContextHash == ctxHash {
