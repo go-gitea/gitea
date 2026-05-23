@@ -258,16 +258,20 @@ a.ui.ui.ui.grey.label:hover {
   font-size: 1rem;
 }
 
-/* To let labels break up and wrap across multiple lines (issue title, comment event), use "display: contents here" to apply parent layout.
-If the labels-list itself needs some layouts, use extra classes or "tw" helpers. */
+/* labels-list layout: span.labels-list > a.item > span.ui.label,
+by default, the labels list is rendered as "display: inline",
+it can also be rendered as flex by adding flex-related classes (the general ".item" selector also applies) */
 .labels-list {
-  display: contents;
-  font-size: var(--font-size-label); /* it must match the label font size, otherwise the height mismatches */
+  max-width: 100%; /* for ellipsis */
+  font-size: var(--font-size-label); /* must match the label font size, otherwise the height mismatches */
 }
 
-.labels-list a {
-  display: inline-flex;
+.labels-list > .item {
   max-width: 100%; /* for ellipsis */
+}
+
+.labels-list a:hover {
+  text-decoration: none;
 }
 
 .labels-list .ui.label {
@@ -276,12 +280,15 @@ If the labels-list itself needs some layouts, use extra classes or "tw" helpers.
   padding-bottom: 0;
 }
 
-.with-labels-list-inline .labels-list .ui.label + .ui.label {
-  margin-left: var(--gap-inline);
+/* to align with different font sizes, these styles need to be written separately */
+#issue-list .labels-list > .item {
+  margin-right: 4px; /* margin-right (not margin-left) keeps wrapped labels left-aligned */
+  vertical-align: 2.5px; /* compensates inline-flex baseline so labels center with text */
 }
 
-.with-labels-list-inline .labels-list .ui.label {
-  line-height: var(--line-height-default);
+.timeline-item .labels-list > .item {
+  margin-right: 4px;
+  vertical-align: 1.5px;
 }
 
 /* Scoped labels with different colors on left and right */

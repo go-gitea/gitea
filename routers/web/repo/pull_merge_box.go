@@ -162,18 +162,22 @@ func (prInfo *pullRequestViewInfo) prepareMergeBoxInfoItems(ctx *context.Context
 		}
 	}
 
-	if !data.allowMerge {
+	if !data.hasPermToMerge {
 		prInfo.MergeBoxData.infoProtectionBlockers.AddInfoItem(
 			svg.RenderHTML("octicon-info"),
 			ctx.Locale.Tr("repo.pulls.no_merge_access"),
 		)
 	}
 
-	if data.CanMergeNow {
-		if data.HasOverridableBlockers {
+	if data.canMergeNow {
+		if data.hasOverridableBlockers {
+			prompt := ctx.Locale.Tr("repo.pulls.required_status_check_bypass_allowlist")
+			if data.canBypassProtectionAsAdmin {
+				prompt = ctx.Locale.Tr("repo.pulls.required_status_check_administrator")
+			}
 			prInfo.MergeBoxData.infoMergePrompts.AddInfoItem(
 				svg.RenderHTML("octicon-dot-fill"),
-				ctx.Locale.Tr("repo.pulls.required_status_check_administrator"),
+				prompt,
 			)
 		} else if pull.IsStatusMergeable() || pull.IsEmpty() {
 			prInfo.MergeBoxData.infoMergePrompts.AddInfoItem(
