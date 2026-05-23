@@ -122,7 +122,7 @@ func runGenerateSecretKey(_ context.Context, c *cli.Command) error {
 	return nil
 }
 
-func runGenerateKeyPair(c *cli.Context) error {
+func runGenerateKeyPair(_ context.Context, c *cli.Command) error {
 	file := c.String("file")
 
 	// Check if file exists to prevent overwrites
