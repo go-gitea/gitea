@@ -30,6 +30,37 @@ function createElement<K extends keyof HTMLElementTagNameMap>(
   return el;
 }
 
+// Helper to create message/error divs
+function createMessage(text: string, isError = false): HTMLDivElement {
+  const div = createElement('div', {
+    className: isError ? 'jupyter-notebook-error' : 'jupyter-notebook-message',
+    textContent: text,
+  });
+  return div;
+}
+
+// Helper to create warning messages for unsupported output types
+function createOutputWarning(text: string): HTMLDivElement {
+  const div = createElement('div', {textContent: text});
+  div.style.color = 'var(--color-text-light-2)';
+  div.style.fontStyle = 'italic';
+  return div;
+}
+
+// Helper to create image element from base64 data
+function createImageFromData(data: string | string[], mimeType: string): HTMLImageElement {
+  const img = document.createElement('img');
+  const imgData = Array.isArray(data) ? data.join('') : data;
+  img.src = `data:image/${mimeType};base64,${imgData}`;
+  img.style.maxWidth = '100%';
+  return img;
+}
+
+// Helper to join array or return string
+function joinSource(source: string | string[]): string {
+  return Array.isArray(source) ? source.join('') : (source || '');
+}
+
 // Render markdown using marked library with image URL resolution
 function renderMarkdown(markdown: string, treePath: string, mediaPrefix: string): HTMLElement {
   const markupContainer = document.createElement('div');
@@ -56,7 +87,7 @@ function renderMarkdown(markdown: string, treePath: string, mediaPrefix: string)
 }
 
 // Highlight code using Shiki with JavaScript regex engine (no WASM)
-async function highlightCode(code: string, language: string): Promise<string> {
+async function highlightCode(code: string, language: string): Promise<HTMLElement> {
   try {
     // Detect if dark mode is active using Gitea's theme attribute
     const isDark = document.documentElement.getAttribute('data-gitea-theme-dark') === 'true';
@@ -67,8 +98,14 @@ async function highlightCode(code: string, language: string): Promise<string> {
       theme: isDark ? 'github-dark' : 'github-light',
     });
 
-    // Remove background color from the HTML
-    return html.replace(/background-color:[^;]+;?/g, '');
+    // Parse HTML and remove background-color from pre element
+    const container = document.createElement('div');
+    container.innerHTML = html;
+    const pre = container.querySelector('pre');
+    if (pre) {
+      pre.style.backgroundColor = '';
+    }
+    return pre || container;
   } catch (error) {
     console.warn('Shiki highlighting failed:', error);
     // Fallback to plain code
@@ -77,7 +114,7 @@ async function highlightCode(code: string, language: string): Promise<string> {
     codeEl.className = `chroma language-${language}`;
     codeEl.textContent = code;
     pre.append(codeEl);
-    return pre.outerHTML;
+    return pre;
   }
 }
 
@@ -87,14 +124,9 @@ export const frontendRender: FrontendRenderFunc = async (opts) => {
 
     // Only support nbformat 4+
     if (notebook.nbformat && notebook.nbformat < 4) {
-      const messageDiv = document.createElement('div');
-      messageDiv.style.padding = '16px';
-      messageDiv.style.color = 'var(--color-text-light-2)';
-      messageDiv.style.border = '1px solid var(--color-secondary)';
-      messageDiv.style.borderRadius = '4px';
-      messageDiv.style.backgroundColor = 'var(--color-secondary-alpha-10)';
-      messageDiv.textContent = `This notebook uses an older format (nbformat ${notebook.nbformat}). Only nbformat 4+ is supported for rendering. Please upgrade the notebook in Jupyter or view the raw JSON below.`;
-      opts.container.append(messageDiv);
+      opts.container.append(createMessage(
+        `This notebook uses an older format (nbformat ${notebook.nbformat}). Only nbformat 4+ is supported for rendering. Please upgrade the notebook in Jupyter or view the raw JSON below.`,
+      ));
       return false;
     }
 
@@ -122,7 +154,7 @@ export const frontendRender: FrontendRenderFunc = async (opts) => {
 
       if (cell.cell_type === 'markdown') {
         const inputDiv = createElement('div', {className: 'input markup'});
-        const source = Array.isArray(cell.source) ? cell.source.join('') : (cell.source || '');
+        const source = joinSource(cell.source);
         inputDiv.append(renderMarkdown(source, opts.treePath, mediaPrefix));
         cellDiv.append(inputDiv);
       } else if (cell.cell_type === 'code') {
@@ -136,11 +168,11 @@ export const frontendRender: FrontendRenderFunc = async (opts) => {
 
         const inputDiv = createElement('div', {className: 'input'});
 
-        const source = Array.isArray(cell.source) ? cell.source.join('') : (cell.source || '');
+        const source = joinSource(cell.source);
 
         // Highlight code with Shiki
-        const highlightedHtml = await highlightCode(source, language);
-        inputDiv.innerHTML = highlightedHtml;
+        const highlightedElement = await highlightCode(source, language);
+        inputDiv.append(highlightedElement);
 
         inputWrapper.append(inputDiv);
         cellDiv.append(inputWrapper);
@@ -162,33 +194,19 @@ export const frontendRender: FrontendRenderFunc = async (opts) => {
             try {
               if (output.data) {
                 if (output.data['image/png']) {
-                  const img = document.createElement('img');
-                  const imgData = Array.isArray(output.data['image/png']) ?
-                    output.data['image/png'].join('') : output.data['image/png'];
-                  img.src = `data:image/png;base64,${imgData}`;
-                  img.style.maxWidth = '100%';
-                  outputDiv.append(img);
+                  outputDiv.append(createImageFromData(output.data['image/png'], 'png'));
                 } else if (output.data['image/jpeg']) {
-                  const img = document.createElement('img');
-                  const imgData = Array.isArray(output.data['image/jpeg']) ?
-                    output.data['image/jpeg'].join('') : output.data['image/jpeg'];
-                  img.src = `data:image/jpeg;base64,${imgData}`;
-                  img.style.maxWidth = '100%';
-                  outputDiv.append(img);
+                  outputDiv.append(createImageFromData(output.data['image/jpeg'], 'jpeg'));
                 } else if (output.data['image/svg+xml']) {
                   const svgDiv = document.createElement('div');
-                  const svgData = Array.isArray(output.data['image/svg+xml']) ?
-                    output.data['image/svg+xml'].join('') : output.data['image/svg+xml'];
-                  svgDiv.innerHTML = svgData;
+                  svgDiv.innerHTML = joinSource(output.data['image/svg+xml']);
                   outputDiv.append(svgDiv);
                 } else if (output.data['text/html']) {
                   const wrapperDiv = document.createElement('div');
                   wrapperDiv.style.overflowX = 'auto';
                   wrapperDiv.style.maxWidth = '100%';
                   const htmlDiv = document.createElement('div');
-                  const htmlData = Array.isArray(output.data['text/html']) ?
-                    output.data['text/html'].join('') : output.data['text/html'];
-                  htmlDiv.innerHTML = htmlData;
+                  htmlDiv.innerHTML = joinSource(output.data['text/html']);
                   // Ensure images inside HTML outputs are constrained
                   for (const img of htmlDiv.querySelectorAll('img')) {
                     img.style.maxWidth = '100%';
@@ -197,32 +215,13 @@ export const frontendRender: FrontendRenderFunc = async (opts) => {
                   wrapperDiv.append(htmlDiv);
                   outputDiv.append(wrapperDiv);
                 } else if (output.data['application/javascript']) {
-                  const jsDiv = createElement('div', {
-                    className: 'js-output-warning',
-                    textContent: '[JavaScript output - execution disabled for security]',
-                  });
-                  jsDiv.style.color = 'var(--color-text-light-2)';
-                  jsDiv.style.fontStyle = 'italic';
-                  outputDiv.append(jsDiv);
+                  outputDiv.append(createOutputWarning('[JavaScript output - execution disabled for security]'));
                 } else if (output.data['application/vnd.plotly.v1+json']) {
-                  const plotlyDiv = createElement('div', {
-                    className: 'plotly-output-warning',
-                    textContent: '[Plotly output - interactive plots not supported]',
-                  });
-                  plotlyDiv.style.color = 'var(--color-text-light-2)';
-                  plotlyDiv.style.fontStyle = 'italic';
-                  outputDiv.append(plotlyDiv);
+                  outputDiv.append(createOutputWarning('[Plotly output - interactive plots not supported]'));
                 } else if (output.data['application/vnd.jupyter.widget-view+json']) {
-                  const widgetDiv = createElement('div', {
-                    className: 'widget-output-warning',
-                    textContent: '[Jupyter widget - interactive widgets not supported]',
-                  });
-                  widgetDiv.style.color = 'var(--color-text-light-2)';
-                  widgetDiv.style.fontStyle = 'italic';
-                  outputDiv.append(widgetDiv);
+                  outputDiv.append(createOutputWarning('[Jupyter widget - interactive widgets not supported]'));
                 } else if (output.data['text/latex']) {
-                  const latex = Array.isArray(output.data['text/latex']) ?
-                    output.data['text/latex'].join('') : output.data['text/latex'];
+                  const latex = joinSource(output.data['text/latex']);
                   const pre = document.createElement('pre');
                   const mathCode = createElement('code', {
                     className: 'language-math display',
@@ -231,16 +230,13 @@ export const frontendRender: FrontendRenderFunc = async (opts) => {
                   pre.append(mathCode);
                   outputDiv.append(pre);
                 } else if (output.data['text/plain']) {
-                  const plainText = Array.isArray(output.data['text/plain']) ?
-                    output.data['text/plain'].join('') : output.data['text/plain'];
-                  const textPre = createElement('pre', {textContent: plainText});
+                  const textPre = createElement('pre', {textContent: joinSource(output.data['text/plain'])});
                   outputDiv.append(textPre);
                 }
               } else if (output.output_type === 'stream' && output.name) {
-                const streamText = Array.isArray(output.text) ? output.text.join('') : (output.text || '');
                 const streamPre = createElement('pre', {
                   className: `stream-${output.name}`,
-                  textContent: streamText,
+                  textContent: joinSource(output.text),
                 });
                 outputDiv.append(streamPre);
               } else if (output.output_type === 'error') {
@@ -253,18 +249,12 @@ export const frontendRender: FrontendRenderFunc = async (opts) => {
                 errorPre.style.color = 'var(--color-red)';
                 outputDiv.append(errorPre);
               } else if (output.text) {
-                const text = Array.isArray(output.text) ? output.text.join('') : output.text;
-                const textPre = createElement('pre', {textContent: text});
+                const textPre = createElement('pre', {textContent: joinSource(output.text)});
                 outputDiv.append(textPre);
               }
             } catch (outputError) {
               console.warn('Failed to render output:', outputError);
-              const errorDiv = createElement('div', {
-                textContent: '[Output rendering failed]',
-              });
-              errorDiv.style.color = 'var(--color-text-light-2)';
-              errorDiv.style.fontStyle = 'italic';
-              outputDiv.append(errorDiv);
+              outputDiv.append(createOutputWarning('[Output rendering failed]'));
             }
           }
 
@@ -288,16 +278,8 @@ export const frontendRender: FrontendRenderFunc = async (opts) => {
     return true;
   } catch (error) {
     console.error('Jupyter notebook rendering failed:', error);
-    const errorDiv = document.createElement('div');
-    errorDiv.style.padding = '20px';
-    errorDiv.style.color = 'var(--color-red)';
-    const errorTitle = document.createElement('strong');
-    errorTitle.textContent = 'Failed to render notebook:';
-    errorDiv.append(errorTitle);
-    errorDiv.append(document.createElement('br'));
     const errorMessage = error instanceof Error ? error.message : String(error);
-    errorDiv.append(document.createTextNode(errorMessage));
-    opts.container.append(errorDiv);
+    opts.container.append(createMessage(`Failed to render notebook: ${errorMessage}`, true));
     return false;
   }
 };

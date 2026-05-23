@@ -6,6 +6,24 @@
   font-family: inherit;
 }
 
+/* Message for unsupported notebook versions */
+.jupyter-notebook-message {
+  padding: 16px;
+  color: var(--color-text-light-2);
+  border: 1px solid var(--color-secondary);
+  border-radius: 4px;
+  background-color: var(--color-secondary-alpha-10);
+}
+
+/* Error message */
+.jupyter-notebook-error {
+  padding: 16px;
+  color: var(--color-red);
+  border: 1px solid var(--color-red);
+  border-radius: 4px;
+  background-color: var(--color-red-badge-bg);
+}
+
 /* Cell containers */
 .jupyter-notebook .cell {
   margin-bottom: 20px;
@@ -112,8 +130,8 @@
 
 .jupyter-notebook .cell.code .input {
   flex: 1;
-  background-color: var(--color-code-bg, #f6f8fa);
-  border: 1px solid var(--color-secondary-alpha-20, #d0d7de);
+  background-color: var(--color-code-bg);
+  border: 1px solid var(--color-secondary-alpha-20);
   border-radius: 4px;
   min-height: 40px;
 }
