@@ -570,8 +570,6 @@ export default defineConfig([
       'no-redeclare': [0], // must be disabled for typescript overloads
       'no-regex-spaces': [2],
       'no-restricted-exports': [0],
-      'no-restricted-globals': [2, ...restrictedGlobals],
-      'no-restricted-properties': [2, ...restrictedProperties],
       'no-restricted-imports': [2, {paths: [
         {name: 'jquery', message: 'Use the global $ instead', allowTypeImports: true},
         {name: 'htmx.org', message: 'Use the global htmx instead', allowTypeImports: true},
@@ -1024,5 +1022,9 @@ export default defineConfig([
   {
     files: ['web_src/**/*'],
     languageOptions: {globals: {...globals.browser, ...globals.jquery, htmx: false}},
+    rules: {
+      'no-restricted-globals': [2, ...restrictedGlobals],
+      'no-restricted-properties': [2, ...restrictedProperties],
+    },
   },
 ]);
