@@ -6,6 +6,7 @@ package uinotification
 import (
 	"context"
 	"slices"
+	"strings"
 
 	activities_model "code.gitea.io/gitea/models/activities"
 	issues_model "code.gitea.io/gitea/models/issues"
@@ -302,7 +303,7 @@ func (ns *notificationService) RepoPendingTransfer(ctx context.Context, doer, ne
 	}
 }
 
-func (ns *notificationService) PushCommits(ctx context.Context, pusher *user_model.User, repo *repo_model.Repository, opts *repository.PushUpdateOptions, commits *repository.PushCommits) {
+func (ns *notificationService) PushCommits(ctx context.Context, pusher *user_model.User, repo *repo_model.Repository, _ *repository.PushUpdateOptions, commits *repository.PushCommits) {
 	if len(commits.Commits) == 0 {
 		return
 	}
@@ -311,36 +312,51 @@ func (ns *notificationService) PushCommits(ctx context.Context, pusher *user_mod
 		return
 	}
 
+	// Collect unique mentions across all commits, and for each mention remember
+	// which commit shas mentioned it. This lets us batch the user lookup, the
+	// blocked-by check, and the permission check to one round-trip per user
+	// instead of per (commit, user) pair.
+	mentionToCommits := make(map[string][]string)
 	for _, commit := range commits.Commits {
-		mentions := references.FindAllMentionsMarkdown(commit.Message)
-		receivers, err := user_model.GetUsersByUsernames(ctx, mentions)
+		for _, name := range references.FindAllMentionsMarkdown(commit.Message) {
+			lower := strings.ToLower(name)
+			mentionToCommits[lower] = append(mentionToCommits[lower], commit.Sha1)
+		}
+	}
+	if len(mentionToCommits) == 0 {
+		return
+	}
+
+	uniqueNames := make([]string, 0, len(mentionToCommits))
+	for name := range mentionToCommits {
+		uniqueNames = append(uniqueNames, name)
+	}
+
+	receivers, err := user_model.GetUsersByUsernames(ctx, uniqueNames)
+	if err != nil {
+		log.Error("GetUsersByUsernames: %v", err)
+		return
+	}
+
+	for _, receiver := range receivers {
+		if user_model.IsUserBlockedBy(ctx, repo.Owner, receiver.ID) {
+			continue
+		}
+		perm, err := access_model.GetIndividualUserRepoPermission(ctx, repo, receiver)
 		if err != nil {
-			log.Error("GetUserIDsByNames: %v", err)
-			return
+			log.Error("GetIndividualUserRepoPermission [%d]: %v", receiver.ID, err)
+			continue
+		}
+		if !perm.CanRead(unit.TypeCode) {
+			continue
 		}
 
-		notBlocked := make([]*user_model.User, 0, len(mentions))
-		for _, user := range receivers {
-			if !user_model.IsUserBlockedBy(ctx, repo.Owner, user.ID) {
-				notBlocked = append(notBlocked, user)
-			}
-		}
-		receivers = notBlocked
-
-		for _, receiver := range receivers {
-			perm, err := access_model.GetIndividualUserRepoPermission(ctx, repo, receiver)
-			if err != nil {
-				log.Error("GetIndividualUserRepoPermission [%d]: %v", receiver.ID, err)
-				continue
-			}
-			if !perm.CanRead(unit.TypeCode) {
-				continue
-			}
-
+		shas := mentionToCommits[receiver.LowerName]
+		for _, sha := range shas {
 			opts := notificationOpts{
 				Source:               activities_model.NotificationSourceCommit,
 				RepoID:               repo.ID,
-				CommitID:             commit.Sha1,
+				CommitID:             sha,
 				NotificationAuthorID: pusher.ID,
 				ReceiverID:           receiver.ID,
 			}

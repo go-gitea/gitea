@@ -255,6 +255,60 @@ func TestSetCommitReadByScopesToRepo(t *testing.T) {
 	assert.Equal(t, activities_model.NotificationStatusUnread, secondRepoNotification.Status)
 }
 
+func TestFindNotificationOptionsCombinesUniqueKeyWithStatusAndSource(t *testing.T) {
+	assert.NoError(t, unittest.PrepareTestDatabase())
+
+	const receiverID = int64(2)
+	const repoID = int64(1)
+	const releaseID = int64(1)
+
+	// Seed an unread release notification.
+	assert.NoError(t, activities_model.CreateOrUpdateReleaseNotifications(t.Context(), 1, repoID, releaseID, receiverID))
+
+	// Combining FilterByRelease with a Status filter that excludes the row must
+	// return an empty result. The previous implementation silently dropped the
+	// Status filter when a unique key was set, masking this kind of query bug.
+	opts := activities_model.FindNotificationOptions{
+		UserID: receiverID,
+		Status: []activities_model.NotificationStatus{activities_model.NotificationStatusRead},
+	}
+	opts.FilterByRelease(releaseID)
+
+	notfs, err := db.Find[activities_model.Notification](t.Context(), opts)
+	assert.NoError(t, err)
+	assert.Empty(t, notfs, "Status filter must be honoured when uniqueKey is set")
+
+	// And combining with a Source filter that does not match must also return empty.
+	opts = activities_model.FindNotificationOptions{
+		UserID: receiverID,
+		Source: []activities_model.NotificationSource{activities_model.NotificationSourceIssue},
+	}
+	opts.FilterByRelease(releaseID)
+	notfs, err = db.Find[activities_model.Notification](t.Context(), opts)
+	assert.NoError(t, err)
+	assert.Empty(t, notfs, "Source filter must be honoured when uniqueKey is set")
+}
+
+func TestUpsertNotificationByUniqueKeyIsIdempotent(t *testing.T) {
+	assert.NoError(t, unittest.PrepareTestDatabase())
+
+	const receiverID = int64(2)
+	const repoID = int64(1)
+	const releaseID = int64(1)
+
+	// Repeated calls for the same release/user must converge to one row regardless
+	// of how many times the upsert runs (covers the retry-on-conflict path).
+	for range 5 {
+		assert.NoError(t, activities_model.CreateOrUpdateReleaseNotifications(t.Context(), 1, repoID, releaseID, receiverID))
+	}
+
+	opts := activities_model.FindNotificationOptions{UserID: receiverID}
+	opts.FilterByRelease(releaseID)
+	notfs, err := db.Find[activities_model.Notification](t.Context(), opts)
+	assert.NoError(t, err)
+	assert.Len(t, notfs, 1)
+}
+
 func TestCreateRepoTransferNotificationDeduplicatesByRepo(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 

@@ -134,21 +134,37 @@ func UniqueKeyForReleaseNotification(releaseID int64) string {
 
 // upsertNotificationByUniqueKey marks an existing notification unread (updating the doer)
 // or inserts newNotification if none exists for the user/unique_key pair.
+//
+// The unique index on (user_id, unique_key) means two concurrent callers can race: both
+// see no existing row and both attempt to insert, but the DB rejects the second insert.
+// We retry the read-update path a small number of times to absorb that race.
 func upsertNotificationByUniqueKey(ctx context.Context, doerID int64, newNotification *Notification) error {
-	existing := new(Notification)
-	if _, err := db.GetEngine(ctx).
-		Where("user_id = ?", newNotification.UserID).
-		And("unique_key = ?", newNotification.UniqueKey).
-		Get(existing); err != nil {
-		return err
+	const maxAttempts = 3
+	var lastInsertErr error
+	for range maxAttempts {
+		existing := new(Notification)
+		ok, err := db.GetEngine(ctx).
+			Where("user_id = ?", newNotification.UserID).
+			And("unique_key = ?", newNotification.UniqueKey).
+			Get(existing)
+		if err != nil {
+			return err
+		}
+		if ok {
+			existing.Status = NotificationStatusUnread
+			existing.UpdatedBy = doerID
+			_, err := db.GetEngine(ctx).ID(existing.ID).Cols("status", "updated_by").Update(existing)
+			return err
+		}
+		if err := db.Insert(ctx, newNotification); err == nil {
+			return nil
+		} else { //nolint:revive // explicit else keeps lastInsertErr scoped to the failure path
+			lastInsertErr = err
+		}
+		// Insert failed — likely a concurrent insert won the race. Loop and try the update path.
+		newNotification.ID = 0
 	}
-	if existing.ID > 0 {
-		existing.Status = NotificationStatusUnread
-		existing.UpdatedBy = doerID
-		_, err := db.GetEngine(ctx).ID(existing.ID).Cols("status", "updated_by").Update(existing)
-		return err
-	}
-	return db.Insert(ctx, newNotification)
+	return lastInsertErr
 }
 
 // CreateRepoTransferNotification creates a notification for the user a repository was transferred to
@@ -414,11 +430,11 @@ func (n *Notification) IconHTML(ctx context.Context) template.HTML {
 		// n.Issue should be loaded before calling this method
 		return n.Issue.IconHTML(ctx)
 	case NotificationSourceCommit:
-		return svg.RenderHTML("octicon-git-commit", 16, "tw-text-grey")
+		return svg.RenderHTML("octicon-git-commit", 16, "tw-text-text-light")
 	case NotificationSourceRepository:
-		return svg.RenderHTML("octicon-repo", 16, "tw-text-grey")
+		return svg.RenderHTML("octicon-repo", 16, "tw-text-text-light")
 	case NotificationSourceRelease:
-		return svg.RenderHTML("octicon-tag", 16, "tw-text-grey")
+		return svg.RenderHTML("octicon-tag", 16, "tw-text-text-light")
 	default:
 		return ""
 	}
@@ -478,7 +494,7 @@ func SetRepoReadBy(ctx context.Context, userID, repoID int64) error {
 	return setNotificationStatusReadIfUnreadByUniqueKey(ctx, userID, uniqueKeyForRepositoryNotification(repoID))
 }
 
-// SetReleaseReadBy sets issue to be read by given user.
+// SetReleaseReadBy sets release notification to be read by given user.
 func SetReleaseReadBy(ctx context.Context, releaseID, userID int64) error {
 	return setNotificationStatusReadIfUnreadByUniqueKey(ctx, userID, UniqueKeyForReleaseNotification(releaseID))
 }

@@ -105,3 +105,24 @@ func TestAddReleaseNotificationDeduplicatesLegacyNotificationRows(t *testing.T) 
 	assert.Equal(t, expectedKeeper.UpdatedBy, notifications[0].UpdatedBy)
 	assert.Equal(t, expectedKeeper.UpdatedUnix, notifications[0].UpdatedUnix)
 }
+
+func TestAddReleaseNotificationFallbackForUnknownSource(t *testing.T) {
+	x, deferable := migrationtest.PrepareTestEnv(t, 0, new(NotificationBefore331))
+	defer deferable()
+	if x == nil || t.Failed() {
+		return
+	}
+
+	// Source value 99 is not a recognised notification source. The migration
+	// must still assign a non-empty unique_key so the NOT NULL conversion succeeds.
+	row := &NotificationBefore331{UserID: 1, RepoID: 1, Status: 1, Source: 99, UpdatedBy: 2}
+	_, err := x.Insert(row)
+	require.NoError(t, err)
+
+	require.NoError(t, AddReleaseNotification(x))
+
+	var notifications []*NotificationV331
+	require.NoError(t, x.Table("notification").Find(&notifications))
+	require.Len(t, notifications, 1)
+	assert.NotEmpty(t, notifications[0].UniqueKey, "unknown-source row must still have a unique_key after migration")
+}

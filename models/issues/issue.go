@@ -435,14 +435,15 @@ func (issue *Issue) IconHTML(ctx context.Context) template.HTML {
 
 	switch {
 	case issue.PullRequest == nil: // pull request should be loaded before calling this function
-		return template.HTML("No PullRequest")
+		setting.PanicInDevOrTesting("Issue.IconHTML called on pull request %d without PullRequest loaded", issue.ID)
+		return ""
 	case issue.IsClosed:
 		if issue.PullRequest.HasMerged {
 			return svg.RenderHTML("octicon-git-merge", 16, "tw-text-purple")
 		}
 		return svg.RenderHTML("octicon-git-pull-request-closed", 16, "tw-text-red")
 	case issue.PullRequest.IsWorkInProgress(ctx):
-		return svg.RenderHTML("octicon-git-pull-request-draft", 16, "tw-text-grey")
+		return svg.RenderHTML("octicon-git-pull-request-draft", 16, "tw-text-text-light")
 	default:
 		return svg.RenderHTML("octicon-git-pull-request", 16, "tw-text-green")
 	}

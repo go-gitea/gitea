@@ -131,25 +131,28 @@ type notificationV331Duplicate struct {
 	Cnt       int64
 }
 
-func uniqueKeyV331(source NotificationSourceV331, repoID, issueID, releaseID int64, commitID string) (string, bool) {
+// uniqueKeyV331 returns the unique_key for a notification row, falling back to a
+// per-id placeholder so that rows with an unknown/unset source still receive a
+// non-empty value before the column is switched to NOT NULL.
+func uniqueKeyV331(id int64, source NotificationSourceV331, repoID, issueID, releaseID int64, commitID string) string {
 	switch source {
 	case notificationSourceIssueV331:
-		return fmt.Sprintf("issue-%d", issueID), true
+		return fmt.Sprintf("issue-%d", issueID)
 	case notificationSourcePullRequestV331:
-		return fmt.Sprintf("pull-%d", issueID), true
+		return fmt.Sprintf("pull-%d", issueID)
 	case notificationSourceCommitV331:
-		return fmt.Sprintf("commit-%d-%s", repoID, commitID), true
+		return fmt.Sprintf("commit-%d-%s", repoID, commitID)
 	case notificationSourceRepositoryV331:
-		return fmt.Sprintf("repo-%d", repoID), true
+		return fmt.Sprintf("repo-%d", repoID)
 	case notificationSourceReleaseV331:
-		return fmt.Sprintf("release-%d", releaseID), true
+		return fmt.Sprintf("release-%d", releaseID)
 	default:
-		return "", false
+		return fmt.Sprintf("legacy-%d", id)
 	}
 }
 
 func backfillNotificationUniqueKeyV331(x db.EngineMigration) error {
-	const batchSize = 50
+	const batchSize = 1000
 	lastID := int64(0)
 
 	for {
@@ -164,16 +167,14 @@ func backfillNotificationUniqueKeyV331(x db.EngineMigration) error {
 		for _, notification := range notifications {
 			lastID = notification.ID
 
-			uniqueKey, ok := uniqueKeyV331(
+			uniqueKey := uniqueKeyV331(
+				notification.ID,
 				notification.Source,
 				notification.RepoID,
 				notification.IssueID,
 				notification.ReleaseID,
 				notification.CommitID,
 			)
-			if !ok {
-				continue
-			}
 
 			if _, err := x.Exec(
 				"UPDATE notification SET unique_key = ? WHERE id = ?",
@@ -186,13 +187,18 @@ func backfillNotificationUniqueKeyV331(x db.EngineMigration) error {
 	}
 }
 
+// mergeNotificationStatusV331 collapses N duplicate-row statuses into one:
+// Pinned wins over Unread which wins over Read.
 func mergeNotificationStatusV331(notifications []*NotificationV331Backfill) notificationStatusV331 {
 	mergedStatus := notifications[0].Status
+	if mergedStatus == notificationStatusPinnedV331 {
+		return notificationStatusPinnedV331
+	}
 	for _, notification := range notifications[1:] {
-		switch {
-		case notification.Status == notificationStatusPinnedV331:
+		if notification.Status == notificationStatusPinnedV331 {
 			return notificationStatusPinnedV331
-		case notification.Status == notificationStatusUnreadV331 && mergedStatus != notificationStatusPinnedV331:
+		}
+		if notification.Status == notificationStatusUnreadV331 {
 			mergedStatus = notificationStatusUnreadV331
 		}
 	}
