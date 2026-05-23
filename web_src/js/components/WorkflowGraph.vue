@@ -43,7 +43,7 @@ const props = defineProps<{
   jobs: ActionsJob[];
   runLink: string;
   workflowId: string;
-  locale: Record<string, any>;
+  locale: Record<string, string>;
 }>()
 
 const settingKeyStates = 'actions-graph-states';
@@ -546,7 +546,7 @@ function onNodeClick(job: JobNode, event: MouseEvent) {
     <div class="graph-header">
       <h4 class="graph-title">{{ locale.workflowDependencies }}</h4>
       <div class="graph-stats">
-        {{ locale.graphJobsCount.replace('%d', jobs.length) }} • {{ locale.graphDependenciesCount.replace('%d', edges.length) }}
+        {{ locale.graphJobsCount.replace('%d', jobs.length.toLocaleString()) }} • {{ locale.graphDependenciesCount.replace('%d', edges.length.toLocaleString()) }}
         <span v-if="graphMetrics">
           • <span class="graph-metrics">{{ locale.graphSuccessRate.replace('%s', graphMetrics.successRate) }}</span>
         </span>
