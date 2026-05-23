@@ -479,7 +479,7 @@ func AddTestPullRequestTask(opts TestPullRequestOptions) {
 						}
 					}
 
-					notify_service.PullRequestSynchronized(ctx, opts.Doer, pr)
+					notify_service.PullRequestSynchronized(ctx, opts.Doer, pr, opts.OldCommitID, opts.NewCommitID)
 				}
 			}
 		}
