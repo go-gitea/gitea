@@ -23,12 +23,18 @@ func TestPullRequestPayloadSynchronizeBeforeAfter(t *testing.T) {
 	data, err := json.Marshal(payload)
 	require.NoError(t, err)
 
-	var got map[string]any
-	require.NoError(t, json.Unmarshal(data, &got))
-	assert.Equal(t, "synchronized", got["action"])
-	assert.Equal(t, "1111111111111111111111111111111111111111", got["before"])
-	assert.Equal(t, "2222222222222222222222222222222222222222", got["after"])
-	assert.EqualValues(t, 12, got["number"])
+	assert.JSONEq(t, `{
+		"action": "synchronized",
+		"before": "1111111111111111111111111111111111111111",
+		"after": "2222222222222222222222222222222222222222",
+		"number": 12,
+		"commit_id": "",
+		"pull_request": null,
+		"repository": null,
+		"requested_reviewer": null,
+		"review": null,
+		"sender": null
+	}`, string(data))
 }
 
 func TestPullRequestPayloadNonSynchronizeOmitsBeforeAfter(t *testing.T) {
@@ -40,9 +46,14 @@ func TestPullRequestPayloadNonSynchronizeOmitsBeforeAfter(t *testing.T) {
 	data, err := json.Marshal(payload)
 	require.NoError(t, err)
 
-	var got map[string]any
-	require.NoError(t, json.Unmarshal(data, &got))
-	assert.Equal(t, "opened", got["action"])
-	assert.NotContains(t, got, "before")
-	assert.NotContains(t, got, "after")
+	assert.JSONEq(t, `{
+		"action": "opened",
+		"number": 12,
+		"commit_id": "",
+		"pull_request": null,
+		"repository": null,
+		"requested_reviewer": null,
+		"review": null,
+		"sender": null
+	}`, string(data))
 }
