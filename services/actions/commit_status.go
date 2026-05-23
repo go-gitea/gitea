@@ -138,11 +138,17 @@ func getCommitStatusEventNameAndCommitID(run *actions_model.ActionRun) (event, c
 
 func createCommitStatus(ctx context.Context, repo *repo_model.Repository, event, commitID string, run *actions_model.ActionRun, job *actions_model.ActionRunJob) error {
 	// TODO: store workflow name as a field in ActionRun to avoid parsing
-	runName := path.Base(run.WorkflowID)
-	if wfs, err := jobparser.Parse(job.WorkflowPayload); err == nil && len(wfs) > 0 {
+	workflowFile := path.Base(run.WorkflowID)
+	runName := workflowFile
+	if wfs, err := jobparser.Parse(job.WorkflowPayload); err == nil && len(wfs) > 0 && wfs[0].Name != "" {
 		runName = wfs[0].Name
 	}
 	ctxName := strings.TrimSpace(fmt.Sprintf("%s / %s (%s)", runName, job.Name, event)) // git_model.NewCommitStatus also trims spaces
+	// Mix the workflow file path into the hash so two workflow files that
+	// share the same `name:` and job name produce distinct commit statuses
+	// even though they render identically — matching GitHub's behavior
+	// (issue #35699).
+	ctxHash := git_model.HashCommitStatusContext(ctxName + "\x00" + run.WorkflowID)
 	state := toCommitStatus(job.Status)
 	targetURL := fmt.Sprintf("%s/jobs/%d", run.Link(), job.ID)
 	description := toCommitStatusDescription(job)
@@ -152,7 +158,7 @@ func createCommitStatus(ctx context.Context, repo *repo_model.Repository, event,
 		return fmt.Errorf("GetLatestCommitStatus: %w", err)
 	}
 	for _, v := range statuses {
-		if v.Context == ctxName {
+		if v.ContextHash == ctxHash {
 			if v.State == state && v.TargetURL == targetURL && v.Description == description {
 				return nil
 			}
@@ -166,6 +172,7 @@ func createCommitStatus(ctx context.Context, repo *repo_model.Repository, event,
 		TargetURL:   targetURL,
 		Description: description,
 		Context:     ctxName,
+		ContextHash: ctxHash,
 		State:       state,
 		CreatorID:   creator.ID,
 	}

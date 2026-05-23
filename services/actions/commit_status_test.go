@@ -146,6 +146,69 @@ func TestGetCommitActionsStatusMap(t *testing.T) {
 	assert.Empty(t, nilInfo.IconStatus(statuses[0]))
 }
 
+// TestCreateCommitStatus_DistinctWorkflowFilesSameName covers issue #35699:
+// two workflow files with the same `name:` and same job name must produce
+// two distinct commit statuses, not be deduplicated into one.
+func TestCreateCommitStatus_DistinctWorkflowFilesSameName(t *testing.T) {
+	assert.NoError(t, unittest.PrepareTestDatabase())
+
+	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 4})
+	branch := unittest.AssertExistsAndLoadBean(t, &git_model.Branch{RepoID: repo.ID, Name: repo.DefaultBranch})
+
+	payload := func(name string) []byte {
+		return []byte(`
+name: ` + name + `
+on: pull_request
+jobs:
+  my-test:
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo hi
+`)
+	}
+
+	type runJob struct {
+		workflowID string
+		jobID      int64
+		runID      int64
+		runIndex   int64
+	}
+	specs := []runJob{
+		{workflowID: "workflow1.yaml", runID: 99101, jobID: 99201, runIndex: 99101},
+		{workflowID: "workflow2.yaml", runID: 99102, jobID: 99202, runIndex: 99102},
+	}
+
+	for _, s := range specs {
+		run := &actions_model.ActionRun{
+			ID: s.runID, Index: s.runIndex, RepoID: repo.ID, Repo: repo, OwnerID: repo.OwnerID, TriggerUserID: repo.OwnerID,
+			WorkflowID: s.workflowID, CommitSHA: branch.CommitID,
+		}
+		require.NoError(t, db.Insert(t.Context(), run))
+		job := &actions_model.ActionRunJob{
+			ID: s.jobID, RunID: run.ID, RepoID: repo.ID, OwnerID: repo.OwnerID,
+			Name: "my-test", Status: actions_model.StatusWaiting,
+			WorkflowPayload: payload("test-run"),
+		}
+		require.NoError(t, db.Insert(t.Context(), job))
+		require.NoError(t, createCommitStatus(t.Context(), repo, "pull_request", branch.CommitID, run, job))
+	}
+
+	statuses, err := git_model.GetLatestCommitStatus(t.Context(), repo.ID, branch.CommitID, db.ListOptionsAll)
+	require.NoError(t, err)
+
+	// Both workflow files should produce a row even though the display
+	// Context is identical — matching GitHub's behavior.
+	hashes := map[string]struct{}{}
+	targets := map[string]struct{}{}
+	for _, st := range statuses {
+		hashes[st.ContextHash] = struct{}{}
+		targets[st.TargetURL] = struct{}{}
+		assert.Equal(t, "test-run / my-test (pull_request)", st.Context)
+	}
+	assert.Len(t, hashes, 2, "expected distinct ContextHash per workflow file")
+	assert.Len(t, targets, 2, "expected distinct TargetURL per workflow file")
+}
+
 func findCommitStatusesForContext(t *testing.T, repoID int64, sha, context string) []*git_model.CommitStatus {
 	t.Helper()
 
