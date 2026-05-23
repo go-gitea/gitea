@@ -16,6 +16,10 @@ import (
 	_ "github.com/microsoft/go-mssqldb" // Needed for the MSSQL driver
 
 	"xorm.io/xorm"
+	"xorm.io/xorm/core"
+	"xorm.io/xorm/dialects"
+	"xorm.io/xorm/names"
+	"xorm.io/xorm/schemas"
 )
 
 var (
@@ -33,6 +37,7 @@ type Engine interface {
 	Truncate(...any) (int64, error)
 	Exec(...any) (sql.Result, error)
 	Find(any, ...any) error
+	FindAndCount(any, ...any) (int64, error)
 	Get(beans ...any) (bool, error)
 	ID(any) *xorm.Session
 	In(string, ...any) *xorm.Session
@@ -61,9 +66,41 @@ type Engine interface {
 	IsTableExist(tableNameOrBean any) (bool, error)
 }
 
+// Session represents a xorm session interface, used as an abstraction over *xorm.Session.
+type Session interface {
+	Engine
+	And(query any, args ...any) *xorm.Session
+	Begin() error
+	Close() error
+	Commit() error
+	IsInTx() bool
+	Rollback() error
+	Engine() *xorm.Engine
+}
+
+// EngineMigration is a xorm engine interface used for migrations.
+// It extends Engine with additional methods that are only available on the engine (not on the session)
+// and are needed by the migration packages.
+type EngineMigration interface {
+	Engine
+	Close() error
+	DB() *core.DB
+	DBMetas() ([]*schemas.Table, error)
+	Dialect() dialects.Dialect
+	DropTables(beans ...any) error
+	NewSession() *xorm.Session
+	QueryInterface(sqlOrArgs ...any) ([]map[string]any, error)
+	SetMapper(mapper names.Mapper)
+	SyncWithOptions(opts xorm.SyncOptions, beans ...any) (*xorm.SyncResult, error)
+	TableInfo(bean any) (*schemas.Table, error)
+	TableName(bean any, includeSchema ...bool) string
+}
+
 var (
-	_ Engine = (*xorm.Engine)(nil)
-	_ Engine = (*xorm.Session)(nil)
+	_ Engine          = (*xorm.Engine)(nil)
+	_ Engine          = (*xorm.Session)(nil)
+	_ Session         = (*xorm.Session)(nil)
+	_ EngineMigration = (*xorm.Engine)(nil)
 )
 
 // RegisterModel registers model, if initFuncs provided, it will be invoked after data model sync

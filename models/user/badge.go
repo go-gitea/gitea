@@ -69,7 +69,7 @@ func GetBadgeUsers(ctx context.Context, opts *GetBadgeUsersOptions) ([]*User, in
 		Where("badge.slug=?", opts.BadgeSlug)
 
 	if opts.Page > 0 {
-		sess = db.SetSessionPagination(sess, opts)
+		db.SetSessionPagination(sess, opts)
 	}
 
 	users := make([]*User, 0, opts.PageSize)

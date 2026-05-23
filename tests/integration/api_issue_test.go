@@ -110,7 +110,7 @@ func testAPIListIssuesPublicOnly(t *testing.T) {
 
 	publicOnlyToken := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeReadIssue, auth_model.AccessTokenScopePublicOnly)
 	req = NewRequest(t, "GET", link.String()).AddTokenAuth(publicOnlyToken)
-	MakeRequest(t, req, http.StatusForbidden)
+	MakeRequest(t, req, http.StatusNotFound)
 }
 
 func testAPICreateIssue(t *testing.T) {
@@ -173,9 +173,8 @@ func testAPICreateIssueParallel(t *testing.T) {
 
 	var wg sync.WaitGroup
 	for i := range 10 {
-		wg.Add(1)
-		go func(parentT *testing.T, i int) {
-			parentT.Run(fmt.Sprintf("ParallelCreateIssue_%d", i), func(t *testing.T) {
+		wg.Go(func() {
+			t.Run(fmt.Sprintf("ParallelCreateIssue_%d", i), func(t *testing.T) {
 				newTitle := title + strconv.Itoa(i)
 				newBody := body + strconv.Itoa(i)
 				req := NewRequestWithJSON(t, "POST", urlStr, &api.CreateIssueOption{
@@ -194,10 +193,8 @@ func testAPICreateIssueParallel(t *testing.T) {
 					Content:    newBody,
 					Title:      newTitle,
 				})
-
-				wg.Done()
 			})
-		}(t, i)
+		})
 	}
 	wg.Wait()
 }
@@ -695,15 +692,14 @@ func testAPIIssueProjects(t *testing.T) {
 		Projects: []int64{1},
 	}).AddTokenAuth(token)
 	resp := MakeRequest(t, req, http.StatusCreated)
-	var apiIssue api.Issue
-	DecodeJSON(t, resp, &apiIssue)
+	apiIssue := DecodeJSON(t, resp, &api.Issue{})
 	assert.Len(t, apiIssue.Projects, 1)
 	assert.EqualValues(t, 1, apiIssue.Projects[0].ID)
 
 	// Get issue should include projects
 	req = NewRequest(t, "GET", fmt.Sprintf("%s/%d", urlStr, apiIssue.Index)).AddTokenAuth(token)
 	resp = MakeRequest(t, req, http.StatusOK)
-	DecodeJSON(t, resp, &apiIssue)
+	apiIssue = DecodeJSON(t, resp, &api.Issue{})
 	assert.Len(t, apiIssue.Projects, 1)
 	assert.EqualValues(t, 1, apiIssue.Projects[0].ID)
 
@@ -713,7 +709,7 @@ func testAPIIssueProjects(t *testing.T) {
 		Projects: &emptyProjects,
 	}).AddTokenAuth(token)
 	resp = MakeRequest(t, req, http.StatusCreated)
-	DecodeJSON(t, resp, &apiIssue)
+	apiIssue = DecodeJSON(t, resp, &api.Issue{})
 	assert.Empty(t, apiIssue.Projects)
 
 	// Edit issue to add project back
@@ -722,7 +718,7 @@ func testAPIIssueProjects(t *testing.T) {
 		Projects: &projects,
 	}).AddTokenAuth(token)
 	resp = MakeRequest(t, req, http.StatusCreated)
-	DecodeJSON(t, resp, &apiIssue)
+	apiIssue = DecodeJSON(t, resp, &api.Issue{})
 	assert.Len(t, apiIssue.Projects, 1)
 	assert.EqualValues(t, 1, apiIssue.Projects[0].ID)
 

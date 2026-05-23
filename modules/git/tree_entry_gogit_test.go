@@ -21,7 +21,7 @@ func TestEntryGogit(t *testing.T) {
 		EntryModeTree:    filemode.Dir,
 	}
 	for emode, fmode := range cases {
-		assert.EqualValues(t, fmode, entryModeToGogitFileMode(emode))
-		assert.EqualValues(t, emode, gogitFileModeToEntryMode(fmode))
+		assert.Equal(t, fmode, entryModeToGogitFileMode(emode))
+		assert.Equal(t, emode, gogitFileModeToEntryMode(fmode))
 	}
 }
