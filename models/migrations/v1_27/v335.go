@@ -12,31 +12,31 @@ import (
 	"xorm.io/xorm/schemas"
 )
 
-type NotificationSourceV331 uint8
+type NotificationSourceV335 uint8
 
 const (
-	notificationSourceIssueV331 NotificationSourceV331 = iota + 1
-	notificationSourcePullRequestV331
-	notificationSourceCommitV331
-	notificationSourceRepositoryV331
-	notificationSourceReleaseV331
+	notificationSourceIssueV335 NotificationSourceV335 = iota + 1
+	notificationSourcePullRequestV335
+	notificationSourceCommitV335
+	notificationSourceRepositoryV335
+	notificationSourceReleaseV335
 )
 
-type notificationStatusV331 uint8
+type notificationStatusV335 uint8
 
 const (
-	notificationStatusUnreadV331 notificationStatusV331 = iota + 1
+	notificationStatusUnreadV335 notificationStatusV335 = iota + 1
 	_                                                   // read (unused in merge logic)
-	notificationStatusPinnedV331
+	notificationStatusPinnedV335
 )
 
-type NotificationV331 struct { //revive:disable-line:exported
+type NotificationV335 struct { //revive:disable-line:exported
 	ID     int64 `xorm:"pk autoincr"`
 	UserID int64 `xorm:"NOT NULL"`
 	RepoID int64 `xorm:"NOT NULL"`
 
-	Status notificationStatusV331 `xorm:"SMALLINT NOT NULL"`
-	Source NotificationSourceV331 `xorm:"SMALLINT NOT NULL"`
+	Status notificationStatusV335 `xorm:"SMALLINT NOT NULL"`
+	Source NotificationSourceV335 `xorm:"SMALLINT NOT NULL"`
 
 	IssueID   int64 `xorm:"NOT NULL"`
 	CommitID  string
@@ -50,12 +50,12 @@ type NotificationV331 struct { //revive:disable-line:exported
 	UpdatedUnix timeutil.TimeStamp `xorm:"updated NOT NULL"`
 }
 
-func (n *NotificationV331) TableName() string {
+func (n *NotificationV335) TableName() string {
 	return "notification"
 }
 
 // TableIndices implements xorm's TableIndices interface
-func (n *NotificationV331) TableIndices() []*schemas.Index {
+func (n *NotificationV335) TableIndices() []*schemas.Index {
 	indices := make([]*schemas.Index, 0, 6)
 	usuuIndex := schemas.NewIndex("u_s_uu", schemas.IndexType)
 	usuuIndex.AddColumn("user_id", "status", "updated_unix")
@@ -84,13 +84,13 @@ func (n *NotificationV331) TableIndices() []*schemas.Index {
 	return indices
 }
 
-type NotificationV331Backfill struct { //revive:disable-line:exported
+type NotificationV335Backfill struct { //revive:disable-line:exported
 	ID     int64 `xorm:"pk autoincr"`
 	UserID int64 `xorm:"NOT NULL"`
 	RepoID int64 `xorm:"NOT NULL"`
 
-	Status notificationStatusV331 `xorm:"SMALLINT NOT NULL"`
-	Source NotificationSourceV331 `xorm:"SMALLINT NOT NULL"`
+	Status notificationStatusV335 `xorm:"SMALLINT NOT NULL"`
+	Source NotificationSourceV335 `xorm:"SMALLINT NOT NULL"`
 
 	IssueID   int64 `xorm:"NOT NULL"`
 	CommitID  string
@@ -104,11 +104,11 @@ type NotificationV331Backfill struct { //revive:disable-line:exported
 	UpdatedUnix timeutil.TimeStamp `xorm:"updated NOT NULL"`
 }
 
-func (n *NotificationV331Backfill) TableName() string {
+func (n *NotificationV335Backfill) TableName() string {
 	return "notification"
 }
 
-func (n *NotificationV331Backfill) TableIndices() []*schemas.Index {
+func (n *NotificationV335Backfill) TableIndices() []*schemas.Index {
 	indices := make([]*schemas.Index, 0, 3)
 	usuuIndex := schemas.NewIndex("u_s_uu", schemas.IndexType)
 	usuuIndex.AddColumn("user_id", "status", "updated_unix")
@@ -125,38 +125,38 @@ func (n *NotificationV331Backfill) TableIndices() []*schemas.Index {
 	return indices
 }
 
-type notificationV331Duplicate struct {
+type notificationV335Duplicate struct {
 	UserID    int64
 	UniqueKey string
 	Cnt       int64
 }
 
-// uniqueKeyV331 returns the unique_key for a notification row, falling back to a
+// uniqueKeyV335 returns the unique_key for a notification row, falling back to a
 // per-id placeholder so that rows with an unknown/unset source still receive a
 // non-empty value before the column is switched to NOT NULL.
-func uniqueKeyV331(id int64, source NotificationSourceV331, repoID, issueID, releaseID int64, commitID string) string {
+func uniqueKeyV335(id int64, source NotificationSourceV335, repoID, issueID, releaseID int64, commitID string) string {
 	switch source {
-	case notificationSourceIssueV331:
+	case notificationSourceIssueV335:
 		return fmt.Sprintf("issue-%d", issueID)
-	case notificationSourcePullRequestV331:
+	case notificationSourcePullRequestV335:
 		return fmt.Sprintf("pull-%d", issueID)
-	case notificationSourceCommitV331:
+	case notificationSourceCommitV335:
 		return fmt.Sprintf("commit-%d-%s", repoID, commitID)
-	case notificationSourceRepositoryV331:
+	case notificationSourceRepositoryV335:
 		return fmt.Sprintf("repo-%d", repoID)
-	case notificationSourceReleaseV331:
+	case notificationSourceReleaseV335:
 		return fmt.Sprintf("release-%d", releaseID)
 	default:
 		return fmt.Sprintf("legacy-%d", id)
 	}
 }
 
-func backfillNotificationUniqueKeyV331(x db.EngineMigration) error {
+func backfillNotificationUniqueKeyV335(x db.EngineMigration) error {
 	const batchSize = 1000
 	lastID := int64(0)
 
 	for {
-		notifications := make([]*NotificationV331Backfill, 0, batchSize)
+		notifications := make([]*NotificationV335Backfill, 0, batchSize)
 		if err := x.Where("id > ?", lastID).Asc("id").Limit(batchSize).Find(&notifications); err != nil {
 			return err
 		}
@@ -167,7 +167,7 @@ func backfillNotificationUniqueKeyV331(x db.EngineMigration) error {
 		for _, notification := range notifications {
 			lastID = notification.ID
 
-			uniqueKey := uniqueKeyV331(
+			uniqueKey := uniqueKeyV335(
 				notification.ID,
 				notification.Source,
 				notification.RepoID,
@@ -187,26 +187,26 @@ func backfillNotificationUniqueKeyV331(x db.EngineMigration) error {
 	}
 }
 
-// mergeNotificationStatusV331 collapses N duplicate-row statuses into one:
+// mergeNotificationStatusV335 collapses N duplicate-row statuses into one:
 // Pinned wins over Unread which wins over Read.
-func mergeNotificationStatusV331(notifications []*NotificationV331Backfill) notificationStatusV331 {
+func mergeNotificationStatusV335(notifications []*NotificationV335Backfill) notificationStatusV335 {
 	mergedStatus := notifications[0].Status
-	if mergedStatus == notificationStatusPinnedV331 {
-		return notificationStatusPinnedV331
+	if mergedStatus == notificationStatusPinnedV335 {
+		return notificationStatusPinnedV335
 	}
 	for _, notification := range notifications[1:] {
-		if notification.Status == notificationStatusPinnedV331 {
-			return notificationStatusPinnedV331
+		if notification.Status == notificationStatusPinnedV335 {
+			return notificationStatusPinnedV335
 		}
-		if notification.Status == notificationStatusUnreadV331 {
-			mergedStatus = notificationStatusUnreadV331
+		if notification.Status == notificationStatusUnreadV335 {
+			mergedStatus = notificationStatusUnreadV335
 		}
 	}
 	return mergedStatus
 }
 
-func dedupeNotificationRowsV331(x db.EngineMigration) error {
-	var duplicatedNotifications []notificationV331Duplicate
+func dedupeNotificationRowsV335(x db.EngineMigration) error {
+	var duplicatedNotifications []notificationV335Duplicate
 	if err := x.SQL(`
 		SELECT user_id, unique_key, COUNT(1) AS cnt
 		FROM notification
@@ -218,7 +218,7 @@ func dedupeNotificationRowsV331(x db.EngineMigration) error {
 	}
 
 	for _, duplicatedNotification := range duplicatedNotifications {
-		notifications := make([]*NotificationV331Backfill, 0, duplicatedNotification.Cnt)
+		notifications := make([]*NotificationV335Backfill, 0, duplicatedNotification.Cnt)
 		if err := x.Where("user_id = ?", duplicatedNotification.UserID).
 			And("unique_key = ?", duplicatedNotification.UniqueKey).
 			Desc("updated_unix", "id").
@@ -230,7 +230,7 @@ func dedupeNotificationRowsV331(x db.EngineMigration) error {
 		}
 
 		keeper := notifications[0]
-		keeper.Status = mergeNotificationStatusV331(notifications)
+		keeper.Status = mergeNotificationStatusV335(notifications)
 		if _, err := x.ID(keeper.ID).Cols("status").NoAutoTime().Update(keeper); err != nil {
 			return err
 		}
@@ -239,7 +239,7 @@ func dedupeNotificationRowsV331(x db.EngineMigration) error {
 		for _, notification := range notifications[1:] {
 			idsToDelete = append(idsToDelete, notification.ID)
 		}
-		if _, err := x.In("id", idsToDelete).Table("notification").Delete(&NotificationV331Backfill{}); err != nil {
+		if _, err := x.In("id", idsToDelete).Table("notification").Delete(&NotificationV335Backfill{}); err != nil {
 			return err
 		}
 	}
@@ -248,14 +248,14 @@ func dedupeNotificationRowsV331(x db.EngineMigration) error {
 }
 
 func AddReleaseNotification(x db.EngineMigration) error {
-	if err := x.Sync(new(NotificationV331Backfill)); err != nil {
+	if err := x.Sync(new(NotificationV335Backfill)); err != nil {
 		return err
 	}
-	if err := backfillNotificationUniqueKeyV331(x); err != nil {
+	if err := backfillNotificationUniqueKeyV335(x); err != nil {
 		return err
 	}
-	if err := dedupeNotificationRowsV331(x); err != nil {
+	if err := dedupeNotificationRowsV335(x); err != nil {
 		return err
 	}
-	return x.Sync(new(NotificationV331))
+	return x.Sync(new(NotificationV335))
 }

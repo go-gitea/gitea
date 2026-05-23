@@ -142,6 +142,9 @@ func createOrUpdateIssueNotifications(ctx context.Context, issueID, commentID, n
 		return err
 	}
 
+	uniqueKey := uniqueKeyForIssueNotification(issue.ID, issue.IsPull)
+	requiredUnit := util.Iif(issue.IsPull, unit.TypePullRequests, unit.TypeIssues)
+
 	// notify
 	for userID := range toNotify {
 		issue.Repo.Units = nil
@@ -153,21 +156,16 @@ func createOrUpdateIssueNotifications(ctx context.Context, issueID, commentID, n
 
 			return err
 		}
-		if issue.IsPull && !access_model.CheckRepoUnitUser(ctx, issue.Repo, user, unit.TypePullRequests) {
-			continue
-		}
-		if !issue.IsPull && !access_model.CheckRepoUnitUser(ctx, issue.Repo, user, unit.TypeIssues) {
+		if !access_model.CheckRepoUnitUser(ctx, issue.Repo, user, requiredUnit) {
 			continue
 		}
 
-		existing, err := GetIssueNotification(ctx, userID, issue.ID)
-		if err != nil {
-			if !db.IsErrNotExist(err) {
-				return err
-			}
+		existing, err := getIssueNotificationByUniqueKey(ctx, userID, uniqueKey, issue.ID)
+		if err != nil && !db.IsErrNotExist(err) {
+			return err
 		}
-		if existing != nil && existing.ID > 0 {
-			if err = updateIssueNotification(ctx, userID, issue.ID, commentID, notificationAuthorID); err != nil {
+		if existing != nil {
+			if err = updateIssueNotification(ctx, existing, commentID, notificationAuthorID); err != nil {
 				return err
 			}
 			continue

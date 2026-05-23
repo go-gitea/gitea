@@ -57,7 +57,7 @@ func TestAddReleaseNotificationBackfillsNotificationDedupe(t *testing.T) {
 
 	require.NoError(t, AddReleaseNotification(x))
 
-	var notifications []*NotificationV331
+	var notifications []*NotificationV335
 	require.NoError(t, x.Table("notification").Asc("id").Find(&notifications))
 	require.Len(t, notifications, len(testData))
 
@@ -96,12 +96,12 @@ func TestAddReleaseNotificationDeduplicatesLegacyNotificationRows(t *testing.T) 
 
 	require.NoError(t, AddReleaseNotification(x))
 
-	var notifications []*NotificationV331
+	var notifications []*NotificationV335
 	require.NoError(t, x.Table("notification").Find(&notifications))
 	require.Len(t, notifications, 1)
 
 	assert.Equal(t, "commit-2-abc123", notifications[0].UniqueKey)
-	assert.Equal(t, notificationStatusPinnedV331, notifications[0].Status)
+	assert.Equal(t, notificationStatusPinnedV335, notifications[0].Status)
 	assert.Equal(t, expectedKeeper.UpdatedBy, notifications[0].UpdatedBy)
 	assert.Equal(t, expectedKeeper.UpdatedUnix, notifications[0].UpdatedUnix)
 }
@@ -121,7 +121,7 @@ func TestAddReleaseNotificationFallbackForUnknownSource(t *testing.T) {
 
 	require.NoError(t, AddReleaseNotification(x))
 
-	var notifications []*NotificationV331
+	var notifications []*NotificationV335
 	require.NoError(t, x.Table("notification").Find(&notifications))
 	require.Len(t, notifications, 1)
 	assert.NotEmpty(t, notifications[0].UniqueKey, "unknown-source row must still have a unique_key after migration")

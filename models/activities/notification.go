@@ -115,6 +115,12 @@ func init() {
 	db.RegisterModel(new(Notification))
 }
 
+// NotificationSourceForIssue returns the notification source matching whether
+// the issue is a pull request or a regular issue.
+func NotificationSourceForIssue(issue *issues_model.Issue) NotificationSource {
+	return util.Iif(issue.IsPull, NotificationSourcePullRequest, NotificationSourceIssue)
+}
+
 func uniqueKeyForIssueNotification(issueID int64, isPull bool) string {
 	return fmt.Sprintf("%s-%d", util.Iif(isPull, "pull", "issue"), issueID)
 }
@@ -156,12 +162,12 @@ func upsertNotificationByUniqueKey(ctx context.Context, doerID int64, newNotific
 			_, err := db.GetEngine(ctx).ID(existing.ID).Cols("status", "updated_by").Update(existing)
 			return err
 		}
-		if err := db.Insert(ctx, newNotification); err == nil {
+		insertErr := db.Insert(ctx, newNotification)
+		if insertErr == nil {
 			return nil
-		} else { //nolint:revive // explicit else keeps lastInsertErr scoped to the failure path
-			lastInsertErr = err
 		}
 		// Insert failed — likely a concurrent insert won the race. Loop and try the update path.
+		lastInsertErr = insertErr
 		newNotification.ID = 0
 	}
 	return lastInsertErr
@@ -224,12 +230,7 @@ func createIssueNotification(ctx context.Context, userID int64, issue *issues_mo
 	return db.Insert(ctx, notification)
 }
 
-func updateIssueNotification(ctx context.Context, userID, issueID, commentID, updatedByID int64) error {
-	notification, err := GetIssueNotification(ctx, userID, issueID)
-	if err != nil {
-		return err
-	}
-
+func updateIssueNotification(ctx context.Context, notification *Notification, commentID, updatedByID int64) error {
 	// NOTICE: Only update comment id when the before notification on this issue is read, otherwise you may miss some old comments.
 	// But we need update update_by so that the notification will be reorder
 	var cols []string
@@ -242,7 +243,7 @@ func updateIssueNotification(ctx context.Context, userID, issueID, commentID, up
 		cols = []string{"update_by"}
 	}
 
-	_, err = db.GetEngine(ctx).ID(notification.ID).Cols(cols...).Update(notification)
+	_, err := db.GetEngine(ctx).ID(notification.ID).Cols(cols...).Update(notification)
 	return err
 }
 
@@ -252,8 +253,10 @@ func GetIssueNotification(ctx context.Context, userID, issueID int64) (*Notifica
 	if err != nil {
 		return nil, err
 	}
+	return getIssueNotificationByUniqueKey(ctx, userID, uniqueKeyForIssueNotification(issueID, issue.IsPull), issueID)
+}
 
-	uniqueKey := uniqueKeyForIssueNotification(issueID, issue.IsPull)
+func getIssueNotificationByUniqueKey(ctx context.Context, userID int64, uniqueKey string, issueID int64) (*Notification, error) {
 	notification := new(Notification)
 	ok, err := db.GetEngine(ctx).
 		Where("user_id = ?", userID).

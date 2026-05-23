@@ -22,7 +22,6 @@ import (
 	"code.gitea.io/gitea/modules/references"
 	"code.gitea.io/gitea/modules/repository"
 	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/modules/util"
 	notify_service "code.gitea.io/gitea/services/notify"
 )
 
@@ -79,7 +78,7 @@ func handler(items ...notificationOpts) []notificationOpts {
 				log.Error("Was unable to create release notification: %v", err)
 			}
 		case activities_model.NotificationSourceIssue, activities_model.NotificationSourcePullRequest, 0:
-			// 0 is for fallback to issue notifications because source is a newly added field
+			// Source==0 covers queue items persisted before this field existed, kept for rolling-upgrade safety.
 			if err := activities_model.CreateOrUpdateIssueNotifications(ctx, opts.IssueID, opts.CommentID, opts.NotificationAuthorID, opts.ReceiverID); err != nil {
 				log.Error("Was unable to create issue notification: %v", err)
 			}
@@ -98,7 +97,7 @@ func (ns *notificationService) CreateIssueComment(ctx context.Context, doer *use
 	issue *issues_model.Issue, comment *issues_model.Comment, mentions []*user_model.User,
 ) {
 	opts := notificationOpts{
-		Source:               util.Iif(issue.IsPull, activities_model.NotificationSourcePullRequest, activities_model.NotificationSourceIssue),
+		Source:               activities_model.NotificationSourceForIssue(issue),
 		IssueID:              issue.ID,
 		RepoID:               issue.RepoID,
 		NotificationAuthorID: doer.ID,
@@ -129,7 +128,7 @@ func (ns *notificationService) NewIssue(ctx context.Context, issue *issues_model
 
 func (ns *notificationService) IssueChangeStatus(ctx context.Context, doer *user_model.User, commitID string, issue *issues_model.Issue, actionComment *issues_model.Comment, isClosed bool) {
 	_ = ns.queue.Push(notificationOpts{
-		Source:               util.Iif(issue.IsPull, activities_model.NotificationSourcePullRequest, activities_model.NotificationSourceIssue),
+		Source:               activities_model.NotificationSourceForIssue(issue),
 		IssueID:              issue.ID,
 		NotificationAuthorID: doer.ID,
 		CommentID:            actionComment.ID,
@@ -143,7 +142,7 @@ func (ns *notificationService) IssueChangeTitle(ctx context.Context, doer *user_
 	}
 	if issue.IsPull && issues_model.HasWorkInProgressPrefix(oldTitle) && !issue.PullRequest.IsWorkInProgress(ctx) {
 		_ = ns.queue.Push(notificationOpts{
-			Source:               util.Iif(issue.IsPull, activities_model.NotificationSourcePullRequest, activities_model.NotificationSourceIssue),
+			Source:               activities_model.NotificationSourceForIssue(issue),
 			IssueID:              issue.ID,
 			NotificationAuthorID: doer.ID,
 		})
@@ -249,7 +248,7 @@ func (ns *notificationService) PullReviewDismiss(ctx context.Context, doer *user
 func (ns *notificationService) IssueChangeAssignee(ctx context.Context, doer *user_model.User, issue *issues_model.Issue, assignee *user_model.User, removed bool, comment *issues_model.Comment) {
 	if !removed && doer.ID != assignee.ID {
 		opts := notificationOpts{
-			Source:               util.Iif(issue.IsPull, activities_model.NotificationSourcePullRequest, activities_model.NotificationSourceIssue),
+			Source:               activities_model.NotificationSourceForIssue(issue),
 			IssueID:              issue.ID,
 			NotificationAuthorID: doer.ID,
 			ReceiverID:           assignee.ID,
