@@ -410,6 +410,39 @@ func ParentGroupCond(ctx context.Context, idStr string, groupID int64) builder.C
 	return builder.In(idStr, groupList)
 }
 
+// ChildGroupCond returns a condition recursively matching a group and its descendants
+func ChildGroupCond(ctx context.Context, doer *user_model.User, firstParent int64) ([]int64, error) {
+	if firstParent < 0 {
+		firstParent = 0
+	}
+	var filter string
+
+	groupFilter := AccessibleGroupCondition(doer)
+	boundFilter, err := builder.ToBoundSQL(groupFilter)
+	if err == nil {
+		filter = "AND (" + boundFilter + ")"
+	}
+
+	var ids []int64
+
+	var recursiveKeyword string
+	if !setting.Database.Type.IsMSSQL() {
+		recursiveKeyword = "recursive "
+	}
+
+	err = db.GetEngine(ctx).SQL(fmt.Sprintf(`with %sgroups as (
+		select * from repo_group
+		WHERE parent_group_id = ? %s
+
+		union all
+
+		select subgroup.*
+		from repo_group subgroup
+		join groups g on g.id = subgroup.parent_group_id
+	) select g.id from groups g`, recursiveKeyword, filter), firstParent).Find(&ids)
+	return ids, err
+}
+
 func UpdateGroup(ctx context.Context, group *Group) error {
 	sess := db.GetEngine(ctx)
 	_, err := sess.Table(group.TableName()).ID(group.ID).Update(group)
