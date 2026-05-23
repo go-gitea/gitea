@@ -39,7 +39,7 @@ func UploadAvatar(ctx context.Context, g *group_model.Group, data []byte) error 
 		_, err = w.Write(avatarData)
 		return err
 	}); err != nil {
-		return fmt.Errorf("Failed to create dir %s: %w", g.CustomAvatarRelativePath(), err)
+		return fmt.Errorf("Failed to save avatar: %w", err)
 	}
 
 	return committer.Commit()
@@ -53,7 +53,7 @@ func DeleteAvatar(ctx context.Context, g *group_model.Group) error {
 	return db.WithTx(ctx, func(ctx context.Context) error {
 		hasAvatar := len(g.Avatar) > 0
 		g.Avatar = ""
-		if _, err := db.GetEngine(ctx).ID(g.ID).Cols("avatar, use_custom_avatar").Update(g); err != nil {
+		if _, err := db.GetEngine(ctx).ID(g.ID).Cols("avatar").Update(g); err != nil {
 			return fmt.Errorf("DeleteAvatar: %w", err)
 		}
 
