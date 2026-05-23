@@ -7,7 +7,9 @@ import (
 	"bytes"
 	stdCtx "context"
 	"errors"
+	"fmt"
 	"net/http"
+	"net/url"
 	"slices"
 	"strings"
 
@@ -24,6 +26,7 @@ import (
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/templates"
 	"code.gitea.io/gitea/modules/util"
+	webhook_module "code.gitea.io/gitea/modules/webhook"
 	shared_user "code.gitea.io/gitea/routers/web/shared/user"
 	"code.gitea.io/gitea/services/context"
 	"code.gitea.io/gitea/services/convert"
@@ -249,6 +252,8 @@ func prepareWorkflowList(ctx *context.Context, workflows []WorkflowInfo) {
 	actorID := ctx.FormInt64("actor")
 	status := ctx.FormInt("status")
 	workflowID := ctx.FormString("workflow")
+	event := ctx.FormString("event")
+	branch := ctx.FormString("branch")
 	page := ctx.FormInt("page")
 	if page <= 0 {
 		page = 1
@@ -258,7 +263,9 @@ func prepareWorkflowList(ctx *context.Context, workflows []WorkflowInfo) {
 	// they will be 0 by default, which indicates get all status or actors
 	ctx.Data["CurActor"] = actorID
 	ctx.Data["CurStatus"] = status
-	if actorID > 0 || status > int(actions_model.StatusUnknown) {
+	ctx.Data["CurEvent"] = event
+	ctx.Data["CurBranch"] = branch
+	if actorID > 0 || status > int(actions_model.StatusUnknown) || event != "" || branch != "" {
 		ctx.Data["IsFiltered"] = true
 	}
 
@@ -275,6 +282,12 @@ func prepareWorkflowList(ctx *context.Context, workflows []WorkflowInfo) {
 	// if status is not StatusUnknown, it means user has selected a status filter
 	if actions_model.Status(status) != actions_model.StatusUnknown {
 		opts.Status = []actions_model.Status{actions_model.Status(status)}
+	}
+	if event != "" {
+		opts.TriggerEvent = webhook_module.HookEventType(event)
+	}
+	if branch != "" {
+		opts.Ref = string(git.RefNameFromBranch(branch))
 	}
 
 	runs, total, err := db.FindAndCount[actions_model.ActionRun](ctx, opts)
@@ -349,6 +362,20 @@ func prepareWorkflowList(ctx *context.Context, workflows []WorkflowInfo) {
 	ctx.Data["Actors"] = shared_user.MakeSelfOnTop(ctx.Doer, actors)
 
 	ctx.Data["StatusInfoList"] = actions_model.GetStatusInfoList(ctx, ctx.Locale)
+
+	triggerEventInfoList, err := actions_model.GetTriggerEventInfoList(ctx, ctx.Locale, ctx.Repo.Repository.ID)
+	if err != nil {
+		ctx.ServerError("GetTriggerEventInfoList", err)
+		return
+	}
+	ctx.Data["TriggerEventInfoList"] = triggerEventInfoList
+
+	runBranches, err := actions_model.GetRunBranches(ctx, ctx.Repo.Repository.ID)
+	if err != nil {
+		ctx.ServerError("GetRunBranches", err)
+		return
+	}
+	ctx.Data["RunBranches"] = runBranches
 
 	pager := context.NewPagination(total, opts.PageSize, opts.Page, 5)
 	pager.AddParamFromRequest(ctx.Req)
@@ -465,4 +492,15 @@ func decodeNode(node yaml.Node, out any) bool {
 		return false
 	}
 	return true
+}
+
+func actionsListRedirectURL(repoLink, workflow, actor, status, event, branch string) string {
+	return fmt.Sprintf("%s/actions?workflow=%s&actor=%s&status=%s&event=%s&branch=%s",
+		repoLink,
+		url.QueryEscape(workflow),
+		url.QueryEscape(actor),
+		url.QueryEscape(status),
+		url.QueryEscape(event),
+		url.QueryEscape(branch),
+	)
 }
