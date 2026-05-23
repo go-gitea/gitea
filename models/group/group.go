@@ -404,16 +404,21 @@ func ParentGroupCond(ctx context.Context, idStr string, groupID int64) builder.C
 }
 
 // ChildGroupCond returns a condition recursively matching a group and its descendants
-func ChildGroupCond(ctx context.Context, doer *user_model.User, firstParent int64) ([]int64, error) {
+func ChildGroupCond(ctx context.Context, firstParent int64, cond builder.Cond) ([]int64, error) {
 	if firstParent < 0 {
 		firstParent = 0
 	}
-	var filter string
+	var (
+		filter string
+		err    error
+	)
 
-	groupFilter := AccessibleGroupCondition(doer)
-	boundFilter, err := builder.ToBoundSQL(groupFilter)
-	if err == nil {
-		filter = "AND (" + boundFilter + ")"
+	if cond != nil {
+		var boundFilter string
+		boundFilter, err = builder.ToBoundSQL(cond)
+		if err == nil {
+			filter = "AND (" + boundFilter + ")"
+		}
 	}
 
 	var ids []int64
@@ -432,7 +437,7 @@ func ChildGroupCond(ctx context.Context, doer *user_model.User, firstParent int6
 		select subgroup.*
 		from repo_group subgroup
 		join groups g on g.id = subgroup.parent_group_id
-	) select g.id from groups g`, recursiveKeyword, filter), firstParent).Find(&ids)
+	) select g.id from groups g order by id asc`, recursiveKeyword, filter), firstParent).Find(&ids)
 	return ids, err
 }
 
@@ -448,15 +453,16 @@ func MoveGroup(ctx context.Context, group *Group, newParent int64, newSortOrder 
 		return util.NewInvalidArgumentErrorf("cannot move group %d under itself", group.ID)
 	}
 
-	parentGroupChain, err := GetParentGroupChain(ctx, newParent)
+	descendantIDs, err := ChildGroupCond(ctx, group.ID, nil)
 	if err != nil {
 		return err
 	}
-	for _, parent := range parentGroupChain {
-		if parent.ID == group.ID {
-			return util.NewInvalidArgumentErrorf("cannot move group %d under one of its descendants", group.ID)
-		}
+	if _, has := slices.BinarySearch(descendantIDs, group.ID); has {
+		return util.NewInvalidArgumentErrorf("cannot move group %d under one of its descendants", group.ID)
 	}
+
+	parentGroupChain, err := GetParentGroupChain(ctx, newParent)
+
 	if len(parentGroupChain) >= NestingLimit {
 		return ErrGroupTooDeep{
 			ID: group.ID,
