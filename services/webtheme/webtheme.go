@@ -45,7 +45,7 @@ type ThemeMetaInfo struct {
 }
 
 func (info *ThemeMetaInfo) PublicAssetURI() string {
-	return public.AssetURI("css/theme-" + url.PathEscape(info.InternalName) + ".css")
+	return public.AssetURI("web_src/css/themes/theme-" + url.PathEscape(info.InternalName) + ".css")
 }
 
 func (info *ThemeMetaInfo) GetDescription() string {

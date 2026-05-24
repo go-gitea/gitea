@@ -90,6 +90,6 @@ func (p *frontendRenderer) Render(ctx *markup.RenderContext, input io.Reader, ou
 </html>`,
 		p.name, ctx.RenderOptions.RelativePath,
 		contentEncoding, contentString,
-		public.AssetURI("js/external-render-frontend.js"))
+		public.AssetURI("web_src/js/external-render-frontend.ts"))
 	return err
 }

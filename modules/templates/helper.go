@@ -68,6 +68,7 @@ func newFuncMapWebPage() template.FuncMap {
 		},
 
 		"AssetURI": public.AssetURI,
+		"AssetCSS": public.AssetCSS,
 
 		// -----------------------------------------------------------------
 		// setting
