@@ -48,7 +48,7 @@ type ServCommandResults struct {
 }
 
 // ServCommand preps for a serv call
-func ServCommand(ctx context.Context, keyID int64, ownerName, repoName string, groupPath string, mode perm.AccessMode, verb, lfsVerb string) (*ServCommandResults, ResponseExtra) {
+func ServCommand(ctx context.Context, keyID int64, ownerName, repoName, groupPath string, mode perm.AccessMode, verb, lfsVerb string) (*ServCommandResults, ResponseExtra) {
 	var groupSegment string
 	if len(groupPath) > 0 {
 		groupSegment = strings.Join(util.SliceMap(strings.Split(groupPath, "/"), url.PathEscape), "/") + "/"

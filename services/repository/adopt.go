@@ -208,7 +208,7 @@ func adoptRepository(ctx context.Context, repo *repo_model.Repository, defaultBr
 }
 
 // DeleteUnadoptedRepository deletes unadopted repository files from the filesystem
-func DeleteUnadoptedRepository(ctx context.Context, doer, u *user_model.User, repoName string, groupPath string) error {
+func DeleteUnadoptedRepository(ctx context.Context, doer, u *user_model.User, repoName, groupPath string) error {
 	if err := repo_model.IsUsableRepoName(repoName); err != nil {
 		return err
 	}

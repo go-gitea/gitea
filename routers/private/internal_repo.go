@@ -42,7 +42,7 @@ func RepoAssignment(ctx *gitea_context.PrivateContext) {
 	}
 }
 
-func loadRepository(ctx *gitea_context.PrivateContext, ownerName, repoName string, groupPath string) *repo_model.Repository {
+func loadRepository(ctx *gitea_context.PrivateContext, ownerName, repoName, groupPath string) *repo_model.Repository {
 	repo, err := repo_model.GetRepositoryByOwnerAndName(ctx, ownerName, repoName, groupPath)
 	if err != nil {
 		log.Error("Failed to get repository: %s/%s Error: %v", ownerName, repoName, err)

@@ -89,7 +89,7 @@ func AcceptTransferOwnership(ctx context.Context, repo *repo_model.Repository, d
 }
 
 // isRepositoryModelOrDirExist returns true if the repository with given name under user has already existed.
-func isRepositoryModelOrDirExist(ctx context.Context, u *user_model.User, repoName string, groupPath string) (bool, error) {
+func isRepositoryModelOrDirExist(ctx context.Context, u *user_model.User, repoName, groupPath string) (bool, error) {
 	has, err := repo_model.IsRepositoryModelExist(ctx, u, repoName, groupPath)
 	if err != nil {
 		return false, err

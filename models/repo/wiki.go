@@ -74,7 +74,7 @@ func (repo *Repository) WikiCloneLink(ctx context.Context, doer *user_model.User
 	return repo.cloneLink(ctx, doer, repo.Name+".wiki")
 }
 
-func RelativeWikiPath(ownerName, repoName string, groupPath string) string {
+func RelativeWikiPath(ownerName, repoName, groupPath string) string {
 	return RelativePathBaseName(ownerName, repoName, groupPath) + ".wiki.git"
 }
 
