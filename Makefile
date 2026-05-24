@@ -39,7 +39,6 @@ endif
 
 TAGS ?=
 TAGS_EVIDENCE := $(MAKE_EVIDENCE_DIR)/tags
-
 CGO_TAGS := sqlite_mattn pam
 
 CGO_ENABLED ?= 0
@@ -117,6 +116,7 @@ endif
 LDFLAGS := $(LDFLAGS) -X "main.Version=$(GITEA_VERSION)" -X "main.Tags=$(TAGS)"
 
 LINUX_ARCHS ?= linux/amd64,linux/386,linux/arm-5,linux/arm-6,linux/arm64,linux/riscv64
+WINDOWS_ARCHS ?= 386 amd64 arm64
 
 GO_TEST_PACKAGES ?= $(filter-out $(shell $(GO) list code.gitea.io/gitea/models/migrations/...) code.gitea.io/gitea/tests/integration/migration-test code.gitea.io/gitea/tests code.gitea.io/gitea/tests/integration,$(shell $(GO) list ./... | grep -v /vendor/))
 MIGRATE_TEST_PACKAGES ?= $(shell $(GO) list code.gitea.io/gitea/models/migrations/...)
@@ -528,13 +528,13 @@ $(DIST_DIRS):
 
 .PHONY: release-windows
 release-windows: | $(DIST_DIRS)
-	CGO_ENABLED=0 GOOS=windows GOARCH=386 $(GO) build -buildmode=exe -tags 'osusergo $(TAGS)' -ldflags '-s -w $(LDFLAGS)' -o $(DIST)/binaries/gitea-$(VERSION)-windows-4.0-386.exe .
-	CGO_ENABLED=0 GOOS=windows GOARCH=amd64 $(GO) build -buildmode=exe -tags 'osusergo $(TAGS)' -ldflags '-s -w $(LDFLAGS)' -o $(DIST)/binaries/gitea-$(VERSION)-windows-4.0-amd64.exe .
-	CGO_ENABLED=0 GOOS=windows GOARCH=arm64 $(GO) build -buildmode=exe -tags 'osusergo $(TAGS)' -ldflags '-s -w $(LDFLAGS)' -o $(DIST)/binaries/gitea-$(VERSION)-windows-4.0-arm64.exe .
+	@for goarch in $(WINDOWS_ARCHS); do \
+		CGO_ENABLED=0 GOOS=windows GOARCH="$$goarch" $(GO) build -buildmode=exe -tags 'osusergo $(TAGS)' -ldflags '-s -w $(LDFLAGS)' -o $(DIST)/binaries/gitea-$(VERSION)-windows-4.0-$$goarch.exe . || exit $$?; \
+	done
 ifeq (,$(findstring gogit,$(TAGS)))
-	CGO_ENABLED=0 GOOS=windows GOARCH=386 $(GO) build -buildmode=exe -tags 'osusergo gogit $(TAGS)' -ldflags '-s -w $(LDFLAGS)' -o $(DIST)/binaries/gitea-$(VERSION)-gogit-windows-4.0-386.exe .
-	CGO_ENABLED=0 GOOS=windows GOARCH=amd64 $(GO) build -buildmode=exe -tags 'osusergo gogit $(TAGS)' -ldflags '-s -w $(LDFLAGS)' -o $(DIST)/binaries/gitea-$(VERSION)-gogit-windows-4.0-amd64.exe .
-	CGO_ENABLED=0 GOOS=windows GOARCH=arm64 $(GO) build -buildmode=exe -tags 'osusergo gogit $(TAGS)' -ldflags '-s -w $(LDFLAGS)' -o $(DIST)/binaries/gitea-$(VERSION)-gogit-windows-4.0-arm64.exe .
+	@for goarch in $(WINDOWS_ARCHS); do \
+		CGO_ENABLED=0 GOOS=windows GOARCH="$$goarch" $(GO) build -buildmode=exe -tags 'osusergo gogit $(TAGS)' -ldflags '-s -w $(LDFLAGS)' -o $(DIST)/binaries/gitea-$(VERSION)-gogit-windows-4.0-$$goarch.exe . || exit $$?; \
+	done
 endif
 
 .PHONY: release-linux
