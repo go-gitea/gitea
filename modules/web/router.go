@@ -48,6 +48,8 @@ type Router struct {
 
 	curGroupPrefix string
 	curMiddlewares []any
+
+	pathGroups map[string]*routerPathGroupsHandler
 }
 
 // NewRouter creates a new route
@@ -76,7 +78,7 @@ func (r *Router) AfterRouting(middlewares ...any) {
 func (r *Router) Group(pattern string, fn func(), middlewares ...any) {
 	previousGroupPrefix := r.curGroupPrefix
 	previousMiddlewares := r.curMiddlewares
-	r.curGroupPrefix += pattern
+	r.curGroupPrefix = joinPattern(r.curGroupPrefix, pattern)
 	r.curMiddlewares = append(r.curMiddlewares, middlewares...)
 
 	fn()
@@ -85,8 +87,25 @@ func (r *Router) Group(pattern string, fn func(), middlewares ...any) {
 	r.curMiddlewares = previousMiddlewares
 }
 
+func joinPattern(prefix, pattern string) string {
+	switch {
+	case prefix == "":
+		return pattern
+	case pattern == "":
+		return prefix
+	case strings.HasPrefix(pattern, "."):
+		return prefix + pattern
+	case strings.HasSuffix(prefix, "/") && strings.HasPrefix(pattern, "/"):
+		return prefix[:len(prefix)-1] + pattern
+	case !strings.HasSuffix(prefix, "/") && !strings.HasPrefix(pattern, "/"):
+		return prefix + "/" + pattern
+	default:
+		return prefix + pattern
+	}
+}
+
 func (r *Router) getPattern(pattern string) string {
-	newPattern := r.curGroupPrefix + pattern
+	newPattern := joinPattern(r.curGroupPrefix, pattern)
 	if !strings.HasPrefix(newPattern, "/") {
 		newPattern = "/" + newPattern
 	}
@@ -122,7 +141,21 @@ func wrapMiddlewareAppendNormal(all []middlewareProvider, middlewares []any) []m
 	return all
 }
 
-func wrapMiddlewareAndHandler(useMiddlewares, curMiddlewares, h []any) (_ []middlewareProvider, _ http.HandlerFunc, hasPreMiddlewares bool) {
+func wrapMiddlewaresSplit(useMiddlewares, curMiddlewares, h []any) (_, _ []middlewareProvider, hasPreMiddlewares bool) {
+	preMiddlewares := make([]middlewareProvider, 0, len(useMiddlewares)+len(curMiddlewares)+len(h))
+	preMiddlewares = wrapMiddlewareAppendPre(preMiddlewares, useMiddlewares)
+	preMiddlewares = wrapMiddlewareAppendPre(preMiddlewares, curMiddlewares)
+	preMiddlewares = wrapMiddlewareAppendPre(preMiddlewares, h)
+	hasPreMiddlewares = len(preMiddlewares) > 0
+
+	normalMiddlewares := make([]middlewareProvider, 0, len(useMiddlewares)+len(curMiddlewares)+len(h))
+	normalMiddlewares = wrapMiddlewareAppendNormal(normalMiddlewares, useMiddlewares)
+	normalMiddlewares = wrapMiddlewareAppendNormal(normalMiddlewares, curMiddlewares)
+	normalMiddlewares = wrapMiddlewareAppendNormal(normalMiddlewares, h)
+	return preMiddlewares, normalMiddlewares, hasPreMiddlewares
+}
+
+func wrapMiddlewareAndHandler(useMiddlewares, curMiddlewares, h []any) ([]middlewareProvider, http.HandlerFunc) {
 	if len(h) == 0 {
 		panic("no endpoint handler provided")
 	}
@@ -130,28 +163,19 @@ func wrapMiddlewareAndHandler(useMiddlewares, curMiddlewares, h []any) (_ []midd
 		panic("endpoint handler can't be nil")
 	}
 
-	handlerProviders := make([]middlewareProvider, 0, len(useMiddlewares)+len(curMiddlewares)+len(h)+1)
-	handlerProviders = wrapMiddlewareAppendPre(handlerProviders, useMiddlewares)
-	handlerProviders = wrapMiddlewareAppendPre(handlerProviders, curMiddlewares)
-	handlerProviders = wrapMiddlewareAppendPre(handlerProviders, h)
-	hasPreMiddlewares = len(handlerProviders) > 0
-	handlerProviders = wrapMiddlewareAppendNormal(handlerProviders, useMiddlewares)
-	handlerProviders = wrapMiddlewareAppendNormal(handlerProviders, curMiddlewares)
-	handlerProviders = wrapMiddlewareAppendNormal(handlerProviders, h)
-
-	middlewares := handlerProviders[:len(handlerProviders)-1]
-	handlerFunc := handlerProviders[len(handlerProviders)-1](nil).ServeHTTP
-	mockPoint := RouterMockPoint(MockAfterMiddlewares)
-	if mockPoint != nil {
+	preMiddlewares, normalMiddlewares, _ := wrapMiddlewaresSplit(useMiddlewares, curMiddlewares, h)
+	middlewares := append(preMiddlewares, normalMiddlewares[:len(normalMiddlewares)-1]...)
+	handlerFunc := normalMiddlewares[len(normalMiddlewares)-1](nil).ServeHTTP
+	if mockPoint := RouterMockPoint(MockAfterMiddlewares); mockPoint != nil {
 		middlewares = append(middlewares, mockPoint)
 	}
-	return middlewares, handlerFunc, hasPreMiddlewares
+	return middlewares, handlerFunc
 }
 
 // Methods adds the same handlers for multiple http "methods" (separated by ",").
 // If any method is invalid, the lower level router will panic.
 func (r *Router) Methods(methods, pattern string, h ...any) {
-	middlewares, handlerFunc, _ := wrapMiddlewareAndHandler(r.afterRouting, r.curMiddlewares, h)
+	middlewares, handlerFunc := wrapMiddlewareAndHandler(r.afterRouting, r.curMiddlewares, h)
 	fullPattern := r.getPattern(pattern)
 	if strings.Contains(methods, ",") {
 		methods := strings.SplitSeq(methods, ",")
@@ -175,7 +199,7 @@ func (r *Router) Mount(pattern string, subRouter *Router) {
 
 // Any delegate requests for all methods
 func (r *Router) Any(pattern string, h ...any) {
-	middlewares, handlerFunc, _ := wrapMiddlewareAndHandler(r.afterRouting, r.curMiddlewares, h)
+	middlewares, handlerFunc := wrapMiddlewareAndHandler(r.afterRouting, r.curMiddlewares, h)
 	r.chiRouter.With(middlewares...).HandleFunc(r.getPattern(pattern), handlerFunc)
 }
 
@@ -217,7 +241,7 @@ func (r *Router) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 
 // NotFound defines a handler to respond whenever a route could not be found.
 func (r *Router) NotFound(h http.HandlerFunc) {
-	middlewares, handlerFunc, _ := wrapMiddlewareAndHandler(r.afterRouting, r.curMiddlewares, []any{h})
+	middlewares, handlerFunc := wrapMiddlewareAndHandler(r.afterRouting, r.curMiddlewares, []any{h})
 	r.chiRouter.NotFound(func(w http.ResponseWriter, r *http.Request) {
 		executeMiddlewaresHandler(w, r, middlewares, handlerFunc)
 	})
@@ -281,15 +305,25 @@ func (r *Router) normalizeRequestPath(resp http.ResponseWriter, req *http.Reques
 }
 
 // Combo delegates requests to Combo
-func (r *Router) Combo(pattern string, h ...any) *Combo {
+func (r *Router) Combo(pattern string, h ...any) ICombo {
 	return &Combo{r, pattern, h}
 }
 
 // PathGroup creates a group of paths which could be matched by regexp.
 // It is only designed to resolve some special cases which chi router can't handle.
 // For most cases, it shouldn't be used because it needs to iterate all rules to find the matched one (inefficient).
-func (r *Router) PathGroup(pattern string, fn func(g *RouterPathGroup), h ...any) {
+func (r *Router) PathGroup(pattern string, fn func(m *RouterPathGroup), h ...any) {
 	g := &RouterPathGroup{r: r, pathParam: "*"}
 	fn(g)
-	r.Any(pattern, append(h, g.ServeHTTP)...)
+	fullPattern := r.getPattern(pattern)
+	if r.pathGroups == nil {
+		r.pathGroups = map[string]*routerPathGroupsHandler{}
+	}
+	pathGroupsHandler := r.pathGroups[fullPattern]
+	if pathGroupsHandler == nil {
+		pathGroupsHandler = &routerPathGroupsHandler{r: r}
+		r.pathGroups[fullPattern] = pathGroupsHandler
+		r.chiRouter.HandleFunc(fullPattern, pathGroupsHandler.ServeHTTP)
+	}
+	pathGroupsHandler.Add(r.afterRouting, r.curMiddlewares, h, g)
 }

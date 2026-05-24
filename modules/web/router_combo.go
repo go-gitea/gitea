@@ -11,31 +11,31 @@ type Combo struct {
 }
 
 // Get delegates Get method
-func (c *Combo) Get(h ...any) *Combo {
+func (c *Combo) Get(h ...any) ICombo {
 	c.r.Get(c.pattern, append(c.h, h...)...)
 	return c
 }
 
 // Post delegates Post method
-func (c *Combo) Post(h ...any) *Combo {
+func (c *Combo) Post(h ...any) ICombo {
 	c.r.Post(c.pattern, append(c.h, h...)...)
 	return c
 }
 
 // Delete delegates Delete method
-func (c *Combo) Delete(h ...any) *Combo {
+func (c *Combo) Delete(h ...any) ICombo {
 	c.r.Delete(c.pattern, append(c.h, h...)...)
 	return c
 }
 
 // Put delegates Put method
-func (c *Combo) Put(h ...any) *Combo {
+func (c *Combo) Put(h ...any) ICombo {
 	c.r.Put(c.pattern, append(c.h, h...)...)
 	return c
 }
 
 // Patch delegates Patch method
-func (c *Combo) Patch(h ...any) *Combo {
+func (c *Combo) Patch(h ...any) ICombo {
 	c.r.Patch(c.pattern, append(c.h, h...)...)
 	return c
 }
