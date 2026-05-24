@@ -1104,13 +1104,13 @@ func disableOrEnableWorkflowFile(ctx *context_module.Context, isEnable bool) {
 	}
 
 	redirectURL := actionsListRedirectURL(ctx.Repo.RepoLink, workflow,
-		ctx.FormString("actor"), ctx.FormString("status"), ctx.FormString("event"), ctx.FormString("branch"))
+		ctx.FormString("actor"), ctx.FormString("status"), ctx.FormString("branch"))
 	ctx.JSONRedirect(redirectURL)
 }
 
 func Run(ctx *context_module.Context) {
 	redirectURL := actionsListRedirectURL(ctx.Repo.RepoLink, ctx.FormString("workflow"),
-		ctx.FormString("actor"), ctx.FormString("status"), ctx.FormString("event"), ctx.FormString("branch"))
+		ctx.FormString("actor"), ctx.FormString("status"), ctx.FormString("branch"))
 
 	workflowID := ctx.FormString("workflow")
 	if len(workflowID) == 0 {

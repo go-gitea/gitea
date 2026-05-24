@@ -5,13 +5,11 @@ package actions
 
 import (
 	"context"
-	"slices"
 
 	"code.gitea.io/gitea/models/db"
 	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/container"
-	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/translation"
 	webhook_module "code.gitea.io/gitea/modules/webhook"
 
@@ -134,68 +132,20 @@ func GetStatusInfoList(ctx context.Context, lang translation.Locale) []StatusInf
 	return statusInfoList
 }
 
-type TriggerEventInfo struct {
-	Event   string
-	Display string
-}
-
-var triggerEventLocaleKeys = map[string]string{
-	"push":              "repo.settings.event_push",
-	"pull_request":      "repo.settings.event_pull_request",
-	"schedule":          "actions.runs.scheduled",
-	"workflow_dispatch": "actions.runs.event_workflow_dispatch",
-	"workflow_call":     "actions.runs.event_workflow_call",
-}
-
-// GetTriggerEvents returns distinct trigger events for a repository's action runs.
-func GetTriggerEvents(ctx context.Context, repoID int64) ([]string, error) {
-	events := make([]string, 0, 10)
-	return events, db.GetEngine(ctx).Table("`action_run`").
-		Where("repo_id = ?", repoID).
-		And("trigger_event != ''").
-		Cols("trigger_event").
-		Distinct().
-		OrderBy("trigger_event").
-		Find(&events)
-}
-
-// GetTriggerEventInfoList returns trigger events with localized display names.
-func GetTriggerEventInfoList(ctx context.Context, lang translation.Locale, repoID int64) ([]TriggerEventInfo, error) {
-	events, err := GetTriggerEvents(ctx, repoID)
-	if err != nil {
-		return nil, err
-	}
-	eventInfoList := make([]TriggerEventInfo, 0, len(events))
-	for _, event := range events {
-		display := event
-		if key := triggerEventLocaleKeys[event]; key != "" {
-			display = lang.TrString(key)
-		}
-		eventInfoList = append(eventInfoList, TriggerEventInfo{
-			Event:   event,
-			Display: display,
-		})
-	}
-	return eventInfoList, nil
-}
-
-// GetRunBranches returns distinct branch short names from action runs in a repository.
+// GetRunBranches returns branch names available for the run-list "Branch" filter.
+// It reads from the `branch` table (indexed by repo_id) rather than scanning
+// `action_run.ref`, which is wildcard-matched and slow on large repos. The list
+// therefore reflects existing repo branches, not only those that have produced a run.
+// The `branch` table is queried directly (instead of via models/git) to avoid an
+// import cycle between models/actions and models/git.
 func GetRunBranches(ctx context.Context, repoID int64) ([]string, error) {
-	refs := make([]string, 0, 10)
-	if err := db.GetEngine(ctx).Table("`action_run`").
+	branches := make([]string, 0, 10)
+	return branches, db.GetEngine(ctx).Table("branch").
 		Where("repo_id = ?", repoID).
-		And("ref LIKE ?", git.BranchPrefix+"%").
-		Cols("ref").
-		Distinct().
-		Find(&refs); err != nil {
-		return nil, err
-	}
-	branches := make([]string, 0, len(refs))
-	for _, ref := range refs {
-		branches = append(branches, git.RefName(ref).ShortName())
-	}
-	slices.Sort(branches)
-	return branches, nil
+		And("is_deleted = ?", false).
+		Cols("name").
+		OrderBy("name ASC").
+		Find(&branches)
 }
 
 // GetActors returns a slice of Actors

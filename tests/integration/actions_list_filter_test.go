@@ -30,30 +30,25 @@ func TestActionsListFilters(t *testing.T) {
 		resp := session.MakeRequest(t, req, http.StatusOK)
 		body := resp.Body.String()
 
-		assert.Contains(t, body, locale.TrString("actions.runs.event"))
 		assert.Contains(t, body, locale.TrString("actions.runs.branch"))
-		assert.Contains(t, body, locale.TrString("actions.runs.events_no_select"))
 		assert.Contains(t, body, locale.TrString("actions.runs.branches_no_select"))
-		assert.Contains(t, body, "event=push")
 		assert.Contains(t, body, "branch=master")
 	})
 
-	t.Run("FilterByEventAndBranch", func(t *testing.T) {
-		req := NewRequest(t, "GET", fmt.Sprintf("/%s/%s/actions?event=push&branch=master", user5.Name, repo.Name))
+	t.Run("FilterByBranch", func(t *testing.T) {
+		req := NewRequest(t, "GET", fmt.Sprintf("/%s/%s/actions?branch=master", user5.Name, repo.Name))
 		resp := session.MakeRequest(t, req, http.StatusOK)
 		body := resp.Body.String()
 
 		assert.Contains(t, body, "#187")
 		assert.Contains(t, body, "#189")
-		assert.NotContains(t, body, "#190")
 	})
 
 	t.Run("PaginationPreservesFilters", func(t *testing.T) {
-		req := NewRequest(t, "GET", fmt.Sprintf("/%s/%s/actions?event=push&branch=master&limit=1", user5.Name, repo.Name))
+		req := NewRequest(t, "GET", fmt.Sprintf("/%s/%s/actions?branch=master&limit=1", user5.Name, repo.Name))
 		resp := session.MakeRequest(t, req, http.StatusOK)
 		body := resp.Body.String()
 
-		assert.Contains(t, body, "event=push")
 		assert.Contains(t, body, "branch=master")
 	})
 }
