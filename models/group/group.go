@@ -457,7 +457,7 @@ func MoveGroup(ctx context.Context, group *Group, newParent int64, newSortOrder 
 	if err != nil {
 		return err
 	}
-	if _, has := slices.BinarySearch(descendantIDs, group.ID); has {
+	if _, has := slices.BinarySearch(descendantIDs, newParent); has {
 		return util.NewInvalidArgumentErrorf("cannot move group %d under one of its descendants", group.ID)
 	}
 
