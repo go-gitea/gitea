@@ -83,7 +83,7 @@ onBeforeUnmount(() => {
             </span>
           </template>
           <a v-if="run.pullRequest" class="action-run-summary-pr silenced" :href="run.pullRequest.link">{{ run.pullRequest.index }}</a>
-          <span v-if="run.commit.branch.name" class="action-run-summary-branch-label tw-max-w-full">
+          <span v-else-if="run.commit.branch.name" class="action-run-summary-branch-label tw-max-w-full">
             <a
               v-if="!run.commit.branch.isDeleted && run.commit.branch.link"
               class="gt-ellipsis silenced"
