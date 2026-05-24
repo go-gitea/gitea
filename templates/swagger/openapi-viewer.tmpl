@@ -4,6 +4,7 @@
 		{{ctx.HeadMetaContentSecurityPolicy}}
 		<title>Gitea API</title>
 		<link rel="stylesheet" href="{{ctx.CurrentWebTheme.PublicAssetURI}}">
+		{{/* HINT: SWAGGER-CSS-IMPORT: load swagger styles ahead via <link> to avoid flicker (e.g. the swagger-back-link) */}}
 		<link rel="stylesheet" href="{{AssetCSSURI "web_src/js/swagger.ts" "web_src/css/swagger.css"}}">
 	</head>
 	<body>
