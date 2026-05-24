@@ -4,11 +4,8 @@
 package public
 
 import (
-	"html"
-	"html/template"
 	"io"
 	"path"
-	"strings"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -21,10 +18,9 @@ import (
 // The Vite manifest is keyed by source path, e.g. "web_src/js/index.ts".
 // https://vite.dev/guide/backend-integration
 type manifestEntry struct {
-	File    string   `json:"file"`
-	Name    string   `json:"name"`
-	CSS     []string `json:"css"`
-	Imports []string `json:"imports"`
+	File string   `json:"file"`
+	Name string   `json:"name"`
+	CSS  []string `json:"css"`
 }
 
 type manifestDataStruct struct {
@@ -126,52 +122,25 @@ func AssetURI(srcPath string) string {
 	if entry := getManifestData().entries[srcPath]; entry != nil {
 		return setting.StaticURLPrefix + "/assets/" + entry.File
 	}
-	// not in manifest: custom theme CSS served as a static asset
-	return setting.StaticURLPrefix + "/assets/css/" + path.Base(srcPath)
-}
-
-// AssetCSS renders the <link> tags for a page's JS entry (manifest key like "web_src/js/index.ts"),
-// mirroring how the frontend frameworks emit an entry's CSS.
-// In production it follows the manifest: the entry's CSS plus the CSS of every statically-imported
-// chunk. In Vite dev mode the manifest is not authoritative, so it links devStylesheetSrc (the
-// entry's source stylesheet, served by the dev server) to keep the layout render-blocking; the
-// rest of the entry's CSS is injected by its JS module.
-// Ref: https://vite.dev/guide/backend-integration
-func AssetCSS(jsEntrySrc, devStylesheetSrc string) template.HTML {
-	var b strings.Builder
-	for _, href := range entryStyleURLs(jsEntrySrc, devStylesheetSrc) {
-		b.WriteString(`<link rel="stylesheet" href="` + html.EscapeString(href) + `">`)
+	// The only expected manifest miss is a user's custom theme CSS, served as a static asset
+	// under "/assets/css/". Anything else is a misconfigured or missing entry.
+	if path.Ext(srcPath) == ".css" {
+		return setting.StaticURLPrefix + "/assets/css/" + path.Base(srcPath)
 	}
-	return template.HTML(b.String())
+	log.Error("asset not found in frontend manifest: %s", srcPath)
+	return setting.StaticURLPrefix + "/assets/" + path.Base(srcPath)
 }
 
-func entryStyleURLs(jsEntrySrc, devStylesheetSrc string) []string {
+// AssetCSSURI returns the stylesheet URL for a JS entry. Dev serves devStylesheetSrc (the source
+// file); prod returns the entry's CSS from the manifest.
+func AssetCSSURI(jsEntrySrc, devStylesheetSrc string) string {
 	if IsViteDevMode() {
-		if src := viteDevSourceURL(devStylesheetSrc); src != "" {
-			return []string{src}
-		}
-		return nil
+		return viteDevSourceURL(devStylesheetSrc)
 	}
-
-	entries := getManifestData().entries
-	var urls []string
-	seen := make(map[string]bool)
-	var walk func(key string)
-	walk = func(key string) {
-		entry := entries[key]
-		if entry == nil || seen[key] {
-			return
-		}
-		seen[key] = true
-		for _, css := range entry.CSS {
-			urls = append(urls, setting.StaticURLPrefix+"/assets/"+css)
-		}
-		for _, imp := range entry.Imports {
-			walk(imp)
-		}
+	if entry := getManifestData().entries[jsEntrySrc]; entry != nil && len(entry.CSS) > 0 {
+		return setting.StaticURLPrefix + "/assets/" + entry.CSS[0]
 	}
-	walk(jsEntrySrc)
-	return urls
+	return ""
 }
 
 // AssetNameFromHashedPath returns the asset entry name for a given hashed asset path.

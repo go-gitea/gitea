@@ -67,8 +67,8 @@ func newFuncMapWebPage() template.FuncMap {
 			return strconv.FormatInt(time.Since(startTime).Nanoseconds()/1e6, 10) + "ms"
 		},
 
-		"AssetURI": public.AssetURI,
-		"AssetCSS": public.AssetCSS,
+		"AssetURI":    public.AssetURI,
+		"AssetCSSURI": public.AssetCSSURI,
 
 		// -----------------------------------------------------------------
 		// setting
