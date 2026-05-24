@@ -23,7 +23,7 @@ type NewGroupOption struct {
 	// the name for the newly created group
 	//
 	// required: true
-	Name string `json:"name" binding:"Required"`
+	Name string `json:"name" binding:"Required;AlphaDashDot;MaxSize(100)"`
 	// the description of the newly created group
 	Description string `json:"description"`
 	// the visibility of the newly created group
@@ -45,7 +45,7 @@ type MoveGroupOption struct {
 // swagger:model
 type EditGroupOption struct {
 	// the new name of the group
-	Name *string `json:"name,omitempty"`
+	Name *string `json:"name,omitempty" binding:"Required;AlphaDashDot;MaxSize(100)"`
 	// the new description of the group
 	Description *string `json:"description,omitempty"`
 	// the new visibility of the group
