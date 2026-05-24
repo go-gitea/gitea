@@ -120,9 +120,9 @@ func NewPullRequest(ctx context.Context, pr *issues_model.PullRequest, mentions 
 }
 
 // PullRequestSynchronized notifies Synchronized pull request
-func PullRequestSynchronized(ctx context.Context, doer *user_model.User, pr *issues_model.PullRequest) {
+func PullRequestSynchronized(ctx context.Context, doer *user_model.User, pr *issues_model.PullRequest, before, after string) {
 	for _, notifier := range notifiers {
-		notifier.PullRequestSynchronized(ctx, doer, pr)
+		notifier.PullRequestSynchronized(ctx, doer, pr, before, after)
 	}
 }
 

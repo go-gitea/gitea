@@ -122,23 +122,7 @@ func (ut *RenderUtils) RenderIssueSimpleTitle(text string) template.HTML {
 	return ret
 }
 
-func (ut *RenderUtils) RenderLabelWithLink(label *issues_model.Label, link any) template.HTML {
-	var attrHref template.HTML
-	switch link.(type) {
-	case template.URL, string:
-		attrHref = htmlutil.HTMLFormat(`href="%s"`, link)
-	default:
-		panic(fmt.Sprintf("unexpected type %T for link", link))
-	}
-	return ut.renderLabelWithTag(label, "a", attrHref)
-}
-
 func (ut *RenderUtils) RenderLabel(label *issues_model.Label) template.HTML {
-	return ut.renderLabelWithTag(label, "span", "")
-}
-
-// RenderLabel renders a label
-func (ut *RenderUtils) renderLabelWithTag(label *issues_model.Label, tagName, tagAttrs template.HTML) template.HTML {
 	locale := ut.ctx.Value(translation.ContextKey).(translation.Locale)
 	var extraCSSClasses string
 	textColor := util.ContrastColor(label.Color)
@@ -152,8 +136,8 @@ func (ut *RenderUtils) renderLabelWithTag(label *issues_model.Label, tagName, ta
 
 	if labelScope == "" {
 		// Regular label
-		return htmlutil.HTMLFormat(`<%s %s class="ui label %s" style="color: %s !important; background-color: %s !important;" data-tooltip-content title="%s"><span class="gt-ellipsis">%s</span></%s>`,
-			tagName, tagAttrs, extraCSSClasses, textColor, label.Color, descriptionText, ut.RenderEmoji(label.Name), tagName)
+		return htmlutil.HTMLFormat(`<span class="ui label %s" style="color: %s !important; background-color: %s !important;" data-tooltip-content title="%s"><span class="gt-ellipsis">%s</span></span>`,
+			extraCSSClasses, textColor, label.Color, descriptionText, ut.RenderEmoji(label.Name))
 	}
 
 	// Scoped label
@@ -188,29 +172,25 @@ func (ut *RenderUtils) renderLabelWithTag(label *issues_model.Label, tagName, ta
 
 	if label.ExclusiveOrder > 0 {
 		// <scope> | <label> | <order>
-		return htmlutil.HTMLFormat(`<%s %s class="ui label %s scope-parent" data-tooltip-content title="%s">`+
+		return htmlutil.HTMLFormat(`<span class="ui label %s scope-parent" data-tooltip-content title="%s">`+
 			`<div class="ui label scope-left" style="color: %s !important; background-color: %s !important">%s</div>`+
 			`<div class="ui label scope-middle" style="color: %s !important; background-color: %s !important">%s</div>`+
 			`<div class="ui label scope-right">%d</div>`+
-			`</%s>`,
-			tagName, tagAttrs,
+			`</span>`,
 			extraCSSClasses, descriptionText,
 			textColor, scopeColor, scopeHTML,
 			textColor, itemColor, itemHTML,
-			label.ExclusiveOrder,
-			tagName)
+			label.ExclusiveOrder)
 	}
 
 	// <scope> | <label>
-	return htmlutil.HTMLFormat(`<%s %s class="ui label %s scope-parent" data-tooltip-content title="%s">`+
+	return htmlutil.HTMLFormat(`<span class="ui label %s scope-parent" data-tooltip-content title="%s">`+
 		`<div class="ui label scope-left" style="color: %s !important; background-color: %s !important">%s</div>`+
 		`<div class="ui label scope-right" style="color: %s !important; background-color: %s !important">%s</div>`+
-		`</%s>`,
-		tagName, tagAttrs,
+		`</span>`,
 		extraCSSClasses, descriptionText,
 		textColor, scopeColor, scopeHTML,
-		textColor, itemColor, itemHTML,
-		tagName)
+		textColor, itemColor, itemHTML)
 }
 
 // RenderEmoji renders html text with emoji post processors
@@ -266,18 +246,19 @@ func (ut *RenderUtils) RenderPackageMarkdown(input string, repo *repo.Repository
 func (ut *RenderUtils) RenderLabels(labels []*issues_model.Label, repoLink string, issue *issues_model.Issue) template.HTML {
 	isPullRequest := issue != nil && issue.IsPull
 	baseLink := fmt.Sprintf("%s/%s", repoLink, util.Iif(isPullRequest, "pulls", "issues"))
-	var htmlCode strings.Builder
-	htmlCode.WriteString(`<span class="labels-list">`)
+	var htmlCode htmlutil.HTMLBuilder
+	htmlCode.WriteHTML(`<span class="labels-list">`)
 	for _, label := range labels {
 		// Protect against nil value in labels - shouldn't happen but would cause a panic if so
 		if label == nil {
 			continue
 		}
-		link := fmt.Sprintf("%s?labels=%d", baseLink, label.ID)
-		htmlCode.WriteString(string(ut.RenderLabelWithLink(label, template.URL(link))))
+		htmlCode.WriteFormat(`<a class="item" href="%s?labels=%d">`, baseLink, label.ID)
+		htmlCode.WriteHTML(ut.RenderLabel(label))
+		htmlCode.WriteHTML("</a>")
 	}
-	htmlCode.WriteString("</span>")
-	return template.HTML(htmlCode.String())
+	htmlCode.WriteHTML("</span>")
+	return htmlCode.HTMLString()
 }
 
 func (ut *RenderUtils) RenderThemeItem(info *webtheme.ThemeMetaInfo, iconSize int) template.HTML {

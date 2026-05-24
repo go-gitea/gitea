@@ -6,7 +6,6 @@ package repo
 import (
 	go_context "context"
 	"crypto/hmac"
-	"crypto/sha256"
 	"encoding/base64"
 	"errors"
 	"fmt"
@@ -21,9 +20,9 @@ import (
 	"code.gitea.io/gitea/models/db"
 	repo_model "code.gitea.io/gitea/models/repo"
 	secret_model "code.gitea.io/gitea/models/secret"
+	"code.gitea.io/gitea/modules/actions"
 	"code.gitea.io/gitea/modules/httplib"
 	"code.gitea.io/gitea/modules/optional"
-	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/modules/web"
@@ -707,6 +706,14 @@ func (Action) ListWorkflowJobs(ctx *context.APIContext) {
 	//   in: query
 	//   description: page size of results
 	//   type: integer
+	// - name: sort
+	//   in: query
+	//   description: sort jobs by attribute. Supported values are "id". Default is "id"
+	//   type: string
+	// - name: order
+	//   in: query
+	//   description: sort order, either "asc" (ascending) or "desc" (descending). Default is "asc"
+	//   type: string
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/WorkflowJobsList"
@@ -714,6 +721,8 @@ func (Action) ListWorkflowJobs(ctx *context.APIContext) {
 	//     "$ref": "#/responses/error"
 	//   "404":
 	//     "$ref": "#/responses/notFound"
+	//   "422":
+	//     "$ref": "#/responses/validationError"
 
 	repoID := ctx.Repo.Repository.ID
 
@@ -1175,6 +1184,7 @@ func getCurrentRepoActionRunJobsByID(ctx *context.APIContext) (*actions_model.Ac
 		ctx.APIErrorInternal(err)
 		return nil, nil
 	}
+	jobs.SortMatrixGroupsByName()
 	return run, jobs
 }
 
@@ -1526,6 +1536,14 @@ func ListWorkflowRunJobs(ctx *context.APIContext) {
 	//   in: query
 	//   description: page size of results
 	//   type: integer
+	// - name: sort
+	//   in: query
+	//   description: sort jobs by attribute. Supported values are "id". Default is "id"
+	//   type: string
+	// - name: order
+	//   in: query
+	//   description: sort order, either "asc" (ascending) or "desc" (descending). Default is "asc"
+	//   type: string
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/WorkflowJobsList"
@@ -1533,6 +1551,8 @@ func ListWorkflowRunJobs(ctx *context.APIContext) {
 	//     "$ref": "#/responses/error"
 	//   "404":
 	//     "$ref": "#/responses/notFound"
+	//   "422":
+	//     "$ref": "#/responses/validationError"
 
 	repoID, runID := ctx.Repo.Repository.ID, ctx.PathParamInt64("run")
 
@@ -1938,11 +1958,7 @@ func DeleteArtifact(ctx *context.APIContext) {
 }
 
 func buildSignature(endp string, expires, artifactID int64) []byte {
-	mac := hmac.New(sha256.New, setting.GetGeneralTokenSigningSecret())
-	mac.Write([]byte(endp))
-	fmt.Fprint(mac, expires)
-	fmt.Fprint(mac, artifactID)
-	return mac.Sum(nil)
+	return actions.BuildSignature("api", endp, strconv.FormatInt(expires, 10), strconv.FormatInt(artifactID, 10))
 }
 
 func buildDownloadRawEndpoint(repo *repo_model.Repository, artifactID int64) string {

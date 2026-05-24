@@ -25,6 +25,8 @@ on:
         value: ${{ jobs.detect.outputs.json }}
       e2e:
         value: ${{ jobs.detect.outputs.e2e }}
+      shell:
+        value: ${{ jobs.detect.outputs.shell }}
 
 permissions:
   contents: read
@@ -45,6 +47,7 @@ jobs:
       yaml: ${{ steps.changes.outputs.yaml }}
       json: ${{ steps.changes.outputs.json }}
       e2e: ${{ steps.changes.outputs.e2e }}
+      shell: ${{ steps.changes.outputs.shell }}
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
       - uses: dorny/paths-filter@fbd0ab8f3e69293af611ebaee6363fc25e6d187d # v4.0.1
@@ -63,11 +66,11 @@ jobs:
               - "options/locale/locale_en-US.json"
 
             frontend:
-              - "*.js"
               - "*.ts"
               - "web_src/**"
-              - "tools/*.js"
-              - "tools/*.ts"
+              - "tools/generate-svg.ts"
+              - "tools/generate-svg-vscode-extensions.json"
+              - "tsconfig.json"
               - "assets/emoji.json"
               - "package.json"
               - "pnpm-lock.yaml"
@@ -83,24 +86,26 @@ jobs:
 
             actions:
               - ".github/workflows/*"
+              - ".github/actions/**"
               - "Makefile"
 
             templates:
-              - "tools/lint-templates-*.js"
+              - "tools/lint-templates-*.ts"
               - "templates/**/*.tmpl"
               - "pyproject.toml"
               - "uv.lock"
 
             docker:
               - ".github/workflows/pull-docker-dryrun.yml"
+              - ".github/actions/docker-dryrun/**"
               - "Dockerfile"
               - "Dockerfile.rootless"
               - "docker/**"
               - "Makefile"
 
             dockerfile:
-                - "Dockerfile"
-                - "Dockerfile.rootless"
+              - "Dockerfile"
+              - "Dockerfile.rootless"
 
             swagger:
               - "templates/swagger/v1_json.tmpl"
@@ -120,8 +125,13 @@ jobs:
             json:
               - "**/*.json"
               - "**/*.json5"
+              - "eslint.json.config.ts"
 
             e2e:
               - "tests/e2e/**"
               - "tools/test-e2e.sh"
               - "playwright.config.ts"
+
+            shell:
+              - "**/*.sh"
+              - ".shellcheckrc"

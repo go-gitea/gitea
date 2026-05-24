@@ -1,7 +1,7 @@
 {{/* Status icons used for runs, jobs and steps.
 
 Template Attributes:
-* Status: one of success, skipped, waiting, blocked, running, failure, cancelled, unknown
+* Status: one of success, skipped, waiting, blocked, running, failure, cancelled, cancelling, unknown
 * Size: icon size in pixels (default 16)
 * ClassName: additional CSS classes
 * IconVariant: "circle-fill" → octicon-check-circle-fill / octicon-x-circle-fill
@@ -23,6 +23,8 @@ Keep this template in sync with web_src/js/components/ActionStatusIcon.vue.
 	{{svg "octicon-blocked" $size (printf "tw-text-yellow %s" $className)}}
 {{else if eq .Status "running"}}
 	{{svg "gitea-running" $size (printf "tw-text-yellow rotate-clockwise %s" $className)}}
+{{else if eq .Status "cancelling"}}
+	{{svg "octicon-stop" $size (printf "tw-text-yellow %s" $className)}}
 {{else}}{{/*failure, unknown*/}}
 	{{svg (Iif $circleFill "octicon-x-circle-fill" "octicon-x") $size (printf "tw-text-red %s" $className)}}
 {{end}}
