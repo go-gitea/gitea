@@ -67,13 +67,44 @@
 							</div>
 						</div>
 
-						{{if .AllowDisableOrEnableWorkflow}}
+						{{if or .AllowDisableOrEnableWorkflow .CanWriteRepoUnitActions}}
 						<button class="ui jump dropdown btn interact-bg tw-p-2">
 							{{svg "octicon-kebab-horizontal"}}
 							<div class="menu">
+								{{if .AllowDisableOrEnableWorkflow}}
 								<a class="item link-action" data-url="{{$.Link}}/{{if .CurWorkflowDisabled}}enable{{else}}disable{{end}}?workflow={{$.CurWorkflow}}&actor={{.CurActor}}&status={{$.CurStatus}}">
 									{{if .CurWorkflowDisabled}}{{ctx.Locale.Tr "actions.workflow.enable"}}{{else}}{{ctx.Locale.Tr "actions.workflow.disable"}}{{end}}
 								</a>
+								<div class="divider"></div>
+								{{end}}
+								{{if .CanWriteRepoUnitActions}}
+								<a class="item link-action"
+									data-url="{{$.Link}}/runs/cancel?workflow={{$.CurWorkflow}}&actor={{$.CurActor}}&status=waiting"
+									data-modal-confirm="{{ctx.Locale.Tr "actions.runs.bulk_cancel.description"}}">
+									{{svg "octicon-x-circle"}}{{ctx.Locale.Tr "actions.runs.bulk_cancel_waiting"}}
+								</a>
+								<a class="item link-action"
+									data-url="{{$.Link}}/runs/cancel?workflow={{$.CurWorkflow}}&actor={{$.CurActor}}&status=running"
+									data-modal-confirm="{{ctx.Locale.Tr "actions.runs.bulk_cancel.description"}}">
+									{{svg "octicon-x-circle"}}{{ctx.Locale.Tr "actions.runs.bulk_cancel_running"}}
+								</a>
+								<div class="divider"></div>
+								<a class="item link-action"
+									data-url="{{$.Link}}/runs/delete?workflow={{$.CurWorkflow}}&actor={{$.CurActor}}&status=failure"
+									data-modal-confirm="{{ctx.Locale.Tr "actions.runs.bulk_delete.description"}}">
+									{{svg "octicon-trash"}}{{ctx.Locale.Tr "actions.runs.bulk_delete_failed"}}
+								</a>
+								<a class="item link-action"
+									data-url="{{$.Link}}/runs/delete?workflow={{$.CurWorkflow}}&actor={{$.CurActor}}&status=cancelled"
+									data-modal-confirm="{{ctx.Locale.Tr "actions.runs.bulk_delete.description"}}">
+									{{svg "octicon-trash"}}{{ctx.Locale.Tr "actions.runs.bulk_delete_cancelled"}}
+								</a>
+								<a class="item link-action"
+									data-url="{{$.Link}}/runs/delete?workflow={{$.CurWorkflow}}&actor={{$.CurActor}}&status=success"
+									data-modal-confirm="{{ctx.Locale.Tr "actions.runs.bulk_delete.description"}}">
+									{{svg "octicon-trash"}}{{ctx.Locale.Tr "actions.runs.bulk_delete_success"}}
+								</a>
+								{{end}}
 							</div>
 						</button>
 						{{end}}

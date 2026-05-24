@@ -4,6 +4,7 @@
 package actions
 
 import (
+	"fmt"
 	"slices"
 
 	"code.gitea.io/gitea/modules/translation"
@@ -97,6 +98,16 @@ func (s Status) IsCancelling() bool {
 // In returns whether s is one of the given statuses
 func (s Status) In(statuses ...Status) bool {
 	return slices.Contains(statuses, s)
+}
+
+// ParseStatus parses a status string into a Status value.
+func ParseStatus(s string) (Status, error) {
+	for status, name := range statusNames {
+		if name == s {
+			return status, nil
+		}
+	}
+	return StatusUnknown, fmt.Errorf("unknown status %q", s)
 }
 
 func (s Status) AsResult() runnerv1.Result {
