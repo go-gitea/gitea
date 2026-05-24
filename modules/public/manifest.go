@@ -15,7 +15,6 @@ import (
 	"code.gitea.io/gitea/modules/setting"
 )
 
-// The Vite manifest is keyed by source path, e.g. "web_src/js/index.ts".
 // https://vite.dev/guide/backend-integration
 type manifestEntry struct {
 	File string   `json:"file"`
