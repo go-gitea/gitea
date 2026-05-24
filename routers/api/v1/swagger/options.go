@@ -181,6 +181,8 @@ type swaggerParameterBodies struct {
 	MigrateRepoOptions api.MigrateRepoOptions
 
 	// in:body
+	MigrateOrgOptions api.MigrateOrgOptions
+	// in:body
 	PullReviewRequestOptions api.PullReviewRequestOptions
 
 	// in:body

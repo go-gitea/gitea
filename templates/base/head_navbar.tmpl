@@ -73,16 +73,22 @@
 					<a class="item" href="{{AppSubUrl}}/repo/create">
 						{{svg "octicon-plus"}} {{ctx.Locale.Tr "new_repo"}}
 					</a>
-					{{if not .DisableMigrations}}
-						<a class="item" href="{{AppSubUrl}}/repo/migrate">
-							{{svg "octicon-repo-push"}} {{ctx.Locale.Tr "new_migrate"}}
-						</a>
-					{{end}}
-					{{if .SignedUser.CanCreateOrganization}}
-					<a class="item" href="{{AppSubUrl}}/org/create">
-						{{svg "octicon-organization"}} {{ctx.Locale.Tr "new_org"}}
+				{{if not .DisableMigrations}}
+					<a class="item" href="{{AppSubUrl}}/repo/migrate">
+						{{svg "octicon-repo-push"}} {{ctx.Locale.Tr "new_migrate"}}
 					</a>
-					{{end}}
+				{{end}}
+				{{if .SignedUser.CanCreateOrganization}}
+				<div class="divider"></div>
+				<a class="item" href="{{AppSubUrl}}/org/create">
+					{{svg "octicon-organization"}} {{ctx.Locale.Tr "new_org"}}
+				</a>
+				{{if not .DisableMigrations}}
+					<a class="item" href="{{AppSubUrl}}/org/migrate">
+						{{svg "octicon-repo-push"}} {{ctx.Locale.Tr "new_org_migrate"}}
+					</a>
+				{{end}}
+				{{end}}
 				</div><!-- end content create new menu -->
 			</div><!-- end dropdown menu create new -->
 

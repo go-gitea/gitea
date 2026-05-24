@@ -77,3 +77,38 @@ func (f *CreateTeamForm) Validate(req *http.Request, errs binding.Errors) bindin
 	ctx := context.GetValidateContext(req)
 	return middleware.Validate(errs, ctx.Data, f, ctx.Locale)
 }
+
+// MigrateOrgForm form for migrating an organization's repositories
+// this is used to interact with the web UI
+type MigrateOrgForm struct {
+	// Source platform settings
+	CloneAddr     string                 `json:"clone_addr" binding:"Required"`
+	Service       structs.GitServiceType `json:"service"`
+	AuthUsername  string                 `json:"auth_username"`
+	AuthPassword  string                 `json:"auth_password"`
+	AuthToken     string                 `json:"auth_token"`
+	SourceOrgName string                 `json:"source_org_name" binding:"Required"`
+
+	// Target settings
+	TargetOrgName string `json:"target_org_name" binding:"Required"`
+
+	// Migration options
+	Mirror         bool   `json:"mirror"`
+	LFS            bool   `json:"lfs"`
+	LFSEndpoint    string `json:"lfs_endpoint"`
+	Private        bool   `json:"private"`
+	Wiki           bool   `json:"wiki"`
+	Milestones     bool   `json:"milestones"`
+	Labels         bool   `json:"labels"`
+	Issues         bool   `json:"issues"`
+	PullRequests   bool   `json:"pull_requests"`
+	Releases       bool   `json:"releases"`
+	ReleaseAssets  bool   `json:"release_assets"`
+	MirrorInterval string `json:"mirror_interval"`
+}
+
+// Validate validates the fields
+func (f *MigrateOrgForm) Validate(req *http.Request, errs binding.Errors) binding.Errors {
+	ctx := context.GetValidateContext(req)
+	return middleware.Validate(errs, ctx.Data, f, ctx.Locale)
+}
