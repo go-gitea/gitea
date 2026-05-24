@@ -10,7 +10,6 @@ import (
 	group_model "code.gitea.io/gitea/models/group"
 	unit_model "code.gitea.io/gitea/models/unit"
 	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/optional"
 	"code.gitea.io/gitea/modules/web"
 	shared_user "code.gitea.io/gitea/routers/web/shared/user"
 	"code.gitea.io/gitea/services/context"
@@ -35,9 +34,8 @@ func NewGroup(ctx *context.Context) {
 	}
 
 	opts := group_model.FindGroupsOptions{
-		ActorID:     ctx.Doer.ID,
-		CanCreateIn: optional.Some(true),
-		OwnerID:     ctx.Org.Organization.ID,
+		ActorID: ctx.Doer.ID,
+		OwnerID: ctx.Org.Organization.ID,
 	}
 	cond := group_model.AccessibleGroupCondition(ctx.Doer)
 	cond = cond.And(opts.ToConds())
