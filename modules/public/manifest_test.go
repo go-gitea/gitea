@@ -4,6 +4,7 @@
 package public
 
 import (
+	"html/template"
 	"testing"
 	"time"
 
@@ -22,7 +23,13 @@ func TestViteManifest(t *testing.T) {
 		"name": "index",
 		"src": "web_src/js/index.ts",
 		"isEntry": true,
-		"css": ["css/index.B3zrQPqD.css"]
+		"imports": ["_shared.AaAaAaAa.js"],
+		"css": ["css/index.B3zrQPqD.css", "css/index-extra.CcCcCcCc.css"]
+	},
+	"_shared.AaAaAaAa.js": {
+		"file": "js/shared.AaAaAaAa.js",
+		"name": "shared",
+		"css": ["css/shared.BbBbBbBb.css"]
 	},
 	"web_src/css/themes/theme-gitea-dark.css": {
 		"file": "css/theme-gitea-dark.CyAaQnn5.css",
@@ -36,7 +43,7 @@ func TestViteManifest(t *testing.T) {
 		storeManifestFromBytes([]byte(``), 0, time.Now())
 		// not in manifest -> custom theme fallback
 		assert.Equal(t, "/assets/css/theme-gitea-dark.css", AssetURI("web_src/css/themes/theme-gitea-dark.css"))
-		assert.Empty(t, AssetCSSURI("web_src/js/index.ts", "web_src/css/index.css"))
+		assert.Empty(t, entryStyleURLs("web_src/js/index.ts", "web_src/css/index.css"))
 		assert.Empty(t, AssetNameFromHashedPath("css/no-such-file.css"))
 	})
 
@@ -50,8 +57,17 @@ func TestViteManifest(t *testing.T) {
 		// custom theme not in the manifest falls back to the static asset location
 		assert.Equal(t, "/assets/css/theme-custom.css", AssetURI("web_src/css/themes/theme-custom.css"))
 
-		// a JS entry's stylesheet resolves from the manifest
-		assert.Equal(t, "/assets/css/index.B3zrQPqD.css", AssetCSSURI("web_src/js/index.ts", "web_src/css/index.css"))
+		// a JS entry's stylesheets: all of the entry's own CSS plus the CSS of statically-imported chunks
+		assert.Equal(t, []string{
+			"/assets/css/index.B3zrQPqD.css",
+			"/assets/css/index-extra.CcCcCcCc.css",
+			"/assets/css/shared.BbBbBbBb.css",
+		}, entryStyleURLs("web_src/js/index.ts", "web_src/css/index.css"))
+		assert.Equal(t, template.HTML(
+			`<link rel="stylesheet" href="/assets/css/index.B3zrQPqD.css">`+
+				`<link rel="stylesheet" href="/assets/css/index-extra.CcCcCcCc.css">`+
+				`<link rel="stylesheet" href="/assets/css/shared.BbBbBbBb.css">`,
+		), AssetCSSLinks("web_src/js/index.ts", "web_src/css/index.css"))
 
 		// hashed output file -> entry name
 		assert.Equal(t, "theme-gitea-dark", AssetNameFromHashedPath("css/theme-gitea-dark.CyAaQnn5.css"))

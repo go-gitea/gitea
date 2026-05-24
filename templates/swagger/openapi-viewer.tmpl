@@ -5,7 +5,7 @@
 		<title>Gitea API</title>
 		<link rel="stylesheet" href="{{ctx.CurrentWebTheme.PublicAssetURI}}">
 		{{/* HINT: SWAGGER-CSS-IMPORT: load swagger styles ahead to avoid flicker (e.g. the swagger-back-link) */}}
-		<link rel="stylesheet" href="{{AssetCSSURI "web_src/js/swagger.ts" "web_src/css/swagger-standalone.css"}}">
+		{{AssetCSSLinks "web_src/js/swagger.ts" "web_src/css/swagger-standalone.css"}}
 	</head>
 	<body>
 		{{/* TODO: add Help & Glossary to help users understand the API, and explain some concepts like "Owner" */}}

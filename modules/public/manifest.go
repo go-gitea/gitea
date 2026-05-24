@@ -4,8 +4,11 @@
 package public
 
 import (
+	"html"
+	"html/template"
 	"io"
 	"path"
+	"strings"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -17,9 +20,10 @@ import (
 
 // https://vite.dev/guide/backend-integration
 type manifestEntry struct {
-	File string   `json:"file"`
-	Name string   `json:"name"`
-	CSS  []string `json:"css"`
+	File    string   `json:"file"`
+	Name    string   `json:"name"`
+	CSS     []string `json:"css"`
+	Imports []string `json:"imports"`
 }
 
 type manifestDataStruct struct {
@@ -108,16 +112,21 @@ func getManifestData() *manifestDataStruct {
 	return data
 }
 
+// devAssetURL returns a source file's Vite dev server URL, panicking in dev/testing if it's absent.
+func devAssetURL(src string) string {
+	if url := viteDevSourceURL(src); url != "" {
+		return url
+	}
+	setting.PanicInDevOrTesting("Failed to locate source file for asset: %s", src)
+	return ""
+}
+
 // AssetURI resolves a frontend asset by its source path (the Vite manifest key, e.g.
 // "web_src/js/index.ts"). Dev mode serves the source file; production resolves the hashed output.
 func AssetURI(srcPath string) string {
 	if IsViteDevMode() {
-		if src := viteDevSourceURL(srcPath); src != "" {
-			return src
-		}
-		setting.PanicInDevOrTesting("Failed to locate source file for asset: %s", srcPath)
+		return devAssetURL(srcPath)
 	}
-
 	if entry := getManifestData().entries[srcPath]; entry != nil {
 		return setting.StaticURLPrefix + "/assets/" + entry.File
 	}
@@ -130,19 +139,39 @@ func AssetURI(srcPath string) string {
 	return setting.StaticURLPrefix + "/assets/" + path.Base(srcPath)
 }
 
-// AssetCSSURI returns the stylesheet URL for a JS entry. Dev serves devStylesheetSrc (the source
-// file); prod returns the entry's first CSS file from the manifest (Gitea entries emit one).
-func AssetCSSURI(jsEntrySrc, devStylesheetSrc string) string {
+// AssetCSSLinks renders the <link> tags for a JS entry's stylesheets: the entry's CSS plus the CSS
+// of every statically-imported chunk. Dev links devStylesheetSrc and lets the JS module inject the rest.
+func AssetCSSLinks(jsEntrySrc, devStylesheetSrc string) template.HTML {
+	var b strings.Builder
+	for _, href := range entryStyleURLs(jsEntrySrc, devStylesheetSrc) {
+		b.WriteString(`<link rel="stylesheet" href="` + html.EscapeString(href) + `">`)
+	}
+	return template.HTML(b.String())
+}
+
+func entryStyleURLs(jsEntrySrc, devStylesheetSrc string) []string {
 	if IsViteDevMode() {
-		if src := viteDevSourceURL(devStylesheetSrc); src != "" {
-			return src
+		return []string{devAssetURL(devStylesheetSrc)}
+	}
+	entries := getManifestData().entries
+	var urls []string
+	seen := make(map[string]bool)
+	var walk func(key string)
+	walk = func(key string) {
+		entry := entries[key]
+		if entry == nil || seen[key] {
+			return
 		}
-		setting.PanicInDevOrTesting("Failed to locate source file for asset: %s", devStylesheetSrc)
+		seen[key] = true
+		for _, css := range entry.CSS {
+			urls = append(urls, setting.StaticURLPrefix+"/assets/"+css)
+		}
+		for _, imp := range entry.Imports {
+			walk(imp)
+		}
 	}
-	if entry := getManifestData().entries[jsEntrySrc]; entry != nil && len(entry.CSS) > 0 {
-		return setting.StaticURLPrefix + "/assets/" + entry.CSS[0]
-	}
-	return ""
+	walk(jsEntrySrc)
+	return urls
 }
 
 // AssetNameFromHashedPath returns the asset entry name for a given hashed asset path.
