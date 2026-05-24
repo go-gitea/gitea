@@ -224,7 +224,7 @@ func TestStripStyleTags(t *testing.T) {
 func TestJoinSource(t *testing.T) {
 	tests := []struct {
 		name     string
-		input    interface{}
+		input    any
 		expected string
 	}{
 		{
@@ -234,17 +234,17 @@ func TestJoinSource(t *testing.T) {
 		},
 		{
 			name:     "Array input",
-			input:    []interface{}{"line1\n", "line2\n", "line3"},
+			input:    []any{"line1\n", "line2\n", "line3"},
 			expected: "line1\nline2\nline3",
 		},
 		{
 			name:     "Empty array",
-			input:    []interface{}{},
+			input:    []any{},
 			expected: "",
 		},
 		{
 			name:     "Single element array",
-			input:    []interface{}{"single"},
+			input:    []any{"single"},
 			expected: "single",
 		},
 	}
