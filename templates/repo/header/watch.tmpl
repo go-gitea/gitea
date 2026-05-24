@@ -24,8 +24,8 @@
 		data-watch-issues="{{$.Watch.Issues}}"
 		data-watch-releases="{{$.Watch.Releases}}"
 	>
-		{{svg "octicon-gear"}}
+		{{svg "octicon-triangle-down"}}
+		{{template "repo/watch_options" $}}
 	</a>
 	{{end}}
 </div>
-{{template "repo/watch_options_modal" $}}

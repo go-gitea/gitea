@@ -7,3 +7,7 @@
 .ui.buttons .ui.watch-icon {
   padding: 0.42em;
 }
+
+.watch-options .ui.segment {
+  border: none;
+}
