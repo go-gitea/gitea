@@ -228,12 +228,12 @@ func (ut *RenderUtils) MarkdownToHtml(input string) template.HTML { //nolint:rev
 // linked repository's default branch instead of the site root, falling back to plain rendering
 // when there is no linked repository. pkgTreePath optionally roots links in a subdirectory
 // (e.g. npm's repository.directory for monorepo packages).
-func (ut *RenderUtils) RenderPackageMarkdown(input string, repo *repo.Repository, pkgTreePath ...string) template.HTML {
-	if repo == nil {
+func (ut *RenderUtils) RenderPackageMarkdown(input string, linkedRepo *repo.Repository, pkgTreePath ...string) template.HTML {
+	if linkedRepo == nil {
 		return `<div class="markup markdown">` + ut.MarkdownToHtml(input) + `</div>`
 	}
-	rctx := renderhelper.NewRenderContextRepoFile(ut.ctx, repo, renderhelper.RepoFileOptions{
-		CurrentRefSubURL: git.RefNameFromBranch(repo.DefaultBranch).RefWebLinkPath(),
+	rctx := renderhelper.NewRenderContextRepoFile(ut.ctx, linkedRepo, renderhelper.RepoFileOptions{
+		CurrentRefSubURL: git.RefNameFromBranch(linkedRepo.DefaultBranch).RefWebLinkPath(),
 		CurrentTreePath:  util.OptionalArg(pkgTreePath),
 	})
 	output, err := markdown.RenderString(rctx, input)
