@@ -131,10 +131,13 @@ func AssetURI(srcPath string) string {
 }
 
 // AssetCSSURI returns the stylesheet URL for a JS entry. Dev serves devStylesheetSrc (the source
-// file); prod returns the entry's CSS from the manifest.
+// file); prod returns the entry's first CSS file from the manifest (Gitea entries emit one).
 func AssetCSSURI(jsEntrySrc, devStylesheetSrc string) string {
 	if IsViteDevMode() {
-		return viteDevSourceURL(devStylesheetSrc)
+		if src := viteDevSourceURL(devStylesheetSrc); src != "" {
+			return src
+		}
+		setting.PanicInDevOrTesting("Failed to locate source file for asset: %s", devStylesheetSrc)
 	}
 	if entry := getManifestData().entries[jsEntrySrc]; entry != nil && len(entry.CSS) > 0 {
 		return setting.StaticURLPrefix + "/assets/" + entry.CSS[0]
