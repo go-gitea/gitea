@@ -303,6 +303,46 @@ func TestDeleteDismissedReview(t *testing.T) {
 	unittest.AssertNotExistsBean(t, &issues_model.Comment{ID: comment.ID})
 }
 
+func TestSubmitReviewClearsStaleReviewRequest(t *testing.T) {
+	assert.NoError(t, unittest.PrepareTestDatabase())
+
+	issue := unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{ID: 3})
+	assert.NoError(t, issue.LoadRepo(t.Context()))
+	assert.NoError(t, issue.Repo.LoadOwner(t.Context()))
+	reviewer := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 1})
+	doer := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
+
+	// the reviewer is requested to review the pull request
+	requestReview, err := issues_model.CreateReview(t.Context(), issues_model.CreateReviewOptions{
+		Type:     issues_model.ReviewTypeRequest,
+		Issue:    issue,
+		Reviewer: reviewer,
+	})
+	assert.NoError(t, err)
+
+	// the reviewer starts a pending review (e.g. by adding code comments)
+	pendingReview, err := issues_model.CreateReview(t.Context(), issues_model.CreateReviewOptions{
+		Type:     issues_model.ReviewTypePending,
+		Issue:    issue,
+		Reviewer: reviewer,
+	})
+	assert.NoError(t, err)
+
+	// submitting the pending review must clear the leftover review request,
+	// otherwise the reviewer can no longer be re-requested afterwards
+	review, _, err := issues_model.SubmitReview(t.Context(), reviewer, issue, issues_model.ReviewTypeComment, "looks good", "", false, nil)
+	assert.NoError(t, err)
+	assert.Equal(t, pendingReview.ID, review.ID)
+	assert.Equal(t, issues_model.ReviewTypeComment, review.Type)
+
+	unittest.AssertNotExistsBean(t, &issues_model.Review{ID: requestReview.ID})
+
+	// the reviewer can be re-requested afterwards (no-op before the fix)
+	comment, err := issues_model.AddReviewRequest(t.Context(), issue, reviewer, doer, false)
+	assert.NoError(t, err)
+	assert.NotNil(t, comment)
+}
+
 func TestAddReviewRequest(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 

@@ -687,7 +687,7 @@ func (n *actionsNotifier) AutoMergePullRequest(ctx context.Context, doer *user_m
 	n.MergePullRequest(ctx, doer, pr)
 }
 
-func (n *actionsNotifier) PullRequestSynchronized(ctx context.Context, doer *user_model.User, pr *issues_model.PullRequest) {
+func (n *actionsNotifier) PullRequestSynchronized(ctx context.Context, doer *user_model.User, pr *issues_model.PullRequest, before, after string) {
 	ctx = withMethod(ctx, "PullRequestSynchronized")
 
 	if err := pr.LoadIssue(ctx); err != nil {
@@ -703,6 +703,8 @@ func (n *actionsNotifier) PullRequestSynchronized(ctx context.Context, doer *use
 	newNotifyInput(pr.Issue.Repo, doer, webhook_module.HookEventPullRequestSync).
 		WithPayload(&api.PullRequestPayload{
 			Action:      api.HookIssueSynchronized,
+			Before:      before,
+			After:       after,
 			Index:       pr.Issue.Index,
 			PullRequest: convert.ToAPIPullRequest(ctx, pr, nil),
 			Repository:  convert.ToRepo(ctx, pr.Issue.Repo, access_model.Permission{AccessMode: perm_model.AccessModeNone}),
