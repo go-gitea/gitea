@@ -7,7 +7,6 @@ export GOEXPERIMENT ?= jsonv2
 
 GO ?= go
 SHASUM ?= shasum -a 256
-COMMA := ,
 
 AIR_PACKAGE ?= github.com/air-verse/air@v1.65.1 # renovate: datasource=go
 EDITORCONFIG_CHECKER_PACKAGE ?= github.com/editorconfig-checker/editorconfig-checker/v3/cmd/editorconfig-checker@v3.6.1 # renovate: datasource=go
@@ -116,7 +115,7 @@ RELEASE_WINDOWS_TAGS := osusergo $(TAGS)
 RELEASE_GOGIT_WINDOWS_TAGS := osusergo gogit $(TAGS)
 RELEASE_UNIX_TAGS := netgo osusergo $(TAGS)
 
-LINUX_ARCHS ?= linux/amd64,linux/386,linux/arm-5,linux/arm-6,linux/arm64,linux/riscv64
+LINUX_ARCHS ?= linux/amd64 linux/386 linux/arm-5 linux/arm-6 linux/arm64 linux/riscv64
 WINDOWS_ARCHS ?= 386 amd64 arm64
 DARWIN_ARCHS ?= amd64 arm64
 FREEBSD_ARCHS ?= amd64 arm64
@@ -551,7 +550,7 @@ endif
 .PHONY: release-linux
 release-linux: | $(DIST_DIRS)
 	@# linux/arm-5 and linux/arm-6 map to GOARCH=arm with different GOARM values
-	@for target in $(subst $(COMMA), ,$(LINUX_ARCHS)); do \
+	@for target in $(LINUX_ARCHS); do \
 		goarch=$${target##*/}; \
 		goarm=; \
 		if [ "$${goarch#arm-}" != "$$goarch" ]; then \
