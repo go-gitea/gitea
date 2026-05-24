@@ -48,11 +48,6 @@ func RegisterRenderers() {
 		},
 	})
 
-	markup.RegisterRenderer(&frontendRenderer{
-		name:     "jupyter-notebook",
-		patterns: []string{"*.ipynb"},
-	})
-
 	for _, renderer := range setting.ExternalMarkupRenderers {
 		markup.RegisterRenderer(&Renderer{renderer})
 	}
