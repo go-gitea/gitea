@@ -111,9 +111,15 @@ ifeq ($(VERSION),main)
 endif
 
 LDFLAGS := $(LDFLAGS) -X "main.Version=$(GITEA_VERSION)" -X "main.Tags=$(TAGS)"
+RELEASE_GO_LDFLAGS := -s -w $(LDFLAGS)
+RELEASE_WINDOWS_TAGS := osusergo $(TAGS)
+RELEASE_GOGIT_WINDOWS_TAGS := osusergo gogit $(TAGS)
+RELEASE_UNIX_TAGS := netgo osusergo $(TAGS)
 
 LINUX_ARCHS ?= linux/amd64,linux/386,linux/arm-5,linux/arm-6,linux/arm64,linux/riscv64
 WINDOWS_ARCHS ?= 386 amd64 arm64
+DARWIN_ARCHS ?= amd64 arm64
+FREEBSD_ARCHS ?= amd64 arm64
 
 GO_TEST_PACKAGES ?= $(filter-out $(shell $(GO) list code.gitea.io/gitea/models/migrations/...) code.gitea.io/gitea/tests/integration/migration-test code.gitea.io/gitea/tests code.gitea.io/gitea/tests/integration,$(shell $(GO) list ./... | grep -v /vendor/))
 MIGRATE_TEST_PACKAGES ?= $(shell $(GO) list code.gitea.io/gitea/models/migrations/...)
@@ -526,16 +532,25 @@ $(DIST_DIRS):
 .PHONY: release-windows
 release-windows: | $(DIST_DIRS)
 	@for goarch in $(WINDOWS_ARCHS); do \
-		CGO_ENABLED=0 GOOS=windows GOARCH="$$goarch" $(GO) build -buildmode=exe -tags 'osusergo $(TAGS)' -ldflags '-s -w $(LDFLAGS)' -o $(DIST)/binaries/gitea-$(VERSION)-windows-4.0-$$goarch.exe . || exit $$?; \
+		CGO_ENABLED=0 GOOS=windows GOARCH="$$goarch" $(GO) build \
+			-buildmode=exe \
+			-tags '$(RELEASE_WINDOWS_TAGS)' \
+			-ldflags '$(RELEASE_GO_LDFLAGS)' \
+			-o $(DIST)/binaries/gitea-$(VERSION)-windows-4.0-$$goarch.exe . || exit $$?; \
 	done
 ifeq (,$(findstring gogit,$(TAGS)))
 	@for goarch in $(WINDOWS_ARCHS); do \
-		CGO_ENABLED=0 GOOS=windows GOARCH="$$goarch" $(GO) build -buildmode=exe -tags 'osusergo gogit $(TAGS)' -ldflags '-s -w $(LDFLAGS)' -o $(DIST)/binaries/gitea-$(VERSION)-gogit-windows-4.0-$$goarch.exe . || exit $$?; \
+		CGO_ENABLED=0 GOOS=windows GOARCH="$$goarch" $(GO) build \
+			-buildmode=exe \
+			-tags '$(RELEASE_GOGIT_WINDOWS_TAGS)' \
+			-ldflags '$(RELEASE_GO_LDFLAGS)' \
+			-o $(DIST)/binaries/gitea-$(VERSION)-gogit-windows-4.0-$$goarch.exe . || exit $$?; \
 	done
 endif
 
 .PHONY: release-linux
 release-linux: | $(DIST_DIRS)
+	@# linux/arm-5 and linux/arm-6 map to GOARCH=arm with different GOARM values
 	@for target in $(subst $(COMMA), ,$(LINUX_ARCHS)); do \
 		goarch=$${target##*/}; \
 		goarm=; \
@@ -543,17 +558,29 @@ release-linux: | $(DIST_DIRS)
 			goarm=$${goarch#arm-}; \
 			goarch=arm; \
 		fi; \
-		CGO_ENABLED=0 GOOS="$${target%%/*}" GOARCH="$$goarch" GOARM="$$goarm" $(GO) build -tags 'netgo osusergo $(TAGS)' -ldflags '-s -w $(LDFLAGS)' -o $(DIST)/binaries/gitea-$(VERSION)-linux-$${target##*/} . || exit $$?; \
+		CGO_ENABLED=0 GOOS="$${target%%/*}" GOARCH="$$goarch" GOARM="$$goarm" $(GO) build \
+			-tags '$(RELEASE_UNIX_TAGS)' \
+			-ldflags '$(RELEASE_GO_LDFLAGS)' \
+			-o $(DIST)/binaries/gitea-$(VERSION)-linux-$${target##*/} . || exit $$?; \
 	done
 
 .PHONY: release-darwin
 release-darwin: | $(DIST_DIRS)
-	CGO_ENABLED=0 GOOS=darwin GOARCH=amd64 $(GO) build -tags 'netgo osusergo $(TAGS)' -ldflags '-s -w $(LDFLAGS)' -o $(DIST)/binaries/gitea-$(VERSION)-darwin-10.12-amd64 .
-	CGO_ENABLED=0 GOOS=darwin GOARCH=arm64 $(GO) build -tags 'netgo osusergo $(TAGS)' -ldflags '-s -w $(LDFLAGS)' -o $(DIST)/binaries/gitea-$(VERSION)-darwin-10.12-arm64 .
+	@for goarch in $(DARWIN_ARCHS); do \
+		CGO_ENABLED=0 GOOS=darwin GOARCH="$$goarch" $(GO) build \
+			-tags '$(RELEASE_UNIX_TAGS)' \
+			-ldflags '$(RELEASE_GO_LDFLAGS)' \
+			-o $(DIST)/binaries/gitea-$(VERSION)-darwin-10.12-$$goarch . || exit $$?; \
+	done
 
 .PHONY: release-freebsd
 release-freebsd: | $(DIST_DIRS)
-	CGO_ENABLED=0 GOOS=freebsd GOARCH=amd64 $(GO) build -tags 'netgo osusergo $(TAGS)' -ldflags '-s -w $(LDFLAGS)' -o $(DIST)/binaries/gitea-$(VERSION)-freebsd14-amd64 .
+	@for goarch in $(FREEBSD_ARCHS); do \
+		CGO_ENABLED=0 GOOS=freebsd GOARCH="$$goarch" $(GO) build \
+			-tags '$(RELEASE_UNIX_TAGS)' \
+			-ldflags '$(RELEASE_GO_LDFLAGS)' \
+			-o $(DIST)/binaries/gitea-$(VERSION)-freebsd14-$$goarch . || exit $$?; \
+	done
 
 .PHONY: release-copy
 release-copy: | $(DIST_DIRS)
