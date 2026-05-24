@@ -1,4 +1,4 @@
-import '../css/swagger.css';
+import '../css/swagger-standalone.css';
 import {initSwaggerUI} from './render/swagger.ts';
 
 async function initGiteaAPIViewer() {
