@@ -305,7 +305,7 @@ func TestPackageNpm(t *testing.T) {
 		doc := NewHTMLParser(t, resp.Body)
 		rendered, _ := doc.Find(".markup.markdown").Html()
 		assert.Equal(t, `<p dir="auto"><a href="/user2/repo1/src/branch/master/package-subdir/docs/usage.md" rel="nofollow">docs</a>
-<a href="/user2/repo1/src/branch/master/package-subdir/logo.png" target="_blank" rel="nofollow noopener"><img src="/user2/repo1/media/branch/master/package-subdir/logo.png" alt="logo" loading="lazy"/></a></p>
+<a href="/user2/repo1/src/branch/master/package-subdir/logo.png" rel="nofollow noopener" target="_blank"><img src="/user2/repo1/media/branch/master/package-subdir/logo.png" alt="logo" loading="lazy"/></a></p>
 `, rendered)
 	})
 
