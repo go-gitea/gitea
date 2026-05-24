@@ -44,10 +44,7 @@ CGO_TAGS := sqlite_mattn pam
 CGO_ENABLED ?= 0
 ifneq ($(strip $(filter $(CGO_TAGS),$(TAGS))),)
 	CGO_ENABLED = 1
-endif
-
 ifneq ($(strip $(filter release release-windows release-linux release-darwin release-freebsd,$(MAKECMDGOALS))),)
-ifneq ($(strip $(filter $(CGO_TAGS),$(TAGS))),)
 $(error release targets do not support cgo tags ($(strip $(filter $(CGO_TAGS),$(TAGS)))); use xgo outside of this Makefile if you need cross compilation for them)
 endif
 endif
