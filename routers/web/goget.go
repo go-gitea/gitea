@@ -9,7 +9,6 @@ import (
 	"net/http"
 	"net/url"
 	"path"
-	"strconv"
 	"strings"
 
 	repo_model "gitea.dev/models/repo"
@@ -23,7 +22,7 @@ func goGet(ctx *context.Context) {
 		return
 	}
 
-	parts := strings.SplitN(ctx.Req.URL.EscapedPath(), "/", 6)
+	parts := strings.Split(ctx.Req.URL.EscapedPath(), "/")
 
 	if len(parts) < 3 {
 		return
@@ -31,9 +30,9 @@ func goGet(ctx *context.Context) {
 	var group string
 	ownerName := parts[1]
 	repoName := parts[2]
-	if len(parts) >= 6 {
-		repoName = parts[5]
-		group = parts[4]
+	if len(parts) > 4 {
+		repoName = parts[len(parts)-1]
+		group = strings.Join(parts[:len(parts)-1], "/")
 	}
 
 	// Quick responses appropriate go-get meta with status 200
@@ -56,14 +55,13 @@ func goGet(ctx *context.Context) {
 		return
 	}
 	branchName := setting.Repository.DefaultBranch
-	gid, _ := strconv.ParseInt(group, 10, 64)
-	repo, err := repo_model.GetRepositoryByOwnerAndName(ctx, ownerName, repoName, gid)
+	repo, err := repo_model.GetRepositoryByOwnerAndName(ctx, ownerName, repoName, group)
 	if err == nil && len(repo.DefaultBranch) > 0 {
 		branchName = repo.DefaultBranch
 	}
 	prefix := setting.AppURL + url.PathEscape(ownerName)
 	if group != "" {
-		prefix = prefix + "/group/" + group
+		prefix = prefix + "/" + group
 	}
 	prefix = prefix + "/" + path.Join(url.PathEscape(repoName), "src", "branch", util.PathEscapeSegments(branchName))
 
@@ -78,9 +76,9 @@ func goGet(ctx *context.Context) {
 
 	var cloneURL string
 	if setting.Repository.GoGetCloneURLProtocol == "ssh" {
-		cloneURL = repo_model.ComposeSSHCloneURL(ctx.Doer, ownerName, repoName, gid)
+		cloneURL = repo_model.ComposeSSHCloneURL(ctx.Doer, ownerName, repoName, group)
 	} else {
-		cloneURL = repo_model.ComposeHTTPSCloneURL(ctx, ownerName, repoName, gid)
+		cloneURL = repo_model.ComposeHTTPSCloneURL(ctx, ownerName, repoName, group)
 	}
 	goImportContent := fmt.Sprintf("%s git %s", goGetImport, cloneURL /*CloneLink*/)
 	goSourceContent := fmt.Sprintf("%s _ %s %s", goGetImport, prefix+"{/dir}" /*GoDocDirectory*/, prefix+"{/dir}/{file}#L{line}" /*GoDocFile*/)

@@ -27,7 +27,7 @@ func renderRepoIssueIconTitle(ctx context.Context, opts markup.RenderIssueIconTi
 	textIssueIndex := fmt.Sprintf("(#%d)", opts.IssueIndex)
 	dbRepo := webCtx.Repo.Repository
 	if opts.OwnerName != "" {
-		dbRepo, err = repo.GetRepositoryByOwnerAndName(ctx, opts.OwnerName, opts.RepoName, opts.GroupID)
+		dbRepo, err = repo.GetRepositoryByOwnerAndName(ctx, opts.OwnerName, opts.RepoName, opts.GroupPath)
 		if err != nil {
 			return "", err
 		}

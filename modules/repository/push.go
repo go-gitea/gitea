@@ -9,14 +9,14 @@ import (
 
 // PushUpdateOptions defines the push update options
 type PushUpdateOptions struct {
-	PusherID     int64
-	PusherName   string
-	RepoUserName string
-	RepoGroupID  int64
-	RepoName     string
-	RefFullName  git.RefName // branch, tag or other name to push
-	OldCommitID  string
-	NewCommitID  string
+	PusherID      int64
+	PusherName    string
+	RepoUserName  string
+	RepoGroupPath string
+	RepoName      string
+	RefFullName   git.RefName // branch, tag or other name to push
+	OldCommitID   string
+	NewCommitID   string
 }
 
 // IsNewRef return true if it's a first-time push to a branch, tag or etc.

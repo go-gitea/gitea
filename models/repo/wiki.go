@@ -71,13 +71,13 @@ func (err ErrWikiInvalidFileName) Unwrap() error {
 
 // WikiCloneLink returns clone URLs of repository wiki.
 func (repo *Repository) WikiCloneLink(ctx context.Context, doer *user_model.User) *CloneLink {
-	return repo.cloneLink(ctx, doer, repo.Name+".wiki", repo.GroupID)
+	return repo.cloneLink(ctx, doer, repo.Name+".wiki")
 }
 
-func RelativeWikiPath(ownerName, repoName string, groupID int64) string {
-	return RelativePathBaseName(ownerName, repoName, groupID) + ".wiki.git"
+func RelativeWikiPath(ownerName, repoName string, groupPath string) string {
+	return RelativePathBaseName(ownerName, repoName, groupPath) + ".wiki.git"
 }
 
 func (repo *Repository) WikiStorageRepo() StorageRepo {
-	return StorageRepo(RelativeWikiPath(repo.OwnerName, repo.Name, repo.GroupID))
+	return StorageRepo(RelativeWikiPath(repo.OwnerName, repo.Name, repo.GroupPath()))
 }

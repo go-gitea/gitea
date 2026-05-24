@@ -42,27 +42,43 @@ func isRoutePathExpensive(routePattern string) bool {
 	expensivePaths := []string{
 		// code related
 		"/{username}/{reponame}/archive/",
+		"/{username}/<repo_group:*>/<reponame>/archive/",
 		"/{username}/{reponame}/blame/",
+		"/{username}/<repo_group:*>/<reponame>/blame/",
 		"/{username}/{reponame}/commit/",
+		"/{username}/<repo_group:*>/<reponame>/commit/",
 		"/{username}/{reponame}/commits/",
+		"/{username}/<repo_group:*>/<reponame>/commits/",
 		"/{username}/{reponame}/compare/",
+		"/{username}/<repo_group:*>/<reponame>/compare/",
 		"/{username}/{reponame}/graph",
+		"/{username}/<repo_group:*>/<reponame>/graph",
 		"/{username}/{reponame}/media/",
+		"/{username}/<repo_group:*>/<reponame>/media/",
 		"/{username}/{reponame}/raw/",
+		"/{username}/<repo_group:*>/<reponame>/raw/",
 		"/{username}/{reponame}/rss/branch/",
+		"/{username}/<repo_group:*>/<reponame>/rss/branch/",
 		"/{username}/{reponame}/src/",
+		"/{username}/<repo_group:*>/<reponame>/src/",
 
 		// issue & PR related (no trailing slash)
 		"/{username}/{reponame}/issues",
+		"/{username}/<repo_group:*>/<reponame>/issues",
 		"/{username}/{reponame}/{type:issues}",
+		"/{username}/<repo_group:*>/<reponame>/<type:issues>",
 		"/{username}/{reponame}/pulls",
+		"/{username}/<repo_group:*>/<reponame>/pulls",
 		"/{username}/{reponame}/{type:pulls}",
+		"/{username}/<repo_group:*>/<reponame>/<type:pulls>",
 
 		// wiki
 		"/{username}/{reponame}/wiki/",
+		"/{username}/<repo_group:*>/<reponame>/wiki/",
 
 		// activity
 		"/{username}/{reponame}/activity/",
+		"/{username}/<repo_group:*>/<reponame>/activity/",
 	}
 	for _, path := range expensivePaths {
 		if strings.HasPrefix(routePattern, path) {

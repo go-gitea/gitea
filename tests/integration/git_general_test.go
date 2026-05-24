@@ -667,7 +667,7 @@ func doPushCreate(ctx APITestContext, u *url.URL) func(t *testing.T) {
 		t.Run("SuccessfullyPushAndCreateTestRepository", doGitPushTestRepository(tmpDir, "origin", "master"))
 
 		// Finally, fetch repo from database and ensure the correct repository has been created
-		repo, err := repo_model.GetRepositoryByOwnerAndName(t.Context(), ctx.Username, ctx.Reponame, 0)
+		repo, err := repo_model.GetRepositoryByOwnerAndName(t.Context(), ctx.Username, ctx.Reponame, "")
 		assert.NoError(t, err)
 		assert.False(t, repo.IsEmpty)
 		assert.True(t, repo.IsPrivate)
@@ -820,7 +820,7 @@ func doCreateAgitFlowPull(dstPath string, ctx *APITestContext, headBranch string
 			pr1, pr2 *issues_model.PullRequest
 			commit   string
 		)
-		repo, err := repo_model.GetRepositoryByOwnerAndName(t.Context(), ctx.Username, ctx.Reponame, 0)
+		repo, err := repo_model.GetRepositoryByOwnerAndName(t.Context(), ctx.Username, ctx.Reponame, "")
 		require.NoError(t, err)
 
 		pullNum := unittest.GetCount(t, &issues_model.PullRequest{})

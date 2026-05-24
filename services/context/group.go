@@ -74,9 +74,27 @@ func (g *RepoGroup) UnitPermission(ctx context.Context, doer *user_model.User, u
 }
 
 func getGroupByParams(ctx commonCtx, repoGroup *RepoGroup, handleNotFound func(error), handleOtherError func(string, error)) (err error) {
-	groupID := ctx.PathParamInt64("group_id")
+	group := ctx.PathParam("repo_group")
 
-	repoGroup.Group, err = group_model.GetGroupByID(ctx, groupID)
+	if group == "" && ctx.PathParam("group_id") != "" {
+		repoGroup.Group, err = group_model.GetGroupByID(ctx, ctx.PathParamInt64("group_id"))
+	} else if group != "" {
+		user, err := user_model.GetUserByName(ctx, ctx.PathParam("username"))
+		if err != nil {
+			if user_model.IsErrUserNotExist(err) {
+				handleNotFound(err)
+			} else {
+				handleOtherError("GetUserByName", err)
+			}
+			return err
+		}
+		repoGroup.Group, err = group_model.GetGroupByPathname(ctx, user.LowerName, group)
+		if err != nil {
+			handleOtherError("GetGroupByPathname", err)
+			return err
+		}
+	}
+
 	if err != nil {
 		if group_model.IsErrGroupNotExist(err) {
 			handleNotFound(err)
@@ -106,6 +124,9 @@ type GroupAssignmentOptions struct {
 
 func groupAssignment(ctx commonCtx, doer *user_model.User, isSigned, _ bool, handleNotFound func(error), handleOtherError func(string, error), assign func(repoGroup *RepoGroup)) {
 	var err error
+	if ctx.PathParam("repo_group") == "" && ctx.PathParam("group_id") == "" {
+		return
+	}
 	repoGroup := new(RepoGroup)
 	err = getGroupByParams(ctx, repoGroup, handleNotFound, handleOtherError)
 	if err != nil {

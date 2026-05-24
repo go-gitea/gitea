@@ -13,12 +13,13 @@ import (
 	"net/url"
 	"path"
 	"regexp"
-	"strconv"
+	"slices"
 	"strings"
 
 	asymkey_model "gitea.dev/models/asymkey"
 	"gitea.dev/models/db"
 	git_model "gitea.dev/models/git"
+	group_model "gitea.dev/models/group"
 	issues_model "gitea.dev/models/issues"
 	access_model "gitea.dev/models/perm/access"
 	repo_model "gitea.dev/models/repo"
@@ -381,7 +382,7 @@ func ComposeGoGetImport(ctx context.Context, owner, repo string) string {
 func EarlyResponseForGoGetMeta(ctx *Context) {
 	username := ctx.PathParam("username")
 	reponame := strings.TrimSuffix(ctx.PathParam("reponame"), ".git")
-	groupID := ctx.PathParamInt64("group_id")
+	groupPath := ctx.PathParam("repo_group")
 	if username == "" || reponame == "" {
 		ctx.PlainText(http.StatusBadRequest, "invalid repository path")
 		return
@@ -389,9 +390,9 @@ func EarlyResponseForGoGetMeta(ctx *Context) {
 
 	var cloneURL string
 	if setting.Repository.GoGetCloneURLProtocol == "ssh" {
-		cloneURL = repo_model.ComposeSSHCloneURL(ctx.Doer, username, reponame, groupID)
+		cloneURL = repo_model.ComposeSSHCloneURL(ctx.Doer, username, reponame, groupPath)
 	} else {
-		cloneURL = repo_model.ComposeHTTPSCloneURL(ctx, username, reponame, groupID)
+		cloneURL = repo_model.ComposeHTTPSCloneURL(ctx, username, reponame, groupPath)
 	}
 	goImportContent := fmt.Sprintf("%s git %s", ComposeGoGetImport(ctx, username, reponame), cloneURL)
 	htmlMeta := fmt.Sprintf(`<meta name="go-import" content="%s">`, html.EscapeString(goImportContent))
@@ -478,10 +479,10 @@ func InitRepoPullRequestCtx(ctx *Context, base, head *repo_model.Repository) {
 }
 
 type repoAssignmentPrepareDataStruct struct {
-	ownerName  string
-	repoName   string
-	rawGroupID string
-	repo       *repo_model.Repository
+	ownerName string
+	repoName  string
+	groupPath string
+	repo      *repo_model.Repository
 }
 
 func repoAssignmentPreCheck(ctx *Context) {
@@ -499,7 +500,7 @@ func repoAssignmentPrepareData(ctx *Context) *repoAssignmentPrepareDataStruct {
 	// HINT: here it doesn't handle ".wiki" extension, it is handled in repoAssignmentAutoRedirectWiki, need to be refactored in the future
 	userName := ctx.PathParam("username")
 	repoName := ctx.PathParam("reponame")
-	group := ctx.PathParam("group_id")
+	group := ctx.PathParam("repo_group")
 
 	repoName = strings.TrimSuffix(repoName, ".git")
 	if setting.Other.EnableFeed {
@@ -507,7 +508,7 @@ func repoAssignmentPrepareData(ctx *Context) *repoAssignmentPrepareDataStruct {
 		repoName = strings.TrimSuffix(repoName, ".rss")
 		repoName = strings.TrimSuffix(repoName, ".atom")
 	}
-	return &repoAssignmentPrepareDataStruct{ownerName: userName, repoName: repoName, rawGroupID: group}
+	return &repoAssignmentPrepareDataStruct{ownerName: userName, repoName: repoName, groupPath: group}
 }
 
 func repoAssignmentPrepareOwner(ctx *Context, data *repoAssignmentPrepareDataStruct) {
@@ -545,18 +546,7 @@ func repoAssignmentPrepareOwner(ctx *Context, data *repoAssignmentPrepareDataStr
 }
 
 func repoAssignmentAutoRedirectWiki(ctx *Context, data *repoAssignmentPrepareDataStruct) {
-	userName, repoName, rawGroupID := data.ownerName, data.repoName, data.rawGroupID
-	var group string
-	if rawGroupID != "" {
-		gid, err := strconv.ParseInt(rawGroupID, 10, 64)
-		if err != nil {
-			ctx.NotFound(err)
-			return
-		}
-		if gid > 0 {
-			group = fmt.Sprintf("group/%d/", gid)
-		}
-	}
+	userName, repoName, rawGroupID := data.ownerName, data.repoName, data.groupPath
 
 	// redirect link to wiki
 	if strings.HasSuffix(repoName, ".wiki") {
@@ -567,7 +557,7 @@ func repoAssignmentAutoRedirectWiki(ctx *Context, data *repoAssignmentPrepareDat
 		redirectRepoName += originalRepoName[len(redirectRepoName)+5:]
 		redirectPath := strings.Replace(
 			ctx.Req.URL.EscapedPath(),
-			url.PathEscape(userName)+"/"+group+url.PathEscape(originalRepoName),
+			url.PathEscape(userName)+"/"+rawGroupID+"/"+url.PathEscape(originalRepoName),
 			url.PathEscape(userName)+"/"+url.PathEscape(redirectRepoName)+"/wiki",
 			1,
 		)
@@ -582,7 +572,15 @@ func repoAssignmentAutoRedirectWiki(ctx *Context, data *repoAssignmentPrepareDat
 func repoAssignmentPrepareRepo(ctx *Context, data *repoAssignmentPrepareDataStruct) {
 	repoName := data.repoName
 	// Get repository.
-	gid, _ := strconv.ParseInt(data.rawGroupID, 10, 64)
+	gid, err := group_model.IDByPathname(ctx, ctx.Repo.Owner.ID, data.groupPath)
+	if err != nil {
+		if group_model.IsErrGroupNotExist(err) {
+			ctx.NotFound(err)
+		} else {
+			ctx.ServerError("IDByPathname", err)
+		}
+		return
+	}
 	repo, err := repo_model.GetRepositoryByName(ctx, ctx.Repo.Owner.ID, gid, repoName)
 	if err != nil {
 		if repo_model.IsErrRepoNotExist(err) {
@@ -990,7 +988,26 @@ func RepoRefByType(detectRefType git.RefType) func(*Context) {
 
 		// Get default branch.
 		var refShortName string
+		groupPathWithRepo := strings.Join([]string{ctx.Repo.Repository.GroupPath(ctx), ctx.Repo.Repository.LowerName}, "/")
+		groupPathWithRepo = strings.TrimPrefix(groupPathWithRepo, "/")
+
 		reqPath := ctx.PathParam("*")
+		{
+			splitExt := strings.Split(reqPath, ".")
+			exts := []string{"wiki", "git", "rss", "atom"}
+			if len(splitExt) > 0 && slices.ContainsFunc(exts, func(s string) bool {
+				return splitExt[len(splitExt)-1] == s
+			}) {
+				which := exts[slices.Index(exts, splitExt[len(splitExt)-1])]
+				reqPath = strings.TrimSuffix(reqPath, "."+which)
+			}
+		}
+
+		if len(reqPath) > len(groupPathWithRepo) && strings.HasPrefix(reqPath, groupPathWithRepo) {
+			reqPath = reqPath[len(groupPathWithRepo):]
+		} else if strings.HasSuffix(reqPath, groupPathWithRepo) {
+			reqPath = ""
+		}
 		if reqPath == "" {
 			refShortName = ctx.Repo.Repository.DefaultBranch
 			if !gitrepo.IsBranchExist(ctx, ctx.Repo.Repository, refShortName) {

@@ -9,6 +9,7 @@ import (
 	"strings"
 
 	asymkey_model "gitea.dev/models/asymkey"
+	group_model "code.gitea.io/gitea/models/group"
 	"gitea.dev/models/perm"
 	access_model "gitea.dev/models/perm/access"
 	repo_model "gitea.dev/models/repo"
@@ -152,7 +153,20 @@ func ServCommand(ctx *context.PrivateContext) {
 
 	// Now get the Repository and set the results section
 	repoExist := true
-	repo, err := repo_model.GetRepositoryByName(ctx, owner.ID, ctx.PathParamInt64("group_id"), results.RepoName)
+	gid, err := group_model.IDByPathname(ctx, owner.ID, strings.TrimPrefix(ctx.PathParam("repo_group"), "-/group/"))
+	if err != nil {
+		if group_model.IsErrGroupNotExist(err) {
+			ctx.JSON(http.StatusNotFound, private.Response{
+				UserMsg: fmt.Sprintf("Cannot find repository: %s/%s", results.OwnerName, results.RepoName),
+			})
+		} else {
+			ctx.JSON(http.StatusInternalServerError, private.Response{
+				Err: fmt.Sprintf("Unable to get repository: %s/%s %v", results.OwnerName, results.RepoName, err),
+			})
+		}
+		return
+	}
+	repo, err := repo_model.GetRepositoryByName(ctx, owner.ID, gid, results.RepoName)
 	if err != nil {
 		if !repo_model.IsErrRepoNotExist(err) {
 			log.Error("Unable to get repository: %s/%s Error: %v", results.OwnerName, results.RepoName, err)

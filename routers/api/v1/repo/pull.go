@@ -256,22 +256,22 @@ func GetPullRequestByBaseHead(ctx *context.APIContext) {
 		split := strings.SplitN(head, ":", 2)
 		headBranch = split[1]
 		var owner, name string
-		var gid int64
+		var groupPath string
 		if strings.Contains(split[0], "/") {
 			split = strings.Split(split[0], "/")
-			if len(split) == 3 {
-				owner = split[0]
-				gid, _ = strconv.ParseInt(split[1], 10, 64)
-				name = split[2]
-			} else {
+			if len(split) == 2 {
 				owner, name = split[0], split[1]
+			} else {
+				owner = split[0]
+				groupPath = strings.Join(split[1:len(split)-1], "/")
+				name = split[len(split)-1]
 			}
 		} else {
 			owner = split[0]
-			gid = ctx.Repo.Repository.GroupID
+			groupPath = ctx.PathParam("repo_group")
 			name = ctx.Repo.Repository.Name
 		}
-		repo, err := repo_model.GetRepositoryByOwnerAndName(ctx, owner, name, gid)
+		repo, err := repo_model.GetRepositoryByOwnerAndName(ctx, owner, name, groupPath)
 		if err != nil {
 			if repo_model.IsErrRepoNotExist(err) {
 				ctx.APIErrorNotFound()

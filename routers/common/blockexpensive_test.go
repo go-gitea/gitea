@@ -17,10 +17,15 @@ func TestBlockExpensive(t *testing.T) {
 		{false, "/user/xxx"},
 		{false, "/login/xxx"},
 		{true, "/{username}/{reponame}/archive/xxx"},
+		{true, "/{username}/<repo_group:*>/<reponame>/archive/xxx"},
 		{true, "/{username}/{reponame}/graph"},
+		{true, "/{username}/<repo_group:*>/<reponame>/graph"},
 		{true, "/{username}/{reponame}/src/xxx"},
+		{true, "/{username}/<repo_group:*>/<reponame>/src/xxx"},
 		{true, "/{username}/{reponame}/wiki/xxx"},
+		{true, "/{username}/<repo_group:*>/<reponame>/wiki/xxx"},
 		{true, "/{username}/{reponame}/activity/xxx"},
+		{true, "/{username}/<repo_group:*>/<reponame>/activity/xxx"},
 	}
 	for _, c := range cases {
 		assert.Equal(t, c.expensive, isRoutePathExpensive(c.routePath), "routePath: %s", c.routePath)

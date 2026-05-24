@@ -133,7 +133,7 @@ func TestCompareBranchesNoCommonMergeBase(t *testing.T) {
 	user2 := unittest.AssertExistsAndLoadBean(t, &user_model.User{Name: "user2"})
 	repo1 := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{OwnerID: user2.ID, Name: "repo1"})
 
-	repoPath := repo_model.RepoPath(user2.Name, repo1.Name, repo1.GroupID)
+	repoPath := repo_model.RepoPath(user2.Name, repo1.Name, repo1.GroupPath())
 	_, _, runErr := gitcmd.NewCommand("fast-import").WithDir(repoPath).WithStdinBytes([]byte(strings.TrimSpace(`
 commit refs/heads/unrelated-history
 committer User <user@example.com> 1714310400 +0000

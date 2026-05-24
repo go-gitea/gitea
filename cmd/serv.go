@@ -21,6 +21,7 @@ import (
 	repo_model "gitea.dev/models/repo"
 	"gitea.dev/modules/git"
 	"gitea.dev/modules/git/gitcmd"
+	giturl "gitea.dev/modules/git/url"
 	"gitea.dev/modules/json"
 	"gitea.dev/modules/lfstransfer"
 	"gitea.dev/modules/log"
@@ -200,22 +201,11 @@ func runServ(ctx context.Context, c *cli.Command) error {
 	}
 
 	repoPath := strings.TrimPrefix(sshCmdArgs[1], "/")
-	repoPathFields := strings.SplitN(repoPath, "/", 2)
-	var groupID int64
-	if len(repoPathFields) != 2 {
-		if len(repoPathFields) == 3 {
-			rawGroup, _, _ := strings.Cut(repoPathFields[1], "/")
-			groupID, err = strconv.ParseInt(rawGroup, 10, 64)
-			if err != nil {
-				return fail(ctx, "Invalid repository path", "Invalid repository path: %v", repoPath)
-			}
-		} else {
-			return fail(ctx, "Invalid repository path", "Invalid repository path: %v", repoPath)
-		}
-	}
+	repoPathFields := strings.Split(repoPath, "/")
+	groupPath := strings.TrimPrefix(strings.Join(repoPathFields[1:len(repoPathFields)-1], "/"), giturl.ExplicitGroupPrefix+"/")
 
 	username := repoPathFields[0]
-	reponame := strings.TrimSuffix(repoPathFields[1], ".git") // “the-repo-name" or "the-repo-name.wiki"
+	reponame := strings.TrimSuffix(repoPathFields[len(repoPathFields)-1], ".git") // “the-repo-name" or "the-repo-name.wiki"
 
 	if !repo_model.IsValidSSHAccessRepoName(reponame) {
 		return fail(ctx, "Invalid repo name", "Invalid repo name: %s", reponame)
@@ -258,16 +248,16 @@ func runServ(ctx context.Context, c *cli.Command) error {
 
 	requestedMode := getAccessMode(verb, lfsVerb)
 
-	results, extra := private.ServCommand(ctx, keyID, username, reponame, groupID, requestedMode, verb, lfsVerb)
+	results, extra := private.ServCommand(ctx, keyID, username, reponame, groupPath, requestedMode, verb, lfsVerb)
 	if extra.HasError() {
 		return fail(ctx, extra.UserMsg, "ServCommand failed: %s", extra.Error)
 	}
 
 	// because the original repoPath maybe redirected, we need to use the returned actual repository information
 	if results.IsWiki {
-		repoPath = repo_model.RelativeWikiPath(results.OwnerName, results.RepoName, groupID)
+		repoPath = repo_model.RelativeWikiPath(results.OwnerName, results.RepoName, groupPath)
 	} else {
-		repoPath = repo_model.RelativePath(results.OwnerName, results.RepoName, groupID)
+		repoPath = repo_model.RelativePath(results.OwnerName, results.RepoName, groupPath)
 	}
 
 	// LFS SSH protocol
@@ -331,7 +321,7 @@ func runServ(ctx context.Context, c *cli.Command) error {
 		repo_module.EnvRepoUsername+"="+results.OwnerName,
 		repo_module.EnvPusherName+"="+results.UserName,
 		repo_module.EnvPusherEmail+"="+results.UserEmail,
-		repo_module.EnvRepoGroupID+"="+strconv.FormatInt(groupID, 10),
+		repo_module.EnvRepoGroupPath+"="+groupPath,
 		repo_module.EnvPusherID+"="+strconv.FormatInt(results.UserID, 10),
 		repo_module.EnvRepoID+"="+strconv.FormatInt(results.RepoID, 10),
 		repo_module.EnvPRID+"="+strconv.Itoa(0),

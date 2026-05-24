@@ -26,7 +26,7 @@ func TestIterateLFSMetaObjectsForRepoUpdatesDoNotSkip(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 
 	ctx := t.Context()
-	repo, err := repo_model.GetRepositoryByOwnerAndName(ctx, "user2", "repo1", 0)
+	repo, err := repo_model.GetRepositoryByOwnerAndName(ctx, "user2", "repo1", "")
 	assert.NoError(t, err)
 
 	defer test.MockVariableValue(&setting.Database.IterateBufferSize, 1)()

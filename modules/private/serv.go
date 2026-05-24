@@ -7,11 +7,13 @@ import (
 	"context"
 	"fmt"
 	"net/url"
+	"strings"
 
 	asymkey_model "gitea.dev/models/asymkey"
 	"gitea.dev/models/perm"
 	user_model "gitea.dev/models/user"
 	"gitea.dev/modules/setting"
+	"code.gitea.io/gitea/modules/util"
 )
 
 // KeyAndOwner is the response from ServNoCommand
@@ -46,10 +48,10 @@ type ServCommandResults struct {
 }
 
 // ServCommand preps for a serv call
-func ServCommand(ctx context.Context, keyID int64, ownerName, repoName string, groupID int64, mode perm.AccessMode, verb, lfsVerb string) (*ServCommandResults, ResponseExtra) {
+func ServCommand(ctx context.Context, keyID int64, ownerName, repoName string, groupPath string, mode perm.AccessMode, verb, lfsVerb string) (*ServCommandResults, ResponseExtra) {
 	var groupSegment string
-	if groupID > 0 {
-		groupSegment = fmt.Sprintf("group/%d/", groupID)
+	if len(groupPath) > 0 {
+		groupSegment = strings.Join(util.SliceMap(strings.Split(groupPath, "/"), url.PathEscape), "/") + "/"
 	}
 	reqURL := setting.LocalURL + fmt.Sprintf("api/internal/serv/command/%d/%s/%s%s?mode=%d",
 		keyID,

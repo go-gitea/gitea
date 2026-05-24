@@ -8,7 +8,6 @@ import (
 	"fmt"
 	"net"
 	stdurl "net/url"
-	"strconv"
 	"strings"
 
 	"gitea.dev/modules/httplib"
@@ -103,9 +102,57 @@ type RepositoryURL struct {
 
 	// if the URL belongs to current Gitea instance, then the below fields have values
 	OwnerName     string
-	GroupID       int64
+	GroupPath     string
 	RepoName      string
 	RemainingPath string
+}
+
+const ExplicitGroupPrefix = "-/group"
+
+func NormalizeGroupPath(groupPath string) string {
+	groupPath = strings.Trim(groupPath, "/")
+	if strings.HasPrefix(groupPath, ExplicitGroupPrefix+"/") {
+		return strings.TrimPrefix(groupPath, ExplicitGroupPrefix+"/")
+	}
+	return groupPath
+}
+
+func FormatExplicitGroupPath(groupPath string) string {
+	groupPath = strings.Trim(NormalizeGroupPath(groupPath), "/")
+	if groupPath == "" {
+		return ""
+	}
+	return ExplicitGroupPrefix + "/" + groupPath
+}
+
+func parseExplicitGroupPath(path string, ret *RepositoryURL) error {
+	segments := strings.Split(strings.Trim(path, "/"), "/")
+	if len(segments) < 5 || segments[1] != "-" || segments[2] != "group" {
+		return ErrWrongURLFormat{URL: path}
+	}
+
+	ret.OwnerName = segments[0]
+
+	repoIdx := len(segments) - 1
+	for i := 3; i < len(segments); i++ {
+		if strings.HasSuffix(segments[i], ".git") {
+			repoIdx = i
+			break
+		}
+	}
+	if repoIdx <= 3 {
+		return ErrWrongURLFormat{URL: path}
+	}
+
+	ret.GroupPath = strings.Join(segments[3:repoIdx], "/")
+	ret.RepoName = strings.TrimSuffix(segments[repoIdx], ".git")
+	if ret.RepoName == "" {
+		return ErrWrongURLFormat{URL: path}
+	}
+	if repoIdx+1 < len(segments) {
+		ret.RemainingPath = "/" + strings.Join(segments[repoIdx+1:], "/")
+	}
+	return nil
 }
 
 // ParseRepositoryURL tries to parse a Git URL and extract the owner/repository name if it belongs to current Gitea instance.
@@ -123,29 +170,25 @@ func ParseRepositoryURL(ctx context.Context, repoURL string) (*RepositoryURL, er
 	ret := &RepositoryURL{}
 	ret.GitURL = parsed
 
-	fillPathParts := func(s string) {
+	fillPathParts := func(s string) error {
 		s = strings.TrimPrefix(s, "/")
-		fields := strings.SplitN(s, "/", 3)
+		fields := strings.Split(s, "/")
+		if len(fields) >= 3 && fields[1] == "-" && fields[2] == "group" {
+			return parseExplicitGroupPath(s, ret)
+		}
+
+		fields = strings.SplitN(s, "/", 3)
 		if len(fields) >= 2 {
 			ret.OwnerName = fields[0]
 			ret.RepoName = strings.TrimSuffix(fields[1], ".git")
+			if ret.RepoName == "" {
+				return ErrWrongURLFormat{URL: repoURL}
+			}
 			if len(fields) == 3 {
-				rest := strings.SplitN(fields[2], "/", 3)
-				if len(rest) >= 2 {
-					ret.GroupID, err = strconv.ParseInt(rest[0], 10, 64)
-					if err != nil {
-						ret.RemainingPath = "/" + fields[2]
-						return
-					}
-					ret.RepoName = strings.TrimSuffix(rest[1], ".git")
-					if len(rest) >= 3 {
-						ret.RemainingPath = "/" + strings.Join(rest[2:], "/")
-					}
-				} else {
-					ret.RemainingPath = "/" + rest[0]
-				}
+				ret.RemainingPath = "/" + fields[2]
 			}
 		}
+		return nil
 	}
 
 	switch parsed.URL.Scheme {
@@ -153,7 +196,9 @@ func ParseRepositoryURL(ctx context.Context, repoURL string) (*RepositoryURL, er
 		if !httplib.IsCurrentGiteaSiteURL(ctx, repoURL) {
 			return ret, nil
 		}
-		fillPathParts(strings.TrimPrefix(parsed.URL.Path, setting.AppSubURL))
+		if err = fillPathParts(strings.TrimPrefix(parsed.URL.Path, setting.AppSubURL)); err != nil {
+			return nil, err
+		}
 	case "ssh", "git+ssh":
 		domainSSH := setting.SSH.Domain
 		domainCur := httplib.GuessCurrentHostDomain(ctx)
@@ -167,7 +212,9 @@ func ParseRepositoryURL(ctx context.Context, repoURL string) (*RepositoryURL, er
 		// check whether URL domain is current domain from context
 		domainMatches = domainMatches || (domainCur != "" && domainCur == urlDomain)
 		if domainMatches {
-			fillPathParts(parsed.URL.Path)
+			if err = fillPathParts(parsed.URL.Path); err != nil {
+				return nil, err
+			}
 		}
 	}
 	return ret, nil
@@ -177,8 +224,8 @@ func ParseRepositoryURL(ctx context.Context, repoURL string) (*RepositoryURL, er
 func MakeRepositoryWebLink(repoURL *RepositoryURL) string {
 	if repoURL.OwnerName != "" {
 		var groupSegment string
-		if repoURL.GroupID > 0 {
-			groupSegment = "group/" + strconv.FormatInt(repoURL.GroupID, 10) + "/"
+		if repoURL.GroupPath != "" {
+			groupSegment = strings.Join(util.SliceMap(strings.Split(repoURL.GroupPath, "/"), stdurl.PathEscape), "/") + "/"
 		}
 		return setting.AppSubURL + "/" + repoURL.OwnerName + "/" + groupSegment + repoURL.RepoName
 	}

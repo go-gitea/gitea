@@ -640,16 +640,18 @@ func DeleteBranch(ctx context.Context, doer *user_model.User, repo *repo_model.R
 
 func deleteBranchSuccessPostProcess(doer *user_model.User, repo *repo_model.Repository, branchName string, branchCommit *git.Commit) {
 	objectFormat := git.ObjectFormatFromName(repo.ObjectFormatName)
+	groupPath := repo.GroupPath()
+
 	if err := PushUpdate(
 		&repo_module.PushUpdateOptions{
-			RefFullName:  git.RefNameFromBranch(branchName),
-			OldCommitID:  branchCommit.ID.String(),
-			NewCommitID:  objectFormat.EmptyObjectID().String(),
-			PusherID:     doer.ID,
-			PusherName:   doer.Name,
-			RepoUserName: repo.OwnerName,
-			RepoGroupID:  repo.GroupID,
-			RepoName:     repo.Name,
+			RefFullName:   git.RefNameFromBranch(branchName),
+			OldCommitID:   branchCommit.ID.String(),
+			NewCommitID:   objectFormat.EmptyObjectID().String(),
+			PusherID:      doer.ID,
+			PusherName:    doer.Name,
+			RepoUserName:  repo.OwnerName,
+			RepoGroupPath: groupPath,
+			RepoName:      repo.Name,
 		}); err != nil {
 		log.Error("PushUpdateOptions: %v", err)
 	}

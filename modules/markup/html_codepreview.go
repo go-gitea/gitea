@@ -18,7 +18,7 @@ import (
 type RenderCodePreviewOptions struct {
 	FullURL   string
 	OwnerName string
-	GroupID   int64
+	GroupPath string
 	RepoName  string
 	CommitID  string
 	FilePath  string
@@ -38,7 +38,8 @@ func renderCodeBlock(ctx *RenderContext, node *html.Node) (urlPosStart, urlPosSt
 	}
 	if len(m) >= 12 {
 		if m[4] > -1 && m[5] > -1 {
-			opts.GroupID, _ = strconv.ParseInt(node.Data[m[4]:m[5]], 10, 64)
+			opts.GroupPath = node.Data[m[4]:m[5]]
+			opts.RepoName, opts.CommitID, opts.FilePath = node.Data[m[6]:m[7]], node.Data[m[8]:m[9]], node.Data[m[10]:m[11]]
 		}
 		opts.RepoName, opts.CommitID, opts.FilePath = node.Data[m[6]:m[7]], node.Data[m[8]:m[9]], node.Data[m[10]:m[11]]
 	} else {

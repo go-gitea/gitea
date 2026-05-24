@@ -9,6 +9,7 @@ import (
 	"net/http"
 
 	activities_model "gitea.dev/models/activities"
+	group_model "code.gitea.io/gitea/models/group"
 	"gitea.dev/models/organization"
 	"gitea.dev/models/perm"
 	access_model "gitea.dev/models/perm/access"
@@ -639,7 +640,16 @@ func GetTeamRepo(ctx *context.APIContext) {
 
 // getRepositoryByParams get repository by a team's organization ID and repo name
 func getRepositoryByParams(ctx *context.APIContext) *repo_model.Repository {
-	repo, err := repo_model.GetRepositoryByName(ctx, ctx.Org.Team.OrgID, ctx.PathParamInt64("group_id"), ctx.PathParam("reponame"))
+	gid, err := group_model.IDByPathname(ctx, ctx.Org.Team.OrgID, ctx.PathParam("repo_group"))
+	if err != nil {
+		if group_model.IsErrGroupNotExist(err) {
+			ctx.APIErrorNotFound(err)
+		} else {
+			ctx.APIErrorInternal(err)
+		}
+		return nil
+	}
+	repo, err := repo_model.GetRepositoryByName(ctx, ctx.Org.Team.OrgID, gid, ctx.PathParam("reponame"))
 	if err != nil {
 		if repo_model.IsErrRepoNotExist(err) {
 			ctx.APIErrorNotFound()

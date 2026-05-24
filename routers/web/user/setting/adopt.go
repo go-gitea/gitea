@@ -4,7 +4,6 @@
 package setting
 
 import (
-	"strconv"
 	"strings"
 
 	repo_model "gitea.dev/models/repo"
@@ -24,24 +23,24 @@ func AdoptOrDeleteRepository(ctx *context.Context) {
 	ctx.Data["allowDelete"] = allowDelete
 
 	dir := ctx.FormString("id")
-	var gid int64
+	var groupPath string
 	if len(strings.Split(dir, "/")) > 1 {
 		split := strings.Split(dir, "/")
-		dir = split[0]
-		gid, _ = strconv.ParseInt(split[1], 10, 64)
+		dir = split[len(split)-1]
+		groupPath = strings.Join(split[:len(split)-1], "/")
 	}
 	action := ctx.FormString("action")
 
 	ctxUser := ctx.Doer
 
 	// check not a repo
-	has, err := repo_model.IsRepositoryModelExist(ctx, ctxUser, dir, 0)
+	has, err := repo_model.IsRepositoryModelExist(ctx, ctxUser, dir, "")
 	if err != nil {
 		ctx.ServerError("IsRepositoryExist", err)
 		return
 	}
 
-	exist, err := gitrepo.IsRepositoryExist(ctx, repo_model.StorageRepo(repo_model.RelativePath(ctxUser.Name, dir, gid)))
+	exist, err := gitrepo.IsRepositoryExist(ctx, repo_model.StorageRepo(repo_model.RelativePath(ctxUser.Name, dir, groupPath)))
 	if err != nil {
 		ctx.ServerError("IsDir", err)
 		return
@@ -58,7 +57,7 @@ func AdoptOrDeleteRepository(ctx *context.Context) {
 		}
 		ctx.Flash.Success(ctx.Tr("repo.adopt_preexisting_success", dir))
 	} else if action == "delete" && allowDelete {
-		if err := repo_service.DeleteUnadoptedRepository(ctx, ctxUser, ctxUser, dir, gid); err != nil {
+		if err := repo_service.DeleteUnadoptedRepository(ctx, ctxUser, ctxUser, dir, groupPath); err != nil {
 			ctx.ServerError("repository.AdoptRepository", err)
 			return
 		}

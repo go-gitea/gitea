@@ -58,7 +58,7 @@ func ListUnadoptedRepositories(ctx *context.APIContext) {
 func commonAdoptRepository(ctx *context.APIContext) {
 	ownerName := ctx.PathParam("username")
 	repoName := ctx.PathParam("reponame")
-	groupID := ctx.PathParamInt64("group_id")
+	groupPath := ctx.PathParam("repo_group")
 
 	ctxUser, err := user_model.GetUserByName(ctx, ownerName)
 	if err != nil {
@@ -71,12 +71,12 @@ func commonAdoptRepository(ctx *context.APIContext) {
 	}
 
 	// check not a repo
-	has, err := repo_model.IsRepositoryModelExist(ctx, ctxUser, repoName, groupID)
+	has, err := repo_model.IsRepositoryModelExist(ctx, ctxUser, repoName, groupPath)
 	if err != nil {
 		ctx.APIErrorInternal(err)
 		return
 	}
-	exist, err := gitrepo.IsRepositoryExist(ctx, repo_model.StorageRepo(repo_model.RelativePath(ctxUser.Name, repoName, groupID)))
+	exist, err := gitrepo.IsRepositoryExist(ctx, repo_model.StorageRepo(repo_model.RelativePath(ctxUser.Name, repoName, groupPath)))
 	if err != nil {
 		ctx.APIErrorInternal(err)
 		return
@@ -160,7 +160,7 @@ func AdoptGroupRepository(ctx *context.APIContext) {
 func commonDeleteUnadoptedRepo(ctx *context.APIContext) {
 	ownerName := ctx.PathParam("username")
 	repoName := ctx.PathParam("reponame")
-	groupID := ctx.PathParamInt64("group_id")
+	groupPath := ctx.PathParam("repo_group")
 
 	ctxUser, err := user_model.GetUserByName(ctx, ownerName)
 	if err != nil {
@@ -173,12 +173,12 @@ func commonDeleteUnadoptedRepo(ctx *context.APIContext) {
 	}
 
 	// check not a repo
-	has, err := repo_model.IsRepositoryModelExist(ctx, ctxUser, repoName, groupID)
+	has, err := repo_model.IsRepositoryModelExist(ctx, ctxUser, repoName, groupPath)
 	if err != nil {
 		ctx.APIErrorInternal(err)
 		return
 	}
-	exist, err := gitrepo.IsRepositoryExist(ctx, repo_model.StorageRepo(repo_model.RelativePath(ctxUser.Name, repoName, groupID)))
+	exist, err := gitrepo.IsRepositoryExist(ctx, repo_model.StorageRepo(repo_model.RelativePath(ctxUser.Name, repoName, groupPath)))
 	if err != nil {
 		ctx.APIErrorInternal(err)
 		return
@@ -188,7 +188,7 @@ func commonDeleteUnadoptedRepo(ctx *context.APIContext) {
 		return
 	}
 
-	if err := repo_service.DeleteUnadoptedRepository(ctx, ctx.Doer, ctxUser, repoName, groupID); err != nil {
+	if err := repo_service.DeleteUnadoptedRepository(ctx, ctx.Doer, ctxUser, repoName, groupPath); err != nil {
 		ctx.APIErrorInternal(err)
 		return
 	}

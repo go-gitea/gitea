@@ -35,10 +35,10 @@ var (
 	issueAlphanumericPattern = regexp.MustCompile(`(?:\s|^|\(|\[|\"|\')([A-Z]{1,10}-[1-9][0-9]*)(?:\s|$|\)|\]|:|\.(\s|$)|\"|\'|,)`)
 	// crossReferenceIssueNumericPattern matches string that references a numeric issue in a different repository
 	// e.g. org/repo#12345
-	crossReferenceIssueNumericPattern = regexp.MustCompile(`(?:\s|^|\(|\[)([0-9a-zA-Z-_\.]+/(?:group/\d+/)?[0-9a-zA-Z-_\.]+[#!][0-9]+)(?:\s|$|\)|\]|[:;,.?!]\s|[:;,.?!]$)`)
+	crossReferenceIssueNumericPattern = regexp.MustCompile(`(?:\s|^|\(|\[)([0-9a-zA-Z-_\.]+/(?:(?:[0-9a-zA-Z-_\.]+/)*)[0-9a-zA-Z-_\.]+[#!][0-9]+)(?:\s|$|\)|\]|[:;,.?!]\s|[:;,.?!]$)`)
 	// crossReferenceCommitPattern matches a string that references a commit in a different repository
 	// e.g. go-gitea/gitea@d8a994ef, go-gitea/gitea@d8a994ef243349f321568f9e36d5c3f444b99cae (7-40 characters)
-	crossReferenceCommitPattern = regexp.MustCompile(`(?:\s|^|\(|\[)([0-9a-zA-Z-_\.]+)/([0-9a-zA-Z-_\.]+)@([0-9a-f]{7,64})(?:\s|$|\)|\]|[:;,.?!]\s|[:;,.?!]$)`)
+	crossReferenceCommitPattern = regexp.MustCompile(`(?:\s|^|\(|\[)([0-9a-zA-Z-_\.]+)/((?:[0-9a-zA-Z-_\.]+/)*)([0-9a-zA-Z-_\.]+)@([0-9a-f]{7,64})(?:\s|$|\)|\]|[:;,.?!]\s|[:;,.?!]$)`)
 	// spaceTrimmedPattern let's find the trailing space
 	spaceTrimmedPattern = regexp.MustCompile(`(?:.*[0-9a-zA-Z-_])\s`)
 	// timeLogPattern matches string for time tracking
@@ -79,12 +79,12 @@ func (a XRefAction) String() string {
 
 // IssueReference contains an unverified cross-reference to a local issue or pull request
 type IssueReference struct {
-	Index   int64
-	Owner   string
-	GroupID int64
-	Name    string
-	Action  XRefAction
-	TimeLog string
+	Index     int64
+	Owner     string
+	GroupPath string
+	Name      string
+	Action    XRefAction
+	TimeLog   string
 }
 
 // RenderizableReference contains an unverified cross-reference to with rendering information
@@ -94,7 +94,7 @@ type IssueReference struct {
 type RenderizableReference struct {
 	Issue          string
 	Owner          string
-	GroupID        int64
+	GroupPath      string
 	Name           string
 	CommitSha      string
 	IsPull         bool
@@ -106,7 +106,7 @@ type RenderizableReference struct {
 type rawReference struct {
 	index          int64
 	owner          string
-	groupID        int64
+	groupPath      string
 	name           string
 	isPull         bool
 	action         XRefAction
@@ -120,12 +120,12 @@ func rawToIssueReferenceList(reflist []*rawReference) []IssueReference {
 	refarr := make([]IssueReference, len(reflist))
 	for i, r := range reflist {
 		refarr[i] = IssueReference{
-			Index:   r.index,
-			Owner:   r.owner,
-			GroupID: r.groupID,
-			Name:    r.name,
-			Action:  r.action,
-			TimeLog: r.timeLog,
+			Index:     r.index,
+			Owner:     r.owner,
+			GroupPath: r.groupPath,
+			Name:      r.name,
+			Action:    r.action,
+			TimeLog:   r.timeLog,
 		}
 	}
 	return refarr
@@ -352,6 +352,7 @@ func FindRenderizableReferenceNumeric(content string, prOnly, crossLinkOnly bool
 	return &RenderizableReference{
 		Issue:          r.issue,
 		Owner:          r.owner,
+		GroupPath:      r.groupPath,
 		Name:           r.name,
 		IsPull:         r.isPull,
 		RefLocation:    r.refLocation,
@@ -369,9 +370,10 @@ func FindRenderizableCommitCrossReference(content string) (bool, *RenderizableRe
 
 	return true, &RenderizableReference{
 		Owner:       content[m[2]:m[3]],
-		Name:        content[m[4]:m[5]],
-		CommitSha:   content[m[6]:m[7]],
-		RefLocation: &RefSpan{Start: m[2], End: m[7]},
+		GroupPath:   content[m[4]:m[5]],
+		Name:        content[m[6]:m[7]],
+		CommitSha:   content[m[8]:m[9]],
+		RefLocation: &RefSpan{Start: m[2], End: m[9]},
 	}
 }
 
@@ -567,19 +569,16 @@ func getCrossReference(content []byte, start, end int, fromLink, prOnly bool) *r
 		}
 	}
 	parts := strings.Split(strings.ToLower(repo), "/")
-	var owner, rawGroup, name string
-	var gid int64
-	if len(parts) > 4 {
-		return nil
-	}
-	if len(parts) == 4 {
-		owner, rawGroup, name = parts[0], parts[2], parts[3]
-	} else {
+	var owner, groupPath, name string
+
+	if len(parts) == 2 {
 		owner, name = parts[0], parts[1]
+	} else {
+		owner = parts[0]
+		groupPath = strings.Join(parts[1:len(parts)-1], "/")
+		name = parts[len(parts)-1]
 	}
-	if rawGroup != "" {
-		gid, _ = strconv.ParseInt(rawGroup, 10, 64)
-	}
+
 	if !validNamePattern.MatchString(owner) || !validNamePattern.MatchString(name) {
 		return nil
 	}
@@ -587,7 +586,7 @@ func getCrossReference(content []byte, start, end int, fromLink, prOnly bool) *r
 	return &rawReference{
 		index:          index,
 		owner:          owner,
-		groupID:        gid,
+		groupPath:      groupPath,
 		name:           name,
 		action:         action,
 		issue:          issue,

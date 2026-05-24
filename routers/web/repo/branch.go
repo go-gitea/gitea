@@ -151,17 +151,19 @@ func RestoreBranchPost(ctx *context.Context) {
 
 	objectFormat := git.ObjectFormatFromName(ctx.Repo.Repository.ObjectFormatName)
 
+	groupPath := ctx.Repo.Repository.GroupPath()
+
 	// Don't return error below this
 	if err := repo_service.PushUpdate(
 		&repo_module.PushUpdateOptions{
-			RefFullName:  git.RefNameFromBranch(deletedBranch.Name),
-			OldCommitID:  objectFormat.EmptyObjectID().String(),
-			NewCommitID:  deletedBranch.CommitID,
-			PusherID:     ctx.Doer.ID,
-			PusherName:   ctx.Doer.Name,
-			RepoUserName: ctx.Repo.Owner.Name,
-			RepoName:     ctx.Repo.Repository.Name,
-			RepoGroupID:  ctx.Repo.Repository.GroupID,
+			RefFullName:   git.RefNameFromBranch(deletedBranch.Name),
+			OldCommitID:   objectFormat.EmptyObjectID().String(),
+			NewCommitID:   deletedBranch.CommitID,
+			PusherID:      ctx.Doer.ID,
+			PusherName:    ctx.Doer.Name,
+			RepoUserName:  ctx.Repo.Owner.Name,
+			RepoName:      ctx.Repo.Repository.Name,
+			RepoGroupPath: groupPath,
 		}); err != nil {
 		log.Error("RestoreBranch: Update: %v", err)
 	}

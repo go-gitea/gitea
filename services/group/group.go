@@ -158,6 +158,10 @@ func MoveGroupItem(ctx context.Context, opts MoveGroupOptions, doer *user_model.
 		return err
 	}
 	defer committer.Close()
+	newPath, err := group_model.GroupPathByID(opts.NewParent, ctx)
+	if err != nil {
+		return err
+	}
 	var parentGroup *group_model.Group
 	if opts.NewParent > 0 {
 		parentGroup, err = group_model.GetGroupByID(ctx, opts.NewParent)
@@ -211,7 +215,7 @@ func MoveGroupItem(ctx context.Context, opts MoveGroupOptions, doer *user_model.
 			opts.NewPos = int(repoCount)
 		}
 		if repo.GroupID != opts.NewParent || repo.GroupSortOrder != opts.NewPos {
-			ndir := filepath.Dir(filepath.Join(setting.RepoRootPath, filepath.FromSlash(repo_model.RelativePath(repo.OwnerName, repo.Name, opts.NewParent))))
+			ndir := filepath.Dir(filepath.Join(setting.RepoRootPath, filepath.FromSlash(repo_model.RelativePath(repo.OwnerName, repo.Name, newPath))))
 			_, err = os.Stat(ndir)
 			if err != nil {
 				if errors.Is(err, os.ErrNotExist) {
@@ -222,7 +226,7 @@ func MoveGroupItem(ctx context.Context, opts MoveGroupOptions, doer *user_model.
 					return err
 				}
 			}
-			if err = gitrepo.RenameRepository(ctx, repo, repo_model.StorageRepo(repo_model.RelativePath(repo.OwnerName, repo.Name, opts.NewParent))); err != nil {
+			if err = gitrepo.RenameRepository(ctx, repo, repo_model.StorageRepo(repo_model.RelativePath(repo.OwnerName, repo.Name, newPath))); err != nil {
 				return err
 			}
 			if err = MoveRepositoryToGroup(ctx, repo, opts.NewParent, opts.NewPos); err != nil {

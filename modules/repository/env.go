@@ -18,7 +18,7 @@ import (
 const (
 	EnvRepoName      = "GITEA_REPO_NAME"
 	EnvRepoUsername  = "GITEA_REPO_USER_NAME"
-	EnvRepoGroupID   = "GITEA_REPO_GROUP_ID"
+	EnvRepoGroupPath = "GITEA_REPO_GROUP_PATH"
 	EnvRepoID        = "GITEA_REPO_ID"
 	EnvRepoIsWiki    = "GITEA_REPO_IS_WIKI"
 	EnvPusherName    = "GITEA_PUSHER_NAME"
@@ -64,7 +64,7 @@ func DoerPushingEnvironment(doer *user_model.User, repo *repo_model.Repository, 
 		EnvRepoID + "=" + strconv.FormatInt(repo.ID, 10),
 		EnvRepoIsWiki + "=" + strconv.FormatBool(isWiki),
 		EnvPusherName + "=" + doer.Name,
-		EnvRepoGroupID + "=" + strconv.FormatInt(repo.GroupID, 10),
+		EnvRepoGroupPath + "=" + repo.GroupPath(),
 		EnvPusherID + "=" + strconv.FormatInt(doer.ID, 10),
 	}
 	if !doer.KeepEmailPrivate {

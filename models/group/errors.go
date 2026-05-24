@@ -11,7 +11,8 @@ import (
 )
 
 type ErrGroupNotExist struct {
-	ID int64
+	ID   int64
+	Path string
 }
 
 // IsErrGroupNotExist checks if an error is a ErrGroupNotExist.
@@ -22,7 +23,7 @@ func IsErrGroupNotExist(err error) bool {
 }
 
 func (err ErrGroupNotExist) Error() string {
-	return fmt.Sprintf("group does not exist [id: %d]", err.ID)
+	return fmt.Sprintf("group does not exist [id: %d, path: %s]", err.ID, err.Path)
 }
 
 func (err ErrGroupNotExist) Unwrap() error {

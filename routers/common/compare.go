@@ -5,12 +5,13 @@ package common
 
 import (
 	"context"
-	"strconv"
 	"strings"
 
+	group_model "code.gitea.io/gitea/models/group"
 	repo_model "gitea.dev/models/repo"
 	user_model "gitea.dev/models/user"
 	"gitea.dev/modules/git"
+	"gitea.dev/modules/optional"
 	"gitea.dev/modules/util"
 )
 
@@ -20,10 +21,10 @@ type CompareRouterReq struct {
 
 	CompareSeparator string
 
-	HeadOwner    string
-	HeadGroupID  int64
-	HeadRepoName string
-	HeadOriRef   string
+	HeadOwner     string
+	HeadGroupPath optional.Option[string]
+	HeadRepoName  string
+	HeadOriRef    string
 }
 
 func (cr *CompareRouterReq) DirectComparison() bool {
@@ -32,28 +33,35 @@ func (cr *CompareRouterReq) DirectComparison() bool {
 	return cr.CompareSeparator == ".."
 }
 
-func parseHead(head string) (headOwnerName, headRepoName string, headGroupID int64, headRef string) {
+func parseHead(head string) (headOwnerName, headRepoName string, headGroupPath *string, headRef string) {
 	paths := strings.SplitN(head, ":", 2)
 	if len(paths) == 1 {
 		/*var gid int64
 		_, rawGid, _ := strings.Cut(paths[0], "group/")
 		gid, _ = strconv.ParseInt(rawGid, 10, 64)*/
 
-		return "", "", 0, paths[0]
+		return "", "", new(""), paths[0]
 	}
-	ownerRepo := strings.Split(paths[0], "/")
+	ownerRepo := strings.SplitN(paths[0], "/", 2)
 	if len(ownerRepo) == 1 {
-		// -1 means use base repo's group ID
-		return paths[0], "", -1, paths[1]
+		// nil means use base repo's group ID
+		return paths[0], "", nil, paths[1]
 	}
-	var gid int64
-	if len(ownerRepo) == 4 {
-		rawGid := ownerRepo[2]
-		gid, _ = strconv.ParseInt(rawGid, 10, 64)
-		return ownerRepo[0], ownerRepo[3], gid, paths[1]
+	lastPart := strings.Split(ownerRepo[1], "/")
+	var (
+		realRepoName, groupPath string
+	)
+	if len(lastPart) >= 2 {
+		realRepoName = lastPart[len(lastPart)-1]
+		groupPath = strings.Join(lastPart[:len(lastPart)-1], "/")
+	} else {
+		realRepoName = lastPart[0]
 	}
+	/*var gid int64
+	_, rawGid, _ := strings.Cut(paths[0], "group/")
+	gid, _ = strconv.ParseInt(rawGid, 10, 64)*/
 
-	return ownerRepo[0], ownerRepo[1], gid, paths[1]
+	return ownerRepo[0], realRepoName, new(groupPath), paths[1]
 }
 
 // ParseCompareRouterParam Get compare information from the router parameter.
@@ -93,10 +101,11 @@ func ParseCompareRouterParam(routerParam string) *CompareRouterReq {
 		sep = ".."
 		basePart, headPart, ok = strings.Cut(routerParam, sep)
 		if !ok {
-			headOwnerName, headRepoName, headGid, headRef := parseHead(routerParam)
+			headOwnerName, headRepoName, headGroupPtr, headRef := parseHead(routerParam)
+
 			return &CompareRouterReq{
 				HeadOriRef:       headRef,
-				HeadGroupID:      headGid,
+				HeadGroupPath:    optional.FromPtr(headGroupPtr),
 				HeadOwner:        headOwnerName,
 				HeadRepoName:     headRepoName,
 				CompareSeparator: "...",
@@ -104,9 +113,11 @@ func ParseCompareRouterParam(routerParam string) *CompareRouterReq {
 		}
 	}
 
+	var ciHeadGrpPtr *string
 	ci := &CompareRouterReq{CompareSeparator: sep}
 	ci.BaseOriRef, ci.BaseOriRefSuffix = git.ParseRefSuffix(basePart)
-	ci.HeadOwner, ci.HeadRepoName, ci.HeadGroupID, ci.HeadOriRef = parseHead(headPart)
+	ci.HeadOwner, ci.HeadRepoName, ciHeadGrpPtr, ci.HeadOriRef = parseHead(headPart)
+	ci.HeadGroupPath = optional.FromPtr(ciHeadGrpPtr)
 	return ci
 }
 
@@ -165,7 +176,14 @@ func GetHeadOwnerAndRepo(ctx context.Context, baseRepo *repo_model.Repository, c
 		if compareReq.HeadOwner == baseRepo.Owner.Name && compareReq.HeadRepoName == baseRepo.Name {
 			headRepo = baseRepo
 		} else {
-			gid := util.Iif(compareReq.HeadGroupID == -1, baseRepo.GroupID, compareReq.HeadGroupID)
+			var gid int64
+
+			if compareReq.HeadGroupPath.Has() {
+				gid, _ = group_model.IDByPathname(ctx, headOwner.ID, compareReq.HeadGroupPath.Value())
+			} else {
+				gid = baseRepo.GroupID
+			}
+
 			headRepo, err = repo_model.GetRepositoryByName(ctx, headOwner.ID, gid, compareReq.HeadRepoName)
 			if err != nil {
 				return nil, nil, err
