@@ -6,15 +6,18 @@ package integration
 import (
 	"fmt"
 	"net/http"
+	"net/url"
+	"strings"
 	"testing"
 
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unittest"
 	user_model "code.gitea.io/gitea/models/user"
-	"code.gitea.io/gitea/modules/translation"
 	"code.gitea.io/gitea/tests"
 
+	"github.com/PuerkitoBio/goquery"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestActionsListFilters(t *testing.T) {
@@ -23,32 +26,43 @@ func TestActionsListFilters(t *testing.T) {
 	user5 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 5})
 	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 4})
 	session := loginUser(t, user5.Name)
-	locale := translation.NewLocale("en-US")
+	actionsURL := fmt.Sprintf("/%s/%s/actions", user5.Name, repo.Name)
 
-	t.Run("FilterDropdowns", func(t *testing.T) {
-		req := NewRequest(t, "GET", fmt.Sprintf("/%s/%s/actions", user5.Name, repo.Name))
+	t.Run("BranchDropdownListsBranches", func(t *testing.T) {
+		req := NewRequest(t, "GET", actionsURL)
 		resp := session.MakeRequest(t, req, http.StatusOK)
-		body := resp.Body.String()
+		htmlDoc := NewHTMLParser(t, resp.Body)
 
-		assert.Contains(t, body, locale.TrString("actions.runs.branch"))
-		assert.Contains(t, body, locale.TrString("actions.runs.branches_no_select"))
-		assert.Contains(t, body, "branch=master")
+		var labels []string
+		htmlDoc.doc.Find(`[data-test-id="filter-branch"] .menu a.item`).Each(func(_ int, a *goquery.Selection) {
+			labels = append(labels, strings.TrimSpace(a.Text()))
+		})
+		assert.Contains(t, labels, "master")
 	})
 
 	t.Run("FilterByBranch", func(t *testing.T) {
-		req := NewRequest(t, "GET", fmt.Sprintf("/%s/%s/actions?branch=master", user5.Name, repo.Name))
+		req := NewRequest(t, "GET", actionsURL+"?branch=master")
 		resp := session.MakeRequest(t, req, http.StatusOK)
-		body := resp.Body.String()
+		htmlDoc := NewHTMLParser(t, resp.Body)
 
-		assert.Contains(t, body, "#187")
-		assert.Contains(t, body, "#189")
+		refs := htmlDoc.doc.Find(".run-list .run-list-ref")
+		assert.Positive(t, refs.Length(), "filtered run list should not be empty")
+		refs.Each(func(_ int, sel *goquery.Selection) {
+			assert.Equal(t, "master", strings.TrimSpace(sel.Text()))
+		})
 	})
 
 	t.Run("PaginationPreservesFilters", func(t *testing.T) {
-		req := NewRequest(t, "GET", fmt.Sprintf("/%s/%s/actions?branch=master&limit=1", user5.Name, repo.Name))
+		req := NewRequest(t, "GET", actionsURL+"?branch=master&limit=1")
 		resp := session.MakeRequest(t, req, http.StatusOK)
-		body := resp.Body.String()
+		htmlDoc := NewHTMLParser(t, resp.Body)
 
-		assert.Contains(t, body, "branch=master")
+		pageLinks := htmlDoc.doc.Find(".pagination a[href]")
+		assert.Positive(t, pageLinks.Length(), "pagination should be rendered")
+		pageLinks.Each(func(_ int, a *goquery.Selection) {
+			u, err := url.Parse(a.AttrOr("href", ""))
+			require.NoError(t, err)
+			assert.Equal(t, "master", u.Query().Get("branch"), "pagination link must preserve branch filter")
+		})
 	})
 }
