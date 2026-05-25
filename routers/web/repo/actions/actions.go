@@ -44,6 +44,14 @@ type WorkflowInfo struct {
 	Workflow *act_model.Workflow
 }
 
+// DisplayName returns the workflow name from the YAML file if present, otherwise the filename.
+func (w WorkflowInfo) DisplayName() string {
+	if w.Workflow != nil && w.Workflow.Name != "" {
+		return w.Workflow.Name
+	}
+	return w.Entry.Name()
+}
+
 // MustEnableActions check if actions are enabled in settings
 func MustEnableActions(ctx *context.Context) {
 	if !setting.Actions.Enabled {
@@ -340,6 +348,12 @@ func prepareWorkflowList(ctx *context.Context, workflows []WorkflowInfo) {
 	ctx.Data["RunErrors"] = runErrors
 
 	ctx.Data["Runs"] = runs
+
+	workflowNames := make(map[string]string, len(workflows))
+	for _, wf := range workflows {
+		workflowNames[wf.Entry.Name()] = wf.DisplayName()
+	}
+	ctx.Data["WorkflowNames"] = workflowNames
 
 	actors, err := actions_model.GetActors(ctx, ctx.Repo.Repository.ID)
 	if err != nil {
