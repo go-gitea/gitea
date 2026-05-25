@@ -2,34 +2,6 @@
   padding-bottom: 30px;
 }
 
-/* Lay out workflow rows as flex so name, alert icon and disabled label
-   align on one line. Scoped here (instead of using .flex-items-block on
-   the menu) so the <details> toggle inside the menu keeps its native
-   block layout. */
-.actions-workflow-list > .item {
-  display: flex;
-  align-items: center;
-  gap: var(--gap-block);
-  max-width: 100%;
-}
-
-/* Force the nested workflow list inside the toggleable group to match the
-   top-level item styling — Fomantic's submenu rules shrink and bolden them. */
-.actions-other-workflows > summary {
-  font-weight: var(--font-weight-normal) !important;
-}
-.actions-other-workflows .menu {
-  margin: 0 !important;
-}
-.actions-other-workflows .menu > .item {
-  font-size: 1em !important;
-  font-weight: var(--font-weight-normal) !important;
-  padding: 0.92857143em 1.14285714em !important;
-}
-.actions-other-workflows .menu > .item.active {
-  background: var(--color-active) !important;
-}
-
 .runner-container .ui.table.segment {
   overflow-x: auto;
 }

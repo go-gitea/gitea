@@ -7,7 +7,7 @@
 		{{if .HasWorkflowsOrRuns}}
 		<div class="flex-container">
 			<div class="flex-container-nav">
-				<div class="ui fluid vertical menu actions-workflow-list">
+				<div class="ui fluid vertical menu">
 					<a class="item {{if not $.CurWorkflow}}active{{end}}" href="?actor={{$.CurActor}}&status={{$.CurStatus}}">{{ctx.Locale.Tr "actions.runs.all_workflows"}}</a>
 					{{range .workflows}}
 						<a class="item {{if eq .Entry.Name $.CurWorkflow}}active{{end}}" href="?workflow={{.Entry.Name}}&actor={{$.CurActor}}&status={{$.CurStatus}}">
@@ -23,14 +23,14 @@
 						</a>
 					{{end}}
 					{{if .OtherWorkflows}}
-						<details class="item toggleable-item actions-other-workflows"{{if not $.CurWorkflowIsListed}} open{{end}}>
+						<details class="item toggleable-item"{{if not $.CurWorkflowIsListed}} open{{end}}>
 							<summary data-tooltip-content="{{ctx.Locale.Tr "actions.runs.other_workflows_tooltip"}}">
 								<span class="flex-text-inline">
 									{{ctx.Locale.Tr "actions.runs.other_workflows"}}
 									<span class="ui label">{{len .OtherWorkflows}}</span>
 								</span>
 							</summary>
-							<div class="menu">
+							<div class="menu items-full-width">
 								{{range .OtherWorkflows}}
 									<a class="item {{if eq . $.CurWorkflow}}active{{end}}" href="?workflow={{.}}&actor={{$.CurActor}}&status={{$.CurStatus}}">
 										<span class="gt-ellipsis">{{.}}</span>
