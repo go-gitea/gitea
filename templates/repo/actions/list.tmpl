@@ -84,7 +84,7 @@
 							</div>
 						</div>
 
-						{{if and .AllowDisableOrEnableWorkflow .CurWorkflowIsListed}}
+						{{if and .AllowDisableOrEnableWorkflow .CurWorkflowIsListed $.CurWorkflow}}
 						<button class="ui jump dropdown btn interact-bg tw-p-2">
 							{{svg "octicon-kebab-horizontal"}}
 							<div class="menu">
