@@ -5,11 +5,19 @@ package repo
 
 import (
 	"errors"
+	"io"
+	"net/http"
+	"os"
 
 	actions_model "code.gitea.io/gitea/models/actions"
+	"code.gitea.io/gitea/models/db"
+	"code.gitea.io/gitea/modules/json"
+	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/routers/common"
+	actions_service "code.gitea.io/gitea/services/actions"
 	"code.gitea.io/gitea/services/context"
+	"code.gitea.io/gitea/services/convert"
 )
 
 func DownloadActionsRunJobLogs(ctx *context.APIContext) {
@@ -65,4 +73,440 @@ func DownloadActionsRunJobLogs(ctx *context.APIContext) {
 			ctx.APIErrorInternal(err)
 		}
 	}
+}
+
+func CancelWorkflowRun(ctx *context.APIContext) {
+	// swagger:operation POST /repos/{owner}/{repo}/actions/runs/{run}/cancel repository cancelWorkflowRun
+	// ---
+	// summary: Cancel a workflow run and its jobs
+	// produces:
+	// - application/json
+	// parameters:
+	// - name: owner
+	//   in: path
+	//   description: owner of the repo
+	//   type: string
+	//   required: true
+	// - name: repo
+	//   in: path
+	//   description: name of the repository
+	//   type: string
+	//   required: true
+	// - name: run
+	//   in: path
+	//   description: run ID
+	//   type: integer
+	//   required: true
+	// responses:
+	//   "200":
+	//     description: success
+	//   "400":
+	//     "$ref": "#/responses/error"
+	//   "403":
+	//     "$ref": "#/responses/forbidden"
+	//   "404":
+	//     "$ref": "#/responses/notFound"
+
+	_, run, err := getRunID(ctx)
+	if err != nil {
+		if errors.Is(err, util.ErrNotExist) {
+			ctx.APIErrorNotFound(err)
+		} else {
+			ctx.APIErrorInternal(err)
+		}
+		return
+	}
+
+	jobs, err := getRunJobs(ctx, run)
+	if err != nil {
+		ctx.APIErrorInternal(err)
+		return
+	}
+
+	if err := actions_service.CancelRun(ctx, run, jobs); err != nil {
+		ctx.APIErrorInternal(err)
+		return
+	}
+
+	updatedRun, has, err := db.GetByID[actions_model.ActionRun](ctx, run.ID)
+	if err != nil || !has {
+		ctx.APIErrorInternal(err)
+		return
+	}
+
+	convertedRun, err := convert.ToActionWorkflowRun(ctx, ctx.Repo.Repository, updatedRun, nil)
+	if err != nil {
+		ctx.APIErrorInternal(err)
+		return
+	}
+	ctx.JSON(http.StatusOK, convertedRun)
+}
+
+func ApproveWorkflowRun(ctx *context.APIContext) {
+	// swagger:operation POST /repos/{owner}/{repo}/actions/runs/{run}/approve repository approveWorkflowRun
+	// ---
+	// summary: Approve a workflow run that requires approval
+	// produces:
+	// - application/json
+	// parameters:
+	// - name: owner
+	//   in: path
+	//   description: owner of the repo
+	//   type: string
+	//   required: true
+	// - name: repo
+	//   in: path
+	//   description: name of the repository
+	//   type: string
+	//   required: true
+	// - name: run
+	//   in: path
+	//   description: run ID
+	//   type: integer
+	//   required: true
+	// responses:
+	//   "200":
+	//     description: success
+	//   "400":
+	//     "$ref": "#/responses/error"
+	//   "403":
+	//     "$ref": "#/responses/forbidden"
+	//   "404":
+	//     "$ref": "#/responses/notFound"
+
+	runID, run, err := getRunID(ctx)
+	if err != nil {
+		if errors.Is(err, util.ErrNotExist) {
+			ctx.APIErrorNotFound(err)
+		} else {
+			ctx.APIErrorInternal(err)
+		}
+		return
+	}
+
+	if !run.NeedApproval {
+		ctx.APIError(http.StatusBadRequest, "Run does not require approval")
+		return
+	}
+
+	if err := actions_service.ApproveRuns(ctx, ctx.Repo.Repository, ctx.Doer, []int64{runID}); err != nil {
+		if errors.Is(err, util.ErrNotExist) {
+			ctx.APIErrorNotFound(err)
+		} else {
+			ctx.APIErrorInternal(err)
+		}
+		return
+	}
+
+	// Reload run to reflect post-approval state.
+	updatedRun, has, err := db.GetByID[actions_model.ActionRun](ctx, runID)
+	if err != nil || !has {
+		ctx.APIErrorInternal(err)
+		return
+	}
+
+	convertedRun, err := convert.ToActionWorkflowRun(ctx, ctx.Repo.Repository, updatedRun, nil)
+	if err != nil {
+		ctx.APIErrorInternal(err)
+		return
+	}
+	ctx.JSON(http.StatusOK, convertedRun)
+}
+
+func getRunID(ctx *context.APIContext) (int64, *actions_model.ActionRun, error) {
+	runID := ctx.PathParamInt64("run")
+	run, has, err := db.GetByID[actions_model.ActionRun](ctx, runID)
+	if err != nil {
+		return 0, nil, err
+	}
+	if !has || run.RepoID != ctx.Repo.Repository.ID {
+		return 0, nil, util.ErrNotExist
+	}
+	return runID, run, nil
+}
+
+func getRunJobs(ctx *context.APIContext, run *actions_model.ActionRun) ([]*actions_model.ActionRunJob, error) {
+	run.Repo = ctx.Repo.Repository
+	jobs, err := actions_model.GetLatestAttemptJobsByRepoAndRunID(ctx, run.RepoID, run.ID)
+	if err != nil {
+		return nil, err
+	}
+	for _, v := range jobs {
+		v.Run = run
+	}
+	return jobs, nil
+}
+
+func getRunJobsAndCurrent(ctx *context.APIContext, run *actions_model.ActionRun, jobIndex int64) (*actions_model.ActionRunJob, []*actions_model.ActionRunJob, error) {
+	jobs, err := getRunJobs(ctx, run)
+	if err != nil {
+		return nil, nil, err
+	}
+	if len(jobs) == 0 {
+		return nil, nil, util.ErrNotExist
+	}
+
+	if jobIndex >= 0 {
+		if jobIndex >= int64(len(jobs)) {
+			return nil, nil, util.ErrNotExist
+		}
+		return jobs[jobIndex], jobs, nil
+	}
+	return jobs[0], jobs, nil
+}
+
+func GetWorkflowRunLogs(ctx *context.APIContext) {
+	// swagger:operation GET /repos/{owner}/{repo}/actions/runs/{run}/logs repository getWorkflowRunLogs
+	// ---
+	// summary: Download workflow run logs as archive
+	// produces:
+	// - application/zip
+	// parameters:
+	// - name: owner
+	//   in: path
+	//   description: owner of the repo
+	//   type: string
+	//   required: true
+	// - name: repo
+	//   in: path
+	//   description: name of the repository
+	//   type: string
+	//   required: true
+	// - name: run
+	//   in: path
+	//   description: run ID
+	//   type: integer
+	//   required: true
+	// responses:
+	//   "200":
+	//     description: Logs archive
+	//   "404":
+	//     "$ref": "#/responses/notFound"
+
+	_, run, err := getRunID(ctx)
+	if err != nil {
+		if errors.Is(err, util.ErrNotExist) {
+			ctx.APIErrorNotFound(err)
+		} else {
+			ctx.APIErrorInternal(err)
+		}
+		return
+	}
+
+	if err = common.DownloadActionsRunAllJobLogs(ctx.Base, ctx.Repo.Repository, run.ID); err != nil {
+		if errors.Is(err, util.ErrNotExist) {
+			ctx.APIErrorNotFound(err)
+		} else {
+			ctx.APIErrorInternal(err)
+		}
+		return
+	}
+}
+
+func GetWorkflowJobLogs(ctx *context.APIContext) {
+	// swagger:operation GET /repos/{owner}/{repo}/actions/runs/{run}/jobs/{job_id}/logs repository getWorkflowJobLogs
+	// ---
+	// summary: Download job logs as plain text
+	// produces:
+	// - text/plain
+	// parameters:
+	// - name: owner
+	//   in: path
+	//   description: owner of the repo
+	//   type: string
+	//   required: true
+	// - name: repo
+	//   in: path
+	//   description: name of the repository
+	//   type: string
+	//   required: true
+	// - name: run
+	//   in: path
+	//   description: run ID
+	//   type: integer
+	//   required: true
+	// - name: job_id
+	//   in: path
+	//   description: id of the job
+	//   type: integer
+	//   required: true
+	// responses:
+	//   "200":
+	//     description: Job logs
+	//   "404":
+	//     "$ref": "#/responses/notFound"
+
+	runID, _, err := getRunID(ctx)
+	if err != nil {
+		if errors.Is(err, util.ErrNotExist) {
+			ctx.APIErrorNotFound(err)
+		} else {
+			ctx.APIErrorInternal(err)
+		}
+		return
+	}
+
+	jobID := ctx.PathParamInt64("job_id")
+
+	job, err := actions_model.GetRunJobByRunAndID(ctx, runID, jobID)
+	if err != nil {
+		if errors.Is(err, util.ErrNotExist) {
+			ctx.APIErrorNotFound(err)
+		} else {
+			ctx.APIErrorInternal(err)
+		}
+		return
+	}
+
+	job.Repo = ctx.Repo.Repository
+
+	if err = common.DownloadActionsRunJobLogs(ctx.Base, ctx.Repo.Repository, job); err != nil {
+		if errors.Is(err, util.ErrNotExist) || errors.Is(err, os.ErrNotExist) {
+			ctx.APIErrorNotFound(err)
+		} else {
+			ctx.APIErrorInternal(err)
+		}
+		return
+	}
+}
+
+func GetWorkflowRunLogsStream(ctx *context.APIContext) {
+	// swagger:operation POST /repos/{owner}/{repo}/actions/runs/{run}/logs repository getWorkflowRunLogsStream
+	// ---
+	// summary: Get streaming workflow run logs with cursor support
+	// consumes:
+	// - application/json
+	// produces:
+	// - application/json
+	// parameters:
+	// - name: owner
+	//   in: path
+	//   description: owner of the repo
+	//   type: string
+	//   required: true
+	// - name: repo
+	//   in: path
+	//   description: name of the repository
+	//   type: string
+	//   required: true
+	// - name: run
+	//   in: path
+	//   description: run ID
+	//   type: integer
+	//   required: true
+	// - name: job
+	//   in: query
+	//   description: job index (0-based), defaults to first job
+	//   type: integer
+	//   required: false
+	// - name: body
+	//   in: body
+	//   schema:
+	//     type: object
+	//     properties:
+	//       logCursors:
+	//         type: array
+	//         items:
+	//           type: object
+	//           properties:
+	//             step:
+	//               type: integer
+	//             cursor:
+	//               type: integer
+	//             expanded:
+	//               type: boolean
+	// responses:
+	//   "200":
+	//     description: Streaming logs
+	//     schema:
+	//       type: object
+	//       properties:
+	//         stepsLog:
+	//           type: array
+	//           items:
+	//             type: object
+	//             properties:
+	//               step:
+	//                 type: integer
+	//               cursor:
+	//                 type: integer
+	//               lines:
+	//                 type: array
+	//                 items:
+	//                   type: object
+	//                   properties:
+	//                     index:
+	//                       type: integer
+	//                     message:
+	//                       type: string
+	//                     timestamp:
+	//                       type: number
+	//               started:
+	//                 type: integer
+	//   "404":
+	//     "$ref": "#/responses/notFound"
+
+	_, run, err := getRunID(ctx)
+	if err != nil {
+		if errors.Is(err, util.ErrNotExist) {
+			ctx.APIErrorNotFound(err)
+		} else {
+			ctx.APIErrorInternal(err)
+		}
+		return
+	}
+
+	jobIndex := int64(-1)
+	if ctx.FormString("job") != "" {
+		jobIndex = int64(ctx.FormInt("job"))
+	}
+
+	var req api.ActionLogRequest
+	if err := json.NewDecoder(ctx.Req.Body).Decode(&req); err != nil {
+		if errors.Is(err, io.EOF) {
+			req = api.ActionLogRequest{LogCursors: []api.ActionLogCursor{}}
+		} else {
+			ctx.APIError(http.StatusBadRequest, "Invalid request body")
+			return
+		}
+	}
+
+	current, _, err := getRunJobsAndCurrent(ctx, run, jobIndex)
+	if err != nil {
+		if errors.Is(err, util.ErrNotExist) {
+			ctx.APIErrorNotFound(err)
+		} else {
+			ctx.APIErrorInternal(err)
+		}
+		return
+	}
+
+	var task *actions_model.ActionTask
+	if current.TaskID > 0 {
+		task, err = actions_model.GetTaskByID(ctx, current.TaskID)
+		if err != nil {
+			ctx.APIErrorInternal(err)
+			return
+		}
+		task.Job = current
+		if err := task.LoadAttributes(ctx); err != nil {
+			ctx.APIErrorInternal(err)
+			return
+		}
+	}
+
+	response := &api.ActionLogResponse{
+		StepsLog: make([]*api.ActionLogStep, 0),
+	}
+
+	if task != nil {
+		logs, err := actions_service.ReadStepLogs(ctx, req.LogCursors, task, "Log has expired and is no longer available")
+		if err != nil {
+			ctx.APIErrorInternal(err)
+			return
+		}
+		response.StepsLog = append(response.StepsLog, logs...)
+	}
+
+	ctx.JSON(http.StatusOK, response)
 }
