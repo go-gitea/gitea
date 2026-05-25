@@ -215,7 +215,9 @@ func MoveGroupItem(ctx context.Context, opts MoveGroupOptions, doer *user_model.
 			_, err = os.Stat(ndir)
 			if err != nil {
 				if errors.Is(err, os.ErrNotExist) {
-					_ = os.MkdirAll(ndir, 0o755)
+					if err = os.MkdirAll(ndir, 0o755); err != nil {
+						return err
+					}
 				} else {
 					return err
 				}
