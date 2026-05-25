@@ -63,6 +63,8 @@ Start tests based on the database container:
 GITEA_TEST_DATABASE=mssql TEST_MSSQL_HOST=localhost:1433 TEST_MSSQL_DBNAME=gitea_test TEST_MSSQL_USERNAME=sa TEST_MSSQL_PASSWORD=MwantsaSecurePassword1 make test-integration
 ```
 
+If encountering error `TLS Handshake failed: tls: failed to parse certificate from server: x509: negative serial number`, this is because of self-signed certificates from mssql. Try building with `GODEBUG=x509negativeserial=1` and try again.
+
 ## Running individual tests
 
 Example command to run GPG test:
