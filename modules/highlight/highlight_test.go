@@ -63,7 +63,7 @@ func TestFile(t *testing.T) {
 		{
 			name:      "tags.py",
 			code:      "<>",
-			want:      lines(`<span class="o">&lt;</span><span class="o">&gt;</span>`),
+			want:      lines(`<span class="o">&lt;&gt;</span>`),
 			lexerName: "Python",
 		},
 		{
@@ -102,7 +102,7 @@ c=2
 <span class="n">def</span><span class="p">:</span>\n
     <span class="n">a</span><span class="o">=</span><span class="mi">1</span>\n
 \n
-<span class="n">b</span><span class="o">=</span><span class="sa"></span><span class="s1">&#39;</span><span class="s1">&#39;</span>\n
+<span class="n">b</span><span class="o">=</span><span class="s1">&#39;&#39;</span>\n
     \n
 <span class="n">c</span><span class="o">=</span><span class="mi">2</span>`,
 			),
@@ -120,8 +120,11 @@ c=2
 Content-Type: text/html
 
 <html></html>`,
-			want:      []template.HTML{"HTTP/1.0 400 Bad request\n", "Content-Type: text/html\n", "\n", "&lt;html&gt;&lt;/html&gt;"},
-			lexerName: "Plaintext", // HINT: CHROMA-HIGHLIGHT-HTTP-CONTENT
+			want: lines(`<span class="kr">HTTP</span><span class="o">/</span><span class="m">1.0</span> <span class="m">400</span> <span class="ne">Bad request</span>\n
+<span class="n">Content-Type</span><span class="o">:</span> <span class="l">text/html</span>\n
+\n
+<span class="p">&lt;</span><span class="nt">html</span><span class="p">&gt;&lt;/</span><span class="nt">html</span><span class="p">&gt;</span>`),
+			lexerName: "HTTP",
 		},
 	}
 
