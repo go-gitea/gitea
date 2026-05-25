@@ -18,6 +18,7 @@ import (
 	"code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/modules/charset"
 	"code.gitea.io/gitea/modules/emoji"
+	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/htmlutil"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/markup"
@@ -221,6 +222,25 @@ func (ut *RenderUtils) MarkdownToHtml(input string) template.HTML { //nolint:rev
 		log.Error("RenderString: %v", err)
 	}
 	return output
+}
+
+// RenderPackageMarkdown renders package page Markdown so relative links resolve against the
+// linked repository's default branch instead of the site root, falling back to plain rendering
+// when there is no linked repository. pkgTreePath optionally roots links in a subdirectory
+// (e.g. npm's repository.directory for monorepo packages).
+func (ut *RenderUtils) RenderPackageMarkdown(input string, linkedRepo *repo.Repository, pkgTreePath ...string) template.HTML {
+	if linkedRepo == nil {
+		return `<div class="markup markdown">` + ut.MarkdownToHtml(input) + `</div>`
+	}
+	rctx := renderhelper.NewRenderContextRepoFile(ut.ctx, linkedRepo, renderhelper.RepoFileOptions{
+		CurrentRefSubURL: git.RefNameFromBranch(linkedRepo.DefaultBranch).RefWebLinkPath(),
+		CurrentTreePath:  util.OptionalArg(pkgTreePath),
+	})
+	output, err := markdown.RenderString(rctx, input)
+	if err != nil {
+		log.Error("RenderString: %v", err)
+	}
+	return `<div class="markup markdown">` + output + `</div>`
 }
 
 func (ut *RenderUtils) RenderLabels(labels []*issues_model.Label, repoLink string, issue *issues_model.Issue) template.HTML {
