@@ -14,7 +14,7 @@ require (
 	code.gitea.io/sdk/gitea v0.25.1
 	codeberg.org/gusted/mcaptcha v0.0.0-20220723083913-4f3072e1d570
 	connectrpc.com/connect v1.19.2
-	gitea.com/gitea/runner v1.0.3
+	gitea.com/gitea/runner v1.0.4
 	gitea.com/go-chi/binding v0.0.0-20260414111559-654cea7ac60a
 	gitea.com/go-chi/cache v0.2.1
 	gitea.com/go-chi/captcha v0.0.0-20240315150714-fb487f629098
@@ -26,9 +26,10 @@ require (
 	github.com/Azure/azure-sdk-for-go/sdk/azcore v1.20.0
 	github.com/Azure/azure-sdk-for-go/sdk/storage/azblob v1.6.3
 	github.com/Azure/go-ntlmssp v0.1.1
+	github.com/Necoro/html2text v0.0.0-20250804200300-7bf1ce1c7347
 	github.com/ProtonMail/go-crypto v1.4.1
 	github.com/PuerkitoBio/goquery v1.12.0
-	github.com/SaveTheRbtz/zstd-seekable-format-go/pkg v0.8.0
+	github.com/SaveTheRbtz/zstd-seekable-format-go/pkg v0.8.3
 	github.com/alecthomas/chroma/v2 v2.24.1
 	github.com/aws/aws-sdk-go-v2/credentials v1.19.16
 	github.com/aws/aws-sdk-go-v2/service/codecommit v1.33.14
@@ -73,8 +74,7 @@ require (
 	github.com/hashicorp/go-version v1.9.0
 	github.com/hashicorp/golang-lru/v2 v2.0.7
 	github.com/huandu/xstrings v1.5.0
-	github.com/jaytaylor/html2text v0.0.0-20260303211410-1a4bdc82ecec
-	github.com/jhillyerd/enmime/v2 v2.3.0
+	github.com/jhillyerd/enmime/v2 v2.4.0
 	github.com/kballard/go-shellquote v0.0.0-20180428030007-95032a82bc51
 	github.com/klauspost/compress v1.18.6
 	github.com/klauspost/cpuid/v2 v2.3.0
@@ -109,7 +109,7 @@ require (
 	github.com/yohcop/openid-go v1.0.1
 	github.com/yuin/goldmark v1.8.2
 	github.com/yuin/goldmark-highlighting/v2 v2.0.0-20230729083705-37449abec8cc
-	gitlab.com/gitlab-org/api/client-go/v2 v2.26.0
+	gitlab.com/gitlab-org/api/client-go/v2 v2.29.0
 	go.yaml.in/yaml/v4 v4.0.0-rc.3
 	golang.org/x/crypto v0.52.0
 	golang.org/x/image v0.40.0
@@ -226,7 +226,7 @@ require (
 	github.com/mailru/easyjson v0.7.7 // indirect
 	github.com/markbates/going v1.0.3 // indirect
 	github.com/mattn/go-colorable v0.1.14 // indirect
-	github.com/mattn/go-runewidth v0.0.21 // indirect
+	github.com/mattn/go-runewidth v0.0.23 // indirect
 	github.com/mattn/go-shellwords v1.0.12 // indirect
 	github.com/mholt/acmez/v3 v3.1.6 // indirect
 	github.com/miekg/dns v1.1.72 // indirect
@@ -245,7 +245,7 @@ require (
 	github.com/oasdiff/yaml v0.0.9 // indirect
 	github.com/oasdiff/yaml3 v0.0.12 // indirect
 	github.com/olekukonko/cat v0.0.0-20250911104152-50322a0618f6 // indirect
-	github.com/olekukonko/errors v1.2.0 // indirect
+	github.com/olekukonko/errors v1.3.0 // indirect
 	github.com/olekukonko/ll v0.1.8 // indirect
 	github.com/olekukonko/tablewriter v1.1.4 // indirect
 	github.com/onsi/ginkgo v1.16.5 // indirect
@@ -302,8 +302,6 @@ ignore (
 // When doing "go get -u ./...", Golang will try to update all dependencies
 // But not all latest versions of dependencies are compatible with other packages or our codebase, so we need to pin some dependencies to specific versions
 // Need to regularly maintain this list to try to update them to latest versions, especially the TODO ones
-
-replace github.com/jaytaylor/html2text => github.com/Necoro/html2text v0.0.0-20250804200300-7bf1ce1c7347 // jaytaylor/html2text is unmaintained
 
 replace go.yaml.in/yaml/v4 => go.yaml.in/yaml/v4 v4.0.0-rc.3 // rc.4 changes block scalar serialization, wait for stable release
 
