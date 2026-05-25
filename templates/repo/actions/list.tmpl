@@ -7,7 +7,7 @@
 		{{if .HasWorkflowsOrRuns}}
 		<div class="flex-container">
 			<div class="flex-container-nav">
-				<div class="ui fluid vertical menu flex-items-block">
+				<div class="ui fluid vertical menu">
 					<a class="item {{if not $.CurWorkflow}}active{{end}}" href="?actor={{$.CurActor}}&status={{$.CurStatus}}&branch={{$.CurBranch}}">{{ctx.Locale.Tr "actions.runs.all_workflows"}}</a>
 					{{range .workflows}}
 						<a class="item flex-text-block {{if eq .Entry.Name $.CurWorkflow}}active{{end}}" href="?workflow={{.Entry.Name}}&actor={{$.CurActor}}&status={{$.CurStatus}}&branch={{$.CurBranch}}">
