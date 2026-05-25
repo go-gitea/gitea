@@ -60,4 +60,4 @@ Endpoints returning lists must
 ### Knowledge
 
 - Partially database table migration must use `SyncWithOptions(IgnoreDrop...)`
-- Template variables with "camelCase" are used for restoring the form values from a submitted form
+- Template variables with "camelCase" or "snake_case" are used for restoring the form values from a submitted form
