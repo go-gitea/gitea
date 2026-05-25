@@ -201,10 +201,10 @@ func runServ(ctx context.Context, c *cli.Command) error {
 
 	repoPath := strings.TrimPrefix(sshCmdArgs[1], "/")
 	repoPathFields := strings.SplitN(repoPath, "/", 2)
-	rawGroup, _, _ := strings.Cut(repoPathFields[1], "/")
 	var groupID int64
 	if len(repoPathFields) != 2 {
 		if len(repoPathFields) == 3 {
+			rawGroup, _, _ := strings.Cut(repoPathFields[1], "/")
 			groupID, err = strconv.ParseInt(rawGroup, 10, 64)
 			if err != nil {
 				return fail(ctx, "Invalid repository path", "Invalid repository path: %v", repoPath)
