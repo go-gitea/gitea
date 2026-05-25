@@ -6,7 +6,6 @@ import {errorMessage} from '../modules/errors.ts';
 import {parseDom} from '../utils.ts';
 
 export function syncIssueMainContentTimelineItems(oldMainContent: Element, newMainContent: Element) {
-  // find the end of comments timeline by "id=timeline-comments-end" in current main content, and insert new items before it
   const timelineEnd = oldMainContent.querySelector('.timeline-item[id="timeline-comments-end"]');
   if (!timelineEnd) return;
 
@@ -20,8 +19,8 @@ export function syncIssueMainContentTimelineItems(oldMainContent: Element, newMa
     }
   }
 
-  const newTimelineItems = newMainContent.querySelectorAll(`.timeline-item[id]`);
-  for (const newItem of newTimelineItems) {
+  const newTimelineItems = Array.from(newMainContent.querySelectorAll(`.timeline-item[id]`));
+  for (const [index, newItem] of newTimelineItems.entries()) {
     const newItemId = newItem.getAttribute('id')!;
     const oldItem = oldMainContent.querySelector(`.timeline-item[id="${CSS.escape(newItemId)}"]`);
     if (oldItem) {
@@ -32,7 +31,14 @@ export function syncIssueMainContentTimelineItems(oldMainContent: Element, newMa
       }
       continue;
     }
-    timelineEnd.insertAdjacentElement('beforebegin', newItem);
+
+    let nextOldItem: Element | null = null;
+    for (const nextNewItem of newTimelineItems.slice(index + 1)) {
+      const nextNewItemId = nextNewItem.getAttribute('id')!;
+      nextOldItem = oldMainContent.querySelector(`.timeline-item[id="${CSS.escape(nextNewItemId)}"]`);
+      if (nextOldItem) break;
+    }
+    (nextOldItem || timelineEnd).insertAdjacentElement('beforebegin', newItem);
   }
 }
 

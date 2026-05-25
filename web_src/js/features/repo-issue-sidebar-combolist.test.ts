@@ -58,4 +58,29 @@ describe('syncIssueMainContentTimelineItems', () => {
       `<div class="timeline-item">Other</div>`,
     );
   });
+
+  test('InsertNewInServerOrder', () => {
+    const oldContent = createElementFromHTML(`
+    <div>
+      <div class="timeline-item" id="it-1">Item 1</div>
+      <div class="timeline-item" id="it-3">Item 3</div>
+      <div class="timeline-item" id="timeline-comments-end"></div>
+    </div>
+  `);
+    const newContent = createElementFromHTML(`
+    <div>
+      <div class="timeline-item" id="it-1">Item 1</div>
+      <div class="timeline-item" id="it-2">Item 2</div>
+      <div class="timeline-item" id="it-3">Item 3</div>
+      <div class="timeline-item" id="timeline-comments-end"></div>
+    </div>
+  `);
+    syncIssueMainContentTimelineItems(oldContent, newContent);
+    expect(oldContent.innerHTML.replace(/>\s+</g, '><').trim()).toBe(
+      `<div class="timeline-item" id="it-1">Item 1</div>` +
+      `<div class="timeline-item" id="it-2">Item 2</div>` +
+      `<div class="timeline-item" id="it-3">Item 3</div>` +
+      `<div class="timeline-item" id="timeline-comments-end"></div>`,
+    );
+  });
 });

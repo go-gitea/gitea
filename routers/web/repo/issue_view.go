@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"math/big"
 	"net/http"
+	"slices"
 	"sort"
 	"strconv"
 
@@ -39,6 +40,27 @@ import (
 	pull_service "code.gitea.io/gitea/services/pull"
 	user_service "code.gitea.io/gitea/services/user"
 )
+
+const issueCommentsOrderQueryParam = "comments_order"
+
+func isIssueCommentsOrderDesc(ctx *context.Context) bool {
+	return ctx.FormString(issueCommentsOrderQueryParam) == "desc"
+}
+
+func issueCommentsOrderURL(ctx *context.Context, issue *issues_model.Issue, desc bool) string {
+	query := ctx.Req.URL.Query()
+	if desc {
+		query.Set(issueCommentsOrderQueryParam, "desc")
+	} else {
+		query.Del(issueCommentsOrderQueryParam)
+	}
+
+	link := issue.Link()
+	if encodedQuery := query.Encode(); encodedQuery != "" {
+		link += "?" + encodedQuery
+	}
+	return link
+}
 
 // roleDescriptor returns the role descriptor for a comment in/with the given repo, poster and issue
 func roleDescriptor(ctx *context.Context, repo *repo_model.Repository, poster *user_model.User, permsCache map[int64]access_model.Permission, issue *issues_model.Issue, hasOriginalAuthor bool) (roleDesc issues_model.RoleDescriptor, err error) {
@@ -339,6 +361,9 @@ func ViewIssue(ctx *context.Context) {
 	ctx.Data["IsProjectsEnabled"] = ctx.Repo.Permission.CanRead(unit.TypeProjects)
 	ctx.Data["IsAttachmentEnabled"] = setting.Attachment.Enabled
 	upload.AddUploadContext(ctx, "comment")
+	commentsOrderDesc := isIssueCommentsOrderDesc(ctx)
+	ctx.Data["IssueCommentsOrderDesc"] = commentsOrderDesc
+	ctx.Data["IssueCommentsOrderToggleURL"] = issueCommentsOrderURL(ctx, issue, !commentsOrderDesc)
 
 	if err := issue.LoadAttributes(ctx); err != nil {
 		ctx.ServerError("LoadAttributes", err)
@@ -832,6 +857,10 @@ func prepareIssueViewCommentsAndSidebarParticipants(ctx *context.Context, issue 
 
 	// Combine multiple label assignments into a single comment
 	combineLabelComments(issue)
+	// Keep preparation chronological above; reverse only the final display order.
+	if isIssueCommentsOrderDesc(ctx) {
+		slices.Reverse(issue.Comments)
+	}
 
 	var hiddenCommentTypes *big.Int
 	if ctx.IsSigned {

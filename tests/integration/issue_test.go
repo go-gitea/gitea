@@ -193,6 +193,14 @@ func testIssueAddComment(t *testing.T, session *TestSession, issueURL, content, 
 	return int64(id)
 }
 
+func getIssueTimelineCommentTexts(htmlDoc *HTMLDoc) []string {
+	commentTexts := []string{}
+	htmlDoc.doc.Find(`.comment-list .timeline-item.comment[id^="issuecomment-"] .render-content`).Each(func(_ int, comment *goquery.Selection) {
+		commentTexts = append(commentTexts, strings.TrimSpace(comment.Text()))
+	})
+	return commentTexts
+}
+
 func testIssueChangeMilestone(t *testing.T, session *TestSession, repoLink string, issueID, milestoneID int64) {
 	req := NewRequestWithValues(t, "POST", fmt.Sprintf(repoLink+"/issues/milestone?issue_ids=%d", issueID), map[string]string{
 		"id": strconv.FormatInt(milestoneID, 10),
@@ -246,6 +254,39 @@ func TestIssueCommentClose(t *testing.T) {
 	htmlDoc := NewHTMLParser(t, resp.Body)
 	val := htmlDoc.doc.Find(".comment-list .comment .render-content p").First().Text()
 	assert.Equal(t, "Description", val)
+}
+
+func TestIssueCommentOrderToggle(t *testing.T) {
+	defer tests.PrepareTestEnv(t)()
+	session := loginUser(t, "user2")
+	issueURL := testNewIssue(t, session, "user2", "repo1", "Title", "Description")
+	comment1 := "Test comment order 1"
+	comment2 := "Test comment order 2"
+	testIssueAddComment(t, session, issueURL, comment1, "")
+	testIssueAddComment(t, session, issueURL, comment2, "")
+
+	req := NewRequest(t, "GET", issueURL)
+	resp := session.MakeRequest(t, req, http.StatusOK)
+	htmlDoc := NewHTMLParser(t, resp.Body)
+	assert.Equal(t, []string{comment1, comment2}, getIssueTimelineCommentTexts(htmlDoc))
+	toggleURL, exists := htmlDoc.doc.Find(".issue-comments-order-toggle").Attr("href")
+	assert.True(t, exists)
+	assert.Equal(t, issueURL+"?comments_order=desc", toggleURL)
+
+	req = NewRequest(t, "GET", issueURL+"?comments_order=desc")
+	resp = session.MakeRequest(t, req, http.StatusOK)
+	htmlDoc = NewHTMLParser(t, resp.Body)
+	assert.Equal(t, []string{comment2, comment1}, getIssueTimelineCommentTexts(htmlDoc))
+	toggleURL, exists = htmlDoc.doc.Find(".issue-comments-order-toggle").Attr("href")
+	assert.True(t, exists)
+	assert.Equal(t, issueURL, toggleURL)
+
+	req = NewRequestWithValues(t, "POST", issueURL+"/comments", map[string]string{
+		"content":        "Test comment order 3",
+		"comments_order": "desc",
+	})
+	resp = session.MakeRequest(t, req, http.StatusOK)
+	assert.True(t, strings.HasPrefix(test.RedirectURL(resp), issueURL+"?comments_order=desc#issuecomment-"))
 }
 
 func TestIssueCommentDelete(t *testing.T) {

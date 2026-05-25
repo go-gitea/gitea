@@ -58,6 +58,9 @@ func NewComment(ctx *context.Context) {
 	}
 
 	redirect := fmt.Sprintf("%s/%s/%d", ctx.Repo.RepoLink, issueType, issue.Index)
+	if isIssueCommentsOrderDesc(ctx) {
+		redirect += "?" + issueCommentsOrderQueryParam + "=desc"
+	}
 	attachments := util.Iif(setting.Attachment.Enabled, form.Files, nil)
 
 	// allow empty content if there are attachments
