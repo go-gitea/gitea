@@ -9,8 +9,10 @@ import (
 	"encoding/base64"
 	"encoding/pem"
 	"fmt"
+	"net/http"
 	"net/url"
 	"os"
+	"path/filepath"
 	"testing"
 
 	auth_model "code.gitea.io/gitea/models/auth"
@@ -255,6 +257,52 @@ func testGitSigning(t *testing.T) {
 				assert.True(t, branch.Commit.Verification.Verified)
 			}))
 		})
+
+		setting.Repository.Signing.Merges = []string{"commitssigned"}
+		setting.Repository.Signing.CRUDActions = []string{"always"}
+		t.Run("UpdateRebaseSigned", func(t *testing.T) {
+			defer tests.PrintCurrentTest(t)()
+			testCtx := NewAPITestContext(t, username, "update-rebase-signed", auth_model.AccessTokenScopeWriteRepository, auth_model.AccessTokenScopeWriteUser)
+			t.Run("CreateRepository", doAPICreateRepository(testCtx, false))
+
+			var repoID int64
+			t.Run("GetRepository", doAPIGetRepository(testCtx, func(t *testing.T, repo api.Repository) {
+				repoID = repo.ID
+			}))
+			enableRepoAllowUpdateWithRebase(t, repoID, true)
+
+			t.Run("CreateFeatureCommit", crudActionCreateFile(
+				t, testCtx, user, "master", "feature", "signed-feature.txt"))
+			pr, err := doAPICreatePullRequest(testCtx, testCtx.Username, testCtx.Reponame, "master", "feature")(t)
+			require.NoError(t, err)
+
+			content := base64.StdEncoding.EncodeToString([]byte("update base"))
+			t.Run("UpdateBase", doAPICreateFile(testCtx, "signed-base.txt", &api.CreateFileOptions{
+				FileOptions: api.FileOptions{
+					BranchName: "master",
+					Message:    "update base",
+					Author: api.Identity{
+						Name:  user.FullName,
+						Email: user.Email,
+					},
+					Committer: api.Identity{
+						Name:  user.FullName,
+						Email: user.Email,
+					},
+				},
+				ContentBase64: content,
+			}))
+
+			req := NewRequestf(t, "POST", "/api/v1/repos/%s/%s/pulls/%d/update?style=rebase", testCtx.Username, testCtx.Reponame, pr.Index).
+				AddTokenAuth(testCtx.Token)
+			testCtx.Session.MakeRequest(t, req, http.StatusOK)
+
+			t.Run("CheckFeatureBranchSigned", doAPIGetBranch(testCtx, "feature", func(t *testing.T, branch api.Branch) {
+				require.NotNil(t, branch.Commit)
+				require.NotNil(t, branch.Commit.Verification)
+				assert.True(t, branch.Commit.Verification.Verified)
+			}))
+		})
 	})
 }
 
@@ -278,10 +326,11 @@ func crudActionCreateFile(_ *testing.T, ctx APITestContext, user *user_model.Use
 }
 
 func importTestingKey() (*openpgp.Entity, error) {
-	if _, _, err := process.GetManager().Exec("gpg --import tests/integration/private-testing.key", "gpg", "--import", "tests/integration/private-testing.key"); err != nil {
+	keyPath := filepath.Join(setting.GetGiteaTestSourceRoot(), "tests/integration/private-testing.key")
+	if _, _, err := process.GetManager().Exec("gpg --import "+keyPath, "gpg", "--import", keyPath); err != nil {
 		return nil, err
 	}
-	keyringFile, err := os.Open("tests/integration/private-testing.key")
+	keyringFile, err := os.Open(keyPath)
 	if err != nil {
 		return nil, err
 	}

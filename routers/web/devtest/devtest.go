@@ -17,7 +17,9 @@ import (
 	"code.gitea.io/gitea/models/db"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/badge"
+	"code.gitea.io/gitea/modules/charset"
 	"code.gitea.io/gitea/modules/git"
+	"code.gitea.io/gitea/modules/indexer/code"
 	"code.gitea.io/gitea/modules/templates"
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/services/context"
@@ -43,8 +45,8 @@ func List(ctx *context.Context) {
 
 func FetchActionTest(ctx *context.Context) {
 	_ = ctx.Req.ParseForm()
-	ctx.Flash.Info("fetch-action: " + ctx.Req.Method + " " + ctx.Req.RequestURI + "<br>" +
-		"Form: " + ctx.Req.Form.Encode() + "<br>" +
+	ctx.Flash.Info("fetch action: " + ctx.Req.Method + " " + ctx.Req.RequestURI + "\n" +
+		"Form: " + ctx.Req.Form.Encode() + "\n" +
 		"PostForm: " + ctx.Req.PostForm.Encode(),
 	)
 	time.Sleep(2 * time.Second)
@@ -190,15 +192,58 @@ func prepareMockData(ctx *context.Context) {
 		prepareMockDataBadgeActionsSvg(ctx)
 	case "/devtest/relative-time":
 		prepareMockDataRelativeTime(ctx)
+	case "/devtest/toast-and-message":
+		prepareMockDataToastAndMessage(ctx)
+	case "/devtest/unicode-escape":
+		prepareMockDataUnicodeEscape(ctx)
 	}
+}
+
+func prepareMockDataToastAndMessage(ctx *context.Context) {
+	msgWithDetails, _ := ctx.RenderToHTML("base/alert_details", map[string]any{
+		"Message": "message with details <script>escape xss</script>",
+		"Summary": "summary with details",
+		"Details": "details line 1\n details line 2\n details line 3",
+	})
+	msgWithSummary, _ := ctx.RenderToHTML("base/alert_details", map[string]any{
+		"Message": "message with summary <script>escape xss</script>",
+		"Summary": "summary only",
+	})
+
+	ctx.Flash.ErrorMsg = string(msgWithDetails)
+	ctx.Flash.WarningMsg = string(msgWithSummary)
+	ctx.Flash.InfoMsg = "a long message with line break\nthe second line <script>removed xss</script>"
+	ctx.Flash.SuccessMsg = "single line message <script>removed xss</script>"
+	ctx.Data["Flash"] = ctx.Flash
+}
+
+func prepareMockDataUnicodeEscape(ctx *context.Context) {
+	content := "// demo code\n"
+	content += "if accessLevel != \"user\u202E \u2066// Check if admin (invisible char)\u2069 \u2066\" { }\n"
+	content += "if O𝐾 { } // ambiguous char\n"
+	content += "if O𝐾 && accessLevel != \"user\u202E \u2066// ambiguous char + invisible char\u2069 \u2066\" { }\n"
+	content += "str := `\xef` // broken char\n"
+	content += "str := `\x00 \x19 \x7f` // control char\n"
+
+	lineNums := []int{1, 2, 3, 4, 5, 6, 7, 8, 9}
+
+	highlightLines := code.HighlightSearchResultCode("demo.go", "", lineNums, content)
+	escapeStatus := &charset.EscapeStatus{}
+	lineEscapeStatus := make([]*charset.EscapeStatus, len(highlightLines))
+	for i, hl := range highlightLines {
+		lineEscapeStatus[i], hl.FormattedContent = charset.EscapeControlHTML(hl.FormattedContent, ctx.Locale)
+		escapeStatus = escapeStatus.Or(lineEscapeStatus[i])
+	}
+	ctx.Data["HighlightLines"] = highlightLines
+	ctx.Data["EscapeStatus"] = escapeStatus
+	ctx.Data["LineEscapeStatus"] = lineEscapeStatus
 }
 
 func TmplCommon(ctx *context.Context) {
 	prepareMockData(ctx)
-	if ctx.Req.Method == http.MethodPost {
-		_ = ctx.Req.ParseForm()
-		ctx.Flash.Info("form: "+ctx.Req.Method+" "+ctx.Req.RequestURI+"<br>"+
-			"Form: "+ctx.Req.Form.Encode()+"<br>"+
+	if ctx.Req.Method == http.MethodPost && ctx.FormBool("mock_response_delay") {
+		ctx.Flash.Info("form submit: "+ctx.Req.Method+" "+ctx.Req.RequestURI+"\n"+
+			"Form: "+ctx.Req.Form.Encode()+"\n"+
 			"PostForm: "+ctx.Req.PostForm.Encode(),
 			true,
 		)

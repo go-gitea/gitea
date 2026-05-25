@@ -7,7 +7,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"slices"
 	"strings"
 	"time"
 
@@ -30,7 +29,7 @@ import (
 type ActionRun struct {
 	ID                int64
 	Title             string
-	RepoID            int64                  `xorm:"unique(repo_index) index(repo_concurrency)"`
+	RepoID            int64                  `xorm:"unique(repo_index)"`
 	Repo              *repo_model.Repository `xorm:"-"`
 	OwnerID           int64                  `xorm:"index"`
 	WorkflowID        string                 `xorm:"index"`                    // the name of workflow file
@@ -50,15 +49,20 @@ type ActionRun struct {
 	Status            Status                       `xorm:"index"`
 	Version           int                          `xorm:"version default 0"` // Status could be updated concomitantly, so an optimistic lock is needed
 	RawConcurrency    string                       // raw concurrency
-	ConcurrencyGroup  string                       `xorm:"index(repo_concurrency) NOT NULL DEFAULT ''"`
-	ConcurrencyCancel bool                         `xorm:"NOT NULL DEFAULT FALSE"`
-	// Started and Stopped is used for recording last run time, if rerun happened, they will be reset to 0
+
+	// Started and Stopped are identical to the latest attempt after ActionRunAttempt was introduced.
+	// When a rerun creates a new latest attempt, they are reset until the new attempt starts and stops.
 	Started timeutil.TimeStamp
 	Stopped timeutil.TimeStamp
-	// PreviousDuration is used for recording previous duration
+
+	// PreviousDuration is kept only for legacy runs created before ActionRunAttempt existed.
+	// New runs and reruns no longer update this field and use attempt-scoped durations instead.
 	PreviousDuration time.Duration
-	Created          timeutil.TimeStamp `xorm:"created"`
-	Updated          timeutil.TimeStamp `xorm:"updated"`
+
+	LatestAttemptID int64 `xorm:"index NOT NULL DEFAULT 0"`
+
+	Created timeutil.TimeStamp `xorm:"created"`
+	Updated timeutil.TimeStamp `xorm:"updated"`
 }
 
 func init() {
@@ -66,11 +70,11 @@ func init() {
 	db.RegisterModel(new(ActionRunIndex))
 }
 
-func (run *ActionRun) HTMLURL() string {
+func (run *ActionRun) HTMLURL(ctxOpt ...context.Context) string {
 	if run.Repo == nil {
 		return ""
 	}
-	return fmt.Sprintf("%s/actions/runs/%d", run.Repo.HTMLURL(), run.ID)
+	return fmt.Sprintf("%s/actions/runs/%d", run.Repo.HTMLURL(ctxOpt...), run.ID)
 }
 
 func (run *ActionRun) Link() string {
@@ -116,10 +120,6 @@ func (run *ActionRun) RefTooltip() string {
 
 // LoadAttributes load Repo TriggerUser if not loaded
 func (run *ActionRun) LoadAttributes(ctx context.Context) error {
-	if run == nil {
-		return nil
-	}
-
 	if err := run.LoadRepo(ctx); err != nil {
 		return err
 	}
@@ -128,19 +128,19 @@ func (run *ActionRun) LoadAttributes(ctx context.Context) error {
 		return err
 	}
 
-	if run.TriggerUser == nil {
-		u, err := user_model.GetPossibleUserByID(ctx, run.TriggerUserID)
-		if err != nil {
-			return err
-		}
-		run.TriggerUser = u
-	}
+	return run.LoadTriggerUser(ctx)
+}
 
-	return nil
+func (run *ActionRun) LoadTriggerUser(ctx context.Context) (err error) {
+	if run.TriggerUser != nil {
+		return nil
+	}
+	run.TriggerUserID, run.TriggerUser, err = user_model.GetPossibleUserByID(ctx, run.TriggerUserID)
+	return err
 }
 
 func (run *ActionRun) LoadRepo(ctx context.Context) error {
-	if run == nil || run.Repo != nil {
+	if run.Repo != nil {
 		return nil
 	}
 
@@ -153,7 +153,36 @@ func (run *ActionRun) LoadRepo(ctx context.Context) error {
 }
 
 func (run *ActionRun) Duration() time.Duration {
-	return calculateDuration(run.Started, run.Stopped, run.Status) + run.PreviousDuration
+	d := calculateDuration(run.Started, run.Stopped, run.Status, run.Updated) + run.PreviousDuration
+	if d < 0 {
+		return 0
+	}
+	return d
+}
+
+// GetLatestAttempt returns
+//   - the latest attempt of the run
+//   - (nil, false, nil) for legacy runs that have no attempt records
+func (run *ActionRun) GetLatestAttempt(ctx context.Context) (*ActionRunAttempt, bool, error) {
+	if run.LatestAttemptID == 0 {
+		return nil, false, nil
+	}
+	attempt, err := GetRunAttemptByRepoAndID(ctx, run.RepoID, run.LatestAttemptID)
+	if err != nil {
+		return nil, false, err
+	}
+	return attempt, true, nil
+}
+
+func (run *ActionRun) GetEffectiveConcurrency(ctx context.Context) (string, bool, error) {
+	attempt, has, err := run.GetLatestAttempt(ctx)
+	if err != nil {
+		return "", false, err
+	}
+	if has {
+		return attempt.ConcurrencyGroup, attempt.ConcurrencyCancel, nil
+	}
+	return "", false, nil
 }
 
 func (run *ActionRun) GetPushEventPayload() (*api.PushPayload, error) {
@@ -194,30 +223,34 @@ func (run *ActionRun) IsSchedule() bool {
 }
 
 // UpdateRepoRunsNumbers updates the number of runs and closed runs of a repository.
-func UpdateRepoRunsNumbers(ctx context.Context, repo *repo_model.Repository) error {
-	_, err := db.GetEngine(ctx).ID(repo.ID).
-		NoAutoTime().
-		Cols("num_action_runs", "num_closed_action_runs").
-		SetExpr("num_action_runs",
-			builder.Select("count(*)").From("action_run").
-				Where(builder.Eq{"repo_id": repo.ID}),
-		).
-		SetExpr("num_closed_action_runs",
-			builder.Select("count(*)").From("action_run").
-				Where(builder.Eq{
-					"repo_id": repo.ID,
-				}.And(
-					builder.In("status",
-						StatusSuccess,
-						StatusFailure,
-						StatusCancelled,
-						StatusSkipped,
-					),
-				),
-				),
-		).
-		Update(repo)
-	return err
+// Callers MUST invoke this from outside any transaction that has X-locked action_run rows for the same repo, otherwise, transaction deadlock
+func UpdateRepoRunsNumbers(ctx context.Context, repoID int64) {
+	if db.InTransaction(ctx) {
+		setting.PanicInDevOrTesting("UpdateRepoRunsNumbers must not be called inside a transaction")
+	}
+
+	e := db.GetEngine(ctx)
+
+	numActionRuns, err := e.Where("repo_id = ?", repoID).Count(new(ActionRun))
+	if err != nil {
+		log.Error("UpdateRepoRunsNumbers count num_action_runs for repo %d: %v", repoID, err)
+		return
+	}
+
+	numClosedActionRuns, err := e.Where("repo_id = ?", repoID).
+		In("status", StatusSuccess, StatusFailure, StatusCancelled, StatusSkipped).
+		Count(new(ActionRun))
+	if err != nil {
+		log.Error("UpdateRepoRunsNumbers count num_closed_action_runs for repo %d: %v", repoID, err)
+		return
+	}
+
+	if _, err := e.ID(repoID).Cols("num_action_runs", "num_closed_action_runs").NoAutoTime().Update(&repo_model.Repository{
+		NumActionRuns:       int(numActionRuns),
+		NumClosedActionRuns: int(numClosedActionRuns),
+	}); err != nil {
+		log.Error("UpdateRepoRunsNumbers update repo %d: %v", repoID, err)
+	}
 }
 
 // CancelPreviousJobs cancels all previous jobs of the same repository, reference, workflow, and event.
@@ -229,7 +262,7 @@ func CancelPreviousJobs(ctx context.Context, repoID int64, ref, workflowID strin
 		Ref:          ref,
 		WorkflowID:   workflowID,
 		TriggerEvent: event,
-		Status:       []Status{StatusRunning, StatusWaiting, StatusBlocked},
+		Status:       []Status{StatusRunning, StatusWaiting, StatusBlocked, StatusCancelling},
 	})
 	if err != nil {
 		return nil, err
@@ -296,7 +329,7 @@ func CancelJobs(ctx context.Context, jobs []*ActionRunJob) ([]*ActionRunJob, err
 		}
 
 		// If the job has an associated task, try to stop the task, effectively cancelling the job.
-		if err := StopTask(ctx, job.TaskID, StatusCancelled); err != nil {
+		if err := StopTask(ctx, job.TaskID, StatusCancelling); err != nil {
 			return cancelledJobs, err
 		}
 		updatedJob, err := GetRunJobByRunAndID(ctx, job.RunID, job.ID)
@@ -322,16 +355,16 @@ func GetRunByRepoAndID(ctx context.Context, repoID, runID int64) (*ActionRun, er
 	return &run, nil
 }
 
-func GetRunByIndex(ctx context.Context, repoID, index int64) (*ActionRun, error) {
+func GetRunByRepoAndIndex(ctx context.Context, repoID, runIndex int64) (*ActionRun, error) {
 	run := &ActionRun{
 		RepoID: repoID,
-		Index:  index,
+		Index:  runIndex,
 	}
 	has, err := db.GetEngine(ctx).Get(run)
 	if err != nil {
 		return nil, err
 	} else if !has {
-		return nil, fmt.Errorf("run with index %d %d: %w", repoID, index, util.ErrNotExist)
+		return nil, fmt.Errorf("run with repo_id %d and index %d: %w", repoID, runIndex, util.ErrNotExist)
 	}
 
 	return run, nil
@@ -385,31 +418,16 @@ func UpdateRun(ctx context.Context, run *ActionRun, cols ...string) error {
 		// It's impossible that the run is not found, since Gitea never deletes runs.
 	}
 
-	if run.Status != 0 || slices.Contains(cols, "status") {
-		if run.RepoID == 0 {
-			setting.PanicInDevOrTesting("RepoID should not be 0")
-		}
-		if err = run.LoadRepo(ctx); err != nil {
-			return err
-		}
-		if err := UpdateRepoRunsNumbers(ctx, run.Repo); err != nil {
-			return err
-		}
-	}
-
 	return nil
 }
 
 type ActionRunIndex db.ResourceIndex
 
-func GetConcurrentRunsAndJobs(ctx context.Context, repoID int64, concurrencyGroup string, status []Status) ([]*ActionRun, []*ActionRunJob, error) {
-	runs, err := db.Find[ActionRun](ctx, &FindRunOptions{
-		RepoID:           repoID,
-		ConcurrencyGroup: concurrencyGroup,
-		Status:           status,
-	})
+// GetConcurrentRunAttemptsAndJobs returns run attempts and jobs in the same concurrency group by statuses.
+func GetConcurrentRunAttemptsAndJobs(ctx context.Context, repoID int64, concurrencyGroup string, status []Status) ([]*ActionRunAttempt, []*ActionRunJob, error) {
+	attempts, err := FindConcurrentRunAttempts(ctx, repoID, concurrencyGroup, status)
 	if err != nil {
-		return nil, nil, fmt.Errorf("find runs: %w", err)
+		return nil, nil, fmt.Errorf("find run attempts: %w", err)
 	}
 
 	jobs, err := db.Find[ActionRunJob](ctx, &FindRunJobOptions{
@@ -421,36 +439,35 @@ func GetConcurrentRunsAndJobs(ctx context.Context, repoID int64, concurrencyGrou
 		return nil, nil, fmt.Errorf("find jobs: %w", err)
 	}
 
-	return runs, jobs, nil
+	return attempts, jobs, nil
 }
 
-func CancelPreviousJobsByRunConcurrency(ctx context.Context, actionRun *ActionRun) ([]*ActionRunJob, error) {
-	if actionRun.ConcurrencyGroup == "" {
+func CancelPreviousJobsByRunConcurrency(ctx context.Context, attempt *ActionRunAttempt) ([]*ActionRunJob, error) {
+	if attempt.ConcurrencyGroup == "" {
 		return nil, nil
 	}
 
 	var jobsToCancel []*ActionRunJob
 
 	statusFindOption := []Status{StatusWaiting, StatusBlocked}
-	if actionRun.ConcurrencyCancel {
+	if attempt.ConcurrencyCancel {
 		statusFindOption = append(statusFindOption, StatusRunning)
+		statusFindOption = append(statusFindOption, StatusCancelling)
 	}
-	runs, jobs, err := GetConcurrentRunsAndJobs(ctx, actionRun.RepoID, actionRun.ConcurrencyGroup, statusFindOption)
+	attempts, jobs, err := GetConcurrentRunAttemptsAndJobs(ctx, attempt.RepoID, attempt.ConcurrencyGroup, statusFindOption)
 	if err != nil {
 		return nil, fmt.Errorf("find concurrent runs and jobs: %w", err)
 	}
 	jobsToCancel = append(jobsToCancel, jobs...)
 
 	// cancel runs in the same concurrency group
-	for _, run := range runs {
-		if run.ID == actionRun.ID {
+	for _, concurrentAttempt := range attempts {
+		if concurrentAttempt.RunID == attempt.RunID {
 			continue
 		}
-		jobs, err := db.Find[ActionRunJob](ctx, FindRunJobOptions{
-			RunID: run.ID,
-		})
+		jobs, err := GetRunJobsByRunAndAttemptID(ctx, concurrentAttempt.RunID, concurrentAttempt.ID)
 		if err != nil {
-			return nil, fmt.Errorf("find run %d jobs: %w", run.ID, err)
+			return nil, fmt.Errorf("find run %d attempt %d jobs: %w", concurrentAttempt.RunID, concurrentAttempt.ID, err)
 		}
 		jobsToCancel = append(jobsToCancel, jobs...)
 	}

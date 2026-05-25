@@ -13,6 +13,7 @@ import (
 	"strings"
 
 	repo_model "code.gitea.io/gitea/models/repo"
+	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/fileicon"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
@@ -24,12 +25,6 @@ import (
 // ErrSHANotFound represents a "SHADoesNotMatch" kind of error.
 type ErrSHANotFound struct {
 	SHA string
-}
-
-// IsErrSHANotFound checks if an error is a ErrSHANotFound.
-func IsErrSHANotFound(err error) bool {
-	_, ok := err.(ErrSHANotFound)
-	return ok
 }
 
 func (err ErrSHANotFound) Error() string {
@@ -170,7 +165,7 @@ func sortTreeViewNodes(nodes []*TreeViewNode) {
 		if a != b {
 			return a < b
 		}
-		return nodes[i].EntryName < nodes[j].EntryName
+		return base.NaturalSortCompare(nodes[i].EntryName, nodes[j].EntryName) < 0
 	})
 }
 

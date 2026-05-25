@@ -186,15 +186,7 @@ func (a *Action) LoadActUser(ctx context.Context) {
 	if a.ActUser != nil {
 		return
 	}
-	var err error
-	a.ActUser, err = user_model.GetPossibleUserByID(ctx, a.ActUserID)
-	if err == nil {
-		return
-	} else if user_model.IsErrUserNotExist(err) {
-		a.ActUser = user_model.NewGhostUser()
-	} else {
-		log.Error("GetUserByID(%d): %v", a.ActUserID, err)
-	}
+	a.ActUserID, a.ActUser, _ = user_model.GetPossibleUserByID(ctx, a.ActUserID)
 }
 
 func (a *Action) LoadRepo(ctx context.Context) error {
@@ -442,6 +434,12 @@ type GetFeedsOptions struct {
 	IncludeDeleted  bool                   // include deleted actions
 	Date            string                 // the day we want activity for: YYYY-MM-DD
 	DontCount       bool                   // do counting in GetFeeds
+}
+
+func (opts *GetFeedsOptions) ApplyPublicOnly(publicOnly bool) {
+	if publicOnly {
+		opts.IncludePrivate = false
+	}
 }
 
 // ActivityReadable return whether doer can read activities of user

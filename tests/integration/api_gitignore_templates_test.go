@@ -21,9 +21,9 @@ func TestAPIListGitignoresTemplates(t *testing.T) {
 	req := NewRequest(t, "GET", "/api/v1/gitignore/templates")
 	resp := MakeRequest(t, req, http.StatusOK)
 
-	// This tests if the API returns a list of strings
-	var gitignoreList []string
-	DecodeJSON(t, resp, &gitignoreList)
+	templateList := DecodeJSON(t, resp, []string{}) // this is a very long list
+	assert.Contains(t, templateList, "C++")
+	assert.Contains(t, templateList, "Go")
 }
 
 func TestAPIGetGitignoreTemplateInfo(t *testing.T) {
@@ -41,8 +41,7 @@ func TestAPIGetGitignoreTemplateInfo(t *testing.T) {
 	req := NewRequest(t, "GET", urlStr)
 	resp := MakeRequest(t, req, http.StatusOK)
 
-	var templateInfo api.GitignoreTemplateInfo
-	DecodeJSON(t, resp, &templateInfo)
+	templateInfo := DecodeJSON(t, resp, &api.GitignoreTemplateInfo{})
 
 	// We get the text of the template here
 	text, _ := options.Gitignore(templateName)

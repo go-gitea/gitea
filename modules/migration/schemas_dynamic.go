@@ -6,14 +6,15 @@
 package migration
 
 import (
-	"io"
 	"net/url"
 	"os"
 	"path"
 	"path/filepath"
+
+	"github.com/santhosh-tekuri/jsonschema/v6"
 )
 
-func openSchema(s string) (io.ReadCloser, error) {
+func openSchema(s string) (any, error) {
 	u, err := url.Parse(s)
 	if err != nil {
 		return nil, err
@@ -34,5 +35,10 @@ func openSchema(s string) (io.ReadCloser, error) {
 			filename = filepath.Join("modules/migration/schemas", basename)
 		}
 	}
-	return os.Open(filename)
+	f, err := os.Open(filename)
+	if err != nil {
+		return nil, err
+	}
+	defer f.Close()
+	return jsonschema.UnmarshalJSON(f)
 }

@@ -12,3 +12,5 @@
   id: 3
   type: 1 # NoticeRepository
   description: description3
+
+# DO NOT add more test data in the fixtures, test case should prepare their own test data separately and clearly

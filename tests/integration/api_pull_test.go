@@ -47,8 +47,7 @@ func TestAPIViewPulls(t *testing.T) {
 		AddTokenAuth(ctx.Token)
 	resp := ctx.Session.MakeRequest(t, req, http.StatusOK)
 
-	var pulls []*api.PullRequest
-	DecodeJSON(t, resp, &pulls)
+	pulls := DecodeJSON(t, resp, []*api.PullRequest{})
 	expectedLen := unittest.GetCount(t, &issues_model.Issue{RepoID: repo.ID}, unittest.Cond("is_pull = ?", true))
 	assert.Len(t, pulls, expectedLen)
 
@@ -156,8 +155,7 @@ func TestAPIViewPullsByBaseHead(t *testing.T) {
 		AddTokenAuth(ctx.Token)
 	resp := ctx.Session.MakeRequest(t, req, http.StatusOK)
 
-	pull := &api.PullRequest{}
-	DecodeJSON(t, resp, pull)
+	pull := DecodeJSON(t, resp, &api.PullRequest{})
 	assert.EqualValues(t, 3, pull.Index)
 	assert.EqualValues(t, 2, pull.ID)
 
@@ -395,10 +393,8 @@ func TestAPICreatePullWithFieldsSuccess(t *testing.T) {
 
 	req := NewRequestWithJSON(t, http.MethodPost, fmt.Sprintf("/api/v1/repos/%s/%s/pulls", owner10.Name, repo10.Name), opts).
 		AddTokenAuth(token)
-
-	res := MakeRequest(t, req, http.StatusCreated)
-	pull := new(api.PullRequest)
-	DecodeJSON(t, res, pull)
+	resp := MakeRequest(t, req, http.StatusCreated)
+	pull := DecodeJSON(t, resp, &api.PullRequest{})
 
 	assert.NotNil(t, pull.Milestone)
 	assert.Equal(t, opts.Milestone, pull.Milestone.ID)
@@ -550,8 +546,7 @@ func doAPIGetPullFiles(ctx APITestContext, pr *api.PullRequest, callback func(*t
 		}
 		resp := ctx.Session.MakeRequest(t, req, ctx.ExpectedCode)
 
-		files := make([]*api.ChangedFile, 0, 1)
-		DecodeJSON(t, resp, &files)
+		files := DecodeJSON(t, resp, []*api.ChangedFile{})
 
 		if callback != nil {
 			callback(t, files)

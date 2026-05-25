@@ -1,5 +1,14 @@
-.organization .head .ui.header .ui.right {
-  margin-top: 5px;
+.page-content.organization .team-item-box > .team-item-header {
+  min-height: 50px; /* the header sometimes contains a mini button, sometimes not, so we set a min-height to make sure the layout is consistent */
+}
+
+.page-content.organization .team-item-box .team-item-description {
+  padding-top: 0.5em;
+  padding-bottom: 0.5em;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--color-text-light-3);
 }
 
 .page-content.organization .org-avatar {

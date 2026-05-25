@@ -113,8 +113,7 @@ func TestAPIChangeFiles(t *testing.T) {
 					lastCommitterWhen: updateLastCommit.Committer.When,
 					lastAuthorWhen:    updateLastCommit.Author.When,
 				})
-				var filesResponse api.FilesResponse
-				DecodeJSON(t, resp, &filesResponse)
+				filesResponse := DecodeJSON(t, resp, &api.FilesResponse{})
 				normalizeFileContentResponseCommitTime(filesResponse.Files[0])
 				normalizeFileContentResponseCommitTime(filesResponse.Files[1])
 				assert.Equal(t, expectedCreateFileResponse.Content, filesResponse.Files[0]) // check create file
@@ -146,8 +145,7 @@ func TestAPIChangeFiles(t *testing.T) {
 		req := NewRequestWithJSON(t, "POST", url, &changeFilesOptions).
 			AddTokenAuth(token2)
 		resp := MakeRequest(t, req, http.StatusCreated)
-		var filesResponse api.FilesResponse
-		DecodeJSON(t, resp, &filesResponse)
+		filesResponse := DecodeJSON(t, resp, &api.FilesResponse{})
 		expectedCreateSHA := "a635aa942442ddfdba07468cf9661c08fbdf0ebf"
 		expectedCreateHTMLURL := fmt.Sprintf(setting.AppURL+"user2/repo1/src/branch/new_branch/new/file%d.txt", fileID)
 		expectedCreateDownloadURL := fmt.Sprintf(setting.AppURL+"user2/repo1/raw/branch/new_branch/new/file%d.txt", fileID)
@@ -201,7 +199,7 @@ func TestAPIChangeFiles(t *testing.T) {
 		req = NewRequestWithJSON(t, "POST", url, &changeFilesOptions).
 			AddTokenAuth(token2)
 		resp = MakeRequest(t, req, http.StatusCreated)
-		DecodeJSON(t, resp, &filesResponse)
+		filesResponse = DecodeJSON(t, resp, &api.FilesResponse{})
 		expectedCreateHTMLURL = fmt.Sprintf(setting.AppURL+"user2/repo1/src/branch/develop/new/file%d.txt", fileID)
 		expectedCreateDownloadURL = fmt.Sprintf(setting.AppURL+"user2/repo1/raw/branch/develop/new/file%d.txt", fileID)
 		expectedUpdateHTMLURL = fmt.Sprintf(setting.AppURL+"user2/repo1/src/branch/develop/update/file%d.txt", fileID)
@@ -255,7 +253,7 @@ func TestAPIChangeFiles(t *testing.T) {
 		req = NewRequestWithJSON(t, "POST", url, &changeFilesOptions).
 			AddTokenAuth(token2)
 		resp = MakeRequest(t, req, http.StatusCreated)
-		DecodeJSON(t, resp, &filesResponse)
+		filesResponse = DecodeJSON(t, resp, &api.FilesResponse{})
 		expectedUpdateSHA = "08bd14b2e2852529157324de9c226b3364e76136"
 		expectedUpdateHTMLURL = fmt.Sprintf(setting.AppURL+"user2/repo1/src/branch/master/rename/update/file%d.txt", fileID)
 		expectedUpdateDownloadURL = fmt.Sprintf(setting.AppURL+"user2/repo1/raw/branch/master/rename/update/file%d.txt", fileID)
@@ -279,7 +277,7 @@ func TestAPIChangeFiles(t *testing.T) {
 		req = NewRequestWithJSON(t, "POST", url, &changeFilesOptions).
 			AddTokenAuth(token2)
 		resp = MakeRequest(t, req, http.StatusCreated)
-		DecodeJSON(t, resp, &filesResponse)
+		filesResponse = DecodeJSON(t, resp, &api.FilesResponse{})
 		expectedMessage := fmt.Sprintf("Add %v\nUpdate %v\nDelete %v\n", createTreePath, updateTreePath, deleteTreePath)
 		assert.Equal(t, expectedMessage, filesResponse.Commit.Message)
 
@@ -295,12 +293,11 @@ func TestAPIChangeFiles(t *testing.T) {
 		req = NewRequestWithJSON(t, "POST", url, &changeFilesOptions).
 			AddTokenAuth(token2)
 		resp = MakeRequest(t, req, http.StatusUnprocessableEntity)
-		expectedAPIError := context.APIError{
+		expectedAPIError := &context.APIError{
 			Message: "sha does not match [given: " + changeFilesOptions.Files[0].SHA + ", expected: " + correctSHA + "]",
 			URL:     setting.API.SwaggerURL,
 		}
-		var apiError context.APIError
-		DecodeJSON(t, resp, &apiError)
+		apiError := DecodeJSON(t, resp, &context.APIError{})
 		assert.Equal(t, expectedAPIError, apiError)
 
 		// Test creating a file in repo1 by user4 who does not have write access

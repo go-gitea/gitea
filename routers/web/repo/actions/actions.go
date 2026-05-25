@@ -28,7 +28,7 @@ import (
 	"code.gitea.io/gitea/services/context"
 	"code.gitea.io/gitea/services/convert"
 
-	act_model "github.com/nektos/act/pkg/model"
+	act_model "gitea.com/gitea/runner/act/model"
 	"go.yaml.in/yaml/v4"
 )
 
@@ -44,6 +44,14 @@ type WorkflowInfo struct {
 	Workflow *act_model.Workflow
 }
 
+// DisplayName returns the workflow name from the YAML file if present, otherwise the filename.
+func (w WorkflowInfo) DisplayName() string {
+	if w.Workflow != nil && w.Workflow.Name != "" {
+		return w.Workflow.Name
+	}
+	return w.Entry.Name()
+}
+
 // MustEnableActions check if actions are enabled in settings
 func MustEnableActions(ctx *context.Context) {
 	if !setting.Actions.Enabled {
@@ -57,7 +65,7 @@ func MustEnableActions(ctx *context.Context) {
 	}
 
 	if ctx.Repo.Repository != nil {
-		if !ctx.Repo.CanRead(unit.TypeActions) {
+		if !ctx.Repo.Permission.CanRead(unit.TypeActions) {
 			ctx.NotFound(nil)
 			return
 		}
@@ -82,17 +90,46 @@ func List(ctx *context.Context) {
 	if ctx.Written() {
 		return
 	}
+	otherWorkflows := prepareOtherWorkflows(ctx, workflows, curWorkflowID)
+	if ctx.Written() {
+		return
+	}
 	prepareWorkflowDispatchTemplate(ctx, workflows, curWorkflowID)
 	if ctx.Written() {
 		return
 	}
 
-	prepareWorkflowList(ctx, workflows)
+	prepareWorkflowList(ctx, workflows, otherWorkflows)
 	if ctx.Written() {
 		return
 	}
 
 	ctx.HTML(http.StatusOK, tplListActions)
+}
+
+// prepareOtherWorkflows surfaces historical runs whose workflow file no longer
+// exists on the default branch (renamed, removed, or only on other branches).
+func prepareOtherWorkflows(ctx *context.Context, workflows []WorkflowInfo, curWorkflowID string) []string {
+	listed := make(container.Set[string], len(workflows))
+	for _, w := range workflows {
+		listed.Add(w.Entry.Name())
+	}
+
+	var other []string
+	if ctx.Repo.Repository.NumActionRuns > 0 {
+		ids, err := actions_model.GetRunWorkflowIDs(ctx, ctx.Repo.Repository.ID)
+		if err != nil {
+			ctx.ServerError("GetRunWorkflowIDs", err)
+			return nil
+		}
+		other = container.FilterSlice(ids, func(id string) (string, bool) {
+			return id, id != "" && !listed.Contains(id)
+		})
+	}
+
+	ctx.Data["OtherWorkflows"] = other
+	ctx.Data["CurWorkflowIsListed"] = curWorkflowID == "" || listed.Contains(curWorkflowID)
+	return other
 }
 
 func WorkflowDispatchInputs(ctx *context.Context) {
@@ -151,6 +188,11 @@ func prepareWorkflowTemplate(ctx *context.Context, commit *git.Commit) (workflow
 			workflows = append(workflows, workflow)
 			continue
 		}
+		if err := actions.ValidateWorkflowContent(content); err != nil {
+			workflow.ErrMsg = ctx.Locale.TrString("actions.runs.invalid_workflow_helper", err.Error())
+			workflows = append(workflows, workflow)
+			continue
+		}
 		workflow.Workflow = wf
 		// The workflow must contain at least one job without "needs". Otherwise, a deadlock will occur and no jobs will be able to run.
 		hasJobWithoutNeeds := false
@@ -176,7 +218,7 @@ func prepareWorkflowTemplate(ctx *context.Context, commit *git.Commit) (workflow
 
 	ctx.Data["workflows"] = workflows
 	ctx.Data["RepoLink"] = ctx.Repo.Repository.Link()
-	ctx.Data["AllowDisableOrEnableWorkflow"] = ctx.Repo.IsAdmin()
+	ctx.Data["AllowDisableOrEnableWorkflow"] = ctx.Repo.Permission.IsAdmin()
 	actionsConfig := ctx.Repo.Repository.MustGetUnit(ctx, unit.TypeActions).ActionsConfig()
 	ctx.Data["ActionsConfig"] = actionsConfig
 	ctx.Data["CurWorkflow"] = curWorkflowID
@@ -187,7 +229,7 @@ func prepareWorkflowTemplate(ctx *context.Context, commit *git.Commit) (workflow
 
 func prepareWorkflowDispatchTemplate(ctx *context.Context, workflowInfos []WorkflowInfo, curWorkflowID string) {
 	actionsConfig := ctx.Repo.Repository.MustGetUnit(ctx, unit.TypeActions).ActionsConfig()
-	if curWorkflowID == "" || !ctx.Repo.CanWrite(unit.TypeActions) || actionsConfig.IsWorkflowDisabled(curWorkflowID) {
+	if curWorkflowID == "" || !ctx.Repo.Permission.CanWrite(unit.TypeActions) || actionsConfig.IsWorkflowDisabled(curWorkflowID) {
 		return
 	}
 
@@ -240,7 +282,7 @@ func prepareWorkflowDispatchTemplate(ctx *context.Context, workflowInfos []Workf
 	ctx.Data["Tags"] = tags
 }
 
-func prepareWorkflowList(ctx *context.Context, workflows []WorkflowInfo) {
+func prepareWorkflowList(ctx *context.Context, workflows []WorkflowInfo, otherWorkflows []string) {
 	actorID := ctx.FormInt64("actor")
 	status := ctx.FormInt("status")
 	workflowID := ctx.FormString("workflow")
@@ -306,7 +348,7 @@ func prepareWorkflowList(ctx *context.Context, workflows []WorkflowInfo) {
 		if !run.Status.In(actions_model.StatusWaiting, actions_model.StatusRunning) {
 			continue
 		}
-		jobs, err := actions_model.GetRunJobsByRunID(ctx, run.ID)
+		jobs, err := actions_model.GetLatestAttemptJobsByRepoAndRunID(ctx, run.RepoID, run.ID)
 		if err != nil {
 			ctx.ServerError("GetRunJobsByRunID", err)
 			return
@@ -314,6 +356,10 @@ func prepareWorkflowList(ctx *context.Context, workflows []WorkflowInfo) {
 		for _, job := range jobs {
 			if !job.Status.IsWaiting() {
 				continue
+			}
+			if err := actions.ValidateWorkflowContent(job.WorkflowPayload); err != nil {
+				runErrors[run.ID] = ctx.Locale.TrString("actions.runs.invalid_workflow_helper", err.Error())
+				break
 			}
 			hasOnlineRunner := false
 			for _, runner := range runners {
@@ -332,6 +378,12 @@ func prepareWorkflowList(ctx *context.Context, workflows []WorkflowInfo) {
 
 	ctx.Data["Runs"] = runs
 
+	workflowNames := make(map[string]string, len(workflows))
+	for _, wf := range workflows {
+		workflowNames[wf.Entry.Name()] = wf.DisplayName()
+	}
+	ctx.Data["WorkflowNames"] = workflowNames
+
 	actors, err := actions_model.GetActors(ctx, ctx.Repo.Repository.ID)
 	if err != nil {
 		ctx.ServerError("GetActors", err)
@@ -344,9 +396,9 @@ func prepareWorkflowList(ctx *context.Context, workflows []WorkflowInfo) {
 	pager := context.NewPagination(total, opts.PageSize, opts.Page, 5)
 	pager.AddParamFromRequest(ctx.Req)
 	ctx.Data["Page"] = pager
-	ctx.Data["HasWorkflowsOrRuns"] = len(workflows) > 0 || len(runs) > 0
+	ctx.Data["HasWorkflowsOrRuns"] = len(workflows) > 0 || len(otherWorkflows) > 0 || len(runs) > 0
 
-	ctx.Data["CanWriteRepoUnitActions"] = ctx.Repo.CanWrite(unit.TypeActions)
+	ctx.Data["CanWriteRepoUnitActions"] = ctx.Repo.Permission.CanWrite(unit.TypeActions)
 }
 
 // loadIsRefDeleted loads the IsRefDeleted field for each run in the list.

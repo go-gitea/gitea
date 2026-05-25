@@ -4,7 +4,6 @@
 package integration
 
 import (
-	"archive/zip"
 	"bytes"
 	"fmt"
 	"net/http"
@@ -17,6 +16,7 @@ import (
 	user_model "code.gitea.io/gitea/models/user"
 	composer_module "code.gitea.io/gitea/modules/packages/composer"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/test"
 	"code.gitea.io/gitea/routers/api/packages/composer"
 	"code.gitea.io/gitea/tests"
 
@@ -27,6 +27,8 @@ func TestPackageComposer(t *testing.T) {
 	defer tests.PrepareTestEnv(t)()
 
 	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
+	otherUser := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 5})
+	privateUser := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 31})
 
 	vendorName := "gitea"
 	projectName := "composer-package"
@@ -38,10 +40,8 @@ func TestPackageComposer(t *testing.T) {
 	packageLicense := "MIT"
 	packageBin := "./bin/script"
 
-	var buf bytes.Buffer
-	archive := zip.NewWriter(&buf)
-	w, _ := archive.Create("composer.json")
-	w.Write([]byte(`{
+	content := test.WriteZipArchive(map[string]string{
+		"composer.json": `{
 		"name": "` + packageName + `",
 		"description": "` + packageDescription + `",
 		"type": "` + packageType + `",
@@ -54,9 +54,8 @@ func TestPackageComposer(t *testing.T) {
 		"bin": [
 			"` + packageBin + `"
 		]
-	}`))
-	archive.Close()
-	content := buf.Bytes()
+	}`,
+	}).Bytes()
 
 	url := fmt.Sprintf("%sapi/packages/%s/composer", setting.AppURL, user.Name)
 
@@ -67,8 +66,7 @@ func TestPackageComposer(t *testing.T) {
 			AddBasicAuth(user.Name)
 		resp := MakeRequest(t, req, http.StatusOK)
 
-		var result composer.ServiceIndexResponse
-		DecodeJSON(t, resp, &result)
+		result := DecodeJSON(t, resp, &composer.ServiceIndexResponse{})
 
 		assert.Equal(t, url+"/search.json?q=%query%&type=%type%", result.SearchTemplate)
 		assert.Equal(t, url+"/p2/%package%.json", result.MetadataTemplate)
@@ -170,8 +168,7 @@ func TestPackageComposer(t *testing.T) {
 				AddBasicAuth(user.Name)
 			resp := MakeRequest(t, req, http.StatusOK)
 
-			var result composer.SearchResultResponse
-			DecodeJSON(t, resp, &result)
+			result := DecodeJSON(t, resp, &composer.SearchResultResponse{})
 
 			assert.Equal(t, c.ExpectedTotal, result.Total, "case %d: unexpected total hits", i)
 			assert.Len(t, result.Results, c.ExpectedResults, "case %d: unexpected result count", i)
@@ -185,8 +182,7 @@ func TestPackageComposer(t *testing.T) {
 			AddBasicAuth(user.Name)
 		resp := MakeRequest(t, req, http.StatusOK)
 
-		var result map[string][]string
-		DecodeJSON(t, resp, &result)
+		result := DecodeJSON(t, resp, map[string][]string{})
 
 		assert.Contains(t, result, "packageNames")
 		names := result["packageNames"]
@@ -201,8 +197,7 @@ func TestPackageComposer(t *testing.T) {
 			AddBasicAuth(user.Name)
 		resp := MakeRequest(t, req, http.StatusOK)
 
-		var result composer.PackageMetadataResponse
-		DecodeJSON(t, resp, &result)
+		result := DecodeJSON(t, resp, &composer.PackageMetadataResponse{})
 
 		assert.Contains(t, result.Packages, packageName)
 		pkgs := result.Packages[packageName]
@@ -232,8 +227,7 @@ func TestPackageComposer(t *testing.T) {
 			AddBasicAuth(user.Name)
 		resp = MakeRequest(t, req, http.StatusOK)
 
-		result = composer.PackageMetadataResponse{}
-		DecodeJSON(t, resp, &result)
+		result = DecodeJSON(t, resp, &composer.PackageMetadataResponse{})
 
 		assert.Contains(t, result.Packages, packageName)
 		pkgs = result.Packages[packageName]
@@ -251,5 +245,83 @@ func TestPackageComposer(t *testing.T) {
 		assert.Equal(t, repo1.HTMLURL(), pkgs[0].Source.URL)
 		assert.Equal(t, "git", pkgs[0].Source.Type)
 		assert.Equal(t, packageVersion, pkgs[0].Source.Reference)
+
+		// Private repository links remain visible to callers who can access the repository.
+		repo2 := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 2})
+		err = packages.SetRepositoryLink(t.Context(), userPkgs[0].ID, repo2.ID)
+		assert.NoError(t, err)
+
+		req = NewRequest(t, "GET", fmt.Sprintf("%s/p2/%s/%s.json", url, vendorName, projectName)).
+			AddBasicAuth(user.Name)
+		resp = MakeRequest(t, req, http.StatusOK)
+
+		result = DecodeJSON(t, resp, &composer.PackageMetadataResponse{})
+		pkgs = result.Packages[packageName]
+		assert.Len(t, pkgs, 1)
+		assert.Equal(t, repo2.HTMLURL(), pkgs[0].Source.URL)
+		assert.Equal(t, "git", pkgs[0].Source.Type)
+		assert.Equal(t, packageVersion, pkgs[0].Source.Reference)
+
+		// Callers without repository access still get the package metadata, but not the private source URL.
+		req = NewRequest(t, "GET", fmt.Sprintf("%s/p2/%s/%s.json", url, vendorName, projectName)).
+			AddBasicAuth(otherUser.Name)
+		resp = MakeRequest(t, req, http.StatusOK)
+
+		result = DecodeJSON(t, resp, &composer.PackageMetadataResponse{})
+		pkgs = result.Packages[packageName]
+		assert.Len(t, pkgs, 1)
+		assert.Empty(t, pkgs[0].Source.URL)
+		assert.Empty(t, pkgs[0].Source.Type)
+		assert.Empty(t, pkgs[0].Source.Reference)
+	})
+
+	t.Run("WebVisibilityBadge", func(t *testing.T) {
+		defer tests.PrintCurrentTest(t)()
+
+		listReq := NewRequest(t, "GET", fmt.Sprintf("/%s/-/packages", user.Name)).
+			AddBasicAuth(user.Name)
+		listResp := MakeRequest(t, listReq, http.StatusOK)
+		listDoc := NewHTMLParser(t, bytes.NewReader(listResp.Body.Bytes()))
+		assert.Equal(t, 0, listDoc.Find(".item-title .ui.basic.label").Length())
+
+		viewReq := NewRequest(t, "GET", fmt.Sprintf("/%s/-/packages/composer/%s/%s", user.Name, neturl.PathEscape(packageName), neturl.PathEscape(packageVersion))).
+			AddBasicAuth(user.Name)
+		viewResp := MakeRequest(t, viewReq, http.StatusOK)
+		viewDoc := NewHTMLParser(t, bytes.NewReader(viewResp.Body.Bytes()))
+		assert.Equal(t, 0, viewDoc.Find(".issue-title-header .ui.basic.label").Length())
+
+		privatePackageName := privateUser.Name + "/private-composer-package"
+		privatePackageVersion := "1.0.0"
+		privateContent := test.WriteZipArchive(map[string]string{
+			"composer.json": `{
+				"name": "` + privatePackageName + `",
+				"description": "Private Package",
+				"type": "` + packageType + `",
+				"license": "` + packageLicense + `",
+				"authors": [
+					{
+						"name": "` + packageAuthor + `"
+					}
+				]
+			}`,
+		}).Bytes()
+		privateUploadURL := fmt.Sprintf("%sapi/packages/%s/composer?version=%s", setting.AppURL, privateUser.Name, privatePackageVersion)
+
+		uploadReq := NewRequestWithBody(t, "PUT", privateUploadURL, bytes.NewReader(privateContent)).
+			AddBasicAuth(privateUser.Name)
+		MakeRequest(t, uploadReq, http.StatusCreated)
+		privateSession := loginUser(t, privateUser.Name)
+
+		privateListReq := NewRequest(t, "GET", fmt.Sprintf("/%s/-/packages", privateUser.Name))
+		privateListResp := privateSession.MakeRequest(t, privateListReq, http.StatusOK)
+		privateListDoc := NewHTMLParser(t, bytes.NewReader(privateListResp.Body.Bytes()))
+		assert.Equal(t, 1, privateListDoc.Find(".item-title .ui.basic.label").Length())
+		assert.Equal(t, "Private", privateListDoc.Find(".item-title .ui.basic.label").First().Text())
+
+		privateViewReq := NewRequest(t, "GET", fmt.Sprintf("/%s/-/packages/composer/%s/%s", privateUser.Name, neturl.PathEscape(privatePackageName), neturl.PathEscape(privatePackageVersion)))
+		privateViewResp := privateSession.MakeRequest(t, privateViewReq, http.StatusOK)
+		privateViewDoc := NewHTMLParser(t, bytes.NewReader(privateViewResp.Body.Bytes()))
+		assert.Equal(t, 1, privateViewDoc.Find(".issue-title-header .ui.basic.label").Length())
+		assert.Equal(t, "Private", privateViewDoc.Find(".issue-title-header .ui.basic.label").First().Text())
 	})
 }

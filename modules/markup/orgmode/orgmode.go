@@ -106,31 +106,27 @@ func (r *orgWriter) resolveLink(link string) string {
 // WriteRegularLink renders images, links or videos
 func (r *orgWriter) WriteRegularLink(l org.RegularLink) {
 	link := r.resolveLink(l.URL)
-
-	printHTML := func(html template.HTML, a ...any) {
-		_, _ = fmt.Fprint(r, htmlutil.HTMLFormat(html, a...))
-	}
 	// Inspired by https://github.com/niklasfasching/go-org/blob/6eb20dbda93cb88c3503f7508dc78cbbc639378f/org/html_writer.go#L406-L427
 	switch l.Kind() {
 	case "image":
 		if l.Description == nil {
-			printHTML(`<img src="%s" alt="%s">`, link, link)
+			_, _ = htmlutil.HTMLPrintf(r, `<img src="%s" alt="%s">`, link, link)
 		} else {
 			imageSrc := r.resolveLink(org.String(l.Description...))
-			printHTML(`<a href="%s"><img src="%s" alt="%s"></a>`, link, imageSrc, imageSrc)
+			_, _ = htmlutil.HTMLPrintf(r, `<a href="%s"><img src="%s" alt="%s"></a>`, link, imageSrc, imageSrc)
 		}
 	case "video":
 		if l.Description == nil {
-			printHTML(`<video src="%s">%s</video>`, link, link)
+			_, _ = htmlutil.HTMLPrintf(r, `<video src="%s">%s</video>`, link, link)
 		} else {
 			videoSrc := r.resolveLink(org.String(l.Description...))
-			printHTML(`<a href="%s"><video src="%s">%s</video></a>`, link, videoSrc, videoSrc)
+			_, _ = htmlutil.HTMLPrintf(r, `<a href="%s"><video src="%s">%s</video></a>`, link, videoSrc, videoSrc)
 		}
 	default:
 		var description any = link
 		if l.Description != nil {
 			description = template.HTML(r.WriteNodesAsString(l.Description...)) // orgmode HTMLWriter outputs HTML content
 		}
-		printHTML(`<a href="%s">%s</a>`, link, description)
+		_, _ = htmlutil.HTMLPrintf(r, `<a href="%s">%s</a>`, link, description)
 	}
 }

@@ -234,6 +234,7 @@ func createWebhook(ctx *context.Context, params webhookParams) {
 	w := &webhook.Webhook{
 		RepoID:          orCtx.RepoID,
 		URL:             params.URL,
+		Name:            strings.TrimSpace(params.WebhookForm.Name),
 		HTTPMethod:      params.HTTPMethod,
 		ContentType:     params.ContentType,
 		Secret:          params.WebhookForm.Secret,
@@ -288,6 +289,7 @@ func editWebhook(ctx *context.Context, params webhookParams) {
 	}
 
 	w.URL = params.URL
+	w.Name = strings.TrimSpace(params.WebhookForm.Name)
 	w.ContentType = params.ContentType
 	w.Secret = params.WebhookForm.Secret
 	w.HookEvent = ParseHookEvent(params.WebhookForm)
@@ -448,12 +450,21 @@ func MatrixHooksEditPost(ctx *context.Context) {
 	editWebhook(ctx, matrixHookParams(ctx))
 }
 
+func matrixRoomIDEncode(roomID string) string {
+	// See https://spec.matrix.org/latest/appendices/#room-ids
+	// Some (unrelated) demo links: https://spec.matrix.org/latest/appendices/#matrixto-navigation
+	// API spec: https://spec.matrix.org/v1.18/client-server-api/#sending-events-to-a-room
+	// Some of their examples show links like: "PUT /rooms/!roomid:domain/state/m.example.event"
+	return strings.NewReplacer("%21", "!", "%3A", ":").Replace(url.PathEscape(roomID))
+}
+
 func matrixHookParams(ctx *context.Context) webhookParams {
 	form := web.GetForm(ctx).(*forms.NewMatrixHookForm)
 
+	// TODO: need to migrate to the latest (v3) API: https://spec.matrix.org/v1.18/client-server-api/
 	return webhookParams{
 		Type:        webhook_module.MATRIX,
-		URL:         fmt.Sprintf("%s/_matrix/client/r0/rooms/%s/send/m.room.message", form.HomeserverURL, url.PathEscape(form.RoomID)),
+		URL:         fmt.Sprintf("%s/_matrix/client/r0/rooms/%s/send/m.room.message", form.HomeserverURL, matrixRoomIDEncode(form.RoomID)),
 		ContentType: webhook.ContentTypeJSON,
 		HTTPMethod:  http.MethodPut,
 		WebhookForm: form.WebhookForm,
@@ -664,7 +675,7 @@ func TestWebhook(ctx *context.Context) {
 			ID:            objectFormat.EmptyObjectID(),
 			Author:        ghost.NewGitSig(),
 			Committer:     ghost.NewGitSig(),
-			CommitMessage: "This is a fake commit",
+			CommitMessage: git.CommitMessage{MessageRaw: "This is a fake commit"},
 		}
 	}
 
@@ -672,7 +683,7 @@ func TestWebhook(ctx *context.Context) {
 
 	apiCommit := &api.PayloadCommit{
 		ID:      commit.ID.String(),
-		Message: commit.Message(),
+		Message: commit.MessageUTF8(),
 		URL:     ctx.Repo.Repository.HTMLURL() + "/commit/" + url.PathEscape(commit.ID.String()),
 		Author: &api.PayloadUser{
 			Name:  commit.Author.Name,

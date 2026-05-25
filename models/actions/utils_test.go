@@ -45,9 +45,10 @@ func Test_calculateDuration(t *testing.T) {
 		return timeutil.TimeStamp(1000).AsTime().Sub(t)
 	}
 	type args struct {
-		started timeutil.TimeStamp
-		stopped timeutil.TimeStamp
-		status  Status
+		started     timeutil.TimeStamp
+		stopped     timeutil.TimeStamp
+		status      Status
+		fallbackEnd timeutil.TimeStamp
 	}
 	tests := []struct {
 		name string
@@ -81,10 +82,48 @@ func Test_calculateDuration(t *testing.T) {
 			},
 			want: 100 * time.Second,
 		},
+		{
+			name: "done_stopped_zero_no_fallback",
+			args: args{
+				started: 500,
+				stopped: 0,
+				status:  StatusSuccess,
+			},
+			want: 0,
+		},
+		{
+			name: "done_stopped_zero_uses_fallback",
+			args: args{
+				started:     500,
+				stopped:     0,
+				status:      StatusSuccess,
+				fallbackEnd: 600,
+			},
+			want: 100 * time.Second,
+		},
+		{
+			name: "done_stopped_before_started_no_fallback",
+			args: args{
+				started: 600,
+				stopped: 550,
+				status:  StatusSuccess,
+			},
+			want: 0,
+		},
+		{
+			name: "done_stopped_before_started_uses_fallback",
+			args: args{
+				started:     600,
+				stopped:     550,
+				status:      StatusSuccess,
+				fallbackEnd: 650,
+			},
+			want: 50 * time.Second,
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			assert.Equalf(t, tt.want, calculateDuration(tt.args.started, tt.args.stopped, tt.args.status), "calculateDuration(%v, %v, %v)", tt.args.started, tt.args.stopped, tt.args.status)
+			assert.Equalf(t, tt.want, calculateDuration(tt.args.started, tt.args.stopped, tt.args.status, tt.args.fallbackEnd), "calculateDuration(%v, %v, %v, %v)", tt.args.started, tt.args.stopped, tt.args.status, tt.args.fallbackEnd)
 		})
 	}
 }

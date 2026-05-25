@@ -47,9 +47,10 @@ func buildSearchIssuesRepoIDs(ctx *context.APIContext) (repoIDs []int64, allPubl
 		Actor:   ctx.Doer,
 	}
 	if ctx.IsSigned {
-		opts.Private = !ctx.PublicOnly
+		opts.Private = true
 		opts.AllLimited = true
 	}
+	opts.ApplyPublicOnly(ctx.PublicOnly)
 	if ctx.FormString("owner") != "" {
 		owner, err := user_model.GetUserByName(ctx, ctx.FormString("owner"))
 		if err != nil {
@@ -442,14 +443,14 @@ func ListIssues(ctx *context.APIContext) {
 		isPull = optional.Some(false)
 	}
 
-	if isPull.Has() && !ctx.Repo.CanReadIssuesOrPulls(isPull.Value()) {
+	if isPull.Has() && !ctx.Repo.Permission.CanReadIssuesOrPulls(isPull.Value()) {
 		ctx.APIErrorNotFound()
 		return
 	}
 
 	if !isPull.Has() {
-		canReadIssues := ctx.Repo.CanRead(unit.TypeIssues)
-		canReadPulls := ctx.Repo.CanRead(unit.TypePullRequests)
+		canReadIssues := ctx.Repo.Permission.CanRead(unit.TypeIssues)
+		canReadPulls := ctx.Repo.Permission.CanRead(unit.TypePullRequests)
 		if !canReadIssues && !canReadPulls {
 			ctx.APIErrorNotFound()
 			return
@@ -591,7 +592,7 @@ func GetIssue(ctx *context.APIContext) {
 		}
 		return
 	}
-	if !ctx.Repo.CanReadIssuesOrPulls(issue.IsPull) {
+	if !ctx.Repo.Permission.CanReadIssuesOrPulls(issue.IsPull) {
 		ctx.APIErrorNotFound()
 		return
 	}
@@ -638,7 +639,7 @@ func CreateIssue(ctx *context.APIContext) {
 
 	form := web.GetForm(ctx).(*api.CreateIssueOption)
 	var deadlineUnix timeutil.TimeStamp
-	if form.Deadline != nil && ctx.Repo.CanWrite(unit.TypeIssues) {
+	if form.Deadline != nil && ctx.Repo.Permission.CanWrite(unit.TypeIssues) {
 		deadlineUnix = timeutil.TimeStamp(form.Deadline.Unix())
 	}
 
@@ -655,7 +656,7 @@ func CreateIssue(ctx *context.APIContext) {
 
 	assigneeIDs := make([]int64, 0)
 	var err error
-	if ctx.Repo.CanWrite(unit.TypeIssues) {
+	if ctx.Repo.Permission.CanWrite(unit.TypeIssues) {
 		issue.MilestoneID = form.Milestone
 		assigneeIDs, err = issues_model.MakeIDsFromAPIAssigneesToAdd(ctx, form.Assignee, form.Assignees)
 		if err != nil {
@@ -690,11 +691,11 @@ func CreateIssue(ctx *context.APIContext) {
 		form.Labels = make([]int64, 0)
 	}
 
-	if err := issue_service.NewIssue(ctx, ctx.Repo.Repository, issue, form.Labels, nil, assigneeIDs, 0); err != nil {
-		if repo_model.IsErrUserDoesNotHaveAccessToRepo(err) {
-			ctx.APIError(http.StatusBadRequest, err)
-		} else if errors.Is(err, user_model.ErrBlockedUser) {
+	if err := issue_service.NewIssue(ctx, ctx.Repo.Repository, issue, form.Labels, nil, assigneeIDs, form.Projects); err != nil {
+		if errors.Is(err, user_model.ErrBlockedUser) {
 			ctx.APIError(http.StatusForbidden, err)
+		} else if errors.Is(err, util.ErrPermissionDenied) || errors.Is(err, util.ErrNotExist) {
+			ctx.APIError(http.StatusBadRequest, err)
 		} else {
 			ctx.APIErrorInternal(err)
 		}
@@ -775,7 +776,7 @@ func EditIssue(ctx *context.APIContext) {
 		return
 	}
 	issue.Repo = ctx.Repo.Repository
-	canWrite := ctx.Repo.CanWriteIssuesOrPulls(issue.IsPull)
+	canWrite := ctx.Repo.Permission.CanWriteIssuesOrPulls(issue.IsPull)
 
 	err = issue.LoadAttributes(ctx)
 	if err != nil {
@@ -913,6 +914,18 @@ func EditIssue(ctx *context.APIContext) {
 		}
 	}
 
+	// Update projects if provided
+	if canWrite && form.Projects != nil {
+		if err := issues_model.IssueAssignOrRemoveProject(ctx, issue, ctx.Doer, *form.Projects); err != nil {
+			if errors.Is(err, util.ErrPermissionDenied) || errors.Is(err, util.ErrNotExist) {
+				ctx.APIError(http.StatusBadRequest, err)
+			} else {
+				ctx.APIErrorInternal(err)
+			}
+			return
+		}
+	}
+
 	// Refetch from database to assign some automatic values
 	issue, err = issues_model.GetIssueByID(ctx, issue.ID)
 	if err != nil {
@@ -1020,7 +1033,7 @@ func UpdateIssueDeadline(ctx *context.APIContext) {
 		return
 	}
 
-	if !ctx.Repo.CanWriteIssuesOrPulls(issue.IsPull) {
+	if !ctx.Repo.Permission.CanWriteIssuesOrPulls(issue.IsPull) {
 		ctx.APIError(http.StatusForbidden, "Not repo writer")
 		return
 	}

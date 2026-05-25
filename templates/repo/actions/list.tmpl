@@ -7,11 +7,11 @@
 		{{if .HasWorkflowsOrRuns}}
 		<div class="flex-container">
 			<div class="flex-container-nav">
-				<div class="ui fluid vertical menu flex-items-block">
+				<div class="ui fluid vertical menu">
 					<a class="item {{if not $.CurWorkflow}}active{{end}}" href="?actor={{$.CurActor}}&status={{$.CurStatus}}">{{ctx.Locale.Tr "actions.runs.all_workflows"}}</a>
 					{{range .workflows}}
-						<a class="item {{if eq .Entry.Name $.CurWorkflow}}active{{end}}" href="?workflow={{.Entry.Name}}&actor={{$.CurActor}}&status={{$.CurStatus}}">
-							<span class="gt-ellipsis">{{.Entry.Name}}</span>
+						<a class="item flex-text-block {{if eq .Entry.Name $.CurWorkflow}}active{{end}}" href="?workflow={{.Entry.Name}}&actor={{$.CurActor}}&status={{$.CurStatus}}">
+							<span class="gt-ellipsis">{{.DisplayName}}</span>
 
 							{{if .ErrMsg}}
 								<span class="flex-text-inline" data-tooltip-content="{{.ErrMsg}}">{{svg "octicon-alert" 16 "tw-text-red"}}</span>
@@ -22,52 +22,69 @@
 							{{end}}
 						</a>
 					{{end}}
+					{{if .OtherWorkflows}}
+						<details class="item"{{if not $.CurWorkflowIsListed}} open{{end}}>
+							<summary data-tooltip-content="{{ctx.Locale.Tr "actions.runs.other_workflows_tooltip"}}">
+								<span class="flex-text-block">
+									{{ctx.Locale.Tr "actions.runs.other_workflows"}}
+									<span class="ui label">{{len .OtherWorkflows}}</span>
+								</span>
+							</summary>
+							<div class="menu items-full-width">
+								{{range .OtherWorkflows}}
+									<a class="item {{if eq . $.CurWorkflow}}active{{end}}" href="?workflow={{.}}&actor={{$.CurActor}}&status={{$.CurStatus}}">
+										<span class="gt-ellipsis">{{.}}</span>
+									</a>
+								{{end}}
+							</div>
+						</details>
+					{{end}}
 				</div>
 			</div>
 			<div class="flex-container-main">
-				<div class="ui top attached header tw-flex tw-items-center tw-justify-between">
-					<span class="tw-text-base tw-font-semibold">{{ctx.Locale.TrN .Page.Paginater.Total "actions.runs.workflow_run_count_1" "actions.runs.workflow_run_count_n" .Page.Paginater.Total}}</span>
-					<div class="ui secondary filter menu tw-flex tw-items-center tw-m-0">
-					<!-- Actor -->
-					<div class="ui{{if not .Actors}} disabled{{end}} dropdown jump item">
-						<span class="text">{{ctx.Locale.Tr "actions.runs.actor"}}</span>
-						{{svg "octicon-triangle-down" 14 "dropdown icon"}}
-						<div class="menu">
-							<div class="ui icon search input">
-								<i class="icon">{{svg "octicon-search"}}</i>
-								<input type="text" placeholder="{{ctx.Locale.Tr "actions.runs.actor"}}">
-							</div>
-							<a class="item{{if not $.CurActor}} active{{end}}" href="?workflow={{$.CurWorkflow}}&status={{$.CurStatus}}&actor=0">
-								{{ctx.Locale.Tr "actions.runs.actors_no_select"}}
-							</a>
-							{{range .Actors}}
-								<a class="item{{if eq .ID $.CurActor}} active{{end}}" href="?workflow={{$.CurWorkflow}}&actor={{.ID}}&status={{$.CurStatus}}">
-									{{ctx.AvatarUtils.Avatar . 20}} {{.GetDisplayName}}
+				<div class="ui top attached header flex-left-right">
+					<strong>{{ctx.Locale.TrN .Page.Paginater.Total "actions.runs.workflow_run_count_1" "actions.runs.workflow_run_count_n" .Page.Paginater.Total}}</strong>
+					<div class="ui secondary filter menu flex-text-block tw-m-0">
+						<!-- Actor -->
+						<div class="ui{{if not .Actors}} disabled{{end}} dropdown jump item">
+							<span class="text">{{ctx.Locale.Tr "actions.runs.actor"}}</span>
+							{{svg "octicon-triangle-down" 14 "dropdown icon"}}
+							<div class="menu">
+								<div class="ui icon search input">
+									<i class="icon">{{svg "octicon-search"}}</i>
+									<input type="text" placeholder="{{ctx.Locale.Tr "actions.runs.actor"}}">
+								</div>
+								<a class="item{{if not $.CurActor}} active{{end}}" href="?workflow={{$.CurWorkflow}}&status={{$.CurStatus}}&actor=0">
+									{{ctx.Locale.Tr "actions.runs.actors_no_select"}}
 								</a>
-							{{end}}
-						</div>
-					</div>
-					<!-- Status -->
-					<div class="ui dropdown jump item">
-						<span class="text">{{ctx.Locale.Tr "actions.runs.status"}}</span>
-						{{svg "octicon-triangle-down" 14 "dropdown icon"}}
-						<div class="menu">
-							<div class="ui icon search input">
-								<i class="icon">{{svg "octicon-search"}}</i>
-								<input type="text" placeholder="{{ctx.Locale.Tr "actions.runs.status"}}">
+								{{range .Actors}}
+									<a class="item{{if eq .ID $.CurActor}} active{{end}}" href="?workflow={{$.CurWorkflow}}&actor={{.ID}}&status={{$.CurStatus}}">
+										{{ctx.AvatarUtils.Avatar . 20}} {{.GetDisplayName}}
+									</a>
+								{{end}}
 							</div>
-							<a class="item{{if not $.CurStatus}} active{{end}}" href="?workflow={{$.CurWorkflow}}&actor={{$.CurActor}}&status=0">
-								{{ctx.Locale.Tr "actions.runs.status_no_select"}}
-							</a>
-							{{range .StatusInfoList}}
-								<a class="item{{if eq .Status $.CurStatus}} active{{end}}" href="?workflow={{$.CurWorkflow}}&actor={{$.CurActor}}&status={{.Status}}">
-									{{.DisplayedStatus}}
-								</a>
-							{{end}}
 						</div>
-					</div>
+						<!-- Status -->
+						<div class="ui dropdown jump item">
+							<span class="text">{{ctx.Locale.Tr "actions.runs.status"}}</span>
+							{{svg "octicon-triangle-down" 14 "dropdown icon"}}
+							<div class="menu">
+								<div class="ui icon search input">
+									<i class="icon">{{svg "octicon-search"}}</i>
+									<input type="text" placeholder="{{ctx.Locale.Tr "actions.runs.status"}}">
+								</div>
+								<a class="item{{if not $.CurStatus}} active{{end}}" href="?workflow={{$.CurWorkflow}}&actor={{$.CurActor}}&status=0">
+									{{ctx.Locale.Tr "actions.runs.status_no_select"}}
+								</a>
+								{{range .StatusInfoList}}
+									<a class="item{{if eq .Status $.CurStatus}} active{{end}}" href="?workflow={{$.CurWorkflow}}&actor={{$.CurActor}}&status={{.Status}}">
+										{{.DisplayedStatus}}
+									</a>
+								{{end}}
+							</div>
+						</div>
 
-					{{if .AllowDisableOrEnableWorkflow}}
+						{{if and .AllowDisableOrEnableWorkflow .CurWorkflowIsListed $.CurWorkflow}}
 						<button class="ui jump dropdown btn interact-bg tw-p-2">
 							{{svg "octicon-kebab-horizontal"}}
 							<div class="menu">
@@ -76,7 +93,7 @@
 								</a>
 							</div>
 						</button>
-					{{end}}
+						{{end}}
 					</div>
 				</div>
 

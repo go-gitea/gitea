@@ -16,11 +16,12 @@ func FetchRedirectDelegate(resp http.ResponseWriter, req *http.Request) {
 	// 2. when use "window.reload()", the hash is not respected, the newly loaded page won't scroll to the hash target.
 	// The typical page is "issue comment" page. The backend responds "/owner/repo/issues/1#comment-2",
 	// then frontend needs this delegate to redirect to the new location with hash correctly.
-	redirect := req.PostFormValue("redirect")
-	if !httplib.IsCurrentGiteaSiteURL(req.Context(), redirect) {
-		resp.WriteHeader(http.StatusBadRequest)
+	redirect := req.FormValue("redirect")
+	if req.Method != http.MethodPost || !httplib.IsCurrentGiteaSiteURL(req.Context(), redirect) {
+		http.Error(resp, "Bad Request", http.StatusBadRequest)
 		return
 	}
-	resp.Header().Add("Location", redirect)
+	// no OpenRedirect, the "redirect" is validated by "IsCurrentGiteaSiteURL" above
+	resp.Header().Set("Location", redirect)
 	resp.WriteHeader(http.StatusSeeOther)
 }

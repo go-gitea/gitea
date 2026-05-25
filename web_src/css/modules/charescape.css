@@ -1,0 +1,55 @@
+/*
+Show the escaped and hide the real char:
+  <span class="broken-code-point" data-escaped="␡"><span class="char">{real-char}</span></span>
+Only show the real-char:
+  <span class="broken-code-point">{real-char}</span>
+*/
+.broken-code-point:not([data-escaped]) {
+  border-radius: 4px;
+  padding: 0 2px;
+  border: 1px var(--color-yellow) solid;
+}
+
+.broken-code-point[data-escaped] {
+  position: relative;
+}
+
+.broken-code-point[data-escaped]::before {
+  visibility: visible;
+  content: attr(data-escaped);
+  border-radius: 2px;
+  padding: 0 1px;
+  border: 1px var(--color-yellow) solid;
+}
+
+.broken-code-point[data-escaped] .char {
+  /* keep the original character selectable/copyable while showing the escaped label via ::before */
+  position: absolute;
+  left: 0;
+  opacity: 0;
+  pointer-events: none;
+}
+
+/*
+Show the escaped and hide the real-char:
+  <span class="unicode-escaped">
+    <span class="escaped-code-point" data-escaped="[U+1F600]"><span class="char">{real-char}</span></span>
+  </span>
+Hide the escaped and show the real-char:
+  <span>
+    <span class="escaped-code-point" data-escaped="[U+1F600]"><span class="char">{real-char}</span></span>
+  </span>
+*/
+.unicode-escaped .escaped-code-point[data-escaped]::before {
+  visibility: visible;
+  content: attr(data-escaped);
+  color: var(--color-red);
+}
+
+.unicode-escaped .escaped-code-point .char {
+  display: none;
+}
+
+.unicode-escaped .ambiguous-code-point {
+  border: 1px var(--color-yellow) solid;
+}

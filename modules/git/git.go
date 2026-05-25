@@ -192,13 +192,13 @@ func RunGitTests(m interface{ Run() int }) {
 func runGitTests(m interface{ Run() int }) int {
 	gitHomePath, cleanup, err := tempdir.OsTempDir("gitea-test").MkdirTempRandom("git-home")
 	if err != nil {
-		testlogger.Panicf("unable to create temp dir: %s", err.Error())
+		return testlogger.MainErrorf("unable to create temp dir: %v", err)
 	}
 	defer cleanup()
 
 	setting.Git.HomePath = gitHomePath
 	if err = InitFull(); err != nil {
-		testlogger.Panicf("failed to call Init: %s", err.Error())
+		return testlogger.MainErrorf("failed to call Init: %v", err)
 	}
 	return m.Run()
 }

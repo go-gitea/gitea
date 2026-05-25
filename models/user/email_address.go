@@ -147,11 +147,6 @@ func InsertEmailAddress(ctx context.Context, email *EmailAddress) (*EmailAddress
 	return email, nil
 }
 
-func UpdateEmailAddress(ctx context.Context, email *EmailAddress) error {
-	_, err := db.GetEngine(ctx).ID(email.ID).AllCols().Update(email)
-	return err
-}
-
 // ValidateEmail check if email is a valid & allowed address
 func ValidateEmail(email string) error {
 	if err := validateEmailBasic(email); err != nil {

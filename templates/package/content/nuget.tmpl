@@ -4,7 +4,7 @@
 		<div class="ui form">
 			<div class="field">
 				<label>{{svg "octicon-terminal"}} {{ctx.Locale.Tr "packages.nuget.registry"}}</label>
-				<div class="markup"><pre class="code-block"><code>dotnet nuget add source --name {{.PackageDescriptor.Owner.Name}} --username your_username --password your_token <origin-url data-url="{{AppSubUrl}}/api/packages/{{.PackageDescriptor.Owner.Name}}/nuget/index.json"></origin-url></code></pre></div>
+				<div class="markup"><pre class="code-block"><code>dotnet nuget add source --name {{.PackageDescriptor.Owner.Name}} --username your_username --password your_token {{ctx.AppFullLink}}/api/packages/{{.PackageDescriptor.Owner.Name}}/nuget/index.json</code></pre></div>
 			</div>
 			<div class="field">
 				<label>{{svg "octicon-terminal"}} {{ctx.Locale.Tr "packages.nuget.install"}}</label>
@@ -18,9 +18,9 @@
 
 	{{if or .PackageDescriptor.Metadata.Description .PackageDescriptor.Metadata.ReleaseNotes .PackageDescriptor.Metadata.Readme}}
 		<h4 class="ui top attached header">{{ctx.Locale.Tr "packages.about"}}</h4>
-		{{if .PackageDescriptor.Metadata.Description}}<div class="ui attached segment">{{ctx.RenderUtils.MarkdownToHtml .PackageDescriptor.Metadata.Description}}</div>{{end}}
-		{{if .PackageDescriptor.Metadata.Readme}}<div class="ui attached segment markup markdown">{{ctx.RenderUtils.MarkdownToHtml .PackageDescriptor.Metadata.Readme}}</div>{{end}}
-		{{if .PackageDescriptor.Metadata.ReleaseNotes}}<div class="ui attached segment">{{ctx.RenderUtils.MarkdownToHtml .PackageDescriptor.Metadata.ReleaseNotes}}</div>{{end}}
+		{{if .PackageDescriptor.Metadata.Description}}<div class="ui attached segment">{{ctx.RenderUtils.RenderPackageMarkdown .PackageDescriptor.Metadata.Description .PackageDescriptor.Repository}}</div>{{end}}
+		{{if .PackageDescriptor.Metadata.Readme}}<div class="ui attached segment">{{ctx.RenderUtils.RenderPackageMarkdown .PackageDescriptor.Metadata.Readme .PackageDescriptor.Repository}}</div>{{end}}
+		{{if .PackageDescriptor.Metadata.ReleaseNotes}}<div class="ui attached segment">{{ctx.RenderUtils.RenderPackageMarkdown .PackageDescriptor.Metadata.ReleaseNotes .PackageDescriptor.Repository}}</div>{{end}}
 	{{end}}
 
 	{{if .PackageDescriptor.Metadata.Dependencies}}

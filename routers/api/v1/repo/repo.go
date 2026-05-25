@@ -21,6 +21,7 @@ import (
 	repo_model "code.gitea.io/gitea/models/repo"
 	unit_model "code.gitea.io/gitea/models/unit"
 	user_model "code.gitea.io/gitea/models/user"
+	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/gitrepo"
 	"code.gitea.io/gitea/modules/label"
 	"code.gitea.io/gitea/modules/log"
@@ -37,6 +38,8 @@ import (
 	"code.gitea.io/gitea/services/convert"
 	feed_service "code.gitea.io/gitea/services/feed"
 	"code.gitea.io/gitea/services/issue"
+	"code.gitea.io/gitea/services/migrations"
+	mirror_service "code.gitea.io/gitea/services/mirror"
 	repo_service "code.gitea.io/gitea/services/repository"
 )
 
@@ -131,9 +134,6 @@ func Search(ctx *context.APIContext) {
 	//     "$ref": "#/responses/validationError"
 
 	private := ctx.IsSigned && (ctx.FormString("private") == "" || ctx.FormBool("private"))
-	if ctx.PublicOnly {
-		private = false
-	}
 
 	opts := repo_model.SearchRepoOptions{
 		ListOptions:        utils.GetListOptions(ctx),
@@ -149,6 +149,7 @@ func Search(ctx *context.APIContext) {
 		StarredByID:        ctx.FormInt64("starredBy"),
 		IncludeDescription: ctx.FormBool("includeDesc"),
 	}
+	opts.ApplyPublicOnly(ctx.PublicOnly)
 
 	if ctx.FormString("template") != "" {
 		opts.Template = optional.Some(ctx.FormBool("template"))
@@ -184,24 +185,11 @@ func Search(ctx *context.APIContext) {
 		opts.IsPrivate = optional.Some(ctx.FormBool("is_private"))
 	}
 
-	sortMode := ctx.FormString("sort")
-	if len(sortMode) > 0 {
-		sortOrder := ctx.FormString("order")
-		if len(sortOrder) == 0 {
-			sortOrder = "asc"
-		}
-		if searchModeMap, ok := repo_model.OrderByMap[sortOrder]; ok {
-			if orderBy, ok := searchModeMap[sortMode]; ok {
-				opts.OrderBy = orderBy
-			} else {
-				ctx.APIError(http.StatusUnprocessableEntity, fmt.Errorf("Invalid sort mode: \"%s\"", sortMode))
-				return
-			}
-		} else {
-			ctx.APIError(http.StatusUnprocessableEntity, fmt.Errorf("Invalid sort order: \"%s\"", sortOrder))
-			return
-		}
+	orderBy, ok := utils.ResolveSortOrder(ctx, repo_model.OrderByMap, "")
+	if !ok {
+		return
 	}
+	opts.OrderBy = orderBy
 
 	repos, count, err := repo_model.SearchRepository(ctx, opts)
 	if err != nil {
@@ -262,7 +250,7 @@ func CreateUserRepo(ctx *context.APIContext, owner *user_model.User, opt api.Cre
 		DefaultBranch:    opt.DefaultBranch,
 		TrustModel:       repo_model.ToTrustModel(opt.TrustModel),
 		IsTemplate:       opt.Template,
-		ObjectFormatName: opt.ObjectFormatName,
+		ObjectFormatName: string(opt.ObjectFormatName),
 	})
 	if err != nil {
 		if repo_model.IsErrRepoAlreadyExist(err) {
@@ -498,30 +486,10 @@ func CreateOrgRepo(ctx *context.APIContext) {
 	//   "403":
 	//     "$ref": "#/responses/forbidden"
 	opt := web.GetForm(ctx).(*api.CreateRepoOption)
-	org, err := organization.GetOrgByName(ctx, ctx.PathParam("org"))
-	if err != nil {
-		if organization.IsErrOrgNotExist(err) {
-			ctx.APIError(http.StatusUnprocessableEntity, err)
-		} else {
-			ctx.APIErrorInternal(err)
-		}
+	orgName := ctx.PathParam("org")
+	org := prepareDoerCreateRepoInOrg(ctx, orgName)
+	if ctx.Written() {
 		return
-	}
-
-	if !organization.HasOrgOrUserVisible(ctx, org.AsUser(), ctx.Doer) {
-		ctx.APIErrorNotFound("HasOrgOrUserVisible", nil)
-		return
-	}
-
-	if !ctx.Doer.IsAdmin {
-		canCreate, err := org.CanCreateOrgRepo(ctx, ctx.Doer.ID)
-		if err != nil {
-			ctx.APIErrorInternal(err)
-			return
-		} else if !canCreate {
-			ctx.APIError(http.StatusForbidden, "Given user is not allowed to create repository in organization.")
-			return
-		}
 	}
 	CreateUserRepo(ctx, org.AsUser(), *opt)
 }
@@ -587,6 +555,10 @@ func GetByID(ctx *context.APIContext) {
 		}
 		return
 	}
+	if !ctx.TokenCanAccessRepo(repo) {
+		ctx.APIErrorNotFound()
+		return
+	}
 
 	permission, err := access_model.GetDoerRepoPermission(ctx, repo, ctx.Doer)
 	if err != nil {
@@ -648,7 +620,11 @@ func Edit(ctx *context.APIContext) {
 		}
 	}
 
-	if opts.MirrorInterval != nil || opts.EnablePrune != nil {
+	if opts.MirrorInterval != nil ||
+		opts.EnablePrune != nil ||
+		opts.MirrorUsername != nil ||
+		opts.MirrorPassword != nil ||
+		opts.MirrorToken != nil {
 		if err := updateMirror(ctx, opts); err != nil {
 			return
 		}
@@ -778,7 +754,7 @@ func updateRepoUnits(ctx *context.APIContext, opts api.EditRepoOption) error {
 	if opts.HasIssues != nil {
 		if *opts.HasIssues && opts.ExternalTracker != nil && !unit_model.TypeExternalTracker.UnitGlobalDisabled() {
 			// Check that values are valid
-			if !validation.IsValidExternalURL(opts.ExternalTracker.ExternalTrackerURL) {
+			if !validation.IsValidURL(opts.ExternalTracker.ExternalTrackerURL) {
 				err := errors.New("External tracker URL not valid")
 				ctx.APIError(http.StatusUnprocessableEntity, err)
 				return err
@@ -840,7 +816,7 @@ func updateRepoUnits(ctx *context.APIContext, opts api.EditRepoOption) error {
 	if opts.HasWiki != nil {
 		if *opts.HasWiki && opts.ExternalWiki != nil && !unit_model.TypeExternalWiki.UnitGlobalDisabled() {
 			// Check that values are valid
-			if !validation.IsValidExternalURL(opts.ExternalWiki.ExternalWikiURL) {
+			if !validation.IsValidURL(opts.ExternalWiki.ExternalWikiURL) {
 				err := errors.New("External wiki URL not valid")
 				ctx.APIError(http.StatusUnprocessableEntity, "Invalid external wiki URL")
 				return err
@@ -911,10 +887,20 @@ func updateRepoUnits(ctx *context.APIContext, opts api.EditRepoOption) error {
 			optional.AssignPtrValue(changed, &config.AllowFastForwardOnly, opts.AllowFastForwardOnly)
 			optional.AssignPtrValue(changed, &config.AllowManualMerge, opts.AllowManualMerge)
 			optional.AssignPtrValue(changed, &config.AutodetectManualMerge, opts.AutodetectManualMerge)
+			optional.AssignPtrValue(changed, &config.AllowMergeUpdate, opts.AllowMergeUpdate)
 			optional.AssignPtrValue(changed, &config.AllowRebaseUpdate, opts.AllowRebaseUpdate)
 			optional.AssignPtrValue(changed, &config.DefaultDeleteBranchAfterMerge, opts.DefaultDeleteBranchAfterMerge)
 			optional.AssignPtrValue(changed, &config.DefaultAllowMaintainerEdit, opts.DefaultAllowMaintainerEdit)
 			optional.AssignPtrString(changed, &config.DefaultMergeStyle, opts.DefaultMergeStyle)
+			optional.AssignPtrString(changed, &config.DefaultUpdateStyle, opts.DefaultUpdateStyle)
+			// only validate update-style fields when the caller is actually changing one of them,
+			// so unrelated PATCH calls don't reject historical configs.
+			if opts.AllowMergeUpdate != nil || opts.AllowRebaseUpdate != nil || opts.DefaultUpdateStyle != nil {
+				if err := config.ValidateUpdateSettings(); err != nil {
+					ctx.APIError(http.StatusUnprocessableEntity, err)
+					return err
+				}
+			}
 			if *changed || mustInsertPullRequestUnit {
 				units = append(units, repo_model.RepoUnit{
 					RepoID: repo.ID,
@@ -1077,6 +1063,57 @@ func updateMirror(ctx *context.APIContext, opts api.EditRepoOption) error {
 	if opts.EnablePrune != nil {
 		mirror.EnablePrune = *opts.EnablePrune
 		log.Trace("Repository %s Mirror[%d] Set EnablePrune: %t", repo.FullName(), mirror.ID, mirror.EnablePrune)
+	}
+
+	authUpdateRequested := opts.MirrorPassword != nil || opts.MirrorToken != nil || opts.MirrorUsername != nil
+	if authUpdateRequested {
+		remoteURL, err := gitrepo.GitRemoteGetURL(ctx, repo, mirror.GetRemoteName())
+		if err != nil {
+			ctx.APIErrorInternal(err)
+			return err
+		}
+
+		authUsername := ""
+		if opts.MirrorUsername != nil {
+			authUsername = *opts.MirrorUsername
+		} else if remoteURL.User != nil {
+			authUsername = remoteURL.User.Username()
+		}
+
+		authPassword := ""
+		authToken := ""
+		if opts.MirrorPassword != nil {
+			authPassword = *opts.MirrorPassword
+		}
+		if opts.MirrorToken != nil {
+			authToken = *opts.MirrorToken
+		}
+
+		if opts.MirrorPassword == nil && opts.MirrorToken == nil && remoteURL.User != nil && (authUsername == "" || authUsername == remoteURL.User.Username()) {
+			authPassword, _ = remoteURL.User.Password()
+		}
+
+		if authToken != "" {
+			authPassword = authToken
+		}
+
+		composedAddress, err := git.ParseRemoteAddr(repo.OriginalURL, authUsername, authPassword)
+		if err == nil {
+			err = migrations.IsMigrateURLAllowed(composedAddress, ctx.Doer)
+		}
+		if err != nil {
+			handleRemoteAddrError(ctx, err)
+			return err
+		}
+
+		if err := mirror_service.UpdateAddress(ctx, mirror, composedAddress); err != nil {
+			ctx.APIErrorInternal(err)
+			return err
+		}
+
+		if sanitized, err := util.SanitizeURL(repo.OriginalURL); err == nil {
+			mirror.RemoteAddress = sanitized
+		}
 	}
 
 	// finally update the mirror in the DB
@@ -1274,6 +1311,7 @@ func ListRepoActivityFeeds(ctx *context.APIContext) {
 		Date:           ctx.FormString("date"),
 		ListOptions:    listOptions,
 	}
+	opts.ApplyPublicOnly(ctx.PublicOnly)
 
 	feeds, count, err := feed_service.GetFeeds(ctx, opts)
 	if err != nil {

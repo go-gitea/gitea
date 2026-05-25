@@ -1,7 +1,6 @@
 import {GET} from '../modules/fetch.ts';
 import {hideElem, loadElem, queryElemChildren, queryElems} from '../utils/dom.ts';
 import {parseDom} from '../utils.ts';
-import {fomanticQuery} from '../modules/fomantic/base.ts';
 
 type ImageContext = {
   imageBefore: HTMLImageElement | undefined,
@@ -94,14 +93,12 @@ function createContext(imageAfter: HTMLImageElement, imageBefore: HTMLImageEleme
 }
 
 class ImageDiff {
-  containerEl: HTMLElement;
-  diffContainerWidth: number;
+  containerEl!: HTMLElement;
+  diffContainerWidth!: number;
 
   async init(containerEl: HTMLElement) {
     this.containerEl = containerEl;
     containerEl.setAttribute('data-image-diff-loaded', 'true');
-
-    fomanticQuery(containerEl).find('.ui.menu.tabular .item').tab();
 
     // the container may be hidden by "viewed" checkbox, so use the parent's width for reference
     this.diffContainerWidth = Math.max(containerEl.closest('.diff-file-box')!.clientWidth - 300, 100);
