@@ -228,10 +228,11 @@ func APIContexter() func(http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
 			base := NewBaseContext(w, req)
 			ctx := &APIContext{
-				Base:  base,
-				Cache: cache.GetCache(),
-				Repo:  &Repository{},
-				Org:   &APIOrganization{},
+				Base:      base,
+				Cache:     cache.GetCache(),
+				Repo:      &Repository{},
+				Org:       &APIOrganization{},
+				RepoGroup: &RepoGroup{},
 			}
 
 			ctx.SetContextValue(apiContextKey, ctx)
