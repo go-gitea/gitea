@@ -125,23 +125,25 @@ func ParseRepositoryURL(ctx context.Context, repoURL string) (*RepositoryURL, er
 
 	fillPathParts := func(s string) {
 		s = strings.TrimPrefix(s, "/")
-		fields := strings.SplitN(s, "/", 4)
-		var pathErr error
+		fields := strings.SplitN(s, "/", 3)
 		if len(fields) >= 2 {
 			ret.OwnerName = fields[0]
-			if len(fields) >= 3 {
-				ret.GroupID, pathErr = strconv.ParseInt(fields[1], 10, 64)
-				if pathErr != nil {
-					ret.RepoName = strings.TrimSuffix(fields[1], ".git")
-					ret.RemainingPath = "/" + fields[2]
-					return
+			ret.RepoName = strings.TrimSuffix(fields[1], ".git")
+			if len(fields) == 3 {
+				rest := strings.SplitN(fields[2], "/", 3)
+				if len(rest) >= 2 {
+					ret.GroupID, err = strconv.ParseInt(rest[0], 10, 64)
+					if err != nil {
+						ret.RemainingPath = "/" + fields[2]
+						return
+					}
+					ret.RepoName = strings.TrimSuffix(rest[1], ".git")
+					if len(rest) >= 3 {
+						ret.RemainingPath = "/" + strings.Join(rest[2:], "/")
+					}
+				} else {
+					ret.RemainingPath = "/" + rest[0]
 				}
-				ret.RepoName = strings.TrimSuffix(fields[2], ".git")
-				if len(fields) >= 4 {
-					ret.RemainingPath = "/" + fields[3]
-				}
-			} else {
-				ret.RepoName = strings.TrimSuffix(fields[1], ".git")
 			}
 		}
 	}
@@ -176,7 +178,7 @@ func MakeRepositoryWebLink(repoURL *RepositoryURL) string {
 	if repoURL.OwnerName != "" {
 		var groupSegment string
 		if repoURL.GroupID > 0 {
-			groupSegment = strconv.FormatInt(repoURL.GroupID, 10) + "/"
+			groupSegment = "group/" + strconv.FormatInt(repoURL.GroupID, 10) + "/"
 		}
 		return setting.AppSubURL + "/" + repoURL.OwnerName + "/" + groupSegment + repoURL.RepoName
 	}
