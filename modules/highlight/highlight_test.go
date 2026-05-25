@@ -114,6 +114,15 @@ c=2
 			want:      []template.HTML{"<span class=\"c1\">--\n</span>", `<span class="k">SELECT</span>`},
 			lexerName: "SQL",
 		},
+		{
+			name: "test.http",
+			code: `HTTP/1.0 400 Bad request
+Content-Type: text/html
+
+<html></html>`,
+			want:      []template.HTML{"HTTP/1.0 400 Bad request\n", "Content-Type: text/html\n", "\n", "&lt;html&gt;&lt;/html&gt;"},
+			lexerName: "Plaintext", // HINT: CHROMA-HIGHLIGHT-HTTP-CONTENT
+		},
 	}
 
 	for _, tt := range tests {

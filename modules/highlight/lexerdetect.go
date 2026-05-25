@@ -284,7 +284,14 @@ func detectChromaLexerByFileName(fileName, fileLang string) (_ chroma.Lexer, byL
 // detectChromaLexerWithAnalyze returns a chroma lexer by given file name, language and code content. All parameters can be optional.
 // When code content is provided, it will be slow if no lexer is found by file name or language.
 // If no lexer is found, it will return the fallback lexer.
-func detectChromaLexerWithAnalyze(fileName, lang string, code []byte) chroma.Lexer {
+func detectChromaLexerWithAnalyze(fileName, lang string, code []byte) (ret chroma.Lexer) {
+	defer func() {
+		// HINT: CHROMA-HIGHLIGHT-HTTP-CONTENT: there is a bug in Chroma, it doesn't render the HTTP content (or it might be by-design to avoid render binary content).
+		// So we simply render the HTTP protocol file as plaintext.
+		if ret.Config().Name == "HTTP" {
+			ret = lexers.Fallback
+		}
+	}()
 	lexer, byLang := detectChromaLexerByFileName(fileName, lang)
 
 	// if lang is provided, and it matches a lexer, use it directly
@@ -302,7 +309,7 @@ func detectChromaLexerWithAnalyze(fileName, lang string, code []byte) chroma.Lex
 	// try to detect language by content, for best guessing for the language
 	// when using "code" to detect, analyze.GetCodeLanguage is slow, it iterates many rules to detect language from content
 	analyzedLanguage := analyze.GetCodeLanguage(fileName, code)
-	lexer = DetectChromaLexerByFileName(fileName, analyzedLanguage)
+	lexer, _ = detectChromaLexerByFileName(fileName, analyzedLanguage)
 	if lexer == lexers.Fallback {
 		if analyzedLanguage != enry.OtherLanguage {
 			log.Warn("No chroma lexer found for enry detected language: %s (file: %s), need to fix the language mapping between enry and chroma.", analyzedLanguage, fileName)
