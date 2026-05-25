@@ -17,6 +17,7 @@ import (
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/util"
 	notify_service "code.gitea.io/gitea/services/notify"
+	"code.gitea.io/gitea/services/oauth2_provider"
 )
 
 func initGlobalRunnerToken(ctx context.Context) error {
@@ -58,6 +59,15 @@ func initGlobalRunnerToken(ctx context.Context) error {
 func Init(ctx context.Context) error {
 	if !setting.Actions.Enabled {
 		return nil
+	}
+
+	if setting.OAuth2.Enabled {
+		if oauth2_provider.DefaultSigningKey == nil {
+			return errors.New("OIDC signing key is not initialized")
+		}
+		if oauth2_provider.DefaultSigningKey.IsSymmetric() {
+			return errors.New("OIDC signing key must be asymmetric")
+		}
 	}
 
 	jobEmitterQueue = queue.CreateUniqueQueue(graceful.GetManager().ShutdownContext(), "actions_ready_job", jobEmitterQueueHandler)
