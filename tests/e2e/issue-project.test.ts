@@ -5,7 +5,7 @@ import {login, apiCreateRepo, apiCreateIssue, apiDeleteRepo, createProject, crea
 test('assign issue to project and change column', async ({page}) => {
   const repoName = `e2e-issue-project-${randomString(8)}`;
   const user = env.GITEA_TEST_E2E_USER;
-  await Promise.all([login(page), apiCreateRepo(page.request, {name: repoName})]);
+  await Promise.all([login(page), apiCreateRepo(page.request, {name: repoName, autoInit: false})]);
   await page.goto(`/${user}/${repoName}/projects/new`);
   await page.locator('input[name="title"]').fill('Kanban Board');
   await page.getByRole('button', {name: 'Create Project'}).click();
@@ -33,7 +33,7 @@ test('create a project', async ({page}) => {
   const projectTitle = 'Test Project';
 
   await login(page);
-  await apiCreateRepo(page.request, {name: repoName});
+  await apiCreateRepo(page.request, {name: repoName, autoInit: false});
 
   try {
     // Navigate to new project page
@@ -62,7 +62,7 @@ test('assign issue to multiple projects via sidebar', async ({page}) => {
   const issueTitle = 'Test issue for multiple projects';
 
   await login(page);
-  await apiCreateRepo(page.request, {name: repoName});
+  await apiCreateRepo(page.request, {name: repoName, autoInit: false});
 
   try {
     // Create two projects via UI
@@ -112,7 +112,7 @@ test('create issue with multiple projects pre-selected', async ({page}) => {
   const issueTitle = 'Issue with multiple projects';
 
   await login(page);
-  await apiCreateRepo(page.request, {name: repoName});
+  await apiCreateRepo(page.request, {name: repoName, autoInit: false});
 
   try {
     // Create two projects via UI
@@ -163,7 +163,7 @@ test('filter issues by multiple projects in issue list', async ({page}) => {
   const project2Title = 'Filter Project B';
 
   await login(page);
-  await apiCreateRepo(page.request, {name: repoName});
+  await apiCreateRepo(page.request, {name: repoName, autoInit: false});
 
   try {
     // Create two projects via UI
@@ -229,7 +229,7 @@ test('remove issue from one project keeping others', async ({page}) => {
   const issueTitle = 'Issue to modify projects';
 
   await login(page);
-  await apiCreateRepo(page.request, {name: repoName});
+  await apiCreateRepo(page.request, {name: repoName, autoInit: false});
 
   try {
     // Create two projects via UI
@@ -288,7 +288,7 @@ test('filter issues with no project using project=-1', async ({page}) => {
   const projectTitle = 'Some Project';
 
   await login(page);
-  await apiCreateRepo(page.request, {name: repoName});
+  await apiCreateRepo(page.request, {name: repoName, autoInit: false});
 
   try {
     // Create a project via UI
@@ -349,7 +349,7 @@ test('close project and view in closed projects list', async ({page}) => {
   const closedProjectTitle = 'Project To Close';
 
   await login(page);
-  await apiCreateRepo(page.request, {name: repoName});
+  await apiCreateRepo(page.request, {name: repoName, autoInit: false});
 
   try {
     // Create two projects via UI
@@ -404,7 +404,7 @@ test('select projects on new issue page shows in sidebar', async ({page}) => {
   const project2Title = 'Project Two';
 
   await login(page);
-  await apiCreateRepo(page.request, {name: repoName});
+  await apiCreateRepo(page.request, {name: repoName, autoInit: false});
 
   try {
     // Create two projects
