@@ -91,14 +91,6 @@
       "matchFileNames": ["**/Makefile"],
     },
     {
-      "matchManagers": ["gomod"],
-      "matchDepNames": ["go"],
-      "matchDepTypes": ["golang"],
-      "rangeStrategy": "bump",
-      "schedule": ["at any time"],
-      "minimumReleaseAge": "0",
-    },
-    {
       "groupName": "npm dependencies",
       "matchManagers": ["npm"],
       "postUpdateOptions": ["pnpmDedupe"],
