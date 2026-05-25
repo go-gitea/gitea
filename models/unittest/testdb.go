@@ -207,7 +207,7 @@ type FixturesOptions struct {
 
 // CreateTestEngine creates a test database and loads the fixture data from fixturesDir
 func CreateTestEngine(testSQLiteFile string, opts FixturesOptions) error {
-	driver, connStr, err := db.ConnStr(db.ConnOptions{Type: setting.DatabaseTypeSQLite3, SQLitePath: testSQLiteFile, SQLiteBusyTimeout: 5000})
+	driver, connStr, err := db.ConnStr(db.ConnOptions{Type: setting.DatabaseTypeSQLite3, SQLitePath: testSQLiteFile, SQLiteBusyTimeout: 20000})
 	if err != nil {
 		return err
 	}
