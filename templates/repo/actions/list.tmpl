@@ -11,7 +11,7 @@
 					<a class="item {{if not $.CurWorkflow}}active{{end}}" href="?actor={{$.CurActor}}&status={{$.CurStatus}}">{{ctx.Locale.Tr "actions.runs.all_workflows"}}</a>
 					{{range .workflows}}
 						<a class="item {{if eq .Entry.Name $.CurWorkflow}}active{{end}}" href="?workflow={{.Entry.Name}}&actor={{$.CurActor}}&status={{$.CurStatus}}">
-							<span class="gt-ellipsis">{{.Entry.Name}}</span>
+							<span class="gt-ellipsis">{{.DisplayName}}</span>
 
 							{{if .ErrMsg}}
 								<span class="flex-text-inline" data-tooltip-content="{{.ErrMsg}}">{{svg "octicon-alert" 16 "tw-text-red"}}</span>
