@@ -132,12 +132,10 @@ func GetStatusInfoList(ctx context.Context, lang translation.Locale) []StatusInf
 	return statusInfoList
 }
 
-// GetRunBranches returns branch names available for the run-list "Branch" filter.
-// It reads from the `branch` table (indexed by repo_id) rather than scanning
-// `action_run.ref`, which is wildcard-matched and slow on large repos. The list
-// therefore reflects existing repo branches, not only those that have produced a run.
-// The `branch` table is queried directly (instead of via models/git) to avoid an
-// import cycle between models/actions and models/git.
+// GetRunBranches returns branch names for the run-list "Branch" filter.
+// Sourced from the `branch` table (indexed by repo_id) rather than DISTINCT-ing
+// `action_run.ref`, which is wildcard-matched and slow on large repos; as a side
+// effect the list reflects existing branches, not only ones that produced a run.
 func GetRunBranches(ctx context.Context, repoID int64) ([]string, error) {
 	branches := make([]string, 0, 10)
 	return branches, db.GetEngine(ctx).Table("branch").
