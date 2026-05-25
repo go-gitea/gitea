@@ -31,9 +31,9 @@ func goGet(ctx *context.Context) {
 	var group string
 	ownerName := parts[1]
 	repoName := parts[2]
-	if len(parts) > 4 {
-		repoName = parts[4]
-		group = parts[3]
+	if len(parts) >= 6 {
+		repoName = parts[5]
+		group = parts[4]
 	}
 
 	// Quick responses appropriate go-get meta with status 200
@@ -63,7 +63,7 @@ func goGet(ctx *context.Context) {
 	}
 	prefix := setting.AppURL + url.PathEscape(ownerName)
 	if group != "" {
-		prefix = prefix + "/" + group
+		prefix = prefix + "/group/" + group
 	}
 	prefix = prefix + "/" + path.Join(url.PathEscape(repoName), "src", "branch", util.PathEscapeSegments(branchName))
 

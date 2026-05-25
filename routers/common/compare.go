@@ -41,14 +41,17 @@ func parseHead(head string) (headOwnerName, headRepoName string, headGroupID int
 
 		return "", "", 0, paths[0]
 	}
-	ownerRepo := strings.SplitN(paths[0], "/", 2)
+	ownerRepo := strings.Split(paths[0], "/")
 	if len(ownerRepo) == 1 {
 		// -1 means use base repo's group ID
 		return paths[0], "", -1, paths[1]
 	}
 	var gid int64
-	_, rawGid, _ := strings.Cut(paths[0], "group/")
-	gid, _ = strconv.ParseInt(rawGid, 10, 64)
+	if len(ownerRepo) == 4 {
+		rawGid := ownerRepo[2]
+		gid, _ = strconv.ParseInt(rawGid, 10, 64)
+		return ownerRepo[0], ownerRepo[3], gid, paths[1]
+	}
 
 	return ownerRepo[0], ownerRepo[1], gid, paths[1]
 }

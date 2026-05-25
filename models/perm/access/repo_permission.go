@@ -401,9 +401,13 @@ func GetIndividualUserRepoPermission(ctx context.Context, repo *repo_model.Repos
 		log.Trace("Permission Loaded for user %-v in repo %-v, permissions: %-+v", user, repo, perm)
 	}()
 
-	group, err := group_model.GetGroupByID(ctx, repo.GroupID)
-	if err != nil && !group_model.IsErrGroupNotExist(err) {
-		return perm, err
+	var group *group_model.Group
+
+	if repo.GroupID > 0 {
+		group, err = group_model.GetGroupByID(ctx, repo.GroupID)
+		if err != nil && !group_model.IsErrGroupNotExist(err) {
+			return perm, err
+		}
 	}
 	if err = repo.LoadUnits(ctx); err != nil {
 		return perm, err

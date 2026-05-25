@@ -548,16 +548,14 @@ func repoAssignmentAutoRedirectWiki(ctx *Context, data *repoAssignmentPrepareDat
 	userName, repoName, rawGroupID := data.ownerName, data.repoName, data.rawGroupID
 	var group string
 	if rawGroupID != "" {
-		gid, _ := strconv.ParseInt(rawGroupID, 10, 64)
-		if gid == 0 {
-			q := ctx.Req.URL.RawQuery
-			if q != "" {
-				q = "?" + q
-			}
-			ctx.Redirect(strings.Replace(ctx.Link, "/0/", "/", 1)+q, 307)
+		gid, err := strconv.ParseInt(rawGroupID, 10, 64)
+		if err != nil {
+			ctx.NotFound(err)
 			return
 		}
-		group += "/"
+		if gid > 0 {
+			group = fmt.Sprintf("group/%d/", gid)
+		}
 	}
 
 	// redirect link to wiki
@@ -607,6 +605,7 @@ func repoAssignmentPrepareRepo(ctx *Context, data *repoAssignmentPrepareDataStru
 	}
 	if repo.GroupID != gid {
 		ctx.NotFound(nil)
+		return
 	}
 
 	if gid > 0 {

@@ -1344,7 +1344,8 @@ func MoveRepoToGroup(ctx *context.APIContext) {
 	//   in: path
 	//   description: name of the repo
 	//   type: string
-	//   required: true	// - name: body
+	//   required: true	//
+	//  - name: body
 	//   in: body
 	//   schema:
 	//     "$ref": "#/definitions/MoveGroupOption"
