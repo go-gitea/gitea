@@ -91,7 +91,7 @@
       "matchFileNames": ["**/Makefile"],
     },
     {
-      // fast-track `toolchain` bumps; the `go` directive is the minimum and stays disabled
+      // fast-track toolchain bumps, not the go minimum
       "matchManagers": ["gomod"],
       "matchDepTypes": ["toolchain"],
       "rangeStrategy": "bump",
