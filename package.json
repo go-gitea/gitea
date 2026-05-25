@@ -1,6 +1,6 @@
 {
   "type": "module",
-  "packageManager": "pnpm@11.1.3",
+  "packageManager": "pnpm@11.2.1",
   "engines": {
     "node": ">= 22.18.0",
     "pnpm": ">= 11.0.0"
@@ -113,7 +113,7 @@
     "nolyfill": "1.0.44",
     "postcss-html": "1.8.1",
     "spectral-cli-bundle": "1.0.8",
-    "stylelint": "17.11.1",
+    "stylelint": "17.12.0",
     "stylelint-config-recommended": "18.0.0",
     "stylelint-declaration-block-no-ignored-properties": "3.0.0",
     "stylelint-declaration-strict-value": "1.11.1",
