@@ -284,7 +284,7 @@ func detectChromaLexerByFileName(fileName, fileLang string) (_ chroma.Lexer, byL
 // detectChromaLexerWithAnalyze returns a chroma lexer by given file name, language and code content. All parameters can be optional.
 // When code content is provided, it will be slow if no lexer is found by file name or language.
 // If no lexer is found, it will return the fallback lexer.
-func detectChromaLexerWithAnalyze(fileName, lang string, code []byte) (ret chroma.Lexer) {
+func detectChromaLexerWithAnalyze(fileName, lang string, code []byte) chroma.Lexer {
 	lexer, byLang := detectChromaLexerByFileName(fileName, lang)
 
 	// if lang is provided, and it matches a lexer, use it directly
