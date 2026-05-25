@@ -3,6 +3,12 @@ details.toggleable-item {
   padding: 0 !important;
 }
 
+/* keep <details> as a block when used inside a flex-items-block menu,
+   which would otherwise force display: flex on every > .item */
+.ui.vertical.menu.flex-items-block > details.toggleable-item {
+  display: block;
+}
+
 details.toggleable-item .menu {
   margin: 4px 0 10px !important;
 }

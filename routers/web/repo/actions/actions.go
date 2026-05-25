@@ -119,7 +119,7 @@ func prepareOtherWorkflows(ctx *context.Context, workflows []WorkflowInfo, curWo
 		})
 	}
 
-	ctx.Data["otherWorkflows"] = other
+	ctx.Data["OtherWorkflows"] = other
 	ctx.Data["CurWorkflowIsListed"] = curWorkflowID == "" || listed.Contains(curWorkflowID)
 	return other
 }

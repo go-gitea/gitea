@@ -22,16 +22,16 @@
 							{{end}}
 						</a>
 					{{end}}
-					{{if .otherWorkflows}}
-						<details class="item toggleable-item actions-other-workflows !tw-block"{{if not $.CurWorkflowIsListed}} open{{end}}>
+					{{if .OtherWorkflows}}
+						<details class="item toggleable-item actions-other-workflows"{{if not $.CurWorkflowIsListed}} open{{end}}>
 							<summary data-tooltip-content="{{ctx.Locale.Tr "actions.runs.other_workflows_tooltip"}}">
 								<span class="flex-text-inline">
 									{{ctx.Locale.Tr "actions.runs.other_workflows"}}
-									<span class="ui label">{{len .otherWorkflows}}</span>
+									<span class="ui label">{{len .OtherWorkflows}}</span>
 								</span>
 							</summary>
 							<div class="menu">
-								{{range .otherWorkflows}}
+								{{range .OtherWorkflows}}
 									<a class="item {{if eq . $.CurWorkflow}}active{{end}}" href="?workflow={{.}}&actor={{$.CurActor}}&status={{$.CurStatus}}">
 										<span class="gt-ellipsis">{{.}}</span>
 									</a>
