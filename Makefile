@@ -11,7 +11,7 @@ COMMA := ,
 
 XGO_VERSION := go-1.26.x
 
-AIR_PACKAGE ?= github.com/air-verse/air@v1.65.1 # renovate: datasource=go
+AIR_PACKAGE ?= github.com/air-verse/air@v1.65.2 # renovate: datasource=go
 EDITORCONFIG_CHECKER_PACKAGE ?= github.com/editorconfig-checker/editorconfig-checker/v3/cmd/editorconfig-checker@v3.6.1 # renovate: datasource=go
 GOLANGCI_LINT_PACKAGE ?= github.com/golangci/golangci-lint/v2/cmd/golangci-lint@v2.12.2 # renovate: datasource=go
 GXZ_PACKAGE ?= github.com/ulikunitz/xz/cmd/gxz@v0.5.15 # renovate: datasource=go

@@ -10,8 +10,8 @@
 				<div class="ui fluid vertical menu flex-items-block">
 					<a class="item {{if not $.CurWorkflow}}active{{end}}" href="?actor={{$.CurActor}}&status={{$.CurStatus}}&branch={{$.CurBranch}}">{{ctx.Locale.Tr "actions.runs.all_workflows"}}</a>
 					{{range .workflows}}
-						<a class="item {{if eq .Entry.Name $.CurWorkflow}}active{{end}}" href="?workflow={{.Entry.Name}}&actor={{$.CurActor}}&status={{$.CurStatus}}&branch={{$.CurBranch}}">
-							<span class="gt-ellipsis">{{.Entry.Name}}</span>
+						<a class="item flex-text-block {{if eq .Entry.Name $.CurWorkflow}}active{{end}}" href="?workflow={{.Entry.Name}}&actor={{$.CurActor}}&status={{$.CurStatus}}&branch={{$.CurBranch}}">
+							<span class="gt-ellipsis">{{.DisplayName}}</span>
 
 							{{if .ErrMsg}}
 								<span class="flex-text-inline" data-tooltip-content="{{.ErrMsg}}">{{svg "octicon-alert" 16 "tw-text-red"}}</span>
@@ -21,6 +21,23 @@
 								<div class="ui red label">{{ctx.Locale.Tr "disabled"}}</div>
 							{{end}}
 						</a>
+					{{end}}
+					{{if .OtherWorkflows}}
+						<details class="item"{{if not $.CurWorkflowIsListed}} open{{end}}>
+							<summary data-tooltip-content="{{ctx.Locale.Tr "actions.runs.other_workflows_tooltip"}}">
+								<span class="flex-text-block">
+									{{ctx.Locale.Tr "actions.runs.other_workflows"}}
+									<span class="ui label">{{len .OtherWorkflows}}</span>
+								</span>
+							</summary>
+							<div class="menu items-full-width">
+								{{range .OtherWorkflows}}
+									<a class="item {{if eq . $.CurWorkflow}}active{{end}}" href="?workflow={{.}}&actor={{$.CurActor}}&status={{$.CurStatus}}">
+										<span class="gt-ellipsis">{{.}}</span>
+									</a>
+								{{end}}
+							</div>
+						</details>
 					{{end}}
 				</div>
 			</div>
@@ -86,7 +103,7 @@
 							</div>
 						</div>
 
-						{{if .AllowDisableOrEnableWorkflow}}
+						{{if and .AllowDisableOrEnableWorkflow .CurWorkflowIsListed $.CurWorkflow}}
 						<button class="ui jump dropdown btn interact-bg tw-p-2">
 							{{svg "octicon-kebab-horizontal"}}
 							<div class="menu">
