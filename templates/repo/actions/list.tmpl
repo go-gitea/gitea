@@ -23,7 +23,7 @@
 						</a>
 					{{end}}
 					{{if .OtherWorkflows}}
-						<details class="item toggleable-item"{{if not $.CurWorkflowIsListed}} open{{end}}>
+						<details class="item"{{if not $.CurWorkflowIsListed}} open{{end}}>
 							<summary data-tooltip-content="{{ctx.Locale.Tr "actions.runs.other_workflows_tooltip"}}">
 								<span class="flex-text-block">
 									{{ctx.Locale.Tr "actions.runs.other_workflows"}}
