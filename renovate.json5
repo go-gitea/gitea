@@ -91,6 +91,15 @@
       "matchFileNames": ["**/Makefile"],
     },
     {
+      // the go.mod `go` directive is the minimum version and must not be bumped (renovate disables it by default);
+      // the `toolchain` directive pins the exact build version, track its latest patch immediately
+      "matchManagers": ["gomod"],
+      "matchDepTypes": ["toolchain"],
+      "rangeStrategy": "bump",
+      "schedule": ["at any time"],
+      "minimumReleaseAge": "0",
+    },
+    {
       "groupName": "npm dependencies",
       "matchManagers": ["npm"],
       "postUpdateOptions": ["pnpmDedupe"],
