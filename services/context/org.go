@@ -151,6 +151,7 @@ func OrgAssignment(orgAssignmentOpts OrgAssignmentOptions) func(ctx *Context) {
 		ctx.Data["IsOrganizationOwner"] = ctx.Org.IsOwner
 		ctx.Data["IsOrganizationMember"] = ctx.Org.IsMember
 		ctx.Data["IsPackageEnabled"] = setting.Packages.Enabled
+		ctx.Data["IsProjectsEnabled"] = !setting.Admin.UserDisabledFeatures.Contains(setting.UserFeatureProjects)
 		ctx.Data["IsRepoIndexerEnabled"] = setting.Indexer.RepoIndexerEnabled
 		ctx.Data["IsPublicMember"] = func(uid int64) bool {
 			is, _ := organization.IsPublicMembership(ctx, ctx.Org.Organization.ID, uid)
@@ -229,7 +230,7 @@ func OrgAssignment(orgAssignmentOpts OrgAssignmentOptions) func(ctx *Context) {
 		}
 		ctx.Data["ContextUser"] = ctx.ContextUser
 
-		ctx.Data["CanReadProjects"] = ctx.Org.CanReadUnit(ctx, unit.TypeProjects)
+		ctx.Data["CanReadProjects"] = !setting.Admin.UserDisabledFeatures.Contains(setting.UserFeatureProjects) && ctx.Org.CanReadUnit(ctx, unit.TypeProjects)
 		ctx.Data["CanReadPackages"] = ctx.Org.CanReadUnit(ctx, unit.TypePackages)
 		ctx.Data["CanReadCode"] = ctx.Org.CanReadUnit(ctx, unit.TypeCode)
 

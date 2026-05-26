@@ -34,6 +34,14 @@ const (
 	tplProjectsView templates.TplName = "org/projects/view"
 )
 
+// MustEnableProjects checks whether user/org projects are enabled in settings.
+func MustEnableProjects(ctx *context.Context) {
+	if setting.Admin.UserDisabledFeatures.Contains(setting.UserFeatureProjects) {
+		ctx.NotFound(nil)
+		return
+	}
+}
+
 // Projects renders the home page of projects
 func Projects(ctx *context.Context) {
 	if _, err := shared_user.RenderUserOrgHeader(ctx); err != nil {
