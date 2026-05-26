@@ -78,7 +78,7 @@
     "@eslint/json": "1.2.0",
     "@playwright/test": "1.60.0",
     "@stylistic/eslint-plugin": "5.10.0",
-    "@stylistic/stylelint-plugin": "5.1.0",
+    "@stylistic/stylelint-plugin": "5.2.0",
     "@types/codemirror": "5.60.17",
     "@types/jquery": "4.0.0",
     "@types/js-yaml": "4.0.9",
