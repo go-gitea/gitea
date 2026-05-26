@@ -14,7 +14,7 @@ import (
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/util"
 
-	"github.com/jaytaylor/html2text"
+	"github.com/Necoro/html2text"
 	gomail "github.com/wneessen/go-mail"
 )
 
