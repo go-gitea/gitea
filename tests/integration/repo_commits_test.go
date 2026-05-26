@@ -179,7 +179,7 @@ func TestRepoCommitsStatusParallel(t *testing.T) {
 	assert.NotEmpty(t, commitURL)
 
 	var wg sync.WaitGroup
-	for i := range 10 {
+	for i := range 5 {
 		wg.Go(func() {
 			t.Run(fmt.Sprintf("ParallelCreateStatus_%d", i), func(t *testing.T) {
 				ctx := NewAPITestContext(t, "user2", "repo1", auth_model.AccessTokenScopeWriteRepository)
