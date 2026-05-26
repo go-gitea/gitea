@@ -74,7 +74,7 @@ func ToNotificationThread(ctx context.Context, n *activities_model.Notification)
 			}
 		}
 	case activities_model.NotificationSourceCommit:
-		url := n.Repository.HTMLURL() + "/commit/" + url.PathEscape(n.CommitID)
+		htmlURL := n.HTMLURL(ctx)
 		result.Subject = &api.NotificationSubject{
 			Type:    api.NotifySubjectCommit,
 			Title:   n.CommitID,

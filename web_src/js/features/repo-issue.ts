@@ -245,8 +245,9 @@ export function initRepoPullRequestReview() {
   });
 
   // The following part is only for diff views
-  if (!document.querySelector('.repository.pull.diff')) return;
+  if (!document.querySelector('.repository.diff')) return;
 
+  if (document.querySelector('.repository.pull.diff')) {
   const elReviewBtn = document.querySelector('.js-btn-review');
   const elReviewPanel = document.querySelector('.review-box-panel.tippy-target');
   if (elReviewBtn && elReviewPanel) {
@@ -261,6 +262,7 @@ export function initRepoPullRequestReview() {
     });
     elReviewPanel.querySelector('.close')!.addEventListener('click', () => tippy.hide());
   }
+}
 
   addDelegatedEventListener(document, 'click', '.add-code-comment', async (el, e) => {
     e.preventDefault();

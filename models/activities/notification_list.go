@@ -178,6 +178,52 @@ func (nl NotificationList) LoadAttributes(ctx context.Context) error {
 	if _, err := nl.LoadComments(ctx); err != nil {
 		return err
 	}
+	return nl.LoadCommitComments()
+}
+
+// LoadCommitComments loads standalone commit comments for SourceCommit notifications.
+func (nl NotificationList) LoadCommitComments(ctx context.Context) error {
+	if len(nl) == 0 {
+		return nil
+	}
+	pending := make(map[int64]struct{})
+	for _, n := range nl {
+		if n.Source != NotificationSourceCommit || n.CommitCommentID == 0 || n.CommitComment != nil {
+			continue
+		}
+		pending[n.CommitCommentID] = struct{}{}
+	}
+	if len(pending) == 0 {
+		return nil
+	}
+	ids := make([]int64, 0, len(pending))
+	for id := range pending {
+		ids = append(ids, id)
+	}
+	loaded := make(map[int64]*repo_model.CommitComment, len(ids))
+	left := len(ids)
+	for left > 0 {
+		limit := min(left, db.DefaultMaxInSize)
+		var batch []*repo_model.CommitComment
+		if err := db.GetEngine(ctx).In("id", ids[:limit]).Find(&batch); err != nil {
+			return err
+		}
+		for _, c := range batch {
+			loaded[c.ID] = c
+		}
+		left -= limit
+		ids = ids[limit:]
+	}
+	for _, n := range nl {
+		if n.Source != NotificationSourceCommit || n.CommitCommentID == 0 {
+			continue
+		}
+		if c, ok := loaded[n.CommitCommentID]; ok && c.RepoID == n.RepoID {
+			n.CommitComment = c
+			continue
+		}
+		n.CommitCommentID = 0
+	}
 	return nil
 }
 

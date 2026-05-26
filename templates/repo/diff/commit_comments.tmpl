@@ -1,0 +1,34 @@
+{{range .comments}}
+{{$createdStr := DateUtils.TimeSince .CreatedUnix}}
+<div class="comment" id="{{.HashTag}}">
+	<div class="tw-mt-2 tw-mr-4">
+		{{template "shared/user/avatarlink" dict "user" .Poster}}
+	</div>
+	<div class="content comment-container">
+		<div class="comment-header avatar-content-left-arrow">
+			<div class="comment-header-left">
+				<span class="tw-text-text-light muted-links">
+					{{template "shared/user/namelink" .Poster}}
+					{{ctx.Locale.Tr "repo.issues.commented_at" .HashTag $createdStr}}
+				</span>
+			</div>
+			<div class="comment-header-right">
+				{{if and $.root.IsSigned (eq $.root.SignedUserID .PosterID) (not $.root.Repository.IsArchived)}}
+					<div class="item context js-aria-clickable delete-comment" data-comment-id="{{.HashTag}}" data-url="{{$.root.RepoLink}}/commit/{{.CommitSHA}}/comment/{{.ID}}/delete" data-locale="{{ctx.Locale.Tr "repo.issues.delete_comment_confirm"}}">
+						{{svg "octicon-trash" 14}}
+					</div>
+				{{end}}
+			</div>
+		</div>
+		<div class="ui attached segment comment-body">
+			<div class="render-content markup">
+			{{if .RenderedContent}}
+				{{.RenderedContent}}
+			{{else}}
+				<span class="no-content">{{ctx.Locale.Tr "repo.issues.no_content"}}</span>
+			{{end}}
+			</div>
+		</div>
+	</div>
+</div>
+{{end}}

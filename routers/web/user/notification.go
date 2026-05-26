@@ -98,6 +98,11 @@ func prepareUserNotificationsData(ctx *context.Context) {
 	}
 	failCount += len(failures)
 
+	if err := notifications.LoadCommitComments(ctx); err != nil {
+		ctx.ServerError("LoadCommitComments", err)
+		return
+	}
+
 	failures, err = notifications.LoadIssues(ctx)
 	if err != nil {
 		ctx.ServerError("LoadIssues", err)

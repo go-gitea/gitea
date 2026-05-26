@@ -12,7 +12,9 @@ import (
 	"code.gitea.io/gitea/models/db"
 	issues_model "code.gitea.io/gitea/models/issues"
 	"code.gitea.io/gitea/models/organization"
+	"code.gitea.io/gitea/models/perm/access"
 	repo_model "code.gitea.io/gitea/models/repo"
+	"code.gitea.io/gitea/models/unit"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/timeutil"
@@ -60,6 +62,7 @@ type Notification struct {
 	IssueID   int64 `xorm:"NOT NULL"`
 	CommitID  string
 	CommentID int64
+	CommitCommentID int64
 
 	UpdatedBy int64 `xorm:"NOT NULL"`
 
@@ -113,6 +116,79 @@ func (n *Notification) TableIndices() []*schemas.Index {
 
 func init() {
 	db.RegisterModel(new(Notification))
+}
+
+// CreateCommitCommentNotification creates notifications for a commit comment.
+func CreateCommitCommentNotification(ctx context.Context, doer *user_model.User, repo *repo_model.Repository, commitSHA string, commitCommentID int64, commitAuthorEmail string, mentionedUsernames []string) error {
+	return db.WithTx(ctx, func(ctx context.Context) error {
+		receiverIDs := make(map[int64]struct{})
+
+		if commitAuthorEmail != "" {
+			author, err := user_model.GetUserByEmail(ctx, commitAuthorEmail)
+			switch {
+			case err == nil:
+				if author.ID != doer.ID {
+					receiverIDs[author.ID] = struct{}{}
+				}
+			case user_model.IsErrUserNotExist(err):
+			default:
+				return fmt.Errorf("GetUserByEmail: %w", err)
+			}
+		}
+
+		if len(mentionedUsernames) > 0 {
+			mentionedIDs, err := user_model.GetUserIDsByNames(ctx, mentionedUsernames, true)
+			if err != nil {
+				return fmt.Errorf("GetUserIDsByNames: %w", err)
+			}
+			for _, id := range mentionedIDs {
+				if id != doer.ID {
+					receiverIDs[id] = struct{}{}
+				}
+			}
+		}
+
+		if len(receiverIDs) == 0 {
+			return nil
+		}
+
+		filtered := make(map[int64]struct{}, len(receiverIDs))
+		for uid := range receiverIDs {
+			recipient, err := user_model.GetUserByID(ctx, uid)
+			if err != nil {
+				if user_model.IsErrUserNotExist(err) {
+					continue
+				}
+				return fmt.Errorf("GetUserByID [%d]: %w", uid, err)
+			}
+			perm, err := access.GetDoerRepoPermission(ctx, repo, recipient)
+			if err != nil {
+				return fmt.Errorf("GetDoerRepoPermission [%d]: %w", uid, err)
+			}
+			if perm.CanRead(unit.TypeCode) {
+				filtered[uid] = struct{}{}
+			}
+		}
+
+		if len(filtered) == 0 {
+			return nil
+		}
+
+		var notifications []*Notification
+		for uid := range filtered {
+			notifications = append(notifications, &Notification{
+				UserID:          uid,
+				RepoID:          repo.ID,
+				Status:          NotificationStatusUnread,
+				Source:          NotificationSourceCommit,
+				CommitID:        commitSHA,
+				CommitCommentID: commitCommentID,
+				UpdatedBy:       doer.ID,
+			})
+		}
+
+		return db.Insert(ctx, notifications)
+	})
 }
 
 // CreateRepoTransferNotification creates  notification for the user a repository was transferred to
@@ -213,6 +289,9 @@ func (n *Notification) LoadAttributes(ctx context.Context) (err error) {
 	if err = n.loadComment(ctx); err != nil {
 		return err
 	}
+	if err = n.loadCommitComment(ctx); err != nil {
+		return err
+	}
 	return err
 }
 
@@ -253,6 +332,22 @@ func (n *Notification) loadComment(ctx context.Context) (err error) {
 	return nil
 }
 
+func (n *Notification) loadCommitComment(ctx context.Context) error {
+	if n.Source != NotificationSourceCommit || n.CommitCommentID == 0 || n.CommitComment != nil {
+		return nil
+	}
+	c, err := repo_model.GetCommitCommentByID(ctx, n.RepoID, n.CommitCommentID)
+	if err != nil {
+		if db.IsErrNotExist(err) {
+			n.CommitCommentID = 0
+			return nil
+		}
+		return err
+	}
+	n.CommitComment = c
+	return nil
+}
+
 func (n *Notification) loadUser(ctx context.Context) (err error) {
 	if n.User == nil {
 		n.User, err = user_model.GetUserByID(ctx, n.UserID)
@@ -282,7 +377,11 @@ func (n *Notification) HTMLURL(ctx context.Context) string {
 		}
 		return n.Issue.HTMLURL(ctx)
 	case NotificationSourceCommit:
-		return n.Repository.HTMLURL(ctx) + "/commit/" + url.PathEscape(n.CommitID)
+		base := n.Repository.HTMLURL(ctx) + "/commit/" + url.PathEscape(n.CommitID)
+		if n.CommitCommentID != 0 {
+			return base + "#commitcomment-" + strconv.FormatInt(n.CommitCommentID, 10)
+		}
+		return base
 	case NotificationSourceRepository:
 		return n.Repository.HTMLURL(ctx)
 	}

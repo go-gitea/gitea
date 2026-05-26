@@ -1,6 +1,9 @@
 {{$file := .file}}
 {{/* this tmpl is also used by the PR Conversation page, so "DiffBlobExcerptData" may not exist */}}
 {{$diffBlobExcerptData := $.root.DiffBlobExcerptData}}
+{{$commitComments := $.root.CommitComments}}
+{{$ccFile := ""}}
+{{if $commitComments}}{{$ccFile = index $commitComments $file.Name}}{{end}}
 <colgroup>
 	<col width="50">
 	<col width="50">
@@ -31,7 +34,7 @@
 				<td class="chroma lines-code blob-hunk">{{template "repo/diff/section_code" dict "diff" $inlineDiff}}</td>
 			{{else}}
 				<td class="chroma lines-code{{if (not $line.RightIdx)}} lines-code-old{{end}}">
-					{{- if and $.root.SignedUserID $.root.PageIsPullFiles -}}
+					{{- if and $.root.SignedUserID (or $.root.PageIsPullFiles $.root.PageIsDiff) (not $.root.Repository.IsArchived) -}}
 						<button type="button" aria-label="{{ctx.Locale.Tr "repo.diff.comment.add_line_comment"}}" class="ui primary button add-code-comment add-code-comment-{{if $line.RightIdx}}right{{else}}left{{end}}{{if (not $line.CanComment)}} tw-invisible{{end}}" data-side="{{if $line.RightIdx}}right{{else}}left{{end}}" data-idx="{{if $line.RightIdx}}{{$line.RightIdx}}{{else}}{{$line.LeftIdx}}{{end}}">
 							{{- svg "octicon-plus" -}}
 						</button>
@@ -46,6 +49,25 @@
 					{{template "repo/diff/conversation" dict "." $.root "comments" $line.Comments}}
 				</td>
 			</tr>
+		{{end}}
+		{{/* Render commit comments (not PR review comments) */}}
+		{{if $ccFile}}
+			{{$rightCC := ""}}
+			{{if $line.RightIdx}}{{$rightCC = index $ccFile.Right $line.RightIdx}}{{end}}
+			{{$leftCC := ""}}
+			{{if $line.LeftIdx}}{{$leftCC = index $ccFile.Left $line.LeftIdx}}{{end}}
+			{{if or $rightCC $leftCC}}
+				<tr class="add-comment" data-line-type="{{.GetHTMLDiffLineType}}">
+					<td class="add-comment-left add-comment-right" colspan="5">
+						{{if $rightCC}}
+							{{template "repo/diff/commit_conversation" dict "." $.root "comments" $rightCC}}
+						{{end}}
+						{{if $leftCC}}
+							{{template "repo/diff/commit_conversation" dict "." $.root "comments" $leftCC}}
+						{{end}}
+					</td>
+				</tr>
+			{{end}}
 		{{end}}
 	{{end}}
 {{end}}
