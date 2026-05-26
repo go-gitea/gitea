@@ -181,6 +181,8 @@ func TestExtractReply(t *testing.T) {
 		{"date prose kept", "Notes:\n5 issues 2024 fixed at 9:15 today\nmore notes", "Notes:\n5 issues 2024 fixed at 9:15 today\nmore notes"},
 		{"header needs from first", "Quick note:\nTo: which server?\nFrom: tests pass.\nThanks", "Quick note:\nTo: which server?\nFrom: tests pass.\nThanks"},
 		{"indented header block", "Reply text.\n\n  From: A <a@b.com>\n  Sent: Monday\n  To: x\n  Subject: hi\n\nbody", "Reply text."},
+		{"chinese signature", "回复内容\n\n發自我的iPhone", "回复内容"},
+		{"japanese signature", "返信します\n\niPhoneから送信", "返信します"},
 	}
 	for _, c := range cases {
 		t.Run(c.name, func(t *testing.T) {
