@@ -290,7 +290,7 @@ func checkJobsOfCurrentRunAttempt(ctx context.Context, run *actions_model.Action
 	}
 
 	if len(jobs) > oldJobCount {
-		log.Info("Matrix re-evaluation created %d new jobs for run %d (was %d, now %d)",
+		log.Debug("Matrix re-evaluation created %d new jobs for run %d (was %d, now %d)",
 			len(jobs)-oldJobCount, run.ID, oldJobCount, len(jobs))
 	}
 
@@ -407,17 +407,13 @@ func (r *jobStatusResolver) resolve(ctx context.Context) map[int64]actions_model
 			continue
 		}
 
-		// If new matrix jobs were created, add them to the resolver and continue
+		// If new matrix jobs were created, the placeholder was already claimed and
+		// skipped inside ReEvaluateMatrixForJobWithNeeds (transactionally). Nothing
+		// more to do here — just move to the next job.
 		if len(newMatrixJobs) > 0 {
 			resolveMetrics.matrixReevaluated++
 			log.Info("Matrix re-evaluation succeeded for job %d (JobID: %s): created %d new jobs (duration: %dms)",
 				id, actionRunJob.JobID, len(newMatrixJobs), duration)
-
-			// Mark the original matrix placeholder job as skipped so it won't be run later.
-			actionRunJob.Status = actions_model.StatusSkipped
-			if _, err := db.GetEngine(ctx).ID(actionRunJob.ID).Cols("status").Update(actionRunJob); err != nil {
-				log.Error("Failed to mark matrix placeholder job %d (JobID: %s) as skipped after re-evaluation: %v", id, actionRunJob.JobID, err)
-			}
 			continue
 		}
 
@@ -461,10 +457,10 @@ func (r *jobStatusResolver) resolve(ctx context.Context) map[int64]actions_model
 			switch newStatus {
 			case actions_model.StatusWaiting:
 				resolveMetrics.jobsStarted++
-				log.Info("Job %d (JobID: %s) transitioned to StatusWaiting", id, actionRunJob.JobID)
+				log.Debug("Job %d (JobID: %s) transitioned to StatusWaiting", id, actionRunJob.JobID)
 			case actions_model.StatusSkipped:
 				resolveMetrics.jobsSkipped++
-				log.Info("Job %d (JobID: %s) transitioned to StatusSkipped", id, actionRunJob.JobID)
+				log.Debug("Job %d (JobID: %s) transitioned to StatusSkipped", id, actionRunJob.JobID)
 			}
 		}
 	}

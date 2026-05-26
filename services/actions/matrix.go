@@ -10,17 +10,19 @@ import (
 	"maps"
 	"sort"
 	"strings"
-	"time"
 
 	actions_model "code.gitea.io/gitea/models/actions"
+	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/modules/actions/jobparser"
 	"code.gitea.io/gitea/modules/log"
 
 	"go.yaml.in/yaml/v4"
+	"xorm.io/builder"
 )
 
-// markMatrixAsEvaluatedAndSkip marks a job's matrix as evaluated and skipped.
-// Used when matrix cannot be expanded or dependency checks fail.
+// markMatrixAsEvaluatedAndSkip marks a job as evaluated and skipped unconditionally.
+// Used when matrix cannot be expanded or dependency checks fail (no concurrent
+// insertion has taken place, so no race is possible).
 func markMatrixAsEvaluatedAndSkip(ctx context.Context, job *actions_model.ActionRunJob, reason string) error {
 	job.IsMatrixEvaluated = true
 	job.Status = actions_model.StatusSkipped
@@ -30,6 +32,23 @@ func markMatrixAsEvaluatedAndSkip(ctx context.Context, job *actions_model.Action
 	}
 	log.Debug("Marked job %d (JobID: %s) as evaluated and skipped: %s", job.ID, job.JobID, reason)
 	return nil
+}
+
+// claimMatrixExpansion atomically marks the placeholder job as evaluated+skipped
+// only when it is still in its original state (is_matrix_evaluated=false AND
+// status=Blocked). Returns (true, nil) when this caller wins the claim, or
+// (false, nil) when another concurrent process already claimed it.
+// This is the concurrency guard that prevents double-expansion.
+func claimMatrixExpansion(ctx context.Context, job *actions_model.ActionRunJob) (bool, error) {
+	job.IsMatrixEvaluated = true
+	job.Status = actions_model.StatusSkipped
+	n, err := actions_model.UpdateRunJob(ctx, job,
+		builder.Eq{"is_matrix_evaluated": false, "status": actions_model.StatusBlocked},
+		"is_matrix_evaluated", "status")
+	if err != nil {
+		return false, err
+	}
+	return n == 1, nil
 }
 
 // checkTaskNeedsReady verifies if all task dependencies are completed.
@@ -42,7 +61,6 @@ func checkTaskNeedsReady(ctx context.Context, job *actions_model.ActionRunJob) (
 
 	log.Debug("Found %d task needs for job %d (JobID: %s)", len(taskNeeds), job.ID, job.JobID)
 
-	// Check if any task needs are not done
 	var pendingNeeds []string
 	for jobID, taskNeed := range taskNeeds {
 		if !taskNeed.Result.IsDone() {
@@ -52,15 +70,14 @@ func checkTaskNeedsReady(ctx context.Context, job *actions_model.ActionRunJob) (
 
 	if len(pendingNeeds) > 0 {
 		log.Debug("Matrix re-evaluation deferred for job %d: pending needs: %v", job.ID, pendingNeeds)
-		GetMatrixMetrics().RecordDeferred()
 		return taskNeeds, false, nil
 	}
 
 	return taskNeeds, true, nil
 }
 
-// ExtractRawStrategies extracts strategy definitions from the raw workflow content
-// Returns a map of jobID to strategy YAML for jobs that have matrix dependencies
+// ExtractRawStrategies extracts strategy definitions from the raw workflow content.
+// Returns a map of jobID to strategy YAML for jobs that have matrix dependencies.
 func ExtractRawStrategies(content []byte) (map[string]string, error) {
 	var workflowDef struct {
 		Jobs map[string]struct {
@@ -79,7 +96,6 @@ func ExtractRawStrategies(content []byte) (map[string]string, error) {
 			continue
 		}
 
-		// Check if this job has needs (dependencies)
 		var needsList []string
 		switch needs := jobDef.Needs.(type) {
 		case string:
@@ -92,7 +108,6 @@ func ExtractRawStrategies(content []byte) (map[string]string, error) {
 			}
 		}
 
-		// Only store strategy for jobs with dependencies
 		if len(needsList) > 0 {
 			if strategyBytes, err := yaml.Marshal(jobDef.Strategy); err == nil {
 				strategies[jobID] = string(strategyBytes)
@@ -103,25 +118,86 @@ func ExtractRawStrategies(content []byte) (map[string]string, error) {
 	return strategies, nil
 }
 
-// HasMatrixWithNeeds checks if a job's strategy contains a matrix that depends on job outputs
+// HasMatrixWithNeeds reports whether rawStrategy contains a matrix value whose
+// expression tree references needs.<id>.outputs.<key>.
+// It walks the parsed YAML tree to avoid false positives from values such as
+// "os: [needs.review-runner]" that merely contain the substring "needs.".
 func HasMatrixWithNeeds(rawStrategy string) bool {
 	if rawStrategy == "" {
 		return false
 	}
 
-	var strategy map[string]any
-	if err := yaml.Unmarshal([]byte(rawStrategy), &strategy); err != nil {
+	var root yaml.Node
+	if err := yaml.Unmarshal([]byte(rawStrategy), &root); err != nil {
 		return false
 	}
 
-	matrix, ok := strategy["matrix"]
-	if !ok {
+	// The top-level document node wraps a single mapping node.
+	doc := &root
+	if doc.Kind == yaml.DocumentNode && len(doc.Content) == 1 {
+		doc = doc.Content[0]
+	}
+
+	// Find the "matrix" key inside the strategy mapping.
+	var matrixNode *yaml.Node
+	if doc.Kind == yaml.MappingNode {
+		for i := 0; i+1 < len(doc.Content); i += 2 {
+			if doc.Content[i].Value == "matrix" {
+				matrixNode = doc.Content[i+1]
+				break
+			}
+		}
+	}
+	if matrixNode == nil {
 		return false
 	}
 
-	// Check if any matrix value contains "needs." reference
-	matrixStr := fmt.Sprintf("%v", matrix)
-	return strings.Contains(matrixStr, "needs.")
+	return yamlNodeContainsNeedsOutputsExpr(matrixNode)
+}
+
+// yamlNodeContainsNeedsOutputsExpr recursively inspects a yaml.Node and
+// returns true if any scalar value contains a GitHub Actions expression of
+// the form ${{ ... needs.<id>.outputs.<key> ... }}.
+func yamlNodeContainsNeedsOutputsExpr(node *yaml.Node) bool {
+	if node == nil {
+		return false
+	}
+	if node.Kind == yaml.ScalarNode {
+		return containsNeedsOutputsExpr(node.Value)
+	}
+	for _, child := range node.Content {
+		if yamlNodeContainsNeedsOutputsExpr(child) {
+			return true
+		}
+	}
+	return false
+}
+
+// containsNeedsOutputsExpr returns true when s contains a GitHub Actions
+// expression (${{ ... }}) that references needs.<id>.outputs.<key>.
+// A bare "needs." substring outside an expression block is not a match.
+func containsNeedsOutputsExpr(s string) bool {
+	if !strings.Contains(s, "${{") {
+		return false
+	}
+	for i := 0; i < len(s); {
+		start := strings.Index(s[i:], "${{")
+		if start == -1 {
+			break
+		}
+		start += i
+		end := strings.Index(s[start:], "}}")
+		if end == -1 {
+			break
+		}
+		end += start
+		expr := s[start : end+2]
+		if strings.Contains(expr, "needs.") && strings.Contains(expr, ".outputs.") {
+			return true
+		}
+		i = end + 2
+	}
+	return false
 }
 
 // ReEvaluateMatrixForJobWithNeeds re-evaluates the matrix strategy of a job once all its
@@ -129,8 +205,6 @@ func HasMatrixWithNeeds(rawStrategy string) bool {
 // ActionRunJobs. The original placeholder job is marked as evaluated and skipped.
 // Returns nil, nil if the job is not ready yet or has nothing to do.
 func ReEvaluateMatrixForJobWithNeeds(ctx context.Context, job *actions_model.ActionRunJob, vars map[string]string) ([]*actions_model.ActionRunJob, error) {
-	startTime := time.Now()
-
 	if job.IsMatrixEvaluated || job.RawStrategy == "" {
 		return nil, nil
 	}
@@ -149,31 +223,26 @@ func ReEvaluateMatrixForJobWithNeeds(ctx context.Context, job *actions_model.Act
 		return nil, origErr
 	}
 
-	// Check if dependencies are ready BEFORE doing expensive parsing
 	taskNeeds, allDone, err := checkTaskNeedsReady(ctx, job)
 	if err != nil {
 		log.Error("Matrix re-evaluation error for job %d: check task needs: %v", job.ID, err)
 		return skipWithError(fmt.Sprintf("task needs check failed: %v", err), fmt.Errorf("check task needs: %w", err))
 	}
 	if !allDone {
-		return nil, nil // wait for dependencies
+		return nil, nil
 	}
 
 	mergedVars := mergeNeedsIntoVars(vars, taskNeeds)
 
-	// Load run and its attributes for expression evaluation context
 	if job.Run == nil {
 		if err := job.LoadRun(ctx); err != nil {
-			GetMatrixMetrics().RecordReevaluation(time.Since(startTime), false, 0)
 			return nil, fmt.Errorf("load run: %w", err)
 		}
 	}
 	if job.Run == nil {
-		GetMatrixMetrics().RecordReevaluation(time.Since(startTime), false, 0)
 		return nil, errors.New("run not found after loading")
 	}
 	if err := job.Run.LoadAttributes(ctx); err != nil {
-		GetMatrixMetrics().RecordReevaluation(time.Since(startTime), false, 0)
 		return nil, fmt.Errorf("load run attributes: %w", err)
 	}
 
@@ -186,27 +255,12 @@ func ReEvaluateMatrixForJobWithNeeds(ctx context.Context, job *actions_model.Act
 		jobResults[jobID] = need.Result.String()
 	}
 
-	// Build a minimal workflow containing this job and stubs for its dependencies,
-	// so the jobparser can resolve needs.*.outputs.* expressions.
 	workflowYAML, err := constructWorkflowWithNeeds(job, taskNeeds)
 	if err != nil {
 		log.Error("Matrix re-evaluation error for job %d: construct workflow: %v", job.ID, err)
-		GetMatrixMetrics().RecordReevaluation(time.Since(startTime), false, 0)
 		return skipWithError(fmt.Sprintf("workflow construction failed: %v", err), fmt.Errorf("construct workflow: %w", err))
 	}
 
-	// Track cache hit/miss for metrics (actual caching of parsed objects is future work)
-	cacheKey := computeCacheKey(workflowYAML, taskNeeds)
-	if cache := getWorkflowParseCache(); cache != nil {
-		if _, hit := cache.Get(cacheKey); hit {
-			log.Debug("Cache hit for workflow parse (job %d, key: %.16s)", job.ID, cacheKey)
-			GetMatrixMetrics().RecordCacheHit()
-		} else {
-			GetMatrixMetrics().RecordCacheMiss()
-		}
-	}
-
-	parseStart := time.Now()
 	parsedJobs, err := jobparser.Parse(
 		workflowYAML,
 		jobparser.WithVars(mergedVars),
@@ -214,12 +268,8 @@ func ReEvaluateMatrixForJobWithNeeds(ctx context.Context, job *actions_model.Act
 		jobparser.WithJobOutputs(jobOutputs),
 		jobparser.WithJobResults(jobResults),
 	)
-	GetMatrixMetrics().RecordParseTime(time.Since(parseStart))
-
 	if err != nil {
 		log.Error("Matrix parse error for job %d (RawStrategy: %s): %v", job.ID, job.RawStrategy, err)
-		GetMatrixMetrics().RecordReevaluation(time.Since(startTime), false, 0)
-		// Don't propagate parse errors — mark as evaluated to avoid retry loops
 		if markErr := markMatrixAsEvaluatedAndSkip(ctx, job, fmt.Sprintf("parse failed: %v", err)); markErr != nil {
 			return nil, fmt.Errorf("parse workflow: %w; additionally failed to mark as evaluated: %v", err, markErr)
 		}
@@ -228,13 +278,7 @@ func ReEvaluateMatrixForJobWithNeeds(ctx context.Context, job *actions_model.Act
 
 	if len(parsedJobs) == 0 {
 		log.Debug("No jobs generated from matrix expansion for job %d (JobID: %s)", job.ID, job.JobID)
-		GetMatrixMetrics().RecordReevaluation(time.Since(startTime), false, 0)
 		return nil, markMatrixAsEvaluatedAndSkip(ctx, job, "no jobs generated from matrix expansion")
-	}
-
-	// Cache successful parse result (YAML payload for metrics tracking)
-	if cache := getWorkflowParseCache(); cache != nil && len(parsedJobs) > 0 {
-		cache.Set(cacheKey, workflowYAML)
 	}
 
 	log.Debug("Parsed %d matrix combinations for job %d (JobID: %s)", len(parsedJobs), job.ID, job.JobID)
@@ -247,7 +291,6 @@ func ReEvaluateMatrixForJobWithNeeds(ctx context.Context, job *actions_model.Act
 			continue
 		}
 		if id != job.JobID {
-			// Skip dependency stubs — we only want matrix-expanded entries for the target job
 			continue
 		}
 		needs := jobDef.Needs()
@@ -267,77 +310,74 @@ func ReEvaluateMatrixForJobWithNeeds(ctx context.Context, job *actions_model.Act
 			JobID:             id,
 			Needs:             needs,
 			RunsOn:            jobDef.RunsOn(),
-			// All dependency jobs are already done at this point; start as Waiting.
-			Status: actions_model.StatusWaiting,
+			Status:            actions_model.StatusWaiting,
 		})
 	}
 
 	if len(newJobs) == 0 {
 		log.Warn("No valid jobs created from matrix expansion for job %d (JobID: %s), total parsed: %d", job.ID, job.JobID, len(parsedJobs))
-		GetMatrixMetrics().RecordReevaluation(time.Since(startTime), false, 0)
 		return nil, markMatrixAsEvaluatedAndSkip(ctx, job, fmt.Sprintf("no valid jobs created (parsed: %d)", len(parsedJobs)))
 	}
 
-	insertStart := time.Now()
-	if err := actions_model.InsertActionRunJobs(ctx, newJobs); err != nil {
-		log.Error("Matrix insertion error: failed to insert %d new matrix jobs for job %d (JobID: %s): %v", len(newJobs), job.ID, job.JobID, err)
-		GetMatrixMetrics().RecordInsertTime(time.Since(insertStart))
-		GetMatrixMetrics().RecordReevaluation(time.Since(startTime), false, 0)
-		return nil, fmt.Errorf("insert new jobs: %w", err)
+	// Atomically claim the placeholder and insert the new jobs in one transaction.
+	// The conditional WHERE in claimMatrixExpansion (is_matrix_evaluated=false AND
+	// status=Blocked) ensures only one concurrent caller can win. The second caller
+	// sees n==0 and rolls back without inserting duplicate jobs.
+	var claimed bool
+	if err := db.WithTx(ctx, func(txCtx context.Context) error {
+		var txErr error
+		claimed, txErr = claimMatrixExpansion(txCtx, job)
+		if txErr != nil {
+			return txErr
+		}
+		if !claimed {
+			return nil
+		}
+		return actions_model.InsertActionRunJobs(txCtx, newJobs)
+	}); err != nil {
+		log.Error("Matrix expansion transaction failed for job %d (JobID: %s): %v", job.ID, job.JobID, err)
+		return nil, fmt.Errorf("matrix expansion transaction: %w", err)
 	}
-	GetMatrixMetrics().RecordInsertTime(time.Since(insertStart))
-
-	// Mark the placeholder job as evaluated and skipped so it is never run
-	if err := markMatrixAsEvaluatedAndSkip(ctx, job, fmt.Sprintf("successfully created %d new jobs", len(newJobs))); err != nil {
-		// Non-fatal: new jobs are already inserted
-		log.Error("Failed to mark placeholder job %d as evaluated after creating %d new jobs: %v", job.ID, len(newJobs), err)
+	if !claimed {
+		log.Warn("Matrix placeholder job %d (JobID: %s) was already claimed by a concurrent process; skipping",
+			job.ID, job.JobID)
+		return nil, nil
 	}
 
-	totalTime := time.Since(startTime)
-	GetMatrixMetrics().RecordReevaluation(totalTime, true, int64(len(newJobs)))
-	log.Info("Matrix re-evaluation complete for job %d (JobID: %s): %d new jobs in %dms",
-		job.ID, job.JobID, len(newJobs), totalTime.Milliseconds())
+	log.Info("Matrix re-evaluation complete for job %d (JobID: %s): created %d new jobs",
+		job.ID, job.JobID, len(newJobs))
 
 	return newJobs, nil
 }
 
-// mergeNeedsIntoVars converts task needs outputs into variables for expression evaluation
+// mergeNeedsIntoVars converts task needs outputs into variables for expression evaluation.
 func mergeNeedsIntoVars(baseVars map[string]string, taskNeeds map[string]*TaskNeed) map[string]string {
 	merged := make(map[string]string)
-
-	// Copy base vars
 	maps.Copy(merged, baseVars)
-
-	// Add needs outputs as variables in format: needs.<job_id>.outputs.<output_name>
 	for jobID, taskNeed := range taskNeeds {
 		for outputKey, outputValue := range taskNeed.Outputs {
 			key := fmt.Sprintf("needs.%s.outputs.%s", jobID, outputKey)
 			merged[key] = outputValue
 		}
 	}
-
 	return merged
 }
 
 // constructWorkflowWithNeeds creates a workflow YAML that includes the target job
-// and stub definitions for its dependencies so the jobparser can resolve needs.*.outputs expressions
+// and stub definitions for its dependencies so the jobparser can resolve needs.*.outputs expressions.
 func constructWorkflowWithNeeds(job *actions_model.ActionRunJob, taskNeeds map[string]*TaskNeed) ([]byte, error) {
-	// Parse the original job's workflow payload to get the job definition
 	var jobWorkflow map[string]any
 	if err := yaml.Unmarshal(job.WorkflowPayload, &jobWorkflow); err != nil {
 		return nil, fmt.Errorf("unmarshal job workflow: %w", err)
 	}
 
-	// Extract the job definition from the parsed workflow
 	jobsSection, ok := jobWorkflow["jobs"].(map[string]any)
 	if !ok {
 		return nil, errors.New("invalid jobs section in workflow")
 	}
 
-	// Create a new workflow with the target job and stub jobs for dependencies
 	newJobs := make(map[string]any)
 
-	// Add stub jobs for each dependency with their outputs
 	for needJobID, taskNeed := range taskNeeds {
 		stubJob := map[string]any{
 			"runs-on": "ubuntu-latest",
@@ -347,7 +387,6 @@ func constructWorkflowWithNeeds(job *actions_model.ActionRunJob, taskNeeds map[s
 		newJobs[needJobID] = stubJob
 	}
 
-	// Add the actual job we want to expand (with matrix and needs)
 	maps.Copy(newJobs, jobsSection)
 
 	// The WorkflowPayload may contain a normalised/wrapped matrix (e.g.
@@ -361,8 +400,6 @@ func constructWorkflowWithNeeds(job *actions_model.ActionRunJob, taskNeeds map[s
 	if targetJobDef, ok := newJobs[job.JobID]; ok {
 		if targetJobMap, ok := targetJobDef.(map[string]any); ok {
 			delete(targetJobMap, "name")
-			// Restore needs from taskNeeds keys so the expression evaluator
-			// can resolve needs.<jobID>.outputs.* references.
 			needsKeys := make([]string, 0, len(taskNeeds))
 			for needJobID := range taskNeeds {
 				needsKeys = append(needsKeys, needJobID)
@@ -379,7 +416,6 @@ func constructWorkflowWithNeeds(job *actions_model.ActionRunJob, taskNeeds map[s
 		}
 	}
 
-	// Construct the full workflow
 	workflow := map[string]any{
 		"name": "matrix-expansion",
 		"on":   "push",
