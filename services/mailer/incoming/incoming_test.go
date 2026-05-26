@@ -183,6 +183,8 @@ func TestExtractReply(t *testing.T) {
 		{"indented header block", "Reply text.\n\n  From: A <a@b.com>\n  Sent: Monday\n  To: x\n  Subject: hi\n\nbody", "Reply text."},
 		{"chinese signature", "回复内容\n\n發自我的iPhone", "回复内容"},
 		{"japanese signature", "返信します\n\niPhoneから送信", "返信します"},
+		{"chinese header block", "回复内容\n\n发件人：张三\n收件人：李四\n主题：你好\n\n原文", "回复内容"},
+		{"japanese header block", "本文です\n\n差出人：山田\n宛先：田中\n件名：こんにちは\n\n原文", "本文です"},
 	}
 	for _, c := range cases {
 		t.Run(c.name, func(t *testing.T) {
