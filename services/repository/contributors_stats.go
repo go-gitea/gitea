@@ -10,6 +10,7 @@ import (
 	"strings"
 	"time"
 
+	git_model "code.gitea.io/gitea/models/git"
 	repo_model "code.gitea.io/gitea/models/repo"
 	contribution_model "code.gitea.io/gitea/models/repo/contribution"
 	user_model "code.gitea.io/gitea/models/user"
@@ -21,9 +22,7 @@ import (
 )
 
 type ContributorStatsUpdateOptions struct {
-	RepoID      int64
-	OldCommitID string
-	NewCommitID string
+	RepoID int64
 }
 
 type ContributorStatsRebuildOptions struct {
@@ -36,7 +35,7 @@ var (
 )
 
 func initContributorStatsQueue(ctx context.Context) error {
-	contributorStatsUpdateQueue = queue.CreateSimpleQueue(ctx, "contributor_stats_update", handlerContributorStatsUpdate)
+	contributorStatsUpdateQueue = queue.CreateUniqueQueue(ctx, "contributor_stats_update", handlerContributorStatsUpdate)
 	if contributorStatsUpdateQueue == nil {
 		return errors.New("unable to create contributor_stats_update queue")
 	}
@@ -78,15 +77,15 @@ func handlerContributorStatsRebuild(items ...*ContributorStatsRebuildOptions) []
 	return nil
 }
 
-func enqueueContributorStatsUpdate(repoID int64, oldCommitID, newCommitID string) error {
+func enqueueContributorStatsUpdate(repoID int64) error {
 	if contributorStatsUpdateQueue == nil {
 		return nil
 	}
-	return contributorStatsUpdateQueue.Push(&ContributorStatsUpdateOptions{
-		RepoID:      repoID,
-		OldCommitID: oldCommitID,
-		NewCommitID: newCommitID,
-	})
+	err := contributorStatsUpdateQueue.Push(&ContributorStatsUpdateOptions{RepoID: repoID})
+	if errors.Is(err, queue.ErrAlreadyInQueue) {
+		return nil
+	}
+	return err
 }
 
 func enqueueContributorStatsRebuild(repoID int64) error {
@@ -138,32 +137,31 @@ func RebuildMissingContributorStats(ctx context.Context) error {
 }
 
 func processContributorStatsUpdate(ctx context.Context, opts *ContributorStatsUpdateOptions) error {
-	if opts.NewCommitID == "" {
-		return nil
-	}
-
 	repo, err := repo_model.GetRepositoryByID(ctx, opts.RepoID)
 	if err != nil {
 		return err
 	}
-	if repo.IsEmpty {
+	if repo.IsEmpty || repo.DefaultBranch == "" {
 		return nil
 	}
 
-	meta, err := contribution_model.EnsureRepoContributorMeta(ctx, repo.ID)
+	meta, has, err := contribution_model.GetRepoContributorMeta(ctx, repo.ID)
 	if err != nil {
 		return err
+	}
+	if !has || meta.LastProcessedCommitID == "" {
+		return RequestContributorStatsRebuild(ctx, repo.ID)
 	}
 	if meta.Dirty {
 		return nil
 	}
 
-	startCommitID := meta.LastProcessedCommitID
-	if startCommitID == "" {
-		startCommitID = opts.OldCommitID
+	defaultBranch, err := git_model.GetBranch(ctx, repo.ID, repo.DefaultBranch)
+	if err != nil {
+		return err
 	}
-	if startCommitID == "" {
-		return RequestContributorStatsRebuild(ctx, repo.ID)
+	if defaultBranch.CommitID == "" || defaultBranch.CommitID == meta.LastProcessedCommitID {
+		return nil
 	}
 
 	gitRepo, err := gitrepo.OpenRepository(ctx, repo)
@@ -172,11 +170,11 @@ func processContributorStatsUpdate(ctx context.Context, opts *ContributorStatsUp
 	}
 	defer gitRepo.Close()
 
-	newCommit, err := gitRepo.GetCommit(opts.NewCommitID)
+	newCommit, err := gitRepo.GetCommit(defaultBranch.CommitID)
 	if err != nil {
 		return err
 	}
-	isForcePush, err := newCommit.IsForcePush(startCommitID)
+	isForcePush, err := newCommit.IsForcePush(meta.LastProcessedCommitID)
 	if err != nil {
 		return err
 	}
@@ -184,7 +182,7 @@ func processContributorStatsUpdate(ctx context.Context, opts *ContributorStatsUp
 		return RequestContributorStatsRebuild(ctx, repo.ID)
 	}
 
-	updates, err := collectContributorDailyUpdates(ctx, repo, startCommitID, opts.NewCommitID)
+	updates, err := collectContributorDailyUpdates(ctx, repo, meta.LastProcessedCommitID, defaultBranch.CommitID)
 	if err != nil {
 		return err
 	}
@@ -192,7 +190,7 @@ func processContributorStatsUpdate(ctx context.Context, opts *ContributorStatsUp
 		return err
 	}
 
-	meta.LastProcessedCommitID = opts.NewCommitID
+	meta.LastProcessedCommitID = defaultBranch.CommitID
 	meta.Dirty = false
 	meta.UpdatedUnix = timeutil.TimeStampNow()
 	return contribution_model.UpdateRepoContributorMeta(ctx, meta, "last_processed_commit_id", "dirty", "updated_unix")

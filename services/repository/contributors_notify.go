@@ -40,7 +40,7 @@ func (c *contributorStatsNotifier) ChangeDefaultBranch(ctx context.Context, repo
 
 func (c *contributorStatsNotifier) enqueueUpdate(repo *repo_model.Repository, opts *repo_module.PushUpdateOptions) {
 	if opts.RefFullName.IsBranch() && opts.RefFullName.ShortName() == repo.DefaultBranch && !opts.IsDelRef() {
-		if err := enqueueContributorStatsUpdate(repo.ID, opts.OldCommitID, opts.NewCommitID); err != nil {
+		if err := enqueueContributorStatsUpdate(repo.ID); err != nil {
 			log.Error("enqueueContributorStatsUpdate %s/%s failed: %v", repo.OwnerName, repo.Name, err)
 		}
 	}
