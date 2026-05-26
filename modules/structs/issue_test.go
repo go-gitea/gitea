@@ -7,7 +7,7 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
-	"go.yaml.in/yaml/v4"
+	"gopkg.in/yaml.v3"
 )
 
 func TestIssueTemplate_Type(t *testing.T) {
@@ -95,7 +95,7 @@ labels:
 		t.Run(tt.name, func(t *testing.T) {
 			err := yaml.Unmarshal([]byte(tt.content), tt.tmpl)
 			if tt.wantErr != "" {
-				assert.ErrorContains(t, err, tt.wantErr)
+				assert.EqualError(t, err, tt.wantErr)
 			} else {
 				assert.NoError(t, err)
 				assert.Equal(t, tt.want, tt.tmpl)

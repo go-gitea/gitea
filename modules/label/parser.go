@@ -10,7 +10,7 @@ import (
 
 	"code.gitea.io/gitea/modules/options"
 
-	"go.yaml.in/yaml/v4"
+	"gopkg.in/yaml.v3"
 )
 
 type labelFile struct {

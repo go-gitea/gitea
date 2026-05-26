@@ -13,7 +13,7 @@ import (
 	"code.gitea.io/gitea/modules/log"
 
 	"github.com/santhosh-tekuri/jsonschema/v6"
-	"go.yaml.in/yaml/v4"
+	"gopkg.in/yaml.v3"
 )
 
 // schemaLoader implements jsonschema.URLLoader

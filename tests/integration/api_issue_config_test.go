@@ -16,7 +16,7 @@ import (
 	"code.gitea.io/gitea/tests"
 
 	"github.com/stretchr/testify/assert"
-	"go.yaml.in/yaml/v4"
+	"gopkg.in/yaml.v3"
 )
 
 func createIssueConfig(t *testing.T, user *user_model.User, repo *repo_model.Repository, issueConfig map[string]any) {

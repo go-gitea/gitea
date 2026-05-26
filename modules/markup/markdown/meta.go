@@ -9,7 +9,7 @@ import (
 	"unicode"
 	"unicode/utf8"
 
-	"go.yaml.in/yaml/v4"
+	"gopkg.in/yaml.v3"
 )
 
 func isYAMLSeparator(line []byte) bool {

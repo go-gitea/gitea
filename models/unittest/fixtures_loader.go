@@ -16,7 +16,7 @@ import (
 
 	"code.gitea.io/gitea/models/db"
 
-	"go.yaml.in/yaml/v4"
+	"gopkg.in/yaml.v3"
 	"xorm.io/xorm"
 	"xorm.io/xorm/schemas"
 )

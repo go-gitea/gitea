@@ -16,7 +16,7 @@ import (
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/util"
 
-	"go.yaml.in/yaml/v4"
+	"gopkg.in/yaml.v3"
 )
 
 // templateDirCandidates issue templates directory

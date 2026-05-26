@@ -12,7 +12,7 @@ import (
 
 	base "code.gitea.io/gitea/modules/migration"
 
-	"go.yaml.in/yaml/v4"
+	"gopkg.in/yaml.v3"
 )
 
 // RepositoryRestorer implements an Downloader from the local directory

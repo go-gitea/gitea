@@ -24,7 +24,7 @@ import (
 	"code.gitea.io/gitea/services/migrations"
 
 	"github.com/stretchr/testify/assert"
-	"go.yaml.in/yaml/v4"
+	"gopkg.in/yaml.v3"
 )
 
 func TestDumpRestore(t *testing.T) {

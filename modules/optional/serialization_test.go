@@ -11,7 +11,7 @@ import (
 	"code.gitea.io/gitea/modules/optional"
 
 	"github.com/stretchr/testify/assert"
-	"go.yaml.in/yaml/v4"
+	"gopkg.in/yaml.v3"
 )
 
 type testSerializationStruct struct {

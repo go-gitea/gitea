@@ -6,7 +6,7 @@ package optional
 import (
 	"code.gitea.io/gitea/modules/json"
 
-	"go.yaml.in/yaml/v4"
+	"gopkg.in/yaml.v3"
 )
 
 func (o *Option[T]) UnmarshalJSON(data []byte) error {
