@@ -1,4 +1,4 @@
-// Copyright 2025 The Gitea Authors. All rights reserved.
+// Copyright 2026 The Gitea Authors. All rights reserved.
 // SPDX-License-Identifier: MIT
 
 package jupyter
@@ -42,7 +42,7 @@ func (renderer) NeedPostProcess() bool { return true }
 
 func (renderer) GetExternalRendererOptions() markup.ExternalRendererOptions {
 	return markup.ExternalRendererOptions{
-		SanitizerDisabled: true,
+		SanitizerDisabled: false,
 	}
 }
 
@@ -51,7 +51,65 @@ func (renderer) FileNamePatterns() []string {
 }
 
 func (renderer) SanitizerRules() []setting.MarkupSanitizerRule {
-	return nil
+	return []setting.MarkupSanitizerRule{
+		// Notebook container and messages
+		{Element: "div", AllowAttr: "class", Regexp: `^jupyter-notebook$`},
+		{Element: "div", AllowAttr: "class", Regexp: `^jupyter-notebook-message$`},
+		{Element: "div", AllowAttr: "class", Regexp: `^jupyter-notebook-error$`},
+
+		// Cell structure
+		{Element: "div", AllowAttr: "class", Regexp: `^cell (markdown|code)$`},
+		{Element: "div", AllowAttr: "class", Regexp: `^(input-wrapper|output-wrapper)$`},
+		{Element: "div", AllowAttr: "class", Regexp: `^prompt (input-prompt|output-prompt)$`},
+		{Element: "div", AllowAttr: "class", Regexp: `^(input|output)$`},
+		{Element: "div", AllowAttr: "class", Regexp: `^input markup$`},
+
+		// Output types
+		{Element: "div", AllowAttr: "class", Regexp: `^jupyter-html-output$`},
+		{Element: "div", AllowAttr: "class", Regexp: `^jupyter-unsupported-output$`},
+		{Element: "pre", AllowAttr: "class", Regexp: `^(stream-stdout|stream-stderr|error-output)$`},
+
+		// Code highlighting (Chroma)
+		{Element: "pre"},
+		{Element: "code", AllowAttr: "class", Regexp: `^chroma language-[\w-]+$`},
+		{Element: "code", AllowAttr: "class", Regexp: `^language-math display$`},
+		{Element: "span", AllowAttr: "class", Regexp: `^[\w-]+$`},
+
+		// Images (base64 data URIs only)
+		{Element: "img", AllowAttr: "class", Regexp: `^jupyter-output-image$`},
+		{Element: "img", AllowAttr: "src", Regexp: `^data:image/(png|jpeg|svg\+xml);base64,[A-Za-z0-9+/=]+$`},
+
+		// Tables (for DataFrames and markdown)
+		{Element: "table", AllowAttr: "class", Regexp: `^dataframe$`},
+		{Element: "table", AllowAttr: "border", Regexp: `^[0-9]+$`},
+		{Element: "thead"},
+		{Element: "tbody"},
+		{Element: "tr"},
+		{Element: "th"},
+		{Element: "td"},
+
+		// Markdown elements
+		{Element: "h1"},
+		{Element: "h2"},
+		{Element: "h3"},
+		{Element: "h4"},
+		{Element: "h5"},
+		{Element: "h6"},
+		{Element: "p"},
+		{Element: "a", AllowAttr: "href", Regexp: `^(https?://|mailto:).*$`},
+		{Element: "strong"},
+		{Element: "em"},
+		{Element: "ul"},
+		{Element: "ol"},
+		{Element: "li"},
+		{Element: "blockquote"},
+		{Element: "dl"},
+		{Element: "dt"},
+		{Element: "dd"},
+		{Element: "input", AllowAttr: "type", Regexp: `^checkbox$`},
+		{Element: "input", AllowAttr: "disabled", Regexp: `^$`},
+		{Element: "input", AllowAttr: "checked", Regexp: `^$`},
+	}
 }
 
 // Notebook structures
@@ -214,12 +272,12 @@ func renderOutput(output io.Writer, out Output) {
 		// Image outputs
 		if pngData, ok := out.Data["image/png"]; ok {
 			imgData := joinSource(pngData)
-			_, _ = htmlutil.HTMLPrintf(output, `<img src="data:image/png;base64,%s" style="max-width: 100%%;">`, template.HTML(imgData))
+			_, _ = htmlutil.HTMLPrintf(output, `<img src="data:image/png;base64,%s" class="jupyter-output-image">`, template.HTML(imgData))
 			return
 		}
 		if jpegData, ok := out.Data["image/jpeg"]; ok {
 			imgData := joinSource(jpegData)
-			_, _ = htmlutil.HTMLPrintf(output, `<img src="data:image/jpeg;base64,%s" style="max-width: 100%%;">`, template.HTML(imgData))
+			_, _ = htmlutil.HTMLPrintf(output, `<img src="data:image/jpeg;base64,%s" class="jupyter-output-image">`, template.HTML(imgData))
 			return
 		}
 		if svgData, ok := out.Data["image/svg+xml"]; ok {
@@ -232,7 +290,7 @@ func renderOutput(output io.Writer, out Output) {
 			htmlContent := joinSource(htmlData)
 			// Strip <style> tags as we handle DataFrame styles in CSS
 			htmlContent = stripStyleTags(htmlContent)
-			_, _ = htmlutil.HTMLPrintf(output, `<div style="overflow-x: auto; max-width: 100%%;">%s</div>`, template.HTML(htmlContent))
+			_, _ = htmlutil.HTMLPrintf(output, `<div class="jupyter-html-output">%s</div>`, template.HTML(htmlContent))
 			return
 		}
 
@@ -253,15 +311,15 @@ func renderOutput(output io.Writer, out Output) {
 
 		// Unsupported outputs
 		if _, ok := out.Data["application/javascript"]; ok {
-			_, _ = output.Write([]byte(`<div style="color: var(--color-text-light-2); font-style: italic;">[JavaScript output - execution disabled for security]</div>`))
+			_, _ = output.Write([]byte(`<div class="jupyter-unsupported-output">[JavaScript output - execution disabled for security]</div>`))
 			return
 		}
 		if _, ok := out.Data["application/vnd.plotly.v1+json"]; ok {
-			_, _ = output.Write([]byte(`<div style="color: var(--color-text-light-2); font-style: italic;">[Plotly output - interactive plots not supported]</div>`))
+			_, _ = output.Write([]byte(`<div class="jupyter-unsupported-output">[Plotly output - interactive plots not supported]</div>`))
 			return
 		}
 		if _, ok := out.Data["application/vnd.jupyter.widget-view+json"]; ok {
-			_, _ = output.Write([]byte(`<div style="color: var(--color-text-light-2); font-style: italic;">[Jupyter widget - interactive widgets not supported]</div>`))
+			_, _ = output.Write([]byte(`<div class="jupyter-unsupported-output">[Jupyter widget - interactive widgets not supported]</div>`))
 			return
 		}
 	}
@@ -287,7 +345,7 @@ func renderOutput(output io.Writer, out Output) {
 		if traceback == "" && out.Ename != "" {
 			traceback = fmt.Sprintf("%s: %s", out.Ename, out.Evalue)
 		}
-		_, _ = htmlutil.HTMLPrintf(output, `<pre class="error-output" style="color: var(--color-red);">%s</pre>`, html.EscapeString(traceback))
+		_, _ = htmlutil.HTMLPrintf(output, `<pre class="error-output">%s</pre>`, html.EscapeString(traceback))
 		return
 	}
 

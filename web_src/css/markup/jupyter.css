@@ -4,6 +4,7 @@
   background: var(--color-body);
   color: var(--color-text);
   font-family: inherit;
+  margin: 0;
 }
 
 /* Message for unsupported notebook versions */
@@ -202,6 +203,25 @@
   height: auto;
   display: block;
   margin: 10px 0;
+}
+
+.markup .jupyter-notebook .jupyter-output-image {
+  max-width: 100%;
+  height: auto;
+}
+
+.markup .jupyter-notebook .jupyter-html-output {
+  overflow-x: auto;
+  max-width: 100%;
+}
+
+.markup .jupyter-notebook .jupyter-unsupported-output {
+  color: var(--color-text-light-2);
+  font-style: italic;
+}
+
+.markup .jupyter-notebook .error-output {
+  color: var(--color-red);
 }
 
 /* Pandas DataFrame styles */
