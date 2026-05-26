@@ -66,6 +66,7 @@ import {initActionsPermissionsForm} from './features/common-actions-permissions.
 import {initRefIssueContextPopup} from './features/ref-issue.ts';
 import {initGlobalShortcut} from './modules/shortcut.ts';
 import {initDevtest} from './modules/devtest.ts';
+import {initRepoConflictEditor} from './features/repo-conflict-editor.ts';
 
 const initStartTime = performance.now();
 const initPerformanceTracer = callInitFunctions([
@@ -161,6 +162,7 @@ const initPerformanceTracer = callInitFunctions([
   initActionsPermissionsForm,
 
   initDevtest,
+  initRepoConflictEditor,
 ]);
 
 // it must be the last one, then the "querySelectorAll" only needs to be executed once for global init functions.
