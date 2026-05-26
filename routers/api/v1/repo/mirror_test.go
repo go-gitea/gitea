@@ -7,12 +7,12 @@ import (
 	"net/http"
 	"testing"
 
-	"code.gitea.io/gitea/models/db"
-	repo_model "code.gitea.io/gitea/models/repo"
-	"code.gitea.io/gitea/models/unittest"
-	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/modules/test"
-	"code.gitea.io/gitea/services/contexttest"
+	"gitea.dev/models/db"
+	repo_model "gitea.dev/models/repo"
+	"gitea.dev/models/unittest"
+	"gitea.dev/modules/setting"
+	"gitea.dev/modules/test"
+	"gitea.dev/services/contexttest"
 
 	"github.com/stretchr/testify/assert"
 )

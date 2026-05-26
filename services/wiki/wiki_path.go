@@ -8,11 +8,11 @@ import (
 	"path"
 	"strings"
 
-	repo_model "code.gitea.io/gitea/models/repo"
-	"code.gitea.io/gitea/modules/git"
-	api "code.gitea.io/gitea/modules/structs"
-	"code.gitea.io/gitea/modules/util"
-	"code.gitea.io/gitea/services/convert"
+	repo_model "gitea.dev/models/repo"
+	"gitea.dev/modules/git"
+	api "gitea.dev/modules/structs"
+	"gitea.dev/modules/util"
+	"gitea.dev/services/convert"
 )
 
 // To define the wiki related concepts:

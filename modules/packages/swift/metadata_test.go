@@ -8,7 +8,7 @@ import (
 	"strings"
 	"testing"
 
-	"code.gitea.io/gitea/modules/test"
+	"gitea.dev/modules/test"
 
 	"github.com/hashicorp/go-version"
 	"github.com/stretchr/testify/assert"

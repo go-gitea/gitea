@@ -4,8 +4,8 @@
 package v1_22
 
 import (
-	"code.gitea.io/gitea/models/db"
-	"code.gitea.io/gitea/modules/timeutil"
+	"gitea.dev/models/db"
+	"gitea.dev/modules/timeutil"
 )
 
 func CreateAuthTokenTable(x db.EngineMigration) error {
