@@ -33,6 +33,14 @@ func deleteProjectIssuesByProjectID(ctx context.Context, projectID int64) error 
 	return err
 }
 
+func IsIssueInColumn(ctx context.Context, issueID, projectID, columnID int64) (bool, error) {
+	return db.GetEngine(ctx).Exist(&ProjectIssue{
+		IssueID:         issueID,
+		ProjectID:       projectID,
+		ProjectColumnID: columnID,
+	})
+}
+
 // GetColumnIssueNextSorting returns the sorting value to append an issue at the end of the column.
 func GetColumnIssueNextSorting(ctx context.Context, projectID, columnID int64) (int64, error) {
 	res := struct {
@@ -85,5 +93,21 @@ func moveIssuesToAnotherColumn(ctx context.Context, oldColumn, newColumn *Column
 // DeleteAllProjectIssueByIssueIDsAndProjectIDs delete all project's issues by issue's and project's ids
 func DeleteAllProjectIssueByIssueIDsAndProjectIDs(ctx context.Context, issueIDs, projectIDs []int64) error {
 	_, err := db.GetEngine(ctx).In("project_id", projectIDs).In("issue_id", issueIDs).Delete(&ProjectIssue{})
+	return err
+}
+
+// MoveIssueToColumn moves a single issue to a specific column within a project.
+func MoveIssueToColumn(ctx context.Context, issueID, projectID, columnID int64) error {
+	nextSorting, err := GetColumnIssueNextSorting(ctx, projectID, columnID)
+	if err != nil {
+		return err
+	}
+	_, err = db.GetEngine(ctx).
+		Where("issue_id=? AND project_id=?", issueID, projectID).
+		Cols("project_board_id", "sorting").
+		Update(&ProjectIssue{
+			ProjectColumnID: columnID,
+			Sorting:         nextSorting,
+		})
 	return err
 }

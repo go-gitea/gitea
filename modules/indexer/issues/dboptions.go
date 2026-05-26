@@ -97,7 +97,7 @@ func ToSearchOptions(keyword string, opts *issues_model.IssuesOptions) *SearchOp
 		searchOpt.SortBy = SortByDeadlineAsc
 	case "farduedate":
 		searchOpt.SortBy = SortByDeadlineDesc
-	case "priority", "priorityrepo", "project-column-sorting":
+	case "priority", "priorityrepo", issues_model.SortTypeProjectColumnSorting:
 		// Unsupported sort type for search
 		fallthrough
 	default:

@@ -449,6 +449,14 @@ func UpdateIssueProject(ctx *context.Context) {
 	}
 
 	projectIDs := ctx.FormStringInt64s("id")
+	// Remove zero values - id=0 means "remove from all projects"
+	filteredIDs := make([]int64, 0, len(projectIDs))
+	for _, id := range projectIDs {
+		if id != 0 {
+			filteredIDs = append(filteredIDs, id)
+		}
+	}
+	projectIDs = filteredIDs
 	var failedIssues []int64
 	for _, issue := range issues {
 		if err := issues_model.IssueAssignOrRemoveProject(ctx, issue, ctx.Doer, projectIDs); err != nil {
