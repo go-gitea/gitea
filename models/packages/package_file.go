@@ -71,6 +71,36 @@ func GetFilesByVersionID(ctx context.Context, versionID int64) ([]*PackageFile, 
 	return pfs, db.GetEngine(ctx).Where("version_id = ?", versionID).OrderBy("lower_name, created_unix, id").Find(&pfs)
 }
 
+// GetFilesByVersionIDs gets all files for the given versions
+func GetFilesByVersionIDs(ctx context.Context, versionIDs []int64) (map[int64][]*PackageFile, error) {
+	versionIDs = uniqueIDs(versionIDs)
+	files := make(map[int64][]*PackageFile, len(versionIDs))
+	if len(versionIDs) == 0 {
+		return files, nil
+	}
+	for _, versionID := range versionIDs {
+		files[versionID] = []*PackageFile{}
+	}
+
+	left := len(versionIDs)
+	for left > 0 {
+		limit := min(left, db.DefaultMaxInSize)
+		pfs := make([]*PackageFile, 0, 10)
+		if err := db.GetEngine(ctx).
+			In("version_id", versionIDs[:limit]).
+			OrderBy("version_id, lower_name, created_unix, id").
+			Find(&pfs); err != nil {
+			return nil, err
+		}
+		for _, pf := range pfs {
+			files[pf.VersionID] = append(files[pf.VersionID], pf)
+		}
+		left -= limit
+		versionIDs = versionIDs[limit:]
+	}
+	return files, nil
+}
+
 // GetFileForVersionByID gets a file of a version by id
 func GetFileForVersionByID(ctx context.Context, versionID, fileID int64) (*PackageFile, error) {
 	pf := &PackageFile{

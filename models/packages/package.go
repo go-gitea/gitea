@@ -259,6 +259,42 @@ func GetPackageByID(ctx context.Context, packageID int64) (*Package, error) {
 	return p, nil
 }
 
+// GetPackagesByIDs gets packages by ids
+func GetPackagesByIDs(ctx context.Context, packageIDs []int64) (map[int64]*Package, error) {
+	packageIDs = uniqueIDs(packageIDs)
+	packages := make(map[int64]*Package, len(packageIDs))
+	if len(packageIDs) == 0 {
+		return packages, nil
+	}
+
+	left := len(packageIDs)
+	for left > 0 {
+		limit := min(left, db.DefaultMaxInSize)
+		if err := db.GetEngine(ctx).In("id", packageIDs[:limit]).Find(&packages); err != nil {
+			return nil, err
+		}
+		left -= limit
+		packageIDs = packageIDs[limit:]
+	}
+	return packages, nil
+}
+
+func uniqueIDs(ids []int64) []int64 {
+	if len(ids) < 2 {
+		return ids
+	}
+	seen := make(map[int64]struct{}, len(ids))
+	unique := make([]int64, 0, len(ids))
+	for _, id := range ids {
+		if _, ok := seen[id]; ok {
+			continue
+		}
+		seen[id] = struct{}{}
+		unique = append(unique, id)
+	}
+	return unique
+}
+
 // UpdatePackageNameByID updates the package's name, it is only for internal usage, for example: rename some legacy packages
 func UpdatePackageNameByID(ctx context.Context, ownerID int64, packageType Type, packageID int64, name string) error {
 	var cond builder.Cond = builder.Eq{

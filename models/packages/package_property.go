@@ -55,6 +55,37 @@ func GetProperties(ctx context.Context, refType PropertyType, refID int64) ([]*P
 	return pps, db.GetEngine(ctx).Where("ref_type = ? AND ref_id = ?", refType, refID).OrderBy("id").Find(&pps)
 }
 
+// GetPropertiesByRefIDs gets all properties for the given refs
+func GetPropertiesByRefIDs(ctx context.Context, refType PropertyType, refIDs []int64) (map[int64][]*PackageProperty, error) {
+	refIDs = uniqueIDs(refIDs)
+	properties := make(map[int64][]*PackageProperty, len(refIDs))
+	if len(refIDs) == 0 {
+		return properties, nil
+	}
+	for _, refID := range refIDs {
+		properties[refID] = []*PackageProperty{}
+	}
+
+	left := len(refIDs)
+	for left > 0 {
+		limit := min(left, db.DefaultMaxInSize)
+		pps := make([]*PackageProperty, 0, 10)
+		if err := db.GetEngine(ctx).
+			Where("ref_type = ?", refType).
+			In("ref_id", refIDs[:limit]).
+			OrderBy("ref_id, id").
+			Find(&pps); err != nil {
+			return nil, err
+		}
+		for _, pp := range pps {
+			properties[pp.RefID] = append(properties[pp.RefID], pp)
+		}
+		left -= limit
+		refIDs = refIDs[limit:]
+	}
+	return properties, nil
+}
+
 // GetPropertiesByName gets all properties with a specific name
 func GetPropertiesByName(ctx context.Context, refType PropertyType, refID int64, name string) ([]*PackageProperty, error) {
 	pps := make([]*PackageProperty, 0, 10)

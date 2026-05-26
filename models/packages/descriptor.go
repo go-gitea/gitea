@@ -110,6 +110,66 @@ func (pd *PackageDescriptor) CalculateBlobSize() int64 {
 	return size
 }
 
+func unmarshalPackageMetadata(packageType Type, metadataJSON string) (any, error) {
+	var metadata any
+	switch packageType {
+	case TypeAlpine:
+		metadata = &alpine.VersionMetadata{}
+	case TypeArch:
+		metadata = &arch.VersionMetadata{}
+	case TypeCargo:
+		metadata = &cargo.Metadata{}
+	case TypeChef:
+		metadata = &chef.Metadata{}
+	case TypeComposer:
+		metadata = &composer.Metadata{}
+	case TypeConan:
+		metadata = &conan.Metadata{}
+	case TypeConda:
+		metadata = &conda.VersionMetadata{}
+	case TypeContainer:
+		metadata = &container.Metadata{}
+	case TypeCran:
+		metadata = &cran.Metadata{}
+	case TypeDebian:
+		metadata = &debian.Metadata{}
+	case TypeGeneric:
+		// generic packages have no metadata
+	case TypeGo:
+		// go packages have no metadata
+	case TypeHelm:
+		metadata = &helm.Metadata{}
+	case TypeNuGet:
+		metadata = &nuget.Metadata{}
+	case TypeNpm:
+		metadata = &npm.Metadata{}
+	case TypeMaven:
+		metadata = &maven.Metadata{}
+	case TypePub:
+		metadata = &pub.Metadata{}
+	case TypePyPI:
+		metadata = &pypi.Metadata{}
+	case TypeRpm:
+		metadata = &rpm.VersionMetadata{}
+	case TypeRubyGems:
+		metadata = &rubygems.Metadata{}
+	case TypeSwift:
+		metadata = &swift.Metadata{}
+	case TypeTerraformState:
+		// terraform packages have no metadata
+	case TypeVagrant:
+		metadata = &vagrant.Metadata{}
+	default:
+		panic("unknown package type: " + string(packageType))
+	}
+	if metadata != nil {
+		if err := json.Unmarshal([]byte(metadataJSON), &metadata); err != nil {
+			return nil, err
+		}
+	}
+	return metadata, nil
+}
+
 // GetPackageDescriptor gets the package description for a version
 func GetPackageDescriptor(ctx context.Context, pv *PackageVersion) (*PackageDescriptor, error) {
 	return GetPackageDescriptorWithCache(ctx, pv, cache.NewEphemeralCache())
@@ -168,61 +228,9 @@ func GetPackageDescriptorWithCache(ctx context.Context, pv *PackageVersion, c *c
 		pfds = append(pfds, pfd)
 	}
 
-	var metadata any
-	switch p.Type {
-	case TypeAlpine:
-		metadata = &alpine.VersionMetadata{}
-	case TypeArch:
-		metadata = &arch.VersionMetadata{}
-	case TypeCargo:
-		metadata = &cargo.Metadata{}
-	case TypeChef:
-		metadata = &chef.Metadata{}
-	case TypeComposer:
-		metadata = &composer.Metadata{}
-	case TypeConan:
-		metadata = &conan.Metadata{}
-	case TypeConda:
-		metadata = &conda.VersionMetadata{}
-	case TypeContainer:
-		metadata = &container.Metadata{}
-	case TypeCran:
-		metadata = &cran.Metadata{}
-	case TypeDebian:
-		metadata = &debian.Metadata{}
-	case TypeGeneric:
-		// generic packages have no metadata
-	case TypeGo:
-		// go packages have no metadata
-	case TypeHelm:
-		metadata = &helm.Metadata{}
-	case TypeNuGet:
-		metadata = &nuget.Metadata{}
-	case TypeNpm:
-		metadata = &npm.Metadata{}
-	case TypeMaven:
-		metadata = &maven.Metadata{}
-	case TypePub:
-		metadata = &pub.Metadata{}
-	case TypePyPI:
-		metadata = &pypi.Metadata{}
-	case TypeRpm:
-		metadata = &rpm.VersionMetadata{}
-	case TypeRubyGems:
-		metadata = &rubygems.Metadata{}
-	case TypeSwift:
-		metadata = &swift.Metadata{}
-	case TypeTerraformState:
-		// terraform packages have no metadata
-	case TypeVagrant:
-		metadata = &vagrant.Metadata{}
-	default:
-		panic("unknown package type: " + string(p.Type))
-	}
-	if metadata != nil {
-		if err := json.Unmarshal([]byte(pv.MetadataJSON), &metadata); err != nil {
-			return nil, err
-		}
+	metadata, err := unmarshalPackageMetadata(p.Type, pv.MetadataJSON)
+	if err != nil {
+		return nil, err
 	}
 
 	return &PackageDescriptor{
@@ -262,20 +270,43 @@ func getPackageFileDescriptor(ctx context.Context, pf *PackageFile, c *cache.Eph
 
 // GetPackageFileDescriptors gets the package file descriptors for the package files
 func GetPackageFileDescriptors(ctx context.Context, pfs []*PackageFile) ([]*PackageFileDescriptor, error) {
+	blobIDs := make(map[int64]struct{}, len(pfs))
+	fileIDs := make(map[int64]struct{}, len(pfs))
+	for _, pf := range pfs {
+		addID(blobIDs, pf.BlobID)
+		addID(fileIDs, pf.ID)
+	}
+
+	blobs, err := GetBlobsByIDs(ctx, idsFromSet(blobIDs))
+	if err != nil {
+		return nil, err
+	}
+	properties, err := GetPropertiesByRefIDs(ctx, PropertyTypeFile, idsFromSet(fileIDs))
+	if err != nil {
+		return nil, err
+	}
+	return packageFileDescriptorsFromMaps(pfs, blobs, properties)
+}
+
+func packageFileDescriptorsFromMaps(pfs []*PackageFile, blobs map[int64]*PackageBlob, properties map[int64][]*PackageProperty) ([]*PackageFileDescriptor, error) {
 	pfds := make([]*PackageFileDescriptor, 0, len(pfs))
 	for _, pf := range pfs {
-		pfd, err := GetPackageFileDescriptor(ctx, pf)
-		if err != nil {
-			return nil, err
+		blob, ok := blobs[pf.BlobID]
+		if !ok {
+			return nil, ErrPackageBlobNotExist
 		}
-		pfds = append(pfds, pfd)
+		pfds = append(pfds, &PackageFileDescriptor{
+			File:       pf,
+			Blob:       blob,
+			Properties: PackagePropertyList(properties[pf.ID]),
+		})
 	}
 	return pfds, nil
 }
 
 // GetPackageDescriptors gets the package descriptions for the versions
 func GetPackageDescriptors(ctx context.Context, pvs []*PackageVersion) ([]*PackageDescriptor, error) {
-	return getPackageDescriptors(ctx, pvs, cache.NewEphemeralCache())
+	return getPackageDescriptors(ctx, pvs)
 }
 
 // GetAllPackageDescriptors gets all package descriptors for a package
@@ -284,17 +315,178 @@ func GetAllPackageDescriptors(ctx context.Context, p *Package) ([]*PackageDescri
 	if err := db.GetEngine(ctx).Where("package_id = ?", p.ID).Find(&pvs); err != nil {
 		return nil, err
 	}
-	return getPackageDescriptors(ctx, pvs, cache.NewEphemeralCache())
+	return getPackageDescriptors(ctx, pvs)
 }
 
-func getPackageDescriptors(ctx context.Context, pvs []*PackageVersion, c *cache.EphemeralCache) ([]*PackageDescriptor, error) {
+func getPackageDescriptors(ctx context.Context, pvs []*PackageVersion) ([]*PackageDescriptor, error) {
+	batch, err := loadPackageDescriptorBatch(ctx, pvs)
+	if err != nil {
+		return nil, err
+	}
+
 	pds := make([]*PackageDescriptor, 0, len(pvs))
 	for _, pv := range pvs {
-		pd, err := GetPackageDescriptorWithCache(ctx, pv, c)
+		pd, err := batch.getPackageDescriptor(pv)
 		if err != nil {
 			return nil, err
 		}
 		pds = append(pds, pd)
 	}
 	return pds, nil
+}
+
+type packageDescriptorBatch struct {
+	packages          map[int64]*Package
+	users             map[int64]*user_model.User
+	repositories      map[int64]*repo_model.Repository
+	packageProperties map[int64][]*PackageProperty
+	versionProperties map[int64][]*PackageProperty
+	files             map[int64][]*PackageFile
+	blobs             map[int64]*PackageBlob
+	fileProperties    map[int64][]*PackageProperty
+}
+
+func loadPackageDescriptorBatch(ctx context.Context, pvs []*PackageVersion) (*packageDescriptorBatch, error) {
+	packageIDs := make(map[int64]struct{}, len(pvs))
+	versionIDs := make(map[int64]struct{}, len(pvs))
+	userIDs := make(map[int64]struct{}, len(pvs))
+	for _, pv := range pvs {
+		addID(packageIDs, pv.PackageID)
+		addID(versionIDs, pv.ID)
+		addID(userIDs, pv.CreatorID)
+	}
+
+	packages, err := GetPackagesByIDs(ctx, idsFromSet(packageIDs))
+	if err != nil {
+		return nil, err
+	}
+
+	repoIDs := make(map[int64]struct{}, len(packages))
+	for _, p := range packages {
+		addID(userIDs, p.OwnerID)
+		addID(repoIDs, p.RepoID)
+	}
+
+	users, err := user_model.GetUsersMapByIDs(ctx, idsFromSet(userIDs))
+	if err != nil {
+		return nil, err
+	}
+
+	repositories, err := repo_model.GetRepositoriesMapByIDs(ctx, idsFromSet(repoIDs))
+	if err != nil {
+		return nil, err
+	}
+
+	packageProperties, err := GetPropertiesByRefIDs(ctx, PropertyTypePackage, idsFromSet(packageIDs))
+	if err != nil {
+		return nil, err
+	}
+
+	versionProperties, err := GetPropertiesByRefIDs(ctx, PropertyTypeVersion, idsFromSet(versionIDs))
+	if err != nil {
+		return nil, err
+	}
+
+	files, err := GetFilesByVersionIDs(ctx, idsFromSet(versionIDs))
+	if err != nil {
+		return nil, err
+	}
+
+	blobIDs := make(map[int64]struct{})
+	fileIDs := make(map[int64]struct{})
+	for _, pfs := range files {
+		for _, pf := range pfs {
+			addID(blobIDs, pf.BlobID)
+			addID(fileIDs, pf.ID)
+		}
+	}
+
+	blobs, err := GetBlobsByIDs(ctx, idsFromSet(blobIDs))
+	if err != nil {
+		return nil, err
+	}
+
+	fileProperties, err := GetPropertiesByRefIDs(ctx, PropertyTypeFile, idsFromSet(fileIDs))
+	if err != nil {
+		return nil, err
+	}
+
+	return &packageDescriptorBatch{
+		packages:          packages,
+		users:             users,
+		repositories:      repositories,
+		packageProperties: packageProperties,
+		versionProperties: versionProperties,
+		files:             files,
+		blobs:             blobs,
+		fileProperties:    fileProperties,
+	}, nil
+}
+
+func (b *packageDescriptorBatch) getPackageDescriptor(pv *PackageVersion) (*PackageDescriptor, error) {
+	p, ok := b.packages[pv.PackageID]
+	if !ok {
+		return nil, ErrPackageNotExist
+	}
+
+	owner, ok := b.users[p.OwnerID]
+	if !ok {
+		return nil, user_model.ErrUserNotExist{UID: p.OwnerID}
+	}
+
+	var repository *repo_model.Repository
+	if p.RepoID > 0 {
+		repository = b.repositories[p.RepoID]
+	}
+
+	creator, ok := b.users[pv.CreatorID]
+	if !ok {
+		creator = user_model.NewGhostUser()
+	}
+
+	var semVer *version.Version
+	if p.SemverCompatible {
+		var err error
+		semVer, err = version.NewVersion(pv.Version)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	pfds, err := packageFileDescriptorsFromMaps(b.files[pv.ID], b.blobs, b.fileProperties)
+	if err != nil {
+		return nil, err
+	}
+
+	metadata, err := unmarshalPackageMetadata(p.Type, pv.MetadataJSON)
+	if err != nil {
+		return nil, err
+	}
+
+	return &PackageDescriptor{
+		Package:           p,
+		Owner:             owner,
+		Repository:        repository,
+		Version:           pv,
+		SemVer:            semVer,
+		Creator:           creator,
+		PackageProperties: PackagePropertyList(b.packageProperties[p.ID]),
+		VersionProperties: PackagePropertyList(b.versionProperties[pv.ID]),
+		Metadata:          metadata,
+		Files:             pfds,
+	}, nil
+}
+
+func addID(ids map[int64]struct{}, id int64) {
+	if id > 0 {
+		ids[id] = struct{}{}
+	}
+}
+
+func idsFromSet(ids map[int64]struct{}) []int64 {
+	values := make([]int64, 0, len(ids))
+	for id := range ids {
+		values = append(values, id)
+	}
+	return values
 }

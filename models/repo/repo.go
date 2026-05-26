@@ -849,7 +849,17 @@ func GetRepositoriesMapByIDs(ctx context.Context, ids []int64) (map[int64]*Repos
 	if len(ids) == 0 {
 		return repos, nil
 	}
-	return repos, db.GetEngine(ctx).In("id", ids).Find(&repos)
+
+	left := len(ids)
+	for left > 0 {
+		limit := min(left, db.DefaultMaxInSize)
+		if err := db.GetEngine(ctx).In("id", ids[:limit]).Find(&repos); err != nil {
+			return nil, err
+		}
+		left -= limit
+		ids = ids[limit:]
+	}
+	return repos, nil
 }
 
 func IsRepositoryModelExist(ctx context.Context, u *user_model.User, repoName string) (bool, error) {

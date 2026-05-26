@@ -83,6 +83,26 @@ func GetBlobByID(ctx context.Context, blobID int64) (*PackageBlob, error) {
 	return pb, nil
 }
 
+// GetBlobsByIDs gets blobs by ids
+func GetBlobsByIDs(ctx context.Context, blobIDs []int64) (map[int64]*PackageBlob, error) {
+	blobIDs = uniqueIDs(blobIDs)
+	blobs := make(map[int64]*PackageBlob, len(blobIDs))
+	if len(blobIDs) == 0 {
+		return blobs, nil
+	}
+
+	left := len(blobIDs)
+	for left > 0 {
+		limit := min(left, db.DefaultMaxInSize)
+		if err := db.GetEngine(ctx).In("id", blobIDs[:limit]).Find(&blobs); err != nil {
+			return nil, err
+		}
+		left -= limit
+		blobIDs = blobIDs[limit:]
+	}
+	return blobs, nil
+}
+
 // ExistPackageBlobWithSHA returns if a package blob exists with the provided sha
 func ExistPackageBlobWithSHA(ctx context.Context, blobSha256 string) (bool, error) {
 	return db.GetEngine(ctx).Exist(&PackageBlob{
