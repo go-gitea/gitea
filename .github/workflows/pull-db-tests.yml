@@ -245,10 +245,6 @@ jobs:
       - run: make backend
         env:
           TAGS: bindata
-          # rfc5280 said: "The serial number is an integer assigned by the CA to each certificate."
-          # But some CAs use negative serial number, just relax the check. related:
-          # Default TLS cert uses negative serial number #895 https://github.com/microsoft/mssql-docker/issues/895
-          GODEBUG: x509negativeserial=1
       - run: GITEA_TEST_DATABASE=mssql make test-migration
       - name: run tests
         run: GITEA_TEST_DATABASE=mssql make test-integration
