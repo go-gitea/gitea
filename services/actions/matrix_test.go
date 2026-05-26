@@ -60,7 +60,7 @@ matrix:
 			want: false,
 		},
 		{
-			name: "empty strategy",
+			name:     "empty strategy",
 			strategy: "",
 			want:     false,
 		},

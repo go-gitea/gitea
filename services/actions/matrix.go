@@ -8,6 +8,7 @@ import (
 	"errors"
 	"fmt"
 	"maps"
+	"slices"
 	"sort"
 	"strings"
 
@@ -165,12 +166,7 @@ func yamlNodeContainsNeedsOutputsExpr(node *yaml.Node) bool {
 	if node.Kind == yaml.ScalarNode {
 		return containsNeedsOutputsExpr(node.Value)
 	}
-	for _, child := range node.Content {
-		if yamlNodeContainsNeedsOutputsExpr(child) {
-			return true
-		}
-	}
-	return false
+	return slices.ContainsFunc(node.Content, yamlNodeContainsNeedsOutputsExpr)
 }
 
 // containsNeedsOutputsExpr returns true when s contains a GitHub Actions
