@@ -129,7 +129,7 @@ jobs:
         ports:
           - "7700:7700"
       redis:
-        image: redis:latest@sha256:94ea4f5ccdaa6b154df99a792986ecb3ffbb3fe7722a197220477f1f3e65f9fe
+        image: redis:latest@sha256:48e78eb9d1e1adcfb10184b2cc3c7fc5ed21e5a3be08875f239257d194bab8c9
         options: >- # wait until redis has started
           --health-cmd "redis-cli ping"
           --health-interval 5s

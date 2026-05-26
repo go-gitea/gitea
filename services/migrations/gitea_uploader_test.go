@@ -21,6 +21,7 @@ import (
 	repo_service "code.gitea.io/gitea/services/repository"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestGiteaUploadRepo(t *testing.T) {
@@ -31,14 +32,15 @@ func TestGiteaUploadRepo(t *testing.T) {
 
 	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 1})
 
+	ctx := t.Context()
+	downloader, err := NewGithubDownloaderV3(ctx, "https://github.com", "", "", "", "go-xorm", "builder")
+	require.NoError(t, err)
 	var (
-		ctx        = t.Context()
-		downloader = NewGithubDownloaderV3(ctx, "https://github.com", "", "", "", "go-xorm", "builder")
-		repoName   = "builder-" + time.Now().Format("2006-01-02-15-04-05")
-		uploader   = NewGiteaLocalUploader(graceful.GetManager().HammerContext(), user, user.Name, repoName)
+		repoName = "builder-" + time.Now().Format("2006-01-02-15-04-05")
+		uploader = NewGiteaLocalUploader(graceful.GetManager().HammerContext(), user, user.Name, repoName)
 	)
 
-	err := migrateRepository(t.Context(), user, downloader, uploader, base.MigrateOptions{
+	err = migrateRepository(t.Context(), user, downloader, uploader, base.MigrateOptions{
 		CloneAddr:    "https://github.com/go-xorm/builder",
 		RepoName:     repoName,
 		AuthUsername: "",
