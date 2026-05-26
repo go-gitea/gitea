@@ -6,8 +6,8 @@ require (
 	code.gitea.io/actions-proto-go v0.4.1
 	code.gitea.io/sdk/gitea v0.25.1
 	codeberg.org/gusted/mcaptcha v0.0.0-20220723083913-4f3072e1d570
-	connectrpc.com/connect v1.19.2
-	gitea.com/gitea/runner v1.0.4
+	connectrpc.com/connect v1.20.0
+	gitea.com/gitea/runner v1.0.5
 	gitea.com/go-chi/binding v0.0.0-20260414111559-654cea7ac60a
 	gitea.com/go-chi/cache v0.2.1
 	gitea.com/go-chi/captcha v0.0.0-20240315150714-fb487f629098
@@ -102,7 +102,7 @@ require (
 	github.com/yohcop/openid-go v1.0.1
 	github.com/yuin/goldmark v1.8.2
 	github.com/yuin/goldmark-highlighting/v2 v2.0.0-20230729083705-37449abec8cc
-	gitlab.com/gitlab-org/api/client-go/v2 v2.29.0
+	gitlab.com/gitlab-org/api/client-go/v2 v2.30.0
 	go.yaml.in/yaml/v4 v4.0.0-rc.3
 	golang.org/x/crypto v0.52.0
 	golang.org/x/image v0.40.0
