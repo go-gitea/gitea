@@ -1,5 +1,5 @@
 {{if .DiffShortStatDetailURL}}
-	<div class="diff-detail-stats tw-flex tw-items-center tw-flex-wrap" data-fetch-url="{{.DiffShortStatDetailURL}}" data-fetch-trigger="load">
+	<div class="diff-detail-stats tw-flex tw-items-center tw-flex-wrap" data-fetch-url="{{.DiffShortStatDetailURL}}" data-fetch-trigger="load" data-fetch-error="remove">
 		{{svg "octicon-diff" 16 "tw-mr-1"}}{{ctx.Locale.Tr "repo.diff.stats_desc_files" .DiffShortStat.NumFiles}} <span class="tw-text-diff-added-fg tw-ml-2">+...</span> <span class="tw-text-diff-removed-fg">-...</span>
 	</div>
 {{else}}
