@@ -16,7 +16,7 @@ If you introduce mistakes in it, Gitea JavaScript code wouldn't run correctly.
 		notificationSettings: {{NotificationSettings}}, {{/*a map provided by NewFuncMap in helper.go*/}}
 		enableTimeTracking: {{EnableTimetracking}},
 		mermaidMaxSourceCharacters: {{MermaidMaxSourceCharacters}},
-		sharedWorkerUri: '{{AssetURI "js/eventsource.sharedworker.js"}}',
+		sharedWorkerUri: '{{AssetURI "js/user-events.sharedworker.js"}}',
 		{{/* this global i18n object should only contain general texts. for specialized texts, it should be provided inside the related modules by: (1) API response (2) HTML data-attribute (3) PageData */}}
 		i18n: {
 			error_occurred: {{ctx.Locale.Tr "error.occurred"}},

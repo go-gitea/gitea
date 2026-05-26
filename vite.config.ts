@@ -182,7 +182,7 @@ function reducedSourcemapPlugin(): Plugin {
     'js/swagger.',
     'js/external-render-frontend.',
     'js/external-render-helper.',
-    'js/eventsource.sharedworker.',
+    'js/user-events.sharedworker.',
   ];
   return {
     name: 'reduced-sourcemap',
@@ -271,7 +271,7 @@ export default defineConfig(commonViteOpts({
         index: join(import.meta.dirname, 'web_src/js/index.ts'),
         swagger: join(import.meta.dirname, 'web_src/js/swagger.ts'),
         'external-render-frontend': join(import.meta.dirname, 'web_src/js/external-render-frontend.ts'),
-        'eventsource.sharedworker': join(import.meta.dirname, 'web_src/js/eventsource.sharedworker.ts'),
+        'user-events.sharedworker': join(import.meta.dirname, 'web_src/js/user-events.sharedworker.ts'),
         devtest: join(import.meta.dirname, 'web_src/css/devtest.css'),
         ...themes,
       },

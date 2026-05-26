@@ -1,51 +1,36 @@
 import {GET} from '../modules/fetch.ts';
 import {toggleElem, createElementFromHTML} from '../utils/dom.ts';
-import {UserEventsSharedWorker} from '../modules/worker.ts';
+import {onUserEvent} from '../modules/worker.ts';
 
 const {appSubUrl, notificationSettings} = window.config;
 let notificationSequenceNumber = 0;
 
-async function receiveUpdateCount(event: MessageEvent<{type: string, data: string}>) {
-  try {
-    const data = JSON.parse(event.data.data);
-    for (const count of document.querySelectorAll('.notification_count')) {
-      count.classList.toggle('tw-hidden', data.Count === 0);
-      count.textContent = `${data.Count}`;
-    }
-    await updateNotificationTable();
-  } catch (error) {
-    console.error(error, event);
+async function receiveUpdateCount(count: number) {
+  for (const el of document.querySelectorAll('.notification_count')) {
+    el.classList.toggle('tw-hidden', count === 0);
+    el.textContent = `${count}`;
   }
+  await updateNotificationTable();
 }
 
 export function initNotificationCount() {
   if (!document.querySelector('.notification_count')) return;
 
-  let usingPeriodicPoller = false;
   const startPeriodicPoller = (timeout: number, lastCount?: number) => {
     if (timeout <= 0 || !Number.isFinite(timeout)) return;
-    usingPeriodicPoller = true;
     lastCount = lastCount ?? getCurrentCount();
     setTimeout(async () => {
       await updateNotificationCountWithCallback(startPeriodicPoller, timeout, lastCount);
     }, timeout);
   };
 
-  if (notificationSettings.EventSourceUpdateTime > 0 && window.EventSource && window.SharedWorker) {
-    // Try to connect to the event source via the shared worker first
-    const worker = new UserEventsSharedWorker('notification-worker');
-    worker.addMessageEventListener((event: MessageEvent) => {
-      if (event.data.type === 'no-event-source') {
-        if (!usingPeriodicPoller) startPeriodicPoller(notificationSettings.MinTimeout);
-      } else if (event.data.type === 'notification-count') {
-        receiveUpdateCount(event); // no await
-      }
-    });
-    worker.startPort();
-    return;
-  }
-
-  startPeriodicPoller(notificationSettings.MinTimeout);
+  let pollerStarted = false;
+  onUserEvent('notification-count', (msg) => { receiveUpdateCount(msg.count) }); // no await
+  onUserEvent('push-unavailable', () => {
+    if (pollerStarted) return;
+    pollerStarted = true;
+    startPeriodicPoller(notificationSettings.MinTimeout);
+  });
 }
 
 function getCurrentCount() {

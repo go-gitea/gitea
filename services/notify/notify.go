@@ -416,3 +416,10 @@ func WorkflowJobStatusUpdate(ctx context.Context, repo *repo_model.Repository, s
 		notifier.WorkflowJobStatusUpdate(ctx, repo, sender, job, task)
 	}
 }
+
+// Callers must invoke this after any DB write affecting the user's unread count.
+func NotificationCountChange(ctx context.Context, userID int64) {
+	for _, notifier := range notifiers {
+		notifier.NotificationCountChange(ctx, userID)
+	}
+}
