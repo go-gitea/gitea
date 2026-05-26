@@ -88,14 +88,14 @@ labels:
   b: bb
 `,
 			tmpl:    &IssueTemplate{},
-			wantErr: "line 3: cannot unmarshal !!map into IssueTemplateStringSlice",
+			wantErr: "yaml: unmarshal errors:\n  line 3: line 3: cannot unmarshal !!map into IssueTemplateStringSlice",
 		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			err := yaml.Unmarshal([]byte(tt.content), tt.tmpl)
 			if tt.wantErr != "" {
-				assert.ErrorContains(t, err, tt.wantErr)
+				assert.EqualError(t, err, tt.wantErr)
 			} else {
 				assert.NoError(t, err)
 				assert.Equal(t, tt.want, tt.tmpl)
