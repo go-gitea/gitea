@@ -514,17 +514,29 @@ func oAuth2UserLoginCallback(ctx *context.Context, authSource *auth.Source, requ
 	}
 
 	// search in external linked users
-	externalLoginUser := &user_model.ExternalLoginUser{
-		ExternalID:    gothUser.UserID,
-		LoginSourceID: authSource.ID,
-	}
-	hasUser, err = user_model.GetExternalLogin(request.Context(), externalLoginUser)
+	externalLoginUser, hasUser, err := user_model.GetExternalLogin(ctx, authSource.ID, gothUser.UserID)
 	if err != nil {
 		return nil, goth.User{}, err
 	}
 	if hasUser {
 		user, err = user_model.GetUserByID(request.Context(), externalLoginUser.UserID)
-		return user, gothUser, err
+		if err != nil {
+			if !user_model.IsErrUserNotExist(err) {
+				return nil, goth.User{}, err
+			}
+			log.Warn("Ignoring stale external login link [external-id=%s login-source-id=%d user-id=%d]: linked user does not exist", externalLoginUser.ExternalID, externalLoginUser.LoginSourceID, externalLoginUser.UserID)
+		} else if user.Type == user_model.UserTypeIndividual {
+			return user, gothUser, nil
+		} else {
+			log.Warn("Ignoring stale external login link [external-id=%s login-source-id=%d user-id=%d]: linked user type is %d", externalLoginUser.ExternalID, externalLoginUser.LoginSourceID, externalLoginUser.UserID, user.Type)
+		}
+
+		// 1. if there is external login record but the user record is missing, removed the record
+		// 2. if there is external login record but the user type is not individual, removed the record too since only individual user can login
+		// since user could login automatically, it will not lose anything even if we remove the external login record wrongly here.
+		if err := user_model.RemoveExternalLoginByExternalID(request.Context(), externalLoginUser.ExternalID, externalLoginUser.LoginSourceID); err != nil {
+			return nil, goth.User{}, err
+		}
 	}
 
 	// no user found to login

@@ -130,8 +130,57 @@ func TestMigrateAzureADV2ToOIDC(t *testing.T) {
 	})
 }
 
+func TestOIDCIgnoresExternalLoginLinkedToOrganization(t *testing.T) {
+	defer tests.PrepareTestEnv(t)()
+	defer test.MockVariableValue(&setting.OAuth2Client.EnableAutoRegistration, true)()
+	defer test.MockVariableValue(&setting.OAuth2Client.AccountLinking, setting.OAuth2AccountLinkingAuto)()
+	defer test.MockVariableValue(&setting.OAuth2Client.Username, setting.OAuth2UsernameEmail)()
+
+	const (
+		sourceName = "test-oidc-stale-org-link"
+		subValue   = "oidc-stale-org-link-sub"
+		oidValue   = "oidc-stale-org-link-oid"
+		emailValue = "guizar_m@example.com"
+	)
+
+	srv := newFakeOIDCServerWithProfile(t, subValue, oidValue, emailValue, "OIDC Test User")
+	addOAuth2Source(t, sourceName, oauth2.Source{
+		Provider:                      "openidConnect",
+		ClientID:                      "test-client-id",
+		ClientSecret:                  "test-client-secret",
+		OpenIDConnectAutoDiscoveryURL: srv.URL + "/.well-known/openid-configuration",
+	})
+	authSource, err := auth_model.GetActiveOAuth2SourceByAuthName(t.Context(), sourceName)
+	require.NoError(t, err)
+
+	correctUser := &user_model.User{
+		Name:  "guizar_m",
+		Email: emailValue,
+	}
+	require.NoError(t, user_model.CreateUser(t.Context(), correctUser, &user_model.Meta{}))
+
+	org := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 3, Type: user_model.UserTypeOrganization})
+	require.NoError(t, user_model.LinkExternalToUser(t.Context(), org, &user_model.ExternalLoginUser{
+		ExternalID:    subValue,
+		UserID:        org.ID,
+		LoginSourceID: authSource.ID,
+		Provider:      authSource.Name,
+	}))
+
+	doOIDCSignIn(t, sourceName)
+
+	externalLink := unittest.AssertExistsAndLoadBean(t, &user_model.ExternalLoginUser{ExternalID: subValue, LoginSourceID: authSource.ID}, unittest.OrderBy("external_id ASC"))
+	assert.Equal(t, correctUser.ID, externalLink.UserID)
+	assert.Equal(t, emailValue, externalLink.Email)
+	assert.Equal(t, "OIDC Test User", externalLink.Name)
+}
+
 // newFakeOIDCServer starts an httptest.Server that implements the minimum OIDC endpoints needed to complete a sign-in flow:
 func newFakeOIDCServer(t *testing.T, sub, oid string) *httptest.Server {
+	return newFakeOIDCServerWithProfile(t, sub, oid, sub+"@example.com", "OIDC Test User")
+}
+
+func newFakeOIDCServerWithProfile(t *testing.T, sub, oid, email, name string) *httptest.Server {
 	t.Helper()
 
 	var srv *httptest.Server
@@ -169,8 +218,8 @@ func newFakeOIDCServer(t *testing.T, sub, oid string) *httptest.Server {
 			// sub MUST match the id_token sub; goth rejects mismatches.
 			_ = json.NewEncoder(w).Encode(map[string]any{
 				"sub":   sub,
-				"email": sub + "@example.com",
-				"name":  "OIDC Test User",
+				"email": email,
+				"name":  name,
 			})
 		default:
 			http.NotFound(w, r)
