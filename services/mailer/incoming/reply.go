@@ -58,7 +58,7 @@ var patterns = sync.OnceValue(func() (ret struct {
 // covering the common mail-client formats and languages; bottom posting and
 // forwarded bodies are not handled.
 func extractReply(text string) string {
-	lines := strings.Split(string(util.NormalizeEOL([]byte(text))), "\n")
+	lines := strings.Split(util.NormalizeStringEOL(text), "\n")
 
 	// cut at the first line that begins quoted history, a signature or a header block
 	for i := range lines {
