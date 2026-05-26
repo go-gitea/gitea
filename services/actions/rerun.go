@@ -520,6 +520,8 @@ func cloneRunJobForAttempt(templateJob *actions_model.ActionRunJob, attempt *act
 		CallPayload:             templateJob.CallPayload,
 		IsExpanded:              templateJob.IsExpanded,
 		ParentJobID:             templateJob.ParentJobID, // remapped by execRerunPlan
+		WorkflowSourceRepoID:    templateJob.WorkflowSourceRepoID,
+		WorkflowSourceCommitSHA: templateJob.WorkflowSourceCommitSHA,
 	}
 }
 

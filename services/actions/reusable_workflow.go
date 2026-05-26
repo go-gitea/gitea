@@ -27,53 +27,64 @@ import (
 // a top-level caller may have at most MaxReusableCallLevels nested callers below it.
 const MaxReusableCallLevels = 9
 
-// loadReusableWorkflowSource resolves the workflow file referenced by a caller and returns its raw bytes.
-// Same-repo calls are pinned to the run's commit SHA, so they stay stable across reruns.
-// Cross-repo calls resolve the caller-specified "@ref" each time the caller is (re-)expanded, so a moving ref
-// (e.g. a branch) can resolve to newer content on a rerun than the original attempt ran.
-func loadReusableWorkflowSource(ctx context.Context, run *actions_model.ActionRun, ref *jobparser.UsesRef) ([]byte, error) {
+// loadReusableWorkflowSource resolves the workflow file referenced by a caller's `uses:` and returns its raw bytes,
+// along with the (repo_id, commit_sha) the file was loaded from.
+func loadReusableWorkflowSource(ctx context.Context, run *actions_model.ActionRun, caller *actions_model.ActionRunJob, ref *jobparser.UsesRef) (content []byte, sourceRepoID int64, sourceCommitSHA string, err error) {
 	if err := run.LoadAttributes(ctx); err != nil {
-		return nil, err
+		return nil, 0, "", err
 	}
 
 	switch ref.Kind {
 	case jobparser.UsesKindLocalSameRepo:
-		// Same-repo: pin to the run's commit SHA, no @ref support.
-		return readWorkflowFromRepo(ctx, run.Repo, run.CommitSHA, ref.Path)
+		// `./` is resolved against the workflow file containing the `uses:` - i.e. the caller's own source repo + commit.
+		callerRepo, err := repo_model.GetRepositoryByID(ctx, caller.WorkflowSourceRepoID)
+		if err != nil {
+			return nil, 0, "", fmt.Errorf("look up caller source repo %d: %w", caller.WorkflowSourceRepoID, err)
+		}
+		bytes, resolvedSHA, err := readWorkflowFromRepo(ctx, callerRepo, caller.WorkflowSourceCommitSHA, ref.Path)
+		if err != nil {
+			return nil, 0, "", err
+		}
+		return bytes, callerRepo.ID, resolvedSHA, nil
 
 	case jobparser.UsesKindLocalCrossRepo:
 		repo, err := repo_model.GetRepositoryByOwnerAndName(ctx, ref.Owner, ref.Repo)
 		if err != nil {
-			return nil, fmt.Errorf("look up cross-repo workflow source %q: %w", ref.Owner+"/"+ref.Repo, err)
+			return nil, 0, "", fmt.Errorf("look up cross-repo workflow source %q: %w", ref.Owner+"/"+ref.Repo, err)
 		}
 		ok, err := access_model.CanReadWorkflowCrossRepo(ctx, repo, run)
 		if err != nil {
-			return nil, err
+			return nil, 0, "", err
 		}
 		if !ok {
-			return nil, fmt.Errorf("no permission to read reusable workflow from %s/%s", ref.Owner, ref.Repo)
+			return nil, 0, "", fmt.Errorf("no permission to read reusable workflow from %s/%s", ref.Owner, ref.Repo)
 		}
-		return readWorkflowFromRepo(ctx, repo, ref.Ref, ref.Path)
+		bytes, resolvedSHA, err := readWorkflowFromRepo(ctx, repo, ref.Ref, ref.Path)
+		if err != nil {
+			return nil, 0, "", err
+		}
+		return bytes, repo.ID, resolvedSHA, nil
 	}
-	return nil, fmt.Errorf("unsupported uses kind %d", ref.Kind)
+	return nil, 0, "", fmt.Errorf("unsupported uses kind %d", ref.Kind)
 }
 
-func readWorkflowFromRepo(ctx context.Context, repo *repo_model.Repository, refOrSHA, path string) ([]byte, error) {
+// readWorkflowFromRepo loads a workflow file from `repo` at `refOrSHA` and returns its content plus the resolved commit SHA.
+func readWorkflowFromRepo(ctx context.Context, repo *repo_model.Repository, refOrSHA, path string) ([]byte, string, error) {
 	gitRepo, err := gitrepo.OpenRepository(ctx, repo)
 	if err != nil {
-		return nil, fmt.Errorf("open repo %s: %w", repo.FullName(), err)
+		return nil, "", fmt.Errorf("open repo %s: %w", repo.FullName(), err)
 	}
 	defer gitRepo.Close()
 
 	commit, err := gitRepo.GetCommit(refOrSHA)
 	if err != nil {
-		return nil, fmt.Errorf("get commit %q in %s: %w", refOrSHA, repo.FullName(), err)
+		return nil, "", fmt.Errorf("get commit %q in %s: %w", refOrSHA, repo.FullName(), err)
 	}
 	str, err := commit.GetFileContent(path, 1024*1024)
 	if err != nil {
-		return nil, fmt.Errorf("read %s@%s:%s: %w", repo.FullName(), refOrSHA, path, err)
+		return nil, "", fmt.Errorf("read %s@%s:%s: %w", repo.FullName(), refOrSHA, path, err)
 	}
-	return []byte(str), nil
+	return []byte(str), commit.ID.String(), nil
 }
 
 // checkCallerChain walks `caller`'s ancestor chain (via ParentJobID) and:
@@ -139,7 +150,7 @@ func expandReusableWorkflowCaller(ctx context.Context, run *actions_model.Action
 	if err != nil {
 		return fmt.Errorf("parse uses %q: %w", parsedJob.Uses, err)
 	}
-	content, err := loadReusableWorkflowSource(ctx, run, ref)
+	content, contentSourceRepoID, contentSourceCommitSHA, err := loadReusableWorkflowSource(ctx, run, caller, ref)
 	if err != nil {
 		return err
 	}
@@ -221,7 +232,7 @@ func expandReusableWorkflowCaller(ctx context.Context, run *actions_model.Action
 		// Should not happen - child jobs cannot be expanded before the caller gets ready
 		return fmt.Errorf("invariant violation: caller %d has %d pre-existing children", caller.ID, len(existingChildren))
 	}
-	if err := insertCallerChildren(ctx, run, attempt, caller, content, vars, workflowCallInputs); err != nil {
+	if err := insertCallerChildren(ctx, run, attempt, caller, content, contentSourceRepoID, contentSourceCommitSHA, vars, workflowCallInputs); err != nil {
 		return err
 	}
 
@@ -241,7 +252,7 @@ func expandReusableWorkflowCaller(ctx context.Context, run *actions_model.Action
 }
 
 // insertCallerChildren parses the called workflow with the caller's resolved inputs and inserts each parsed job.
-func insertCallerChildren(ctx context.Context, run *actions_model.ActionRun, attempt *actions_model.ActionRunAttempt, caller *actions_model.ActionRunJob, content []byte, vars map[string]string, inputs map[string]any) error {
+func insertCallerChildren(ctx context.Context, run *actions_model.ActionRun, attempt *actions_model.ActionRunAttempt, caller *actions_model.ActionRunJob, content []byte, sourceRepoID int64, sourceCommitSHA string, vars map[string]string, inputs map[string]any) error {
 	// Parse the called workflow with the caller's `inputs`
 	gitCtx := GenerateGiteaContext(ctx, run, attempt, nil)
 	if event, ok := gitCtx["event"].(map[string]any); ok {
@@ -294,21 +305,23 @@ func insertCallerChildren(ctx context.Context, run *actions_model.ActionRun, att
 			}
 		}
 		child := &actions_model.ActionRunJob{
-			RunID:             run.ID,
-			RunAttemptID:      attempt.ID,
-			RepoID:            run.RepoID,
-			OwnerID:           run.OwnerID,
-			CommitSHA:         run.CommitSHA,
-			IsForkPullRequest: run.IsForkPullRequest,
-			Name:              parsedChild.Name,
-			Attempt:           attempt.Attempt,
-			WorkflowPayload:   payload,
-			JobID:             jobID,
-			AttemptJobID:      attemptJobID,
-			Needs:             needs,
-			RunsOn:            parsedChild.RunsOn(),
-			Status:            actions_model.StatusBlocked,
-			ParentJobID:       caller.ID,
+			RunID:                   run.ID,
+			RunAttemptID:            attempt.ID,
+			RepoID:                  run.RepoID,
+			OwnerID:                 run.OwnerID,
+			CommitSHA:               run.CommitSHA,
+			IsForkPullRequest:       run.IsForkPullRequest,
+			Name:                    parsedChild.Name,
+			Attempt:                 attempt.Attempt,
+			WorkflowPayload:         payload,
+			JobID:                   jobID,
+			AttemptJobID:            attemptJobID,
+			Needs:                   needs,
+			RunsOn:                  parsedChild.RunsOn(),
+			Status:                  actions_model.StatusBlocked,
+			ParentJobID:             caller.ID,
+			WorkflowSourceRepoID:    sourceRepoID,
+			WorkflowSourceCommitSHA: sourceCommitSHA,
 		}
 		if perms := ExtractJobPermissionsFromWorkflow(sw, parsedChild); perms != nil {
 			child.TokenPermissions = perms

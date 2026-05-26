@@ -77,6 +77,10 @@ type ActionRunJob struct {
 	// A value of 0 indicates a legacy job created before ActionRunAttempt existed.
 	AttemptJobID int64 `xorm:"index NOT NULL DEFAULT 0"`
 
+	// WorkflowSourceRepoID + WorkflowSourceCommitSHA record the (repo, commit) this job's containing workflow file came from.
+	WorkflowSourceRepoID    int64  `xorm:"NOT NULL DEFAULT 0"`
+	WorkflowSourceCommitSHA string `xorm:"VARCHAR(64) NOT NULL DEFAULT ''"`
+
 	// IsReusableCaller marks this job as a reusable workflow caller.
 	// Caller jobs do not run on a runner; their status is derived from their child jobs.
 	IsReusableCaller bool `xorm:"index NOT NULL DEFAULT FALSE"`

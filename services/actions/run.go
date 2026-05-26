@@ -148,20 +148,22 @@ func InsertRun(ctx context.Context, run *actions_model.ActionRun, content []byte
 
 			job.Name = util.EllipsisDisplayString(job.Name, 255)
 			runJob := &actions_model.ActionRunJob{
-				RunID:             run.ID,
-				RunAttemptID:      runAttempt.ID,
-				RepoID:            run.RepoID,
-				OwnerID:           run.OwnerID,
-				CommitSHA:         run.CommitSHA,
-				IsForkPullRequest: run.IsForkPullRequest,
-				Name:              job.Name,
-				Attempt:           runAttempt.Attempt,
-				WorkflowPayload:   payload,
-				JobID:             id,
-				AttemptJobID:      attemptJobID,
-				Needs:             needs,
-				RunsOn:            job.RunsOn(),
-				Status:            util.Iif(shouldBlockJob, actions_model.StatusBlocked, actions_model.StatusWaiting),
+				RunID:                   run.ID,
+				RunAttemptID:            runAttempt.ID,
+				RepoID:                  run.RepoID,
+				OwnerID:                 run.OwnerID,
+				CommitSHA:               run.CommitSHA,
+				IsForkPullRequest:       run.IsForkPullRequest,
+				Name:                    job.Name,
+				Attempt:                 runAttempt.Attempt,
+				WorkflowPayload:         payload,
+				JobID:                   id,
+				AttemptJobID:            attemptJobID,
+				Needs:                   needs,
+				RunsOn:                  job.RunsOn(),
+				Status:                  util.Iif(shouldBlockJob, actions_model.StatusBlocked, actions_model.StatusWaiting),
+				WorkflowSourceRepoID:    run.RepoID,
+				WorkflowSourceCommitSHA: run.CommitSHA,
 			}
 			// Parse workflow/job permissions (no clamping here)
 			if perms := ExtractJobPermissionsFromWorkflow(v, job); perms != nil {

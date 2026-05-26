@@ -16,11 +16,13 @@ import (
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unittest"
 	user_model "code.gitea.io/gitea/models/user"
+	"code.gitea.io/gitea/modules/gitrepo"
 	"code.gitea.io/gitea/modules/json"
 	api "code.gitea.io/gitea/modules/structs"
 
 	runnerv1 "code.gitea.io/actions-proto-go/runner/v1"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestActionsReusableWorkflow(t *testing.T) {
@@ -428,6 +430,80 @@ jobs:
 			assert.Equal(t, actions_model.StatusSuccess, crossJob.Status)
 			run = unittest.AssertExistsAndLoadBean(t, &actions_model.ActionRun{ID: run.ID})
 			assert.Equal(t, actions_model.StatusSuccess, run.Status)
+		})
+
+		t.Run("Cross-repo callee with same-repo nested uses", func(t *testing.T) {
+			// A same-repo `uses: ./...` inside a cross-repo reusable callee must resolve relative to the callee's own repo (matching GitHub's behavior), not the original triggering repo.
+
+			// Place a util.yaml with a distinguishable job name in BOTH repos to detect mis-resolution.
+
+			libAPIRepo := createActionsTestRepo(t, user2Token, "reusable-lib-nested", false)
+			libRepo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: libAPIRepo.ID})
+			createRepoWorkflowFile(t, user2, libRepo, ".gitea/workflows/util.yaml",
+				`name: UtilLib
+on:
+  workflow_call:
+
+jobs:
+  util_lib_job:
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo from-lib
+`)
+			createRepoWorkflowFile(t, user2, libRepo, ".gitea/workflows/lib.yaml",
+				`name: LibNested
+on:
+  workflow_call:
+
+jobs:
+  call_util_in_lib:
+    uses: ./.gitea/workflows/util.yaml
+`)
+
+			consumerAPIRepo := createActionsTestRepo(t, user4Token, "consumer-nested-uses", false)
+			consumerRepo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: consumerAPIRepo.ID})
+
+			// A *different* util.yaml in the consumer repo: if `./` mis-resolves we'd see this job's name.
+			createRepoWorkflowFile(t, user4, consumerRepo, ".gitea/workflows/util.yaml",
+				`name: UtilConsumer
+on:
+  workflow_call:
+
+jobs:
+  util_consumer_job:
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo from-consumer
+`)
+
+			runner := newMockRunner()
+			runner.registerAsRepoRunner(t, consumerRepo.OwnerName, consumerRepo.Name, "mock-nested-runner", []string{"ubuntu-latest"}, false)
+
+			createRepoWorkflowFile(t, user4, consumerRepo, ".gitea/workflows/caller.yaml",
+				`name: NestedCaller
+on: push
+jobs:
+  cross_job:
+    uses: user2/reusable-lib-nested/.gitea/workflows/lib.yaml@main
+`)
+
+			run := unittest.AssertExistsAndLoadBean(t, &actions_model.ActionRun{RepoID: consumerRepo.ID})
+			crossJob := unittest.AssertExistsAndLoadBean(t, &actions_model.ActionRunJob{RunID: run.ID, JobID: "cross_job"})
+			assert.True(t, crossJob.IsReusableCaller)
+			assert.True(t, crossJob.IsExpanded)
+
+			// cross_job's children come from libRepo/lib.yaml - their source must be libRepo + libRepo's commit.
+			libHead, err := gitrepo.GetBranchCommitID(t.Context(), libRepo, libRepo.DefaultBranch)
+			require.NoError(t, err)
+			callUtilJob := unittest.AssertExistsAndLoadBean(t, &actions_model.ActionRunJob{RunID: run.ID, JobID: "call_util_in_lib", ParentJobID: crossJob.ID})
+			assert.True(t, callUtilJob.IsReusableCaller)
+			assert.Equal(t, libRepo.ID, callUtilJob.WorkflowSourceRepoID)
+			assert.Equal(t, libHead, callUtilJob.WorkflowSourceCommitSHA)
+
+			// call_util_in_lib has `uses: ./.gitea/workflows/util.yaml`, so its children should come from libRepo/util.yaml
+			assert.True(t, callUtilJob.IsExpanded)
+			unittest.AssertExistsAndLoadBean(t, &actions_model.ActionRunJob{RunID: run.ID, JobID: "util_lib_job", ParentJobID: callUtilJob.ID})
+			unittest.AssertNotExistsBean(t, &actions_model.ActionRunJob{RunID: run.ID, JobID: "util_consumer_job"})
 		})
 
 		t.Run("Missing callee file", func(t *testing.T) {
