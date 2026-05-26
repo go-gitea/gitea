@@ -101,7 +101,7 @@ func FindOwnerProfileReadme(ctx *context.Context, doer *user_model.User, optProf
 		} else {
 			ctx.ServerError("IDByPathname", err)
 		}
-		return
+		return profileDbRepo, profileReadmeBlob
 	}
 
 	profileDbRepo, err = repo_model.GetRepositoryByName(ctx, ctx.ContextUser.ID, gid, profileRepoName)

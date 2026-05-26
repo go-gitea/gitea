@@ -1695,7 +1695,6 @@ func registerWebRoutes(m *web.Router, webAuth *AuthMiddleware) {
 
 	// end "/{username}/{group_id}/{reponame}/pulls/{index}": repo pull request
 	m.PathGroup("/{username}/*", func(m *web.RouterPathGroup) {
-
 		m.Group("/<repo_group:*>/<reponame>", func() {
 			m.Group("/activity_author_data", func() {
 				m.Get("", repo.ActivityAuthors)
