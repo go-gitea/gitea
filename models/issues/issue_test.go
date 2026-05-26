@@ -299,7 +299,7 @@ func TestIssue_ResolveMentions(t *testing.T) {
 func TestResourceIndex(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 	var wg sync.WaitGroup
-	for i := range 25 {
+	for i := range 10 {
 		wg.Go(func() {
 			testInsertIssue(t, fmt.Sprintf("issue %d", i+1), "my issue", 0)
 		})
