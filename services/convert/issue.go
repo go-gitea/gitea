@@ -19,21 +19,47 @@ import (
 	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/util"
+	issue_service "code.gitea.io/gitea/services/issue"
 )
 
-func ToIssue(ctx context.Context, doer *user_model.User, issue *issues_model.Issue) *api.Issue {
-	return toIssue(ctx, doer, issue, WebAssetDownloadURL)
+// ToIssueOptions controls optional data included in issue API responses
+type ToIssueOptions struct {
+	IncludeDependencies bool
+	filteredDeps        map[int64][2]*issue_service.FilteredDependencies
+}
+
+func ToIssue(ctx context.Context, doer *user_model.User, issue *issues_model.Issue, opts ...ToIssueOptions) *api.Issue {
+	return toIssue(ctx, doer, issue, WebAssetDownloadURL, firstOpt(opts))
 }
 
 // ToAPIIssue converts an Issue to API format
 // it assumes some fields assigned with values:
 // Required - Poster, Labels,
 // Optional - Milestone, Assignee, PullRequest
-func ToAPIIssue(ctx context.Context, doer *user_model.User, issue *issues_model.Issue) *api.Issue {
-	return toIssue(ctx, doer, issue, APIAssetDownloadURL)
+func ToAPIIssue(ctx context.Context, doer *user_model.User, issue *issues_model.Issue, opts ...ToIssueOptions) *api.Issue {
+	return toIssue(ctx, doer, issue, APIAssetDownloadURL, firstOpt(opts))
 }
 
-func toIssue(ctx context.Context, doer *user_model.User, issue *issues_model.Issue, getDownloadURL func(repo *repo_model.Repository, attach *repo_model.Attachment) string) *api.Issue {
+func toIssueMetas(refs []issues_model.DependencyRef) []*api.IssueMeta {
+	result := make([]*api.IssueMeta, len(refs))
+	for i, r := range refs {
+		result[i] = &api.IssueMeta{
+			Owner: r.OwnerName,
+			Name:  r.RepoName,
+			Index: r.Index,
+		}
+	}
+	return result
+}
+
+func firstOpt(opts []ToIssueOptions) ToIssueOptions {
+	if len(opts) > 0 {
+		return opts[0]
+	}
+	return ToIssueOptions{}
+}
+
+func toIssue(ctx context.Context, doer *user_model.User, issue *issues_model.Issue, getDownloadURL func(repo *repo_model.Repository, attach *repo_model.Attachment) string, opts ToIssueOptions) *api.Issue {
 	if err := issue.LoadPoster(ctx); err != nil {
 		return &api.Issue{}
 	}
@@ -131,27 +157,59 @@ func toIssue(ctx context.Context, doer *user_model.User, issue *issues_model.Iss
 		apiIssue.Deadline = issue.DeadlineUnix.AsTimePtr()
 	}
 
+	if opts.IncludeDependencies {
+		var blockedBy, blocking *issue_service.FilteredDependencies
+		if opts.filteredDeps != nil {
+			if deps, ok := opts.filteredDeps[issue.ID]; ok {
+				blockedBy, blocking = deps[0], deps[1]
+			}
+		}
+		if blockedBy == nil {
+			var err error
+			blockedBy, blocking, err = issue_service.GetFilteredDependencyRefs(ctx, doer, issue)
+			if err != nil {
+				log.Error("GetFilteredDependencyRefs: %v", err)
+				return apiIssue
+			}
+		}
+		apiIssue.BlockedBy = toIssueMetas(blockedBy.Visible)
+		apiIssue.Blocking = toIssueMetas(blocking.Visible)
+	}
+
 	return apiIssue
 }
 
 // ToIssueList converts an IssueList to API format
-func ToIssueList(ctx context.Context, doer *user_model.User, il issues_model.IssueList) []*api.Issue {
+func ToIssueList(ctx context.Context, doer *user_model.User, il issues_model.IssueList, opts ...ToIssueOptions) []*api.Issue {
+	o := prepareIssueListOpts(ctx, doer, il, firstOpt(opts))
 	result := make([]*api.Issue, len(il))
-	_ = il.LoadPinOrder(ctx)
 	for i := range il {
-		result[i] = ToIssue(ctx, doer, il[i])
+		result[i] = ToIssue(ctx, doer, il[i], o)
 	}
 	return result
 }
 
 // ToAPIIssueList converts an IssueList to API format
-func ToAPIIssueList(ctx context.Context, doer *user_model.User, il issues_model.IssueList) []*api.Issue {
+func ToAPIIssueList(ctx context.Context, doer *user_model.User, il issues_model.IssueList, opts ...ToIssueOptions) []*api.Issue {
+	o := prepareIssueListOpts(ctx, doer, il, firstOpt(opts))
 	result := make([]*api.Issue, len(il))
-	_ = il.LoadPinOrder(ctx)
 	for i := range il {
-		result[i] = ToAPIIssue(ctx, doer, il[i])
+		result[i] = ToAPIIssue(ctx, doer, il[i], o)
 	}
 	return result
+}
+
+func prepareIssueListOpts(ctx context.Context, doer *user_model.User, il issues_model.IssueList, o ToIssueOptions) ToIssueOptions {
+	_ = il.LoadPinOrder(ctx)
+	if o.IncludeDependencies {
+		deps, err := issue_service.GetFilteredDependencyRefsForList(ctx, doer, il)
+		if err != nil {
+			log.Error("GetFilteredDependencyRefsForList: %v", err)
+		} else {
+			o.filteredDeps = deps
+		}
+	}
+	return o
 }
 
 // ToTrackedTime converts TrackedTime to API format
