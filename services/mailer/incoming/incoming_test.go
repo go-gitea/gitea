@@ -150,3 +150,40 @@ func TestGetContentFromMailReader(t *testing.T) {
 	assert.Equal(t, "mail content without signature", content.Content)
 	assert.Empty(t, content.Attachments)
 }
+
+func TestExtractReply(t *testing.T) {
+	cases := []struct {
+		name     string
+		input    string
+		expected string
+	}{
+		{"plain text", "Email with only text.", "Email with only text."},
+		{"crlf normalized", "line one\r\nline two\r\n", "line one\nline two"},
+		{"trim blank lines", "\n\n\nactual reply\n\n\n", "actual reply"},
+		{"signature delimiter", "the reply\n--\nJohn Doe\nAcme", "the reply"},
+		{"rfc signature delimiter", "the reply\n-- \nJohn Doe", "the reply"},
+		{"mobile signature", "My answer is yes.\n\nSent from my iPhone", "My answer is yes."},
+		{"quote only kept", "> Email with only quote.", "> Email with only quote."},
+		{"leading quote kept", "> This is a quote.\n\nAnd this is some text.", "> This is a quote.\n\nAnd this is some text."},
+		{"trailing quote stripped", "My reply.\n\n> original line 1\n> original line 2", "My reply."},
+		{"attribution and quote", "Looks good.\n\nOn Mon, Jan 1, 2024 John <j@x.com> wrote:\n> please review", "Looks good."},
+		{"attribution without quote marks", "My reply.\n\nOn Wed, Sep 25, 2013, richard wrote:\noriginal text", "My reply."},
+		{"original message separator", "Foo\n\n-------- Original Message --------\n\nTHE END.", "Foo"},
+		{"outlook header block", "This is the actual reply.\n\nFrom: Some One <a@b.com>\nSent: Monday\nTo: Someone\nSubject: hi\n\nquoted body", "This is the actual reply."},
+		{"french attribution", "C'est super !\n\nLe 4 janv. 2016 19:03, \"Neil\" <a@b.com> a écrit :\n> quoted", "C'est super !"},
+		{"german attribution", "Hey :)\n\nAm 03.02.2016 3:35 schrieb Max <a@b.com>:\n> quoted", "Hey :)"},
+		{"cyrillic wrote verb", "Yes.\n\n6 октября 2014 lidel написал:\n> quoted", "Yes."},
+		{"localized signature", "My answer.\n\nEnvoyé depuis mon iPhone", "My answer."},
+		{"swedish header block", "Hi everyone!\n\nFrån: Foo <a@b.com>\nSkickat: den 5 juni\nTill: x@y.com\nÄmne: hi\n\nbody", "Hi everyone!"},
+		{"attribution only is empty", "On Mon, Jan 1, 2024 at 10:00 John <j@x.com> wrote:\n> please review", ""},
+		{"prose ending in wrote kept", "Hi Bob,\nThanks for the report you wrote\nI'll fix it.", "Hi Bob,\nThanks for the report you wrote\nI'll fix it."},
+		{"on with year and no time kept", "Hi,\nOn the 2024 roadmap we have three items.\nPlease review.", "Hi,\nOn the 2024 roadmap we have three items.\nPlease review."},
+		{"date prose kept", "Notes:\n5 issues 2024 fixed at 9:15 today\nmore notes", "Notes:\n5 issues 2024 fixed at 9:15 today\nmore notes"},
+		{"header needs from first", "Quick note:\nTo: which server?\nFrom: tests pass.\nThanks", "Quick note:\nTo: which server?\nFrom: tests pass.\nThanks"},
+	}
+	for _, c := range cases {
+		t.Run(c.name, func(t *testing.T) {
+			assert.Equal(t, c.expected, extractReply(c.input))
+		})
+	}
+}

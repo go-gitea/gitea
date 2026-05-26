@@ -38,7 +38,6 @@ require (
 	github.com/caddyserver/certmagic v0.25.3
 	github.com/charmbracelet/git-lfs-transfer v0.1.1-0.20260309112543-12416315a635
 	github.com/chi-middleware/proxy v1.1.1
-	github.com/dimiro1/reply v0.0.0-20200315094148-d0136a4c9e21
 	github.com/dlclark/regexp2/v2 v2.1.0
 	github.com/dsnet/compress v0.0.2-0.20230904184137-39efe44ab707
 	github.com/dustin/go-humanize v1.0.1
