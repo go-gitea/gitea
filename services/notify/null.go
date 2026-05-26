@@ -63,7 +63,7 @@ func (*NullNotifier) AutoMergePullRequest(ctx context.Context, doer *user_model.
 }
 
 // PullRequestSynchronized places a place holder function
-func (*NullNotifier) PullRequestSynchronized(ctx context.Context, doer *user_model.User, pr *issues_model.PullRequest) {
+func (*NullNotifier) PullRequestSynchronized(ctx context.Context, doer *user_model.User, pr *issues_model.PullRequest, before, after string) {
 }
 
 // PullRequestChangeTargetBranch places a place holder function

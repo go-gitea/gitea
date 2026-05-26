@@ -132,6 +132,32 @@ func GetStatusInfoList(ctx context.Context, lang translation.Locale) []StatusInf
 	return statusInfoList
 }
 
+// GetRunBranches returns branch names for the run-list "Branch" filter.
+// Sourced from the `branch` table (indexed by repo_id) rather than DISTINCT-ing
+// `action_run.ref`, which is wildcard-matched and slow on large repos; as a side
+// effect the list reflects existing branches, not only ones that produced a run.
+func GetRunBranches(ctx context.Context, repoID int64) ([]string, error) {
+	branches := make([]string, 0, 10)
+	return branches, db.GetEngine(ctx).Table("branch").
+		Where("repo_id = ?", repoID).
+		And("is_deleted = ?", false).
+		Cols("name").
+		OrderBy("name ASC").
+		Find(&branches)
+}
+
+// GetRunWorkflowIDs returns all distinct WorkflowIDs that have at least
+// one ActionRun in the given repo.
+func GetRunWorkflowIDs(ctx context.Context, repoID int64) ([]string, error) {
+	ids := make([]string, 0, 10)
+	return ids, db.GetEngine(ctx).Table("action_run").
+		Where(builder.Eq{"repo_id": repoID}).
+		Distinct("workflow_id").
+		Cols("workflow_id").
+		Asc("workflow_id").
+		Find(&ids)
+}
+
 // GetActors returns a slice of Actors
 func GetActors(ctx context.Context, repoID int64) ([]*user_model.User, error) {
 	actors := make([]*user_model.User, 0, 10)

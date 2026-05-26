@@ -11,7 +11,7 @@ COMMA := ,
 
 XGO_VERSION := go-1.26.x
 
-AIR_PACKAGE ?= github.com/air-verse/air@v1.65.1 # renovate: datasource=go
+AIR_PACKAGE ?= github.com/air-verse/air@v1.65.2 # renovate: datasource=go
 EDITORCONFIG_CHECKER_PACKAGE ?= github.com/editorconfig-checker/editorconfig-checker/v3/cmd/editorconfig-checker@v3.6.1 # renovate: datasource=go
 GOLANGCI_LINT_PACKAGE ?= github.com/golangci/golangci-lint/v2/cmd/golangci-lint@v2.12.2 # renovate: datasource=go
 GXZ_PACKAGE ?= github.com/ulikunitz/xz/cmd/gxz@v0.5.15 # renovate: datasource=go
@@ -20,6 +20,9 @@ SWAGGER_PACKAGE ?= github.com/go-swagger/go-swagger/cmd/swagger@v0.33.2 # renova
 XGO_PACKAGE ?= src.techknowlogick.com/xgo@v1.9.0 # renovate: datasource=go
 GOVULNCHECK_PACKAGE ?= golang.org/x/vuln/cmd/govulncheck@v1.3.0 # renovate: datasource=go
 ACTIONLINT_PACKAGE ?= github.com/rhysd/actionlint/cmd/actionlint@v1.7.12 # renovate: datasource=go
+SHELLCHECK_IMAGE ?= docker.io/koalaman/shellcheck:v0.11.0@sha256:61862eba1fcf09a484ebcc6feea46f1782532571a34ed51fedf90dd25f925a8d # renovate: datasource=docker
+
+CONTAINER_RUNTIME ?= $(shell hash docker >/dev/null 2>&1 && echo docker || echo podman)
 
 HAS_GO := $(shell hash $(GO) > /dev/null 2>&1 && echo yes)
 ifeq ($(HAS_GO), yes)
@@ -271,7 +274,7 @@ checks-frontend: lockfile-check svg-check ## check frontend files
 checks-backend: tidy-check swagger-check openapi3-check fmt-check swagger-validate security-check ## check backend files
 
 .PHONY: lint
-lint: lint-frontend lint-backend lint-templates lint-swagger lint-spell lint-md lint-actions lint-json lint-yaml ## lint everything
+lint: lint-frontend lint-backend lint-templates lint-swagger lint-spell lint-md lint-actions lint-json lint-yaml lint-shell ## lint everything
 
 .PHONY: lint-fix
 lint-fix: lint-frontend-fix lint-backend-fix lint-spell-fix ## lint everything and fix issues
@@ -318,10 +321,6 @@ lint-md: node_modules ## lint markdown files
 lint-md-fix: node_modules ## lint markdown files and fix issues
 	pnpm exec markdownlint --fix *.md
 
-.PHONY: lint-pr-title
-lint-pr-title: ## lint PR title against Conventional Commits (set PR_TITLE=...)
-	@node ./tools/lint-pr-title.ts
-
 .PHONY: lint-spell
 lint-spell: ## lint spelling
 	@git ls-files $(SPELLCHECK_FILES) | xargs go run $(MISSPELL_PACKAGE) -dict assets/misspellings.csv -error
@@ -347,6 +346,10 @@ lint-editorconfig:
 lint-actions: .venv ## lint action workflow files
 	@$(GO) run $(ACTIONLINT_PACKAGE)
 	@uv run --frozen zizmor --quiet --min-confidence=medium .github
+
+.PHONY: lint-shell
+lint-shell: ## lint shell scripts
+	@SHELLCHECK_IMAGE=$(SHELLCHECK_IMAGE) CONTAINER_RUNTIME=$(CONTAINER_RUNTIME) ./tools/lint-shell.sh $$(git ls-files '*.sh')
 
 .PHONY: lint-templates
 lint-templates: .venv node_modules ## lint template files
@@ -473,11 +476,11 @@ migrations.individual.test\#%:
 
 .PHONY: playwright
 playwright: deps-frontend
-	@./tools/test-e2e.sh install
+	@CONTAINER_RUNTIME=$(CONTAINER_RUNTIME) ./tools/test-e2e.sh install
 
 .PHONY: test-e2e
 test-e2e: playwright frontend backend
-	@EXECUTABLE=$(EXECUTABLE) ./tools/test-e2e.sh run $(GITEA_TEST_E2E_FLAGS)
+	@CONTAINER_RUNTIME=$(CONTAINER_RUNTIME) EXECUTABLE=$(EXECUTABLE) ./tools/test-e2e.sh run $(GITEA_TEST_E2E_FLAGS)
 
 .PHONY: build
 build: frontend backend ## build everything
