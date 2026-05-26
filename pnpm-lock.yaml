@@ -95,7 +95,7 @@ importers:
         version: 0.1.0-rc2
       '@mermaid-js/layout-elk':
         specifier: 0.2.1
-        version: 0.2.1(mermaid@11.14.0)
+        version: 0.2.1(mermaid@11.15.0)
       '@primer/octicons':
         specifier: 19.26.0
         version: 19.26.0
@@ -169,8 +169,8 @@ importers:
         specifier: 0.16.47
         version: 0.16.47
       mermaid:
-        specifier: 11.14.0
-        version: 11.14.0
+        specifier: 11.15.0
+        version: 11.15.0
       online-3d-viewer:
         specifier: 0.18.0
         version: 0.18.0
@@ -3293,8 +3293,8 @@ packages:
     resolution: {integrity: sha512-8q7VEgMJW4J8tcfVPy8g09NcQwZdbwFEqhe/WZkoIzjn/3TGDwtOCYtXGxA3O8tPzpczCCDgv+P2P5y00ZJOOg==}
     engines: {node: '>= 8'}
 
-  mermaid@11.14.0:
-    resolution: {integrity: sha512-GSGloRsBs+JINmmhl0JDwjpuezCsHB4WGI4NASHxL3fHo3o/BRXTxhDLKnln8/Q0lRFRyDdEjmk1/d5Sn1Xz8g==}
+  mermaid@11.15.0:
+    resolution: {integrity: sha512-pTMbcf3rWdtLiYGpmoTjHEpeY8seiy6sR+9nD7LOs8KfUbHE4lOUAprTRqRAcWSQ6MQpdX+YEsxShtGsINtPtw==}
 
   micromark-core-commonmark@2.0.3:
     resolution: {integrity: sha512-RDBrHEMSxVFLg6xvnXmb1Ayr2WzLAWjeSATAoxwKYJV94TeNavgoIdA0a9ytzDSVzBy2YKFK+emCPOEibLeCrg==}
@@ -5099,11 +5099,11 @@ snapshots:
       - supports-color
       - utf-8-validate
 
-  '@mermaid-js/layout-elk@0.2.1(mermaid@11.14.0)':
+  '@mermaid-js/layout-elk@0.2.1(mermaid@11.15.0)':
     dependencies:
       d3: 7.9.0
       elkjs: 0.9.3
-      mermaid: 11.14.0
+      mermaid: 11.15.0
 
   '@mermaid-js/parser@1.1.1':
     dependencies:
@@ -7530,7 +7530,7 @@ snapshots:
 
   merge2@1.4.1: {}
 
-  mermaid@11.14.0:
+  mermaid@11.15.0:
     dependencies:
       '@braintree/sanitize-url': 7.1.2
       '@iconify/utils': 3.1.1
@@ -7548,7 +7548,6 @@ snapshots:
       es-toolkit: 1.46.1
       katex: 0.16.47
       khroma: 2.1.0
-      lodash-es: 4.18.1
       marked: 16.4.2
       roughjs: 4.6.6
       stylis: 4.4.0
