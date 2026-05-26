@@ -1,4 +1,4 @@
-module code.gitea.io/gitea
+module gitea.dev
 
 go 1.26.3
 

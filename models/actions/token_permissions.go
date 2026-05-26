@@ -6,8 +6,8 @@ package actions
 import (
 	"context"
 
-	repo_model "code.gitea.io/gitea/models/repo"
-	"code.gitea.io/gitea/models/unit"
+	repo_model "gitea.dev/models/repo"
+	"gitea.dev/models/unit"
 )
 
 // ComputeTaskTokenPermissions computes the effective permissions for a job token against the target repository.

@@ -4,9 +4,9 @@
 package pkgspec
 
 import (
-	packages_model "code.gitea.io/gitea/models/packages"
-	packages_service "code.gitea.io/gitea/services/packages"
-	"code.gitea.io/gitea/services/packages/terraform"
+	packages_model "gitea.dev/models/packages"
+	packages_service "gitea.dev/services/packages"
+	"gitea.dev/services/packages/terraform"
 )
 
 func InitManager() error {
