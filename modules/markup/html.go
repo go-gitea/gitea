@@ -180,11 +180,12 @@ var emojiProcessors = []processor{
 // emailAddressProcessor, will add a defaultLinkProcessor if defaultLink is set,
 // which changes every text node into a link to the passed default link.
 func PostProcessCommitMessageSubject(ctx *RenderContext, defaultLink, content string) (string, error) {
+	// linkProcessor is omitted: the whole subject is wrapped in defaultLink below,
+	// and turning bare URLs into competing anchors would hijack the subject link.
 	procs := []processor{
 		fullIssuePatternProcessor,
 		comparePatternProcessor,
 		fullHashPatternProcessor,
-		linkProcessor,
 		mentionProcessor,
 		issueIndexPatternProcessor,
 		commitCrossReferencePatternProcessor,

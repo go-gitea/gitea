@@ -140,6 +140,12 @@ com 88fc37a3c0a4dda553bdcfc80c178a58247f42fb mit
 		assert.EqualValues(t, expected, newTestRenderUtils(t).RenderCommitMessageLinkSubject(testInput(), "https://example.com/link", mockRepo))
 	})
 
+	t.Run("RenderCommitMessageLinkSubjectURLOnly", func(t *testing.T) {
+		// a bare URL in the subject must not hijack the default link
+		expected := `<a href="https://example.com/link" class="muted">https://example.com/file.bin</a>`
+		assert.EqualValues(t, expected, newTestRenderUtils(t).RenderCommitMessageLinkSubject("https://example.com/file.bin", "https://example.com/link", mockRepo))
+	})
+
 	t.Run("RenderIssueTitle", func(t *testing.T) {
 		defer test.MockVariableValue(&markup.RenderBehaviorForTesting.DisableAdditionalAttributes, true)()
 		expected := `  space @mention-user<SPACE><SPACE>
