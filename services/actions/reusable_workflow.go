@@ -90,6 +90,10 @@ func readWorkflowFromRepo(ctx context.Context, repo *repo_model.Repository, refO
 // checkCallerChain walks `caller`'s ancestor chain (via ParentJobID) and:
 //   - rejects cycles (caller.CallUses appearing in any ancestor's CallUses)
 //   - enforces MaxReusableCallLevels on the number of ancestors above `caller`
+//
+// Cycle detection is intentionally *syntactic* (string equality on CallUses), not semantic.
+// So `owner/repo/lib.yml@v1` and `owner/repo/lib.yml@refs/heads/v1` resolving to the same commit are NOT treated as the same node.
+// Going semantic (Owner, Repo, Path, ResolvedSHA tuples) would require extra git reads.
 func checkCallerChain(ctx context.Context, caller *actions_model.ActionRunJob) error {
 	if caller.ParentJobID == 0 {
 		return nil // top-level caller: depth 0, no ancestors to walk

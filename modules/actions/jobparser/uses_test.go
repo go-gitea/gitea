@@ -156,6 +156,9 @@ func TestParseUses(t *testing.T) {
 			{name: "cross-repo wrong extension", in: "owner/repo/.gitea/workflows/build.txt@v1"},
 			{name: "cross-repo path traversal", in: "owner/repo/.gitea/workflows/../escape.yml@v1"},
 			{name: "cross-repo double slash in path", in: "owner/repo/.gitea/workflows//build.yml@v1"},
+			// Owner/repo with chars Gitea's name validators reject: surface as parse error
+			{name: "cross-repo owner with space", in: "bad owner/repo/.gitea/workflows/build.yml@v1"},
+			{name: "cross-repo repo with @", in: "owner/re@po/.gitea/workflows/build.yml@v1"},
 		}
 		for _, c := range cases {
 			t.Run(c.name, func(t *testing.T) {

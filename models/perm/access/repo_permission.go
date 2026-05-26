@@ -656,20 +656,20 @@ func PermissionNoAccess() Permission {
 	return Permission{AccessMode: perm_model.AccessModeNone}
 }
 
-// CanReadWorkflowCrossRepo checks whether the run can read workflow files from targetRepo
+// CanReadWorkflowCrossRepo checks whether the run can read workflow files from targetRepo.
 func CanReadWorkflowCrossRepo(ctx context.Context, targetRepo *repo_model.Repository, run *actions_model.ActionRun) (bool, error) {
 	if err := run.LoadRepo(ctx); err != nil {
 		return false, err
 	}
 
+	// (1) Same owner: always allowed (fork-PR scrubbing handled inside).
 	if checkSameOwnerCrossRepoAccess(ctx, run.Repo, targetRepo, run.IsForkPullRequest) {
 		return true, nil
 	}
 
-	// Cross-owner: respect target repo's collaborative-owner allowlist on the Actions unit.
-	// The `run.Repo.IsPrivate` guard is intentional, it matches GitHub Actions' behavior:
-	// Access is allowed only from private repositories.
-	// See: https://docs.github.com/en/repositories/managing-your-repositorys-settings-and-features/enabling-features-for-your-repository/managing-github-actions-settings-for-a-repository#allowing-access-to-components-in-a-private-repository
+	// (2) Cross-owner private -> private: respect target repo's collaborative-owner allowlist on the Actions unit.
+	// Matches GitHub's private-repo Actions sharing; the run.Repo.IsPrivate guard mirrors GitHub's "only from private repositories" gate on this specific feature. See:
+	// https://docs.github.com/en/repositories/managing-your-repositorys-settings-and-features/enabling-features-for-your-repository/managing-github-actions-settings-for-a-repository#allowing-access-to-components-in-a-private-repository
 	if run.Repo.IsPrivate {
 		if actionsUnit, err := targetRepo.GetUnit(ctx, unit.TypeActions); err == nil {
 			if actionsUnit.ActionsConfig().IsCollaborativeOwner(run.Repo.OwnerID) {
@@ -678,6 +678,8 @@ func CanReadWorkflowCrossRepo(ctx context.Context, targetRepo *repo_model.Reposi
 		}
 	}
 
+	// (3) Public target: the Actions user's individual permission gives read on any public repo, so `uses:` to a public reusable-workflow library is permitted by default.
+	// Matches GitHub's behavior: public reusable workflows are universally readable.
 	botPerm, err := GetIndividualUserRepoPermission(ctx, targetRepo, user_model.NewActionsUser())
 	if err != nil {
 		return false, err

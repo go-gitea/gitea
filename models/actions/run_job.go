@@ -395,9 +395,13 @@ func UpdateRunJob(ctx context.Context, job *ActionRunJob, cond builder.Cond, col
 		}
 	}
 
-	// Reusable workflow caller's children cascade their status changes upward to the parent caller
 	if statusUpdated && job.ParentJobID > 0 {
-		return affected, cascadeCallerStatus(ctx, job)
+		// Reusable workflow caller's children cascade their status changes upward to the parent caller.
+		parent, err := GetRunJobByRunAndID(ctx, job.RunID, job.ParentJobID)
+		if err != nil {
+			return affected, fmt.Errorf("load parent caller %d: %w", job.ParentJobID, err)
+		}
+		return affected, RefreshReusableCallerStatus(ctx, parent)
 	}
 
 	{
@@ -452,17 +456,11 @@ func UpdateRunJob(ctx context.Context, job *ActionRunJob, cond builder.Cond, col
 	return affected, nil
 }
 
-// cascadeCallerStatus re-derives the parent reusable workflow caller's Status from its children
-func cascadeCallerStatus(ctx context.Context, child *ActionRunJob) error {
-	parent, err := GetRunJobByRunAndID(ctx, child.RunID, child.ParentJobID)
-	if err != nil {
-		return fmt.Errorf("load parent caller %d: %w", child.ParentJobID, err)
-	}
-	return RefreshReusableCallerStatus(ctx, parent)
-}
-
 // RefreshReusableCallerStatus recomputes a reusable workflow caller's Status, Started and Stopped from its current direct children and persists the change.
 // No-op if caller is not a reusable caller.
+//
+// Concurrency: two sibling children finishing at roughly the same time can each invoke this for the same parent caller.
+// No row-level lock is taken because AggregateJobStatus is a pure function of the children's statuses (order-independent), so racing callers arrive at the same Status.
 func RefreshReusableCallerStatus(ctx context.Context, caller *ActionRunJob) error {
 	if !caller.IsReusableCaller {
 		return nil

@@ -32,7 +32,7 @@ type UsesRef struct {
 
 var (
 	reLocalSameRepo  = regexp.MustCompile(`^\./\.(gitea|github)/workflows/([^@]+\.ya?ml)$`)
-	reLocalCrossRepo = regexp.MustCompile(`^([^/]+)/([^/]+)/\.(gitea|github)/workflows/([^@]+\.ya?ml)@(.+)$`)
+	reLocalCrossRepo = regexp.MustCompile(`^([-.\w]+)/([-.\w]+)/\.(gitea|github)/workflows/([^@]+\.ya?ml)@(.+)$`)
 )
 
 // ParseUses parses a reusable workflow "uses:" value.

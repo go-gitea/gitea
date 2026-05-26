@@ -311,6 +311,7 @@ func execRerunPlan(ctx context.Context, plan *rerunPlan) (*actions_model.ActionR
 		}
 
 		// Refresh each ancestor's status from its now-fresh children.
+		// `newJobs` is appended top-down (caller before its children), so we walk it in reverse to refresh the deepest ancestor first.
 		for _, ancestor := range slices.Backward(newJobs) {
 			if !ancestor.IsReusableCaller || !plan.ancestorAttemptJobIDs.Contains(ancestor.AttemptJobID) {
 				continue
