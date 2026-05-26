@@ -20,6 +20,7 @@ import (
 	"code.gitea.io/gitea/services/context"
 	"code.gitea.io/gitea/services/externalaccount"
 	"code.gitea.io/gitea/services/forms"
+	user_service "code.gitea.io/gitea/services/user"
 )
 
 var tplLinkAccount templates.TplName = "user/auth/link_account"
@@ -239,13 +240,24 @@ func LinkAccountPostRegister(ctx *context.Context) {
 		}
 	}
 
+	authSource, err := auth.GetSourceByID(ctx, linkAccountData.AuthSourceID)
+	if err != nil {
+		ctx.ServerError("GetSourceByID", err)
+		return
+	}
+	source := authSource.Cfg.(*oauth2.Source)
+
+	isAdmin, isRestricted := getUserAdminAndRestrictedFromGroupClaims(source, &linkAccountData.GothUser)
+
 	u := &user_model.User{
-		Name:        form.UserName,
-		Email:       form.Email,
-		Passwd:      form.Password,
-		LoginType:   auth.OAuth2,
-		LoginSource: linkAccountData.AuthSourceID,
-		LoginName:   linkAccountData.GothUser.UserID,
+		Name:         form.UserName,
+		Email:        form.Email,
+		Passwd:       form.Password,
+		LoginType:    auth.OAuth2,
+		LoginSource:  linkAccountData.AuthSourceID,
+		LoginName:    linkAccountData.GothUser.UserID,
+		IsAdmin:      isAdmin.ValueOrDefault(user_service.UpdateOptionField[bool]{FieldValue: false}).FieldValue,
+		IsRestricted: isRestricted.ValueOrDefault(setting.Service.DefaultUserIsRestricted),
 	}
 
 	if !createAndHandleCreatedUser(ctx, tplLinkAccount, form, u, nil, linkAccountData) {
@@ -258,12 +270,6 @@ func LinkAccountPostRegister(ctx *context.Context) {
 		return
 	}
 
-	authSource, err := auth.GetSourceByID(ctx, linkAccountData.AuthSourceID)
-	if err != nil {
-		ctx.ServerError("GetSourceByID", err)
-		return
-	}
-	source := authSource.Cfg.(*oauth2.Source)
 	if err := syncGroupsToTeams(ctx, source, &linkAccountData.GothUser, u); err != nil {
 		ctx.ServerError("SyncGroupsToTeams", err)
 		return
