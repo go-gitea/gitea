@@ -423,7 +423,6 @@ func Diff(ctx *context.Context) {
 	for _, fcc := range commitComments {
 		for _, comments := range fcc.Left {
 			for _, c := range comments {
-				renderhelper.NewRenderContextRepoComment(ctx, ctx.Repo.Repository, renderhelper.RepoCommentOptions{})
 				rctx := renderhelper.NewRenderContextRepoComment(ctx, ctx.Repo.Repository, renderhelper.RepoCommentOptions{})
 				c.RenderedContent, err = markdown.RenderString(rctx, c.Content)
 				if err != nil {
@@ -443,7 +442,6 @@ func Diff(ctx *context.Context) {
 	}
 	ctx.Data["CommitComments"] = commitComments
 	ctx.Data["CanComment"] = ctx.Doer != nil && ctx.Repo.Permission.CanRead(unit_model.TypeCode)
-	}
 
 	ctx.HTML(http.StatusOK, tplCommitPage)
 }

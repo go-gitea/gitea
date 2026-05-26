@@ -68,8 +68,9 @@ type Notification struct {
 
 	Issue      *issues_model.Issue    `xorm:"-"`
 	Repository *repo_model.Repository `xorm:"-"`
-	Comment    *issues_model.Comment  `xorm:"-"`
-	User       *user_model.User       `xorm:"-"`
+	Comment    *issues_model.Comment     `xorm:"-"`
+	CommitComment *repo_model.CommitComment `xorm:"-"`
+	User          *user_model.User          `xorm:"-"`
 
 	CreatedUnix timeutil.TimeStamp `xorm:"created NOT NULL"`
 	UpdatedUnix timeutil.TimeStamp `xorm:"updated NOT NULL"`
@@ -317,6 +318,9 @@ func (n *Notification) loadIssue(ctx context.Context) (err error) {
 }
 
 func (n *Notification) loadComment(ctx context.Context) (err error) {
+	if n.Source == NotificationSourceCommit {
+		return nil
+	}
 	if n.Comment == nil && n.CommentID != 0 {
 		n.Comment, err = issues_model.GetCommentByID(ctx, n.CommentID)
 		if err != nil {
@@ -397,7 +401,11 @@ func (n *Notification) Link(ctx context.Context) string {
 		}
 		return n.Issue.Link()
 	case NotificationSourceCommit:
-		return n.Repository.Link() + "/commit/" + url.PathEscape(n.CommitID)
+		base := n.Repository.Link() + "/commit/" + url.PathEscape(n.CommitID)
+		if n.CommitCommentID != 0 {
+			return base + "#commitcomment-" + strconv.FormatInt(n.CommitCommentID, 10)
+		}
+		return base
 	case NotificationSourceRepository:
 		return n.Repository.Link()
 	}
