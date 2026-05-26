@@ -47,11 +47,7 @@ func EnsureRepoContributorMeta(ctx context.Context, repoID int64) (*ContributorM
 	}
 	meta = &ContributorMeta{RepoID: repoID, UpdatedUnix: timeutil.TimeStampNow()}
 	if _, err := db.GetEngine(ctx).Insert(meta); err != nil {
-		meta, _, getErr := GetRepoContributorMeta(ctx, repoID)
-		if getErr != nil {
-			return nil, getErr
-		}
-		return meta, err
+		return nil, err
 	}
 	return meta, nil
 }

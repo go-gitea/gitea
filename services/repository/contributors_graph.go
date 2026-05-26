@@ -41,6 +41,12 @@ type ExtendedCommitStats struct {
 
 // GetContributorStats returns contributors stats for git commits for given revision or default branch.
 func GetContributorStats(ctx context.Context, repo *repo_model.Repository, limit int, start, end *time.Time) (map[string]*ContributorData, error) {
+	if repo.IsEmpty {
+		return map[string]*ContributorData{"total": {
+			Name: "Total",
+		}}, nil
+	}
+
 	var startDay, endDay *contribution_model.ContributorDayStart
 	if start != nil {
 		value := contribution_model.NewContributorDayStart(start.UTC())
