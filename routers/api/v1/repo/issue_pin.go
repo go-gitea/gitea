@@ -7,6 +7,7 @@ import (
 	"net/http"
 
 	issues_model "code.gitea.io/gitea/models/issues"
+	"code.gitea.io/gitea/modules/cache"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/services/context"
 	"code.gitea.io/gitea/services/convert"
@@ -207,7 +208,7 @@ func ListPinnedIssues(ctx *context.APIContext) {
 		return
 	}
 
-	ctx.JSON(http.StatusOK, convert.ToAPIIssueList(ctx, ctx.Doer, issues))
+	ctx.JSON(http.StatusOK, convert.ToAPIIssueList(ctx, ctx.Doer, issues, convert.ToIssueOptions{PermCache: cache.NewEphemeralCache()}))
 }
 
 // ListPinnedPullRequests returns a list of all pinned PRs

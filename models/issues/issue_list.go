@@ -183,39 +183,59 @@ func (issues IssueList) LoadMilestones(ctx context.Context) error {
 	return nil
 }
 
+// LoadProjects loads projects for every issue in the list into
+// Issue.Projects, along with each issue's column placement cached for
+// retrieval via Issue.ProjectColumn. Uses one batched query per chunk
+// of db.DefaultMaxInSize issue IDs.
 func (issues IssueList) LoadProjects(ctx context.Context) error {
 	issueIDs := issues.getIssueIDs()
-	issueProjectMaps := make(map[int64][]*project_model.Project, len(issues))
-	left := len(issueIDs)
 
-	type projectWithIssueID struct {
+	type projectRow struct {
 		*project_model.Project `xorm:"extends"`
 		IssueID                int64
+		ProjectColumnID        int64  `xorm:"'project_board_id'"`
+		ColumnTitle            string `xorm:"'column_title'"`
 	}
 
+	type issuePlacement struct {
+		project *project_model.Project
+		column  projectColumn
+	}
+	placementsByIssue := make(map[int64][]issuePlacement, len(issueIDs))
+	left := len(issueIDs)
 	for left > 0 {
 		limit := min(left, db.DefaultMaxInSize)
 
-		projects := make([]*projectWithIssueID, 0, limit)
+		rows := make([]*projectRow, 0, limit)
 		err := db.GetEngine(ctx).
 			Table("project").
-			Select("project.*, project_issue.issue_id").
+			Select("project.*, project_issue.issue_id, project_issue.project_board_id, project_board.title AS column_title").
 			Join("INNER", "project_issue", "project.id = project_issue.project_id").
+			Join("LEFT", "project_board", "project_issue.project_board_id = project_board.id").
 			In("project_issue.issue_id", issueIDs[:limit]).
 			OrderBy("project_issue.issue_id ASC, project.id ASC").
-			Find(&projects)
+			Find(&rows)
 		if err != nil {
 			return err
 		}
-		for _, project := range projects {
-			issueProjectMaps[project.IssueID] = append(issueProjectMaps[project.IssueID], project.Project)
+		for _, r := range rows {
+			placementsByIssue[r.IssueID] = append(placementsByIssue[r.IssueID], issuePlacement{
+				project: r.Project,
+				column:  projectColumn{ID: r.ProjectColumnID, Title: r.ColumnTitle},
+			})
 		}
 		left -= limit
 		issueIDs = issueIDs[limit:]
 	}
 
 	for _, issue := range issues {
-		issue.Projects = issueProjectMaps[issue.ID]
+		placements := placementsByIssue[issue.ID]
+		issue.Projects = make([]*project_model.Project, 0, len(placements))
+		issue.projectColumns = make(map[int64]projectColumn, len(placements))
+		for _, p := range placements {
+			issue.Projects = append(issue.Projects, p.project)
+			issue.projectColumns[p.project.ID] = p.column
+		}
 		issue.isProjectsLoaded = true
 	}
 	return nil

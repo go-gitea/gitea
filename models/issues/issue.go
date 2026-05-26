@@ -70,6 +70,7 @@ type Issue struct {
 	Milestone         *Milestone               `xorm:"-"`
 	isMilestoneLoaded bool                     `xorm:"-"`
 	Projects          []*project_model.Project `xorm:"-"`
+	projectColumns    map[int64]projectColumn  `xorm:"-"`
 	isProjectsLoaded  bool                     `xorm:"-"`
 	Priority          int
 	AssigneeID        int64            `xorm:"-"`

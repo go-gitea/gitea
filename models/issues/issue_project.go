@@ -12,19 +12,62 @@ import (
 	"code.gitea.io/gitea/modules/util"
 )
 
-// LoadProjects loads all projects the issue is assigned to
+// projectColumn holds where an issue sits within one of its projects.
+// Cached on the Issue by LoadProjects and read via ProjectColumn so the
+// API converter can build api.ProjectMeta without re-querying.
+type projectColumn struct {
+	ID    int64
+	Title string
+}
+
+// ProjectColumn returns the issue's column placement in the given project
+// (column ID and title). Returns zero values if no placement is cached or
+// the issue is not in the project. Requires LoadProjects to have run.
+func (issue *Issue) ProjectColumn(projectID int64) (id int64, title string) {
+	if c, ok := issue.projectColumns[projectID]; ok {
+		return c.ID, c.Title
+	}
+	return 0, ""
+}
+
+// LoadProjects loads all projects the issue is assigned to into
+// Issue.Projects, along with column placement cached for later
+// retrieval via ProjectColumn.
 func (issue *Issue) LoadProjects(ctx context.Context) (err error) {
-	if !issue.isProjectsLoaded {
-		err = db.GetEngine(ctx).Table("project").
-			Join("INNER", "project_issue", "project.id=project_issue.project_id").
-			Where("project_issue.issue_id = ?", issue.ID).
-			OrderBy("project.id ASC").
-			Find(&issue.Projects)
-		if err == nil {
-			issue.isProjectsLoaded = true
+	if issue.isProjectsLoaded {
+		return nil
+	}
+
+	type projectWithColumn struct {
+		*project_model.Project `xorm:"extends"`
+		ProjectColumnID        int64  `xorm:"'project_board_id'"`
+		ColumnTitle            string `xorm:"'column_title'"`
+	}
+
+	var rows []*projectWithColumn
+	err = db.GetEngine(ctx).
+		Table("project").
+		Select("project.*, project_issue.project_board_id, project_board.title AS column_title").
+		Join("INNER", "project_issue", "project.id = project_issue.project_id").
+		Join("LEFT", "project_board", "project_issue.project_board_id = project_board.id").
+		Where("project_issue.issue_id = ?", issue.ID).
+		OrderBy("project.id ASC").
+		Find(&rows)
+	if err != nil {
+		return err
+	}
+
+	issue.Projects = make([]*project_model.Project, 0, len(rows))
+	issue.projectColumns = make(map[int64]projectColumn, len(rows))
+	for _, r := range rows {
+		issue.Projects = append(issue.Projects, r.Project)
+		issue.projectColumns[r.Project.ID] = projectColumn{
+			ID:    r.ProjectColumnID,
+			Title: r.ColumnTitle,
 		}
 	}
-	return err
+	issue.isProjectsLoaded = true
+	return nil
 }
 
 func (issue *Issue) projectIDs(ctx context.Context) (projectIDs []int64, _ error) {
@@ -80,6 +123,7 @@ func IssueAssignOrRemoveProject(ctx context.Context, issue *Issue, doer *user_mo
 		projectsToAdd, projectsToRemove := util.DiffSlice(oldProjectIDs, newProjectIDs)
 		issue.isProjectsLoaded = false
 		issue.Projects = nil
+		issue.projectColumns = nil
 
 		if len(projectsToRemove) > 0 {
 			if _, err := db.GetEngine(ctx).Where("issue_id=?", issue.ID).In("project_id", projectsToRemove).Delete(&project_model.ProjectIssue{}); err != nil {
