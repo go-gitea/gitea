@@ -3,7 +3,7 @@
 
 package v1_11
 
-import "code.gitea.io/gitea/models/db"
+import "gitea.dev/models/db"
 
 func AddCommentIDOnNotification(x db.EngineMigration) error {
 	type Notification struct {

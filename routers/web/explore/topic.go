@@ -6,11 +6,11 @@ package explore
 import (
 	"net/http"
 
-	"code.gitea.io/gitea/models/db"
-	repo_model "code.gitea.io/gitea/models/repo"
-	api "code.gitea.io/gitea/modules/structs"
-	"code.gitea.io/gitea/services/context"
-	"code.gitea.io/gitea/services/convert"
+	"gitea.dev/models/db"
+	repo_model "gitea.dev/models/repo"
+	api "gitea.dev/modules/structs"
+	"gitea.dev/services/context"
+	"gitea.dev/services/convert"
 )
 
 // TopicSearch search for creating topic
