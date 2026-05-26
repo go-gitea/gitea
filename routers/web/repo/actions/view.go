@@ -1113,14 +1113,14 @@ func disableOrEnableWorkflowFile(ctx *context_module.Context, isEnable bool) {
 		ctx.Flash.Success(ctx.Tr("actions.workflow.disable_success", workflow))
 	}
 
-	redirectURL := fmt.Sprintf("%s/actions?workflow=%s&actor=%s&status=%s", ctx.Repo.RepoLink, url.QueryEscape(workflow),
-		url.QueryEscape(ctx.FormString("actor")), url.QueryEscape(ctx.FormString("status")))
+	redirectURL := actionsListRedirectURL(ctx.Repo.RepoLink, workflow,
+		ctx.FormString("actor"), ctx.FormString("status"), ctx.FormString("branch"))
 	ctx.JSONRedirect(redirectURL)
 }
 
 func Run(ctx *context_module.Context) {
-	redirectURL := fmt.Sprintf("%s/actions?workflow=%s&actor=%s&status=%s", ctx.Repo.RepoLink, url.QueryEscape(ctx.FormString("workflow")),
-		url.QueryEscape(ctx.FormString("actor")), url.QueryEscape(ctx.FormString("status")))
+	redirectURL := actionsListRedirectURL(ctx.Repo.RepoLink, ctx.FormString("workflow"),
+		ctx.FormString("actor"), ctx.FormString("status"), ctx.FormString("branch"))
 
 	workflowID := ctx.FormString("workflow")
 	if len(workflowID) == 0 {
