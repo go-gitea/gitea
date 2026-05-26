@@ -8,6 +8,7 @@ import (
 	"strings"
 	"text/template"
 	"time"
+	"net"
 
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/util"
@@ -107,6 +108,15 @@ func loadSSHFrom(rootCfg ConfigProvider) {
 
 	if err = sec.MapTo(&SSH); err != nil {
 		log.Fatal("Failed to map SSH settings: %v", err)
+	}
+
+	// Prevent users from specifying a port inside the SSH domain as that is the purpose of another setting
+	// The only option the stdlib gives for that is explicitly splitting host and port (must exist), and if that's successful, we have a port
+	if !SSH.Disabled {
+		_, port, err := net.SplitHostPort(SSH.Domain)
+		if err == nil {
+			log.Error("[server].SSH_DOMAIN must not contain a port, but specifies port %q. Use [server].SSH_PORT instead", port)
+		}
 	}
 
 	serverCiphers := sec.Key("SSH_SERVER_CIPHERS").Strings(",")
