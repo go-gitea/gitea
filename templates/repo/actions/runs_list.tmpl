@@ -21,7 +21,8 @@
 					{{end}}
 				</span>
 				<div class="item-body">
-					<span><b>{{if not $.CurWorkflow}}{{$run.WorkflowID}} {{end}}#{{$run.Index}}</b>:</span>
+					{{$workflowName := index $.WorkflowNames $run.WorkflowID}}
+					<span><b>{{if not $.CurWorkflow}}{{if $workflowName}}{{$workflowName}}{{else}}{{$run.WorkflowID}}{{end}} {{end}}#{{$run.Index}}</b>:</span>
 
 					{{- if $run.ScheduleID -}}
 						{{ctx.Locale.Tr "actions.runs.scheduled"}}
