@@ -180,6 +180,7 @@ func TestExtractReply(t *testing.T) {
 		{"on with year and no time kept", "Hi,\nOn the 2024 roadmap we have three items.\nPlease review.", "Hi,\nOn the 2024 roadmap we have three items.\nPlease review."},
 		{"date prose kept", "Notes:\n5 issues 2024 fixed at 9:15 today\nmore notes", "Notes:\n5 issues 2024 fixed at 9:15 today\nmore notes"},
 		{"header needs from first", "Quick note:\nTo: which server?\nFrom: tests pass.\nThanks", "Quick note:\nTo: which server?\nFrom: tests pass.\nThanks"},
+		{"indented header block", "Reply text.\n\n  From: A <a@b.com>\n  Sent: Monday\n  To: x\n  Subject: hi\n\nbody", "Reply text."},
 	}
 	for _, c := range cases {
 		t.Run(c.name, func(t *testing.T) {

@@ -43,8 +43,9 @@ var (
 
 // extractReply returns the user-written part of a plain-text email body, dropping
 // quoted history, the reply attribution, signatures and forwarded headers. It is a
-// slim, dependency-free replacement for github.com/dimiro1/reply covering the common
-// mail-client formats and languages; bottom posting and forwarded bodies are not handled.
+// slim, dependency-free reimplementation based on github.com/dimiro1/reply (MIT),
+// covering the common mail-client formats and languages; bottom posting and
+// forwarded bodies are not handled.
 func extractReply(text string) string {
 	text = strings.ReplaceAll(text, "\r\n", "\n")
 	text = strings.ReplaceAll(text, "\r", "\n")
@@ -81,12 +82,12 @@ func isBoundary(lines []string) bool {
 // headerBlock reports whether lines start a forwarded-mail header block: a "From"
 // field followed by another field, so a lone "Subject:" sentence is not a boundary.
 func headerBlock(lines []string) bool {
-	if !headerStartRegex.MatchString(lines[0]) {
+	if !headerStartRegex.MatchString(strings.TrimSpace(lines[0])) {
 		return false
 	}
 	for _, next := range lines[1:] {
-		if strings.TrimSpace(next) != "" {
-			return headerFieldRegex.MatchString(next)
+		if trimmed := strings.TrimSpace(next); trimmed != "" {
+			return headerFieldRegex.MatchString(trimmed)
 		}
 	}
 	return false
