@@ -101,23 +101,23 @@ func createOrgWithGroups(t *testing.T) *commonGroupTestData {
 	}
 	rootPublic := createGroup(t, actor, apiOrg.Name, 0, &api.NewGroupOption{
 		Visibility: api.VisibleTypePublic,
-		Name:       "root public",
+		Name:       "root-public",
 	}, http.StatusCreated)
 	childPublic := createGroup(t, actor, apiOrg.Name, rootPublic.ID, &api.NewGroupOption{
-		Name:       "child public",
+		Name:       "child-public",
 		Visibility: api.VisibleTypePublic,
 	}, http.StatusCreated)
 	rootPrivate := createGroup(t, actor, apiOrg.Name, 0, &api.NewGroupOption{
-		Name:       "root private",
+		Name:       "root-private",
 		Visibility: api.VisibleTypePrivate,
 	}, http.StatusCreated)
 	childPrivate := createGroup(t, actor, apiOrg.Name, rootPrivate.ID, &api.NewGroupOption{
-		Name:       "child private",
+		Name:       "child-private",
 		Visibility: api.VisibleTypePublic,
 	}, http.StatusCreated)
 
 	privateGrandchildPublic := createGroup(t, actor, apiOrg.Name, childPrivate.ID, &api.NewGroupOption{
-		Name:       "public grandchild with private ancestors",
+		Name:       "public-grandchild-with-private-ancestors",
 		Visibility: api.VisibleTypePublic,
 	}, http.StatusCreated)
 
@@ -234,7 +234,7 @@ func testCreateGroup(t *testing.T) {
 	const actor = "user2"
 	t.Run("RootLevelGroup", func(t *testing.T) {
 		ng := createGroup(t, actor, data.org.Name, 0, &api.NewGroupOption{
-			Name: "root level group x",
+			Name: "root-level-group-x",
 		}, http.StatusCreated)
 		assert.Equal(t, int64(0), ng.ParentGroupID)
 		assertGroupOrderSanity(t, actor, data.org.Name, 0)
@@ -249,7 +249,7 @@ func testCreateGroup(t *testing.T) {
 			gid = ng.ID
 		}
 		createGroup(t, actor, data.org.Name, gid, &api.NewGroupOption{
-			Name:        "too deep",
+			Name:        "too-deep",
 			Description: "this should fail",
 		}, http.StatusUnprocessableEntity)
 	})
@@ -266,7 +266,7 @@ func testMoveGroup(t *testing.T) {
 	const actor = "user2"
 	t.Run("MoveGroupToOtherGroup", func(t *testing.T) {
 		groupToMove := createGroup(t, actor, data.org.Name, 0, &api.NewGroupOption{
-			Name: "movable group 1",
+			Name: "movable-group-1",
 		}, http.StatusCreated)
 		ng := moveGroup(t, actor, groupToMove.ID, data.rootPublic.ID, nil, http.StatusOK)
 		assert.Equal(t, data.rootPublic.ID, ng.ParentGroupID)
@@ -274,7 +274,7 @@ func testMoveGroup(t *testing.T) {
 	})
 	t.Run("MoveGroupToRoot", func(t *testing.T) {
 		groupToMove := createGroup(t, actor, data.org.Name, data.rootPublic.ID, &api.NewGroupOption{
-			Name: "movable group 2",
+			Name: "movable-group-2",
 		}, http.StatusCreated)
 		ng := moveGroup(t, actor, groupToMove.ID, 0, new(0), http.StatusOK)
 		assert.Equal(t, int64(0), ng.ParentGroupID)
