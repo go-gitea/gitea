@@ -12,13 +12,13 @@ import (
 	"strings"
 	"text/tabwriter"
 
-	"code.gitea.io/gitea/models/db"
-	"code.gitea.io/gitea/models/migrations"
-	migrate_base "code.gitea.io/gitea/models/migrations/base"
-	"code.gitea.io/gitea/modules/container"
-	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/services/doctor"
+	"gitea.dev/models/db"
+	"gitea.dev/models/migrations"
+	migrate_base "gitea.dev/models/migrations/base"
+	"gitea.dev/modules/container"
+	"gitea.dev/modules/log"
+	"gitea.dev/modules/setting"
+	"gitea.dev/services/doctor"
 
 	"github.com/urfave/cli/v3"
 )

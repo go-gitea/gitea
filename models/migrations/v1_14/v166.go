@@ -7,7 +7,7 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 
-	"code.gitea.io/gitea/models/db"
+	"gitea.dev/models/db"
 
 	"golang.org/x/crypto/argon2"
 	"golang.org/x/crypto/bcrypt"

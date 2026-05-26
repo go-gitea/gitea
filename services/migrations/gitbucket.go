@@ -9,9 +9,9 @@ import (
 	"net/url"
 	"strings"
 
-	"code.gitea.io/gitea/modules/log"
-	base "code.gitea.io/gitea/modules/migration"
-	"code.gitea.io/gitea/modules/structs"
+	"gitea.dev/modules/log"
+	base "gitea.dev/modules/migration"
+	"gitea.dev/modules/structs"
 )
 
 var (
