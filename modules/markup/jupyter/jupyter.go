@@ -4,9 +4,9 @@
 package jupyter
 
 import (
+	"encoding/base64"
 	"fmt"
 	"html"
-	"html/template"
 	"io"
 	"strings"
 
@@ -272,16 +272,19 @@ func renderOutput(output io.Writer, out Output) {
 		// Image outputs
 		if pngData, ok := out.Data["image/png"]; ok {
 			imgData := joinSource(pngData)
-			_, _ = htmlutil.HTMLPrintf(output, `<img src="data:image/png;base64,%s" class="jupyter-output-image">`, template.HTML(imgData))
+			_, _ = htmlutil.HTMLPrintf(output, `<img src="data:image/png;base64,%s" class="jupyter-output-image">`, imgData)
 			return
 		}
 		if jpegData, ok := out.Data["image/jpeg"]; ok {
 			imgData := joinSource(jpegData)
-			_, _ = htmlutil.HTMLPrintf(output, `<img src="data:image/jpeg;base64,%s" class="jupyter-output-image">`, template.HTML(imgData))
+			_, _ = htmlutil.HTMLPrintf(output, `<img src="data:image/jpeg;base64,%s" class="jupyter-output-image">`, imgData)
 			return
 		}
 		if svgData, ok := out.Data["image/svg+xml"]; ok {
-			_, _ = htmlutil.HTMLPrintf(output, `<div>%s</div>`, template.HTML(joinSource(svgData)))
+			// Encode SVG as base64 data URI for safety
+			svgContent := joinSource(svgData)
+			svgBase64 := base64.StdEncoding.EncodeToString([]byte(svgContent))
+			_, _ = htmlutil.HTMLPrintf(output, `<img src="data:image/svg+xml;base64,%s" class="jupyter-output-image">`, svgBase64)
 			return
 		}
 
@@ -290,7 +293,10 @@ func renderOutput(output io.Writer, out Output) {
 			htmlContent := joinSource(htmlData)
 			// Strip <style> tags as we handle DataFrame styles in CSS
 			htmlContent = stripStyleTags(htmlContent)
-			_, _ = htmlutil.HTMLPrintf(output, `<div class="jupyter-html-output">%s</div>`, template.HTML(htmlContent))
+			// Write raw HTML - sanitizer will clean it
+			_, _ = output.Write([]byte(`<div class="jupyter-html-output">`))
+			_, _ = output.Write([]byte(htmlContent))
+			_, _ = output.Write([]byte(`</div>`))
 			return
 		}
 
