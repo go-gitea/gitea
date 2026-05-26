@@ -14,6 +14,7 @@ import (
 	"net/http"
 	"net/url"
 	"strconv"
+	"strings"
 	"time"
 
 	actions_model "gitea.dev/models/actions"
@@ -205,6 +206,16 @@ func View(ctx *context_module.Context) {
 
 	jobID := ctx.PathParamInt64("job")
 	ctx.Data["JobID"] = jobID // it can be 0 when no job (e.g.: run summary view)
+
+	// Browser tab title, ordered most-specific → least-specific so narrow tabs keep the useful part.
+	// Matches GitHub: "<job> · <run> · <workflow>" on a job page, "<run> · <workflow>" on the summary.
+	titleParts := []string{run.Title, run.WorkflowID}
+	if jobID > 0 {
+		if job, err := actions_model.GetRunJobByRunAndID(ctx, run.ID, jobID); err == nil && job.Name != "" {
+			titleParts = append([]string{job.Name}, titleParts...)
+		}
+	}
+	ctx.Data["Title"] = strings.Join(titleParts, " · ")
 
 	attemptNum := ctx.PathParamInt64("attempt")
 
