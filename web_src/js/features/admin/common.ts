@@ -23,6 +23,81 @@ export function initAdminCommon(): void {
   initAdminUser();
   initAdminAuthentication();
   initAdminNotice();
+  initAdminRunnerBulk();
+}
+
+function initAdminRunnerBulk() {
+  const toolbar = document.querySelector<HTMLElement>('.runner-bulk-toolbar');
+  if (!toolbar) return;
+
+  const url = toolbar.getAttribute('data-url')!;
+  const selectAll = document.querySelector<HTMLInputElement>('.runner-bulk-select-all');
+  const rowCheckboxes = document.querySelectorAll<HTMLInputElement>('.runner-bulk-select');
+  const actionButtons = toolbar.querySelectorAll<HTMLButtonElement>('.runner-bulk-action');
+  const countEl = toolbar.querySelector<HTMLElement>('.runner-bulk-selected-count')!;
+
+  const refresh = () => {
+    const checked = Array.from(rowCheckboxes).filter((c) => c.checked);
+    for (const btn of actionButtons) btn.disabled = checked.length === 0;
+    countEl.textContent = checked.length ? String(checked.length) : '';
+    if (selectAll) {
+      selectAll.checked = checked.length > 0 && checked.length === rowCheckboxes.length;
+      selectAll.indeterminate = checked.length > 0 && checked.length < rowCheckboxes.length;
+    }
+  };
+
+  selectAll?.addEventListener('change', () => {
+    for (const cb of rowCheckboxes) cb.checked = selectAll.checked;
+    refresh();
+  });
+  for (const cb of rowCheckboxes) cb.addEventListener('change', refresh);
+
+  const submit = async (btn: HTMLButtonElement) => {
+    const action = btn.getAttribute('data-action')!;
+    const data = new FormData();
+    data.append('action', action);
+    for (const cb of rowCheckboxes) {
+      if (cb.checked) data.append('ids[]', cb.getAttribute('data-runner-id')!);
+    }
+    btn.classList.add('is-loading', 'disabled');
+    try {
+      const resp = await POST(url, {data});
+      let redirect = '';
+      try {
+        const body = await resp.json();
+        redirect = body?.redirect ?? '';
+      } catch {
+        // non-JSON response: just reload
+      }
+      window.location.href = redirect || window.location.href;
+    } finally {
+      btn.classList.remove('is-loading', 'disabled');
+    }
+  };
+
+  let pendingDeleteBtn: HTMLButtonElement | null = null;
+  const deleteModal = document.querySelector<HTMLElement>('#runner-bulk-delete-modal');
+  deleteModal?.querySelector<HTMLElement>('.ok.button')?.addEventListener('click', () => {
+    if (pendingDeleteBtn) {
+      const btn = pendingDeleteBtn;
+      pendingDeleteBtn = null;
+      submit(btn);
+    }
+  });
+
+  for (const btn of actionButtons) {
+    btn.addEventListener('click', (e) => {
+      if (btn.getAttribute('data-action') === 'delete' && deleteModal) {
+        e.preventDefault();
+        pendingDeleteBtn = btn;
+        showFomanticModal(deleteModal);
+        return;
+      }
+      submit(btn);
+    });
+  }
+
+  refresh();
 }
 
 function initAdminUser() {

@@ -4,6 +4,7 @@
 package actions
 
 import (
+	stdctx "context"
 	"errors"
 	"fmt"
 	"net/http"
@@ -11,6 +12,7 @@ import (
 
 	actions_model "code.gitea.io/gitea/models/actions"
 	"code.gitea.io/gitea/models/db"
+	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/templates"
@@ -158,6 +160,7 @@ func Runners(ctx *context.Context) {
 	ctx.Data["RunnerOwnerID"] = opts.OwnerID
 	ctx.Data["RunnerRepoID"] = opts.RepoID
 	ctx.Data["SortType"] = opts.Sort
+	ctx.Data["AllowBulkActions"] = rCtx.IsAdmin
 
 	pager := context.NewPagination(count, opts.PageSize, opts.Page, 5)
 
@@ -360,6 +363,77 @@ func RunnerUpdatePost(ctx *context.Context) {
 
 	ctx.Flash.Success(ctx.Tr(successKey))
 	ctx.JSONRedirect("")
+}
+
+// bulkActionI18nKey maps an action name to its locale key prefix (drives both
+// success/failure messages and validates the form's `action` value).
+var bulkActionI18nKey = map[string]string{
+	"delete":  "actions.runners.bulk_delete",
+	"disable": "actions.runners.bulk_disable",
+	"enable":  "actions.runners.bulk_enable",
+}
+
+// RunnerBulkActionPost performs a bulk action (delete/disable/enable) on multiple runners.
+// Admin-only: route must be mounted inside the admin runners group; defense-in-depth check below.
+func RunnerBulkActionPost(ctx *context.Context) {
+	rCtx, err := getRunnersCtx(ctx)
+	if err != nil {
+		ctx.ServerError("getRunnersCtx", err)
+		return
+	}
+	if !rCtx.IsAdmin {
+		ctx.HTTPError(http.StatusForbidden, "bulk actions are admin-only")
+		return
+	}
+
+	action := ctx.FormString("action")
+	if _, ok := bulkActionI18nKey[action]; !ok {
+		ctx.HTTPError(http.StatusBadRequest, "invalid action")
+		return
+	}
+
+	ids, err := base.StringsToInt64s(ctx.FormStrings("ids[]"))
+	if err != nil || len(ids) == 0 {
+		ctx.HTTPError(http.StatusBadRequest, "no valid runner ids provided")
+		return
+	}
+
+	runners, err := db.Find[actions_model.ActionRunner](ctx, &actions_model.FindRunnerOptions{IDs: ids})
+	if err != nil {
+		ctx.ServerError("FindRunners", err)
+		return
+	}
+
+	err = db.WithTx(ctx, func(txCtx stdctx.Context) error {
+		for _, r := range runners {
+			switch action {
+			case "delete":
+				if err := actions_model.DeleteRunner(txCtx, r.ID); err != nil {
+					return err
+				}
+			case "disable":
+				if err := actions_model.SetRunnerDisabled(txCtx, r, true); err != nil {
+					return err
+				}
+			case "enable":
+				if err := actions_model.SetRunnerDisabled(txCtx, r, false); err != nil {
+					return err
+				}
+			}
+		}
+		return nil
+	})
+	i18nPrefix := bulkActionI18nKey[action]
+	if err != nil {
+		log.Warn("RunnerBulkActionPost.%s failed: %v, url: %s", action, err, ctx.Req.URL)
+		ctx.Flash.Error(ctx.Tr(i18nPrefix + "_failed"))
+		ctx.JSONRedirect(rCtx.RedirectLink)
+		return
+	}
+
+	n := len(runners)
+	ctx.Flash.Success(ctx.Locale.TrN(n, i18nPrefix+"_success_1", i18nPrefix+"_success_n", n))
+	ctx.JSONRedirect(rCtx.RedirectLink)
 }
 
 func findActionsRunner(ctx *context.Context, rCtx *runnersCtx) *actions_model.ActionRunner {
