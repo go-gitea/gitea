@@ -344,7 +344,7 @@ func ReEvaluateMatrixForJobWithNeeds(ctx context.Context, job *actions_model.Act
 		return nil, nil
 	}
 
-	log.Info("Matrix re-evaluation complete for job %d (JobID: %s): created %d new jobs",
+	log.Debug("Matrix re-evaluation complete for job %d (JobID: %s): created %d new jobs",
 		job.ID, job.JobID, len(newJobs))
 
 	return newJobs, nil

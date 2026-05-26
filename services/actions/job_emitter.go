@@ -412,7 +412,7 @@ func (r *jobStatusResolver) resolve(ctx context.Context) map[int64]actions_model
 		// more to do here — just move to the next job.
 		if len(newMatrixJobs) > 0 {
 			resolveMetrics.matrixReevaluated++
-			log.Info("Matrix re-evaluation succeeded for job %d (JobID: %s): created %d new jobs (duration: %dms)",
+			log.Debug("Matrix re-evaluation succeeded for job %d (JobID: %s): created %d new jobs (duration: %dms)",
 				id, actionRunJob.JobID, len(newMatrixJobs), duration)
 			continue
 		}

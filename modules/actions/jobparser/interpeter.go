@@ -34,7 +34,11 @@ func NewInterpeter(
 		JobID: jobID,
 	}
 
-	// Add the current job to the workflow so run.Job() doesn't return nil
+	// run.Workflow is allocated above and never shared: each call to NewInterpeter
+	// creates its own *model.Run. Writing job into the fresh Jobs map here is
+	// therefore safe even when NewInterpeter is called concurrently for different
+	// matrix combinations of the same job. The job pointer itself is only read
+	// (for Strategy and Needs()), never written through.
 	run.Workflow.Jobs[jobID] = job
 
 	for id, result := range results {
