@@ -15,7 +15,7 @@ import (
 	"path/filepath"
 	"regexp"
 
-	"code.gitea.io/gitea/modules/json"
+	"gitea.dev/modules/json"
 )
 
 type Pair struct {

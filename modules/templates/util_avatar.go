@@ -11,7 +11,7 @@ import (
 
 	activities_model "gitea.dev/models/activities"
 	"gitea.dev/models/avatars"
-	group_model "code.gitea.io/gitea/models/group"
+	group_model "gitea.dev/models/group"
 	"gitea.dev/models/organization"
 	repo_model "gitea.dev/models/repo"
 	user_model "gitea.dev/models/user"

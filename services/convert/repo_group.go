@@ -6,11 +6,11 @@ package convert
 import (
 	"context"
 
-	group_model "code.gitea.io/gitea/models/group"
-	repo_model "code.gitea.io/gitea/models/repo"
-	"code.gitea.io/gitea/models/unit"
-	user_model "code.gitea.io/gitea/models/user"
-	api "code.gitea.io/gitea/modules/structs"
+	group_model "gitea.dev/models/group"
+	repo_model "gitea.dev/models/repo"
+	"gitea.dev/models/unit"
+	user_model "gitea.dev/models/user"
+	api "gitea.dev/modules/structs"
 )
 
 func ToAPIGroup(ctx context.Context, g *group_model.Group, actor *user_model.User) (*api.Group, error) {
