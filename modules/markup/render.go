@@ -15,12 +15,12 @@ import (
 	"strings"
 	"time"
 
-	"code.gitea.io/gitea/modules/htmlutil"
-	"code.gitea.io/gitea/modules/markup/internal"
-	"code.gitea.io/gitea/modules/public"
-	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/modules/typesniffer"
-	"code.gitea.io/gitea/modules/util"
+	"gitea.dev/modules/htmlutil"
+	"gitea.dev/modules/markup/internal"
+	"gitea.dev/modules/public"
+	"gitea.dev/modules/setting"
+	"gitea.dev/modules/typesniffer"
+	"gitea.dev/modules/util"
 
 	"golang.org/x/sync/errgroup"
 )

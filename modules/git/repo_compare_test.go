@@ -9,7 +9,7 @@ import (
 	"path/filepath"
 	"testing"
 
-	"code.gitea.io/gitea/modules/git/gitcmd"
+	"gitea.dev/modules/git/gitcmd"
 
 	"github.com/stretchr/testify/assert"
 )

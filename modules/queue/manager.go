@@ -10,8 +10,8 @@ import (
 	"sync"
 	"time"
 
-	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/setting"
+	"gitea.dev/modules/log"
+	"gitea.dev/modules/setting"
 )
 
 // Manager is a manager for the queues created by "CreateXxxQueue" functions, these queues are called "managed queues".

@@ -8,9 +8,9 @@ import (
 	"os"
 	"strings"
 
-	"code.gitea.io/gitea/modules/auth/password/hash"
-	"code.gitea.io/gitea/modules/generate"
-	"code.gitea.io/gitea/modules/log"
+	"gitea.dev/modules/auth/password/hash"
+	"gitea.dev/modules/generate"
+	"gitea.dev/modules/log"
 )
 
 // Security settings

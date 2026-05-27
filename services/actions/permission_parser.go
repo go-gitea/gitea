@@ -4,11 +4,11 @@
 package actions
 
 import (
-	"code.gitea.io/gitea/models/perm"
-	repo_model "code.gitea.io/gitea/models/repo"
-	"code.gitea.io/gitea/models/unit"
-	"code.gitea.io/gitea/modules/actions/jobparser"
-	"code.gitea.io/gitea/modules/setting"
+	"gitea.dev/models/perm"
+	repo_model "gitea.dev/models/repo"
+	"gitea.dev/models/unit"
+	"gitea.dev/modules/actions/jobparser"
+	"gitea.dev/modules/setting"
 
 	"go.yaml.in/yaml/v4"
 )

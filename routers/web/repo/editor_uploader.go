@@ -6,12 +6,12 @@ package repo
 import (
 	"net/http"
 
-	repo_model "code.gitea.io/gitea/models/repo"
-	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/modules/util"
-	"code.gitea.io/gitea/services/context"
-	"code.gitea.io/gitea/services/context/upload"
-	files_service "code.gitea.io/gitea/services/repository/files"
+	repo_model "gitea.dev/models/repo"
+	"gitea.dev/modules/setting"
+	"gitea.dev/modules/util"
+	"gitea.dev/services/context"
+	"gitea.dev/services/context/upload"
+	files_service "gitea.dev/services/repository/files"
 )
 
 // UploadFileToServer upload file to server file dir not git
