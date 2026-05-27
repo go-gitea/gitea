@@ -7,7 +7,7 @@ import (
 	"crypto/sha1"
 	"fmt"
 
-	"code.gitea.io/gitea/models/db"
+	"gitea.dev/models/db"
 )
 
 func hashContext(context string) string {

@@ -9,7 +9,7 @@ import (
 	"fmt"
 	"os"
 
-	"code.gitea.io/gitea/modules/assetfs"
+	"gitea.dev/modules/assetfs"
 )
 
 func main() {
