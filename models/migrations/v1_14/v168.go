@@ -3,8 +3,8 @@
 
 package v1_14
 
-import "xorm.io/xorm"
+import "gitea.dev/models/db"
 
-func RecreateUserTableToFixDefaultValues(_ *xorm.Engine) error {
+func RecreateUserTableToFixDefaultValues(_ db.EngineMigration) error {
 	return nil
 }

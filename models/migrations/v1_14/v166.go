@@ -7,15 +7,16 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 
+	"gitea.dev/models/db"
+
 	"golang.org/x/crypto/argon2"
 	"golang.org/x/crypto/bcrypt"
 	"golang.org/x/crypto/pbkdf2"
 	"golang.org/x/crypto/scrypt"
 	"xorm.io/builder"
-	"xorm.io/xorm"
 )
 
-func RecalculateUserEmptyPWD(x *xorm.Engine) (err error) {
+func RecalculateUserEmptyPWD(x db.EngineMigration) (err error) {
 	const (
 		algoBcrypt = "bcrypt"
 		algoScrypt = "scrypt"

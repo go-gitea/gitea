@@ -1,17 +1,17 @@
 <script setup lang="ts">
 import {computed, onMounted, onUnmounted, ref, watch} from 'vue';
 import {SvgIcon} from '../svg.ts';
-import ActionRunStatus from './ActionRunStatus.vue';
+import ActionStatusIcon from './ActionStatusIcon.vue';
 import {localUserSettings} from '../modules/user-settings.ts';
 import {isPlainClick} from '../utils/dom.ts';
 import {debounce} from 'throttle-debounce';
-import type {ActionsJob, ActionsRunStatus} from '../modules/gitea-actions.ts';
+import type {ActionsJob, ActionsStatus} from '../modules/gitea-actions.ts';
 import type {ActionRunViewStore} from './ActionRunView.ts';
 
 interface JobNode {
   id: number;
   name: string;
-  status: ActionsRunStatus;
+  status: ActionsStatus;
   duration: string;
 
   x: number;
@@ -641,7 +641,7 @@ function onNodeClick(job: JobNode, event: MouseEvent) {
             class="job-status-fg-obj"
           >
             <div class="job-status-icon-wrap">
-              <ActionRunStatus :status="job.status"/>
+              <ActionStatusIcon :status="job.status" icon-variant="circle-fill"/>
             </div>
           </foreignObject>
 

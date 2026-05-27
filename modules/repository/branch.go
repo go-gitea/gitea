@@ -7,14 +7,14 @@ import (
 	"context"
 	"fmt"
 
-	"code.gitea.io/gitea/models/db"
-	git_model "code.gitea.io/gitea/models/git"
-	repo_model "code.gitea.io/gitea/models/repo"
-	"code.gitea.io/gitea/modules/container"
-	"code.gitea.io/gitea/modules/git"
-	"code.gitea.io/gitea/modules/gitrepo"
-	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/timeutil"
+	"gitea.dev/models/db"
+	git_model "gitea.dev/models/git"
+	repo_model "gitea.dev/models/repo"
+	"gitea.dev/modules/container"
+	"gitea.dev/modules/git"
+	"gitea.dev/modules/gitrepo"
+	"gitea.dev/modules/log"
+	"gitea.dev/modules/timeutil"
 )
 
 // SyncResult describes a reference update detected during sync.
@@ -97,7 +97,7 @@ func SyncRepoBranchesWithRepo(ctx context.Context, repo *repo_model.Repository, 
 				RepoID:        repo.ID,
 				Name:          branch,
 				CommitID:      commit.ID.String(),
-				CommitMessage: commit.Summary(),
+				CommitMessage: commit.MessageTitle(),
 				PusherID:      doerID,
 				CommitTime:    timeutil.TimeStamp(commit.Committer.When.Unix()),
 			})
@@ -112,7 +112,7 @@ func SyncRepoBranchesWithRepo(ctx context.Context, repo *repo_model.Repository, 
 				RepoID:        repo.ID,
 				Name:          branch,
 				CommitID:      commit.ID.String(),
-				CommitMessage: commit.Summary(),
+				CommitMessage: commit.MessageTitle(),
 				PusherID:      doerID,
 				CommitTime:    timeutil.TimeStamp(commit.Committer.When.Unix()),
 			})

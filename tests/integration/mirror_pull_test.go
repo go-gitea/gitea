@@ -7,17 +7,17 @@ import (
 	"slices"
 	"testing"
 
-	"code.gitea.io/gitea/models/db"
-	repo_model "code.gitea.io/gitea/models/repo"
-	"code.gitea.io/gitea/models/unit"
-	"code.gitea.io/gitea/models/unittest"
-	user_model "code.gitea.io/gitea/models/user"
-	"code.gitea.io/gitea/modules/gitrepo"
-	"code.gitea.io/gitea/modules/migration"
-	mirror_service "code.gitea.io/gitea/services/mirror"
-	release_service "code.gitea.io/gitea/services/release"
-	repo_service "code.gitea.io/gitea/services/repository"
-	"code.gitea.io/gitea/tests"
+	"gitea.dev/models/db"
+	repo_model "gitea.dev/models/repo"
+	"gitea.dev/models/unit"
+	"gitea.dev/models/unittest"
+	user_model "gitea.dev/models/user"
+	"gitea.dev/modules/gitrepo"
+	"gitea.dev/modules/migration"
+	mirror_service "gitea.dev/services/mirror"
+	release_service "gitea.dev/services/release"
+	repo_service "gitea.dev/services/repository"
+	"gitea.dev/tests"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -93,6 +93,9 @@ func TestMirrorPull(t *testing.T) {
 	ok := mirror_service.SyncPullMirror(ctx, mirrorRepo.ID)
 	assert.True(t, ok)
 
+	mirror := unittest.AssertExistsAndLoadBean(t, &repo_model.Mirror{RepoID: mirrorRepo.ID})
+	assert.Equal(t, mirror.UpdatedUnix, mirror.LastSyncUnix)
+
 	// actually there is a tag in the source repo, so after "sync", that tag will also come into the mirror
 	initCount++
 
@@ -110,4 +113,14 @@ func TestMirrorPull(t *testing.T) {
 	count, err = db.Count[repo_model.Release](t.Context(), findOptions)
 	assert.NoError(t, err)
 	assert.Equal(t, initCount, count)
+
+	mirror = unittest.AssertExistsAndLoadBean(t, &repo_model.Mirror{RepoID: mirrorRepo.ID})
+	lastMirrorSync := mirror.LastSyncUnix
+	assert.NoError(t, mirror_service.UpdateAddress(ctx, mirror, repoPath+"-missing"))
+
+	ok = mirror_service.SyncPullMirror(ctx, mirrorRepo.ID)
+	assert.False(t, ok)
+
+	mirror = unittest.AssertExistsAndLoadBean(t, &repo_model.Mirror{RepoID: mirrorRepo.ID})
+	assert.Equal(t, lastMirrorSync, mirror.LastSyncUnix)
 }

@@ -12,7 +12,7 @@ test.describe('events', () => {
 
     // Create repo and login in parallel — repo is needed for the issue, login for the event stream
     await Promise.all([
-      apiCreateRepo(request, {name: repoName, headers: apiUserHeaders(owner)}),
+      apiCreateRepo(request, {name: repoName, autoInit: false, headers: apiUserHeaders(owner)}),
       loginUser(page, owner),
     ]);
     await page.goto('/');
@@ -36,7 +36,7 @@ test.describe('events', () => {
     await Promise.all([
       loginUser(page, name),
       (async () => {
-        await apiCreateRepo(request, {name, headers});
+        await apiCreateRepo(request, {name, autoInit: false, headers});
         await apiCreateIssue(request, {owner: name, repo: name, title: 'events stopwatch test', headers});
         await apiStartStopwatch(request, name, name, 1, {headers});
       })(),

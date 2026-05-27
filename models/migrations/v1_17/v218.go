@@ -4,10 +4,10 @@
 package v1_17
 
 import (
-	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/modules/timeutil"
+	"gitea.dev/models/db"
+	"gitea.dev/modules/setting"
+	"gitea.dev/modules/timeutil"
 
-	"xorm.io/xorm"
 	"xorm.io/xorm/schemas"
 )
 
@@ -47,6 +47,6 @@ func (*improveActionTableIndicesAction) TableIndices() []*schemas.Index {
 	return indices
 }
 
-func ImproveActionTableIndices(x *xorm.Engine) error {
+func ImproveActionTableIndices(x db.EngineMigration) error {
 	return x.Sync(&improveActionTableIndicesAction{})
 }

@@ -3,11 +3,9 @@
 
 package v1_16
 
-import (
-	"xorm.io/xorm"
-)
+import "gitea.dev/models/db"
 
-func UseBase32HexForCredIDInWebAuthnCredential(x *xorm.Engine) error {
+func UseBase32HexForCredIDInWebAuthnCredential(x db.EngineMigration) error {
 	// noop
 	return nil
 }

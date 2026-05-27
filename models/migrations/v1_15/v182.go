@@ -3,11 +3,9 @@
 
 package v1_15
 
-import (
-	"xorm.io/xorm"
-)
+import "gitea.dev/models/db"
 
-func AddIssueResourceIndexTable(x *xorm.Engine) error {
+func AddIssueResourceIndexTable(x db.EngineMigration) error {
 	type ResourceIndex struct {
 		GroupID  int64 `xorm:"pk"`
 		MaxIndex int64 `xorm:"index"`

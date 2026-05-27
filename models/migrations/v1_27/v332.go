@@ -4,18 +4,22 @@
 package v1_27
 
 import (
+	"gitea.dev/models/db"
+
 	"xorm.io/xorm"
 )
 
-func AddWatchOptions(x *xorm.Engine) error {
-	type Watch struct { //revive:disable-line:exported
-		PullRequests bool `xorm:"NOT NULL DEFAULT true"`
-		Issues       bool `xorm:"NOT NULL DEFAULT true"`
-		Releases     bool `xorm:"NOT NULL DEFAULT true"`
-	}
+type mirrorWithLastSyncUnix struct {
+	LastSyncUnix int64 `xorm:"INDEX"`
+}
+
+func (mirrorWithLastSyncUnix) TableName() string {
+	return "mirror"
+}
+
+func AddLastSyncUnixToMirror(x db.EngineMigration) error {
 	_, err := x.SyncWithOptions(xorm.SyncOptions{
-		IgnoreConstrains: true,
-		IgnoreIndices:    true,
-	}, new(Watch))
+		IgnoreDropIndices: true,
+	}, new(mirrorWithLastSyncUnix))
 	return err
 }

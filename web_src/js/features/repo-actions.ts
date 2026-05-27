@@ -37,10 +37,12 @@ export function initRepositoryActionView() {
       showLogSeconds: el.getAttribute('data-locale-show-log-seconds'),
       showFullScreen: el.getAttribute('data-locale-show-full-screen'),
       downloadLogs: el.getAttribute('data-locale-download-logs'),
+      copyOutput: el.getAttribute('data-locale-copy-output'),
       status: {
         unknown: el.getAttribute('data-locale-status-unknown'),
         waiting: el.getAttribute('data-locale-status-waiting'),
         running: el.getAttribute('data-locale-status-running'),
+        cancelling: el.getAttribute('data-locale-status-cancelling'),
         success: el.getAttribute('data-locale-status-success'),
         failure: el.getAttribute('data-locale-status-failure'),
         cancelled: el.getAttribute('data-locale-status-cancelled'),

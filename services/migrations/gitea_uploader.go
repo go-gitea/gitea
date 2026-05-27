@@ -6,32 +6,33 @@ package migrations
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"io"
 	"strconv"
 	"strings"
 	"time"
 
-	"code.gitea.io/gitea/models"
-	"code.gitea.io/gitea/models/db"
-	issues_model "code.gitea.io/gitea/models/issues"
-	repo_model "code.gitea.io/gitea/models/repo"
-	user_model "code.gitea.io/gitea/models/user"
-	"code.gitea.io/gitea/modules/git"
-	"code.gitea.io/gitea/modules/git/gitcmd"
-	"code.gitea.io/gitea/modules/gitrepo"
-	"code.gitea.io/gitea/modules/label"
-	"code.gitea.io/gitea/modules/log"
-	base "code.gitea.io/gitea/modules/migration"
-	repo_module "code.gitea.io/gitea/modules/repository"
-	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/modules/storage"
-	"code.gitea.io/gitea/modules/structs"
-	"code.gitea.io/gitea/modules/timeutil"
-	"code.gitea.io/gitea/modules/uri"
-	"code.gitea.io/gitea/modules/util"
-	"code.gitea.io/gitea/services/pull"
-	repo_service "code.gitea.io/gitea/services/repository"
+	"gitea.dev/models"
+	"gitea.dev/models/db"
+	issues_model "gitea.dev/models/issues"
+	repo_model "gitea.dev/models/repo"
+	user_model "gitea.dev/models/user"
+	"gitea.dev/modules/git"
+	"gitea.dev/modules/git/gitcmd"
+	"gitea.dev/modules/gitrepo"
+	"gitea.dev/modules/label"
+	"gitea.dev/modules/log"
+	base "gitea.dev/modules/migration"
+	repo_module "gitea.dev/modules/repository"
+	"gitea.dev/modules/setting"
+	"gitea.dev/modules/storage"
+	"gitea.dev/modules/structs"
+	"gitea.dev/modules/timeutil"
+	"gitea.dev/modules/uri"
+	"gitea.dev/modules/util"
+	"gitea.dev/services/pull"
+	repo_service "gitea.dev/services/repository"
 
 	"github.com/google/uuid"
 )
@@ -989,12 +990,15 @@ func (g *GiteaLocalUploader) remapUser(ctx context.Context, source user_model.Ex
 func (g *GiteaLocalUploader) remapLocalUser(ctx context.Context, source user_model.ExternalUserMigrated) (int64, error) {
 	userid, ok := g.userMap[source.GetExternalID()]
 	if !ok {
-		name, err := user_model.GetUserNameByID(ctx, source.GetExternalID())
-		if err != nil {
+		user, err := user_model.GetUserByID(ctx, source.GetExternalID())
+		if errors.Is(err, util.ErrNotExist) {
+			g.userMap[source.GetExternalID()] = userid
+			return 0, nil
+		} else if err != nil {
 			return 0, err
 		}
-		// let's not reuse an ID when the user was deleted or has a different user name
-		if name != source.GetExternalName() {
+		// let's not reuse an ID when the user was deleted or has a different username
+		if !util.AsciiEqualFold(user.Name, source.GetExternalName()) {
 			userid = 0
 		} else {
 			userid = source.GetExternalID()

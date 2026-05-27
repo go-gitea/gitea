@@ -15,12 +15,12 @@ import (
 	"strings"
 	"time"
 
-	"code.gitea.io/gitea/modules/htmlutil"
-	"code.gitea.io/gitea/modules/markup/internal"
-	"code.gitea.io/gitea/modules/public"
-	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/modules/typesniffer"
-	"code.gitea.io/gitea/modules/util"
+	"gitea.dev/modules/htmlutil"
+	"gitea.dev/modules/markup/internal"
+	"gitea.dev/modules/public"
+	"gitea.dev/modules/setting"
+	"gitea.dev/modules/typesniffer"
+	"gitea.dev/modules/util"
 
 	"golang.org/x/sync/errgroup"
 )
@@ -196,15 +196,6 @@ func Render(rctx *RenderContext, origInput io.Reader, output io.Writer) error {
 		return err
 	}
 	return RenderWithRenderer(rctx, renderer, input, output)
-}
-
-// RenderString renders Markup string to HTML with all specific handling stuff and return string
-func RenderString(ctx *RenderContext, content string) (string, error) {
-	var buf strings.Builder
-	if err := Render(ctx, strings.NewReader(content), &buf); err != nil {
-		return "", err
-	}
-	return buf.String(), nil
 }
 
 func RenderIFrame(ctx *RenderContext, opts *ExternalRendererOptions, output io.Writer) error {

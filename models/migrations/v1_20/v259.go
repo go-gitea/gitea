@@ -7,9 +7,8 @@ import (
 	"fmt"
 	"strings"
 
-	"code.gitea.io/gitea/modules/log"
-
-	"xorm.io/xorm"
+	"gitea.dev/models/db"
+	"gitea.dev/modules/log"
 )
 
 // unknownAccessTokenScope represents the scope for an access token that isn't
@@ -319,7 +318,7 @@ type AccessToken struct {
 	Scope string
 }
 
-func ConvertScopedAccessTokens(x *xorm.Engine) error {
+func ConvertScopedAccessTokens(x db.EngineMigration) error {
 	var tokens []*AccessToken
 
 	if err := x.Find(&tokens); err != nil {

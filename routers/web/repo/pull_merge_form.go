@@ -6,13 +6,13 @@ package repo
 import (
 	"html/template"
 
-	pull_model "code.gitea.io/gitea/models/pull"
-	repo_model "code.gitea.io/gitea/models/repo"
-	"code.gitea.io/gitea/models/unit"
-	"code.gitea.io/gitea/modules/svg"
-	"code.gitea.io/gitea/modules/templates"
-	"code.gitea.io/gitea/services/context"
-	pull_service "code.gitea.io/gitea/services/pull"
+	pull_model "gitea.dev/models/pull"
+	repo_model "gitea.dev/models/repo"
+	"gitea.dev/models/unit"
+	"gitea.dev/modules/svg"
+	"gitea.dev/modules/templates"
+	"gitea.dev/services/context"
+	pull_service "gitea.dev/services/pull"
 )
 
 func (prInfo *pullRequestViewInfo) prepareMergeBoxFormProps(ctx *context.Context) {
@@ -20,7 +20,7 @@ func (prInfo *pullRequestViewInfo) prepareMergeBoxFormProps(ctx *context.Context
 	if pull.HasMerged || prInfo.issue.IsClosed {
 		return
 	}
-	if !prInfo.MergeBoxData.allowMerge {
+	if !prInfo.MergeBoxData.hasPermToMerge {
 		return
 	}
 
@@ -76,7 +76,7 @@ func (prInfo *pullRequestViewInfo) prepareMergeBoxFormProps(ctx *context.Context
 		defaultSquashMergeCommitMessages = pull_service.GetSquashMergeCommitMessages(ctx, pull)
 	}
 
-	allOverridableChecksOk := !prInfo.MergeBoxData.HasOverridableBlockers
+	allOverridableChecksOk := !prInfo.MergeBoxData.hasOverridableBlockers
 	mergeFormProps := map[string]any{
 		"baseLink":                       prInfo.issue.Link(),
 		"textCancel":                     ctx.Locale.Tr("cancel"),
@@ -88,7 +88,7 @@ func (prInfo *pullRequestViewInfo) prepareMergeBoxFormProps(ctx *context.Context
 		"textClearMergeMessageHint":      ctx.Locale.Tr("repo.pulls.clear_merge_message_hint"),
 		"textMergeCommitId":              ctx.Locale.Tr("repo.pulls.merge_commit_id"),
 
-		"canMergeNow":                   prInfo.MergeBoxData.CanMergeNow,
+		"canMergeNow":                   prInfo.MergeBoxData.canMergeNow,
 		"allOverridableChecksOk":        allOverridableChecksOk,
 		"emptyCommit":                   pull.IsEmpty(),
 		"pullHeadCommitID":              prInfo.CompareInfo.HeadCommitID,
@@ -103,7 +103,7 @@ func (prInfo *pullRequestViewInfo) prepareMergeBoxFormProps(ctx *context.Context
 	}
 
 	// if this pr can be merged now, then hide the auto merge
-	generalHideAutoMerge := prInfo.MergeBoxData.CanMergeNow && allOverridableChecksOk
+	generalHideAutoMerge := prInfo.MergeBoxData.canMergeNow && allOverridableChecksOk
 
 	var mergeStyles []any
 	if pull.IsStatusMergeable() {
