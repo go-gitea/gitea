@@ -250,17 +250,21 @@ func LinkAccountPostRegister(ctx *context.Context) {
 	isAdmin, isRestricted := getUserAdminAndRestrictedFromGroupClaims(source, &linkAccountData.GothUser)
 
 	u := &user_model.User{
-		Name:         form.UserName,
-		Email:        form.Email,
-		Passwd:       form.Password,
-		LoginType:    auth.OAuth2,
-		LoginSource:  linkAccountData.AuthSourceID,
-		LoginName:    linkAccountData.GothUser.UserID,
-		IsAdmin:      isAdmin.ValueOrDefault(user_service.UpdateOptionField[bool]{FieldValue: false}).FieldValue,
-		IsRestricted: isRestricted.ValueOrDefault(setting.Service.DefaultUserIsRestricted),
+		Name:        form.UserName,
+		Email:       form.Email,
+		Passwd:      form.Password,
+		LoginType:   auth.OAuth2,
+		LoginSource: linkAccountData.AuthSourceID,
+		LoginName:   linkAccountData.GothUser.UserID,
+		IsAdmin:     isAdmin.ValueOrDefault(user_service.UpdateOptionField[bool]{FieldValue: false}).FieldValue,
+	}
+	// creating user doesn't take into account restricted status from the model
+	// it needs to be passed as override
+	override := &user_model.CreateUserOverwriteOptions{
+		IsRestricted: isRestricted,
 	}
 
-	if !createAndHandleCreatedUser(ctx, tplLinkAccount, form, u, nil, linkAccountData) {
+	if !createAndHandleCreatedUser(ctx, tplLinkAccount, form, u, override, linkAccountData) {
 		// error already handled
 		return
 	}
