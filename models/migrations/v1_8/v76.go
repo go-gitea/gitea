@@ -6,8 +6,8 @@ package v1_8
 import (
 	"fmt"
 
-	"code.gitea.io/gitea/models/db"
-	"code.gitea.io/gitea/modules/timeutil"
+	"gitea.dev/models/db"
+	"gitea.dev/modules/timeutil"
 )
 
 func AddPullRequestRebaseWithMerge(x db.EngineMigration) error {

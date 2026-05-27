@@ -9,13 +9,13 @@ import (
 	"slices"
 	"time"
 
-	"code.gitea.io/gitea/models/db"
-	repo_model "code.gitea.io/gitea/models/repo"
-	"code.gitea.io/gitea/modules/actions/jobparser"
-	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/timeutil"
-	"code.gitea.io/gitea/modules/util"
-	webhook_module "code.gitea.io/gitea/modules/webhook"
+	"gitea.dev/models/db"
+	repo_model "gitea.dev/models/repo"
+	"gitea.dev/modules/actions/jobparser"
+	"gitea.dev/modules/log"
+	"gitea.dev/modules/timeutil"
+	"gitea.dev/modules/util"
+	webhook_module "gitea.dev/modules/webhook"
 
 	"xorm.io/builder"
 )

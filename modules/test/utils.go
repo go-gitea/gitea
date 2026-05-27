@@ -16,8 +16,8 @@ import (
 	"strings"
 	"sync"
 
-	"code.gitea.io/gitea/modules/json"
-	"code.gitea.io/gitea/modules/util"
+	"gitea.dev/modules/json"
+	"gitea.dev/modules/util"
 )
 
 // RedirectURL returns the redirect URL of a http response.

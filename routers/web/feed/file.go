@@ -6,10 +6,10 @@ package feed
 import (
 	"time"
 
-	"code.gitea.io/gitea/models/repo"
-	"code.gitea.io/gitea/modules/git"
-	"code.gitea.io/gitea/modules/util"
-	"code.gitea.io/gitea/services/context"
+	"gitea.dev/models/repo"
+	"gitea.dev/modules/git"
+	"gitea.dev/modules/util"
+	"gitea.dev/services/context"
 
 	"github.com/gorilla/feeds"
 )

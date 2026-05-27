@@ -7,8 +7,8 @@ import (
 	"context"
 	"fmt"
 
-	actions_model "code.gitea.io/gitea/models/actions"
-	"code.gitea.io/gitea/modules/actions/jobparser"
+	actions_model "gitea.dev/models/actions"
+	"gitea.dev/modules/actions/jobparser"
 
 	act_model "gitea.com/gitea/runner/act/model"
 	"go.yaml.in/yaml/v4"

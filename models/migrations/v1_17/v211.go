@@ -3,7 +3,7 @@
 
 package v1_17
 
-import "code.gitea.io/gitea/models/db"
+import "gitea.dev/models/db"
 
 func CreateForeignReferenceTable(_ db.EngineMigration) error {
 	return nil // This table was dropped in v1_19/v237.go

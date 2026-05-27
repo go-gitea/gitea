@@ -6,7 +6,7 @@ package v1_11
 import (
 	"fmt"
 
-	"code.gitea.io/gitea/models/db"
+	"gitea.dev/models/db"
 )
 
 func FeatureChangeTargetBranch(x db.EngineMigration) error {

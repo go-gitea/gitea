@@ -7,11 +7,11 @@ import (
 	"context"
 	"fmt"
 
-	actions_model "code.gitea.io/gitea/models/actions"
-	"code.gitea.io/gitea/models/db"
-	"code.gitea.io/gitea/modules/actions/jobparser"
-	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/util"
+	actions_model "gitea.dev/models/actions"
+	"gitea.dev/models/db"
+	"gitea.dev/modules/actions/jobparser"
+	"gitea.dev/modules/log"
+	"gitea.dev/modules/util"
 
 	act_model "gitea.com/gitea/runner/act/model"
 	"go.yaml.in/yaml/v4"
