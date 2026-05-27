@@ -9,18 +9,18 @@ import (
 	"net/http"
 	"strings"
 
-	"code.gitea.io/gitea/models/perm"
-	access_model "code.gitea.io/gitea/models/perm/access"
-	repo_model "code.gitea.io/gitea/models/repo"
-	user_model "code.gitea.io/gitea/models/user"
-	api "code.gitea.io/gitea/modules/structs"
-	"code.gitea.io/gitea/modules/web"
-	"code.gitea.io/gitea/routers/api/v1/utils"
-	"code.gitea.io/gitea/services/context"
-	"code.gitea.io/gitea/services/convert"
-	issue_service "code.gitea.io/gitea/services/issue"
-	pull_service "code.gitea.io/gitea/services/pull"
-	repo_service "code.gitea.io/gitea/services/repository"
+	"gitea.dev/models/perm"
+	access_model "gitea.dev/models/perm/access"
+	repo_model "gitea.dev/models/repo"
+	user_model "gitea.dev/models/user"
+	api "gitea.dev/modules/structs"
+	"gitea.dev/modules/web"
+	"gitea.dev/routers/api/v1/utils"
+	"gitea.dev/services/context"
+	"gitea.dev/services/convert"
+	issue_service "gitea.dev/services/issue"
+	pull_service "gitea.dev/services/pull"
+	repo_service "gitea.dev/services/repository"
 )
 
 // ListCollaborators list a repository's collaborators
@@ -181,7 +181,7 @@ func AddOrUpdateCollaborator(ctx *context.APIContext) {
 
 	p := perm.AccessModeWrite
 	if form.Permission != nil {
-		p = perm.ParseAccessMode(*form.Permission, perm.AccessModeRead, perm.AccessModeWrite, perm.AccessModeAdmin)
+		p = perm.ParseAccessMode(string(*form.Permission), perm.AccessModeRead, perm.AccessModeWrite, perm.AccessModeAdmin)
 	}
 
 	if err := repo_service.AddOrUpdateCollaborator(ctx, ctx.Repo.Repository, collaborator, p); err != nil {

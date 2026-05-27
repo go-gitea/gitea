@@ -7,19 +7,19 @@ import (
 	"errors"
 	"net/http"
 
-	issues_model "code.gitea.io/gitea/models/issues"
-	repo_model "code.gitea.io/gitea/models/repo"
-	user_model "code.gitea.io/gitea/models/user"
-	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/setting"
-	api "code.gitea.io/gitea/modules/structs"
-	"code.gitea.io/gitea/modules/util"
-	"code.gitea.io/gitea/modules/web"
-	attachment_service "code.gitea.io/gitea/services/attachment"
-	"code.gitea.io/gitea/services/context"
-	"code.gitea.io/gitea/services/context/upload"
-	"code.gitea.io/gitea/services/convert"
-	issue_service "code.gitea.io/gitea/services/issue"
+	issues_model "gitea.dev/models/issues"
+	repo_model "gitea.dev/models/repo"
+	user_model "gitea.dev/models/user"
+	"gitea.dev/modules/log"
+	"gitea.dev/modules/setting"
+	api "gitea.dev/modules/structs"
+	"gitea.dev/modules/util"
+	"gitea.dev/modules/web"
+	attachment_service "gitea.dev/services/attachment"
+	"gitea.dev/services/context"
+	"gitea.dev/services/context/upload"
+	"gitea.dev/services/convert"
+	issue_service "gitea.dev/services/issue"
 )
 
 // GetIssueCommentAttachment gets a single attachment of the comment
@@ -358,7 +358,7 @@ func getIssueCommentSafe(ctx *context.APIContext) *issues_model.Comment {
 		return nil
 	}
 
-	if !ctx.Repo.CanReadIssuesOrPulls(comment.Issue.IsPull) {
+	if !ctx.Repo.Permission.CanReadIssuesOrPulls(comment.Issue.IsPull) {
 		return nil
 	}
 
@@ -379,7 +379,7 @@ func getIssueCommentAttachmentSafeWrite(ctx *context.APIContext) *repo_model.Att
 }
 
 func canUserWriteIssueCommentAttachment(ctx *context.APIContext, comment *issues_model.Comment) bool {
-	canEditComment := ctx.IsSigned && (ctx.Doer.ID == comment.PosterID || ctx.IsUserRepoAdmin() || ctx.IsUserSiteAdmin()) && ctx.Repo.CanWriteIssuesOrPulls(comment.Issue.IsPull)
+	canEditComment := ctx.IsSigned && (ctx.Doer.ID == comment.PosterID || ctx.IsUserRepoAdmin() || ctx.IsUserSiteAdmin()) && ctx.Repo.Permission.CanWriteIssuesOrPulls(comment.Issue.IsPull)
 	if !canEditComment {
 		ctx.APIError(http.StatusForbidden, "user should have permission to edit comment")
 		return false

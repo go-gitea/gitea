@@ -6,15 +6,16 @@ package markup
 import (
 	"bytes"
 	"fmt"
+	"html/template"
 	"io"
 	"regexp"
 	"slices"
 	"strings"
 	"sync"
 
-	"code.gitea.io/gitea/modules/htmlutil"
-	"code.gitea.io/gitea/modules/markup/common"
-	"code.gitea.io/gitea/modules/translation"
+	"gitea.dev/modules/htmlutil"
+	"gitea.dev/modules/markup/common"
+	"gitea.dev/modules/translation"
 
 	"golang.org/x/net/html"
 	"golang.org/x/net/html/atom"
@@ -149,9 +150,9 @@ func PostProcessDefault(ctx *RenderContext, input io.Reader, output io.Writer) e
 	return postProcess(ctx, procs, input, output)
 }
 
-// PostProcessCommitMessage will use the same logic as PostProcess, but will disable
-// the shortLinkProcessor.
-func PostProcessCommitMessage(ctx *RenderContext, content string) (string, error) {
+// PostProcessCommitMessage will use the same logic as PostProcess, but will disable the shortLinkProcessor.
+// FIXME: this function and its family have a very strange design: it takes HTML as input and output, processes the "escaped" content.
+func PostProcessCommitMessage(ctx *RenderContext, content template.HTML) (template.HTML, error) {
 	procs := []processor{
 		fullIssuePatternProcessor,
 		comparePatternProcessor,
@@ -165,7 +166,8 @@ func PostProcessCommitMessage(ctx *RenderContext, content string) (string, error
 		emojiProcessor,
 		emojiShortCodeProcessor,
 	}
-	return postProcessString(ctx, procs, content)
+	s, err := postProcessString(ctx, procs, string(content))
+	return template.HTML(s), err
 }
 
 var emojiProcessors = []processor{

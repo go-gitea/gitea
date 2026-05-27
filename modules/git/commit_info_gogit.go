@@ -7,6 +7,7 @@ package git
 
 import (
 	"context"
+	"maps"
 	"path"
 
 	"github.com/emirpasic/gods/trees/binaryheap"
@@ -47,9 +48,7 @@ func (tes Entries) GetCommitsInfo(ctx context.Context, repoLink string, commit *
 				return nil, nil, err
 			}
 
-			for k, v := range revs2 {
-				revs[k] = v
-			}
+			maps.Copy(revs, revs2)
 		}
 	} else {
 		revs, err = GetLastCommitForPaths(ctx, nil, c, treePath, entryPaths)
@@ -201,7 +200,7 @@ heaploop:
 		// Load the parent commits for the one we are currently examining
 		numParents := current.commit.NumParents()
 		var parents []cgobject.CommitNode
-		for i := 0; i < numParents; i++ {
+		for i := range numParents {
 			parent, err := current.commit.ParentNode(i)
 			if err != nil {
 				break
@@ -273,9 +272,8 @@ heaploop:
 
 				if len(newRemainingPaths) == 0 {
 					break
-				} else {
-					remainingPaths = newRemainingPaths
 				}
+				remainingPaths = newRemainingPaths
 			}
 		}
 	}

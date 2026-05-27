@@ -10,8 +10,8 @@ import (
 	"testing"
 	"time"
 
-	auth_model "code.gitea.io/gitea/models/auth"
-	"code.gitea.io/gitea/modules/setting"
+	auth_model "gitea.dev/models/auth"
+	"gitea.dev/modules/setting"
 
 	pingv1 "code.gitea.io/actions-proto-go/ping/v1"
 	"code.gitea.io/actions-proto-go/ping/v1/pingv1connect"
@@ -86,10 +86,9 @@ func (r *mockRunner) registerAsRepoRunner(t *testing.T, ownerName, repoName, run
 	token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeWriteRepository)
 	req := NewRequest(t, http.MethodPost, fmt.Sprintf("/api/v1/repos/%s/%s/actions/runners/registration-token", ownerName, repoName)).AddTokenAuth(token)
 	resp := MakeRequest(t, req, http.StatusOK)
-	var registrationToken struct {
+	registrationToken := DecodeJSON(t, resp, &struct {
 		Token string `json:"token"`
-	}
-	DecodeJSON(t, resp, &registrationToken)
+	}{})
 	r.doRegister(t, runnerName, registrationToken.Token, labels, ephemeral)
 }
 

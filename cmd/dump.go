@@ -11,13 +11,13 @@ import (
 	"path/filepath"
 	"strings"
 
-	"code.gitea.io/gitea/models/db"
-	"code.gitea.io/gitea/modules/dump"
-	"code.gitea.io/gitea/modules/json"
-	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/modules/storage"
-	"code.gitea.io/gitea/modules/util"
+	"gitea.dev/models/db"
+	"gitea.dev/modules/dump"
+	"gitea.dev/modules/json"
+	"gitea.dev/modules/log"
+	"gitea.dev/modules/setting"
+	"gitea.dev/modules/storage"
+	"gitea.dev/modules/util"
 
 	"gitea.com/go-chi/session"
 	"github.com/urfave/cli/v3"
@@ -203,8 +203,8 @@ func runDump(ctx context.Context, cmd *cli.Command) error {
 			}
 		}()
 
-		targetDBType := cmd.String("database")
-		if len(targetDBType) > 0 && targetDBType != setting.Database.Type.String() {
+		targetDBType := setting.DatabaseType(cmd.String("database"))
+		if targetDBType != "" && targetDBType != setting.Database.Type {
 			log.Info("Dumping database %s => %s...", setting.Database.Type, targetDBType)
 		} else {
 			log.Info("Dumping database...")

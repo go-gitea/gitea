@@ -11,17 +11,17 @@ import (
 	"strings"
 	"testing"
 
-	"code.gitea.io/gitea/models/db"
-	issues_model "code.gitea.io/gitea/models/issues"
-	repo_model "code.gitea.io/gitea/models/repo"
-	"code.gitea.io/gitea/models/unittest"
-	user_model "code.gitea.io/gitea/models/user"
-	"code.gitea.io/gitea/modules/git"
-	"code.gitea.io/gitea/modules/test"
-	issue_service "code.gitea.io/gitea/services/issue"
-	repo_service "code.gitea.io/gitea/services/repository"
-	files_service "code.gitea.io/gitea/services/repository/files"
-	"code.gitea.io/gitea/tests"
+	"gitea.dev/models/db"
+	issues_model "gitea.dev/models/issues"
+	repo_model "gitea.dev/models/repo"
+	"gitea.dev/models/unittest"
+	user_model "gitea.dev/models/user"
+	"gitea.dev/modules/git"
+	"gitea.dev/modules/test"
+	issue_service "gitea.dev/services/issue"
+	repo_service "gitea.dev/services/repository"
+	files_service "gitea.dev/services/repository/files"
+	"gitea.dev/tests"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -264,13 +264,13 @@ func testSubmitReview(t *testing.T, session *TestSession, owner, repo, pullNumbe
 		"type":      reviewType,
 	}
 
-	submitURL := path.Join(owner, repo, "pulls", pullNumber, "files", "reviews", "submit")
+	submitURL := "/" + path.Join(owner, repo, "pulls", pullNumber, "files", "reviews", "submit")
 	req := NewRequestWithValues(t, "POST", submitURL, options)
 	return session.MakeRequest(t, req, expectedSubmitStatus)
 }
 
 func testIssueClose(t *testing.T, session *TestSession, owner, repo, issueNumber string) *httptest.ResponseRecorder {
-	closeURL := path.Join(owner, repo, "issues", issueNumber, "comments")
+	closeURL := "/" + path.Join(owner, repo, "issues", issueNumber, "comments")
 
 	options := map[string]string{
 		"status": "close",

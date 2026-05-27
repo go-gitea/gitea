@@ -7,13 +7,12 @@ import (
 	"encoding/binary"
 	"fmt"
 
-	"code.gitea.io/gitea/models/migrations/base"
-	"code.gitea.io/gitea/modules/json"
-
-	"xorm.io/xorm"
+	"gitea.dev/models/db"
+	"gitea.dev/models/migrations/base"
+	"gitea.dev/modules/json"
 )
 
-func UnwrapLDAPSourceCfg(x *xorm.Engine) error {
+func UnwrapLDAPSourceCfg(x db.EngineMigration) error {
 	jsonUnmarshalHandleDoubleEncode := func(bs []byte, v any) error {
 		err := json.Unmarshal(bs, v)
 		if err != nil {

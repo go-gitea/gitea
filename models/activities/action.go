@@ -14,17 +14,17 @@ import (
 	"strings"
 	"time"
 
-	"code.gitea.io/gitea/models/db"
-	issues_model "code.gitea.io/gitea/models/issues"
-	"code.gitea.io/gitea/models/organization"
-	repo_model "code.gitea.io/gitea/models/repo"
-	user_model "code.gitea.io/gitea/models/user"
-	"code.gitea.io/gitea/modules/git"
-	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/modules/structs"
-	"code.gitea.io/gitea/modules/timeutil"
-	"code.gitea.io/gitea/modules/util"
+	"gitea.dev/models/db"
+	issues_model "gitea.dev/models/issues"
+	"gitea.dev/models/organization"
+	repo_model "gitea.dev/models/repo"
+	user_model "gitea.dev/models/user"
+	"gitea.dev/modules/git"
+	"gitea.dev/modules/log"
+	"gitea.dev/modules/setting"
+	"gitea.dev/modules/structs"
+	"gitea.dev/modules/timeutil"
+	"gitea.dev/modules/util"
 
 	"xorm.io/builder"
 	"xorm.io/xorm/schemas"
@@ -186,15 +186,7 @@ func (a *Action) LoadActUser(ctx context.Context) {
 	if a.ActUser != nil {
 		return
 	}
-	var err error
-	a.ActUser, err = user_model.GetPossibleUserByID(ctx, a.ActUserID)
-	if err == nil {
-		return
-	} else if user_model.IsErrUserNotExist(err) {
-		a.ActUser = user_model.NewGhostUser()
-	} else {
-		log.Error("GetUserByID(%d): %v", a.ActUserID, err)
-	}
+	a.ActUserID, a.ActUser, _ = user_model.GetPossibleUserByID(ctx, a.ActUserID)
 }
 
 func (a *Action) LoadRepo(ctx context.Context) error {
@@ -442,6 +434,12 @@ type GetFeedsOptions struct {
 	IncludeDeleted  bool                   // include deleted actions
 	Date            string                 // the day we want activity for: YYYY-MM-DD
 	DontCount       bool                   // do counting in GetFeeds
+}
+
+func (opts *GetFeedsOptions) ApplyPublicOnly(publicOnly bool) {
+	if publicOnly {
+		opts.IncludePrivate = false
+	}
 }
 
 // ActivityReadable return whether doer can read activities of user

@@ -7,10 +7,10 @@ import (
 	"errors"
 	"net/http"
 
-	issues_model "code.gitea.io/gitea/models/issues"
-	api "code.gitea.io/gitea/modules/structs"
-	"code.gitea.io/gitea/modules/web"
-	"code.gitea.io/gitea/services/context"
+	issues_model "gitea.dev/models/issues"
+	api "gitea.dev/modules/structs"
+	"gitea.dev/modules/web"
+	"gitea.dev/services/context"
 )
 
 // LockIssue lock an issue
@@ -62,7 +62,7 @@ func LockIssue(ctx *context.APIContext) {
 		return
 	}
 
-	if !ctx.Repo.CanWriteIssuesOrPulls(issue.IsPull) {
+	if !ctx.Repo.Permission.CanWriteIssuesOrPulls(issue.IsPull) {
 		ctx.APIError(http.StatusForbidden, errors.New("no permission to lock this issue"))
 		return
 	}
@@ -129,7 +129,7 @@ func UnlockIssue(ctx *context.APIContext) {
 		return
 	}
 
-	if !ctx.Repo.CanWriteIssuesOrPulls(issue.IsPull) {
+	if !ctx.Repo.Permission.CanWriteIssuesOrPulls(issue.IsPull) {
 		ctx.APIError(http.StatusForbidden, errors.New("no permission to unlock this issue"))
 		return
 	}

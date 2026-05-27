@@ -7,14 +7,14 @@ import (
 	"errors"
 	"net/http"
 
-	issues_model "code.gitea.io/gitea/models/issues"
-	user_model "code.gitea.io/gitea/models/user"
-	api "code.gitea.io/gitea/modules/structs"
-	"code.gitea.io/gitea/modules/web"
-	"code.gitea.io/gitea/routers/api/v1/utils"
-	"code.gitea.io/gitea/services/context"
-	"code.gitea.io/gitea/services/convert"
-	issue_service "code.gitea.io/gitea/services/issue"
+	issues_model "gitea.dev/models/issues"
+	user_model "gitea.dev/models/user"
+	api "gitea.dev/modules/structs"
+	"gitea.dev/modules/web"
+	"gitea.dev/routers/api/v1/utils"
+	"gitea.dev/services/context"
+	"gitea.dev/services/convert"
+	issue_service "gitea.dev/services/issue"
 )
 
 // GetIssueCommentReactions list reactions of a comment from an issue
@@ -71,7 +71,7 @@ func GetIssueCommentReactions(ctx *context.APIContext) {
 		return
 	}
 
-	if !ctx.Repo.CanReadIssuesOrPulls(comment.Issue.IsPull) {
+	if !ctx.Repo.Permission.CanReadIssuesOrPulls(comment.Issue.IsPull) {
 		ctx.APIError(http.StatusForbidden, errors.New("no permission to get reactions"))
 		return
 	}
@@ -208,12 +208,12 @@ func changeIssueCommentReaction(ctx *context.APIContext, form api.EditReactionOp
 		return
 	}
 
-	if !ctx.Repo.CanReadIssuesOrPulls(comment.Issue.IsPull) {
+	if !ctx.Repo.Permission.CanReadIssuesOrPulls(comment.Issue.IsPull) {
 		ctx.APIErrorNotFound()
 		return
 	}
 
-	if comment.Issue.IsLocked && !ctx.Repo.CanWriteIssuesOrPulls(comment.Issue.IsPull) {
+	if comment.Issue.IsLocked && !ctx.Repo.Permission.CanWriteIssuesOrPulls(comment.Issue.IsPull) {
 		ctx.APIError(http.StatusForbidden, errors.New("no permission to change reaction"))
 		return
 	}
@@ -304,7 +304,7 @@ func GetIssueReactions(ctx *context.APIContext) {
 		return
 	}
 
-	if !ctx.Repo.CanReadIssuesOrPulls(issue.IsPull) {
+	if !ctx.Repo.Permission.CanReadIssuesOrPulls(issue.IsPull) {
 		ctx.APIError(http.StatusForbidden, errors.New("no permission to get reactions"))
 		return
 	}
@@ -428,7 +428,7 @@ func changeIssueReaction(ctx *context.APIContext, form api.EditReactionOption, i
 		return
 	}
 
-	if issue.IsLocked && !ctx.Repo.CanWriteIssuesOrPulls(issue.IsPull) {
+	if issue.IsLocked && !ctx.Repo.Permission.CanWriteIssuesOrPulls(issue.IsPull) {
 		ctx.APIError(http.StatusForbidden, errors.New("no permission to change reaction"))
 		return
 	}

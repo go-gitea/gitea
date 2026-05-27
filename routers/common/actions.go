@@ -7,12 +7,12 @@ import (
 	"fmt"
 	"strings"
 
-	actions_model "code.gitea.io/gitea/models/actions"
-	repo_model "code.gitea.io/gitea/models/repo"
-	"code.gitea.io/gitea/modules/actions"
-	"code.gitea.io/gitea/modules/httplib"
-	"code.gitea.io/gitea/modules/util"
-	"code.gitea.io/gitea/services/context"
+	actions_model "gitea.dev/models/actions"
+	repo_model "gitea.dev/models/repo"
+	"gitea.dev/modules/actions"
+	"gitea.dev/modules/httplib"
+	"gitea.dev/modules/util"
+	"gitea.dev/services/context"
 )
 
 func DownloadActionsRunJobLogsWithID(ctx *context.Base, ctxRepo *repo_model.Repository, runID, jobID int64) error {
@@ -31,7 +31,8 @@ func DownloadActionsRunJobLogs(ctx *context.Base, ctxRepo *repo_model.Repository
 		return util.NewNotExistErrorf("job not found")
 	}
 
-	if curJob.TaskID == 0 {
+	taskID := curJob.EffectiveTaskID()
+	if taskID == 0 {
 		return util.NewNotExistErrorf("job not started")
 	}
 
@@ -39,7 +40,7 @@ func DownloadActionsRunJobLogs(ctx *context.Base, ctxRepo *repo_model.Repository
 		return fmt.Errorf("LoadRun: %w", err)
 	}
 
-	task, err := actions_model.GetTaskByID(ctx, curJob.TaskID)
+	task, err := actions_model.GetTaskByID(ctx, taskID)
 	if err != nil {
 		return fmt.Errorf("GetTaskByID: %w", err)
 	}

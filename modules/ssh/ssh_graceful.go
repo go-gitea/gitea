@@ -4,9 +4,9 @@
 package ssh
 
 import (
-	"code.gitea.io/gitea/modules/graceful"
-	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/setting"
+	"gitea.dev/modules/graceful"
+	"gitea.dev/modules/log"
+	"gitea.dev/modules/setting"
 
 	"github.com/gliderlabs/ssh"
 )
@@ -20,7 +20,7 @@ func listen(server *ssh.Server) {
 	if err != nil {
 		select {
 		case <-graceful.GetManager().IsShutdown():
-			log.Critical("Failed to start SSH server: %v", err)
+			log.Error("Failed to start SSH server: %v", err)
 		default:
 			log.Fatal("Failed to start SSH server: %v", err)
 		}

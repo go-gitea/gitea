@@ -9,18 +9,18 @@ import (
 	"os"
 	"strings"
 
-	asymkey_model "code.gitea.io/gitea/models/asymkey"
-	"code.gitea.io/gitea/models/auth"
-	"code.gitea.io/gitea/models/db"
-	git_model "code.gitea.io/gitea/models/git"
-	issues_model "code.gitea.io/gitea/models/issues"
-	repo_model "code.gitea.io/gitea/models/repo"
-	user_model "code.gitea.io/gitea/models/user"
-	"code.gitea.io/gitea/modules/git"
-	"code.gitea.io/gitea/modules/gitrepo"
-	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/process"
-	"code.gitea.io/gitea/modules/setting"
+	asymkey_model "gitea.dev/models/asymkey"
+	"gitea.dev/models/auth"
+	"gitea.dev/models/db"
+	git_model "gitea.dev/models/git"
+	issues_model "gitea.dev/models/issues"
+	repo_model "gitea.dev/models/repo"
+	user_model "gitea.dev/models/user"
+	"gitea.dev/modules/git"
+	"gitea.dev/modules/gitrepo"
+	"gitea.dev/modules/log"
+	"gitea.dev/modules/process"
+	"gitea.dev/modules/setting"
 )
 
 type signingMode string
@@ -338,26 +338,41 @@ Loop:
 				return false, nil, nil, &ErrWontSign{headSigned}
 			}
 		case commitsSigned:
-			verification := ParseCommitWithSignature(ctx, headCommit)
-			if !verification.Verified {
+			verified, err := AllHeadCommitsVerified(ctx, pr, gitRepo)
+			if err != nil {
+				return false, nil, nil, err
+			}
+			if !verified {
 				return false, nil, nil, &ErrWontSign{commitsSigned}
-			}
-			// need to work out merge-base
-			mergeBaseCommit, err := gitrepo.MergeBase(ctx, pr.BaseRepo, baseCommit.ID.String(), headCommit.ID.String())
-			if err != nil {
-				return false, nil, nil, err
-			}
-			commitList, err := headCommit.CommitsBeforeUntil(mergeBaseCommit)
-			if err != nil {
-				return false, nil, nil, err
-			}
-			for _, commit := range commitList {
-				verification := ParseCommitWithSignature(ctx, commit)
-				if !verification.Verified {
-					return false, nil, nil, &ErrWontSign{commitsSigned}
-				}
 			}
 		}
 	}
 	return true, signingKey, signer, nil
+}
+
+// AllHeadCommitsVerified checks that every new commit in the PR head has a
+// verified signature.
+func AllHeadCommitsVerified(ctx context.Context, pr *issues_model.PullRequest, gitRepo *git.Repository) (bool, error) {
+	baseCommit, err := gitRepo.GetCommit(pr.BaseBranch)
+	if err != nil {
+		return false, err
+	}
+	headCommit, err := gitRepo.GetCommit(pr.GetGitHeadRefName())
+	if err != nil {
+		return false, err
+	}
+	mergeBaseCommit, err := gitrepo.MergeBase(ctx, pr.BaseRepo, baseCommit.ID.String(), headCommit.ID.String())
+	if err != nil {
+		return false, err
+	}
+	commitList, err := headCommit.CommitsBeforeUntil(mergeBaseCommit)
+	if err != nil {
+		return false, err
+	}
+	for _, commit := range commitList {
+		if !ParseCommitWithSignature(ctx, commit).Verified {
+			return false, nil
+		}
+	}
+	return true, nil
 }

@@ -8,21 +8,21 @@ import (
 	"fmt"
 	"strings"
 
-	actions_model "code.gitea.io/gitea/models/actions"
-	"code.gitea.io/gitea/models/db"
-	issues_model "code.gitea.io/gitea/models/issues"
-	"code.gitea.io/gitea/models/organization"
-	"code.gitea.io/gitea/models/perm"
-	access_model "code.gitea.io/gitea/models/perm/access"
-	project_model "code.gitea.io/gitea/models/project"
-	repo_model "code.gitea.io/gitea/models/repo"
-	user_model "code.gitea.io/gitea/models/user"
-	"code.gitea.io/gitea/modules/gitrepo"
-	"code.gitea.io/gitea/modules/globallock"
-	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/modules/util"
-	notify_service "code.gitea.io/gitea/services/notify"
+	actions_model "gitea.dev/models/actions"
+	"gitea.dev/models/db"
+	issues_model "gitea.dev/models/issues"
+	"gitea.dev/models/organization"
+	"gitea.dev/models/perm"
+	access_model "gitea.dev/models/perm/access"
+	project_model "gitea.dev/models/project"
+	repo_model "gitea.dev/models/repo"
+	user_model "gitea.dev/models/user"
+	"gitea.dev/modules/gitrepo"
+	"gitea.dev/modules/globallock"
+	"gitea.dev/modules/log"
+	"gitea.dev/modules/setting"
+	"gitea.dev/modules/util"
+	notify_service "gitea.dev/services/notify"
 )
 
 type LimitReachedError struct{ Limit int }
@@ -120,7 +120,7 @@ func transferOwnership(ctx context.Context, doer *user_model.User, newOwnerName 
 		if repoRenamed {
 			oldRelativePath, newRelativePath := repo_model.RelativePath(newOwnerName, repo.Name), repo_model.RelativePath(oldOwnerName, repo.Name)
 			if err := gitrepo.RenameRepository(ctx, repo_model.StorageRepo(oldRelativePath), repo_model.StorageRepo(newRelativePath)); err != nil {
-				log.Critical("Unable to move repository %s/%s directory from %s back to correct place %s: %v", oldOwnerName, repo.Name,
+				log.Error("Unable to move repository %s/%s directory from %s back to correct place %s: %v", oldOwnerName, repo.Name,
 					oldRelativePath, newRelativePath, err)
 			}
 		}
@@ -128,7 +128,7 @@ func transferOwnership(ctx context.Context, doer *user_model.User, newOwnerName 
 		if wikiRenamed {
 			oldRelativePath, newRelativePath := repo_model.RelativeWikiPath(newOwnerName, repo.Name), repo_model.RelativeWikiPath(oldOwnerName, repo.Name)
 			if err := gitrepo.RenameRepository(ctx, repo_model.StorageRepo(oldRelativePath), repo_model.StorageRepo(newRelativePath)); err != nil {
-				log.Critical("Unable to move wiki for repository %s/%s directory from %s back to correct place %s: %v", oldOwnerName, repo.Name,
+				log.Error("Unable to move wiki for repository %s/%s directory from %s back to correct place %s: %v", oldOwnerName, repo.Name,
 					oldRelativePath, newRelativePath, err)
 			}
 		}

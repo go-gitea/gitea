@@ -7,12 +7,12 @@ import (
 	"net/http"
 	"testing"
 
-	auth_model "code.gitea.io/gitea/models/auth"
-	repo_model "code.gitea.io/gitea/models/repo"
-	"code.gitea.io/gitea/models/unittest"
-	user_model "code.gitea.io/gitea/models/user"
-	api "code.gitea.io/gitea/modules/structs"
-	"code.gitea.io/gitea/tests"
+	auth_model "gitea.dev/models/auth"
+	repo_model "gitea.dev/models/repo"
+	"gitea.dev/models/unittest"
+	user_model "gitea.dev/models/user"
+	api "gitea.dev/modules/structs"
+	"gitea.dev/tests"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -39,15 +39,13 @@ func TestAPIReposGitTrees(t *testing.T) {
 	_ = MakeRequest(t, NewRequest(t, "GET", "/api/v1/repos/user2/repo1/git/trees/master"), http.StatusOK)
 
 	resp := MakeRequest(t, NewRequest(t, "GET", "/api/v1/repos/user2/repo1/git/trees/62fb502a7172d4453f0322a2cc85bddffa57f07a?per_page=1"), http.StatusOK)
-	var respGitTree api.GitTreeResponse
-	DecodeJSON(t, resp, &respGitTree)
+	respGitTree := DecodeJSON(t, resp, &api.GitTreeResponse{})
 	assert.True(t, respGitTree.Truncated)
 	require.Len(t, respGitTree.Entries, 1)
 	assert.Equal(t, "File-WoW", respGitTree.Entries[0].Path)
 
 	resp = MakeRequest(t, NewRequest(t, "GET", "/api/v1/repos/user2/repo1/git/trees/62fb502a7172d4453f0322a2cc85bddffa57f07a?page=2&per_page=1"), http.StatusOK)
-	respGitTree = api.GitTreeResponse{}
-	DecodeJSON(t, resp, &respGitTree)
+	respGitTree = DecodeJSON(t, resp, &api.GitTreeResponse{})
 	assert.False(t, respGitTree.Truncated)
 	require.Len(t, respGitTree.Entries, 1)
 	assert.Equal(t, "README.md", respGitTree.Entries[0].Path)

@@ -13,9 +13,9 @@ import (
 	"strings"
 	"time"
 
-	"code.gitea.io/gitea/modules/log"
-	base "code.gitea.io/gitea/modules/migration"
-	"code.gitea.io/gitea/modules/structs"
+	"gitea.dev/modules/log"
+	base "gitea.dev/modules/migration"
+	"gitea.dev/modules/structs"
 
 	gitea_sdk "code.gitea.io/sdk/gitea"
 )
@@ -150,6 +150,7 @@ func (g *GiteaDownloader) GetRepoInfo(_ context.Context) (*base.Repository, erro
 		Owner:         repo.Owner.UserName,
 		IsPrivate:     repo.Private,
 		Description:   repo.Description,
+		Website:       repo.Website,
 		CloneURL:      repo.CloneURL,
 		OriginalURL:   repo.HTMLURL,
 		DefaultBranch: repo.DefaultBranch,

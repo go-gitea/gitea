@@ -38,11 +38,25 @@ const webComponents = new Set([
   'text-expander',
 ]);
 
+function failOnWarningsPlugin(): Rolldown.Plugin {
+  let warningCount = 0;
+  return {
+    name: 'fail-on-warnings',
+    onLog(level) {
+      if (level === 'warn') warningCount++;
+    },
+    buildEnd() {
+      if (!warningCount) return;
+      throw new Error(`${warningCount} warnings present`);
+    },
+  };
+}
+
 const commonRolldownOptions: Rolldown.RolldownOptions = {
   checks: {
-    eval: false, // htmx needs eval
     pluginTimings: false,
   },
+  ...(env.CI ? {plugins: [failOnWarningsPlugin()]} : {}),
 };
 
 function commonViteOpts({build, ...other}: InlineConfig): InlineConfig {
@@ -87,7 +101,7 @@ function iifeBuildOpts({sourceFileName, write}: {sourceFileName: string, write?:
 }
 
 // Build iife.js as a blocking IIFE bundle. In dev mode, serves it from memory
-// and rebuilds on file changes. In prod mode, writes to disk during closeBundle.
+// and rebuilds on file changes. In prod mode, writes to disk and updates "manifest.json".
 function iifePlugin(sourceFileName: string): Plugin {
   let iifeCode = '', iifeMap = '';
   const iifeModules = new Set<string>();
@@ -144,7 +158,7 @@ function iifePlugin(sourceFileName: string): Plugin {
         }
       });
     },
-    async closeBundle() {
+    async writeBundle() {
       for (const file of globSync(`js/${sourceBaseName}.*.js*`, {cwd: outDir})) unlinkSync(join(outDir, file));
 
       const result = await build(iifeBuildOpts({sourceFileName}));
@@ -166,6 +180,7 @@ function reducedSourcemapPlugin(): Plugin {
     'js/index.',
     'js/iife.',
     'js/swagger.',
+    'js/external-render-frontend.',
     'js/external-render-helper.',
     'js/eventsource.sharedworker.',
   ];
@@ -252,8 +267,10 @@ export default defineConfig(commonViteOpts({
     manifest: true,
     rolldownOptions: {
       input: {
+        // FIXME: INCORRECT-VITE-MANIFEST-PARSER: the "css importing" logic in backend is wrong
         index: join(import.meta.dirname, 'web_src/js/index.ts'),
         swagger: join(import.meta.dirname, 'web_src/js/swagger.ts'),
+        'external-render-frontend': join(import.meta.dirname, 'web_src/js/external-render-frontend.ts'),
         'eventsource.sharedworker': join(import.meta.dirname, 'web_src/js/eventsource.sharedworker.ts'),
         devtest: join(import.meta.dirname, 'web_src/css/devtest.css'),
         ...themes,

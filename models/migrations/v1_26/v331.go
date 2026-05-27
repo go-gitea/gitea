@@ -3,10 +3,10 @@
 
 package v1_26
 
-import "xorm.io/xorm"
+import "gitea.dev/models/db"
 
 // AddJobMaxParallel adds max_parallel to action_run_job with a composite index on (run_id, job_id).
-func AddJobMaxParallel(x *xorm.Engine) error {
+func AddJobMaxParallel(x db.EngineMigration) error {
 	type ActionRunJob struct {
 		RunID       int64  `xorm:"index index(idx_run_id_job_id)"`
 		JobID       string `xorm:"VARCHAR(255) index(idx_run_id_job_id)"`

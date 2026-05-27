@@ -11,24 +11,24 @@ import (
 	"net/url"
 	"strings"
 
-	git_model "code.gitea.io/gitea/models/git"
-	repo_model "code.gitea.io/gitea/models/repo"
-	"code.gitea.io/gitea/models/unit"
-	"code.gitea.io/gitea/modules/git"
-	"code.gitea.io/gitea/modules/gitrepo"
-	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/optional"
-	repo_module "code.gitea.io/gitea/modules/repository"
-	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/modules/templates"
-	"code.gitea.io/gitea/modules/util"
-	"code.gitea.io/gitea/modules/web"
-	"code.gitea.io/gitea/routers/utils"
-	"code.gitea.io/gitea/services/context"
-	"code.gitea.io/gitea/services/forms"
-	pull_service "code.gitea.io/gitea/services/pull"
-	release_service "code.gitea.io/gitea/services/release"
-	repo_service "code.gitea.io/gitea/services/repository"
+	git_model "gitea.dev/models/git"
+	repo_model "gitea.dev/models/repo"
+	"gitea.dev/models/unit"
+	"gitea.dev/modules/git"
+	"gitea.dev/modules/gitrepo"
+	"gitea.dev/modules/log"
+	"gitea.dev/modules/optional"
+	repo_module "gitea.dev/modules/repository"
+	"gitea.dev/modules/setting"
+	"gitea.dev/modules/templates"
+	"gitea.dev/modules/util"
+	"gitea.dev/modules/web"
+	"gitea.dev/routers/utils"
+	"gitea.dev/services/context"
+	"gitea.dev/services/forms"
+	pull_service "gitea.dev/services/pull"
+	release_service "gitea.dev/services/release"
+	repo_service "gitea.dev/services/repository"
 )
 
 const (
@@ -39,10 +39,10 @@ const (
 func Branches(ctx *context.Context) {
 	ctx.Data["Title"] = "Branches"
 	ctx.Data["AllowsPulls"] = ctx.Repo.Repository.AllowsPulls(ctx)
-	ctx.Data["IsWriter"] = ctx.Repo.CanWrite(unit.TypeCode)
+	ctx.Data["IsWriter"] = ctx.Repo.Permission.CanWrite(unit.TypeCode)
 	ctx.Data["IsMirror"] = ctx.Repo.Repository.IsMirror
 	// TODO: Can be replaced by ctx.Repo.PullRequestCtx.CanCreateNewPull()
-	ctx.Data["CanPull"] = ctx.Repo.CanWrite(unit.TypeCode) ||
+	ctx.Data["CanPull"] = ctx.Repo.Permission.CanWrite(unit.TypeCode) ||
 		(ctx.IsSigned && repo_model.HasForkedRepo(ctx, ctx.Doer.ID, ctx.Repo.Repository.ID))
 	ctx.Data["PageIsViewCode"] = true
 	ctx.Data["PageIsBranches"] = true
@@ -68,7 +68,7 @@ func Branches(ctx *context.Context) {
 		ctx.ServerError("LoadBranches", err)
 		return
 	}
-	if !ctx.Repo.CanRead(unit.TypeActions) {
+	if !ctx.Repo.Permission.CanRead(unit.TypeActions) {
 		for key := range commitStatuses {
 			git_model.CommitStatusesHideActionsURL(ctx, commitStatuses[key])
 		}
@@ -231,7 +231,7 @@ func CreateBranch(ctx *context.Context) {
 				flashError, err := ctx.RenderToHTML(tplAlertDetails, map[string]any{
 					"Message": ctx.Tr("repo.editor.push_rejected"),
 					"Summary": ctx.Tr("repo.editor.push_rejected_summary"),
-					"Details": utils.SanitizeFlashErrorString(e.Message),
+					"Details": utils.EscapeFlashErrorString(e.Message),
 				})
 				if err != nil {
 					ctx.ServerError("UpdatePullRequest.HTMLString", err)

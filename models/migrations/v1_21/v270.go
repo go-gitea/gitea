@@ -3,11 +3,9 @@
 
 package v1_21
 
-import (
-	"xorm.io/xorm"
-)
+import "gitea.dev/models/db"
 
-func FixPackagePropertyTypo(x *xorm.Engine) error {
+func FixPackagePropertyTypo(x db.EngineMigration) error {
 	sess := x.NewSession()
 	defer sess.Close()
 

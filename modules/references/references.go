@@ -11,10 +11,10 @@ import (
 	"strings"
 	"sync"
 
-	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/markup/mdstripper"
-	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/modules/util"
+	"gitea.dev/modules/log"
+	"gitea.dev/modules/markup/mdstripper"
+	"gitea.dev/modules/setting"
+	"gitea.dev/modules/util"
 )
 
 var (

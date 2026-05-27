@@ -8,13 +8,12 @@ import (
 	"errors"
 	"fmt"
 
-	"code.gitea.io/gitea/models/migrations/base"
-	"code.gitea.io/gitea/modules/timeutil"
-
-	"xorm.io/xorm"
+	"gitea.dev/models/db"
+	"gitea.dev/models/migrations/base"
+	"gitea.dev/modules/timeutil"
 )
 
-func DropOldCredentialIDColumn(x *xorm.Engine) error {
+func DropOldCredentialIDColumn(x db.EngineMigration) error {
 	// This migration maybe rerun so that we should check if it has been run
 	credentialIDExist, err := x.Dialect().IsColumnExist(x.DB(), context.Background(), "webauthn_credential", "credential_id")
 	if err != nil {

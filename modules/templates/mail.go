@@ -13,11 +13,11 @@ import (
 	"sync"
 	texttmpl "text/template"
 
-	"code.gitea.io/gitea/modules/base"
-	"code.gitea.io/gitea/modules/graceful"
-	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/modules/util"
+	"gitea.dev/modules/base"
+	"gitea.dev/modules/graceful"
+	"gitea.dev/modules/log"
+	"gitea.dev/modules/setting"
+	"gitea.dev/modules/util"
 )
 
 type MailRender struct {
@@ -65,13 +65,16 @@ func mailBodyFuncMap() template.FuncMap {
 		"NIL":     func() any { return nil },
 
 		// html/template related functions
-		"dict":         dict,
-		"Iif":          iif,
-		"Eval":         evalTokens,
-		"HTMLFormat":   htmlFormat,
-		"QueryEscape":  queryEscape,
-		"QueryBuild":   QueryBuild,
-		"SanitizeHTML": SanitizeHTML,
+		"dict":        dict,
+		"Iif":         iif,
+		"Eval":        evalTokens,
+		"HTMLFormat":  htmlFormat,
+		"QueryEscape": queryEscape,
+		"QueryBuild":  QueryBuild,
+
+		// deprecated, use "HTMLFormat" instead, but some user custom mail templates still use it
+		// see: https://github.com/go-gitea/gitea/issues/36049
+		"SanitizeHTML": sanitizeHTML,
 
 		"PathEscape":         url.PathEscape,
 		"PathEscapeSegments": util.PathEscapeSegments,

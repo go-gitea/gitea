@@ -8,8 +8,8 @@ import (
 	"fmt"
 	"time"
 
-	"code.gitea.io/gitea/models/db"
-	"code.gitea.io/gitea/modules/util"
+	"gitea.dev/models/db"
+	"gitea.dev/modules/util"
 
 	"xorm.io/builder"
 )
@@ -19,12 +19,6 @@ type ErrExternalLoginUserAlreadyExist struct {
 	ExternalID    string
 	UserID        int64
 	LoginSourceID int64
-}
-
-// IsErrExternalLoginUserAlreadyExist checks if an error is a ExternalLoginUserAlreadyExist.
-func IsErrExternalLoginUserAlreadyExist(err error) bool {
-	_, ok := err.(ErrExternalLoginUserAlreadyExist)
-	return ok
 }
 
 func (err ErrExternalLoginUserAlreadyExist) Error() string {
@@ -39,12 +33,6 @@ func (err ErrExternalLoginUserAlreadyExist) Unwrap() error {
 type ErrExternalLoginUserNotExist struct {
 	UserID        int64
 	LoginSourceID int64
-}
-
-// IsErrExternalLoginUserNotExist checks if an error is a ExternalLoginUserNotExist.
-func IsErrExternalLoginUserNotExist(err error) bool {
-	_, ok := err.(ErrExternalLoginUserNotExist)
-	return ok
 }
 
 func (err ErrExternalLoginUserNotExist) Error() string {

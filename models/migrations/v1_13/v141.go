@@ -6,10 +6,10 @@ package v1_13
 import (
 	"fmt"
 
-	"xorm.io/xorm"
+	"gitea.dev/models/db"
 )
 
-func AddKeepActivityPrivateUserColumn(x *xorm.Engine) error {
+func AddKeepActivityPrivateUserColumn(x db.EngineMigration) error {
 	type User struct {
 		KeepActivityPrivate bool `xorm:"NOT NULL DEFAULT false"`
 	}

@@ -8,7 +8,7 @@ import (
 	"path/filepath"
 	"strings"
 
-	"code.gitea.io/gitea/modules/log"
+	"gitea.dev/modules/log"
 )
 
 // enumerates all the policy repository creating
@@ -16,6 +16,12 @@ const (
 	RepoCreatingLastUserVisibility = "last"
 	RepoCreatingPrivate            = "private"
 	RepoCreatingPublic             = "public"
+)
+
+// enumerates the values for [repository.pull-request] DEFAULT_TITLE_SOURCE
+const (
+	RepoPRTitleSourceFirstCommit = "first-commit"
+	RepoPRTitleSourceAuto        = "auto"
 )
 
 // ItemsPerPage maximum items per page in forks, watchers and stars of a repo
@@ -89,6 +95,7 @@ var (
 			RetargetChildrenOnMerge                  bool
 			DelayCheckForInactiveDays                int
 			DefaultDeleteBranchAfterMerge            bool
+			DefaultTitleSource                       string
 		} `ini:"repository.pull-request"`
 
 		// Issue Setting
@@ -213,6 +220,7 @@ var (
 			RetargetChildrenOnMerge                  bool
 			DelayCheckForInactiveDays                int
 			DefaultDeleteBranchAfterMerge            bool
+			DefaultTitleSource                       string
 		}{
 			WorkInProgressPrefixes: []string{"WIP:", "[WIP]"},
 			// Same as GitHub. See
@@ -229,6 +237,7 @@ var (
 			AddCoCommitterTrailers:                   true,
 			RetargetChildrenOnMerge:                  true,
 			DelayCheckForInactiveDays:                7,
+			DefaultTitleSource:                       RepoPRTitleSourceAuto,
 		},
 
 		// Issue settings

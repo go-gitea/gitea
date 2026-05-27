@@ -4,12 +4,11 @@
 package v1_23
 
 import (
-	"code.gitea.io/gitea/modules/timeutil"
-
-	"xorm.io/xorm"
+	"gitea.dev/models/db"
+	"gitea.dev/modules/timeutil"
 )
 
-func AddRepositoryLicenses(x *xorm.Engine) error {
+func AddRepositoryLicenses(x db.EngineMigration) error {
 	type RepoLicense struct {
 		ID          int64 `xorm:"pk autoincr"`
 		RepoID      int64 `xorm:"UNIQUE(s) NOT NULL"`

@@ -8,16 +8,16 @@ import (
 	"net/http"
 	"net/url"
 
-	user_model "code.gitea.io/gitea/models/user"
-	"code.gitea.io/gitea/modules/auth/openid"
-	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/modules/templates"
-	"code.gitea.io/gitea/modules/util"
-	"code.gitea.io/gitea/modules/web"
-	"code.gitea.io/gitea/services/auth"
-	"code.gitea.io/gitea/services/context"
-	"code.gitea.io/gitea/services/forms"
+	user_model "gitea.dev/models/user"
+	"gitea.dev/modules/auth/openid"
+	"gitea.dev/modules/log"
+	"gitea.dev/modules/setting"
+	"gitea.dev/modules/templates"
+	"gitea.dev/modules/util"
+	"gitea.dev/modules/web"
+	"gitea.dev/services/auth"
+	"gitea.dev/services/context"
+	"gitea.dev/services/forms"
 )
 
 const (
@@ -272,7 +272,7 @@ func ConnectOpenIDPost(ctx *context.Context) {
 
 	// add OpenID for the user
 	userOID := &user_model.UserOpenID{UID: u.ID, URI: oid}
-	if err = user_model.AddUserOpenID(ctx, userOID); err != nil {
+	if err := user_model.AddUserOpenID(ctx, userOID); err != nil {
 		if user_model.IsErrOpenIDAlreadyUsed(err) {
 			ctx.RenderWithErrDeprecated(ctx.Tr("form.openid_been_used", oid), tplConnectOID, &form)
 			return
@@ -345,11 +345,7 @@ func RegisterOpenIDPost(ctx *context.Context) {
 	}
 
 	length := max(setting.MinPasswordLength, 256)
-	password, err := util.CryptoRandomString(int64(length))
-	if err != nil {
-		ctx.RenderWithErrDeprecated(err.Error(), tplSignUpOID, form)
-		return
-	}
+	password := util.CryptoRandomString(int64(length))
 
 	u := &user_model.User{
 		Name:   form.UserName,
@@ -363,7 +359,7 @@ func RegisterOpenIDPost(ctx *context.Context) {
 
 	// add OpenID for the user
 	userOID := &user_model.UserOpenID{UID: u.ID, URI: oid}
-	if err = user_model.AddUserOpenID(ctx, userOID); err != nil {
+	if err := user_model.AddUserOpenID(ctx, userOID); err != nil {
 		if user_model.IsErrOpenIDAlreadyUsed(err) {
 			ctx.RenderWithErrDeprecated(ctx.Tr("form.openid_been_used", oid), tplSignUpOID, &form)
 			return

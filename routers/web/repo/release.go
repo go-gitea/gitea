@@ -12,26 +12,26 @@ import (
 	"strconv"
 	"strings"
 
-	"code.gitea.io/gitea/models/db"
-	git_model "code.gitea.io/gitea/models/git"
-	"code.gitea.io/gitea/models/renderhelper"
-	repo_model "code.gitea.io/gitea/models/repo"
-	"code.gitea.io/gitea/models/unit"
-	user_model "code.gitea.io/gitea/models/user"
-	"code.gitea.io/gitea/modules/git"
-	"code.gitea.io/gitea/modules/gitrepo"
-	"code.gitea.io/gitea/modules/markup/markdown"
-	"code.gitea.io/gitea/modules/optional"
-	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/modules/templates"
-	"code.gitea.io/gitea/modules/util"
-	"code.gitea.io/gitea/modules/web"
-	"code.gitea.io/gitea/routers/web/feed"
-	shared_user "code.gitea.io/gitea/routers/web/shared/user"
-	"code.gitea.io/gitea/services/context"
-	"code.gitea.io/gitea/services/context/upload"
-	"code.gitea.io/gitea/services/forms"
-	release_service "code.gitea.io/gitea/services/release"
+	"gitea.dev/models/db"
+	git_model "gitea.dev/models/git"
+	"gitea.dev/models/renderhelper"
+	repo_model "gitea.dev/models/repo"
+	"gitea.dev/models/unit"
+	user_model "gitea.dev/models/user"
+	"gitea.dev/modules/git"
+	"gitea.dev/modules/gitrepo"
+	"gitea.dev/modules/markup/markdown"
+	"gitea.dev/modules/optional"
+	"gitea.dev/modules/setting"
+	"gitea.dev/modules/templates"
+	"gitea.dev/modules/util"
+	"gitea.dev/modules/web"
+	"gitea.dev/routers/web/feed"
+	shared_user "gitea.dev/routers/web/shared/user"
+	"gitea.dev/services/context"
+	"gitea.dev/services/context/upload"
+	"gitea.dev/services/forms"
+	release_service "gitea.dev/services/release"
 )
 
 const (
@@ -99,18 +99,14 @@ func getReleaseInfos(ctx *context.Context, opts *repo_model.FindReleasesOptions)
 	}
 	var ok bool
 
-	canReadActions := ctx.Repo.CanRead(unit.TypeActions)
+	canReadActions := ctx.Repo.Permission.CanRead(unit.TypeActions)
 
 	releaseInfos := make([]*ReleaseInfo, 0, len(releases))
 	for _, r := range releases {
 		if r.Publisher, ok = cacheUsers[r.PublisherID]; !ok {
-			r.Publisher, err = user_model.GetPossibleUserByID(ctx, r.PublisherID)
+			r.PublisherID, r.Publisher, err = user_model.GetPossibleUserByID(ctx, r.PublisherID)
 			if err != nil {
-				if user_model.IsErrUserNotExist(err) {
-					r.Publisher = user_model.NewGhostUser()
-				} else {
-					return nil, err
-				}
+				return nil, err
 			}
 			cacheUsers[r.PublisherID] = r.Publisher
 		}
@@ -165,7 +161,7 @@ func Releases(ctx *context.Context) {
 		listOptions.PageSize = setting.API.MaxResponseItems
 	}
 
-	writeAccess := ctx.Repo.CanWrite(unit.TypeReleases)
+	writeAccess := ctx.Repo.Permission.CanWrite(unit.TypeReleases)
 	ctx.Data["CanCreateRelease"] = writeAccess && !ctx.Repo.Repository.IsArchived
 
 	releases, err := getReleaseInfos(ctx, &repo_model.FindReleasesOptions{
@@ -197,7 +193,7 @@ func Releases(ctx *context.Context) {
 func TagsList(ctx *context.Context) {
 	ctx.Data["PageIsTagList"] = true
 	ctx.Data["Title"] = ctx.Tr("repo.release.tags")
-	ctx.Data["CanCreateRelease"] = ctx.Repo.CanWrite(unit.TypeReleases) && !ctx.Repo.Repository.IsArchived
+	ctx.Data["CanCreateRelease"] = ctx.Repo.Permission.CanWrite(unit.TypeReleases) && !ctx.Repo.Repository.IsArchived
 
 	namePattern := ctx.FormTrim("q")
 
@@ -274,7 +270,7 @@ func releasesOrTagsFeed(ctx *context.Context, isReleasesOnly bool, formatType st
 func SingleRelease(ctx *context.Context) {
 	ctx.Data["PageIsReleaseList"] = true
 
-	writeAccess := ctx.Repo.CanWrite(unit.TypeReleases)
+	writeAccess := ctx.Repo.Permission.CanWrite(unit.TypeReleases)
 	ctx.Data["CanCreateRelease"] = writeAccess && !ctx.Repo.Repository.IsArchived
 
 	releases, err := getReleaseInfos(ctx, &repo_model.FindReleasesOptions{

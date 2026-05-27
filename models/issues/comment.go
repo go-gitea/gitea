@@ -14,22 +14,23 @@ import (
 	"strconv"
 	"unicode/utf8"
 
-	"code.gitea.io/gitea/models/db"
-	git_model "code.gitea.io/gitea/models/git"
-	"code.gitea.io/gitea/models/organization"
-	project_model "code.gitea.io/gitea/models/project"
-	repo_model "code.gitea.io/gitea/models/repo"
-	user_model "code.gitea.io/gitea/models/user"
-	"code.gitea.io/gitea/modules/container"
-	"code.gitea.io/gitea/modules/htmlutil"
-	"code.gitea.io/gitea/modules/json"
-	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/optional"
-	"code.gitea.io/gitea/modules/references"
-	"code.gitea.io/gitea/modules/structs"
-	"code.gitea.io/gitea/modules/timeutil"
-	"code.gitea.io/gitea/modules/translation"
-	"code.gitea.io/gitea/modules/util"
+	"gitea.dev/models/db"
+	git_model "gitea.dev/models/git"
+	"gitea.dev/models/organization"
+	project_model "gitea.dev/models/project"
+	repo_model "gitea.dev/models/repo"
+	user_model "gitea.dev/models/user"
+	"gitea.dev/modules/container"
+	"gitea.dev/modules/htmlutil"
+	"gitea.dev/modules/json"
+	"gitea.dev/modules/log"
+	"gitea.dev/modules/markup"
+	"gitea.dev/modules/optional"
+	"gitea.dev/modules/references"
+	"gitea.dev/modules/structs"
+	"gitea.dev/modules/timeutil"
+	"gitea.dev/modules/translation"
+	"gitea.dev/modules/util"
 
 	"xorm.io/builder"
 )
@@ -399,16 +400,7 @@ func (c *Comment) LoadPoster(ctx context.Context) (err error) {
 	if c.Poster != nil {
 		return nil
 	}
-
-	c.Poster, err = user_model.GetPossibleUserByID(ctx, c.PosterID)
-	if err != nil {
-		if user_model.IsErrUserNotExist(err) {
-			c.PosterID = user_model.GhostUserID
-			c.Poster = user_model.NewGhostUser()
-		} else {
-			log.Error("getUserByID[%d]: %v", c.ID, err)
-		}
-	}
+	c.PosterID, c.Poster, err = user_model.GetPossibleUserByID(ctx, c.PosterID)
 	return err
 }
 
@@ -541,6 +533,12 @@ func (c *Comment) HashTag() string {
 // EventTag returns unique event hash tag for comment.
 func (c *Comment) EventTag() string {
 	return fmt.Sprintf("event-%d", c.ID)
+}
+
+func (c *Comment) GetSanitizedContentHTML() template.HTML {
+	// mainly for type=4 CommentTypeCommitRef
+	// the content is a link like <a href="{RepoLink}/commit/{CommitID}">message title</a> (from CreateRefComment)
+	return markup.Sanitize(c.Content)
 }
 
 // LoadLabel if comment.Type is CommentTypeLabel, then load Label
@@ -1126,7 +1124,7 @@ func FindComments(ctx context.Context, opts *FindCommentsOptions) (CommentList, 
 	}
 
 	if opts.Page > 0 {
-		sess = db.SetSessionPagination(sess, opts)
+		db.SetSessionPagination(sess, opts)
 	}
 
 	// WARNING: If you change this order you will need to fix createCodeComment

@@ -8,8 +8,8 @@ import (
 	"path/filepath"
 	"sync/atomic"
 
-	"code.gitea.io/gitea/modules/generate"
-	"code.gitea.io/gitea/modules/log"
+	"gitea.dev/modules/generate"
+	"gitea.dev/modules/log"
 )
 
 // OAuth2UsernameType is enum describing the way gitea generates its 'username' from oauth2 data
@@ -99,6 +99,7 @@ var OAuth2 = struct {
 	JWTClaimIssuer             string `ini:"JWT_CLAIM_ISSUER"`
 	MaxTokenLength             int
 	DefaultApplications        []string
+	CustomSchemes              []string
 }{
 	Enabled:                    true,
 	AccessTokenExpirationTime:  3600,

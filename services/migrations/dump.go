@@ -16,14 +16,14 @@ import (
 	"strings"
 	"time"
 
-	user_model "code.gitea.io/gitea/models/user"
-	"code.gitea.io/gitea/modules/git"
-	"code.gitea.io/gitea/modules/git/gitcmd"
-	"code.gitea.io/gitea/modules/log"
-	base "code.gitea.io/gitea/modules/migration"
-	"code.gitea.io/gitea/modules/repository"
-	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/modules/structs"
+	user_model "gitea.dev/models/user"
+	"gitea.dev/modules/git"
+	"gitea.dev/modules/git/gitcmd"
+	"gitea.dev/modules/log"
+	base "gitea.dev/modules/migration"
+	"gitea.dev/modules/repository"
+	"gitea.dev/modules/setting"
+	"gitea.dev/modules/structs"
 
 	"github.com/google/uuid"
 	"gopkg.in/yaml.v3"
@@ -115,6 +115,7 @@ func (g *RepositoryDumper) CreateRepo(ctx context.Context, repo *base.Repository
 		"name":         repo.Name,
 		"owner":        repo.Owner,
 		"description":  repo.Description,
+		"website":      repo.Website,
 		"clone_addr":   opts.CloneAddr,
 		"original_url": repo.OriginalURL,
 		"is_private":   opts.Private,

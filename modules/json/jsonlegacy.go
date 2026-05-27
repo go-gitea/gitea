@@ -6,12 +6,12 @@
 package json
 
 import (
-	"encoding/json"
+	"encoding/json" //nolint:depguard // this package wraps it
 	"io"
 )
 
 func getDefaultJSONHandler() Interface {
-	return jsonGoccy{}
+	return jsonV1{}
 }
 
 func MarshalKeepOptionalEmpty(v any) ([]byte, error) {

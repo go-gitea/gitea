@@ -16,11 +16,11 @@ import (
 	"strings"
 	"time"
 
-	"code.gitea.io/gitea/modules/git/internal" //nolint:depguard // only this file can use the internal type CmdArg, other files and packages should use AddXxx functions
-	"code.gitea.io/gitea/modules/gtprof"
-	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/process"
-	"code.gitea.io/gitea/modules/util"
+	"gitea.dev/modules/git/internal" //nolint:depguard // only this file can use the internal type CmdArg, other files and packages should use AddXxx functions
+	"gitea.dev/modules/gtprof"
+	"gitea.dev/modules/log"
+	"gitea.dev/modules/process"
+	"gitea.dev/modules/util"
 )
 
 // TrustedCmdArgs returns the trusted arguments for git command.
@@ -57,14 +57,12 @@ type Command struct {
 }
 
 func logArgSanitize(arg string) string {
-	if strings.Contains(arg, "://") && strings.Contains(arg, "@") {
-		return util.SanitizeCredentialURLs(arg)
-	} else if filepath.IsAbs(arg) {
+	if filepath.IsAbs(arg) {
 		base := filepath.Base(arg)
 		dir := filepath.Dir(arg)
 		return ".../" + filepath.Join(filepath.Base(dir), base)
 	}
-	return arg
+	return util.SanitizeCredentialURLs(arg)
 }
 
 func (c *Command) LogString() string {

@@ -1,5 +1,5 @@
 import {toggleElem} from '../../utils/dom.ts';
-import {fomanticQuery} from '../../modules/fomantic/base.ts';
+import {showFomanticModal} from '../../modules/fomantic/modal.ts';
 import {submitFormFetchAction} from '../common-fetch-action.ts';
 
 function nameHasScope(name: string): boolean {
@@ -65,7 +65,7 @@ export function initCompLabelEdit(pageSelector: string) {
     form.action = isEdit ? `${curPageLink}/edit` : `${curPageLink}/new`;
     toggleElem(elIsArchivedField, isEdit);
     syncModalUi();
-    fomanticQuery(elModal).modal({
+    showFomanticModal(elModal, {
       onApprove() {
         if (!form.checkValidity()) {
           form.reportValidity();
@@ -74,7 +74,7 @@ export function initCompLabelEdit(pageSelector: string) {
         submitFormFetchAction(form);
         return false;
       },
-    }).modal('show');
+    });
   };
 
   elModal.addEventListener('input', () => syncModalUi());

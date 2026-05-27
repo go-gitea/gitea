@@ -8,15 +8,15 @@ import (
 	"net/http"
 	"strings"
 
-	asymkey_model "code.gitea.io/gitea/models/asymkey"
-	"code.gitea.io/gitea/models/db"
-	user_model "code.gitea.io/gitea/models/user"
-	"code.gitea.io/gitea/modules/setting"
-	api "code.gitea.io/gitea/modules/structs"
-	"code.gitea.io/gitea/modules/web"
-	"code.gitea.io/gitea/routers/api/v1/utils"
-	"code.gitea.io/gitea/services/context"
-	"code.gitea.io/gitea/services/convert"
+	asymkey_model "gitea.dev/models/asymkey"
+	"gitea.dev/models/db"
+	user_model "gitea.dev/models/user"
+	"gitea.dev/modules/setting"
+	api "gitea.dev/modules/structs"
+	"gitea.dev/modules/web"
+	"gitea.dev/routers/api/v1/utils"
+	"gitea.dev/services/context"
+	"gitea.dev/services/convert"
 )
 
 func listGPGKeys(ctx *context.APIContext, uid int64, listOptions db.ListOptions) {
@@ -281,11 +281,7 @@ func DeleteGPGKey(ctx *context.APIContext) {
 	}
 
 	if err := asymkey_model.DeleteGPGKey(ctx, ctx.Doer, ctx.PathParamInt64("id")); err != nil {
-		if asymkey_model.IsErrGPGKeyAccessDenied(err) {
-			ctx.APIError(http.StatusForbidden, "You do not have access to this key")
-		} else {
-			ctx.APIErrorInternal(err)
-		}
+		ctx.APIErrorInternal(err)
 		return
 	}
 
@@ -295,8 +291,6 @@ func DeleteGPGKey(ctx *context.APIContext) {
 // HandleAddGPGKeyError handle add GPGKey error
 func HandleAddGPGKeyError(ctx *context.APIContext, err error, token string) {
 	switch {
-	case asymkey_model.IsErrGPGKeyAccessDenied(err):
-		ctx.APIError(http.StatusUnprocessableEntity, "You do not have access to this GPG key")
 	case asymkey_model.IsErrGPGKeyIDAlreadyUsed(err):
 		ctx.APIError(http.StatusUnprocessableEntity, "A key with the same id already exists")
 	case asymkey_model.IsErrGPGKeyParsing(err):

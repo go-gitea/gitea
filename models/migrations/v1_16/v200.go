@@ -6,10 +6,10 @@ package v1_16
 import (
 	"fmt"
 
-	"xorm.io/xorm"
+	"gitea.dev/models/db"
 )
 
-func AddTableAppState(x *xorm.Engine) error {
+func AddTableAppState(x db.EngineMigration) error {
 	type AppState struct {
 		ID       string `xorm:"pk varchar(200)"`
 		Revision int64

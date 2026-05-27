@@ -10,16 +10,16 @@ import (
 	"strings"
 	"time"
 
-	"code.gitea.io/gitea/models/db"
-	repo_model "code.gitea.io/gitea/models/repo"
-	"code.gitea.io/gitea/models/shared/types"
-	user_model "code.gitea.io/gitea/models/user"
-	"code.gitea.io/gitea/modules/container"
-	"code.gitea.io/gitea/modules/optional"
-	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/modules/timeutil"
-	"code.gitea.io/gitea/modules/translation"
-	"code.gitea.io/gitea/modules/util"
+	"gitea.dev/models/db"
+	repo_model "gitea.dev/models/repo"
+	"gitea.dev/models/shared/types"
+	user_model "gitea.dev/models/user"
+	"gitea.dev/modules/container"
+	"gitea.dev/modules/optional"
+	"gitea.dev/modules/setting"
+	"gitea.dev/modules/timeutil"
+	"gitea.dev/modules/translation"
+	"gitea.dev/modules/util"
 
 	runnerv1 "code.gitea.io/actions-proto-go/runner/v1"
 	"xorm.io/builder"
@@ -64,6 +64,8 @@ type ActionRunner struct {
 	Ephemeral bool `xorm:"ephemeral NOT NULL DEFAULT false"`
 	// Store if this runner is disabled and should not pick up new jobs
 	IsDisabled bool `xorm:"is_disabled NOT NULL DEFAULT false"`
+	// Store if this runner supports the StatusCancelling flow
+	HasCancellingSupport bool `xorm:"has_cancelling_support NOT NULL DEFAULT false"`
 
 	Created timeutil.TimeStamp `xorm:"created"`
 	Updated timeutil.TimeStamp `xorm:"updated"`
@@ -171,9 +173,8 @@ func (r *ActionRunner) LoadAttributes(ctx context.Context) error {
 	return nil
 }
 
-func (r *ActionRunner) GenerateToken() (err error) {
-	r.Token, r.TokenSalt, r.TokenHash, _, err = generateSaltedToken()
-	return err
+func (r *ActionRunner) GenerateAndFillToken() {
+	r.Token, r.TokenSalt, r.TokenHash, _ = generateSaltedToken()
 }
 
 // CanMatchLabels checks whether the runner's labels can match a job's "runs-on"

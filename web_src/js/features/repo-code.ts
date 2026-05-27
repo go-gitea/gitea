@@ -41,9 +41,8 @@ function selectRange(range: string): Element | null {
   const updateCopyPermalinkUrl = function (anchor: string) {
     if (!copyPermalink) return;
     let link = copyPermalink.getAttribute('data-url')!;
-    link = `${link.replace(/#L\d+$|#L\d+-L\d+$/, '')}#${anchor}`;
+    link = `${window.location.origin}${link.replace(/#L\d+$|#L\d+-L\d+$/, '')}#${anchor}`;
     copyPermalink.setAttribute('data-clipboard-text', link);
-    copyPermalink.setAttribute('data-clipboard-text-type', 'url');
   };
 
   const rangeFields = range ? range.split('-') : [];

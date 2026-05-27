@@ -7,10 +7,10 @@ import (
 	"net/http"
 	"testing"
 
-	repo_model "code.gitea.io/gitea/models/repo"
-	"code.gitea.io/gitea/models/unittest"
-	"code.gitea.io/gitea/modules/test"
-	"code.gitea.io/gitea/tests"
+	repo_model "gitea.dev/models/repo"
+	"gitea.dev/models/unittest"
+	"gitea.dev/modules/test"
+	"gitea.dev/tests"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -39,7 +39,7 @@ func TestRepositoryVisibilityChange(t *testing.T) {
 			"confirm_repo_name": "user2/repo1",
 		})
 		resp = session.MakeRequest(t, req, http.StatusOK)
-		assert.NotEmpty(t, test.ParseJSONRedirect(resp.Body.Bytes()).Redirect)
+		assert.NotNil(t, test.ParseJSONRedirect(resp.Body.Bytes()).Redirect)
 
 		repo1 = unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
 		assert.True(t, repo1.IsPrivate)
@@ -51,7 +51,7 @@ func TestRepositoryVisibilityChange(t *testing.T) {
 			"private": "false",
 		})
 		resp := session.MakeRequest(t, req, http.StatusOK)
-		assert.NotEmpty(t, test.ParseJSONRedirect(resp.Body.Bytes()).Redirect)
+		assert.NotNil(t, test.ParseJSONRedirect(resp.Body.Bytes()).Redirect)
 
 		repo2 := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 2})
 		assert.False(t, repo2.IsPrivate)

@@ -7,10 +7,10 @@ import (
 	"net/http"
 	"testing"
 
-	"code.gitea.io/gitea/modules/setting"
-	api "code.gitea.io/gitea/modules/structs"
-	"code.gitea.io/gitea/modules/test"
-	"code.gitea.io/gitea/tests"
+	"gitea.dev/modules/setting"
+	api "gitea.dev/modules/structs"
+	"gitea.dev/modules/test"
+	"gitea.dev/tests"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -20,8 +20,7 @@ func testActionUserSignIn(t *testing.T) {
 		AddTokenAuth("8061e833a55f6fc0157c98b883e91fcfeeb1a71a")
 	resp := MakeRequest(t, req, http.StatusOK)
 
-	var u api.User
-	DecodeJSON(t, resp, &u)
+	u := DecodeJSON(t, resp, &api.User{})
 	assert.Equal(t, "gitea-actions", u.UserName)
 }
 

@@ -16,36 +16,35 @@ import (
 	"strings"
 	"time"
 
-	_ "image/gif"  // for processing gif images
-	_ "image/jpeg" // for processing jpeg images
-	_ "image/png"  // for processing png images
-
-	activities_model "code.gitea.io/gitea/models/activities"
-	admin_model "code.gitea.io/gitea/models/admin"
-	asymkey_model "code.gitea.io/gitea/models/asymkey"
-	"code.gitea.io/gitea/models/db"
-	git_model "code.gitea.io/gitea/models/git"
-	repo_model "code.gitea.io/gitea/models/repo"
-	unit_model "code.gitea.io/gitea/models/unit"
-	user_model "code.gitea.io/gitea/models/user"
-	"code.gitea.io/gitea/modules/base"
-	"code.gitea.io/gitea/modules/charset"
-	"code.gitea.io/gitea/modules/fileicon"
-	"code.gitea.io/gitea/modules/git"
-	"code.gitea.io/gitea/modules/lfs"
-	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/markup"
-	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/modules/structs"
-	"code.gitea.io/gitea/modules/templates"
-	"code.gitea.io/gitea/modules/typesniffer"
-	"code.gitea.io/gitea/modules/util"
-	asymkey_service "code.gitea.io/gitea/services/asymkey"
-	"code.gitea.io/gitea/services/context"
-	repo_service "code.gitea.io/gitea/services/repository"
+	activities_model "gitea.dev/models/activities"
+	admin_model "gitea.dev/models/admin"
+	asymkey_model "gitea.dev/models/asymkey"
+	"gitea.dev/models/db"
+	git_model "gitea.dev/models/git"
+	repo_model "gitea.dev/models/repo"
+	unit_model "gitea.dev/models/unit"
+	user_model "gitea.dev/models/user"
+	"gitea.dev/modules/base"
+	"gitea.dev/modules/charset"
+	"gitea.dev/modules/fileicon"
+	"gitea.dev/modules/git"
+	"gitea.dev/modules/lfs"
+	"gitea.dev/modules/log"
+	"gitea.dev/modules/markup"
+	"gitea.dev/modules/setting"
+	"gitea.dev/modules/structs"
+	"gitea.dev/modules/templates"
+	"gitea.dev/modules/typesniffer"
+	"gitea.dev/modules/util"
+	asymkey_service "gitea.dev/services/asymkey"
+	"gitea.dev/services/context"
+	repo_service "gitea.dev/services/repository"
 
 	_ "golang.org/x/image/bmp"  // for processing bmp images
 	_ "golang.org/x/image/webp" // for processing webp images
+	_ "image/gif"               // for processing gif images
+	_ "image/jpeg"              // for processing jpeg images
+	_ "image/png"               // for processing png images
 )
 
 const (
@@ -140,7 +139,7 @@ func loadLatestCommitData(ctx *context.Context, latestCommit *git.Commit) bool {
 		if err != nil {
 			log.Error("GetLatestCommitStatus: %v", err)
 		}
-		if !ctx.Repo.CanRead(unit_model.TypeActions) {
+		if !ctx.Repo.Permission.CanRead(unit_model.TypeActions) {
 			git_model.CommitStatusesHideActionsURL(ctx, statuses)
 		}
 
@@ -175,12 +174,11 @@ func markupRenderToHTML(ctx *context.Context, renderCtx *markup.RenderContext, r
 }
 
 func checkHomeCodeViewable(ctx *context.Context) {
-	if ctx.Repo.HasUnits() {
+	if ctx.Repo.Permission.HasUnits() {
 		if ctx.Repo.Repository.IsBeingCreated() {
 			task, err := admin_model.GetMigratingTask(ctx, ctx.Repo.Repository.ID)
 			if err != nil {
 				if admin_model.IsErrTaskDoesNotExist(err) {
-					ctx.Data["Repo"] = ctx.Repo
 					ctx.Data["CloneAddr"] = ""
 					ctx.Data["Failed"] = true
 					ctx.HTML(http.StatusOK, tplMigrating)
@@ -195,7 +193,6 @@ func checkHomeCodeViewable(ctx *context.Context) {
 				return
 			}
 
-			ctx.Data["Repo"] = ctx.Repo
 			ctx.Data["MigrateTask"] = task
 			ctx.Data["CloneAddr"], _ = util.SanitizeURL(cfg.CloneAddr)
 			ctx.Data["Failed"] = task.Status == structs.TaskStatusFailed
@@ -310,13 +307,15 @@ func renderDirectoryFiles(ctx *context.Context, timeout time.Duration) git.Entri
 		return nil
 	}
 
-	{
+	{ // this block is for testing purpose only
 		if timeout != 0 && !setting.IsProd && !setting.IsInTesting {
 			log.Debug("first call to get directory file commit info")
 			clearFilesCommitInfo := func() {
 				log.Warn("clear directory file commit info to force async loading on frontend")
 				for i := range files {
-					files[i].Commit = nil
+					if i%2 == 0 { // for testing purpose, only clear half of the files' commit info
+						files[i].Commit = nil
+					}
 				}
 			}
 			_ = clearFilesCommitInfo

@@ -11,13 +11,13 @@ import (
 	"testing"
 	"time"
 
-	auth_model "code.gitea.io/gitea/models/auth"
-	"code.gitea.io/gitea/models/db"
-	git_model "code.gitea.io/gitea/models/git"
-	repo_model "code.gitea.io/gitea/models/repo"
-	"code.gitea.io/gitea/models/unittest"
-	user_model "code.gitea.io/gitea/models/user"
-	api "code.gitea.io/gitea/modules/structs"
+	auth_model "gitea.dev/models/auth"
+	"gitea.dev/models/db"
+	git_model "gitea.dev/models/git"
+	repo_model "gitea.dev/models/repo"
+	"gitea.dev/models/unittest"
+	user_model "gitea.dev/models/user"
+	api "gitea.dev/modules/structs"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -131,8 +131,7 @@ func TestRepoMergeUpstream(t *testing.T) {
 			resp := MakeRequest(t, req, http.StatusOK)
 			checkFileContent("fork-branch", "test-content-2")
 
-			var mergeResp api.MergeUpstreamResponse
-			DecodeJSON(t, resp, &mergeResp)
+			mergeResp := DecodeJSON(t, resp, &api.MergeUpstreamResponse{})
 			assert.Equal(t, "merge", mergeResp.MergeStyle)
 
 			// after merge, there should be no "sync fork" button anymore
@@ -160,8 +159,7 @@ func TestRepoMergeUpstream(t *testing.T) {
 			}).AddTokenAuth(token)
 			resp := MakeRequest(t, req, http.StatusOK)
 
-			var mergeResp api.MergeUpstreamResponse
-			DecodeJSON(t, resp, &mergeResp)
+			mergeResp := DecodeJSON(t, resp, &api.MergeUpstreamResponse{})
 			assert.Equal(t, "fast-forward", mergeResp.MergeStyle)
 
 			// ff_only=true when fast-forward is not possible (should fail)

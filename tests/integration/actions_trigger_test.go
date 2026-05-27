@@ -12,30 +12,30 @@ import (
 	"testing"
 	"time"
 
-	actions_model "code.gitea.io/gitea/models/actions"
-	auth_model "code.gitea.io/gitea/models/auth"
-	"code.gitea.io/gitea/models/db"
-	git_model "code.gitea.io/gitea/models/git"
-	issues_model "code.gitea.io/gitea/models/issues"
-	"code.gitea.io/gitea/models/perm"
-	repo_model "code.gitea.io/gitea/models/repo"
-	"code.gitea.io/gitea/models/unittest"
-	user_model "code.gitea.io/gitea/models/user"
-	actions_module "code.gitea.io/gitea/modules/actions"
-	"code.gitea.io/gitea/modules/commitstatus"
-	"code.gitea.io/gitea/modules/gitrepo"
-	"code.gitea.io/gitea/modules/json"
-	"code.gitea.io/gitea/modules/setting"
-	api "code.gitea.io/gitea/modules/structs"
-	"code.gitea.io/gitea/modules/test"
-	"code.gitea.io/gitea/modules/timeutil"
-	webhook_module "code.gitea.io/gitea/modules/webhook"
-	issue_service "code.gitea.io/gitea/services/issue"
-	pull_service "code.gitea.io/gitea/services/pull"
-	release_service "code.gitea.io/gitea/services/release"
-	repo_service "code.gitea.io/gitea/services/repository"
-	commitstatus_service "code.gitea.io/gitea/services/repository/commitstatus"
-	files_service "code.gitea.io/gitea/services/repository/files"
+	actions_model "gitea.dev/models/actions"
+	auth_model "gitea.dev/models/auth"
+	"gitea.dev/models/db"
+	git_model "gitea.dev/models/git"
+	issues_model "gitea.dev/models/issues"
+	"gitea.dev/models/perm"
+	repo_model "gitea.dev/models/repo"
+	"gitea.dev/models/unittest"
+	user_model "gitea.dev/models/user"
+	actions_module "gitea.dev/modules/actions"
+	"gitea.dev/modules/commitstatus"
+	"gitea.dev/modules/gitrepo"
+	"gitea.dev/modules/json"
+	"gitea.dev/modules/setting"
+	api "gitea.dev/modules/structs"
+	"gitea.dev/modules/test"
+	"gitea.dev/modules/timeutil"
+	webhook_module "gitea.dev/modules/webhook"
+	issue_service "gitea.dev/services/issue"
+	pull_service "gitea.dev/services/pull"
+	release_service "gitea.dev/services/release"
+	repo_service "gitea.dev/services/repository"
+	commitstatus_service "gitea.dev/services/repository/commitstatus"
+	files_service "gitea.dev/services/repository/files"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -1568,8 +1568,7 @@ jobs:
 				Name: new("close-pull-request-with-path-fork"),
 			}).AddTokenAuth(user4Token)
 		resp := MakeRequest(t, req, http.StatusAccepted)
-		var apiForkRepo api.Repository
-		DecodeJSON(t, resp, &apiForkRepo)
+		apiForkRepo := DecodeJSON(t, resp, &api.Repository{})
 		forkRepo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: apiForkRepo.ID})
 		user4APICtx := NewAPITestContext(t, user4.Name, forkRepo.Name, auth_model.AccessTokenScopeWriteRepository)
 
@@ -1802,7 +1801,7 @@ jobs:
 		testEditFile(t, session, "user2", repoName, repo.DefaultBranch, "dir1/dir1.txt", "11")
 		// update by rebase
 		req := NewRequest(t, "POST", fmt.Sprintf("/%s/%s/pulls/%d/update?style=rebase", "user2", repoName, apiPull.Index))
-		session.MakeRequest(t, req, http.StatusSeeOther)
+		session.MakeRequest(t, req, http.StatusOK)
 		runner.fetchNoTask(t)
 	})
 }

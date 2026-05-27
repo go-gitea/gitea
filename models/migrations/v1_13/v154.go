@@ -4,12 +4,11 @@
 package v1_13
 
 import (
-	"code.gitea.io/gitea/modules/timeutil"
-
-	"xorm.io/xorm"
+	"gitea.dev/models/db"
+	"gitea.dev/modules/timeutil"
 )
 
-func AddTimeStamps(x *xorm.Engine) error {
+func AddTimeStamps(x db.EngineMigration) error {
 	// this will add timestamps where it is useful to have
 
 	// Star represents a starred repo by an user.

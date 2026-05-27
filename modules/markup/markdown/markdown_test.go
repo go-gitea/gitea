@@ -9,11 +9,11 @@ import (
 	"strings"
 	"testing"
 
-	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/markup"
-	"code.gitea.io/gitea/modules/markup/markdown"
-	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/modules/test"
+	"gitea.dev/modules/log"
+	"gitea.dev/modules/markup"
+	"gitea.dev/modules/markup/markdown"
+	"gitea.dev/modules/setting"
+	"gitea.dev/modules/test"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -599,4 +599,25 @@ func TestMarkdownUlDir(t *testing.T) {
 </li>
 </ul>
 `, string(result))
+}
+
+func TestMarkdownCodeBlock(t *testing.T) {
+	testRender := func(input, expected string) {
+		buffer, err := markdown.RenderString(markup.NewTestRenderContext(), input)
+		assert.NoError(t, err)
+		assert.Equal(t, strings.TrimSpace(expected), strings.TrimSpace(string(buffer)))
+	}
+	const nl = "\n"
+	const prefix = `<div class="code-block-container code-overflow-scroll"><pre class="code-block">`
+	const suffix = `</pre></div>`
+
+	testRender("```\ncode\n```", prefix+`<code class="chroma language-text display">code`+nl+`</code>`+suffix)
+
+	const jsCommon = prefix + `<code class="chroma language-js display"><span class="nx">code</span>` + nl + `</code>` + suffix
+	testRender("```js\ncode\n```", jsCommon)
+	testRender("```js:app.ts\ncode\n```", jsCommon)
+	testRender("```js,ignore\ncode\n```", jsCommon)
+	testRender("```js ignore\ncode\n```", jsCommon)
+	testRender("    code\n", prefix+`<code>code`+nl+`</code>`+suffix)
+	testRender("    <script>alert(1)</script>\n", prefix+`<code>&lt;script&gt;alert(1)&lt;/script&gt;`+nl+`</code>`+suffix)
 }

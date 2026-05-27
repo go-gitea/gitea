@@ -9,12 +9,12 @@ import (
 	"net/http"
 	"reflect"
 
-	issues_model "code.gitea.io/gitea/models/issues"
-	api "code.gitea.io/gitea/modules/structs"
-	"code.gitea.io/gitea/modules/web"
-	"code.gitea.io/gitea/services/context"
-	"code.gitea.io/gitea/services/convert"
-	issue_service "code.gitea.io/gitea/services/issue"
+	issues_model "gitea.dev/models/issues"
+	api "gitea.dev/modules/structs"
+	"gitea.dev/modules/web"
+	"gitea.dev/services/context"
+	"gitea.dev/services/convert"
+	issue_service "gitea.dev/services/issue"
 )
 
 // ListIssueLabels list all the labels of an issue
@@ -173,7 +173,7 @@ func DeleteIssueLabel(ctx *context.APIContext) {
 		return
 	}
 
-	if !ctx.Repo.CanWriteIssuesOrPulls(issue.IsPull) {
+	if !ctx.Repo.Permission.CanWriteIssuesOrPulls(issue.IsPull) {
 		ctx.Status(http.StatusForbidden)
 		return
 	}
@@ -295,7 +295,7 @@ func ClearIssueLabels(ctx *context.APIContext) {
 		return
 	}
 
-	if !ctx.Repo.CanWriteIssuesOrPulls(issue.IsPull) {
+	if !ctx.Repo.Permission.CanWriteIssuesOrPulls(issue.IsPull) {
 		ctx.Status(http.StatusForbidden)
 		return
 	}
@@ -319,7 +319,7 @@ func prepareForReplaceOrAdd(ctx *context.APIContext, form api.IssueLabelsOption)
 		return nil, nil, err
 	}
 
-	if !ctx.Repo.CanWriteIssuesOrPulls(issue.IsPull) {
+	if !ctx.Repo.Permission.CanWriteIssuesOrPulls(issue.IsPull) {
 		ctx.APIError(http.StatusForbidden, "write permission is required")
 		return nil, nil, errors.New("permission denied")
 	}

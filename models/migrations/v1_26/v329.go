@@ -6,7 +6,8 @@ package v1_26
 import (
 	"fmt"
 
-	"xorm.io/xorm"
+	"gitea.dev/models/db"
+
 	"xorm.io/xorm/schemas"
 )
 
@@ -27,7 +28,7 @@ func (n *UserBadge) TableIndices() []*schemas.Index {
 
 // AddUniqueIndexForUserBadge adds a compound unique indexes for user badge table
 // and it replaces an old index on user_id
-func AddUniqueIndexForUserBadge(x *xorm.Engine) error {
+func AddUniqueIndexForUserBadge(x db.EngineMigration) error {
 	// remove possible duplicated records in table user_badge
 	type result struct {
 		UserID  int64

@@ -1,0 +1,23 @@
+Access-Control-Allow-Origin: *
+Access-Control-Expose-Headers: ETag, Link, Location, Retry-After, X-GitHub-OTP, X-RateLimit-Limit, X-RateLimit-Remaining, X-RateLimit-Used, X-RateLimit-Resource, X-RateLimit-Reset, X-OAuth-Scopes, X-Accepted-OAuth-Scopes, X-Poll-Interval, X-GitHub-Media-Type, X-GitHub-SSO, X-GitHub-Request-Id, Deprecation, Sunset
+Cache-Control: private, max-age=60, s-maxage=60
+Content-Security-Policy: default-src 'none'
+Content-Type: application/json; charset=utf-8
+Etag: W/"8f714d80f3d155fff562fefb57d0e91261d5647dfc0e5d2f68f5567937814326"
+Referrer-Policy: origin-when-cross-origin, strict-origin-when-cross-origin
+Strict-Transport-Security: max-age=31536000; includeSubdomains; preload
+Vary: Accept, Authorization, Cookie, X-GitHub-OTP,Accept-Encoding, Accept, X-Requested-With
+X-Accepted-Github-Permissions: pull_requests=read
+X-Content-Type-Options: nosniff
+X-Frame-Options: deny
+X-Github-Api-Version-Selected: 2022-11-28
+X-Github-Media-Type: github.v3; format=json
+X-Github-Request-Id: C4F6:A93E1:6A6731:5B4CF6:69AF24EE
+X-Ratelimit-Limit: 5000
+X-Ratelimit-Remaining: 4910
+X-Ratelimit-Reset: 1773089427
+X-Ratelimit-Resource: core
+X-Ratelimit-Used: 90
+X-Xss-Protection: 0
+
+[{"id":363017488,"node_id":"MDI0OlB1bGxSZXF1ZXN0UmV2aWV3Q29tbWVudDM2MzAxNzQ4OA==","url":"https://api.github.com/repos/go-gitea/test_repo/pulls/comments/363017488","pull_request_review_id":338338740,"diff_hunk":"@@ -1,2 +1,4 @@\n # test_repo\n Test repository for testing migration from github to gitea\n+","path":"README.md","position":3,"original_position":3,"commit_id":"2be9101c543658591222acbee3eb799edfc3853d","user":{"login":"lunny","id":81045,"node_id":"MDQ6VXNlcjgxMDQ1","avatar_url":"https://avatars.githubusercontent.com/u/81045?v=4","gravatar_id":"","url":"https://api.github.com/users/lunny","html_url":"https://github.com/lunny","followers_url":"https://api.github.com/users/lunny/followers","following_url":"https://api.github.com/users/lunny/following{/other_user}","gists_url":"https://api.github.com/users/lunny/gists{/gist_id}","starred_url":"https://api.github.com/users/lunny/starred{/owner}{/repo}","subscriptions_url":"https://api.github.com/users/lunny/subscriptions","organizations_url":"https://api.github.com/users/lunny/orgs","repos_url":"https://api.github.com/users/lunny/repos","events_url":"https://api.github.com/users/lunny/events{/privacy}","received_events_url":"https://api.github.com/users/lunny/received_events","type":"User","user_view_type":"public","site_admin":false},"body":"This is a good pull request.","created_at":"2020-01-04T05:33:06Z","updated_at":"2020-01-04T05:33:18Z","html_url":"https://github.com/go-gitea/test_repo/pull/4#discussion_r363017488","pull_request_url":"https://api.github.com/repos/go-gitea/test_repo/pulls/4","author_association":"MEMBER","_links":{"self":{"href":"https://api.github.com/repos/go-gitea/test_repo/pulls/comments/363017488"},"html":{"href":"https://github.com/go-gitea/test_repo/pull/4#discussion_r363017488"},"pull_request":{"href":"https://api.github.com/repos/go-gitea/test_repo/pulls/4"}},"original_commit_id":"2be9101c543658591222acbee3eb799edfc3853d","reactions":{"url":"https://api.github.com/repos/go-gitea/test_repo/pulls/comments/363017488/reactions","total_count":0,"+1":0,"-1":0,"laugh":0,"hooray":0,"confused":0,"heart":0,"rocket":0,"eyes":0}}]

@@ -1,7 +1,6 @@
 <div id="external-login-navigator" class="tw-py-1 tw-flex tw-flex-col tw-gap-3">
 	{{range $provider := .OAuth2Providers}}
-		{{/* use QueryEscape for consistent with frontend urlQueryEscape, it is right for a path component */}}
-		<a class="ui button external-login-link tw-gap-3" data-require-appurl-check="true" rel="nofollow" href="{{AppSubUrl}}/user/oauth2/{{$provider.DisplayName | QueryEscape}}">
+		<a class="ui button external-login-link tw-gap-3" data-require-appurl-check="true" rel="nofollow" href="{{AppSubUrl}}/user/oauth2/{{$provider.DisplayName | PathEscape}}">
 			{{$provider.IconHTML 24}} {{ctx.Locale.Tr "sign_in_with_provider" $provider.DisplayName}}
 		</a>
 	{{end}}

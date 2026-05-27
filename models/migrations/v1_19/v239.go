@@ -3,11 +3,9 @@
 
 package v1_19
 
-import (
-	"xorm.io/xorm"
-)
+import "gitea.dev/models/db"
 
-func AddScopeForAccessTokens(x *xorm.Engine) error {
+func AddScopeForAccessTokens(x db.EngineMigration) error {
 	type AccessToken struct {
 		Scope string
 	}

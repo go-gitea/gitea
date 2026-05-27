@@ -12,16 +12,17 @@ import (
 	"net/http"
 	"net/url"
 	"os"
+	"path/filepath"
 	"testing"
 
-	auth_model "code.gitea.io/gitea/models/auth"
-	"code.gitea.io/gitea/models/unittest"
-	user_model "code.gitea.io/gitea/models/user"
-	"code.gitea.io/gitea/modules/process"
-	"code.gitea.io/gitea/modules/setting"
-	api "code.gitea.io/gitea/modules/structs"
-	"code.gitea.io/gitea/modules/test"
-	"code.gitea.io/gitea/tests"
+	auth_model "gitea.dev/models/auth"
+	"gitea.dev/models/unittest"
+	user_model "gitea.dev/models/user"
+	"gitea.dev/modules/process"
+	"gitea.dev/modules/setting"
+	api "gitea.dev/modules/structs"
+	"gitea.dev/modules/test"
+	"gitea.dev/tests"
 
 	"github.com/ProtonMail/go-crypto/openpgp"
 	"github.com/ProtonMail/go-crypto/openpgp/armor"
@@ -325,10 +326,11 @@ func crudActionCreateFile(_ *testing.T, ctx APITestContext, user *user_model.Use
 }
 
 func importTestingKey() (*openpgp.Entity, error) {
-	if _, _, err := process.GetManager().Exec("gpg --import tests/integration/private-testing.key", "gpg", "--import", "tests/integration/private-testing.key"); err != nil {
+	keyPath := filepath.Join(setting.GetGiteaTestSourceRoot(), "tests/integration/private-testing.key")
+	if _, _, err := process.GetManager().Exec("gpg --import "+keyPath, "gpg", "--import", keyPath); err != nil {
 		return nil, err
 	}
-	keyringFile, err := os.Open("tests/integration/private-testing.key")
+	keyringFile, err := os.Open(keyPath)
 	if err != nil {
 		return nil, err
 	}

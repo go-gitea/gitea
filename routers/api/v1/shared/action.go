@@ -7,17 +7,19 @@ import (
 	"fmt"
 	"net/http"
 
-	actions_model "code.gitea.io/gitea/models/actions"
-	"code.gitea.io/gitea/models/db"
-	repo_model "code.gitea.io/gitea/models/repo"
-	user_model "code.gitea.io/gitea/models/user"
-	"code.gitea.io/gitea/modules/git"
-	"code.gitea.io/gitea/modules/setting"
-	api "code.gitea.io/gitea/modules/structs"
-	"code.gitea.io/gitea/modules/webhook"
-	"code.gitea.io/gitea/routers/api/v1/utils"
-	"code.gitea.io/gitea/services/context"
-	"code.gitea.io/gitea/services/convert"
+	actions_model "gitea.dev/models/actions"
+	"gitea.dev/models/db"
+	repo_model "gitea.dev/models/repo"
+	user_model "gitea.dev/models/user"
+	"gitea.dev/modules/container"
+	"gitea.dev/modules/git"
+	"gitea.dev/modules/optional"
+	"gitea.dev/modules/setting"
+	api "gitea.dev/modules/structs"
+	"gitea.dev/modules/webhook"
+	"gitea.dev/routers/api/v1/utils"
+	"gitea.dev/services/context"
+	"gitea.dev/services/convert"
 )
 
 // ListJobs lists jobs for api route validated ownerID and repoID
@@ -27,17 +29,26 @@ import (
 // ownerID != 0 and repoID != 0 undefined behavior
 // runID == 0 means all jobs
 // runID is used as an additional filter together with ownerID and repoID to only return jobs for the given run
+// runAttemptID, when set, additionally limits the result to jobs of the specified run attempt. Only takes effect when runID > 0.
 // Access rights are checked at the API route level
-func ListJobs(ctx *context.APIContext, ownerID, repoID, runID int64) {
+func ListJobs(ctx *context.APIContext, ownerID, repoID, runID int64, runAttemptID optional.Option[int64]) {
 	if ownerID != 0 && repoID != 0 {
 		setting.PanicInDevOrTesting("ownerID and repoID should not be both set")
 	}
 	listOptions := utils.GetListOptions(ctx)
+	orderBy, ok := utils.ResolveSortOrder(ctx, actions_model.JobOrderByMap, actions_model.JobOrderByMap["asc"]["id"])
+	if !ok {
+		return
+	}
 	opts := actions_model.FindRunJobOptions{
 		OwnerID:     ownerID,
 		RepoID:      repoID,
 		RunID:       runID,
 		ListOptions: listOptions,
+		OrderBy:     orderBy,
+	}
+	if runID > 0 {
+		opts.RunAttemptID = runAttemptID
 	}
 	for _, status := range ctx.FormStrings("status") {
 		values, err := convertToInternal(status)
@@ -57,6 +68,12 @@ func ListJobs(ctx *context.APIContext, ownerID, repoID, runID int64) {
 	res := new(api.ActionWorkflowJobsResponse)
 	res.TotalCount = total
 
+	jobList := actions_model.ActionJobList(jobs)
+	if err := jobList.LoadAttributes(ctx, true); err != nil {
+		ctx.APIErrorInternal(err)
+		return
+	}
+
 	res.Entries = make([]*api.ActionWorkflowJob, len(jobs))
 
 	isRepoLevel := repoID != 0 && ctx.Repo != nil && ctx.Repo.Repository != nil && ctx.Repo.Repository.ID == repoID
@@ -65,11 +82,11 @@ func ListJobs(ctx *context.APIContext, ownerID, repoID, runID int64) {
 		if isRepoLevel {
 			repository = ctx.Repo.Repository
 		} else {
-			repository, err = repo_model.GetRepositoryByID(ctx, jobs[i].RepoID)
-			if err != nil {
-				ctx.APIErrorInternal(err)
+			if jobs[i].Run == nil || jobs[i].Run.Repo == nil {
+				ctx.APIErrorInternal(fmt.Errorf("job %d is missing its run or repository", jobs[i].ID))
 				return
 			}
+			repository = jobs[i].Run.Repo
 		}
 
 		convertedWorkflowJob, err := convert.ToActionWorkflowJob(ctx, repository, nil, jobs[i])
@@ -164,21 +181,28 @@ func ListRuns(ctx *context.APIContext, ownerID, repoID int64) {
 	res := new(api.ActionWorkflowRunsResponse)
 	res.TotalCount = total
 
-	res.Entries = make([]*api.ActionWorkflowRun, len(runs))
-	isRepoLevel := repoID != 0 && ctx.Repo != nil && ctx.Repo.Repository != nil && ctx.Repo.Repository.ID == repoID
-	for i := range runs {
-		var repository *repo_model.Repository
-		if isRepoLevel {
-			repository = ctx.Repo.Repository
-		} else {
-			repository, err = repo_model.GetRepositoryByID(ctx, runs[i].RepoID)
-			if err != nil {
-				ctx.APIErrorInternal(err)
-				return
-			}
-		}
+	runList := actions_model.RunList(runs)
+	if err := runList.LoadTriggerUser(ctx); err != nil {
+		ctx.APIErrorInternal(err)
+		return
+	}
 
-		convertedRun, err := convert.ToActionWorkflowRun(ctx, repository, runs[i])
+	if err := runList.LoadRepos(ctx); err != nil {
+		ctx.APIErrorInternal(err)
+		return
+	}
+	repos := repo_model.RepositoryList(container.FilterSlice(runs, func(r *actions_model.ActionRun) (*repo_model.Repository, bool) {
+		return r.Repo, r.Repo != nil
+	}))
+	if err := repos.LoadOwners(ctx); err != nil {
+		ctx.APIErrorInternal(err)
+		return
+	}
+
+	res.Entries = make([]*api.ActionWorkflowRun, len(runs))
+	for i := range runs {
+		// TODO: load run attempts in batch
+		convertedRun, err := convert.ToActionWorkflowRun(ctx, runs[i], nil)
 		if err != nil {
 			ctx.APIErrorInternal(err)
 			return

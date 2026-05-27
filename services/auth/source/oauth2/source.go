@@ -4,8 +4,8 @@
 package oauth2
 
 import (
-	"code.gitea.io/gitea/models/auth"
-	"code.gitea.io/gitea/modules/json"
+	"gitea.dev/models/auth"
+	"gitea.dev/modules/json"
 )
 
 // Source holds configuration for the OAuth2 login source.
@@ -30,6 +30,7 @@ type Source struct {
 
 	SSHPublicKeyClaimName string
 	FullNameClaimName     string
+	ExternalIDClaim       string
 }
 
 // FromDB fills up an OAuth2Config from serialized format.

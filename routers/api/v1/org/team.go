@@ -8,23 +8,23 @@ import (
 	"errors"
 	"net/http"
 
-	activities_model "code.gitea.io/gitea/models/activities"
-	"code.gitea.io/gitea/models/organization"
-	"code.gitea.io/gitea/models/perm"
-	access_model "code.gitea.io/gitea/models/perm/access"
-	repo_model "code.gitea.io/gitea/models/repo"
-	unit_model "code.gitea.io/gitea/models/unit"
-	user_model "code.gitea.io/gitea/models/user"
-	"code.gitea.io/gitea/modules/log"
-	api "code.gitea.io/gitea/modules/structs"
-	"code.gitea.io/gitea/modules/web"
-	"code.gitea.io/gitea/routers/api/v1/user"
-	"code.gitea.io/gitea/routers/api/v1/utils"
-	"code.gitea.io/gitea/services/context"
-	"code.gitea.io/gitea/services/convert"
-	feed_service "code.gitea.io/gitea/services/feed"
-	org_service "code.gitea.io/gitea/services/org"
-	repo_service "code.gitea.io/gitea/services/repository"
+	activities_model "gitea.dev/models/activities"
+	"gitea.dev/models/organization"
+	"gitea.dev/models/perm"
+	access_model "gitea.dev/models/perm/access"
+	repo_model "gitea.dev/models/repo"
+	unit_model "gitea.dev/models/unit"
+	user_model "gitea.dev/models/user"
+	"gitea.dev/modules/log"
+	api "gitea.dev/modules/structs"
+	"gitea.dev/modules/web"
+	"gitea.dev/routers/api/v1/user"
+	"gitea.dev/routers/api/v1/utils"
+	"gitea.dev/services/context"
+	"gitea.dev/services/convert"
+	feed_service "gitea.dev/services/feed"
+	org_service "gitea.dev/services/org"
+	repo_service "gitea.dev/services/repository"
 )
 
 // ListTeams list all the teams of an organization
@@ -210,7 +210,7 @@ func CreateTeam(ctx *context.APIContext) {
 	//   "422":
 	//     "$ref": "#/responses/validationError"
 	form := web.GetForm(ctx).(*api.CreateTeamOption)
-	teamPermission := perm.ParseAccessMode(form.Permission, perm.AccessModeNone, perm.AccessModeAdmin)
+	teamPermission := perm.ParseAccessMode(string(form.Permission), perm.AccessModeNone, perm.AccessModeAdmin)
 	team := &organization.Team{
 		OrgID:                   ctx.Org.Organization.ID,
 		Name:                    form.Name,
@@ -224,7 +224,7 @@ func CreateTeam(ctx *context.APIContext) {
 		if len(form.UnitsMap) > 0 {
 			attachTeamUnitsMap(team, form.UnitsMap)
 		} else if len(form.Units) > 0 {
-			unitPerm := perm.ParseAccessMode(form.Permission, perm.AccessModeRead, perm.AccessModeWrite)
+			unitPerm := perm.ParseAccessMode(string(form.Permission), perm.AccessModeRead, perm.AccessModeWrite)
 			attachTeamUnits(team, unitPerm, form.Units)
 		} else {
 			ctx.APIErrorInternal(errors.New("units permission should not be empty"))
@@ -298,7 +298,7 @@ func EditTeam(ctx *context.APIContext) {
 	isAuthChanged := false
 	isIncludeAllChanged := false
 	if !team.IsOwnerTeam() && len(form.Permission) != 0 {
-		teamPermission := perm.ParseAccessMode(form.Permission, perm.AccessModeNone, perm.AccessModeAdmin)
+		teamPermission := perm.ParseAccessMode(string(form.Permission), perm.AccessModeNone, perm.AccessModeAdmin)
 		if team.AccessMode != teamPermission {
 			isAuthChanged = true
 			team.AccessMode = teamPermission
@@ -314,7 +314,7 @@ func EditTeam(ctx *context.APIContext) {
 		if len(form.UnitsMap) > 0 {
 			attachTeamUnitsMap(team, form.UnitsMap)
 		} else if len(form.Units) > 0 {
-			unitPerm := perm.ParseAccessMode(form.Permission, perm.AccessModeRead, perm.AccessModeWrite)
+			unitPerm := perm.ParseAccessMode(string(form.Permission), perm.AccessModeRead, perm.AccessModeWrite)
 			attachTeamUnits(team, unitPerm, form.Units)
 		}
 	} else {

@@ -5,15 +5,19 @@ package test
 
 import (
 	"archive/tar"
+	"archive/zip"
 	"bytes"
 	"compress/gzip"
 	"io"
 	"net/http"
 	"net/http/httptest"
+	"os"
+	"strconv"
 	"strings"
+	"sync"
 
-	"code.gitea.io/gitea/modules/json"
-	"code.gitea.io/gitea/modules/util"
+	"gitea.dev/modules/json"
+	"gitea.dev/modules/util"
 )
 
 // RedirectURL returns the redirect URL of a http response.
@@ -46,7 +50,7 @@ func ParseJSONError(buf []byte) (ret struct {
 }
 
 func ParseJSONRedirect(buf []byte) (ret struct {
-	Redirect string `json:"redirect"`
+	Redirect *string `json:"redirect"`
 },
 ) {
 	_ = json.Unmarshal(buf, &ret)
@@ -97,6 +101,17 @@ func WriteTarArchive(files map[string]string) *bytes.Buffer {
 	return WriteTarCompression(func(w io.Writer) io.WriteCloser { return util.NopCloser{Writer: w} }, files)
 }
 
+func WriteZipArchive(files map[string]string) *bytes.Buffer {
+	buf := &bytes.Buffer{}
+	zw := zip.NewWriter(buf)
+	for name, content := range files {
+		w, _ := zw.Create(name)
+		_, _ = w.Write([]byte(content))
+	}
+	_ = zw.Close()
+	return buf
+}
+
 func WriteTarCompression[F func(io.Writer) io.WriteCloser | func(io.Writer) (io.WriteCloser, error)](compression F, files map[string]string) *bytes.Buffer {
 	buf := &bytes.Buffer{}
 	var cw io.WriteCloser
@@ -128,4 +143,42 @@ func CompressGzip(content string) *bytes.Buffer {
 	_, _ = cw.Write([]byte(content))
 	_ = cw.Close()
 	return buf
+}
+
+var AllowSkipExternalService = sync.OnceValue(func() bool {
+	isLocalTesting := os.Getenv("CI") == ""
+	ciSkipExternal, _ := strconv.ParseBool(os.Getenv("GITEA_TEST_CI_SKIP_EXTERNAL"))
+	return isLocalTesting || ciSkipExternal
+})
+
+type TestingT interface {
+	Helper()
+	Skipf(format string, args ...any)
+	Errorf(format string, args ...any)
+	Fatalf(format string, args ...any)
+}
+
+func ExternalServiceHTTP(t TestingT, envVarName, def string) string {
+	t.Helper()
+	val := util.IfZero(os.Getenv(envVarName), def)
+	if val == "" {
+		if AllowSkipExternalService() {
+			t.Skipf("skipping test because %s is not set", envVarName)
+		} else {
+			t.Fatalf("%s is not set, but skipping is not allowed in CI", envVarName)
+		}
+	}
+	// minio's endpoint is "host:port" pattern
+	testURL := util.Iif(strings.Contains(val, "://"), val, "http://"+val)
+	resp, err := http.Get(testURL)
+	if err != nil {
+		if AllowSkipExternalService() {
+			t.Skipf("skipping test because %s is not ready", val)
+		} else {
+			t.Fatalf("%s is not ready, but skipping is not allowed in CI", val)
+		}
+	} else {
+		_ = resp.Body.Close()
+	}
+	return val
 }

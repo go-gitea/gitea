@@ -3,9 +3,9 @@
 
 package v1_13
 
-import "xorm.io/xorm"
+import "gitea.dev/models/db"
 
-func AddTrustModelToRepository(x *xorm.Engine) error {
+func AddTrustModelToRepository(x db.EngineMigration) error {
 	type Repository struct {
 		TrustModel int
 	}
