@@ -303,10 +303,29 @@ func TestPackageNpm(t *testing.T) {
 			AddBasicAuth(user.Name)
 		resp := MakeRequest(t, req, http.StatusOK)
 		doc := NewHTMLParser(t, resp.Body)
-		rendered, _ := doc.Find(".markup.markdown").Html()
-		assert.Equal(t, `<p dir="auto"><a href="/user2/repo1/src/branch/master/package-subdir/docs/usage.md" rel="nofollow">docs</a>
-<a href="/user2/repo1/src/branch/master/package-subdir/logo.png" rel="nofollow noopener" target="_blank"><img src="/user2/repo1/media/branch/master/package-subdir/logo.png" alt="logo" loading="lazy"/></a></p>
-`, rendered)
+		markup := doc.Find(".markup.markdown")
+		paragraph := markup.Find("p")
+		require.Len(t, paragraph.Nodes, 1)
+		assert.Equal(t, "auto", paragraph.AttrOr("dir", ""))
+
+		links := paragraph.Find("a")
+		require.Len(t, links.Nodes, 2)
+
+		docLink := links.Eq(0)
+		assert.Equal(t, "docs", strings.TrimSpace(docLink.Text()))
+		assert.Equal(t, "/user2/repo1/src/branch/master/package-subdir/docs/usage.md", docLink.AttrOr("href", ""))
+		assert.Equal(t, "nofollow", docLink.AttrOr("rel", ""))
+
+		imageLink := links.Eq(1)
+		assert.Equal(t, "/user2/repo1/src/branch/master/package-subdir/logo.png", imageLink.AttrOr("href", ""))
+		assert.Equal(t, "nofollow noopener", imageLink.AttrOr("rel", ""))
+		assert.Equal(t, "_blank", imageLink.AttrOr("target", ""))
+
+		image := imageLink.Find("img")
+		require.Len(t, image.Nodes, 1)
+		assert.Equal(t, "/user2/repo1/media/branch/master/package-subdir/logo.png", image.AttrOr("src", ""))
+		assert.Equal(t, "logo", image.AttrOr("alt", ""))
+		assert.Equal(t, "lazy", image.AttrOr("loading", ""))
 	})
 
 	t.Run("Delete", func(t *testing.T) {
