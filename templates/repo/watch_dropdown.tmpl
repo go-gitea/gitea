@@ -2,8 +2,8 @@
 {{$isCustom := and .IsWatching (not $isAllActivity)}}
 <div class="menu left flex-items-menu watch-options-menu">
 	<a
-		role="button"
 		class="{{if not .IsWatching}}active selected {{end}}item"
+		aria-label="{{ctx.Locale.Tr "repo.watch.mode.participating"}}"
 		data-fetch-method="post"
 		data-fetch-url="{{.RepoLink}}/action/unwatch"
 		data-fetch-sync="$closest(.ui.labeled.button)">
@@ -14,8 +14,8 @@
 		</div>
 	</a>
 	<a
-		role="button"
 		class="{{if $isAllActivity}}active selected {{end}}item"
+		aria-label="{{ctx.Locale.Tr "repo.watch.mode.all"}}"
 		data-fetch-method="post"
 		data-fetch-url="{{.RepoLink}}/action/watch"
 		data-fetch-sync="$closest(.ui.labeled.button)">
@@ -26,8 +26,8 @@
 		</div>
 	</a>
 	<a
-		role="button"
 		class="{{if $isCustom}}active selected {{end}}item"
+		aria-label="{{ctx.Locale.Tr "repo.watch.mode.custom"}}"
 		data-global-init="initWatchCustom"
 		data-repo-link="{{.RepoLink}}"
 		data-watch-pull-requests="{{if .IsWatching}}{{.Watch.PullRequests}}{{else}}true{{end}}"

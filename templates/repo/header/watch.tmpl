@@ -4,7 +4,7 @@
 		{{$buttonText = ctx.Locale.Tr "repo.watching"}}
 	{{end}}
 	{{if $.IsSigned}}
-		<div class="ui compact small basic floating dropdown button" role="button">
+		<div class="ui compact small basic floating dropdown button" aria-label="{{$buttonText}}" role="button">
 			{{svg "octicon-eye"}}
 			<span class="not-mobile" aria-hidden="true">{{$buttonText}}</span>
 			{{svg "octicon-triangle-down" 14 "dropdown icon"}}
@@ -12,7 +12,7 @@
 				"RepoLink" $.RepoLink
 				"IsWatching" $.IsWatchingRepo
 				"Watch" $.Watch
-			}}}
+			}}
 		</div>
 	{{else}}
 		<a role="button" class="ui compact small basic button" aria-label="{{$buttonText}}" href="{{AppSubUrl}}/user/login">
