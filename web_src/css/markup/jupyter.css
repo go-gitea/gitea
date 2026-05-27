@@ -224,7 +224,7 @@
   font-style: italic;
 }
 
-.markup .jupyter-notebook .error-output {
+.markup .jupyter-notebook .cell.code .output pre.error-output {
   color: var(--color-red);
 }
 
