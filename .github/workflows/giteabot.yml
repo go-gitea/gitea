@@ -39,6 +39,7 @@ concurrency:
 
 jobs:
   giteabot:
+    # skip on bot reviews because they never affect lgtm counting
     if: github.repository == 'go-gitea/gitea' && github.event.review.user.type != 'Bot'
     runs-on: ubuntu-latest
     timeout-minutes: 30
