@@ -71,6 +71,12 @@ func TestEllipsisString(t *testing.T) {
 		{limit: 8, input: "测abc试啊", left: "测abc…", right: "…试啊"},
 		{limit: 9, input: "测abc试啊", left: "测abc试啊", right: ""}, // exactly 9-width
 		{limit: 10, input: "测abc试啊", left: "测abc试啊", right: ""},
+
+		// zero-width / format chars (ZWSP, ZWNJ, ZWJ) should be counted as 1, not 2,
+		// so a short string with a stray ZWSP shouldn't get truncated prematurely.
+		{limit: 5, input: "ab​cd", left: "ab​cd", right: ""},
+		{limit: 5, input: "abc​d", left: "abc​d", right: ""},
+		{limit: 6, input: "abcde​", left: "abcde​", right: ""},
 	}
 	for _, c := range cases {
 		t.Run(fmt.Sprintf("%s(%d)", c.input, c.limit), func(t *testing.T) {
