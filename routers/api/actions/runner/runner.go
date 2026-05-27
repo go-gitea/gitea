@@ -9,6 +9,8 @@ import (
 	"net/http"
 	"slices"
 
+	runnerv1 "gitea.dev/actions-proto-go/runner/v1"
+	"gitea.dev/actions-proto-go/runner/v1/runnerv1connect"
 	actions_model "gitea.dev/models/actions"
 	repo_model "gitea.dev/models/repo"
 	user_model "gitea.dev/models/user"
@@ -18,8 +20,6 @@ import (
 	actions_service "gitea.dev/services/actions"
 
 	"connectrpc.com/connect"
-	runnerv1 "gitea.dev/actions-proto-go/runner/v1"
-	"gitea.dev/actions-proto-go/runner/v1/runnerv1connect"
 	gouuid "github.com/google/uuid"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"

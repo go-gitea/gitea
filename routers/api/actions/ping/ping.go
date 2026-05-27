@@ -8,11 +8,11 @@ import (
 	"fmt"
 	"net/http"
 
+	pingv1 "gitea.dev/actions-proto-go/ping/v1"
+	"gitea.dev/actions-proto-go/ping/v1/pingv1connect"
 	"gitea.dev/modules/log"
 
 	"connectrpc.com/connect"
-	pingv1 "gitea.dev/actions-proto-go/ping/v1"
-	"gitea.dev/actions-proto-go/ping/v1/pingv1connect"
 )
 
 func NewPingServiceHandler() (string, http.Handler) {

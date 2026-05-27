@@ -12,12 +12,12 @@ import (
 	"strings"
 	"time"
 
+	runnerv1 "gitea.dev/actions-proto-go/runner/v1"
 	"gitea.dev/models/dbfs"
 	"gitea.dev/modules/log"
 	"gitea.dev/modules/storage"
 	"gitea.dev/modules/zstd"
 
-	runnerv1 "gitea.dev/actions-proto-go/runner/v1"
 	"google.golang.org/protobuf/types/known/timestamppb"
 )
 

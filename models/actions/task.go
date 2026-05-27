@@ -11,6 +11,7 @@ import (
 	"strings"
 	"time"
 
+	runnerv1 "gitea.dev/actions-proto-go/runner/v1"
 	auth_model "gitea.dev/models/auth"
 	"gitea.dev/models/db"
 	"gitea.dev/models/unit"
@@ -20,7 +21,6 @@ import (
 	"gitea.dev/modules/timeutil"
 	"gitea.dev/modules/util"
 
-	runnerv1 "gitea.dev/actions-proto-go/runner/v1"
 	lru "github.com/hashicorp/golang-lru/v2"
 	"google.golang.org/protobuf/types/known/timestamppb"
 	"xorm.io/builder"
