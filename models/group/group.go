@@ -462,6 +462,9 @@ func MoveGroup(ctx context.Context, group *Group, newParent int64, newSortOrder 
 	}
 
 	parentGroupChain, err := GetParentGroupChain(ctx, newParent)
+	if err != nil {
+		return err
+	}
 
 	if len(parentGroupChain) >= NestingLimit {
 		return ErrGroupTooDeep{
