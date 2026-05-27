@@ -8,13 +8,13 @@ import (
 	"net/http"
 	"testing"
 
-	auth_model "code.gitea.io/gitea/models/auth"
-	repo_model "code.gitea.io/gitea/models/repo"
-	"code.gitea.io/gitea/models/unittest"
-	user_model "code.gitea.io/gitea/models/user"
-	"code.gitea.io/gitea/modules/gitrepo"
-	api "code.gitea.io/gitea/modules/structs"
-	"code.gitea.io/gitea/tests"
+	auth_model "gitea.dev/models/auth"
+	repo_model "gitea.dev/models/repo"
+	"gitea.dev/models/unittest"
+	user_model "gitea.dev/models/user"
+	"gitea.dev/modules/gitrepo"
+	api "gitea.dev/modules/structs"
+	"gitea.dev/tests"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -48,8 +48,7 @@ func TestAPIGitTags(t *testing.T) {
 		AddTokenAuth(token)
 	res := MakeRequest(t, req, http.StatusOK)
 
-	var tag *api.AnnotatedTag
-	DecodeJSON(t, res, &tag)
+	tag := DecodeJSON(t, res, &api.AnnotatedTag{})
 
 	assert.Equal(t, aTagName, tag.Tag)
 	assert.Equal(t, aTag.ID.String(), tag.SHA)

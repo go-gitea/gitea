@@ -6,12 +6,11 @@ package v1_21
 import (
 	"time"
 
-	"code.gitea.io/gitea/modules/timeutil"
-
-	"xorm.io/xorm"
+	"gitea.dev/models/db"
+	"gitea.dev/modules/timeutil"
 )
 
-func AddExpiredUnixColumnInActionArtifactTable(x *xorm.Engine) error {
+func AddExpiredUnixColumnInActionArtifactTable(x db.EngineMigration) error {
 	type ActionArtifact struct {
 		ExpiredUnix timeutil.TimeStamp `xorm:"index"` // time when the artifact will be expired
 	}
@@ -21,7 +20,7 @@ func AddExpiredUnixColumnInActionArtifactTable(x *xorm.Engine) error {
 	return updateArtifactsExpiredUnixTo90Days(x)
 }
 
-func updateArtifactsExpiredUnixTo90Days(x *xorm.Engine) error {
+func updateArtifactsExpiredUnixTo90Days(x db.EngineMigration) error {
 	sess := x.NewSession()
 	defer sess.Close()
 

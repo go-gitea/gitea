@@ -4,14 +4,14 @@
 package v1_17
 
 import (
-	packages_model "code.gitea.io/gitea/models/packages"
-	container_module "code.gitea.io/gitea/modules/packages/container"
+	"gitea.dev/models/db"
+	packages_model "gitea.dev/models/packages"
+	container_module "gitea.dev/modules/packages/container"
 
-	"xorm.io/xorm"
 	"xorm.io/xorm/schemas"
 )
 
-func AddContainerRepositoryProperty(x *xorm.Engine) (err error) {
+func AddContainerRepositoryProperty(x db.EngineMigration) (err error) {
 	switch x.Dialect().URI().DBType {
 	case schemas.SQLITE:
 		_, err = x.Exec("INSERT INTO package_property (ref_type, ref_id, name, value) SELECT ?, p.id, ?, u.lower_name || '/' || p.lower_name FROM package p JOIN `user` u ON p.owner_id = u.id WHERE p.type = ?",

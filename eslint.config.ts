@@ -570,8 +570,6 @@ export default defineConfig([
       'no-redeclare': [0], // must be disabled for typescript overloads
       'no-regex-spaces': [2],
       'no-restricted-exports': [0],
-      'no-restricted-globals': [2, ...restrictedGlobals],
-      'no-restricted-properties': [2, ...restrictedProperties],
       'no-restricted-imports': [2, {paths: [
         {name: 'jquery', message: 'Use the global $ instead', allowTypeImports: true},
       ]}],
@@ -924,6 +922,7 @@ export default defineConfig([
   {
     ...playwright.configs['flat/recommended'],
     files: ['tests/e2e/**/*.test.ts'],
+    languageOptions: {globals: {...globals.nodeBuiltin, ...globals.browser}},
     rules: {
       ...playwright.configs['flat/recommended'].rules,
       'playwright/expect-expect': [0],
@@ -1021,5 +1020,9 @@ export default defineConfig([
   {
     files: ['web_src/**/*'],
     languageOptions: {globals: {...globals.browser, ...globals.jquery}},
+    rules: {
+      'no-restricted-globals': [2, ...restrictedGlobals],
+      'no-restricted-properties': [2, ...restrictedProperties],
+    },
   },
 ]);

@@ -9,17 +9,16 @@ import (
 	"fmt"
 	"strings"
 
-	"code.gitea.io/gitea/models/db"
-	"code.gitea.io/gitea/models/perm"
-	"code.gitea.io/gitea/models/unit"
-	user_model "code.gitea.io/gitea/models/user"
-	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/modules/structs"
-	"code.gitea.io/gitea/modules/util"
+	"gitea.dev/models/db"
+	"gitea.dev/models/perm"
+	"gitea.dev/models/unit"
+	user_model "gitea.dev/models/user"
+	"gitea.dev/modules/log"
+	"gitea.dev/modules/setting"
+	"gitea.dev/modules/structs"
+	"gitea.dev/modules/util"
 
 	"xorm.io/builder"
-	"xorm.io/xorm"
 )
 
 // ErrOrgNotExist represents a "OrgNotExist" kind of error.
@@ -191,7 +190,7 @@ func (opts FindOrgMembersOpts) PublicOnly() bool {
 }
 
 // applyTeamMatesOnlyFilter make sure restricted users only see public team members and there own team mates
-func (opts FindOrgMembersOpts) applyTeamMatesOnlyFilter(sess *xorm.Session) {
+func (opts FindOrgMembersOpts) applyTeamMatesOnlyFilter(sess db.Session) {
 	if opts.Doer != nil && opts.IsDoerMember && opts.Doer.IsRestricted {
 		teamMates := builder.Select("DISTINCT team_user.uid").
 			From("team_user").
@@ -463,7 +462,7 @@ func GetOrgUsersByOrgID(ctx context.Context, opts *FindOrgMembersOpts) ([]*OrgUs
 	}
 
 	if opts.ListOptions.PageSize > 0 {
-		sess = db.SetSessionPagination(sess, opts)
+		db.SetSessionPagination(sess, opts)
 
 		ous := make([]*OrgUser, 0, opts.PageSize)
 		return ous, sess.Find(&ous)

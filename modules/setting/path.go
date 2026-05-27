@@ -10,8 +10,8 @@ import (
 	"path/filepath"
 	"strings"
 
-	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/tempdir"
+	"gitea.dev/modules/log"
+	"gitea.dev/modules/tempdir"
 )
 
 var (
@@ -196,6 +196,12 @@ func InitWorkPathAndCfgProvider(getEnvFn func(name string) string, args ArgWorkP
 	AppWorkPath = tmpWorkPath.Value
 	CustomPath = tmpCustomPath.Value
 	CustomConf = tmpCustomConf.Value
+}
+
+func MockBuiltinPaths(workPath, customPath, customConf string) func() {
+	oldApp, oldCustom, oldConf := appWorkPathBuiltin, customPathBuiltin, customConfBuiltin
+	appWorkPathBuiltin, customPathBuiltin, customConfBuiltin = workPath, customPath, customConf
+	return func() { appWorkPathBuiltin, customPathBuiltin, customConfBuiltin = oldApp, oldCustom, oldConf }
 }
 
 // AppDataTempDir returns a managed temporary directory for the application data.

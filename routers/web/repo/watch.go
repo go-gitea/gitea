@@ -6,12 +6,12 @@ package repo
 import (
 	"net/http"
 
-	repo_model "code.gitea.io/gitea/models/repo"
-	"code.gitea.io/gitea/modules/templates"
-	"code.gitea.io/gitea/services/context"
+	repo_model "gitea.dev/models/repo"
+	"gitea.dev/modules/templates"
+	"gitea.dev/services/context"
 )
 
-const tplWatchUnwatch templates.TplName = "repo/watch_unwatch"
+const tplWatchUnwatch templates.TplName = "repo/header/watch"
 
 func ActionWatch(ctx *context.Context) {
 	err := repo_model.WatchRepo(ctx, ctx.Doer, ctx.Repo.Repository, ctx.PathParam("action") == "watch")

@@ -7,6 +7,7 @@ package user
 import (
 	"context"
 	"encoding/hex"
+	"errors"
 	"fmt"
 	"html/template"
 	"mime"
@@ -20,24 +21,24 @@ import (
 	"time"
 	"unicode"
 
-	_ "image/jpeg" // Needed for jpeg support
+	"gitea.dev/models/auth"
+	"gitea.dev/models/db"
+	"gitea.dev/modules/auth/openid"
+	"gitea.dev/modules/auth/password/hash"
+	"gitea.dev/modules/base"
+	"gitea.dev/modules/container"
+	"gitea.dev/modules/git"
+	"gitea.dev/modules/htmlutil"
+	"gitea.dev/modules/httplib"
+	"gitea.dev/modules/log"
+	"gitea.dev/modules/optional"
+	"gitea.dev/modules/setting"
+	"gitea.dev/modules/structs"
+	"gitea.dev/modules/timeutil"
+	"gitea.dev/modules/util"
+	"gitea.dev/modules/validation"
 
-	"code.gitea.io/gitea/models/auth"
-	"code.gitea.io/gitea/models/db"
-	"code.gitea.io/gitea/modules/auth/openid"
-	"code.gitea.io/gitea/modules/auth/password/hash"
-	"code.gitea.io/gitea/modules/base"
-	"code.gitea.io/gitea/modules/container"
-	"code.gitea.io/gitea/modules/git"
-	"code.gitea.io/gitea/modules/htmlutil"
-	"code.gitea.io/gitea/modules/httplib"
-	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/optional"
-	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/modules/structs"
-	"code.gitea.io/gitea/modules/timeutil"
-	"code.gitea.io/gitea/modules/util"
-	"code.gitea.io/gitea/modules/validation"
+	_ "image/jpeg" // Needed for jpeg support
 
 	"golang.org/x/text/runes"
 	"golang.org/x/text/transform"
@@ -306,6 +307,13 @@ func (u *User) DashboardLink() string {
 	return setting.AppSubURL + "/"
 }
 
+func (u *User) SettingsLink() string {
+	if u.IsOrganization() {
+		return u.OrganisationLink() + "/settings"
+	}
+	return setting.AppSubURL + "/user/settings"
+}
+
 // HomeLink returns the user or organization home page link.
 func (u *User) HomeLink() string {
 	return setting.AppSubURL + "/" + url.PathEscape(u.Name)
@@ -331,7 +339,7 @@ func GetUserFollowers(ctx context.Context, u, viewer *User, listOptions db.ListO
 		And(isUserVisibleToViewerCond(viewer))
 
 	if listOptions.Page > 0 {
-		sess = db.SetSessionPagination(sess, &listOptions)
+		db.SetSessionPagination(sess, &listOptions)
 
 		users := make([]*User, 0, listOptions.PageSize)
 		count, err := sess.FindAndCount(&users)
@@ -353,7 +361,7 @@ func GetUserFollowing(ctx context.Context, u, viewer *User, listOptions db.ListO
 		And(isUserVisibleToViewerCond(viewer))
 
 	if listOptions.Page > 0 {
-		sess = db.SetSessionPagination(sess, &listOptions)
+		db.SetSessionPagination(sess, &listOptions)
 
 		users := make([]*User, 0, listOptions.PageSize)
 		count, err := sess.FindAndCount(&users)
@@ -524,10 +532,7 @@ const SaltByteLength = 16
 
 // GetUserSalt returns a random user salt token.
 func GetUserSalt() (string, error) {
-	rBytes, err := util.CryptoRandomBytes(SaltByteLength)
-	if err != nil {
-		return "", err
-	}
+	rBytes := util.CryptoRandomBytes(SaltByteLength)
 	// Returns a 32-byte long string.
 	return hex.EncodeToString(rBytes), nil
 }
@@ -617,6 +622,7 @@ var (
 		"sitemap.xml",   // search engine sitemap
 		"ssh_info",      // agit info
 		"swagger.v1.json",
+		"openapi3.v1.json",
 
 		"ghost",         // reserved name for deleted users (id: -1)
 		"gitea-actions", // gitea builtin user (id: -2)
@@ -1016,17 +1022,22 @@ func GetUserByIDs(ctx context.Context, ids []int64) ([]*User, error) {
 	return users, err
 }
 
-// GetPossibleUserByID returns the user if id > 0 or returns system user if id < 0
-func GetPossibleUserByID(ctx context.Context, id int64) (*User, error) {
+// GetPossibleUserByID returns the possible user and its ID. If the user  doesn't exist, it returns Ghost user
+func GetPossibleUserByID(ctx context.Context, id int64) (_ int64, u *User, err error) {
 	if id < 0 {
 		if newFunc, ok := globalVars().systemUserNewFuncs[id]; ok {
-			return newFunc(), nil
+			u = newFunc()
 		}
-		return nil, ErrUserNotExist{UID: id}
-	} else if id == 0 {
-		return nil, ErrUserNotExist{}
 	}
-	return GetUserByID(ctx, id)
+	if u == nil {
+		u, err = GetUserByID(ctx, id)
+		if errors.Is(err, util.ErrNotExist) {
+			u = NewGhostUser()
+		} else if err != nil {
+			return 0, nil, err
+		}
+	}
+	return u.ID, u, nil
 }
 
 // GetPossibleUserByIDs returns the users if id > 0 or returns system users if id < 0
@@ -1047,19 +1058,28 @@ func GetPossibleUserByIDs(ctx context.Context, ids []int64) ([]*User, error) {
 	return users, nil
 }
 
-// GetUserByName returns user by given name.
-func GetUserByName(ctx context.Context, name string) (*User, error) {
-	if len(name) == 0 {
-		return nil, ErrUserNotExist{Name: name}
+func getUserByNameWithTypes(ctx context.Context, name string, types ...UserType) (*User, error) {
+	u := &User{}
+	sess := db.GetEngine(ctx).Where(builder.Eq{"lower_name": strings.ToLower(name)})
+	if len(types) > 0 {
+		sess.In("`type`", types)
 	}
-	u := &User{LowerName: strings.ToLower(name), Type: UserTypeIndividual}
-	has, err := db.GetEngine(ctx).Get(u)
+	has, err := sess.Get(u)
 	if err != nil {
 		return nil, err
 	} else if !has {
 		return nil, ErrUserNotExist{Name: name}
 	}
 	return u, nil
+}
+
+// GetUserByName returns the user object by given name, any user type.
+func GetUserByName(ctx context.Context, name string) (*User, error) {
+	return getUserByNameWithTypes(ctx, name)
+}
+
+func GetIndividualUserByName(ctx context.Context, name string) (*User, error) {
+	return getUserByNameWithTypes(ctx, name, UserTypeIndividual)
 }
 
 // GetUserEmailsByNames returns a list of e-mails corresponds to names of users
@@ -1102,19 +1122,6 @@ func GetMailableUsersByIDs(ctx context.Context, ids []int64, isMention bool) ([]
 		And("`is_active` = ?", true).
 		In("`email_notifications_preference`", EmailNotificationsEnabled, EmailNotificationsAndYourOwn).
 		Find(&ous)
-}
-
-// GetUserNameByID returns username for the id
-func GetUserNameByID(ctx context.Context, id int64) (string, error) {
-	var name string
-	has, err := db.GetEngine(ctx).Table("user").Where("id = ?", id).Cols("name").Get(&name)
-	if err != nil {
-		return "", err
-	}
-	if has {
-		return name, nil
-	}
-	return "", nil
 }
 
 // GetUserIDsByNames returns a slice of ids corresponds to names.
@@ -1317,13 +1324,14 @@ func GetUserByEmail(ctx context.Context, email string) (*User, error) {
 		if id != 0 {
 			return GetUserByID(ctx, id)
 		}
-		return GetUserByName(ctx, name)
+		return GetIndividualUserByName(ctx, name)
 	}
 
 	return nil, ErrUserNotExist{Name: email}
 }
 
 func GetIndividualUser(ctx context.Context, user *User) (bool, error) {
+	// FIXME: the design is wrong, empty User fields won't apply, this function should be removed in the future
 	has, err := db.GetEngine(ctx).Get(user)
 	if has && user.Type != UserTypeIndividual {
 		has = false
@@ -1487,28 +1495,4 @@ func DisabledFeaturesWithLoginType(user *User) *container.Set[string] {
 		return &setting.Admin.ExternalUserDisableFeatures
 	}
 	return &setting.Admin.UserDisabledFeatures
-}
-
-// GetUserOrOrgIDByName returns the id for a user or an org by name
-func GetUserOrOrgIDByName(ctx context.Context, name string) (int64, error) {
-	var id int64
-	has, err := db.GetEngine(ctx).Table("user").Where("name = ?", name).Cols("id").Get(&id)
-	if err != nil {
-		return 0, err
-	} else if !has {
-		return 0, fmt.Errorf("user or org with name %s: %w", name, util.ErrNotExist)
-	}
-	return id, nil
-}
-
-// GetUserOrOrgByName returns the user or org by name
-func GetUserOrOrgByName(ctx context.Context, name string) (*User, error) {
-	var u User
-	has, err := db.GetEngine(ctx).Where("lower_name = ?", strings.ToLower(name)).Get(&u)
-	if err != nil {
-		return nil, err
-	} else if !has {
-		return nil, ErrUserNotExist{Name: name}
-	}
-	return &u, nil
 }

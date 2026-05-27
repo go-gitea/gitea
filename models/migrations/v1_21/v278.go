@@ -3,11 +3,9 @@
 
 package v1_21
 
-import (
-	"xorm.io/xorm"
-)
+import "gitea.dev/models/db"
 
-func AddIndexToCommentDependentIssueID(x *xorm.Engine) error {
+func AddIndexToCommentDependentIssueID(x db.EngineMigration) error {
 	type Comment struct {
 		DependentIssueID int64 `xorm:"index"`
 	}

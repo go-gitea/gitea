@@ -7,18 +7,18 @@ import (
 	"errors"
 	"net/http"
 
-	issues_model "code.gitea.io/gitea/models/issues"
-	repo_model "code.gitea.io/gitea/models/repo"
-	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/setting"
-	api "code.gitea.io/gitea/modules/structs"
-	"code.gitea.io/gitea/modules/util"
-	"code.gitea.io/gitea/modules/web"
-	attachment_service "code.gitea.io/gitea/services/attachment"
-	"code.gitea.io/gitea/services/context"
-	"code.gitea.io/gitea/services/context/upload"
-	"code.gitea.io/gitea/services/convert"
-	issue_service "code.gitea.io/gitea/services/issue"
+	issues_model "gitea.dev/models/issues"
+	repo_model "gitea.dev/models/repo"
+	"gitea.dev/modules/log"
+	"gitea.dev/modules/setting"
+	api "gitea.dev/modules/structs"
+	"gitea.dev/modules/util"
+	"gitea.dev/modules/web"
+	attachment_service "gitea.dev/services/attachment"
+	"gitea.dev/services/context"
+	"gitea.dev/services/context/upload"
+	"gitea.dev/services/convert"
+	issue_service "gitea.dev/services/issue"
 )
 
 // GetIssueAttachment gets a single attachment of the issue
@@ -371,7 +371,7 @@ func getIssueAttachmentSafeRead(ctx *context.APIContext, issue *issues_model.Iss
 }
 
 func canUserWriteIssueAttachment(ctx *context.APIContext, issue *issues_model.Issue) bool {
-	canEditIssue := ctx.IsSigned && (ctx.Doer.ID == issue.PosterID || ctx.IsUserRepoAdmin() || ctx.IsUserSiteAdmin() || ctx.Repo.CanWriteIssuesOrPulls(issue.IsPull))
+	canEditIssue := ctx.IsSigned && (ctx.Doer.ID == issue.PosterID || ctx.IsUserRepoAdmin() || ctx.IsUserSiteAdmin() || ctx.Repo.Permission.CanWriteIssuesOrPulls(issue.IsPull))
 	if !canEditIssue {
 		ctx.APIError(http.StatusForbidden, "user should have permission to write issue")
 		return false

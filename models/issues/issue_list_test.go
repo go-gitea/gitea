@@ -6,9 +6,9 @@ package issues_test
 import (
 	"testing"
 
-	issues_model "code.gitea.io/gitea/models/issues"
-	"code.gitea.io/gitea/models/unittest"
-	"code.gitea.io/gitea/modules/setting"
+	issues_model "gitea.dev/models/issues"
+	"gitea.dev/models/unittest"
+	"gitea.dev/modules/setting"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -65,10 +65,10 @@ func TestIssueList_LoadAttributes(t *testing.T) {
 		}
 		if issue.ID == int64(1) {
 			assert.Equal(t, int64(400), issue.TotalTrackedTime)
-			assert.NotNil(t, issue.Project)
-			assert.Equal(t, int64(1), issue.Project.ID)
+			assert.NotEmpty(t, issue.Projects)
+			assert.Equal(t, int64(1), issue.Projects[0].ID)
 		} else {
-			assert.Nil(t, issue.Project)
+			assert.Empty(t, issue.Projects)
 		}
 	}
 }

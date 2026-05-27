@@ -9,17 +9,17 @@ import (
 	"net/url"
 	"testing"
 
-	auth_model "code.gitea.io/gitea/models/auth"
-	repo_model "code.gitea.io/gitea/models/repo"
-	"code.gitea.io/gitea/models/unittest"
-	user_model "code.gitea.io/gitea/models/user"
-	"code.gitea.io/gitea/modules/gitrepo"
-	"code.gitea.io/gitea/modules/json"
-	"code.gitea.io/gitea/modules/setting"
-	api "code.gitea.io/gitea/modules/structs"
-	"code.gitea.io/gitea/modules/test"
-	"code.gitea.io/gitea/modules/util"
-	"code.gitea.io/gitea/tests"
+	auth_model "gitea.dev/models/auth"
+	repo_model "gitea.dev/models/repo"
+	"gitea.dev/models/unittest"
+	user_model "gitea.dev/models/user"
+	"gitea.dev/modules/gitrepo"
+	"gitea.dev/modules/json"
+	"gitea.dev/modules/setting"
+	api "gitea.dev/modules/structs"
+	"gitea.dev/modules/test"
+	"gitea.dev/modules/util"
+	"gitea.dev/tests"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -53,7 +53,7 @@ func TestAPIGetRequestedFiles(t *testing.T) {
 		if resp.Code != http.StatusOK {
 			return nil
 		}
-		DecodeJSON(t, resp, &ret)
+		ret = DecodeJSON(t, resp, []*api.ContentsResponse{})
 		return ret
 	}
 
@@ -62,8 +62,7 @@ func TestAPIGetRequestedFiles(t *testing.T) {
 		reqBodyParam, _ := json.Marshal(reqBodyOpt)
 		req := NewRequest(t, "GET", "/api/v1/repos/user2/repo1/file-contents?body="+url.QueryEscape(string(reqBodyParam)))
 		resp := MakeRequest(t, req, http.StatusOK)
-		var ret []*api.ContentsResponse
-		DecodeJSON(t, resp, &ret)
+		ret := DecodeJSON(t, resp, []*api.ContentsResponse{})
 		expected := []*api.ContentsResponse{getExpectedContentsResponseForContents(repo1.DefaultBranch, "branch", lastCommit.ID.String())}
 		assert.Equal(t, expected, ret)
 	})

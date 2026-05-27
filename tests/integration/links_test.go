@@ -9,10 +9,10 @@ import (
 	"path"
 	"testing"
 
-	"code.gitea.io/gitea/modules/setting"
-	api "code.gitea.io/gitea/modules/structs"
-	"code.gitea.io/gitea/modules/test"
-	"code.gitea.io/gitea/tests"
+	"gitea.dev/modules/setting"
+	api "gitea.dev/modules/structs"
+	"gitea.dev/modules/test"
+	"gitea.dev/tests"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -145,8 +145,7 @@ func testLinksAsUser(t *testing.T) {
 
 	reqAPI := NewRequestf(t, "GET", "/api/v1/users/user2/repos")
 	respAPI := MakeRequest(t, reqAPI, http.StatusOK)
-	var apiRepos []*api.Repository
-	DecodeJSON(t, respAPI, &apiRepos)
+	apiRepos := DecodeJSON(t, respAPI, []*api.Repository{})
 	repoLinks := []string{
 		"",
 		"/issues",

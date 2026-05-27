@@ -13,11 +13,11 @@ import (
 	"runtime"
 	"strings"
 
-	"code.gitea.io/gitea/modules/git/gitcmd"
-	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/modules/tempdir"
-	"code.gitea.io/gitea/modules/testlogger"
+	"gitea.dev/modules/git/gitcmd"
+	"gitea.dev/modules/log"
+	"gitea.dev/modules/setting"
+	"gitea.dev/modules/tempdir"
+	"gitea.dev/modules/testlogger"
 
 	"github.com/hashicorp/go-version"
 )
@@ -192,13 +192,13 @@ func RunGitTests(m interface{ Run() int }) {
 func runGitTests(m interface{ Run() int }) int {
 	gitHomePath, cleanup, err := tempdir.OsTempDir("gitea-test").MkdirTempRandom("git-home")
 	if err != nil {
-		testlogger.Panicf("unable to create temp dir: %s", err.Error())
+		return testlogger.MainErrorf("unable to create temp dir: %v", err)
 	}
 	defer cleanup()
 
 	setting.Git.HomePath = gitHomePath
 	if err = InitFull(); err != nil {
-		testlogger.Panicf("failed to call Init: %s", err.Error())
+		return testlogger.MainErrorf("failed to call Init: %v", err)
 	}
 	return m.Run()
 }

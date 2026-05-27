@@ -1,6 +1,6 @@
 import {env} from 'node:process';
 import {test, expect} from '@playwright/test';
-import {login, logout, apiDeleteUser, randomString} from './utils.ts';
+import {login, logout, randomString} from './utils.ts';
 
 test.beforeEach(async ({page}) => {
   await page.goto('/user/sign_up');
@@ -48,9 +48,6 @@ test('register then login', async ({page}) => {
   // Logout then login with the newly created account
   await logout(page);
   await login(page, username, password);
-
-  // delete via API because of issues related to form-fetch-action
-  await apiDeleteUser(page.request, username);
 });
 
 test('register with existing username shows error', async ({page}) => {

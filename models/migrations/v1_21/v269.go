@@ -3,10 +3,8 @@
 
 package v1_21
 
-import (
-	"xorm.io/xorm"
-)
+import "gitea.dev/models/db"
 
-func DropDeletedBranchTable(x *xorm.Engine) error {
+func DropDeletedBranchTable(x db.EngineMigration) error {
 	return x.DropTables("deleted_branch")
 }

@@ -9,18 +9,18 @@ import (
 	"strings"
 	"testing"
 
-	auth_model "code.gitea.io/gitea/models/auth"
-	"code.gitea.io/gitea/models/db"
-	"code.gitea.io/gitea/models/unittest"
-	user_model "code.gitea.io/gitea/models/user"
-	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/modules/test"
-	"code.gitea.io/gitea/modules/translation"
-	"code.gitea.io/gitea/modules/web"
-	"code.gitea.io/gitea/routers"
-	"code.gitea.io/gitea/routers/web/auth"
-	"code.gitea.io/gitea/services/context"
-	"code.gitea.io/gitea/tests"
+	auth_model "gitea.dev/models/auth"
+	"gitea.dev/models/db"
+	"gitea.dev/models/unittest"
+	user_model "gitea.dev/models/user"
+	"gitea.dev/modules/setting"
+	"gitea.dev/modules/test"
+	"gitea.dev/modules/translation"
+	"gitea.dev/modules/web"
+	"gitea.dev/routers"
+	"gitea.dev/routers/web/auth"
+	"gitea.dev/services/context"
+	"gitea.dev/tests"
 
 	"github.com/markbates/goth"
 	"github.com/stretchr/testify/assert"
@@ -177,6 +177,8 @@ func TestRequireSignInView(t *testing.T) {
 		require.False(t, setting.Service.BlockAnonymousAccessExpensive)
 		req := NewRequest(t, "GET", "/user2/repo1/src/branch/master")
 		MakeRequest(t, req, http.StatusOK)
+		req = NewRequest(t, "GET", "/user/events")
+		MakeRequest(t, req, http.StatusOK)
 	})
 	t.Run("RequireSignInView", func(t *testing.T) {
 		defer test.MockVariableValue(&setting.Service.RequireSignInViewStrict, true)()
@@ -192,6 +194,8 @@ func TestRequireSignInView(t *testing.T) {
 
 		req := NewRequest(t, "GET", "/user2/repo1")
 		MakeRequest(t, req, http.StatusOK)
+		req = NewRequest(t, "GET", "/user/events")
+		MakeRequest(t, req, http.StatusSeeOther)
 
 		req = NewRequest(t, "GET", "/user2/repo1/src/branch/master")
 		resp := MakeRequest(t, req, http.StatusSeeOther)

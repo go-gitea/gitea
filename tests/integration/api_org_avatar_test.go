@@ -7,11 +7,13 @@ import (
 	"encoding/base64"
 	"net/http"
 	"os"
+	"path/filepath"
 	"testing"
 
-	auth_model "code.gitea.io/gitea/models/auth"
-	api "code.gitea.io/gitea/modules/structs"
-	"code.gitea.io/gitea/tests"
+	auth_model "gitea.dev/models/auth"
+	"gitea.dev/modules/setting"
+	api "gitea.dev/modules/structs"
+	"gitea.dev/tests"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -24,7 +26,7 @@ func TestAPIUpdateOrgAvatar(t *testing.T) {
 	token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeWriteOrganization)
 
 	// Test what happens if you use a valid image
-	avatar, err := os.ReadFile("tests/integration/avatar.png")
+	avatar, err := os.ReadFile(filepath.Join(setting.GetGiteaTestSourceRoot(), "tests/integration/avatar.png"))
 	assert.NoError(t, err)
 	if err != nil {
 		assert.FailNow(t, "Unable to open avatar.png")
@@ -48,7 +50,7 @@ func TestAPIUpdateOrgAvatar(t *testing.T) {
 	MakeRequest(t, req, http.StatusBadRequest)
 
 	// Test what happens if you use a file that is not an image
-	text, err := os.ReadFile("tests/integration/README.md")
+	text, err := os.ReadFile(filepath.Join(setting.GetGiteaTestSourceRoot(), "tests/integration/README.md"))
 	assert.NoError(t, err)
 	if err != nil {
 		assert.FailNow(t, "Unable to open README.md")

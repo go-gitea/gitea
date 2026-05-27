@@ -42,12 +42,14 @@ export type Issue = {
   body: string,
   state: 'open' | 'closed',
   created_at: string,
+  html_url: string,
   pull_request?: {
     draft: boolean;
     merged: boolean;
   },
   repository: {
     full_name: string,
+    html_url: string,
   },
   labels: Array<string>,
 };

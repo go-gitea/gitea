@@ -3,9 +3,9 @@
 
 package v1_10
 
-import "xorm.io/xorm"
+import "gitea.dev/models/db"
 
-func AddRepoAdminChangeTeamAccessColumnForUser(x *xorm.Engine) error {
+func AddRepoAdminChangeTeamAccessColumnForUser(x db.EngineMigration) error {
 	type User struct {
 		RepoAdminChangeTeamAccess bool `xorm:"NOT NULL DEFAULT false"`
 	}

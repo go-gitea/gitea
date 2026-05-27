@@ -8,14 +8,16 @@ import (
 	"fmt"
 	"net/http"
 	"os"
+	"path/filepath"
 	"testing"
 
-	auth_model "code.gitea.io/gitea/models/auth"
-	repo_model "code.gitea.io/gitea/models/repo"
-	"code.gitea.io/gitea/models/unittest"
-	user_model "code.gitea.io/gitea/models/user"
-	api "code.gitea.io/gitea/modules/structs"
-	"code.gitea.io/gitea/tests"
+	auth_model "gitea.dev/models/auth"
+	repo_model "gitea.dev/models/repo"
+	"gitea.dev/models/unittest"
+	user_model "gitea.dev/models/user"
+	"gitea.dev/modules/setting"
+	api "gitea.dev/modules/structs"
+	"gitea.dev/tests"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -28,7 +30,7 @@ func TestAPIUpdateRepoAvatar(t *testing.T) {
 	token := getUserToken(t, user2.LowerName, auth_model.AccessTokenScopeWriteRepository)
 
 	// Test what happens if you use a valid image
-	avatar, err := os.ReadFile("tests/integration/avatar.png")
+	avatar, err := os.ReadFile(filepath.Join(setting.GetGiteaTestSourceRoot(), "tests/integration/avatar.png"))
 	assert.NoError(t, err)
 	if err != nil {
 		assert.FailNow(t, "Unable to open avatar.png")
@@ -52,7 +54,7 @@ func TestAPIUpdateRepoAvatar(t *testing.T) {
 	MakeRequest(t, req, http.StatusBadRequest)
 
 	// Test what happens if you use a file that is not an image
-	text, err := os.ReadFile("tests/integration/README.md")
+	text, err := os.ReadFile(filepath.Join(setting.GetGiteaTestSourceRoot(), "tests/integration/README.md"))
 	assert.NoError(t, err)
 	if err != nil {
 		assert.FailNow(t, "Unable to open README.md")

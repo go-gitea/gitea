@@ -10,9 +10,9 @@ import (
 	"testing"
 	"time"
 
-	auth_model "code.gitea.io/gitea/models/auth"
-	api "code.gitea.io/gitea/modules/structs"
-	"code.gitea.io/gitea/modules/test"
+	auth_model "gitea.dev/models/auth"
+	api "gitea.dev/modules/structs"
+	"gitea.dev/modules/test"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -74,8 +74,7 @@ func checkRepoLicense(t *testing.T, owner, repo string, expected []string) {
 	req := NewRequest(t, "GET", reqURL)
 	resp := MakeRequest(t, req, http.StatusOK)
 
-	var licenses []string
-	DecodeJSON(t, resp, &licenses)
+	licenses := DecodeJSON(t, resp, []string{})
 
 	assert.ElementsMatch(t, expected, licenses, 0)
 }

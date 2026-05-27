@@ -10,9 +10,9 @@ import (
 	"sync/atomic"
 	"time"
 
-	"code.gitea.io/gitea/modules/json"
-	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/setting"
+	"gitea.dev/modules/json"
+	"gitea.dev/modules/log"
+	"gitea.dev/modules/setting"
 )
 
 type manifestEntry struct {
@@ -56,6 +56,8 @@ func parseManifest(data []byte) (map[string]string, map[string]string) {
 		paths[key] = entry.File
 		names[entry.File] = entry.Name
 		// Map associated CSS files, e.g. "css/index.css" -> "css/index.B3zrQPqD.css"
+		// FIXME: INCORRECT-VITE-MANIFEST-PARSER: the logic is wrong, Vite manifest doesn't work this way
+		// It just happens to be correct for the current modules dependencies
 		for _, css := range entry.CSS {
 			cssKey := path.Dir(css) + "/" + entry.Name + path.Ext(css)
 			paths[cssKey] = css

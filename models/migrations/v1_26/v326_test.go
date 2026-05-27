@@ -6,16 +6,16 @@ package v1_26
 import (
 	"testing"
 
-	"code.gitea.io/gitea/models/migrations/base"
-	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/modules/test"
+	"gitea.dev/models/db"
+	"gitea.dev/models/migrations/migrationtest"
+	"gitea.dev/modules/setting"
+	"gitea.dev/modules/test"
 
-	_ "code.gitea.io/gitea/models/actions"
-	_ "code.gitea.io/gitea/models/git"
-	_ "code.gitea.io/gitea/models/repo"
+	_ "gitea.dev/models/actions"
+	_ "gitea.dev/models/git"
+	_ "gitea.dev/models/repo"
 
 	"github.com/stretchr/testify/require"
-	"xorm.io/xorm"
 )
 
 func Test_FixCommitStatusTargetURLToUseRunAndJobID(t *testing.T) {
@@ -57,7 +57,7 @@ func Test_FixCommitStatusTargetURLToUseRunAndJobID(t *testing.T) {
 		TargetURL string
 	}
 
-	x, deferable := base.PrepareTestEnv(t, 0,
+	x, deferable := migrationtest.PrepareTestEnv(t, 0,
 		new(Repository),
 		new(ActionRun),
 		new(ActionRunJob),
@@ -100,7 +100,7 @@ func Test_FixCommitStatusTargetURLToUseRunAndJobID(t *testing.T) {
 	}
 }
 
-func assertTargetURL(t *testing.T, x *xorm.Engine, table string, id int64, want string) {
+func assertTargetURL(t *testing.T, x db.EngineMigration, table string, id int64, want string) {
 	t.Helper()
 
 	var row struct {

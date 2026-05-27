@@ -9,11 +9,11 @@ import (
 	"fmt"
 	"strings"
 
-	"code.gitea.io/gitea/models/db"
-	"code.gitea.io/gitea/modules/cache"
-	"code.gitea.io/gitea/modules/json"
-	setting_module "code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/modules/util"
+	"gitea.dev/models/db"
+	"gitea.dev/modules/cache"
+	"gitea.dev/modules/json"
+	setting_module "gitea.dev/modules/setting"
+	"gitea.dev/modules/util"
 
 	"xorm.io/builder"
 	"xorm.io/xorm/convert"
@@ -48,12 +48,6 @@ func (err ErrUserSettingIsNotExist) Error() string {
 
 func (err ErrUserSettingIsNotExist) Unwrap() error {
 	return util.ErrNotExist
-}
-
-// IsErrUserSettingIsNotExist return true if err is ErrSettingIsNotExist
-func IsErrUserSettingIsNotExist(err error) bool {
-	_, ok := err.(ErrUserSettingIsNotExist)
-	return ok
 }
 
 // genSettingCacheKey returns the cache key for some configuration

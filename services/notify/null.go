@@ -6,14 +6,14 @@ package notify
 import (
 	"context"
 
-	actions_model "code.gitea.io/gitea/models/actions"
-	git_model "code.gitea.io/gitea/models/git"
-	issues_model "code.gitea.io/gitea/models/issues"
-	packages_model "code.gitea.io/gitea/models/packages"
-	repo_model "code.gitea.io/gitea/models/repo"
-	user_model "code.gitea.io/gitea/models/user"
-	"code.gitea.io/gitea/modules/git"
-	"code.gitea.io/gitea/modules/repository"
+	actions_model "gitea.dev/models/actions"
+	git_model "gitea.dev/models/git"
+	issues_model "gitea.dev/models/issues"
+	packages_model "gitea.dev/models/packages"
+	repo_model "gitea.dev/models/repo"
+	user_model "gitea.dev/models/user"
+	"gitea.dev/modules/git"
+	"gitea.dev/modules/repository"
 )
 
 // NullNotifier implements a blank notifier
@@ -63,7 +63,7 @@ func (*NullNotifier) AutoMergePullRequest(ctx context.Context, doer *user_model.
 }
 
 // PullRequestSynchronized places a place holder function
-func (*NullNotifier) PullRequestSynchronized(ctx context.Context, doer *user_model.User, pr *issues_model.PullRequest) {
+func (*NullNotifier) PullRequestSynchronized(ctx context.Context, doer *user_model.User, pr *issues_model.PullRequest, before, after string) {
 }
 
 // PullRequestChangeTargetBranch places a place holder function

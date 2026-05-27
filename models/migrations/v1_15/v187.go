@@ -4,12 +4,11 @@
 package v1_15
 
 import (
-	"code.gitea.io/gitea/models/migrations/base"
-
-	"xorm.io/xorm"
+	"gitea.dev/models/db"
+	"gitea.dev/models/migrations/base"
 )
 
-func DropWebhookColumns(x *xorm.Engine) error {
+func DropWebhookColumns(x db.EngineMigration) error {
 	// Make sure the columns exist before dropping them
 	type Webhook struct {
 		Signature string `xorm:"TEXT"`

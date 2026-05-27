@@ -9,8 +9,8 @@ import (
 	"strings"
 	"time"
 
-	"code.gitea.io/gitea/modules/git"
-	"code.gitea.io/gitea/modules/git/gitcmd"
+	"gitea.dev/modules/git"
+	"gitea.dev/modules/git/gitcmd"
 )
 
 // CommitsCountOptions the options when counting commits
@@ -42,23 +42,6 @@ func CommitsCount(ctx context.Context, repo Repository, opts CommitsCountOptions
 	}
 
 	return strconv.ParseInt(strings.TrimSpace(stdout), 10, 64)
-}
-
-// CommitsCountBetween return numbers of commits between two commits
-func CommitsCountBetween(ctx context.Context, repo Repository, start, end string) (int64, error) {
-	count, err := CommitsCount(ctx, repo, CommitsCountOptions{
-		Revision: []string{start + ".." + end},
-	})
-
-	if err != nil && strings.Contains(err.Error(), "no merge base") {
-		// future versions of git >= 2.28 are likely to return an error if before and last have become unrelated.
-		// previously it would return the results of git rev-list before last so let's try that...
-		return CommitsCount(ctx, repo, CommitsCountOptions{
-			Revision: []string{start, end},
-		})
-	}
-
-	return count, err
 }
 
 // FileCommitsCount return the number of files at a revision

@@ -8,7 +8,7 @@ import (
 	"net/http"
 	"strings"
 
-	user_model "code.gitea.io/gitea/models/user"
+	user_model "gitea.dev/models/user"
 )
 
 // UserAssignmentWeb returns a middleware to handle context-user assignment for web routes
@@ -27,27 +27,6 @@ func UserAssignmentWeb() func(ctx *Context) {
 		}
 		ctx.ContextUser = userAssignment(ctx.Base, ctx.Doer, errorFn)
 		ctx.Data["ContextUser"] = ctx.ContextUser
-	}
-}
-
-// UserIDAssignmentAPI returns a middleware to handle context-user assignment for api routes
-func UserIDAssignmentAPI() func(ctx *APIContext) {
-	return func(ctx *APIContext) {
-		userID := ctx.PathParamInt64("user-id")
-
-		if ctx.IsSigned && ctx.Doer.ID == userID {
-			ctx.ContextUser = ctx.Doer
-		} else {
-			var err error
-			ctx.ContextUser, err = user_model.GetUserByID(ctx, userID)
-			if err != nil {
-				if user_model.IsErrUserNotExist(err) {
-					ctx.APIError(http.StatusNotFound, err)
-				} else {
-					ctx.APIErrorInternal(err)
-				}
-			}
-		}
 	}
 }
 

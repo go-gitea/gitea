@@ -6,10 +6,10 @@ package v1_12
 import (
 	"fmt"
 
-	"xorm.io/xorm"
+	"gitea.dev/models/db"
 )
 
-func AddReviewMigrateInfo(x *xorm.Engine) error {
+func AddReviewMigrateInfo(x db.EngineMigration) error {
 	type Review struct {
 		OriginalAuthor   string
 		OriginalAuthorID int64

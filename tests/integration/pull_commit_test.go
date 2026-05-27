@@ -7,8 +7,8 @@ import (
 	"net/http"
 	"testing"
 
-	pull_service "code.gitea.io/gitea/services/pull"
-	"code.gitea.io/gitea/tests"
+	pull_service "gitea.dev/services/pull"
+	"gitea.dev/tests"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -21,11 +21,10 @@ func TestListPullCommits(t *testing.T) {
 	req := NewRequest(t, "GET", "/user2/repo1/pulls/3/commits/list")
 	resp := session.MakeRequest(t, req, http.StatusOK)
 
-	var pullCommitList struct {
+	pullCommitList := DecodeJSON(t, resp, &struct {
 		Commits             []pull_service.CommitInfo `json:"commits"`
 		LastReviewCommitSha string                    `json:"last_review_commit_sha"`
-	}
-	DecodeJSON(t, resp, &pullCommitList)
+	}{})
 
 	require.Len(t, pullCommitList.Commits, 2)
 	assert.Equal(t, "985f0301dba5e7b34be866819cd15ad3d8f508ee", pullCommitList.Commits[0].ID)

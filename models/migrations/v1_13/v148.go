@@ -3,11 +3,9 @@
 
 package v1_13
 
-import (
-	"xorm.io/xorm"
-)
+import "gitea.dev/models/db"
 
-func PurgeInvalidDependenciesComments(x *xorm.Engine) error {
+func PurgeInvalidDependenciesComments(x db.EngineMigration) error {
 	_, err := x.Exec("DELETE FROM comment WHERE dependent_issue_id != 0 AND dependent_issue_id NOT IN (SELECT id FROM issue)")
 	return err
 }

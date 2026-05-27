@@ -4,8 +4,8 @@
 package user
 
 import (
-	"code.gitea.io/gitea/routers/api/v1/shared"
-	"code.gitea.io/gitea/services/context"
+	"gitea.dev/routers/api/v1/shared"
+	"gitea.dev/services/context"
 )
 
 // https://docs.github.com/en/rest/actions/self-hosted-runners?apiVersion=2022-11-28#create-a-registration-token-for-an-organization
@@ -14,7 +14,7 @@ import (
 func CreateRegistrationToken(ctx *context.APIContext) {
 	// swagger:operation POST /user/actions/runners/registration-token user userCreateRunnerRegistrationToken
 	// ---
-	// summary: Get an user's actions runner registration token
+	// summary: Get a user's actions runner registration token
 	// produces:
 	// - application/json
 	// parameters:

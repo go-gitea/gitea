@@ -8,21 +8,21 @@ import (
 	"fmt"
 	"net/http"
 
-	issues_model "code.gitea.io/gitea/models/issues"
-	"code.gitea.io/gitea/models/organization"
-	pull_model "code.gitea.io/gitea/models/pull"
-	user_model "code.gitea.io/gitea/models/user"
-	"code.gitea.io/gitea/modules/json"
-	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/modules/templates"
-	"code.gitea.io/gitea/modules/web"
-	"code.gitea.io/gitea/services/context"
-	"code.gitea.io/gitea/services/context/upload"
-	"code.gitea.io/gitea/services/forms"
-	issue_service "code.gitea.io/gitea/services/issue"
-	pull_service "code.gitea.io/gitea/services/pull"
-	user_service "code.gitea.io/gitea/services/user"
+	issues_model "gitea.dev/models/issues"
+	"gitea.dev/models/organization"
+	pull_model "gitea.dev/models/pull"
+	user_model "gitea.dev/models/user"
+	"gitea.dev/modules/json"
+	"gitea.dev/modules/log"
+	"gitea.dev/modules/setting"
+	"gitea.dev/modules/templates"
+	"gitea.dev/modules/web"
+	"gitea.dev/services/context"
+	"gitea.dev/services/context/upload"
+	"gitea.dev/services/forms"
+	issue_service "gitea.dev/services/issue"
+	pull_service "gitea.dev/services/pull"
+	user_service "gitea.dev/services/user"
 )
 
 const (
@@ -72,7 +72,7 @@ func CreateCodeComment(ctx *context.Context) {
 	}
 
 	if ctx.HasError() {
-		ctx.Flash.Error(ctx.Data["ErrorMsg"].(string))
+		ctx.Flash.Error(ctx.GetErrMsg())
 		ctx.Redirect(fmt.Sprintf("%s/pulls/%d/files", ctx.Repo.RepoLink, issue.Index))
 		return
 	}
@@ -169,7 +169,7 @@ func UpdateResolveConversation(ctx *context.Context) {
 func renderConversation(ctx *context.Context, comment *issues_model.Comment, origin string) {
 	ctx.Data["PageIsPullFiles"] = origin == "diff"
 
-	showOutdatedComments := origin == "timeline" || ctx.Data["ShowOutdatedComments"].(bool)
+	showOutdatedComments := origin == "timeline" || GetShowOutdatedComments(ctx)
 	comments, err := issues_model.FetchCodeCommentsByLine(ctx, comment.Issue, ctx.Doer, comment.TreePath, comment.Line, showOutdatedComments)
 	if err != nil {
 		ctx.ServerError("FetchCodeCommentsByLine", err)
@@ -230,7 +230,7 @@ func SubmitReview(ctx *context.Context) {
 		return
 	}
 	if ctx.HasError() {
-		ctx.Flash.Error(ctx.Data["ErrorMsg"].(string))
+		ctx.Flash.Error(ctx.GetErrMsg())
 		ctx.JSONRedirect(fmt.Sprintf("%s/pulls/%d/files", ctx.Repo.RepoLink, issue.Index))
 		return
 	}

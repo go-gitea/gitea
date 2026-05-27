@@ -8,17 +8,19 @@ import (
 	"os"
 	"strings"
 
-	"code.gitea.io/gitea/modules/auth/password/hash"
-	"code.gitea.io/gitea/modules/generate"
-	"code.gitea.io/gitea/modules/log"
+	"gitea.dev/modules/auth/password/hash"
+	"gitea.dev/modules/generate"
+	"gitea.dev/modules/log"
 )
 
 // Security settings
 var Security = struct {
 	// TODO: move more settings to this struct in future
-	XFrameOptions string
+	XFrameOptions       string
+	XContentTypeOptions string
 }{
-	XFrameOptions: "SAMEORIGIN",
+	XFrameOptions:       "SAMEORIGIN",
+	XContentTypeOptions: "nosniff",
 }
 
 var (
@@ -153,6 +155,8 @@ func loadSecurityFrom(rootCfg ConfigProvider) {
 	} else {
 		Security.XFrameOptions = rootCfg.Section("cors").Key("X_FRAME_OPTIONS").MustString(Security.XFrameOptions)
 	}
+
+	Security.XContentTypeOptions = sec.Key("X_CONTENT_TYPE_OPTIONS").MustString(Security.XContentTypeOptions)
 
 	twoFactorAuth := sec.Key("TWO_FACTOR_AUTH").String()
 	switch twoFactorAuth {

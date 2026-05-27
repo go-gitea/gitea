@@ -6,13 +6,12 @@ package v1_13
 import (
 	"fmt"
 
-	"code.gitea.io/gitea/models/migrations/base"
-	"code.gitea.io/gitea/modules/setting"
-
-	"xorm.io/xorm"
+	"gitea.dev/models/db"
+	"gitea.dev/models/migrations/base"
+	"gitea.dev/modules/setting"
 )
 
-func FixLanguageStatsToSaveSize(x *xorm.Engine) error {
+func FixLanguageStatsToSaveSize(x db.EngineMigration) error {
 	// LanguageStat see models/repo_language_stats.go
 	type LanguageStat struct {
 		Size int64 `xorm:"NOT NULL DEFAULT 0"`

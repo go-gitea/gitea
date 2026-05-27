@@ -12,24 +12,18 @@ import (
 	"io"
 	"time"
 
-	auth_model "code.gitea.io/gitea/models/auth"
-	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/timeutil"
-	"code.gitea.io/gitea/modules/util"
+	auth_model "gitea.dev/models/auth"
+	"gitea.dev/modules/log"
+	"gitea.dev/modules/timeutil"
+	"gitea.dev/modules/util"
 )
 
-func generateSaltedToken() (string, string, string, string, error) {
-	salt, err := util.CryptoRandomString(10)
-	if err != nil {
-		return "", "", "", "", err
-	}
-	buf, err := util.CryptoRandomBytes(20)
-	if err != nil {
-		return "", "", "", "", err
-	}
+func generateSaltedToken() (string, string, string, string) {
+	salt := util.CryptoRandomString(10)
+	buf := util.CryptoRandomBytes(20)
 	token := hex.EncodeToString(buf)
 	hash := auth_model.HashToken(token, salt)
-	return token, salt, hash, token[len(token)-8:], nil
+	return token, salt, hash, token[len(token)-8:]
 }
 
 /*

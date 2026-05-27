@@ -17,20 +17,20 @@ import (
 	"strings"
 	"sync"
 
-	"code.gitea.io/gitea/models/db"
-	"code.gitea.io/gitea/models/unit"
-	user_model "code.gitea.io/gitea/models/user"
-	"code.gitea.io/gitea/modules/base"
-	"code.gitea.io/gitea/modules/git"
-	giturl "code.gitea.io/gitea/modules/git/url"
-	"code.gitea.io/gitea/modules/httplib"
-	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/markup"
-	"code.gitea.io/gitea/modules/optional"
-	"code.gitea.io/gitea/modules/setting"
-	api "code.gitea.io/gitea/modules/structs"
-	"code.gitea.io/gitea/modules/timeutil"
-	"code.gitea.io/gitea/modules/util"
+	"gitea.dev/models/db"
+	"gitea.dev/models/unit"
+	user_model "gitea.dev/models/user"
+	"gitea.dev/modules/base"
+	"gitea.dev/modules/git"
+	giturl "gitea.dev/modules/git/url"
+	"gitea.dev/modules/httplib"
+	"gitea.dev/modules/log"
+	"gitea.dev/modules/markup"
+	"gitea.dev/modules/optional"
+	"gitea.dev/modules/setting"
+	api "gitea.dev/modules/structs"
+	"gitea.dev/modules/timeutil"
+	"gitea.dev/modules/util"
 
 	"xorm.io/builder"
 )
@@ -376,8 +376,9 @@ func (repo *Repository) CommitLink(commitID string) (result string) {
 }
 
 // APIURL returns the repository API URL
-func (repo *Repository) APIURL() string {
-	return setting.AppURL + "api/v1/repos/" + url.PathEscape(repo.OwnerName) + "/" + url.PathEscape(repo.Name)
+func (repo *Repository) APIURL(ctxOpt ...context.Context) string {
+	ctx := util.OptionalArg(ctxOpt, context.TODO())
+	return httplib.MakeAbsoluteURL(ctx, setting.AppSubURL+"/api/v1/repos/"+url.PathEscape(repo.OwnerName)+"/"+url.PathEscape(repo.Name))
 }
 
 // GetCommitsCountCacheKey returns cache key used for commits count caching.

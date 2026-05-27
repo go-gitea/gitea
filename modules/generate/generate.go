@@ -11,7 +11,7 @@ import (
 	"io"
 	"time"
 
-	"code.gitea.io/gitea/modules/util"
+	"gitea.dev/modules/util"
 
 	"github.com/golang-jwt/jwt/v5"
 )
@@ -65,10 +65,5 @@ func NewJwtSecretWithBase64() ([]byte, string) {
 
 // NewSecretKey generate a new value intended to be used by SECRET_KEY.
 func NewSecretKey() (string, error) {
-	secretKey, err := util.CryptoRandomString(64)
-	if err != nil {
-		return "", err
-	}
-
-	return secretKey, nil
+	return util.CryptoRandomString(64), nil
 }

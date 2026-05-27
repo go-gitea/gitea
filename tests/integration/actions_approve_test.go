@@ -11,12 +11,12 @@ import (
 	"testing"
 	"time"
 
-	actions_model "code.gitea.io/gitea/models/actions"
-	auth_model "code.gitea.io/gitea/models/auth"
-	repo_model "code.gitea.io/gitea/models/repo"
-	"code.gitea.io/gitea/models/unittest"
-	user_model "code.gitea.io/gitea/models/user"
-	api "code.gitea.io/gitea/modules/structs"
+	actions_model "gitea.dev/models/actions"
+	auth_model "gitea.dev/models/auth"
+	repo_model "gitea.dev/models/repo"
+	"gitea.dev/models/unittest"
+	user_model "gitea.dev/models/user"
+	api "gitea.dev/modules/structs"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -70,8 +70,7 @@ jobs:
 				Name: new("approve-all-runs-fork"),
 			}).AddTokenAuth(user4Token)
 		resp := MakeRequest(t, req, http.StatusAccepted)
-		var apiForkRepo api.Repository
-		DecodeJSON(t, resp, &apiForkRepo)
+		apiForkRepo := DecodeJSON(t, resp, &api.Repository{})
 		forkRepo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: apiForkRepo.ID})
 		user4APICtx := NewAPITestContext(t, user4.Name, forkRepo.Name, auth_model.AccessTokenScopeWriteRepository)
 		defer doAPIDeleteRepository(user4APICtx)(t)

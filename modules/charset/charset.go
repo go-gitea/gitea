@@ -12,8 +12,8 @@ import (
 	"unicode"
 	"unicode/utf8"
 
-	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/modules/util"
+	"gitea.dev/modules/setting"
+	"gitea.dev/modules/util"
 
 	"github.com/gogs/chardet"
 	"golang.org/x/net/html/charset"
@@ -89,7 +89,10 @@ func ToUTF8(content []byte, opts ConvertOpts) []byte {
 	encoding, _ := charset.Lookup(charsetLabel)
 	if encoding == nil {
 		setting.PanicInDevOrTesting("unsupported detected charset %q, it shouldn't happen", charsetLabel)
-		return content
+		if opts.ErrorReturnOrigin {
+			return content
+		}
+		return bytes.ToValidUTF8(content, opts.ErrorReplacement)
 	}
 
 	var decoded []byte

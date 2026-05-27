@@ -10,13 +10,11 @@ import (
 	"strconv"
 	"strings"
 
-	"code.gitea.io/gitea/modules/json"
-	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/setting"
-	api "code.gitea.io/gitea/modules/structs"
-	webhook_module "code.gitea.io/gitea/modules/webhook"
-
-	"xorm.io/xorm"
+	"gitea.dev/models/db"
+	"gitea.dev/modules/json"
+	"gitea.dev/modules/log"
+	"gitea.dev/modules/setting"
+	webhook_module "gitea.dev/modules/webhook"
 )
 
 const (
@@ -59,6 +57,29 @@ type migrationCommitStatus struct {
 	TargetURL string
 }
 
+// Frozen subsets of modules/structs payload types, decoded from stored
+// action_run.event_payload values. Inlined so the migration is insulated
+// from future field changes in modules/structs.
+type migrationPayloadCommit struct {
+	ID string `json:"id"`
+}
+
+type migrationPushPayload struct {
+	HeadCommit *migrationPayloadCommit `json:"head_commit"`
+}
+
+type migrationPRBranchInfo struct {
+	Sha string `json:"sha"`
+}
+
+type migrationPullRequest struct {
+	Head *migrationPRBranchInfo `json:"head"`
+}
+
+type migrationPullRequestPayload struct {
+	PullRequest *migrationPullRequest `json:"pull_request"`
+}
+
 type commitSHAAndRuns struct {
 	commitSHA string
 	runs      map[int64]*migrationActionRun
@@ -70,7 +91,7 @@ type commitSHAAndRuns struct {
 // Only rows whose resolved run ID is below legacyURLIDThreshold are rewritten.
 // This is because smaller legacy run indexes are more likely to collide with run ID URLs during runtime resolution,
 // so this migration prioritizes that lower range and leaves the remaining legacy target URLs to the web compatibility logic.
-func FixCommitStatusTargetURLToUseRunAndJobID(x *xorm.Engine) error {
+func FixCommitStatusTargetURLToUseRunAndJobID(x db.EngineMigration) error {
 	jobsByRunIDCache := make(map[int64][]int64)
 	repoLinkCache := make(map[int64]string)
 	groups, err := loadLegacyMigrationRunGroups(x)
@@ -91,7 +112,7 @@ func FixCommitStatusTargetURLToUseRunAndJobID(x *xorm.Engine) error {
 	return nil
 }
 
-func loadLegacyMigrationRunGroups(x *xorm.Engine) (map[int64]map[string]*commitSHAAndRuns, error) {
+func loadLegacyMigrationRunGroups(x db.EngineMigration) (map[int64]map[string]*commitSHAAndRuns, error) {
 	var runs []migrationActionRun
 	if err := x.Table("action_run").
 		Where("id < ?", legacyURLIDThreshold).
@@ -127,7 +148,7 @@ func loadLegacyMigrationRunGroups(x *xorm.Engine) (map[int64]map[string]*commitS
 }
 
 func migrateCommitStatusTargetURLForGroup(
-	x *xorm.Engine,
+	x db.EngineMigration,
 	table string,
 	repoID int64,
 	sha string,
@@ -188,7 +209,7 @@ func migrateCommitStatusTargetURLForGroup(
 	return nil
 }
 
-func getRepoLinkCached(x *xorm.Engine, cache map[int64]string, repoID int64) (string, error) {
+func getRepoLinkCached(x db.EngineMigration, cache map[int64]string, repoID int64) (string, error) {
 	if link, ok := cache[repoID]; ok {
 		return link, nil
 	}
@@ -206,7 +227,7 @@ func getRepoLinkCached(x *xorm.Engine, cache map[int64]string, repoID int64) (st
 	return link, nil
 }
 
-func getJobIDByIndexCached(x *xorm.Engine, cache map[int64][]int64, runID, jobIndex int64) (int64, bool, error) {
+func getJobIDByIndexCached(x db.EngineMigration, cache map[int64][]int64, runID, jobIndex int64) (int64, bool, error) {
 	jobIDs, ok := cache[runID]
 	if !ok {
 		var jobs []migrationActionRunJob
@@ -292,22 +313,22 @@ func getCommitStatusCommitID(run *migrationActionRun) (string, error) {
 	}
 }
 
-func getPushEventPayload(run *migrationActionRun) (*api.PushPayload, error) {
+func getPushEventPayload(run *migrationActionRun) (*migrationPushPayload, error) {
 	if run.Event != webhook_module.HookEventPush {
 		return nil, fmt.Errorf("event %s is not a push event", run.Event)
 	}
-	var payload api.PushPayload
+	var payload migrationPushPayload
 	if err := json.Unmarshal([]byte(run.EventPayload), &payload); err != nil {
 		return nil, err
 	}
 	return &payload, nil
 }
 
-func getPullRequestEventPayload(run *migrationActionRun) (*api.PullRequestPayload, error) {
+func getPullRequestEventPayload(run *migrationActionRun) (*migrationPullRequestPayload, error) {
 	if !run.Event.IsPullRequest() && !run.Event.IsPullRequestReview() {
 		return nil, fmt.Errorf("event %s is not a pull request event", run.Event)
 	}
-	var payload api.PullRequestPayload
+	var payload migrationPullRequestPayload
 	if err := json.Unmarshal([]byte(run.EventPayload), &payload); err != nil {
 		return nil, err
 	}

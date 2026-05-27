@@ -8,10 +8,10 @@ import (
 	"testing"
 	"time"
 
-	repo_model "code.gitea.io/gitea/models/repo"
-	"code.gitea.io/gitea/models/unittest"
-	"code.gitea.io/gitea/modules/git"
-	"code.gitea.io/gitea/modules/setting"
+	repo_model "gitea.dev/models/repo"
+	"gitea.dev/models/unittest"
+	"gitea.dev/modules/git"
+	"gitea.dev/modules/setting"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -145,7 +145,7 @@ func TestCommitToPushCommit(t *testing.T) {
 		ID:            sha1,
 		Author:        sig,
 		Committer:     sig,
-		CommitMessage: "Commit Message",
+		CommitMessage: git.CommitMessage{MessageRaw: "Commit Message"},
 	})
 	assert.Equal(t, hexString, pushCommit.Sha1)
 	assert.Equal(t, "Commit Message", pushCommit.Message)
@@ -176,13 +176,13 @@ func TestListToPushCommits(t *testing.T) {
 			ID:            hash1,
 			Author:        sig,
 			Committer:     sig,
-			CommitMessage: "Message1",
+			CommitMessage: git.CommitMessage{MessageRaw: "Message1"},
 		},
 		{
 			ID:            hash2,
 			Author:        sig,
 			Committer:     sig,
-			CommitMessage: "Message2",
+			CommitMessage: git.CommitMessage{MessageRaw: "Message2"},
 		},
 	}
 

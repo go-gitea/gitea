@@ -9,7 +9,7 @@ import (
 	"strings"
 	"time"
 
-	"code.gitea.io/gitea/modules/json"
+	"gitea.dev/modules/json"
 )
 
 // ErrInvalidReceiveHook FIXME
@@ -434,6 +434,10 @@ type ChangesPayload struct {
 type PullRequestPayload struct {
 	// The action performed on the pull request
 	Action HookIssueAction `json:"action"`
+	// The SHA of the most recent commit on the PR head branch before the push
+	Before string `json:"before,omitempty"`
+	// The SHA of the most recent commit on the PR head branch after the push
+	After string `json:"after,omitempty"`
 	// The index number of the pull request
 	Index int64 `json:"number"`
 	// Changes made to the pull request (for edit actions)

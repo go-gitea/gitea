@@ -6,10 +6,10 @@ package v1_26
 import (
 	"fmt"
 
-	"xorm.io/xorm"
+	"gitea.dev/models/db"
 )
 
-func FixClosedMilestoneCompleteness(x *xorm.Engine) error {
+func FixClosedMilestoneCompleteness(x db.EngineMigration) error {
 	// Update all milestones to recalculate completeness with the new logic:
 	// - Closed milestones with 0 issues should show 100%
 	// - All other milestones should calculate based on closed/total ratio

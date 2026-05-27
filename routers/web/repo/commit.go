@@ -9,33 +9,32 @@ import (
 	"fmt"
 	"html/template"
 	"net/http"
-	"path"
 	"strings"
 
-	asymkey_model "code.gitea.io/gitea/models/asymkey"
-	"code.gitea.io/gitea/models/db"
-	git_model "code.gitea.io/gitea/models/git"
-	issues_model "code.gitea.io/gitea/models/issues"
-	"code.gitea.io/gitea/models/renderhelper"
-	repo_model "code.gitea.io/gitea/models/repo"
-	unit_model "code.gitea.io/gitea/models/unit"
-	user_model "code.gitea.io/gitea/models/user"
-	"code.gitea.io/gitea/modules/base"
-	"code.gitea.io/gitea/modules/charset"
-	"code.gitea.io/gitea/modules/fileicon"
-	"code.gitea.io/gitea/modules/git"
-	"code.gitea.io/gitea/modules/gitrepo"
-	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/markup"
-	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/modules/templates"
-	"code.gitea.io/gitea/modules/util"
-	asymkey_service "code.gitea.io/gitea/services/asymkey"
-	"code.gitea.io/gitea/services/context"
-	git_service "code.gitea.io/gitea/services/git"
-	"code.gitea.io/gitea/services/gitdiff"
-	repo_service "code.gitea.io/gitea/services/repository"
-	"code.gitea.io/gitea/services/repository/gitgraph"
+	asymkey_model "gitea.dev/models/asymkey"
+	"gitea.dev/models/db"
+	git_model "gitea.dev/models/git"
+	issues_model "gitea.dev/models/issues"
+	"gitea.dev/models/renderhelper"
+	repo_model "gitea.dev/models/repo"
+	unit_model "gitea.dev/models/unit"
+	user_model "gitea.dev/models/user"
+	"gitea.dev/modules/base"
+	"gitea.dev/modules/charset"
+	"gitea.dev/modules/fileicon"
+	"gitea.dev/modules/git"
+	"gitea.dev/modules/gitrepo"
+	"gitea.dev/modules/log"
+	"gitea.dev/modules/markup"
+	"gitea.dev/modules/setting"
+	"gitea.dev/modules/templates"
+	"gitea.dev/modules/util"
+	asymkey_service "gitea.dev/services/asymkey"
+	"gitea.dev/services/context"
+	git_service "gitea.dev/services/git"
+	"gitea.dev/services/gitdiff"
+	repo_service "gitea.dev/services/repository"
+	"gitea.dev/services/repository/gitgraph"
 )
 
 const (
@@ -97,8 +96,6 @@ func Commits(ctx *context.Context) {
 	} else {
 		ctx.Data["CommitsTagsMap"] = commitsTagsMap
 	}
-	ctx.Data["Username"] = ctx.Repo.Owner.Name
-	ctx.Data["Reponame"] = ctx.Repo.Repository.Name
 	ctx.Data["CommitCount"] = commitsCount
 
 	pager := context.NewPagination(commitsCount, pageSize, page, 5)
@@ -164,9 +161,6 @@ func Graph(ctx *context.Context) {
 
 	ctx.Data["AllRefs"] = gitRefs
 
-	ctx.Data["Username"] = ctx.Repo.Owner.Name
-	ctx.Data["Reponame"] = ctx.Repo.Repository.Name
-
 	divOnly := ctx.FormBool("div-only")
 	queryParams := ctx.Req.URL.Query()
 	queryParams.Del("div-only")
@@ -210,8 +204,6 @@ func SearchCommits(ctx *context.Context) {
 	if all {
 		ctx.Data["All"] = true
 	}
-	ctx.Data["Username"] = ctx.Repo.Owner.Name
-	ctx.Data["Reponame"] = ctx.Repo.Repository.Name
 	ctx.HTML(http.StatusOK, tplCommits)
 }
 
@@ -249,8 +241,6 @@ func FileHistory(ctx *context.Context) {
 		return
 	}
 
-	ctx.Data["Username"] = ctx.Repo.Owner.Name
-	ctx.Data["Reponame"] = ctx.Repo.Repository.Name
 	ctx.Data["FileTreePath"] = ctx.Repo.TreePath
 	ctx.Data["CommitCount"] = commitsCount
 
@@ -322,7 +312,7 @@ func Diff(ctx *context.Context) {
 		MaxLines:           maxLines,
 		MaxLineCharacters:  setting.Git.MaxGitDiffLineCharacters,
 		MaxFiles:           maxFiles,
-		WhitespaceBehavior: gitdiff.GetWhitespaceFlag(ctx.Data["WhitespaceBehavior"].(string)),
+		WhitespaceBehavior: gitdiff.GetWhitespaceFlag(GetWhitespaceBehavior(ctx)),
 	}, files...)
 	if err != nil {
 		ctx.NotFound(err)
@@ -347,8 +337,6 @@ func Diff(ctx *context.Context) {
 
 	ctx.Data["CommitID"] = commitID
 	ctx.Data["AfterCommitID"] = commitID
-	ctx.Data["Username"] = userName
-	ctx.Data["Reponame"] = repoName
 
 	var parentCommit *git.Commit
 	var parentCommitID string
@@ -361,7 +349,7 @@ func Diff(ctx *context.Context) {
 		parentCommitID = parentCommit.ID.String()
 	}
 	setCompareContext(ctx, parentCommit, commit, userName, repoName)
-	ctx.Data["Title"] = commit.Summary() + " · " + base.ShortSha(commitID)
+	ctx.Data["Title"] = commit.MessageTitle() + " · " + base.ShortSha(commitID)
 	ctx.Data["Commit"] = commit
 	ctx.Data["Diff"] = diff
 	ctx.Data["DiffBlobExcerptData"] = diffBlobExcerptData
@@ -384,7 +372,7 @@ func Diff(ctx *context.Context) {
 	if err != nil {
 		log.Error("GetLatestCommitStatus: %v", err)
 	}
-	if !ctx.Repo.CanRead(unit_model.TypeActions) {
+	if !ctx.Repo.Permission.CanRead(unit_model.TypeActions) {
 		git_model.CommitStatusesHideActionsURL(ctx, statuses)
 	}
 
@@ -409,7 +397,7 @@ func Diff(ctx *context.Context) {
 	if err == nil {
 		ctx.Data["NoteCommit"] = note.Commit
 		ctx.Data["NoteAuthor"] = user_model.ValidateCommitWithEmail(ctx, note.Commit)
-		rctx := renderhelper.NewRenderContextRepoComment(ctx, ctx.Repo.Repository, renderhelper.RepoCommentOptions{CurrentRefPath: path.Join("commit", util.PathEscapeSegments(commitID))})
+		rctx := renderhelper.NewRenderContextRepoComment(ctx, ctx.Repo.Repository, renderhelper.RepoCommentOptions{CurrentRefSubURL: "commit/" + util.PathEscapeSegments(commitID)})
 		htmlMessage := template.HTML(template.HTMLEscapeString(string(charset.ToUTF8WithFallback(note.Message, charset.ConvertOpts{}))))
 		ctx.Data["NoteRendered"], err = markup.PostProcessCommitMessage(rctx, htmlMessage)
 		if err != nil {
@@ -466,7 +454,7 @@ func processGitCommits(ctx *context.Context, gitCommits []*git.Commit) ([]*git_m
 	if err != nil {
 		return nil, err
 	}
-	if !ctx.Repo.CanRead(unit_model.TypeActions) {
+	if !ctx.Repo.Permission.CanRead(unit_model.TypeActions) {
 		for _, commit := range commits {
 			if commit.Status == nil {
 				continue

@@ -7,11 +7,11 @@ import (
 	"context"
 	"fmt"
 
-	"code.gitea.io/gitea/models/db"
-	project_model "code.gitea.io/gitea/models/project"
-	repo_model "code.gitea.io/gitea/models/repo"
-	user_model "code.gitea.io/gitea/models/user"
-	"code.gitea.io/gitea/modules/container"
+	"gitea.dev/models/db"
+	project_model "gitea.dev/models/project"
+	repo_model "gitea.dev/models/repo"
+	user_model "gitea.dev/models/user"
+	"gitea.dev/modules/container"
 
 	"xorm.io/builder"
 )
@@ -185,7 +185,7 @@ func (issues IssueList) LoadMilestones(ctx context.Context) error {
 
 func (issues IssueList) LoadProjects(ctx context.Context) error {
 	issueIDs := issues.getIssueIDs()
-	projectMaps := make(map[int64]*project_model.Project, len(issues))
+	issueProjectMaps := make(map[int64][]*project_model.Project, len(issues))
 	left := len(issueIDs)
 
 	type projectWithIssueID struct {
@@ -202,19 +202,21 @@ func (issues IssueList) LoadProjects(ctx context.Context) error {
 			Select("project.*, project_issue.issue_id").
 			Join("INNER", "project_issue", "project.id = project_issue.project_id").
 			In("project_issue.issue_id", issueIDs[:limit]).
+			OrderBy("project_issue.issue_id ASC, project.id ASC").
 			Find(&projects)
 		if err != nil {
 			return err
 		}
 		for _, project := range projects {
-			projectMaps[project.IssueID] = project.Project
+			issueProjectMaps[project.IssueID] = append(issueProjectMaps[project.IssueID], project.Project)
 		}
 		left -= limit
 		issueIDs = issueIDs[limit:]
 	}
 
 	for _, issue := range issues {
-		issue.Project = projectMaps[issue.ID]
+		issue.Projects = issueProjectMaps[issue.ID]
+		issue.isProjectsLoaded = true
 	}
 	return nil
 }

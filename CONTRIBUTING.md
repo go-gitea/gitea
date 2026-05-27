@@ -139,11 +139,11 @@ Here's how to run the test suite:
 
 - run tests (we suggest running them on Linux)
 
-|  Command                                    | Action                                                   |                                             |
-| :------------------------------------------ | :------------------------------------------------------- | ------------------------------------------- |
-|``make test[\#SpecificTestName]``            |  run unit test(s)                                        |                                             |
-|``make test-sqlite[\#SpecificTestName]``     |  run [integration](tests/integration) test(s) for SQLite | [More details](tests/integration/README.md) |
-|``make test-e2e``                            |  run [end-to-end](tests/e2e) test(s) using Playwright    |                                             |
+| Command                                       | Action                                               |                                             |
+|:----------------------------------------------|:-----------------------------------------------------| ------------------------------------------- |
+| ``make test-backend[\#SpecificTestName]``     | run unit test(s)                                     |                                             |
+| ``make test-integration[\#SpecificTestName]`` | run [integration](tests/integration) test(s)         | [More details](tests/integration/README.md) |
+| ``make test-e2e``                             | run [end-to-end](tests/e2e) test(s) using Playwright |                                             |
 
 - E2E test environment variables
 
@@ -151,7 +151,7 @@ Here's how to run the test suite:
 | :-------------------------------- | :---------------------------------------------------------- |
 | ``GITEA_TEST_E2E_DEBUG``          | When set, show Gitea server output                          |
 | ``GITEA_TEST_E2E_FLAGS``          | Additional flags passed to Playwright, for example ``--ui`` |
-| ``GITEA_TEST_E2E_TIMEOUT_FACTOR`` | Timeout multiplier (default: 3 on CI, 1 locally)            |
+| ``GITEA_TEST_E2E_TIMEOUT_FACTOR`` | Timeout multiplier (default: 4 on CI, 1 locally)            |
 
 ## Translation
 
@@ -189,6 +189,38 @@ In the PR title, describe the problem you are fixing, not how you are fixing it.
 Use the first comment as a summary of your PR. \
 In the PR summary, you can describe exactly how you are fixing this problem.
 
+PR titles must follow the [Conventional Commits](https://www.conventionalcommits.org/) format, because PRs are squash-merged and the PR title becomes the resulting commit message:
+
+```text
+type(scope)!: subject
+```
+
+The scope in parentheses is optional. A `!` immediately before the colon marks a [breaking change](https://www.conventionalcommits.org/en/v1.0.0/#summary): either `type!:` or `type(scope)!:` (not `type!(scope):`).
+
+Use one of these types:
+
+- `build`: Changes affecting the build system, packaging, or external dependencies
+- `ci`: Changes to CI/CD configuration files and scripts
+- `chore`: Maintenance changes that do not affect production code or should not appear in the changelog
+- `docs`: Documentation-only changes
+- `feat`: A larger user-facing feature, improvement, or new functionality
+- `enhance`: Small or trivial user-facing improvements or UX polish (for example wording changes, color adjustments, spacing or padding tweaks, placeholders, small UI behavior improvements)
+- `fix`: A bug fix, UX correction, or security-related dependency update
+- `perf`: Performance improvements (speed, memory, scalability)
+- `refactor`: A code change that neither fixes a bug nor adds a feature
+- `revert`: Reverts a previous change
+- `style`: Formatting or style-only changes that do not affect code behavior (for example lint-driven edits)
+- `test`: Adding or correcting tests
+
+Examples:
+
+```text
+fix(web): prevent avatar upload crash on empty file
+feat(api): add pagination to repo hooks list
+enhance(repo): improve diff toolbar spacing
+ci(workflows): lint PR titles in CI
+```
+
 Keep this summary up-to-date as the PR evolves. \
 If your PR changes the UI, you must add **after** screenshots in the PR summary. \
 If you are not implementing a new feature, you should also post **before** screenshots for comparison.
@@ -200,6 +232,10 @@ You should strive to combine both into a single description.
 Another requirement for merging PRs is that the PR is labeled correctly.\
 However, this is not your job as a contributor, but the job of the person merging your PR.\
 If you think that your PR was labeled incorrectly, or notice that it was merged without labels, please let us know.
+
+For pull requests that use a valid Conventional Commits title, CI automatically applies a matching `type/…` label when the title prefix is `feat`, `enhance`, `fix`, `docs`, or `test` (for example `enhance(web): …` receives `type/enhancement`).\
+That label is kept in sync with the PR title when the title is edited.\
+Other title prefixes do not get an automatic `type/…` label; the merger still assigns the correct labels (including `type/…` when needed) for changelog and backport decisions.
 
 If your PR closes some issues, you must note that in a way that both GitHub and Gitea understand, i.e. by appending a paragraph like
 
