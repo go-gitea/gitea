@@ -20,7 +20,6 @@ import (
 	"gitea.dev/services/context"
 	"gitea.dev/services/externalaccount"
 	"gitea.dev/services/forms"
-	user_service "gitea.dev/services/user"
 )
 
 var tplLinkAccount templates.TplName = "user/auth/link_account"
@@ -247,8 +246,6 @@ func LinkAccountPostRegister(ctx *context.Context) {
 	}
 	source := authSource.Cfg.(*oauth2.Source)
 
-	isAdmin, isRestricted := getUserAdminAndRestrictedFromGroupClaims(source, &linkAccountData.GothUser)
-
 	u := &user_model.User{
 		Name:        form.UserName,
 		Email:       form.Email,
@@ -256,15 +253,9 @@ func LinkAccountPostRegister(ctx *context.Context) {
 		LoginType:   auth.OAuth2,
 		LoginSource: linkAccountData.AuthSourceID,
 		LoginName:   linkAccountData.GothUser.UserID,
-		IsAdmin:     isAdmin.ValueOrDefault(user_service.UpdateOptionField[bool]{FieldValue: false}).FieldValue,
-	}
-	// creating user doesn't take into account restricted status from the model
-	// it needs to be passed as override
-	override := &user_model.CreateUserOverwriteOptions{
-		IsRestricted: isRestricted,
 	}
 
-	if !createAndHandleCreatedUser(ctx, tplLinkAccount, form, u, override, linkAccountData) {
+	if !createAndHandleCreatedUser(ctx, tplLinkAccount, form, u, nil, linkAccountData) {
 		// error already handled
 		return
 	}
