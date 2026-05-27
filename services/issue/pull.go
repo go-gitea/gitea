@@ -151,7 +151,7 @@ func HasAllRequiredCodeownerReviews(ctx context.Context, pb *git_model.Protected
 		Dismissed:    optional.Some(false),
 	})
 	if err != nil {
-		log.Warn("Failed to get approving reviews for PR review %s, error: %s", pr.ID, err)
+		log.Warn("Failed to get approving reviews for PR review %d, error: %v", pr.ID, err)
 		return false
 	}
 
@@ -166,28 +166,40 @@ func HasAllRequiredCodeownerReviews(ctx context.Context, pb *git_model.Protected
 	}
 
 	hasApprovals := true
+	teamMembersByID := make(map[int64][]*user_model.User)
 
 	for _, rule := range matchingRules {
-		ruleReviewers := slices.Clone(rule.Users)
-		for _, t := range rule.Teams {
-			if err := t.LoadMembers(ctx); err != nil {
-				return false
+		ruleReviewers := make([]*user_model.User, 0, len(rule.Users))
+		for _, u := range rule.Users {
+			if u.ID != pr.Issue.PosterID {
+				ruleReviewers = append(ruleReviewers, u)
 			}
-
-			ruleReviewers = slices.AppendSeq(ruleReviewers, slices.Values(t.Members))
+		}
+		for _, t := range rule.Teams {
+			members, ok := teamMembersByID[t.ID]
+			if !ok {
+				if err := t.LoadMembers(ctx); err != nil {
+					return false
+				}
+				members = t.Members
+				teamMembersByID[t.ID] = members
+			}
+			for _, m := range members {
+				if m.ID != pr.Issue.PosterID {
+					ruleReviewers = append(ruleReviewers, m)
+				}
+			}
 		}
 
-		// we need at least 1 code owner that isn't the PR author
-		hasPotentialReviewers := slices.ContainsFunc(ruleReviewers, func(elem *user_model.User) bool { return elem.ID != pr.Issue.PosterID })
-
-		if !hasPotentialReviewers {
+		// the rule needs at least 1 code owner that isn't the PR author
+		if len(ruleReviewers) == 0 {
 			continue
 		}
 
-		// then we need at least 1 approving review from any valid code owner for this rule
+		// and at least 1 approving review from one of them
 		hasRuleApproval := slices.ContainsFunc(ruleReviewers, func(elem *user_model.User) bool {
 			return slices.ContainsFunc(approvingReviews, func(review *issues_model.Review) bool {
-				return review.ReviewerID == elem.ID
+				return review.ReviewerID == elem.ID && review.Type == issues_model.ReviewTypeApprove
 			})
 		})
 
