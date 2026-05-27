@@ -54,7 +54,7 @@ func TestMigrateAzureADV2ToOIDC(t *testing.T) {
 	)
 
 	// The fake OIDC server issues tokens containing both sub and oid claims, mirroring what Azure AD v2.0 returns.
-	srv := newFakeOIDCServer(t, subValue, oidValue)
+	srv := newFakeOIDCServer(t, FakeOIDCConfig{Sub: subValue, OID: oidValue})
 
 	// --- Step 1: Establish the legacy Azure AD V2 state ---
 	// Create an azureadv2 auth source. In production this would have been the source used before the migration.
@@ -130,9 +130,27 @@ func TestMigrateAzureADV2ToOIDC(t *testing.T) {
 	})
 }
 
-// newFakeOIDCServer starts an httptest.Server that implements the minimum OIDC endpoints needed to complete a sign-in flow:
-func newFakeOIDCServer(t *testing.T, sub, oid string) *httptest.Server {
+// newFakeOIDCServer starts a httptest.Server that implements the minimum OIDC endpoints needed to complete a sign-in flow
+// FakeOIDCConfig holds configuration for the fake OIDC server used in tests.
+type FakeOIDCConfig struct {
+	Sub    string
+	OID    string
+	Email  string
+	Name   string
+	Groups []string
+}
+
+// newFakeOIDCServer starts an httptest.Server that implements the minimum OIDC endpoints needed to complete a sign-in flow
+func newFakeOIDCServer(t *testing.T, cfg FakeOIDCConfig) *httptest.Server {
 	t.Helper()
+
+	// Set defaults for backward compatibility with existing tests
+	if cfg.Email == "" {
+		cfg.Email = cfg.Sub + "@example.com"
+	}
+	if cfg.Name == "" {
+		cfg.Name = "OIDC Test User"
+	}
 
 	var srv *httptest.Server
 	srv = httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -145,13 +163,21 @@ func newFakeOIDCServer(t *testing.T, sub, oid string) *httptest.Server {
 				"token_endpoint":         srv.URL + "/token",
 				"userinfo_endpoint":      srv.URL + "/userinfo",
 			})
-		case "/token": // returns an ID token with both "sub" and "oid" claims so tests can verify which one ends up as ExternalID
+		case "/token": // returns an ID token with claims so tests can verify which ones are used
+			// For backward compatibility: if OID is set, include it; otherwise just use sub
 			claims := map[string]any{
-				"iss": srv.URL,
-				"aud": "test-client-id",
-				"exp": time.Now().Add(time.Hour).Unix(),
-				"sub": sub,
-				"oid": oid,
+				"iss":   srv.URL,
+				"aud":   "test-client-id",
+				"exp":   time.Now().Add(time.Hour).Unix(),
+				"sub":   cfg.Sub,
+				"email": cfg.Email,
+				"name":  cfg.Name,
+			}
+			if cfg.OID != "" {
+				claims["oid"] = cfg.OID
+			}
+			if cfg.Groups != nil {
+				claims["groups"] = cfg.Groups
 			}
 			payload, _ := json.Marshal(claims)
 			header := base64.RawURLEncoding.EncodeToString([]byte(`{"alg":"none"}`))
@@ -167,11 +193,18 @@ func newFakeOIDCServer(t *testing.T, sub, oid string) *httptest.Server {
 			})
 		case "/userinfo":
 			// sub MUST match the id_token sub; goth rejects mismatches.
-			_ = json.NewEncoder(w).Encode(map[string]any{
-				"sub":   sub,
-				"email": sub + "@example.com",
-				"name":  "OIDC Test User",
-			})
+			response := map[string]any{
+				"sub":   cfg.Sub,
+				"email": cfg.Email,
+				"name":  cfg.Name,
+			}
+			if cfg.OID != "" {
+				response["oid"] = cfg.OID
+			}
+			if cfg.Groups != nil {
+				response["groups"] = cfg.Groups
+			}
+			_ = json.NewEncoder(w).Encode(response)
 		default:
 			http.NotFound(w, r)
 		}
@@ -200,61 +233,6 @@ func doOIDCSignIn(t *testing.T, sourceName string) {
 	session.MakeRequest(t, NewRequest(t, "GET", callbackURL), http.StatusSeeOther)
 }
 
-// newFakeOIDCServerWithGroups starts an httptest.Server that implements OIDC endpoints
-// with configurable group claims in both ID token and userinfo responses.
-func newFakeOIDCServerWithGroups(t *testing.T, sub, email, name string, groups []string) *httptest.Server {
-	t.Helper()
-
-	var srv *httptest.Server
-	srv = httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		w.Header().Set("Content-Type", "application/json")
-		switch r.URL.Path {
-		case "/.well-known/openid-configuration":
-			_ = json.NewEncoder(w).Encode(map[string]string{
-				"issuer":                 srv.URL,
-				"authorization_endpoint": srv.URL + "/authorize",
-				"token_endpoint":         srv.URL + "/token",
-				"userinfo_endpoint":      srv.URL + "/userinfo",
-			})
-		case "/token":
-			claims := map[string]any{
-				"iss":   srv.URL,
-				"aud":   "test-client-id",
-				"exp":   time.Now().Add(time.Hour).Unix(),
-				"sub":   sub,
-				"email": email,
-				"name":  name,
-			}
-			if groups != nil {
-				claims["groups"] = groups
-			}
-			payload, _ := json.Marshal(claims)
-			header := base64.RawURLEncoding.EncodeToString([]byte(`{"alg":"none"}`))
-			idToken := header + "." + base64.RawURLEncoding.EncodeToString(payload) + ".fakesig"
-
-			_ = json.NewEncoder(w).Encode(map[string]any{
-				"access_token": "fake-access-token",
-				"token_type":   "Bearer",
-				"id_token":     idToken,
-			})
-		case "/userinfo":
-			response := map[string]any{
-				"sub":   sub,
-				"email": email,
-				"name":  name,
-			}
-			if groups != nil {
-				response["groups"] = groups
-			}
-			_ = json.NewEncoder(w).Encode(response)
-		default:
-			http.NotFound(w, r)
-		}
-	}))
-	t.Cleanup(srv.Close)
-	return srv
-}
-
 // TestOAuth2GroupClaimsAppliedOnFirstLogin verifies that group claims from OAuth2/OIDC
 // are correctly applied to newly created users on first login, not just on subsequent logins.
 // This tests the fix for the issue where restricted/admin flags were only set on second login.
@@ -266,8 +244,12 @@ func TestOAuth2GroupClaimsAppliedOnFirstLogin(t *testing.T) {
 	defer test.MockVariableValue(&setting.OAuth2Client.Username, setting.OAuth2UsernameUserid)()
 
 	// Setup OIDC server with group claims
-	srv := newFakeOIDCServerWithGroups(t, "user123", "user123@example.com", "Test User",
-		[]string{"developers", "admins", "restricted-users"})
+	srv := newFakeOIDCServer(t, FakeOIDCConfig{
+		Sub:    "user123",
+		Email:  "user123@example.com",
+		Name:   "Test User",
+		Groups: []string{"developers", "admins", "restricted-users"},
+	})
 
 	sourceName := "test-group-claims"
 	addOAuth2Source(t, sourceName, oauth2.Source{
@@ -286,8 +268,12 @@ func TestOAuth2GroupClaimsAppliedOnFirstLogin(t *testing.T) {
 		defer test.MockVariableValue(&setting.OAuth2Client.Username, setting.OAuth2UsernameUserid)()
 
 		// Use a fresh server with groups
-		srv := newFakeOIDCServerWithGroups(t, "user-both-groups", "both@example.com", "Both Groups User",
-			[]string{"developers", "admins", "restricted-users"})
+		srv := newFakeOIDCServer(t, FakeOIDCConfig{
+			Sub:    "user-both-groups",
+			Email:  "both@example.com",
+			Name:   "Both Groups User",
+			Groups: []string{"developers", "admins", "restricted-users"},
+		})
 		addOAuth2Source(t, "test-both", oauth2.Source{
 			Provider:                      "openidConnect",
 			ClientID:                      "test-client-id",
@@ -312,8 +298,12 @@ func TestOAuth2GroupClaimsAppliedOnFirstLogin(t *testing.T) {
 		defer test.MockVariableValue(&setting.OAuth2Client.EnableAutoRegistration, true)()
 		defer test.MockVariableValue(&setting.OAuth2Client.Username, setting.OAuth2UsernameUserid)()
 
-		srv := newFakeOIDCServerWithGroups(t, "user-admin-only", "admin@example.com", "Admin Only User",
-			[]string{"developers", "admins"})
+		srv := newFakeOIDCServer(t, FakeOIDCConfig{
+			Sub:    "user-admin-only",
+			Email:  "admin@example.com",
+			Name:   "Admin Only User",
+			Groups: []string{"developers", "admins"},
+		})
 		addOAuth2Source(t, "test-admin-only", oauth2.Source{
 			Provider:                      "openidConnect",
 			ClientID:                      "test-client-id",
@@ -336,8 +326,12 @@ func TestOAuth2GroupClaimsAppliedOnFirstLogin(t *testing.T) {
 		defer test.MockVariableValue(&setting.OAuth2Client.EnableAutoRegistration, true)()
 		defer test.MockVariableValue(&setting.OAuth2Client.Username, setting.OAuth2UsernameUserid)()
 
-		srv := newFakeOIDCServerWithGroups(t, "user-restricted-only", "restricted@example.com", "Restricted Only User",
-			[]string{"developers", "restricted-users"})
+		srv := newFakeOIDCServer(t, FakeOIDCConfig{
+			Sub:    "user-restricted-only",
+			Email:  "restricted@example.com",
+			Name:   "Restricted Only User",
+			Groups: []string{"developers", "restricted-users"},
+		})
 		addOAuth2Source(t, "test-restricted-only", oauth2.Source{
 			Provider:                      "openidConnect",
 			ClientID:                      "test-client-id",
@@ -360,8 +354,12 @@ func TestOAuth2GroupClaimsAppliedOnFirstLogin(t *testing.T) {
 		defer test.MockVariableValue(&setting.OAuth2Client.EnableAutoRegistration, true)()
 		defer test.MockVariableValue(&setting.OAuth2Client.Username, setting.OAuth2UsernameUserid)()
 
-		srv := newFakeOIDCServerWithGroups(t, "user-neither-group", "neither@example.com", "Neither Group User",
-			[]string{"developers"})
+		srv := newFakeOIDCServer(t, FakeOIDCConfig{
+			Sub:    "user-neither-group",
+			Email:  "neither@example.com",
+			Name:   "Neither Group User",
+			Groups: []string{"developers"},
+		})
 		addOAuth2Source(t, "test-neither", oauth2.Source{
 			Provider:                      "openidConnect",
 			ClientID:                      "test-client-id",
@@ -386,7 +384,12 @@ func TestOAuth2GroupClaimsAppliedOnFirstLogin(t *testing.T) {
 		defer test.MockVariableValue(&setting.OAuth2Client.Username, setting.OAuth2UsernameUserid)()
 
 		// Server returns no groups claim
-		srv := newFakeOIDCServerWithGroups(t, "user-no-groups", "nogroups@example.com", "No Groups User", nil)
+		srv := newFakeOIDCServer(t, FakeOIDCConfig{
+			Sub:    "user-no-groups",
+			Email:  "nogroups@example.com",
+			Name:   "No Groups User",
+			Groups: nil,
+		})
 		addOAuth2Source(t, "test-no-groups", oauth2.Source{
 			Provider:                      "openidConnect",
 			ClientID:                      "test-client-id",
@@ -417,8 +420,12 @@ func TestOAuth2GroupClaimsManualLinking(t *testing.T) {
 		defer test.MockVariableValue(&setting.Service.AllowOnlyInternalRegistration, false)()
 
 		// Setup OIDC server with group claims - user is in both admin and restricted groups
-		srv := newFakeOIDCServerWithGroups(t, "manual-user", "manual@example.com", "Manual User",
-			[]string{"developers", "admins", "restricted-users"})
+		srv := newFakeOIDCServer(t, FakeOIDCConfig{
+			Sub:    "manual-user",
+			Email:  "manual@example.com",
+			Name:   "Manual User",
+			Groups: []string{"developers", "admins", "restricted-users"},
+		})
 
 		sourceName := "test-manual-linking"
 		addOAuth2Source(t, sourceName, oauth2.Source{
@@ -476,8 +483,12 @@ func TestOAuth2GroupClaimsManualLinking(t *testing.T) {
 		defer test.MockVariableValue(&setting.OAuth2Client.Username, setting.OAuth2UsernameUserid)()
 
 		// Setup OIDC server with group claims - user is in admin group
-		srv := newFakeOIDCServerWithGroups(t, "existing-user", "existing@example.com", "Existing User",
-			[]string{"restricted-users", "admins"})
+		srv := newFakeOIDCServer(t, FakeOIDCConfig{
+			Sub:    "existing-user",
+			Email:  "existing@example.com",
+			Name:   "Existing User",
+			Groups: []string{"restricted-users", "admins"},
+		})
 
 		sourceName := "test-manual-linking-existing"
 		addOAuth2Source(t, sourceName, oauth2.Source{
