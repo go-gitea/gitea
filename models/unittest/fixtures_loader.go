@@ -14,7 +14,7 @@ import (
 	"strings"
 	"sync"
 
-	"code.gitea.io/gitea/models/db"
+	"gitea.dev/models/db"
 
 	"gopkg.in/yaml.v3"
 	"xorm.io/xorm"

@@ -7,8 +7,8 @@ import (
 	"strconv"
 	"testing"
 
-	actions_model "code.gitea.io/gitea/models/actions"
-	"code.gitea.io/gitea/models/unittest"
+	actions_model "gitea.dev/models/actions"
+	"gitea.dev/models/unittest"
 
 	act_model "gitea.com/gitea/runner/act/model"
 	"github.com/stretchr/testify/assert"

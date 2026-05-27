@@ -4,7 +4,7 @@
 package feed
 
 import (
-	"code.gitea.io/gitea/services/context"
+	"gitea.dev/services/context"
 )
 
 // RenderBranchFeed render format for branch or file
