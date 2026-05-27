@@ -10,7 +10,7 @@ import (
 	"strings"
 
 	actions_model "gitea.dev/models/actions"
-	group_model "code.gitea.io/gitea/models/group"
+	group_model "gitea.dev/models/group"
 	repo_model "gitea.dev/models/repo"
 	user_model "gitea.dev/models/user"
 	"gitea.dev/modules/json"

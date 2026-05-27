@@ -9,7 +9,7 @@ import (
 	"strings"
 
 	asymkey_model "gitea.dev/models/asymkey"
-	group_model "code.gitea.io/gitea/models/group"
+	group_model "gitea.dev/models/group"
 	"gitea.dev/models/perm"
 	access_model "gitea.dev/models/perm/access"
 	repo_model "gitea.dev/models/repo"

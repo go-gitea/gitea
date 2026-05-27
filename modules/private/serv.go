@@ -13,7 +13,7 @@ import (
 	"gitea.dev/models/perm"
 	user_model "gitea.dev/models/user"
 	"gitea.dev/modules/setting"
-	"code.gitea.io/gitea/modules/util"
+	"gitea.dev/modules/util"
 )
 
 // KeyAndOwner is the response from ServNoCommand

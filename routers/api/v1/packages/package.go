@@ -7,7 +7,7 @@ import (
 	"errors"
 	"net/http"
 
-	group_model "code.gitea.io/gitea/models/group"
+	group_model "gitea.dev/models/group"
 	"gitea.dev/models/packages"
 	repo_model "gitea.dev/models/repo"
 	"gitea.dev/modules/optional"
