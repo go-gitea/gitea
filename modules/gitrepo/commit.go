@@ -9,8 +9,8 @@ import (
 	"strings"
 	"time"
 
-	"code.gitea.io/gitea/modules/git"
-	"code.gitea.io/gitea/modules/git/gitcmd"
+	"gitea.dev/modules/git"
+	"gitea.dev/modules/git/gitcmd"
 )
 
 // CommitsCountOptions the options when counting commits

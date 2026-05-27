@@ -7,8 +7,8 @@ import (
 	"bytes"
 	"testing"
 
-	repo_model "code.gitea.io/gitea/models/repo"
-	"code.gitea.io/gitea/modules/git"
+	repo_model "gitea.dev/models/repo"
+	"gitea.dev/modules/git"
 
 	"github.com/stretchr/testify/require"
 )

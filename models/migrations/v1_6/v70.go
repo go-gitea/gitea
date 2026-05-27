@@ -7,8 +7,8 @@ import (
 	"fmt"
 	"time"
 
-	"code.gitea.io/gitea/models/db"
-	"code.gitea.io/gitea/modules/setting"
+	"gitea.dev/models/db"
+	"gitea.dev/modules/setting"
 )
 
 func AddIssueDependencies(x db.EngineMigration) (err error) {
