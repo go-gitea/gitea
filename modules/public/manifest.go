@@ -13,6 +13,7 @@ import (
 	"gitea.dev/modules/json"
 	"gitea.dev/modules/log"
 	"gitea.dev/modules/setting"
+	"strings"
 )
 
 type manifestEntry struct {
@@ -62,6 +63,18 @@ func parseManifest(data []byte) (map[string]string, map[string]string) {
 			cssKey := path.Dir(css) + "/" + entry.Name + path.Ext(css)
 			paths[cssKey] = css
 			names[css] = entry.Name
+
+			// Also index CSS files by their actual source filename (stripping Vite content hash)
+			// so that templates referencing the true source path resolve correctly in production.
+			// e.g. "css/swagger-render.XXXX.css" also keyed as "css/swagger-render.css"
+			if lastDot := strings.LastIndex(css, "."); lastDot > 0 {
+				if prevDot := strings.LastIndex(css[:lastDot], "."); prevDot > 0 {
+					sourceKey := css[:prevDot] + path.Ext(css)
+					if _, exists := paths[sourceKey]; !exists {
+						paths[sourceKey] = css
+					}
+				}
+			}
 		}
 	}
 	return paths, names
