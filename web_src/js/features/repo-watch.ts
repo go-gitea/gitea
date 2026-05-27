@@ -15,7 +15,7 @@ export function initRepoWatch() {
     elPullRequests.checked = btn.getAttribute('data-watch-pull-requests') === 'true';
     elIssues.checked = btn.getAttribute('data-watch-issues') === 'true';
     elReleases.checked = btn.getAttribute('data-watch-releases') === 'true';
-  }
+  };
 
   const showWatchOptionsModal = (btn: HTMLElement, action: string, sync: string) => {
     resetModalInputs(btn);
@@ -39,15 +39,15 @@ export function initRepoWatch() {
     btn.addEventListener('click', () => showWatchOptionsModal(
       btn,
       `${btn.getAttribute('data-repo-link')!}/action/watch`,
-      '$body #repo-header-watch'
-    ))
+      '$body #repo-header-watch',
+    ));
   });
 
   registerGlobalInitFunc('initWatchOptions', (btn: HTMLElement) => {
     btn.addEventListener('click', () => showWatchOptionsModal(
       btn,
       `${btn.getAttribute('data-repo-link')!}/action/watch/options`,
-      `$body #${btn.id}`
+      `$body #${btn.id}`,
     ));
   });
 }

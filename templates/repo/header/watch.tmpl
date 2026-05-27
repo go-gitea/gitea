@@ -9,10 +9,10 @@
 			<span class="not-mobile" aria-hidden="true">{{$buttonText}}</span>
 			{{svg "octicon-triangle-down" 14 "dropdown icon"}}
 			{{template "repo/watch_dropdown" dict
-			    "RepoLink" $.RepoLink
+				"RepoLink" $.RepoLink
 				"IsWatching" $.IsWatchingRepo
 				"Watch" $.Watch
-		    }}
+			}}}
 		</div>
 	{{else}}
 		<a role="button" class="ui compact small basic button" aria-label="{{$buttonText}}" href="{{AppSubUrl}}/user/login">

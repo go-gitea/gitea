@@ -4,9 +4,9 @@
 package v1_27
 
 import (
-	"xorm.io/xorm"
-
 	"gitea.dev/models/db"
+
+	"xorm.io/xorm"
 )
 
 func AddWatchOptions(x db.EngineMigration) error {

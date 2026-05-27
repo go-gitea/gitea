@@ -97,8 +97,7 @@
 }
 
 /* reference sizes (not exactly at the moment): normal: padding-x=21, height=38 ; compact: padding-x=15, height=32 */
-.ui.button {
-  /* stylelint-disable-line no-duplicate-selectors */
+.ui.button { /* stylelint-disable-line no-duplicate-selectors */
   gap: var(--gap-block);
   min-height: 38px;
   padding: 0.57em /* around 8px */ 1.43em /* around 20px */;

@@ -6,14 +6,14 @@ package mailer
 import (
 	"testing"
 
-	"code.gitea.io/gitea/models/activities"
-	issues_model "code.gitea.io/gitea/models/issues"
-	repo_model "code.gitea.io/gitea/models/repo"
-	"code.gitea.io/gitea/models/unittest"
-	user_model "code.gitea.io/gitea/models/user"
-	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/modules/test"
-	sender_service "code.gitea.io/gitea/services/mailer/sender"
+	"gitea.dev/models/activities"
+	issues_model "gitea.dev/models/issues"
+	repo_model "gitea.dev/models/repo"
+	"gitea.dev/models/unittest"
+	user_model "gitea.dev/models/user"
+	"gitea.dev/modules/setting"
+	"gitea.dev/modules/test"
+	sender_service "gitea.dev/services/mailer/sender"
 
 	"github.com/stretchr/testify/assert"
 )

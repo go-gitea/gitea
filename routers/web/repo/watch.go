@@ -11,8 +11,10 @@ import (
 	"gitea.dev/services/context"
 )
 
-const tplWatch templates.TplName = "repo/header/watch"
-const tplWatchOptionsBtn templates.TplName = "repo/watch_options_button"
+const (
+	tplWatch           templates.TplName = "repo/header/watch"
+	tplWatchOptionsBtn templates.TplName = "repo/watch_options_button"
+)
 
 func ActionWatch(ctx *context.Context) {
 	err := repo_model.WatchRepo(ctx, ctx.Doer, ctx.Repo.Repository, ctx.PathParam("action") == "watch")
