@@ -279,7 +279,8 @@ func TeamsRepoAction(ctx *context.Context) {
 	case "add":
 		repoName := path.Base(ctx.FormString("repo_name"))
 		var repo *repo_model.Repository
-		gid, err := group_model.IDByPathname(ctx, ctx.Org.Organization.ID, ctx.PathParam("repo_group"))
+		var gid int64
+		gid, err = group_model.IDByPathname(ctx, ctx.Org.Organization.ID, ctx.PathParam("repo_group"))
 		if err != nil {
 			if group_model.IsErrGroupNotExist(err) {
 				ctx.NotFound(err)

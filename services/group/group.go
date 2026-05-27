@@ -158,7 +158,7 @@ func MoveGroupItem(ctx context.Context, opts MoveGroupOptions, doer *user_model.
 		return err
 	}
 	defer committer.Close()
-	newPath, err := group_model.GroupPathByID(opts.NewParent, ctx)
+	newPath, err := group_model.PathByID(opts.NewParent, ctx)
 	if err != nil {
 		return err
 	}

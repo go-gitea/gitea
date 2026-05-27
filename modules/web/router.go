@@ -164,7 +164,9 @@ func wrapMiddlewareAndHandler(useMiddlewares, curMiddlewares, h []any) ([]middle
 	}
 
 	preMiddlewares, normalMiddlewares, _ := wrapMiddlewaresSplit(useMiddlewares, curMiddlewares, h)
-	middlewares := append(preMiddlewares, normalMiddlewares[:len(normalMiddlewares)-1]...)
+	middlewares := make([]middlewareProvider, len(preMiddlewares))
+	copy(middlewares, preMiddlewares)
+	middlewares = append(middlewares, normalMiddlewares[:len(normalMiddlewares)-1]...)
 	handlerFunc := normalMiddlewares[len(normalMiddlewares)-1](nil).ServeHTTP
 	if mockPoint := RouterMockPoint(MockAfterMiddlewares); mockPoint != nil {
 		middlewares = append(middlewares, mockPoint)

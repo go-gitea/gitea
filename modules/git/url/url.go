@@ -111,8 +111,8 @@ const ExplicitGroupPrefix = "-/group"
 
 func NormalizeGroupPath(groupPath string) string {
 	groupPath = strings.Trim(groupPath, "/")
-	if strings.HasPrefix(groupPath, ExplicitGroupPrefix+"/") {
-		return strings.TrimPrefix(groupPath, ExplicitGroupPrefix+"/")
+	if s, has := strings.CutPrefix(groupPath, "/"); has {
+		return s
 	}
 	return groupPath
 }

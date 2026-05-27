@@ -242,7 +242,7 @@ func RelativePath(ownerName, repoName, groupPath string) string {
 }
 
 func (repo *Repository) GroupPath(ctx ...context.Context) string {
-	groupPath, _ := group.GroupPathByID(repo.GroupID, ctx...)
+	groupPath, _ := group.PathByID(repo.GroupID, ctx...)
 	return groupPath
 }
 
