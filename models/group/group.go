@@ -225,7 +225,7 @@ func GetGroupByIDAndCond(ctx context.Context, id int64, cond builder.Cond) (*Gro
 	if err != nil {
 		return nil, err
 	} else if !has {
-		return nil, ErrGroupNotExist{id}
+		return nil, ErrGroupNotExist{ID: id}
 	}
 	return group, nil
 }
@@ -425,19 +425,19 @@ func ChildGroupCond(ctx context.Context, firstParent int64, cond builder.Cond) (
 
 	var recursiveKeyword string
 	if !setting.Database.Type.IsMSSQL() {
-		recursiveKeyword = "recursive "
+		recursiveKeyword = "RECURSIVE "
 	}
 
-	err = db.GetEngine(ctx).SQL(fmt.Sprintf(`with %sgroups as (
-		select * from repo_group
-		WHERE parent_group_id = ? %s
+	err = db.GetEngine(ctx).SQL(fmt.Sprintf(`WITH %srepo_groups AS (
+		SELECT * from repo_group
+		WHERE parent_group_id = %d %s
 
-		union all
+		UNION ALL
 
-		select subgroup.*
-		from repo_group subgroup
-		join groups g on g.id = subgroup.parent_group_id
-	) select g.id from groups g order by id asc`, recursiveKeyword, filter), firstParent).Find(&ids)
+		SELECT subgroup.*
+		FROM repo_group subgroup
+		JOIN repo_groups g ON g.id = subgroup.parent_group_id
+	) SELECT g.id FROM repo_groups g ORDER BY id ASC`, recursiveKeyword, firstParent, filter)).Find(&ids)
 	return ids, err
 }
 
