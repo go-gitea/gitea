@@ -8,9 +8,9 @@ import (
 	"fmt"
 	"strings"
 
-	"code.gitea.io/gitea/modules/git/foreachref"
-	"code.gitea.io/gitea/modules/git/gitcmd"
-	"code.gitea.io/gitea/modules/util"
+	"gitea.dev/modules/git/foreachref"
+	"gitea.dev/modules/git/gitcmd"
+	"gitea.dev/modules/util"
 )
 
 // TagPrefix tags prefix path on the repository

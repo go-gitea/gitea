@@ -10,11 +10,11 @@ import (
 	"strconv"
 	"strings"
 
-	"code.gitea.io/gitea/models/db"
-	"code.gitea.io/gitea/modules/json"
-	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/setting"
-	webhook_module "code.gitea.io/gitea/modules/webhook"
+	"gitea.dev/models/db"
+	"gitea.dev/modules/json"
+	"gitea.dev/modules/log"
+	"gitea.dev/modules/setting"
+	webhook_module "gitea.dev/modules/webhook"
 )
 
 const (
