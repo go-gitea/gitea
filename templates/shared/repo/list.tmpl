@@ -1,6 +1,3 @@
-{{/* Template Attributes:
-* showWatchOptions: whether to show the watch options button
-*/}}
 <div class="flex-divided-list items-with-main">
 	{{range .Repos}}
 		<div class="item">
@@ -54,17 +51,9 @@
 							<span class="tw-contents" aria-label="{{ctx.Locale.Tr "repo.forks"}}">{{svg "octicon-git-branch" 16}}</span>
 							<span {{if ge .NumForks 1000}}data-tooltip-content="{{.NumForks}}"{{end}}>{{CountFmt .NumForks}}</span>
 						</a>
-						{{if $.showWatchOptions}}
+						{{if $.ShowWatchOptions}}
 							{{$watch := index $.Watches .ID}}
-							<a class="flex-text-inline tw-ml-1"
-								data-global-init="initWatchOptions"
-								data-repo-link="{{.Link}}"
-								data-watch-pull-requests="{{$watch.PullRequests}}"
-								data-watch-issues="{{$watch.Issues}}"
-								data-watch-releases="{{$watch.Releases}}"
-							>
-								{{svg "octicon-gear"}}
-							</a>
+							{{template "repo/watch_options_button" dict "RepoID" .ID "RepoLink" .Link "WatchPullRequests" $watch.PullRequests "WatchIssues" $watch.Issues "WatchReleases" $watch.Releases}}
 						{{end}}
 					</div>
 				</div>

@@ -1,13 +1,18 @@
-.ui.buttons .ui.watch-label {
-  font-size: 1rem !important;
+.watch-options-menu .item {
+  width: 100%;
+  background: var(--color-menu);
+}
+
+.repo-watch-option-title,
+.repo-watch-option-desc {
+  display: block;
+}
+
+.repo-watch-option-title {
   font-weight: var(--font-weight-medium);
-  padding: 2px 6px;
 }
 
-.ui.buttons .ui.watch-icon {
-  padding: 0.42em;
-}
-
-.watch-options .ui.segment {
-  border: none;
+.repo-watch-option-desc {
+  color: var(--color-text-light-2);
+  margin-top: 3px;
 }

@@ -3,6 +3,7 @@
 	<div class="content">
 		<p>{{ctx.Locale.Tr "repo.watch.options.desc"}}</p>
 		<form class="ui form" method="post">
+		    <input type="hidden" name="watch_mode" value="custom" />
 			<div class="field">
 				<div class="ui checkbox">
 					<input name="pull_requests" type="checkbox"><label>{{ctx.Locale.Tr "repo.watch.options.pull_requests"}}</label>

@@ -101,7 +101,8 @@
 }
 
 /* reference sizes (not exactly at the moment): normal: padding-x=21, height=38 ; compact: padding-x=15, height=32 */
-.ui.button { /* stylelint-disable-line no-duplicate-selectors */
+.ui.button {
+  /* stylelint-disable-line no-duplicate-selectors */
   gap: var(--gap-block);
   min-height: 38px;
   padding: 0.57em /* around 8px */ 1.43em /* around 20px */;
@@ -400,19 +401,9 @@ It needs some tricks to tweak the left/right borders with active state */
   border-left: 1px solid var(--color-light-border);
 }
 
-.ui.buttons .button:first-child:hover,
-.ui.buttons .button.tw-hidden:first-child + .button:hover {
-  border-left-color: var(--color-secondary-dark-2);
-}
-
 .ui.buttons .button:last-child,
 .ui.buttons .button:nth-last-child(2):has(+ .button.tw-hidden) {
   border-right: 1px solid var(--color-light-border);
-}
-
-.ui.buttons .button:last-child:hover,
-.ui.buttons .button:nth-last-child(2):has(+ .button.tw-hidden):hover {
-  border-right-color: var(--color-secondary-dark-2);
 }
 
 .ui.buttons .button.active {

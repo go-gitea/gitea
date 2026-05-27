@@ -76,9 +76,6 @@ func IsWatching(ctx context.Context, userID, repoID int64) bool {
 }
 
 func watchRepoMode(ctx context.Context, watch Watch, mode WatchMode) (err error) {
-	if watch.Mode == mode {
-		return nil
-	}
 	if mode == WatchModeAuto && (watch.Mode == WatchModeDont || IsWatchMode(watch.Mode)) {
 		// Don't auto watch if already watching or deliberately not watching
 		return nil
@@ -95,14 +92,15 @@ func watchRepoMode(ctx context.Context, watch Watch, mode WatchMode) (err error)
 	}
 
 	watch.Mode = mode
+	watch.PullRequests = IsWatchMode(mode)
+	watch.Issues = IsWatchMode(mode)
+	watch.Releases = IsWatchMode(mode)
 
 	if !hadrec && needsrec {
-		watch.Mode = mode
 		if err = db.Insert(ctx, watch); err != nil {
 			return err
 		}
 	} else if needsrec {
-		watch.Mode = mode
 		if _, err := db.GetEngine(ctx).ID(watch.ID).AllCols().Update(watch); err != nil {
 			return err
 		}
@@ -131,9 +129,6 @@ func WatchRepo(ctx context.Context, doer *user_model.User, repo *Repository, doW
 		return user_model.ErrBlockedUser
 	}
 
-	watch.PullRequests = true
-	watch.Issues = true
-	watch.Releases = true
 	return watchRepoMode(ctx, watch, WatchModeNormal)
 }
 
