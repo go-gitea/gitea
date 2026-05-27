@@ -41,11 +41,10 @@
 		</form>
 	</div>
 	{{if .AllowBulkActions}}
-	<div class="ui attached segment runner-bulk-toolbar" data-url="{{$.Link}}/bulk">
-		<button class="ui small button runner-bulk-action" data-action="disable" disabled>{{ctx.Locale.Tr "actions.runners.bulk_disable"}}</button>
-		<button class="ui small button runner-bulk-action" data-action="enable" disabled>{{ctx.Locale.Tr "actions.runners.bulk_enable"}}</button>
-		<button class="ui small red button runner-bulk-action" data-action="delete" data-modal="#runner-bulk-delete-modal" disabled>{{ctx.Locale.Tr "actions.runners.bulk_delete"}}</button>
-		<span class="runner-bulk-selected-count"></span>
+	<div class="ui attached segment runner-bulk-toolbar tw-hidden" data-url="{{$.Link}}/bulk">
+		<button class="ui small button runner-bulk-action" data-action="disable">{{ctx.Locale.Tr "actions.runners.bulk_disable"}} <span class="runner-bulk-count"></span></button>
+		<button class="ui small button runner-bulk-action" data-action="enable">{{ctx.Locale.Tr "actions.runners.bulk_enable"}} <span class="runner-bulk-count"></span></button>
+		<button class="ui small red button runner-bulk-action" data-action="delete" data-modal="#runner-bulk-delete-modal">{{ctx.Locale.Tr "actions.runners.bulk_delete"}} <span class="runner-bulk-count"></span></button>
 	</div>
 	{{end}}
 	<div class="ui attached table segment">

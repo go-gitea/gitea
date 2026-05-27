@@ -34,12 +34,13 @@ function initAdminRunnerBulk() {
   const selectAll = document.querySelector<HTMLInputElement>('.runner-bulk-select-all');
   const rowCheckboxes = document.querySelectorAll<HTMLInputElement>('.runner-bulk-select');
   const actionButtons = toolbar.querySelectorAll<HTMLButtonElement>('.runner-bulk-action');
-  const countEl = toolbar.querySelector<HTMLElement>('.runner-bulk-selected-count')!;
 
   const refresh = () => {
     const checked = Array.from(rowCheckboxes).filter((c) => c.checked);
-    for (const btn of actionButtons) btn.disabled = checked.length === 0;
-    countEl.textContent = checked.length ? String(checked.length) : '';
+    toggleElem(toolbar, checked.length > 0);
+    for (const btn of actionButtons) {
+      btn.querySelector<HTMLElement>('.runner-bulk-count')!.textContent = `(${checked.length})`;
+    }
     if (selectAll) {
       selectAll.checked = checked.length > 0 && checked.length === rowCheckboxes.length;
       selectAll.indeterminate = checked.length > 0 && checked.length < rowCheckboxes.length;
