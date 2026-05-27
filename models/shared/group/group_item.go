@@ -7,11 +7,11 @@ import (
 	"context"
 	"slices"
 
-	"code.gitea.io/gitea/models/db"
-	group_model "code.gitea.io/gitea/models/group"
-	repo_model "code.gitea.io/gitea/models/repo"
-	user_model "code.gitea.io/gitea/models/user"
-	"code.gitea.io/gitea/modules/log"
+	"gitea.dev/models/db"
+	group_model "gitea.dev/models/group"
+	repo_model "gitea.dev/models/repo"
+	user_model "gitea.dev/models/user"
+	"gitea.dev/modules/log"
 
 	"xorm.io/builder"
 )

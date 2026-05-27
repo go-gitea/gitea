@@ -8,13 +8,13 @@ import (
 	"fmt"
 	"net/http"
 
-	"code.gitea.io/gitea/models/db"
-	group_model "code.gitea.io/gitea/models/group"
-	repo_model "code.gitea.io/gitea/models/repo"
-	"code.gitea.io/gitea/modules/optional"
-	"code.gitea.io/gitea/services/context"
-	"code.gitea.io/gitea/services/convert"
-	group_service "code.gitea.io/gitea/services/group"
+	"gitea.dev/models/db"
+	group_model "gitea.dev/models/group"
+	repo_model "gitea.dev/models/repo"
+	"gitea.dev/modules/optional"
+	"gitea.dev/services/context"
+	"gitea.dev/services/convert"
+	group_service "gitea.dev/services/group"
 )
 
 func toSearchRepoOptions(ctx *context.Context) *repo_model.SearchRepoOptions {
