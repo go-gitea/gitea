@@ -11,10 +11,10 @@ import (
 	"strings"
 	"time"
 
-	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/optional"
-	"code.gitea.io/gitea/modules/user"
-	"code.gitea.io/gitea/modules/util"
+	"gitea.dev/modules/log"
+	"gitea.dev/modules/optional"
+	"gitea.dev/modules/user"
+	"gitea.dev/modules/util"
 )
 
 // settings

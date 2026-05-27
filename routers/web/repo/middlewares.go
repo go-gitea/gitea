@@ -6,14 +6,14 @@ package repo
 import (
 	"strconv"
 
-	user_model "code.gitea.io/gitea/models/user"
-	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/optional"
-	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/modules/util"
-	"code.gitea.io/gitea/services/context"
-	"code.gitea.io/gitea/services/gitdiff"
-	user_service "code.gitea.io/gitea/services/user"
+	user_model "gitea.dev/models/user"
+	"gitea.dev/modules/log"
+	"gitea.dev/modules/optional"
+	"gitea.dev/modules/setting"
+	"gitea.dev/modules/util"
+	"gitea.dev/services/context"
+	"gitea.dev/services/gitdiff"
+	user_service "gitea.dev/services/user"
 )
 
 // SetEditorconfigIfExists set editor config as render variable

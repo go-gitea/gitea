@@ -7,10 +7,10 @@ import (
 	"net/http"
 	"strings"
 
-	"code.gitea.io/gitea/modules/templates"
-	"code.gitea.io/gitea/modules/util"
-	"code.gitea.io/gitea/services/context"
-	"code.gitea.io/gitea/services/mailer"
+	"gitea.dev/modules/templates"
+	"gitea.dev/modules/util"
+	"gitea.dev/services/context"
+	"gitea.dev/services/mailer"
 
 	"go.yaml.in/yaml/v4"
 )

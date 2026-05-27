@@ -11,8 +11,8 @@ import (
 	"strings"
 	"sync"
 
-	"code.gitea.io/gitea/modules/util"
-	"code.gitea.io/gitea/modules/validation"
+	"gitea.dev/modules/util"
+	"gitea.dev/modules/validation"
 
 	"go.yaml.in/yaml/v4"
 )
