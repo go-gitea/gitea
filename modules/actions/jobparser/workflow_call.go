@@ -9,8 +9,8 @@ import (
 	"regexp"
 	"strings"
 
-	"code.gitea.io/gitea/modules/container"
-	"code.gitea.io/gitea/modules/util"
+	"gitea.dev/modules/container"
+	"gitea.dev/modules/util"
 
 	"gitea.com/gitea/runner/act/exprparser"
 	"gitea.com/gitea/runner/act/model"
