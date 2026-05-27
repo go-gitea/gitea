@@ -299,7 +299,8 @@ func (a *Action) makeGroupSegment(ctx context.Context) string {
 
 // GetRepoAbsoluteLink returns the absolute link to action repository.
 func (a *Action) GetRepoAbsoluteLink(ctx context.Context) string {
-	return setting.AppURL + url.PathEscape(a.GetRepoUserName(ctx)) + "/" + url.PathEscape(a.GetRepoName(ctx))
+	groupSegment := util.Iif(a.makeGroupSegment(ctx) != "", path.Join(a.makeGroupSegment(ctx), a.GetRepoGroup(ctx))+"/", "")
+	return setting.AppURL + url.PathEscape(a.GetRepoUserName(ctx)) + "/" + groupSegment + url.PathEscape(a.GetRepoName(ctx))
 }
 
 func (a *Action) loadComment(ctx context.Context) (err error) {
