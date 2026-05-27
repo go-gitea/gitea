@@ -7,9 +7,9 @@ import (
 	"context"
 	"net/url"
 
-	"code.gitea.io/gitea/models/avatars"
-	"code.gitea.io/gitea/modules/httplib"
-	"code.gitea.io/gitea/modules/setting"
+	"gitea.dev/models/avatars"
+	"gitea.dev/modules/httplib"
+	"gitea.dev/modules/setting"
 )
 
 func (g *Group) CustomAvatarRelativePath() string {

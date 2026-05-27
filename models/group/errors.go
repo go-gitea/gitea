@@ -7,7 +7,7 @@ import (
 	"errors"
 	"fmt"
 
-	"code.gitea.io/gitea/modules/util"
+	"gitea.dev/modules/util"
 )
 
 type ErrGroupNotExist struct {

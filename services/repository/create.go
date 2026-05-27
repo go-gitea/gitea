@@ -13,7 +13,7 @@ import (
 	"time"
 
 	"gitea.dev/models/db"
-	group_model "code.gitea.io/gitea/models/group"
+	group_model "gitea.dev/models/group"
 	"gitea.dev/models/organization"
 	"gitea.dev/models/perm"
 	access_model "gitea.dev/models/perm/access"

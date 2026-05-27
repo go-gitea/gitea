@@ -9,14 +9,14 @@ import (
 	"strconv"
 	"testing"
 
-	auth_model "code.gitea.io/gitea/models/auth"
-	group_model "code.gitea.io/gitea/models/group"
-	perm_model "code.gitea.io/gitea/models/perm"
-	unit_model "code.gitea.io/gitea/models/unit"
-	"code.gitea.io/gitea/models/unittest"
-	user_model "code.gitea.io/gitea/models/user"
-	api "code.gitea.io/gitea/modules/structs"
-	"code.gitea.io/gitea/tests"
+	auth_model "gitea.dev/models/auth"
+	group_model "gitea.dev/models/group"
+	perm_model "gitea.dev/models/perm"
+	unit_model "gitea.dev/models/unit"
+	"gitea.dev/models/unittest"
+	user_model "gitea.dev/models/user"
+	api "gitea.dev/modules/structs"
+	"gitea.dev/tests"
 
 	"github.com/stretchr/testify/assert"
 )

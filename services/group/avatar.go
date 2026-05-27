@@ -10,11 +10,11 @@ import (
 	"io"
 	"os"
 
-	"code.gitea.io/gitea/models/db"
-	group_model "code.gitea.io/gitea/models/group"
-	"code.gitea.io/gitea/modules/avatar"
-	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/storage"
+	"gitea.dev/models/db"
+	group_model "gitea.dev/models/group"
+	"gitea.dev/modules/avatar"
+	"gitea.dev/modules/log"
+	"gitea.dev/modules/storage"
 )
 
 // UploadAvatar saves custom icon for group.

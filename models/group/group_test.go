@@ -7,10 +7,10 @@ import (
 	"slices"
 	"testing"
 
-	"code.gitea.io/gitea/models/db"
-	group_model "code.gitea.io/gitea/models/group"
-	"code.gitea.io/gitea/models/unittest"
-	"code.gitea.io/gitea/modules/util"
+	"gitea.dev/models/db"
+	group_model "gitea.dev/models/group"
+	"gitea.dev/models/unittest"
+	"gitea.dev/modules/util"
 
 	"github.com/stretchr/testify/assert"
 	"xorm.io/builder"
