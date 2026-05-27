@@ -33,9 +33,7 @@ func ellipsisDisplayGuessWidth(r rune) int {
 	switch {
 	case r == '\u3000': /* ideographic (CJK) characters, still use 2 */
 		return 2
-	case unicode.Is(unicode.M, r), /* (Mark) */
-		unicode.Is(unicode.Cf, r), /* (Other, format) */
-		unicode.Is(unicode.Cs, r), /* (Other, surrogate) */
+	case unicode.Is(unicode.Cs, r), /* (Other, surrogate) */
 		unicode.Is(unicode.Z /* (Space) */, r):
 		return 1
 	default:
