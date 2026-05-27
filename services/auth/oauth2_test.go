@@ -6,10 +6,10 @@ package auth
 import (
 	"testing"
 
-	"code.gitea.io/gitea/models/unittest"
-	user_model "code.gitea.io/gitea/models/user"
-	"code.gitea.io/gitea/modules/reqctx"
-	"code.gitea.io/gitea/services/actions"
+	"gitea.dev/models/unittest"
+	user_model "gitea.dev/models/user"
+	"gitea.dev/modules/reqctx"
+	"gitea.dev/services/actions"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
