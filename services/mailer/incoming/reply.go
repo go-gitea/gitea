@@ -12,9 +12,12 @@ import (
 )
 
 const (
-	yearToken  = `\b\d{4}\b`            // 4-digit year
-	timeToken  = `\b\d{1,2}[:.]\d{2}\b` // HH:MM or HH.MM
-	wroteVerbs = `wrote|writes|schrieb|skrev|napisał|escreveu|escribió|написал|пише|a écrit`
+	yearToken = `\b\d{4}\b`            // 4-digit year
+	timeToken = `\b\d{1,2}[:.]\d{2}\b` // HH:MM or HH.MM
+	// "wrote" verbs ending an attribution line; CJK ones are matched without a
+	// preceding word-separator since those scripts don't space their words
+	wroteVerbs    = `wrote|writes|schrieb|skrev|napisał|escreveu|escribió|написал|пише|a écrit`
+	cjkWroteVerbs = `写道|寫道|書きました|작성`
 )
 
 // forwarded-mail header fields across the common mail clients/locales. headerFromFields
@@ -47,12 +50,13 @@ var patterns = sync.OnceValue(func() (ret struct {
 		`|envoyé depuis mon .+|sendt fra min .+|von meinem .+|verzonden (met|vanaf) .+` +
 		`|(發|发)自我的.+|從我的.+傳送|从我的.+发送|.+から送信|.+에서 보냄)$`)
 
-	// attribution introducing quoted history: a line ending in a "wrote:" verb, a
-	// "Name <email> wrote" line, a lead word followed by both a date and a time, or
-	// an ISO-date-led line. The date+time, trailing colon and the email immediately
-	// preceding the verb guard against ordinary prose matching.
+	// attribution introducing quoted history: a line ending in a "wrote:" verb
+	// (Latin/Cyrillic or CJK), a "Name <email> wrote" line, a lead word followed by
+	// both a date and a time, or an ISO-date-led line. The date+time, trailing colon
+	// and the email immediately preceding the verb guard against ordinary prose matching.
 	ret.attribution = regexp.MustCompile(`(?i)^>*\s*(` +
 		`.*[\s">'](` + wroteVerbs + `)\s*[:：]` +
+		`|.*(` + cjkWroteVerbs + `)\s*[:：]` +
 		`|.*<\S+@\S+>\s+(` + wroteVerbs + `)\b.*` +
 		`|(on|at|le|am|el|em|den|il|op|dnia|w dniu)\b.*` + yearToken + `.*` + timeToken + `.*` +
 		`|\d{4}-\d{2}-\d{2}\b.*` + timeToken + `.*` +
