@@ -191,6 +191,11 @@ func TestExtractReply(t *testing.T) {
 		{"korean attribution", "감사합니다.\n\n홍길동님이 작성:\n> 인용", "감사합니다."},
 		{"email mention kept", "I asked Bob <bob@x.com> and he wrote back yes.\nSo we proceed.", "I asked Bob <bob@x.com> and he wrote back yes.\nSo we proceed."},
 		{"trailing mailbox glyph", "My reply here.\n\nᐧ", "My reply here."},
+		{"on with year and time prose kept", "On the 2024 roadmap we should meet at 10:00.\nI'll send invites.", "On the 2024 roadmap we should meet at 10:00.\nI'll send invites."},
+		{"spanish year and time prose kept", "El informe del 2024 estará listo a las 10:00.\nGracias.", "El informe del 2024 estará listo a las 10:00.\nGracias."},
+		{"chinese prose kept", "谢谢，已测试。\n发自我的内心的感谢", "谢谢，已测试。\n发自我的内心的感谢"},
+		{"korean prose kept", "확인했습니다.\n이 문서는 회사에서 보냄", "확인했습니다.\n이 문서는 회사에서 보냄"},
+		{"japanese prose kept", "了解しました。\n資料は会議から送信", "了解しました。\n資料は会議から送信"},
 	}
 	for _, c := range cases {
 		t.Run(c.name, func(t *testing.T) {
