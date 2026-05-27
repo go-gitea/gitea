@@ -35,6 +35,9 @@ func GetDefaultSanitizer() *Sanitizer {
 			sanitizerRules := renderer.SanitizerRules()
 			if len(sanitizerRules) > 0 {
 				policy := defaultSanitizer.createDefaultPolicy()
+				if name == "jupyter" {
+					policy.AllowDataURIImages()
+				}
 				defaultSanitizer.addSanitizerRules(policy, sanitizerRules)
 				defaultSanitizer.rendererPolicies[name] = policy
 			}
