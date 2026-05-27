@@ -10,6 +10,7 @@ import (
 	actions_model "gitea.dev/models/actions"
 	"gitea.dev/models/db"
 	"gitea.dev/modules/actions/jobparser"
+	"gitea.dev/modules/log"
 	"gitea.dev/modules/util"
 
 	act_model "gitea.com/gitea/runner/act/model"
@@ -128,6 +129,12 @@ func InsertRun(ctx context.Context, run *actions_model.ActionRun, content []byte
 		runJobs := make([]*actions_model.ActionRunJob, 0, len(jobs))
 		var hasWaitingJobs bool
 
+		rawStrategies, err := ExtractRawStrategies(content)
+		if err != nil {
+			log.Warn("Failed to extract raw strategies for run %d: %v", run.ID, err)
+			rawStrategies = nil
+		}
+
 		for i, v := range jobs {
 			id, job := v.Job()
 			needs := job.Needs()
@@ -158,6 +165,13 @@ func InsertRun(ctx context.Context, run *actions_model.ActionRun, content []byte
 			// Parse workflow/job permissions (no clamping here)
 			if perms := ExtractJobPermissionsFromWorkflow(v, job); perms != nil {
 				runJob.TokenPermissions = perms
+			}
+
+			// Store the raw strategy for jobs whose matrix references needs outputs.
+			// ReEvaluateMatrixForJobWithNeeds uses this to re-expand the matrix once
+			// the dependency jobs have completed and their outputs are available.
+			if rawStrategy, ok := rawStrategies[id]; ok && HasMatrixWithNeeds(rawStrategy) {
+				runJob.RawStrategy = rawStrategy
 			}
 
 			// check job concurrency
