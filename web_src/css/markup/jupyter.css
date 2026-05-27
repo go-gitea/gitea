@@ -1,4 +1,8 @@
 /* Gitea styles for Jupyter notebook content */
+.markup:has(.jupyter-notebook) {
+  padding: 0;
+}
+
 .markup .jupyter-notebook {
   padding: 20px;
   background: var(--color-body);
