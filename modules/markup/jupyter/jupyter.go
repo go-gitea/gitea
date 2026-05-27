@@ -77,7 +77,6 @@ func (renderer) SanitizerRules() []setting.MarkupSanitizerRule {
 
 		// Images (base64 data URIs only)
 		{Element: "img", AllowAttr: "class", Regexp: `^jupyter-output-image$`},
-		// {Element: "img", AllowAttr: "src", Regexp: `^data:image/(png|jpeg|svg\+xml);base64,[A-Za-z0-9+/=]+$`},
 		{AllowDataURIImages: true},
 
 		// Tables (for DataFrames and markdown)
