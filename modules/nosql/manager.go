@@ -9,7 +9,7 @@ import (
 	"sync"
 	"time"
 
-	"code.gitea.io/gitea/modules/process"
+	"gitea.dev/modules/process"
 
 	"github.com/redis/go-redis/v9"
 	"github.com/syndtr/goleveldb/leveldb"
