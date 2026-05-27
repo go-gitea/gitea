@@ -185,6 +185,9 @@ func TestExtractReply(t *testing.T) {
 		{"japanese signature", "返信します\n\niPhoneから送信", "返信します"},
 		{"chinese header block", "回复内容\n\n发件人：张三\n收件人：李四\n主题：你好\n\n原文", "回复内容"},
 		{"japanese header block", "本文です\n\n差出人：山田\n宛先：田中\n件名：こんにちは\n\n原文", "本文です"},
+		{"name-first attribution", "Okay.\n\nErlend <meta@x.com> schrieb am Di., 16. Aug. 2016\num 12:52 Uhr:\n> quoted", "Okay."},
+		{"email mention kept", "I asked Bob <bob@x.com> and he wrote back yes.\nSo we proceed.", "I asked Bob <bob@x.com> and he wrote back yes.\nSo we proceed."},
+		{"trailing mailbox glyph", "My reply here.\n\nᐧ", "My reply here."},
 	}
 	for _, c := range cases {
 		t.Run(c.name, func(t *testing.T) {

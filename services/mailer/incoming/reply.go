@@ -12,8 +12,9 @@ import (
 )
 
 const (
-	yearToken = `\b\d{4}\b`            // 4-digit year
-	timeToken = `\b\d{1,2}[:.]\d{2}\b` // HH:MM or HH.MM
+	yearToken  = `\b\d{4}\b`            // 4-digit year
+	timeToken  = `\b\d{1,2}[:.]\d{2}\b` // HH:MM or HH.MM
+	wroteVerbs = `wrote|writes|schrieb|skrev|napisał|escreveu|escribió|написал|пише|a écrit`
 )
 
 // forwarded-mail header fields across the common mail clients/locales. headerFromFields
@@ -46,11 +47,13 @@ var patterns = sync.OnceValue(func() (ret struct {
 		`|envoyé depuis mon .+|sendt fra min .+|von meinem .+|verzonden (met|vanaf) .+` +
 		`|(發|发)自我的.+|從我的.+傳送|从我的.+发送|.+から送信|.+에서 보냄)$`)
 
-	// attribution introducing quoted history: a line ending in a "wrote:" verb,
-	// a lead word followed by both a date and a time, or an ISO-date-led line.
-	// The date+time and trailing colon guard against ordinary prose matching.
+	// attribution introducing quoted history: a line ending in a "wrote:" verb, a
+	// "Name <email> wrote" line, a lead word followed by both a date and a time, or
+	// an ISO-date-led line. The date+time, trailing colon and the email immediately
+	// preceding the verb guard against ordinary prose matching.
 	ret.attribution = regexp.MustCompile(`(?i)^>*\s*(` +
-		`.*[\s">'](wrote|writes|schrieb|skrev|napisał|escreveu|escribió|написал|пише|a écrit)\s*[:：]` +
+		`.*[\s">'](` + wroteVerbs + `)\s*[:：]` +
+		`|.*<\S+@\S+>\s+(` + wroteVerbs + `)\b.*` +
 		`|(on|at|le|am|el|em|den|il|op|dnia|w dniu)\b.*` + yearToken + `.*` + timeToken + `.*` +
 		`|\d{4}-\d{2}-\d{2}\b.*` + timeToken + `.*` +
 		`)$`)
@@ -86,7 +89,8 @@ func extractReply(text string) string {
 	end := len(lines)
 	for end > 0 {
 		last := lines[end-1]
-		if strings.TrimSpace(last) != "" && !p.quote.MatchString(last) {
+		// "ᐧ" is the trailing marker some mobile clients (Mailbox) append
+		if t := strings.TrimSpace(last); t != "" && t != "ᐧ" && !p.quote.MatchString(last) {
 			break
 		}
 		end--
