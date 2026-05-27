@@ -257,15 +257,10 @@ func CreateTaskForRunner(ctx context.Context, runner *ActionRunner) (*ActionTask
 	var job *ActionRunJob
 	log.Trace("runner labels: %v", runner.AgentLabels)
 	for _, v := range jobs {
-		if !runner.CanMatchLabels(v.RunsOn) {
-			continue
+		if runner.CanMatchLabels(v.RunsOn) {
+			job = v
+			break
 		}
-
-		// max-parallel is enforced at insertion time (InsertRun) and by
-		// jobStatusResolver, so a Waiting job is guaranteed a free slot.
-
-		job = v
-		break
 	}
 	if job == nil {
 		return nil, false, nil
@@ -323,11 +318,9 @@ func CreateTaskForRunner(ctx context.Context, runner *ActionRunner) (*ActionTask
 	}
 
 	job.TaskID = task.ID
-	// Must explicitly specify which columns to update, including status and started
 	if n, err := UpdateRunJob(ctx, job, builder.Eq{"task_id": 0}, "task_id", "status", "started", "attempt", "updated"); err != nil {
 		return nil, false, err
 	} else if n != 1 {
-		// Another runner may have claimed this job, skip it
 		log.Debug("Job %s (run %d) was claimed by another runner, skipping", job.JobID, job.RunID)
 		return nil, false, nil
 	}

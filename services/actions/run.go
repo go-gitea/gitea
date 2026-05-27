@@ -165,7 +165,8 @@ func InsertRun(ctx context.Context, run *actions_model.ActionRun, content []byte
 				runJob.TokenPermissions = perms
 			}
 
-			// Extract max-parallel from strategy if present
+			// Extract max-parallel from strategy if present.
+			// TODO: only literal integers are supported; expressions are not evaluated.
 			if job.Strategy.MaxParallelString != "" {
 				if maxParallel, err := strconv.Atoi(job.Strategy.MaxParallelString); err == nil && maxParallel > 0 {
 					runJob.MaxParallel = maxParallel

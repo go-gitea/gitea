@@ -7,6 +7,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"slices"
 
 	actions_model "gitea.dev/models/actions"
 	"gitea.dev/models/db"
@@ -359,7 +360,17 @@ func (r *jobStatusResolver) resolve(ctx context.Context) map[int64]actions_model
 		}
 	}
 
-	for id, status := range r.statuses {
+	// Sort IDs so blocked jobs are promoted in insertion order
+	ids := slices.Sorted(func(yield func(int64) bool) {
+		for id := range r.statuses {
+			if !yield(id) {
+				return
+			}
+		}
+	})
+
+	for _, id := range ids {
+		status := r.statuses[id]
 		actionRunJob := r.jobMap[id]
 		if status != actions_model.StatusBlocked {
 			continue
