@@ -8,9 +8,9 @@ import (
 	"errors"
 	"fmt"
 
-	actions_model "code.gitea.io/gitea/models/actions"
-	"code.gitea.io/gitea/models/db"
-	secret_model "code.gitea.io/gitea/models/secret"
+	actions_model "gitea.dev/models/actions"
+	"gitea.dev/models/db"
+	secret_model "gitea.dev/models/secret"
 
 	runnerv1 "code.gitea.io/actions-proto-go/runner/v1"
 	"google.golang.org/protobuf/types/known/structpb"

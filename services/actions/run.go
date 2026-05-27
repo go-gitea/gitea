@@ -7,11 +7,11 @@ import (
 	"context"
 	"fmt"
 
-	actions_model "code.gitea.io/gitea/models/actions"
-	"code.gitea.io/gitea/models/db"
-	"code.gitea.io/gitea/modules/actions/jobparser"
-	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/util"
+	actions_model "gitea.dev/models/actions"
+	"gitea.dev/models/db"
+	"gitea.dev/modules/actions/jobparser"
+	"gitea.dev/modules/util"
+	"gitea.dev/modules/log"
 
 	act_model "gitea.com/gitea/runner/act/model"
 	"go.yaml.in/yaml/v4"
@@ -126,14 +126,6 @@ func InsertRun(ctx context.Context, run *actions_model.ActionRun, content []byte
 			return err
 		}
 
-		// Extract raw strategies from the original workflow before parsing
-		rawStrategies, err := ExtractRawStrategies(content)
-		if err != nil {
-			log.Warn("Failed to extract raw strategies from workflow: %v", err)
-			// Continue without raw strategies - jobs will work but dynamic matrix won't be supported
-			rawStrategies = nil
-		}
-
 		runJobs := make([]*actions_model.ActionRunJob, 0, len(jobs))
 		var hasWaitingJobs bool
 
@@ -167,13 +159,6 @@ func InsertRun(ctx context.Context, run *actions_model.ActionRun, content []byte
 			// Parse workflow/job permissions (no clamping here)
 			if perms := ExtractJobPermissionsFromWorkflow(v, job); perms != nil {
 				runJob.TokenPermissions = perms
-			}
-
-			// Store raw strategy only if job has matrix that actually depends on job outputs (needs.*.outputs)
-			// This avoids unnecessary DB storage and later re-evaluation checks for purely static matrices
-			if rawStrategy, exists := rawStrategies[id]; exists && len(needs) > 0 && HasMatrixWithNeeds(rawStrategy) {
-				runJob.RawStrategy = rawStrategy
-				runJob.IsMatrixEvaluated = false
 			}
 
 			// check job concurrency

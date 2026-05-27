@@ -13,9 +13,9 @@ import (
 	"strings"
 	"sync"
 
-	"code.gitea.io/gitea/modules/htmlutil"
-	"code.gitea.io/gitea/modules/markup/common"
-	"code.gitea.io/gitea/modules/translation"
+	"gitea.dev/modules/htmlutil"
+	"gitea.dev/modules/markup/common"
+	"gitea.dev/modules/translation"
 
 	"golang.org/x/net/html"
 	"golang.org/x/net/html/atom"

@@ -10,9 +10,9 @@ import (
 	"path/filepath"
 	"strings"
 
-	"code.gitea.io/gitea/modules/git/gitcmd"
-	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/modules/util"
+	"gitea.dev/modules/git/gitcmd"
+	"gitea.dev/modules/setting"
+	"gitea.dev/modules/util"
 )
 
 // catFileBatchLegacy implements the CatFileBatch interface using the "cat-file --batch" command and "cat-file --batch-check" command
