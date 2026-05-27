@@ -34,7 +34,7 @@ import (
 	"gitea.dev/services/actions"
 	"gitea.dev/tests"
 
-	runnerv1 "code.gitea.io/actions-proto-go/runner/v1"
+	runnerv1 "gitea.dev/actions-proto-go/runner/v1"
 	"github.com/PuerkitoBio/goquery"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"

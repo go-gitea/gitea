@@ -20,7 +20,7 @@ import (
 	"gitea.dev/modules/timeutil"
 	"gitea.dev/modules/util"
 
-	runnerv1 "code.gitea.io/actions-proto-go/runner/v1"
+	runnerv1 "gitea.dev/actions-proto-go/runner/v1"
 	lru "github.com/hashicorp/golang-lru/v2"
 	"google.golang.org/protobuf/types/known/timestamppb"
 	"xorm.io/builder"

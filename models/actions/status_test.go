@@ -6,7 +6,7 @@ package actions
 import (
 	"testing"
 
-	runnerv1 "code.gitea.io/actions-proto-go/runner/v1"
+	runnerv1 "gitea.dev/actions-proto-go/runner/v1"
 	"github.com/stretchr/testify/assert"
 )
 

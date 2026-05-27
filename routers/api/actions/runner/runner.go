@@ -17,9 +17,9 @@ import (
 	"gitea.dev/modules/util"
 	actions_service "gitea.dev/services/actions"
 
-	runnerv1 "code.gitea.io/actions-proto-go/runner/v1"
-	"code.gitea.io/actions-proto-go/runner/v1/runnerv1connect"
 	"connectrpc.com/connect"
+	runnerv1 "gitea.dev/actions-proto-go/runner/v1"
+	"gitea.dev/actions-proto-go/runner/v1/runnerv1connect"
 	gouuid "github.com/google/uuid"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"

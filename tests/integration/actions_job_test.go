@@ -26,8 +26,8 @@ import (
 	"gitea.dev/modules/timeutil"
 	actions_service "gitea.dev/services/actions"
 
-	runnerv1 "code.gitea.io/actions-proto-go/runner/v1"
 	"connectrpc.com/connect"
+	runnerv1 "gitea.dev/actions-proto-go/runner/v1"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )

@@ -8,7 +8,7 @@ import (
 
 	"gitea.dev/modules/translation"
 
-	runnerv1 "code.gitea.io/actions-proto-go/runner/v1"
+	runnerv1 "gitea.dev/actions-proto-go/runner/v1"
 )
 
 // Status represents the status of ActionRun, ActionRunJob, ActionTask, or ActionTaskStep

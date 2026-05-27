@@ -10,9 +10,9 @@ import (
 
 	"gitea.dev/modules/log"
 
-	pingv1 "code.gitea.io/actions-proto-go/ping/v1"
-	"code.gitea.io/actions-proto-go/ping/v1/pingv1connect"
 	"connectrpc.com/connect"
+	pingv1 "gitea.dev/actions-proto-go/ping/v1"
+	"gitea.dev/actions-proto-go/ping/v1/pingv1connect"
 )
 
 func NewPingServiceHandler() (string, http.Handler) {

@@ -18,7 +18,7 @@ import (
 	"gitea.dev/modules/json"
 	"gitea.dev/routers/web/repo/actions"
 
-	runnerv1 "code.gitea.io/actions-proto-go/runner/v1"
+	runnerv1 "gitea.dev/actions-proto-go/runner/v1"
 	"github.com/stretchr/testify/assert"
 	"google.golang.org/protobuf/types/known/timestamppb"
 )

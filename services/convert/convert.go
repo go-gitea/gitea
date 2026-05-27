@@ -36,8 +36,8 @@ import (
 	asymkey_service "gitea.dev/services/asymkey"
 	"gitea.dev/services/gitdiff"
 
-	runnerv1 "code.gitea.io/actions-proto-go/runner/v1"
 	"gitea.com/gitea/runner/act/model"
+	runnerv1 "gitea.dev/actions-proto-go/runner/v1"
 )
 
 // ToEmail convert models.EmailAddress to api.Email
