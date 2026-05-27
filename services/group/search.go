@@ -7,16 +7,16 @@ import (
 	"context"
 	"slices"
 
-	"code.gitea.io/gitea/models/git"
-	group_model "code.gitea.io/gitea/models/group"
-	repo_model "code.gitea.io/gitea/models/repo"
-	user_model "code.gitea.io/gitea/models/user"
-	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/structs"
-	"code.gitea.io/gitea/modules/translation"
-	"code.gitea.io/gitea/services/convert"
-	repo_service "code.gitea.io/gitea/services/repository"
-	commitstatus_service "code.gitea.io/gitea/services/repository/commitstatus"
+	"gitea.dev/models/git"
+	group_model "gitea.dev/models/group"
+	repo_model "gitea.dev/models/repo"
+	user_model "gitea.dev/models/user"
+	"gitea.dev/modules/log"
+	"gitea.dev/modules/structs"
+	"gitea.dev/modules/translation"
+	"gitea.dev/services/convert"
+	repo_service "gitea.dev/services/repository"
+	commitstatus_service "gitea.dev/services/repository/commitstatus"
 )
 
 type WebSearchGroup struct {

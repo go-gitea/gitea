@@ -6,11 +6,11 @@ package group
 import (
 	"context"
 
-	"code.gitea.io/gitea/models/db"
-	group_model "code.gitea.io/gitea/models/group"
-	repo_model "code.gitea.io/gitea/models/repo"
-	user_model "code.gitea.io/gitea/models/user"
-	repo_service "code.gitea.io/gitea/services/repository"
+	"gitea.dev/models/db"
+	group_model "gitea.dev/models/group"
+	repo_model "gitea.dev/models/repo"
+	user_model "gitea.dev/models/user"
+	repo_service "gitea.dev/services/repository"
 )
 
 func deleteGroupRecursively(ctx context.Context, doer *user_model.User, group *group_model.Group, subgroups group_model.RepoGroupList, repos repo_model.RepositoryList) (err error) {

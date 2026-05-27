@@ -5,9 +5,9 @@ package group_test
 import (
 	"testing"
 
-	"code.gitea.io/gitea/models/unittest"
+	"gitea.dev/models/unittest"
 
-	_ "code.gitea.io/gitea/models/group"
+	_ "gitea.dev/models/group"
 )
 
 func TestMain(m *testing.M) {

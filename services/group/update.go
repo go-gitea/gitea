@@ -7,9 +7,9 @@ import (
 	"context"
 	"strings"
 
-	group_model "code.gitea.io/gitea/models/group"
-	"code.gitea.io/gitea/modules/optional"
-	"code.gitea.io/gitea/modules/structs"
+	group_model "gitea.dev/models/group"
+	"gitea.dev/modules/optional"
+	"gitea.dev/modules/structs"
 )
 
 type UpdateOptions struct {

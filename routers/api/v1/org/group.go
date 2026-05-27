@@ -6,11 +6,11 @@ package org
 import (
 	"net/http"
 
-	group_model "code.gitea.io/gitea/models/group"
-	"code.gitea.io/gitea/models/organization"
-	api "code.gitea.io/gitea/modules/structs"
-	"code.gitea.io/gitea/services/context"
-	"code.gitea.io/gitea/services/convert"
+	group_model "gitea.dev/models/group"
+	"gitea.dev/models/organization"
+	api "gitea.dev/modules/structs"
+	"gitea.dev/services/context"
+	"gitea.dev/services/convert"
 )
 
 func GetOrgGroups(ctx *context.APIContext) {
