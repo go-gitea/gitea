@@ -6,15 +6,15 @@ package group
 import (
 	"net/http"
 
-	"code.gitea.io/gitea/models/db"
-	group_model "code.gitea.io/gitea/models/group"
-	unit_model "code.gitea.io/gitea/models/unit"
-	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/web"
-	shared_user "code.gitea.io/gitea/routers/web/shared/user"
-	"code.gitea.io/gitea/services/context"
-	"code.gitea.io/gitea/services/forms"
-	group_service "code.gitea.io/gitea/services/group"
+	"gitea.dev/models/db"
+	group_model "gitea.dev/models/group"
+	unit_model "gitea.dev/models/unit"
+	"gitea.dev/modules/log"
+	"gitea.dev/modules/web"
+	shared_user "gitea.dev/routers/web/shared/user"
+	"gitea.dev/services/context"
+	"gitea.dev/services/forms"
+	group_service "gitea.dev/services/group"
 )
 
 const tplGroupNew = "group/create"

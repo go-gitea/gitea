@@ -3,7 +3,7 @@
 
 package forms
 
-import "code.gitea.io/gitea/modules/structs"
+import "gitea.dev/modules/structs"
 
 // CreateGroupForm form for creating a repository group
 type CreateGroupForm struct {

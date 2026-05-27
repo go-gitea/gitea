@@ -6,9 +6,9 @@ package group
 import (
 	"context"
 
-	group_model "code.gitea.io/gitea/models/group"
-	repo_model "code.gitea.io/gitea/models/repo"
-	user_model "code.gitea.io/gitea/models/user"
+	group_model "gitea.dev/models/group"
+	repo_model "gitea.dev/models/repo"
+	user_model "gitea.dev/models/user"
 )
 
 type groupItemRepo struct {

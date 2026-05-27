@@ -4,10 +4,10 @@
 package group
 
 import (
-	"code.gitea.io/gitea/modules/json"
-	"code.gitea.io/gitea/services/context"
-	"code.gitea.io/gitea/services/forms"
-	group_service "code.gitea.io/gitea/services/group"
+	"gitea.dev/modules/json"
+	"gitea.dev/services/context"
+	"gitea.dev/services/forms"
+	group_service "gitea.dev/services/group"
 )
 
 func MoveGroupItem(ctx *context.Context) {

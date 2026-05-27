@@ -6,11 +6,11 @@ package group
 import (
 	"net/http"
 
-	"code.gitea.io/gitea/models/db"
-	repo_model "code.gitea.io/gitea/models/repo"
-	"code.gitea.io/gitea/modules/setting"
-	shared_group "code.gitea.io/gitea/routers/web/shared/group"
-	"code.gitea.io/gitea/services/context"
+	"gitea.dev/models/db"
+	repo_model "gitea.dev/models/repo"
+	"gitea.dev/modules/setting"
+	shared_group "gitea.dev/routers/web/shared/group"
+	"gitea.dev/services/context"
 )
 
 const (
