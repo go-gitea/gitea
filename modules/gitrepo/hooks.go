@@ -10,8 +10,8 @@ import (
 	"path/filepath"
 	"runtime"
 
-	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/modules/util"
+	"gitea.dev/modules/setting"
+	"gitea.dev/modules/util"
 )
 
 func getHookTemplates() (hookNames, hookTpls, giteaHookTpls []string) {

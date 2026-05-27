@@ -9,7 +9,7 @@ package git
 import (
 	"io"
 
-	"code.gitea.io/gitea/modules/log"
+	"gitea.dev/modules/log"
 
 	"github.com/go-git/go-git/v5/plumbing"
 )
