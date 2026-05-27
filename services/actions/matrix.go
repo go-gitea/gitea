@@ -12,10 +12,10 @@ import (
 	"sort"
 	"strings"
 
-	actions_model "code.gitea.io/gitea/models/actions"
-	"code.gitea.io/gitea/models/db"
-	"code.gitea.io/gitea/modules/actions/jobparser"
-	"code.gitea.io/gitea/modules/log"
+	actions_model "gitea.dev/models/actions"
+	"gitea.dev/models/db"
+	"gitea.dev/modules/actions/jobparser"
+	"gitea.dev/modules/log"
 
 	"go.yaml.in/yaml/v4"
 	"xorm.io/builder"

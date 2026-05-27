@@ -11,7 +11,6 @@ import (
 	"gitea.dev/models/db"
 	"gitea.dev/modules/actions/jobparser"
 	"gitea.dev/modules/util"
-	"gitea.dev/modules/log"
 
 	act_model "gitea.com/gitea/runner/act/model"
 	"go.yaml.in/yaml/v4"

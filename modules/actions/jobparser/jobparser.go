@@ -9,7 +9,7 @@ import (
 	"sort"
 	"strings"
 
-	"code.gitea.io/gitea/modules/log"
+	"gitea.dev/modules/log"
 
 	"gitea.com/gitea/runner/act/exprparser"
 	"gitea.com/gitea/runner/act/model"
