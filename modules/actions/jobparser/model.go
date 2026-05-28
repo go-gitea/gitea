@@ -332,6 +332,10 @@ func ParseRawOn(rawOn *yaml.Node) ([]*Event, error) {
 		}
 		res := make([]*Event, 0, len(events))
 		for i, k := range events {
+			if k == "workflow_call" {
+				// `workflow_call` is only fired by another workflow's `uses:`, so it doesn't need trigger detection here.
+				continue
+			}
 			v := triggers[i]
 			switch v.Kind {
 			case yaml.ScalarNode:
