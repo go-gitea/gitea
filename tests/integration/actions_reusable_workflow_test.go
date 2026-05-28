@@ -11,6 +11,7 @@ import (
 	"testing"
 	"time"
 
+	runnerv1 "gitea.dev/actions-proto-go/runner/v1"
 	actions_model "gitea.dev/models/actions"
 	auth_model "gitea.dev/models/auth"
 	repo_model "gitea.dev/models/repo"
@@ -20,7 +21,6 @@ import (
 	"gitea.dev/modules/json"
 	api "gitea.dev/modules/structs"
 
-	runnerv1 "gitea.dev/actions-proto-go/runner/v1"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
