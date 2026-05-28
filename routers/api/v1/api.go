@@ -1107,6 +1107,7 @@ func Routes() *web.Router {
 
 				if setting.Service.EnableUserHeatmap {
 					m.Get("/heatmap", user.GetUserHeatmapData)
+					m.Get("/group/{group_id}/heatmap", context.GroupAssignmentAPI(true), user.GetUserHeatmapDataInGroup)
 				}
 
 				m.Get("/repos", tokenRequiresScopes(auth_model.AccessTokenScopeCategoryRepository), reqExploreSignIn(), user.ListUserRepos)
