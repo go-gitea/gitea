@@ -383,21 +383,31 @@ type PackageDeprecation struct {
 }
 
 // IsDeprecateRequest returns true if the body looks like an npm deprecate
-// request (i.e. has no package attachments with data). It does not validate
+// request: it must not contain package attachments and must include at least
+// one version object with an explicit `deprecated` field. It does not validate
 // the rest of the document.
 func IsDeprecateRequest(body []byte) bool {
 	var u struct {
 		Attachments map[string]*PackageAttachment `json:"_attachments"`
+		Versions    map[string]map[string]any     `json:"versions"`
 	}
 	if err := json.Unmarshal(body, &u); err != nil {
 		return false
 	}
-	for _, a := range u.Attachments {
-		if a != nil && len(a.Data) > 0 {
-			return false
+
+	if len(u.Attachments) > 0 {
+		return false
+	}
+	for _, meta := range u.Versions {
+		if meta == nil {
+			continue
+		}
+		if _, ok := meta["deprecated"]; ok {
+			return true
 		}
 	}
-	return true
+
+	return false
 }
 
 // ParsePackageDeprecation parses an npm deprecate request body into a list of
