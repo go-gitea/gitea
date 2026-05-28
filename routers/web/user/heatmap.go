@@ -8,6 +8,7 @@ import (
 	"net/url"
 
 	activities_model "gitea.dev/models/activities"
+	group_model "gitea.dev/models/group"
 	"gitea.dev/modules/setting"
 	"gitea.dev/services/context"
 )
@@ -54,9 +55,13 @@ func DashboardHeatmap(ctx *context.Context) {
 	var data []*activities_model.UserHeatmapData
 	var err error
 	if ctx.Org.Organization == nil {
-		data, err = activities_model.GetUserHeatmapDataByUser(ctx, ctx.ContextUser, ctx.Doer)
+		data, err = activities_model.GetUserHeatmapDataByUser(ctx, ctx.ContextUser, nil, ctx.Doer)
 	} else {
-		data, err = activities_model.GetUserHeatmapDataByOrgTeam(ctx, ctx.Org.Organization, ctx.Org.Team, ctx.Doer)
+		var group *group_model.Group
+		if ctx.RepoGroup != nil {
+			group = ctx.RepoGroup.Group
+		}
+		data, err = activities_model.GetUserHeatmapDataByOrgTeam(ctx, ctx.Org.Organization, ctx.Org.Team, group, ctx.Doer)
 	}
 	if err != nil {
 		ctx.ServerError("GetUserHeatmapData", err)
