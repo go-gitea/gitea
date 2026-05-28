@@ -150,7 +150,7 @@ ESLINT_CONCURRENCY ?= 2
 
 SWAGGER_SPEC := templates/swagger/v1_json.tmpl
 SWAGGER_SPEC_INPUT := templates/swagger/v1_input.json
-SWAGGER_EXCLUDE := code.gitea.io/sdk
+SWAGGER_EXCLUDE := gitea.dev/sdk
 OPENAPI3_SPEC := templates/swagger/v1_openapi3_json.tmpl
 
 TEST_MYSQL_HOST ?= mysql:3306
