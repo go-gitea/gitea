@@ -175,6 +175,13 @@ func (g *Group) CanAccessUnitAtLevel(ctx context.Context, user *user_model.User,
 }
 
 func (g *Group) IsOwnedBy(ctx context.Context, userID int64) (bool, error) {
+	owner, err := user_model.GetUserByID(ctx, g.OwnerID)
+	if err != nil {
+		return false, err
+	}
+	if owner.Type == user_model.UserTypeIndividual {
+		return owner.ID == userID, nil
+	}
 	org, err := org_model.GetOrgByID(ctx, g.OwnerID)
 	if err != nil {
 		return false, err
@@ -186,6 +193,13 @@ func (g *Group) IsMemberOf(ctx context.Context, user *user_model.User) (bool, er
 	if user == nil {
 		return false, nil
 	}
+	owner, err := user_model.GetUserByID(ctx, g.OwnerID)
+	if err != nil {
+		return false, err
+	}
+	if owner.Type == user_model.UserTypeIndividual {
+		return owner.ID == user.ID, nil
+	}
 	org, err := org_model.GetOrgByID(ctx, g.OwnerID)
 	if err != nil {
 		return false, err
@@ -194,10 +208,21 @@ func (g *Group) IsMemberOf(ctx context.Context, user *user_model.User) (bool, er
 }
 
 func (g *Group) CanCreateIn(ctx context.Context, userID int64) (bool, error) {
-	return org_model.CanCreateOrgRepo(ctx, g.OwnerID, userID)
+	can, err := org_model.CanCreateOrgRepo(ctx, g.OwnerID, userID)
+	if err != nil {
+		return false, err
+	}
+	return can || g.OwnerID == userID, nil
 }
 
 func (g *Group) IsAdminOf(ctx context.Context, userID int64) (bool, error) {
+	owner, err := user_model.GetUserByID(ctx, g.OwnerID)
+	if err != nil {
+		return false, err
+	}
+	if owner.Type == user_model.UserTypeIndividual {
+		return owner.ID == userID, nil
+	}
 	org, err := org_model.GetOrgByID(ctx, g.OwnerID)
 	if err != nil {
 		return false, err
