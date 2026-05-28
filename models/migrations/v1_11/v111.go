@@ -7,7 +7,7 @@ import (
 	"fmt"
 	"slices"
 
-	"code.gitea.io/gitea/models/db"
+	"gitea.dev/models/db"
 )
 
 func AddBranchProtectionCanPushAndEnableWhitelist(x db.EngineMigration) error {

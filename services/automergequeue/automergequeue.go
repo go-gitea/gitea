@@ -8,10 +8,10 @@ import (
 	"errors"
 	"fmt"
 
-	issues_model "code.gitea.io/gitea/models/issues"
-	"code.gitea.io/gitea/modules/gitrepo"
-	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/queue"
+	issues_model "gitea.dev/models/issues"
+	"gitea.dev/modules/gitrepo"
+	"gitea.dev/modules/log"
+	"gitea.dev/modules/queue"
 )
 
 var AutoMergeQueue *queue.WorkerPoolQueue[string]

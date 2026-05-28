@@ -7,12 +7,12 @@ import (
 	"os"
 	"testing"
 
-	repo_model "code.gitea.io/gitea/models/repo"
-	"code.gitea.io/gitea/models/unittest"
-	user_model "code.gitea.io/gitea/models/user"
-	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/modules/test"
-	"code.gitea.io/gitea/modules/util"
+	repo_model "gitea.dev/models/repo"
+	"gitea.dev/models/unittest"
+	user_model "gitea.dev/models/user"
+	"gitea.dev/modules/setting"
+	"gitea.dev/modules/test"
+	"gitea.dev/modules/util"
 
 	"github.com/stretchr/testify/assert"
 )

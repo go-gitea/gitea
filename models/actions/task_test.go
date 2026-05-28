@@ -7,12 +7,12 @@ import (
 	"strings"
 	"testing"
 
-	"code.gitea.io/gitea/models/db"
-	"code.gitea.io/gitea/models/unittest"
-	"code.gitea.io/gitea/modules/actions/jobparser"
-	"code.gitea.io/gitea/modules/timeutil"
+	runnerv1 "gitea.dev/actions-proto-go/runner/v1"
+	"gitea.dev/models/db"
+	"gitea.dev/models/unittest"
+	"gitea.dev/modules/actions/jobparser"
+	"gitea.dev/modules/timeutil"
 
-	runnerv1 "code.gitea.io/actions-proto-go/runner/v1"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"google.golang.org/protobuf/types/known/timestamppb"

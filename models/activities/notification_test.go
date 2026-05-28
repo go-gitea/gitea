@@ -7,11 +7,11 @@ import (
 	"context"
 	"testing"
 
-	activities_model "code.gitea.io/gitea/models/activities"
-	"code.gitea.io/gitea/models/db"
-	issues_model "code.gitea.io/gitea/models/issues"
-	"code.gitea.io/gitea/models/unittest"
-	user_model "code.gitea.io/gitea/models/user"
+	activities_model "gitea.dev/models/activities"
+	"gitea.dev/models/db"
+	issues_model "gitea.dev/models/issues"
+	"gitea.dev/models/unittest"
+	user_model "gitea.dev/models/user"
 
 	"github.com/stretchr/testify/assert"
 )
