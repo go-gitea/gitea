@@ -33,6 +33,23 @@ import (
 // errInvalidTagName indicates an invalid tag name
 var errInvalidTagName = errors.New("The tag name is invalid")
 
+// maxNpmUploadBodyFallback caps the buffered publish body when no explicit
+// npm size limit is configured. npm tarballs are base64-encoded inside the
+// JSON envelope, so a hard ceiling here prevents an unbounded
+// io.ReadAll on the request body.
+const maxNpmUploadBodyFallback = int64(1 << 30) // 1 GiB
+
+// npmUploadBodyLimit returns the maximum number of bytes UploadPackage will
+// buffer from the request body. When LIMIT_SIZE_NPM is set, allow ~2x the
+// tarball size to account for base64 expansion (~33%) plus JSON envelope and
+// metadata overhead; otherwise fall back to a generous hard ceiling.
+func npmUploadBodyLimit() int64 {
+	if l := setting.Packages.LimitSizeNpm; l > 0 {
+		return l*2 + 64*1024
+	}
+	return maxNpmUploadBodyFallback
+}
+
 func apiError(ctx *context.Context, status int, obj any) {
 	message := helper.ProcessErrorForUser(ctx, status, obj)
 	ctx.JSON(status, map[string]string{
@@ -155,9 +172,15 @@ func DownloadPackageFileByName(ctx *context.Context) {
 
 // UploadPackage creates a new package
 func UploadPackage(ctx *context.Context) {
-	body, err := io.ReadAll(ctx.Req.Body)
+	limit := npmUploadBodyLimit()
+	lr := &io.LimitedReader{R: ctx.Req.Body, N: limit + 1}
+	body, err := io.ReadAll(lr)
 	if err != nil {
 		apiError(ctx, http.StatusInternalServerError, err)
+		return
+	}
+	if int64(len(body)) > limit {
+		apiError(ctx, http.StatusRequestEntityTooLarge, "npm publish payload exceeds size limit")
 		return
 	}
 
