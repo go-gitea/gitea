@@ -9,16 +9,16 @@ import (
 	"net/http"
 	"slices"
 
-	actions_model "code.gitea.io/gitea/models/actions"
-	repo_model "code.gitea.io/gitea/models/repo"
-	user_model "code.gitea.io/gitea/models/user"
-	"code.gitea.io/gitea/modules/actions"
-	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/util"
-	actions_service "code.gitea.io/gitea/services/actions"
+	runnerv1 "gitea.dev/actions-proto-go/runner/v1"
+	"gitea.dev/actions-proto-go/runner/v1/runnerv1connect"
+	actions_model "gitea.dev/models/actions"
+	repo_model "gitea.dev/models/repo"
+	user_model "gitea.dev/models/user"
+	"gitea.dev/modules/actions"
+	"gitea.dev/modules/log"
+	"gitea.dev/modules/util"
+	actions_service "gitea.dev/services/actions"
 
-	runnerv1 "code.gitea.io/actions-proto-go/runner/v1"
-	"code.gitea.io/actions-proto-go/runner/v1/runnerv1connect"
 	"connectrpc.com/connect"
 	gouuid "github.com/google/uuid"
 	"google.golang.org/grpc/codes"
@@ -310,16 +310,21 @@ func (s *Service) UpdateLog(
 		rows = req.Msg.Rows[ack-req.Msg.Index:]
 	}
 
+	// Ack a re-sent finalize idempotently. Appending new rows past the seal errors.
+	if task.LogInStorage {
+		if len(rows) > 0 {
+			return nil, status.Errorf(codes.AlreadyExists, "log file has been archived")
+		}
+		res.Msg.AckIndex = ack
+		return res, nil
+	}
+
 	// Bail unless we have new rows or a NoMore to finalize. Even with
 	// NoMore, bail when the runner has outrun the server — archiving a
 	// log with a gap is worse than asking it to retry.
 	if len(rows) == 0 && (!req.Msg.NoMore || req.Msg.Index > ack) {
 		res.Msg.AckIndex = ack
 		return res, nil
-	}
-
-	if task.LogInStorage {
-		return nil, status.Errorf(codes.AlreadyExists, "log file has been archived")
 	}
 
 	// WriteLogs is called even with no rows: with offset==0 it bootstraps

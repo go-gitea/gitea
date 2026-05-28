@@ -6,8 +6,8 @@ package private
 import (
 	"testing"
 
-	"code.gitea.io/gitea/models/unittest"
-	"code.gitea.io/gitea/modules/git"
+	"gitea.dev/models/unittest"
+	"gitea.dev/modules/git"
 
 	"github.com/stretchr/testify/assert"
 )
