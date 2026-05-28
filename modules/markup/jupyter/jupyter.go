@@ -6,7 +6,6 @@ package jupyter
 import (
 	"encoding/base64"
 	"fmt"
-	"html"
 	"io"
 	"strings"
 
@@ -155,15 +154,11 @@ func renderCell(ctx *markup.RenderContext, output io.Writer, cell Cell, language
 		_, _ = output.Write([]byte(`<div class="input">`))
 
 		// Highlight code
+		// Highlight code
 		lexer := highlight.DetectChromaLexerByFileName("", language)
-		safeLanguage := html.EscapeString(strings.ToLower(language))
-		sb := &strings.Builder{}
-		_, _ = sb.WriteString(`<pre><code class="chroma language-`)
-		_, _ = sb.WriteString(safeLanguage)
-		_, _ = sb.WriteString(`">`)
-		_, _ = sb.WriteString(string(highlight.RenderCodeByLexer(lexer, source)))
-		_, _ = sb.WriteString("</code></pre>")
-		_, _ = output.Write([]byte(sb.String()))
+		_, _ = htmlutil.HTMLPrintf(output, `<pre><code class="chroma language-%s">`, strings.ToLower(language))
+		_, _ = output.Write([]byte(highlight.RenderCodeByLexer(lexer, source)))
+		_, _ = output.Write([]byte("</code></pre>"))
 
 		_, _ = output.Write([]byte(`</div></div>`))
 
