@@ -15,6 +15,7 @@ import (
 	"time"
 
 	"gitea.dev/models/db"
+	group_model "gitea.dev/models/group"
 	issues_model "gitea.dev/models/issues"
 	"gitea.dev/models/organization"
 	repo_model "gitea.dev/models/repo"
@@ -443,6 +444,7 @@ type GetFeedsOptions struct {
 	db.ListOptions
 	RequestedUser   *user_model.User       // the user we want activity for
 	RequestedTeam   *organization.Team     // the team we want activity for
+	RequestedGroup  *group_model.Group     // the group we want activity for
 	RequestedRepo   *repo_model.Repository // the repo we want activity for
 	Actor           *user_model.User       // the user viewing the activity
 	IncludePrivate  bool                   // include private actions
@@ -528,8 +530,24 @@ func ActivityQueryCondition(ctx context.Context, opts GetFeedsOptions) (builder.
 	if opts.Actor == nil || !opts.Actor.IsAdmin {
 		cond = cond.And(builder.In("repo_id", repo_model.AccessibleRepoIDsQuery(opts.Actor)))
 	}
+	if opts.RequestedGroup != nil {
+		var subCond builder.Cond
 
-	if opts.RequestedRepo != nil {
+		groupFilter := group_model.AccessibleGroupCondition(opts.Actor)
+		if childGroupCondIDs, err := group_model.ChildGroupCond(ctx, opts.RequestedGroup.ID, groupFilter); err != nil {
+			subCond = builder.NotIn("`repository`.group_id")
+		} else {
+			subCond = builder.In("`repository`.group_id", childGroupCondIDs)
+		}
+		cond = cond.And(builder.In("`action`.repo_id",
+			builder.Select("id").
+				From("repository").
+				Where(builder.Or(
+					subCond,
+					builder.Eq{"`repository`.group_id": opts.RequestedGroup.ID}),
+				),
+		))
+	} else if opts.RequestedRepo != nil {
 		// repo's actions could have duplicate items, see the comment of NotifyWatchers
 		// so here we only filter the "original items", aka: user_id == act_user_id
 		cond = cond.And(
