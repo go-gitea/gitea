@@ -156,9 +156,10 @@ func renderCell(ctx *markup.RenderContext, output io.Writer, cell Cell, language
 
 		// Highlight code
 		lexer := highlight.DetectChromaLexerByFileName("", language)
+		safeLanguage := html.EscapeString(strings.ToLower(language))
 		sb := &strings.Builder{}
 		_, _ = sb.WriteString(`<pre><code class="chroma language-`)
-		_, _ = sb.WriteString(strings.ToLower(language))
+		_, _ = sb.WriteString(safeLanguage)
 		_, _ = sb.WriteString(`">`)
 		_, _ = sb.WriteString(string(highlight.RenderCodeByLexer(lexer, source)))
 		_, _ = sb.WriteString("</code></pre>")
@@ -252,13 +253,13 @@ func renderOutput(output io.Writer, out Output) {
 			latex := joinSource(latexData)
 			latex = strings.TrimPrefix(latex, "$$")
 			latex = strings.TrimSuffix(latex, "$$")
-			_, _ = htmlutil.HTMLPrintf(output, `<pre><code class="language-math display">%s</code></pre>`, html.EscapeString(latex))
+			_, _ = htmlutil.HTMLPrintf(output, `<pre><code class="language-math display">%s</code></pre>`, latex)
 			return
 		}
 
 		// Plain text output
 		if plainData, ok := out.Data["text/plain"]; ok {
-			_, _ = htmlutil.HTMLPrintf(output, `<pre>%s</pre>`, html.EscapeString(joinSource(plainData)))
+			_, _ = htmlutil.HTMLPrintf(output, `<pre>%s</pre>`, joinSource(plainData))
 			return
 		}
 
@@ -279,7 +280,7 @@ func renderOutput(output io.Writer, out Output) {
 
 	// Stream output
 	if out.OutputType == "stream" && out.Text != nil {
-		_, _ = htmlutil.HTMLPrintf(output, `<pre class="stream-%s">%s</pre>`, out.Name, html.EscapeString(joinSource(out.Text)))
+		_, _ = htmlutil.HTMLPrintf(output, `<pre class="stream-%s">%s</pre>`, out.Name, joinSource(out.Text))
 		return
 	}
 
@@ -298,13 +299,13 @@ func renderOutput(output io.Writer, out Output) {
 		if traceback == "" && out.Ename != "" {
 			traceback = fmt.Sprintf("%s: %s", out.Ename, out.Evalue)
 		}
-		_, _ = htmlutil.HTMLPrintf(output, `<pre class="error-output">%s</pre>`, html.EscapeString(traceback))
+		_, _ = htmlutil.HTMLPrintf(output, `<pre class="error-output">%s</pre>`, traceback)
 		return
 	}
 
 	// Generic text output
 	if out.Text != nil {
-		_, _ = htmlutil.HTMLPrintf(output, `<pre>%s</pre>`, html.EscapeString(joinSource(out.Text)))
+		_, _ = htmlutil.HTMLPrintf(output, `<pre>%s</pre>`, joinSource(out.Text))
 	}
 }
 
