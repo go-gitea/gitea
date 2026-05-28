@@ -378,14 +378,14 @@ func RunnerBulkActionPost(ctx *context.Context) {
 	}
 
 	action := ctx.FormString("action")
-	var successKey1, successKeyN, failedKey string
+	var successKey, failedKey string
 	switch action {
 	case "delete":
-		successKey1, successKeyN, failedKey = "actions.runners.bulk_delete_success_1", "actions.runners.bulk_delete_success_n", "actions.runners.bulk_delete_failed"
+		successKey, failedKey = "actions.runners.delete_runner_success", "actions.runners.delete_runner_failed"
 	case "disable":
-		successKey1, successKeyN, failedKey = "actions.runners.bulk_disable_success_1", "actions.runners.bulk_disable_success_n", "actions.runners.bulk_disable_failed"
+		successKey, failedKey = "actions.runners.disable_runner_success", "actions.runners.disable_runner_failed"
 	case "enable":
-		successKey1, successKeyN, failedKey = "actions.runners.bulk_enable_success_1", "actions.runners.bulk_enable_success_n", "actions.runners.bulk_enable_failed"
+		successKey, failedKey = "actions.runners.enable_runner_success", "actions.runners.enable_runner_failed"
 	default:
 		ctx.HTTPError(http.StatusBadRequest, "invalid action")
 		return
@@ -425,8 +425,7 @@ func RunnerBulkActionPost(ctx *context.Context) {
 		return
 	}
 
-	n := len(runners)
-	ctx.Flash.Success(ctx.Locale.TrN(n, successKey1, successKeyN, n))
+	ctx.Flash.Success(ctx.Tr(successKey))
 	ctx.JSONRedirect(rCtx.RedirectLink)
 }
 
