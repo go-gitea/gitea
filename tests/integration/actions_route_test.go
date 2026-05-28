@@ -9,6 +9,7 @@ import (
 	"net/url"
 	"testing"
 
+	runnerv1 "gitea.dev/actions-proto-go/runner/v1"
 	actions_model "gitea.dev/models/actions"
 	auth_model "gitea.dev/models/auth"
 	"gitea.dev/models/db"
@@ -17,7 +18,6 @@ import (
 	"gitea.dev/modules/setting"
 	actions_web "gitea.dev/routers/web/repo/actions"
 
-	runnerv1 "code.gitea.io/actions-proto-go/runner/v1"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
