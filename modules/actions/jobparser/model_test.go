@@ -255,7 +255,7 @@ func TestParseRawOn(t *testing.T) {
 			},
 		},
 		{
-			// workflow_call is a declaration ("this workflow is callable"), not a trigger event; ParseRawOn intentionally excludes it
+			// `workflow_call` is only fired by another workflow's `uses:`, so ParseRawOn intentionally excludes it from trigger detection.
 			input: `on:
   workflow_call:
     inputs:
@@ -272,7 +272,7 @@ func TestParseRawOn(t *testing.T) {
 			result: []*Event{},
 		},
 		{
-			// Mixed: a workflow that is both callable AND triggered by push. Only the real trigger surfaces.
+			// Mixed: a workflow that is both callable AND triggered by push. Only the "push" event surfaces.
 			input: `on:
   workflow_call:
     inputs:
