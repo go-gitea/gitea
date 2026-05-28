@@ -17,6 +17,7 @@ import (
 	"gitea.dev/modules/markup"
 	"gitea.dev/modules/setting"
 
+	"github.com/microcosm-cc/bluemonday"
 	"github.com/yuin/goldmark"
 	"github.com/yuin/goldmark/extension"
 )
@@ -42,7 +43,7 @@ func (renderer) NeedPostProcess() bool { return true }
 
 func (renderer) GetExternalRendererOptions() markup.ExternalRendererOptions {
 	return markup.ExternalRendererOptions{
-		SanitizerDisabled: false,
+		SanitizerDisabled: true,
 	}
 }
 
@@ -51,65 +52,7 @@ func (renderer) FileNamePatterns() []string {
 }
 
 func (renderer) SanitizerRules() []setting.MarkupSanitizerRule {
-	return []setting.MarkupSanitizerRule{
-		// Notebook container and messages
-		{Element: "div", AllowAttr: "class", Regexp: `^jupyter-notebook$`},
-		{Element: "div", AllowAttr: "class", Regexp: `^jupyter-notebook-message$`},
-		{Element: "div", AllowAttr: "class", Regexp: `^jupyter-notebook-error$`},
-
-		// Cell structure
-		{Element: "div", AllowAttr: "class", Regexp: `^cell (markdown|code)$`},
-		{Element: "div", AllowAttr: "class", Regexp: `^(input-wrapper|output-wrapper)$`},
-		{Element: "div", AllowAttr: "class", Regexp: `^prompt (input-prompt|output-prompt)$`},
-		{Element: "div", AllowAttr: "class", Regexp: `^(input|output)$`},
-		{Element: "div", AllowAttr: "class", Regexp: `^input markup$`},
-
-		// Output types
-		{Element: "div", AllowAttr: "class", Regexp: `^jupyter-html-output$`},
-		{Element: "div", AllowAttr: "class", Regexp: `^jupyter-unsupported-output$`},
-		{Element: "pre", AllowAttr: "class", Regexp: `^(stream-stdout|stream-stderr|error-output)$`},
-
-		// Code highlighting (Chroma)
-		{Element: "pre"},
-		{Element: "code", AllowAttr: "class", Regexp: `^chroma language-[\w-]+$`},
-		{Element: "code", AllowAttr: "class", Regexp: `^language-math display$`},
-		{Element: "span", AllowAttr: "class", Regexp: `^[\w-]+$`},
-
-		// Images (base64 data URIs only)
-		{Element: "img", AllowAttr: "class", Regexp: `^jupyter-output-image$`},
-		{AllowDataURIImages: true},
-
-		// Tables (for DataFrames and markdown)
-		{Element: "table", AllowAttr: "class", Regexp: `^dataframe$`},
-		{Element: "table", AllowAttr: "border", Regexp: `^[0-9]+$`},
-		{Element: "thead"},
-		{Element: "tbody"},
-		{Element: "tr"},
-		{Element: "th"},
-		{Element: "td"},
-
-		// Markdown elements
-		{Element: "h1"},
-		{Element: "h2"},
-		{Element: "h3"},
-		{Element: "h4"},
-		{Element: "h5"},
-		{Element: "h6"},
-		{Element: "p"},
-		{Element: "a", AllowAttr: "href", Regexp: `^(https?://|mailto:).*$`},
-		{Element: "strong"},
-		{Element: "em"},
-		{Element: "ul"},
-		{Element: "ol"},
-		{Element: "li"},
-		{Element: "blockquote"},
-		{Element: "dl"},
-		{Element: "dt"},
-		{Element: "dd"},
-		{Element: "input", AllowAttr: "type", Regexp: `^checkbox$`},
-		{Element: "input", AllowAttr: "disabled", Regexp: `^$`},
-		{Element: "input", AllowAttr: "checked", Regexp: `^$`},
-	}
+	return nil
 }
 
 // Notebook structures
@@ -293,9 +236,13 @@ func renderOutput(output io.Writer, out Output) {
 			htmlContent := joinSource(htmlData)
 			// Strip <style> tags as we handle DataFrame styles in CSS
 			htmlContent = stripStyleTags(htmlContent)
-			// Write raw HTML - sanitizer will clean it
+			sanitizer := bluemonday.UGCPolicy()
+
+			sanitizer.AllowAttrs("class").OnElements("table", "thead", "tbody", "tr", "th", "td")
+
+			safeHTML := sanitizer.Sanitize(htmlContent)
 			_, _ = output.Write([]byte(`<div class="jupyter-html-output">`))
-			_, _ = output.Write([]byte(htmlContent))
+			_, _ = output.Write([]byte(safeHTML))
 			_, _ = output.Write([]byte(`</div>`))
 			return
 		}
