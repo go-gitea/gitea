@@ -333,6 +333,10 @@ func ParseRawOn(rawOn *yaml.Node) ([]*Event, error) {
 		}
 		res := make([]*Event, 0, len(events))
 		for i, k := range events {
+			if k == "workflow_call" {
+				// workflow_call's `inputs`/`outputs`/`secrets` maps are not needed for trigger detection, skip
+				continue
+			}
 			v := triggers[i]
 			switch v.Kind {
 			case yaml.ScalarNode:
@@ -401,35 +405,32 @@ func ParseRawOn(rawOn *yaml.Node) ([]*Event, error) {
 							}
 							acts[act] = []string{t}
 						case yaml.MappingNode:
-							switch {
-							case k == "workflow_dispatch" && act == "inputs":
-								var key string
-								for i, vv := range content.Content {
-									if i%2 == 0 {
-										if vv.Kind != yaml.ScalarNode {
-											return nil, fmt.Errorf("key type not string: %#v", vv)
-										}
-										key = ""
-										if err := vv.Decode(&key); err != nil {
-											return nil, err
-										}
-									} else {
-										if vv.Kind != yaml.MappingNode {
-											return nil, fmt.Errorf("key type not map(%s): %#v", key, vv)
-										}
+							if k != "workflow_dispatch" || act != "inputs" {
+								return nil, fmt.Errorf("map should only for workflow_dispatch but %s: %#v", act, content)
+							}
 
-										input := WorkflowDispatchInput{}
-										if err := vv.Decode(&input); err != nil {
-											return nil, err
-										}
-										input.Name = key
-										inputs = append(inputs, input)
+							var key string
+							for i, vv := range content.Content {
+								if i%2 == 0 {
+									if vv.Kind != yaml.ScalarNode {
+										return nil, fmt.Errorf("key type not string: %#v", vv)
 									}
+									key = ""
+									if err := vv.Decode(&key); err != nil {
+										return nil, err
+									}
+								} else {
+									if vv.Kind != yaml.MappingNode {
+										return nil, fmt.Errorf("key type not map(%s): %#v", key, vv)
+									}
+
+									input := WorkflowDispatchInput{}
+									if err := vv.Decode(&input); err != nil {
+										return nil, err
+									}
+									input.Name = key
+									inputs = append(inputs, input)
 								}
-							case k == "workflow_call" && (act == "inputs" || act == "outputs" || act == "secrets"):
-								// Accepted; the detailed schema is parsed by ParseWorkflowCallSpec
-							default:
-								return nil, fmt.Errorf("map should only be used for workflow_dispatch.inputs or workflow_call.{inputs,outputs,secrets} but %s: %#v", act, content)
 							}
 						default:
 							return nil, fmt.Errorf("unknown on type: %#v", content)

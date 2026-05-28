@@ -255,8 +255,7 @@ func TestParseRawOn(t *testing.T) {
 			},
 		},
 		{
-			// workflow_call.{inputs,outputs,secrets} are valid mapping nodes; their detailed schema is parsed by ParseWorkflowCallSpec,
-			// so parseRawOn just needs to accept them and surface the event name.
+			// workflow_call is a declaration ("this workflow is callable"), not a trigger event; ParseRawOn intentionally excludes it
 			input: `on:
   workflow_call:
     inputs:
@@ -270,9 +269,22 @@ func TestParseRawOn(t *testing.T) {
       DEPLOY_KEY:
         required: true
 `,
+			result: []*Event{},
+		},
+		{
+			// Mixed: a workflow that is both callable AND triggered by push. Only the real trigger surfaces.
+			input: `on:
+  workflow_call:
+    inputs:
+      env:
+        type: string
+  push:
+    branches: [main]
+`,
 			result: []*Event{
 				{
-					Name: "workflow_call",
+					Name: "push",
+					acts: map[string][]string{"branches": {"main"}},
 				},
 			},
 		},
