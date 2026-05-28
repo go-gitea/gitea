@@ -108,6 +108,43 @@ If further discussion is needed, we encourage you to open a new issue instead an
 
 See the [development setup instructions](https://docs.gitea.com/development/hacking-on-gitea).
 
+### Troubleshooting Common Build Issues
+
+If you encounter issues while building Gitea, the following tips may help:
+
+**Go version mismatch**
+```bash
+go version  # Must be 1.26.x or compatible version
+```
+If you see an error about an unsupported Go version, download the correct version from https://go.dev/dl/
+
+**Node.js or pnpm not found**
+```bash
+node --version  # LTS version required
+pnpm --version  # Must be installed separately: npm install -g pnpm
+```
+Frontend build requires pnpm. Install it with: `npm install -g pnpm`
+
+**Missing bindata assets**
+```bash
+TAGS="bindata" make build  # Required to include embedded frontend assets
+```
+Without `TAGS="bindata"`, the build may fail to find frontend assets. For development with live reload, use `make frontend` separately.
+
+**Database required for tests**
+```bash
+GITEA_TEST_DATABASE=sqlite go test ./... -short  # Uses SQLite by default
+```
+`make test-backend` requires a database. By default it uses SQLite (set `GITEA_TEST_DATABASE=sqlite` or leave unset). For other databases, see the test database configuration in the Makefile.
+
+**Running a subset of tests**
+```bash
+make test-backend#TestName  # Run a specific backend test
+```
+Use `#` to target a specific test name pattern.
+
+If you continue to have issues after trying these steps, please search the [issue tracker](https://github.com/go-gitea/gitea/issues) or ask on the [Discord server](https://discord.gg/Gitea).
+
 ## Styleguide
 
 You should always run `make fmt` before committing to conform to Gitea's styleguide.
