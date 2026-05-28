@@ -7,12 +7,12 @@ import (
 	"fmt"
 	"strings"
 
-	actions_model "code.gitea.io/gitea/models/actions"
-	repo_model "code.gitea.io/gitea/models/repo"
-	"code.gitea.io/gitea/modules/actions"
-	"code.gitea.io/gitea/modules/httplib"
-	"code.gitea.io/gitea/modules/util"
-	"code.gitea.io/gitea/services/context"
+	actions_model "gitea.dev/models/actions"
+	repo_model "gitea.dev/models/repo"
+	"gitea.dev/modules/actions"
+	"gitea.dev/modules/httplib"
+	"gitea.dev/modules/util"
+	"gitea.dev/services/context"
 )
 
 func DownloadActionsRunJobLogsWithID(ctx *context.Base, ctxRepo *repo_model.Repository, runID, jobID int64) error {

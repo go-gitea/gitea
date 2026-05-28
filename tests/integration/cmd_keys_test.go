@@ -8,9 +8,9 @@ import (
 	"net/url"
 	"testing"
 
-	"code.gitea.io/gitea/cmd"
-	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/modules/util"
+	"gitea.dev/cmd"
+	"gitea.dev/modules/setting"
+	"gitea.dev/modules/util"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/urfave/cli/v3"

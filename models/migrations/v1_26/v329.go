@@ -6,7 +6,7 @@ package v1_26
 import (
 	"fmt"
 
-	"code.gitea.io/gitea/models/db"
+	"gitea.dev/models/db"
 
 	"xorm.io/xorm/schemas"
 )

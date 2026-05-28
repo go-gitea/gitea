@@ -7,8 +7,8 @@ import (
 	"context"
 	"errors"
 
-	"code.gitea.io/gitea/modules/indexer"
-	"code.gitea.io/gitea/modules/indexer/internal"
+	"gitea.dev/modules/indexer"
+	"gitea.dev/modules/indexer/internal"
 )
 
 // Indexer defines an interface to indexer issues contents
