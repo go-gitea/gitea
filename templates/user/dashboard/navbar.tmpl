@@ -74,10 +74,10 @@
 					</div>
 				</div>
 			</div>
-			<div class="item">
-				{{template "group/dashboard/menu" .}}
-			</div>
 		{{end}}
+		<div class="item">
+			{{template "group/dashboard/menu" .}}
+		</div>
 
 	{{if .ContextUser.IsOrganization}}
 		{{$suffix := ""}}

@@ -12,6 +12,9 @@
 			{{ctx.Locale.Tr "home.filter_by_group_repositories"}}
 		</div>
 		<div class="scrolling menu items">
+			<a class="{{if not $.Group}}active selected{{end}} item" title="{{ctx.Locale.Tr "all"}}" href="{{if $.Org}}{{$.Org.OrganisationLink}}{{else}}/{{end}}">
+				{{ctx.Locale.Tr "all"}}
+			</a>
 			{{template "group/dashboard/submenu" dict "." . "Items" .GroupNavItems "Depth" 0}}
 		</div>
 	</div>
