@@ -9,6 +9,7 @@ import (
 	"os"
 	"testing"
 
+	runnerv1 "gitea.dev/actions-proto-go/runner/v1"
 	actions_model "gitea.dev/models/actions"
 	auth_model "gitea.dev/models/auth"
 	"gitea.dev/models/dbfs"
@@ -18,7 +19,6 @@ import (
 	actions_module "gitea.dev/modules/actions"
 	"gitea.dev/modules/storage"
 
-	runnerv1 "code.gitea.io/actions-proto-go/runner/v1"
 	"connectrpc.com/connect"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"

@@ -3,8 +3,6 @@ module gitea.dev
 go 1.26.3
 
 require (
-	code.gitea.io/actions-proto-go v0.4.1
-	code.gitea.io/sdk/gitea v0.25.1
 	codeberg.org/gusted/mcaptcha v0.0.0-20220723083913-4f3072e1d570
 	connectrpc.com/connect v1.20.0
 	gitea.com/gitea/runner v1.0.5
@@ -14,6 +12,8 @@ require (
 	gitea.com/go-chi/session v0.0.0-20251124165456-68e0254e989e
 	gitea.com/lunny/dingtalk_webhook v0.0.0-20171025031554-e3534c89ef96
 	gitea.com/lunny/levelqueue v0.4.2-0.20230414023320-3c0159fe0fe4
+	gitea.dev/actions-proto-go v0.5.0
+	gitea.dev/sdk v1.0.1
 	github.com/42wim/httpsig v1.2.4
 	github.com/42wim/sshsig v0.0.0-20260317195500-b9f38cf0d432
 	github.com/Azure/azure-sdk-for-go/sdk/azcore v1.20.0
