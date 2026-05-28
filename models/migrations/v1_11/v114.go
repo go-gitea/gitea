@@ -6,7 +6,7 @@ package v1_11
 import (
 	"net/url"
 
-	"code.gitea.io/gitea/models/db"
+	"gitea.dev/models/db"
 )
 
 func SanitizeOriginalURL(x db.EngineMigration) error {

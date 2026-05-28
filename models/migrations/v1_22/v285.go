@@ -6,7 +6,7 @@ package v1_22
 import (
 	"time"
 
-	"code.gitea.io/gitea/models/db"
+	"gitea.dev/models/db"
 
 	"xorm.io/xorm"
 )

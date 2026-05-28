@@ -3,7 +3,7 @@
 
 package v1_15
 
-import "code.gitea.io/gitea/models/db"
+import "gitea.dev/models/db"
 
 func AddRepoArchiver(x db.EngineMigration) error {
 	// RepoArchiver represents all archivers
