@@ -15,6 +15,7 @@ import (
 	"testing"
 	"time"
 
+	runnerv1 "gitea.dev/actions-proto-go/runner/v1"
 	actions_model "gitea.dev/models/actions"
 	auth_model "gitea.dev/models/auth"
 	db_model "gitea.dev/models/db"
@@ -34,7 +35,6 @@ import (
 	"gitea.dev/services/actions"
 	"gitea.dev/tests"
 
-	runnerv1 "code.gitea.io/actions-proto-go/runner/v1"
 	"github.com/PuerkitoBio/goquery"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
