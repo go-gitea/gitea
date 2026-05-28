@@ -618,6 +618,8 @@ func Test_maxParallel_CancelCornerCase(t *testing.T) {
 		assert.Equal(t, 0, countStatus(jobs, actions_model.StatusBlocked))
 		assert.Equal(t, 0, countStatus(jobs, actions_model.StatusWaiting))
 	})
+}
+
 // Test_checkRunConcurrency_NoDuplicateConcurrencyGroupCheck verifies that when a run's
 // ConcurrencyGroup has already been checked at the run level, the same group is not
 // re-checked for individual jobs.

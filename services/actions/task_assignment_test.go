@@ -7,9 +7,9 @@ import (
 	"context"
 	"testing"
 
-	actions_model "code.gitea.io/gitea/models/actions"
-	"code.gitea.io/gitea/models/db"
-	"code.gitea.io/gitea/models/unittest"
+	actions_model "gitea.dev/models/actions"
+	"gitea.dev/models/db"
+	"gitea.dev/models/unittest"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -47,7 +47,7 @@ func TestMaxParallel_ServiceLayer(t *testing.T) {
 			require.NoError(t, db.Insert(context.Background(), j))
 		}
 
-		allJobs, err := actions_model.GetRunJobsByRunID(context.Background(), runID)
+		allJobs, err := db.Find[actions_model.ActionRunJob](context.Background(), actions_model.FindRunJobOptions{RunID: runID})
 		require.NoError(t, err)
 
 		running := countJobsByStatus(allJobs, actions_model.StatusRunning)
@@ -79,7 +79,7 @@ func TestMaxParallel_ServiceLayer(t *testing.T) {
 		_, err := actions_model.UpdateRunJob(context.Background(), jobs[0], nil, "status")
 		require.NoError(t, err)
 
-		allJobs, err := actions_model.GetRunJobsByRunID(context.Background(), runID)
+		allJobs, err := db.Find[actions_model.ActionRunJob](context.Background(), actions_model.FindRunJobOptions{RunID: runID})
 		require.NoError(t, err)
 
 		running := countJobsByStatus(allJobs, actions_model.StatusRunning)
@@ -101,7 +101,7 @@ func TestMaxParallel_ServiceLayer(t *testing.T) {
 			}))
 		}
 
-		allJobs, err := actions_model.GetRunJobsByRunID(context.Background(), runID)
+		allJobs, err := db.Find[actions_model.ActionRunJob](context.Background(), actions_model.FindRunJobOptions{RunID: runID})
 		require.NoError(t, err)
 		assert.Equal(t, 5, countJobsByStatus(allJobs, actions_model.StatusWaiting))
 		assert.Equal(t, 0, countJobsByStatus(allJobs, actions_model.StatusBlocked))
