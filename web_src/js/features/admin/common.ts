@@ -3,7 +3,7 @@ import {hideElem, queryElems, showElem, toggleElem} from '../../utils/dom.ts';
 import {POST} from '../../modules/fetch.ts';
 import {showFomanticModal} from '../../modules/fomantic/modal.ts';
 import {pathEscape} from '../../utils/url.ts';
-import {registerGlobalInitFunc} from "../../modules/observer.ts";
+import {registerGlobalInitFunc} from '../../modules/observer.ts';
 
 const {appSubUrl} = window.config;
 
