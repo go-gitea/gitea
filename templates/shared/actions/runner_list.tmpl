@@ -54,6 +54,7 @@
 		</form>
 	</div>
 	{{end}}
+	{{if .Runners}}
 	<div class="ui attached table segment">
 		<table class="ui very basic table unstackable">
 			<thead>
@@ -104,14 +105,13 @@
 							{{end}}
 						</td>
 					</tr>
-				{{else}}
-					<tr>
-						<td class="tw-text-center" colspan="{{if .AllowBulkActions}}9{{else}}8{{end}}">{{ctx.Locale.Tr "actions.runners.none"}}</td>
-					</tr>
 				{{end}}
 			</tbody>
 		</table>
 	</div>
+	{{else}}
+	<div class="ui attached segment tw-text-center">{{ctx.Locale.Tr "actions.runners.none"}}</div>
+	{{end}}
 
 	{{template "base/paginate" .}}
 </div>

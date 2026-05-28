@@ -364,14 +364,6 @@ func RunnerUpdatePost(ctx *context.Context) {
 	ctx.JSONRedirect("")
 }
 
-// bulkActionI18nKey maps an action name to its locale key prefix (drives both
-// success/failure messages and validates the form's `action` value).
-var bulkActionI18nKey = map[string]string{
-	"delete":  "actions.runners.bulk_delete",
-	"disable": "actions.runners.bulk_disable",
-	"enable":  "actions.runners.bulk_enable",
-}
-
 // RunnerBulkActionPost performs a bulk action (delete/disable/enable) on multiple runners.
 // Admin-only: route must be mounted inside the admin runners group; defense-in-depth check below.
 func RunnerBulkActionPost(ctx *context.Context) {
@@ -386,7 +378,15 @@ func RunnerBulkActionPost(ctx *context.Context) {
 	}
 
 	action := ctx.FormString("action")
-	if _, ok := bulkActionI18nKey[action]; !ok {
+	var successKey1, successKeyN, failedKey string
+	switch action {
+	case "delete":
+		successKey1, successKeyN, failedKey = "actions.runners.bulk_delete_success_1", "actions.runners.bulk_delete_success_n", "actions.runners.bulk_delete_failed"
+	case "disable":
+		successKey1, successKeyN, failedKey = "actions.runners.bulk_disable_success_1", "actions.runners.bulk_disable_success_n", "actions.runners.bulk_disable_failed"
+	case "enable":
+		successKey1, successKeyN, failedKey = "actions.runners.bulk_enable_success_1", "actions.runners.bulk_enable_success_n", "actions.runners.bulk_enable_failed"
+	default:
 		ctx.HTTPError(http.StatusBadRequest, "invalid action")
 		return
 	}
@@ -418,16 +418,15 @@ func RunnerBulkActionPost(ctx *context.Context) {
 		}
 		return nil
 	})
-	i18nPrefix := bulkActionI18nKey[action]
 	if err != nil {
 		log.Warn("RunnerBulkActionPost.%s failed: %v, url: %s", action, err, ctx.Req.URL)
-		ctx.Flash.Error(ctx.Tr(i18nPrefix + "_failed"))
+		ctx.Flash.Error(ctx.Tr(failedKey))
 		ctx.JSONRedirect(rCtx.RedirectLink)
 		return
 	}
 
 	n := len(runners)
-	ctx.Flash.Success(ctx.Locale.TrN(n, i18nPrefix+"_success_1", i18nPrefix+"_success_n", n))
+	ctx.Flash.Success(ctx.Locale.TrN(n, successKey1, successKeyN, n))
 	ctx.JSONRedirect(rCtx.RedirectLink)
 }
 

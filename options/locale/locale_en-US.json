@@ -3764,7 +3764,7 @@
   "actions.runners.bulk_disable": "Disable",
   "actions.runners.bulk_enable": "Enable",
   "actions.runners.bulk_delete_header": "Confirm bulk deletion",
-  "actions.runners.bulk_delete_notice": "The selected runners will be permanently deleted. Tasks running on them will be terminated and marked as failed.",
+  "actions.runners.bulk_delete_notice": "The selected runners will be permanently deleted.",
   "actions.runners.bulk_delete_success_1": "%d runner deleted successfully",
   "actions.runners.bulk_delete_success_n": "%d runners deleted successfully",
   "actions.runners.bulk_disable_success_1": "%d runner disabled successfully",
