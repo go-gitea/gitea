@@ -151,7 +151,7 @@ func groupAssignment(ctx commonCtx, doer *user_model.User, isSigned, _ bool, han
 		repoGroup.IsGroupAdmin = true
 	}
 
-	if isSigned && doer.IsAdmin {
+	if isSigned && (doer.IsAdmin || doer.ID == group.OwnerID) {
 		repoGroup.IsOwner = true
 		repoGroup.IsMember = true
 		repoGroup.IsGroupAdmin = true

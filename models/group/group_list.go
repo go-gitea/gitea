@@ -38,7 +38,10 @@ func MemberCond(idStr string, groupID int64, user *user_model.User) builder.Cond
 	if user == nil || user.ID <= 0 {
 		return builder.Expr("1 = 0")
 	}
-	whereCond := builder.In("`repo_group`.owner_id", orgMembershipGroupBuilder(user.ID))
+	whereCond := builder.Or(builder.In("`repo_group`.owner_id", orgMembershipGroupBuilder(user.ID)),
+		builder.Eq{
+			"`repo_group`.owner_id": user.ID,
+		})
 	if groupID > 0 {
 		whereCond = whereCond.And(builder.Eq{idStr: groupID})
 	}
@@ -70,7 +73,9 @@ func AccessibleGroupCondition(user *user_model.User) builder.Cond {
 		adminSubquery := builder.Dialect(db.BuilderDialect()).Select("1").
 			From("`user`").
 			Where(builder.Eq{"`user`.is_admin": true, "`user`.`id`": user.ID})
-		cond = cond.Or(builder.In("`repo_group`.owner_id", orgMembershipGroupBuilder(user.ID)), builder.Exists(adminSubquery))
+
+		condOwner := builder.Eq{"`repo_group`.owner_id": user.ID}
+		cond = cond.Or(builder.In("`repo_group`.owner_id", orgMembershipGroupBuilder(user.ID)), builder.Exists(adminSubquery), condOwner)
 	}
 	return cond
 }

@@ -1278,6 +1278,10 @@ func Routes() *web.Router {
 			m.Combo("/repos", tokenRequiresScopes(auth_model.AccessTokenScopeCategoryRepository)).Get(user.ListMyRepos).
 				Post(rejectPublicOnly(), bind(api.CreateRepoOption{}), repo.Create)
 
+			m.Group("/groups", func() {
+				m.Get("", group.GetUserGroups)
+				m.Post("/new", rejectPublicOnly(), bind(api.NewGroupOption{}), group.NewUserGroup)
+			})
 			// (repo scope)
 			m.Group("/starred", func() {
 				m.Get("", user.GetMyStarredRepos)
@@ -1868,8 +1872,8 @@ func Routes() *web.Router {
 				})
 			}, reqToken(), reqOrgOwnership())
 			m.Group("/groups", func() {
-				m.Get("", org.GetOrgGroups)
-				m.Post("/new", reqToken(), reqOrgAdmin(), bind(api.NewGroupOption{}), group.NewGroup)
+				m.Get("", group.GetOrgGroups)
+				m.Post("/new", reqToken(), reqOrgAdmin(), bind(api.NewGroupOption{}), group.NewOrgGroup)
 			})
 		}, tokenRequiresScopes(auth_model.AccessTokenScopeCategoryOrganization), orgAssignment(true), checkTokenPublicOnly())
 		m.Group("/teams/{teamid}", func() {

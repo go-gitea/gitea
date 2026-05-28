@@ -12,6 +12,7 @@ import (
 	org_model "gitea.dev/models/organization"
 	access_model "gitea.dev/models/perm/access"
 	shared_group_model "gitea.dev/models/shared/group"
+	user_model "gitea.dev/models/user"
 	"gitea.dev/modules/optional"
 	api "gitea.dev/modules/structs"
 	"gitea.dev/modules/web"
@@ -63,9 +64,9 @@ func createCommonGroup(ctx *context.APIContext, parentGroupID, ownerID int64) *a
 	return val
 }
 
-// NewGroup create a new root-level group in an organization
-func NewGroup(ctx *context.APIContext) {
-	// swagger:operation POST /orgs/{org}/groups/new repository-group groupNew
+// NewOrgGroup create a new root-level group in an organization
+func NewOrgGroup(ctx *context.APIContext) {
+	// swagger:operation POST /orgs/{org}/groups/new repository-group groupNewOrg
 	// ---
 	// summary: create a root-level repository group for an organization
 	// consumes:
@@ -91,6 +92,39 @@ func NewGroup(ctx *context.APIContext) {
 	//   "422":
 	//     "$ref": "#/responses/validationError"
 	ag := createCommonGroup(ctx, 0, ctx.Org.Organization.ID)
+	if !ctx.Written() {
+		ctx.JSON(http.StatusCreated, ag)
+	}
+}
+
+// NewUserGroup crate a new root-level group for the current user
+func NewUserGroup(ctx *context.APIContext) {
+	// swagger:operation POST /users/groups/new repository-group groupNewUser
+	// ---
+	// summary: create a root-level repository group for the current user
+	// consumes:
+	// - application/json
+	// produces:
+	// - application/json
+	// parameters:
+	// - name: org
+	//   in: path
+	//   description: name of the organization
+	//   type: string
+	//   required: true
+	// - name: body
+	//   in: body
+	//   required: true
+	//   schema:
+	//     "$ref": "#/definitions/NewGroupOption"
+	// responses:
+	//   "201":
+	//     "$ref": "#/responses/Group"
+	//   "404":
+	//     "$ref": "#/responses/notFound"
+	//   "422":
+	//     "$ref": "#/responses/validationError"
+	ag := createCommonGroup(ctx, 0, ctx.ContextUser.ID)
 	if !ctx.Written() {
 		ctx.JSON(http.StatusCreated, ag)
 	}
@@ -398,4 +432,120 @@ func GetGroupSubGroups(ctx *context.APIContext) {
 	}
 	ctx.SetTotalCountHeader(int64(len(groups)))
 	ctx.JSON(http.StatusOK, groups)
+}
+
+func getGroupsCommon(ctx *context.APIContext, isOrg bool) {
+	var doerID int64
+	if ctx.Doer != nil {
+		doerID = ctx.Doer.ID
+	}
+	var ownerID int64
+	if isOrg {
+		org, err := org_model.GetOrgByName(ctx, ctx.PathParam("org"))
+		if err != nil {
+			if org_model.IsErrOrgNotExist(err) {
+				ctx.APIErrorNotFound(err)
+			} else {
+				ctx.APIErrorInternal(err)
+			}
+			return
+		}
+
+		if !org_model.HasOrgOrUserVisible(ctx, org.AsUser(), ctx.Doer) {
+			ctx.APIErrorNotFound("HasOrgOrUserVisible", nil)
+			return
+		}
+		ownerID = org.ID
+	} else {
+		user, err := user_model.GetUserByName(ctx, ctx.PathParam("username"))
+		if err != nil {
+			if user_model.IsErrUserNotExist(err) {
+				ctx.APIErrorNotFound(err)
+			} else {
+				ctx.APIErrorInternal(err)
+			}
+			return
+		}
+		if user_model.IsUserBlockedBy(ctx, ctx.Doer, user.ID) {
+			ctx.APIErrorNotFound("IsUserBlockedBy", nil)
+			return
+		}
+		ownerID = user.ID
+	}
+	groups, err := group_model.FindGroupsByCond(ctx, &group_model.FindGroupsOptions{
+		ParentGroupID: 0,
+		ActorID:       doerID,
+		OwnerID:       ownerID,
+	}, group_model.
+		AccessibleGroupCondition(ctx.Doer))
+	if err != nil {
+		ctx.APIErrorInternal(err)
+		return
+	}
+	apiGroups := make([]*api.Group, len(groups))
+	for i, group := range groups {
+		apiGroups[i], err = convert.ToAPIGroup(ctx, group, ctx.Doer)
+		if err != nil {
+			ctx.APIErrorInternal(err)
+			return
+		}
+	}
+	ctx.SetTotalCountHeader(int64(len(groups)))
+	ctx.JSON(http.StatusOK, apiGroups)
+}
+
+func GetOrgGroups(ctx *context.APIContext) {
+	// swagger:operation GET /orgs/{org}/groups organization orgListGroups
+	// ---
+	// summary: List an organization's root-level groups
+	// produces:
+	// - application/json
+	// parameters:
+	// - name: org
+	//   in: path
+	//   description: name of the organization
+	//   type: string
+	//   required: true
+	// - name: page
+	//   in: query
+	//   description: page number of results to return (1-based)
+	//   type: integer
+	// - name: limit
+	//   in: query
+	//   description: page size of results
+	//   type: integer
+	// responses:
+	//   "200":
+	//     "$ref": "#/responses/GroupList"
+	//   "404":
+	//     "$ref": "#/responses/notFound"
+	getGroupsCommon(ctx, true)
+}
+
+func GetUserGroups(ctx *context.APIContext) {
+	// swagger:operation GET /user/{username}/groups user userListGroups
+	// ---
+	// summary: List a user's root-level groups
+	// produces:
+	// - application/json
+	// parameters:
+	// - name: org
+	//   in: path
+	//   description: name of the organization
+	//   type: string
+	//   required: true
+	// - name: page
+	//   in: query
+	//   description: page number of results to return (1-based)
+	//   type: integer
+	// - name: limit
+	//   in: query
+	//   description: page size of results
+	//   type: integer
+	// responses:
+	//   "200":
+	//     "$ref": "#/responses/GroupList"
+	//   "404":
+	//     "$ref": "#/responses/notFound"
+	getGroupsCommon(ctx, false)
 }
