@@ -186,13 +186,14 @@ func NewGithubDownloaderV3WithApp(ctx context.Context, baseURL string, credentia
 	}
 
 	// Create GitHub client and set the auth token
-	githubClient := github.NewClient(httpClient).WithAuthToken(token)
+	opts := []github.ClientOptionsFunc{github.WithHTTPClient(httpClient), github.WithAuthToken(token)}
 
 	if apiBaseURL != "https://api.github.com" {
-		githubClient, err = githubClient.WithEnterpriseURLs(apiBaseURL, apiBaseURL)
-		if err != nil {
-			return nil, fmt.Errorf("failed to set enterprise URLs: %w", err)
-		}
+		opts = append(opts, github.WithEnterpriseURLs(apiBaseURL, apiBaseURL))
+	}
+	githubClient, err := github.NewClient(opts...)
+	if err != nil {
+		return nil, fmt.Errorf("failed to set enterprise URLs: %w", err)
 	}
 
 	downloader.clients = append(downloader.clients, githubClient)

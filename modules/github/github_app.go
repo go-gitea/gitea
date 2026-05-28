@@ -17,7 +17,7 @@ import (
 	"gitea.dev/modules/log"
 
 	"github.com/golang-jwt/jwt/v5"
-	"github.com/google/go-github/v85/github"
+	"github.com/google/go-github/v87/github"
 )
 
 // GenerateGitHubAppJWT generates a JWT for GitHub App authentication
@@ -81,14 +81,14 @@ func GetGitHubAppInstallationToken(ctx context.Context, clientID string, install
 	}
 
 	// Create GitHub client
-	var githubClient *github.Client
-	if baseURL == "" || baseURL == "https://api.github.com" {
-		githubClient = github.NewClient(jwtHTTPClient)
-	} else {
-		githubClient, err = github.NewClient(jwtHTTPClient).WithEnterpriseURLs(baseURL, baseURL)
-		if err != nil {
-			return "", fmt.Errorf("failed to create GitHub client: %w", err)
-		}
+	opts := []github.ClientOptionsFunc{github.WithHTTPClient(jwtHTTPClient)}
+
+	if !(baseURL == "" || baseURL == "https://api.github.com") {
+		opts = append(opts, github.WithEnterpriseURLs(baseURL, baseURL))
+	}
+	githubClient, err := github.NewClient(opts...)
+	if err != nil {
+		return "", fmt.Errorf("failed to create GitHub client: %w", err)
 	}
 
 	// Get installation access token
