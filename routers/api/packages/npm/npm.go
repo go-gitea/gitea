@@ -304,6 +304,11 @@ func deprecatePackage(ctx *context.Context, body []byte) {
 		return
 	}
 
+	if len(dep.Versions) == 0 {
+		apiError(ctx, http.StatusBadRequest, "npm deprecate request contains no versions")
+		return
+	}
+
 	for version, message := range dep.Versions {
 		pv, err := packages_model.GetVersionByNameAndVersion(ctx, ctx.Package.Owner.ID, packages_model.TypeNpm, dep.PackageName, version)
 		if err != nil {
