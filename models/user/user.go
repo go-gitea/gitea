@@ -244,12 +244,15 @@ func (u *User) IsOAuth2() bool {
 	return u.LoginType == auth.OAuth2
 }
 
-// MaxCreationLimit returns the number of repositories a user is allowed to create
+// MaxCreationLimit returns the number of repositories a user or an organization is allowed to create
 func (u *User) MaxCreationLimit() int {
-	if u.MaxRepoCreation <= -1 {
-		return setting.Repository.MaxCreationLimit
+	if u.MaxRepoCreation > -1 {
+		return u.MaxRepoCreation
 	}
-	return u.MaxRepoCreation
+	if u.IsOrganization() {
+		return setting.Repository.OrgMaxCreationLimit
+	}
+	return setting.Repository.UserMaxCreationLimit
 }
 
 // CanCreateRepoIn checks whether the doer(u) can create a repository in the owner
@@ -264,13 +267,11 @@ func (u *User) CanCreateRepoIn(owner *User) bool {
 		return true
 	}
 	const noLimit = -1
-	if owner.MaxRepoCreation == noLimit {
-		if setting.Repository.MaxCreationLimit == noLimit {
-			return true
-		}
-		return owner.NumRepos < setting.Repository.MaxCreationLimit
+	limit := owner.MaxCreationLimit()
+	if limit == noLimit {
+		return true
 	}
-	return owner.NumRepos < owner.MaxRepoCreation
+	return owner.NumRepos < limit
 }
 
 // CanCreateOrganization returns true if user can create organisation.
