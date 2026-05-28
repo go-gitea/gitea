@@ -53,6 +53,9 @@ func AssertHTMLElement[T int | bool](t testing.TB, doc *HTMLDoc, selector string
 
 func assertHTMLEq(t testing.TB, expected, actual string) {
 	t.Helper()
+	if expected == actual {
+		return
+	}
 	exp, err := html.Parse(strings.NewReader(expected))
 	if !assert.NoError(t, err) {
 		return
