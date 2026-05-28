@@ -4,15 +4,19 @@
 package v1_27
 
 import (
-	"context"
+	"gitea.dev/models/db"
 
 	"xorm.io/xorm"
 )
 
-func AddGithubAppCredentialIDToMirror(ctx context.Context, x *xorm.Engine) error {
-	type Mirror struct {
-		GithubAppCredentialID int64 `xorm:"github_app_credential_id DEFAULT 0"`
+func AddCancellingSupportToActionRunner(x db.EngineMigration) error {
+	type ActionRunner struct {
+		HasCancellingSupport bool `xorm:"has_cancelling_support NOT NULL DEFAULT false"`
 	}
 
-	return x.Sync(new(Mirror))
+	_, err := x.SyncWithOptions(xorm.SyncOptions{
+		IgnoreConstrains:  true,
+		IgnoreDropIndices: true,
+	}, new(ActionRunner))
+	return err
 }

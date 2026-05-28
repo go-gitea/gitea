@@ -3,11 +3,9 @@
 
 package v1_12
 
-import (
-	"xorm.io/xorm"
-)
+import "gitea.dev/models/db"
 
-func AddReviewCommitAndStale(x *xorm.Engine) error {
+func AddReviewCommitAndStale(x db.EngineMigration) error {
 	type Review struct {
 		CommitID string `xorm:"VARCHAR(40)"`
 		Stale    bool   `xorm:"NOT NULL DEFAULT false"`

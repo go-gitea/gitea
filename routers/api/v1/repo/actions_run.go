@@ -6,10 +6,10 @@ package repo
 import (
 	"errors"
 
-	actions_model "code.gitea.io/gitea/models/actions"
-	"code.gitea.io/gitea/modules/util"
-	"code.gitea.io/gitea/routers/common"
-	"code.gitea.io/gitea/services/context"
+	actions_model "gitea.dev/models/actions"
+	"gitea.dev/modules/util"
+	"gitea.dev/routers/common"
+	"gitea.dev/services/context"
 )
 
 func DownloadActionsRunJobLogs(ctx *context.APIContext) {

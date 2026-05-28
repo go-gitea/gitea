@@ -3,9 +3,13 @@
 
 package v1_23
 
-import "xorm.io/xorm"
+import (
+	"gitea.dev/models/db"
 
-func AddBlockAdminMergeOverrideBranchProtection(x *xorm.Engine) error {
+	"xorm.io/xorm"
+)
+
+func AddBlockAdminMergeOverrideBranchProtection(x db.EngineMigration) error {
 	type ProtectedBranch struct {
 		BlockAdminMergeOverride bool `xorm:"NOT NULL DEFAULT false"`
 	}

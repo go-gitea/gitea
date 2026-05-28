@@ -6,12 +6,11 @@ package v1_20
 import (
 	"strings"
 
-	"code.gitea.io/gitea/modules/json"
-
-	"xorm.io/xorm"
+	"gitea.dev/models/db"
+	"gitea.dev/modules/json"
 )
 
-func ChangeContainerMetadataMultiArch(x *xorm.Engine) error {
+func ChangeContainerMetadataMultiArch(x db.EngineMigration) error {
 	sess := x.NewSession()
 	defer sess.Close()
 

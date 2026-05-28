@@ -15,20 +15,20 @@ import (
 	"strings"
 	"time"
 
-	"code.gitea.io/gitea/models/auth"
-	user_model "code.gitea.io/gitea/models/user"
-	auth_module "code.gitea.io/gitea/modules/auth"
-	"code.gitea.io/gitea/modules/container"
-	"code.gitea.io/gitea/modules/httplib"
-	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/optional"
-	"code.gitea.io/gitea/modules/session"
-	"code.gitea.io/gitea/modules/setting"
-	source_service "code.gitea.io/gitea/services/auth/source"
-	"code.gitea.io/gitea/services/auth/source/oauth2"
-	"code.gitea.io/gitea/services/context"
-	"code.gitea.io/gitea/services/externalaccount"
-	user_service "code.gitea.io/gitea/services/user"
+	"gitea.dev/models/auth"
+	user_model "gitea.dev/models/user"
+	auth_module "gitea.dev/modules/auth"
+	"gitea.dev/modules/container"
+	"gitea.dev/modules/httplib"
+	"gitea.dev/modules/log"
+	"gitea.dev/modules/optional"
+	"gitea.dev/modules/session"
+	"gitea.dev/modules/setting"
+	source_service "gitea.dev/services/auth/source"
+	"gitea.dev/services/auth/source/oauth2"
+	"gitea.dev/services/context"
+	"gitea.dev/services/externalaccount"
+	user_service "gitea.dev/services/user"
 
 	"github.com/markbates/goth"
 	"github.com/markbates/goth/gothic"
@@ -561,7 +561,15 @@ func buildOIDCEndSessionURL(ctx *context.Context, doer *user_model.User) string 
 	// https://openid.net/specs/openid-connect-rpinitiated-1_0.html#RPLogout
 	params := endSessionURL.Query()
 	params.Set("client_id", oauth2Cfg.ClientID)
-	params.Set("post_logout_redirect_uri", httplib.GuessCurrentAppURL(ctx))
+
+	// AWS Cognito uses "logout_uri" instead of the standard "post_logout_redirect_uri"
+	redirectURI := httplib.GuessCurrentAppURL(ctx)
+	if oauth2Cfg.Provider == oauth2.ProviderNameAwsCognito {
+		params.Set("logout_uri", redirectURI)
+	} else {
+		params.Set("post_logout_redirect_uri", redirectURI)
+	}
+
 	endSessionURL.RawQuery = params.Encode()
 	return endSessionURL.String()
 }

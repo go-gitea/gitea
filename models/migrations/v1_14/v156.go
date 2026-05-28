@@ -9,11 +9,10 @@ import (
 	"path/filepath"
 	"strings"
 
-	"code.gitea.io/gitea/modules/git"
-	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/setting"
-
-	"xorm.io/xorm"
+	"gitea.dev/models/db"
+	"gitea.dev/modules/git"
+	"gitea.dev/modules/log"
+	"gitea.dev/modules/setting"
 )
 
 // Copy paste from models/repo.go because we cannot import models package
@@ -25,7 +24,7 @@ func userPath(userName string) string {
 	return filepath.Join(setting.RepoRootPath, strings.ToLower(userName))
 }
 
-func FixPublisherIDforTagReleases(ctx context.Context, x *xorm.Engine) error {
+func FixPublisherIDforTagReleases(ctx context.Context, x db.EngineMigration) error {
 	type Release struct {
 		ID          int64
 		RepoID      int64

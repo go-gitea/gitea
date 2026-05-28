@@ -11,7 +11,7 @@ import (
 	"sort"
 	"strings"
 
-	"code.gitea.io/gitea/modules/git"
+	"gitea.dev/modules/git"
 
 	gogit "github.com/go-git/go-git/v5"
 	"github.com/go-git/go-git/v5/plumbing"

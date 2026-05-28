@@ -10,34 +10,34 @@ import (
 	"sort"
 	"strconv"
 
-	activities_model "code.gitea.io/gitea/models/activities"
-	asymkey_model "code.gitea.io/gitea/models/asymkey"
-	"code.gitea.io/gitea/models/db"
-	git_model "code.gitea.io/gitea/models/git"
-	issues_model "code.gitea.io/gitea/models/issues"
-	"code.gitea.io/gitea/models/organization"
-	access_model "code.gitea.io/gitea/models/perm/access"
-	project_model "code.gitea.io/gitea/models/project"
-	"code.gitea.io/gitea/models/renderhelper"
-	repo_model "code.gitea.io/gitea/models/repo"
-	"code.gitea.io/gitea/models/unit"
-	user_model "code.gitea.io/gitea/models/user"
-	"code.gitea.io/gitea/modules/emoji"
-	"code.gitea.io/gitea/modules/git"
-	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/markup"
-	"code.gitea.io/gitea/modules/markup/markdown"
-	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/modules/svg"
-	"code.gitea.io/gitea/modules/templates/vars"
-	"code.gitea.io/gitea/modules/util"
-	"code.gitea.io/gitea/modules/web/middleware"
-	asymkey_service "code.gitea.io/gitea/services/asymkey"
-	"code.gitea.io/gitea/services/context"
-	"code.gitea.io/gitea/services/context/upload"
-	issue_service "code.gitea.io/gitea/services/issue"
-	pull_service "code.gitea.io/gitea/services/pull"
-	user_service "code.gitea.io/gitea/services/user"
+	activities_model "gitea.dev/models/activities"
+	asymkey_model "gitea.dev/models/asymkey"
+	"gitea.dev/models/db"
+	git_model "gitea.dev/models/git"
+	issues_model "gitea.dev/models/issues"
+	"gitea.dev/models/organization"
+	access_model "gitea.dev/models/perm/access"
+	project_model "gitea.dev/models/project"
+	"gitea.dev/models/renderhelper"
+	repo_model "gitea.dev/models/repo"
+	"gitea.dev/models/unit"
+	user_model "gitea.dev/models/user"
+	"gitea.dev/modules/emoji"
+	"gitea.dev/modules/git"
+	"gitea.dev/modules/log"
+	"gitea.dev/modules/markup"
+	"gitea.dev/modules/markup/markdown"
+	"gitea.dev/modules/setting"
+	"gitea.dev/modules/svg"
+	"gitea.dev/modules/templates/vars"
+	"gitea.dev/modules/util"
+	"gitea.dev/modules/web/middleware"
+	asymkey_service "gitea.dev/services/asymkey"
+	"gitea.dev/services/context"
+	"gitea.dev/services/context/upload"
+	issue_service "gitea.dev/services/issue"
+	pull_service "gitea.dev/services/pull"
+	user_service "gitea.dev/services/user"
 )
 
 // roleDescriptor returns the role descriptor for a comment in/with the given repo, poster and issue
@@ -867,10 +867,8 @@ func (prInfo *pullRequestViewInfo) prepareMergeBox(ctx *context.Context, issue *
 
 	if !prInfo.IsPullRequestBroken {
 		data.ShowUpdatePullInfo = pull.CommitsBehind > 0 && !issue.IsClosed && !pull.IsChecking() && !pull.IsFilesConflicted() && !prInfo.IsPullRequestBroken
-		var err error
-		data.UpdateAllowed, data.UpdateByRebaseAllowed, err = pull_service.IsUserAllowedToUpdate(ctx, pull, ctx.Doer)
-		if err != nil {
-			ctx.ServerError("IsUserAllowedToUpdate", err)
+		prInfo.preparePullUpdateActions(ctx)
+		if ctx.Written() {
 			return
 		}
 	}
@@ -909,7 +907,7 @@ func (prInfo *pullRequestViewInfo) prepareMergeBox(ctx *context.Context, issue *
 		if !canWriteToHeadRepo { // maintainers maybe allowed to push to head repo even if they can't write to it
 			canWriteToHeadRepo = pull.AllowMaintainerEdit && perm.CanWrite(unit.TypeCode)
 		}
-		data.allowMerge, err = pull_service.IsUserAllowedToMerge(ctx, pull, perm, ctx.Doer)
+		data.hasPermToMerge, err = pull_service.IsUserAllowedToMerge(ctx, pull, perm, ctx.Doer)
 		if err != nil {
 			ctx.ServerError("IsUserAllowedToMerge", err)
 			return
@@ -956,16 +954,19 @@ func (prInfo *pullRequestViewInfo) prepareMergeBox(ctx *context.Context, issue *
 	// this logic is from:
 	// {{$notAllOverridableChecksOk := or .IsBlockedByApprovals .IsBlockedByRejection .IsBlockedByOfficialReviewRequests .IsBlockedByOutdatedBranch .IsBlockedByChangedProtectedFiles (and .EnableStatusCheck (not $requiredStatusCheckState.IsSuccess))}}
 	// HINT: if a PR's status is not mergeable, then it is a non-overridable blocker, such logic is handled separately (see IsStatusMergeable)
-	data.HasOverridableBlockers = data.isBlockedByApprovals || data.isBlockedByRejection ||
+	data.hasOverridableBlockers = data.isBlockedByApprovals || data.isBlockedByRejection ||
 		data.isBlockedByOfficialReviewRequests || data.isBlockedByOutdatedBranch || data.isBlockedByChangedProtectedFiles ||
 		data.hasStatusCheckBlocker
 
-	// this logic is from:
-	// {{$canMergeNow := and (or (and (not $.ProtectedBranch.BlockAdminMergeOverride) $.IsRepoAdmin) (not $notAllOverridableChecksOk)) (or (not .AllowMerge) (not .RequireSigned) .WillSign)}}
-	// HINT: legacy "(not .AllowMerge)" is not right (always false, does nothing), fixed here
+	data.canBypassProtection = isRepoAdmin
+	data.canBypassProtectionAsAdmin = isRepoAdmin
+	if ctx.IsSigned && prInfo.ProtectedBranchRule != nil {
+		data.canBypassProtection = git_model.CanBypassBranchProtection(ctx, prInfo.ProtectedBranchRule, ctx.Doer, isRepoAdmin)
+		data.canBypassProtectionAsAdmin = isRepoAdmin && !prInfo.ProtectedBranchRule.BlockAdminMergeOverride
+	}
+
 	// CanMergeNow means: if the doer has write permission, whether the PR can be merged now
-	adminCanOverrideBlockers := (prInfo.ProtectedBranchRule == nil || !prInfo.ProtectedBranchRule.BlockAdminMergeOverride) && isRepoAdmin
-	data.CanMergeNow = (!data.HasOverridableBlockers || adminCanOverrideBlockers) && // status checks are satisfied
+	data.canMergeNow = (!data.hasOverridableBlockers || data.canBypassProtection) && // status checks are satisfied
 		(!data.requireSigned || data.willSign) // signing requirement is satisfied
 
 	prInfo.prepareMergeBoxFormProps(ctx)
@@ -973,6 +974,45 @@ func (prInfo *pullRequestViewInfo) prepareMergeBox(ctx *context.Context, issue *
 	prInfo.prepareMergeBoxIconColor()
 
 	ctx.Data["PullMergeBoxData"] = prInfo.MergeBoxData
+}
+
+func (prInfo *pullRequestViewInfo) preparePullUpdateActions(ctx *context.Context) {
+	pull := prInfo.issue.PullRequest
+	data := prInfo.MergeBoxData
+	userUpdateStyles, err := pull_service.CheckUserAllowedToUpdate(ctx, pull, ctx.Doer)
+	if err != nil {
+		ctx.ServerError("IsUserAllowedToUpdate", err)
+		return
+	}
+	if !userUpdateStyles.MergeAllowed && !userUpdateStyles.RebaseAllowed {
+		return
+	}
+
+	issueLink := prInfo.issue.Link()
+	mergeAction := &pullUpdateAction{
+		URL:  issueLink + "/update?style=merge",
+		Text: ctx.Tr("repo.pulls.update_branch"),
+	}
+	rebaseAction := &pullUpdateAction{
+		URL:  issueLink + "/update?style=rebase",
+		Text: ctx.Tr("repo.pulls.update_branch_rebase"),
+	}
+
+	if userUpdateStyles.MergeAllowed {
+		data.UpdateStyleOptions = append(data.UpdateStyleOptions, mergeAction)
+	}
+	if userUpdateStyles.RebaseAllowed {
+		data.UpdateStyleOptions = append(data.UpdateStyleOptions, rebaseAction)
+	}
+
+	if userUpdateStyles.DefaultUpdateStyle == repo_model.UpdateStyleRebase && userUpdateStyles.RebaseAllowed {
+		data.UpdatePrimaryAction = rebaseAction
+	} else if userUpdateStyles.DefaultUpdateStyle == repo_model.UpdateStyleMerge && userUpdateStyles.MergeAllowed {
+		data.UpdatePrimaryAction = mergeAction
+	} else {
+		data.UpdatePrimaryAction = data.UpdateStyleOptions[0]
+	}
+	data.UpdatePrimaryAction.Selected = true
 }
 
 func (prInfo *pullRequestViewInfo) prepareMergeBoxProtectionChecks(ctx *context.Context) {

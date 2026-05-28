@@ -6,13 +6,14 @@ import (
 	"errors"
 	"fmt"
 
-	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/setting"
+	"gitea.dev/models/db"
+	"gitea.dev/modules/log"
+	"gitea.dev/modules/setting"
 
 	"xorm.io/xorm"
 )
 
-func expandHashReferencesToSha256(x *xorm.Engine) error {
+func expandHashReferencesToSha256(x db.EngineMigration) error {
 	alteredTables := [][2]string{
 		{"commit_status", "context_hash"},
 		{"comment", "commit_sha"},
@@ -81,7 +82,7 @@ func expandHashReferencesToSha256(x *xorm.Engine) error {
 	return db.Commit()
 }
 
-func addObjectFormatNameToRepository(x *xorm.Engine) error {
+func addObjectFormatNameToRepository(x db.EngineMigration) error {
 	type Repository struct {
 		ObjectFormatName string `xorm:"VARCHAR(6) NOT NULL DEFAULT 'sha1'"`
 	}
@@ -99,7 +100,7 @@ func addObjectFormatNameToRepository(x *xorm.Engine) error {
 	return err
 }
 
-func AdjustDBForSha256(x *xorm.Engine) error {
+func AdjustDBForSha256(x db.EngineMigration) error {
 	if err := expandHashReferencesToSha256(x); err != nil {
 		return err
 	}

@@ -6,9 +6,9 @@ package github_test
 import (
 	"testing"
 
-	"code.gitea.io/gitea/models/unittest"
+	"gitea.dev/models/unittest"
 
-	_ "code.gitea.io/gitea/models/repo" // register Mirror model needed by CountMirrorsByCredentialID
+	_ "gitea.dev/models/repo" // register Mirror model needed by CountMirrorsByCredentialID
 )
 
 func TestMain(m *testing.M) {

@@ -4,25 +4,21 @@
 package v1_27
 
 import (
-	"context"
-
-	"code.gitea.io/gitea/modules/timeutil"
+	"gitea.dev/models/db"
 
 	"xorm.io/xorm"
 )
 
-func AddGithubAppCredentialTable(ctx context.Context, x *xorm.Engine) error {
-	type GithubAppCredential struct {
-		ID                  int64              `xorm:"pk autoincr"`
-		OwnerID             int64              `xorm:"INDEX NOT NULL"`
-		Name                string             `xorm:"NOT NULL"`
-		ClientID            string             `xorm:"NOT NULL"`
-		InstallationID      int64              `xorm:"NOT NULL"`
-		PrivateKeyEncrypted string             `xorm:"TEXT NOT NULL"`
-		BaseURL             string             `xorm:"VARCHAR(255) NOT NULL DEFAULT 'https://api.github.com'"`
-		CreatedUnix         timeutil.TimeStamp `xorm:"created"`
-		LastUsedUnix        timeutil.TimeStamp `xorm:"last_used_unix"`
+func AddBranchProtectionBypassAllowlist(x db.EngineMigration) error {
+	type ProtectedBranch struct {
+		EnableBypassAllowlist  bool    `xorm:"NOT NULL DEFAULT false"`
+		BypassAllowlistUserIDs []int64 `xorm:"JSON TEXT"`
+		BypassAllowlistTeamIDs []int64 `xorm:"JSON TEXT"`
 	}
 
-	return x.Sync(new(GithubAppCredential))
+	_, err := x.SyncWithOptions(xorm.SyncOptions{
+		IgnoreConstrains: true,
+		IgnoreIndices:    true,
+	}, new(ProtectedBranch))
+	return err
 }

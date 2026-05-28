@@ -3,11 +3,9 @@
 
 package v1_9
 
-import (
-	"xorm.io/xorm"
-)
+import "gitea.dev/models/db"
 
-func AddAvatarFieldToRepository(x *xorm.Engine) error {
+func AddAvatarFieldToRepository(x db.EngineMigration) error {
 	type Repository struct {
 		// ID(10-20)-md5(32) - must fit into 64 symbols
 		Avatar string `xorm:"VARCHAR(64)"`

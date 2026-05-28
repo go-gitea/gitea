@@ -10,17 +10,17 @@ import (
 	"strings"
 	"time"
 
-	"code.gitea.io/gitea/models/db"
-	repo_model "code.gitea.io/gitea/models/repo"
-	user_model "code.gitea.io/gitea/models/user"
-	"code.gitea.io/gitea/modules/git"
-	"code.gitea.io/gitea/modules/json"
-	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/setting"
-	api "code.gitea.io/gitea/modules/structs"
-	"code.gitea.io/gitea/modules/timeutil"
-	"code.gitea.io/gitea/modules/util"
-	webhook_module "code.gitea.io/gitea/modules/webhook"
+	"gitea.dev/models/db"
+	repo_model "gitea.dev/models/repo"
+	user_model "gitea.dev/models/user"
+	"gitea.dev/modules/git"
+	"gitea.dev/modules/json"
+	"gitea.dev/modules/log"
+	"gitea.dev/modules/setting"
+	api "gitea.dev/modules/structs"
+	"gitea.dev/modules/timeutil"
+	"gitea.dev/modules/util"
+	webhook_module "gitea.dev/modules/webhook"
 
 	"xorm.io/builder"
 )
@@ -262,7 +262,7 @@ func CancelPreviousJobs(ctx context.Context, repoID int64, ref, workflowID strin
 		Ref:          ref,
 		WorkflowID:   workflowID,
 		TriggerEvent: event,
-		Status:       []Status{StatusRunning, StatusWaiting, StatusBlocked},
+		Status:       []Status{StatusRunning, StatusWaiting, StatusBlocked, StatusCancelling},
 	})
 	if err != nil {
 		return nil, err
@@ -329,7 +329,7 @@ func CancelJobs(ctx context.Context, jobs []*ActionRunJob) ([]*ActionRunJob, err
 		}
 
 		// If the job has an associated task, try to stop the task, effectively cancelling the job.
-		if err := StopTask(ctx, job.TaskID, StatusCancelled); err != nil {
+		if err := StopTask(ctx, job.TaskID, StatusCancelling); err != nil {
 			return cancelledJobs, err
 		}
 		updatedJob, err := GetRunJobByRunAndID(ctx, job.RunID, job.ID)
@@ -452,6 +452,7 @@ func CancelPreviousJobsByRunConcurrency(ctx context.Context, attempt *ActionRunA
 	statusFindOption := []Status{StatusWaiting, StatusBlocked}
 	if attempt.ConcurrencyCancel {
 		statusFindOption = append(statusFindOption, StatusRunning)
+		statusFindOption = append(statusFindOption, StatusCancelling)
 	}
 	attempts, jobs, err := GetConcurrentRunAttemptsAndJobs(ctx, attempt.RepoID, attempt.ConcurrencyGroup, statusFindOption)
 	if err != nil {

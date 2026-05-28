@@ -4,12 +4,11 @@
 package v1_13
 
 import (
-	"code.gitea.io/gitea/modules/timeutil"
-
-	"xorm.io/xorm"
+	"gitea.dev/models/db"
+	"gitea.dev/modules/timeutil"
 )
 
-func CreateReviewsForCodeComments(x *xorm.Engine) error {
+func CreateReviewsForCodeComments(x db.EngineMigration) error {
 	// Review
 	type Review struct {
 		ID               int64 `xorm:"pk autoincr"`

@@ -3,11 +3,9 @@
 
 package v1_15
 
-import (
-	"xorm.io/xorm"
-)
+import "gitea.dev/models/db"
 
-func AddRepoArchiver(x *xorm.Engine) error {
+func AddRepoArchiver(x db.EngineMigration) error {
 	// RepoArchiver represents all archivers
 	type RepoArchiver struct {
 		ID          int64 `xorm:"pk autoincr"`

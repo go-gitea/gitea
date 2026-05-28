@@ -6,10 +6,10 @@ package github_test
 import (
 	"testing"
 
-	github_model "code.gitea.io/gitea/models/github"
-	"code.gitea.io/gitea/models/unittest"
-	"code.gitea.io/gitea/modules/timeutil"
-	"code.gitea.io/gitea/modules/util"
+	github_model "gitea.dev/models/github"
+	"gitea.dev/models/unittest"
+	"gitea.dev/modules/timeutil"
+	"gitea.dev/modules/util"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"

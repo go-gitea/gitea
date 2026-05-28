@@ -8,7 +8,7 @@ package git
 import (
 	"io"
 
-	"code.gitea.io/gitea/modules/log"
+	"gitea.dev/modules/log"
 )
 
 // Blob represents a Git object.

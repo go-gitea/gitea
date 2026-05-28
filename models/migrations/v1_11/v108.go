@@ -3,11 +3,9 @@
 
 package v1_11
 
-import (
-	"xorm.io/xorm"
-)
+import "gitea.dev/models/db"
 
-func AddCommentIDOnNotification(x *xorm.Engine) error {
+func AddCommentIDOnNotification(x db.EngineMigration) error {
 	type Notification struct {
 		ID        int64 `xorm:"pk autoincr"`
 		CommentID int64

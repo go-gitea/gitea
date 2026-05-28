@@ -4,10 +4,12 @@
 package v1_26
 
 import (
+	"gitea.dev/models/db"
+
 	"xorm.io/xorm"
 )
 
-func AddActionsConcurrency(x *xorm.Engine) error {
+func AddActionsConcurrency(x db.EngineMigration) error {
 	type ActionRun struct {
 		RepoID            int64 `xorm:"index(repo_concurrency)"`
 		RawConcurrency    string

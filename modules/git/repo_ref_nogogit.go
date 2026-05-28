@@ -10,7 +10,7 @@ import (
 	"io"
 	"strings"
 
-	"code.gitea.io/gitea/modules/git/gitcmd"
+	"gitea.dev/modules/git/gitcmd"
 )
 
 // GetRefsFiltered returns all references of the repository that matches patterm exactly or starting with.

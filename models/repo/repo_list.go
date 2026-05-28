@@ -8,15 +8,15 @@ import (
 	"fmt"
 	"strings"
 
-	"code.gitea.io/gitea/models/db"
-	"code.gitea.io/gitea/models/perm"
-	"code.gitea.io/gitea/models/unit"
-	user_model "code.gitea.io/gitea/models/user"
-	"code.gitea.io/gitea/modules/container"
-	"code.gitea.io/gitea/modules/optional"
-	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/modules/structs"
-	"code.gitea.io/gitea/modules/util"
+	"gitea.dev/models/db"
+	"gitea.dev/models/perm"
+	"gitea.dev/models/unit"
+	user_model "gitea.dev/models/user"
+	"gitea.dev/modules/container"
+	"gitea.dev/modules/optional"
+	"gitea.dev/modules/setting"
+	"gitea.dev/modules/structs"
+	"gitea.dev/modules/util"
 
 	"xorm.io/builder"
 )
@@ -210,6 +210,13 @@ type SearchRepoOptions struct {
 	// - Don't show forks, when opts.Fork is OptionalBoolNone.
 	// - Do not display repositories that don't have a description, an icon and topics.
 	OnlyShowRelevant bool
+}
+
+func (opts *SearchRepoOptions) ApplyPublicOnly(publicOnly bool) {
+	if publicOnly {
+		opts.Private = false
+		opts.AllLimited = false
+	}
 }
 
 // UserOwnedRepoCond returns user ownered repositories

@@ -8,10 +8,10 @@ import (
 	"strings"
 	"time"
 
-	"xorm.io/xorm"
+	"gitea.dev/models/db"
 )
 
-func UpdateMigrationServiceTypes(x *xorm.Engine) error {
+func UpdateMigrationServiceTypes(x db.EngineMigration) error {
 	type Repository struct {
 		ID                  int64
 		OriginalServiceType int    `xorm:"index default(0)"`

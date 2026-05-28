@@ -3,9 +3,9 @@
 
 package v1_10
 
-import "xorm.io/xorm"
+import "gitea.dev/models/db"
 
-func AddOriginalMigrationInfo(x *xorm.Engine) error {
+func AddOriginalMigrationInfo(x db.EngineMigration) error {
 	// Issue see models/issue.go
 	type Issue struct {
 		OriginalAuthor   string

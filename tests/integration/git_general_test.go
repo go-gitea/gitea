@@ -5,7 +5,6 @@ package integration
 
 import (
 	"context"
-	"encoding/hex"
 	"fmt"
 	"io"
 	mathRand "math/rand/v2"
@@ -21,19 +20,19 @@ import (
 	"testing"
 	"time"
 
-	auth_model "code.gitea.io/gitea/models/auth"
-	issues_model "code.gitea.io/gitea/models/issues"
-	"code.gitea.io/gitea/models/perm"
-	repo_model "code.gitea.io/gitea/models/repo"
-	"code.gitea.io/gitea/models/unittest"
-	user_model "code.gitea.io/gitea/models/user"
-	"code.gitea.io/gitea/modules/commitstatus"
-	"code.gitea.io/gitea/modules/git"
-	"code.gitea.io/gitea/modules/git/gitcmd"
-	"code.gitea.io/gitea/modules/lfs"
-	"code.gitea.io/gitea/modules/setting"
-	api "code.gitea.io/gitea/modules/structs"
-	"code.gitea.io/gitea/tests"
+	auth_model "gitea.dev/models/auth"
+	issues_model "gitea.dev/models/issues"
+	"gitea.dev/models/perm"
+	repo_model "gitea.dev/models/repo"
+	"gitea.dev/models/unittest"
+	user_model "gitea.dev/models/user"
+	"gitea.dev/modules/commitstatus"
+	"gitea.dev/modules/git"
+	"gitea.dev/modules/git/gitcmd"
+	"gitea.dev/modules/lfs"
+	"gitea.dev/modules/setting"
+	api "gitea.dev/modules/structs"
+	"gitea.dev/tests"
 
 	"github.com/kballard/go-shellquote"
 	"github.com/stretchr/testify/assert"
@@ -246,8 +245,8 @@ func rawTest(t *testing.T, ctx *APITestContext, little, big, littleLFS, bigLFS s
 
 		// Request raw paths
 		req := NewRequest(t, "GET", path.Join("/", username, reponame, "/raw/branch/master/", little))
-		resp := session.MakeRequestNilResponseRecorder(t, req, http.StatusOK)
-		assert.Equal(t, testFileSizeSmall, resp.Length)
+		resp := session.MakeRequest(t, req, http.StatusOK)
+		assert.Equal(t, testFileSizeSmall, resp.Body.Len())
 
 		if setting.LFS.StartServer {
 			req = NewRequest(t, "GET", path.Join("/", username, reponame, "/raw/branch/master/", littleLFS))
@@ -261,8 +260,8 @@ func rawTest(t *testing.T, ctx *APITestContext, little, big, littleLFS, bigLFS s
 
 		if !testing.Short() {
 			req = NewRequest(t, "GET", path.Join("/", username, reponame, "/raw/branch/master/", big))
-			resp := session.MakeRequestNilResponseRecorder(t, req, http.StatusOK)
-			assert.Equal(t, testFileSizeLarge, resp.Length)
+			resp := session.MakeRequest(t, req, http.StatusOK)
+			assert.Equal(t, testFileSizeLarge, resp.Body.Len())
 
 			if setting.LFS.StartServer {
 				req = NewRequest(t, "GET", path.Join("/", username, reponame, "/raw/branch/master/", bigLFS))
@@ -287,22 +286,22 @@ func mediaTest(t *testing.T, ctx *APITestContext, little, big, littleLFS, bigLFS
 
 		// Request media paths
 		req := NewRequest(t, "GET", path.Join("/", username, reponame, "/media/branch/master/", little))
-		resp := session.MakeRequestNilResponseRecorder(t, req, http.StatusOK)
-		assert.Equal(t, testFileSizeSmall, resp.Length)
+		resp := session.MakeRequest(t, req, http.StatusOK)
+		assert.Equal(t, testFileSizeSmall, resp.Body.Len())
 
 		req = NewRequest(t, "GET", path.Join("/", username, reponame, "/media/branch/master/", littleLFS))
-		resp = session.MakeRequestNilResponseRecorder(t, req, http.StatusOK)
-		assert.Equal(t, testFileSizeSmall, resp.Length)
+		resp = session.MakeRequest(t, req, http.StatusOK)
+		assert.Equal(t, testFileSizeSmall, resp.Body.Len())
 
 		if !testing.Short() {
 			req = NewRequest(t, "GET", path.Join("/", username, reponame, "/media/branch/master/", big))
-			resp = session.MakeRequestNilResponseRecorder(t, req, http.StatusOK)
-			assert.Equal(t, testFileSizeLarge, resp.Length)
+			resp = session.MakeRequest(t, req, http.StatusOK)
+			assert.Equal(t, testFileSizeLarge, resp.Body.Len())
 
 			if setting.LFS.StartServer {
 				req = NewRequest(t, "GET", path.Join("/", username, reponame, "/media/branch/master/", bigLFS))
-				resp = session.MakeRequestNilResponseRecorder(t, req, http.StatusOK)
-				assert.Equal(t, testFileSizeLarge, resp.Length)
+				resp = session.MakeRequest(t, req, http.StatusOK)
+				assert.Equal(t, testFileSizeLarge, resp.Body.Len())
 			}
 		}
 	})
@@ -560,13 +559,11 @@ func doMergeFork(ctx, baseCtx APITestContext, baseBranch, headBranch string) fun
 		t.Run("EnsureCanSeePull", doEnsureCanSeePull(baseCtx, pr))
 
 		// Then get the diff string
-		var diffHash string
-		var diffLength int
+		var diffContent string
 		t.Run("GetDiff", func(t *testing.T) {
 			req := NewRequest(t, "GET", fmt.Sprintf("/%s/%s/pulls/%d.diff", url.PathEscape(baseCtx.Username), url.PathEscape(baseCtx.Reponame), pr.Index))
-			resp := ctx.Session.MakeRequestNilResponseHashSumRecorder(t, req, http.StatusOK)
-			diffHash = string(resp.Hash.Sum(nil))
-			diffLength = resp.Length
+			resp := ctx.Session.MakeRequest(t, req, http.StatusOK)
+			diffContent = resp.Body.String()
 		})
 
 		// Now: Merge the PR & make sure that doesn't break the PR page or change its diff
@@ -578,17 +575,17 @@ func doMergeFork(ctx, baseCtx APITestContext, baseBranch, headBranch string) fun
 			assert.NoError(t, err)
 			assert.Equal(t, oldMergeBase, pr2.MergeBase)
 		})
-		t.Run("EnsurDiffNoChange", doEnsureDiffNoChange(baseCtx, pr, diffHash, diffLength))
+		t.Run("EnsurDiffNoChange", doEnsureDiffNoChange(baseCtx, pr, diffContent))
 
 		// Then: Delete the head branch & make sure that doesn't break the PR page or change its diff
 		t.Run("DeleteHeadBranch", doBranchDelete(baseCtx, baseCtx.Username, baseCtx.Reponame, headBranch))
 		t.Run("EnsureCanSeePull", doEnsureCanSeePull(baseCtx, pr))
-		t.Run("EnsureDiffNoChange", doEnsureDiffNoChange(baseCtx, pr, diffHash, diffLength))
+		t.Run("EnsureDiffNoChange", doEnsureDiffNoChange(baseCtx, pr, diffContent))
 
 		// Delete the head repository & make sure that doesn't break the PR page or change its diff
 		t.Run("DeleteHeadRepository", doAPIDeleteRepository(ctx))
 		t.Run("EnsureCanSeePull", doEnsureCanSeePull(baseCtx, pr))
-		t.Run("EnsureDiffNoChange", doEnsureDiffNoChange(baseCtx, pr, diffHash, diffLength))
+		t.Run("EnsureDiffNoChange", doEnsureDiffNoChange(baseCtx, pr, diffContent))
 	}
 }
 
@@ -632,15 +629,12 @@ func doEnsureCanSeePull(ctx APITestContext, pr api.PullRequest) func(t *testing.
 	}
 }
 
-func doEnsureDiffNoChange(ctx APITestContext, pr api.PullRequest, diffHash string, diffLength int) func(t *testing.T) {
+func doEnsureDiffNoChange(ctx APITestContext, pr api.PullRequest, diffContent string) func(t *testing.T) {
 	return func(t *testing.T) {
 		req := NewRequest(t, "GET", fmt.Sprintf("/%s/%s/pulls/%d.diff", url.PathEscape(ctx.Username), url.PathEscape(ctx.Reponame), pr.Index))
-		resp := ctx.Session.MakeRequestNilResponseHashSumRecorder(t, req, http.StatusOK)
-		actual := string(resp.Hash.Sum(nil))
-		actualLength := resp.Length
-
-		equal := diffHash == actual
-		assert.True(t, equal, "Unexpected change in the diff string: expected hash: %s size: %d but was actually: %s size: %d", hex.EncodeToString([]byte(diffHash)), diffLength, hex.EncodeToString([]byte(actual)), actualLength)
+		resp := ctx.Session.MakeRequest(t, req, http.StatusOK)
+		actual := resp.Body.String()
+		assert.Equal(t, diffContent, actual)
 	}
 }
 

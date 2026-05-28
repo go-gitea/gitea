@@ -10,14 +10,14 @@ import (
 	"strings"
 	"testing"
 
-	"code.gitea.io/gitea/models/issues"
-	"code.gitea.io/gitea/models/repo"
-	user_model "code.gitea.io/gitea/models/user"
-	"code.gitea.io/gitea/modules/markup"
-	"code.gitea.io/gitea/modules/reqctx"
-	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/modules/test"
-	"code.gitea.io/gitea/modules/translation"
+	"gitea.dev/models/issues"
+	"gitea.dev/models/repo"
+	user_model "gitea.dev/models/user"
+	"gitea.dev/modules/markup"
+	"gitea.dev/modules/reqctx"
+	"gitea.dev/modules/setting"
+	"gitea.dev/modules/test"
+	"gitea.dev/modules/translation"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -194,6 +194,38 @@ space</p>
 	assert.Equal(t, expected, string(newTestRenderUtils(t).MarkdownToHtml(testInput())))
 }
 
+func TestRenderPackageMarkdown(t *testing.T) {
+	defer test.MockVariableValue(&markup.RenderBehaviorForTesting.DisableAdditionalAttributes, true)()
+	mockRepo := &repo.Repository{
+		ID: 1, OwnerName: "user13", Name: "repo11", DefaultBranch: "main",
+		Owner: &user_model.User{ID: 13, Name: "user13"},
+		Units: []*repo.RepoUnit{},
+	}
+	ut := newTestRenderUtils(t)
+
+	t.Run("LinkedRepoWithDirectory", func(t *testing.T) {
+		rendered := ut.RenderPackageMarkdown("[docs](docs/getting-started.md)\n![logo](logo.png)", mockRepo, "pkg-subdir")
+		expected := `<div class="markup markdown"><p><a href="/user13/repo11/src/branch/main/pkg-subdir/docs/getting-started.md" rel="nofollow">docs</a>
+<a href="/user13/repo11/src/branch/main/pkg-subdir/logo.png" target="_blank" rel="nofollow noopener"><img src="/user13/repo11/media/branch/main/pkg-subdir/logo.png" alt="logo"/></a></p>
+</div>`
+		assert.Equal(t, expected, strings.TrimSpace(string(rendered)))
+	})
+
+	t.Run("LinkedRepoWithEmptyDirectory", func(t *testing.T) {
+		rendered := ut.RenderPackageMarkdown("[docs](docs/getting-started.md)", mockRepo, "")
+		expected := `<div class="markup markdown"><p><a href="/user13/repo11/src/branch/main/docs/getting-started.md" rel="nofollow">docs</a></p>
+</div>`
+		assert.Equal(t, expected, strings.TrimSpace(string(rendered)))
+	})
+
+	t.Run("UnlinkedRepo", func(t *testing.T) {
+		rendered := ut.RenderPackageMarkdown("[docs](docs/getting-started.md)", nil, "pkg-subdir")
+		expected := `<div class="markup markdown"><p><a href="/docs/getting-started.md" rel="nofollow">docs</a></p>
+</div>`
+		assert.Equal(t, expected, strings.TrimSpace(string(rendered)))
+	})
+}
+
 func TestRenderLabels(t *testing.T) {
 	ut := newTestRenderUtils(t)
 	label := &issues.Label{ID: 123, Name: "label-name", Color: "label-color"}
@@ -206,16 +238,15 @@ func TestRenderLabels(t *testing.T) {
 	expected = `/owner/repo/pulls?labels=123`
 	assert.Contains(t, ut.RenderLabels([]*issues.Label{label}, "/owner/repo", issue), expected)
 
-	expectedLabel := `<a href="&lt;&gt;" class="ui label " style="color: #fff !important; background-color: label-color !important;" data-tooltip-content title=""><span class="gt-ellipsis">label-name</span></a>`
-	assert.Equal(t, expectedLabel, string(ut.RenderLabelWithLink(label, "<>")))
-	assert.Equal(t, expectedLabel, string(ut.RenderLabelWithLink(label, template.URL("<>"))))
+	expectedLabel := `<span class="ui label " style="color: #fff !important; background-color: label-color !important;" data-tooltip-content title=""><span class="gt-ellipsis">label-name</span></span>`
+	assert.Equal(t, expectedLabel, string(ut.RenderLabel(label)))
 
 	label = &issues.Label{ID: 123, Name: "</>", Exclusive: true}
-	expectedLabel = `<a href="" class="ui label  scope-parent" data-tooltip-content title=""><div class="ui label scope-left" style="color: #fff !important; background-color: #000000 !important">&lt;</div><div class="ui label scope-right" style="color: #fff !important; background-color: #000000 !important">&gt;</div></a>`
-	assert.Equal(t, expectedLabel, string(ut.RenderLabelWithLink(label, "")))
+	expectedLabel = `<span class="ui label  scope-parent" data-tooltip-content title=""><div class="ui label scope-left" style="color: #fff !important; background-color: #000000 !important">&lt;</div><div class="ui label scope-right" style="color: #fff !important; background-color: #000000 !important">&gt;</div></span>`
+	assert.Equal(t, expectedLabel, string(ut.RenderLabel(label)))
 	label = &issues.Label{ID: 123, Name: "</>", Exclusive: true, ExclusiveOrder: 1}
-	expectedLabel = `<a href="" class="ui label  scope-parent" data-tooltip-content title=""><div class="ui label scope-left" style="color: #fff !important; background-color: #000000 !important">&lt;</div><div class="ui label scope-middle" style="color: #fff !important; background-color: #000000 !important">&gt;</div><div class="ui label scope-right">1</div></a>`
-	assert.Equal(t, expectedLabel, string(ut.RenderLabelWithLink(label, "")))
+	expectedLabel = `<span class="ui label  scope-parent" data-tooltip-content title=""><div class="ui label scope-left" style="color: #fff !important; background-color: #000000 !important">&lt;</div><div class="ui label scope-middle" style="color: #fff !important; background-color: #000000 !important">&gt;</div><div class="ui label scope-right">1</div></span>`
+	assert.Equal(t, expectedLabel, string(ut.RenderLabel(label)))
 }
 
 func TestUserMention(t *testing.T) {
