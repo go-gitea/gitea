@@ -20,7 +20,6 @@ import (
 	"gitea.dev/modules/gitrepo"
 	"gitea.dev/modules/globallock"
 	"gitea.dev/modules/log"
-	"gitea.dev/modules/setting"
 	"gitea.dev/modules/util"
 	notify_service "gitea.dev/services/notify"
 )
@@ -62,8 +61,7 @@ func AcceptTransferOwnership(ctx context.Context, repo *repo_model.Repository, d
 		}
 
 		if !doer.CanCreateRepoIn(repoTransfer.Recipient) {
-			limit := util.Iif(repoTransfer.Recipient.MaxRepoCreation >= 0, repoTransfer.Recipient.MaxRepoCreation, setting.Repository.MaxCreationLimit)
-			return LimitReachedError{Limit: limit}
+			return LimitReachedError{Limit: repoTransfer.Recipient.MaxCreationLimit()}
 		}
 
 		if !repoTransfer.CanUserAcceptOrRejectTransfer(ctx, doer) {
@@ -434,8 +432,7 @@ func StartRepositoryTransfer(ctx context.Context, doer, newOwner *user_model.Use
 	}
 
 	if !doer.CanForkRepoIn(newOwner) {
-		limit := util.Iif(newOwner.MaxRepoCreation >= 0, newOwner.MaxRepoCreation, setting.Repository.MaxCreationLimit)
-		return LimitReachedError{Limit: limit}
+		return LimitReachedError{Limit: newOwner.MaxCreationLimit()}
 	}
 
 	var isDirectTransfer bool
