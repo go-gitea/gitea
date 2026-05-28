@@ -11,6 +11,7 @@ import (
 	"testing"
 	"time"
 
+	runnerv1 "gitea.dev/actions-proto-go/runner/v1"
 	actions_model "gitea.dev/models/actions"
 	auth_model "gitea.dev/models/auth"
 	repo_model "gitea.dev/models/repo"
@@ -20,7 +21,6 @@ import (
 	"gitea.dev/modules/storage"
 	"gitea.dev/modules/test"
 
-	runnerv1 "code.gitea.io/actions-proto-go/runner/v1"
 	"github.com/stretchr/testify/assert"
 	"google.golang.org/protobuf/types/known/timestamppb"
 )
