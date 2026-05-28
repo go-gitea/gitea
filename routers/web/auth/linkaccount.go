@@ -239,13 +239,6 @@ func LinkAccountPostRegister(ctx *context.Context) {
 		}
 	}
 
-	authSource, err := auth.GetSourceByID(ctx, linkAccountData.AuthSourceID)
-	if err != nil {
-		ctx.ServerError("GetSourceByID", err)
-		return
-	}
-	source := authSource.Cfg.(*oauth2.Source)
-
 	u := &user_model.User{
 		Name:        form.UserName,
 		Email:       form.Email,
@@ -265,6 +258,12 @@ func LinkAccountPostRegister(ctx *context.Context) {
 		return
 	}
 
+	authSource, err := auth.GetSourceByID(ctx, linkAccountData.AuthSourceID)
+	if err != nil {
+		ctx.ServerError("GetSourceByID", err)
+		return
+	}
+	source := authSource.Cfg.(*oauth2.Source)
 	if err := syncGroupsToTeams(ctx, source, &linkAccountData.GothUser, u); err != nil {
 		ctx.ServerError("SyncGroupsToTeams", err)
 		return

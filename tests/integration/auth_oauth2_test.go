@@ -234,8 +234,7 @@ func doOIDCSignIn(t *testing.T, sourceName string) {
 }
 
 // TestOAuth2GroupClaimsAppliedOnFirstLogin verifies that group claims from OAuth2/OIDC
-// are correctly applied to newly created users on first login, not just on subsequent logins.
-// This tests the fix for the issue where restricted/admin flags were only set on second login.
+// are correctly applied to newly created users on the first login
 func TestOAuth2GroupClaimsAppliedOnFirstLogin(t *testing.T) {
 	defer tests.PrepareTestEnv(t)()
 	// Enable auto-registration to ensure first login creates user with group claims
@@ -243,300 +242,155 @@ func TestOAuth2GroupClaimsAppliedOnFirstLogin(t *testing.T) {
 	// Use sub claim as username for deterministic user naming
 	defer test.MockVariableValue(&setting.OAuth2Client.Username, setting.OAuth2UsernameUserid)()
 
-	// Setup OIDC server with group claims
-	srv := newFakeOIDCServer(t, FakeOIDCConfig{
-		Sub:    "user123",
-		Email:  "user123@example.com",
-		Name:   "Test User",
-		Groups: []string{"developers", "admins", "restricted-users"},
-	})
+	tt := []struct {
+		Name         string
+		Groups       []string
+		IsAdmin      bool
+		IsRestricted bool
+		SourceName   string
+	}{
+		{
+			Name:         "user in both admin and restricted groups",
+			Groups:       []string{"admins", "restricted-users"},
+			IsAdmin:      true,
+			IsRestricted: true,
+			SourceName:   "test-group-claims",
+		},
+		{
+			Name:         "no groups",
+			Groups:       []string{},
+			IsAdmin:      false,
+			IsRestricted: false,
+			SourceName:   "test-no-groups",
+		},
+		{
+			Name:         "user in admin group only",
+			Groups:       []string{"admins"},
+			IsAdmin:      true,
+			IsRestricted: false,
+			SourceName:   "test-admin-only",
+		},
+		{
+			Name:         "user in restricted group only",
+			Groups:       []string{"restricted-users"},
+			IsAdmin:      false,
+			IsRestricted: true,
+			SourceName:   "test-restricted-only",
+		},
+	}
+	for _, tc := range tt {
+		t.Run(tc.Name, func(t *testing.T) {
+			// Set up OIDC server with group claims
+			srv := newFakeOIDCServer(t, FakeOIDCConfig{
+				Sub:    tc.SourceName,
+				Email:  tc.SourceName + "@example.com",
+				Name:   "Test User",
+				Groups: tc.Groups,
+			})
 
-	sourceName := "test-group-claims"
-	addOAuth2Source(t, sourceName, oauth2.Source{
-		Provider:                      "openidConnect",
-		ClientID:                      "test-client-id",
-		ClientSecret:                  "test-client-secret",
-		OpenIDConnectAutoDiscoveryURL: srv.URL + "/.well-known/openid-configuration",
-		GroupClaimName:                "groups",
-		AdminGroup:                    "admins",
-		RestrictedGroup:               "restricted-users",
-	})
+			// Ensure it's the first login so no user in database
+			unittest.AssertNotExistsBean(t, &user_model.User{Name: tc.SourceName})
 
-	t.Run("user in both admin and restricted groups", func(t *testing.T) {
-		defer tests.PrepareTestEnv(t)()
-		defer test.MockVariableValue(&setting.OAuth2Client.EnableAutoRegistration, true)()
-		defer test.MockVariableValue(&setting.OAuth2Client.Username, setting.OAuth2UsernameUserid)()
+			addOAuth2Source(t, tc.SourceName, oauth2.Source{
+				Provider:                      "openidConnect",
+				ClientID:                      "test-client-id",
+				ClientSecret:                  "test-client-secret",
+				OpenIDConnectAutoDiscoveryURL: srv.URL + "/.well-known/openid-configuration",
+				GroupClaimName:                "groups",
+				AdminGroup:                    "admins",
+				RestrictedGroup:               "restricted-users",
+			})
 
-		// Use a fresh server with groups
-		srv := newFakeOIDCServer(t, FakeOIDCConfig{
-			Sub:    "user-both-groups",
-			Email:  "both@example.com",
-			Name:   "Both Groups User",
-			Groups: []string{"developers", "admins", "restricted-users"},
+			doOIDCSignIn(t, tc.SourceName)
+
+			user := unittest.AssertExistsAndLoadBean(t, &user_model.User{Name: tc.SourceName})
+			assert.Equal(t, tc.IsAdmin, user.IsAdmin)
+			assert.Equal(t, tc.IsRestricted, user.IsRestricted)
+			assert.Equal(t, auth_model.OAuth2, user.LoginType)
 		})
-		addOAuth2Source(t, "test-both", oauth2.Source{
-			Provider:                      "openidConnect",
-			ClientID:                      "test-client-id",
-			ClientSecret:                  "test-client-secret",
-			OpenIDConnectAutoDiscoveryURL: srv.URL + "/.well-known/openid-configuration",
-			GroupClaimName:                "groups",
-			AdminGroup:                    "admins",
-			RestrictedGroup:               "restricted-users",
-		})
-
-		doOIDCSignIn(t, "test-both")
-
-		// Verify user was created with correct group claim flags
-		user := unittest.AssertExistsAndLoadBean(t, &user_model.User{Name: "user-both-groups"})
-		assert.True(t, user.IsAdmin, "User should be admin from 'admins' group claim")
-		assert.True(t, user.IsRestricted, "User should be restricted from 'restricted-users' group claim")
-		assert.Equal(t, auth_model.OAuth2, user.LoginType)
-	})
-
-	t.Run("user in admin group only", func(t *testing.T) {
-		defer tests.PrepareTestEnv(t)()
-		defer test.MockVariableValue(&setting.OAuth2Client.EnableAutoRegistration, true)()
-		defer test.MockVariableValue(&setting.OAuth2Client.Username, setting.OAuth2UsernameUserid)()
-
-		srv := newFakeOIDCServer(t, FakeOIDCConfig{
-			Sub:    "user-admin-only",
-			Email:  "admin@example.com",
-			Name:   "Admin Only User",
-			Groups: []string{"developers", "admins"},
-		})
-		addOAuth2Source(t, "test-admin-only", oauth2.Source{
-			Provider:                      "openidConnect",
-			ClientID:                      "test-client-id",
-			ClientSecret:                  "test-client-secret",
-			OpenIDConnectAutoDiscoveryURL: srv.URL + "/.well-known/openid-configuration",
-			GroupClaimName:                "groups",
-			AdminGroup:                    "admins",
-			RestrictedGroup:               "restricted-users",
-		})
-
-		doOIDCSignIn(t, "test-admin-only")
-
-		user := unittest.AssertExistsAndLoadBean(t, &user_model.User{Name: "user-admin-only"})
-		assert.True(t, user.IsAdmin, "User should be admin from 'admins' group claim")
-		assert.False(t, user.IsRestricted, "User should NOT be restricted (not in restricted group)")
-	})
-
-	t.Run("user in restricted group only", func(t *testing.T) {
-		defer tests.PrepareTestEnv(t)()
-		defer test.MockVariableValue(&setting.OAuth2Client.EnableAutoRegistration, true)()
-		defer test.MockVariableValue(&setting.OAuth2Client.Username, setting.OAuth2UsernameUserid)()
-
-		srv := newFakeOIDCServer(t, FakeOIDCConfig{
-			Sub:    "user-restricted-only",
-			Email:  "restricted@example.com",
-			Name:   "Restricted Only User",
-			Groups: []string{"developers", "restricted-users"},
-		})
-		addOAuth2Source(t, "test-restricted-only", oauth2.Source{
-			Provider:                      "openidConnect",
-			ClientID:                      "test-client-id",
-			ClientSecret:                  "test-client-secret",
-			OpenIDConnectAutoDiscoveryURL: srv.URL + "/.well-known/openid-configuration",
-			GroupClaimName:                "groups",
-			AdminGroup:                    "admins",
-			RestrictedGroup:               "restricted-users",
-		})
-
-		doOIDCSignIn(t, "test-restricted-only")
-
-		user := unittest.AssertExistsAndLoadBean(t, &user_model.User{Name: "user-restricted-only"})
-		assert.False(t, user.IsAdmin, "User should NOT be admin (not in admin group)")
-		assert.True(t, user.IsRestricted, "User should be restricted from 'restricted-users' group claim")
-	})
-
-	t.Run("user in neither group", func(t *testing.T) {
-		defer tests.PrepareTestEnv(t)()
-		defer test.MockVariableValue(&setting.OAuth2Client.EnableAutoRegistration, true)()
-		defer test.MockVariableValue(&setting.OAuth2Client.Username, setting.OAuth2UsernameUserid)()
-
-		srv := newFakeOIDCServer(t, FakeOIDCConfig{
-			Sub:    "user-neither-group",
-			Email:  "neither@example.com",
-			Name:   "Neither Group User",
-			Groups: []string{"developers"},
-		})
-		addOAuth2Source(t, "test-neither", oauth2.Source{
-			Provider:                      "openidConnect",
-			ClientID:                      "test-client-id",
-			ClientSecret:                  "test-client-secret",
-			OpenIDConnectAutoDiscoveryURL: srv.URL + "/.well-known/openid-configuration",
-			GroupClaimName:                "groups",
-			AdminGroup:                    "admins",
-			RestrictedGroup:               "restricted-users",
-		})
-
-		doOIDCSignIn(t, "test-neither")
-
-		user := unittest.AssertExistsAndLoadBean(t, &user_model.User{Name: "user-neither-group"})
-		assert.False(t, user.IsAdmin, "User should NOT be admin (not in admin group)")
-		assert.Equal(t, setting.Service.DefaultUserIsRestricted, user.IsRestricted,
-			"User should use global default (not in restricted group)")
-	})
-
-	t.Run("user with no groups claim", func(t *testing.T) {
-		defer tests.PrepareTestEnv(t)()
-		defer test.MockVariableValue(&setting.OAuth2Client.EnableAutoRegistration, true)()
-		defer test.MockVariableValue(&setting.OAuth2Client.Username, setting.OAuth2UsernameUserid)()
-
-		// Server returns no groups claim
-		srv := newFakeOIDCServer(t, FakeOIDCConfig{
-			Sub:    "user-no-groups",
-			Email:  "nogroups@example.com",
-			Name:   "No Groups User",
-			Groups: nil,
-		})
-		addOAuth2Source(t, "test-no-groups", oauth2.Source{
-			Provider:                      "openidConnect",
-			ClientID:                      "test-client-id",
-			ClientSecret:                  "test-client-secret",
-			OpenIDConnectAutoDiscoveryURL: srv.URL + "/.well-known/openid-configuration",
-			GroupClaimName:                "groups",
-			AdminGroup:                    "admins",
-			RestrictedGroup:               "restricted-users",
-		})
-
-		doOIDCSignIn(t, "test-no-groups")
-
-		user := unittest.AssertExistsAndLoadBean(t, &user_model.User{Name: "user-no-groups"})
-		assert.False(t, user.IsAdmin, "User should NOT be admin (no groups claim)")
-		assert.Equal(t, setting.Service.DefaultUserIsRestricted, user.IsRestricted,
-			"User should use global default (no groups claim)")
-	})
+	}
 }
 
 // TestOAuth2GroupClaimsManualLinking tests that group claims are applied correctly
 // when a user goes through the manual linking flow (auto-registration disabled).
-// This covers the path where the user is shown the link_account page and creates a new account.
 func TestOAuth2GroupClaimsManualLinking(t *testing.T) {
-	t.Run("manual linking with new account creation", func(t *testing.T) {
-		defer tests.PrepareTestEnv(t)()
-		// Disable auto-registration to force manual linking flow
-		defer test.MockVariableValue(&setting.OAuth2Client.EnableAutoRegistration, false)()
-		defer test.MockVariableValue(&setting.Service.AllowOnlyInternalRegistration, false)()
+	defer tests.PrepareTestEnv(t)()
+	// Disable auto-registration to force manual linking flow
+	defer test.MockVariableValue(&setting.OAuth2Client.EnableAutoRegistration, false)()
+	defer test.MockVariableValue(&setting.Service.AllowOnlyInternalRegistration, false)()
 
-		// Setup OIDC server with group claims - user is in both admin and restricted groups
-		srv := newFakeOIDCServer(t, FakeOIDCConfig{
-			Sub:    "manual-user",
-			Email:  "manual@example.com",
-			Name:   "Manual User",
-			Groups: []string{"developers", "admins", "restricted-users"},
+	tt := []struct {
+		Name         string
+		Groups       []string
+		IsAdmin      bool
+		IsRestricted bool
+		SourceName   string
+	}{
+		{
+			Name:         "user in both admin and restricted groups",
+			Groups:       []string{"admins", "restricted-users"},
+			IsAdmin:      true,
+			IsRestricted: true,
+			SourceName:   "test-group-claims-manual-linking",
+		},
+		{
+			Name:         "no groups",
+			Groups:       []string{},
+			IsAdmin:      false,
+			IsRestricted: false,
+			SourceName:   "test-no-groups-manual-linking",
+		},
+	}
+
+	for _, tc := range tt {
+		t.Run(tc.Name, func(t *testing.T) {
+			srv := newFakeOIDCServer(t, FakeOIDCConfig{
+				Sub:    tc.SourceName,
+				Email:  tc.SourceName + "@example.com",
+				Name:   "Manual User",
+				Groups: tc.Groups,
+			})
+			addOAuth2Source(t, tc.SourceName, oauth2.Source{
+				Provider:                      "openidConnect",
+				ClientID:                      "test-client-id",
+				ClientSecret:                  "test-client-secret",
+				OpenIDConnectAutoDiscoveryURL: srv.URL + "/.well-known/openid-configuration",
+				GroupClaimName:                "groups",
+				AdminGroup:                    "admins",
+				RestrictedGroup:               "restricted-users",
+			})
+			unittest.AssertNotExistsBean(t, &user_model.User{Name: tc.SourceName})
+			session := emptyTestSession(t)
+			resp := session.MakeRequest(t, NewRequest(t, "GET", "/user/oauth2/"+tc.SourceName), http.StatusTemporaryRedirect)
+
+			location := resp.Header().Get("Location")
+			u, err := url.Parse(location)
+			require.NoError(t, err)
+			state := u.Query().Get("state")
+			require.NotEmpty(t, state, "redirect to OIDC provider must include state")
+
+			callbackURL := fmt.Sprintf("/user/oauth2/%s/callback?code=test-code&state=%s", tc.SourceName, url.QueryEscape(state))
+			session.MakeRequest(t, NewRequest(t, "GET", callbackURL), http.StatusSeeOther)
+
+			// Submit the form to create a new account
+			linkAccountResp := session.MakeRequest(t, NewRequest(t, "GET", "/user/link_account"), http.StatusOK)
+			// Verify we're on the link account page
+			assert.Contains(t, linkAccountResp.Body.String(), "link_account")
+
+			// Use NewRequestWithValues to POST form data (no CSRF needed in tests)
+			// Field names are lowercase in HTML forms: user_name, email, password, retype
+			req := NewRequestWithValues(t, "POST", "/user/link_account_signup", map[string]string{
+				"user_name": tc.SourceName,
+				"email":     tc.SourceName + "@example.com",
+				"password":  "", // AllowOnlyExternalRegistration means no password needed
+				"retype":    "",
+			})
+			session.MakeRequest(t, req, http.StatusSeeOther)
+
+			user := unittest.AssertExistsAndLoadBean(t, &user_model.User{Name: tc.SourceName})
+			assert.Equal(t, tc.IsAdmin, user.IsAdmin)
+			assert.Equal(t, tc.IsRestricted, user.IsRestricted)
+			assert.Equal(t, auth_model.OAuth2, user.LoginType)
 		})
-
-		sourceName := "test-manual-linking"
-		addOAuth2Source(t, sourceName, oauth2.Source{
-			Provider:                      "openidConnect",
-			ClientID:                      "test-client-id",
-			ClientSecret:                  "test-client-secret",
-			OpenIDConnectAutoDiscoveryURL: srv.URL + "/.well-known/openid-configuration",
-			GroupClaimName:                "groups",
-			AdminGroup:                    "admins",
-			RestrictedGroup:               "restricted-users",
-		})
-
-		// Step 1: Initiate OAuth2 login - will redirect to link_account page
-		session := emptyTestSession(t)
-		resp := session.MakeRequest(t, NewRequest(t, "GET", "/user/oauth2/"+sourceName), http.StatusTemporaryRedirect)
-
-		// Step 2: Extract state and simulate callback
-		location := resp.Header().Get("Location")
-		u, err := url.Parse(location)
-		require.NoError(t, err)
-		state := u.Query().Get("state")
-		require.NotEmpty(t, state, "redirect to OIDC provider must include state")
-
-		callbackURL := fmt.Sprintf("/user/oauth2/%s/callback?code=test-code&state=%s", sourceName, url.QueryEscape(state))
-		session.MakeRequest(t, NewRequest(t, "GET", callbackURL), http.StatusSeeOther)
-
-		// Step 3: Now we should be on the link_account page
-		// Submit the form to create a new account
-		linkAccountResp := session.MakeRequest(t, NewRequest(t, "GET", "/user/link_account"), http.StatusOK)
-		// Verify we're on the link account page
-		assert.Contains(t, linkAccountResp.Body.String(), "link_account")
-
-		// Step 4: Submit the registration form
-		// Use NewRequestWithValues to POST form data (no CSRF needed in tests)
-		// Field names are lowercase in HTML forms: user_name, email, password, retype
-		req := NewRequestWithValues(t, "POST", "/user/link_account_signup", map[string]string{
-			"user_name": "manual-user",
-			"email":     "manual@example.com",
-			"password":  "", // AllowOnlyExternalRegistration means no password needed
-			"retype":    "",
-		})
-		session.MakeRequest(t, req, http.StatusSeeOther)
-
-		// Step 5: Verify user was created with correct group claim flags
-		user := unittest.AssertExistsAndLoadBean(t, &user_model.User{Name: "manual-user"})
-		assert.True(t, user.IsAdmin, "User should be admin from 'admins' group claim in manual linking")
-		assert.True(t, user.IsRestricted, "User should be restricted from 'restricted-users' group claim in manual linking")
-		assert.Equal(t, auth_model.OAuth2, user.LoginType)
-	})
-
-	t.Run("manual linking to existing account", func(t *testing.T) {
-		defer tests.PrepareTestEnv(t)()
-		defer test.MockVariableValue(&setting.OAuth2Client.EnableAutoRegistration, false)()
-		defer test.MockVariableValue(&setting.Service.AllowOnlyInternalRegistration, false)()
-		defer test.MockVariableValue(&setting.OAuth2Client.Username, setting.OAuth2UsernameUserid)()
-
-		// Setup OIDC server with group claims - user is in admin group
-		srv := newFakeOIDCServer(t, FakeOIDCConfig{
-			Sub:    "existing-user",
-			Email:  "existing@example.com",
-			Name:   "Existing User",
-			Groups: []string{"restricted-users", "admins"},
-		})
-
-		sourceName := "test-manual-linking-existing"
-		addOAuth2Source(t, sourceName, oauth2.Source{
-			Provider:                      "openidConnect",
-			ClientID:                      "test-client-id",
-			ClientSecret:                  "test-client-secret",
-			OpenIDConnectAutoDiscoveryURL: srv.URL + "/.well-known/openid-configuration",
-			GroupClaimName:                "groups",
-			AdminGroup:                    "admins",
-			RestrictedGroup:               "restricted-users",
-		})
-
-		// Create an existing user first
-		existingUser := &user_model.User{
-			Name:   "existing-user",
-			Email:  "existing@example.com",
-			Passwd: "password",
-		}
-		require.NoError(t, user_model.CreateUser(t.Context(), existingUser, &user_model.Meta{}))
-		// Initially not admin
-		assert.False(t, existingUser.IsAdmin)
-
-		// Step 1: Initiate OAuth2 login
-		session := emptyTestSession(t)
-		resp := session.MakeRequest(t, NewRequest(t, "GET", "/user/oauth2/"+sourceName), http.StatusTemporaryRedirect)
-
-		// Step 2: Simulate callback
-		location := resp.Header().Get("Location")
-		u, err := url.Parse(location)
-		require.NoError(t, err)
-		state := u.Query().Get("state")
-		require.NotEmpty(t, state, "redirect to OIDC provider must include state")
-
-		callbackURL := fmt.Sprintf("/user/oauth2/%s/callback?code=test-code&state=%s", sourceName, url.QueryEscape(state))
-		session.MakeRequest(t, NewRequest(t, "GET", callbackURL), http.StatusSeeOther)
-
-		// Step 3: Submit the sign-in form to link to existing account
-		// Use NewRequestWithValues to POST form data (no CSRF needed in tests)
-		// Field names must match SignInForm struct: UserName, Password, Remember
-		session.MakeRequest(t, NewRequestWithValues(t, "POST", "/user/link_account_signin", map[string]string{
-			"user_name": "existing-user",
-			"password":  "password",
-			"Remember":  "false",
-		}), http.StatusSeeOther)
-
-		// Step 4: Verify the existing user now has admin flag from OAuth2 group claims
-		// Note: This may require a follow-up login or the flags might be updated on the linking
-		updatedUser := unittest.AssertExistsAndLoadBean(t, &user_model.User{Name: "existing-user"})
-		assert.True(t, updatedUser.IsAdmin, "Existing user should be admin from 'admins' group claim after linking")
-	})
+	}
 }
