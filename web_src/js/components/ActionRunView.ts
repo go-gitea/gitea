@@ -20,6 +20,7 @@ const LogLinePrefixCommandMap: Record<string, LogLineCommandName> = {
   '##[warning]': 'warning',
   '##[notice]': 'notice',
   '##[debug]': 'debug',
+  '##[command]': 'command',
   '[command]': 'command',
 
   // https://github.com/actions/toolkit/blob/master/docs/commands.md
