@@ -12,7 +12,6 @@ import (
 
 	actions_model "gitea.dev/models/actions"
 	"gitea.dev/models/db"
-	"gitea.dev/modules/base"
 	"gitea.dev/modules/log"
 	"gitea.dev/modules/setting"
 	"gitea.dev/modules/templates"
@@ -392,11 +391,7 @@ func RunnerBulkActionPost(ctx *context.Context) {
 		return
 	}
 
-	ids, err := base.StringsToInt64s(ctx.FormStrings("ids[]"))
-	if err != nil || len(ids) == 0 {
-		ctx.HTTPError(http.StatusBadRequest, "no valid runner ids provided")
-		return
-	}
+	ids := ctx.FormStringInt64s("ids")
 
 	runners, err := db.Find[actions_model.ActionRunner](ctx, &actions_model.FindRunnerOptions{IDs: ids})
 	if err != nil {
