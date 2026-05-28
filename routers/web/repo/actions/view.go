@@ -208,14 +208,14 @@ func View(ctx *context_module.Context) {
 	ctx.Data["JobID"] = jobID // it can be 0 when no job (e.g.: run summary view)
 
 	// Browser tab title, ordered most-specific → least-specific so narrow tabs keep the useful part.
-	// Matches GitHub: "<job> · <run> · <workflow>" on a job page, "<run> · <workflow>" on the summary.
+	// Separator matches the " - " used by head.tmpl when joining to PageTitleCommon.
 	titleParts := []string{run.Title, run.WorkflowID}
 	if jobID > 0 {
 		if job, err := actions_model.GetRunJobByRunAndID(ctx, run.ID, jobID); err == nil && job.Name != "" {
 			titleParts = append([]string{job.Name}, titleParts...)
 		}
 	}
-	ctx.Data["Title"] = strings.Join(titleParts, " · ")
+	ctx.Data["Title"] = strings.Join(titleParts, " - ")
 
 	attemptNum := ctx.PathParamInt64("attempt")
 
