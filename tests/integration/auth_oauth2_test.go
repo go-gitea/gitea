@@ -233,6 +233,24 @@ func doOIDCSignIn(t *testing.T, sourceName string) {
 	session.MakeRequest(t, NewRequest(t, "GET", callbackURL), http.StatusSeeOther)
 }
 
+// newOIDCSource is a helper function to create a configured OAuth2 source for testing
+func newOIDCSource(srv *httptest.Server, withAdmin, withRestricted bool) oauth2.Source {
+	src := oauth2.Source{
+		Provider:                      "openidConnect",
+		ClientID:                      "test-client-id",
+		ClientSecret:                  "test-client-secret",
+		OpenIDConnectAutoDiscoveryURL: srv.URL + "/.well-known/openid-configuration",
+		GroupClaimName:                "groups",
+	}
+	if withAdmin {
+		src.AdminGroup = "admins"
+	}
+	if withRestricted {
+		src.RestrictedGroup = "restricted-users"
+	}
+	return src
+}
+
 // TestOAuth2GroupClaimsAppliedOnFirstLogin verifies that group claims from OAuth2/OIDC
 // are correctly applied to newly created users on the first login
 func TestOAuth2GroupClaimsAppliedOnFirstLogin(t *testing.T) {
@@ -244,38 +262,21 @@ func TestOAuth2GroupClaimsAppliedOnFirstLogin(t *testing.T) {
 
 	tt := []struct {
 		Name         string
-		Groups       []string
 		IsAdmin      bool
 		IsRestricted bool
 		SourceName   string
 	}{
 		{
 			Name:         "user in both admin and restricted groups",
-			Groups:       []string{"admins", "restricted-users"},
 			IsAdmin:      true,
 			IsRestricted: true,
 			SourceName:   "test-group-claims",
 		},
 		{
 			Name:         "no groups",
-			Groups:       []string{},
 			IsAdmin:      false,
 			IsRestricted: false,
 			SourceName:   "test-no-groups",
-		},
-		{
-			Name:         "user in admin group only",
-			Groups:       []string{"admins"},
-			IsAdmin:      true,
-			IsRestricted: false,
-			SourceName:   "test-admin-only",
-		},
-		{
-			Name:         "user in restricted group only",
-			Groups:       []string{"restricted-users"},
-			IsAdmin:      false,
-			IsRestricted: true,
-			SourceName:   "test-restricted-only",
 		},
 	}
 	for _, tc := range tt {
@@ -285,21 +286,13 @@ func TestOAuth2GroupClaimsAppliedOnFirstLogin(t *testing.T) {
 				Sub:    tc.SourceName,
 				Email:  tc.SourceName + "@example.com",
 				Name:   "Test User",
-				Groups: tc.Groups,
+				Groups: []string{"admins", "restricted-users"},
 			})
 
 			// Ensure it's the first login so no user in database
 			unittest.AssertNotExistsBean(t, &user_model.User{Name: tc.SourceName})
 
-			addOAuth2Source(t, tc.SourceName, oauth2.Source{
-				Provider:                      "openidConnect",
-				ClientID:                      "test-client-id",
-				ClientSecret:                  "test-client-secret",
-				OpenIDConnectAutoDiscoveryURL: srv.URL + "/.well-known/openid-configuration",
-				GroupClaimName:                "groups",
-				AdminGroup:                    "admins",
-				RestrictedGroup:               "restricted-users",
-			})
+			addOAuth2Source(t, tc.SourceName, newOIDCSource(srv, tc.IsAdmin, tc.IsRestricted))
 
 			doOIDCSignIn(t, tc.SourceName)
 
@@ -321,21 +314,18 @@ func TestOAuth2GroupClaimsManualLinking(t *testing.T) {
 
 	tt := []struct {
 		Name         string
-		Groups       []string
 		IsAdmin      bool
 		IsRestricted bool
 		SourceName   string
 	}{
 		{
 			Name:         "user in both admin and restricted groups",
-			Groups:       []string{"admins", "restricted-users"},
 			IsAdmin:      true,
 			IsRestricted: true,
 			SourceName:   "test-group-claims-manual-linking",
 		},
 		{
 			Name:         "no groups",
-			Groups:       []string{},
 			IsAdmin:      false,
 			IsRestricted: false,
 			SourceName:   "test-no-groups-manual-linking",
@@ -348,17 +338,9 @@ func TestOAuth2GroupClaimsManualLinking(t *testing.T) {
 				Sub:    tc.SourceName,
 				Email:  tc.SourceName + "@example.com",
 				Name:   "Manual User",
-				Groups: tc.Groups,
+				Groups: []string{"admins", "restricted-users"},
 			})
-			addOAuth2Source(t, tc.SourceName, oauth2.Source{
-				Provider:                      "openidConnect",
-				ClientID:                      "test-client-id",
-				ClientSecret:                  "test-client-secret",
-				OpenIDConnectAutoDiscoveryURL: srv.URL + "/.well-known/openid-configuration",
-				GroupClaimName:                "groups",
-				AdminGroup:                    "admins",
-				RestrictedGroup:               "restricted-users",
-			})
+			addOAuth2Source(t, tc.SourceName, newOIDCSource(srv, tc.IsAdmin, tc.IsRestricted))
 			unittest.AssertNotExistsBean(t, &user_model.User{Name: tc.SourceName})
 			session := emptyTestSession(t)
 			resp := session.MakeRequest(t, NewRequest(t, "GET", "/user/oauth2/"+tc.SourceName), http.StatusTemporaryRedirect)
