@@ -179,7 +179,7 @@ func TestOIDCIgnoresStaleExternalLoginLinks(t *testing.T) {
 	t.Run("deleted user", func(t *testing.T) {
 		const sub, userName, email = "oidc-stale-deleted-link-sub", "guizar_d", "guizar_d@example.com"
 		const deletedUserID = 999999
-		authSource, correctUser := setup(t, "test-oidc-stale-deleted-link", sub, userName, email)
+		authSource, correctUser := setup(t, "test-oidc-stale-deleted", sub, userName, email)
 		// link the external account to a user id that does not exist, simulating a deleted user
 		require.NoError(t, user_model.LinkExternalToUser(t.Context(), &user_model.User{ID: deletedUserID}, &user_model.ExternalLoginUser{
 			ExternalID:    sub,
