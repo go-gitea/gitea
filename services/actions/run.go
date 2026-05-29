@@ -10,7 +10,6 @@ import (
 	actions_model "gitea.dev/models/actions"
 	"gitea.dev/models/db"
 	"gitea.dev/modules/actions/jobparser"
-	"gitea.dev/modules/log"
 	"gitea.dev/modules/util"
 
 	act_model "gitea.com/gitea/runner/act/model"
@@ -129,15 +128,10 @@ func InsertRun(ctx context.Context, run *actions_model.ActionRun, content []byte
 		runJobs := make([]*actions_model.ActionRunJob, 0, len(jobs))
 		var hasWaitingJobs bool
 
-		rawStrategies, err := ExtractRawStrategies(content)
-		if err != nil {
-			log.Warn("Failed to extract raw strategies for run %d: %v", run.ID, err)
-			rawStrategies = nil
-		}
-
 		for i, v := range jobs {
 			id, job := v.Job()
 			needs := job.Needs()
+			isDeferredMatrix := len(needs) > 0 && jobparser.RawMatrixHasExpression(job)
 			if err := v.SetJob(id, job.EraseNeeds()); err != nil {
 				return err
 			}
@@ -167,11 +161,14 @@ func InsertRun(ctx context.Context, run *actions_model.ActionRun, content []byte
 				runJob.TokenPermissions = perms
 			}
 
-			// Store the raw strategy for jobs whose matrix references needs outputs.
-			// ReEvaluateMatrixForJobWithNeeds uses this to re-expand the matrix once
-			// the dependency jobs have completed and their outputs are available.
-			if rawStrategy, ok := rawStrategies[id]; ok && HasMatrixWithNeeds(rawStrategy) {
-				runJob.RawStrategy = rawStrategy
+			// Matrix references needs outputs: jobparser emitted a placeholder. Store the raw
+			// strategy for ReEvaluateMatrixForJobWithNeeds to expand once the needs finish.
+			if isDeferredMatrix {
+				rawStrategy, err := yaml.Marshal(&job.Strategy)
+				if err != nil {
+					return fmt.Errorf("marshal raw strategy for job %s: %w", id, err)
+				}
+				runJob.RawStrategy = string(rawStrategy)
 			}
 
 			// check job concurrency

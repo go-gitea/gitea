@@ -7,10 +7,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"maps"
-	"slices"
-	"sort"
-	"strings"
 
 	actions_model "gitea.dev/models/actions"
 	"gitea.dev/models/db"
@@ -60,128 +56,9 @@ func checkTaskNeedsReady(ctx context.Context, job *actions_model.ActionRunJob) (
 	return taskNeeds, true, nil
 }
 
-// ExtractRawStrategies extracts strategy definitions from the raw workflow content.
-// Returns a map of jobID to strategy YAML for jobs that have matrix dependencies.
-func ExtractRawStrategies(content []byte) (map[string]string, error) {
-	var workflowDef struct {
-		Jobs map[string]struct {
-			Strategy any `yaml:"strategy"`
-			Needs    any `yaml:"needs"`
-		} `yaml:"jobs"`
-	}
-
-	if err := yaml.Unmarshal(content, &workflowDef); err != nil {
-		return nil, err
-	}
-
-	strategies := make(map[string]string)
-	for jobID, jobDef := range workflowDef.Jobs {
-		if jobDef.Strategy == nil {
-			continue
-		}
-
-		var needsList []string
-		switch needs := jobDef.Needs.(type) {
-		case string:
-			needsList = append(needsList, needs)
-		case []any:
-			for _, need := range needs {
-				if needStr, ok := need.(string); ok {
-					needsList = append(needsList, needStr)
-				}
-			}
-		}
-
-		if len(needsList) > 0 {
-			if strategyBytes, err := yaml.Marshal(jobDef.Strategy); err == nil {
-				strategies[jobID] = string(strategyBytes)
-			}
-		}
-	}
-
-	return strategies, nil
-}
-
-// HasMatrixWithNeeds reports whether rawStrategy contains a matrix value whose
-// expression tree references needs.<id>.outputs.<key>.
-// It walks the parsed YAML tree to avoid false positives from values such as
-// "os: [needs.review-runner]" that merely contain the substring "needs.".
-func HasMatrixWithNeeds(rawStrategy string) bool {
-	if rawStrategy == "" {
-		return false
-	}
-
-	var root yaml.Node
-	if err := yaml.Unmarshal([]byte(rawStrategy), &root); err != nil {
-		return false
-	}
-
-	// The top-level document node wraps a single mapping node.
-	doc := &root
-	if doc.Kind == yaml.DocumentNode && len(doc.Content) == 1 {
-		doc = doc.Content[0]
-	}
-
-	// Find the "matrix" key inside the strategy mapping.
-	var matrixNode *yaml.Node
-	if doc.Kind == yaml.MappingNode {
-		for i := 0; i+1 < len(doc.Content); i += 2 {
-			if doc.Content[i].Value == "matrix" {
-				matrixNode = doc.Content[i+1]
-				break
-			}
-		}
-	}
-	if matrixNode == nil {
-		return false
-	}
-
-	return yamlNodeContainsNeedsOutputsExpr(matrixNode)
-}
-
-// yamlNodeContainsNeedsOutputsExpr recursively inspects a yaml.Node and
-// returns true if any scalar value contains a GitHub Actions expression of
-// the form ${{ ... needs.<id>.outputs.<key> ... }}.
-func yamlNodeContainsNeedsOutputsExpr(node *yaml.Node) bool {
-	if node == nil {
-		return false
-	}
-	if node.Kind == yaml.ScalarNode {
-		return containsNeedsOutputsExpr(node.Value)
-	}
-	return slices.ContainsFunc(node.Content, yamlNodeContainsNeedsOutputsExpr)
-}
-
-// containsNeedsOutputsExpr returns true when s contains an Actions expression
-// (${{ ... }}) that references needs.<id>.outputs.<key>.
-// A bare "needs." substring outside an expression block is not a match.
-func containsNeedsOutputsExpr(s string) bool {
-	if !strings.Contains(s, "${{") {
-		return false
-	}
-	for i := 0; i < len(s); {
-		start := strings.Index(s[i:], "${{")
-		if start == -1 {
-			break
-		}
-		start += i
-		end := strings.Index(s[start:], "}}")
-		if end == -1 {
-			break
-		}
-		end += start
-		expr := s[start : end+2]
-		if strings.Contains(expr, "needs.") && strings.Contains(expr, ".outputs.") {
-			return true
-		}
-		i = end + 2
-	}
-	return false
-}
-
-// ReEvaluateMatrixForJobWithNeeds re-evaluates the matrix strategy of a job once all its
-// dependent jobs are done. It expands the matrix using job outputs and inserts the resulting
-// ActionRunJobs. The original placeholder job is marked as evaluated and skipped.
+// ReEvaluateMatrixForJobWithNeeds expands the matrix strategy of a job once all its dependent
+// jobs are done, using their outputs, and inserts the resulting ActionRunJobs. The original
+// placeholder job is reused as the first combination.
 // Returns nil, nil if the job is not ready yet or has nothing to do.
 func ReEvaluateMatrixForJobWithNeeds(ctx context.Context, job *actions_model.ActionRunJob, vars map[string]string) ([]*actions_model.ActionRunJob, error) {
 	if job.IsMatrixEvaluated || job.RawStrategy == "" {
@@ -191,8 +68,8 @@ func ReEvaluateMatrixForJobWithNeeds(ctx context.Context, job *actions_model.Act
 	log.Debug("Starting matrix re-evaluation for job %d (JobID: %s)", job.ID, job.JobID)
 
 	// skipWithError marks the job as evaluated+skipped and wraps any secondary error.
-	skipWithError := func(reason string, origErr error) ([]*actions_model.ActionRunJob, error) {
-		if markErr := markMatrixAsEvaluatedAndSkip(ctx, job, reason); markErr != nil {
+	skipWithError := func(origErr error) ([]*actions_model.ActionRunJob, error) {
+		if markErr := markMatrixAsEvaluatedAndSkip(ctx, job, origErr.Error()); markErr != nil {
 			return nil, fmt.Errorf("%w; additionally failed to mark as evaluated: %v", origErr, markErr)
 		}
 		return nil, origErr
@@ -201,7 +78,7 @@ func ReEvaluateMatrixForJobWithNeeds(ctx context.Context, job *actions_model.Act
 	taskNeeds, allDone, err := checkTaskNeedsReady(ctx, job)
 	if err != nil {
 		log.Error("Matrix re-evaluation error for job %d: check task needs: %v", job.ID, err)
-		return skipWithError(fmt.Sprintf("task needs check failed: %v", err), fmt.Errorf("check task needs: %w", err))
+		return skipWithError(fmt.Errorf("check task needs: %w", err))
 	}
 	if !allDone {
 		return nil, nil
@@ -221,30 +98,36 @@ func ReEvaluateMatrixForJobWithNeeds(ctx context.Context, job *actions_model.Act
 
 	giteaCtx := GenerateGiteaContext(ctx, job.Run, nil, job)
 
-	jobOutputs := make(map[string]map[string]string, len(taskNeeds))
-	jobResults := make(map[string]string, len(taskNeeds))
-	for jobID, need := range taskNeeds {
-		jobOutputs[jobID] = need.Outputs
-		jobResults[jobID] = need.Result.String()
+	results := make(map[string]*jobparser.JobResult, len(taskNeeds))
+	for needID, need := range taskNeeds {
+		results[needID] = &jobparser.JobResult{Result: need.Result.String(), Outputs: need.Outputs}
 	}
 
-	workflowYAML, err := constructWorkflowWithNeeds(job, taskNeeds)
+	// Rebuild the job from its own payload + stored raw strategy and re-attach needs (erased from
+	// the payload) so needs.*.outputs.* resolves. No synthetic workflow, no stub jobs, no re-parse.
+	var baseSWF jobparser.SingleWorkflow
+	if err := yaml.Unmarshal(job.WorkflowPayload, &baseSWF); err != nil {
+		return skipWithError(fmt.Errorf("unmarshal payload: %w", err))
+	}
+	_, parsedJob := baseSWF.Job()
+	if parsedJob == nil {
+		return skipWithError(errors.New("payload contains no job"))
+	}
+	var rawStrategy jobparser.Strategy
+	if err := yaml.Unmarshal([]byte(job.RawStrategy), &rawStrategy); err != nil {
+		return skipWithError(fmt.Errorf("unmarshal raw strategy: %w", err))
+	}
+	parsedJob.Strategy = rawStrategy
+	if err := parsedJob.RawNeeds.Encode(job.Needs); err != nil {
+		return skipWithError(fmt.Errorf("encode needs: %w", err))
+	}
+
+	expandedJobs, err := jobparser.ExpandMatrixWithNeeds(job.JobID, parsedJob, giteaCtx.ToGitHubContext(), results, vars, nil)
 	if err != nil {
-		return skipWithError(fmt.Sprintf("workflow construction failed: %v", err), fmt.Errorf("construct workflow: %w", err))
+		return nil, markMatrixAsEvaluatedAndSkip(ctx, job, fmt.Sprintf("matrix expansion failed: %v", err))
 	}
 
-	parsedJobs, err := jobparser.Parse(
-		workflowYAML,
-		jobparser.WithVars(vars),
-		jobparser.WithGitContext(giteaCtx.ToGitHubContext()),
-		jobparser.WithJobOutputs(jobOutputs),
-		jobparser.WithJobResults(jobResults),
-	)
-	if err != nil {
-		return nil, markMatrixAsEvaluatedAndSkip(ctx, job, fmt.Sprintf("parse failed: %v", err))
-	}
-
-	// One parsed workflow per combination; needs are kept on the model and erased from the
+	// One workflow payload per combination; needs are kept on the model and erased from the
 	// payload, as at initial planning time.
 	type matrixCombo struct {
 		name    string
@@ -252,18 +135,15 @@ func ReEvaluateMatrixForJobWithNeeds(ctx context.Context, job *actions_model.Act
 		runsOn  []string
 		needs   []string
 	}
-	var combos []matrixCombo
-	for _, sw := range parsedJobs {
-		id, jobDef := sw.Job()
-		if jobDef == nil || id != job.JobID {
-			continue
+	combos := make([]matrixCombo, 0, len(expandedJobs))
+	for _, expanded := range expandedJobs {
+		combo := matrixCombo{name: expanded.Name, runsOn: expanded.RunsOn(), needs: expanded.Needs()}
+		swf := baseSWF
+		if err := swf.SetJob(job.JobID, expanded.EraseNeeds()); err != nil {
+			return nil, fmt.Errorf("set expanded job %s: %w", job.JobID, err)
 		}
-		combo := matrixCombo{name: jobDef.Name, runsOn: jobDef.RunsOn(), needs: jobDef.Needs()}
-		if err := sw.SetJob(id, jobDef.EraseNeeds()); err != nil {
-			return nil, fmt.Errorf("erase needs for job %s: %w", id, err)
-		}
-		if combo.payload, err = sw.Marshal(); err != nil {
-			return nil, fmt.Errorf("marshal expanded job %s: %w", id, err)
+		if combo.payload, err = swf.Marshal(); err != nil {
+			return nil, fmt.Errorf("marshal expanded job %s: %w", job.JobID, err)
 		}
 		combos = append(combos, combo)
 	}
@@ -322,66 +202,4 @@ func ReEvaluateMatrixForJobWithNeeds(ctx context.Context, job *actions_model.Act
 	}
 
 	return children, nil
-}
-
-// constructWorkflowWithNeeds creates a workflow YAML that includes the target job
-// and stub definitions for its dependencies so the jobparser can resolve needs.*.outputs expressions.
-func constructWorkflowWithNeeds(job *actions_model.ActionRunJob, taskNeeds map[string]*TaskNeed) ([]byte, error) {
-	var jobWorkflow map[string]any
-	if err := yaml.Unmarshal(job.WorkflowPayload, &jobWorkflow); err != nil {
-		return nil, fmt.Errorf("unmarshal job workflow: %w", err)
-	}
-
-	jobsSection, ok := jobWorkflow["jobs"].(map[string]any)
-	if !ok {
-		return nil, errors.New("invalid jobs section in workflow")
-	}
-
-	newJobs := make(map[string]any)
-
-	for needJobID, taskNeed := range taskNeeds {
-		stubJob := map[string]any{
-			"runs-on": "ubuntu-latest",
-			"outputs": taskNeed.Outputs,
-			"steps":   []any{},
-		}
-		newJobs[needJobID] = stubJob
-	}
-
-	maps.Copy(newJobs, jobsSection)
-
-	// The WorkflowPayload may contain a normalised/wrapped matrix (e.g.
-	// version: ["${{ fromJson(...) }}"]). Restore the original scalar expression
-	// from RawStrategy so jobparser.Parse() can expand it correctly with job outputs.
-	// Also drop the pre-baked "name" so jobparser regenerates it per matrix combination
-	// (e.g. "build (1)", "build (2)", …) instead of "build (Array)".
-	// Critically, re-add "needs" because EraseNeeds() removed them from WorkflowPayload:
-	// without needs, NewInterpeter builds an empty Needs context and
-	// "needs.generate.outputs.*" expressions can never be evaluated.
-	if targetJobDef, ok := newJobs[job.JobID]; ok {
-		if targetJobMap, ok := targetJobDef.(map[string]any); ok {
-			delete(targetJobMap, "name")
-			needsKeys := make([]string, 0, len(taskNeeds))
-			for needJobID := range taskNeeds {
-				needsKeys = append(needsKeys, needJobID)
-			}
-			sort.Strings(needsKeys)
-			targetJobMap["needs"] = needsKeys
-			if job.RawStrategy != "" {
-				var rawStrategyMap map[string]any
-				if err := yaml.Unmarshal([]byte(job.RawStrategy), &rawStrategyMap); err == nil {
-					targetJobMap["strategy"] = rawStrategyMap
-				}
-			}
-			newJobs[job.JobID] = targetJobMap
-		}
-	}
-
-	workflow := map[string]any{
-		"name": "matrix-expansion",
-		"on":   "push",
-		"jobs": newJobs,
-	}
-
-	return yaml.Marshal(workflow)
 }

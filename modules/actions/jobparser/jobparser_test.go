@@ -533,3 +533,91 @@ jobs:
 		}
 	})
 }
+
+func TestParseDefersDynamicMatrix(t *testing.T) {
+	// A matrix referencing needs outputs is emitted as a single placeholder retaining the raw
+	// expression, rather than being expanded or split per static value.
+	workflowYAML := `
+name: test-defer
+on: push
+
+jobs:
+  setup:
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo setup
+
+  build:
+    needs: setup
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+        version: ${{ fromJson(needs.setup.outputs.versions) }}
+    steps:
+      - run: echo build
+`
+	result, err := Parse([]byte(workflowYAML))
+	require.NoError(t, err)
+
+	var buildJobs []*Job
+	for _, w := range result {
+		if id, j := w.Job(); id == "build" {
+			buildJobs = append(buildJobs, j)
+		}
+	}
+	require.Len(t, buildJobs, 1, "deferred matrix must yield exactly one placeholder")
+	assert.True(t, RawMatrixHasExpression(buildJobs[0]), "placeholder must keep the raw matrix expression")
+}
+
+func TestExpandMatrixWithNeeds(t *testing.T) {
+	buildJob := func(t *testing.T, matrixYAML, runsOn string, needs []string) *Job {
+		t.Helper()
+		var strat Strategy
+		require.NoError(t, yaml.Unmarshal([]byte(matrixYAML), &strat))
+		job := &Job{Name: "build", Strategy: strat}
+		require.NoError(t, job.RawRunsOn.Encode(runsOn))
+		require.NoError(t, job.RawNeeds.Encode(needs))
+		return job
+	}
+
+	results := map[string]*JobResult{
+		"setup": {Result: "success", Outputs: map[string]string{
+			"versions":  "[1.20, 1.21]",
+			"platforms": `["linux", "darwin"]`,
+		}},
+	}
+
+	t.Run("single dynamic dimension", func(t *testing.T) {
+		job := buildJob(t, "matrix:\n  version: ${{ fromJson(needs.setup.outputs.versions) }}\n", "ubuntu-latest", []string{"setup"})
+		got, err := ExpandMatrixWithNeeds("build", job, &model.GithubContext{}, results, nil, nil)
+		require.NoError(t, err)
+		assert.Len(t, got, 2)
+	})
+
+	t.Run("static and dynamic expand to product once", func(t *testing.T) {
+		// 2 static os * 2 dynamic versions = 4, expanded once (regression: not split then re-expanded).
+		job := buildJob(t, "matrix:\n  os: [ubuntu-latest, windows-latest]\n  version: ${{ fromJson(needs.setup.outputs.versions) }}\n", "${{ matrix.os }}", []string{"setup"})
+		got, err := ExpandMatrixWithNeeds("build", job, &model.GithubContext{}, results, nil, nil)
+		require.NoError(t, err)
+		assert.Len(t, got, 4)
+		for _, combo := range got {
+			runsOn := combo.RunsOn()
+			require.Len(t, runsOn, 1)
+			assert.Contains(t, []string{"ubuntu-latest", "windows-latest"}, runsOn[0], "runs-on must be interpolated from matrix.os")
+		}
+	})
+
+	t.Run("multiple dynamic dimensions", func(t *testing.T) {
+		job := buildJob(t, "matrix:\n  version: ${{ fromJson(needs.setup.outputs.versions) }}\n  platform: ${{ fromJson(needs.setup.outputs.platforms) }}\n", "ubuntu-latest", []string{"setup"})
+		got, err := ExpandMatrixWithNeeds("build", job, &model.GithubContext{}, results, nil, nil)
+		require.NoError(t, err)
+		assert.Len(t, got, 4)
+	})
+
+	t.Run("unresolved needs output errors", func(t *testing.T) {
+		job := buildJob(t, "matrix:\n  version: ${{ fromJson(needs.missing.outputs.versions) }}\n", "ubuntu-latest", []string{"missing"})
+		_, err := ExpandMatrixWithNeeds("build", job, &model.GithubContext{}, map[string]*JobResult{}, nil, nil)
+		require.Error(t, err)
+	})
+}

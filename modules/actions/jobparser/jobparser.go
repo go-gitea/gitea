@@ -92,7 +92,7 @@ func Parse(content []byte, options ...ParseOption) ([]*SingleWorkflow, error) {
 		}
 
 		// Clone + pre-evaluate only when the matrix has a ${{ }} expression; static matrices use
-		// the origin job as-is. Unresolved expressions defer to ReEvaluateMatrixForJobWithNeeds.
+		// the origin job as-is.
 		evaluatedJob := originJob
 		if originJob.Strategy != nil && rawMatrixHasExpression(&originJob.Strategy.RawMatrix) {
 			jobCopy := *originJob
@@ -102,7 +102,21 @@ func Parse(content []byte, options ...ParseOption) ([]*SingleWorkflow, error) {
 			evaluatedJob = &jobCopy
 			matrixEvaluator := NewExpressionEvaluator(NewInterpeter(id, evaluatedJob, nil, pc.gitContext, results, pc.vars, pc.inputs))
 			if err := matrixEvaluator.EvaluateYamlNode(&evaluatedJob.Strategy.RawMatrix); err != nil {
-				log.Debug("matrix evaluation deferred for job %s (unresolved expression): %v", id, err)
+				// Matrix references needs.*.outputs.* (unavailable now). Emit one placeholder
+				// keeping the raw strategy; the server expands it once the needs finish.
+				if len(originJob.Needs()) > 0 {
+					placeholder := job.Clone()
+					if placeholder.Name == "" {
+						placeholder.Name = id
+					}
+					swf := newSingleWorkflow(workflow)
+					if err := swf.SetJob(id, placeholder); err != nil {
+						return nil, fmt.Errorf("SetJob: %w", err)
+					}
+					ret = append(ret, swf)
+					continue
+				}
+				log.Debug("matrix evaluation for job %s left unresolved (no needs): %v", id, err)
 			}
 		}
 
@@ -111,33 +125,85 @@ func Parse(content []byte, options ...ParseOption) ([]*SingleWorkflow, error) {
 			return nil, fmt.Errorf("getMatrixes: %w", err)
 		}
 		for _, matrix := range matricxes {
-			job := job.Clone()
-			if job.Name == "" {
-				job.Name = id
-			}
-			job.Strategy.RawMatrix = encodeMatrix(matrix)
-			evaluator := NewExpressionEvaluator(NewInterpeter(id, evaluatedJob, matrix, pc.gitContext, results, pc.vars, pc.inputs))
-			job.Name = nameWithMatrix(job.Name, matrix, evaluator)
-			runsOn := evaluatedJob.RunsOn()
-			for i, v := range runsOn {
-				runsOn[i] = evaluator.Interpolate(v)
-			}
-			job.RawRunsOn = encodeRunsOn(runsOn)
-			swf := &SingleWorkflow{
-				Name:           workflow.Name,
-				RawOn:          workflow.RawOn,
-				Env:            workflow.Env,
-				Defaults:       workflow.Defaults,
-				RawPermissions: workflow.RawPermissions,
-				RunName:        workflow.RunName,
-			}
-			if err := swf.SetJob(id, job); err != nil {
+			swf := newSingleWorkflow(workflow)
+			if err := swf.SetJob(id, expandJobCombo(id, job, matrix, evaluatedJob, pc.gitContext, results, pc.vars, pc.inputs)); err != nil {
 				return nil, fmt.Errorf("SetJob: %w", err)
 			}
 			ret = append(ret, swf)
 		}
 	}
 	return ret, nil
+}
+
+// newSingleWorkflow returns a SingleWorkflow carrying w's global fields and no job.
+func newSingleWorkflow(w *SingleWorkflow) *SingleWorkflow {
+	return &SingleWorkflow{
+		Name:           w.Name,
+		RawOn:          w.RawOn,
+		Env:            w.Env,
+		Defaults:       w.Defaults,
+		RawPermissions: w.RawPermissions,
+		RunName:        w.RunName,
+	}
+}
+
+// expandJobCombo builds the Job for one matrix combination: it bakes the matrix into the strategy
+// and interpolates the name and runs-on. actJob drives the interpreter (it supplies the job's
+// needs and strategy contexts) and may differ from src (an act model.Job vs the source *Job).
+func expandJobCombo(jobID string, src *Job, matrix map[string]any, actJob *model.Job, gitCtx *model.GithubContext, results map[string]*JobResult, vars map[string]string, inputs map[string]any) *Job {
+	combo := src.Clone()
+	if combo.Name == "" {
+		combo.Name = jobID
+	}
+	combo.Strategy.RawMatrix = encodeMatrix(matrix)
+	evaluator := NewExpressionEvaluator(NewInterpeter(jobID, actJob, matrix, gitCtx, results, vars, inputs))
+	combo.Name = nameWithMatrix(combo.Name, matrix, evaluator)
+	runsOn := combo.RunsOn()
+	for i := range runsOn {
+		runsOn[i] = evaluator.Interpolate(runsOn[i])
+	}
+	combo.RawRunsOn = encodeRunsOn(runsOn)
+	return combo
+}
+
+// RawMatrixHasExpression reports whether the job's matrix contains a ${{ }} expression.
+// With needs present, this marks a matrix whose expansion is deferred until they complete.
+func RawMatrixHasExpression(job *Job) bool {
+	return rawMatrixHasExpression(&job.Strategy.RawMatrix)
+}
+
+// ExpandMatrixWithNeeds expands job's matrix once its needs complete, returning one Job per
+// combination. Like EvaluateConcurrency it evaluates against the needs context via NewInterpeter,
+// with no workflow re-parse or stub jobs. job must carry its raw matrix and needs (RawNeeds).
+func ExpandMatrixWithNeeds(jobID string, job *Job, gitCtx *model.GithubContext, results map[string]*JobResult, vars map[string]string, inputs map[string]any) ([]*Job, error) {
+	var rawNeeds yaml.Node
+	if err := rawNeeds.Encode(job.Needs()); err != nil {
+		return nil, fmt.Errorf("encode needs: %w", err)
+	}
+	actJob := &model.Job{
+		RawNeeds: rawNeeds,
+		Strategy: &model.Strategy{
+			FailFastString:    job.Strategy.FailFastString,
+			MaxParallelString: job.Strategy.MaxParallelString,
+			RawMatrix:         *deepCopyYamlNode(&job.Strategy.RawMatrix),
+		},
+	}
+
+	// Resolve fromJson(needs.*.outputs.*) and friends into concrete matrix values.
+	if err := NewExpressionEvaluator(NewInterpeter(jobID, actJob, nil, gitCtx, results, vars, inputs)).
+		EvaluateYamlNode(&actJob.Strategy.RawMatrix); err != nil {
+		return nil, fmt.Errorf("evaluate matrix: %w", err)
+	}
+	matrixes, err := getMatrixes(actJob)
+	if err != nil {
+		return nil, fmt.Errorf("getMatrixes: %w", err)
+	}
+
+	expanded := make([]*Job, 0, len(matrixes))
+	for _, matrix := range matrixes {
+		expanded = append(expanded, expandJobCombo(jobID, job, matrix, actJob, gitCtx, results, vars, inputs))
+	}
+	return expanded, nil
 }
 
 func WithJobResults(results map[string]string) ParseOption {
