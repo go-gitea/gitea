@@ -9,6 +9,7 @@ import (
 	"gitea.dev/models/db"
 	group_model "gitea.dev/models/group"
 	unit_model "gitea.dev/models/unit"
+	user_model "gitea.dev/models/user"
 	"gitea.dev/modules/log"
 	"gitea.dev/modules/web"
 	shared_user "gitea.dev/routers/web/shared/user"
@@ -20,7 +21,13 @@ import (
 const tplGroupNew = "group/create"
 
 func NewGroup(ctx *context.Context) {
-	ctx.Data["Title"] = ctx.Org.Organization.FullName
+	var owner *user_model.User
+	if ctx.Org.Organization != nil {
+		ctx.Data["Title"] = ctx.Org.Organization.FullName
+		owner = ctx.Org.Organization.AsUser()
+	} else {
+		owner = ctx.Doer
+	}
 	ctx.Data["PageIsNewGroup"] = true
 	if ctx.RepoGroup.Group != nil {
 		ctx.Data["Group"] = &group_model.Group{ParentGroupID: ctx.RepoGroup.Group.ID}
@@ -35,7 +42,7 @@ func NewGroup(ctx *context.Context) {
 
 	opts := group_model.FindGroupsOptions{
 		ActorID: ctx.Doer.ID,
-		OwnerID: ctx.Org.Organization.ID,
+		OwnerID: owner.ID,
 	}
 	cond := group_model.AccessibleGroupCondition(ctx.Doer)
 	cond = cond.And(opts.ToConds())
@@ -62,15 +69,20 @@ func NewGroup(ctx *context.Context) {
 
 func NewGroupPost(ctx *context.Context) {
 	form := web.GetForm(ctx).(*forms.CreateGroupForm)
-	log.GetLogger(log.DEFAULT).Info("what? %+v", form)
+	var owner *user_model.User
+	if ctx.Org.Organization != nil {
+		ctx.Data["Title"] = ctx.Org.Organization.FullName
+		owner = ctx.Org.Organization.AsUser()
+	} else {
+		owner = ctx.Doer
+	}
 	g := &group_model.Group{
-		OwnerID:       ctx.Org.Organization.ID,
+		OwnerID:       owner.ID,
 		Name:          form.GroupName,
 		Description:   form.Description,
-		OwnerName:     ctx.Org.Organization.Name,
+		OwnerName:     owner.Name,
 		ParentGroupID: form.ParentGroupID,
 	}
-	ctx.Data["Title"] = ctx.Org.Organization.FullName
 	ctx.Data["PageIsGroupNew"] = true
 	ctx.Data["Units"] = unit_model.Units
 	ctx.Data["Group"] = g
@@ -85,6 +97,6 @@ func NewGroupPost(ctx *context.Context) {
 		ctx.ServerError("NewGroup", err)
 		return
 	}
-	log.Trace("Group created: %s/%s", ctx.Org.Organization.Name, g.Name)
+	log.Trace("Group created: %s/%s", owner.Name, g.Name)
 	ctx.Redirect(g.GroupLink())
 }
