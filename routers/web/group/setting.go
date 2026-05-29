@@ -106,12 +106,18 @@ func SettingsAvatar(ctx *context.Context) {
 		ctx.Flash.Success(ctx.Tr("group.settings.update_avatar_success"))
 	}
 
-	ctx.Redirect(ctx.Org.OrgLink + "/settings")
+	ctx.Redirect(ctx.RepoGroup.OrgGroupLink + "/settings")
 }
 
 // SettingsDeleteAvatar response for delete avatar on settings page
 func SettingsDeleteAvatar(ctx *context.Context) {
-	if err := user_service.DeleteAvatar(ctx, ctx.Org.Organization.AsUser()); err != nil {
+	u := ctx.ContextUser
+
+	if ctx.Org.Organization != nil {
+		u = ctx.Org.Organization.AsUser()
+	}
+
+	if err := user_service.DeleteAvatar(ctx, u); err != nil {
 		ctx.Flash.Error(err.Error())
 	}
 
