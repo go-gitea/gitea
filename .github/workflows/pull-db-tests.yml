@@ -119,9 +119,9 @@ jobs:
         env:
           discovery.type: single-node
           xpack.security.enabled: false
-          xpack.ml.enabled: false # unused by Gitea; trims memory and startup work
-          ingest.geoip.downloader.enabled: false # skip the startup GeoIP download (network + CPU)
-          ES_JAVA_OPTS: "-Xms1g -Xmx1g" # headroom over the prior 512m, which GC-thrashed under CI load
+          xpack.ml.enabled: false
+          ingest.geoip.downloader.enabled: false
+          ES_JAVA_OPTS: "-Xms1g -Xmx1g"
         ports:
           - "9200:9200"
       meilisearch:
@@ -195,9 +195,9 @@ jobs:
         env:
           discovery.type: single-node
           xpack.security.enabled: false
-          xpack.ml.enabled: false # unused by Gitea; trims memory and startup work
-          ingest.geoip.downloader.enabled: false # skip the startup GeoIP download (network + CPU)
-          ES_JAVA_OPTS: "-Xms1g -Xmx1g" # headroom over the prior 512m, which GC-thrashed under CI load
+          xpack.ml.enabled: false
+          ingest.geoip.downloader.enabled: false
+          ES_JAVA_OPTS: "-Xms1g -Xmx1g"
         ports:
           - "9200:9200"
       smtpimap:
