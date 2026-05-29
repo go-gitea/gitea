@@ -143,21 +143,21 @@ func TestWatchOptions(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 
 	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 5})
-	user5 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 1})
+	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 1})
 
-	assert.NoError(t, repo_model.WatchRepo(t.Context(), user5, repo, true))
-	watch, err := repo_model.GetWatch(t.Context(), user5.ID, repo.ID)
+	assert.NoError(t, repo_model.WatchRepo(t.Context(), user, repo, true))
+	watch, err := repo_model.GetWatch(t.Context(), user.ID, repo.ID)
 	assert.NoError(t, err)
 	assert.True(t, watch.PullRequests)
 	assert.True(t, watch.Issues)
 	assert.True(t, watch.Releases)
 
-	assert.NoError(t, repo_model.WatchRepoOptions(t.Context(), user5, repo, repo_model.WatchOptions{
+	assert.NoError(t, repo_model.WatchRepoOptions(t.Context(), user, repo, repo_model.WatchOptions{
 		PullRequests: true,
 		Issues:       false,
 		Releases:     true,
 	}))
-	watch, err = repo_model.GetWatch(t.Context(), user5.ID, repo.ID)
+	watch, err = repo_model.GetWatch(t.Context(), user.ID, repo.ID)
 	assert.NoError(t, err)
 	assert.True(t, watch.PullRequests)
 	assert.False(t, watch.Issues)
