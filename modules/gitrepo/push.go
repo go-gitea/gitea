@@ -6,7 +6,7 @@ package gitrepo
 import (
 	"context"
 
-	"code.gitea.io/gitea/modules/git"
+	"gitea.dev/modules/git"
 )
 
 // PushToExternal pushes a managed repository to an external remote.

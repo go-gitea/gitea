@@ -7,13 +7,13 @@ import (
 	"path"
 	"time"
 
-	repo_model "code.gitea.io/gitea/models/repo"
-	"code.gitea.io/gitea/modules/git"
-	"code.gitea.io/gitea/modules/httpcache"
-	"code.gitea.io/gitea/modules/httplib"
-	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/modules/structs"
-	"code.gitea.io/gitea/services/context"
+	repo_model "gitea.dev/models/repo"
+	"gitea.dev/modules/git"
+	"gitea.dev/modules/httpcache"
+	"gitea.dev/modules/httplib"
+	"gitea.dev/modules/setting"
+	"gitea.dev/modules/structs"
+	"gitea.dev/services/context"
 )
 
 // ServeBlob download a git.Blob

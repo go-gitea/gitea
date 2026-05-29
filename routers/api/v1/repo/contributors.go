@@ -6,12 +6,12 @@ package repo
 import (
 	"net/http"
 
-	contribution_model "code.gitea.io/gitea/models/repo/contribution"
-	user_model "code.gitea.io/gitea/models/user"
-	"code.gitea.io/gitea/modules/container"
-	api "code.gitea.io/gitea/modules/structs"
-	"code.gitea.io/gitea/routers/api/v1/utils"
-	"code.gitea.io/gitea/services/context"
+	contribution_model "gitea.dev/models/repo/contribution"
+	user_model "gitea.dev/models/user"
+	"gitea.dev/modules/container"
+	api "gitea.dev/modules/structs"
+	"gitea.dev/routers/api/v1/utils"
+	"gitea.dev/services/context"
 )
 
 // ListContributors lists repository contributors.

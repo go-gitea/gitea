@@ -6,8 +6,8 @@ package v1_13
 import (
 	"fmt"
 
-	"code.gitea.io/gitea/models/db"
-	"code.gitea.io/gitea/modules/setting"
+	"gitea.dev/models/db"
+	"gitea.dev/modules/setting"
 )
 
 func IncreaseLanguageField(x db.EngineMigration) error {

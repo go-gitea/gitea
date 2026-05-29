@@ -8,8 +8,8 @@ import (
 	"errors"
 	"time"
 
-	repo_model "code.gitea.io/gitea/models/repo"
-	contribution_model "code.gitea.io/gitea/models/repo/contribution"
+	repo_model "gitea.dev/models/repo"
+	contribution_model "gitea.dev/models/repo/contribution"
 )
 
 func WeekSlice2Map(rows []*contribution_model.WeekData) map[int64]*contribution_model.WeekData {

@@ -7,11 +7,11 @@ import (
 	"testing"
 	"time"
 
-	"code.gitea.io/gitea/models/db"
-	repo_model "code.gitea.io/gitea/models/repo"
-	contribution_model "code.gitea.io/gitea/models/repo/contribution"
-	"code.gitea.io/gitea/models/unittest"
-	"code.gitea.io/gitea/modules/timeutil"
+	"gitea.dev/models/db"
+	repo_model "gitea.dev/models/repo"
+	contribution_model "gitea.dev/models/repo/contribution"
+	"gitea.dev/models/unittest"
+	"gitea.dev/modules/timeutil"
 
 	"github.com/stretchr/testify/assert"
 )

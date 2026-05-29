@@ -10,15 +10,15 @@ import (
 	"strings"
 	"time"
 
-	git_model "code.gitea.io/gitea/models/git"
-	repo_model "code.gitea.io/gitea/models/repo"
-	contribution_model "code.gitea.io/gitea/models/repo/contribution"
-	user_model "code.gitea.io/gitea/models/user"
-	"code.gitea.io/gitea/modules/gitrepo"
-	"code.gitea.io/gitea/modules/graceful"
-	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/queue"
-	"code.gitea.io/gitea/modules/timeutil"
+	git_model "gitea.dev/models/git"
+	repo_model "gitea.dev/models/repo"
+	contribution_model "gitea.dev/models/repo/contribution"
+	user_model "gitea.dev/models/user"
+	"gitea.dev/modules/gitrepo"
+	"gitea.dev/modules/graceful"
+	"gitea.dev/modules/log"
+	"gitea.dev/modules/queue"
+	"gitea.dev/modules/timeutil"
 )
 
 type ContributorStatsUpdateOptions struct {

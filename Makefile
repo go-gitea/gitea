@@ -113,8 +113,8 @@ LDFLAGS := $(LDFLAGS) -X "main.Version=$(GITEA_VERSION)" -X "main.Tags=$(TAGS)"
 
 LINUX_ARCHS ?= linux/amd64,linux/386,linux/arm-5,linux/arm-6,linux/arm64,linux/riscv64
 
-GO_TEST_PACKAGES ?= $(filter-out $(shell $(GO) list code.gitea.io/gitea/models/migrations/...) code.gitea.io/gitea/tests/integration/migration-test code.gitea.io/gitea/tests code.gitea.io/gitea/tests/integration,$(shell $(GO) list ./... | grep -v /vendor/))
-MIGRATE_TEST_PACKAGES ?= $(shell $(GO) list code.gitea.io/gitea/models/migrations/...)
+GO_TEST_PACKAGES ?= $(filter-out $(shell $(GO) list gitea.dev/models/migrations/...) gitea.dev/tests/integration/migration-test gitea.dev/tests gitea.dev/tests/integration,$(shell $(GO) list ./... | grep -v /vendor/))
+MIGRATE_TEST_PACKAGES ?= $(shell $(GO) list gitea.dev/models/migrations/...)
 
 FRONTEND_SOURCES := $(shell find web_src/js web_src/css -type f)
 FRONTEND_CONFIGS := vite.config.ts tailwind.config.ts
@@ -150,7 +150,7 @@ ESLINT_CONCURRENCY ?= 2
 
 SWAGGER_SPEC := templates/swagger/v1_json.tmpl
 SWAGGER_SPEC_INPUT := templates/swagger/v1_input.json
-SWAGGER_EXCLUDE := code.gitea.io/sdk
+SWAGGER_EXCLUDE := gitea.dev/sdk
 OPENAPI3_SPEC := templates/swagger/v1_openapi3_json.tmpl
 
 TEST_MYSQL_HOST ?= mysql:3306
@@ -447,23 +447,23 @@ test-integration:
 	@# Use a compiled binary: testlogger forwards gitea logs to t.Log, so `go test -v`
 	@# would flood output per passing test. testcache can't help these tests anyway —
 	@# they mutate the work directory, so cache inputs change between runs.
-	$(GO) test $(GOTEST_FLAGS) -tags '$(TAGS)' -c code.gitea.io/gitea/tests/integration -o ./test-integration-$(GITEA_TEST_DATABASE).test
+	$(GO) test $(GOTEST_FLAGS) -tags '$(TAGS)' -c gitea.dev/tests/integration -o ./test-integration-$(GITEA_TEST_DATABASE).test
 	./tools/test-integration.sh ./test-integration-$(GITEA_TEST_DATABASE).test
 
 .PHONY: test-integration-compile
 test-integration-compile:
-	$(GO) test $(GOTEST_FLAGS) -tags '$(TAGS)' -c -o /dev/null code.gitea.io/gitea/tests/integration
+	$(GO) test $(GOTEST_FLAGS) -tags '$(TAGS)' -c -o /dev/null gitea.dev/tests/integration
 
 .PHONY: test-integration\#%
 test-integration\#%:
-	$(GO) test $(GOTEST_FLAGS) -tags '$(TAGS)' -run $(subst .,/,$*) code.gitea.io/gitea/tests/integration
+	$(GO) test $(GOTEST_FLAGS) -tags '$(TAGS)' -run $(subst .,/,$*) gitea.dev/tests/integration
 
 .PHONY: test-migration
 test-migration: migrations.integration.test migrations.individual.test
 
 .PHONY: migrations.integration.test
 migrations.integration.test:
-	$(GO) test $(GOTEST_FLAGS) -tags '$(TAGS)' code.gitea.io/gitea/tests/integration/migration-test
+	$(GO) test $(GOTEST_FLAGS) -tags '$(TAGS)' gitea.dev/tests/integration/migration-test
 
 .PHONY: migrations.individual.test
 migrations.individual.test:
@@ -472,7 +472,7 @@ migrations.individual.test:
 
 .PHONY: migrations.individual.test\#%
 migrations.individual.test\#%:
-	$(GO) test $(GOTEST_FLAGS) -tags '$(TAGS)' code.gitea.io/gitea/models/migrations/$*
+	$(GO) test $(GOTEST_FLAGS) -tags '$(TAGS)' gitea.dev/models/migrations/$*
 
 .PHONY: playwright
 playwright: deps-frontend

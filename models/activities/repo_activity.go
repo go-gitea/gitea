@@ -8,13 +8,13 @@ import (
 	"fmt"
 	"time"
 
-	"code.gitea.io/gitea/models/avatars"
-	"code.gitea.io/gitea/models/db"
-	issues_model "code.gitea.io/gitea/models/issues"
-	repo_model "code.gitea.io/gitea/models/repo"
-	contribution_model "code.gitea.io/gitea/models/repo/contribution"
-	user_model "code.gitea.io/gitea/models/user"
-	"code.gitea.io/gitea/modules/container"
+	"gitea.dev/models/avatars"
+	"gitea.dev/models/db"
+	issues_model "gitea.dev/models/issues"
+	repo_model "gitea.dev/models/repo"
+	contribution_model "gitea.dev/models/repo/contribution"
+	user_model "gitea.dev/models/user"
+	"gitea.dev/modules/container"
 
 	"xorm.io/builder"
 )

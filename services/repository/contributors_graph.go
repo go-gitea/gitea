@@ -12,13 +12,13 @@ import (
 	"strings"
 	"time"
 
-	"code.gitea.io/gitea/models/avatars"
-	repo_model "code.gitea.io/gitea/models/repo"
-	contribution_model "code.gitea.io/gitea/models/repo/contribution"
-	user_model "code.gitea.io/gitea/models/user"
-	"code.gitea.io/gitea/modules/git/gitcmd"
-	"code.gitea.io/gitea/modules/gitrepo"
-	api "code.gitea.io/gitea/modules/structs"
+	"gitea.dev/models/avatars"
+	repo_model "gitea.dev/models/repo"
+	contribution_model "gitea.dev/models/repo/contribution"
+	user_model "gitea.dev/models/user"
+	"gitea.dev/modules/git/gitcmd"
+	"gitea.dev/modules/gitrepo"
+	api "gitea.dev/modules/structs"
 )
 
 var ErrAwaitGeneration = errors.New("contributor stats generation in progress")

@@ -6,13 +6,13 @@ package repository
 import (
 	"testing"
 
-	"code.gitea.io/gitea/models/db"
-	git_model "code.gitea.io/gitea/models/git"
-	repo_model "code.gitea.io/gitea/models/repo"
-	contribution_model "code.gitea.io/gitea/models/repo/contribution"
-	"code.gitea.io/gitea/models/unittest"
-	"code.gitea.io/gitea/modules/gitrepo"
-	"code.gitea.io/gitea/modules/timeutil"
+	"gitea.dev/models/db"
+	git_model "gitea.dev/models/git"
+	repo_model "gitea.dev/models/repo"
+	contribution_model "gitea.dev/models/repo/contribution"
+	"gitea.dev/models/unittest"
+	"gitea.dev/modules/gitrepo"
+	"gitea.dev/modules/timeutil"
 
 	"github.com/stretchr/testify/assert"
 )

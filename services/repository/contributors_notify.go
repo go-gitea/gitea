@@ -7,11 +7,11 @@ import (
 	"context"
 	"errors"
 
-	repo_model "code.gitea.io/gitea/models/repo"
-	user_model "code.gitea.io/gitea/models/user"
-	"code.gitea.io/gitea/modules/log"
-	repo_module "code.gitea.io/gitea/modules/repository"
-	notify_service "code.gitea.io/gitea/services/notify"
+	repo_model "gitea.dev/models/repo"
+	user_model "gitea.dev/models/user"
+	"gitea.dev/modules/log"
+	repo_module "gitea.dev/modules/repository"
+	notify_service "gitea.dev/services/notify"
 )
 
 func init() {

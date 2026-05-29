@@ -11,9 +11,9 @@ import (
 	"os/exec"
 	"strings"
 
-	"code.gitea.io/gitea/modules/charset"
-	"code.gitea.io/gitea/modules/git/gitcmd"
-	"code.gitea.io/gitea/modules/util"
+	"gitea.dev/modules/charset"
+	"gitea.dev/modules/git/gitcmd"
+	"gitea.dev/modules/util"
 )
 
 type CommitMessage struct {

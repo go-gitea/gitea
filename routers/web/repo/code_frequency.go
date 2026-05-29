@@ -7,10 +7,10 @@ import (
 	"errors"
 	"net/http"
 
-	contribution_model "code.gitea.io/gitea/models/repo/contribution"
-	"code.gitea.io/gitea/modules/templates"
-	"code.gitea.io/gitea/services/context"
-	repo_service "code.gitea.io/gitea/services/repository"
+	contribution_model "gitea.dev/models/repo/contribution"
+	"gitea.dev/modules/templates"
+	"gitea.dev/services/context"
+	repo_service "gitea.dev/services/repository"
 )
 
 const (

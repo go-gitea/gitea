@@ -10,10 +10,10 @@ import (
 	"strings"
 	"time"
 
-	"code.gitea.io/gitea/models/db"
-	repo_model "code.gitea.io/gitea/models/repo"
-	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/modules/timeutil"
+	"gitea.dev/models/db"
+	repo_model "gitea.dev/models/repo"
+	"gitea.dev/modules/setting"
+	"gitea.dev/modules/timeutil"
 )
 
 // ContributorDayStart represents the start of a day in UTC as Unix milliseconds.
