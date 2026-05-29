@@ -278,11 +278,12 @@ func checkJobsOfCurrentRunAttempt(ctx context.Context, run *actions_model.Action
 }
 
 type jobStatusResolver struct {
-	statuses      map[int64]actions_model.Status
-	needs         map[int64][]int64
-	jobMap        map[int64]*actions_model.ActionRunJob
-	vars          map[string]string
-	cancelledJobs []*actions_model.ActionRunJob
+	statuses        map[int64]actions_model.Status
+	needs           map[int64][]int64
+	unresolvedNeeds map[int64][]string
+	jobMap          map[int64]*actions_model.ActionRunJob
+	vars            map[string]string
+	cancelledJobs   []*actions_model.ActionRunJob
 }
 
 func newJobStatusResolver(jobs actions_model.ActionJobList, vars map[string]string) *jobStatusResolver {
@@ -295,19 +296,30 @@ func newJobStatusResolver(jobs actions_model.ActionJobList, vars map[string]stri
 
 	statuses := make(map[int64]actions_model.Status, len(jobs))
 	needs := make(map[int64][]int64, len(jobs))
+	unresolvedNeeds := make(map[int64][]string)
 	for _, job := range jobs {
 		statuses[job.ID] = job.Status
 		for _, need := range job.Needs {
-			for _, v := range idToJobs[need] {
+			siblings := idToJobs[need]
+			if len(siblings) == 0 {
+				// A "needs" entry references a job that isn't in the current
+				// snapshot. Treating this as "no dependency" would silently
+				// promote the dependent out of Blocked. Track it so
+				// resolveCheckNeeds can keep the dependent blocked instead.
+				unresolvedNeeds[job.ID] = append(unresolvedNeeds[job.ID], need)
+				continue
+			}
+			for _, v := range siblings {
 				needs[job.ID] = append(needs[job.ID], v.ID)
 			}
 		}
 	}
 	return &jobStatusResolver{
-		statuses: statuses,
-		needs:    needs,
-		jobMap:   jobMap,
-		vars:     vars,
+		statuses:        statuses,
+		needs:           needs,
+		unresolvedNeeds: unresolvedNeeds,
+		jobMap:          jobMap,
+		vars:            vars,
 	}
 }
 
@@ -328,6 +340,13 @@ func (r *jobStatusResolver) Resolve(ctx context.Context) map[int64]actions_model
 
 func (r *jobStatusResolver) resolveCheckNeeds(id int64) (allDone, allSucceed bool) {
 	allDone, allSucceed = true, true
+	if missing, ok := r.unresolvedNeeds[id]; ok {
+		// A referenced need isn't present in the snapshot. Fail closed: keep
+		// the dependent Blocked. Otherwise an empty r.needs[id] would slip
+		// through as allDone=true and unblock the job.
+		log.Error("job %d cannot be resolved: needs %v not found in run snapshot; keeping job blocked", id, missing)
+		return false, false
+	}
 	for _, need := range r.needs[id] {
 		needStatus := r.statuses[need]
 		if !needStatus.IsDone() {

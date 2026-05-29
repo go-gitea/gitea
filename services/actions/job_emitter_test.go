@@ -111,6 +111,136 @@ jobs:
 			want: map[int64]actions_model.Status{2: actions_model.StatusWaiting},
 		},
 		{
+			// Regression: if a job listed in Needs is missing from the
+			// snapshot, the resolver must keep the dependent Blocked rather
+			// than silently treat the missing need as satisfied.
+			name: "needed job missing from snapshot keeps dependent blocked",
+			jobs: actions_model.ActionJobList{
+				{ID: 1, JobID: "A", Status: actions_model.StatusSuccess, Needs: []string{}},
+				{ID: 2, JobID: "B", Status: actions_model.StatusSuccess, Needs: []string{}},
+				// "C" intentionally absent from the list
+				{ID: 4, JobID: "Deploy", Status: actions_model.StatusBlocked, Needs: []string{"A", "B", "C"}},
+			},
+			want: map[int64]actions_model.Status{},
+		},
+		{
+			// Same scenario, but C is present and still running. Deploy must
+			// remain Blocked. This is the expected, correct behavior.
+			name: "needed job still running keeps dependent blocked",
+			jobs: actions_model.ActionJobList{
+				{ID: 1, JobID: "A", Status: actions_model.StatusSuccess, Needs: []string{}},
+				{ID: 2, JobID: "B", Status: actions_model.StatusSuccess, Needs: []string{}},
+				{ID: 3, JobID: "C", Status: actions_model.StatusRunning, Needs: []string{}},
+				{ID: 4, JobID: "Deploy", Status: actions_model.StatusBlocked, Needs: []string{"A", "B", "C"}},
+			},
+			want: map[int64]actions_model.Status{},
+		},
+		{
+			// Matrix-expanded C: two rows share JobID="C". One finished, one
+			// still running. Deploy must remain Blocked.
+			name: "matrix need partially running keeps dependent blocked",
+			jobs: actions_model.ActionJobList{
+				{ID: 1, JobID: "A", Status: actions_model.StatusSuccess, Needs: []string{}},
+				{ID: 2, JobID: "B", Status: actions_model.StatusSuccess, Needs: []string{}},
+				{ID: 3, JobID: "C", Name: "C (x)", Status: actions_model.StatusSuccess, Needs: []string{}},
+				{ID: 4, JobID: "C", Name: "C (y)", Status: actions_model.StatusRunning, Needs: []string{}},
+				{ID: 5, JobID: "Deploy", Status: actions_model.StatusBlocked, Needs: []string{"A", "B", "C"}},
+			},
+			want: map[int64]actions_model.Status{},
+		},
+		{
+			// Matrix where one matrix child of C has been Cancelled (e.g. by
+			// concurrency cancel-in-progress from another run) while the other
+			// is still Running. Deploy must remain Blocked because the second
+			// matrix row hasn't finished.
+			name: "matrix need with one cancelled one running keeps dependent blocked",
+			jobs: actions_model.ActionJobList{
+				{ID: 1, JobID: "A", Status: actions_model.StatusSuccess, Needs: []string{}},
+				{ID: 2, JobID: "B", Status: actions_model.StatusSuccess, Needs: []string{}},
+				{ID: 3, JobID: "C", Name: "C (x)", Status: actions_model.StatusCancelled, Needs: []string{}},
+				{ID: 4, JobID: "C", Name: "C (y)", Status: actions_model.StatusRunning, Needs: []string{}},
+				{ID: 5, JobID: "Deploy", Status: actions_model.StatusBlocked, Needs: []string{"A", "B", "C"}},
+			},
+			want: map[int64]actions_model.Status{},
+		},
+		{
+			// All matrix children of C have terminated: one Cancelled, one
+			// Success. Without an `if:` on Deploy, it should be Skipped.
+			name: "matrix need all done but partially cancelled skips dependent",
+			jobs: actions_model.ActionJobList{
+				{ID: 1, JobID: "A", Status: actions_model.StatusSuccess, Needs: []string{}},
+				{ID: 2, JobID: "B", Status: actions_model.StatusSuccess, Needs: []string{}},
+				{ID: 3, JobID: "C", Name: "C (x)", Status: actions_model.StatusCancelled, Needs: []string{}},
+				{ID: 4, JobID: "C", Name: "C (y)", Status: actions_model.StatusSuccess, Needs: []string{}},
+				{ID: 5, JobID: "Deploy", Status: actions_model.StatusBlocked, Needs: []string{"A", "B", "C"}},
+			},
+			want: map[int64]actions_model.Status{
+				5: actions_model.StatusSkipped,
+			},
+		},
+		{
+			// Even with `if: always()`, a missing need must not promote the
+			// dependent. The `if:` branch in resolve() is only reached when
+			// allDone=true; the unresolved-needs guard forces allDone=false
+			// before that check, so Deploy stays Blocked.
+			name: "needed job missing from snapshot keeps dependent blocked even with if: always()",
+			jobs: actions_model.ActionJobList{
+				{ID: 1, JobID: "A", Status: actions_model.StatusSuccess, Needs: []string{}},
+				{ID: 2, JobID: "B", Status: actions_model.StatusSuccess, Needs: []string{}},
+				// "C" intentionally absent
+				{ID: 4, JobID: "Deploy", Status: actions_model.StatusBlocked, Needs: []string{"A", "B", "C"}, WorkflowPayload: []byte(
+					`
+name: test
+on: push
+jobs:
+  Deploy:
+    runs-on: ubuntu-latest
+    needs: [A, B, C]
+    if: ${{ always() }}
+    steps:
+      - run: echo "must not run while C is unresolved"
+`)},
+			},
+			want: map[int64]actions_model.Status{},
+		},
+		{
+			// Same scenario but the missing need is only one of several; the
+			// `if:` clause must not let Deploy slip through.
+			name: "partial missing need with if: always() keeps dependent blocked",
+			jobs: actions_model.ActionJobList{
+				{ID: 1, JobID: "A", Status: actions_model.StatusFailure, Needs: []string{}},
+				{ID: 2, JobID: "B", Status: actions_model.StatusSuccess, Needs: []string{}},
+				// "C" intentionally absent
+				{ID: 4, JobID: "Deploy", Status: actions_model.StatusBlocked, Needs: []string{"A", "B", "C"}, WorkflowPayload: []byte(
+					`
+name: test
+on: push
+jobs:
+  Deploy:
+    runs-on: ubuntu-latest
+    needs: [A, B, C]
+    if: ${{ always() }}
+    steps:
+      - run: echo
+`)},
+			},
+			want: map[int64]actions_model.Status{},
+		},
+		{
+			// Matrix that expanded to zero rows (e.g. include/exclude removed
+			// every combination) means JobID="C" is entirely absent. The
+			// resolver must keep Deploy blocked rather than treat the missing
+			// need as satisfied.
+			name: "matrix expanded to zero rows keeps dependent blocked",
+			jobs: actions_model.ActionJobList{
+				{ID: 1, JobID: "A", Status: actions_model.StatusSuccess, Needs: []string{}},
+				{ID: 2, JobID: "B", Status: actions_model.StatusSuccess, Needs: []string{}},
+				// "C" rows entirely absent — matrix produced no entries.
+				{ID: 5, JobID: "Deploy", Status: actions_model.StatusBlocked, Needs: []string{"A", "B", "C"}},
+			},
+			want: map[int64]actions_model.Status{},
+		},
+		{
 			name: "`if` is empty and not all jobs in `needs` completed successfully",
 			jobs: actions_model.ActionJobList{
 				{ID: 1, JobID: "job1", Status: actions_model.StatusFailure, Needs: []string{}},
