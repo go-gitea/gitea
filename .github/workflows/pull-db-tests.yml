@@ -15,7 +15,7 @@ jobs:
     uses: ./.github/workflows/files-changed.yml
 
   test-pgsql-shard-1:
-    if: needs.files-changed.outputs.backend == 'true' || needs.files-changed.outputs.actions == 'true'
+    if: needs.files-changed.outputs.backend == 'true'
     needs: files-changed
     runs-on: ubuntu-latest
     timeout-minutes: 50
@@ -51,7 +51,7 @@ jobs:
           run-migration: "true"
 
   test-pgsql-shard-2:
-    if: needs.files-changed.outputs.backend == 'true' || needs.files-changed.outputs.actions == 'true'
+    if: needs.files-changed.outputs.backend == 'true'
     needs: files-changed
     runs-on: ubuntu-latest
     timeout-minutes: 50
@@ -110,7 +110,7 @@ jobs:
           GOEXPERIMENT:
 
   test-unit:
-    if: needs.files-changed.outputs.backend == 'true' || needs.files-changed.outputs.actions == 'true'
+    if: needs.files-changed.outputs.backend == 'true'
     needs: files-changed
     runs-on: ubuntu-latest
     services:
@@ -119,6 +119,7 @@ jobs:
         env:
           discovery.type: single-node
           xpack.security.enabled: false
+          ES_JAVA_OPTS: "-Xms512m -Xmx512m" # reduce from ES default of 50%
         ports:
           - "9200:9200"
       meilisearch:
@@ -128,7 +129,7 @@ jobs:
         ports:
           - "7700:7700"
       redis:
-        image: redis:latest@sha256:94ea4f5ccdaa6b154df99a792986ecb3ffbb3fe7722a197220477f1f3e65f9fe
+        image: redis:latest@sha256:48e78eb9d1e1adcfb10184b2cc3c7fc5ed21e5a3be08875f239257d194bab8c9
         options: >- # wait until redis has started
           --health-cmd "redis-cli ping"
           --health-interval 5s
@@ -173,7 +174,7 @@ jobs:
       - run: make test-check
 
   test-mysql:
-    if: needs.files-changed.outputs.backend == 'true' || needs.files-changed.outputs.actions == 'true'
+    if: needs.files-changed.outputs.backend == 'true'
     needs: files-changed
     runs-on: ubuntu-latest
     services:
@@ -192,6 +193,7 @@ jobs:
         env:
           discovery.type: single-node
           xpack.security.enabled: false
+          ES_JAVA_OPTS: "-Xms512m -Xmx512m" # reduce from ES default of 50%
         ports:
           - "9200:9200"
       smtpimap:
@@ -218,7 +220,7 @@ jobs:
           TEST_INDEXER_CODE_ES_URL: "http://elastic:changeme@elasticsearch:9200"
 
   test-mssql:
-    if: needs.files-changed.outputs.backend == 'true' || needs.files-changed.outputs.actions == 'true'
+    if: needs.files-changed.outputs.backend == 'true'
     needs: files-changed
     runs-on: ubuntu-latest
     services:

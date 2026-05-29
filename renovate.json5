@@ -18,6 +18,7 @@
       "managerFilePatterns": ["/(^|/)Makefile$/"],
       "matchStrings": [
         "[A-Z_]+_PACKAGE\\s*\\?=\\s*(?<depName>[^@\\s]+?)(?:/cmd/[^@/\\s]+)?@(?<currentValue>\\S+)\\s+# renovate: datasource=(?<datasource>\\S+)",
+        "[A-Z_]+_IMAGE\\s*\\?=\\s*(?<depName>[^:\\s]+):(?<currentValue>[^@\\s]+)@(?<currentDigest>sha256:[a-f0-9]+)\\s+# renovate: datasource=(?<datasource>\\S+)",
       ],
     },
   ],
@@ -41,10 +42,6 @@
     {
       "matchPackageNames": ["github.com/urfave/cli/v3"],
       "allowedVersions": "<3.6.2", // v3.6.2 breaks -c flag parsing in help commands
-    },
-    {
-      "matchPackageNames": ["github.com/dlclark/regexp2"],
-      "allowedVersions": "^1", // v2 fails to build on linux/386: https://github.com/dlclark/regexp2/issues/102
     },
     {
       "matchPackageNames": ["github.com/Azure/azure-sdk-for-go/sdk/azcore"],
