@@ -100,8 +100,7 @@ func TestGetScopedSecretsForJob(t *testing.T) {
 
 	t.Run("CallerMapping_UnknownSourceDropsAlias", func(t *testing.T) {
 		const runID = 9006
-		// MAPPED_ALIAS points at a secret name that doesn't exist in baseSecrets.
-		// The alias should NOT appear in the result.
+		// alias points at a non-existent secret name, so it must be dropped.
 		caller := insertCaller(t, runID, 0, `{"MAPPED_ALIAS":"DOES_NOT_EXIST"}`)
 		leaf := &actions_model.ActionRunJob{RunID: runID, ParentJobID: caller.ID}
 
@@ -124,9 +123,7 @@ func TestGetScopedSecretsForJob(t *testing.T) {
 
 	t.Run("Nested_InheritThenMapping_InnerNarrows", func(t *testing.T) {
 		const runID = 9008
-		// outer: inherit (sees full base)
-		// inner: mapping {ALIAS_OUT: PROD_API_KEY}
-		// leaf scope = inner mapping result.
+		// inner mapping narrows the full scope it inherited from outer.
 		outer := insertCaller(t, runID, 0, "inherit")
 		inner := insertCaller(t, runID, outer.ID, `{"ALIAS_OUT":"PROD_API_KEY"}`)
 		leaf := &actions_model.ActionRunJob{RunID: runID, ParentJobID: inner.ID}
@@ -143,9 +140,7 @@ func TestGetScopedSecretsForJob(t *testing.T) {
 
 	t.Run("Nested_MappingThenInherit_OuterNarrows", func(t *testing.T) {
 		const runID = 9009
-		// outer: mapping {OUTER_ALIAS: PROD_API_KEY}
-		// inner: inherit
-		// leaf can therefore only see auto-tokens + OUTER_ALIAS.
+		// inner inherits outer's already-narrowed scope, so leaf sees only auto-tokens + OUTER_ALIAS.
 		outer := insertCaller(t, runID, 0, `{"OUTER_ALIAS":"PROD_API_KEY"}`)
 		inner := insertCaller(t, runID, outer.ID, "inherit")
 		leaf := &actions_model.ActionRunJob{RunID: runID, ParentJobID: inner.ID}
@@ -162,9 +157,7 @@ func TestGetScopedSecretsForJob(t *testing.T) {
 
 	t.Run("Nested_MappingThenMapping_InnerSourceMustExistInOuterScope", func(t *testing.T) {
 		const runID = 9010
-		// outer mapping forwards only PROD_API_KEY as ALIAS_A.
-		// inner mapping tries to forward DEV_API_KEY as ALIAS_B - but DEV_API_KEY is not in outer's narrowed scope, so it must be dropped.
-		// inner can still forward ALIAS_A as ALIAS_C (renaming).
+		// inner can rename ALIAS_A (in outer's scope) to ALIAS_C, but cannot forward DEV_API_KEY, which outer dropped.
 		outer := insertCaller(t, runID, 0, `{"ALIAS_A":"PROD_API_KEY"}`)
 		inner := insertCaller(t, runID, outer.ID, `{"ALIAS_B":"DEV_API_KEY","ALIAS_C":"ALIAS_A"}`)
 		leaf := &actions_model.ActionRunJob{RunID: runID, ParentJobID: inner.ID}

@@ -52,8 +52,7 @@ func TestCheckCallerChain_Cycle(t *testing.T) {
 }
 
 func TestCheckCallerChain_DepthLimit(t *testing.T) {
-	// A chain of MaxReusableCallLevels + 1 callers (top + MaxReusableCallLevels nested) is the longest accepted;
-	// one more caller pushes the leaf's ancestor count to MaxReusableCallLevels + 1 and is rejected.
+	// top + MaxReusableCallLevels nested callers is the longest accepted; one more exceeds the limit.
 	makeDistinctUses := func(n int) []string {
 		out := make([]string, n)
 		for i := range out {

@@ -103,8 +103,7 @@ func TestRerunValidation(t *testing.T) {
 }
 
 func TestRerunPlan(t *testing.T) {
-	// "verify" deliberately appears in two scopes (inner caller under deploy, and top-level)
-	// so any scope-blind matching in expandRerunJobIDs / hasRerunDependency would surface as a test failure here
+	// "verify" appears in two scopes (inner caller under deploy, and top-level) so scope-blind matching would fail here.
 
 	//	build              id=101, attemptJobID=1
 	//	test               id=102, attemptJobID=2,  needs=[build]
@@ -194,8 +193,7 @@ func TestRerunPlan(t *testing.T) {
 		})
 
 		t.Run("selecting one same-name job leaves the other-scope same-name job alone", func(t *testing.T) {
-			// The fixture has two "verify" jobs in different scopes.
-			// Selecting only the top-level one must NOT pull in the inner one or its descendants.
+			// Selecting the top-level "verify" must not pull in the same-named inner one or its descendants.
 			plan := &rerunPlan{templateJobs: jobs}
 			require.NoError(t, plan.expandRerunJobIDs([]*actions_model.ActionRunJob{verifyTopJob}))
 

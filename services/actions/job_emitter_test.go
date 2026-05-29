@@ -150,9 +150,8 @@ jobs:
 				j.RunAttemptID = attemptID
 				j.Run = stubRun
 
-				// Blocked jobs are the ones the resolver actually evaluates:
-				// it calls evaluateJobIf, which requires a valid YAML payload.
-				// Cases that don't supply their own payload get a minimal one here.
+				// The resolver evaluates Blocked jobs via evaluateJobIf, which needs a valid YAML payload;
+				// supply a minimal one when the case didn't.
 				if j.Status == actions_model.StatusBlocked && len(j.WorkflowPayload) == 0 {
 					j.WorkflowPayload = fmt.Appendf(nil, `name: test
 on: push

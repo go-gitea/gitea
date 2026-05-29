@@ -17,10 +17,10 @@ func TestGetPriorAttemptChildrenByParent(t *testing.T) {
 	require.NoError(t, unittest.PrepareTestDatabase())
 	ctx := t.Context()
 
-	// setup: 3 attempts of one run.
-	//   attempt 1: caller expanded with 3 matrix instances of "work" + 1 non-matrix sibling "summary".
-	//   attempt 2: caller present but skipped (`if:` false at rerun) - no children rows.
-	//   attempt 3: empty placeholder, used as the "current" attempt by the walkback subtest.
+	// 3 attempts of one run:
+	//   1: caller expanded with 3 matrix instances of "work" + non-matrix sibling "summary".
+	//   2: caller skipped, no children rows.
+	//   3: placeholder "current" attempt for the walkback subtest.
 
 	run := &ActionRun{
 		Title:         "prior-children-test",
@@ -97,11 +97,10 @@ func TestGetPriorAttemptChildrenByParent(t *testing.T) {
 	attempt2 := insertAttempt(t, 2, StatusSkipped)
 	insertCaller(t, attempt2.ID, StatusSkipped, false) // no children intentionally
 
-	// Both subtests verify the same expected children (attempt 1's expansion);
-	// they only differ in which attempt id is the "current" one driving the lookup.
+	// both subtests expect attempt 1's expansion, differing only in the "current" attempt id
 	assertAttempt1Children := func(t *testing.T, out map[string]map[string]*ActionRunJob) {
 		t.Helper()
-		// Outer map keyed by JobID; "work" carries 3 matrix instances, "summary" carries 1.
+		// outer map keyed by JobID: "work" has 3 matrix instances, "summary" 1
 		assert.Len(t, out, 2)
 		assert.Len(t, out["work"], 3, "matrix instances must each get their own inner-map entry")
 		assert.Len(t, out["summary"], 1)

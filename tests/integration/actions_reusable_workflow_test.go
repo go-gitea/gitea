@@ -56,7 +56,7 @@ func TestActionsReusableWorkflow(t *testing.T) {
 			}).AddTokenAuth(user2Token)
 			MakeRequest(t, req, http.StatusCreated)
 
-			createRepoWorkflowFile(t, user2, repo, ".gitea/workflows/reusable1.yaml",
+			createRepoWorkflowFile(t, user2, user2Token, repo, ".gitea/workflows/reusable1.yaml",
 				`name: Reusable1
 on:
   workflow_call:
@@ -100,7 +100,7 @@ jobs:
       msg: ${{ inputs.str_input }}
 `)
 
-			createRepoWorkflowFile(t, user2, repo, ".gitea/workflows/reusable2.yaml",
+			createRepoWorkflowFile(t, user2, user2Token, repo, ".gitea/workflows/reusable2.yaml",
 				`name: Reusable2
 on:
   workflow_call:
@@ -115,7 +115,7 @@ jobs:
       - run: echo ${{ inputs.msg }}
 `)
 
-			createRepoWorkflowFile(t, user2, repo, ".gitea/workflows/caller.yaml",
+			createRepoWorkflowFile(t, user2, user2Token, repo, ".gitea/workflows/caller.yaml",
 				`name: Caller
 on:
   push:
@@ -362,7 +362,7 @@ jobs:
 			// libRepo: private, owned by user2.
 			libAPIRepo := createActionsTestRepo(t, user2Token, "reusable-lib-private", true)
 			libRepo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: libAPIRepo.ID})
-			createRepoWorkflowFile(t, user2, libRepo, ".gitea/workflows/reusable_lib.yaml",
+			createRepoWorkflowFile(t, user2, user2Token, libRepo, ".gitea/workflows/reusable_lib.yaml",
 				`name: ReusableLib
 on:
   workflow_call:
@@ -384,7 +384,7 @@ jobs:
 			runner := newMockRunner()
 			runner.registerAsRepoRunner(t, consumerRepo.OwnerName, consumerRepo.Name, "mock-cross-runner", []string{"ubuntu-latest"}, false)
 
-			createRepoWorkflowFile(t, user4, consumerRepo, ".gitea/workflows/cross-caller.yaml",
+			createRepoWorkflowFile(t, user4, user4Token, consumerRepo, ".gitea/workflows/cross-caller.yaml",
 				`name: CrossCaller
 on: push
 jobs:
@@ -405,7 +405,7 @@ jobs:
 			user2Session.MakeRequest(t, addCollabReq, http.StatusOK)
 
 			// Phase 3: trigger the workflow again
-			createRepoWorkflowFile(t, user4, consumerRepo, "marker.txt", "trigger after grant")
+			createRepoWorkflowFile(t, user4, user4Token, consumerRepo, "marker.txt", "trigger after grant")
 
 			run := unittest.AssertExistsAndLoadBean(t, &actions_model.ActionRun{RepoID: consumerRepo.ID})
 			crossJob := unittest.AssertExistsAndLoadBean(t, &actions_model.ActionRunJob{RunID: run.ID, JobID: "cross_job"})
@@ -432,6 +432,52 @@ jobs:
 			assert.Equal(t, actions_model.StatusSuccess, run.Status)
 		})
 
+		t.Run("Public caller denied private target even with collaborative owner", func(t *testing.T) {
+			// Isolates the run.Repo.IsPrivate gate: a public caller must be denied a private target even with a
+			// collaborative-owner grant, since allowing it would expose private workflow content in a public run.
+
+			// libRepo: private, owned by user2.
+			libAPIRepo := createActionsTestRepo(t, user2Token, "reusable-lib-public-denied", true)
+			libRepo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: libAPIRepo.ID})
+			createRepoWorkflowFile(t, user2, user2Token, libRepo, ".gitea/workflows/reusable_lib.yaml",
+				`name: ReusableLib
+on:
+  workflow_call:
+
+jobs:
+  lib_job:
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo hello
+`)
+
+			// Grant first: user2 adds user4 as a collaborative owner of the private libRepo, so the grant is
+			// satisfied and the public-caller gate is the only thing that can deny access.
+			addCollabReq := NewRequestWithValues(t, "POST",
+				fmt.Sprintf("/%s/%s/settings/actions/general/collaborative_owner/add", libRepo.OwnerName, libRepo.Name),
+				map[string]string{"collaborative_owner": user4.Name})
+			user2Session.MakeRequest(t, addCollabReq, http.StatusOK)
+
+			// consumerRepo: public, owned by user4.
+			consumerAPIRepo := createActionsTestRepo(t, user4Token, "workflow-call-public-denied", false)
+			consumerRepo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: consumerAPIRepo.ID})
+
+			runner := newMockRunner()
+			runner.registerAsRepoRunner(t, consumerRepo.OwnerName, consumerRepo.Name, "mock-public-denied-runner", []string{"ubuntu-latest"}, false)
+
+			createRepoWorkflowFile(t, user4, user4Token, consumerRepo, ".gitea/workflows/cross-caller.yaml",
+				`name: CrossCaller
+on: push
+jobs:
+  cross_job:
+    uses: user2/reusable-lib-public-denied/.gitea/workflows/reusable_lib.yaml@main
+`)
+
+			// Denied: the cross-repo read check fails for the public caller, so NO ActionRun is persisted and no task is dispatched.
+			assert.Equal(t, 0, unittest.GetCount(t, &actions_model.ActionRun{RepoID: consumerRepo.ID}))
+			runner.fetchNoTask(t)
+		})
+
 		t.Run("Cross-repo callee with same-repo nested uses", func(t *testing.T) {
 			// A same-repo `uses: ./...` inside a cross-repo reusable callee must resolve relative to the callee's own repo (matching GitHub's behavior), not the original triggering repo.
 
@@ -439,7 +485,7 @@ jobs:
 
 			libAPIRepo := createActionsTestRepo(t, user2Token, "reusable-lib-nested", false)
 			libRepo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: libAPIRepo.ID})
-			createRepoWorkflowFile(t, user2, libRepo, ".gitea/workflows/util.yaml",
+			createRepoWorkflowFile(t, user2, user2Token, libRepo, ".gitea/workflows/util.yaml",
 				`name: UtilLib
 on:
   workflow_call:
@@ -450,7 +496,7 @@ jobs:
     steps:
       - run: echo from-lib
 `)
-			createRepoWorkflowFile(t, user2, libRepo, ".gitea/workflows/lib.yaml",
+			createRepoWorkflowFile(t, user2, user2Token, libRepo, ".gitea/workflows/lib.yaml",
 				`name: LibNested
 on:
   workflow_call:
@@ -464,7 +510,7 @@ jobs:
 			consumerRepo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: consumerAPIRepo.ID})
 
 			// A *different* util.yaml in the consumer repo: if `./` mis-resolves we'd see this job's name.
-			createRepoWorkflowFile(t, user4, consumerRepo, ".gitea/workflows/util.yaml",
+			createRepoWorkflowFile(t, user4, user4Token, consumerRepo, ".gitea/workflows/util.yaml",
 				`name: UtilConsumer
 on:
   workflow_call:
@@ -479,7 +525,7 @@ jobs:
 			runner := newMockRunner()
 			runner.registerAsRepoRunner(t, consumerRepo.OwnerName, consumerRepo.Name, "mock-nested-runner", []string{"ubuntu-latest"}, false)
 
-			createRepoWorkflowFile(t, user4, consumerRepo, ".gitea/workflows/caller.yaml",
+			createRepoWorkflowFile(t, user4, user4Token, consumerRepo, ".gitea/workflows/caller.yaml",
 				`name: NestedCaller
 on: push
 jobs:
@@ -512,7 +558,7 @@ jobs:
 			apiRepo := createActionsTestRepo(t, user2Token, "caller-missing-callee", false)
 			repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: apiRepo.ID})
 
-			createRepoWorkflowFile(t, user2, repo, ".gitea/workflows/caller.yaml",
+			createRepoWorkflowFile(t, user2, user2Token, repo, ".gitea/workflows/caller.yaml",
 				`name: Caller
 on: push
 jobs:
@@ -545,7 +591,7 @@ jobs:
 			runner := newMockRunner()
 			runner.registerAsRepoRunner(t, baseRepo.OwnerName, baseRepo.Name, "mock-fork-runner", []string{"ubuntu-latest"}, false)
 
-			createRepoWorkflowFile(t, user2, baseRepo, ".gitea/workflows/reusable.yaml",
+			createRepoWorkflowFile(t, user2, user2Token, baseRepo, ".gitea/workflows/reusable.yaml",
 				`name: Reusable
 on:
   workflow_call:
@@ -558,7 +604,7 @@ jobs:
     steps:
       - run: echo
 `)
-			createRepoWorkflowFile(t, user2, baseRepo, ".gitea/workflows/caller.yaml",
+			createRepoWorkflowFile(t, user2, user2Token, baseRepo, ".gitea/workflows/caller.yaml",
 				`name: Caller
 on: pull_request
 jobs:
@@ -624,7 +670,7 @@ jobs:
 			//   attempt 2: rerun gate, mock Failure -> caller is Skipped without expanding (no children inserted)
 			//   attempt 3: rerun gate, mock Success -> caller expands again -> inner.AttemptJobID must equal N
 
-			createRepoWorkflowFile(t, user2, repo, ".gitea/workflows/lib.yaml",
+			createRepoWorkflowFile(t, user2, user2Token, repo, ".gitea/workflows/lib.yaml",
 				`name: Lib
 on:
   workflow_call:
@@ -635,7 +681,7 @@ jobs:
     steps:
       - run: echo inner
 `)
-			createRepoWorkflowFile(t, user2, repo, ".gitea/workflows/main.yaml",
+			createRepoWorkflowFile(t, user2, user2Token, repo, ".gitea/workflows/main.yaml",
 				`name: Main
 on:
   push:
@@ -720,8 +766,9 @@ jobs:
 	})
 }
 
-func createRepoWorkflowFile(t *testing.T, u *user_model.User, repo *repo_model.Repository, treePath, content string) {
-	token := getTokenForLoggedInUser(t, loginUser(t, u.Name), auth_model.AccessTokenScopeWriteRepository)
+// token must belong to u (the commit identity) and have write access to repo. Reuse the caller's
+// existing token rather than logging in per call, which would re-run bcrypt password verification each time.
+func createRepoWorkflowFile(t *testing.T, u *user_model.User, token string, repo *repo_model.Repository, treePath, content string) {
 	opts := getWorkflowCreateFileOptions(u, repo.DefaultBranch, "create "+treePath, content)
 	createWorkflowFile(t, token, repo.OwnerName, repo.Name, treePath, opts)
 }

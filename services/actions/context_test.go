@@ -19,10 +19,8 @@ import (
 )
 
 func TestEvaluateRunConcurrency_RunIDFallback(t *testing.T) {
-	// Unit-level check that EvaluateRunConcurrencyFillModel resolves
-	// github.run_id from run.ID. The full-flow regression — that run.ID is
-	// non-zero by the time evaluation happens — is in
-	// TestPrepareRunAndInsert_ExpressionsSeeRunID.
+	// Unit-level check that EvaluateRunConcurrencyFillModel resolves github.run_id from run.ID.
+	// The full-flow regression (run.ID non-zero by evaluation time) is TestPrepareRunAndInsert_ExpressionsSeeRunID.
 	assert.NoError(t, unittest.PrepareTestDatabase())
 	ctx := t.Context()
 
@@ -46,10 +44,8 @@ func TestEvaluateRunConcurrency_RunIDFallback(t *testing.T) {
 }
 
 func TestPrepareRunAndInsert_ExpressionsSeeRunID(t *testing.T) {
-	// Regression for the cross-branch concurrency leak: github.run_id must
-	// be available during BOTH jobparser.Parse (run-name) and workflow-level
-	// concurrency evaluation. Re-ordering db.Insert relative to either step
-	// would leave run.ID at 0 and break this test.
+	// Regression for the cross-branch concurrency leak: github.run_id must be available during both
+	// jobparser.Parse (run-name) and concurrency evaluation; inserting run after either leaves run.ID at 0.
 	assert.NoError(t, unittest.PrepareTestDatabase())
 	ctx := t.Context()
 

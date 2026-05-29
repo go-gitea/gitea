@@ -667,8 +667,11 @@ func CanReadWorkflowCrossRepo(ctx context.Context, targetRepo *repo_model.Reposi
 		return true, nil
 	}
 
-	// (2) Cross-owner private -> private: respect target repo's collaborative-owner allowlist on the Actions unit.
-	// Matches GitHub's private-repo Actions sharing; the run.Repo.IsPrivate guard mirrors GitHub's "only from private repositories" gate on this specific feature. See:
+	// (2) Cross-owner: respect the target repo's collaborative-owner allowlist on its Actions unit.
+	// The caller (run.Repo) must itself be private. The collaborative-owner grant is owner-level, so without this
+	// guard a public caller owned by a grantee could pull a private reusable workflow and expose its definition and
+	// logs in a publicly visible run; requiring a private caller keeps private content flowing private -> private.
+	// This is intentionally stricter than GitHub, which gates on the target repo's access setting (introduced in #32562):
 	// https://docs.github.com/en/repositories/managing-your-repositorys-settings-and-features/enabling-features-for-your-repository/managing-github-actions-settings-for-a-repository#allowing-access-to-components-in-a-private-repository
 	if run.Repo.IsPrivate {
 		if actionsUnit, err := targetRepo.GetUnit(ctx, unit.TypeActions); err == nil {
