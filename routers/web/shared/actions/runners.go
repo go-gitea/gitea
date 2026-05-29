@@ -372,7 +372,14 @@ func RunnerBulkActionPost(ctx *context.Context) {
 		ctx.ServerError("getRunnersCtx", err)
 		return
 	}
-	if !rCtx.IsAdmin {
+
+	var runnerIDs []int64
+	if rCtx.IsAdmin {
+		// ATTENTION: it completely depends on the assumption that the doer is "site admin"
+		// So it doesn't do extra permission check to the runner IDs
+		// In the future, if you need to support such operation on non-admin pages, be careful!
+		runnerIDs = ctx.FormStringInt64s("ids")
+	} else {
 		ctx.HTTPError(http.StatusForbidden, "bulk actions are admin-only")
 		return
 	}
@@ -391,9 +398,7 @@ func RunnerBulkActionPost(ctx *context.Context) {
 		return
 	}
 
-	ids := ctx.FormStringInt64s("ids")
-
-	runners, err := db.Find[actions_model.ActionRunner](ctx, &actions_model.FindRunnerOptions{IDs: ids})
+	runners, err := db.Find[actions_model.ActionRunner](ctx, &actions_model.FindRunnerOptions{IDs: runnerIDs})
 	if err != nil {
 		ctx.ServerError("FindRunners", err)
 		return
