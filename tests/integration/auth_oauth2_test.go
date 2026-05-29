@@ -130,49 +130,65 @@ func TestMigrateAzureADV2ToOIDC(t *testing.T) {
 	})
 }
 
-func TestOIDCIgnoresExternalLoginLinkedToOrganization(t *testing.T) {
+func TestOIDCIgnoresStaleExternalLoginLinks(t *testing.T) {
 	defer tests.PrepareTestEnv(t)()
 	defer test.MockVariableValue(&setting.OAuth2Client.EnableAutoRegistration, true)()
 	defer test.MockVariableValue(&setting.OAuth2Client.AccountLinking, setting.OAuth2AccountLinkingAuto)()
 	defer test.MockVariableValue(&setting.OAuth2Client.Username, setting.OAuth2UsernameEmail)()
 
-	const (
-		sourceName = "test-oidc-stale-org-link"
-		subValue   = "oidc-stale-org-link-sub"
-		oidValue   = "oidc-stale-org-link-oid"
-		emailValue = "guizar_m@example.com"
-	)
-
-	srv := newFakeOIDCServerWithProfile(t, subValue, oidValue, emailValue, "OIDC Test User")
-	addOAuth2Source(t, sourceName, oauth2.Source{
-		Provider:                      "openidConnect",
-		ClientID:                      "test-client-id",
-		ClientSecret:                  "test-client-secret",
-		OpenIDConnectAutoDiscoveryURL: srv.URL + "/.well-known/openid-configuration",
-	})
-	authSource, err := auth_model.GetActiveOAuth2SourceByAuthName(t.Context(), sourceName)
-	require.NoError(t, err)
-
-	correctUser := &user_model.User{
-		Name:  "guizar_m",
-		Email: emailValue,
+	setup := func(t *testing.T, sourceName, sub, userName, email string) (*auth_model.Source, *user_model.User) {
+		t.Helper()
+		srv := newFakeOIDCServerWithProfile(t, sub, sub+"-oid", email, "OIDC Test User")
+		addOAuth2Source(t, sourceName, oauth2.Source{
+			Provider:                      "openidConnect",
+			ClientID:                      "test-client-id",
+			ClientSecret:                  "test-client-secret",
+			OpenIDConnectAutoDiscoveryURL: srv.URL + "/.well-known/openid-configuration",
+		})
+		authSource, err := auth_model.GetActiveOAuth2SourceByAuthName(t.Context(), sourceName)
+		require.NoError(t, err)
+		correctUser := &user_model.User{Name: userName, Email: email}
+		require.NoError(t, user_model.CreateUser(t.Context(), correctUser, &user_model.Meta{}))
+		return authSource, correctUser
 	}
-	require.NoError(t, user_model.CreateUser(t.Context(), correctUser, &user_model.Meta{}))
 
-	org := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 3, Type: user_model.UserTypeOrganization})
-	require.NoError(t, user_model.LinkExternalToUser(t.Context(), org, &user_model.ExternalLoginUser{
-		ExternalID:    subValue,
-		UserID:        org.ID,
-		LoginSourceID: authSource.ID,
-		Provider:      authSource.Name,
-	}))
+	// assertRelinked signs in via OIDC and asserts the stale link now points at the correct individual user.
+	assertRelinked := func(t *testing.T, authSource *auth_model.Source, sub string, correctUser *user_model.User) {
+		t.Helper()
+		doOIDCSignIn(t, authSource.Name)
+		// external_login_user has no "id" column, so order by the primary key instead
+		externalLink := unittest.AssertExistsAndLoadBean(t, &user_model.ExternalLoginUser{ExternalID: sub, LoginSourceID: authSource.ID}, unittest.OrderBy("external_id ASC"))
+		assert.Equal(t, correctUser.ID, externalLink.UserID)
+		assert.Equal(t, correctUser.Email, externalLink.Email)
+		assert.Equal(t, "OIDC Test User", externalLink.Name)
+	}
 
-	doOIDCSignIn(t, sourceName)
+	t.Run("organization", func(t *testing.T) {
+		const sub, userName, email = "oidc-stale-org-link-sub", "guizar_m", "guizar_m@example.com"
+		authSource, correctUser := setup(t, "test-oidc-stale-org-link", sub, userName, email)
+		org := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 3, Type: user_model.UserTypeOrganization})
+		require.NoError(t, user_model.LinkExternalToUser(t.Context(), org, &user_model.ExternalLoginUser{
+			ExternalID:    sub,
+			UserID:        org.ID,
+			LoginSourceID: authSource.ID,
+			Provider:      authSource.Name,
+		}))
+		assertRelinked(t, authSource, sub, correctUser)
+	})
 
-	externalLink := unittest.AssertExistsAndLoadBean(t, &user_model.ExternalLoginUser{ExternalID: subValue, LoginSourceID: authSource.ID}, unittest.OrderBy("external_id ASC"))
-	assert.Equal(t, correctUser.ID, externalLink.UserID)
-	assert.Equal(t, emailValue, externalLink.Email)
-	assert.Equal(t, "OIDC Test User", externalLink.Name)
+	t.Run("deleted user", func(t *testing.T) {
+		const sub, userName, email = "oidc-stale-deleted-link-sub", "guizar_d", "guizar_d@example.com"
+		const deletedUserID = 999999
+		authSource, correctUser := setup(t, "test-oidc-stale-deleted-link", sub, userName, email)
+		// link the external account to a user id that does not exist, simulating a deleted user
+		require.NoError(t, user_model.LinkExternalToUser(t.Context(), &user_model.User{ID: deletedUserID}, &user_model.ExternalLoginUser{
+			ExternalID:    sub,
+			UserID:        deletedUserID,
+			LoginSourceID: authSource.ID,
+			Provider:      authSource.Name,
+		}))
+		assertRelinked(t, authSource, sub, correctUser)
+	})
 }
 
 // newFakeOIDCServer starts an httptest.Server that implements the minimum OIDC endpoints needed to complete a sign-in flow:

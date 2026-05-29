@@ -122,7 +122,7 @@ func RemoveAllAccountLinks(ctx context.Context, user *User) error {
 }
 
 // RemoveExternalLoginByExternalID removes a specific external login link by its provider-side identifier.
-func RemoveExternalLoginByExternalID(ctx context.Context, externalID string, loginSourceID int64) error {
+func RemoveExternalLoginByExternalID(ctx context.Context, loginSourceID int64, externalID string) error {
 	_, err := db.GetEngine(ctx).Where("external_id=? AND login_source_id=?", externalID, loginSourceID).Delete(new(ExternalLoginUser))
 	return err
 }

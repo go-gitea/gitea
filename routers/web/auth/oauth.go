@@ -519,22 +519,26 @@ func oAuth2UserLoginCallback(ctx *context.Context, authSource *auth.Source, requ
 		return nil, goth.User{}, err
 	}
 	if hasUser {
-		user, err = user_model.GetUserByID(request.Context(), externalLoginUser.UserID)
-		if err != nil {
-			if !user_model.IsErrUserNotExist(err) {
-				return nil, goth.User{}, err
-			}
-			log.Warn("Ignoring stale external login link [external-id=%s login-source-id=%d user-id=%d]: linked user does not exist", externalLoginUser.ExternalID, externalLoginUser.LoginSourceID, externalLoginUser.UserID)
-		} else if user.Type == user_model.UserTypeIndividual {
+		user, err = user_model.GetUserByID(ctx, externalLoginUser.UserID)
+		if err != nil && !user_model.IsErrUserNotExist(err) {
+			return nil, goth.User{}, err
+		}
+		if err == nil && user.IsIndividual() {
 			return user, gothUser, nil
-		} else {
-			log.Warn("Ignoring stale external login link [external-id=%s login-source-id=%d user-id=%d]: linked user type is %d", externalLoginUser.ExternalID, externalLoginUser.LoginSourceID, externalLoginUser.UserID, user.Type)
 		}
 
-		// 1. if there is external login record but the user record is missing, removed the record
-		// 2. if there is external login record but the user type is not individual, removed the record too since only individual user can login
-		// since user could login automatically, it will not lose anything even if we remove the external login record wrongly here.
-		if err := user_model.RemoveExternalLoginByExternalID(request.Context(), externalLoginUser.ExternalID, externalLoginUser.LoginSourceID); err != nil {
+		// The external login record is stale: the linked user no longer exists, or it exists but is
+		// not an individual user (only individual users can sign in, so a link pointing at an
+		// organization, bot or remote user can never resolve). Remove it so the next sign-in can
+		// relink the external account to the correct user. Nothing is lost, because the link is
+		// recreated automatically on the next sign-in.
+		reason := "linked user does not exist"
+		if err == nil {
+			reason = fmt.Sprintf("linked user type is %d", user.Type)
+		}
+		log.Warn("Ignoring stale external login link [external-id=%s login-source-id=%d user-id=%d]: %s", externalLoginUser.ExternalID, externalLoginUser.LoginSourceID, externalLoginUser.UserID, reason)
+
+		if err := user_model.RemoveExternalLoginByExternalID(ctx, externalLoginUser.LoginSourceID, externalLoginUser.ExternalID); err != nil {
 			return nil, goth.User{}, err
 		}
 	}
