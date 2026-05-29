@@ -53,6 +53,10 @@ func (g *Group) OrgGroupLink() string {
 	return setting.AppSubURL + "/org/" + url.PathEscape(g.OwnerName) + "/groups/" + strconv.FormatInt(g.ID, 10)
 }
 
+func (g *Group) UserGroupLink() string {
+	return setting.AppSubURL + "/" + url.PathEscape(g.OwnerName) + "/-/groups/" + strconv.FormatInt(g.ID, 10)
+}
+
 func (Group) TableName() string { return "repo_group" }
 
 func init() {
