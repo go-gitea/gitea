@@ -184,7 +184,7 @@ func TestActionsRunnerModify(t *testing.T) {
 			}
 			return strings.Join(s, ",")
 		}
-		doBulk := func(t *testing.T, sess *TestSession, action string, ids string, expectedStatus int) {
+		doBulk := func(t *testing.T, sess *TestSession, action, ids string, expectedStatus int) {
 			req := NewRequestWithValues(t, "POST", bulkURL, map[string]string{
 				"action": action,
 				"ids":    ids,
