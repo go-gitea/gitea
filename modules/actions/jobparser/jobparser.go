@@ -6,6 +6,7 @@ package jobparser
 import (
 	"bytes"
 	"fmt"
+	"slices"
 	"sort"
 	"strings"
 
@@ -31,6 +32,18 @@ func deepCopyYamlNode(node *yaml.Node) *yaml.Node {
 		}
 	}
 	return &nodeCopy
+}
+
+// rawMatrixHasExpression reports whether any scalar in the matrix node contains a
+// ${{ }} expression, i.e. the matrix must be evaluated rather than used verbatim.
+func rawMatrixHasExpression(node *yaml.Node) bool {
+	if node == nil {
+		return false
+	}
+	if node.Kind == yaml.ScalarNode {
+		return strings.Contains(node.Value, "${{")
+	}
+	return slices.ContainsFunc(node.Content, rawMatrixHasExpression)
 }
 
 func Parse(content []byte, options ...ParseOption) ([]*SingleWorkflow, error) {
@@ -78,29 +91,22 @@ func Parse(content []byte, options ...ParseOption) ([]*SingleWorkflow, error) {
 			return nil, fmt.Errorf("job %s not found in origin workflow", id)
 		}
 
-		// Clone the origin job to avoid modifying the shared object
-		evaluatedJob := *originJob
-		if originJob.Strategy != nil {
+		// Clone + pre-evaluate only when the matrix has a ${{ }} expression; static matrices use
+		// the origin job as-is. Unresolved expressions defer to ReEvaluateMatrixForJobWithNeeds.
+		evaluatedJob := originJob
+		if originJob.Strategy != nil && rawMatrixHasExpression(&originJob.Strategy.RawMatrix) {
+			jobCopy := *originJob
 			stratCopy := *originJob.Strategy
-			// Deep copy the RawMatrix yaml.Node to prevent mutations from affecting the original
 			stratCopy.RawMatrix = *deepCopyYamlNode(&originJob.Strategy.RawMatrix)
-			evaluatedJob.Strategy = &stratCopy
-		}
-
-		// Create an evaluator with access to needs/outputs for matrix evaluation
-		matrixEvaluator := NewExpressionEvaluator(NewInterpeter(id, &evaluatedJob, nil, pc.gitContext, results, pc.vars, pc.inputs))
-
-		// Evaluate the matrix before expanding it.
-		// If evaluation fails (e.g. expression references unresolved job outputs),
-		// continue with the unevaluated matrix — the job will be created as a
-		// placeholder and re-evaluated by ReEvaluateMatrixForJobWithNeeds later.
-		if evaluatedJob.Strategy != nil && evaluatedJob.Strategy.RawMatrix.Kind != 0 {
+			jobCopy.Strategy = &stratCopy
+			evaluatedJob = &jobCopy
+			matrixEvaluator := NewExpressionEvaluator(NewInterpeter(id, evaluatedJob, nil, pc.gitContext, results, pc.vars, pc.inputs))
 			if err := matrixEvaluator.EvaluateYamlNode(&evaluatedJob.Strategy.RawMatrix); err != nil {
 				log.Debug("matrix evaluation deferred for job %s (unresolved expression): %v", id, err)
 			}
 		}
 
-		matricxes, err := getMatrixes(&evaluatedJob)
+		matricxes, err := getMatrixes(evaluatedJob)
 		if err != nil {
 			return nil, fmt.Errorf("getMatrixes: %w", err)
 		}
@@ -110,7 +116,7 @@ func Parse(content []byte, options ...ParseOption) ([]*SingleWorkflow, error) {
 				job.Name = id
 			}
 			job.Strategy.RawMatrix = encodeMatrix(matrix)
-			evaluator := NewExpressionEvaluator(NewInterpeter(id, &evaluatedJob, matrix, pc.gitContext, results, pc.vars, pc.inputs))
+			evaluator := NewExpressionEvaluator(NewInterpeter(id, evaluatedJob, matrix, pc.gitContext, results, pc.vars, pc.inputs))
 			job.Name = nameWithMatrix(job.Name, matrix, evaluator)
 			runsOn := evaluatedJob.RunsOn()
 			for i, v := range runsOn {

@@ -398,3 +398,15 @@ func InsertActionRunJobs(ctx context.Context, jobs []*ActionRunJob) error {
 	}
 	return db.Insert(ctx, jobs)
 }
+
+// GetMaxAttemptJobID returns the highest AttemptJobID among a run attempt's jobs, or 0 if none.
+// Used to assign ids to jobs created after initial planning (e.g. matrix expansion).
+func GetMaxAttemptJobID(ctx context.Context, runID, runAttemptID int64) (int64, error) {
+	var job ActionRunJob
+	if _, err := db.GetEngine(ctx).
+		Where(builder.Eq{"run_id": runID, "run_attempt_id": runAttemptID}).
+		Desc("attempt_job_id").Get(&job); err != nil {
+		return 0, err
+	}
+	return job.AttemptJobID, nil
+}

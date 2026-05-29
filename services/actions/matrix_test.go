@@ -89,23 +89,6 @@ matrix:
 	}
 }
 
-func TestMergeNeedsIntoVars(t *testing.T) {
-	base := map[string]string{"MY_VAR": "hello"}
-	needs := map[string]*TaskNeed{
-		"setup": {
-			Result:  actions_model.StatusSuccess,
-			Outputs: map[string]string{"versions": `["1","2"]`, "extra": "val"},
-		},
-	}
-	merged := mergeNeedsIntoVars(base, needs)
-
-	assert.Equal(t, "hello", merged["MY_VAR"])
-	assert.Equal(t, `["1","2"]`, merged["needs.setup.outputs.versions"])
-	assert.Equal(t, "val", merged["needs.setup.outputs.extra"])
-	// base must not be mutated
-	assert.NotContains(t, base, "needs.setup.outputs.versions")
-}
-
 func TestConstructWorkflowWithNeeds(t *testing.T) {
 	// Minimal WorkflowPayload with a strategy referencing a needs output.
 	payload, err := yaml.Marshal(map[string]any{

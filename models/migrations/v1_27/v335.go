@@ -18,6 +18,7 @@ func AddMatrixEvaluationColumnsToActionRunJob(x db.EngineMigration) error {
 	}
 	_, err := x.SyncWithOptions(xorm.SyncOptions{
 		IgnoreDropIndices: true,
+		IgnoreConstrains:  true,
 	}, new(ActionRunJob))
 	return err
 }

@@ -35,23 +35,6 @@ func markMatrixAsEvaluatedAndSkip(ctx context.Context, job *actions_model.Action
 	return nil
 }
 
-// claimMatrixExpansion atomically marks the placeholder job as evaluated+skipped
-// only when it is still in its original state (is_matrix_evaluated=false AND
-// status=Blocked). Returns (true, nil) when this caller wins the claim, or
-// (false, nil) when another concurrent process already claimed it.
-// This is the concurrency guard that prevents double-expansion.
-func claimMatrixExpansion(ctx context.Context, job *actions_model.ActionRunJob) (bool, error) {
-	job.IsMatrixEvaluated = true
-	job.Status = actions_model.StatusSkipped
-	n, err := actions_model.UpdateRunJob(ctx, job,
-		builder.Eq{"is_matrix_evaluated": false, "status": actions_model.StatusBlocked},
-		"is_matrix_evaluated", "status")
-	if err != nil {
-		return false, err
-	}
-	return n == 1, nil
-}
-
 // checkTaskNeedsReady verifies if all task dependencies are completed.
 // Returns (taskNeeds, allDone, error)
 func checkTaskNeedsReady(ctx context.Context, job *actions_model.ActionRunJob) (map[string]*TaskNeed, bool, error) {
@@ -169,8 +152,8 @@ func yamlNodeContainsNeedsOutputsExpr(node *yaml.Node) bool {
 	return slices.ContainsFunc(node.Content, yamlNodeContainsNeedsOutputsExpr)
 }
 
-// containsNeedsOutputsExpr returns true when s contains a GitHub Actions
-// expression (${{ ... }}) that references needs.<id>.outputs.<key>.
+// containsNeedsOutputsExpr returns true when s contains an Actions expression
+// (${{ ... }}) that references needs.<id>.outputs.<key>.
 // A bare "needs." substring outside an expression block is not a match.
 func containsNeedsOutputsExpr(s string) bool {
 	if !strings.Contains(s, "${{") {
@@ -205,10 +188,6 @@ func ReEvaluateMatrixForJobWithNeeds(ctx context.Context, job *actions_model.Act
 		return nil, nil
 	}
 
-	if !HasMatrixWithNeeds(job.RawStrategy) {
-		return nil, markMatrixAsEvaluatedAndSkip(ctx, job, "no needs-dependent matrix found")
-	}
-
 	log.Debug("Starting matrix re-evaluation for job %d (JobID: %s)", job.ID, job.JobID)
 
 	// skipWithError marks the job as evaluated+skipped and wraps any secondary error.
@@ -227,8 +206,6 @@ func ReEvaluateMatrixForJobWithNeeds(ctx context.Context, job *actions_model.Act
 	if !allDone {
 		return nil, nil
 	}
-
-	mergedVars := mergeNeedsIntoVars(vars, taskNeeds)
 
 	if job.Run == nil {
 		if err := job.LoadRun(ctx); err != nil {
@@ -253,110 +230,98 @@ func ReEvaluateMatrixForJobWithNeeds(ctx context.Context, job *actions_model.Act
 
 	workflowYAML, err := constructWorkflowWithNeeds(job, taskNeeds)
 	if err != nil {
-		log.Error("Matrix re-evaluation error for job %d: construct workflow: %v", job.ID, err)
 		return skipWithError(fmt.Sprintf("workflow construction failed: %v", err), fmt.Errorf("construct workflow: %w", err))
 	}
 
 	parsedJobs, err := jobparser.Parse(
 		workflowYAML,
-		jobparser.WithVars(mergedVars),
+		jobparser.WithVars(vars),
 		jobparser.WithGitContext(giteaCtx.ToGitHubContext()),
 		jobparser.WithJobOutputs(jobOutputs),
 		jobparser.WithJobResults(jobResults),
 	)
 	if err != nil {
-		log.Error("Matrix parse error for job %d (RawStrategy: %s): %v", job.ID, job.RawStrategy, err)
-		if markErr := markMatrixAsEvaluatedAndSkip(ctx, job, fmt.Sprintf("parse failed: %v", err)); markErr != nil {
-			return nil, fmt.Errorf("parse workflow: %w; additionally failed to mark as evaluated: %v", err, markErr)
-		}
-		return nil, nil
+		return nil, markMatrixAsEvaluatedAndSkip(ctx, job, fmt.Sprintf("parse failed: %v", err))
 	}
 
-	if len(parsedJobs) == 0 {
-		log.Debug("No jobs generated from matrix expansion for job %d (JobID: %s)", job.ID, job.JobID)
-		return nil, markMatrixAsEvaluatedAndSkip(ctx, job, "no jobs generated from matrix expansion")
+	// One parsed workflow per combination; needs are kept on the model and erased from the
+	// payload, as at initial planning time.
+	type matrixCombo struct {
+		name    string
+		payload []byte
+		runsOn  []string
+		needs   []string
 	}
-
-	log.Debug("Parsed %d matrix combinations for job %d (JobID: %s)", len(parsedJobs), job.ID, job.JobID)
-
-	var newJobs []*actions_model.ActionRunJob
-	for i, sw := range parsedJobs {
+	var combos []matrixCombo
+	for _, sw := range parsedJobs {
 		id, jobDef := sw.Job()
-		if jobDef == nil {
-			log.Warn("Skipped nil jobDef at index %d for job %d (JobID: %s)", i, job.ID, job.JobID)
+		if jobDef == nil || id != job.JobID {
 			continue
 		}
-		if id != job.JobID {
-			continue
-		}
-		needs := jobDef.Needs()
+		combo := matrixCombo{name: jobDef.Name, runsOn: jobDef.RunsOn(), needs: jobDef.Needs()}
 		if err := sw.SetJob(id, jobDef.EraseNeeds()); err != nil {
-			log.Error("Failed to erase needs from job %s (matrix expansion for job %d): %v", id, job.ID, err)
-			continue
+			return nil, fmt.Errorf("erase needs for job %s: %w", id, err)
 		}
-		payload, _ := sw.Marshal()
-		newJobs = append(newJobs, &actions_model.ActionRunJob{
-			RunID:             job.RunID,
-			RepoID:            job.RepoID,
-			OwnerID:           job.OwnerID,
-			CommitSHA:         job.CommitSHA,
-			IsForkPullRequest: job.IsForkPullRequest,
-			Name:              jobDef.Name,
-			WorkflowPayload:   payload,
-			JobID:             id,
-			Needs:             needs,
-			RunsOn:            jobDef.RunsOn(),
-			Status:            actions_model.StatusWaiting,
-		})
+		if combo.payload, err = sw.Marshal(); err != nil {
+			return nil, fmt.Errorf("marshal expanded job %s: %w", id, err)
+		}
+		combos = append(combos, combo)
 	}
 
-	if len(newJobs) == 0 {
-		log.Warn("No valid jobs created from matrix expansion for job %d (JobID: %s), total parsed: %d", job.ID, job.JobID, len(parsedJobs))
-		return nil, markMatrixAsEvaluatedAndSkip(ctx, job, fmt.Sprintf("no valid jobs created (parsed: %d)", len(parsedJobs)))
+	if len(combos) == 0 {
+		return nil, markMatrixAsEvaluatedAndSkip(ctx, job, "matrix expanded to no combinations")
 	}
 
-	// Atomically claim the placeholder and insert the new jobs in one transaction.
-	// The conditional WHERE in claimMatrixExpansion (is_matrix_evaluated=false AND
-	// status=Blocked) ensures only one concurrent caller can win. The second caller
-	// sees n==0 and rolls back without inserting duplicate jobs.
-	var claimed bool
+	// Reuse the placeholder as the first combination and insert the rest as siblings: no phantom
+	// skipped job is left to poison downstream needs, and siblings inherit attempt + permissions.
+	var children []*actions_model.ActionRunJob
 	if err := db.WithTx(ctx, func(txCtx context.Context) error {
-		var txErr error
-		claimed, txErr = claimMatrixExpansion(txCtx, job)
-		if txErr != nil {
-			return txErr
+		maxAttemptJobID, err := actions_model.GetMaxAttemptJobID(txCtx, job.RunID, job.RunAttemptID)
+		if err != nil {
+			return err
 		}
-		if !claimed {
+		for i := 1; i < len(combos); i++ {
+			children = append(children, &actions_model.ActionRunJob{
+				RunID:             job.RunID,
+				RunAttemptID:      job.RunAttemptID,
+				RepoID:            job.RepoID,
+				OwnerID:           job.OwnerID,
+				CommitSHA:         job.CommitSHA,
+				IsForkPullRequest: job.IsForkPullRequest,
+				Name:              combos[i].name,
+				Attempt:           job.Attempt,
+				WorkflowPayload:   combos[i].payload,
+				JobID:             job.JobID,
+				AttemptJobID:      maxAttemptJobID + int64(i),
+				Needs:             combos[i].needs,
+				RunsOn:            combos[i].runsOn,
+				TokenPermissions:  job.TokenPermissions,
+				Status:            actions_model.StatusWaiting,
+			})
+		}
+
+		// Atomic claim: only one concurrent caller flips the placeholder out of Blocked.
+		job.Name = combos[0].name
+		job.WorkflowPayload = combos[0].payload
+		job.RunsOn = combos[0].runsOn
+		job.IsMatrixEvaluated = true
+		job.Status = actions_model.StatusWaiting
+		affected, err := actions_model.UpdateRunJob(txCtx, job,
+			builder.Eq{"is_matrix_evaluated": false, "status": actions_model.StatusBlocked},
+			"name", "workflow_payload", "runs_on", "is_matrix_evaluated", "status")
+		if err != nil {
+			return err
+		}
+		if affected != 1 {
+			children = nil
 			return nil
 		}
-		return actions_model.InsertActionRunJobs(txCtx, newJobs)
+		return actions_model.InsertActionRunJobs(txCtx, children)
 	}); err != nil {
-		log.Error("Matrix expansion transaction failed for job %d (JobID: %s): %v", job.ID, job.JobID, err)
-		return nil, fmt.Errorf("matrix expansion transaction: %w", err)
-	}
-	if !claimed {
-		log.Warn("Matrix placeholder job %d (JobID: %s) was already claimed by a concurrent process; skipping",
-			job.ID, job.JobID)
-		return nil, nil
+		return nil, fmt.Errorf("expand matrix for job %d: %w", job.ID, err)
 	}
 
-	log.Debug("Matrix re-evaluation complete for job %d (JobID: %s): created %d new jobs",
-		job.ID, job.JobID, len(newJobs))
-
-	return newJobs, nil
-}
-
-// mergeNeedsIntoVars converts task needs outputs into variables for expression evaluation.
-func mergeNeedsIntoVars(baseVars map[string]string, taskNeeds map[string]*TaskNeed) map[string]string {
-	merged := make(map[string]string)
-	maps.Copy(merged, baseVars)
-	for jobID, taskNeed := range taskNeeds {
-		for outputKey, outputValue := range taskNeed.Outputs {
-			key := fmt.Sprintf("needs.%s.outputs.%s", jobID, outputKey)
-			merged[key] = outputValue
-		}
-	}
-	return merged
+	return children, nil
 }
 
 // constructWorkflowWithNeeds creates a workflow YAML that includes the target job
