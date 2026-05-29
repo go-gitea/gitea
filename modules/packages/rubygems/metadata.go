@@ -14,7 +14,7 @@ import (
 	"gitea.dev/modules/util"
 	"gitea.dev/modules/validation"
 
-	"gopkg.in/yaml.v3"
+	"go.yaml.in/yaml/v4"
 )
 
 var (
