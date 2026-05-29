@@ -14,10 +14,14 @@ import (
 	"strings"
 	"time"
 
+	github_model "gitea.dev/models/github"
 	"gitea.dev/modules/git"
+	gh "gitea.dev/modules/github"
 	"gitea.dev/modules/log"
 	base "gitea.dev/modules/migration"
 	"gitea.dev/modules/proxy"
+	"gitea.dev/modules/secret"
+	"gitea.dev/modules/setting"
 	"gitea.dev/modules/structs"
 
 	"github.com/google/go-github/v87/github"
@@ -52,6 +56,11 @@ func (f *GithubDownloaderV3Factory) New(ctx context.Context, opts base.MigrateOp
 
 	log.Trace("Create github downloader BaseURL: %s %s/%s", baseURL, oldOwner, oldName)
 
+	// Check if GitHub App authentication is requested
+	if opts.GithubAppCredentialID > 0 {
+		return NewGithubDownloaderV3WithApp(ctx, baseURL, opts.GithubAppCredentialID, oldOwner, oldName)
+	}
+
 	return NewGithubDownloaderV3(ctx, baseURL, opts.AuthUsername, opts.AuthPassword, opts.AuthToken, oldOwner, oldName)
 }
 
@@ -70,6 +79,7 @@ type GithubDownloaderV3 struct {
 	repoName      string
 	userName      string
 	password      string
+	installToken  string // installation token from GitHub App auth, used for git clone
 	rates         []*github.Rate
 	curClientIdx  int
 	maxPerPage    int
@@ -120,6 +130,76 @@ func NewGithubDownloaderV3(_ context.Context, baseURL, userName, password, token
 		}
 	}
 	return &downloader, nil
+}
+
+// NewGithubDownloaderV3WithApp creates a github Downloader using GitHub App authentication
+func NewGithubDownloaderV3WithApp(ctx context.Context, baseURL string, credentialID int64, repoOwner, repoName string) (*GithubDownloaderV3, error) {
+	// Get the GitHub App credential from database
+	cred, err := github_model.GetGithubAppCredentialByID(ctx, credentialID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get GitHub App credential: %w", err)
+	}
+
+	// Decrypt the private key
+	privateKey, err := secret.DecryptSecret(setting.SecretKey, cred.PrivateKeyEncrypted)
+	if err != nil {
+		return nil, fmt.Errorf("failed to decrypt private key: %w", err)
+	}
+
+	// Determine base URL for API
+	apiBaseURL := cred.BaseURL
+	if apiBaseURL == "" {
+		apiBaseURL = "https://api.github.com"
+	}
+
+	// Get installation access token
+	token, err := gh.GetGitHubAppInstallationToken(
+		ctx,
+		cred.ClientID,
+		cred.InstallationID,
+		privateKey,
+		apiBaseURL,
+		NewMigrationHTTPTransport(),
+	)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get GitHub App installation token: %w", err)
+	}
+
+	// Update Last Used
+	err = github_model.UpdateGithubAppCredentialLastUsed(ctx, credentialID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to update GitHub App LastUsed timestamp: %w", err)
+	}
+
+	downloader := &GithubDownloaderV3{
+		baseURL:      baseURL,
+		repoOwner:    repoOwner,
+		repoName:     repoName,
+		maxPerPage:   100,
+		installToken: token,
+	}
+
+	// Use the token directly with go-github's built-in authentication
+	// Create a simple HTTP client with the migration transport
+	httpClient := &http.Client{
+		Transport: NewMigrationHTTPTransport(),
+	}
+
+	// Create GitHub client and set the auth token
+	opts := []github.ClientOptionsFunc{github.WithHTTPClient(httpClient), github.WithAuthToken(token)}
+
+	if apiBaseURL != "https://api.github.com" {
+		opts = append(opts, github.WithEnterpriseURLs(apiBaseURL, apiBaseURL))
+	}
+	githubClient, err := github.NewClient(opts...)
+	if err != nil {
+		return nil, fmt.Errorf("failed to set enterprise URLs: %w", err)
+	}
+
+	downloader.clients = append(downloader.clients, githubClient)
+	downloader.rates = append(downloader.rates, nil)
+
+	return downloader, nil
 }
 
 // String implements Stringer
@@ -896,7 +976,10 @@ func (g *GithubDownloaderV3) FormatCloneURL(opts MigrateOptions, remoteAddr stri
 	if err != nil {
 		return "", err
 	}
-	if len(opts.AuthToken) > 0 {
+	if g.installToken != "" {
+		// GitHub App installation token for git clone
+		u.User = url.UserPassword("oauth2", g.installToken)
+	} else if len(opts.AuthToken) > 0 {
 		// "multiple tokens" are used to benefit more "API rate limit quota"
 		// git clone doesn't count for rate limits, so only use the first token.
 		// source: https://github.com/orgs/community/discussions/44515

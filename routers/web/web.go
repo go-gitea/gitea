@@ -670,6 +670,12 @@ func registerWebRoutes(m *web.Router, webAuth *AuthMiddleware) {
 			m.Post("/delete", user_setting.DeleteApplication)
 		})
 
+		m.Group("/github_apps", func() {
+			m.Combo("").Get(user_setting.GitHubApps).
+				Post(web.Bind(forms.NewGitHubAppCredentialForm{}), user_setting.GitHubAppsPost)
+			m.Post("/delete", user_setting.DeleteGitHubApp)
+		})
+
 		m.Combo("/keys").Get(user_setting.Keys).
 			Post(web.Bind(forms.AddKeyForm{}), user_setting.KeysPost)
 		m.Post("/keys/delete", user_setting.DeleteKey)

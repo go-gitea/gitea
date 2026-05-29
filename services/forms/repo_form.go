@@ -57,11 +57,12 @@ func (f *CreateRepoForm) Validate(req *http.Request, errs binding.Errors) bindin
 // this is used to interact with web ui
 type MigrateRepoForm struct {
 	// required: true
-	CloneAddr    string                 `json:"clone_addr" binding:"Required"`
-	Service      structs.GitServiceType `json:"service"`
-	AuthUsername string                 `json:"auth_username"`
-	AuthPassword string                 `json:"auth_password"`
-	AuthToken    string                 `json:"auth_token"`
+	CloneAddr             string                 `json:"clone_addr" binding:"Required"`
+	Service               structs.GitServiceType `json:"service"`
+	AuthUsername          string                 `json:"auth_username"`
+	AuthPassword          string                 `json:"auth_password"`
+	AuthToken             string                 `json:"auth_token"`
+	GithubAppCredentialID int64                  `json:"github_app_credential_id"`
 	// required: true
 	UID int64 `json:"uid" binding:"Required"`
 	// required: true
@@ -91,23 +92,25 @@ func (f *MigrateRepoForm) Validate(req *http.Request, errs binding.Errors) bindi
 
 // RepoSettingForm form for changing repository settings
 type RepoSettingForm struct {
-	RepoName               string `binding:"Required;AlphaDashDot;MaxSize(100)"`
-	Description            string `binding:"MaxSize(2048)"`
-	Website                string `binding:"ValidUrl;MaxSize(1024)"`
-	Interval               string
-	MirrorAddress          string
-	MirrorUsername         string
-	MirrorPassword         string
-	LFS                    bool   `form:"mirror_lfs"`
-	LFSEndpoint            string `form:"mirror_lfs_endpoint"`
-	PushMirrorID           int64
-	PushMirrorAddress      string
-	PushMirrorUsername     string
-	PushMirrorPassword     string
-	PushMirrorSyncOnCommit bool
-	PushMirrorInterval     string
-	Template               bool
-	EnablePrune            bool
+	RepoName                  string `binding:"Required;AlphaDashDot;MaxSize(100)"`
+	Description               string `binding:"MaxSize(2048)"`
+	Website                   string `binding:"ValidUrl;MaxSize(1024)"`
+	Interval                  string
+	MirrorAddress             string
+	MirrorUsername            string
+	MirrorPassword            string
+	MirrorAuthMethod          string `form:"mirror_auth_method"`
+	MirrorGithubAppCredential int64  `form:"mirror_github_app_credential_id"`
+	LFS                       bool   `form:"mirror_lfs"`
+	LFSEndpoint               string `form:"mirror_lfs_endpoint"`
+	PushMirrorID              int64
+	PushMirrorAddress         string
+	PushMirrorUsername        string
+	PushMirrorPassword        string
+	PushMirrorSyncOnCommit    bool
+	PushMirrorInterval        string
+	Template                  bool
+	EnablePrune               bool
 
 	// Advanced settings
 	EnableCode bool

@@ -12,6 +12,7 @@ import (
 	"time"
 
 	"gitea.dev/models/db"
+	github_model "gitea.dev/models/github"
 	"gitea.dev/models/organization"
 	repo_model "gitea.dev/models/repo"
 	unit_model "gitea.dev/models/unit"
@@ -97,6 +98,16 @@ func SettingsCtxData(ctx *context.Context) {
 		return
 	}
 	ctx.Data["PushMirrors"] = pushMirrors
+
+	// Load GitHub App credentials for GitHub-type pull mirrors
+	if ctx.Repo.Repository.IsMirror && ctx.Repo.Repository.OriginalServiceType == structs.GithubService && ctx.Doer != nil {
+		credentials, err := github_model.GetGithubAppCredentialsByOwnerID(ctx, ctx.Doer.ID)
+		if err != nil {
+			log.Error("Failed to load GitHub App credentials: %v", err)
+		} else {
+			ctx.Data["GitHubAppCredentials"] = credentials
+		}
+	}
 
 	repo_router.PrepareBranchList(ctx)
 	if ctx.Written() {
@@ -353,6 +364,27 @@ func handleSettingsPostMirror(ctx *context.Context) {
 
 	pullMirror.LFS = form.LFS
 	pullMirror.LFSEndpoint = form.LFSEndpoint
+
+	// Handle GitHub App credential update for GitHub-type mirrors
+	if repo.OriginalServiceType == structs.GithubService {
+		if form.MirrorAuthMethod == "github_app" && form.MirrorGithubAppCredential > 0 {
+			// Validate ownership of the credential
+			ownsCredential, err := github_model.CheckGithubAppCredentialOwnership(ctx, form.MirrorGithubAppCredential, ctx.Doer.ID)
+			if err != nil {
+				ctx.ServerError("CheckGithubAppCredentialOwnership", err)
+				return
+			}
+			if !ownsCredential {
+				ctx.NotFound(nil)
+				return
+			}
+			pullMirror.GithubAppCredentialID = form.MirrorGithubAppCredential
+		} else {
+			// Switching away from GitHub App or selecting "none" / basic auth
+			pullMirror.GithubAppCredentialID = 0
+		}
+	}
+
 	if err := repo_model.UpdateMirror(ctx, pullMirror); err != nil {
 		ctx.ServerError("UpdateMirror", err)
 		return
