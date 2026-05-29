@@ -50954,9 +50954,9 @@
         "operationId": "userListGroups",
         "parameters": [
           {
-            "description": "name of the organization",
+            "description": "name of the user",
             "in": "path",
-            "name": "org",
+            "name": "username",
             "required": true,
             "schema": {
               "type": "string"
@@ -50996,17 +50996,6 @@
     "/users/groups/new": {
       "post": {
         "operationId": "groupNewUser",
-        "parameters": [
-          {
-            "description": "name of the organization",
-            "in": "path",
-            "name": "org",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
         "requestBody": {
           "content": {
             "application/json": {

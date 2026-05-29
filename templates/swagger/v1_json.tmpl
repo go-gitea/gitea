@@ -37035,8 +37035,8 @@
         "parameters": [
           {
             "type": "string",
-            "description": "name of the organization",
-            "name": "org",
+            "description": "name of the user",
+            "name": "username",
             "in": "path",
             "required": true
           },
@@ -37077,13 +37077,6 @@
         "summary": "create a root-level repository group for the current user",
         "operationId": "groupNewUser",
         "parameters": [
-          {
-            "type": "string",
-            "description": "name of the organization",
-            "name": "org",
-            "in": "path",
-            "required": true
-          },
           {
             "name": "body",
             "in": "body",
