@@ -13,6 +13,10 @@ import (
 	"go.yaml.in/yaml/v4"
 )
 
+func actionsTokenPermissionsPtr(perms repo_model.ActionsTokenPermissions) *repo_model.ActionsTokenPermissions {
+	return &perms
+}
+
 // ExtractJobPermissionsFromWorkflow extracts permissions from an already parsed workflow/job.
 // It returns nil if neither workflow nor job explicitly specifies permissions.
 func ExtractJobPermissionsFromWorkflow(flow *jobparser.SingleWorkflow, job *jobparser.Job) *repo_model.ActionsTokenPermissions {
@@ -61,12 +65,12 @@ func parseRawPermissionsExplicit(rawPerms *yaml.Node) *repo_model.ActionsTokenPe
 	if node.Kind == yaml.ScalarNode {
 		switch node.Value {
 		case "read-all":
-			return new(repo_model.MakeActionsTokenPermissions(perm.AccessModeRead))
+			return actionsTokenPermissionsPtr(repo_model.MakeActionsTokenPermissions(perm.AccessModeRead))
 		case "write-all":
-			return new(repo_model.MakeActionsTokenPermissions(perm.AccessModeWrite))
+			return actionsTokenPermissionsPtr(repo_model.MakeActionsTokenPermissions(perm.AccessModeWrite))
 		default:
 			// Explicit but unrecognized scalar: return all-none permissions.
-			return new(repo_model.MakeActionsTokenPermissions(perm.AccessModeNone))
+			return actionsTokenPermissionsPtr(repo_model.MakeActionsTokenPermissions(perm.AccessModeNone))
 		}
 	}
 

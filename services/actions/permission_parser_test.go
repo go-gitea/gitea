@@ -16,6 +16,10 @@ import (
 	"go.yaml.in/yaml/v4"
 )
 
+func expectedActionsTokenPermissions(perms repo_model.ActionsTokenPermissions) *repo_model.ActionsTokenPermissions {
+	return &perms
+}
+
 func TestParseRawPermissions_ReadAll(t *testing.T) {
 	var rawPerms yaml.Node
 	err := yaml.Unmarshal([]byte(`read-all`), &rawPerms)
@@ -208,9 +212,9 @@ jobs:
 `
 
 	expectedPerms := map[string]*repo_model.ActionsTokenPermissions{}
-	expectedPerms["job-read-only"] = new(repo_model.MakeActionsTokenPermissions(perm.AccessModeRead))
-	expectedPerms["job-none-perms"] = new(repo_model.MakeActionsTokenPermissions(perm.AccessModeNone))
-	expectedPerms["job-override"] = new(repo_model.MakeActionsTokenPermissions(perm.AccessModeNone))
+	expectedPerms["job-read-only"] = expectedActionsTokenPermissions(repo_model.MakeActionsTokenPermissions(perm.AccessModeRead))
+	expectedPerms["job-none-perms"] = expectedActionsTokenPermissions(repo_model.MakeActionsTokenPermissions(perm.AccessModeNone))
+	expectedPerms["job-override"] = expectedActionsTokenPermissions(repo_model.MakeActionsTokenPermissions(perm.AccessModeNone))
 	expectedPerms["job-override"].UnitAccessModes[unit.TypeCode] = perm.AccessModeWrite
 	expectedPerms["job-override"].UnitAccessModes[unit.TypeReleases] = perm.AccessModeWrite
 

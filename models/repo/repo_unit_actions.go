@@ -118,10 +118,8 @@ func (cfg *ActionsConfig) GetDefaultTokenPermissions() ActionsTokenPermissions {
 	switch cfg.TokenPermissionMode {
 	case ActionsTokenPermissionModeRestricted:
 		return MakeRestrictedPermissions()
-	case ActionsTokenPermissionModePermissive:
-		return MakeActionsTokenPermissions(perm.AccessModeWrite)
 	default:
-		return ActionsTokenPermissions{}
+		return MakeActionsTokenPermissions(perm.AccessModeWrite)
 	}
 }
 

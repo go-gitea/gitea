@@ -34,6 +34,11 @@ func TestActionsConfig(t *testing.T) {
 }
 
 func TestActionsConfigTokenPermissions(t *testing.T) {
+	t.Run("Zero Value Permission Mode", func(t *testing.T) {
+		cfg := &ActionsConfig{}
+		assert.Equal(t, perm.AccessModeWrite, cfg.GetDefaultTokenPermissions().UnitAccessModes[unit.TypeCode])
+	})
+
 	t.Run("Default Permission Mode", func(t *testing.T) {
 		cfg := &ActionsConfig{TokenPermissionMode: "invalid-value"}
 		_ = cfg.FromDB(nil)

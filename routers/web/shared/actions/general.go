@@ -35,11 +35,11 @@ func ParseMaxTokenPermissions(ctx *context.Context) *repo_model.ActionsTokenPerm
 			return perm.AccessModeNone
 		}
 	}
-	ret := new(repo_model.MakeActionsTokenPermissions(perm.AccessModeNone))
+	ret := repo_model.MakeActionsTokenPermissions(perm.AccessModeNone)
 	for _, ut := range repo_model.ActionsTokenUnitTypes {
 		ret.UnitAccessModes[ut] = parseMaxPerm(ut)
 	}
-	return ret
+	return &ret
 }
 
 // GeneralSettings renders the actions general settings page

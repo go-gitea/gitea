@@ -51,10 +51,8 @@ func (cfg *OwnerActionsConfig) GetDefaultTokenPermissions() repo_model.ActionsTo
 	switch cfg.TokenPermissionMode {
 	case repo_model.ActionsTokenPermissionModeRestricted:
 		return repo_model.MakeRestrictedPermissions()
-	case repo_model.ActionsTokenPermissionModePermissive:
-		return repo_model.MakeActionsTokenPermissions(perm.AccessModeWrite)
 	default:
-		return repo_model.MakeActionsTokenPermissions(perm.AccessModeNone)
+		return repo_model.MakeActionsTokenPermissions(perm.AccessModeWrite)
 	}
 }
 
