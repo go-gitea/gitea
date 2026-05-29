@@ -15,6 +15,7 @@ import (
 	"strconv"
 	"strings"
 	"sync"
+	"time"
 
 	"gitea.dev/modules/json"
 	"gitea.dev/modules/util"
@@ -170,15 +171,29 @@ func ExternalServiceHTTP(t TestingT, envVarName, def string) string {
 	}
 	// minio's endpoint is "host:port" pattern
 	testURL := util.Iif(strings.Contains(val, "://"), val, "http://"+val)
-	resp, err := http.Get(testURL)
-	if err != nil {
-		if AllowSkipExternalService() {
-			t.Skipf("skipping test because %s is not ready", val)
-		} else {
-			t.Fatalf("%s is not ready, but skipping is not allowed in CI", val)
+
+	// Probe with a short per-request timeout and require a prompt response. A slow or half-started
+	// service (e.g. Elasticsearch still forming its cluster) must count as not-ready: the old single
+	// no-timeout probe accepted any eventual response, so the test proceeded and then timed out on its
+	// first real request. Locally we skip at once when the service is absent; in CI it is provisioned
+	// but may still be starting, so we poll until it answers.
+	allowSkip := AllowSkipExternalService()
+	client := &http.Client{Timeout: 2 * time.Second}
+	deadline := time.Now().Add(time.Minute)
+	for {
+		resp, err := client.Get(testURL)
+		if err == nil {
+			_ = resp.Body.Close()
+			return val
 		}
-	} else {
-		_ = resp.Body.Close()
+		if allowSkip {
+			t.Skipf("skipping test because %s is not ready: %v", val, err)
+			return val
+		}
+		if time.Now().After(deadline) {
+			t.Fatalf("%s did not become ready within the timeout: %v", val, err)
+			return val
+		}
+		time.Sleep(time.Second)
 	}
-	return val
 }
