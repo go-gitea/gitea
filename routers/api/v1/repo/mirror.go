@@ -6,21 +6,22 @@ package repo
 import (
 	"errors"
 	"net/http"
+	"strings"
 	"time"
 
-	"code.gitea.io/gitea/models/db"
-	repo_model "code.gitea.io/gitea/models/repo"
-	"code.gitea.io/gitea/models/unit"
-	"code.gitea.io/gitea/modules/git"
-	"code.gitea.io/gitea/modules/setting"
-	api "code.gitea.io/gitea/modules/structs"
-	"code.gitea.io/gitea/modules/util"
-	"code.gitea.io/gitea/modules/web"
-	"code.gitea.io/gitea/routers/api/v1/utils"
-	"code.gitea.io/gitea/services/context"
-	"code.gitea.io/gitea/services/convert"
-	"code.gitea.io/gitea/services/migrations"
-	mirror_service "code.gitea.io/gitea/services/mirror"
+	"gitea.dev/models/db"
+	repo_model "gitea.dev/models/repo"
+	"gitea.dev/models/unit"
+	"gitea.dev/modules/git"
+	"gitea.dev/modules/setting"
+	api "gitea.dev/modules/structs"
+	"gitea.dev/modules/util"
+	"gitea.dev/modules/web"
+	"gitea.dev/routers/api/v1/utils"
+	"gitea.dev/services/context"
+	"gitea.dev/services/convert"
+	"gitea.dev/services/migrations"
+	mirror_service "gitea.dev/services/mirror"
 )
 
 // MirrorSync adds a mirrored repository to the sync queue
@@ -101,6 +102,8 @@ func PushMirrorSync(ctx *context.APIContext) {
 	//     "$ref": "#/responses/forbidden"
 	//   "404":
 	//     "$ref": "#/responses/notFound"
+	//   "422":
+	//     "$ref": "#/responses/validationError"
 
 	if !setting.Mirror.Enabled {
 		ctx.APIError(http.StatusBadRequest, "Mirror feature is disabled")
@@ -112,14 +115,18 @@ func PushMirrorSync(ctx *context.APIContext) {
 		ctx.APIError(http.StatusNotFound, err)
 		return
 	}
+
+	failedPushMirrors := make([]string, 0)
 	for _, mirror := range pushMirrors {
 		ok := mirror_service.SyncPushMirror(ctx, mirror.ID)
 		if !ok {
-			ctx.APIErrorInternal(errors.New("error occurred when syncing push mirror " + mirror.RemoteName))
-			return
+			failedPushMirrors = append(failedPushMirrors, mirror.RemoteName)
 		}
 	}
-
+	if len(failedPushMirrors) != 0 {
+		ctx.APIError(http.StatusUnprocessableEntity, "error occurred when syncing push mirrors: "+strings.Join(failedPushMirrors, ", "))
+		return
+	}
 	ctx.Status(http.StatusOK)
 }
 

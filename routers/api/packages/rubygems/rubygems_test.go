@@ -7,7 +7,7 @@ import (
 	"strings"
 	"testing"
 
-	rubygems_module "code.gitea.io/gitea/modules/packages/rubygems"
+	rubygems_module "gitea.dev/modules/packages/rubygems"
 
 	"github.com/stretchr/testify/assert"
 )

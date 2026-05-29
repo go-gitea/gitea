@@ -7,11 +7,11 @@ import (
 	"context"
 	"errors"
 
-	"code.gitea.io/gitea/modules/git"
-	"code.gitea.io/gitea/modules/git/gitcmd"
-	giturl "code.gitea.io/gitea/modules/git/url"
-	"code.gitea.io/gitea/modules/globallock"
-	"code.gitea.io/gitea/modules/util"
+	"gitea.dev/modules/git"
+	"gitea.dev/modules/git/gitcmd"
+	giturl "gitea.dev/modules/git/url"
+	"gitea.dev/modules/globallock"
+	"gitea.dev/modules/util"
 )
 
 type RemoteOption string

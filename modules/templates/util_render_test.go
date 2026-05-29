@@ -10,14 +10,14 @@ import (
 	"strings"
 	"testing"
 
-	"code.gitea.io/gitea/models/issues"
-	"code.gitea.io/gitea/models/repo"
-	user_model "code.gitea.io/gitea/models/user"
-	"code.gitea.io/gitea/modules/markup"
-	"code.gitea.io/gitea/modules/reqctx"
-	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/modules/test"
-	"code.gitea.io/gitea/modules/translation"
+	"gitea.dev/models/issues"
+	"gitea.dev/models/repo"
+	user_model "gitea.dev/models/user"
+	"gitea.dev/modules/markup"
+	"gitea.dev/modules/reqctx"
+	"gitea.dev/modules/setting"
+	"gitea.dev/modules/test"
+	"gitea.dev/modules/translation"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -140,6 +140,18 @@ com 88fc37a3c0a4dda553bdcfc80c178a58247f42fb mit
 		assert.EqualValues(t, expected, newTestRenderUtils(t).RenderCommitMessageLinkSubject(testInput(), "https://example.com/link", mockRepo))
 	})
 
+	t.Run("RenderCommitMessageLinkSubjectURLOnly", func(t *testing.T) {
+		// a bare URL in the subject must not hijack the default link
+		expected := `<a href="https://example.com/link" class="muted">https://example.com/file.bin</a>`
+		assert.EqualValues(t, expected, newTestRenderUtils(t).RenderCommitMessageLinkSubject("https://example.com/file.bin", "https://example.com/link", mockRepo))
+	})
+
+	t.Run("RenderCommitMessageLinkSubjectPartialURL", func(t *testing.T) {
+		// a URL embedded in larger subject text still becomes its own link
+		expected := `<a href="https://example.com/link" class="muted">see </a><a href="https://example.com/x" data-markdown-generated-content="">https://example.com/x</a><a href="https://example.com/link" class="muted"> here</a>`
+		assert.EqualValues(t, expected, newTestRenderUtils(t).RenderCommitMessageLinkSubject("see https://example.com/x here", "https://example.com/link", mockRepo))
+	})
+
 	t.Run("RenderIssueTitle", func(t *testing.T) {
 		defer test.MockVariableValue(&markup.RenderBehaviorForTesting.DisableAdditionalAttributes, true)()
 		expected := `  space @mention-user<SPACE><SPACE>
@@ -192,6 +204,38 @@ com 88fc37a3c0a4dda553bdcfc80c178a58247f42fb mit
 space</p>
 `
 	assert.Equal(t, expected, string(newTestRenderUtils(t).MarkdownToHtml(testInput())))
+}
+
+func TestRenderPackageMarkdown(t *testing.T) {
+	defer test.MockVariableValue(&markup.RenderBehaviorForTesting.DisableAdditionalAttributes, true)()
+	mockRepo := &repo.Repository{
+		ID: 1, OwnerName: "user13", Name: "repo11", DefaultBranch: "main",
+		Owner: &user_model.User{ID: 13, Name: "user13"},
+		Units: []*repo.RepoUnit{},
+	}
+	ut := newTestRenderUtils(t)
+
+	t.Run("LinkedRepoWithDirectory", func(t *testing.T) {
+		rendered := ut.RenderPackageMarkdown("[docs](docs/getting-started.md)\n![logo](logo.png)", mockRepo, "pkg-subdir")
+		expected := `<div class="markup markdown"><p><a href="/user13/repo11/src/branch/main/pkg-subdir/docs/getting-started.md" rel="nofollow">docs</a>
+<a href="/user13/repo11/src/branch/main/pkg-subdir/logo.png" target="_blank" rel="nofollow noopener"><img src="/user13/repo11/media/branch/main/pkg-subdir/logo.png" alt="logo"/></a></p>
+</div>`
+		assert.Equal(t, expected, strings.TrimSpace(string(rendered)))
+	})
+
+	t.Run("LinkedRepoWithEmptyDirectory", func(t *testing.T) {
+		rendered := ut.RenderPackageMarkdown("[docs](docs/getting-started.md)", mockRepo, "")
+		expected := `<div class="markup markdown"><p><a href="/user13/repo11/src/branch/main/docs/getting-started.md" rel="nofollow">docs</a></p>
+</div>`
+		assert.Equal(t, expected, strings.TrimSpace(string(rendered)))
+	})
+
+	t.Run("UnlinkedRepo", func(t *testing.T) {
+		rendered := ut.RenderPackageMarkdown("[docs](docs/getting-started.md)", nil, "pkg-subdir")
+		expected := `<div class="markup markdown"><p><a href="/docs/getting-started.md" rel="nofollow">docs</a></p>
+</div>`
+		assert.Equal(t, expected, strings.TrimSpace(string(rendered)))
+	})
 }
 
 func TestRenderLabels(t *testing.T) {
