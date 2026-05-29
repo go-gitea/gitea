@@ -107,11 +107,6 @@ func NewUserGroup(ctx *context.APIContext) {
 	// produces:
 	// - application/json
 	// parameters:
-	// - name: org
-	//   in: path
-	//   description: name of the organization
-	//   type: string
-	//   required: true
 	// - name: body
 	//   in: body
 	//   required: true
@@ -529,9 +524,9 @@ func GetUserGroups(ctx *context.APIContext) {
 	// produces:
 	// - application/json
 	// parameters:
-	// - name: org
+	// - name: username
 	//   in: path
-	//   description: name of the organization
+	//   description: name of the user
 	//   type: string
 	//   required: true
 	// - name: page
