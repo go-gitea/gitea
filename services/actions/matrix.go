@@ -84,16 +84,8 @@ func ReEvaluateMatrixForJobWithNeeds(ctx context.Context, job *actions_model.Act
 		return nil, nil
 	}
 
-	if job.Run == nil {
-		if err := job.LoadRun(ctx); err != nil {
-			return nil, fmt.Errorf("load run: %w", err)
-		}
-	}
-	if job.Run == nil {
-		return nil, errors.New("run not found after loading")
-	}
-	if err := job.Run.LoadAttributes(ctx); err != nil {
-		return nil, fmt.Errorf("load run attributes: %w", err)
+	if err := job.LoadAttributes(ctx); err != nil {
+		return nil, fmt.Errorf("load job attributes: %w", err)
 	}
 
 	giteaCtx := GenerateGiteaContext(ctx, job.Run, nil, job)
@@ -165,7 +157,7 @@ func ReEvaluateMatrixForJobWithNeeds(ctx context.Context, job *actions_model.Act
 
 	// Reuse the placeholder as the first combination and insert the rest as siblings: no phantom
 	// skipped job is left to poison downstream needs, and siblings inherit attempt + permissions.
-	var children []*actions_model.ActionRunJob
+	children := make([]*actions_model.ActionRunJob, 0, len(combos)-1)
 	if err := db.WithTx(ctx, func(txCtx context.Context) error {
 		for i := 1; i < len(combos); i++ {
 			children = append(children, &actions_model.ActionRunJob{
