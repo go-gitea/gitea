@@ -18,7 +18,7 @@ const (
 )
 
 func Home(ctx *context.Context) {
-	org := ctx.Org.Organization
+	org := ctx.ContextUser
 
 	ctx.Data["PageIsUserProfile"] = true
 	ctx.Data["Title"] = org.DisplayName()
