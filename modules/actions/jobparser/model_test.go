@@ -254,6 +254,53 @@ func TestParseRawOn(t *testing.T) {
 				},
 			},
 		},
+		{
+			// `workflow_call` is only fired by another workflow's `uses:`, so ParseRawOn intentionally excludes it from trigger detection.
+			input: `on:
+  workflow_call:
+    inputs:
+      env:
+        type: string
+        required: true
+    outputs:
+      sha:
+        value: ${{ jobs.build.outputs.commit }}
+    secrets:
+      DEPLOY_KEY:
+        required: true
+`,
+			result: []*Event{},
+		},
+		{
+			// Mixed: a workflow that is both callable AND triggered by push. Only the "push" event surfaces.
+			input: `on:
+  workflow_call:
+    inputs:
+      env:
+        type: string
+  push:
+    branches: [main]
+`,
+			result: []*Event{
+				{
+					Name: "push",
+					acts: map[string][]string{"branches": {"main"}},
+				},
+			},
+		},
+		{
+			// Scalar form: a purely reusable workflow has no event triggers.
+			input:  "on: workflow_call",
+			result: []*Event{},
+		},
+		{
+			// Sequence form: `workflow_call` is excluded while sibling events are kept.
+			input: "on:\n  - push\n  - workflow_call\n  - pull_request",
+			result: []*Event{
+				{Name: "push"},
+				{Name: "pull_request"},
+			},
+		},
 	}
 	for _, kase := range kases {
 		t.Run(kase.input, func(t *testing.T) {
