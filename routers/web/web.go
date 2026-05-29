@@ -422,6 +422,15 @@ func registerWebRoutes(m *web.Router, webAuth *AuthMiddleware) {
 		}
 	}
 
+	reqSameUser := func(ctx *context.Context) {
+		if ctx.ContextUser != nil {
+			if ctx.ContextUser.ID != ctx.Doer.ID {
+				ctx.NotFound(nil)
+				return
+			}
+		}
+	}
+
 	reqUnitAccess := func(unitType unit.Type, accessMode perm.AccessMode, ignoreGlobal bool) func(ctx *context.Context) {
 		return func(ctx *context.Context) {
 			// only check global disabled units when ignoreGlobal is false
@@ -507,6 +516,28 @@ func registerWebRoutes(m *web.Router, webAuth *AuthMiddleware) {
 			m.Post("/add", shared_actions.ScopedWorkflowAdd)
 			m.Post("/required", shared_actions.ScopedWorkflowSetRequired)
 			m.Post("/remove", shared_actions.ScopedWorkflowRemove)
+		})
+	}
+
+	addUserOrgGroupRoutes := func() {
+		m.Group("/groups", func() {
+			m.Combo("/new").
+				Get(group.NewGroup).
+				Post(web.Bind(forms.CreateGroupForm{}), group.NewGroupPost)
+
+			m.Group("/{group_id}", func() {
+				m.Group("/settings", func() {
+					m.Combo("").
+						Get(group.Settings).
+						Post(web.Bind(forms.UpdateGroupSettingForm{}), group.SettingsPost)
+					m.Post("/avatar", web.Bind(forms.AvatarForm{}), group.SettingsAvatar)
+					m.Post("/avatar/delete", group.SettingsDeleteAvatar)
+				}, ctxDataSet("PageIsGroupSettings", true))
+			}, context.GroupAssignmentWeb(context.GroupAssignmentOptions{
+				RequireMember:     true,
+				RequireOwner:      false,
+				RequireGroupAdmin: true,
+			}))
 		})
 	}
 
@@ -972,25 +1003,7 @@ func registerWebRoutes(m *web.Router, webAuth *AuthMiddleware) {
 			m.Get("/milestones/group/{group_id}", reqMilestonesDashboardPageEnabled, user.Milestones)
 			m.Post("/members/action/{action}", org.MembersAction)
 			m.Get("/teams", org.Teams)
-
-			m.Group("/groups", func() {
-				m.Combo("/new").
-					Get(group.NewGroup).
-					Post(web.Bind(forms.CreateGroupForm{}), group.NewGroupPost)
-				m.Group("/{group_id}", func() {
-					m.Group("/settings", func() {
-						m.Combo("").
-							Get(group.Settings).
-							Post(web.Bind(forms.UpdateGroupSettingForm{}), group.SettingsPost)
-						m.Post("/avatar", web.Bind(forms.AvatarForm{}), group.SettingsAvatar)
-						m.Post("/avatar/delete", group.SettingsDeleteAvatar)
-					}, ctxDataSet("PageIsGroupSettings", true))
-				}, context.GroupAssignmentWeb(context.GroupAssignmentOptions{
-					RequireMember:     true,
-					RequireOwner:      false,
-					RequireGroupAdmin: true,
-				}))
-			})
+			addUserOrgGroupRoutes()
 		}, context.OrgAssignment(context.OrgAssignmentOptions{RequireMember: true, RequireTeamMember: true}))
 
 		m.Group("/{org}", func() {
@@ -1175,6 +1188,9 @@ func registerWebRoutes(m *web.Router, webAuth *AuthMiddleware) {
 		m.Group("", func() {
 			m.Get("/code", user.CodeSearch)
 		}, reqUnitAccess(unit.TypeCode, perm.AccessModeRead, false), individualPermsChecker)
+		m.Group("", func() {
+			addUserOrgGroupRoutes()
+		}, reqSignIn, reqSameUser)
 	}, optSignIn, context.UserAssignmentWeb(), context.OrgAssignment(context.OrgAssignmentOptions{}))
 	// end "/{username}/-": packages, projects, code
 	m.Group("/{username}/groups", func() {
