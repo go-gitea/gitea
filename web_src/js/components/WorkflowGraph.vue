@@ -346,6 +346,12 @@ const graphMetrics = computed(() => {
   };
 })
 
+const graphStats = computed(() => [
+  trN(props.jobs.length, props.locale.graphJobsCount1, props.locale.graphJobsCountN),
+  trN(edges.value.length, props.locale.graphDependenciesCount1, props.locale.graphDependenciesCountN),
+  props.locale.graphSuccessRate.replace('%s', graphMetrics.value.successRate),
+].join(' • '))
+
 const nodeHeight = 52;
 const verticalSpacing = 90;
 const margin = 40;
@@ -546,12 +552,7 @@ function onNodeClick(job: JobNode, event: MouseEvent) {
   <div class="workflow-graph" v-if="jobs.length > 0">
     <div class="graph-header">
       <h4 class="graph-title">{{ locale.workflowDependencies }}</h4>
-      <div class="graph-stats">
-        {{ trN(jobs.length, locale.graphJobsCount1, locale.graphJobsCountN) }} • {{ trN(edges.length, locale.graphDependenciesCount1, locale.graphDependenciesCountN) }}
-        <span v-if="graphMetrics">
-          • <span class="graph-metrics">{{ locale.graphSuccessRate.replace('%s', graphMetrics.successRate) }}</span>
-        </span>
-      </div>
+      <div class="graph-stats">{{ graphStats }}</div>
       <div class="flex-text-block">
         <button
           type="button"
@@ -701,11 +702,6 @@ function onNodeClick(job: JobNode, event: MouseEvent) {
   color: var(--color-text-light-1);
   font-size: 13px;
   white-space: nowrap;
-}
-
-.graph-metrics {
-  color: var(--color-primary);
-  font-weight: var(--font-weight-medium);
 }
 
 .graph-container {
