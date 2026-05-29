@@ -298,6 +298,9 @@ func toGitContext(input map[string]any) *model.GithubContext {
 	return gitContext
 }
 
+// workflowCallEvent is only fired by another workflow's `uses:`, so it is excluded from trigger detection.
+const workflowCallEvent = "workflow_call"
+
 func ParseRawOn(rawOn *yaml.Node) ([]*Event, error) {
 	switch rawOn.Kind {
 	case yaml.ScalarNode:
@@ -305,6 +308,9 @@ func ParseRawOn(rawOn *yaml.Node) ([]*Event, error) {
 		err := rawOn.Decode(&val)
 		if err != nil {
 			return nil, err
+		}
+		if val == workflowCallEvent {
+			return []*Event{}, nil
 		}
 		return []*Event{
 			{Name: val},
@@ -319,6 +325,9 @@ func ParseRawOn(rawOn *yaml.Node) ([]*Event, error) {
 		for _, v := range val {
 			switch t := v.(type) {
 			case string:
+				if t == workflowCallEvent {
+					continue
+				}
 				res = append(res, &Event{Name: t})
 			default:
 				return nil, fmt.Errorf("invalid type %T", t)
@@ -332,8 +341,7 @@ func ParseRawOn(rawOn *yaml.Node) ([]*Event, error) {
 		}
 		res := make([]*Event, 0, len(events))
 		for i, k := range events {
-			if k == "workflow_call" {
-				// `workflow_call` is only fired by another workflow's `uses:`, so it doesn't need trigger detection here.
+			if k == workflowCallEvent {
 				continue
 			}
 			v := triggers[i]

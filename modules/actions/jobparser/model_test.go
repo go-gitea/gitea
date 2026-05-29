@@ -288,6 +288,19 @@ func TestParseRawOn(t *testing.T) {
 				},
 			},
 		},
+		{
+			// Scalar form: a purely reusable workflow has no event triggers.
+			input:  "on: workflow_call",
+			result: []*Event{},
+		},
+		{
+			// Sequence form: `workflow_call` is excluded while sibling events are kept.
+			input: "on:\n  - push\n  - workflow_call\n  - pull_request",
+			result: []*Event{
+				{Name: "push"},
+				{Name: "pull_request"},
+			},
+		},
 	}
 	for _, kase := range kases {
 		t.Run(kase.input, func(t *testing.T) {
