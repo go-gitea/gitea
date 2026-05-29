@@ -16,6 +16,7 @@ import (
 	"gitea.dev/modules/markup/markdown"
 	"gitea.dev/modules/setting"
 	"gitea.dev/modules/structs"
+	"gitea.dev/modules/util"
 )
 
 // commonCtx contains some common functions between APIContext and Context
@@ -187,7 +188,7 @@ func groupAssignment(ctx commonCtx, doer *user_model.User, isSigned, _ bool, han
 		}
 	}
 	repoGroup.GroupLink = group.GroupLink()
-	repoGroup.OrgGroupLink = group.OrgGroupLink()
+	repoGroup.OrgGroupLink = util.Iif(group.Owner.IsOrganization(), group.OrgGroupLink(), group.UserGroupLink())
 	if !repoGroup.IsOwner && !repoGroup.IsGroupAdmin {
 		canAccess = canAccess && !privateBecauseOfParent
 	}
