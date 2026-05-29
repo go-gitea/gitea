@@ -4,6 +4,7 @@ import {SvgIcon} from '../svg.ts';
 import ActionStatusIcon from './ActionStatusIcon.vue';
 import {localUserSettings} from '../modules/user-settings.ts';
 import {isPlainClick} from '../utils/dom.ts';
+import {trN} from '../modules/i18n.ts';
 import {debounce} from 'throttle-debounce';
 import type {ActionsJob, ActionsStatus} from '../modules/gitea-actions.ts';
 import type {ActionRunViewStore} from './ActionRunView.ts';
@@ -43,6 +44,7 @@ const props = defineProps<{
   jobs: ActionsJob[];
   runLink: string;
   workflowId: string;
+  locale: Record<string, string>;
 }>()
 
 const settingKeyStates = 'actions-graph-states';
@@ -344,6 +346,12 @@ const graphMetrics = computed(() => {
   };
 })
 
+const graphStats = computed(() => [
+  trN(props.jobs.length, props.locale.graphJobsCount1, props.locale.graphJobsCountN),
+  trN(edges.value.length, props.locale.graphDependenciesCount1, props.locale.graphDependenciesCountN),
+  props.locale.graphSuccessRate.replace('%s', graphMetrics.value.successRate),
+].join(' • '))
+
 const nodeHeight = 52;
 const verticalSpacing = 90;
 const margin = 40;
@@ -543,27 +551,22 @@ function onNodeClick(job: JobNode, event: MouseEvent) {
 <template>
   <div class="workflow-graph" v-if="jobs.length > 0">
     <div class="graph-header">
-      <h4 class="graph-title">Workflow Dependencies</h4>
-      <div class="graph-stats">
-        {{ jobs.length }} jobs • {{ edges.length }} dependencies
-        <span v-if="graphMetrics">
-          • <span class="graph-metrics">{{ graphMetrics.successRate }} success</span>
-        </span>
-      </div>
+      <h4 class="graph-title">{{ locale.workflowDependencies }}</h4>
+      <div class="graph-stats">{{ graphStats }}</div>
       <div class="flex-text-block">
         <button
           type="button"
           @click="zoomIn"
           class="ui compact tiny icon button"
           :disabled="!canZoomIn"
-          :title="canZoomIn ? 'Zoom in (Ctrl/Cmd + scroll on graph)' : 'Already at 100% zoom'"
+          :title="canZoomIn ? locale.graphZoomIn : locale.graphZoomMax"
         >
           <SvgIcon name="octicon-zoom-in" :size="12"/>
         </button>
-        <button type="button" @click="resetView" class="ui compact tiny icon button" title="Reset view">
+        <button type="button" @click="resetView" class="ui compact tiny icon button" :title="locale.graphResetView">
           <SvgIcon name="octicon-sync" :size="12"/>
         </button>
-        <button type="button" @click="zoomOut" class="ui compact tiny icon button" title="Zoom out (Ctrl/Cmd + scroll on graph)">
+        <button type="button" @click="zoomOut" class="ui compact tiny icon button" :title="locale.graphZoomOut">
           <SvgIcon name="octicon-zoom-out" :size="12"/>
         </button>
       </div>
@@ -699,11 +702,6 @@ function onNodeClick(job: JobNode, event: MouseEvent) {
   color: var(--color-text-light-1);
   font-size: 13px;
   white-space: nowrap;
-}
-
-.graph-metrics {
-  color: var(--color-primary);
-  font-weight: var(--font-weight-medium);
 }
 
 .graph-container {
