@@ -32,7 +32,7 @@ func TestGetWatchers(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 
 	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
-	watches, err := repo_model.GetWatchers(t.Context(), repo.ID)
+	watches, err := repo_model.GetRepoWatches(t.Context(), repo.ID)
 	assert.NoError(t, err)
 	// One watchers are inactive, thus minus 1
 	assert.Len(t, watches, repo.NumWatches-1)
@@ -40,7 +40,7 @@ func TestGetWatchers(t *testing.T) {
 		assert.Equal(t, repo.ID, watch.RepoID)
 	}
 
-	watches, err = repo_model.GetWatchers(t.Context(), unittest.NonexistentID)
+	watches, err = repo_model.GetRepoWatches(t.Context(), unittest.NonexistentID)
 	assert.NoError(t, err)
 	assert.Empty(t, watches)
 }
@@ -125,16 +125,41 @@ func TestClearRepoWatches(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 
 	const repoID int64 = 1
-	watchers, err := repo_model.GetRepoWatchersIDs(t.Context(), repoID)
+	watchers, err := repo_model.GetRepoWatchers(t.Context(), repoID, db.ListOptions{Page: 1})
 	require.NoError(t, err)
 	require.NotEmpty(t, watchers)
 
 	assert.NoError(t, repo_model.ClearRepoWatches(t.Context(), repoID))
 
-	watchers, err = repo_model.GetRepoWatchersIDs(t.Context(), repoID)
+	watchers, err = repo_model.GetRepoWatchers(t.Context(), repoID, db.ListOptions{Page: 1})
 	assert.NoError(t, err)
 	assert.Empty(t, watchers)
 
 	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: repoID})
 	assert.Zero(t, repo.NumWatches)
+}
+
+func TestWatchOptions(t *testing.T) {
+	assert.NoError(t, unittest.PrepareTestDatabase())
+
+	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 5})
+	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 1})
+
+	assert.NoError(t, repo_model.WatchRepo(t.Context(), user, repo, true))
+	watch, err := repo_model.GetWatch(t.Context(), user.ID, repo.ID)
+	assert.NoError(t, err)
+	assert.True(t, watch.PullRequests)
+	assert.True(t, watch.Issues)
+	assert.True(t, watch.Releases)
+
+	assert.NoError(t, repo_model.WatchRepoOptions(t.Context(), user, repo, repo_model.WatchOptions{
+		PullRequests: true,
+		Issues:       false,
+		Releases:     true,
+	}))
+	watch, err = repo_model.GetWatch(t.Context(), user.ID, repo.ID)
+	assert.NoError(t, err)
+	assert.True(t, watch.PullRequests)
+	assert.False(t, watch.Issues)
+	assert.True(t, watch.Releases)
 }

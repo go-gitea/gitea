@@ -81,7 +81,13 @@ func CheckIssueWatch(ctx context.Context, user *user_model.User, issue *Issue) (
 	if err != nil {
 		return false, err
 	}
-	return repo_model.IsWatchMode(w.Mode) || IsUserParticipantsOfIssue(ctx, user, issue), nil
+	if repo_model.IsWatchMode(w.Mode) {
+		if issue.IsPull {
+			return w.PullRequests, nil
+		}
+		return w.Issues, nil
+	}
+	return IsUserParticipantsOfIssue(ctx, user, issue), nil
 }
 
 // GetIssueWatchersIDs returns IDs of subscribers or explicit unsubscribers to a given issue id

@@ -34,7 +34,7 @@ export function registerGlobalSelectorFunc<T extends Element>(selector: string, 
   }
 }
 
-// It handles the global init functions for all `<div data-global-int="initSomeElem"></div>` elements.
+// It handles the global init functions for all `<div data-global-init="initSomeElem"></div>` elements.
 export function registerGlobalInitFunc<T extends HTMLElement>(name: string, handler: GlobalInitFunc<T>) {
   globalInitFuncs[name] = handler as GlobalInitFunc<Element>;
   // The "global init" functions are managed internally and called by callGlobalInitFunc

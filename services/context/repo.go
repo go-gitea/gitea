@@ -661,7 +661,13 @@ func repoAssignmentPrepareTemplateData(ctx *Context, data *repoAssignmentPrepare
 	}
 
 	if ctx.IsSigned {
-		ctx.Data["IsWatchingRepo"] = repo_model.IsWatching(ctx, ctx.Doer.ID, repo.ID)
+		watch, err := repo_model.GetWatch(ctx, ctx.Doer.ID, repo.ID)
+		if err != nil {
+			ctx.ServerError("GetWatch", err)
+			return
+		}
+		ctx.Data["Watch"] = watch
+		ctx.Data["IsWatchingRepo"] = repo_model.IsWatchMode(watch.Mode)
 		ctx.Data["IsStaringRepo"] = repo_model.IsStaring(ctx, ctx.Doer.ID, repo.ID)
 	}
 

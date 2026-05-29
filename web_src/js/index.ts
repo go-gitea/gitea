@@ -66,6 +66,7 @@ import {initActionsPermissionsForm} from './features/common-actions-permissions.
 import {initRefIssueContextPopup} from './features/ref-issue.ts';
 import {initGlobalShortcut} from './modules/shortcut.ts';
 import {initDevtest} from './modules/devtest.ts';
+import {initRepoWatch} from './features/repo-watch.ts';
 
 const initStartTime = performance.now();
 const initPerformanceTracer = callInitFunctions([
@@ -143,6 +144,7 @@ const initPerformanceTracer = callInitFunctions([
   initRepoContributors,
   initRepoCodeFrequency,
   initRepoRecentCommits,
+  initRepoWatch,
 
   initCommitStatuses,
   initCaptcha,

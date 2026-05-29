@@ -24,7 +24,7 @@ func createNewRelease(t *testing.T, session *TestSession, repoURL, tag, title st
 	resp := session.MakeRequest(t, req, http.StatusOK)
 	htmlDoc := NewHTMLParser(t, resp.Body)
 
-	link, exists := htmlDoc.doc.Find("form.ui.form").Attr("action")
+	link, exists := htmlDoc.doc.Find("form#new-release").Attr("action")
 	assert.True(t, exists, "The template has changed")
 
 	postData := map[string]string{

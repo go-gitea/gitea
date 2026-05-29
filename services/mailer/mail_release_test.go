@@ -62,3 +62,55 @@ func TestMailNewReleaseFiltersUnauthorizedWatchers(t *testing.T) {
 	assert.Equal(t, admin.EmailTo(), sent[0].To)
 	assert.NotEqual(t, unauthorized.EmailTo(), sent[0].To)
 }
+
+func TestMailNewReleaseWithWatchOptions(t *testing.T) {
+	assert.NoError(t, unittest.PrepareTestDatabase())
+
+	defer test.MockVariableValue(&setting.MailService)()
+	defer test.MockVariableValue(&setting.Domain)()
+	defer test.MockVariableValue(&setting.AppName)()
+	defer test.MockVariableValue(&setting.AppURL)()
+
+	setting.MailService = &setting.Mailer{
+		From:      "Gitea",
+		FromEmail: "noreply@example.com",
+	}
+	setting.Domain = "example.com"
+	setting.AppName = "Gitea"
+	setting.AppURL = "https://example.com/"
+	defer mockMailTemplates(string(tplNewReleaseMail), "{{.Subject}}", "<p>{{.Release.TagName}}</p>")()
+
+	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 2})
+	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 1})
+
+	assert.NoError(t, repo_model.WatchRepo(t.Context(), user, repo, true))
+	assert.NoError(t, repo_model.WatchRepoOptions(t.Context(), user, repo, repo_model.WatchOptions{
+		PullRequests: true,
+		Issues:       true,
+		Releases:     false,
+	}))
+
+	didSend := false
+	origSend := SendAsync
+	SendAsync = func(msgs ...*sender_service.Message) {
+		didSend = true
+	}
+	defer func() {
+		SendAsync = origSend
+	}()
+
+	rel := unittest.AssertExistsAndLoadBean(t, &repo_model.Release{ID: 11})
+	rel.Publisher = unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: rel.PublisherID})
+	MailNewRelease(t.Context(), rel)
+	assert.False(t, didSend)
+
+	assert.NoError(t, repo_model.WatchRepoOptions(t.Context(), user, repo, repo_model.WatchOptions{
+		PullRequests: true,
+		Issues:       true,
+		Releases:     true,
+	}))
+
+	didSend = false
+	MailNewRelease(t.Context(), rel)
+	assert.True(t, didSend)
+}

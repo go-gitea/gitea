@@ -10,6 +10,7 @@ import (
 	user_model "gitea.dev/models/user"
 	"gitea.dev/modules/setting"
 	"gitea.dev/modules/timeutil"
+	"gitea.dev/modules/util"
 )
 
 // WatchMode specifies what kind of watch the user has on a repository
@@ -26,14 +27,25 @@ const (
 	WatchModeAuto // 3
 )
 
+type WatchType int8
+
+const (
+	WatchPullRequests WatchType = iota // 0
+	WatchIssues                        // 1
+	WatchReleases                      // 2
+)
+
 // Watch is connection request for receiving repository notification.
 type Watch struct {
-	ID          int64              `xorm:"pk autoincr"`
-	UserID      int64              `xorm:"UNIQUE(watch)"`
-	RepoID      int64              `xorm:"UNIQUE(watch)"`
-	Mode        WatchMode          `xorm:"SMALLINT NOT NULL DEFAULT 1"`
-	CreatedUnix timeutil.TimeStamp `xorm:"INDEX created"`
-	UpdatedUnix timeutil.TimeStamp `xorm:"INDEX updated"`
+	ID           int64              `xorm:"pk autoincr"`
+	UserID       int64              `xorm:"UNIQUE(watch)"`
+	RepoID       int64              `xorm:"UNIQUE(watch)"`
+	Mode         WatchMode          `xorm:"SMALLINT NOT NULL DEFAULT 1"`
+	CreatedUnix  timeutil.TimeStamp `xorm:"INDEX created"`
+	UpdatedUnix  timeutil.TimeStamp `xorm:"INDEX updated"`
+	PullRequests bool               `xorm:"NOT NULL DEFAULT true"`
+	Issues       bool               `xorm:"NOT NULL DEFAULT true"`
+	Releases     bool               `xorm:"NOT NULL DEFAULT true"`
 }
 
 func init() {
@@ -83,15 +95,20 @@ func watchRepoMode(ctx context.Context, watch Watch, mode WatchMode) (err error)
 		repodiff = -1
 	}
 
+	// Only (re)seed the per-event flags when transitioning to/from a watching state,
+	// so an already-watching user keeps any Custom selection they configured.
+	if IsWatchMode(mode) != IsWatchMode(watch.Mode) {
+		watch.PullRequests = IsWatchMode(mode)
+		watch.Issues = IsWatchMode(mode)
+		watch.Releases = IsWatchMode(mode)
+	}
 	watch.Mode = mode
 
 	if !hadrec && needsrec {
-		watch.Mode = mode
 		if err = db.Insert(ctx, watch); err != nil {
 			return err
 		}
 	} else if needsrec {
-		watch.Mode = mode
 		if _, err := db.GetEngine(ctx).ID(watch.ID).AllCols().Update(watch); err != nil {
 			return err
 		}
@@ -123,8 +140,37 @@ func WatchRepo(ctx context.Context, doer *user_model.User, repo *Repository, doW
 	return watchRepoMode(ctx, watch, WatchModeNormal)
 }
 
-// GetWatchers returns all watchers of given repository.
-func GetWatchers(ctx context.Context, repoID int64) ([]*Watch, error) {
+type WatchOptions struct {
+	PullRequests bool
+	Issues       bool
+	Releases     bool
+}
+
+func WatchRepoOptions(ctx context.Context, doer *user_model.User, repo *Repository, opts WatchOptions) error {
+	watch := Watch{UserID: doer.ID, RepoID: repo.ID}
+	has, err := db.GetEngine(ctx).Get(&watch)
+	if err != nil {
+		return err
+	}
+	if !has {
+		// No watch row yet — options are only meaningful when watching, so callers
+		// must ensure WatchRepo has been invoked first.
+		return util.NewNotExistErrorf("watch [user_id: %d, repo_id: %d] does not exist", doer.ID, repo.ID)
+	}
+
+	watch.PullRequests = opts.PullRequests
+	watch.Issues = opts.Issues
+	watch.Releases = opts.Releases
+
+	if _, err := db.GetEngine(ctx).ID(watch.ID).Cols("pull_requests", "issues", "releases").Update(&watch); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+// GetRepoWatches returns all watches of given repository.
+func GetRepoWatches(ctx context.Context, repoID int64) ([]*Watch, error) {
 	watches := make([]*Watch, 0, 10)
 	return watches, db.GetEngine(ctx).Where("`watch`.repo_id=?", repoID).
 		And("`watch`.mode<>?", WatchModeDont).
@@ -137,13 +183,45 @@ func GetWatchers(ctx context.Context, repoID int64) ([]*Watch, error) {
 // GetRepoWatchersIDs returns IDs of watchers for a given repo ID
 // but avoids joining with `user` for performance reasons
 // User permissions must be verified elsewhere if required
-func GetRepoWatchersIDs(ctx context.Context, repoID int64) ([]int64, error) {
+func GetRepoWatchersIDs(ctx context.Context, repoID int64, watchType WatchType) ([]int64, error) {
 	ids := make([]int64, 0, 64)
-	return ids, db.GetEngine(ctx).Table("watch").
+	sess := db.GetEngine(ctx).Table("watch").
 		Where("watch.repo_id=?", repoID).
+		And("watch.mode<>?", WatchModeDont)
+
+	switch watchType {
+	case WatchPullRequests:
+		sess = sess.And("watch.pull_requests=?", true)
+	case WatchIssues:
+		sess = sess.And("watch.issues=?", true)
+	case WatchReleases:
+		sess = sess.And("watch.releases=?", true)
+	}
+
+	return ids, sess.Select("user_id").Find(&ids)
+}
+
+func GetWatches(ctx context.Context, repos []*Repository) (map[int64]*Watch, error) {
+	repoIDs := make([]int64, 0, len(repos))
+	for i := range repos {
+		repoIDs = append(repoIDs, repos[i].ID)
+	}
+
+	var watches []*Watch
+	err := db.GetEngine(ctx).Table("watch").
+		In("watch.repo_id", repoIDs).
 		And("watch.mode<>?", WatchModeDont).
-		Select("user_id").
-		Find(&ids)
+		Find(&watches)
+	if err != nil {
+		return nil, err
+	}
+
+	watchesByRepo := make(map[int64]*Watch, len(watches))
+	for _, w := range watches {
+		watchesByRepo[w.RepoID] = w
+	}
+
+	return watchesByRepo, nil
 }
 
 // GetRepoWatchers returns range of users watching given repository.

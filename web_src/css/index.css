@@ -73,6 +73,7 @@
 @import "./repo/clone.css";
 @import "./repo/commit-sign.css";
 @import "./repo/packages.css";
+@import "./repo/watch.css";
 
 @import "./editor/combomarkdowneditor.css";
 
