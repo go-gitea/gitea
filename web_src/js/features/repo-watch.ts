@@ -10,12 +10,25 @@ export function initRepoWatch() {
   const elPullRequests = elModal.querySelector<HTMLInputElement>('[name="pull_requests"]')!;
   const elIssues = elModal.querySelector<HTMLInputElement>('[name="issues"]')!;
   const elReleases = elModal.querySelector<HTMLInputElement>('[name="releases"]')!;
+  const elSubmitBtn = elModal.querySelector<HTMLButtonElement>('.approve.button')!;
+
+  const updateFormValidity = () => {
+    const isValid = elPullRequests.checked || elIssues.checked || elReleases.checked;
+    elPullRequests.setCustomValidity(isValid ? '' : form.getAttribute('data-required-message')!);
+    elSubmitBtn.disabled = !isValid;
+    form.reportValidity();
+  };
 
   const resetModalInputs = (btn: HTMLElement) => {
     elPullRequests.checked = btn.getAttribute('data-watch-pull-requests') === 'true';
     elIssues.checked = btn.getAttribute('data-watch-issues') === 'true';
     elReleases.checked = btn.getAttribute('data-watch-releases') === 'true';
+    updateFormValidity();
   };
+
+  elPullRequests.addEventListener('change', updateFormValidity);
+  elIssues.addEventListener('change', updateFormValidity);
+  elReleases.addEventListener('change', updateFormValidity);
 
   const showWatchOptionsModal = (btn: HTMLElement, action: string, sync: string) => {
     resetModalInputs(btn);
@@ -25,6 +38,8 @@ export function initRepoWatch() {
     fomanticQuery(elModal).modal({
       autofocus: false,
       async onApprove() {
+        if (!form.reportValidity()) return false;
+
         try {
           await submitFormFetchAction(form);
         } finally {

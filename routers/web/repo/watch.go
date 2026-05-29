@@ -17,18 +17,23 @@ const (
 )
 
 func ActionWatch(ctx *context.Context) {
+	var watchOptions *repo_model.WatchOptions
+	if ctx.FormString("watch_mode") == "custom" {
+		opts := getWatchOptions(ctx)
+		if !validateWatchOptions(ctx, opts) {
+			return
+		}
+		watchOptions = &opts
+	}
+
 	err := repo_model.WatchRepo(ctx, ctx.Doer, ctx.Repo.Repository, ctx.PathParam("action") == "watch")
 	if err != nil {
 		handleActionError(ctx, err)
 		return
 	}
 
-	if ctx.FormString("watch_mode") == "custom" {
-		err = repo_model.WatchRepoOptions(ctx, ctx.Doer, ctx.Repo.Repository, repo_model.WatchOptions{
-			PullRequests: ctx.FormBool("pull_requests"),
-			Issues:       ctx.FormBool("issues"),
-			Releases:     ctx.FormBool("releases"),
-		})
+	if watchOptions != nil {
+		err = repo_model.WatchRepoOptions(ctx, ctx.Doer, ctx.Repo.Repository, *watchOptions)
 		if err != nil {
 			handleActionError(ctx, err)
 			return
@@ -53,15 +58,12 @@ func ActionWatch(ctx *context.Context) {
 }
 
 func ActionWatchOptions(ctx *context.Context) {
-	watchPullRequests := ctx.FormBool("pull_requests")
-	watchIssues := ctx.FormBool("issues")
-	watchReleases := ctx.FormBool("releases")
+	opts := getWatchOptions(ctx)
+	if !validateWatchOptions(ctx, opts) {
+		return
+	}
 
-	err := repo_model.WatchRepoOptions(ctx, ctx.Doer, ctx.Repo.Repository, repo_model.WatchOptions{
-		PullRequests: watchPullRequests,
-		Issues:       watchIssues,
-		Releases:     watchReleases,
-	})
+	err := repo_model.WatchRepoOptions(ctx, ctx.Doer, ctx.Repo.Repository, opts)
 	if err != nil {
 		handleActionError(ctx, err)
 		return
@@ -69,9 +71,25 @@ func ActionWatchOptions(ctx *context.Context) {
 
 	ctx.Data["RepoID"] = ctx.Repo.Repository.ID
 	ctx.Data["RepoLink"] = ctx.Repo.RepoLink
-	ctx.Data["WatchPullRequests"] = watchPullRequests
-	ctx.Data["WatchIssues"] = watchIssues
-	ctx.Data["WatchReleases"] = watchReleases
+	ctx.Data["WatchPullRequests"] = opts.PullRequests
+	ctx.Data["WatchIssues"] = opts.Issues
+	ctx.Data["WatchReleases"] = opts.Releases
 
 	ctx.HTML(http.StatusOK, tplWatchOptionsBtn)
+}
+
+func getWatchOptions(ctx *context.Context) repo_model.WatchOptions {
+	return repo_model.WatchOptions{
+		PullRequests: ctx.FormBool("pull_requests"),
+		Issues:       ctx.FormBool("issues"),
+		Releases:     ctx.FormBool("releases"),
+	}
+}
+
+func validateWatchOptions(ctx *context.Context, opts repo_model.WatchOptions) bool {
+	if opts.PullRequests || opts.Issues || opts.Releases {
+		return true
+	}
+	ctx.JSONError(ctx.Tr("repo.watch.options.required"))
+	return false
 }

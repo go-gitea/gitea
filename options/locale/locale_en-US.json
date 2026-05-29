@@ -1156,6 +1156,7 @@
   "repo.watch": "Watch",
   "repo.watching": "Watching",
   "repo.watch.options.desc": "Choose the events you want to receive notifications for, in addition to mentions and subscriptions.",
+  "repo.watch.options.required": "Select at least one event type.",
   "repo.watch.options.pull_requests": "Pull Requests",
   "repo.watch.options.issues": "Issues",
   "repo.watch.options.releases": "Releases",
