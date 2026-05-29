@@ -152,14 +152,21 @@ func ReEvaluateMatrixForJobWithNeeds(ctx context.Context, job *actions_model.Act
 		return nil, markMatrixAsEvaluatedAndSkip(ctx, job, "matrix expanded to no combinations")
 	}
 
+	// Cap expansion at MaxJobNumPerRun: a runtime fromJson() value must not create unbounded jobs,
+	// and the AttemptJobIDs (used in job URLs) must stay below the limit. Siblings take the IDs
+	// above the current max, so that highest value is what must stay in range.
+	maxAttemptJobID, err := actions_model.GetMaxAttemptJobID(ctx, job.RunID, job.RunAttemptID)
+	if err != nil {
+		return nil, fmt.Errorf("get max attempt job id for job %d: %w", job.ID, err)
+	}
+	if maxAttemptJobID+int64(len(combos))-1 >= actions_model.MaxJobNumPerRun {
+		return nil, markMatrixAsEvaluatedAndSkip(ctx, job, fmt.Sprintf("matrix expansion to %d combinations would exceed the per-run job limit of %d", len(combos), actions_model.MaxJobNumPerRun))
+	}
+
 	// Reuse the placeholder as the first combination and insert the rest as siblings: no phantom
 	// skipped job is left to poison downstream needs, and siblings inherit attempt + permissions.
 	var children []*actions_model.ActionRunJob
 	if err := db.WithTx(ctx, func(txCtx context.Context) error {
-		maxAttemptJobID, err := actions_model.GetMaxAttemptJobID(txCtx, job.RunID, job.RunAttemptID)
-		if err != nil {
-			return err
-		}
 		for i := 1; i < len(combos); i++ {
 			children = append(children, &actions_model.ActionRunJob{
 				RunID:             job.RunID,

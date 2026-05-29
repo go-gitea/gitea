@@ -573,9 +573,9 @@ jobs:
 func TestExpandMatrixWithNeeds(t *testing.T) {
 	buildJob := func(t *testing.T, matrixYAML, runsOn string, needs []string) *Job {
 		t.Helper()
-		var strat Strategy
-		require.NoError(t, yaml.Unmarshal([]byte(matrixYAML), &strat))
-		job := &Job{Name: "build", Strategy: strat}
+		var strategy Strategy
+		require.NoError(t, yaml.Unmarshal([]byte(matrixYAML), &strategy))
+		job := &Job{Name: "build", Strategy: strategy}
 		require.NoError(t, job.RawRunsOn.Encode(runsOn))
 		require.NoError(t, job.RawNeeds.Encode(needs))
 		return job
