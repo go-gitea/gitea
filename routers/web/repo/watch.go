@@ -17,8 +17,10 @@ const (
 )
 
 func ActionWatch(ctx *context.Context) {
+	doWatch := ctx.PathParam("action") == "watch"
+
 	var watchOptions *repo_model.WatchOptions
-	if ctx.FormString("watch_mode") == "custom" {
+	if doWatch && ctx.FormString("watch_mode") == "custom" {
 		opts := getWatchOptions(ctx)
 		if !validateWatchOptions(ctx, opts) {
 			return
@@ -26,7 +28,7 @@ func ActionWatch(ctx *context.Context) {
 		watchOptions = &opts
 	}
 
-	err := repo_model.WatchRepo(ctx, ctx.Doer, ctx.Repo.Repository, ctx.PathParam("action") == "watch")
+	err := repo_model.WatchRepo(ctx, ctx.Doer, ctx.Repo.Repository, doWatch)
 	if err != nil {
 		handleActionError(ctx, err)
 		return

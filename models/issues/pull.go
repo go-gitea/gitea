@@ -1009,13 +1009,15 @@ func GetPullRequestByMergedCommit(ctx context.Context, repoID int64, sha string)
 	return pr, nil
 }
 
-// GetPullRequestRequestedReviewerIDs returns IDs of reviewers requested for the given pull request
+// GetPullRequestRequestedReviewerIDs returns IDs of reviewers currently requested for the given pull request.
 func GetPullRequestRequestedReviewerIDs(ctx context.Context, issueID int64) ([]int64, error) {
 	userIDs := make([]int64, 0, 5)
 	return userIDs, db.GetEngine(ctx).
 		Table("review").
 		Cols("reviewer_id").
 		Where("issue_id=?", issueID).
+		And("type=?", ReviewTypeRequest).
+		And("reviewer_id > 0").
 		Distinct("reviewer_id").
 		Find(&userIDs)
 }

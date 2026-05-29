@@ -10,6 +10,7 @@ import (
 	user_model "gitea.dev/models/user"
 	"gitea.dev/modules/setting"
 	"gitea.dev/modules/timeutil"
+	"gitea.dev/modules/util"
 )
 
 // WatchMode specifies what kind of watch the user has on a repository
@@ -76,6 +77,9 @@ func IsWatching(ctx context.Context, userID, repoID int64) bool {
 }
 
 func watchRepoMode(ctx context.Context, watch Watch, mode WatchMode) (err error) {
+	if watch.Mode == mode {
+		return nil
+	}
 	if mode == WatchModeAuto && (watch.Mode == WatchModeDont || IsWatchMode(watch.Mode)) {
 		// Don't auto watch if already watching or deliberately not watching
 		return nil
@@ -91,10 +95,14 @@ func watchRepoMode(ctx context.Context, watch Watch, mode WatchMode) (err error)
 		repodiff = -1
 	}
 
+	// Only (re)seed the per-event flags when transitioning to/from a watching state,
+	// so an already-watching user keeps any Custom selection they configured.
+	if IsWatchMode(mode) != IsWatchMode(watch.Mode) {
+		watch.PullRequests = IsWatchMode(mode)
+		watch.Issues = IsWatchMode(mode)
+		watch.Releases = IsWatchMode(mode)
+	}
 	watch.Mode = mode
-	watch.PullRequests = IsWatchMode(mode)
-	watch.Issues = IsWatchMode(mode)
-	watch.Releases = IsWatchMode(mode)
 
 	if !hadrec && needsrec {
 		if err = db.Insert(ctx, watch); err != nil {
@@ -140,8 +148,14 @@ type WatchOptions struct {
 
 func WatchRepoOptions(ctx context.Context, doer *user_model.User, repo *Repository, opts WatchOptions) error {
 	watch := Watch{UserID: doer.ID, RepoID: repo.ID}
-	if _, err := db.GetEngine(ctx).Get(&watch); err != nil {
+	has, err := db.GetEngine(ctx).Get(&watch)
+	if err != nil {
 		return err
+	}
+	if !has {
+		// No watch row yet — options are only meaningful when watching, so callers
+		// must ensure WatchRepo has been invoked first.
+		return util.NewNotExistErrorf("watch [user_id: %d, repo_id: %d] does not exist", doer.ID, repo.ID)
 	}
 
 	watch.PullRequests = opts.PullRequests

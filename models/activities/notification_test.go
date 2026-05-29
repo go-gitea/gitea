@@ -7,7 +7,6 @@ import (
 	"context"
 	"testing"
 
-	"gitea.dev/models/activities"
 	activities_model "gitea.dev/models/activities"
 	"gitea.dev/models/db"
 	issues_model "gitea.dev/models/issues"
@@ -158,7 +157,7 @@ func TestIssueNotificationWithWatchOptions(t *testing.T) {
 	}))
 
 	assert.NoError(t, activities_model.CreateOrUpdateIssueNotifications(t.Context(), iss.ID, 0, doer.ID, 0))
-	notification, err := activities.GetIssueNotification(t.Context(), watcher.ID, iss.ID)
+	notification, err := activities_model.GetIssueNotification(t.Context(), watcher.ID, iss.ID)
 	assert.NoError(t, err)
 	assert.Equal(t, int64(0), notification.IssueID) // No notification found
 
@@ -169,9 +168,9 @@ func TestIssueNotificationWithWatchOptions(t *testing.T) {
 	}))
 
 	assert.NoError(t, activities_model.CreateOrUpdateIssueNotifications(t.Context(), iss.ID, 0, doer.ID, 0))
-	notification, err = activities.GetIssueNotification(t.Context(), watcher.ID, iss.ID)
+	notification, err = activities_model.GetIssueNotification(t.Context(), watcher.ID, iss.ID)
 	assert.NoError(t, err)
-	assert.Equal(t, activities.NotificationStatusUnread, notification.Status)
+	assert.Equal(t, activities_model.NotificationStatusUnread, notification.Status)
 }
 
 func TestPullRequestNotificationWithWatchOptions(t *testing.T) {
@@ -191,7 +190,7 @@ func TestPullRequestNotificationWithWatchOptions(t *testing.T) {
 	}))
 
 	assert.NoError(t, activities_model.CreateOrUpdateIssueNotifications(t.Context(), pr.ID, 0, doer.ID, 0))
-	notification, err := activities.GetIssueNotification(t.Context(), watcher.ID, pr.ID)
+	notification, err := activities_model.GetIssueNotification(t.Context(), watcher.ID, pr.ID)
 	assert.NoError(t, err)
 	assert.Equal(t, int64(0), notification.IssueID) // No notification found
 
@@ -202,7 +201,7 @@ func TestPullRequestNotificationWithWatchOptions(t *testing.T) {
 	}))
 
 	assert.NoError(t, activities_model.CreateOrUpdateIssueNotifications(t.Context(), pr.ID, 0, doer.ID, 0))
-	notification, err = activities.GetIssueNotification(t.Context(), watcher.ID, pr.ID)
+	notification, err = activities_model.GetIssueNotification(t.Context(), watcher.ID, pr.ID)
 	assert.NoError(t, err)
-	assert.Equal(t, activities.NotificationStatusUnread, notification.Status)
+	assert.Equal(t, activities_model.NotificationStatusUnread, notification.Status)
 }
