@@ -4,6 +4,7 @@ import {SvgIcon} from '../svg.ts';
 import ActionStatusIcon from './ActionStatusIcon.vue';
 import {localUserSettings} from '../modules/user-settings.ts';
 import {isPlainClick} from '../utils/dom.ts';
+import {trN} from '../modules/i18n.ts';
 import {debounce} from 'throttle-debounce';
 import type {ActionsJob, ActionsStatus} from '../modules/gitea-actions.ts';
 import type {ActionRunViewStore} from './ActionRunView.ts';
@@ -546,7 +547,7 @@ function onNodeClick(job: JobNode, event: MouseEvent) {
     <div class="graph-header">
       <h4 class="graph-title">{{ locale.workflowDependencies }}</h4>
       <div class="graph-stats">
-        {{ locale.graphJobsCount.replace('%d', jobs.length.toLocaleString()) }} • {{ locale.graphDependenciesCount.replace('%d', edges.length.toLocaleString()) }}
+        {{ trN(jobs.length, locale.graphJobsCount1, locale.graphJobsCountN) }} • {{ trN(edges.length, locale.graphDependenciesCount1, locale.graphDependenciesCountN) }}
         <span v-if="graphMetrics">
           • <span class="graph-metrics">{{ locale.graphSuccessRate.replace('%s', graphMetrics.successRate) }}</span>
         </span>
