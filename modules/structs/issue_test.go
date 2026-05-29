@@ -88,7 +88,7 @@ labels:
   b: bb
 `,
 			tmpl:    &IssueTemplate{},
-			wantErr: "yaml: unmarshal errors:\n  line 3: line 3: cannot unmarshal !!map into IssueTemplateStringSlice",
+			wantErr: "yaml: unmarshal errors:\n  line 3: cannot unmarshal !!map into IssueTemplateStringSlice",
 		},
 	}
 	for _, tt := range tests {
