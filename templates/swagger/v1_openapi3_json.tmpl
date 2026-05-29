@@ -14139,7 +14139,7 @@
     },
     "/orgs/{org}/groups/new": {
       "post": {
-        "operationId": "groupNew",
+        "operationId": "groupNewOrg",
         "parameters": [
           {
             "description": "name of the organization",
@@ -50949,6 +50949,92 @@
         ]
       }
     },
+    "/user/{username}/groups": {
+      "get": {
+        "operationId": "userListGroups",
+        "parameters": [
+          {
+            "description": "name of the organization",
+            "in": "path",
+            "name": "org",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "page number of results to return (1-based)",
+            "in": "query",
+            "name": "page",
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "description": "page size of results",
+            "in": "query",
+            "name": "limit",
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/components/responses/GroupList"
+          },
+          "404": {
+            "$ref": "#/components/responses/notFound"
+          }
+        },
+        "summary": "List a user's root-level groups",
+        "tags": [
+          "user"
+        ]
+      }
+    },
+    "/users/groups/new": {
+      "post": {
+        "operationId": "groupNewUser",
+        "parameters": [
+          {
+            "description": "name of the organization",
+            "in": "path",
+            "name": "org",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/NewGroupOption"
+              }
+            }
+          },
+          "required": true,
+          "x-originalParamName": "body"
+        },
+        "responses": {
+          "201": {
+            "$ref": "#/components/responses/Group"
+          },
+          "404": {
+            "$ref": "#/components/responses/notFound"
+          },
+          "422": {
+            "$ref": "#/components/responses/validationError"
+          }
+        },
+        "summary": "create a root-level repository group for the current user",
+        "tags": [
+          "repository-group"
+        ]
+      }
+    },
     "/users/search": {
       "get": {
         "operationId": "userSearch",
@@ -51269,6 +51355,44 @@
           }
         },
         "summary": "List the given user's GPG keys",
+        "tags": [
+          "user"
+        ]
+      }
+    },
+    "/users/{username}/group/{group_id}/heatmap": {
+      "get": {
+        "operationId": "userGetGroupHeatmapData",
+        "parameters": [
+          {
+            "description": "username of the user whose heatmap is to be obtained",
+            "in": "path",
+            "name": "username",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "id of the parent group",
+            "in": "path",
+            "name": "group_id",
+            "required": true,
+            "schema": {
+              "format": "int64",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/components/responses/UserHeatmapData"
+          },
+          "404": {
+            "$ref": "#/components/responses/notFound"
+          }
+        },
+        "summary": "Get a user's heatmap in a subgroup",
         "tags": [
           "user"
         ]
