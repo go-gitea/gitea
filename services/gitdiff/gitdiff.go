@@ -558,7 +558,7 @@ func (diffFile *DiffFile) TranslateDiffEntryMode(locale translation.Locale) stri
 		return locale.TrString("git.filemode.changed_filemode", oldMode, newMode)
 	}
 	if diffFile.EntryMode != "" {
-		if entryMode := git.ParseEntryMode(diffFile.EntryMode); !entryMode.IsRegular() {
+		if entryMode := git.ParseEntryMode(diffFile.EntryMode); diffFile.IsCreated || !entryMode.IsRegular() {
 			return entryModeTr(diffFile.EntryMode)
 		}
 	}

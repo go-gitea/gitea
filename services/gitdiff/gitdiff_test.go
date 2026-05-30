@@ -18,10 +18,31 @@ import (
 	"gitea.dev/modules/git/gitcmd"
 	"gitea.dev/modules/json"
 	"gitea.dev/modules/setting"
+	"gitea.dev/modules/translation"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
+
+func TestDiffFileTranslateDiffEntryMode(t *testing.T) {
+	locale := translation.MockLocale{}
+
+	assert.Equal(t, "git.filemode.normal_file", (&DiffFile{
+		IsCreated: true,
+		EntryMode: "100644",
+	}).TranslateDiffEntryMode(locale))
+	assert.Equal(t, "git.filemode.executable_file", (&DiffFile{
+		IsCreated: true,
+		EntryMode: "100755",
+	}).TranslateDiffEntryMode(locale))
+	assert.Empty(t, (&DiffFile{
+		EntryMode: "100644",
+	}).TranslateDiffEntryMode(locale))
+	assert.Equal(t, "git.filemode.changed_filemode:git.filemode.normal_file,git.filemode.executable_file", (&DiffFile{
+		OldEntryMode: "100644",
+		EntryMode:    "100755",
+	}).TranslateDiffEntryMode(locale))
+}
 
 func TestParsePatch_skipTo(t *testing.T) {
 	type testcase struct {
