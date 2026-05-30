@@ -63,6 +63,7 @@ onBeforeUnmount(() => {
       :jobs="topLevelJobs"
       :run-link="run.link"
       :workflow-id="run.workflowID"
+      :locale="locale"
     />
   </div>
 </template>
