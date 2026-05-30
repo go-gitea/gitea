@@ -130,7 +130,6 @@ func TestMigrateAzureADV2ToOIDC(t *testing.T) {
 	})
 }
 
-// newFakeOIDCServer starts a httptest.Server that implements the minimum OIDC endpoints needed to complete a sign-in flow
 // FakeOIDCConfig holds configuration for the fake OIDC server used in tests.
 type FakeOIDCConfig struct {
 	Sub    string
@@ -164,7 +163,6 @@ func newFakeOIDCServer(t *testing.T, cfg FakeOIDCConfig) *httptest.Server {
 				"userinfo_endpoint":      srv.URL + "/userinfo",
 			})
 		case "/token": // returns an ID token with claims so tests can verify which ones are used
-			// For backward compatibility: if OID is set, include it; otherwise just use sub
 			claims := map[string]any{
 				"iss":   srv.URL,
 				"aud":   "test-client-id",
