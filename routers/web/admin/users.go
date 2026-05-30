@@ -257,6 +257,17 @@ func prepareUserInfo(ctx *context.Context) *user_model.User {
 	return u
 }
 
+func prepareUserEmails(ctx *context.Context, u *user_model.User) bool {
+	emails, err := user_model.GetEmailAddresses(ctx, u.ID)
+	if err != nil {
+		ctx.ServerError("GetEmailAddresses", err)
+		return false
+	}
+	ctx.Data["Emails"] = emails
+	ctx.Data["EmailsTotal"] = len(emails)
+	return true
+}
+
 func ViewUser(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("admin.users.details")
 	ctx.Data["PageIsAdminUsers"] = true
@@ -284,13 +295,9 @@ func ViewUser(ctx *context.Context) {
 	ctx.Data["Repos"] = repos
 	ctx.Data["ReposTotal"] = int(count)
 
-	emails, err := user_model.GetEmailAddresses(ctx, u.ID)
-	if err != nil {
-		ctx.ServerError("GetEmailAddresses", err)
+	if !prepareUserEmails(ctx, u) {
 		return
 	}
-	ctx.Data["Emails"] = emails
-	ctx.Data["EmailsTotal"] = len(emails)
 
 	orgs, err := db.Find[org_model.Organization](ctx, org_model.FindOrgOptions{
 		ListOptions:       db.ListOptionsAll,
@@ -322,8 +329,11 @@ func editUserCommon(ctx *context.Context) {
 // EditUser show editing user page
 func EditUser(ctx *context.Context) {
 	editUserCommon(ctx)
-	prepareUserInfo(ctx)
+	u := prepareUserInfo(ctx)
 	if ctx.Written() {
+		return
+	}
+	if !prepareUserEmails(ctx, u) {
 		return
 	}
 
@@ -335,6 +345,9 @@ func EditUserPost(ctx *context.Context) {
 	editUserCommon(ctx)
 	u := prepareUserInfo(ctx)
 	if ctx.Written() {
+		return
+	}
+	if !prepareUserEmails(ctx, u) {
 		return
 	}
 

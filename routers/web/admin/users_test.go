@@ -15,6 +15,7 @@ import (
 	"gitea.dev/services/forms"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestNewUserPost_MustChangePassword(t *testing.T) {
@@ -196,4 +197,19 @@ func TestNewUserPost_VisibilityPrivate(t *testing.T) {
 	assert.Equal(t, email, u.Email)
 	// As default user visibility
 	assert.True(t, u.Visibility.IsPrivate())
+}
+
+func TestEditUserLoadsEmailAddresses(t *testing.T) {
+	unittest.PrepareTestEnv(t)
+	ctx, _ := contexttest.MockContext(t, "admin/users/10/edit")
+	ctx.SetPathParam("userid", "10")
+
+	EditUser(ctx)
+
+	emails, ok := ctx.Data["Emails"].([]*user_model.EmailAddress)
+	require.True(t, ok)
+	require.Len(t, emails, 2)
+	assert.Equal(t, "user10@example.com", emails[0].Email)
+	assert.Equal(t, "user101@example.com", emails[1].Email)
+	assert.Equal(t, 2, ctx.Data["EmailsTotal"])
 }
