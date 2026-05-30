@@ -15,6 +15,7 @@ import (
 	repo_model "gitea.dev/models/repo"
 	"gitea.dev/models/unittest"
 	user_model "gitea.dev/models/user"
+	repo_module "gitea.dev/modules/repository"
 	api "gitea.dev/modules/structs"
 	repo_service "gitea.dev/services/repository"
 	"gitea.dev/tests"
@@ -215,32 +216,34 @@ func TestAPINotificationPUT(t *testing.T) {
 
 func TestAPICommitNotificationTaggedUserHasNoAccess(t *testing.T) {
 	onGiteaRun(t, func(t *testing.T, u *url.URL) {
-		// user1 (admin) pushes a commit to user2's repo that mentions @user4;
+		// user2 pushes a commit to user2's private repo that mentions @user4;
 		// user4 should not receive a commit notification because they have no access.
-		user1 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 1})
 		user2 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
 		user4 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 4})
-		repo1 := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
+		repo2 := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 2})
+		// Prepare test data
+		_, err := repo_module.SyncRepoBranches(t.Context(), repo2.ID, 0)
+		assert.NoError(t, err)
 
-		session1 := loginUser(t, user1.Name)
-		token1 := getTokenForLoggedInUser(t, session1, auth_model.AccessTokenScopeWriteRepository)
+		session2 := loginUser(t, user2.Name)
+		token2 := getTokenForLoggedInUser(t, session2, auth_model.AccessTokenScopeWriteRepository)
 
 		contentEncoded := base64.StdEncoding.EncodeToString([]byte("notification test content"))
-		req := NewRequestWithJSON(t, "POST", fmt.Sprintf("/api/v1/repos/%s/%s/contents/new_commit_notification.txt", user2.Name, repo1.Name), &api.CreateFileOptions{
+		req := NewRequestWithJSON(t, "POST", fmt.Sprintf("/api/v1/repos/%s/%s/contents/new_commit_notification.txt", user2.Name, repo2.Name), &api.CreateFileOptions{
 			FileOptions: api.FileOptions{
 				BranchName:    "master",
 				NewBranchName: "master",
 				Message:       "Test commit to mention @user4",
 			},
 			ContentBase64: contentEncoded,
-		}).AddTokenAuth(token1)
+		}).AddTokenAuth(token2)
 		MakeRequest(t, req, http.StatusCreated)
 
 		// Check that user4 did not receive a commit notification
 		session4 := loginUser(t, user4.Name)
 		token4 := getTokenForLoggedInUser(t, session4, auth_model.AccessTokenScopeWriteNotification)
 
-		req = NewRequestWithJSON(t, "GET", fmt.Sprintf("/api/v1/repos/%s/%s", user2.Name, repo1.Name), nil).AddTokenAuth(token4)
+		req = NewRequestWithJSON(t, "GET", fmt.Sprintf("/api/v1/repos/%s/%s", user2.Name, repo2.Name), nil).AddTokenAuth(token4)
 		MakeRequest(t, req, http.StatusForbidden)
 
 		req = NewRequest(t, "GET", "/api/v1/notifications?all=true").
