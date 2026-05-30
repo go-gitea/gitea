@@ -544,7 +544,7 @@ func registerWebRoutes(m *web.Router, webAuth *AuthMiddleware) {
 	// FIXME: not all routes need go through same middleware.
 	// Especially some AJAX requests, we can reduce middleware number to improve performance.
 
-	m.Get("/", Home)
+	m.Get("/", context.AddGroupValues, Home)
 	m.Get("/-/group/{group_id}", ctxDataSet("PageIsGroupDashboard", true), context.GroupAssignmentWeb(context.GroupAssignmentOptions{RequireMember: true}), user.Dashboard)
 	m.Get("/sitemap.xml", sitemapEnabled, optExploreSignIn, HomeSitemap)
 	m.Group("/.well-known", func() {
