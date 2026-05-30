@@ -9,6 +9,8 @@ import (
 	"testing"
 
 	unit_model "gitea.dev/models/unit"
+	"gitea.dev/modules/setting"
+	"gitea.dev/modules/test"
 	"gitea.dev/tests"
 )
 
@@ -58,4 +60,21 @@ func TestOrgProjectAccess(t *testing.T) {
 	session = loginUser(t, "user4")
 	req = NewRequest(t, "GET", "/org3/-/projects")
 	session.MakeRequest(t, req, http.StatusNotFound)
+}
+
+func TestDisableOrganizationProjects(t *testing.T) {
+	defer tests.PrepareTestEnv(t)()
+	defer test.MockVariableValue(&setting.Project.DisableOrganizationProjects, true)()
+
+	// repo projects remain available
+	req := NewRequest(t, "GET", "/user2/repo1/projects")
+	MakeRequest(t, req, http.StatusOK)
+
+	// user projects remain available
+	req = NewRequest(t, "GET", "/user2/-/projects")
+	MakeRequest(t, req, http.StatusOK)
+
+	// organization projects are disabled
+	req = NewRequest(t, "GET", "/org3/-/projects")
+	MakeRequest(t, req, http.StatusNotFound)
 }

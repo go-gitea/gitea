@@ -177,6 +177,9 @@ func (p *Project) CanBeAccessedByOwnerRepo(ownerID int64, repo *repo_model.Repos
 	if p.Type == TypeRepository {
 		return repo != nil && p.RepoID == repo.ID // if a project belongs to a repository, then its OwnerID is 0 and can be ignored
 	}
+	if p.Type == TypeOrganization && setting.Project.DisableOrganizationProjects {
+		return false
+	}
 	return p.OwnerID == ownerID && p.RepoID == 0
 }
 

@@ -7,7 +7,10 @@ import (
 	"testing"
 
 	"gitea.dev/models/db"
+	repo_model "gitea.dev/models/repo"
 	"gitea.dev/models/unittest"
+	"gitea.dev/modules/setting"
+	"gitea.dev/modules/test"
 	"gitea.dev/modules/timeutil"
 
 	"github.com/stretchr/testify/assert"
@@ -29,6 +32,22 @@ func TestIsProjectTypeValid(t *testing.T) {
 	for _, v := range cases {
 		assert.Equal(t, v.valid, IsTypeValid(v.typ))
 	}
+}
+
+func TestProjectCanBeAccessedByOwnerRepoWithDisabledOrganizationProjects(t *testing.T) {
+	defer test.MockVariableValue(&setting.Project.DisableOrganizationProjects)()
+
+	orgProject := &Project{Type: TypeOrganization, OwnerID: 3}
+	repoProject := &Project{Type: TypeRepository, RepoID: 1}
+	repo := &repo_model.Repository{ID: 1}
+
+	setting.Project.DisableOrganizationProjects = false
+	assert.True(t, orgProject.CanBeAccessedByOwnerRepo(3, nil))
+	assert.True(t, repoProject.CanBeAccessedByOwnerRepo(3, repo))
+
+	setting.Project.DisableOrganizationProjects = true
+	assert.False(t, orgProject.CanBeAccessedByOwnerRepo(3, nil))
+	assert.True(t, repoProject.CanBeAccessedByOwnerRepo(3, repo))
 }
 
 func TestGetProjects(t *testing.T) {

@@ -434,6 +434,11 @@ func registerWebRoutes(m *web.Router, webAuth *AuthMiddleware) {
 				return
 			}
 
+			if unitType == unit.TypeProjects && ctx.ContextUser.IsOrganization() && setting.Project.DisableOrganizationProjects {
+				ctx.NotFound(nil)
+				return
+			}
+
 			if ctx.ContextUser.IsOrganization() {
 				if ctx.Org.Organization.UnitPermission(ctx, ctx.Doer, unitType) < accessMode {
 					ctx.NotFound(nil)

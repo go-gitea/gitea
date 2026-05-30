@@ -229,7 +229,7 @@ func OrgAssignment(orgAssignmentOpts OrgAssignmentOptions) func(ctx *Context) {
 		}
 		ctx.Data["ContextUser"] = ctx.ContextUser
 
-		ctx.Data["CanReadProjects"] = ctx.Org.CanReadUnit(ctx, unit.TypeProjects)
+		ctx.Data["CanReadProjects"] = !setting.Project.DisableOrganizationProjects && ctx.Org.CanReadUnit(ctx, unit.TypeProjects)
 		ctx.Data["CanReadPackages"] = ctx.Org.CanReadUnit(ctx, unit.TypePackages)
 		ctx.Data["CanReadCode"] = ctx.Org.CanReadUnit(ctx, unit.TypeCode)
 

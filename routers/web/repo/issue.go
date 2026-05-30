@@ -24,6 +24,7 @@ import (
 	"gitea.dev/modules/log"
 	"gitea.dev/modules/markup/markdown"
 	"gitea.dev/modules/optional"
+	"gitea.dev/modules/setting"
 	api "gitea.dev/modules/structs"
 	"gitea.dev/modules/templates"
 	"gitea.dev/modules/util"
@@ -148,7 +149,8 @@ func retrieveProjectsInternal(ctx *context.Context, repo *repo_model.Repository)
 		}
 	}
 
-	if projectsUnit.ProjectsConfig().IsProjectsAllowed(repo_model.ProjectsModeOwner) {
+	if projectsUnit.ProjectsConfig().IsProjectsAllowed(repo_model.ProjectsModeOwner) &&
+		(!repo.Owner.IsOrganization() || !setting.Project.DisableOrganizationProjects) {
 		openProjects2, err := db.Find[project_model.Project](ctx, project_model.SearchOptions{
 			ListOptions: db.ListOptionsAll,
 			OwnerID:     repo.OwnerID,
