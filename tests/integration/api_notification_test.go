@@ -213,6 +213,46 @@ func TestAPINotificationPUT(t *testing.T) {
 	assert.False(t, apiNL[0].Pinned)
 }
 
+func TestAPICommitNotificationTaggedUserHasNoAccess(t *testing.T) {
+	onGiteaRun(t, func(t *testing.T, u *url.URL) {
+		// user1 (admin) pushes a commit to user2's repo that mentions @user4;
+		// user4 should not receive a commit notification because they have no access.
+		user1 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 1})
+		user2 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
+		user4 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 4})
+		repo1 := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
+
+		session1 := loginUser(t, user1.Name)
+		token1 := getTokenForLoggedInUser(t, session1, auth_model.AccessTokenScopeWriteRepository)
+
+		contentEncoded := base64.StdEncoding.EncodeToString([]byte("notification test content"))
+		req := NewRequestWithJSON(t, "POST", fmt.Sprintf("/api/v1/repos/%s/%s/contents/new_commit_notification.txt", user2.Name, repo1.Name), &api.CreateFileOptions{
+			FileOptions: api.FileOptions{
+				BranchName:    "master",
+				NewBranchName: "master",
+				Message:       "Test commit to mention @user4",
+			},
+			ContentBase64: contentEncoded,
+		}).AddTokenAuth(token1)
+		MakeRequest(t, req, http.StatusCreated)
+
+		// Check that user4 did not receive a commit notification
+		session4 := loginUser(t, user4.Name)
+		token4 := getTokenForLoggedInUser(t, session4, auth_model.AccessTokenScopeWriteNotification)
+
+		req = NewRequestWithJSON(t, "GET", fmt.Sprintf("/api/v1/repos/%s/%s", user2.Name, repo1.Name), nil).AddTokenAuth(token4)
+		MakeRequest(t, req, http.StatusForbidden)
+
+		req = NewRequest(t, "GET", "/api/v1/notifications?all=true").
+			AddTokenAuth(token4)
+		resp := MakeRequest(t, req, http.StatusOK)
+		var apiNL []api.NotificationThread
+		DecodeJSON(t, resp, &apiNL)
+
+		assert.Empty(t, apiNL)
+	})
+}
+
 func TestAPICommitNotification(t *testing.T) {
 	onGiteaRun(t, func(t *testing.T, u *url.URL) {
 		// user1 (admin) pushes a commit to user2's repo that mentions @user2;
