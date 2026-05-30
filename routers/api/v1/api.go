@@ -529,6 +529,23 @@ func reqTeamMembership() func(ctx *context.APIContext) {
 			ctx.APIErrorInternal(err)
 			return
 		} else if !isTeamMember {
+			// Non-members may still read teams that are visible to them based on privacy tier.
+			switch ctx.Org.Team.Privacy {
+			case organization.TeamPrivacyPublic:
+				return // any signed-in user (reqToken guarantees IsSigned)
+			case organization.TeamPrivacyLimited:
+				isOrgMember, err := organization.IsOrganizationMember(ctx, orgID, ctx.Doer.ID)
+				if err != nil {
+					ctx.APIErrorInternal(err)
+					return
+				}
+				if isOrgMember {
+					return
+				}
+				ctx.APIErrorNotFound()
+				return
+			}
+			// TeamPrivacyPrivate: org members see "forbidden", outsiders see 404.
 			isOrgMember, err := organization.IsOrganizationMember(ctx, orgID, ctx.Doer.ID)
 			if err != nil {
 				ctx.APIErrorInternal(err)

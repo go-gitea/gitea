@@ -36,6 +36,8 @@ func AddPrivacyToTeam(x db.EngineMigration) error {
 
 	// Owner teams must remain listable to all org members; new orgs create
 	// them as "limited", so make existing owner teams limited too.
-	_, err := x.Exec("UPDATE `team` SET team_privacy = ? WHERE lower_name = ?", "limited", "owners")
+	// Filter on authorize=4 (AccessModeOwner) so a user-created team that
+	// happens to share the name "owners" is not accidentally affected.
+	_, err := x.Exec("UPDATE `team` SET team_privacy = ? WHERE lower_name = ? AND authorize = ?", "limited", "owners", 4)
 	return err
 }

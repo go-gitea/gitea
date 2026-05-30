@@ -364,7 +364,10 @@ func extractEnumTypeName(s *openapi3.Schema, astEnumMap map[string][]string) str
 				break
 			}
 			suffix := c[len(name):]
-			if suffix == "" || suffix[0] < 'A' || suffix[0] > 'Z' {
+			// Empty suffix means the const name exactly equals the type name — valid exact match.
+			// A non-empty suffix must begin with an uppercase letter to reject incidental
+			// prefix matches (e.g. "Alpha" should not match "Alphabet").
+			if len(suffix) > 0 && (suffix[0] < 'A' || suffix[0] > 'Z') {
 				ok = false
 				break
 			}

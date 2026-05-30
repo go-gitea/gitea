@@ -480,12 +480,21 @@ func SearchTeam(ctx *context.Context) {
 		PageSize: convert.ToCorrectPageSize(ctx.FormInt("limit")),
 	}
 
+	shouldSeeAll, err := context.UserShouldSeeAllOrgTeams(ctx)
+	if err != nil {
+		ctx.ServerError("UserShouldSeeAllOrgTeams", err)
+		return
+	}
+
 	opts := &org_model.SearchTeamOptions{
-		// UserID is not set because the router already requires the doer to be an org admin. Thus, we don't need to restrict to teams that the user belongs in
 		Keyword:     ctx.FormTrim("q"),
 		OrgID:       ctx.Org.Organization.ID,
 		IncludeDesc: ctx.FormString("include_desc") == "" || ctx.FormBool("include_desc"),
 		ListOptions: listOptions,
+	}
+	if !shouldSeeAll {
+		opts.UserID = ctx.Doer.ID
+		opts.IncludePrivacies = org_model.VisibleTeamPrivaciesFor(ctx.Org.IsMember, ctx.IsSigned)
 	}
 
 	teams, maxResults, err := org_model.SearchTeam(ctx, opts)
