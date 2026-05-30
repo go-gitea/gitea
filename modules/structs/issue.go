@@ -10,7 +10,7 @@ import (
 	"strings"
 	"time"
 
-	"gopkg.in/yaml.v3"
+	"go.yaml.in/yaml/v4"
 )
 
 // StateType issue state type
@@ -231,7 +231,7 @@ func (l *IssueTemplateStringSlice) UnmarshalYAML(value *yaml.Node) error {
 		*l = labels
 		return nil
 	}
-	return fmt.Errorf("line %d: cannot unmarshal %s into IssueTemplateStringSlice", value.Line, value.ShortTag())
+	return fmt.Errorf("cannot unmarshal %s into IssueTemplateStringSlice", value.ShortTag())
 }
 
 type IssueConfigContactLink struct {
