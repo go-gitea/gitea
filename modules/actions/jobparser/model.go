@@ -8,6 +8,7 @@ import (
 	"errors"
 	"fmt"
 
+	"gitea.com/gitea/runner/act/exprparser"
 	"gitea.com/gitea/runner/act/model"
 	"go.yaml.in/yaml/v4"
 )
@@ -464,6 +465,26 @@ func ParseRawOn(rawOn *yaml.Node) ([]*Event, error) {
 	default:
 		return nil, fmt.Errorf("unknown on type: %v", rawOn.Kind)
 	}
+}
+
+func EvaluateJobIfExpression(jobID string, job *Job, gitCtx map[string]any, results map[string]*JobResult, vars map[string]string, inputs map[string]any) (bool, error) {
+	actJob := &model.Job{
+		Strategy: &model.Strategy{
+			FailFastString:    job.Strategy.FailFastString,
+			MaxParallelString: job.Strategy.MaxParallelString,
+			RawMatrix:         job.Strategy.RawMatrix,
+		},
+	}
+	evaluator := NewExpressionEvaluator(NewInterpeter(jobID, actJob, nil, toGitContext(gitCtx), results, vars, inputs))
+	expr, err := rewriteSubExpression(job.If.Value, false)
+	if err != nil {
+		return false, err
+	}
+	result, err := evaluator.evaluate(expr, exprparser.DefaultStatusCheckSuccess)
+	if err != nil {
+		return false, err
+	}
+	return exprparser.IsTruthy(result), nil
 }
 
 // parseMappingNode parse a mapping node and preserve order.
