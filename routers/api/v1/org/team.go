@@ -29,10 +29,10 @@ import (
 
 // applyTeamVisibilityFilter narrows opts to the set of teams the caller is
 // entitled to see. Privileged callers (site admins and org owners) are left
-// unfiltered — they already see every team in the org. Other org members are
-// restricted to teams they belong to plus teams marked visible to all org
-// members (UserID + IncludeVisible together express that union in
-// SearchTeamOptions).
+// unfiltered — they already see every team in the org. Other callers are
+// restricted to teams they belong to plus teams whose privacy tier they are
+// entitled to see (limited/public for org members, public for other signed-in
+// users).
 func applyTeamVisibilityFilter(ctx *context.APIContext, opts *organization.SearchTeamOptions) error {
 	if ctx.Doer.IsAdmin {
 		return nil
@@ -44,8 +44,12 @@ func applyTeamVisibilityFilter(ctx *context.APIContext, opts *organization.Searc
 	if isOwner {
 		return nil
 	}
+	isOrgMember, err := organization.IsOrganizationMember(ctx, ctx.Org.Organization.ID, ctx.Doer.ID)
+	if err != nil {
+		return err
+	}
 	opts.UserID = ctx.Doer.ID
-	opts.IncludeVisible = true
+	opts.IncludePrivacies = organization.VisibleTeamPrivaciesFor(isOrgMember, ctx.IsSigned)
 	return nil
 }
 

@@ -57,8 +57,8 @@ func main() {
 		log.Fatalf("scanning swagger:enum annotations: %v", err)
 	}
 	names := make([]string, 0, len(astEnumMap))
-	for _, n := range astEnumMap {
-		names = append(names, n)
+	for _, ns := range astEnumMap {
+		names = append(names, ns...)
 	}
 	sort.Strings(names)
 	fmt.Fprintf(os.Stderr, "discovered %d swagger:enum types: %s\n", len(names), strings.Join(names, ", "))

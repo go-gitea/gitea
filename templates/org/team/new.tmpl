@@ -29,16 +29,23 @@
 								<br>
 								<div class="field">
 									<div class="ui radio checkbox">
-										<input type="radio" name="privacy" value="secret" {{if not .Team.IsVisible}}checked{{end}}>
-										<label>{{ctx.Locale.Tr "org.teams.visibility_secret"}}</label>
-										<span class="help">{{ctx.Locale.Tr "org.teams.visibility_secret_helper"}}</span>
+										<input type="radio" name="privacy" value="private" {{if .Team.IsPrivate}}checked{{end}}>
+										<label>{{ctx.Locale.Tr "org.teams.visibility_private"}}</label>
+										<span class="help">{{ctx.Locale.Tr "org.teams.visibility_private_helper"}}</span>
 									</div>
 								</div>
 								<div class="field">
 									<div class="ui radio checkbox">
-										<input type="radio" name="privacy" value="closed" {{if .Team.IsVisible}}checked{{end}}>
-										<label>{{ctx.Locale.Tr "org.teams.visibility_visible"}}</label>
-										<span class="help">{{ctx.Locale.Tr "org.teams.visibility_visible_helper"}}</span>
+										<input type="radio" name="privacy" value="limited" {{if .Team.IsLimited}}checked{{end}}>
+										<label>{{ctx.Locale.Tr "org.teams.visibility_limited"}}</label>
+										<span class="help">{{ctx.Locale.Tr "org.teams.visibility_limited_helper"}}</span>
+									</div>
+								</div>
+								<div class="field">
+									<div class="ui radio checkbox">
+										<input type="radio" name="privacy" value="public" {{if .Team.IsPublic}}checked{{end}}>
+										<label>{{ctx.Locale.Tr "org.teams.visibility_public"}}</label>
+										<span class="help">{{ctx.Locale.Tr "org.teams.visibility_public_helper"}}</span>
 									</div>
 								</div>
 							</div>

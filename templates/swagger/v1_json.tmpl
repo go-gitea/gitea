@@ -24596,13 +24596,14 @@
           "x-go-name": "Permission"
         },
         "privacy": {
-          "description": "Team privacy within the organization. Defaults to \"secret\".\nsecret TeamPrivacySecret\nclosed TeamPrivacyClosed",
+          "description": "Team privacy within the organization. Defaults to \"private\".\npublic TeamPrivacyPublic\nlimited TeamPrivacyLimited\nprivate TeamPrivacyPrivate",
           "type": "string",
           "enum": [
-            "secret",
-            "closed"
+            "public",
+            "limited",
+            "private"
           ],
-          "x-go-enum-desc": "secret TeamPrivacySecret\nclosed TeamPrivacyClosed",
+          "x-go-enum-desc": "public TeamPrivacyPublic\nlimited TeamPrivacyLimited\nprivate TeamPrivacyPrivate",
           "x-go-name": "Privacy"
         },
         "units": {
@@ -25756,13 +25757,14 @@
           "x-go-name": "Permission"
         },
         "privacy": {
-          "description": "Team privacy within the organization. When omitted, privacy is left\nunchanged.\nsecret TeamPrivacySecret\nclosed TeamPrivacyClosed",
+          "description": "Team privacy within the organization. When omitted, privacy is left\nunchanged.\npublic TeamPrivacyPublic\nlimited TeamPrivacyLimited\nprivate TeamPrivacyPrivate",
           "type": "string",
           "enum": [
-            "secret",
-            "closed"
+            "public",
+            "limited",
+            "private"
           ],
-          "x-go-enum-desc": "secret TeamPrivacySecret\nclosed TeamPrivacyClosed",
+          "x-go-enum-desc": "public TeamPrivacyPublic\nlimited TeamPrivacyLimited\nprivate TeamPrivacyPrivate",
           "x-go-name": "Privacy"
         },
         "units": {
@@ -29593,13 +29595,14 @@
           "x-go-name": "Permission"
         },
         "privacy": {
-          "description": "Team privacy within the organization. \"secret\" teams are only listable\nby members and org owners; \"closed\" teams are listable by any\norganization member.\nsecret TeamPrivacySecret\nclosed TeamPrivacyClosed",
+          "description": "Team privacy within the organization. \"private\" teams are only\nlistable by members and org owners; \"limited\" teams are listable by\nany organization member; \"public\" teams are listable by any signed-in\nuser.\npublic TeamPrivacyPublic\nlimited TeamPrivacyLimited\nprivate TeamPrivacyPrivate",
           "type": "string",
           "enum": [
-            "secret",
-            "closed"
+            "public",
+            "limited",
+            "private"
           ],
-          "x-go-enum-desc": "secret TeamPrivacySecret\nclosed TeamPrivacyClosed",
+          "x-go-enum-desc": "public TeamPrivacyPublic\nlimited TeamPrivacyLimited\nprivate TeamPrivacyPrivate",
           "x-go-name": "Privacy"
         },
         "units": {

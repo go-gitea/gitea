@@ -10,7 +10,7 @@ import (
 )
 
 type teamWithPrivacy struct {
-	TeamPrivacy string `xorm:"VARCHAR(16) NOT NULL DEFAULT 'secret'"`
+	TeamPrivacy string `xorm:"VARCHAR(16) NOT NULL DEFAULT 'private'"`
 }
 
 func (teamWithPrivacy) TableName() string {
@@ -24,8 +24,18 @@ func AddPrivacyToTeam(x db.EngineMigration) error {
 		return err
 	}
 
+	// Pre-release deployments of this PR persisted GitHub-style "secret"/
+	// "closed" values; rewrite them to the new vocabulary so the migration
+	// is idempotent across rebases.
+	if _, err := x.Exec("UPDATE `team` SET team_privacy = ? WHERE team_privacy = ?", "private", "secret"); err != nil {
+		return err
+	}
+	if _, err := x.Exec("UPDATE `team` SET team_privacy = ? WHERE team_privacy = ?", "limited", "closed"); err != nil {
+		return err
+	}
+
 	// Owner teams must remain listable to all org members; new orgs create
-	// them as "closed", so make existing owner teams closed too.
-	_, err := x.Exec("UPDATE `team` SET team_privacy = ? WHERE lower_name = ?", "closed", "owners")
+	// them as "limited", so make existing owner teams limited too.
+	_, err := x.Exec("UPDATE `team` SET team_privacy = ? WHERE lower_name = ?", "limited", "owners")
 	return err
 }

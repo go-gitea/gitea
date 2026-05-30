@@ -4768,7 +4768,7 @@
                 "$ref": "#/components/schemas/TeamPrivacy"
               }
             ],
-            "description": "Team privacy within the organization. Defaults to \"secret\".\nsecret TeamPrivacySecret\nclosed TeamPrivacyClosed"
+            "description": "Team privacy within the organization. Defaults to \"private\".\npublic TeamPrivacyPublic\nlimited TeamPrivacyLimited\nprivate TeamPrivacyPrivate"
           },
           "units": {
             "example": [
@@ -5914,7 +5914,7 @@
                 "$ref": "#/components/schemas/TeamPrivacy"
               }
             ],
-            "description": "Team privacy within the organization. When omitted, privacy is left\nunchanged.\nsecret TeamPrivacySecret\nclosed TeamPrivacyClosed"
+            "description": "Team privacy within the organization. When omitted, privacy is left\nunchanged.\npublic TeamPrivacyPublic\nlimited TeamPrivacyLimited\nprivate TeamPrivacyPrivate"
           },
           "units": {
             "example": [
@@ -9788,7 +9788,7 @@
                 "$ref": "#/components/schemas/TeamPrivacy"
               }
             ],
-            "description": "Team privacy within the organization. \"secret\" teams are only listable\nby members and org owners; \"closed\" teams are listable by any\norganization member.\nsecret TeamPrivacySecret\nclosed TeamPrivacyClosed"
+            "description": "Team privacy within the organization. \"private\" teams are only\nlistable by members and org owners; \"limited\" teams are listable by\nany organization member; \"public\" teams are listable by any signed-in\nuser.\npublic TeamPrivacyPublic\nlimited TeamPrivacyLimited\nprivate TeamPrivacyPrivate"
           },
           "units": {
             "example": [
@@ -9830,8 +9830,9 @@
       },
       "TeamPrivacy": {
         "enum": [
-          "secret",
-          "closed"
+          "public",
+          "limited",
+          "private"
         ],
         "type": "string"
       },

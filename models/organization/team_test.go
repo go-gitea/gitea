@@ -177,14 +177,14 @@ func TestSearchTeamIncludeVisible(t *testing.T) {
 
 	const orgID int64 = 3
 	// User 5 is an org member but only belongs to team 1 (Owners) — make sure
-	// they don't see team 2 (default secret) but do see a freshly added visible
-	// team they are not a member of.
+	// they don't see team 2 (default private) but do see a freshly added
+	// limited team they are not a member of.
 	visible := &organization.Team{
 		OrgID:      orgID,
 		LowerName:  "visible-team",
 		Name:       "visible-team",
 		AccessMode: 1, // read
-		Privacy:    organization.TeamPrivacyClosed,
+		Privacy:    organization.TeamPrivacyLimited,
 	}
 	assert.NoError(t, db.Insert(t.Context(), visible))
 	t.Cleanup(func() {
@@ -192,9 +192,9 @@ func TestSearchTeamIncludeVisible(t *testing.T) {
 	})
 
 	teams, _, err := organization.SearchTeam(t.Context(), &organization.SearchTeamOptions{
-		OrgID:          orgID,
-		UserID:         2,
-		IncludeVisible: true,
+		OrgID:            orgID,
+		UserID:           2,
+		IncludePrivacies: organization.VisibleTeamPrivaciesFor(true, true),
 	})
 	assert.NoError(t, err)
 	ids := make(map[int64]bool, len(teams))
@@ -209,17 +209,17 @@ func TestSearchTeamIncludeVisible(t *testing.T) {
 
 	// user 5 is only an org member in team 1, must not see secret team 2 but must see the visible one.
 	teams, _, err = organization.SearchTeam(t.Context(), &organization.SearchTeamOptions{
-		OrgID:          orgID,
-		UserID:         5,
-		IncludeVisible: true,
+		OrgID:            orgID,
+		UserID:           5,
+		IncludePrivacies: organization.VisibleTeamPrivaciesFor(true, true),
 	})
 	assert.NoError(t, err)
 	ids = make(map[int64]bool, len(teams))
 	for _, team := range teams {
 		ids[team.ID] = true
 	}
-	assert.False(t, ids[2], "user 5 must not see secret team 2")
-	assert.True(t, ids[visible.ID], "user 5 must see the visible team")
+	assert.False(t, ids[2], "user 5 must not see private team 2")
+	assert.True(t, ids[visible.ID], "user 5 must see the limited team")
 }
 
 func TestHasTeamRepo(t *testing.T) {

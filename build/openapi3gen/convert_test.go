@@ -12,9 +12,9 @@ import (
 
 func TestDeriveEnumName_hit(t *testing.T) {
 	key := EnumKey([]any{"red", "green", "blue"})
-	astMap := map[string]string{key: "Color"}
+	astMap := map[string][]string{key: {"Color"}}
 	usages := []enumUsage{{schemaName: "Paint", propName: "color"}}
-	got, err := deriveEnumName(key, usages, astMap)
+	got, err := deriveEnumName(key, "", usages, astMap)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -26,7 +26,7 @@ func TestDeriveEnumName_hit(t *testing.T) {
 func TestDeriveEnumName_miss(t *testing.T) {
 	key := EnumKey([]any{"x", "y"})
 	usages := []enumUsage{{schemaName: "Thing", propName: "kind"}}
-	_, err := deriveEnumName(key, usages, map[string]string{})
+	_, err := deriveEnumName(key, "", usages, map[string][]string{})
 	if err == nil {
 		t.Fatal("expected miss error, got nil")
 	}
@@ -64,7 +64,7 @@ func TestExtractSharedEnums_usesASTMap(t *testing.T) {
 			},
 		},
 	}
-	astMap := map[string]string{EnumKey([]any{"red", "green", "blue"}): "Color"}
+	astMap := map[string][]string{EnumKey([]any{"red", "green", "blue"}): {"Color"}}
 	if err := extractSharedEnums(doc, astMap); err != nil {
 		t.Fatalf("extractSharedEnums: %v", err)
 	}
@@ -164,7 +164,7 @@ func TestExtractSharedEnums_missReturnsError(t *testing.T) {
 			},
 		},
 	}
-	if err := extractSharedEnums(doc, map[string]string{}); err == nil {
+	if err := extractSharedEnums(doc, map[string][]string{}); err == nil {
 		t.Fatal("expected miss error")
 	}
 }

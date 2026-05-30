@@ -4,15 +4,18 @@
 
 package structs
 
-// TeamPrivacy controls who can list a team within its organization, matching
-// the GitHub Teams API. "secret" teams are only listable by team members and
-// org owners; "closed" teams are listable by any organization member.
+// TeamPrivacy controls who can list a team within its organization.
+//   - "public":  visible to any signed-in user (still bounded by org visibility)
+//   - "limited": visible to any member of the parent organization
+//   - "private": visible only to team members and org owners
+//
 // swagger:enum TeamPrivacy
 type TeamPrivacy string
 
 const (
-	TeamPrivacySecret TeamPrivacy = "secret"
-	TeamPrivacyClosed TeamPrivacy = "closed"
+	TeamPrivacyPublic  TeamPrivacy = "public"
+	TeamPrivacyLimited TeamPrivacy = "limited"
+	TeamPrivacyPrivate TeamPrivacy = "private"
 )
 
 // Team represents a team in an organization
@@ -35,9 +38,10 @@ type Team struct {
 	UnitsMap map[string]string `json:"units_map"`
 	// Whether the team can create repositories in the organization
 	CanCreateOrgRepo bool `json:"can_create_org_repo"`
-	// Team privacy within the organization. "secret" teams are only listable
-	// by members and org owners; "closed" teams are listable by any
-	// organization member.
+	// Team privacy within the organization. "private" teams are only
+	// listable by members and org owners; "limited" teams are listable by
+	// any organization member; "public" teams are listable by any signed-in
+	// user.
 	Privacy TeamPrivacy `json:"privacy"`
 }
 
@@ -57,8 +61,8 @@ type CreateTeamOption struct {
 	UnitsMap map[string]string `json:"units_map"`
 	// Whether the team can create repositories in the organization
 	CanCreateOrgRepo bool `json:"can_create_org_repo"`
-	// Team privacy within the organization. Defaults to "secret".
-	Privacy TeamPrivacy `json:"privacy" binding:"OmitEmpty;In(secret,closed)"`
+	// Team privacy within the organization. Defaults to "private".
+	Privacy TeamPrivacy `json:"privacy" binding:"OmitEmpty;In(public,limited,private)"`
 }
 
 // EditTeamOption options for editing a team
@@ -79,5 +83,5 @@ type EditTeamOption struct {
 	CanCreateOrgRepo *bool `json:"can_create_org_repo"`
 	// Team privacy within the organization. When omitted, privacy is left
 	// unchanged.
-	Privacy *TeamPrivacy `json:"privacy" binding:"OmitEmpty;In(secret,closed)"`
+	Privacy *TeamPrivacy `json:"privacy" binding:"OmitEmpty;In(public,limited,private)"`
 }

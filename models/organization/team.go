@@ -70,12 +70,14 @@ func (err ErrTeamNotExist) Unwrap() error {
 // OwnerTeamName return the owner team name
 const OwnerTeamName = "Owners"
 
-// Team privacy values, matching the GitHub Teams API. "secret" teams are
-// only visible to members and org owners (legacy behavior); "closed" teams
-// are listable by any member of the parent organization.
+// Team privacy values. They reuse Gitea's user-visibility vocabulary:
+//   - "public":  visible to any signed-in user (still bounded by org visibility)
+//   - "limited": visible to any member of the parent organization
+//   - "private": visible only to team members and org owners
 const (
-	TeamPrivacySecret = "secret"
-	TeamPrivacyClosed = "closed"
+	TeamPrivacyPublic  = "public"
+	TeamPrivacyLimited = "limited"
+	TeamPrivacyPrivate = "private"
 )
 
 // Team represents a organization team.
@@ -92,22 +94,29 @@ type Team struct {
 	Units                   []*TeamUnit `xorm:"-"`
 	IncludesAllRepositories bool        `xorm:"NOT NULL DEFAULT false"`
 	CanCreateOrgRepo        bool        `xorm:"NOT NULL DEFAULT false"`
-	Privacy                 string      `xorm:"'team_privacy' VARCHAR(16) NOT NULL DEFAULT 'secret'"`
+	Privacy                 string      `xorm:"'team_privacy' VARCHAR(16) NOT NULL DEFAULT 'private'"`
 }
 
-// IsVisible reports whether the team can be listed by org members who are not
-// members of the team itself. Equivalent to Privacy == "closed".
-func (t *Team) IsVisible() bool {
-	return t.Privacy == TeamPrivacyClosed
-}
+// IsPublic reports whether the team is listable by any signed-in user.
+func (t *Team) IsPublic() bool { return t.Privacy == TeamPrivacyPublic }
 
-// NormalizeTeamPrivacy returns a valid privacy value. Any input other than
-// "closed" is normalized to "secret".
+// IsLimited reports whether the team is listable by any member of the
+// parent organization.
+func (t *Team) IsLimited() bool { return t.Privacy == TeamPrivacyLimited }
+
+// IsPrivate reports whether the team is listable only by team members and
+// org owners.
+func (t *Team) IsPrivate() bool { return t.Privacy == TeamPrivacyPrivate }
+
+// NormalizeTeamPrivacy returns a valid privacy value. Unknown input is
+// normalized to the safest default ("private"). Input is matched strictly;
+// callers that want lenient handling must lowercase beforehand.
 func NormalizeTeamPrivacy(s string) string {
-	if s == TeamPrivacyClosed {
-		return TeamPrivacyClosed
+	switch s {
+	case TeamPrivacyPublic, TeamPrivacyLimited, TeamPrivacyPrivate:
+		return s
 	}
-	return TeamPrivacySecret
+	return TeamPrivacyPrivate
 }
 
 func init() {

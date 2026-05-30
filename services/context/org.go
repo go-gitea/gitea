@@ -188,9 +188,9 @@ func OrgAssignment(orgAssignmentOpts OrgAssignmentOptions) func(ctx *Context) {
 				}
 			} else {
 				ctx.Org.Teams, _, err = organization.SearchTeam(ctx, &organization.SearchTeamOptions{
-					OrgID:          org.ID,
-					UserID:         ctx.Doer.ID,
-					IncludeVisible: true,
+					OrgID:            org.ID,
+					UserID:           ctx.Doer.ID,
+					IncludePrivacies: organization.VisibleTeamPrivaciesFor(true, true),
 				})
 				if err != nil {
 					ctx.ServerError("SearchTeam", err)
