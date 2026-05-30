@@ -224,6 +224,8 @@ func TestAPICommitNotificationTaggedUserHasNoAccess(t *testing.T) {
 		// Prepare test data
 		_, err := repo_module.SyncRepoBranches(t.Context(), repo2.ID, 0)
 		assert.NoError(t, err)
+		// Fix repository hooks, otherwise the commit won't trigger notifications for repo2.
+		assert.NoError(t, repo_service.SyncRepositoryHooks(t.Context()))
 
 		session2 := loginUser(t, user2.Name)
 		token2 := getTokenForLoggedInUser(t, session2, auth_model.AccessTokenScopeWriteRepository)
