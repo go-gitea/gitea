@@ -107,19 +107,26 @@ func renderCodeBlock(htmlEscapedTextToRender template.HTML) template.HTML {
 
 // RenderIssueTitle renders issue/pull title with defined post processors
 func (ut *RenderUtils) RenderIssueTitle(text string, repo *repo.Repository) template.HTML {
-	renderedText, err := markup.PostProcessIssueTitle(renderhelper.NewRenderContextRepoComment(ut.ctx, repo), template.HTMLEscapeString(text))
+	// wrap "`…`" in <code> before post-processing so code-span content stays literal, like comment bodies
+	htmlWithCode := renderCodeBlock(template.HTML(template.HTMLEscapeString(text)))
+	renderedText, err := markup.PostProcessIssueTitle(renderhelper.NewRenderContextRepoComment(ut.ctx, repo), string(htmlWithCode))
 	if err != nil {
 		log.Error("PostProcessIssueTitle: %v", err)
 		return ""
 	}
-	return renderCodeBlock(template.HTML(renderedText))
+	return template.HTML(renderedText)
 }
 
 // RenderIssueSimpleTitle only renders with emoji and inline code block
 func (ut *RenderUtils) RenderIssueSimpleTitle(text string) template.HTML {
-	ret := ut.RenderEmoji(text)
-	ret = renderCodeBlock(ret)
-	return ret
+	// see RenderIssueTitle: wrap code spans before processing emoji
+	htmlWithCode := renderCodeBlock(template.HTML(template.HTMLEscapeString(text)))
+	renderedText, err := markup.PostProcessEmoji(markup.NewRenderContext(ut.ctx), string(htmlWithCode))
+	if err != nil {
+		log.Error("RenderIssueSimpleTitle: %v", err)
+		return ""
+	}
+	return template.HTML(renderedText)
 }
 
 func (ut *RenderUtils) RenderLabel(label *issues_model.Label) template.HTML {

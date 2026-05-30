@@ -69,6 +69,11 @@ func emojiShortCodeProcessor(ctx *RenderContext, node *html.Node) {
 		m[1] += start
 		start = m[1]
 
+		// like GitHub, don't render a shortcode whose ":" directly follows a backtick (an unclosed code span)
+		if m[0] > 0 && node.Data[m[0]-1] == '`' {
+			continue
+		}
+
 		alias := node.Data[m[0]:m[1]]
 
 		var nextChar byte
