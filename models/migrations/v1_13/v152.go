@@ -3,7 +3,7 @@
 
 package v1_13
 
-import "code.gitea.io/gitea/models/db"
+import "gitea.dev/models/db"
 
 func AddTrustModelToRepository(x db.EngineMigration) error {
 	type Repository struct {

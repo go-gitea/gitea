@@ -6,8 +6,8 @@ package v1_27
 import (
 	"testing"
 
-	"code.gitea.io/gitea/models/migrations/migrationtest"
-	"code.gitea.io/gitea/modules/timeutil"
+	"gitea.dev/models/migrations/migrationtest"
+	"gitea.dev/modules/timeutil"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -57,7 +57,7 @@ func TestAddReleaseNotificationBackfillsNotificationDedupe(t *testing.T) {
 
 	require.NoError(t, AddReleaseNotification(x))
 
-	var notifications []*NotificationV335
+	var notifications []*NotificationV336
 	require.NoError(t, x.Table("notification").Asc("id").Find(&notifications))
 	require.Len(t, notifications, len(testData))
 
@@ -96,12 +96,12 @@ func TestAddReleaseNotificationDeduplicatesLegacyNotificationRows(t *testing.T) 
 
 	require.NoError(t, AddReleaseNotification(x))
 
-	var notifications []*NotificationV335
+	var notifications []*NotificationV336
 	require.NoError(t, x.Table("notification").Find(&notifications))
 	require.Len(t, notifications, 1)
 
 	assert.Equal(t, "commit-2-abc123", notifications[0].UniqueKey)
-	assert.Equal(t, notificationStatusPinnedV335, notifications[0].Status)
+	assert.Equal(t, notificationStatusPinnedV336, notifications[0].Status)
 	assert.Equal(t, expectedKeeper.UpdatedBy, notifications[0].UpdatedBy)
 	assert.Equal(t, expectedKeeper.UpdatedUnix, notifications[0].UpdatedUnix)
 }
@@ -121,7 +121,7 @@ func TestAddReleaseNotificationFallbackForUnknownSource(t *testing.T) {
 
 	require.NoError(t, AddReleaseNotification(x))
 
-	var notifications []*NotificationV335
+	var notifications []*NotificationV336
 	require.NoError(t, x.Table("notification").Find(&notifications))
 	require.Len(t, notifications, 1)
 	assert.NotEmpty(t, notifications[0].UniqueKey, "unknown-source row must still have a unique_key after migration")

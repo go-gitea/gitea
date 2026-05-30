@@ -4,8 +4,8 @@
 package v1_17
 
 import (
-	"code.gitea.io/gitea/models/db"
-	"code.gitea.io/gitea/modules/setting"
+	"gitea.dev/models/db"
+	"gitea.dev/modules/setting"
 )
 
 func AlterHookTaskTextFieldsToLongText(x db.EngineMigration) error {

@@ -3,7 +3,7 @@
 
 package v1_19
 
-import "code.gitea.io/gitea/models/db"
+import "gitea.dev/models/db"
 
 func AddIndexForAccessToken(x db.EngineMigration) error {
 	type AccessToken struct {

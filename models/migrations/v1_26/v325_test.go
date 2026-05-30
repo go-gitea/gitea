@@ -6,8 +6,8 @@ package v1_26
 import (
 	"testing"
 
-	"code.gitea.io/gitea/models/migrations/migrationtest"
-	"code.gitea.io/gitea/modules/timeutil"
+	"gitea.dev/models/migrations/migrationtest"
+	"gitea.dev/modules/timeutil"
 
 	"github.com/stretchr/testify/require"
 )
