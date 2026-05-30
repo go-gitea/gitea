@@ -3,7 +3,7 @@
 		end
 	}}{{end }}"
 	style="--depth: {{.Depth}};"
-	href="{{if $.Org}}{{
+	href="{{if $.Org.Organization}}{{
 		$.Org.OrganisationLink
 	}}/{{if $.PageIsIssues}}issues{{else if $.PageIsPulls}}pulls{{else if $.PageIsMilestonesDashboard}}milestones{{else}}dashboard{{
 		end
