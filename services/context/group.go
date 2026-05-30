@@ -227,6 +227,10 @@ func GroupAssignmentWeb(args GroupAssignmentOptions) func(ctx *Context) {
 
 			ctx.Data["EnableFeed"] = setting.Other.EnableFeed
 			ctx.Data["FeedURL"] = group.GroupLink()
+			ctx.Data["IsOwnerOrg"] = group.Owner.IsOrganization()
+			if ctx.IsSigned {
+				ctx.Data["IsDoerOwner"] = ctx.ContextUser.ID == ctx.Doer.ID
+			}
 			ctx.Data["IsGroupOwner"] = repoGroup.IsOwner
 			ctx.Data["IsGroupMember"] = repoGroup.IsMember
 			ctx.Data["IsPackageEnabled"] = setting.Packages.Enabled
