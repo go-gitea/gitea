@@ -226,6 +226,7 @@ func GroupAssignmentWeb(args GroupAssignmentOptions) func(ctx *Context) {
 			if !ctx.IsSigned {
 				ctx.Data["SignedUser"] = &user_model.User{}
 			}
+			AddGroupValues(ctx)
 			ctx.RepoGroup = repoGroup
 		})
 	}
@@ -266,14 +267,20 @@ func groupIsCurrent(ctx *Context) func(groupID int64) bool {
 	}
 }
 
-func addGroupValues(ctx *Context) {
+func AddGroupValues(ctx *Context) {
 	ctx.Data["AsGroupItem"] = func(v any) shared_group_model.Item {
 		if gi, ok := v.(shared_group_model.Item); ok {
 			return gi
 		}
 		return nil
 	}
-	ctx.Data["GroupNavItems"] = shared_group_model.GetTopLevelGroupItemList(ctx, ctx.ContextUser.ID, ctx.Doer, false)
+	ctxUser := ctx.ContextUser
+	if ctxUser == nil {
+		ctxUser = ctx.Doer
+	}
+	if ctxUser != nil {
+		ctx.Data["GroupNavItems"] = shared_group_model.GetTopLevelGroupItemList(ctx, ctxUser.ID, ctx.Doer, false)
+	}
 	ctx.Data["GroupIsCurrent"] = groupIsCurrent(ctx)
 	ctx.Data["GroupHasChild"] = func(it shared_group_model.Item) bool {
 		if ctx.RepoGroup == nil || ctx.RepoGroup.Group == nil {
