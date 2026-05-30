@@ -3,6 +3,7 @@ import {hideElem, queryElems, showElem, toggleElem} from '../../utils/dom.ts';
 import {POST} from '../../modules/fetch.ts';
 import {showFomanticModal} from '../../modules/fomantic/modal.ts';
 import {pathEscape} from '../../utils/url.ts';
+import {registerGlobalInitFunc} from '../../modules/observer.ts';
 
 const {appSubUrl} = window.config;
 
@@ -23,6 +24,41 @@ export function initAdminCommon(): void {
   initAdminUser();
   initAdminAuthentication();
   initAdminNotice();
+  registerGlobalInitFunc('initRunnerBulkToolbar', initAdminRunnerBulk);
+}
+
+function initAdminRunnerBulk(toolbar: HTMLElement) {
+  const actionButtons = toolbar.querySelectorAll<HTMLButtonElement>('.runner-bulk-action');
+  const formRunnerIds = toolbar.querySelector<HTMLInputElement>('form input[name="ids"]')!;
+  const rowCheckboxes = document.querySelectorAll<HTMLInputElement>('.runner-bulk-select');
+  const selectAll = document.querySelector<HTMLInputElement>('.runner-bulk-select-all');
+  if (!selectAll) return;
+
+  const refresh = () => {
+    const checked = Array.from(rowCheckboxes).filter((c) => c.checked);
+    toggleElem(toolbar, checked.length > 0);
+    for (const btn of actionButtons) {
+      btn.querySelector<HTMLElement>('.runner-bulk-count')!.textContent = `(${checked.length})`;
+    }
+    selectAll.checked = checked.length > 0 && checked.length === rowCheckboxes.length;
+    selectAll.indeterminate = checked.length > 0 && checked.length < rowCheckboxes.length;
+  };
+
+  selectAll.addEventListener('change', () => {
+    for (const cb of rowCheckboxes) cb.checked = selectAll.checked;
+    refresh();
+  });
+  for (const cb of rowCheckboxes) cb.addEventListener('change', refresh);
+  refresh();
+
+  const collectSelectedIds = () => {
+    const ids = [];
+    for (const cb of rowCheckboxes) {
+      if (cb.checked) ids.push(cb.getAttribute('data-runner-id')!);
+    }
+    return ids.join(',');
+  };
+  formRunnerIds.value = collectSelectedIds();
 }
 
 function initAdminUser() {

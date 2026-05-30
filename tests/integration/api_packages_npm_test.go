@@ -11,14 +11,14 @@ import (
 	"strings"
 	"testing"
 
-	auth_model "code.gitea.io/gitea/models/auth"
-	"code.gitea.io/gitea/models/packages"
-	repo_model "code.gitea.io/gitea/models/repo"
-	"code.gitea.io/gitea/models/unittest"
-	user_model "code.gitea.io/gitea/models/user"
-	"code.gitea.io/gitea/modules/packages/npm"
-	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/tests"
+	auth_model "gitea.dev/models/auth"
+	"gitea.dev/models/packages"
+	repo_model "gitea.dev/models/repo"
+	"gitea.dev/models/unittest"
+	user_model "gitea.dev/models/user"
+	"gitea.dev/modules/packages/npm"
+	"gitea.dev/modules/setting"
+	"gitea.dev/tests"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -304,7 +304,7 @@ func TestPackageNpm(t *testing.T) {
 		resp := MakeRequest(t, req, http.StatusOK)
 		doc := NewHTMLParser(t, resp.Body)
 		rendered, _ := doc.Find(".markup.markdown").Html()
-		assert.Equal(t, `<p dir="auto"><a href="/user2/repo1/src/branch/master/package-subdir/docs/usage.md" rel="nofollow">docs</a>
+		assertHTMLEq(t, `<p dir="auto"><a href="/user2/repo1/src/branch/master/package-subdir/docs/usage.md" rel="nofollow">docs</a>
 <a href="/user2/repo1/src/branch/master/package-subdir/logo.png" rel="nofollow noopener" target="_blank"><img src="/user2/repo1/media/branch/master/package-subdir/logo.png" alt="logo" loading="lazy"/></a></p>
 `, rendered)
 	})

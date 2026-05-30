@@ -4,11 +4,11 @@
 package setting
 
 import (
-	repo_model "code.gitea.io/gitea/models/repo"
-	"code.gitea.io/gitea/modules/gitrepo"
-	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/services/context"
-	repo_service "code.gitea.io/gitea/services/repository"
+	repo_model "gitea.dev/models/repo"
+	"gitea.dev/modules/gitrepo"
+	"gitea.dev/modules/setting"
+	"gitea.dev/services/context"
+	repo_service "gitea.dev/services/repository"
 )
 
 // AdoptOrDeleteRepository adopts or deletes a repository

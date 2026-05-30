@@ -8,8 +8,8 @@ import (
 	"io"
 	"net/url"
 
-	"code.gitea.io/gitea/modules/markup"
-	"code.gitea.io/gitea/modules/setting"
+	"gitea.dev/modules/markup"
+	"gitea.dev/modules/setting"
 )
 
 func init() {

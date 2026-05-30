@@ -10,14 +10,14 @@ import (
 	"strings"
 	"testing"
 
-	"code.gitea.io/gitea/models/issues"
-	"code.gitea.io/gitea/models/repo"
-	user_model "code.gitea.io/gitea/models/user"
-	"code.gitea.io/gitea/modules/markup"
-	"code.gitea.io/gitea/modules/reqctx"
-	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/modules/test"
-	"code.gitea.io/gitea/modules/translation"
+	"gitea.dev/models/issues"
+	"gitea.dev/models/repo"
+	user_model "gitea.dev/models/user"
+	"gitea.dev/modules/markup"
+	"gitea.dev/modules/reqctx"
+	"gitea.dev/modules/setting"
+	"gitea.dev/modules/test"
+	"gitea.dev/modules/translation"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -138,6 +138,18 @@ com 88fc37a3c0a4dda553bdcfc80c178a58247f42fb mit
 	t.Run("RenderCommitMessageLinkSubject", func(t *testing.T) {
 		expected := `<a href="https://example.com/link" class="muted">space </a><a href="/mention-user" data-markdown-generated-content="">@mention-user</a>`
 		assert.EqualValues(t, expected, newTestRenderUtils(t).RenderCommitMessageLinkSubject(testInput(), "https://example.com/link", mockRepo))
+	})
+
+	t.Run("RenderCommitMessageLinkSubjectURLOnly", func(t *testing.T) {
+		// a bare URL in the subject must not hijack the default link
+		expected := `<a href="https://example.com/link" class="muted">https://example.com/file.bin</a>`
+		assert.EqualValues(t, expected, newTestRenderUtils(t).RenderCommitMessageLinkSubject("https://example.com/file.bin", "https://example.com/link", mockRepo))
+	})
+
+	t.Run("RenderCommitMessageLinkSubjectPartialURL", func(t *testing.T) {
+		// a URL embedded in larger subject text still becomes its own link
+		expected := `<a href="https://example.com/link" class="muted">see </a><a href="https://example.com/x" data-markdown-generated-content="">https://example.com/x</a><a href="https://example.com/link" class="muted"> here</a>`
+		assert.EqualValues(t, expected, newTestRenderUtils(t).RenderCommitMessageLinkSubject("see https://example.com/x here", "https://example.com/link", mockRepo))
 	})
 
 	t.Run("RenderIssueTitle", func(t *testing.T) {

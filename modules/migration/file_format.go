@@ -9,11 +9,11 @@ import (
 	"strings"
 	"time"
 
-	"code.gitea.io/gitea/modules/json"
-	"code.gitea.io/gitea/modules/log"
+	"gitea.dev/modules/json"
+	"gitea.dev/modules/log"
 
 	"github.com/santhosh-tekuri/jsonschema/v6"
-	"gopkg.in/yaml.v3"
+	"go.yaml.in/yaml/v4"
 )
 
 // schemaLoader implements jsonschema.URLLoader
