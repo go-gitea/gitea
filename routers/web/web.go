@@ -1150,6 +1150,7 @@ func registerWebRoutes(m *web.Router, webAuth *AuthMiddleware) {
 		m.Get("/mentions-in-owner", reqUnitAccess(unit.TypeProjects, perm.AccessModeWrite, true), org.GetMentionsInOwner)
 
 		m.Get("/repositories", org.Repositories)
+		m.Get("/heatmap/group/{group_id}", context.GroupAssignmentWeb(context.GroupAssignmentOptions{RequireMember: true}), user.DashboardHeatmap)
 		m.Get("/heatmap", user.DashboardHeatmap)
 
 		m.Group("/projects", func() {

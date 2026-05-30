@@ -22,7 +22,11 @@ func prepareHeatmapURL(ctx *context.Context) {
 
 	if ctx.Org.Organization == nil {
 		// for individual user
-		ctx.Data["HeatmapURL"] = ctx.Doer.HomeLink() + "/-/heatmap"
+		if ctx.RepoGroup.Group != nil {
+			ctx.Data["HeatmapURL"] = ctx.Doer.HomeLink() + "/-/heatmap/group/" + url.PathEscape(strconv.FormatInt(ctx.RepoGroup.Group.ID, 10))
+		} else {
+			ctx.Data["HeatmapURL"] = ctx.Doer.HomeLink() + "/-/heatmap"
+		}
 		return
 	}
 
