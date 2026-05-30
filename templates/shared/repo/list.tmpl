@@ -57,7 +57,9 @@
 						</a>
 						{{if $.ShowWatchOptions}}
 							{{$watch := index $.Watches .ID}}
-							{{template "repo/watch_options_button" dict "RepoID" .ID "RepoLink" .Link "WatchPullRequests" $watch.PullRequests "WatchIssues" $watch.Issues "WatchReleases" $watch.Releases}}
+							{{if $watch}}
+								{{template "repo/watch_options_button" dict "RepoID" .ID "RepoLink" .Link "WatchPullRequests" $watch.PullRequests "WatchIssues" $watch.Issues "WatchReleases" $watch.Releases}}
+							{{end}}
 						{{end}}
 					</div>
 				</div>
@@ -80,5 +82,7 @@
 		{{ctx.Locale.Tr "search.no_results"}}
 	</div>
 	{{end}}
-	{{template "repo/watch_options_modal"}}
+	{{if $.ShowWatchOptions}}
+		{{template "repo/watch_options_modal"}}
+	{{end}}
 </div>

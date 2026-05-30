@@ -202,6 +202,9 @@ func GetRepoWatchersIDs(ctx context.Context, repoID int64, watchType WatchType) 
 }
 
 func GetWatches(ctx context.Context, repos []*Repository) (map[int64]*Watch, error) {
+	if len(repos) == 0 {
+		return map[int64]*Watch{}, nil
+	}
 	repoIDs := make([]int64, 0, len(repos))
 	for i := range repos {
 		repoIDs = append(repoIDs, repos[i].ID)

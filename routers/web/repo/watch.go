@@ -20,12 +20,18 @@ func ActionWatch(ctx *context.Context) {
 	doWatch := ctx.PathParam("action") == "watch"
 
 	var watchOptions *repo_model.WatchOptions
-	if doWatch && ctx.FormString("watch_mode") == "custom" {
-		opts := getWatchOptions(ctx)
-		if !validateWatchOptions(ctx, opts) {
-			return
+	if doWatch {
+		if ctx.FormString("watch_mode") == "custom" {
+			opts := getWatchOptions(ctx)
+			if !validateWatchOptions(ctx, opts) {
+				return
+			}
+			watchOptions = &opts
+		} else {
+			// "All activity": always (re)enable every event type, even if the user
+			// previously had a Custom selection.
+			watchOptions = &repo_model.WatchOptions{PullRequests: true, Issues: true, Releases: true}
 		}
-		watchOptions = &opts
 	}
 
 	err := repo_model.WatchRepo(ctx, ctx.Doer, ctx.Repo.Repository, doWatch)
