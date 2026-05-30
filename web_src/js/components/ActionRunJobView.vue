@@ -487,6 +487,7 @@ async function hashChangeListener() {
       :jobs="callerChildJobs"
       :run-link="run.link"
       :workflow-id="`${run.workflowID}#caller-${props.jobId}`"
+      :locale="locale"
     />
   </div>
 
