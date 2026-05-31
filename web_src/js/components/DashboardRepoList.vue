@@ -337,7 +337,7 @@ export default defineComponent({
       this.isLoading = true;
 
       const searchedMode = this.repoTypes[this.reposFilter].searchMode;
-      const searchedURL = `${this.searchURL}&group_id=-1`;
+      const searchedURL = `${this.searchURL}&group_id=0`;
       const searchedQuery = this.searchQuery;
 
       let response, json;
@@ -375,9 +375,8 @@ export default defineComponent({
           };
         });
         let realRepos: any[] = this.repos;
-        if(window.location.pathname !== "/") {
-          realRepos = this.repos.filter((a: any) => !a.group_id)
-        }
+        realRepos = realRepos.filter((a: any) => !a.group_id)
+
         this.groups.set(0, {
           repos: realRepos,
           subgroups: json.data.subgroups.map((g: any) => {
