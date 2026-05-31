@@ -19,7 +19,7 @@ import {initStopwatch} from './features/stopwatch.ts';
 import {initRepoFileSearch} from './features/repo-findfile.ts';
 import {initMarkupContent} from './markup/content.ts';
 import {initRepoFileView} from './features/file-view.ts';
-import {initUserExternalLogins, initUserCheckAppUrl} from './features/user-auth.ts';
+import {initUserAuthSubmitLoading, initUserExternalLogins, initUserCheckAppUrl} from './features/user-auth.ts';
 import {initRepoPullRequestReview, initRepoIssueFilterItemLabel} from './features/repo-issue.ts';
 import {initRepoEllipsisButton, initCommitStatuses} from './features/repo-commit.ts';
 import {initRepoTopicBar} from './features/repo-home.ts';
@@ -148,6 +148,7 @@ const initPerformanceTracer = callInitFunctions([
   initCaptcha,
 
   initUserCheckAppUrl,
+  initUserAuthSubmitLoading,
   initUserExternalLogins,
   initUserAuthWebAuthn,
   initUserAuthWebAuthnRegister,

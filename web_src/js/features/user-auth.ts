@@ -25,3 +25,22 @@ export function initUserExternalLogins() {
     checkAppUrl();
   }
 }
+
+export function initUserAuthSubmitLoading() {
+  for (const form of document.querySelectorAll<HTMLFormElement>('.js-twofa-form')) {
+    form.addEventListener('submit', (e) => {
+      if (form.getAttribute('data-submitted') === 'true') {
+        e.preventDefault();
+        return;
+      }
+
+      const submitButton = e.submitter instanceof HTMLButtonElement || e.submitter instanceof HTMLInputElement ?
+        e.submitter :
+        form.querySelector<HTMLButtonElement | HTMLInputElement>('button[type="submit"], button:not([type]), input[type="submit"]');
+
+      form.setAttribute('data-submitted', 'true');
+      submitButton?.classList.add('is-loading', 'loading-icon-2px');
+      if (submitButton) submitButton.disabled = true;
+    });
+  }
+}
