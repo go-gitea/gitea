@@ -15,7 +15,8 @@ import (
 )
 
 const (
-	tplGroupHome = "group/home"
+	tplGroupHome    = "group/home"
+	tplGroupHomeOrg = "group/org_home"
 )
 
 func Home(ctx *context.Context) {
@@ -123,5 +124,9 @@ func Home(ctx *context.Context) {
 	pager := context.NewPagination(count, setting.UI.User.RepoPagingNum, page, 5)
 	pager.AddParamFromRequest(ctx.Req)
 	ctx.Data["Page"] = pager
-	ctx.HTML(http.StatusOK, tplGroupHome)
+	if ctx.RepoGroup.Group.Owner.IsIndividual() {
+		ctx.HTML(http.StatusOK, tplGroupHome)
+	} else {
+		ctx.HTML(http.StatusOK, tplGroupHomeOrg)
+	}
 }
