@@ -255,6 +255,7 @@ function onNodeClick(job: GraphNode | ActionsJob, event: MouseEvent) {
         :width="graphWidth"
         :height="graphHeight"
         class="graph-svg"
+        :class="{ 'has-hover': hoveredGraphId !== null }"
         :style="{
           transform: `translate(${translateX}px, ${translateY}px) scale(${scale})`,
           transformOrigin: '0 0',
@@ -284,13 +285,6 @@ function onNodeClick(job: GraphNode | ActionsJob, event: MouseEvent) {
             fill="none"
             class="node-edge"
           />
-          <path
-            v-for="edge in splitRoutedEdges.highlighted"
-            :key="`highlight-${edge.key}`"
-            :d="edge.path"
-            fill="none"
-            class="node-edge highlighted-edge"
-          />
         </g>
 
         <template v-for="job in jobsWithLayout" :key="job.id">
@@ -305,12 +299,19 @@ function onNodeClick(job: GraphNode | ActionsJob, event: MouseEvent) {
             <rect :x="job.x" :y="job.y" :width="nodeWidth" :height="job.displayHeight" rx="6" class="job-rect"/>
             <foreignObject :x="job.x" :y="job.y" :width="nodeWidth" :height="job.displayHeight" class="matrix-foreign-object">
               <div class="matrix-panel" xmlns="http://www.w3.org/1999/xhtml">
-                <div class="matrix-panel-header" :class="{ expanded: isMatrixExpanded(job.matrixKey!) }" @click.stop="toggleMatrixExpanded(job.matrixKey!)">
-                  <ActionStatusIcon :status="job.status" icon-variant="circle-fill"/>
-                  <span class="matrix-panel-summary">Matrix: {{ job.matrixKey }} - {{ job.jobs.length }} jobs</span>
-                  <SvgIcon name="octicon-chevron-right" :size="12" class="matrix-panel-chevron"/>
+                <div class="matrix-panel-label" @click.stop="toggleMatrixExpanded(job.matrixKey!)">Matrix: {{ job.matrixKey }}</div>
+                <div
+                  v-if="!isMatrixExpanded(job.matrixKey!)"
+                  class="matrix-panel-collapsed"
+                  @click.stop="toggleMatrixExpanded(job.matrixKey!)"
+                >
+                  <div class="matrix-panel-summary-row">
+                    <ActionStatusIcon :status="job.status" icon-variant="circle-fill"/>
+                    <span class="matrix-panel-summary">{{ job.jobs.length }} jobs completed</span>
+                  </div>
+                  <span class="matrix-panel-toggle">Show all jobs</span>
                 </div>
-                <div v-if="isMatrixExpanded(job.matrixKey!)" class="matrix-panel-jobs">
+                <div v-else class="matrix-panel-jobs">
                   <div
                     v-for="ch in job.jobs"
                     :key="ch.id"
@@ -384,6 +385,21 @@ function onNodeClick(job: GraphNode | ActionsJob, event: MouseEvent) {
             <circle v-if="nodesWithOutgoingEdge.has(job.id)" :cx="job.x + nodeWidth" :cy="boxCenterY(job)" r="3.5" class="node-port"/>
           </g>
         </template>
+
+        <!-- Highlighted edges render on top of nodes so they remain visible across dimmed boxes. -->
+        <g class="highlighted-edge-layer">
+          <path
+            v-for="edge in splitRoutedEdges.highlighted"
+            :key="`highlight-${edge.key}`"
+            :d="edge.path"
+            fill="none"
+            class="node-edge highlighted-edge"
+          />
+          <template v-for="edge in splitRoutedEdges.highlighted" :key="`highlight-port-${edge.key}`">
+            <circle :cx="edge.fromNode.x + nodeWidth" :cy="boxCenterY(edge.fromNode)" r="3.5" class="node-port highlighted-port"/>
+            <circle :cx="edge.toNode.x" :cy="boxCenterY(edge.toNode)" r="3.5" class="node-port highlighted-port"/>
+          </template>
+        </g>
       </svg>
     </div>
   </div>
@@ -463,18 +479,36 @@ function onNodeClick(job: GraphNode | ActionsJob, event: MouseEvent) {
 
 .highlighted-edge {
   stroke: var(--color-primary);
-  stroke-width: 1.5;
+  stroke-width: 2;
 }
 
 .job-node-group {
   cursor: pointer;
+  transition: opacity 0.15s ease;
 }
 
 .job-node-group:hover .job-rect,
 .job-node-group.related-node .job-rect {
   stroke: var(--color-primary);
   stroke-width: 1.5;
-  fill: var(--color-hover);
+  fill: var(--color-primary-alpha-10);
+}
+
+.graph-svg.has-hover .job-node-group:not(.related-node) {
+  opacity: 0.2;
+}
+
+.graph-svg.has-hover .node-edge:not(.highlighted-edge) {
+  opacity: 0.15;
+}
+
+.highlighted-edge-layer {
+  pointer-events: none;
+}
+
+.highlighted-port {
+  fill: var(--color-primary);
+  stroke: var(--color-primary);
 }
 
 .job-rect {
@@ -502,26 +536,36 @@ function onNodeClick(job: GraphNode | ActionsJob, event: MouseEvent) {
 .matrix-panel {
   display: flex;
   flex-direction: column;
+  padding: 6px 10px 8px;
 }
 
-.matrix-panel:not(:has(.matrix-panel-jobs)) {
-  justify-content: center;
-}
-
-.matrix-panel-header {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 8px 12px;
+.matrix-panel-label {
+  font-size: 10px;
+  font-weight: var(--font-weight-medium);
+  color: var(--color-text-light-2);
+  line-height: 1.3;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
   cursor: pointer;
 }
 
-.matrix-panel-header.expanded {
-  border-bottom: 1px solid var(--color-secondary);
+.matrix-panel-collapsed {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 2px 0 0 2px;
+  cursor: pointer;
+}
+
+.matrix-panel-summary-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
 }
 
 .matrix-panel-summary {
-  flex: 1;
   font-size: 12px;
   font-weight: var(--font-weight-semibold);
   line-height: 1.3;
@@ -531,21 +575,23 @@ function onNodeClick(job: GraphNode | ActionsJob, event: MouseEvent) {
   white-space: nowrap;
 }
 
-.matrix-panel-chevron {
-  flex-shrink: 0;
+.matrix-panel-toggle {
+  font-size: 11px;
   color: var(--color-text-light-2);
-  transition: transform 0.15s ease;
+  padding-left: 24px;
+  cursor: pointer;
 }
 
-.matrix-panel-header.expanded .matrix-panel-chevron {
-  transform: rotate(90deg);
+.matrix-panel-toggle:hover {
+  color: var(--color-primary);
+  text-decoration: underline;
 }
 
 .matrix-panel-jobs {
   display: flex;
   flex-direction: column;
   gap: 2px;
-  padding: 6px;
+  padding: 4px 0 0 2px;
   overflow-y: auto;
 }
 

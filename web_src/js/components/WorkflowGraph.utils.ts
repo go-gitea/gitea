@@ -74,8 +74,8 @@ const defaultLayoutOptions: WorkflowGraphLayoutOptions = {
   laneGap: 32,
   groupRowHeight: 28,
   groupPadY: 8,
-  matrixCollapsedHeight: 40,
-  matrixHeaderHeight: 40,
+  matrixCollapsedHeight: 78,
+  matrixHeaderHeight: 24,
   matrixRowHeight: 26,
   matrixPadY: 6,
 };
@@ -445,10 +445,12 @@ function assignNodeCoordinates(nodesById: Map<string, GraphNode>, nodes: GraphNo
   function packLevel(level: number, anchorOf: (n: GraphNode) => number): void {
     const list = nodesByLevel.get(level)!;
     const sorted = Array.from(list).sort((a, b) => anchorOf(a) - anchorOf(b) || inputRank(a) - inputRank(b));
+    // Pack tight to top after sorting. Using barycenter only for order (not Y) keeps terminal
+    // nodes like build-image close to the top of their column instead of being pulled down to
+    // the mean Y of their parents — matching GitHub Actions' compact layout.
     let prevBottom = options.margin - options.laneGap;
     for (const node of sorted) {
-      const desired = anchorOf(node) - node.displayHeight / 2;
-      node.y = Math.max(options.margin, desired, prevBottom + options.laneGap);
+      node.y = prevBottom + options.laneGap;
       prevBottom = boxBottom(node);
     }
     nodesByLevel.set(level, sorted);
@@ -461,10 +463,10 @@ function assignNodeCoordinates(nodesById: Map<string, GraphNode>, nodes: GraphNo
     return sum / ids.length;
   }
 
-  // Down-only barycenter pass: each child is anchored to the median Y of its parents. Roots
-  // keep their initial input-rank position. This produces a "main chain on top" layout where
-  // job-100 → job-101 → job-102 stays on a straight horizontal line, mirroring the layout
-  // GitHub Actions uses.
+  // Down-only barycenter pass: each child is anchored to the mean Y of its parents. Roots
+  // keep their initial yaml-declaration order (via inputRank), matching how GitHub Actions
+  // arranges root jobs. This produces a "main chain on top" layout where job-100 → job-101 →
+  // job-102 stays on a straight horizontal line.
   for (const level of orderedLevels) {
     if (level === 0) continue;
     packLevel(level, (node) => meanCenterOf(incomingByNodeId.get(node.id) || []) ?? boxCenterY(node));
@@ -475,17 +477,27 @@ function assignNodeCoordinates(nodesById: Map<string, GraphNode>, nodes: GraphNo
 // vertical run → cubic-bezier corner back to horizontal → target stub. The corner radius is
 // fixed (not clamped to the row delta) so any two edges sharing the same source produce the
 // same source-side path and overlap into a single visual line until they diverge at the V.
-const cornerRadius = 24;
+const cornerRadius = 12;
 
-function connectorPath(sx: number, sy: number, ex: number, ey: number): string {
+function connectorPath(sx: number, sy: number, ex: number, ey: number, options: WorkflowGraphLayoutOptions): string {
   if (Math.abs(sy - ey) < 0.5) return `M ${sx} ${sy} H ${ex}`;
-  const midX = (sx + ex) / 2;
+  // Anchor the V segment in the column gap immediately before the target instead of the
+  // horizontal midpoint. The long H stays at the source's Y, matching GitHub Actions' style
+  // — a multi-column edge runs along the source row across intermediate columns, then turns
+  // up/down only when it reaches the target column.
+  const midX = Math.max(ex - options.columnGap / 2, (sx + ex) / 2);
   const dy = ey > sy ? 1 : -1;
-  // Two fixed-radius corners need 2*cornerRadius of vertical room. With less room a backward
-  // V kink would form, so collapse to a single S-curve instead.
+  // Keep the same H prefix to `midX - cornerRadius` for every edge so that edges sharing a
+  // source overlap visually until they fork. When there isn't 2*cornerRadius of vertical
+  // room for the V segment, emit a single S-curve between (midX - r, sy) and (midX + r, ey)
+  // instead of a backward V kink.
   if (Math.abs(ey - sy) < cornerRadius * 2) {
-    const dx = (ex - sx) / 2;
-    return `M ${sx} ${sy} C ${sx + dx} ${sy} ${ex - dx} ${ey} ${ex} ${ey}`;
+    return [
+      `M ${sx} ${sy}`,
+      `H ${midX - cornerRadius}`,
+      `C ${midX} ${sy} ${midX} ${ey} ${midX + cornerRadius} ${ey}`,
+      `H ${ex}`,
+    ].join(' ');
   }
   const half = cornerRadius / 2;
   return [
@@ -512,7 +524,7 @@ function buildRoutedEdges(
     const endX = toNode.x;
     const startY = boxCenterY(fromNode);
     const endY = boxCenterY(toNode);
-    routedEdges.push({...edge, fromNode, toNode, path: connectorPath(startX, startY, endX, endY)});
+    routedEdges.push({...edge, fromNode, toNode, path: connectorPath(startX, startY, endX, endY, options)});
   }
 
   return {routedEdges, sharedSegments: []};

@@ -231,28 +231,29 @@ func MockActionsRunsJobs(ctx *context.Context) {
 		mockJobs := []mj{
 			{jobID: "job-100", name: "job-100", status: actions_model.StatusSuccess, duration: "3s", needs: nil},
 			{jobID: "job-101", name: "job-101", status: actions_model.StatusSuccess, duration: "3s", needs: []string{"job-100"}},
-			{jobID: "job-102", name: "job-102", status: actions_model.StatusSuccess, duration: "4s", needs: []string{"job-101"}},
+			{jobID: "job-102", name: "job-102", status: actions_model.StatusSuccess, duration: "4s", needs: []string{"job-100", "job-101"}},
 			{jobID: "job-103", name: "job-103", status: actions_model.StatusSuccess, duration: "2s", needs: []string{"job-100"}},
 
-			{jobID: "code-analysis", name: "code-analysis", status: actions_model.StatusSuccess, duration: "3s", needs: nil},
 			{jobID: "prep-jdk", name: "prep-jdk", status: actions_model.StatusSuccess, duration: "3s", needs: nil},
+			{jobID: "code-analysis", name: "code-analysis", status: actions_model.StatusSuccess, duration: "3s", needs: nil},
 
 			// Matrix expansion (the " (...)" suffix is the heuristic the frontend uses to group rows)
-			{jobID: "matrix-e2e-1-chromium", name: "matrix-e2e (1, chromium)", status: actions_model.StatusSuccess, duration: "2s", needs: []string{"job-100", "prep-jdk"}},
-			{jobID: "matrix-e2e-1-firefox", name: "matrix-e2e (1, firefox)", status: actions_model.StatusSuccess, duration: "2s", needs: []string{"job-100", "prep-jdk"}},
-			{jobID: "matrix-e2e-2-chromium", name: "matrix-e2e (2, chromium)", status: actions_model.StatusSuccess, duration: "2s", needs: []string{"job-100", "prep-jdk"}},
-			{jobID: "matrix-e2e-3-chromium", name: "matrix-e2e (3, chromium)", status: actions_model.StatusSuccess, duration: "4s", needs: []string{"job-100", "prep-jdk"}},
-			{jobID: "matrix-e2e-3-firefox", name: "matrix-e2e (3, firefox)", status: actions_model.StatusSuccess, duration: "2s", needs: []string{"job-100", "prep-jdk"}},
-			{jobID: "matrix-e2e-99-webkit", name: "matrix-e2e (99, webkit)", status: actions_model.StatusSuccess, duration: "2s", needs: []string{"job-100", "prep-jdk"}},
+			{jobID: "matrix-e2e-1-chromium", name: "matrix-e2e (1, chromium)", status: actions_model.StatusSuccess, duration: "2s", needs: []string{"prep-jdk"}},
+			{jobID: "matrix-e2e-1-firefox", name: "matrix-e2e (1, firefox)", status: actions_model.StatusSuccess, duration: "2s", needs: []string{"prep-jdk"}},
+			{jobID: "matrix-e2e-2-chromium", name: "matrix-e2e (2, chromium)", status: actions_model.StatusSuccess, duration: "2s", needs: []string{"prep-jdk"}},
+			{jobID: "matrix-e2e-3-chromium", name: "matrix-e2e (3, chromium)", status: actions_model.StatusSuccess, duration: "4s", needs: []string{"prep-jdk"}},
+			{jobID: "matrix-e2e-3-firefox", name: "matrix-e2e (3, firefox)", status: actions_model.StatusSuccess, duration: "2s", needs: []string{"prep-jdk"}},
+			{jobID: "matrix-e2e-99-webkit", name: "matrix-e2e (99, webkit)", status: actions_model.StatusSuccess, duration: "2s", needs: []string{"prep-jdk"}},
 
-			{jobID: "unit-test", name: "unit-test", status: actions_model.StatusSuccess, duration: "3s", needs: []string{"prep-jdk", "code-analysis"}},
-			{jobID: "arch-test", name: "arch-test", status: actions_model.StatusSuccess, duration: "3s", needs: []string{"prep-jdk", "code-analysis"}},
-			{jobID: "integration-test", name: "integration-test", status: actions_model.StatusSuccess, duration: "4s", needs: []string{"prep-jdk", "code-analysis"}},
+			{jobID: "unit-test", name: "unit-test", status: actions_model.StatusSuccess, duration: "3s", needs: []string{"prep-jdk"}},
+			{jobID: "arch-test", name: "arch-test", status: actions_model.StatusSuccess, duration: "3s", needs: []string{"prep-jdk"}},
+			{jobID: "integration-test", name: "integration-test", status: actions_model.StatusSuccess, duration: "4s", needs: []string{"prep-jdk"}},
 
 			{jobID: "build-image", name: "build-image", status: actions_model.StatusSuccess, duration: "3s", needs: []string{
 				"unit-test",
 				"arch-test",
 				"integration-test",
+				"code-analysis",
 				"matrix-e2e-1-chromium",
 				"matrix-e2e-1-firefox",
 				"matrix-e2e-2-chromium",
