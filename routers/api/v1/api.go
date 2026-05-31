@@ -66,6 +66,7 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"reflect"
 	"strings"
 
 	auth_model "gitea.dev/models/auth"
@@ -759,11 +760,47 @@ func bind[T any](_ T) any {
 		theObj := new(T) // create a new form obj for every request but not use obj directly
 		errs := binding.Bind(ctx.Req, theObj)
 		if len(errs) > 0 {
-			ctx.APIError(http.StatusUnprocessableEntity, fmt.Sprintf("%s: %s", errs[0].FieldNames, errs[0].Error()))
+			ctx.APIError(http.StatusUnprocessableEntity, bindingErrorMessage(theObj, errs[0]))
 			return
 		}
 		web.SetForm(ctx, theObj)
 	}
+}
+
+func bindingErrorMessage(form any, err binding.Error) string {
+	fieldName := strings.Join(err.FieldNames, ", ")
+	if len(err.FieldNames) == 1 {
+		fieldName = bindingErrorFieldName(form, err.FieldNames[0])
+	}
+
+	switch err.Classification {
+	case binding.ERR_ALPHA_DASH:
+		return fieldName + " may only contain letters, numbers, hyphens (-), and underscores (_)"
+	case binding.ERR_ALPHA_DASH_DOT:
+		return fieldName + " may only contain letters, numbers, hyphens (-), underscores (_), and dots (.)"
+	default:
+		return fmt.Sprintf("%s: %s", err.FieldNames, err.Error())
+	}
+}
+
+func bindingErrorFieldName(form any, fieldName string) string {
+	formType := reflect.TypeOf(form)
+	if formType.Kind() == reflect.Pointer {
+		formType = formType.Elem()
+	}
+	if formType.Kind() != reflect.Struct {
+		return fieldName
+	}
+
+	field, ok := formType.FieldByName(fieldName)
+	if !ok {
+		return fieldName
+	}
+	jsonName, _, _ := strings.Cut(field.Tag.Get("json"), ",")
+	if jsonName == "" || jsonName == "-" {
+		return fieldName
+	}
+	return jsonName
 }
 
 func buildAuthGroup() *auth.Group {

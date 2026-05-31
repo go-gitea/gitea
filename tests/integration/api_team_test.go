@@ -62,8 +62,18 @@ func TestAPITeam(t *testing.T) {
 
 	org = unittest.AssertExistsAndLoadBean(t, &organization.Organization{ID: 6})
 
-	// Create team.
+	// Invalid team names should return a readable validation error.
 	teamToCreate := &api.CreateTeamOption{
+		Name: "team with spaces",
+	}
+	req = NewRequestWithJSON(t, "POST", fmt.Sprintf("/api/v1/orgs/%s/teams", org.Name), teamToCreate).
+		AddTokenAuth(token)
+	resp = MakeRequest(t, req, http.StatusUnprocessableEntity)
+	apiError := DecodeJSON(t, resp, &api.APIError{})
+	assert.Equal(t, "name may only contain letters, numbers, hyphens (-), underscores (_), and dots (.)", apiError.Message)
+
+	// Create team.
+	teamToCreate = &api.CreateTeamOption{
 		Name:                    "team1",
 		Description:             "team one",
 		IncludesAllRepositories: true,
