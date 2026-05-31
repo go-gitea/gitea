@@ -28,6 +28,7 @@ import (
 	shared_user "gitea.dev/routers/web/shared/user"
 	"gitea.dev/services/context"
 	"gitea.dev/services/forms"
+	notify_service "gitea.dev/services/notify"
 	project_service "gitea.dev/services/projects"
 )
 
@@ -459,6 +460,7 @@ func UpdateIssueProject(ctx *context.Context) {
 			ctx.ServerError("IssueAssignOrRemoveProject", err)
 			return
 		}
+		notify_service.IssueChangeProject(ctx, ctx.Doer, issue)
 	}
 
 	if len(failedIssues) > 0 {

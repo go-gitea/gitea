@@ -31,6 +31,7 @@ import (
 	"gitea.dev/services/context"
 	"gitea.dev/services/convert"
 	issue_service "gitea.dev/services/issue"
+	notify_service "gitea.dev/services/notify"
 )
 
 // buildSearchIssuesRepoIDs builds the list of repository IDs for issue search based on query parameters.
@@ -924,6 +925,7 @@ func EditIssue(ctx *context.APIContext) {
 			}
 			return
 		}
+		notify_service.IssueChangeProject(ctx, ctx.Doer, issue)
 	}
 
 	// Refetch from database to assign some automatic values

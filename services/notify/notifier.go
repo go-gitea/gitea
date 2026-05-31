@@ -33,6 +33,7 @@ type Notifier interface {
 	IssueChangeStatus(ctx context.Context, doer *user_model.User, commitID string, issue *issues_model.Issue, actionComment *issues_model.Comment, closeOrReopen bool)
 	DeleteIssue(ctx context.Context, doer *user_model.User, issue *issues_model.Issue)
 	IssueChangeMilestone(ctx context.Context, doer *user_model.User, issue *issues_model.Issue, oldMilestoneID int64)
+	IssueChangeProject(ctx context.Context, doer *user_model.User, issue *issues_model.Issue)
 	IssueChangeAssignee(ctx context.Context, doer *user_model.User, issue *issues_model.Issue, assignee *user_model.User, removed bool, comment *issues_model.Comment)
 	PullRequestReviewRequest(ctx context.Context, doer *user_model.User, issue *issues_model.Issue, reviewer *user_model.User, isRequest bool, comment *issues_model.Comment)
 	IssueChangeContent(ctx context.Context, doer *user_model.User, issue *issues_model.Issue, oldContent string)

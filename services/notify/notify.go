@@ -223,6 +223,13 @@ func IssueChangeMilestone(ctx context.Context, doer *user_model.User, issue *iss
 	}
 }
 
+// IssueChangeProject notifies change project to notifiers
+func IssueChangeProject(ctx context.Context, doer *user_model.User, issue *issues_model.Issue) {
+	for _, notifier := range notifiers {
+		notifier.IssueChangeProject(ctx, doer, issue)
+	}
+}
+
 // IssueChangeContent notifies change content to notifiers
 func IssueChangeContent(ctx context.Context, doer *user_model.User, issue *issues_model.Issue, oldContent string) {
 	for _, notifier := range notifiers {

@@ -114,6 +114,10 @@ func (*NullNotifier) DeleteRelease(ctx context.Context, doer *user_model.User, r
 func (*NullNotifier) IssueChangeMilestone(ctx context.Context, doer *user_model.User, issue *issues_model.Issue, oldMilestoneID int64) {
 }
 
+// IssueChangeProject places a place holder function
+func (*NullNotifier) IssueChangeProject(ctx context.Context, doer *user_model.User, issue *issues_model.Issue) {
+}
+
 // IssueChangeContent places a place holder function
 func (*NullNotifier) IssueChangeContent(ctx context.Context, doer *user_model.User, issue *issues_model.Issue, oldContent string) {
 }
