@@ -4,10 +4,12 @@ This document explains how to contribute changes to the Gitea project. Topic-spe
 
 | Topic | Document |
 | :---- | :------- |
-| Development environment, building | [docs/development.md](docs/development.md) |
+| Setup and requirements | [docs/setup.md](docs/setup.md) |
+| Building and the development workflow | [docs/development.md](docs/development.md) |
 | Running the tests | [docs/testing.md](docs/testing.md) |
-| Backend (Go modules, API v1) | [docs/guideline-backend.md](docs/guideline-backend.md) |
-| Frontend (npm, UI guidelines) | [docs/guideline-frontend.md](docs/guideline-frontend.md) |
+| Backend architecture and API v1 | [docs/guidelines-backend.md](docs/guidelines-backend.md) |
+| Frontend architecture and UI guidelines | [docs/guidelines-frontend.md](docs/guidelines-frontend.md) |
+| Refactoring | [docs/guidelines-refactoring.md](docs/guidelines-refactoring.md) |
 | Maintainers, TOC, labels, merge queue, commit format for mergers | [docs/community-governance.md](docs/community-governance.md) |
 | Release cycle, backports, tagging releases | [docs/release-management.md](docs/release-management.md) |
 
@@ -45,7 +47,7 @@ This document explains how to contribute changes to the Gitea project. Topic-spe
 It assumes you have followed the [installation instructions](https://docs.gitea.com/category/installation). \
 Sensitive security-related issues should be reported to [security@gitea.io](mailto:security@gitea.io).
 
-For configuring IDEs for Gitea development, see the [contributed IDE configurations](contrib/ide/).
+For configuring IDEs for Gitea development, see the [IDE setup notes](docs/development.md#ide-configuration) and the [contributed configurations](contrib/development/).
 
 ## AI Contribution Policy
 
@@ -108,7 +110,8 @@ If further discussion is needed, we encourage you to open a new issue instead an
 
 ## Building Gitea
 
-See the [development setup instructions](https://docs.gitea.com/development/hacking-on-gitea).
+See [docs/setup.md](docs/setup.md) for prerequisites and [docs/development.md](docs/development.md)
+for building Gitea and the development workflow.
 
 ## Styleguide
 
@@ -127,33 +130,7 @@ Afterwards, copyright should only be modified when the copyright author changes.
 
 ## Testing
 
-Before submitting a pull request, run all tests to make sure your changes don't cause a regression elsewhere.
-
-Here's how to run the test suite:
-
-- code lint
-
-|                       |                                                                              |
-| :-------------------- | :--------------------------------------------------------------------------- |
-|``make lint``          | lint everything (not needed if you only change the front- **or** backend)    |
-|``make lint-frontend`` | lint frontend files                                                          |
-|``make lint-backend``  | lint backend files                                                           |
-
-- run tests (we suggest running them on Linux)
-
-| Command                                       | Action                                               |                                             |
-|:----------------------------------------------|:-----------------------------------------------------| ------------------------------------------- |
-| ``make test-backend[\#SpecificTestName]``     | run unit test(s)                                     |                                             |
-| ``make test-integration[\#SpecificTestName]`` | run [integration](tests/integration) test(s)         | [More details](tests/integration/README.md) |
-| ``make test-e2e``                             | run [end-to-end](tests/e2e) test(s) using Playwright |                                             |
-
-- E2E test environment variables
-
-| Variable                          | Description                                                 |
-| :-------------------------------- | :---------------------------------------------------------- |
-| ``GITEA_TEST_E2E_DEBUG``          | When set, show Gitea server output                          |
-| ``GITEA_TEST_E2E_FLAGS``          | Additional flags passed to Playwright, for example ``--ui`` |
-| ``GITEA_TEST_E2E_TIMEOUT_FACTOR`` | Timeout multiplier (default: 4 on CI, 1 locally)            |
+Before submitting a pull request, run the linters (`make lint`, or the scoped `make lint-backend` / `make lint-frontend`) and the tests to make sure your changes don't cause a regression elsewhere. See [docs/testing.md](docs/testing.md) for how to run the unit, integration, end-to-end, and migration tests.
 
 ## Translation
 

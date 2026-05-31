@@ -1,189 +1,141 @@
-# Developing Gitea
+# Development
 
-This document describes how to set up a local development environment and build Gitea from source. For the contribution workflow and review process, see [CONTRIBUTING.md](../CONTRIBUTING.md).
+This document describes how to build Gitea from source and the day-to-day
+development workflow. For prerequisites and how to obtain the code, see
+[setup.md](setup.md). For running tests, see [testing.md](testing.md). For the
+contribution workflow and review process, see [CONTRIBUTING.md](../CONTRIBUTING.md).
 
-## Installing dependencies
+Area-specific guidelines:
 
-### Go
+- [Backend development guidelines](guidelines-backend.md)
+- [Frontend development guidelines](guidelines-frontend.md)
+- [Refactoring guidelines](guidelines-refactoring.md)
 
-[Install Go](https://go.dev/doc/install) and set up your Go environment correctly. The required version is the one declared in [`go.mod`](../go.mod).
+## Building
 
-Gitea uses `gofmt` to format source code. The results of `gofmt` can differ between Go versions, so it is recommended to install the same version that our continuous integration runs.
-
-> [!NOTE]
-> When running make tasks that require external tools, such as `make watch-backend`, Gitea downloads and builds them as needed. To use them you must have the `"$GOPATH"/bin` directory on your executable path. If you don't, you will have to manage these tools yourself.
-
-### Node.js
-
-[Install Node.js](https://nodejs.org/en/download/), which is required to build the JavaScript and CSS files. The minimum supported version is the one declared in [`package.json`](../package.json); the latest LTS version is recommended. Gitea uses [pnpm](https://pnpm.io/) to manage frontend dependencies; the `make` targets invoke it for you, so a manual install is only needed if you want to run `pnpm` commands directly.
-
-### Python (optional)
-
-To lint the template files, ensure [Python](https://www.python.org/) and [Poetry](https://python-poetry.org/) are installed.
-
-### Make
-
-Gitea makes heavy use of Make to automate tasks and improve development. On Linux and macOS it is usually preinstalled or available from the system package manager.
-
-#### On Windows
-
-Make can be provided on Windows by either of these:
-
-- [MinGW-w64](https://www.mingw-w64.org) / [MSYS2](https://www.msys2.org/).
-  - MSYS2 is a collection of tools and libraries providing an easy-to-use environment for building, installing and running native Windows software; it includes MinGW-w64.
-  - In MinGW-w64, the binary is called `mingw32-make.exe` instead of `make.exe`. Add the `bin` folder to `PATH`.
-  - In MSYS2, you can use `make` directly. See [MSYS2 Porting](https://www.msys2.org/wiki/Porting/).
-- [Chocolatey package](https://chocolatey.org/packages/make). Run `choco install make`.
-
-> [!NOTE]
-> If you are building with make from the Windows Command Prompt, you may run into issues. The prompts above (Git Bash or MinGW) are recommended. If you only have Command Prompt (or PowerShell) you can set environment variables using the [set](https://docs.microsoft.com/en-us/windows-server/administration/windows-commands/set_1) command, e.g. `set TAGS=bindata`.
-
-## Downloading and cloning the Gitea source code
-
-The recommended method of obtaining the source code is by using `git clone`.
+To build Gitea for development, run:
 
 ```bash
-git clone https://github.com/go-gitea/gitea
+make build
 ```
 
-## Forking Gitea
+No build tags are required: SQLite support is compiled in by default, which is
+enough for local development. The `build` target runs two sub-targets, `frontend`
+and `backend`. The `bindata` tag embeds the frontend assets into the binary and is
+only needed when packaging a self-contained build, so leave it out during
+development.
 
-To contribute changes, [fork the Gitea repository](https://github.com/go-gitea/gitea) on GitHub and add your fork as a git remote so you can push branches and open pull requests. See GitHub's [working with forks](https://docs.github.com/en/pull-requests/collaborating-with-pull-requests/working-with-forks) documentation for the details.
+See `make help` for all available targets, and the workflows in
+[`.github/workflows`](https://github.com/go-gitea/gitea/tree/main/.github/workflows)
+to see how continuous integration builds and checks Gitea.
 
-## Building Gitea
+## Building continuously
 
-See the [build from source instructions](https://docs.gitea.com/installation/install-from-source) for the full details.
-
-The simplest recommended way to build from source for development is:
-
-```bash
-TAGS="sqlite" make build
-```
-
-The default `sqlite` tag uses the pure-Go [modernc](https://modernc.org/sqlite) driver, so no C compiler or extra tags are needed. To use the CGO-based mattn driver instead, build with `TAGS="sqlite sqlite_mattn sqlite_unlock_notify"`.
-
-The `build` target executes both the `frontend` and `backend` sub-targets. The `bindata` tag embeds the frontend files into the binary; it is only needed for packaging a self-contained build and should be left out during development so that frontend changes are picked up without rebuilding.
-
-See `make help` for all available `make` targets, and the workflows in [`.github/workflows`](https://github.com/go-gitea/gitea/tree/main/.github/workflows) to see how our continuous integration works.
-
-### Building continuously
-
-To run and continuously rebuild when source files change:
+To rebuild automatically when source files change:
 
 ```bash
-# for both frontend and backend
+# watch both frontend and backend
 make watch
 
-# or: watch frontend files (html/js/css) only
+# or watch only the frontend (starts the Vite dev server)
 make watch-frontend
 
-# or: watch backend files (go) only
+# or watch only the backend (Go)
 make watch-backend
 ```
 
-On macOS, watching all backend source files may hit the default open files limit, which can be raised via `ulimit -n 12288` for the current shell or in your shell startup file for all future shells.
+Watching all backend source files may hit the default open-files limit on macOS or
+Linux; raise it with `ulimit -n 12288` for the current shell, or in your shell
+startup file to make it permanent.
 
-### Formatting, code analysis and spell check
+## Formatting, linting and checks
 
-Our continuous integration will reject PRs that fail the linters (including format check, code analysis and spell check).
-
-Format your code:
+Continuous integration rejects pull requests that fail formatting, linting, or
+consistency checks. Format your code first:
 
 ```bash
 make fmt
 ```
 
-and lint the source code:
+Then lint:
 
 ```bash
-# lint both frontend and backend code
+# lint everything
 make lint
-# lint only backend code
+# or only one side
 make lint-backend
-```
-
-### Working on JS and CSS
-
-Frontend development should follow the [Guidelines for Frontend Development](https://docs.gitea.com/contributing/guidelines-frontend).
-
-Before committing, make sure the linters pass:
-
-```bash
 make lint-frontend
 ```
 
-### Building and adding SVGs
+Many linters can fix issues automatically with `make lint-fix` (or the scoped
+`make lint-backend-fix` / `make lint-frontend-fix`). The combined consistency
+checks that CI runs are available as `make checks`.
 
-SVG icons are built using the `make svg` target, which compiles the icon sources into the output directory `public/assets/img/svg`. Custom icons can be added in the `web_src/svg` directory.
+## Building and adding SVGs
 
-### Building the logo
+SVG icons are built with `make svg`, which compiles the icon sources into
+`public/assets/img/svg`. Custom icons can be added under `web_src/svg`.
 
-The PNG and SVG versions of the Gitea logo are built from a single SVG source file `assets/logo.svg` using the `TAGS="gitea" make generate-images` target. Node.js and pnpm must be available to run it.
+## Updating the API
 
-The same process can generate custom logo PNGs from an SVG source file by updating `assets/logo.svg` and running `make generate-images`. Omitting the `gitea` tag updates only the user-designated logo files.
+When you create or change API routes, you **must** update the
+[Swagger](https://swagger.io/docs/specification/2-0/what-is-swagger/) documentation
+using [go-swagger](https://goswagger.io/) comments. See the
+[backend development guidelines](guidelines-backend.md) for how API routes,
+request/response structs, and swagger definitions fit together.
 
-### Updating the API
-
-When creating or modifying API routes, you **MUST** update and/or create [Swagger](https://swagger.io/docs/specification/2-0/what-is-swagger/) documentation for them using [go-swagger](https://goswagger.io/) comments. The structure of these comments is described in the [specification](https://goswagger.io/use/spec.html#annotation-syntax). For more information about the Swagger structure, see the [Swagger 2.0 Documentation](https://swagger.io/docs/specification/2-0/basic-structure/), or compare with a previous PR adding a new API endpoint, e.g. [PR #5483](https://github.com/go-gitea/gitea/pull/5843/files#diff-2e0a7b644cf31e1c8ef7d76b444fe3aaR20).
-
-Be careful not to break the API for downstream users who depend on a stable API. In general, additions are acceptable, but deletions or fundamental changes to the API will be rejected.
-
-Once you have created or changed an API endpoint, regenerate the Swagger documentation:
+Regenerate and validate the spec after changing an endpoint, then commit the
+updated JSON:
 
 ```bash
 make generate-swagger
-```
-
-Validate your generated Swagger file:
-
-```bash
 make swagger-validate
 ```
 
-Commit the changed Swagger JSON file. The continuous integration server checks that this has been done using:
+CI verifies the committed spec is up to date with:
 
 ```bash
 make swagger-check
 ```
 
-### Creating new configuration options
+## Creating new configuration options
 
-When creating new configuration options, it is not enough to add them to the `modules/setting` files. You should also add information to the [configuration cheat sheet](https://docs.gitea.com/administration/config-cheat-sheet), which lives in the [documentation repository](https://gitea.com/gitea/docs).
+When adding configuration options it is not enough to add them to the
+`modules/setting` files. Also update
+[`custom/conf/app.example.ini`](../custom/conf/app.example.ini), and document them in
+the [configuration cheat sheet](https://docs.gitea.com/administration/config-cheat-sheet),
+which lives in the [documentation repository](https://gitea.com/gitea/docs).
 
-### Database migrations
+## Database migrations
 
-If you make breaking changes to any of the database-persisted structs in the `models/` directory, you will need to add a new migration in `models/migrations/`.
+If you make breaking changes to a database-persisted struct under `models/`, add a
+new migration in `models/migrations/`. See [testing.md](testing.md#migration-tests)
+for running the migration tests.
 
 ## Testing
 
-For how to run the backend, integration, e2e, and migration tests, see [docs/testing.md](testing.md).
+For unit, integration, end-to-end, and migration tests, see [testing.md](testing.md).
 
-## Documentation for the website
+## IDE configuration
 
-Documentation for the website lives in the [documentation repository](https://gitea.com/gitea/docs). The `docs/` directory in this repository holds contributor-facing documents only; if you change them you can check that they pass continuous integration using:
+### Visual Studio Code
 
-```bash
-make lint-md
-```
+A `launch.json` and `tasks.json` are provided in
+[`contrib/development/vscode`](../contrib/development/vscode). See
+[`contrib/development/README.md`](../contrib/development/README.md) for details.
 
-## Visual Studio Code
+### GoLand
 
-A `launch.json` and `tasks.json` are provided in [`contrib/development/vscode`](../contrib/development/vscode). See [`contrib/development/README.md`](../contrib/development/README.md) for more information.
+Clicking the `Run Application` arrow on `func main()` in `/main.go` starts a
+debuggable Gitea instance.
 
-## GoLand
+The `Output Directory` in `Run/Debug Configuration` **must** be set to the Gitea
+project directory (the one containing `main.go` and `go.mod`). Otherwise the working
+directory is a GoLand temporary directory, which prevents Gitea from loading dynamic
+resources (such as templates) in development.
 
-Clicking the `Run Application` arrow on the function `func main()` in `/main.go` can quickly start a debuggable Gitea instance.
+## Submitting your changes
 
-The `Output Directory` in `Run/Debug Configuration` MUST be set to the Gitea project directory (which contains `main.go` and `go.mod`). Otherwise the started instance's working directory is a GoLand temporary directory, which prevents Gitea from loading dynamic resources (e.g. templates) in a development environment.
-
-To run unit tests with SQLite in GoLand, set `-tags sqlite` in `Go tool arguments` of `Run/Debug Configuration`.
-
-## Submitting PRs
-
-Once you're happy with your changes, push them up and open a pull request. It is recommended that you allow Gitea Managers and Owners to modify your PR branches, as we will need to update it to main before merging and may be able to help fix issues directly.
-
-Any PR requires two approvals from the Gitea maintainers and needs to pass continuous integration. See the [CONTRIBUTING.md](../CONTRIBUTING.md) document.
-
-If you need more help, pop on to [Discord](https://discord.gg/gitea) #Develop and chat there.
-
-That's it! You are ready to start developing Gitea.
+Push your branch and open a pull request. See [CONTRIBUTING.md](../CONTRIBUTING.md)
+for the review process and PR requirements. For help, join the `#Develop` channel on
+[Discord](https://discord.gg/gitea).

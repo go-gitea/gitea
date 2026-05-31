@@ -50,10 +50,10 @@ func TestAPIUpdateOrgAvatar(t *testing.T) {
 	MakeRequest(t, req, http.StatusBadRequest)
 
 	// Test what happens if you use a file that is not an image
-	text, err := os.ReadFile(filepath.Join(setting.GetGiteaTestSourceRoot(), "tests/integration/README.md"))
+	text, err := os.ReadFile(filepath.Join(setting.GetGiteaTestSourceRoot(), "go.mod"))
 	assert.NoError(t, err)
 	if err != nil {
-		assert.FailNow(t, "Unable to open README.md")
+		assert.FailNow(t, "Unable to open go.mod")
 	}
 
 	opts = api.UpdateUserAvatarOption{

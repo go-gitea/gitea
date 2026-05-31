@@ -44,16 +44,10 @@ From the root of the source tree, run:
 
     TAGS="bindata" make build
 
-The `build` target is split into two sub-targets:
-
-- `make backend` which requires [Go Stable](https://go.dev/dl/), the required version is defined in [go.mod](/go.mod).
-- `make frontend` which requires [Node.js LTS](https://nodejs.org/en/download/) or greater and [pnpm](https://pnpm.io/installation).
-
-Internet connectivity is required to download the go and npm modules. When building from the official source tarballs which include pre-built frontend files, the `frontend` target will not be triggered, making it possible to build without Node.js.
+See [docs/setup.md](docs/setup.md) for prerequisites and [docs/development.md](docs/development.md)
+for setting up a local development environment, continuous builds, linting, and testing.
 
 More info: https://docs.gitea.com/installation/install-from-source
-
-For setting up a local development environment, continuous builds, linting, and testing, see [docs/development.md](docs/development.md).
 
 ## Using
 
