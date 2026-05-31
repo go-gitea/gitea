@@ -34,13 +34,15 @@ type CodeActivityAuthor struct {
 }
 
 // GetCodeActivityStats returns code statistics for activity page
-func (repo *Repository) GetCodeActivityStats(fromTime time.Time, branch string) (*CodeActivityStats, error) {
+func (repo *Repository) GetCodeActivityStats(fromTime, untilTime time.Time, branch string) (*CodeActivityStats, error) {
 	stats := &CodeActivityStats{}
 
 	since := fromTime.Format(time.RFC3339)
+	until := untilTime.Format(time.RFC3339)
 
 	stdout, _, runErr := gitcmd.NewCommand("rev-list", "--count", "--no-merges", "--branches=*", "--date=iso").
 		AddOptionFormat("--since=%s", since).
+		AddOptionFormat("--until=%s", until).
 		WithDir(repo.Path).
 		RunStdString(repo.Ctx)
 	if runErr != nil {
@@ -54,7 +56,8 @@ func (repo *Repository) GetCodeActivityStats(fromTime time.Time, branch string) 
 	stats.CommitCountInAllBranches = c
 
 	gitCmd := gitcmd.NewCommand("log", "--numstat", "--no-merges", "--pretty=format:---%n%h%n%aN%n%aE%n", "--date=iso").
-		AddOptionFormat("--since=%s", since)
+		AddOptionFormat("--since=%s", since).
+		AddOptionFormat("--until=%s", until)
 	if len(branch) == 0 {
 		gitCmd.AddArguments("--branches=*")
 	} else {

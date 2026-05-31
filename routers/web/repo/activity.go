@@ -14,9 +14,46 @@ import (
 	"gitea.dev/services/context"
 )
 
-const (
-	tplActivity templates.TplName = "repo/activity"
-)
+const tplActivity templates.TplName = "repo/activity"
+
+const activityDateLayout = "2006-01-02"
+
+func activityDateRange(period, from, until string, now time.Time) (string, time.Time, time.Time, bool) {
+	timeUntil := now
+	timeFrom := timeUntil.Add(-time.Hour * 168)
+	selectedPeriod := "weekly"
+	switch period {
+	case "daily":
+		selectedPeriod, timeFrom = "daily", timeUntil.Add(-time.Hour*24)
+	case "halfweekly":
+		selectedPeriod, timeFrom = "halfweekly", timeUntil.Add(-time.Hour*72)
+	case "weekly":
+		selectedPeriod, timeFrom = "weekly", timeUntil.Add(-time.Hour*168)
+	case "monthly":
+		selectedPeriod, timeFrom = "monthly", timeUntil.AddDate(0, -1, 0)
+	case "quarterly":
+		selectedPeriod, timeFrom = "quarterly", timeUntil.AddDate(0, -3, 0)
+	case "semiyearly":
+		selectedPeriod, timeFrom = "semiyearly", timeUntil.AddDate(0, -6, 0)
+	case "yearly":
+		selectedPeriod, timeFrom = "yearly", timeUntil.AddDate(-1, 0, 0)
+	}
+
+	if from == "" || until == "" {
+		return selectedPeriod, timeFrom, timeUntil, false
+	}
+
+	customFrom, errFrom := time.ParseInLocation(activityDateLayout, from, time.Local)
+	customUntil, errUntil := time.ParseInLocation(activityDateLayout, until, time.Local)
+	if errFrom != nil || errUntil != nil {
+		return selectedPeriod, timeFrom, timeUntil, false
+	}
+	customUntil = customUntil.AddDate(0, 0, 1).Add(-time.Second)
+	if customFrom.After(customUntil) {
+		return selectedPeriod, timeFrom, timeUntil, false
+	}
+	return "custom", customFrom, customUntil, true
+}
 
 // Activity render the page to show repository latest changes
 func Activity(ctx *context.Context) {
@@ -25,28 +62,17 @@ func Activity(ctx *context.Context) {
 
 	ctx.Data["PageIsPulse"] = true
 
-	timeUntil := time.Now()
-	period, timeFrom := "weekly", timeUntil.Add(-time.Hour*168)
-	switch ctx.PathParam("period") {
-	case "daily":
-		period, timeFrom = "daily", timeUntil.Add(-time.Hour*24)
-	case "halfweekly":
-		period, timeFrom = "halfweekly", timeUntil.Add(-time.Hour*72)
-	case "weekly":
-		period, timeFrom = "weekly", timeUntil.Add(-time.Hour*168)
-	case "monthly":
-		period, timeFrom = "monthly", timeUntil.AddDate(0, -1, 0)
-	case "quarterly":
-		period, timeFrom = "quarterly", timeUntil.AddDate(0, -3, 0)
-	case "semiyearly":
-		period, timeFrom = "semiyearly", timeUntil.AddDate(0, -6, 0)
-	case "yearly":
-		period, timeFrom = "yearly", timeUntil.AddDate(-1, 0, 0)
-	}
+	period, timeFrom, timeUntil, customPeriod := activityDateRange(ctx.PathParam("period"), ctx.FormString("from"), ctx.FormString("until"), time.Now())
 	ctx.Data["DateFrom"] = timeFrom
 	ctx.Data["DateUntil"] = timeUntil
+	ctx.Data["DateFromValue"] = timeFrom.Format(activityDateLayout)
+	ctx.Data["DateUntilValue"] = timeUntil.Format(activityDateLayout)
 	ctx.Data["Period"] = period
-	ctx.Data["PeriodText"] = ctx.Tr("repo.activity.period." + period)
+	if customPeriod {
+		ctx.Data["PeriodText"] = ctx.Tr("repo.activity.period.custom")
+	} else {
+		ctx.Data["PeriodText"] = ctx.Tr("repo.activity.period." + period)
+	}
 
 	canReadCode := ctx.Repo.Permission.CanRead(unit.TypeCode)
 	if canReadCode {
@@ -61,7 +87,7 @@ func Activity(ctx *context.Context) {
 
 	var err error
 	// TODO: refactor these arguments to a struct
-	ctx.Data["Activity"], err = activities_model.GetActivityStats(ctx, ctx.Repo.Repository, timeFrom,
+	ctx.Data["Activity"], err = activities_model.GetActivityStats(ctx, ctx.Repo.Repository, timeFrom, timeUntil,
 		ctx.Repo.Permission.CanRead(unit.TypeReleases),
 		ctx.Repo.Permission.CanRead(unit.TypeIssues),
 		ctx.Repo.Permission.CanRead(unit.TypePullRequests),
@@ -72,7 +98,7 @@ func Activity(ctx *context.Context) {
 		return
 	}
 
-	if ctx.PageData["repoActivityTopAuthors"], err = activities_model.GetActivityStatsTopAuthors(ctx, ctx.Repo.Repository, timeFrom, 10); err != nil {
+	if ctx.PageData["repoActivityTopAuthors"], err = activities_model.GetActivityStatsTopAuthors(ctx, ctx.Repo.Repository, timeFrom, timeUntil, 10); err != nil {
 		ctx.ServerError("GetActivityStatsTopAuthors", err)
 		return
 	}
@@ -82,29 +108,9 @@ func Activity(ctx *context.Context) {
 
 // ActivityAuthors renders JSON with top commit authors for given time period over all branches
 func ActivityAuthors(ctx *context.Context) {
-	timeUntil := time.Now()
-	var timeFrom time.Time
+	_, timeFrom, timeUntil, _ := activityDateRange(ctx.PathParam("period"), ctx.FormString("from"), ctx.FormString("until"), time.Now())
 
-	switch ctx.PathParam("period") {
-	case "daily":
-		timeFrom = timeUntil.Add(-time.Hour * 24)
-	case "halfweekly":
-		timeFrom = timeUntil.Add(-time.Hour * 72)
-	case "weekly":
-		timeFrom = timeUntil.Add(-time.Hour * 168)
-	case "monthly":
-		timeFrom = timeUntil.AddDate(0, -1, 0)
-	case "quarterly":
-		timeFrom = timeUntil.AddDate(0, -3, 0)
-	case "semiyearly":
-		timeFrom = timeUntil.AddDate(0, -6, 0)
-	case "yearly":
-		timeFrom = timeUntil.AddDate(-1, 0, 0)
-	default:
-		timeFrom = timeUntil.Add(-time.Hour * 168)
-	}
-
-	authors, err := activities_model.GetActivityStatsTopAuthors(ctx, ctx.Repo.Repository, timeFrom, 10)
+	authors, err := activities_model.GetActivityStatsTopAuthors(ctx, ctx.Repo.Repository, timeFrom, timeUntil, 10)
 	if err != nil {
 		ctx.ServerError("GetActivityStatsTopAuthors", err)
 		return

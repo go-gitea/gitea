@@ -16,6 +16,11 @@
 			<a class="{{if eq .Period "yearly"}}active {{end}}item" href="{{$.RepoLink}}/activity/yearly">{{ctx.Locale.Tr "repo.activity.period.yearly"}}</a>
 		</div>
 	</div>
+	<form class="ui form tw-flex tw-flex-wrap tw-items-center tw-gap-2" method="get" action="{{$.RepoLink}}/activity">
+		<input type="date" name="from" value="{{.DateFromValue}}" aria-label="{{ctx.Locale.Tr "repo.activity.period.from"}}">
+		<input type="date" name="until" value="{{.DateUntilValue}}" aria-label="{{ctx.Locale.Tr "repo.activity.period.until"}}">
+		<button class="ui primary button" type="submit">{{ctx.Locale.Tr "repo.activity.period.apply"}}</button>
+	</form>
 </h2>
 
 {{if (or (.Permission.CanRead ctx.Consts.RepoUnitTypeIssues) (.Permission.CanRead ctx.Consts.RepoUnitTypePullRequests))}}
