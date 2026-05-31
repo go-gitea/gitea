@@ -21,22 +21,22 @@ import (
 	"time"
 	"unicode"
 
-	"code.gitea.io/gitea/models/auth"
-	"code.gitea.io/gitea/models/db"
-	"code.gitea.io/gitea/modules/auth/openid"
-	"code.gitea.io/gitea/modules/auth/password/hash"
-	"code.gitea.io/gitea/modules/base"
-	"code.gitea.io/gitea/modules/container"
-	"code.gitea.io/gitea/modules/git"
-	"code.gitea.io/gitea/modules/htmlutil"
-	"code.gitea.io/gitea/modules/httplib"
-	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/optional"
-	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/modules/structs"
-	"code.gitea.io/gitea/modules/timeutil"
-	"code.gitea.io/gitea/modules/util"
-	"code.gitea.io/gitea/modules/validation"
+	"gitea.dev/models/auth"
+	"gitea.dev/models/db"
+	"gitea.dev/modules/auth/openid"
+	"gitea.dev/modules/auth/password/hash"
+	"gitea.dev/modules/base"
+	"gitea.dev/modules/container"
+	"gitea.dev/modules/git"
+	"gitea.dev/modules/htmlutil"
+	"gitea.dev/modules/httplib"
+	"gitea.dev/modules/log"
+	"gitea.dev/modules/optional"
+	"gitea.dev/modules/setting"
+	"gitea.dev/modules/structs"
+	"gitea.dev/modules/timeutil"
+	"gitea.dev/modules/util"
+	"gitea.dev/modules/validation"
 
 	_ "image/jpeg" // Needed for jpeg support
 
@@ -244,12 +244,15 @@ func (u *User) IsOAuth2() bool {
 	return u.LoginType == auth.OAuth2
 }
 
-// MaxCreationLimit returns the number of repositories a user is allowed to create
+// MaxCreationLimit returns the number of repositories a user or an organization is allowed to create
 func (u *User) MaxCreationLimit() int {
-	if u.MaxRepoCreation <= -1 {
-		return setting.Repository.MaxCreationLimit
+	if u.MaxRepoCreation > -1 {
+		return u.MaxRepoCreation
 	}
-	return u.MaxRepoCreation
+	if u.IsOrganization() {
+		return setting.Repository.OrgMaxCreationLimit
+	}
+	return setting.Repository.UserMaxCreationLimit
 }
 
 // CanCreateRepoIn checks whether the doer(u) can create a repository in the owner
@@ -264,13 +267,11 @@ func (u *User) CanCreateRepoIn(owner *User) bool {
 		return true
 	}
 	const noLimit = -1
-	if owner.MaxRepoCreation == noLimit {
-		if setting.Repository.MaxCreationLimit == noLimit {
-			return true
-		}
-		return owner.NumRepos < setting.Repository.MaxCreationLimit
+	limit := owner.MaxCreationLimit()
+	if limit == noLimit {
+		return true
 	}
-	return owner.NumRepos < owner.MaxRepoCreation
+	return owner.NumRepos < limit
 }
 
 // CanCreateOrganization returns true if user can create organisation.
@@ -339,7 +340,7 @@ func GetUserFollowers(ctx context.Context, u, viewer *User, listOptions db.ListO
 		And(isUserVisibleToViewerCond(viewer))
 
 	if listOptions.Page > 0 {
-		sess = db.SetSessionPagination(sess, &listOptions)
+		db.SetSessionPagination(sess, &listOptions)
 
 		users := make([]*User, 0, listOptions.PageSize)
 		count, err := sess.FindAndCount(&users)
@@ -361,7 +362,7 @@ func GetUserFollowing(ctx context.Context, u, viewer *User, listOptions db.ListO
 		And(isUserVisibleToViewerCond(viewer))
 
 	if listOptions.Page > 0 {
-		sess = db.SetSessionPagination(sess, &listOptions)
+		db.SetSessionPagination(sess, &listOptions)
 
 		users := make([]*User, 0, listOptions.PageSize)
 		count, err := sess.FindAndCount(&users)

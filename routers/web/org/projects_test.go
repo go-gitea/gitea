@@ -7,11 +7,11 @@ import (
 	"net/http"
 	"testing"
 
-	"code.gitea.io/gitea/models/unittest"
-	"code.gitea.io/gitea/modules/web"
-	"code.gitea.io/gitea/routers/web/org"
-	"code.gitea.io/gitea/services/contexttest"
-	"code.gitea.io/gitea/services/forms"
+	"gitea.dev/models/unittest"
+	"gitea.dev/modules/web"
+	"gitea.dev/routers/web/org"
+	"gitea.dev/services/contexttest"
+	"gitea.dev/services/forms"
 
 	"github.com/stretchr/testify/assert"
 )

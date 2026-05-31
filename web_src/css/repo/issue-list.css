@@ -34,6 +34,14 @@
   }
 }
 
+#issue-list .issue-item-title {
+  font-size: 16px;
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-text);
+  text-decoration: none;
+  overflow-wrap: anywhere;
+}
+
 #issue-list .branches {
   display: inline-flex;
 }

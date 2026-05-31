@@ -4,13 +4,12 @@
 package v1_12
 
 import (
-	"code.gitea.io/gitea/modules/json"
-	"code.gitea.io/gitea/modules/setting"
-
-	"xorm.io/xorm"
+	"gitea.dev/models/db"
+	"gitea.dev/modules/json"
+	"gitea.dev/modules/setting"
 )
 
-func ExpandWebhooks(x *xorm.Engine) error {
+func ExpandWebhooks(x db.EngineMigration) error {
 	type HookEvents struct {
 		Create               bool `json:"create"`
 		Delete               bool `json:"delete"`

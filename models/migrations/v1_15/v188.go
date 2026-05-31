@@ -3,9 +3,9 @@
 
 package v1_15
 
-import "xorm.io/xorm"
+import "gitea.dev/models/db"
 
-func AddKeyIsVerified(x *xorm.Engine) error {
+func AddKeyIsVerified(x db.EngineMigration) error {
 	type GPGKey struct {
 		Verified bool `xorm:"NOT NULL DEFAULT false"`
 	}

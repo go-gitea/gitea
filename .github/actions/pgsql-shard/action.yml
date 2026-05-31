@@ -1,0 +1,40 @@
+name: pgsql-shard
+description: Run one pgsql integration test shard
+
+inputs:
+  shard:
+    description: Shard index
+    required: true
+  total-shards:
+    description: Total shard count
+    required: true
+  run-migration:
+    description: Also run migration tests
+    default: "false"
+
+runs:
+  using: composite
+  steps:
+    - name: Add hosts to /etc/hosts
+      shell: bash
+      run: '[ -e "/.dockerenv" ] || [ -e "/run/.containerenv" ] || echo "127.0.0.1 pgsql ldap minio" | sudo tee -a /etc/hosts'
+    - shell: bash
+      run: make deps-backend
+    - shell: bash
+      run: make backend
+      env:
+        TAGS: bindata
+    - name: run migration tests
+      if: ${{ inputs.run-migration == 'true' }}
+      shell: bash
+      run: GITEA_TEST_DATABASE=pgsql make test-migration
+    - name: run tests
+      shell: bash
+      run: GITEA_TEST_DATABASE=pgsql make test-integration
+      env:
+        # pgsql is chosen to be the unlucky one to run with the slow "race detector", it is about 60% slower.
+        GOTEST_FLAGS: -race -timeout=40m
+        TAGS: bindata gogit
+        TEST_LDAP: 1
+        TEST_SHARD: ${{ inputs.shard }}
+        TEST_TOTAL_SHARDS: ${{ inputs.total-shards }}

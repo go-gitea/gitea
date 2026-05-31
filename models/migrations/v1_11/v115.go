@@ -12,15 +12,14 @@ import (
 	"path/filepath"
 	"time"
 
-	"code.gitea.io/gitea/modules/container"
-	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/modules/util"
-
-	"xorm.io/xorm"
+	"gitea.dev/models/db"
+	"gitea.dev/modules/container"
+	"gitea.dev/modules/log"
+	"gitea.dev/modules/setting"
+	"gitea.dev/modules/util"
 )
 
-func RenameExistingUserAvatarName(x *xorm.Engine) error {
+func RenameExistingUserAvatarName(x db.EngineMigration) error {
 	sess := x.NewSession()
 	defer sess.Close()
 

@@ -6,10 +6,10 @@ package v1_11
 import (
 	"net/url"
 
-	"xorm.io/xorm"
+	"gitea.dev/models/db"
 )
 
-func SanitizeOriginalURL(x *xorm.Engine) error {
+func SanitizeOriginalURL(x db.EngineMigration) error {
 	type Repository struct {
 		ID          int64
 		OriginalURL string `xorm:"VARCHAR(2048)"`

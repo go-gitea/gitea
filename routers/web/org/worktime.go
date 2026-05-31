@@ -7,10 +7,10 @@ import (
 	"net/http"
 	"time"
 
-	"code.gitea.io/gitea/models/organization"
-	"code.gitea.io/gitea/modules/templates"
-	shared_user "code.gitea.io/gitea/routers/web/shared/user"
-	"code.gitea.io/gitea/services/context"
+	"gitea.dev/models/organization"
+	"gitea.dev/modules/templates"
+	shared_user "gitea.dev/routers/web/shared/user"
+	"gitea.dev/services/context"
 )
 
 const tplByRepos templates.TplName = "org/worktime"

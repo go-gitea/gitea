@@ -3,11 +3,9 @@
 
 package v1_21
 
-import (
-	"xorm.io/xorm"
-)
+import "gitea.dev/models/db"
 
-func AddScheduleIDForActionRun(x *xorm.Engine) error {
+func AddScheduleIDForActionRun(x db.EngineMigration) error {
 	type ActionRun struct {
 		ScheduleID int64
 	}

@@ -13,34 +13,34 @@ import (
 	"strings"
 	"time"
 
-	activities_model "code.gitea.io/gitea/models/activities"
-	"code.gitea.io/gitea/models/db"
-	"code.gitea.io/gitea/models/organization"
-	"code.gitea.io/gitea/models/perm"
-	access_model "code.gitea.io/gitea/models/perm/access"
-	repo_model "code.gitea.io/gitea/models/repo"
-	unit_model "code.gitea.io/gitea/models/unit"
-	user_model "code.gitea.io/gitea/models/user"
-	"code.gitea.io/gitea/modules/git"
-	"code.gitea.io/gitea/modules/gitrepo"
-	"code.gitea.io/gitea/modules/label"
-	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/optional"
-	repo_module "code.gitea.io/gitea/modules/repository"
-	"code.gitea.io/gitea/modules/setting"
-	api "code.gitea.io/gitea/modules/structs"
-	"code.gitea.io/gitea/modules/util"
-	"code.gitea.io/gitea/modules/validation"
-	"code.gitea.io/gitea/modules/web"
-	"code.gitea.io/gitea/routers/api/v1/utils"
-	actions_service "code.gitea.io/gitea/services/actions"
-	"code.gitea.io/gitea/services/context"
-	"code.gitea.io/gitea/services/convert"
-	feed_service "code.gitea.io/gitea/services/feed"
-	"code.gitea.io/gitea/services/issue"
-	"code.gitea.io/gitea/services/migrations"
-	mirror_service "code.gitea.io/gitea/services/mirror"
-	repo_service "code.gitea.io/gitea/services/repository"
+	activities_model "gitea.dev/models/activities"
+	"gitea.dev/models/db"
+	"gitea.dev/models/organization"
+	"gitea.dev/models/perm"
+	access_model "gitea.dev/models/perm/access"
+	repo_model "gitea.dev/models/repo"
+	unit_model "gitea.dev/models/unit"
+	user_model "gitea.dev/models/user"
+	"gitea.dev/modules/git"
+	"gitea.dev/modules/gitrepo"
+	"gitea.dev/modules/label"
+	"gitea.dev/modules/log"
+	"gitea.dev/modules/optional"
+	repo_module "gitea.dev/modules/repository"
+	"gitea.dev/modules/setting"
+	api "gitea.dev/modules/structs"
+	"gitea.dev/modules/util"
+	"gitea.dev/modules/validation"
+	"gitea.dev/modules/web"
+	"gitea.dev/routers/api/v1/utils"
+	actions_service "gitea.dev/services/actions"
+	"gitea.dev/services/context"
+	"gitea.dev/services/convert"
+	feed_service "gitea.dev/services/feed"
+	"gitea.dev/services/issue"
+	"gitea.dev/services/migrations"
+	mirror_service "gitea.dev/services/mirror"
+	repo_service "gitea.dev/services/repository"
 )
 
 // Search repositories via options
@@ -134,9 +134,6 @@ func Search(ctx *context.APIContext) {
 	//     "$ref": "#/responses/validationError"
 
 	private := ctx.IsSigned && (ctx.FormString("private") == "" || ctx.FormBool("private"))
-	if ctx.PublicOnly {
-		private = false
-	}
 
 	opts := repo_model.SearchRepoOptions{
 		ListOptions:        utils.GetListOptions(ctx),
@@ -152,6 +149,7 @@ func Search(ctx *context.APIContext) {
 		StarredByID:        ctx.FormInt64("starredBy"),
 		IncludeDescription: ctx.FormBool("includeDesc"),
 	}
+	opts.ApplyPublicOnly(ctx.PublicOnly)
 
 	if ctx.FormString("template") != "" {
 		opts.Template = optional.Some(ctx.FormBool("template"))
@@ -555,6 +553,10 @@ func GetByID(ctx *context.APIContext) {
 		} else {
 			ctx.APIErrorInternal(err)
 		}
+		return
+	}
+	if !ctx.TokenCanAccessRepo(repo) {
+		ctx.APIErrorNotFound()
 		return
 	}
 
@@ -1309,6 +1311,7 @@ func ListRepoActivityFeeds(ctx *context.APIContext) {
 		Date:           ctx.FormString("date"),
 		ListOptions:    listOptions,
 	}
+	opts.ApplyPublicOnly(ctx.PublicOnly)
 
 	feeds, count, err := feed_service.GetFeeds(ctx, opts)
 	if err != nil {

@@ -10,12 +10,11 @@ import (
 	"strconv"
 	"strings"
 
-	"code.gitea.io/gitea/modules/json"
-	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/setting"
-	webhook_module "code.gitea.io/gitea/modules/webhook"
-
-	"xorm.io/xorm"
+	"gitea.dev/models/db"
+	"gitea.dev/modules/json"
+	"gitea.dev/modules/log"
+	"gitea.dev/modules/setting"
+	webhook_module "gitea.dev/modules/webhook"
 )
 
 const (
@@ -92,7 +91,7 @@ type commitSHAAndRuns struct {
 // Only rows whose resolved run ID is below legacyURLIDThreshold are rewritten.
 // This is because smaller legacy run indexes are more likely to collide with run ID URLs during runtime resolution,
 // so this migration prioritizes that lower range and leaves the remaining legacy target URLs to the web compatibility logic.
-func FixCommitStatusTargetURLToUseRunAndJobID(x *xorm.Engine) error {
+func FixCommitStatusTargetURLToUseRunAndJobID(x db.EngineMigration) error {
 	jobsByRunIDCache := make(map[int64][]int64)
 	repoLinkCache := make(map[int64]string)
 	groups, err := loadLegacyMigrationRunGroups(x)
@@ -113,7 +112,7 @@ func FixCommitStatusTargetURLToUseRunAndJobID(x *xorm.Engine) error {
 	return nil
 }
 
-func loadLegacyMigrationRunGroups(x *xorm.Engine) (map[int64]map[string]*commitSHAAndRuns, error) {
+func loadLegacyMigrationRunGroups(x db.EngineMigration) (map[int64]map[string]*commitSHAAndRuns, error) {
 	var runs []migrationActionRun
 	if err := x.Table("action_run").
 		Where("id < ?", legacyURLIDThreshold).
@@ -149,7 +148,7 @@ func loadLegacyMigrationRunGroups(x *xorm.Engine) (map[int64]map[string]*commitS
 }
 
 func migrateCommitStatusTargetURLForGroup(
-	x *xorm.Engine,
+	x db.EngineMigration,
 	table string,
 	repoID int64,
 	sha string,
@@ -210,7 +209,7 @@ func migrateCommitStatusTargetURLForGroup(
 	return nil
 }
 
-func getRepoLinkCached(x *xorm.Engine, cache map[int64]string, repoID int64) (string, error) {
+func getRepoLinkCached(x db.EngineMigration, cache map[int64]string, repoID int64) (string, error) {
 	if link, ok := cache[repoID]; ok {
 		return link, nil
 	}
@@ -228,7 +227,7 @@ func getRepoLinkCached(x *xorm.Engine, cache map[int64]string, repoID int64) (st
 	return link, nil
 }
 
-func getJobIDByIndexCached(x *xorm.Engine, cache map[int64][]int64, runID, jobIndex int64) (int64, bool, error) {
+func getJobIDByIndexCached(x db.EngineMigration, cache map[int64][]int64, runID, jobIndex int64) (int64, bool, error) {
 	jobIDs, ok := cache[runID]
 	if !ok {
 		var jobs []migrationActionRunJob

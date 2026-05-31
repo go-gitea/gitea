@@ -4,12 +4,11 @@
 package v1_15
 
 import (
-	"code.gitea.io/gitea/modules/timeutil"
-
-	"xorm.io/xorm"
+	"gitea.dev/models/db"
+	"gitea.dev/modules/timeutil"
 )
 
-func CreateProtectedTagTable(x *xorm.Engine) error {
+func CreateProtectedTagTable(x db.EngineMigration) error {
 	type ProtectedTag struct {
 		ID               int64 `xorm:"pk autoincr"`
 		RepoID           int64

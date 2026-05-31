@@ -12,14 +12,14 @@ import (
 	"testing"
 	"time"
 
-	auth_model "code.gitea.io/gitea/models/auth"
-	"code.gitea.io/gitea/models/unittest"
-	user_model "code.gitea.io/gitea/models/user"
-	"code.gitea.io/gitea/modules/json"
-	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/modules/test"
-	"code.gitea.io/gitea/services/auth/source/oauth2"
-	"code.gitea.io/gitea/tests"
+	auth_model "gitea.dev/models/auth"
+	"gitea.dev/models/unittest"
+	user_model "gitea.dev/models/user"
+	"gitea.dev/modules/json"
+	"gitea.dev/modules/setting"
+	"gitea.dev/modules/test"
+	"gitea.dev/services/auth/source/oauth2"
+	"gitea.dev/tests"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -130,8 +130,73 @@ func TestMigrateAzureADV2ToOIDC(t *testing.T) {
 	})
 }
 
+func TestOIDCIgnoresStaleExternalLoginLinks(t *testing.T) {
+	defer tests.PrepareTestEnv(t)()
+	defer test.MockVariableValue(&setting.OAuth2Client.EnableAutoRegistration, true)()
+	defer test.MockVariableValue(&setting.OAuth2Client.AccountLinking, setting.OAuth2AccountLinkingAuto)()
+	defer test.MockVariableValue(&setting.OAuth2Client.Username, setting.OAuth2UsernameEmail)()
+
+	setup := func(t *testing.T, sourceName, sub, userName, email string) (*auth_model.Source, *user_model.User) {
+		t.Helper()
+		srv := newFakeOIDCServerWithProfile(t, sub, sub+"-oid", email, "OIDC Test User")
+		addOAuth2Source(t, sourceName, oauth2.Source{
+			Provider:                      "openidConnect",
+			ClientID:                      "test-client-id",
+			ClientSecret:                  "test-client-secret",
+			OpenIDConnectAutoDiscoveryURL: srv.URL + "/.well-known/openid-configuration",
+		})
+		authSource, err := auth_model.GetActiveOAuth2SourceByAuthName(t.Context(), sourceName)
+		require.NoError(t, err)
+		correctUser := &user_model.User{Name: userName, Email: email}
+		require.NoError(t, user_model.CreateUser(t.Context(), correctUser, &user_model.Meta{}))
+		return authSource, correctUser
+	}
+
+	// assertRelinked signs in via OIDC and asserts the stale link now points at the correct individual user.
+	assertRelinked := func(t *testing.T, authSource *auth_model.Source, sub string, correctUser *user_model.User) {
+		t.Helper()
+		doOIDCSignIn(t, authSource.Name)
+		// external_login_user has no "id" column, so order by the primary key instead
+		externalLink := unittest.AssertExistsAndLoadBean(t, &user_model.ExternalLoginUser{ExternalID: sub, LoginSourceID: authSource.ID}, unittest.OrderBy("external_id ASC"))
+		assert.Equal(t, correctUser.ID, externalLink.UserID)
+		assert.Equal(t, correctUser.Email, externalLink.Email)
+		assert.Equal(t, "OIDC Test User", externalLink.Name)
+	}
+
+	t.Run("organization", func(t *testing.T) {
+		const sub, userName, email = "oidc-stale-org-link-sub", "guizar_m", "guizar_m@example.com"
+		authSource, correctUser := setup(t, "test-oidc-stale-org-link", sub, userName, email)
+		org := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 3, Type: user_model.UserTypeOrganization})
+		require.NoError(t, user_model.LinkExternalToUser(t.Context(), org, &user_model.ExternalLoginUser{
+			ExternalID:    sub,
+			UserID:        org.ID,
+			LoginSourceID: authSource.ID,
+			Provider:      authSource.Name,
+		}))
+		assertRelinked(t, authSource, sub, correctUser)
+	})
+
+	t.Run("deleted user", func(t *testing.T) {
+		const sub, userName, email = "oidc-stale-deleted-link-sub", "guizar_d", "guizar_d@example.com"
+		const deletedUserID = 999999
+		authSource, correctUser := setup(t, "test-oidc-stale-deleted", sub, userName, email)
+		// link the external account to a user id that does not exist, simulating a deleted user
+		require.NoError(t, user_model.LinkExternalToUser(t.Context(), &user_model.User{ID: deletedUserID}, &user_model.ExternalLoginUser{
+			ExternalID:    sub,
+			UserID:        deletedUserID,
+			LoginSourceID: authSource.ID,
+			Provider:      authSource.Name,
+		}))
+		assertRelinked(t, authSource, sub, correctUser)
+	})
+}
+
 // newFakeOIDCServer starts an httptest.Server that implements the minimum OIDC endpoints needed to complete a sign-in flow:
 func newFakeOIDCServer(t *testing.T, sub, oid string) *httptest.Server {
+	return newFakeOIDCServerWithProfile(t, sub, oid, sub+"@example.com", "OIDC Test User")
+}
+
+func newFakeOIDCServerWithProfile(t *testing.T, sub, oid, email, name string) *httptest.Server {
 	t.Helper()
 
 	var srv *httptest.Server
@@ -169,8 +234,8 @@ func newFakeOIDCServer(t *testing.T, sub, oid string) *httptest.Server {
 			// sub MUST match the id_token sub; goth rejects mismatches.
 			_ = json.NewEncoder(w).Encode(map[string]any{
 				"sub":   sub,
-				"email": sub + "@example.com",
-				"name":  "OIDC Test User",
+				"email": email,
+				"name":  name,
 			})
 		default:
 			http.NotFound(w, r)

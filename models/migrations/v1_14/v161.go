@@ -6,12 +6,11 @@ package v1_14
 import (
 	"context"
 
-	"code.gitea.io/gitea/models/migrations/base"
-
-	"xorm.io/xorm"
+	"gitea.dev/models/db"
+	"gitea.dev/models/migrations/base"
 )
 
-func ConvertTaskTypeToString(x *xorm.Engine) error {
+func ConvertTaskTypeToString(x db.EngineMigration) error {
 	const (
 		GOGS int = iota + 1
 		SLACK
