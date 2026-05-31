@@ -99,6 +99,10 @@ AACAX/AKARNTyAAoAAA=`
 
 		assert.Equal(t, "application/x-pem-file", resp.Header().Get("Content-Type"))
 		assert.Contains(t, resp.Body.String(), "-----BEGIN PUBLIC KEY-----")
+		// The filename is set in ServeHeaderOptions, so Content-Disposition should be present
+		contentDisp := resp.Header().Get("Content-Disposition")
+		assert.Contains(t, contentDisp, "attachment")
+		assert.Contains(t, contentDisp, ".rsa.pub")
 	})
 
 	for _, branch := range branches {
