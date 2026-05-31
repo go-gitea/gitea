@@ -5,6 +5,7 @@ package translation
 
 import (
 	"context"
+	"fmt"
 	"html/template"
 	"sort"
 	"strings"
@@ -34,6 +35,7 @@ type Locale interface {
 	TrN(cnt any, key1, keyN string, args ...any) template.HTML
 
 	PrettyNumber(v any) string
+	PrettyNumberArg(v any) fmt.Formatter
 }
 
 // LangType represents a lang type
@@ -229,6 +231,31 @@ func (l *locale) Tr(s string, args ...any) template.HTML {
 	return l.TrHTML(s, args...)
 }
 
+type prettyNumberArg string
+
+func (p prettyNumberArg) Format(s fmt.State, _ rune) {
+	_, _ = s.Write([]byte(p))
+}
+
+func (l *locale) TrHTML(trKey string, trArgs ...any) template.HTML {
+	args := append([]any(nil), trArgs...)
+	for i, v := range args {
+		switch v := v.(type) {
+		case prettyNumberArg:
+			// Keep the formatter intact so translated "%d" placeholders can use
+			// the locale-aware number string.
+		case nil, bool, int, int8, int16, int32, int64, uint, uint8, uint16, uint32, uint64, float32, float64, template.HTML:
+		case string:
+			args[i] = template.HTMLEscapeString(v)
+		case fmt.Stringer:
+			args[i] = template.HTMLEscapeString(v.String())
+		default:
+			args[i] = template.HTMLEscapeString(fmt.Sprint(v))
+		}
+	}
+	return template.HTML(l.TrString(trKey, args...))
+}
+
 // TrN returns translated message for plural text translation
 func (l *locale) TrN(cnt any, key1, keyN string, args ...any) template.HTML {
 	var c int64
@@ -265,6 +292,10 @@ func (l *locale) PrettyNumber(v any) string {
 		}
 	}
 	return l.msgPrinter.Sprintf("%v", number.Decimal(v))
+}
+
+func (l *locale) PrettyNumberArg(v any) fmt.Formatter {
+	return prettyNumberArg(l.PrettyNumber(v))
 }
 
 func init() {

@@ -57,3 +57,7 @@ func (l MockLocale) TrN(cnt any, key1, keyN string, args ...any) template.HTML {
 func (l MockLocale) PrettyNumber(v any) string {
 	return fmt.Sprint(v)
 }
+
+func (l MockLocale) PrettyNumberArg(v any) fmt.Formatter {
+	return prettyNumberArg(l.PrettyNumber(v))
+}
