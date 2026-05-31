@@ -189,6 +189,9 @@ export function initAreYouSure($) {
 
       $form.submit(function() {
         $form.removeClass(settings.dirtyClass);
+        window.setTimeout(function() {
+          $form.trigger('checkform.areYouSure');
+        }, 0);
       });
       $form.bind('reset', function() { setDirtyStatus($form, false); });
       // Add a custom events
