@@ -16,15 +16,15 @@ import (
 	"strings"
 	"testing"
 
-	repo_model "code.gitea.io/gitea/models/repo"
-	"code.gitea.io/gitea/models/unittest"
-	user_model "code.gitea.io/gitea/models/user"
-	"code.gitea.io/gitea/modules/git"
-	"code.gitea.io/gitea/modules/gitrepo"
-	"code.gitea.io/gitea/modules/test"
-	"code.gitea.io/gitea/modules/translation"
-	"code.gitea.io/gitea/modules/util"
-	"code.gitea.io/gitea/tests"
+	repo_model "gitea.dev/models/repo"
+	"gitea.dev/models/unittest"
+	user_model "gitea.dev/models/user"
+	"gitea.dev/modules/git"
+	"gitea.dev/modules/gitrepo"
+	"gitea.dev/modules/test"
+	"gitea.dev/modules/translation"
+	"gitea.dev/modules/util"
+	"gitea.dev/tests"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -96,6 +96,42 @@ func testEditorProtectedBranch(t *testing.T) {
 
 	// Try to commit a file to the "master" branch and it should fail
 	resp := testEditorActionPostRequest(t, session, "/user2/repo1/_new/master/", map[string]string{"tree_path": "test-protected-branch.txt", "commit_choice": "direct"})
+	assert.Equal(t, http.StatusBadRequest, resp.Code)
+	assert.Equal(t, `Cannot commit to protected branch "master".`, test.ParseJSONError(resp.Body.Bytes()).ErrorMessage)
+
+	// Change "master" branch to mark files under "docs/" as unprotected
+	req = NewRequestWithValues(t, "POST", "/user2/repo1/settings/branches/edit", map[string]string{
+		"rule_name":                 "master",
+		"protected_file_patterns":   "",
+		"unprotected_file_patterns": "docs/*.md",
+		"enable_push":               "true",
+	})
+	session.MakeRequest(t, req, http.StatusSeeOther)
+	flashMsg = session.GetCookieFlashMessage()
+	assert.Equal(t, `Branch protection for rule "master" has been updated.`, flashMsg.SuccessMsg)
+
+	resp = testEditorActionPostRequest(t, session, "/user2/repo1/_new/master/docs/new.md", map[string]string{"tree_path": "docs/new.md", "commit_choice": "direct"})
+	assert.Equal(t, http.StatusOK, resp.Code)
+	assert.Contains(t, resp.Body.String(), `"redirect":"/user2/repo1/src/branch/master/docs/new.md"`)
+
+	// Form's destination (renamed.md) is decided by the pre-receive hook, not the controller.
+	resp = testEditorActionPostRequest(t, session, "/user2/repo1/_edit/master/docs/new.md", map[string]string{
+		"content":       "renamed via editor",
+		"commit_choice": "direct",
+		"tree_path":     "docs/renamed.md",
+	})
+	assert.Equal(t, http.StatusOK, resp.Code)
+	assert.Contains(t, resp.Body.String(), `"redirect":"/user2/repo1/src/branch/master/docs/renamed.md"`)
+
+	// Protected source path: controller rejects up-front regardless of unprotected destination.
+	resp = testEditorActionPostRequest(t, session, "/user2/repo1/_edit/master/README.md", map[string]string{
+		"commit_choice": "direct",
+		"tree_path":     "docs/from-readme.md",
+	})
+	assert.Equal(t, http.StatusBadRequest, resp.Code)
+	assert.Equal(t, `Cannot commit to protected branch "master".`, test.ParseJSONError(resp.Body.Bytes()).ErrorMessage)
+
+	resp = testEditorActionPostRequest(t, session, "/user2/repo1/_delete/master/README.md", map[string]string{"commit_choice": "direct"})
 	assert.Equal(t, http.StatusBadRequest, resp.Code)
 	assert.Equal(t, `Cannot commit to protected branch "master".`, test.ParseJSONError(resp.Body.Bytes()).ErrorMessage)
 }

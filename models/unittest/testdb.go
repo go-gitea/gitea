@@ -13,16 +13,16 @@ import (
 	"strings"
 	"testing"
 
-	"code.gitea.io/gitea/models/db"
-	"code.gitea.io/gitea/models/system"
-	"code.gitea.io/gitea/modules/cache"
-	"code.gitea.io/gitea/modules/git"
-	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/modules/setting/config"
-	"code.gitea.io/gitea/modules/storage"
-	"code.gitea.io/gitea/modules/tempdir"
-	"code.gitea.io/gitea/modules/testlogger"
-	"code.gitea.io/gitea/modules/util"
+	"gitea.dev/models/db"
+	"gitea.dev/models/system"
+	"gitea.dev/modules/cache"
+	"gitea.dev/modules/git"
+	"gitea.dev/modules/setting"
+	"gitea.dev/modules/setting/config"
+	"gitea.dev/modules/storage"
+	"gitea.dev/modules/tempdir"
+	"gitea.dev/modules/testlogger"
+	"gitea.dev/modules/util"
 
 	"github.com/stretchr/testify/assert"
 	"xorm.io/xorm"
@@ -56,7 +56,7 @@ func mainTest(m *testing.M, testOptsArg ...*TestOptions) int {
 
 	giteaRoot := setting.GetGiteaTestSourceRoot()
 	fixturesOpts := FixturesOptions{Dir: filepath.Join(giteaRoot, "models", "fixtures"), Files: testOpts.FixtureFiles}
-	if err := CreateTestEngine(fixturesOpts); err != nil {
+	if err := CreateTestEngine(filepath.Join(tempWorkPath, "sqlite-test.db"), fixturesOpts); err != nil {
 		return testlogger.MainErrorf("Error creating test database engine: %v", err)
 	}
 
@@ -205,9 +205,9 @@ type FixturesOptions struct {
 	Files []string
 }
 
-// CreateTestEngine creates a memory database and loads the fixture data from fixturesDir
-func CreateTestEngine(opts FixturesOptions) error {
-	driver, connStr, err := db.ConnStr(db.ConnOptions{Type: "sqlite3", SQLitePath: ":memory:"})
+// CreateTestEngine creates a test database and loads the fixture data from fixturesDir
+func CreateTestEngine(testSQLiteFile string, opts FixturesOptions) error {
+	driver, connStr, err := db.ConnStr(db.ConnOptions{Type: setting.DatabaseTypeSQLite3, SQLitePath: testSQLiteFile, SQLiteBusyTimeout: setting.DefaultSQLiteBusyTimeout})
 	if err != nil {
 		return err
 	}

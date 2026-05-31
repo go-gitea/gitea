@@ -10,19 +10,19 @@ import (
 	"fmt"
 	"strings"
 
-	git_model "code.gitea.io/gitea/models/git"
-	issues_model "code.gitea.io/gitea/models/issues"
-	repo_model "code.gitea.io/gitea/models/repo"
-	user_model "code.gitea.io/gitea/models/user"
-	"code.gitea.io/gitea/modules/git"
-	"code.gitea.io/gitea/modules/git/gitcmd"
-	"code.gitea.io/gitea/modules/gitrepo"
-	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/private"
-	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/modules/util"
-	notify_service "code.gitea.io/gitea/services/notify"
-	pull_service "code.gitea.io/gitea/services/pull"
+	git_model "gitea.dev/models/git"
+	issues_model "gitea.dev/models/issues"
+	repo_model "gitea.dev/models/repo"
+	user_model "gitea.dev/models/user"
+	"gitea.dev/modules/git"
+	"gitea.dev/modules/git/gitcmd"
+	"gitea.dev/modules/gitrepo"
+	"gitea.dev/modules/log"
+	"gitea.dev/modules/private"
+	"gitea.dev/modules/setting"
+	"gitea.dev/modules/util"
+	notify_service "gitea.dev/services/notify"
+	pull_service "gitea.dev/services/pull"
 )
 
 func parseAgitPushOptionValue(s string) string {
@@ -150,17 +150,13 @@ func ProcReceive(ctx context.Context, repo *repo_model.Repository, gitRepo *git.
 				if err != nil {
 					return nil, fmt.Errorf("failed to get commit %s in repository: %s Error: %w", opts.NewCommitIDs[i], repo.FullName(), err)
 				}
-			}
-
-			// create a new pull request
-			if title == "" {
-				title = strings.Split(commit.CommitMessage, "\n")[0]
-			}
-			if description == "" {
-				_, description, _ = strings.Cut(commit.CommitMessage, "\n\n")
-			}
-			if description == "" {
-				description = title
+				// create a new pull request
+				if title == "" {
+					title = commit.MessageTitle()
+				}
+				if description == "" {
+					description = commit.MessageBody()
+				}
 			}
 
 			prIssue := &issues_model.Issue{
@@ -290,7 +286,7 @@ func ProcReceive(ctx context.Context, repo *repo_model.Repository, gitRepo *git.
 		} else if commentCreated {
 			notify_service.PullRequestPushCommits(ctx, pusher, pr, comment)
 		}
-		notify_service.PullRequestSynchronized(ctx, pusher, pr)
+		notify_service.PullRequestSynchronized(ctx, pusher, pr, oldCommitID, opts.NewCommitIDs[i])
 
 		results = append(results, private.HookProcReceiveRefResult{
 			OldOID:            oldCommitID,

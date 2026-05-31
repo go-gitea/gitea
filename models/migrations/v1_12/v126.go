@@ -4,11 +4,12 @@
 package v1_12
 
 import (
+	"gitea.dev/models/db"
+
 	"xorm.io/builder"
-	"xorm.io/xorm"
 )
 
-func FixTopicRepositoryCount(x *xorm.Engine) error {
+func FixTopicRepositoryCount(x db.EngineMigration) error {
 	_, err := x.Exec(builder.Delete(builder.NotIn("`repo_id`", builder.Select("`id`").From("`repository`"))).From("`repo_topic`"))
 	if err != nil {
 		return err

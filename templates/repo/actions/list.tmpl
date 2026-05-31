@@ -7,11 +7,11 @@
 		{{if .HasWorkflowsOrRuns}}
 		<div class="flex-container">
 			<div class="flex-container-nav">
-				<div class="ui fluid vertical menu flex-items-block">
-					<a class="item {{if not $.CurWorkflow}}active{{end}}" href="?actor={{$.CurActor}}&status={{$.CurStatus}}">{{ctx.Locale.Tr "actions.runs.all_workflows"}}</a>
+				<div class="ui fluid vertical menu">
+					<a class="item {{if not $.CurWorkflow}}active{{end}}" href="?actor={{$.CurActor}}&status={{$.CurStatus}}&branch={{$.CurBranch}}">{{ctx.Locale.Tr "actions.runs.all_workflows"}}</a>
 					{{range .workflows}}
-						<a class="item {{if eq .Entry.Name $.CurWorkflow}}active{{end}}" href="?workflow={{.Entry.Name}}&actor={{$.CurActor}}&status={{$.CurStatus}}">
-							<span class="gt-ellipsis">{{.Entry.Name}}</span>
+						<a class="item flex-text-block {{if eq .Entry.Name $.CurWorkflow}}active{{end}}" href="?workflow={{.Entry.Name}}&actor={{$.CurActor}}&status={{$.CurStatus}}&branch={{$.CurBranch}}">
+							<span class="gt-ellipsis">{{.DisplayName}}</span>
 
 							{{if .ErrMsg}}
 								<span class="flex-text-inline" data-tooltip-content="{{.ErrMsg}}">{{svg "octicon-alert" 16 "tw-text-red"}}</span>
@@ -21,6 +21,23 @@
 								<div class="ui red label">{{ctx.Locale.Tr "disabled"}}</div>
 							{{end}}
 						</a>
+					{{end}}
+					{{if .OtherWorkflows}}
+						<details class="item"{{if not $.CurWorkflowIsListed}} open{{end}}>
+							<summary data-tooltip-content="{{ctx.Locale.Tr "actions.runs.other_workflows_tooltip"}}">
+								<span class="flex-text-block">
+									{{ctx.Locale.Tr "actions.runs.other_workflows"}}
+									<span class="ui label">{{len .OtherWorkflows}}</span>
+								</span>
+							</summary>
+							<div class="menu items-full-width">
+								{{range .OtherWorkflows}}
+									<a class="item {{if eq . $.CurWorkflow}}active{{end}}" href="?workflow={{.}}&actor={{$.CurActor}}&status={{$.CurStatus}}">
+										<span class="gt-ellipsis">{{.}}</span>
+									</a>
+								{{end}}
+							</div>
+						</details>
 					{{end}}
 				</div>
 			</div>
@@ -37,11 +54,11 @@
 									<i class="icon">{{svg "octicon-search"}}</i>
 									<input type="text" placeholder="{{ctx.Locale.Tr "actions.runs.actor"}}">
 								</div>
-								<a class="item{{if not $.CurActor}} active{{end}}" href="?workflow={{$.CurWorkflow}}&status={{$.CurStatus}}&actor=0">
+								<a class="item{{if not $.CurActor}} selected{{end}}" href="?workflow={{$.CurWorkflow}}&status={{$.CurStatus}}&branch={{$.CurBranch}}&actor=0">
 									{{ctx.Locale.Tr "actions.runs.actors_no_select"}}
 								</a>
 								{{range .Actors}}
-									<a class="item{{if eq .ID $.CurActor}} active{{end}}" href="?workflow={{$.CurWorkflow}}&actor={{.ID}}&status={{$.CurStatus}}">
+									<a class="item{{if eq .ID $.CurActor}} selected{{end}}" href="?workflow={{$.CurWorkflow}}&actor={{.ID}}&status={{$.CurStatus}}&branch={{$.CurBranch}}">
 										{{ctx.AvatarUtils.Avatar . 20}} {{.GetDisplayName}}
 									</a>
 								{{end}}
@@ -56,22 +73,41 @@
 									<i class="icon">{{svg "octicon-search"}}</i>
 									<input type="text" placeholder="{{ctx.Locale.Tr "actions.runs.status"}}">
 								</div>
-								<a class="item{{if not $.CurStatus}} active{{end}}" href="?workflow={{$.CurWorkflow}}&actor={{$.CurActor}}&status=0">
+								<a class="item{{if not $.CurStatus}} selected{{end}}" href="?workflow={{$.CurWorkflow}}&actor={{$.CurActor}}&branch={{$.CurBranch}}&status=0">
 									{{ctx.Locale.Tr "actions.runs.status_no_select"}}
 								</a>
 								{{range .StatusInfoList}}
-									<a class="item{{if eq .Status $.CurStatus}} active{{end}}" href="?workflow={{$.CurWorkflow}}&actor={{$.CurActor}}&status={{.Status}}">
+									<a class="item{{if eq .Status $.CurStatus}} selected{{end}}" href="?workflow={{$.CurWorkflow}}&actor={{$.CurActor}}&status={{.Status}}&branch={{$.CurBranch}}">
 										{{.DisplayedStatus}}
 									</a>
 								{{end}}
 							</div>
 						</div>
+						<!-- Branch -->
+						<div class="ui{{if not .RunBranches}} disabled{{end}} dropdown jump item" data-test-id="filter-branch">
+							<span class="text">{{ctx.Locale.Tr "actions.runs.branch"}}</span>
+							{{svg "octicon-triangle-down" 14 "dropdown icon"}}
+							<div class="menu">
+								<div class="ui icon search input">
+									<i class="icon">{{svg "octicon-search"}}</i>
+									<input type="text" placeholder="{{ctx.Locale.Tr "actions.runs.branch"}}">
+								</div>
+								<a class="item{{if not $.CurBranch}} selected{{end}}" href="?workflow={{$.CurWorkflow}}&actor={{$.CurActor}}&status={{$.CurStatus}}">
+									{{ctx.Locale.Tr "actions.runs.branches_no_select"}}
+								</a>
+								{{range .RunBranches}}
+									<a class="item{{if eq . $.CurBranch}} selected{{end}}" href="?workflow={{$.CurWorkflow}}&actor={{$.CurActor}}&status={{$.CurStatus}}&branch={{.}}">
+										{{.}}
+									</a>
+								{{end}}
+							</div>
+						</div>
 
-						{{if .AllowDisableOrEnableWorkflow}}
+						{{if and .AllowDisableOrEnableWorkflow .CurWorkflowIsListed $.CurWorkflow}}
 						<button class="ui jump dropdown btn interact-bg tw-p-2">
 							{{svg "octicon-kebab-horizontal"}}
 							<div class="menu">
-								<a class="item link-action" data-url="{{$.Link}}/{{if .CurWorkflowDisabled}}enable{{else}}disable{{end}}?workflow={{$.CurWorkflow}}&actor={{.CurActor}}&status={{$.CurStatus}}">
+								<a class="item link-action" data-url="{{$.Link}}/{{if .CurWorkflowDisabled}}enable{{else}}disable{{end}}?workflow={{$.CurWorkflow}}&actor={{.CurActor}}&status={{$.CurStatus}}&branch={{$.CurBranch}}">
 									{{if .CurWorkflowDisabled}}{{ctx.Locale.Tr "actions.workflow.enable"}}{{else}}{{ctx.Locale.Tr "actions.workflow.disable"}}{{end}}
 								</a>
 							</div>

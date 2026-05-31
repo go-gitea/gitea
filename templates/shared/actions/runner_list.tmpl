@@ -40,10 +40,28 @@
 			{{template "shared/search/combo" dict "Value" .Keyword "Placeholder" (ctx.Locale.Tr "search.runner_kind")}}
 		</form>
 	</div>
+	{{if .AllowBulkActions}}
+	<div class="ui attached segment tw-hidden" data-global-init="initRunnerBulkToolbar">
+		<form action="{{$.Link}}/bulk" method="post" class="form-fetch-action">
+			<input type="hidden" name="ids">
+			<button class="ui small button" name="action" value="disable">{{ctx.Locale.Tr "actions.runners.disable_runner"}} <span class="runner-bulk-count"></span></button>
+			<button class="ui small button" name="action" value="enable">{{ctx.Locale.Tr "actions.runners.enable_runner"}} <span class="runner-bulk-count"></span></button>
+			<button class="ui small red button" name="action" value="delete"
+				data-modal-confirm-header="{{ctx.Locale.Tr "actions.runners.delete_runner_header"}}"
+				data-modal-confirm-content="{{ctx.Locale.Tr "actions.runners.delete_runner_notice"}}"
+				>{{ctx.Locale.Tr "actions.runners.delete_runner"}} <span class="runner-bulk-count"></span>
+			</button>
+		</form>
+	</div>
+	{{end}}
+	{{if .Runners}}
 	<div class="ui attached table segment">
 		<table class="ui very basic table unstackable">
 			<thead>
 				<tr>
+					{{if .AllowBulkActions}}
+					<th class="tw-w-8"><div class="ui checkbox tw-flex"><input type="checkbox" class="runner-bulk-select-all" aria-label="{{ctx.Locale.Tr "admin.notices.select_all"}}"></div></th>
+					{{end}}
 					<th data-sortt-asc="online" data-sortt-desc="offline">
 						{{ctx.Locale.Tr "actions.runners.status"}}
 						{{SortArrow "online" "offline" .SortType false}}
@@ -66,6 +84,9 @@
 			<tbody>
 				{{range .Runners}}
 					<tr>
+						{{if $.AllowBulkActions}}
+						<td><div class="ui checkbox tw-flex"><input type="checkbox" class="runner-bulk-select" data-runner-id="{{.ID}}" aria-label="{{ctx.Locale.Tr "repo.issues.action_check"}}: {{.Name}}"></div></td>
+						{{end}}
 						<td>
 							<span class="ui label {{if .IsOnline}}green{{end}}">{{.StatusLocaleName ctx.Locale}}</span>
 							{{if .IsDisabled}}<span class="ui grey label">{{ctx.Locale.Tr "actions.runners.disabled"}}</span>{{end}}
@@ -84,15 +105,13 @@
 							{{end}}
 						</td>
 					</tr>
-				{{else}}
-					<tr>
-						<td class="tw-text-center" colspan="8">{{ctx.Locale.Tr "actions.runners.none"}}</td>
-					</tr>
 				{{end}}
 			</tbody>
 		</table>
 	</div>
+	{{else}}
+	<div class="ui attached segment tw-text-center">{{ctx.Locale.Tr "actions.runners.none"}}</div>
+	{{end}}
 
 	{{template "base/paginate" .}}
-
 </div>

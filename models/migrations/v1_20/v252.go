@@ -4,12 +4,11 @@
 package v1_20
 
 import (
-	"code.gitea.io/gitea/modules/log"
-
-	"xorm.io/xorm"
+	"gitea.dev/models/db"
+	"gitea.dev/modules/log"
 )
 
-func FixIncorrectAdminTeamUnitAccessMode(x *xorm.Engine) error {
+func FixIncorrectAdminTeamUnitAccessMode(x db.EngineMigration) error {
 	type UnitType int
 	type AccessMode int
 

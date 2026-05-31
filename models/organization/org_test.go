@@ -8,14 +8,14 @@ import (
 	"sort"
 	"testing"
 
-	"code.gitea.io/gitea/models/db"
-	"code.gitea.io/gitea/models/organization"
-	repo_model "code.gitea.io/gitea/models/repo"
-	"code.gitea.io/gitea/models/unittest"
-	user_model "code.gitea.io/gitea/models/user"
-	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/modules/structs"
-	"code.gitea.io/gitea/modules/test"
+	"gitea.dev/models/db"
+	"gitea.dev/models/organization"
+	repo_model "gitea.dev/models/repo"
+	"gitea.dev/models/unittest"
+	user_model "gitea.dev/models/user"
+	"gitea.dev/modules/setting"
+	"gitea.dev/modules/structs"
+	"gitea.dev/modules/test"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -528,6 +528,22 @@ func TestGetUsersWhoCanCreateOrgRepo(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Len(t, users, 1)
 	assert.NotNil(t, users[5])
+}
+
+func TestCanCreateOrgRepoByOwnerTeamWithoutFlag(t *testing.T) {
+	assert.NoError(t, unittest.PrepareTestDatabase())
+
+	org := unittest.AssertExistsAndLoadBean(t, &organization.Organization{ID: 3})
+	ownerTeam, err := org.GetOwnerTeam(t.Context())
+	require.NoError(t, err)
+
+	ownerTeam.CanCreateOrgRepo = false
+	_, err = db.GetEngine(t.Context()).ID(ownerTeam.ID).Cols("can_create_org_repo").Update(ownerTeam)
+	require.NoError(t, err)
+
+	ok, err := organization.CanCreateOrgRepo(t.Context(), org.ID, 2)
+	require.NoError(t, err)
+	assert.True(t, ok)
 }
 
 func TestUser_RemoveOrgRepo(t *testing.T) {

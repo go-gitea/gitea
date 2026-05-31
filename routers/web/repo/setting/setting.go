@@ -6,36 +6,37 @@ package setting
 
 import (
 	"errors"
+	"html/template"
 	"net/http"
 	"strings"
 	"time"
 
-	"code.gitea.io/gitea/models/db"
-	"code.gitea.io/gitea/models/organization"
-	repo_model "code.gitea.io/gitea/models/repo"
-	unit_model "code.gitea.io/gitea/models/unit"
-	user_model "code.gitea.io/gitea/models/user"
-	"code.gitea.io/gitea/modules/git"
-	"code.gitea.io/gitea/modules/gitrepo"
-	"code.gitea.io/gitea/modules/indexer/code"
-	issue_indexer "code.gitea.io/gitea/modules/indexer/issues"
-	"code.gitea.io/gitea/modules/indexer/stats"
-	"code.gitea.io/gitea/modules/lfs"
-	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/modules/structs"
-	"code.gitea.io/gitea/modules/templates"
-	"code.gitea.io/gitea/modules/util"
-	"code.gitea.io/gitea/modules/validation"
-	"code.gitea.io/gitea/modules/web"
-	repo_router "code.gitea.io/gitea/routers/web/repo"
-	actions_service "code.gitea.io/gitea/services/actions"
-	"code.gitea.io/gitea/services/context"
-	"code.gitea.io/gitea/services/forms"
-	"code.gitea.io/gitea/services/migrations"
-	mirror_service "code.gitea.io/gitea/services/mirror"
-	repo_service "code.gitea.io/gitea/services/repository"
-	wiki_service "code.gitea.io/gitea/services/wiki"
+	"gitea.dev/models/db"
+	"gitea.dev/models/organization"
+	repo_model "gitea.dev/models/repo"
+	unit_model "gitea.dev/models/unit"
+	user_model "gitea.dev/models/user"
+	"gitea.dev/modules/git"
+	"gitea.dev/modules/gitrepo"
+	"gitea.dev/modules/indexer/code"
+	issue_indexer "gitea.dev/modules/indexer/issues"
+	"gitea.dev/modules/indexer/stats"
+	"gitea.dev/modules/lfs"
+	"gitea.dev/modules/log"
+	"gitea.dev/modules/setting"
+	"gitea.dev/modules/structs"
+	"gitea.dev/modules/templates"
+	"gitea.dev/modules/util"
+	"gitea.dev/modules/validation"
+	"gitea.dev/modules/web"
+	repo_router "gitea.dev/routers/web/repo"
+	actions_service "gitea.dev/services/actions"
+	"gitea.dev/services/context"
+	"gitea.dev/services/forms"
+	"gitea.dev/services/migrations"
+	mirror_service "gitea.dev/services/mirror"
+	repo_service "gitea.dev/services/repository"
+	wiki_service "gitea.dev/services/wiki"
 
 	"xorm.io/xorm/convert"
 )
@@ -48,6 +49,12 @@ const (
 	tplGithookEdit     templates.TplName = "repo/settings/githook_edit"
 	tplDeployKeys      templates.TplName = "repo/settings/deploy_keys"
 )
+
+type selectOption struct {
+	Value    string
+	Text     template.HTML
+	Selected bool
+}
 
 // SettingsCtxData is a middleware that sets all the general context data for the
 // settings template.
@@ -66,6 +73,7 @@ func SettingsCtxData(ctx *context.Context) {
 	ctx.Data["SigningKeyAvailable"] = signing != nil
 	ctx.Data["SigningSettings"] = setting.Repository.Signing
 	ctx.Data["IsRepoIndexerEnabled"] = setting.Indexer.RepoIndexerEnabled
+	preparePullRequestSettings(ctx)
 
 	if ctx.Doer.IsAdmin {
 		if setting.Indexer.RepoIndexerEnabled {
@@ -93,6 +101,35 @@ func SettingsCtxData(ctx *context.Context) {
 	repo_router.PrepareBranchList(ctx)
 	if ctx.Written() {
 		return
+	}
+}
+
+func preparePullRequestSettings(ctx *context.Context) {
+	defaultUpdateStyle := repo_model.UpdateStyleMerge
+	if ctx.Repo.Repository.UnitEnabled(ctx, unit_model.TypePullRequests) {
+		prUnit := ctx.Repo.Repository.MustGetUnit(ctx, unit_model.TypePullRequests)
+		defaultUpdateStyle = util.IfZero(prUnit.PullRequestsConfig().DefaultUpdateStyle, repo_model.UpdateStyleMerge)
+	}
+
+	updateBranchText := ctx.Tr("repo.pulls.update_branch")
+	rebaseUpdateText := ctx.Tr("repo.pulls.update_branch_rebase")
+	defaultUpdateStyleText := updateBranchText
+	if defaultUpdateStyle == repo_model.UpdateStyleRebase {
+		defaultUpdateStyleText = rebaseUpdateText
+	}
+
+	ctx.Data["PullsDefaultUpdateStyleText"] = defaultUpdateStyleText
+	ctx.Data["PullsDefaultUpdateStyleOptions"] = []selectOption{
+		{
+			Value:    string(repo_model.UpdateStyleMerge),
+			Text:     updateBranchText,
+			Selected: defaultUpdateStyle == repo_model.UpdateStyleMerge,
+		},
+		{
+			Value:    string(repo_model.UpdateStyleRebase),
+			Text:     rebaseUpdateText,
+			Selected: defaultUpdateStyle == repo_model.UpdateStyleRebase,
+		},
 	}
 }
 
@@ -616,7 +653,8 @@ func handleSettingsPostAdvanced(ctx *context.Context) {
 	}
 
 	if form.EnablePulls && !unit_model.TypePullRequests.UnitGlobalDisabled() {
-		units = append(units, newRepoUnit(repo, unit_model.TypePullRequests, &repo_model.PullRequestsConfig{
+		defaultUpdateStyle := util.IfZero(repo_model.UpdateStyle(form.PullsDefaultUpdateStyle), repo_model.UpdateStyleMerge)
+		prConfig := &repo_model.PullRequestsConfig{
 			IgnoreWhitespaceConflicts:     form.PullsIgnoreWhitespace,
 			AllowMerge:                    form.PullsAllowMerge,
 			AllowRebase:                   form.PullsAllowRebase,
@@ -625,12 +663,20 @@ func handleSettingsPostAdvanced(ctx *context.Context) {
 			AllowFastForwardOnly:          form.PullsAllowFastForwardOnly,
 			AllowManualMerge:              form.PullsAllowManualMerge,
 			AutodetectManualMerge:         form.EnableAutodetectManualMerge,
+			AllowMergeUpdate:              form.PullsAllowMergeUpdate,
 			AllowRebaseUpdate:             form.PullsAllowRebaseUpdate,
+			DefaultUpdateStyle:            defaultUpdateStyle,
 			DefaultDeleteBranchAfterMerge: form.DefaultDeleteBranchAfterMerge,
 			DefaultMergeStyle:             repo_model.MergeStyle(form.PullsDefaultMergeStyle),
 			DefaultAllowMaintainerEdit:    form.DefaultAllowMaintainerEdit,
 			DefaultTargetBranch:           strings.TrimSpace(form.DefaultTargetBranch),
-		}))
+		}
+		if err := prConfig.ValidateUpdateSettings(); err != nil {
+			ctx.Flash.Error(err.Error())
+			ctx.Redirect(repo.Link() + "/settings")
+			return
+		}
+		units = append(units, newRepoUnit(repo, unit_model.TypePullRequests, prConfig))
 	} else if !unit_model.TypePullRequests.UnitGlobalDisabled() {
 		deleteUnitTypes = append(deleteUnitTypes, unit_model.TypePullRequests)
 	}

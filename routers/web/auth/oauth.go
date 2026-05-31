@@ -13,21 +13,22 @@ import (
 	"net/url"
 	"sort"
 	"strings"
+	"time"
 
-	"code.gitea.io/gitea/models/auth"
-	user_model "code.gitea.io/gitea/models/user"
-	auth_module "code.gitea.io/gitea/modules/auth"
-	"code.gitea.io/gitea/modules/container"
-	"code.gitea.io/gitea/modules/httplib"
-	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/optional"
-	"code.gitea.io/gitea/modules/session"
-	"code.gitea.io/gitea/modules/setting"
-	source_service "code.gitea.io/gitea/services/auth/source"
-	"code.gitea.io/gitea/services/auth/source/oauth2"
-	"code.gitea.io/gitea/services/context"
-	"code.gitea.io/gitea/services/externalaccount"
-	user_service "code.gitea.io/gitea/services/user"
+	"gitea.dev/models/auth"
+	user_model "gitea.dev/models/user"
+	auth_module "gitea.dev/modules/auth"
+	"gitea.dev/modules/container"
+	"gitea.dev/modules/httplib"
+	"gitea.dev/modules/log"
+	"gitea.dev/modules/optional"
+	"gitea.dev/modules/session"
+	"gitea.dev/modules/setting"
+	source_service "gitea.dev/services/auth/source"
+	"gitea.dev/services/auth/source/oauth2"
+	"gitea.dev/services/context"
+	"gitea.dev/services/externalaccount"
+	user_service "gitea.dev/services/user"
 
 	"github.com/markbates/goth"
 	"github.com/markbates/goth/gothic"
@@ -301,21 +302,42 @@ func showLinkingLogin(ctx *context.Context, authSourceID int64, gothUser goth.Us
 	ctx.Redirect(setting.AppSubURL + "/user/link_account")
 }
 
-func oauth2UpdateAvatarIfNeed(ctx *context.Context, url string, u *user_model.User) {
-	if setting.OAuth2Client.UpdateAvatar && len(url) > 0 {
-		resp, err := http.Get(url)
-		if err == nil {
-			defer func() {
-				_ = resp.Body.Close()
-			}()
-		}
-		// ignore any error
-		if err == nil && resp.StatusCode == http.StatusOK {
-			data, err := io.ReadAll(io.LimitReader(resp.Body, setting.Avatar.MaxFileSize+1))
-			if err == nil && int64(len(data)) <= setting.Avatar.MaxFileSize {
-				_ = user_service.UploadAvatar(ctx, u, data)
-			}
-		}
+var oauth2AvatarHTTPClient = &http.Client{Timeout: 30 * time.Second}
+
+func oauth2UpdateAvatarIfNeed(ctx *context.Context, avatarURL string, u *user_model.User) {
+	if !setting.OAuth2Client.UpdateAvatar || len(avatarURL) == 0 {
+		return
+	}
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, avatarURL, nil)
+	if err != nil {
+		log.Warn("invalid avatar URL %q: %v", avatarURL, err)
+		return
+	}
+	// Some hosts (e.g. Wikimedia) reject Go's default User-Agent.
+	req.Header.Set("User-Agent", "Gitea "+setting.AppVer)
+
+	resp, err := oauth2AvatarHTTPClient.Do(req)
+	if err != nil {
+		log.Warn("fetch %q failed: %v", avatarURL, err)
+		return
+	}
+	defer func() { _ = resp.Body.Close() }()
+
+	if resp.StatusCode != http.StatusOK {
+		log.Warn("fetch %q returned status %d", avatarURL, resp.StatusCode)
+		return
+	}
+	data, err := io.ReadAll(io.LimitReader(resp.Body, setting.Avatar.MaxFileSize+1))
+	if err != nil {
+		log.Warn("read body from %q failed: %v", avatarURL, err)
+		return
+	}
+	if int64(len(data)) > setting.Avatar.MaxFileSize {
+		log.Warn("avatar from %q exceeds max size %d", avatarURL, setting.Avatar.MaxFileSize)
+		return
+	}
+	if err := user_service.UploadAvatar(ctx, u, data); err != nil {
+		log.Warn("UploadAvatar for user %q failed: %v", u.Name, err)
 	}
 }
 
@@ -492,17 +514,33 @@ func oAuth2UserLoginCallback(ctx *context.Context, authSource *auth.Source, requ
 	}
 
 	// search in external linked users
-	externalLoginUser := &user_model.ExternalLoginUser{
-		ExternalID:    gothUser.UserID,
-		LoginSourceID: authSource.ID,
-	}
-	hasUser, err = user_model.GetExternalLogin(request.Context(), externalLoginUser)
+	externalLoginUser, hasUser, err := user_model.GetExternalLogin(ctx, authSource.ID, gothUser.UserID)
 	if err != nil {
 		return nil, goth.User{}, err
 	}
 	if hasUser {
-		user, err = user_model.GetUserByID(request.Context(), externalLoginUser.UserID)
-		return user, gothUser, err
+		user, err = user_model.GetUserByID(ctx, externalLoginUser.UserID)
+		if err != nil && !user_model.IsErrUserNotExist(err) {
+			return nil, goth.User{}, err
+		}
+		if err == nil && user.IsIndividual() {
+			return user, gothUser, nil
+		}
+
+		// The external login record is stale: the linked user no longer exists, or it exists but is
+		// not an individual user (only individual users can sign in, so a link pointing at an
+		// organization, bot or remote user can never resolve). Remove it so the next sign-in can
+		// relink the external account to the correct user. Nothing is lost, because the link is
+		// recreated automatically on the next sign-in.
+		reason := "linked user does not exist"
+		if err == nil {
+			reason = fmt.Sprintf("linked user type is %d", user.Type)
+		}
+		log.Warn("Ignoring stale external login link [external-id=%s login-source-id=%d user-id=%d]: %s", externalLoginUser.ExternalID, externalLoginUser.LoginSourceID, externalLoginUser.UserID, reason)
+
+		if err := user_model.RemoveExternalLoginByExternalID(ctx, externalLoginUser.LoginSourceID, externalLoginUser.ExternalID); err != nil {
+			return nil, goth.User{}, err
+		}
 	}
 
 	// no user found to login
@@ -539,7 +577,15 @@ func buildOIDCEndSessionURL(ctx *context.Context, doer *user_model.User) string 
 	// https://openid.net/specs/openid-connect-rpinitiated-1_0.html#RPLogout
 	params := endSessionURL.Query()
 	params.Set("client_id", oauth2Cfg.ClientID)
-	params.Set("post_logout_redirect_uri", httplib.GuessCurrentAppURL(ctx))
+
+	// AWS Cognito uses "logout_uri" instead of the standard "post_logout_redirect_uri"
+	redirectURI := httplib.GuessCurrentAppURL(ctx)
+	if oauth2Cfg.Provider == oauth2.ProviderNameAwsCognito {
+		params.Set("logout_uri", redirectURI)
+	} else {
+		params.Set("post_logout_redirect_uri", redirectURI)
+	}
+
 	endSessionURL.RawQuery = params.Encode()
 	return endSessionURL.String()
 }

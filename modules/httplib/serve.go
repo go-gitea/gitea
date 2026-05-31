@@ -15,12 +15,12 @@ import (
 	"strings"
 	"time"
 
-	charsetModule "code.gitea.io/gitea/modules/charset"
-	"code.gitea.io/gitea/modules/container"
-	"code.gitea.io/gitea/modules/httpcache"
-	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/modules/typesniffer"
-	"code.gitea.io/gitea/modules/util"
+	charsetModule "gitea.dev/modules/charset"
+	"gitea.dev/modules/container"
+	"gitea.dev/modules/httpcache"
+	"gitea.dev/modules/setting"
+	"gitea.dev/modules/typesniffer"
+	"gitea.dev/modules/util"
 
 	"github.com/klauspost/compress/gzhttp"
 )
@@ -87,8 +87,9 @@ func ServeSetHeaders(w http.ResponseWriter, opts ServeHeaderOptions) {
 	if opts.ContentLength != nil {
 		header.Set("Content-Length", strconv.FormatInt(*opts.ContentLength, 10))
 	}
-	if opts.Filename != "" && opts.ContentDisposition != "" {
-		header.Set("Content-Disposition", encodeContentDisposition(opts.ContentDisposition, path.Base(opts.Filename)))
+	if opts.Filename != "" {
+		contentDisposition := util.IfZero(opts.ContentDisposition, ContentDispositionAttachment)
+		header.Set("Content-Disposition", encodeContentDisposition(contentDisposition, path.Base(opts.Filename)))
 		header.Set("Access-Control-Expose-Headers", "Content-Disposition")
 	}
 

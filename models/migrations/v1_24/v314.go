@@ -3,11 +3,9 @@
 
 package v1_24
 
-import (
-	"xorm.io/xorm"
-)
+import "gitea.dev/models/db"
 
-func UpdateOwnerIDOfRepoLevelActionsTables(x *xorm.Engine) error {
+func UpdateOwnerIDOfRepoLevelActionsTables(x db.EngineMigration) error {
 	if _, err := x.Exec("UPDATE `action_runner` SET `owner_id` = 0 WHERE `repo_id` > 0 AND `owner_id` > 0"); err != nil {
 		return err
 	}

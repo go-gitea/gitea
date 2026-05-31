@@ -134,16 +134,16 @@
 
 {{if $canWriteProject}}
 <div class="ui small modal" id="project-column-modal-edit">
-	<div class="header">edit</div>
+	<div class="header">{{ctx.Locale.Tr "repo.projects.column.edit"}}</div>
 	<div class="content">
 		<form class="ui form ignore-dirty" method="post" data-action-base-link="{{$.Link}}">
 			<input class="project-column-id" type="hidden" name="id">
 			<div class="required field">
-				<label class="project-column-title-label" for="project-column-title-input">title</label>
+				<label class="project-column-title-label" for="project-column-title-input">{{ctx.Locale.Tr "repo.projects.column.edit_title"}}</label>
 				<input id="project-column-title-input" name="title" required>
 			</div>
 			<div class="field">
-				<label class="project-column-color-label" for="project-column-color-input">color</label>
+				<label class="project-column-color-label" for="project-column-color-input">{{ctx.Locale.Tr "repo.projects.column.color"}}</label>
 				<div class="color-picker-combo" data-global-init="initColorPicker">
 					<input maxlength="7" placeholder="#c320f6" id="project-column-color-input" name="color">
 					{{template "repo/issue/label_precolors"}}
@@ -151,7 +151,7 @@
 			</div>
 			<div class="actions">
 				<button class="ui cancel button">{{ctx.Locale.Tr "settings.cancel"}}</button>
-				<button type="submit" class="ui primary button project-column-button-save">save</button>
+				<button type="submit" class="ui primary button project-column-button-save">{{ctx.Locale.Tr "save"}}</button>
 			</div>
 		</form>
 	</div>

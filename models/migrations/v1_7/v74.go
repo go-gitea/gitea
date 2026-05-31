@@ -3,9 +3,9 @@
 
 package v1_7
 
-import "xorm.io/xorm"
+import "gitea.dev/models/db"
 
-func AddApprovalWhitelistsToProtectedBranches(x *xorm.Engine) error {
+func AddApprovalWhitelistsToProtectedBranches(x db.EngineMigration) error {
 	type ProtectedBranch struct {
 		ApprovalsWhitelistUserIDs []int64 `xorm:"JSON TEXT"`
 		ApprovalsWhitelistTeamIDs []int64 `xorm:"JSON TEXT"`

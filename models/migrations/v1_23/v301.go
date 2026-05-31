@@ -3,10 +3,14 @@
 
 package v1_23
 
-import "xorm.io/xorm"
+import (
+	"gitea.dev/models/db"
+
+	"xorm.io/xorm"
+)
 
 // AddSkipSeconderyAuthToOAuth2ApplicationTable: add SkipSecondaryAuthorization column, setting existing rows to false
-func AddSkipSecondaryAuthColumnToOAuth2ApplicationTable(x *xorm.Engine) error {
+func AddSkipSecondaryAuthColumnToOAuth2ApplicationTable(x db.EngineMigration) error {
 	type oauth2Application struct {
 		SkipSecondaryAuthorization bool `xorm:"NOT NULL DEFAULT FALSE"`
 	}

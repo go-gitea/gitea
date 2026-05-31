@@ -6,7 +6,7 @@ package foreachref_test
 import (
 	"testing"
 
-	"code.gitea.io/gitea/modules/git/foreachref"
+	"gitea.dev/modules/git/foreachref"
 
 	"github.com/stretchr/testify/require"
 )

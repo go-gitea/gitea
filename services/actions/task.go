@@ -8,11 +8,11 @@ import (
 	"errors"
 	"fmt"
 
-	actions_model "code.gitea.io/gitea/models/actions"
-	"code.gitea.io/gitea/models/db"
-	secret_model "code.gitea.io/gitea/models/secret"
+	runnerv1 "gitea.dev/actions-proto-go/runner/v1"
+	actions_model "gitea.dev/models/actions"
+	"gitea.dev/models/db"
+	secret_model "gitea.dev/models/secret"
 
-	runnerv1 "code.gitea.io/actions-proto-go/runner/v1"
 	"google.golang.org/protobuf/types/known/structpb"
 )
 
@@ -35,7 +35,7 @@ func PickTask(ctx context.Context, runner *actions_model.ActionRunner) (*runnerv
 			return nil, false, err
 		}
 		if has {
-			if task.Status == actions_model.StatusWaiting || task.Status == actions_model.StatusRunning || task.Status == actions_model.StatusBlocked {
+			if task.Status.In(actions_model.StatusWaiting, actions_model.StatusRunning, actions_model.StatusBlocked, actions_model.StatusCancelling) {
 				return nil, false, nil
 			}
 			// task has been finished, remove it

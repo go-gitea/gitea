@@ -9,54 +9,55 @@ import (
 	"errors"
 	"fmt"
 	"html"
+	"html/template"
 	"net/http"
 	"strconv"
 	"strings"
 	"time"
 
-	activities_model "code.gitea.io/gitea/models/activities"
-	"code.gitea.io/gitea/models/db"
-	git_model "code.gitea.io/gitea/models/git"
-	issues_model "code.gitea.io/gitea/models/issues"
-	access_model "code.gitea.io/gitea/models/perm/access"
-	pull_model "code.gitea.io/gitea/models/pull"
-	repo_model "code.gitea.io/gitea/models/repo"
-	"code.gitea.io/gitea/models/unit"
-	user_model "code.gitea.io/gitea/models/user"
-	"code.gitea.io/gitea/modules/commitstatus"
-	"code.gitea.io/gitea/modules/emoji"
-	"code.gitea.io/gitea/modules/fileicon"
-	"code.gitea.io/gitea/modules/git"
-	"code.gitea.io/gitea/modules/git/gitcmd"
-	"code.gitea.io/gitea/modules/gitrepo"
-	"code.gitea.io/gitea/modules/glob"
-	"code.gitea.io/gitea/modules/graceful"
-	issue_template "code.gitea.io/gitea/modules/issue/template"
-	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/optional"
-	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/modules/templates"
-	"code.gitea.io/gitea/modules/translation"
-	"code.gitea.io/gitea/modules/util"
-	"code.gitea.io/gitea/modules/web"
-	"code.gitea.io/gitea/routers/utils"
-	shared_user "code.gitea.io/gitea/routers/web/shared/user"
-	actions_service "code.gitea.io/gitea/services/actions"
-	asymkey_service "code.gitea.io/gitea/services/asymkey"
-	"code.gitea.io/gitea/services/automerge"
-	"code.gitea.io/gitea/services/context"
-	"code.gitea.io/gitea/services/context/upload"
-	"code.gitea.io/gitea/services/forms"
-	git_service "code.gitea.io/gitea/services/git"
-	"code.gitea.io/gitea/services/gitdiff"
-	notify_service "code.gitea.io/gitea/services/notify"
-	pull_service "code.gitea.io/gitea/services/pull"
-	repo_service "code.gitea.io/gitea/services/repository"
-	user_service "code.gitea.io/gitea/services/user"
+	activities_model "gitea.dev/models/activities"
+	"gitea.dev/models/db"
+	git_model "gitea.dev/models/git"
+	issues_model "gitea.dev/models/issues"
+	access_model "gitea.dev/models/perm/access"
+	pull_model "gitea.dev/models/pull"
+	repo_model "gitea.dev/models/repo"
+	"gitea.dev/models/unit"
+	user_model "gitea.dev/models/user"
+	"gitea.dev/modules/commitstatus"
+	"gitea.dev/modules/emoji"
+	"gitea.dev/modules/fileicon"
+	"gitea.dev/modules/git"
+	"gitea.dev/modules/git/gitcmd"
+	"gitea.dev/modules/gitrepo"
+	"gitea.dev/modules/glob"
+	"gitea.dev/modules/graceful"
+	issue_template "gitea.dev/modules/issue/template"
+	"gitea.dev/modules/log"
+	"gitea.dev/modules/optional"
+	"gitea.dev/modules/setting"
+	"gitea.dev/modules/svg"
+	"gitea.dev/modules/templates"
+	"gitea.dev/modules/translation"
+	"gitea.dev/modules/util"
+	"gitea.dev/modules/web"
+	"gitea.dev/routers/utils"
+	shared_user "gitea.dev/routers/web/shared/user"
+	actions_service "gitea.dev/services/actions"
+	asymkey_service "gitea.dev/services/asymkey"
+	"gitea.dev/services/automerge"
+	"gitea.dev/services/context"
+	"gitea.dev/services/context/upload"
+	"gitea.dev/services/forms"
+	git_service "gitea.dev/services/git"
+	"gitea.dev/services/gitdiff"
+	notify_service "gitea.dev/services/notify"
+	pull_service "gitea.dev/services/pull"
+	repo_service "gitea.dev/services/repository"
+	user_service "gitea.dev/services/user"
 )
 
 const (
-	tplCompareDiff templates.TplName = "repo/diff/compare"
 	tplPullCommits templates.TplName = "repo/pulls/commits"
 	tplPullFiles   templates.TplName = "repo/pulls/files"
 
@@ -266,8 +267,24 @@ type pullMergeBoxData struct {
 	ShowMergeBox      bool
 	ReloadingInterval int
 
-	HasOverridableBlockers bool
-	CanMergeNow            bool
+	TimelineIconClass string
+
+	ClosedInfoTitle template.HTML
+	ClosedInfoBody  template.HTML
+
+	enableStatusCheck bool
+	StatusCheckData   *pullCommitStatusCheckData
+	ShowStatusCheck   bool
+
+	hasOverridableBlockers     bool
+	canMergeNow                bool // PR is mergeable, either no blocker, or doer can bypass the blockers
+	hasPermToMerge             bool // doer has permission to merge
+	canBypassProtection        bool
+	canBypassProtectionAsAdmin bool
+
+	ShowUpdatePullInfo  bool
+	UpdatePrimaryAction *pullUpdateAction
+	UpdateStyleOptions  []*pullUpdateAction
 
 	MergeFormProps        map[string]any
 	ShowPullCommands      bool
@@ -276,7 +293,7 @@ type pullMergeBoxData struct {
 
 	// don't expose unneeded fields to templates, need more refactoring changes
 	hasStatusCheckBlocker bool
-	isPullBranchDeletable bool
+	IsPullBranchDeletable bool
 
 	isBlockedByApprovals              bool
 	isBlockedByRejection              bool
@@ -284,6 +301,19 @@ type pullMergeBoxData struct {
 	isBlockedByOutdatedBranch         bool
 	isBlockedByChangedProtectedFiles  bool
 	requireSigned, willSign           bool
+	signingKeyMergeDisplay            string
+
+	infoCommitBlockers     pullMergeBoxInfoItemCollection
+	infoProtectionBlockers pullMergeBoxInfoItemCollection
+	infoMergePrompts       pullMergeBoxInfoItemCollection
+
+	InfoSections []*pullInfoSection
+}
+
+type pullUpdateAction struct {
+	URL      string
+	Text     template.HTML
+	Selected bool
 }
 
 // pullRequestViewInfo is a structured type for viewing pull request
@@ -299,9 +329,9 @@ type pullRequestViewInfo struct {
 
 	CompareInfo         git_service.CompareInfo
 	ProtectedBranchRule *git_model.ProtectedBranch
-	StatusCheckData     *pullCommitStatusCheckData
-	CommitStatuses      []*git_model.CommitStatus
 	MergeBoxData        *pullMergeBoxData
+
+	workInProgressPrefix string
 }
 
 func newPullRequestViewInfo() *pullRequestViewInfo {
@@ -339,7 +369,6 @@ func (prInfo *pullRequestViewInfo) prepareViewFillInfo(ctx *context.Context, bas
 	if ctx.Written() {
 		return
 	}
-	prInfo.prepareViewFillCommitStatusInfo(ctx)
 }
 
 func (prInfo *pullRequestViewInfo) prepareViewFillCompareInfo(ctx *context.Context, baseRef git.RefName) {
@@ -369,56 +398,47 @@ func (prInfo *pullRequestViewInfo) prepareViewFillCompareInfo(ctx *context.Conte
 		prInfo.IsPullRequestBroken = true
 	}
 
-	ctx.Data["IsPullRequestBroken"] = prInfo.IsPullRequestBroken
 	ctx.Data["NumCommits"] = len(prInfo.CompareInfo.Commits)
 	ctx.Data["NumFiles"] = prInfo.CompareInfo.NumFiles
 	prInfo.setTemplateDataMergeTarget(ctx)
 }
 
-func (prInfo *pullRequestViewInfo) prepareViewFillCommitStatusInfo(ctx *context.Context) {
+func (prInfo *pullRequestViewInfo) prepareMergeBoxStatusCheckData(ctx *context.Context) {
 	headCommitID := prInfo.CompareInfo.HeadCommitID
-	if headCommitID == "" {
+	if headCommitID == "" || prInfo.issue.IsClosed {
 		return
 	}
 
-	repo := ctx.Repo.Repository
+	data := prInfo.MergeBoxData
+
+	var pbRequiredContexts []string
+	data.enableStatusCheck = prInfo.ProtectedBranchRule != nil && prInfo.ProtectedBranchRule.EnableStatusCheck
+	if prInfo.ProtectedBranchRule != nil {
+		pbRequiredContexts = prInfo.ProtectedBranchRule.StatusCheckContexts
+	}
+
 	statusCheckData := &pullCommitStatusCheckData{}
-	prInfo.StatusCheckData = statusCheckData
+	data.StatusCheckData = statusCheckData
 
 	commitStatuses, err := git_model.GetLatestCommitStatus(ctx, ctx.Repo.Repository.ID, prInfo.CompareInfo.HeadCommitID, db.ListOptionsAll)
 	if err != nil {
-		ctx.ServerError("GetLatestCommitStatus", err)
-		return
+		log.Error("GetLatestCommitStatus: %v", err)
 	}
 	if !ctx.Repo.Permission.CanRead(unit.TypeActions) {
 		git_model.CommitStatusesHideActionsURL(ctx, commitStatuses)
 	}
-
-	prInfo.CommitStatuses = commitStatuses
-	statusCheckData.ApproveLink = fmt.Sprintf("%s/actions/approve-all-checks?commit_id=%s", repo.Link(), headCommitID)
-	statusCheckData.LatestCommitStatus = git_model.CalcCommitStatus(commitStatuses)
-	ctx.Data["LatestCommitStatuses"] = commitStatuses
-	ctx.Data["LatestCommitStatus"] = statusCheckData.LatestCommitStatus
-	ctx.Data["StatusCheckData"] = prInfo.StatusCheckData
-
-	prInfo.ProtectedBranchRule, err = git_model.GetFirstMatchProtectedBranchRule(ctx, ctx.Repo.Repository.ID, prInfo.issue.PullRequest.BaseBranch)
-	if err != nil {
-		ctx.ServerError("GetFirstMatchProtectedBranchRule", err)
-		return
+	combinedCommitStatus := git_model.CalcCommitStatus(commitStatuses)
+	statusCheckData.ApproveLink = fmt.Sprintf("%s/actions/approve-all-checks?commit_id=%s", ctx.Repo.Repository.Link(), headCommitID)
+	statusCheckData.PullCommitStatuses = commitStatuses
+	if combinedCommitStatus != nil {
+		statusCheckData.pullCommitStatusState = combinedCommitStatus.State
 	}
 
-	if !prInfo.issue.IsClosed {
-		prInfo.prepareViewFillCommitStatusInfoForOpen(ctx)
-	}
-}
+	data.ShowStatusCheck = data.enableStatusCheck || len(statusCheckData.PullCommitStatuses) > 0
 
-func (prInfo *pullRequestViewInfo) prepareViewFillCommitStatusInfoForOpen(ctx *context.Context) {
-	statusCheckData := prInfo.StatusCheckData
-	commitStatuses := prInfo.CommitStatuses
 	runs, err := actions_service.GetRunsFromCommitStatuses(ctx, commitStatuses)
 	if err != nil {
-		ctx.ServerError("GetRunsFromCommitStatuses", err)
-		return
+		log.Error("GetRunsFromCommitStatuses: %v", err)
 	}
 	for _, run := range runs {
 		if run.NeedApproval {
@@ -429,14 +449,8 @@ func (prInfo *pullRequestViewInfo) prepareViewFillCommitStatusInfoForOpen(ctx *c
 		statusCheckData.CanApprove = ctx.Repo.Permission.CanWrite(unit.TypeActions)
 	}
 
-	pb := prInfo.ProtectedBranchRule
-	enableStatusCheck := pb != nil && pb.EnableStatusCheck
-	if !enableStatusCheck {
-		return
-	}
-
 	var missingRequiredChecks []string
-	for _, requiredContext := range pb.StatusCheckContexts {
+	for _, requiredContext := range pbRequiredContexts {
 		contextFound := false
 		matchesRequiredContext := createRequiredContextMatcher(requiredContext)
 		for _, presentStatus := range commitStatuses {
@@ -453,7 +467,7 @@ func (prInfo *pullRequestViewInfo) prepareViewFillCommitStatusInfoForOpen(ctx *c
 	statusCheckData.MissingRequiredChecks = missingRequiredChecks
 
 	statusCheckData.IsContextRequired = func(context string) bool {
-		for _, c := range pb.StatusCheckContexts {
+		for _, c := range pbRequiredContexts {
 			if c == context {
 				return true
 			}
@@ -468,7 +482,21 @@ func (prInfo *pullRequestViewInfo) prepareViewFillCommitStatusInfoForOpen(ctx *c
 		}
 		return false
 	}
-	statusCheckData.RequiredChecksState = pull_service.MergeRequiredContextsCommitStatus(commitStatuses, pb.StatusCheckContexts)
+	statusCheckData.RequiredChecksState = pull_service.MergeRequiredContextsCommitStatus(commitStatuses, pbRequiredContexts)
+
+	if data.enableStatusCheck {
+		if statusCheckData.RequiredChecksState.IsError() || statusCheckData.RequiredChecksState.IsFailure() {
+			data.infoProtectionBlockers.AddErrorItem(
+				svg.RenderHTML("octicon-x"),
+				ctx.Locale.Tr("repo.pulls.required_status_check_failed"),
+			)
+		} else if !statusCheckData.RequiredChecksState.IsSuccess() {
+			data.infoProtectionBlockers.AddErrorItem(
+				svg.RenderHTML("octicon-x"),
+				ctx.Locale.Tr("repo.pulls.required_status_check_missing"),
+			)
+		}
+	}
 }
 
 // prepareViewMergedPullInfo show meta information for a merged pull request view page
@@ -485,14 +513,16 @@ type pullCommitStatusCheckData struct {
 	CanApprove              bool              // whether the user can approve workflow runs
 	ApproveLink             string            // link to approve all checks
 	RequiredChecksState     commitstatus.CommitStatusState
-	LatestCommitStatus      *git_model.CommitStatus
+
+	pullCommitStatusState commitstatus.CommitStatusState
+	PullCommitStatuses    []*git_model.CommitStatus
 }
 
 func (d *pullCommitStatusCheckData) CommitStatusCheckPrompt(locale translation.Locale) string {
 	if d.RequiredChecksState.IsPending() || len(d.MissingRequiredChecks) > 0 {
 		return locale.TrString("repo.pulls.status_checking")
 	} else if d.RequiredChecksState.IsSuccess() {
-		if d.LatestCommitStatus != nil && d.LatestCommitStatus.State.IsFailure() {
+		if d.pullCommitStatusState.IsFailure() {
 			return locale.TrString("repo.pulls.status_checks_failure_optional")
 		}
 		return locale.TrString("repo.pulls.status_checks_success")
@@ -548,10 +578,11 @@ func (prInfo *pullRequestViewInfo) prepareViewOpenPullInfo(ctx *context.Context)
 		ctx.Data["IsNothingToCompare"] = true
 	}
 
-	// this one is used by both sidebar and merge-box
+	// this one is used by: title edit, sidebar toggle, and merge-box toggle
+	prInfo.workInProgressPrefix = pull.GetWorkInProgressPrefix(ctx)
 	if pull.IsWorkInProgress(ctx) {
-		ctx.Data["IsPullWorkInProgress"] = true
-		ctx.Data["WorkInProgressPrefix"] = pull.GetWorkInProgressPrefix(ctx)
+		ctx.Data["IsPullWorkInProgress"] = prInfo.workInProgressPrefix != ""
+		ctx.Data["WorkInProgressPrefix"] = prInfo.workInProgressPrefix
 	}
 }
 
@@ -652,6 +683,8 @@ func indexCommit(commits []*git.Commit, commitID string) *git.Commit {
 
 // ViewPullFiles render pull request changed files list page
 func viewPullFiles(ctx *context.Context, beforeCommitID, afterCommitID string) {
+	var err error
+
 	ctx.Data["PageIsPullList"] = true
 	ctx.Data["PageIsPullFiles"] = true
 
@@ -676,44 +709,53 @@ func viewPullFiles(ctx *context.Context, beforeCommitID, afterCommitID string) {
 
 	headCommitID := prCompareInfo.HeadCommitID
 	isSingleCommit := beforeCommitID == "" && afterCommitID != ""
-	ctx.Data["IsShowingOnlySingleCommit"] = isSingleCommit
+	// FIXME: when afterCommitID==headCommitID, isSingleCommit and isShowAllCommits can be both true, which doesn't seem right
 	isShowAllCommits := (beforeCommitID == "" || beforeCommitID == prCompareInfo.CompareBase) && (afterCommitID == "" || afterCommitID == headCommitID)
+
+	ctx.Data["IsShowingOnlySingleCommit"] = isSingleCommit
 	ctx.Data["IsShowingAllCommits"] = isShowAllCommits
 
-	if afterCommitID == "" || afterCommitID == headCommitID {
-		afterCommitID = headCommitID
-	}
+	// "commits list" is half-open, half-closed: (base, head]
+	// * base commit is not in the list
+	// * if the PR is empty, the list is also empty (head commit is not in the list)
+
+	afterCommitID = util.IfZero(afterCommitID, headCommitID)
 	afterCommit := indexCommit(prCompareInfo.Commits, afterCommitID)
+	if afterCommit == nil && afterCommitID == headCommitID {
+		afterCommit, err = gitRepo.GetCommit(afterCommitID)
+		if err != nil {
+			ctx.ServerError("GetCommit(afterCommitID)", err)
+			return
+		}
+	}
 	if afterCommit == nil {
-		ctx.HTTPError(http.StatusBadRequest, "after commit not found in PR commits")
+		ctx.NotFound(nil)
 		return
 	}
 
 	var beforeCommit *git.Commit
-	var err error
-	if !isSingleCommit {
-		if beforeCommitID == "" || beforeCommitID == prCompareInfo.CompareBase {
-			beforeCommitID = prCompareInfo.CompareBase
-			// merge base commit is not in the list of the pull request commits
-			beforeCommit, err = gitRepo.GetCommit(beforeCommitID)
-			if err != nil {
-				ctx.ServerError("GetCommit", err)
-				return
-			}
-		} else {
-			beforeCommit = indexCommit(prCompareInfo.Commits, beforeCommitID)
-			if beforeCommit == nil {
-				ctx.HTTPError(http.StatusBadRequest, "before commit not found in PR commits")
-				return
-			}
-		}
-	} else {
+	if isSingleCommit {
 		beforeCommit, err = afterCommit.Parent(0)
 		if err != nil {
-			ctx.ServerError("Parent", err)
+			ctx.ServerError("afterCommit.Parent", err)
 			return
 		}
 		beforeCommitID = beforeCommit.ID.String()
+	} else {
+		beforeCommitID = util.IfZero(beforeCommitID, prCompareInfo.CompareBase)
+		beforeCommit = indexCommit(prCompareInfo.Commits, beforeCommitID)
+		if beforeCommit == nil && beforeCommitID == prCompareInfo.CompareBase {
+			// base commit is not in the list of the pull request commits
+			beforeCommit, err = gitRepo.GetCommit(beforeCommitID)
+			if err != nil {
+				ctx.ServerError("GetCommit(beforeCommitID)", err)
+				return
+			}
+		}
+	}
+	if beforeCommit == nil {
+		ctx.NotFound(nil)
+		return
 	}
 
 	ctx.Data["CompareInfo"] = prCompareInfo
@@ -934,8 +976,6 @@ func UpdatePullRequest(ctx *context.Context) {
 		return
 	}
 
-	rebase := ctx.FormString("style") == "rebase"
-
 	if err := issue.PullRequest.LoadBaseRepo(ctx); err != nil {
 		ctx.ServerError("LoadBaseRepo", err)
 		return
@@ -945,23 +985,22 @@ func UpdatePullRequest(ctx *context.Context) {
 		return
 	}
 
-	allowedUpdateByMerge, allowedUpdateByRebase, err := pull_service.IsUserAllowedToUpdate(ctx, issue.PullRequest, ctx.Doer)
+	userUpdateStyles, err := pull_service.CheckUserAllowedToUpdate(ctx, issue.PullRequest, ctx.Doer)
 	if err != nil {
 		ctx.ServerError("IsUserAllowedToMerge", err)
 		return
 	}
 
-	// ToDo: add check if maintainers are allowed to change branch ... (need migration & co)
-	if (!allowedUpdateByMerge && !rebase) || (rebase && !allowedUpdateByRebase) {
-		ctx.Flash.Error(ctx.Tr("repo.pulls.update_not_allowed"))
-		ctx.Redirect(issue.Link())
+	rebase := ctx.FormString("style", string(userUpdateStyles.DefaultUpdateStyle)) == string(repo_model.UpdateStyleRebase)
+	if (rebase && !userUpdateStyles.RebaseAllowed) || (!rebase && !userUpdateStyles.MergeAllowed) {
+		ctx.JSONError(ctx.Tr("repo.pulls.update_not_allowed"))
 		return
 	}
 
 	// default merge commit message
 	message := fmt.Sprintf("Merge branch '%s' into %s", issue.PullRequest.BaseBranch, issue.PullRequest.HeadBranch)
 
-	// The update process should not be cancelled by the user
+	// The update process should not be canceled by the user
 	// so we set the context to be a background context
 	if err = pull_service.Update(graceful.GetManager().ShutdownContext(), issue.PullRequest, ctx.Doer, message, rebase); err != nil {
 		if pull_service.IsErrMergeConflicts(err) {
@@ -975,8 +1014,7 @@ func UpdatePullRequest(ctx *context.Context) {
 				ctx.ServerError("UpdatePullRequest.HTMLString", err)
 				return
 			}
-			ctx.Flash.Error(flashError)
-			ctx.Redirect(issue.Link())
+			ctx.JSONError(flashError)
 			return
 		} else if pull_service.IsErrRebaseConflicts(err) {
 			conflictError := err.(pull_service.ErrRebaseConflicts)
@@ -989,19 +1027,18 @@ func UpdatePullRequest(ctx *context.Context) {
 				ctx.ServerError("UpdatePullRequest.HTMLString", err)
 				return
 			}
-			ctx.Flash.Error(flashError)
-			ctx.Redirect(issue.Link())
+			ctx.JSONError(flashError)
 			return
 		}
-		ctx.Flash.Error(err.Error())
-		ctx.Redirect(issue.Link())
+		log.Error("Update pull request failed: %v", err)
+		ctx.JSONError("Unable to update pull request")
 		return
 	}
 
-	time.Sleep(1 * time.Second)
+	time.Sleep(100 * time.Millisecond) // TODO: it is really questionable whether the Sleep is useful here, need to figure out
 
 	ctx.Flash.Success(ctx.Tr("repo.pulls.update_branch_success"))
-	ctx.Redirect(issue.Link())
+	ctx.JSONRedirect(issue.Link())
 }
 
 // MergePullRequest response for merging pull request
