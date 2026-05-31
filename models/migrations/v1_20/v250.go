@@ -6,8 +6,8 @@ package v1_20
 import (
 	"strings"
 
-	"code.gitea.io/gitea/models/db"
-	"code.gitea.io/gitea/modules/json"
+	"gitea.dev/models/db"
+	"gitea.dev/modules/json"
 )
 
 func ChangeContainerMetadataMultiArch(x db.EngineMigration) error {

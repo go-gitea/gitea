@@ -8,14 +8,14 @@ import (
 	"errors"
 	"fmt"
 
-	actions_model "code.gitea.io/gitea/models/actions"
-	"code.gitea.io/gitea/models/db"
-	"code.gitea.io/gitea/modules/container"
-	"code.gitea.io/gitea/modules/graceful"
-	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/queue"
-	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/modules/util"
+	actions_model "gitea.dev/models/actions"
+	"gitea.dev/models/db"
+	"gitea.dev/modules/container"
+	"gitea.dev/modules/graceful"
+	"gitea.dev/modules/log"
+	"gitea.dev/modules/queue"
+	"gitea.dev/modules/setting"
+	"gitea.dev/modules/util"
 
 	"xorm.io/builder"
 )
@@ -69,39 +69,48 @@ func checkJobsByRunID(ctx context.Context, runID int64) error {
 	if err != nil {
 		return fmt.Errorf("get action run: %w", err)
 	}
-	var jobs, updatedJobs, cancelledJobs []*actions_model.ActionRunJob
+	var result jobsCheckResult
 	if err := db.WithTx(ctx, func(ctx context.Context) error {
 		// check jobs of the current run
-		if js, ujs, cjs, err := checkJobsOfCurrentRunAttempt(ctx, run); err != nil {
+		r, err := checkJobsOfCurrentRunAttempt(ctx, run)
+		if err != nil {
 			return err
-		} else {
-			jobs = append(jobs, js...)
-			updatedJobs = append(updatedJobs, ujs...)
-			cancelledJobs = append(cancelledJobs, cjs...)
 		}
-		if js, ujs, cjs, err := checkRunConcurrency(ctx, run); err != nil {
+		result.merge(r)
+
+		r, err = checkRunConcurrency(ctx, run)
+		if err != nil {
 			return err
-		} else {
-			jobs = append(jobs, js...)
-			updatedJobs = append(updatedJobs, ujs...)
-			cancelledJobs = append(cancelledJobs, cjs...)
 		}
+		result.merge(r)
 		return nil
 	}); err != nil {
 		return err
 	}
-	NotifyWorkflowJobsAndRunsStatusUpdate(ctx, cancelledJobs)
-	EmitJobsIfReadyByJobs(cancelledJobs)
-	if err := createCommitStatusesForJobsByRun(ctx, jobs); err != nil {
+	// Re-emit AFTER the transaction commits; doing this inside WithTx would deadlock under
+	// immediate-mode queues (the inline handler reopens checkJobsByRunID and asks for a
+	// nested writer transaction while the outer one is still open).
+	emitted := make(container.Set[int64])
+	for _, rid := range result.RunIDsToReEmit {
+		if !emitted.Add(rid) {
+			continue
+		}
+		if err := EmitJobsIfReadyByRun(rid); err != nil {
+			log.Error("re-emit run %d after caller expansion: %v", rid, err)
+		}
+	}
+	NotifyWorkflowJobsAndRunsStatusUpdate(ctx, result.CancelledJobs)
+	EmitJobsIfReadyByJobs(result.CancelledJobs)
+	if err := createCommitStatusesForJobsByRun(ctx, result.Jobs); err != nil {
 		return err
 	}
-	NotifyWorkflowJobsStatusUpdate(ctx, updatedJobs...)
+	NotifyWorkflowJobsStatusUpdate(ctx, result.UpdatedJobs...)
 	runJobs := make(map[int64][]*actions_model.ActionRunJob)
-	for _, job := range jobs {
+	for _, job := range result.Jobs {
 		runJobs[job.RunID] = append(runJobs[job.RunID], job)
 	}
 	runUpdatedJobs := make(map[int64][]*actions_model.ActionRunJob)
-	for _, uj := range updatedJobs {
+	for _, uj := range result.UpdatedJobs {
 		runUpdatedJobs[uj.RunID] = append(runUpdatedJobs[uj.RunID], uj)
 	}
 	for runID, js := range runJobs {
@@ -158,20 +167,22 @@ func findBlockedRunIDByConcurrency(ctx context.Context, repoID int64, concurrenc
 	return 0, nil
 }
 
-func checkBlockedConcurrentRun(ctx context.Context, repoID, runID int64) (jobs, updatedJobs, cancelledJobs []*actions_model.ActionRunJob, err error) {
+func checkBlockedConcurrentRun(ctx context.Context, repoID, runID int64) (*jobsCheckResult, error) {
 	concurrentRun, err := actions_model.GetRunByRepoAndID(ctx, repoID, runID)
 	if err != nil {
-		return nil, nil, nil, fmt.Errorf("get run %d: %w", runID, err)
+		return nil, fmt.Errorf("get run %d: %w", runID, err)
 	}
 	if concurrentRun.NeedApproval {
-		return nil, nil, nil, nil
+		return &jobsCheckResult{}, nil
 	}
 
 	return checkJobsOfCurrentRunAttempt(ctx, concurrentRun)
 }
 
 // checkRunConcurrency rechecks runs blocked by concurrency that may become unblocked after the current run releases a workflow-level or job-level concurrency group.
-func checkRunConcurrency(ctx context.Context, run *actions_model.ActionRun) (jobs, updatedJobs, cancelledJobs []*actions_model.ActionRunJob, err error) {
+// RunIDsToReEmit propagates from inner checkJobsOfCurrentRunAttempt calls; see that function's doc.
+func checkRunConcurrency(ctx context.Context, run *actions_model.ActionRun) (*jobsCheckResult, error) {
+	result := &jobsCheckResult{}
 	checkedConcurrencyGroup := make(container.Set[string])
 
 	collect := func(concurrencyGroup string) error {
@@ -180,13 +191,11 @@ func checkRunConcurrency(ctx context.Context, run *actions_model.ActionRun) (job
 			return fmt.Errorf("find blocked run by concurrency: %w", err)
 		}
 		if concurrentRunID > 0 {
-			js, ujs, cjs, err := checkBlockedConcurrentRun(ctx, run.RepoID, concurrentRunID)
+			r, err := checkBlockedConcurrentRun(ctx, run.RepoID, concurrentRunID)
 			if err != nil {
 				return err
 			}
-			jobs = append(jobs, js...)
-			updatedJobs = append(updatedJobs, ujs...)
-			cancelledJobs = append(cancelledJobs, cjs...)
+			result.merge(r)
 		}
 		checkedConcurrencyGroup.Add(concurrencyGroup)
 		return nil
@@ -195,18 +204,18 @@ func checkRunConcurrency(ctx context.Context, run *actions_model.ActionRun) (job
 	// check run (workflow-level) concurrency
 	runConcurrencyGroup, _, err := run.GetEffectiveConcurrency(ctx)
 	if err != nil {
-		return nil, nil, nil, fmt.Errorf("GetEffectiveConcurrency: %w", err)
+		return nil, fmt.Errorf("GetEffectiveConcurrency: %w", err)
 	}
 	if runConcurrencyGroup != "" {
 		if err := collect(runConcurrencyGroup); err != nil {
-			return nil, nil, nil, err
+			return nil, err
 		}
 	}
 
 	// check job concurrency
 	runJobs, err := actions_model.GetLatestAttemptJobsByRepoAndRunID(ctx, run.RepoID, run.ID)
 	if err != nil {
-		return nil, nil, nil, fmt.Errorf("find run %d jobs: %w", run.ID, err)
+		return nil, fmt.Errorf("find run %d jobs: %w", run.ID, err)
 	}
 	for _, job := range runJobs {
 		if !job.Status.IsDone() {
@@ -216,42 +225,47 @@ func checkRunConcurrency(ctx context.Context, run *actions_model.ActionRun) (job
 			continue
 		}
 		if err := collect(job.ConcurrencyGroup); err != nil {
-			return nil, nil, nil, err
+			return nil, err
 		}
 	}
-	return jobs, updatedJobs, cancelledJobs, nil
+	return result, nil
 }
 
 // checkJobsOfCurrentRunAttempt resolves blocked jobs of the run's latest attempt.
-func checkJobsOfCurrentRunAttempt(ctx context.Context, run *actions_model.ActionRun) (jobs, updatedJobs, cancelledJobs []*actions_model.ActionRunJob, err error) {
-	jobs, err = actions_model.GetRunJobsByRunAndAttemptID(ctx, run.ID, run.LatestAttemptID)
+func checkJobsOfCurrentRunAttempt(ctx context.Context, run *actions_model.ActionRun) (*jobsCheckResult, error) {
+	jobs, err := actions_model.GetRunJobsByRunAndAttemptID(ctx, run.ID, run.LatestAttemptID)
 	if err != nil {
-		return nil, nil, nil, err
+		return nil, err
 	}
+	result := &jobsCheckResult{Jobs: jobs}
+
+	var attempt *actions_model.ActionRunAttempt
+	if run.LatestAttemptID > 0 {
+		attempt, err = actions_model.GetRunAttemptByRepoAndID(ctx, run.RepoID, run.LatestAttemptID)
+		if err != nil {
+			return nil, err
+		}
+	}
+
 	// The resolver below only considers needs and job-level concurrency, so a run blocked
 	// solely by run-level concurrency would have its jobs unblocked here. checkRunConcurrency
 	// re-evaluates when the holding run finishes.
-	if run.Status.IsBlocked() {
-		attempt, has, err := run.GetLatestAttempt(ctx)
+	if run.Status.IsBlocked() && attempt != nil {
+		shouldBlock, err := shouldBlockRunByConcurrency(ctx, attempt)
 		if err != nil {
-			return nil, nil, nil, fmt.Errorf("GetLatestAttempt: %w", err)
+			return nil, fmt.Errorf("shouldBlockRunByConcurrency: %w", err)
 		}
-		if has {
-			shouldBlock, err := shouldBlockRunByConcurrency(ctx, attempt)
-			if err != nil {
-				return nil, nil, nil, fmt.Errorf("shouldBlockRunByConcurrency: %w", err)
-			}
-			if shouldBlock {
-				return jobs, nil, nil, nil
-			}
+		if shouldBlock {
+			return result, nil
 		}
 	}
 	vars, err := actions_model.GetVariablesOfRun(ctx, run)
 	if err != nil {
-		return nil, nil, nil, err
+		return nil, err
 	}
 	resolver := newJobStatusResolver(jobs, vars)
 
+	expandedAnyCaller := false
 	if err = db.WithTx(ctx, func(ctx context.Context) error {
 		for _, job := range jobs {
 			job.Run = run
@@ -259,22 +273,47 @@ func checkJobsOfCurrentRunAttempt(ctx context.Context, run *actions_model.Action
 
 		updates := resolver.Resolve(ctx)
 		for _, job := range jobs {
-			if status, ok := updates[job.ID]; ok {
-				job.Status = status
-				if n, err := actions_model.UpdateRunJob(ctx, job, builder.Eq{"status": actions_model.StatusBlocked}, "status"); err != nil {
-					return err
-				} else if n != 1 {
-					return fmt.Errorf("no affected for updating blocked job %v", job.ID)
-				}
-				updatedJobs = append(updatedJobs, job)
+			status, ok := updates[job.ID]
+			if !ok {
+				continue
 			}
+
+			if job.IsReusableCaller {
+				switch status {
+				case actions_model.StatusWaiting:
+					if err := expandReusableWorkflowCaller(ctx, run, attempt, job, vars); err != nil {
+						return fmt.Errorf("trigger caller-ready %d: %w", job.ID, err)
+					}
+					// expandReusableWorkflowCaller inserts children as Blocked. They need a follow-up resolver pass.
+					expandedAnyCaller = true
+				case actions_model.StatusSkipped:
+					job.Status = actions_model.StatusSkipped
+					if _, err := actions_model.UpdateRunJob(ctx, job, nil, "status"); err != nil {
+						return err
+					}
+				}
+				continue
+			}
+
+			// Non-caller: standard status update.
+			job.Status = status
+			if n, err := actions_model.UpdateRunJob(ctx, job, builder.Eq{"status": actions_model.StatusBlocked}, "status"); err != nil {
+				return err
+			} else if n != 1 {
+				return fmt.Errorf("no affected for updating blocked job %v", job.ID)
+			}
+			result.UpdatedJobs = append(result.UpdatedJobs, job)
 		}
 		return nil
 	}); err != nil {
-		return nil, nil, nil, err
+		return nil, err
 	}
 
-	return jobs, updatedJobs, resolver.cancelledJobs, nil
+	if expandedAnyCaller {
+		result.RunIDsToReEmit = append(result.RunIDsToReEmit, run.ID)
+	}
+	result.CancelledJobs = resolver.cancelledJobs
+	return result, nil
 }
 
 type jobStatusResolver struct {
@@ -286,10 +325,17 @@ type jobStatusResolver struct {
 }
 
 func newJobStatusResolver(jobs actions_model.ActionJobList, vars map[string]string) *jobStatusResolver {
-	idToJobs := make(map[string][]*actions_model.ActionRunJob, len(jobs))
+	// Scope-aware: needs are resolved within the same ParentJobID scope so the same
+	// JobID in different reusable workflow calls does not cross-link.
+	scopedIDToJobs := make(map[int64]map[string][]*actions_model.ActionRunJob)
 	jobMap := make(map[int64]*actions_model.ActionRunJob)
 	for _, job := range jobs {
-		idToJobs[job.JobID] = append(idToJobs[job.JobID], job)
+		scope := scopedIDToJobs[job.ParentJobID]
+		if scope == nil {
+			scope = make(map[string][]*actions_model.ActionRunJob)
+			scopedIDToJobs[job.ParentJobID] = scope
+		}
+		scope[job.JobID] = append(scope[job.JobID], job)
 		jobMap[job.ID] = job
 	}
 
@@ -297,8 +343,9 @@ func newJobStatusResolver(jobs actions_model.ActionJobList, vars map[string]stri
 	needs := make(map[int64][]int64, len(jobs))
 	for _, job := range jobs {
 		statuses[job.ID] = job.Status
+		scope := scopedIDToJobs[job.ParentJobID]
 		for _, need := range job.Needs {
-			for _, v := range idToJobs[need] {
+			for _, v := range scope[need] {
 				needs[job.ID] = append(needs[job.ID], v.ID)
 			}
 		}
@@ -340,20 +387,18 @@ func (r *jobStatusResolver) resolveCheckNeeds(id int64) (allDone, allSucceed boo
 	return allDone, allSucceed
 }
 
-func (r *jobStatusResolver) resolveJobHasIfCondition(actionRunJob *actions_model.ActionRunJob) (hasIf bool) {
-	// FIXME evaluate this on the server side
-	if job, err := actionRunJob.ParseJob(); err == nil {
-		return len(job.If.Value) > 0
-	}
-	return hasIf
-}
-
 func (r *jobStatusResolver) resolve(ctx context.Context) map[int64]actions_model.Status {
 	ret := map[int64]actions_model.Status{}
 	for id, status := range r.statuses {
 		actionRunJob := r.jobMap[id]
 		if status != actions_model.StatusBlocked {
 			continue
+		}
+		// A child of a caller cannot start until the caller has become "ready" (children inserted, CallPayload populated).
+		if actionRunJob.ParentJobID > 0 {
+			if parent, ok := r.jobMap[actionRunJob.ParentJobID]; ok && !parent.IsExpanded {
+				continue
+			}
 		}
 		allDone, allSucceed := r.resolveCheckNeeds(id)
 		if !allDone {
@@ -365,18 +410,16 @@ func (r *jobStatusResolver) resolve(ctx context.Context) map[int64]actions_model
 		if err != nil {
 			// The err can be caused by different cases: database error, or syntax error, or the needed jobs haven't completed
 			// At the moment there is no way to distinguish them.
-			// Actually, for most cases, the error is caused by "syntax error" / "the needed jobs haven't completed (skipped?)"
 			// TODO: if workflow or concurrency expression has syntax error, there should be a user error message, need to show it to end users
 			log.Debug("updateConcurrencyEvaluationForJobWithNeeds failed, this job will stay blocked: job: %d, err: %v", id, err)
 			continue
 		}
 
-		shouldStartJob := true
-		if !allSucceed {
-			// Not all dependent jobs completed successfully:
-			// * if the job has "if" condition, it can be started, then the act_runner will evaluate the "if" condition.
-			// * otherwise, the job should be skipped.
-			shouldStartJob = r.resolveJobHasIfCondition(actionRunJob)
+		shouldStartJob, err := evaluateJobIf(ctx, actionRunJob.Run, nil, actionRunJob, r.vars, allSucceed)
+		if err != nil {
+			// TODO: surface deterministic expression errors to users by failing the job with a message.
+			log.Error("evaluateJobIf failed, job will stay blocked: job: %d, err: %v", id, err)
+			continue
 		}
 
 		newStatus := util.Iif(shouldStartJob, actions_model.StatusWaiting, actions_model.StatusSkipped)
@@ -419,4 +462,24 @@ func updateConcurrencyEvaluationForJobWithNeeds(ctx context.Context, actionRunJo
 		return fmt.Errorf("update run job: %w", err)
 	}
 	return nil
+}
+
+// jobsCheckResult bundles the output of the per-run job-check helpers.
+type jobsCheckResult struct {
+	// Jobs are all jobs of the run's latest attempt that were inspected.
+	Jobs []*actions_model.ActionRunJob
+	// UpdatedJobs are jobs whose status was transitioned out of Blocked in this pass.
+	UpdatedJobs []*actions_model.ActionRunJob
+	// CancelledJobs are jobs cancelled by job-level concurrency while preparing to start.
+	CancelledJobs []*actions_model.ActionRunJob
+	// RunIDsToReEmit are runs whose newly expanded reusable workflow callers need another resolver pass.
+	RunIDsToReEmit []int64
+}
+
+// merge appends another result's contents into r in place.
+func (r *jobsCheckResult) merge(other *jobsCheckResult) {
+	r.Jobs = append(r.Jobs, other.Jobs...)
+	r.UpdatedJobs = append(r.UpdatedJobs, other.UpdatedJobs...)
+	r.CancelledJobs = append(r.CancelledJobs, other.CancelledJobs...)
+	r.RunIDsToReEmit = append(r.RunIDsToReEmit, other.RunIDsToReEmit...)
 }

@@ -69,6 +69,10 @@ export type ActionsJob = {
   canRerun: boolean;
   needs?: string[];
   duration: string;
+
+  isReusableCaller: boolean;
+  parentJobID: number; // 0 for top-level jobs.
+  callUses?: string;
 };
 
 export type ActionsArtifact = {

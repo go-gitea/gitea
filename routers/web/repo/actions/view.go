@@ -14,26 +14,27 @@ import (
 	"net/http"
 	"net/url"
 	"strconv"
+	"strings"
 	"time"
 
-	actions_model "code.gitea.io/gitea/models/actions"
-	"code.gitea.io/gitea/models/db"
-	git_model "code.gitea.io/gitea/models/git"
-	repo_model "code.gitea.io/gitea/models/repo"
-	"code.gitea.io/gitea/models/unit"
-	"code.gitea.io/gitea/modules/actions"
-	"code.gitea.io/gitea/modules/base"
-	"code.gitea.io/gitea/modules/git"
-	"code.gitea.io/gitea/modules/httplib"
-	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/storage"
-	"code.gitea.io/gitea/modules/templates"
-	"code.gitea.io/gitea/modules/translation"
-	"code.gitea.io/gitea/modules/util"
-	"code.gitea.io/gitea/modules/web"
-	"code.gitea.io/gitea/routers/common"
-	actions_service "code.gitea.io/gitea/services/actions"
-	context_module "code.gitea.io/gitea/services/context"
+	actions_model "gitea.dev/models/actions"
+	"gitea.dev/models/db"
+	git_model "gitea.dev/models/git"
+	repo_model "gitea.dev/models/repo"
+	"gitea.dev/models/unit"
+	"gitea.dev/modules/actions"
+	"gitea.dev/modules/base"
+	"gitea.dev/modules/git"
+	"gitea.dev/modules/httplib"
+	"gitea.dev/modules/log"
+	"gitea.dev/modules/storage"
+	"gitea.dev/modules/templates"
+	"gitea.dev/modules/translation"
+	"gitea.dev/modules/util"
+	"gitea.dev/modules/web"
+	"gitea.dev/routers/common"
+	actions_service "gitea.dev/services/actions"
+	context_module "gitea.dev/services/context"
 
 	"gitea.com/gitea/runner/act/model"
 )
@@ -206,6 +207,16 @@ func View(ctx *context_module.Context) {
 	jobID := ctx.PathParamInt64("job")
 	ctx.Data["JobID"] = jobID // it can be 0 when no job (e.g.: run summary view)
 
+	// Browser tab title, ordered most-specific → least-specific so narrow tabs keep the useful part.
+	// Separator matches the " - " used by head.tmpl when joining to PageTitleCommon.
+	titleParts := []string{run.Title, run.WorkflowID}
+	if jobID > 0 {
+		if job, err := actions_model.GetRunJobByRunAndID(ctx, run.ID, jobID); err == nil && job.Name != "" {
+			titleParts = append([]string{job.Name}, titleParts...)
+		}
+	}
+	ctx.Data["Title"] = strings.Join(titleParts, " - ")
+
 	attemptNum := ctx.PathParamInt64("attempt")
 
 	// ActionsViewURL is the endpoint for viewing a run (job summary), a job, or a job attempt.
@@ -322,6 +333,12 @@ type ViewJob struct {
 	CanRerun bool     `json:"canRerun"`
 	Duration string   `json:"duration"`
 	Needs    []string `json:"needs,omitempty"`
+
+	ParentJobID int64 `json:"parentJobID"`
+
+	// Reusable workflow caller fields. Zero/empty for non-caller jobs.
+	IsReusableCaller bool   `json:"isReusableCaller"`
+	CallUses         string `json:"callUses,omitempty"`
 }
 
 type ViewJobSummary struct {
@@ -455,6 +472,10 @@ func fillViewRunResponseSummary(ctx *context_module.Context, resp *ViewResponse,
 			CanRerun: resp.State.Run.CanRerun,
 			Duration: v.Duration().String(),
 			Needs:    v.Needs,
+
+			IsReusableCaller: v.IsReusableCaller,
+			ParentJobID:      v.ParentJobID,
+			CallUses:         v.CallUses,
 		})
 	}
 
@@ -1139,14 +1160,14 @@ func disableOrEnableWorkflowFile(ctx *context_module.Context, isEnable bool) {
 		ctx.Flash.Success(ctx.Tr("actions.workflow.disable_success", workflow))
 	}
 
-	redirectURL := fmt.Sprintf("%s/actions?workflow=%s&actor=%s&status=%s", ctx.Repo.RepoLink, url.QueryEscape(workflow),
-		url.QueryEscape(ctx.FormString("actor")), url.QueryEscape(ctx.FormString("status")))
+	redirectURL := actionsListRedirectURL(ctx.Repo.RepoLink, workflow,
+		ctx.FormString("actor"), ctx.FormString("status"), ctx.FormString("branch"))
 	ctx.JSONRedirect(redirectURL)
 }
 
 func Run(ctx *context_module.Context) {
-	redirectURL := fmt.Sprintf("%s/actions?workflow=%s&actor=%s&status=%s", ctx.Repo.RepoLink, url.QueryEscape(ctx.FormString("workflow")),
-		url.QueryEscape(ctx.FormString("actor")), url.QueryEscape(ctx.FormString("status")))
+	redirectURL := actionsListRedirectURL(ctx.Repo.RepoLink, ctx.FormString("workflow"),
+		ctx.FormString("actor"), ctx.FormString("status"), ctx.FormString("branch"))
 
 	workflowID := ctx.FormString("workflow")
 	if len(workflowID) == 0 {

@@ -4,8 +4,8 @@
 package v1_8
 
 import (
-	"code.gitea.io/gitea/models/db"
-	"code.gitea.io/gitea/models/migrations/base"
+	"gitea.dev/models/db"
+	"gitea.dev/models/migrations/base"
 )
 
 func RenameRepoIsBareToIsEmpty(x db.EngineMigration) error {
