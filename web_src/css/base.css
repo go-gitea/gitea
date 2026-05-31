@@ -350,9 +350,7 @@ a.label,
   width: 16px;
   height: 16px;
   mask-size: cover;
-  -webkit-mask-size: cover;
   mask-image: var(--select-arrows);
-  -webkit-mask-image: var(--select-arrows);
   background: currentcolor;
 }
 
