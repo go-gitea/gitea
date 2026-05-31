@@ -12,7 +12,6 @@ import (
 	"slices"
 	"strings"
 	"time"
-	"unicode/utf8"
 
 	"gitea.dev/models/db"
 	git_model "gitea.dev/models/git"
@@ -831,11 +830,13 @@ func GetSquashMergeCommitMessages(ctx context.Context, pr *issues_model.PullRequ
 	authors := make([]string, 0, len(commits))
 	stringBuilder := strings.Builder{}
 
-	messageHasTrailers := false
+	// trailerBlockAtEnd tracks whether the message currently ends with a Git trailer block.
+	// When true, we skip the "---------" separator so Co-authored-by lines stay contiguous with it.
+	trailerBlockAtEnd := false
 	if !setting.Repository.PullRequest.PopulateSquashCommentWithCommitMessages {
 		// use PR's title and description as squash commit message
 		message := strings.TrimSpace(pr.Issue.Content)
-		messageHasTrailers = commitMessageTrailersPattern.MatchString(message)
+		messageHasTrailers := commitMessageTrailersPattern.MatchString(message)
 		stringBuilder.WriteString(message)
 		additionalCommitMessages := formatSquashMergeCommitMessages(commits[:max(0, len(commits)-1)])
 		if additionalCommitMessages != "" {
@@ -843,11 +844,13 @@ func GetSquashMergeCommitMessages(ctx context.Context, pr *issues_model.PullRequ
 				stringBuilder.WriteString("\n\n")
 			}
 			stringBuilder.WriteString(additionalCommitMessages)
+			// appended bullets push the PR-description trailers (if any) out of the trailer-block position
 		} else if stringBuilder.Len() > 0 {
 			stringBuilder.WriteRune('\n')
 			if !messageHasTrailers {
 				stringBuilder.WriteRune('\n')
 			}
+			trailerBlockAtEnd = messageHasTrailers
 		}
 	} else {
 		// use PR's commit messages as squash commit message
@@ -893,7 +896,7 @@ func GetSquashMergeCommitMessages(ctx context.Context, pr *issues_model.PullRequ
 		}
 	}
 
-	if stringBuilder.Len() > 0 && len(authors) > 0 && !messageHasTrailers {
+	if stringBuilder.Len() > 0 && len(authors) > 0 && !trailerBlockAtEnd {
 		stringBuilder.WriteString("---------\n\n")
 	}
 
@@ -921,14 +924,9 @@ func formatSquashMergeCommitMessages(commits []*git.Commit) string {
 		// Maybe, ideally, we should indent those lines too.
 		_, _ = fmt.Fprintf(&stringBuilder, "* %s\n\n", msg)
 		if maxMsgSize > 0 && stringBuilder.Len() >= maxMsgSize {
-			tmp := stringBuilder.String()
-			wasValidUtf8 := utf8.ValidString(tmp)
-			tmp = tmp[:maxMsgSize] + "..."
-			if wasValidUtf8 {
-				// If the message was valid UTF-8 before truncation, ensure it remains valid after truncation
-				// For non-utf8 messages, we can't do much about it, end users should use utf-8 as much as possible
-				tmp = strings.ToValidUTF8(tmp, "")
-			}
+			// MessageUTF8 already guarantees valid UTF-8, but the byte-offset truncation
+			// can split a multi-byte rune, so trim any resulting invalid trailing bytes.
+			tmp := strings.ToValidUTF8(stringBuilder.String()[:maxMsgSize], "") + "..."
 			stringBuilder.Reset()
 			stringBuilder.WriteString(tmp)
 			break

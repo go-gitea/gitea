@@ -14,6 +14,7 @@ import (
 	"gitea.dev/modules/git"
 	"gitea.dev/modules/gitrepo"
 	"gitea.dev/modules/setting"
+	"gitea.dev/modules/test"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -41,10 +42,7 @@ func TestPullRequest_FormatSquashMergeCommitMessages(t *testing.T) {
 	oldest := &git.Commit{CommitMessage: git.CommitMessage{MessageRaw: "commit msg 1"}}
 	newest := &git.Commit{CommitMessage: git.CommitMessage{MessageRaw: "commit msg 2\n\nCommit description."}}
 
-	defer func(old int) { setting.Repository.PullRequest.DefaultMergeMessageSize = old }(
-		setting.Repository.PullRequest.DefaultMergeMessageSize,
-	)
-	setting.Repository.PullRequest.DefaultMergeMessageSize = 0
+	defer test.MockVariableValue(&setting.Repository.PullRequest.DefaultMergeMessageSize, 0)()
 
 	// all commits
 	assert.Equal(t, "* commit msg 1\n\n* commit msg 2\n\nCommit description.\n\n",
