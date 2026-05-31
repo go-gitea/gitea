@@ -109,6 +109,11 @@ func TestAPIRepoTopic(t *testing.T) {
 		AddTokenAuth(token2)
 	MakeRequest(t, req, http.StatusNoContent)
 
+	// Test add a topic with unicode letters
+	req = NewRequestf(t, "PUT", "/api/v1/repos/%s/%s/topics/%s", user2.Name, repo2.Name, url.PathEscape("Ümlaut")).
+		AddTokenAuth(token2)
+	MakeRequest(t, req, http.StatusNoContent)
+
 	url := fmt.Sprintf("/api/v1/repos/%s/%s/topics", user2.Name, repo2.Name)
 
 	// Test read topics using token
@@ -116,10 +121,10 @@ func TestAPIRepoTopic(t *testing.T) {
 		AddTokenAuth(token2)
 	res = MakeRequest(t, req, http.StatusOK)
 	topics = DecodeJSON(t, res, &api.TopicName{})
-	assert.ElementsMatch(t, []string{"topicname2", "golang", "topicname3"}, topics.TopicNames)
+	assert.ElementsMatch(t, []string{"topicname2", "golang", "topicname3", "ümlaut"}, topics.TopicNames)
 
 	// Test replace topics
-	newTopics := []string{"   windows ", "   ", "MAC  "}
+	newTopics := []string{"   windows ", "   ", "MAC  ", "Hāwaii"}
 	req = NewRequestWithJSON(t, "PUT", url, &api.RepoTopicOptions{
 		Topics: newTopics,
 	}).AddTokenAuth(token2)
@@ -128,7 +133,7 @@ func TestAPIRepoTopic(t *testing.T) {
 		AddTokenAuth(token2)
 	res = MakeRequest(t, req, http.StatusOK)
 	topics = DecodeJSON(t, res, &api.TopicName{})
-	assert.ElementsMatch(t, []string{"windows", "mac"}, topics.TopicNames)
+	assert.ElementsMatch(t, []string{"windows", "mac", "hāwaii"}, topics.TopicNames)
 
 	// Test replace topics with something invalid
 	newTopics = []string{"topicname1", "topicname2", "topicname!"}
@@ -140,7 +145,7 @@ func TestAPIRepoTopic(t *testing.T) {
 		AddTokenAuth(token2)
 	res = MakeRequest(t, req, http.StatusOK)
 	topics = DecodeJSON(t, res, &api.TopicName{})
-	assert.ElementsMatch(t, []string{"windows", "mac"}, topics.TopicNames)
+	assert.ElementsMatch(t, []string{"windows", "mac", "hāwaii"}, topics.TopicNames)
 
 	// Test with some topics multiple times, less than 25 unique
 	newTopics = []string{"t1", "t2", "t1", "t3", "t4", "t5", "t6", "t7", "t8", "t9", "t10", "t11", "t12", "t13", "t14", "t15", "t16", "17", "t18", "t19", "t20", "t21", "t22", "t23", "t24", "t25"}

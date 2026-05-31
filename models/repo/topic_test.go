@@ -74,9 +74,21 @@ func TestTopicValidator(t *testing.T) {
 	assert.True(t, repo_model.ValidateTopic("first"))
 	assert.True(t, repo_model.ValidateTopic("second-test-topic"))
 	assert.True(t, repo_model.ValidateTopic("third-project-topic-with-max-length"))
+	assert.True(t, repo_model.ValidateTopic("ümlaut"))
+	assert.True(t, repo_model.ValidateTopic("hāwaii"))
+	assert.True(t, repo_model.ValidateTopic("ä-ö.ü"))
+	assert.True(t, repo_model.ValidateTopic("äbcdefghijklmnopqrstuvwxyz123456789"))
 
 	assert.False(t, repo_model.ValidateTopic("$fourth-test,topic"))
 	assert.False(t, repo_model.ValidateTopic("-fifth-test-topic"))
 	assert.False(t, repo_model.ValidateTopic("sixth-go-project-topic-with-excess-length"))
+	assert.False(t, repo_model.ValidateTopic("äbcdefghijklmnopqrstuvwxyz1234567890"))
 	assert.False(t, repo_model.ValidateTopic(".foo"))
+}
+
+func TestSanitizeAndValidateTopics(t *testing.T) {
+	validTopics, invalidTopics := repo_model.SanitizeAndValidateTopics([]string{" ÄÖÜ ", "hāwaii", "ümlaut", "ümlaut", "bad topic"})
+
+	assert.Equal(t, []string{"äöü", "hāwaii", "ümlaut"}, validTopics)
+	assert.Equal(t, []string{"bad topic"}, invalidTopics)
 }
