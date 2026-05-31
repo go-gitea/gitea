@@ -87,6 +87,8 @@ func testPullCleanUp(t *testing.T, session *TestSession, user, repo, pullnum str
 
 	// Click the little button to create a pull
 	htmlDoc := NewHTMLParser(t, resp.Body)
+	modalCount := htmlDoc.doc.Find(".g-modal-confirm.delete.modal").Length()
+	assert.Zero(t, modalCount, "merged pull request branch cleanup should not render a confirmation modal")
 	link, exists := htmlDoc.doc.Find(".timeline-item .delete-branch-after-merge").Attr("data-url")
 	assert.True(t, exists, "The template has changed, can not find delete button url")
 	req = NewRequest(t, "POST", link)
