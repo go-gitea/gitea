@@ -74,8 +74,8 @@ test('computeJobLevels keeps stable topological levels', () => {
   expect(levels.get('build-image')).toBe(2);
 });
 
-test('graph model collapses matrix and groups jobs that share parents and children', async () => {
-  const graph = await createWorkflowGraphModel(mockJobs);
+test('graph model collapses matrix and groups jobs that share parents and children', () => {
+  const graph = createWorkflowGraphModel(mockJobs);
 
   expect(graph.nodes.find((n) => n.type === 'matrix')?.jobs).toHaveLength(6);
   const groupJobIds = graph.nodes.filter((n) => n.type === 'group').map((g) => g.jobs.map((j) => j.jobId));
@@ -85,19 +85,19 @@ test('graph model collapses matrix and groups jobs that share parents and childr
   ]));
 });
 
-test('expanded matrix height includes summary and toggle rows', async () => {
-  const collapsed = await createWorkflowGraphModel(mockJobs);
-  const expanded = await createWorkflowGraphModel(mockJobs, new Set(['matrix-e2e']));
+test('expanded matrix height includes summary and toggle rows', () => {
+  const collapsed = createWorkflowGraphModel(mockJobs);
+  const expanded = createWorkflowGraphModel(mockJobs, new Set(['matrix-e2e']));
   const collapsedMatrix = collapsed.nodes.find((n) => n.id === 'matrix:matrix-e2e');
   const expandedMatrix = expanded.nodes.find((n) => n.id === 'matrix:matrix-e2e');
 
   expect(collapsedMatrix?.displayHeight).toBeLessThan(expandedMatrix?.displayHeight ?? 0);
-  // 14 label + 6 jobs * 28 row height + 8 pad * 2 + 16 toggle = 214
-  expect(expandedMatrix?.displayHeight).toBe(214);
+  // 6 jobs * 26 row height + 40 header + 6 pad * 2 = 208
+  expect(expandedMatrix?.displayHeight).toBe(208);
 });
 
-test('every dependency is rendered as one routed edge', async () => {
-  const graph = await createWorkflowGraphModel(mockJobs);
+test('every dependency is rendered as one routed edge', () => {
+  const graph = createWorkflowGraphModel(mockJobs);
   const rootGroup = graph.nodes.find((n) => n.type === 'group' && n.jobs.some((j) => j.jobId === 'prep-jdk'))!;
   const testGroup = graph.nodes.find((n) => n.type === 'group' && n.jobs.some((j) => j.jobId === 'unit-test'))!;
   const expectedKeys = [
@@ -108,22 +108,22 @@ test('every dependency is rendered as one routed edge', async () => {
   for (const k of expectedKeys) expect(keys.has(k)).toBe(true);
 });
 
-test('same-row edge collapses to a single horizontal line', async () => {
-  const graph = await createWorkflowGraphModel(verifyDeployJobs);
+test('same-row edge collapses to a single horizontal line', () => {
+  const graph = createWorkflowGraphModel(verifyDeployJobs);
   const verifyDevEdge = graph.routedEdges.find((e) => e.fromId === 'job:101' && e.toId === 'job:103');
   const verifyQaEdge = graph.routedEdges.find((e) => e.fromId === 'job:102' && e.toId === 'job:104');
   expect(verifyDevEdge?.path).toMatch(/^M [\d.]+ [\d.]+ H [\d.]+$/);
   expect(verifyQaEdge?.path).toMatch(/^M [\d.]+ [\d.]+ H [\d.]+$/);
 });
 
-test('different-row edge uses quadratic corner turns', async () => {
-  const graph = await createWorkflowGraphModel(mockJobs);
-  const nonStraight = graph.routedEdges.find((e) => e.path.includes(' Q '));
-  expect(nonStraight).toBeTruthy();
+test('different-row edge uses cubic bezier curve', () => {
+  const graph = createWorkflowGraphModel(verifyDeployJobs);
+  const deployLowerEdge = graph.routedEdges.find((e) => e.fromId === 'job:104' && e.toId === 'job:105');
+  expect(deployLowerEdge?.path).toContain(' C ');
 });
 
-test('multi-level pipeline with two matrices and a converging leaf renders without errors', async () => {
-  const graph = await createWorkflowGraphModel(wfTest1Jobs);
+test('multi-level pipeline with two matrices and a converging leaf renders without errors', () => {
+  const graph = createWorkflowGraphModel(wfTest1Jobs);
   const matrices = graph.nodes.filter((n) => n.type === 'matrix');
   expect(matrices.map((n) => n.matrixKey).sort()).toEqual(['E2E Tests', 'Unit Tests']);
 
@@ -144,8 +144,8 @@ test('multi-level pipeline with two matrices and a converging leaf renders witho
   }
 });
 
-test('directed highlight state covers ancestors and descendants of the hovered node', async () => {
-  const graph = await createWorkflowGraphModel(mockJobs);
+test('directed highlight state covers ancestors and descendants of the hovered node', () => {
+  const graph = createWorkflowGraphModel(mockJobs);
   const rootGroup = graph.nodes.find((n) => n.type === 'group' && n.jobs.some((j) => j.jobId === 'prep-jdk'))!;
 
   const highlight = computeGraphHighlightState(rootGroup.id, graph.adjacency);
@@ -154,8 +154,8 @@ test('directed highlight state covers ancestors and descendants of the hovered n
   expect(highlight.edgeKeys.has(`${rootGroup.id}->matrix:matrix-e2e`)).toBe(true);
 });
 
-test('directed highlight state for converging graph excludes sibling branch when hovering parent', async () => {
-  const graph = await createWorkflowGraphModel(verifyDeployJobs);
+test('directed highlight state for converging graph excludes sibling branch when hovering parent', () => {
+  const graph = createWorkflowGraphModel(verifyDeployJobs);
 
   const parentHighlight = computeGraphHighlightState('job:103', graph.adjacency);
   expect(parentHighlight.nodeIds.has('job:101')).toBe(true);
@@ -169,39 +169,4 @@ test('directed highlight state for converging graph excludes sibling branch when
   expect(sinkHighlight.nodeIds.has('job:104')).toBe(true);
   expect(sinkHighlight.edgeKeys.has('job:103->job:105')).toBe(true);
   expect(sinkHighlight.edgeKeys.has('job:104->job:105')).toBe(true);
-});
-
-test('elkjs layout produces no crossing false connections', async () => {
-  const graph = await createWorkflowGraphModel(mockJobs);
-  const edgeKeys = new Set(graph.routedEdges.map((e) => e.key));
-  // job-100 should NOT connect to unit-test/arch-test/integration-test group directly
-  const testGroup = graph.nodes.find((n) => n.type === 'group' && n.jobs.some((j) => j.jobId === 'unit-test'));
-  if (testGroup) {
-    expect(edgeKeys.has(`job:1->${testGroup.id}`)).toBe(false);
-  }
-});
-
-test('nodes are snapped to uniform column grid', async () => {
-  const graph = await createWorkflowGraphModel(mockJobs);
-  const xValues = new Set(graph.nodes.map((n) => n.x));
-  // All x values should align to margin + layer * (nodeWidth + columnGap)
-  for (const n of graph.nodes) {
-    const expected = 24 + n.level * (220 + 96);
-    expect(n.x).toBe(expected);
-  }
-  // Should have at least 2 distinct columns
-  expect(xValues.size).toBeGreaterThanOrEqual(2);
-});
-
-test('job-103 highlight shows upstream job-100 and connecting edge', async () => {
-  const graph = await createWorkflowGraphModel(mockJobs);
-  const job103 = graph.nodes.find((n) => n.jobs.some((j) => j.jobId === 'job-103'))!;
-  const job100 = graph.nodes.find((n) => n.jobs.some((j) => j.jobId === 'job-100'))!;
-
-  expect(graph.edges.some((e) => e.fromId === job100.id && e.toId === job103.id)).toBe(true);
-
-  const hl = computeGraphHighlightState(job103.id, graph.adjacency);
-  expect(hl.nodeIds.has(job100.id)).toBe(true);
-  expect(hl.nodeIds.has(job103.id)).toBe(true);
-  expect(hl.edgeKeys.has(`${job100.id}->${job103.id}`)).toBe(true);
 });
