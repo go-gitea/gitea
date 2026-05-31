@@ -1,0 +1,8 @@
+{{$faviconVariant := .FaviconVariant}}
+{{if $faviconVariant}}
+	<link rel="icon" href="{{AssetUrlPrefix}}/img/favicon-{{$faviconVariant}}.svg" type="image/svg+xml">
+	<link rel="alternate icon" href="{{AssetUrlPrefix}}/img/favicon-{{$faviconVariant}}.png" type="image/png">
+{{else}}
+	<link rel="icon" href="{{AssetUrlPrefix}}/img/favicon.svg" type="image/svg+xml">
+	<link rel="alternate icon" href="{{AssetUrlPrefix}}/img/favicon.png" type="image/png">
+{{end}}

@@ -395,6 +395,7 @@ func ViewIssue(ctx *context.Context) {
 		} else {
 			ctx.Data["DisableStatusChange"] = prViewInfo.IsPullRequestBroken && issue.IsClosed
 		}
+		prViewInfo.preparePullStatusFavicon(ctx)
 	}
 
 	ctx.Data["Reference"] = issue.Ref

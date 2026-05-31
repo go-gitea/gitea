@@ -35,6 +35,7 @@ import (
 	issue_template "gitea.dev/modules/issue/template"
 	"gitea.dev/modules/log"
 	"gitea.dev/modules/optional"
+	"gitea.dev/modules/public"
 	"gitea.dev/modules/setting"
 	"gitea.dev/modules/svg"
 	"gitea.dev/modules/templates"
@@ -518,6 +519,59 @@ type pullCommitStatusCheckData struct {
 	PullCommitStatuses    []*git_model.CommitStatus
 }
 
+func (data *pullMergeBoxData) FaviconVariant() string {
+	if data == nil || !data.ShowStatusCheck || data.StatusCheckData == nil {
+		return ""
+	}
+	return data.StatusCheckData.FaviconVariant()
+}
+
+func (prInfo *pullRequestViewInfo) preparePullStatusFavicon(ctx *context.Context) {
+	var variant string
+	if prInfo.MergeBoxData != nil {
+		variant = prInfo.MergeBoxData.FaviconVariant()
+	} else if prInfo.issue != nil && !prInfo.issue.IsClosed && prInfo.CompareInfo.HeadCommitID != "" {
+		commitStatuses, err := git_model.GetLatestCommitStatus(ctx, ctx.Repo.Repository.ID, prInfo.CompareInfo.HeadCommitID, db.ListOptionsAll)
+		if err != nil {
+			log.Error("GetLatestCommitStatus: %v", err)
+			return
+		}
+		if combinedCommitStatus := git_model.CalcCommitStatus(commitStatuses); combinedCommitStatus != nil {
+			variant = faviconVariantForCommitStatusState(combinedCommitStatus.State)
+		}
+	}
+	if public.FaviconVariantAvailable(variant) {
+		ctx.Data["FaviconVariant"] = variant
+	}
+}
+
+func (d *pullCommitStatusCheckData) FaviconVariant() string {
+	if d == nil {
+		return ""
+	}
+	if len(d.MissingRequiredChecks) > 0 {
+		return public.FaviconVariantPending
+	}
+	state := d.pullCommitStatusState
+	if state == "" {
+		state = d.RequiredChecksState
+	}
+	return faviconVariantForCommitStatusState(state)
+}
+
+func faviconVariantForCommitStatusState(state commitstatus.CommitStatusState) string {
+	switch {
+	case state.IsSuccess():
+		return public.FaviconVariantSuccess
+	case state.IsPending():
+		return public.FaviconVariantPending
+	case state.IsError() || state.IsFailure() || state.IsWarning():
+		return public.FaviconVariantFailure
+	default:
+		return ""
+	}
+}
+
 func (d *pullCommitStatusCheckData) CommitStatusCheckPrompt(locale translation.Locale) string {
 	if d.RequiredChecksState.IsPending() || len(d.MissingRequiredChecks) > 0 {
 		return locale.TrString("repo.pulls.status_checking")
@@ -647,6 +701,7 @@ func ViewPullCommits(ctx *context.Context) {
 	if ctx.Written() {
 		return
 	}
+	prViewInfo.preparePullStatusFavicon(ctx)
 	prCompareInfo := &prViewInfo.CompareInfo
 	if prCompareInfo.HeadCommitID == "" {
 		ctx.NotFound(nil)
@@ -701,6 +756,7 @@ func viewPullFiles(ctx *context.Context, beforeCommitID, afterCommitID string) {
 	if ctx.Written() {
 		return
 	}
+	prViewInfo.preparePullStatusFavicon(ctx)
 	prCompareInfo := &prViewInfo.CompareInfo
 	if prCompareInfo.HeadCommitID == "" {
 		ctx.NotFound(nil)
