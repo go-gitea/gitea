@@ -297,6 +297,7 @@ type ViewResponse struct {
 			CanApprove        bool              `json:"canApprove"` // the run needs an approval and the doer has permission to approve
 			CanRerun          bool              `json:"canRerun"`
 			CanRerunFailed    bool              `json:"canRerunFailed"`
+			CanDelete         bool              `json:"canDelete"`
 			CanDeleteArtifact bool              `json:"canDeleteArtifact"`
 			Done              bool              `json:"done"`
 			WorkflowID        string            `json:"workflowID"`
@@ -439,6 +440,7 @@ func fillViewRunResponseSummary(ctx *context_module.Context, resp *ViewResponse,
 	resp.State.Run.CanCancel = isLatestAttempt && !resp.State.Run.Done && !effectiveStatus.IsCancelling() && ctx.Repo.Permission.CanWrite(unit.TypeActions)
 	resp.State.Run.CanApprove = isLatestAttempt && run.NeedApproval && ctx.Repo.Permission.CanWrite(unit.TypeActions)
 	resp.State.Run.CanRerun = isLatestAttempt && resp.State.Run.Done && ctx.Repo.Permission.CanWrite(unit.TypeActions)
+	resp.State.Run.CanDelete = resp.State.Run.Done && ctx.Repo.Permission.CanWrite(unit.TypeActions)
 	resp.State.Run.CanDeleteArtifact = resp.State.Run.Done && ctx.Repo.Permission.CanWrite(unit.TypeActions)
 	if resp.State.Run.CanRerun {
 		for _, job := range jobs {

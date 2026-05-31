@@ -105,6 +105,13 @@ async function deleteArtifact(name: string) {
   await DELETE(buildArtifactLink(name));
   await store.forceReloadCurrentRun();
 }
+
+async function deleteRun() {
+  if (!window.confirm(locale.confirmDeleteRun)) return;
+  const resp = await POST(`${run.value.link}/delete`);
+  if (!resp.ok) return;
+  window.location.assign(`${run.value.link.split('/actions/runs/')[0]}/actions`);
+}
 </script>
 <template>
   <!-- make the view container full width to make users easier to read logs -->
@@ -141,6 +148,9 @@ async function deleteArtifact(name: string) {
               {{ locale.rerun_all }}
             </button>
           </template>
+          <button class="ui basic small compact red button" @click="deleteRun()" v-if="run.canDelete">
+            {{ locale.deleteRun }}
+          </button>
           <div v-if="run.attempts.length > 1" class="ui dropdown basic small compact button">
             <div class="flex-text-inline">
               <SvgIcon name="octicon-history" :size="14"/>

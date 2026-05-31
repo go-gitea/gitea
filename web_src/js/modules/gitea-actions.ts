@@ -13,6 +13,7 @@ export type ActionsRun = {
   canApprove: boolean,
   canRerun: boolean,
   canRerunFailed: boolean,
+  canDelete: boolean,
   canDeleteArtifact: boolean,
   done: boolean,
   workflowID: string,

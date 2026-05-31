@@ -19,6 +19,8 @@ export function initRepositoryActionView() {
       rerun: el.getAttribute('data-locale-rerun'),
       rerun_all: el.getAttribute('data-locale-rerun-all'),
       rerun_failed: el.getAttribute('data-locale-rerun-failed'),
+      deleteRun: el.getAttribute('data-locale-delete-run'),
+      confirmDeleteRun: el.getAttribute('data-locale-confirm-delete-run'),
       latest: el.getAttribute('data-locale-latest'),
       latestAttempt: el.getAttribute('data-locale-latest-attempt'),
       attempt: el.getAttribute('data-locale-attempt'),
