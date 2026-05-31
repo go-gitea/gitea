@@ -6,7 +6,7 @@ package v1_13
 import (
 	"fmt"
 
-	"code.gitea.io/gitea/models/db"
+	"gitea.dev/models/db"
 )
 
 func AddKeepActivityPrivateUserColumn(x db.EngineMigration) error {

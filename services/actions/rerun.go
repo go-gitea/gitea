@@ -8,14 +8,15 @@ import (
 	"fmt"
 	"slices"
 
-	actions_model "code.gitea.io/gitea/models/actions"
-	"code.gitea.io/gitea/models/db"
-	repo_model "code.gitea.io/gitea/models/repo"
-	"code.gitea.io/gitea/models/unit"
-	user_model "code.gitea.io/gitea/models/user"
-	"code.gitea.io/gitea/modules/container"
-	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/modules/util"
+	actions_model "gitea.dev/models/actions"
+	"gitea.dev/models/db"
+	repo_model "gitea.dev/models/repo"
+	"gitea.dev/models/unit"
+	user_model "gitea.dev/models/user"
+	"gitea.dev/modules/container"
+	"gitea.dev/modules/log"
+	"gitea.dev/modules/setting"
+	"gitea.dev/modules/util"
 
 	"gitea.com/gitea/runner/act/model"
 	"go.yaml.in/yaml/v4"
@@ -42,6 +43,7 @@ func GetFailedJobsForRerun(allJobs []*actions_model.ActionRunJob) []*actions_mod
 // rather than one big outer transaction:
 //   - execRerunPlan performs slow work (loading variables, YAML unmarshal, concurrency expression evaluation)
 //     before opening its own transaction, so the tx stays focused on inserts/updates.
+//     (Exception: reusable workflow caller expansion runs inside the tx, see expandReusableWorkflowCaller's doc.)
 //   - The legacy backfill is idempotent-friendly: if it succeeds but a later stage fails, a subsequent rerun
 //     will observe run.LatestAttemptID != 0 and skip the backfill, continuing naturally. No data corruption
 //     or stuck state results from partial progress.
@@ -112,8 +114,19 @@ type rerunPlan struct {
 	run             *actions_model.ActionRun
 	templateAttempt *actions_model.ActionRunAttempt
 	templateJobs    actions_model.ActionJobList
-	rerunJobIDs     container.Set[string]
 	triggerUser     *user_model.User
+
+	// rerunAttemptJobIDs holds the AttemptJobIDs of jobs that will actually be re-run in the new attempt.
+	// If a job here is a reusable caller, the whole subtree under it will be re-run.
+	rerunAttemptJobIDs container.Set[int64]
+
+	// ancestorAttemptJobIDs holds the AttemptJobIDs of reusable caller jobs that have only some of their descendants being re-run:
+	// the caller itself is NOT re-run as a whole, it stays pass-through and its non-rerun children stay pass-through too.
+	ancestorAttemptJobIDs container.Set[int64]
+
+	// skipCloneTemplateJobIDs holds the template-attempt DB row IDs of descendants of any reusable caller in rerunAttemptJobIDs.
+	// These jobs should not be cloned, since the caller's lazy expansion will re-insert them fresh.
+	skipCloneTemplateJobIDs container.Set[int64]
 }
 
 // buildRerunPlan constructs a rerunPlan for the given workflow run without writing to the database.
@@ -151,6 +164,7 @@ func buildRerunPlan(ctx context.Context, run *actions_model.ActionRun, triggerUs
 	if err := plan.expandRerunJobIDs(jobsToRerun); err != nil {
 		return nil, err
 	}
+	plan.skipCloneTemplateJobIDs = plan.collectResetCallerDescendants()
 
 	return plan, nil
 }
@@ -188,6 +202,7 @@ func execRerunPlan(ctx context.Context, plan *rerunPlan) (*actions_model.ActionR
 
 	var newJobs, newJobsToRerun actions_model.ActionJobList
 	var cancelledConcurrencyJobs []*actions_model.ActionRunJob
+	var hasWaitingCallerJobs bool
 
 	err = db.WithTx(ctx, func(ctx context.Context) error {
 		newAttemptStatus, jobsToCancel, err := PrepareToStartRunWithConcurrency(ctx, newAttempt)
@@ -212,10 +227,30 @@ func execRerunPlan(ctx context.Context, plan *rerunPlan) (*actions_model.ActionR
 
 		hasWaitingJobs := false
 		newJobs = make(actions_model.ActionJobList, 0, len(plan.templateJobs))
-		newJobsToRerun = make(actions_model.ActionJobList, 0, len(plan.rerunJobIDs))
+		newJobsToRerun = make(actions_model.ActionJobList, 0, len(plan.rerunAttemptJobIDs))
+
+		// templateIDToNewID maps each template-attempt job's DB ID to its newly-inserted clone's DB ID
+		templateIDToNewID := make(map[int64]int64, len(plan.templateJobs))
+
 		for _, templateJob := range plan.templateJobs {
+			// descendants of a reset reusable caller are not cloned at all, the caller will re-insert them
+			if plan.skipCloneTemplateJobIDs.Contains(templateJob.ID) {
+				continue
+			}
+
 			newJob := cloneRunJobForAttempt(templateJob, newAttempt)
-			if plan.rerunJobIDs.Contains(templateJob.JobID) {
+
+			// Remap ParentJobID from template attempts's DB ID -> new attempt's DB ID.
+			if templateJob.ParentJobID != 0 {
+				newParentID, ok := templateIDToNewID[templateJob.ParentJobID]
+				if !ok {
+					return fmt.Errorf("clone order violation: parent job %d not yet cloned for child %d",
+						templateJob.ParentJobID, templateJob.ID)
+				}
+				newJob.ParentJobID = newParentID
+			}
+
+			if plan.rerunAttemptJobIDs.Contains(templateJob.AttemptJobID) {
 				shouldBlockJob := shouldBlock || plan.hasRerunDependency(templateJob)
 
 				newJob.Status = util.Iif(shouldBlockJob, actions_model.StatusBlocked, actions_model.StatusWaiting)
@@ -226,6 +261,11 @@ func execRerunPlan(ctx context.Context, plan *rerunPlan) (*actions_model.ActionR
 				newJob.ConcurrencyGroup = ""
 				newJob.ConcurrencyCancel = false
 				newJob.IsConcurrencyEvaluated = false
+
+				if templateJob.IsReusableCaller {
+					newJob.IsExpanded = false
+					newJob.CallPayload = ""
+				}
 
 				if newJob.RawConcurrency != "" && !shouldBlockJob {
 					if err := EvaluateJobConcurrencyFillModel(ctx, plan.run, newAttempt, newJob, vars, nil); err != nil {
@@ -242,15 +282,43 @@ func execRerunPlan(ctx context.Context, plan *rerunPlan) (*actions_model.ActionR
 			} else {
 				newJob.TaskID = 0
 				newJob.SourceTaskID = templateJob.EffectiveTaskID()
-				newJob.Started = templateJob.Started
-				newJob.Stopped = templateJob.Stopped
+
+				isAncestor := plan.ancestorAttemptJobIDs.Contains(templateJob.AttemptJobID)
+				newJob.Started = util.Iif(isAncestor, 0, templateJob.Started)
+				newJob.Stopped = util.Iif(isAncestor, 0, templateJob.Stopped)
 			}
 
 			if err := db.Insert(ctx, newJob); err != nil {
 				return err
 			}
-			hasWaitingJobs = hasWaitingJobs || newJob.Status == actions_model.StatusWaiting
+			templateIDToNewID[templateJob.ID] = newJob.ID
+
+			// expand reusable caller
+			if newJob.IsReusableCaller && newJob.Status == actions_model.StatusWaiting && !newJob.IsExpanded {
+				if err := expandReusableWorkflowCaller(ctx, plan.run, newAttempt, newJob, vars); err != nil {
+					return fmt.Errorf("inline trigger caller %d ready: %w", newJob.ID, err)
+				}
+				// refresh the caller status
+				if err := actions_model.RefreshReusableCallerStatus(ctx, newJob); err != nil {
+					return fmt.Errorf("refresh caller %d status: %w", newJob.ID, err)
+				}
+				hasWaitingCallerJobs = true
+			}
+
+			// A reusable caller is never dispatched to a runner, so it must not drive the task-version bump.
+			hasWaitingJobs = hasWaitingJobs || (newJob.Status == actions_model.StatusWaiting && !newJob.IsReusableCaller)
 			newJobs = append(newJobs, newJob)
+		}
+
+		// Refresh each ancestor's status from its now-fresh children.
+		// `newJobs` is appended top-down (caller before its children), so we walk it in reverse to refresh the deepest ancestor first.
+		for _, ancestor := range slices.Backward(newJobs) {
+			if !ancestor.IsReusableCaller || !plan.ancestorAttemptJobIDs.Contains(ancestor.AttemptJobID) {
+				continue
+			}
+			if err := actions_model.RefreshReusableCallerStatus(ctx, ancestor); err != nil {
+				return fmt.Errorf("refresh ancestor caller %d status: %w", ancestor.ID, err)
+			}
 		}
 
 		newAttempt.Status = actions_model.AggregateJobStatus(newJobsToRerun)
@@ -280,58 +348,147 @@ func execRerunPlan(ctx context.Context, plan *rerunPlan) (*actions_model.ActionR
 	CreateCommitStatusForRunJobs(ctx, plan.run, newJobs...)
 	NotifyWorkflowJobsAndRunsStatusUpdate(ctx, newJobsToRerun)
 
+	// Post-commit kick for expanded callers: let job_emitter resolve its child jobs
+	if hasWaitingCallerJobs {
+		if err := EmitJobsIfReadyByRun(plan.run.ID); err != nil {
+			log.Error("emit run %d after rerun: %v", plan.run.ID, err)
+		}
+	}
+
 	return newAttempt, nil
 }
 
+// expandRerunJobIDs computes rerunAttemptJobIDs and ancestorAttemptJobIDs from the user-selected jobsToRerun.
 func (p *rerunPlan) expandRerunJobIDs(jobsToRerun []*actions_model.ActionRunJob) error {
-	templateJobIDs := make(container.Set[string])
-	for _, job := range p.templateJobs {
-		templateJobIDs.Add(job.JobID)
-	}
-
+	// Empty jobsToRerun: rerun the whole latest attempt
 	if len(jobsToRerun) == 0 {
-		p.rerunJobIDs = templateJobIDs
+		all := make(container.Set[int64], len(p.templateJobs))
+		for _, job := range p.templateJobs {
+			all.Add(job.AttemptJobID)
+		}
+		p.rerunAttemptJobIDs = all
+		p.ancestorAttemptJobIDs = make(container.Set[int64])
 		return nil
 	}
 
-	rerunJobIDs := make(container.Set[string])
+	byID := make(map[int64]*actions_model.ActionRunJob, len(p.templateJobs))
+	byAttemptJobID := make(map[int64]*actions_model.ActionRunJob, len(p.templateJobs))
+	for _, job := range p.templateJobs {
+		byID[job.ID] = job
+		byAttemptJobID[job.AttemptJobID] = job
+	}
+
 	for _, job := range jobsToRerun {
-		if !templateJobIDs.Contains(job.JobID) {
+		if _, ok := byID[job.ID]; !ok {
 			return util.NewInvalidArgumentErrorf("job %q does not exist in the latest attempt", job.JobID)
 		}
-		rerunJobIDs.Add(job.JobID)
 	}
 
-	for {
-		found := false
-		for _, job := range p.templateJobs {
-			if rerunJobIDs.Contains(job.JobID) {
+	rerunSet := make(container.Set[int64])
+	ancestorSet := make(container.Set[int64])
+	queue := make([]*actions_model.ActionRunJob, 0, len(jobsToRerun))
+
+	for _, job := range jobsToRerun {
+		j := byID[job.ID]
+		rerunSet.Add(j.AttemptJobID)
+		queue = append(queue, j)
+	}
+
+	for len(queue) > 0 {
+		cur := queue[0]
+		queue = queue[1:]
+
+		// same-scope downstream: siblings whose Needs reference cur.JobID join the rerun set
+		for _, candidate := range p.templateJobs {
+			if candidate.ParentJobID != cur.ParentJobID {
 				continue
 			}
-			for _, need := range job.Needs {
-				if rerunJobIDs.Contains(need) {
-					found = true
-					rerunJobIDs.Add(job.JobID)
-					break
-				}
+			if rerunSet.Contains(candidate.AttemptJobID) || ancestorSet.Contains(candidate.AttemptJobID) {
+				continue
 			}
+			if !slices.Contains(candidate.Needs, cur.JobID) {
+				continue
+			}
+			rerunSet.Add(candidate.AttemptJobID)
+			queue = append(queue, candidate)
 		}
-		if !found {
-			break
+
+		// escalate to parent caller as an ancestor so its own siblings get checked next round
+		if cur.ParentJobID == 0 {
+			continue
+		}
+		parent, ok := byID[cur.ParentJobID]
+		if !ok {
+			continue
+		}
+		if rerunSet.Contains(parent.AttemptJobID) || ancestorSet.Contains(parent.AttemptJobID) {
+			continue
+		}
+		ancestorSet.Add(parent.AttemptJobID)
+		queue = append(queue, parent)
+	}
+
+	// remove entries whose parent-caller chain already has a rerunSet member
+	for atID := range ancestorSet {
+		cur := byAttemptJobID[atID]
+		for cur.ParentJobID != 0 {
+			parent, ok := byID[cur.ParentJobID]
+			if !ok {
+				break
+			}
+			if rerunSet.Contains(parent.AttemptJobID) {
+				delete(ancestorSet, atID)
+				break
+			}
+			cur = parent
 		}
 	}
 
-	p.rerunJobIDs = rerunJobIDs
+	p.rerunAttemptJobIDs = rerunSet
+	p.ancestorAttemptJobIDs = ancestorSet
 	return nil
 }
 
+// hasRerunDependency reports whether `job` has a needs-reference that points to a job which is itself being rerun (in rerunAttemptJobIDs)
+// or is an ancestor caller whose subtree is being rerun (in ancestorAttemptJobIDs).
+// Either case means `job` should start in Blocked status.
 func (p *rerunPlan) hasRerunDependency(job *actions_model.ActionRunJob) bool {
-	for _, need := range job.Needs {
-		if p.rerunJobIDs.Contains(need) {
+	if len(job.Needs) == 0 {
+		return false
+	}
+	needSet := container.SetOf(job.Needs...)
+	for _, sibling := range p.templateJobs {
+		if sibling.ParentJobID != job.ParentJobID {
+			continue
+		}
+		if !needSet.Contains(sibling.JobID) {
+			continue
+		}
+		if p.rerunAttemptJobIDs.Contains(sibling.AttemptJobID) || p.ancestorAttemptJobIDs.Contains(sibling.AttemptJobID) {
 			return true
 		}
 	}
 	return false
+}
+
+// collectResetCallerDescendants walks p.templateJobs and returns the DB IDs of every transitive descendant of any reusable caller whose AttemptJobID is in p.rerunAttemptJobIDs.
+// These descendants must NOT be cloned by execRerunPlan: the reset caller will re-insert them with template-matched AttemptJobIDs.
+func (p *rerunPlan) collectResetCallerDescendants() container.Set[int64] {
+	out := make(container.Set[int64])
+	for _, tj := range p.templateJobs {
+		if !tj.IsReusableCaller || !p.rerunAttemptJobIDs.Contains(tj.AttemptJobID) {
+			continue
+		}
+		// If this caller's row ID is already in `out`, it means an outer caller has already covered its whole subtree.
+		// Skip the redundant walk.
+		if out.Contains(tj.ID) {
+			continue
+		}
+		for _, child := range actions_model.CollectAllDescendantJobs(tj, p.templateJobs) {
+			out.Add(child.ID)
+		}
+	}
+	return out
 }
 
 func cloneRunJobForAttempt(templateJob *actions_model.ActionRunJob, attempt *actions_model.ActionRunAttempt) *actions_model.ActionRunJob {
@@ -355,6 +512,17 @@ func cloneRunJobForAttempt(templateJob *actions_model.ActionRunJob, attempt *act
 		ConcurrencyGroup:       templateJob.ConcurrencyGroup,
 		ConcurrencyCancel:      templateJob.ConcurrencyCancel,
 		TokenPermissions:       templateJob.TokenPermissions,
+
+		// reusable workflow fields
+		IsReusableCaller:        templateJob.IsReusableCaller,
+		CallUses:                templateJob.CallUses,
+		ReusableWorkflowContent: slices.Clone(templateJob.ReusableWorkflowContent),
+		CallSecrets:             templateJob.CallSecrets,
+		CallPayload:             templateJob.CallPayload,
+		IsExpanded:              templateJob.IsExpanded,
+		ParentJobID:             templateJob.ParentJobID, // remapped by execRerunPlan
+		WorkflowSourceRepoID:    templateJob.WorkflowSourceRepoID,
+		WorkflowSourceCommitSHA: templateJob.WorkflowSourceCommitSHA,
 	}
 }
 

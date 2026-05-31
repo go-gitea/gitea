@@ -7,8 +7,11 @@ import (
 	"strconv"
 	"testing"
 
-	actions_model "code.gitea.io/gitea/models/actions"
-	"code.gitea.io/gitea/models/unittest"
+	actions_model "gitea.dev/models/actions"
+	"gitea.dev/models/db"
+	"gitea.dev/models/unittest"
+	"gitea.dev/modules/json"
+	api "gitea.dev/modules/structs"
 
 	act_model "gitea.com/gitea/runner/act/model"
 	"github.com/stretchr/testify/assert"
@@ -16,10 +19,8 @@ import (
 )
 
 func TestEvaluateRunConcurrency_RunIDFallback(t *testing.T) {
-	// Unit-level check that EvaluateRunConcurrencyFillModel resolves
-	// github.run_id from run.ID. The full-flow regression — that run.ID is
-	// non-zero by the time evaluation happens — is in
-	// TestPrepareRunAndInsert_ExpressionsSeeRunID.
+	// Unit-level check that EvaluateRunConcurrencyFillModel resolves github.run_id from run.ID.
+	// The full-flow regression (run.ID non-zero by evaluation time) is TestPrepareRunAndInsert_ExpressionsSeeRunID.
 	assert.NoError(t, unittest.PrepareTestDatabase())
 	ctx := t.Context()
 
@@ -43,10 +44,8 @@ func TestEvaluateRunConcurrency_RunIDFallback(t *testing.T) {
 }
 
 func TestPrepareRunAndInsert_ExpressionsSeeRunID(t *testing.T) {
-	// Regression for the cross-branch concurrency leak: github.run_id must
-	// be available during BOTH jobparser.Parse (run-name) and workflow-level
-	// concurrency evaluation. Re-ordering db.Insert relative to either step
-	// would leave run.ID at 0 and break this test.
+	// Regression for the cross-branch concurrency leak: github.run_id must be available during both
+	// jobparser.Parse (run-name) and concurrency evaluation; inserting run after either leaves run.ID at 0.
 	assert.NoError(t, unittest.PrepareTestDatabase())
 	ctx := t.Context()
 
@@ -88,6 +87,219 @@ jobs:
 	// Rerun reads raw_concurrency from the DB to re-evaluate the group;
 	// see services/actions/rerun.go. Must survive the insert.
 	assert.NotEmpty(t, persisted.RawConcurrency)
+}
+
+func TestComputeReusableCallerOutputs(t *testing.T) {
+	require.NoError(t, unittest.PrepareTestDatabase())
+	ctx := t.Context()
+
+	var nextRunIndex int64 = 9001
+	insertRun := func(t *testing.T, workflowID string) *actions_model.ActionRun {
+		t.Helper()
+		run := &actions_model.ActionRun{
+			Title:         "reusable-out",
+			RepoID:        4,
+			Index:         nextRunIndex,
+			OwnerID:       1,
+			WorkflowID:    workflowID,
+			TriggerUserID: 1,
+			Ref:           "refs/heads/master",
+			CommitSHA:     "c2d72f548424103f01ee1dc02889c1e2bff816b0",
+			Event:         "push",
+			TriggerEvent:  "push",
+			EventPayload:  "{}",
+			Status:        actions_model.StatusSuccess,
+		}
+		nextRunIndex++
+		require.NoError(t, db.Insert(ctx, run))
+		return run
+	}
+
+	insertCaller := func(t *testing.T, run *actions_model.ActionRun, jobID string, parentID int64, content, callPayload string) *actions_model.ActionRunJob {
+		t.Helper()
+		job := &actions_model.ActionRunJob{
+			RunID:                   run.ID,
+			RepoID:                  run.RepoID,
+			OwnerID:                 run.OwnerID,
+			CommitSHA:               run.CommitSHA,
+			Name:                    jobID,
+			JobID:                   jobID,
+			Attempt:                 1,
+			Status:                  actions_model.StatusSuccess,
+			ParentJobID:             parentID,
+			IsReusableCaller:        true,
+			IsExpanded:              true,
+			ReusableWorkflowContent: []byte(content),
+			CallPayload:             callPayload,
+		}
+		require.NoError(t, db.Insert(ctx, job))
+		return job
+	}
+
+	// Each call to insertChildJobAndTask with non-empty outputs allocates a fresh TaskID
+	// so its action_task_output rows stay isolated per subtest.
+	var nextTaskID int64 = 90001
+	insertChildJobAndTask := func(t *testing.T, run *actions_model.ActionRun, jobID string, parentID int64, outputs map[string]string) *actions_model.ActionRunJob {
+		t.Helper()
+		var taskID int64
+		if len(outputs) > 0 {
+			taskID = nextTaskID
+			nextTaskID++
+		}
+		job := &actions_model.ActionRunJob{
+			RunID:       run.ID,
+			RepoID:      run.RepoID,
+			OwnerID:     run.OwnerID,
+			CommitSHA:   run.CommitSHA,
+			Name:        jobID,
+			JobID:       jobID,
+			Attempt:     1,
+			Status:      actions_model.StatusSuccess,
+			ParentJobID: parentID,
+			TaskID:      taskID,
+		}
+		require.NoError(t, db.Insert(ctx, job))
+		for k, v := range outputs {
+			require.NoError(t, db.Insert(ctx, &actions_model.ActionTaskOutput{
+				TaskID:      taskID,
+				OutputKey:   k,
+				OutputValue: v,
+			}))
+		}
+		return job
+	}
+
+	// childrenByParentOfRun returns the run's jobs indexed by ParentJobID, the shape computeReusableCallerOutputs expects.
+	childrenByParentOfRun := func(t *testing.T, runID int64) map[int64][]*actions_model.ActionRunJob {
+		t.Helper()
+		all, err := db.Find[actions_model.ActionRunJob](ctx, actions_model.FindRunJobOptions{RunID: runID})
+		require.NoError(t, err)
+		index := make(map[int64][]*actions_model.ActionRunJob)
+		for _, j := range all {
+			if j.ParentJobID != 0 {
+				index[j.ParentJobID] = append(index[j.ParentJobID], j)
+			}
+		}
+		return index
+	}
+
+	t.Run("returns empty when callee declares no outputs", func(t *testing.T) {
+		run := insertRun(t, "no-outputs.yaml")
+		caller := insertCaller(t, run, "caller", 0, `on:
+  workflow_call:
+    outputs: {}
+`, "")
+		out, err := computeReusableCallerOutputs(ctx, caller, childrenByParentOfRun(t, run.ID))
+		require.NoError(t, err)
+		assert.Empty(t, out)
+	})
+
+	t.Run("unexpanded (skipped) caller yields empty outputs without error", func(t *testing.T) {
+		run := insertRun(t, "skipped-caller.yaml")
+		// A reusable caller skipped before expansion: IsExpanded=false, empty ReusableWorkflowContent, no children.
+		caller := &actions_model.ActionRunJob{
+			RunID:            run.ID,
+			RepoID:           run.RepoID,
+			OwnerID:          run.OwnerID,
+			CommitSHA:        run.CommitSHA,
+			Name:             "caller",
+			JobID:            "caller",
+			Attempt:          1,
+			Status:           actions_model.StatusSkipped,
+			IsReusableCaller: true,
+			IsExpanded:       false,
+		}
+		require.NoError(t, db.Insert(ctx, caller))
+		out, err := computeReusableCallerOutputs(ctx, caller, childrenByParentOfRun(t, run.ID))
+		require.NoError(t, err)
+		assert.Empty(t, out)
+	})
+
+	t.Run("literal output value passes through", func(t *testing.T) {
+		run := insertRun(t, "literal-out.yaml")
+		caller := insertCaller(t, run, "caller", 0, `on:
+  workflow_call:
+    outputs:
+      hello:
+        value: world
+`, "")
+		out, err := computeReusableCallerOutputs(ctx, caller, childrenByParentOfRun(t, run.ID))
+		require.NoError(t, err)
+		assert.Equal(t, map[string]string{"hello": "world"}, out)
+	})
+
+	t.Run("output expression reads child task outputs", func(t *testing.T) {
+		run := insertRun(t, "child-out.yaml")
+		caller := insertCaller(t, run, "caller", 0, `on:
+  workflow_call:
+    outputs:
+      result:
+        value: ${{ jobs.child.outputs.foo }}
+`, "")
+		insertChildJobAndTask(t, run, "child", caller.ID, map[string]string{"foo": "bar"})
+
+		out, err := computeReusableCallerOutputs(ctx, caller, childrenByParentOfRun(t, run.ID))
+		require.NoError(t, err)
+		assert.Equal(t, map[string]string{"result": "bar"}, out)
+	})
+
+	t.Run("CallPayload inputs reachable in output expression", func(t *testing.T) {
+		run := insertRun(t, "payload-out.yaml")
+		payload, err := json.Marshal(api.WorkflowCallPayload{
+			Inputs: map[string]any{"env": "staging"},
+		})
+		require.NoError(t, err)
+		caller := insertCaller(t, run, "caller", 0, `on:
+  workflow_call:
+    inputs:
+      env:
+        type: string
+    outputs:
+      env:
+        value: ${{ inputs.env }}
+`, string(payload))
+
+		out, err := computeReusableCallerOutputs(ctx, caller, childrenByParentOfRun(t, run.ID))
+		require.NoError(t, err)
+		assert.Equal(t, map[string]string{"env": "staging"}, out)
+	})
+
+	t.Run("nested caller outputs propagate to outer", func(t *testing.T) {
+		run := insertRun(t, "nested-out.yaml")
+		outer := insertCaller(t, run, "outer", 0, `on:
+  workflow_call:
+    outputs:
+      bubbled:
+        value: ${{ jobs.inner.outputs.up }}
+`, "")
+		inner := insertCaller(t, run, "inner", outer.ID, `on:
+  workflow_call:
+    outputs:
+      up:
+        value: ${{ jobs.leaf.outputs.foo }}
+`, "")
+		insertChildJobAndTask(t, run, "leaf", inner.ID, map[string]string{"foo": "bubble-value"})
+
+		out, err := computeReusableCallerOutputs(ctx, outer, childrenByParentOfRun(t, run.ID))
+		require.NoError(t, err)
+		assert.Equal(t, map[string]string{"bubbled": "bubble-value"}, out)
+	})
+
+	t.Run("matrix children with same JobID prefer non-empty values", func(t *testing.T) {
+		run := insertRun(t, "matrix-out.yaml")
+		caller := insertCaller(t, run, "caller", 0, `on:
+  workflow_call:
+    outputs:
+      foo:
+        value: ${{ jobs.matrix.outputs.foo }}
+`, "")
+		insertChildJobAndTask(t, run, "matrix", caller.ID, map[string]string{"foo": ""})
+		insertChildJobAndTask(t, run, "matrix", caller.ID, map[string]string{"foo": "filled"})
+
+		out, err := computeReusableCallerOutputs(ctx, caller, childrenByParentOfRun(t, run.ID))
+		require.NoError(t, err)
+		assert.Equal(t, map[string]string{"foo": "filled"}, out)
+	})
 }
 
 func TestFindTaskNeeds(t *testing.T) {

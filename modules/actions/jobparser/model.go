@@ -8,6 +8,7 @@ import (
 	"errors"
 	"fmt"
 
+	"gitea.com/gitea/runner/act/exprparser"
 	"gitea.com/gitea/runner/act/model"
 	"go.yaml.in/yaml/v4"
 )
@@ -298,6 +299,9 @@ func toGitContext(input map[string]any) *model.GithubContext {
 	return gitContext
 }
 
+// workflowCallEvent is only fired by another workflow's `uses:`, so it is excluded from trigger detection.
+const workflowCallEvent = "workflow_call"
+
 func ParseRawOn(rawOn *yaml.Node) ([]*Event, error) {
 	switch rawOn.Kind {
 	case yaml.ScalarNode:
@@ -305,6 +309,9 @@ func ParseRawOn(rawOn *yaml.Node) ([]*Event, error) {
 		err := rawOn.Decode(&val)
 		if err != nil {
 			return nil, err
+		}
+		if val == workflowCallEvent {
+			return []*Event{}, nil
 		}
 		return []*Event{
 			{Name: val},
@@ -319,6 +326,9 @@ func ParseRawOn(rawOn *yaml.Node) ([]*Event, error) {
 		for _, v := range val {
 			switch t := v.(type) {
 			case string:
+				if t == workflowCallEvent {
+					continue
+				}
 				res = append(res, &Event{Name: t})
 			default:
 				return nil, fmt.Errorf("invalid type %T", t)
@@ -332,6 +342,9 @@ func ParseRawOn(rawOn *yaml.Node) ([]*Event, error) {
 		}
 		res := make([]*Event, 0, len(events))
 		for i, k := range events {
+			if k == workflowCallEvent {
+				continue
+			}
 			v := triggers[i]
 			switch v.Kind {
 			case yaml.ScalarNode:
@@ -452,6 +465,26 @@ func ParseRawOn(rawOn *yaml.Node) ([]*Event, error) {
 	default:
 		return nil, fmt.Errorf("unknown on type: %v", rawOn.Kind)
 	}
+}
+
+func EvaluateJobIfExpression(jobID string, job *Job, gitCtx map[string]any, results map[string]*JobResult, vars map[string]string, inputs map[string]any) (bool, error) {
+	actJob := &model.Job{
+		Strategy: &model.Strategy{
+			FailFastString:    job.Strategy.FailFastString,
+			MaxParallelString: job.Strategy.MaxParallelString,
+			RawMatrix:         job.Strategy.RawMatrix,
+		},
+	}
+	evaluator := NewExpressionEvaluator(NewInterpeter(jobID, actJob, nil, toGitContext(gitCtx), results, vars, inputs))
+	expr, err := rewriteSubExpression(job.If.Value, false)
+	if err != nil {
+		return false, err
+	}
+	result, err := evaluator.evaluate(expr, exprparser.DefaultStatusCheckSuccess)
+	if err != nil {
+		return false, err
+	}
+	return exprparser.IsTruthy(result), nil
 }
 
 // parseMappingNode parse a mapping node and preserve order.

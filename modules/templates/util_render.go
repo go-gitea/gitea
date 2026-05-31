@@ -13,21 +13,22 @@ import (
 	"strings"
 	"unicode"
 
-	issues_model "code.gitea.io/gitea/models/issues"
-	"code.gitea.io/gitea/models/renderhelper"
-	"code.gitea.io/gitea/models/repo"
-	"code.gitea.io/gitea/modules/charset"
-	"code.gitea.io/gitea/modules/emoji"
-	"code.gitea.io/gitea/modules/htmlutil"
-	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/markup"
-	"code.gitea.io/gitea/modules/markup/markdown"
-	"code.gitea.io/gitea/modules/reqctx"
-	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/modules/svg"
-	"code.gitea.io/gitea/modules/translation"
-	"code.gitea.io/gitea/modules/util"
-	"code.gitea.io/gitea/services/webtheme"
+	issues_model "gitea.dev/models/issues"
+	"gitea.dev/models/renderhelper"
+	"gitea.dev/models/repo"
+	"gitea.dev/modules/charset"
+	"gitea.dev/modules/emoji"
+	"gitea.dev/modules/git"
+	"gitea.dev/modules/htmlutil"
+	"gitea.dev/modules/log"
+	"gitea.dev/modules/markup"
+	"gitea.dev/modules/markup/markdown"
+	"gitea.dev/modules/reqctx"
+	"gitea.dev/modules/setting"
+	"gitea.dev/modules/svg"
+	"gitea.dev/modules/translation"
+	"gitea.dev/modules/util"
+	"gitea.dev/services/webtheme"
 )
 
 type RenderUtils struct {
@@ -106,38 +107,29 @@ func renderCodeBlock(htmlEscapedTextToRender template.HTML) template.HTML {
 
 // RenderIssueTitle renders issue/pull title with defined post processors
 func (ut *RenderUtils) RenderIssueTitle(text string, repo *repo.Repository) template.HTML {
-	renderedText, err := markup.PostProcessIssueTitle(renderhelper.NewRenderContextRepoComment(ut.ctx, repo), template.HTMLEscapeString(text))
+	// wrap "`…`" in <code> before post-processing so code-span content stays literal, like comment bodies
+	htmlWithCode := renderCodeBlock(template.HTML(template.HTMLEscapeString(text)))
+	renderedText, err := markup.PostProcessIssueTitle(renderhelper.NewRenderContextRepoComment(ut.ctx, repo), string(htmlWithCode))
 	if err != nil {
 		log.Error("PostProcessIssueTitle: %v", err)
 		return ""
 	}
-	return renderCodeBlock(template.HTML(renderedText))
+	return template.HTML(renderedText)
 }
 
 // RenderIssueSimpleTitle only renders with emoji and inline code block
 func (ut *RenderUtils) RenderIssueSimpleTitle(text string) template.HTML {
-	ret := ut.RenderEmoji(text)
-	ret = renderCodeBlock(ret)
-	return ret
-}
-
-func (ut *RenderUtils) RenderLabelWithLink(label *issues_model.Label, link any) template.HTML {
-	var attrHref template.HTML
-	switch link.(type) {
-	case template.URL, string:
-		attrHref = htmlutil.HTMLFormat(`href="%s"`, link)
-	default:
-		panic(fmt.Sprintf("unexpected type %T for link", link))
+	// see RenderIssueTitle: wrap code spans before processing emoji
+	htmlWithCode := renderCodeBlock(template.HTML(template.HTMLEscapeString(text)))
+	renderedText, err := markup.PostProcessEmoji(markup.NewRenderContext(ut.ctx), string(htmlWithCode))
+	if err != nil {
+		log.Error("RenderIssueSimpleTitle: %v", err)
+		return ""
 	}
-	return ut.renderLabelWithTag(label, "a", attrHref)
+	return template.HTML(renderedText)
 }
 
 func (ut *RenderUtils) RenderLabel(label *issues_model.Label) template.HTML {
-	return ut.renderLabelWithTag(label, "span", "")
-}
-
-// RenderLabel renders a label
-func (ut *RenderUtils) renderLabelWithTag(label *issues_model.Label, tagName, tagAttrs template.HTML) template.HTML {
 	locale := ut.ctx.Value(translation.ContextKey).(translation.Locale)
 	var extraCSSClasses string
 	textColor := util.ContrastColor(label.Color)
@@ -151,8 +143,8 @@ func (ut *RenderUtils) renderLabelWithTag(label *issues_model.Label, tagName, ta
 
 	if labelScope == "" {
 		// Regular label
-		return htmlutil.HTMLFormat(`<%s %s class="ui label %s" style="color: %s !important; background-color: %s !important;" data-tooltip-content title="%s"><span class="gt-ellipsis">%s</span></%s>`,
-			tagName, tagAttrs, extraCSSClasses, textColor, label.Color, descriptionText, ut.RenderEmoji(label.Name), tagName)
+		return htmlutil.HTMLFormat(`<span class="ui label %s" style="color: %s !important; background-color: %s !important;" data-tooltip-content title="%s"><span class="gt-ellipsis">%s</span></span>`,
+			extraCSSClasses, textColor, label.Color, descriptionText, ut.RenderEmoji(label.Name))
 	}
 
 	// Scoped label
@@ -187,29 +179,25 @@ func (ut *RenderUtils) renderLabelWithTag(label *issues_model.Label, tagName, ta
 
 	if label.ExclusiveOrder > 0 {
 		// <scope> | <label> | <order>
-		return htmlutil.HTMLFormat(`<%s %s class="ui label %s scope-parent" data-tooltip-content title="%s">`+
+		return htmlutil.HTMLFormat(`<span class="ui label %s scope-parent" data-tooltip-content title="%s">`+
 			`<div class="ui label scope-left" style="color: %s !important; background-color: %s !important">%s</div>`+
 			`<div class="ui label scope-middle" style="color: %s !important; background-color: %s !important">%s</div>`+
 			`<div class="ui label scope-right">%d</div>`+
-			`</%s>`,
-			tagName, tagAttrs,
+			`</span>`,
 			extraCSSClasses, descriptionText,
 			textColor, scopeColor, scopeHTML,
 			textColor, itemColor, itemHTML,
-			label.ExclusiveOrder,
-			tagName)
+			label.ExclusiveOrder)
 	}
 
 	// <scope> | <label>
-	return htmlutil.HTMLFormat(`<%s %s class="ui label %s scope-parent" data-tooltip-content title="%s">`+
+	return htmlutil.HTMLFormat(`<span class="ui label %s scope-parent" data-tooltip-content title="%s">`+
 		`<div class="ui label scope-left" style="color: %s !important; background-color: %s !important">%s</div>`+
 		`<div class="ui label scope-right" style="color: %s !important; background-color: %s !important">%s</div>`+
-		`</%s>`,
-		tagName, tagAttrs,
+		`</span>`,
 		extraCSSClasses, descriptionText,
 		textColor, scopeColor, scopeHTML,
-		textColor, itemColor, itemHTML,
-		tagName)
+		textColor, itemColor, itemHTML)
 }
 
 // RenderEmoji renders html text with emoji post processors
@@ -243,21 +231,41 @@ func (ut *RenderUtils) MarkdownToHtml(input string) template.HTML { //nolint:rev
 	return output
 }
 
+// RenderPackageMarkdown renders package page Markdown so relative links resolve against the
+// linked repository's default branch instead of the site root, falling back to plain rendering
+// when there is no linked repository. pkgTreePath optionally roots links in a subdirectory
+// (e.g. npm's repository.directory for monorepo packages).
+func (ut *RenderUtils) RenderPackageMarkdown(input string, linkedRepo *repo.Repository, pkgTreePath ...string) template.HTML {
+	if linkedRepo == nil {
+		return `<div class="markup markdown">` + ut.MarkdownToHtml(input) + `</div>`
+	}
+	rctx := renderhelper.NewRenderContextRepoFile(ut.ctx, linkedRepo, renderhelper.RepoFileOptions{
+		CurrentRefSubURL: git.RefNameFromBranch(linkedRepo.DefaultBranch).RefWebLinkPath(),
+		CurrentTreePath:  util.OptionalArg(pkgTreePath),
+	})
+	output, err := markdown.RenderString(rctx, input)
+	if err != nil {
+		log.Error("RenderString: %v", err)
+	}
+	return `<div class="markup markdown">` + output + `</div>`
+}
+
 func (ut *RenderUtils) RenderLabels(labels []*issues_model.Label, repoLink string, issue *issues_model.Issue) template.HTML {
 	isPullRequest := issue != nil && issue.IsPull
 	baseLink := fmt.Sprintf("%s/%s", repoLink, util.Iif(isPullRequest, "pulls", "issues"))
-	var htmlCode strings.Builder
-	htmlCode.WriteString(`<span class="labels-list">`)
+	var htmlCode htmlutil.HTMLBuilder
+	htmlCode.WriteHTML(`<span class="labels-list">`)
 	for _, label := range labels {
 		// Protect against nil value in labels - shouldn't happen but would cause a panic if so
 		if label == nil {
 			continue
 		}
-		link := fmt.Sprintf("%s?labels=%d", baseLink, label.ID)
-		htmlCode.WriteString(string(ut.RenderLabelWithLink(label, template.URL(link))))
+		htmlCode.WriteFormat(`<a class="item" href="%s?labels=%d">`, baseLink, label.ID)
+		htmlCode.WriteHTML(ut.RenderLabel(label))
+		htmlCode.WriteHTML("</a>")
 	}
-	htmlCode.WriteString("</span>")
-	return template.HTML(htmlCode.String())
+	htmlCode.WriteHTML("</span>")
+	return htmlCode.HTMLString()
 }
 
 func (ut *RenderUtils) RenderThemeItem(info *webtheme.ThemeMetaInfo, iconSize int) template.HTML {

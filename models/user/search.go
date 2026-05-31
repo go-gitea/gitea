@@ -9,10 +9,10 @@ import (
 	"slices"
 	"strings"
 
-	"code.gitea.io/gitea/models/db"
-	"code.gitea.io/gitea/modules/container"
-	"code.gitea.io/gitea/modules/optional"
-	"code.gitea.io/gitea/modules/structs"
+	"gitea.dev/models/db"
+	"gitea.dev/modules/container"
+	"gitea.dev/modules/optional"
+	"gitea.dev/modules/structs"
 
 	"xorm.io/builder"
 )
@@ -56,6 +56,12 @@ type SearchUserOptions struct {
 	IsTwoFactorEnabled optional.Option[bool]
 	IsProhibitLogin    optional.Option[bool]
 	IncludeReserved    bool
+}
+
+func (opts *SearchUserOptions) ApplyPublicOnly(publicOnly bool) {
+	if publicOnly {
+		opts.Visible = []structs.VisibleType{structs.VisibleTypePublic}
+	}
 }
 
 func (opts *SearchUserOptions) toSearchQueryBase(ctx context.Context) db.Session {

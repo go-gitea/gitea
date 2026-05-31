@@ -4,6 +4,68 @@ This changelog goes through the changes that have been made in each release
 without substantial changes to our git log; to see the highlights of what has
 been added to each release, please refer to the [blog](https://blog.gitea.com).
 
+## [1.26.2](https://github.com/go-gitea/gitea/releases/tag/1.26.2) - 2026-05-20
+
+* SECURITY
+  * fix(permissions): Fix reading permission (#37769)
+  * fix(actions): make artifact signature payloads unambiguous (#37707)
+  * fix: Unify public-only token filtering in API queries and repo access checks (#37118)
+  * fix: Add missed token scope checking (#37735)
+  * fix(oauth): bind token exchanges to the original client request (#37704)
+  * fix(oauth): strengthen PKCE validation and refresh token replay protection (#37706)
+  * fix(web): enforce token scopes on raw, media, and attachment downloads (#37698)
+  * fix(security): enforce wiki git writes and LFS token access at request time (#37695)
+  * feat(api): encrypt AWS creds (#37679)
+  * fix(deps): update dependency mermaid to v11.15.0 [security], add e2e test
+  * fix(packages): Add label for private and internal package and fix composor package source permission check (#37610)
+  * fix(git): Fix smart http request scope bug (#37583)
+  * Fix basic auth bug (#37503)
+  * Fix allow maintainer edit permission check (#37479) (#37484)
+  * Fix URL sanitization to handle schemeless credentials (#37440) (#37471)
+  * Fix attachment Content-Security-Policy (#37455) (#37464)
+  * chore(deps): bump go-git/go-git/v5 to 5.19.0 (#37608)
+
+* BUGFIXES
+  * fix(pull): handle empty pull request files view to allow reviews (#37783)
+  * fix(markup): make RenderString never fail (#37779)
+  * fix: add natural sort to sortTreeViewNodes (#37772)
+  * fix: package creation unique conflict (#37774)
+  * fix!: add DEFAULT_TITLE_SOURCE setting for pull request title default behavior (#37465)
+  * fix: Allow direct commits for unprotected files with push restrictions (#37657)
+  * fix(actions): wrong assumption that run id always >= job id (#37737)
+  * fix(auth): set User-Agent on avatar fetch and sync avatar on link-account register (#37564) (#37588)
+  * fix(actions): deadlock between PrepareRunAndInsert and UpdateTaskByState (#37692)
+  * fix(repo): /generate must sync the branch table for the new repo (#37693)
+  * build: Fix snap build (1.26)
+  * fix(actions): run TransferLogs on UpdateLog{Rows:[], NoMore:true} (#37631)
+  * fix show correct mergebase
+  * fix: make clone URL respect public URL detection setting (#37615)
+  * fix: "run as root" check (#37622)
+  * chore(deps): update dependency go to v1.26.3 (#37601)
+  * Compare dropdown fails when selecting branch with no common merge-base (#37470)
+  * fix: treat email addresses case-insensitively (#37600)
+  * fix(actions): fix blank lines after ::endgroup:: (#37597)
+  * fix(actions): report individual step status in workflow job API response (#37592)
+  * fix: Invalid UTF-8 commit messages in JSON API responses (#37542)
+  * fix: use consistent GetUser family functions (#37553)
+  * fix(api): return 409 message instead of empty JSON for wrong commit id (#37572)
+  * fix(actions): prevent panic when workflow contains null jobs (#37570)
+  * Make ServeSetHeaders default to download attachment if filename exists (#37552) (#37555)
+  * Fix(actions): validate workflow param to prevent 500 error (#37546) (#37554)
+  * Don't unblock run-level-concurrency-blocked runs in the resolver (#37461) (#37538)
+  * Fix(packages): use file names for generic web downloads (#37514) (#37520)
+  * Fix merge autodetect can't close other PRs but only the last one when multiple PRs are pushed at once (#37512) (#37516)
+  * Fix update branch protection order (#37508) (#37513)
+  * Fix mCaptcha broken after Vite migration (#37492) (#37509)
+  * Fix review submission from single-commit PR view (#37475) (#37485)
+  * Fix scheduled action panic with null event payload (#37459) (#37466)
+  * Make GetPossibleUserByID can handle deleted user (#37430) (#37431)
+  * Remove excessive quote from terraform instructions (#37424) (#37426)
+  * Fix color regressions, add `priority` color (#37417) (#37421)
+
+* MISC
+  * Add CurrentURL template variable back (#37444) (#37449)
+
 ## [1.26.1](https://github.com/go-gitea/gitea/releases/tag/v1.26.1) - 2026-04-21
 
 * BUGFIXES
