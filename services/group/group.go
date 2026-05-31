@@ -217,19 +217,21 @@ func MoveGroupItem(ctx context.Context, opts MoveGroupOptions, doer *user_model.
 			if parentGroup != nil && repo.OwnerID != parentGroup.OwnerID {
 				return util.NewInvalidArgumentErrorf("New parent group %d does not belong to same owner [ID: %d]", parentGroup.ID, parentGroup.OwnerID)
 			}
-			ndir := filepath.Dir(filepath.Join(setting.RepoRootPath, filepath.FromSlash(repo_model.RelativePath(repo.OwnerName, repo.Name, opts.NewParent))))
-			_, err = os.Stat(ndir)
-			if err != nil {
-				if errors.Is(err, os.ErrNotExist) {
-					if err = os.MkdirAll(ndir, 0o755); err != nil {
+			if repo.GroupID != opts.NewParent {
+				ndir := filepath.Dir(filepath.Join(setting.RepoRootPath, filepath.FromSlash(repo_model.RelativePath(repo.OwnerName, repo.Name, opts.NewParent))))
+				_, err = os.Stat(ndir)
+				if err != nil {
+					if errors.Is(err, os.ErrNotExist) {
+						if err = os.MkdirAll(ndir, 0o755); err != nil {
+							return err
+						}
+					} else {
 						return err
 					}
-				} else {
+				}
+				if err = gitrepo.RenameRepository(ctx, repo, repo_model.StorageRepo(repo_model.RelativePath(repo.OwnerName, repo.Name, opts.NewParent))); err != nil {
 					return err
 				}
-			}
-			if err = gitrepo.RenameRepository(ctx, repo, repo_model.StorageRepo(repo_model.RelativePath(repo.OwnerName, repo.Name, opts.NewParent))); err != nil {
-				return err
 			}
 			if err = MoveRepositoryToGroup(ctx, repo, opts.NewParent, opts.NewPos); err != nil {
 				return err
