@@ -35,16 +35,31 @@ func TestAPIListRepoComments(t *testing.T) {
 	resp := MakeRequest(t, req, http.StatusOK)
 
 	apiComments := DecodeJSON(t, resp, []*api.Comment{})
-	assert.Len(t, apiComments, 2)
+	if assert.Len(t, apiComments, 2) {
+		assert.EqualValues(t, 2, apiComments[0].ID)
+		assert.EqualValues(t, 3, apiComments[1].ID)
+	}
 	for _, apiComment := range apiComments {
 		c := &issues_model.Comment{ID: apiComment.ID}
 		unittest.AssertExistsAndLoadBean(t, c,
 			unittest.Cond("type = ?", issues_model.CommentTypeComment))
 		unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{ID: c.IssueID, RepoID: repo.ID})
 	}
+	assert.Equal(t, "2", resp.Header().Get("x-total-count"))
+
+	query := url.Values{"page": {"1"}, "limit": {"1"}, "sort": {"created"}, "order": {"desc"}}
+	link.RawQuery = query.Encode()
+	req = NewRequest(t, "GET", link.String())
+	resp = MakeRequest(t, req, http.StatusOK)
+	apiComments = DecodeJSON(t, resp, []*api.Comment{})
+	if assert.Len(t, apiComments, 1) {
+		assert.EqualValues(t, 3, apiComments[0].ID)
+	}
+	assert.Equal(t, "2", resp.Header().Get("x-total-count"))
+	assert.Contains(t, resp.Header().Get("Link"), `rel="next"`)
 
 	// test before and since filters
-	query := url.Values{}
+	query = url.Values{}
 	before := "2000-01-01T00:00:11+00:00" // unix: 946684811
 	since := "2000-01-01T00:00:12+00:00"  // unix: 946684812
 	query.Add("before", before)
@@ -75,7 +90,8 @@ func TestAPIListIssueComments(t *testing.T) {
 	repoOwner := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: repo.OwnerID})
 
 	token := getUserToken(t, repoOwner.Name, auth_model.AccessTokenScopeReadIssue)
-	req := NewRequestf(t, "GET", "/api/v1/repos/%s/%s/issues/%d/comments", repoOwner.Name, repo.Name, issue.Index).
+	link, _ := url.Parse(fmt.Sprintf("/api/v1/repos/%s/%s/issues/%d/comments", repoOwner.Name, repo.Name, issue.Index))
+	req := NewRequest(t, "GET", link.String()).
 		AddTokenAuth(token)
 	resp := MakeRequest(t, req, http.StatusOK)
 
@@ -83,6 +99,36 @@ func TestAPIListIssueComments(t *testing.T) {
 	expectedCount := unittest.GetCount(t, &issues_model.Comment{IssueID: issue.ID},
 		unittest.Cond("type = ?", issues_model.CommentTypeComment))
 	assert.Len(t, comments, expectedCount)
+	assert.Equal(t, "2", resp.Header().Get("x-total-count"))
+
+	query := url.Values{"page": {"2"}, "limit": {"1"}}
+	link.RawQuery = query.Encode()
+	req = NewRequest(t, "GET", link.String()).
+		AddTokenAuth(token)
+	resp = MakeRequest(t, req, http.StatusOK)
+	comments = DecodeJSON(t, resp, []*api.Comment{})
+	if assert.Len(t, comments, 1) {
+		assert.EqualValues(t, 3, comments[0].ID)
+	}
+	assert.Equal(t, "2", resp.Header().Get("x-total-count"))
+	assert.Contains(t, resp.Header().Get("Link"), `rel="prev"`)
+
+	query = url.Values{"sort": {"updated"}, "order": {"desc"}}
+	link.RawQuery = query.Encode()
+	req = NewRequest(t, "GET", link.String()).
+		AddTokenAuth(token)
+	resp = MakeRequest(t, req, http.StatusOK)
+	comments = DecodeJSON(t, resp, []*api.Comment{})
+	if assert.Len(t, comments, expectedCount) {
+		assert.EqualValues(t, 3, comments[0].ID)
+		assert.EqualValues(t, 2, comments[1].ID)
+	}
+
+	query = url.Values{"sort": {"invalid"}}
+	link.RawQuery = query.Encode()
+	req = NewRequest(t, "GET", link.String()).
+		AddTokenAuth(token)
+	MakeRequest(t, req, http.StatusUnprocessableEntity)
 }
 
 func TestAPICreateComment(t *testing.T) {

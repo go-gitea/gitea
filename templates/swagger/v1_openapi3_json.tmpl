@@ -21180,6 +21180,22 @@
             "schema": {
               "type": "integer"
             }
+          },
+          {
+            "description": "sort comments by attribute. Supported values are \"created\" and \"updated\". Default is \"created\"",
+            "in": "query",
+            "name": "sort",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "sort order, either \"asc\" (ascending) or \"desc\" (descending). Default is \"asc\"",
+            "in": "query",
+            "name": "order",
+            "schema": {
+              "type": "string"
+            }
           }
         ],
         "responses": {
@@ -22580,6 +22596,38 @@
             "name": "before",
             "schema": {
               "format": "date-time",
+              "type": "string"
+            }
+          },
+          {
+            "description": "page number of results to return (1-based)",
+            "in": "query",
+            "name": "page",
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "description": "page size of results",
+            "in": "query",
+            "name": "limit",
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "description": "sort comments by attribute. Supported values are \"created\" and \"updated\". Default is \"created\"",
+            "in": "query",
+            "name": "sort",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "sort order, either \"asc\" (ascending) or \"desc\" (descending). Default is \"asc\"",
+            "in": "query",
+            "name": "order",
+            "schema": {
               "type": "string"
             }
           }

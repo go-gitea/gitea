@@ -9,6 +9,7 @@ import (
 	"errors"
 	"net/http"
 
+	"gitea.dev/models/db"
 	issues_model "gitea.dev/models/issues"
 	access_model "gitea.dev/models/perm/access"
 	repo_model "gitea.dev/models/repo"
@@ -22,6 +23,21 @@ import (
 	"gitea.dev/services/convert"
 	issue_service "gitea.dev/services/issue"
 )
+
+var issueCommentOrderByMap = map[string]map[string]db.SearchOrderBy{
+	"asc": {
+		"created": db.SearchOrderBy("comment.created_unix ASC, comment.id ASC"),
+		"updated": db.SearchOrderBy("comment.updated_unix ASC, comment.id ASC"),
+	},
+	"desc": {
+		"created": db.SearchOrderBy("comment.created_unix DESC, comment.id DESC"),
+		"updated": db.SearchOrderBy("comment.updated_unix DESC, comment.id DESC"),
+	},
+}
+
+func getIssueCommentOrderBy(ctx *context.APIContext) (db.SearchOrderBy, bool) {
+	return utils.ResolveSortOrder(ctx, issueCommentOrderByMap, issueCommentOrderByMap["asc"]["created"])
+}
 
 // ListIssueComments list all the comments of an issue
 func ListIssueComments(ctx *context.APIContext) {
@@ -57,6 +73,22 @@ func ListIssueComments(ctx *context.APIContext) {
 	//   description: if provided, only comments updated before the provided time are returned.
 	//   type: string
 	//   format: date-time
+	// - name: page
+	//   in: query
+	//   description: page number of results to return (1-based)
+	//   type: integer
+	// - name: limit
+	//   in: query
+	//   description: page size of results
+	//   type: integer
+	// - name: sort
+	//   in: query
+	//   description: sort comments by attribute. Supported values are "created" and "updated". Default is "created"
+	//   type: string
+	// - name: order
+	//   in: query
+	//   description: sort order, either "asc" (ascending) or "desc" (descending). Default is "asc"
+	//   type: string
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/CommentList"
@@ -66,6 +98,10 @@ func ListIssueComments(ctx *context.APIContext) {
 	before, since, err := context.GetQueryBeforeSince(ctx.Base)
 	if err != nil {
 		ctx.APIError(http.StatusUnprocessableEntity, err)
+		return
+	}
+	orderBy, ok := getIssueCommentOrderBy(ctx)
+	if !ok {
 		return
 	}
 	issue, err := issues_model.GetIssueByIndex(ctx, ctx.Repo.Repository.ID, ctx.PathParamInt64("index"))
@@ -80,11 +116,14 @@ func ListIssueComments(ctx *context.APIContext) {
 
 	issue.Repo = ctx.Repo.Repository
 
+	listOptions := utils.GetListOptions(ctx)
 	opts := &issues_model.FindCommentsOptions{
-		IssueID: issue.ID,
-		Since:   since,
-		Before:  before,
-		Type:    issues_model.CommentTypeComment,
+		ListOptions: listOptions,
+		IssueID:     issue.ID,
+		Since:       since,
+		Before:      before,
+		Type:        issues_model.CommentTypeComment,
+		OrderBy:     orderBy,
 	}
 
 	comments, err := issues_model.FindComments(ctx, opts)
@@ -115,6 +154,7 @@ func ListIssueComments(ctx *context.APIContext) {
 		apiComments[i] = convert.ToAPIComment(ctx, ctx.Repo.Repository, comments[i])
 	}
 
+	ctx.SetLinkHeader(totalCount, listOptions.PageSize)
 	ctx.SetTotalCountHeader(totalCount)
 	ctx.JSON(http.StatusOK, &apiComments)
 }
@@ -266,6 +306,14 @@ func ListRepoIssueComments(ctx *context.APIContext) {
 	//   in: query
 	//   description: page size of results
 	//   type: integer
+	// - name: sort
+	//   in: query
+	//   description: sort comments by attribute. Supported values are "created" and "updated". Default is "created"
+	//   type: string
+	// - name: order
+	//   in: query
+	//   description: sort order, either "asc" (ascending) or "desc" (descending). Default is "asc"
+	//   type: string
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/CommentList"
@@ -275,6 +323,10 @@ func ListRepoIssueComments(ctx *context.APIContext) {
 	before, since, err := context.GetQueryBeforeSince(ctx.Base)
 	if err != nil {
 		ctx.APIError(http.StatusUnprocessableEntity, err)
+		return
+	}
+	orderBy, ok := getIssueCommentOrderBy(ctx)
+	if !ok {
 		return
 	}
 
@@ -292,13 +344,15 @@ func ListRepoIssueComments(ctx *context.APIContext) {
 		return
 	}
 
+	listOptions := utils.GetListOptions(ctx)
 	opts := &issues_model.FindCommentsOptions{
-		ListOptions: utils.GetListOptions(ctx),
+		ListOptions: listOptions,
 		RepoID:      ctx.Repo.Repository.ID,
 		Type:        issues_model.CommentTypeComment,
 		Since:       since,
 		Before:      before,
 		IsPull:      isPull,
+		OrderBy:     orderBy,
 	}
 
 	comments, err := issues_model.FindComments(ctx, opts)
@@ -335,6 +389,7 @@ func ListRepoIssueComments(ctx *context.APIContext) {
 		apiComments[i] = convert.ToAPIComment(ctx, ctx.Repo.Repository, comments[i])
 	}
 
+	ctx.SetLinkHeader(totalCount, listOptions.PageSize)
 	ctx.SetTotalCountHeader(totalCount)
 	ctx.JSON(http.StatusOK, &apiComments)
 }

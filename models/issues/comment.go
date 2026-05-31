@@ -1075,6 +1075,7 @@ type FindCommentsOptions struct {
 	IssueIDs    []int64
 	Invalidated optional.Option[bool]
 	IsPull      optional.Option[bool]
+	OrderBy     db.SearchOrderBy
 }
 
 // ToConds implements FindOptions interface
@@ -1127,11 +1128,14 @@ func FindComments(ctx context.Context, opts *FindCommentsOptions) (CommentList, 
 		db.SetSessionPagination(sess, opts)
 	}
 
-	// WARNING: If you change this order you will need to fix createCodeComment
+	orderBy := opts.OrderBy
+	if orderBy == "" {
+		// WARNING: If you change this order you will need to fix createCodeComment
+		orderBy = db.SearchOrderBy("comment.created_unix ASC, comment.id ASC")
+	}
 
 	return comments, sess.
-		Asc("comment.created_unix").
-		Asc("comment.id").
+		OrderBy(orderBy.String()).
 		Find(&comments)
 }
 
