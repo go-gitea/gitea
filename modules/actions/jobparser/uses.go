@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"path"
 	"regexp"
+	"strconv"
 	"strings"
 )
 
@@ -23,22 +24,23 @@ const (
 
 // UsesRef is the parsed form of a reusable workflow "uses:" value.
 type UsesRef struct {
-	Kind  UsesKind
-	Owner string // empty for UsesKindLocalSameRepo
-	Repo  string // empty for UsesKindLocalSameRepo
-	Path  string // workflow file path inside the source repo
-	Ref   string // git ref; empty for UsesKindLocalSameRepo
+	Kind    UsesKind
+	Owner   string // empty for UsesKindLocalSameRepo
+	Repo    string // empty for UsesKindLocalSameRepo
+	GroupID int64  // empty for UsesKindLocalSameRepo
+	Path    string // workflow file path inside the source repo
+	Ref     string // git ref; empty for UsesKindLocalSameRepo
 }
 
 var (
 	reLocalSameRepo  = regexp.MustCompile(`^\./\.(gitea|github)/workflows/([^@]+\.ya?ml)$`)
-	reLocalCrossRepo = regexp.MustCompile(`^([-.\w]+)/([-.\w]+)/\.(gitea|github)/workflows/([^@]+\.ya?ml)@(.+)$`)
+	reLocalCrossRepo = regexp.MustCompile(`^([-.\w]+)/(?:group/([-.\w]+)/)?([-.\w]+)/\.(gitea|github)/workflows/([^@]+\.ya?ml)@(.+)$`)
 )
 
 // ParseUses parses a reusable workflow "uses:" value.
 // Only two forms are supported:
 //   - "./.gitea/workflows/foo.yml"              (UsesKindLocalSameRepo, no @ref)
-//   - "OWNER/REPO/.gitea/workflows/foo.yml@REF" (UsesKindLocalCrossRepo)
+//   - "OWNER/group/[GROUP_ID/]REPO/.gitea/workflows/foo.yml@REF" (UsesKindLocalCrossRepo)
 func ParseUses(s string) (*UsesRef, error) {
 	s = strings.TrimSpace(s)
 	if s == "" {
@@ -61,15 +63,17 @@ func ParseUses(s string) (*UsesRef, error) {
 	if m == nil {
 		return nil, fmt.Errorf(`invalid cross-repo "uses:" %q (expect owner/repo/.gitea/workflows/<file>.yml@ref)`, s)
 	}
-	p := fmt.Sprintf(".%s/workflows/%s", m[3], m[4])
+	p := fmt.Sprintf(".%s/workflows/%s", m[4], m[5])
 	if path.Clean(p) != p {
 		return nil, fmt.Errorf("invalid workflow path %q", s)
 	}
+	gid, _ := strconv.ParseInt(m[2], 10, 64)
 	return &UsesRef{
-		Kind:  UsesKindLocalCrossRepo,
-		Owner: m[1],
-		Repo:  m[2],
-		Path:  p,
-		Ref:   m[5],
+		Kind:    UsesKindLocalCrossRepo,
+		Owner:   m[1],
+		Repo:    m[3],
+		GroupID: gid,
+		Path:    p,
+		Ref:     m[6],
 	}, nil
 }
