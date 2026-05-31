@@ -11,34 +11,33 @@ import (
 	"net/url"
 	"path"
 	"strconv"
-	"strings"
 	"time"
 
-	actions_model "code.gitea.io/gitea/models/actions"
-	asymkey_model "code.gitea.io/gitea/models/asymkey"
-	"code.gitea.io/gitea/models/auth"
-	"code.gitea.io/gitea/models/db"
-	git_model "code.gitea.io/gitea/models/git"
-	issues_model "code.gitea.io/gitea/models/issues"
-	"code.gitea.io/gitea/models/organization"
-	"code.gitea.io/gitea/models/perm"
-	access_model "code.gitea.io/gitea/models/perm/access"
-	repo_model "code.gitea.io/gitea/models/repo"
-	"code.gitea.io/gitea/models/unit"
-	user_model "code.gitea.io/gitea/models/user"
-	"code.gitea.io/gitea/modules/actions"
-	"code.gitea.io/gitea/modules/container"
-	"code.gitea.io/gitea/modules/git"
-	"code.gitea.io/gitea/modules/httplib"
-	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/setting"
-	api "code.gitea.io/gitea/modules/structs"
-	"code.gitea.io/gitea/modules/util"
-	asymkey_service "code.gitea.io/gitea/services/asymkey"
-	"code.gitea.io/gitea/services/gitdiff"
+	runnerv1 "gitea.dev/actions-proto-go/runner/v1"
+	actions_model "gitea.dev/models/actions"
+	asymkey_model "gitea.dev/models/asymkey"
+	"gitea.dev/models/auth"
+	"gitea.dev/models/db"
+	git_model "gitea.dev/models/git"
+	issues_model "gitea.dev/models/issues"
+	"gitea.dev/models/organization"
+	"gitea.dev/models/perm"
+	access_model "gitea.dev/models/perm/access"
+	repo_model "gitea.dev/models/repo"
+	"gitea.dev/models/unit"
+	user_model "gitea.dev/models/user"
+	"gitea.dev/modules/actions"
+	"gitea.dev/modules/container"
+	"gitea.dev/modules/git"
+	"gitea.dev/modules/httplib"
+	"gitea.dev/modules/log"
+	"gitea.dev/modules/setting"
+	api "gitea.dev/modules/structs"
+	"gitea.dev/modules/util"
+	asymkey_service "gitea.dev/services/asymkey"
+	"gitea.dev/services/gitdiff"
 
-	runnerv1 "code.gitea.io/actions-proto-go/runner/v1"
-	"github.com/nektos/act/pkg/model"
+	"gitea.com/gitea/runner/act/model"
 )
 
 // ToEmail convert models.EmailAddress to api.Email
@@ -149,6 +148,7 @@ func ToBranchProtection(ctx context.Context, bp *git_model.ProtectedBranch, repo
 	forcePushAllowlistUsernames := getWhitelistEntities(readers, bp.ForcePushAllowlistUserIDs)
 	mergeWhitelistUsernames := getWhitelistEntities(readers, bp.MergeWhitelistUserIDs)
 	approvalsWhitelistUsernames := getWhitelistEntities(readers, bp.ApprovalsWhitelistUserIDs)
+	bypassAllowlistUsernames := getWhitelistEntities(readers, bp.BypassAllowlistUserIDs)
 
 	teamReaders, err := organization.GetTeamsWithAccessToAnyRepoUnit(ctx, repo.Owner.ID, repo.ID, perm.AccessModeRead, unit.TypeCode, unit.TypePullRequests)
 	if err != nil {
@@ -159,6 +159,7 @@ func ToBranchProtection(ctx context.Context, bp *git_model.ProtectedBranch, repo
 	forcePushAllowlistTeams := getWhitelistEntities(teamReaders, bp.ForcePushAllowlistTeamIDs)
 	mergeWhitelistTeams := getWhitelistEntities(teamReaders, bp.MergeWhitelistTeamIDs)
 	approvalsWhitelistTeams := getWhitelistEntities(teamReaders, bp.ApprovalsWhitelistTeamIDs)
+	bypassAllowlistTeams := getWhitelistEntities(teamReaders, bp.BypassAllowlistTeamIDs)
 
 	branchName := ""
 	if !git_model.IsRuleNameSpecial(bp.RuleName) {
@@ -182,6 +183,9 @@ func ToBranchProtection(ctx context.Context, bp *git_model.ProtectedBranch, repo
 		EnableMergeWhitelist:          bp.EnableMergeWhitelist,
 		MergeWhitelistUsernames:       mergeWhitelistUsernames,
 		MergeWhitelistTeams:           mergeWhitelistTeams,
+		EnableBypassAllowlist:         bp.EnableBypassAllowlist,
+		BypassAllowlistUsernames:      bypassAllowlistUsernames,
+		BypassAllowlistTeams:          bypassAllowlistTeams,
 		EnableStatusCheck:             bp.EnableStatusCheck,
 		StatusCheckContexts:           bp.StatusCheckContexts,
 		RequiredApprovals:             bp.RequiredApprovals,
@@ -215,7 +219,7 @@ func ToTag(repo *repo_model.Repository, t *git.Tag) *api.Tag {
 
 	return &api.Tag{
 		Name:       t.Name,
-		Message:    strings.TrimSpace(t.Message),
+		Message:    t.MessageUTF8(),
 		ID:         t.ID.String(),
 		Commit:     ToCommitMeta(repo, t),
 		ZipballURL: zipballURL,
@@ -315,33 +319,31 @@ func ToActionWorkflowRun(ctx context.Context, run *actions_model.ActionRun, atte
 	}, nil
 }
 
-func ToWorkflowRunAction(status actions_model.Status) string {
-	var action string
+func ToWorkflowRunAction(status actions_model.Status) (action string) {
 	switch status {
 	case actions_model.StatusWaiting, actions_model.StatusBlocked:
 		action = "requested"
 	case actions_model.StatusRunning:
 		action = "in_progress"
-	}
-	if status.IsDone() {
-		action = "completed"
+	default:
+		if status.IsDone() {
+			action = "completed"
+		} else {
+			setting.PanicInDevOrTesting("unknown action status: %v", status)
+		}
 	}
 	return action
 }
 
-func ToActionsStatus(status actions_model.Status) (string, string) {
-	var action string
-	var conclusion string
+func ToActionsStatus(status actions_model.Status) (action, conclusion string) {
 	switch status {
-	// This is a naming conflict of the webhook between Gitea and GitHub Actions
 	case actions_model.StatusWaiting:
-		action = "queued"
+		action = "queued" // "waiting" is a naming conflict of the webhook between Gitea and GitHub Actions
 	case actions_model.StatusBlocked:
-		action = "waiting"
+		action = "waiting" // naming conflict (as above)
 	case actions_model.StatusRunning:
 		action = "in_progress"
-	}
-	if status.IsDone() {
+	default:
 		action = "completed"
 		switch status {
 		case actions_model.StatusSuccess:
@@ -352,6 +354,8 @@ func ToActionsStatus(status actions_model.Status) (string, string) {
 			conclusion = "failure"
 		case actions_model.StatusSkipped:
 			conclusion = "skipped"
+		default:
+			setting.PanicInDevOrTesting("unknown action status: %v", status)
 		}
 	}
 	return action, conclusion
@@ -391,7 +395,7 @@ func ToActionWorkflowJob(ctx context.Context, repo *repo_model.Repository, task 
 				runnerName = runner.Name
 			}
 			for i, step := range task.Steps {
-				stepStatus, stepConclusion := ToActionsStatus(job.Status)
+				stepStatus, stepConclusion := ToActionsStatus(step.Status)
 				steps = append(steps, &api.ActionWorkflowStep{
 					Name:        step.Name,
 					Number:      int64(i),
@@ -769,7 +773,7 @@ func ToAnnotatedTag(ctx context.Context, repo *repo_model.Repository, t *git.Tag
 		Tag:          t.Name,
 		SHA:          t.ID.String(),
 		Object:       ToAnnotatedTagObject(repo, c),
-		Message:      t.Message,
+		Message:      t.MessageUTF8(),
 		URL:          repo.APIURL() + "/git/tags/" + t.ID.String(),
 		Tagger:       ToCommitUser(t.Tagger),
 		Verification: ToVerification(ctx, c),

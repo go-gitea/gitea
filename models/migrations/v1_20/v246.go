@@ -3,11 +3,9 @@
 
 package v1_20
 
-import (
-	"xorm.io/xorm"
-)
+import "gitea.dev/models/db"
 
-func AddNewColumnForProject(x *xorm.Engine) error {
+func AddNewColumnForProject(x db.EngineMigration) error {
 	type Project struct {
 		OwnerID int64 `xorm:"INDEX"`
 	}

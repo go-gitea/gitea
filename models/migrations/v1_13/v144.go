@@ -4,13 +4,13 @@
 package v1_13
 
 import (
-	"code.gitea.io/gitea/modules/log"
+	"gitea.dev/models/db"
+	"gitea.dev/modules/log"
 
 	"xorm.io/builder"
-	"xorm.io/xorm"
 )
 
-func UpdateMatrixWebhookHTTPMethod(x *xorm.Engine) error {
+func UpdateMatrixWebhookHTTPMethod(x db.EngineMigration) error {
 	matrixHookTaskType := 9 // value comes from the models package
 	type Webhook struct {
 		HTTPMethod string

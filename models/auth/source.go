@@ -9,12 +9,12 @@ import (
 	"fmt"
 	"reflect"
 
-	"code.gitea.io/gitea/models/db"
-	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/optional"
-	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/modules/timeutil"
-	"code.gitea.io/gitea/modules/util"
+	"gitea.dev/models/db"
+	"gitea.dev/modules/log"
+	"gitea.dev/modules/optional"
+	"gitea.dev/modules/setting"
+	"gitea.dev/modules/timeutil"
+	"gitea.dev/modules/util"
 
 	"xorm.io/builder"
 	"xorm.io/xorm"
@@ -100,7 +100,7 @@ var registeredConfigs = map[Type]func() Config{}
 
 // RegisterTypeConfig register a config for a provided type
 func RegisterTypeConfig(typ Type, exemplar Config) {
-	if reflect.TypeOf(exemplar).Kind() == reflect.Ptr {
+	if reflect.TypeOf(exemplar).Kind() == reflect.Pointer {
 		// Pointer:
 		registeredConfigs[typ] = func() Config {
 			return reflect.New(reflect.ValueOf(exemplar).Elem().Type()).Interface().(Config)

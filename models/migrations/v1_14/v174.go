@@ -6,10 +6,10 @@ package v1_14
 import (
 	"fmt"
 
-	"xorm.io/xorm"
+	"gitea.dev/models/db"
 )
 
-func AddRepoTransfer(x *xorm.Engine) error {
+func AddRepoTransfer(x db.EngineMigration) error {
 	type RepoTransfer struct {
 		ID          int64 `xorm:"pk autoincr"`
 		DoerID      int64

@@ -8,18 +8,18 @@ import (
 	"net/http"
 	"strings"
 
-	"code.gitea.io/gitea/models/auth"
-	user_model "code.gitea.io/gitea/models/user"
-	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/modules/templates"
-	"code.gitea.io/gitea/modules/util"
-	"code.gitea.io/gitea/modules/web"
-	auth_service "code.gitea.io/gitea/services/auth"
-	"code.gitea.io/gitea/services/auth/source/oauth2"
-	"code.gitea.io/gitea/services/context"
-	"code.gitea.io/gitea/services/externalaccount"
-	"code.gitea.io/gitea/services/forms"
+	"gitea.dev/models/auth"
+	user_model "gitea.dev/models/user"
+	"gitea.dev/modules/log"
+	"gitea.dev/modules/setting"
+	"gitea.dev/modules/templates"
+	"gitea.dev/modules/util"
+	"gitea.dev/modules/web"
+	auth_service "gitea.dev/services/auth"
+	"gitea.dev/services/auth/source/oauth2"
+	"gitea.dev/services/context"
+	"gitea.dev/services/externalaccount"
+	"gitea.dev/services/forms"
 )
 
 var tplLinkAccount templates.TplName = "user/auth/link_account"
@@ -250,6 +250,11 @@ func LinkAccountPostRegister(ctx *context.Context) {
 
 	if !createAndHandleCreatedUser(ctx, tplLinkAccount, form, u, nil, linkAccountData) {
 		// error already handled
+		return
+	}
+
+	oauth2SignInSync(ctx, linkAccountData.AuthSourceID, u, linkAccountData.GothUser)
+	if ctx.Written() {
 		return
 	}
 

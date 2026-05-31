@@ -8,10 +8,11 @@ import (
 	"net/url"
 	"testing"
 
-	"code.gitea.io/gitea/modules/translation"
-	"code.gitea.io/gitea/tests"
+	"gitea.dev/modules/translation"
+	"gitea.dev/tests"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestViewBranches(t *testing.T) {
@@ -57,9 +58,7 @@ func branchAction(t *testing.T, button string) (*HTMLDoc, string) {
 
 	htmlDoc := NewHTMLParser(t, resp.Body)
 	link, exists := htmlDoc.doc.Find(button).Attr("data-url")
-	if !assert.True(t, exists, "The template has changed") {
-		t.Skip()
-	}
+	require.True(t, exists, "The template has changed")
 
 	req = NewRequest(t, "POST", link)
 	session.MakeRequest(t, req, http.StatusOK)

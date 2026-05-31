@@ -6,10 +6,10 @@ package v1_14
 import (
 	"fmt"
 
-	"xorm.io/xorm"
+	"gitea.dev/models/db"
 )
 
-func AddSortingColToProjectBoard(x *xorm.Engine) error {
+func AddSortingColToProjectBoard(x db.EngineMigration) error {
 	type ProjectBoard struct {
 		Sorting int8 `xorm:"NOT NULL DEFAULT 0"`
 	}

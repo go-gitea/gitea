@@ -13,18 +13,18 @@ import (
 	"strconv"
 	"strings"
 
-	"code.gitea.io/gitea/models/auth"
-	user_model "code.gitea.io/gitea/models/user"
-	"code.gitea.io/gitea/modules/auth/httpauth"
-	"code.gitea.io/gitea/modules/json"
-	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/modules/templates"
-	"code.gitea.io/gitea/modules/web"
-	auth_service "code.gitea.io/gitea/services/auth"
-	"code.gitea.io/gitea/services/context"
-	"code.gitea.io/gitea/services/forms"
-	"code.gitea.io/gitea/services/oauth2_provider"
+	"gitea.dev/models/auth"
+	user_model "gitea.dev/models/user"
+	"gitea.dev/modules/auth/httpauth"
+	"gitea.dev/modules/json"
+	"gitea.dev/modules/log"
+	"gitea.dev/modules/setting"
+	"gitea.dev/modules/templates"
+	"gitea.dev/modules/web"
+	auth_service "gitea.dev/services/auth"
+	"gitea.dev/services/context"
+	"gitea.dev/services/forms"
+	"gitea.dev/services/oauth2_provider"
 
 	"gitea.com/go-chi/binding"
 	jwt "github.com/golang-jwt/jwt/v5"
@@ -561,6 +561,13 @@ func handleRefreshToken(ctx *context.Context, form forms.AccessTokenForm, server
 		})
 		return
 	}
+	if grant.ApplicationID != app.ID {
+		handleAccessTokenError(ctx, oauth2_provider.AccessTokenError{
+			ErrorCode:        oauth2_provider.AccessTokenErrorCodeInvalidGrant,
+			ErrorDescription: "refresh token belongs to a different client",
+		})
+		return
+	}
 
 	// check if token got already used
 	if setting.OAuth2.InvalidateRefreshTokens && (grant.Counter != token.Counter || token.Counter == 0) {
@@ -627,6 +634,13 @@ func handleAuthorizationCode(ctx *context.Context, form forms.AccessTokenForm, s
 		handleAccessTokenError(ctx, oauth2_provider.AccessTokenError{
 			ErrorCode:        oauth2_provider.AccessTokenErrorCodeUnauthorizedClient,
 			ErrorDescription: "failed PKCE code challenge",
+		})
+		return
+	}
+	if authorizationCode.RedirectURI != "" && form.RedirectURI != authorizationCode.RedirectURI {
+		handleAccessTokenError(ctx, oauth2_provider.AccessTokenError{
+			ErrorCode:        oauth2_provider.AccessTokenErrorCodeInvalidGrant,
+			ErrorDescription: "redirect_uri differs from the original authorization request",
 		})
 		return
 	}

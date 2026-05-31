@@ -8,14 +8,14 @@ import (
 	"net/url"
 	"time"
 
-	repo_model "code.gitea.io/gitea/models/repo"
-	user_model "code.gitea.io/gitea/models/user"
-	"code.gitea.io/gitea/modules/git"
-	"code.gitea.io/gitea/modules/gitrepo"
-	"code.gitea.io/gitea/modules/log"
-	api "code.gitea.io/gitea/modules/structs"
-	ctx "code.gitea.io/gitea/services/context"
-	"code.gitea.io/gitea/services/gitdiff"
+	repo_model "gitea.dev/models/repo"
+	user_model "gitea.dev/models/user"
+	"gitea.dev/modules/git"
+	"gitea.dev/modules/gitrepo"
+	"gitea.dev/modules/log"
+	api "gitea.dev/modules/structs"
+	ctx "gitea.dev/services/context"
+	"gitea.dev/services/gitdiff"
 )
 
 // ToCommitUser convert a git.Signature to an api.CommitUser
@@ -56,7 +56,7 @@ func ToPayloadCommit(ctx context.Context, repo *repo_model.Repository, c *git.Co
 
 	return &api.PayloadCommit{
 		ID:      c.ID.String(),
-		Message: c.Message(),
+		Message: c.MessageUTF8(),
 		URL:     repo.HTMLURL() + "/commit/" + c.ID.String(),
 		Author: &api.PayloadUser{
 			Name:     c.Author.Name,
@@ -171,7 +171,7 @@ func ToCommit(ctx context.Context, repo *repo_model.Repository, gitRepo *git.Rep
 				},
 				Date: commit.Committer.When.Format(time.RFC3339),
 			},
-			Message: commit.Message(),
+			Message: commit.MessageUTF8(),
 			Tree: &api.CommitMeta{
 				URL:     repo.APIURL() + "/git/trees/" + url.PathEscape(commit.ID.String()),
 				SHA:     commit.ID.String(),

@@ -8,8 +8,8 @@ import (
 	"path/filepath"
 	"testing"
 
-	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/modules/test"
+	"gitea.dev/modules/setting"
+	"gitea.dev/modules/test"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -54,7 +54,7 @@ func TestGetTagCommitWithSignature(t *testing.T) {
 	assert.NotNil(t, commit)
 	assert.NotNil(t, commit.Signature)
 	// test that signature is not in message
-	assert.Equal(t, "signed-commit\n", commit.CommitMessage)
+	assert.Equal(t, "signed-commit\n", commit.CommitMessage.MessageRaw)
 }
 
 func TestGetCommitWithBadCommitID(t *testing.T) {

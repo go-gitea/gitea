@@ -14,9 +14,9 @@ import (
 	"strings"
 	"time"
 
-	"code.gitea.io/gitea/modules/json"
-	"code.gitea.io/gitea/modules/util"
-	"code.gitea.io/gitea/modules/validation"
+	"gitea.dev/modules/json"
+	"gitea.dev/modules/util"
+	"gitea.dev/modules/validation"
 
 	"github.com/hashicorp/go-version"
 )
@@ -181,10 +181,11 @@ func (u *User) UnmarshalJSON(data []byte) error {
 	return nil
 }
 
-// Repository https://github.com/npm/registry/blob/master/docs/REGISTRY-API.md#version
+// Repository https://docs.npmjs.com/cli/v11/configuring-npm/package-json#repository
 type Repository struct {
-	Type string `json:"type"`
-	URL  string `json:"url"`
+	Type      string `json:"type"`
+	URL       string `json:"url"`
+	Directory string `json:"directory,omitempty"`
 }
 
 // PackageAttachment https://github.com/npm/registry/blob/master/docs/REGISTRY-API.md#package

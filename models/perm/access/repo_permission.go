@@ -11,17 +11,17 @@ import (
 	"slices"
 	"strings"
 
-	actions_model "code.gitea.io/gitea/models/actions"
-	"code.gitea.io/gitea/models/db"
-	"code.gitea.io/gitea/models/organization"
-	perm_model "code.gitea.io/gitea/models/perm"
-	repo_model "code.gitea.io/gitea/models/repo"
-	"code.gitea.io/gitea/models/unit"
-	user_model "code.gitea.io/gitea/models/user"
-	"code.gitea.io/gitea/modules/container"
-	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/modules/util"
+	actions_model "gitea.dev/models/actions"
+	"gitea.dev/models/db"
+	"gitea.dev/models/organization"
+	perm_model "gitea.dev/models/perm"
+	repo_model "gitea.dev/models/repo"
+	"gitea.dev/models/unit"
+	user_model "gitea.dev/models/user"
+	"gitea.dev/modules/container"
+	"gitea.dev/modules/log"
+	"gitea.dev/modules/setting"
+	"gitea.dev/modules/util"
 )
 
 // Permission contains all the permissions related variables to a repository for a user
@@ -654,4 +654,38 @@ func CheckRepoUnitUser(ctx context.Context, repo *repo_model.Repository, user *u
 
 func PermissionNoAccess() Permission {
 	return Permission{AccessMode: perm_model.AccessModeNone}
+}
+
+// CanReadWorkflowCrossRepo checks whether the run can read workflow files from targetRepo.
+func CanReadWorkflowCrossRepo(ctx context.Context, targetRepo *repo_model.Repository, run *actions_model.ActionRun) (bool, error) {
+	if err := run.LoadRepo(ctx); err != nil {
+		return false, err
+	}
+
+	// (1) Same owner: always allowed (fork-PR scrubbing handled inside).
+	if checkSameOwnerCrossRepoAccess(ctx, run.Repo, targetRepo, run.IsForkPullRequest) {
+		return true, nil
+	}
+
+	// (2) Cross-owner: respect the target repo's collaborative-owner allowlist on its Actions unit.
+	// The caller (run.Repo) must itself be private. The collaborative-owner grant is owner-level, so without this
+	// guard a public caller owned by a grantee could pull a private reusable workflow and expose its definition and
+	// logs in a publicly visible run; requiring a private caller keeps private content flowing private -> private.
+	// This is intentionally stricter than GitHub, which gates on the target repo's access setting (introduced in #32562):
+	// https://docs.github.com/en/repositories/managing-your-repositorys-settings-and-features/enabling-features-for-your-repository/managing-github-actions-settings-for-a-repository#allowing-access-to-components-in-a-private-repository
+	if run.Repo.IsPrivate {
+		if actionsUnit, err := targetRepo.GetUnit(ctx, unit.TypeActions); err == nil {
+			if actionsUnit.ActionsConfig().IsCollaborativeOwner(run.Repo.OwnerID) {
+				return true, nil
+			}
+		}
+	}
+
+	// (3) Public target: the Actions user's individual permission gives read on any public repo, so `uses:` to a public reusable-workflow library is permitted by default.
+	// Matches GitHub's behavior: public reusable workflows are universally readable.
+	botPerm, err := GetIndividualUserRepoPermission(ctx, targetRepo, user_model.NewActionsUser())
+	if err != nil {
+		return false, err
+	}
+	return botPerm.AccessMode >= perm_model.AccessModeRead, nil
 }

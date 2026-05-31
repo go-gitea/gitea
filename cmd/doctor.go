@@ -12,16 +12,15 @@ import (
 	"strings"
 	"text/tabwriter"
 
-	"code.gitea.io/gitea/models/db"
-	"code.gitea.io/gitea/models/migrations"
-	migrate_base "code.gitea.io/gitea/models/migrations/base"
-	"code.gitea.io/gitea/modules/container"
-	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/services/doctor"
+	"gitea.dev/models/db"
+	"gitea.dev/models/migrations"
+	migrate_base "gitea.dev/models/migrations/base"
+	"gitea.dev/modules/container"
+	"gitea.dev/modules/log"
+	"gitea.dev/modules/setting"
+	"gitea.dev/services/doctor"
 
 	"github.com/urfave/cli/v3"
-	"xorm.io/xorm"
 )
 
 func newDoctorCommand() *cli.Command {
@@ -132,7 +131,7 @@ func runRecreateTable(ctx context.Context, cmd *cli.Command) error {
 	}
 	recreateTables := migrate_base.RecreateTables(beans...)
 
-	return db.InitEngineWithMigration(context.Background(), func(ctx context.Context, x *xorm.Engine) error {
+	return db.InitEngineWithMigration(context.Background(), func(ctx context.Context, x db.EngineMigration) error {
 		if err := migrations.EnsureUpToDate(ctx, x); err != nil {
 			return err
 		}

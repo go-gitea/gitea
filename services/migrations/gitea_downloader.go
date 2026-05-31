@@ -13,11 +13,10 @@ import (
 	"strings"
 	"time"
 
-	"code.gitea.io/gitea/modules/log"
-	base "code.gitea.io/gitea/modules/migration"
-	"code.gitea.io/gitea/modules/structs"
-
-	gitea_sdk "code.gitea.io/sdk/gitea"
+	"gitea.dev/modules/log"
+	base "gitea.dev/modules/migration"
+	"gitea.dev/modules/structs"
+	gitea_sdk "gitea.dev/sdk"
 )
 
 var (
@@ -67,6 +66,7 @@ func (f *GiteaDownloaderFactory) GitServiceType() structs.GitServiceType {
 // GiteaDownloader implements a Downloader interface to get repository information's
 type GiteaDownloader struct {
 	base.NullDownloader
+	ctx        context.Context
 	client     *gitea_sdk.Client
 	baseURL    string
 	repoOwner  string
@@ -84,7 +84,6 @@ func NewGiteaDownloader(ctx context.Context, baseURL, repoPath, username, passwo
 		baseURL,
 		gitea_sdk.SetToken(token),
 		gitea_sdk.SetBasicAuth(username, password),
-		gitea_sdk.SetContext(ctx),
 		gitea_sdk.SetHTTPClient(NewMigrationHTTPClient()),
 	)
 	if err != nil {
@@ -95,7 +94,7 @@ func NewGiteaDownloader(ctx context.Context, baseURL, repoPath, username, passwo
 	path := strings.Split(repoPath, "/")
 
 	paginationSupport := true
-	if err = giteaClient.CheckServerVersionConstraint(">=1.12"); err != nil {
+	if err = giteaClient.CheckServerVersionConstraint(ctx, ">=1.12"); err != nil {
 		paginationSupport = false
 	}
 
@@ -103,7 +102,7 @@ func NewGiteaDownloader(ctx context.Context, baseURL, repoPath, username, passwo
 	// (default would be 50 but this can differ)
 	maxPerPage := 10
 	// gitea instances >=1.13 can tell us what maximum they have
-	apiConf, _, err := giteaClient.GetGlobalAPISettings()
+	apiConf, _, err := giteaClient.Settings.GetGlobalAPISettings(ctx)
 	if err != nil {
 		log.Info("Unable to get global API settings. Ignoring these.")
 		log.Debug("giteaClient.GetGlobalAPISettings. Error: %v", err)
@@ -113,6 +112,7 @@ func NewGiteaDownloader(ctx context.Context, baseURL, repoPath, username, passwo
 	}
 
 	return &GiteaDownloader{
+		ctx:        ctx,
 		client:     giteaClient,
 		baseURL:    baseURL,
 		repoOwner:  path[0],
@@ -140,7 +140,7 @@ func (g *GiteaDownloader) GetRepoInfo(_ context.Context) (*base.Repository, erro
 		return nil, errors.New("error: GiteaDownloader is nil")
 	}
 
-	repo, _, err := g.client.GetRepo(g.repoOwner, g.repoName)
+	repo, _, err := g.client.Repositories.GetRepo(g.ctx, g.repoOwner, g.repoName)
 	if err != nil {
 		return nil, err
 	}
@@ -159,7 +159,7 @@ func (g *GiteaDownloader) GetRepoInfo(_ context.Context) (*base.Repository, erro
 
 // GetTopics return gitea topics
 func (g *GiteaDownloader) GetTopics(_ context.Context) ([]string, error) {
-	topics, _, err := g.client.ListRepoTopics(g.repoOwner, g.repoName, gitea_sdk.ListRepoTopicsOptions{})
+	topics, _, err := g.client.Repositories.ListRepoTopics(g.ctx, g.repoOwner, g.repoName, gitea_sdk.ListRepoTopicsOptions{})
 	return topics, err
 }
 
@@ -175,7 +175,7 @@ func (g *GiteaDownloader) GetMilestones(ctx context.Context) ([]*base.Milestone,
 		default:
 		}
 
-		ms, _, err := g.client.ListRepoMilestones(g.repoOwner, g.repoName, gitea_sdk.ListMilestoneOption{
+		ms, _, err := g.client.Repositories.ListMilestones(g.ctx, g.repoOwner, g.repoName, gitea_sdk.ListMilestoneOption{
 			ListOptions: gitea_sdk.ListOptions{
 				PageSize: g.maxPerPage,
 				Page:     i,
@@ -240,7 +240,7 @@ func (g *GiteaDownloader) GetLabels(ctx context.Context) ([]*base.Label, error) 
 		default:
 		}
 
-		ls, _, err := g.client.ListRepoLabels(g.repoOwner, g.repoName, gitea_sdk.ListLabelsOptions{ListOptions: gitea_sdk.ListOptions{
+		ls, _, err := g.client.Repositories.ListRepoLabels(g.ctx, g.repoOwner, g.repoName, gitea_sdk.ListLabelsOptions{ListOptions: gitea_sdk.ListOptions{
 			PageSize: g.maxPerPage,
 			Page:     i,
 		}})
@@ -288,7 +288,7 @@ func (g *GiteaDownloader) convertGiteaRelease(rel *gitea_sdk.Release) *base.Rele
 			Created:       asset.Created,
 			DownloadURL:   &asset.DownloadURL,
 			DownloadFunc: func() (io.ReadCloser, error) {
-				asset, _, err := g.client.GetReleaseAttachment(g.repoOwner, g.repoName, rel.ID, assetID)
+				asset, _, err := g.client.Releases.GetReleaseAttachment(g.ctx, g.repoOwner, g.repoName, rel.ID, assetID)
 				if err != nil {
 					return nil, err
 				}
@@ -328,7 +328,7 @@ func (g *GiteaDownloader) GetReleases(ctx context.Context) ([]*base.Release, err
 		default:
 		}
 
-		rl, _, err := g.client.ListReleases(g.repoOwner, g.repoName, gitea_sdk.ListReleasesOptions{ListOptions: gitea_sdk.ListOptions{
+		rl, _, err := g.client.Releases.ListReleases(g.ctx, g.repoOwner, g.repoName, gitea_sdk.ListReleasesOptions{ListOptions: gitea_sdk.ListOptions{
 			PageSize: g.maxPerPage,
 			Page:     i,
 		}})
@@ -347,7 +347,7 @@ func (g *GiteaDownloader) GetReleases(ctx context.Context) ([]*base.Release, err
 }
 
 func (g *GiteaDownloader) getIssueReactions(ctx context.Context, index int64) ([]*base.Reaction, error) {
-	if err := g.client.CheckServerVersionConstraint(">=1.11"); err != nil {
+	if err := g.client.CheckServerVersionConstraint(g.ctx, ">=1.11"); err != nil {
 		log.Info("GiteaDownloader: instance to old, skip getIssueReactions")
 		return nil, nil
 	}
@@ -362,7 +362,7 @@ func (g *GiteaDownloader) getIssueReactions(ctx context.Context, index int64) ([
 		default:
 		}
 
-		reactions, _, err := g.client.ListIssueReactions(g.repoOwner, g.repoName, index, gitea_sdk.ListIssueReactionsOptions{ListOptions: gitea_sdk.ListOptions{
+		reactions, _, err := g.client.Issues.ListIssueReactions(g.ctx, g.repoOwner, g.repoName, index, gitea_sdk.ListIssueReactionsOptions{ListOptions: gitea_sdk.ListOptions{
 			PageSize: g.maxPerPage,
 			Page:     i,
 		}})
@@ -387,11 +387,11 @@ func (g *GiteaDownloader) getIssueReactions(ctx context.Context, index int64) ([
 
 func (g *GiteaDownloader) getCommentReactions(commentID int64) ([]*base.Reaction, error) {
 	var reactions []*base.Reaction
-	if err := g.client.CheckServerVersionConstraint(">=1.11"); err != nil {
+	if err := g.client.CheckServerVersionConstraint(g.ctx, ">=1.11"); err != nil {
 		log.Info("GiteaDownloader: instance to old, skip getCommentReactions")
 		return reactions, nil
 	}
-	rl, _, err := g.client.GetIssueCommentReactions(g.repoOwner, g.repoName, commentID)
+	rl, _, err := g.client.Issues.GetIssueCommentReactions(g.ctx, g.repoOwner, g.repoName, commentID)
 	if err != nil {
 		return nil, err
 	}
@@ -413,7 +413,7 @@ func (g *GiteaDownloader) GetIssues(ctx context.Context, page, perPage int) ([]*
 	}
 	allIssues := make([]*base.Issue, 0, perPage)
 
-	issues, _, err := g.client.ListRepoIssues(g.repoOwner, g.repoName, gitea_sdk.ListIssueOption{
+	issues, _, err := g.client.Issues.ListRepoIssues(g.ctx, g.repoOwner, g.repoName, gitea_sdk.ListIssueOption{
 		ListOptions: gitea_sdk.ListOptions{Page: page, PageSize: perPage},
 		State:       gitea_sdk.StateAll,
 		Type:        gitea_sdk.IssueTypeIssue,
@@ -481,7 +481,7 @@ func (g *GiteaDownloader) GetComments(ctx context.Context, commentable base.Comm
 		default:
 		}
 
-		comments, _, err := g.client.ListIssueComments(g.repoOwner, g.repoName, commentable.GetForeignIndex(), gitea_sdk.ListIssueCommentOptions{ListOptions: gitea_sdk.ListOptions{
+		comments, _, err := g.client.Issues.ListIssueComments(g.ctx, g.repoOwner, g.repoName, commentable.GetForeignIndex(), gitea_sdk.ListIssueCommentOptions{ListOptions: gitea_sdk.ListOptions{
 			PageSize: g.maxPerPage,
 			Page:     i,
 		}})
@@ -522,7 +522,7 @@ func (g *GiteaDownloader) GetPullRequests(ctx context.Context, page, perPage int
 	}
 	allPRs := make([]*base.PullRequest, 0, perPage)
 
-	prs, _, err := g.client.ListRepoPullRequests(g.repoOwner, g.repoName, gitea_sdk.ListPullRequestsOptions{
+	prs, _, err := g.client.PullRequests.ListRepoPullRequests(g.ctx, g.repoOwner, g.repoName, gitea_sdk.ListPullRequestsOptions{
 		ListOptions: gitea_sdk.ListOptions{
 			Page:     page,
 			PageSize: perPage,
@@ -637,7 +637,7 @@ func (g *GiteaDownloader) GetPullRequests(ctx context.Context, page, perPage int
 
 // GetReviews returns pull requests review
 func (g *GiteaDownloader) GetReviews(ctx context.Context, reviewable base.Reviewable) ([]*base.Review, error) {
-	if err := g.client.CheckServerVersionConstraint(">=1.12"); err != nil {
+	if err := g.client.CheckServerVersionConstraint(g.ctx, ">=1.12"); err != nil {
 		log.Info("GiteaDownloader: instance to old, skip GetReviews")
 		return nil, nil
 	}
@@ -652,7 +652,7 @@ func (g *GiteaDownloader) GetReviews(ctx context.Context, reviewable base.Review
 		default:
 		}
 
-		prl, _, err := g.client.ListPullReviews(g.repoOwner, g.repoName, reviewable.GetForeignIndex(), gitea_sdk.ListPullReviewsOptions{ListOptions: gitea_sdk.ListOptions{
+		prl, _, err := g.client.PullRequests.ListPullReviews(g.ctx, g.repoOwner, g.repoName, reviewable.GetForeignIndex(), gitea_sdk.ListPullReviewsOptions{ListOptions: gitea_sdk.ListOptions{
 			Page:     i,
 			PageSize: g.maxPerPage,
 		}})
@@ -667,7 +667,7 @@ func (g *GiteaDownloader) GetReviews(ctx context.Context, reviewable base.Review
 				continue
 			}
 
-			rcl, _, err := g.client.ListPullReviewComments(g.repoOwner, g.repoName, reviewable.GetForeignIndex(), pr.ID)
+			rcl, _, err := g.client.PullRequests.ListPullReviewComments(g.ctx, g.repoOwner, g.repoName, reviewable.GetForeignIndex(), pr.ID)
 			if err != nil {
 				return nil, err
 			}

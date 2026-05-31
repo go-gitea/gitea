@@ -9,15 +9,15 @@ import (
 	"slices"
 	"testing"
 
-	actions_model "code.gitea.io/gitea/models/actions"
-	auth_model "code.gitea.io/gitea/models/auth"
-	"code.gitea.io/gitea/models/db"
-	repo_model "code.gitea.io/gitea/models/repo"
-	"code.gitea.io/gitea/models/unittest"
-	user_model "code.gitea.io/gitea/models/user"
-	api "code.gitea.io/gitea/modules/structs"
-	"code.gitea.io/gitea/modules/timeutil"
-	"code.gitea.io/gitea/tests"
+	actions_model "gitea.dev/models/actions"
+	auth_model "gitea.dev/models/auth"
+	"gitea.dev/models/db"
+	repo_model "gitea.dev/models/repo"
+	"gitea.dev/models/unittest"
+	user_model "gitea.dev/models/user"
+	api "gitea.dev/modules/structs"
+	"gitea.dev/modules/timeutil"
+	"gitea.dev/tests"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -325,6 +325,30 @@ func testAPIActionsListUserWorkflows(t *testing.T) {
 		for _, job := range jobs.Entries {
 			assert.NotEmpty(t, job.Name, "job name should be populated")
 			assert.NotEmpty(t, job.HTMLURL, "html_url should be populated via batch-loaded repo")
+		}
+	})
+
+	t.Run("JobsDefaultOrderAsc", func(t *testing.T) {
+		req := NewRequest(t, "GET", "/api/v1/user/actions/jobs").AddTokenAuth(token)
+		resp := MakeRequest(t, req, http.StatusOK)
+		jobs := DecodeJSON(t, resp, &api.ActionWorkflowJobsResponse{})
+
+		assert.GreaterOrEqual(t, len(jobs.Entries), 2, "need at least 2 jobs to verify ordering")
+		for i := 1; i < len(jobs.Entries); i++ {
+			assert.Less(t, jobs.Entries[i-1].ID, jobs.Entries[i].ID,
+				"jobs should be ordered by ID ascending by default")
+		}
+	})
+
+	t.Run("JobsOrderedByIDDesc", func(t *testing.T) {
+		req := NewRequest(t, "GET", "/api/v1/user/actions/jobs?sort=id&order=desc").AddTokenAuth(token)
+		resp := MakeRequest(t, req, http.StatusOK)
+		jobs := DecodeJSON(t, resp, &api.ActionWorkflowJobsResponse{})
+
+		assert.GreaterOrEqual(t, len(jobs.Entries), 2, "need at least 2 jobs to verify ordering")
+		for i := 1; i < len(jobs.Entries); i++ {
+			assert.Greater(t, jobs.Entries[i-1].ID, jobs.Entries[i].ID,
+				"jobs should be ordered by ID descending")
 		}
 	})
 }

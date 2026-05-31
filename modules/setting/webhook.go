@@ -6,7 +6,7 @@ package setting
 import (
 	"net/url"
 
-	"code.gitea.io/gitea/modules/log"
+	"gitea.dev/modules/log"
 )
 
 // Webhook settings

@@ -6,12 +6,11 @@ package v1_16
 import (
 	"fmt"
 
-	"code.gitea.io/gitea/modules/timeutil"
-
-	"xorm.io/xorm"
+	"gitea.dev/models/db"
+	"gitea.dev/modules/timeutil"
 )
 
-func AddTableIssueContentHistory(x *xorm.Engine) error {
+func AddTableIssueContentHistory(x db.EngineMigration) error {
 	type IssueContentHistory struct {
 		ID             int64 `xorm:"pk autoincr"`
 		PosterID       int64

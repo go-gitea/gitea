@@ -3,9 +3,13 @@
 
 package v1_22
 
-import "xorm.io/xorm"
+import (
+	"gitea.dev/models/db"
 
-func AddCommentIDIndexofAttachment(x *xorm.Engine) error {
+	"xorm.io/xorm"
+)
+
+func AddCommentIDIndexofAttachment(x db.EngineMigration) error {
 	type Attachment struct {
 		CommentID int64 `xorm:"INDEX"`
 	}

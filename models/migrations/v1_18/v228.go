@@ -4,12 +4,11 @@
 package v1_18
 
 import (
-	"code.gitea.io/gitea/modules/timeutil"
-
-	"xorm.io/xorm"
+	"gitea.dev/models/db"
+	"gitea.dev/modules/timeutil"
 )
 
-func AddTeamInviteTable(x *xorm.Engine) error {
+func AddTeamInviteTable(x db.EngineMigration) error {
 	type TeamInvite struct {
 		ID          int64              `xorm:"pk autoincr"`
 		Token       string             `xorm:"UNIQUE(token) INDEX NOT NULL DEFAULT ''"`

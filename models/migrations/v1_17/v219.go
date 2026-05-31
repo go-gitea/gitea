@@ -6,13 +6,12 @@ package v1_17
 import (
 	"time"
 
-	"code.gitea.io/gitea/models/repo"
-	"code.gitea.io/gitea/modules/timeutil"
-
-	"xorm.io/xorm"
+	"gitea.dev/models/db"
+	"gitea.dev/models/repo"
+	"gitea.dev/modules/timeutil"
 )
 
-func AddSyncOnCommitColForPushMirror(x *xorm.Engine) error {
+func AddSyncOnCommitColForPushMirror(x db.EngineMigration) error {
 	type PushMirror struct {
 		ID         int64            `xorm:"pk autoincr"`
 		RepoID     int64            `xorm:"INDEX"`

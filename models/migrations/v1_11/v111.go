@@ -7,10 +7,10 @@ import (
 	"fmt"
 	"slices"
 
-	"xorm.io/xorm"
+	"gitea.dev/models/db"
 )
 
-func AddBranchProtectionCanPushAndEnableWhitelist(x *xorm.Engine) error {
+func AddBranchProtectionCanPushAndEnableWhitelist(x db.EngineMigration) error {
 	type ProtectedBranch struct {
 		CanPush                   bool    `xorm:"NOT NULL DEFAULT false"`
 		EnableApprovalsWhitelist  bool    `xorm:"NOT NULL DEFAULT false"`
@@ -132,7 +132,7 @@ func AddBranchProtectionCanPushAndEnableWhitelist(x *xorm.Engine) error {
 	}
 
 	// getUserRepoPermission static function based on issues_model.IsOfficialReviewer at 5d78792385
-	getUserRepoPermission := func(sess *xorm.Session, repo *Repository, user *User) (Permission, error) {
+	getUserRepoPermission := func(sess db.Session, repo *Repository, user *User) (Permission, error) {
 		var perm Permission
 
 		repoOwner := new(User)
@@ -305,7 +305,7 @@ func AddBranchProtectionCanPushAndEnableWhitelist(x *xorm.Engine) error {
 	}
 
 	// isOfficialReviewer static function based on 5d78792385
-	isOfficialReviewer := func(sess *xorm.Session, issueID int64, reviewer *User) (bool, error) {
+	isOfficialReviewer := func(sess db.Session, issueID int64, reviewer *User) (bool, error) {
 		pr := new(PullRequest)
 		has, err := sess.ID(issueID).Get(pr)
 		if err != nil {
