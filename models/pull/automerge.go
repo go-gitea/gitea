@@ -22,6 +22,7 @@ type AutoMerge struct {
 	MergeStyle             repo_model.MergeStyle `xorm:"varchar(30)"`
 	Message                string                `xorm:"LONGTEXT"`
 	DeleteBranchAfterMerge bool
+	ErrorMessage           string             `xorm:"LONGTEXT"`
 	CreatedUnix            timeutil.TimeStamp `xorm:"created"`
 }
 
@@ -78,6 +79,20 @@ func GetScheduledMergeByPullID(ctx context.Context, pullID int64) (bool, *AutoMe
 
 	scheduledPRM.DoerID, scheduledPRM.Doer, err = user_model.GetPossibleUserByID(ctx, scheduledPRM.DoerID)
 	return true, scheduledPRM, err
+}
+
+// SetScheduledAutoMergeError updates the last auto merge failure message.
+func SetScheduledAutoMergeError(ctx context.Context, pullID int64, message string) error {
+	cnt, err := db.GetEngine(ctx).
+		Where("pull_id = ?", pullID).
+		Cols("error_message").
+		Update(&AutoMerge{ErrorMessage: message})
+	if err != nil {
+		return err
+	} else if cnt == 0 {
+		return db.ErrNotExist{Resource: "auto_merge", ID: pullID}
+	}
+	return nil
 }
 
 // DeleteScheduledAutoMerge delete a scheduled pull request

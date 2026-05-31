@@ -103,6 +103,10 @@ function clearMergeMessage() {
   <div>
     <!-- eslint-disable-next-line vue/no-v-html -->
     <div v-if="mergeForm.hasPendingPullRequestMerge" v-html="mergeForm.hasPendingPullRequestMergeTip" class="ui info message"/>
+    <div v-if="mergeForm.pendingPullRequestMergeError" class="ui negative message auto-merge-error">
+      <div>{{ mergeForm.textAutoMergeFailed }}</div>
+      <pre>{{ mergeForm.pendingPullRequestMergeError }}</pre>
+    </div>
 
     <!-- another similar form is in pull.tmpl (manual merge)-->
     <form class="ui form form-fetch-action" v-if="showActionForm" :action="mergeForm.baseLink+'/merge'" method="post">
@@ -204,6 +208,10 @@ function clearMergeMessage() {
 }
 .ui.checkbox label {
   cursor: pointer;
+}
+.auto-merge-error pre {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
 }
 
 /* make the dropdown list left-aligned */

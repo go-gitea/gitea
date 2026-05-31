@@ -262,9 +262,9 @@ func handlePullRequestAutoMerge(pullID int64, sha string) {
 
 	if err := pull_service.Merge(ctx, pr, doer, scheduledPRM.MergeStyle, "", scheduledPRM.Message, true); err != nil {
 		log.Error("pull_service.Merge: %v", err)
-		// FIXME: if merge failed, we should display some error message to the pull request page.
-		// The resolution is add a new column on automerge table named `error_message` to store the error message and displayed
-		// on the pull request page. But this should not be finished in a bug fix PR which will be backport to release branch.
+		if err := pull_model.SetScheduledAutoMergeError(ctx, pr.ID, err.Error()); err != nil {
+			log.Error("SetScheduledAutoMergeError[%d]: %v", pr.ID, err)
+		}
 		return
 	}
 
