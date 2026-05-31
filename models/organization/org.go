@@ -19,6 +19,7 @@ import (
 	"gitea.dev/modules/util"
 
 	"xorm.io/builder"
+	"xorm.io/xorm"
 )
 
 // ErrOrgNotExist represents a "OrgNotExist" kind of error.
