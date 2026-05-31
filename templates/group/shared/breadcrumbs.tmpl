@@ -1,0 +1,11 @@
+<div class="repo-group-header flex-left-right">
+	<div class="flex-text-block">
+		<div class="flex-text-block tw-flex-wrap tw-text-18">
+			<a class="muted tw-font-normal" href="{{.Group.Owner.HomeLink}}">{{.Group.Owner.Name}}</a>
+			{{- range .Breadcrumbs -}}
+			/<a class="muted{{if eq .ID $.Group.ID}} tw-font-bold active{{else}} tw-font-normal{{end}}"
+					href="{{.GroupLink}}">{{.Name}}</a>
+			{{- end -}}
+		</div>
+	</div>
+</div>
