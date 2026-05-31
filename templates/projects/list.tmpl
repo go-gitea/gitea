@@ -1,4 +1,5 @@
-{{if and $.CanWriteProjects (not $.Repository.IsArchived)}}
+{{$canWriteProject := and $.CanWriteProjects (or (not $.Repository) (and $.CanWriteRepoProjects (not $.Repository.IsArchived)))}}
+{{if $canWriteProject}}
 	<div class="flex-left-right tw-mb-4">
 		<div class="small-menu-items ui compact tiny menu list-header-toggle">
 			<a class="item{{if not .IsShowClosed}} active{{end}}" href="?state=open&q={{$.Keyword}}">
@@ -59,7 +60,7 @@
 						{{ctx.Locale.PrettyNumber .NumClosedIssues}}&nbsp;{{ctx.Locale.Tr "repo.issues.closed_title"}}
 					</div>
 				</div>
-				{{if and $.CanWriteProjects (not $.Repository.IsArchived)}}
+				{{if and $canWriteProject (or (not $.Repository) .IsRepositoryProject)}}
 				<div class="group">
 					<a class="flex-text-inline" href="{{.Link ctx}}/edit">{{svg "octicon-pencil" 14}}{{ctx.Locale.Tr "repo.issues.label_edit"}}</a>
 					{{if .IsClosed}}
@@ -93,7 +94,7 @@
 	{{template "base/paginate" .}}
 </div>
 
-{{if and $.CanWriteProjects (not $.Repository.IsArchived)}}
+{{if $canWriteProject}}
 <div class="ui small modal" id="repo-project-delete-modal">
 	<div class="header">{{svg "octicon-trash"}} {{ctx.Locale.Tr "repo.projects.deletion"}}</div>
 	<div class="content"><p>{{ctx.Locale.Tr "repo.projects.deletion_desc"}}</p></div>

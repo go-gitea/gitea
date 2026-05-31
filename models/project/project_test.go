@@ -8,6 +8,7 @@ import (
 
 	"gitea.dev/models/db"
 	"gitea.dev/models/unittest"
+	"gitea.dev/modules/optional"
 	"gitea.dev/modules/timeutil"
 
 	"github.com/stretchr/testify/assert"
@@ -81,6 +82,36 @@ func TestProject(t *testing.T) {
 	assert.NoError(t, err)
 
 	assert.True(t, projectFromDB.IsClosed)
+}
+
+func TestProjectsSearchScopes(t *testing.T) {
+	assert.NoError(t, unittest.PrepareTestDatabase())
+
+	ownerProject := &Project{
+		Type:         TypeIndividual,
+		TemplateType: TemplateTypeBasicKanban,
+		CardType:     CardTypeTextOnly,
+		Title:        "Owner Project",
+		OwnerID:      2,
+		CreatedUnix:  timeutil.TimeStampNow(),
+		CreatorID:    2,
+	}
+	assert.NoError(t, NewProject(t.Context(), ownerProject))
+
+	projects, count, err := db.FindAndCount[Project](t.Context(), SearchOptions{
+		Scopes: []SearchScope{
+			{RepoID: 1, Type: TypeRepository},
+			{OwnerID: 2, Type: TypeIndividual},
+		},
+		IsClosed: optional.Some(false),
+		OrderBy:  "id ASC",
+	})
+	assert.NoError(t, err)
+	assert.Equal(t, int64(2), count)
+	if assert.Len(t, projects, 2) {
+		assert.Equal(t, int64(1), projects[0].ID)
+		assert.Equal(t, ownerProject.ID, projects[1].ID)
+	}
 }
 
 func TestProjectsSort(t *testing.T) {

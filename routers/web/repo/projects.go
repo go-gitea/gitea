@@ -46,11 +46,33 @@ func MustEnableRepoProjects(ctx *context.Context) {
 
 	if ctx.Repo.Repository != nil {
 		projectsUnit := ctx.Repo.Repository.MustGetUnit(ctx, unit.TypeProjects)
-		if !ctx.Repo.Permission.CanRead(unit.TypeProjects) || !projectsUnit.ProjectsConfig().IsProjectsAllowed(repo_model.ProjectsModeRepo) {
+		if !ctx.Repo.Permission.CanRead(unit.TypeProjects) || len(projectSearchScopesForRepo(ctx.Repo.Repository, projectsUnit)) == 0 {
 			ctx.NotFound(nil)
 			return
 		}
 	}
+}
+
+func projectSearchScopesForRepo(repo *repo_model.Repository, projectsUnit *repo_model.RepoUnit) []project_model.SearchScope {
+	scopes := make([]project_model.SearchScope, 0, 2)
+	projectsConfig := projectsUnit.ProjectsConfig()
+	if projectsConfig.IsProjectsAllowed(repo_model.ProjectsModeRepo) {
+		scopes = append(scopes, project_model.SearchScope{
+			RepoID: repo.ID,
+			Type:   project_model.TypeRepository,
+		})
+	}
+	if projectsConfig.IsProjectsAllowed(repo_model.ProjectsModeOwner) {
+		projectType := project_model.TypeIndividual
+		if repo.Owner.IsOrganization() {
+			projectType = project_model.TypeOrganization
+		}
+		scopes = append(scopes, project_model.SearchScope{
+			OwnerID: repo.OwnerID,
+			Type:    projectType,
+		})
+	}
+	return scopes
 }
 
 // Projects renders the home page of projects
@@ -63,19 +85,17 @@ func Projects(ctx *context.Context) {
 	keyword := ctx.FormTrim("q")
 	repo := ctx.Repo.Repository
 	page := max(ctx.FormInt("page"), 1)
-
-	ctx.Data["OpenCount"] = repo.NumOpenProjects
-	ctx.Data["ClosedCount"] = repo.NumClosedProjects
+	projectsUnit := repo.MustGetUnit(ctx, unit.TypeProjects)
+	projectSearchScopes := projectSearchScopesForRepo(repo, projectsUnit)
 
 	projects, count, err := db.FindAndCount[project_model.Project](ctx, project_model.SearchOptions{
 		ListOptions: db.ListOptions{
 			PageSize: setting.UI.IssuePagingNum,
 			Page:     page,
 		},
-		RepoID:   repo.ID,
+		Scopes:   projectSearchScopes,
 		IsClosed: optional.Some(isShowClosed),
 		OrderBy:  project_model.GetSearchOrderByBySortType(sortType),
-		Type:     project_model.TypeRepository,
 		Title:    keyword,
 	})
 	if err != nil {
@@ -97,6 +117,24 @@ func Projects(ctx *context.Context) {
 		}
 	}
 
+	oppositeStateCount, err := db.Count[project_model.Project](ctx, project_model.SearchOptions{
+		Scopes:   projectSearchScopes,
+		IsClosed: optional.Some(!isShowClosed),
+		Title:    keyword,
+	})
+	if err != nil {
+		ctx.ServerError("CountProjects", err)
+		return
+	}
+
+	if isShowClosed {
+		ctx.Data["OpenCount"] = oppositeStateCount
+		ctx.Data["ClosedCount"] = count
+	} else {
+		ctx.Data["OpenCount"] = count
+		ctx.Data["ClosedCount"] = oppositeStateCount
+	}
+
 	ctx.Data["Projects"] = projects
 
 	if isShowClosed {
@@ -110,6 +148,7 @@ func Projects(ctx *context.Context) {
 	ctx.Data["Page"] = pager
 
 	ctx.Data["CanWriteProjects"] = ctx.Repo.Permission.CanWrite(unit.TypeProjects)
+	ctx.Data["CanWriteRepoProjects"] = ctx.Repo.Permission.CanWrite(unit.TypeProjects) && projectsUnit.ProjectsConfig().IsProjectsAllowed(repo_model.ProjectsModeRepo)
 	ctx.Data["IsShowClosed"] = isShowClosed
 	ctx.Data["IsProjectsPage"] = true
 	ctx.Data["SortType"] = sortType

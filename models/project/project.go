@@ -207,26 +207,62 @@ type SearchOptions struct {
 	db.ListOptions
 	OwnerID  int64
 	RepoID   int64
+	Scopes   []SearchScope
 	IsClosed optional.Option[bool]
 	OrderBy  db.SearchOrderBy
 	Type     Type
 	Title    string
 }
 
+// SearchScope limits project search to one repository or owner project scope.
+type SearchScope struct {
+	OwnerID int64
+	RepoID  int64
+	Type    Type
+}
+
+// ToCond returns the search condition for a single project scope.
+func (scope SearchScope) ToCond() builder.Cond {
+	cond := builder.NewCond()
+	if scope.RepoID > 0 {
+		cond = cond.And(builder.Eq{"repo_id": scope.RepoID})
+	}
+	if scope.OwnerID > 0 {
+		cond = cond.And(builder.Eq{"owner_id": scope.OwnerID})
+	}
+	if scope.Type > 0 {
+		cond = cond.And(builder.Eq{"type": scope.Type})
+	}
+	return cond
+}
+
 func (opts SearchOptions) ToConds() builder.Cond {
 	cond := builder.NewCond()
-	if opts.RepoID > 0 {
-		cond = cond.And(builder.Eq{"repo_id": opts.RepoID})
-	}
-	if opts.IsClosed.Has() {
-		cond = cond.And(builder.Eq{"is_closed": opts.IsClosed.Value()})
+
+	if len(opts.Scopes) > 0 {
+		var scopeCond builder.Cond
+		for i, scope := range opts.Scopes {
+			if i == 0 {
+				scopeCond = scope.ToCond()
+			} else {
+				scopeCond = scopeCond.Or(scope.ToCond())
+			}
+		}
+		cond = cond.And(scopeCond)
+	} else {
+		if opts.RepoID > 0 {
+			cond = cond.And(builder.Eq{"repo_id": opts.RepoID})
+		}
+		if opts.Type > 0 {
+			cond = cond.And(builder.Eq{"type": opts.Type})
+		}
+		if opts.OwnerID > 0 {
+			cond = cond.And(builder.Eq{"owner_id": opts.OwnerID})
+		}
 	}
 
-	if opts.Type > 0 {
-		cond = cond.And(builder.Eq{"type": opts.Type})
-	}
-	if opts.OwnerID > 0 {
-		cond = cond.And(builder.Eq{"owner_id": opts.OwnerID})
+	if opts.IsClosed.Has() {
+		cond = cond.And(builder.Eq{"is_closed": opts.IsClosed.Value()})
 	}
 
 	if len(opts.Title) != 0 {
