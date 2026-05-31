@@ -168,6 +168,7 @@ func loadHeaderCount(ctx *context.Context) error {
 		Actor:              ctx.Doer,
 		OwnerID:            ctx.ContextUser.ID,
 		Private:            ctx.IsSigned,
+		GroupID:            -1,
 		Collaborate:        optional.Some(false),
 		IncludeDescription: setting.UI.SearchRepoDescription,
 	})
