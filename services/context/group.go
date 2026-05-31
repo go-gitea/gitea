@@ -255,7 +255,7 @@ func GroupAssignmentWeb(args GroupAssignmentOptions) func(ctx *Context) {
 			}
 
 			if len(group.Description) != 0 {
-				ctx.Data["RenderedDescription"], err = markdown.RenderString(markup.NewRenderContext(ctx), group.Description)
+				ctx.Data["RenderedGroupDescription"], err = markdown.RenderString(markup.NewRenderContext(ctx), group.Description)
 				if err != nil {
 					ctx.ServerError("RenderString", err)
 					return
