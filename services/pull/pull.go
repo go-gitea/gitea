@@ -830,15 +830,17 @@ func GetSquashMergeCommitMessages(ctx context.Context, pr *issues_model.PullRequ
 	uniqueAuthors := make(container.Set[string])
 	authors := make([]string, 0, len(commits))
 	stringBuilder := strings.Builder{}
+	useCoAuthorSeparator := true
 
 	if !setting.Repository.PullRequest.PopulateSquashCommentWithCommitMessages {
 		// use PR's title and description as squash commit message
 		message := strings.TrimSpace(pr.Issue.Content)
+		messageHasTrailers := commitMessageTrailersPattern.MatchString(message)
+		useCoAuthorSeparator = !messageHasTrailers
 		stringBuilder.WriteString(message)
 		if stringBuilder.Len() > 0 {
 			stringBuilder.WriteRune('\n')
-			if !commitMessageTrailersPattern.MatchString(message) {
-				// TODO: this trailer check doesn't work with the separator line added below for the co-authors
+			if !messageHasTrailers {
 				stringBuilder.WriteRune('\n')
 			}
 		}
@@ -911,8 +913,13 @@ func GetSquashMergeCommitMessages(ctx context.Context, pr *issues_model.PullRequ
 		}
 	}
 
-	if stringBuilder.Len() > 0 && len(authors) > 0 {
-		// TODO: this separator line doesn't work with the trailer check (commitMessageTrailersPattern) above
+	appendCoAuthors(&stringBuilder, authors, useCoAuthorSeparator)
+
+	return stringBuilder.String()
+}
+
+func appendCoAuthors(stringBuilder *strings.Builder, authors []string, useSeparator bool) {
+	if stringBuilder.Len() > 0 && len(authors) > 0 && useSeparator {
 		stringBuilder.WriteString("---------\n\n")
 	}
 
@@ -921,8 +928,6 @@ func GetSquashMergeCommitMessages(ctx context.Context, pr *issues_model.PullRequ
 		stringBuilder.WriteString(author)
 		stringBuilder.WriteRune('\n')
 	}
-
-	return stringBuilder.String()
 }
 
 // GetIssuesAllCommitStatus returns a map of issue ID to a list of all statuses for the most recent commit as well as a map of issue ID to only the commit's latest status

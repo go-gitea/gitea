@@ -5,6 +5,7 @@
 package pull
 
 import (
+	"strings"
 	"testing"
 
 	issues_model "gitea.dev/models/issues"
@@ -33,6 +34,26 @@ func TestPullRequest_CommitMessageTrailersPattern(t *testing.T) {
 	assert.True(t, commitMessageTrailersPattern.MatchString("No space after colon is accepted.\n\nSigned-off-by:Bob <bob@example.com>"))
 	assert.True(t, commitMessageTrailersPattern.MatchString("Additional whitespace is accepted.\n\nSigned-off-by \t :  \tBob   <bob@example.com>   "))
 	assert.True(t, commitMessageTrailersPattern.MatchString("Folded value.\n\nFolded-trailer: This is\n a folded\n   trailer value\nOther-Trailer: Value"))
+}
+
+func TestPullRequest_AppendCoAuthors(t *testing.T) {
+	t.Run("keeps separator when message has no trailers", func(t *testing.T) {
+		stringBuilder := strings.Builder{}
+		stringBuilder.WriteString("Reviewed changes\n\n")
+
+		appendCoAuthors(&stringBuilder, []string{"Alice <alice@example.com>"}, true)
+
+		assert.Equal(t, "Reviewed changes\n\n---------\n\nCo-authored-by: Alice <alice@example.com>\n", stringBuilder.String())
+	})
+
+	t.Run("does not split existing trailers", func(t *testing.T) {
+		stringBuilder := strings.Builder{}
+		stringBuilder.WriteString("Reviewed changes\n\nIssue: TEST-123\n")
+
+		appendCoAuthors(&stringBuilder, []string{"Alice <alice@example.com>"}, false)
+
+		assert.Equal(t, "Reviewed changes\n\nIssue: TEST-123\nCo-authored-by: Alice <alice@example.com>\n", stringBuilder.String())
+	})
 }
 
 func TestPullRequest_GetDefaultMergeMessage_InternalTracker(t *testing.T) {
