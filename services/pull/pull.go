@@ -835,7 +835,13 @@ func GetSquashMergeCommitMessages(ctx context.Context, pr *issues_model.PullRequ
 		// use PR's title and description as squash commit message
 		message := strings.TrimSpace(pr.Issue.Content)
 		stringBuilder.WriteString(message)
-		if stringBuilder.Len() > 0 {
+		additionalCommitMessages := formatSquashMergeCommitMessages(commits, true)
+		if additionalCommitMessages != "" {
+			if stringBuilder.Len() > 0 {
+				stringBuilder.WriteString("\n\n")
+			}
+			stringBuilder.WriteString(additionalCommitMessages)
+		} else if stringBuilder.Len() > 0 {
 			stringBuilder.WriteRune('\n')
 			if !commitMessageTrailersPattern.MatchString(message) {
 				// TODO: this trailer check doesn't work with the separator line added below for the co-authors
@@ -844,32 +850,7 @@ func GetSquashMergeCommitMessages(ctx context.Context, pr *issues_model.PullRequ
 		}
 	} else {
 		// use PR's commit messages as squash commit message
-		// commits list is in reverse chronological order
-		maxMsgSize := setting.Repository.PullRequest.DefaultMergeMessageSize
-		for _, commit := range slices.Backward(commits) {
-			msg := strings.TrimSpace(commit.MessageUTF8())
-			if msg == "" {
-				continue
-			}
-
-			// This format follows GitHub's squash commit message style,
-			// even if there are other "* " in the commit message body, they are written as-is.
-			// Maybe, ideally, we should indent those lines too.
-			_, _ = fmt.Fprintf(&stringBuilder, "* %s\n\n", msg)
-			if maxMsgSize > 0 && stringBuilder.Len() >= maxMsgSize {
-				tmp := stringBuilder.String()
-				wasValidUtf8 := utf8.ValidString(tmp)
-				tmp = tmp[:maxMsgSize] + "..."
-				if wasValidUtf8 {
-					// If the message was valid UTF-8 before truncation, ensure it remains valid after truncation
-					// For non-utf8 messages, we can't do much about it, end users should use utf-8 as much as possible
-					tmp = strings.ToValidUTF8(tmp, "")
-				}
-				stringBuilder.Reset()
-				stringBuilder.WriteString(tmp)
-				break
-			}
-		}
+		stringBuilder.WriteString(formatSquashMergeCommitMessages(commits, false))
 	}
 
 	// collect co-authors
@@ -922,6 +903,42 @@ func GetSquashMergeCommitMessages(ctx context.Context, pr *issues_model.PullRequ
 		stringBuilder.WriteRune('\n')
 	}
 
+	return stringBuilder.String()
+}
+
+func formatSquashMergeCommitMessages(commits []*git.Commit, skipFirst bool) string {
+	// commits list is in reverse chronological order
+	maxMsgSize := setting.Repository.PullRequest.DefaultMergeMessageSize
+	stringBuilder := strings.Builder{}
+	for _, commit := range slices.Backward(commits) {
+		if skipFirst {
+			skipFirst = false
+			continue
+		}
+
+		msg := strings.TrimSpace(commit.MessageUTF8())
+		if msg == "" {
+			continue
+		}
+
+		// This format follows GitHub's squash commit message style,
+		// even if there are other "* " in the commit message body, they are written as-is.
+		// Maybe, ideally, we should indent those lines too.
+		_, _ = fmt.Fprintf(&stringBuilder, "* %s\n\n", msg)
+		if maxMsgSize > 0 && stringBuilder.Len() >= maxMsgSize {
+			tmp := stringBuilder.String()
+			wasValidUtf8 := utf8.ValidString(tmp)
+			tmp = tmp[:maxMsgSize] + "..."
+			if wasValidUtf8 {
+				// If the message was valid UTF-8 before truncation, ensure it remains valid after truncation
+				// For non-utf8 messages, we can't do much about it, end users should use utf-8 as much as possible
+				tmp = strings.ToValidUTF8(tmp, "")
+			}
+			stringBuilder.Reset()
+			stringBuilder.WriteString(tmp)
+			break
+		}
+	}
 	return stringBuilder.String()
 }
 

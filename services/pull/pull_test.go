@@ -11,7 +11,9 @@ import (
 	repo_model "gitea.dev/models/repo"
 	"gitea.dev/models/unit"
 	"gitea.dev/models/unittest"
+	"gitea.dev/modules/git"
 	"gitea.dev/modules/gitrepo"
+	"gitea.dev/modules/setting"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -33,6 +35,29 @@ func TestPullRequest_CommitMessageTrailersPattern(t *testing.T) {
 	assert.True(t, commitMessageTrailersPattern.MatchString("No space after colon is accepted.\n\nSigned-off-by:Bob <bob@example.com>"))
 	assert.True(t, commitMessageTrailersPattern.MatchString("Additional whitespace is accepted.\n\nSigned-off-by \t :  \tBob   <bob@example.com>   "))
 	assert.True(t, commitMessageTrailersPattern.MatchString("Folded value.\n\nFolded-trailer: This is\n a folded\n   trailer value\nOther-Trailer: Value"))
+}
+
+func TestPullRequest_FormatSquashMergeCommitMessages(t *testing.T) {
+	oldestCommit := &git.Commit{CommitMessage: git.CommitMessage{MessageRaw: "commit msg 1"}}
+	newestCommit := &git.Commit{CommitMessage: git.CommitMessage{MessageRaw: "commit msg 2\n\nCommit description."}}
+
+	defer func(oldSize int) {
+		setting.Repository.PullRequest.DefaultMergeMessageSize = oldSize
+	}(setting.Repository.PullRequest.DefaultMergeMessageSize)
+	setting.Repository.PullRequest.DefaultMergeMessageSize = 0
+
+	assert.Equal(t, `* commit msg 1
+
+* commit msg 2
+
+Commit description.
+
+`, formatSquashMergeCommitMessages([]*git.Commit{newestCommit, oldestCommit}, false))
+	assert.Equal(t, `* commit msg 2
+
+Commit description.
+
+`, formatSquashMergeCommitMessages([]*git.Commit{newestCommit, oldestCommit}, true))
 }
 
 func TestPullRequest_GetDefaultMergeMessage_InternalTracker(t *testing.T) {
