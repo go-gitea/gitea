@@ -840,11 +840,13 @@ func GetSquashMergeCommitMessages(ctx context.Context, pr *issues_model.PullRequ
 		message := strings.TrimSpace(pr.Issue.Content)
 		messageHasTrailers := commitMessageTrailersPattern.MatchString(message)
 		stringBuilder.WriteString(message)
+		// FIXME: is it right? why `len(commits)-1)`?
 		additionalCommitMessages := formatSquashMergeCommitMessages(commits[:max(0, len(commits)-1)])
 		if additionalCommitMessages != "" {
 			if stringBuilder.Len() > 0 {
 				stringBuilder.WriteString("\n\n")
 			}
+			// FIXME: is it right? what if `pr.Issue.Content` contains trailers?
 			stringBuilder.WriteString(additionalCommitMessages)
 			// appended bullets push the PR-description trailers (if any) out of the trailer-block position
 		} else if stringBuilder.Len() > 0 {
@@ -930,8 +932,7 @@ func formatSquashMergeCommitMessages(commits []*git.Commit) string {
 		}
 	}
 
-	buf := sb.Bytes()
-	buf = bytes.TrimSpace(buf)
+	buf := bytes.TrimSpace(sb.Bytes())
 	if maxMsgSize > 0 && len(buf) > maxMsgSize {
 		buf = buf[:maxMsgSize]
 		for {
