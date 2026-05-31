@@ -575,6 +575,20 @@ func (p *WorkflowDispatchPayload) JSONPayload() ([]byte, error) {
 	return json.MarshalIndent(p, "", "  ")
 }
 
+// WorkflowCallPayload is persisted on a reusable workflow caller job's CallPayload field.
+type WorkflowCallPayload struct {
+	Workflow   string         `json:"workflow"`
+	Ref        string         `json:"ref"`
+	Inputs     map[string]any `json:"inputs"`
+	Repository *Repository    `json:"repository"`
+	Sender     *User          `json:"sender"`
+}
+
+// JSONPayload implements Payload
+func (p *WorkflowCallPayload) JSONPayload() ([]byte, error) {
+	return json.MarshalIndent(p, "", "  ")
+}
+
 // CommitStatusPayload represents a payload information of commit status event.
 type CommitStatusPayload struct {
 	// TODO: add Branches per https://docs.github.com/en/webhooks/webhook-events-and-payloads#status
