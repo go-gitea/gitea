@@ -700,11 +700,10 @@ func EditPullRequest(ctx *context.APIContext) {
 			deadlineUnix = timeutil.TimeStamp(deadline.Unix())
 		}
 
-		if err := issues_model.UpdateIssueDeadline(ctx, issue, deadlineUnix, ctx.Doer); err != nil {
+		if err := issue_service.ChangeDeadline(ctx, issue, ctx.Doer, deadlineUnix); err != nil {
 			ctx.APIErrorInternal(err)
 			return
 		}
-		issue.DeadlineUnix = deadlineUnix
 	}
 
 	// Add/delete assignees

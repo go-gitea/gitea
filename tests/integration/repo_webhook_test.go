@@ -19,6 +19,7 @@ import (
 	actions_model "gitea.dev/models/actions"
 	auth_model "gitea.dev/models/auth"
 	db_model "gitea.dev/models/db"
+	issues_model "gitea.dev/models/issues"
 	"gitea.dev/models/perm"
 	"gitea.dev/models/repo"
 	"gitea.dev/models/unittest"
@@ -31,6 +32,7 @@ import (
 	"gitea.dev/modules/setting"
 	api "gitea.dev/modules/structs"
 	"gitea.dev/modules/test"
+	"gitea.dev/modules/timeutil"
 	webhook_module "gitea.dev/modules/webhook"
 	"gitea.dev/services/actions"
 	"gitea.dev/tests"
@@ -524,6 +526,47 @@ func Test_WebhookIssue(t *testing.T) {
 		assert.Equal(t, "Description1", payloads[0].Issue.Body)
 		assert.Positive(t, payloads[0].Issue.Created.Unix())
 		assert.Positive(t, payloads[0].Issue.Updated.Unix())
+	})
+}
+
+func Test_WebhookIssueDeadline(t *testing.T) {
+	onGiteaRun(t, func(t *testing.T, giteaURL *url.URL) {
+		var payloads []api.IssuePayload
+		var triggeredEvent string
+		provider := newMockWebhookProvider(func(r *http.Request) {
+			content, _ := io.ReadAll(r.Body)
+			var payload api.IssuePayload
+			err := json.Unmarshal(content, &payload)
+			assert.NoError(t, err)
+			payloads = append(payloads, payload)
+			triggeredEvent = "issues"
+		}, http.StatusOK)
+		defer provider.Close()
+
+		session := loginUser(t, "user2")
+		repo1 := unittest.AssertExistsAndLoadBean(t, &repo.Repository{ID: 1})
+		issueBefore := unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{RepoID: repo1.ID, Index: 1})
+		issueBefore.DeadlineUnix = timeutil.TimeStamp(time.Date(2025, time.January, 2, 23, 59, 59, 0, time.UTC).Unix())
+		require.NoError(t, issues_model.UpdateIssueCols(t.Context(), issueBefore, "deadline_unix"))
+		oldDeadline := issueBefore.DeadlineUnix.Format(time.RFC3339)
+		testAPICreateWebhookForRepo(t, session, "user2", "repo1", provider.URL(), "issues")
+
+		req := NewRequestWithValues(t, "POST", fmt.Sprintf("%s/issues/%d/deadline", repo1.Link(), issueBefore.Index), map[string]string{
+			"deadline": "2026-01-02",
+		})
+		session.MakeRequest(t, req, http.StatusOK)
+
+		assert.Equal(t, "issues", triggeredEvent)
+		require.Len(t, payloads, 1)
+		assert.Equal(t, api.HookIssueEdited, payloads[0].Action)
+		assert.Equal(t, issueBefore.Index, payloads[0].Index)
+		assert.Equal(t, "repo1", payloads[0].Issue.Repo.Name)
+		assert.Equal(t, "user2/repo1", payloads[0].Issue.Repo.FullName)
+		require.NotNil(t, payloads[0].Issue.Deadline)
+		assert.Equal(t, "2026-01-02", payloads[0].Issue.Deadline.Format("2006-01-02"))
+		require.NotNil(t, payloads[0].Changes)
+		require.NotNil(t, payloads[0].Changes.Deadline)
+		assert.Equal(t, oldDeadline, payloads[0].Changes.Deadline.From)
 	})
 }
 

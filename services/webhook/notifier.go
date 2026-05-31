@@ -6,6 +6,7 @@ package webhook
 import (
 	"context"
 	"errors"
+	"time"
 
 	actions_model "gitea.dev/models/actions"
 	git_model "gitea.dev/models/git"
@@ -23,6 +24,7 @@ import (
 	"gitea.dev/modules/repository"
 	"gitea.dev/modules/setting"
 	api "gitea.dev/modules/structs"
+	"gitea.dev/modules/timeutil"
 	"gitea.dev/modules/util"
 	webhook_module "gitea.dev/modules/webhook"
 	"gitea.dev/services/convert"
@@ -401,6 +403,52 @@ func (m *webhookNotifier) IssueChangeContent(ctx context.Context, doer *user_mod
 	if err != nil {
 		log.Error("PrepareWebhooks [is_pull: %v]: %v", issue.IsPull, err)
 	}
+}
+
+func (m *webhookNotifier) IssueChangeDeadline(ctx context.Context, doer *user_model.User, issue *issues_model.Issue, oldDeadlineUnix timeutil.TimeStamp) {
+	if err := issue.LoadRepo(ctx); err != nil {
+		log.Error("LoadRepo: %v", err)
+		return
+	}
+
+	changes := &api.ChangesPayload{
+		Deadline: deadlineChangeFromPayload(oldDeadlineUnix),
+	}
+	permission, _ := access_model.GetIndividualUserRepoPermission(ctx, issue.Repo, issue.Poster)
+	var err error
+	if issue.IsPull {
+		if err := issue.LoadPullRequest(ctx); err != nil {
+			log.Error("LoadPullRequest: %v", err)
+			return
+		}
+		err = PrepareWebhooks(ctx, EventSource{Repository: issue.Repo}, webhook_module.HookEventPullRequest, &api.PullRequestPayload{
+			Action:      api.HookIssueEdited,
+			Index:       issue.Index,
+			Changes:     changes,
+			PullRequest: convert.ToAPIPullRequest(ctx, issue.PullRequest, doer),
+			Repository:  convert.ToRepo(ctx, issue.Repo, permission),
+			Sender:      convert.ToUser(ctx, doer, nil),
+		})
+	} else {
+		err = PrepareWebhooks(ctx, EventSource{Repository: issue.Repo}, webhook_module.HookEventIssues, &api.IssuePayload{
+			Action:     api.HookIssueEdited,
+			Index:      issue.Index,
+			Changes:    changes,
+			Issue:      convert.ToAPIIssue(ctx, doer, issue),
+			Repository: convert.ToRepo(ctx, issue.Repo, permission),
+			Sender:     convert.ToUser(ctx, doer, nil),
+		})
+	}
+	if err != nil {
+		log.Error("PrepareWebhooks [is_pull: %v]: %v", issue.IsPull, err)
+	}
+}
+
+func deadlineChangeFromPayload(deadlineUnix timeutil.TimeStamp) *api.ChangesFromPayload {
+	if deadlineUnix.IsZero() {
+		return &api.ChangesFromPayload{}
+	}
+	return &api.ChangesFromPayload{From: deadlineUnix.Format(time.RFC3339)}
 }
 
 func (m *webhookNotifier) UpdateComment(ctx context.Context, doer *user_model.User, c *issues_model.Comment, oldContent string) {

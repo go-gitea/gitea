@@ -15,6 +15,7 @@ import (
 	"gitea.dev/modules/log"
 	"gitea.dev/modules/repository"
 	"gitea.dev/modules/setting"
+	"gitea.dev/modules/timeutil"
 	notify_service "gitea.dev/services/notify"
 )
 
@@ -140,6 +141,10 @@ func (r *indexerNotifier) IssueChangeAssignee(ctx context.Context, doer *user_mo
 }
 
 func (r *indexerNotifier) IssueChangeMilestone(ctx context.Context, doer *user_model.User, issue *issues_model.Issue, oldMilestoneID int64) {
+	issue_indexer.UpdateIssueIndexer(ctx, issue.ID)
+}
+
+func (r *indexerNotifier) IssueChangeDeadline(ctx context.Context, doer *user_model.User, issue *issues_model.Issue, oldDeadlineUnix timeutil.TimeStamp) {
 	issue_indexer.UpdateIssueIndexer(ctx, issue.ID)
 }
 

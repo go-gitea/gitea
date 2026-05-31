@@ -15,6 +15,7 @@ import (
 	"gitea.dev/modules/git"
 	"gitea.dev/modules/log"
 	"gitea.dev/modules/repository"
+	"gitea.dev/modules/timeutil"
 )
 
 var notifiers []Notifier
@@ -220,6 +221,13 @@ func DeleteRelease(ctx context.Context, doer *user_model.User, rel *repo_model.R
 func IssueChangeMilestone(ctx context.Context, doer *user_model.User, issue *issues_model.Issue, oldMilestoneID int64) {
 	for _, notifier := range notifiers {
 		notifier.IssueChangeMilestone(ctx, doer, issue, oldMilestoneID)
+	}
+}
+
+// IssueChangeDeadline notifies change deadline to notifiers
+func IssueChangeDeadline(ctx context.Context, doer *user_model.User, issue *issues_model.Issue, oldDeadlineUnix timeutil.TimeStamp) {
+	for _, notifier := range notifiers {
+		notifier.IssueChangeDeadline(ctx, doer, issue, oldDeadlineUnix)
 	}
 }
 

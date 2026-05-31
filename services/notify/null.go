@@ -14,6 +14,7 @@ import (
 	user_model "gitea.dev/models/user"
 	"gitea.dev/modules/git"
 	"gitea.dev/modules/repository"
+	"gitea.dev/modules/timeutil"
 )
 
 // NullNotifier implements a blank notifier
@@ -112,6 +113,10 @@ func (*NullNotifier) DeleteRelease(ctx context.Context, doer *user_model.User, r
 
 // IssueChangeMilestone places a place holder function
 func (*NullNotifier) IssueChangeMilestone(ctx context.Context, doer *user_model.User, issue *issues_model.Issue, oldMilestoneID int64) {
+}
+
+// IssueChangeDeadline places a place holder function
+func (*NullNotifier) IssueChangeDeadline(ctx context.Context, doer *user_model.User, issue *issues_model.Issue, oldDeadlineUnix timeutil.TimeStamp) {
 }
 
 // IssueChangeContent places a place holder function

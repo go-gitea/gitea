@@ -6,6 +6,7 @@ package actions
 import (
 	"context"
 	"errors"
+	"time"
 
 	actions_model "gitea.dev/models/actions"
 	issues_model "gitea.dev/models/issues"
@@ -21,6 +22,7 @@ import (
 	"gitea.dev/modules/repository"
 	"gitea.dev/modules/setting"
 	api "gitea.dev/modules/structs"
+	"gitea.dev/modules/timeutil"
 	"gitea.dev/modules/util"
 	webhook_module "gitea.dev/modules/webhook"
 	"gitea.dev/services/convert"
@@ -71,11 +73,30 @@ func (n *actionsNotifier) IssueChangeTitle(ctx context.Context, doer *user_model
 	n.notifyIssueChangeWithTitleOrContent(ctx, doer, issue)
 }
 
-func (n *actionsNotifier) notifyIssueChangeWithTitleOrContent(ctx context.Context, doer *user_model.User, issue *issues_model.Issue) {
+func (n *actionsNotifier) IssueChangeDeadline(ctx context.Context, doer *user_model.User, issue *issues_model.Issue, oldDeadlineUnix timeutil.TimeStamp) {
+	ctx = withMethod(ctx, "IssueChangeDeadline")
+	n.notifyIssueChangeWithTitleOrContent(ctx, doer, issue, &api.ChangesPayload{
+		Deadline: deadlineChangeFromPayload(oldDeadlineUnix),
+	})
+}
+
+func deadlineChangeFromPayload(deadlineUnix timeutil.TimeStamp) *api.ChangesFromPayload {
+	if deadlineUnix.IsZero() {
+		return &api.ChangesFromPayload{}
+	}
+	return &api.ChangesFromPayload{From: deadlineUnix.Format(time.RFC3339)}
+}
+
+func (n *actionsNotifier) notifyIssueChangeWithTitleOrContent(ctx context.Context, doer *user_model.User, issue *issues_model.Issue, changes ...*api.ChangesPayload) {
 	var err error
 	if err = issue.LoadRepo(ctx); err != nil {
 		log.Error("LoadRepo: %v", err)
 		return
+	}
+
+	var changePayload *api.ChangesPayload
+	if len(changes) > 0 {
+		changePayload = changes[0]
 	}
 
 	permission, _ := access_model.GetIndividualUserRepoPermission(ctx, issue.Repo, issue.Poster)
@@ -89,6 +110,7 @@ func (n *actionsNotifier) notifyIssueChangeWithTitleOrContent(ctx context.Contex
 			WithPayload(&api.PullRequestPayload{
 				Action:      api.HookIssueEdited,
 				Index:       issue.Index,
+				Changes:     changePayload,
 				PullRequest: convert.ToAPIPullRequest(ctx, issue.PullRequest, nil),
 				Repository:  convert.ToRepo(ctx, issue.Repo, access_model.Permission{AccessMode: perm_model.AccessModeNone}),
 				Sender:      convert.ToUser(ctx, doer, nil),
@@ -102,6 +124,7 @@ func (n *actionsNotifier) notifyIssueChangeWithTitleOrContent(ctx context.Contex
 		WithPayload(&api.IssuePayload{
 			Action:     api.HookIssueEdited,
 			Index:      issue.Index,
+			Changes:    changePayload,
 			Issue:      convert.ToAPIIssue(ctx, doer, issue),
 			Repository: convert.ToRepo(ctx, issue.Repo, permission),
 			Sender:     convert.ToUser(ctx, doer, nil),

@@ -422,6 +422,8 @@ type ChangesPayload struct {
 	Title *ChangesFromPayload `json:"title,omitempty"`
 	// Changes made to the body/description
 	Body *ChangesFromPayload `json:"body,omitempty"`
+	// Changes made to the due date
+	Deadline *ChangesFromPayload `json:"due_date,omitempty"`
 	// Changes made to the reference
 	Ref *ChangesFromPayload `json:"ref,omitempty"`
 	// Changes made to the labels added
