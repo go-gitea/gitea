@@ -5,18 +5,17 @@ package repo
 
 import (
 	"errors"
-	"fmt"
 	"net/http"
 
-	issues_model "code.gitea.io/gitea/models/issues"
-	access_model "code.gitea.io/gitea/models/perm/access"
-	repo_model "code.gitea.io/gitea/models/repo"
-	user_model "code.gitea.io/gitea/models/user"
-	api "code.gitea.io/gitea/modules/structs"
-	"code.gitea.io/gitea/modules/web"
-	"code.gitea.io/gitea/services/context"
-	"code.gitea.io/gitea/services/convert"
-	issue_service "code.gitea.io/gitea/services/issue"
+	issues_model "gitea.dev/models/issues"
+	access_model "gitea.dev/models/perm/access"
+	user_model "gitea.dev/models/user"
+	api "gitea.dev/modules/structs"
+	"gitea.dev/modules/util"
+	"gitea.dev/modules/web"
+	"gitea.dev/services/context"
+	"gitea.dev/services/convert"
+	issue_service "gitea.dev/services/issue"
 )
 
 // AddIssueAssignees add assignees to an issue
@@ -145,12 +144,12 @@ func CheckIssueAssignee(ctx *context.APIContext) {
 	//     "$ref": "#/responses/notFound"
 
 	issue, err := issues_model.GetIssueByIndex(ctx, ctx.Repo.Repository.ID, ctx.PathParamInt64("index"))
-	if err != nil {
-		if issues_model.IsErrIssueNotExist(err) {
-			ctx.APIErrorNotFound()
-		} else {
-			ctx.APIErrorInternal(err)
-		}
+	switch {
+	case errors.Is(err, util.ErrNotExist):
+		ctx.APIErrorNotFound()
+		return
+	case err != nil:
+		ctx.APIErrorInternal(err)
 		return
 	}
 
@@ -160,24 +159,25 @@ func CheckIssueAssignee(ctx *context.APIContext) {
 	}
 
 	assignee, err := user_model.GetUserByName(ctx, ctx.PathParam("assignee"))
-	if err != nil {
-		if user_model.IsErrUserNotExist(err) {
-			ctx.APIErrorNotFound()
-		} else {
-			ctx.APIErrorInternal(err)
-		}
+	switch {
+	case errors.Is(err, util.ErrNotExist):
+		ctx.APIErrorNotFound()
+		return
+	case err != nil:
+		ctx.APIErrorInternal(err)
 		return
 	}
 
 	canAssign, err := access_model.CanBeAssigned(ctx, assignee, ctx.Repo.Repository)
-	if err != nil {
-		if errors.Is(err, access_model.ErrOrganizationNotAssignee) {
-			ctx.APIErrorNotFound()
-		} else {
-			ctx.APIErrorInternal(err)
-		}
+	switch {
+	case errors.Is(err, util.ErrInvalidArgument):
+		ctx.APIError(http.StatusBadRequest, err)
+		return
+	case err != nil:
+		ctx.APIErrorInternal(err)
 		return
 	}
+
 	if !canAssign {
 		ctx.APIErrorNotFound()
 		return
@@ -188,12 +188,12 @@ func CheckIssueAssignee(ctx *context.APIContext) {
 
 func updateIssueAssignees(ctx *context.APIContext, opts api.IssueAssigneesOption, isAdd bool) {
 	issue, err := issues_model.GetIssueByIndex(ctx, ctx.Repo.Repository.ID, ctx.PathParamInt64("index"))
-	if err != nil {
-		if issues_model.IsErrIssueNotExist(err) {
-			ctx.APIErrorNotFound()
-		} else {
-			ctx.APIErrorInternal(err)
-		}
+	switch {
+	case errors.Is(err, util.ErrNotExist):
+		ctx.APIErrorNotFound()
+		return
+	case err != nil:
+		ctx.APIErrorInternal(err)
 		return
 	}
 
@@ -208,13 +208,12 @@ func updateIssueAssignees(ctx *context.APIContext, opts api.IssueAssigneesOption
 	}
 
 	assigneeIDs, err := user_model.GetUserIDsByNames(ctx, opts.Assignees, false)
-	if err != nil {
-		var userNotExistErr user_model.ErrUserNotExist
-		if errors.As(err, &userNotExistErr) {
-			ctx.APIError(http.StatusUnprocessableEntity, fmt.Sprintf("Assignee does not exist: [name: %s]", userNotExistErr.Name))
-		} else {
-			ctx.APIErrorInternal(err)
-		}
+	switch {
+	case errors.Is(err, util.ErrNotExist):
+		ctx.APIError(http.StatusUnprocessableEntity, err)
+		return
+	case err != nil:
+		ctx.APIErrorInternal(err)
 		return
 	}
 
@@ -228,11 +227,11 @@ func updateIssueAssignees(ctx *context.APIContext, opts api.IssueAssigneesOption
 	case errors.Is(err, user_model.ErrBlockedUser):
 		ctx.APIError(http.StatusForbidden, err)
 		return
-	case errors.Is(err, access_model.ErrOrganizationNotAssignee):
-		ctx.APIError(http.StatusUnprocessableEntity, err)
+	case errors.Is(err, util.ErrPermissionDenied):
+		ctx.APIError(http.StatusForbidden, err)
 		return
-	case repo_model.IsErrUserDoesNotHaveAccessToRepo(err):
-		ctx.APIError(http.StatusUnprocessableEntity, err)
+	case errors.Is(err, util.ErrInvalidArgument):
+		ctx.APIError(http.StatusBadRequest, err)
 		return
 	case err != nil:
 		ctx.APIErrorInternal(err)

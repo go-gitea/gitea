@@ -14,6 +14,7 @@ import (
 	repo_model "gitea.dev/models/repo"
 	user_model "gitea.dev/models/user"
 	api "gitea.dev/modules/structs"
+	"gitea.dev/modules/util"
 	"gitea.dev/modules/web"
 	"gitea.dev/routers/api/v1/utils"
 	"gitea.dev/services/context"
@@ -401,22 +402,22 @@ func CheckRepoIssueAssignee(ctx *context.APIContext) {
 	//     "$ref": "#/responses/notFound"
 
 	assignee, err := user_model.GetUserByName(ctx, ctx.PathParam("assignee"))
-	if err != nil {
-		if user_model.IsErrUserNotExist(err) {
-			ctx.APIErrorNotFound()
-		} else {
-			ctx.APIErrorInternal(err)
-		}
+	switch {
+	case errors.Is(err, util.ErrNotExist):
+		ctx.APIErrorNotFound()
+		return
+	case err != nil:
+		ctx.APIErrorInternal(err)
 		return
 	}
 
 	canAssign, err := access_model.CanBeAssigned(ctx, assignee, ctx.Repo.Repository)
-	if err != nil {
-		if errors.Is(err, access_model.ErrOrganizationNotAssignee) {
-			ctx.APIErrorNotFound()
-		} else {
-			ctx.APIErrorInternal(err)
-		}
+	switch {
+	case errors.Is(err, util.ErrInvalidArgument):
+		ctx.APIError(http.StatusBadRequest, err)
+		return
+	case err != nil:
+		ctx.APIErrorInternal(err)
 		return
 	}
 
