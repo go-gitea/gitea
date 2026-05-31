@@ -17,6 +17,7 @@ import (
 	unit_model "gitea.dev/models/unit"
 	user_model "gitea.dev/models/user"
 	"gitea.dev/modules/git"
+	"gitea.dev/modules/git/gitcmd"
 	"gitea.dev/modules/gitrepo"
 	"gitea.dev/modules/indexer/code"
 	issue_indexer "gitea.dev/modules/indexer/issues"
@@ -136,6 +137,18 @@ func preparePullRequestSettings(ctx *context.Context) {
 // Settings show a repository's settings page
 func Settings(ctx *context.Context) {
 	ctx.HTML(http.StatusOK, tplSettingsOptions)
+}
+
+// GitGC runs garbage collection on the current repository.
+func GitGC(ctx *context.Context) {
+	if err := repo_service.GitGcRepo(ctx, ctx.Repo.Repository, time.Duration(setting.Git.Timeout.GC)*time.Second, gitcmd.ToTrustedCmdArgs(setting.Git.GCArgs)); err != nil {
+		ctx.Flash.Error(ctx.Tr("repo.settings.git_gc_failed", err))
+		ctx.JSONRedirect(ctx.Repo.RepoLink + "/settings")
+		return
+	}
+
+	ctx.Flash.Success(ctx.Tr("repo.settings.git_gc_success"))
+	ctx.JSONRedirect(ctx.Repo.RepoLink + "/settings")
 }
 
 // SettingsPost response for changes of a repository

@@ -1154,6 +1154,7 @@ func registerWebRoutes(m *web.Router, webAuth *AuthMiddleware) {
 		}, repo_setting.SettingsCtxData)
 		m.Post("/avatar", web.Bind(forms.AvatarForm{}), repo_setting.SettingsAvatar)
 		m.Post("/avatar/delete", repo_setting.SettingsDeleteAvatar)
+		m.Post("/git-gc", context.RepoMustNotBeArchived(), repo_setting.GitGC)
 
 		m.Combo("/public_access").Get(repo_setting.PublicAccess).Post(repo_setting.PublicAccessPost)
 

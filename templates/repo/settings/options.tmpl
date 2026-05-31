@@ -47,6 +47,26 @@
 			</form>
 		</div>
 
+		{{if not .Repository.IsEmpty}}
+			<h4 class="ui top attached header">
+				{{ctx.Locale.Tr "repo.settings.maintenance"}}
+			</h4>
+			<div class="ui attached segment">
+				<div class="flex-text-block tw-justify-between">
+					<div>
+						<div class="tw-font-semibold">{{ctx.Locale.Tr "repo.settings.git_gc"}}</div>
+						<div class="help">{{ctx.Locale.Tr "repo.settings.git_gc_desc"}}</div>
+					</div>
+					<button class="ui basic button link-action"
+						data-url="{{.Link}}/git-gc"
+						data-modal-confirm="{{ctx.Locale.Tr "repo.settings.git_gc_confirm"}}"
+					>
+						{{ctx.Locale.Tr "repo.settings.git_gc"}}
+					</button>
+				</div>
+			</div>
+		{{end}}
+
 		{{/* These variables exist to make the logic in the Settings window easier to comprehend and are not used later on. */}}
 		{{$newMirrorsPartiallyEnabled := or (not .DisableNewPullMirrors) (not .DisableNewPushMirrors)}}
 		{{/* .Repository.IsMirror is not always reliable if the repository is not actively acting as a mirror because of errors. */}}
