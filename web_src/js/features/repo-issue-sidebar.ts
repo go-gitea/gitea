@@ -9,6 +9,21 @@ import {showTemporaryTooltip} from '../modules/tippy.ts';
 
 const {appSubUrl} = window.config;
 
+export function filterDependencySearchResponse(response: any[], currentIssueId: string | null, existingDependencyIds: Set<string>) {
+  const filteredResponse = {success: true, results: [] as Array<Record<string, any>>};
+  // Parse the response from the api to work with our dropdown
+  for (const issue of response) {
+    const issueId = String(issue.id);
+    if (issueId === currentIssueId) continue;
+    if (existingDependencyIds.has(issueId)) continue;
+    filteredResponse.results.push({
+      value: issue.id,
+      name: html`<div class="gt-ellipsis">#${issue.number} ${issue.title}</div><div class="text small tw-break-anywhere">${issue.repository.full_name}</div>`,
+    });
+  }
+  return filteredResponse;
+}
+
 function initRepoIssueBranchSelector(elSidebar: HTMLElement) {
   // TODO: RemoveIssueRef: see "repo/issue/branch_selector_field.tmpl"
   const elSelectBranch = elSidebar.querySelector('.ui.dropdown.select-branch.branch-selector-dropdown');
@@ -55,6 +70,10 @@ export function initRepoIssueSidebarDependency(elSidebar: HTMLElement) {
 
   const issuePageInfo = parseIssuePageInfo();
   const crossRepoSearch = elDropdown.getAttribute('data-issue-cross-repo-search');
+  const existingDependencyIds = new Set(Array.from(
+    elSidebar.querySelectorAll<HTMLElement>('[data-issue-dependency-id]'),
+    (el) => el.getAttribute('data-issue-dependency-id')!,
+  ));
   let issueSearchUrl = `${issuePageInfo.repoLink}/issues/search?q={query}&type=${issuePageInfo.issueDependencySearchType}`;
   if (crossRepoSearch === 'true') {
     issueSearchUrl = `${appSubUrl}/issues/search?q={query}&priority_repo_id=${issuePageInfo.repoId}&type=${issuePageInfo.issueDependencySearchType}`;
@@ -66,18 +85,7 @@ export function initRepoIssueSidebarDependency(elSidebar: HTMLElement) {
       rawResponse: true,
       url: issueSearchUrl,
       onResponse(response: any) {
-        const filteredResponse = {success: true, results: [] as Array<Record<string, any>>};
-        const currIssueId = elDropdown.getAttribute('data-issue-id');
-        // Parse the response from the api to work with our dropdown
-        for (const issue of response) {
-          // Don't list current issue in the dependency list.
-          if (String(issue.id) === currIssueId) continue;
-          filteredResponse.results.push({
-            value: issue.id,
-            name: html`<div class="gt-ellipsis">#${issue.number} ${issue.title}</div><div class="text small tw-break-anywhere">${issue.repository.full_name}</div>`,
-          });
-        }
-        return filteredResponse;
+        return filterDependencySearchResponse(response, elDropdown.getAttribute('data-issue-id'), existingDependencyIds);
       },
     },
   });
