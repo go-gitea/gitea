@@ -19,9 +19,10 @@ type CompareRouterReq struct {
 
 	CompareSeparator string
 
-	HeadOwner    string
-	HeadRepoName string
-	HeadOriRef   string
+	HeadOwner        string
+	HeadRepoName     string
+	HeadOriRef       string
+	HeadOriRefSuffix string
 }
 
 func (cr *CompareRouterReq) DirectComparison() bool {
@@ -80,8 +81,10 @@ func ParseCompareRouterParam(routerParam string) *CompareRouterReq {
 		basePart, headPart, ok = strings.Cut(routerParam, sep)
 		if !ok {
 			headOwnerName, headRepoName, headRef := parseHead(routerParam)
+			headRef, headRefSuffix := git.ParseRefSuffix(headRef)
 			return &CompareRouterReq{
 				HeadOriRef:       headRef,
+				HeadOriRefSuffix: headRefSuffix,
 				HeadOwner:        headOwnerName,
 				HeadRepoName:     headRepoName,
 				CompareSeparator: "...",
@@ -92,7 +95,27 @@ func ParseCompareRouterParam(routerParam string) *CompareRouterReq {
 	ci := &CompareRouterReq{CompareSeparator: sep}
 	ci.BaseOriRef, ci.BaseOriRefSuffix = git.ParseRefSuffix(basePart)
 	ci.HeadOwner, ci.HeadRepoName, ci.HeadOriRef = parseHead(headPart)
+	ci.HeadOriRef, ci.HeadOriRefSuffix = git.ParseRefSuffix(ci.HeadOriRef)
 	return ci
+}
+
+func ResolveCompareRef(gitRepo *git.Repository, refName, refSuffix string) (git.RefName, error) {
+	ref := gitRepo.UnstableGuessRefByShortName(refName)
+	if ref == "" {
+		return "", util.NewNotExistErrorf("no ref: %s", refName)
+	}
+	if refSuffix == "" {
+		return ref, nil
+	}
+
+	commitID, err := gitRepo.ConvertToGitID(string(ref) + refSuffix)
+	if err != nil {
+		if git.IsErrNotExist(err) {
+			return "", util.NewNotExistErrorf("no ref: %s%s", refName, refSuffix)
+		}
+		return "", err
+	}
+	return git.RefName(commitID.String()), nil
 }
 
 // maxForkTraverseLevel defines the maximum levels to traverse when searching for the head repository.

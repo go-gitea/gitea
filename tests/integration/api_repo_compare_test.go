@@ -44,6 +44,36 @@ func TestAPICompareBranches(t *testing.T) {
 			assert.Len(t, apiResp.Commits, 1)
 		})
 
+		t.Run("CompareBaseRefSuffix", func(t *testing.T) {
+			defer tests.PrintCurrentTest(t)()
+
+			req := NewRequestf(t, "GET", "/api/v1/repos/user2/repo20/compare/remove-files-b^...remove-files-b").AddTokenAuth(token2)
+			resp := MakeRequest(t, req, http.StatusOK)
+			apiResp := DecodeJSON(t, resp, &api.Compare{})
+			assert.Equal(t, 1, apiResp.TotalCommits)
+			assert.Len(t, apiResp.Commits, 1)
+		})
+
+		t.Run("CompareHeadRefSuffix", func(t *testing.T) {
+			defer tests.PrintCurrentTest(t)()
+
+			req := NewRequestf(t, "GET", "/api/v1/repos/user2/repo20/compare/add-csv...remove-files-b^").AddTokenAuth(token2)
+			resp := MakeRequest(t, req, http.StatusOK)
+			apiResp := DecodeJSON(t, resp, &api.Compare{})
+			assert.Equal(t, 1, apiResp.TotalCommits)
+			assert.Len(t, apiResp.Commits, 1)
+		})
+
+		t.Run("CompareTildeRefSuffix", func(t *testing.T) {
+			defer tests.PrintCurrentTest(t)()
+
+			req := NewRequestf(t, "GET", "/api/v1/repos/user2/repo20/compare/remove-files-b~2...remove-files-b").AddTokenAuth(token2)
+			resp := MakeRequest(t, req, http.StatusOK)
+			apiResp := DecodeJSON(t, resp, &api.Compare{})
+			assert.Equal(t, 2, apiResp.TotalCommits)
+			assert.Len(t, apiResp.Commits, 2)
+		})
+
 		t.Run("CompareForkOnlyCommit", func(t *testing.T) {
 			defer tests.PrintCurrentTest(t)()
 

@@ -53,10 +53,28 @@ func TestCompareRouterReq(t *testing.T) {
 			},
 		},
 		{
+			input: "main~2...develop^",
+			CompareRouterReq: &CompareRouterReq{
+				BaseOriRef:       "main",
+				BaseOriRefSuffix: "~2",
+				CompareSeparator: "...",
+				HeadOriRef:       "develop",
+				HeadOriRefSuffix: "^",
+			},
+		},
+		{
 			input: "develop",
 			CompareRouterReq: &CompareRouterReq{
 				CompareSeparator: "...",
 				HeadOriRef:       "develop",
+			},
+		},
+		{
+			input: "develop~3",
+			CompareRouterReq: &CompareRouterReq{
+				CompareSeparator: "...",
+				HeadOriRef:       "develop",
+				HeadOriRefSuffix: "~3",
 			},
 		},
 		{
@@ -87,7 +105,7 @@ func TestCompareRouterReq(t *testing.T) {
 			},
 		},
 		{
-			input: "main^...lunny/forked_repo:develop",
+			input: "main^...lunny/forked_repo:develop~2",
 			CompareRouterReq: &CompareRouterReq{
 				BaseOriRef:       "main",
 				BaseOriRefSuffix: "^",
@@ -95,6 +113,7 @@ func TestCompareRouterReq(t *testing.T) {
 				HeadOwner:        "lunny",
 				HeadRepoName:     "forked_repo",
 				HeadOriRef:       "develop",
+				HeadOriRefSuffix: "~2",
 			},
 		},
 	}

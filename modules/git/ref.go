@@ -223,11 +223,14 @@ func (ref RefName) RefWebLinkPath() string {
 
 func ParseRefSuffix(ref string) (string, string) {
 	// Partially support https://git-scm.com/docs/gitrevisions
-	if idx := strings.Index(ref, "@{"); idx != -1 {
-		return ref[:idx], ref[idx:]
+	suffixIndex := len(ref)
+	for _, marker := range []string{"@{", "^", "~"} {
+		if idx := strings.Index(ref, marker); idx != -1 && idx < suffixIndex {
+			suffixIndex = idx
+		}
 	}
-	if idx := strings.Index(ref, "^"); idx != -1 {
-		return ref[:idx], ref[idx:]
+	if suffixIndex != len(ref) {
+		return ref[:suffixIndex], ref[suffixIndex:]
 	}
 	return ref, ""
 }
