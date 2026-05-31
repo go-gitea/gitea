@@ -146,6 +146,18 @@ func testAPICreateIssue(t *testing.T) {
 		Title: title,
 	}).AddTokenAuth(getUserToken(t, user34.Name, auth_model.AccessTokenScopeWriteIssue))
 	MakeRequest(t, req, http.StatusForbidden)
+
+	repoBeforeMetadataDenied := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: repoBefore.ID})
+	req = NewRequestWithJSON(t, "POST", urlStr, &api.CreateIssueOption{
+		Title:     "apiTestTitleWithMetadata",
+		Labels:    []int64{1},
+		Milestone: 1,
+	}).AddTokenAuth(getUserToken(t, "user1", auth_model.AccessTokenScopeWriteIssue)).
+		SetHeader("Sudo", "user4")
+	MakeRequest(t, req, http.StatusUnprocessableEntity)
+
+	repoAfterMetadataDenied := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: repoBefore.ID})
+	assert.Equal(t, repoBeforeMetadataDenied.NumIssues, repoAfterMetadataDenied.NumIssues)
 }
 
 func testAPICreateIssueParallel(t *testing.T) {

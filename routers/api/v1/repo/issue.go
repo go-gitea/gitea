@@ -638,8 +638,14 @@ func CreateIssue(ctx *context.APIContext) {
 	//     "$ref": "#/responses/repoArchivedError"
 
 	form := web.GetForm(ctx).(*api.CreateIssueOption)
+	canWriteIssues := ctx.Repo.Permission.CanWrite(unit.TypeIssues)
+	if !canWriteIssues && createIssueHasWriteOnlyFields(form) {
+		ctx.APIError(http.StatusUnprocessableEntity, "write permission is required to set issue metadata")
+		return
+	}
+
 	var deadlineUnix timeutil.TimeStamp
-	if form.Deadline != nil && ctx.Repo.Permission.CanWrite(unit.TypeIssues) {
+	if form.Deadline != nil && canWriteIssues {
 		deadlineUnix = timeutil.TimeStamp(form.Deadline.Unix())
 	}
 
@@ -656,7 +662,7 @@ func CreateIssue(ctx *context.APIContext) {
 
 	assigneeIDs := make([]int64, 0)
 	var err error
-	if ctx.Repo.Permission.CanWrite(unit.TypeIssues) {
+	if canWriteIssues {
 		issue.MilestoneID = form.Milestone
 		assigneeIDs, err = issues_model.MakeIDsFromAPIAssigneesToAdd(ctx, form.Assignee, form.Assignees)
 		if err != nil {
@@ -686,9 +692,6 @@ func CreateIssue(ctx *context.APIContext) {
 				return
 			}
 		}
-	} else {
-		// setting labels is not allowed if user is not a writer
-		form.Labels = make([]int64, 0)
 	}
 
 	if err := issue_service.NewIssue(ctx, ctx.Repo.Repository, issue, form.Labels, nil, assigneeIDs, form.Projects); err != nil {
@@ -720,6 +723,15 @@ func CreateIssue(ctx *context.APIContext) {
 		return
 	}
 	ctx.JSON(http.StatusCreated, convert.ToAPIIssue(ctx, ctx.Doer, issue))
+}
+
+func createIssueHasWriteOnlyFields(form *api.CreateIssueOption) bool {
+	return form.Deadline != nil ||
+		form.Milestone > 0 ||
+		len(form.Labels) > 0 ||
+		form.Assignee != "" ||
+		len(form.Assignees) > 0 ||
+		len(form.Projects) > 0
 }
 
 // EditIssue modify an issue of a repository
