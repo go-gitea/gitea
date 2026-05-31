@@ -51,6 +51,10 @@ type ProtectedBranch struct {
 	ForcePushAllowlistUserIDs     []int64  `xorm:"JSON TEXT"`
 	ForcePushAllowlistTeamIDs     []int64  `xorm:"JSON TEXT"`
 	ForcePushAllowlistDeployKeys  bool     `xorm:"NOT NULL DEFAULT false"`
+	CanDelete                     bool     `xorm:"NOT NULL DEFAULT false"`
+	EnableDeletionAllowlist       bool     `xorm:"NOT NULL DEFAULT false"`
+	DeletionAllowlistUserIDs      []int64  `xorm:"JSON TEXT"`
+	DeletionAllowlistTeamIDs      []int64  `xorm:"JSON TEXT"`
 	EnableStatusCheck             bool     `xorm:"NOT NULL DEFAULT false"`
 	StatusCheckContexts           []string `xorm:"JSON TEXT"`
 	EnableApprovalsWhitelist      bool     `xorm:"NOT NULL DEFAULT false"`
@@ -182,6 +186,36 @@ func (protectBranch *ProtectedBranch) CanUserForcePush(ctx context.Context, user
 		return false
 	}
 	return in && protectBranch.CanUserPush(ctx, user)
+}
+
+// CanUserDelete returns if some user could delete this protected branch.
+// Since deletion can be used to reset a branch, it also requires regular push access.
+func (protectBranch *ProtectedBranch) CanUserDelete(ctx context.Context, user *user_model.User) bool {
+	if user == nil {
+		return false
+	}
+	if !protectBranch.CanDelete || !protectBranch.CanUserPush(ctx, user) {
+		return false
+	}
+
+	if !protectBranch.EnableDeletionAllowlist {
+		return true
+	}
+
+	if slices.Contains(protectBranch.DeletionAllowlistUserIDs, user.ID) {
+		return true
+	}
+
+	if len(protectBranch.DeletionAllowlistTeamIDs) == 0 {
+		return false
+	}
+
+	in, err := organization.IsUserInTeams(ctx, user.ID, protectBranch.DeletionAllowlistTeamIDs)
+	if err != nil {
+		log.Error("IsUserInTeams: %v", err)
+		return false
+	}
+	return in
 }
 
 // IsUserMergeWhitelisted checks if some user is whitelisted to merge to this branch
@@ -368,6 +402,9 @@ type WhitelistOptions struct {
 	ForcePushUserIDs []int64
 	ForcePushTeamIDs []int64
 
+	DeletionUserIDs []int64
+	DeletionTeamIDs []int64
+
 	MergeUserIDs []int64
 	MergeTeamIDs []int64
 
@@ -404,6 +441,12 @@ func UpdateProtectBranch(ctx context.Context, repo *repo_model.Repository, prote
 	}
 	protectBranch.ForcePushAllowlistUserIDs = whitelist
 
+	whitelist, err = updateUserWhitelist(ctx, repo, protectBranch.DeletionAllowlistUserIDs, opts.DeletionUserIDs)
+	if err != nil {
+		return err
+	}
+	protectBranch.DeletionAllowlistUserIDs = whitelist
+
 	whitelist, err = updateUserWhitelist(ctx, repo, protectBranch.MergeWhitelistUserIDs, opts.MergeUserIDs)
 	if err != nil {
 		return err
@@ -434,6 +477,12 @@ func UpdateProtectBranch(ctx context.Context, repo *repo_model.Repository, prote
 		return err
 	}
 	protectBranch.ForcePushAllowlistTeamIDs = whitelist
+
+	whitelist, err = updateTeamWhitelist(ctx, repo, protectBranch.DeletionAllowlistTeamIDs, opts.DeletionTeamIDs)
+	if err != nil {
+		return err
+	}
+	protectBranch.DeletionAllowlistTeamIDs = whitelist
 
 	whitelist, err = updateTeamWhitelist(ctx, repo, protectBranch.MergeWhitelistTeamIDs, opts.MergeTeamIDs)
 	if err != nil {
@@ -597,12 +646,13 @@ func DeleteProtectedBranch(ctx context.Context, repo *repo_model.Repository, id 
 
 // removeIDsFromProtectedBranch is a helper function to remove IDs from protected branch options
 func removeIDsFromProtectedBranch(ctx context.Context, p *ProtectedBranch, userID, teamID int64, columnNames []string) error {
-	lenUserIDs, lenForcePushIDs, lenApprovalIDs, lenMergeIDs := len(p.WhitelistUserIDs), len(p.ForcePushAllowlistUserIDs), len(p.ApprovalsWhitelistUserIDs), len(p.MergeWhitelistUserIDs)
-	lenTeamIDs, lenForcePushTeamIDs, lenApprovalTeamIDs, lenMergeTeamIDs := len(p.WhitelistTeamIDs), len(p.ForcePushAllowlistTeamIDs), len(p.ApprovalsWhitelistTeamIDs), len(p.MergeWhitelistTeamIDs)
+	lenUserIDs, lenForcePushIDs, lenDeletionIDs, lenApprovalIDs, lenMergeIDs := len(p.WhitelistUserIDs), len(p.ForcePushAllowlistUserIDs), len(p.DeletionAllowlistUserIDs), len(p.ApprovalsWhitelistUserIDs), len(p.MergeWhitelistUserIDs)
+	lenTeamIDs, lenForcePushTeamIDs, lenDeletionTeamIDs, lenApprovalTeamIDs, lenMergeTeamIDs := len(p.WhitelistTeamIDs), len(p.ForcePushAllowlistTeamIDs), len(p.DeletionAllowlistTeamIDs), len(p.ApprovalsWhitelistTeamIDs), len(p.MergeWhitelistTeamIDs)
 
 	if userID > 0 {
 		p.WhitelistUserIDs = util.SliceRemoveAll(p.WhitelistUserIDs, userID)
 		p.ForcePushAllowlistUserIDs = util.SliceRemoveAll(p.ForcePushAllowlistUserIDs, userID)
+		p.DeletionAllowlistUserIDs = util.SliceRemoveAll(p.DeletionAllowlistUserIDs, userID)
 		p.ApprovalsWhitelistUserIDs = util.SliceRemoveAll(p.ApprovalsWhitelistUserIDs, userID)
 		p.MergeWhitelistUserIDs = util.SliceRemoveAll(p.MergeWhitelistUserIDs, userID)
 	}
@@ -610,16 +660,19 @@ func removeIDsFromProtectedBranch(ctx context.Context, p *ProtectedBranch, userI
 	if teamID > 0 {
 		p.WhitelistTeamIDs = util.SliceRemoveAll(p.WhitelistTeamIDs, teamID)
 		p.ForcePushAllowlistTeamIDs = util.SliceRemoveAll(p.ForcePushAllowlistTeamIDs, teamID)
+		p.DeletionAllowlistTeamIDs = util.SliceRemoveAll(p.DeletionAllowlistTeamIDs, teamID)
 		p.ApprovalsWhitelistTeamIDs = util.SliceRemoveAll(p.ApprovalsWhitelistTeamIDs, teamID)
 		p.MergeWhitelistTeamIDs = util.SliceRemoveAll(p.MergeWhitelistTeamIDs, teamID)
 	}
 
 	if (lenUserIDs != len(p.WhitelistUserIDs) ||
 		lenForcePushIDs != len(p.ForcePushAllowlistUserIDs) ||
+		lenDeletionIDs != len(p.DeletionAllowlistUserIDs) ||
 		lenApprovalIDs != len(p.ApprovalsWhitelistUserIDs) ||
 		lenMergeIDs != len(p.MergeWhitelistUserIDs)) ||
 		(lenTeamIDs != len(p.WhitelistTeamIDs) ||
 			lenForcePushTeamIDs != len(p.ForcePushAllowlistTeamIDs) ||
+			lenDeletionTeamIDs != len(p.DeletionAllowlistTeamIDs) ||
 			lenApprovalTeamIDs != len(p.ApprovalsWhitelistTeamIDs) ||
 			lenMergeTeamIDs != len(p.MergeWhitelistTeamIDs)) {
 		if _, err := db.GetEngine(ctx).ID(p.ID).Cols(columnNames...).Update(p); err != nil {
@@ -634,6 +687,7 @@ func RemoveUserIDFromProtectedBranch(ctx context.Context, p *ProtectedBranch, us
 	columnNames := []string{
 		"whitelist_user_i_ds",
 		"force_push_allowlist_user_i_ds",
+		"deletion_allowlist_user_i_ds",
 		"merge_whitelist_user_i_ds",
 		"approvals_whitelist_user_i_ds",
 	}
@@ -645,6 +699,7 @@ func RemoveTeamIDFromProtectedBranch(ctx context.Context, p *ProtectedBranch, te
 	columnNames := []string{
 		"whitelist_team_i_ds",
 		"force_push_allowlist_team_i_ds",
+		"deletion_allowlist_team_i_ds",
 		"merge_whitelist_team_i_ds",
 		"approvals_whitelist_team_i_ds",
 	}

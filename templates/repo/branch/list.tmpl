@@ -188,7 +188,7 @@
 										{{svg "octicon-pencil"}}
 									</button>
 								{{end}}
-								{{if and $.IsWriter $.Repository.CanContentChange (not .IsProtected)}}
+								{{if and $.IsWriter $.Repository.CanContentChange (or (and .DBBranch.IsDeleted (not .IsProtected)) (and (not .DBBranch.IsDeleted) .CanDelete))}}
 									{{if .DBBranch.IsDeleted}}
 										<button class="btn interact-bg tw-p-2 link-action restore-branch-button" data-url="{{$.Link}}/restore?branch_id={{.DBBranch.ID}}&name={{.DBBranch.Name}}&page={{$.Page.Paginater.Current}}" data-tooltip-content="{{ctx.Locale.Tr "repo.branch.restore" (.DBBranch.Name)}}">
 											<span class="tw-text-blue">

@@ -184,10 +184,12 @@ func preReceiveBranch(ctx *preReceiveContext, oldCommitID, newCommitID string, r
 	//
 	// 1. Detect and prevent deletion of the branch
 	if newCommitID == objectFormat.EmptyObjectID().String() {
-		log.Warn("Forbidden: Branch: %s in %-v is protected from deletion", branchName, repo)
-		ctx.JSON(http.StatusForbidden, private.Response{
-			UserMsg: fmt.Sprintf("branch %s is protected from deletion", branchName),
-		})
+		if !protectBranch.CanUserDelete(ctx, ctx.user) {
+			log.Warn("Forbidden: Branch: %s in %-v is protected from deletion", branchName, repo)
+			ctx.JSON(http.StatusForbidden, private.Response{
+				UserMsg: fmt.Sprintf("branch %s is protected from deletion", branchName),
+			})
+		}
 		return
 	}
 

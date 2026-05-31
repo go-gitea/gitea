@@ -146,6 +146,7 @@ func ToBranchProtection(ctx context.Context, bp *git_model.ProtectedBranch, repo
 
 	pushWhitelistUsernames := getWhitelistEntities(readers, bp.WhitelistUserIDs)
 	forcePushAllowlistUsernames := getWhitelistEntities(readers, bp.ForcePushAllowlistUserIDs)
+	deletionAllowlistUsernames := getWhitelistEntities(readers, bp.DeletionAllowlistUserIDs)
 	mergeWhitelistUsernames := getWhitelistEntities(readers, bp.MergeWhitelistUserIDs)
 	approvalsWhitelistUsernames := getWhitelistEntities(readers, bp.ApprovalsWhitelistUserIDs)
 	bypassAllowlistUsernames := getWhitelistEntities(readers, bp.BypassAllowlistUserIDs)
@@ -157,6 +158,7 @@ func ToBranchProtection(ctx context.Context, bp *git_model.ProtectedBranch, repo
 
 	pushWhitelistTeams := getWhitelistEntities(teamReaders, bp.WhitelistTeamIDs)
 	forcePushAllowlistTeams := getWhitelistEntities(teamReaders, bp.ForcePushAllowlistTeamIDs)
+	deletionAllowlistTeams := getWhitelistEntities(teamReaders, bp.DeletionAllowlistTeamIDs)
 	mergeWhitelistTeams := getWhitelistEntities(teamReaders, bp.MergeWhitelistTeamIDs)
 	approvalsWhitelistTeams := getWhitelistEntities(teamReaders, bp.ApprovalsWhitelistTeamIDs)
 	bypassAllowlistTeams := getWhitelistEntities(teamReaders, bp.BypassAllowlistTeamIDs)
@@ -180,6 +182,10 @@ func ToBranchProtection(ctx context.Context, bp *git_model.ProtectedBranch, repo
 		ForcePushAllowlistUsernames:   forcePushAllowlistUsernames,
 		ForcePushAllowlistTeams:       forcePushAllowlistTeams,
 		ForcePushAllowlistDeployKeys:  bp.ForcePushAllowlistDeployKeys,
+		EnableDeletion:                bp.CanDelete,
+		EnableDeletionAllowlist:       bp.EnableDeletionAllowlist,
+		DeletionAllowlistUsernames:    deletionAllowlistUsernames,
+		DeletionAllowlistTeams:        deletionAllowlistTeams,
 		EnableMergeWhitelist:          bp.EnableMergeWhitelist,
 		MergeWhitelistUsernames:       mergeWhitelistUsernames,
 		MergeWhitelistTeams:           mergeWhitelistTeams,

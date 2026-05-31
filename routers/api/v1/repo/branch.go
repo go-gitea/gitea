@@ -693,6 +693,15 @@ func CreateBranchProtection(ctx *context.APIContext) {
 		ctx.APIErrorInternal(err)
 		return
 	}
+	deletionAllowlistUsers, err := user_model.GetUserIDsByNames(ctx, form.DeletionAllowlistUsernames, false)
+	if err != nil {
+		if user_model.IsErrUserNotExist(err) {
+			ctx.APIError(http.StatusUnprocessableEntity, err)
+			return
+		}
+		ctx.APIErrorInternal(err)
+		return
+	}
 	mergeWhitelistUsers, err := user_model.GetUserIDsByNames(ctx, form.MergeWhitelistUsernames, false)
 	if err != nil {
 		if user_model.IsErrUserNotExist(err) {
@@ -723,7 +732,7 @@ func CreateBranchProtection(ctx *context.APIContext) {
 			return
 		}
 	}
-	var whitelistTeams, forcePushAllowlistTeams, mergeWhitelistTeams, approvalsWhitelistTeams, bypassAllowlistTeams []int64
+	var whitelistTeams, forcePushAllowlistTeams, deletionAllowlistTeams, mergeWhitelistTeams, approvalsWhitelistTeams, bypassAllowlistTeams []int64
 	if repo.Owner.IsOrganization() {
 		whitelistTeams, err = organization.GetTeamIDsByNames(ctx, repo.OwnerID, form.PushWhitelistTeams, false)
 		if err != nil {
@@ -735,6 +744,15 @@ func CreateBranchProtection(ctx *context.APIContext) {
 			return
 		}
 		forcePushAllowlistTeams, err = organization.GetTeamIDsByNames(ctx, repo.OwnerID, form.ForcePushAllowlistTeams, false)
+		if err != nil {
+			if organization.IsErrTeamNotExist(err) {
+				ctx.APIError(http.StatusUnprocessableEntity, err)
+				return
+			}
+			ctx.APIErrorInternal(err)
+			return
+		}
+		deletionAllowlistTeams, err = organization.GetTeamIDsByNames(ctx, repo.OwnerID, form.DeletionAllowlistTeams, false)
 		if err != nil {
 			if organization.IsErrTeamNotExist(err) {
 				ctx.APIError(http.StatusUnprocessableEntity, err)
@@ -784,6 +802,8 @@ func CreateBranchProtection(ctx *context.APIContext) {
 		CanForcePush:                  form.EnablePush && form.EnableForcePush,
 		EnableForcePushAllowlist:      form.EnablePush && form.EnableForcePush && form.EnableForcePushAllowlist,
 		ForcePushAllowlistDeployKeys:  form.EnablePush && form.EnableForcePush && form.EnableForcePushAllowlist && form.ForcePushAllowlistDeployKeys,
+		CanDelete:                     form.EnablePush && form.EnableDeletion,
+		EnableDeletionAllowlist:       form.EnablePush && form.EnableDeletion && form.EnableDeletionAllowlist,
 		EnableMergeWhitelist:          form.EnableMergeWhitelist,
 		EnableBypassAllowlist:         form.EnableBypassAllowlist,
 		EnableStatusCheck:             form.EnableStatusCheck,
@@ -806,6 +826,8 @@ func CreateBranchProtection(ctx *context.APIContext) {
 		TeamIDs:          whitelistTeams,
 		ForcePushUserIDs: forcePushAllowlistUsers,
 		ForcePushTeamIDs: forcePushAllowlistTeams,
+		DeletionUserIDs:  deletionAllowlistUsers,
+		DeletionTeamIDs:  deletionAllowlistTeams,
 		MergeUserIDs:     mergeWhitelistUsers,
 		MergeTeamIDs:     mergeWhitelistTeams,
 		ApprovalsUserIDs: approvalsWhitelistUsers,
@@ -887,6 +909,8 @@ func EditBranchProtection(ctx *context.APIContext) {
 			protectBranch.CanPush = false
 			protectBranch.EnableWhitelist = false
 			protectBranch.WhitelistDeployKeys = false
+			protectBranch.CanDelete = false
+			protectBranch.EnableDeletionAllowlist = false
 		} else {
 			protectBranch.CanPush = true
 			if form.EnablePushWhitelist != nil {
@@ -920,6 +944,18 @@ func EditBranchProtection(ctx *context.APIContext) {
 						protectBranch.ForcePushAllowlistDeployKeys = *form.ForcePushAllowlistDeployKeys
 					}
 				}
+			}
+		}
+	}
+
+	if form.EnableDeletion != nil {
+		if !*form.EnableDeletion || !protectBranch.CanPush {
+			protectBranch.CanDelete = false
+			protectBranch.EnableDeletionAllowlist = false
+		} else {
+			protectBranch.CanDelete = true
+			if form.EnableDeletionAllowlist != nil {
+				protectBranch.EnableDeletionAllowlist = *form.EnableDeletionAllowlist
 			}
 		}
 	}
@@ -988,7 +1024,7 @@ func EditBranchProtection(ctx *context.APIContext) {
 		protectBranch.BlockAdminMergeOverride = *form.BlockAdminMergeOverride
 	}
 
-	var whitelistUsers, forcePushAllowlistUsers, mergeWhitelistUsers, approvalsWhitelistUsers, bypassAllowlistUsers []int64
+	var whitelistUsers, forcePushAllowlistUsers, deletionAllowlistUsers, mergeWhitelistUsers, approvalsWhitelistUsers, bypassAllowlistUsers []int64
 	if form.PushWhitelistUsernames != nil {
 		whitelistUsers, err = user_model.GetUserIDsByNames(ctx, form.PushWhitelistUsernames, false)
 		if err != nil {
@@ -1014,6 +1050,19 @@ func EditBranchProtection(ctx *context.APIContext) {
 		}
 	} else {
 		forcePushAllowlistUsers = protectBranch.ForcePushAllowlistUserIDs
+	}
+	if form.DeletionAllowlistUsernames != nil {
+		deletionAllowlistUsers, err = user_model.GetUserIDsByNames(ctx, form.DeletionAllowlistUsernames, false)
+		if err != nil {
+			if user_model.IsErrUserNotExist(err) {
+				ctx.APIError(http.StatusUnprocessableEntity, err)
+				return
+			}
+			ctx.APIErrorInternal(err)
+			return
+		}
+	} else {
+		deletionAllowlistUsers = protectBranch.DeletionAllowlistUserIDs
 	}
 	if form.MergeWhitelistUsernames != nil {
 		mergeWhitelistUsers, err = user_model.GetUserIDsByNames(ctx, form.MergeWhitelistUsernames, false)
@@ -1055,7 +1104,7 @@ func EditBranchProtection(ctx *context.APIContext) {
 		bypassAllowlistUsers = protectBranch.BypassAllowlistUserIDs
 	}
 
-	var whitelistTeams, forcePushAllowlistTeams, mergeWhitelistTeams, approvalsWhitelistTeams, bypassAllowlistTeams []int64
+	var whitelistTeams, forcePushAllowlistTeams, deletionAllowlistTeams, mergeWhitelistTeams, approvalsWhitelistTeams, bypassAllowlistTeams []int64
 	if repo.Owner.IsOrganization() {
 		if form.PushWhitelistTeams != nil {
 			whitelistTeams, err = organization.GetTeamIDsByNames(ctx, repo.OwnerID, form.PushWhitelistTeams, false)
@@ -1082,6 +1131,19 @@ func EditBranchProtection(ctx *context.APIContext) {
 			}
 		} else {
 			forcePushAllowlistTeams = protectBranch.ForcePushAllowlistTeamIDs
+		}
+		if form.DeletionAllowlistTeams != nil {
+			deletionAllowlistTeams, err = organization.GetTeamIDsByNames(ctx, repo.OwnerID, form.DeletionAllowlistTeams, false)
+			if err != nil {
+				if organization.IsErrTeamNotExist(err) {
+					ctx.APIError(http.StatusUnprocessableEntity, err)
+					return
+				}
+				ctx.APIErrorInternal(err)
+				return
+			}
+		} else {
+			deletionAllowlistTeams = protectBranch.DeletionAllowlistTeamIDs
 		}
 		if form.MergeWhitelistTeams != nil {
 			mergeWhitelistTeams, err = organization.GetTeamIDsByNames(ctx, repo.OwnerID, form.MergeWhitelistTeams, false)
@@ -1127,12 +1189,18 @@ func EditBranchProtection(ctx *context.APIContext) {
 		bypassAllowlistUsers = nil
 		bypassAllowlistTeams = nil
 	}
+	if !protectBranch.EnableDeletionAllowlist {
+		deletionAllowlistUsers = nil
+		deletionAllowlistTeams = nil
+	}
 
 	err = git_model.UpdateProtectBranch(ctx, ctx.Repo.Repository, protectBranch, git_model.WhitelistOptions{
 		UserIDs:          whitelistUsers,
 		TeamIDs:          whitelistTeams,
 		ForcePushUserIDs: forcePushAllowlistUsers,
 		ForcePushTeamIDs: forcePushAllowlistTeams,
+		DeletionUserIDs:  deletionAllowlistUsers,
+		DeletionTeamIDs:  deletionAllowlistTeams,
 		MergeUserIDs:     mergeWhitelistUsers,
 		MergeTeamIDs:     mergeWhitelistTeams,
 		ApprovalsUserIDs: approvalsWhitelistUsers,

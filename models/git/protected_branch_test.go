@@ -202,3 +202,32 @@ func TestCanBypassBranchProtection(t *testing.T) {
 	// User does not bypass when not in allowlisted teams.
 	testBypass(t, false, pb, user, false)
 }
+
+func TestProtectedBranchCanUserDelete(t *testing.T) {
+	assert.NoError(t, unittest.PrepareTestDatabase())
+
+	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
+	owner := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: repo.OwnerID})
+	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 1})
+
+	pb := &ProtectedBranch{
+		RepoID:  repo.ID,
+		Repo:    repo,
+		CanPush: true,
+	}
+
+	assert.False(t, pb.CanUserDelete(t.Context(), owner))
+
+	pb.CanDelete = true
+	assert.True(t, pb.CanUserDelete(t.Context(), owner))
+
+	pb.EnableDeletionAllowlist = true
+	assert.False(t, pb.CanUserDelete(t.Context(), owner))
+
+	pb.DeletionAllowlistUserIDs = []int64{owner.ID}
+	assert.True(t, pb.CanUserDelete(t.Context(), owner))
+	assert.False(t, pb.CanUserDelete(t.Context(), user))
+
+	pb.CanPush = false
+	assert.False(t, pb.CanUserDelete(t.Context(), owner))
+}
