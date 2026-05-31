@@ -12,6 +12,8 @@ import (
 	"html/template"
 	"slices"
 	"strconv"
+	"strings"
+	"unicode"
 	"unicode/utf8"
 
 	"gitea.dev/models/db"
@@ -248,6 +250,7 @@ type CommentMetaData struct {
 	ProjectTitle       string `json:"project_title,omitempty"`
 
 	SpecialDoerName SpecialDoerNameType `json:"special_doer_name,omitempty"` // e.g. "CODEOWNERS" for CODEOWNERS-triggered review requests
+	CommitMessage   string              `json:"commit_message,omitempty"`
 }
 
 // Comment represents a comment in commit and issue page.
@@ -539,6 +542,26 @@ func (c *Comment) GetSanitizedContentHTML() template.HTML {
 	// mainly for type=4 CommentTypeCommitRef
 	// the content is a link like <a href="{RepoLink}/commit/{CommitID}">message title</a> (from CreateRefComment)
 	return markup.Sanitize(c.Content)
+}
+
+func (c *Comment) CommitMessage() string {
+	if c.CommentMetaData == nil {
+		return ""
+	}
+	return c.CommentMetaData.CommitMessage
+}
+
+func (c *Comment) CommitMessageTitle() string {
+	msgLine := strings.TrimLeftFunc(c.CommitMessage(), unicode.IsSpace)
+	if lineEnd := strings.IndexByte(msgLine, '\n'); lineEnd >= 0 {
+		msgLine = msgLine[:lineEnd]
+	}
+	return strings.TrimRightFunc(msgLine, unicode.IsSpace)
+}
+
+func (c *Comment) CommitMessageBody() string {
+	_, body, _ := strings.Cut(strings.TrimSpace(c.CommitMessage()), "\n")
+	return strings.TrimSpace(body)
 }
 
 // LoadLabel if comment.Type is CommentTypeLabel, then load Label
@@ -836,6 +859,12 @@ func CreateComment(ctx context.Context, opts *CreateCommentOptions) (_ *Comment,
 				SpecialDoerName: opts.SpecialDoerName,
 			}
 		}
+		if opts.CommitMessage != "" {
+			if commentMetaData == nil {
+				commentMetaData = &CommentMetaData{}
+			}
+			commentMetaData.CommitMessage = opts.CommitMessage
+		}
 
 		comment := &Comment{
 			Type:             opts.Type,
@@ -1019,6 +1048,7 @@ type CreateCommentOptions struct {
 	NewRef             string
 	CommitID           int64
 	CommitSHA          string
+	CommitMessage      string
 	Patch              string
 	LineNum            int64
 	TreePath           string

@@ -685,6 +685,28 @@ func prepareIssueViewCommentsAndSidebarParticipants(ctx *context.Context, issue 
 				ctx.ServerError("LoadLabel", err)
 				return
 			}
+		} else if comment.Type == issues_model.CommentTypeCommitRef {
+			if comment.RefRepoID == issue.RepoID {
+				if ctx.Repo.Permission.CanRead(unit.TypeCode) {
+					comment.RefRepo = issue.Repo
+				}
+			} else if comment.RefRepoID != 0 {
+				refRepo, err := repo_model.GetRepositoryByID(ctx, comment.RefRepoID)
+				if err != nil && !repo_model.IsErrRepoNotExist(err) {
+					ctx.ServerError("GetRepositoryByID", err)
+					return
+				}
+				if refRepo != nil {
+					perm, err := access_model.GetDoerRepoPermission(ctx, refRepo, ctx.Doer)
+					if err != nil {
+						ctx.ServerError("GetDoerRepoPermission", err)
+						return
+					}
+					if perm.CanRead(unit.TypeCode) {
+						comment.RefRepo = refRepo
+					}
+				}
+			}
 		} else if comment.Type == issues_model.CommentTypeMilestone {
 			if err = comment.LoadMilestone(ctx); err != nil {
 				ctx.ServerError("LoadMilestone", err)

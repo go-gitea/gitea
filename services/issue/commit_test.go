@@ -144,6 +144,42 @@ func TestUpdateIssuesCommit_Colon(t *testing.T) {
 	unittest.CheckConsistencyFor(t, &activities_model.Action{})
 }
 
+func TestUpdateIssuesCommit_StoresMultilineCommitMessage(t *testing.T) {
+	assert.NoError(t, unittest.PrepareTestDatabase())
+
+	message := "Implement the thing\n\nKeep this line visible\nKeep this line too\n\nRefs #1"
+	pushCommits := []*repository.PushCommit{
+		{
+			Sha1:           "abcdef-multiline",
+			CommitterEmail: "user2@example.com",
+			CommitterName:  "User Two",
+			AuthorEmail:    "user2@example.com",
+			AuthorName:     "User Two",
+			Message:        message,
+		},
+	}
+
+	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
+	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
+	repo.Owner = user
+
+	assert.NoError(t, UpdateIssuesCommit(t.Context(), user, repo, pushCommits, repo.DefaultBranch))
+
+	comment := unittest.AssertExistsAndLoadBean(t, &issues_model.Comment{
+		Type:      issues_model.CommentTypeCommitRef,
+		CommitSHA: "abcdef-multiline",
+		PosterID:  user.ID,
+		IssueID:   1,
+	})
+	assert.NotNil(t, comment.CommentMetaData)
+	assert.Equal(t, message, comment.CommentMetaData.CommitMessage)
+	assert.Contains(t, comment.Content, "Implement the thing")
+	assert.NotContains(t, comment.Content, "Keep this line visible")
+	assert.Equal(t, "Implement the thing", comment.CommitMessageTitle())
+	assert.Contains(t, comment.CommitMessageBody(), "Keep this line too")
+	assert.Equal(t, repo.ID, comment.RefRepoID)
+}
+
 func TestUpdateIssuesCommit_Issue5957(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
@@ -208,7 +244,8 @@ func TestUpdateIssuesCommit_AnotherRepo(t *testing.T) {
 	unittest.AssertNotExistsBean(t, commentBean)
 	unittest.AssertNotExistsBean(t, issueBean, "is_closed=1")
 	assert.NoError(t, UpdateIssuesCommit(t.Context(), user, repo, pushCommits, repo.DefaultBranch))
-	unittest.AssertExistsAndLoadBean(t, commentBean)
+	comment := unittest.AssertExistsAndLoadBean(t, commentBean)
+	assert.Equal(t, repo.ID, comment.RefRepoID)
 	unittest.AssertExistsAndLoadBean(t, issueBean, "is_closed=1")
 	unittest.CheckConsistencyFor(t, &activities_model.Action{})
 }

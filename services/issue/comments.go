@@ -22,7 +22,7 @@ import (
 )
 
 // CreateRefComment creates a commit reference comment to issue.
-func CreateRefComment(ctx context.Context, doer *user_model.User, repo *repo_model.Repository, issue *issues_model.Issue, content, commitSHA string) error {
+func CreateRefComment(ctx context.Context, doer *user_model.User, repo *repo_model.Repository, issue *issues_model.Issue, content, commitMessage, commitSHA string, refRepoID int64) error {
 	if len(commitSHA) == 0 {
 		return errors.New("cannot create reference with empty commit SHA")
 	}
@@ -46,12 +46,14 @@ func CreateRefComment(ctx context.Context, doer *user_model.User, repo *repo_mod
 	}
 
 	_, err = issues_model.CreateComment(ctx, &issues_model.CreateCommentOptions{
-		Type:      issues_model.CommentTypeCommitRef,
-		Doer:      doer,
-		Repo:      repo,
-		Issue:     issue,
-		CommitSHA: commitSHA,
-		Content:   content,
+		Type:          issues_model.CommentTypeCommitRef,
+		Doer:          doer,
+		Repo:          repo,
+		Issue:         issue,
+		CommitSHA:     commitSHA,
+		CommitMessage: commitMessage,
+		Content:       content,
+		RefRepoID:     refRepoID,
 	})
 	return err
 }

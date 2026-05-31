@@ -163,8 +163,19 @@
 				</span>
 				<div class="detail flex-text-block">
 					{{svg "octicon-git-commit"}}
-					{{/* the content is a link like <a href="{RepoLink}/commit/{CommitID}">message title</a> (from CreateRefComment) */}}
-					<span class="comment-text-line">{{.GetSanitizedContentHTML}}</span>
+					{{if and .RefRepo .CommitMessage}}
+						{{$commitLink:= printf "%s/commit/%s" .RefRepo.Link (PathEscape .CommitSHA)}}
+						<span class="commit-summary comment-text-line" title="{{.CommitMessageTitle}}">
+							<span class="message-wrapper">{{ctx.RenderUtils.RenderCommitMessageLinkSubject .CommitMessage $commitLink .RefRepo}}</span>
+							{{if .CommitMessageBody}}
+								<button class="ui button ellipsis-button" aria-expanded="false" data-global-click="onRepoEllipsisButtonClick">...</button>
+								<pre class="commit-body tw-hidden">{{ctx.RenderUtils.RenderCommitBody .CommitMessage .RefRepo}}</pre>
+							{{end}}
+						</span>
+					{{else}}
+						{{/* Legacy commit reference comments stored a pre-rendered commit link in Content. */}}
+						<span class="comment-text-line">{{.GetSanitizedContentHTML}}</span>
+					{{end}}
 				</div>
 			</div>
 		{{else if eq .Type 7}}
