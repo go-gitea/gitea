@@ -42,6 +42,11 @@ type blameRow struct {
 	EscapeStatus *charset.EscapeStatus
 }
 
+// CoAuthorAvatarData returns the view-model for rendering this row's author + co-authors.
+func (r *blameRow) CoAuthorAvatarData() *user_model.CoAuthorAvatarData {
+	return &user_model.CoAuthorAvatarData{AuthorUser: r.AuthorUser, AuthorSig: r.Author, CoAuthors: r.CoAuthors}
+}
+
 // RefBlame render blame page
 func RefBlame(ctx *context.Context) {
 	ctx.Data["IsBlame"] = true

@@ -200,6 +200,15 @@ func (pc *PushCommit) CoAuthorUsers() []*user_model.CoAuthorUser {
 	return coAuthors
 }
 
+// CoAuthorAvatarData returns the view-model for rendering this push commit's author + co-authors.
+func (pc *PushCommit) CoAuthorAvatarData(ctx context.Context) *user_model.CoAuthorAvatarData {
+	return &user_model.CoAuthorAvatarData{
+		AuthorUser: pc.AuthorUser(ctx),
+		AuthorSig:  pc.AuthorSignature(),
+		CoAuthors:  pc.CoAuthorUsers(),
+	}
+}
+
 // GitToPushCommits transforms a list of git.Commits to PushCommits type.
 func GitToPushCommits(gitCommits []*git.Commit) *PushCommits {
 	commits := make([]*PushCommit, 0, len(gitCommits))

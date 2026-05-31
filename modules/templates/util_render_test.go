@@ -291,7 +291,7 @@ func TestCoAuthorAvatars(t *testing.T) {
 		for i := range cos {
 			cos[i] = mkCo("X", "x@example.com")
 		}
-		got := string(ut.AvatarStack(nil, authorSig, cos))
+		got := string(ut.AvatarStack(&user_model.CoAuthorAvatarData{AuthorSig: authorSig, CoAuthors: cos}))
 		assert.Contains(t, got, `class="avatar-stack-overflow-chip`)
 		assert.Contains(t, got, "+1")
 	})

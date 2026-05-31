@@ -384,10 +384,11 @@ func authorDisplayName(u *user_model.User, sig *git.Signature) string {
 }
 
 // AvatarStack emits children in reverse paint order so CSS `flex-direction: row-reverse` places the author leftmost and last-painted (on top).
-func (ut *RenderUtils) AvatarStack(authorUser *user_model.User, authorSig *git.Signature, coAuthors []*user_model.CoAuthorUser) template.HTML {
-	if authorUser == nil && authorSig == nil {
+func (ut *RenderUtils) AvatarStack(data *user_model.CoAuthorAvatarData) template.HTML {
+	if data == nil || (data.AuthorUser == nil && data.AuthorSig == nil) {
 		return ""
 	}
+	authorUser, authorSig, coAuthors := data.AuthorUser, data.AuthorSig, data.CoAuthors
 
 	const maxCo = 9
 	visibleCo := coAuthors
@@ -431,7 +432,7 @@ func (ut *RenderUtils) CoAuthorAvatars(data *user_model.CoAuthorAvatarData) temp
 
 	var b htmlutil.HTMLBuilder
 	b.WriteHTML(`<span class="author-wrapper">`)
-	b.WriteHTML(ut.AvatarStack(authorUser, authorSig, coAuthors))
+	b.WriteHTML(ut.AvatarStack(data))
 
 	switch len(coAuthors) {
 	case 0:
