@@ -4,6 +4,7 @@
 package pull
 
 import (
+	"bytes"
 	"context"
 	"errors"
 	"fmt"
@@ -12,6 +13,7 @@ import (
 	"slices"
 	"strings"
 	"time"
+	"unicode/utf8"
 
 	"gitea.dev/models/db"
 	git_model "gitea.dev/models/git"
@@ -910,9 +912,9 @@ func GetSquashMergeCommitMessages(ctx context.Context, pr *issues_model.PullRequ
 }
 
 func formatSquashMergeCommitMessages(commits []*git.Commit) string {
-	// commits list is in reverse chronological order
 	maxMsgSize := setting.Repository.PullRequest.DefaultMergeMessageSize
-	stringBuilder := strings.Builder{}
+	sb := &bytes.Buffer{}
+	// commits list is in reverse chronological order
 	for _, commit := range slices.Backward(commits) {
 		msg := strings.TrimSpace(commit.MessageUTF8())
 		if msg == "" {
@@ -922,17 +924,28 @@ func formatSquashMergeCommitMessages(commits []*git.Commit) string {
 		// This format follows GitHub's squash commit message style,
 		// even if there are other "* " in the commit message body, they are written as-is.
 		// Maybe, ideally, we should indent those lines too.
-		_, _ = fmt.Fprintf(&stringBuilder, "* %s\n\n", msg)
-		if maxMsgSize > 0 && stringBuilder.Len() >= maxMsgSize {
-			// MessageUTF8 already guarantees valid UTF-8, but the byte-offset truncation
-			// can split a multi-byte rune, so trim any resulting invalid trailing bytes.
-			tmp := strings.ToValidUTF8(stringBuilder.String()[:maxMsgSize], "") + "..."
-			stringBuilder.Reset()
-			stringBuilder.WriteString(tmp)
+		_, _ = fmt.Fprintf(sb, "* %s\n\n", msg)
+		if maxMsgSize > 0 && sb.Len() >= maxMsgSize {
 			break
 		}
 	}
-	return stringBuilder.String()
+
+	buf := sb.Bytes()
+	buf = bytes.TrimSpace(buf)
+	if maxMsgSize > 0 && len(buf) > maxMsgSize {
+		buf = buf[:maxMsgSize]
+		for {
+			r, sz := utf8.DecodeLastRune(buf)
+			if r == utf8.RuneError && sz == 1 {
+				buf = buf[:len(buf)-1]
+				continue
+			}
+			break
+		}
+		buf = append(buf, '.', '.', '.')
+	}
+	buf = append(buf, '\n', '\n')
+	return util.UnsafeBytesToString(buf)
 }
 
 // GetIssuesAllCommitStatus returns a map of issue ID to a list of all statuses for the most recent commit as well as a map of issue ID to only the commit's latest status

@@ -51,6 +51,16 @@ func TestPullRequest_FormatSquashMergeCommitMessages(t *testing.T) {
 	// PR-description mode: pass all-but-oldest so the oldest is not duplicated
 	assert.Equal(t, "* commit msg 2\n\nCommit description.\n\n",
 		formatSquashMergeCommitMessages([]*git.Commit{newest}))
+
+	utf8Msg := &git.Commit{CommitMessage: git.CommitMessage{MessageRaw: "🌞"}}
+	setting.Repository.PullRequest.DefaultMergeMessageSize = 3
+	assert.Equal(t, "* ...\n\n", formatSquashMergeCommitMessages([]*git.Commit{utf8Msg}))
+	setting.Repository.PullRequest.DefaultMergeMessageSize = 4
+	assert.Equal(t, "* ...\n\n", formatSquashMergeCommitMessages([]*git.Commit{utf8Msg}))
+	setting.Repository.PullRequest.DefaultMergeMessageSize = 5
+	assert.Equal(t, "* ...\n\n", formatSquashMergeCommitMessages([]*git.Commit{utf8Msg}))
+	setting.Repository.PullRequest.DefaultMergeMessageSize = 6
+	assert.Equal(t, "* 🌞\n\n", formatSquashMergeCommitMessages([]*git.Commit{utf8Msg}))
 }
 
 func TestPullRequest_GetDefaultMergeMessage_InternalTracker(t *testing.T) {
