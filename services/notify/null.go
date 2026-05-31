@@ -110,6 +110,10 @@ func (*NullNotifier) UpdateRelease(ctx context.Context, doer *user_model.User, r
 func (*NullNotifier) DeleteRelease(ctx context.Context, doer *user_model.User, rel *repo_model.Release) {
 }
 
+// IssueChangeLock places a place holder function
+func (*NullNotifier) IssueChangeLock(ctx context.Context, doer *user_model.User, issue *issues_model.Issue, locked bool) {
+}
+
 // IssueChangeMilestone places a place holder function
 func (*NullNotifier) IssueChangeMilestone(ctx context.Context, doer *user_model.User, issue *issues_model.Issue, oldMilestoneID int64) {
 }

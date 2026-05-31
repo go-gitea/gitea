@@ -365,6 +365,10 @@ const (
 	HookIssueEdited HookIssueAction = "edited"
 	// HookIssueDeleted is an issue action for deleting an issue
 	HookIssueDeleted HookIssueAction = "deleted"
+	// HookIssueLocked is an issue action for locking an issue conversation.
+	HookIssueLocked HookIssueAction = "locked"
+	// HookIssueUnlocked is an issue action for unlocking an issue conversation.
+	HookIssueUnlocked HookIssueAction = "unlocked"
 	// HookIssueAssigned assigned
 	HookIssueAssigned HookIssueAction = "assigned"
 	// HookIssueUnassigned unassigned

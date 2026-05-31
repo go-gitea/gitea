@@ -112,6 +112,10 @@ func getIssuesPayloadInfo(p *api.IssuePayload, linkFormatter linkFormatter, with
 		text = fmt.Sprintf("[%s] Issue re-opened: %s", repoLink, titleLink)
 	case api.HookIssueEdited:
 		text = fmt.Sprintf("[%s] Issue edited: %s", repoLink, titleLink)
+	case api.HookIssueLocked:
+		text = fmt.Sprintf("[%s] Issue locked: %s", repoLink, titleLink)
+	case api.HookIssueUnlocked:
+		text = fmt.Sprintf("[%s] Issue unlocked: %s", repoLink, titleLink)
 	case api.HookIssueAssigned:
 		list := make([]string, len(p.Issue.Assignees))
 		for i, user := range p.Issue.Assignees {
@@ -169,6 +173,10 @@ func getPullRequestPayloadInfo(p *api.PullRequestPayload, linkFormatter linkForm
 	case api.HookIssueEdited:
 		text = fmt.Sprintf("[%s] Pull request edited: %s", repoLink, titleLink)
 		extraMarkdown = p.PullRequest.Body
+	case api.HookIssueLocked:
+		text = fmt.Sprintf("[%s] Pull request locked: %s", repoLink, titleLink)
+	case api.HookIssueUnlocked:
+		text = fmt.Sprintf("[%s] Pull request unlocked: %s", repoLink, titleLink)
 	case api.HookIssueAssigned:
 		list := make([]string, len(p.PullRequest.Assignees))
 		for i, user := range p.PullRequest.Assignees {

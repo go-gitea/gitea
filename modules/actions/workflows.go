@@ -394,12 +394,12 @@ func matchIssuesEvent(issuePayload *api.IssuePayload, evt *jobparser.Event) bool
 		case "types":
 			// See https://docs.github.com/en/actions/using-workflows/events-that-trigger-workflows#issues
 			// Actions with the same name:
-			// opened, edited, closed, reopened, assigned, unassigned, milestoned, demilestoned
+			// opened, edited, closed, reopened, assigned, unassigned, locked, unlocked, milestoned, demilestoned
 			// Actions need to be converted:
 			// label_updated -> labeled (when adding) or unlabeled (when removing)
 			// label_cleared -> unlabeled
 			// Unsupported activity types:
-			// deleted, transferred, pinned, unpinned, locked, unlocked
+			// deleted, transferred, pinned, unpinned
 
 			actions := []string{}
 			switch issuePayload.Action {
@@ -441,13 +441,13 @@ func matchPullRequestEvent(gitRepo *git.Repository, commit *git.Commit, prPayloa
 	} else {
 		// See https://docs.github.com/en/actions/using-workflows/events-that-trigger-workflows#pull_request
 		// Actions with the same name:
-		// opened, edited, closed, reopened, assigned, unassigned, review_requested, review_request_removed, milestoned, demilestoned
+		// opened, edited, closed, reopened, assigned, unassigned, locked, unlocked, review_requested, review_request_removed, milestoned, demilestoned
 		// Actions need to be converted:
 		// synchronized -> synchronize
 		// label_updated -> labeled
 		// label_cleared -> unlabeled
 		// Unsupported activity types:
-		// converted_to_draft, ready_for_review, locked, unlocked, auto_merge_enabled, auto_merge_disabled, enqueued, dequeued
+		// converted_to_draft, ready_for_review, auto_merge_enabled, auto_merge_disabled, enqueued, dequeued
 
 		action := prPayload.Action
 		switch action {

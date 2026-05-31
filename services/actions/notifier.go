@@ -193,6 +193,22 @@ func (n *actionsNotifier) IssueChangeMilestone(ctx context.Context, doer *user_m
 	notifyIssueChange(ctx, doer, issue, hookEvent, action, nil, nil)
 }
 
+func (n *actionsNotifier) IssueChangeLock(ctx context.Context, doer *user_model.User, issue *issues_model.Issue, locked bool) {
+	ctx = withMethod(ctx, "IssueChangeLock")
+
+	action := api.HookIssueUnlocked
+	if locked {
+		action = api.HookIssueLocked
+	}
+
+	hookEvent := webhook_module.HookEventIssues
+	if issue.IsPull {
+		hookEvent = webhook_module.HookEventPullRequest
+	}
+
+	notifyIssueChange(ctx, doer, issue, hookEvent, action, nil, nil)
+}
+
 func (n *actionsNotifier) IssueChangeLabels(ctx context.Context, doer *user_model.User, issue *issues_model.Issue,
 	addedLabels, removedLabels []*issues_model.Label,
 ) {

@@ -11,6 +11,7 @@ import (
 	api "gitea.dev/modules/structs"
 	"gitea.dev/modules/web"
 	"gitea.dev/services/context"
+	issue_service "gitea.dev/services/issue"
 )
 
 // LockIssue lock an issue
@@ -75,7 +76,7 @@ func LockIssue(ctx *context.APIContext) {
 		}
 
 		issue.Repo = ctx.Repo.Repository
-		err = issues_model.LockIssue(ctx, opt)
+		err = issue_service.LockIssue(ctx, opt)
 		if err != nil {
 			ctx.APIErrorInternal(err)
 			return
@@ -141,7 +142,7 @@ func UnlockIssue(ctx *context.APIContext) {
 		}
 
 		issue.Repo = ctx.Repo.Repository
-		err = issues_model.UnlockIssue(ctx, opt)
+		err = issue_service.UnlockIssue(ctx, opt)
 		if err != nil {
 			ctx.APIErrorInternal(err)
 			return

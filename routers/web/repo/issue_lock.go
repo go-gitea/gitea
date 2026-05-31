@@ -8,6 +8,7 @@ import (
 	"gitea.dev/modules/web"
 	"gitea.dev/services/context"
 	"gitea.dev/services/forms"
+	issue_service "gitea.dev/services/issue"
 )
 
 // LockIssue locks an issue. This would limit commenting abilities to
@@ -24,7 +25,7 @@ func LockIssue(ctx *context.Context) {
 		return
 	}
 
-	if err := issues_model.LockIssue(ctx, &issues_model.IssueLockOptions{
+	if err := issue_service.LockIssue(ctx, &issues_model.IssueLockOptions{
 		Doer:   ctx.Doer,
 		Issue:  issue,
 		Reason: form.Reason,
@@ -48,7 +49,7 @@ func UnlockIssue(ctx *context.Context) {
 		return
 	}
 
-	if err := issues_model.UnlockIssue(ctx, &issues_model.IssueLockOptions{
+	if err := issue_service.UnlockIssue(ctx, &issues_model.IssueLockOptions{
 		Doer:  ctx.Doer,
 		Issue: issue,
 	}); err != nil {

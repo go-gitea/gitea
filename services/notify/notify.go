@@ -91,6 +91,13 @@ func DeleteIssue(ctx context.Context, doer *user_model.User, issue *issues_model
 	}
 }
 
+// IssueChangeLock notifies issue conversation lock or unlock changes to notifiers
+func IssueChangeLock(ctx context.Context, doer *user_model.User, issue *issues_model.Issue, locked bool) {
+	for _, notifier := range notifiers {
+		notifier.IssueChangeLock(ctx, doer, issue, locked)
+	}
+}
+
 // MergePullRequest notifies merge pull request to notifiers
 func MergePullRequest(ctx context.Context, doer *user_model.User, pr *issues_model.PullRequest) {
 	for _, notifier := range notifiers {

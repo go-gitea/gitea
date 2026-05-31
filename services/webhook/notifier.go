@@ -333,6 +333,45 @@ func (m *webhookNotifier) DeleteIssue(ctx context.Context, doer *user_model.User
 	}
 }
 
+func (m *webhookNotifier) IssueChangeLock(ctx context.Context, doer *user_model.User, issue *issues_model.Issue, locked bool) {
+	if err := issue.LoadRepo(ctx); err != nil {
+		log.Error("issue.LoadRepo: %v", err)
+		return
+	}
+
+	action := api.HookIssueUnlocked
+	if locked {
+		action = api.HookIssueLocked
+	}
+
+	permission, _ := access_model.GetDoerRepoPermission(ctx, issue.Repo, doer)
+	if issue.IsPull {
+		if err := issue.LoadPullRequest(ctx); err != nil {
+			log.Error("LoadPullRequest: %v", err)
+			return
+		}
+		if err := PrepareWebhooks(ctx, EventSource{Repository: issue.Repo}, webhook_module.HookEventPullRequest, &api.PullRequestPayload{
+			Action:      action,
+			Index:       issue.Index,
+			PullRequest: convert.ToAPIPullRequest(ctx, issue.PullRequest, doer),
+			Repository:  convert.ToRepo(ctx, issue.Repo, permission),
+			Sender:      convert.ToUser(ctx, doer, nil),
+		}); err != nil {
+			log.Error("PrepareWebhooks [is_pull: %v, locked: %v]: %v", issue.IsPull, locked, err)
+		}
+	} else {
+		if err := PrepareWebhooks(ctx, EventSource{Repository: issue.Repo}, webhook_module.HookEventIssues, &api.IssuePayload{
+			Action:     action,
+			Index:      issue.Index,
+			Issue:      convert.ToAPIIssue(ctx, doer, issue),
+			Repository: convert.ToRepo(ctx, issue.Repo, permission),
+			Sender:     convert.ToUser(ctx, doer, nil),
+		}); err != nil {
+			log.Error("PrepareWebhooks [is_pull: %v, locked: %v]: %v", issue.IsPull, locked, err)
+		}
+	}
+}
+
 func (m *webhookNotifier) NewPullRequest(ctx context.Context, pull *issues_model.PullRequest, mentions []*user_model.User) {
 	if err := pull.LoadIssue(ctx); err != nil {
 		log.Error("pull.LoadIssue: %v", err)
