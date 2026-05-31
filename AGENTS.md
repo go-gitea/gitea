@@ -17,4 +17,4 @@
 - For CSS layout, prefer `flex-*` helpers over per-child `tw-ml-*` / `tw-mr-*` margins; fall back to `tw-*` utilities when specificity requires `!important`
 - Include authorship attribution in issue and pull request comments
 - Add `Assisted-By` lines to all commits, indicating name and model used in following format: `Assisted-by: AGENT_NAME:MODEL_VERSION`
-- Never sign-off on changes. This action must be done by a person
+- Never sign-off on changes by adding `Signed-off-by` trailer in commit message, using `--signoff` flag or other means. This action must be done by a person
