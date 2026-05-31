@@ -3,9 +3,9 @@
 
 package v1_10
 
-import "xorm.io/xorm"
+import "gitea.dev/models/db"
 
-func AddCrossReferenceColumns(x *xorm.Engine) error {
+func AddCrossReferenceColumns(x db.EngineMigration) error {
 	// Comment see models/comment.go
 	type Comment struct {
 		RefRepoID    int64 `xorm:"index"`

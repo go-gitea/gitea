@@ -11,20 +11,20 @@ import (
 	"testing"
 	"time"
 
-	actions_model "code.gitea.io/gitea/models/actions"
-	auth_model "code.gitea.io/gitea/models/auth"
-	"code.gitea.io/gitea/models/db"
-	repo_model "code.gitea.io/gitea/models/repo"
-	"code.gitea.io/gitea/models/unittest"
-	user_model "code.gitea.io/gitea/models/user"
-	"code.gitea.io/gitea/modules/setting"
-	api "code.gitea.io/gitea/modules/structs"
-	"code.gitea.io/gitea/modules/timeutil"
-	webhook_module "code.gitea.io/gitea/modules/webhook"
-	actions_web "code.gitea.io/gitea/routers/web/repo/actions"
-	actions_service "code.gitea.io/gitea/services/actions"
+	runnerv1 "gitea.dev/actions-proto-go/runner/v1"
+	actions_model "gitea.dev/models/actions"
+	auth_model "gitea.dev/models/auth"
+	"gitea.dev/models/db"
+	repo_model "gitea.dev/models/repo"
+	"gitea.dev/models/unittest"
+	user_model "gitea.dev/models/user"
+	"gitea.dev/modules/setting"
+	api "gitea.dev/modules/structs"
+	"gitea.dev/modules/timeutil"
+	webhook_module "gitea.dev/modules/webhook"
+	actions_web "gitea.dev/routers/web/repo/actions"
+	actions_service "gitea.dev/services/actions"
 
-	runnerv1 "code.gitea.io/actions-proto-go/runner/v1"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -1559,6 +1559,9 @@ jobs:
 		run2 := unittest.AssertExistsAndLoadBean(t, &actions_model.ActionRun{RepoID: repo.ID, WorkflowID: "workflow-2.yml"})
 		// run2 is blocked because it is blocked by workflow1's concurrency group "test-group"
 		assert.Equal(t, actions_model.StatusBlocked, run2.Status)
+
+		// complete wf1-job1
+		runner.execTask(t, w1j1Task, &mockTaskOutcome{result: runnerv1.Result_RESULT_SUCCESS})
 
 		// mock time
 		fakeNow := now.Add(setting.Actions.AbandonedJobTimeout)

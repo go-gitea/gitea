@@ -4,10 +4,12 @@
 package v1_26
 
 import (
+	"gitea.dev/models/db"
+
 	"xorm.io/xorm"
 )
 
-func AddNameToWebhook(x *xorm.Engine) error {
+func AddNameToWebhook(x db.EngineMigration) error {
 	type Webhook struct {
 		Name string `xorm:"VARCHAR(255) NOT NULL DEFAULT ''"`
 	}

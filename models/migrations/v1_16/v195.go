@@ -6,10 +6,10 @@ package v1_16
 import (
 	"fmt"
 
-	"xorm.io/xorm"
+	"gitea.dev/models/db"
 )
 
-func AddTableCommitStatusIndex(x *xorm.Engine) error {
+func AddTableCommitStatusIndex(x db.EngineMigration) error {
 	// CommitStatusIndex represents a table for commit status index
 	type CommitStatusIndex struct {
 		ID       int64

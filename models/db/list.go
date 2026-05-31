@@ -6,10 +6,9 @@ package db
 import (
 	"context"
 
-	"code.gitea.io/gitea/modules/setting"
+	"gitea.dev/modules/setting"
 
 	"xorm.io/builder"
-	"xorm.io/xorm"
 )
 
 const (
@@ -25,7 +24,7 @@ type Paginator interface {
 }
 
 // SetSessionPagination sets pagination for a database session
-func SetSessionPagination(sess Engine, p Paginator) *xorm.Session {
+func SetSessionPagination(sess Engine, p Paginator) Session {
 	skip, take := p.GetSkipTake()
 
 	return sess.Limit(take, skip)

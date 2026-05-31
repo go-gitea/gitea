@@ -3,11 +3,9 @@
 
 package v1_16
 
-import (
-	"xorm.io/xorm"
-)
+import "gitea.dev/models/db"
 
-func DropTableRemoteVersion(x *xorm.Engine) error {
+func DropTableRemoteVersion(x db.EngineMigration) error {
 	// drop the orphaned table introduced in `v199`, now the update checker also uses AppState, do not need this table
 	_ = x.DropTables("remote_version")
 	return nil

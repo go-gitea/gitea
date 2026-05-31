@@ -7,9 +7,8 @@ import (
 	"bytes"
 	"context"
 	"encoding/base64"
+	"flag"
 	"fmt"
-	"hash"
-	"hash/fnv"
 	"io"
 	"net/http"
 	"net/http/cookiejar"
@@ -21,64 +20,25 @@ import (
 	"sync/atomic"
 	"testing"
 
-	"code.gitea.io/gitea/models/auth"
-	"code.gitea.io/gitea/models/unittest"
-	"code.gitea.io/gitea/modules/graceful"
-	"code.gitea.io/gitea/modules/json"
-	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/modules/testlogger"
-	"code.gitea.io/gitea/modules/util"
-	"code.gitea.io/gitea/modules/web"
-	"code.gitea.io/gitea/modules/web/middleware"
-	"code.gitea.io/gitea/routers"
-	gitea_context "code.gitea.io/gitea/services/context"
-	"code.gitea.io/gitea/tests"
+	"gitea.dev/models/auth"
+	"gitea.dev/models/unittest"
+	"gitea.dev/modules/graceful"
+	"gitea.dev/modules/json"
+	"gitea.dev/modules/log"
+	"gitea.dev/modules/setting"
+	"gitea.dev/modules/testlogger"
+	"gitea.dev/modules/util"
+	"gitea.dev/modules/web"
+	"gitea.dev/modules/web/middleware"
+	"gitea.dev/routers"
+	gitea_context "gitea.dev/services/context"
+	"gitea.dev/tests"
 
 	"github.com/PuerkitoBio/goquery"
 	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
-	"github.com/xeipuuv/gojsonschema"
 )
 
 var testWebRoutes *web.Router
-
-type NilResponseRecorder struct {
-	httptest.ResponseRecorder
-	Length int
-}
-
-func (n *NilResponseRecorder) Write(b []byte) (int, error) {
-	n.Length += len(b)
-	return len(b), nil
-}
-
-// NewRecorder returns an initialized ResponseRecorder.
-func NewNilResponseRecorder() *NilResponseRecorder {
-	return &NilResponseRecorder{
-		ResponseRecorder: *httptest.NewRecorder(),
-	}
-}
-
-type NilResponseHashSumRecorder struct {
-	httptest.ResponseRecorder
-	Hash   hash.Hash
-	Length int
-}
-
-func (n *NilResponseHashSumRecorder) Write(b []byte) (int, error) {
-	_, _ = n.Hash.Write(b)
-	n.Length += len(b)
-	return len(b), nil
-}
-
-// NewRecorder returns an initialized ResponseRecorder.
-func NewNilResponseHashSumRecorder() *NilResponseHashSumRecorder {
-	return &NilResponseHashSumRecorder{
-		Hash:             fnv.New32(),
-		ResponseRecorder: *httptest.NewRecorder(),
-	}
-}
 
 func testMain(m *testing.M) int {
 	defer log.GetManager().Close()
@@ -116,6 +76,11 @@ func testMain(m *testing.M) int {
 }
 
 func TestMain(m *testing.M) {
+	// -test.list must skip InitIntegrationTest, which requires a database.
+	flag.Parse()
+	if flag.Lookup("test.list").Value.String() != "" {
+		os.Exit(m.Run())
+	}
 	os.Exit(testMain(m))
 }
 
@@ -162,42 +127,6 @@ func (s *TestSession) MakeRequest(t testing.TB, rw *RequestWrapper, expectedStat
 		req.AddCookie(c)
 	}
 	resp := MakeRequest(t, rw, expectedStatus)
-
-	ch := http.Header{}
-	ch.Add("Cookie", strings.Join(resp.Header()["Set-Cookie"], ";"))
-	cr := http.Request{Header: ch}
-	s.jar.SetCookies(baseURL, cr.Cookies())
-
-	return resp
-}
-
-func (s *TestSession) MakeRequestNilResponseRecorder(t testing.TB, rw *RequestWrapper, expectedStatus int) *NilResponseRecorder {
-	t.Helper()
-	req := rw.Request
-	baseURL, err := url.Parse(setting.AppURL)
-	assert.NoError(t, err)
-	for _, c := range s.jar.Cookies(baseURL) {
-		req.AddCookie(c)
-	}
-	resp := MakeRequestNilResponseRecorder(t, rw, expectedStatus)
-
-	ch := http.Header{}
-	ch.Add("Cookie", strings.Join(resp.Header()["Set-Cookie"], ";"))
-	cr := http.Request{Header: ch}
-	s.jar.SetCookies(baseURL, cr.Cookies())
-
-	return resp
-}
-
-func (s *TestSession) MakeRequestNilResponseHashSumRecorder(t testing.TB, rw *RequestWrapper, expectedStatus int) *NilResponseHashSumRecorder {
-	t.Helper()
-	req := rw.Request
-	baseURL, err := url.Parse(setting.AppURL)
-	assert.NoError(t, err)
-	for _, c := range s.jar.Cookies(baseURL) {
-		req.AddCookie(c)
-	}
-	resp := MakeRequestNilResponseHashSumRecorder(t, rw, expectedStatus)
 
 	ch := http.Header{}
 	ch.Add("Cookie", strings.Join(resp.Header()["Set-Cookie"], ";"))
@@ -262,7 +191,11 @@ func getTokenForLoggedInUser(t testing.TB, session *TestSession, scopes ...auth.
 	req := NewRequestWithURLValues(t, "POST", "/user/settings/applications", urlValues)
 	session.MakeRequest(t, req, http.StatusSeeOther)
 	flashes := session.GetCookieFlashMessage()
-	return flashes.InfoMsg
+	assert.NotNil(t, flashes)
+	if flashes != nil {
+		return flashes.InfoMsg
+	}
+	return ""
 }
 
 type RequestWrapper struct {
@@ -330,7 +263,7 @@ func NewRequestWithBody(t testing.TB, method, urlStr string, body io.Reader) *Re
 		t.Fatalf("invalid url str: %s", urlStr)
 	}
 	req, err := http.NewRequest(method, urlStr, body)
-	require.NoError(t, err)
+	assert.NoError(t, err)
 	if req.URL.User != nil {
 		req.Header.Set("Authorization", "Basic "+base64.StdEncoding.EncodeToString([]byte(req.URL.User.String())))
 	}
@@ -358,35 +291,8 @@ func MakeRequest(t testing.TB, rw *RequestWrapper, expectedStatus int) *httptest
 	if expectedStatus != NoExpectedStatus {
 		if expectedStatus != recorder.Code {
 			logUnexpectedResponse(t, recorder)
-			require.Equal(t, expectedStatus, recorder.Code, "Request: %s %s", req.Method, req.URL.String())
-		}
-	}
-	return recorder
-}
-
-func MakeRequestNilResponseRecorder(t testing.TB, rw *RequestWrapper, expectedStatus int) *NilResponseRecorder {
-	t.Helper()
-	req := rw.Request
-	recorder := NewNilResponseRecorder()
-	testWebRoutes.ServeHTTP(recorder, req)
-	if expectedStatus != NoExpectedStatus {
-		if !assert.Equal(t, expectedStatus, recorder.Code,
-			"Request: %s %s", req.Method, req.URL.String()) {
-			logUnexpectedResponse(t, &recorder.ResponseRecorder)
-		}
-	}
-	return recorder
-}
-
-func MakeRequestNilResponseHashSumRecorder(t testing.TB, rw *RequestWrapper, expectedStatus int) *NilResponseHashSumRecorder {
-	t.Helper()
-	req := rw.Request
-	recorder := NewNilResponseHashSumRecorder()
-	testWebRoutes.ServeHTTP(recorder, req)
-	if expectedStatus != NoExpectedStatus {
-		if !assert.Equal(t, expectedStatus, recorder.Code,
-			"Request: %s %s", req.Method, req.URL.String()) {
-			logUnexpectedResponse(t, &recorder.ResponseRecorder)
+			// don't use "require" which exits the test case and makes "wait group" wait forever
+			assert.Equal(t, expectedStatus, recorder.Code, "Request: %s %s", req.Method, req.URL.String())
 		}
 	}
 	return recorder
@@ -422,25 +328,7 @@ func DecodeJSON[T any](t testing.TB, resp *httptest.ResponseRecorder, v T) (ret 
 
 	// FIXME: JSON-KEY-CASE: for testing purpose only, because many structs don't provide `json` tags, they just use capitalized field names
 	decoder := json.NewDecoderCaseInsensitive(resp.Body)
-	require.NoError(t, decoder.Decode(&v))
+	// don't use "require" which exits the test case and makes "wait group" wait forever
+	assert.NoError(t, decoder.Decode(&v))
 	return v
-}
-
-func VerifyJSONSchema(t testing.TB, resp *httptest.ResponseRecorder, schemaFile string) {
-	t.Helper()
-
-	schemaFilePath := filepath.Join(filepath.Dir(setting.AppPath), "tests", "integration", "schemas", schemaFile)
-	_, schemaFileErr := os.Stat(schemaFilePath)
-	assert.NoError(t, schemaFileErr)
-
-	schema, schemaFileReadErr := os.ReadFile(schemaFilePath)
-	assert.NoError(t, schemaFileReadErr)
-	assert.NotEmpty(t, schema)
-
-	nodeinfoSchema := gojsonschema.NewStringLoader(string(schema))
-	nodeinfoString := gojsonschema.NewStringLoader(resp.Body.String())
-	result, schemaValidationErr := gojsonschema.Validate(nodeinfoSchema, nodeinfoString)
-	assert.NoError(t, schemaValidationErr)
-	assert.Empty(t, result.Errors())
-	assert.True(t, result.Valid())
 }

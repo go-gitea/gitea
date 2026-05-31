@@ -3,9 +3,7 @@
 
 package v1_22
 
-import (
-	"xorm.io/xorm"
-)
+import "gitea.dev/models/db"
 
 type BadgeUnique struct {
 	ID   int64  `xorm:"pk autoincr"`
@@ -16,7 +14,7 @@ func (BadgeUnique) TableName() string {
 	return "badge"
 }
 
-func UseSlugInsteadOfIDForBadges(x *xorm.Engine) error {
+func UseSlugInsteadOfIDForBadges(x db.EngineMigration) error {
 	type Badge struct {
 		Slug string
 	}

@@ -8,15 +8,15 @@ import (
 	"net/http"
 	"strings"
 
-	"code.gitea.io/gitea/modules/cache"
-	"code.gitea.io/gitea/modules/gtprof"
-	"code.gitea.io/gitea/modules/httplib"
-	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/public"
-	"code.gitea.io/gitea/modules/reqctx"
-	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/modules/web/routing"
-	"code.gitea.io/gitea/services/context"
+	"gitea.dev/modules/cache"
+	"gitea.dev/modules/gtprof"
+	"gitea.dev/modules/httplib"
+	"gitea.dev/modules/log"
+	"gitea.dev/modules/public"
+	"gitea.dev/modules/reqctx"
+	"gitea.dev/modules/setting"
+	"gitea.dev/modules/web/routing"
+	"gitea.dev/services/context"
 
 	"gitea.com/go-chi/session"
 	"github.com/chi-middleware/proxy"
@@ -34,9 +34,7 @@ func ProtocolMiddlewares() (handlers []any) {
 		handlers = append(handlers, ForwardedHeadersHandler(setting.ReverseProxyLimit, setting.ReverseProxyTrustedProxies))
 	}
 
-	if setting.IsRouteLogEnabled() {
-		handlers = append(handlers, routing.NewLoggerHandler())
-	}
+	handlers = append(handlers, routing.NewRequestInfoHandler())
 
 	if setting.IsAccessLogEnabled() {
 		handlers = append(handlers, context.AccessLogger())

@@ -9,18 +9,21 @@ import (
 	"net/url"
 	"testing"
 
-	auth_model "code.gitea.io/gitea/models/auth"
-	access_model "code.gitea.io/gitea/models/perm/access"
-	repo_model "code.gitea.io/gitea/models/repo"
-	unit_model "code.gitea.io/gitea/models/unit"
-	"code.gitea.io/gitea/models/unittest"
-	user_model "code.gitea.io/gitea/models/user"
-	"code.gitea.io/gitea/modules/setting"
-	api "code.gitea.io/gitea/modules/structs"
-	repo_service "code.gitea.io/gitea/services/repository"
-	"code.gitea.io/gitea/tests"
+	auth_model "gitea.dev/models/auth"
+	access_model "gitea.dev/models/perm/access"
+	repo_model "gitea.dev/models/repo"
+	unit_model "gitea.dev/models/unit"
+	"gitea.dev/models/unittest"
+	user_model "gitea.dev/models/user"
+	"gitea.dev/modules/setting"
+	api "gitea.dev/modules/structs"
+	"gitea.dev/modules/test"
+	"gitea.dev/services/migrations"
+	repo_service "gitea.dev/services/repository"
+	"gitea.dev/tests"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestAPIUserReposNotLogin(t *testing.T) {
@@ -60,11 +63,7 @@ func TestAPISearchRepo(t *testing.T) {
 	user4 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 20})
 	orgUser := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 17})
 
-	oldAPIDefaultNum := setting.API.DefaultPagingNum
-	defer func() {
-		setting.API.DefaultPagingNum = oldAPIDefaultNum
-	}()
-	setting.API.DefaultPagingNum = 10
+	defer test.MockVariableValue(&setting.API.DefaultPagingNum, 10)()
 
 	// Map of expected results, where key is user for login
 	type expectedResults map[*user_model.User]struct {
@@ -352,45 +351,52 @@ func TestAPIGetRepoByIDUnauthorized(t *testing.T) {
 }
 
 func TestAPIRepoMigrate(t *testing.T) {
-	testCases := []struct {
-		ctxUserID, userID  int64
-		cloneURL, repoName string
-		expectedStatus     int
-	}{
-		{ctxUserID: 1, userID: 2, cloneURL: "https://github.com/go-gitea/test_repo.git", repoName: "git-admin", expectedStatus: http.StatusCreated},
-		{ctxUserID: 2, userID: 2, cloneURL: "https://github.com/go-gitea/test_repo.git", repoName: "git-own", expectedStatus: http.StatusCreated},
-		{ctxUserID: 2, userID: 1, cloneURL: "https://github.com/go-gitea/test_repo.git", repoName: "git-bad", expectedStatus: http.StatusForbidden},
-		{ctxUserID: 2, userID: 3, cloneURL: "https://github.com/go-gitea/test_repo.git", repoName: "git-org", expectedStatus: http.StatusCreated},
-		{ctxUserID: 2, userID: 6, cloneURL: "https://github.com/go-gitea/test_repo.git", repoName: "git-bad-org", expectedStatus: http.StatusForbidden},
-		{ctxUserID: 2, userID: 3, cloneURL: "https://localhost:3000/user/test_repo.git", repoName: "private-ip", expectedStatus: http.StatusUnprocessableEntity},
-		{ctxUserID: 2, userID: 3, cloneURL: "https://10.0.0.1/user/test_repo.git", repoName: "private-ip", expectedStatus: http.StatusUnprocessableEntity},
-	}
+	onGiteaRun(t, func(t *testing.T, u *url.URL) {
+		// migrate from a local fixture repo (user2/repo1) via the live listener so the test runs offline
+		repo1 := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
+		cloneAddr := fmt.Sprintf("%s%s/%s.git", u.String(), repo1.OwnerName, repo1.Name)
 
-	defer tests.PrepareTestEnv(t)()
-	for _, testCase := range testCases {
-		user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: testCase.ctxUserID})
-		session := loginUser(t, user.Name)
-		token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeWriteRepository)
-		req := NewRequestWithJSON(t, "POST", "/api/v1/repos/migrate", &api.MigrateRepoOptions{
-			CloneAddr:   testCase.cloneURL,
-			RepoOwnerID: testCase.userID,
-			RepoName:    testCase.repoName,
-		}).AddTokenAuth(token)
-		resp := MakeRequest(t, req, NoExpectedStatus)
-		if resp.Code == http.StatusUnprocessableEntity {
-			respJSON := DecodeJSON(t, resp, map[string]string{})
-			switch respJSON["message"] {
-			case "Remote visit addressed rate limitation.":
-				t.Log("test hit github rate limitation")
-			case "You can not import from disallowed hosts.":
-				assert.Equal(t, "private-ip", testCase.repoName)
-			default:
-				assert.FailNow(t, "unexpected error", "unexpected error '%v' on url '%s'", respJSON["message"], testCase.cloneURL)
+		t.Run("Permitted", func(t *testing.T) {
+			// migrations.Init builds the host allowlist from AllowLocalNetworks, so set it first
+			defer test.MockVariableValue(&setting.Migrations.AllowLocalNetworks, true)()
+			require.NoError(t, migrations.Init())
+			for _, testCase := range []struct {
+				ctxUserID, ownerID int64
+				repoName           string
+				expectedStatus     int
+			}{
+				{ctxUserID: 1, ownerID: 2, repoName: "git-admin", expectedStatus: http.StatusCreated},
+				{ctxUserID: 2, ownerID: 2, repoName: "git-own", expectedStatus: http.StatusCreated},
+				{ctxUserID: 2, ownerID: 1, repoName: "git-bad", expectedStatus: http.StatusForbidden},
+				{ctxUserID: 2, ownerID: 3, repoName: "git-org", expectedStatus: http.StatusCreated},
+				{ctxUserID: 2, ownerID: 6, repoName: "git-bad-org", expectedStatus: http.StatusForbidden},
+			} {
+				user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: testCase.ctxUserID})
+				token := getTokenForLoggedInUser(t, loginUser(t, user.Name), auth_model.AccessTokenScopeWriteRepository)
+				req := NewRequestWithJSON(t, "POST", "/api/v1/repos/migrate", &api.MigrateRepoOptions{
+					CloneAddr:   cloneAddr,
+					RepoOwnerID: testCase.ownerID,
+					RepoName:    testCase.repoName,
+				}).AddTokenAuth(token)
+				MakeRequest(t, req, testCase.expectedStatus)
 			}
-		} else {
-			assert.Equal(t, testCase.expectedStatus, resp.Code)
-		}
-	}
+		})
+
+		t.Run("DisallowedHost", func(t *testing.T) {
+			defer test.MockVariableValue(&setting.Migrations.AllowLocalNetworks, false)()
+			require.NoError(t, migrations.Init())
+			token := getTokenForLoggedInUser(t, loginUser(t, "user2"), auth_model.AccessTokenScopeWriteRepository)
+			for _, cloneURL := range []string{"https://localhost:3000/user/test_repo.git", "https://10.0.0.1/user/test_repo.git"} {
+				req := NewRequestWithJSON(t, "POST", "/api/v1/repos/migrate", &api.MigrateRepoOptions{
+					CloneAddr:   cloneURL,
+					RepoOwnerID: 3,
+					RepoName:    "private-ip",
+				}).AddTokenAuth(token)
+				resp := MakeRequest(t, req, http.StatusUnprocessableEntity)
+				assert.Equal(t, "You can not import from disallowed hosts.", DecodeJSON(t, resp, map[string]string{})["message"])
+			}
+		})
+	})
 }
 
 func TestAPIRepoMigrateConflict(t *testing.T) {
@@ -536,7 +542,6 @@ func TestAPIRepoTransfer(t *testing.T) {
 	session := loginUser(t, user.Name)
 	token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeWriteRepository, auth_model.AccessTokenScopeWriteUser)
 	repoName := "moveME"
-	apiRepo := new(api.Repository)
 	req := NewRequestWithJSON(t, "POST", "/api/v1/user/repos", &api.CreateRepoOption{
 		Name:        repoName,
 		Description: "repo move around",
@@ -545,7 +550,7 @@ func TestAPIRepoTransfer(t *testing.T) {
 		AutoInit:    true,
 	}).AddTokenAuth(token)
 	resp := MakeRequest(t, req, http.StatusCreated)
-	DecodeJSON(t, resp, apiRepo)
+	apiRepo := DecodeJSON(t, resp, &api.Repository{})
 
 	// start testing
 	for _, testCase := range testCases {
@@ -571,7 +576,6 @@ func transfer(t *testing.T) *repo_model.Repository {
 	session := loginUser(t, user.Name)
 	token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeWriteRepository, auth_model.AccessTokenScopeWriteUser)
 	repoName := "moveME"
-	apiRepo := new(api.Repository)
 	req := NewRequestWithJSON(t, "POST", "/api/v1/user/repos", &api.CreateRepoOption{
 		Name:        repoName,
 		Description: "repo move around",
@@ -581,7 +585,7 @@ func transfer(t *testing.T) *repo_model.Repository {
 	}).AddTokenAuth(token)
 
 	resp := MakeRequest(t, req, http.StatusCreated)
-	DecodeJSON(t, resp, apiRepo)
+	apiRepo := DecodeJSON(t, resp, &api.Repository{})
 
 	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: apiRepo.ID})
 	req = NewRequestWithJSON(t, "POST", fmt.Sprintf("/api/v1/repos/%s/%s/transfer", repo.OwnerName, repo.Name), &api.TransferRepoOption{
@@ -616,8 +620,7 @@ func TestAPIAcceptTransfer(t *testing.T) {
 	req = NewRequest(t, "POST", fmt.Sprintf("/api/v1/repos/%s/%s/transfer/accept", repo.OwnerName, repo.Name)).
 		AddTokenAuth(token)
 	resp := MakeRequest(t, req, http.StatusAccepted)
-	apiRepo := new(api.Repository)
-	DecodeJSON(t, resp, apiRepo)
+	apiRepo := DecodeJSON(t, resp, &api.Repository{})
 	assert.Equal(t, "user4", apiRepo.Owner.UserName)
 }
 
@@ -645,8 +648,7 @@ func TestAPIRejectTransfer(t *testing.T) {
 	req = NewRequest(t, "POST", fmt.Sprintf("/api/v1/repos/%s/%s/transfer/reject", repo.OwnerName, repo.Name)).
 		AddTokenAuth(token)
 	resp := MakeRequest(t, req, http.StatusOK)
-	apiRepo := new(api.Repository)
-	DecodeJSON(t, resp, apiRepo)
+	apiRepo := DecodeJSON(t, resp, &api.Repository{})
 	assert.Equal(t, "user2", apiRepo.Owner.UserName)
 }
 
@@ -659,8 +661,17 @@ func TestAPIGenerateRepo(t *testing.T) {
 
 	templateRepo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 44})
 
+	assertGeneratedRepoIsUsable := func(t *testing.T, ownerName string, repo *api.Repository) {
+		t.Helper()
+		assert.NotEmpty(t, repo.DefaultBranch)
+
+		req := NewRequestf(t, "GET", "/api/v1/repos/%s/%s/branches/%s", ownerName, repo.Name, repo.DefaultBranch).AddTokenAuth(token)
+		resp := MakeRequest(t, req, http.StatusOK)
+		branch := DecodeJSON(t, resp, &api.Branch{})
+		assert.Equal(t, repo.DefaultBranch, branch.Name)
+	}
+
 	// user
-	repo := new(api.Repository)
 	req := NewRequestWithJSON(t, "POST", fmt.Sprintf("/api/v1/repos/%s/%s/generate", templateRepo.OwnerName, templateRepo.Name), &api.GenerateRepoOption{
 		Owner:       user.Name,
 		Name:        "new-repo",
@@ -669,9 +680,10 @@ func TestAPIGenerateRepo(t *testing.T) {
 		GitContent:  true,
 	}).AddTokenAuth(token)
 	resp := MakeRequest(t, req, http.StatusCreated)
-	DecodeJSON(t, resp, repo)
+	apiRepo := DecodeJSON(t, resp, &api.Repository{})
 
-	assert.Equal(t, "new-repo", repo.Name)
+	assert.Equal(t, "new-repo", apiRepo.Name)
+	assertGeneratedRepoIsUsable(t, user.Name, apiRepo)
 
 	// org
 	req = NewRequestWithJSON(t, "POST", fmt.Sprintf("/api/v1/repos/%s/%s/generate", templateRepo.OwnerName, templateRepo.Name), &api.GenerateRepoOption{
@@ -682,9 +694,10 @@ func TestAPIGenerateRepo(t *testing.T) {
 		GitContent:  true,
 	}).AddTokenAuth(token)
 	resp = MakeRequest(t, req, http.StatusCreated)
-	DecodeJSON(t, resp, repo)
+	apiRepo = DecodeJSON(t, resp, &api.Repository{})
 
-	assert.Equal(t, "new-repo", repo.Name)
+	assert.Equal(t, "new-repo", apiRepo.Name)
+	assertGeneratedRepoIsUsable(t, "org3", apiRepo)
 }
 
 func TestAPIRepoGetReviewers(t *testing.T) {

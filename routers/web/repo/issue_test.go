@@ -6,7 +6,7 @@ package repo
 import (
 	"testing"
 
-	issues_model "code.gitea.io/gitea/models/issues"
+	issues_model "gitea.dev/models/issues"
 
 	"github.com/stretchr/testify/assert"
 )

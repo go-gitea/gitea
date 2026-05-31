@@ -6,15 +6,14 @@ package v1_9
 import (
 	"fmt"
 
-	"code.gitea.io/gitea/models/migrations/base"
-	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/timeutil"
-	"code.gitea.io/gitea/modules/util"
-
-	"xorm.io/xorm"
+	"gitea.dev/models/db"
+	"gitea.dev/models/migrations/base"
+	"gitea.dev/modules/log"
+	"gitea.dev/modules/timeutil"
+	"gitea.dev/modules/util"
 )
 
-func HashAppToken(x *xorm.Engine) error {
+func HashAppToken(x db.EngineMigration) error {
 	// AccessToken see models/token.go
 	type AccessToken struct {
 		ID             int64 `xorm:"pk autoincr"`
@@ -98,7 +97,7 @@ func HashAppToken(x *xorm.Engine) error {
 	return resyncHashAppTokenWithUniqueHash(x)
 }
 
-func resyncHashAppTokenWithUniqueHash(x *xorm.Engine) error {
+func resyncHashAppTokenWithUniqueHash(x db.EngineMigration) error {
 	// AccessToken see models/token.go
 	type AccessToken struct {
 		TokenHash string `xorm:"UNIQUE"` // sha256 of token - we will ensure UNIQUE later

@@ -13,17 +13,18 @@ import (
 	"strconv"
 	"strings"
 
-	"code.gitea.io/gitea/models/unit"
-	user_model "code.gitea.io/gitea/models/user"
-	"code.gitea.io/gitea/modules/cache"
-	"code.gitea.io/gitea/modules/git"
-	"code.gitea.io/gitea/modules/gitrepo"
-	"code.gitea.io/gitea/modules/httpcache"
-	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/modules/util"
-	"code.gitea.io/gitea/modules/web"
-	web_types "code.gitea.io/gitea/modules/web/types"
+	repo_model "gitea.dev/models/repo"
+	"gitea.dev/models/unit"
+	user_model "gitea.dev/models/user"
+	"gitea.dev/modules/cache"
+	"gitea.dev/modules/git"
+	"gitea.dev/modules/gitrepo"
+	"gitea.dev/modules/httpcache"
+	"gitea.dev/modules/log"
+	"gitea.dev/modules/setting"
+	"gitea.dev/modules/util"
+	"gitea.dev/modules/web"
+	web_types "gitea.dev/modules/web/types"
 )
 
 // APIContext is a specific context for API service
@@ -45,6 +46,12 @@ type APIContext struct {
 	Org        *APIOrganization
 	Package    *Package
 	PublicOnly bool // Whether the request is for a public endpoint
+}
+
+// TokenCanAccessRepo reports whether the current API token is allowed to access the repository.
+// A public-only token cannot reach a private repo; any other token is unrestricted by this check.
+func (ctx *APIContext) TokenCanAccessRepo(repo *repo_model.Repository) bool {
+	return repo == nil || !ctx.PublicOnly || !repo.IsPrivate
 }
 
 func init() {
