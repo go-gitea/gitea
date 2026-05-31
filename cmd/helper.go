@@ -15,9 +15,9 @@ import (
 	"strings"
 	"syscall"
 
-	"code.gitea.io/gitea/models/db"
-	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/setting"
+	"gitea.dev/models/db"
+	"gitea.dev/modules/log"
+	"gitea.dev/modules/setting"
 
 	"github.com/urfave/cli/v3"
 )
@@ -142,9 +142,9 @@ func PrepareConsoleLoggerLevel(defaultLevel log.Level) func(context.Context, *cl
 func isValidDefaultSubCommand(cmd *cli.Command) (string, bool) {
 	// Dirty patch for urfave/cli's strange design.
 	// "./gitea bad-cmd" should not start the web server.
-	rootArgs := cmd.Root().Args().Slice()
-	if len(rootArgs) != 0 && rootArgs[0] != cmd.Name {
-		return rootArgs[0], false
+	args := cmd.Args().Slice()
+	if len(args) != 0 {
+		return args[0], false
 	}
 	return "", true
 }

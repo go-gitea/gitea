@@ -4,8 +4,8 @@
 package v1_20
 
 import (
-	"code.gitea.io/gitea/models/db"
-	"code.gitea.io/gitea/modules/log"
+	"gitea.dev/models/db"
+	"gitea.dev/modules/log"
 )
 
 // FixIncorrectProjectType: set individual project's type from 3(TypeOrganization) to 1(TypeIndividual)

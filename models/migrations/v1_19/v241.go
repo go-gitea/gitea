@@ -3,7 +3,7 @@
 
 package v1_19
 
-import "code.gitea.io/gitea/models/db"
+import "gitea.dev/models/db"
 
 // AddCardTypeToProjectTable: add CardType column, setting existing rows to CardTypeTextOnly
 func AddCardTypeToProjectTable(x db.EngineMigration) error {

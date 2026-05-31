@@ -127,8 +127,6 @@
   background-color: currentcolor;
   mask-image: var(--octicon-x);
   mask-size: cover;
-  -webkit-mask-image: var(--octicon-x);
-  -webkit-mask-size: cover;
   border-radius: var(--border-radius);
 }
 

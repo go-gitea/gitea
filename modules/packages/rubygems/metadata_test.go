@@ -6,7 +6,7 @@ package rubygems
 import (
 	"testing"
 
-	"code.gitea.io/gitea/modules/test"
+	"gitea.dev/modules/test"
 
 	"github.com/stretchr/testify/assert"
 )
