@@ -6,8 +6,8 @@ package gitrepo
 import (
 	"context"
 
-	"code.gitea.io/gitea/modules/git/gitcmd"
-	"code.gitea.io/gitea/modules/globallock"
+	"gitea.dev/modules/git/gitcmd"
+	"gitea.dev/modules/globallock"
 )
 
 func getRepoConfigLockKey(repoStoragePath string) string {

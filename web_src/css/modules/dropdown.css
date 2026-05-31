@@ -209,7 +209,6 @@ select.ui.dropdown {
   overflow-x: hidden;
   overflow-y: auto;
   backface-visibility: hidden;
-  -webkit-overflow-scrolling: touch;
   border-top-width: 0 !important;
   outline: none;
   margin: 0 -1px;
@@ -379,7 +378,6 @@ select.ui.dropdown {
   overflow-x: hidden;
   overflow-y: auto;
   backface-visibility: hidden;
-  -webkit-overflow-scrolling: touch;
 }
 
 @media only screen and (max-width: 767.98px) {
@@ -653,7 +651,6 @@ select.ui.dropdown {
   overflow-x: hidden;
   overflow-y: auto;
   backface-visibility: hidden;
-  -webkit-overflow-scrolling: touch;
   min-width: 100% !important;
   width: auto !important;
 }

@@ -13,21 +13,22 @@ import (
 	"strings"
 	"unicode"
 
-	issues_model "code.gitea.io/gitea/models/issues"
-	"code.gitea.io/gitea/models/renderhelper"
-	"code.gitea.io/gitea/models/repo"
-	"code.gitea.io/gitea/modules/charset"
-	"code.gitea.io/gitea/modules/emoji"
-	"code.gitea.io/gitea/modules/htmlutil"
-	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/markup"
-	"code.gitea.io/gitea/modules/markup/markdown"
-	"code.gitea.io/gitea/modules/reqctx"
-	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/modules/svg"
-	"code.gitea.io/gitea/modules/translation"
-	"code.gitea.io/gitea/modules/util"
-	"code.gitea.io/gitea/services/webtheme"
+	issues_model "gitea.dev/models/issues"
+	"gitea.dev/models/renderhelper"
+	"gitea.dev/models/repo"
+	"gitea.dev/modules/charset"
+	"gitea.dev/modules/emoji"
+	"gitea.dev/modules/git"
+	"gitea.dev/modules/htmlutil"
+	"gitea.dev/modules/log"
+	"gitea.dev/modules/markup"
+	"gitea.dev/modules/markup/markdown"
+	"gitea.dev/modules/reqctx"
+	"gitea.dev/modules/setting"
+	"gitea.dev/modules/svg"
+	"gitea.dev/modules/translation"
+	"gitea.dev/modules/util"
+	"gitea.dev/services/webtheme"
 )
 
 type RenderUtils struct {
@@ -106,19 +107,26 @@ func renderCodeBlock(htmlEscapedTextToRender template.HTML) template.HTML {
 
 // RenderIssueTitle renders issue/pull title with defined post processors
 func (ut *RenderUtils) RenderIssueTitle(text string, repo *repo.Repository) template.HTML {
-	renderedText, err := markup.PostProcessIssueTitle(renderhelper.NewRenderContextRepoComment(ut.ctx, repo), template.HTMLEscapeString(text))
+	// wrap "`…`" in <code> before post-processing so code-span content stays literal, like comment bodies
+	htmlWithCode := renderCodeBlock(template.HTML(template.HTMLEscapeString(text)))
+	renderedText, err := markup.PostProcessIssueTitle(renderhelper.NewRenderContextRepoComment(ut.ctx, repo), string(htmlWithCode))
 	if err != nil {
 		log.Error("PostProcessIssueTitle: %v", err)
 		return ""
 	}
-	return renderCodeBlock(template.HTML(renderedText))
+	return template.HTML(renderedText)
 }
 
 // RenderIssueSimpleTitle only renders with emoji and inline code block
 func (ut *RenderUtils) RenderIssueSimpleTitle(text string) template.HTML {
-	ret := ut.RenderEmoji(text)
-	ret = renderCodeBlock(ret)
-	return ret
+	// see RenderIssueTitle: wrap code spans before processing emoji
+	htmlWithCode := renderCodeBlock(template.HTML(template.HTMLEscapeString(text)))
+	renderedText, err := markup.PostProcessEmoji(markup.NewRenderContext(ut.ctx), string(htmlWithCode))
+	if err != nil {
+		log.Error("RenderIssueSimpleTitle: %v", err)
+		return ""
+	}
+	return template.HTML(renderedText)
 }
 
 func (ut *RenderUtils) RenderLabel(label *issues_model.Label) template.HTML {
@@ -221,6 +229,25 @@ func (ut *RenderUtils) MarkdownToHtml(input string) template.HTML { //nolint:rev
 		log.Error("RenderString: %v", err)
 	}
 	return output
+}
+
+// RenderPackageMarkdown renders package page Markdown so relative links resolve against the
+// linked repository's default branch instead of the site root, falling back to plain rendering
+// when there is no linked repository. pkgTreePath optionally roots links in a subdirectory
+// (e.g. npm's repository.directory for monorepo packages).
+func (ut *RenderUtils) RenderPackageMarkdown(input string, linkedRepo *repo.Repository, pkgTreePath ...string) template.HTML {
+	if linkedRepo == nil {
+		return `<div class="markup markdown">` + ut.MarkdownToHtml(input) + `</div>`
+	}
+	rctx := renderhelper.NewRenderContextRepoFile(ut.ctx, linkedRepo, renderhelper.RepoFileOptions{
+		CurrentRefSubURL: git.RefNameFromBranch(linkedRepo.DefaultBranch).RefWebLinkPath(),
+		CurrentTreePath:  util.OptionalArg(pkgTreePath),
+	})
+	output, err := markdown.RenderString(rctx, input)
+	if err != nil {
+		log.Error("RenderString: %v", err)
+	}
+	return `<div class="markup markdown">` + output + `</div>`
 }
 
 func (ut *RenderUtils) RenderLabels(labels []*issues_model.Label, repoLink string, issue *issues_model.Issue) template.HTML {

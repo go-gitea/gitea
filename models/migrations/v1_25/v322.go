@@ -4,8 +4,8 @@
 package v1_25
 
 import (
-	"code.gitea.io/gitea/models/db"
-	"code.gitea.io/gitea/models/migrations/base"
+	"gitea.dev/models/db"
+	"gitea.dev/models/migrations/base"
 
 	"xorm.io/xorm/schemas"
 )

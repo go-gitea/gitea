@@ -1,43 +1,33 @@
-// Copyright 2026 The Gitea Authors. All rights reserved.
+// Copyright 2025 The Gitea Authors. All rights reserved.
 // SPDX-License-Identifier: MIT
 
 package v1_27
 
 import (
-	"code.gitea.io/gitea/models/db"
+	"gitea.dev/models/db"
 
 	"xorm.io/xorm"
 )
 
-type teamWithPrivacy struct {
-	TeamPrivacy string `xorm:"VARCHAR(16) NOT NULL DEFAULT 'private'"`
-}
-
-func (teamWithPrivacy) TableName() string {
-	return "team"
-}
-
-func AddPrivacyToTeam(x db.EngineMigration) error {
-	if _, err := x.SyncWithOptions(xorm.SyncOptions{
-		IgnoreDropIndices: true,
-	}, new(teamWithPrivacy)); err != nil {
-		return err
+// AddReusableWorkflowFieldsToActionRunJob adds the ActionRunJob columns that describe the reusable workflow caller hierarchy,
+// and the ActionRunAttemptJobIDIndex table backing run-wide AttemptJobID allocation.
+func AddReusableWorkflowFieldsToActionRunJob(x db.EngineMigration) error {
+	type ActionRunJob struct {
+		WorkflowSourceRepoID    int64  `xorm:"NOT NULL DEFAULT 0"`
+		WorkflowSourceCommitSHA string `xorm:"VARCHAR(64) NOT NULL DEFAULT ''"`
+		IsReusableCaller        bool   `xorm:"index NOT NULL DEFAULT FALSE"`
+		ParentJobID             int64  `xorm:"index NOT NULL DEFAULT 0"`
+		CallUses                string `xorm:"VARCHAR(512) NOT NULL DEFAULT ''"`
+		CallSecrets             string `xorm:"LONGTEXT"`
+		CallPayload             string `xorm:"LONGTEXT"`
+		IsExpanded              bool   `xorm:"NOT NULL DEFAULT FALSE"`
+		ReusableWorkflowContent []byte `xorm:"LONGBLOB"`
 	}
 
-	// Pre-release deployments of this PR persisted GitHub-style "secret"/
-	// "closed" values; rewrite them to the new vocabulary so the migration
-	// is idempotent across rebases.
-	if _, err := x.Exec("UPDATE `team` SET team_privacy = ? WHERE team_privacy = ?", "private", "secret"); err != nil {
-		return err
-	}
-	if _, err := x.Exec("UPDATE `team` SET team_privacy = ? WHERE team_privacy = ?", "limited", "closed"); err != nil {
-		return err
-	}
+	type ActionRunAttemptJobIDIndex db.ResourceIndex
 
-	// Owner teams must remain listable to all org members; new orgs create
-	// them as "limited", so make existing owner teams limited too.
-	// Filter on authorize=4 (AccessModeOwner) so a user-created team that
-	// happens to share the name "owners" is not accidentally affected.
-	_, err := x.Exec("UPDATE `team` SET team_privacy = ? WHERE lower_name = ? AND authorize = ?", "limited", "owners", 4)
-	return err
+	if _, err := x.SyncWithOptions(xorm.SyncOptions{IgnoreDropIndices: true}, new(ActionRunJob)); err != nil {
+		return err
+	}
+	return x.Sync(new(ActionRunAttemptJobIDIndex))
 }
