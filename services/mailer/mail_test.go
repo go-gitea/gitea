@@ -442,6 +442,57 @@ func TestGenerateMessageIDForActionsWorkflowRunStatusEmail(t *testing.T) {
 	assert.Equal(t, "<user2/repo2/actions/runs/191@localhost>", msgID)
 }
 
+func TestShouldSendActionsWorkflowRunStatusEmail(t *testing.T) {
+	tests := []struct {
+		name       string
+		preference string
+		status     actions_model.Status
+		want       bool
+	}{
+		{
+			name:       "all sends cancelled",
+			preference: user_model.SettingEmailNotificationGiteaActionsAll,
+			status:     actions_model.StatusCancelled,
+			want:       true,
+		},
+		{
+			name:       "failure only skips cancelled",
+			preference: user_model.SettingEmailNotificationGiteaActionsFailureOnly,
+			status:     actions_model.StatusCancelled,
+			want:       false,
+		},
+		{
+			name:       "failure only sends failure",
+			preference: user_model.SettingEmailNotificationGiteaActionsFailureOnly,
+			status:     actions_model.StatusFailure,
+			want:       true,
+		},
+		{
+			name:       "failure and cancelled sends cancelled",
+			preference: user_model.SettingEmailNotificationGiteaActionsFailureAndCancelled,
+			status:     actions_model.StatusCancelled,
+			want:       true,
+		},
+		{
+			name:       "failure and cancelled skips success",
+			preference: user_model.SettingEmailNotificationGiteaActionsFailureAndCancelled,
+			status:     actions_model.StatusSuccess,
+			want:       false,
+		},
+		{
+			name:       "disabled skips failure",
+			preference: user_model.SettingEmailNotificationGiteaActionsDisabled,
+			status:     actions_model.StatusFailure,
+			want:       false,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			assert.Equal(t, tt.want, shouldSendActionsWorkflowRunStatusEmail(tt.preference, tt.status))
+		})
+	}
+}
+
 func TestFromDisplayName(t *testing.T) {
 	tmpl, err := texttmpl.New("mailFrom").Parse("{{ .DisplayName }}")
 	assert.NoError(t, err)

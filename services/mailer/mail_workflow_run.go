@@ -149,6 +149,19 @@ func composeAndSendActionsWorkflowRunStatusEmail(ctx context.Context, repo *repo
 	return nil
 }
 
+func shouldSendActionsWorkflowRunStatusEmail(notifyPref string, runStatus actions_model.Status) bool {
+	switch notifyPref {
+	case user_model.SettingEmailNotificationGiteaActionsDisabled:
+		return false
+	case user_model.SettingEmailNotificationGiteaActionsAll:
+		return true
+	case user_model.SettingEmailNotificationGiteaActionsFailureAndCancelled:
+		return runStatus.IsFailure() || runStatus.IsCancelled()
+	default:
+		return runStatus.IsFailure()
+	}
+}
+
 func MailActionsTrigger(ctx context.Context, recipient *user_model.User, repo *repo_model.Repository, run *actions_model.ActionRun) error {
 	if setting.MailService == nil {
 		return nil
@@ -165,12 +178,7 @@ func MailActionsTrigger(ctx context.Context, recipient *user_model.User, repo *r
 	if err != nil {
 		return err
 	}
-	// "disabled" never sends
-	if notifyPref == user_model.SettingEmailNotificationGiteaActionsDisabled {
-		return nil
-	}
-	// "failure-only" skips non-failure runs
-	if notifyPref != user_model.SettingEmailNotificationGiteaActionsAll && !run.Status.IsFailure() {
+	if !shouldSendActionsWorkflowRunStatusEmail(notifyPref, run.Status) {
 		return nil
 	}
 

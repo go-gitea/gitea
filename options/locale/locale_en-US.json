@@ -946,6 +946,7 @@
   "settings.email_notifications.andyourown": "And Your Own Notifications",
   "settings.email_notifications.actions.desc": "Notifications for workflow runs on repositories set up with <a target=\"_blank\" href=\"%s\">Gitea Actions</a>.",
   "settings.email_notifications.actions.failure_only": "Only notify for failed workflow runs",
+  "settings.email_notifications.actions.failure_and_cancelled": "Only notify for failed and cancelled workflow runs",
   "settings.visibility": "User visibility",
   "settings.visibility.public": "Public",
   "settings.visibility.public_tooltip": "Visible to everyone",

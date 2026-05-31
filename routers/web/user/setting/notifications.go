@@ -75,7 +75,8 @@ func NotificationsActionsEmailPost(ctx *context.Context) {
 	preference := ctx.FormString("preference")
 	if !(preference == user_model.SettingEmailNotificationGiteaActionsAll ||
 		preference == user_model.SettingEmailNotificationGiteaActionsDisabled ||
-		preference == user_model.SettingEmailNotificationGiteaActionsFailureOnly) {
+		preference == user_model.SettingEmailNotificationGiteaActionsFailureOnly ||
+		preference == user_model.SettingEmailNotificationGiteaActionsFailureAndCancelled) {
 		ctx.Flash.Error(ctx.Tr("invalid_data", preference))
 		ctx.Redirect(setting.AppSubURL + "/user/settings/notifications")
 		return
