@@ -13,6 +13,8 @@ import (
 	"gitea.dev/modules/log"
 	"gitea.dev/modules/storage"
 	"gitea.dev/modules/timeutil"
+
+	"xorm.io/builder"
 )
 
 // NoticeType describes the notice type
@@ -73,18 +75,23 @@ func RemoveStorageWithNotice(ctx context.Context, bucket storage.ObjectStorage, 
 }
 
 // CountNotices returns number of notices.
-func CountNotices(ctx context.Context) int64 {
-	count, _ := db.GetEngine(ctx).Count(new(Notice))
+func CountNotices(ctx context.Context, tp NoticeType) int64 {
+	sess := db.GetEngine(ctx)
+	if tp != 0 {
+		sess = sess.Where(builder.Eq{"type": tp})
+	}
+	count, _ := sess.Count(new(Notice))
 	return count
 }
 
 // Notices returns notices in given page.
-func Notices(ctx context.Context, page, pageSize int) ([]*Notice, error) {
+func Notices(ctx context.Context, page, pageSize int, tp NoticeType) ([]*Notice, error) {
 	notices := make([]*Notice, 0, pageSize)
-	return notices, db.GetEngine(ctx).
-		Limit(pageSize, (page-1)*pageSize).
-		Desc("created_unix").
-		Find(&notices)
+	sess := db.GetEngine(ctx)
+	if tp != 0 {
+		sess = sess.Where(builder.Eq{"type": tp})
+	}
+	return notices, sess.Limit(pageSize, (page-1)*pageSize).Desc("created_unix").Find(&notices)
 }
 
 // DeleteNotices deletes all notices with ID from start to end (inclusive).

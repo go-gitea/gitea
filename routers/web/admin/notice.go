@@ -20,24 +20,43 @@ const (
 	tplNotices templates.TplName = "admin/notice"
 )
 
+func parseNoticeType(raw string) system_model.NoticeType {
+	switch raw {
+	case "repository":
+		return system_model.NoticeRepository
+	case "task":
+		return system_model.NoticeTask
+	default:
+		return 0
+	}
+}
+
 // Notices show notices for admin
 func Notices(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("admin.notices")
 	ctx.Data["PageIsAdminNotices"] = true
 
-	total := system_model.CountNotices(ctx)
+	noticeTypeName := ctx.FormString("type")
+	noticeType := parseNoticeType(noticeTypeName)
+	if noticeType == 0 {
+		noticeTypeName = ""
+	}
+	total := system_model.CountNotices(ctx, noticeType)
 	page := max(ctx.FormInt("page"), 1)
 
-	notices, err := system_model.Notices(ctx, page, setting.UI.Admin.NoticePagingNum)
+	notices, err := system_model.Notices(ctx, page, setting.UI.Admin.NoticePagingNum, noticeType)
 	if err != nil {
 		ctx.ServerError("Notices", err)
 		return
 	}
 	ctx.Data["Notices"] = notices
+	ctx.Data["NoticeType"] = noticeTypeName
 
 	ctx.Data["Total"] = total
 
-	ctx.Data["Page"] = context.NewPagination(total, setting.UI.Admin.NoticePagingNum, page, 5)
+	pager := context.NewPagination(total, setting.UI.Admin.NoticePagingNum, page, 5)
+	pager.AddParamFromRequest(ctx.Req)
+	ctx.Data["Page"] = pager
 
 	ctx.HTML(http.StatusOK, tplNotices)
 }

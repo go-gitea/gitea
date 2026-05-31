@@ -47,24 +47,49 @@ func TestCreateRepositoryNotice(t *testing.T) {
 
 func TestCountNotices(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
-	assert.Equal(t, int64(3), system.CountNotices(t.Context()))
+	assert.Equal(t, int64(3), system.CountNotices(t.Context(), 0))
+	assert.Equal(t, int64(3), system.CountNotices(t.Context(), system.NoticeRepository))
+	assert.Equal(t, int64(0), system.CountNotices(t.Context(), system.NoticeTask))
 }
 
 func TestNotices(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 
-	notices, err := system.Notices(t.Context(), 1, 2)
+	notices, err := system.Notices(t.Context(), 1, 2, 0)
 	assert.NoError(t, err)
 	if assert.Len(t, notices, 2) {
 		assert.Equal(t, int64(3), notices[0].ID)
 		assert.Equal(t, int64(2), notices[1].ID)
 	}
 
-	notices, err = system.Notices(t.Context(), 2, 2)
+	notices, err = system.Notices(t.Context(), 2, 2, 0)
 	assert.NoError(t, err)
 	if assert.Len(t, notices, 1) {
 		assert.Equal(t, int64(1), notices[0].ID)
 	}
+}
+
+func TestNoticesByType(t *testing.T) {
+	assert.NoError(t, unittest.PrepareTestDatabase())
+	assert.NoError(t, system.CreateNotice(t.Context(), system.NoticeTask, "task notice"))
+
+	notices, err := system.Notices(t.Context(), 1, 10, system.NoticeRepository)
+	assert.NoError(t, err)
+	if assert.Len(t, notices, 3) {
+		for _, notice := range notices {
+			assert.Equal(t, system.NoticeRepository, notice.Type)
+		}
+	}
+
+	notices, err = system.Notices(t.Context(), 1, 10, system.NoticeTask)
+	assert.NoError(t, err)
+	if assert.Len(t, notices, 1) {
+		assert.Equal(t, system.NoticeTask, notices[0].Type)
+		assert.Equal(t, "task notice", notices[0].Description)
+	}
+
+	assert.Equal(t, int64(3), system.CountNotices(t.Context(), system.NoticeRepository))
+	assert.Equal(t, int64(1), system.CountNotices(t.Context(), system.NoticeTask))
 }
 
 func TestDeleteNotices(t *testing.T) {

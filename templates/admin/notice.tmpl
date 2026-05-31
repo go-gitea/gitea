@@ -3,6 +3,22 @@
 		<h4 class="ui top attached header">
 			{{ctx.Locale.Tr "admin.notices.system_notice_list"}} ({{ctx.Locale.Tr "admin.total" .Total}})
 		</h4>
+		<form class="ui attached segment form ignore-dirty" method="get">
+			<div class="fields">
+				<div class="field">
+					<label for="notice-type">{{ctx.Locale.Tr "admin.notices.type"}}</label>
+					<select id="notice-type" name="type" class="ui dropdown">
+						<option value="">{{ctx.Locale.Tr "admin.notices.type_all"}}</option>
+						<option value="repository" {{if eq .NoticeType "repository"}}selected{{end}}>{{ctx.Locale.Tr "admin.notices.type_1"}}</option>
+						<option value="task" {{if eq .NoticeType "task"}}selected{{end}}>{{ctx.Locale.Tr "admin.notices.type_2"}}</option>
+					</select>
+				</div>
+				<div class="field">
+					<label>&nbsp;</label>
+					<button class="ui small primary button">{{ctx.Locale.Tr "filter_title"}}</button>
+				</div>
+			</div>
+		</form>
 		<table class="ui attached segment select selectable table unstackable g-table-auto-ellipsis">
 			<thead>
 				<tr>

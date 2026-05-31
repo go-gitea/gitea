@@ -3412,6 +3412,7 @@
   "admin.notices.delete_selected": "Delete Selected",
   "admin.notices.delete_all": "Delete All Notices",
   "admin.notices.type": "Type",
+  "admin.notices.type_all": "All types",
   "admin.notices.type_1": "Repository",
   "admin.notices.type_2": "Task",
   "admin.notices.desc": "Description",
