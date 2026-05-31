@@ -529,16 +529,16 @@ func testAPIIssueAssignees(t *testing.T) {
 			AddTokenAuth(token)
 		resp := MakeRequest(t, req, http.StatusUnprocessableEntity)
 		apiErr := DecodeJSON(t, resp, &api.APIError{})
-		assert.Equal(t, "Assignee does not exist: [name: does-not-exist]", apiErr.Message)
+		assert.Equal(t, "user does not exist [uid: 0, name: does-not-exist]", apiErr.Message)
 	})
 
 	t.Run("OrganizationAssignee", func(t *testing.T) {
 		req := NewRequestWithJSON(t, "POST", urlStr, &api.IssueAssigneesOption{Assignees: []string{"org3"}}).
 			AddTokenAuth(token)
-		MakeRequest(t, req, http.StatusUnprocessableEntity)
+		MakeRequest(t, req, http.StatusBadRequest)
 
 		checkReq := NewRequest(t, "GET", fmt.Sprintf("%s/%s", urlStr, "org3")).AddTokenAuth(token)
-		MakeRequest(t, checkReq, http.StatusNotFound)
+		MakeRequest(t, checkReq, http.StatusBadRequest)
 	})
 
 	t.Run("BlockedAssigneeIsAtomic", func(t *testing.T) {
