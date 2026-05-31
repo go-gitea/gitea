@@ -40,6 +40,7 @@ interface Window {
       repoActivityTopAuthors?: any[],
       dashboardRepoList?: Record<string, any> & {
         organizationName: string,
+        userName: string
       },
     },
     notificationSettings: {

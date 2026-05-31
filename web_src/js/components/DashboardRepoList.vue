@@ -56,7 +56,7 @@ export default defineComponent({
       groups: this.groups,
       repos: computed(() => this.computedRepos),
       loadedMap: this.loadedMap,
-      orgName: this.organizationName,
+      orgName: this.organizationName ?? this.userName,
     };
   },
   setup() {
