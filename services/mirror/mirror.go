@@ -6,7 +6,9 @@ package mirror
 import (
 	"context"
 	"errors"
+	"fmt"
 
+	"gitea.dev/models/db"
 	repo_model "gitea.dev/models/repo"
 	"gitea.dev/modules/log"
 	"gitea.dev/modules/queue"
@@ -30,6 +32,42 @@ func doMirrorSync(ctx context.Context, req *SyncRequest) {
 }
 
 var errLimit = errors.New("reached limit")
+
+func describeMirrorSync(mirrorType SyncType, repo *repo_model.Repository) string {
+	repoName := "unknown repository"
+	if repo != nil {
+		repoName = repo.FullName()
+	}
+
+	switch mirrorType {
+	case PullMirrorType:
+		return "pull mirror repository " + repoName
+	case PushMirrorType:
+		return "push mirror repository " + repoName
+	default:
+		return "mirror repository " + repoName
+	}
+}
+
+func queueMirrorSync(ctx context.Context, repo *repo_model.Repository, mirrorType SyncType, referenceID int64) error {
+	mirrorDesc := describeMirrorSync(mirrorType, repo)
+
+	select {
+	case <-ctx.Done():
+		return db.ErrCancelledf("before queueing %s", mirrorDesc)
+	default:
+	}
+
+	if err := PushToQueue(mirrorType, referenceID); err != nil {
+		if err == queue.ErrAlreadyInQueue {
+			log.Trace("%s already queued for sync", mirrorDesc)
+			return nil
+		}
+		return fmt.Errorf("queue %s: %w", mirrorDesc, err)
+	}
+
+	return nil
+}
 
 // Update checks and updates mirror repositories.
 func Update(ctx context.Context, pullLimit, pushLimit int) error {
@@ -65,26 +103,7 @@ func Update(ctx context.Context, pullLimit, pushLimit int) error {
 			return nil
 		}
 
-		// Check we've not been cancelled
-		select {
-		case <-ctx.Done():
-			return errors.New("aborted")
-		default:
-		}
-
-		// Push to the Queue
-		if err := PushToQueue(mirrorType, referenceID); err != nil {
-			if err == queue.ErrAlreadyInQueue {
-				if mirrorType == PushMirrorType {
-					log.Trace("PushMirrors for %-v already queued for sync", repo)
-				} else {
-					log.Trace("PullMirrors for %-v already queued for sync", repo)
-				}
-				return nil
-			}
-			return err
-		}
-		return nil
+		return queueMirrorSync(ctx, repo, mirrorType, referenceID)
 	}
 
 	pullMirrorsRequested := 0
