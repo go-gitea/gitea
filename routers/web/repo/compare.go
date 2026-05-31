@@ -618,8 +618,10 @@ func DownloadComparePatch(ctx *context.Context) {
 func downloadCompareDiffOrPatch(ctx *context.Context, patch bool) {
 	// The route captures `basehead` separately so the `.diff`/`.patch` suffix
 	// is stripped. parseCompareInfo reads the catch-all `*` param, so override
-	// it with the suffix-free value.
-	ctx.SetPathParamRaw("*", ctx.PathParam("basehead"))
+	// it with the suffix-free value. Use the raw (still-escaped) value because
+	// PathParam unescapes on read; passing the already-unescaped value would
+	// unescape it a second time and corrupt refs containing percent-encoded characters.
+	ctx.SetPathParamRaw("*", ctx.PathParamRaw("basehead"))
 
 	cpi := newComparePageInfo()
 	if err := cpi.parseCompareInfo(ctx); err != nil {

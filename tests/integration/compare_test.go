@@ -204,6 +204,23 @@ func TestCompareDownloadDiffOrPatch(t *testing.T) {
 		req := NewRequest(t, "GET", "/user2/repo16/compare/master...good-sign.diff")
 		MakeRequest(t, req, http.StatusNotFound)
 	})
+
+	t.Run("PercentEncodedRef", func(t *testing.T) {
+		defer tests.PrintCurrentTest(t)()
+
+		// A ref containing a literal "%" must be unescaped exactly once. The web route
+		// captures `basehead` and re-injects it into the catch-all param, so a regression
+		// that re-unescapes would corrupt "%" (or panic on the invalid escape in testing).
+		user2 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
+		repo20 := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 31})
+		_, err := createFileInBranch(user2, repo20, createFileInBranchOptions{OldBranch: "master", NewBranch: "pct%test"}, map[string]string{"pct.txt": "hi\n"})
+		require.NoError(t, err)
+
+		req := NewRequest(t, "GET", "/user2/repo20/compare/master...pct%25test.diff")
+		resp := session.MakeRequest(t, req, http.StatusOK)
+		assert.Equal(t, "text/plain; charset=utf-8", resp.Header().Get("Content-Type"))
+		assert.Contains(t, resp.Body.String(), "diff --git ")
+	})
 }
 
 func TestCompareCodeExpand(t *testing.T) {
