@@ -416,6 +416,7 @@ func prepareMigrationTasks() []*migration {
 		newMigration(336, "Add ActionRunJobSummary table", v1_27.AddActionRunJobSummaryTable),
 		newMigration(337, "Add visibility to team", v1_27.AddVisibilityToTeam),
 		newMigration(338, "Expand legacy MSSQL issue/comment long-text columns", v1_27.ExpandIssueAndCommentLongTextFieldsForMSSQL),
+		newMigration(339, "Add group columns to repository table", v1_27.AddGroupColumnsToRepositoryTable),
 	}
 	return preparedMigrations
 }
