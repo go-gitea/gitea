@@ -8,6 +8,7 @@ import (
 
 	"gitea.dev/models/db"
 	repo_model "gitea.dev/models/repo"
+	user_model "gitea.dev/models/user"
 	"gitea.dev/modules/setting"
 	shared_group "gitea.dev/routers/web/shared/group"
 	"gitea.dev/services/context"
@@ -40,6 +41,28 @@ func Home(ctx *context.Context) {
 	page := ctx.FormInt("page")
 	if page <= 0 {
 		page = 1
+	}
+
+	if ctx.RepoGroup.Group.Owner.IsIndividual() {
+		pagingNum := setting.UI.User.RepoPagingNum
+		_, numFollowers, err := user_model.GetUserFollowers(ctx, ctx.ContextUser, ctx.Doer, db.ListOptions{
+			PageSize: pagingNum,
+			Page:     page,
+		})
+		if err != nil {
+			ctx.ServerError("GetUserFollowers", err)
+			return
+		}
+		ctx.Data["NumFollowers"] = numFollowers
+		_, numFollowing, err := user_model.GetUserFollowing(ctx, ctx.ContextUser, ctx.Doer, db.ListOptions{
+			PageSize: pagingNum,
+			Page:     page,
+		})
+		if err != nil {
+			ctx.ServerError("GetUserFollowing", err)
+			return
+		}
+		ctx.Data["NumFollowing"] = numFollowing
 	}
 
 	archived := ctx.FormOptionalBool("archived")
