@@ -27,6 +27,7 @@ func TestAPIIssueSubscriptions(t *testing.T) {
 	issue3 := unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{ID: 3})
 	issue4 := unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{ID: 4})
 	issue5 := unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{ID: 8})
+	issue7 := unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{ID: 7})
 
 	owner := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: issue1.PosterID})
 
@@ -53,6 +54,23 @@ func TestAPIIssueSubscriptions(t *testing.T) {
 	testSubscription(issue3, true)
 	testSubscription(issue4, false)
 	testSubscription(issue5, false)
+
+	testSubscribers := func(issue *issues_model.Issue, expectedNames []string, expectedTotal string) {
+		issueRepo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: issue.RepoID})
+		req := NewRequest(t, "GET", fmt.Sprintf("/api/v1/repos/%s/%s/issues/%d/subscriptions", issueRepo.OwnerName, issueRepo.Name, issue.Index)).
+			AddTokenAuth(token)
+		resp := MakeRequest(t, req, http.StatusOK)
+		users := DecodeJSON(t, resp, []*api.User{})
+		names := make([]string, 0, len(users))
+		for _, user := range users {
+			names = append(names, user.UserName)
+		}
+		assert.ElementsMatch(t, expectedNames, names)
+		assert.Equal(t, expectedTotal, resp.Header().Get("X-Total-Count"))
+	}
+
+	testSubscribers(issue1, []string{"user1", "user4", "user5", "user11"}, "4")
+	testSubscribers(issue7, []string{"user2"}, "1")
 
 	issue1Repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: issue1.RepoID})
 	urlStr := fmt.Sprintf("/api/v1/repos/%s/%s/issues/%d/subscriptions/%s", issue1Repo.OwnerName, issue1Repo.Name, issue1.Index, owner.Name)

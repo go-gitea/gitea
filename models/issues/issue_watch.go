@@ -10,6 +10,8 @@ import (
 	repo_model "gitea.dev/models/repo"
 	user_model "gitea.dev/models/user"
 	"gitea.dev/modules/timeutil"
+
+	"xorm.io/builder"
 )
 
 // IssueWatch is connection request for receiving issue notification.
@@ -112,6 +114,61 @@ func GetIssueWatchers(ctx context.Context, issueID int64, listOptions db.ListOpt
 	}
 	watches := make([]*IssueWatch, 0, 8)
 	return watches, sess.Find(&watches)
+}
+
+func issueSubscriberCond(issue *Issue) builder.Cond {
+	explicitWatchers := builder.In("`user`.id",
+		builder.Select("user_id").
+			From("issue_watch").
+			Where(builder.Eq{"issue_id": issue.ID, "is_watching": true}),
+	)
+	participants := builder.In("`user`.id",
+		builder.Select("poster_id").
+			From("comment").
+			Where(builder.Eq{"issue_id": issue.ID}.
+				And(builder.In("type", CommentTypeComment, CommentTypeCode, CommentTypeReview))),
+	)
+	repoWatchers := builder.In("`user`.id",
+		builder.Select("user_id").
+			From("watch").
+			Where(builder.Eq{"repo_id": issue.RepoID}.
+				And(builder.In("mode", repo_model.WatchModeNormal, repo_model.WatchModeAuto))),
+	)
+	explicitUnwatchers := builder.NotIn("`user`.id",
+		builder.Select("user_id").
+			From("issue_watch").
+			Where(builder.Eq{"issue_id": issue.ID, "is_watching": false}),
+	)
+
+	return builder.Eq{"`user`.is_active": true, "`user`.prohibit_login": false}.
+		And(explicitUnwatchers).
+		And(builder.Or(
+			explicitWatchers,
+			participants,
+			builder.Eq{"`user`.id": issue.PosterID},
+			repoWatchers,
+		))
+}
+
+// GetIssueSubscribers returns users effectively subscribed to an issue.
+func GetIssueSubscribers(ctx context.Context, issue *Issue, listOptions db.ListOptions) ([]*user_model.User, error) {
+	sess := db.GetEngine(ctx).
+		Where(issueSubscriberCond(issue)).
+		OrderBy("`user`.id")
+	if listOptions.Page > 0 {
+		db.SetSessionPagination(sess, &listOptions)
+		users := make([]*user_model.User, 0, listOptions.PageSize)
+		return users, sess.Find(&users)
+	}
+	users := make([]*user_model.User, 0, 8)
+	return users, sess.Find(&users)
+}
+
+// CountIssueSubscribers counts users effectively subscribed to an issue.
+func CountIssueSubscribers(ctx context.Context, issue *Issue) (int64, error) {
+	return db.GetEngine(ctx).
+		Where(issueSubscriberCond(issue)).
+		Count(new(user_model.User))
 }
 
 // CountIssueWatchers count watchers/unwatchers of a given issue
