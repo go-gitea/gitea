@@ -6,8 +6,8 @@ package base
 import (
 	"testing"
 
-	"code.gitea.io/gitea/models/migrations/migrationtest"
-	"code.gitea.io/gitea/modules/timeutil"
+	"gitea.dev/models/migrations/migrationtest"
+	"gitea.dev/modules/timeutil"
 
 	"xorm.io/xorm/names"
 )

@@ -10,7 +10,7 @@ import (
 	"strings"
 	"testing"
 
-	"code.gitea.io/gitea/modules/json"
+	"gitea.dev/modules/json"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -28,8 +28,9 @@ func TestParsePackage(t *testing.T) {
 	data := "H4sIAAAAAAAA/ytITM5OTE/VL4DQelnF+XkMVAYGBgZmJiYK2MRBwNDcSIHB2NTMwNDQzMwAqA7IMDUxA9LUdgg2UFpcklgEdAql5kD8ogCnhwio5lJQUMpLzE1VslJQcihOzi9I1S9JLS7RhSYIJR2QgrLUouLM/DyQGkM9Az1D3YIiqExKanFyUWZBCVQ2BKhVwQVJDKwosbQkI78IJO/tZ+LsbRykxFXLNdA+HwWjYBSMgpENACgAbtAACAAA"
 	integrity := "sha512-yA4FJsVhetynGfOC1jFf79BuS+jrHbm0fhh+aHzCQkOaOBXKf9oBnC4a6DnLLnEsHQDRLYd00cwj8sCXpC+wIg=="
 	repository := Repository{
-		Type: "gitea",
-		URL:  "http://localhost:3000/gitea/test.git",
+		Type:      "gitea",
+		URL:       "http://localhost:3000/gitea/test.git",
+		Directory: "packages/test-package",
 	}
 
 	t.Run("InvalidUpload", func(t *testing.T) {
@@ -298,6 +299,7 @@ func TestParsePackage(t *testing.T) {
 		assert.Equal(t, "1.2.0", p.Metadata.Dependencies["package"])
 		assert.Equal(t, repository.Type, p.Metadata.Repository.Type)
 		assert.Equal(t, repository.URL, p.Metadata.Repository.URL)
+		assert.Equal(t, repository.Directory, p.Metadata.Repository.Directory)
 	})
 
 	t.Run("ValidLicenseMap", func(t *testing.T) {

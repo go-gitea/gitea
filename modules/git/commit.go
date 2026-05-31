@@ -12,10 +12,10 @@ import (
 	"os/exec"
 	"strings"
 
-	"code.gitea.io/gitea/modules/charset"
-	"code.gitea.io/gitea/modules/container"
-	"code.gitea.io/gitea/modules/git/gitcmd"
-	"code.gitea.io/gitea/modules/util"
+	"gitea.dev/modules/charset"
+	"gitea.dev/modules/container"
+	"gitea.dev/modules/git/gitcmd"
+	"gitea.dev/modules/util"
 )
 
 // CoAuthoredByTrailer is the canonical token for the `Co-authored-by:` git trailer.

@@ -56,3 +56,8 @@ Endpoints returning lists must
 
 - support pagination (`page` & `limit` options in query)
 - set `X-Total-Count` header via **SetTotalCountHeader** ([example](https://github.com/go-gitea/gitea/blob/7aae98cc5d4113f1e9918b7ee7dd09f67c189e3e/routers/api/v1/repo/issue.go#L444))
+
+### Knowledge
+
+- Partially database table migration must use `SyncWithOptions(IgnoreDrop...)`
+- Template variables with "camelCase" or "snake_case" are used for restoring the form values from a submitted form

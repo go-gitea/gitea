@@ -10,9 +10,9 @@ import (
 	"strings"
 	"sync"
 
-	gitea_html "code.gitea.io/gitea/modules/htmlutil"
-	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/public"
+	gitea_html "gitea.dev/modules/htmlutil"
+	"gitea.dev/modules/log"
+	"gitea.dev/modules/public"
 )
 
 type svgIconItem struct {

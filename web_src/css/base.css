@@ -305,6 +305,15 @@ a.suppressed:hover {
   color: inherit;
 }
 
+/* keyboard focus ring for interactive elements */
+a:focus-visible,
+button:focus-visible,
+.ui.button:focus-visible,
+[role="button"]:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: -2px;
+}
+
 a.silenced:hover {
   text-decoration-line: none;
 }
@@ -341,9 +350,7 @@ a.label,
   width: 16px;
   height: 16px;
   mask-size: cover;
-  -webkit-mask-size: cover;
   mask-image: var(--select-arrows);
-  -webkit-mask-image: var(--select-arrows);
   background: currentcolor;
 }
 

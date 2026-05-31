@@ -21,7 +21,7 @@ RUN apk --no-cache add \
     build-base \
     git
 
-WORKDIR ${GOPATH}/src/code.gitea.io/gitea
+WORKDIR ${GOPATH}/src/gitea.dev
 COPY go.mod go.sum ./
 RUN go mod download
 # Use COPY instead of bind mount as read-only one breaks makefile state tracking and read-write one needs binary to be moved as it's discarded.
@@ -42,7 +42,7 @@ RUN chmod 755 /tmp/local/usr/bin/entrypoint \
               /tmp/local/etc/s6/gitea/* \
               /tmp/local/etc/s6/openssh/* \
               /tmp/local/etc/s6/.s6-svscan/* \
-              /go/src/code.gitea.io/gitea/gitea
+              /go/src/gitea.dev/gitea
 
 FROM docker.io/library/alpine:3.23 AS gitea
 
@@ -74,7 +74,7 @@ RUN addgroup \
   echo "git:*" | chpasswd -e
 
 COPY --from=build-env /tmp/local /
-COPY --from=build-env /go/src/code.gitea.io/gitea/gitea /app/gitea/gitea
+COPY --from=build-env /go/src/gitea.dev/gitea /app/gitea/gitea
 
 ENV USER=git
 ENV GITEA_CUSTOM=/data/gitea

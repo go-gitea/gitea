@@ -8,21 +8,20 @@ import (
 	"fmt"
 	"strings"
 
-	actions_model "code.gitea.io/gitea/models/actions"
-	"code.gitea.io/gitea/models/db"
-	issues_model "code.gitea.io/gitea/models/issues"
-	"code.gitea.io/gitea/models/organization"
-	"code.gitea.io/gitea/models/perm"
-	access_model "code.gitea.io/gitea/models/perm/access"
-	project_model "code.gitea.io/gitea/models/project"
-	repo_model "code.gitea.io/gitea/models/repo"
-	user_model "code.gitea.io/gitea/models/user"
-	"code.gitea.io/gitea/modules/gitrepo"
-	"code.gitea.io/gitea/modules/globallock"
-	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/modules/util"
-	notify_service "code.gitea.io/gitea/services/notify"
+	actions_model "gitea.dev/models/actions"
+	"gitea.dev/models/db"
+	issues_model "gitea.dev/models/issues"
+	"gitea.dev/models/organization"
+	"gitea.dev/models/perm"
+	access_model "gitea.dev/models/perm/access"
+	project_model "gitea.dev/models/project"
+	repo_model "gitea.dev/models/repo"
+	user_model "gitea.dev/models/user"
+	"gitea.dev/modules/gitrepo"
+	"gitea.dev/modules/globallock"
+	"gitea.dev/modules/log"
+	"gitea.dev/modules/util"
+	notify_service "gitea.dev/services/notify"
 )
 
 type LimitReachedError struct{ Limit int }
@@ -62,8 +61,7 @@ func AcceptTransferOwnership(ctx context.Context, repo *repo_model.Repository, d
 		}
 
 		if !doer.CanCreateRepoIn(repoTransfer.Recipient) {
-			limit := util.Iif(repoTransfer.Recipient.MaxRepoCreation >= 0, repoTransfer.Recipient.MaxRepoCreation, setting.Repository.MaxCreationLimit)
-			return LimitReachedError{Limit: limit}
+			return LimitReachedError{Limit: repoTransfer.Recipient.MaxCreationLimit()}
 		}
 
 		if !repoTransfer.CanUserAcceptOrRejectTransfer(ctx, doer) {
@@ -434,8 +432,7 @@ func StartRepositoryTransfer(ctx context.Context, doer, newOwner *user_model.Use
 	}
 
 	if !doer.CanForkRepoIn(newOwner) {
-		limit := util.Iif(newOwner.MaxRepoCreation >= 0, newOwner.MaxRepoCreation, setting.Repository.MaxCreationLimit)
-		return LimitReachedError{Limit: limit}
+		return LimitReachedError{Limit: newOwner.MaxCreationLimit()}
 	}
 
 	var isDirectTransfer bool
