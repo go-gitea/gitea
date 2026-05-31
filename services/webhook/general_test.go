@@ -311,6 +311,15 @@ func repositoryTestPayload() *api.RepositoryPayload {
 	}
 }
 
+func repositoryRenamedTestPayload() *api.RepositoryPayload {
+	p := repositoryTestPayload()
+	p.Action = api.HookRepoRenamed
+	p.Changes = &api.ChangesPayload{
+		Name: &api.ChangesFromPayload{From: "old-repo"},
+	}
+	return p
+}
+
 func packageTestPayload() *api.PackagePayload {
 	return &api.PackagePayload{
 		Action: api.HookPackageCreated,

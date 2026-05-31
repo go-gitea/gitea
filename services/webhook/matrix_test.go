@@ -139,6 +139,14 @@ func TestMatrixPayload(t *testing.T) {
 
 		assert.Equal(t, `[[test/repo](http://localhost:3000/test/repo)] Repository created by [user1](https://try.gitea.io/user1)`, pl.Body)
 		assert.Equal(t, `[<a href="http://localhost:3000/test/repo">test/repo</a>] Repository created by <a href="https://try.gitea.io/user1">user1</a>`, pl.FormattedBody)
+
+		p = repositoryRenamedTestPayload()
+		pl, err = mc.Repository(p)
+		require.NoError(t, err)
+		require.NotNil(t, pl)
+
+		assert.Equal(t, `[[test/repo](http://localhost:3000/test/repo)] Repository renamed from old-repo by [user1](https://try.gitea.io/user1)`, pl.Body)
+		assert.Equal(t, `[<a href="http://localhost:3000/test/repo">test/repo</a>] Repository renamed from old-repo by <a href="https://try.gitea.io/user1">user1</a>`, pl.FormattedBody)
 	})
 
 	t.Run("Package", func(t *testing.T) {

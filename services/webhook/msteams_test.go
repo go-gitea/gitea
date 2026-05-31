@@ -298,6 +298,16 @@ func TestMSTeamsPayload(t *testing.T) {
 		assert.Len(t, pl.PotentialAction, 1)
 		assert.Len(t, pl.PotentialAction[0].Targets, 1)
 		assert.Equal(t, "http://localhost:3000/test/repo", pl.PotentialAction[0].Targets[0].URI)
+
+		p = repositoryRenamedTestPayload()
+		pl, err = mc.Repository(p)
+		require.NoError(t, err)
+
+		assert.Equal(t, "[test/repo] Repository renamed from old-repo", pl.Title)
+		assert.Equal(t, "[test/repo] Repository renamed from old-repo", pl.Summary)
+		assert.Len(t, pl.PotentialAction, 1)
+		assert.Len(t, pl.PotentialAction[0].Targets, 1)
+		assert.Equal(t, "http://localhost:3000/test/repo", pl.PotentialAction[0].Targets[0].URI)
 	})
 
 	t.Run("Package", func(t *testing.T) {

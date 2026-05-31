@@ -62,6 +62,15 @@ func TestDiscordPayload(t *testing.T) {
 		assert.Equal(t, p.Sender.UserName, pl.Embeds[0].Author.Name)
 		assert.Equal(t, setting.AppURL+p.Sender.UserName, pl.Embeds[0].Author.URL)
 		assert.Equal(t, p.Sender.AvatarURL, pl.Embeds[0].Author.IconURL)
+
+		pRenamed := repositoryRenamedTestPayload()
+		pl, err = dc.Repository(pRenamed)
+		require.NoError(t, err)
+
+		assert.Len(t, pl.Embeds, 1)
+		assert.Equal(t, "[test/repo] Repository renamed from old-repo", pl.Embeds[0].Title)
+		assert.Empty(t, pl.Embeds[0].Description)
+		assert.Equal(t, "http://localhost:3000/test/repo", pl.Embeds[0].URL)
 	})
 
 	t.Run("Push", func(t *testing.T) {

@@ -157,6 +157,15 @@ func TestDingTalkPayload(t *testing.T) {
 		assert.Equal(t, "[test/repo] Repository created", pl.ActionCard.Title)
 		assert.Equal(t, "view repository", pl.ActionCard.SingleTitle)
 		assert.Equal(t, "http://localhost:3000/test/repo", parseRealSingleURL(pl.ActionCard.SingleURL))
+
+		p = repositoryRenamedTestPayload()
+		pl, err = dc.Repository(p)
+		require.NoError(t, err)
+
+		assert.Equal(t, "[test/repo] Repository renamed from old-repo", pl.ActionCard.Text)
+		assert.Equal(t, "[test/repo] Repository renamed from old-repo", pl.ActionCard.Title)
+		assert.Equal(t, "view repository", pl.ActionCard.SingleTitle)
+		assert.Equal(t, "http://localhost:3000/test/repo", parseRealSingleURL(pl.ActionCard.SingleURL))
 	})
 
 	t.Run("Package", func(t *testing.T) {

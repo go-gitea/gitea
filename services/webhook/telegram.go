@@ -147,6 +147,9 @@ func (t telegramConvertor) Repository(p *api.RepositoryPayload) (TelegramPayload
 	case api.HookRepoCreated:
 		title = fmt.Sprintf(`[%s] Repository created`, htmlLinkFormatter(p.Repository.HTMLURL, p.Repository.FullName))
 		return createTelegramPayloadHTML(title), nil
+	case api.HookRepoRenamed:
+		title = formatRepositoryRenamed(htmlLinkFormatter(p.Repository.HTMLURL, p.Repository.FullName), html.EscapeString(getRepositoryOldName(p)))
+		return createTelegramPayloadHTML(title), nil
 	case api.HookRepoDeleted:
 		title = fmt.Sprintf("[%s] Repository deleted", html.EscapeString(p.Repository.FullName))
 		return createTelegramPayloadHTML(title), nil

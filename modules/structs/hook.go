@@ -418,6 +418,8 @@ type ChangesFromPayload struct {
 
 // ChangesPayload represents the payload information of issue change
 type ChangesPayload struct {
+	// Changes made to the name
+	Name *ChangesFromPayload `json:"name,omitempty"`
 	// Changes made to the title
 	Title *ChangesFromPayload `json:"title,omitempty"`
 	// Changes made to the body/description
@@ -506,6 +508,8 @@ type HookRepoAction string
 const (
 	// HookRepoCreated created
 	HookRepoCreated HookRepoAction = "created"
+	// HookRepoRenamed renamed
+	HookRepoRenamed HookRepoAction = "renamed"
 	// HookRepoDeleted deleted
 	HookRepoDeleted HookRepoAction = "deleted"
 )
@@ -514,6 +518,8 @@ const (
 type RepositoryPayload struct {
 	// The action performed on the repository
 	Action HookRepoAction `json:"action"`
+	// Changes made to the repository
+	Changes *ChangesPayload `json:"changes,omitempty"`
 	// The repository that was acted upon
 	Repository *Repository `json:"repository"`
 	// The organization that owns the repository (if applicable)

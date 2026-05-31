@@ -113,6 +113,12 @@ func TestFeishuPayload(t *testing.T) {
 		require.NoError(t, err)
 
 		assert.Equal(t, "[test/repo] Repository created", pl.Content.Text)
+
+		p = repositoryRenamedTestPayload()
+		pl, err = fc.Repository(p)
+		require.NoError(t, err)
+
+		assert.Equal(t, "[test/repo] Repository renamed from old-repo", pl.Content.Text)
 	})
 
 	t.Run("Package", func(t *testing.T) {

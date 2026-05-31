@@ -131,6 +131,12 @@ good job`, pl.Message)
 		require.NoError(t, err)
 
 		assert.Equal(t, `[<a href="http://localhost:3000/test/repo" rel="nofollow">test/repo</a>] Repository created`, pl.Message)
+
+		p = repositoryRenamedTestPayload()
+		pl, err = tc.Repository(p)
+		require.NoError(t, err)
+
+		assert.Equal(t, `[<a href="http://localhost:3000/test/repo" rel="nofollow">test/repo</a>] Repository renamed from old-repo`, pl.Message)
 	})
 
 	t.Run("Package", func(t *testing.T) {

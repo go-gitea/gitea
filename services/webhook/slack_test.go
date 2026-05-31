@@ -114,6 +114,12 @@ func TestSlackPayload(t *testing.T) {
 		require.NoError(t, err)
 
 		assert.Equal(t, "[<http://localhost:3000/test/repo|test/repo>] Repository created by <https://try.gitea.io/user1|user1>", pl.Text)
+
+		p = repositoryRenamedTestPayload()
+		pl, err = sc.Repository(p)
+		require.NoError(t, err)
+
+		assert.Equal(t, "[<http://localhost:3000/test/repo|test/repo>] Repository renamed from old-repo by <https://try.gitea.io/user1|user1>", pl.Text)
 	})
 
 	t.Run("Package", func(t *testing.T) {

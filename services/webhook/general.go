@@ -311,6 +311,20 @@ func getPackagePayloadInfo(p *api.PackagePayload, linkFormatter linkFormatter, w
 	return text, color
 }
 
+func getRepositoryOldName(p *api.RepositoryPayload) string {
+	if p.Changes != nil && p.Changes.Name != nil {
+		return p.Changes.Name.From
+	}
+	return ""
+}
+
+func formatRepositoryRenamed(fullName, oldName string) string {
+	if oldName == "" {
+		return fmt.Sprintf("[%s] Repository renamed", fullName)
+	}
+	return fmt.Sprintf("[%s] Repository renamed from %s", fullName, oldName)
+}
+
 func getStatusPayloadInfo(p *api.CommitStatusPayload, linkFormatter linkFormatter, withSender bool) (text string, color int) {
 	refLink := linkFormatter(p.TargetURL, fmt.Sprintf("%s [%s]", p.Context, base.ShortSha(p.SHA)))
 

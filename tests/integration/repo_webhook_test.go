@@ -860,6 +860,23 @@ func Test_WebhookRepository(t *testing.T) {
 		assert.Equal(t, "org3", payloads[0].Organization.UserName)
 		assert.Equal(t, "repo_new", payloads[0].Repository.Name)
 		assert.Equal(t, "org3/repo_new", payloads[0].Repository.FullName)
+
+		newRepoName := "repo_renamed"
+		token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeWriteRepository)
+		req := NewRequestWithJSON(t, "PATCH", "/api/v1/repos/org3/repo_new", &api.EditRepoOption{
+			Name: &newRepoName,
+		}).AddTokenAuth(token)
+		MakeRequest(t, req, http.StatusOK)
+
+		assert.Equal(t, "repository", triggeredEvent)
+		assert.Len(t, payloads, 2)
+		assert.EqualValues(t, "renamed", payloads[1].Action)
+		require.NotNil(t, payloads[1].Changes)
+		require.NotNil(t, payloads[1].Changes.Name)
+		assert.Equal(t, "repo_new", payloads[1].Changes.Name.From)
+		assert.Equal(t, "org3", payloads[1].Organization.UserName)
+		assert.Equal(t, "repo_renamed", payloads[1].Repository.Name)
+		assert.Equal(t, "org3/repo_renamed", payloads[1].Repository.FullName)
 	})
 }
 

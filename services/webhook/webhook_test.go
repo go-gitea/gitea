@@ -12,6 +12,7 @@ import (
 	user_model "gitea.dev/models/user"
 	webhook_model "gitea.dev/models/webhook"
 	"gitea.dev/modules/git"
+	"gitea.dev/modules/json"
 	"gitea.dev/modules/setting"
 	api "gitea.dev/modules/structs"
 	"gitea.dev/modules/test"
@@ -28,6 +29,7 @@ func TestWebhookService(t *testing.T) {
 	t.Run("PrepareWebhooks", testWebhookPrepare)
 	t.Run("PrepareBranchFilterMatch", testWebhookPrepareBranchFilterMatch)
 	t.Run("PrepareBranchFilterNoMatch", testWebhookPrepareBranchFilterNoMatch)
+	t.Run("RenameRepositoryWebhook", testWebhookRenameRepository)
 	t.Run("WebhookUserMail", testWebhookUserMail)
 	t.Run("CheckBranchFilter", testWebhookCheckBranchFilter)
 }
@@ -97,6 +99,41 @@ func testWebhookPrepareBranchFilterNoMatch(t *testing.T) {
 	err := PrepareWebhooks(t.Context(), EventSource{Repository: repo}, webhook_module.HookEventPush, &api.PushPayload{Ref: "refs/heads/fix_weird_bug"})
 	require.NoError(t, err)
 	unittest.AssertNotExistsBean(t, hookTask)
+}
+
+func testWebhookRenameRepository(t *testing.T) {
+	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
+	doer := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
+	hook := &webhook_model.Webhook{
+		RepoID:      repo.ID,
+		URL:         "http://localhost/gitea-webhook-test-rename_repository",
+		ContentType: webhook_model.ContentTypeJSON,
+		IsActive:    true,
+		HookEvent: &webhook_module.HookEvent{
+			HookEvents: webhook_module.HookEvents{
+				webhook_module.HookEventRepository: true,
+			},
+		},
+	}
+	require.NoError(t, hook.UpdateEvent())
+	require.NoError(t, db.Insert(t.Context(), hook))
+
+	oldName := repo.Name
+	repo.Name = "repo1-renamed"
+
+	hookTask := &webhook_model.HookTask{HookID: hook.ID, EventType: webhook_module.HookEventRepository}
+	unittest.AssertNotExistsBean(t, hookTask)
+	NewNotifier().RenameRepository(t.Context(), doer, repo, oldName)
+	hookTask = unittest.AssertExistsAndLoadBean(t, hookTask)
+
+	var payload api.RepositoryPayload
+	require.NoError(t, json.Unmarshal([]byte(hookTask.PayloadContent), &payload))
+	assert.Equal(t, api.HookRepoRenamed, payload.Action)
+	require.NotNil(t, payload.Changes)
+	require.NotNil(t, payload.Changes.Name)
+	assert.Equal(t, oldName, payload.Changes.Name.From)
+	assert.Equal(t, repo.Name, payload.Repository.Name)
+	assert.Equal(t, doer.Name, payload.Sender.UserName)
 }
 
 func testWebhookUserMail(t *testing.T) {
