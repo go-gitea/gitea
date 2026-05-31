@@ -64,6 +64,12 @@ func CreateIssueComment(ctx context.Context, doer *user_model.User, repo *repo_m
 		}
 	}
 
+	if comment, duplicate, err := findPreviousDuplicateIssueComment(ctx, doer, issue, content, attachments); err != nil {
+		return nil, err
+	} else if duplicate {
+		return comment, nil
+	}
+
 	comment, err := issues_model.CreateComment(ctx, &issues_model.CreateCommentOptions{
 		Type:        issues_model.CommentTypeComment,
 		Doer:        doer,
@@ -90,6 +96,25 @@ func CreateIssueComment(ctx context.Context, doer *user_model.User, repo *repo_m
 	notify_service.CreateIssueComment(ctx, doer, repo, issue, comment, mentions)
 
 	return comment, nil
+}
+
+func findPreviousDuplicateIssueComment(ctx context.Context, doer *user_model.User, issue *issues_model.Issue, content string, attachments []string) (*issues_model.Comment, bool, error) {
+	if len(attachments) > 0 {
+		return nil, false, nil
+	}
+
+	comment := new(issues_model.Comment)
+	has, err := db.GetEngine(ctx).
+		Where("issue_id = ? AND type = ?", issue.ID, issues_model.CommentTypeComment).
+		Desc("created_unix", "id").
+		Get(comment)
+	if err != nil || !has {
+		return nil, false, err
+	}
+	if comment.PosterID != doer.ID || comment.Content != content {
+		return nil, false, nil
+	}
+	return comment, true, nil
 }
 
 // UpdateComment updates information of comment.
