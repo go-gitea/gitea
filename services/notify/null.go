@@ -143,6 +143,10 @@ func (*NullNotifier) IssueChangeLabels(ctx context.Context, doer *user_model.Use
 	addedLabels, removedLabels []*issues_model.Label) {
 }
 
+// IssueChangeDependency places a place holder function
+func (*NullNotifier) IssueChangeDependency(ctx context.Context, doer *user_model.User, issue, dependency *issues_model.Issue, added bool) {
+}
+
 // CreateRepository places a place holder function
 func (*NullNotifier) CreateRepository(ctx context.Context, doer, u *user_model.User, repo *repo_model.Repository) {
 }

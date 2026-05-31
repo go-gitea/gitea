@@ -133,6 +133,10 @@ func getIssuesPayloadInfo(p *api.IssuePayload, linkFormatter linkFormatter, with
 			linkFormatter(mileStoneLink, p.Issue.Milestone.Title), titleLink)
 	case api.HookIssueDemilestoned:
 		text = fmt.Sprintf("[%s] Issue milestone cleared: %s", repoLink, titleLink)
+	case api.HookIssueDependencyAdded:
+		text = fmt.Sprintf("[%s] Issue dependency added: %s", repoLink, titleLink)
+	case api.HookIssueDependencyRemoved:
+		text = fmt.Sprintf("[%s] Issue dependency removed: %s", repoLink, titleLink)
 	}
 	if withSender {
 		text += " by " + linkFormatter(setting.AppURL+url.PathEscape(p.Sender.UserName), p.Sender.UserName)
@@ -191,6 +195,10 @@ func getPullRequestPayloadInfo(p *api.PullRequestPayload, linkFormatter linkForm
 			linkFormatter(mileStoneLink, p.PullRequest.Milestone.Title), titleLink)
 	case api.HookIssueDemilestoned:
 		text = fmt.Sprintf("[%s] Pull request milestone cleared: %s", repoLink, titleLink)
+	case api.HookIssueDependencyAdded:
+		text = fmt.Sprintf("[%s] Pull request dependency added: %s", repoLink, titleLink)
+	case api.HookIssueDependencyRemoved:
+		text = fmt.Sprintf("[%s] Pull request dependency removed: %s", repoLink, titleLink)
 	case api.HookIssueReviewed:
 		text = fmt.Sprintf("[%s] Pull request reviewed: %s", repoLink, titleLink)
 		extraMarkdown = p.Review.Content

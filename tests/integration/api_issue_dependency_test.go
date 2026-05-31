@@ -17,7 +17,9 @@ import (
 	"gitea.dev/models/unit"
 	"gitea.dev/models/unittest"
 	user_model "gitea.dev/models/user"
+	webhook_model "gitea.dev/models/webhook"
 	api "gitea.dev/modules/structs"
+	webhook_module "gitea.dev/modules/webhook"
 	repo_service "gitea.dev/services/repository"
 	"gitea.dev/tests"
 
@@ -81,6 +83,16 @@ func TestAPICreateIssueDependencyCrossRepoPermission(t *testing.T) {
 	// add user40 as a collaborator to target repository with write permission
 	assert.NoError(t, repo_service.AddOrUpdateCollaborator(t.Context(), targetRepo, user40, perm.AccessModeWrite))
 
+	hook := &webhook_model.Webhook{
+		RepoID:      targetRepo.ID,
+		URL:         "http://localhost/gitea-webhook-test-issue-dependency-created",
+		ContentType: webhook_model.ContentTypeJSON,
+		Events:      `{"choose_events":true,"events":{"issues":true}}`,
+		IsActive:    true,
+		Type:        webhook_module.GITEA,
+	}
+	assert.NoError(t, db.Insert(t.Context(), hook))
+
 	req = NewRequestWithJSON(t, "POST", url, dependencyMeta).
 		AddTokenAuth(writerToken)
 	MakeRequest(t, req, http.StatusCreated)
@@ -88,6 +100,9 @@ func TestAPICreateIssueDependencyCrossRepoPermission(t *testing.T) {
 		IssueID:      targetIssue.ID,
 		DependencyID: dependencyIssue.ID,
 	})
+	hookTask := unittest.AssertExistsAndLoadBean(t, &webhook_model.HookTask{HookID: hook.ID, EventType: webhook_module.HookEventIssues})
+	assert.Contains(t, hookTask.PayloadContent, `"action": "dependency_added"`)
+	assert.Contains(t, hookTask.PayloadContent, `"dependency": {`)
 }
 
 func TestAPIDeleteIssueDependencyCrossRepoPermission(t *testing.T) {
@@ -142,6 +157,16 @@ func TestAPIDeleteIssueDependencyCrossRepoPermission(t *testing.T) {
 	// add user40 as a collaborator to target repository with write permission
 	assert.NoError(t, repo_service.AddOrUpdateCollaborator(t.Context(), targetRepo, user40, perm.AccessModeWrite))
 
+	hook := &webhook_model.Webhook{
+		RepoID:      targetRepo.ID,
+		URL:         "http://localhost/gitea-webhook-test-issue-dependency-removed",
+		ContentType: webhook_model.ContentTypeJSON,
+		Events:      `{"choose_events":true,"events":{"issues":true}}`,
+		IsActive:    true,
+		Type:        webhook_module.GITEA,
+	}
+	assert.NoError(t, db.Insert(t.Context(), hook))
+
 	req = NewRequestWithJSON(t, "DELETE", url, dependencyMeta).
 		AddTokenAuth(writerToken)
 	MakeRequest(t, req, http.StatusCreated)
@@ -149,4 +174,7 @@ func TestAPIDeleteIssueDependencyCrossRepoPermission(t *testing.T) {
 		IssueID:      targetIssue.ID,
 		DependencyID: dependencyIssue.ID,
 	})
+	hookTask := unittest.AssertExistsAndLoadBean(t, &webhook_model.HookTask{HookID: hook.ID, EventType: webhook_module.HookEventIssues})
+	assert.Contains(t, hookTask.PayloadContent, `"action": "dependency_removed"`)
+	assert.Contains(t, hookTask.PayloadContent, `"dependency": {`)
 }

@@ -403,6 +403,51 @@ func (m *webhookNotifier) IssueChangeContent(ctx context.Context, doer *user_mod
 	}
 }
 
+func (m *webhookNotifier) IssueChangeDependency(ctx context.Context, doer *user_model.User, issue, dependency *issues_model.Issue, added bool) {
+	if err := issue.LoadRepo(ctx); err != nil {
+		log.Error("LoadRepo: %v", err)
+		return
+	}
+	if err := dependency.LoadRepo(ctx); err != nil {
+		log.Error("LoadRepo: %v", err)
+		return
+	}
+
+	action := api.HookIssueDependencyRemoved
+	if added {
+		action = api.HookIssueDependencyAdded
+	}
+
+	permission, _ := access_model.GetDoerRepoPermission(ctx, issue.Repo, doer)
+	var err error
+	if issue.IsPull {
+		if err := issue.LoadPullRequest(ctx); err != nil {
+			log.Error("LoadPullRequest: %v", err)
+			return
+		}
+		err = PrepareWebhooks(ctx, EventSource{Repository: issue.Repo}, webhook_module.HookEventPullRequest, &api.PullRequestPayload{
+			Action:      action,
+			Index:       issue.Index,
+			PullRequest: convert.ToAPIPullRequest(ctx, issue.PullRequest, doer),
+			Dependency:  convert.ToAPIIssue(ctx, doer, dependency),
+			Repository:  convert.ToRepo(ctx, issue.Repo, permission),
+			Sender:      convert.ToUser(ctx, doer, nil),
+		})
+	} else {
+		err = PrepareWebhooks(ctx, EventSource{Repository: issue.Repo}, webhook_module.HookEventIssues, &api.IssuePayload{
+			Action:     action,
+			Index:      issue.Index,
+			Issue:      convert.ToAPIIssue(ctx, doer, issue),
+			Dependency: convert.ToAPIIssue(ctx, doer, dependency),
+			Repository: convert.ToRepo(ctx, issue.Repo, permission),
+			Sender:     convert.ToUser(ctx, doer, nil),
+		})
+	}
+	if err != nil {
+		log.Error("PrepareWebhooks [is_pull: %v, dependency_id: %d]: %v", issue.IsPull, dependency.ID, err)
+	}
+}
+
 func (m *webhookNotifier) UpdateComment(ctx context.Context, doer *user_model.User, c *issues_model.Comment, oldContent string) {
 	if err := c.LoadPoster(ctx); err != nil {
 		log.Error("LoadPoster: %v", err)

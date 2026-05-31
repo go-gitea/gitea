@@ -379,6 +379,10 @@ const (
 	HookIssueMilestoned HookIssueAction = "milestoned"
 	// HookIssueDemilestoned is an issue action for when a milestone is cleared on an issue.
 	HookIssueDemilestoned HookIssueAction = "demilestoned"
+	// HookIssueDependencyAdded is an issue action for when a dependency is added.
+	HookIssueDependencyAdded HookIssueAction = "dependency_added"
+	// HookIssueDependencyRemoved is an issue action for when a dependency is removed.
+	HookIssueDependencyRemoved HookIssueAction = "dependency_removed"
 	// HookIssueReviewed is an issue action for when a pull request is reviewed
 	HookIssueReviewed HookIssueAction = "reviewed"
 	// HookIssueReviewRequested is an issue action for when a reviewer is requested for a pull request.
@@ -397,6 +401,8 @@ type IssuePayload struct {
 	Changes *ChangesPayload `json:"changes,omitempty"`
 	// The issue that was acted upon
 	Issue *Issue `json:"issue"`
+	// The dependency issue that was added or removed
+	Dependency *Issue `json:"dependency,omitempty"`
 	// The repository containing the issue
 	Repository *Repository `json:"repository"`
 	// The user who performed the action
@@ -444,6 +450,8 @@ type PullRequestPayload struct {
 	Changes *ChangesPayload `json:"changes,omitempty"`
 	// The pull request that was acted upon
 	PullRequest *PullRequest `json:"pull_request"`
+	// The dependency issue that was added or removed
+	Dependency *Issue `json:"dependency,omitempty"`
 	// The reviewer that was requested (for review request actions)
 	RequestedReviewer *User `json:"requested_reviewer"`
 	// The repository containing the pull request

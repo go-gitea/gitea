@@ -16,6 +16,7 @@ import (
 	"gitea.dev/routers/api/v1/utils"
 	"gitea.dev/services/context"
 	"gitea.dev/services/convert"
+	issue_service "gitea.dev/services/issue"
 )
 
 // GetIssueDependencies list an issue's dependencies
@@ -565,7 +566,7 @@ func createIssueDependency(ctx *context.APIContext, target, dependency *issues_m
 		return
 	}
 
-	err := issues_model.CreateIssueDependency(ctx, ctx.Doer, target, dependency)
+	err := issue_service.CreateIssueDependency(ctx, ctx.Doer, target, dependency)
 	if err != nil {
 		ctx.APIErrorInternal(err)
 		return
@@ -591,7 +592,7 @@ func removeIssueDependency(ctx *context.APIContext, target, dependency *issues_m
 		return
 	}
 
-	err := issues_model.RemoveIssueDependency(ctx, ctx.Doer, target, dependency, issues_model.DependencyTypeBlockedBy)
+	err := issue_service.RemoveIssueDependency(ctx, ctx.Doer, target, dependency, issues_model.DependencyTypeBlockedBy)
 	if err != nil {
 		ctx.APIErrorInternal(err)
 		return
