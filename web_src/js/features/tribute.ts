@@ -48,11 +48,13 @@ export async function attachTribute(element: HTMLElement) {
     },
   };
 
+  const collections: TributeCollection<any>[] = [mentionCollection];
+  if (window.config.enableEmojiDropdown) {
+    collections.unshift(emojiCollection);
+  }
+
   const tribute = new Tribute({
-    collection: [
-      emojiCollection,
-      mentionCollection,
-    ] as TributeCollection<any>[],
+    collection: collections,
     noMatchTemplate: () => '',
   });
   tribute.attach(element);

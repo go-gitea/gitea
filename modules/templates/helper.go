@@ -99,6 +99,9 @@ func newFuncMapWebPage() template.FuncMap {
 		"CustomEmojis": func() map[string]string {
 			return setting.UI.CustomEmojisMap
 		},
+		"EnableEmojiDropdown": func() bool {
+			return setting.UI.EnableEmojiDropdown
+		},
 		"MetaAuthor": func() string {
 			return setting.UI.Meta.Author
 		},

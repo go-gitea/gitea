@@ -35,6 +35,7 @@ var UI = struct {
 	CustomEmojisMap         map[string]string `ini:"-"`
 	EnabledEmojis           []string
 	EnabledEmojisSet        container.Set[string] `ini:"-"`
+	EnableEmojiDropdown     bool
 	SearchRepoDescription   bool
 	OnlyShowRelevantRepos   bool
 	ExploreDefaultSort      string `ini:"EXPLORE_PAGING_DEFAULT_SORT"`
@@ -101,6 +102,7 @@ var UI = struct {
 	Reactions:               []string{`+1`, `-1`, `laugh`, `hooray`, `confused`, `heart`, `rocket`, `eyes`},
 	CustomEmojis:            []string{`git`, `gitea`, `codeberg`, `gitlab`, `github`, `gogs`},
 	CustomEmojisMap:         map[string]string{"git": ":git:", "gitea": ":gitea:", "codeberg": ":codeberg:", "gitlab": ":gitlab:", "github": ":github:", "gogs": ":gogs:"},
+	EnableEmojiDropdown:     true,
 	ExploreDefaultSort:      "recentupdate",
 	PreferredTimestampTense: "mixed",
 

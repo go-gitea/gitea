@@ -68,6 +68,8 @@ export function initTextExpander(expander: TextExpanderElement) {
     if (!e.detail) return;
     const {key, text, provide} = e.detail;
     if (key === ':') {
+      if (!window.config.enableEmojiDropdown) return provide({matched: false});
+
       const matches = matchEmoji(text);
       if (!matches.length) return provide({matched: false});
 

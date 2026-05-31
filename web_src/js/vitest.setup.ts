@@ -7,6 +7,7 @@ window.config = {
   sharedWorkerUri: '',
   runModeIsProd: true,
   customEmojis: {},
+  enableEmojiDropdown: true,
   pageData: {},
   notificationSettings: {MinTimeout: 0, TimeoutStep: 0, MaxTimeout: 0, EventSourceUpdateTime: 0},
   enableTimeTracking: true,

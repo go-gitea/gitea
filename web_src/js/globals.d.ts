@@ -26,6 +26,7 @@ interface Window {
     sharedWorkerUri: string,
     runModeIsProd: boolean,
     customEmojis: Record<string, string>,
+    enableEmojiDropdown: boolean,
     pageData: Record<string, any> & {
       adminUserListSearchForm?: {
         SortType: string,
