@@ -27,9 +27,9 @@ func GetMentionsInRepo(ctx *context.Context) {
 			return
 		}
 		if issue != nil {
-			userIDs, err := issue.GetParticipantIDsByIssue(ctx)
+			userIDs, err := issue.GetMentionSuggestionUserIDsByIssue(ctx)
 			if err != nil {
-				ctx.ServerError("GetParticipantIDsByIssue", err)
+				ctx.ServerError("GetMentionSuggestionUserIDsByIssue", err)
 				return
 			}
 			users, err := user_model.GetUsersByIDs(ctx, userIDs)

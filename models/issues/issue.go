@@ -672,6 +672,27 @@ func (issue *Issue) GetParticipantIDsByIssue(ctx context.Context) ([]int64, erro
 	return userIDs, nil
 }
 
+// GetMentionSuggestionUserIDsByIssue returns the issue author and active users who posted any issue timeline event.
+func (issue *Issue) GetMentionSuggestionUserIDsByIssue(ctx context.Context) ([]int64, error) {
+	if issue == nil {
+		return nil, nil
+	}
+	userIDs := make([]int64, 0, 5)
+	if err := db.GetEngine(ctx).Table("comment").Cols("poster_id").
+		Where("`comment`.issue_id = ?", issue.ID).
+		And("`user`.is_active = ?", true).
+		And("`user`.prohibit_login = ?", false).
+		Join("INNER", "`user`", "`user`.id = `comment`.poster_id").
+		Distinct("poster_id").
+		Find(&userIDs); err != nil {
+		return nil, fmt.Errorf("get mention suggestion user IDs: %w", err)
+	}
+	if !slices.Contains(userIDs, issue.PosterID) {
+		return append(userIDs, issue.PosterID), nil
+	}
+	return userIDs, nil
+}
+
 // BlockedByDependencies finds all Dependencies an issue is blocked by
 func (issue *Issue) BlockedByDependencies(ctx context.Context, opts db.ListOptions) (issueDeps []*DependencyInfo, total int64, err error) {
 	sess := db.GetEngine(ctx).

@@ -110,6 +110,26 @@ func TestGetParticipantIDsByIssue(t *testing.T) {
 	checkParticipants(1, []int{1, 5})
 }
 
+func TestGetMentionSuggestionUserIDsByIssue(t *testing.T) {
+	assert.NoError(t, unittest.PrepareTestDatabase())
+
+	issue, err := issues_model.GetIssueByID(t.Context(), 1)
+	assert.NoError(t, err)
+
+	userIDs, err := issue.GetMentionSuggestionUserIDsByIssue(t.Context())
+	assert.NoError(t, err)
+
+	ids := make([]int, len(userIDs))
+	for i, uid := range userIDs {
+		ids[i] = int(uid)
+	}
+	sort.Ints(ids)
+
+	// User 1 is issue poster, user 2 only labeled the issue, user 5 commented.
+	// User 3 also commented but is inactive, so it is not suggested.
+	assert.Equal(t, []int{1, 2, 5}, ids)
+}
+
 func TestIssue_ClearLabels(t *testing.T) {
 	tests := []struct {
 		issueID int64
