@@ -58,6 +58,7 @@ type Issue struct {
 	Index             int64                  `xorm:"UNIQUE(repo_index)"` // Index in one repository.
 	PosterID          int64                  `xorm:"INDEX"`
 	Poster            *user_model.User       `xorm:"-"`
+	ClosedBy          *user_model.User       `xorm:"-"`
 	OriginalAuthor    string
 	OriginalAuthorID  int64                    `xorm:"index"`
 	Title             string                   `xorm:"name"`
@@ -467,6 +468,14 @@ func (issue *Issue) GetLastEventLabel() string {
 		return "repo.issues.closed_by"
 	}
 	return "repo.issues.opened_by"
+}
+
+// HasClosedBy returns whether the issue list can show a dedicated closing actor.
+func (issue *Issue) HasClosedBy() bool {
+	if !issue.IsClosed || issue.ClosedBy == nil || issue.ClosedBy.ID <= 0 {
+		return false
+	}
+	return !issue.IsPull || (issue.PullRequest != nil && !issue.PullRequest.HasMerged)
 }
 
 // GetLastComment return last comment for the current issue.

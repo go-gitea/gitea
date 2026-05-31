@@ -25,7 +25,15 @@
 			<span class="tw-text-grey-light muted-links">
 				{{if not $.Page.Repository}}{{.Repo.FullName}}{{end}}#{{.Index}}
 				{{$timeStr := DateUtils.TimeSince .GetLastEventTimestamp}}
-				{{if .OriginalAuthor}}
+				{{if .HasClosedBy}}
+					{{if .OriginalAuthor}}
+						{{ctx.Locale.Tr "repo.issues.closed_by_user_fake" $timeStr .OriginalAuthor .ClosedBy.HomeLink .ClosedBy.GetDisplayName}}
+					{{else if gt .Poster.ID 0}}
+						{{ctx.Locale.Tr "repo.issues.closed_by_user" $timeStr .Poster.HomeLink .Poster.GetDisplayName .ClosedBy.HomeLink .ClosedBy.GetDisplayName}}
+					{{else}}
+						{{ctx.Locale.Tr "repo.issues.closed_by_user_fake" $timeStr .Poster.GetDisplayName .ClosedBy.HomeLink .ClosedBy.GetDisplayName}}
+					{{end}}
+				{{else if .OriginalAuthor}}
 					{{ctx.Locale.Tr .GetLastEventLabelFake $timeStr .OriginalAuthor}}
 				{{else if gt .Poster.ID 0}}
 					{{ctx.Locale.Tr .GetLastEventLabel $timeStr .Poster.HomeLink .Poster.GetDisplayName}}

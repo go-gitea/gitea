@@ -91,6 +91,57 @@ func (issues IssueList) LoadPosters(ctx context.Context) error {
 	return nil
 }
 
+func (issues IssueList) LoadClosedBy(ctx context.Context) error {
+	if len(issues) == 0 {
+		return nil
+	}
+
+	issueIDs := container.FilterSlice(issues, func(issue *Issue) (int64, bool) {
+		return issue.ID, issue.IsClosed && issue.ClosedBy == nil
+	})
+	if len(issueIDs) == 0 {
+		return nil
+	}
+
+	closedByIDs := make(map[int64]int64, len(issueIDs))
+	left := len(issueIDs)
+	for left > 0 {
+		limit := min(left, db.DefaultMaxInSize)
+		comments := make([]*Comment, 0, limit)
+		if err := db.GetEngine(ctx).
+			In("issue_id", issueIDs[:limit]).
+			In("type", CommentTypeClose, CommentTypeMergePull).
+			Desc("created_unix").
+			Desc("id").
+			Find(&comments); err != nil {
+			return err
+		}
+		for _, comment := range comments {
+			if _, ok := closedByIDs[comment.IssueID]; !ok && comment.PosterID > 0 {
+				closedByIDs[comment.IssueID] = comment.PosterID
+			}
+		}
+		left -= limit
+		issueIDs = issueIDs[limit:]
+	}
+
+	userIDs := make([]int64, 0, len(closedByIDs))
+	for _, userID := range closedByIDs {
+		userIDs = append(userIDs, userID)
+	}
+	users, err := user_model.GetUsersMapByIDs(ctx, userIDs)
+	if err != nil {
+		return err
+	}
+
+	for _, issue := range issues {
+		if issue.ClosedBy == nil {
+			issue.ClosedBy = user_model.GetPossibleUserFromMap(closedByIDs[issue.ID], users)
+		}
+	}
+	return nil
+}
+
 func (issues IssueList) getIssueIDs() []int64 {
 	ids := make([]int64, 0, len(issues))
 	for _, issue := range issues {
@@ -522,6 +573,10 @@ func (issues IssueList) LoadAttributes(ctx context.Context) error {
 
 	if err := issues.LoadPosters(ctx); err != nil {
 		return fmt.Errorf("issue.loadAttributes: LoadPosters: %w", err)
+	}
+
+	if err := issues.LoadClosedBy(ctx); err != nil {
+		return fmt.Errorf("issue.loadAttributes: LoadClosedBy: %w", err)
 	}
 
 	if err := issues.LoadLabels(ctx); err != nil {
