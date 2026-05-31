@@ -190,6 +190,9 @@ func MoveGroupItem(ctx context.Context, opts MoveGroupOptions, doer *user_model.
 			opts.NewPos = len(parentGroup.Subgroups)
 		}
 		if group.ParentGroupID != opts.NewParent || group.SortOrder != opts.NewPos {
+			if parentGroup != nil && group.OwnerID != parentGroup.OwnerID {
+				return util.NewInvalidArgumentErrorf("New parent group %d does not belong to same owner [ID: %d]", parentGroup.ID, parentGroup.OwnerID)
+			}
 			if err = group_model.MoveGroup(ctx, group, opts.NewParent, opts.NewPos); err != nil {
 				return err
 			}
@@ -211,6 +214,9 @@ func MoveGroupItem(ctx context.Context, opts MoveGroupOptions, doer *user_model.
 			opts.NewPos = int(repoCount)
 		}
 		if repo.GroupID != opts.NewParent || repo.GroupSortOrder != opts.NewPos {
+			if parentGroup != nil && repo.OwnerID != parentGroup.OwnerID {
+				return util.NewInvalidArgumentErrorf("New parent group %d does not belong to same owner [ID: %d]", parentGroup.ID, parentGroup.OwnerID)
+			}
 			ndir := filepath.Dir(filepath.Join(setting.RepoRootPath, filepath.FromSlash(repo_model.RelativePath(repo.OwnerName, repo.Name, opts.NewParent))))
 			_, err = os.Stat(ndir)
 			if err != nil {
