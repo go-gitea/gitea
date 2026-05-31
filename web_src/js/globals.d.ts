@@ -44,6 +44,7 @@ interface Window {
       pullRequestMergeForm?: Record<string, any>,
       dashboardRepoList?: Record<string, any> & {
         organizationName: string,
+        userName: string
       },
     },
     notificationSettings: {
