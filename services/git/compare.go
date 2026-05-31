@@ -7,6 +7,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"slices"
 
 	repo_model "gitea.dev/models/repo"
 	"gitea.dev/modules/git"
@@ -103,6 +104,7 @@ func GetCompareInfo(ctx context.Context, baseRepo, headRepo *repo_model.Reposito
 		if err != nil {
 			return compareInfo, fmt.Errorf("ShowPrettyFormatLogToList: %w", err)
 		}
+		slices.Reverse(compareInfo.Commits)
 	}
 
 	// Count number of changed files.

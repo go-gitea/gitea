@@ -81,9 +81,9 @@ func TestNewPullRequestTitleContent(t *testing.T) {
 
 	// multiple commits
 	commits := []*git_model.SignCommitWithStatuses{
-		// ordered from newest to oldest
-		mockCommit("title2\nbody2"),
+		// ordered from oldest to newest
 		mockCommit("title1\nbody1"),
+		mockCommit("title2\nbody2"),
 	}
 	title, content = prepareNewPullRequestTitleContent(ci, commits, setting.RepoPRTitleSourceAuto)
 	assert.Equal(t, "Head branch", title)

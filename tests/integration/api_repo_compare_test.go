@@ -6,6 +6,7 @@ package integration
 import (
 	"net/http"
 	"net/url"
+	"strings"
 	"testing"
 
 	auth_model "gitea.dev/models/auth"
@@ -32,6 +33,8 @@ func TestAPICompareBranches(t *testing.T) {
 			apiResp := DecodeJSON(t, resp, &api.Compare{})
 			assert.Equal(t, 2, apiResp.TotalCommits)
 			assert.Len(t, apiResp.Commits, 2)
+			assert.True(t, strings.HasPrefix(apiResp.Commits[0].SHA, "b67e43a"))
+			assert.True(t, strings.HasPrefix(apiResp.Commits[1].SHA, "8babce9"))
 		})
 
 		t.Run("CompareCommits", func(t *testing.T) {
