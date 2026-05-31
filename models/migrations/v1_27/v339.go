@@ -11,10 +11,10 @@ import (
 
 func AddGroupColumnsToRepositoryTable(x db.EngineMigration) error {
 	type Repository struct {
-		LowerName      string `xorm:"UNIQUE(s) UNIQUE(g) INDEX NOT NULL"`
+		LowerName      string `xorm:"UNIQUE(s) INDEX NOT NULL"`
 		GroupID        int64  `xorm:"UNIQUE(s) INDEX DEFAULT 0"`
-		OwnerID        int64  `xorm:"UNIQUE(s) UNIQUE(g) index"`
-		GroupSortOrder int
+		OwnerID        int64  `xorm:"UNIQUE(s) index"`
+		GroupSortOrder int    `xorm:"INDEX"`
 	}
 	_, err := x.SyncWithOptions(xorm.SyncOptions{
 		IgnoreConstrains: false,
