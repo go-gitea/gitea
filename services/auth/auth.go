@@ -79,4 +79,8 @@ func handleSignIn(resp http.ResponseWriter, req *http.Request, sess SessionStore
 	}
 
 	middleware.SetLocaleCookie(resp, user.Language, 0)
+
+	if err := user_service.UpdateUser(req.Context(), user, &user_service.UpdateOptions{SetLastLogin: true}); err != nil {
+		log.Error("Error updating user last login [user: %d]: %v", user.ID, err)
+	}
 }
