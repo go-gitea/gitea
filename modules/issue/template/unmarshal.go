@@ -14,7 +14,7 @@ import (
 	api "gitea.dev/modules/structs"
 	"gitea.dev/modules/util"
 
-	"gopkg.in/yaml.v3"
+	"go.yaml.in/yaml/v4"
 )
 
 // CouldBe indicates a file with the filename could be a template,

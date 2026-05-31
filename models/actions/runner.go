@@ -10,6 +10,7 @@ import (
 	"strings"
 	"time"
 
+	runnerv1 "gitea.dev/actions-proto-go/runner/v1"
 	"gitea.dev/models/db"
 	repo_model "gitea.dev/models/repo"
 	"gitea.dev/models/shared/types"
@@ -21,7 +22,6 @@ import (
 	"gitea.dev/modules/translation"
 	"gitea.dev/modules/util"
 
-	runnerv1 "code.gitea.io/actions-proto-go/runner/v1"
 	"xorm.io/builder"
 )
 

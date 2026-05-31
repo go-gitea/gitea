@@ -13,6 +13,7 @@ import (
 	"strconv"
 	"time"
 
+	runnerv1 "gitea.dev/actions-proto-go/runner/v1"
 	actions_model "gitea.dev/models/actions"
 	asymkey_model "gitea.dev/models/asymkey"
 	"gitea.dev/models/auth"
@@ -36,7 +37,6 @@ import (
 	asymkey_service "gitea.dev/services/asymkey"
 	"gitea.dev/services/gitdiff"
 
-	runnerv1 "code.gitea.io/actions-proto-go/runner/v1"
 	"gitea.com/gitea/runner/act/model"
 )
 
