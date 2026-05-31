@@ -96,3 +96,31 @@ func RemoveOrgUser(ctx context.Context, org *organization.Organization, user *us
 		return nil
 	})
 }
+
+// RemoveOrgUserWithAdmin removes a user from an organization.
+// If the user is the only organization owner, the acting admin is added to the
+// owner team first to keep the organization manageable.
+func RemoveOrgUserWithAdmin(ctx context.Context, org *organization.Organization, user, admin *user_model.User) (bool, error) {
+	transferredOwnership := false
+
+	if user.ID != admin.ID {
+		isOwner, err := organization.IsOrganizationOwner(ctx, org.ID, user.ID)
+		if err != nil {
+			return false, err
+		}
+		if isOwner {
+			ownerTeam, err := organization.GetOwnerTeam(ctx, org.ID)
+			if err != nil {
+				return false, err
+			}
+			if ownerTeam.NumMembers == 1 {
+				if err := AddTeamMember(ctx, ownerTeam, admin); err != nil {
+					return false, err
+				}
+				transferredOwnership = true
+			}
+		}
+	}
+
+	return transferredOwnership, RemoveOrgUser(ctx, org, user)
+}

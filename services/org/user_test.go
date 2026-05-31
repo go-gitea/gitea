@@ -71,3 +71,22 @@ func TestRemoveOrgUser(t *testing.T) {
 	unittest.AssertExistsAndLoadBean(t, &organization.OrgUser{OrgID: org7.ID, UID: user5.ID})
 	unittest.CheckConsistencyFor(t, &user_model.User{}, &organization.Team{})
 }
+
+func TestRemoveOrgUserWithAdminTransfersSoleOwner(t *testing.T) {
+	assert.NoError(t, unittest.PrepareTestDatabase())
+
+	org7 := unittest.AssertExistsAndLoadBean(t, &organization.Organization{ID: 7})
+	user5 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 5})
+	admin := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 1})
+
+	transferredOwnership, err := RemoveOrgUserWithAdmin(t.Context(), org7, user5, admin)
+	assert.NoError(t, err)
+	assert.True(t, transferredOwnership)
+	unittest.AssertNotExistsBean(t, &organization.OrgUser{OrgID: org7.ID, UID: user5.ID})
+	unittest.AssertExistsAndLoadBean(t, &organization.OrgUser{OrgID: org7.ID, UID: admin.ID})
+
+	ownerTeam, err := organization.GetOwnerTeam(t.Context(), org7.ID)
+	assert.NoError(t, err)
+	unittest.AssertExistsAndLoadBean(t, &organization.TeamUser{OrgID: org7.ID, TeamID: ownerTeam.ID, UID: admin.ID})
+	unittest.CheckConsistencyFor(t, &user_model.User{}, &organization.Team{})
+}

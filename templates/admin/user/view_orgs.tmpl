@@ -1,0 +1,40 @@
+<div class="flex-divided-list items-with-main">
+	{{range .Orgs}}
+		<div class="item tw-items-center">
+			<div class="item-leading">
+				{{ctx.AvatarUtils.Avatar . 48}}
+			</div>
+			<div class="item-main">
+				<div class="item-title">
+					{{template "shared/user/name" .}}
+					{{if .Visibility.IsPrivate}}
+						<span class="ui basic tiny label">{{ctx.Locale.Tr "repo.desc.private"}}</span>
+					{{end}}
+				</div>
+				<div class="item-body">
+					{{if .Location}}
+						<span class="flex-text-inline">{{svg "octicon-location"}}{{.Location}}</span>
+					{{end}}
+					{{if .Email}}
+						<span class="flex-text-inline">
+							{{svg "octicon-mail"}}
+							<a href="mailto:{{.Email}}">{{.Email}}</a>
+						</span>
+					{{end}}
+					<span class="flex-text-inline">{{svg "octicon-calendar"}}{{ctx.Locale.Tr "user.joined_on" (DateUtils.AbsoluteShort .CreatedUnix)}}</span>
+				</div>
+			</div>
+			<div class="item-trailing">
+				<button class="ui red tiny button link-action"
+					data-url="{{$.Link}}/orgs/{{.ID}}/remove"
+					data-modal-confirm-header="{{ctx.Locale.Tr "admin.users.remove_org"}}"
+					data-modal-confirm-content="{{ctx.Locale.Tr "admin.users.remove_org_confirm" $.User.DisplayName .DisplayName}}"
+				>{{ctx.Locale.Tr "admin.users.remove_org"}}</button>
+			</div>
+		</div>
+	{{else}}
+		<div class="item">
+			{{ctx.Locale.Tr "search.no_results"}}
+		</div>
+	{{end}}
+</div>

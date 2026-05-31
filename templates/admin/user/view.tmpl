@@ -30,9 +30,18 @@
 	</div>
 	<h4 class="ui top attached header">
 		{{ctx.Locale.Tr "settings.organization"}} ({{ctx.Locale.Tr "admin.total" .OrgsTotal}})
+		{{if gt .OrgsTotal 0}}
+			<div class="ui right">
+				<button class="ui red tiny button link-action"
+					data-url="{{.Link}}/orgs/remove-all"
+					data-modal-confirm-header="{{ctx.Locale.Tr "admin.users.remove_all_orgs"}}"
+					data-modal-confirm-content="{{ctx.Locale.Tr "admin.users.remove_all_orgs_confirm" .OrgsTotal}}"
+				>{{ctx.Locale.Tr "admin.users.remove_all_orgs"}}</button>
+			</div>
+		{{end}}
 	</h4>
 	<div class="ui attached segment">
-		{{template "explore/user_list" .}}
+		{{template "admin/user/view_orgs" .}}
 	</div>
 </div>
 

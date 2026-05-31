@@ -29,6 +29,7 @@ import (
 	"gitea.dev/services/context"
 	"gitea.dev/services/forms"
 	"gitea.dev/services/mailer"
+	org_service "gitea.dev/services/org"
 	user_service "gitea.dev/services/user"
 )
 
@@ -302,10 +303,96 @@ func ViewUser(ctx *context.Context) {
 		return
 	}
 
-	ctx.Data["Users"] = orgs // needed to be able to use explore/user_list template
+	ctx.Data["Orgs"] = orgs
 	ctx.Data["OrgsTotal"] = len(orgs)
 
 	ctx.HTML(http.StatusOK, tplUserView)
+}
+
+func redirectToAdminUser(ctx *context.Context) string {
+	return setting.AppSubURL + "/-/admin/users/" + url.PathEscape(ctx.PathParam("userid"))
+}
+
+func removeUserOrganization(ctx *context.Context, u *user_model.User, org *org_model.Organization) (bool, error) {
+	return org_service.RemoveOrgUserWithAdmin(ctx, org, u, ctx.Doer)
+}
+
+func RemoveUserOrganization(ctx *context.Context) {
+	u := prepareUserInfo(ctx)
+	if ctx.Written() {
+		return
+	}
+
+	org, err := org_model.GetOrgByID(ctx, ctx.PathParamInt64("orgid"))
+	if err != nil {
+		if org_model.IsErrOrgNotExist(err) {
+			ctx.NotFound(err)
+		} else {
+			ctx.ServerError("GetOrgByID", err)
+		}
+		return
+	}
+
+	transferredOwnership, err := removeUserOrganization(ctx, u, org)
+	if err != nil {
+		if org_model.IsErrLastOrgOwner(err) {
+			ctx.Flash.Error(ctx.Tr("admin.users.remove_org_last_owner"))
+			ctx.JSONRedirect(redirectToAdminUser(ctx))
+			return
+		}
+		ctx.ServerError("RemoveOrgUserWithAdmin", err)
+		return
+	}
+
+	if transferredOwnership {
+		ctx.Flash.Success(ctx.Tr("admin.users.remove_org_success_with_transfer", org.DisplayName()))
+	} else {
+		ctx.Flash.Success(ctx.Tr("admin.users.remove_org_success", org.DisplayName()))
+	}
+	ctx.JSONRedirect(redirectToAdminUser(ctx))
+}
+
+func RemoveUserOrganizations(ctx *context.Context) {
+	u := prepareUserInfo(ctx)
+	if ctx.Written() {
+		return
+	}
+
+	orgs, err := db.Find[org_model.Organization](ctx, org_model.FindOrgOptions{
+		ListOptions:       db.ListOptionsAll,
+		UserID:            u.ID,
+		IncludeVisibility: structs.VisibleTypePrivate,
+	})
+	if err != nil {
+		ctx.ServerError("FindOrgs", err)
+		return
+	}
+
+	removedCount := 0
+	transferredOwnershipCount := 0
+	for _, org := range orgs {
+		transferredOwnership, err := removeUserOrganization(ctx, u, org)
+		if err != nil {
+			if org_model.IsErrLastOrgOwner(err) {
+				ctx.Flash.Error(ctx.Tr("admin.users.remove_org_last_owner"))
+				ctx.JSONRedirect(redirectToAdminUser(ctx))
+				return
+			}
+			ctx.ServerError("RemoveOrgUserWithAdmin", err)
+			return
+		}
+		removedCount++
+		if transferredOwnership {
+			transferredOwnershipCount++
+		}
+	}
+
+	if transferredOwnershipCount > 0 {
+		ctx.Flash.Success(ctx.Tr("admin.users.remove_all_orgs_success_with_transfer", removedCount, transferredOwnershipCount))
+	} else {
+		ctx.Flash.Success(ctx.Tr("admin.users.remove_all_orgs_success", removedCount))
+	}
+	ctx.JSONRedirect(redirectToAdminUser(ctx))
 }
 
 func editUserCommon(ctx *context.Context) {

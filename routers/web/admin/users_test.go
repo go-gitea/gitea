@@ -6,6 +6,7 @@ package admin
 import (
 	"testing"
 
+	"gitea.dev/models/organization"
 	"gitea.dev/models/unittest"
 	user_model "gitea.dev/models/user"
 	"gitea.dev/modules/setting"
@@ -196,4 +197,24 @@ func TestNewUserPost_VisibilityPrivate(t *testing.T) {
 	assert.Equal(t, email, u.Email)
 	// As default user visibility
 	assert.True(t, u.Visibility.IsPrivate())
+}
+
+func TestRemoveUserOrganizationTransfersSoleOwner(t *testing.T) {
+	unittest.PrepareTestEnv(t)
+
+	admin := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 1, IsAdmin: true})
+	ctx, _ := contexttest.MockContext(t, "POST /-/admin/users/5/orgs/7/remove")
+	ctx.Doer = admin
+	ctx.SetPathParam("userid", "5")
+	ctx.SetPathParam("orgid", "7")
+
+	RemoveUserOrganization(ctx)
+
+	assert.NotEmpty(t, ctx.Flash.SuccessMsg)
+	unittest.AssertNotExistsBean(t, &organization.OrgUser{OrgID: 7, UID: 5})
+	unittest.AssertExistsAndLoadBean(t, &organization.OrgUser{OrgID: 7, UID: admin.ID})
+
+	ownerTeam, err := organization.GetOwnerTeam(t.Context(), 7)
+	assert.NoError(t, err)
+	unittest.AssertExistsAndLoadBean(t, &organization.TeamUser{OrgID: 7, TeamID: ownerTeam.ID, UID: admin.ID})
 }
