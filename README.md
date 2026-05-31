@@ -53,6 +53,8 @@ Internet connectivity is required to download the go and npm modules. When build
 
 More info: https://docs.gitea.com/installation/install-from-source
 
+For setting up a local development environment, continuous builds, linting, and testing, see [docs/development.md](docs/development.md).
+
 ## Using
 
 After building, a binary file named `gitea` will be generated in the root of the source tree by default. To run it, use:
@@ -69,7 +71,8 @@ Expected workflow is: Fork -> Patch -> Push -> Pull Request
 > [!NOTE]
 >
 > 1. **YOU MUST READ THE [CONTRIBUTORS GUIDE](CONTRIBUTING.md) BEFORE STARTING TO WORK ON A PULL REQUEST.**
-> 2. If you have found a vulnerability in the project, please write privately to **security@gitea.io**. Thanks!
+> 2. New to the codebase? The [development guide](docs/development.md) walks through setting up a local environment and building from source.
+> 3. If you have found a vulnerability in the project, please write privately to **security@gitea.io**. Thanks!
 
 ## Translating
 

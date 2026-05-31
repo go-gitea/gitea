@@ -4,6 +4,7 @@ This document explains how to contribute changes to the Gitea project. Topic-spe
 
 | Topic | Document |
 | :---- | :------- |
+| Development environment, building, testing | [docs/development.md](docs/development.md) |
 | Backend (Go modules, API v1) | [docs/guideline-backend.md](docs/guideline-backend.md) |
 | Frontend (npm, UI guidelines) | [docs/guideline-frontend.md](docs/guideline-frontend.md) |
 | Maintainers, TOC, labels, merge queue, commit format for mergers | [docs/community-governance.md](docs/community-governance.md) |
