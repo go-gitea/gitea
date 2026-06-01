@@ -10,7 +10,7 @@ import (
 
 	"gitea.dev/modules/markup"
 
-	_ "gitea.dev/modules/markup/jupyter" // Safe to import now!
+	_ "gitea.dev/modules/markup/jupyter"
 
 	"github.com/stretchr/testify/assert"
 )
