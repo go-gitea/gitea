@@ -11,6 +11,7 @@
 			</label>
 			<input id="group_name" name="name" value="{{.Group.Name}}" data-group-name="{{.Group.Name}}" autofocus required maxlength="40">
 		</div>
+		{{template "group/selector" .}}
 		<div class="divider"></div>
 		<div class="field" id="visibility_box">
 			<label for="visibility">{{ctx.Locale.Tr "group.settings.visibility"}}</label>
