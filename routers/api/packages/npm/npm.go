@@ -300,38 +300,43 @@ func deprecatePackage(ctx *context.Context, body []byte) {
 		return
 	}
 
-	for version, message := range dep.Versions {
-		pv, err := packages_model.GetVersionByNameAndVersion(ctx, ctx.Package.Owner.ID, packages_model.TypeNpm, dep.PackageName, version)
-		if err != nil {
-			if errors.Is(err, packages_model.ErrPackageNotExist) {
+	// Run the per-version updates in a single transaction so a partial
+	// failure does not leave some versions deprecated and others untouched.
+	err = db.WithTx(ctx, func(txCtx std_ctx.Context) error {
+		for version, message := range dep.Versions {
+			pv, err := packages_model.GetVersionByNameAndVersion(txCtx, ctx.Package.Owner.ID, packages_model.TypeNpm, dep.PackageName, version)
+			if err != nil {
+				if errors.Is(err, packages_model.ErrPackageNotExist) {
+					continue
+				}
+				return err
+			}
+
+			metadata := &npm_module.Metadata{}
+			if err := json.Unmarshal([]byte(pv.MetadataJSON), metadata); err != nil {
+				return err
+			}
+
+			if metadata.Deprecated == message {
 				continue
 			}
-			apiError(ctx, http.StatusInternalServerError, err)
-			return
-		}
+			metadata.Deprecated = message
 
-		metadata := &npm_module.Metadata{}
-		if err := json.Unmarshal([]byte(pv.MetadataJSON), metadata); err != nil {
-			apiError(ctx, http.StatusInternalServerError, err)
-			return
-		}
+			raw, err := json.Marshal(metadata)
+			if err != nil {
+				return err
+			}
+			pv.MetadataJSON = string(raw)
 
-		if metadata.Deprecated == message {
-			continue
+			if err := packages_model.UpdateVersion(txCtx, pv); err != nil {
+				return err
+			}
 		}
-		metadata.Deprecated = message
-
-		raw, err := json.Marshal(metadata)
-		if err != nil {
-			apiError(ctx, http.StatusInternalServerError, err)
-			return
-		}
-		pv.MetadataJSON = string(raw)
-
-		if err := packages_model.UpdateVersion(ctx, pv); err != nil {
-			apiError(ctx, http.StatusInternalServerError, err)
-			return
-		}
+		return nil
+	})
+	if err != nil {
+		apiError(ctx, http.StatusInternalServerError, err)
+		return
 	}
 
 	ctx.Status(http.StatusOK)
