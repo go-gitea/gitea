@@ -10,6 +10,7 @@ import (
 	"slices"
 	"strings"
 
+	"gitea.dev/models/db"
 	issues_model "gitea.dev/models/issues"
 	repo_model "gitea.dev/models/repo"
 	user_model "gitea.dev/models/user"
@@ -32,9 +33,9 @@ func GenerateReleaseNotes(ctx context.Context, repo *repo_model.Repository, gitR
 		return "", err
 	}
 
-	isFirstRelease, err := isFirstReleaseTag(gitRepo, opts.TagName)
+	isFirstRelease, err := isFirstRelease(ctx, repo.ID)
 	if err != nil {
-		return "", fmt.Errorf("isFirstReleaseTag: %w", err)
+		return "", fmt.Errorf("isFirstRelease: %w", err)
 	}
 
 	baseCommitID := ""
@@ -73,19 +74,15 @@ func GenerateReleaseNotes(ctx context.Context, repo *repo_model.Repository, gitR
 	return content, nil
 }
 
-func isFirstReleaseTag(gitRepo *git.Repository, tagName string) (bool, error) {
-	tags, _, err := gitRepo.GetTagInfos(0, 0)
+func isFirstRelease(ctx context.Context, repoID int64) (bool, error) {
+	count, err := db.Count[repo_model.Release](ctx, repo_model.FindReleasesOptions{
+		RepoID:        repoID,
+		IncludeDrafts: false,
+	})
 	if err != nil {
 		return false, err
 	}
-
-	for _, tag := range tags {
-		if tag.Name != tagName {
-			return false, nil
-		}
-	}
-
-	return true, nil
+	return count == 0, nil
 }
 
 func resolveHeadCommit(gitRepo *git.Repository, tagName, tagTarget string) (*git.Commit, error) {
