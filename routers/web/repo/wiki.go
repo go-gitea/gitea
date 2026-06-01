@@ -496,7 +496,6 @@ func Wiki(ctx *context.Context) {
 		ctx.ServerError("GetCommitByPath", err)
 		return
 	}
-	ctx.Data["Author"] = lastCommit.Author
 	ctx.Data["Committer"] = lastCommit.Committer
 
 	ctx.HTML(http.StatusOK, tplWikiView)
@@ -529,7 +528,6 @@ func WikiRevision(ctx *context.Context) {
 		ctx.ServerError("GetCommitByPath", err)
 		return
 	}
-	ctx.Data["Author"] = lastCommit.Author
 	ctx.Data["Committer"] = lastCommit.Committer
 
 	ctx.HTML(http.StatusOK, tplWikiRevision)
