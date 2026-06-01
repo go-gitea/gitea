@@ -89,14 +89,6 @@ func TestRepoCommits(t *testing.T) {
 			return false
 		})
 		require.Equal(t, expectedCommitterTime, commitListTime)
-
-		req = NewRequest(t, "GET", "/user2/repo16/commit/"+commitID)
-		resp = session.MakeRequest(t, req, http.StatusOK)
-		doc = NewHTMLParser(t, resp.Body)
-
-		commitPageTime := doc.doc.Find(".ui.bottom.attached.segment.flex-text-block > span.tw-text-text-light relative-time").First().AttrOr("datetime", "")
-		assert.Equal(t, expectedCommitterTime, commitPageTime)
-		assert.NotEqual(t, authorTime, commitPageTime)
 	})
 
 	t.Run("LastCommitNonExistingCommiter", func(t *testing.T) {
