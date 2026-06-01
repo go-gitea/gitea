@@ -229,7 +229,7 @@ func TestCoAuthorSignatures(t *testing.T) {
 			name: "case insensitive token",
 			body: "title\n\nCo-Authored-By: Jane <Jane@Example.com>\nco-authored-by: Bob <bob@example.com>",
 			want: []Signature{
-				{Name: "Jane", Email: "jane@example.com"},
+				{Name: "Jane", Email: "Jane@Example.com"},
 				{Name: "Bob", Email: "bob@example.com"},
 			},
 		},

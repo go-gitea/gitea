@@ -108,7 +108,7 @@ func parseCoAuthorTrailer(line string) (*Signature, bool) {
 	if name == "" {
 		name = addr.Address
 	}
-	return &Signature{Name: name, Email: strings.ToLower(addr.Address)}, true
+	return &Signature{Name: name, Email: addr.Address}, true
 }
 
 // parseCoAuthorSignatures parses `Co-authored-by:` trailers from the trailing
@@ -134,7 +134,7 @@ func (c *CommitMessage) parseCoAuthorSignatures() []*Signature {
 		if !ok {
 			continue
 		}
-		if !seen.Add(sig.Email) {
+		if !seen.Add(strings.ToLower(sig.Email)) {
 			continue
 		}
 		sigs = append(sigs, sig)
@@ -159,7 +159,7 @@ func (c *Commit) CoAuthorSignatures() []*Signature {
 	}
 	out := make([]*Signature, 0, len(raw))
 	for _, sig := range raw {
-		if exclude.Contains(sig.Email) {
+		if exclude.Contains(strings.ToLower(sig.Email)) {
 			continue
 		}
 		out = append(out, sig)
