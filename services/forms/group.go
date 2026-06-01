@@ -8,6 +8,7 @@ import "gitea.dev/modules/structs"
 // CreateGroupForm form for creating a repository group
 type CreateGroupForm struct {
 	GroupName          string `binding:"Required;MaxSize(255)"`
+	UID                int64  `binding:"Required"`
 	Description        string `binding:"MaxSize(2048)"`
 	Permission         string
 	CanCreateGroupRepo bool
