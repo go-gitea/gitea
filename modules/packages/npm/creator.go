@@ -272,6 +272,7 @@ func ParsePackage(r io.Reader) (*Package, error) {
 				Bin:                     meta.Bin,
 				Readme:                  meta.Readme,
 				Repository:              meta.Repository,
+				Scripts:                 meta.Scripts,
 				HasInstallScript:        hasInstallScript,
 				Engines:                 meta.Engines,
 				CPU:                     meta.CPU,

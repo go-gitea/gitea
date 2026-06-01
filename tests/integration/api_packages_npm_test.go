@@ -209,6 +209,7 @@ func TestPackageNpm(t *testing.T) {
 		assert.Equal(t, repoURL, result.Repository.URL)
 		assert.Equal(t, map[string]string{"tea": "2.x", "soy-milk": "1.2"}, pmv.PeerDependencies)
 		assert.Equal(t, map[string]any{"soy-milk": map[string]any{"optional": true}}, pmv.PeerDependenciesMeta)
+		assert.Equal(t, map[string]string{"postinstall": "echo hi"}, pmv.Scripts)
 		assert.True(t, pmv.HasInstallScript)
 		assert.False(t, pmv.HasShrinkwrap)
 		assert.Equal(t, map[string]string{"node": ">=22.7.0", "npm": ">=10.8.2"}, pmv.Engines)
