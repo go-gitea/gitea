@@ -18,10 +18,10 @@ jobs:
     steps:
       - name: AgentScan
         id: agentscan
-        uses: MatteoGabriele/agentscan-action@f41545309db947a68e22ed2643f182e754f4d41a
+        uses: MatteoGabriele/agentscan-action@0a0c88109b5153dff2805f969f5060441efb7b65
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
-          skip-members: "dependabot[bot],renovate[bot]"
+          skip-members: "dependabot[bot],renovate[bot], giteabot (backports)"
           agent-scan-comment: false
 
       - name: Handle flagged PR
@@ -72,12 +72,6 @@ jobs:
                   "We've flagged this pull request as potentially AI-assisted.",
                   '',
                   'Gitea welcomes the thoughtful use of AI tools, but contributors must use them responsibly and clearly disclose any assistance. Please follow the AI Contribution Policy in `CONTRIBUTING.md` and update this PR accordingly:',
-                  '',
-                  '1. Disclose any AI assistance in the PR description.',
-                  '2. Manually review and test all AI-generated changes; add appropriate automated tests where feasible.',
-                  '3. Ensure you understand and can explain every change you submit.',
-                  '4. Do not use AI to reply to PR discussion — responses should come from humans.',
-                  '5. If tests or explanations are missing, update the PR before maintainers proceed.',
                   '',
                   'Maintainers may close PRs that do not disclose AI assistance, appear to be low-quality AI-generated content, or where the contributor cannot explain the changes.',
                   '',
