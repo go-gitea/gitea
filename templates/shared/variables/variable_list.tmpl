@@ -17,7 +17,7 @@
 	{{if .Variables}}
 	<div class="flex-divided-list items-with-main">
 		{{range .Variables}}
-		<div class="item tw-items-center">
+		<div class="item items-center">
 			<div class="item-leading">
 				{{svg "octicon-pencil" 32}}
 			</div>
@@ -36,7 +36,7 @@
 				<span class="color-text-light-2">
 					{{ctx.Locale.Tr "settings.added_on" (DateUtils.AbsoluteShort .CreatedUnix)}}
 				</span>
-				<button class="btn interact-bg tw-p-2 show-modal"
+				<button class="btn interact-bg p-2 show-modal"
 					data-tooltip-content="{{ctx.Locale.Tr "actions.variables.edit"}}"
 					data-modal="#edit-variable-modal"
 					data-modal-form.action="{{$.Link}}/{{.ID}}/edit"
@@ -47,7 +47,7 @@
 				>
 					{{svg "octicon-pencil"}}
 				</button>
-				<button class="btn interact-bg tw-p-2 link-action"
+				<button class="btn interact-bg p-2 link-action"
 					data-tooltip-content="{{ctx.Locale.Tr "actions.variables.deletion"}}"
 					data-url="{{$.Link}}/{{.ID}}/delete"
 					data-modal-confirm="{{ctx.Locale.Tr "actions.variables.deletion.description"}}"

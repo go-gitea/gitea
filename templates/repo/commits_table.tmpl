@@ -9,10 +9,10 @@
 		{{end}}
 	</div>
 	{{if .IsDiffCompare}}
-		<div class="commits-table-right tw-whitespace-nowrap">
-			<a href="{{$.CommitRepoLink}}/commit/{{.BeforeCommitID | PathEscape}}" class="ui green sha label tw-mx-0">{{template "repo/commits_ref_name" .CompareInfo.BaseRef}}</a>
+		<div class="commits-table-right whitespace-nowrap">
+			<a href="{{$.CommitRepoLink}}/commit/{{.BeforeCommitID | PathEscape}}" class="ui green sha label mx-0">{{template "repo/commits_ref_name" .CompareInfo.BaseRef}}</a>
 			{{$.CompareInfo.CompareSeparator}}
-			<a href="{{$.CommitRepoLink}}/commit/{{.AfterCommitID | PathEscape}}" class="ui green sha label tw-mx-0">{{template "repo/commits_ref_name" .CompareInfo.HeadRef}}</a>
+			<a href="{{$.CommitRepoLink}}/commit/{{.AfterCommitID | PathEscape}}" class="ui green sha label mx-0">{{template "repo/commits_ref_name" .CompareInfo.HeadRef}}</a>
 		</div>
 	{{end}}
 </h4>

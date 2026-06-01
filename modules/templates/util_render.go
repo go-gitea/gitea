@@ -304,7 +304,7 @@ func (ut *RenderUtils) RenderFlashMessage(typ, msg string) template.HTML {
 		msgContent = sanitizeHTML(msg)
 	} else if !strings.Contains(msg, "\n") {
 		// If the message is a single line, center-align it by wrapping it
-		msgContent = htmlutil.HTMLFormat(`<div class="tw-text-center">%s</div>`, sanitizeHTML(msg))
+		msgContent = htmlutil.HTMLFormat(`<div class="text-center">%s</div>`, sanitizeHTML(msg))
 	} else {
 		// For a multi-line message, preserve line breaks, and left-align it.
 		msgContent = htmlutil.HTMLFormat(`%s`, sanitizeHTML(strings.ReplaceAll(msg, "\n", "<br>")))

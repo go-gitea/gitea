@@ -159,7 +159,7 @@
 .ui.action.input:not([class*="left action"]) > .ui.dropdown.selection:not(.active):hover {
   border-color: var(--color-input-border);
 }
-.ui.action.input:not([class*="left action"]) .ui.dropdown.selection.upward.visible {
+.ui.action.input:not([class*="left action"]) .ui.dropdown.selection.upward.fm-visible {
   border-bottom-left-radius: 0 !important;
   border-bottom-right-radius: 0 !important;
 }

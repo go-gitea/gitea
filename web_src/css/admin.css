@@ -35,11 +35,11 @@
   overflow-wrap: break-word;
 }
 
-.admin .ui.table.segment {
+.admin .ui.fm-table.segment {
   overflow-x: auto; /* if the screen width is small, many wide tables (eg: user list) need scroll bars */
 }
 
-.admin .table th {
+.admin .fm-table th {
   white-space: nowrap;
 }
 

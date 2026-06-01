@@ -1,10 +1,10 @@
 {{template "base/head" .}}
 <div role="main" aria-label="{{.Title}}" class="page-content dashboard issues repository milestones">
 	{{template "user/dashboard/navbar" .}}
-	<div class="ui container">
+	<div class="ui fm-container">
 		<div class="flex-container">
 			<div class="flex-container-nav">
-				<div class="ui secondary vertical filter menu tw-bg-transparent">
+				<div class="ui secondary vertical filter menu bg-transparent">
 					<div class="item">
 						{{ctx.Locale.Tr "home.issues.in_your_repos"}}
 						<strong>{{.Total}}</strong>
@@ -26,7 +26,7 @@
 										{{- end -}}
 									{{- end -}}
 								]&sort={{$.SortType}}&state={{$.State}}&q={{$.Keyword}}" title="{{.FullName}}">
-								<span class="tw-inline-block tw-truncate tw-w-3/4">{{$Repo.FullName}}</span>
+								<span class="inline-block truncate w-3/4">{{$Repo.FullName}}</span>
 								<div class="ui {{if $.IsShowClosed}}red{{else}}green{{end}} label">{{index $.Counts $Repo.ID}}</div>
 							</a>
 						{{end}}
@@ -37,11 +37,11 @@
 				<div class="list-header">
 					<div class="small-menu-items ui compact tiny menu list-header-toggle">
 						<a class="item{{if not .IsShowClosed}} active{{end}}" href="?repos=[{{range $.RepoIDs}}{{.}}%2C{{end}}]&sort={{$.SortType}}&state=open&q={{$.Keyword}}">
-							{{svg "octicon-milestone" 16 "tw-mr-2"}}
+							{{svg "octicon-milestone" 16 "mr-2"}}
 							{{ctx.Locale.PrettyNumber .MilestoneStats.OpenCount}}&nbsp;{{ctx.Locale.Tr "repo.issues.open_title"}}
 						</a>
 						<a class="item{{if .IsShowClosed}} active{{end}}" href="?repos=[{{range $.RepoIDs}}{{.}}%2C{{end}}]&sort={{$.SortType}}&state=closed&q={{$.Keyword}}">
-							{{svg "octicon-check" 16 "tw-mr-2"}}
+							{{svg "octicon-check" 16 "mr-2"}}
 							{{ctx.Locale.PrettyNumber .MilestoneStats.ClosedCount}}&nbsp;{{ctx.Locale.Tr "repo.issues.closed_title"}}
 						</a>
 					</div>
@@ -75,20 +75,20 @@
 					{{range .Milestones}}
 						<li class="milestone-card">
 							<div class="milestone-header">
-								<h3 class="flex-text-block tw-m-0">
+								<h3 class="flex-text-block m-0">
 									<span class="ui large label">
 										{{.Repo.FullName}}
 									</span>
 									{{svg "octicon-milestone" 16}}
 									<a class="muted" href="{{.Repo.Link}}/milestone/{{.ID}}">{{.Name}}</a>
 								</h3>
-								<div class="tw-flex tw-items-center">
-									<span class="tw-mr-2">{{.Completeness}}%</span>
+								<div class="flex items-center">
+									<span class="mr-2">{{.Completeness}}%</span>
 									<progress value="{{.Completeness}}" max="100"></progress>
 								</div>
 							</div>
 							<div class="milestone-toolbar">
-								<div class="group">
+								<div class="g-button-group">
 									<div class="flex-text-block">
 										{{svg "octicon-issue-opened" 14}}
 										{{ctx.Locale.PrettyNumber .NumOpenIssues}}&nbsp;{{ctx.Locale.Tr "repo.issues.open_title"}}
@@ -116,7 +116,7 @@
 											{{ctx.Locale.Tr "repo.milestones.closed" $closedDate}}
 										{{else}}
 											{{if .DeadlineString}}
-												<span class="flex-text-inline {{if .IsOverdue}}tw-text-red{{end}}">
+												<span class="flex-text-inline {{if .IsOverdue}}text-red{{end}}">
 													{{svg "octicon-calendar" 14}}
 													{{DateUtils.AbsoluteShort (.DeadlineString|DateUtils.ParseLegacy)}}
 												</span>
@@ -128,7 +128,7 @@
 									</div>
 								</div>
 								{{if and (or $.CanWriteIssues $.CanWritePulls) (not $.Repository.IsArchived)}}
-									<div class="group">
+									<div class="g-button-group">
 										<a class="flex-text-inline" href="{{$.Link}}/{{.ID}}/edit">{{svg "octicon-pencil" 14}}{{ctx.Locale.Tr "repo.issues.label_edit"}}</a>
 										{{if .IsClosed}}
 											<a class="link-action flex-text-inline" href data-url="{{$.Link}}/{{.ID}}/open">{{svg "octicon-check" 14}}{{ctx.Locale.Tr "repo.milestones.open"}}</a>

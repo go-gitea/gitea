@@ -1,8 +1,8 @@
-<div class="field {{if not .item.VisibleOnForm}}tw-hidden{{end}}">
+<div class="field {{if not .item.VisibleOnForm}}hidden{{end}}">
 	{{template "repo/issue/fields/header" .}}
 	{{range $i, $opt := .item.Attributes.options}}
-		<div class="field inline">
-			<div class="ui checkbox tw-mr-0 {{if and ($opt.visible) (not (SliceUtils.Contains $opt.visible "form"))}}tw-hidden{{end}}">
+		<div class="field fm-inline">
+			<div class="ui checkbox mr-0 {{if and ($opt.visible) (not (SliceUtils.Contains $opt.visible "form"))}}hidden{{end}}">
 				<input type="checkbox" name="form-field-{{$.item.ID}}-{{$i}}" {{if $opt.required}}required{{end}}>
 				<label>{{ctx.RenderUtils.MarkdownToHtml $opt.label}}</label>
 			</div>

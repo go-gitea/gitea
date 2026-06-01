@@ -387,13 +387,13 @@ export default defineComponent({
         </div>
       </div>
     </div>
-    <div class="tw-flex ui segment main-graph">
-      <div v-if="isLoading || errorText !== ''" class="tw-m-auto">
+    <div class="flex ui segment main-graph">
+      <div v-if="isLoading || errorText !== ''" class="m-auto">
         <div v-if="isLoading">
-          <SvgIcon name="gitea-running" class="tw-mr-2 rotate-clockwise"/>
+          <SvgIcon name="gitea-running" class="mr-2 rotate-clockwise"/>
           {{ locale.loadingInfo }}
         </div>
-        <div v-else class="tw-text-red">
+        <div v-else class="text-red">
           <SvgIcon name="octicon-x-circle-fill"/>
           {{ errorText }}
         </div>
@@ -409,24 +409,24 @@ export default defineComponent({
         :key="index"
         v-memo="[sortedContributors, type]"
       >
-        <div class="ui top attached header tw-flex tw-flex-1">
+        <div class="ui top attached header flex flex-1">
           <b class="ui right">#{{ index + 1 }}</b>
           <a :href="contributor.home_link">
-            <img loading="lazy" class="ui avatar tw-align-middle" height="40" width="40" :src="contributor.avatar_link" alt="">
+            <img loading="lazy" class="ui avatar align-middle" height="40" width="40" :src="contributor.avatar_link" alt="">
           </a>
-          <div class="tw-ml-2">
+          <div class="ml-2">
             <a v-if="contributor.home_link !== ''" :href="contributor.home_link"><h4>{{ contributor.name }}</h4></a>
             <h4 v-else class="contributor-name">
               {{ contributor.name }}
             </h4>
-            <p class="tw-text-12 tw-flex tw-gap-1">
+            <p class="text-12 flex gap-1">
               <strong v-if="contributor.total_commits">
                 <a class="silenced" :href="getContributorSearchQuery(contributor.email)">
                   {{ contributor.total_commits.toLocaleString() }} {{ locale.contributionType.commits }}
                 </a>
               </strong>
-              <strong v-if="contributor.total_additions" class="tw-text-green">{{ contributor.total_additions.toLocaleString() }}++ </strong>
-              <strong v-if="contributor.total_deletions" class="tw-text-red">
+              <strong v-if="contributor.total_additions" class="text-green">{{ contributor.total_additions.toLocaleString() }}++ </strong>
+              <strong v-if="contributor.total_deletions" class="text-red">
                 {{ contributor.total_deletions.toLocaleString() }}--</strong>
             </p>
           </div>

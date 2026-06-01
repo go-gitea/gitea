@@ -1,7 +1,7 @@
 /* based on Fomantic UI segment module, with just the parts extracted that we use. If you find any
    unused rules here after refactoring, please remove them. */
 
-.ui.table {
+.ui.fm-table {
   width: 100%;
   margin: 1em 0;
   border: 1px solid var(--color-secondary);
@@ -15,19 +15,19 @@
   text-align: start;
 }
 
-.ui.table:first-child {
+.ui.fm-table:first-child {
   margin-top: 0;
 }
-.ui.table:last-child {
+.ui.fm-table:last-child {
   margin-bottom: 0;
 }
-.ui.table > thead,
-.ui.table > tbody {
+.ui.fm-table > thead,
+.ui.fm-table > tbody {
   text-align: inherit;
   vertical-align: inherit;
 }
 
-.ui.table > thead > tr > th {
+.ui.fm-table > thead > tr > th {
   background: var(--color-box-header);
   text-align: inherit;
   color: var(--color-text);
@@ -37,21 +37,21 @@
   border-bottom: 1px solid var(--color-secondary);
   border-left: none;
 }
-.ui.table > thead > tr > th:first-child {
+.ui.fm-table > thead > tr > th:first-child {
   border-left: none;
 }
-.ui.table > thead > tr:first-child > th:first-child {
+.ui.fm-table > thead > tr:first-child > th:first-child {
   border-radius: 0.28571429rem 0 0;
 }
-.ui.table > thead > tr:first-child > th:last-child {
+.ui.fm-table > thead > tr:first-child > th:last-child {
   border-radius: 0 0.28571429rem 0 0;
 }
-.ui.table > thead > tr:first-child > th:only-child {
+.ui.fm-table > thead > tr:first-child > th:only-child {
   border-radius: 0.28571429rem 0.28571429rem 0 0;
 }
 
-.ui.table > tfoot > tr > th,
-.ui.table > tfoot > tr > td {
+.ui.fm-table > tfoot > tr > th,
+.ui.fm-table > tfoot > tr > td {
   border-top: 1px solid var(--color-secondary);
   background: var(--color-box-body);
   text-align: inherit;
@@ -60,119 +60,119 @@
   vertical-align: inherit;
   font-weight: var(--font-weight-normal);
 }
-.ui.table > tfoot > tr > th:first-child,
-.ui.table > tfoot > tr > td:first-child {
+.ui.fm-table > tfoot > tr > th:first-child,
+.ui.fm-table > tfoot > tr > td:first-child {
   border-left: none;
 }
-.ui.table > tfoot > tr:first-child > th:first-child,
-.ui.table > tfoot > tr:first-child > td:first-child {
+.ui.fm-table > tfoot > tr:first-child > th:first-child,
+.ui.fm-table > tfoot > tr:first-child > td:first-child {
   border-radius: 0 0 0 0.28571429rem;
 }
-.ui.table > tfoot > tr:first-child > th:last-child,
-.ui.table > tfoot > tr:first-child > td:last-child {
+.ui.fm-table > tfoot > tr:first-child > th:last-child,
+.ui.fm-table > tfoot > tr:first-child > td:last-child {
   border-radius: 0 0 0.28571429rem;
 }
-.ui.table > tfoot > tr:first-child > th:only-child,
-.ui.table > tfoot > tr:first-child > td:only-child {
+.ui.fm-table > tfoot > tr:first-child > th:only-child,
+.ui.fm-table > tfoot > tr:first-child > td:only-child {
   border-radius: 0 0 0.28571429rem 0.28571429rem;
 }
 
-.ui.table > tr > td,
-.ui.table > tbody > tr > td {
+.ui.fm-table > tr > td,
+.ui.fm-table > tbody > tr > td {
   border-top: 1px solid var(--color-secondary-alpha-50);
   padding: 6px 5px;
   text-align: inherit;
 }
-.ui.table > tr:first-child > td,
-.ui.table > tbody > tr:first-child > td {
+.ui.fm-table > tr:first-child > td,
+.ui.fm-table > tbody > tr:first-child > td {
   border-top: none;
 }
 
-.ui.table.segment {
+.ui.fm-table.segment {
   padding: 0;
 }
-.ui.table.segment::after {
+.ui.fm-table.segment::after {
   display: none;
 }
 
 @media only screen and (max-width: 767.98px) {
-  .ui.table:not(.unstackable) {
+  .ui.fm-table:not(.unstackable) {
     width: 100%;
     padding: 0;
   }
-  .ui.table:not(.unstackable) > thead,
-  .ui.table:not(.unstackable) > thead > tr,
-  .ui.table:not(.unstackable) > tfoot,
-  .ui.table:not(.unstackable) > tfoot > tr,
-  .ui.table:not(.unstackable) > tbody,
-  .ui.table:not(.unstackable) > tr,
-  .ui.table:not(.unstackable) > tbody > tr,
-  .ui.table:not(.unstackable) > tr > th,
-  .ui.table:not(.unstackable) > thead > tr > th,
-  .ui.table:not(.unstackable) > tbody > tr > th,
-  .ui.table:not(.unstackable) > tfoot > tr > th,
-  .ui.table:not(.unstackable) > tr > td,
-  .ui.table:not(.unstackable) > tbody > tr > td,
-  .ui.table:not(.unstackable) > tfoot > tr > td {
+  .ui.fm-table:not(.unstackable) > thead,
+  .ui.fm-table:not(.unstackable) > thead > tr,
+  .ui.fm-table:not(.unstackable) > tfoot,
+  .ui.fm-table:not(.unstackable) > tfoot > tr,
+  .ui.fm-table:not(.unstackable) > tbody,
+  .ui.fm-table:not(.unstackable) > tr,
+  .ui.fm-table:not(.unstackable) > tbody > tr,
+  .ui.fm-table:not(.unstackable) > tr > th,
+  .ui.fm-table:not(.unstackable) > thead > tr > th,
+  .ui.fm-table:not(.unstackable) > tbody > tr > th,
+  .ui.fm-table:not(.unstackable) > tfoot > tr > th,
+  .ui.fm-table:not(.unstackable) > tr > td,
+  .ui.fm-table:not(.unstackable) > tbody > tr > td,
+  .ui.fm-table:not(.unstackable) > tfoot > tr > td {
     display: block !important;
     width: auto !important;
   }
-  .ui.table:not(.unstackable) > thead {
+  .ui.fm-table:not(.unstackable) > thead {
     display: block;
   }
-  .ui.table:not(.unstackable) > tfoot {
+  .ui.fm-table:not(.unstackable) > tfoot {
     display: block;
   }
-  .ui.ui.ui.ui.table:not(.unstackable) > tr,
-  .ui.ui.ui.ui.table:not(.unstackable) > thead > tr,
-  .ui.ui.ui.ui.table:not(.unstackable) > tbody > tr,
-  .ui.ui.ui.ui.table:not(.unstackable) > tfoot > tr {
+  .ui.ui.ui.ui.fm-table:not(.unstackable) > tr,
+  .ui.ui.ui.ui.fm-table:not(.unstackable) > thead > tr,
+  .ui.ui.ui.ui.fm-table:not(.unstackable) > tbody > tr,
+  .ui.ui.ui.ui.fm-table:not(.unstackable) > tfoot > tr {
     padding-top: 1em;
     padding-bottom: 1em;
   }
-  .ui.ui.ui.ui.table:not(.unstackable) > tr > th,
-  .ui.ui.ui.ui.table:not(.unstackable) > thead > tr > th,
-  .ui.ui.ui.ui.table:not(.unstackable) > tbody > tr > th,
-  .ui.ui.ui.ui.table:not(.unstackable) > tfoot > tr > th,
-  .ui.ui.ui.ui.table:not(.unstackable) > tr > td,
-  .ui.ui.ui.ui.table:not(.unstackable) > tbody > tr > td,
-  .ui.ui.ui.ui.table:not(.unstackable) > tfoot > tr > td {
+  .ui.ui.ui.ui.fm-table:not(.unstackable) > tr > th,
+  .ui.ui.ui.ui.fm-table:not(.unstackable) > thead > tr > th,
+  .ui.ui.ui.ui.fm-table:not(.unstackable) > tbody > tr > th,
+  .ui.ui.ui.ui.fm-table:not(.unstackable) > tfoot > tr > th,
+  .ui.ui.ui.ui.fm-table:not(.unstackable) > tr > td,
+  .ui.ui.ui.ui.fm-table:not(.unstackable) > tbody > tr > td,
+  .ui.ui.ui.ui.fm-table:not(.unstackable) > tfoot > tr > td {
     background: none;
     border: none;
     padding: 0.25em 0.75em;
   }
-  .ui.table:not(.unstackable) > tr > th:first-child,
-  .ui.table:not(.unstackable) > thead > tr > th:first-child,
-  .ui.table:not(.unstackable) > tbody > tr > th:first-child,
-  .ui.table:not(.unstackable) > tfoot > tr > th:first-child,
-  .ui.table:not(.unstackable) > tr > td:first-child,
-  .ui.table:not(.unstackable) > tbody > tr > td:first-child,
-  .ui.table:not(.unstackable) > tfoot > tr > td:first-child {
+  .ui.fm-table:not(.unstackable) > tr > th:first-child,
+  .ui.fm-table:not(.unstackable) > thead > tr > th:first-child,
+  .ui.fm-table:not(.unstackable) > tbody > tr > th:first-child,
+  .ui.fm-table:not(.unstackable) > tfoot > tr > th:first-child,
+  .ui.fm-table:not(.unstackable) > tr > td:first-child,
+  .ui.fm-table:not(.unstackable) > tbody > tr > td:first-child,
+  .ui.fm-table:not(.unstackable) > tfoot > tr > td:first-child {
     font-weight: var(--font-weight-normal);
   }
 }
 
-.ui.table th.collapsing,
-.ui.table td.collapsing {
+.ui.fm-table th.collapsing,
+.ui.fm-table td.collapsing {
   width: 1px;
   white-space: nowrap;
 }
 
-.ui.fixed.table {
+.ui.fm-fixed.fm-table {
   table-layout: fixed;
 }
-.ui.fixed.table th,
-.ui.fixed.table td {
+.ui.fm-fixed.fm-table th,
+.ui.fm-fixed.fm-table td {
   overflow: hidden;
   text-overflow: ellipsis;
 }
 
-.ui.selectable.table > tbody > tr:hover,
-.ui.table tbody tr td.selectable:hover {
+.ui.selectable.fm-table > tbody > tr:hover,
+.ui.fm-table tbody tr td.selectable:hover {
   background: var(--color-hover);
 }
 
-.ui.attached.table {
+.ui.attached.fm-table {
   top: 0;
   bottom: 0;
   border-radius: 0;
@@ -181,128 +181,128 @@
   max-width: calc(100% + 2px);
   border: 1px solid var(--color-secondary);
 }
-.ui.attached + .ui.attached.table:not(.top) {
+.ui.attached + .ui.attached.fm-table:not(.top) {
   border-top: none;
 }
 
-.ui[class*="bottom attached"].table {
+.ui[class*="bottom attached"].fm-table {
   bottom: 0;
   margin-top: 0;
   top: 0;
   margin-bottom: 1em;
   border-radius: 0 0 0.28571429rem 0.28571429rem;
 }
-.ui[class*="bottom attached"].table:last-child {
+.ui[class*="bottom attached"].fm-table:last-child {
   margin-bottom: 0;
 }
 
-.ui.table[class*="single line"],
-.ui.table [class*="single line"] {
+.ui.fm-table[class*="single line"],
+.ui.fm-table [class*="single line"] {
   white-space: nowrap;
 }
 
 /* Column Width */
-.ui.table th.one.wide,
-.ui.table td.one.wide {
+.ui.fm-table th.one.wide,
+.ui.fm-table td.one.wide {
   width: 6.25%;
 }
-.ui.table th.two.wide,
-.ui.table td.two.wide {
+.ui.fm-table th.two.wide,
+.ui.fm-table td.two.wide {
   width: 12.5%;
 }
-.ui.table th.three.wide,
-.ui.table td.three.wide {
+.ui.fm-table th.three.wide,
+.ui.fm-table td.three.wide {
   width: 18.75%;
 }
-.ui.table th.four.wide,
-.ui.table td.four.wide {
+.ui.fm-table th.four.wide,
+.ui.fm-table td.four.wide {
   width: 25%;
 }
-.ui.table th.five.wide,
-.ui.table td.five.wide {
+.ui.fm-table th.five.wide,
+.ui.fm-table td.five.wide {
   width: 31.25%;
 }
-.ui.table th.six.wide,
-.ui.table td.six.wide {
+.ui.fm-table th.six.wide,
+.ui.fm-table td.six.wide {
   width: 37.5%;
 }
-.ui.table th.eight.wide,
-.ui.table td.eight.wide {
+.ui.fm-table th.eight.wide,
+.ui.fm-table td.eight.wide {
   width: 50%;
 }
-.ui.table th.ten.wide,
-.ui.table td.ten.wide {
+.ui.fm-table th.ten.wide,
+.ui.fm-table td.ten.wide {
   width: 62.5%;
 }
-.ui.table th.eleven.wide,
-.ui.table td.eleven.wide {
+.ui.fm-table th.eleven.wide,
+.ui.fm-table td.eleven.wide {
   width: 68.75%;
 }
 
-.ui.basic.table {
+.ui.basic.fm-table {
   background: transparent;
   border: 1px solid var(--color-secondary);
 }
-.ui.basic.table > thead > tr > th,
-.ui.basic.table > tbody > tr > th,
-.ui.basic.table > tfoot > tr > th,
-.ui.basic.table > tr > th {
+.ui.basic.fm-table > thead > tr > th,
+.ui.basic.fm-table > tbody > tr > th,
+.ui.basic.fm-table > tfoot > tr > th,
+.ui.basic.fm-table > tr > th {
   background: transparent;
   border-left: none;
 }
-.ui.basic.table > tbody > tr {
+.ui.basic.fm-table > tbody > tr {
   border-bottom: 1px solid var(--color-secondary);
 }
-.ui.basic.table > tbody > tr > td,
-.ui.basic.table > tfoot > tr > td,
-.ui.basic.table > tr > td {
+.ui.basic.fm-table > tbody > tr > td,
+.ui.basic.fm-table > tfoot > tr > td,
+.ui.basic.fm-table > tr > td {
   background: transparent;
 }
 
-.ui[class*="very basic"].table {
+.ui[class*="very basic"].fm-table {
   border: none;
 }
 
-.ui.celled.table > tr > th,
-.ui.celled.table > thead > tr > th,
-.ui.celled.table > tbody > tr > th,
-.ui.celled.table > tfoot > tr > th,
-.ui.celled.table > tr > td,
-.ui.celled.table > tbody > tr > td,
-.ui.celled.table > tfoot > tr > td {
+.ui.celled.fm-table > tr > th,
+.ui.celled.fm-table > thead > tr > th,
+.ui.celled.fm-table > tbody > tr > th,
+.ui.celled.fm-table > tfoot > tr > th,
+.ui.celled.fm-table > tr > td,
+.ui.celled.fm-table > tbody > tr > td,
+.ui.celled.fm-table > tfoot > tr > td {
   border-left: 1px solid var(--color-secondary-alpha-50);
 }
-.ui.celled.table > tr > th:first-child,
-.ui.celled.table > thead > tr > th:first-child,
-.ui.celled.table > tbody > tr > th:first-child,
-.ui.celled.table > tfoot > tr > th:first-child,
-.ui.celled.table > tr > td:first-child,
-.ui.celled.table > tbody > tr > td:first-child,
-.ui.celled.table > tfoot > tr > td:first-child {
+.ui.celled.fm-table > tr > th:first-child,
+.ui.celled.fm-table > thead > tr > th:first-child,
+.ui.celled.fm-table > tbody > tr > th:first-child,
+.ui.celled.fm-table > tfoot > tr > th:first-child,
+.ui.celled.fm-table > tr > td:first-child,
+.ui.celled.fm-table > tbody > tr > td:first-child,
+.ui.celled.fm-table > tfoot > tr > td:first-child {
   border-left: none;
 }
 
-.ui.compact.table > tr > th,
-.ui.compact.table > thead > tr > th,
-.ui.compact.table > tbody > tr > th,
-.ui.compact.table > tfoot > tr > th {
+.ui.compact.fm-table > tr > th,
+.ui.compact.fm-table > thead > tr > th,
+.ui.compact.fm-table > tbody > tr > th,
+.ui.compact.fm-table > tfoot > tr > th {
   padding-left: 0.7em;
   padding-right: 0.7em;
 }
-.ui.compact.table > tr > td,
-.ui.compact.table > tbody > tr > td,
-.ui.compact.table > tfoot > tr > td {
+.ui.compact.fm-table > tr > td,
+.ui.compact.fm-table > tbody > tr > td,
+.ui.compact.fm-table > tfoot > tr > td {
   padding: 0.5em 0.7em;
 }
 
 /* use more horizontal padding on first and last items for visuals */
-.ui.table > thead > tr > th:first-of-type,
-.ui.table > tbody > tr > td:first-of-type,
-.ui.table > tr > td:first-of-type {
+.ui.fm-table > thead > tr > th:first-of-type,
+.ui.fm-table > tbody > tr > td:first-of-type,
+.ui.fm-table > tr > td:first-of-type {
   padding-left: 10px;
 }
-.ui.table > thead > tr > th:last-of-type,
-.ui.table > tbody > tr > td:last-of-type,
-.ui.table > tr > td:last-of-type {
+.ui.fm-table > thead > tr > th:last-of-type,
+.ui.fm-table > tbody > tr > td:last-of-type,
+.ui.fm-table > tr > td:last-of-type {
   padding-right: 10px;
 }

@@ -291,7 +291,7 @@ function initAdminNotice() {
   }));
 
   // Select actions
-  const checkboxes = document.querySelectorAll<HTMLInputElement>('.select.table .ui.checkbox input');
+  const checkboxes = document.querySelectorAll<HTMLInputElement>('.select.fm-table .ui.checkbox input');
 
   queryElems(pageContent, '.select.action', (el) => el.addEventListener('click', () => {
     switch (el.getAttribute('data-action')) {

@@ -1,7 +1,7 @@
 <div class="repo-home-sidebar-top flex-relaxed-list">
-	<form class="ignore-dirty tw-flex" action="{{.RepoLink}}/search" method="get">
-		<div class="ui small action input tw-flex tw-flex-1">
-			<div class="ui input tw-flex tw-flex-1 global-shortcut-wrapper">
+	<form class="ignore-dirty flex" action="{{.RepoLink}}/search" method="get">
+		<div class="ui small action input flex flex-1">
+			<div class="ui input flex flex-1 global-shortcut-wrapper">
 				<input name="q" size="10" placeholder="{{ctx.Locale.Tr "search.code_kind"}}">
 				<kbd data-global-init="onGlobalShortcut" data-shortcut-keys="s">S</kbd>
 			</div>
@@ -12,33 +12,33 @@
 	<div class="flex-relaxed-list">
 		<div class="repo-home-sidebar-header">{{ctx.Locale.Tr "repo.repo_desc"}}</div>
 
-		<div class="repo-description tw-break-anywhere tw-gap-2">
+		<div class="repo-description break-anywhere gap-2">
 			{{- $description := .Repository.DescriptionHTML ctx -}}
 			{{if $description}}{{$description | RenderCodeBlock}}{{else}}{{ctx.Locale.Tr "repo.repo_no_desc"}}{{end}}
 		</div>
 
 		{{if .Repository.Website}}
 			<a class="flex-text-block" href="{{.Repository.Website}}">
-				{{svg "octicon-link" 16 "tw-text-text"}} <span class="tw-text-primary">{{.Repository.Website}}</span>
+				{{svg "octicon-link" 16 "text-text"}} <span class="text-primary">{{.Repository.Website}}</span>
 			</a>
 		{{end}}
 
-		<div id="repo-topics" class="flex-text-block tw-flex-wrap tw-gap-1 tw-my-1 tw-text-text">
+		<div id="repo-topics" class="flex-text-block flex-wrap gap-1 my-1 text-text">
 			{{/* !!!! it SHOULD and MUST match the code in repo-home.ts */}}
 			{{range .Topics}}<a class="repo-topic ui large label gt-ellipsis" title={{.Name}} href="{{AppSubUrl}}/explore/repos?q={{.Name}}&topic=1">{{.Name}}</a>{{end}}
 		</div>
 		{{if and .Permission.IsAdmin (not .Repository.IsArchived)}}
-			<button id="manage_topic" class="btn interact-fg tw-mb-2 tw-text-12">{{ctx.Locale.Tr "repo.topic.manage_topics"}}</button>
-			<div class="ui form tw-hidden tw-my-2" id="topic_edit">
-				<div class="ui fluid multiple search selection dropdown tw-flex-wrap tw-flex-1">
+			<button id="manage_topic" class="btn interact-fg mb-2 text-12">{{ctx.Locale.Tr "repo.topic.manage_topics"}}</button>
+			<div class="ui form hidden my-2" id="topic_edit">
+				<div class="ui fluid multiple search selection dropdown flex-wrap flex-1">
 					<input type="hidden" name="topics" value="{{range $i, $v := .Topics}}{{.Name}}{{if Eval $i "+" 1 "<" (len $.Topics)}},{{end}}{{end}}">
 					{{range .Topics}}
 						{{/* keep the same layout as Fomantic UI generated labels */}}
-						<a class="ui label transition visible tw-cursor-default tw-inline-block repo-topic" data-value="{{.Name}}">{{.Name}}{{svg "octicon-x" 16 "delete icon"}}</a>
+						<a class="ui label fm-transition fm-visible cursor-default inline-block repo-topic" data-value="{{.Name}}">{{.Name}}{{svg "octicon-x" 16 "delete icon"}}</a>
 					{{end}}
 					<div class="text"></div>
 				</div>
-				<div class="tw-my-2">
+				<div class="my-2">
 					<button class="ui primary button" id="save_topic" data-link="{{.RepoLink}}/topics">{{ctx.Locale.Tr "save"}}</button>
 					<button class="ui basic button" id="cancel_topic_edit">{{ctx.Locale.Tr "cancel"}}</button>
 				</div>

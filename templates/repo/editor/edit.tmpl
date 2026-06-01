@@ -1,7 +1,7 @@
 {{template "base/head" .}}
 <div role="main" aria-label="{{.Title}}" class="page-content repository file editor edit">
 	{{template "repo/header" .}}
-	<div class="ui container fluid padded">
+	<div class="ui fm-container fluid padded">
 		{{template "base/alert" .}}
 		<div class="repo-view-container">
 			{{template "repo/view_file_tree" .}}
@@ -21,7 +21,7 @@
 								<div class="flex-left-right">
 									<div class="ui compact small menu small-menu-items repo-editor-menu" data-repo-link="{{.RepoLink}}" data-ref-sub-url="{{.RefTypeNameSubURL}}" data-branch-name="{{.BranchName}}" data-global-init="initTabSwitcher">
 										<a class="active item" data-tab="write">{{svg "octicon-code"}} {{if .IsNewFile}}{{ctx.Locale.Tr "repo.editor.new_file"}}{{else}}{{ctx.Locale.Tr "repo.editor.edit_file"}}{{end}}</a>
-										<a class="item {{if not .CodeEditorConfig.Previewable}}tw-hidden{{end}}" data-tab="preview">{{svg "octicon-eye"}} {{ctx.Locale.Tr "preview"}}</a>
+										<a class="item {{if not .CodeEditorConfig.Previewable}}hidden{{end}}" data-tab="preview">{{svg "octicon-eye"}} {{ctx.Locale.Tr "preview"}}</a>
 										{{if not .IsNewFile}}
 										<a class="item" data-tab="diff">{{svg "octicon-diff"}} {{ctx.Locale.Tr "repo.editor.preview_changes"}}</a>
 										{{end}}
@@ -29,14 +29,14 @@
 									{{template "repo/editor/options" dict "CodeEditorConfig" $.CodeEditorConfig}}
 								</div>
 							</div>
-							<div class="ui bottom attached segment tw-p-0">
-								<div class="ui active tab tw-rounded-b" data-tab="write">
-									<textarea id="edit_area" name="content" class="tw-hidden" data-id="repo-{{.Repository.Name}}-{{.TreePath}}"
+							<div class="ui bottom attached segment p-0">
+								<div class="ui active tab rounded-b" data-tab="write">
+									<textarea id="edit_area" name="content" class="hidden" data-id="repo-{{.Repository.Name}}-{{.TreePath}}"
 										data-code-editor-config="{{JsonUtils.EncodeToString $.CodeEditorConfig}}"
 										placeholder="{{ctx.Locale.Tr "editor.code_editor.placeholder"}}">{{.FileContent}}</textarea>
 									<div class="editor-loading is-loading"></div>
 								</div>
-								<div class="ui tab tw-px-4 tw-py-3" data-tab="preview">
+								<div class="ui tab px-4 py-3" data-tab="preview">
 									<div class="editor-loading is-loading"></div>
 								</div>
 								<div class="ui tab" data-tab="diff">
@@ -46,8 +46,8 @@
 						</div>
 					{{else}}
 						<div class="field">
-							<div class="ui segment tw-text-center">
-								<h4 class="tw-font-semibold tw-mb-2">{{.NotEditableReason}}</h4>
+							<div class="ui segment text-center">
+								<h4 class="font-semibold mb-2">{{.NotEditableReason}}</h4>
 								<p>{{ctx.Locale.Tr "repo.editor.file_not_editable_hint"}}</p>
 							</div>
 						</div>

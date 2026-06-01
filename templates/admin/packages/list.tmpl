@@ -25,8 +25,8 @@
 				</div>
 			</form>
 		</div>
-		<div class="ui attached table segment">
-			<table class="ui very basic table unstackable">
+		<div class="ui attached fm-table segment">
+			<table class="ui very basic fm-table unstackable">
 				<thead>
 					<tr>
 						<th>ID</th>
@@ -57,12 +57,12 @@
 							<td>
 								<a href="{{.Owner.HomeLink}}">{{.Owner.Name}}</a>
 								{{if .Owner.Visibility.IsPrivate}}
-									<span class="tw-text-gold">{{svg "octicon-lock"}}</span>
+									<span class="text-gold">{{svg "octicon-lock"}}</span>
 								{{end}}
 							</td>
 							<td>{{.Package.Type.Name}}</td>
-							<td class="gt-ellipsis tw-max-w-48">{{.Package.Name}}</td>
-							<td class="gt-ellipsis tw-max-w-48"><a href="{{.VersionWebLink}}">{{.Version.Version}}</a></td>
+							<td class="gt-ellipsis max-w-48">{{.Package.Name}}</td>
+							<td class="gt-ellipsis max-w-48"><a href="{{.VersionWebLink}}">{{.Version.Version}}</a></td>
 							<td><a href="{{.Creator.HomeLink}}">{{.Creator.Name}}</a></td>
 							<td>
 							{{if .Repository}}
@@ -72,14 +72,14 @@
 							<td>{{FileSize .CalculateBlobSize}}</td>
 							<td>{{DateUtils.AbsoluteShort .Version.CreatedUnix}}</td>
 							<td>
-								<a class="tw-text-red show-modal" href data-modal="#admin-package-delete-modal"
+								<a class="text-red show-modal" href data-modal="#admin-package-delete-modal"
 									data-modal-form.action="{{$.Link}}/delete?page={{$.Page.Paginater.Current}}&sort={{$.SortType}}&id={{.Version.ID}}"
 									data-modal-package-name="{{.Package.Name}}" data-modal-package-version="{{.Version.Version}}"
 								>{{svg "octicon-trash"}}</a>
 							</td>
 						</tr>
 					{{else}}
-						<tr><td class="tw-text-center" colspan="10">{{ctx.Locale.Tr "no_results_found"}}</td></tr>
+						<tr><td class="text-center" colspan="10">{{ctx.Locale.Tr "no_results_found"}}</td></tr>
 					{{end}}
 				</tbody>
 			</table>

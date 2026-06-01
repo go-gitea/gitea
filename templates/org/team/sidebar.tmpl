@@ -20,7 +20,7 @@
 			{{if .Team.Description}}
 				{{.Team.Description}}
 			{{else}}
-				<span class="tw-text-text-light tw-italic">{{ctx.Locale.Tr "org.teams.no_desc"}}</span>
+				<span class="text-text-light italic">{{ctx.Locale.Tr "org.teams.no_desc"}}</span>
 			{{end}}
 		</div>
 
@@ -50,7 +50,7 @@
 					<h3>{{ctx.Locale.Tr "org.settings.permission"}}</h3>
 					{{ctx.Locale.Tr "org.teams.admin_permission_desc"}}
 				{{else}}
-					<table class="ui table">
+					<table class="ui fm-table">
 						<thead>
 							<tr>
 								<th>{{ctx.Locale.Tr "units.unit"}}</th>

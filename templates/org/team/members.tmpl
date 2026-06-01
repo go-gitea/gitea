@@ -1,17 +1,17 @@
 {{template "base/head" .}}
 <div role="main" aria-label="{{.Title}}" class="page-content organization teams">
 	{{template "org/header" .}}
-	<div class="ui container">
+	<div class="ui fm-container">
 		{{template "base/alert" .}}
-		<div class="ui stackable grid">
+		<div class="ui stackable fm-grid">
 			{{template "org/team/sidebar" .}}
 			<div class="ui ten wide column">
 				{{template "org/team/navbar" .}}
 				{{if .IsOrganizationOwner}}
 					<div class="ui top attached segment">
-						<form class="ui form ignore-dirty tw-flex tw-flex-wrap tw-gap-2" action="{{$.OrgLink}}/teams/{{$.Team.LowerName | PathEscape}}/action/add" method="post">
+						<form class="ui form ignore-dirty flex flex-wrap gap-2" action="{{$.OrgLink}}/teams/{{$.Team.LowerName | PathEscape}}/action/add" method="post">
 							<input type="hidden" name="uid" value="{{.SignedUser.ID}}">
-							<div id="search-user-box" class="ui search tw-mr-2"{{if .IsEmailInviteEnabled}} data-allow-email="true" data-allow-email-description="{{ctx.Locale.Tr "org.teams.invite_team_member" $.Team.Name}}"{{end}}>
+							<div id="search-user-box" class="ui search mr-2"{{if .IsEmailInviteEnabled}} data-allow-email="true" data-allow-email-description="{{ctx.Locale.Tr "org.teams.invite_team_member" $.Team.Name}}"{{end}}>
 								<div class="ui input">
 									<input class="prompt" name="uname" placeholder="{{ctx.Locale.Tr "search.user_kind"}}" autocomplete="off" required>
 								</div>
@@ -23,7 +23,7 @@
 				<div class="ui{{if not .IsOrganizationOwner}} top{{end}} attached segment">
 								<div class="flex-divided-list items-with-main">
 										{{range .Team.Members}}
-											<div class="item tw-items-center">
+											<div class="item items-center">
 								<div class="item-leading">
 									<a href="{{.HomeLink}}">{{ctx.AvatarUtils.Avatar . 32}}</a>
 								</div>
@@ -45,7 +45,7 @@
 							</div>
 						{{else}}
 							<div class="item">
-								<span class="tw-text-text-light tw-italic">{{ctx.Locale.Tr "org.teams.members.none"}}</span>
+								<span class="text-text-light italic">{{ctx.Locale.Tr "org.teams.members.none"}}</span>
 							</div>
 						{{end}}
 					</div>
@@ -55,7 +55,7 @@
 				<div class="ui attached segment">
 					<div class="flex-divided-list items-with-main">
 						{{range .Invites}}
-							<div class="item tw-items-center">
+							<div class="item items-center">
 								<div class="item-main">
 									{{.Email}}
 								</div>

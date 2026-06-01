@@ -1,12 +1,12 @@
 {{template "base/head" .}}
 <div role="main" aria-label="{{.Title}}" class="page-content dashboard issues">
 	{{template "user/dashboard/navbar" .}}
-	<div class="ui container">
+	<div class="ui fm-container">
 		{{template "base/alert" .}}
 		<div class="flex-container">
 			{{$queryLink := QueryBuild "?" "type" $.ViewType "sort" $.SortType "state" $.State "q" $.Keyword "labels" .SelectLabels "search_mode" $.SelectedSearchMode}}
 			<div class="flex-container-nav">
-				<div class="ui secondary vertical filter menu tw-bg-transparent">
+				<div class="ui secondary vertical filter menu bg-transparent">
 					<a class="{{if eq .ViewType "your_repositories"}}active{{end}} item" href="{{QueryBuild $queryLink "type" "your_repositories"}}">
 						{{ctx.Locale.Tr "home.issues.in_your_repos"}}
 						<strong>{{CountFmt .IssueStats.YourRepositoriesCount}}</strong>
@@ -62,7 +62,7 @@
 						)}}
 					</form>
 
-					<div class="list-header-filters ui secondary menu tw-m-0">
+					<div class="list-header-filters ui secondary menu m-0">
 						{{if $.Labels}}
 							{{template "repo/issue/filter_item_label" dict "Labels" .Labels "QueryLink" $queryLinkWithFilter "SupportArchivedLabel" true}}
 						{{end}}
@@ -89,7 +89,7 @@
 
 						<!-- Sort -->
 						<div class="item ui small dropdown jump">
-							<span class="text tw-whitespace-nowrap">
+							<span class="text whitespace-nowrap">
 								{{ctx.Locale.Tr "repo.issues.filter_sort"}}
 								{{svg "octicon-triangle-down" 14 "dropdown icon"}}
 							</span>

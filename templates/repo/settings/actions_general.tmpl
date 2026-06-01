@@ -7,7 +7,7 @@
 	<div class="ui attached segment">
 		<form class="ui form" action="{{.Link}}/actions_unit" method="post">
 			{{$isActionsGlobalDisabled := ctx.Consts.RepoUnitTypeActions.UnitGlobalDisabled}}
-			<div class="inline field">
+			<div class="fm-inline field">
 				<label>{{ctx.Locale.Tr "actions.actions"}}</label>
 				<div class="ui checkbox{{if $isActionsGlobalDisabled}} disabled{{end}}"{{if $isActionsGlobalDisabled}} data-tooltip-content="{{ctx.Locale.Tr "repo.unit_disabled"}}"{{end}}>
 					<input name="enable_actions" type="checkbox" {{if $isActionsGlobalDisabled}}disabled{{end}} {{if $isActionsEnabled}}checked{{end}}>
@@ -64,7 +64,7 @@
 	<div class="ui attached segment">
 		<div class="flex-divided-list items-with-main">
 			{{range .CollaborativeOwners}}
-			<div class="item tw-items-center">
+			<div class="item items-center">
 				<div class="item-leading">
 					<a href="{{.HomeLink}}">{{ctx.AvatarUtils.Avatar . 32}}</a>
 				</div>
@@ -74,7 +74,7 @@
 					</div>
 				</div>
 				<div class="item-trailing">
-					<button class="ui red tiny button inline link-action"
+					<button class="ui red tiny button fm-inline link-action"
 						data-url="{{$.Link}}/collaborative_owner/delete?id={{.ID}}"
 						data-modal-confirm-header="{{ctx.Locale.Tr "actions.general.remove_collaborative_owner"}}"
 						data-modal-confirm-content="{{ctx.Locale.Tr "actions.general.remove_collaborative_owner_desc"}}"

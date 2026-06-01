@@ -2,7 +2,7 @@
   padding-bottom: 30px;
 }
 
-.runner-container .ui.table.segment {
+.runner-container .ui.fm-table.segment {
   overflow-x: auto;
 }
 

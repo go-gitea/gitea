@@ -12,7 +12,7 @@
 	<p class="help">{{ctx.Locale.Tr "repo.settings.webhook.name_helper"}}</p>
 </div>
 
-<div class="inline field">
+<div class="fm-inline field">
 	<div class="ui checkbox">
 		<input name="active" type="checkbox" {{if or $isNew .Webhook.IsActive}}checked{{end}}>
 		<label>{{ctx.Locale.Tr "repo.settings.active"}}</label>
@@ -85,7 +85,7 @@
 		</div>
 	</div>
 
-	<div class="events fields ui grid {{if not .Webhook.ChooseEvents}}tw-hidden{{end}}">
+	<div class="events fields ui fm-grid {{if not .Webhook.ChooseEvents}}hidden{{end}}">
 		<!-- Repository Events -->
 		<div class="fourteen wide column">
 			<label>{{ctx.Locale.Tr "repo.settings.event_header_repository"}}</label>

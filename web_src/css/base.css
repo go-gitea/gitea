@@ -103,7 +103,7 @@ samp {
 pre,
 code,
 samp,
-.tw-font-mono {
+.font-mono {
   font-size: 0.95em; /* compensate for monospace fonts being usually slightly larger */
 }
 
@@ -382,12 +382,8 @@ a.label,
   color: var(--color-text-light-2);
 }
 
-/* styles from removed fomantic transition module */
-.hidden.transition {
-  visibility: hidden;
-  display: none;
-}
-.visible.transition {
+/* styles from removed fomantic transition module ('hidden' is now Tailwind's display:none utility) */
+.fm-visible.fm-transition {
   display: block !important;
   visibility: visible !important;
 }
@@ -416,7 +412,7 @@ img.ui.avatar,
 
 .status-page-error-title {
   font-size: 48px;
-  margin-bottom: 14px; /* some elements below may use tw-my-4 or tw-my-8, so use 14px as a minimal margin */
+  margin-bottom: 14px; /* some elements below may use my-4 or my-8, so use 14px as a minimal margin */
   line-height: initial;
   text-align: center;
   font-weight: var(--font-weight-bold);
@@ -432,9 +428,9 @@ img.ui.avatar,
 .page-content > :first-child:not(.secondary-nav) {
   margin-top: var(--page-spacing);
 }
-/* if .ui.grid is the first child the first grid-column has 'padding-top: 1rem' which we need
+/* if .ui.fm-grid is the first child the first grid-column has 'padding-top: 1rem' which we need
    to compensate here */
-.page-content > :first-child.ui.grid {
+.page-content > :first-child.ui.fm-grid {
   margin-top: calc(var(--page-spacing) - 1rem);
 }
 
@@ -469,7 +465,7 @@ img.ui.avatar,
   margin-right: 4px;
 }
 
-.ui.inline.delete-button {
+.ui.fm-inline.delete-button {
   padding: 8px 15px;
   font-weight: var(--font-weight-normal);
 }
@@ -486,7 +482,7 @@ img.ui.avatar,
   color: var(--color-text) !important;
 }
 
-.ui .border {
+.ui .g-border {
   border: 1px solid;
 }
 

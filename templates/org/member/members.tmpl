@@ -1,12 +1,12 @@
 {{template "base/head" .}}
 <div role="main" aria-label="{{.Title}}" class="page-content organization members">
 	{{template "org/header" .}}
-	<div class="ui container">
+	<div class="ui fm-container">
 		{{template "base/alert" .}}
 
 		{{if .IsOrganizationOwner}}
 			<div class="flex-text-block">
-				<div class="tw-flex-1">{{ctx.Locale.Tr "org.teams.manage_team_member_prompt"}}</div>
+				<div class="flex-1">{{ctx.Locale.Tr "org.teams.manage_team_member_prompt"}}</div>
 				<a class="ui primary button" href="./teams">{{ctx.Locale.Tr "org.teams.manage_team_member"}}</a>
 			</div>
 			<div class="divider"></div>
@@ -25,7 +25,7 @@
 		<div class="flex-divided-list items-with-main">
 			{{range .Members}}
 				{{$isPublic := index $.MembersIsPublicMember .ID}}
-				<div class="item {{if $.PublicOnly}}tw-items-center{{end}}">
+				<div class="item {{if $.PublicOnly}}items-center{{end}}">
 					<div class="item-leading">
 						<a href="{{.HomeLink}}">{{ctx.AvatarUtils.Avatar . 48}}</a>
 					</div>
@@ -36,7 +36,7 @@
 								<span class="ui basic small label">{{ctx.Locale.Tr "org.members.private"}}</span>
 							{{end}}
 						</div>
-						<div class="tw-flex tw-flex-col tw-gap-1">
+						<div class="flex flex-col gap-1">
 							{{if not $.PublicOnly}}
 							<div>
 								{{ctx.Locale.Tr "org.members.member_role"}}
@@ -47,7 +47,7 @@
 							<div>
 								{{ctx.Locale.Tr "admin.users.2fa"}}:
 								{{if index $.MembersTwoFaStatus .ID}}
-									<span class="tw-text-green tw-flex">{{svg "octicon-check"}}</span>
+									<span class="text-green flex">{{svg "octicon-check"}}</span>
 								{{else}}
 									{{svg "octicon-x"}}
 								{{end}}

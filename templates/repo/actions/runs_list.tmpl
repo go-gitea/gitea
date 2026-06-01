@@ -6,7 +6,7 @@
 	</div>
 	{{end}}
 	{{range $run := .Runs}}
-		<div class="item tw-items-center">
+		<div class="item items-center">
 			<div class="item-leading">
 				<span data-tooltip-content="{{ctx.Locale.Tr (printf "actions.status.%s" $run.Status.String)}}">
 					{{template "repo/icons/action_status" (dict "Status" $run.Status.String "IconVariant" "circle-fill")}}
@@ -36,14 +36,14 @@
 					{{$errMsg := index $.RunErrors $run.ID}}
 					{{if $errMsg}}
 						<span class="flex-text-inline" data-tooltip-content="{{$errMsg}}">
-							{{svg "octicon-alert" 16 "tw-text-red"}}
+							{{svg "octicon-alert" 16 "text-red"}}
 						</span>
 					{{end}}
 				</div>
 			</div>
 			<div class="item-trailing">
 				{{if $run.IsRefDeleted}}
-					<span class="ui label run-list-ref gt-ellipsis tw-line-through" data-tooltip-content="{{$run.RefTooltip}}">{{$run.PrettyRef}}</span>
+					<span class="ui label run-list-ref gt-ellipsis line-through" data-tooltip-content="{{$run.RefTooltip}}">{{$run.PrettyRef}}</span>
 				{{else}}
 					<a class="ui label run-list-ref gt-ellipsis" href="{{$run.RefLink}}" data-tooltip-content="{{$run.RefTooltip}}">{{$run.PrettyRef}}</a>
 				{{end}}
@@ -51,7 +51,7 @@
 					<div class="run-list-meta">{{svg "octicon-calendar" 16}}{{DateUtils.TimeSince $run.Updated}}</div>
 					<div class="run-list-meta">{{svg "octicon-stopwatch" 16}}{{$run.Duration}}</div>
 				</div>
-				<div class="ui dropdown jump tw-p-2">
+				<div class="ui dropdown jump p-2">
 					{{svg "octicon-kebab-horizontal"}}
 					<div class="menu flex-items-menu">
 						<a class="item" href="{{$run.Link}}/workflow">{{svg "octicon-play"}}{{ctx.Locale.Tr "actions.runs.view_workflow_file"}}</a>

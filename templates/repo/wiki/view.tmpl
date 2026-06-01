@@ -2,9 +2,9 @@
 <div role="main" aria-label="{{.Title}}" class="page-content repository wiki view">
 	{{template "repo/header" .}}
 	{{$title := .title}}
-	<div class="ui container">
+	<div class="ui fm-container">
 		<div class="repo-button-row">
-			<div class="flex-text-block tw-flex-1">
+			<div class="flex-text-block flex-1">
 				<div class="ui floating filter dropdown" data-no-results="{{ctx.Locale.Tr "no_results_found"}}">
 					<div class="ui basic small button">
 						<span class="text">
@@ -31,10 +31,10 @@
 			{{template "repo/clone_panel" .}}
 		</div>
 		<div class="ui dividing header">
-			<div class="flex-text-block tw-flex-wrap tw-justify-end">
-				<div class="flex-text-block tw-flex-1 tw-min-w-[300px]">
-					<a class="ui basic button tw-px-3 tw-gap-3" title="{{ctx.Locale.Tr "repo.wiki.file_revision"}}" href="{{.RepoLink}}/wiki/{{.PageURL}}?action=_revision" >{{if .CommitCount}}<span>{{.CommitCount}}</span> {{end}}{{svg "octicon-history"}}</a>
-					<div class="tw-flex-1 gt-ellipsis">
+			<div class="flex-text-block flex-wrap justify-end">
+				<div class="flex-text-block flex-1 min-w-[300px]">
+					<a class="ui basic button px-3 gap-3" title="{{ctx.Locale.Tr "repo.wiki.file_revision"}}" href="{{.RepoLink}}/wiki/{{.PageURL}}?action=_revision" >{{if .CommitCount}}<span>{{.CommitCount}}</span> {{end}}{{svg "octicon-history"}}</a>
+					<div class="flex-1 gt-ellipsis">
 						{{$title}}
 						<div class="ui sub header gt-ellipsis">
 							{{$timeSince := DateUtils.TimeSince .Author.When}}
@@ -44,7 +44,7 @@
 				</div>
 				<div class="repo-button-row">
 					{{if .EscapeStatus.Escaped}}
-						<a class="ui small button unescape-button tw-hidden" data-unicode-content-selector=".wiki-content-parts">{{ctx.Locale.Tr "repo.unescape_control_characters"}}</a>
+						<a class="ui small button unescape-button hidden" data-unicode-content-selector=".wiki-content-parts">{{ctx.Locale.Tr "repo.unescape_control_characters"}}</a>
 						<a class="ui small button escape-button" data-unicode-content-selector=".wiki-content-parts">{{ctx.Locale.Tr "repo.escape_control_characters"}}</a>
 					{{end}}
 					{{if and .CanWriteWiki (not .Repository.IsMirror)}}
@@ -76,18 +76,18 @@
 			{{if .WikiSidebarHTML}}
 			<div class="render-content markup wiki-content-sidebar">
 				{{if and .CanWriteWiki (not .Repository.IsMirror)}}
-					<a class="tw-float-right muted" href="{{.RepoLink}}/wiki/_Sidebar?action=_edit" aria-label="{{ctx.Locale.Tr "repo.wiki.edit_page_button"}}">{{svg "octicon-pencil"}}</a>
+					<a class="float-right muted" href="{{.RepoLink}}/wiki/_Sidebar?action=_edit" aria-label="{{ctx.Locale.Tr "repo.wiki.edit_page_button"}}">{{svg "octicon-pencil"}}</a>
 				{{end}}
 				{{.WikiSidebarHTML}}
 			</div>
 			{{end}}
 
-			<div class="tw-clear-both"></div>
+			<div class="clear-both"></div>
 
 			{{if .WikiFooterHTML}}
 			<div class="render-content markup wiki-content-footer">
 				{{if and .CanWriteWiki (not .Repository.IsMirror)}}
-					<a class="tw-float-right muted" href="{{.RepoLink}}/wiki/_Footer?action=_edit" aria-label="{{ctx.Locale.Tr "repo.wiki.edit_page_button"}}">{{svg "octicon-pencil"}}</a>
+					<a class="float-right muted" href="{{.RepoLink}}/wiki/_Footer?action=_edit" aria-label="{{ctx.Locale.Tr "repo.wiki.edit_page_button"}}">{{svg "octicon-pencil"}}</a>
 				{{end}}
 				{{.WikiFooterHTML}}
 			</div>

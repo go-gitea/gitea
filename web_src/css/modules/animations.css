@@ -102,7 +102,7 @@ code.language-math.is-loading::after {
 }
 
 .ui.modal,
-.ui.dimmer.transition {
+.ui.dimmer.fm-transition {
   animation-name: fadein;
   animation-duration: 100ms;
   animation-timing-function: ease-in-out;

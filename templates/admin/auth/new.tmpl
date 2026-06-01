@@ -7,7 +7,7 @@
 			<form class="ui form" action="{{.Link}}" method="post">
 				{{template "base/disable_form_autofill"}}
 				<!-- Types and name -->
-				<div class="inline required field {{if .Err_Type}}error{{end}}">
+				<div class="fm-inline required field {{if .Err_Type}}error{{end}}">
 					<label>{{ctx.Locale.Tr "admin.auths.auth_type"}}</label>
 					<div class="ui selection type dropdown">
 						<input type="hidden" id="auth_type" name="type" value="{{.type}}">
@@ -20,7 +20,7 @@
 						</div>
 					</div>
 				</div>
-				<div class="required inline field {{if .Err_Name}}error{{end}}">
+				<div class="required fm-inline field {{if .Err_Name}}error{{end}}">
 					<label for="auth_name">{{ctx.Locale.Tr "admin.auths.auth_name"}}</label>
 					<input id="auth_name" name="name" value="{{.name}}" autofocus required>
 				</div>
@@ -32,13 +32,13 @@
 				{{template "admin/auth/source/smtp" .}}
 
 				<!-- PAM -->
-				<div class="pam required field {{if not (eq .type 4)}}tw-hidden{{end}}">
+				<div class="pam required field {{if not (eq .type 4)}}hidden{{end}}">
 					<label for="pam_service_name">{{ctx.Locale.Tr "admin.auths.pam_service_name"}}</label>
 					<input id="pam_service_name" name="pam_service_name" value="{{.pam_service_name}}">
 					<label for="pam_email_domain">{{ctx.Locale.Tr "admin.auths.pam_email_domain"}}</label>
 					<input id="pam_email_domain" name="pam_email_domain" value="{{.pam_email_domain}}">
 				</div>
-				<div class="pam optional field {{if not (eq .type 4)}}tw-hidden{{end}}">
+				<div class="pam optional field {{if not (eq .type 4)}}hidden{{end}}">
 					<div class="ui checkbox">
 						<label for="skip_local_two_fa"><strong>{{ctx.Locale.Tr "admin.auths.skip_local_two_fa"}}</strong></label>
 						<input id="skip_local_two_fa" name="skip_local_two_fa" type="checkbox" {{if .skip_local_two_fa}}checked{{end}}>
@@ -58,13 +58,13 @@
 						<input name="attributes_in_bind" type="checkbox" {{if .attributes_in_bind}}checked{{end}}>
 					</div>
 				</div>
-				<div class="oauth2 ldap inline field {{if not (or (eq .type 2) (eq .type 6))}}tw-hidden{{end}}">
+				<div class="oauth2 ldap fm-inline field {{if not (or (eq .type 2) (eq .type 6))}}hidden{{end}}">
 					<div class="ui checkbox">
 						<label><strong>{{ctx.Locale.Tr "admin.auths.syncenabled"}}</strong></label>
 						<input name="is_sync_enabled" type="checkbox" {{if .is_sync_enabled}}checked{{end}}>
 					</div>
 				</div>
-				<div class="inline field">
+				<div class="fm-inline field">
 					<div class="ui checkbox">
 						<label><strong>{{ctx.Locale.Tr "admin.auths.activated"}}</strong></label>
 						<input name="is_active" type="checkbox" {{if .is_active}}checked{{end}}>
@@ -88,7 +88,7 @@
 				<h5>{{ctx.Locale.Tr "admin.auths.tips.oauth2.general"}}</h5>
 				<p>{{ctx.Locale.Tr "admin.auths.tips.oauth2.general.tip"}} <b id="oauth2-callback-url"></b></p>
 			</div>
-			<div class="oauth2 tw-mt-4">
+			<div class="oauth2 mt-4">
 				<h5>{{ctx.Locale.Tr "admin.auths.tip.oauth2_provider"}}</h5>
 				<ul>
 					<li>

@@ -23,7 +23,7 @@ sudo apt update</code></pre></div>
 
 	<h4 class="ui top attached header">{{ctx.Locale.Tr "packages.debian.repository"}}</h4>
 	<div class="ui attached segment">
-		<table class="ui single line very basic table">
+		<table class="ui single line very basic fm-table">
 			<tbody>
 				<tr>
 					<td class="collapsing"><h5>{{ctx.Locale.Tr "packages.debian.repository.distributions"}}</h5></td>
@@ -51,7 +51,7 @@ sudo apt update</code></pre></div>
 	{{if .PackageDescriptor.Metadata.Dependencies}}
 		<h4 class="ui top attached header">{{ctx.Locale.Tr "packages.dependencies"}}</h4>
 		<div class="ui attached segment">
-			<table class="ui single line very basic table">
+			<table class="ui single line very basic fm-table">
 				<tbody>
 					{{range .PackageDescriptor.Metadata.Dependencies}}
 						<tr>

@@ -1,6 +1,6 @@
 {{template "devtest/devtest-header"}}
-<div class="page-content devtest ui container">
-	<div class="flex-text-block tw-flex-wrap">
+<div class="page-content devtest ui fm-container">
+	<div class="flex-text-block flex-wrap">
 		{{range $templateName := .MailTemplateNames}}
 			<a class="ui button" href="?tmpl={{$templateName}}">{{$templateName}}</a>
 		{{else}}
@@ -9,7 +9,7 @@
 	</div>
 
 	{{if .RenderMailTemplateName}}
-	<div class="tw-my-2">
+	<div class="my-2">
 		<div>Preview of: {{.RenderMailTemplateName}}</div>
 		<div>Subject: {{.RenderMailSubject}}</div>
 		<iframe src="{{AppSubUrl}}/devtest/mail-preview/{{.RenderMailTemplateName}}" class="mail-preview-body"></iframe>

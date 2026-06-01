@@ -1,5 +1,5 @@
 {{template "devtest/devtest-header"}}
-<div class="page-content devtest ui container">
+<div class="page-content devtest ui fm-container">
 	<div>
 		<h1>Link</h1>
 		<div>
@@ -10,13 +10,13 @@
 		</div>
 		<h1>Button</h1>
 		".ui.button" styles:
-		<div class="flex-text-block tw-gap-4">
+		<div class="flex-text-block gap-4">
 			<label class="gt-checkbox"><input type="radio" name="button-style-size" value="">(normal)</label>
 			<label class="gt-checkbox"><input type="radio" name="button-style-size" value="small">small</label>
 			<label class="gt-checkbox"><input type="radio" name="button-style-size" value="tiny">tiny</label>
 			<label class="gt-checkbox"><input type="radio" name="button-style-size" value="mini">mini</label>
 		</div>
-		<div class="flex-text-block tw-gap-4">
+		<div class="flex-text-block gap-4">
 			<label class="gt-checkbox"><input type="checkbox" name="button-style-compact" value="compact">compact</label>
 			<label class="gt-checkbox"><input type="checkbox" name="button-state-disabled" value="disabled">disabled</label>
 		</div>
@@ -38,10 +38,10 @@
 				</li>
 				<li class="sample-group">
 					<h2>Inline / Plain:</h2>
-					<div class="tw-my-1">
-						<button class="btn tw-p-2">Plain button</button>
-						<button class="btn interact-fg tw-p-2">Plain button with interact fg</button>
-						<button class="btn interact-bg tw-p-2">Plain button with interact bg</button>
+					<div class="my-1">
+						<button class="btn p-2">Plain button</button>
+						<button class="btn interact-fg p-2">Plain button with interact fg</button>
+						<button class="btn interact-bg p-2">Plain button with interact bg</button>
 					</div>
 				</li>
 			</ul>
@@ -64,8 +64,8 @@
 
 	<div>
 		<h1>Loading</h1>
-		<div class="is-loading loading-icon-2px tw-border tw-border-secondary tw-py-1"><span>loading ...</span></div>
-		<div class="is-loading tw-border tw-border-secondary tw-py-4">
+		<div class="is-loading loading-icon-2px border border-secondary py-1"><span>loading ...</span></div>
+		<div class="is-loading border border-secondary py-4">
 			<p>loading ...</p>
 			<p>loading ...</p>
 			<p>loading ...</p>
@@ -152,7 +152,7 @@
 
 	<h1>Tailwind CSS Demo</h1>
 	<div>
-		<button class="{{if true}}tw-bg-red{{end}} tw-p-5 tw-border tw-rounded hover:tw-bg-blue active:tw-bg-yellow">Button</button>
+		<button class="{{if true}}bg-red{{end}} p-5 border rounded hover:bg-blue active:bg-yellow">Button</button>
 	</div>
 </div>
 {{template "devtest/devtest-footer"}}

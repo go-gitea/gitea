@@ -9,8 +9,8 @@
 		<div class="ui attached segment">
 			{{template "shared/repo/search" .}}
 		</div>
-		<div class="ui attached table segment">
-			<table class="ui very basic table selectable unstackable">
+		<div class="ui attached fm-table segment">
+			<table class="ui very basic fm-table selectable unstackable">
 				<thead>
 					<tr>
 						<th data-sortt-asc="oldest" data-sortt-desc="newest">ID{{SortArrow "oldest" "newest" $.SortType false}}</th>
@@ -47,13 +47,13 @@
 						<tr>
 							<td>{{.ID}}</td>
 							<td>
-								<a class="tw-break-anywhere" href="{{.Owner.HomeLink}}">{{.Owner.Name}}</a>
+								<a class="break-anywhere" href="{{.Owner.HomeLink}}">{{.Owner.Name}}</a>
 								{{if .Owner.Visibility.IsPrivate}}
-									<span class="tw-text-gold">{{svg "octicon-lock"}}</span>
+									<span class="text-gold">{{svg "octicon-lock"}}</span>
 								{{end}}
 							</td>
 							<td>
-								<a class="tw-break-anywhere" href="{{.Link}}">{{.Name}}</a>
+								<a class="break-anywhere" href="{{.Link}}">{{.Name}}</a>
 								{{if .IsArchived}}
 									<span class="ui basic label">{{ctx.Locale.Tr "repo.desc.archived"}}</span>
 								{{end}}
@@ -85,14 +85,14 @@
 							<td>{{DateUtils.AbsoluteShort .UpdatedUnix}}</td>
 							<td>{{DateUtils.AbsoluteShort .CreatedUnix}}</td>
 							<td>
-								<a class="tw-text-red show-modal" href data-modal="#admin-repo-delete-modal"
+								<a class="text-red show-modal" href data-modal="#admin-repo-delete-modal"
 									data-modal-form.action="{{$.Link}}/delete?page={{$.Page.Paginater.Current}}&sort={{$.SortType}}&id={{.ID}}"
 									data-modal-repo-name="{{.Name}}"
 								>{{svg "octicon-trash"}}</a>
 							</td>
 						</tr>
 					{{else}}
-						<tr><td class="tw-text-center" colspan="12">{{ctx.Locale.Tr "no_results_found"}}</td></tr>
+						<tr><td class="text-center" colspan="12">{{ctx.Locale.Tr "no_results_found"}}</td></tr>
 					{{end}}
 				</tbody>
 			</table>

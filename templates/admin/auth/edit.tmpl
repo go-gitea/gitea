@@ -7,16 +7,16 @@
 			<form class="ui form" action="{{.Link}}" method="post">
 				{{template "base/disable_form_autofill"}}
 				<input type="hidden" name="id" value="{{.Source.ID}}">
-				<div class="inline field">
+				<div class="fm-inline field">
 					<label>{{ctx.Locale.Tr "admin.auths.auth_type"}}</label>
 					<input type="hidden" id="auth_type" name="type" value="{{.Source.Type.Int}}">
 					<span>{{.Source.TypeName}}</span>
 				</div>
-				<div class="required inline field {{if .Err_Name}}error{{end}}">
+				<div class="required fm-inline field {{if .Err_Name}}error{{end}}">
 					<label for="auth_name">{{ctx.Locale.Tr "admin.auths.auth_name"}}</label>
 					<input id="auth_name" name="name" value="{{.Source.Name}}" required>
 				</div>
-				<div class="inline field">
+				<div class="fm-inline field">
 					<div class="ui checkbox">
 						<label ><strong>{{ctx.Locale.Tr "admin.auths.skip_local_two_fa"}}</strong></label>
 						<input name="two_factor_policy" type="checkbox" value="skip" {{if eq .Source.TwoFactorPolicy "skip"}}checked{{end}}>
@@ -27,7 +27,7 @@
 				<!-- LDAP and DLDAP -->
 				{{if or .Source.IsLDAP .Source.IsDLDAP}}
 					{{$cfg:=.Source.Cfg}}
-					<div class="inline required field {{if .Err_SecurityProtocol}}error{{end}}">
+					<div class="fm-inline required field {{if .Err_SecurityProtocol}}error{{end}}">
 						<label>{{ctx.Locale.Tr "admin.auths.security_protocol"}}</label>
 						<div class="ui selection security-protocol dropdown">
 							<input type="hidden" id="security_protocol" name="security_protocol" value="{{$cfg.SecurityProtocol.Int}}">
@@ -48,7 +48,7 @@
 						<label for="port">{{ctx.Locale.Tr "admin.auths.port"}}</label>
 						<input id="port" name="port" value="{{$cfg.Port}}"  placeholder="636" required>
 					</div>
-					<div class="has-tls inline field {{if not .HasTLS}}tw-hidden{{end}}">
+					<div class="has-tls fm-inline field {{if not .HasTLS}}hidden{{end}}">
 						<div class="ui checkbox">
 							<label><strong>{{ctx.Locale.Tr "admin.auths.skip_tls_verify"}}</strong></label>
 							<input name="skip_verify" type="checkbox" {{if .Source.SkipVerify}}checked{{end}}>
@@ -112,20 +112,20 @@
 						<input id="attribute_avatar" name="attribute_avatar" value="{{$cfg.AttributeAvatar}}" placeholder="jpegPhoto">
 					</div>
 
-					<div class="inline field">
+					<div class="fm-inline field">
 						<div class="ui checkbox">
 							<label for="ssh_keys_are_verified"><strong>{{ctx.Locale.Tr "admin.auths.ssh_keys_are_verified"}}</strong></label>
 							<input id="ssh_keys_are_verified" name="ssh_keys_are_verified" type="checkbox" {{if $cfg.SSHKeysAreVerified}}checked{{end}}>
 						</div>
 					</div>
 					<!-- ldap group begin -->
-					<div class="inline field">
+					<div class="fm-inline field">
 						<div class="ui checkbox">
 							<label><strong>{{ctx.Locale.Tr "admin.auths.enable_ldap_groups"}}</strong></label>
 							<input type="checkbox" name="groups_enabled" class="js-ldap-group-toggle" {{if $cfg.GroupsEnabled}}checked{{end}}>
 						</div>
 					</div>
-					<div id="ldap-group-options" class="ui segment secondary {{if not $cfg.GroupsEnabled}}tw-hidden{{end}}">
+					<div id="ldap-group-options" class="ui segment secondary {{if not $cfg.GroupsEnabled}}hidden{{end}}">
 						<div class="field">
 							<label>{{ctx.Locale.Tr "admin.auths.group_search_base"}}</label>
 							<input name="group_dn" value="{{$cfg.GroupDN}}" placeholder="ou=group,dc=mydomain,dc=com">
@@ -154,24 +154,24 @@
 					<!-- ldap group end -->
 
 					{{if .Source.IsLDAP}}
-						<div class="inline field">
+						<div class="fm-inline field">
 							<div class="ui checkbox">
 								<label for="use_paged_search"><strong>{{ctx.Locale.Tr "admin.auths.use_paged_search"}}</strong></label>
 								<input id="use_paged_search" name="use_paged_search" type="checkbox" {{if $cfg.UsePagedSearch}}checked{{end}}>
 							</div>
 						</div>
-						<div class="field required search-page-size{{if not $cfg.UsePagedSearch}} tw-hidden{{end}}">
+						<div class="field required search-page-size{{if not $cfg.UsePagedSearch}} hidden{{end}}">
 							<label for="search_page_size">{{ctx.Locale.Tr "admin.auths.search_page_size"}}</label>
 							<input id="search_page_size" name="search_page_size" value="{{if $cfg.UsePagedSearch}}{{$cfg.SearchPageSize}}{{end}}">
 						</div>
-						<div class="inline field">
+						<div class="fm-inline field">
 							<div class="ui checkbox">
 								<label><strong>{{ctx.Locale.Tr "admin.auths.attributes_in_bind"}}</strong></label>
 								<input name="attributes_in_bind" type="checkbox" {{if $cfg.AttributesInBind}}checked{{end}}>
 							</div>
 						</div>
 					{{end}}
-					<div class="inline field">
+					<div class="fm-inline field">
 						<div class="ui checkbox">
 							<label for="allow_deactivate_all"><strong>{{ctx.Locale.Tr "admin.auths.allow_deactivate_all"}}</strong></label>
 							<input id="allow_deactivate_all" name="allow_deactivate_all" type="checkbox" {{if $cfg.AllowDeactivateAll}}checked{{end}}>
@@ -182,7 +182,7 @@
 				<!-- SMTP -->
 				{{if .Source.IsSMTP}}
 					{{$cfg:=.Source.Cfg}}
-					<div class="inline required field">
+					<div class="fm-inline required field">
 						<label>{{ctx.Locale.Tr "admin.auths.smtp_auth"}}</label>
 						<div class="ui selection type dropdown">
 							<input type="hidden" id="smtp_auth" name="smtp_auth" value="{{$cfg.Auth}}" required>
@@ -210,7 +210,7 @@
 						</div>
 						<p class="help">{{ctx.Locale.Tr "admin.auths.force_smtps_helper"}}</p>
 					</div>
-					<div class="has-tls inline field {{if not .HasTLS}}tw-hidden{{end}}">
+					<div class="has-tls fm-inline field {{if not .HasTLS}}hidden{{end}}">
 						<div class="ui checkbox">
 							<label><strong>{{ctx.Locale.Tr "admin.auths.skip_tls_verify"}}</strong></label>
 							<input name="skip_verify" type="checkbox" {{if $cfg.SkipVerify}}checked{{end}}>
@@ -221,7 +221,7 @@
 						<input id="helo_hostname" name="helo_hostname" value="{{$cfg.HeloHostname}}">
 						<p class="help">{{ctx.Locale.Tr "admin.auths.helo_hostname_helper"}}</p>
 					</div>
-					<div class="inline field">
+					<div class="fm-inline field">
 						<div class="ui checkbox">
 							<label for="disable_helo"><strong>{{ctx.Locale.Tr "admin.auths.disable_helo"}}</strong></label>
 							<input id="disable_helo" name="disable_helo" type="checkbox" {{if $cfg.DisableHelo}}checked{{end}}>
@@ -250,7 +250,7 @@
 				<!-- OAuth2 -->
 				{{if .Source.IsOAuth2}}
 					{{$cfg:=.Source.Cfg}}
-					<div class="inline required field">
+					<div class="fm-inline required field">
 						<label>{{ctx.Locale.Tr "admin.auths.oauth2_provider"}}</label>
 						<div class="ui selection type dropdown">
 							<input type="hidden" id="oauth2_provider" name="oauth2_provider" value="{{$cfg.Provider}}" required>
@@ -279,7 +279,7 @@
 						<label for="open_id_connect_auto_discovery_url">{{ctx.Locale.Tr "admin.auths.openIdConnectAutoDiscoveryURL"}}</label>
 						<input id="open_id_connect_auto_discovery_url" name="open_id_connect_auto_discovery_url" value="{{$cfg.OpenIDConnectAutoDiscoveryURL}}">
 					</div>
-					<div class="oauth2_use_custom_url inline field">
+					<div class="oauth2_use_custom_url fm-inline field">
 						<div class="ui checkbox">
 							<label><strong>{{ctx.Locale.Tr "admin.auths.oauth2_use_custom_url"}}</strong></label>
 							<input id="oauth2_use_custom_url" name="oauth2_use_custom_url" type="checkbox" {{if $cfg.CustomURLMapping}}checked{{end}}>
@@ -413,14 +413,14 @@
 					</div>
 				{{end}}
 				{{if (or .Source.IsLDAP .Source.IsOAuth2)}}
-					<div class="inline field">
+					<div class="fm-inline field">
 						<div class="ui checkbox">
 							<label><strong>{{ctx.Locale.Tr "admin.auths.syncenabled"}}</strong></label>
 							<input name="is_sync_enabled" type="checkbox" {{if .Source.IsSyncEnabled}}checked{{end}}>
 						</div>
 					</div>
 				{{end}}
-				<div class="inline field">
+				<div class="fm-inline field">
 					<div class="ui checkbox">
 						<label><strong>{{ctx.Locale.Tr "admin.auths.activated"}}</strong></label>
 						<input name="is_active" type="checkbox" {{if .Source.IsActive}}checked{{end}}>

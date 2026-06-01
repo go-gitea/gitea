@@ -117,7 +117,7 @@ function clearMergeMessage() {
         <div class="field">
           <textarea name="merge_message_field" rows="5" :placeholder="mergeForm.mergeMessageFieldPlaceHolder" v-model="mergeMessageFieldValue"/>
           <template v-if="mergeMessageFieldValue !== mergeForm.defaultMergeMessage">
-            <button @click.prevent="clearMergeMessage" class="btn tw-mt-1 tw-p-1 interact-fg" :data-tooltip-content="mergeForm.textClearMergeMessageHint">
+            <button @click.prevent="clearMergeMessage" class="btn mt-1 p-1 interact-fg" :data-tooltip-content="mergeForm.textClearMergeMessageHint">
               {{ mergeForm.textClearMergeMessage }}
             </button>
           </template>
@@ -128,7 +128,7 @@ function clearMergeMessage() {
         <input type="text" name="merge_commit_id" :placeholder="mergeForm.textMergeCommitId">
       </div>
 
-      <div class="flex-text-block tw-gap-3">
+      <div class="flex-text-block gap-3">
         <button class="ui button" :class="mergeButtonStyleClass" type="submit" name="do" :value="mergeStyle">
           {{ mergeStyleDetail.textDoMerge }}
           <template v-if="autoMergeWhenSucceed">
@@ -147,7 +147,7 @@ function clearMergeMessage() {
       </div>
     </form>
 
-    <div v-if="!showActionForm" class="tw-flex">
+    <div v-if="!showActionForm" class="flex">
       <!-- the merge button -->
       <div class="ui buttons merge-button" :class="mergeSelectStyleClass" @click="toggleActionForm(true)">
         <button class="ui button">
@@ -188,7 +188,7 @@ function clearMergeMessage() {
       </div>
 
       <!-- the cancel auto merge button -->
-      <form v-if="mergeForm.hasPendingPullRequestMerge" :action="mergeForm.baseLink+'/cancel_auto_merge'" method="post" class="tw-ml-4">
+      <form v-if="mergeForm.hasPendingPullRequestMerge" :action="mergeForm.baseLink+'/cancel_auto_merge'" method="post" class="ml-4">
         <button class="ui button">
           {{ mergeForm.textAutoMergeCancelSchedule }}
         </button>

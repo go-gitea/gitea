@@ -25,17 +25,17 @@ export function getIssueColorClass(issue: Issue) {
   if (issue.pull_request) {
     if (issue.state === 'open') {
       if (issue.pull_request.draft) {
-        return 'tw-text-text-light'; // WIP PR
+        return 'text-text-light'; // WIP PR
       }
-      return 'tw-text-green'; // Open PR
+      return 'text-green'; // Open PR
     } else if (issue.pull_request.merged) {
-      return 'tw-text-purple'; // Merged PR
+      return 'text-purple'; // Merged PR
     }
-    return 'tw-text-red'; // Closed PR
+    return 'text-red'; // Closed PR
   }
 
   if (issue.state === 'open') {
-    return 'tw-text-green'; // Open Issue
+    return 'text-green'; // Open Issue
   }
-  return 'tw-text-red'; // Closed Issue
+  return 'text-red'; // Closed Issue
 }

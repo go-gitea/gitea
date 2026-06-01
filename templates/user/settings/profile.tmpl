@@ -8,19 +8,19 @@
 			<form class="ui form" action="{{.Link}}" method="post">
 				<div class="required field {{if .Err_Name}}error{{end}}">
 					<label for="username">{{ctx.Locale.Tr "username"}}
-						<span class="tw-text-red tw-hidden" id="name-change-prompt"> {{ctx.Locale.Tr "settings.change_username_prompt"}}</span>
-						<span class="tw-text-red tw-hidden" id="name-change-redirect-prompt"> {{ctx.Locale.Tr "settings.change_username_redirect_prompt"}}</span>
+						<span class="text-red hidden" id="name-change-prompt"> {{ctx.Locale.Tr "settings.change_username_prompt"}}</span>
+						<span class="text-red hidden" id="name-change-redirect-prompt"> {{ctx.Locale.Tr "settings.change_username_redirect_prompt"}}</span>
 					</label>
 					<input id="username" name="name" value="{{.SignedUser.Name}}" data-name="{{.SignedUser.Name}}" required {{if or (not .SignedUser.IsLocal) ($.UserDisabledFeatures.Contains "change_username") .IsReverseProxy}}disabled{{end}} maxlength="40">
 					{{if or (not .SignedUser.IsLocal) ($.UserDisabledFeatures.Contains "change_username") .IsReverseProxy}}
-					<p class="help tw-text-blue">{{ctx.Locale.Tr "settings.password_username_disabled"}}</p>
+					<p class="help text-blue">{{ctx.Locale.Tr "settings.password_username_disabled"}}</p>
 					{{end}}
 				</div>
 				<div class="field {{if .Err_FullName}}error{{end}}">
 					<label for="full_name">{{ctx.Locale.Tr "settings.full_name"}}</label>
 					<input id="full_name" name="full_name" value="{{.SignedUser.FullName}}" {{if ($.UserDisabledFeatures.Contains "change_full_name")}}disabled{{end}} maxlength="100">
 					{{if ($.UserDisabledFeatures.Contains "change_full_name")}}
-					<p class="help tw-text-blue">{{ctx.Locale.Tr "settings.password_full_name_disabled"}}</p>
+					<p class="help text-blue">{{ctx.Locale.Tr "settings.password_full_name_disabled"}}</p>
 					{{end}}
 				</div>
 				<div class="field {{if .Err_Email}}error{{end}}">
@@ -48,8 +48,8 @@
 					<label><strong>{{ctx.Locale.Tr "settings.privacy"}}</strong></label>
 				</div>
 
-				<div class="inline field {{if .Err_Visibility}}error{{end}}">
-					<span class="inline required field"><label>{{ctx.Locale.Tr "settings.visibility"}}</label></span>
+				<div class="fm-inline field {{if .Err_Visibility}}error{{end}}">
+					<span class="fm-inline required field"><label>{{ctx.Locale.Tr "settings.visibility"}}</label></span>
 					<div class="ui selection type dropdown">
 						{{if .SignedUser.Visibility.IsPublic}}<input type="hidden" id="visibility" name="visibility" value="0">{{end}}
 						{{if .SignedUser.Visibility.IsLimited}}<input type="hidden" id="visibility" name="visibility" value="1">{{end}}
@@ -102,26 +102,26 @@
 		<div class="ui attached segment">
 			<form class="ui form" action="{{.Link}}/avatar" method="post" enctype="multipart/form-data">
 				{{if not .DisableGravatar}}
-				<div class="inline field">
+				<div class="fm-inline field">
 					<div class="ui radio checkbox">
 						<input name="source" value="lookup" type="radio" {{if not .SignedUser.UseCustomAvatar}}checked{{end}}>
 						<label>{{ctx.Locale.Tr "settings.lookup_avatar_by_mail"}}</label>
 					</div>
 				</div>
-				<div class="field tw-pl-4 {{if .Err_Gravatar}}error{{end}}">
+				<div class="field pl-4 {{if .Err_Gravatar}}error{{end}}">
 					<label for="gravatar">Avatar {{ctx.Locale.Tr "email"}}</label>
 					<input id="gravatar" name="gravatar" value="{{.SignedUser.AvatarEmail}}">
 				</div>
 				{{end}}
 
-				<div class="inline field">
+				<div class="fm-inline field">
 					<div class="ui radio checkbox">
 						<input name="source" value="local" type="radio" {{if .SignedUser.UseCustomAvatar}}checked{{end}}>
 						<label>{{ctx.Locale.Tr "settings.enable_custom_avatar"}}</label>
 					</div>
 				</div>
 
-				<div class="inline field tw-pl-4">
+				<div class="fm-inline field pl-4">
 					{{template "shared/avatar_upload_crop" dict "LabelText" (ctx.Locale.Tr "settings.choose_new_avatar")}}
 				</div>
 

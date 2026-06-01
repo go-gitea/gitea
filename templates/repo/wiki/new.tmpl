@@ -1,7 +1,7 @@
 {{template "base/head" .}}
 <div role="main" aria-label="{{.Title}}" class="page-content repository wiki new">
 	{{template "repo/header" .}}
-	<div class="ui container">
+	<div class="ui fm-container">
 		{{template "base/alert" .}}
 		<div class="ui header flex-left-right">
 			{{ctx.Locale.Tr "repo.wiki.new_page"}}
@@ -29,11 +29,11 @@
 				"TextareaPlaceholder" (ctx.Locale.Tr "repo.wiki.page_content")
 			)}}
 
-			<div class="field tw-mt-4">
+			<div class="field mt-4">
 				<input name="message" aria-label="{{ctx.Locale.Tr "repo.wiki.default_commit_message"}}" placeholder="{{ctx.Locale.Tr "repo.wiki.default_commit_message"}}">
 			</div>
 			<div class="divider"></div>
-			<div class="flex-text-block tw-justify-end">
+			<div class="flex-text-block justify-end">
 				<a class="ui basic cancel button" href="{{.Link}}">{{ctx.Locale.Tr "cancel"}}</a>
 				<button class="ui primary button">{{ctx.Locale.Tr "repo.wiki.save_page"}}</button>
 			</div>

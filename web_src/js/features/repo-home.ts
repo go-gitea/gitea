@@ -97,7 +97,7 @@ export function initRepoTopicBar() {
         const query = stripTags(this.urlData.query.trim());
         let found_query = false;
         const current_topics = [];
-        for (const el of queryElemChildren(topicDropdown, 'a.ui.label.visible')) {
+        for (const el of queryElemChildren(topicDropdown, 'a.ui.label.fm-visible')) {
           current_topics.push(el.getAttribute('data-value'));
         }
 

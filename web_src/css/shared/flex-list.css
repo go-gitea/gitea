@@ -1,4 +1,4 @@
-/* can be used to replace "ui relaxed list" or "tw-flex tw-flex-col tw-gap-xxx" when we need more flexible layout */
+/* can be used to replace "ui relaxed list" or "flex flex-col gap-xxx" when we need more flexible layout */
 .flex-relaxed-list {
   display: flex;
   flex-direction: column;

@@ -20,19 +20,19 @@
 
 {{if (or (.Permission.CanRead ctx.Consts.RepoUnitTypeIssues) (.Permission.CanRead ctx.Consts.RepoUnitTypePullRequests))}}
 <h4 class="ui top attached header">{{ctx.Locale.Tr "repo.activity.overview"}}</h4>
-<div class="ui attached segment two column grid">
+<div class="ui attached segment two column fm-grid">
 	{{if .Permission.CanRead ctx.Consts.RepoUnitTypePullRequests}}
 		<div class="column">
 			{{if gt .Activity.ActivePRCount 0}}
 			<div class="stats-table">
 				{{if gt .Activity.MergedPRPerc 0}}
-					<a href="#merged-pull-requests" class="table-cell tiny tw-bg-purple" style="width: {{.Activity.MergedPRPerc}}%"></a>
+					<a href="#merged-pull-requests" class="table-cell tiny bg-purple" style="width: {{.Activity.MergedPRPerc}}%"></a>
 				{{end}}
-				<a href="#proposed-pull-requests" class="table-cell tiny tw-bg-green"></a>
+				<a href="#proposed-pull-requests" class="table-cell tiny bg-green"></a>
 			</div>
 			{{else}}
 			<div class="stats-table">
-				<a class="table-cell tiny tw-bg-grey"></a>
+				<a class="table-cell tiny bg-grey"></a>
 			</div>
 			{{end}}
 			{{ctx.Locale.TrN .Activity.ActivePRCount "repo.activity.active_prs_count_1" "repo.activity.active_prs_count_n" .Activity.ActivePRCount}}
@@ -43,13 +43,13 @@
 			{{if gt .Activity.ActiveIssueCount 0}}
 			<div class="stats-table">
 				{{if gt .Activity.ClosedIssuePerc 0}}
-					<a href="#closed-issues" class="table-cell tiny tw-bg-red" style="width: {{.Activity.ClosedIssuePerc}}%"></a>
+					<a href="#closed-issues" class="table-cell tiny bg-red" style="width: {{.Activity.ClosedIssuePerc}}%"></a>
 				{{end}}
-				<a href="#new-issues" class="table-cell tiny tw-bg-green"></a>
+				<a href="#new-issues" class="table-cell tiny bg-green"></a>
 			</div>
 			{{else}}
 			<div class="stats-table">
-				<a class="table-cell tiny tw-bg-grey"></a>
+				<a class="table-cell tiny bg-grey"></a>
 			</div>
 			{{end}}
 			{{ctx.Locale.TrN .Activity.ActiveIssueCount "repo.activity.active_issues_count_1" "repo.activity.active_issues_count_n" .Activity.ActiveIssueCount}}
@@ -59,21 +59,21 @@
 <div class="ui attached segment horizontal segments">
 	{{if .Permission.CanRead ctx.Consts.RepoUnitTypePullRequests}}
 		<a href="#merged-pull-requests" class="ui attached segment text center">
-			<span class="tw-text-purple">{{svg "octicon-git-pull-request"}}</span> <strong>{{.Activity.MergedPRCount}}</strong><br>
+			<span class="text-purple">{{svg "octicon-git-pull-request"}}</span> <strong>{{.Activity.MergedPRCount}}</strong><br>
 			{{ctx.Locale.TrN .Activity.MergedPRCount "repo.activity.merged_prs_count_1" "repo.activity.merged_prs_count_n"}}
 		</a>
 		<a href="#proposed-pull-requests" class="ui attached segment text center">
-			<span class="tw-text-green">{{svg "octicon-git-branch"}}</span> <strong>{{.Activity.OpenedPRCount}}</strong><br>
+			<span class="text-green">{{svg "octicon-git-branch"}}</span> <strong>{{.Activity.OpenedPRCount}}</strong><br>
 			{{ctx.Locale.TrN .Activity.OpenedPRCount "repo.activity.opened_prs_count_1" "repo.activity.opened_prs_count_n"}}
 		</a>
 	{{end}}
 	{{if .Permission.CanRead ctx.Consts.RepoUnitTypeIssues}}
 		<a href="#closed-issues" class="ui attached segment text center">
-			<span class="tw-text-red">{{svg "octicon-issue-closed"}}</span> <strong>{{.Activity.ClosedIssueCount}}</strong><br>
+			<span class="text-red">{{svg "octicon-issue-closed"}}</span> <strong>{{.Activity.ClosedIssueCount}}</strong><br>
 			{{ctx.Locale.TrN .Activity.ClosedIssueCount "repo.activity.closed_issues_count_1" "repo.activity.closed_issues_count_n"}}
 		</a>
 		<a href="#new-issues" class="ui attached segment text center">
-			<span class="tw-text-green">{{svg "octicon-issue-opened"}}</span> <strong>{{.Activity.OpenedIssueCount}}</strong><br>
+			<span class="text-green">{{svg "octicon-issue-opened"}}</span> <strong>{{.Activity.OpenedIssueCount}}</strong><br>
 			{{ctx.Locale.TrN .Activity.OpenedIssueCount "repo.activity.new_issues_count_1" "repo.activity.new_issues_count_n"}}
 		</a>
 	{{end}}
@@ -82,7 +82,7 @@
 
 {{if .Permission.CanRead ctx.Consts.RepoUnitTypeCode}}
 	{{if eq .Activity.Code.CommitCountInAllBranches 0}}
-		<div class="ui tw-text-center segment">
+		<div class="ui text-center segment">
 		<h4 class="ui header">{{ctx.Locale.Tr "repo.activity.no_git_activity"}}</h4>
 		</div>
 	{{end}}
@@ -100,9 +100,9 @@
 				<strong>{{ctx.Locale.TrN .Activity.Code.ChangedFiles "repo.activity.git_stats_file_1" "repo.activity.git_stats_file_n" .Activity.Code.ChangedFiles}}</strong>
 				{{ctx.Locale.TrN .Activity.Code.ChangedFiles "repo.activity.git_stats_files_changed_1" "repo.activity.git_stats_files_changed_n"}}
 				{{ctx.Locale.Tr "repo.activity.git_stats_additions"}}
-				<strong class="tw-text-green">{{ctx.Locale.TrN .Activity.Code.Additions "repo.activity.git_stats_addition_1" "repo.activity.git_stats_addition_n" .Activity.Code.Additions}}</strong>
+				<strong class="text-green">{{ctx.Locale.TrN .Activity.Code.Additions "repo.activity.git_stats_addition_1" "repo.activity.git_stats_addition_n" .Activity.Code.Additions}}</strong>
 				{{ctx.Locale.Tr "repo.activity.git_stats_and_deletions"}}
-				<strong class="tw-text-red">{{ctx.Locale.TrN .Activity.Code.Deletions "repo.activity.git_stats_deletion_1" "repo.activity.git_stats_deletion_n" .Activity.Code.Deletions}}</strong>.
+				<strong class="text-red">{{ctx.Locale.TrN .Activity.Code.Deletions "repo.activity.git_stats_deletion_1" "repo.activity.git_stats_deletion_n" .Activity.Code.Deletions}}</strong>.
 			</div>
 			<div class="ui attached segment">
 				<div id="repo-activity-top-authors-chart"></div>
@@ -113,7 +113,7 @@
 
 {{if gt .Activity.PublishedReleaseCount 0}}
 	<h4 class="divider divider-text" id="published-releases">
-		{{svg "octicon-tag" 16 "tw-mr-2"}}
+		{{svg "octicon-tag" 16 "mr-2"}}
 		{{ctx.Locale.Tr "repo.activity.title.releases_published_by"
 			(ctx.Locale.TrN .Activity.PublishedReleaseCount "repo.activity.title.releases_1" "repo.activity.title.releases_n" .Activity.PublishedReleaseCount)
 			(ctx.Locale.TrN .Activity.PublishedReleaseAuthorCount "repo.activity.title.user_1" "repo.activity.title.user_n" .Activity.PublishedReleaseAuthorCount)
@@ -135,7 +135,7 @@
 
 {{if gt .Activity.MergedPRCount 0}}
 	<h4 class="divider divider-text" id="merged-pull-requests">
-		{{svg "octicon-git-pull-request" 16 "tw-mr-2"}}
+		{{svg "octicon-git-pull-request" 16 "mr-2"}}
 		{{ctx.Locale.Tr "repo.activity.title.prs_merged_by"
 			(ctx.Locale.TrN .Activity.MergedPRCount "repo.activity.title.prs_1" "repo.activity.title.prs_n" .Activity.MergedPRCount)
 			(ctx.Locale.TrN .Activity.MergedPRAuthorCount "repo.activity.title.user_1" "repo.activity.title.user_n" .Activity.MergedPRAuthorCount)
@@ -154,7 +154,7 @@
 
 {{if gt .Activity.OpenedPRCount 0}}
 	<h4 class="divider divider-text" id="proposed-pull-requests">
-		{{svg "octicon-git-branch" 16 "tw-mr-2"}}
+		{{svg "octicon-git-branch" 16 "mr-2"}}
 		{{ctx.Locale.Tr "repo.activity.title.prs_opened_by"
 			(ctx.Locale.TrN .Activity.OpenedPRCount "repo.activity.title.prs_1" "repo.activity.title.prs_n" .Activity.OpenedPRCount)
 			(ctx.Locale.TrN .Activity.OpenedPRAuthorCount "repo.activity.title.user_1" "repo.activity.title.user_n" .Activity.OpenedPRAuthorCount)
@@ -173,7 +173,7 @@
 
 {{if gt .Activity.ClosedIssueCount 0}}
 	<h4 class="divider divider-text" id="closed-issues">
-		{{svg "octicon-issue-closed" 16 "tw-mr-2"}}
+		{{svg "octicon-issue-closed" 16 "mr-2"}}
 		{{ctx.Locale.Tr "repo.activity.title.issues_closed_from"
 			(ctx.Locale.TrN .Activity.ClosedIssueCount "repo.activity.title.issues_1" "repo.activity.title.issues_n" .Activity.ClosedIssueCount)
 			(ctx.Locale.TrN .Activity.ClosedIssueAuthorCount "repo.activity.title.user_1" "repo.activity.title.user_n" .Activity.ClosedIssueAuthorCount)
@@ -192,7 +192,7 @@
 
 {{if gt .Activity.OpenedIssueCount 0}}
 	<h4 class="divider divider-text" id="new-issues">
-		{{svg "octicon-issue-opened" 16 "tw-mr-2"}}
+		{{svg "octicon-issue-opened" 16 "mr-2"}}
 		{{ctx.Locale.Tr "repo.activity.title.issues_created_by"
 			(ctx.Locale.TrN .Activity.OpenedIssueCount "repo.activity.title.issues_1" "repo.activity.title.issues_n" .Activity.OpenedIssueCount)
 			(ctx.Locale.TrN .Activity.OpenedIssueAuthorCount "repo.activity.title.user_1" "repo.activity.title.user_n" .Activity.OpenedIssueAuthorCount)
@@ -211,7 +211,7 @@
 
 {{if gt .Activity.UnresolvedIssueCount 0}}
 	<h4 class="divider divider-text" id="unresolved-conversations" data-tooltip-content="{{ctx.Locale.Tr "repo.activity.unresolved_conv_desc"}}">
-		{{svg "octicon-comment-discussion" 16 "tw-mr-2"}}
+		{{svg "octicon-comment-discussion" 16 "mr-2"}}
 		{{ctx.Locale.TrN .Activity.UnresolvedIssueCount "repo.activity.title.unresolved_conv_1" "repo.activity.title.unresolved_conv_n" .Activity.UnresolvedIssueCount}}
 	</h4>
 	<div class="list">

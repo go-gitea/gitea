@@ -37,19 +37,19 @@
   justify-content: space-between;
 }
 
-.milestone-toolbar .group {
+.milestone-toolbar .g-button-group {
   color: var(--color-text-light-2);
   display: flex;
   flex-wrap: wrap;
   gap: 8px;
 }
 
-.milestone-toolbar .group > a {
+.milestone-toolbar .g-button-group > a {
   font-size: 15px;
   color: var(--color-text-light-2);
 }
 
-.milestone-toolbar .group > a:hover {
+.milestone-toolbar .g-button-group > a:hover {
   color: var(--color-text);
 }
 

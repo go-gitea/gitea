@@ -1,6 +1,6 @@
 <div class="item">
-	<div class="tw-flex tw-items-center">
-		<div class="icon tw-ml-2 tw-mr-2">
+	<div class="flex items-center">
+		<div class="icon ml-2 mr-2">
 			{{if eq .Process.Type "request"}}
 				{{svg "octicon-globe" 16}}
 			{{else if eq .Process.Type "system"}}
@@ -11,7 +11,7 @@
 				{{svg "octicon-code" 16}}
 			{{end}}
 		</div>
-		<div class="content tw-flex-1">
+		<div class="content flex-1">
 			<div class="header">{{.Process.Description}}</div>
 			<div class="description">{{if ne .Process.Type "none"}}{{DateUtils.TimeSince .Process.Start}}{{end}}</div>
 		</div>
@@ -20,19 +20,19 @@
 				<a class="link-action" data-url="{{.root.Link}}/cancel/{{.Process.PID}}"
 					data-modal-confirm-header="{{ctx.Locale.Tr "admin.monitor.process.cancel"}}"
 					data-modal-confirm-content="{{ctx.Locale.Tr "admin.monitor.process.cancel_desc"}}"
-				>{{svg "octicon-trash" 16 "tw-text-red"}}</a>
+				>{{svg "octicon-trash" 16 "text-red"}}</a>
 			{{end}}
 		</div>
 	</div>
 	{{if .Process.Stacks}}
-		<div class="divided list tw-ml-2">
+		<div class="divided list ml-2">
 			{{range .Process.Stacks}}
 				<div class="item">
 					<details>
 						<summary>
 							<div class="flex-text-inline">
-								<div class="header tw-ml-2">
-									<span class="icon tw-mr-2">{{svg "octicon-code" 16}}</span>{{.Description}}{{if gt .Count 1}} * {{.Count}}{{end}}
+								<div class="header ml-2">
+									<span class="icon mr-2">{{svg "octicon-code" 16}}</span>{{.Description}}{{if gt .Count 1}} * {{.Count}}{{end}}
 								</div>
 								<div class="description">
 									{{range .Labels}}
@@ -43,9 +43,9 @@
 						</summary>
 						<div class="list">
 							{{range .Entry}}
-								<div class="item tw-flex tw-items-center">
-									<span class="icon tw-mr-4">{{svg "octicon-dot-fill" 16}}</span>
-									<div class="content tw-flex-1">
+								<div class="item flex items-center">
+									<span class="icon mr-4">{{svg "octicon-dot-fill" 16}}</span>
+									<div class="content flex-1">
 										<div class="header">{{.Function}}</div>
 										<div class="description">{{.File}}:{{.Line}}</div>
 									</div>

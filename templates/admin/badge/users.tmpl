@@ -15,7 +15,7 @@
 		<div class="ui attached segment">
 			<div class="flex-divided-list items-with-main">
 				{{range .Users}}
-					<div class="item tw-items-center">
+					<div class="item items-center">
 						<div class="item-leading">
 							<a href="{{.HomeLink}}">{{ctx.AvatarUtils.Avatar . 32}}</a>
 						</div>
@@ -25,7 +25,7 @@
 							</div>
 						</div>
 						<div class="item-trailing">
-							<a class="ui red tiny button inline link-action" data-url="{{$.Link}}/delete?id={{.ID}}" data-modal-confirm="{{ctx.Locale.Tr "admin.badges.delete_user_desc"}}">
+							<a class="ui red tiny button fm-inline link-action" data-url="{{$.Link}}/delete?id={{.ID}}" data-modal-confirm="{{ctx.Locale.Tr "admin.badges.delete_user_desc"}}">
 								{{ctx.Locale.Tr "admin.badges.remove_user"}}
 							</a>
 						</div>
