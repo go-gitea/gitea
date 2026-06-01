@@ -128,7 +128,7 @@ func (graph *Graph) LoadAndProcessCommits(ctx context.Context, repository *repo_
 		if c.Commit.Author != nil && emailUserMap != nil {
 			c.User = emailUserMap.GetByEmail(c.Commit.Author.Email)
 		}
-		c.CoAuthors = user_model.AvatarStackUsersFromSigs(c.Commit.CoAuthorSignatures(), emailUserMap)
+		c.CoAuthors = user_model.CommitParticipantsFromSigs(c.Commit.CoAuthorSignatures(), emailUserMap)
 
 		c.Verification = asymkey_service.ParseCommitWithSignature(ctx, c.Commit)
 
@@ -263,7 +263,7 @@ func newRefsFromRefNames(refNames []byte) []git.Reference {
 type Commit struct {
 	Commit       *git.Commit
 	User         *user_model.User
-	CoAuthors    []*user_model.AvatarStackUser
+	CoAuthors    []*user_model.CommitParticipant
 	Verification *asymkey_model.CommitVerification
 	Status       *git_model.CommitStatus
 	Flow         int64

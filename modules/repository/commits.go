@@ -189,13 +189,13 @@ func (pc *PushCommit) AuthorUser(ctx context.Context) *user_model.User {
 }
 
 // avatarStackCoAuthors returns the co-authors in avatar-stack shape, without resolved Gitea users.
-func (pc *PushCommit) avatarStackCoAuthors() []*user_model.AvatarStackUser {
+func (pc *PushCommit) avatarStackCoAuthors() []*user_model.CommitParticipant {
 	if len(pc.CoAuthors) == 0 {
 		return nil
 	}
-	coAuthors := make([]*user_model.AvatarStackUser, len(pc.CoAuthors))
+	coAuthors := make([]*user_model.CommitParticipant, len(pc.CoAuthors))
 	for i, sig := range pc.CoAuthors {
-		coAuthors[i] = &user_model.AvatarStackUser{Sig: sig}
+		coAuthors[i] = &user_model.CommitParticipant{Sig: sig}
 	}
 	return coAuthors
 }

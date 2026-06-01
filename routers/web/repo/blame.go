@@ -35,7 +35,7 @@ type blameRow struct {
 	CommitMessage  string
 	CommitSince    template.HTML
 	AuthorUser     *user_model.User
-	CoAuthors      []*user_model.AvatarStackUser
+	CoAuthors      []*user_model.CommitParticipant
 	Author         *git.Signature
 
 	Code         template.HTML

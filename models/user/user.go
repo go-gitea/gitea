@@ -1151,7 +1151,7 @@ func GetUsersBySource(ctx context.Context, s *auth.Source) ([]*User, error) {
 // UserCommit represents a commit with validation of user.
 type UserCommit struct { //revive:disable-line:exported
 	User      *User
-	CoAuthors []*AvatarStackUser
+	CoAuthors []*CommitParticipant
 	*git.Commit
 }
 
@@ -1190,7 +1190,7 @@ func ValidateCommitsWithEmails(ctx context.Context, oldCommits []*git.Commit) ([
 	for _, c := range oldCommits {
 		newCommits = append(newCommits, &UserCommit{
 			User:      emailUserMap.GetByEmail(c.Author.Email), // FIXME: why ValidateCommitsWithEmails uses "Author", but ParseCommitsWithSignature uses "Committer"?
-			CoAuthors: AvatarStackUsersFromSigs(c.CoAuthorSignatures(), emailUserMap),
+			CoAuthors: CommitParticipantsFromSigs(c.CoAuthorSignatures(), emailUserMap),
 			Commit:    c,
 		})
 	}

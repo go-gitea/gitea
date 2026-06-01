@@ -9,48 +9,48 @@ import (
 	"gitea.dev/modules/git"
 )
 
-// AvatarStackUser is one participant in an avatar stack: a git identity, optionally
-// matched to a Gitea user.
-type AvatarStackUser struct {
+// CommitParticipant is one participant of a commit (its author or a co-author): a git
+// identity, optionally matched to a Gitea user.
+type CommitParticipant struct {
 	GiteaUser *User          // matched Gitea user, nil if unmatched
 	Sig       *git.Signature // git identity (name/email)
 }
 
-// AvatarStackData is the view-model for the AvatarStack render helpers. Users[0] is the
-// primary participant (commit author), painted on top; the rest follow.
+// AvatarStackData is the view-model for the AvatarStack render helpers. Participants[0] is
+// the primary participant (commit author), painted on top; the rest follow.
 type AvatarStackData struct {
-	Users []*AvatarStackUser
+	Participants []*CommitParticipant
 }
 
 // NewAvatarStackData builds a stack with the author first, followed by its co-authors.
-func NewAvatarStackData(authorUser *User, authorSig *git.Signature, coAuthors []*AvatarStackUser) *AvatarStackData {
+func NewAvatarStackData(authorUser *User, authorSig *git.Signature, coAuthors []*CommitParticipant) *AvatarStackData {
 	if authorUser == nil && authorSig == nil {
 		return nil
 	}
-	users := make([]*AvatarStackUser, 0, len(coAuthors)+1)
-	users = append(users, &AvatarStackUser{GiteaUser: authorUser, Sig: authorSig})
-	users = append(users, coAuthors...)
-	return &AvatarStackData{Users: users}
+	participants := make([]*CommitParticipant, 0, len(coAuthors)+1)
+	participants = append(participants, &CommitParticipant{GiteaUser: authorUser, Sig: authorSig})
+	participants = append(participants, coAuthors...)
+	return &AvatarStackData{Participants: participants}
 }
 
-// AvatarStackUsersFromSigs wraps each signature with the matching Gitea user if any.
-func AvatarStackUsersFromSigs(sigs []*git.Signature, emailUserMap *EmailUserMap) []*AvatarStackUser {
+// CommitParticipantsFromSigs wraps each signature with the matching Gitea user if any.
+func CommitParticipantsFromSigs(sigs []*git.Signature, emailUserMap *EmailUserMap) []*CommitParticipant {
 	if len(sigs) == 0 {
 		return nil
 	}
-	out := make([]*AvatarStackUser, len(sigs))
+	out := make([]*CommitParticipant, len(sigs))
 	for i, sig := range sigs {
 		var giteaUser *User
 		if emailUserMap != nil {
 			giteaUser = emailUserMap.GetByEmail(sig.Email)
 		}
-		out[i] = &AvatarStackUser{GiteaUser: giteaUser, Sig: sig}
+		out[i] = &CommitParticipant{GiteaUser: giteaUser, Sig: sig}
 	}
 	return out
 }
 
 // CoAuthorsFromCommit resolves a commit's co-author trailers into avatar-stack users.
-func CoAuthorsFromCommit(ctx context.Context, c *git.Commit) ([]*AvatarStackUser, error) {
+func CoAuthorsFromCommit(ctx context.Context, c *git.Commit) ([]*CommitParticipant, error) {
 	sigs := c.CoAuthorSignatures()
 	if len(sigs) == 0 {
 		return nil, nil
@@ -63,7 +63,7 @@ func CoAuthorsFromCommit(ctx context.Context, c *git.Commit) ([]*AvatarStackUser
 	if err != nil {
 		return nil, err
 	}
-	return AvatarStackUsersFromSigs(sigs, emailUserMap), nil
+	return CommitParticipantsFromSigs(sigs, emailUserMap), nil
 }
 
 // AvatarStackData returns the view-model for rendering this commit's author + co-authors.

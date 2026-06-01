@@ -315,11 +315,11 @@ func TestUserMention(t *testing.T) {
 func TestAvatarStack(t *testing.T) {
 	ut := newTestRenderUtils(t)
 	authorSig := &git.Signature{Name: "Alice", Email: "alice@example.com"}
-	mkCo := func(name, email string) *user_model.AvatarStackUser {
-		return &user_model.AvatarStackUser{Sig: &git.Signature{Name: name, Email: email}}
+	mkCo := func(name, email string) *user_model.CommitParticipant {
+		return &user_model.CommitParticipant{Sig: &git.Signature{Name: name, Email: email}}
 	}
 
-	mkData := func(co []*user_model.AvatarStackUser) *user_model.AvatarStackData {
+	mkData := func(co []*user_model.CommitParticipant) *user_model.AvatarStackData {
 		return user_model.NewAvatarStackData(nil, authorSig, co)
 	}
 
@@ -332,7 +332,7 @@ func TestAvatarStack(t *testing.T) {
 	})
 
 	t.Run("two participants use and label", func(t *testing.T) {
-		got := string(ut.AvatarStackWithNames(mkData([]*user_model.AvatarStackUser{mkCo("Bob", "bob@example.com")}), "", ""))
+		got := string(ut.AvatarStackWithNames(mkData([]*user_model.CommitParticipant{mkCo("Bob", "bob@example.com")}), "", ""))
 		assert.Contains(t, got, "repo.commits.avatar_stack_and")
 		assert.Contains(t, got, "Bob")
 		assert.NotContains(t, got, "avatar_stack_people")
@@ -341,7 +341,7 @@ func TestAvatarStack(t *testing.T) {
 
 	t.Run("three participants switch to N people label with tippy popup", func(t *testing.T) {
 		got := string(ut.AvatarStackWithNames(mkData(
-			[]*user_model.AvatarStackUser{mkCo("Bob", "bob@example.com"), mkCo("Carol", "carol@example.com")}), "", ""))
+			[]*user_model.CommitParticipant{mkCo("Bob", "bob@example.com"), mkCo("Carol", "carol@example.com")}), "", ""))
 		assert.Contains(t, got, "repo.commits.avatar_stack_people:3")
 		assert.NotContains(t, got, "repo.commits.avatar_stack_and")
 		assert.Contains(t, got, `data-global-init="initAvatarStackPopup"`)
@@ -350,7 +350,7 @@ func TestAvatarStack(t *testing.T) {
 	})
 
 	t.Run("overflow chip renders beyond 10 participants", func(t *testing.T) {
-		cos := make([]*user_model.AvatarStackUser, 11)
+		cos := make([]*user_model.CommitParticipant, 11)
 		for i := range cos {
 			cos[i] = mkCo("X", "x@example.com")
 		}
@@ -362,7 +362,7 @@ func TestAvatarStack(t *testing.T) {
 	})
 
 	t.Run("chip renders at exactly one over the limit", func(t *testing.T) {
-		cos := make([]*user_model.AvatarStackUser, 10)
+		cos := make([]*user_model.CommitParticipant, 10)
 		for i := range cos {
 			cos[i] = mkCo("X", "x@example.com")
 		}
