@@ -3,9 +3,9 @@
 
 package v1_20
 
-import "xorm.io/xorm"
+import "gitea.dev/models/db"
 
-func AddVersionToActionRunner(x *xorm.Engine) error {
+func AddVersionToActionRunner(x db.EngineMigration) error {
 	type ActionRunner struct {
 		Version string `xorm:"VARCHAR(64)"` // the version of act_runner
 	}

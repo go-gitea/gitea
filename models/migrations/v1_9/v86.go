@@ -3,11 +3,9 @@
 
 package v1_9
 
-import (
-	"xorm.io/xorm"
-)
+import "gitea.dev/models/db"
 
-func AddHTTPMethodToWebhook(x *xorm.Engine) error {
+func AddHTTPMethodToWebhook(x db.EngineMigration) error {
 	type Webhook struct {
 		HTTPMethod string `xorm:"http_method DEFAULT 'POST'"`
 	}

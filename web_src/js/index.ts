@@ -2,7 +2,8 @@ import '../fomantic/build/fomantic.js';
 import '../css/index.css';
 
 import {initDashboardRepoList} from './features/dashboard.ts';
-import {initGlobalCopyToClipboardListener} from './features/clipboard.ts';
+import {initGlobalCopyToClipboardListener} from './modules/clipboard.ts';
+import {initCopyContent} from './features/copycontent.ts';
 import {initRepoGraphGit} from './features/repo-graph.ts';
 import {initHeatmap} from './features/heatmap.ts';
 import {initImageDiff} from './features/imagediff.ts';
@@ -40,7 +41,6 @@ import {initRepoBranchButton} from './features/repo-branch.ts';
 import {initCommonOrganization} from './features/common-organization.ts';
 import {initRepoWikiForm} from './features/repo-wiki.ts';
 import {initRepository, initBranchSelectorTabs} from './features/repo-legacy.ts';
-import {initCopyContent} from './features/copycontent.ts';
 import {initCaptcha} from './features/captcha.ts';
 import {initRepositoryActionView} from './features/repo-actions.ts';
 import {initGlobalTooltips} from './modules/tippy.ts';

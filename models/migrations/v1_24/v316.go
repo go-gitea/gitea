@@ -4,10 +4,12 @@
 package v1_24
 
 import (
+	"gitea.dev/models/db"
+
 	"xorm.io/xorm"
 )
 
-func AddDescriptionForSecretsAndVariables(x *xorm.Engine) error {
+func AddDescriptionForSecretsAndVariables(x db.EngineMigration) error {
 	type Secret struct {
 		Description string `xorm:"TEXT"`
 	}

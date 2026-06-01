@@ -4,13 +4,12 @@
 package v1_19
 
 import (
-	"code.gitea.io/gitea/modules/setting"
-
-	"xorm.io/xorm"
+	"gitea.dev/models/db"
+	"gitea.dev/modules/setting"
 )
 
 // AlterPublicGPGKeyImportContentFieldToMediumText: set GPGKeyImport Content field to MEDIUMTEXT
-func AlterPublicGPGKeyImportContentFieldToMediumText(x *xorm.Engine) error {
+func AlterPublicGPGKeyImportContentFieldToMediumText(x db.EngineMigration) error {
 	sess := x.NewSession()
 	defer sess.Close()
 	if err := sess.Begin(); err != nil {

@@ -516,10 +516,8 @@ td .commit-summary {
 }
 
 .repository.view.issue .comment-list .timeline-item .comment-text-line {
-  /* TODO: this "line-height" is not ideal (actually it is abused), many layouts depend on this magic value,
-      for example: alignment of the header arrow and the avatar, view PR commit list left icon layout, dismiss review with reason, etc */
-  line-height: 32px;
   color: var(--color-text-light);
+  flex: 1;
   min-width: 0;
 }
 
@@ -644,11 +642,6 @@ td .commit-summary {
   height: 32px;
   display: inline-flex;
   align-items: center;
-}
-
-.repository.view.issue .comment-list .event > .comment-text-line {
-  flex: 1;
-  min-width: 0;
 }
 
 .repository.view.issue .comment-list .event > .detail {
@@ -1050,7 +1043,7 @@ td .commit-summary {
 /* if the element is for a checkbox, then it should have a padding-left to align to the checkbox's text */
 .repository.settings.branches .branch-protection .ui.checkbox .help,
 .repository.settings.branches .branch-protection .checkbox-sub-item {
-  padding-left: 26px;
+  padding-left: 20px;
 }
 
 .repository.settings.branches .branch-protection .status-check-matched-mark {
@@ -1585,6 +1578,7 @@ tbody.commit-list {
 
 #diff-container {
   display: flex;
+  gap: var(--page-spacing);
 }
 
 #diff-file-boxes {

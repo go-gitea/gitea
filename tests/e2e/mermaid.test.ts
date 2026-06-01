@@ -5,7 +5,7 @@ import {apiCreateRepo, apiCreateIssue, assertNoJsError, randomString} from './ut
 test('mermaid diagram in issue', async ({page, request}) => {
   const repoName = `e2e-mermaid-${randomString(8)}`;
   const owner = env.GITEA_TEST_E2E_USER;
-  await apiCreateRepo(request, {name: repoName});
+  await apiCreateRepo(request, {name: repoName, autoInit: false});
   const body = '```mermaid\nflowchart LR\n  Alpha --> Beta\n  Beta --> Gamma\n```\n';
   const {index} = await apiCreateIssue(request, {owner, repo: repoName, title: 'mermaid test', body});
   await page.goto(`/${owner}/${repoName}/issues/${index}`);

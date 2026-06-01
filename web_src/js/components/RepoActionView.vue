@@ -1,12 +1,12 @@
 <script setup lang="ts">
 import {SvgIcon} from '../svg.ts';
 import ActionStatusIcon from './ActionStatusIcon.vue';
-import {toRefs} from 'vue';
+import {computed, ref, toRefs} from 'vue';
 import {POST, DELETE} from '../modules/fetch.ts';
 import ActionRunSummaryView from './ActionRunSummaryView.vue';
 import ActionRunJobView from './ActionRunJobView.vue';
-import type {ActionsRunAttempt} from '../modules/gitea-actions.ts';
-import {createActionRunViewStore} from './ActionRunView.ts';
+import type {ActionsJob, ActionsRunAttempt} from '../modules/gitea-actions.ts';
+import {buildJobsByParentJobID, createActionRunViewStore} from './ActionRunView.ts';
 import {buildArtifactTooltipHtml} from './ActionRunArtifacts.ts';
 
 defineOptions({
@@ -22,6 +22,62 @@ const props = defineProps<{
 const locale = props.locale;
 const store = createActionRunViewStore(props.actionsViewUrl);
 const {currentRun: run, runArtifacts: artifacts} = toRefs(store.viewData);
+
+type JobListItem = {
+  job: ActionsJob;
+  depth: number;
+  hasChildren: boolean;
+};
+
+// Caller jobs default to collapsed. Membership in this set means "user has manually expanded this caller"
+const expandedJobIDs = ref(new Set<number>());
+
+function toggleExpandedJob(jobID: number) {
+  const next = new Set(expandedJobIDs.value);
+  if (next.has(jobID)) {
+    next.delete(jobID);
+  } else {
+    next.add(jobID);
+  }
+  expandedJobIDs.value = next;
+}
+
+// When a child job is currently selected, force-expand the chain of caller ancestors
+const forcedExpandedJobIDs = computed(() => {
+  const expanded = new Set<number>();
+  if (!props.jobId) return expanded;
+  const jobsByID = new Map((run.value.jobs || []).map((job) => [job.id, job]));
+  let cur = jobsByID.get(props.jobId);
+  while (cur?.parentJobID) {
+    expanded.add(cur.parentJobID);
+    cur = jobsByID.get(cur.parentJobID);
+  }
+  return expanded;
+});
+
+function isJobCollapsed(jobID: number) {
+  return !expandedJobIDs.value.has(jobID) && !forcedExpandedJobIDs.value.has(jobID);
+}
+
+const visibleJobListItems = computed<JobListItem[]>(() => {
+  const jobs = [...(run.value.jobs || [])].sort((a, b) => a.id - b.id);
+  const childrenByParent = buildJobsByParentJobID(jobs);
+
+  const result: JobListItem[] = [];
+  const stack: Array<{job: ActionsJob; depth: number}> = [];
+  const top = childrenByParent.get(0) || [];
+  for (let i = top.length - 1; i >= 0; i--) stack.push({job: top[i], depth: 0});
+
+  while (stack.length > 0) {
+    const {job, depth} = stack.pop()!;
+    const children = childrenByParent.get(job.id) || [];
+    const hasChildren = children.length > 0;
+    result.push({job, depth, hasChildren});
+    if (hasChildren && isJobCollapsed(job.id)) continue;
+    for (let i = children.length - 1; i >= 0; i--) stack.push({job: children[i], depth: depth + 1});
+  }
+  return result;
+});
 
 function formatAttemptTitle(attempt: ActionsRunAttempt) {
   return attempt.latest ? `${locale.latestAttempt} #${attempt.attempt}` : `${locale.attempt} #${attempt.attempt}`;
@@ -142,35 +198,54 @@ async function deleteArtifact(name: string) {
     <div class="action-view-body">
       <div class="action-view-left">
         <!-- summary -->
-        <a class="job-brief-item silenced" :href="run.viewLink" :class="!props.jobId ? 'selected' : ''">
-          <SvgIcon name="octicon-home"/>
-          <span class="gt-ellipsis">{{ locale.summary }}</span>
-        </a>
+        <div class="flex-items-block action-view-sidebar-list">
+          <a class="item silenced" :href="run.viewLink" :class="!props.jobId ? 'selected' : ''">
+            <SvgIcon name="octicon-home"/>
+            <span class="gt-ellipsis">{{ locale.summary }}</span>
+          </a>
+        </div>
 
         <!-- jobs list -->
         <div class="ui divider"/>
         <div class="left-list-header">{{ locale.allJobs }}</div>
-        <!-- unlike other lists, the items have paddings already -->
-        <ul class="ui relaxed list flex-items-block tw-p-0">
-          <li class="item job-brief-item" v-for="job in run.jobs" :key="job.id" :class="props.jobId === job.id ? 'selected' : ''">
-            <a class="tw-contents silenced" :href="job.link">
-              <ActionStatusIcon :locale-status="locale.status[job.status]" :status="job.status" icon-variant="circle-fill"/>
-              <span class="tw-flex-1 gt-ellipsis">{{ job.name }}</span>
-              <SvgIcon name="octicon-sync" role="button" :data-tooltip-content="locale.rerun" class="tw-cursor-pointer link-action interact-fg" :data-url="`${run.link}/jobs/${job.id}/rerun`" v-if="job.canRerun"/>
-              <span>{{ job.duration }}</span>
+        <div class="flex-items-block action-view-sidebar-list">
+          <div
+            class="item job-brief-item"
+            :class="{'selected': props.jobId === item.job.id}"
+            :style="{paddingLeft: `${10 + item.depth * 16}px`}"
+            v-for="item in visibleJobListItems"
+            :key="item.job.id"
+          >
+            <a class="tw-contents silenced" :href="item.job.link">
+              <ActionStatusIcon :locale-status="locale.status[item.job.status]" :status="item.job.status" icon-variant="circle-fill"/>
+              <span class="tw-min-w-0 gt-ellipsis">{{ item.job.name }}</span>
+              <SvgIcon name="octicon-sync" role="button" :data-tooltip-content="locale.rerun" class="job-rerun-button tw-cursor-pointer link-action interact-fg" :data-url="`${run.link}/jobs/${item.job.id}/rerun`" v-if="item.job.canRerun"/>
+              <span class="job-duration">{{ item.job.duration }}</span>
             </a>
-          </li>
-        </ul>
+            <button
+              v-if="item.hasChildren"
+              type="button"
+              class="job-brief-toggle"
+              :class="{'collapsed': isJobCollapsed(item.job.id)}"
+              @click="toggleExpandedJob(item.job.id)"
+              :title="isJobCollapsed(item.job.id) ? locale.expandCallerJobs : locale.collapseCallerJobs"
+              :aria-label="isJobCollapsed(item.job.id) ? locale.expandCallerJobs : locale.collapseCallerJobs"
+              :aria-expanded="!isJobCollapsed(item.job.id)"
+            >
+              <SvgIcon name="octicon-chevron-down" :size="14"/>
+            </button>
+          </div>
+        </div>
 
         <!-- artifacts list -->
         <template v-if="artifacts.length > 0">
           <div class="ui divider"/>
           <div class="left-list-header">{{ locale.artifactsTitle }} ({{ artifacts.length }})</div>
-          <ul class="ui relaxed list flex-items-block">
-            <li class="item" v-for="artifact in artifacts" :key="artifact.name">
+          <div class="flex-items-block action-view-sidebar-list">
+            <div class="item" v-for="artifact in artifacts" :key="artifact.name">
               <template v-if="artifact.status !== 'expired'">
                 <a
-                  class="tw-flex-1 flex-text-block muted" target="_blank"
+                  class="tw-flex-1 tw-min-w-0 flex-text-block silenced" target="_blank"
                   :href="buildArtifactLink(artifact.name)"
                   :data-tooltip-content="buildArtifactTooltipHtml(artifact, locale.artifactExpiresAt)"
                   data-tooltip-render="html"
@@ -179,7 +254,7 @@ async function deleteArtifact(name: string) {
                   <SvgIcon name="octicon-file" class="tw-text-text-light"/>
                   <span class="tw-flex-1 gt-ellipsis">{{ artifact.name }}</span>
                 </a>
-                <a v-if="run.canDeleteArtifact" class="muted" @click="deleteArtifact(artifact.name)">
+                <a v-if="run.canDeleteArtifact" class="silenced" @click="deleteArtifact(artifact.name)">
                   <SvgIcon name="octicon-trash"/>
                 </a>
               </template>
@@ -188,21 +263,21 @@ async function deleteArtifact(name: string) {
                 <span class="tw-flex-1 gt-ellipsis">{{ artifact.name }}</span>
                 <span class="ui label tw-flex-shrink-0">{{ locale.artifactExpired }}</span>
               </span>
-            </li>
-          </ul>
+            </div>
+          </div>
         </template>
 
         <!-- run details -->
         <div class="ui divider"/>
         <div class="left-list-header">{{ locale.runDetails }}</div>
-        <ul class="ui relaxed list">
-          <li class="item">
-            <a class="flex-text-block" :href="`${run.link}/workflow`">
+        <div class="flex-items-block action-view-sidebar-list">
+          <div class="item">
+            <a class="flex-text-block silenced" :href="`${run.link}/workflow`">
               <SvgIcon name="octicon-file-code" class="tw-text-text"/>
               <span class="gt-ellipsis">{{ locale.workflowFile }}</span>
             </a>
-          </li>
-        </ul>
+          </div>
+        </div>
       </div>
 
       <div class="action-view-right">
@@ -309,27 +384,70 @@ async function deleteArtifact(name: string) {
   color: var(--color-text-light-2);
 }
 
-.action-view-left .ui.relaxed.list {
+.action-view-sidebar-list {
   margin: var(--gap-block) 0;
-  padding-left: 10px;
 }
 
-.job-brief-item {
+.action-view-sidebar-list:first-child {
+  margin-top: 0;
+}
+
+.action-view-sidebar-list > .item {
   padding: 6px 10px;
   border-radius: var(--border-radius);
-  display: flex;
-  flex-wrap: nowrap;
-  align-items: center;
-  gap: var(--gap-block);
 }
 
-.job-brief-item:hover {
+.action-view-sidebar-list > .item:hover {
   background-color: var(--color-hover);
 }
 
-.job-brief-item.selected {
+.action-view-sidebar-list > .item.selected {
   font-weight: var(--font-weight-bold);
   background-color: var(--color-active);
+}
+
+.job-brief-toggle {
+  border: none;
+  padding: 0;
+  background: transparent;
+  cursor: pointer;
+  color: inherit;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  /* the icon is always chevron-down; flip to chevron-up when expanded */
+  transition: transform 0.15s ease;
+  /* sit right after the job name; rerun/duration float to the right via auto-margin */
+  order: 1;
+}
+
+.job-brief-toggle:not(.collapsed) {
+  transform: rotate(180deg);
+}
+
+/* push rerun/duration to the right edge; only one is visible at a time (hover swap),
+   the visible one absorbs the free space via auto-margin */
+.action-view-sidebar-list > .item .job-rerun-button,
+.action-view-sidebar-list > .item .job-duration {
+  order: 2;
+  margin-left: auto;
+}
+
+/* the re-run button replaces the duration on hover or job-link focus */
+.action-view-sidebar-list > .item .job-rerun-button {
+  display: none;
+}
+
+.action-view-sidebar-list > .item:hover .job-rerun-button,
+.action-view-sidebar-list > .item:has(a:focus) .job-rerun-button {
+  display: inline-flex;
+}
+
+/* only swap out the duration when a re-run button exists to take its place */
+.action-view-sidebar-list > .item:hover .job-rerun-button ~ .job-duration,
+.action-view-sidebar-list > .item:has(a:focus) .job-rerun-button ~ .job-duration {
+  display: none;
 }
 
 /* ================ */

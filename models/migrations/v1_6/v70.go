@@ -7,12 +7,11 @@ import (
 	"fmt"
 	"time"
 
-	"code.gitea.io/gitea/modules/setting"
-
-	"xorm.io/xorm"
+	"gitea.dev/models/db"
+	"gitea.dev/modules/setting"
 )
 
-func AddIssueDependencies(x *xorm.Engine) (err error) {
+func AddIssueDependencies(x db.EngineMigration) (err error) {
 	type IssueDependency struct {
 		ID           int64     `xorm:"pk autoincr"`
 		UserID       int64     `xorm:"NOT NULL"`

@@ -14,26 +14,27 @@ import (
 	"net/http"
 	"net/url"
 	"strconv"
+	"strings"
 	"time"
 
-	actions_model "code.gitea.io/gitea/models/actions"
-	"code.gitea.io/gitea/models/db"
-	git_model "code.gitea.io/gitea/models/git"
-	repo_model "code.gitea.io/gitea/models/repo"
-	"code.gitea.io/gitea/models/unit"
-	"code.gitea.io/gitea/modules/actions"
-	"code.gitea.io/gitea/modules/base"
-	"code.gitea.io/gitea/modules/git"
-	"code.gitea.io/gitea/modules/httplib"
-	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/storage"
-	"code.gitea.io/gitea/modules/templates"
-	"code.gitea.io/gitea/modules/translation"
-	"code.gitea.io/gitea/modules/util"
-	"code.gitea.io/gitea/modules/web"
-	"code.gitea.io/gitea/routers/common"
-	actions_service "code.gitea.io/gitea/services/actions"
-	context_module "code.gitea.io/gitea/services/context"
+	actions_model "gitea.dev/models/actions"
+	"gitea.dev/models/db"
+	git_model "gitea.dev/models/git"
+	repo_model "gitea.dev/models/repo"
+	"gitea.dev/models/unit"
+	"gitea.dev/modules/actions"
+	"gitea.dev/modules/base"
+	"gitea.dev/modules/git"
+	"gitea.dev/modules/httplib"
+	"gitea.dev/modules/log"
+	"gitea.dev/modules/storage"
+	"gitea.dev/modules/templates"
+	"gitea.dev/modules/translation"
+	"gitea.dev/modules/util"
+	"gitea.dev/modules/web"
+	"gitea.dev/routers/common"
+	actions_service "gitea.dev/services/actions"
+	context_module "gitea.dev/services/context"
 
 	"gitea.com/gitea/runner/act/model"
 )
@@ -138,8 +139,7 @@ func resolveCurrentRunForView(ctx *context_module.Context) *actions_model.Action
 	var runByID, runByIndex *actions_model.ActionRun
 	var targetJobByIndex *actions_model.ActionRunJob
 
-	// Each run must have at least one job, so a valid job ID in the same run cannot be smaller than the run ID.
-	if !byIndex && jobNum >= runNum {
+	if !byIndex {
 		// Probe the repo-scoped job ID first and only accept it when the job exists and belongs to the same runNum.
 		job, err := actions_model.GetRunJobByRepoAndID(ctx, ctx.Repo.Repository.ID, jobNum)
 		if err != nil && !errors.Is(err, util.ErrNotExist) {
@@ -206,6 +206,16 @@ func View(ctx *context_module.Context) {
 
 	jobID := ctx.PathParamInt64("job")
 	ctx.Data["JobID"] = jobID // it can be 0 when no job (e.g.: run summary view)
+
+	// Browser tab title, ordered most-specific → least-specific so narrow tabs keep the useful part.
+	// Separator matches the " - " used by head.tmpl when joining to PageTitleCommon.
+	titleParts := []string{run.Title, run.WorkflowID}
+	if jobID > 0 {
+		if job, err := actions_model.GetRunJobByRunAndID(ctx, run.ID, jobID); err == nil && job.Name != "" {
+			titleParts = append([]string{job.Name}, titleParts...)
+		}
+	}
+	ctx.Data["Title"] = strings.Join(titleParts, " - ")
 
 	attemptNum := ctx.PathParamInt64("attempt")
 
@@ -321,6 +331,12 @@ type ViewJob struct {
 	CanRerun bool     `json:"canRerun"`
 	Duration string   `json:"duration"`
 	Needs    []string `json:"needs,omitempty"`
+
+	ParentJobID int64 `json:"parentJobID"`
+
+	// Reusable workflow caller fields. Zero/empty for non-caller jobs.
+	IsReusableCaller bool   `json:"isReusableCaller"`
+	CallUses         string `json:"callUses,omitempty"`
 }
 
 type ViewRunAttempt struct {
@@ -405,19 +421,22 @@ func fillViewRunResponseSummary(ctx *context_module.Context, resp *ViewResponse,
 	resp.State.Run.Link = run.Link()
 	resp.State.Run.ViewLink = getRunViewLink(run, attempt)
 	resp.State.Run.Attempts = make([]*ViewRunAttempt, 0)
+	var effectiveStatus actions_model.Status
 	if attempt != nil {
+		effectiveStatus = attempt.Status
 		resp.State.Run.RunAttempt = attempt.Attempt
-		resp.State.Run.Status = attempt.Status.String()
-		resp.State.Run.Done = attempt.Status.IsDone()
 		resp.State.Run.Duration = attempt.Duration().String()
 		resp.State.Run.TriggeredAt = attempt.Created.AsTime().Unix()
 	} else {
-		resp.State.Run.Status = run.Status.String()
-		resp.State.Run.Done = run.Status.IsDone()
+		effectiveStatus = run.Status
 		resp.State.Run.Duration = run.Duration().String()
 		resp.State.Run.TriggeredAt = run.Created.AsTime().Unix()
 	}
-	resp.State.Run.CanCancel = isLatestAttempt && !resp.State.Run.Done && ctx.Repo.Permission.CanWrite(unit.TypeActions)
+	resp.State.Run.Status = effectiveStatus.String()
+	resp.State.Run.Done = effectiveStatus.IsDone()
+
+	// Hide the Cancel button once a cancel is already in cancelling progress
+	resp.State.Run.CanCancel = isLatestAttempt && !resp.State.Run.Done && !effectiveStatus.IsCancelling() && ctx.Repo.Permission.CanWrite(unit.TypeActions)
 	resp.State.Run.CanApprove = isLatestAttempt && run.NeedApproval && ctx.Repo.Permission.CanWrite(unit.TypeActions)
 	resp.State.Run.CanRerun = isLatestAttempt && resp.State.Run.Done && ctx.Repo.Permission.CanWrite(unit.TypeActions)
 	resp.State.Run.CanDeleteArtifact = resp.State.Run.Done && ctx.Repo.Permission.CanWrite(unit.TypeActions)
@@ -445,6 +464,10 @@ func fillViewRunResponseSummary(ctx *context_module.Context, resp *ViewResponse,
 			CanRerun: resp.State.Run.CanRerun,
 			Duration: v.Duration().String(),
 			Needs:    v.Needs,
+
+			IsReusableCaller: v.IsReusableCaller,
+			ParentJobID:      v.ParentJobID,
+			CallUses:         v.CallUses,
 		})
 	}
 
@@ -568,10 +591,14 @@ func convertToViewModel(ctx context.Context, locale translation.Locale, cursors 
 	steps := actions.FullSteps(task)
 
 	for _, v := range steps {
+		status := v.Status
+		if task.Status == actions_model.StatusCancelling && status.IsRunning() {
+			status = actions_model.StatusCancelling
+		}
 		viewJobs = append(viewJobs, &ViewJobStep{
 			Summary:  v.Name,
 			Duration: v.Duration().String(),
-			Status:   v.Status.String(),
+			Status:   status.String(),
 		})
 	}
 
@@ -893,6 +920,7 @@ func getCurrentRunJobsByPathParam(ctx *context_module.Context) (*actions_model.A
 		ctx.NotFound(nil)
 		return nil, nil, nil
 	}
+	jobs.SortMatrixGroupsByName()
 
 	for _, job := range jobs {
 		job.Run = run
@@ -1096,14 +1124,14 @@ func disableOrEnableWorkflowFile(ctx *context_module.Context, isEnable bool) {
 		ctx.Flash.Success(ctx.Tr("actions.workflow.disable_success", workflow))
 	}
 
-	redirectURL := fmt.Sprintf("%s/actions?workflow=%s&actor=%s&status=%s", ctx.Repo.RepoLink, url.QueryEscape(workflow),
-		url.QueryEscape(ctx.FormString("actor")), url.QueryEscape(ctx.FormString("status")))
+	redirectURL := actionsListRedirectURL(ctx.Repo.RepoLink, workflow,
+		ctx.FormString("actor"), ctx.FormString("status"), ctx.FormString("branch"))
 	ctx.JSONRedirect(redirectURL)
 }
 
 func Run(ctx *context_module.Context) {
-	redirectURL := fmt.Sprintf("%s/actions?workflow=%s&actor=%s&status=%s", ctx.Repo.RepoLink, url.QueryEscape(ctx.FormString("workflow")),
-		url.QueryEscape(ctx.FormString("actor")), url.QueryEscape(ctx.FormString("status")))
+	redirectURL := actionsListRedirectURL(ctx.Repo.RepoLink, ctx.FormString("workflow"),
+		ctx.FormString("actor"), ctx.FormString("status"), ctx.FormString("branch"))
 
 	workflowID := ctx.FormString("workflow")
 	if len(workflowID) == 0 {

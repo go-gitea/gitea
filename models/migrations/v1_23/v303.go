@@ -4,6 +4,8 @@
 package v1_23
 
 import (
+	"gitea.dev/models/db"
+
 	"xorm.io/xorm"
 )
 
@@ -14,7 +16,7 @@ type CommentMetaData struct {
 	ProjectTitle       string `json:"project_title"`
 }
 
-func AddCommentMetaDataColumn(x *xorm.Engine) error {
+func AddCommentMetaDataColumn(x db.EngineMigration) error {
 	type Comment struct {
 		CommentMetaData *CommentMetaData `xorm:"JSON TEXT"` // put all non-index metadata in a single field
 	}
