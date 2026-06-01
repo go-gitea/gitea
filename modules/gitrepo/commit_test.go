@@ -4,9 +4,13 @@
 package gitrepo
 
 import (
+	"path/filepath"
+	"strings"
 	"testing"
 
+	"code.gitea.io/gitea/modules/git/gitcmd"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestCommitsCount(t *testing.T) {
@@ -46,12 +50,43 @@ func TestGetLatestCommitTime(t *testing.T) {
 
 // repo7_rename has 2 commits, the first adds a.txt and the second rename a.txt to b.txt
 
+func getRepoRename7(t *testing.T) *mockRepository {
+	repoDir := filepath.Join(t.TempDir(), "repo.git")
+	require.NoError(t, gitcmd.NewCommand("init").AddDynamicArguments(repoDir).Run(t.Context()))
+	_, _, runErr := gitcmd.NewCommand("fast-import").WithDir(repoDir).WithStdinBytes([]byte(strings.TrimSpace(`
+blob
+mark :1
+data 0
+
+reset refs/heads/master
+commit refs/heads/master
+mark :2
+author Chi-Iroh <user@example.com> 1778660718 +0200
+committer Chi-Iroh <user@example.com> 1778660718 +0200
+data 10
+Add a.txt
+M 100644 :1 a.txt
+
+commit refs/heads/master
+mark :3
+author Chi-Iroh <user@example.com> 1778660741 +0200
+committer Chi-Iroh <user@example.com> 1778660741 +0200
+data 22
+Rename a.txt to b.txt
+from :2
+D a.txt
+M 100644 :1 b.txt
+	`))).RunStdString(t.Context())
+	require.NoError(t, runErr)
+	return &mockRepository{path: repoDir}
+}
+
 func TestFileCommitsCountWithoutRename(t *testing.T) {
-	renameRepo7 := &mockRepository{path: "repo7_rename"}
+	renameRepo7 := getRepoRename7(t)
 
 	commitsCount, err := CommitsCount(t.Context(), renameRepo7,
 		CommitsCountOptions{
-			Revision:     []string{"05f331b6ef83f1d02b42ee0fefe28e321cf94e8c"},
+			Revision:     []string{"HEAD"},
 			RelPath:      []string{"b.txt"},
 			FollowRename: false,
 		})
@@ -61,11 +96,11 @@ func TestFileCommitsCountWithoutRename(t *testing.T) {
 }
 
 func TestFileCommitsCountWithRename(t *testing.T) {
-	renameRepo7 := &mockRepository{path: "repo7_rename"}
+	renameRepo7 := getRepoRename7(t)
 
 	commitsCount, err := CommitsCount(t.Context(), renameRepo7,
 		CommitsCountOptions{
-			Revision:     []string{"05f331b6ef83f1d02b42ee0fefe28e321cf94e8c"},
+			Revision:     []string{"HEAD"},
 			RelPath:      []string{"b.txt"},
 			FollowRename: true,
 		})
