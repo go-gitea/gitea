@@ -33,22 +33,14 @@ import (
 // errInvalidTagName indicates an invalid tag name
 var errInvalidTagName = errors.New("The tag name is invalid")
 
-// maxNpmUploadBodyFallback caps the buffered publish body when no explicit
-// npm size limit is configured. npm tarballs are base64-encoded inside the
-// JSON envelope, so a hard ceiling here prevents an unbounded
-// io.ReadAll on the request body.
-const maxNpmUploadBodyFallback = int64(1 << 30) // 1 GiB
-
-// npmUploadBodyLimit returns the maximum number of bytes UploadPackage will
-// buffer from the request body. When LIMIT_SIZE_NPM is set, allow ~2x the
-// tarball size to account for base64 expansion (~33%) plus JSON envelope and
-// metadata overhead; otherwise fall back to a generous hard ceiling.
-func npmUploadBodyLimit() int64 {
-	if l := setting.Packages.LimitSizeNpm; l > 0 {
-		return l*2 + 64*1024
-	}
-	return maxNpmUploadBodyFallback
-}
+// maxNpmDeprecateProbeBytes bounds the prefix of an npm publish PUT body
+// that UploadPackage buffers in order to distinguish a `npm deprecate`
+// request (no `_attachments`, a small versions map) from a regular publish
+// (carries a base64-encoded tarball, can be many MiB). Real deprecate
+// payloads are well under this limit; anything larger is treated as a
+// publish and streamed through to ParsePackage so peak memory stays bounded
+// regardless of LimitSizeNpm.
+const maxNpmDeprecateProbeBytes = int64(1 << 20) // 1 MiB
 
 func apiError(ctx *context.Context, status int, obj any) {
 	message := helper.ProcessErrorForUser(ctx, status, obj)
@@ -172,27 +164,26 @@ func DownloadPackageFileByName(ctx *context.Context) {
 
 // UploadPackage creates a new package
 func UploadPackage(ctx *context.Context) {
-	limit := npmUploadBodyLimit()
-	lr := &io.LimitedReader{R: ctx.Req.Body, N: limit + 1}
-	body, err := io.ReadAll(lr)
+	// Buffer only enough of the body to distinguish a deprecate request
+	// (small JSON, no _attachments) from a publish (large, base64 tarball).
+	// Anything bigger than the probe limit cannot be a deprecate payload, so
+	// we splice the buffered prefix back onto the live request body via
+	// io.MultiReader and let ParsePackage stream it as before.
+	probe := &io.LimitedReader{R: ctx.Req.Body, N: maxNpmDeprecateProbeBytes + 1}
+	head, err := io.ReadAll(probe)
 	if err != nil {
 		apiError(ctx, http.StatusInternalServerError, err)
 		return
 	}
-	if int64(len(body)) > limit {
-		apiError(ctx, http.StatusRequestEntityTooLarge, "npm publish payload exceeds size limit")
+
+	if int64(len(head)) <= maxNpmDeprecateProbeBytes && npm_module.IsDeprecateRequest(head) {
+		deprecatePackage(ctx, head)
 		return
 	}
 
-	// `npm deprecate` reuses the same PUT endpoint, but sends the package
-	// document with no `_attachments`. Detect that case and update the
-	// stored metadata instead of creating a new version.
-	if npm_module.IsDeprecateRequest(body) {
-		deprecatePackage(ctx, body)
-		return
-	}
+	body := io.MultiReader(bytes.NewReader(head), ctx.Req.Body)
 
-	npmPackage, err := npm_module.ParsePackage(bytes.NewReader(body))
+	npmPackage, err := npm_module.ParsePackage(body)
 	if err != nil {
 		if errors.Is(err, util.ErrInvalidArgument) {
 			apiError(ctx, http.StatusBadRequest, err)
