@@ -1,9 +1,9 @@
-<div class="ui container tw-flex tw-gap-4">
+<div class="ui fm-container flex gap-4">
 	<div>{{ctx.AvatarUtils.Avatar .Org 100}}</div>
 	<div class="flex-relaxed-list">
-		<div class="ui header flex-left-right tw-m-0">
+		<div class="ui header flex-left-right m-0">
 			<div class="flex-text-block">
-				<span class="tw-text-2xl">{{.Org.DisplayName}}</span>
+				<span class="text-2xl">{{.Org.DisplayName}}</span>
 				{{if .Org.Visibility.IsLimited}}<span class="ui large basic horizontal label">{{ctx.Locale.Tr "org.settings.visibility.limited_shortname"}}</span>{{end}}
 				{{if .Org.Visibility.IsPrivate}}<span class="ui large basic horizontal label">{{ctx.Locale.Tr "org.settings.visibility.private_shortname"}}</span>{{end}}
 			</div>

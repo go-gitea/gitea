@@ -4,7 +4,7 @@
 			{{ctx.Locale.Tr "settings.oauth2_application_create_description"}}
 		</div>
 		{{range .Applications}}
-			<div class="item tw-items-center">
+			<div class="item items-center">
 				<div class="item-leading">
 					{{svg "octicon-apps" 32}}
 				</div>
@@ -49,7 +49,7 @@
 
 <div class="ui bottom attached segment">
 	<details {{if .application_name}}open{{end}}>
-		<summary><h4 class="ui header tw-inline-block tw-my-2">{{ctx.Locale.Tr "settings.create_oauth2_application"}}</h4></summary>
+		<summary><h4 class="ui header inline-block my-2">{{ctx.Locale.Tr "settings.create_oauth2_application"}}</h4></summary>
 		<form class="ui form ignore-dirty" action="{{.Link}}/oauth2" method="post">
 			<div class="field {{if .Err_AppName}}error{{end}}">
 				<label for="application-name">{{ctx.Locale.Tr "settings.oauth2_application_name"}}</label>

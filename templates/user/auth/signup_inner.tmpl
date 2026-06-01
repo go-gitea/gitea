@@ -1,4 +1,4 @@
-<div class="ui container fluid{{if .LinkAccountMode}} icon{{end}}">
+<div class="ui fm-container fluid{{if .LinkAccountMode}} icon{{end}}">
 	<h4 class="ui top attached header center">
 		{{if .LinkAccountMode}}
 			{{ctx.Locale.Tr "auth.oauth_signup_title"}}
@@ -39,8 +39,8 @@
 
 				{{template "user/auth/captcha" .}}
 
-				<div class="inline field">
-					<button class="ui primary button tw-w-full">
+				<div class="fm-inline field">
+					<button class="ui primary button w-full">
 						{{if .LinkAccountMode}}
 							{{ctx.Locale.Tr "auth.oauth_signup_submit"}}
 						{{else}}
@@ -58,9 +58,9 @@
 	</div>
 </div>
 
-<div class="ui container fluid">
+<div class="ui fm-container fluid">
 	{{if not .LinkAccountMode}}
-	<div class="ui attached segment header top tw-flex tw-flex-col tw-items-center">
+	<div class="ui attached segment header top flex flex-col items-center">
 		<div class="field">
 			<span>{{ctx.Locale.Tr "auth.already_have_account"}}</span>
 			<a href="{{AppSubUrl}}/user/login">{{ctx.Locale.Tr "auth.sign_in_now"}}</a>

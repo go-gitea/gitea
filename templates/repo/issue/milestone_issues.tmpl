@@ -1,10 +1,10 @@
 {{template "base/head" .}}
 <div role="main" aria-label="{{.Title}}" class="page-content repository milestone-issue-list">
 	{{template "repo/header" .}}
-	<div class="ui container">
+	<div class="ui fm-container">
 		{{template "base/alert" .}}
-		<div class="flex-text-block tw-flex-wrap tw-mb-2">
-			<h1 class="tw-flex-1 tw-m-0">{{.Milestone.Name}}</h1>
+		<div class="flex-text-block flex-wrap mb-2">
+			<h1 class="flex-1 m-0">{{.Milestone.Name}}</h1>
 			{{if not .Repository.IsArchived}}
 				<div>
 					{{if or .CanWriteIssues .CanWritePulls}}
@@ -22,13 +22,13 @@
 			{{end}}
 		</div>
 		{{if .Milestone.RenderedContent}}
-		<div class="render-content markup tw-mb-4">
+		<div class="render-content markup mb-4">
 				{{.Milestone.RenderedContent}}
 		</div>
 		{{end}}
-		<div class="tw-flex tw-flex-col tw-gap-2">
+		<div class="flex flex-col gap-2">
 			<progress class="milestone-progress-big" value="{{.Milestone.Completeness}}" max="100"></progress>
-			<div class="flex-text-block tw-gap-4">
+			<div class="flex-text-block gap-4">
 				<div class="flex-text-inline">
 					{{$closedDate:= DateUtils.TimeSince .Milestone.ClosedDateUnix}}
 					{{if .IsClosed}}
@@ -36,7 +36,7 @@
 					{{else}}
 
 						{{if .Milestone.DeadlineString}}
-							<span{{if .IsOverdue}} class="tw-text-red"{{end}}>
+							<span{{if .IsOverdue}} class="text-red"{{end}}>
 								{{svg "octicon-calendar"}}
 								{{DateUtils.AbsoluteShort (.Milestone.DeadlineString|DateUtils.ParseLegacy)}}
 							</span>

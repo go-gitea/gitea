@@ -1,4 +1,4 @@
-<div class="ui container fluid">
+<div class="ui fm-container fluid">
 	{{if or (not .LinkAccountMode) (and .LinkAccountMode .LinkAccountModeSignIn)}}
 	{{template "base/alert" .}}
 	{{end}}
@@ -18,15 +18,15 @@
 			</div>
 			{{if or (not .DisablePassword) .LinkAccountMode}}
 			<div class="required field {{if and (.Err_Password) (or (not .LinkAccountMode) (and .LinkAccountMode .LinkAccountModeSignIn))}}error{{end}}">
-				<div class="tw-flex tw-mb-1">
-					<label for="password" class="tw-flex-1">{{ctx.Locale.Tr "password"}}</label>
+				<div class="flex mb-1">
+					<label for="password" class="flex-1">{{ctx.Locale.Tr "password"}}</label>
 					<a href="{{AppSubUrl}}/user/forgot_password" tabindex="4">{{ctx.Locale.Tr "auth.forgot_password"}}</a>
 				</div>
 				<input id="password" name="password" type="password" value="{{.password}}" autocomplete="current-password" required tabindex="2">
 			</div>
 			{{end}}
 			{{if not .LinkAccountMode}}
-			<div class="inline field">
+			<div class="fm-inline field">
 				<div class="ui checkbox">
 					<label>{{ctx.Locale.Tr "auth.remember_me"}}</label>
 					<input name="remember" type="checkbox" tabindex="5">
@@ -37,7 +37,7 @@
 			{{template "user/auth/captcha" .}}
 
 			<div class="field">
-				<button class="ui primary button tw-w-full" tabindex="3">
+				<button class="ui primary button w-full" tabindex="3">
 					{{if .LinkAccountMode}}
 						{{ctx.Locale.Tr "auth.oauth_signin_submit"}}
 					{{else}}
@@ -58,8 +58,8 @@
 </div>
 
 {{if or .EnablePasskeyAuth .ShowRegistrationButton}}
-<div class="ui container fluid">
-	<div class="ui attached segment header top tw-max-w-2xl tw-m-auto tw-flex tw-flex-col tw-items-center">
+<div class="ui fm-container fluid">
+	<div class="ui attached segment header top max-w-2xl m-auto flex flex-col items-center">
 		{{if .EnablePasskeyAuth}}
 			{{template "user/auth/webauthn_error" .}}
 			<a class="signin-passkey">{{ctx.Locale.Tr "auth.signin_passkey"}}</a>

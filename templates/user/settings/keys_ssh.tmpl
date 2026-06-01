@@ -7,7 +7,7 @@
 	</div>
 </h4>
 <div class="ui attached segment">
-	<div class="{{if not .HasSSHError}}tw-hidden{{end}} tw-mb-4" id="add-ssh-key-panel">
+	<div class="{{if not .HasSSHError}}hidden{{end}} mb-4" id="add-ssh-key-panel">
 		<form class="ui form" action="{{.Link}}" method="post">
 			<div class="field {{if .Err_Title}}error{{end}}">
 				<label for="ssh-key-title">{{ctx.Locale.Tr "settings.key_name"}}</label>
@@ -41,7 +41,7 @@
 		{{range $index, $key := .Keys}}
 			<div class="item">
 				<div class="item-leading">
-					<span class="{{if .HasRecentActivity}}tw-text-green{{end}}" {{if .HasRecentActivity}}data-tooltip-content="{{ctx.Locale.Tr "settings.key_state_desc"}}"{{end}}>{{svg "octicon-key" 32}}</span>
+					<span class="{{if .HasRecentActivity}}text-green{{end}}" {{if .HasRecentActivity}}data-tooltip-content="{{ctx.Locale.Tr "settings.key_state_desc"}}"{{end}}>{{svg "octicon-key" 32}}</span>
 				</div>
 				<div class="item-main">
 						{{if .Verified}}
@@ -52,7 +52,7 @@
 								{{.Fingerprint}}
 						</div>
 						<div class="item-body">
-								<i>{{ctx.Locale.Tr "settings.added_on" (DateUtils.AbsoluteShort .CreatedUnix)}} —	{{svg "octicon-info"}} {{if .HasUsed}}{{ctx.Locale.Tr "settings.last_used"}} <span {{if .HasRecentActivity}}class="tw-text-green"{{end}}>{{DateUtils.AbsoluteShort .UpdatedUnix}}</span>{{else}}{{ctx.Locale.Tr "settings.no_activity"}}{{end}}</i>
+								<i>{{ctx.Locale.Tr "settings.added_on" (DateUtils.AbsoluteShort .CreatedUnix)}} —	{{svg "octicon-info"}} {{if .HasUsed}}{{ctx.Locale.Tr "settings.last_used"}} <span {{if .HasRecentActivity}}class="text-green"{{end}}>{{DateUtils.AbsoluteShort .UpdatedUnix}}</span>{{else}}{{ctx.Locale.Tr "settings.no_activity"}}{{end}}</i>
 						</div>
 				</div>
 				<div class="item-trailing">

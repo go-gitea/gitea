@@ -4,7 +4,7 @@
 
 	{{$compareSeparator := $.CompareInfo.CompareSeparator}}
 	{{$compareSeparatorSwitch := Iif $.CompareInfo.DirectComparison "..." ".."}}
-	<div class="ui container fluid padded">
+	<div class="ui fm-container fluid padded">
 		<h2 class="ui header">
 			{{if and $.PageIsComparePull $.IsSigned (not .Repository.IsArchived)}}
 				{{ctx.Locale.Tr "repo.compare.title"}}
@@ -26,7 +26,7 @@
 		{{end -}}
 
 		<div class="ui segment choose branch">
-			<a class="tw-mr-2" href="{{$.HeadRepo.Link}}/compare/{{PathEscapeSegments $.HeadBranch}}{{$compareSeparator}}{{if not $.PullRequestCtx.SameRepo}}{{PathEscape $.BaseName}}/{{PathEscape $.Repository.Name}}:{{end}}{{PathEscapeSegments $.BaseBranch}}" title="{{ctx.Locale.Tr "repo.pulls.switch_head_and_base"}}">{{svg "octicon-git-compare"}}</a>
+			<a class="mr-2" href="{{$.HeadRepo.Link}}/compare/{{PathEscapeSegments $.HeadBranch}}{{$compareSeparator}}{{if not $.PullRequestCtx.SameRepo}}{{PathEscape $.BaseName}}/{{PathEscape $.Repository.Name}}:{{end}}{{PathEscapeSegments $.BaseBranch}}" title="{{ctx.Locale.Tr "repo.pulls.switch_head_and_base"}}">{{svg "octicon-git-compare"}}</a>
 			<div class="ui dropdown jump select-branch">
 				<div class="ui basic small button">
 					<span class="text">{{if $.PageIsComparePull}}{{ctx.Locale.Tr "repo.pulls.compare_base"}}{{else}}{{ctx.Locale.Tr "repo.compare.compare_base"}}{{end}}: <strong>{{$BaseCompareName}}:{{$.BaseBranch}}</strong></span>
@@ -38,15 +38,15 @@
 						<input name="search" placeholder="{{ctx.Locale.Tr "repo.filter_branch_and_tag"}}...">
 					</div>
 					<div class="header">
-						<div class="ui grid">
+						<div class="ui fm-grid">
 							<div class="two column row">
 								<a class="reference column" href="#" data-target=".base-branch-list">
-									<span class="tw-text-text">
+									<span class="text-text">
 										{{svg "octicon-git-branch"}} {{ctx.Locale.Tr "repo.branches"}}
 									</span>
 								</a>
 								<a class="reference column" href="#" data-target=".base-tag-list">
-									<span class="tw-text-text">
+									<span class="text-text">
 										{{svg "octicon-tag"}} {{ctx.Locale.Tr "repo.tags"}}
 									</span>
 								</a>
@@ -73,7 +73,7 @@
 							{{end}}
 						{{end}}
 					</div>
-					<div class="scrolling menu reference-list-menu base-tag-list tw-hidden">
+					<div class="scrolling menu reference-list-menu base-tag-list hidden">
 						{{range .Tags}}
 							<a class="item {{if eq $.BaseBranch .}}selected{{end}}" href="{{$.RepoLink}}/compare/{{PathEscapeSegments .}}{{$compareSeparator}}{{if not $.PullRequestCtx.SameRepo}}{{PathEscape $.HeadUser.Name}}/{{PathEscape $.HeadRepo.Name}}:{{end}}{{PathEscapeSegments $.HeadBranch}}">{{$BaseCompareName}}:{{.}}</a>
 						{{end}}
@@ -109,15 +109,15 @@
 						<input name="search" placeholder="{{ctx.Locale.Tr "repo.filter_branch_and_tag"}}...">
 					</div>
 					<div class="header">
-						<div class="ui grid">
+						<div class="ui fm-grid">
 							<div class="two column row">
 								<a class="reference column" href="#" data-target=".head-branch-list">
-									<span class="tw-text-text">
+									<span class="text-text">
 										{{svg "octicon-git-branch"}} {{ctx.Locale.Tr "repo.branches"}}
 									</span>
 								</a>
 								<a class="reference column" href="#" data-target=".head-tag-list">
-									<span class="tw-text-text">
+									<span class="text-text">
 										{{svg "octicon-tag"}} {{ctx.Locale.Tr "repo.tags"}}
 									</span>
 								</a>
@@ -144,7 +144,7 @@
 							{{end}}
 						{{end}}
 					</div>
-					<div class="scrolling menu reference-list-menu head-tag-list tw-hidden">
+					<div class="scrolling menu reference-list-menu head-tag-list hidden">
 						{{range .HeadTags}}
 							<a class="{{if eq $.HeadBranch .}}selected{{end}} item" href="{{$.RepoLink}}/compare/{{PathEscapeSegments $.BaseBranch}}{{$compareSeparator}}{{if not $.PullRequestCtx.SameRepo}}{{PathEscape $.HeadUser.Name}}/{{PathEscape $.HeadRepo.Name}}:{{end}}{{PathEscapeSegments .}}">{{$HeadCompareName}}:{{.}}</a>
 						{{end}}
@@ -183,9 +183,9 @@
 				</div>
 			{{end}}
 			{{if .HasPullRequest}}
-				<div class="ui segment flex-text-block tw-gap-4">
+				<div class="ui segment flex-text-block gap-4">
 					{{template "shared/issueicon" .}}
-					<div class="issue-title tw-break-anywhere">
+					<div class="issue-title break-anywhere">
 						{{ctx.RenderUtils.RenderIssueTitle .PullRequest.Issue.Title $.Repository}}
 						<span class="index">#{{.PullRequest.Issue.Index}}</span>
 					</div>
@@ -202,11 +202,11 @@
 					{{end}}
 				</div>
 			{{else if $allowCreatePR}}
-				<div class="ui info message flex-text-block pullrequest-form-toggle {{if .ExpandNewPrForm}}tw-hidden{{end}}">
-					<span class="tw-flex-1">{{ctx.Locale.Tr "repo.pulls.new.description"}}</span>
+				<div class="ui info message flex-text-block pullrequest-form-toggle {{if .ExpandNewPrForm}}hidden{{end}}">
+					<span class="flex-1">{{ctx.Locale.Tr "repo.pulls.new.description"}}</span>
 					<a class="ui button primary show-panel toggle" data-panel=".pullrequest-form-toggle, .pullrequest-form">{{ctx.Locale.Tr "repo.pulls.new"}}</a>
 				</div>
-				<div class="pullrequest-form {{if not .ExpandNewPrForm}}tw-hidden{{end}}">
+				<div class="pullrequest-form {{if not .ExpandNewPrForm}}hidden{{end}}">
 					{{template "repo/issue/new_form" .}}
 				</div>
 			{{end}}
@@ -218,7 +218,7 @@
 	</div>
 
 	{{if $showDiffBox}}
-		<div class="ui container fluid padded tw-my-4">
+		<div class="ui fm-container fluid padded my-4">
 			{{template "repo/commits_table" .}}
 			{{template "repo/diff/box" .}}
 		</div>

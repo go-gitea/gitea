@@ -1,14 +1,14 @@
 <div class="secondary-nav">
 	{{with .Repository}}
-	<div class="ui container">
+	<div class="ui fm-container">
 		<div class="repo-header flex-left-right">
 			{{/* left part */}}
 			<div class="flex-text-block">
 				{{template "repo/icon" .}}
-				<div class="flex-text-block tw-flex-wrap tw-text-18">
-					<a class="muted tw-font-normal" href="{{.Owner.HomeLink}}">{{.Owner.Name}}</a>/<a class="muted" href="{{$.RepoLink}}">{{.Name}}</a>
+				<div class="flex-text-block flex-wrap text-18">
+					<a class="muted font-normal" href="{{.Owner.HomeLink}}">{{.Owner.Name}}</a>/<a class="muted" href="{{$.RepoLink}}">{{.Name}}</a>
 				</div>
-				<div class="flex-text-block tw-flex-wrap">
+				<div class="flex-text-block flex-wrap">
 					{{if .IsArchived}}
 						<span class="ui basic label not-mobile">{{ctx.Locale.Tr "repo.desc.archived"}}</span>
 						<div class="repo-icon only-mobile" data-tooltip-content="{{ctx.Locale.Tr "repo.desc.archived"}}">{{svg "octicon-archive" 18}}</div>
@@ -36,7 +36,7 @@
 			</div>
 			{{if not (or .IsBeingCreated .IsBroken)}}
 				{{/* right part */}}
-				<div class="flex-text-block tw-flex-wrap">
+				<div class="flex-text-block flex-wrap">
 					{{if $.CanUserAcceptOrRejectTransfer}}
 						<button type="button" class="ui compact small basic primary button link-action" data-url="{{$.RepoLink}}/action/accept_transfer"
 							data-tooltip-content="{{ctx.Locale.Tr "repo.transfer.accept_desc" $.RepoTransfer.Recipient.GetDisplayName}}"
@@ -79,7 +79,7 @@
 	</div>
 	{{end}}
 
-	<div class="ui container">
+	<div class="ui fm-container">
 		<overflow-menu class="ui secondary pointing menu">
 			{{if not (or .Repository.IsBeingCreated .Repository.IsBroken)}}
 				<div class="overflow-menu-items">

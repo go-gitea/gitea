@@ -8,7 +8,7 @@
 		<!-- mobile right menu, it must be here because in mobile view, each item is a flex column, the first item is a full row column -->
 		<div class="ui secondary menu navbar-mobile-right only-mobile">
 			{{template "base/head_navbar_icons" dict "PageGlobalData" .PageGlobalData}}
-			<button class="item ui icon mini button tw-m-0" id="navbar-expand-toggle" aria-label="{{ctx.Locale.Tr "home.nav_menu"}}">{{svg "octicon-three-bars"}}</button>
+			<button class="item ui icon mini button m-0" id="navbar-expand-toggle" aria-label="{{ctx.Locale.Tr "home.nav_menu"}}">{{svg "octicon-three-bars"}}</button>
 		</div>
 
 		<!-- navbar links non-mobile -->
@@ -45,7 +45,7 @@
 		{{if and .IsSigned .MustChangePassword}}
 			<div class="ui dropdown jump item" data-tooltip-content="{{ctx.Locale.Tr "user_profile_and_more"}}">
 				<span class="text">
-					{{ctx.AvatarUtils.Avatar .SignedUser 24 "tw-mr-1"}}
+					{{ctx.AvatarUtils.Avatar .SignedUser 24 "mr-1"}}
 					<span class="only-mobile">{{.SignedUser.Name}}</span>
 					<span class="not-mobile flex-text-block">{{svg "octicon-triangle-down"}}</span>
 				</span>
@@ -87,9 +87,9 @@
 			</div><!-- end dropdown menu create new -->
 
 			<div class="ui dropdown jump item" data-tooltip-content="{{ctx.Locale.Tr "user_profile_and_more"}}">
-				<span class="text tw-flex tw-items-center">
+				<span class="text flex items-center">
 					<span class="navbar-avatar">
-						{{ctx.AvatarUtils.Avatar .SignedUser 24 "tw-mr-2"}}
+						{{ctx.AvatarUtils.Avatar .SignedUser 24 "mr-2"}}
 						{{if .IsAdmin}}{{svg "octicon-shield-check" 16 "navbar-admin-badge"}}{{end}}
 					</span>
 					<span class="only-mobile">{{.SignedUser.Name}}</span>
@@ -141,12 +141,12 @@
 			{{if .ShowRegistrationButton}}
 				<a class="item{{if .PageIsSignUp}} active{{end}}" href="{{AppSubUrl}}/user/sign_up">
 					{{svg "octicon-person"}}
-					<span class="tw-ml-1">{{ctx.Locale.Tr "register"}}</span>
+					<span class="ml-1">{{ctx.Locale.Tr "register"}}</span>
 				</a>
 			{{end}}
 			<a class="item{{if .PageIsSignIn}} active{{end}}" rel="nofollow" href="{{AppSubUrl}}/user/login">
 				{{svg "octicon-sign-in"}}
-				<span class="tw-ml-1">{{ctx.Locale.Tr "sign_in"}}</span>
+				<span class="ml-1">{{ctx.Locale.Tr "sign_in"}}</span>
 			</a>
 		{{end}}
 	</div><!-- end full right menu -->
@@ -154,23 +154,23 @@
 	{{$activeStopwatch := and .PageGlobalData (call .PageGlobalData.GetActiveStopwatch)}}
 	{{if $activeStopwatch}}
 		<div class="active-stopwatch-popup tippy-target">
-			<div class="flex-text-block tw-p-3">
+			<div class="flex-text-block p-3">
 				<a class="stopwatch-link flex-text-block muted" href="{{$activeStopwatch.IssueLink}}">
 					{{svg "octicon-issue-opened" 16}}
 					<span class="stopwatch-issue">{{$activeStopwatch.RepoSlug}}#{{$activeStopwatch.IssueIndex}}</span>
 				</a>
-				<div class="tw-flex tw-gap-1">
+				<div class="flex gap-1">
 					<form class="stopwatch-commit form-fetch-action" method="post" action="{{$activeStopwatch.IssueLink}}/times/stopwatch/stop">
 						<button
 							type="submit"
-							class="ui button mini compact basic icon tw-mr-0"
+							class="ui button mini compact basic icon mr-0"
 							data-tooltip-content="{{ctx.Locale.Tr "repo.issues.stop_tracking"}}"
 						>{{svg "octicon-square-fill"}}</button>
 					</form>
 					<form class="stopwatch-cancel form-fetch-action" method="post" action="{{$activeStopwatch.IssueLink}}/times/stopwatch/cancel">
 						<button
 							type="submit"
-							class="ui button mini compact basic icon tw-mr-0"
+							class="ui button mini compact basic icon mr-0"
 							data-tooltip-content="{{ctx.Locale.Tr "repo.issues.cancel_tracking"}}"
 						>{{svg "octicon-trash"}}</button>
 					</form>

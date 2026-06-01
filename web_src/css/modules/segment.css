@@ -17,7 +17,7 @@
   margin-bottom: 0;
 }
 
-.ui.grid.segment {
+.ui.fm-grid.segment {
   margin: 1rem 0;
   border-radius: 0.28571429rem;
 }
@@ -70,7 +70,7 @@
 }
 
 .ui.segments:not(.horizontal) > .segment:only-child,
-.ui.segments:not(.horizontal) > .segment:has(~ .tw-hidden) { /* workaround issue with :last-child ignoring hidden elements */
+.ui.segments:not(.horizontal) > .segment:has(~ .hidden) { /* workaround issue with :last-child ignoring hidden elements */
   border-radius: 0.28571429rem;
 }
 

@@ -43,7 +43,7 @@ export function toggleElemClass(el: ElementArg, className: string, force?: boole
  * @param force force=true to show or force=false to hide, undefined to toggle
  */
 export function toggleElem(el: ElementArg, force?: boolean): ArrayLikeIterable<Element> {
-  return toggleElemClass(el, 'tw-hidden', force === undefined ? force : !force);
+  return toggleElemClass(el, 'hidden', force === undefined ? force : !force);
 }
 
 export function showElem(el: ElementArg): ArrayLikeIterable<Element> {
@@ -262,7 +262,7 @@ export function isElemVisible(el: HTMLElement): boolean {
   // This function DOESN'T account for all possible visibility scenarios, its behavior is covered by the tests of "querySingleVisibleElem"
   if (!el) return false;
   // checking el.style.display is not necessary for browsers, but it is required by some tests with happy-dom because happy-dom doesn't really do layout
-  return Boolean(!el.classList.contains('tw-hidden') && (el.offsetWidth || el.offsetHeight || el.getClientRects().length) && el.style.display !== 'none');
+  return Boolean(!el.classList.contains('hidden') && (el.offsetWidth || el.offsetHeight || el.getClientRects().length) && el.style.display !== 'none');
 }
 
 export function createElementFromHTML<T extends Element>(htmlString: string): T {

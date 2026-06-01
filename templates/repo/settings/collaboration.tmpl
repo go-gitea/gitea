@@ -7,7 +7,7 @@
 		<div class="ui attached segment">
 			<div class="flex-divided-list items-with-main">
 				{{range .Collaborators}}
-					<div class="item tw-items-center">
+					<div class="item items-center">
 						<div class="item-leading">
 							<a href="{{.HomeLink}}">{{ctx.AvatarUtils.Avatar . 32}}</a>
 						</div>
@@ -58,7 +58,7 @@
 					{{range $t, $team := .Teams}}
 						<div class="item">
 							<div class="item-main">
-								<a class="item-title tw-text-primary" href="{{AppSubUrl}}/org/{{$.OrgName|PathEscape}}/teams/{{.LowerName|PathEscape}}">
+								<a class="item-title text-primary" href="{{AppSubUrl}}/org/{{$.OrgName|PathEscape}}/teams/{{.LowerName|PathEscape}}">
 									{{.Name}}
 								</a>
 								<div class="item-body flex-text-block">

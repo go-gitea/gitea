@@ -230,13 +230,13 @@ export default defineComponent({
       <svg-icon name="octicon-git-commit"/>
     </button>
     <!-- this dropdown is not managed by Fomantic UI, so it needs some classes like "transition" explicitly -->
-    <div class="left menu transition" :id="uniqueIdMenu" :class="{visible: menuVisible}" v-show="menuVisible" v-cloak :aria-expanded="menuVisible ? 'true': 'false'">
+    <div class="left menu fm-transition" :id="uniqueIdMenu" :class="{'fm-visible': menuVisible}" v-show="menuVisible" v-cloak :aria-expanded="menuVisible ? 'true': 'false'">
       <div class="loading-indicator is-loading" v-if="isLoading"/>
       <div v-if="!isLoading" class="item" :id="uniqueIdShowAll" ref="showAllChanges" role="menuitem" @keydown.enter="showAllChanges()" @click="showAllChanges()">
         <div class="gt-ellipsis">
           {{ locale.show_all_commits }}
         </div>
-        <div class="gt-ellipsis tw-text-text-light-2 tw-mb-0">
+        <div class="gt-ellipsis text-text-light-2 mb-0">
           {{ locale.stats_num_commits }}
         </div>
       </div>
@@ -251,11 +251,11 @@ export default defineComponent({
         <div class="gt-ellipsis">
           {{ locale.show_changes_since_your_last_review }}
         </div>
-        <div class="gt-ellipsis tw-text-text-light-2">
+        <div class="gt-ellipsis text-text-light-2">
           {{ commitsSinceLastReview }} commits
         </div>
       </div>
-      <span v-if="!isLoading" class="info tw-text-text-light-2">{{ locale.select_commit_hold_shift_for_range }}</span>
+      <span v-if="!isLoading" class="info text-text-light-2">{{ locale.select_commit_hold_shift_for_range }}</span>
       <template v-for="(commit, idx) in commits" :key="commit.id">
         <div
           class="item" role="menuitem"
@@ -269,11 +269,11 @@ export default defineComponent({
           @click.meta.exact="commitClicked(commit.id, true)"
           @click.shift.exact.stop.prevent="commitClickedShift(commit)"
         >
-          <div class="tw-flex-1 tw-flex tw-flex-col tw-gap-1">
+          <div class="flex-1 flex flex-col gap-1">
             <div class="gt-ellipsis commit-list-summary">
               {{ commit.summary }}
             </div>
-            <div class="gt-ellipsis tw-text-text-light-2">
+            <div class="gt-ellipsis text-text-light-2">
               {{ commit.committer_or_author_name }}
               <span class="text right">
                 <!-- TODO: make this respect the PreferredTimestampTense setting -->
@@ -281,7 +281,7 @@ export default defineComponent({
               </span>
             </div>
           </div>
-          <div class="tw-font-mono">
+          <div class="font-mono">
             {{ commit.short_sha }}
           </div>
         </div>

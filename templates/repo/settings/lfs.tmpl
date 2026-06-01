@@ -7,18 +7,18 @@
 				<a class="ui primary tiny button" href="{{.Link}}/pointers">&nbsp;{{ctx.Locale.Tr "repo.settings.lfs_findpointerfiles"}}</a>
 			</div>
 		</h4>
-		<table id="lfs-files-table" class="ui attached segment single line table">
+		<table id="lfs-files-table" class="ui attached segment single line fm-table">
 			<tbody>
 				{{range .LFSFiles}}
 					<tr>
 						<td>
-							<a href="{{$.Link}}/show/{{.Oid}}" title="{{.Oid}}" class="ui button tw-font-mono">
+							<a href="{{$.Link}}/show/{{.Oid}}" title="{{.Oid}}" class="ui button font-mono">
 								{{ShortSha .Oid}}
 							</a>
 						</td>
 						<td>{{FileSize .Size}}</td>
 						<td>{{DateUtils.TimeSince .CreatedUnix}}</td>
-						<td class="tw-text-right">
+						<td class="text-right">
 							<a class="ui primary button" href="{{$.Link}}/find?oid={{.Oid}}&size={{.Size}}">{{ctx.Locale.Tr "repo.settings.lfs_findcommits"}}</a>
 							<button class="ui basic show-modal icon button red" data-modal="#delete-{{.Oid}}">
 								<span class="btn-octicon btn-octicon-danger" data-tooltip-content="{{ctx.Locale.Tr "repo.editor.delete_this_file"}}">{{svg "octicon-trash"}}</span>

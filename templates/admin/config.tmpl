@@ -3,7 +3,7 @@
 		<h4 class="ui top attached header">
 			{{ctx.Locale.Tr "admin.config.server_config"}}
 		</h4>
-		<div class="ui attached table segment">
+		<div class="ui attached fm-table segment">
 			<dl class="admin-dl-horizontal">
 				<dt>{{ctx.Locale.Tr "admin.config.app_name"}}</dt>
 				<dd>{{AppName}}</dd>
@@ -46,7 +46,7 @@
 		<h4 class="ui top attached header">
 			{{ctx.Locale.Tr "admin.config.ssh_config"}}
 		</h4>
-		<div class="ui attached table segment">
+		<div class="ui attached fm-table segment">
 			<dl class="admin-dl-horizontal">
 				<dt>{{ctx.Locale.Tr "admin.config.ssh_enabled"}}</dt>
 				<dd>{{svg (Iif (not .SSH.Disabled) "octicon-check" "octicon-x")}}</dd>
@@ -77,7 +77,7 @@
 		<h4 class="ui top attached header">
 			{{ctx.Locale.Tr "admin.config.lfs_config"}}
 		</h4>
-		<div class="ui attached table segment">
+		<div class="ui attached fm-table segment">
 			<dl class="admin-dl-horizontal">
 				<dt>{{ctx.Locale.Tr "admin.config.lfs_enabled"}}</dt>
 				<dd>{{svg (Iif .LFS.StartServer "octicon-check" "octicon-x")}}</dd>
@@ -93,7 +93,7 @@
 		<h4 class="ui top attached header">
 			{{ctx.Locale.Tr "admin.config.db_config"}}
 		</h4>
-		<div class="ui attached table segment">
+		<div class="ui attached fm-table segment">
 			<dl class="admin-dl-horizontal">
 				<dt>{{ctx.Locale.Tr "admin.config.db_type"}}</dt>
 				<dd>{{.DbCfg.Type}}</dd>
@@ -121,7 +121,7 @@
 		<h4 class="ui top attached header">
 			{{ctx.Locale.Tr "admin.config.service_config"}}
 		</h4>
-		<div class="ui attached table segment">
+		<div class="ui attached fm-table segment">
 			<dl class="admin-dl-horizontal">
 				<dt>{{ctx.Locale.Tr "admin.config.register_email_confirm"}}</dt>
 				<dd>{{svg (Iif .Service.RegisterEmailConfirm "octicon-check" "octicon-x")}}</dd>
@@ -173,7 +173,7 @@
 		<h4 class="ui top attached header">
 			{{ctx.Locale.Tr "admin.config.webhook_config"}}
 		</h4>
-		<div class="ui attached table segment">
+		<div class="ui attached fm-table segment">
 			<dl class="admin-dl-horizontal">
 				<dt>{{ctx.Locale.Tr "admin.config.queue_length"}}</dt>
 				<dd>{{.Webhook.QueueLength}}</dd>
@@ -187,7 +187,7 @@
 		<h4 class="ui top attached header">
 			{{ctx.Locale.Tr "admin.config.mailer_config"}}
 		</h4>
-		<div class="ui attached table segment">
+		<div class="ui attached fm-table segment">
 			<dl class="admin-dl-horizontal">
 				<dt>{{ctx.Locale.Tr "admin.config.mailer_enabled"}}</dt>
 				<dd>{{svg (Iif .MailerEnabled "octicon-check" "octicon-x")}}</dd>
@@ -219,8 +219,8 @@
 					<dt>{{ctx.Locale.Tr "admin.config.mailer_user"}}</dt>
 					<dd>{{if .Mailer.User}}{{.Mailer.User}}{{else}}(empty){{end}}</dd>
 					<div class="divider"></div>
-					<dt class="flex-text-block tw-py-1">{{ctx.Locale.Tr "admin.config.send_test_mail"}}</dt>
-					<dd class="tw-py-0">
+					<dt class="flex-text-block py-1">{{ctx.Locale.Tr "admin.config.send_test_mail"}}</dt>
+					<dd class="py-0">
 						<form class="ui form ignore-dirty" action="{{AppSubUrl}}/-/admin/config/test_mail" method="post">
 							<div class="ui tiny input">
 								<input type="email" name="email" placeholder="{{ctx.Locale.Tr "admin.config.test_email_placeholder"}}" size="29" required>
@@ -235,7 +235,7 @@
 		<h4 class="ui top attached header">
 			{{ctx.Locale.Tr "admin.config.cache_config"}}
 		</h4>
-		<div class="ui attached table segment">
+		<div class="ui attached fm-table segment">
 			<dl class="admin-dl-horizontal">
 				<dt>{{ctx.Locale.Tr "admin.config.cache_adapter"}}</dt>
 				<dd>{{.CacheAdapter}}</dd>
@@ -248,8 +248,8 @@
 					<dd>{{.CacheItemTTL}}</dd>
 				{{end}}
 				<div class="divider"></div>
-				<dt class="flex-text-block tw-py-1">{{ctx.Locale.Tr "admin.config.cache_test"}}</dt>
-				<dd class="tw-py-0">
+				<dt class="flex-text-block py-1">{{ctx.Locale.Tr "admin.config.cache_test"}}</dt>
+				<dd class="py-0">
 					<form class="ui form ignore-dirty" action="{{AppSubUrl}}/-/admin/config/test_cache" method="post">
 						<button class="ui tiny primary button">{{ctx.Locale.Tr "test"}}</button>
 					</form>
@@ -260,7 +260,7 @@
 		<h4 class="ui top attached header">
 			{{ctx.Locale.Tr "admin.config.session_config"}}
 		</h4>
-		<div class="ui attached table segment">
+		<div class="ui attached fm-table segment">
 			<dl class="admin-dl-horizontal">
 				<dt>{{ctx.Locale.Tr "admin.config.session_provider"}}</dt>
 				<dd>{{.SessionConfig.Provider}}</dd>
@@ -278,7 +278,7 @@
 		<h4 class="ui top attached header">
 			{{ctx.Locale.Tr "admin.config.git_config"}}
 		</h4>
-		<div class="ui attached table segment">
+		<div class="ui attached fm-table segment">
 			<dl class="admin-dl-horizontal">
 				<dt>{{ctx.Locale.Tr "admin.config.git_disable_diff_highlight"}}</dt>
 				<dd>{{svg (Iif .Git.DisableDiffHighlight "octicon-check" "octicon-x")}}</dd>
@@ -305,7 +305,7 @@
 		<h4 class="ui top attached header">
 			{{ctx.Locale.Tr "admin.config.log_config"}}
 		</h4>
-		<div class="ui attached table segment">
+		<div class="ui attached fm-table segment">
 			<dl class="admin-dl-horizontal">
 				{{if .Loggers.xorm.IsEnabled}}
 					<dt>{{ctx.Locale.Tr "admin.config.xorm_log_sql"}}</dt>
@@ -320,7 +320,7 @@
 				{{range $loggerName, $loggerDetail := .Loggers}}
 					<dt>{{ctx.Locale.Tr "admin.config.logger_name_fmt" $loggerName}}</dt>
 					{{if $loggerDetail.IsEnabled}}
-						<dd><pre class="tw-m-0">{{$loggerDetail.EventWriters | JsonUtils.EncodeToString | JsonUtils.PrettyIndent}}</pre></dd>
+						<dd><pre class="m-0">{{$loggerDetail.EventWriters | JsonUtils.EncodeToString | JsonUtils.PrettyIndent}}</pre></dd>
 					{{else}}
 						<dd>{{ctx.Locale.Tr "admin.config.disabled_logger"}}</dd>
 					{{end}}

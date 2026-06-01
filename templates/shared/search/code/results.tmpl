@@ -1,8 +1,8 @@
-<div class="flex-text-block tw-flex-wrap">
+<div class="flex-text-block flex-wrap">
 	{{range $term := .SearchResultLanguages}}
-	<a class="ui {{if eq $.Language $term.Language}}primary{{end}} basic label tw-m-0"
+	<a class="ui {{if eq $.Language $term.Language}}primary{{end}} basic label m-0"
 		href="?q={{$.Keyword}}{{if ne $.Language $term.Language}}&l={{$term.Language}}{{end}}&search_mode={{$.SelectedSearchMode}}">
-		<i class="color-icon tw-mr-2" style="background-color: {{$term.Color}}"></i>
+		<i class="color-icon mr-2" style="background-color: {{$term.Color}}"></i>
 		{{$term.Language}}
 		<div class="detail">{{$term.Count}}</div>
 	</a>
@@ -12,9 +12,9 @@
 	{{range $result := .SearchResults}}
 		{{$repo := or $.Repo (index $.RepoMaps .RepoID)}}
 		<div class="diff-file-box file-content non-diff-file-content repo-search-result">
-			<h4 class="ui top attached header tw-font-normal flex-text-block tw-flex-wrap tw-py-2">
+			<h4 class="ui top attached header font-normal flex-text-block flex-wrap py-2">
 				{{if not $.Repo}}
-					<span class="file tw-flex-1">
+					<span class="file flex-1">
 						<a rel="nofollow" href="{{$repo.Link}}">{{$repo.FullName}}</a>
 						{{if $repo.IsArchived}}
 							<span class="ui basic label">{{ctx.Locale.Tr "repo.desc.archived"}}</span>
@@ -22,11 +22,11 @@
 						- {{.Filename}}
 					</span>
 				{{else}}
-					<span class="file tw-flex-1">{{.Filename}}</span>
+					<span class="file flex-1">{{.Filename}}</span>
 				{{end}}
 				<a role="button" class="ui basic tiny button" rel="nofollow" href="{{$repo.Link}}/src/commit/{{$result.CommitID | PathEscape}}/{{.Filename | PathEscapeSegments}}">{{ctx.Locale.Tr "repo.diff.view_file"}}</a>
 			</h4>
-			<div class="ui attached table segment">
+			<div class="ui attached fm-table segment">
 				{{template "shared/searchfile" dict "RepoLink" $repo.Link "SearchResult" .}}
 			</div>
 			{{template "shared/searchbottom" dict "root" $ "result" .}}

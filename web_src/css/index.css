@@ -1,3 +1,7 @@
+@import "tailwindcss/theme";
+@import "tailwindcss/utilities";
+@config "../../tailwind.config.ts";
+
 @import "./modules/normalize.css";
 @import "./modules/animations.css";
 
@@ -85,5 +89,3 @@
 @import "./actions.css";
 
 @import "./helpers.css";
-
-@tailwind utilities;

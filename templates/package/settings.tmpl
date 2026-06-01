@@ -5,7 +5,7 @@
 	{{else}}
 		{{template "shared/user/org_profile_avatar" .}}
 	{{end}}
-	<div class="ui container">
+	<div class="ui fm-container">
 		{{if not .ContextUser.IsOrganization}}
 			{{template "user/overview/header" .}}
 		{{end}}
@@ -60,7 +60,7 @@
 							{{ctx.Locale.Tr "packages.settings.delete"}}
 						</div>
 						<div class="content">
-							<div class="ui warning message tw-break-anywhere">
+							<div class="ui warning message break-anywhere">
 								{{ctx.Locale.Tr "packages.settings.delete.notice.package" .PackageDescriptor.Package.Name}}
 							</div>
 							<form class="ui form" action="{{.Link}}" method="post">
@@ -68,7 +68,7 @@
 								<div class="field">
 									<label>
 										{{ctx.Locale.Tr "packages.settings.delete.confirm"}}
-										<span class="tw-text-red">{{.PackageDescriptor.Package.Name}}</span>
+										<span class="text-red">{{.PackageDescriptor.Package.Name}}</span>
 									</label>
 								</div>
 								<div class="required field">

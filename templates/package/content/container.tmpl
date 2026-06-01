@@ -36,7 +36,7 @@
 	{{if .PackageDescriptor.Metadata.Manifests}}
 		<h4 class="ui top attached header">{{ctx.Locale.Tr "packages.container.images"}}</h4>
 		<div class="ui attached segment">
-			<table class="ui very basic compact table">
+			<table class="ui very basic compact fm-table">
 				<thead>
 					<tr>
 						<th>{{ctx.Locale.Tr "packages.container.digest"}}</th>
@@ -50,7 +50,7 @@
 						{{if ne .Platform "unknown/unknown"}}
 						<tr>
 							<td>
-								<a class="tw-font-mono" href="{{$.PackageDescriptor.PackageWebLink}}/{{$.PackageDescriptor.Version.LowerVersion}}/{{PathEscape .Digest}}">
+								<a class="font-mono" href="{{$.PackageDescriptor.PackageWebLink}}/{{$.PackageDescriptor.Version.LowerVersion}}/{{PathEscape .Digest}}">
 									{{StringUtils.TrimPrefix .Digest "sha256:" | ShortSha}}
 								</a>
 							</td>
@@ -78,13 +78,13 @@
 			{{ctx.Locale.Tr "packages.container.layers"}}
 			{{/* only show the platform if the image metadata is not the package's, which means that it is a sub manifest */}}
 			{{if ne .ContainerImageMetadata .PackageDescriptor.Metadata}}
-				<span class="tw-text-base flex-text-inline" title="{{ctx.Locale.Tr "packages.container.details.platform"}}">
+				<span class="text-base flex-text-inline" title="{{ctx.Locale.Tr "packages.container.details.platform"}}">
 					({{svg "octicon-cpu" 12}} {{.ContainerImageMetadata.Platform}})
 				</span>
 			{{end}}
 		</h4>
-		<div class="ui attached segment tw-break-anywhere">
-			<table class="ui very basic compact table tw-font-mono">
+		<div class="ui attached segment break-anywhere">
+			<table class="ui very basic compact fm-table font-mono">
 				<tbody>
 					{{range $imageMetadata.ImageLayers}}
 						<tr>
@@ -98,7 +98,7 @@
 	{{if $imageMetadata.Labels}}
 		<h4 class="ui top attached header">{{ctx.Locale.Tr "packages.container.labels"}}</h4>
 		<div class="ui attached segment">
-			<table class="ui very basic compact table tw-font-mono">
+			<table class="ui very basic compact fm-table font-mono">
 				<thead>
 					<tr>
 						<th>{{ctx.Locale.Tr "packages.container.labels.key"}}</th>
@@ -108,8 +108,8 @@
 				<tbody>
 					{{range $key, $value := $imageMetadata.Labels}}
 						<tr>
-							<td class="tw-align-top">{{$key}}</td>
-							<td class="tw-break-anywhere">{{$value}}</td>
+							<td class="align-top">{{$key}}</td>
+							<td class="break-anywhere">{{$value}}</td>
 						</tr>
 					{{end}}
 				</tbody>

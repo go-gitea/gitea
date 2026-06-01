@@ -1,12 +1,12 @@
 {{if and $.CanWriteProjects (not $.Repository.IsArchived)}}
-	<div class="flex-left-right tw-mb-4">
+	<div class="flex-left-right mb-4">
 		<div class="small-menu-items ui compact tiny menu list-header-toggle">
 			<a class="item{{if not .IsShowClosed}} active{{end}}" href="?state=open&q={{$.Keyword}}">
-				{{svg "octicon-project-symlink" 16 "tw-mr-2"}}
+				{{svg "octicon-project-symlink" 16 "mr-2"}}
 				{{ctx.Locale.PrettyNumber .OpenCount}}&nbsp;{{ctx.Locale.Tr "repo.issues.open_title"}}
 			</a>
 			<a class="item{{if .IsShowClosed}} active{{end}}" href="?state=closed&q={{$.Keyword}}">
-				{{svg "octicon-check" 16 "tw-mr-2"}}
+				{{svg "octicon-check" 16 "mr-2"}}
 				{{ctx.Locale.PrettyNumber .ClosedCount}}&nbsp;{{ctx.Locale.Tr "repo.issues.closed_title"}}
 			</a>
 		</div>
@@ -23,7 +23,7 @@
 		{{template "shared/search/combo" dict "Value" .Keyword "Placeholder" (ctx.Locale.Tr "search.project_kind")}}
 	</form>
 
-	<div class="list-header-filters ui secondary menu tw-m-0">
+	<div class="list-header-filters ui secondary menu m-0">
 		<!-- Sort -->
 		<div class="item ui small dropdown jump">
 			<span class="text">
@@ -44,12 +44,12 @@
 <div class="milestone-list">
 	{{range .Projects}}
 		<li class="milestone-card">
-			<h3 class="flex-text-block tw-m-0 tw-gap-3">
+			<h3 class="flex-text-block m-0 gap-3">
 				{{svg .IconName 16}}
-				<a class="muted tw-break-anywhere" href="{{.Link ctx}}">{{.Title}}</a>
+				<a class="muted break-anywhere" href="{{.Link ctx}}">{{.Title}}</a>
 			</h3>
 			<div class="milestone-toolbar">
-				<div class="group">
+				<div class="g-button-group">
 					<div class="flex-text-block">
 						{{svg "octicon-issue-opened" 14}}
 						{{ctx.Locale.PrettyNumber .NumOpenIssues}}&nbsp;{{ctx.Locale.Tr "repo.issues.open_title"}}
@@ -60,14 +60,14 @@
 					</div>
 				</div>
 				{{if and $.CanWriteProjects (not $.Repository.IsArchived)}}
-				<div class="group">
+				<div class="g-button-group">
 					<a class="flex-text-inline" href="{{.Link ctx}}/edit">{{svg "octicon-pencil" 14}}{{ctx.Locale.Tr "repo.issues.label_edit"}}</a>
 					{{if .IsClosed}}
 						<a class="link-action flex-text-inline" href data-url="{{.Link ctx}}/open">{{svg "octicon-check" 14}}{{ctx.Locale.Tr "repo.projects.open"}}</a>
 					{{else}}
 						<a class="link-action flex-text-inline" href data-url="{{.Link ctx}}/close">{{svg "octicon-skip" 14}}{{ctx.Locale.Tr "repo.projects.close"}}</a>
 					{{end}}
-					<a class="link-action flex-text-inline tw-text-red" href data-modal-confirm="#repo-project-delete-modal" data-url="{{.Link ctx}}/delete">{{svg "octicon-trash" 14}}{{ctx.Locale.Tr "repo.issues.label_delete"}}</a>
+					<a class="link-action flex-text-inline text-red" href data-modal-confirm="#repo-project-delete-modal" data-url="{{.Link ctx}}/delete">{{svg "octicon-trash" 14}}{{ctx.Locale.Tr "repo.issues.label_delete"}}</a>
 				</div>
 				{{end}}
 			</div>

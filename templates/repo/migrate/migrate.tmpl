@@ -1,25 +1,25 @@
 {{template "base/head" .}}
 <div role="main" aria-label="{{.Title}}" class="page-content repository new migrate">
-	<div class="ui middle very relaxed page grid">
+	<div class="ui middle very relaxed page fm-grid">
 		<div class="column">
 			{{template "repo/migrate/helper" .}}
 			<div class="ui cards migrate-entries">
 				{{range .Services}}
 					<a class="ui card migrate-entry flex-text-block" href="{{AppSubUrl}}/repo/migrate?service_type={{.}}&org={{$.Org}}&mirror={{$.Mirror}}">
 						{{if eq .Name "github"}}
-							{{svg "octicon-mark-github" 184 "tw-p-4"}}
+							{{svg "octicon-mark-github" 184 "p-4"}}
 						{{else if eq .Name "gitlab"}}
-							{{svg "gitea-gitlab" 184 "tw-p-4"}}
+							{{svg "gitea-gitlab" 184 "p-4"}}
 						{{else if eq .Name "gitbucket"}}
-							{{svg "gitea-gitbucket" 184 "tw-p-4"}}
+							{{svg "gitea-gitbucket" 184 "p-4"}}
 						{{else}}
 							{{svg (printf "gitea-%s" .Name) 184}}
 						{{end}}
 						<div class="content">
-							<div class="header tw-text-center">
+							<div class="header text-center">
 								{{.Title}}
 							</div>
-							<div class="description tw-text-center tw-text-balance">
+							<div class="description text-center text-balance">
 								{{ctx.Locale.Tr (printf "repo.migrate.%s.description" .Name)}}
 							</div>
 						</div>

@@ -41,7 +41,7 @@
   margin-left: 4px;
 }
 
-.ui.dropdown.select-reaction .menu.visible {
+.ui.dropdown.select-reaction .menu.fm-visible {
   display: grid !important;
   grid-template-columns: repeat(4, 1fr);
   padding: 4px;

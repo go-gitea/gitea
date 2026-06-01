@@ -14,17 +14,17 @@
 					<label>{{ctx.Locale.Tr "repo.settings.protect_branch_name_pattern"}}</label>
 					<input name="rule_name" type="text" value="{{.Rule.RuleName}}" required>
 					<input name="rule_id" type="hidden" value="{{.Rule.ID}}">
-					<p class="help tw-ml-0">{{ctx.Locale.Tr "repo.settings.protect_branch_name_pattern_desc" "https://github.com/gobwas/glob"}}</p>
+					<p class="help ml-0">{{ctx.Locale.Tr "repo.settings.protect_branch_name_pattern_desc" "https://github.com/gobwas/glob"}}</p>
 				</div>
 				<div class="field">
 					<label>{{ctx.Locale.Tr "repo.settings.protect_protected_file_patterns"}}</label>
 					<input name="protected_file_patterns" type="text" value="{{.Rule.ProtectedFilePatterns}}">
-					<p class="help tw-ml-0">{{ctx.Locale.Tr "repo.settings.protect_protected_file_patterns_desc" "https://pkg.go.dev/github.com/gobwas/glob#Compile" "github.com/gobwas/glob"}}</p>
+					<p class="help ml-0">{{ctx.Locale.Tr "repo.settings.protect_protected_file_patterns_desc" "https://pkg.go.dev/github.com/gobwas/glob#Compile" "github.com/gobwas/glob"}}</p>
 				</div>
 				<div class="field">
 					<label>{{ctx.Locale.Tr "repo.settings.protect_unprotected_file_patterns"}}</label>
 					<input name="unprotected_file_patterns" type="text" value="{{.Rule.UnprotectedFilePatterns}}">
-					<p class="help tw-ml-0">{{ctx.Locale.Tr "repo.settings.protect_unprotected_file_patterns_desc" "https://pkg.go.dev/github.com/gobwas/glob#Compile" "github.com/gobwas/glob"}}</p>
+					<p class="help ml-0">{{ctx.Locale.Tr "repo.settings.protect_unprotected_file_patterns_desc" "https://pkg.go.dev/github.com/gobwas/glob#Compile" "github.com/gobwas/glob"}}</p>
 				</div>
 
 				<h5 class="ui dividing header">{{ctx.Locale.Tr "repo.settings.event_push"}}</h5>
@@ -164,7 +164,7 @@
 				<div class="field">
 					<label>{{ctx.Locale.Tr "repo.settings.protect_required_approvals"}}</label>
 					<input name="required_approvals" type="number" value="{{.Rule.RequiredApprovals}}">
-					<p class="help tw-ml-0">{{ctx.Locale.Tr "repo.settings.protect_required_approvals_desc"}}</p>
+					<p class="help ml-0">{{ctx.Locale.Tr "repo.settings.protect_required_approvals_desc"}}</p>
 				</div>
 				<div class="grouped fields">
 					<div class="field">
@@ -234,7 +234,7 @@
 						<label>{{ctx.Locale.Tr "repo.settings.protect_status_check_patterns"}}</label>
 						<textarea id="status_check_contexts" name="status_check_contexts" rows="3">{{.status_check_contexts}}</textarea>
 						<p class="help">{{ctx.Locale.Tr "repo.settings.protect_status_check_patterns_desc"}}</p>
-						<table class="ui celled table">
+						<table class="ui celled fm-table">
 							<thead>
 								<tr>
 									<th>{{ctx.Locale.Tr "repo.settings.protect_check_status_contexts_list"}}</th>
@@ -245,7 +245,7 @@
 								<tr>
 									<td>
 										<span>{{.}}</span>
-										<span class="status-check-matched-mark tw-hidden" data-status-check="{{.}}">{{ctx.Locale.Tr "repo.settings.protect_status_check_matched"}}</span>
+										<span class="status-check-matched-mark hidden" data-status-check="{{.}}">{{ctx.Locale.Tr "repo.settings.protect_status_check_matched"}}</span>
 									</td>
 								</tr>
 							{{else}}

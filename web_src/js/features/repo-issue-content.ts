@@ -17,11 +17,11 @@ function showContentHistoryDetail(issueBaseUrl: string, commentId: string, histo
   ${svg('octicon-x', 16, 'close icon inside')}
   <div class="header flex-left-right">
     <div>${itemTitleHtml}</div>
-    <div class="ui dropdown dialog-header-options tw-mr-8 tw-hidden">
+    <div class="ui dropdown dialog-header-options mr-8 hidden">
       ${i18nTextOptions}
       ${svg('octicon-triangle-down', 14, 'dropdown icon')}
       <div class="menu">
-        <div class="item tw-text-red" data-option-item="delete">${i18nTextDeleteFromHistory}</div>
+        <div class="item text-red" data-option-item="delete">${i18nTextDeleteFromHistory}</div>
       </div>
     </div>
   </div>
@@ -94,7 +94,7 @@ function showContentHistoryDetail(issueBaseUrl: string, commentId: string, histo
 function showContentHistoryMenu(issueBaseUrl: string, elCommentItem: Element, commentId: string) {
   const elHeaderLeft = elCommentItem.querySelector('.comment-header-left')!;
   const menuHtml = `
-  <div class="ui dropdown interact-fg content-history-menu tw-flex-shrink-0" data-comment-id="${commentId}">
+  <div class="ui dropdown interact-fg content-history-menu shrink-0" data-comment-id="${commentId}">
     &bull; ${i18nTextEdited}${svg('octicon-triangle-down', 14, 'dropdown icon')}
     <div class="menu">
     </div>

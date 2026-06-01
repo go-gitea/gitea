@@ -148,13 +148,13 @@ const options: ChartOptions<'line'> = {
     <div class="ui header">
       {{ isLoading ? locale.loadingTitle : errorText ? locale.loadingTitleFailed: `Code frequency over the history of ${repoLink.slice(1)}` }}
     </div>
-    <div class="tw-flex ui segment main-graph">
-      <div v-if="isLoading || errorText !== ''" class="tw-m-auto">
+    <div class="flex ui segment main-graph">
+      <div v-if="isLoading || errorText !== ''" class="m-auto">
         <div v-if="isLoading">
-          <SvgIcon name="gitea-running" class="tw-mr-2 rotate-clockwise"/>
+          <SvgIcon name="gitea-running" class="mr-2 rotate-clockwise"/>
           {{ locale.loadingInfo }}
         </div>
-        <div v-else class="tw-text-red">
+        <div v-else class="text-red">
           <SvgIcon name="octicon-x-circle-fill"/>
           {{ errorText }}
         </div>

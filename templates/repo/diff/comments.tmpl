@@ -2,7 +2,7 @@
 
 {{$createdStr:= DateUtils.TimeSince .CreatedUnix}}
 <div class="comment" id="{{.HashTag}}">
-	<div class="tw-mt-2 tw-mr-4">
+	<div class="mt-2 mr-4">
 		{{if .OriginalAuthor}}
 			<span class="avatar">{{ctx.AvatarUtils.Avatar nil}}</span>
 		{{else}}
@@ -13,11 +13,11 @@
 		<div class="comment-header avatar-content-left-arrow">
 			<div class="comment-header-left">
 				{{if .OriginalAuthor}}
-					<span class="tw-text-text tw-font-semibold tw-mr-1">
+					<span class="text-text font-semibold mr-1">
 						{{svg (MigrationIcon $.root.Repository.GetOriginalURLHostname)}}
 						{{.OriginalAuthor}}
 					</span>
-					<span class="tw-text-text-light muted-links">
+					<span class="text-text-light muted-links">
 						{{ctx.Locale.Tr "repo.issues.commented_at" .HashTag $createdStr}}
 					</span>
 					<span class="text migrate">
@@ -26,7 +26,7 @@
 						{{end}}
 					</span>
 				{{else}}
-					<span class="tw-text-text-light muted-links">
+					<span class="text-text-light muted-links">
 						{{template "shared/user/namelink" .Poster}}
 						{{ctx.Locale.Tr "repo.issues.commented_at" .HashTag $createdStr}}
 					</span>
@@ -64,8 +64,8 @@
 				<span class="no-content">{{ctx.Locale.Tr "repo.issues.no_content"}}</span>
 			{{end}}
 			</div>
-			<div id="{{.HashTag}}-raw" class="raw-content tw-hidden">{{.Content}}</div>
-			<div class="edit-content-zone tw-hidden" data-update-url="{{$.root.RepoLink}}/comments/{{.ID}}" data-content-version="{{.ContentVersion}}" data-context="{{$.root.RepoLink}}" data-attachment-url="{{$.root.RepoLink}}/comments/{{.ID}}/attachments"></div>
+			<div id="{{.HashTag}}-raw" class="raw-content hidden">{{.Content}}</div>
+			<div class="edit-content-zone hidden" data-update-url="{{$.root.RepoLink}}/comments/{{.ID}}" data-content-version="{{.ContentVersion}}" data-context="{{$.root.RepoLink}}" data-attachment-url="{{$.root.RepoLink}}/comments/{{.ID}}/attachments"></div>
 			{{if .Attachments}}
 				{{template "repo/issue/view_content/attachments" dict "Attachments" .Attachments "RenderedContent" .RenderedContent}}
 			{{end}}

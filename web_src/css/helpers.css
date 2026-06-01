@@ -3,6 +3,20 @@ Gitea's tailwind-style CSS helper classes have `gt-` prefix.
 Gitea's private styles use `g-` prefix.
 */
 
+/*
+".hidden.hidden" is a double-class so it out-specifies other "display: xxx !important" rules. It is the
+hide utility (formerly "tw-hidden"); toggle it via showElem/hideElem/toggleElem in utils/dom.ts.
+Do NOT use the "[hidden]" attribute (too weak for "display: flex"), a single ".hidden" (historically
+polluted by Fomantic UI), or inline "display: none".
+*/
+.hidden.hidden {
+  display: none !important;
+}
+
+.break-anywhere {
+  overflow-wrap: anywhere !important;
+}
+
 .gt-ellipsis {
   overflow: hidden !important;
   white-space: nowrap !important;
@@ -31,7 +45,7 @@ Gitea's private styles use `g-` prefix.
 .interact-bg:active { background: var(--color-active) !important; }
 
 @media (max-width: 767.98px) {
-  /* double selector so it wins over .tw-flex (old .gt-df) etc */
+  /* double selector so it wins over .flex (old .gt-df) etc */
   .not-mobile.not-mobile {
     display: none !important;
   }

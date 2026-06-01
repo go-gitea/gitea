@@ -1,7 +1,7 @@
 {{template "base/head" .}}
 <div role="main" aria-label="{{.Title}}" class="page-content repository releases">
 	{{template "repo/header" .}}
-	<div class="ui container">
+	<div class="ui fm-container">
 		{{template "base/alert" .}}
 		{{template "repo/release_tag_header" .}}
 		<ul id="release-list">
@@ -9,9 +9,9 @@
 				{{$release := $info.Release}}
 				<li class="release-entry">
 					<div class="meta">
-						<a class="muted" href="{{if not (and $release.Sha1 ($.Permission.CanRead ctx.Consts.RepoUnitTypeCode))}}#{{else}}{{$.RepoLink}}/src/tag/{{$release.TagName | PathEscapeSegments}}{{end}}" rel="nofollow">{{svg "octicon-tag" 16 "tw-mr-1"}}{{$release.TagName}}</a>
+						<a class="muted" href="{{if not (and $release.Sha1 ($.Permission.CanRead ctx.Consts.RepoUnitTypeCode))}}#{{else}}{{$.RepoLink}}/src/tag/{{$release.TagName | PathEscapeSegments}}{{end}}" rel="nofollow">{{svg "octicon-tag" 16 "mr-1"}}{{$release.TagName}}</a>
 						{{if and $release.Sha1 ($.Permission.CanRead ctx.Consts.RepoUnitTypeCode)}}
-							<a class="muted tw-font-mono" href="{{$.RepoLink}}/src/commit/{{$release.Sha1}}" rel="nofollow">{{svg "octicon-git-commit" 16 "tw-mr-1"}}{{ShortSha $release.Sha1}}</a>
+							<a class="muted font-mono" href="{{$.RepoLink}}/src/commit/{{$release.Sha1}}" rel="nofollow">{{svg "octicon-git-commit" 16 "mr-1"}}{{ShortSha $release.Sha1}}</a>
 							{{$compareTarget := ""}}
 							{{if $release.IsDraft}}
 									{{$compareTarget = $release.Target}}
@@ -30,10 +30,10 @@
 						{{end}}
 					</div>
 					<div class="ui segment detail">
-						<div class="flex-left-right tw-mb-2">
-							<h4 class="release-list-title tw-break-anywhere">
+						<div class="flex-left-right mb-2">
+							<h4 class="release-list-title break-anywhere">
 								{{if $.PageIsSingleTag}}{{$release.Title}}{{else}}<a class="muted" href="{{$.RepoLink}}/releases/tag/{{$release.TagName | PathEscapeSegments}}">{{$release.Title}}</a>{{end}}
-								{{template "repo/commit_statuses" dict "Status" $info.CommitStatus "Statuses" $info.CommitStatuses "AdditionalClasses" "tw-flex"}}
+								{{template "repo/commit_statuses" dict "Status" $info.CommitStatus "Statuses" $info.CommitStatuses "AdditionalClasses" "flex"}}
 								{{template "repo/release/label" (dict "Release" $release)}}
 							</h4>
 							<div>
@@ -44,12 +44,12 @@
 								{{end}}
 							</div>
 						</div>
-						<p class="tw-text-text-light">
+						<p class="text-text-light">
 							<span class="author">
 							{{if $release.OriginalAuthor}}
-								{{svg (MigrationIcon $release.Repo.GetOriginalURLHostname) 20 "tw-mr-1"}}{{$release.OriginalAuthor}}
+								{{svg (MigrationIcon $release.Repo.GetOriginalURLHostname) 20 "mr-1"}}{{$release.OriginalAuthor}}
 							{{else if $release.Publisher}}
-								{{ctx.AvatarUtils.Avatar $release.Publisher 20 "tw-mr-1"}}
+								{{ctx.AvatarUtils.Avatar $release.Publisher 20 "mr-1"}}
 								{{if gt $release.PublisherID 0}}
 									<a href="{{$release.Publisher.HomeLink}}">{{$release.Publisher.GetDisplayName}}</a>
 								{{else}}
@@ -80,15 +80,15 @@
 							<ul class="ui divided list attachment-list">
 								{{range $att := $release.Attachments}}
 									<li class="item">
-										<a target="_blank" class="tw-flex-1 gt-ellipsis" rel="nofollow" download href="{{$att.DownloadURL}}">
+										<a target="_blank" class="flex-1 gt-ellipsis" rel="nofollow" download href="{{$att.DownloadURL}}">
 											<strong class="flex-text-inline">{{svg "octicon-package" 16 "download-icon"}}<span class="gt-ellipsis">{{$att.Name}}</span></strong>
 										</a>
 										<div class="attachment-right-info flex-text-inline">
-											<span class="tw-pl-5">{{$att.Size | FileSize}}</span>
+											<span class="pl-5">{{$att.Size | FileSize}}</span>
 											<span class="flex-text-inline" data-tooltip-content="{{ctx.Locale.Tr "repo.release.download_count" (ctx.Locale.PrettyNumber $att.DownloadCount)}}">
 												{{svg "octicon-info"}}
 											</span>
-											<div class="tw-flex-1"></div>
+											<div class="flex-1"></div>
 											{{DateUtils.TimeSince $att.CreatedUnix}}
 										</div>
 									</li>

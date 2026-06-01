@@ -1,5 +1,5 @@
-<div class="oauth2 field {{if not (eq .type 6)}}tw-hidden{{end}}">
-	<div class="inline required field">
+<div class="oauth2 field {{if not (eq .type 6)}}hidden{{end}}">
+	<div class="fm-inline required field">
 		<label>{{ctx.Locale.Tr "admin.auths.oauth2_provider"}}</label>
 		<div class="ui selection type dropdown">
 			<input type="hidden" id="oauth2_provider" name="oauth2_provider" value="{{.oauth2_provider}}">
@@ -36,7 +36,7 @@
 		</div>
 	</div>
 
-	<div class="oauth2_use_custom_url inline field">
+	<div class="oauth2_use_custom_url fm-inline field">
 		<div class="ui checkbox">
 			<label><strong>{{ctx.Locale.Tr "admin.auths.oauth2_use_custom_url"}}</strong></label>
 			<input id="oauth2_use_custom_url" name="oauth2_use_custom_url" type="checkbox">

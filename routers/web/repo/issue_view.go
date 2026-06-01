@@ -509,7 +509,7 @@ func (prInfo *pullRequestViewInfo) prepareMergeBoxCommitSigning(ctx *context.Con
 
 	if data.willSign {
 		prInfo.MergeBoxData.infoMergePrompts.AddInfoItem(
-			svg.RenderHTML("octicon-lock", 16, "tw-text-green"),
+			svg.RenderHTML("octicon-lock", 16, "text-green"),
 			ctx.Locale.Tr("repo.signing.will_sign", data.signingKeyMergeDisplay),
 		)
 	}

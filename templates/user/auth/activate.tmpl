@@ -1,8 +1,8 @@
 {{template "base/head" .}}
 <div role="main" aria-label="{{.Title}}" class="page-content user activate">
-	<div class="ui middle very relaxed page grid">
+	<div class="ui middle very relaxed page fm-grid">
 		<div class="column">
-			<form class="ui form ignore-dirty tw-max-w-2xl tw-m-auto" action="{{AppSubUrl}}/user/activate" method="post">
+			<form class="ui form ignore-dirty max-w-2xl m-auto" action="{{AppSubUrl}}/user/activate" method="post">
 				<h2 class="ui top attached header">
 					{{ctx.Locale.Tr "auth.active_your_account"}}
 				</h2>
@@ -13,7 +13,7 @@
 							<label for="verify-password">{{ctx.Locale.Tr "password"}}</label>
 							<input id="verify-password" name="password" type="password" autocomplete="off" required>
 						</div>
-						<div class="inline field">
+						<div class="fm-inline field">
 							<button class="ui primary button">{{ctx.Locale.Tr "install.confirm_password"}}</button>
 						</div>
 						<input name="code" type="hidden" value="{{.ActivationCode}}">
@@ -21,7 +21,7 @@
 						<p>{{ctx.Locale.Tr "auth.has_unconfirmed_mail" .SignedUser.Name .SignedUser.Email}}</p>
 						<details>
 							<summary>{{ctx.Locale.Tr "auth.change_unconfirmed_mail_address"}}</summary>
-							<div class="tw-py-2">
+							<div class="py-2">
 								<label for="change-email">{{ctx.Locale.Tr "email"}}</label>
 								<input id="change-email" name="change_email" type="email" value="{{.SignedUser.Email}}">
 							</div>

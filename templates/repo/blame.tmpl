@@ -12,10 +12,10 @@
 {{end}}
 <div class="{{TabSizeClass .Editorconfig .FileTreePath}} non-diff-file-content">
 	<h4 class="file-header ui top attached header flex-left-right">
-		<div class="file-header-left tw-flex tw-items-center tw-py-2 tw-pr-4">
+		<div class="file-header-left flex items-center py-2 pr-4">
 			{{template "repo/file_info" .}}
 		</div>
-		<div class="file-header-right file-actions tw-flex tw-items-center tw-flex-wrap">
+		<div class="file-header-right file-actions flex items-center flex-wrap">
 			<div class="ui buttons">
 				<a class="ui tiny button" href="{{$.RawFileLink}}">{{ctx.Locale.Tr "repo.file_raw"}}</a>
 				{{if or .RefFullName.IsBranch .RefFullName.IsTag}}
@@ -24,11 +24,11 @@
 				<a class="ui tiny button" href="{{.RepoLink}}/src/{{.RefTypeNameSubURL}}/{{.TreePath | PathEscapeSegments}}">{{ctx.Locale.Tr "repo.normal_view"}}</a>
 				<a class="ui tiny button" href="{{.RepoLink}}/commits/{{.RefTypeNameSubURL}}/{{.TreePath | PathEscapeSegments}}">{{ctx.Locale.Tr "repo.file_history"}}</a>
 				<button class="ui tiny button unescape-button">{{ctx.Locale.Tr "repo.unescape_control_characters"}}</button>
-				<button class="ui tiny button escape-button tw-hidden">{{ctx.Locale.Tr "repo.escape_control_characters"}}</button>
+				<button class="ui tiny button escape-button hidden">{{ctx.Locale.Tr "repo.escape_control_characters"}}</button>
 			</div>
 		</div>
 	</h4>
-	<div class="ui bottom attached table unstackable segment">
+	<div class="ui bottom attached fm-table unstackable segment">
 		<div class="file-view code-view unicode-escaped">
 			{{if .IsFileTooLarge}}
 				{{template "shared/filetoolarge" dict "RawFileLink" .RawFileLink}}
@@ -68,7 +68,7 @@
 							{{ctx.RenderUtils.RenderUnicodeEscapeToggleTd $.EscapeStatus $row.EscapeStatus}}
 
 							<td rel="L{{$row.RowNumber}}" class="lines-code blame-code chroma">
-								<code class="code-inner tw-pl-2">{{$row.Code}}</code>
+								<code class="code-inner pl-2">{{$row.Code}}</code>
 							</td>
 						</tr>
 					{{end}}

@@ -46,8 +46,8 @@ function addCopyLink(file: Partial<CustomDropzoneFile>) {
   // Create a "Copy Link" element, to conveniently copy the image or file link as Markdown to the clipboard
   // The "<a>" element has a hardcoded cursor: pointer because the default is overridden by .dropzone
   const copyLinkEl = createElementFromHTML<HTMLDivElement>(`
-<div class="tw-text-center">
-  <a href="#" class="tw-cursor-pointer">${svg('octicon-copy', 14)} Copy link</a>
+<div class="text-center">
+  <a href="#" class="cursor-pointer">${svg('octicon-copy', 14)} Copy link</a>
 </div>`);
   copyLinkEl.addEventListener('click', async (e) => {
     e.preventDefault();

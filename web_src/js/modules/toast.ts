@@ -65,7 +65,7 @@ function showToast(message: string, level: Intent, {gravity, position, duration,
     selector: parent,
     text: `
       <div class='toast-icon'>${svg(icon)}</div>
-      <div class='toast-body'><span class="toast-duplicate-number tw-hidden">1</span>${body}</div>
+      <div class='toast-body'><span class="toast-duplicate-number hidden">1</span>${body}</div>
       <button class='btn toast-close'>${svg('octicon-x')}</button>
     `,
     escapeMarkup: false,

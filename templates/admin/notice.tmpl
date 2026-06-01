@@ -3,7 +3,7 @@
 		<h4 class="ui top attached header">
 			{{ctx.Locale.Tr "admin.notices.system_notice_list"}} ({{ctx.Locale.Tr "admin.total" .Total}})
 		</h4>
-		<table class="ui attached segment select selectable table unstackable g-table-auto-ellipsis">
+		<table class="ui attached segment select selectable fm-table unstackable g-table-auto-ellipsis">
 			<thead>
 				<tr>
 					<th></th>
@@ -17,15 +17,15 @@
 			<tbody>
 				{{range .Notices}}
 					<tr>
-						<td><div class="ui checkbox tw-flex" data-id="{{.ID}}"><input type="checkbox"></div></td>
+						<td><div class="ui checkbox flex" data-id="{{.ID}}"><input type="checkbox"></div></td>
 						<td>{{.ID}}</td>
 						<td>{{ctx.Locale.Tr .TrStr}}</td>
-						<td class="view-detail auto-ellipsis tw-w-4/5"><span class="notice-description">{{.Description}}</span></td>
+						<td class="view-detail auto-ellipsis w-4/5"><span class="notice-description">{{.Description}}</span></td>
 						<td nowrap>{{DateUtils.AbsoluteShort .CreatedUnix}}</td>
 						<td class="view-detail"><a href="#">{{svg "octicon-note" 16}}</a></td>
 					</tr>
 				{{else}}
-					<tr><td class="tw-text-center" colspan="6">{{ctx.Locale.Tr "no_results_found"}}</td></tr>
+					<tr><td class="text-center" colspan="6">{{ctx.Locale.Tr "no_results_found"}}</td></tr>
 				{{end}}
 			</tbody>
 			{{if .Notices}}
@@ -33,7 +33,7 @@
 						<tr>
 							<th></th>
 							<th colspan="5">
-								<form class="tw-float-right" method="post" action="{{AppSubUrl}}/-/admin/notices/empty">
+								<form class="float-right" method="post" action="{{AppSubUrl}}/-/admin/notices/empty">
 									<button type="submit" class="ui red small button">{{ctx.Locale.Tr "admin.notices.delete_all"}}</button>
 								</form>
 								<div class="ui floating upward dropdown small button">

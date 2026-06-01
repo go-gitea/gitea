@@ -1,7 +1,7 @@
 {{template "base/head" .}}
 <div role="main" aria-label="{{.Title}}" class="page-content repository new release">
 	{{template "repo/header" .}}
-	<div class="ui container">
+	<div class="ui fm-container">
 		<h2 class="ui dividing header">
 			{{if .PageIsEditRelease}}
 				{{ctx.Locale.Tr "repo.release.edit_release"}}
@@ -19,16 +19,16 @@
 			data-tag-helper-new="{{ctx.Locale.Tr "repo.release.tag_helper_new"}}"
 			data-tag-helper-existing="{{ctx.Locale.Tr "repo.release.tag_helper_existing"}}"
 		>
-			<div class="inline field {{if .Err_TagName}}error{{end}}">
-				<label class="tw-block tw-mb-1"><b>{{ctx.Locale.Tr "repo.git_tag"}}</b></label>
+			<div class="fm-inline field {{if .Err_TagName}}error{{end}}">
+				<label class="block mb-1"><b>{{ctx.Locale.Tr "repo.git_tag"}}</b></label>
 				{{if .PageIsEditRelease}}
 					<input type="hidden" name="tag_name" value="{{.tag_name}}">
 					<input type="hidden" name="tag_target" value="{{.tag_target}}">
 					<span>{{.tag_name}} @ {{.tag_target}}</span>
 				{{else}}
-					<div class="flex-text-block tw-flex-wrap">
-						<input type="text" class="tw-w-auto" name="tag_name" value="{{.tag_name}}" aria-label="{{ctx.Locale.Tr "repo.release.tag_name"}}" placeholder="{{ctx.Locale.Tr "repo.release.tag_name"}}" autofocus required maxlength="255">
-						<div class="tag-target-selector tw-contents">
+					<div class="flex-text-block flex-wrap">
+						<input type="text" class="w-auto" name="tag_name" value="{{.tag_name}}" aria-label="{{ctx.Locale.Tr "repo.release.tag_name"}}" placeholder="{{ctx.Locale.Tr "repo.release.tag_name"}}" autofocus required maxlength="255">
+						<div class="tag-target-selector contents">
 							<span>@</span>
 							<div class="ui selection dropdown">
 								<input type="hidden" name="tag_target" value="{{.tag_target}}">
@@ -47,7 +47,7 @@
 						</div>
 					</div>
 					<div>
-						<span class="help tag-name-helper tw-pb-0">{{ctx.Locale.Tr "repo.release.tag_helper"}}</span>
+						<span class="help tag-name-helper pb-0">{{ctx.Locale.Tr "repo.release.tag_helper"}}</span>
 					</div>
 				{{end}}
 			</div>
@@ -79,10 +79,10 @@
 
 			{{range .attachments}}
 				<div class="field flex-text-block" id="attachment-{{.ID}}">
-					<div class="flex-text-block tw-flex-1">
-						<input name="attachment-edit-{{.UUID}}" class="tw-max-w-[48em]" required value="{{.Name}}">
+					<div class="flex-text-block flex-1">
+						<input name="attachment-edit-{{.UUID}}" class="max-w-[48em]" required value="{{.Name}}">
 						<input name="attachment-del-{{.UUID}}" type="hidden" value="false">
-						<span class="tw-text-text-light tw-flex-shrink-0">{{.Size | FileSize}}</span>
+						<span class="text-text-light shrink-0">{{.Size | FileSize}}</span>
 						<span data-tooltip-content="{{ctx.Locale.Tr "repo.release.download_count" (ctx.Locale.PrettyNumber .DownloadCount)}}">
 							{{svg "octicon-info"}}
 						</span>
@@ -114,10 +114,10 @@
 					<input type="checkbox" name="prerelease" {{if .prerelease}}checked{{end}}>
 					<label><strong>{{ctx.Locale.Tr "repo.release.prerelease_desc"}}</strong></label>
 				</div>
-				<div class="help tw-block tw-ml-[21px]">{{ctx.Locale.Tr "repo.release.prerelease_helper"}}</div>
+				<div class="help block ml-[21px]">{{ctx.Locale.Tr "repo.release.prerelease_helper"}}</div>
 			</div>
 
-			<div class="flex-text-block tw-justify-end">
+			<div class="flex-text-block justify-end">
 				{{if .PageIsEditRelease}}
 					<a class="ui small button" href="{{.RepoLink}}/releases">
 						{{ctx.Locale.Tr "repo.release.cancel"}}

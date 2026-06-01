@@ -41,7 +41,7 @@
 		</form>
 	</div>
 	{{if .AllowBulkActions}}
-	<div class="ui attached segment tw-hidden" data-global-init="initRunnerBulkToolbar">
+	<div class="ui attached segment hidden" data-global-init="initRunnerBulkToolbar">
 		<form action="{{$.Link}}/bulk" method="post" class="form-fetch-action">
 			<input type="hidden" name="ids">
 			<button class="ui small button" name="action" value="disable">{{ctx.Locale.Tr "actions.runners.disable_runner"}} <span class="runner-bulk-count"></span></button>
@@ -55,12 +55,12 @@
 	</div>
 	{{end}}
 	{{if .Runners}}
-	<div class="ui attached table segment">
-		<table class="ui very basic table unstackable">
+	<div class="ui attached fm-table segment">
+		<table class="ui very basic fm-table unstackable">
 			<thead>
 				<tr>
 					{{if .AllowBulkActions}}
-					<th class="tw-w-8"><div class="ui checkbox tw-flex"><input type="checkbox" class="runner-bulk-select-all" aria-label="{{ctx.Locale.Tr "admin.notices.select_all"}}"></div></th>
+					<th class="w-8"><div class="ui checkbox flex"><input type="checkbox" class="runner-bulk-select-all" aria-label="{{ctx.Locale.Tr "admin.notices.select_all"}}"></div></th>
 					{{end}}
 					<th data-sortt-asc="online" data-sortt-desc="offline">
 						{{ctx.Locale.Tr "actions.runners.status"}}
@@ -85,7 +85,7 @@
 				{{range .Runners}}
 					<tr>
 						{{if $.AllowBulkActions}}
-						<td><div class="ui checkbox tw-flex"><input type="checkbox" class="runner-bulk-select" data-runner-id="{{.ID}}" aria-label="{{ctx.Locale.Tr "repo.issues.action_check"}}: {{.Name}}"></div></td>
+						<td><div class="ui checkbox flex"><input type="checkbox" class="runner-bulk-select" data-runner-id="{{.ID}}" aria-label="{{ctx.Locale.Tr "repo.issues.action_check"}}: {{.Name}}"></div></td>
 						{{end}}
 						<td>
 							<span class="ui label {{if .IsOnline}}green{{end}}">{{.StatusLocaleName ctx.Locale}}</span>
@@ -96,7 +96,7 @@
 						<td>{{if .Version}}{{.Version}}{{else}}{{ctx.Locale.Tr "unknown"}}{{end}}</td>
 						<td><span data-tooltip-content="{{.BelongsToOwnerName}}">{{.BelongsToOwnerType.LocaleString ctx.Locale}}</span></td>
 						<td>
-							<span class="flex-text-inline tw-flex-wrap">{{range .AgentLabels}}<span class="ui label">{{.}}</span>{{end}}</span>
+							<span class="flex-text-inline flex-wrap">{{range .AgentLabels}}<span class="ui label">{{.}}</span>{{end}}</span>
 						</td>
 						<td>{{if .LastOnline}}{{DateUtils.TimeSince .LastOnline}}{{else}}{{ctx.Locale.Tr "never"}}{{end}}</td>
 						<td>
@@ -110,7 +110,7 @@
 		</table>
 	</div>
 	{{else}}
-	<div class="ui attached segment tw-text-center">{{ctx.Locale.Tr "actions.runners.none"}}</div>
+	<div class="ui attached segment text-center">{{ctx.Locale.Tr "actions.runners.none"}}</div>
 	{{end}}
 
 	{{template "base/paginate" .}}

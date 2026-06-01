@@ -122,7 +122,7 @@
 
 /* For the secondary pointing menu, respect its own border-bottom */
 /* style reference: https://semantic-ui.com/collections/menu.html#pointing */
-.repository .ui.tabs.container .ui.menu:not(.secondary.pointing) {
+.repository .ui.tabs.fm-container .ui.menu:not(.secondary.pointing) {
   border-bottom: 0;
 }
 
@@ -408,7 +408,7 @@ td .commit-summary {
   right: 1px;
 }
 
-.repository.view.issue .pull.tabs.container {
+.repository.view.issue .pull.tabs.fm-container {
   width: 100%;
   max-width: 100%;
 }
@@ -969,7 +969,7 @@ td .commit-summary {
   border-radius: 0;
 }
 
-.repository .diff-file-box .ui.bottom.attached.table.segment {
+.repository .diff-file-box .ui.bottom.attached.fm-table.segment {
   padding-top: 5px;
   padding-bottom: 5px;
 }
@@ -984,13 +984,13 @@ td .commit-summary {
   border: none;
 }
 
-.file.editor .diff-file-box .ui.attached.table {
+.file.editor .diff-file-box .ui.attached.fm-table {
   border: none;
 }
 
 /* TODO: this can potentially be made "global" by removing the class prefix */
 .diff-file-box .ui.attached.header,
-.diff-file-box .ui.attached.table {
+.diff-file-box .ui.attached.fm-table {
   margin: 0; /* remove fomantic negative margins */
   width: initial; /* remove fomantic over 100% width */
   max-width: initial; /* remove fomantic over 100% width */

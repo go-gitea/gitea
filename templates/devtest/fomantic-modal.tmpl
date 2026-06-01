@@ -1,10 +1,10 @@
 {{template "devtest/devtest-header"}}
-<div class="page-content devtest ui container">
-	<div class="modal-buttons flex-text-block tw-flex-wrap"></div>
+<div class="page-content devtest ui fm-container">
+	<div class="modal-buttons flex-text-block flex-wrap"></div>
 	<div id="test-modal-form-1" class="ui mini modal">
 		<div class="header">Form dialog (layout 1)</div>
 		<form class="content" method="post" action="?mock_response_delay=1">
-			<div class="ui input tw-w-full"><input name="user_input"></div>
+			<div class="ui input w-full"><input name="user_input"></div>
 			{{template "base/modal_actions_confirm" (dict "ModalButtonTypes" "confirm")}}
 		</form>
 	</div>
@@ -13,7 +13,7 @@
 		<div class="header">Form dialog (layout 2)</div>
 		<form method="post" action="?mock_response_delay=1">
 			<div class="content">
-				<div class="ui input tw-w-full"><input name="user_input"></div>
+				<div class="ui input w-full"><input name="user_input"></div>
 				{{template "base/modal_actions_confirm" (dict "ModalButtonTypes" "confirm")}}
 			</div>
 		</form>
@@ -23,7 +23,7 @@
 		<div class="header">Form dialog (layout 3)</div>
 		<form method="post" action="?mock_response_delay=1">
 			<div class="content">
-				<div class="ui input tw-w-full"><input name="user_input"></div>
+				<div class="ui input w-full"><input name="user_input"></div>
 			</div>
 			{{template "base/modal_actions_confirm" (dict "ModalButtonTypes" "confirm")}}
 		</form>
@@ -32,7 +32,7 @@
 	<div id="test-modal-form-4" class="ui mini modal">
 		<div class="header">Form dialog (layout 4)</div>
 		<div class="content">
-			<div class="ui input tw-w-full"><input name="user_input"></div>
+			<div class="ui input w-full"><input name="user_input"></div>
 		</div>
 		<form method="post" action="?mock_response_delay=1">
 			{{template "base/modal_actions_confirm" (dict "ModalButtonTypes" "confirm")}}
@@ -43,7 +43,7 @@
 		<div class="header">Form dialog (layout 5)</div>
 		<div class="content">
 			<form method="post" action="?mock_response_delay=1">
-				<div class="ui input tw-w-full"><input name="user_input"></div>
+				<div class="ui input w-full"><input name="user_input"></div>
 				{{template "base/modal_actions_confirm" (dict "ModalButtonTypes" "confirm")}}
 			</form>
 		</div>

@@ -1,12 +1,12 @@
 {{template "base/head" .}}
 <div role="main" aria-label="{{.Title}}" class="page-content repository quickstart">
 	{{template "repo/header" .}}
-	<div class="ui container">
-		<div class="ui grid">
+	<div class="ui fm-container">
+		<div class="ui fm-grid">
 			<div class="sixteen wide column content">
 				{{template "base/alert" .}}
 				{{if .Repository.IsArchived}}
-					<div class="ui warning message tw-text-center">
+					<div class="ui warning message text-center">
 						{{if .Repository.ArchivedUnix.IsZero}}
 							{{ctx.Locale.Tr "repo.archive.title"}}
 						{{else}}
@@ -21,7 +21,7 @@
 					<div class="ui segment center">{{ctx.Locale.Tr "repo.no_branch"}}</div>
 				{{else if .CanWriteCode}}
 					<h4 class="ui top attached header">{{ctx.Locale.Tr "repo.quick_guide"}}</h4>
-					<div class="ui attached guide table segment empty-repo-guide">
+					<div class="ui attached guide fm-table segment empty-repo-guide">
 						<div class="item">
 							<h3>{{ctx.Locale.Tr "repo.clone_this_repo"}} <small>{{ctx.Locale.Tr "repo.clone_helper" "http://git-scm.com/book/en/v2/Git-Basics-Getting-a-Git-Repository"}}</small></h3>
 
@@ -41,7 +41,7 @@
 						</div>
 
 						{{if not .Repository.IsArchived}}
-							<div class="divider tw-my-0"></div>
+							<div class="divider my-0"></div>
 
 							<div class="item">
 								<h3>{{ctx.Locale.Tr "repo.create_new_repo_command"}}</h3>

@@ -115,13 +115,13 @@ textarea:focus,
   vertical-align: top;
 }
 
-.ui.form .fields:not(.grouped):not(.inline) .field:not(:only-child) label + .ui.ui.checkbox {
+.ui.form .fields:not(.grouped):not(.fm-inline) .field:not(:only-child) label + .ui.ui.checkbox {
   margin-top: 0.7em;
 }
-.ui.form .fields:not(.grouped):not(.inline) .field:not(:only-child) .ui.checkbox {
+.ui.form .fields:not(.grouped):not(.fm-inline) .field:not(:only-child) .ui.checkbox {
   margin-top: 2.41428571em;
 }
-.ui.form .fields:not(.grouped):not(.inline) .field:not(:only-child) .ui.toggle.checkbox {
+.ui.form .fields:not(.grouped):not(.fm-inline) .field:not(:only-child) .ui.toggle.checkbox {
   margin-top: 2.21428571em;
 }
 .ui.ui.form .field .fields .field:not(:only-child) .ui.checkbox {
@@ -139,12 +139,12 @@ textarea:focus,
   float: right;
 }
 
-.ui.form .inline.fields .field > .selection.dropdown,
-.ui.form .inline.field > .selection.dropdown {
+.ui.form .fm-inline.fields .field > .selection.dropdown,
+.ui.form .fm-inline.field > .selection.dropdown {
   width: auto;
 }
-.ui.form .inline.fields .field > .selection.dropdown > .dropdown.icon,
-.ui.form .inline.field > .selection.dropdown > .dropdown.icon {
+.ui.form .fm-inline.fields .field > .selection.dropdown > .dropdown.icon,
+.ui.form .fm-inline.field > .selection.dropdown > .dropdown.icon {
   float: none;
 }
 
@@ -153,8 +153,8 @@ textarea:focus,
   width: 100%;
 }
 
-.ui.form .inline.fields .field .ui.input,
-.ui.form .inline.field .ui.input {
+.ui.form .fm-inline.fields .field .ui.input,
+.ui.form .fm-inline.field .ui.input {
   width: auto;
   vertical-align: middle;
 }
@@ -315,20 +315,20 @@ textarea:focus,
   }
 }
 
-.ui.form .inline.fields {
+.ui.form .fm-inline.fields {
   margin: 0 0 1em;
   align-items: center;
 }
-.ui.form .inline.fields .field {
+.ui.form .fm-inline.fields .field {
   margin: 0;
   padding: 0 1em 0 0;
 }
 
-.ui.form .inline.fields > label,
-.ui.form .inline.fields .field > label,
-.ui.form .inline.fields .field > p,
-.ui.form .inline.field > label,
-.ui.form .inline.field > p {
+.ui.form .fm-inline.fields > label,
+.ui.form .fm-inline.fields .field > label,
+.ui.form .fm-inline.fields .field > p,
+.ui.form .fm-inline.field > label,
+.ui.form .fm-inline.field > p {
   display: inline-block;
   width: auto;
   margin-top: 0;
@@ -340,14 +340,14 @@ textarea:focus,
   text-transform: none;
 }
 
-.ui.form .inline.fields > label {
+.ui.form .fm-inline.fields > label {
   margin: 0.035714em 1em 0 0;
 }
 
-.ui.form .inline.fields .field > input,
-.ui.form .inline.fields .field > select,
-.ui.form .inline.field > input,
-.ui.form .inline.field > select {
+.ui.form .fm-inline.fields .field > input,
+.ui.form .fm-inline.fields .field > select,
+.ui.form .fm-inline.field > input,
+.ui.form .fm-inline.field > select {
   display: inline-block;
   width: auto;
   margin-top: 0;
@@ -356,12 +356,12 @@ textarea:focus,
   font-size: 1em;
 }
 
-.ui.form .inline.fields .field > :first-child,
-.ui.form .inline.field > :first-child {
+.ui.form .fm-inline.fields .field > :first-child,
+.ui.form .fm-inline.field > :first-child {
   margin: 0 0.85714286em 0 0;
 }
-.ui.form .inline.fields .field > :only-child,
-.ui.form .inline.field > :only-child {
+.ui.form .fm-inline.fields .field > :only-child,
+.ui.form .fm-inline.field > :only-child {
   margin: 0;
 }
 
@@ -429,45 +429,45 @@ input:-webkit-autofill:active {
   margin: 0.25em 0 0.25em 1em;
 }
 
-.ui.form.left-right-form .inline.field > label {
+.ui.form.left-right-form .fm-inline.field > label {
   text-align: right;
   width: 250px;
   margin-right: 10px;
 }
 
-.ui.form.left-right-form .inline.field > .help {
+.ui.form.left-right-form .fm-inline.field > .help {
   display: block;
   margin-left: calc(250px + 15px);
 }
 
-.ui.form.left-right-form .inline.field input:not([type="checkbox"], [type="radio"]),
-.ui.form.left-right-form .inline.field .ui.dropdown,
-.ui.form.left-right-form .inline.field textarea {
+.ui.form.left-right-form .fm-inline.field input:not([type="checkbox"], [type="radio"]),
+.ui.form.left-right-form .fm-inline.field .ui.dropdown,
+.ui.form.left-right-form .fm-inline.field textarea {
   width: 50%;
 }
 
-.ui.form.left-right-form .inline.field .ui.dropdown input.search {
+.ui.form.left-right-form .fm-inline.field .ui.dropdown input.search {
   width: 100%;
 }
 
-.ui.form.left-right-form .inline.field .inline-right {
+.ui.form.left-right-form .fm-inline.field .inline-right {
   display: inline-flex;
   flex-direction: column;
   gap: 0.5em;
 }
 
 @media (max-width: 767.98px) {
-  .ui.form.left-right-form .inline.field > label {
+  .ui.form.left-right-form .fm-inline.field > label {
     width: 100%;
     margin: 0;
     text-align: left;
   }
-  .ui.form.left-right-form .inline.field > .help {
+  .ui.form.left-right-form .fm-inline.field > .help {
     margin: 0;
   }
-  .ui.form.left-right-form .inline.field input:not([type="checkbox"], [type="radio"]),
-  .ui.form.left-right-form .inline.field .ui.dropdown,
-  .ui.form.left-right-form .inline.field textarea {
+  .ui.form.left-right-form .fm-inline.field input:not([type="checkbox"], [type="radio"]),
+  .ui.form.left-right-form .fm-inline.field .ui.dropdown,
+  .ui.form.left-right-form .fm-inline.field textarea {
     width: 100%;
   }
 }

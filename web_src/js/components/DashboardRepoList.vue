@@ -33,12 +33,12 @@ type CommitStatusMap = {
 
 // make sure this matches templates/repo/commit_status.tmpl
 const commitStatus: CommitStatusMap = {
-  pending: {name: 'octicon-dot-fill', color: 'tw-text-yellow'},
-  success: {name: 'octicon-check', color: 'tw-text-green'},
-  error: {name: 'gitea-exclamation', color: 'tw-text-red'},
-  failure: {name: 'octicon-x', color: 'tw-text-red'},
-  warning: {name: 'gitea-exclamation', color: 'tw-text-yellow'},
-  skipped: {name: 'octicon-skip', color: 'tw-text-text-light'},
+  pending: {name: 'octicon-dot-fill', color: 'text-yellow'},
+  success: {name: 'octicon-check', color: 'text-green'},
+  error: {name: 'gitea-exclamation', color: 'text-red'},
+  failure: {name: 'octicon-x', color: 'text-red'},
+  warning: {name: 'gitea-exclamation', color: 'text-yellow'},
+  skipped: {name: 'octicon-skip', color: 'text-text-light'},
 };
 
 export default defineComponent({
@@ -402,12 +402,12 @@ export default defineComponent({
       <a :class="{item: true, active: tab === 'organizations'}" @click="changeTab('organizations')">{{ textOrganization }}</a>
     </div>
     <div v-show="tab === 'repos'" class="ui tab active list dashboard-repos">
-      <h4 class="ui top attached header tw-flex tw-items-center">
-        <div class="tw-flex-1 tw-flex tw-items-center">
+      <h4 class="ui top attached header flex items-center">
+        <div class="flex-1 flex items-center">
           {{ textMyRepos }}
-          <span v-if="reposTotalCount" class="ui grey label tw-ml-2">{{ reposTotalCount }}</span>
+          <span v-if="reposTotalCount" class="ui grey label ml-2">{{ reposTotalCount }}</span>
         </div>
-        <a class="tw-flex tw-items-center muted" :href="subUrl + '/repo/create' + (isOrganization ? '?org=' + organizationId : '')" :data-tooltip-content="textNewRepo">
+        <a class="flex items-center muted" :href="subUrl + '/repo/create' + (isOrganization ? '?org=' + organizationId : '')" :data-tooltip-content="textNewRepo">
           <svg-icon name="octicon-plus"/>
         </a>
       </h4>
@@ -417,7 +417,7 @@ export default defineComponent({
           <p>{{ textNoRepo }}</p>
         </div>
         <!-- using the loading indicator here will cause more (unnecessary) page flickers, so at the moment, not use the loading indicator -->
-        <!-- <div v-else class="is-loading loading-icon-2px tw-min-h-16"/> -->
+        <!-- <div v-else class="is-loading loading-icon-2px min-h-16"/> -->
       </div>
       <div v-else class="ui attached segment repos-search">
         <div class="ui small fluid action left icon input">
@@ -428,20 +428,20 @@ export default defineComponent({
             <div class="menu">
               <a class="item" @click="toggleArchivedFilter()">
                 <div class="ui checkbox" ref="checkboxArchivedFilter" :title="checkboxArchivedFilterTitle">
-                  <!--the "tw-pointer-events-none" is necessary to prevent the checkbox from handling user's input,
+                  <!--the "pointer-events-none" is necessary to prevent the checkbox from handling user's input,
                       otherwise if the "input" handles click event for intermediate status, it breaks the internal state-->
-                  <input type="checkbox" class="tw-pointer-events-none" v-bind.prop="checkboxArchivedFilterProps">
+                  <input type="checkbox" class="pointer-events-none" v-bind.prop="checkboxArchivedFilterProps">
                   <label>
-                    <svg-icon name="octicon-archive" :size="16" class="tw-mr-1"/>
+                    <svg-icon name="octicon-archive" :size="16" class="mr-1"/>
                     {{ textShowArchived }}
                   </label>
                 </div>
               </a>
               <a class="item" @click="togglePrivateFilter()">
                 <div class="ui checkbox" ref="checkboxPrivateFilter" :title="checkboxPrivateFilterTitle">
-                  <input type="checkbox" class="tw-pointer-events-none" v-bind.prop="checkboxPrivateFilterProps">
+                  <input type="checkbox" class="pointer-events-none" v-bind.prop="checkboxPrivateFilterProps">
                   <label>
-                    <svg-icon name="octicon-lock" :size="16" class="tw-mr-1"/>
+                    <svg-icon name="octicon-lock" :size="16" class="mr-1"/>
                     {{ textShowPrivate }}
                   </label>
                 </div>
@@ -450,7 +450,7 @@ export default defineComponent({
           </div>
         </div>
         <overflow-menu class="ui secondary pointing tabular borderless menu repos-filter">
-          <div class="overflow-menu-items tw-justify-center">
+          <div class="overflow-menu-items justify-center">
             <a class="item" tabindex="0" :class="{active: reposFilter === 'all'}" @click="changeReposFilter('all')">
               {{ textAll }}
               <div v-show="reposFilter === 'all'" class="ui circular mini grey label">{{ repoTypeCount }}</div>
@@ -474,61 +474,61 @@ export default defineComponent({
           </div>
         </overflow-menu>
       </div>
-      <div v-if="repos.length" class="ui attached table segment tw-rounded-b">
+      <div v-if="repos.length" class="ui attached fm-table segment rounded-b">
         <ul class="repo-owner-name-list">
-          <li class="tw-flex tw-items-center tw-py-2" v-for="(repo, index) in repos" :class="{'active': index === activeIndex}" :key="repo.id">
+          <li class="flex items-center py-2" v-for="(repo, index) in repos" :class="{'active': index === activeIndex}" :key="repo.id">
             <a class="repo-list-link muted" :href="repo.link">
               <svg-icon :name="repoIcon(repo)" :size="16" class="repo-list-icon"/>
-              <div class="tw-inline-block tw-truncate">{{ repo.full_name }}</div>
+              <div class="inline-block truncate">{{ repo.full_name }}</div>
               <div v-if="repo.archived">
                 <svg-icon name="octicon-archive" :size="16"/>
               </div>
             </a>
-            <a class="tw-flex tw-items-center" v-if="repo.latest_commit_status_state" :href="repo.latest_commit_status_state_link || undefined" :data-tooltip-content="repo.locale_latest_commit_status_state">
+            <a class="flex items-center" v-if="repo.latest_commit_status_state" :href="repo.latest_commit_status_state_link || undefined" :data-tooltip-content="repo.locale_latest_commit_status_state">
               <!-- the commit status icon logic is taken from templates/repo/commit_status.tmpl -->
-              <svg-icon :name="statusIcon(repo.latest_commit_status_state)" :class="'tw-ml-2 commit-status icon ' + statusColor(repo.latest_commit_status_state)" :size="16"/>
+              <svg-icon :name="statusIcon(repo.latest_commit_status_state)" :class="'ml-2 commit-status icon ' + statusColor(repo.latest_commit_status_state)" :size="16"/>
             </a>
           </li>
         </ul>
-        <div v-if="showMoreReposLink" class="tw-text-center">
-          <div class="divider tw-my-0"/>
-          <div class="ui borderless pagination menu narrow tw-my-2">
+        <div v-if="showMoreReposLink" class="text-center">
+          <div class="divider my-0"/>
+          <div class="ui borderless pagination menu narrow my-2">
             <a
-              class="item navigation tw-py-1" :class="{'disabled': page === 1}"
+              class="item navigation py-1" :class="{'disabled': page === 1}"
               @click="changePage(1)" :title="textFirstPage"
             >
-              <svg-icon name="gitea-double-chevron-left" :size="16" class="tw-mr-1"/>
+              <svg-icon name="gitea-double-chevron-left" :size="16" class="mr-1"/>
             </a>
             <a
-              class="item navigation tw-py-1" :class="{'disabled': page === 1}"
+              class="item navigation py-1" :class="{'disabled': page === 1}"
               @click="changePage(page - 1)" :title="textPreviousPage"
             >
-              <svg-icon name="octicon-chevron-left" :size="16" class="tw-mr-1"/>
+              <svg-icon name="octicon-chevron-left" :size="16" class="mr-1"/>
             </a>
-            <a class="active item tw-py-1">{{ page }}</a>
+            <a class="active item py-1">{{ page }}</a>
             <a
               class="item navigation" :class="{'disabled': page === finalPage}"
               @click="changePage(page + 1)" :title="textNextPage"
             >
-              <svg-icon name="octicon-chevron-right" :size="16" class="tw-ml-1"/>
+              <svg-icon name="octicon-chevron-right" :size="16" class="ml-1"/>
             </a>
             <a
-              class="item navigation tw-py-1" :class="{'disabled': page === finalPage}"
+              class="item navigation py-1" :class="{'disabled': page === finalPage}"
               @click="changePage(finalPage)" :title="textLastPage"
             >
-              <svg-icon name="gitea-double-chevron-right" :size="16" class="tw-ml-1"/>
+              <svg-icon name="gitea-double-chevron-right" :size="16" class="ml-1"/>
             </a>
           </div>
         </div>
       </div>
     </div>
     <div v-if="!isOrganization" v-show="tab === 'organizations'" class="ui tab active list dashboard-orgs">
-      <h4 class="ui top attached header tw-flex tw-items-center">
-        <div class="tw-flex-1 tw-flex tw-items-center">
+      <h4 class="ui top attached header flex items-center">
+        <div class="flex-1 flex items-center">
           {{ textMyOrgs }}
-          <span class="ui grey label tw-ml-2">{{ organizationsTotalCount }}</span>
+          <span class="ui grey label ml-2">{{ organizationsTotalCount }}</span>
         </div>
-        <a class="tw-flex tw-items-center muted" v-if="canCreateOrganization" :href="subUrl + '/org/create'" :data-tooltip-content="textNewOrg">
+        <a class="flex items-center muted" v-if="canCreateOrganization" :href="subUrl + '/org/create'" :data-tooltip-content="textNewOrg">
           <svg-icon name="octicon-plus"/>
         </a>
       </h4>
@@ -538,21 +538,21 @@ export default defineComponent({
           <p>{{ textNoOrg }}</p>
         </div>
       </div>
-      <div v-else class="ui attached table segment tw-rounded-b">
+      <div v-else class="ui attached fm-table segment rounded-b">
         <ul class="repo-owner-name-list">
-          <li class="tw-flex tw-items-center tw-py-2" v-for="org in organizations" :key="org.name">
+          <li class="flex items-center py-2" v-for="org in organizations" :key="org.name">
             <a class="repo-list-link muted" :href="subUrl + '/' + encodeURIComponent(org.name)">
               <svg-icon name="octicon-organization" :size="16" class="repo-list-icon"/>
-              <div class="tw-inline-block tw-truncate">{{ org.full_name ? `${org.full_name} (${org.name})` : org.name }}</div>
+              <div class="inline-block truncate">{{ org.full_name ? `${org.full_name} (${org.name})` : org.name }}</div>
               <div><!-- div to prevent underline of label on hover -->
                 <span class="ui tiny basic label" v-if="org.org_visibility !== 'public'">
                   {{ org.org_visibility === 'limited' ? textOrgVisibilityLimited: textOrgVisibilityPrivate }}
                 </span>
               </div>
             </a>
-            <div class="tw-text-grey-light tw-flex tw-items-center tw-ml-2">
+            <div class="text-grey-light flex items-center ml-2">
               {{ org.num_repos }}
-              <svg-icon name="octicon-repo" :size="16" class="tw-ml-1 tw-mt-0.5"/>
+              <svg-icon name="octicon-repo" :size="16" class="ml-1 mt-0.5"/>
             </div>
           </li>
         </ul>

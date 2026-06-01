@@ -1,6 +1,6 @@
 {{template "devtest/devtest-header"}}
 <div class="page-content devtest">
-	<div class="ui container">
+	<div class="ui fm-container">
 		<h3>Flex List (standalone)</h3>
 		<div class="divider"></div>
 		<div class="flex-divided-list items-with-main">
@@ -48,7 +48,7 @@
 					</div>
 					<div class="item-body">
 						Very loooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooong content
-						<span class="tw-inline-block tw-truncate">Truncate very loooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooong content</span>
+						<span class="inline-block truncate">Truncate very loooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooong content</span>
 					</div>
 				</div>
 				<div class="item-trailing">
@@ -65,17 +65,17 @@
 				<div class="item-main">
 					<div class="item-header">
 						<div class="item-title">
-							<a class="tw-text-primary" href="{{$.Link}}">
+							<a class="text-primary" href="{{$.Link}}">
 								gitea-org / gitea
 							</a>
 							<span class="flex-text-inline" data-tooltip-content="{{ctx.Locale.Tr "repo.fork"}}">{{svg "octicon-repo-forked"}}</span>
 						</div>
 						<div class="item-trailing">
 							<a class="muted" href="{{$.Link}}">
-								<span class="flex-text-inline"><i class="color-icon tw-mr-2 tw-bg-blue"></i>Go</span>
+								<span class="flex-text-inline"><i class="color-icon mr-2 bg-blue"></i>Go</span>
 							</a>
-							<a class="tw-text-text-light flex-text-inline" href="{{$.Link}}">{{svg "octicon-star" 16}}45000</a>
-							<a class="tw-text-text-light flex-text-inline" href="{{$.Link}}">{{svg "octicon-git-branch" 16}}1234</a>
+							<a class="text-text-light flex-text-inline" href="{{$.Link}}">{{svg "octicon-star" 16}}45000</a>
+							<a class="text-text-light flex-text-inline" href="{{$.Link}}">{{svg "octicon-git-branch" 16}}1234</a>
 						</div>
 					</div>
 					<div class="item-body">
@@ -111,17 +111,17 @@
 		</div>
 
 		<h3>If parent provides padding or items need their own flex and/or padding:</h3>
-		<div class="tw-border tw-border-secondary">
-			<div class="tw-m-3">before divider</div>
+		<div class="border border-secondary">
+			<div class="m-3">before divider</div>
 			<div class="divider"></div>
 			<div class="flex-divided-list flex-items-block items-px-default">
 				<div class="item">item 1</div>
 				<div class="item">item 2</div>
 			</div>
 			<div class="divider"></div>
-			<div class="tw-m-3">after divider</div>
+			<div class="m-3">after divider</div>
 		</div>
-		<div class="tw-border tw-border-secondary tw-p-4 tw-my-2">
+		<div class="border border-secondary p-4 my-2">
 			<div>before divider</div>
 			<div class="divider"></div>
 			<div class="flex-divided-list">

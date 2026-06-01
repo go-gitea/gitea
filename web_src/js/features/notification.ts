@@ -9,7 +9,7 @@ async function receiveUpdateCount(event: MessageEvent<{type: string, data: strin
   try {
     const data = JSON.parse(event.data.data);
     for (const count of document.querySelectorAll('.notification_count')) {
-      count.classList.toggle('tw-hidden', data.Count === 0);
+      count.classList.toggle('hidden', data.Count === 0);
       count.textContent = `${data.Count}`;
     }
     await updateNotificationTable();

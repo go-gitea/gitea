@@ -31,17 +31,17 @@ export function initFomanticTransition() {
       if (!isAnimationIn && !isAnimationOut) {
         // If the animation is not in/out, then it must be a toggle animation.
         // Fomantic uses computed styles to check "visibility", but to avoid unnecessary arguments, here it only checks the class.
-        toShow = this.hasClass('hidden'); // maybe it could also check "!this.hasClass('visible')", leave it to the future until there is a real problem.
+        toShow = this.hasClass('hidden'); // maybe it could also check "!this.hasClass('fm-visible')", leave it to the future until there is a real problem.
       }
       argObj.onStart?.call(el);
       if (toShow) {
         el.classList.remove('hidden');
-        el.classList.add('visible', 'transition');
+        el.classList.add('fm-visible', 'fm-transition');
         if (argObj.displayType) el.style.setProperty('display', argObj.displayType, 'important');
         argObj.onShow?.call(el);
       } else {
         el.classList.add('hidden');
-        el.classList.remove('visible'); // don't remove the transition class because the Fomantic animation style is `.hidden.transition`.
+        el.classList.remove('fm-visible'); // keep fm-transition: the show animation style is `.fm-visible.fm-transition`; hide is Tailwind's `.hidden`.
         el.style.removeProperty('display');
         argObj.onHidden?.call(el);
       }

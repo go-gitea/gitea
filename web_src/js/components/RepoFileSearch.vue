@@ -174,7 +174,7 @@ watch([searchQuery, filteredFiles], async () => {
           <div v-else-if="isLoadingFileList">
             <div class="is-loading"/>
           </div>
-          <div v-else class="tw-p-4">
+          <div v-else class="p-4">
             {{ props.noResultsText }}
           </div>
         </template>

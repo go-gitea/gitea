@@ -13,13 +13,13 @@ test('hideScopedEmptyDividers-simple', () => {
 </div>`);
   hideScopedEmptyDividers(container);
   expect(container.innerHTML).toEqual(`
-<div class="divider hidden transition"></div>
+<div class="divider hidden fm-transition"></div>
 <div class="item">a</div>
-<div class="divider hidden transition"></div>
-<div class="divider hidden transition"></div>
+<div class="divider hidden fm-transition"></div>
+<div class="divider hidden fm-transition"></div>
 <div class="divider"></div>
 <div class="item">b</div>
-<div class="divider hidden transition"></div>
+<div class="divider hidden fm-transition"></div>
 `);
 });
 
@@ -35,7 +35,7 @@ test('hideScopedEmptyDividers-items-all-filtered', () => {
   hideScopedEmptyDividers(container);
   expect(container.innerHTML).toEqual(`
 <div class="any"></div>
-<div class="divider hidden transition"></div>
+<div class="divider hidden fm-transition"></div>
 <div class="item filtered">a</div>
 <div class="item filtered">b</div>
 <div class="divider"></div>
@@ -47,13 +47,13 @@ test('hideScopedEmptyDividers-hide-last', () => {
   const container = createElementFromHTML(`<div>
 <div class="item">a</div>
 <div class="divider" data-scope="b"></div>
-<div class="item tw-hidden" data-scope="b">b</div>
+<div class="item hidden" data-scope="b">b</div>
 </div>`);
   hideScopedEmptyDividers(container);
   expect(container.innerHTML).toEqual(`
 <div class="item">a</div>
-<div class="divider hidden transition" data-scope="b"></div>
-<div class="item tw-hidden" data-scope="b">b</div>
+<div class="divider hidden fm-transition" data-scope="b"></div>
+<div class="item hidden" data-scope="b">b</div>
 `);
 });
 
@@ -61,16 +61,16 @@ test('hideScopedEmptyDividers-scoped-items', () => {
   const container = createElementFromHTML(`<div>
 <div class="item" data-scope="">a</div>
 <div class="divider" data-scope="b"></div>
-<div class="item tw-hidden" data-scope="b">b</div>
+<div class="item hidden" data-scope="b">b</div>
 <div class="divider" data-scope=""></div>
 <div class="item" data-scope="">c</div>
 </div>`);
   hideScopedEmptyDividers(container);
   expect(container.innerHTML).toEqual(`
 <div class="item" data-scope="">a</div>
-<div class="divider hidden transition" data-scope="b"></div>
-<div class="item tw-hidden" data-scope="b">b</div>
-<div class="divider hidden transition" data-scope=""></div>
+<div class="divider hidden fm-transition" data-scope="b"></div>
+<div class="item hidden" data-scope="b">b</div>
+<div class="divider hidden fm-transition" data-scope=""></div>
 <div class="item" data-scope="">c</div>
 `);
 });

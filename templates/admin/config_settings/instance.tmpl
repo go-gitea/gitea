@@ -6,13 +6,13 @@
 		{{$maintenanceMode := $cfgOpt.Value ctx}}
 		<input type="hidden" data-config-dyn-key="{{$cfgKey}}" data-config-value-json="{{JsonUtils.EncodeToString $maintenanceMode}}">
 		<div class="field">
-			<div class="ui checkbox tw-mb-2">
+			<div class="ui checkbox mb-2">
 				<input type="checkbox" name="{{$cfgKey}}.AdminWebAccessOnly" value="true" {{if $maintenanceMode.AdminWebAccessOnly}}checked{{end}} data-config-value-type="boolean">
 				<label>{{ctx.Locale.Tr "admin.config.instance_maintenance_mode.admin_web_access_only"}}</label>
 			</div>
 		</div>
 		<div class="field">
-			<div class="fields tw-mb-1">
+			<div class="fields mb-1">
 				<div class="field">
 					<label>{{ctx.Locale.Tr "admin.config.common.start_time"}}</label>
 					<input type="datetime-local" name="{{$cfgKey}}.StartTimeUnix" data-config-value-type="timestamp">
@@ -32,7 +32,7 @@
 		{{$banner := $cfgOpt.Value ctx}}
 		<input type="hidden" data-config-dyn-key="{{$cfgKey}}" data-config-value-json="{{JsonUtils.EncodeToString $banner}}">
 		<div class="field">
-			<div class="ui checkbox tw-mb-2">
+			<div class="ui checkbox mb-2">
 				<input type="checkbox" name="{{$cfgKey}}.DisplayEnabled" value="true" {{if $banner.DisplayEnabled}}checked{{end}} data-config-value-type="boolean">
 				<label>{{ctx.Locale.Tr "admin.config.instance_web_banner.enabled"}}</label>
 			</div>
@@ -44,7 +44,7 @@
 			)}}
 		</div>
 		<div class="field">
-			<div class="fields tw-mb-1">
+			<div class="fields mb-1">
 				<div class="field">
 					<label>{{ctx.Locale.Tr "admin.config.common.start_time"}}</label>
 					<input type="datetime-local" name="{{$cfgKey}}.StartTimeUnix" data-config-value-type="timestamp">

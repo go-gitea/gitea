@@ -11,11 +11,11 @@
 			<div class="flex-text-block">
 				<div>{{svg "octicon-tag"}}</div>
 				<a class="gt-ellipsis muted" href="{{.LatestRelease.Link}}" title="{{.LatestRelease.Title}}">{{.LatestRelease.Title}}</a>
-				<div class="tw-shrink-0">
+				<div class="shrink-0">
 					{{template "repo/release/label" (dict "Release" .LatestRelease "IsLatest" true)}}
 				</div>
 			</div>
-			<div class="tw-ml-[24px]">{{DateUtils.TimeSince .LatestRelease.CreatedUnix}}</div>
+			<div class="ml-[24px]">{{DateUtils.TimeSince .LatestRelease.CreatedUnix}}</div>
 		</div>
 	{{end}}
 
@@ -35,7 +35,7 @@
 				{{range .LanguageStats}}
 				<div class="item">
 					<i class="color-icon" style="background-color: {{.Color}}"></i>
-					<strong class="tw-font-semibold">
+					<strong class="font-semibold">
 						{{Iif (eq .Language "other") (ctx.Locale.Tr "repo.language_other") .Language}}
 					</strong>
 					{{.Percentage}}%

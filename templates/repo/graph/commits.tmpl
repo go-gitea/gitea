@@ -10,7 +10,7 @@
 						{{template "repo/commit_sign_badge" dict "Commit" $commit.Commit "CommitBaseLink" (print $.RepoLink "/commit") "CommitSignVerification" $commit.Verification}}
 					</span>
 
-					<span class="message tw-inline-block gt-ellipsis">
+					<span class="message inline-block gt-ellipsis">
 						{{ctx.RenderUtils.RenderCommitMessage $commit.Subject $.Repository}}
 					</span>
 
@@ -40,7 +40,7 @@
 						{{end}}
 					</span>
 
-					<span class="flex-text-inline tw-text-12">
+					<span class="flex-text-inline text-12">
 						{{if $commit.User}}
 							{{ctx.AvatarUtils.Avatar $commit.User 18}}
 							{{$commit.User.GetShortDisplayNameLinkHTML}}

@@ -1,6 +1,6 @@
 {{if .Statuses}}
 	{{if and (eq (len .Statuses) 1) .Status.TargetURL}}
-		<a class="flex-text-inline tw-no-underline {{.AdditionalClasses}}" data-global-init="initCommitStatuses" href="{{.Status.TargetURL}}">
+		<a class="flex-text-inline no-underline {{.AdditionalClasses}}" data-global-init="initCommitStatuses" href="{{.Status.TargetURL}}">
 			{{template "repo/icons/commit_status" .Status}}
 		</a>
 	{{else}}

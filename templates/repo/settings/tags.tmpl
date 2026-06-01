@@ -1,7 +1,7 @@
 {{template "repo/settings/layout_head" (dict "pageClass" "repository settings edit")}}
 	<div class="repo-setting-content">
 		{{if .Repository.IsArchived}}
-			<div class="ui warning message tw-text-center">
+			<div class="ui warning message text-center">
 				{{ctx.Locale.Tr "repo.settings.archive.tagsettings_unavailable"}}
 			</div>
 		{{else}}
@@ -10,7 +10,7 @@
 			</h4>
 
 			<div class="ui attached segment">
-				<div class="ui grid">
+				<div class="ui fm-grid">
 					<div class="sixteen wide column">
 						<div class="ui segment">
 							<form class="ui form" action="{{.Link}}" method="post">
@@ -73,7 +73,7 @@
 					</div>
 
 					<div class="sixteen wide column">
-						<table class="ui single line table">
+						<table class="ui single line fm-table">
 							<thead>
 								<th>{{ctx.Locale.Tr "repo.settings.tags.protection.pattern"}}</th>
 								<th>{{ctx.Locale.Tr "repo.settings.tags.protection.allowed"}}</th>
@@ -103,16 +103,16 @@
 												{{ctx.Locale.Tr "repo.settings.tags.protection.allowed.noone"}}
 											{{end}}
 										</td>
-										<td class="tw-text-right">
+										<td class="text-right">
 											<a class="ui tiny primary button" href="{{$.RepoLink}}/settings/tags/{{.ID}}">{{ctx.Locale.Tr "edit"}}</a>
-											<form class="tw-inline-block" action="{{$.RepoLink}}/settings/tags/delete" method="post">
+											<form class="inline-block" action="{{$.RepoLink}}/settings/tags/delete" method="post">
 												<input type="hidden" name="id" value="{{.ID}}">
 												<button class="ui tiny red button">{{ctx.Locale.Tr "remove"}}</button>
 											</form>
 										</td>
 									</tr>
 								{{else}}
-									<tr class="tw-text-center"><td colspan="3">{{ctx.Locale.Tr "repo.settings.tags.protection.none"}}</td></tr>
+									<tr class="text-center"><td colspan="3">{{ctx.Locale.Tr "repo.settings.tags.protection.none"}}</td></tr>
 								{{end}}
 							</tbody>
 						</table>

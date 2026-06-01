@@ -1,10 +1,10 @@
 {{$canWriteProject := and .CanWriteProjects (or (not .Repository) (not .Repository.IsArchived))}}
 
-<div class="ui container fluid padded projects-view" data-global-init="initRepoProjectsView">
-	<div class="ui container flex-text-block project-header">
+<div class="ui fm-container fluid padded projects-view" data-global-init="initRepoProjectsView">
+	<div class="ui fm-container flex-text-block project-header">
 		<h2>{{.Project.Title}}</h2>
-		<div class="tw-flex-1"></div>
-		<div class="list-header-filters ui secondary menu tw-m-0">
+		<div class="flex-1"></div>
+		<div class="list-header-filters ui secondary menu m-0">
 			{{$queryLink := QueryBuild "?" "labels" .SelectLabels "assignee" $.AssigneeID "milestone" $.MilestoneID "archived_labels" (Iif $.ShowArchivedLabels "true")}}
 			{{template "repo/issue/filter_item_label" dict "Labels" .Labels "QueryLink" $queryLink "SupportArchivedLabel" true}}
 			{{template "repo/issue/filter_item_user_assign" dict
@@ -29,7 +29,7 @@
 					{{svg "octicon-screen-full"}}
 					{{ctx.Locale.Tr "projects.enter_fullscreen"}}
 				</a>
-				<a class="item screen-normal tw-hidden">
+				<a class="item screen-normal hidden">
 					{{svg "octicon-screen-normal"}}
 					{{ctx.Locale.Tr "projects.exit_fullscreen"}}
 				</a>
@@ -70,7 +70,7 @@
 		{{end}}
 	</div>
 
-	<div class="ui container project-description">
+	<div class="ui fm-container project-description">
 		<div class="render-content markup">
 			{{$.Project.RenderedContent}}
 		</div>
@@ -80,7 +80,7 @@
 	<div id="project-board" class="board {{if $canWriteProject}}sortable{{end}}" data-project-board-writable="{{$canWriteProject}}" {{if $canWriteProject}}data-url="{{$.Link}}/move"{{end}}>
 		{{range .Columns}}
 			<div class="project-column" {{if .Color}}style="background: {{.Color}} !important; color: {{ContrastColor .Color}} !important"{{end}} data-id="{{.ID}}" data-sorting="{{.Sorting}}" data-url="{{$.Link}}/{{.ID}}">
-				<div class="project-column-header{{if $canWriteProject}} tw-cursor-grab{{end}}">
+				<div class="project-column-header{{if $canWriteProject}} cursor-grab{{end}}">
 					<div class="ui circular label project-column-issue-count">
 						{{.NumIssues}}
 					</div>
@@ -88,7 +88,7 @@
 						{{if .Default}}{{svg "octicon-star"}} {{end}}{{.Title}}
 					</div>
 					{{if $canWriteProject}}
-						<div class="ui dropdown tw-p-1">
+						<div class="ui dropdown p-1">
 							{{svg "octicon-kebab-horizontal"}}
 							<div class="menu">
 								<a class="item button show-modal show-project-column-modal-edit" data-modal="#project-column-modal-edit"
@@ -122,7 +122,7 @@
 				<div class="divider"{{if .Color}} style="color: {{ContrastColor .Color}} !important"{{end}}></div>
 				<div class="ui cards" data-url="{{$.Link}}/{{.ID}}" data-project="{{$.Project.ID}}" data-board="{{.ID}}" id="board_{{.ID}}">
 					{{range (index $.IssuesMap .ID)}}
-						<div class="issue-card tw-break-anywhere {{if $canWriteProject}}tw-cursor-grab{{end}}" data-issue="{{.ID}}">
+						<div class="issue-card break-anywhere {{if $canWriteProject}}cursor-grab{{end}}" data-issue="{{.ID}}">
 							{{template "repo/issue/card" (dict "Issue" . "Page" $)}}
 						</div>
 					{{end}}

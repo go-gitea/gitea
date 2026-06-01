@@ -29,7 +29,7 @@
 					<div class="comment-header avatar-content-left-arrow" role="heading" aria-level="3">
 						<div class="comment-header-left">
 							{{if .OriginalAuthor}}
-								<span class="tw-text-text tw-font-semibold tw-mr-1">
+								<span class="text-text font-semibold mr-1">
 									{{svg (MigrationIcon $.Repository.GetOriginalURLHostname)}}
 									{{.OriginalAuthor}}
 								</span>
@@ -67,8 +67,8 @@
 								<span class="no-content">{{ctx.Locale.Tr "repo.issues.no_content"}}</span>
 							{{end}}
 						</div>
-						<div id="{{.HashTag}}-raw" class="raw-content tw-hidden">{{.Content}}</div>
-						<div class="edit-content-zone tw-hidden" data-update-url="{{$.RepoLink}}/comments/{{.ID}}" data-content-version="{{.ContentVersion}}" data-context="{{$.RepoLink}}" data-attachment-url="{{$.RepoLink}}/comments/{{.ID}}/attachments"></div>
+						<div id="{{.HashTag}}-raw" class="raw-content hidden">{{.Content}}</div>
+						<div class="edit-content-zone hidden" data-update-url="{{$.RepoLink}}/comments/{{.ID}}" data-content-version="{{.ContentVersion}}" data-context="{{$.RepoLink}}" data-attachment-url="{{$.RepoLink}}/comments/{{.ID}}/attachments"></div>
 						{{if .Attachments}}
 							{{template "repo/issue/view_content/attachments" dict "Attachments" .Attachments "RenderedContent" .RenderedContent}}
 						{{end}}
@@ -81,7 +81,7 @@
 			</div>
 		{{else if eq .Type 1}}
 			<div class="timeline-item event" id="{{.HashTag}}">
-				<span class="badge tw-bg-green tw-text-white">{{svg "octicon-dot-fill"}}</span>
+				<span class="badge bg-green text-white">{{svg "octicon-dot-fill"}}</span>
 				{{if not .OriginalAuthor}}
 					{{template "shared/user/avatarlink" dict "user" .Poster}}
 				{{end}}
@@ -96,7 +96,7 @@
 			</div>
 		{{else if eq .Type 2}}
 			<div class="timeline-item event" id="{{.HashTag}}">
-				<span class="badge tw-bg-red tw-text-white">{{svg "octicon-issue-closed"}}</span>
+				<span class="badge bg-red text-white">{{svg "octicon-issue-closed"}}</span>
 				{{if not .OriginalAuthor}}
 					{{template "shared/user/avatarlink" dict "user" .Poster}}
 				{{end}}
@@ -111,7 +111,7 @@
 			</div>
 		{{else if eq .Type 28}}
 			<div class="timeline-item event" id="{{.HashTag}}">
-				<span class="badge tw-bg-purple tw-text-white">{{svg "octicon-git-merge"}}</span>
+				<span class="badge bg-purple text-white">{{svg "octicon-git-merge"}}</span>
 				{{if not .OriginalAuthor}}
 					{{template "shared/user/avatarlink" dict "user" .Poster}}
 				{{end}}
@@ -233,7 +233,7 @@
 				{{template "shared/user/avatarlink" dict "user" .Poster}}
 				<span class="comment-text-line">
 					{{template "shared/user/authorlink" .Poster}}
-					{{$oldRef := HTMLFormat `<span class="tw-line-through">%s</span>` .OldRef}}
+					{{$oldRef := HTMLFormat `<span class="line-through">%s</span>` .OldRef}}
 					{{ctx.Locale.Tr "repo.issues.delete_branch_at" $oldRef $createdStr}}
 				</span>
 			</div>
@@ -372,7 +372,7 @@
 						{{ctx.AvatarUtils.Avatar .Poster 40}}
 					</a>
 					{{end}}
-					<span class="badge tw-text-white {{if eq $reviewType 1}}{{Iif .Review.Official "tw-bg-green" "tw-bg-grey"}}{{else if eq $reviewType 3}}tw-bg-red{{end}}">
+					<span class="badge text-white {{if eq $reviewType 1}}{{Iif .Review.Official "bg-green" "bg-grey"}}{{else if eq $reviewType 3}}bg-red{{end}}">
 						{{- if .Review -}}
 							{{- svg (printf "octicon-%s" .Review.Type.Icon) -}}
 						{{- else -}}
@@ -405,7 +405,7 @@
 								{{end}}
 								<span class="comment-text-line">
 									{{if .OriginalAuthor}}
-										<span class="tw-text-text tw-font-semibold">
+										<span class="text-text font-semibold">
 											{{svg (MigrationIcon $.Repository.GetOriginalURLHostname)}}
 											{{.OriginalAuthor}}
 										</span>
@@ -434,8 +434,8 @@
 									<span class="no-content">{{ctx.Locale.Tr "repo.issues.no_content"}}</span>
 								{{end}}
 							</div>
-							<div id="{{.HashTag}}-raw" class="raw-content tw-hidden">{{.Content}}</div>
-							<div class="edit-content-zone tw-hidden" data-update-url="{{$.RepoLink}}/comments/{{.ID}}" data-content-version="{{.ContentVersion}}" data-context="{{$.RepoLink}}" data-attachment-url="{{$.RepoLink}}/comments/{{.ID}}/attachments"></div>
+							<div id="{{.HashTag}}-raw" class="raw-content hidden">{{.Content}}</div>
+							<div class="edit-content-zone hidden" data-update-url="{{$.RepoLink}}/comments/{{.ID}}" data-content-version="{{.ContentVersion}}" data-context="{{$.RepoLink}}" data-attachment-url="{{$.RepoLink}}/comments/{{.ID}}/attachments"></div>
 							{{if .Attachments}}
 								{{template "repo/issue/view_content/attachments" dict "Attachments" .Attachments "RenderedContent" .RenderedContent}}
 							{{end}}
@@ -547,7 +547,7 @@
 					{{end}}
 				</span>
 				{{if and .IsForcePush $.Issue.PullRequest.BaseRepo.Name}}
-					<a class="ui label comment-text-label tw-ml-auto" href="{{$.Issue.PullRequest.BaseRepo.Link}}/compare/{{PathEscape .OldCommit}}..{{PathEscape .NewCommit}}" rel="nofollow">{{ctx.Locale.Tr "repo.issues.force_push_compare"}}</a>
+					<a class="ui label comment-text-label ml-auto" href="{{$.Issue.PullRequest.BaseRepo.Link}}/compare/{{PathEscape .OldCommit}}..{{PathEscape .NewCommit}}" rel="nofollow">{{ctx.Locale.Tr "repo.issues.force_push_compare"}}</a>
 				{{end}}
 			</div>
 			{{if not .IsForcePush}}

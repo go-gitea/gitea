@@ -1,7 +1,7 @@
 {{template "base/head" .}}
 <div role="main" aria-label="{{.Title}}" class="page-content repository new milestone">
 	{{template "repo/header" .}}
-	<div class="ui container">
+	<div class="ui fm-container">
 		<div class="issue-navbar">
 			{{template "repo/issue/navbar" .}}
 			{{if and (or .CanWriteIssues .CanWritePulls) .PageIsEditMilestone}}
@@ -31,7 +31,7 @@
 						{{ctx.Locale.Tr "repo.milestones.due_date"}}
 						<a id="milestone-clear-deadline">{{ctx.Locale.Tr "repo.milestones.clear"}}</a>
 					</label>
-					<input type="date" name="deadline" class="tw-w-auto" value="{{.deadline}}" placeholder="{{ctx.Locale.Tr "repo.issues.due_date_form"}}">
+					<input type="date" name="deadline" class="w-auto" value="{{.deadline}}" placeholder="{{ctx.Locale.Tr "repo.issues.due_date_form"}}">
 				</div>
 				<div class="field">
 					<label>{{ctx.Locale.Tr "repo.milestones.desc"}}</label>
@@ -42,7 +42,7 @@
 						"TextareaPlaceholder" (ctx.Locale.Tr "repo.milestones.desc")
 					)}}
 				</div>
-				<div class="flex-text-block tw-justify-end">
+				<div class="flex-text-block justify-end">
 					{{if .PageIsEditMilestone}}
 						<a class="ui primary basic button" href="{{.RepoLink}}/milestones">
 							{{ctx.Locale.Tr "repo.milestones.cancel"}}

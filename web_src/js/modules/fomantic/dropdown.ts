@@ -201,8 +201,8 @@ function attachInitElements(dropdown: HTMLElement) {
 
 function attachDomEvents(dropdown: HTMLElement, focusable: HTMLElement, menu: HTMLElement) {
   // when showing, it has class: ".animating.in"
-  // when hiding, it has class: ".visible.animating.out"
-  const isMenuVisible = () => (menu.classList.contains('visible') && !menu.classList.contains('out')) || menu.classList.contains('in');
+  // when hiding, it has class: ".fm-visible.animating.out"
+  const isMenuVisible = () => (menu.classList.contains('fm-visible') && !menu.classList.contains('out')) || menu.classList.contains('in');
 
   // update aria attributes according to current active/selected item
   const refreshAriaActiveItem = () => {
@@ -230,7 +230,7 @@ function attachDomEvents(dropdown: HTMLElement, focusable: HTMLElement, menu: HT
       const elItem = menu.querySelector<HTMLElement>(':scope > .item.selected, .menu > .item.selected');
       // if the selected item is clickable, then trigger the click event.
       // we can not click any item without check, because Fomantic code might also handle the Enter event. that would result in double click.
-      if (elItem?.matches('a, .js-aria-clickable') && !elItem.matches('.tw-hidden, .filtered')) {
+      if (elItem?.matches('a, .js-aria-clickable') && !elItem.matches('.hidden, .filtered')) {
         e.preventDefault();
         elItem.click();
       }
@@ -296,9 +296,9 @@ export function hideScopedEmptyDividers(container: Element) {
   let curScope: string = '', lastVisibleScope: string = '';
   const isDivider = (item: Element) => item.classList.contains('divider');
   const isScopedDivider = (item: Element) => isDivider(item) && item.hasAttribute('data-scope');
-  const hideDivider = (item: Element) => item.classList.add('hidden', 'transition'); // dropdown has its own classes to hide items
-  const showDivider = (item: Element) => item.classList.remove('hidden', 'transition');
-  const isHidden = (item: Element) => item.classList.contains('hidden') || item.classList.contains('filtered') || item.classList.contains('tw-hidden');
+  const hideDivider = (item: Element) => item.classList.add('hidden', 'fm-transition'); // dropdown has its own classes to hide items
+  const showDivider = (item: Element) => item.classList.remove('hidden', 'fm-transition');
+  const isHidden = (item: Element) => item.classList.contains('hidden') || item.classList.contains('filtered');
   const handleScopeSwitch = (itemScope: string) => {
     if (curScopeVisibleItems.length === 1 && isScopedDivider(curScopeVisibleItems[0])) {
       hideDivider(curScopeVisibleItems[0]);

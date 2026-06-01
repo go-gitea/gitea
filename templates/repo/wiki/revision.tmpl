@@ -2,11 +2,11 @@
 <div role="main" aria-label="{{.Title}}" class="page-content repository wiki revisions">
 	{{template "repo/header" .}}
 	{{$title := .title}}
-	<div class="ui container">
+	<div class="ui fm-container">
 		<div class="ui dividing header flex-left-right">
 			<div class="flex-text-block">
-				<a class="ui basic button tw-px-3" title="{{ctx.Locale.Tr "repo.wiki.back_to_wiki"}}" href="{{.RepoLink}}/wiki/{{.PageURL}}">{{svg "octicon-home"}}</a>
-				<div class="tw-flex-1 gt-ellipsis">
+				<a class="ui basic button px-3" title="{{ctx.Locale.Tr "repo.wiki.back_to_wiki"}}" href="{{.RepoLink}}/wiki/{{.PageURL}}">{{svg "octicon-home"}}</a>
+				<div class="flex-1 gt-ellipsis">
 					{{$title}}
 					<div class="ui sub header gt-ellipsis">
 						{{$timeSince := DateUtils.TimeSince .Author.When}}
@@ -19,9 +19,9 @@
 			</div>
 		</div>
 		<h2 class="ui top header">{{ctx.Locale.Tr "repo.wiki.wiki_page_revisions"}}</h2>
-		<div class="tw-mt-4">
+		<div class="mt-4">
 			<h4 class="ui top attached header">
-				<div class="ui stackable grid">
+				<div class="ui stackable fm-grid">
 					<div class="sixteen wide column">
 						{{.CommitCount}} {{ctx.Locale.Tr "repo.commits.commits"}}
 					</div>

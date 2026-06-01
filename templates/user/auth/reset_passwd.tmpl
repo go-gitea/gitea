@@ -1,6 +1,6 @@
 {{template "base/head" .}}
 <div role="main" aria-label="{{.Title}}" class="page-content user reset password">
-	<div class="ui middle very relaxed page grid">
+	<div class="ui middle very relaxed page fm-grid">
 		<div class="column">
 			<form class="ui form ignore-dirty" action="{{.Link}}" method="post">
 				<input name="code" type="hidden" value="{{.Code}}">
@@ -10,7 +10,7 @@
 				<div class="ui attached segment">
 					{{template "base/alert" .}}
 					{{if .user_email}}
-						<div class="inline field">
+						<div class="fm-inline field">
 							<label for="user_name">{{ctx.Locale.Tr "email"}}</label>
 							<input id="user_name" type="text" value="{{.user_email}}" disabled>
 						</div>
@@ -21,7 +21,7 @@
 							<input id="password" name="password" type="password"  value="{{.password}}" autocomplete="new-password" autofocus required>
 						</div>
 						{{if not .user_signed_in}}
-						<div class="inline field">
+						<div class="fm-inline field">
 							<div class="ui checkbox">
 								<label>{{ctx.Locale.Tr "auth.remember_me"}}</label>
 								<input name="remember" type="checkbox">
@@ -32,9 +32,9 @@
 						<h4 class="ui dividing header">
 							{{ctx.Locale.Tr "twofa"}}
 						</h4>
-						<div class="ui warning visible message">{{ctx.Locale.Tr "settings.twofa_is_enrolled"}}</div>
+						<div class="ui warning fm-visible message">{{ctx.Locale.Tr "settings.twofa_is_enrolled"}}</div>
 							{{if .scratch_code}}
-							<div class="required inline field {{if .Err_Token}}error{{end}}">
+							<div class="required fm-inline field {{if .Err_Token}}error{{end}}">
 								<label for="token">{{ctx.Locale.Tr "auth.scratch_code"}}</label>
 								<input id="token" name="token" type="text" autocomplete="off" autofocus required>
 							</div>
@@ -47,7 +47,7 @@
 							{{end}}
 						{{end}}
 						<div class="divider"></div>
-						<div class="inline field">
+						<div class="fm-inline field">
 							<button class="ui primary button">{{ctx.Locale.Tr "auth.reset_password_helper"}}</button>
 							{{if and .has_two_factor (not .scratch_code)}}
 								<a href="?code={{.Code}}&scratch_code=true">{{ctx.Locale.Tr "auth.use_scratch_code"}}</a>

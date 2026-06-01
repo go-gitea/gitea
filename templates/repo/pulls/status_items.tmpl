@@ -14,7 +14,7 @@
 				{{template "repo/icons/commit_status" $cs}}
 			{{end}}
 			<div class="status-context gt-ellipsis">
-				{{$cs.Context}} <span class="tw-text-text-light-2">{{$cs.Description}}</span>
+				{{$cs.Context}} <span class="text-text-light-2">{{$cs.Description}}</span>
 			</div>
 		</div>
 		<div class="status-details">
@@ -30,7 +30,7 @@
 {{range $missingCheck := $statusCheckData.MissingRequiredChecks}}
 	<div class="item commit-status-item">
 		<div class="flex-text-block">
-			{{svg "octicon-dot-fill" 16 "commit-status icon tw-text-yellow"}}
+			{{svg "octicon-dot-fill" 16 "commit-status icon text-yellow"}}
 			<div class="status-context gt-ellipsis">{{$missingCheck}}</div>
 		</div>
 		<div class="ui label">{{ctx.Locale.Tr "repo.pulls.status_checks_requested"}}</div>

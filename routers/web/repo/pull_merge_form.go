@@ -173,7 +173,7 @@ func (prInfo *pullRequestViewInfo) prepareMergeBoxFormProps(ctx *context.Context
 	} else if pull.IsStatusMergeable() {
 		// no merge style was set in repo setting
 		prInfo.MergeBoxData.infoCommitBlockers.AddInfoItem(
-			svg.RenderHTML("octicon-x", 16, "tw-text-red"),
+			svg.RenderHTML("octicon-x", 16, "text-red"),
 			ctx.Locale.Tr("repo.pulls.no_merge_desc"),
 		)
 		prInfo.MergeBoxData.infoCommitBlockers.AddInfoItem(

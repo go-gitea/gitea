@@ -2,14 +2,14 @@
 {{if .ContextUser.IsOrganization}}
 	<div role="main" aria-label="{{.Title}}" class="page-content organization code">
 		{{template "org/header" .}}
-		<div class="ui container">
+		<div class="ui fm-container">
 			{{template "shared/search/code/search" .}}
 		</div>
 	</div>
 {{else}}
 	<div role="main" aria-label="{{.Title}}" class="page-content user profile">
-		<div class="ui container">
-			<div class="ui stackable grid">
+		<div class="ui fm-container">
+			<div class="ui stackable fm-grid">
 				<div class="ui four wide column">
 					{{template "shared/user/profile_big_avatar" .}}
 				</div>

@@ -3,21 +3,21 @@
 
 	{{- if .FileError}}
 		<div class="ui error message">
-			<div class="text left tw-whitespace-pre">{{.FileError}}</div>
+			<div class="text left whitespace-pre">{{.FileError}}</div>
 		</div>
 	{{end}}
 	{{- if .FileWarning}}
 		<div class="ui warning message">
-			<div class="text left tw-whitespace-pre">{{.FileWarning}}</div>
+			<div class="text left whitespace-pre">{{.FileWarning}}</div>
 		</div>
 	{{end}}
 
 	{{if not .ReadmeInList}}
-		<div id="repo-file-commit-box" class="ui segment list-header tw-mb-4 flex-left-right">
+		<div id="repo-file-commit-box" class="ui segment list-header mb-4 flex-left-right">
 			{{template "repo/latest_commit" .}}
 			{{if .LatestCommit}}
 				{{if .LatestCommit.Committer}}
-					<div class="tw-text-text-light age flex-text-block">
+					<div class="text-text-light age flex-text-block">
 						{{DateUtils.TimeSince .LatestCommit.Committer.When}}
 					</div>
 				{{end}}
@@ -26,17 +26,17 @@
 	{{end}}
 
 	<h4 class="file-header ui top attached header flex-left-right">
-		<div class="file-header-left tw-flex tw-items-center tw-py-2 tw-pr-4">
+		<div class="file-header-left flex items-center py-2 pr-4">
 			{{if .ReadmeInList}}
-				{{svg "octicon-book" 16 "tw-mr-2"}}
+				{{svg "octicon-book" 16 "mr-2"}}
 				<strong><a class="muted" href="#readme">{{.ReadmeInList}}</a></strong>
 			{{else}}
 				{{template "repo/file_info" .}}
 			{{end}}
 		</div>
-		<div class="file-header-right file-actions flex-text-block tw-flex-wrap">
+		<div class="file-header-right file-actions flex-text-block flex-wrap">
 			{{/* this componment is also controlled by frontend plugin renders */}}
-			<div class="ui compact icon buttons file-view-toggle-buttons {{Iif .HasSourceRenderedToggle "" "tw-hidden"}}">
+			<div class="ui compact icon buttons file-view-toggle-buttons {{Iif .HasSourceRenderedToggle "" "hidden"}}">
 				{{if .IsRepresentableAsText}}
 				<a href="?display=source" class="ui mini basic button file-view-toggle-source {{if .IsDisplayingSource}}active{{end}}" data-tooltip-content="{{ctx.Locale.Tr "repo.file_view_source"}}">{{svg "octicon-code" 15}}</a>
 				{{end}}
@@ -45,7 +45,7 @@
 				{{end}}
 			</div>
 			{{if not .ReadmeInList}}
-				<div class="ui buttons tw-mr-1">
+				<div class="ui buttons mr-1">
 					<a class="ui mini basic button" href="{{$.RawFileLink}}">{{ctx.Locale.Tr "repo.file_raw"}}</a>
 					{{if or .RefFullName.IsBranch .RefFullName.IsTag}}
 						<a class="ui mini basic button" href="{{.RepoLink}}/src/commit/{{PathEscape .CommitID}}/{{PathEscapeSegments .TreePath}}">{{ctx.Locale.Tr "repo.file_permalink"}}</a>
@@ -55,7 +55,7 @@
 					{{end}}
 					<a class="ui mini basic button" href="{{.RepoLink}}/commits/{{.RefTypeNameSubURL}}/{{PathEscapeSegments .TreePath}}">{{ctx.Locale.Tr "repo.file_history"}}</a>
 					{{if .EscapeStatus.Escaped}}
-						<button class="ui mini basic button unescape-button tw-hidden">{{ctx.Locale.Tr "repo.unescape_control_characters"}}</button>
+						<button class="ui mini basic button unescape-button hidden">{{ctx.Locale.Tr "repo.unescape_control_characters"}}</button>
 						<button class="ui mini basic button escape-button">{{ctx.Locale.Tr "repo.escape_control_characters"}}</button>
 					{{end}}
 				</div>
@@ -82,8 +82,8 @@
 					{{end}}
 				{{end}}
 			{{else if .EscapeStatus.Escaped}}
-				<button class="ui mini basic button unescape-button tw-mr-1 tw-hidden">{{ctx.Locale.Tr "repo.unescape_control_characters"}}</button>
-				<button class="ui mini basic button escape-button tw-mr-1">{{ctx.Locale.Tr "repo.escape_control_characters"}}</button>
+				<button class="ui mini basic button unescape-button mr-1 hidden">{{ctx.Locale.Tr "repo.unescape_control_characters"}}</button>
+				<button class="ui mini basic button escape-button mr-1">{{ctx.Locale.Tr "repo.escape_control_characters"}}</button>
 			{{end}}
 			{{if and .ReadmeInList .CanEditReadmeFile}}
 				<a class="btn-octicon" data-tooltip-content="{{ctx.Locale.Tr "repo.editor.edit_this_file"}}" href="{{.RepoLink}}/_edit/{{PathEscapeSegments .BranchName}}/{{PathEscapeSegments .FileTreePath}}">{{svg "octicon-pencil"}}</a>
@@ -91,7 +91,7 @@
 		</div>
 	</h4>
 
-	<div class="ui bottom attached table unstackable segment">
+	<div class="ui bottom attached fm-table unstackable segment">
 		{{if not .RenderAsMarkup}}
 			{{template "repo/unicode_escape_prompt" dict "EscapeStatus" .EscapeStatus}}
 		{{end}}
@@ -131,7 +131,7 @@
 						</audio>
 					{{else}}
 						<div class="file-view-render-container">
-							<div class="file-view-raw-prompt tw-p-4">
+							<div class="file-view-raw-prompt p-4">
 								<a href="{{$.RawFileLink}}" rel="nofollow">{{ctx.Locale.Tr "repo.file_view_raw"}}</a>
 							</div>
 						</div>

@@ -11,27 +11,27 @@ The variables in "ctx.Data" are different in each case, making this template fra
 	{{$hasReview := and $comment.Review}}
 	{{$isReviewPending := and $hasReview (eq $comment.Review.Type 0)}}
 	<div class="ui segments conversation-holder">
-		<div class="ui segment collapsible-comment-box tw-py-2 flex-left-right">
-			<div class="tw-flex tw-items-center">
-				<a href="{{$comment.CodeCommentLink ctx}}" class="file-comment tw-ml-2 tw-break-anywhere">{{$comment.TreePath}}</a>
+		<div class="ui segment collapsible-comment-box py-2 flex-left-right">
+			<div class="flex items-center">
+				<a href="{{$comment.CodeCommentLink ctx}}" class="file-comment ml-2 break-anywhere">{{$comment.TreePath}}</a>
 				{{if $invalid}}
-					<span class="ui label basic small tw-ml-2" data-tooltip-content="{{ctx.Locale.Tr "repo.issues.review.outdated_description"}}">
+					<span class="ui label basic small ml-2" data-tooltip-content="{{ctx.Locale.Tr "repo.issues.review.outdated_description"}}">
 						{{ctx.Locale.Tr "repo.issues.review.outdated"}}
 					</span>
 				{{end}}
 			</div>
-			<div class="tw-flex tw-items-center">
+			<div class="flex items-center">
 				{{if or $invalid $resolved}}
-					<button id="show-outdated-{{$comment.ID}}" data-comment="{{$comment.ID}}" class="{{if not $resolved}}tw-hidden{{end}} btn tiny show-outdated">
-						{{svg "octicon-unfold" 16 "tw-mr-2"}}
+					<button id="show-outdated-{{$comment.ID}}" data-comment="{{$comment.ID}}" class="{{if not $resolved}}hidden{{end}} btn tiny show-outdated">
+						{{svg "octicon-unfold" 16 "mr-2"}}
 						{{if $resolved}}
 							{{ctx.Locale.Tr "repo.issues.review.show_resolved"}}
 						{{else}}
 							{{ctx.Locale.Tr "repo.issues.review.show_outdated"}}
 						{{end}}
 					</button>
-					<button id="hide-outdated-{{$comment.ID}}" data-comment="{{$comment.ID}}" class="{{if $resolved}}tw-hidden {{end}} btn tiny hide-outdated">
-						{{svg "octicon-fold" 16 "tw-mr-2"}}
+					<button id="hide-outdated-{{$comment.ID}}" data-comment="{{$comment.ID}}" class="{{if $resolved}}hidden {{end}} btn tiny hide-outdated">
+						{{svg "octicon-fold" 16 "mr-2"}}
 						{{if $resolved}}
 							{{ctx.Locale.Tr "repo.issues.review.hide_resolved"}}
 						{{else}}
@@ -44,7 +44,7 @@ The variables in "ctx.Data" are different in each case, making this template fra
 		{{$diff := (CommentMustAsDiff ctx $comment)}}
 		{{if $diff}}
 			{{$file := (index $diff.Files 0)}}
-			<div id="code-preview-{{$comment.ID}}" class="ui table segment{{if $resolved}} tw-hidden{{end}}">
+			<div id="code-preview-{{$comment.ID}}" class="ui fm-table segment{{if $resolved}} hidden{{end}}">
 				<div class="diff-file-box file-content {{TabSizeClass $.Editorconfig $file.Name}}">
 					<div class="file-body file-code code-view code-diff code-diff-unified unicode-escaped">
 						<table>
@@ -56,8 +56,8 @@ The variables in "ctx.Data" are different in each case, making this template fra
 				</div>
 			</div>
 		{{end}}
-		<div id="code-comments-{{$comment.ID}}" class="comment-code-cloud ui segment{{if $resolved}} tw-hidden{{end}}">
-			<div class="ui comments tw-mb-0">
+		<div id="code-comments-{{$comment.ID}}" class="comment-code-cloud ui segment{{if $resolved}} hidden{{end}}">
+			<div class="ui comments mb-0">
 				{{range .comments}}
 					{{$createdSubStr:= DateUtils.TimeSince .CreatedUnix}}
 					<div class="comment code-comment" id="{{.HashTag}}">
@@ -69,9 +69,9 @@ The variables in "ctx.Data" are different in each case, making this template fra
 											{{ctx.AvatarUtils.Avatar .Poster 20}}
 										</a>
 									{{end}}
-									<span class="tw-text-text-light muted-links">
+									<span class="text-text-light muted-links">
 										{{if .OriginalAuthor}}
-											<span class="tw-text-text">
+											<span class="text-text">
 												{{svg (MigrationIcon $.Repository.GetOriginalURLHostname)}}
 												{{.OriginalAuthor}}
 											</span>
@@ -100,8 +100,8 @@ The variables in "ctx.Data" are different in each case, making this template fra
 									<span class="no-content">{{ctx.Locale.Tr "repo.issues.no_content"}}</span>
 								{{end}}
 								</div>
-								<div id="{{.HashTag}}-raw" class="raw-content tw-hidden">{{.Content}}</div>
-								<div class="edit-content-zone tw-hidden" data-update-url="{{$.RepoLink}}/comments/{{.ID}}" data-content-version="{{.ContentVersion}}" data-context="{{$.RepoLink}}" data-attachment-url="{{$.RepoLink}}/comments/{{.ID}}/attachments"></div>
+								<div id="{{.HashTag}}-raw" class="raw-content hidden">{{.Content}}</div>
+								<div class="edit-content-zone hidden" data-update-url="{{$.RepoLink}}/comments/{{.ID}}" data-content-version="{{.ContentVersion}}" data-context="{{$.RepoLink}}" data-attachment-url="{{$.RepoLink}}/comments/{{.ID}}/attachments"></div>
 								{{if .Attachments}}
 									{{template "repo/issue/view_content/attachments" dict "Attachments" .Attachments "RenderedContent" .RenderedContent}}
 								{{end}}
@@ -114,11 +114,11 @@ The variables in "ctx.Data" are different in each case, making this template fra
 					</div>
 				{{end}}
 			</div>
-			<div class="flex-text-block tw-flex-wrap tw-my-2">
-				<div class="tw-flex-1">
+			<div class="flex-text-block flex-wrap my-2">
+				<div class="flex-1">
 					{{if $resolved}}
 						<div class="ui grey text">
-							{{svg "octicon-check" 16 "tw-mr-1"}}
+							{{svg "octicon-check" 16 "mr-1"}}
 							<b>{{$resolveDoer.Name}}</b> {{ctx.Locale.Tr "repo.issues.review.resolved_by"}}
 						</div>
 					{{end}}

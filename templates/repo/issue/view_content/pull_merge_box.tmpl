@@ -18,7 +18,7 @@
 			{{if $data.ClosedInfoTitle}}
 				<div class="item flex-left-right">
 					<div>
-						<h3 class="tw-mb-2">{{$data.ClosedInfoTitle}}</h3>
+						<h3 class="mb-2">{{$data.ClosedInfoTitle}}</h3>
 						<div>{{$data.ClosedInfoBody}}</div>
 					</div>
 					{{if $data.IsPullBranchDeletable}}
@@ -34,7 +34,7 @@
 					{{range $infoItem := $infoSection.InfoItems}}
 						<div class="flex-text-block {{$infoItem.ItemClass}}">{{$infoItem.SvgIconHTML}} {{$infoItem.InfoHTML}}</div>
 						{{if $infoItem.ListItems}}
-							<ul class="tw-pl-[36px]">{{/* align with the info icon and text */}}
+							<ul class="pl-[36px]">{{/* align with the info icon and text */}}
 								{{range $listItem := $infoItem.ListItems}}
 									<li>{{$listItem}}</li>
 								{{end}}
@@ -66,7 +66,7 @@
 			{{if $data.MergeFormProps}}
 				{{/* The merge form is a Vue component. After mounted, it has a button for choosing merge style, so make it have min-height to avoid layout shifting */}}
 				<div class="item">
-					<div id="pull-request-merge-form" class="tw-min-h-[40px] tw-w-full" data-merge-form-props="{{JsonUtils.EncodeToString $data.MergeFormProps}}"></div>
+					<div id="pull-request-merge-form" class="min-h-[40px] w-full" data-merge-form-props="{{JsonUtils.EncodeToString $data.MergeFormProps}}"></div>
 				</div>
 			{{end}}
 
