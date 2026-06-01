@@ -17,6 +17,7 @@ import (
 	"time"
 
 	"gitea.dev/modules/json"
+	"gitea.dev/modules/log"
 	"gitea.dev/modules/util"
 	"gitea.dev/modules/validation"
 
@@ -344,6 +345,7 @@ func ParsePackage(r io.Reader) (*Package, error) {
 func tarballHasShrinkwrap(data []byte) bool {
 	gr, err := gzip.NewReader(bytes.NewReader(data))
 	if err != nil {
+		log.Debug("npm: tarballHasShrinkwrap: gzip reader: %v", err)
 		return false
 	}
 	defer gr.Close()
@@ -355,6 +357,7 @@ func tarballHasShrinkwrap(data []byte) bool {
 			return false
 		}
 		if err != nil {
+			log.Debug("npm: tarballHasShrinkwrap: tar next: %v", err)
 			return false
 		}
 		name := strings.TrimPrefix(hdr.Name, "./")
