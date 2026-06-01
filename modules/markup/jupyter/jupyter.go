@@ -23,6 +23,16 @@ import (
 
 func init() {
 	markup.RegisterRenderer(renderer{})
+
+	jupyterGoldmark = goldmark.New(
+		goldmark.WithExtensions(
+			extension.Table,
+			extension.Strikethrough,
+			extension.Linkify,
+			extension.TaskList,
+			extension.DefinitionList,
+		),
+	)
 }
 
 // Renderer implements markup.Renderer for Jupyter notebooks
@@ -32,6 +42,8 @@ var (
 	_ markup.Renderer            = (*renderer)(nil)
 	_ markup.PostProcessRenderer = (*renderer)(nil)
 	_ markup.ExternalRenderer    = (*renderer)(nil)
+
+	jupyterGoldmark goldmark.Markdown
 )
 
 func (renderer) Name() string {
@@ -154,7 +166,6 @@ func renderCell(ctx *markup.RenderContext, output io.Writer, cell Cell, language
 		_, _ = output.Write([]byte(`<div class="input">`))
 
 		// Highlight code
-		// Highlight code
 		lexer := highlight.DetectChromaLexerByFileName("", language)
 		_, _ = htmlutil.HTMLPrintf(output, `<pre><code class="chroma language-%s">`, strings.ToLower(language))
 		_, _ = output.Write([]byte(highlight.RenderCodeByLexer(lexer, source)))
@@ -194,16 +205,7 @@ func renderCell(ctx *markup.RenderContext, output io.Writer, cell Cell, language
 }
 
 func renderMarkdown(_ *markup.RenderContext, output io.Writer, source string) error {
-	md := goldmark.New(
-		goldmark.WithExtensions(
-			extension.Table,
-			extension.Strikethrough,
-			extension.Linkify,
-			extension.TaskList,
-			extension.DefinitionList,
-		),
-	)
-	return md.Convert([]byte(source), output)
+	return jupyterGoldmark.Convert([]byte(source), output)
 }
 
 func renderOutput(output io.Writer, out Output) {
@@ -275,7 +277,11 @@ func renderOutput(output io.Writer, out Output) {
 
 	// Stream output
 	if out.OutputType == "stream" && out.Text != nil {
-		_, _ = htmlutil.HTMLPrintf(output, `<pre class="stream-%s">%s</pre>`, out.Name, joinSource(out.Text))
+		streamName := "stdout"
+		if out.Name == "stderr" {
+			streamName = "stderr"
+		}
+		_, _ = htmlutil.HTMLPrintf(output, `<pre class="stream-%s">%s</pre>`, streamName, joinSource(out.Text))
 		return
 	}
 
