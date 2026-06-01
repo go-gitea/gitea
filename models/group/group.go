@@ -476,17 +476,32 @@ func UpdateGroup(ctx context.Context, group *Group) error {
 	return err
 }
 
+func CheckCycle(ctx context.Context, current, newParent int64) (bool, error) {
+	if newParent == current {
+		return true, nil
+	}
+	descendantIDs, err := ChildGroupCond(ctx, current, nil)
+	if err != nil {
+		return false, err
+	}
+	if _, has := slices.BinarySearch(descendantIDs, newParent); has {
+		return true, nil
+	}
+	return false, nil
+}
+
 func MoveGroup(ctx context.Context, group *Group, newParent int64, newSortOrder int) error {
 	sess := db.GetEngine(ctx)
 	if newParent == group.ID {
 		return util.NewInvalidArgumentErrorf("cannot move group %d under itself", group.ID)
 	}
 
-	descendantIDs, err := ChildGroupCond(ctx, group.ID, nil)
+	hasCycle, err := CheckCycle(ctx, group.ID, newParent)
+
 	if err != nil {
 		return err
 	}
-	if _, has := slices.BinarySearch(descendantIDs, newParent); has {
+	if hasCycle {
 		return util.NewInvalidArgumentErrorf("cannot move group %d under one of its descendants", group.ID)
 	}
 
