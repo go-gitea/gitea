@@ -7,7 +7,7 @@ const {appSubUrl} = window.config;
 function initRepoNewTemplateSearch(form: HTMLFormElement) {
   const elSubmitButton = querySingleVisibleElem<HTMLInputElement>(form, '.ui.primary.button')!;
   const elCreateRepoErrorMessage = form.querySelector('#create-repo-error-message')!;
-  const elRepoOwnerDropdown = form.querySelector('#repo_owner_dropdown')!;
+  const elRepoOwnerDropdown = form.querySelector('#repo_owner_dropdown, #group_owner_dropdown')!;
   const elRepoTemplateDropdown = form.querySelector<HTMLInputElement>('#repo_template_search')!;
   const inputRepoTemplate = form.querySelector<HTMLInputElement>('#repo_template')!;
   const elTemplateUnits = form.querySelector('#template_units')!;

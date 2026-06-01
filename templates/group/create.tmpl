@@ -14,6 +14,26 @@
 						<input id="group_name" name="group_name" value="{{.Group.Name}}" required {{if eq .Group.LowerName "owners"}}disabled{{end}} autofocus>
 						<span class="help">{{ctx.Locale.Tr "group.group_name_helper"}}</span>
 					</div>
+					<div class="inline required field {{if .Err_Owner}}error{{end}}">
+						<label>{{ctx.Locale.Tr "group.owner"}}</label>
+						<div class="ui selection dropdown ellipsis-text-items" id="group_owner_dropdown">
+							<input type="hidden" name="uid" value="{{.ContextUser.ID}}">
+							<span class="text"></span>
+							{{svg "octicon-triangle-down" 14 "dropdown icon"}}
+							<div class="menu">
+								<div class="item" data-value="{{.SignedUser.ID}}" title="{{.SignedUser.Name}}">
+									{{ctx.AvatarUtils.Avatar .SignedUser 28 "mini"}}
+									{{.SignedUser.ShortName 40}}
+								</div>
+								{{range .Orgs}}
+								<div class="item" data-value="{{.ID}}" title="{{.Name}}">
+									{{ctx.AvatarUtils.Avatar . 28 "mini"}}
+									{{.ShortName 40}}
+								</div>
+								{{end}}
+							</div>
+						</div>
+					</div>
 					{{template "group/selector" .}}
 
 					<div class="inline field {{if .Err_Description}}error{{end}}">
