@@ -62,6 +62,17 @@ func SettingsPost(ctx *context.Context) {
 	}
 	group := ctx.RepoGroup.Group
 
+	hasCycle, err := group_model.CheckCycle(ctx, group.ID, form.ParentGroupID)
+	if err != nil {
+		ctx.ServerError("CheckCycle", err)
+		return
+	}
+	if hasCycle {
+		ctx.Flash.Error(ctx.Tr("group.settings.cycle_detected"))
+		ctx.Redirect(ctx.RepoGroup.OrgGroupLink + "/settings")
+		return
+	}
+
 	opts := &group_service.UpdateOptions{
 		Description: optional.Some(form.Description),
 		Visibility:  optional.Some(form.Visibility),
