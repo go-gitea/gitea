@@ -14,6 +14,7 @@ import {toggleTasklistCheckbox} from '../../markup/tasklist.ts';
 import {easyMDEToolbarActions} from './EasyMDEToolbarActions.ts';
 import {initTextExpander} from './TextExpander.ts';
 import {showErrorToast} from '../../modules/toast.ts';
+import {initSavedRepliesButton} from './SavedReplies.ts';
 import {POST} from '../../modules/fetch.ts';
 import {
   EventEditorContentChanged,
@@ -166,6 +167,7 @@ export class ComboMarkdownEditor {
 
     initTextareaMarkdown(this.textarea);
     initTextareaEvents(this.textarea, this.dropzone);
+    initSavedRepliesButton(this);
   }
 
   async setupDropzone() {
@@ -296,7 +298,7 @@ export class ComboMarkdownEditor {
       'bold', 'italic', 'strikethrough', '|', 'heading-1', 'heading-2', 'heading-3',
       'heading-bigger', 'heading-smaller', '|', 'code', 'quote', '|', 'gitea-checkbox-empty',
       'gitea-checkbox-checked', '|', 'unordered-list', 'ordered-list', '|', 'link', 'image',
-      'table', 'horizontal-rule', '|', 'gitea-switch-to-textarea',
+      'table', 'horizontal-rule', '|', 'gitea-saved-replies', '|', 'gitea-switch-to-textarea',
     ];
   }
 

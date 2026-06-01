@@ -1,0 +1,105 @@
+{{template "user/settings/layout_head" (dict "pageClass" "user settings saved_replies")}}
+	<div class="user-setting-content">
+		<h4 class="ui top attached header">
+			{{ctx.Locale.Tr "settings.saved_replies"}}
+		</h4>
+		<div class="ui attached segment">
+			<p>{{ctx.Locale.Tr "settings.saved_replies.desc"}}</p>
+			<div class="ui divider"></div>
+			{{if .UserSavedReplies}}
+			<div class="flex-divided-list items-with-main">
+				{{range .UserSavedReplies}}
+					<div class="item tw-items-center">
+						<div class="item-main">
+							<div class="item-title">{{.Title}}</div>
+							<div class="item-body tw-text-text-light-3">{{StringUtils.EllipsisString .Content 140}}</div>
+						</div>
+						<div class="item-trailing">
+							<button class="btn interact-bg tw-p-2 show-modal"
+								aria-label="{{ctx.Locale.Tr "settings.saved_replies.edit.tooltip"}}"
+								data-tooltip-content="{{ctx.Locale.Tr "settings.saved_replies.edit.tooltip"}}"
+								data-modal="#edit-saved-reply-modal"
+								data-modal-form.action="{{$.Link}}"
+								data-modal-header="{{ctx.Locale.Tr "settings.saved_replies.edit"}}"
+								data-modal-title.value="{{.Title}}"
+								data-modal-content.value="{{.Content}}"
+								data-modal-id.value="{{.ID}}"
+							>
+								{{svg "octicon-pencil"}}
+							</button>
+							<form class="form-fetch-action tw-inline" action="{{$.Link}}" method="post"
+								data-modal-confirm="{{ctx.Locale.Tr "settings.saved_replies.delete"}}"
+							>
+								<input type="hidden" name="action" value="delete">
+								<input type="hidden" name="id" value="{{.ID}}">
+								<button class="btn interact-bg tw-p-2"
+									aria-label="{{ctx.Locale.Tr "settings.saved_replies.delete.tooltip"}}"
+									data-tooltip-content="{{ctx.Locale.Tr "settings.saved_replies.delete.tooltip"}}"
+								>
+									{{svg "octicon-trash"}}
+								</button>
+							</form>
+						</div>
+					</div>
+				{{end}}
+			</div>
+			{{else}}
+				<div class="empty-saved-replies">{{ctx.Locale.Tr "settings.saved_replies.none"}}</div>
+			{{end}}
+		</div>
+
+		<h4 class="ui top attached header tw-mt-4">
+			{{ctx.Locale.Tr "settings.saved_replies.create"}}
+		</h4>
+		<div class="ui attached segment">
+			<form class="ui form form-fetch-action" action="{{.Link}}" method="post">
+				<input type="hidden" name="action" value="create">
+				<div class="field">
+					<label for="saved-reply-title">{{ctx.Locale.Tr "settings.saved_replies.create.title"}}</label>
+					<input id="saved-reply-title" name="title" maxlength="255" placeholder="{{ctx.Locale.Tr "settings.saved_replies.title_placeholder"}}" required>
+				</div>
+				<div class="field">
+					{{template "shared/combomarkdowneditor" (dict
+						"MarkdownEditorContext" (ctx.MiscUtils.MarkdownEditorGeneral nil)
+						"PreviewMode" "markdown"
+						"TextareaName" "content"
+						"TextareaPlaceholder" (ctx.Locale.Tr "settings.saved_replies.content_placeholder")
+					)}}
+				</div>
+				<div class="field">
+					<button class="ui primary button">{{ctx.Locale.Tr "settings.saved_replies.create.add"}}</button>
+				</div>
+			</form>
+		</div>
+	</div>
+
+{{/** Edit saved reply dialog */}}
+<div class="ui modal saved-replies-edit-modal" id="edit-saved-reply-modal">
+	<div class="header"></div>
+	<form class="ui form form-fetch-action" method="post">
+		<div class="content">
+			<input type="hidden" name="action" value="edit">
+			<input type="hidden" name="id" class="modal-id">
+			<div class="field">
+				<label for="dialog-saved-reply-title">{{ctx.Locale.Tr "settings.saved_replies.create.title"}}</label>
+				<input autofocus required
+					name="title"
+					id="dialog-saved-reply-title"
+					maxlength="255"
+					placeholder="{{ctx.Locale.Tr "settings.saved_replies.title_placeholder"}}"
+				>
+			</div>
+			<div class="field">
+				{{template "shared/combomarkdowneditor" (dict
+					"MarkdownEditorContext" (ctx.MiscUtils.MarkdownEditorGeneral nil)
+					"PreviewMode" "markdown"
+					"TextareaName" "content"
+					"TextareaPlaceholder" (ctx.Locale.Tr "settings.saved_replies.content_placeholder")
+				)}}
+			</div>
+		</div>
+		{{template "base/modal_actions_confirm" (dict "ModalButtonTypes" "confirm")}}
+	</form>
+</div>
+
+{{template "user/settings/layout_footer" .}}

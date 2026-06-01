@@ -3,6 +3,10 @@
 * ContainerId: id attribute for the container element
 * ContainerClasses: additional classes for the container element
 * MarkdownEditorContext: the context data for the editor, see backend MarkdownEditorContext
+* PreviewMode: preview mode
+* PreviewContext: preview context
+* PreviewLink: preview link
+* MentionsLink: mentions link
 * TextareaName: name attribute for the textarea
 * TextareaContent: content for the textarea
 * TextareaMaxLength: maxlength attribute for the textarea
@@ -13,10 +17,10 @@
 */}}
 {{$ariaLabel := or .TextareaAriaLabel .TextareaPlaceholder}}
 {{$editorContext := .MarkdownEditorContext}}
-{{$previewMode := or $editorContext.PreviewMode ""}}
-{{$previewContext := or $editorContext.PreviewContext ""}}
-{{$previewLink := or $editorContext.PreviewLink (print AppSubUrl "/-/markup")}}
-{{$mentionsLink := or $editorContext.MentionsLink ""}}
+{{$previewMode := or .PreviewMode $editorContext.PreviewMode ""}}
+{{$previewContext := or .PreviewContext $editorContext.PreviewContext ""}}
+{{$previewLink := or .PreviewLink $editorContext.PreviewLink (print AppSubUrl "/-/markup")}}
+{{$mentionsLink := or .MentionsLink $editorContext.MentionsLink ""}}
 {{$supportEasyMDE := or (eq $previewMode "comment") (eq $previewMode "wiki")}}
 <div {{if .ContainerId}}id="{{.ContainerId}}"{{end}} class="combo-markdown-editor {{if .CustomInit}}custom-init{{end}} {{.ContainerClasses}}"
 		data-dropzone-parent-container="{{.DropzoneParentContainer}}"
@@ -59,6 +63,22 @@
 			<div class="markdown-toolbar-group">
 				<md-mention class="markdown-toolbar-button" data-tooltip-content="{{ctx.Locale.Tr "editor.buttons.mention.tooltip"}}">{{svg "octicon-mention"}}</md-mention>
 				<md-ref class="markdown-toolbar-button" data-tooltip-content="{{ctx.Locale.Tr "editor.buttons.ref.tooltip"}}">{{svg "octicon-cross-reference"}}</md-ref>
+			</div>
+			{{end}}
+			{{if ctx.RootData.IsSigned}}
+			<div class="markdown-toolbar-group">
+				<button class="markdown-toolbar-button markdown-button-saved-replies"
+					aria-label="{{ctx.Locale.Tr "editor.buttons.saved_replies.tooltip"}}"
+					aria-haspopup="dialog"
+					data-tooltip-content="{{ctx.Locale.Tr "editor.buttons.saved_replies.tooltip"}}"
+					data-dialog-title="{{ctx.Locale.Tr "editor.saved_replies.dialog_title"}}"
+					data-search-placeholder="{{ctx.Locale.Tr "editor.saved_replies.search_placeholder"}}"
+					data-no-results="{{ctx.Locale.Tr "editor.saved_replies.no_results"}}"
+					data-close="{{ctx.Locale.Tr "repo.projects.close"}}"
+					data-create-new="{{ctx.Locale.Tr "editor.saved_replies.create_new"}}"
+					data-error-loading="{{ctx.Locale.Tr "editor.saved_replies.error_loading"}}"
+					type="button"
+				>{{svg "octicon-reply"}}</button>
 			</div>
 			{{end}}
 			<div class="markdown-toolbar-group">
