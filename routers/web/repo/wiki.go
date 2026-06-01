@@ -497,6 +497,7 @@ func Wiki(ctx *context.Context) {
 		return
 	}
 	ctx.Data["Author"] = lastCommit.Author
+	ctx.Data["Committer"] = lastCommit.Committer
 
 	ctx.HTML(http.StatusOK, tplWikiView)
 }
@@ -529,6 +530,7 @@ func WikiRevision(ctx *context.Context) {
 		return
 	}
 	ctx.Data["Author"] = lastCommit.Author
+	ctx.Data["Committer"] = lastCommit.Committer
 
 	ctx.HTML(http.StatusOK, tplWikiRevision)
 }
@@ -587,7 +589,7 @@ func WikiPages(ctx *context.Context) {
 			Name:         displayName,
 			SubURL:       wiki_service.WebPathToURLPath(wikiName),
 			GitEntryName: entry.Entry.Name(),
-			UpdatedUnix:  timeutil.TimeStamp(entry.Commit.Author.When.Unix()),
+			UpdatedUnix:  timeutil.TimeStamp(entry.Commit.Committer.When.Unix()),
 		})
 	}
 	ctx.Data["Pages"] = pages

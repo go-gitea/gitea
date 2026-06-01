@@ -4,16 +4,20 @@
 package integration
 
 import (
+	"fmt"
 	"net/http"
 	"net/url"
 	"os"
 	"path/filepath"
 	"strings"
 	"testing"
+	"time"
 
 	auth_model "gitea.dev/models/auth"
+	repo_model "gitea.dev/models/repo"
 	"gitea.dev/modules/git"
 	"gitea.dev/modules/git/gitcmd"
+	"gitea.dev/modules/setting"
 	"gitea.dev/tests"
 
 	"github.com/PuerkitoBio/goquery"
@@ -37,6 +41,78 @@ func TestRepoWikiPages(t *testing.T) {
 
 		assert.Equal(t, expectedPagePaths[i], pagePath)
 	})
+}
+
+func TestRepoWikiUsesCommitterDate(t *testing.T) {
+	defer tests.PrepareTestEnv(t)()
+
+	repo, err := repo_model.GetRepositoryByOwnerAndName(t.Context(), "user2", "repo1")
+	require.NoError(t, err)
+
+	const (
+		authorUnix    = int64(1710000000)
+		authorOffset  = "+0000"
+		committerUnix = int64(1710003600)
+	)
+
+	const pageName = "Committer-Date-Page"
+
+	message := "Update Home wiki page"
+	content := "# Committed page\n\nCreated in test.\n"
+	fastImportData := fmt.Sprintf(strings.TrimSpace(`
+commit refs/heads/%[1]s
+author user2 <user2@example.com> %[2]d %[3]s
+committer user2 <user2@example.com> %[4]d +0100
+data %[5]d
+%[6]s
+from refs/heads/%[1]s^0
+M 100644 inline %[7]s.md
+data %[8]d
+%[9]s
+`), repo.DefaultWikiBranch, authorUnix, authorOffset, committerUnix, len(message), message, pageName, len(content), content)
+
+	wikiRepoPath := filepath.Join(setting.RepoRootPath, repo.WikiStorageRepo().RelativePath())
+	_, _, runErr := gitcmd.NewCommand("fast-import").WithDir(wikiRepoPath).WithStdinBytes([]byte(fastImportData)).RunStdString(t.Context())
+	require.NoError(t, runErr)
+
+	authorTime := time.Unix(authorUnix, 0).UTC().Format(time.RFC3339)
+	committerTime := time.Unix(committerUnix, 0).In(time.FixedZone("", 3600)).Format(time.RFC3339)
+	committerPagesTime := time.Unix(committerUnix, 0).In(time.Local).Format(time.RFC3339)
+
+	findPageRow := func(doc *HTMLDoc, pagePath string) *goquery.Selection {
+		var row *goquery.Selection
+		doc.doc.Find(".wiki-pages-list tr").EachWithBreak(func(_ int, s *goquery.Selection) bool {
+			if strings.TrimPrefix(s.Find("a").First().AttrOr("href", ""), "/user2/repo1/wiki/") != pagePath {
+				return true
+			}
+			row = s
+			return false
+		})
+		return row
+	}
+
+	req := NewRequest(t, "GET", "/user2/repo1/wiki/"+pageName)
+	resp := MakeRequest(t, req, http.StatusOK)
+	doc := NewHTMLParser(t, resp.Body)
+	wikiViewTime := doc.doc.Find(".ui.sub.header relative-time").First().AttrOr("datetime", "")
+	assert.Equal(t, committerTime, wikiViewTime)
+	assert.NotEqual(t, authorTime, wikiViewTime)
+
+	req = NewRequest(t, "GET", "/user2/repo1/wiki/"+pageName+"?action=_revision")
+	resp = MakeRequest(t, req, http.StatusOK)
+	doc = NewHTMLParser(t, resp.Body)
+	wikiRevisionTime := doc.doc.Find(".ui.sub.header relative-time").First().AttrOr("datetime", "")
+	assert.Equal(t, committerTime, wikiRevisionTime)
+	assert.NotEqual(t, authorTime, wikiRevisionTime)
+
+	req = NewRequest(t, "GET", "/user2/repo1/wiki/?action=_pages")
+	resp = MakeRequest(t, req, http.StatusOK)
+	doc = NewHTMLParser(t, resp.Body)
+	homeRow := findPageRow(doc, pageName)
+	require.NotNil(t, homeRow)
+	wikiPagesTime := homeRow.Find("relative-time").AttrOr("datetime", "")
+	assert.Equal(t, committerPagesTime, wikiPagesTime)
+	assert.NotEqual(t, time.Unix(authorUnix, 0).In(time.Local).Format(time.RFC3339), wikiPagesTime)
 }
 
 func testRepoWikiCloneHTTP(t *testing.T, u *url.URL) {
