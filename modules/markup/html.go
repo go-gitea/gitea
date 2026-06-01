@@ -13,9 +13,9 @@ import (
 	"strings"
 	"sync"
 
-	"code.gitea.io/gitea/modules/htmlutil"
-	"code.gitea.io/gitea/modules/markup/common"
-	"code.gitea.io/gitea/modules/translation"
+	"gitea.dev/modules/htmlutil"
+	"gitea.dev/modules/markup/common"
+	"gitea.dev/modules/translation"
 
 	"golang.org/x/net/html"
 	"golang.org/x/net/html/atom"
@@ -175,22 +175,40 @@ var emojiProcessors = []processor{
 	emojiProcessor,
 }
 
+// isBareURLSubject reports whether the (HTML-escaped) commit subject content
+// is entirely a single URL, ignoring leading/trailing whitespace.
+func isBareURLSubject(content string) bool {
+	s := strings.TrimSpace(html.UnescapeString(content))
+	if s == "" {
+		return false
+	}
+	m := common.GlobalVars().LinkRegex.FindStringIndex(s)
+	return m != nil && m[0] == 0 && m[1] == len(s)
+}
+
 // PostProcessCommitMessageSubject will use the same logic as PostProcess and
 // PostProcessCommitMessage, but will disable the shortLinkProcessor and
-// emailAddressProcessor, will add a defaultLinkProcessor if defaultLink is set,
-// which changes every text node into a link to the passed default link.
+// emailAddressProcessor, and wraps the whole subject in defaultLink.
 func PostProcessCommitMessageSubject(ctx *RenderContext, defaultLink, content string) (string, error) {
 	procs := []processor{
 		fullIssuePatternProcessor,
 		comparePatternProcessor,
 		fullHashPatternProcessor,
-		linkProcessor,
 		mentionProcessor,
 		issueIndexPatternProcessor,
 		commitCrossReferencePatternProcessor,
 		hashCurrentPatternProcessor,
 		emojiShortCodeProcessor,
 		emojiProcessor,
+	}
+	// When the whole subject is a bare URL, linkProcessor would turn it into
+	// a competing anchor and hijack the surrounding defaultLink wrapper, leaving
+	// the subject visually unclickable. Match GitHub: render such subjects as
+	// plain text inside defaultLink. Partial URLs inside larger text still become
+	// their own links (nested anchors aren't legal HTML, so the outer defaultLink
+	// naturally breaks on that span, same as on GitHub).
+	if !isBareURLSubject(content) {
+		procs = append(procs, linkProcessor)
 	}
 	procs = append(procs, func(ctx *RenderContext, node *html.Node) {
 		ch := &html.Node{Parent: node, Type: html.TextNode, Data: node.Data}

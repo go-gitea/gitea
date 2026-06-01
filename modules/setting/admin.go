@@ -4,8 +4,8 @@
 package setting
 
 import (
-	"code.gitea.io/gitea/modules/container"
-	"code.gitea.io/gitea/modules/log"
+	"gitea.dev/modules/container"
+	"gitea.dev/modules/log"
 )
 
 // Admin settings
