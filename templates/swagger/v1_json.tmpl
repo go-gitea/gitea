@@ -36702,6 +36702,42 @@
         }
       }
     },
+    "/user/groups/new": {
+      "post": {
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "repository-group"
+        ],
+        "summary": "create a root-level repository group for the current user",
+        "operationId": "groupNewUser",
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/NewGroupOption"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "$ref": "#/responses/Group"
+          },
+          "404": {
+            "$ref": "#/responses/notFound"
+          },
+          "422": {
+            "$ref": "#/responses/validationError"
+          }
+        }
+      }
+    },
     "/user/hooks": {
       "get": {
         "produces": [
@@ -37435,42 +37471,6 @@
           },
           "404": {
             "$ref": "#/responses/notFound"
-          }
-        }
-      }
-    },
-    "/users/groups/new": {
-      "post": {
-        "consumes": [
-          "application/json"
-        ],
-        "produces": [
-          "application/json"
-        ],
-        "tags": [
-          "repository-group"
-        ],
-        "summary": "create a root-level repository group for the current user",
-        "operationId": "groupNewUser",
-        "parameters": [
-          {
-            "name": "body",
-            "in": "body",
-            "required": true,
-            "schema": {
-              "$ref": "#/definitions/NewGroupOption"
-            }
-          }
-        ],
-        "responses": {
-          "201": {
-            "$ref": "#/responses/Group"
-          },
-          "404": {
-            "$ref": "#/responses/notFound"
-          },
-          "422": {
-            "$ref": "#/responses/validationError"
           }
         }
       }

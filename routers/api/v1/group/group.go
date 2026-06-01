@@ -99,7 +99,7 @@ func NewOrgGroup(ctx *context.APIContext) {
 
 // NewUserGroup crate a new root-level group for the current user
 func NewUserGroup(ctx *context.APIContext) {
-	// swagger:operation POST /users/groups/new repository-group groupNewUser
+	// swagger:operation POST /user/groups/new repository-group groupNewUser
 	// ---
 	// summary: create a root-level repository group for the current user
 	// consumes:
