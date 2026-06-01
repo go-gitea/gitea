@@ -4,16 +4,17 @@
 package integration
 
 import (
-	auth_model "gitea.dev/models/auth"
-	"gitea.dev/modules/git"
-	"gitea.dev/modules/git/gitcmd"
-	"gitea.dev/tests"
 	"net/http"
 	"net/url"
 	"os"
 	"path/filepath"
 	"strings"
 	"testing"
+
+	auth_model "gitea.dev/models/auth"
+	"gitea.dev/modules/git"
+	"gitea.dev/modules/git/gitcmd"
+	"gitea.dev/tests"
 
 	"github.com/PuerkitoBio/goquery"
 	"github.com/stretchr/testify/assert"
@@ -37,6 +38,7 @@ func TestRepoWikiPages(t *testing.T) {
 		assert.Equal(t, expectedPagePaths[i], pagePath)
 	})
 }
+
 func testRepoWikiCloneHTTP(t *testing.T, u *url.URL) {
 	// When proc-receive support is enabled globally, the HTTP receive-pack pre-check
 	// must still require write access for wiki repositories. Exercise this with a
