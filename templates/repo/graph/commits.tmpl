@@ -41,7 +41,7 @@
 					</span>
 
 					<span class="flex-text-inline tw-text-12">
-						{{ctx.RenderUtils.CoAuthorAvatars $commit.CoAuthorAvatarData}}
+						{{ctx.RenderUtils.AvatarStackWithNames $commit.AvatarStackData $.RepoLink $.RefTypeNameSubURL}}
 					</span>
 
 					<span class="time flex-text-inline">{{DateUtils.FullTime $commit.Date}}</span>

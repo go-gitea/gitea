@@ -1,14 +1,14 @@
 {{template "devtest/devtest-header"}}
 <div class="page-content devtest ui container">
 	<div>
-		<h1>Co-Author Avatars</h1>
+		<h1>Avatar Stack</h1>
 		<table class="ui basic table">
 			<thead><tr><th>Scenario</th><th>Rendered</th></tr></thead>
 			<tbody>
-			{{range $s := .CoAuthorScenarios}}
+			{{range $s := .AvatarStackScenarios}}
 				<tr>
 					<td>{{$s.Label}}</td>
-					<td>{{ctx.RenderUtils.CoAuthorAvatars $s.Data}}</td>
+					<td>{{ctx.RenderUtils.AvatarStackWithNames $s.Data "" ""}}</td>
 				</tr>
 			{{end}}
 			</tbody>

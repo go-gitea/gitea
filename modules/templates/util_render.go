@@ -335,126 +335,130 @@ func (ut *RenderUtils) RenderUnicodeEscapeToggleTd(combined, escapeStatus *chars
 	return `<td class="lines-escape">` + ut.RenderUnicodeEscapeToggleButton(escapeStatus) + `</td>`
 }
 
-// commitAuthorSearchURL rejects whitespace because the search parser splits on it.
-func (ut *RenderUtils) commitAuthorSearchURL(value string) template.URL {
-	if value == "" || strings.ContainsAny(value, " \t\r\n") {
-		return ""
-	}
-	data := ut.ctx.GetData()
-	repoLink, _ := data["RepoLink"].(string)
-	refSubURL, _ := data["RefTypeNameSubURL"].(string)
+// commitsSearchBase builds the repo+ref scoped commits URL prefix for author-search links,
+// or "" when there is no single-ref context (callers then fall back to profile/mailto).
+func commitsSearchBase(repoLink, refSubURL string) string {
 	if repoLink == "" || refSubURL == "" {
 		return ""
 	}
-	return template.URL(repoLink + "/commits/" + refSubURL + "/search?q=" + url.QueryEscape("author:"+value))
+	return repoLink + "/commits/" + refSubURL
 }
 
-func authorSearchEmail(u *user_model.User, sig *git.Signature) string {
-	if sig != nil && sig.Email != "" {
-		return sig.Email
+// commitsSearchURL appends an author-search query to searchBase, or "" when there is no base or
+// the value contains whitespace (the search parser splits on it).
+func commitsSearchURL(searchBase, value string) template.URL {
+	if searchBase == "" || value == "" || strings.ContainsAny(value, " \t\r\n") {
+		return ""
 	}
-	if u != nil {
-		return u.Email
+	return template.URL(searchBase + "/search?q=" + url.QueryEscape("author:"+value))
+}
+
+func stackUserSearchEmail(su *user_model.AvatarStackUser) string {
+	if su.Sig != nil && su.Sig.Email != "" {
+		return su.Sig.Email
+	}
+	if su.GiteaUser != nil {
+		return su.GiteaUser.Email
 	}
 	return ""
 }
 
-func (ut *RenderUtils) authorHref(u *user_model.User, sig *git.Signature) template.URL {
+func (ut *RenderUtils) stackUserHref(searchBase string, su *user_model.AvatarStackUser) template.URL {
 	var fallback string
 	switch {
-	case u != nil:
-		fallback = u.HomeLink()
-	case sig != nil && sig.Email != "":
-		fallback = "mailto:" + sig.Email
+	case su.GiteaUser != nil:
+		fallback = su.GiteaUser.HomeLink()
+	case su.Sig != nil && su.Sig.Email != "":
+		fallback = "mailto:" + su.Sig.Email
 	default:
 		return ""
 	}
-	if href := ut.commitAuthorSearchURL(authorSearchEmail(u, sig)); href != "" {
+	if href := commitsSearchURL(searchBase, stackUserSearchEmail(su)); href != "" {
 		return href
 	}
 	return template.URL(fallback)
 }
 
-func (ut *RenderUtils) authorAvatar(u *user_model.User, sig *git.Signature) template.HTML {
+func (ut *RenderUtils) stackUserAvatar(su *user_model.AvatarStackUser) template.HTML {
 	au := NewAvatarUtils(ut.ctx)
-	if u != nil {
-		return au.Avatar(u, 20)
+	if su.GiteaUser != nil {
+		return au.Avatar(su.GiteaUser, 20)
 	}
-	return au.AvatarByEmail(sig.Email, sig.Name, 20)
+	return au.AvatarByEmail(su.Sig.Email, su.Sig.Name, 20)
 }
 
-func authorDisplayName(u *user_model.User, sig *git.Signature) string {
-	if u != nil {
-		return u.GetDisplayName()
+func stackUserName(su *user_model.AvatarStackUser) string {
+	if su.GiteaUser != nil {
+		return su.GiteaUser.GetDisplayName()
 	}
-	return sig.Name
+	return su.Sig.Name
 }
 
-// AvatarStack emits children in reverse paint order so CSS `flex-direction: row-reverse` places the author leftmost and last-painted (on top).
-func (ut *RenderUtils) AvatarStack(data *user_model.CoAuthorAvatarData) template.HTML {
-	if data == nil || (data.AuthorUser == nil && data.AuthorSig == nil) {
+// AvatarStack renders overlapping avatars for the stack participants. It emits children in reverse
+// so CSS `flex-direction: row-reverse` places the primary (Users[0]) leftmost and last-painted (on top).
+func (ut *RenderUtils) AvatarStack(data *user_model.AvatarStackData, repoLink, refSubURL string) template.HTML {
+	return ut.avatarStackHTML(data, commitsSearchBase(repoLink, refSubURL))
+}
+
+func (ut *RenderUtils) avatarStackHTML(data *user_model.AvatarStackData, searchBase string) template.HTML {
+	if data == nil || len(data.Users) == 0 {
 		return ""
 	}
-	authorUser, authorSig, coAuthors := data.AuthorUser, data.AuthorSig, data.CoAuthors
-
-	const maxCo = 9
-	visibleCo := coAuthors
+	const maxVisible = 10
+	visible := data.Users
 	overflow := 0
-	if len(coAuthors) > maxCo {
-		visibleCo = coAuthors[:maxCo]
-		overflow = len(coAuthors) - maxCo
+	if len(visible) > maxVisible {
+		overflow = len(visible) - maxVisible
+		visible = visible[:maxVisible]
 	}
 
 	var b htmlutil.HTMLBuilder
 	b.WriteHTML(`<span class="avatar-stack">`)
-
 	if overflow > 0 {
 		b.WriteFormat(`<span class="avatar-stack-overflow-chip tw-text-xs" aria-label="+%d more">+%d</span>`, overflow, overflow)
 	}
-	for _, co := range slices.Backward(visibleCo) {
-		ut.appendAvatarStackChild(&b, co.GiteaUser, co.TrailerSignature)
+	for _, su := range slices.Backward(visible) {
+		ut.writeAvatarStackItem(&b, searchBase, su)
 	}
-	ut.appendAvatarStackChild(&b, authorUser, authorSig)
-
 	b.WriteHTML(`</span>`)
 	return b.HTMLString()
 }
 
-func (ut *RenderUtils) appendAvatarStackChild(b *htmlutil.HTMLBuilder, u *user_model.User, sig *git.Signature) {
-	avatar := ut.authorAvatar(u, sig)
-	if href := ut.authorHref(u, sig); href != "" {
+func (ut *RenderUtils) writeAvatarStackItem(b *htmlutil.HTMLBuilder, searchBase string, su *user_model.AvatarStackUser) {
+	avatar := ut.stackUserAvatar(su)
+	if href := ut.stackUserHref(searchBase, su); href != "" {
 		b.WriteFormat(`<a href="%s">%s</a>`, href, avatar)
 	} else {
 		b.WriteFormat(`<span>%s</span>`, avatar)
 	}
 }
 
-// CoAuthorAvatars renders the avatar stack plus a label: `name` / `a and b` / `N people` (opens popup).
-func (ut *RenderUtils) CoAuthorAvatars(data *user_model.CoAuthorAvatarData) template.HTML {
-	if data == nil {
+// AvatarStackWithNames renders the avatar stack plus a label: `name` / `a and b` / `N people` (opens popup).
+func (ut *RenderUtils) AvatarStackWithNames(data *user_model.AvatarStackData, repoLink, refSubURL string) template.HTML {
+	if data == nil || len(data.Users) == 0 {
 		return ""
 	}
-	authorUser, authorSig, coAuthors := data.AuthorUser, data.AuthorSig, data.CoAuthors
+	searchBase := commitsSearchBase(repoLink, refSubURL)
 	locale := ut.ctx.Value(translation.ContextKey).(translation.Locale)
+	users := data.Users
 
 	var b htmlutil.HTMLBuilder
-	b.WriteHTML(`<span class="author-wrapper">`)
-	b.WriteHTML(ut.AvatarStack(data))
+	b.WriteHTML(`<span class="avatar-stack-names">`)
+	b.WriteHTML(ut.avatarStackHTML(data, searchBase))
 
-	switch len(coAuthors) {
-	case 0:
-		b.WriteHTML(ut.authorNameLinkHTML(authorUser, authorSig))
+	switch len(users) {
 	case 1:
-		b.WriteHTML(ut.authorNameLinkHTML(authorUser, authorSig))
-		b.WriteFormat(`<span>%s</span>`, locale.Tr("repo.commits.coauthor_and"))
-		b.WriteHTML(ut.authorNameLinkHTML(coAuthors[0].GiteaUser, coAuthors[0].TrailerSignature))
+		b.WriteHTML(ut.stackUserNameLink(searchBase, users[0]))
+	case 2:
+		b.WriteHTML(ut.stackUserNameLink(searchBase, users[0]))
+		b.WriteFormat(`<span>%s</span>`, locale.Tr("repo.commits.avatar_stack_and"))
+		b.WriteHTML(ut.stackUserNameLink(searchBase, users[1]))
 	default:
-		b.WriteFormat(`<button type="button" class="authors-popup-trigger" data-global-init="initAuthorsPopup">%s</button>`,
-			locale.Tr("repo.commits.coauthor_people", len(coAuthors)+1))
-		b.WriteHTML(`<div class="tippy-target"><div class="authors-popup">`)
-		b.WriteHTML(ut.participantRowHTML(authorUser, authorSig))
-		for _, co := range coAuthors {
-			b.WriteHTML(ut.participantRowHTML(co.GiteaUser, co.TrailerSignature))
+		b.WriteFormat(`<button type="button" class="avatar-stack-popup-trigger" data-global-init="initAvatarStackPopup">%s</button>`,
+			locale.Tr("repo.commits.avatar_stack_people", len(users)))
+		b.WriteHTML(`<div class="tippy-target"><div class="avatar-stack-popup">`)
+		for _, su := range users {
+			b.WriteHTML(ut.stackUserPopupRow(searchBase, su))
 		}
 		b.WriteHTML(`</div></div>`)
 	}
@@ -463,27 +467,27 @@ func (ut *RenderUtils) CoAuthorAvatars(data *user_model.CoAuthorAvatarData) temp
 	return b.HTMLString()
 }
 
-// authorNameLinkHTML prefers (in order): commits-by-author search, `GetShortDisplayNameLinkHTML` (keeps alt-name tooltip), `mailto:`, bare name.
-func (ut *RenderUtils) authorNameLinkHTML(u *user_model.User, sig *git.Signature) template.HTML {
-	if href := ut.commitAuthorSearchURL(authorSearchEmail(u, sig)); href != "" {
-		return htmlutil.HTMLFormat(`<a class="muted" href="%s">%s</a>`, href, authorDisplayName(u, sig))
+// stackUserNameLink prefers (in order): commits-by-author search, `GetShortDisplayNameLinkHTML` (keeps alt-name tooltip), `mailto:`, bare name.
+func (ut *RenderUtils) stackUserNameLink(searchBase string, su *user_model.AvatarStackUser) template.HTML {
+	if href := commitsSearchURL(searchBase, stackUserSearchEmail(su)); href != "" {
+		return htmlutil.HTMLFormat(`<a class="muted" href="%s">%s</a>`, href, stackUserName(su))
 	}
-	if u != nil {
-		return u.GetShortDisplayNameLinkHTML()
+	if su.GiteaUser != nil {
+		return su.GiteaUser.GetShortDisplayNameLinkHTML()
 	}
-	if sig == nil {
+	if su.Sig == nil {
 		return ""
 	}
-	if sig.Email != "" {
-		return htmlutil.HTMLFormat(`<a class="muted" href="mailto:%s">%s</a>`, sig.Email, sig.Name)
+	if su.Sig.Email != "" {
+		return htmlutil.HTMLFormat(`<a class="muted" href="mailto:%s">%s</a>`, su.Sig.Email, su.Sig.Name)
 	}
-	return template.HTML(template.HTMLEscapeString(sig.Name))
+	return template.HTML(template.HTMLEscapeString(su.Sig.Name))
 }
 
-func (ut *RenderUtils) participantRowHTML(u *user_model.User, sig *git.Signature) template.HTML {
-	avatar := ut.authorAvatar(u, sig)
-	name := authorDisplayName(u, sig)
-	if href := ut.authorHref(u, sig); href != "" {
+func (ut *RenderUtils) stackUserPopupRow(searchBase string, su *user_model.AvatarStackUser) template.HTML {
+	avatar := ut.stackUserAvatar(su)
+	name := stackUserName(su)
+	if href := ut.stackUserHref(searchBase, su); href != "" {
 		return htmlutil.HTMLFormat(`<a class="silenced flex-text-block" href="%s">%s<span>%s</span></a>`, href, avatar, name)
 	}
 	return htmlutil.HTMLFormat(`<span class="flex-text-block">%s<span>%s</span></span>`, avatar, name)

@@ -25,8 +25,8 @@ export function initCommitStatuses() {
   });
 }
 
-export function initAuthorsPopup() {
-  registerGlobalInitFunc('initAuthorsPopup', (el: HTMLElement) => {
+export function initAvatarStackPopup() {
+  registerGlobalInitFunc('initAvatarStackPopup', (el: HTMLElement) => {
     const nextEl = el.nextElementSibling!;
     if (!nextEl.matches('.tippy-target')) throw new Error('Expected next element to be a tippy target');
     createTippy(el, {

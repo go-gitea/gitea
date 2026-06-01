@@ -14,7 +14,7 @@
 			{{range $commit := .Commits}}
 				<tr>
 					<td class="author">
-						{{ctx.RenderUtils.CoAuthorAvatars .CoAuthorAvatarData}}
+						{{ctx.RenderUtils.AvatarStackWithNames .AvatarStackData $.RepoLink $.RefTypeNameSubURL}}
 					</td>
 					<td class="sha">
 						{{$commitBaseLink := ""}}

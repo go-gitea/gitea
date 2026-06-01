@@ -21,7 +21,7 @@ import {initMarkupContent} from './markup/content.ts';
 import {initRepoFileView} from './features/file-view.ts';
 import {initUserExternalLogins, initUserCheckAppUrl} from './features/user-auth.ts';
 import {initRepoPullRequestReview, initRepoIssueFilterItemLabel} from './features/repo-issue.ts';
-import {initRepoEllipsisButton, initCommitStatuses, initAuthorsPopup} from './features/repo-commit.ts';
+import {initRepoEllipsisButton, initCommitStatuses, initAvatarStackPopup} from './features/repo-commit.ts';
 import {initRepoTopicBar} from './features/repo-home.ts';
 import {initAdminCommon} from './features/admin/common.ts';
 import {initRepoCodeView} from './features/repo-code.ts';
@@ -145,7 +145,7 @@ const initPerformanceTracer = callInitFunctions([
   initRepoRecentCommits,
 
   initCommitStatuses,
-  initAuthorsPopup,
+  initAvatarStackPopup,
   initCaptcha,
 
   initUserCheckAppUrl,

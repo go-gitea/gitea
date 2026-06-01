@@ -312,61 +312,61 @@ func TestUserMention(t *testing.T) {
 	assert.Equal(t, `<p>@no-such-user <a href="/mention-user" rel="nofollow">@mention-user</a> <a href="/mention-user" rel="nofollow">@mention-user</a></p>`, strings.TrimSpace(string(rendered)))
 }
 
-func TestCoAuthorAvatars(t *testing.T) {
+func TestAvatarStack(t *testing.T) {
 	ut := newTestRenderUtils(t)
 	authorSig := &git.Signature{Name: "Alice", Email: "alice@example.com"}
-	mkCo := func(name, email string) *user_model.CoAuthorUser {
-		return &user_model.CoAuthorUser{TrailerSignature: &git.Signature{Name: name, Email: email}}
+	mkCo := func(name, email string) *user_model.AvatarStackUser {
+		return &user_model.AvatarStackUser{Sig: &git.Signature{Name: name, Email: email}}
 	}
 
-	mkData := func(co []*user_model.CoAuthorUser) *user_model.CoAuthorAvatarData {
-		return &user_model.CoAuthorAvatarData{AuthorSig: authorSig, CoAuthors: co}
+	mkData := func(co []*user_model.AvatarStackUser) *user_model.AvatarStackData {
+		return user_model.NewAvatarStackData(nil, authorSig, co)
 	}
 
-	t.Run("zero co-authors renders bare author, no label", func(t *testing.T) {
-		got := string(ut.CoAuthorAvatars(mkData(nil)))
-		assert.Contains(t, got, `<span class="author-wrapper">`)
+	t.Run("lone author renders bare name, no label", func(t *testing.T) {
+		got := string(ut.AvatarStackWithNames(mkData(nil), "", ""))
+		assert.Contains(t, got, `<span class="avatar-stack-names">`)
 		assert.Contains(t, got, "Alice")
-		assert.NotContains(t, got, "coauthor_and")
-		assert.NotContains(t, got, "coauthor_people")
+		assert.NotContains(t, got, "avatar_stack_and")
+		assert.NotContains(t, got, "avatar_stack_people")
 	})
 
-	t.Run("single co-author uses and label", func(t *testing.T) {
-		got := string(ut.CoAuthorAvatars(mkData([]*user_model.CoAuthorUser{mkCo("Bob", "bob@example.com")})))
-		assert.Contains(t, got, "repo.commits.coauthor_and")
+	t.Run("two participants use and label", func(t *testing.T) {
+		got := string(ut.AvatarStackWithNames(mkData([]*user_model.AvatarStackUser{mkCo("Bob", "bob@example.com")}), "", ""))
+		assert.Contains(t, got, "repo.commits.avatar_stack_and")
 		assert.Contains(t, got, "Bob")
-		assert.NotContains(t, got, "coauthor_people")
+		assert.NotContains(t, got, "avatar_stack_people")
 		assert.Contains(t, got, `<span class="avatar-stack">`)
 	})
 
-	t.Run("two co-authors switches to N people label with tippy popup", func(t *testing.T) {
-		got := string(ut.CoAuthorAvatars(mkData(
-			[]*user_model.CoAuthorUser{mkCo("Bob", "bob@example.com"), mkCo("Carol", "carol@example.com")})))
-		assert.Contains(t, got, "repo.commits.coauthor_people:3")
-		assert.NotContains(t, got, "repo.commits.coauthor_and")
-		assert.Contains(t, got, `data-global-init="initAuthorsPopup"`)
+	t.Run("three participants switch to N people label with tippy popup", func(t *testing.T) {
+		got := string(ut.AvatarStackWithNames(mkData(
+			[]*user_model.AvatarStackUser{mkCo("Bob", "bob@example.com"), mkCo("Carol", "carol@example.com")}), "", ""))
+		assert.Contains(t, got, "repo.commits.avatar_stack_people:3")
+		assert.NotContains(t, got, "repo.commits.avatar_stack_and")
+		assert.Contains(t, got, `data-global-init="initAvatarStackPopup"`)
 		assert.Contains(t, got, `<div class="tippy-target">`)
-		assert.Contains(t, got, `class="authors-popup"`)
+		assert.Contains(t, got, `class="avatar-stack-popup"`)
 	})
 
-	t.Run("overflow chip renders for >9 co-authors", func(t *testing.T) {
-		cos := make([]*user_model.CoAuthorUser, 11)
+	t.Run("overflow chip renders beyond 10 participants", func(t *testing.T) {
+		cos := make([]*user_model.AvatarStackUser, 11)
 		for i := range cos {
 			cos[i] = mkCo("X", "x@example.com")
 		}
-		got := string(ut.CoAuthorAvatars(mkData(cos)))
+		got := string(ut.AvatarStackWithNames(mkData(cos), "", ""))
 		assert.Contains(t, got, `class="avatar-stack-overflow-chip`)
 		assert.Contains(t, got, "+2")
-		assert.Contains(t, got, "repo.commits.coauthor_people:12")
-		assert.Contains(t, got, `data-global-init="initAuthorsPopup"`)
+		assert.Contains(t, got, "repo.commits.avatar_stack_people:12")
+		assert.Contains(t, got, `data-global-init="initAvatarStackPopup"`)
 	})
 
-	t.Run("chip alone renders for 10 co-authors", func(t *testing.T) {
-		cos := make([]*user_model.CoAuthorUser, 10)
+	t.Run("chip renders at exactly one over the limit", func(t *testing.T) {
+		cos := make([]*user_model.AvatarStackUser, 10)
 		for i := range cos {
 			cos[i] = mkCo("X", "x@example.com")
 		}
-		got := string(ut.AvatarStack(&user_model.CoAuthorAvatarData{AuthorSig: authorSig, CoAuthors: cos}))
+		got := string(ut.AvatarStack(mkData(cos), "", ""))
 		assert.Contains(t, got, `class="avatar-stack-overflow-chip`)
 		assert.Contains(t, got, "+1")
 	})

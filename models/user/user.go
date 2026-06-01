@@ -1148,36 +1148,11 @@ func GetUsersBySource(ctx context.Context, s *auth.Source) ([]*User, error) {
 	return users, err
 }
 
-// CoAuthorUser represents a co-author parsed from a commit trailer, with optional Gitea user.
-type CoAuthorUser struct {
-	GiteaUser        *User
-	TrailerSignature *git.Signature
-}
-
 // UserCommit represents a commit with validation of user.
 type UserCommit struct { //revive:disable-line:exported
 	User      *User
-	CoAuthors []*CoAuthorUser
+	CoAuthors []*AvatarStackUser
 	*git.Commit
-}
-
-// CoAuthorAvatarData is the view-model for the CoAuthorAvatars template helper.
-type CoAuthorAvatarData struct {
-	AuthorUser *User
-	AuthorSig  *git.Signature
-	CoAuthors  []*CoAuthorUser
-}
-
-// CoAuthorAvatarData returns the view-model for rendering this commit's author + co-authors.
-func (uc *UserCommit) CoAuthorAvatarData() *CoAuthorAvatarData {
-	if uc == nil {
-		return nil
-	}
-	var sig *git.Signature
-	if uc.Commit != nil {
-		sig = uc.Commit.Author
-	}
-	return &CoAuthorAvatarData{AuthorUser: uc.User, AuthorSig: sig, CoAuthors: uc.CoAuthors}
 }
 
 // ValidateCommitWithEmail check if author's e-mail of commit is corresponding to a user.
@@ -1190,39 +1165,6 @@ func ValidateCommitWithEmail(ctx context.Context, c *git.Commit) *User {
 		return nil
 	}
 	return u
-}
-
-// CoAuthorUsersFromSigs wraps each signature with the matching Gitea user if any.
-func CoAuthorUsersFromSigs(sigs []*git.Signature, emailUserMap *EmailUserMap) []*CoAuthorUser {
-	if len(sigs) == 0 {
-		return nil
-	}
-	out := make([]*CoAuthorUser, len(sigs))
-	for i, sig := range sigs {
-		var giteaUser *User
-		if emailUserMap != nil {
-			giteaUser = emailUserMap.GetByEmail(sig.Email)
-		}
-		out[i] = &CoAuthorUser{GiteaUser: giteaUser, TrailerSignature: sig}
-	}
-	return out
-}
-
-// CoAuthorsFromCommit resolves co-author signatures from a commit into CoAuthorUser values.
-func CoAuthorsFromCommit(ctx context.Context, c *git.Commit) ([]*CoAuthorUser, error) {
-	sigs := c.CoAuthorSignatures()
-	if len(sigs) == 0 {
-		return nil, nil
-	}
-	emails := make([]string, len(sigs))
-	for i, sig := range sigs {
-		emails[i] = sig.Email
-	}
-	emailUserMap, err := GetUsersByEmails(ctx, emails)
-	if err != nil {
-		return nil, err
-	}
-	return CoAuthorUsersFromSigs(sigs, emailUserMap), nil
 }
 
 // ValidateCommitsWithEmails checks if authors' e-mails of commits are corresponding to users.
@@ -1248,7 +1190,7 @@ func ValidateCommitsWithEmails(ctx context.Context, oldCommits []*git.Commit) ([
 	for _, c := range oldCommits {
 		newCommits = append(newCommits, &UserCommit{
 			User:      emailUserMap.GetByEmail(c.Author.Email), // FIXME: why ValidateCommitsWithEmails uses "Author", but ParseCommitsWithSignature uses "Committer"?
-			CoAuthors: CoAuthorUsersFromSigs(c.CoAuthorSignatures(), emailUserMap),
+			CoAuthors: AvatarStackUsersFromSigs(c.CoAuthorSignatures(), emailUserMap),
 			Commit:    c,
 		})
 	}

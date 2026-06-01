@@ -35,16 +35,16 @@ type blameRow struct {
 	CommitMessage  string
 	CommitSince    template.HTML
 	AuthorUser     *user_model.User
-	CoAuthors      []*user_model.CoAuthorUser
+	CoAuthors      []*user_model.AvatarStackUser
 	Author         *git.Signature
 
 	Code         template.HTML
 	EscapeStatus *charset.EscapeStatus
 }
 
-// CoAuthorAvatarData returns the view-model for rendering this row's author + co-authors.
-func (r *blameRow) CoAuthorAvatarData() *user_model.CoAuthorAvatarData {
-	return &user_model.CoAuthorAvatarData{AuthorUser: r.AuthorUser, AuthorSig: r.Author, CoAuthors: r.CoAuthors}
+// AvatarStackData returns the view-model for rendering this row's author + co-authors.
+func (r *blameRow) AvatarStackData() *user_model.AvatarStackData {
+	return user_model.NewAvatarStackData(r.AuthorUser, r.Author, r.CoAuthors)
 }
 
 // RefBlame render blame page

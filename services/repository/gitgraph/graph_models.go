@@ -128,7 +128,7 @@ func (graph *Graph) LoadAndProcessCommits(ctx context.Context, repository *repo_
 		if c.Commit.Author != nil && emailUserMap != nil {
 			c.User = emailUserMap.GetByEmail(c.Commit.Author.Email)
 		}
-		c.CoAuthors = user_model.CoAuthorUsersFromSigs(c.Commit.CoAuthorSignatures(), emailUserMap)
+		c.CoAuthors = user_model.AvatarStackUsersFromSigs(c.Commit.CoAuthorSignatures(), emailUserMap)
 
 		c.Verification = asymkey_service.ParseCommitWithSignature(ctx, c.Commit)
 
@@ -263,7 +263,7 @@ func newRefsFromRefNames(refNames []byte) []git.Reference {
 type Commit struct {
 	Commit       *git.Commit
 	User         *user_model.User
-	CoAuthors    []*user_model.CoAuthorUser
+	CoAuthors    []*user_model.AvatarStackUser
 	Verification *asymkey_model.CommitVerification
 	Status       *git_model.CommitStatus
 	Flow         int64
@@ -281,8 +281,8 @@ func (c *Commit) OnlyRelation() bool {
 	return c.Row == -1
 }
 
-// CoAuthorAvatarData returns the view-model for rendering this commit's author + co-authors.
-func (c *Commit) CoAuthorAvatarData() *user_model.CoAuthorAvatarData {
+// AvatarStackData returns the view-model for rendering this commit's author + co-authors.
+func (c *Commit) AvatarStackData() *user_model.AvatarStackData {
 	if c == nil {
 		return nil
 	}
@@ -290,5 +290,5 @@ func (c *Commit) CoAuthorAvatarData() *user_model.CoAuthorAvatarData {
 	if c.Commit != nil {
 		sig = c.Commit.Author
 	}
-	return &user_model.CoAuthorAvatarData{AuthorUser: c.User, AuthorSig: sig, CoAuthors: c.CoAuthors}
+	return user_model.NewAvatarStackData(c.User, sig, c.CoAuthors)
 }

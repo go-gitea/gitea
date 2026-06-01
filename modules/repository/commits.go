@@ -188,25 +188,21 @@ func (pc *PushCommit) AuthorUser(ctx context.Context) *user_model.User {
 	return u
 }
 
-// CoAuthorUsers returns co-authors in the template view shape, without resolved Gitea users.
-func (pc *PushCommit) CoAuthorUsers() []*user_model.CoAuthorUser {
+// avatarStackCoAuthors returns the co-authors in avatar-stack shape, without resolved Gitea users.
+func (pc *PushCommit) avatarStackCoAuthors() []*user_model.AvatarStackUser {
 	if len(pc.CoAuthors) == 0 {
 		return nil
 	}
-	coAuthors := make([]*user_model.CoAuthorUser, len(pc.CoAuthors))
+	coAuthors := make([]*user_model.AvatarStackUser, len(pc.CoAuthors))
 	for i, sig := range pc.CoAuthors {
-		coAuthors[i] = &user_model.CoAuthorUser{TrailerSignature: sig}
+		coAuthors[i] = &user_model.AvatarStackUser{Sig: sig}
 	}
 	return coAuthors
 }
 
-// CoAuthorAvatarData returns the view-model for rendering this push commit's author + co-authors.
-func (pc *PushCommit) CoAuthorAvatarData(ctx context.Context) *user_model.CoAuthorAvatarData {
-	return &user_model.CoAuthorAvatarData{
-		AuthorUser: pc.AuthorUser(ctx),
-		AuthorSig:  pc.AuthorSignature(),
-		CoAuthors:  pc.CoAuthorUsers(),
-	}
+// AvatarStackData returns the view-model for rendering this push commit's author + co-authors.
+func (pc *PushCommit) AvatarStackData(ctx context.Context) *user_model.AvatarStackData {
+	return user_model.NewAvatarStackData(pc.AuthorUser(ctx), pc.AuthorSignature(), pc.avatarStackCoAuthors())
 }
 
 // GitToPushCommits transforms a list of git.Commits to PushCommits type.

@@ -6,7 +6,7 @@ img.ui.avatar,
   aspect-ratio: 1;
 }
 
-.author-wrapper {
+.avatar-stack-names {
   display: inline-flex;
   align-items: center;
   align-self: center;
@@ -15,16 +15,16 @@ img.ui.avatar,
   vertical-align: middle;
 }
 
-.author-wrapper > a.muted,
-.author-wrapper > .authors-popup-trigger {
+.avatar-stack-names > a.muted,
+.avatar-stack-names > .avatar-stack-popup-trigger {
   overflow: hidden;
   text-overflow: ellipsis;
   max-width: 240px;
 }
 
 /* use semibold for latest commit author */
-.latest-commit .author-wrapper > a,
-.latest-commit .author-wrapper > .authors-popup-trigger {
+.latest-commit .avatar-stack-names > a,
+.latest-commit .avatar-stack-names > .avatar-stack-popup-trigger {
   font-weight: var(--font-weight-semibold);
 }
 
@@ -90,7 +90,7 @@ img.ui.avatar,
   opacity: 1;
 }
 
-.authors-popup-trigger {
+.avatar-stack-popup-trigger {
   cursor: pointer;
   background: none;
   border: none;
@@ -99,28 +99,28 @@ img.ui.avatar,
   color: inherit;
 }
 
-.authors-popup-trigger:hover {
+.avatar-stack-popup-trigger:hover {
   color: var(--color-primary);
 }
 
-.authors-popup {
+.avatar-stack-popup {
   min-width: 200px;
   display: flex;
   flex-direction: column;
   padding: 4px 0;
 }
 
-.authors-popup > a {
+.avatar-stack-popup > a {
   padding: 6px 12px;
   gap: 8px;
 }
 
-.authors-popup > a:hover {
+.avatar-stack-popup > a:hover {
   background: var(--color-hover);
 }
 
 @media (max-width: 767.98px) {
-  .author-wrapper {
+  .avatar-stack-names {
     max-width: 80px;
   }
 }

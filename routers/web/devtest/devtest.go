@@ -159,7 +159,7 @@ func prepareMockDataBadgeActionsSvg(ctx *context.Context) {
 	ctx.Data["SelectedStyle"] = selectedStyle
 }
 
-func prepareMockDataCoAuthorAvatars(ctx *context.Context) {
+func prepareMockDataAvatarStack(ctx *context.Context) {
 	mockUsers, _ := db.Find[user_model.User](ctx, user_model.SearchUserOptions{ListOptions: db.ListOptions{PageSize: 3}})
 	if len(mockUsers) == 0 {
 		return
@@ -176,14 +176,14 @@ func prepareMockDataCoAuthorAvatars(ctx *context.Context) {
 	authorSig := func(u *user_model.User) *git.Signature {
 		return &git.Signature{Name: u.Name, Email: u.Email}
 	}
-	coLinked := func(u *user_model.User) *user_model.CoAuthorUser {
-		return &user_model.CoAuthorUser{GiteaUser: u, TrailerSignature: authorSig(u)}
+	coLinked := func(u *user_model.User) *user_model.AvatarStackUser {
+		return &user_model.AvatarStackUser{GiteaUser: u, Sig: authorSig(u)}
 	}
-	coUnlinked := func(name, email string) *user_model.CoAuthorUser {
-		return &user_model.CoAuthorUser{TrailerSignature: &git.Signature{Name: name, Email: email}}
+	coUnlinked := func(name, email string) *user_model.AvatarStackUser {
+		return &user_model.AvatarStackUser{Sig: &git.Signature{Name: name, Email: email}}
 	}
-	nUnlinked := func(n int) []*user_model.CoAuthorUser {
-		out := make([]*user_model.CoAuthorUser, n)
+	nUnlinked := func(n int) []*user_model.AvatarStackUser {
+		out := make([]*user_model.AvatarStackUser, n)
 		for i := range out {
 			out[i] = coUnlinked(fmt.Sprintf("Contributor %d", i+1), fmt.Sprintf("contrib%d@example.com", i+1))
 		}
@@ -192,19 +192,17 @@ func prepareMockDataCoAuthorAvatars(ctx *context.Context) {
 
 	type scenario struct {
 		Label string
-		Data  *user_model.CoAuthorAvatarData
+		Data  *user_model.AvatarStackData
 	}
-	mk := func(author *user_model.User, sig *git.Signature, co []*user_model.CoAuthorUser) *user_model.CoAuthorAvatarData {
-		return &user_model.CoAuthorAvatarData{AuthorUser: author, AuthorSig: sig, CoAuthors: co}
-	}
+	mk := user_model.NewAvatarStackData
 	extSig := &git.Signature{Name: "External Contributor", Email: "external@example.com"}
-	ctx.Data["CoAuthorScenarios"] = []scenario{
+	ctx.Data["AvatarStackScenarios"] = []scenario{
 		{Label: "linked author, no co-authors", Data: mk(u0, authorSig(u0), nil)},
 		{Label: "unlinked author, no co-authors", Data: mk(nil, extSig, nil)},
-		{Label: "1 linked co-author", Data: mk(u0, authorSig(u0), []*user_model.CoAuthorUser{coLinked(u1)})},
-		{Label: "1 unlinked co-author", Data: mk(u0, authorSig(u0), []*user_model.CoAuthorUser{coUnlinked("Bob Smith", "bob@example.com")})},
-		{Label: "2 co-authors (3 people), u1 author", Data: mk(u1, authorSig(u1), []*user_model.CoAuthorUser{coLinked(u0), coUnlinked("Bob Smith", "bob@example.com")})},
-		{Label: "3 co-authors mixed (4 people)", Data: mk(u0, authorSig(u0), []*user_model.CoAuthorUser{coLinked(u1), coLinked(u2), coUnlinked("Bob Smith", "bob@example.com")})},
+		{Label: "1 linked co-author", Data: mk(u0, authorSig(u0), []*user_model.AvatarStackUser{coLinked(u1)})},
+		{Label: "1 unlinked co-author", Data: mk(u0, authorSig(u0), []*user_model.AvatarStackUser{coUnlinked("Bob Smith", "bob@example.com")})},
+		{Label: "2 co-authors (3 people), u1 author", Data: mk(u1, authorSig(u1), []*user_model.AvatarStackUser{coLinked(u0), coUnlinked("Bob Smith", "bob@example.com")})},
+		{Label: "3 co-authors mixed (4 people)", Data: mk(u0, authorSig(u0), []*user_model.AvatarStackUser{coLinked(u1), coLinked(u2), coUnlinked("Bob Smith", "bob@example.com")})},
 		{Label: "9 co-authors (max visible, no overflow), u2 author", Data: mk(u2, authorSig(u2), nUnlinked(9))},
 		{Label: "10 co-authors (overflow +1)", Data: mk(u0, authorSig(u0), nUnlinked(10))},
 		{Label: "15 co-authors (overflow +6), unlinked author", Data: mk(nil, extSig, nUnlinked(15))},
@@ -249,8 +247,8 @@ func prepareMockData(ctx *context.Context) {
 		prepareMockDataToastAndMessage(ctx)
 	case "/devtest/unicode-escape":
 		prepareMockDataUnicodeEscape(ctx)
-	case "/devtest/coauthor-avatars":
-		prepareMockDataCoAuthorAvatars(ctx)
+	case "/devtest/avatar-stack":
+		prepareMockDataAvatarStack(ctx)
 	}
 }
 
