@@ -25,8 +25,8 @@ type Metadata struct {
 	Readme                  string            `json:"readme,omitempty"`
 	Repository              Repository        `json:"repository"`
 	Scripts                 map[string]string `json:"scripts,omitempty"`
-	HasInstallScript        bool              `json:"hasInstallScript,omitempty"`
-	HasShrinkwrap           bool              `json:"hasShrinkwrap,omitempty"`
+	HasInstallScript        bool              `json:"has_install_script,omitempty"`
+	HasShrinkwrap           bool              `json:"has_shrinkwrap,omitempty"`
 	Engines                 map[string]string `json:"engines,omitempty"`
 	CPU                     []string          `json:"cpu,omitempty"`
 	OS                      []string          `json:"os,omitempty"`
