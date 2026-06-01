@@ -15,7 +15,7 @@ import (
 	"gitea.dev/modules/assetfs"
 )
 
-//go:embed wbindata.dat
+//go:embed bindata.dat
 var bindata []byte
 
 var BuiltinAssets = sync.OnceValue(func() *assetfs.Layer {
