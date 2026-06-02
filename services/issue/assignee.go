@@ -56,7 +56,7 @@ func DeleteNotPassedAssignee(ctx context.Context, issue *issues_model.Issue, doe
 }
 
 // ToggleAssignee changes a user between assigned and not assigned for this issue, and make issue comment for it.
-func ToggleAssignee(ctx context.Context, issue *issues_model.Issue, doer *user_model.User, assignee *user_model.User) (removed bool, comment *issues_model.Comment, err error) {
+func ToggleAssignee(ctx context.Context, issue *issues_model.Issue, doer, assignee *user_model.User) (removed bool, comment *issues_model.Comment, err error) {
 	removed, comment, err = issues_model.ToggleIssueAssignee(ctx, issue, doer, assignee.ID)
 	if err != nil {
 		return false, nil, err
@@ -181,7 +181,7 @@ func validateAssignee(ctx context.Context, issue *issues_model.Issue, doer, assi
 
 // AddAssigneeIfNotAssigned adds an assignee only if he isn't already assigned to the issue.
 // Also checks for access of assigned user
-func AddAssigneeIfNotAssigned(ctx context.Context, issue *issues_model.Issue, doer *user_model.User, assignee *user_model.User) (comment *issues_model.Comment, err error) {
+func AddAssigneeIfNotAssigned(ctx context.Context, issue *issues_model.Issue, doer, assignee *user_model.User) (comment *issues_model.Comment, err error) {
 	// Check if the user is already assigned
 	isAssigned, err := issues_model.IsUserAssignedToIssue(ctx, issue, assignee.ID)
 	if err != nil {
