@@ -4,12 +4,11 @@
 package v1_20
 
 import (
-	"code.gitea.io/gitea/modules/timeutil"
-
-	"xorm.io/xorm"
+	"gitea.dev/models/db"
+	"gitea.dev/modules/timeutil"
 )
 
-func CreateActionArtifactTable(x *xorm.Engine) error {
+func CreateActionArtifactTable(x db.EngineMigration) error {
 	// ActionArtifact is a file that is stored in the artifact storage.
 	type ActionArtifact struct {
 		ID                 int64 `xorm:"pk autoincr"`

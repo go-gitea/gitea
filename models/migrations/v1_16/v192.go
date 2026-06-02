@@ -4,12 +4,11 @@
 package v1_16
 
 import (
-	"code.gitea.io/gitea/models/migrations/base"
-
-	"xorm.io/xorm"
+	"gitea.dev/models/db"
+	"gitea.dev/models/migrations/base"
 )
 
-func RecreateIssueResourceIndexTable(x *xorm.Engine) error {
+func RecreateIssueResourceIndexTable(x db.EngineMigration) error {
 	type IssueIndex struct {
 		GroupID  int64 `xorm:"pk"`
 		MaxIndex int64 `xorm:"index"`

@@ -7,17 +7,17 @@ import (
 	"context"
 	"fmt"
 
-	"code.gitea.io/gitea/models/db"
-	repo_model "code.gitea.io/gitea/models/repo"
-	user_model "code.gitea.io/gitea/models/user"
-	"code.gitea.io/gitea/modules/json"
-	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/migration"
-	"code.gitea.io/gitea/modules/secret"
-	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/modules/structs"
-	"code.gitea.io/gitea/modules/timeutil"
-	"code.gitea.io/gitea/modules/util"
+	"gitea.dev/models/db"
+	repo_model "gitea.dev/models/repo"
+	user_model "gitea.dev/models/user"
+	"gitea.dev/modules/json"
+	"gitea.dev/modules/log"
+	"gitea.dev/modules/migration"
+	"gitea.dev/modules/secret"
+	"gitea.dev/modules/setting"
+	"gitea.dev/modules/structs"
+	"gitea.dev/modules/timeutil"
+	"gitea.dev/modules/util"
 )
 
 // Task represents a task
@@ -137,6 +137,11 @@ func (task *Task) MigrateConfig() (*migration.MigrateOptions, error) {
 				log.Error("Unable to decrypt AuthToken, maybe SECRET_KEY is wrong: %v", err)
 			}
 		}
+		if opts.AWSSecretAccessKeyEncrypted != "" {
+			if opts.AWSSecretAccessKey, err = secret.DecryptSecret(setting.SecretKey, opts.AWSSecretAccessKeyEncrypted); err != nil {
+				log.Error("Unable to decrypt AWSSecretAccessKey, maybe SECRET_KEY is wrong: %v", err)
+			}
+		}
 
 		return &opts, nil
 	}
@@ -201,6 +206,8 @@ func FinishMigrateTask(ctx context.Context, task *Task) error {
 	conf.AuthPasswordEncrypted = ""
 	conf.AuthTokenEncrypted = ""
 	conf.CloneAddrEncrypted = ""
+	conf.AWSSecretAccessKey = ""
+	conf.AWSSecretAccessKeyEncrypted = ""
 	confBytes, err := json.Marshal(conf)
 	if err != nil {
 		return err

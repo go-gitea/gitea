@@ -6,9 +6,9 @@ package auth
 import (
 	"testing"
 
-	"code.gitea.io/gitea/modules/optional"
-	"code.gitea.io/gitea/services/auth/source/oauth2"
-	user_service "code.gitea.io/gitea/services/user"
+	"gitea.dev/modules/optional"
+	"gitea.dev/services/auth/source/oauth2"
+	user_service "gitea.dev/services/user"
 
 	"github.com/markbates/goth"
 	"github.com/stretchr/testify/assert"

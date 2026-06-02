@@ -15,24 +15,24 @@ import (
 	"strings"
 	"time"
 
-	"code.gitea.io/gitea/models/db"
-	db_install "code.gitea.io/gitea/models/db/install"
-	user_model "code.gitea.io/gitea/models/user"
-	"code.gitea.io/gitea/modules/auth/password/hash"
-	"code.gitea.io/gitea/modules/generate"
-	"code.gitea.io/gitea/modules/graceful"
-	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/optional"
-	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/modules/templates"
-	"code.gitea.io/gitea/modules/timeutil"
-	"code.gitea.io/gitea/modules/web"
-	"code.gitea.io/gitea/modules/web/middleware"
-	"code.gitea.io/gitea/routers/common"
-	auth_service "code.gitea.io/gitea/services/auth"
-	"code.gitea.io/gitea/services/context"
-	"code.gitea.io/gitea/services/forms"
-	"code.gitea.io/gitea/services/versioned_migration"
+	"gitea.dev/models/db"
+	db_install "gitea.dev/models/db/install"
+	user_model "gitea.dev/models/user"
+	"gitea.dev/modules/auth/password/hash"
+	"gitea.dev/modules/generate"
+	"gitea.dev/modules/graceful"
+	"gitea.dev/modules/log"
+	"gitea.dev/modules/optional"
+	"gitea.dev/modules/setting"
+	"gitea.dev/modules/templates"
+	"gitea.dev/modules/timeutil"
+	"gitea.dev/modules/web"
+	"gitea.dev/modules/web/middleware"
+	"gitea.dev/routers/common"
+	auth_service "gitea.dev/services/auth"
+	"gitea.dev/services/context"
+	"gitea.dev/services/forms"
+	"gitea.dev/services/versioned_migration"
 )
 
 const (
@@ -123,7 +123,7 @@ func Install(ctx *context.Context) {
 func checkDatabase(ctx *context.Context, form *forms.InstallForm) bool {
 	var err error
 
-	if (setting.Database.Type == "sqlite3") &&
+	if (setting.Database.Type == setting.DatabaseTypeSQLite3) &&
 		len(setting.Database.Path) == 0 {
 		ctx.Data["Err_DbPath"] = true
 		ctx.RenderWithErrDeprecated(ctx.Tr("install.err_empty_db_path"), tplInstall, form)
@@ -135,13 +135,8 @@ func checkDatabase(ctx *context.Context, form *forms.InstallForm) bool {
 	defer db.UnsetDefaultEngine()
 
 	if err = db.InitEngine(ctx); err != nil {
-		if strings.Contains(err.Error(), `Unknown database type: sqlite3`) {
-			ctx.Data["Err_DbType"] = true
-			ctx.RenderWithErrDeprecated(ctx.Tr("install.sqlite3_not_available", "https://docs.gitea.com/installation/install-from-binary"), tplInstall, form)
-		} else {
-			ctx.Data["Err_DbSetting"] = true
-			ctx.RenderWithErrDeprecated(ctx.Tr("install.invalid_db_setting", err), tplInstall, form)
-		}
+		ctx.Data["Err_DbSetting"] = true
+		ctx.RenderWithErrDeprecated(ctx.Tr("install.invalid_db_setting", err), tplInstall, form)
 		return false
 	}
 

@@ -9,14 +9,14 @@ import (
 	"fmt"
 	"time"
 
-	actions_model "code.gitea.io/gitea/models/actions"
-	"code.gitea.io/gitea/models/db"
-	actions_module "code.gitea.io/gitea/modules/actions"
-	"code.gitea.io/gitea/modules/container"
-	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/modules/storage"
-	"code.gitea.io/gitea/modules/timeutil"
+	actions_model "gitea.dev/models/actions"
+	"gitea.dev/models/db"
+	actions_module "gitea.dev/modules/actions"
+	"gitea.dev/modules/container"
+	"gitea.dev/modules/log"
+	"gitea.dev/modules/setting"
+	"gitea.dev/modules/storage"
+	"gitea.dev/modules/timeutil"
 
 	"xorm.io/builder"
 )
@@ -144,7 +144,7 @@ func CleanupEphemeralRunners(ctx context.Context) error {
 		From(builder.Select("*").From("`action_runner`"), "`action_runner`"). // mysql needs this redundant subquery
 		Join("INNER", "`action_task`", "`action_task`.`runner_id` = `action_runner`.`id`").
 		Where(builder.Eq{"`action_runner`.`ephemeral`": true}).
-		And(builder.NotIn("`action_task`.`status`", actions_model.StatusWaiting, actions_model.StatusRunning, actions_model.StatusBlocked))
+		And(builder.NotIn("`action_task`.`status`", actions_model.StatusWaiting, actions_model.StatusRunning, actions_model.StatusBlocked, actions_model.StatusCancelling))
 	b := builder.Delete(builder.In("id", subQuery)).From("`action_runner`")
 	res, err := db.GetEngine(ctx).Exec(b)
 	if err != nil {
@@ -249,6 +249,8 @@ func DeleteRun(ctx context.Context, run *actions_model.ActionRun) error {
 	}); err != nil {
 		return err
 	}
+
+	actions_model.UpdateRepoRunsNumbers(ctx, repoID)
 
 	// Delete files on storage
 	for _, tas := range tasks {

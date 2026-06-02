@@ -86,8 +86,8 @@
 	</div>
 	{{end}}
 	<div class="ui bottom attached segment">
-		<form class="ui form form-fetch-action" action="{{.Link}}/collaborative_owner/add" method="post">
-			<div id="search-user-box" class="ui search input tw-align-middle" data-include-orgs="true">
+		<form class="ui form form-fetch-action flex-text-block" action="{{.Link}}/collaborative_owner/add" method="post">
+			<div id="search-user-box" class="ui search input" data-include-orgs="true">
 				<input class="prompt" name="collaborative_owner" placeholder="{{ctx.Locale.Tr "search.user_kind"}}" autocomplete="off" autofocus required>
 			</div>
 			<button class="ui primary button">{{ctx.Locale.Tr "actions.general.add_collaborative_owner"}}</button>

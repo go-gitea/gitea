@@ -16,13 +16,13 @@ import (
 	"strings"
 	"testing"
 
-	auth_model "code.gitea.io/gitea/models/auth"
-	repo_model "code.gitea.io/gitea/models/repo"
-	"code.gitea.io/gitea/models/unittest"
-	user_model "code.gitea.io/gitea/models/user"
-	"code.gitea.io/gitea/tests"
+	runnerv1 "gitea.dev/actions-proto-go/runner/v1"
+	auth_model "gitea.dev/models/auth"
+	repo_model "gitea.dev/models/repo"
+	"gitea.dev/models/unittest"
+	user_model "gitea.dev/models/user"
+	"gitea.dev/tests"
 
-	runnerv1 "code.gitea.io/actions-proto-go/runner/v1"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -149,7 +149,7 @@ func TestActionsArtifactDownload(t *testing.T) {
 	assert.Contains(t, listResp.Value[artifactIdx].FileContainerResourceURL, "/api/actions_pipeline/_apis/pipelines/workflows/791/artifacts")
 
 	idx := strings.Index(listResp.Value[artifactIdx].FileContainerResourceURL, "/api/actions_pipeline/_apis/pipelines/")
-	url := listResp.Value[artifactIdx].FileContainerResourceURL[idx+1:] + "?itemPath=artifact-download"
+	url := listResp.Value[artifactIdx].FileContainerResourceURL[idx:] + "?itemPath=artifact-download"
 	req = NewRequest(t, "GET", url).
 		AddTokenAuth("8061e833a55f6fc0157c98b883e91fcfeeb1a71a")
 	resp = MakeRequest(t, req, http.StatusOK)
@@ -245,7 +245,7 @@ func TestActionsArtifactDownloadMultiFiles(t *testing.T) {
 	assert.Contains(t, fileContainerResourceURL, "/api/actions_pipeline/_apis/pipelines/workflows/791/artifacts")
 
 	idx := strings.Index(fileContainerResourceURL, "/api/actions_pipeline/_apis/pipelines/")
-	url := fileContainerResourceURL[idx+1:] + "?itemPath=" + testArtifactName
+	url := fileContainerResourceURL[idx:] + "?itemPath=" + testArtifactName
 	req = NewRequest(t, "GET", url).
 		AddTokenAuth("8061e833a55f6fc0157c98b883e91fcfeeb1a71a")
 	resp = MakeRequest(t, req, http.StatusOK)
@@ -323,7 +323,7 @@ func TestActionsArtifactOverwrite(t *testing.T) {
 		listResp := DecodeJSON(t, resp, &listArtifactsResponse{})
 
 		idx := strings.Index(listResp.Value[0].FileContainerResourceURL, "/api/actions_pipeline/_apis/pipelines/")
-		url := listResp.Value[0].FileContainerResourceURL[idx+1:] + "?itemPath=artifact-download"
+		url := listResp.Value[0].FileContainerResourceURL[idx:] + "?itemPath=artifact-download"
 		req = NewRequest(t, "GET", url).
 			AddTokenAuth("8061e833a55f6fc0157c98b883e91fcfeeb1a71a")
 		resp = MakeRequest(t, req, http.StatusOK)
@@ -380,7 +380,7 @@ func TestActionsArtifactOverwrite(t *testing.T) {
 		assert.Equal(t, "artifact-download", uploadedItem.Name)
 
 		idx := strings.Index(uploadedItem.FileContainerResourceURL, "/api/actions_pipeline/_apis/pipelines/")
-		url := uploadedItem.FileContainerResourceURL[idx+1:] + "?itemPath=artifact-download"
+		url := uploadedItem.FileContainerResourceURL[idx:] + "?itemPath=artifact-download"
 		req = NewRequest(t, "GET", url).
 			AddTokenAuth("8061e833a55f6fc0157c98b883e91fcfeeb1a71a")
 		resp = MakeRequest(t, req, http.StatusOK)

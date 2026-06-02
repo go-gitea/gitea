@@ -7,10 +7,10 @@ import (
 	"context"
 	"strings"
 
-	repo_model "code.gitea.io/gitea/models/repo"
-	user_model "code.gitea.io/gitea/models/user"
-	"code.gitea.io/gitea/modules/git"
-	"code.gitea.io/gitea/modules/util"
+	repo_model "gitea.dev/models/repo"
+	user_model "gitea.dev/models/user"
+	"gitea.dev/modules/git"
+	"gitea.dev/modules/util"
 )
 
 type CompareRouterReq struct {
@@ -129,7 +129,7 @@ func GetHeadOwnerAndRepo(ctx context.Context, baseRepo *repo_model.Repository, c
 	if compareReq.HeadOwner == baseRepo.Owner.Name {
 		headOwner = baseRepo.Owner
 	} else {
-		headOwner, err = user_model.GetUserOrOrgByName(ctx, compareReq.HeadOwner)
+		headOwner, err = user_model.GetUserByName(ctx, compareReq.HeadOwner)
 		if err != nil {
 			return nil, nil, err
 		}

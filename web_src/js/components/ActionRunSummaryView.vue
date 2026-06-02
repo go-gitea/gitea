@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import ActionRunStatus from './ActionRunStatus.vue';
+import ActionStatusIcon from './ActionStatusIcon.vue';
 import WorkflowGraph from './WorkflowGraph.vue';
 import type {ActionRunViewStore} from "./ActionRunView.ts";
 import {computed, onBeforeUnmount, onMounted, toRefs} from "vue";
@@ -17,6 +17,10 @@ const locale = props.locale;
 const {currentRun: run} = toRefs(props.store.viewData);
 
 const isRerun = computed(() => run.value.runAttempt > 1);
+
+// The summary's dependency graph is the workflow's top-level shape: a reusable caller
+// renders as a single node, its expanded children belong to the caller's own detail page.
+const topLevelJobs = computed(() => (run.value.jobs || []).filter((j) => !j.parentJobID));
 
 const triggerUser = computed(() => {
   const currentAttempt = run.value.attempts.find((attempt) => attempt.current);
@@ -45,20 +49,21 @@ onBeforeUnmount(() => {
           <a v-if="triggerUser.link" class="muted" :href="triggerUser.link">{{ triggerUser.name }}</a>
           <span v-else class="muted">{{ triggerUser.name }}</span>
         </template>
-        <span>•</span> 
+        <span>•</span>
         <relative-time :datetime="run.triggeredAt || ''" prefix=""/>
       </div>
       <div class="flex-text-block">
-        <ActionRunStatus :locale-status="locale.status[run.status]" :status="run.status" :size="16"/>
+        <ActionStatusIcon :locale-status="locale.status[run.status]" :status="run.status" :size="16" icon-variant="circle-fill"/>
         <span>{{ locale.status[run.status] }}</span> • <span>{{ locale.totalDuration }} {{ run.duration || '–' }}</span>
       </div>
     </div>
     <WorkflowGraph
-      v-if="run.jobs.length > 0"
+      v-if="topLevelJobs.length > 0"
       :store="store"
-      :jobs="run.jobs"
+      :jobs="topLevelJobs"
       :run-link="run.link"
       :workflow-id="run.workflowID"
+      :locale="locale"
     />
   </div>
 </template>

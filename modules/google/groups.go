@@ -10,8 +10,8 @@ import (
 	"net/http"
 	"net/url"
 
-	"code.gitea.io/gitea/modules/json"
-	"code.gitea.io/gitea/modules/log"
+	"gitea.dev/modules/json"
+	"gitea.dev/modules/log"
 
 	"github.com/markbates/goth"
 )

@@ -12,13 +12,13 @@ import (
 	"strings"
 	"time"
 
-	"code.gitea.io/gitea/modules/httplib"
-	"code.gitea.io/gitea/modules/public"
-	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/modules/util"
-	"code.gitea.io/gitea/modules/web/middleware"
-	oauth2_source "code.gitea.io/gitea/services/auth/source/oauth2"
-	"code.gitea.io/gitea/services/webtheme"
+	"gitea.dev/modules/httplib"
+	"gitea.dev/modules/public"
+	"gitea.dev/modules/setting"
+	"gitea.dev/modules/util"
+	"gitea.dev/modules/web/middleware"
+	oauth2_source "gitea.dev/services/auth/source/oauth2"
+	"gitea.dev/services/webtheme"
 )
 
 type TemplateContext map[string]any

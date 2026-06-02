@@ -1,0 +1,51 @@
+name: giteabot
+
+on:
+  # pull_request_target gives this workflow access to GITEABOT_TOKEN on PRs from
+  # forks, which the bot needs to write labels, statuses and comments. Safe here
+  # because the job only runs a pinned action and never checks out PR HEAD.
+  pull_request_target: # zizmor: ignore[dangerous-triggers]
+    types:
+      - opened
+      - synchronize
+      - labeled
+      - unlabeled
+      - closed
+      - review_requested
+      - review_request_removed
+  pull_request_review:
+    types:
+      - submitted
+      - edited
+      - dismissed
+  schedule:
+    - cron: "15 3 * * *"
+  workflow_dispatch:
+    inputs:
+      checks:
+        description: Comma-separated list of non-backport checks to run
+        required: false
+        default: labels,merge_queue,lock,feedback,last_call,milestones,lgtm,translation_comment,pr_actions
+
+permissions:
+  contents: read
+  issues: write
+  pull-requests: write
+  statuses: write
+
+concurrency:
+  group: ${{ format('{0}-{1}', github.workflow, (github.event_name == 'pull_request_target' || github.event_name == 'pull_request_review') && format('pr-{0}', github.event.pull_request.number) || 'maintenance') }}
+  cancel-in-progress: false
+
+jobs:
+  giteabot:
+    if: github.repository == 'go-gitea/gitea'
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      # pull_request_review runs without repository secrets on fork PRs, so fall
+      # back to the workflow token for the non-backport checks handled here.
+      - uses: go-gitea/giteabot@f8a6f4c14d46920b4b5448852be3de72d00066f0 # v1.0.3
+        with:
+          github_token: ${{ secrets.GITEABOT_TOKEN || github.token }}
+          checks: ${{ github.event.inputs.checks || 'labels,merge_queue,lock,feedback,last_call,milestones,lgtm,translation_comment,pr_actions' }}

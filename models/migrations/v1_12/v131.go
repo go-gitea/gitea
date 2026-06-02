@@ -6,10 +6,10 @@ package v1_12
 import (
 	"fmt"
 
-	"xorm.io/xorm"
+	"gitea.dev/models/db"
 )
 
-func AddSystemWebhookColumn(x *xorm.Engine) error {
+func AddSystemWebhookColumn(x db.EngineMigration) error {
 	type Webhook struct {
 		IsSystemWebhook bool `xorm:"NOT NULL DEFAULT false"`
 	}

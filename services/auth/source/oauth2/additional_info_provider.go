@@ -7,7 +7,7 @@ import (
 	"context"
 	"slices"
 
-	google_module "code.gitea.io/gitea/modules/google"
+	google_module "gitea.dev/modules/google"
 
 	"github.com/markbates/goth"
 	go_oauth2 "golang.org/x/oauth2"

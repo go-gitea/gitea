@@ -9,15 +9,21 @@
   margin: 0;
 }
 
-/* items have dividers between them, the dividers align with items (use parent padding) */
-.flex-divided-list {
-  list-style: none;
+/* items have dividers between them, the dividers align with items */
+.flex-divided-list,
+.flex-divided-list > .item.flex-divided-list {
   display: flex;
   flex-direction: column;
+  align-items: stretch;
+  gap: 0;
 }
 
 .flex-divided-list > .item {
   padding: 10px 0;
+}
+
+.flex-divided-list > .divider {
+  margin: 0;
 }
 
 .flex-divided-list > .item + .item {
@@ -68,8 +74,6 @@
   display: inline-flex;
   flex-wrap: wrap;
   align-items: center;
-  /* labels are under effect of this gap here because they are display:contents. Ideally we should make wrapping
-     of labels work without display: contents and set this to a static value again. */
   gap: var(--gap-inline);
   max-width: 100%;
   color: var(--color-text);
@@ -99,21 +103,15 @@
 }
 
 /* special rules to make the list work with existing UI elements */
-.container-segmented > .flex-divided-list > .item {
-  padding-left: 1em;
+.flex-divided-list.items-px-default > .item {
+  padding-left: 1em; /* matches ".ui.segment" padding */
   padding-right: 1em;
 }
 
-.ui.segment.fitted > .flex-divided-list > .item {
-  padding: 1em;
-}
-
-.container-padded > .flex-divided-list > .item:first-child,
 .ui.segment:not(.fitted) > .flex-divided-list > .item:first-child {
   padding-top: 0;
 }
 
-.container-padded > .flex-divided-list > .item:last-child,
 .ui.segment:not(.fitted) > .flex-divided-list > .item:last-child {
   padding-bottom: 0;
 }
@@ -125,8 +123,4 @@
 
 .flex-divided-list + .divider {
   margin-top: 0;
-}
-
-.container-padded > .flex-divided-list + .divider {
-  margin-top: 10px;
 }

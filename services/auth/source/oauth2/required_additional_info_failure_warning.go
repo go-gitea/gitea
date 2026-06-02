@@ -4,9 +4,9 @@
 package oauth2
 
 import (
-	"code.gitea.io/gitea/modules/cache"
-	"code.gitea.io/gitea/modules/json"
-	"code.gitea.io/gitea/modules/timeutil"
+	"gitea.dev/modules/cache"
+	"gitea.dev/modules/json"
+	"gitea.dev/modules/timeutil"
 )
 
 const (

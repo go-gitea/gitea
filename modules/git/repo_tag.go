@@ -8,9 +8,9 @@ import (
 	"fmt"
 	"strings"
 
-	"code.gitea.io/gitea/modules/git/foreachref"
-	"code.gitea.io/gitea/modules/git/gitcmd"
-	"code.gitea.io/gitea/modules/util"
+	"gitea.dev/modules/git/foreachref"
+	"gitea.dev/modules/git/gitcmd"
+	"gitea.dev/modules/util"
 )
 
 // TagPrefix tags prefix path on the repository
@@ -176,15 +176,14 @@ func parseTagRef(ref map[string]string) (tag *Tag, err error) {
 	}
 
 	tag.Tagger = parseSignatureFromCommitLine(ref["creator"])
-	tag.Message = ref["contents"]
+	tag.MessageRaw = ref["contents"]
 
 	// strip any signature if present in contents field
-	_, tag.Message, _ = parsePayloadSignature(util.UnsafeStringToBytes(tag.Message), 0)
+	_, tag.MessageRaw, _ = parsePayloadSignature(util.UnsafeStringToBytes(tag.MessageRaw), 0)
 
 	// annotated tag with GPG signature
 	if tag.Type == "tag" && ref["contents:signature"] != "" {
-		payload := fmt.Sprintf("object %s\ntype commit\ntag %s\ntagger %s\n\n%s\n",
-			tag.Object, tag.Name, ref["creator"], strings.TrimSpace(tag.Message))
+		payload := fmt.Sprintf("object %s\ntype commit\ntag %s\ntagger %s\n\n%s", tag.Object, tag.Name, ref["creator"], tag.MessageRaw)
 		tag.Signature = &CommitSignature{
 			Signature: ref["contents:signature"],
 			Payload:   payload,

@@ -11,12 +11,13 @@ import (
 	"io"
 	"strings"
 
-	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/markup"
-	"code.gitea.io/gitea/modules/markup/common"
-	"code.gitea.io/gitea/modules/markup/markdown/math"
-	"code.gitea.io/gitea/modules/setting"
-	giteautil "code.gitea.io/gitea/modules/util"
+	"gitea.dev/modules/htmlutil"
+	"gitea.dev/modules/log"
+	"gitea.dev/modules/markup"
+	"gitea.dev/modules/markup/common"
+	"gitea.dev/modules/markup/markdown/math"
+	"gitea.dev/modules/setting"
+	giteautil "gitea.dev/modules/util"
 
 	chromahtml "github.com/alecthomas/chroma/v2/formatters/html"
 	"github.com/yuin/goldmark"
@@ -266,7 +267,9 @@ func Render(ctx *markup.RenderContext, input io.Reader, output io.Writer) error 
 func RenderString(ctx *markup.RenderContext, content string) (template.HTML, error) {
 	var buf strings.Builder
 	if err := Render(ctx, strings.NewReader(content), &buf); err != nil {
-		return "", err
+		log.Warn("Unable to RenderString: %v, content: %s", err, giteautil.TruncateRunes(content, 200))
+		err = nil
+		return htmlutil.EscapeString(content), err
 	}
 	return template.HTML(buf.String()), nil
 }
