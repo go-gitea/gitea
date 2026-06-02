@@ -10,8 +10,8 @@ import (
 	"path/filepath"
 	"strings"
 
-	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/tempdir"
+	"gitea.dev/modules/log"
+	"gitea.dev/modules/tempdir"
 )
 
 var (

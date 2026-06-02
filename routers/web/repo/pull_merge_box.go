@@ -6,10 +6,10 @@ package repo
 import (
 	"html/template"
 
-	"code.gitea.io/gitea/modules/htmlutil"
-	"code.gitea.io/gitea/modules/svg"
-	"code.gitea.io/gitea/modules/util"
-	"code.gitea.io/gitea/services/context"
+	"gitea.dev/modules/htmlutil"
+	"gitea.dev/modules/svg"
+	"gitea.dev/modules/util"
+	"gitea.dev/services/context"
 )
 
 type pullMergeBoxInfoItem struct {

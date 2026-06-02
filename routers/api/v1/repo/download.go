@@ -7,10 +7,10 @@ import (
 	"errors"
 	"net/http"
 
-	repo_model "code.gitea.io/gitea/models/repo"
-	"code.gitea.io/gitea/modules/util"
-	"code.gitea.io/gitea/services/context"
-	archiver_service "code.gitea.io/gitea/services/repository/archiver"
+	repo_model "gitea.dev/models/repo"
+	"gitea.dev/modules/util"
+	"gitea.dev/services/context"
+	archiver_service "gitea.dev/services/repository/archiver"
 )
 
 func serveRepoArchive(ctx *context.APIContext, reqFileName string, paths []string) {

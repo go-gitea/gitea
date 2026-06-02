@@ -6,7 +6,7 @@ package v1_16
 import (
 	"fmt"
 
-	"code.gitea.io/gitea/models/db"
+	"gitea.dev/models/db"
 )
 
 func AddBranchProtectionUnprotectedFilesColumn(x db.EngineMigration) error {
