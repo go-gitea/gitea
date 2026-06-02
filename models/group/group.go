@@ -497,7 +497,6 @@ func MoveGroup(ctx context.Context, group *Group, newParent int64, newSortOrder 
 	}
 
 	hasCycle, err := CheckCycle(ctx, group.ID, newParent)
-
 	if err != nil {
 		return err
 	}
