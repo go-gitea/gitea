@@ -78,13 +78,12 @@ func NewGroup(ctx *context.Context) {
 
 func NewGroupPost(ctx *context.Context) {
 	form := web.GetForm(ctx).(*forms.CreateGroupForm)
-	var owner *user_model.User
-	if ctx.Org.Organization != nil {
-		ctx.Data["Title"] = ctx.Org.Organization.FullName
-		owner = ctx.Org.Organization.AsUser()
-	} else {
-		owner = ctx.Doer
+	owner, err := user_model.GetUserByID(ctx, form.UID)
+	if err != nil {
+		ctx.ServerError("GetUserByID", err)
+		return
 	}
+
 	g := &group_model.Group{
 		OwnerID:       owner.ID,
 		Name:          form.GroupName,
