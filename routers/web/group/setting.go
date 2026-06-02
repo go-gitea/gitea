@@ -47,6 +47,10 @@ func Settings(ctx *context.Context) {
 		ctx.ServerError("LoadHeaderCount", err)
 		return
 	}
+	if err = ctx.RepoGroup.Group.LoadParentGroup(ctx); err != nil {
+		ctx.ServerError("LoadParentGroup", err)
+		return
+	}
 	opts := group_model.FindGroupsOptions{
 		ActorID: ctx.Doer.ID,
 		OwnerID: ctx.RepoGroup.Group.OwnerID,

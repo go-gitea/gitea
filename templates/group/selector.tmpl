@@ -15,8 +15,8 @@
 		<input type="hidden" id="gid" name="parent_group_id" value="{{if .Group}}{{.Group.ParentGroupID}}{{else}}0{{end}}" required>
 		{{svg "octicon-triangle-down" 14 "dropdown icon"}}
 		<div class="menu">
-			<div class="item truncated-item-container" data-value="0" title="{{ctx.Locale.Tr "group.parent.none"}}">
-				<span class="truncated-item-name">{{ctx.Locale.Tr "group.parent.none_selected"}}</span>
+			<div class="item truncated-item-container" data-value="{{if .Group}}{{.Group.ParentGroupID}}{{else}}0{{end}}" title="{{ctx.Locale.Tr "group.parent.none"}}">
+				<span class="truncated-item-name">{{if .Group.ParentGroup}}{{.Group.ParentGroup.Name}}{{else}}{{ctx.Locale.Tr "group.parent.none_selected"}}{{end}}</span>
 			</div>
 			{{range .Groups}}
 				{{block "group-selection-item" .}}
