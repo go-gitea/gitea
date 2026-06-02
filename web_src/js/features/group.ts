@@ -13,7 +13,7 @@ export function initCommonGroup() {
     toggleElem('#group-name-change-prompt', nameChanged);
   });
 
-  const form = document.querySelector<HTMLFormElement>('.new-group-form')!;
+  const form = document.querySelector<HTMLFormElement>('.new-group-form, .ui.form[method="post"]')!;
   initGroupSelector(form);
 }
 
