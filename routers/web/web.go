@@ -519,6 +519,7 @@ func registerWebRoutes(m *web.Router, webAuth *AuthMiddleware) {
 						Post(web.Bind(forms.UpdateGroupSettingForm{}), group.SettingsPost)
 					m.Post("/avatar", web.Bind(forms.AvatarForm{}), group.SettingsAvatar)
 					m.Post("/avatar/delete", group.SettingsDeleteAvatar)
+					m.Post("/delete", group.SettingsDelete)
 				}, ctxDataSet("PageIsGroupSettings", true))
 			}, context.GroupAssignmentWeb(context.GroupAssignmentOptions{
 				RequireMember:     true,
