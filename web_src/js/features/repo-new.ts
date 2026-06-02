@@ -64,7 +64,7 @@ export function initGroupSelector(form: HTMLFormElement) {
   }
   const $dropdown = fomanticQuery(elGroupDropdown);
   const onChangeRepoOwner = function () {
-    $dropdown.dropdown("setting", {
+    $dropdown.dropdown('setting', {
       keepSearchTerm: false,
       fireOnInit: true,
       saveRemoteData: false,
@@ -88,7 +88,7 @@ export function initGroupSelector(form: HTMLFormElement) {
           for (const g of response.data.subgroups) {
             forEachFn(g, 0);
           }
-          $dropdown.fomanticExt.onResponseKeepSelectedItem($dropdown, elGroupDropdown.querySelector<HTMLInputElement>("input#gid")?.value)
+          $dropdown.fomanticExt.onResponseKeepSelectedItem($dropdown, elGroupDropdown.querySelector<HTMLInputElement>('input#gid')?.value);
           return {results};
         },
         cache: false,
