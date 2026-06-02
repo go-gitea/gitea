@@ -133,8 +133,11 @@ func loadLatestCommitData(ctx *context.Context, latestCommit *git.Commit) bool {
 			ctx.ServerError("CalculateTrustStatus", err)
 			return false
 		}
+
+		avatarStackData := gituser.BuildAvatarStackData(ctx, latestCommit.AllParticipantIdentities(), nil)
+		avatarStackData.SearchByEmailLink = gituser.RepoCommitSearchByEmailLink(ctx.Repo.RepoLink, ctx.Repo.RefFullName)
+		ctx.Data["LatestCommitAvatarStackData"] = avatarStackData
 		ctx.Data["LatestCommitVerification"] = verification
-		ctx.Data["LatestCommitAvatarStackData"] = gituser.BuildAvatarStackData(ctx, latestCommit.AllParticipantIdentities(), nil)
 
 		statuses, err := git_model.GetLatestCommitStatus(ctx, ctx.Repo.Repository.ID, latestCommit.ID.String(), db.ListOptionsAll)
 		if err != nil {

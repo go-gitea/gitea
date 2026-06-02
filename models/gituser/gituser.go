@@ -26,6 +26,13 @@ type UserCommit struct {
 	AvatarStackData *AvatarStackData
 }
 
+func RepoCommitSearchByEmailLink(repoLink string, ref git.RefName) string {
+	if curRefWebLinkPath := ref.RefWebLinkPath(); curRefWebLinkPath != "" {
+		return repoLink + "/commits/" + curRefWebLinkPath + "/search?q=" + url.QueryEscape("author:") + "{email}"
+	}
+	return ""
+}
+
 // GetUserCommitsByGitCommits checks if authors' e-mails of commits are corresponding to users.
 func GetUserCommitsByGitCommits(ctx context.Context, gitCommits []*git.Commit, repoLink string, currentRef git.RefName) ([]*UserCommit, error) {
 	userCommits := make([]*UserCommit, 0, len(gitCommits))
@@ -43,17 +50,15 @@ func GetUserCommitsByGitCommits(ctx context.Context, gitCommits []*git.Commit, r
 		return nil, err
 	}
 
+	searchByEmailLink := RepoCommitSearchByEmailLink(repoLink, currentRef)
 	for _, c := range gitCommits {
 		uc := &UserCommit{
 			AuthorUser:      emailUserMap.GetByEmail(c.Author.Email), // FIXME: why GetUserCommitsByGitCommits uses "Author", but ParseCommitsWithSignature uses "Committer"?
 			GitCommit:       c,
 			AvatarStackData: BuildAvatarStackData(ctx, c.AllParticipantIdentities(), emailUserMap),
 		}
+		uc.AvatarStackData.SearchByEmailLink = searchByEmailLink
 		userCommits = append(userCommits, uc)
-		curRefWebLinkPath := currentRef.RefWebLinkPath()
-		if curRefWebLinkPath != "" {
-			uc.AvatarStackData.SearchByEmailLink = repoLink + "/commits/" + curRefWebLinkPath + "/search?q=" + url.QueryEscape("author:") + "{email}"
-		}
 	}
 	return userCommits, nil
 }
