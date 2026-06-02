@@ -1,0 +1,46 @@
+<h4 class="ui top attached error header">
+	{{ctx.Locale.Tr "repo.settings.danger_zone"}}
+</h4>
+<div class="ui attached error danger segment">
+	<div class="item">
+		<div class="item-main">
+			<div class="item-title">{{ctx.Locale.Tr "group.settings.delete_group"}}</div>
+			<div class="item-body">{{ctx.Locale.Tr "group.settings.delete_prompt"}}</div>
+		</div>
+		<div class="item-trailing">
+			<button class="ui basic red show-modal button"
+							data-modal="#delete-group-modal">{{ctx.Locale.Tr "group.settings.delete_group"}}</button>
+		</div>
+	</div>
+</div>
+<div class="ui small modal" id="delete-group-modal">
+	<div class="header">
+		{{ctx.Locale.Tr "group.settings.delete_group"}}
+	</div>
+	<div class="content">
+		<div class="ui warning message">
+			<ul>
+				<li>{{ctx.Locale.Tr "group.settings.delete_notices_1"}}</li>
+				<li>{{ctx.Locale.Tr "group.settings.delete_notices_2" .Group.Name}}</li>
+				<li>{{ctx.Locale.Tr "group.settings.delete_notices_3" .Group.Name}}</li>
+			</ul>
+		</div>
+		<form class="ui form form-fetch-action" action="{{.Link}}/delete" method="post">
+			<div class="field">
+				<label>
+					{{ctx.Locale.Tr "group.settings.name_confirm"}}
+					<span class="tw-text-red">{{.Group.Name}}</span>
+				</label>
+			</div>
+			<div class="required field">
+				<label>{{ctx.Locale.Tr "group.group_name_holder"}}</label>
+				<input name="group_name" required>
+			</div>
+
+			<div class="actions">
+				<button class="ui cancel button">{{ctx.Locale.Tr "settings.cancel"}}</button>
+				<button class="ui red button">{{ctx.Locale.Tr "group.settings.delete_group"}}</button>
+			</div>
+		</form>
+	</div>
+</div>
