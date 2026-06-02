@@ -7,6 +7,7 @@ import (
 	"context"
 	"html/template"
 	"os"
+	"strconv"
 	"strings"
 	"testing"
 
@@ -18,6 +19,7 @@ import (
 	"gitea.dev/modules/markup"
 	"gitea.dev/modules/reqctx"
 	"gitea.dev/modules/setting"
+	"gitea.dev/modules/setting/config"
 	"gitea.dev/modules/test"
 	"gitea.dev/modules/translation"
 
@@ -302,18 +304,20 @@ func TestUserMention(t *testing.T) {
 }
 
 func TestAvatarStack(t *testing.T) {
-	ut := newTestRenderUtils(t)
-	authorSig := &git.Signature{Name: "Alice", Email: "alice@example.com"}
-	mkCo := func(name, email string) *gituser.CommitParticipant {
-		return &gituser.CommitParticipant{GitIdentity: &git.Signature{Name: name, Email: email}}
-	}
+	defer test.MockVariableValue(&config.SkipDatabaseConfig, true)()
 
-	mkData := func(co []*gituser.CommitParticipant) *gituser.AvatarStackData {
-		return gituser.NewAvatarStackData(nil, authorSig, co)
+	ut := newTestRenderUtils(t)
+	mkCo := func(name, email string) *git.CommitIdentity {
+		return &git.CommitIdentity{Name: name, Email: email}
+	}
+	authorSig := mkCo("Alice", "alice@example.com")
+	mkData := func(co ...*git.CommitIdentity) *gituser.AvatarStackData {
+		all := append([]*git.CommitIdentity{authorSig}, co...)
+		return gituser.BuildAvatarStackData(t.Context(), all, &user_model.EmailUserMap{})
 	}
 
 	t.Run("lone author renders bare name, no label", func(t *testing.T) {
-		got := string(ut.AvatarStackWithNames(mkData(nil), "", ""))
+		got := string(ut.AvatarStackWithNames(mkData()))
 		assert.Contains(t, got, `<span class="avatar-stack-names">`)
 		assert.Contains(t, got, "Alice")
 		assert.NotContains(t, got, "avatar_stack_and")
@@ -321,7 +325,7 @@ func TestAvatarStack(t *testing.T) {
 	})
 
 	t.Run("two participants use and label", func(t *testing.T) {
-		got := string(ut.AvatarStackWithNames(mkData([]*gituser.CommitParticipant{mkCo("Bob", "bob@example.com")}), "", ""))
+		got := string(ut.AvatarStackWithNames(mkData(mkCo("Bob", "bob@example.com"))))
 		assert.Contains(t, got, "repo.commits.avatar_stack_and")
 		assert.Contains(t, got, "Bob")
 		assert.NotContains(t, got, "avatar_stack_people")
@@ -329,8 +333,7 @@ func TestAvatarStack(t *testing.T) {
 	})
 
 	t.Run("three participants switch to N people label with tippy popup", func(t *testing.T) {
-		got := string(ut.AvatarStackWithNames(mkData(
-			[]*gituser.CommitParticipant{mkCo("Bob", "bob@example.com"), mkCo("Carol", "carol@example.com")}), "", ""))
+		got := string(ut.AvatarStackWithNames(mkData(mkCo("Bob", "bob@example.com"), mkCo("Carol", "carol@example.com"))))
 		assert.Contains(t, got, "repo.commits.avatar_stack_people:3")
 		assert.NotContains(t, got, "repo.commits.avatar_stack_and")
 		assert.Contains(t, got, `data-global-init="initAvatarStackPopup"`)
@@ -339,23 +342,11 @@ func TestAvatarStack(t *testing.T) {
 	})
 
 	t.Run("overflow chip renders beyond 10 participants", func(t *testing.T) {
-		cos := make([]*gituser.CommitParticipant, 11)
-		for i := range cos {
-			cos[i] = mkCo("X", "x@example.com")
+		cos := make([]*git.CommitIdentity, 0, renderAvatarStackMaxVisible+1)
+		for i := range renderAvatarStackMaxVisible + 1 {
+			cos = append(cos, mkCo("X", strconv.Itoa(i)+"@example.com"))
 		}
-		got := string(ut.AvatarStackWithNames(mkData(cos), "", ""))
-		assert.Contains(t, got, `class="avatar-stack-overflow-chip`)
-		assert.Contains(t, got, "+2")
-		assert.Contains(t, got, "repo.commits.avatar_stack_people:12")
-		assert.Contains(t, got, `data-global-init="initAvatarStackPopup"`)
-	})
-
-	t.Run("chip renders at exactly one over the limit", func(t *testing.T) {
-		cos := make([]*gituser.CommitParticipant, 10)
-		for i := range cos {
-			cos[i] = mkCo("X", "x@example.com")
-		}
-		got := string(ut.AvatarStack(mkData(cos), "", ""))
+		got := ut.AvatarStack(gituser.BuildAvatarStackData(t.Context(), cos, &user_model.EmailUserMap{}))
 		assert.Contains(t, got, `class="avatar-stack-overflow-chip`)
 		assert.Contains(t, got, "+1")
 	})

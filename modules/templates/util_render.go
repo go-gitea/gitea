@@ -370,14 +370,15 @@ func participantName(participant *user_model.CommitParticipant) string {
 	return participant.GitIdentity.Name
 }
 
+const renderAvatarStackMaxVisible = 10
+
 // AvatarStack renders overlapping avatars for the stack participants. It emits children in reverse
 // so CSS `flex-direction: row-reverse` places the primary (Participants[0]) leftmost and last-painted (on top).
 func (ut *RenderUtils) AvatarStack(data *user_model.AvatarStackData) template.HTML {
-	const maxVisible = 10
 	visible := data.Participants
-	overflow := len(visible) - maxVisible
+	overflow := len(visible) - renderAvatarStackMaxVisible
 	if overflow > 0 {
-		visible = visible[:maxVisible]
+		visible = visible[:renderAvatarStackMaxVisible]
 	}
 
 	var b htmlutil.HTMLBuilder
