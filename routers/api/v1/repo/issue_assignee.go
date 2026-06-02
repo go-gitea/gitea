@@ -9,6 +9,7 @@ import (
 
 	issues_model "gitea.dev/models/issues"
 	access_model "gitea.dev/models/perm/access"
+	repo_model "gitea.dev/models/repo"
 	user_model "gitea.dev/models/user"
 	api "gitea.dev/modules/structs"
 	"gitea.dev/modules/util"
@@ -52,6 +53,8 @@ func AddIssueAssignees(ctx *context.APIContext) {
 	// responses:
 	//   "201":
 	//     "$ref": "#/responses/Issue"
+	//   "400":
+	//     "$ref": "#/responses/error"
 	//   "403":
 	//     "$ref": "#/responses/forbidden"
 	//   "404":
@@ -140,6 +143,8 @@ func CheckIssueAssignee(ctx *context.APIContext) {
 	// responses:
 	//   "204":
 	//     "$ref": "#/responses/empty"
+	//   "400":
+	//     "$ref": "#/responses/error"
 	//   "404":
 	//     "$ref": "#/responses/notFound"
 
@@ -158,32 +163,41 @@ func CheckIssueAssignee(ctx *context.APIContext) {
 		return
 	}
 
-	assignee, err := user_model.GetUserByName(ctx, ctx.PathParam("assignee"))
+	if checkAssignableUser(ctx, ctx.PathParam("assignee"), ctx.Repo.Repository) {
+		ctx.Status(http.StatusNoContent)
+	}
+}
+
+// checkAssignableUser resolves assigneeName and verifies the user can be assigned to issues in repo.
+// Returns true only when the user resolves AND is assignable; the caller is responsible for writing the 204.
+// On any failure it writes the appropriate API response and returns false.
+func checkAssignableUser(ctx *context.APIContext, assigneeName string, repo *repo_model.Repository) bool {
+	assignee, err := user_model.GetUserByName(ctx, assigneeName)
 	switch {
 	case errors.Is(err, util.ErrNotExist):
 		ctx.APIErrorNotFound()
-		return
+		return false
 	case err != nil:
 		ctx.APIErrorInternal(err)
-		return
+		return false
 	}
 
-	canAssign, err := access_model.CanBeAssigned(ctx, assignee, ctx.Repo.Repository)
+	canAssign, err := access_model.CanBeAssigned(ctx, assignee, repo)
 	switch {
 	case errors.Is(err, util.ErrInvalidArgument):
 		ctx.APIError(http.StatusBadRequest, err)
-		return
+		return false
 	case err != nil:
 		ctx.APIErrorInternal(err)
-		return
+		return false
 	}
 
 	if !canAssign {
 		ctx.APIErrorNotFound()
-		return
+		return false
 	}
 
-	ctx.Status(http.StatusNoContent)
+	return true
 }
 
 func updateIssueAssignees(ctx *context.APIContext, opts api.IssueAssigneesOption, isAdd bool) {
