@@ -35,7 +35,7 @@ func ParseCommitsWithSignature(ctx context.Context, repo *repo_model.Repository,
 	}
 
 	for _, c := range oldCommits {
-		committerUser := emailUsers.GetByEmail(c.GitCommit.Committer.Email) // FIXME: why ValidateCommitsWithEmails uses "Author", but ParseCommitsWithSignature uses "Committer"?
+		committerUser := emailUsers.GetByEmail(c.GitCommit.Committer.Email) // FIXME: why GetUserCommitsByGitCommits uses "Author", but ParseCommitsWithSignature uses "Committer"?
 		signCommit := &asymkey_model.SignCommit{
 			UserCommit:   c,
 			Verification: asymkey_service.ParseCommitWithSignatureCommitter(ctx, c.GitCommit, committerUser),
@@ -54,7 +54,7 @@ func ParseCommitsWithSignature(ctx context.Context, repo *repo_model.Repository,
 
 // ConvertFromGitCommit converts git commits into SignCommitWithStatuses
 func ConvertFromGitCommit(ctx context.Context, commits []*git.Commit, repo *repo_model.Repository) ([]*git_model.SignCommitWithStatuses, error) {
-	validatedCommits, err := gituser.ValidateCommitsWithEmails(ctx, commits)
+	validatedCommits, err := gituser.GetUserCommitsByGitCommits(ctx, commits)
 	if err != nil {
 		return nil, err
 	}

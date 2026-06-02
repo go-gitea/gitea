@@ -135,15 +135,7 @@ func loadLatestCommitData(ctx *context.Context, latestCommit *git.Commit) bool {
 			return false
 		}
 		ctx.Data["LatestCommitVerification"] = verification
-		latestCommitUser := user_model.ValidateCommitWithEmail(ctx, latestCommit)
-
-		var latestCommitCoAuthors []*gituser.CommitParticipant
-		if coAuthors, err := gituser.GetAllCommitParticipants(ctx, latestCommit); err != nil {
-			log.Error("CoAuthorsFromCommit: %v", err)
-		} else {
-			latestCommitCoAuthors = coAuthors
-		}
-		ctx.Data["LatestCommitAvatarStackData"] = gituser.NewAvatarStackData(latestCommitUser, latestCommit.Author, latestCommitCoAuthors)
+		ctx.Data["LatestCommitAvatarStackData"] = gituser.BuildAvatarStackData(ctx, latestCommit.AllParticipantIdentities(), nil)
 
 		statuses, err := git_model.GetLatestCommitStatus(ctx, ctx.Repo.Repository.ID, latestCommit.ID.String(), db.ListOptionsAll)
 		if err != nil {

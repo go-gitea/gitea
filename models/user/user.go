@@ -1148,8 +1148,7 @@ func GetUsersBySource(ctx context.Context, s *auth.Source) ([]*User, error) {
 	return users, err
 }
 
-// ValidateCommitWithEmail check if author's e-mail of commit is corresponding to a user.
-func ValidateCommitWithEmail(ctx context.Context, c *git.Commit) *User {
+func GetUserByGitAuthor(ctx context.Context, c *git.Commit) *User {
 	if c.Author == nil {
 		return nil
 	}
@@ -1170,7 +1169,7 @@ func (eum *EmailUserMap) GetByEmail(email string) *User {
 
 func GetUsersByEmails(ctx context.Context, emails []string) (*EmailUserMap, error) {
 	if len(emails) == 0 {
-		return nil, nil //nolint:nilnil // return nil when there are no emails to look up
+		return &EmailUserMap{}, nil
 	}
 
 	needCheckEmails := make(container.Set[string])

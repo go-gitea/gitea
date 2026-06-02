@@ -14,7 +14,6 @@ import (
 
 	"gitea.dev/models/gituser"
 	repo_model "gitea.dev/models/repo"
-	user_model "gitea.dev/models/user"
 	"gitea.dev/modules/charset"
 	"gitea.dev/modules/git"
 	"gitea.dev/modules/git/languagestats"
@@ -35,17 +34,11 @@ type blameRow struct {
 	CommitURL      string
 	CommitMessage  string
 	CommitSince    template.HTML
-	AuthorUser     *user_model.User
-	CoAuthors      []*gituser.CommitParticipant
-	Author         *git.Signature
+
+	AvatarStackData *gituser.AvatarStackData
 
 	Code         template.HTML
 	EscapeStatus *charset.EscapeStatus
-}
-
-// AvatarStackData returns the view-model for rendering this row's author + co-authors.
-func (r *blameRow) AvatarStackData() *gituser.AvatarStackData {
-	return gituser.NewAvatarStackData(r.AuthorUser, r.Author, r.CoAuthors)
 }
 
 // RefBlame render blame page
@@ -217,9 +210,9 @@ func processBlameParts(ctx *context.Context, blameParts []*gitrepo.BlamePart) ma
 	}
 
 	// populate commit email addresses to later look up avatars.
-	validatedCommits, err := gituser.ValidateCommitsWithEmails(ctx, commits)
+	validatedCommits, err := gituser.GetUserCommitsByGitCommits(ctx, commits)
 	if err != nil {
-		ctx.ServerError("ValidateCommitsWithEmails", err)
+		ctx.ServerError("GetUserCommitsByGitCommits", err)
 		return nil
 	}
 	for _, c := range validatedCommits {
@@ -229,10 +222,8 @@ func processBlameParts(ctx *context.Context, blameParts []*gitrepo.BlamePart) ma
 	return commitNames
 }
 
-func fillFirstBlameRow(repoLink string, part *gitrepo.BlamePart, commit *gituser.UserCommit, br *blameRow) {
-	br.AuthorUser = commit.GiteaUser
-	br.CoAuthors = commit.AllParticipants
-	br.Author = commit.GitCommit.Author
+func fillFirstBlameRow(ctx *context.Context, repoLink string, part *gitrepo.BlamePart, commit *gituser.UserCommit, br *blameRow) {
+	br.AvatarStackData = gituser.BuildAvatarStackData(ctx, commit.GitCommit.AllParticipantIdentities(), nil)
 	br.PreviousSha = part.PreviousSha
 	br.PreviousShaURL = fmt.Sprintf("%s/blame/commit/%s/%s", repoLink, url.PathEscape(part.PreviousSha), util.PathEscapeSegments(part.PreviousPath))
 	br.CommitURL = fmt.Sprintf("%s/commit/%s", repoLink, url.PathEscape(part.Sha))
@@ -262,7 +253,7 @@ func renderBlame(ctx *context.Context, blameParts []*gitrepo.BlamePart, commitNa
 			}
 
 			if partLineIdx == 0 {
-				fillFirstBlameRow(ctx.Repo.RepoLink, part, commitNames[part.Sha], br)
+				fillFirstBlameRow(ctx, ctx.Repo.RepoLink, part, commitNames[part.Sha], br)
 			}
 		}
 	}

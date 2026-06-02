@@ -297,7 +297,7 @@ func TestCommitCoAuthorSignaturesFiltersAuthorAndCommitter(t *testing.T) {
 			"Co-authored-by: Bob Self <BOB@example.com>\n" +
 			"Co-authored-by: Carol <carol@example.com>"},
 	}
-	got := c.AllAuthorSignatures()
+	got := c.AllParticipantIdentities()
 	if assert.Len(t, got, 1) {
 		assert.Equal(t, "carol@example.com", got[0].Email)
 	}

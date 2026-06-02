@@ -8,26 +8,12 @@ import (
 	"context"
 	"errors"
 	"io"
-	"net/mail"
 	"os/exec"
 	"strings"
 
-	"gitea.dev/modules/charset"
-	"gitea.dev/modules/container"
 	"gitea.dev/modules/git/gitcmd"
 	"gitea.dev/modules/util"
 )
-
-// CoAuthoredByTrailer is the canonical token for the `Co-authored-by:` git trailer.
-const CoAuthoredByTrailer = "Co-authored-by"
-
-type CommitMessage struct {
-	MessageRaw   string
-	messageUTF8  *string
-	messageTitle *string
-	messageBody  *string
-	coAuthors    *[]*Signature
-}
 
 // Commit represents a git commit.
 type Commit struct {
@@ -48,123 +34,6 @@ type Commit struct {
 type CommitSignature struct {
 	Signature string
 	Payload   string
-}
-
-func (c *CommitMessage) MessageUTF8() string {
-	if c.messageUTF8 == nil {
-		bs := charset.ToUTF8(util.UnsafeStringToBytes(c.MessageRaw), charset.ConvertOpts{ErrorReplacement: []byte{'?'}})
-		c.messageUTF8 = new(util.UnsafeBytesToString(bs))
-	}
-	return *c.messageUTF8
-}
-
-func (c *CommitMessage) MessageTitle() string {
-	if c.messageTitle == nil {
-		s, _, _ := strings.Cut(strings.TrimSpace(c.MessageUTF8()), "\n")
-		c.messageTitle = new(strings.TrimSpace(s))
-	}
-	return *c.messageTitle
-}
-
-func (c *CommitMessage) MessageBody() string {
-	if c.messageBody == nil {
-		_, s, _ := strings.Cut(strings.TrimSpace(c.MessageUTF8()), "\n")
-		c.messageBody = new(strings.TrimSpace(s))
-	}
-	return *c.messageBody
-}
-
-// isTrailerLineShape reports whether the line matches `[A-Za-z0-9-]+:<non-empty>`
-// per `git interpret-trailers`.
-func isTrailerLineShape(line string) bool {
-	token, rest, ok := strings.Cut(line, ":")
-	if !ok || token == "" || strings.TrimSpace(rest) == "" {
-		return false
-	}
-	for _, r := range token {
-		if (r >= 'A' && r <= 'Z') || (r >= 'a' && r <= 'z') || (r >= '0' && r <= '9') || r == '-' {
-			continue
-		}
-		return false
-	}
-	return true
-}
-
-// parseCoAuthorTrailer extracts a co-author from a `Co-authored-by:` trailer
-// (case-insensitive). Returns false on a malformed address.
-func parseCoAuthorTrailer(line string) (*Signature, bool) {
-	token, rest, ok := strings.Cut(line, ":")
-	if !ok {
-		return nil, false
-	}
-	if !strings.EqualFold(token, CoAuthoredByTrailer) {
-		return nil, false
-	}
-	addr, err := mail.ParseAddress(strings.TrimSpace(rest))
-	if err != nil {
-		return nil, false
-	}
-	name := addr.Name
-	if name == "" {
-		name = addr.Address
-	}
-	return &Signature{Name: name, Email: addr.Address}, true
-}
-
-// parseCoAuthorSignatures parses `Co-authored-by:` trailers from the trailing
-// block of the commit message. Only the last paragraph is scanned (and it must
-// contain only trailer-shaped lines) so in-body occurrences inside a revert or
-// cherry-pick description are not misinterpreted as trailers.
-func (c *CommitMessage) parseCoAuthorSignatures() []*Signature {
-	if c.coAuthors != nil {
-		return *c.coAuthors
-	}
-	body := strings.TrimRight(util.NormalizeStringEOL(c.MessageBody()), "\n")
-	if idx := strings.LastIndex(body, "\n\n"); idx >= 0 {
-		body = body[idx+2:]
-	}
-	var sigs []*Signature
-	seen := container.Set[string]{}
-	for line := range strings.SplitSeq(body, "\n") {
-		if !isTrailerLineShape(line) {
-			sigs = nil
-			break
-		}
-		sig, ok := parseCoAuthorTrailer(line)
-		if !ok {
-			continue
-		}
-		if !seen.Add(strings.ToLower(sig.Email)) {
-			continue
-		}
-		sigs = append(sigs, sig)
-	}
-	c.coAuthors = &sigs
-	return sigs
-}
-
-// AllAuthorSignatures returns the parsed co-author trailers with the commit's own
-// author and committer emails filtered out (so self-copying isn't counted).
-func (c *Commit) AllAuthorSignatures() []*Signature {
-	raw := c.parseCoAuthorSignatures()
-	if len(raw) == 0 {
-		return raw
-	}
-	exclude := container.Set[string]{}
-	if c.Author != nil {
-		exclude.Add(strings.ToLower(strings.TrimSpace(c.Author.Email)))
-	}
-	if c.Committer != nil {
-		exclude.Add(strings.ToLower(strings.TrimSpace(c.Committer.Email)))
-	}
-	out := make([]*Signature, 0, len(raw))
-	for _, sig := range raw {
-		if exclude.Contains(strings.ToLower(sig.Email)) {
-			continue
-		}
-		out = append(out, sig)
-	}
-	return out
 }
 
 // ParentID returns oid of n-th parent (0-based index).

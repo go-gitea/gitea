@@ -24,14 +24,17 @@ import (
 
 // PushCommit represents a commit in a push operation.
 type PushCommit struct {
-	Sha1           string
-	Message        string
-	AuthorEmail    string
-	AuthorName     string
+	Sha1    string
+	Message string
+
+	AuthorEmail string
+	AuthorName  string
+	Timestamp   time.Time // author's time
+
 	CommitterEmail string
 	CommitterName  string
-	CoAuthors      []*git.Signature
-	Timestamp      time.Time
+
+	allParticipants []*git.CommitIdentity
 }
 
 // PushCommits represents list of commits in a push operation.
@@ -159,51 +162,15 @@ func CommitToPushCommit(commit *git.Commit) *PushCommit {
 		AuthorName:     commit.Author.Name,
 		CommitterEmail: commit.Committer.Email,
 		CommitterName:  commit.Committer.Name,
-		CoAuthors:      commit.AllAuthorSignatures(),
 		Timestamp:      commit.Author.When,
-	}
-}
 
-// AuthorSignature returns the push commit author as a git signature.
-func (pc *PushCommit) AuthorSignature() *git.Signature {
-	return &git.Signature{Email: pc.AuthorEmail, Name: pc.AuthorName}
-}
-
-// AuthorUser resolves the author email to a Gitea user via per-request cache, nil if no match.
-func (pc *PushCommit) AuthorUser(ctx context.Context) *user_model.User {
-	c := cache.GetContextCache(ctx)
-	key := "email:" + pc.AuthorEmail
-	if c != nil {
-		if v, has := c.Get(cachegroup.User, key); has {
-			u, _ := v.(*user_model.User)
-			return u
-		}
+		allParticipants: commit.AllParticipantIdentities(),
 	}
-	u, err := user_model.GetUserByEmail(ctx, pc.AuthorEmail)
-	if err != nil && !user_model.IsErrUserNotExist(err) {
-		log.Error("GetUserByEmail: %v", err)
-	}
-	if c != nil {
-		c.Put(cachegroup.User, key, u)
-	}
-	return u
-}
-
-// avatarStackCoAuthors returns the co-authors in avatar-stack shape, without resolved Gitea users.
-func (pc *PushCommit) avatarStackCoAuthors() []*gituser.CommitParticipant {
-	if len(pc.CoAuthors) == 0 {
-		return nil
-	}
-	coAuthors := make([]*gituser.CommitParticipant, len(pc.CoAuthors))
-	for i, sig := range pc.CoAuthors {
-		coAuthors[i] = &gituser.CommitParticipant{GitIdentity: sig}
-	}
-	return coAuthors
 }
 
 // AvatarStackData returns the view-model for rendering this push commit's author + co-authors.
 func (pc *PushCommit) AvatarStackData(ctx context.Context) *gituser.AvatarStackData {
-	return gituser.NewAvatarStackData(pc.AuthorUser(ctx), pc.AuthorSignature(), pc.avatarStackCoAuthors())
+	return gituser.BuildAvatarStackData(ctx, pc.allParticipants, nil)
 }
 
 // GitToPushCommits transforms a list of git.Commits to PushCommits type.

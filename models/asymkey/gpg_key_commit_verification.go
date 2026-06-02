@@ -34,7 +34,7 @@ type CommitVerification struct {
 // SignCommit represents a commit with validation of signature.
 type SignCommit struct {
 	Verification *CommitVerification
-	*gituser.UserCommit
+	*gituser.UserCommit // TODO: need to use a explicit field name, avoid anonymous field
 }
 
 const (

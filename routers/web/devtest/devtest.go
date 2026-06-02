@@ -75,8 +75,8 @@ func prepareMockDataBadgeCommitSign(ctx *context.Context) {
 			TrustStatus: "trusted",
 		},
 		UserCommit: &gituser.UserCommit{
-			GiteaUser: mockUser,
-			GitCommit: &git.Commit{ID: git.Sha1ObjectFormat.EmptyObjectID()},
+			AuthorUser: mockUser,
+			GitCommit:  &git.Commit{ID: git.Sha1ObjectFormat.EmptyObjectID()},
 		},
 	})
 	commits = append(commits, &asymkey.SignCommit{
@@ -88,8 +88,8 @@ func prepareMockDataBadgeCommitSign(ctx *context.Context) {
 			TrustStatus:   "untrusted",
 		},
 		UserCommit: &gituser.UserCommit{
-			GiteaUser: mockUser,
-			GitCommit: &git.Commit{ID: git.Sha1ObjectFormat.EmptyObjectID()},
+			AuthorUser: mockUser,
+			GitCommit:  &git.Commit{ID: git.Sha1ObjectFormat.EmptyObjectID()},
 		},
 	})
 	commits = append(commits, &asymkey.SignCommit{
@@ -101,8 +101,8 @@ func prepareMockDataBadgeCommitSign(ctx *context.Context) {
 			TrustStatus:   "other(unmatch)",
 		},
 		UserCommit: &gituser.UserCommit{
-			GiteaUser: mockUser,
-			GitCommit: &git.Commit{ID: git.Sha1ObjectFormat.EmptyObjectID()},
+			AuthorUser: mockUser,
+			GitCommit:  &git.Commit{ID: git.Sha1ObjectFormat.EmptyObjectID()},
 		},
 	})
 	commits = append(commits, &asymkey.SignCommit{
@@ -112,8 +112,8 @@ func prepareMockDataBadgeCommitSign(ctx *context.Context) {
 			SigningEmail: "test@example.com",
 		},
 		UserCommit: &gituser.UserCommit{
-			GiteaUser: mockUser,
-			GitCommit: &git.Commit{ID: git.Sha1ObjectFormat.EmptyObjectID()},
+			AuthorUser: mockUser,
+			GitCommit:  &git.Commit{ID: git.Sha1ObjectFormat.EmptyObjectID()},
 		},
 	})
 
@@ -161,54 +161,56 @@ func prepareMockDataBadgeActionsSvg(ctx *context.Context) {
 }
 
 func prepareMockDataAvatarStack(ctx *context.Context) {
-	mockUsers, _ := db.Find[user_model.User](ctx, user_model.SearchUserOptions{ListOptions: db.ListOptions{PageSize: 3}})
-	if len(mockUsers) == 0 {
-		return
-	}
-	u0 := mockUsers[0]
-	u1, u2 := u0, u0
-	if len(mockUsers) >= 2 {
-		u1 = mockUsers[1]
-	}
-	if len(mockUsers) >= 3 {
-		u2 = mockUsers[2]
-	}
-
-	authorSig := func(u *user_model.User) *git.Signature {
-		return &git.Signature{Name: u.Name, Email: u.Email}
-	}
-	coLinked := func(u *user_model.User) *gituser.CommitParticipant {
-		return &gituser.CommitParticipant{GiteaUser: u, GitIdentity: authorSig(u)}
-	}
-	coUnlinked := func(name, email string) *gituser.CommitParticipant {
-		return &gituser.CommitParticipant{GitIdentity: &git.Signature{Name: name, Email: email}}
-	}
-	nUnlinked := func(n int) []*gituser.CommitParticipant {
-		out := make([]*gituser.CommitParticipant, n)
-		for i := range out {
-			out[i] = coUnlinked(fmt.Sprintf("Contributor %d", i+1), fmt.Sprintf("contrib%d@example.com", i+1))
+	/*
+		mockUsers, _ := db.Find[user_model.User](ctx, user_model.SearchUserOptions{ListOptions: db.ListOptions{PageSize: 3}})
+		if len(mockUsers) == 0 {
+			return
 		}
-		return out
-	}
+		u0 := mockUsers[0]
+		u1, u2 := u0, u0
+		if len(mockUsers) >= 2 {
+			u1 = mockUsers[1]
+		}
+		if len(mockUsers) >= 3 {
+			u2 = mockUsers[2]
+		}
 
-	type scenario struct {
-		Label string
-		Data  *gituser.AvatarStackData
-	}
-	mk := gituser.NewAvatarStackData
-	extSig := &git.Signature{Name: "External Contributor", Email: "external@example.com"}
-	ctx.Data["AvatarStackScenarios"] = []scenario{
-		{Label: "linked author, no co-authors", Data: mk(u0, authorSig(u0), nil)},
-		{Label: "unlinked author, no co-authors", Data: mk(nil, extSig, nil)},
-		{Label: "1 linked co-author", Data: mk(u0, authorSig(u0), []*gituser.CommitParticipant{coLinked(u1)})},
-		{Label: "1 unlinked co-author", Data: mk(u0, authorSig(u0), []*gituser.CommitParticipant{coUnlinked("Bob Smith", "bob@example.com")})},
-		{Label: "2 co-authors (3 people), u1 author", Data: mk(u1, authorSig(u1), []*gituser.CommitParticipant{coLinked(u0), coUnlinked("Bob Smith", "bob@example.com")})},
-		{Label: "3 co-authors mixed (4 people)", Data: mk(u0, authorSig(u0), []*gituser.CommitParticipant{coLinked(u1), coLinked(u2), coUnlinked("Bob Smith", "bob@example.com")})},
-		{Label: "9 co-authors (max visible, no overflow), u2 author", Data: mk(u2, authorSig(u2), nUnlinked(9))},
-		{Label: "10 co-authors (overflow +1)", Data: mk(u0, authorSig(u0), nUnlinked(10))},
-		{Label: "15 co-authors (overflow +6), unlinked author", Data: mk(nil, extSig, nUnlinked(15))},
-		{Label: "30 co-authors (overflow +21)", Data: mk(u0, authorSig(u0), nUnlinked(30))},
-	}
+		authorSig := func(u *user_model.User) *git.Signature {
+			return &git.Signature{Name: u.Name, Email: u.Email}
+		}
+		coLinked := func(u *user_model.User) *gituser.CommitParticipant {
+			return &gituser.CommitParticipant{GiteaUser: u, GitIdentity: authorSig(u)}
+		}
+		coUnlinked := func(name, email string) *gituser.CommitParticipant {
+			return &gituser.CommitParticipant{GitIdentity: &git.Signature{Name: name, Email: email}}
+		}
+		nUnlinked := func(n int) []*gituser.CommitParticipant {
+			out := make([]*gituser.CommitParticipant, n)
+			for i := range out {
+				out[i] = coUnlinked(fmt.Sprintf("Contributor %d", i+1), fmt.Sprintf("contrib%d@example.com", i+1))
+			}
+			return out
+		}
+
+		type scenario struct {
+			Label string
+			Data  *gituser.AvatarStackData
+		}
+		mk := gituser.BuildAvatarStackData()
+		extSig := &git.Signature{Name: "External Contributor", Email: "external@example.com"}
+		ctx.Data["AvatarStackScenarios"] = []scenario{
+			{Label: "linked author, no co-authors", Data: mk(u0, authorSig(u0), nil)},
+			{Label: "unlinked author, no co-authors", Data: mk(nil, extSig, nil)},
+			{Label: "1 linked co-author", Data: mk(u0, authorSig(u0), []*gituser.CommitParticipant{coLinked(u1)})},
+			{Label: "1 unlinked co-author", Data: mk(u0, authorSig(u0), []*gituser.CommitParticipant{coUnlinked("Bob Smith", "bob@example.com")})},
+			{Label: "2 co-authors (3 people), u1 author", Data: mk(u1, authorSig(u1), []*gituser.CommitParticipant{coLinked(u0), coUnlinked("Bob Smith", "bob@example.com")})},
+			{Label: "3 co-authors mixed (4 people)", Data: mk(u0, authorSig(u0), []*gituser.CommitParticipant{coLinked(u1), coLinked(u2), coUnlinked("Bob Smith", "bob@example.com")})},
+			{Label: "9 co-authors (max visible, no overflow), u2 author", Data: mk(u2, authorSig(u2), nUnlinked(9))},
+			{Label: "10 co-authors (overflow +1)", Data: mk(u0, authorSig(u0), nUnlinked(10))},
+			{Label: "15 co-authors (overflow +6), unlinked author", Data: mk(nil, extSig, nUnlinked(15))},
+			{Label: "30 co-authors (overflow +21)", Data: mk(u0, authorSig(u0), nUnlinked(30))},
+		}
+	*/
 }
 
 func prepareMockDataRelativeTime(ctx *context.Context) {

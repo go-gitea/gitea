@@ -153,9 +153,9 @@ func TestCommitToPushCommit(t *testing.T) {
 	assert.Equal(t, "John Doe", pushCommit.AuthorName)
 	assert.Equal(t, "example@example.com", pushCommit.CommitterEmail)
 	assert.Equal(t, "John Doe", pushCommit.CommitterName)
-	if assert.Len(t, pushCommit.CoAuthors, 1) {
-		assert.Equal(t, "jane@example.com", pushCommit.CoAuthors[0].Email)
-		assert.Equal(t, "Jane Doe", pushCommit.CoAuthors[0].Name)
+	if assert.Len(t, pushCommit.allParticipants, 1) {
+		assert.Equal(t, "jane@example.com", pushCommit.allParticipants[0].Email)
+		assert.Equal(t, "Jane Doe", pushCommit.allParticipants[0].Name)
 	}
 	assert.Equal(t, &git.Signature{Email: "example@example.com", Name: "John Doe"}, pushCommit.AuthorSignature())
 	if assert.Len(t, pushCommit.avatarStackCoAuthors(), 1) {

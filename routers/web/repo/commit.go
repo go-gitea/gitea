@@ -382,11 +382,8 @@ func Diff(ctx *context.Context) {
 
 	verification := asymkey_service.ParseCommitWithSignature(ctx, commit)
 	ctx.Data["Verification"] = verification
-	ctx.Data["Author"] = user_model.ValidateCommitWithEmail(ctx, commit)
-	ctx.Data["AllCommitParticipants"], err = gituser.GetAllCommitParticipants(ctx, commit)
-	if err != nil {
-		log.Error("CoAuthorsFromCommit: %v", err)
-	}
+	ctx.Data["Author"] = user_model.GetUserByGitAuthor(ctx, commit)
+	ctx.Data["AllCommitParticipants"] = gituser.BuildAvatarStackData(ctx, commit.AllParticipantIdentities(), nil).Participants
 	ctx.Data["Parents"] = parents
 	ctx.Data["DiffNotAvailable"] = diffShortStat.NumFiles == 0
 
@@ -401,7 +398,7 @@ func Diff(ctx *context.Context) {
 	err = git.GetNote(ctx, ctx.Repo.GitRepo, commitID, note)
 	if err == nil {
 		ctx.Data["NoteCommit"] = note.Commit
-		ctx.Data["NoteAuthor"] = user_model.ValidateCommitWithEmail(ctx, note.Commit)
+		ctx.Data["NoteAuthor"] = user_model.GetUserByGitAuthor(ctx, note.Commit)
 		rctx := renderhelper.NewRenderContextRepoComment(ctx, ctx.Repo.Repository, renderhelper.RepoCommentOptions{CurrentRefSubURL: "commit/" + util.PathEscapeSegments(commitID)})
 		htmlMessage := template.HTML(template.HTMLEscapeString(string(charset.ToUTF8WithFallback(note.Message, charset.ConvertOpts{}))))
 		ctx.Data["NoteRendered"], err = markup.PostProcessCommitMessage(rctx, htmlMessage)

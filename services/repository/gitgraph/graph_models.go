@@ -109,27 +109,23 @@ func (graph *Graph) LoadAndProcessCommits(ctx context.Context, repository *repo_
 		if c.Commit.Author != nil {
 			emailSet.Add(c.Commit.Author.Email)
 		}
-		for _, sig := range c.Commit.AllAuthorSignatures() {
+		for _, sig := range c.Commit.AllParticipantIdentities() {
 			emailSet.Add(sig.Email)
 		}
 	}
 
-	var emailUserMap *user_model.EmailUserMap
-	if len(emailSet) > 0 {
-		emailUserMap, err = user_model.GetUsersByEmails(ctx, emailSet.Values())
-		if err != nil {
-			log.Error("GetUsersByEmails: %v", err)
-		}
+	emailUserMap, err := user_model.GetUsersByEmails(ctx, emailSet.Values())
+	if err != nil {
+		log.Error("GetUsersByEmails: %v", err)
 	}
 
 	for _, c := range graph.Commits {
 		if c.Commit == nil {
 			continue
 		}
-		if c.Commit.Author != nil && emailUserMap != nil {
-			c.User = emailUserMap.GetByEmail(c.Commit.Author.Email)
-		}
-		c.CoAuthors = gituser.CommitParticipantsFromSigs(c.Commit.AllAuthorSignatures(), emailUserMap)
+
+		c.User = emailUserMap.GetByEmail(c.Commit.Author.Email)
+		c.AvatarStackData = gituser.BuildAvatarStackData(ctx, c.Commit.AllParticipantIdentities(), emailUserMap)
 
 		c.Verification = asymkey_service.ParseCommitWithSignature(ctx, c.Commit)
 
@@ -262,34 +258,22 @@ func newRefsFromRefNames(refNames []byte) []git.Reference {
 
 // Commit represents a commit at coordinate X, Y with the data
 type Commit struct {
-	Commit       *git.Commit
-	User         *user_model.User
-	CoAuthors    []*gituser.CommitParticipant
-	Verification *asymkey_model.CommitVerification
-	Status       *git_model.CommitStatus
-	Flow         int64
-	Row          int
-	Column       int
-	Refs         []git.Reference
-	Rev          string
-	Date         time.Time
-	ShortRev     string
-	Subject      string
+	Commit          *git.Commit
+	User            *user_model.User // author
+	AvatarStackData *gituser.AvatarStackData
+	Verification    *asymkey_model.CommitVerification
+	Status          *git_model.CommitStatus
+	Flow            int64
+	Row             int
+	Column          int
+	Refs            []git.Reference
+	Rev             string
+	Date            time.Time // author date from "%ad"
+	ShortRev        string
+	Subject         string
 }
 
 // OnlyRelation returns whether this a relation only commit
 func (c *Commit) OnlyRelation() bool {
 	return c.Row == -1
-}
-
-// AvatarStackData returns the view-model for rendering this commit's author + co-authors.
-func (c *Commit) AvatarStackData() *gituser.AvatarStackData {
-	if c == nil {
-		return nil
-	}
-	var sig *git.Signature
-	if c.Commit != nil {
-		sig = c.Commit.Author
-	}
-	return gituser.NewAvatarStackData(c.User, sig, c.CoAuthors)
 }
