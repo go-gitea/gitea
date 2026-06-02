@@ -2,14 +2,16 @@
 	{{ctx.Locale.Tr "repo.settings.danger_zone"}}
 </h4>
 <div class="ui attached error danger segment">
-	<div class="item">
-		<div class="item-main">
-			<div class="item-title">{{ctx.Locale.Tr "group.settings.delete_group"}}</div>
-			<div class="item-body">{{ctx.Locale.Tr "group.settings.delete_prompt"}}</div>
-		</div>
-		<div class="item-trailing">
-			<button class="ui basic red show-modal button"
-							data-modal="#delete-group-modal">{{ctx.Locale.Tr "group.settings.delete_group"}}</button>
+	<div class="flex-divided-list items-with-main">
+		<div class="item tw-items-center">
+			<div class="item-main">
+				<div class="item-title">{{ctx.Locale.Tr "group.settings.delete_group"}}</div>
+				<div class="item-body">{{ctx.Locale.Tr "group.settings.delete_prompt"}}</div>
+			</div>
+			<div class="item-trailing">
+				<button class="ui basic red show-modal button"
+								data-modal="#delete-group-modal">{{ctx.Locale.Tr "group.settings.delete_group"}}</button>
+			</div>
 		</div>
 	</div>
 </div>
