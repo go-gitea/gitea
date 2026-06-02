@@ -177,6 +177,19 @@ func SettingsDeleteAvatar(ctx *context.Context) {
 	ctx.JSONRedirect(ctx.RepoGroup.OrgGroupLink + "/settings")
 }
 
+// SettingsDelete response for deleting a group
+func SettingsDelete(ctx *context.Context) {
+	if ctx.RepoGroup.Group.Name != ctx.FormString("group_name") {
+		ctx.JSONError(ctx.Tr("form.enterred_invalid_group_name"))
+		return
+	}
+	if err := group_service.DeleteGroup(ctx, ctx.Doer, ctx.RepoGroup.Group.ID, true); err != nil {
+		ctx.Flash.Error(util.Iif(ctx.Doer.IsAdmin, err.Error(), string(ctx.Tr("group.settings.delete_failed"))))
+	}
+
+	ctx.JSONRedirect(ctx.ContextUser.HomeLink())
+}
+
 func updateAvatarSetting(ctx *context.Context, form *forms.AvatarForm, group *group_model.Group) error {
 	if form.Avatar != nil && form.Avatar.Filename != "" {
 		fr, err := form.Avatar.Open()
