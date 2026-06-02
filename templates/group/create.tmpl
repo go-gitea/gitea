@@ -2,7 +2,7 @@
 <div role="main" aria-label="{{.Title}}" class="page-content repo-group  new group">
 	<div class="ui middle very relaxed page grid">
 		<div class="column">
-			<form class="ui form left-right-form" action="{{.Link}}" method="post">
+			<form class="ui form left-right-form new-group-form" action="{{.Link}}" method="post">
 				{{.CsrfTokenHtml}}
 				<h3 class="ui top attached header">
 					{{ctx.Locale.Tr "new_group"}}
@@ -34,7 +34,16 @@
 							</div>
 						</div>
 					</div>
-					{{template "group/selector" .}}
+					<div class="inline field">
+						<label>{{ctx.Locale.Tr "group.parent"}}</label>
+						<div id="group_selector" class="ui search dropdown selection">
+							<span class="text truncated-item-container" title="{{ctx.Locale.Tr "group.parent.none_selected"}}"></span>
+							<input type="hidden" id="gid" name="parent_group_id" value="0" required>
+							{{svg "octicon-triangle-down" 14 "dropdown icon"}}
+							<div class="menu">
+							</div>
+						</div>
+					</div>
 
 					<div class="inline field {{if .Err_Description}}error{{end}}">
 						<label for="description">{{ctx.Locale.Tr "group.group_desc"}}</label>

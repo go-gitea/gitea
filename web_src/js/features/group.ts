@@ -2,6 +2,7 @@ import {createSortable} from '../modules/sortable.ts';
 import Sortable, {type SortableEvent, type SortableOptions} from 'sortablejs';
 import {POST} from '../modules/fetch.ts';
 import {toggleElem} from '../utils/dom.ts';
+import { initGroupSelector } from './repo-new.ts'
 export function initCommonGroup() {
   if (!document.querySelectorAll('.group').length) {
     return;
@@ -11,6 +12,9 @@ export function initCommonGroup() {
     const nameChanged = this.value.toLowerCase() !== this.getAttribute('data-group-name')?.toLowerCase();
     toggleElem('#group-name-change-prompt', nameChanged);
   });
+
+  const form = document.querySelector<HTMLFormElement>('.new-group-form')!;
+  initGroupSelector(form);
 }
 
 async function moveItem({item, from, to, oldIndex}: SortableEvent): Promise<void> {
