@@ -17,6 +17,7 @@ import (
 	"gitea.dev/modules/setting"
 	"gitea.dev/modules/templates"
 	"gitea.dev/modules/typesniffer"
+	"gitea.dev/modules/util"
 	"gitea.dev/modules/web"
 	shared_group "gitea.dev/routers/web/shared/group"
 	"gitea.dev/services/context"
@@ -113,6 +114,11 @@ func SettingsPost(ctx *context.Context) {
 			ctx.ServerError("MoveGroupItem", err)
 			return
 		}
+
+		if group, err = group_model.GetGroupByID(ctx, group.ID); err != nil {
+			ctx.ServerError("GetGroupByID", err)
+			return
+		}
 	}
 
 	opts := &group_service.UpdateOptions{
@@ -146,6 +152,7 @@ func SettingsPost(ctx *context.Context) {
 	}
 	log.Trace("Group setting updated: '%s'", group.Name)
 	ctx.Flash.Success(ctx.Tr("group.settings.update_setting_success"))
+	ctx.RepoGroup.OrgGroupLink = util.Iif(group.Owner.IsOrganization(), group.OrgGroupLink(), group.UserGroupLink())
 	ctx.Redirect(ctx.RepoGroup.OrgGroupLink + "/settings")
 }
 
