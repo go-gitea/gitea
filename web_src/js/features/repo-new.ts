@@ -72,7 +72,7 @@ export function initGroupSelector(form: HTMLFormElement) {
         url: `${appSubUrl}/group/search?uid=${inputRepoOwnerUid.value}&recurse=true`,
         onResponse(response: {data: any}) {
           const results = [];
-          results.push({name: '', value: '0'});
+          results.push({name: html`&lt;none&gt;`, value: '0'});
           const forEachFn = function ({group, subgroups}: {group: any, subgroups: any[]}, depth: number) {
             results.push({
               // eslint-disable-next-line github/unescaped-html-literal
