@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"gitea.dev/models/avatars"
+	"gitea.dev/models/gituser"
 	repo_model "gitea.dev/models/repo"
 	user_model "gitea.dev/models/user"
 	"gitea.dev/modules/cache"
@@ -189,20 +190,20 @@ func (pc *PushCommit) AuthorUser(ctx context.Context) *user_model.User {
 }
 
 // avatarStackCoAuthors returns the co-authors in avatar-stack shape, without resolved Gitea users.
-func (pc *PushCommit) avatarStackCoAuthors() []*user_model.CommitParticipant {
+func (pc *PushCommit) avatarStackCoAuthors() []*gituser.CommitParticipant {
 	if len(pc.CoAuthors) == 0 {
 		return nil
 	}
-	coAuthors := make([]*user_model.CommitParticipant, len(pc.CoAuthors))
+	coAuthors := make([]*gituser.CommitParticipant, len(pc.CoAuthors))
 	for i, sig := range pc.CoAuthors {
-		coAuthors[i] = &user_model.CommitParticipant{Sig: sig}
+		coAuthors[i] = &gituser.CommitParticipant{Sig: sig}
 	}
 	return coAuthors
 }
 
 // AvatarStackData returns the view-model for rendering this push commit's author + co-authors.
-func (pc *PushCommit) AvatarStackData(ctx context.Context) *user_model.AvatarStackData {
-	return user_model.NewAvatarStackData(pc.AuthorUser(ctx), pc.AuthorSignature(), pc.avatarStackCoAuthors())
+func (pc *PushCommit) AvatarStackData(ctx context.Context) *gituser.AvatarStackData {
+	return gituser.NewAvatarStackData(pc.AuthorUser(ctx), pc.AuthorSignature(), pc.avatarStackCoAuthors())
 }
 
 // GitToPushCommits transforms a list of git.Commits to PushCommits type.

@@ -13,6 +13,7 @@ import (
 	asymkey_model "gitea.dev/models/asymkey"
 	"gitea.dev/models/db"
 	git_model "gitea.dev/models/git"
+	"gitea.dev/models/gituser"
 	repo_model "gitea.dev/models/repo"
 	user_model "gitea.dev/models/user"
 	"gitea.dev/modules/container"
@@ -128,7 +129,7 @@ func (graph *Graph) LoadAndProcessCommits(ctx context.Context, repository *repo_
 		if c.Commit.Author != nil && emailUserMap != nil {
 			c.User = emailUserMap.GetByEmail(c.Commit.Author.Email)
 		}
-		c.CoAuthors = user_model.CommitParticipantsFromSigs(c.Commit.CoAuthorSignatures(), emailUserMap)
+		c.CoAuthors = gituser.CommitParticipantsFromSigs(c.Commit.CoAuthorSignatures(), emailUserMap)
 
 		c.Verification = asymkey_service.ParseCommitWithSignature(ctx, c.Commit)
 
@@ -263,7 +264,7 @@ func newRefsFromRefNames(refNames []byte) []git.Reference {
 type Commit struct {
 	Commit       *git.Commit
 	User         *user_model.User
-	CoAuthors    []*user_model.CommitParticipant
+	CoAuthors    []*gituser.CommitParticipant
 	Verification *asymkey_model.CommitVerification
 	Status       *git_model.CommitStatus
 	Flow         int64
@@ -282,7 +283,7 @@ func (c *Commit) OnlyRelation() bool {
 }
 
 // AvatarStackData returns the view-model for rendering this commit's author + co-authors.
-func (c *Commit) AvatarStackData() *user_model.AvatarStackData {
+func (c *Commit) AvatarStackData() *gituser.AvatarStackData {
 	if c == nil {
 		return nil
 	}
@@ -290,5 +291,5 @@ func (c *Commit) AvatarStackData() *user_model.AvatarStackData {
 	if c.Commit != nil {
 		sig = c.Commit.Author
 	}
-	return user_model.NewAvatarStackData(c.User, sig, c.CoAuthors)
+	return gituser.NewAvatarStackData(c.User, sig, c.CoAuthors)
 }

@@ -21,6 +21,7 @@ import (
 	asymkey_model "gitea.dev/models/asymkey"
 	"gitea.dev/models/db"
 	git_model "gitea.dev/models/git"
+	"gitea.dev/models/gituser"
 	repo_model "gitea.dev/models/repo"
 	unit_model "gitea.dev/models/unit"
 	user_model "gitea.dev/models/user"
@@ -40,11 +41,12 @@ import (
 	"gitea.dev/services/context"
 	repo_service "gitea.dev/services/repository"
 
+	_ "image/gif"  // for processing gif images
+	_ "image/jpeg" // for processing jpeg images
+	_ "image/png"  // for processing png images
+
 	_ "golang.org/x/image/bmp"  // for processing bmp images
 	_ "golang.org/x/image/webp" // for processing webp images
-	_ "image/gif"               // for processing gif images
-	_ "image/jpeg"              // for processing jpeg images
-	_ "image/png"               // for processing png images
 )
 
 const (
@@ -135,13 +137,13 @@ func loadLatestCommitData(ctx *context.Context, latestCommit *git.Commit) bool {
 		ctx.Data["LatestCommitVerification"] = verification
 		latestCommitUser := user_model.ValidateCommitWithEmail(ctx, latestCommit)
 
-		var latestCommitCoAuthors []*user_model.CommitParticipant
-		if coAuthors, err := user_model.CoAuthorsFromCommit(ctx, latestCommit); err != nil {
+		var latestCommitCoAuthors []*gituser.CommitParticipant
+		if coAuthors, err := gituser.CoAuthorsFromCommit(ctx, latestCommit); err != nil {
 			log.Error("CoAuthorsFromCommit: %v", err)
 		} else {
 			latestCommitCoAuthors = coAuthors
 		}
-		ctx.Data["LatestCommitAvatarStackData"] = user_model.NewAvatarStackData(latestCommitUser, latestCommit.Author, latestCommitCoAuthors)
+		ctx.Data["LatestCommitAvatarStackData"] = gituser.NewAvatarStackData(latestCommitUser, latestCommit.Author, latestCommitCoAuthors)
 
 		statuses, err := git_model.GetLatestCommitStatus(ctx, ctx.Repo.Repository.ID, latestCommit.ID.String(), db.ListOptionsAll)
 		if err != nil {

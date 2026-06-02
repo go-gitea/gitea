@@ -1,20 +1,14 @@
 // Copyright 2026 The Gitea Authors. All rights reserved.
 // SPDX-License-Identifier: MIT
 
-package user
+package gituser
 
 import (
 	"context"
 
+	"gitea.dev/models/user"
 	"gitea.dev/modules/git"
 )
-
-// CommitParticipant is one participant of a commit (its author or a co-author): a git
-// identity, optionally matched to a Gitea user.
-type CommitParticipant struct {
-	GiteaUser *User          // matched Gitea user, nil if unmatched
-	Sig       *git.Signature // git identity (name/email)
-}
 
 // AvatarStackData is the view-model for the AvatarStack render helpers. Participants[0] is
 // the primary participant (commit author), painted on top; the rest follow.
@@ -23,7 +17,7 @@ type AvatarStackData struct {
 }
 
 // NewAvatarStackData builds a stack with the author first, followed by its co-authors.
-func NewAvatarStackData(authorUser *User, authorSig *git.Signature, coAuthors []*CommitParticipant) *AvatarStackData {
+func NewAvatarStackData(authorUser *user.User, authorSig *git.Signature, coAuthors []*CommitParticipant) *AvatarStackData {
 	if authorUser == nil && authorSig == nil {
 		return nil
 	}
@@ -34,13 +28,13 @@ func NewAvatarStackData(authorUser *User, authorSig *git.Signature, coAuthors []
 }
 
 // CommitParticipantsFromSigs wraps each signature with the matching Gitea user if any.
-func CommitParticipantsFromSigs(sigs []*git.Signature, emailUserMap *EmailUserMap) []*CommitParticipant {
+func CommitParticipantsFromSigs(sigs []*git.Signature, emailUserMap *user.EmailUserMap) []*CommitParticipant {
 	if len(sigs) == 0 {
 		return nil
 	}
 	out := make([]*CommitParticipant, len(sigs))
 	for i, sig := range sigs {
-		var giteaUser *User
+		var giteaUser *user.User
 		if emailUserMap != nil {
 			giteaUser = emailUserMap.GetByEmail(sig.Email)
 		}
@@ -59,21 +53,9 @@ func CoAuthorsFromCommit(ctx context.Context, c *git.Commit) ([]*CommitParticipa
 	for i, sig := range sigs {
 		emails[i] = sig.Email
 	}
-	emailUserMap, err := GetUsersByEmails(ctx, emails)
+	emailUserMap, err := user.GetUsersByEmails(ctx, emails)
 	if err != nil {
 		return nil, err
 	}
 	return CommitParticipantsFromSigs(sigs, emailUserMap), nil
-}
-
-// AvatarStackData returns the view-model for rendering this commit's author + co-authors.
-func (uc *UserCommit) AvatarStackData() *AvatarStackData {
-	if uc == nil {
-		return nil
-	}
-	var sig *git.Signature
-	if uc.Commit != nil {
-		sig = uc.Commit.Author
-	}
-	return NewAvatarStackData(uc.User, sig, uc.CoAuthors)
 }

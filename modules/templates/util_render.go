@@ -14,10 +14,10 @@ import (
 	"strings"
 	"unicode"
 
+	user_model "gitea.dev/models/gituser"
 	issues_model "gitea.dev/models/issues"
 	"gitea.dev/models/renderhelper"
 	"gitea.dev/models/repo"
-	user_model "gitea.dev/models/user"
 	"gitea.dev/modules/charset"
 	"gitea.dev/modules/emoji"
 	"gitea.dev/modules/git"

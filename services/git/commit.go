@@ -9,6 +9,7 @@ import (
 	asymkey_model "gitea.dev/models/asymkey"
 	"gitea.dev/models/db"
 	git_model "gitea.dev/models/git"
+	"gitea.dev/models/gituser"
 	repo_model "gitea.dev/models/repo"
 	user_model "gitea.dev/models/user"
 	"gitea.dev/modules/container"
@@ -17,14 +18,14 @@ import (
 )
 
 // ParseCommitsWithSignature checks if signaute of commits are corresponding to users gpg keys.
-func ParseCommitsWithSignature(ctx context.Context, repo *repo_model.Repository, oldCommits []*user_model.UserCommit, repoTrustModel repo_model.TrustModelType) ([]*asymkey_model.SignCommit, error) {
+func ParseCommitsWithSignature(ctx context.Context, repo *repo_model.Repository, oldCommits []*gituser.UserCommit, repoTrustModel repo_model.TrustModelType) ([]*asymkey_model.SignCommit, error) {
 	newCommits := make([]*asymkey_model.SignCommit, 0, len(oldCommits))
 	keyMap := map[string]bool{}
 
 	emails := make(container.Set[string])
 	for _, c := range oldCommits {
-		if c.Committer != nil {
-			emails.Add(c.Committer.Email)
+		if c.GitCommit.Committer != nil {
+			emails.Add(c.GitCommit.Committer.Email)
 		}
 	}
 
@@ -34,10 +35,10 @@ func ParseCommitsWithSignature(ctx context.Context, repo *repo_model.Repository,
 	}
 
 	for _, c := range oldCommits {
-		committerUser := emailUsers.GetByEmail(c.Committer.Email) // FIXME: why ValidateCommitsWithEmails uses "Author", but ParseCommitsWithSignature uses "Committer"?
+		committerUser := emailUsers.GetByEmail(c.GitCommit.Committer.Email) // FIXME: why ValidateCommitsWithEmails uses "Author", but ParseCommitsWithSignature uses "Committer"?
 		signCommit := &asymkey_model.SignCommit{
 			UserCommit:   c,
-			Verification: asymkey_service.ParseCommitWithSignatureCommitter(ctx, c.Commit, committerUser),
+			Verification: asymkey_service.ParseCommitWithSignatureCommitter(ctx, c.GitCommit, committerUser),
 		}
 
 		isOwnerMemberCollaborator := func(user *user_model.User) (bool, error) {
@@ -53,7 +54,7 @@ func ParseCommitsWithSignature(ctx context.Context, repo *repo_model.Repository,
 
 // ConvertFromGitCommit converts git commits into SignCommitWithStatuses
 func ConvertFromGitCommit(ctx context.Context, commits []*git.Commit, repo *repo_model.Repository) ([]*git_model.SignCommitWithStatuses, error) {
-	validatedCommits, err := user_model.ValidateCommitsWithEmails(ctx, commits)
+	validatedCommits, err := gituser.ValidateCommitsWithEmails(ctx, commits)
 	if err != nil {
 		return nil, err
 	}
@@ -77,7 +78,7 @@ func ParseCommitsWithStatus(ctx context.Context, oldCommits []*asymkey_model.Sig
 		commit := &git_model.SignCommitWithStatuses{
 			SignCommit: c,
 		}
-		statuses, err := git_model.GetLatestCommitStatus(ctx, repo.ID, commit.ID.String(), db.ListOptionsAll)
+		statuses, err := git_model.GetLatestCommitStatus(ctx, repo.ID, commit.GitCommit.ID.String(), db.ListOptionsAll)
 		if err != nil {
 			return nil, err
 		}

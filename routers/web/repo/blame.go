@@ -12,6 +12,7 @@ import (
 	"path"
 	"strconv"
 
+	"gitea.dev/models/gituser"
 	repo_model "gitea.dev/models/repo"
 	user_model "gitea.dev/models/user"
 	"gitea.dev/modules/charset"
@@ -35,7 +36,7 @@ type blameRow struct {
 	CommitMessage  string
 	CommitSince    template.HTML
 	AuthorUser     *user_model.User
-	CoAuthors      []*user_model.CommitParticipant
+	CoAuthors      []*gituser.CommitParticipant
 	Author         *git.Signature
 
 	Code         template.HTML
@@ -43,8 +44,8 @@ type blameRow struct {
 }
 
 // AvatarStackData returns the view-model for rendering this row's author + co-authors.
-func (r *blameRow) AvatarStackData() *user_model.AvatarStackData {
-	return user_model.NewAvatarStackData(r.AuthorUser, r.Author, r.CoAuthors)
+func (r *blameRow) AvatarStackData() *gituser.AvatarStackData {
+	return gituser.NewAvatarStackData(r.AuthorUser, r.Author, r.CoAuthors)
 }
 
 // RefBlame render blame page
@@ -181,9 +182,9 @@ func fillBlameResult(br *gitrepo.BlameReader, r *blameResult) error {
 	return nil
 }
 
-func processBlameParts(ctx *context.Context, blameParts []*gitrepo.BlamePart) map[string]*user_model.UserCommit {
+func processBlameParts(ctx *context.Context, blameParts []*gitrepo.BlamePart) map[string]*gituser.UserCommit {
 	// store commit data by SHA to look up avatar info etc
-	commitNames := make(map[string]*user_model.UserCommit)
+	commitNames := make(map[string]*gituser.UserCommit)
 	// and as blameParts can reference the same commits multiple
 	// times, we cache the lookup work locally
 	commits := make([]*git.Commit, 0, len(blameParts))
@@ -216,30 +217,30 @@ func processBlameParts(ctx *context.Context, blameParts []*gitrepo.BlamePart) ma
 	}
 
 	// populate commit email addresses to later look up avatars.
-	validatedCommits, err := user_model.ValidateCommitsWithEmails(ctx, commits)
+	validatedCommits, err := gituser.ValidateCommitsWithEmails(ctx, commits)
 	if err != nil {
 		ctx.ServerError("ValidateCommitsWithEmails", err)
 		return nil
 	}
 	for _, c := range validatedCommits {
-		commitNames[c.ID.String()] = c
+		commitNames[c.GitCommit.ID.String()] = c
 	}
 
 	return commitNames
 }
 
-func fillFirstBlameRow(repoLink string, part *gitrepo.BlamePart, commit *user_model.UserCommit, br *blameRow) {
-	br.AuthorUser = commit.User
+func fillFirstBlameRow(repoLink string, part *gitrepo.BlamePart, commit *gituser.UserCommit, br *blameRow) {
+	br.AuthorUser = commit.GiteaUser
 	br.CoAuthors = commit.CoAuthors
-	br.Author = commit.Author
+	br.Author = commit.GitCommit.Author
 	br.PreviousSha = part.PreviousSha
 	br.PreviousShaURL = fmt.Sprintf("%s/blame/commit/%s/%s", repoLink, url.PathEscape(part.PreviousSha), util.PathEscapeSegments(part.PreviousPath))
 	br.CommitURL = fmt.Sprintf("%s/commit/%s", repoLink, url.PathEscape(part.Sha))
-	br.CommitMessage = commit.MessageUTF8()
-	br.CommitSince = templates.TimeSince(commit.Author.When)
+	br.CommitMessage = commit.GitCommit.MessageUTF8()
+	br.CommitSince = templates.TimeSince(commit.GitCommit.Author.When)
 }
 
-func renderBlame(ctx *context.Context, blameParts []*gitrepo.BlamePart, commitNames map[string]*user_model.UserCommit) {
+func renderBlame(ctx *context.Context, blameParts []*gitrepo.BlamePart, commitNames map[string]*gituser.UserCommit) {
 	language, err := languagestats.GetFileLanguage(ctx, ctx.Repo.GitRepo, ctx.Repo.CommitID, ctx.Repo.TreePath)
 	if err != nil {
 		log.Error("Unable to get file language for %-v:%s. Error: %v", ctx.Repo.Repository, ctx.Repo.TreePath, err)

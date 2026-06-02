@@ -14,6 +14,7 @@ import (
 	asymkey_model "gitea.dev/models/asymkey"
 	"gitea.dev/models/db"
 	git_model "gitea.dev/models/git"
+	"gitea.dev/models/gituser"
 	issues_model "gitea.dev/models/issues"
 	"gitea.dev/models/renderhelper"
 	repo_model "gitea.dev/models/repo"
@@ -382,7 +383,7 @@ func Diff(ctx *context.Context) {
 	verification := asymkey_service.ParseCommitWithSignature(ctx, commit)
 	ctx.Data["Verification"] = verification
 	ctx.Data["Author"] = user_model.ValidateCommitWithEmail(ctx, commit)
-	if coAuthors, err := user_model.CoAuthorsFromCommit(ctx, commit); err != nil {
+	if coAuthors, err := gituser.CoAuthorsFromCommit(ctx, commit); err != nil {
 		log.Error("CoAuthorsFromCommit: %v", err)
 	} else {
 		ctx.Data["CoAuthors"] = coAuthors

@@ -1148,13 +1148,6 @@ func GetUsersBySource(ctx context.Context, s *auth.Source) ([]*User, error) {
 	return users, err
 }
 
-// UserCommit represents a commit with validation of user.
-type UserCommit struct { //revive:disable-line:exported
-	User      *User
-	CoAuthors []*CommitParticipant
-	*git.Commit
-}
-
 // ValidateCommitWithEmail check if author's e-mail of commit is corresponding to a user.
 func ValidateCommitWithEmail(ctx context.Context, c *git.Commit) *User {
 	if c.Author == nil {
@@ -1165,36 +1158,6 @@ func ValidateCommitWithEmail(ctx context.Context, c *git.Commit) *User {
 		return nil
 	}
 	return u
-}
-
-// ValidateCommitsWithEmails checks if authors' e-mails of commits are corresponding to users.
-func ValidateCommitsWithEmails(ctx context.Context, oldCommits []*git.Commit) ([]*UserCommit, error) {
-	var (
-		newCommits = make([]*UserCommit, 0, len(oldCommits))
-		emailSet   = make(container.Set[string])
-	)
-	for _, c := range oldCommits {
-		if c.Author != nil {
-			emailSet.Add(c.Author.Email)
-		}
-		for _, sig := range c.CoAuthorSignatures() {
-			emailSet.Add(sig.Email)
-		}
-	}
-
-	emailUserMap, err := GetUsersByEmails(ctx, emailSet.Values())
-	if err != nil {
-		return nil, err
-	}
-
-	for _, c := range oldCommits {
-		newCommits = append(newCommits, &UserCommit{
-			User:      emailUserMap.GetByEmail(c.Author.Email), // FIXME: why ValidateCommitsWithEmails uses "Author", but ParseCommitsWithSignature uses "Committer"?
-			CoAuthors: CommitParticipantsFromSigs(c.CoAuthorSignatures(), emailUserMap),
-			Commit:    c,
-		})
-	}
-	return newCommits, nil
 }
 
 type EmailUserMap struct {
