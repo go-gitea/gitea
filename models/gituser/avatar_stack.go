@@ -22,7 +22,7 @@ func NewAvatarStackData(authorUser *user.User, authorSig *git.Signature, coAutho
 		return nil
 	}
 	participants := make([]*CommitParticipant, 0, len(coAuthors)+1)
-	participants = append(participants, &CommitParticipant{GiteaUser: authorUser, Sig: authorSig})
+	participants = append(participants, &CommitParticipant{GiteaUser: authorUser, GitIdentity: authorSig})
 	participants = append(participants, coAuthors...)
 	return &AvatarStackData{Participants: participants}
 }
@@ -38,14 +38,14 @@ func CommitParticipantsFromSigs(sigs []*git.Signature, emailUserMap *user.EmailU
 		if emailUserMap != nil {
 			giteaUser = emailUserMap.GetByEmail(sig.Email)
 		}
-		out[i] = &CommitParticipant{GiteaUser: giteaUser, Sig: sig}
+		out[i] = &CommitParticipant{GiteaUser: giteaUser, GitIdentity: sig}
 	}
 	return out
 }
 
-// CoAuthorsFromCommit resolves a commit's co-author trailers into avatar-stack users.
-func CoAuthorsFromCommit(ctx context.Context, c *git.Commit) ([]*CommitParticipant, error) {
-	sigs := c.CoAuthorSignatures()
+// GetAllCommitParticipants resolves a commit's co-author trailers into avatar-stack users.
+func GetAllCommitParticipants(ctx context.Context, c *git.Commit) ([]*CommitParticipant, error) {
+	sigs := c.AllAuthorSignatures()
 	if len(sigs) == 0 {
 		return nil, nil
 	}

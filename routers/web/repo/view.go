@@ -138,7 +138,7 @@ func loadLatestCommitData(ctx *context.Context, latestCommit *git.Commit) bool {
 		latestCommitUser := user_model.ValidateCommitWithEmail(ctx, latestCommit)
 
 		var latestCommitCoAuthors []*gituser.CommitParticipant
-		if coAuthors, err := gituser.CoAuthorsFromCommit(ctx, latestCommit); err != nil {
+		if coAuthors, err := gituser.GetAllCommitParticipants(ctx, latestCommit); err != nil {
 			log.Error("CoAuthorsFromCommit: %v", err)
 		} else {
 			latestCommitCoAuthors = coAuthors

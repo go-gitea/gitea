@@ -112,7 +112,7 @@ func prepareMockDataBadgeCommitSign(ctx *context.Context) {
 			SigningEmail: "test@example.com",
 		},
 		UserCommit: &gituser.UserCommit{
-			GiteaUser:   mockUser,
+			GiteaUser: mockUser,
 			GitCommit: &git.Commit{ID: git.Sha1ObjectFormat.EmptyObjectID()},
 		},
 	})
@@ -178,10 +178,10 @@ func prepareMockDataAvatarStack(ctx *context.Context) {
 		return &git.Signature{Name: u.Name, Email: u.Email}
 	}
 	coLinked := func(u *user_model.User) *gituser.CommitParticipant {
-		return &gituser.CommitParticipant{GiteaUser: u, Sig: authorSig(u)}
+		return &gituser.CommitParticipant{GiteaUser: u, GitIdentity: authorSig(u)}
 	}
 	coUnlinked := func(name, email string) *gituser.CommitParticipant {
-		return &gituser.CommitParticipant{Sig: &git.Signature{Name: name, Email: email}}
+		return &gituser.CommitParticipant{GitIdentity: &git.Signature{Name: name, Email: email}}
 	}
 	nUnlinked := func(n int) []*gituser.CommitParticipant {
 		out := make([]*gituser.CommitParticipant, n)

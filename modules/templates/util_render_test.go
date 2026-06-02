@@ -317,7 +317,7 @@ func TestAvatarStack(t *testing.T) {
 	ut := newTestRenderUtils(t)
 	authorSig := &git.Signature{Name: "Alice", Email: "alice@example.com"}
 	mkCo := func(name, email string) *gituser.CommitParticipant {
-		return &gituser.CommitParticipant{Sig: &git.Signature{Name: name, Email: email}}
+		return &gituser.CommitParticipant{GitIdentity: &git.Signature{Name: name, Email: email}}
 	}
 
 	mkData := func(co []*gituser.CommitParticipant) *gituser.AvatarStackData {

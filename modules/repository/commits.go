@@ -159,7 +159,7 @@ func CommitToPushCommit(commit *git.Commit) *PushCommit {
 		AuthorName:     commit.Author.Name,
 		CommitterEmail: commit.Committer.Email,
 		CommitterName:  commit.Committer.Name,
-		CoAuthors:      commit.CoAuthorSignatures(),
+		CoAuthors:      commit.AllAuthorSignatures(),
 		Timestamp:      commit.Author.When,
 	}
 }
@@ -196,7 +196,7 @@ func (pc *PushCommit) avatarStackCoAuthors() []*gituser.CommitParticipant {
 	}
 	coAuthors := make([]*gituser.CommitParticipant, len(pc.CoAuthors))
 	for i, sig := range pc.CoAuthors {
-		coAuthors[i] = &gituser.CommitParticipant{Sig: sig}
+		coAuthors[i] = &gituser.CommitParticipant{GitIdentity: sig}
 	}
 	return coAuthors
 }

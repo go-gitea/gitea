@@ -109,7 +109,7 @@ func (graph *Graph) LoadAndProcessCommits(ctx context.Context, repository *repo_
 		if c.Commit.Author != nil {
 			emailSet.Add(c.Commit.Author.Email)
 		}
-		for _, sig := range c.Commit.CoAuthorSignatures() {
+		for _, sig := range c.Commit.AllAuthorSignatures() {
 			emailSet.Add(sig.Email)
 		}
 	}
@@ -129,7 +129,7 @@ func (graph *Graph) LoadAndProcessCommits(ctx context.Context, repository *repo_
 		if c.Commit.Author != nil && emailUserMap != nil {
 			c.User = emailUserMap.GetByEmail(c.Commit.Author.Email)
 		}
-		c.CoAuthors = gituser.CommitParticipantsFromSigs(c.Commit.CoAuthorSignatures(), emailUserMap)
+		c.CoAuthors = gituser.CommitParticipantsFromSigs(c.Commit.AllAuthorSignatures(), emailUserMap)
 
 		c.Verification = asymkey_service.ParseCommitWithSignature(ctx, c.Commit)
 

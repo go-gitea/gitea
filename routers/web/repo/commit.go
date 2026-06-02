@@ -383,10 +383,9 @@ func Diff(ctx *context.Context) {
 	verification := asymkey_service.ParseCommitWithSignature(ctx, commit)
 	ctx.Data["Verification"] = verification
 	ctx.Data["Author"] = user_model.ValidateCommitWithEmail(ctx, commit)
-	if coAuthors, err := gituser.CoAuthorsFromCommit(ctx, commit); err != nil {
+	ctx.Data["AllCommitParticipants"], err = gituser.GetAllCommitParticipants(ctx, commit)
+	if err != nil {
 		log.Error("CoAuthorsFromCommit: %v", err)
-	} else {
-		ctx.Data["CoAuthors"] = coAuthors
 	}
 	ctx.Data["Parents"] = parents
 	ctx.Data["DiffNotAvailable"] = diffShortStat.NumFiles == 0

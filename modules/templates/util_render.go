@@ -354,8 +354,8 @@ func commitsSearchURL(searchBase, value string) template.URL {
 }
 
 func participantSearchEmail(participant *user_model.CommitParticipant) string {
-	if participant.Sig != nil && participant.Sig.Email != "" {
-		return participant.Sig.Email
+	if participant.GitIdentity != nil && participant.GitIdentity.Email != "" {
+		return participant.GitIdentity.Email
 	}
 	if participant.GiteaUser != nil {
 		return participant.GiteaUser.Email
@@ -368,8 +368,8 @@ func (ut *RenderUtils) participantHref(searchBase string, participant *user_mode
 	switch {
 	case participant.GiteaUser != nil:
 		fallback = participant.GiteaUser.HomeLink()
-	case participant.Sig != nil && participant.Sig.Email != "":
-		fallback = "mailto:" + participant.Sig.Email
+	case participant.GitIdentity != nil && participant.GitIdentity.Email != "":
+		fallback = "mailto:" + participant.GitIdentity.Email
 	default:
 		return ""
 	}
@@ -384,14 +384,14 @@ func (ut *RenderUtils) participantAvatar(participant *user_model.CommitParticipa
 	if participant.GiteaUser != nil {
 		return au.Avatar(participant.GiteaUser, 20)
 	}
-	return au.AvatarByEmail(participant.Sig.Email, participant.Sig.Name, 20)
+	return au.AvatarByEmail(participant.GitIdentity.Email, participant.GitIdentity.Name, 20)
 }
 
 func participantName(participant *user_model.CommitParticipant) string {
 	if participant.GiteaUser != nil {
 		return participant.GiteaUser.GetDisplayName()
 	}
-	return participant.Sig.Name
+	return participant.GitIdentity.Name
 }
 
 // AvatarStack renders overlapping avatars for the stack participants. It emits children in reverse
@@ -475,13 +475,13 @@ func (ut *RenderUtils) participantNameLink(searchBase string, participant *user_
 	if participant.GiteaUser != nil {
 		return participant.GiteaUser.GetShortDisplayNameLinkHTML()
 	}
-	if participant.Sig == nil {
+	if participant.GitIdentity == nil {
 		return ""
 	}
-	if participant.Sig.Email != "" {
-		return htmlutil.HTMLFormat(`<a class="muted" href="mailto:%s">%s</a>`, participant.Sig.Email, participant.Sig.Name)
+	if participant.GitIdentity.Email != "" {
+		return htmlutil.HTMLFormat(`<a class="muted" href="mailto:%s">%s</a>`, participant.GitIdentity.Email, participant.GitIdentity.Name)
 	}
-	return template.HTML(template.HTMLEscapeString(participant.Sig.Name))
+	return template.HTML(template.HTMLEscapeString(participant.GitIdentity.Name))
 }
 
 func (ut *RenderUtils) participantPopupRow(searchBase string, participant *user_model.CommitParticipant) template.HTML {

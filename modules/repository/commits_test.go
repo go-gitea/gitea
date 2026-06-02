@@ -159,7 +159,7 @@ func TestCommitToPushCommit(t *testing.T) {
 	}
 	assert.Equal(t, &git.Signature{Email: "example@example.com", Name: "John Doe"}, pushCommit.AuthorSignature())
 	if assert.Len(t, pushCommit.avatarStackCoAuthors(), 1) {
-		assert.Equal(t, &git.Signature{Email: "jane@example.com", Name: "Jane Doe"}, pushCommit.avatarStackCoAuthors()[0].Sig)
+		assert.Equal(t, &git.Signature{Email: "jane@example.com", Name: "Jane Doe"}, pushCommit.avatarStackCoAuthors()[0].GitIdentity)
 		assert.Nil(t, pushCommit.avatarStackCoAuthors()[0].GiteaUser)
 	}
 	assert.Equal(t, now, pushCommit.Timestamp)

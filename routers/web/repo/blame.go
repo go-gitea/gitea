@@ -231,7 +231,7 @@ func processBlameParts(ctx *context.Context, blameParts []*gitrepo.BlamePart) ma
 
 func fillFirstBlameRow(repoLink string, part *gitrepo.BlamePart, commit *gituser.UserCommit, br *blameRow) {
 	br.AuthorUser = commit.GiteaUser
-	br.CoAuthors = commit.CoAuthors
+	br.CoAuthors = commit.AllParticipants
 	br.Author = commit.GitCommit.Author
 	br.PreviousSha = part.PreviousSha
 	br.PreviousShaURL = fmt.Sprintf("%s/blame/commit/%s/%s", repoLink, url.PathEscape(part.PreviousSha), util.PathEscapeSegments(part.PreviousPath))

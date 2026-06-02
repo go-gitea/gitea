@@ -143,9 +143,9 @@ func (c *CommitMessage) parseCoAuthorSignatures() []*Signature {
 	return sigs
 }
 
-// CoAuthorSignatures returns the parsed co-author trailers with the commit's own
+// AllAuthorSignatures returns the parsed co-author trailers with the commit's own
 // author and committer emails filtered out (so self-copying isn't counted).
-func (c *Commit) CoAuthorSignatures() []*Signature {
+func (c *Commit) AllAuthorSignatures() []*Signature {
 	raw := c.parseCoAuthorSignatures()
 	if len(raw) == 0 {
 		return raw

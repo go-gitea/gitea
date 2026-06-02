@@ -155,19 +155,23 @@
 				{{end}}
 			</div>
 
-			{{if .CoAuthors}}
+			{{if .AllCommitParticipants}}
 				<div class="flex-text-inline">
 					<span class="tw-text-text-light">{{ctx.Locale.Tr "repo.diff.coauthored_by"}}</span>
-					{{range .CoAuthors}}
-						{{if .GiteaUser}}
-							{{ctx.AvatarUtils.Avatar .GiteaUser 20}}
-							<a class="muted" href="{{.GiteaUser.HomeLink}}"><strong>{{.GiteaUser.GetDisplayName}}</strong></a>
+					{{range $participant := .AllCommitParticipants}}
+						{{$user := $participant.GiteaUser}}
+						{{$gitIdentity := $participant.GitIdentity}}
+						{{if $user}}
+							{{ctx.AvatarUtils.Avatar $user 20}}
+							<a class="muted" href="{{$user.HomeLink}}"><strong>{{$user.GetDisplayName}}</strong></a>
 						{{else}}
-							{{ctx.AvatarUtils.AvatarByEmail .Sig.Email .Sig.Name 20}}
-							{{if .Sig.Email}}
-								<a class="muted" href="mailto:{{.Sig.Email}}"><strong>{{.Sig.Name}}</strong></a>
+							{{$gitName := $gitIdentity.Name}}
+							{{$gitEmail := $gitIdentity.Email}}
+							{{ctx.AvatarUtils.AvatarByEmail $gitEmail $gitName 20}}
+							{{if $gitEmail}}
+								<a class="muted" href="mailto:{{$gitEmail}}"><strong>{{$gitName}}</strong></a>
 							{{else}}
-								<strong>{{.Sig.Name}}</strong>
+								<strong>{{$gitName}}</strong>
 							{{end}}
 						{{end}}
 					{{end}}
