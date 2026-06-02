@@ -16,7 +16,7 @@
   padding: 16px;
   color: var(--color-text-light-2);
   border: 1px solid var(--color-secondary);
-  border-radius: 4px;
+  border-radius: var(--border-radius);
   background-color: var(--color-secondary-alpha-10);
 }
 
@@ -25,7 +25,7 @@
   padding: 16px;
   color: var(--color-red);
   border: 1px solid var(--color-red);
-  border-radius: 4px;
+  border-radius: var(--border-radius);
   background-color: var(--color-red-badge-bg);
 }
 

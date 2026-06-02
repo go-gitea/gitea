@@ -102,7 +102,8 @@ func (renderer) Render(ctx *markup.RenderContext, input io.Reader, output io.Wri
 	// Parse notebook
 	var notebook Notebook
 	if err := json.Unmarshal(data, &notebook); err != nil {
-		return fmt.Errorf("failed to parse notebook JSON: %w", err)
+		_, _ = htmlutil.HTMLPrintf(output, `<div class="jupyter-notebook-error">Failed to parse notebook JSON: %v</div>`, err)
+		return nil
 	}
 
 	// Check nbformat version
@@ -129,9 +130,8 @@ func (renderer) Render(ctx *markup.RenderContext, input io.Reader, output io.Wri
 	// Start rendering
 	_, _ = output.Write([]byte(`<div class="jupyter-notebook">`))
 
-	executionCount := 1
 	for _, cell := range notebook.Cells {
-		if err := renderCell(ctx, output, cell, language, &executionCount); err != nil {
+		if err := renderCell(ctx, output, cell, language); err != nil {
 			log.Warn("Failed to render cell: %v", err)
 			continue
 		}
@@ -141,7 +141,7 @@ func (renderer) Render(ctx *markup.RenderContext, input io.Reader, output io.Wri
 	return nil
 }
 
-func renderCell(ctx *markup.RenderContext, output io.Writer, cell Cell, language string, executionCount *int) error {
+func renderCell(ctx *markup.RenderContext, output io.Writer, cell Cell, language string) error {
 	source := joinSource(cell.Source)
 
 	switch cell.CellType {
@@ -153,20 +153,29 @@ func renderCell(ctx *markup.RenderContext, output io.Writer, cell Cell, language
 		_, _ = output.Write([]byte(`</div></div>`))
 
 	case "code":
-		execCount := *executionCount
+		hasCount := false
+		countVal := 0
 		if cell.ExecutionCount != nil {
 			if count, ok := cell.ExecutionCount.(float64); ok {
-				execCount = int(count)
+				hasCount = true
+				countVal = int(count)
 			}
 		}
 
 		_, _ = output.Write([]byte(`<div class="cell code">`))
 		_, _ = output.Write([]byte(`<div class="input-wrapper">`))
-		_, _ = htmlutil.HTMLPrintf(output, `<div class="prompt input-prompt">In [%d]:</div>`, execCount)
+		if hasCount {
+			_, _ = htmlutil.HTMLPrintf(output, `<div class="prompt input-prompt">In [%d]:</div>`, countVal)
+		} else {
+			_, _ = output.Write([]byte(`<div class="prompt input-prompt">In [ ]:</div>`))
+		}
 		_, _ = output.Write([]byte(`<div class="input">`))
 
 		// Highlight code
 		lexer := highlight.DetectChromaLexerByFileName("", language)
+		if lexer == nil {
+			lexer = highlight.DetectChromaLexerByFileName("", "plaintext")
+		}
 		_, _ = htmlutil.HTMLPrintf(output, `<pre><code class="chroma language-%s">`, strings.ToLower(language))
 		_, _ = output.Write([]byte(highlight.RenderCodeByLexer(lexer, source)))
 		_, _ = output.Write([]byte("</code></pre>"))
@@ -184,8 +193,8 @@ func renderCell(ctx *markup.RenderContext, output io.Writer, cell Cell, language
 			}
 
 			_, _ = output.Write([]byte(`<div class="output-wrapper">`))
-			if hasExecutionResult {
-				_, _ = htmlutil.HTMLPrintf(output, `<div class="prompt output-prompt">Out[%d]:</div>`, execCount)
+			if hasExecutionResult && hasCount {
+				_, _ = htmlutil.HTMLPrintf(output, `<div class="prompt output-prompt">Out[%d]:</div>`, countVal)
 			} else {
 				_, _ = output.Write([]byte(`<div class="prompt output-prompt"></div>`))
 			}
@@ -198,7 +207,6 @@ func renderCell(ctx *markup.RenderContext, output io.Writer, cell Cell, language
 		}
 
 		_, _ = output.Write([]byte(`</div>`))
-		*executionCount++
 	}
 
 	return nil
@@ -312,8 +320,12 @@ func renderOutput(output io.Writer, out Output) {
 
 func joinSource(source any) string {
 	switch v := source.(type) {
+	case nil:
+		return ""
 	case string:
 		return v
+	case []string:
+		return strings.Join(v, "")
 	case []any:
 		parts := make([]string, len(v))
 		for i, part := range v {
