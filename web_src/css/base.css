@@ -382,16 +382,6 @@ a.label,
   color: var(--color-text-light-2);
 }
 
-/* styles from removed fomantic transition module */
-.hidden.transition {
-  visibility: hidden;
-  display: none;
-}
-.visible.transition {
-  display: block !important;
-  visibility: visible !important;
-}
-
 .ui.comments .comment .metadata {
   color: var(--color-text-light-2);
 }
@@ -428,11 +418,6 @@ a.label,
    to compensate here */
 .page-content > :first-child.ui.grid {
   margin-top: calc(var(--page-spacing) - 1rem);
-}
-
-.ui.message.flash-message pre {
-  white-space: pre-line;
-  margin: 0;
 }
 
 .ui .header > i + .content {
@@ -476,10 +461,6 @@ a.label,
 
 .ui .migrate a:hover {
   color: var(--color-text) !important;
-}
-
-.ui .border {
-  border: 1px solid;
 }
 
 .user-menu > .item {
