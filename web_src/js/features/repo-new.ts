@@ -56,7 +56,7 @@ function initRepoNewTemplateSearch(form: HTMLFormElement) {
   onChangeOwner();
 }
 
-function initRepoGroupSelector(form: HTMLFormElement) {
+export function initGroupSelector(form: HTMLFormElement) {
   const inputRepoOwnerUid = form.querySelector<HTMLInputElement>('input[name="uid"]');
   const elGroupDropdown = form.querySelector<HTMLInputElement>('#group_selector');
   if (!inputRepoOwnerUid || !elGroupDropdown) {
@@ -134,5 +134,5 @@ export function initRepoNew() {
   updateUiRepoName();
 
   initRepoNewTemplateSearch(form);
-  initRepoGroupSelector(form);
+  initGroupSelector(form);
 }
