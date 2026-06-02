@@ -16,7 +16,7 @@
 		<div class="menu-expandable-content-inner">
 			<ul class="tw-list-none tw-ps-5"{{if .root.IsOrganizationMember}}
 					data-url="{{ctx.RootData.Org.HomeLink}}/groups"{{end}}>
-				{{- range $i, $childItem := $item.Children $.root.Doer false -}}
+				{{- range $i, $childItem := $item.Children $.root.SignedUser false -}}
 				{{- template "group/sidebar/sidebar_item" dict "item" $childItem "root" $.root -}}
 				{{- end -}}
 			</ul>
