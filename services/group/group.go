@@ -21,7 +21,7 @@ import (
 	"gitea.dev/modules/util"
 )
 
-func NewGroup(ctx context.Context, g *group_model.Group) error {
+func NewGroup(ctx context.Context, g *group_model.Group, doer *user_model.User) error {
 	var err error
 	if len(g.Name) == 0 {
 		return util.NewInvalidArgumentErrorf("empty group name")
@@ -46,6 +46,19 @@ func NewGroup(ctx context.Context, g *group_model.Group) error {
 		if err != nil {
 			return err
 		}
+		canCreateIn, err := ngrp.CanCreateIn(ctx, doer.ID)
+		if err != nil {
+			return err
+		}
+
+		if !canCreateIn {
+			return group_model.ErrUserDoesNotHaveAccessToGroup{GroupID: g.ParentGroupID, UserID: doer.ID}
+		}
+
+		if ngrp.OwnerID != g.OwnerID {
+			return util.NewInvalidArgumentErrorf("cannot create subgroup inside group owned by another user")
+		}
+
 		if err = ngrp.LoadSubgroups(ctx, false); err != nil {
 			return err
 		}
@@ -60,6 +73,16 @@ func NewGroup(ctx context.Context, g *group_model.Group) error {
 			}
 		}
 	} else {
+		if owner.IsOrganization() {
+			asOrg := organization.OrgFromUser(owner)
+			canCreateOrgRepo, err := asOrg.CanCreateOrgRepo(ctx, doer.ID)
+			if err != nil {
+				return err
+			}
+			if !canCreateOrgRepo {
+				return group_model.ErrUserDoesNotHaveAccessToGroup{UserID: doer.ID, GroupID: 0}
+			}
+		}
 		siblings, err := group_model.FindGroups(ctx, &group_model.FindGroupsOptions{
 			ParentGroupID: 0,
 			OwnerID:       g.OwnerID,

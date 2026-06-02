@@ -15,6 +15,7 @@ import (
 	user_model "gitea.dev/models/user"
 	"gitea.dev/modules/optional"
 	api "gitea.dev/modules/structs"
+	"gitea.dev/modules/util"
 	"gitea.dev/modules/web"
 	"gitea.dev/services/context"
 	"gitea.dev/services/convert"
@@ -48,11 +49,15 @@ func createCommonGroup(ctx *context.APIContext, parentGroupID, ownerID int64) *a
 		Visibility:    form.Visibility,
 		ParentGroupID: parentGroupID,
 	}
-	if err := group_service.NewGroup(ctx, group); err != nil {
+	if err := group_service.NewGroup(ctx, group, ctx.Doer); err != nil {
 		if group_model.IsErrGroupTooDeep(err) {
 			ctx.APIError(http.StatusUnprocessableEntity, err)
 		} else if org_model.IsErrOrgNotExist(err) {
 			ctx.APIErrorNotFound()
+		} else if group_model.IsErrUserDoesNotHaveAccessToGroup(err) {
+			ctx.APIError(http.StatusForbidden, err)
+		} else if errors.Is(errors.Unwrap(err), util.ErrInvalidArgument) {
+			ctx.APIError(http.StatusUnprocessableEntity, err)
 		}
 		return nil
 	}
