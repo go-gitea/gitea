@@ -174,7 +174,7 @@ func (err ErrTaskDoesNotExist) Unwrap() error {
 
 // GetMigratingTask returns the migrating task by repo's id
 func GetMigratingTask(ctx context.Context, repoID int64) (*Task, error) {
-	task, has, err := db.Get[Task](ctx, builder.Eq{"repo_id": repoID, "type": structs.TaskTypeMigrateRepo})
+	task, has, err := db.Get[Task](ctx, builder.Eq{"repo_id": repoID, "`type`": structs.TaskTypeMigrateRepo})
 	if err != nil {
 		return nil, err
 	} else if !has {

@@ -58,7 +58,7 @@ func GetProperties(ctx context.Context, refType PropertyType, refID int64) ([]*P
 // GetPropertiesByName gets all properties with a specific name
 func GetPropertiesByName(ctx context.Context, refType PropertyType, refID int64, name string) ([]*PackageProperty, error) {
 	pps := make([]*PackageProperty, 0, 10)
-	return pps, db.GetEngine(ctx).Where("ref_type = ? AND ref_id = ? AND name = ?", refType, refID, name).OrderBy("id").Find(&pps)
+	return pps, db.GetEngine(ctx).Where("ref_type = ? AND ref_id = ? AND `name` = ?", refType, refID, name).OrderBy("id").Find(&pps)
 }
 
 // UpdateProperty updates a property
@@ -68,7 +68,7 @@ func UpdateProperty(ctx context.Context, pp *PackageProperty) error {
 }
 
 func InsertOrUpdateProperty(ctx context.Context, refType PropertyType, refID int64, name, value string) error {
-	pp, ok, err := db.Get[PackageProperty](ctx, builder.Eq{"ref_type": refType, "ref_id": refID, "name": name})
+	pp, ok, err := db.Get[PackageProperty](ctx, builder.Eq{"ref_type": refType, "ref_id": refID, "`name`": name})
 	if err != nil {
 		return err
 	}

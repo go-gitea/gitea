@@ -21,7 +21,7 @@ import (
 	"gitea.dev/modules/timeutil"
 	"gitea.dev/modules/util"
 	webhook_module "gitea.dev/modules/webhook"
- 
+
 	"xorm.io/builder"
 )
 
@@ -266,7 +266,7 @@ func GetRunByRepoAndID(ctx context.Context, repoID, runID int64) (*ActionRun, er
 }
 
 func GetRunByRepoAndIndex(ctx context.Context, repoID, runIndex int64) (*ActionRun, error) {
-	run, has, err := db.Get[ActionRun](ctx, builder.Eq{"repo_id": repoID, "index": runIndex})
+	run, has, err := db.Get[ActionRun](ctx, builder.Eq{"repo_id": repoID, "`index`": runIndex})
 	if err != nil {
 		return nil, err
 	} else if !has {

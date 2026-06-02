@@ -535,7 +535,7 @@ func GetPullRequestByIndex(ctx context.Context, repoID, index int64) (*PullReque
 		return nil, ErrPullRequestNotExist{}
 	}
 
-	pr, has, err := db.Get[PullRequest](ctx, builder.Eq{"base_repo_id": repoID, "index": index})
+	pr, has, err := db.Get[PullRequest](ctx, builder.Eq{"base_repo_id": repoID, "`index`": index})
 	if err != nil {
 		return nil, err
 	} else if !has {

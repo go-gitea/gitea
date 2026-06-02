@@ -100,7 +100,7 @@ func HashEmail(email string) string {
 // GetEmailForHash converts a provided md5sum to the email
 func GetEmailForHash(ctx context.Context, md5Sum string) (string, error) {
 	return cache.GetString("Avatar:"+md5Sum, func() (string, error) {
-		emailHash, has, err := db.Get[EmailHash](ctx, builder.Eq{"hash": strings.ToLower(strings.TrimSpace(md5Sum))})
+		emailHash, has, err := db.Get[EmailHash](ctx, builder.Eq{"`hash`": strings.ToLower(strings.TrimSpace(md5Sum))})
 		if err != nil {
 			return "", err
 		} else if !has {

@@ -158,7 +158,7 @@ func GetAttachmentsByCommentID(ctx context.Context, commentID int64) ([]*Attachm
 
 // GetAttachmentByReleaseIDFileName returns attachment by given releaseId and fileName.
 func GetAttachmentByReleaseIDFileName(ctx context.Context, releaseID int64, fileName string) (*Attachment, error) {
-	attach, has, err := db.Get[Attachment](ctx, builder.Eq{"release_id": releaseID, "name": fileName})
+	attach, has, err := db.Get[Attachment](ctx, builder.Eq{"release_id": releaseID, "`name`": fileName})
 	if err != nil {
 		return nil, err
 	} else if !has {

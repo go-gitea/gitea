@@ -79,7 +79,7 @@ func RemoveLock(ctx context.Context, packageID int64) error {
 }
 
 func updateLock(ctx context.Context, refID int64, value string, cond builder.Cond) error {
-	pp, ok, err := db.Get[packages_model.PackageProperty](ctx, builder.Eq{"ref_type": packages_model.PropertyTypePackage, "ref_id": refID, "name": LockFile})
+	pp, ok, err := db.Get[packages_model.PackageProperty](ctx, builder.Eq{"ref_type": packages_model.PropertyTypePackage, "ref_id": refID, "`name`": LockFile})
 	if err != nil {
 		return err
 	}

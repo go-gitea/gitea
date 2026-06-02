@@ -414,7 +414,7 @@ func GetOrgByName(ctx context.Context, name string) (*Organization, error) {
 		return nil, ErrOrgNotExist{0, name}
 	}
 
-	u, has, err := db.Get[Organization](ctx, builder.Eq{"lower_name": strings.ToLower(name), "type": user_model.UserTypeOrganization})
+	u, has, err := db.Get[Organization](ctx, builder.Eq{"lower_name": strings.ToLower(name), "`type`": user_model.UserTypeOrganization})
 	if err != nil {
 		return nil, err
 	} else if !has {

@@ -192,7 +192,7 @@ func (issue *Issue) verifyReferencedIssue(stdCtx context.Context, ctx *crossRefe
 	ref references.IssueReference,
 ) (*Issue, references.XRefAction, error) {
 	refAction := ref.Action
-	refIssue, has, err := db.Get[Issue](stdCtx, builder.Eq{"repo_id": repo.ID, "index": ref.Index})
+	refIssue, has, err := db.Get[Issue](stdCtx, builder.Eq{"repo_id": repo.ID, "`index`": ref.Index})
 	if err != nil {
 		return nil, references.XRefActionNone, err
 	} else if !has {

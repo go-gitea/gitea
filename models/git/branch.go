@@ -323,7 +323,7 @@ type RenamedBranch struct {
 
 // FindRenamedBranch check if a branch was renamed
 func FindRenamedBranch(ctx context.Context, repoID int64, from string) (branch *RenamedBranch, exist bool, err error) {
-	return db.Get[RenamedBranch](ctx, builder.Eq{"repo_id": repoID, "from": from})
+	return db.Get[RenamedBranch](ctx, builder.Eq{"repo_id": repoID, "`from`": from})
 }
 
 // RenameBranch rename a branch

@@ -499,7 +499,7 @@ func GetIssueByIndex(ctx context.Context, repoID, index int64) (*Issue, error) {
 	if index < 1 {
 		return nil, ErrIssueNotExist{}
 	}
-	issue, has, err := db.Get[Issue](ctx, builder.Eq{"repo_id": repoID, "index": index})
+	issue, has, err := db.Get[Issue](ctx, builder.Eq{"repo_id": repoID, "`index`": index})
 	if err != nil {
 		return nil, err
 	} else if !has {
