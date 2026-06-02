@@ -92,15 +92,27 @@ func SettingsPost(ctx *context.Context) {
 	}
 	group := ctx.RepoGroup.Group
 
-	hasCycle, err := group_model.CheckCycle(ctx, group.ID, form.ParentGroupID)
-	if err != nil {
-		ctx.ServerError("CheckCycle", err)
-		return
-	}
-	if hasCycle {
-		ctx.Flash.Error(ctx.Tr("group.settings.cycle_detected"))
-		ctx.Redirect(ctx.RepoGroup.OrgGroupLink + "/settings")
-		return
+	if form.ParentGroupID != group.ParentGroupID {
+		hasCycle, err := group_model.CheckCycle(ctx, group.ID, form.ParentGroupID)
+		if err != nil {
+			ctx.ServerError("CheckCycle", err)
+			return
+		}
+		if hasCycle {
+			ctx.Flash.Error(ctx.Tr("group.settings.cycle_detected"))
+			ctx.Redirect(ctx.RepoGroup.OrgGroupLink + "/settings")
+			return
+		}
+
+		if err = group_service.MoveGroupItem(ctx, group_service.MoveGroupOptions{
+			IsGroup:   true,
+			ItemID:    group.ID,
+			NewParent: form.ParentGroupID,
+			NewPos:    -1,
+		}, ctx.Doer); err != nil {
+			ctx.ServerError("MoveGroupItem", err)
+			return
+		}
 	}
 
 	opts := &group_service.UpdateOptions{
