@@ -68,7 +68,14 @@ func (rs *ReviewState) GetViewedFileCount() int {
 // If the review didn't exist before in the database, it won't afterwards either.
 // The returned boolean shows whether the review exists in the database
 func GetReviewState(ctx context.Context, userID, pullID int64, commitSHA string) (*ReviewState, bool, error) {
-	return db.Get[ReviewState](ctx, builder.Eq{"user_id": userID, "pull_id": pullID, "commit_sha": commitSHA})
+	review, has, err := db.Get[ReviewState](ctx, builder.Eq{"user_id": userID, "pull_id": pullID, "commit_sha": commitSHA})
+	if err != nil {
+		return nil, false, err
+	}
+	if review == nil {
+		review = &ReviewState{UserID: userID, PullID: pullID, CommitSHA: commitSHA}
+	}
+	return review, has, nil
 }
 
 // UpdateReviewState updates the given review inside the database, regardless of whether it existed before or not

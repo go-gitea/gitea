@@ -48,6 +48,9 @@ func GetWatch(ctx context.Context, userID, repoID int64) (*Watch, error) {
 	if err != nil {
 		return watch, err
 	}
+	if watch == nil {
+		watch = &Watch{UserID: userID, RepoID: repoID}
+	}
 	if !has {
 		watch.Mode = WatchModeNone
 	}
