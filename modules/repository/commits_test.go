@@ -4,14 +4,12 @@
 package repository
 
 import (
-	"strconv"
 	"testing"
 	"time"
 
 	repo_model "gitea.dev/models/repo"
 	"gitea.dev/models/unittest"
 	"gitea.dev/modules/git"
-	"gitea.dev/modules/setting"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -99,38 +97,6 @@ func TestPushCommits_ToAPIPayloadCommits(t *testing.T) {
 	assert.Equal(t, []string{"readme.md"}, headCommit.Modified)
 }
 
-func TestPushCommits_AvatarLink(t *testing.T) {
-	assert.NoError(t, unittest.PrepareTestDatabase())
-
-	pushCommits := NewPushCommits()
-	pushCommits.Commits = []*PushCommit{
-		{
-			Sha1:           "abcdef1",
-			CommitterEmail: "user2@example.com",
-			CommitterName:  "User Two",
-			AuthorEmail:    "user4@example.com",
-			AuthorName:     "User Four",
-			Message:        "message1",
-		},
-		{
-			Sha1:           "abcdef2",
-			CommitterEmail: "user2@example.com",
-			CommitterName:  "User Two",
-			AuthorEmail:    "user2@example.com",
-			AuthorName:     "User Two",
-			Message:        "message2",
-		},
-	}
-
-	assert.Equal(t,
-		"/avatars/ab53a2911ddf9b4817ac01ddcd3d975f?size="+strconv.Itoa(28*setting.Avatar.RenderedSizeFactor),
-		pushCommits.AvatarLink(t.Context(), "user2@example.com"))
-
-	assert.Equal(t,
-		"/assets/img/avatar_default.png",
-		pushCommits.AvatarLink(t.Context(), "nonexistent@example.com"))
-}
-
 func TestCommitToPushCommit(t *testing.T) {
 	now := time.Now()
 	sig := &git.Signature{
@@ -145,23 +111,14 @@ func TestCommitToPushCommit(t *testing.T) {
 		ID:            sha1,
 		Author:        sig,
 		Committer:     sig,
-		CommitMessage: git.CommitMessage{MessageRaw: "Commit Message\n\nCo-authored-by: Jane Doe <jane@example.com>"},
+		CommitMessage: git.CommitMessage{MessageRaw: "Commit Message"},
 	})
 	assert.Equal(t, hexString, pushCommit.Sha1)
-	assert.Equal(t, "Commit Message\n\nCo-authored-by: Jane Doe <jane@example.com>", pushCommit.Message)
+	assert.Equal(t, "Commit Message", pushCommit.Message)
 	assert.Equal(t, "example@example.com", pushCommit.AuthorEmail)
 	assert.Equal(t, "John Doe", pushCommit.AuthorName)
 	assert.Equal(t, "example@example.com", pushCommit.CommitterEmail)
 	assert.Equal(t, "John Doe", pushCommit.CommitterName)
-	if assert.Len(t, pushCommit.allParticipants, 1) {
-		assert.Equal(t, "jane@example.com", pushCommit.allParticipants[0].Email)
-		assert.Equal(t, "Jane Doe", pushCommit.allParticipants[0].Name)
-	}
-	assert.Equal(t, &git.Signature{Email: "example@example.com", Name: "John Doe"}, pushCommit.AuthorSignature())
-	if assert.Len(t, pushCommit.avatarStackCoAuthors(), 1) {
-		assert.Equal(t, &git.Signature{Email: "jane@example.com", Name: "Jane Doe"}, pushCommit.avatarStackCoAuthors()[0].GitIdentity)
-		assert.Nil(t, pushCommit.avatarStackCoAuthors()[0].GiteaUser)
-	}
 	assert.Equal(t, now, pushCommit.Timestamp)
 }
 

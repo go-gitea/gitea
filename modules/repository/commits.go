@@ -19,15 +19,13 @@ import (
 // PushCommit represents a commit in a push operation.
 // This struct is marshaled as JSON (see ActionContent2Commits)
 type PushCommit struct {
-	Sha1    string
-	Message string
-
-	AuthorEmail string
-	AuthorName  string
-	Timestamp   time.Time // author's time
-
+	Sha1           string
+	Message        string
+	AuthorEmail    string
+	AuthorName     string
 	CommitterEmail string
 	CommitterName  string
+	Timestamp      time.Time
 }
 
 // PushCommits represents list of commits in a push operation.
