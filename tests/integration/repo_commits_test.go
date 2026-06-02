@@ -56,7 +56,7 @@ func TestRepoCommits(t *testing.T) {
 		commitHref := doc.doc.Find(".latest-commit .commit-id-short").AttrOr("href", "")
 		authorHref := doc.doc.Find(".latest-commit .avatar-stack-names a").AttrOr("href", "")
 		assert.Equal(t, "/user2/repo16/commit/69554a64c1e6030f051e5c3f94bfbd773cd6a324", commitHref)
-		assert.Equal(t, "/user2/repo16/commits/branch/master/search?q=author%3Auser2%40example.com", authorHref)
+		assert.Equal(t, "/user2", authorHref)
 	})
 
 	t.Run("CommitListNonExistingCommiter", func(t *testing.T) {

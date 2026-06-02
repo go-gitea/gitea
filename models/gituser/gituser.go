@@ -5,6 +5,7 @@ package gituser
 
 import (
 	"context"
+	"net/url"
 
 	"gitea.dev/models/user"
 	"gitea.dev/modules/container"
@@ -51,7 +52,7 @@ func GetUserCommitsByGitCommits(ctx context.Context, gitCommits []*git.Commit, r
 		userCommits = append(userCommits, uc)
 		curRefWebLinkPath := currentRef.RefWebLinkPath()
 		if curRefWebLinkPath != "" {
-			uc.AvatarStackData.SearchByEmailLink = repoLink + "/commits/" + curRefWebLinkPath + "/search?q=author:{email}"
+			uc.AvatarStackData.SearchByEmailLink = repoLink + "/commits/" + curRefWebLinkPath + "/search?q=" + url.QueryEscape("author:") + "{email}"
 		}
 	}
 	return userCommits, nil
