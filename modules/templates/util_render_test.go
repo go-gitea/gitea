@@ -18,20 +18,11 @@ import (
 	"gitea.dev/modules/markup"
 	"gitea.dev/modules/reqctx"
 	"gitea.dev/modules/setting"
-	"gitea.dev/modules/setting/config"
 	"gitea.dev/modules/test"
 	"gitea.dev/modules/translation"
 
 	"github.com/stretchr/testify/assert"
 )
-
-type stubDynGetter struct{}
-
-func (stubDynGetter) GetValue(ctx context.Context, key string) (string, bool) {
-	return "", false
-}
-func (stubDynGetter) GetRevision(ctx context.Context) int { return 0 }
-func (stubDynGetter) InvalidateCache()                    {}
 
 func testInput() string {
 	s := `  space @mention-user<SPACE><SPACE>
@@ -65,9 +56,6 @@ func TestMain(m *testing.M) {
 			return username == "mention-user"
 		},
 	})
-	if config.GetDynGetter() == nil {
-		config.SetDynGetter(stubDynGetter{})
-	}
 	os.Exit(m.Run())
 }
 

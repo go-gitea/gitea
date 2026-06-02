@@ -222,7 +222,7 @@ func processBlameParts(ctx *context.Context, blameParts []*gitrepo.BlamePart) ma
 	return commitNames
 }
 
-func fillFirstBlameRow(ctx *context.Context, repoLink string, part *gitrepo.BlamePart, commit *gituser.UserCommit, br *blameRow) {
+func renderBlameFillFirstBlameRow(ctx *context.Context, repoLink string, part *gitrepo.BlamePart, commit *gituser.UserCommit, br *blameRow) {
 	br.AvatarStackData = gituser.BuildAvatarStackData(ctx, commit.GitCommit.AllParticipantIdentities(), nil)
 	br.PreviousSha = part.PreviousSha
 	br.PreviousShaURL = fmt.Sprintf("%s/blame/commit/%s/%s", repoLink, url.PathEscape(part.PreviousSha), util.PathEscapeSegments(part.PreviousPath))
@@ -253,7 +253,7 @@ func renderBlame(ctx *context.Context, blameParts []*gitrepo.BlamePart, commitNa
 			}
 
 			if partLineIdx == 0 {
-				fillFirstBlameRow(ctx, ctx.Repo.RepoLink, part, commitNames[part.Sha], br)
+				renderBlameFillFirstBlameRow(ctx, ctx.Repo.RepoLink, part, commitNames[part.Sha], br)
 			}
 		}
 	}
