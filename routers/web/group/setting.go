@@ -24,7 +24,6 @@ import (
 	"gitea.dev/services/forms"
 	group_service "gitea.dev/services/group"
 	repo_service "gitea.dev/services/repository"
-	user_service "gitea.dev/services/user"
 )
 
 const (
@@ -171,13 +170,7 @@ func SettingsAvatar(ctx *context.Context) {
 
 // SettingsDeleteAvatar response for delete avatar on settings page
 func SettingsDeleteAvatar(ctx *context.Context) {
-	u := ctx.ContextUser
-
-	if ctx.Org.Organization != nil {
-		u = ctx.Org.Organization.AsUser()
-	}
-
-	if err := user_service.DeleteAvatar(ctx, u); err != nil {
+	if err := group_service.DeleteAvatar(ctx, ctx.RepoGroup.Group); err != nil {
 		ctx.Flash.Error(err.Error())
 	}
 
