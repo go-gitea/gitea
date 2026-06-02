@@ -8,7 +8,7 @@
 			{{range $s := .AvatarStackScenarios}}
 				<tr>
 					<td>{{$s.Label}}</td>
-					<td>{{ctx.RenderUtils.AvatarStackWithNames $s.Data "" ""}}</td>
+					<td>{{ctx.RenderUtils.AvatarStackWithNames $s.Data}}</td>
 				</tr>
 			{{end}}
 			</tbody>

@@ -14,7 +14,8 @@ import (
 // AvatarStackData is the view-model for the AvatarStack render helpers. Participants[0] is
 // the primary participant (commit author), painted on top; the rest follow.
 type AvatarStackData struct {
-	Participants []*CommitParticipant
+	Participants      []*CommitParticipant
+	SearchByEmailLink string
 }
 
 func BuildAvatarStackData(ctx context.Context, allParticipants []*git.CommitIdentity, emailUserMap *user.EmailUserMap) *AvatarStackData {

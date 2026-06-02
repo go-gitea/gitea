@@ -11,19 +11,19 @@ import (
 // CommitParticipant is one participant of a commit (its author or a co-author):
 // a git identity, optionally matched to a Gitea user.
 type CommitParticipant struct {
+	GitIdentity *git.CommitIdentity // git identity (name/email), never nil
 	GiteaUser   *user.User          // matched Gitea user, nil if unmatched
-	GitIdentity *git.CommitIdentity // git identity (name/email)
 }
 
 // UserCommit represents a commit with matched of database "author" user.
 type UserCommit struct {
-	AuthorUser      *user.User
 	GitCommit       *git.Commit
+	AuthorUser      *user.User
 	AvatarStackData *AvatarStackData
 }
 
 // GetUserCommitsByGitCommits checks if authors' e-mails of commits are corresponding to users.
-func GetUserCommitsByGitCommits(ctx context.Context, gitCommits []*git.Commit) ([]*UserCommit, error) {
+func GetUserCommitsByGitCommits(ctx context.Context, gitCommits []*git.Commit, repoLink string, currentRef git.RefName) ([]*UserCommit, error) {
 	userCommits := make([]*UserCommit, 0, len(gitCommits))
 	emailSet := make(container.Set[string])
 	for _, c := range gitCommits {
@@ -40,11 +40,16 @@ func GetUserCommitsByGitCommits(ctx context.Context, gitCommits []*git.Commit) (
 	}
 
 	for _, c := range gitCommits {
-		userCommits = append(userCommits, &UserCommit{
-			AuthorUser: emailUserMap.GetByEmail(c.Author.Email), // FIXME: why GetUserCommitsByGitCommits uses "Author", but ParseCommitsWithSignature uses "Committer"?
-			GitCommit:  c,
+		uc := &UserCommit{
+			AuthorUser:      emailUserMap.GetByEmail(c.Author.Email), // FIXME: why GetUserCommitsByGitCommits uses "Author", but ParseCommitsWithSignature uses "Committer"?
+			GitCommit:       c,
 			AvatarStackData: BuildAvatarStackData(ctx, c.AllParticipantIdentities(), emailUserMap),
-		})
+		}
+		userCommits = append(userCommits, uc)
+		curRefWebLinkPath := currentRef.RefWebLinkPath()
+		if curRefWebLinkPath != "" {
+			uc.AvatarStackData.SearchByEmailLink = repoLink + "/" + curRefWebLinkPath + "?q=author:{email}"
+		}
 	}
 	return userCommits, nil
 }

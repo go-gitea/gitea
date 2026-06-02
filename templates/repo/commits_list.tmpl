@@ -16,7 +16,7 @@
 				{{$commitID := $gitCommit.ID.String}}
 				<tr>
 					<td class="author">
-						{{ctx.RenderUtils.AvatarStackWithNames $commit.AvatarStackData $.RepoLink $.RefTypeNameSubURL}}
+						{{ctx.RenderUtils.AvatarStackWithNames $commit.AvatarStackData}}
 					</td>
 					<td class="sha">
 						{{$commitBaseLink := ""}}

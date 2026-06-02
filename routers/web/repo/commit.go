@@ -452,7 +452,7 @@ func RawDiff(ctx *context.Context) {
 }
 
 func processGitCommits(ctx *context.Context, gitCommits []*git.Commit) ([]*git_model.SignCommitWithStatuses, error) {
-	commits, err := git_service.ConvertFromGitCommit(ctx, gitCommits, ctx.Repo.Repository)
+	commits, err := git_service.ConvertFromGitCommit(ctx, gitCommits, ctx.Repo.Repository, ctx.Repo.RefFullName)
 	if err != nil {
 		return nil, err
 	}
