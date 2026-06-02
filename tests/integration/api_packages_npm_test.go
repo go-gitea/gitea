@@ -381,6 +381,91 @@ func TestPackageNpm(t *testing.T) {
 		resp = MakeRequest(t, req, http.StatusOK)
 		result = DecodeJSON(t, resp, &npm.PackageMetadata{})
 		assert.Empty(t, result.Versions[packageVersion].Deprecated)
+
+		// Unknown versions are silently skipped (idempotent); the known
+		// version is still updated.
+		mixedBody := `{
+			"_id": "` + packageName + `",
+			"name": "` + packageName + `",
+			"versions": {
+				"` + packageVersion + `": {
+					"name": "` + packageName + `",
+					"version": "` + packageVersion + `",
+					"deprecated": "` + deprecationMessage + `"
+				},
+				"99.99.99": {
+					"name": "` + packageName + `",
+					"version": "99.99.99",
+					"deprecated": "ghost"
+				}
+			}
+		}`
+		req = NewRequestWithBody(t, "PUT", root, strings.NewReader(mixedBody)).
+			AddTokenAuth(token)
+		MakeRequest(t, req, http.StatusOK)
+
+		req = NewRequest(t, "GET", root).AddTokenAuth(token)
+		resp = MakeRequest(t, req, http.StatusOK)
+		result = DecodeJSON(t, resp, &npm.PackageMetadata{})
+		assert.Equal(t, deprecationMessage, result.Versions[packageVersion].Deprecated)
+		assert.NotContains(t, result.Versions, "99.99.99")
+
+		// Restore the cleared state for subsequent subtests.
+		req = NewRequestWithBody(t, "PUT", root, strings.NewReader(buildDeprecate(""))).
+			AddTokenAuth(token)
+		MakeRequest(t, req, http.StatusOK)
+
+		// A user who has no write access to the URL owner's packages must
+		// be rejected by reqPackageAccess before deprecatePackage runs.
+		otherUser := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 4})
+		otherToken := "Bearer " + getTokenForLoggedInUser(t, loginUser(t, otherUser.Name), auth_model.AccessTokenScopeWritePackage)
+		req = NewRequestWithBody(t, "PUT", root, strings.NewReader(buildDeprecate(deprecationMessage))).
+			AddTokenAuth(otherToken)
+		MakeRequest(t, req, http.StatusUnauthorized)
+	})
+
+	t.Run("UploadHasShrinkwrapClaim", func(t *testing.T) {
+		defer tests.PrintCurrentTest(t)()
+
+		// The tarball in `data` does not contain npm-shrinkwrap.json.
+		// Even when the client claims _hasShrinkwrap: true, the
+		// authoritative tarball scan must overrule the claim.
+		claimPackageName := "@scope/test-shrinkwrap-claim"
+		claimVersion := "1.0.0"
+		claimRoot := fmt.Sprintf("/api/packages/%s/npm/%s", user.Name, url.QueryEscape(claimPackageName))
+		body := `{
+			"_id": "` + claimPackageName + `",
+			"name": "` + claimPackageName + `",
+			"versions": {
+				"` + claimVersion + `": {
+					"name": "` + claimPackageName + `",
+					"version": "` + claimVersion + `",
+					"_hasShrinkwrap": true,
+					"dist": {
+						"integrity": "sha512-yA4FJsVhetynGfOC1jFf79BuS+jrHbm0fhh+aHzCQkOaOBXKf9oBnC4a6DnLLnEsHQDRLYd00cwj8sCXpC+wIg==",
+						"shasum": "aaa7eaf852a948b0aa05afeda35b1badca155d90"
+					}
+				}
+			},
+			"_attachments": {
+				"` + claimPackageName + `-` + claimVersion + `.tgz": {
+					"data": "` + data + `"
+				}
+			}
+		}`
+		req := NewRequestWithBody(t, "PUT", claimRoot, strings.NewReader(body)).
+			AddTokenAuth(token)
+		MakeRequest(t, req, http.StatusCreated)
+
+		req = NewRequest(t, "GET", claimRoot).AddTokenAuth(token)
+		resp := MakeRequest(t, req, http.StatusOK)
+		result := DecodeJSON(t, resp, &npm.PackageMetadata{})
+		require.Contains(t, result.Versions, claimVersion)
+		assert.False(t, result.Versions[claimVersion].HasShrinkwrap, "client-claimed _hasShrinkwrap must be overridden by tarball scan")
+
+		// Clean up so the subsequent Delete subtest's version counts match.
+		req = NewRequest(t, "DELETE", claimRoot+"/-rev/dummy").AddTokenAuth(token)
+		MakeRequest(t, req, http.StatusOK)
 	})
 
 	t.Run("Delete", func(t *testing.T) {
