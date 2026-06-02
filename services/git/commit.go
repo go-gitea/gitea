@@ -54,14 +54,14 @@ func ParseCommitsWithSignature(ctx context.Context, repo *repo_model.Repository,
 
 // ConvertFromGitCommit converts git commits into SignCommitWithStatuses
 func ConvertFromGitCommit(ctx context.Context, commits []*git.Commit, repo *repo_model.Repository) ([]*git_model.SignCommitWithStatuses, error) {
-	validatedCommits, err := gituser.GetUserCommitsByGitCommits(ctx, commits)
+	userCommits, err := gituser.GetUserCommitsByGitCommits(ctx, commits)
 	if err != nil {
 		return nil, err
 	}
 	signedCommits, err := ParseCommitsWithSignature(
 		ctx,
 		repo,
-		validatedCommits,
+		userCommits,
 		repo.GetTrustModel(),
 	)
 	if err != nil {

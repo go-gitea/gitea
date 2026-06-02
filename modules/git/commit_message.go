@@ -126,7 +126,7 @@ func (c *CommitMessage) parseCoAuthorSignatures() []*CommitIdentity {
 	return c.coAuthors
 }
 
-// AllParticipantIdentities returns all the participants in the commit
+// AllParticipantIdentities returns all the participants in the commit, the first one is the commit's author
 func (c *Commit) AllParticipantIdentities() (out []*CommitIdentity) {
 	exclude := container.Set[string]{}
 	if c.Author.Name != "" || c.Author.Email != "" {

@@ -154,10 +154,10 @@
 				{{end}}
 			</div>
 
-			{{if .AllCommitParticipants}}
+			{{if .CommitOtherParticipants}}
 				<div class="flex-text-inline">
 					<span class="tw-text-text-light">{{ctx.Locale.Tr "repo.diff.coauthored_by"}}</span>
-					{{range $participant := .AllCommitParticipants}}
+					{{range $participant := .CommitOtherParticipants}}
 						{{$user := $participant.GiteaUser}}
 						{{$gitIdentity := $participant.GitIdentity}}
 						{{if $user}}

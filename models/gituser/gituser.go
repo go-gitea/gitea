@@ -17,8 +17,9 @@ type CommitParticipant struct {
 
 // UserCommit represents a commit with matched of database "author" user.
 type UserCommit struct {
-	AuthorUser *user.User
-	GitCommit  *git.Commit
+	AuthorUser      *user.User
+	GitCommit       *git.Commit
+	AvatarStackData *AvatarStackData
 }
 
 // GetUserCommitsByGitCommits checks if authors' e-mails of commits are corresponding to users.
@@ -26,8 +27,10 @@ func GetUserCommitsByGitCommits(ctx context.Context, gitCommits []*git.Commit) (
 	userCommits := make([]*UserCommit, 0, len(gitCommits))
 	emailSet := make(container.Set[string])
 	for _, c := range gitCommits {
-		if c.Author != nil {
-			emailSet.Add(c.Author.Email)
+		emailSet.Add(c.Author.Email)
+		emailSet.Add(c.Committer.Email)
+		for _, p := range c.AllParticipantIdentities() {
+			emailSet.Add(p.Email)
 		}
 	}
 
@@ -40,12 +43,8 @@ func GetUserCommitsByGitCommits(ctx context.Context, gitCommits []*git.Commit) (
 		userCommits = append(userCommits, &UserCommit{
 			AuthorUser: emailUserMap.GetByEmail(c.Author.Email), // FIXME: why GetUserCommitsByGitCommits uses "Author", but ParseCommitsWithSignature uses "Committer"?
 			GitCommit:  c,
+			AvatarStackData: BuildAvatarStackData(ctx, c.AllParticipantIdentities(), emailUserMap),
 		})
 	}
 	return userCommits, nil
-}
-
-// AvatarStackData returns the view-model for rendering this commit's author + co-authors.
-func (uc *UserCommit) AvatarStackData(ctx context.Context) *AvatarStackData {
-	return BuildAvatarStackData(ctx, uc.GitCommit.AllParticipantIdentities(), nil)
 }

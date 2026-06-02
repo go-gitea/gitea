@@ -210,12 +210,12 @@ func processBlameParts(ctx *context.Context, blameParts []*gitrepo.BlamePart) ma
 	}
 
 	// populate commit email addresses to later look up avatars.
-	validatedCommits, err := gituser.GetUserCommitsByGitCommits(ctx, commits)
+	userCommits, err := gituser.GetUserCommitsByGitCommits(ctx, commits)
 	if err != nil {
 		ctx.ServerError("GetUserCommitsByGitCommits", err)
 		return nil
 	}
-	for _, c := range validatedCommits {
+	for _, c := range userCommits {
 		commitNames[c.GitCommit.ID.String()] = c
 	}
 
