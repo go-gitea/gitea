@@ -19,6 +19,8 @@ import (
 	"gitea.dev/modules/timeutil"
 	git_service "gitea.dev/services/git"
 	notify_service "gitea.dev/services/notify"
+
+	"xorm.io/builder"
 )
 
 // CreateRefComment creates a commit reference comment to issue.
@@ -34,10 +36,10 @@ func CreateRefComment(ctx context.Context, doer *user_model.User, repo *repo_mod
 	}
 
 	// Check if same reference from same commit has already existed.
-	has, err := db.GetEngine(ctx).Get(&issues_model.Comment{
-		Type:      issues_model.CommentTypeCommitRef,
-		IssueID:   issue.ID,
-		CommitSHA: commitSHA,
+	has, err := db.Exist[issues_model.Comment](ctx, builder.Eq{
+		"`type`":     issues_model.CommentTypeCommitRef,
+		"issue_id":   issue.ID,
+		"commit_sha": commitSHA,
 	})
 	if err != nil {
 		return fmt.Errorf("check reference comment: %w", err)

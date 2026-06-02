@@ -21,6 +21,8 @@ import (
 	"gitea.dev/modules/timeutil"
 	"gitea.dev/modules/util"
 	webhook_module "gitea.dev/modules/webhook"
+ 
+	"xorm.io/builder"
 )
 
 // ActionRun represents a run of a workflow file
@@ -264,11 +266,7 @@ func GetRunByRepoAndID(ctx context.Context, repoID, runID int64) (*ActionRun, er
 }
 
 func GetRunByRepoAndIndex(ctx context.Context, repoID, runIndex int64) (*ActionRun, error) {
-	run := &ActionRun{
-		RepoID: repoID,
-		Index:  runIndex,
-	}
-	has, err := db.GetEngine(ctx).Get(run)
+	run, has, err := db.Get[ActionRun](ctx, builder.Eq{"repo_id": repoID, "index": runIndex})
 	if err != nil {
 		return nil, err
 	} else if !has {
@@ -279,9 +277,7 @@ func GetRunByRepoAndIndex(ctx context.Context, repoID, runIndex int64) (*ActionR
 }
 
 func GetLatestRun(ctx context.Context, repoID int64) (*ActionRun, error) {
-	run := &ActionRun{
-		RepoID: repoID,
-	}
+	run := &ActionRun{}
 	has, err := db.GetEngine(ctx).Where("repo_id=?", repoID).Desc("index").Get(run)
 	if err != nil {
 		return nil, err

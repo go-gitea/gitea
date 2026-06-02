@@ -68,13 +68,12 @@ func UpdateProperty(ctx context.Context, pp *PackageProperty) error {
 }
 
 func InsertOrUpdateProperty(ctx context.Context, refType PropertyType, refID int64, name, value string) error {
-	pp := PackageProperty{RefType: refType, RefID: refID, Name: name}
-	ok, err := db.GetEngine(ctx).Get(&pp)
+	pp, ok, err := db.Get[PackageProperty](ctx, builder.Eq{"ref_type": refType, "ref_id": refID, "name": name})
 	if err != nil {
 		return err
 	}
 	if ok {
-		_, err = db.GetEngine(ctx).Where("ref_type=? AND ref_id=? AND name=?", refType, refID, name).Cols("value").Update(&PackageProperty{Value: value})
+		_, err = db.GetEngine(ctx).ID(pp.ID).Cols("value").Update(&PackageProperty{Value: value})
 		return err
 	}
 	_, err = InsertProperty(ctx, refType, refID, name, value)

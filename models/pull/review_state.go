@@ -11,6 +11,8 @@ import (
 	"gitea.dev/models/db"
 	"gitea.dev/modules/log"
 	"gitea.dev/modules/timeutil"
+
+	"xorm.io/builder"
 )
 
 // ViewedState stores for a file in which state it is currently viewed
@@ -66,9 +68,7 @@ func (rs *ReviewState) GetViewedFileCount() int {
 // If the review didn't exist before in the database, it won't afterwards either.
 // The returned boolean shows whether the review exists in the database
 func GetReviewState(ctx context.Context, userID, pullID int64, commitSHA string) (*ReviewState, bool, error) {
-	review := &ReviewState{UserID: userID, PullID: pullID, CommitSHA: commitSHA}
-	has, err := db.GetEngine(ctx).Get(review)
-	return review, has, err
+	return db.Get[ReviewState](ctx, builder.Eq{"user_id": userID, "pull_id": pullID, "commit_sha": commitSHA})
 }
 
 // UpdateReviewState updates the given review inside the database, regardless of whether it existed before or not

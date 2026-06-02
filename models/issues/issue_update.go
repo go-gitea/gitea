@@ -599,7 +599,7 @@ func ResolveIssueMentionsByVisibility(ctx context.Context, issue *Issue, doer *u
 					resolved[issue.Repo.Owner.LowerName+"/"+team.LowerName] = true
 					continue
 				}
-				has, err := db.GetEngine(ctx).Get(&organization.TeamUnit{OrgID: issue.Repo.Owner.ID, TeamID: team.ID, Type: unittype})
+				has, err := db.Exist[organization.TeamUnit](ctx, builder.Eq{"org_id": issue.Repo.Owner.ID, "team_id": team.ID, "type": unittype})
 				if err != nil {
 					return nil, fmt.Errorf("get team units (%d): %w", team.ID, err)
 				}

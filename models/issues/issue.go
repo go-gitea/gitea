@@ -361,8 +361,8 @@ func (issue *Issue) ResetAttributesLoaded() {
 
 // GetIsRead load the `IsRead` field of the issue
 func (issue *Issue) GetIsRead(ctx context.Context, userID int64) error {
-	issueUser := &IssueUser{IssueID: issue.ID, UID: userID}
-	if has, err := db.GetEngine(ctx).Get(issueUser); err != nil {
+	issueUser, has, err := db.Get[IssueUser](ctx, builder.Eq{"issue_id": issue.ID, "uid": userID})
+	if err != nil {
 		return err
 	} else if !has {
 		issue.IsRead = false
@@ -499,11 +499,7 @@ func GetIssueByIndex(ctx context.Context, repoID, index int64) (*Issue, error) {
 	if index < 1 {
 		return nil, ErrIssueNotExist{}
 	}
-	issue := &Issue{
-		RepoID: repoID,
-		Index:  index,
-	}
-	has, err := db.GetEngine(ctx).Get(issue)
+	issue, has, err := db.Get[Issue](ctx, builder.Eq{"repo_id": repoID, "index": index})
 	if err != nil {
 		return nil, err
 	} else if !has {

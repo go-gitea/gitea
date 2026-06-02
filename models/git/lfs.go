@@ -126,8 +126,7 @@ func GetLFSMetaObjectByOid(ctx context.Context, repoID int64, oid string) (*LFSM
 		return nil, ErrLFSObjectNotExist
 	}
 
-	m := &LFSMetaObject{Pointer: lfs.Pointer{Oid: oid}, RepositoryID: repoID}
-	has, err := db.GetEngine(ctx).Get(m)
+	m, has, err := db.Get[LFSMetaObject](ctx, builder.Eq{"repository_id": repoID, "oid": oid})
 	if err != nil {
 		return nil, err
 	} else if !has {
