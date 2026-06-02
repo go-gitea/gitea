@@ -1,4 +1,3 @@
-packages: [ . ] # workaround for https://github.com/SukkaW/nolyfill/issues/119
 savePrefix: ''
 dedupePeerDependents: false
 updateNotifier: false
@@ -7,9 +6,6 @@ minimumReleaseAge: 0
 peerDependencyRules:
   allowedVersions:
     eslint-plugin-github>eslint: '>=9'
-
-overrides:
-  number-is-nan: npm:@nolyfill/number-is-nan@^1
 
 allowBuilds:
   '@scarf/scarf': false
