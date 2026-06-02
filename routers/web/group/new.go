@@ -12,7 +12,6 @@ import (
 	user_model "gitea.dev/models/user"
 	"gitea.dev/modules/log"
 	"gitea.dev/modules/web"
-	shared_user "gitea.dev/routers/web/shared/user"
 	"gitea.dev/services/context"
 	"gitea.dev/services/forms"
 	group_service "gitea.dev/services/group"
@@ -35,10 +34,6 @@ func NewGroup(ctx *context.Context) {
 		ctx.Data["Group"] = &group_model.Group{}
 	}
 	ctx.Data["Units"] = unit_model.Units
-	if _, err := shared_user.RenderUserOrgHeader(ctx); err != nil {
-		ctx.ServerError("LoadHeaderCount", err)
-		return
-	}
 
 	opts := group_model.FindGroupsOptions{
 		ActorID: ctx.Doer.ID,
