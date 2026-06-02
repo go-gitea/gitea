@@ -63,6 +63,10 @@ func Settings(ctx *context.Context) {
 		},
 		ParentGroupID: -1,
 	}, cond)
+	if err != nil {
+		ctx.ServerError("FindGroupsByCond", err)
+		return
+	}
 	for _, g := range groups {
 		err = g.LoadAccessibleSubgroups(ctx, true, ctx.Doer, false)
 		if err != nil {
