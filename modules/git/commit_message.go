@@ -85,8 +85,7 @@ func CommitMessageSplitTrailer(s string) (content, sep, trailer string) {
 
 func CommitMessageParseTrailer(s string) CommitMessageTrailerValues {
 	ret := CommitMessageTrailerValues{}
-	lines := strings.Split(util.NormalizeStringEOL(s), "\n")
-	for _, line := range lines {
+	for line := range strings.SplitSeq(util.NormalizeStringEOL(s), "\n") {
 		k, v, ok := strings.Cut(line, ":")
 		if !ok {
 			continue
