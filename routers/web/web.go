@@ -512,10 +512,6 @@ func registerWebRoutes(m *web.Router, webAuth *AuthMiddleware) {
 
 	addUserOrgGroupRoutes := func() {
 		m.Group("/groups", func() {
-			m.Combo("/new").
-				Get(group.NewGroup).
-				Post(web.Bind(forms.CreateGroupForm{}), group.NewGroupPost)
-
 			m.Group("/{group_id}", func() {
 				m.Group("/settings", func() {
 					m.Combo("").
@@ -1094,6 +1090,13 @@ func registerWebRoutes(m *web.Router, webAuth *AuthMiddleware) {
 		}, context.OrgAssignment(context.OrgAssignmentOptions{RequireOwner: true}))
 	}, reqSignIn)
 	// end "/org": most org routes
+
+	m.Group("/group", func() {
+		m.Combo("/new").
+			Get(group.NewGroup).
+			Post(web.Bind(forms.CreateGroupForm{}), group.NewGroupPost)
+	}, reqSignIn)
+	// end "/group": creation
 
 	m.Group("/group", func() {
 		m.Get("/search", group.SearchGroup)
