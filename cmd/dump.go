@@ -162,9 +162,16 @@ func runDump(ctx context.Context, cmd *cli.Command) error {
 	if cmd.IsSet("skip-repository") && cmd.Bool("skip-repository") {
 		log.Info("Skip dumping local repositories")
 	} else {
-		log.Info("Dumping local repositories... %s", setting.RepoRootPath)
-		if err := dumper.AddRecursiveExclude("repos", setting.RepoRootPath, nil); err != nil {
-			fatal("Failed to include repositories: %v", err)
+		isExist, existErr := util.IsExist(setting.RepoRootPath)
+		if existErr != nil {
+			log.Error("Unable to check if %s exists. Error: %v", setting.RepoRootPath, existErr)
+		} else if !isExist {
+			log.Warn("Repository root path %s does not exist (no repositories created yet?), skip dumping local repositories", setting.RepoRootPath)
+		} else {
+			log.Info("Dumping local repositories... %s", setting.RepoRootPath)
+			if err := dumper.AddRecursiveExclude("repos", setting.RepoRootPath, nil); err != nil {
+				fatal("Failed to include repositories: %v", err)
+			}
 		}
 
 		if cmd.IsSet("skip-lfs-data") && cmd.Bool("skip-lfs-data") {
