@@ -50,7 +50,7 @@ func RefCommits(ctx *context.Context) {
 	switch {
 	case len(ctx.Repo.TreePath) == 0:
 		Commits(ctx)
-	case ctx.Repo.TreePath == "search":
+	case ctx.Repo.TreePath == "search": // FIXME: legacy dirty design, it conflicts with the FileHistory
 		SearchCommits(ctx)
 	default:
 		FileHistory(ctx)

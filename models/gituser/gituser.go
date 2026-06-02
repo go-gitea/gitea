@@ -51,7 +51,7 @@ func GetUserCommitsByGitCommits(ctx context.Context, gitCommits []*git.Commit, r
 		userCommits = append(userCommits, uc)
 		curRefWebLinkPath := currentRef.RefWebLinkPath()
 		if curRefWebLinkPath != "" {
-			uc.AvatarStackData.SearchByEmailLink = repoLink + "/" + curRefWebLinkPath + "?q=author:{email}"
+			uc.AvatarStackData.SearchByEmailLink = repoLink + "/commits/" + curRefWebLinkPath + "/search?q=author:{email}"
 		}
 	}
 	return userCommits, nil
