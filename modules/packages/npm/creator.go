@@ -391,6 +391,15 @@ type PackageDeprecation struct {
 // one version object with an explicit `deprecated` field. It does not validate
 // the rest of the document.
 func IsDeprecateRequest(body []byte) bool {
+	// Fast path: a deprecate request always carries a literal `"deprecated"`
+	// key on at least one version object; a normal publish does not. The
+	// substring check is O(n) memchr, orders of magnitude cheaper than a
+	// full json.Unmarshal of the (up to ~1 MiB) probe buffer that runs on
+	// every publish.
+	if !bytes.Contains(body, []byte(`"deprecated"`)) {
+		return false
+	}
+
 	var u struct {
 		Attachments map[string]*PackageAttachment `json:"_attachments"`
 		Versions    map[string]map[string]any     `json:"versions"`
