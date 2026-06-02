@@ -5,7 +5,9 @@ package git
 
 import (
 	"net/mail"
+	"regexp"
 	"strings"
+	"sync"
 
 	"gitea.dev/modules/charset"
 	"gitea.dev/modules/container"
@@ -18,9 +20,10 @@ const CoAuthoredByTrailer = "Co-authored-by"
 type CommitIdentity struct {
 	Name  string
 	Email string
-
-	ParticipantRole string
 }
+
+// CommitMessageTrailerValues keys are all in lower-case
+type CommitMessageTrailerValues map[string][]string
 
 type CommitMessage struct {
 	MessageRaw   string
@@ -28,11 +31,9 @@ type CommitMessage struct {
 	messageTitle *string
 	messageBody  *string
 
-	messageBodyContent *string
-	messageBodySep     *string
-	messageBodyTrailer *string
+	trailerValues CommitMessageTrailerValues
 
-	coAuthors []*CommitIdentity
+	allParticipants []*CommitIdentity
 }
 
 func (c *CommitMessage) MessageUTF8() string {
@@ -59,90 +60,73 @@ func (c *CommitMessage) MessageBody() string {
 	return *c.messageBody
 }
 
-// isTrailerLineShape reports whether the line matches `[A-Za-z0-9-]+:<non-empty>`
-// per `git interpret-trailers`.
-func isTrailerLineShape(line string) bool {
-	token, rest, ok := strings.Cut(line, ":")
-	if !ok || token == "" || strings.TrimSpace(rest) == "" {
-		return false
+func (c *CommitMessage) MessageTrailer() CommitMessageTrailerValues {
+	if c.trailerValues == nil {
+		_, _, trailer := CommitMessageSplitTrailer(c.MessageUTF8())
+		c.trailerValues = CommitMessageParseTrailer(trailer)
 	}
-	for _, r := range token {
-		if (r >= 'A' && r <= 'Z') || (r >= 'a' && r <= 'z') || (r >= '0' && r <= '9') || r == '-' {
-			continue
-		}
-		return false
-	}
-	return true
+	return c.trailerValues
 }
 
-// parseCoAuthorTrailer extracts a co-author from a `Co-authored-by:` trailer
-// (case-insensitive). Returns false on a malformed address.
-func parseCoAuthorTrailer(line string) (*CommitIdentity, bool) {
-	token, rest, ok := strings.Cut(line, ":")
-	if !ok {
-		return nil, false
+var commitMessageTrailerSplit = sync.OnceValue(func() *regexp.Regexp {
+	// the sep is either something like "\n---\n" or "\n\n" in the body, or at the start of the body like "---\n"
+	return regexp.MustCompile(`(?s)^(?P<content>.*?)(?P<sep>^|^\n|^-{3,}\n|\n-{3,}\n|\n\n)(?P<trailer>(?:[A-Za-z0-9][-A-Za-z0-9]*:[^\n]*\n?)*)$`)
+})
+
+func CommitMessageSplitTrailer(s string) (content, sep, trailer string) {
+	s = util.NormalizeStringEOL(s)
+	re := commitMessageTrailerSplit()
+	v := re.FindStringSubmatch(s)
+	if v == nil {
+		return s, "", ""
 	}
-	if !strings.EqualFold(token, CoAuthoredByTrailer) {
-		return nil, false
-	}
-	addr, err := mail.ParseAddress(strings.TrimSpace(rest))
-	if err != nil {
-		return nil, false
-	}
-	name := addr.Name
-	if name == "" {
-		name = addr.Address
-	}
-	return &CommitIdentity{Name: name, Email: addr.Address}, true
+	return v[re.SubexpIndex("content")], v[re.SubexpIndex("sep")], v[re.SubexpIndex("trailer")]
 }
 
-// parseCoAuthorSignatures parses `Co-authored-by:` trailers from the trailing
-// block of the commit message. Only the last paragraph is scanned (and it must
-// contain only trailer-shaped lines) so in-body occurrences inside a revert or
-// cherry-pick description are not misinterpreted as trailers.
-func (c *CommitMessage) parseCoAuthorSignatures() []*CommitIdentity {
-	if c.coAuthors != nil {
-		return c.coAuthors
-	}
-	body := strings.TrimRight(util.NormalizeStringEOL(c.MessageBody()), "\n")
-	if idx := strings.LastIndex(body, "\n\n"); idx >= 0 {
-		body = body[idx+2:]
-	}
-	c.coAuthors = []*CommitIdentity{}
-	seen := container.Set[string]{}
-	for line := range strings.SplitSeq(body, "\n") {
-		if !isTrailerLineShape(line) {
-			break
-		}
-		sig, ok := parseCoAuthorTrailer(line)
+func CommitMessageParseTrailer(s string) CommitMessageTrailerValues {
+	ret := CommitMessageTrailerValues{}
+	lines := strings.Split(util.NormalizeStringEOL(s), "\n")
+	for _, line := range lines {
+		k, v, ok := strings.Cut(line, ":")
 		if !ok {
 			continue
 		}
-		if !seen.Add(strings.ToLower(sig.Email)) {
-			continue
-		}
-		c.coAuthors = append(c.coAuthors, sig)
+		k, v = strings.TrimSpace(k), strings.TrimSpace(v)
+		kLower := strings.ToLower(k)
+		ret[kLower] = append(ret[kLower], v)
 	}
-	return c.coAuthors
+	return ret
 }
 
 // AllParticipantIdentities returns all the participants in the commit, the first one is the commit's author
-func (c *Commit) AllParticipantIdentities() (out []*CommitIdentity) {
+func (c *Commit) AllParticipantIdentities() []*CommitIdentity {
+	if c.allParticipants != nil {
+		return c.allParticipants
+	}
+
 	exclude := container.Set[string]{}
-	if c.Author.Name != "" || c.Author.Email != "" {
-		out = append(out, &CommitIdentity{Name: c.Author.Name, Email: c.Author.Email, ParticipantRole: "author"})
-		exclude.Add(strings.ToLower(c.Author.Email))
+	c.allParticipants = append(c.allParticipants, &CommitIdentity{Name: c.Author.Name, Email: c.Author.Email})
+	exclude.Add(strings.ToLower(c.Author.Email))
+
+	addParticipant := func(name, email string) {
+		if name == "" && email == "" {
+			return
+		}
+		emailLower := strings.ToLower(email)
+		if emailLower != "" && exclude.Contains(emailLower) {
+			return
+		}
+		c.allParticipants = append(c.allParticipants, &CommitIdentity{Name: name, Email: email})
+		exclude.Add(emailLower)
 	}
-	if c.Committer.Name != "" || c.Committer.Email != "" {
-		if !exclude.Contains(strings.ToLower(c.Committer.Email)) {
-			out = append(out, &CommitIdentity{Name: c.Committer.Name, Email: c.Committer.Email, ParticipantRole: "committer"})
-			exclude.Add(strings.ToLower(c.Committer.Email))
+	addParticipant(c.Committer.Name, c.Committer.Email)
+	for _, coAuthorValue := range c.MessageTrailer()["co-authored-by"] {
+		addr, err := mail.ParseAddress(coAuthorValue)
+		if err == nil {
+			addParticipant(addr.Name, addr.Address)
+		} else {
+			addParticipant(coAuthorValue, "")
 		}
 	}
-	for _, ca := range c.parseCoAuthorSignatures() {
-		if !exclude.Contains(strings.ToLower(ca.Email)) {
-			out = append(out, &CommitIdentity{Name: ca.Name, Email: ca.Email, ParticipantRole: "co-author"})
-		}
-	}
-	return out
+	return c.allParticipants
 }
