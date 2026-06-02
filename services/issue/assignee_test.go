@@ -64,7 +64,7 @@ func TestAddAssigneeIfNotAssignedBlocked(t *testing.T) {
 		BlockeeID: doer.ID,
 	}))
 
-	_, err = AddAssigneeIfNotAssigned(t.Context(), issue, doer, assignee.ID, false)
+	_, err = AddAssigneeIfNotAssigned(t.Context(), issue, doer, assignee)
 	assert.ErrorIs(t, err, user_model.ErrBlockedUser)
 
 	isAssigned, err := issues_model.IsUserAssignedToIssue(t.Context(), issue, assignee.ID)
