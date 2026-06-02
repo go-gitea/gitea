@@ -2,7 +2,8 @@ import {createSortable} from '../modules/sortable.ts';
 import Sortable, {type SortableEvent, type SortableOptions} from 'sortablejs';
 import {POST} from '../modules/fetch.ts';
 import {toggleElem} from '../utils/dom.ts';
-import { initGroupSelector } from './repo-new.ts'
+import {initGroupSelector} from './repo-new.ts';
+
 export function initCommonGroup() {
   if (!document.querySelectorAll('.group').length) {
     return;
