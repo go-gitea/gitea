@@ -11,6 +11,7 @@ import (
 	"strings"
 	"time"
 
+	runnerv1 "gitea.dev/actions-proto-go/runner/v1"
 	auth_model "gitea.dev/models/auth"
 	"gitea.dev/models/db"
 	"gitea.dev/models/unit"
@@ -20,7 +21,6 @@ import (
 	"gitea.dev/modules/timeutil"
 	"gitea.dev/modules/util"
 
-	runnerv1 "code.gitea.io/actions-proto-go/runner/v1"
 	lru "github.com/hashicorp/golang-lru/v2"
 	"google.golang.org/protobuf/types/known/timestamppb"
 	"xorm.io/builder"
@@ -249,7 +249,7 @@ func CreateTaskForRunner(ctx context.Context, runner *ActionRunner) (*ActionTask
 	}
 
 	var jobs []*ActionRunJob
-	if err := e.Where("task_id=? AND status=?", 0, StatusWaiting).And(jobCond).Asc("updated", "id").Find(&jobs); err != nil {
+	if err := e.Where("task_id=? AND status=? AND is_reusable_caller=?", 0, StatusWaiting, false).And(jobCond).Asc("updated", "id").Find(&jobs); err != nil {
 		return nil, false, err
 	}
 
@@ -390,7 +390,7 @@ func UpdateTaskByState(ctx context.Context, runnerID int64, state *runnerv1.Task
 				RepoID:  task.RepoID,
 				Status:  task.Status,
 				Stopped: task.Stopped,
-			}, nil); err != nil {
+			}, nil, "status", "stopped"); err != nil {
 				return nil, err
 			}
 		} else {

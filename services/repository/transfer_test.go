@@ -133,6 +133,8 @@ func TestRepositoryTransferRejection(t *testing.T) {
 	require.NoError(t, unittest.PrepareTestDatabase())
 	// Set limit to 0 repositories so no repositories can be transferred
 	defer test.MockVariableValue(&setting.Repository.MaxCreationLimit, 0)()
+	defer test.MockVariableValue(&setting.Repository.UserMaxCreationLimit, 0)()
+	defer test.MockVariableValue(&setting.Repository.OrgMaxCreationLimit, 0)()
 
 	// Admin case
 	doerAdmin := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 1})

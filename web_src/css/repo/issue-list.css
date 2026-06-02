@@ -39,6 +39,7 @@
   font-weight: var(--font-weight-semibold);
   color: var(--color-text);
   text-decoration: none;
+  overflow-wrap: anywhere;
 }
 
 #issue-list .branches {

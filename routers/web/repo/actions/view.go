@@ -14,6 +14,7 @@ import (
 	"net/http"
 	"net/url"
 	"strconv"
+	"strings"
 	"time"
 
 	actions_model "gitea.dev/models/actions"
@@ -206,6 +207,16 @@ func View(ctx *context_module.Context) {
 	jobID := ctx.PathParamInt64("job")
 	ctx.Data["JobID"] = jobID // it can be 0 when no job (e.g.: run summary view)
 
+	// Browser tab title, ordered most-specific → least-specific so narrow tabs keep the useful part.
+	// Separator matches the " - " used by head.tmpl when joining to PageTitleCommon.
+	titleParts := []string{run.Title, run.WorkflowID}
+	if jobID > 0 {
+		if job, err := actions_model.GetRunJobByRunAndID(ctx, run.ID, jobID); err == nil && job.Name != "" {
+			titleParts = append([]string{job.Name}, titleParts...)
+		}
+	}
+	ctx.Data["Title"] = strings.Join(titleParts, " - ")
+
 	attemptNum := ctx.PathParamInt64("attempt")
 
 	// ActionsViewURL is the endpoint for viewing a run (job summary), a job, or a job attempt.
@@ -320,6 +331,12 @@ type ViewJob struct {
 	CanRerun bool     `json:"canRerun"`
 	Duration string   `json:"duration"`
 	Needs    []string `json:"needs,omitempty"`
+
+	ParentJobID int64 `json:"parentJobID"`
+
+	// Reusable workflow caller fields. Zero/empty for non-caller jobs.
+	IsReusableCaller bool   `json:"isReusableCaller"`
+	CallUses         string `json:"callUses,omitempty"`
 }
 
 type ViewRunAttempt struct {
@@ -447,6 +464,10 @@ func fillViewRunResponseSummary(ctx *context_module.Context, resp *ViewResponse,
 			CanRerun: resp.State.Run.CanRerun,
 			Duration: v.Duration().String(),
 			Needs:    v.Needs,
+
+			IsReusableCaller: v.IsReusableCaller,
+			ParentJobID:      v.ParentJobID,
+			CallUses:         v.CallUses,
 		})
 	}
 
