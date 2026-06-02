@@ -8,6 +8,7 @@ import (
 
 	"gitea.dev/models/db"
 	group_model "gitea.dev/models/group"
+	"gitea.dev/models/organization"
 	unit_model "gitea.dev/models/unit"
 	user_model "gitea.dev/models/user"
 	"gitea.dev/modules/log"
@@ -34,6 +35,19 @@ func NewGroup(ctx *context.Context) {
 		ctx.Data["Group"] = &group_model.Group{}
 	}
 	ctx.Data["Units"] = unit_model.Units
+	orgs, err := organization.GetOrgsCanCreateRepoByUserID(ctx, ctx.Doer.ID)
+	if err != nil {
+		ctx.ServerError("GetOrgsCanCreateRepoByUserID", err)
+		return
+	}
+
+	var orgsAvailable []*organization.Organization
+	for i := range orgs {
+		if ctx.Doer.CanCreateRepoIn(orgs[i].AsUser()) {
+			orgsAvailable = append(orgsAvailable, orgs[i])
+		}
+	}
+	ctx.Data["Orgs"] = orgsAvailable
 
 	opts := group_model.FindGroupsOptions{
 		ActorID: ctx.Doer.ID,
