@@ -252,11 +252,6 @@ func newFakeOIDCServer(t *testing.T, cfg FakeOIDCConfig) *httptest.Server {
 			})
 		case "/userinfo":
 			// sub MUST match the id_token sub; goth rejects mismatches.
-			_ = json.NewEncoder(w).Encode(map[string]any{
-				"sub":   cfg.Sub,
-				"email": cfg.Email,
-				"name":  cfg.Name,
-			})
 			response := map[string]any{
 				"sub":   cfg.Sub,
 				"email": cfg.Email,
