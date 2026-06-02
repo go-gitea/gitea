@@ -92,7 +92,7 @@ func NewGroupPost(ctx *context.Context) {
 		return
 	}
 
-	if err := group_service.NewGroup(ctx, g); err != nil {
+	if err := group_service.NewGroup(ctx, g, ctx.Doer); err != nil {
 		ctx.Data["Err_GroupName"] = true
 		ctx.ServerError("NewGroup", err)
 		return
