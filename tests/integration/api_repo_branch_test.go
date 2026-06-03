@@ -137,13 +137,14 @@ func TestAPIRepoBranchesSearch(t *testing.T) {
 	// "test" matches "test_branch" but not "master"
 	req := NewRequestf(t, "GET", "/api/v1/repos/org3/repo3/branches?q=test").AddTokenAuth(token)
 	resp := MakeRequest(t, req, http.StatusOK)
-	branches := DecodeJSON(t, resp, &[]*api.Branch{})
+	var branches []*api.Branch
+	DecodeJSON(t, resp, &branches)
 	assert.Len(t, branches, 1)
 	assert.Equal(t, "test_branch", branches[0].Name)
 
 	// no match returns empty list
 	req = NewRequestf(t, "GET", "/api/v1/repos/org3/repo3/branches?q=doesnotexist").AddTokenAuth(token)
 	resp = MakeRequest(t, req, http.StatusOK)
-	branches = DecodeJSON(t, resp, &[]*api.Branch{})
+	DecodeJSON(t, resp, &branches)
 	assert.Empty(t, branches)
 }
