@@ -1,7 +1,7 @@
 <div class="ui top attached header flex-left-right">
 	<div class="flex-text-block">
 		{{if .Commits}}
-			{{if gt .CommitCount 0}}{{.CommitCount}}{{end}}
+			{{if gt .CommitCount 0}}{{.CommitCount}}{{end}}{{/* CommitCount is -1 when "follow rename" */}}
 			{{ctx.Locale.Tr "repo.commits.commits"}}
 		{{else if .IsNothingToCompare}}
 			{{ctx.Locale.Tr "repo.commits.nothing_to_compare"}}
@@ -38,7 +38,7 @@
 	</div>
 {{end}}
 
-{{if.Commits}}
+{{if .Commits}}
 	{{template "repo/commits_list" .}}
 {{end}}
 
