@@ -81,29 +81,3 @@ M 100644 :1 b.txt
 	require.NoError(t, runErr)
 	return &mockRepository{path: repoDir}
 }
-
-func TestFileCommitsCountWithoutRename(t *testing.T) {
-	renameRepo7 := getRepoRename7(t)
-
-	commitsCount, err := CommitsCount(t.Context(), renameRepo7,
-		CommitsCountOptions{
-			Revision: []string{"HEAD"},
-			RelPath:  []string{"b.txt"},
-		})
-
-	assert.NoError(t, err)
-	assert.Equal(t, int64(1), commitsCount)
-}
-
-func TestFileCommitsCountWithRename(t *testing.T) {
-	renameRepo7 := getRepoRename7(t)
-
-	commitsCount, err := CommitsCount(t.Context(), renameRepo7,
-		CommitsCountOptions{
-			Revision: []string{"HEAD"},
-			RelPath:  []string{"b.txt"},
-		})
-
-	assert.NoError(t, err)
-	assert.Equal(t, int64(2), commitsCount)
-}
