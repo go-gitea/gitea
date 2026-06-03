@@ -22,7 +22,7 @@ require (
 	github.com/Necoro/html2text v0.0.0-20250804200300-7bf1ce1c7347
 	github.com/ProtonMail/go-crypto v1.4.1
 	github.com/PuerkitoBio/goquery v1.12.0
-	github.com/SaveTheRbtz/zstd-seekable-format-go/pkg v0.8.3
+	github.com/SaveTheRbtz/zstd-seekable-format-go/pkg v0.10.0-rc.1
 	github.com/alecthomas/chroma/v2 v2.25.0
 	github.com/aws/aws-sdk-go-v2/credentials v1.19.16
 	github.com/aws/aws-sdk-go-v2/service/codecommit v1.33.14
