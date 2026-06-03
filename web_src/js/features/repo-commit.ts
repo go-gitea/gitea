@@ -27,9 +27,8 @@ export function initCommitStatuses() {
 
 export function initCommitFileHistoryFollowRename() {
   registerGlobalInitFunc('initCommitHistoryFollowRename', (el: HTMLInputElement) => {
-    const url = new URL(window.location.toString());
-    el.checked = url.searchParams.get('follow-rename') === 'true';
     el.addEventListener('change', () => {
+      const url = new URL(window.location.toString());
       url.searchParams.set('follow-rename', `${el.checked}`);
       window.location.assign(url.toString());
     });

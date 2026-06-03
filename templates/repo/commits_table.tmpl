@@ -12,7 +12,7 @@
 	<div class="flex-text-block">
 		{{if .ShowFollowRename}}
 		<div class="ui checkbox">
-			<input type="checkbox" data-global-init="initCommitHistoryFollowRename">
+			<input type="checkbox" {{if .FollowRenameChecked}}checked{{end}} data-global-init="initCommitHistoryFollowRename">
 			<label>{{ctx.Locale.Tr "repo.commits.history_enable_follow_renames"}}</label>
 		</div>
 		{{end}}

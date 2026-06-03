@@ -209,15 +209,14 @@ func SearchCommits(ctx *context.Context) {
 
 // FileHistory show a file's reversions
 func FileHistory(ctx *context.Context) {
-	followRename := ctx.FormBool("follow-rename")
-	ctx.Data["ShowFollowRename"] = true
-
 	if ctx.Repo.TreePath == "" {
 		Commits(ctx)
 		return
 	}
 
-	var commitsCount int64
+	followRename := ctx.FormBool("follow-rename")
+	ctx.Data["ShowFollowRename"] = true
+	ctx.Data["FollowRenameChecked"] = followRename
 
 	page := max(ctx.FormInt("page"), 1)
 	commits, hasMore, err := ctx.Repo.GitRepo.CommitsByFileAndRange(
@@ -232,6 +231,7 @@ func FileHistory(ctx *context.Context) {
 		return
 	}
 
+	var commitsCount int64
 	if followRename {
 		// there is no quick method to know the total count when "follow rename"
 		commitsCount = util.Iif[int64](hasMore, -1, 0)
@@ -247,14 +247,13 @@ func FileHistory(ctx *context.Context) {
 		}
 	}
 
+	ctx.Data["FileTreePath"] = ctx.Repo.TreePath
+	ctx.Data["CommitCount"] = commitsCount
 	ctx.Data["Commits"], err = processGitCommits(ctx, commits)
 	if err != nil {
 		ctx.ServerError("processGitCommits", err)
 		return
 	}
-
-	ctx.Data["FileTreePath"] = ctx.Repo.TreePath
-	ctx.Data["CommitCount"] = commitsCount
 
 	pager := context.NewPagination(commitsCount, setting.Git.CommitsRangeSize, page, 5)
 	pager.AddParamFromRequest(ctx.Req)
