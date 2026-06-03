@@ -51,9 +51,9 @@ func GetSSHKeypairForURL(ctx context.Context, repo *repo_model.Repository, url s
 	return ssh_module.GetSSHKeypairForURL(ctx, repo, url)
 }
 
-// SetupMirrorSSHAgent prepares SSH key-based authentication for a mirror or
+// SetupManagedSSHAgent prepares SSH key-based authentication for a mirror or
 // migration git operation against url on behalf of repo. The returned cleanup
 // is never nil and must always be called by the caller (typically via defer).
-func SetupMirrorSSHAgent(ctx context.Context, repo *repo_model.Repository, url string) (string, func(), error) {
-	return ssh_module.SetupMirrorSSHAgent(ctx, repo, url)
+func SetupManagedSSHAgent(ctx context.Context, repo *repo_model.Repository, url string) (string, func(), error) {
+	return ssh_module.SetupManagedSSHAgent(ctx, repo, url)
 }

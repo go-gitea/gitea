@@ -11,9 +11,9 @@ import (
 	mirror_service "gitea.dev/services/mirror"
 )
 
-// GetMirrorSSHKey gets the SSH public key for organization mirroring
-func GetMirrorSSHKey(ctx *context.APIContext) {
-	// swagger:operation GET /orgs/{org}/mirror-ssh-key organization orgGetMirrorSSHKey
+// GetManagedSSHKey gets the SSH public key for organization mirroring
+func GetManagedSSHKey(ctx *context.APIContext) {
+	// swagger:operation GET /orgs/{org}/managed-ssh-key organization orgGetManagedSSHKey
 	// ---
 	// summary: Get SSH public key for organization mirroring
 	// produces:
@@ -55,9 +55,9 @@ func GetMirrorSSHKey(ctx *context.APIContext) {
 	})
 }
 
-// RegenerateMirrorSSHKey regenerates the SSH keypair for organization mirroring
-func RegenerateMirrorSSHKey(ctx *context.APIContext) {
-	// swagger:operation POST /orgs/{org}/mirror-ssh-key/regenerate organization orgRegenerateMirrorSSHKey
+// RegenerateManagedSSHKey regenerates the SSH keypair for organization mirroring
+func RegenerateManagedSSHKey(ctx *context.APIContext) {
+	// swagger:operation POST /orgs/{org}/managed-ssh-key/regenerate organization orgRegenerateManagedSSHKey
 	// ---
 	// summary: Regenerate SSH keypair for organization mirroring
 	// produces:

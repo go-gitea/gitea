@@ -346,7 +346,7 @@ func loadKeysData(ctx *context.Context) {
 	// Load SSH mirror keypair if it exists
 	mirrorKeypair, err := mirror_service.GetOrCreateSSHKeypairForUser(ctx, ctx.Doer.ID)
 	if err == nil {
-		ctx.Data["HasMirrorSSHKey"] = true
+		ctx.Data["HasManagedSSHKey"] = true
 
 		// Create a struct with the public key including comment
 		publicKeyWithComment, _ := mirrorKeypair.GetPublicKeyWithComment(ctx)
@@ -358,9 +358,9 @@ func loadKeysData(ctx *context.Context) {
 			PublicKeyWithComment: publicKeyWithComment,
 		}
 
-		ctx.Data["MirrorSSHKey"] = mirrorKeyData
+		ctx.Data["ManagedSSHKey"] = mirrorKeyData
 	} else {
-		ctx.Data["HasMirrorSSHKey"] = false
+		ctx.Data["HasManagedSSHKey"] = false
 	}
 }
 
@@ -372,6 +372,6 @@ func RegenerateUserSSHKeypair(ctx *context.Context) {
 		return
 	}
 
-	ctx.Flash.Success(ctx.Tr("settings.mirror_ssh_regenerated"))
+	ctx.Flash.Success(ctx.Tr("settings.managed_ssh_regenerated"))
 	ctx.Redirect(setting.AppSubURL + "/user/settings/keys")
 }

@@ -3378,7 +3378,7 @@
         }
       }
     },
-    "/orgs/{org}/mirror-ssh-key": {
+    "/orgs/{org}/managed-ssh-key": {
       "get": {
         "produces": [
           "application/json"
@@ -3387,7 +3387,7 @@
           "organization"
         ],
         "summary": "Get SSH public key for organization mirroring",
-        "operationId": "orgGetMirrorSSHKey",
+        "operationId": "orgGetManagedSSHKey",
         "parameters": [
           {
             "type": "string",
@@ -3421,7 +3421,7 @@
         }
       }
     },
-    "/orgs/{org}/mirror-ssh-key/regenerate": {
+    "/orgs/{org}/managed-ssh-key/regenerate": {
       "post": {
         "produces": [
           "application/json"
@@ -3430,7 +3430,7 @@
           "organization"
         ],
         "summary": "Regenerate SSH keypair for organization mirroring",
-        "operationId": "orgRegenerateMirrorSSHKey",
+        "operationId": "orgRegenerateManagedSSHKey",
         "parameters": [
           {
             "type": "string",
@@ -20524,7 +20524,7 @@
         }
       }
     },
-    "/user/mirror-ssh-key": {
+    "/user/managed-ssh-key": {
       "get": {
         "produces": [
           "application/json"
@@ -20533,7 +20533,7 @@
           "user"
         ],
         "summary": "Get SSH public key for user mirroring",
-        "operationId": "userGetMirrorSSHKey",
+        "operationId": "userGetManagedSSHKey",
         "responses": {
           "200": {
             "description": "SSH public key",
@@ -20555,7 +20555,7 @@
         }
       }
     },
-    "/user/mirror-ssh-key/regenerate": {
+    "/user/managed-ssh-key/regenerate": {
       "post": {
         "produces": [
           "application/json"
@@ -20564,7 +20564,7 @@
           "user"
         ],
         "summary": "Regenerate SSH keypair for user mirroring",
-        "operationId": "userRegenerateMirrorSSHKey",
+        "operationId": "userRegenerateManagedSSHKey",
         "responses": {
           "200": {
             "description": "New SSH public key",

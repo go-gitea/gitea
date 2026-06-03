@@ -29,7 +29,7 @@ import (
 )
 
 func cloneExternalRepoWithSSHAuth(ctx context.Context, repo *repo_model.Repository, remoteURL string, storageRepo gitrepo.Repository, cloneOpts git.CloneRepoOptions) error {
-	sshAuthSock, cleanup, err := ssh_module.SetupMirrorSSHAgent(ctx, repo, remoteURL)
+	sshAuthSock, cleanup, err := ssh_module.SetupManagedSSHAgent(ctx, repo, remoteURL)
 	if err != nil {
 		return err
 	}

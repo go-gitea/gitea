@@ -167,7 +167,7 @@ func runPushSync(ctx context.Context, m *repo_model.PushMirror) error {
 		}
 
 		// Setup SSH authentication
-		sshAuthSock, cleanup, err := SetupMirrorSSHAgent(ctx, repo, remoteURL.String())
+		sshAuthSock, cleanup, err := SetupManagedSSHAgent(ctx, repo, remoteURL.String())
 		if err != nil {
 			log.Error("Failed to set up SSH agent for push mirror %s: %v", repo.FullName(), err)
 			return util.SanitizeErrorCredentialURLs(err)

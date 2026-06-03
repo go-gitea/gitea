@@ -51,6 +51,6 @@ func RegenerateSSHKey(ctx *context.Context) {
 		return
 	}
 
-	ctx.Flash.Success(ctx.Tr("settings.mirror_ssh_regenerated"))
+	ctx.Flash.Success(ctx.Tr("settings.managed_ssh_regenerated"))
 	ctx.Redirect(ctx.Org.OrgLink + "/settings/ssh_keys")
 }

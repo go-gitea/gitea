@@ -1149,9 +1149,9 @@ func Routes() *web.Router {
 				}, context.UserAssignmentAPI(), checkTokenPublicOnly())
 			}, rejectPublicOnly())
 
-			m.Group("/mirror-ssh-key", func() {
-				m.Get("", user.GetMirrorSSHKey)
-				m.Post("/regenerate", user.RegenerateMirrorSSHKey)
+			m.Group("/managed-ssh-key", func() {
+				m.Get("", user.GetManagedSSHKey)
+				m.Post("/regenerate", user.RegenerateManagedSSHKey)
 			})
 		}, tokenRequiresScopes(auth_model.AccessTokenScopeCategoryUser), reqToken(), contextAuthenticatedUser(), checkTokenPublicOnly())
 
@@ -1695,9 +1695,9 @@ func Routes() *web.Router {
 				})
 			}, reqToken(), reqOrgOwnership())
 
-			m.Group("/mirror-ssh-key", func() {
-				m.Get("", reqToken(), reqOrgOwnership(), org.GetMirrorSSHKey)
-				m.Post("/regenerate", reqToken(), reqOrgOwnership(), org.RegenerateMirrorSSHKey)
+			m.Group("/managed-ssh-key", func() {
+				m.Get("", reqToken(), reqOrgOwnership(), org.GetManagedSSHKey)
+				m.Post("/regenerate", reqToken(), reqOrgOwnership(), org.RegenerateManagedSSHKey)
 			})
 		}, tokenRequiresScopes(auth_model.AccessTokenScopeCategoryOrganization), orgAssignment(true), checkTokenPublicOnly())
 		m.Group("/teams/{teamid}", func() {
