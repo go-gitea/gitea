@@ -134,6 +134,27 @@ We're [working on it](https://github.com/go-gitea/gitea/issues/1029).
 
 In the [release log](https://github.com/go-gitea/gitea/releases) or the [change log](https://github.com/go-gitea/gitea/blob/main/CHANGELOG.md), search for the keyword `SECURITY` to find the security patches.
 
+## Subgroups
+
+Gitea supports organizing groups into hierarchical structures through subgroups. This allows for better organization of teams and projects within larger organizations.
+
+### Creating Subgroups
+
+Subgroups can be created within existing groups, enabling a nested organizational structure similar to GitLab's subgroups feature. This is useful for:
+
+- Organizing teams by department or project
+- Managing permissions at multiple levels
+- Creating logical hierarchies that match your organization's structure
+
+### Features
+
+- Create nested group hierarchies
+- Inherit permissions from parent groups
+- Manage access control at each level
+- Display full group paths in URLs and navigation
+
+For more information, see the [Groups documentation](https://docs.gitea.com/en-us/organizations/groups).
+
 ## License
 
 This project is licensed under the MIT License.
