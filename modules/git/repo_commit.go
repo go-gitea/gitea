@@ -237,16 +237,17 @@ func (repo *Repository) CommitsByFileAndRange(opts CommitsByFileAndRangeOptions)
 	if opts.FollowRename {
 		gitCmd.AddArguments("--follow")
 	}
-	if opts.Not != "" {
-		gitCmd.AddOptionValues("--not", opts.Not)
-	}
 	if opts.Since != "" {
 		gitCmd.AddOptionFormat("--since=%s", opts.Since)
 	}
 	if opts.Until != "" {
 		gitCmd.AddOptionFormat("--until=%s", opts.Until)
 	}
-	gitCmd.AddDynamicArguments(opts.Revision).AddDashesAndList(opts.File)
+	gitCmd.AddDynamicArguments(opts.Revision)
+	if opts.Not != "" {
+		gitCmd.AddOptionValues("--not", opts.Not)
+	}
+	gitCmd.AddDashesAndList(opts.File)
 
 	stdoutReader, stdoutReaderClose := gitCmd.MakeStdoutPipe()
 	defer stdoutReaderClose()
