@@ -234,7 +234,7 @@ func FileHistory(ctx *context.Context) {
 	var commitsCount int64
 	if followRename {
 		// there is no quick method to know the total count when "follow rename"
-		commitsCount = util.Iif[int64](hasMore, -1, 0)
+		commitsCount = -1
 	} else {
 		commitsCount, err = gitrepo.FileCommitsCount(ctx, ctx.Repo.Repository, ctx.Repo.RefFullName.ShortName(), ctx.Repo.TreePath)
 		if err != nil {
