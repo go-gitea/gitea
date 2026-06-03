@@ -37,7 +37,6 @@ type Paginator struct {
 	total      int // total rows count, -1 means unknown
 	totalPages int // total pages count, -1 means unknown
 	current    int // current page number
-	curRows    int // current page rows count
 
 	pagingNum int // how many rows in one page
 	numPages  int // how many pages to show on the UI
