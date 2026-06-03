@@ -87,9 +87,8 @@ func TestFileCommitsCountWithoutRename(t *testing.T) {
 
 	commitsCount, err := CommitsCount(t.Context(), renameRepo7,
 		CommitsCountOptions{
-			Revision:     []string{"HEAD"},
-			RelPath:      []string{"b.txt"},
-			FollowRename: false,
+			Revision: []string{"HEAD"},
+			RelPath:  []string{"b.txt"},
 		})
 
 	assert.NoError(t, err)
@@ -101,9 +100,8 @@ func TestFileCommitsCountWithRename(t *testing.T) {
 
 	commitsCount, err := CommitsCount(t.Context(), renameRepo7,
 		CommitsCountOptions{
-			Revision:     []string{"HEAD"},
-			RelPath:      []string{"b.txt"},
-			FollowRename: true,
+			Revision: []string{"HEAD"},
+			RelPath:  []string{"b.txt"},
 		})
 
 	assert.NoError(t, err)
