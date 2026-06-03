@@ -137,7 +137,7 @@ func runPushSync(ctx context.Context, m *repo_model.PushMirror) error {
 			return errors.New("Unexpected error")
 		}
 
-		if setting.LFS.StartServer && !IsSSHURL(remoteURL.String()) {
+		if setting.LFS.StartServer {
 			log.Trace("SyncMirrors [repo: %-v]: syncing LFS objects...", m.Repo)
 
 			gitRepo, err := gitrepo.OpenRepository(ctx, storageRepo)
