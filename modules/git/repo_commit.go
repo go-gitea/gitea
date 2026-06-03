@@ -15,11 +15,6 @@ import (
 	"gitea.dev/modules/setting"
 )
 
-const (
-	FollowRenameYes = true
-	FollowRenameNo  = false
-)
-
 // GetBranchCommitID returns last commit ID string of given branch.
 func (repo *Repository) GetBranchCommitID(name string) (string, error) {
 	return repo.GetRefCommitID(BranchPrefix + name)
@@ -221,31 +216,27 @@ func (repo *Repository) FileChangedBetweenCommits(filename, id1, id2 string) (bo
 }
 
 type CommitsByFileAndRangeOptions struct {
-	Revision     string
-	File         string
-	Not          string
-	Page         int
-	Since        string
-	Until        string
+	Revision string
+	File     string
+	Not      string
+	Page     int
+	Since    string
+	Until    string
+
+	// when using FollowRename, there is no quick way to know the total count, so use hasMore to indicate if there are more commits to load
 	FollowRename bool
 }
 
 // CommitsByFileAndRange return the commits according revision file and the page
-func (repo *Repository) CommitsByFileAndRange(opts CommitsByFileAndRangeOptions) ([]*Commit, error) {
-	var gitCmd *gitcmd.Command
-
-	if !opts.FollowRename {
-		gitCmd = gitcmd.NewCommand("rev-list")
-	} else {
-		gitCmd = gitcmd.NewCommand("--no-pager", "log").
-			AddOptionFormat("--pretty=tformat:%%H").
-			AddOptionFormat("--follow")
-	}
-	gitCmd = gitCmd.AddOptionFormat("--max-count=%d", setting.Git.CommitsRangeSize).
+func (repo *Repository) CommitsByFileAndRange(opts CommitsByFileAndRangeOptions) (commits []*Commit, hasMore bool, _ error) {
+	limit := setting.Git.CommitsRangeSize
+	gitCmd := gitcmd.NewCommand("--no-pager", "log").
+		AddArguments("--pretty=tformat:%H").
+		AddOptionFormat("--max-count=%d", limit+1).
 		AddOptionFormat("--skip=%d", (opts.Page-1)*setting.Git.CommitsRangeSize)
-
-	gitCmd.AddDynamicArguments(opts.Revision)
-
+	if opts.FollowRename {
+		gitCmd.AddArguments("--follow")
+	}
 	if opts.Not != "" {
 		gitCmd.AddOptionValues("--not", opts.Not)
 	}
@@ -255,9 +246,8 @@ func (repo *Repository) CommitsByFileAndRange(opts CommitsByFileAndRangeOptions)
 	if opts.Until != "" {
 		gitCmd.AddOptionFormat("--until=%s", opts.Until)
 	}
-	gitCmd.AddDashesAndList(opts.File)
+	gitCmd.AddDynamicArguments(opts.Revision).AddDashesAndList(opts.File)
 
-	var commits []*Commit
 	stdoutReader, stdoutReaderClose := gitCmd.MakeStdoutPipe()
 	defer stdoutReaderClose()
 	err := gitCmd.WithDir(repo.Path).
@@ -289,7 +279,12 @@ func (repo *Repository) CommitsByFileAndRange(opts CommitsByFileAndRangeOptions)
 			}
 		}).
 		RunWithStderr(repo.Ctx)
-	return commits, err
+
+	hasMore = len(commits) > limit
+	if hasMore {
+		commits = commits[:limit]
+	}
+	return commits, hasMore, err
 }
 
 // FilesCountBetween return the number of files changed between two commits

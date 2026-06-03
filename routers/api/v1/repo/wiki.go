@@ -193,7 +193,7 @@ func getWikiPage(ctx *context.APIContext, wikiName wiki_service.WebPath) *api.Wi
 	}
 
 	// get commit count - wiki revisions
-	commitsCount, _ := gitrepo.FileCommitsCount(ctx, ctx.Repo.Repository.WikiStorageRepo(), ctx.Repo.Repository.DefaultWikiBranch, pageFilename, git.FollowRenameNo)
+	commitsCount, _ := gitrepo.FileCommitsCount(ctx, ctx.Repo.Repository.WikiStorageRepo(), ctx.Repo.Repository.DefaultWikiBranch, pageFilename)
 
 	// Get last change information.
 	lastCommit, err := wikiRepo.GetCommitByPath(pageFilename)
@@ -430,12 +430,12 @@ func ListPageRevisions(ctx *context.APIContext) {
 	}
 
 	// get commit count - wiki revisions
-	commitsCount, _ := gitrepo.FileCommitsCount(ctx, ctx.Repo.Repository.WikiStorageRepo(), ctx.Repo.Repository.DefaultWikiBranch, pageFilename, git.FollowRenameNo)
+	commitsCount, _ := gitrepo.FileCommitsCount(ctx, ctx.Repo.Repository.WikiStorageRepo(), ctx.Repo.Repository.DefaultWikiBranch, pageFilename)
 
 	page := max(ctx.FormInt("page"), 1)
 
 	// get Commit Count
-	commitsHistory, err := wikiRepo.CommitsByFileAndRange(
+	commitsHistory, _, err := wikiRepo.CommitsByFileAndRange(
 		git.CommitsByFileAndRangeOptions{
 			Revision: ctx.Repo.Repository.DefaultWikiBranch,
 			File:     pageFilename,

@@ -26,18 +26,12 @@ export function initCommitStatuses() {
 }
 
 export function initCommitFileHistoryFollowRename() {
-  const checkbox : HTMLInputElement | null = document.querySelector('input[name=history-enable-follow-renames]');
-
-  if (!checkbox) {
-    return;
-  }
-  const url = new URL(window.location.toString());
-  checkbox.checked = url.searchParams.get('history-enable-follow-renames') === 'true';
-
-  checkbox.addEventListener('change', () => {
+  registerGlobalInitFunc('initCommitHistoryFollowRename', (el: HTMLInputElement) => {
     const url = new URL(window.location.toString());
-
-    url.searchParams.set('history-enable-follow-renames', `${checkbox.checked}`);
-    window.location.replace(url);
+    el.checked = url.searchParams.get('follow-rename') === 'true';
+    el.addEventListener('change', () => {
+      url.searchParams.set('follow-rename', `${el.checked}`);
+      window.location.assign(url.toString());
+    });
   });
 }

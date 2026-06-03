@@ -209,26 +209,18 @@ func SearchCommits(ctx *context.Context) {
 
 // FileHistory show a file's reversions
 func FileHistory(ctx *context.Context) {
-	followRename := ctx.FormBool("history-enable-follow-renames")
-	ctx.Data["FollowRename"] = true
+	followRename := ctx.FormBool("follow-rename")
+	ctx.Data["ShowFollowRename"] = true
 
 	if ctx.Repo.TreePath == "" {
 		Commits(ctx)
 		return
 	}
 
-	commitsCount, err := gitrepo.FileCommitsCount(ctx, ctx.Repo.Repository, ctx.Repo.RefFullName.ShortName(), ctx.Repo.TreePath, followRename)
-	if err != nil {
-		ctx.ServerError("FileCommitsCount", err)
-		return
-	} else if commitsCount == 0 {
-		ctx.NotFound(nil)
-		return
-	}
+	var commitsCount int64
 
 	page := max(ctx.FormInt("page"), 1)
-
-	commits, err := ctx.Repo.GitRepo.CommitsByFileAndRange(
+	commits, hasMore, err := ctx.Repo.GitRepo.CommitsByFileAndRange(
 		git.CommitsByFileAndRangeOptions{
 			Revision:     ctx.Repo.RefFullName.ShortName(), // FIXME: legacy code used ShortName
 			File:         ctx.Repo.TreePath,
@@ -239,6 +231,22 @@ func FileHistory(ctx *context.Context) {
 		ctx.ServerError("CommitsByFileAndRange", err)
 		return
 	}
+
+	if followRename {
+		// there is no quick method to know the total count when "follow rename"
+		commitsCount = util.Iif[int64](hasMore, -1, 0)
+	} else {
+		var err error
+		commitsCount, err = gitrepo.FileCommitsCount(ctx, ctx.Repo.Repository, ctx.Repo.RefFullName.ShortName(), ctx.Repo.TreePath)
+		if err != nil {
+			ctx.ServerError("FileCommitsCount", err)
+			return
+		} else if commitsCount == 0 {
+			ctx.NotFound(nil)
+			return
+		}
+	}
+
 	ctx.Data["Commits"], err = processGitCommits(ctx, commits)
 	if err != nil {
 		ctx.ServerError("processGitCommits", err)

@@ -307,7 +307,7 @@ func renderViewPage(ctx *context.Context) (*git.Repository, *git.TreeEntry) {
 	}
 
 	// get commit count - wiki revisions
-	commitsCount, _ := gitrepo.FileCommitsCount(ctx, ctx.Repo.Repository.WikiStorageRepo(), ctx.Repo.Repository.DefaultWikiBranch, pageFilename, git.FollowRenameNo)
+	commitsCount, _ := gitrepo.FileCommitsCount(ctx, ctx.Repo.Repository.WikiStorageRepo(), ctx.Repo.Repository.DefaultWikiBranch, pageFilename)
 	ctx.Data["CommitCount"] = commitsCount
 
 	return wikiGitRepo, entry
@@ -344,14 +344,14 @@ func renderRevisionPage(ctx *context.Context) (*git.Repository, *git.TreeEntry) 
 	}
 
 	// get commit count - wiki revisions
-	commitsCount, _ := gitrepo.FileCommitsCount(ctx, ctx.Repo.Repository.WikiStorageRepo(), ctx.Repo.Repository.DefaultWikiBranch, pageFilename, git.FollowRenameNo)
+	commitsCount, _ := gitrepo.FileCommitsCount(ctx, ctx.Repo.Repository.WikiStorageRepo(), ctx.Repo.Repository.DefaultWikiBranch, pageFilename)
 	ctx.Data["CommitCount"] = commitsCount
 
 	// get page
 	page := max(ctx.FormInt("page"), 1)
 
 	// get Commit Count
-	commitsHistory, err := wikiGitRepo.CommitsByFileAndRange(
+	commitsHistory, _, err := wikiGitRepo.CommitsByFileAndRange(
 		git.CommitsByFileAndRangeOptions{
 			Revision: ctx.Repo.Repository.DefaultWikiBranch,
 			File:     pageFilename,

@@ -15,41 +15,24 @@ import (
 
 // CommitsCountOptions the options when counting commits
 type CommitsCountOptions struct {
-	Not          string
-	Revision     []string
-	RelPath      []string
-	Since        string
-	Until        string
-	FollowRename bool
+	Not      string
+	Revision []string
+	RelPath  []string
+	Since    string
+	Until    string
 }
 
 // CommitsCount returns number of total commits of until given revision.
 func CommitsCount(ctx context.Context, repo Repository, opts CommitsCountOptions) (int64, error) {
-	var cmd *gitcmd.Command
-	followRename := len(opts.RelPath) > 0 && opts.FollowRename
-
-	if followRename {
-		cmd = gitcmd.NewCommand("--no-pager", "log", "--pretty=format:%H")
-	} else {
-		cmd = gitcmd.NewCommand("rev-list", "--count")
-	}
+	cmd := gitcmd.NewCommand("rev-list", "--count")
 
 	cmd.AddDynamicArguments(opts.Revision...)
 
 	if opts.Not != "" {
 		cmd.AddOptionValues("--not", opts.Not)
 	}
-	if opts.Since != "" {
-		cmd.AddOptionFormat("--since=%s", opts.Since)
-	}
-	if opts.Until != "" {
-		cmd.AddOptionFormat("--until=%s", opts.Until)
-	}
 
-	if len(opts.RelPath) == 1 {
-		if opts.FollowRename {
-			cmd.AddOptionValues("--follow")
-		}
+	if len(opts.RelPath) > 0 {
 		cmd.AddDashesAndList(opts.RelPath...)
 	}
 
@@ -58,22 +41,15 @@ func CommitsCount(ctx context.Context, repo Repository, opts CommitsCountOptions
 		return 0, err
 	}
 
-	if followRename {
-		if strings.TrimSpace(stdout) == "" {
-			return 0, nil
-		}
-		return int64(len(strings.Split(stdout, "\n"))), nil
-	}
 	return strconv.ParseInt(strings.TrimSpace(stdout), 10, 64)
 }
 
 // FileCommitsCount return the number of files at a revision
-func FileCommitsCount(ctx context.Context, repo Repository, revision, file string, followRename bool) (int64, error) {
+func FileCommitsCount(ctx context.Context, repo Repository, revision, file string) (int64, error) {
 	return CommitsCount(ctx, repo,
 		CommitsCountOptions{
-			Revision:     []string{revision},
-			RelPath:      []string{file},
-			FollowRename: followRename,
+			Revision: []string{revision},
+			RelPath:  []string{file},
 		})
 }
 
