@@ -102,10 +102,7 @@ func GetCollaborators(ctx context.Context, opts *FindCollaborationOptions) ([]*C
 
 // GetCollaboration get collaboration for a repository id with a user id
 func GetCollaboration(ctx context.Context, repoID, uid int64) (*Collaboration, error) {
-	collaboration, has, err := db.Get[Collaboration](ctx, builder.Eq{"repo_id": repoID, "user_id": uid})
-	if !has {
-		collaboration = nil
-	}
+	collaboration, _, err := db.Get[Collaboration](ctx, builder.Eq{"repo_id": repoID, "user_id": uid})
 	return collaboration, err
 }
 

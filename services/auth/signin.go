@@ -53,18 +53,19 @@ func UserSignIn(ctx context.Context, username, password string) (*user_model.Use
 
 	if user != nil {
 		var hasUser bool
+		var err error
 		if user.ID > 0 {
-			u, err := user_model.GetUserByID(ctx, user.ID)
+			user, err = user_model.GetUserByID(ctx, user.ID)
 			if err != nil {
 				return nil, nil, err
 			}
-			hasUser = u != nil
+			hasUser = user != nil
 		} else if user.LowerName != "" {
-			u, err := user_model.GetIndividualUserByName(ctx, user.LowerName)
+			user, err = user_model.GetIndividualUserByName(ctx, user.LowerName)
 			if err != nil {
 				return nil, nil, err
 			}
-			hasUser = u != nil
+			hasUser = user != nil
 		}
 
 		if hasUser {
