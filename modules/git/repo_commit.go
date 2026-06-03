@@ -222,17 +222,20 @@ type CommitsByFileAndRangeOptions struct {
 	Page     int
 	Since    string
 	Until    string
+
+	// when using FollowRename, there is no quick way to know the total count, so use hasMore to indicate if there are more commits to load
+	FollowRename bool
 }
 
 // CommitsByFileAndRange return the commits according revision file and the page
-func (repo *Repository) CommitsByFileAndRange(opts CommitsByFileAndRangeOptions) ([]*Commit, error) {
-	gitCmd := gitcmd.NewCommand("rev-list").
-		AddOptionFormat("--max-count=%d", setting.Git.CommitsRangeSize).
+func (repo *Repository) CommitsByFileAndRange(opts CommitsByFileAndRangeOptions) (commits []*Commit, hasMore bool, _ error) {
+	limit := setting.Git.CommitsRangeSize
+	gitCmd := gitcmd.NewCommand("--no-pager", "log").
+		AddArguments("--pretty=tformat:%H").
+		AddOptionFormat("--max-count=%d", limit+1).
 		AddOptionFormat("--skip=%d", (opts.Page-1)*setting.Git.CommitsRangeSize)
-	gitCmd.AddDynamicArguments(opts.Revision)
-
-	if opts.Not != "" {
-		gitCmd.AddOptionValues("--not", opts.Not)
+	if opts.FollowRename {
+		gitCmd.AddArguments("--follow")
 	}
 	if opts.Since != "" {
 		gitCmd.AddOptionFormat("--since=%s", opts.Since)
@@ -240,9 +243,12 @@ func (repo *Repository) CommitsByFileAndRange(opts CommitsByFileAndRangeOptions)
 	if opts.Until != "" {
 		gitCmd.AddOptionFormat("--until=%s", opts.Until)
 	}
+	gitCmd.AddDynamicArguments(opts.Revision)
+	if opts.Not != "" {
+		gitCmd.AddOptionValues("--not", opts.Not)
+	}
 	gitCmd.AddDashesAndList(opts.File)
 
-	var commits []*Commit
 	stdoutReader, stdoutReaderClose := gitCmd.MakeStdoutPipe()
 	defer stdoutReaderClose()
 	err := gitCmd.WithDir(repo.Path).
@@ -274,7 +280,12 @@ func (repo *Repository) CommitsByFileAndRange(opts CommitsByFileAndRangeOptions)
 			}
 		}).
 		RunWithStderr(repo.Ctx)
-	return commits, err
+
+	hasMore = len(commits) > limit
+	if hasMore {
+		commits = commits[:limit]
+	}
+	return commits, hasMore, err
 }
 
 // FilesCountBetween return the number of files changed between two commits

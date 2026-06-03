@@ -312,7 +312,8 @@ func prepareUserProfileTabData(ctx *context.Context, profileDbRepo *repo_model.R
 
 	pager := context.NewPagination(total, pagingNum, page, 5)
 	if tab == "activity" {
-		pager.WithCurRows(curRows)
+		// FIXME: UNLIMITE-PAGING-ONE-MORE-ROW: see another comment
+		pager.WithUnlimitedPaging(curRows, curRows == pagingNum)
 	}
 	pager.AddParamFromRequest(ctx.Req)
 	ctx.Data["Page"] = pager
