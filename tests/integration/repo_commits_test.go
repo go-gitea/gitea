@@ -11,14 +11,14 @@ import (
 	"sync"
 	"testing"
 
-	auth_model "code.gitea.io/gitea/models/auth"
-	"code.gitea.io/gitea/models/db"
-	git_model "code.gitea.io/gitea/models/git"
-	"code.gitea.io/gitea/modules/commitstatus"
-	"code.gitea.io/gitea/modules/json"
-	"code.gitea.io/gitea/modules/setting"
-	api "code.gitea.io/gitea/modules/structs"
-	"code.gitea.io/gitea/tests"
+	auth_model "gitea.dev/models/auth"
+	"gitea.dev/models/db"
+	git_model "gitea.dev/models/git"
+	"gitea.dev/modules/commitstatus"
+	"gitea.dev/modules/json"
+	"gitea.dev/modules/setting"
+	api "gitea.dev/modules/structs"
+	"gitea.dev/tests"
 
 	"github.com/PuerkitoBio/goquery"
 	"github.com/stretchr/testify/assert"
@@ -67,6 +67,28 @@ func TestRepoCommits(t *testing.T) {
 		assert.Equal(t, "/user2/repo1/commit/985f0301dba5e7b34be866819cd15ad3d8f508ee", commitHref)
 		authorElem := doc.doc.Find("#commits-table tr:first-child .author-wrapper")
 		assert.Equal(t, "6543", strings.TrimSpace(authorElem.Text()))
+	})
+
+	t.Run("CommitPageUsesCommitterDate", func(t *testing.T) {
+		const (
+			commitID              = "5099b81332712fe655e34e8dd63574f503f61811"
+			expectedCommitterTime = "2017-08-06T19:56:13+02:00"
+			authorTime            = "2017-08-06T19:55:01+02:00"
+		)
+
+		req := NewRequest(t, "GET", "/user2/repo16/commits/branch/master")
+		resp := session.MakeRequest(t, req, http.StatusOK)
+		doc := NewHTMLParser(t, resp.Body)
+
+		var commitListTime string
+		doc.doc.Find("#commits-table tbody tr").EachWithBreak(func(_ int, row *goquery.Selection) bool {
+			if path.Base(row.Find(".commit-id-short").AttrOr("href", "")) != commitID {
+				return true
+			}
+			commitListTime = row.Find("td").Eq(3).Find("relative-time").AttrOr("datetime", "")
+			return false
+		})
+		require.Equal(t, expectedCommitterTime, commitListTime)
 	})
 
 	t.Run("LastCommitNonExistingCommiter", func(t *testing.T) {

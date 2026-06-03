@@ -3,7 +3,7 @@
 
 package v1_21
 
-import "code.gitea.io/gitea/models/db"
+import "gitea.dev/models/db"
 
 func DropDeletedBranchTable(x db.EngineMigration) error {
 	return x.DropTables("deleted_branch")

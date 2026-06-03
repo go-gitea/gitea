@@ -15,20 +15,20 @@ import (
 	"strings"
 	"time"
 
-	"code.gitea.io/gitea/models/auth"
-	user_model "code.gitea.io/gitea/models/user"
-	auth_module "code.gitea.io/gitea/modules/auth"
-	"code.gitea.io/gitea/modules/container"
-	"code.gitea.io/gitea/modules/httplib"
-	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/optional"
-	"code.gitea.io/gitea/modules/session"
-	"code.gitea.io/gitea/modules/setting"
-	source_service "code.gitea.io/gitea/services/auth/source"
-	"code.gitea.io/gitea/services/auth/source/oauth2"
-	"code.gitea.io/gitea/services/context"
-	"code.gitea.io/gitea/services/externalaccount"
-	user_service "code.gitea.io/gitea/services/user"
+	"gitea.dev/models/auth"
+	user_model "gitea.dev/models/user"
+	auth_module "gitea.dev/modules/auth"
+	"gitea.dev/modules/container"
+	"gitea.dev/modules/httplib"
+	"gitea.dev/modules/log"
+	"gitea.dev/modules/optional"
+	"gitea.dev/modules/session"
+	"gitea.dev/modules/setting"
+	source_service "gitea.dev/services/auth/source"
+	"gitea.dev/services/auth/source/oauth2"
+	"gitea.dev/services/context"
+	"gitea.dev/services/externalaccount"
+	user_service "gitea.dev/services/user"
 
 	"github.com/markbates/goth"
 	"github.com/markbates/goth/gothic"
@@ -514,17 +514,33 @@ func oAuth2UserLoginCallback(ctx *context.Context, authSource *auth.Source, requ
 	}
 
 	// search in external linked users
-	externalLoginUser := &user_model.ExternalLoginUser{
-		ExternalID:    gothUser.UserID,
-		LoginSourceID: authSource.ID,
-	}
-	hasUser, err = user_model.GetExternalLogin(request.Context(), externalLoginUser)
+	externalLoginUser, hasUser, err := user_model.GetExternalLogin(ctx, authSource.ID, gothUser.UserID)
 	if err != nil {
 		return nil, goth.User{}, err
 	}
 	if hasUser {
-		user, err = user_model.GetUserByID(request.Context(), externalLoginUser.UserID)
-		return user, gothUser, err
+		user, err = user_model.GetUserByID(ctx, externalLoginUser.UserID)
+		if err != nil && !user_model.IsErrUserNotExist(err) {
+			return nil, goth.User{}, err
+		}
+		if err == nil && user.IsIndividual() {
+			return user, gothUser, nil
+		}
+
+		// The external login record is stale: the linked user no longer exists, or it exists but is
+		// not an individual user (only individual users can sign in, so a link pointing at an
+		// organization, bot or remote user can never resolve). Remove it so the next sign-in can
+		// relink the external account to the correct user. Nothing is lost, because the link is
+		// recreated automatically on the next sign-in.
+		reason := "linked user does not exist"
+		if err == nil {
+			reason = fmt.Sprintf("linked user type is %d", user.Type)
+		}
+		log.Warn("Ignoring stale external login link [external-id=%s login-source-id=%d user-id=%d]: %s", externalLoginUser.ExternalID, externalLoginUser.LoginSourceID, externalLoginUser.UserID, reason)
+
+		if err := user_model.RemoveExternalLoginByExternalID(ctx, externalLoginUser.LoginSourceID, externalLoginUser.ExternalID); err != nil {
+			return nil, goth.User{}, err
+		}
 	}
 
 	// no user found to login

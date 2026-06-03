@@ -6,9 +6,9 @@ package mirror
 import (
 	"context"
 
-	repo_model "code.gitea.io/gitea/models/repo"
-	"code.gitea.io/gitea/modules/log"
-	ssh_module "code.gitea.io/gitea/modules/ssh"
+	repo_model "gitea.dev/models/repo"
+	"gitea.dev/modules/log"
+	ssh_module "gitea.dev/modules/ssh"
 )
 
 // GetOrCreateSSHKeypairForUser gets or creates an SSH keypair for the given user

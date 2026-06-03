@@ -9,9 +9,9 @@ import (
 	"net/url"
 	"strings"
 
-	"code.gitea.io/gitea/modules/git/gitcmd"
-	giturl "code.gitea.io/gitea/modules/git/url"
-	"code.gitea.io/gitea/modules/util"
+	"gitea.dev/modules/git/gitcmd"
+	giturl "gitea.dev/modules/git/url"
+	"gitea.dev/modules/util"
 )
 
 // GetRemoteAddress returns remote url of git repository in the repoPath with special remote name

@@ -6,9 +6,9 @@ package org
 import (
 	"net/http"
 
-	"code.gitea.io/gitea/models/db"
-	"code.gitea.io/gitea/services/context"
-	mirror_service "code.gitea.io/gitea/services/mirror"
+	"gitea.dev/models/db"
+	"gitea.dev/services/context"
+	mirror_service "gitea.dev/services/mirror"
 )
 
 // GetMirrorSSHKey gets the SSH public key for organization mirroring

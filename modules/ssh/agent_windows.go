@@ -9,7 +9,7 @@ import (
 	"fmt"
 	"net"
 
-	"code.gitea.io/gitea/modules/util"
+	"gitea.dev/modules/util"
 
 	"github.com/Microsoft/go-winio"
 )

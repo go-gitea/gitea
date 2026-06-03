@@ -15,8 +15,8 @@ import (
 	"strings"
 	"time"
 
-	"code.gitea.io/gitea/modules/git/gitcmd"
-	"code.gitea.io/gitea/modules/proxy"
+	"gitea.dev/modules/git/gitcmd"
+	"gitea.dev/modules/proxy"
 )
 
 const prettyLogFormat = `--pretty=format:%H`

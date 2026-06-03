@@ -8,11 +8,11 @@ import (
 	"context"
 	"time"
 
-	"code.gitea.io/gitea/models/db"
-	giturl "code.gitea.io/gitea/modules/git/url"
-	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/timeutil"
-	"code.gitea.io/gitea/modules/util"
+	"gitea.dev/models/db"
+	giturl "gitea.dev/modules/git/url"
+	"gitea.dev/modules/log"
+	"gitea.dev/modules/timeutil"
+	"gitea.dev/modules/util"
 )
 
 // ErrMirrorNotExist mirror does not exist error
