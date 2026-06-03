@@ -13,12 +13,12 @@ import (
 	repo_model "gitea.dev/models/repo"
 	user_model "gitea.dev/models/user"
 	"gitea.dev/modules/setting"
+	ssh_module "gitea.dev/modules/ssh"
 	"gitea.dev/modules/templates"
 	"gitea.dev/modules/web"
 	asymkey_service "gitea.dev/services/asymkey"
 	"gitea.dev/services/context"
 	"gitea.dev/services/forms"
-	ssh_module "gitea.dev/modules/ssh"
 )
 
 const (

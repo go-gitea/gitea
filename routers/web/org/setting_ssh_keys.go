@@ -7,10 +7,10 @@ import (
 	"net/http"
 
 	repo_model "gitea.dev/models/repo"
+	ssh_module "gitea.dev/modules/ssh"
 	"gitea.dev/modules/templates"
 	shared_user "gitea.dev/routers/web/shared/user"
 	"gitea.dev/services/context"
-	ssh_module "gitea.dev/modules/ssh"
 )
 
 const (
