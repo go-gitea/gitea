@@ -7,8 +7,9 @@ import (
 	"net/http"
 
 	"gitea.dev/models/db"
+	repo_model "gitea.dev/models/repo"
+	ssh_module "gitea.dev/modules/ssh"
 	"gitea.dev/services/context"
-	mirror_service "gitea.dev/services/mirror"
 )
 
 // GetManagedSSHKey gets the SSH public key for organization mirroring
@@ -39,7 +40,7 @@ func GetManagedSSHKey(ctx *context.APIContext) {
 	//   "404":
 	//     "$ref": "#/responses/notFound"
 
-	keypair, err := mirror_service.GetOrCreateSSHKeypairForOrg(ctx, ctx.Org.Organization.ID)
+	keypair, err := ssh_module.GetOrCreateSSHKeypairForOrg(ctx, ctx.Org.Organization.ID)
 	if err != nil {
 		if db.IsErrNotExist(err) {
 			ctx.APIError(http.StatusNotFound, "SSH keypair not found")
@@ -81,7 +82,7 @@ func RegenerateManagedSSHKey(ctx *context.APIContext) {
 	//   "403":
 	//     "$ref": "#/responses/forbidden"
 
-	keypair, err := mirror_service.RegenerateSSHKeypairForOrg(ctx, ctx.Org.Organization.ID)
+	keypair, err := repo_model.RegenerateUserSSHKeypair(ctx, ctx.Org.Organization.ID)
 	if err != nil {
 		ctx.APIErrorInternal(err)
 		return

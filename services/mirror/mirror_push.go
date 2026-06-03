@@ -21,6 +21,7 @@ import (
 	"gitea.dev/modules/proxy"
 	"gitea.dev/modules/repository"
 	"gitea.dev/modules/setting"
+	ssh_module "gitea.dev/modules/ssh"
 	"gitea.dev/modules/timeutil"
 	"gitea.dev/modules/util"
 	"gitea.dev/services/migrations"
@@ -167,7 +168,7 @@ func runPushSync(ctx context.Context, m *repo_model.PushMirror) error {
 		}
 
 		// Setup SSH authentication
-		sshAuthSock, cleanup, err := SetupManagedSSHAgent(ctx, repo, remoteURL.String())
+		sshAuthSock, cleanup, err := ssh_module.SetupManagedSSHAgent(ctx, repo, remoteURL.String())
 		if err != nil {
 			log.Error("Failed to set up SSH agent for push mirror %s: %v", repo.FullName(), err)
 			return util.SanitizeErrorCredentialURLs(err)

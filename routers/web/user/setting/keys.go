@@ -18,7 +18,7 @@ import (
 	asymkey_service "gitea.dev/services/asymkey"
 	"gitea.dev/services/context"
 	"gitea.dev/services/forms"
-	mirror_service "gitea.dev/services/mirror"
+	ssh_module "gitea.dev/modules/ssh"
 )
 
 const (
@@ -344,7 +344,7 @@ func loadKeysData(ctx *context.Context) {
 	ctx.Data["UserDisabledFeatures"] = user_model.DisabledFeaturesWithLoginType(ctx.Doer)
 
 	// Load SSH mirror keypair if it exists
-	mirrorKeypair, err := mirror_service.GetOrCreateSSHKeypairForUser(ctx, ctx.Doer.ID)
+	mirrorKeypair, err := ssh_module.GetOrCreateSSHKeypairForUser(ctx, ctx.Doer.ID)
 	if err == nil {
 		ctx.Data["HasManagedSSHKey"] = true
 
@@ -366,7 +366,7 @@ func loadKeysData(ctx *context.Context) {
 
 // RegenerateUserSSHKeypair regenerates the SSH keypair for repository mirroring
 func RegenerateUserSSHKeypair(ctx *context.Context) {
-	_, err := mirror_service.RegenerateSSHKeypairForUser(ctx, ctx.Doer.ID)
+	_, err := repo_model.RegenerateUserSSHKeypair(ctx, ctx.Doer.ID)
 	if err != nil {
 		ctx.ServerError("RegenerateSSHKeypairForUser", err)
 		return

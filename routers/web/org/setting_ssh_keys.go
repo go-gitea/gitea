@@ -10,7 +10,7 @@ import (
 	"gitea.dev/modules/templates"
 	shared_user "gitea.dev/routers/web/shared/user"
 	"gitea.dev/services/context"
-	mirror_service "gitea.dev/services/mirror"
+	ssh_module "gitea.dev/modules/ssh"
 )
 
 const (
@@ -28,7 +28,7 @@ func SSHKeys(ctx *context.Context) {
 		return
 	}
 
-	keypair, err := mirror_service.GetOrCreateSSHKeypairForOrg(ctx, ctx.Org.Organization.ID)
+	keypair, err := ssh_module.GetOrCreateSSHKeypairForOrg(ctx, ctx.Org.Organization.ID)
 	if err != nil {
 		ctx.ServerError("GetOrCreateSSHKeypairForOrg", err)
 		return
@@ -45,7 +45,7 @@ func SSHKeys(ctx *context.Context) {
 
 // RegenerateSSHKey regenerates the SSH keypair for organization mirror operations
 func RegenerateSSHKey(ctx *context.Context) {
-	_, err := mirror_service.RegenerateSSHKeypairForOrg(ctx, ctx.Org.Organization.ID)
+	_, err := repo_model.RegenerateUserSSHKeypair(ctx, ctx.Org.Organization.ID)
 	if err != nil {
 		ctx.ServerError("RegenerateSSHKeypairForOrg", err)
 		return
