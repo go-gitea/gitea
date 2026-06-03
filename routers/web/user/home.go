@@ -111,6 +111,7 @@ func Dashboard(ctx *context.Context) {
 
 	prepareHeatmapURL(ctx)
 
+	pageSize := setting.UI.User.RepoPagingNum
 	feeds, count, err := feed_service.GetFeedsForDashboard(ctx, activities_model.GetFeedsOptions{
 		RequestedUser:   ctxUser,
 		RequestedTeam:   ctx.Org.Team,
@@ -119,17 +120,17 @@ func Dashboard(ctx *context.Context) {
 		OnlyPerformedBy: false,
 		IncludeDeleted:  false,
 		Date:            ctx.FormString("date"),
-		ListOptions: db.ListOptions{
-			Page:     page,
-			PageSize: setting.UI.FeedPagingNum,
-		},
+		ListOptions:     db.ListOptions{Page: page, PageSize: pageSize},
 	})
 	if err != nil {
 		ctx.ServerError("GetFeeds", err)
 		return
 	}
 
-	pager := context.NewPagination(count, setting.UI.FeedPagingNum, page, 5).WithCurRows(len(feeds))
+	// FIXME: UNLIMITE-PAGING-ONE-MORE-ROW: here is still an edge case: when curRows==pagingNum, then the "next page" will be an empty page.
+	// Ideally we should query one more row to determine if there is really a next page, but it's impossible in current framework.
+	pager := context.NewPagination(count, pageSize, page, 5).WithUnlimitedPaging(len(feeds), len(feeds) == pageSize)
+
 	pager.AddParamFromRequest(ctx.Req)
 	ctx.Data["Page"] = pager
 	ctx.Data["Feeds"] = feeds

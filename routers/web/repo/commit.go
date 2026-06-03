@@ -257,6 +257,9 @@ func FileHistory(ctx *context.Context) {
 	}
 
 	pager := context.NewPagination(commitsCount, setting.Git.CommitsRangeSize, page, 5)
+	if commitsCount == -1 {
+		pager.WithUnlimitedPaging(len(commits), hasMore)
+	}
 	pager.AddParamFromRequest(ctx.Req)
 	ctx.Data["Page"] = pager
 	ctx.HTML(http.StatusOK, tplCommits)
