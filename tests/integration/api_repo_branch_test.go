@@ -135,16 +135,13 @@ func TestAPIRepoBranchesSearch(t *testing.T) {
 	token := getUserToken(t, "user1", auth_model.AccessTokenScopeWriteRepository)
 
 	// "test" matches "test_branch" but not "master"
-	req := NewRequestf(t, "GET", "/api/v1/repos/org3/repo3/branches?q=test").AddTokenAuth(token)
-	resp := MakeRequest(t, req, http.StatusOK)
-	var branches []*api.Branch
-	DecodeJSON(t, resp, &branches)
+	resp := MakeRequest(t, NewRequestf(t, "GET", "/api/v1/repos/org3/repo3/branches?q=test").AddTokenAuth(token), http.StatusOK)
+	branches := DecodeJSON(t, resp, []api.Branch{})
 	assert.Len(t, branches, 1)
 	assert.Equal(t, "test_branch", branches[0].Name)
 
 	// no match returns empty list
-	req = NewRequestf(t, "GET", "/api/v1/repos/org3/repo3/branches?q=doesnotexist").AddTokenAuth(token)
-	resp = MakeRequest(t, req, http.StatusOK)
-	DecodeJSON(t, resp, &branches)
+	resp = MakeRequest(t, NewRequestf(t, "GET", "/api/v1/repos/org3/repo3/branches?q=doesnotexist").AddTokenAuth(token), http.StatusOK)
+	branches = DecodeJSON(t, resp, []api.Branch{})
 	assert.Empty(t, branches)
 }
