@@ -40,7 +40,7 @@ func GetManagedSSHKey(ctx *context.APIContext) {
 	//   "404":
 	//     "$ref": "#/responses/notFound"
 
-	keypair, err := ssh_module.GetOrCreateSSHKeypairForOrg(ctx, ctx.Org.Organization.ID)
+	keypair, err := ssh_module.GetOrCreateSSHKeypair(ctx, ctx.Org.Organization.ID)
 	if err != nil {
 		if db.IsErrNotExist(err) {
 			ctx.APIError(http.StatusNotFound, "SSH keypair not found")

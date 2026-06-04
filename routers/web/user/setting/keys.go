@@ -343,7 +343,7 @@ func loadKeysData(ctx *context.Context) {
 	ctx.Data["UserDisabledFeatures"] = user_model.DisabledFeaturesWithLoginType(ctx.Doer)
 
 	// Load SSH mirror keypair if it exists
-	mirrorKeypair, err := ssh_module.GetOrCreateSSHKeypairForUser(ctx, ctx.Doer.ID)
+	mirrorKeypair, err := ssh_module.GetOrCreateSSHKeypair(ctx, ctx.Doer.ID)
 	if err == nil {
 		ctx.Data["HasManagedSSHKey"] = true
 

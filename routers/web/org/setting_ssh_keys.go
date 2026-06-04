@@ -28,9 +28,9 @@ func SSHKeys(ctx *context.Context) {
 		return
 	}
 
-	keypair, err := ssh_module.GetOrCreateSSHKeypairForOrg(ctx, ctx.Org.Organization.ID)
+	keypair, err := ssh_module.GetOrCreateSSHKeypair(ctx, ctx.Org.Organization.ID)
 	if err != nil {
-		ctx.ServerError("GetOrCreateSSHKeypairForOrg", err)
+		ctx.ServerError("GetOrCreateSSHKeypair", err)
 		return
 	}
 

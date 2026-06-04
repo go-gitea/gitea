@@ -20,48 +20,23 @@ func IsSSHURL(remote string) bool {
 	return err == nil && u.Scheme == "ssh"
 }
 
-// GetOrCreateSSHKeypairForUser gets or creates an SSH keypair for the given user
-func GetOrCreateSSHKeypairForUser(ctx context.Context, userID int64) (*user_model.UserSSHKeypair, error) {
-	keypair, err := user_model.GetUserSSHKeypairByOwner(ctx, userID)
+// GetOrCreateSSHKeypair gets or creates the managed SSH keypair for the given
+// owner (user or organization — they share the same backing storage).
+func GetOrCreateSSHKeypair(ctx context.Context, ownerID int64) (*user_model.UserSSHKeypair, error) {
+	keypair, err := user_model.GetUserSSHKeypairByOwner(ctx, ownerID)
 	if err != nil {
 		if db.IsErrNotExist(err) {
-			log.Debug("Creating new SSH keypair for user %d", userID)
-			return user_model.CreateUserSSHKeypair(ctx, userID)
+			log.Debug("Creating new SSH keypair for owner %d", ownerID)
+			return user_model.CreateUserSSHKeypair(ctx, ownerID)
 		}
-		return nil, fmt.Errorf("failed to get SSH keypair for user %d: %w", userID, err)
+		return nil, fmt.Errorf("failed to get SSH keypair for owner %d: %w", ownerID, err)
 	}
 	return keypair, nil
 }
 
-// GetOrCreateSSHKeypairForOrg gets or creates an SSH keypair for the given organization
-func GetOrCreateSSHKeypairForOrg(ctx context.Context, orgID int64) (*user_model.UserSSHKeypair, error) {
-	keypair, err := user_model.GetUserSSHKeypairByOwner(ctx, orgID)
-	if err != nil {
-		if db.IsErrNotExist(err) {
-			log.Debug("Creating new SSH keypair for organization %d", orgID)
-			return user_model.CreateUserSSHKeypair(ctx, orgID)
-		}
-		return nil, fmt.Errorf("failed to get SSH keypair for organization %d: %w", orgID, err)
-	}
-	return keypair, nil
-}
-
-// GetSSHKeypairForRepository gets the appropriate SSH keypair for a repository
-// If the repository belongs to an organization, it uses the org's keypair,
-// otherwise it uses the user's keypair
+// GetSSHKeypairForRepository gets the managed SSH keypair for the repository's owner.
 func GetSSHKeypairForRepository(ctx context.Context, repo *repo_model.Repository) (*user_model.UserSSHKeypair, error) {
-	if repo.Owner == nil {
-		owner, err := user_model.GetUserByID(ctx, repo.OwnerID)
-		if err != nil {
-			return nil, fmt.Errorf("failed to get repository owner: %w", err)
-		}
-		repo.Owner = owner
-	}
-
-	if repo.Owner.IsOrganization() {
-		return GetOrCreateSSHKeypairForOrg(ctx, repo.OwnerID)
-	}
-	return GetOrCreateSSHKeypairForUser(ctx, repo.OwnerID)
+	return GetOrCreateSSHKeypair(ctx, repo.OwnerID)
 }
 
 // SetupManagedSSHAgent prepares SSH key-based authentication for a mirror or
