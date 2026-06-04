@@ -9,7 +9,6 @@ import (
 	"io"
 	"net/http"
 
-	"gitea.dev/models/db"
 	group_model "gitea.dev/models/group"
 	repo_model "gitea.dev/models/repo"
 	"gitea.dev/modules/log"
@@ -51,31 +50,11 @@ func Settings(ctx *context.Context) {
 		ctx.ServerError("LoadParentGroup", err)
 		return
 	}
-	opts := group_model.FindGroupsOptions{
-		ActorID: ctx.Doer.ID,
-		OwnerID: ctx.RepoGroup.Group.OwnerID,
-	}
-	cond := group_model.AccessibleGroupCondition(ctx.Doer)
-	cond = cond.And(opts.ToConds())
-	groups, err := group_model.FindGroupsByCond(ctx, &group_model.FindGroupsOptions{
-		ListOptions: db.ListOptions{
-			ListAll: true,
-		},
-		ParentGroupID: -1,
-	}, cond)
-	if err != nil {
-		ctx.ServerError("FindGroupsByCond", err)
+
+	if err = shared_group.LoadSelectableGroups(ctx); err != nil {
+		ctx.ServerError("LoadSelectableGroups", err)
 		return
 	}
-	for _, g := range groups {
-		err = g.LoadAccessibleSubgroups(ctx, true, ctx.Doer, false)
-		if err != nil {
-			ctx.ServerError("LoadAccessibleSubgroups", err)
-			return
-		}
-	}
-
-	ctx.Data["Groups"] = groups
 
 	ctx.HTML(http.StatusOK, tplSettingsOptions)
 }
