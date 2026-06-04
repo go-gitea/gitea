@@ -18,16 +18,16 @@ import (
 	"golang.org/x/crypto/ssh"
 )
 
-// UserSSHKeypair represents an SSH keypair for repository mirroring
-type UserSSHKeypair struct {
+// SSHKeypair represents an SSH keypair for repository mirroring
+type SSHKeypair struct {
 	OwnerID             int64
 	PrivateKeyEncrypted string
 	PublicKey           string
 	Fingerprint         string
 }
 
-// GetUserSSHKeypairByOwner gets the SSH keypair for the given owner
-func GetUserSSHKeypairByOwner(ctx context.Context, ownerID int64) (*UserSSHKeypair, error) {
+// GetSSHKeypairByOwner gets the SSH keypair for the given owner
+func GetSSHKeypairByOwner(ctx context.Context, ownerID int64) (*SSHKeypair, error) {
 	settings, err := GetSettings(ctx, ownerID, []string{
 		UserSSHMirrorPrivPem,
 		UserSSHMirrorPubPem,
@@ -40,7 +40,7 @@ func GetUserSSHKeypairByOwner(ctx context.Context, ownerID int64) (*UserSSHKeypa
 		return nil, util.NewNotExistErrorf("SSH keypair does not exist for owner %d", ownerID)
 	}
 
-	keypair := &UserSSHKeypair{
+	keypair := &SSHKeypair{
 		OwnerID: ownerID,
 	}
 
@@ -61,8 +61,8 @@ func GetUserSSHKeypairByOwner(ctx context.Context, ownerID int64) (*UserSSHKeypa
 	return keypair, nil
 }
 
-// CreateUserSSHKeypair creates a new SSH keypair for mirroring
-func CreateUserSSHKeypair(ctx context.Context, ownerID int64) (*UserSSHKeypair, error) {
+// CreateSSHKeypair creates a new SSH keypair for mirroring
+func CreateSSHKeypair(ctx context.Context, ownerID int64) (*SSHKeypair, error) {
 	publicKey, privateKey, err := ed25519.GenerateKey(rand.Reader)
 	if err != nil {
 		return nil, fmt.Errorf("failed to generate Ed25519 keypair: %w", err)
@@ -98,7 +98,7 @@ func CreateUserSSHKeypair(ctx context.Context, ownerID int64) (*UserSSHKeypair, 
 		return nil, err
 	}
 
-	keypair := &UserSSHKeypair{
+	keypair := &SSHKeypair{
 		OwnerID:             ownerID,
 		PrivateKeyEncrypted: privateKeyEncrypted,
 		PublicKey:           publicKeyStr,
@@ -109,7 +109,7 @@ func CreateUserSSHKeypair(ctx context.Context, ownerID int64) (*UserSSHKeypair, 
 }
 
 // GetDecryptedPrivateKey returns the decrypted private key
-func (k *UserSSHKeypair) GetDecryptedPrivateKey() (ed25519.PrivateKey, error) {
+func (k *SSHKeypair) GetDecryptedPrivateKey() (ed25519.PrivateKey, error) {
 	decrypted, err := secret.DecryptSecret(setting.SecretKey, k.PrivateKeyEncrypted)
 	if err != nil {
 		return nil, fmt.Errorf("failed to decrypt private key: %w", err)
@@ -118,7 +118,7 @@ func (k *UserSSHKeypair) GetDecryptedPrivateKey() (ed25519.PrivateKey, error) {
 }
 
 // GetPublicKeyWithComment returns the public key with a descriptive comment (namespace-fingerprint@domain)
-func (k *UserSSHKeypair) GetPublicKeyWithComment(ctx context.Context) (string, error) {
+func (k *SSHKeypair) GetPublicKeyWithComment(ctx context.Context) (string, error) {
 	owner, err := GetUserByID(ctx, k.OwnerID)
 	if err != nil {
 		return k.PublicKey, nil
@@ -138,8 +138,8 @@ func (k *UserSSHKeypair) GetPublicKeyWithComment(ctx context.Context) (string, e
 	return strings.TrimSpace(k.PublicKey) + " " + comment, nil
 }
 
-// DeleteUserSSHKeypair deletes an SSH keypair
-func DeleteUserSSHKeypair(ctx context.Context, ownerID int64) error {
+// DeleteSSHKeypair deletes an SSH keypair
+func DeleteSSHKeypair(ctx context.Context, ownerID int64) error {
 	return db.WithTx(ctx, func(ctx context.Context) error {
 		if err := DeleteUserSetting(ctx, ownerID, UserSSHMirrorPrivPem); err != nil {
 			return err
@@ -151,14 +151,14 @@ func DeleteUserSSHKeypair(ctx context.Context, ownerID int64) error {
 	})
 }
 
-// RegenerateUserSSHKeypair regenerates an SSH keypair for the given owner
-func RegenerateUserSSHKeypair(ctx context.Context, ownerID int64) (*UserSSHKeypair, error) {
-	return db.WithTx2(ctx, func(ctx context.Context) (*UserSSHKeypair, error) {
-		if err := DeleteUserSSHKeypair(ctx, ownerID); err != nil {
+// RegenerateSSHKeypair regenerates an SSH keypair for the given owner
+func RegenerateSSHKeypair(ctx context.Context, ownerID int64) (*SSHKeypair, error) {
+	return db.WithTx2(ctx, func(ctx context.Context) (*SSHKeypair, error) {
+		if err := DeleteSSHKeypair(ctx, ownerID); err != nil {
 			return nil, fmt.Errorf("failed to delete existing keypair: %w", err)
 		}
 
-		newKeypair, err := CreateUserSSHKeypair(ctx, ownerID)
+		newKeypair, err := CreateSSHKeypair(ctx, ownerID)
 		if err != nil {
 			return nil, err
 		}

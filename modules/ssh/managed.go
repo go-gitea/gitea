@@ -22,12 +22,12 @@ func IsSSHURL(remote string) bool {
 
 // GetOrCreateSSHKeypair gets or creates the managed SSH keypair for the given
 // owner (user or organization — they share the same backing storage).
-func GetOrCreateSSHKeypair(ctx context.Context, ownerID int64) (*user_model.UserSSHKeypair, error) {
-	keypair, err := user_model.GetUserSSHKeypairByOwner(ctx, ownerID)
+func GetOrCreateSSHKeypair(ctx context.Context, ownerID int64) (*user_model.SSHKeypair, error) {
+	keypair, err := user_model.GetSSHKeypairByOwner(ctx, ownerID)
 	if err != nil {
 		if db.IsErrNotExist(err) {
 			log.Debug("Creating new SSH keypair for owner %d", ownerID)
-			return user_model.CreateUserSSHKeypair(ctx, ownerID)
+			return user_model.CreateSSHKeypair(ctx, ownerID)
 		}
 		return nil, fmt.Errorf("failed to get SSH keypair for owner %d: %w", ownerID, err)
 	}
@@ -35,7 +35,7 @@ func GetOrCreateSSHKeypair(ctx context.Context, ownerID int64) (*user_model.User
 }
 
 // GetSSHKeypairForRepository gets the managed SSH keypair for the repository's owner.
-func GetSSHKeypairForRepository(ctx context.Context, repo *repo_model.Repository) (*user_model.UserSSHKeypair, error) {
+func GetSSHKeypairForRepository(ctx context.Context, repo *repo_model.Repository) (*user_model.SSHKeypair, error) {
 	return GetOrCreateSSHKeypair(ctx, repo.OwnerID)
 }
 

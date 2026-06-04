@@ -16,12 +16,12 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestUserSSHKeypair(t *testing.T) {
+func TestSSHKeypair(t *testing.T) {
 	require.NoError(t, unittest.PrepareTestDatabase())
 
-	t.Run("CreateUserSSHKeypair", func(t *testing.T) {
+	t.Run("CreateSSHKeypair", func(t *testing.T) {
 		// Test creating a new SSH keypair for a user
-		keypair, err := user_model.CreateUserSSHKeypair(t.Context(), 1)
+		keypair, err := user_model.CreateSSHKeypair(t.Context(), 1)
 		require.NoError(t, err)
 		assert.NotNil(t, keypair)
 		assert.Equal(t, int64(1), keypair.OwnerID)
@@ -33,7 +33,7 @@ func TestUserSSHKeypair(t *testing.T) {
 		assert.Contains(t, keypair.PublicKey, "ssh-ed25519")
 
 		// Test creating a keypair for an organization
-		orgKeypair, err := user_model.CreateUserSSHKeypair(t.Context(), 2)
+		orgKeypair, err := user_model.CreateSSHKeypair(t.Context(), 2)
 		require.NoError(t, err)
 		assert.NotNil(t, orgKeypair)
 		assert.Equal(t, int64(2), orgKeypair.OwnerID)
@@ -43,20 +43,20 @@ func TestUserSSHKeypair(t *testing.T) {
 		assert.NotEqual(t, keypair.Fingerprint, orgKeypair.Fingerprint)
 	})
 
-	t.Run("GetUserSSHKeypairByOwner", func(t *testing.T) {
+	t.Run("GetSSHKeypairByOwner", func(t *testing.T) {
 		// Create a keypair first
-		created, err := user_model.CreateUserSSHKeypair(t.Context(), 3)
+		created, err := user_model.CreateSSHKeypair(t.Context(), 3)
 		require.NoError(t, err)
 
 		// Test retrieving the keypair
-		retrieved, err := user_model.GetUserSSHKeypairByOwner(t.Context(), 3)
+		retrieved, err := user_model.GetSSHKeypairByOwner(t.Context(), 3)
 		require.NoError(t, err)
 		assert.Equal(t, created.OwnerID, retrieved.OwnerID)
 		assert.Equal(t, created.PublicKey, retrieved.PublicKey)
 		assert.Equal(t, created.Fingerprint, retrieved.Fingerprint)
 
 		// Test retrieving non-existent keypair
-		_, err = user_model.GetUserSSHKeypairByOwner(t.Context(), 999)
+		_, err = user_model.GetSSHKeypairByOwner(t.Context(), 999)
 		assert.ErrorIs(t, err, util.ErrNotExist)
 	})
 
@@ -67,7 +67,7 @@ func TestUserSSHKeypair(t *testing.T) {
 		}
 
 		// Create a keypair
-		keypair, err := user_model.CreateUserSSHKeypair(t.Context(), 4)
+		keypair, err := user_model.CreateSSHKeypair(t.Context(), 4)
 		require.NoError(t, err)
 
 		// Test decrypting the private key
@@ -81,31 +81,31 @@ func TestUserSSHKeypair(t *testing.T) {
 		assert.Len(t, publicKey, ed25519.PublicKeySize)
 	})
 
-	t.Run("DeleteUserSSHKeypair", func(t *testing.T) {
+	t.Run("DeleteSSHKeypair", func(t *testing.T) {
 		// Create a keypair
-		_, err := user_model.CreateUserSSHKeypair(t.Context(), 5)
+		_, err := user_model.CreateSSHKeypair(t.Context(), 5)
 		require.NoError(t, err)
 
 		// Verify it exists
-		_, err = user_model.GetUserSSHKeypairByOwner(t.Context(), 5)
+		_, err = user_model.GetSSHKeypairByOwner(t.Context(), 5)
 		require.NoError(t, err)
 
 		// Delete it
-		err = user_model.DeleteUserSSHKeypair(t.Context(), 5)
+		err = user_model.DeleteSSHKeypair(t.Context(), 5)
 		require.NoError(t, err)
 
 		// Verify it's gone
-		_, err = user_model.GetUserSSHKeypairByOwner(t.Context(), 5)
+		_, err = user_model.GetSSHKeypairByOwner(t.Context(), 5)
 		assert.ErrorIs(t, err, util.ErrNotExist)
 	})
 
-	t.Run("RegenerateUserSSHKeypair", func(t *testing.T) {
+	t.Run("RegenerateSSHKeypair", func(t *testing.T) {
 		// Create initial keypair
-		original, err := user_model.CreateUserSSHKeypair(t.Context(), 6)
+		original, err := user_model.CreateSSHKeypair(t.Context(), 6)
 		require.NoError(t, err)
 
 		// Regenerate it
-		regenerated, err := user_model.RegenerateUserSSHKeypair(t.Context(), 6)
+		regenerated, err := user_model.RegenerateSSHKeypair(t.Context(), 6)
 		require.NoError(t, err)
 
 		// Verify it's different
@@ -116,7 +116,7 @@ func TestUserSSHKeypair(t *testing.T) {
 	})
 }
 
-func TestUserSSHKeypairConcurrency(t *testing.T) {
+func TestSSHKeypairConcurrency(t *testing.T) {
 	require.NoError(t, unittest.PrepareTestDatabase())
 
 	if setting.SecretKey == "" {
@@ -131,7 +131,7 @@ func TestUserSSHKeypairConcurrency(t *testing.T) {
 		// Start multiple goroutines creating keypairs for different owners
 		for i := range 10 {
 			go func(ownerID int64) {
-				_, err := user_model.CreateUserSSHKeypair(ctx, ownerID+100)
+				_, err := user_model.CreateSSHKeypair(ctx, ownerID+100)
 				results <- err
 			}(int64(i))
 		}

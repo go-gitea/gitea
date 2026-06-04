@@ -350,10 +350,10 @@ func loadKeysData(ctx *context.Context) {
 		// Create a struct with the public key including comment
 		publicKeyWithComment, _ := mirrorKeypair.GetPublicKeyWithComment(ctx)
 		mirrorKeyData := struct {
-			*user_model.UserSSHKeypair
+			*user_model.SSHKeypair
 			PublicKeyWithComment string
 		}{
-			UserSSHKeypair:       mirrorKeypair,
+			SSHKeypair:       mirrorKeypair,
 			PublicKeyWithComment: publicKeyWithComment,
 		}
 
@@ -363,9 +363,9 @@ func loadKeysData(ctx *context.Context) {
 	}
 }
 
-// RegenerateUserSSHKeypair regenerates the SSH keypair for repository mirroring
-func RegenerateUserSSHKeypair(ctx *context.Context) {
-	_, err := user_model.RegenerateUserSSHKeypair(ctx, ctx.Doer.ID)
+// RegenerateSSHKeypair regenerates the SSH keypair for repository mirroring
+func RegenerateSSHKeypair(ctx *context.Context) {
+	_, err := user_model.RegenerateSSHKeypair(ctx, ctx.Doer.ID)
 	if err != nil {
 		ctx.ServerError("RegenerateSSHKeypairForUser", err)
 		return
