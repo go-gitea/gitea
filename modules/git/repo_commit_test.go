@@ -4,7 +4,6 @@
 package git
 
 import (
-	"os"
 	"path/filepath"
 	"strings"
 	"testing"
@@ -38,7 +37,7 @@ func TestRepository_GetCommitBranches(t *testing.T) {
 	for _, testCase := range testCases {
 		commit, err := bareRepo1.GetCommit(testCase.CommitID)
 		assert.NoError(t, err)
-		branches, err := bareRepo1.getBranches(os.Environ(), commit.ID.String(), 2)
+		branches, err := bareRepo1.getBranches(nil, commit.ID.String(), 2)
 		assert.NoError(t, err)
 		assert.Equal(t, testCase.ExpectedBranches, branches)
 	}
