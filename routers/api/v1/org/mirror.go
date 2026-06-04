@@ -7,7 +7,7 @@ import (
 	"net/http"
 
 	"gitea.dev/models/db"
-	repo_model "gitea.dev/models/repo"
+	user_model "gitea.dev/models/user"
 	ssh_module "gitea.dev/modules/ssh"
 	"gitea.dev/services/context"
 )
@@ -82,7 +82,7 @@ func RegenerateManagedSSHKey(ctx *context.APIContext) {
 	//   "403":
 	//     "$ref": "#/responses/forbidden"
 
-	keypair, err := repo_model.RegenerateUserSSHKeypair(ctx, ctx.Org.Organization.ID)
+	keypair, err := user_model.RegenerateUserSSHKeypair(ctx, ctx.Org.Organization.ID)
 	if err != nil {
 		ctx.APIErrorInternal(err)
 		return

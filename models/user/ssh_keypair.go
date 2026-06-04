@@ -1,7 +1,7 @@
 // Copyright 2025 The Gitea Authors. All rights reserved.
 // SPDX-License-Identifier: MIT
 
-package repo
+package user
 
 import (
 	"context"
@@ -11,7 +11,6 @@ import (
 	"strings"
 
 	"gitea.dev/models/db"
-	user_model "gitea.dev/models/user"
 	"gitea.dev/modules/secret"
 	"gitea.dev/modules/setting"
 	"gitea.dev/modules/util"
@@ -29,10 +28,10 @@ type UserSSHKeypair struct {
 
 // GetUserSSHKeypairByOwner gets the SSH keypair for the given owner
 func GetUserSSHKeypairByOwner(ctx context.Context, ownerID int64) (*UserSSHKeypair, error) {
-	settings, err := user_model.GetSettings(ctx, ownerID, []string{
-		user_model.UserSSHMirrorPrivPem,
-		user_model.UserSSHMirrorPubPem,
-		user_model.UserSSHMirrorFingerprint,
+	settings, err := GetSettings(ctx, ownerID, []string{
+		UserSSHMirrorPrivPem,
+		UserSSHMirrorPubPem,
+		UserSSHMirrorFingerprint,
 	})
 	if err != nil {
 		return nil, err
@@ -45,13 +44,13 @@ func GetUserSSHKeypairByOwner(ctx context.Context, ownerID int64) (*UserSSHKeypa
 		OwnerID: ownerID,
 	}
 
-	if privSetting, exists := settings[user_model.UserSSHMirrorPrivPem]; exists {
+	if privSetting, exists := settings[UserSSHMirrorPrivPem]; exists {
 		keypair.PrivateKeyEncrypted = privSetting.SettingValue
 	}
-	if pubSetting, exists := settings[user_model.UserSSHMirrorPubPem]; exists {
+	if pubSetting, exists := settings[UserSSHMirrorPubPem]; exists {
 		keypair.PublicKey = pubSetting.SettingValue
 	}
-	if fpSetting, exists := settings[user_model.UserSSHMirrorFingerprint]; exists {
+	if fpSetting, exists := settings[UserSSHMirrorFingerprint]; exists {
 		keypair.Fingerprint = fpSetting.SettingValue
 	}
 
@@ -84,13 +83,13 @@ func CreateUserSSHKeypair(ctx context.Context, ownerID int64) (*UserSSHKeypair, 
 	}
 
 	err = db.WithTx(ctx, func(ctx context.Context) error {
-		if err := user_model.SetUserSetting(ctx, ownerID, user_model.UserSSHMirrorPrivPem, privateKeyEncrypted); err != nil {
+		if err := SetUserSetting(ctx, ownerID, UserSSHMirrorPrivPem, privateKeyEncrypted); err != nil {
 			return fmt.Errorf("failed to save private key: %w", err)
 		}
-		if err := user_model.SetUserSetting(ctx, ownerID, user_model.UserSSHMirrorPubPem, publicKeyStr); err != nil {
+		if err := SetUserSetting(ctx, ownerID, UserSSHMirrorPubPem, publicKeyStr); err != nil {
 			return fmt.Errorf("failed to save public key: %w", err)
 		}
-		if err := user_model.SetUserSetting(ctx, ownerID, user_model.UserSSHMirrorFingerprint, fingerprintStr); err != nil {
+		if err := SetUserSetting(ctx, ownerID, UserSSHMirrorFingerprint, fingerprintStr); err != nil {
 			return fmt.Errorf("failed to save fingerprint: %w", err)
 		}
 		return nil
@@ -120,7 +119,7 @@ func (k *UserSSHKeypair) GetDecryptedPrivateKey() (ed25519.PrivateKey, error) {
 
 // GetPublicKeyWithComment returns the public key with a descriptive comment (namespace-fingerprint@domain)
 func (k *UserSSHKeypair) GetPublicKeyWithComment(ctx context.Context) (string, error) {
-	owner, err := user_model.GetUserByID(ctx, k.OwnerID)
+	owner, err := GetUserByID(ctx, k.OwnerID)
 	if err != nil {
 		return k.PublicKey, nil
 	}
@@ -142,13 +141,13 @@ func (k *UserSSHKeypair) GetPublicKeyWithComment(ctx context.Context) (string, e
 // DeleteUserSSHKeypair deletes an SSH keypair
 func DeleteUserSSHKeypair(ctx context.Context, ownerID int64) error {
 	return db.WithTx(ctx, func(ctx context.Context) error {
-		if err := user_model.DeleteUserSetting(ctx, ownerID, user_model.UserSSHMirrorPrivPem); err != nil {
+		if err := DeleteUserSetting(ctx, ownerID, UserSSHMirrorPrivPem); err != nil {
 			return err
 		}
-		if err := user_model.DeleteUserSetting(ctx, ownerID, user_model.UserSSHMirrorPubPem); err != nil {
+		if err := DeleteUserSetting(ctx, ownerID, UserSSHMirrorPubPem); err != nil {
 			return err
 		}
-		return user_model.DeleteUserSetting(ctx, ownerID, user_model.UserSSHMirrorFingerprint)
+		return DeleteUserSetting(ctx, ownerID, UserSSHMirrorFingerprint)
 	})
 }
 

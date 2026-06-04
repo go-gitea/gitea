@@ -10,7 +10,6 @@ import (
 
 	asymkey_model "gitea.dev/models/asymkey"
 	"gitea.dev/models/db"
-	repo_model "gitea.dev/models/repo"
 	user_model "gitea.dev/models/user"
 	"gitea.dev/modules/setting"
 	ssh_module "gitea.dev/modules/ssh"
@@ -351,7 +350,7 @@ func loadKeysData(ctx *context.Context) {
 		// Create a struct with the public key including comment
 		publicKeyWithComment, _ := mirrorKeypair.GetPublicKeyWithComment(ctx)
 		mirrorKeyData := struct {
-			*repo_model.UserSSHKeypair
+			*user_model.UserSSHKeypair
 			PublicKeyWithComment string
 		}{
 			UserSSHKeypair:       mirrorKeypair,
@@ -366,7 +365,7 @@ func loadKeysData(ctx *context.Context) {
 
 // RegenerateUserSSHKeypair regenerates the SSH keypair for repository mirroring
 func RegenerateUserSSHKeypair(ctx *context.Context) {
-	_, err := repo_model.RegenerateUserSSHKeypair(ctx, ctx.Doer.ID)
+	_, err := user_model.RegenerateUserSSHKeypair(ctx, ctx.Doer.ID)
 	if err != nil {
 		ctx.ServerError("RegenerateSSHKeypairForUser", err)
 		return

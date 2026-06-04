@@ -6,8 +6,8 @@ package org
 import (
 	"net/http"
 
-	repo_model "gitea.dev/models/repo"
 	ssh_module "gitea.dev/modules/ssh"
+	user_model "gitea.dev/models/user"
 	"gitea.dev/modules/templates"
 	shared_user "gitea.dev/routers/web/shared/user"
 	"gitea.dev/services/context"
@@ -36,7 +36,7 @@ func SSHKeys(ctx *context.Context) {
 
 	publicKeyWithComment, _ := keypair.GetPublicKeyWithComment(ctx)
 	ctx.Data["SSHKeypair"] = struct {
-		*repo_model.UserSSHKeypair
+		*user_model.UserSSHKeypair
 		PublicKeyWithComment string
 	}{keypair, publicKeyWithComment}
 
@@ -45,7 +45,7 @@ func SSHKeys(ctx *context.Context) {
 
 // RegenerateSSHKey regenerates the SSH keypair for organization mirror operations
 func RegenerateSSHKey(ctx *context.Context) {
-	_, err := repo_model.RegenerateUserSSHKeypair(ctx, ctx.Org.Organization.ID)
+	_, err := user_model.RegenerateUserSSHKeypair(ctx, ctx.Org.Organization.ID)
 	if err != nil {
 		ctx.ServerError("RegenerateSSHKeypairForOrg", err)
 		return
