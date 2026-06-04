@@ -64,15 +64,6 @@ func GetSSHKeypairForRepository(ctx context.Context, repo *repo_model.Repository
 	return GetOrCreateSSHKeypairForUser(ctx, repo.OwnerID)
 }
 
-// GetSSHKeypairForURL gets the appropriate SSH keypair for a given repository and URL
-// Returns nil if the URL is not an SSH URL
-func GetSSHKeypairForURL(ctx context.Context, repo *repo_model.Repository, url string) (*user_model.UserSSHKeypair, error) {
-	if !IsSSHURL(url) {
-		return nil, nil //nolint:nilnil // non-SSH URLs don't need a keypair
-	}
-	return GetSSHKeypairForRepository(ctx, repo)
-}
-
 // SetupManagedSSHAgent prepares SSH key-based authentication for a mirror or
 // migration git operation against remoteURL on behalf of repo. For non-SSH
 // URLs (or when no keypair is available) it is a no-op. The returned cleanup
