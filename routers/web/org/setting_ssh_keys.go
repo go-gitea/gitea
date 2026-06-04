@@ -6,8 +6,8 @@ package org
 import (
 	"net/http"
 
-	ssh_module "gitea.dev/modules/ssh"
 	user_model "gitea.dev/models/user"
+	ssh_module "gitea.dev/modules/ssh"
 	"gitea.dev/modules/templates"
 	shared_user "gitea.dev/routers/web/shared/user"
 	"gitea.dev/services/context"
