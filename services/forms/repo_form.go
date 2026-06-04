@@ -159,6 +159,8 @@ type RepoSettingForm struct {
 	// Admin settings
 	EnableHealthCheck  bool
 	RequestReindexType string
+
+	GroupID int64 `binding:"Required"`
 }
 
 // Validate validates the fields
