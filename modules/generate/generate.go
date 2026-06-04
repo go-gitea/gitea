@@ -92,7 +92,7 @@ func NewSSHKey(keytype string, bits int) (ssh.PublicKey, *pem.Block, error) {
 	return sshPub, pemPriv, nil
 }
 
-// commonKeyGen is an abstraction over rsa, ecdsa and ed25519 generating functions
+// commonKeyGen is an abstraction over rsa, ecdsa, and ed25519 generating functions
 func commonKeyGen(keytype string, bits int) (publicKey, privateKey crypto.PublicKey, err error) {
 	switch keytype {
 	case "rsa":

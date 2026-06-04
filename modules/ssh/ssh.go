@@ -60,12 +60,16 @@ const (
 	ED25519 KeyType = "ed25519"
 )
 
+func (k KeyType) String() string {
+	return string(k)
+}
+
 func getExitStatusFromError(err error) int {
 	if err == nil {
 		return 0
 	}
 
-	exitErr, ok := err.(*exec.ExitError)
+	exitErr, ok := errors.AsType[*exec.ExitError](err)
 	if !ok {
 		return 1
 	}
@@ -328,7 +332,7 @@ func publicKeyHandler(ctx ssh.Context, key ssh.PublicKey) bool {
 }
 
 // sshConnectionFailed logs a failed connection
-// -  this mainly exists to give a nice function name in logging
+// - this mainly exists to give a nice function name in logging
 func sshConnectionFailed(conn net.Conn, err error) {
 	// Log the underlying error with a specific message
 	log.Warn("Failed connection from %s with error: %v", conn.RemoteAddr(), err)
@@ -400,13 +404,13 @@ func Listen(host string, port int, ciphers, keyExchanges, macs []string) {
 // GenKeyPair make a pair of public and private keys for SSH access.
 // Public key is encoded in the format for inclusion in an OpenSSH authorized_keys file.
 // Private Key generated is PEM encoded
-func GenKeyPair(keyPath, keytype string) error {
+func GenKeyPair(keyPath string, keytype KeyType) error {
 	bits := 4096
-	if keytype == "ecdsa" {
+	if keytype == ECDSA {
 		bits = 256
 	}
 
-	publicKey, privateKeyPEM, err := generate.NewSSHKey(keytype, bits)
+	publicKey, privateKeyPEM, err := generate.NewSSHKey(keytype.String(), bits)
 	if err != nil {
 		return err
 	}
@@ -444,12 +448,13 @@ func GenKeyPair(keyPath, keytype string) error {
 // key naming does not follow the openssh convention due to existing settings being gitea.{keytype} so generation follows gitea convention
 func initDefaultKeys(path string) error {
 	var errs []error
-	keytypes := []string{"rsa", "ecdsa", "ed25519"}
+	keytypes := []KeyType{RSA, ECDSA, ED25519}
 	for _, keytype := range keytypes {
-		privExists, _ := util.IsExist(path + "/gitea." + keytype)
-		pubExists, _ := util.IsExist(path + "/gitea." + keytype + ".pub")
+		k := keytype.String()
+		privExists, _ := util.IsExist(path + "/gitea." + k)
+		pubExists, _ := util.IsExist(path + "/gitea." + k + ".pub")
 		if !privExists || !pubExists {
-			errs = append(errs, GenKeyPair(path+"/gitea."+keytype, keytype))
+			errs = append(errs, GenKeyPair(path+"/gitea."+k, keytype))
 		}
 	}
 	return errors.Join(errs...)

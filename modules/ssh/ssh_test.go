@@ -19,25 +19,25 @@ import (
 
 func TestGenKeyPair(t *testing.T) {
 	testCases := []struct {
-		keyType      string
+		keyType      KeyType
 		expectedType any
 	}{
 		{
-			keyType:      "rsa",
+			keyType:      RSA,
 			expectedType: &rsa.PrivateKey{},
 		},
 		{
-			keyType:      "ed25519",
+			keyType:      ED25519,
 			expectedType: &ed25519.PrivateKey{},
 		},
 		{
-			keyType:      "ecdsa",
+			keyType:      ECDSA,
 			expectedType: &ecdsa.PrivateKey{},
 		},
 	}
 	for _, tC := range testCases {
-		t.Run("Generate "+filepath.Ext(tC.keyType), func(t *testing.T) {
-			path := t.TempDir() + "gitea." + tC.keyType
+		t.Run("Generate "+filepath.Ext(tC.keyType.String()), func(t *testing.T) {
+			path := t.TempDir() + "gitea." + tC.keyType.String()
 			require.NoError(t, GenKeyPair(path, tC.keyType))
 
 			file, err := os.Open(path)
