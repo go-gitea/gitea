@@ -8,11 +8,11 @@
 		{{end}}
 	{{end}}
 {{end}}
-<div class="{{if .PageIsNewGroup}}inline {{end}}field">
-	<label>{{ctx.Locale.Tr "group.parent"}}</label>
+<div class="field{{if .Inline}} inline{{end}}{{if .ErrField}} error{{end}}">
+	<label>{{.Label}}</label>
 	<div class="ui selection group dropdown" id="group_selector">
 		<span class="text truncated-item-container" title="{{ctx.Locale.Tr "group.parent.none_selected"}}"></span>
-		<input type="hidden" id="gid" name="parent_group_id" value="{{if .Group}}{{.Group.ParentGroupID}}{{else}}0{{end}}" required>
+		<input type="hidden" id="gid" name="{{if .FieldName}}{{.FieldName}}{{else}}parent_group_id{{end}}" value="{{if .Parent}}{{.Parent}}{{else}}0{{end}}" required>
 		{{svg "octicon-triangle-down" 14 "dropdown icon"}}
 		<div class="menu">
 			<div class="item truncated-item-container" data-value="0" title="{{ctx.Locale.Tr "group.parent.none"}}">
