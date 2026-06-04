@@ -34,16 +34,7 @@
 							</div>
 						</div>
 					</div>
-					<div class="inline field">
-						<label>{{ctx.Locale.Tr "group.parent"}}</label>
-						<div id="group_selector" class="ui search dropdown selection">
-							<input type="hidden" id="gid" name="parent_group_id" value="0" required>
-							<span class="default text"></span>
-							{{svg "octicon-triangle-down" 14 "dropdown icon"}}
-							<div class="menu">
-							</div>
-						</div>
-					</div>
+					{{template "group/selector_dynamic" dict "." . "Label" (ctx.Locale.Tr "group.parent") "Inline" true }}
 
 					<div class="inline field {{if .Err_Description}}error{{end}}">
 						<label for="description">{{ctx.Locale.Tr "group.group_desc"}}</label>
