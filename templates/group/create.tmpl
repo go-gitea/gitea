@@ -34,7 +34,7 @@
 							</div>
 						</div>
 					</div>
-					{{template "group/selector_dynamic" dict "." . "Label" (ctx.Locale.Tr "group.parent") "Inline" true }}
+					{{template "group/selector_dynamic" dict "." . "Label" (ctx.Locale.Tr "group.parent") "Inline" true}}
 
 					<div class="inline field {{if .Err_Description}}error{{end}}">
 						<label for="description">{{ctx.Locale.Tr "group.group_desc"}}</label>
