@@ -351,7 +351,7 @@ func renderRevisionPage(ctx *context.Context) (*git.Repository, *git.TreeEntry) 
 	page := max(ctx.FormInt("page"), 1)
 
 	// get Commit Count
-	commitsHistory, err := wikiGitRepo.CommitsByFileAndRange(
+	commitsHistory, _, err := wikiGitRepo.CommitsByFileAndRange(
 		git.CommitsByFileAndRangeOptions{
 			Revision: ctx.Repo.Repository.DefaultWikiBranch,
 			File:     pageFilename,
