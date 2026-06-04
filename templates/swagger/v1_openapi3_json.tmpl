@@ -5749,6 +5749,11 @@
           "external_wiki": {
             "$ref": "#/components/schemas/ExternalWiki"
           },
+          "force_push_backup": {
+            "description": "create backup branches for force-pushed refs during mirror sync",
+            "type": "boolean",
+            "x-go-name": "ForcePushBackup"
+          },
           "has_actions": {
             "description": "either `true` to enable actions unit, or `false` to disable them.",
             "type": "boolean",
