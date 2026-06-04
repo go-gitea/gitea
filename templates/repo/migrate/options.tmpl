@@ -5,6 +5,23 @@
 		<input id="mirror" name="mirror" type="checkbox" {{if .mirror}} checked{{end}}>
 		<label>{{ctx.Locale.Tr "repo.migrate_options_mirror_helper"}}</label>
 	</div>
+	<span id="mirror_settings" class="tw-hidden">(<a id="mirror_settings_show" href="#">{{ctx.Locale.Tr "repo.settings.advanced_settings"}}</a>)</span>
+</div>
+<div id="mirror_options" class="tw-hidden tw-mb-4">
+	<div class="inline field">
+		<label></label>
+		<div class="ui checkbox">
+			<input id="enable_prune" name="enable_prune" type="checkbox" {{if .enable_prune}}checked{{end}}>
+			<label>{{ctx.Locale.Tr "repo.mirror_prune_migrate"}}</label>
+		</div>
+	</div>
+	<div class="inline field">
+		<label></label>
+		<div class="ui checkbox">
+			<input id="force_push_backup" name="force_push_backup" type="checkbox" {{if .force_push_backup}}checked{{end}}>
+			<label>{{ctx.Locale.Tr "repo.mirror_force_push_backup_migrate"}}</label>
+		</div>
+	</div>
 </div>
 {{end}}
 {{if .LFSActive}}

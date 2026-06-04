@@ -9,6 +9,8 @@ import (
 	"strings"
 	"time"
 
+	"gitea.dev/models/db"
+	git_model "gitea.dev/models/git"
 	repo_model "gitea.dev/models/repo"
 	system_model "gitea.dev/models/system"
 	"gitea.dev/modules/cache"
@@ -180,9 +182,22 @@ func runSync(ctx context.Context, m *repo_model.Mirror) ([]*repo_module.SyncResu
 	}
 
 	log.Trace("SyncMirrors [repo: %-v]: syncing branches...", m.Repo)
-	_, results, err := repo_module.SyncRepoBranchesWithRepo(ctx, m.Repo, gitRepo, 0)
+	_, results, err := repo_module.SyncRepoBranchesWithRepoOptions(ctx, m.Repo, gitRepo, 0, repo_module.SyncRepoBranchesOptions{
+		PreserveBackupBranches: m.ForcePushBackup,
+	})
 	if err != nil {
 		log.Error("SyncMirrors [repo: %-v]: failed to synchronize branches: %v", m.Repo, err)
+	}
+
+	// Restore backup branches from DB that were pruned by git fetch
+	if m.ForcePushBackup {
+		restoreBackupBranches(ctx, m)
+	}
+
+	// Create backup branches for force-pushed refs if enabled
+	if m.ForcePushBackup {
+		log.Info("SyncMirrors [repo: %-v]: backup enabled (ForcePushBackup=%v), processing %d sync results", m.Repo, m.ForcePushBackup, len(results))
+		createBackupBranches(ctx, m, gitRepo, results)
 	}
 
 	log.Trace("SyncMirrors [repo: %-v]: syncing releases with tags...", m.Repo)
@@ -259,6 +274,113 @@ func runSync(ctx context.Context, m *repo_model.Mirror) ([]*repo_module.SyncResu
 
 	m.UpdatedUnix = timeutil.TimeStampNow()
 	return results, true
+}
+
+// restoreBackupBranches re-creates backup branches in git that were removed by git fetch --prune.
+// Backup branches are preserved in the DB by SyncRepoBranchesWithRepo and restored here.
+func restoreBackupBranches(ctx context.Context, m *repo_model.Mirror) {
+	branches, err := db.Find[git_model.Branch](ctx, git_model.FindBranchOptions{
+		ListOptions: db.ListOptionsAll,
+		RepoID:      m.Repo.ID,
+	})
+	if err != nil {
+		log.Error("SyncMirrors [repo: %-v]: failed to list branches for backup restore: %v", m.Repo, err)
+		return
+	}
+	for _, branch := range branches {
+		if !shouldRestoreBackupBranch(branch) {
+			continue
+		}
+		if gitrepo.IsBranchExist(ctx, m.Repo, branch.Name) {
+			continue
+		}
+		if err := gitrepo.CreateBranch(ctx, m.Repo, branch.Name, branch.CommitID); err != nil {
+			log.Error("SyncMirrors [repo: %-v]: failed to restore backup branch %s: %v", m.Repo, branch.Name, err)
+			continue
+		}
+		log.Trace("SyncMirrors [repo: %-v]: restored backup branch %s -> %s", m.Repo, branch.Name, branch.CommitID)
+	}
+}
+
+func shouldRestoreBackupBranch(branch *git_model.Branch) bool {
+	return !branch.IsDeleted && repo_module.IsBackupBranchName(branch.Name)
+}
+
+// createBackupBranches detects force-pushed branches and creates backup branches
+// pointing to the old commit. Backup branches are named "<branch>-backup-forced-<timestamp>".
+// Controlled by m.ForcePushBackup.
+func createBackupBranches(ctx context.Context, m *repo_model.Mirror, gitRepo *git.Repository, results []*repo_module.SyncResult) {
+	for _, result := range results {
+		if !result.RefName.IsBranch() {
+			continue
+		}
+		branchName := result.RefName.BranchName()
+		// Skip backup branches to avoid cascading backups
+		if repo_module.IsBackupBranchName(branchName) {
+			continue
+		}
+		if result.OldCommitID == "" || result.NewCommitID == "" {
+			continue
+		}
+		log.Trace("SyncMirrors [repo: %-v]: checking branch %s (old: %s, new: %s)", m.Repo, branchName, result.OldCommitID, result.NewCommitID)
+
+		// Check if this was a force push
+		newCommit, err := gitRepo.GetCommit(result.NewCommitID)
+		if err != nil {
+			log.Error("SyncMirrors [repo: %-v]: unable to get commit %s: %v", m.Repo, result.NewCommitID, err)
+			continue
+		}
+		isForcePush, err := newCommit.IsForcePush(result.OldCommitID)
+		if err != nil {
+			log.Error("SyncMirrors [repo: %-v]: unable to check force push for branch %s: %v", m.Repo, branchName, err)
+			continue
+		}
+		if !isForcePush {
+			continue
+		}
+
+		// Create backup branch with timestamp
+		backupBranchName := generateBackupBranchName(ctx, m, branchName, "forced")
+
+		// Create the backup branch pointing to the old commit
+		if err := gitrepo.CreateBranch(ctx, m.Repo, backupBranchName, result.OldCommitID); err != nil {
+			log.Error("SyncMirrors [repo: %-v]: unable to create backup branch %s for branch %s: %v", m.Repo, backupBranchName, branchName, err)
+			continue
+		}
+
+		// Add the backup branch to the database so it's visible in the UI
+		if err := git_model.AddBranches(ctx, []*git_model.Branch{{
+			RepoID:   m.Repo.ID,
+			Name:     backupBranchName,
+			CommitID: result.OldCommitID,
+		}}); err != nil {
+			log.Error("SyncMirrors [repo: %-v]: unable to add backup branch %s to database: %v", m.Repo, backupBranchName, err)
+		}
+
+		log.Info("SyncMirrors [repo: %-v]: created backup branch %s for branch %s (old: %s, new: %s)", m.Repo, backupBranchName, branchName, result.OldCommitID, result.NewCommitID)
+	}
+}
+
+// backupBranchPrefix is used to identify backup branches created by the mirror sync system.
+const backupBranchPrefix = "-backup-"
+
+// generateBackupBranchName generates a unique backup branch name.
+// Format: "<branch>-backup-forced-<timestamp>"
+func generateBackupBranchName(ctx context.Context, m *repo_model.Mirror, branchName, backupType string) string {
+	timestamp := time.Now().UTC().Format("2006-01-02T15-04-05")
+	backupBranchName := fmt.Sprintf("%s%s%s-%s", branchName, backupBranchPrefix, backupType, timestamp)
+
+	if !gitrepo.IsBranchExist(ctx, m.Repo, backupBranchName) {
+		return backupBranchName
+	}
+
+	// Append a counter suffix if the name already exists
+	for i := 2; ; i++ {
+		candidate := fmt.Sprintf("%s-%d", backupBranchName, i)
+		if !gitrepo.IsBranchExist(ctx, m.Repo, candidate) {
+			return candidate
+		}
+	}
 }
 
 func getRepoPullMirrorLockKey(repoID int64) string {

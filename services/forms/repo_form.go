@@ -79,6 +79,9 @@ type MigrateRepoForm struct {
 	Releases       bool   `json:"releases"`
 	MirrorInterval string `json:"mirror_interval"`
 
+	ForcePushBackup bool `json:"force_push_backup"`
+	EnablePrune     bool `json:"enable_prune"`
+
 	AWSAccessKeyID     string `json:"aws_access_key_id"`
 	AWSSecretAccessKey string `json:"aws_secret_access_key"`
 }
@@ -108,6 +111,7 @@ type RepoSettingForm struct {
 	PushMirrorInterval     string
 	Template               bool
 	EnablePrune            bool
+	ForcePushBackup        bool
 
 	// Advanced settings
 	EnableCode bool

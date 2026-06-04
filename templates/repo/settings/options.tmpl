@@ -134,6 +134,13 @@
 										<label>{{ctx.Locale.Tr "repo.mirror_prune_desc"}}</label>
 											</div>
 										</div>
+										<div class="inline field {{if .Err_ForcePushBackup}}error{{end}}">
+											<label>{{ctx.Locale.Tr "repo.mirror_force_push_backup"}}</label>
+											<div class="ui checkbox">
+											<input id="force_push_backup" name="force_push_backup" type="checkbox" {{if .PullMirror.ForcePushBackup}}checked{{end}}>
+											<label>{{ctx.Locale.Tr "repo.mirror_force_push_backup_desc"}}</label>
+											</div>
+										</div>
 										<div class="inline field {{if .Err_Interval}}error{{end}}">
 											<label for="interval">{{ctx.Locale.Tr "repo.mirror_interval" .MinimumMirrorInterval}}</label>
 											<input id="interval" name="interval" value="{{.PullMirror.Interval}}">

@@ -53,14 +53,22 @@ func Migrate(ctx *context.Context) {
 	}
 
 	ctx.Data["private"] = getRepoPrivate(ctx)
-	ctx.Data["mirror"] = ctx.FormString("mirror") == "1"
-	ctx.Data["lfs"] = ctx.FormString("lfs") == "1"
-	ctx.Data["wiki"] = ctx.FormString("wiki") == "1"
-	ctx.Data["milestones"] = ctx.FormString("milestones") == "1"
-	ctx.Data["labels"] = ctx.FormString("labels") == "1"
-	ctx.Data["issues"] = ctx.FormString("issues") == "1"
-	ctx.Data["pull_requests"] = ctx.FormString("pull_requests") == "1"
-	ctx.Data["releases"] = ctx.FormString("releases") == "1"
+	ctx.Data["mirror"] = ctx.FormBool("mirror")
+	ctx.Data["lfs"] = ctx.FormBool("lfs")
+	ctx.Data["wiki"] = ctx.FormBool("wiki")
+	ctx.Data["milestones"] = ctx.FormBool("milestones")
+	ctx.Data["labels"] = ctx.FormBool("labels")
+	ctx.Data["issues"] = ctx.FormBool("issues")
+	ctx.Data["pull_requests"] = ctx.FormBool("pull_requests")
+	ctx.Data["releases"] = ctx.FormBool("releases")
+	// Default enable_prune to true if not explicitly set (initial page load)
+	enablePrune := ctx.FormString("enable_prune")
+	ctx.Data["enable_prune"] = enablePrune == "" || ctx.FormBool("enable_prune")
+	forcePushBackup := ctx.FormString("force_push_backup")
+	ctx.Data["force_push_backup"] = ctx.FormBool("force_push_backup")
+	if forcePushBackup == "" {
+		ctx.Data["force_push_backup"] = setting.Mirror.DefaultForcePushBackup
+	}
 
 	ctxUser := checkContextUser(ctx, ctx.FormInt64("org"))
 	if ctx.Written() {
@@ -204,26 +212,30 @@ func MigratePost(ctx *context.Context) {
 		}
 	}
 
+	enablePrune := form.EnablePrune
+	forcePushBackup := form.ForcePushBackup
 	opts := migrations.MigrateOptions{
-		OriginalURL:    form.CloneAddr,
-		GitServiceType: form.Service,
-		CloneAddr:      remoteAddr,
-		RepoName:       form.RepoName,
-		Description:    form.Description,
-		Private:        form.Private || setting.Repository.ForcePrivate,
-		Mirror:         form.Mirror,
-		LFS:            form.LFS,
-		LFSEndpoint:    form.LFSEndpoint,
-		AuthUsername:   form.AuthUsername,
-		AuthPassword:   form.AuthPassword,
-		AuthToken:      form.AuthToken,
-		Wiki:           form.Wiki,
-		Issues:         form.Issues,
-		Milestones:     form.Milestones,
-		Labels:         form.Labels,
-		Comments:       form.Issues || form.PullRequests,
-		PullRequests:   form.PullRequests,
-		Releases:       form.Releases,
+		OriginalURL:     form.CloneAddr,
+		GitServiceType:  form.Service,
+		CloneAddr:       remoteAddr,
+		RepoName:        form.RepoName,
+		Description:     form.Description,
+		Private:         form.Private || setting.Repository.ForcePrivate,
+		Mirror:          form.Mirror,
+		LFS:             form.LFS,
+		LFSEndpoint:     form.LFSEndpoint,
+		AuthUsername:    form.AuthUsername,
+		AuthPassword:    form.AuthPassword,
+		AuthToken:       form.AuthToken,
+		Wiki:            form.Wiki,
+		Issues:          form.Issues,
+		Milestones:      form.Milestones,
+		Labels:          form.Labels,
+		Comments:        form.Issues || form.PullRequests,
+		PullRequests:    form.PullRequests,
+		Releases:        form.Releases,
+		ForcePushBackup: &forcePushBackup,
+		EnablePrune:     &enablePrune,
 	}
 	if opts.Mirror {
 		opts.Issues = false

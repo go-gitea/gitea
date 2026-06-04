@@ -6,6 +6,8 @@ const user = document.querySelector<HTMLInputElement>('#auth_username');
 const pass = document.querySelector<HTMLInputElement>('#auth_password');
 const token = document.querySelector<HTMLInputElement>('#auth_token');
 const mirror = document.querySelector<HTMLInputElement>('#mirror');
+const mirrorSettings = document.querySelector<HTMLElement>('#mirror_settings');
+const mirrorOptions = document.querySelector<HTMLElement>('#mirror_options');
 const lfs = document.querySelector<HTMLInputElement>('#lfs');
 const lfsSettings = document.querySelector<HTMLElement>('#lfs_settings')!;
 const lfsEndpoint = document.querySelector<HTMLElement>('#lfs_endpoint')!;
@@ -14,11 +16,21 @@ const items = document.querySelectorAll<HTMLInputElement>('#migrate_items input[
 export function initRepoMigration() {
   checkAuth();
   setLFSSettingsVisibility();
+  setMirrorOptionsVisibility();
 
   user?.addEventListener('input', () => {checkItems(false)});
   pass?.addEventListener('input', () => {checkItems(false)});
   token?.addEventListener('input', () => {checkItems(true)});
-  mirror?.addEventListener('change', () => {checkItems(true)});
+  mirror?.addEventListener('change', () => {
+    checkItems(true);
+    setMirrorOptionsVisibility();
+  });
+  document.querySelector('#mirror_settings_show')?.addEventListener('click', (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    const mirrorOptionsEl = mirrorOptions;
+    if (mirrorOptionsEl) showElem(mirrorOptionsEl);
+  });
   document.querySelector('#lfs_settings_show')?.addEventListener('click', (e) => {
     e.preventDefault();
     e.stopPropagation();
@@ -77,4 +89,12 @@ function setLFSSettingsVisibility() {
   const visible = lfs.checked;
   toggleElem(lfsSettings, visible);
   hideElem(lfsEndpoint);
+}
+
+function setMirrorOptionsVisibility() {
+  if (!mirror || !mirrorSettings || !mirrorOptions) return;
+  toggleElem(mirrorSettings, mirror.checked);
+  if (!mirror.checked) {
+    hideElem(mirrorOptions);
+  }
 }

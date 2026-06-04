@@ -7480,6 +7480,16 @@
             "type": "string",
             "x-go-name": "Description"
           },
+          "enable_prune": {
+            "description": "enable prune - remove obsolete remote-tracking references when mirroring",
+            "type": "boolean",
+            "x-go-name": "EnablePrune"
+          },
+          "force_push_backup": {
+            "description": "create backup branches for force-pushed refs during mirror sync",
+            "type": "boolean",
+            "x-go-name": "ForcePushBackup"
+          },
           "issues": {
             "type": "boolean",
             "x-go-name": "Issues"
