@@ -1,0 +1,10 @@
+<div class="{{if .Inline}}inline {{end}}field">
+	<label>{{.Label}}</label>
+	<div id="group_selector" class="ui search dropdown selection">
+		<input type="hidden" id="gid" name="parent_group_id" value="0" required>
+		<span class="default text"></span>
+		{{svg "octicon-triangle-down" 14 "dropdown icon"}}
+		<div class="menu">
+		</div>
+	</div>
+</div>
