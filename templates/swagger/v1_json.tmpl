@@ -30195,24 +30195,6 @@
       },
       "x-go-package": "gitea.dev/models/activities"
     },
-    "UserMeta": {
-      "type": "object",
-      "title": "UserMeta represents minimal user information for the token owner.",
-      "properties": {
-        "id": {
-          "description": "The unique identifier of the user",
-          "type": "integer",
-          "format": "int64",
-          "x-go-name": "ID"
-        },
-        "login": {
-          "description": "The username of the user",
-          "type": "string",
-          "x-go-name": "Login"
-        }
-      },
-      "x-go-package": "gitea.dev/modules/structs"
-    },
     "UserSettings": {
       "description": "UserSettings represents user settings",
       "type": "object",
@@ -30714,43 +30696,6 @@
         "type": "array",
         "items": {
           "$ref": "#/definitions/Cron"
-        }
-      }
-    },
-    "CurrentAccessToken": {
-      "description": "CurrentAccessToken represents the metadata of the currently authenticated token.",
-      "schema": {
-        "$ref": "#/definitions/UserMeta"
-      },
-      "headers": {
-        "created_at": {
-          "type": "string",
-          "format": "date-time",
-          "description": "The timestamp when the token was created"
-        },
-        "id": {
-          "type": "integer",
-          "format": "int64",
-          "description": "The unique identifier of the access token"
-        },
-        "last_used_at": {
-          "type": "string",
-          "format": "date-time",
-          "description": "The timestamp when the token was last used"
-        },
-        "name": {
-          "type": "string",
-          "description": "The name of the access token"
-        },
-        "scopes": {
-          "type": "array",
-          "items": {
-            "type": "string"
-          },
-          "description": "The scopes granted to this access token"
-        },
-        "user": {
-          "description": "The owner of the access token"
         }
       }
     },

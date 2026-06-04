@@ -6,7 +6,7 @@ package structs
 import "time"
 
 // CurrentAccessToken represents the metadata of the currently authenticated token.
-// swagger:response CurrentAccessToken
+// swagger:model CurrentAccessToken
 type CurrentAccessToken struct {
 	// The unique identifier of the access token
 	ID int64 `json:"id"`

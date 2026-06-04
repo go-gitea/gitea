@@ -399,58 +399,6 @@
         },
         "description": "CronList"
       },
-      "CurrentAccessToken": {
-        "content": {
-          "application/json": {
-            "schema": {
-              "$ref": "#/components/schemas/UserMeta"
-            }
-          }
-        },
-        "description": "CurrentAccessToken represents the metadata of the currently authenticated token.",
-        "headers": {
-          "created_at": {
-            "description": "The timestamp when the token was created",
-            "schema": {
-              "format": "date-time",
-              "type": "string"
-            }
-          },
-          "id": {
-            "description": "The unique identifier of the access token",
-            "schema": {
-              "format": "int64",
-              "type": "integer"
-            }
-          },
-          "last_used_at": {
-            "description": "The timestamp when the token was last used",
-            "schema": {
-              "format": "date-time",
-              "type": "string"
-            }
-          },
-          "name": {
-            "description": "The name of the access token",
-            "schema": {
-              "type": "string"
-            }
-          },
-          "scopes": {
-            "description": "The scopes granted to this access token",
-            "schema": {
-              "items": {
-                "type": "string"
-              },
-              "type": "array"
-            }
-          },
-          "user": {
-            "description": "The owner of the access token",
-            "schema": {}
-          }
-        }
-      },
       "DeployKey": {
         "content": {
           "application/json": {
@@ -10417,24 +10365,6 @@
         },
         "type": "object",
         "x-go-package": "gitea.dev/models/activities"
-      },
-      "UserMeta": {
-        "properties": {
-          "id": {
-            "description": "The unique identifier of the user",
-            "format": "int64",
-            "type": "integer",
-            "x-go-name": "ID"
-          },
-          "login": {
-            "description": "The username of the user",
-            "type": "string",
-            "x-go-name": "Login"
-          }
-        },
-        "title": "UserMeta represents minimal user information for the token owner.",
-        "type": "object",
-        "x-go-package": "gitea.dev/modules/structs"
       },
       "UserSettings": {
         "description": "UserSettings represents user settings",

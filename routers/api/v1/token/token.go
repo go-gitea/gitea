@@ -66,9 +66,7 @@ func DeleteCurrentToken(ctx *context.APIContext) {
 	// Delete the token
 	if err := auth_model.DeleteAccessTokenByID(ctx, accessToken.ID, accessToken.UID); err != nil {
 		if auth_model.IsErrAccessTokenNotExist(err) {
-			ctx.APIErrorNotFound()
-		} else {
-			ctx.APIErrorInternal(err)
+			ctx.NotFoundOrServerError(err)
 		}
 		return
 	}
