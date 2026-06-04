@@ -2971,6 +2971,12 @@
             "in": "query"
           },
           {
+            "type": "string",
+            "description": "branch name substring to filter by",
+            "name": "q",
+            "in": "query"
+          },
+          {
             "description": "group ID of the repo",
             "name": "group_id",
             "type": "integer",
