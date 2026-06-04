@@ -353,7 +353,7 @@ func loadKeysData(ctx *context.Context) {
 			*user_model.SSHKeypair
 			PublicKeyWithComment string
 		}{
-			SSHKeypair:       mirrorKeypair,
+			SSHKeypair:           mirrorKeypair,
 			PublicKeyWithComment: publicKeyWithComment,
 		}
 
