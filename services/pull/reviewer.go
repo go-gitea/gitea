@@ -27,9 +27,13 @@ func GetReviewers(ctx context.Context, repo *repo_model.Repository, doerID, post
 		return nil, err
 	}
 
-	doer, err := getReviewerDoer(ctx, doerID)
-	if err != nil {
-		return nil, err
+	var doer *user_model.User
+	if doerID > 0 {
+		var err error
+		doer, err = user_model.GetUserByID(ctx, doerID)
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	e := db.GetEngine(ctx)
@@ -76,13 +80,6 @@ func GetReviewers(ctx context.Context, repo *repo_model.Repository, doerID, post
 	}
 
 	return users, nil
-}
-
-func getReviewerDoer(ctx context.Context, doerID int64) (*user_model.User, error) {
-	if doerID <= 0 {
-		return nil, nil
-	}
-	return user_model.GetUserByID(ctx, doerID)
 }
 
 func reviewerVisibilityCondition(doer *user_model.User) builder.Cond {
