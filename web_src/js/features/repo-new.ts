@@ -2,7 +2,7 @@ import {hideElem, querySingleVisibleElem, showElem, toggleElem} from '../utils/d
 import {html, htmlEscape} from '../utils/html.ts';
 import {fomanticQuery} from '../modules/fomantic/base.ts';
 import {sanitizeRepoName} from './repo-common.ts';
-import type {FomanticDropdownItem, FomanticMenuDropdownItem} from '../modules/fomantic/dropdown.ts'
+import type {FomanticDropdownItem, FomanticMenuDropdownItem} from '../modules/fomantic/dropdown.ts';
 
 const {appSubUrl} = window.config;
 function initRepoNewTemplateSearch(form: HTMLFormElement) {
@@ -64,7 +64,7 @@ export function initGroupSelector(form: HTMLFormElement) {
     return;
   }
   const $dropdown = fomanticQuery(elGroupDropdown);
-  const elGID = elGroupDropdown.querySelector<HTMLInputElement>('input#gid')!!;
+  const elGID = elGroupDropdown.querySelector<HTMLInputElement>('input#gid')!;
   const onChangeRepoOwner = function () {
     const $dropdownInstance = $dropdown.dropdown('setting', {
       apiSettings: {
@@ -75,15 +75,15 @@ export function initGroupSelector(form: HTMLFormElement) {
           results.push({name: html`&lt;none&gt;`, value: '0'});
           const forEachFn = function ({group, subgroups}: {group: any, subgroups: any[]}) {
             const retVal: FomanticMenuDropdownItem = {
-              // eslint-disable-next-line github/unescaped-html-literal
+
               name: group.name,
               text: group.name,
               value: String(group.id),
               type: 'menu',
-              values: []
+              values: [],
             };
-            retVal.values = subgroups.map(forEachFn)
-            return retVal
+            retVal.values = subgroups.map(forEachFn);
+            return retVal;
           };
           results.push(...response.data.subgroups.map(forEachFn));
           $dropdown.fomanticExt.onResponseKeepSelectedItem($dropdown, elGID.value);
@@ -96,17 +96,15 @@ export function initGroupSelector(form: HTMLFormElement) {
       selectOnKeydown: false,
       filterRemoteData: true,
       forceSelection: false,
-      action: function (text: string, val:string, element: HTMLElement) {
+      action(text: string, val:string, _element: HTMLElement) {
         const elTxt = elGroupDropdown.querySelector<HTMLSpanElement>('span.text');
-        if(elTxt) {
+        if (elTxt) {
           elTxt.innerHTML = text;
         }
         elGID.value = val;
         elGroupDropdown.querySelector<HTMLInputElement>('input.search')!.value = '';
 
         $dropdown.dropdown('hide');
-
-        console.log(text, val, element, elGID);
       },
     });
 
@@ -114,8 +112,8 @@ export function initGroupSelector(form: HTMLFormElement) {
       const mod = $dropdown.data('module-dropdown');
       mod.remove.empty();
       mod.remove.message();
-    }
- };
+    };
+  };
 
   inputRepoOwnerUid.addEventListener('change', onChangeRepoOwner);
   onChangeRepoOwner();
