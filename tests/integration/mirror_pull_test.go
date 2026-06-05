@@ -7,8 +7,10 @@ import (
 	"os"
 	"path/filepath"
 	"slices"
+	"strings"
 	"testing"
 
+	activities_model "gitea.dev/models/activities"
 	"gitea.dev/models/db"
 	git_model "gitea.dev/models/git"
 	repo_model "gitea.dev/models/repo"
@@ -19,7 +21,7 @@ import (
 	"gitea.dev/modules/git/gitcmd"
 	"gitea.dev/modules/gitrepo"
 	"gitea.dev/modules/migration"
-	repo_module "gitea.dev/modules/repository"
+	"gitea.dev/modules/setting"
 	mirror_service "gitea.dev/services/mirror"
 	release_service "gitea.dev/services/release"
 	repo_service "gitea.dev/services/repository"
@@ -131,7 +133,7 @@ func TestMirrorPull(t *testing.T) {
 	assert.Equal(t, lastMirrorSync, mirror.LastSyncUnix)
 }
 
-func TestMirrorPullForcePushBackupDeletedBranchIsNotRestored(t *testing.T) {
+func TestMirrorPullForcePushBackupRefIsNotRestored(t *testing.T) {
 	defer tests.PrepareTestEnv(t)()
 
 	ctx := t.Context()
@@ -139,6 +141,11 @@ func TestMirrorPullForcePushBackupDeletedBranchIsNotRestored(t *testing.T) {
 	sourceRepo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
 	sourceRepoPath := repo_model.RepoPath(user.Name, sourceRepo.Name)
 	forcePushBackup := true
+	oldForcePushBackupLimit := setting.Mirror.DefaultForcePushBackupLimit
+	setting.Mirror.DefaultForcePushBackupLimit = 1
+	defer func() {
+		setting.Mirror.DefaultForcePushBackupLimit = oldForcePushBackupLimit
+	}()
 
 	opts := migration.MigrateOptions{
 		RepoName:        "test_mirror_force_push_backup",
@@ -190,10 +197,21 @@ func TestMirrorPullForcePushBackupDeletedBranchIsNotRestored(t *testing.T) {
 		WithDir(workDir).
 		RunStdString(ctx)
 	require.NoError(t, err)
+	actionCount := countMirrorBackupActions(t, mirrorRepo.ID)
 	writeCommitAndUpdateSource("mirror-force-push-b.txt", "second", "+master:refs/heads/master")
 	require.True(t, mirror_service.SyncPullMirror(ctx, mirrorRepo.ID))
+	assert.Equal(t, actionCount+1, countMirrorBackupActions(t, mirrorRepo.ID))
 
+	_ = assertSingleActiveBackupBranch(t, mirrorRepo.ID)
+	_, _, err = gitcmd.NewCommand("reset", "--hard", "HEAD~1").
+		WithDir(workDir).
+		RunStdString(ctx)
+	require.NoError(t, err)
+	writeCommitAndUpdateSource("mirror-force-push-c.txt", "third", "+master:refs/heads/master")
+	require.True(t, mirror_service.SyncPullMirror(ctx, mirrorRepo.ID))
+	assert.Equal(t, actionCount+2, countMirrorBackupActions(t, mirrorRepo.ID))
 	backupBranch := assertSingleActiveBackupBranch(t, mirrorRepo.ID)
+
 	mirrorGitRepo, err := gitrepo.OpenRepository(ctx, mirrorRepo)
 	require.NoError(t, err)
 	defer mirrorGitRepo.Close()
@@ -210,6 +228,31 @@ func TestMirrorPullForcePushBackupDeletedBranchIsNotRestored(t *testing.T) {
 		Name:   backupBranch.Name,
 	})
 	assert.True(t, deletedBranch.IsDeleted)
+
+	tagName := "mirror-backup-tag"
+	_, _, err = gitcmd.NewCommand("tag", "-f").AddDashesAndList(tagName, "HEAD").
+		WithDir(workDir).
+		RunStdString(ctx)
+	require.NoError(t, err)
+	_, _, err = gitcmd.NewCommand("fetch").
+		AddDynamicArguments(workDir, "refs/tags/"+tagName+":refs/tags/"+tagName).
+		WithDir(sourceRepoPath).
+		RunStdString(ctx)
+	require.NoError(t, err)
+	require.True(t, mirror_service.SyncPullMirror(ctx, mirrorRepo.ID))
+
+	writeCommitAndUpdateSource("mirror-force-push-tag.txt", "tag", "master:refs/heads/master")
+	_, _, err = gitcmd.NewCommand("tag", "-f").AddDashesAndList(tagName, "HEAD").
+		WithDir(workDir).
+		RunStdString(ctx)
+	require.NoError(t, err)
+	_, _, err = gitcmd.NewCommand("fetch").
+		AddDynamicArguments(workDir, "+refs/tags/"+tagName+":refs/tags/"+tagName).
+		WithDir(sourceRepoPath).
+		RunStdString(ctx)
+	require.NoError(t, err)
+	require.True(t, mirror_service.SyncPullMirror(ctx, mirrorRepo.ID))
+	assertSingleRefWithPrefix(t, mirrorRepo, "refs/tags/mirror-backup/tag/"+tagName+"-")
 }
 
 func assertSingleActiveBackupBranch(t *testing.T, repoID int64) *git_model.Branch {
@@ -223,10 +266,44 @@ func assertSingleActiveBackupBranch(t *testing.T, repoID int64) *git_model.Branc
 
 	var backupBranches []*git_model.Branch
 	for _, branch := range branches {
-		if !branch.IsDeleted && repo_module.IsBackupBranchName(branch.Name) {
+		if !branch.IsDeleted && strings.HasPrefix(branch.Name, "mirror-backup/branch/") {
 			backupBranches = append(backupBranches, branch)
 		}
 	}
 	require.Len(t, backupBranches, 1)
 	return backupBranches[0]
+}
+
+func countMirrorBackupActions(t *testing.T, repoID int64) int64 {
+	t.Helper()
+
+	count, err := db.GetEngine(t.Context()).Count(&activities_model.Action{
+		RepoID: repoID,
+		OpType: activities_model.ActionMirrorSyncBackup,
+	})
+	require.NoError(t, err)
+	return count
+}
+
+func assertSingleRefWithPrefix(t *testing.T, repo *repo_model.Repository, prefix string) {
+	t.Helper()
+
+	listPrefix := prefix
+	if idx := strings.LastIndexByte(prefix, '/'); idx >= 0 {
+		listPrefix = prefix[:idx+1]
+	}
+	stdout, _, err := gitcmd.NewCommand("for-each-ref", "--format=%(refname)").
+		AddDynamicArguments(listPrefix).
+		WithDir(repo.RepoPath()).
+		RunStdString(t.Context())
+	require.NoError(t, err)
+
+	var refs []string
+	for line := range strings.SplitSeq(stdout, "\n") {
+		line = strings.TrimSpace(line)
+		if strings.HasPrefix(line, prefix) {
+			refs = append(refs, line)
+		}
+	}
+	require.Len(t, refs, 1)
 }

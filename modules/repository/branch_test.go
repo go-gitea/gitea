@@ -1,4 +1,4 @@
-// Copyright 2026 The Gitea Authors. All rights reserved.
+// Copyright 2024 The Gitea Authors. All rights reserved.
 // SPDX-License-Identifier: MIT
 
 package repository
@@ -10,8 +10,11 @@ import (
 	git_model "gitea.dev/models/git"
 	repo_model "gitea.dev/models/repo"
 	"gitea.dev/models/unittest"
+	"gitea.dev/modules/git"
+	"gitea.dev/modules/gitrepo"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestSyncRepoBranches(t *testing.T) {
@@ -30,34 +33,26 @@ func TestSyncRepoBranches(t *testing.T) {
 	assert.Equal(t, "master", branch.Name)
 }
 
-func TestIsBackupBranchName(t *testing.T) {
-	cases := []struct {
-		name     string
-		expected bool
-	}{
-		// Backup branches
-		{"main-backup-forced-2026-06-03T09-05-57", true},
-		{"test-backup-forced-2026-01-01T00-00-00", true},
-		{"feature/auth-backup-forced-2026-12-31T23-59-59", true},
-		{"main-backup-forced-2026-06-03T09-05-57-2", true},
+func TestSyncRepoBranchesWithRepoSkipsAlreadyDeletedBranches(t *testing.T) {
+	require.NoError(t, unittest.PrepareTestDatabase())
 
-		// Regular branches
-		{"main", false},
-		{"test", false},
-		{"feature/auth", false},
-		{"release/v1.0", false},
+	ctx := t.Context()
+	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
+	gitRepo, err := gitrepo.OpenRepository(ctx, repo)
+	require.NoError(t, err)
+	defer gitRepo.Close()
 
-		// Similar but not matching patterns
-		{"main-backup-deleted-2026-06-03", false}, // old pattern, no longer used
-		{"main-backup-2026-06-03", false},         // missing type
-		{"main-conflict-2026-06-03", false},       // old conflict pattern
-		{"backup-main", false},                    // wrong format
-		{"main-backup-forced", false},             // missing timestamp
-	}
+	require.NoError(t, git_model.AddBranches(ctx, []*git_model.Branch{{
+		RepoID:    repo.ID,
+		Name:      "already-deleted",
+		CommitID:  git.Sha1ObjectFormat.EmptyObjectID().String(),
+		IsDeleted: true,
+	}}))
 
-	for _, c := range cases {
-		t.Run(c.name, func(t *testing.T) {
-			assert.Equal(t, c.expected, IsBackupBranchName(c.name), "test case: %s", c.name)
-		})
+	_, results, err := SyncRepoBranchesWithRepo(ctx, repo, gitRepo, 0)
+	require.NoError(t, err)
+
+	for _, result := range results {
+		assert.NotEqual(t, git.RefNameFromBranch("already-deleted"), result.RefName)
 	}
 }

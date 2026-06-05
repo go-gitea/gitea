@@ -34,8 +34,7 @@ type Mirror struct {
 
 	RemoteAddress string `xorm:"VARCHAR(2048)"`
 
-	// ForcePushBackup creates a backup branch when a force push is detected during sync.
-	// The backup branch is named "<branch>-backup-forced-<timestamp>" and points to the old commit.
+	// ForcePushBackup creates backup refs before destructive mirror updates.
 	ForcePushBackup bool `xorm:"NOT NULL DEFAULT false"`
 }
 

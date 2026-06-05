@@ -1071,7 +1071,6 @@ func updateMirror(ctx *context.APIContext, opts api.EditRepoOption) error {
 		mirror.ForcePushBackup = *opts.ForcePushBackup
 		log.Trace("Repository %s Mirror[%d] Set ForcePushBackup: %t", repo.FullName(), mirror.ID, mirror.ForcePushBackup)
 	}
-
 	authUpdateRequested := opts.MirrorPassword != nil || opts.MirrorToken != nil || opts.MirrorUsername != nil
 	if authUpdateRequested {
 		remoteURL, err := gitrepo.GitRemoteGetURL(ctx, repo, mirror.GetRemoteName())

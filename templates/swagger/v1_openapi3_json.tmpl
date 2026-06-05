@@ -2502,6 +2502,7 @@
               "mirror_sync_push",
               "mirror_sync_create",
               "mirror_sync_delete",
+              "mirror_sync_backup",
               "approve_pull_request",
               "reject_pull_request",
               "comment_pull",
@@ -5750,7 +5751,7 @@
             "$ref": "#/components/schemas/ExternalWiki"
           },
           "force_push_backup": {
-            "description": "create backup branches for force-pushed refs during mirror sync",
+            "description": "create backup refs before destructive mirror updates",
             "type": "boolean",
             "x-go-name": "ForcePushBackup"
           },
@@ -7491,7 +7492,7 @@
             "x-go-name": "EnablePrune"
           },
           "force_push_backup": {
-            "description": "create backup branches for force-pushed refs during mirror sync",
+            "description": "create backup refs before destructive mirror updates",
             "type": "boolean",
             "x-go-name": "ForcePushBackup"
           },

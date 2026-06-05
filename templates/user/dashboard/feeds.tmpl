@@ -61,6 +61,8 @@
 						{{ctx.Locale.Tr "action.mirror_sync_create" (.GetRepoLink ctx) (.GetRefLink ctx) .RefName (.ShortRepoPath ctx)}}
 					{{else if .GetOpType.InActions "mirror_sync_delete"}}
 						{{ctx.Locale.Tr "action.mirror_sync_delete" (.GetRepoLink ctx) .RefName (.ShortRepoPath ctx)}}
+					{{else if .GetOpType.InActions "mirror_sync_backup"}}
+						{{ctx.Locale.Tr "action.mirror_sync_backup" (.GetRepoLink ctx) (.GetRefLink ctx) .RefName .GetContent (.ShortRepoPath ctx)}}
 					{{else if .GetOpType.InActions "approve_pull_request"}}
 						{{$index := index .GetIssueInfos 0}}
 						{{ctx.Locale.Tr "action.approve_pull_request" (printf "%s/pulls/%s" (.GetRepoLink ctx) $index) $index (.ShortRepoPath ctx)}}

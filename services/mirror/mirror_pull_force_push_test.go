@@ -6,8 +6,6 @@ package mirror
 import (
 	"testing"
 
-	git_model "gitea.dev/models/git"
-
 	"github.com/stretchr/testify/assert"
 )
 
@@ -28,39 +26,44 @@ func Test_checkRecoverableSyncError_ForcePushMessages(t *testing.T) {
 	}
 }
 
-func Test_shouldRestoreBackupBranch(t *testing.T) {
+func Test_isBackupRefForPrefix(t *testing.T) {
+	prefix := "refs/heads/mirror-backup/branch/main-"
+
 	cases := []struct {
 		name     string
-		branch   *git_model.Branch
+		refName  string
 		expected bool
 	}{
 		{
-			name: "active backup branch",
-			branch: &git_model.Branch{
-				Name: "main-backup-forced-2026-06-03T09-05-57",
-			},
+			name:     "matching backup ref",
+			refName:  "refs/heads/mirror-backup/branch/main-20260604-143012",
 			expected: true,
 		},
 		{
-			name: "deleted backup branch",
-			branch: &git_model.Branch{
-				Name:      "main-backup-forced-2026-06-03T09-05-57",
-				IsDeleted: true,
-			},
+			name:     "matching backup ref with suffix",
+			refName:  "refs/heads/mirror-backup/branch/main-20260604-143012-2",
+			expected: true,
+		},
+		{
+			name:     "branch name prefix collision",
+			refName:  "refs/heads/mirror-backup/branch/main-feature-20260604-143012",
 			expected: false,
 		},
 		{
-			name: "regular branch",
-			branch: &git_model.Branch{
-				Name: "main",
-			},
+			name:     "invalid timestamp",
+			refName:  "refs/heads/mirror-backup/branch/main-feature-20260604",
+			expected: false,
+		},
+		{
+			name:     "invalid numeric suffix",
+			refName:  "refs/heads/mirror-backup/branch/main-20260604-143012-next",
 			expected: false,
 		},
 	}
 
 	for _, c := range cases {
 		t.Run(c.name, func(t *testing.T) {
-			assert.Equal(t, c.expected, shouldRestoreBackupBranch(c.branch))
+			assert.Equal(t, c.expected, isBackupRefForPrefix(c.refName, prefix))
 		})
 	}
 }

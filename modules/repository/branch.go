@@ -6,9 +6,6 @@ package repository
 import (
 	"context"
 	"fmt"
-	"strconv"
-	"strings"
-	"time"
 
 	"gitea.dev/models/db"
 	git_model "gitea.dev/models/git"
@@ -25,29 +22,6 @@ type SyncResult struct {
 	RefName     git.RefName
 	OldCommitID string
 	NewCommitID string
-}
-
-// IsBackupBranchName checks if a branch name matches the backup branch pattern.
-// Backup branches have the format "<branch>-backup-forced-<timestamp>".
-func IsBackupBranchName(branchName string) bool {
-	const marker = "-backup-forced-"
-	idx := strings.LastIndex(branchName, marker)
-	if idx <= 0 {
-		return false
-	}
-	suffix := branchName[idx+len(marker):]
-	timestampLength := len("2006-01-02T15-04-05")
-	if len(suffix) > timestampLength {
-		if suffix[timestampLength] != '-' {
-			return false
-		}
-		if _, err := strconv.Atoi(suffix[timestampLength+1:]); err != nil {
-			return false
-		}
-		suffix = suffix[:timestampLength]
-	}
-	_, err := time.Parse("2006-01-02T15-04-05", suffix)
-	return err == nil
 }
 
 // SyncRepoBranches synchronizes branch table with repository branches
@@ -71,16 +45,6 @@ func SyncRepoBranches(ctx context.Context, repoID, doerID int64) (int64, error) 
 }
 
 func SyncRepoBranchesWithRepo(ctx context.Context, repo *repo_model.Repository, gitRepo *git.Repository, doerID int64) (int64, []*SyncResult, error) {
-	return SyncRepoBranchesWithRepoOptions(ctx, repo, gitRepo, doerID, SyncRepoBranchesOptions{})
-}
-
-// SyncRepoBranchesOptions controls branch synchronization behavior.
-type SyncRepoBranchesOptions struct {
-	PreserveBackupBranches bool
-}
-
-// SyncRepoBranchesWithRepoOptions synchronizes branch table with repository branches using options.
-func SyncRepoBranchesWithRepoOptions(ctx context.Context, repo *repo_model.Repository, gitRepo *git.Repository, doerID int64, opts SyncRepoBranchesOptions) (int64, []*SyncResult, error) {
 	objFmt, err := gitRepo.GetObjectFormat()
 	if err != nil {
 		return 0, nil, fmt.Errorf("GetObjectFormat: %w", err)
@@ -161,13 +125,8 @@ func SyncRepoBranchesWithRepoOptions(ctx context.Context, repo *repo_model.Repos
 	}
 
 	for _, dbBranch := range dbBranches {
-		if !allBranches.Contains(dbBranch.Name) {
-			if opts.PreserveBackupBranches && IsBackupBranchName(dbBranch.Name) {
-				continue
-			}
-			if !dbBranch.IsDeleted {
-				toRemove = append(toRemove, dbBranch.ID)
-			}
+		if !allBranches.Contains(dbBranch.Name) && !dbBranch.IsDeleted {
+			toRemove = append(toRemove, dbBranch.ID)
 			syncResults = append(syncResults, &SyncResult{
 				RefName:     git.RefNameFromBranch(dbBranch.Name),
 				OldCommitID: dbBranch.CommitID,

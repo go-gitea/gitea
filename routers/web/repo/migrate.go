@@ -61,15 +61,8 @@ func Migrate(ctx *context.Context) {
 	ctx.Data["issues"] = ctx.FormBool("issues")
 	ctx.Data["pull_requests"] = ctx.FormBool("pull_requests")
 	ctx.Data["releases"] = ctx.FormBool("releases")
-	// Default enable_prune to true if not explicitly set (initial page load)
-	enablePrune := ctx.FormString("enable_prune")
-	ctx.Data["enable_prune"] = enablePrune == "" || ctx.FormBool("enable_prune")
-	forcePushBackup := ctx.FormString("force_push_backup")
-	ctx.Data["force_push_backup"] = ctx.FormBool("force_push_backup")
-	if forcePushBackup == "" {
-		ctx.Data["force_push_backup"] = setting.Mirror.DefaultForcePushBackup
-	}
-
+	ctx.Data["enable_prune"] = formBoolDefault(ctx, "enable_prune", true)
+	ctx.Data["force_push_backup"] = formBoolDefault(ctx, "force_push_backup", setting.Mirror.DefaultForcePushBackup)
 	ctxUser := checkContextUser(ctx, ctx.FormInt64("org"))
 	if ctx.Written() {
 		return
@@ -77,6 +70,13 @@ func Migrate(ctx *context.Context) {
 	ctx.Data["ContextUser"] = ctxUser
 
 	ctx.HTML(http.StatusOK, templates.TplName("repo/migrate/"+serviceType.Name()))
+}
+
+func formBoolDefault(ctx *context.Context, name string, defaultValue bool) bool {
+	if ctx.FormString(name) == "" {
+		return defaultValue
+	}
+	return ctx.FormBool(name)
 }
 
 func handleMigrateError(ctx *context.Context, owner *user_model.User, err error, name string, tpl templates.TplName, form *forms.MigrateRepoForm) {

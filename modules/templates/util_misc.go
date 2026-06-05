@@ -89,7 +89,7 @@ func actionIcon(opType activities_model.ActionType) string {
 		return "issue-reopened"
 	case activities_model.ActionCommentIssue, activities_model.ActionCommentPull:
 		return "comment-discussion"
-	case activities_model.ActionMirrorSyncPush, activities_model.ActionMirrorSyncCreate, activities_model.ActionMirrorSyncDelete:
+	case activities_model.ActionMirrorSyncPush, activities_model.ActionMirrorSyncCreate, activities_model.ActionMirrorSyncDelete, activities_model.ActionMirrorSyncBackup:
 		return "mirror"
 	case activities_model.ActionApprovePullRequest:
 		return "check"
