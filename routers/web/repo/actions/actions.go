@@ -358,7 +358,7 @@ func prepareWorkflowList(ctx *context.Context, workflows []WorkflowInfo, otherWo
 		return
 	}
 	for _, run := range runs {
-		if run.Status.IsDone() {
+		if !run.Status.In(actions_model.StatusWaiting, actions_model.StatusRunning, actions_model.StatusBlocked) {
 			continue
 		}
 		jobs, err := actions_model.GetLatestAttemptJobsByRepoAndRunID(ctx, run.RepoID, run.ID)
