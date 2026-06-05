@@ -237,7 +237,8 @@ func OrgAssignment(orgAssignmentOpts OrgAssignmentOptions) func(ctx *Context) {
 				return
 			}
 
-			ctx.Org.IsTeamAdmin = ctx.Org.IsOwner || (ctx.Org.IsTeamMember && (ctx.Org.Team.IsOwnerTeam() || ctx.Org.Team.HasAdminAccess()))
+			isTeamOwnerOrAdmin := ctx.Org.Team.IsOwnerTeam() || ctx.Org.Team.HasAdminAccess()
+			ctx.Org.IsTeamAdmin = ctx.Org.IsOwner || (ctx.Org.IsTeamMember && isTeamOwnerOrAdmin)
 			ctx.Data["IsTeamAdmin"] = ctx.Org.IsTeamAdmin
 			if opts.RequireTeamAdmin && !ctx.Org.IsTeamAdmin {
 				ctx.NotFound(err)
