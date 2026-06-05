@@ -214,37 +214,52 @@ func FileHistory(ctx *context.Context) {
 		return
 	}
 
-	commitsCount, err := gitrepo.FileCommitsCount(ctx, ctx.Repo.Repository, ctx.Repo.RefFullName.ShortName(), ctx.Repo.TreePath)
-	if err != nil {
-		ctx.ServerError("FileCommitsCount", err)
-		return
-	} else if commitsCount == 0 {
-		ctx.NotFound(nil)
-		return
-	}
+	followRename := ctx.FormBool("follow-rename")
+	ctx.Data["ShowFollowRename"] = true
+	ctx.Data["FollowRenameChecked"] = followRename
 
 	page := max(ctx.FormInt("page"), 1)
-
-	commits, err := ctx.Repo.GitRepo.CommitsByFileAndRange(
+	commits, hasMore, err := ctx.Repo.GitRepo.CommitsByFileAndRange(
 		git.CommitsByFileAndRangeOptions{
-			Revision: ctx.Repo.RefFullName.ShortName(), // FIXME: legacy code used ShortName
-			File:     ctx.Repo.TreePath,
-			Page:     page,
+			Revision:     ctx.Repo.RefFullName.ShortName(), // FIXME: legacy code used ShortName
+			File:         ctx.Repo.TreePath,
+			Page:         page,
+			FollowRename: followRename,
 		})
 	if err != nil {
 		ctx.ServerError("CommitsByFileAndRange", err)
 		return
 	}
+
+	var commitsCount int64
+	if followRename {
+		// there is no quick method to know the total count when "follow rename"
+		commitsCount = -1
+	} else {
+		commitsCount, err = gitrepo.FileCommitsCount(ctx, ctx.Repo.Repository, ctx.Repo.RefFullName.ShortName(), ctx.Repo.TreePath)
+		if err != nil {
+			ctx.ServerError("FileCommitsCount", err)
+			return
+		}
+	}
+
+	if len(commits) == 0 {
+		ctx.NotFound(nil)
+		return
+	}
+
+	ctx.Data["FileTreePath"] = ctx.Repo.TreePath
+	ctx.Data["CommitCount"] = commitsCount
 	ctx.Data["Commits"], err = processGitCommits(ctx, commits)
 	if err != nil {
 		ctx.ServerError("processGitCommits", err)
 		return
 	}
 
-	ctx.Data["FileTreePath"] = ctx.Repo.TreePath
-	ctx.Data["CommitCount"] = commitsCount
-
 	pager := context.NewPagination(commitsCount, setting.Git.CommitsRangeSize, page, 5)
+	if commitsCount == -1 {
+		pager.WithUnlimitedPaging(len(commits), hasMore)
+	}
 	pager.AddParamFromRequest(ctx.Req)
 	ctx.Data["Page"] = pager
 	ctx.HTML(http.StatusOK, tplCommits)
