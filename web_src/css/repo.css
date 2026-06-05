@@ -1816,14 +1816,6 @@ tbody.commit-list {
   box-shadow: 0 0.5rem 1rem var(--color-shadow) !important;
 }
 
-.commits-table .commits-table-right form {
-  display: flex;
-  align-items: center;
-  gap: 0.75em;
-  justify-content: center;
-  flex-wrap: wrap;
-}
-
 @media (max-width: 767.98px) {
   .repository.view.issue .comment-list,
   .repository.view.issue .comment-list .timeline-item {
@@ -1847,22 +1839,6 @@ tbody.commit-list {
   .commit-header h3 {
     flex-basis: auto !important;
     margin-bottom: 0.5rem !important;
-  }
-  .commits-table {
-    flex-direction: column;
-  }
-  .commits-table .commits-table-left {
-    align-items: initial !important;
-    margin-bottom: 6px;
-  }
-  .commits-table .commits-table-right form > div:nth-child(1) {
-    order: 1; /* the "commit search" input */
-  }
-  .commits-table .commits-table-right form > div:nth-child(2) {
-    order: 3; /* the "search all" checkbox */
-  }
-  .commits-table .commits-table-right form > button:nth-child(3) {
-    order: 2; /* the "search" button */
   }
   .commit-table {
     overflow-x: auto;
