@@ -4,7 +4,7 @@
 package consts
 
 const (
-	AsymKeyMinBitsRsa = 3071
+	AsymKeyMinBitsRsa = 3071 // 3072-1 to tolerate the leading zero
 	AsymKeyMinBitsEC  = 256
 
 	AsymKeyDefaultBitsRsa   = 4096 // ssh-keygen command defaults to 3072

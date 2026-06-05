@@ -25,7 +25,6 @@ import (
 	"gitea.dev/modules/log"
 	"gitea.dev/modules/process"
 	"gitea.dev/modules/setting"
-	"gitea.dev/modules/util"
 
 	"github.com/gliderlabs/ssh"
 	gossh "golang.org/x/crypto/ssh"
@@ -349,35 +348,33 @@ func Listen(host string, port int, ciphers, keyExchanges, macs []string) {
 		},
 	}
 
-	keys := make([]string, 0, len(setting.SSH.ServerHostKeys))
+	hostKeyFiles := make([]string, 0, len(setting.SSH.ServerHostKeys))
 	for _, key := range setting.SSH.ServerHostKeys {
-		isExist, err := util.IsExist(key)
+		_, err := os.Stat(key)
 		if err != nil {
-			log.Fatal("Unable to check if %s exists. Error: %v", setting.SSH.ServerHostKeys, err)
+			if !errors.Is(err, os.ErrNotExist) {
+				log.Fatal("Unable to check if %s exists. Error: %v", setting.SSH.ServerHostKeys, err)
+			}
+			continue
 		}
-		if isExist {
-			keys = append(keys, key)
-		}
+		hostKeyFiles = append(hostKeyFiles, key)
 	}
 
-	if len(keys) == 0 {
-		filePath := filepath.Dir(setting.SSH.ServerHostKeys[0])
-		if err := os.MkdirAll(filePath, os.ModePerm); err != nil {
-			log.Error("Failed to create dir %s: %v", filePath, err)
+	if len(hostKeyFiles) == 0 {
+		hostKeyDir := filepath.Dir(setting.SSH.ServerHostKeys[0])
+		err := os.MkdirAll(hostKeyDir, os.ModePerm)
+		if err != nil {
+			log.Error("Failed to create dir %s: %v", hostKeyDir, err)
 		}
-		err := initDefaultKeys(filePath)
+		hostKeyFiles, err = initDefaultHostKeys(hostKeyDir)
 		if err != nil {
 			log.Fatal("Failed to generate private key: %v", err)
 		}
-		for _, keytype := range []string{"rsa", "ecdsa", "ed25519"} {
-			filename := filePath + "/gitea." + keytype
-			keys = append(keys, filename)
-		}
 	}
 
-	for _, key := range keys {
-		log.Info("Adding SSH host key: %s", key)
-		err := srv.SetOption(ssh.HostKeyFile(key))
+	for _, keyFile := range hostKeyFiles {
+		log.Info("Adding SSH host key: %s", keyFile)
+		err := srv.SetOption(ssh.HostKeyFile(keyFile))
 		if err != nil {
 			log.Error("Failed to set Host Key. %s", err)
 		}
@@ -413,22 +410,24 @@ func GenKeyPair(keyPath string, keyType generate.SSHKeyType, bits int) error {
 	return os.WriteFile(keyPath+".pub", public, 0o644)
 }
 
-// initDefaultKeys mirrors how ssh-keygen -A operates
+// initDefaultHostKeys mirrors how ssh-keygen -A operates
 // it runs checks if public and private keys are already defined and creates new ones if not present
 // key naming does not follow the OpenSSH convention due to existing settings being gitea.{KeyType} so generation follows gitea convention
-func initDefaultKeys(path string) error {
+func initDefaultHostKeys(path string) (keyFiles []string, _ error) {
 	var errs []error
 	keyTypes := []generate.SSHKeyType{generate.SSHKeyRSA, generate.SSHKeyECDSA, generate.SSHKeyED25519}
 	for _, keyType := range keyTypes {
-		name := "gitea." + string(keyType)
-		keyPath := filepath.Join(path, name)
+		keyPath := filepath.Join(path, "gitea."+string(keyType))
 		_, errStatPriv := os.Stat(keyPath)
 		_, errStatPub := os.Stat(keyPath + ".pub")
-		privExists := errStatPriv == nil
-		pubExists := errStatPub == nil
-		if !privExists || !pubExists {
-			errs = append(errs, GenKeyPair(keyPath, keyType, 0))
+		if errStatPriv != nil || errStatPub != nil {
+			err := GenKeyPair(keyPath, keyType, 0)
+			if err != nil {
+				errs = append(errs, err)
+				continue
+			}
 		}
+		keyFiles = append(keyFiles, keyPath)
 	}
-	return errors.Join(errs...)
+	return keyFiles, errors.Join(errs...)
 }

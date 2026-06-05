@@ -70,8 +70,9 @@ func TestInitKeys(t *testing.T) {
 	}
 
 	// Test basic creation
-	err := initDefaultKeys(tempDir)
+	keyFiles, err := initDefaultHostKeys(tempDir)
 	require.NoError(t, err)
+	assert.Len(t, keyFiles, len(keyTypes))
 
 	metadata := map[string]os.FileInfo{}
 	for _, keyType := range keyTypes {
@@ -90,8 +91,9 @@ func TestInitKeys(t *testing.T) {
 	require.NoError(t, os.Remove(filepath.Join(tempDir, "gitea.ecdsa.pub")))
 	require.NoError(t, os.Remove(filepath.Join(tempDir, "gitea.ed25519")))
 
-	err = initDefaultKeys(tempDir)
+	keyFiles, err = initDefaultHostKeys(tempDir)
 	require.NoError(t, err)
+	assert.Len(t, keyFiles, len(keyTypes))
 
 	for _, keyType := range keyTypes {
 		privKeyPath := filepath.Join(tempDir, "gitea."+keyType)
@@ -102,10 +104,12 @@ func TestInitKeys(t *testing.T) {
 		infoPub, err := os.Stat(pubKeyPath)
 		require.NoError(t, err)
 		if keyType == "rsa" {
-			assert.Equal(t, metadata[privKeyPath], infoPriv) // rsa key is unchanged
+			// rsa key is unchanged
+			assert.Equal(t, metadata[privKeyPath], infoPriv)
 			assert.Equal(t, metadata[pubKeyPath], infoPub)
 		} else {
-			assert.NotEqual(t, metadata[privKeyPath], infoPriv) // other keys were removed and re-generated
+			// other keys were removed and re-generated
+			assert.NotEqual(t, metadata[privKeyPath], infoPriv)
 			assert.NotEqual(t, metadata[pubKeyPath], infoPub)
 		}
 	}
