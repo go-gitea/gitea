@@ -191,51 +191,74 @@ func TestOIDCIgnoresStaleExternalLoginLinks(t *testing.T) {
 	})
 }
 
-// TestOAuth2CallbackDoesNotReEnableDisabledUser is a regression test for GHSA-g9g6-qhrc-p3qc.
-// An administrator-disabled local account (IsActive=false) must not be silently re-enabled
-// by completing an OAuth sign-in callback against a linked external identity provider.
-func TestOAuth2CallbackDoesNotReEnableDisabledUser(t *testing.T) {
-	defer tests.PrepareTestEnv(t)()
-	defer test.MockVariableValue(&setting.OAuth2Client.EnableAutoRegistration, true)()
-	defer test.MockVariableValue(&setting.OAuth2Client.Username, setting.OAuth2UsernameUserid)()
+// TestOAuth2CallbackReactivationGating exercises the gate in handleOAuth2SignIn:
+// an inactive user must be reactivated only when their ExternalLoginUser
+// row carries the signature left by the OAuth2 sync cron (empty access/refresh tokens
+// and zero expiry, see services/auth/source/oauth2/source_sync.go). Admin-initiated
+// disables leave the link's tokens intact, so reactivation must not happen.
+func TestOAuth2CallbackReactivationGating(t *testing.T) {
+	setup := func(t *testing.T, sourceName, sub, email, userName string, link *user_model.ExternalLoginUser) *user_model.User {
+		t.Helper()
+		srv := newFakeOIDCServer(t, FakeOIDCConfig{Sub: sub, Email: email, Name: "Test User"})
+		addOAuth2Source(t, sourceName, oauth2.Source{
+			Provider:                      "openidConnect",
+			ClientID:                      "test-client-id",
+			ClientSecret:                  "test-client-secret",
+			OpenIDConnectAutoDiscoveryURL: srv.URL + "/.well-known/openid-configuration",
+		})
+		authSource, err := auth_model.GetActiveOAuth2SourceByAuthName(t.Context(), sourceName)
+		require.NoError(t, err)
 
-	const (
-		sourceName = "test-disabled-noreactivate"
-		sub        = "disabled-user-sub"
-		email      = "disabled-user@example.com"
-	)
+		u := &user_model.User{Name: userName, Email: email}
+		require.NoError(t, user_model.CreateUser(t.Context(), u, &user_model.Meta{}))
 
-	srv := newFakeOIDCServer(t, FakeOIDCConfig{Sub: sub, Email: email, Name: "Disabled User"})
-	addOAuth2Source(t, sourceName, oauth2.Source{
-		Provider:                      "openidConnect",
-		ClientID:                      "test-client-id",
-		ClientSecret:                  "test-client-secret",
-		OpenIDConnectAutoDiscoveryURL: srv.URL + "/.well-known/openid-configuration",
+		link.ExternalID = sub
+		link.UserID = u.ID
+		link.LoginSourceID = authSource.ID
+		link.Provider = authSource.Name
+		require.NoError(t, user_model.LinkExternalToUser(t.Context(), u, link))
+
+		u.IsActive = false
+		require.NoError(t, user_model.UpdateUserCols(t.Context(), u, "is_active"))
+		require.False(t, unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: u.ID}).IsActive)
+		return u
+	}
+
+	t.Run("admin-disabled user is not reactivated", func(t *testing.T) {
+		defer tests.PrepareTestEnv(t)()
+		defer test.MockVariableValue(&setting.OAuth2Client.EnableAutoRegistration, true)()
+		defer test.MockVariableValue(&setting.OAuth2Client.Username, setting.OAuth2UsernameUserid)()
+
+		// Link carries tokens from a prior successful sign-in — the state an admin
+		// disable leaves untouched. The fix must leave IsActive=false in place.
+		u := setup(t, "test-admin-disabled", "admin-disabled-sub", "admin-disabled@example.com", "admin-disabled-oauth-user",
+			&user_model.ExternalLoginUser{
+				AccessToken:  "prior-access-token",
+				RefreshToken: "prior-refresh-token",
+				ExpiresAt:    time.Now().Add(time.Hour),
+			})
+
+		doOIDCSignIn(t, "test-admin-disabled")
+
+		after := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: u.ID})
+		assert.False(t, after.IsActive, "OAuth callback must not re-enable an administrator-disabled account")
 	})
-	authSource, err := auth_model.GetActiveOAuth2SourceByAuthName(t.Context(), sourceName)
-	require.NoError(t, err)
 
-	// Create a local user linked to the OIDC source, simulating a user who has previously signed in.
-	u := &user_model.User{Name: "disabled-oauth-user", Email: email}
-	require.NoError(t, user_model.CreateUser(t.Context(), u, &user_model.Meta{}))
-	require.NoError(t, user_model.LinkExternalToUser(t.Context(), u, &user_model.ExternalLoginUser{
-		ExternalID:    sub,
-		UserID:        u.ID,
-		LoginSourceID: authSource.ID,
-		Provider:      authSource.Name,
-	}))
+	t.Run("sync-disabled user is reactivated", func(t *testing.T) {
+		defer tests.PrepareTestEnv(t)()
+		defer test.MockVariableValue(&setting.OAuth2Client.EnableAutoRegistration, true)()
+		defer test.MockVariableValue(&setting.OAuth2Client.Username, setting.OAuth2UsernameUserid)()
 
-	// Administrator disables the account.
-	u.IsActive = false
-	require.NoError(t, user_model.UpdateUserCols(t.Context(), u, "is_active"))
-	require.False(t, unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: u.ID}).IsActive)
+		// Link with zeroed tokens reproduces what source_sync.go writes on invalid_grant.
+		// A successful OAuth login should restore IsActive — the intent of PR #31572.
+		u := setup(t, "test-sync-disabled", "sync-disabled-sub", "sync-disabled@example.com", "sync-disabled-oauth-user",
+			&user_model.ExternalLoginUser{})
 
-	// Complete an OIDC sign-in flow against the linked source.
-	doOIDCSignIn(t, sourceName)
+		doOIDCSignIn(t, "test-sync-disabled")
 
-	// The admin's disable action must survive the OAuth callback.
-	after := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: u.ID})
-	assert.False(t, after.IsActive, "OAuth callback must not re-enable an administrator-disabled account")
+		after := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: u.ID})
+		assert.True(t, after.IsActive, "OAuth callback must reactivate a sync-disabled account on successful login")
+	})
 }
 
 // FakeOIDCConfig holds configuration for the fake OIDC server used in tests.
