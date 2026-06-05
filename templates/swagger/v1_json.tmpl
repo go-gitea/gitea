@@ -24601,17 +24601,6 @@
           "x-go-enum-desc": "read RepoWritePermissionRead\nwrite RepoWritePermissionWrite\nadmin RepoWritePermissionAdmin",
           "x-go-name": "Permission"
         },
-        "privacy": {
-          "description": "Team privacy within the organization. Defaults to \"private\".\npublic TeamPrivacyPublic\nlimited TeamPrivacyLimited\nprivate TeamPrivacyPrivate",
-          "type": "string",
-          "enum": [
-            "public",
-            "limited",
-            "private"
-          ],
-          "x-go-enum-desc": "public TeamPrivacyPublic\nlimited TeamPrivacyLimited\nprivate TeamPrivacyPrivate",
-          "x-go-name": "Privacy"
-        },
         "units": {
           "type": "array",
           "items": {
@@ -24638,6 +24627,17 @@
           },
           "x-go-name": "UnitsMap",
           "example": "{\"repo.actions\",\"repo.packages\",\"repo.code\":\"read\",\"repo.issues\":\"write\",\"repo.ext_issues\":\"none\",\"repo.wiki\":\"admin\",\"repo.pulls\":\"owner\",\"repo.releases\":\"none\",\"repo.projects\":\"none\",\"repo.ext_wiki\":\"none\"}"
+        },
+        "visibility": {
+          "description": "Team visibility within the organization. Defaults to \"private\".\npublic TeamVisibilityPublic\nlimited TeamVisibilityLimited\nprivate TeamVisibilityPrivate",
+          "type": "string",
+          "enum": [
+            "public",
+            "limited",
+            "private"
+          ],
+          "x-go-enum-desc": "public TeamVisibilityPublic\nlimited TeamVisibilityLimited\nprivate TeamVisibilityPrivate",
+          "x-go-name": "Visibility"
         }
       },
       "x-go-package": "gitea.dev/modules/structs"
@@ -25762,17 +25762,6 @@
           "x-go-enum-desc": "read RepoWritePermissionRead\nwrite RepoWritePermissionWrite\nadmin RepoWritePermissionAdmin",
           "x-go-name": "Permission"
         },
-        "privacy": {
-          "description": "Team privacy within the organization. When omitted, privacy is left\nunchanged.\npublic TeamPrivacyPublic\nlimited TeamPrivacyLimited\nprivate TeamPrivacyPrivate",
-          "type": "string",
-          "enum": [
-            "public",
-            "limited",
-            "private"
-          ],
-          "x-go-enum-desc": "public TeamPrivacyPublic\nlimited TeamPrivacyLimited\nprivate TeamPrivacyPrivate",
-          "x-go-name": "Privacy"
-        },
         "units": {
           "type": "array",
           "items": {
@@ -25806,6 +25795,17 @@
             "repo.releases": "none",
             "repo.wiki": "admin"
           }
+        },
+        "visibility": {
+          "description": "Team visibility within the organization. When omitted, visibility is\nleft unchanged.\npublic TeamVisibilityPublic\nlimited TeamVisibilityLimited\nprivate TeamVisibilityPrivate",
+          "type": "string",
+          "enum": [
+            "public",
+            "limited",
+            "private"
+          ],
+          "x-go-enum-desc": "public TeamVisibilityPublic\nlimited TeamVisibilityLimited\nprivate TeamVisibilityPrivate",
+          "x-go-name": "Visibility"
         }
       },
       "x-go-package": "gitea.dev/modules/structs"
@@ -29600,17 +29600,6 @@
           "x-go-enum-desc": "none AccessLevelNameNone\nread AccessLevelNameRead\nwrite AccessLevelNameWrite\nadmin AccessLevelNameAdmin\nowner AccessLevelNameOwner",
           "x-go-name": "Permission"
         },
-        "privacy": {
-          "description": "Team privacy within the organization. \"private\" teams are only\nlistable by members and org owners; \"limited\" teams are listable by\nany organization member; \"public\" teams are listable by any signed-in\nuser.\npublic TeamPrivacyPublic\nlimited TeamPrivacyLimited\nprivate TeamPrivacyPrivate",
-          "type": "string",
-          "enum": [
-            "public",
-            "limited",
-            "private"
-          ],
-          "x-go-enum-desc": "public TeamPrivacyPublic\nlimited TeamPrivacyLimited\nprivate TeamPrivacyPrivate",
-          "x-go-name": "Privacy"
-        },
         "units": {
           "type": "array",
           "items": {
@@ -29644,6 +29633,17 @@
             "repo.releases": "none",
             "repo.wiki": "admin"
           }
+        },
+        "visibility": {
+          "description": "Team visibility within the organization. \"private\" teams are only\nlistable by members and org owners; \"limited\" teams are listable by\nany organization member; \"public\" teams are listable by any signed-in\nuser.\npublic TeamVisibilityPublic\nlimited TeamVisibilityLimited\nprivate TeamVisibilityPrivate",
+          "type": "string",
+          "enum": [
+            "public",
+            "limited",
+            "private"
+          ],
+          "x-go-enum-desc": "public TeamVisibilityPublic\nlimited TeamVisibilityLimited\nprivate TeamVisibilityPrivate",
+          "x-go-name": "Visibility"
         }
       },
       "x-go-package": "gitea.dev/modules/structs"

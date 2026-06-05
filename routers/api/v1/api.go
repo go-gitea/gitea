@@ -504,15 +504,20 @@ func reqOrgOwnership() func(ctx *context.APIContext) {
 	}
 }
 
-// reqTeamMembership user should be an team member, or a site admin
-func reqTeamMembership() func(ctx *context.APIContext) {
+// reqTeamReadAccess allows callers who can list the team to read its
+// metadata / members / repos: site admins, org owners, team members, and any
+// signed-in user the team's privacy tier admits (public → any signed-in
+// user; limited → any org member). It is NOT sufficient on its own for
+// mutation endpoints — those must layer reqOrgOwnership() or an explicit
+// resource-level check on top.
+func reqTeamReadAccess() func(ctx *context.APIContext) {
 	return func(ctx *context.APIContext) {
 		if ctx.IsUserSiteAdmin() {
 			return
 		}
 		if ctx.Org.Team == nil {
-			setting.PanicInDevOrTesting("reqTeamMembership: unprepared context")
-			ctx.APIErrorInternal(errors.New("reqTeamMembership: unprepared context"))
+			setting.PanicInDevOrTesting("reqTeamReadAccess: unprepared context")
+			ctx.APIErrorInternal(errors.New("reqTeamReadAccess: unprepared context"))
 			return
 		}
 
@@ -529,11 +534,11 @@ func reqTeamMembership() func(ctx *context.APIContext) {
 			ctx.APIErrorInternal(err)
 			return
 		} else if !isTeamMember {
-			// Non-members may still read teams that are visible to them based on privacy tier.
-			switch ctx.Org.Team.Privacy {
-			case organization.TeamPrivacyPublic:
+			// Non-members may still read teams that are visible to them based on visibility tier.
+			switch ctx.Org.Team.Visibility {
+			case organization.TeamVisibilityPublic:
 				return // any signed-in user (reqToken guarantees IsSigned)
-			case organization.TeamPrivacyLimited:
+			case organization.TeamVisibilityLimited:
 				isOrgMember, err := organization.IsOrganizationMember(ctx, orgID, ctx.Doer.ID)
 				if err != nil {
 					ctx.APIErrorInternal(err)
@@ -545,7 +550,7 @@ func reqTeamMembership() func(ctx *context.APIContext) {
 				ctx.APIErrorNotFound()
 				return
 			}
-			// TeamPrivacyPrivate: org members see "forbidden", outsiders see 404.
+			// TeamVisibilityPrivate: org members see "forbidden", outsiders see 404.
 			isOrgMember, err := organization.IsOrganizationMember(ctx, orgID, ctx.Doer.ID)
 			if err != nil {
 				ctx.APIErrorInternal(err)
@@ -1726,7 +1731,7 @@ func Routes() *web.Router {
 					Get(reqToken(), org.GetTeamRepo)
 			})
 			m.Get("/activities/feeds", org.ListTeamActivityFeeds)
-		}, tokenRequiresScopes(auth_model.AccessTokenScopeCategoryOrganization), orgAssignment(false, true), reqToken(), reqTeamMembership(), checkTokenPublicOnly())
+		}, tokenRequiresScopes(auth_model.AccessTokenScopeCategoryOrganization), orgAssignment(false, true), reqToken(), reqTeamReadAccess(), checkTokenPublicOnly())
 
 		m.Group("/admin", func() {
 			m.Group("/cron", func() {

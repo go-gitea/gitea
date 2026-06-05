@@ -184,7 +184,7 @@ func TestSearchTeamIncludeVisible(t *testing.T) {
 		LowerName:  "visible-team",
 		Name:       "visible-team",
 		AccessMode: 1, // read
-		Privacy:    organization.TeamPrivacyLimited,
+		Visibility: organization.TeamVisibilityLimited,
 	}
 	assert.NoError(t, db.Insert(t.Context(), visible))
 	t.Cleanup(func() {
@@ -192,9 +192,9 @@ func TestSearchTeamIncludeVisible(t *testing.T) {
 	})
 
 	teams, _, err := organization.SearchTeam(t.Context(), &organization.SearchTeamOptions{
-		OrgID:            orgID,
-		UserID:           2,
-		IncludePrivacies: organization.VisibleTeamPrivaciesFor(true, true),
+		OrgID:               orgID,
+		UserID:              2,
+		IncludeVisibilities: organization.VisibleTeamVisibilitiesFor(true, true),
 	})
 	assert.NoError(t, err)
 	ids := make(map[int64]bool, len(teams))
@@ -209,9 +209,9 @@ func TestSearchTeamIncludeVisible(t *testing.T) {
 
 	// user 5 is only an org member in team 1, must not see secret team 2 but must see the visible one.
 	teams, _, err = organization.SearchTeam(t.Context(), &organization.SearchTeamOptions{
-		OrgID:            orgID,
-		UserID:           5,
-		IncludePrivacies: organization.VisibleTeamPrivaciesFor(true, true),
+		OrgID:               orgID,
+		UserID:              5,
+		IncludeVisibilities: organization.VisibleTeamVisibilitiesFor(true, true),
 	})
 	assert.NoError(t, err)
 	ids = make(map[int64]bool, len(teams))

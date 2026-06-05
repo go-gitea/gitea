@@ -29,21 +29,21 @@
 								<br>
 								<div class="field">
 									<div class="ui radio checkbox">
-										<input type="radio" name="privacy" value="private" {{if or .PageIsOrgTeamsNew .Team.IsPrivate}}checked{{end}}>
+										<input type="radio" name="visibility" value="private" {{if or .PageIsOrgTeamsNew .Team.IsPrivate}}checked{{end}}>
 										<label>{{ctx.Locale.Tr "org.teams.visibility_private"}}</label>
 										<span class="help">{{ctx.Locale.Tr "org.teams.visibility_private_helper"}}</span>
 									</div>
 								</div>
 								<div class="field">
 									<div class="ui radio checkbox">
-										<input type="radio" name="privacy" value="limited" {{if .Team.IsLimited}}checked{{end}}>
+										<input type="radio" name="visibility" value="limited" {{if .Team.IsLimited}}checked{{end}}>
 										<label>{{ctx.Locale.Tr "org.teams.visibility_limited"}}</label>
 										<span class="help">{{ctx.Locale.Tr "org.teams.visibility_limited_helper"}}</span>
 									</div>
 								</div>
 								<div class="field">
 									<div class="ui radio checkbox">
-										<input type="radio" name="privacy" value="public" {{if .Team.IsPublic}}checked{{end}}>
+										<input type="radio" name="visibility" value="public" {{if .Team.IsPublic}}checked{{end}}>
 										<label>{{ctx.Locale.Tr "org.teams.visibility_public"}}</label>
 										<span class="help">{{ctx.Locale.Tr "org.teams.visibility_public_helper"}}</span>
 									</div>

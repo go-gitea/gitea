@@ -49,7 +49,7 @@ func applyTeamVisibilityFilter(ctx *context.APIContext, opts *organization.Searc
 		return err
 	}
 	opts.UserID = ctx.Doer.ID
-	opts.IncludePrivacies = organization.VisibleTeamPrivaciesFor(isOrgMember, ctx.IsSigned)
+	opts.IncludeVisibilities = organization.VisibleTeamVisibilitiesFor(isOrgMember, ctx.IsSigned)
 	return nil
 }
 
@@ -249,7 +249,7 @@ func CreateTeam(ctx *context.APIContext) {
 		IncludesAllRepositories: form.IncludesAllRepositories,
 		CanCreateOrgRepo:        form.CanCreateOrgRepo,
 		AccessMode:              teamPermission,
-		Privacy:                 organization.NormalizeTeamPrivacy(string(form.Privacy)),
+		Visibility:              organization.NormalizeTeamVisibility(string(form.Visibility)),
 	}
 
 	if team.AccessMode < perm.AccessModeAdmin {
@@ -327,8 +327,8 @@ func EditTeam(ctx *context.APIContext) {
 		team.Description = *form.Description
 	}
 
-	if form.Privacy != nil && !team.IsOwnerTeam() {
-		team.Privacy = organization.NormalizeTeamPrivacy(string(*form.Privacy))
+	if form.Visibility != nil && !team.IsOwnerTeam() {
+		team.Visibility = organization.NormalizeTeamVisibility(string(*form.Visibility))
 	}
 
 	isAuthChanged := false

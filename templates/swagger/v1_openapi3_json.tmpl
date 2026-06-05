@@ -4762,14 +4762,6 @@
           "permission": {
             "$ref": "#/components/schemas/RepoWritePermission"
           },
-          "privacy": {
-            "allOf": [
-              {
-                "$ref": "#/components/schemas/TeamPrivacy"
-              }
-            ],
-            "description": "Team privacy within the organization. Defaults to \"private\".\npublic TeamPrivacyPublic\nlimited TeamPrivacyLimited\nprivate TeamPrivacyPrivate"
-          },
           "units": {
             "example": [
               "repo.actions",
@@ -4796,6 +4788,14 @@
             "example": "{\"repo.actions\",\"repo.packages\",\"repo.code\":\"read\",\"repo.issues\":\"write\",\"repo.ext_issues\":\"none\",\"repo.wiki\":\"admin\",\"repo.pulls\":\"owner\",\"repo.releases\":\"none\",\"repo.projects\":\"none\",\"repo.ext_wiki\":\"none\"}",
             "type": "object",
             "x-go-name": "UnitsMap"
+          },
+          "visibility": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/TeamVisibility"
+              }
+            ],
+            "description": "Team visibility within the organization. Defaults to \"private\".\npublic TeamVisibilityPublic\nlimited TeamVisibilityLimited\nprivate TeamVisibilityPrivate"
           }
         },
         "required": [
@@ -5908,14 +5908,6 @@
           "permission": {
             "$ref": "#/components/schemas/RepoWritePermission"
           },
-          "privacy": {
-            "allOf": [
-              {
-                "$ref": "#/components/schemas/TeamPrivacy"
-              }
-            ],
-            "description": "Team privacy within the organization. When omitted, privacy is left\nunchanged.\npublic TeamPrivacyPublic\nlimited TeamPrivacyLimited\nprivate TeamPrivacyPrivate"
-          },
           "units": {
             "example": [
               "repo.code",
@@ -5949,6 +5941,14 @@
             },
             "type": "object",
             "x-go-name": "UnitsMap"
+          },
+          "visibility": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/TeamVisibility"
+              }
+            ],
+            "description": "Team visibility within the organization. When omitted, visibility is\nleft unchanged.\npublic TeamVisibilityPublic\nlimited TeamVisibilityLimited\nprivate TeamVisibilityPrivate"
           }
         },
         "required": [
@@ -9782,14 +9782,6 @@
           "permission": {
             "$ref": "#/components/schemas/AccessLevelName"
           },
-          "privacy": {
-            "allOf": [
-              {
-                "$ref": "#/components/schemas/TeamPrivacy"
-              }
-            ],
-            "description": "Team privacy within the organization. \"private\" teams are only\nlistable by members and org owners; \"limited\" teams are listable by\nany organization member; \"public\" teams are listable by any signed-in\nuser.\npublic TeamPrivacyPublic\nlimited TeamPrivacyLimited\nprivate TeamPrivacyPrivate"
-          },
           "units": {
             "example": [
               "repo.code",
@@ -9823,12 +9815,20 @@
             },
             "type": "object",
             "x-go-name": "UnitsMap"
+          },
+          "visibility": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/TeamVisibility"
+              }
+            ],
+            "description": "Team visibility within the organization. \"private\" teams are only\nlistable by members and org owners; \"limited\" teams are listable by\nany organization member; \"public\" teams are listable by any signed-in\nuser.\npublic TeamVisibilityPublic\nlimited TeamVisibilityLimited\nprivate TeamVisibilityPrivate"
           }
         },
         "type": "object",
         "x-go-package": "gitea.dev/modules/structs"
       },
-      "TeamPrivacy": {
+      "TeamVisibility": {
         "enum": [
           "public",
           "limited",

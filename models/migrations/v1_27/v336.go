@@ -9,18 +9,19 @@ import (
 	"xorm.io/xorm"
 )
 
-type teamWithPrivacy struct {
-	TeamPrivacy string `xorm:"VARCHAR(16) NOT NULL DEFAULT 'private'"`
+type teamWithVisibility struct {
+	Visibility string `xorm:"VARCHAR(16) NOT NULL DEFAULT 'private'"`
 }
 
-func (teamWithPrivacy) TableName() string {
+func (teamWithVisibility) TableName() string {
 	return "team"
 }
 
-func AddPrivacyToTeam(x db.EngineMigration) error {
+func AddVisibilityToTeam(x db.EngineMigration) error {
 	if _, err := x.SyncWithOptions(xorm.SyncOptions{
 		IgnoreDropIndices: true,
-	}, new(teamWithPrivacy)); err != nil {
+		IgnoreConstrains:  true,
+	}, new(teamWithVisibility)); err != nil {
 		return err
 	}
 
@@ -28,6 +29,6 @@ func AddPrivacyToTeam(x db.EngineMigration) error {
 	// them as "limited", so make existing owner teams limited too.
 	// Filter on authorize=4 (AccessModeOwner) so a user-created team that
 	// happens to share the name "owners" is not accidentally affected.
-	_, err := x.Exec("UPDATE `team` SET team_privacy = ? WHERE lower_name = ? AND authorize = ?", "limited", "owners", 4)
+	_, err := x.Exec("UPDATE `team` SET visibility = ? WHERE lower_name = ? AND authorize = ?", "limited", "owners", 4)
 	return err
 }

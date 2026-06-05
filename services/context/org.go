@@ -179,24 +179,28 @@ func OrgAssignment(orgAssignmentOpts OrgAssignmentOptions) func(ctx *Context) {
 			ctx.ServerError("UserShouldSeeAllOrgTeams", err)
 			return
 		}
-		if ctx.Org.IsMember {
-			if shouldSeeAllTeams {
-				ctx.Org.Teams, err = org.LoadTeams(ctx)
-				if err != nil {
-					ctx.ServerError("LoadTeams", err)
-					return
-				}
-			} else {
-				ctx.Org.Teams, _, err = organization.SearchTeam(ctx, &organization.SearchTeamOptions{
-					OrgID:            org.ID,
-					UserID:           ctx.Doer.ID,
-					IncludePrivacies: organization.VisibleTeamPrivaciesFor(true, true),
-				})
-				if err != nil {
-					ctx.ServerError("SearchTeam", err)
-					return
-				}
+		switch {
+		case shouldSeeAllTeams:
+			ctx.Org.Teams, err = org.LoadTeams(ctx)
+			if err != nil {
+				ctx.ServerError("LoadTeams", err)
+				return
 			}
+		case ctx.IsSigned:
+			// Signed-in non-members still see teams whose visibility tier
+			// includes them (public for any signed-in user, plus limited
+			// for org members), and any team they directly belong to.
+			ctx.Org.Teams, _, err = organization.SearchTeam(ctx, &organization.SearchTeamOptions{
+				OrgID:               org.ID,
+				UserID:              ctx.Doer.ID,
+				IncludeVisibilities: organization.VisibleTeamVisibilitiesFor(ctx.Org.IsMember, true),
+			})
+			if err != nil {
+				ctx.ServerError("SearchTeam", err)
+				return
+			}
+		}
+		if ctx.Org.IsMember {
 			ctx.Data["NumTeams"] = len(ctx.Org.Teams)
 		}
 

@@ -50,12 +50,12 @@ type SearchTeamOptions struct {
 	Keyword     string
 	OrgID       int64
 	IncludeDesc bool
-	// IncludePrivacies, when combined with UserID, also returns teams whose
-	// privacy is in this list, even if UserID is not a member. Typical values:
+	// IncludeVisibilities, when combined with UserID, also returns teams whose
+	// visibility is in this list, even if UserID is not a member. Typical values:
 	//   - {"limited","public"} for org members
 	//   - {"public"} for signed-in users who are not org members
 	// Leave empty to return only teams the user is a member of.
-	IncludePrivacies []string
+	IncludeVisibilities []string
 }
 
 func (opts *SearchTeamOptions) toCond() builder.Cond {
@@ -75,32 +75,32 @@ func (opts *SearchTeamOptions) toCond() builder.Cond {
 	}
 
 	switch {
-	case opts.UserID > 0 && len(opts.IncludePrivacies) > 0:
+	case opts.UserID > 0 && len(opts.IncludeVisibilities) > 0:
 		cond = cond.And(builder.Or(
 			builder.Eq{"team_user.uid": opts.UserID},
-			builder.In("`team`.team_privacy", opts.IncludePrivacies),
+			builder.In("`team`.visibility", opts.IncludeVisibilities),
 		))
 	case opts.UserID > 0:
 		cond = cond.And(builder.Eq{"team_user.uid": opts.UserID})
-	case len(opts.IncludePrivacies) > 0:
-		cond = cond.And(builder.In("`team`.team_privacy", opts.IncludePrivacies))
+	case len(opts.IncludeVisibilities) > 0:
+		cond = cond.And(builder.In("`team`.visibility", opts.IncludeVisibilities))
 	}
 
 	return cond
 }
 
-// VisibleTeamPrivaciesFor returns the privacy tiers a viewer is entitled to
-// list in addition to teams they are a direct member of. Pass true for
+// VisibleTeamVisibilitiesFor returns the visibility tiers a viewer is entitled
+// to list in addition to teams they are a direct member of. Pass true for
 // isOrgMember when the viewer belongs to the parent organization; otherwise
 // pass true for isSignedIn for any other authenticated user. Returns nil for
 // anonymous viewers (caller should then skip the search entirely or pass the
-// result to IncludePrivacies as-is).
-func VisibleTeamPrivaciesFor(isOrgMember, isSignedIn bool) []string {
+// result to IncludeVisibilities as-is).
+func VisibleTeamVisibilitiesFor(isOrgMember, isSignedIn bool) []string {
 	switch {
 	case isOrgMember:
-		return []string{TeamPrivacyLimited, TeamPrivacyPublic}
+		return []string{TeamVisibilityLimited, TeamVisibilityPublic}
 	case isSignedIn:
-		return []string{TeamPrivacyPublic}
+		return []string{TeamVisibilityPublic}
 	default:
 		return nil
 	}
@@ -114,13 +114,13 @@ func SearchTeam(ctx context.Context, opts *SearchTeamOptions) (TeamList, int64, 
 	cond := opts.toCond()
 
 	if opts.UserID > 0 {
-		if len(opts.IncludePrivacies) > 0 {
+		if len(opts.IncludeVisibilities) > 0 {
 			sess = sess.Join("LEFT", "team_user", "team_user.team_id = team.id AND team_user.uid = ?", opts.UserID)
 		} else {
 			sess = sess.Join("INNER", "team_user", "team_user.team_id = team.id")
 		}
 	}
-	// When UserID is zero but IncludePrivacies is set, no team_user join is
+	// When UserID is zero but IncludeVisibilities is set, no team_user join is
 	// needed — the WHERE clause already restricts to the requested tier(s).
 	db.SetSessionPagination(sess, opts)
 

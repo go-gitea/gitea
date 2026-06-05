@@ -101,7 +101,7 @@ func home(ctx *context.Context, viewRepositories bool) {
 
 	const orgOverviewTeamsLimit = 5
 	ctx.Data["OrgOverviewMembers"] = members
-	// ctx.Org.Teams may include visible-but-not-joined teams when IncludePrivacies
+	// ctx.Org.Teams may include visible-but-not-joined teams when IncludeVisibilities
 	// is active; the overview widget should only show teams the viewer belongs to.
 	overviewTeams := ctx.Org.Teams
 	if ctx.Org.IsMember && !ctx.Org.IsOwner {
