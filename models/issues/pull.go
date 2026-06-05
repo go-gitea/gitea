@@ -10,6 +10,7 @@ import (
 	"fmt"
 	"io"
 	"strings"
+	"time"
 
 	"gitea.dev/models/db"
 	git_model "gitea.dev/models/git"
@@ -888,6 +889,8 @@ func ParseCodeOwnersLine(ctx context.Context, tokens []string) (*CodeOwnerRule, 
 		warnings = append(warnings, fmt.Sprintf("incorrect codeowner regexp: %s", err))
 		return nil, warnings
 	}
+	// Bound matching time so user-supplied patterns cannot stall PR creation via catastrophic backtracking.
+	rule.Rule.MatchTimeout = time.Second
 
 	for _, user := range tokens[1:] {
 		user = strings.TrimPrefix(user, "@")
