@@ -1321,6 +1321,7 @@
   "repo.editor.fork_branch_exists": "Branch \"%s\" already exists in your fork. Please choose a new branch name.",
   "repo.commits.desc": "Browse source code change history.",
   "repo.commits.commits": "Commits",
+  "repo.commits.history_enable_follow_renames": "Include renames",
   "repo.commits.no_commits": "No commits in common. \"%s\" and \"%s\" have entirely different histories.",
   "repo.commits.nothing_to_compare": "There are no differences to show.",
   "repo.commits.search.tooltip": "You can prefix keywords with \"author:\", \"committer:\", \"after:\", or \"before:\", e.g. \"revert author:Alice before:2019-01-13\".",
