@@ -191,6 +191,53 @@ func TestOIDCIgnoresStaleExternalLoginLinks(t *testing.T) {
 	})
 }
 
+// TestOAuth2CallbackDoesNotReEnableDisabledUser is a regression test for GHSA-g9g6-qhrc-p3qc.
+// An administrator-disabled local account (IsActive=false) must not be silently re-enabled
+// by completing an OAuth sign-in callback against a linked external identity provider.
+func TestOAuth2CallbackDoesNotReEnableDisabledUser(t *testing.T) {
+	defer tests.PrepareTestEnv(t)()
+	defer test.MockVariableValue(&setting.OAuth2Client.EnableAutoRegistration, true)()
+	defer test.MockVariableValue(&setting.OAuth2Client.Username, setting.OAuth2UsernameUserid)()
+
+	const (
+		sourceName = "test-disabled-noreactivate"
+		sub        = "disabled-user-sub"
+		email      = "disabled-user@example.com"
+	)
+
+	srv := newFakeOIDCServer(t, FakeOIDCConfig{Sub: sub, Email: email, Name: "Disabled User"})
+	addOAuth2Source(t, sourceName, oauth2.Source{
+		Provider:                      "openidConnect",
+		ClientID:                      "test-client-id",
+		ClientSecret:                  "test-client-secret",
+		OpenIDConnectAutoDiscoveryURL: srv.URL + "/.well-known/openid-configuration",
+	})
+	authSource, err := auth_model.GetActiveOAuth2SourceByAuthName(t.Context(), sourceName)
+	require.NoError(t, err)
+
+	// Create a local user linked to the OIDC source, simulating a user who has previously signed in.
+	u := &user_model.User{Name: "disabled-oauth-user", Email: email}
+	require.NoError(t, user_model.CreateUser(t.Context(), u, &user_model.Meta{}))
+	require.NoError(t, user_model.LinkExternalToUser(t.Context(), u, &user_model.ExternalLoginUser{
+		ExternalID:    sub,
+		UserID:        u.ID,
+		LoginSourceID: authSource.ID,
+		Provider:      authSource.Name,
+	}))
+
+	// Administrator disables the account.
+	u.IsActive = false
+	require.NoError(t, user_model.UpdateUserCols(t.Context(), u, "is_active"))
+	require.False(t, unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: u.ID}).IsActive)
+
+	// Complete an OIDC sign-in flow against the linked source.
+	doOIDCSignIn(t, sourceName)
+
+	// The admin's disable action must survive the OAuth callback.
+	after := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: u.ID})
+	assert.False(t, after.IsActive, "OAuth callback must not re-enable an administrator-disabled account")
+}
+
 // FakeOIDCConfig holds configuration for the fake OIDC server used in tests.
 type FakeOIDCConfig struct {
 	Sub    string

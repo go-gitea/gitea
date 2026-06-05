@@ -364,10 +364,9 @@ func handleOAuth2SignIn(ctx *context.Context, authSource *auth.Source, u *user_m
 
 	opts := &user_service.UpdateOptions{}
 
-	// Reactivate user if they are deactivated
-	if !u.IsActive {
-		opts.IsActive = optional.Some(true)
-	}
+	// Don't auto-reactivate locally-disabled users: IsActive=false is an authoritative
+	// admin override. verifyAuthWithOptions renders the activate / prohibit-login page
+	// on the next request, matching the local sign-in path.
 
 	if oauth2Source.GroupTeamMap != "" || oauth2Source.GroupTeamMapRemoval {
 		if err := source_service.SyncGroupsToTeams(ctx, u, groups, groupTeamMapping, oauth2Source.GroupTeamMapRemoval); err != nil {
