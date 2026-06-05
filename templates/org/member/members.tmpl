@@ -11,6 +11,17 @@
 			</div>
 			<div class="divider"></div>
 		{{end}}
+		<div class="ui small secondary filter menu">
+			<form id="org-member-search-form" class="ui form ignore-dirty tw-flex-1 tw-flex tw-items-center tw-gap-x-2">
+				<div class="ui small fluid action input tw-flex-1">
+					{{template "shared/search/input" dict "Value" .Keyword "Placeholder" (ctx.Locale.Tr "search.user_kind")}}
+					{{template "shared/search/button"}}
+				</div>
+			</form>
+			<div class="item tw-text-text-light">
+				{{ctx.Locale.Tr "org.members"}}: {{CountFmt .MembersShown}} / {{CountFmt .MembersTotal}}
+			</div>
+		</div>
 		<div class="flex-divided-list items-with-main">
 			{{range .Members}}
 				{{$isPublic := index $.MembersIsPublicMember .ID}}
@@ -65,6 +76,12 @@
 								data-modal-confirm-content="{{ctx.Locale.Tr "org.members.remove.detail" .DisplayName $.Org.DisplayName}}"
 							>{{ctx.Locale.Tr "org.members.remove"}}</button>
 						{{end}}
+					</div>
+				</div>
+			{{else}}
+				<div class="flex-item">
+					<div class="flex-item-main">
+						{{ctx.Locale.Tr "search.no_results"}}
 					</div>
 				</div>
 			{{end}}
