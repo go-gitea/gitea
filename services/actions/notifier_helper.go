@@ -420,20 +420,17 @@ func ifNeedApproval(ctx context.Context, run *actions_model.ActionRun, repo *rep
 		return false, nil
 	}
 
-	// don't need approval if the user has been approved before
-	if count, err := db.Count[actions_model.ActionRun](ctx, actions_model.FindRunOptions{
-		RepoID:        repo.ID,
-		TriggerUserID: user.ID,
-		Approved:      true,
-	}); err != nil {
-		return false, fmt.Errorf("CountRuns: %w", err)
-	} else if count > 0 {
-		log.Trace("do not need approval because user %d has been approved before", user.ID)
+	// trust the user only after a merged PR — matching GitHub Actions. Approving one
+	// fork PR's run must not implicitly trust later fork PRs that replace the workflow.
+	if merged, err := issues_model.HasMergedPullRequestInRepo(ctx, repo.ID, user.ID); err != nil {
+		return false, fmt.Errorf("HasMergedPullRequestInRepo: %w", err)
+	} else if merged {
+		log.Trace("do not need approval because user %d has a merged pull request in repo %d", user.ID, repo.ID)
 		return false, nil
 	}
 
 	// otherwise, need approval
-	log.Trace("need approval because it's the first time user %d triggered actions", user.ID)
+	log.Trace("need approval because user %d has no merged pull request in repo %d", user.ID, repo.ID)
 	return true, nil
 }
 
