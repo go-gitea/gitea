@@ -5,26 +5,38 @@
 		{{.CardsTitle}}
 	</h2>
 	{{end}}
-	<ul class="list">
-		{{range .Cards}}
-			<li class="item ui segment">
-				<a href="{{.HomeLink}}">
-					{{ctx.AvatarUtils.Avatar . 48}}
-				</a>
-				<h3 class="name"><a href="{{.HomeLink}}">{{.DisplayName}}</a></h3>
+	{{if .Cards}}
+		<ul class="list">
+			{{range .Cards}}
+				<li class="item ui segment">
+					<a href="{{.HomeLink}}">
+						{{ctx.AvatarUtils.Avatar . 48}}
+					</a>
+					<h3 class="name"><a href="{{.HomeLink}}">{{.DisplayName}}</a></h3>
 
-				<div class="meta">
-					{{if .Website}}
-						{{svg "octicon-link"}} <a href="{{.Website}}" target="_blank">{{.Website}}</a>
-					{{else if .Location}}
-						{{svg "octicon-location"}} {{.Location}}
-					{{else}}
-						{{svg "octicon-calendar"}} {{ctx.Locale.Tr "user.joined_on" (DateUtils.AbsoluteShort .CreatedUnix)}}
-					{{end}}
-				</div>
-			</li>
-		{{end}}
-	</ul>
+					<div class="meta">
+						{{if .Website}}
+							{{svg "octicon-link"}} <a href="{{.Website}}" target="_blank">{{.Website}}</a>
+						{{else if .Location}}
+							{{svg "octicon-location"}} {{.Location}}
+						{{else}}
+							{{svg "octicon-calendar"}} {{ctx.Locale.Tr "user.joined_on" (DateUtils.AbsoluteShort .CreatedUnix)}}
+						{{end}}
+					</div>
+				</li>
+			{{end}}
+		</ul>
+	{{else if or .PageIsWatchers .PageIsStargazers}}
+		<div class="empty-placeholder">
+			{{if .PageIsWatchers}}
+				{{svg "octicon-eye" 48}}
+				<h2>{{ctx.Locale.Tr "repo.watchers.empty"}}</h2>
+			{{else}}
+				{{svg "octicon-star" 48}}
+				<h2>{{ctx.Locale.Tr "repo.stargazers.empty"}}</h2>
+			{{end}}
+		</div>
+	{{end}}
 
 	{{template "base/paginate" .}}
 </div>

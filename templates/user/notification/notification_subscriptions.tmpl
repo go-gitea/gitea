@@ -68,8 +68,18 @@
 				{{end}}
 			{{else}}
 				{{template "shared/repo/search" .}}
-				{{template "shared/repo/list" .}}
-				{{template "base/paginate" .}}
+				{{if .Repos}}
+					{{template "shared/repo/list" .}}
+					{{template "base/paginate" .}}
+				{{else if not .Keyword}}
+					<div class="empty-placeholder">
+						{{svg "octicon-eye" 48}}
+						<h2>{{ctx.Locale.Tr "notification.no_watching"}}</h2>
+						<p>{{ctx.Locale.Tr "notification.no_watching_desc"}}</p>
+					</div>
+				{{else}}
+					{{template "shared/repo/list" .}}
+				{{end}}
 			{{end}}
 		</div>
 	</div>

@@ -15,12 +15,22 @@
 					{{end}}
 					{{template "user/heatmap" .}}
 					{{template "user/dashboard/feeds" .}}
-				{{else if eq .TabName "stars"}}
-					<div class="stars">
-						{{template "shared/repo/search" .}}
+			{{else if eq .TabName "stars"}}
+				<div class="stars">
+					{{template "shared/repo/search" .}}
+					{{if .Repos}}
 						{{template "shared/repo/list" .}}
 						{{template "base/paginate" .}}
-					</div>
+					{{else if not .Keyword}}
+						<div class="empty-placeholder">
+							{{svg "octicon-star" 48}}
+							<h2>{{ctx.Locale.Tr "user.starred.empty"}}</h2>
+							<p>{{ctx.Locale.Tr "user.starred.empty_desc"}}</p>
+						</div>
+					{{else}}
+						{{template "shared/repo/list" .}}
+					{{end}}
+				</div>
 				{{else if eq .TabName "following"}}
 					{{template "repo/user_cards" .}}
 				{{else if eq .TabName "followers"}}
@@ -29,11 +39,21 @@
 					<div id="readme_profile" class="render-content markup">{{.ProfileReadmeContent}}</div>
 				{{else if eq .TabName "organizations"}}
 					{{template "repo/user_cards" .}}
-				{{else}}
-					{{template "shared/repo/search" .}}
+			{{else}}
+				{{template "shared/repo/search" .}}
+				{{if .Repos}}
 					{{template "shared/repo/list" .}}
 					{{template "base/paginate" .}}
+				{{else if and (not .Keyword) (eq .TabName "watching")}}
+					<div class="empty-placeholder">
+						{{svg "octicon-eye" 48}}
+						<h2>{{ctx.Locale.Tr "user.watched.empty"}}</h2>
+						<p>{{ctx.Locale.Tr "user.watched.empty_desc"}}</p>
+					</div>
+				{{else}}
+					{{template "shared/repo/list" .}}
 				{{end}}
+			{{end}}
 			</div>
 		</div>
 	</div>
