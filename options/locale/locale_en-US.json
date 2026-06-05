@@ -3801,6 +3801,7 @@
   "actions.runs.latest_attempt": "Latest attempt",
   "actions.runs.triggered_via": "Triggered via %s",
   "actions.runs.rerun_triggered": "Re-run triggered",
+  "actions.runs.back_to_pull_request": "Pull request",
   "actions.runs.total_duration": "Total duration",
   "actions.runs.workflow_dependencies": "Workflow Dependencies",
   "actions.runs.graph_jobs_count_1": "%d job",

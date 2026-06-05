@@ -20,6 +20,7 @@ import (
 	actions_model "gitea.dev/models/actions"
 	"gitea.dev/models/db"
 	git_model "gitea.dev/models/git"
+	issues_model "gitea.dev/models/issues"
 	repo_model "gitea.dev/models/repo"
 	"gitea.dev/models/unit"
 	"gitea.dev/modules/actions"
@@ -396,7 +397,7 @@ type ViewStepLogLine struct {
 	Timestamp float64 `json:"timestamp"`
 }
 
-func viewPullRequestFromRun(run *actions_model.ActionRun) *ViewPullRequest {
+func viewPullRequestFromRun(ctx context.Context, run *actions_model.ActionRun) *ViewPullRequest {
 	if run.Repo == nil {
 		return nil
 	}
@@ -407,14 +408,31 @@ func viewPullRequestFromRun(run *actions_model.ActionRun) *ViewPullRequest {
 			Link:  run.RefLink(),
 		}
 	}
-	prPayload, err := run.GetPullRequestEventPayload()
-	if err != nil || prPayload.Index <= 0 {
-		return nil
+	if prPayload, err := run.GetPullRequestEventPayload(); err == nil && prPayload.Index > 0 {
+		return &ViewPullRequest{
+			Index: fmt.Sprintf("#%d", prPayload.Index),
+			Link:  fmt.Sprintf("%s/pulls/%d", run.Repo.Link(), prPayload.Index),
+		}
 	}
-	return &ViewPullRequest{
-		Index: fmt.Sprintf("#%d", prPayload.Index),
-		Link:  fmt.Sprintf("%s/pulls/%d", run.Repo.Link(), prPayload.Index),
+	// Push-triggered run: surface an open PR whose head matches this branch so
+	// users coming from a PR's check details can navigate back to it.
+	if refName.IsBranch() {
+		prs, err := issues_model.GetUnmergedPullRequestsByHeadInfo(ctx, run.RepoID, refName.ShortName())
+		if err != nil {
+			log.Error("GetUnmergedPullRequestsByHeadInfo: %v", err)
+		} else if len(prs) == 1 {
+			pr := prs[0]
+			if err := pr.LoadBaseRepo(ctx); err != nil {
+				log.Error("LoadBaseRepo: %v", err)
+				return nil
+			}
+			return &ViewPullRequest{
+				Index: fmt.Sprintf("#%d", pr.Index),
+				Link:  fmt.Sprintf("%s/pulls/%d", pr.BaseRepo.Link(), pr.Index),
+			}
+		}
 	}
+	return nil
 }
 
 func viewSummaryBranchFromRun(ctx context.Context, run *actions_model.ActionRun) ViewBranch {
@@ -583,7 +601,7 @@ func fillViewRunResponseSummary(ctx *context_module.Context, resp *ViewResponse,
 		Pusher:   pusher,
 		Branch:   viewSummaryBranchFromRun(ctx, run),
 	}
-	resp.State.Run.PullRequest = viewPullRequestFromRun(run)
+	resp.State.Run.PullRequest = viewPullRequestFromRun(ctx, run)
 	resp.State.Run.TriggerEvent = run.TriggerEvent
 
 	// Legacy runs (LatestAttemptID == 0) have no attempt; their artifacts all share run_attempt_id=0,

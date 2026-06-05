@@ -87,6 +87,16 @@ function formatCurrentAttemptTitle(attempt: ActionsRunAttempt) {
   return attempt.latest ? `${locale.latest} #${attempt.attempt}` : formatAttemptTitle(attempt);
 }
 
+const backLink = computed(() => {
+  if (run.value.pullRequest) {
+    return {href: run.value.pullRequest.link, label: `${locale.backToPullRequest} ${run.value.pullRequest.index}`};
+  }
+  if (run.value.workflowLink) {
+    return {href: run.value.workflowLink, label: run.value.workflowID.replace(/\.(yml|yaml)$/i, '')};
+  }
+  return null;
+});
+
 function buildArtifactLink(name: string) {
   const searchString = run.value.runAttempt > 0 ? `?attempt=${run.value.runAttempt}` : '';
   return `${run.value.link}/artifacts/${encodeURIComponent(name)}${searchString}`;
@@ -110,9 +120,13 @@ async function deleteArtifact(name: string) {
   <!-- make the view container full width to make users easier to read logs -->
   <div class="ui fluid container">
     <div class="action-view-header">
+      <a v-if="backLink" class="action-view-back silenced" :href="backLink.href">
+        <SvgIcon name="octicon-arrow-left" :size="14"/>
+        <span>{{ backLink.label }}</span>
+      </a>
       <div class="action-info-summary">
         <div class="action-info-summary-title">
-          <ActionStatusIcon :locale-status="locale.status[run.status]" :status="run.status" :size="20" icon-variant="circle-fill"/>
+          <ActionStatusIcon :locale-status="locale.status[run.status]" :status="run.status" :size="22" icon-variant="circle-fill"/>
           <!-- eslint-disable-next-line vue/no-v-html -->
           <h2 class="action-info-summary-title-text" v-html="run.titleHTML"/>
         </div>
@@ -290,7 +304,23 @@ async function deleteArtifact(name: string) {
 /* action view header */
 
 .action-view-header {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
   margin-top: 8px;
+}
+
+.action-view-back {
+  display: inline-flex;
+  align-items: center;
+  align-self: flex-start;
+  gap: 4px;
+  font-size: 13px;
+  color: var(--color-text-light-1);
+}
+
+.action-view-back:hover {
+  color: var(--color-primary);
 }
 
 .action-info-summary {
