@@ -34,3 +34,12 @@ func IsAllowedVerbForServeLfs(verb string) bool {
 	}
 	return false
 }
+
+func IsAllowedSubVerbForServeLfs(subVerb string) bool {
+	switch subVerb {
+	case CmdSubVerbLfsUpload,
+		CmdSubVerbLfsDownload:
+		return true
+	}
+	return false
+}

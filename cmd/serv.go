@@ -249,7 +249,7 @@ func runServ(ctx context.Context, c *cli.Command) error {
 		// through to AccessModeNone (0), which bypasses the `userMode < mode`
 		// permission check in routers/private/serv.go and grants read access
 		// to private repos
-		if lfsVerb != git.CmdSubVerbLfsUpload && lfsVerb != git.CmdSubVerbLfsDownload {
+		if !git.IsAllowedSubVerbForServeLfs(lfsVerb) {
 			return fail(ctx, "Unknown LFS verb", "Unknown LFS verb: %s", lfsVerb)
 		}
 	}
