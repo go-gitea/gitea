@@ -138,8 +138,7 @@ func getCommitStatusEventNameAndCommitID(run *actions_model.ActionRun) (event, c
 
 func createCommitStatus(ctx context.Context, repo *repo_model.Repository, event, commitID string, run *actions_model.ActionRun, job *actions_model.ActionRunJob) error {
 	// TODO: store workflow name as a field in ActionRun to avoid parsing
-	workflowFile := path.Base(run.WorkflowID)
-	runName := workflowFile
+	runName := path.Base(run.WorkflowID)
 	if wfs, err := jobparser.Parse(job.WorkflowPayload); err == nil && len(wfs) > 0 && wfs[0].Name != "" {
 		runName = wfs[0].Name
 	}
