@@ -9,12 +9,12 @@ type BaseFomanticDropdownItem = {
   text?: string;
   [k: string]: any;
   value: string;
-}
+};
 
-export type FomanticMenuDropdownItem= BaseFomanticDropdownItem & {
+export type FomanticMenuDropdownItem = BaseFomanticDropdownItem & {
   type: 'menu';
   values: FomanticDropdownItem[];
-}
+};
 
 export type FomanticDropdownItem = BaseFomanticDropdownItem | FomanticMenuDropdownItem;
 // use our own `$().dropdown` function to patch Fomantic's dropdown module
