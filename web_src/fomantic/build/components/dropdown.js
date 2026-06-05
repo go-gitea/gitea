@@ -3053,8 +3053,10 @@ $.fn.dropdown = function(parameters) {
             $search.css('width', '');
           },
           searchTerm: function() {
-            module.verbose('Cleared search term');
-            $search.val('');
+            if(!module.setting('keepSearchTerm') || module.setting('apiSettings').cache) { // GITEA-PATCH: ensures that the search term isn't cleared when a user types a character
+              module.verbose('Cleared search term');
+              $search.val('');
+            }
             module.set.filtered();
           },
           userAddition: function() {
