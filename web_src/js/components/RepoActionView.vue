@@ -324,7 +324,7 @@ async function deleteArtifact(name: string) {
 }
 
 .action-view-back-name {
-  font-weight: 600;
+  font-weight: var(--font-weight-bold);
   color: var(--color-text);
 }
 
