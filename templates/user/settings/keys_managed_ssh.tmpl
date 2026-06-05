@@ -19,7 +19,7 @@
 		</div>
 		{{end}}
 		<div class="field">
-			<form action="{{.Link}}/mirror-ssh/regenerate" method="post">
+			<form action="{{.Link}}/managed-ssh/regenerate" method="post">
 				{{.CsrfTokenHtml}}
 				<button class="ui primary button" type="submit">
 					{{if .HasManagedSSHKey}}
