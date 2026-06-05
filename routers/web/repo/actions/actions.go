@@ -358,7 +358,7 @@ func prepareWorkflowList(ctx *context.Context, workflows []WorkflowInfo, otherWo
 		return
 	}
 	for _, run := range runs {
-		if !run.Status.In(actions_model.StatusWaiting, actions_model.StatusRunning) {
+		if run.Status.IsDone() {
 			continue
 		}
 		jobs, err := actions_model.GetLatestAttemptJobsByRepoAndRunID(ctx, run.RepoID, run.ID)
@@ -367,7 +367,7 @@ func prepareWorkflowList(ctx *context.Context, workflows []WorkflowInfo, otherWo
 			return
 		}
 		for _, job := range jobs {
-			if !job.Status.IsWaiting() {
+			if !job.Status.In(actions_model.StatusWaiting, actions_model.StatusBlocked) {
 				continue
 			}
 			if err := actions.ValidateWorkflowContent(job.WorkflowPayload); err != nil {
@@ -380,16 +380,18 @@ func prepareWorkflowList(ctx *context.Context, workflows []WorkflowInfo, otherWo
 					break
 				}
 			}
-			hasOnlineRunner := false
-			for _, runner := range runners {
-				if !runner.IsDisabled && runner.CanMatchLabels(job.RunsOn) {
-					hasOnlineRunner = true
+			if job.Status.IsWaiting() {
+				hasOnlineRunner := false
+				for _, runner := range runners {
+					if !runner.IsDisabled && runner.CanMatchLabels(job.RunsOn) {
+						hasOnlineRunner = true
+						break
+					}
+				}
+				if !hasOnlineRunner {
+					runErrors[run.ID] = ctx.Locale.TrString("actions.runs.no_matching_online_runner_helper", strings.Join(job.RunsOn, ","))
 					break
 				}
-			}
-			if !hasOnlineRunner {
-				runErrors[run.ID] = ctx.Locale.TrString("actions.runs.no_matching_online_runner_helper", strings.Join(job.RunsOn, ","))
-				break
 			}
 		}
 	}
