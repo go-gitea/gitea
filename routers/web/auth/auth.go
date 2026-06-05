@@ -630,9 +630,17 @@ func createUserInContext(ctx *context.Context, tpl templates.TplName, form any, 
 				var user *user_model.User
 				user, err := user_model.GetIndividualUserByName(ctx, u.Name)
 				if err != nil {
+					if !user_model.IsErrUserNotExist(err) {
+						ctx.ServerError("GetIndividualUserByName", err)
+						return false
+					}
 					user, err = user_model.GetIndividualUserByPrimaryEmail(ctx, u.Email)
 					if err != nil {
-						ctx.ServerError("UserLinkAccount", err)
+						if !user_model.IsErrUserNotExist(err) {
+							ctx.ServerError("GetIndividualUserByPrimaryEmail", err)
+						} else {
+							ctx.NotFound(err)
+						}
 						return false
 					}
 				}

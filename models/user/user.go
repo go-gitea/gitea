@@ -1331,6 +1331,7 @@ func GetUserByEmail(ctx context.Context, email string) (*User, error) {
 }
 
 func GetIndividualUserByPrimaryEmail(ctx context.Context, email string) (*User, error) {
+	email = strings.ToLower(strings.TrimSpace(email))
 	if len(email) == 0 {
 		return nil, ErrUserNotExist{Name: email}
 	}
