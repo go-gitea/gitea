@@ -729,7 +729,6 @@ function onNodeClick(job: JobNode, event: MouseEvent) {
   flex-shrink: 0;
 }
 
-
 .graph-container {
   flex: 1;
   overflow: hidden;
