@@ -201,7 +201,7 @@ func (opts FindOrgMembersOpts) applyKeywordFilter(sess db.Session) bool {
 		db.BuildCaseInsensitiveLike("`user`.full_name", opts.Keyword),
 	)
 
-	var emailCond builder.Cond = db.BuildCaseInsensitiveLike("`user`.email", opts.Keyword)
+	emailCond := db.BuildCaseInsensitiveLike("`user`.email", opts.Keyword)
 	switch {
 	case opts.Doer == nil:
 		emailCond = emailCond.And(builder.Eq{"`user`.keep_email_private": false})
