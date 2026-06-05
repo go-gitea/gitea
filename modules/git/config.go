@@ -46,10 +46,8 @@ func syncGitConfig(ctx context.Context) (err error) {
 		return err
 	}
 
-	if DefaultFeatures().CheckVersionAtLeast("2.10") {
-		if err := configSet(ctx, "receive.advertisePushOptions", "true"); err != nil {
-			return err
-		}
+	if err := configSet(ctx, "receive.advertisePushOptions", "true"); err != nil {
+		return err
 	}
 
 	if DefaultFeatures().CheckVersionAtLeast("2.18") {

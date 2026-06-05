@@ -15,13 +15,7 @@ import (
 
 // GetRemoteAddress returns remote url of git repository in the repoPath with special remote name
 func GetRemoteAddress(ctx context.Context, repoPath, remoteName string) (string, error) {
-	var cmd *gitcmd.Command
-	if DefaultFeatures().CheckVersionAtLeast("2.7") {
-		cmd = gitcmd.NewCommand("remote", "get-url").AddDynamicArguments(remoteName)
-	} else {
-		cmd = gitcmd.NewCommand("config", "--get").AddDynamicArguments("remote." + remoteName + ".url")
-	}
-
+	cmd := gitcmd.NewCommand("remote", "get-url").AddDynamicArguments(remoteName)
 	result, _, err := cmd.WithDir(repoPath).RunStdString(ctx)
 	if err != nil {
 		return "", err
