@@ -2,6 +2,7 @@ import {hideElem, querySingleVisibleElem, showElem, toggleElem} from '../utils/d
 import {html, htmlEscape} from '../utils/html.ts';
 import {fomanticQuery} from '../modules/fomantic/base.ts';
 import {sanitizeRepoName} from './repo-common.ts';
+import type {FomanticDropdownItem, FomanticMenuDropdownItem} from '../modules/fomantic/dropdown.ts'
 
 const {appSubUrl} = window.config;
 function initRepoNewTemplateSearch(form: HTMLFormElement) {
@@ -58,43 +59,64 @@ function initRepoNewTemplateSearch(form: HTMLFormElement) {
 
 export function initGroupSelector(form: HTMLFormElement) {
   const inputRepoOwnerUid = form.querySelector<HTMLInputElement>('input[name="uid"]');
-  const elGroupDropdown = form.querySelector<HTMLInputElement>('#group_selector');
+  const elGroupDropdown = form.querySelector<HTMLDivElement>('#group_selector');
   if (!inputRepoOwnerUid || !elGroupDropdown) {
     return;
   }
   const $dropdown = fomanticQuery(elGroupDropdown);
+  const elGID = elGroupDropdown.querySelector<HTMLInputElement>('input#gid')!!;
   const onChangeRepoOwner = function () {
-    $dropdown.dropdown('setting', {
-      keepSearchTerm: false,
-      fireOnInit: true,
-      saveRemoteData: false,
-      allowReselection: true,
-      filterRemoteData: true,
+    const $dropdownInstance = $dropdown.dropdown('setting', {
       apiSettings: {
         url: `${appSubUrl}/group/search?uid=${inputRepoOwnerUid.value}&recurse=true`,
         onResponse(response: {data: any}) {
-          const results = [];
+          // const searchTerm: string = $dropdown.dropdown('get query');
+          const results: FomanticDropdownItem[] = [];
           results.push({name: html`&lt;none&gt;`, value: '0'});
-          const forEachFn = function ({group, subgroups}: {group: any, subgroups: any[]}, depth: number) {
-            results.push({
+          const forEachFn = function ({group, subgroups}: {group: any, subgroups: any[]}) {
+            const retVal: FomanticMenuDropdownItem = {
               // eslint-disable-next-line github/unescaped-html-literal
-              name: `<span style="margin-left: ${depth + 1}rem">${html`${group.name}`}</span>`,
+              name: group.name,
+              text: group.name,
               value: String(group.id),
-            });
-            for (const sg of subgroups) {
-              forEachFn(sg, depth + 1);
-            }
+              type: 'menu',
+              values: []
+            };
+            retVal.values = subgroups.map(forEachFn)
+            return retVal
           };
-          for (const g of response.data.subgroups) {
-            forEachFn(g, 0);
-          }
-          $dropdown.fomanticExt.onResponseKeepSelectedItem($dropdown, elGroupDropdown.querySelector<HTMLInputElement>('input#gid')?.value);
+          results.push(...response.data.subgroups.map(forEachFn));
+          $dropdown.fomanticExt.onResponseKeepSelectedItem($dropdown, elGID.value);
           return {results};
         },
         cache: false,
       },
+      keepSearchTerm: true,
+      match: 'text',
+      selectOnKeydown: false,
+      filterRemoteData: true,
+      forceSelection: false,
+      action: function (text: string, val:string, element: HTMLElement) {
+        const elTxt = elGroupDropdown.querySelector<HTMLSpanElement>('span.text');
+        if(elTxt) {
+          elTxt.innerHTML = text;
+        }
+        elGID.value = val;
+        elGroupDropdown.querySelector<HTMLInputElement>('input.search')!.value = '';
+
+        $dropdown.dropdown('hide');
+
+        console.log(text, val, element, elGID);
+      },
     });
-  };
+
+    $dropdownInstance.fomanticExt.onDropdownAfterFiltered = function() {
+      const mod = $dropdown.data('module-dropdown');
+      mod.remove.empty();
+      mod.remove.message();
+    }
+ };
+
   inputRepoOwnerUid.addEventListener('change', onChangeRepoOwner);
   onChangeRepoOwner();
 }
