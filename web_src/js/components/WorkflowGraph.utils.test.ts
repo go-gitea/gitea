@@ -144,6 +144,31 @@ test('multi-level pipeline with two matrices and a converging leaf renders witho
   }
 });
 
+test('reusable callers with identical dependency signature are kept as separate nodes', () => {
+  const jobs: ActionsJob[] = [
+    {id: 1, link: '', jobId: 'prepare', name: 'prepare', status: 'success', canRerun: false, isReusableCaller: false, parentJobID: 0, duration: '30s'},
+    {id: 2, link: '', jobId: 'local_caller', name: 'local caller', status: 'running', canRerun: false, isReusableCaller: true, parentJobID: 0, duration: '5m', needs: ['prepare'], callUses: './.gitea/workflows/lib.yml'},
+    {id: 3, link: '', jobId: 'cross_caller', name: 'cross-repo caller', status: 'waiting', canRerun: false, isReusableCaller: true, parentJobID: 0, duration: '0s', needs: ['prepare'], callUses: 'user2/lib/.gitea/workflows/ext.yml@main'},
+    {id: 4, link: '', jobId: 'final', name: 'final', status: 'blocked', canRerun: false, isReusableCaller: false, parentJobID: 0, duration: '0s', needs: ['local_caller', 'cross_caller']},
+  ];
+  const graph = createWorkflowGraphModel(jobs);
+  expect(graph.nodes.find((n) => n.type === 'group')).toBeUndefined();
+  expect(graph.nodes.find((n) => n.id === 'job:2')?.name).toBe('local caller');
+  expect(graph.nodes.find((n) => n.id === 'job:3')?.name).toBe('cross-repo caller');
+});
+
+test('reusable caller with matrix-pattern name does not get absorbed into a sibling matrix node', () => {
+  const jobs: ActionsJob[] = [
+    {id: 1, link: '', jobId: 'deploy_dev', name: 'deploy (dev)', status: 'success', canRerun: false, isReusableCaller: false, parentJobID: 0, duration: '1s'},
+    {id: 2, link: '', jobId: 'deploy_qa', name: 'deploy (qa)', status: 'success', canRerun: false, isReusableCaller: false, parentJobID: 0, duration: '1s'},
+    {id: 3, link: '', jobId: 'deploy_staging', name: 'deploy (staging)', status: 'running', canRerun: false, isReusableCaller: true, parentJobID: 0, duration: '2s', callUses: './.gitea/workflows/deploy.yml'},
+  ];
+  const graph = createWorkflowGraphModel(jobs);
+  expect(graph.nodes.find((n) => n.id === 'job:3')?.name).toBe('deploy (staging)');
+  const matrixNode = graph.nodes.find((n) => n.type === 'matrix');
+  expect(matrixNode?.jobs.map((j) => j.id).sort()).toEqual([1, 2]);
+});
+
 test('directed highlight state covers ancestors and descendants of the hovered node', () => {
   const graph = createWorkflowGraphModel(mockJobs);
   const rootGroup = graph.nodes.find((n) => n.type === 'group' && n.jobs.some((j) => j.jobId === 'prep-jdk'))!;

@@ -215,8 +215,11 @@ const nodesWithIncomingEdge = computed(() => new Set(graphModel.value.adjacency.
 const nodesWithOutgoingEdge = computed(() => new Set(graphModel.value.adjacency.outgoingByNodeId.keys()));
 
 function onNodeClick(job: GraphNode | ActionsJob, event: MouseEvent) {
-  const jobId = 'jobs' in job ? job.jobs[0]!.id : job.id;
-  const link = `${props.runLink}/jobs/${jobId}`;
+  const target = 'jobs' in job ? job.jobs[0]! : job;
+  // Reusable callers have no per-job detail page; clicking them is a no-op so the graph
+  // doesn't lead users to a dead destination.
+  if (target.isReusableCaller) return;
+  const link = `${props.runLink}/jobs/${target.id}`;
   if (event.ctrlKey || event.metaKey) {
     window.open(link, '_blank');
     return;
@@ -370,7 +373,7 @@ function onNodeClick(job: GraphNode | ActionsJob, event: MouseEvent) {
           <g
             v-else
             class="job-node-group"
-            :class="{ 'related-node': isNodeHighlighted(job.id) }"
+            :class="{ 'related-node': isNodeHighlighted(job.id), 'caller-node': job.jobs[0]!.isReusableCaller }"
             @click="onNodeClick(job, $event)"
             @mouseenter="handleNodeMouseEnter(job.id)"
             @mouseleave="handleNodeMouseLeave"
@@ -485,6 +488,10 @@ function onNodeClick(job: GraphNode | ActionsJob, event: MouseEvent) {
 .job-node-group {
   cursor: pointer;
   transition: opacity 0.15s ease;
+}
+
+.job-node-group.caller-node {
+  cursor: default;
 }
 
 .job-node-group:hover .job-rect,
