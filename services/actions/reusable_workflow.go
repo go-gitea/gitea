@@ -152,7 +152,7 @@ func expandReusableWorkflowCaller(ctx context.Context, run *actions_model.Action
 		return fmt.Errorf("parse caller job %d: %w", caller.ID, err)
 	}
 
-	// 3. Resolve and load called-workflow source.
+	// 3. Resolve `uses` and load called-workflow source.
 	ref, err := ResolveUses(ctx, parsedJob.Uses)
 	if err != nil {
 		return fmt.Errorf("resolve uses %q: %w", parsedJob.Uses, err)
