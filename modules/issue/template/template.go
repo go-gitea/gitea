@@ -12,8 +12,8 @@ import (
 	"strconv"
 	"strings"
 
-	"code.gitea.io/gitea/modules/container"
-	api "code.gitea.io/gitea/modules/structs"
+	"gitea.dev/modules/container"
+	api "gitea.dev/modules/structs"
 
 	"gitea.com/go-chi/binding"
 )

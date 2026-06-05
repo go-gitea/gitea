@@ -8,14 +8,14 @@ import (
 	"sort"
 	"testing"
 
-	"code.gitea.io/gitea/models/db"
-	"code.gitea.io/gitea/models/organization"
-	repo_model "code.gitea.io/gitea/models/repo"
-	"code.gitea.io/gitea/models/unittest"
-	user_model "code.gitea.io/gitea/models/user"
-	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/modules/structs"
-	"code.gitea.io/gitea/modules/test"
+	"gitea.dev/models/db"
+	"gitea.dev/models/organization"
+	repo_model "gitea.dev/models/repo"
+	"gitea.dev/models/unittest"
+	user_model "gitea.dev/models/user"
+	"gitea.dev/modules/setting"
+	"gitea.dev/modules/structs"
+	"gitea.dev/modules/test"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -288,6 +288,80 @@ func TestGetOrgUsersByOrgID(t *testing.T) {
 	assert.Empty(t, orgUsers)
 }
 
+func TestOrgMembersSearch(t *testing.T) {
+	assert.NoError(t, unittest.PrepareTestDatabase())
+
+	member := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 4})
+	admin := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 1})
+
+	testCases := []struct {
+		name         string
+		opts         *organization.FindOrgMembersOpts
+		expectedUIDs []int64
+	}{
+		{
+			name: "match by username",
+			opts: &organization.FindOrgMembersOpts{
+				OrgID:         3,
+				Doer:          member,
+				IsDoerMember:  true,
+				Keyword:       "user4",
+				SearchByEmail: true,
+			},
+			expectedUIDs: []int64{4},
+		},
+		{
+			name: "match by full name",
+			opts: &organization.FindOrgMembersOpts{
+				OrgID:         3,
+				Doer:          member,
+				IsDoerMember:  true,
+				Keyword:       "user27",
+				SearchByEmail: true,
+			},
+			expectedUIDs: []int64{28},
+		},
+		{
+			name: "private email hidden",
+			opts: &organization.FindOrgMembersOpts{
+				OrgID:         3,
+				Doer:          member,
+				IsDoerMember:  true,
+				Keyword:       "user2@example.com",
+				SearchByEmail: true,
+			},
+			expectedUIDs: []int64{},
+		},
+		{
+			name: "admin can search private email",
+			opts: &organization.FindOrgMembersOpts{
+				OrgID:         3,
+				Doer:          admin,
+				Keyword:       "user2@example.com",
+				SearchByEmail: true,
+			},
+			expectedUIDs: []int64{2},
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			count, err := organization.CountOrgMembers(t.Context(), tc.opts)
+			assert.NoError(t, err)
+			assert.EqualValues(t, len(tc.expectedUIDs), count)
+
+			members, err := organization.GetOrgUsersByOrgID(t.Context(), tc.opts)
+			assert.NoError(t, err)
+			memberUIDs := make([]int64, 0, len(members))
+			for _, member := range members {
+				memberUIDs = append(memberUIDs, member.UID)
+			}
+			slices.Sort(memberUIDs)
+			assert.Equal(t, tc.expectedUIDs, memberUIDs)
+		})
+	}
+}
+
 func TestChangeOrgUserStatus(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 
@@ -454,6 +528,22 @@ func TestGetUsersWhoCanCreateOrgRepo(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Len(t, users, 1)
 	assert.NotNil(t, users[5])
+}
+
+func TestCanCreateOrgRepoByOwnerTeamWithoutFlag(t *testing.T) {
+	assert.NoError(t, unittest.PrepareTestDatabase())
+
+	org := unittest.AssertExistsAndLoadBean(t, &organization.Organization{ID: 3})
+	ownerTeam, err := org.GetOwnerTeam(t.Context())
+	require.NoError(t, err)
+
+	ownerTeam.CanCreateOrgRepo = false
+	_, err = db.GetEngine(t.Context()).ID(ownerTeam.ID).Cols("can_create_org_repo").Update(ownerTeam)
+	require.NoError(t, err)
+
+	ok, err := organization.CanCreateOrgRepo(t.Context(), org.ID, 2)
+	require.NoError(t, err)
+	assert.True(t, ok)
 }
 
 func TestUser_RemoveOrgRepo(t *testing.T) {

@@ -7,13 +7,13 @@ import (
 	"context"
 	"fmt"
 
-	"code.gitea.io/gitea/models/db"
-	"code.gitea.io/gitea/models/organization"
-	access_model "code.gitea.io/gitea/models/perm/access"
-	repo_model "code.gitea.io/gitea/models/repo"
-	user_model "code.gitea.io/gitea/models/user"
-	"code.gitea.io/gitea/models/usergroup"
-	usergroup_service "code.gitea.io/gitea/services/usergroup"
+	"gitea.dev/models/db"
+	"gitea.dev/models/organization"
+	access_model "gitea.dev/models/perm/access"
+	repo_model "gitea.dev/models/repo"
+	user_model "gitea.dev/models/user"
+	"gitea.dev/models/usergroup"
+	usergroup_service "gitea.dev/services/usergroup"
 )
 
 // AddTeamUserGroup assigns a user group to a team.

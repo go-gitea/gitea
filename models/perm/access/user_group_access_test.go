@@ -6,14 +6,14 @@ package access_test
 import (
 	"testing"
 
-	"code.gitea.io/gitea/models/db"
-	"code.gitea.io/gitea/models/organization"
-	perm_model "code.gitea.io/gitea/models/perm"
-	access_model "code.gitea.io/gitea/models/perm/access"
-	repo_model "code.gitea.io/gitea/models/repo"
-	"code.gitea.io/gitea/models/unittest"
-	user_model "code.gitea.io/gitea/models/user"
-	"code.gitea.io/gitea/models/usergroup"
+	"gitea.dev/models/db"
+	"gitea.dev/models/organization"
+	perm_model "gitea.dev/models/perm"
+	access_model "gitea.dev/models/perm/access"
+	repo_model "gitea.dev/models/repo"
+	"gitea.dev/models/unittest"
+	user_model "gitea.dev/models/user"
+	"gitea.dev/models/usergroup"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -33,14 +33,14 @@ func setupUserGroupAccess(t *testing.T) (*repo_model.Repository, *user_model.Use
 	require.True(t, repo.IsPrivate, "fixture repo 3 must be private")
 
 	root := &usergroup.UserGroup{Name: "acc-root"}
-	require.NoError(t, organization.CreateUserGroup(ctx, root))
+	require.NoError(t, usergroup.CreateUserGroup(ctx, root))
 	mid := &usergroup.UserGroup{Name: "acc-mid", ParentID: root.ID}
-	require.NoError(t, organization.CreateUserGroup(ctx, mid))
+	require.NoError(t, usergroup.CreateUserGroup(ctx, mid))
 	leaf := &usergroup.UserGroup{Name: "acc-leaf", ParentID: mid.ID}
-	require.NoError(t, organization.CreateUserGroup(ctx, leaf))
+	require.NoError(t, usergroup.CreateUserGroup(ctx, leaf))
 
 	// User is in leaf group; team assigns root group.
-	require.NoError(t, organization.AddUserToUserGroup(ctx, leaf.ID, leafUser.ID))
+	require.NoError(t, usergroup.AddUserToUserGroup(ctx, leaf.ID, leafUser.ID))
 	require.NoError(t, organization.AddUserGroupToTeam(ctx, team.ID, root.ID, team.OrgID))
 
 	require.NoError(t, repo.LoadOwner(ctx))

@@ -6,12 +6,12 @@ package org
 import (
 	"net/http"
 
-	"code.gitea.io/gitea/models/organization"
-	usergroup_model "code.gitea.io/gitea/models/usergroup"
-	api "code.gitea.io/gitea/modules/structs"
-	"code.gitea.io/gitea/services/context"
-	"code.gitea.io/gitea/services/convert"
-	org_service "code.gitea.io/gitea/services/org"
+	"gitea.dev/models/organization"
+	usergroup_model "gitea.dev/models/usergroup"
+	api "gitea.dev/modules/structs"
+	"gitea.dev/services/context"
+	"gitea.dev/services/convert"
+	org_service "gitea.dev/services/org"
 )
 
 // ListTeamUserGroups lists user groups assigned to a team.

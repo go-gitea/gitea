@@ -31,6 +31,11 @@ details.ui.message:not(:has(pre)) summary {
   cursor: text;
 }
 
+.ui.message.flash-message pre {
+  white-space: pre-line;
+  margin: 0;
+}
+
 .ui.message:first-child {
   margin-top: 0;
 }

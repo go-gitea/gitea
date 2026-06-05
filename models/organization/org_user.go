@@ -7,9 +7,12 @@ import (
 	"context"
 	"fmt"
 
-	"code.gitea.io/gitea/models/db"
-	user_model "code.gitea.io/gitea/models/user"
-	"code.gitea.io/gitea/modules/log"
+	"gitea.dev/models/db"
+	"gitea.dev/models/perm"
+	user_model "gitea.dev/models/user"
+	"gitea.dev/modules/log"
+
+	"xorm.io/builder"
 )
 
 // ________                ____ ___
@@ -115,6 +118,7 @@ func CanCreateOrgRepo(ctx context.Context, orgID, uid int64) (bool, error) {
 		Table("team").
 		Where("org_id=?", orgID).
 		And("can_create_org_repo=?", true).
+		Or(builder.Eq{"team.authorize": perm.AccessModeOwner}).
 		Cols("id").
 		Find(&teams); err != nil {
 		return false, err

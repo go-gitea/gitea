@@ -6,9 +6,9 @@ package setting
 import (
 	"net/http"
 
-	"code.gitea.io/gitea/modules/git"
-	"code.gitea.io/gitea/routers/web/repo"
-	"code.gitea.io/gitea/services/context"
+	"gitea.dev/modules/git"
+	"gitea.dev/routers/web/repo"
+	"gitea.dev/services/context"
 )
 
 // GitHooks hooks of a repository

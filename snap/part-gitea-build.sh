@@ -1,7 +1,7 @@
 #!/bin/sh
 set -e
 
-if [ ! -f go.mod -o ! -d snap ]; then
+if [ ! -f go.mod ] || [ ! -d snap ]; then
   echo "This script should be run from the root of the gitea repository"
   exit 1
 fi

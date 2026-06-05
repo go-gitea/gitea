@@ -6,15 +6,15 @@ package actions
 import (
 	"testing"
 
-	actions_model "code.gitea.io/gitea/models/actions"
-	"code.gitea.io/gitea/models/db"
-	git_model "code.gitea.io/gitea/models/git"
-	repo_model "code.gitea.io/gitea/models/repo"
-	"code.gitea.io/gitea/models/unittest"
-	actions_module "code.gitea.io/gitea/modules/actions"
-	"code.gitea.io/gitea/modules/commitstatus"
-	"code.gitea.io/gitea/modules/gitrepo"
-	"code.gitea.io/gitea/modules/timeutil"
+	actions_model "gitea.dev/models/actions"
+	"gitea.dev/models/db"
+	git_model "gitea.dev/models/git"
+	repo_model "gitea.dev/models/repo"
+	"gitea.dev/models/unittest"
+	actions_module "gitea.dev/modules/actions"
+	"gitea.dev/modules/commitstatus"
+	"gitea.dev/modules/gitrepo"
+	"gitea.dev/modules/timeutil"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -28,7 +28,8 @@ func TestCommitStatusDescription(t *testing.T) {
 	}{
 		{actions_model.StatusSuccess, 100, 102, "Successful in 2s"},
 		{actions_model.StatusFailure, 100, 130, "Failing after 30s"},
-		{actions_model.StatusCancelled, 100, 145, "Cancelled after 45s"},
+		{actions_model.StatusCancelled, 100, 145, "Canceled after 45s"},
+		{actions_model.StatusCancelling, 0, 0, "Canceling"},
 		{actions_model.StatusSkipped, 0, 0, "Skipped"},
 		{actions_model.StatusRunning, 0, 0, "In progress"},
 		{actions_model.StatusWaiting, 0, 0, "Waiting to run"},

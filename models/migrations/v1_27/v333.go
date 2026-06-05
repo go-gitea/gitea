@@ -4,33 +4,21 @@
 package v1_27
 
 import (
-	"code.gitea.io/gitea/modules/timeutil"
+	"gitea.dev/models/db"
 
 	"xorm.io/xorm"
 )
 
-type UserGroup struct {
-	ID          int64              `xorm:"pk autoincr"`
-	Name        string             `xorm:"NOT NULL"`
-	LowerName   string             `xorm:"INDEX NOT NULL"`
-	Slug        string             `xorm:"UNIQUE NOT NULL"`
-	Description string             `xorm:"TEXT NOT NULL"`
-	ParentID    int64              `xorm:"INDEX"`
-	CreatedUnix timeutil.TimeStamp `xorm:"INDEX created"`
-	UpdatedUnix timeutil.TimeStamp `xorm:"INDEX updated"`
-}
+func AddBranchProtectionBypassAllowlist(x db.EngineMigration) error {
+	type ProtectedBranch struct {
+		EnableBypassAllowlist  bool    `xorm:"NOT NULL DEFAULT false"`
+		BypassAllowlistUserIDs []int64 `xorm:"JSON TEXT"`
+		BypassAllowlistTeamIDs []int64 `xorm:"JSON TEXT"`
+	}
 
-type UserGroupMember struct {
-	GroupID int64 `xorm:"UNIQUE(s) INDEX"`
-	UserID  int64 `xorm:"UNIQUE(s) INDEX"`
-}
-
-type TeamUserGroup struct {
-	TeamID  int64 `xorm:"UNIQUE(s) INDEX"`
-	GroupID int64 `xorm:"UNIQUE(s) INDEX"`
-	OrgID   int64 `xorm:"INDEX"`
-}
-
-func AddUserGroups(x *xorm.Engine) error {
-	return x.Sync(new(UserGroup), new(UserGroupMember), new(TeamUserGroup))
+	_, err := x.SyncWithOptions(xorm.SyncOptions{
+		IgnoreConstrains: true,
+		IgnoreIndices:    true,
+	}, new(ProtectedBranch))
+	return err
 }

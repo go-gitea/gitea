@@ -10,18 +10,18 @@ import (
 	"path"
 	"strings"
 
-	actions_model "code.gitea.io/gitea/models/actions"
-	"code.gitea.io/gitea/models/db"
-	git_model "code.gitea.io/gitea/models/git"
-	repo_model "code.gitea.io/gitea/models/repo"
-	user_model "code.gitea.io/gitea/models/user"
-	actions_module "code.gitea.io/gitea/modules/actions"
-	"code.gitea.io/gitea/modules/actions/jobparser"
-	"code.gitea.io/gitea/modules/commitstatus"
-	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/util"
-	webhook_module "code.gitea.io/gitea/modules/webhook"
-	commitstatus_service "code.gitea.io/gitea/services/repository/commitstatus"
+	actions_model "gitea.dev/models/actions"
+	"gitea.dev/models/db"
+	git_model "gitea.dev/models/git"
+	repo_model "gitea.dev/models/repo"
+	user_model "gitea.dev/models/user"
+	actions_module "gitea.dev/modules/actions"
+	"gitea.dev/modules/actions/jobparser"
+	"gitea.dev/modules/commitstatus"
+	"gitea.dev/modules/log"
+	"gitea.dev/modules/util"
+	webhook_module "gitea.dev/modules/webhook"
+	commitstatus_service "gitea.dev/services/repository/commitstatus"
 )
 
 // CreateCommitStatusForRunJobs creates a commit status for the given job if it has a supported event and related commit.
@@ -181,11 +181,13 @@ func toCommitStatusDescription(job *actions_model.ActionRunJob) string {
 	case actions_model.StatusFailure:
 		return fmt.Sprintf("Failing after %s", job.Duration())
 	case actions_model.StatusCancelled:
-		return fmt.Sprintf("Cancelled after %s", job.Duration())
+		return fmt.Sprintf("Canceled after %s", job.Duration())
 	case actions_model.StatusSkipped:
 		return "Skipped"
 	case actions_model.StatusRunning:
 		return "In progress"
+	case actions_model.StatusCancelling:
+		return "Canceling"
 	case actions_model.StatusWaiting:
 		return "Waiting to run"
 	case actions_model.StatusBlocked:
@@ -201,7 +203,7 @@ func toCommitStatus(status actions_model.Status) commitstatus.CommitStatusState 
 		return commitstatus.CommitStatusSuccess
 	case actions_model.StatusFailure, actions_model.StatusCancelled:
 		return commitstatus.CommitStatusFailure
-	case actions_model.StatusWaiting, actions_model.StatusBlocked, actions_model.StatusRunning:
+	case actions_model.StatusWaiting, actions_model.StatusBlocked, actions_model.StatusRunning, actions_model.StatusCancelling:
 		return commitstatus.CommitStatusPending
 	case actions_model.StatusSkipped:
 		return commitstatus.CommitStatusSkipped

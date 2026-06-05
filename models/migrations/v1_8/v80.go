@@ -3,9 +3,9 @@
 
 package v1_8
 
-import "xorm.io/xorm"
+import "gitea.dev/models/db"
 
-func AddIsLockedToIssues(x *xorm.Engine) error {
+func AddIsLockedToIssues(x db.EngineMigration) error {
 	// Issue see models/issue.go
 	type Issue struct {
 		ID       int64 `xorm:"pk autoincr"`

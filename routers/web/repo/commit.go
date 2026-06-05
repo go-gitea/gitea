@@ -11,30 +11,30 @@ import (
 	"net/http"
 	"strings"
 
-	asymkey_model "code.gitea.io/gitea/models/asymkey"
-	"code.gitea.io/gitea/models/db"
-	git_model "code.gitea.io/gitea/models/git"
-	issues_model "code.gitea.io/gitea/models/issues"
-	"code.gitea.io/gitea/models/renderhelper"
-	repo_model "code.gitea.io/gitea/models/repo"
-	unit_model "code.gitea.io/gitea/models/unit"
-	user_model "code.gitea.io/gitea/models/user"
-	"code.gitea.io/gitea/modules/base"
-	"code.gitea.io/gitea/modules/charset"
-	"code.gitea.io/gitea/modules/fileicon"
-	"code.gitea.io/gitea/modules/git"
-	"code.gitea.io/gitea/modules/gitrepo"
-	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/markup"
-	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/modules/templates"
-	"code.gitea.io/gitea/modules/util"
-	asymkey_service "code.gitea.io/gitea/services/asymkey"
-	"code.gitea.io/gitea/services/context"
-	git_service "code.gitea.io/gitea/services/git"
-	"code.gitea.io/gitea/services/gitdiff"
-	repo_service "code.gitea.io/gitea/services/repository"
-	"code.gitea.io/gitea/services/repository/gitgraph"
+	asymkey_model "gitea.dev/models/asymkey"
+	"gitea.dev/models/db"
+	git_model "gitea.dev/models/git"
+	issues_model "gitea.dev/models/issues"
+	"gitea.dev/models/renderhelper"
+	repo_model "gitea.dev/models/repo"
+	unit_model "gitea.dev/models/unit"
+	user_model "gitea.dev/models/user"
+	"gitea.dev/modules/base"
+	"gitea.dev/modules/charset"
+	"gitea.dev/modules/fileicon"
+	"gitea.dev/modules/git"
+	"gitea.dev/modules/gitrepo"
+	"gitea.dev/modules/log"
+	"gitea.dev/modules/markup"
+	"gitea.dev/modules/setting"
+	"gitea.dev/modules/templates"
+	"gitea.dev/modules/util"
+	asymkey_service "gitea.dev/services/asymkey"
+	"gitea.dev/services/context"
+	git_service "gitea.dev/services/git"
+	"gitea.dev/services/gitdiff"
+	repo_service "gitea.dev/services/repository"
+	"gitea.dev/services/repository/gitgraph"
 )
 
 const (
@@ -214,37 +214,52 @@ func FileHistory(ctx *context.Context) {
 		return
 	}
 
-	commitsCount, err := gitrepo.FileCommitsCount(ctx, ctx.Repo.Repository, ctx.Repo.RefFullName.ShortName(), ctx.Repo.TreePath)
-	if err != nil {
-		ctx.ServerError("FileCommitsCount", err)
-		return
-	} else if commitsCount == 0 {
-		ctx.NotFound(nil)
-		return
-	}
+	followRename := ctx.FormBool("follow-rename")
+	ctx.Data["ShowFollowRename"] = true
+	ctx.Data["FollowRenameChecked"] = followRename
 
 	page := max(ctx.FormInt("page"), 1)
-
-	commits, err := ctx.Repo.GitRepo.CommitsByFileAndRange(
+	commits, hasMore, err := ctx.Repo.GitRepo.CommitsByFileAndRange(
 		git.CommitsByFileAndRangeOptions{
-			Revision: ctx.Repo.RefFullName.ShortName(), // FIXME: legacy code used ShortName
-			File:     ctx.Repo.TreePath,
-			Page:     page,
+			Revision:     ctx.Repo.RefFullName.ShortName(), // FIXME: legacy code used ShortName
+			File:         ctx.Repo.TreePath,
+			Page:         page,
+			FollowRename: followRename,
 		})
 	if err != nil {
 		ctx.ServerError("CommitsByFileAndRange", err)
 		return
 	}
+
+	var commitsCount int64
+	if followRename {
+		// there is no quick method to know the total count when "follow rename"
+		commitsCount = -1
+	} else {
+		commitsCount, err = gitrepo.FileCommitsCount(ctx, ctx.Repo.Repository, ctx.Repo.RefFullName.ShortName(), ctx.Repo.TreePath)
+		if err != nil {
+			ctx.ServerError("FileCommitsCount", err)
+			return
+		}
+	}
+
+	if len(commits) == 0 {
+		ctx.NotFound(nil)
+		return
+	}
+
+	ctx.Data["FileTreePath"] = ctx.Repo.TreePath
+	ctx.Data["CommitCount"] = commitsCount
 	ctx.Data["Commits"], err = processGitCommits(ctx, commits)
 	if err != nil {
 		ctx.ServerError("processGitCommits", err)
 		return
 	}
 
-	ctx.Data["FileTreePath"] = ctx.Repo.TreePath
-	ctx.Data["CommitCount"] = commitsCount
-
 	pager := context.NewPagination(commitsCount, setting.Git.CommitsRangeSize, page, 5)
+	if commitsCount == -1 {
+		pager.WithUnlimitedPaging(len(commits), hasMore)
+	}
 	pager.AddParamFromRequest(ctx.Req)
 	ctx.Data["Page"] = pager
 	ctx.HTML(http.StatusOK, tplCommits)

@@ -6,20 +6,20 @@ package actions
 import (
 	"fmt"
 
-	actions_model "code.gitea.io/gitea/models/actions"
-	"code.gitea.io/gitea/models/perm"
-	access_model "code.gitea.io/gitea/models/perm/access"
-	repo_model "code.gitea.io/gitea/models/repo"
-	"code.gitea.io/gitea/models/unit"
-	user_model "code.gitea.io/gitea/models/user"
-	"code.gitea.io/gitea/modules/actions"
-	"code.gitea.io/gitea/modules/actions/jobparser"
-	"code.gitea.io/gitea/modules/git"
-	"code.gitea.io/gitea/modules/reqctx"
-	api "code.gitea.io/gitea/modules/structs"
-	"code.gitea.io/gitea/modules/util"
-	"code.gitea.io/gitea/services/context"
-	"code.gitea.io/gitea/services/convert"
+	actions_model "gitea.dev/models/actions"
+	"gitea.dev/models/perm"
+	access_model "gitea.dev/models/perm/access"
+	repo_model "gitea.dev/models/repo"
+	"gitea.dev/models/unit"
+	user_model "gitea.dev/models/user"
+	"gitea.dev/modules/actions"
+	"gitea.dev/modules/actions/jobparser"
+	"gitea.dev/modules/git"
+	"gitea.dev/modules/reqctx"
+	api "gitea.dev/modules/structs"
+	"gitea.dev/modules/util"
+	"gitea.dev/services/context"
+	"gitea.dev/services/convert"
 
 	"gitea.com/gitea/runner/act/model"
 	"go.yaml.in/yaml/v4"
@@ -140,11 +140,17 @@ func DispatchActionWorkflow(ctx reqctx.RequestContext, doer *user_model.User, re
 	workflow := &model.Workflow{
 		RawOn: singleWorkflow.RawOn,
 	}
+	workflowDispatch := workflow.WorkflowDispatchConfig()
+	if workflowDispatch == nil {
+		return 0, util.ErrorWrapTranslatable(
+			util.NewInvalidArgumentErrorf("workflow %q has no workflow_dispatch event trigger", workflowID),
+			"actions.workflow.has_no_workflow_dispatch", workflowID,
+		)
+	}
+
 	inputsWithDefaults := make(map[string]any)
-	if workflowDispatch := workflow.WorkflowDispatchConfig(); workflowDispatch != nil {
-		if err = processInputs(workflowDispatch, inputsWithDefaults); err != nil {
-			return 0, err
-		}
+	if err = processInputs(workflowDispatch, inputsWithDefaults); err != nil {
+		return 0, err
 	}
 
 	// ctx.Req.PostForm -> WorkflowDispatchPayload.Inputs -> ActionRun.EventPayload -> runner: ghc.Event

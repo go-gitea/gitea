@@ -10,16 +10,16 @@ import (
 	"slices"
 	"strings"
 
-	"code.gitea.io/gitea/models/db"
-	git_model "code.gitea.io/gitea/models/git"
-	"code.gitea.io/gitea/models/organization"
-	"code.gitea.io/gitea/models/perm"
-	access_model "code.gitea.io/gitea/models/perm/access"
-	"code.gitea.io/gitea/models/unit"
-	user_model "code.gitea.io/gitea/models/user"
-	"code.gitea.io/gitea/modules/structs"
-	"code.gitea.io/gitea/modules/timeutil"
-	"code.gitea.io/gitea/modules/util"
+	"gitea.dev/models/db"
+	git_model "gitea.dev/models/git"
+	"gitea.dev/models/organization"
+	"gitea.dev/models/perm"
+	access_model "gitea.dev/models/perm/access"
+	"gitea.dev/models/unit"
+	user_model "gitea.dev/models/user"
+	"gitea.dev/modules/structs"
+	"gitea.dev/modules/timeutil"
+	"gitea.dev/modules/util"
 
 	"xorm.io/builder"
 )
@@ -482,6 +482,14 @@ func SubmitReview(ctx context.Context, doer *user_model.User, issue *Issue, revi
 
 		if _, err := sess.ID(review.ID).Cols("content, type, official, commit_id, stale").Update(review); err != nil {
 			return nil, nil, err
+		}
+
+		// make sure the leftover review request is cleared, consistent with CreateReview
+		if reviewType != ReviewTypePending {
+			if _, err := sess.Where(builder.Eq{"reviewer_id": doer.ID, "issue_id": issue.ID, "type": ReviewTypeRequest}).
+				Delete(new(Review)); err != nil {
+				return nil, nil, err
+			}
 		}
 	}
 

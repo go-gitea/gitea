@@ -14,10 +14,11 @@ jobs:
   files-changed:
     uses: ./.github/workflows/files-changed.yml
 
-  test-pgsql:
-    if: needs.files-changed.outputs.backend == 'true' || needs.files-changed.outputs.actions == 'true'
+  test-pgsql-shard-1:
+    if: needs.files-changed.outputs.backend == 'true'
     needs: files-changed
     runs-on: ubuntu-latest
+    timeout-minutes: 50
     services:
       pgsql:
         image: postgres:14
@@ -27,7 +28,7 @@ jobs:
         ports:
           - "5432:5432"
       ldap:
-        image: gitea/test-openldap:latest
+        image: gitea/test-openldap:latest@sha256:4ac633b01d684e6b2a458cc0c8530c92f9b3702f6e040ce5f365607df34fbda0
         ports:
           - "389:389"
           - "636:636"
@@ -42,30 +43,47 @@ jobs:
           - "9000:9000"
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
-      - uses: actions/setup-go@4a3601121dd01d1626a1e23e37211e3254c1c06c # v6.4.0
+      - uses: ./.github/actions/go-setup
+      - uses: ./.github/actions/pgsql-shard
         with:
-          go-version-file: go.mod
-          check-latest: true
-          cache: false
-      - uses: ./.github/actions/go-cache
+          shard: 1
+          total-shards: 2
+          run-migration: "true"
+
+  test-pgsql-shard-2:
+    if: needs.files-changed.outputs.backend == 'true'
+    needs: files-changed
+    runs-on: ubuntu-latest
+    timeout-minutes: 50
+    services:
+      pgsql:
+        image: postgres:14
+        env:
+          POSTGRES_DB: test
+          POSTGRES_PASSWORD: postgres
+        ports:
+          - "5432:5432"
+      ldap:
+        image: gitea/test-openldap:latest@sha256:4ac633b01d684e6b2a458cc0c8530c92f9b3702f6e040ce5f365607df34fbda0
+        ports:
+          - "389:389"
+          - "636:636"
+      minio:
+        # as github actions doesn't support "entrypoint", we need to use a non-official image
+        # that has a custom entrypoint set to "minio server /data"
+        image: bitnamilegacy/minio:2025.7.23
+        env:
+          MINIO_ROOT_USER: 123456
+          MINIO_ROOT_PASSWORD: 12345678
+        ports:
+          - "9000:9000"
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+      - uses: ./.github/actions/go-setup
+      - uses: ./.github/actions/pgsql-shard
         with:
-          cache-name: pgsql
-      - name: Add hosts to /etc/hosts
-        run: '[ -e "/.dockerenv" ] || [ -e "/run/.containerenv" ] || echo "127.0.0.1 pgsql ldap minio" | sudo tee -a /etc/hosts'
-      - run: make deps-backend
-      - run: make backend
-        env:
-          TAGS: bindata
-      - name: run migration tests
-        run: GITEA_TEST_DATABASE=pgsql make test-migration
-      - name: run tests
-        run: GITEA_TEST_DATABASE=pgsql make test-integration
-        timeout-minutes: 50
-        env:
-          # pgsql is chosen to be the unlucky one to run with the slow "race detector", it is about 60% slower.
-          GOTEST_FLAGS: -race -timeout=40m
-          TAGS: bindata gogit
-          TEST_LDAP: 1
+          shard: 2
+          total-shards: 2
 
   test-sqlite:
     if: needs.files-changed.outputs.backend == 'true' || needs.files-changed.outputs.actions == 'true'
@@ -73,21 +91,13 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
-      - uses: actions/setup-go@4a3601121dd01d1626a1e23e37211e3254c1c06c # v6.4.0
-        with:
-          go-version-file: go.mod
-          check-latest: true
-          cache: false
-      - uses: ./.github/actions/go-cache
-        with:
-          cache-name: sqlite
+      - uses: ./.github/actions/go-setup
       - run: make deps-backend
       - run: make backend
         env:
           TAGS: bindata gogit
           GOEXPERIMENT:
-      - name: run migration tests
-        run: GITEA_TEST_DATABASE=sqlite make test-migration
+      - run: GITEA_TEST_DATABASE=sqlite make test-migration
         env:
           TAGS: bindata gogit
       - name: run tests
@@ -100,7 +110,7 @@ jobs:
           GOEXPERIMENT:
 
   test-unit:
-    if: needs.files-changed.outputs.backend == 'true' || needs.files-changed.outputs.actions == 'true'
+    if: needs.files-changed.outputs.backend == 'true'
     needs: files-changed
     runs-on: ubuntu-latest
     services:
@@ -109,6 +119,9 @@ jobs:
         env:
           discovery.type: single-node
           xpack.security.enabled: false
+          xpack.ml.enabled: false
+          ingest.geoip.downloader.enabled: false
+          ES_JAVA_OPTS: "-Xms1g -Xmx1g"
         ports:
           - "9200:9200"
       meilisearch:
@@ -118,7 +131,7 @@ jobs:
         ports:
           - "7700:7700"
       redis:
-        image: redis
+        image: redis:latest@sha256:e74c9b933d78e2829583d88f92793f4524752a15ac59c8baff2dd5ed000b7432
         options: >- # wait until redis has started
           --health-cmd "redis-cli ping"
           --health-interval 5s
@@ -134,42 +147,36 @@ jobs:
         ports:
           - "9000:9000"
       devstoreaccount1.azurite.local: # https://github.com/Azure/Azurite/issues/1583
-        image: mcr.microsoft.com/azure-storage/azurite:latest
+        image: mcr.microsoft.com/azure-storage/azurite:latest@sha256:dae2a5f96553962901304b94e72ef87e299d0825e4b679673bcc527a25076fe4
         ports:
           - 10000:10000
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
-      - uses: actions/setup-go@4a3601121dd01d1626a1e23e37211e3254c1c06c # v6.4.0
-        with:
-          go-version-file: go.mod
-          check-latest: true
-          cache: false
-      - uses: ./.github/actions/go-cache
-        with:
-          cache-name: unit
-          build-cache-rotate: "true"
+      - uses: ./.github/actions/go-setup
       - name: Add hosts to /etc/hosts
         run: '[ -e "/.dockerenv" ] || [ -e "/run/.containerenv" ] || echo "127.0.0.1 minio devstoreaccount1.azurite.local mysql elasticsearch meilisearch smtpimap" | sudo tee -a /etc/hosts'
       - run: make deps-backend
-      - run: make backend
+      - run: make generate-go
         env:
           TAGS: bindata
       - name: unit-tests
-        run: make test-backend test-check
+        run: make test-backend
         env:
           GOTEST_FLAGS: -race -timeout=20m
           TAGS: bindata
           GITHUB_READ_TOKEN: ${{ secrets.GITHUB_READ_TOKEN }}
       - name: unit-tests-gogit
-        run: make test-backend test-check
+        run: make test-backend
         env:
           GOTEST_FLAGS: -race -timeout=20m
           TAGS: bindata gogit
           GOEXPERIMENT:
           GITHUB_READ_TOKEN: ${{ secrets.GITHUB_READ_TOKEN }}
+          GITEA_TEST_CI_SKIP_EXTERNAL: true
+      - run: make test-check
 
   test-mysql:
-    if: needs.files-changed.outputs.backend == 'true' || needs.files-changed.outputs.actions == 'true'
+    if: needs.files-changed.outputs.backend == 'true'
     needs: files-changed
     runs-on: ubuntu-latest
     services:
@@ -188,10 +195,13 @@ jobs:
         env:
           discovery.type: single-node
           xpack.security.enabled: false
+          xpack.ml.enabled: false
+          ingest.geoip.downloader.enabled: false
+          ES_JAVA_OPTS: "-Xms1g -Xmx1g"
         ports:
           - "9200:9200"
       smtpimap:
-        image: tabascoterrier/docker-imap-devel:latest
+        image: tabascoterrier/docker-imap-devel:latest@sha256:3fb7cf50b47693e7b80f6f74abea2def4d7386016931d61359864de8a0aba551
         ports:
           - "25:25"
           - "143:143"
@@ -199,22 +209,14 @@ jobs:
           - "993:993"
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
-      - uses: actions/setup-go@4a3601121dd01d1626a1e23e37211e3254c1c06c # v6.4.0
-        with:
-          go-version-file: go.mod
-          check-latest: true
-          cache: false
-      - uses: ./.github/actions/go-cache
-        with:
-          cache-name: mysql
+      - uses: ./.github/actions/go-setup
       - name: Add hosts to /etc/hosts
         run: '[ -e "/.dockerenv" ] || [ -e "/run/.containerenv" ] || echo "127.0.0.1 mysql elasticsearch smtpimap" | sudo tee -a /etc/hosts'
       - run: make deps-backend
       - run: make backend
         env:
           TAGS: bindata
-      - name: run migration tests
-        run: GITEA_TEST_DATABASE=mysql make test-migration
+      - run: GITEA_TEST_DATABASE=mysql make test-migration
       - name: run tests
         run: GITEA_TEST_DATABASE=mysql make test-integration
         env:
@@ -222,7 +224,7 @@ jobs:
           TEST_INDEXER_CODE_ES_URL: "http://elastic:changeme@elasticsearch:9200"
 
   test-mssql:
-    if: needs.files-changed.outputs.backend == 'true' || needs.files-changed.outputs.actions == 'true'
+    if: needs.files-changed.outputs.backend == 'true'
     needs: files-changed
     runs-on: ubuntu-latest
     services:
@@ -235,19 +237,12 @@ jobs:
         ports:
           - "1433:1433"
       devstoreaccount1.azurite.local: # https://github.com/Azure/Azurite/issues/1583
-        image: mcr.microsoft.com/azure-storage/azurite:latest
+        image: mcr.microsoft.com/azure-storage/azurite:latest@sha256:dae2a5f96553962901304b94e72ef87e299d0825e4b679673bcc527a25076fe4
         ports:
           - 10000:10000
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
-      - uses: actions/setup-go@4a3601121dd01d1626a1e23e37211e3254c1c06c # v6.4.0
-        with:
-          go-version-file: go.mod
-          check-latest: true
-          cache: false
-      - uses: ./.github/actions/go-cache
-        with:
-          cache-name: mssql
+      - uses: ./.github/actions/go-setup
       - name: Add hosts to /etc/hosts
         run: '[ -e "/.dockerenv" ] || [ -e "/run/.containerenv" ] || echo "127.0.0.1 mssql devstoreaccount1.azurite.local" | sudo tee -a /etc/hosts'
       - run: make deps-backend

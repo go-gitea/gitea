@@ -4,14 +4,14 @@
 package v1_25
 
 import (
-	"code.gitea.io/gitea/models/migrations/base"
-	"code.gitea.io/gitea/modules/setting"
+	"gitea.dev/models/db"
+	"gitea.dev/models/migrations/base"
+	"gitea.dev/modules/setting"
 
-	"xorm.io/xorm"
 	"xorm.io/xorm/schemas"
 )
 
-func UseLongTextInSomeColumnsAndFixBugs(x *xorm.Engine) error {
+func UseLongTextInSomeColumnsAndFixBugs(x db.EngineMigration) error {
 	if !setting.Database.Type.IsMySQL() {
 		return nil // Only mysql need to change from text to long text, for other databases, they are the same
 	}

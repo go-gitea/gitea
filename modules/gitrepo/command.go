@@ -6,7 +6,7 @@ package gitrepo
 import (
 	"context"
 
-	"code.gitea.io/gitea/modules/git/gitcmd"
+	"gitea.dev/modules/git/gitcmd"
 )
 
 func RunCmd(ctx context.Context, repo Repository, cmd *gitcmd.Command) error {

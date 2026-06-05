@@ -4,8 +4,8 @@
 package convert
 
 import (
-	"code.gitea.io/gitea/models/usergroup"
-	api "code.gitea.io/gitea/modules/structs"
+	"gitea.dev/models/usergroup"
+	api "gitea.dev/modules/structs"
 )
 
 // ToUserGroup converts a UserGroup model to API format.

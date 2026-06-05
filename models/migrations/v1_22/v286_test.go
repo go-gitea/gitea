@@ -6,13 +6,13 @@ package v1_22
 import (
 	"testing"
 
-	"code.gitea.io/gitea/models/migrations/migrationtest"
+	"gitea.dev/models/db"
+	"gitea.dev/models/migrations/migrationtest"
 
 	"github.com/stretchr/testify/assert"
-	"xorm.io/xorm"
 )
 
-func PrepareOldRepository(t *testing.T) (*xorm.Engine, func()) {
+func PrepareOldRepository(t *testing.T) (db.EngineMigration, func()) {
 	type Repository struct { // old struct
 		ID int64 `xorm:"pk autoincr"`
 	}

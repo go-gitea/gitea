@@ -6,9 +6,9 @@ package usergroup
 import (
 	"context"
 
-	"code.gitea.io/gitea/models/db"
-	"code.gitea.io/gitea/models/organization"
-	"code.gitea.io/gitea/models/usergroup"
+	"gitea.dev/models/db"
+	"gitea.dev/models/organization"
+	"gitea.dev/models/usergroup"
 
 	"xorm.io/builder"
 )

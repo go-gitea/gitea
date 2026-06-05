@@ -6,11 +6,11 @@ package organization
 import (
 	"context"
 
-	"code.gitea.io/gitea/models/db"
-	user_model "code.gitea.io/gitea/models/user"
-	"code.gitea.io/gitea/models/usergroup"
-	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/modules/container"
+	"gitea.dev/models/db"
+	user_model "gitea.dev/models/user"
+	"gitea.dev/models/usergroup"
+	"gitea.dev/modules/container"
+	"gitea.dev/modules/setting"
 
 	"xorm.io/builder"
 )

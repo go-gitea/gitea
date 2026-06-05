@@ -6,15 +6,15 @@ package v1_11
 import (
 	"path/filepath"
 
-	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/modules/util"
+	"gitea.dev/models/db"
+	"gitea.dev/modules/log"
+	"gitea.dev/modules/setting"
+	"gitea.dev/modules/util"
 
 	"xorm.io/builder"
-	"xorm.io/xorm"
 )
 
-func RemoveAttachmentMissedRepo(x *xorm.Engine) error {
+func RemoveAttachmentMissedRepo(x db.EngineMigration) error {
 	type Attachment struct {
 		UUID string `xorm:"uuid"`
 	}

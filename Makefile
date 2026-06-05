@@ -11,8 +11,8 @@ COMMA := ,
 
 XGO_VERSION := go-1.26.x
 
-AIR_PACKAGE ?= github.com/air-verse/air@v1.65.1 # renovate: datasource=go
-EDITORCONFIG_CHECKER_PACKAGE ?= github.com/editorconfig-checker/editorconfig-checker/v3/cmd/editorconfig-checker@v3.6.1 # renovate: datasource=go
+AIR_PACKAGE ?= github.com/air-verse/air@v1.65.3 # renovate: datasource=go
+EDITORCONFIG_CHECKER_PACKAGE ?= github.com/editorconfig-checker/editorconfig-checker/v3/cmd/editorconfig-checker@v3.7.0 # renovate: datasource=go
 GOLANGCI_LINT_PACKAGE ?= github.com/golangci/golangci-lint/v2/cmd/golangci-lint@v2.12.2 # renovate: datasource=go
 GXZ_PACKAGE ?= github.com/ulikunitz/xz/cmd/gxz@v0.5.15 # renovate: datasource=go
 MISSPELL_PACKAGE ?= github.com/golangci/misspell/cmd/misspell@v0.8.0 # renovate: datasource=go
@@ -20,6 +20,9 @@ SWAGGER_PACKAGE ?= github.com/go-swagger/go-swagger/cmd/swagger@v0.33.2 # renova
 XGO_PACKAGE ?= src.techknowlogick.com/xgo@v1.9.0 # renovate: datasource=go
 GOVULNCHECK_PACKAGE ?= golang.org/x/vuln/cmd/govulncheck@v1.3.0 # renovate: datasource=go
 ACTIONLINT_PACKAGE ?= github.com/rhysd/actionlint/cmd/actionlint@v1.7.12 # renovate: datasource=go
+SHELLCHECK_IMAGE ?= docker.io/koalaman/shellcheck:v0.11.0@sha256:61862eba1fcf09a484ebcc6feea46f1782532571a34ed51fedf90dd25f925a8d # renovate: datasource=docker
+
+CONTAINER_RUNTIME ?= $(shell hash docker >/dev/null 2>&1 && echo docker || echo podman)
 
 HAS_GO := $(shell hash $(GO) > /dev/null 2>&1 && echo yes)
 ifeq ($(HAS_GO), yes)
@@ -110,8 +113,8 @@ LDFLAGS := $(LDFLAGS) -X "main.Version=$(GITEA_VERSION)" -X "main.Tags=$(TAGS)"
 
 LINUX_ARCHS ?= linux/amd64,linux/386,linux/arm-5,linux/arm-6,linux/arm64,linux/riscv64
 
-GO_TEST_PACKAGES ?= $(filter-out $(shell $(GO) list code.gitea.io/gitea/models/migrations/...) code.gitea.io/gitea/tests/integration/migration-test code.gitea.io/gitea/tests code.gitea.io/gitea/tests/integration,$(shell $(GO) list ./... | grep -v /vendor/))
-MIGRATE_TEST_PACKAGES ?= $(shell $(GO) list code.gitea.io/gitea/models/migrations/...)
+GO_TEST_PACKAGES ?= $(filter-out $(shell $(GO) list gitea.dev/models/migrations/...) gitea.dev/tests/integration/migration-test gitea.dev/tests gitea.dev/tests/integration,$(shell $(GO) list ./... | grep -v /vendor/))
+MIGRATE_TEST_PACKAGES ?= $(shell $(GO) list gitea.dev/models/migrations/...)
 
 FRONTEND_SOURCES := $(shell find web_src/js web_src/css -type f)
 FRONTEND_CONFIGS := vite.config.ts tailwind.config.ts
@@ -147,7 +150,7 @@ ESLINT_CONCURRENCY ?= 2
 
 SWAGGER_SPEC := templates/swagger/v1_json.tmpl
 SWAGGER_SPEC_INPUT := templates/swagger/v1_input.json
-SWAGGER_EXCLUDE := code.gitea.io/sdk
+SWAGGER_EXCLUDE := gitea.dev/sdk
 OPENAPI3_SPEC := templates/swagger/v1_openapi3_json.tmpl
 
 TEST_MYSQL_HOST ?= mysql:3306
@@ -271,7 +274,7 @@ checks-frontend: lockfile-check svg-check ## check frontend files
 checks-backend: tidy-check swagger-check openapi3-check fmt-check swagger-validate security-check ## check backend files
 
 .PHONY: lint
-lint: lint-frontend lint-backend lint-templates lint-swagger lint-spell lint-md lint-actions lint-json lint-yaml ## lint everything
+lint: lint-frontend lint-backend lint-templates lint-swagger lint-spell lint-md lint-actions lint-json lint-yaml lint-shell ## lint everything
 
 .PHONY: lint-fix
 lint-fix: lint-frontend-fix lint-backend-fix lint-spell-fix ## lint everything and fix issues
@@ -318,10 +321,6 @@ lint-md: node_modules ## lint markdown files
 lint-md-fix: node_modules ## lint markdown files and fix issues
 	pnpm exec markdownlint --fix *.md
 
-.PHONY: lint-pr-title
-lint-pr-title: ## lint PR title against Conventional Commits (set PR_TITLE=...)
-	@node ./tools/lint-pr-title.js
-
 .PHONY: lint-spell
 lint-spell: ## lint spelling
 	@git ls-files $(SPELLCHECK_FILES) | xargs go run $(MISSPELL_PACKAGE) -dict assets/misspellings.csv -error
@@ -344,8 +343,13 @@ lint-editorconfig:
 	@$(GO) run $(EDITORCONFIG_CHECKER_PACKAGE) $(EDITORCONFIG_FILES)
 
 .PHONY: lint-actions
-lint-actions: ## lint action workflow files
-	$(GO) run $(ACTIONLINT_PACKAGE)
+lint-actions: .venv ## lint action workflow files
+	@$(GO) run $(ACTIONLINT_PACKAGE)
+	@uv run --frozen zizmor --quiet --min-confidence=medium .github
+
+.PHONY: lint-shell
+lint-shell: ## lint shell scripts
+	@SHELLCHECK_IMAGE=$(SHELLCHECK_IMAGE) CONTAINER_RUNTIME=$(CONTAINER_RUNTIME) ./tools/lint-shell.sh $$(git ls-files '*.sh')
 
 .PHONY: lint-templates
 lint-templates: .venv node_modules ## lint template files
@@ -443,19 +447,23 @@ test-integration:
 	@# Use a compiled binary: testlogger forwards gitea logs to t.Log, so `go test -v`
 	@# would flood output per passing test. testcache can't help these tests anyway —
 	@# they mutate the work directory, so cache inputs change between runs.
-	$(GO) test $(GOTEST_FLAGS) -tags '$(TAGS)' -c code.gitea.io/gitea/tests/integration -o ./test-integration-$(GITEA_TEST_DATABASE).test
-	./test-integration-$(GITEA_TEST_DATABASE).test
+	$(GO) test $(GOTEST_FLAGS) -tags '$(TAGS)' -c gitea.dev/tests/integration -o ./test-integration-$(GITEA_TEST_DATABASE).test
+	./tools/test-integration.sh ./test-integration-$(GITEA_TEST_DATABASE).test
+
+.PHONY: test-integration-compile
+test-integration-compile:
+	$(GO) test $(GOTEST_FLAGS) -tags '$(TAGS)' -c -o /dev/null gitea.dev/tests/integration
 
 .PHONY: test-integration\#%
 test-integration\#%:
-	$(GO) test $(GOTEST_FLAGS) -tags '$(TAGS)' -run $(subst .,/,$*) code.gitea.io/gitea/tests/integration
+	$(GO) test $(GOTEST_FLAGS) -tags '$(TAGS)' -run $(subst .,/,$*) gitea.dev/tests/integration
 
 .PHONY: test-migration
 test-migration: migrations.integration.test migrations.individual.test
 
 .PHONY: migrations.integration.test
 migrations.integration.test:
-	$(GO) test $(GOTEST_FLAGS) -tags '$(TAGS)' code.gitea.io/gitea/tests/integration/migration-test
+	$(GO) test $(GOTEST_FLAGS) -tags '$(TAGS)' gitea.dev/tests/integration/migration-test
 
 .PHONY: migrations.individual.test
 migrations.individual.test:
@@ -464,15 +472,15 @@ migrations.individual.test:
 
 .PHONY: migrations.individual.test\#%
 migrations.individual.test\#%:
-	$(GO) test $(GOTEST_FLAGS) -tags '$(TAGS)' code.gitea.io/gitea/models/migrations/$*
+	$(GO) test $(GOTEST_FLAGS) -tags '$(TAGS)' gitea.dev/models/migrations/$*
 
 .PHONY: playwright
 playwright: deps-frontend
-	@./tools/test-e2e.sh install
+	@CONTAINER_RUNTIME=$(CONTAINER_RUNTIME) ./tools/test-e2e.sh install
 
 .PHONY: test-e2e
 test-e2e: playwright frontend backend
-	@EXECUTABLE=$(EXECUTABLE) ./tools/test-e2e.sh run $(GITEA_TEST_E2E_FLAGS)
+	@CONTAINER_RUNTIME=$(CONTAINER_RUNTIME) EXECUTABLE=$(EXECUTABLE) ./tools/test-e2e.sh run $(GITEA_TEST_E2E_FLAGS)
 
 .PHONY: build
 build: frontend backend ## build everything
@@ -598,14 +606,6 @@ update-go: ## update go dependencies
 update-js: node_modules ## update js dependencies
 	pnpm exec updates -u -f package.json
 	rm -rf node_modules pnpm-lock.yaml
-	pnpm install
-	@touch node_modules
-	$(MAKE) --no-print-directory nolyfill
-
-.PHONY: nolyfill
-nolyfill: node_modules ## apply nolyfill overrides to package.json and relock
-	pnpm exec nolyfill install
-	node tools/migrate-nolyfills.ts
 	pnpm install
 	@touch node_modules
 

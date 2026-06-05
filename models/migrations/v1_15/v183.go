@@ -7,12 +7,11 @@ import (
 	"fmt"
 	"time"
 
-	"code.gitea.io/gitea/modules/timeutil"
-
-	"xorm.io/xorm"
+	"gitea.dev/models/db"
+	"gitea.dev/modules/timeutil"
 )
 
-func CreatePushMirrorTable(x *xorm.Engine) error {
+func CreatePushMirrorTable(x db.EngineMigration) error {
 	type PushMirror struct {
 		ID         int64 `xorm:"pk autoincr"`
 		RepoID     int64 `xorm:"INDEX"`
