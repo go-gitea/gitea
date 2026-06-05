@@ -1,7 +1,8 @@
 name: AgentScan
 
 on:
-  pull_request_target:
+  # jobs only use pinned actions and never checkout code
+  pull_request_target: # zizmor: ignore[dangerous-triggers]
     types: [opened, reopened, synchronize, edited]
 
 concurrency:
