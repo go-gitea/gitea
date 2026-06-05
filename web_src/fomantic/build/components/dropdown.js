@@ -4046,6 +4046,7 @@ $.fn.dropdown.settings = {
     name         : 'name',     // displayed dropdown text
     value        : 'value',    // actual dropdown value
     text         : 'text',     // displayed text when selected
+    data         : 'data',     // custom data attributes
     type         : 'type',     // type of dropdown element
     image        : 'image',    // optional image path
     imageClass   : 'imageClass', // optional individual class for image
@@ -4189,6 +4190,20 @@ $.fn.dropdown.settings.templates = {
           ? option[fields.type]
           : 'item'
       ;
+      let maybeData = '';
+      const dataObject = option[fields.data];
+      if (dataObject) {
+        let dataKey;
+        let dataKeyEscaped;
+        for (dataKey in dataObject) {
+          if (Object.prototype.hasOwnProperty.call(dataObject, dataKey)) {
+            dataKeyEscaped = String(dataKey).replace(/\W/g, '');
+            if (!['text', 'value'].includes(dataKeyEscaped.toLowerCase())) {
+              maybeData += ' data-' + dataKeyEscaped + '="' + escape(String(dataObject[dataKey])) + '"';
+            }
+          }
+        }
+      }
 
       if( itemType === 'item' ) {
         var
