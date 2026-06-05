@@ -111,17 +111,6 @@ func (repo *Repository) getCommitWithBatch(batch CatFileBatch, id ObjectID) (*Co
 
 // ConvertToGitID returns a GitHash object from a potential ID string
 func (repo *Repository) ConvertToGitID(commitID string) (ObjectID, error) {
-	objectFormat, err := repo.GetObjectFormat()
-	if err != nil {
-		return nil, err
-	}
-	if len(commitID) == objectFormat.FullLength() && objectFormat.IsValid(commitID) {
-		ID, err := NewIDFromString(commitID)
-		if err == nil {
-			return ID, nil
-		}
-	}
-
 	batch, cancel, err := repo.CatFileBatch(repo.Ctx)
 	if err != nil {
 		return nil, err

@@ -18,9 +18,6 @@ import (
 
 // GetRefCommitID returns the last commit ID string of given reference.
 func (repo *Repository) GetRefCommitID(name string) (string, error) {
-	if plumbing.IsHash(name) {
-		return name, nil
-	}
 	refName := plumbing.ReferenceName(name)
 	if err := refName.Validate(); err != nil {
 		return "", err
