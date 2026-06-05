@@ -212,14 +212,17 @@ func prepareWorkflowTemplate(ctx *context.Context, commit *git.Commit) (workflow
 			if j.Uses != "" {
 				if _, err := actions_service.ResolveUses(ctx, j.Uses); err != nil {
 					workflow.ErrMsg = ctx.Locale.TrString("actions.runs.invalid_reusable_workflow_uses", err.Error())
+					break
 				}
 			}
 		}
-		if !hasJobWithoutNeeds {
-			workflow.ErrMsg = ctx.Locale.TrString("actions.runs.no_job_without_needs")
-		}
-		if emptyJobsNumber == len(wf.Jobs) {
-			workflow.ErrMsg = ctx.Locale.TrString("actions.runs.no_job")
+		if workflow.ErrMsg == "" {
+			if !hasJobWithoutNeeds {
+				workflow.ErrMsg = ctx.Locale.TrString("actions.runs.no_job_without_needs")
+			}
+			if emptyJobsNumber == len(wf.Jobs) {
+				workflow.ErrMsg = ctx.Locale.TrString("actions.runs.no_job")
+			}
 		}
 		workflows = append(workflows, workflow)
 	}
