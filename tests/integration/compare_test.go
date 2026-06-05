@@ -211,12 +211,15 @@ func TestCompareDownloadDiffOrPatch(t *testing.T) {
 		// A ref containing a literal "%" must be unescaped exactly once. The web route
 		// captures `basehead` and re-injects it into the catch-all param, so a regression
 		// that re-unescapes would corrupt "%" (or panic on the invalid escape in testing).
+		// Create the branch via update-ref directly on the bare repo so we don't go through
+		// the push pipeline (the pre-receive hook's internal RPC doesn't handle "%" in refs).
 		user2 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
 		repo20 := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 31})
-		_, err := createFileInBranch(user2, repo20, createFileInBranchOptions{OldBranch: "master", NewBranch: "pct%test"}, map[string]string{"pct.txt": "hi\n"})
-		require.NoError(t, err)
+		repoPath := repo_model.RepoPath(user2.Name, repo20.Name)
+		_, _, runErr := gitcmd.NewCommand("update-ref", "refs/heads/pct%test", "refs/heads/remove-files-b").WithDir(repoPath).RunStdString(t.Context())
+		require.NoError(t, runErr)
 
-		req := NewRequest(t, "GET", "/user2/repo20/compare/master...pct%25test.diff")
+		req := NewRequest(t, "GET", "/user2/repo20/compare/add-csv...pct%25test.diff")
 		resp := session.MakeRequest(t, req, http.StatusOK)
 		assert.Equal(t, "text/plain; charset=utf-8", resp.Header().Get("Content-Type"))
 		assert.Contains(t, resp.Body.String(), "diff --git ")
