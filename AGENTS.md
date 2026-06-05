@@ -16,4 +16,5 @@
 - In TypeScript, use `!` (non-null assertion) instead of `?.`/`??` when a value is known to always exist
 - For CSS layout, prefer `flex-*` helpers over per-child `tw-ml-*` / `tw-mr-*` margins; fall back to `tw-*` utilities when specificity requires `!important`
 - Include authorship attribution in issue and pull request comments
-- Add `Co-Authored-By` lines to all commits, indicating name and model used
+- Always add `Assisted-By` trailers to commit messages in format `Assisted-by: AGENT_NAME:MODEL_VERSION`
+- Never add `Co-Authored-By` `Signed-off-by` trailer to commit messages. Sign off must be done by a human.
