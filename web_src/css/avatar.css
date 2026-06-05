@@ -64,8 +64,7 @@ img.ui.avatar,
 }
 
 .avatar-stack:hover .avatar {
-  border-color: transparent;
-  background-color: transparent;
+  background-color: var(--color-body);
 }
 
 .avatar-stack-overflow-chip {
