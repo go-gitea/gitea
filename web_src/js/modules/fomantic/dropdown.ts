@@ -4,6 +4,19 @@ import {generateElemId, queryElems} from '../../utils/dom.ts';
 const ariaPatchKey = '_giteaAriaPatchDropdown';
 const fomanticDropdownFn = $.fn.dropdown;
 
+type BaseFomanticDropdownItem = {
+  name: string;
+  text?: string;
+  [k: string]: any;
+  value: string;
+}
+
+export type FomanticMenuDropdownItem= BaseFomanticDropdownItem & {
+  type: 'menu';
+  values: FomanticDropdownItem[];
+}
+
+export type FomanticDropdownItem = BaseFomanticDropdownItem | FomanticMenuDropdownItem;
 // use our own `$().dropdown` function to patch Fomantic's dropdown module
 export function initAriaDropdownPatch() {
   if ($.fn.dropdown === ariaDropdownFn) throw new Error('initAriaDropdownPatch could only be called once');
