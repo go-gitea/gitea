@@ -52,8 +52,7 @@ func TestGenKeyPair(t *testing.T) {
 		})
 	}
 	t.Run("Generate unknown key type", func(t *testing.T) {
-		path := t.TempDir() + "gitea.badkey"
-		err := GenKeyPair(path, "badkey", 0)
+		err := GenKeyPair(t.TempDir()+"gitea.badkey", "badkey", 0)
 		require.Error(t, err)
 	})
 }
@@ -62,9 +61,9 @@ func TestInitKeys(t *testing.T) {
 	tempDir := t.TempDir()
 
 	keyTypes := []string{"rsa", "ecdsa", "ed25519"}
-	for _, keytype := range keyTypes {
-		privKeyPath := filepath.Join(tempDir, "gitea."+keytype)
-		pubKeyPath := filepath.Join(tempDir, "gitea."+keytype+".pub")
+	for _, keyType := range keyTypes {
+		privKeyPath := filepath.Join(tempDir, "gitea."+keyType)
+		pubKeyPath := filepath.Join(tempDir, "gitea."+keyType+".pub")
 		assert.NoFileExists(t, privKeyPath)
 		assert.NoFileExists(t, pubKeyPath)
 	}
