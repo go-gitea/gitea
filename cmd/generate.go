@@ -5,18 +5,15 @@
 package cmd
 
 import (
-	"bufio"
 	"context"
-	"encoding/pem"
 	"fmt"
 	"os"
-	"strings"
 
 	"gitea.dev/modules/generate"
+	"gitea.dev/modules/ssh"
 
 	"github.com/mattn/go-isatty"
 	"github.com/urfave/cli/v3"
-	"golang.org/x/crypto/ssh"
 )
 
 func newGenerateCommand() *cli.Command {
@@ -48,7 +45,7 @@ func newGenerateSSHKeysCommand() *cli.Command {
 		Usage: "Generate a ssh keypair",
 		Flags: []cli.Flag{
 			&cli.IntFlag{Name: "bits", Aliases: []string{"b"}, Usage: "Number of bits in the key, ignored when key is ed25519"},
-			&cli.StringFlag{Name: "type", Aliases: []string{"t"}, Value: "ed25519", Usage: "Keytype to generate"},
+			&cli.StringFlag{Name: "type", Aliases: []string{"t"}, Value: "ed25519", Usage: "Specifies the type of key to create."},
 			&cli.StringFlag{Name: "file", Aliases: []string{"f"}, Usage: "Specifies the filename of the key file", Required: true},
 		},
 		Action: runGenerateKeyPair,
@@ -127,43 +124,16 @@ func runGenerateKeyPair(_ context.Context, c *cli.Command) error {
 
 	// Check if file exists to prevent overwrites
 	if _, err := os.Stat(file); err == nil {
-		scanner := bufio.NewScanner(os.Stdin)
-		fmt.Printf("%s already exists.\nOverwrite (y/n)? ", file)
-		scanner.Scan()
-		if strings.ToLower(strings.TrimSpace(scanner.Text())) != "y" {
+		if !confirm(c.Reader, c.Writer, "%s already exists.\nOverwrite (y/n)? ", file) {
 			fmt.Println("Aborting")
 			return nil
 		}
 	}
-	keytype := c.String("type")
+	keyType := c.String("type")
 	bits := c.Int("bits")
-	// provide defaults for bits, ed25519 ignores bit length so it's omitted
-	if bits == 0 {
-		if keytype == "rsa" {
-			bits = 3072
-		} else {
-			bits = 256
-		}
+	err := ssh.GenKeyPair(file, generate.SSHKeyType(keyType), bits)
+	if err == nil {
+		fmt.Printf("Your SSH key has been saved in %s\n", file)
 	}
-
-	pub, priv, err := generate.NewSSHKey(keytype, bits)
-	if err != nil {
-		return err
-	}
-	f, err := os.OpenFile(file, os.O_RDWR|os.O_CREATE|os.O_TRUNC, 0o600)
-	if err != nil {
-		return err
-	}
-	defer f.Close()
-	err = pem.Encode(f, priv)
-	if err != nil {
-		return err
-	}
-	fmt.Printf("Your identification has been saved in %s\n", file)
-	err = os.WriteFile(file+".pub", ssh.MarshalAuthorizedKey(pub), 0o644)
-	if err != nil {
-		return err
-	}
-	fmt.Printf("Your public key has been saved in %s", file+".pub")
-	return nil
+	return err
 }

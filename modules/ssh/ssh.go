@@ -52,18 +52,6 @@ import (
 
 const giteaPermissionExtensionKeyID = "gitea-perm-ext-key-id"
 
-type KeyType string
-
-const (
-	RSA     KeyType = "rsa"
-	ECDSA   KeyType = "ecdsa"
-	ED25519 KeyType = "ed25519"
-)
-
-func (k KeyType) String() string {
-	return string(k)
-}
-
 func getExitStatusFromError(err error) int {
 	if err == nil {
 		return 0
@@ -404,57 +392,42 @@ func Listen(host string, port int, ciphers, keyExchanges, macs []string) {
 // GenKeyPair make a pair of public and private keys for SSH access.
 // Public key is encoded in the format for inclusion in an OpenSSH authorized_keys file.
 // Private Key generated is PEM encoded
-func GenKeyPair(keyPath string, keytype KeyType) error {
-	bits := 4096
-	if keytype == ECDSA {
-		bits = 256
-	}
-
-	publicKey, privateKeyPEM, err := generate.NewSSHKey(keytype.String(), bits)
+func GenKeyPair(keyPath string, keyType generate.SSHKeyType, bits int) error {
+	publicKey, privateKeyPEM, err := generate.NewSSHKey(keyType, bits)
 	if err != nil {
-		return err
-	}
-
-	f, err := os.OpenFile(keyPath, os.O_RDWR|os.O_CREATE|os.O_TRUNC, 0o600)
-	if err != nil {
-		return err
-	}
-	defer func() {
-		if err = f.Close(); err != nil {
-			log.Error("Close: %v", err)
-		}
-	}()
-
-	if err := pem.Encode(f, privateKeyPEM); err != nil {
 		return err
 	}
 
 	public := gossh.MarshalAuthorizedKey(publicKey)
-	p, err := os.OpenFile(keyPath+".pub", os.O_RDWR|os.O_CREATE|os.O_TRUNC, 0o600)
+	privateKeyBuf := &bytes.Buffer{}
+	err = pem.Encode(privateKeyBuf, privateKeyPEM)
 	if err != nil {
 		return err
 	}
-	defer func() {
-		if err = p.Close(); err != nil {
-			log.Error("Close: %v", err)
-		}
-	}()
-	_, err = p.Write(public)
-	return err
+
+	err = os.WriteFile(keyPath, privateKeyBuf.Bytes(), 0o600)
+	if err != nil {
+		return err
+	}
+
+	return os.WriteFile(keyPath+".pub", public, 0o644)
 }
 
 // initDefaultKeys mirrors how ssh-keygen -A operates
 // it runs checks if public and private keys are already defined and creates new ones if not present
-// key naming does not follow the openssh convention due to existing settings being gitea.{keytype} so generation follows gitea convention
+// key naming does not follow the OpenSSH convention due to existing settings being gitea.{KeyType} so generation follows gitea convention
 func initDefaultKeys(path string) error {
 	var errs []error
-	keytypes := []KeyType{RSA, ECDSA, ED25519}
-	for _, keytype := range keytypes {
-		k := keytype.String()
-		privExists, _ := util.IsExist(path + "/gitea." + k)
-		pubExists, _ := util.IsExist(path + "/gitea." + k + ".pub")
+	keyTypes := []generate.SSHKeyType{generate.SSHKeyRSA, generate.SSHKeyECDSA, generate.SSHKeyED25519}
+	for _, keyType := range keyTypes {
+		name := "gitea." + string(keyType)
+		keyPath := filepath.Join(path, name)
+		_, errStatPriv := os.Stat(keyPath)
+		_, errStatPub := os.Stat(keyPath + ".pub")
+		privExists := errStatPriv == nil
+		pubExists := errStatPub == nil
 		if !privExists || !pubExists {
-			errs = append(errs, GenKeyPair(path+"/gitea."+k, keytype))
+			errs = append(errs, GenKeyPair(keyPath, keyType, 0))
 		}
 	}
 	return errors.Join(errs...)

@@ -7,10 +7,11 @@ import (
 	"crypto/ecdsa"
 	"crypto/ed25519"
 	"crypto/rsa"
-	"io"
 	"os"
 	"path/filepath"
 	"testing"
+
+	"gitea.dev/modules/generate"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -19,42 +20,40 @@ import (
 
 func TestGenKeyPair(t *testing.T) {
 	testCases := []struct {
-		keyType      KeyType
+		keyType      generate.SSHKeyType
 		expectedType any
 	}{
 		{
-			keyType:      RSA,
+			keyType:      generate.SSHKeyRSA,
 			expectedType: &rsa.PrivateKey{},
 		},
 		{
-			keyType:      ED25519,
+			keyType:      generate.SSHKeyED25519,
 			expectedType: &ed25519.PrivateKey{},
 		},
 		{
-			keyType:      ECDSA,
+			keyType:      generate.SSHKeyECDSA,
 			expectedType: &ecdsa.PrivateKey{},
 		},
 	}
-	for _, tC := range testCases {
-		t.Run("Generate "+filepath.Ext(tC.keyType.String()), func(t *testing.T) {
-			path := t.TempDir() + "gitea." + tC.keyType.String()
-			require.NoError(t, GenKeyPair(path, tC.keyType))
+	tmpDir := t.TempDir()
+	for _, tc := range testCases {
+		name := "gitea." + string(tc.keyType)
+		fn := filepath.Join(tmpDir, name)
+		t.Run("Generate "+name, func(t *testing.T) {
+			require.NoError(t, GenKeyPair(fn, tc.keyType, 0))
 
-			file, err := os.Open(path)
-			require.NoError(t, err)
-
-			bytes, err := io.ReadAll(file)
+			bytes, err := os.ReadFile(fn)
 			require.NoError(t, err)
 
 			privateKey, err := gossh.ParseRawPrivateKey(bytes)
 			require.NoError(t, err)
-			assert.IsType(t, tC.expectedType, privateKey)
+			assert.IsType(t, tc.expectedType, privateKey)
 		})
 	}
-	t.Run("Generate unknown keytype", func(t *testing.T) {
+	t.Run("Generate unknown key type", func(t *testing.T) {
 		path := t.TempDir() + "gitea.badkey"
-
-		err := GenKeyPair(path, "badkey")
+		err := GenKeyPair(path, "badkey", 0)
 		require.Error(t, err)
 	})
 }
@@ -62,8 +61,8 @@ func TestGenKeyPair(t *testing.T) {
 func TestInitKeys(t *testing.T) {
 	tempDir := t.TempDir()
 
-	keytypes := []string{"rsa", "ecdsa", "ed25519"}
-	for _, keytype := range keytypes {
+	keyTypes := []string{"rsa", "ecdsa", "ed25519"}
+	for _, keytype := range keyTypes {
 		privKeyPath := filepath.Join(tempDir, "gitea."+keytype)
 		pubKeyPath := filepath.Join(tempDir, "gitea."+keytype+".pub")
 		assert.NoFileExists(t, privKeyPath)
@@ -75,12 +74,9 @@ func TestInitKeys(t *testing.T) {
 	require.NoError(t, err)
 
 	metadata := map[string]os.FileInfo{}
-	for _, keytype := range keytypes {
-		privKeyPath := filepath.Join(tempDir, "gitea."+keytype)
-		pubKeyPath := filepath.Join(tempDir, "gitea."+keytype+".pub")
-		assert.FileExists(t, privKeyPath)
-		assert.FileExists(t, pubKeyPath)
-
+	for _, keyType := range keyTypes {
+		privKeyPath := filepath.Join(tempDir, "gitea."+keyType)
+		pubKeyPath := filepath.Join(tempDir, "gitea."+keyType+".pub")
 		info, err := os.Stat(privKeyPath)
 		require.NoError(t, err)
 		metadata[privKeyPath] = info
@@ -97,21 +93,19 @@ func TestInitKeys(t *testing.T) {
 	err = initDefaultKeys(tempDir)
 	require.NoError(t, err)
 
-	for _, keytype := range keytypes {
-		privKeyPath := filepath.Join(tempDir, "gitea."+keytype)
-		pubKeyPath := filepath.Join(tempDir, "gitea."+keytype+".pub")
-		assert.FileExists(t, privKeyPath)
-		assert.FileExists(t, pubKeyPath)
+	for _, keyType := range keyTypes {
+		privKeyPath := filepath.Join(tempDir, "gitea."+keyType)
+		pubKeyPath := filepath.Join(tempDir, "gitea."+keyType+".pub")
 
 		infoPriv, err := os.Stat(privKeyPath)
 		require.NoError(t, err)
 		infoPub, err := os.Stat(pubKeyPath)
 		require.NoError(t, err)
-		if keytype == "rsa" {
-			assert.Equal(t, metadata[privKeyPath], infoPriv)
+		if keyType == "rsa" {
+			assert.Equal(t, metadata[privKeyPath], infoPriv) // rsa key is unchanged
 			assert.Equal(t, metadata[pubKeyPath], infoPub)
 		} else {
-			assert.NotEqual(t, metadata[privKeyPath], infoPriv)
+			assert.NotEqual(t, metadata[privKeyPath], infoPriv) // other keys were removed and re-generated
 			assert.NotEqual(t, metadata[pubKeyPath], infoPub)
 		}
 	}

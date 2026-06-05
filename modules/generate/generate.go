@@ -17,6 +17,7 @@ import (
 	"io"
 	"time"
 
+	"gitea.dev/modules/consts"
 	"gitea.dev/modules/util"
 
 	"github.com/golang-jwt/jwt/v5"
@@ -75,8 +76,16 @@ func NewSecretKey() (string, error) {
 	return util.CryptoRandomString(64), nil
 }
 
-func NewSSHKey(keytype string, bits int) (ssh.PublicKey, *pem.Block, error) {
-	pub, priv, err := commonKeyGen(keytype, bits)
+type SSHKeyType string
+
+const (
+	SSHKeyRSA     SSHKeyType = "rsa"
+	SSHKeyECDSA   SSHKeyType = "ecdsa"
+	SSHKeyED25519 SSHKeyType = "ed25519"
+)
+
+func NewSSHKey(keyType SSHKeyType, bits int) (ssh.PublicKey, *pem.Block, error) {
+	pub, priv, err := commonKeyGen(keyType, bits)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -93,9 +102,13 @@ func NewSSHKey(keytype string, bits int) (ssh.PublicKey, *pem.Block, error) {
 }
 
 // commonKeyGen is an abstraction over rsa, ecdsa, and ed25519 generating functions
-func commonKeyGen(keytype string, bits int) (publicKey, privateKey crypto.PublicKey, err error) {
-	switch keytype {
+func commonKeyGen(keyType SSHKeyType, bits int) (crypto.PublicKey, crypto.PrivateKey, error) {
+	switch keyType {
 	case "rsa":
+		bits = util.IfZero(bits, consts.AsymKeyDefaultBitsRsa)
+		if bits < consts.AsymKeyMinBitsRsa {
+			return nil, nil, util.NewInvalidArgumentErrorf("invalid rsa bits: %d", bits)
+		}
 		privateKey, err := rsa.GenerateKey(rand.Reader, bits)
 		if err != nil {
 			return nil, nil, err
@@ -104,6 +117,10 @@ func commonKeyGen(keytype string, bits int) (publicKey, privateKey crypto.Public
 	case "ed25519":
 		return ed25519.GenerateKey(rand.Reader)
 	case "ecdsa":
+		bits = util.IfZero(bits, consts.AsymKeyDefaultBitsEcdsa)
+		if bits < consts.AsymKeyMinBitsEC {
+			return nil, nil, util.NewInvalidArgumentErrorf("invalid elliptic-curve bits: %d", bits)
+		}
 		curve, err := getEllipticCurve(bits)
 		if err != nil {
 			return nil, nil, err
@@ -114,7 +131,7 @@ func commonKeyGen(keytype string, bits int) (publicKey, privateKey crypto.Public
 		}
 		return &privateKey.PublicKey, privateKey, nil
 	default:
-		return nil, nil, fmt.Errorf("unknown keytype: %s", keytype)
+		return nil, nil, util.NewInvalidArgumentErrorf("unknown key type: %s", keyType)
 	}
 }
 
@@ -127,6 +144,6 @@ func getEllipticCurve(bits int) (elliptic.Curve, error) {
 	case 521:
 		return elliptic.P521(), nil
 	default:
-		return nil, fmt.Errorf("unsupported ECDSA curve bit length: %d", bits)
+		return nil, util.NewInvalidArgumentErrorf("unsupported elliptic-curve bits: %d", bits)
 	}
 }
