@@ -4,7 +4,9 @@
 package common
 
 import (
+	"errors"
 	"fmt"
+	"io/fs"
 	"strings"
 
 	actions_model "code.gitea.io/gitea/models/actions"
@@ -50,6 +52,9 @@ func DownloadActionsRunJobLogs(ctx *context.Base, ctxRepo *repo_model.Repository
 
 	reader, err := actions.OpenLogs(ctx, task.LogInStorage, task.LogFilename)
 	if err != nil {
+		if errors.Is(err, fs.ErrNotExist) {
+			return util.NewNotExistErrorf("logs not found")
+		}
 		return fmt.Errorf("OpenLogs: %w", err)
 	}
 	defer reader.Close()
