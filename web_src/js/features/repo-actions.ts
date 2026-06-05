@@ -32,6 +32,7 @@ export function initRepositoryActionView() {
       triggeredVia: el.getAttribute('data-locale-triggered-via'),
       rerunTriggered: el.getAttribute('data-locale-rerun-triggered'),
       backToPullRequest: el.getAttribute('data-locale-back-to-pull-request'),
+      backToWorkflow: el.getAttribute('data-locale-back-to-workflow'),
       statusLabel: el.getAttribute('data-locale-status-label'),
       totalDuration: el.getAttribute('data-locale-total-duration'),
       artifactsTitle: el.getAttribute('data-locale-artifacts-title'),

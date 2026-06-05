@@ -89,10 +89,10 @@ function formatCurrentAttemptTitle(attempt: ActionsRunAttempt) {
 
 const backLink = computed(() => {
   if (run.value.pullRequest) {
-    return {href: run.value.pullRequest.link, label: `${locale.backToPullRequest} ${run.value.pullRequest.index}`};
+    return {href: run.value.pullRequest.link, prefix: locale.backToPullRequest, name: run.value.pullRequest.index};
   }
   if (run.value.workflowLink) {
-    return {href: run.value.workflowLink, label: run.value.workflowID.replace(/\.(yml|yaml)$/i, '')};
+    return {href: run.value.workflowLink, prefix: locale.backToWorkflow, name: run.value.workflowID.replace(/\.(yml|yaml)$/i, '')};
   }
   return null;
 });
@@ -122,7 +122,7 @@ async function deleteArtifact(name: string) {
     <div class="action-view-header">
       <a v-if="backLink" class="action-view-back silenced" :href="backLink.href">
         <SvgIcon name="octicon-arrow-left" :size="14"/>
-        <span>{{ backLink.label }}</span>
+        <span>{{ backLink.prefix }} <span class="action-view-back-name">{{ backLink.name }}</span></span>
       </a>
       <div class="action-info-summary">
         <div class="action-info-summary-title">
@@ -321,6 +321,11 @@ async function deleteArtifact(name: string) {
 
 .action-view-back:hover {
   color: var(--color-primary);
+}
+
+.action-view-back-name {
+  font-weight: 600;
+  color: var(--color-text);
 }
 
 .action-info-summary {
