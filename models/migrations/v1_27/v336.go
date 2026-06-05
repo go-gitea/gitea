@@ -24,16 +24,6 @@ func AddPrivacyToTeam(x db.EngineMigration) error {
 		return err
 	}
 
-	// Pre-release deployments of this PR persisted GitHub-style "secret"/
-	// "closed" values; rewrite them to the new vocabulary so the migration
-	// is idempotent across rebases.
-	if _, err := x.Exec("UPDATE `team` SET team_privacy = ? WHERE team_privacy = ?", "private", "secret"); err != nil {
-		return err
-	}
-	if _, err := x.Exec("UPDATE `team` SET team_privacy = ? WHERE team_privacy = ?", "limited", "closed"); err != nil {
-		return err
-	}
-
 	// Owner teams must remain listable to all org members; new orgs create
 	// them as "limited", so make existing owner teams limited too.
 	// Filter on authorize=4 (AccessModeOwner) so a user-created team that
