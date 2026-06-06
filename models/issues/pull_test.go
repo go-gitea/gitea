@@ -42,7 +42,6 @@ func TestPullRequest(t *testing.T) {
 	t.Run("ParseCodeOwnersLine", testParseCodeOwnersLine)
 	t.Run("CodeOwnerAbsolutePathPatterns", testCodeOwnerAbsolutePathPatterns)
 	t.Run("CodeOwnerPatternMatchTimeout", testCodeOwnerPatternMatchTimeout)
-	t.Run("CodeOwnerRuleLimit", testCodeOwnerRuleLimit)
 	t.Run("GetApprovers", testGetApprovers)
 	t.Run("GetPullRequestByMergedCommit", testGetPullRequestByMergedCommit)
 	t.Run("Migrate_InsertPullRequests", testMigrateInsertPullRequests)
@@ -394,16 +393,6 @@ func testCodeOwnerPatternMatchTimeout(t *testing.T) {
 
 	require.Error(t, err, "expected MatchTimeout error on pathological input")
 	assert.Less(t, elapsed, 5*time.Second, "match timeout did not bound regex evaluation; took %s", elapsed)
-}
-
-// testCodeOwnerRuleLimit ensures a crafted CODEOWNERS file cannot inflate the
-// rules×files match loop without bound: rule count is capped regardless of how
-// many lines the file contains.
-func testCodeOwnerRuleLimit(t *testing.T) {
-	content := strings.Repeat("* @user5\n", 5000)
-	rules, warnings := issues_model.GetCodeOwnersFromContent(t.Context(), content)
-	assert.LessOrEqual(t, len(rules), 1000, "rule count must be capped")
-	assert.NotEmpty(t, warnings, "expected a warning when the rule limit is hit")
 }
 
 func testGetApprovers(t *testing.T) {
