@@ -173,7 +173,7 @@ func Search(ctx *context.APIContext) {
 		opts.Collaborate = optional.Some(true)
 	case "":
 	default:
-		ctx.APIError(http.StatusUnprocessableEntity, fmt.Sprintf("Invalid search mode: \"%s\"", mode))
+		ctx.APIError(http.StatusUnprocessableEntity, "invalid search mode")
 		return
 	}
 

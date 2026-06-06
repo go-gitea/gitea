@@ -239,7 +239,7 @@ func GetPushMirrorByName(ctx *context.APIContext) {
 		ctx.APIErrorInternal(err)
 		return
 	} else if !exist {
-		ctx.APIError(http.StatusNotFound, "")
+		ctx.APIErrorNotFound()
 		return
 	}
 

@@ -256,7 +256,7 @@ func Create(ctx *context.APIContext) {
 	//     "$ref": "#/responses/validationError"
 	form := web.GetForm(ctx).(*api.CreateOrgOption)
 	if !ctx.Doer.CanCreateOrganization() {
-		ctx.APIError(http.StatusForbidden, "")
+		ctx.APIError(http.StatusForbidden, "not allowed to create org")
 		return
 	}
 

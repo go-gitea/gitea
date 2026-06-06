@@ -458,7 +458,7 @@ func DeletePullReview(ctx *context.APIContext) {
 		return
 	}
 	if !ctx.Doer.IsAdmin && ctx.Doer.ID != review.ReviewerID {
-		ctx.APIError(http.StatusForbidden, "")
+		ctx.APIError(http.StatusForbidden, "no permission to delete comment")
 		return
 	}
 
