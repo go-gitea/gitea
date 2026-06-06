@@ -734,14 +734,14 @@ func mustEnableWiki(ctx *context.APIContext) {
 // FIXME: for consistency, maybe most mustNotBeArchived checks should be replaced with mustEnableEditor
 func mustNotBeArchived(ctx *context.APIContext) {
 	if ctx.Repo.Repository.IsArchived {
-		ctx.APIError(http.StatusLocked, fmt.Errorf("%s is archived", ctx.Repo.Repository.FullName()).Error())
+		ctx.APIError(http.StatusLocked, fmt.Sprintf("%s is archived", ctx.Repo.Repository.FullName()))
 		return
 	}
 }
 
 func mustEnableEditor(ctx *context.APIContext) {
 	if !ctx.Repo.Repository.CanEnableEditor() {
-		ctx.APIError(http.StatusLocked, fmt.Errorf("%s is not allowed to edit", ctx.Repo.Repository.FullName()).Error())
+		ctx.APIError(http.StatusLocked, fmt.Sprintf("%s is not allowed to edit", ctx.Repo.Repository.FullName()))
 		return
 	}
 }

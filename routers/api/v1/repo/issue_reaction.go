@@ -72,7 +72,7 @@ func GetIssueCommentReactions(ctx *context.APIContext) {
 	}
 
 	if !ctx.Repo.Permission.CanReadIssuesOrPulls(comment.Issue.IsPull) {
-		ctx.APIError(http.StatusForbidden, errors.New("no permission to get reactions").Error())
+		ctx.APIError(http.StatusForbidden, "no permission to get reactions")
 		return
 	}
 
@@ -214,7 +214,7 @@ func changeIssueCommentReaction(ctx *context.APIContext, form api.EditReactionOp
 	}
 
 	if comment.Issue.IsLocked && !ctx.Repo.Permission.CanWriteIssuesOrPulls(comment.Issue.IsPull) {
-		ctx.APIError(http.StatusForbidden, errors.New("no permission to change reaction").Error())
+		ctx.APIError(http.StatusForbidden, "no permission to change reaction")
 		return
 	}
 
@@ -305,7 +305,7 @@ func GetIssueReactions(ctx *context.APIContext) {
 	}
 
 	if !ctx.Repo.Permission.CanReadIssuesOrPulls(issue.IsPull) {
-		ctx.APIError(http.StatusForbidden, errors.New("no permission to get reactions").Error())
+		ctx.APIError(http.StatusForbidden, "no permission to get reactions")
 		return
 	}
 
@@ -429,7 +429,7 @@ func changeIssueReaction(ctx *context.APIContext, form api.EditReactionOption, i
 	}
 
 	if issue.IsLocked && !ctx.Repo.Permission.CanWriteIssuesOrPulls(issue.IsPull) {
-		ctx.APIError(http.StatusForbidden, errors.New("no permission to change reaction").Error())
+		ctx.APIError(http.StatusForbidden, "no permission to change reaction")
 		return
 	}
 

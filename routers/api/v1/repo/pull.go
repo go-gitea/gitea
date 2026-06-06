@@ -788,7 +788,7 @@ func EditPullRequest(ctx *context.APIContext) {
 			return
 		}
 		if !branchExist {
-			ctx.APIError(http.StatusNotFound, fmt.Errorf("new base '%s' not exist", form.Base).Error())
+			ctx.APIError(http.StatusNotFound, fmt.Sprintf("new base '%s' not exist", form.Base))
 			return
 		}
 		if err := pull_service.ChangeTargetBranch(ctx, pr, ctx.Doer, form.Base); err != nil {
@@ -992,7 +992,7 @@ func MergePullRequest(ctx *context.APIContext) {
 	if manuallyMerged {
 		if err := pull_service.MergedManually(ctx, pr, ctx.Doer, ctx.Repo.GitRepo, form.MergeCommitID); err != nil {
 			if pull_service.IsErrInvalidMergeStyle(err) {
-				ctx.APIError(http.StatusMethodNotAllowed, fmt.Errorf("%s is not allowed an allowed merge style for this repository", repo_model.MergeStyle(form.Do)).Error())
+				ctx.APIError(http.StatusMethodNotAllowed, fmt.Sprintf("%s is not allowed an allowed merge style for this repository", repo_model.MergeStyle(form.Do)))
 				return
 			}
 			if strings.Contains(err.Error(), "Wrong commit ID") {
@@ -1048,7 +1048,7 @@ func MergePullRequest(ctx *context.APIContext) {
 
 	if err := pull_service.Merge(ctx, pr, ctx.Doer, repo_model.MergeStyle(form.Do), form.HeadCommitID, message, false); err != nil {
 		if pull_service.IsErrInvalidMergeStyle(err) {
-			ctx.APIError(http.StatusMethodNotAllowed, fmt.Errorf("%s is not allowed an allowed merge style for this repository", repo_model.MergeStyle(form.Do)).Error())
+			ctx.APIError(http.StatusMethodNotAllowed, fmt.Sprintf("%s is not allowed an allowed merge style for this repository", repo_model.MergeStyle(form.Do)))
 		} else if pull_service.IsErrMergeConflicts(err) {
 			conflictError := err.(pull_service.ErrMergeConflicts)
 			ctx.JSON(http.StatusConflict, conflictError)

@@ -203,7 +203,7 @@ func CreateTag(ctx *context.APIContext) {
 
 	commit, err := ctx.Repo.GitRepo.GetCommit(form.Target)
 	if err != nil {
-		ctx.APIError(http.StatusNotFound, fmt.Errorf("target not found: %w", err).Error())
+		ctx.APIError(http.StatusNotFound, fmt.Sprintf("target not found: %v", err))
 		return
 	}
 
@@ -278,7 +278,7 @@ func DeleteTag(ctx *context.APIContext) {
 	}
 
 	if !tag.IsTag {
-		ctx.APIError(http.StatusConflict, errors.New("a tag attached to a release cannot be deleted directly").Error())
+		ctx.APIError(http.StatusConflict, "a tag attached to a release cannot be deleted directly")
 		return
 	}
 

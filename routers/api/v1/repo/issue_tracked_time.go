@@ -116,7 +116,7 @@ func ListTrackedTimes(ctx *context.APIContext) {
 		if opts.UserID == 0 {
 			opts.UserID = ctx.Doer.ID
 		} else {
-			ctx.APIError(http.StatusForbidden, errors.New("query by user not allowed; not enough rights").Error())
+			ctx.APIError(http.StatusForbidden, "query by user not allowed; not enough rights")
 			return
 		}
 	}
@@ -437,7 +437,7 @@ func ListTrackedTimesByUser(ctx *context.APIContext) {
 	}
 
 	if !ctx.IsUserRepoAdmin() && !ctx.Doer.IsAdmin && ctx.Doer.ID != user.ID {
-		ctx.APIError(http.StatusForbidden, errors.New("query by user not allowed; not enough rights").Error())
+		ctx.APIError(http.StatusForbidden, "query by user not allowed; not enough rights")
 		return
 	}
 
@@ -545,7 +545,7 @@ func ListTrackedTimesByRepository(ctx *context.APIContext) {
 		if opts.UserID == 0 {
 			opts.UserID = ctx.Doer.ID
 		} else {
-			ctx.APIError(http.StatusForbidden, errors.New("query by user not allowed; not enough rights").Error())
+			ctx.APIError(http.StatusForbidden, "query by user not allowed; not enough rights")
 			return
 		}
 	}

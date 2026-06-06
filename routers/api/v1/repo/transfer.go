@@ -87,12 +87,12 @@ func Transfer(ctx *context.APIContext) {
 		for _, tID := range *opts.TeamIDs {
 			team, err := organization.GetTeamByID(ctx, tID)
 			if err != nil {
-				ctx.APIError(http.StatusUnprocessableEntity, fmt.Errorf("team %d not found", tID).Error())
+				ctx.APIError(http.StatusUnprocessableEntity, fmt.Sprintf("team %d not found", tID))
 				return
 			}
 
 			if team.OrgID != org.ID {
-				ctx.APIError(http.StatusForbidden, fmt.Errorf("team %d belongs not to org %d", tID, org.ID).Error())
+				ctx.APIError(http.StatusForbidden, fmt.Sprintf("team %d belongs not to org %d", tID, org.ID))
 				return
 			}
 

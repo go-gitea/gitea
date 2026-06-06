@@ -173,7 +173,7 @@ func Search(ctx *context.APIContext) {
 		opts.Collaborate = optional.Some(true)
 	case "":
 	default:
-		ctx.APIError(http.StatusUnprocessableEntity, fmt.Errorf("Invalid search mode: \"%s\"", mode).Error())
+		ctx.APIError(http.StatusUnprocessableEntity, fmt.Sprintf("Invalid search mode: \"%s\"", mode))
 		return
 	}
 
@@ -234,7 +234,7 @@ func CreateUserRepo(ctx *context.APIContext, owner *user_model.User, opt api.Cre
 
 	// If the readme template does not exist, a 400 will be returned.
 	if opt.AutoInit && len(opt.Readme) > 0 && !slices.Contains(repo_module.Readmes, opt.Readme) {
-		ctx.APIError(http.StatusBadRequest, fmt.Errorf("readme template does not exist, available templates: %v", repo_module.Readmes).Error())
+		ctx.APIError(http.StatusBadRequest, fmt.Sprintf("readme template does not exist, available templates: %v", repo_module.Readmes))
 		return
 	}
 
@@ -658,7 +658,7 @@ func updateBasicProperties(ctx *context.APIContext, opts api.EditRepoOption) err
 			case db.IsErrNamePatternNotAllowed(err):
 				ctx.APIError(http.StatusUnprocessableEntity, err.Error())
 			default:
-				ctx.APIError(http.StatusUnprocessableEntity, fmt.Errorf("ChangeRepositoryName: %w", err).Error())
+				ctx.APIError(http.StatusUnprocessableEntity, fmt.Sprintf("ChangeRepositoryName: %v", err))
 			}
 			return err
 		}

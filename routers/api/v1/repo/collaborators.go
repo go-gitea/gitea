@@ -326,7 +326,7 @@ func GetReviewers(ctx *context.APIContext) {
 
 	canChooseReviewer := issue_service.CanDoerChangeReviewRequests(ctx, ctx.Doer, ctx.Repo.Repository, 0)
 	if !canChooseReviewer {
-		ctx.APIError(http.StatusForbidden, errors.New("doer has no permission to get reviewers").Error())
+		ctx.APIError(http.StatusForbidden, "doer has no permission to get reviewers")
 		return
 	}
 

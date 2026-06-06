@@ -243,7 +243,7 @@ func CreateRelease(ctx *context.APIContext) {
 
 	form := web.GetForm(ctx).(*api.CreateReleaseOption)
 	if ctx.Repo.Repository.IsEmpty {
-		ctx.APIError(http.StatusUnprocessableEntity, errors.New("repo is empty").Error())
+		ctx.APIError(http.StatusUnprocessableEntity, "repo is empty")
 		return
 	}
 	rel, err := repo_model.GetRelease(ctx, ctx.Repo.Repository.ID, form.TagName)
@@ -277,7 +277,7 @@ func CreateRelease(ctx *context.APIContext) {
 			} else if release_service.IsErrProtectedTagName(err) {
 				ctx.APIError(http.StatusUnprocessableEntity, err.Error())
 			} else if git.IsErrNotExist(err) {
-				ctx.APIError(http.StatusNotFound, fmt.Errorf("target \"%v\" not found: %w", rel.Target, err).Error())
+				ctx.APIError(http.StatusNotFound, fmt.Sprintf("target \"%v\" not found: %v", rel.Target, err))
 			} else {
 				ctx.APIErrorInternal(err)
 			}

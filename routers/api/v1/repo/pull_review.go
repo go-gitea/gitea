@@ -641,7 +641,7 @@ func SubmitPullReview(ctx *context.APIContext) {
 	}
 
 	if review.Type != issues_model.ReviewTypePending {
-		ctx.APIError(http.StatusUnprocessableEntity, errors.New("only a pending review can be submitted").Error())
+		ctx.APIError(http.StatusUnprocessableEntity, "only a pending review can be submitted")
 		return
 	}
 
@@ -653,7 +653,7 @@ func SubmitPullReview(ctx *context.APIContext) {
 
 	// if review stay pending return
 	if reviewType == issues_model.ReviewTypePending {
-		ctx.APIError(http.StatusUnprocessableEntity, errors.New("review stay pending").Error())
+		ctx.APIError(http.StatusUnprocessableEntity, "review stay pending")
 		return
 	}
 
@@ -698,7 +698,7 @@ func preparePullReviewType(ctx *context.APIContext, pr *issues_model.PullRequest
 	case api.ReviewStateApproved:
 		// can not approve your own PR
 		if pr.Issue.IsPoster(ctx.Doer.ID) {
-			ctx.APIError(http.StatusUnprocessableEntity, errors.New("approve your own pull is not allowed").Error())
+			ctx.APIError(http.StatusUnprocessableEntity, "approve your own pull is not allowed")
 			return -1, true
 		}
 		reviewType = issues_model.ReviewTypeApprove
@@ -707,7 +707,7 @@ func preparePullReviewType(ctx *context.APIContext, pr *issues_model.PullRequest
 	case api.ReviewStateRequestChanges:
 		// can not reject your own PR
 		if pr.Issue.IsPoster(ctx.Doer.ID) {
-			ctx.APIError(http.StatusUnprocessableEntity, errors.New("reject your own pull is not allowed").Error())
+			ctx.APIError(http.StatusUnprocessableEntity, "reject your own pull is not allowed")
 			return -1, true
 		}
 		reviewType = issues_model.ReviewTypeReject
@@ -717,7 +717,7 @@ func preparePullReviewType(ctx *context.APIContext, pr *issues_model.PullRequest
 		needsBody = false
 		// if there is no body we need to ensure that there are comments
 		if !hasBody && !hasComments {
-			ctx.APIError(http.StatusUnprocessableEntity, fmt.Errorf("review event %s requires a body or a comment", event).Error())
+			ctx.APIError(http.StatusUnprocessableEntity, fmt.Sprintf("review event %s requires a body or a comment", event))
 			return -1, true
 		}
 	default:
@@ -726,7 +726,7 @@ func preparePullReviewType(ctx *context.APIContext, pr *issues_model.PullRequest
 
 	// reject reviews with empty body if a body is required for this call
 	if needsBody && !hasBody {
-		ctx.APIError(http.StatusUnprocessableEntity, fmt.Errorf("review event %s requires a body", event).Error())
+		ctx.APIError(http.StatusUnprocessableEntity, fmt.Sprintf("review event %s requires a body", event))
 		return -1, true
 	}
 

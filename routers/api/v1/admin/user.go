@@ -112,7 +112,7 @@ func CreateUser(ctx *context.APIContext) {
 			if password.IsErrIsPwnedRequest(err) {
 				log.Error(err.Error())
 			}
-			ctx.APIError(http.StatusBadRequest, errors.New("PasswordPwned").Error())
+			ctx.APIError(http.StatusBadRequest, "PasswordPwned")
 			return
 		}
 	}
@@ -204,7 +204,7 @@ func EditUser(ctx *context.APIContext) {
 	if err := user_service.UpdateAuth(ctx, ctx.ContextUser, authOpts); err != nil {
 		switch {
 		case errors.Is(err, password.ErrMinLength):
-			ctx.APIError(http.StatusBadRequest, fmt.Errorf("password must be at least %d characters", setting.MinPasswordLength).Error())
+			ctx.APIError(http.StatusBadRequest, fmt.Sprintf("password must be at least %d characters", setting.MinPasswordLength))
 		case errors.Is(err, password.ErrComplexity):
 			ctx.APIError(http.StatusBadRequest, err.Error())
 		case errors.Is(err, password.ErrIsPwned), password.IsErrIsPwnedRequest(err):
@@ -289,13 +289,13 @@ func DeleteUser(ctx *context.APIContext) {
 	//     "$ref": "#/responses/validationError"
 
 	if ctx.ContextUser.IsOrganization() {
-		ctx.APIError(http.StatusUnprocessableEntity, fmt.Errorf("%s is an organization not a user", ctx.ContextUser.Name).Error())
+		ctx.APIError(http.StatusUnprocessableEntity, fmt.Sprintf("%s is an organization not a user", ctx.ContextUser.Name))
 		return
 	}
 
 	// admin should not delete themself
 	if ctx.ContextUser.ID == ctx.Doer.ID {
-		ctx.APIError(http.StatusUnprocessableEntity, errors.New("you cannot delete yourself").Error())
+		ctx.APIError(http.StatusUnprocessableEntity, "you cannot delete yourself")
 		return
 	}
 
@@ -475,7 +475,7 @@ func SearchUsers(ctx *context.APIContext) {
 		if visibility, ok := api.VisibilityModes[visibilityParam]; ok {
 			visible = []api.VisibleType{visibility}
 		} else {
-			ctx.APIError(http.StatusUnprocessableEntity, fmt.Errorf("Invalid visibility: \"%s\"", visibilityParam).Error())
+			ctx.APIError(http.StatusUnprocessableEntity, fmt.Sprintf("Invalid visibility: \"%s\"", visibilityParam))
 			return
 		}
 	}
@@ -551,7 +551,7 @@ func RenameUser(ctx *context.APIContext) {
 	//     "$ref": "#/responses/validationError"
 
 	if ctx.ContextUser.IsOrganization() {
-		ctx.APIError(http.StatusUnprocessableEntity, fmt.Errorf("%s is an organization not a user", ctx.ContextUser.Name).Error())
+		ctx.APIError(http.StatusUnprocessableEntity, fmt.Sprintf("%s is an organization not a user", ctx.ContextUser.Name))
 		return
 	}
 
