@@ -27,17 +27,19 @@ func TestGetAccessMode(t *testing.T) {
 	}
 	for _, tc := range cases {
 		t.Run(tc.verb+"/"+tc.lfsVerb, func(t *testing.T) {
-			assert.Equal(t, tc.expected, getAccessMode(tc.verb, tc.lfsVerb))
+			mode, ok := getAccessMode(tc.verb, tc.lfsVerb)
+			assert.True(t, ok)
+			assert.Equal(t, tc.expected, mode)
 		})
 	}
 }
 
-// TestGetAccessModeUnknownLFSVerbPanics locks in the invariant that runServ
-// must reject unknown LFS sub-verbs before calling getAccessMode. If this
-// guard regresses, getAccessMode falls through to AccessModeNone (0), which
-// bypasses the `userMode < mode` permission check in routers/private/serv.go
-// and hands out valid LFS JWTs for any private repository.
-func TestGetAccessModeUnknownLFSVerbPanics(t *testing.T) {
+// TestGetAccessModeUnknownVerb locks in the invariant that getAccessMode reports
+// ok=false for unrecognised verbs and LFS sub-verbs, so runServ rejects them. An
+// unknown verb has no valid access mode; if it were treated as AccessModeNone (0)
+// it would pass the `userMode < mode` permission check in routers/private/serv.go
+// and hand out valid LFS JWTs for any private repository.
+func TestGetAccessModeUnknownVerb(t *testing.T) {
 	cases := []struct{ verb, lfsVerb string }{
 		{git.CmdVerbLfsAuthenticate, ""},
 		{git.CmdVerbLfsAuthenticate, "badverb"},
@@ -46,9 +48,9 @@ func TestGetAccessModeUnknownLFSVerbPanics(t *testing.T) {
 	}
 	for _, tc := range cases {
 		t.Run(tc.verb+"/"+tc.lfsVerb, func(t *testing.T) {
-			assert.Panics(t, func() {
-				_ = getAccessMode(tc.verb, tc.lfsVerb)
-			})
+			mode, ok := getAccessMode(tc.verb, tc.lfsVerb)
+			assert.False(t, ok)
+			assert.Equal(t, perm.AccessModeNone, mode)
 		})
 	}
 }
