@@ -6,8 +6,8 @@ package cmd
 import (
 	"testing"
 
-	"gitea.dev/models/perm"
-	"gitea.dev/modules/git"
+	"code.gitea.io/gitea/models/perm"
+	"code.gitea.io/gitea/modules/git"
 
 	"github.com/stretchr/testify/assert"
 )
