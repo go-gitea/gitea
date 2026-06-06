@@ -23,6 +23,21 @@
 							<input id="description" name="description" value="{{.Team.Description}}" maxlength="255">
 							<span class="help">{{ctx.Locale.Tr "org.team_desc_helper"}}</span>
 						</div>
+						{{if eq .Team.LowerName "owners"}}
+							<div class="field">
+								<label>{{ctx.Locale.Tr "org.teams.visibility"}}</label>
+								<div class="tw-mb-1">
+									{{if .Team.IsPrivate}}
+										<span class="ui mini label">{{ctx.Locale.Tr "org.teams.visibility_private"}}</span>
+									{{else if .Team.IsLimited}}
+										<span class="ui mini label">{{ctx.Locale.Tr "org.teams.visibility_limited"}}</span>
+									{{else if .Team.IsPublic}}
+										<span class="ui mini label">{{ctx.Locale.Tr "org.teams.visibility_public"}}</span>
+									{{end}}
+								</div>
+								<span class="help">{{ctx.Locale.Tr "org.teams.owners_visibility_fixed"}}</span>
+							</div>
+						{{end}}
 						{{if not (eq .Team.LowerName "owners")}}
 							<div class="grouped field">
 								<label>{{ctx.Locale.Tr "org.teams.visibility"}}</label>

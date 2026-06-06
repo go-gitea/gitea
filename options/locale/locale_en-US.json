@@ -2869,6 +2869,7 @@
   "org.teams.visibility_limited_helper": "Visible to all members of this organization.",
   "org.teams.visibility_public": "Public",
   "org.teams.visibility_public_helper": "Visible to any signed-in user.",
+  "org.teams.owners_visibility_fixed": "The Owners team visibility cannot be changed.",
   "org.teams.invite.title": "You have been invited to join team <strong>%s</strong> in organization <strong>%s</strong>.",
   "org.teams.invite.by": "Invited by %s",
   "org.teams.invite.description": "Please click the button below to join the team.",
