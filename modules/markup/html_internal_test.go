@@ -260,8 +260,7 @@ func TestRender_PostProcessIssueTitle(t *testing.T) {
 		"repo":   "someRepo",
 		"style":  IssueNameStyleNumeric,
 	}
-	actual, err := PostProcessIssueTitle(NewTestRenderContext(metas), "#1")
-	assert.NoError(t, err)
+	actual := PostProcessIssueTitle(NewTestRenderContext(metas), "#1")
 	assert.Equal(t, "#1", actual)
 }
 

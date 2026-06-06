@@ -88,15 +88,6 @@
   overflow-wrap: anywhere;
 }
 
-/* When a commit subject contains a ref like `#1234`, the nested anchor splits the
-   outer "muted" link into siblings. Treat all muted siblings as one hover target
-   so the highlight isn't confined to the fragment under the cursor, while leaving
-   the inner ref anchor (e.g. `#1234`) independently hoverable. */
-.items-with-main > .item .item-title:has(a.muted:hover) a.muted {
-  color: var(--color-primary);
-  text-decoration: underline;
-}
-
 .items-with-main > .item .item-body {
   display: flex;
   align-items: center;
