@@ -17,7 +17,7 @@
 					<div class="inline required field {{if .Err_Owner}}error{{end}}">
 						<label>{{ctx.Locale.Tr "group.owner"}}</label>
 						<div class="ui selection dropdown ellipsis-text-items" id="group_owner_dropdown">
-							<input type="hidden" name="uid" value="{{.ContextUser.ID}}">
+							<input type="hidden" name="uid" value="{{.SignedUser.ID}}">
 							<span class="text"></span>
 							{{svg "octicon-triangle-down" 14 "dropdown icon"}}
 							<div class="menu">
