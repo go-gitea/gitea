@@ -6,6 +6,7 @@ package cmd
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"os"
 
@@ -46,7 +47,8 @@ func newGenerateSSHKeysCommand() *cli.Command {
 		Flags: []cli.Flag{
 			&cli.IntFlag{Name: "bits", Aliases: []string{"b"}, Usage: "Number of bits in the key, ignored when key is ed25519"},
 			&cli.StringFlag{Name: "type", Aliases: []string{"t"}, Value: "ed25519", Usage: "Specifies the type of key to create."},
-			&cli.StringFlag{Name: "file", Aliases: []string{"f"}, Usage: "Specifies the filename of the key file", Required: true},
+			&cli.StringFlag{Name: "file", Aliases: []string{"f"}, Usage: "Specifies the path or base directory for the key file", Required: true},
+			&cli.BoolFlag{Name: "A", Usage: "Generate host keys of all default key types (rsa, ecdsa, and ed25519) if they do not already exist.", Value: false},
 		},
 		Action: runGenerateKeyPair,
 	}
@@ -121,15 +123,32 @@ func runGenerateSecretKey(_ context.Context, c *cli.Command) error {
 
 func runGenerateKeyPair(_ context.Context, c *cli.Command) error {
 	file := c.String("file")
+	if c.Bool("A") {
+		info, err := os.Stat(file)
+		if errors.Is(err, os.ErrNotExist) {
+			if err = os.MkdirAll(file, os.ModePerm); err != nil {
+				return err
+			}
+		} else if err != nil {
+			return err
+		} else if !info.IsDir() {
+			return errors.New("file already exists and is not a directory")
+		}
+		fmt.Fprintf(c.Writer, "Generating host keys in %s\n", file)
+		_, err = ssh.InitDefaultHostKeys(file)
+		return err
+	}
+	keyType := c.String("type")
 
-	// Check if file exists to prevent overwrites
+	fmt.Fprintf(c.Writer, "Generating public/private %s key pair.\n", keyType)
+
+	// Check if file exists to prevent overwriting
 	if _, err := os.Stat(file); err == nil {
 		if !confirm(c.Reader, c.Writer, "%s already exists.\nOverwrite (y/n)? ", file) {
 			fmt.Println("Aborting")
 			return nil
 		}
 	}
-	keyType := c.String("type")
 	bits := c.Int("bits")
 	err := ssh.GenKeyPair(file, generate.SSHKeyType(keyType), bits)
 	if err == nil {

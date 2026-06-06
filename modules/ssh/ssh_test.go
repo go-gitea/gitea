@@ -69,7 +69,7 @@ func TestInitKeys(t *testing.T) {
 	}
 
 	// Test basic creation
-	keyFiles, err := initDefaultHostKeys(tempDir)
+	keyFiles, err := InitDefaultHostKeys(tempDir)
 	require.NoError(t, err)
 	assert.Len(t, keyFiles, len(keyTypes))
 
@@ -86,11 +86,11 @@ func TestInitKeys(t *testing.T) {
 		metadata[pubKeyPath] = info
 	}
 
-	// Test recreation on missing public or private key
+	// Test recreation on missing private key
 	require.NoError(t, os.Remove(filepath.Join(tempDir, "gitea.ecdsa.pub")))
 	require.NoError(t, os.Remove(filepath.Join(tempDir, "gitea.ed25519")))
 
-	keyFiles, err = initDefaultHostKeys(tempDir)
+	keyFiles, err = InitDefaultHostKeys(tempDir)
 	require.NoError(t, err)
 	assert.Len(t, keyFiles, len(keyTypes))
 
@@ -102,12 +102,21 @@ func TestInitKeys(t *testing.T) {
 		require.NoError(t, err)
 		infoPub, err := os.Stat(pubKeyPath)
 		require.NoError(t, err)
-		if keyType == "rsa" {
-			// rsa key is unchanged
+		switch keyType {
+		case "rsa":
+			// No modification to RSA key
 			assert.Equal(t, metadata[privKeyPath], infoPriv)
 			assert.Equal(t, metadata[pubKeyPath], infoPub)
-		} else {
-			// other keys were removed and re-generated
+		case "ecdsa":
+			// No modification to ECDSA private key, public one was regenerated
+
+			// check if it's not modified by modtime, mode and size, Atim sys attribute will be different
+			assert.Equal(t, metadata[privKeyPath].ModTime(), infoPriv.ModTime())
+			assert.Equal(t, metadata[privKeyPath].Size(), infoPriv.Size())
+			assert.Equal(t, metadata[privKeyPath].Mode(), infoPriv.Mode())
+			assert.NotEqual(t, metadata[pubKeyPath], infoPub)
+		case "ed25519":
+			// ed25519 has private part removed so it was fully regenerated
 			assert.NotEqual(t, metadata[privKeyPath], infoPriv)
 			assert.NotEqual(t, metadata[pubKeyPath], infoPub)
 		}

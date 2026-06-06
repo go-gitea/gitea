@@ -104,7 +104,7 @@ func NewSSHKey(keyType SSHKeyType, bits int) (ssh.PublicKey, *pem.Block, error) 
 // commonKeyGen is an abstraction over rsa, ecdsa, and ed25519 generating functions
 func commonKeyGen(keyType SSHKeyType, bits int) (crypto.PublicKey, crypto.PrivateKey, error) {
 	switch keyType {
-	case "rsa":
+	case SSHKeyRSA:
 		bits = util.IfZero(bits, consts.AsymKeyDefaultBitsRsa)
 		if bits < consts.AsymKeyMinBitsRsa {
 			return nil, nil, util.NewInvalidArgumentErrorf("invalid rsa bits: %d", bits)
@@ -114,9 +114,9 @@ func commonKeyGen(keyType SSHKeyType, bits int) (crypto.PublicKey, crypto.Privat
 			return nil, nil, err
 		}
 		return &privateKey.PublicKey, privateKey, nil
-	case "ed25519":
+	case SSHKeyED25519:
 		return ed25519.GenerateKey(rand.Reader)
-	case "ecdsa":
+	case SSHKeyECDSA:
 		bits = util.IfZero(bits, consts.AsymKeyDefaultBitsEcdsa)
 		if bits < consts.AsymKeyMinBitsEC {
 			return nil, nil, util.NewInvalidArgumentErrorf("invalid elliptic-curve bits: %d", bits)

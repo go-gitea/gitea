@@ -366,7 +366,7 @@ func Listen(host string, port int, ciphers, keyExchanges, macs []string) {
 		if err != nil {
 			log.Error("Failed to create dir %s: %v", hostKeyDir, err)
 		}
-		hostKeyFiles, err = initDefaultHostKeys(hostKeyDir)
+		hostKeyFiles, err = InitDefaultHostKeys(hostKeyDir)
 		if err != nil {
 			log.Fatal("Failed to generate private key: %v", err)
 		}
@@ -410,24 +410,46 @@ func GenKeyPair(keyPath string, keyType generate.SSHKeyType, bits int) error {
 	return os.WriteFile(keyPath+".pub", public, 0o644)
 }
 
-// initDefaultHostKeys mirrors how ssh-keygen -A operates
+// InitDefaultHostKeys mirrors how ssh-keygen -A operates
 // it runs checks if public and private keys are already defined and creates new ones if not present
 // key naming does not follow the OpenSSH convention due to existing settings being gitea.{KeyType} so generation follows gitea convention
-func initDefaultHostKeys(path string) (keyFiles []string, _ error) {
+func InitDefaultHostKeys(path string) (keyFiles []string, _ error) {
 	var errs []error
 	keyTypes := []generate.SSHKeyType{generate.SSHKeyRSA, generate.SSHKeyECDSA, generate.SSHKeyED25519}
 	for _, keyType := range keyTypes {
 		keyPath := filepath.Join(path, "gitea."+string(keyType))
 		_, errStatPriv := os.Stat(keyPath)
 		_, errStatPub := os.Stat(keyPath + ".pub")
-		if errStatPriv != nil || errStatPub != nil {
+		if errStatPriv != nil {
 			err := GenKeyPair(keyPath, keyType, 0)
 			if err != nil {
 				errs = append(errs, err)
 				continue
 			}
+		} else if errStatPub != nil {
+			// Try to generate the public key if it doesn't exist, but we have private available.
+			// appending the keyPath is safe since this triggers only if public is missing but private is present.
+			err := getSSHPublicKey(keyPath)
+			if err != nil {
+				errs = append(errs, err)
+			}
 		}
 		keyFiles = append(keyFiles, keyPath)
 	}
 	return keyFiles, errors.Join(errs...)
+}
+
+// getSSHPublicKey generates the public key from the private key if it doesn't exist
+func getSSHPublicKey(path string) error {
+	key, err := os.ReadFile(path)
+	if err != nil {
+		return err
+	}
+
+	priv, err := gossh.ParsePrivateKey(key)
+	if err != nil {
+		return err
+	}
+
+	return os.WriteFile(path+".pub", gossh.MarshalAuthorizedKey(priv.PublicKey()), 0o644)
 }
