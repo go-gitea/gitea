@@ -951,9 +951,6 @@ func (prInfo *pullRequestViewInfo) prepareMergeBox(ctx *context.Context, issue *
 	// admin and writer both can make an auto merge schedule (not affected by overridable blockers)
 	data.hasStatusCheckBlocker = data.enableStatusCheck && !data.StatusCheckData.RequiredChecksState.IsSuccess()
 
-	// this logic is from:
-	// {{$notAllOverridableChecksOk := or .IsBlockedByApprovals .IsBlockedByRejection .IsBlockedByOfficialReviewRequests .IsBlockedByCodeowners .IsBlockedByOutdatedBranch .IsBlockedByChangedProtectedFiles (and .EnableStatusCheck (not $requiredStatusCheckState.IsSuccess))}}
-	// HINT: if a PR's status is not mergeable, then it is a non-overridable blocker, such logic is handled separately (see IsStatusMergeable)
 	data.hasOverridableBlockers = data.isBlockedByApprovals || data.isBlockedByRejection ||
 		data.isBlockedByOfficialReviewRequests || data.isBlockedByCodeowners ||
 		data.isBlockedByOutdatedBranch || data.isBlockedByChangedProtectedFiles ||
