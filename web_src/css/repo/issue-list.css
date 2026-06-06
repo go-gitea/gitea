@@ -97,6 +97,8 @@
 .title-full-link-hover:not(:has(:not(.title-full-link):hover)):hover > a.title-full-link {
   color: var(--color-primary);
   text-decoration: underline;
+}
+
 .list-item-large-title {
   font-size: 16px;
   font-weight: var(--font-weight-semibold);
