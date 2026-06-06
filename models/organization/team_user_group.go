@@ -14,6 +14,7 @@ import (
 
 // TeamUserGroup represents a binding between a team and a user group.
 type TeamUserGroup struct {
+	ID      int64 `xorm:"pk autoincr"`
 	TeamID  int64 `xorm:"UNIQUE(s) INDEX"`
 	GroupID int64 `xorm:"UNIQUE(s) INDEX"`
 	OrgID   int64 `xorm:"INDEX"`

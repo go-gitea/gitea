@@ -20,11 +20,13 @@ type UserGroup struct {
 }
 
 type UserGroupMember struct {
+	ID      int64 `xorm:"pk autoincr"`
 	GroupID int64 `xorm:"UNIQUE(s) INDEX"`
 	UserID  int64 `xorm:"UNIQUE(s) INDEX"`
 }
 
 type TeamUserGroup struct {
+	ID      int64 `xorm:"pk autoincr"`
 	TeamID  int64 `xorm:"UNIQUE(s) INDEX"`
 	GroupID int64 `xorm:"UNIQUE(s) INDEX"`
 	OrgID   int64 `xorm:"INDEX"`

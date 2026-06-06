@@ -15,6 +15,7 @@ import (
 
 // Member represents a user membership in a user group.
 type Member struct {
+	ID      int64 `xorm:"pk autoincr"`
 	GroupID int64 `xorm:"UNIQUE(s) INDEX"`
 	UserID  int64 `xorm:"UNIQUE(s) INDEX"`
 }
