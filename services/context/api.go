@@ -137,16 +137,10 @@ func (ctx *APIContext) apiErrorInternal(skip int, err error) {
 	})
 }
 
-// APIError responds with an error message to client with given obj as the message.
+// APIError responds with an error message to client.
 // If status is 500, also it prints error to log.
-func (ctx *APIContext) APIError(status int, obj any) {
-	var message string
-	if err, ok := obj.(error); ok {
-		message = err.Error()
-	} else {
-		message = fmt.Sprintf("%s", obj)
-	}
-
+func (ctx *APIContext) APIError(status int, msg string) {
+	message := msg
 	if status == http.StatusInternalServerError {
 		log.ErrorWithSkip(1, "APIError: %s", message)
 
