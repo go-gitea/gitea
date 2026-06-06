@@ -126,7 +126,7 @@ func ListPullRequests(ctx *context.APIContext) {
 		poster, err := user_model.GetUserByName(ctx, posterStr)
 		if err != nil {
 			if user_model.IsErrUserNotExist(err) {
-				ctx.APIError(http.StatusBadRequest, ctx.APIErrorMessage(err))
+				ctx.APIError(http.StatusBadRequest, err.Error())
 			} else {
 				ctx.APIErrorInternal(err)
 			}
@@ -407,7 +407,7 @@ func CreatePullRequest(ctx *context.APIContext) {
 
 	form := *web.GetForm(ctx).(*api.CreatePullRequestOption)
 	if form.Head == form.Base {
-		ctx.APIError(http.StatusUnprocessableEntity, ctx.APIErrorMessage("Invalid PullRequest: There are no changes between the head and the base"))
+		ctx.APIError(http.StatusUnprocessableEntity, "Invalid PullRequest: There are no changes between the head and the base")
 		return
 	}
 
@@ -425,7 +425,7 @@ func CreatePullRequest(ctx *context.APIContext) {
 	defer closer()
 
 	if !compareResult.BaseRef.IsBranch() || !compareResult.HeadRef.IsBranch() {
-		ctx.APIError(http.StatusUnprocessableEntity, ctx.APIErrorMessage("Invalid PullRequest: base and head must be branches"))
+		ctx.APIError(http.StatusUnprocessableEntity, "Invalid PullRequest: base and head must be branches")
 		return
 	}
 
@@ -448,7 +448,7 @@ func CreatePullRequest(ctx *context.APIContext) {
 			HeadBranch: existingPr.HeadBranch,
 			BaseBranch: existingPr.BaseBranch,
 		}
-		ctx.APIError(http.StatusConflict, ctx.APIErrorMessage(err))
+		ctx.APIError(http.StatusConflict, err.Error())
 		return
 	}
 
@@ -531,7 +531,7 @@ func CreatePullRequest(ctx *context.APIContext) {
 	assigneeIDs, err := issues_model.MakeIDsFromAPIAssigneesToAdd(ctx, form.Assignee, form.Assignees)
 	if err != nil {
 		if user_model.IsErrUserNotExist(err) {
-			ctx.APIError(http.StatusUnprocessableEntity, ctx.APIErrorMessage(fmt.Sprintf("Assignee does not exist: [name: %s]", err)))
+			ctx.APIError(http.StatusUnprocessableEntity, fmt.Sprintf("Assignee does not exist: [name: %s]", err))
 		} else {
 			ctx.APIErrorInternal(err)
 		}
@@ -551,7 +551,7 @@ func CreatePullRequest(ctx *context.APIContext) {
 			return
 		}
 		if !valid {
-			ctx.APIError(http.StatusUnprocessableEntity, ctx.APIErrorMessage(repo_model.ErrUserDoesNotHaveAccessToRepo{UserID: aID, RepoName: repo.Name}))
+			ctx.APIError(http.StatusUnprocessableEntity, repo_model.ErrUserDoesNotHaveAccessToRepo{UserID: aID, RepoName: repo.Name}.Error())
 			return
 		}
 	}
@@ -570,11 +570,11 @@ func CreatePullRequest(ctx *context.APIContext) {
 
 	if err := pull_service.NewPullRequest(ctx, prOpts); err != nil {
 		if repo_model.IsErrUserDoesNotHaveAccessToRepo(err) {
-			ctx.APIError(http.StatusBadRequest, ctx.APIErrorMessage(err))
+			ctx.APIError(http.StatusBadRequest, err.Error())
 		} else if errors.Is(err, user_model.ErrBlockedUser) {
-			ctx.APIError(http.StatusForbidden, ctx.APIErrorMessage(err))
+			ctx.APIError(http.StatusForbidden, err.Error())
 		} else if errors.Is(err, issues_model.ErrMustCollaborator) {
-			ctx.APIError(http.StatusForbidden, ctx.APIErrorMessage(err))
+			ctx.APIError(http.StatusForbidden, err.Error())
 		} else {
 			ctx.APIErrorInternal(err)
 		}
@@ -663,7 +663,7 @@ func EditPullRequest(ctx *context.APIContext) {
 	// handles concurrent requests.
 	// TODO: wrap all mutations in a transaction to fully prevent partial writes.
 	if form.ContentVersion != nil && *form.ContentVersion != issue.ContentVersion {
-		ctx.APIError(http.StatusConflict, ctx.APIErrorMessage(issues_model.ErrIssueAlreadyChanged))
+		ctx.APIError(http.StatusConflict, issues_model.ErrIssueAlreadyChanged.Error())
 		return
 	}
 
@@ -682,7 +682,7 @@ func EditPullRequest(ctx *context.APIContext) {
 		err = issue_service.ChangeContent(ctx, issue, ctx.Doer, *form.Body, contentVersion)
 		if err != nil {
 			if errors.Is(err, issues_model.ErrIssueAlreadyChanged) {
-				ctx.APIError(http.StatusConflict, ctx.APIErrorMessage(err))
+				ctx.APIError(http.StatusConflict, err.Error())
 				return
 			}
 
@@ -719,9 +719,9 @@ func EditPullRequest(ctx *context.APIContext) {
 		err = issue_service.UpdateAssignees(ctx, issue, form.Assignee, form.Assignees, ctx.Doer)
 		if err != nil {
 			if user_model.IsErrUserNotExist(err) {
-				ctx.APIError(http.StatusUnprocessableEntity, ctx.APIErrorMessage(fmt.Sprintf("Assignee does not exist: [name: %s]", err)))
+				ctx.APIError(http.StatusUnprocessableEntity, fmt.Sprintf("Assignee does not exist: [name: %s]", err))
 			} else if errors.Is(err, user_model.ErrBlockedUser) {
-				ctx.APIError(http.StatusForbidden, ctx.APIErrorMessage(err))
+				ctx.APIError(http.StatusForbidden, err.Error())
 			} else {
 				ctx.APIErrorInternal(err)
 			}
@@ -769,7 +769,7 @@ func EditPullRequest(ctx *context.APIContext) {
 
 	if form.State != nil {
 		if pr.HasMerged {
-			ctx.APIError(http.StatusPreconditionFailed, ctx.APIErrorMessage("cannot change state of this pull request, it was already merged"))
+			ctx.APIError(http.StatusPreconditionFailed, "cannot change state of this pull request, it was already merged")
 			return
 		}
 
@@ -788,18 +788,18 @@ func EditPullRequest(ctx *context.APIContext) {
 			return
 		}
 		if !branchExist {
-			ctx.APIError(http.StatusNotFound, ctx.APIErrorMessage(fmt.Errorf("new base '%s' not exist", form.Base)))
+			ctx.APIError(http.StatusNotFound, fmt.Errorf("new base '%s' not exist", form.Base).Error())
 			return
 		}
 		if err := pull_service.ChangeTargetBranch(ctx, pr, ctx.Doer, form.Base); err != nil {
 			if issues_model.IsErrPullRequestAlreadyExists(err) {
-				ctx.APIError(http.StatusConflict, ctx.APIErrorMessage(err))
+				ctx.APIError(http.StatusConflict, err.Error())
 				return
 			} else if issues_model.IsErrIssueIsClosed(err) {
-				ctx.APIError(http.StatusUnprocessableEntity, ctx.APIErrorMessage(err))
+				ctx.APIError(http.StatusUnprocessableEntity, err.Error())
 				return
 			} else if pull_service.IsErrPullRequestHasMerged(err) {
-				ctx.APIError(http.StatusConflict, ctx.APIErrorMessage(err))
+				ctx.APIError(http.StatusConflict, err.Error())
 				return
 			}
 			ctx.APIErrorInternal(err)
@@ -812,7 +812,7 @@ func EditPullRequest(ctx *context.APIContext) {
 	if form.AllowMaintainerEdit != nil {
 		if err := pull_service.SetAllowEdits(ctx, ctx.Doer, pr, *form.AllowMaintainerEdit); err != nil {
 			if errors.Is(err, pull_service.ErrUserHasNoPermissionForAction) {
-				ctx.APIError(http.StatusForbidden, ctx.APIErrorMessage(fmt.Sprintf("SetAllowEdits: %s", err)))
+				ctx.APIError(http.StatusForbidden, fmt.Sprintf("SetAllowEdits: %s", err))
 				return
 			}
 			ctx.APIErrorInternal(err)
@@ -969,19 +969,19 @@ func MergePullRequest(ctx *context.APIContext) {
 		if errors.Is(err, pull_service.ErrIsClosed) {
 			ctx.APIErrorNotFound()
 		} else if errors.Is(err, pull_service.ErrNoPermissionToMerge) {
-			ctx.APIError(http.StatusMethodNotAllowed, ctx.APIErrorMessage("User not allowed to merge PR"))
+			ctx.APIError(http.StatusMethodNotAllowed, "User not allowed to merge PR")
 		} else if errors.Is(err, pull_service.ErrHasMerged) {
-			ctx.APIError(http.StatusMethodNotAllowed, ctx.APIErrorMessage("The PR is already merged"))
+			ctx.APIError(http.StatusMethodNotAllowed, "The PR is already merged")
 		} else if errors.Is(err, pull_service.ErrIsWorkInProgress) {
-			ctx.APIError(http.StatusMethodNotAllowed, ctx.APIErrorMessage("Work in progress PRs cannot be merged"))
+			ctx.APIError(http.StatusMethodNotAllowed, "Work in progress PRs cannot be merged")
 		} else if errors.Is(err, pull_service.ErrNotMergeableState) {
-			ctx.APIError(http.StatusMethodNotAllowed, ctx.APIErrorMessage("Please try again later"))
+			ctx.APIError(http.StatusMethodNotAllowed, "Please try again later")
 		} else if errors.Is(err, pull_service.ErrNotReadyToMerge) {
-			ctx.APIError(http.StatusMethodNotAllowed, ctx.APIErrorMessage(err))
+			ctx.APIError(http.StatusMethodNotAllowed, err.Error())
 		} else if asymkey_service.IsErrWontSign(err) {
-			ctx.APIError(http.StatusMethodNotAllowed, ctx.APIErrorMessage(err))
+			ctx.APIError(http.StatusMethodNotAllowed, err.Error())
 		} else if errors.Is(err, pull_service.ErrHeadCommitsNotAllVerified) {
-			ctx.APIError(http.StatusMethodNotAllowed, ctx.APIErrorMessage(err))
+			ctx.APIError(http.StatusMethodNotAllowed, err.Error())
 		} else {
 			ctx.APIErrorInternal(err)
 		}
@@ -992,11 +992,11 @@ func MergePullRequest(ctx *context.APIContext) {
 	if manuallyMerged {
 		if err := pull_service.MergedManually(ctx, pr, ctx.Doer, ctx.Repo.GitRepo, form.MergeCommitID); err != nil {
 			if pull_service.IsErrInvalidMergeStyle(err) {
-				ctx.APIError(http.StatusMethodNotAllowed, ctx.APIErrorMessage(fmt.Errorf("%s is not allowed an allowed merge style for this repository", repo_model.MergeStyle(form.Do))))
+				ctx.APIError(http.StatusMethodNotAllowed, fmt.Errorf("%s is not allowed an allowed merge style for this repository", repo_model.MergeStyle(form.Do)).Error())
 				return
 			}
 			if strings.Contains(err.Error(), "Wrong commit ID") {
-				ctx.APIError(http.StatusConflict, ctx.APIErrorMessage(err))
+				ctx.APIError(http.StatusConflict, err.Error())
 				return
 			}
 			ctx.APIErrorInternal(err)
@@ -1034,7 +1034,7 @@ func MergePullRequest(ctx *context.APIContext) {
 		scheduled, err := automerge.ScheduleAutoMerge(ctx, ctx.Doer, pr, repo_model.MergeStyle(form.Do), message, deleteBranchAfterMerge)
 		if err != nil {
 			if pull_model.IsErrAlreadyScheduledToAutoMerge(err) {
-				ctx.APIError(http.StatusConflict, ctx.APIErrorMessage(err))
+				ctx.APIError(http.StatusConflict, err.Error())
 				return
 			}
 			ctx.APIErrorInternal(err)
@@ -1048,7 +1048,7 @@ func MergePullRequest(ctx *context.APIContext) {
 
 	if err := pull_service.Merge(ctx, pr, ctx.Doer, repo_model.MergeStyle(form.Do), form.HeadCommitID, message, false); err != nil {
 		if pull_service.IsErrInvalidMergeStyle(err) {
-			ctx.APIError(http.StatusMethodNotAllowed, ctx.APIErrorMessage(fmt.Errorf("%s is not allowed an allowed merge style for this repository", repo_model.MergeStyle(form.Do))))
+			ctx.APIError(http.StatusMethodNotAllowed, fmt.Errorf("%s is not allowed an allowed merge style for this repository", repo_model.MergeStyle(form.Do)).Error())
 		} else if pull_service.IsErrMergeConflicts(err) {
 			conflictError := err.(pull_service.ErrMergeConflicts)
 			ctx.JSON(http.StatusConflict, conflictError)
@@ -1059,15 +1059,15 @@ func MergePullRequest(ctx *context.APIContext) {
 			conflictError := err.(pull_service.ErrMergeUnrelatedHistories)
 			ctx.JSON(http.StatusConflict, conflictError)
 		} else if git.IsErrPushOutOfDate(err) {
-			ctx.APIError(http.StatusConflict, ctx.APIErrorMessage("merge push out of date"))
+			ctx.APIError(http.StatusConflict, "merge push out of date")
 		} else if pull_service.IsErrSHADoesNotMatch(err) {
-			ctx.APIError(http.StatusConflict, ctx.APIErrorMessage("head out of date"))
+			ctx.APIError(http.StatusConflict, "head out of date")
 		} else if git.IsErrPushRejected(err) {
 			errPushRej := err.(*git.ErrPushRejected)
 			if len(errPushRej.Message) == 0 {
-				ctx.APIError(http.StatusConflict, ctx.APIErrorMessage("PushRejected without remote error message"))
+				ctx.APIError(http.StatusConflict, "PushRejected without remote error message")
 			} else {
-				ctx.APIError(http.StatusConflict, ctx.APIErrorMessage("PushRejected with remote message: "+errPushRej.Message))
+				ctx.APIError(http.StatusConflict, "PushRejected with remote message: "+errPushRej.Message)
 			}
 		} else {
 			ctx.APIErrorInternal(err)
@@ -1093,14 +1093,14 @@ func parseCompareInfo(ctx *context.APIContext, compareParam string) (result *git
 
 	// remove the check when we support compare with carets
 	if compareReq.BaseOriRefSuffix != "" {
-		ctx.APIError(http.StatusBadRequest, ctx.APIErrorMessage("Unsupported comparison syntax: ref with suffix"))
+		ctx.APIError(http.StatusBadRequest, "Unsupported comparison syntax: ref with suffix")
 		return nil, nil
 	}
 
 	_, headRepo, err := common.GetHeadOwnerAndRepo(ctx, baseRepo, compareReq)
 	switch {
 	case errors.Is(err, util.ErrInvalidArgument):
-		ctx.APIError(http.StatusBadRequest, ctx.APIErrorMessage(err.Error()))
+		ctx.APIError(http.StatusBadRequest, err.Error())
 		return nil, nil
 	case errors.Is(err, util.ErrNotExist):
 		ctx.APIErrorNotFound()
@@ -1230,7 +1230,7 @@ func UpdatePullRequest(ctx *context.APIContext) {
 	}
 
 	if pr.HasMerged {
-		ctx.APIError(http.StatusUnprocessableEntity, ctx.APIErrorMessage(err))
+		ctx.APIError(http.StatusUnprocessableEntity, err.Error())
 		return
 	}
 
@@ -1240,7 +1240,7 @@ func UpdatePullRequest(ctx *context.APIContext) {
 	}
 
 	if pr.Issue.IsClosed {
-		ctx.APIError(http.StatusUnprocessableEntity, ctx.APIErrorMessage(err))
+		ctx.APIError(http.StatusUnprocessableEntity, err.Error())
 		return
 	}
 
@@ -1273,10 +1273,10 @@ func UpdatePullRequest(ctx *context.APIContext) {
 
 	if err = pull_service.Update(graceful.GetManager().ShutdownContext(), pr, ctx.Doer, message, rebase); err != nil {
 		if pull_service.IsErrMergeConflicts(err) {
-			ctx.APIError(http.StatusConflict, ctx.APIErrorMessage("merge failed because of conflict"))
+			ctx.APIError(http.StatusConflict, "merge failed because of conflict")
 			return
 		} else if pull_service.IsErrRebaseConflicts(err) {
-			ctx.APIError(http.StatusConflict, ctx.APIErrorMessage("rebase failed because of conflict"))
+			ctx.APIError(http.StatusConflict, "rebase failed because of conflict")
 			return
 		}
 		ctx.APIErrorInternal(err)
@@ -1348,7 +1348,7 @@ func CancelScheduledAutoMerge(ctx *context.APIContext) {
 			return
 		}
 		if !allowed {
-			ctx.APIError(http.StatusForbidden, ctx.APIErrorMessage("user has no permission to cancel the scheduled auto merge"))
+			ctx.APIError(http.StatusForbidden, "user has no permission to cancel the scheduled auto merge")
 			return
 		}
 	}
@@ -1436,7 +1436,7 @@ func GetPullRequestCommits(ctx *context.APIContext) {
 	}
 
 	if gitcmd.IsStderr(err, gitcmd.StderrBadRevision) {
-		ctx.APIError(http.StatusNotFound, ctx.APIErrorMessage("invalid base branch or revision"))
+		ctx.APIError(http.StatusNotFound, "invalid base branch or revision")
 		return
 	} else if err != nil {
 		ctx.APIErrorInternal(err)

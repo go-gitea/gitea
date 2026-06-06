@@ -65,7 +65,7 @@ func ListIssueComments(ctx *context.APIContext) {
 
 	before, since, err := context.GetQueryBeforeSince(ctx.Base)
 	if err != nil {
-		ctx.APIError(http.StatusUnprocessableEntity, ctx.APIErrorMessage(err))
+		ctx.APIError(http.StatusUnprocessableEntity, err.Error())
 		return
 	}
 	issue, err := issues_model.GetIssueByIndex(ctx, ctx.Repo.Repository.ID, ctx.PathParamInt64("index"))
@@ -169,7 +169,7 @@ func ListIssueCommentsAndTimeline(ctx *context.APIContext) {
 
 	before, since, err := context.GetQueryBeforeSince(ctx.Base)
 	if err != nil {
-		ctx.APIError(http.StatusUnprocessableEntity, ctx.APIErrorMessage(err))
+		ctx.APIError(http.StatusUnprocessableEntity, err.Error())
 		return
 	}
 	issue, err := issues_model.GetIssueByIndex(ctx, ctx.Repo.Repository.ID, ctx.PathParamInt64("index"))
@@ -274,7 +274,7 @@ func ListRepoIssueComments(ctx *context.APIContext) {
 
 	before, since, err := context.GetQueryBeforeSince(ctx.Base)
 	if err != nil {
-		ctx.APIError(http.StatusUnprocessableEntity, ctx.APIErrorMessage(err))
+		ctx.APIError(http.StatusUnprocessableEntity, err.Error())
 		return
 	}
 
@@ -392,14 +392,14 @@ func CreateIssueComment(ctx *context.APIContext) {
 	}
 
 	if issue.IsLocked && !ctx.Repo.Permission.CanWriteIssuesOrPulls(issue.IsPull) && !ctx.Doer.IsAdmin {
-		ctx.APIError(http.StatusForbidden, ctx.APIErrorMessage(errors.New(ctx.Locale.TrString("repo.issues.comment_on_locked"))))
+		ctx.APIError(http.StatusForbidden, errors.New(ctx.Locale.TrString("repo.issues.comment_on_locked")).Error())
 		return
 	}
 
 	comment, err := issue_service.CreateIssueComment(ctx, ctx.Doer, ctx.Repo.Repository, issue, form.Body, nil)
 	if err != nil {
 		if errors.Is(err, user_model.ErrBlockedUser) {
-			ctx.APIError(http.StatusForbidden, ctx.APIErrorMessage(err))
+			ctx.APIError(http.StatusForbidden, err.Error())
 		} else {
 			ctx.APIErrorInternal(err)
 		}
@@ -595,7 +595,7 @@ func editIssueComment(ctx *context.APIContext, form api.EditIssueCommentOption) 
 		comment.Content = form.Body
 		if err := issue_service.UpdateComment(ctx, comment, comment.ContentVersion, ctx.Doer, oldContent); err != nil {
 			if errors.Is(err, user_model.ErrBlockedUser) {
-				ctx.APIError(http.StatusForbidden, ctx.APIErrorMessage(err))
+				ctx.APIError(http.StatusForbidden, err.Error())
 			} else {
 				ctx.APIErrorInternal(err)
 			}

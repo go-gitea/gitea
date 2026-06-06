@@ -63,7 +63,7 @@ func LockIssue(ctx *context.APIContext) {
 	}
 
 	if !ctx.Repo.Permission.CanWriteIssuesOrPulls(issue.IsPull) {
-		ctx.APIError(http.StatusForbidden, ctx.APIErrorMessage(errors.New("no permission to lock this issue")))
+		ctx.APIError(http.StatusForbidden, errors.New("no permission to lock this issue").Error())
 		return
 	}
 
@@ -130,7 +130,7 @@ func UnlockIssue(ctx *context.APIContext) {
 	}
 
 	if !ctx.Repo.Permission.CanWriteIssuesOrPulls(issue.IsPull) {
-		ctx.APIError(http.StatusForbidden, ctx.APIErrorMessage(errors.New("no permission to unlock this issue")))
+		ctx.APIError(http.StatusForbidden, errors.New("no permission to unlock this issue").Error())
 		return
 	}
 

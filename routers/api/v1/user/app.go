@@ -112,17 +112,17 @@ func CreateAccessToken(ctx *context.APIContext) {
 		return
 	}
 	if exist {
-		ctx.APIError(http.StatusBadRequest, ctx.APIErrorMessage(errors.New("access token name has been used already")))
+		ctx.APIError(http.StatusBadRequest, errors.New("access token name has been used already").Error())
 		return
 	}
 
 	scope, err := auth_model.AccessTokenScope(strings.Join(form.Scopes, ",")).Normalize()
 	if err != nil {
-		ctx.APIError(http.StatusBadRequest, ctx.APIErrorMessage(fmt.Errorf("invalid access token scope provided: %w", err)))
+		ctx.APIError(http.StatusBadRequest, fmt.Errorf("invalid access token scope provided: %w", err).Error())
 		return
 	}
 	if scope == "" {
-		ctx.APIError(http.StatusBadRequest, ctx.APIErrorMessage("access token must have a scope"))
+		ctx.APIError(http.StatusBadRequest, "access token must have a scope")
 		return
 	}
 	t.Scope = scope
@@ -188,7 +188,7 @@ func DeleteAccessToken(ctx *context.APIContext) {
 		case 1:
 			tokenID = tokens[0].ID
 		default:
-			ctx.APIError(http.StatusUnprocessableEntity, ctx.APIErrorMessage(fmt.Errorf("multiple matches for token name '%s'", token)))
+			ctx.APIError(http.StatusUnprocessableEntity, fmt.Errorf("multiple matches for token name '%s'", token).Error())
 			return
 		}
 	}
@@ -230,7 +230,7 @@ func CreateOauth2Application(ctx *context.APIContext) {
 
 	data := web.GetForm(ctx).(*api.CreateOAuth2ApplicationOptions)
 	if invalidURI := forms.DetectInvalidOAuth2ApplicationRedirectURI(data.RedirectURIs); invalidURI != "" {
-		ctx.APIError(http.StatusBadRequest, ctx.APIErrorMessage("invalid redirect URI: "+invalidURI))
+		ctx.APIError(http.StatusBadRequest, "invalid redirect URI: "+invalidURI)
 		return
 	}
 	app, err := auth_model.CreateOAuth2Application(ctx, auth_model.CreateOAuth2ApplicationOptions{
@@ -241,12 +241,12 @@ func CreateOauth2Application(ctx *context.APIContext) {
 		SkipSecondaryAuthorization: data.SkipSecondaryAuthorization,
 	})
 	if err != nil {
-		ctx.APIError(http.StatusBadRequest, ctx.APIErrorMessage("error creating oauth2 application"))
+		ctx.APIError(http.StatusBadRequest, "error creating oauth2 application")
 		return
 	}
 	secret, err := app.GenerateClientSecret(ctx)
 	if err != nil {
-		ctx.APIError(http.StatusBadRequest, ctx.APIErrorMessage("error creating application secret"))
+		ctx.APIError(http.StatusBadRequest, "error creating application secret")
 		return
 	}
 	app.ClientSecret = secret
@@ -394,7 +394,7 @@ func UpdateOauth2Application(ctx *context.APIContext) {
 
 	data := web.GetForm(ctx).(*api.CreateOAuth2ApplicationOptions)
 	if invalidURI := forms.DetectInvalidOAuth2ApplicationRedirectURI(data.RedirectURIs); invalidURI != "" {
-		ctx.APIError(http.StatusBadRequest, ctx.APIErrorMessage("invalid redirect URI: "+invalidURI))
+		ctx.APIError(http.StatusBadRequest, "invalid redirect URI: "+invalidURI)
 		return
 	}
 
@@ -416,7 +416,7 @@ func UpdateOauth2Application(ctx *context.APIContext) {
 	}
 	app.ClientSecret, err = app.GenerateClientSecret(ctx)
 	if err != nil {
-		ctx.APIError(http.StatusBadRequest, ctx.APIErrorMessage("error updating application secret"))
+		ctx.APIError(http.StatusBadRequest, "error updating application secret")
 		return
 	}
 

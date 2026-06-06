@@ -68,7 +68,7 @@ func BlockUser(ctx *context.APIContext, blocker *user_model.User) {
 
 	if err := user_service.BlockUser(ctx, ctx.Doer, blocker, blockee, ctx.FormString("note")); err != nil {
 		if errors.Is(err, user_model.ErrCanNotBlock) || errors.Is(err, user_model.ErrBlockOrganization) {
-			ctx.APIError(http.StatusBadRequest, ctx.APIErrorMessage(err))
+			ctx.APIError(http.StatusBadRequest, err.Error())
 		} else {
 			ctx.APIErrorInternal(err)
 		}
@@ -87,7 +87,7 @@ func UnblockUser(ctx *context.APIContext, doer, blocker *user_model.User) {
 
 	if err := user_service.UnblockUser(ctx, doer, blocker, blockee); err != nil {
 		if errors.Is(err, user_model.ErrCanNotUnblock) || errors.Is(err, user_model.ErrBlockOrganization) {
-			ctx.APIError(http.StatusBadRequest, ctx.APIErrorMessage(err))
+			ctx.APIError(http.StatusBadRequest, err.Error())
 		} else {
 			ctx.APIErrorInternal(err)
 		}

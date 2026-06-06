@@ -194,9 +194,9 @@ func CreateIssueAttachment(ctx *context.APIContext) {
 	})
 	if err != nil {
 		if upload.IsErrFileTypeForbidden(err) {
-			ctx.APIError(http.StatusUnprocessableEntity, ctx.APIErrorMessage(err))
+			ctx.APIError(http.StatusUnprocessableEntity, err.Error())
 		} else if errors.Is(err, util.ErrContentTooLarge) {
-			ctx.APIError(http.StatusRequestEntityTooLarge, ctx.APIErrorMessage(err))
+			ctx.APIError(http.StatusRequestEntityTooLarge, err.Error())
 		} else {
 			ctx.APIErrorInternal(err)
 		}
@@ -272,7 +272,7 @@ func EditIssueAttachment(ctx *context.APIContext) {
 
 	if err := attachment_service.UpdateAttachment(ctx, setting.Attachment.AllowedTypes, attachment); err != nil {
 		if upload.IsErrFileTypeForbidden(err) {
-			ctx.APIError(http.StatusUnprocessableEntity, ctx.APIErrorMessage(err))
+			ctx.APIError(http.StatusUnprocessableEntity, err.Error())
 			return
 		}
 		ctx.APIErrorInternal(err)
@@ -373,7 +373,7 @@ func getIssueAttachmentSafeRead(ctx *context.APIContext, issue *issues_model.Iss
 func canUserWriteIssueAttachment(ctx *context.APIContext, issue *issues_model.Issue) bool {
 	canEditIssue := ctx.IsSigned && (ctx.Doer.ID == issue.PosterID || ctx.IsUserRepoAdmin() || ctx.IsUserSiteAdmin() || ctx.Repo.Permission.CanWriteIssuesOrPulls(issue.IsPull))
 	if !canEditIssue {
-		ctx.APIError(http.StatusForbidden, ctx.APIErrorMessage("user should have permission to write issue"))
+		ctx.APIError(http.StatusForbidden, "user should have permission to write issue")
 		return false
 	}
 

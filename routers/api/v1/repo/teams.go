@@ -38,7 +38,7 @@ func ListTeams(ctx *context.APIContext) {
 	//     "$ref": "#/responses/notFound"
 
 	if !ctx.Repo.Owner.IsOrganization() {
-		ctx.APIError(http.StatusMethodNotAllowed, ctx.APIErrorMessage("repo is not owned by an organization"))
+		ctx.APIError(http.StatusMethodNotAllowed, "repo is not owned by an organization")
 		return
 	}
 
@@ -89,7 +89,7 @@ func IsTeam(ctx *context.APIContext) {
 	//     "$ref": "#/responses/error"
 
 	if !ctx.Repo.Owner.IsOrganization() {
-		ctx.APIError(http.StatusMethodNotAllowed, ctx.APIErrorMessage("repo is not owned by an organization"))
+		ctx.APIError(http.StatusMethodNotAllowed, "repo is not owned by an organization")
 		return
 	}
 
@@ -185,10 +185,10 @@ func DeleteTeam(ctx *context.APIContext) {
 
 func changeRepoTeam(ctx *context.APIContext, add bool) {
 	if !ctx.Repo.Owner.IsOrganization() {
-		ctx.APIError(http.StatusMethodNotAllowed, ctx.APIErrorMessage("repo is not owned by an organization"))
+		ctx.APIError(http.StatusMethodNotAllowed, "repo is not owned by an organization")
 	}
 	if !ctx.Repo.Owner.RepoAdminChangeTeamAccess && !ctx.Repo.Permission.IsOwner() {
-		ctx.APIError(http.StatusForbidden, ctx.APIErrorMessage("user is nor repo admin nor owner"))
+		ctx.APIError(http.StatusForbidden, "user is nor repo admin nor owner")
 		return
 	}
 
@@ -201,13 +201,13 @@ func changeRepoTeam(ctx *context.APIContext, add bool) {
 	var err error
 	if add {
 		if repoHasTeam {
-			ctx.APIError(http.StatusUnprocessableEntity, ctx.APIErrorMessage(fmt.Errorf("team '%s' is already added to repo", team.Name)))
+			ctx.APIError(http.StatusUnprocessableEntity, fmt.Errorf("team '%s' is already added to repo", team.Name).Error())
 			return
 		}
 		err = repo_service.TeamAddRepository(ctx, team, ctx.Repo.Repository)
 	} else {
 		if !repoHasTeam {
-			ctx.APIError(http.StatusUnprocessableEntity, ctx.APIErrorMessage(fmt.Errorf("team '%s' was not added to repo", team.Name)))
+			ctx.APIError(http.StatusUnprocessableEntity, fmt.Errorf("team '%s' was not added to repo", team.Name).Error())
 			return
 		}
 		err = repo_service.RemoveRepositoryFromTeam(ctx, team, ctx.Repo.Repository.ID)
@@ -224,7 +224,7 @@ func getTeamByParam(ctx *context.APIContext) *organization.Team {
 	team, err := organization.GetTeam(ctx, ctx.Repo.Owner.ID, ctx.PathParam("team"))
 	if err != nil {
 		if organization.IsErrTeamNotExist(err) {
-			ctx.APIError(http.StatusNotFound, ctx.APIErrorMessage(err))
+			ctx.APIError(http.StatusNotFound, err.Error())
 			return nil
 		}
 		ctx.APIErrorInternal(err)

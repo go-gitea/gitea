@@ -105,7 +105,7 @@ func prepareDoerCreateRepoInOrg(ctx *context.APIContext, orgName string) *organi
 			return nil
 		}
 		if !canCreate {
-			ctx.APIError(http.StatusForbidden, ctx.APIErrorMessage("User is not allowed to create repositories in this organization."))
+			ctx.APIError(http.StatusForbidden, "User is not allowed to create repositories in this organization.")
 			return nil
 		}
 	}
@@ -165,9 +165,9 @@ func CreateFork(ctx *context.APIContext) {
 	})
 	if err != nil {
 		if errors.Is(err, util.ErrAlreadyExist) || repo_model.IsErrReachLimitOfRepo(err) {
-			ctx.APIError(http.StatusConflict, ctx.APIErrorMessage(err))
+			ctx.APIError(http.StatusConflict, err.Error())
 		} else if errors.Is(err, user_model.ErrBlockedUser) {
-			ctx.APIError(http.StatusForbidden, ctx.APIErrorMessage(err))
+			ctx.APIError(http.StatusForbidden, err.Error())
 		} else {
 			ctx.APIErrorInternal(err)
 		}

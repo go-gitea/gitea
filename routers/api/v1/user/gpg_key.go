@@ -205,7 +205,7 @@ func VerifyUserGPGKey(ctx *context.APIContext) {
 
 	if err != nil {
 		if asymkey_model.IsErrGPGInvalidTokenSignature(err) {
-			ctx.APIError(http.StatusUnprocessableEntity, ctx.APIErrorMessage("The provided GPG key, signature and token do not match or token is out of date. Provide a valid signature for the token: "+token))
+			ctx.APIError(http.StatusUnprocessableEntity, "The provided GPG key, signature and token do not match or token is out of date. Provide a valid signature for the token: "+token)
 			return
 		}
 		ctx.APIErrorInternal(err)
@@ -292,13 +292,13 @@ func DeleteGPGKey(ctx *context.APIContext) {
 func HandleAddGPGKeyError(ctx *context.APIContext, err error, token string) {
 	switch {
 	case asymkey_model.IsErrGPGKeyIDAlreadyUsed(err):
-		ctx.APIError(http.StatusUnprocessableEntity, ctx.APIErrorMessage("A key with the same id already exists"))
+		ctx.APIError(http.StatusUnprocessableEntity, "A key with the same id already exists")
 	case asymkey_model.IsErrGPGKeyParsing(err):
-		ctx.APIError(http.StatusUnprocessableEntity, ctx.APIErrorMessage(err))
+		ctx.APIError(http.StatusUnprocessableEntity, err.Error())
 	case asymkey_model.IsErrGPGNoEmailFound(err):
-		ctx.APIError(http.StatusNotFound, ctx.APIErrorMessage("None of the emails attached to the GPG key could be found. It may still be added if you provide a valid signature for the token: "+token))
+		ctx.APIError(http.StatusNotFound, "None of the emails attached to the GPG key could be found. It may still be added if you provide a valid signature for the token: "+token)
 	case asymkey_model.IsErrGPGInvalidTokenSignature(err):
-		ctx.APIError(http.StatusUnprocessableEntity, ctx.APIErrorMessage("The provided GPG key, signature and token do not match or token is out of date. Provide a valid signature for the token: "+token))
+		ctx.APIError(http.StatusUnprocessableEntity, "The provided GPG key, signature and token do not match or token is out of date. Provide a valid signature for the token: "+token)
 	default:
 		ctx.APIErrorInternal(err)
 	}

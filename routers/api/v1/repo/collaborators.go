@@ -107,7 +107,7 @@ func IsCollaborator(ctx *context.APIContext) {
 	user, err := user_model.GetUserByName(ctx, ctx.PathParam("collaborator"))
 	if err != nil {
 		if user_model.IsErrUserNotExist(err) {
-			ctx.APIError(http.StatusUnprocessableEntity, ctx.APIErrorMessage(err))
+			ctx.APIError(http.StatusUnprocessableEntity, err.Error())
 		} else {
 			ctx.APIErrorInternal(err)
 		}
@@ -167,7 +167,7 @@ func AddOrUpdateCollaborator(ctx *context.APIContext) {
 	collaborator, err := user_model.GetUserByName(ctx, ctx.PathParam("collaborator"))
 	if err != nil {
 		if user_model.IsErrUserNotExist(err) {
-			ctx.APIError(http.StatusUnprocessableEntity, ctx.APIErrorMessage(err))
+			ctx.APIError(http.StatusUnprocessableEntity, err.Error())
 		} else {
 			ctx.APIErrorInternal(err)
 		}
@@ -186,7 +186,7 @@ func AddOrUpdateCollaborator(ctx *context.APIContext) {
 
 	if err := repo_service.AddOrUpdateCollaborator(ctx, ctx.Repo.Repository, collaborator, p); err != nil {
 		if errors.Is(err, user_model.ErrBlockedUser) {
-			ctx.APIError(http.StatusForbidden, ctx.APIErrorMessage(err))
+			ctx.APIError(http.StatusForbidden, err.Error())
 		} else {
 			ctx.APIErrorInternal(err)
 		}
@@ -230,7 +230,7 @@ func DeleteCollaborator(ctx *context.APIContext) {
 	collaborator, err := user_model.GetUserByName(ctx, ctx.PathParam("collaborator"))
 	if err != nil {
 		if user_model.IsErrUserNotExist(err) {
-			ctx.APIError(http.StatusUnprocessableEntity, ctx.APIErrorMessage(err))
+			ctx.APIError(http.StatusUnprocessableEntity, err.Error())
 		} else {
 			ctx.APIErrorInternal(err)
 		}
@@ -277,14 +277,14 @@ func GetRepoPermissions(ctx *context.APIContext) {
 
 	collaboratorUsername := ctx.PathParam("collaborator")
 	if !ctx.Doer.IsAdmin && !strings.EqualFold(ctx.Doer.LowerName, collaboratorUsername) && !ctx.IsUserRepoAdmin() {
-		ctx.APIError(http.StatusForbidden, ctx.APIErrorMessage("Only admins can query all permissions, repo admins can query all repo permissions, collaborators can query only their own"))
+		ctx.APIError(http.StatusForbidden, "Only admins can query all permissions, repo admins can query all repo permissions, collaborators can query only their own")
 		return
 	}
 
 	collaborator, err := user_model.GetUserByName(ctx, collaboratorUsername)
 	if err != nil {
 		if user_model.IsErrUserNotExist(err) {
-			ctx.APIError(http.StatusNotFound, ctx.APIErrorMessage(err))
+			ctx.APIError(http.StatusNotFound, err.Error())
 		} else {
 			ctx.APIErrorInternal(err)
 		}
@@ -326,7 +326,7 @@ func GetReviewers(ctx *context.APIContext) {
 
 	canChooseReviewer := issue_service.CanDoerChangeReviewRequests(ctx, ctx.Doer, ctx.Repo.Repository, 0)
 	if !canChooseReviewer {
-		ctx.APIError(http.StatusForbidden, ctx.APIErrorMessage(errors.New("doer has no permission to get reviewers")))
+		ctx.APIError(http.StatusForbidden, errors.New("doer has no permission to get reviewers").Error())
 		return
 	}
 

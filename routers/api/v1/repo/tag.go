@@ -103,19 +103,19 @@ func GetAnnotatedTag(ctx *context.APIContext) {
 
 	sha := ctx.PathParam("sha")
 	if len(sha) == 0 {
-		ctx.APIError(http.StatusBadRequest, ctx.APIErrorMessage("SHA not provided"))
+		ctx.APIError(http.StatusBadRequest, "SHA not provided")
 		return
 	}
 
 	tag, err := ctx.Repo.GitRepo.GetAnnotatedTag(sha)
 	if err != nil {
-		ctx.APIError(http.StatusBadRequest, ctx.APIErrorMessage(err))
+		ctx.APIError(http.StatusBadRequest, err.Error())
 		return
 	}
 
 	commit, err := ctx.Repo.GitRepo.GetTagCommit(tag.Name)
 	if err != nil {
-		ctx.APIError(http.StatusBadRequest, ctx.APIErrorMessage(err))
+		ctx.APIError(http.StatusBadRequest, err.Error())
 		return
 	}
 	ctx.JSON(http.StatusOK, convert.ToAnnotatedTag(ctx, ctx.Repo.Repository, tag, commit))
@@ -203,17 +203,17 @@ func CreateTag(ctx *context.APIContext) {
 
 	commit, err := ctx.Repo.GitRepo.GetCommit(form.Target)
 	if err != nil {
-		ctx.APIError(http.StatusNotFound, ctx.APIErrorMessage(fmt.Errorf("target not found: %w", err)))
+		ctx.APIError(http.StatusNotFound, fmt.Errorf("target not found: %w", err).Error())
 		return
 	}
 
 	if err := release_service.CreateNewTag(ctx, ctx.Doer, ctx.Repo.Repository, commit.ID.String(), form.TagName, form.Message); err != nil {
 		if release_service.IsErrTagAlreadyExists(err) {
-			ctx.APIError(http.StatusConflict, ctx.APIErrorMessage(err))
+			ctx.APIError(http.StatusConflict, err.Error())
 			return
 		}
 		if release_service.IsErrProtectedTagName(err) {
-			ctx.APIError(http.StatusUnprocessableEntity, ctx.APIErrorMessage("user not allowed to create protected tag"))
+			ctx.APIError(http.StatusUnprocessableEntity, "user not allowed to create protected tag")
 			return
 		}
 
@@ -278,13 +278,13 @@ func DeleteTag(ctx *context.APIContext) {
 	}
 
 	if !tag.IsTag {
-		ctx.APIError(http.StatusConflict, ctx.APIErrorMessage(errors.New("a tag attached to a release cannot be deleted directly")))
+		ctx.APIError(http.StatusConflict, errors.New("a tag attached to a release cannot be deleted directly").Error())
 		return
 	}
 
 	if err = release_service.DeleteReleaseByID(ctx, ctx.Repo.Repository, tag, ctx.Doer, true); err != nil {
 		if release_service.IsErrProtectedTagName(err) {
-			ctx.APIError(http.StatusUnprocessableEntity, ctx.APIErrorMessage("user not allowed to delete protected tag"))
+			ctx.APIError(http.StatusUnprocessableEntity, "user not allowed to delete protected tag")
 			return
 		}
 		ctx.APIErrorInternal(err)
@@ -416,12 +416,12 @@ func CreateTagProtection(ctx *context.APIContext) {
 
 	namePattern := strings.TrimSpace(form.NamePattern)
 	if namePattern == "" {
-		ctx.APIError(http.StatusBadRequest, ctx.APIErrorMessage("name_pattern are empty"))
+		ctx.APIError(http.StatusBadRequest, "name_pattern are empty")
 		return
 	}
 
 	if len(form.WhitelistUsernames) == 0 && len(form.WhitelistTeams) == 0 {
-		ctx.APIError(http.StatusBadRequest, ctx.APIErrorMessage("both whitelist_usernames and whitelist_teams are empty"))
+		ctx.APIError(http.StatusBadRequest, "both whitelist_usernames and whitelist_teams are empty")
 		return
 	}
 
@@ -430,7 +430,7 @@ func CreateTagProtection(ctx *context.APIContext) {
 		ctx.APIErrorInternal(err)
 		return
 	} else if pt != nil {
-		ctx.APIError(http.StatusForbidden, ctx.APIErrorMessage("Tag protection already exist"))
+		ctx.APIError(http.StatusForbidden, "Tag protection already exist")
 		return
 	}
 
@@ -438,7 +438,7 @@ func CreateTagProtection(ctx *context.APIContext) {
 	whitelistUsers, err = user_model.GetUserIDsByNames(ctx, form.WhitelistUsernames, false)
 	if err != nil {
 		if user_model.IsErrUserNotExist(err) {
-			ctx.APIError(http.StatusUnprocessableEntity, ctx.APIErrorMessage(err))
+			ctx.APIError(http.StatusUnprocessableEntity, err.Error())
 			return
 		}
 		ctx.APIErrorInternal(err)
@@ -449,7 +449,7 @@ func CreateTagProtection(ctx *context.APIContext) {
 		whitelistTeams, err = organization.GetTeamIDsByNames(ctx, repo.OwnerID, form.WhitelistTeams, false)
 		if err != nil {
 			if organization.IsErrTeamNotExist(err) {
-				ctx.APIError(http.StatusUnprocessableEntity, ctx.APIErrorMessage(err))
+				ctx.APIError(http.StatusUnprocessableEntity, err.Error())
 				return
 			}
 			ctx.APIErrorInternal(err)
@@ -546,7 +546,7 @@ func EditTagProtection(ctx *context.APIContext) {
 			whitelistTeams, err = organization.GetTeamIDsByNames(ctx, repo.OwnerID, form.WhitelistTeams, false)
 			if err != nil {
 				if organization.IsErrTeamNotExist(err) {
-					ctx.APIError(http.StatusUnprocessableEntity, ctx.APIErrorMessage(err))
+					ctx.APIError(http.StatusUnprocessableEntity, err.Error())
 					return
 				}
 				ctx.APIErrorInternal(err)
@@ -560,7 +560,7 @@ func EditTagProtection(ctx *context.APIContext) {
 		whitelistUsers, err = user_model.GetUserIDsByNames(ctx, form.WhitelistUsernames, false)
 		if err != nil {
 			if user_model.IsErrUserNotExist(err) {
-				ctx.APIError(http.StatusUnprocessableEntity, ctx.APIErrorMessage(err))
+				ctx.APIError(http.StatusUnprocessableEntity, err.Error())
 				return
 			}
 			ctx.APIErrorInternal(err)

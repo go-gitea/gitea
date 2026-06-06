@@ -39,7 +39,7 @@ func UpdateAvatar(ctx *context.APIContext) {
 
 	content, err := base64.StdEncoding.DecodeString(form.Image)
 	if err != nil {
-		ctx.APIError(http.StatusBadRequest, ctx.APIErrorMessage(err))
+		ctx.APIError(http.StatusBadRequest, err.Error())
 		return
 	}
 

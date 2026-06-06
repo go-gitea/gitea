@@ -237,7 +237,7 @@ func doerNeedTwoFactorAuth(ctx gocontext.Context, doer *user_model.User) (bool, 
 func reqPackageAccess(accessMode perm.AccessMode) func(ctx *context.APIContext) {
 	return func(ctx *context.APIContext) {
 		if ctx.Package.AccessMode < accessMode && !ctx.IsUserSiteAdmin() {
-			ctx.APIError(http.StatusForbidden, ctx.APIErrorMessage("user should have specific permission or be a site admin"))
+			ctx.APIError(http.StatusForbidden, "user should have specific permission or be a site admin")
 			return
 		}
 	}
@@ -258,39 +258,39 @@ func checkTokenPublicOnly() func(ctx *context.APIContext) {
 			switch category {
 			case auth_model.AccessTokenScopeCategoryRepository:
 				if !ctx.TokenCanAccessRepo(ctx.Repo.Repository) {
-					ctx.APIError(http.StatusForbidden, ctx.APIErrorMessage("token scope is limited to public repos"))
+					ctx.APIError(http.StatusForbidden, "token scope is limited to public repos")
 					return
 				}
 			case auth_model.AccessTokenScopeCategoryIssue:
 				if !ctx.TokenCanAccessRepo(ctx.Repo.Repository) {
-					ctx.APIError(http.StatusForbidden, ctx.APIErrorMessage("token scope is limited to public issues"))
+					ctx.APIError(http.StatusForbidden, "token scope is limited to public issues")
 					return
 				}
 			case auth_model.AccessTokenScopeCategoryOrganization:
 				orgPrivate := ctx.Org.Organization != nil && !ctx.Org.Organization.Visibility.IsPublic()
 				userOrgPrivate := ctx.ContextUser != nil && ctx.ContextUser.IsOrganization() && !ctx.ContextUser.Visibility.IsPublic()
 				if orgPrivate || userOrgPrivate {
-					ctx.APIError(http.StatusForbidden, ctx.APIErrorMessage("token scope is limited to public orgs"))
+					ctx.APIError(http.StatusForbidden, "token scope is limited to public orgs")
 					return
 				}
 			case auth_model.AccessTokenScopeCategoryUser:
 				if ctx.ContextUser != nil && ctx.ContextUser.IsTokenAccessAllowed() && !ctx.ContextUser.Visibility.IsPublic() {
-					ctx.APIError(http.StatusForbidden, ctx.APIErrorMessage("token scope is limited to public users"))
+					ctx.APIError(http.StatusForbidden, "token scope is limited to public users")
 					return
 				}
 			case auth_model.AccessTokenScopeCategoryActivityPub:
 				if ctx.ContextUser != nil && ctx.ContextUser.IsTokenAccessAllowed() && !ctx.ContextUser.Visibility.IsPublic() {
-					ctx.APIError(http.StatusForbidden, ctx.APIErrorMessage("token scope is limited to public activitypub"))
+					ctx.APIError(http.StatusForbidden, "token scope is limited to public activitypub")
 					return
 				}
 			case auth_model.AccessTokenScopeCategoryNotification:
 				if !ctx.TokenCanAccessRepo(ctx.Repo.Repository) {
-					ctx.APIError(http.StatusForbidden, ctx.APIErrorMessage("token scope is limited to public notifications"))
+					ctx.APIError(http.StatusForbidden, "token scope is limited to public notifications")
 					return
 				}
 			case auth_model.AccessTokenScopeCategoryPackage:
 				if ctx.Package != nil && ctx.Package.Owner.Visibility.IsPrivate() {
-					ctx.APIError(http.StatusForbidden, ctx.APIErrorMessage("token scope is limited to public packages"))
+					ctx.APIError(http.StatusForbidden, "token scope is limited to public packages")
 					return
 				}
 			}
@@ -304,7 +304,7 @@ func rejectPublicOnly() func(ctx *context.APIContext) {
 			return
 		}
 
-		ctx.APIError(http.StatusForbidden, ctx.APIErrorMessage("this endpoint is not available for public-only tokens"))
+		ctx.APIError(http.StatusForbidden, "this endpoint is not available for public-only tokens")
 	}
 }
 
@@ -339,12 +339,12 @@ func tokenRequiresScopes(requiredScopeCategories ...auth_model.AccessTokenScopeC
 		requiredScopes := auth_model.GetRequiredScopes(requiredScopeLevel, requiredScopeCategories...)
 		allow, err := scope.HasScope(requiredScopes...)
 		if err != nil {
-			ctx.APIError(http.StatusForbidden, ctx.APIErrorMessage("checking scope failed: "+err.Error()))
+			ctx.APIError(http.StatusForbidden, "checking scope failed: "+err.Error())
 			return
 		}
 
 		if !allow {
-			ctx.APIError(http.StatusForbidden, ctx.APIErrorMessage(fmt.Sprintf("token does not have at least one of required scope(s), required=%v, token scope=%v", requiredScopes, scope)))
+			ctx.APIError(http.StatusForbidden, fmt.Sprintf("token does not have at least one of required scope(s), required=%v, token scope=%v", requiredScopes, scope))
 			return
 		}
 
@@ -353,7 +353,7 @@ func tokenRequiresScopes(requiredScopeCategories ...auth_model.AccessTokenScopeC
 		// check if scope only applies to public resources
 		publicOnly, err := scope.PublicOnly()
 		if err != nil {
-			ctx.APIError(http.StatusForbidden, ctx.APIErrorMessage("parsing public resource scope failed: "+err.Error()))
+			ctx.APIError(http.StatusForbidden, "parsing public resource scope failed: "+err.Error())
 			return
 		}
 
@@ -369,14 +369,14 @@ func reqToken() func(ctx *context.APIContext) {
 		if ctx.IsSigned {
 			return
 		}
-		ctx.APIError(http.StatusUnauthorized, ctx.APIErrorMessage("token is required"))
+		ctx.APIError(http.StatusUnauthorized, "token is required")
 	}
 }
 
 func reqExploreSignIn() func(ctx *context.APIContext) {
 	return func(ctx *context.APIContext) {
 		if (setting.Service.RequireSignInViewStrict || setting.Service.Explore.RequireSigninView) && !ctx.IsSigned {
-			ctx.APIError(http.StatusUnauthorized, ctx.APIErrorMessage("you must be signed in to search for users"))
+			ctx.APIError(http.StatusUnauthorized, "you must be signed in to search for users")
 		}
 	}
 }
@@ -395,7 +395,7 @@ func reqBasicOrRevProxyAuth() func(ctx *context.APIContext) {
 			return
 		}
 		if !ctx.IsBasicAuth {
-			ctx.APIError(http.StatusUnauthorized, ctx.APIErrorMessage("auth required"))
+			ctx.APIError(http.StatusUnauthorized, "auth required")
 			return
 		}
 	}
@@ -405,7 +405,7 @@ func reqBasicOrRevProxyAuth() func(ctx *context.APIContext) {
 func reqSiteAdmin() func(ctx *context.APIContext) {
 	return func(ctx *context.APIContext) {
 		if !ctx.IsUserSiteAdmin() {
-			ctx.APIError(http.StatusForbidden, ctx.APIErrorMessage("user should be the site admin"))
+			ctx.APIError(http.StatusForbidden, "user should be the site admin")
 			return
 		}
 	}
@@ -415,7 +415,7 @@ func reqSiteAdmin() func(ctx *context.APIContext) {
 func reqOwner() func(ctx *context.APIContext) {
 	return func(ctx *context.APIContext) {
 		if !ctx.Repo.Permission.IsOwner() && !ctx.IsUserSiteAdmin() {
-			ctx.APIError(http.StatusForbidden, ctx.APIErrorMessage("user should be the owner of the repo"))
+			ctx.APIError(http.StatusForbidden, "user should be the owner of the repo")
 			return
 		}
 	}
@@ -425,7 +425,7 @@ func reqOwner() func(ctx *context.APIContext) {
 func reqSelfOrAdmin() func(ctx *context.APIContext) {
 	return func(ctx *context.APIContext) {
 		if !ctx.IsUserSiteAdmin() && ctx.ContextUser != ctx.Doer {
-			ctx.APIError(http.StatusForbidden, ctx.APIErrorMessage("doer should be the site admin or be same as the contextUser"))
+			ctx.APIError(http.StatusForbidden, "doer should be the site admin or be same as the contextUser")
 			return
 		}
 	}
@@ -435,7 +435,7 @@ func reqSelfOrAdmin() func(ctx *context.APIContext) {
 func reqAdmin() func(ctx *context.APIContext) {
 	return func(ctx *context.APIContext) {
 		if !ctx.IsUserRepoAdmin() && !ctx.IsUserSiteAdmin() {
-			ctx.APIError(http.StatusForbidden, ctx.APIErrorMessage("user should be an owner or a collaborator with admin write of a repository"))
+			ctx.APIError(http.StatusForbidden, "user should be an owner or a collaborator with admin write of a repository")
 			return
 		}
 	}
@@ -445,7 +445,7 @@ func reqAdmin() func(ctx *context.APIContext) {
 func reqRepoWriter(unitTypes ...unit.Type) func(ctx *context.APIContext) {
 	return func(ctx *context.APIContext) {
 		if !ctx.IsUserRepoWriter(unitTypes) && !ctx.IsUserRepoAdmin() && !ctx.IsUserSiteAdmin() {
-			ctx.APIError(http.StatusForbidden, ctx.APIErrorMessage("user should have a permission to write to a repo"))
+			ctx.APIError(http.StatusForbidden, "user should have a permission to write to a repo")
 			return
 		}
 	}
@@ -455,7 +455,7 @@ func reqRepoWriter(unitTypes ...unit.Type) func(ctx *context.APIContext) {
 func reqRepoReader(unitType unit.Type) func(ctx *context.APIContext) {
 	return func(ctx *context.APIContext) {
 		if !ctx.Repo.Permission.CanRead(unitType) && !ctx.IsUserRepoAdmin() && !ctx.IsUserSiteAdmin() {
-			ctx.APIError(http.StatusForbidden, ctx.APIErrorMessage("user should have specific read permission or be a repo admin or a site admin"))
+			ctx.APIError(http.StatusForbidden, "user should have specific read permission or be a repo admin or a site admin")
 			return
 		}
 	}
@@ -465,7 +465,7 @@ func reqRepoReader(unitType unit.Type) func(ctx *context.APIContext) {
 func reqAnyRepoReader() func(ctx *context.APIContext) {
 	return func(ctx *context.APIContext) {
 		if !ctx.Repo.Permission.HasAnyUnitAccess() && !ctx.IsUserSiteAdmin() {
-			ctx.APIError(http.StatusForbidden, ctx.APIErrorMessage("user should have any permission to read repository or permissions of site admin"))
+			ctx.APIError(http.StatusForbidden, "user should have any permission to read repository or permissions of site admin")
 			return
 		}
 	}
@@ -495,7 +495,7 @@ func reqOrgOwnership() func(ctx *context.APIContext) {
 			return
 		} else if !isOwner {
 			if ctx.Org.Organization != nil {
-				ctx.APIError(http.StatusForbidden, ctx.APIErrorMessage("Must be an organization owner"))
+				ctx.APIError(http.StatusForbidden, "Must be an organization owner")
 			} else {
 				ctx.APIErrorNotFound()
 			}
@@ -533,7 +533,7 @@ func reqTeamMembership() func(ctx *context.APIContext) {
 			if err != nil {
 				ctx.APIErrorInternal(err)
 			} else if isOrgMember {
-				ctx.APIError(http.StatusForbidden, ctx.APIErrorMessage("Must be a team member"))
+				ctx.APIError(http.StatusForbidden, "Must be a team member")
 			} else {
 				ctx.APIErrorNotFound()
 			}
@@ -565,7 +565,7 @@ func reqOrgMembership() func(ctx *context.APIContext) {
 			return
 		} else if !isMember {
 			if ctx.Org.Organization != nil {
-				ctx.APIError(http.StatusForbidden, ctx.APIErrorMessage("Must be an organization member"))
+				ctx.APIError(http.StatusForbidden, "Must be an organization member")
 			} else {
 				ctx.APIErrorNotFound()
 			}
@@ -577,7 +577,7 @@ func reqOrgMembership() func(ctx *context.APIContext) {
 func reqGitHook() func(ctx *context.APIContext) {
 	return func(ctx *context.APIContext) {
 		if !ctx.Doer.CanEditGitHook() {
-			ctx.APIError(http.StatusForbidden, ctx.APIErrorMessage("must be allowed to edit Git hooks"))
+			ctx.APIError(http.StatusForbidden, "must be allowed to edit Git hooks")
 			return
 		}
 	}
@@ -587,7 +587,7 @@ func reqGitHook() func(ctx *context.APIContext) {
 func reqWebhooksEnabled() func(ctx *context.APIContext) {
 	return func(ctx *context.APIContext) {
 		if setting.DisableWebhooks {
-			ctx.APIError(http.StatusForbidden, ctx.APIErrorMessage("webhooks disabled by administrator"))
+			ctx.APIError(http.StatusForbidden, "webhooks disabled by administrator")
 			return
 		}
 	}
@@ -597,7 +597,7 @@ func reqWebhooksEnabled() func(ctx *context.APIContext) {
 func reqStarsEnabled() func(ctx *context.APIContext) {
 	return func(ctx *context.APIContext) {
 		if setting.Repository.DisableStars {
-			ctx.APIError(http.StatusForbidden, ctx.APIErrorMessage("stars disabled by administrator"))
+			ctx.APIError(http.StatusForbidden, "stars disabled by administrator")
 			return
 		}
 	}
@@ -734,14 +734,14 @@ func mustEnableWiki(ctx *context.APIContext) {
 // FIXME: for consistency, maybe most mustNotBeArchived checks should be replaced with mustEnableEditor
 func mustNotBeArchived(ctx *context.APIContext) {
 	if ctx.Repo.Repository.IsArchived {
-		ctx.APIError(http.StatusLocked, ctx.APIErrorMessage(fmt.Errorf("%s is archived", ctx.Repo.Repository.FullName())))
+		ctx.APIError(http.StatusLocked, fmt.Errorf("%s is archived", ctx.Repo.Repository.FullName()).Error())
 		return
 	}
 }
 
 func mustEnableEditor(ctx *context.APIContext) {
 	if !ctx.Repo.Repository.CanEnableEditor() {
-		ctx.APIError(http.StatusLocked, ctx.APIErrorMessage(fmt.Errorf("%s is not allowed to edit", ctx.Repo.Repository.FullName())))
+		ctx.APIError(http.StatusLocked, fmt.Errorf("%s is not allowed to edit", ctx.Repo.Repository.FullName()).Error())
 		return
 	}
 }
@@ -759,7 +759,7 @@ func bind[T any](_ T) any {
 		theObj := new(T) // create a new form obj for every request but not use obj directly
 		errs := binding.Bind(ctx.Req, theObj)
 		if len(errs) > 0 {
-			ctx.APIError(http.StatusUnprocessableEntity, ctx.APIErrorMessage(fmt.Sprintf("%s: %s", errs[0].FieldNames, errs[0].Error())))
+			ctx.APIError(http.StatusUnprocessableEntity, fmt.Sprintf("%s: %s", errs[0].FieldNames, errs[0].Error()))
 			return
 		}
 		web.SetForm(ctx, theObj)
@@ -785,7 +785,7 @@ func apiAuth(authMethod auth.Method) func(*context.APIContext) {
 		if err != nil {
 			msg, ok := auth.ErrAsUserAuthMessage(err)
 			msg = util.Iif(ok, msg, "invalid username, password or token")
-			ctx.APIError(http.StatusUnauthorized, ctx.APIErrorMessage(msg))
+			ctx.APIError(http.StatusUnauthorized, msg)
 			return
 		}
 		ctx.Doer = ar.Doer
