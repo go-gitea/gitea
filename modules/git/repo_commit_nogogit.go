@@ -109,16 +109,16 @@ func (repo *Repository) getCommitWithBatch(batch CatFileBatch, id ObjectID) (*Co
 	}
 }
 
-// ConvertToGitID returns a GitHash object from a potential ID string
-func (repo *Repository) ConvertToGitID(commitID string) (ObjectID, error) {
+// ConvertToGitID returns a git object ID from the git ref, it doesn't guarantee the returned ID really exists
+func (repo *Repository) ConvertToGitID(ref string) (ObjectID, error) {
 	objectFormat, err := repo.GetObjectFormat()
 	if err != nil {
 		return nil, err
 	}
-	if len(commitID) == objectFormat.FullLength() && objectFormat.IsValid(commitID) {
-		ID, err := NewIDFromString(commitID)
+	if len(ref) == objectFormat.FullLength() && objectFormat.IsValid(ref) {
+		id, err := NewIDFromString(ref)
 		if err == nil {
-			return ID, nil
+			return id, nil
 		}
 	}
 
@@ -127,10 +127,10 @@ func (repo *Repository) ConvertToGitID(commitID string) (ObjectID, error) {
 		return nil, err
 	}
 	defer cancel()
-	info, err := batch.QueryInfo(commitID)
+	info, err := batch.QueryInfo(ref)
 	if err != nil {
 		if IsErrNotExist(err) {
-			return nil, ErrNotExist{commitID, ""}
+			return nil, ErrNotExist{ref, ""}
 		}
 		return nil, err
 	}
