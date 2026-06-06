@@ -58,6 +58,7 @@ func uploadJobSummary(ctx *ArtifactContext) {
 		ctx.HTTPError(http.StatusInternalServerError, "read request body")
 		return
 	}
+	message := "success"
 	if len(body) == 0 {
 		// PUT with an empty body clears any previously-stored summary for this step.
 		if err := actions_model.DeleteActionRunJobSummary(ctx, task.Job.RepoID, task.Job.RunID, task.Job.RunAttemptID, task.Job.ID, stepIndex); err != nil {
@@ -65,15 +66,8 @@ func uploadJobSummary(ctx *ArtifactContext) {
 			ctx.HTTPError(http.StatusInternalServerError, "Error deleting job summary")
 			return
 		}
-		ctx.JSON(http.StatusOK, map[string]any{
-			"message":    "cleared",
-			"sizeBytes":  0,
-			"runAttempt": task.Job.RunAttemptID,
-		})
-		return
-	}
-
-	if err := actions_model.UpsertActionRunJobSummary(ctx, task.Job.RepoID, task.Job.RunID, task.Job.RunAttemptID, task.Job.ID, stepIndex, contentType, body); err != nil {
+		message = "cleared"
+	} else if err := actions_model.UpsertActionRunJobSummary(ctx, task.Job.RepoID, task.Job.RunID, task.Job.RunAttemptID, task.Job.ID, stepIndex, contentType, body); err != nil {
 		if errors.Is(err, actions_model.ErrJobSummaryAggregateExceeded) {
 			ctx.HTTPError(http.StatusBadRequest, "job summary aggregate size exceeded")
 			return
@@ -88,7 +82,7 @@ func uploadJobSummary(ctx *ArtifactContext) {
 	}
 
 	ctx.JSON(http.StatusOK, map[string]any{
-		"message":    "success",
+		"message":    message,
 		"sizeBytes":  len(body),
 		"runAttempt": task.Job.RunAttemptID,
 	})

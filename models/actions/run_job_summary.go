@@ -93,18 +93,12 @@ func UpsertActionRunJobSummary(ctx context.Context, repoID, runID, runAttemptID,
 	// The aggregate check is best-effort: a tx wouldn't actually serialize concurrent
 	// step uploads (no row-level lock on the parent job), so wrapping these two
 	// statements only adds round-trip cost without changing the race semantics.
-	existing, err := listJobSummaryContentSizes(ctx, repoID, runID, runAttemptID, jobID)
+	// The current step is excluded because the upsert below replaces its size with len(content).
+	otherSize, err := sumOtherJobSummarySizes(ctx, repoID, runID, runAttemptID, jobID, stepIndex)
 	if err != nil {
 		return err
 	}
-	aggregate := len(content)
-	for _, e := range existing {
-		if e.StepIndex == stepIndex {
-			continue
-		}
-		aggregate += int(e.ContentSize)
-	}
-	if aggregate > MaxJobSummaryAggregateSize {
+	if otherSize+int64(len(content)) > MaxJobSummaryAggregateSize {
 		return ErrJobSummaryAggregateExceeded
 	}
 
@@ -123,18 +117,12 @@ func UpsertActionRunJobSummary(ctx context.Context, repoID, runID, runAttemptID,
 	})
 }
 
-type jobSummarySize struct {
-	StepIndex   int64
-	ContentSize int64
-}
-
-func listJobSummaryContentSizes(ctx context.Context, repoID, runID, runAttemptID, jobID int64) ([]jobSummarySize, error) {
-	var rows []jobSummarySize
-	err := db.GetEngine(ctx).Table("action_run_job_summary").
-		Cols("step_index", "content_size").
-		Where("repo_id=? AND run_id=? AND run_attempt_id=? AND job_id=?", repoID, runID, runAttemptID, jobID).
-		Find(&rows)
-	return rows, err
+// sumOtherJobSummarySizes returns the total stored size of all step summaries for a job
+// except excludeStepIndex, computed in the database to avoid loading every row.
+func sumOtherJobSummarySizes(ctx context.Context, repoID, runID, runAttemptID, jobID, excludeStepIndex int64) (int64, error) {
+	return db.GetEngine(ctx).
+		Where("repo_id=? AND run_id=? AND run_attempt_id=? AND job_id=? AND step_index<>?", repoID, runID, runAttemptID, jobID, excludeStepIndex).
+		SumInt(new(ActionRunJobSummary), "content_size")
 }
 
 // DeleteActionRunJobSummary removes the stored summary for a specific step. Used when
@@ -208,6 +196,19 @@ func ListActionRunJobSummariesByRunAttempt(ctx context.Context, repoID, runID, r
 	if err := db.GetEngine(ctx).
 		Where("repo_id=? AND run_id=? AND run_attempt_id=?", repoID, runID, runAttemptID).
 		OrderBy("job_id ASC, step_index ASC").
+		Find(&summaries); err != nil {
+		return nil, err
+	}
+	return summaries, nil
+}
+
+// ListActionRunJobSummariesByJob scopes the lookup to a single job, used by the job view
+// to avoid rendering every job's summary on each poll.
+func ListActionRunJobSummariesByJob(ctx context.Context, repoID, runID, runAttemptID, jobID int64) ([]*ActionRunJobSummary, error) {
+	var summaries []*ActionRunJobSummary
+	if err := db.GetEngine(ctx).
+		Where("repo_id=? AND run_id=? AND run_attempt_id=? AND job_id=?", repoID, runID, runAttemptID, jobID).
+		OrderBy("step_index ASC").
 		Find(&summaries); err != nil {
 		return nil, err
 	}

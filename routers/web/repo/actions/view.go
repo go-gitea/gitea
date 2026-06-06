@@ -537,9 +537,16 @@ func fillViewRunResponseSummary(ctx *context_module.Context, resp *ViewResponse,
 
 	// Each step's markdown is rendered independently so an unclosed construct
 	// in one step can't bleed into the next.
-	summaries, err := actions_model.ListActionRunJobSummariesByRunAttempt(ctx, ctx.Repo.Repository.ID, run.ID, runAttemptID)
+	// On a single-job view only that job's summaries are needed; the run view shows all.
+	// Scoping server-side avoids rendering every job's markdown on each 1s poll.
+	var summaries []*actions_model.ActionRunJobSummary
+	if selectedJobID := ctx.PathParamInt64("job"); selectedJobID > 0 {
+		summaries, err = actions_model.ListActionRunJobSummariesByJob(ctx, ctx.Repo.Repository.ID, run.ID, runAttemptID, selectedJobID)
+	} else {
+		summaries, err = actions_model.ListActionRunJobSummariesByRunAttempt(ctx, ctx.Repo.Repository.ID, run.ID, runAttemptID)
+	}
 	if err != nil {
-		ctx.ServerError("ListActionRunJobSummariesByRunAttempt", err)
+		ctx.ServerError("ListActionRunJobSummaries", err)
 		return
 	}
 	if len(summaries) > 0 {

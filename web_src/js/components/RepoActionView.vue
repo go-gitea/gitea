@@ -286,14 +286,14 @@ async function deleteArtifact(name: string) {
       </div>
 
       <div class="action-view-right">
-        <div v-if="!props.jobId" class="action-view-right-panel">
+        <div class="action-view-right-panel">
           <ActionRunSummaryView
+            v-if="!props.jobId"
             :store="store"
             :locale="locale"
           />
-        </div>
-        <div v-else class="action-view-right-panel">
           <ActionRunJobView
+            v-else
             :store="store"
             :locale="locale"
             :actions-view-url="props.actionsViewUrl"
