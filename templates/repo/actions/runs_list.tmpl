@@ -13,7 +13,7 @@
 				</span>
 			</div>
 			<div class="item-main">
-				<div class="list-item-large-title">
+				<div class="item-title">
 					{{$title := or $run.Title (ctx.Locale.Tr "actions.runs.empty_commit_message")}}
 					{{ctx.RenderUtils.RenderCommitMessageLinkSubject $title $run.Link $.Repository}}
 				</div>

@@ -93,17 +93,7 @@
   text-align: left;
 }
 
-.title-full-link-hover:hover > a.title-full-link {
+.title-full-link-hover:not(:has(:not(.title-full-link):hover)):hover > a.title-full-link {
   color: var(--color-primary);
   text-decoration: underline;
 }
-
-/* this style is extracted from the pending PR: chore: fix various layout problems#37983 */
-.list-item-large-title {
-  font-size: 16px;
-  font-weight: var(--font-weight-semibold);
-  color: var(--color-text);
-  text-decoration: none;
-  overflow-wrap: anywhere;
-}
-
