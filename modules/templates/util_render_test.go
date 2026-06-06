@@ -131,24 +131,24 @@ com 88fc37a3c0a4dda553bdcfc80c178a58247f42fb mit
 	})
 
 	t.Run("RenderCommitMessage", func(t *testing.T) {
-		expected := `space <a href="/mention-user" data-markdown-generated-content="">@mention-user</a>  `
+		expected := `space <a href="/mention-user" data-markdown-generated-content="">@mention-user</a>`
 		assert.EqualValues(t, expected, newTestRenderUtils(t).RenderCommitMessage(testInput(), mockRepo))
 	})
 
 	t.Run("RenderCommitMessageLinkSubject", func(t *testing.T) {
-		expected := `<a href="https://example.com/link" class="muted">space </a><a href="/mention-user" data-markdown-generated-content="">@mention-user</a>`
+		expected := `<span class="title-full-link-hover"><a href="https://example.com/link" class="muted title-full-link">space </a><a href="/mention-user" data-markdown-generated-content="">@mention-user</a></span>`
 		assert.EqualValues(t, expected, newTestRenderUtils(t).RenderCommitMessageLinkSubject(testInput(), "https://example.com/link", mockRepo))
 	})
 
 	t.Run("RenderCommitMessageLinkSubjectURLOnly", func(t *testing.T) {
 		// a bare URL in the subject must not hijack the default link
-		expected := `<a href="https://example.com/link" class="muted">https://example.com/file.bin</a>`
+		expected := `<span class="title-full-link-hover"><a href="https://example.com/link" class="muted title-full-link">https://example.com/file.bin</a></span>`
 		assert.EqualValues(t, expected, newTestRenderUtils(t).RenderCommitMessageLinkSubject("https://example.com/file.bin", "https://example.com/link", mockRepo))
 	})
 
 	t.Run("RenderCommitMessageLinkSubjectPartialURL", func(t *testing.T) {
 		// a URL embedded in larger subject text still becomes its own link
-		expected := `<a href="https://example.com/link" class="muted">see </a><a href="https://example.com/x" data-markdown-generated-content="">https://example.com/x</a><a href="https://example.com/link" class="muted"> here</a>`
+		expected := `<span class="title-full-link-hover"><a href="https://example.com/link" class="muted title-full-link">see </a><a href="https://example.com/x" data-markdown-generated-content="">https://example.com/x</a><a href="https://example.com/link" class="muted title-full-link"> here</a></span>`
 		assert.EqualValues(t, expected, newTestRenderUtils(t).RenderCommitMessageLinkSubject("see https://example.com/x here", "https://example.com/link", mockRepo))
 	})
 

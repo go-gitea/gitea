@@ -92,3 +92,17 @@
   margin-right: 8px;
   text-align: left;
 }
+
+/* for "title (#123)":
+  <span "title-full-link-hover">
+    <a "title-full-link muted">title (</a>
+    <a "muted">#123</a>
+    <a "title-full-link muted">)</a>
+  </span>
+  * hover on "title": also highlight the right parentheses
+  * hover on "#123": don't highlight other parts
+ */
+.title-full-link-hover:not(:has(:not(.title-full-link):hover)):hover > a.title-full-link {
+  color: var(--color-primary);
+  text-decoration: underline;
+}
