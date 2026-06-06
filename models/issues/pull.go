@@ -856,10 +856,26 @@ func GetCodeOwnersFromContent(ctx context.Context, data string) ([]*CodeOwnerRul
 		}
 
 		rules = append(rules, rule)
+		// Cap the number of rules so a crafted file cannot inflate the per-file
+		// match loop into a CPU exhaustion vector; remaining lines are ignored.
+		if len(rules) >= maxCodeOwnerRules {
+			warnings = append(warnings, fmt.Sprintf("Line: %d: too many CODEOWNERS rules, ignoring the rest (limit %d)", i+1, maxCodeOwnerRules))
+			break
+		}
 	}
 
 	return rules, warnings
 }
+
+// maxCodeOwnerRules bounds how many rules a single CODEOWNERS file may yield.
+// It is well above any realistic configuration while keeping the rules×files
+// matching cost bounded for adversarial inputs.
+const maxCodeOwnerRules = 1000
+
+// codeOwnerMatchTimeout bounds a single pattern match so a crafted pattern
+// cannot stall via catastrophic backtracking. See also the aggregate budget
+// enforced by the caller across the whole rules×files match loop.
+const codeOwnerMatchTimeout = 150 * time.Millisecond
 
 type CodeOwnerRule struct {
 	Rule     *regexp2.Regexp // it supports negative lookahead, does better for end users
@@ -890,7 +906,7 @@ func ParseCodeOwnersLine(ctx context.Context, tokens []string) (*CodeOwnerRule, 
 		return nil, warnings
 	}
 	// Bound matching time so user-supplied patterns cannot stall PR creation via catastrophic backtracking.
-	rule.Rule.MatchTimeout = time.Second
+	rule.Rule.MatchTimeout = codeOwnerMatchTimeout
 
 	for _, user := range tokens[1:] {
 		user = strings.TrimPrefix(user, "@")
