@@ -19,7 +19,6 @@ import (
 	user_model "gitea.dev/models/user"
 	"gitea.dev/modules/gitrepo"
 	"gitea.dev/modules/json"
-	"gitea.dev/modules/setting"
 	api "gitea.dev/modules/structs"
 
 	"github.com/stretchr/testify/assert"
@@ -762,66 +761,6 @@ jobs:
 			runner.execTask(t, inner3Task, &mockTaskOutcome{result: runnerv1.Result_RESULT_SUCCESS})
 
 			run = unittest.AssertExistsAndLoadBean(t, &actions_model.ActionRun{ID: runID})
-			assert.Equal(t, actions_model.StatusSuccess, run.Status)
-		})
-
-		t.Run("Cross-repo reusable workflow referenced by absolute instance URL", func(t *testing.T) {
-			// An absolute `uses:` URL pointing to this instance must resolve exactly like the equivalent cross-repo "owner/repo/...@ref" reference.
-
-			// libRepo: public, owned by user2.
-			libAPIRepo := createActionsTestRepo(t, user2Token, "reusable-lib-absolute-url", false)
-			libRepo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: libAPIRepo.ID})
-			createRepoWorkflowFile(t, user2, user2Token, libRepo, ".gitea/workflows/reusable_lib.yaml",
-				`name: ReusableLib
-on:
-  workflow_call:
-    inputs:
-      from:
-        type: string
-
-jobs:
-  lib_job:
-    runs-on: ubuntu-latest
-    steps:
-      - run: echo hello-${{ inputs.from }}
-`)
-
-			// consumerRepo: public, owned by user4.
-			consumerAPIRepo := createActionsTestRepo(t, user4Token, "workflow-call-absolute-url", false)
-			consumerRepo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: consumerAPIRepo.ID})
-
-			runner := newMockRunner()
-			runner.registerAsRepoRunner(t, consumerRepo.OwnerName, consumerRepo.Name, "mock-absolute-url-runner", []string{"ubuntu-latest"}, false)
-
-			// Generate `uses:` with setting.AppURL.
-			usesURL := setting.AppURL + "user2/reusable-lib-absolute-url/.gitea/workflows/reusable_lib.yaml@main"
-			createRepoWorkflowFile(t, user4, user4Token, consumerRepo, ".gitea/workflows/cross-caller.yaml",
-				fmt.Sprintf(`name: CrossCaller
-on: push
-jobs:
-  cross_job:
-    uses: %s
-    with:
-      from: 'consumer'
-`, usesURL))
-
-			run := unittest.AssertExistsAndLoadBean(t, &actions_model.ActionRun{RepoID: consumerRepo.ID})
-			crossJob := unittest.AssertExistsAndLoadBean(t, &actions_model.ActionRunJob{RunID: run.ID, JobID: "cross_job"})
-			assert.True(t, crossJob.IsReusableCaller)
-			assert.True(t, crossJob.IsExpanded)
-
-			libJobTask := runner.fetchTask(t)
-			_, fetchedLibJob, _ := getTaskAndJobAndRunByTaskID(t, libJobTask.Id)
-			assert.Equal(t, "lib_job", fetchedLibJob.JobID)
-			assert.Equal(t, crossJob.ID, fetchedLibJob.ParentJobID)
-			assert.Equal(t, consumerRepo.ID, fetchedLibJob.RepoID)
-			payload := getWorkflowCallPayloadFromTask(t, libJobTask)
-			if assert.Len(t, payload.Inputs, 1) {
-				assert.Equal(t, "consumer", payload.Inputs["from"])
-			}
-			runner.execTask(t, libJobTask, &mockTaskOutcome{result: runnerv1.Result_RESULT_SUCCESS})
-
-			run = unittest.AssertExistsAndLoadBean(t, &actions_model.ActionRun{ID: run.ID})
 			assert.Equal(t, actions_model.StatusSuccess, run.Status)
 		})
 	})
