@@ -23,7 +23,7 @@ func newGenerateCommand() *cli.Command {
 		Usage: "Generate Gitea's secrets/keys/tokens",
 		Commands: []*cli.Command{
 			newGenerateSecretCommand(),
-			newGenerateSSHKeysCommand(),
+			newGenerateSSHCommand(),
 		},
 	}
 }
@@ -40,17 +40,14 @@ func newGenerateSecretCommand() *cli.Command {
 	}
 }
 
-func newGenerateSSHKeysCommand() *cli.Command {
+func newGenerateSSHCommand() *cli.Command {
 	return &cli.Command{
-		Name:  "ssh-keygen",
-		Usage: "Generate a ssh keypair",
-		Flags: []cli.Flag{
-			&cli.IntFlag{Name: "bits", Aliases: []string{"b"}, Usage: "Number of bits in the key, ignored when key is ed25519"},
-			&cli.StringFlag{Name: "type", Aliases: []string{"t"}, Value: "ed25519", Usage: "Specifies the type of key to create."},
-			&cli.StringFlag{Name: "file", Aliases: []string{"f"}, Usage: "Specifies the path or base directory for the key file", Required: true},
-			&cli.BoolFlag{Name: "A", Usage: "Generate host keys of all default key types (rsa, ecdsa, and ed25519) if they do not already exist.", Value: false},
+		Name:  "ssh",
+		Usage: "Generate ssh keys",
+		Commands: []*cli.Command{
+			newGenerateSSHKeyCommand(),
+			newGenerateSSHHostKeysCommand(),
 		},
-		Action: runGenerateKeyPair,
 	}
 }
 
@@ -76,6 +73,30 @@ func newGenerateSecretKeyCommand() *cli.Command {
 		Name:   "SECRET_KEY",
 		Usage:  "Generate a new SECRET_KEY",
 		Action: runGenerateSecretKey,
+	}
+}
+
+func newGenerateSSHKeyCommand() *cli.Command {
+	return &cli.Command{
+		Name:  "key",
+		Usage: "Generate a new ssh key",
+		Flags: []cli.Flag{
+			&cli.IntFlag{Name: "bits", Aliases: []string{"b"}, Usage: "Number of bits in the key, ignored when key is ed25519"},
+			&cli.StringFlag{Name: "type", Aliases: []string{"t"}, Value: "ed25519", Usage: "Specifies the type of key to create."},
+			&cli.StringFlag{Name: "file", Aliases: []string{"f"}, Usage: "Specifies the path or base directory for the key file", Required: true},
+		},
+		Action: runGenerateKeyPair,
+	}
+}
+
+func newGenerateSSHHostKeysCommand() *cli.Command {
+	return &cli.Command{
+		Name:  "host-keys",
+		Usage: "Generate host keys of all default key types (rsa, ecdsa, and ed25519) if they do not already exist.",
+		Flags: []cli.Flag{
+			&cli.StringFlag{Name: "dir", Aliases: []string{"d"}, Usage: "Specifies the base directory for the key files", Required: true},
+		},
+		Action: runGenerateHostKey,
 	}
 }
 
@@ -121,23 +142,25 @@ func runGenerateSecretKey(_ context.Context, c *cli.Command) error {
 	return nil
 }
 
+func runGenerateHostKey(_ context.Context, c *cli.Command) error {
+	file := c.String("dir")
+	info, err := os.Stat(file)
+	if errors.Is(err, os.ErrNotExist) {
+		if err = os.MkdirAll(file, 0o644); err != nil {
+			return err
+		}
+	} else if err != nil {
+		return err
+	} else if !info.IsDir() {
+		return errors.New("file already exists and is not a directory")
+	}
+	fmt.Fprintf(c.Writer, "Generating host keys in %s\n", file)
+	_, err = ssh.InitDefaultHostKeys(file)
+	return err
+}
+
 func runGenerateKeyPair(_ context.Context, c *cli.Command) error {
 	file := c.String("file")
-	if c.Bool("A") {
-		info, err := os.Stat(file)
-		if errors.Is(err, os.ErrNotExist) {
-			if err = os.MkdirAll(file, os.ModePerm); err != nil {
-				return err
-			}
-		} else if err != nil {
-			return err
-		} else if !info.IsDir() {
-			return errors.New("file already exists and is not a directory")
-		}
-		fmt.Fprintf(c.Writer, "Generating host keys in %s\n", file)
-		_, err = ssh.InitDefaultHostKeys(file)
-		return err
-	}
 	keyType := c.String("type")
 
 	fmt.Fprintf(c.Writer, "Generating public/private %s key pair.\n", keyType)
