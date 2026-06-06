@@ -1321,6 +1321,7 @@
   "repo.editor.fork_branch_exists": "Tá brainse \"%s\" ann cheana féin i do fhorc. Roghnaigh ainm brainse nua le do thoil.",
   "repo.commits.desc": "Brabhsáil stair athraithe cód foinse.",
   "repo.commits.commits": "Tiomáintí",
+  "repo.commits.history_enable_follow_renames": "Cuir athainmneacha san áireamh",
   "repo.commits.no_commits": "Níl aon ghealltanas i gcoiteann. Tá stair iomlán difriúil ag \"%s\" agus \"%s\".",
   "repo.commits.nothing_to_compare": "Níl aon difríochtaí le taispeáint.",
   "repo.commits.search.tooltip": "Is féidir eochairfhocail a réamhfhostú le “údar:”, “committer:”, “after:”, nó “before:”, e.g. \"fill an t-údar:Alice roimh: 2019-01-13\".",
