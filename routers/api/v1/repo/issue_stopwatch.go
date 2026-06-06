@@ -57,7 +57,7 @@ func StartIssueStopwatch(ctx *context.APIContext) {
 		ctx.APIErrorInternal(err)
 		return
 	} else if !ok {
-		ctx.APIError(http.StatusConflict, "cannot start a stopwatch again if it already exists")
+		ctx.APIError(http.StatusConflict, ctx.APIErrorMessage("cannot start a stopwatch again if it already exists"))
 		return
 	}
 
@@ -109,7 +109,7 @@ func StopIssueStopwatch(ctx *context.APIContext) {
 		ctx.APIErrorInternal(err)
 		return
 	} else if !ok {
-		ctx.APIError(http.StatusConflict, "cannot stop a non-existent stopwatch")
+		ctx.APIError(http.StatusConflict, ctx.APIErrorMessage("cannot stop a non-existent stopwatch"))
 		return
 	}
 	ctx.Status(http.StatusCreated)
@@ -160,7 +160,7 @@ func DeleteIssueStopwatch(ctx *context.APIContext) {
 		ctx.APIErrorInternal(err)
 		return
 	} else if !ok {
-		ctx.APIError(http.StatusConflict, "cannot cancel a non-existent stopwatch")
+		ctx.APIError(http.StatusConflict, ctx.APIErrorMessage("cannot cancel a non-existent stopwatch"))
 		return
 	}
 

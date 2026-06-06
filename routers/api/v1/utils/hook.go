@@ -81,21 +81,21 @@ func GetRepoHook(ctx *context.APIContext, repoID, hookID int64) (*webhook.Webhoo
 // write the appropriate error to `ctx`. Return whether the form is valid
 func checkCreateHookOption(ctx *context.APIContext, form *api.CreateHookOption) bool {
 	if !webhook_service.IsValidHookTaskType(form.Type) {
-		ctx.APIError(http.StatusUnprocessableEntity, "Invalid hook type: "+form.Type)
+		ctx.APIError(http.StatusUnprocessableEntity, ctx.APIErrorMessage("Invalid hook type: "+form.Type))
 		return false
 	}
 	for _, name := range []string{"url", "content_type"} {
 		if _, ok := form.Config[name]; !ok {
-			ctx.APIError(http.StatusUnprocessableEntity, "Missing config option: "+name)
+			ctx.APIError(http.StatusUnprocessableEntity, ctx.APIErrorMessage("Missing config option: "+name))
 			return false
 		}
 	}
 	if !webhook.IsValidHookContentType(form.Config["content_type"]) {
-		ctx.APIError(http.StatusUnprocessableEntity, "Invalid content type")
+		ctx.APIError(http.StatusUnprocessableEntity, ctx.APIErrorMessage("Invalid content type"))
 		return false
 	}
 	if !validation.IsValidURL(form.Config["url"]) {
-		ctx.APIError(http.StatusUnprocessableEntity, "Invalid url")
+		ctx.APIError(http.StatusUnprocessableEntity, ctx.APIErrorMessage("Invalid url"))
 		return false
 	}
 	return true
@@ -207,7 +207,7 @@ func addHook(ctx *context.APIContext, form *api.CreateHookOption, ownerID, repoI
 	if form.Config["is_system_webhook"] != "" {
 		sw, err := strconv.ParseBool(form.Config["is_system_webhook"])
 		if err != nil {
-			ctx.APIError(http.StatusUnprocessableEntity, "Invalid is_system_webhook value")
+			ctx.APIError(http.StatusUnprocessableEntity, ctx.APIErrorMessage("Invalid is_system_webhook value"))
 			return nil, false
 		}
 		isSystemWebhook = sw
@@ -237,13 +237,13 @@ func addHook(ctx *context.APIContext, form *api.CreateHookOption, ownerID, repoI
 	if w.Type == webhook_module.SLACK {
 		channel, ok := form.Config["channel"]
 		if !ok {
-			ctx.APIError(http.StatusUnprocessableEntity, "Missing config option: channel")
+			ctx.APIError(http.StatusUnprocessableEntity, ctx.APIErrorMessage("Missing config option: channel"))
 			return nil, false
 		}
 		channel = strings.TrimSpace(channel)
 
 		if !webhook_service.IsValidSlackChannel(channel) {
-			ctx.APIError(http.StatusBadRequest, "Invalid slack channel name")
+			ctx.APIError(http.StatusBadRequest, ctx.APIErrorMessage("Invalid slack channel name"))
 			return nil, false
 		}
 
@@ -341,14 +341,14 @@ func editHook(ctx *context.APIContext, form *api.EditHookOption, w *webhook.Webh
 	if form.Config != nil {
 		if url, ok := form.Config["url"]; ok {
 			if !validation.IsValidURL(url) {
-				ctx.APIError(http.StatusUnprocessableEntity, "Invalid url")
+				ctx.APIError(http.StatusUnprocessableEntity, ctx.APIErrorMessage("Invalid url"))
 				return false
 			}
 			w.URL = url
 		}
 		if ct, ok := form.Config["content_type"]; ok {
 			if !webhook.IsValidHookContentType(ct) {
-				ctx.APIError(http.StatusUnprocessableEntity, "Invalid content type")
+				ctx.APIError(http.StatusUnprocessableEntity, ctx.APIErrorMessage("Invalid content type"))
 				return false
 			}
 			w.ContentType = webhook.ToHookContentType(ct)

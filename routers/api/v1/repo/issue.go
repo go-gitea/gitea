@@ -187,7 +187,7 @@ func SearchIssues(ctx *context.APIContext) {
 
 	before, since, err := context.GetQueryBeforeSince(ctx.Base)
 	if err != nil {
-		ctx.APIError(http.StatusUnprocessableEntity, err)
+		ctx.APIError(http.StatusUnprocessableEntity, ctx.APIErrorMessage(err))
 		return
 	}
 
@@ -196,7 +196,7 @@ func SearchIssues(ctx *context.APIContext) {
 	repoIDs, allPublic, err := buildSearchIssuesRepoIDs(ctx)
 	if err != nil {
 		if errors.Is(err, util.ErrNotExist) || errors.Is(err, util.ErrInvalidArgument) {
-			ctx.APIError(http.StatusBadRequest, err)
+			ctx.APIError(http.StatusBadRequest, ctx.APIErrorMessage(err))
 		} else {
 			ctx.APIErrorInternal(err)
 		}
@@ -384,7 +384,7 @@ func ListIssues(ctx *context.APIContext) {
 	//     "$ref": "#/responses/notFound"
 	before, since, err := context.GetQueryBeforeSince(ctx.Base)
 	if err != nil {
-		ctx.APIError(http.StatusUnprocessableEntity, err)
+		ctx.APIError(http.StatusUnprocessableEntity, ctx.APIErrorMessage(err))
 		return
 	}
 
@@ -661,7 +661,7 @@ func CreateIssue(ctx *context.APIContext) {
 		assigneeIDs, err = issues_model.MakeIDsFromAPIAssigneesToAdd(ctx, form.Assignee, form.Assignees)
 		if err != nil {
 			if user_model.IsErrUserNotExist(err) {
-				ctx.APIError(http.StatusUnprocessableEntity, fmt.Sprintf("Assignee does not exist: [name: %s]", err))
+				ctx.APIError(http.StatusUnprocessableEntity, ctx.APIErrorMessage(fmt.Sprintf("Assignee does not exist: [name: %s]", err)))
 			} else {
 				ctx.APIErrorInternal(err)
 			}
@@ -682,7 +682,7 @@ func CreateIssue(ctx *context.APIContext) {
 				return
 			}
 			if !valid {
-				ctx.APIError(http.StatusUnprocessableEntity, repo_model.ErrUserDoesNotHaveAccessToRepo{UserID: aID, RepoName: ctx.Repo.Repository.Name})
+				ctx.APIError(http.StatusUnprocessableEntity, ctx.APIErrorMessage(repo_model.ErrUserDoesNotHaveAccessToRepo{UserID: aID, RepoName: ctx.Repo.Repository.Name}))
 				return
 			}
 		}
@@ -693,9 +693,9 @@ func CreateIssue(ctx *context.APIContext) {
 
 	if err := issue_service.NewIssue(ctx, ctx.Repo.Repository, issue, form.Labels, nil, assigneeIDs, form.Projects); err != nil {
 		if errors.Is(err, user_model.ErrBlockedUser) {
-			ctx.APIError(http.StatusForbidden, err)
+			ctx.APIError(http.StatusForbidden, ctx.APIErrorMessage(err))
 		} else if errors.Is(err, util.ErrPermissionDenied) || errors.Is(err, util.ErrNotExist) {
-			ctx.APIError(http.StatusBadRequest, err)
+			ctx.APIError(http.StatusBadRequest, ctx.APIErrorMessage(err))
 		} else {
 			ctx.APIErrorInternal(err)
 		}
@@ -705,7 +705,7 @@ func CreateIssue(ctx *context.APIContext) {
 	if form.Closed {
 		if err := issue_service.CloseIssue(ctx, issue, ctx.Doer, ""); err != nil {
 			if issues_model.IsErrDependenciesLeft(err) {
-				ctx.APIError(http.StatusPreconditionFailed, "cannot close this issue because it still has open dependencies")
+				ctx.APIError(http.StatusPreconditionFailed, ctx.APIErrorMessage("cannot close this issue because it still has open dependencies"))
 				return
 			}
 			ctx.APIErrorInternal(err)
@@ -794,7 +794,7 @@ func EditIssue(ctx *context.APIContext) {
 	// handles concurrent requests.
 	// TODO: wrap all mutations in a transaction to fully prevent partial writes.
 	if form.ContentVersion != nil && *form.ContentVersion != issue.ContentVersion {
-		ctx.APIError(http.StatusConflict, issues_model.ErrIssueAlreadyChanged)
+		ctx.APIError(http.StatusConflict, ctx.APIErrorMessage(issues_model.ErrIssueAlreadyChanged))
 		return
 	}
 
@@ -813,7 +813,7 @@ func EditIssue(ctx *context.APIContext) {
 		err = issue_service.ChangeContent(ctx, issue, ctx.Doer, *form.Body, contentVersion)
 		if err != nil {
 			if errors.Is(err, issues_model.ErrIssueAlreadyChanged) {
-				ctx.APIError(http.StatusConflict, err)
+				ctx.APIError(http.StatusConflict, ctx.APIErrorMessage(err))
 				return
 			}
 
@@ -835,7 +835,7 @@ func EditIssue(ctx *context.APIContext) {
 
 		if form.RemoveDeadline == nil || !*form.RemoveDeadline {
 			if form.Deadline == nil {
-				ctx.APIError(http.StatusBadRequest, "The due_date cannot be empty")
+				ctx.APIError(http.StatusBadRequest, ctx.APIErrorMessage("The due_date cannot be empty"))
 				return
 			}
 			if !form.Deadline.IsZero() {
@@ -869,7 +869,7 @@ func EditIssue(ctx *context.APIContext) {
 		err = issue_service.UpdateAssignees(ctx, issue, oneAssignee, form.Assignees, ctx.Doer)
 		if err != nil {
 			if errors.Is(err, user_model.ErrBlockedUser) {
-				ctx.APIError(http.StatusForbidden, err)
+				ctx.APIError(http.StatusForbidden, ctx.APIErrorMessage(err))
 			} else {
 				ctx.APIErrorInternal(err)
 			}
@@ -902,7 +902,7 @@ func EditIssue(ctx *context.APIContext) {
 				return
 			}
 			if issue.PullRequest.HasMerged {
-				ctx.APIError(http.StatusPreconditionFailed, "cannot change state of this pull request, it was already merged")
+				ctx.APIError(http.StatusPreconditionFailed, ctx.APIErrorMessage("cannot change state of this pull request, it was already merged"))
 				return
 			}
 		}
@@ -918,7 +918,7 @@ func EditIssue(ctx *context.APIContext) {
 	if canWrite && form.Projects != nil {
 		if err := issues_model.IssueAssignOrRemoveProject(ctx, issue, ctx.Doer, *form.Projects); err != nil {
 			if errors.Is(err, util.ErrPermissionDenied) || errors.Is(err, util.ErrNotExist) {
-				ctx.APIError(http.StatusBadRequest, err)
+				ctx.APIError(http.StatusBadRequest, ctx.APIErrorMessage(err))
 			} else {
 				ctx.APIErrorInternal(err)
 			}
@@ -1034,7 +1034,7 @@ func UpdateIssueDeadline(ctx *context.APIContext) {
 	}
 
 	if !ctx.Repo.Permission.CanWriteIssuesOrPulls(issue.IsPull) {
-		ctx.APIError(http.StatusForbidden, "Not repo writer")
+		ctx.APIError(http.StatusForbidden, ctx.APIErrorMessage("Not repo writer"))
 		return
 	}
 
@@ -1049,14 +1049,14 @@ func UpdateIssueDeadline(ctx *context.APIContext) {
 
 func closeOrReopenIssue(ctx *context.APIContext, issue *issues_model.Issue, state api.StateType) {
 	if state != api.StateOpen && state != api.StateClosed {
-		ctx.APIError(http.StatusPreconditionFailed, fmt.Sprintf("unknown state: %s", state))
+		ctx.APIError(http.StatusPreconditionFailed, ctx.APIErrorMessage(fmt.Sprintf("unknown state: %s", state)))
 		return
 	}
 
 	if state == api.StateClosed && !issue.IsClosed {
 		if err := issue_service.CloseIssue(ctx, issue, ctx.Doer, ""); err != nil {
 			if issues_model.IsErrDependenciesLeft(err) {
-				ctx.APIError(http.StatusPreconditionFailed, "cannot close this issue or pull request because it still has open dependencies")
+				ctx.APIError(http.StatusPreconditionFailed, ctx.APIErrorMessage("cannot close this issue or pull request because it still has open dependencies"))
 				return
 			}
 			ctx.APIErrorInternal(err)

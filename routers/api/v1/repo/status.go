@@ -55,7 +55,7 @@ func NewCommitStatus(ctx *context.APIContext) {
 	form := web.GetForm(ctx).(*api.CreateStatusOption)
 	sha := ctx.PathParam("sha")
 	if len(sha) == 0 {
-		ctx.APIError(http.StatusBadRequest, nil)
+		ctx.APIError(http.StatusBadRequest, ctx.APIErrorMessage(nil))
 		return
 	}
 	status := &git_model.CommitStatus{

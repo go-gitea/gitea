@@ -104,14 +104,14 @@ func getThread(ctx *context.APIContext) *activities_model.Notification {
 	n, err := activities_model.GetNotificationByID(ctx, ctx.PathParamInt64("id"))
 	if err != nil {
 		if db.IsErrNotExist(err) {
-			ctx.APIError(http.StatusNotFound, err)
+			ctx.APIError(http.StatusNotFound, ctx.APIErrorMessage(err))
 		} else {
 			ctx.APIErrorInternal(err)
 		}
 		return nil
 	}
 	if n.UserID != ctx.Doer.ID && !ctx.Doer.IsAdmin {
-		ctx.APIError(http.StatusForbidden, fmt.Errorf("only user itself and admin are allowed to read/change this thread %d", n.ID))
+		ctx.APIError(http.StatusForbidden, ctx.APIErrorMessage(fmt.Errorf("only user itself and admin are allowed to read/change this thread %d", n.ID)))
 		return nil
 	}
 	return n

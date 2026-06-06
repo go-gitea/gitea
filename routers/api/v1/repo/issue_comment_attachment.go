@@ -202,9 +202,9 @@ func CreateIssueCommentAttachment(ctx *context.APIContext) {
 	})
 	if err != nil {
 		if upload.IsErrFileTypeForbidden(err) {
-			ctx.APIError(http.StatusUnprocessableEntity, err)
+			ctx.APIError(http.StatusUnprocessableEntity, ctx.APIErrorMessage(err))
 		} else if errors.Is(err, util.ErrContentTooLarge) {
-			ctx.APIError(http.StatusRequestEntityTooLarge, err)
+			ctx.APIError(http.StatusRequestEntityTooLarge, ctx.APIErrorMessage(err))
 		} else {
 			ctx.APIErrorInternal(err)
 		}
@@ -218,7 +218,7 @@ func CreateIssueCommentAttachment(ctx *context.APIContext) {
 
 	if err = issue_service.UpdateComment(ctx, comment, comment.ContentVersion, ctx.Doer, comment.Content); err != nil {
 		if errors.Is(err, user_model.ErrBlockedUser) {
-			ctx.APIError(http.StatusForbidden, err)
+			ctx.APIError(http.StatusForbidden, ctx.APIErrorMessage(err))
 		} else {
 			ctx.APIErrorInternal(err)
 		}
@@ -285,7 +285,7 @@ func EditIssueCommentAttachment(ctx *context.APIContext) {
 
 	if err := attachment_service.UpdateAttachment(ctx, setting.Attachment.AllowedTypes, attach); err != nil {
 		if upload.IsErrFileTypeForbidden(err) {
-			ctx.APIError(http.StatusUnprocessableEntity, err)
+			ctx.APIError(http.StatusUnprocessableEntity, ctx.APIErrorMessage(err))
 			return
 		}
 		ctx.APIErrorInternal(err)
@@ -354,7 +354,7 @@ func getIssueCommentSafe(ctx *context.APIContext) *issues_model.Comment {
 		return nil
 	}
 	if comment.Issue == nil || comment.Issue.RepoID != ctx.Repo.Repository.ID {
-		ctx.APIError(http.StatusNotFound, "no matching issue comment found")
+		ctx.APIError(http.StatusNotFound, ctx.APIErrorMessage("no matching issue comment found"))
 		return nil
 	}
 
@@ -381,7 +381,7 @@ func getIssueCommentAttachmentSafeWrite(ctx *context.APIContext) *repo_model.Att
 func canUserWriteIssueCommentAttachment(ctx *context.APIContext, comment *issues_model.Comment) bool {
 	canEditComment := ctx.IsSigned && (ctx.Doer.ID == comment.PosterID || ctx.IsUserRepoAdmin() || ctx.IsUserSiteAdmin()) && ctx.Repo.Permission.CanWriteIssuesOrPulls(comment.Issue.IsPull)
 	if !canEditComment {
-		ctx.APIError(http.StatusForbidden, "user should have permission to edit comment")
+		ctx.APIError(http.StatusForbidden, ctx.APIErrorMessage("user should have permission to edit comment"))
 		return false
 	}
 

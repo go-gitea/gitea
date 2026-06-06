@@ -155,6 +155,14 @@ func (ctx *APIContext) APIError(status int, msg string) {
 	})
 }
 
+// APIErrorMessage converts any object to an API error message.
+func (ctx *APIContext) APIErrorMessage(obj any) string {
+	if err, ok := obj.(error); ok {
+		return err.Error()
+	}
+	return fmt.Sprintf("%s", obj)
+}
+
 type apiContextKeyType struct{}
 
 var apiContextKey = apiContextKeyType{}

@@ -43,12 +43,12 @@ func GetBlob(ctx *context.APIContext) {
 
 	sha := ctx.PathParam("sha")
 	if len(sha) == 0 {
-		ctx.APIError(http.StatusBadRequest, "sha not provided")
+		ctx.APIError(http.StatusBadRequest, ctx.APIErrorMessage("sha not provided"))
 		return
 	}
 
 	if blob, err := files_service.GetBlobBySHA(ctx.Repo.Repository, ctx.Repo.GitRepo, sha); err != nil {
-		ctx.APIError(http.StatusBadRequest, err)
+		ctx.APIError(http.StatusBadRequest, ctx.APIErrorMessage(err))
 	} else {
 		ctx.JSON(http.StatusOK, blob)
 	}

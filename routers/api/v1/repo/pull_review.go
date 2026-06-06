@@ -267,7 +267,7 @@ func CreatePullReviewCommentReply(ctx *context.APIContext) {
 		return
 	}
 	if parent.ReviewID == 0 {
-		ctx.APIError(http.StatusBadRequest, "comment is not a review comment")
+		ctx.APIError(http.StatusBadRequest, ctx.APIErrorMessage("comment is not a review comment"))
 		return
 	}
 
@@ -374,7 +374,7 @@ func updatePullReviewCommentResolve(ctx *context.APIContext, isResolve bool) {
 		return
 	}
 	if !canMarkConv {
-		ctx.APIError(http.StatusForbidden, "user should have permission to resolve comment")
+		ctx.APIError(http.StatusForbidden, ctx.APIErrorMessage("user should have permission to resolve comment"))
 		return
 	}
 
@@ -398,12 +398,12 @@ func getPullReviewCommentToResolve(ctx *context.APIContext) *issues_model.Commen
 	}
 
 	if !comment.Issue.IsPull {
-		ctx.APIError(http.StatusBadRequest, "comment does not belong to a pull request")
+		ctx.APIError(http.StatusBadRequest, ctx.APIErrorMessage("comment does not belong to a pull request"))
 		return nil
 	}
 
 	if comment.Type != issues_model.CommentTypeCode {
-		ctx.APIError(http.StatusBadRequest, "comment is not a review comment")
+		ctx.APIError(http.StatusBadRequest, ctx.APIErrorMessage("comment is not a review comment"))
 		return nil
 	}
 
@@ -458,7 +458,7 @@ func DeletePullReview(ctx *context.APIContext) {
 		return
 	}
 	if !ctx.Doer.IsAdmin && ctx.Doer.ID != review.ReviewerID {
-		ctx.APIError(http.StatusForbidden, nil)
+		ctx.APIError(http.StatusForbidden, ctx.APIErrorMessage(nil))
 		return
 	}
 
@@ -575,7 +575,7 @@ func CreatePullReview(ctx *context.APIContext) {
 	review, _, err := pull_service.SubmitReview(ctx, ctx.Doer, ctx.Repo.GitRepo, pr.Issue, reviewType, opts.Body, opts.CommitID, nil)
 	if err != nil {
 		if errors.Is(err, pull_service.ErrSubmitReviewOnClosedPR) {
-			ctx.APIError(http.StatusUnprocessableEntity, err)
+			ctx.APIError(http.StatusUnprocessableEntity, ctx.APIErrorMessage(err))
 		} else {
 			ctx.APIErrorInternal(err)
 		}
@@ -641,7 +641,7 @@ func SubmitPullReview(ctx *context.APIContext) {
 	}
 
 	if review.Type != issues_model.ReviewTypePending {
-		ctx.APIError(http.StatusUnprocessableEntity, errors.New("only a pending review can be submitted"))
+		ctx.APIError(http.StatusUnprocessableEntity, ctx.APIErrorMessage(errors.New("only a pending review can be submitted")))
 		return
 	}
 
@@ -653,7 +653,7 @@ func SubmitPullReview(ctx *context.APIContext) {
 
 	// if review stay pending return
 	if reviewType == issues_model.ReviewTypePending {
-		ctx.APIError(http.StatusUnprocessableEntity, errors.New("review stay pending"))
+		ctx.APIError(http.StatusUnprocessableEntity, ctx.APIErrorMessage(errors.New("review stay pending")))
 		return
 	}
 
@@ -667,7 +667,7 @@ func SubmitPullReview(ctx *context.APIContext) {
 	review, _, err = pull_service.SubmitReview(ctx, ctx.Doer, ctx.Repo.GitRepo, pr.Issue, reviewType, opts.Body, headCommitID, nil)
 	if err != nil {
 		if errors.Is(err, pull_service.ErrSubmitReviewOnClosedPR) {
-			ctx.APIError(http.StatusUnprocessableEntity, err)
+			ctx.APIError(http.StatusUnprocessableEntity, ctx.APIErrorMessage(err))
 		} else {
 			ctx.APIErrorInternal(err)
 		}
@@ -698,7 +698,7 @@ func preparePullReviewType(ctx *context.APIContext, pr *issues_model.PullRequest
 	case api.ReviewStateApproved:
 		// can not approve your own PR
 		if pr.Issue.IsPoster(ctx.Doer.ID) {
-			ctx.APIError(http.StatusUnprocessableEntity, errors.New("approve your own pull is not allowed"))
+			ctx.APIError(http.StatusUnprocessableEntity, ctx.APIErrorMessage(errors.New("approve your own pull is not allowed")))
 			return -1, true
 		}
 		reviewType = issues_model.ReviewTypeApprove
@@ -707,7 +707,7 @@ func preparePullReviewType(ctx *context.APIContext, pr *issues_model.PullRequest
 	case api.ReviewStateRequestChanges:
 		// can not reject your own PR
 		if pr.Issue.IsPoster(ctx.Doer.ID) {
-			ctx.APIError(http.StatusUnprocessableEntity, errors.New("reject your own pull is not allowed"))
+			ctx.APIError(http.StatusUnprocessableEntity, ctx.APIErrorMessage(errors.New("reject your own pull is not allowed")))
 			return -1, true
 		}
 		reviewType = issues_model.ReviewTypeReject
@@ -717,7 +717,7 @@ func preparePullReviewType(ctx *context.APIContext, pr *issues_model.PullRequest
 		needsBody = false
 		// if there is no body we need to ensure that there are comments
 		if !hasBody && !hasComments {
-			ctx.APIError(http.StatusUnprocessableEntity, fmt.Errorf("review event %s requires a body or a comment", event))
+			ctx.APIError(http.StatusUnprocessableEntity, ctx.APIErrorMessage(fmt.Errorf("review event %s requires a body or a comment", event)))
 			return -1, true
 		}
 	default:
@@ -726,7 +726,7 @@ func preparePullReviewType(ctx *context.APIContext, pr *issues_model.PullRequest
 
 	// reject reviews with empty body if a body is required for this call
 	if needsBody && !hasBody {
-		ctx.APIError(http.StatusUnprocessableEntity, fmt.Errorf("review event %s requires a body", event))
+		ctx.APIError(http.StatusUnprocessableEntity, ctx.APIErrorMessage(fmt.Errorf("review event %s requires a body", event)))
 		return -1, true
 	}
 
@@ -935,11 +935,11 @@ func apiReviewRequest(ctx *context.APIContext, opts api.PullReviewRequestOptions
 		comment, err := issue_service.ReviewRequest(ctx, pr.Issue, ctx.Doer, &permDoer, reviewer, isAdd)
 		if err != nil {
 			if issues_model.IsErrReviewRequestOnClosedPR(err) {
-				ctx.APIError(http.StatusForbidden, err)
+				ctx.APIError(http.StatusForbidden, ctx.APIErrorMessage(err))
 				return
 			}
 			if issues_model.IsErrNotValidReviewRequest(err) {
-				ctx.APIError(http.StatusUnprocessableEntity, err)
+				ctx.APIError(http.StatusUnprocessableEntity, ctx.APIErrorMessage(err))
 				return
 			}
 			ctx.APIErrorInternal(err)
@@ -960,11 +960,11 @@ func apiReviewRequest(ctx *context.APIContext, opts api.PullReviewRequestOptions
 			comment, err := issue_service.TeamReviewRequest(ctx, pr.Issue, ctx.Doer, teamReviewer, isAdd)
 			if err != nil {
 				if issues_model.IsErrReviewRequestOnClosedPR(err) {
-					ctx.APIError(http.StatusForbidden, err)
+					ctx.APIError(http.StatusForbidden, ctx.APIErrorMessage(err))
 					return
 				}
 				if issues_model.IsErrNotValidReviewRequest(err) {
-					ctx.APIError(http.StatusUnprocessableEntity, err)
+					ctx.APIError(http.StatusUnprocessableEntity, ctx.APIErrorMessage(err))
 					return
 				}
 				ctx.APIErrorInternal(err)
@@ -1086,7 +1086,7 @@ func UnDismissPullReview(ctx *context.APIContext) {
 
 func dismissReview(ctx *context.APIContext, msg string, isDismiss, dismissPriors bool) {
 	if !ctx.Repo.Permission.IsAdmin() {
-		ctx.APIError(http.StatusForbidden, "Must be repo admin")
+		ctx.APIError(http.StatusForbidden, ctx.APIErrorMessage("Must be repo admin"))
 		return
 	}
 	review, _, isWrong := prepareSingleReview(ctx)
@@ -1095,14 +1095,14 @@ func dismissReview(ctx *context.APIContext, msg string, isDismiss, dismissPriors
 	}
 
 	if review.Type != issues_model.ReviewTypeApprove && review.Type != issues_model.ReviewTypeReject {
-		ctx.APIError(http.StatusForbidden, "not need to dismiss this review because it's type is not Approve or change request")
+		ctx.APIError(http.StatusForbidden, ctx.APIErrorMessage("not need to dismiss this review because it's type is not Approve or change request"))
 		return
 	}
 
 	_, err := pull_service.DismissReview(ctx, review.ID, ctx.Repo.Repository.ID, msg, ctx.Doer, isDismiss, dismissPriors)
 	if err != nil {
 		if pull_service.IsErrDismissRequestOnClosedPR(err) {
-			ctx.APIError(http.StatusForbidden, err)
+			ctx.APIError(http.StatusForbidden, ctx.APIErrorMessage(err))
 			return
 		}
 		ctx.APIErrorInternal(err)

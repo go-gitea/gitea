@@ -28,7 +28,7 @@ func NewAvailable(ctx *context.APIContext) {
 		Status: []activities_model.NotificationStatus{activities_model.NotificationStatusUnread},
 	})
 	if err != nil {
-		ctx.APIError(http.StatusUnprocessableEntity, err)
+		ctx.APIError(http.StatusUnprocessableEntity, ctx.APIErrorMessage(err))
 		return
 	}
 
@@ -38,7 +38,7 @@ func NewAvailable(ctx *context.APIContext) {
 func getFindNotificationOptions(ctx *context.APIContext) *activities_model.FindNotificationOptions {
 	before, since, err := context.GetQueryBeforeSince(ctx.Base)
 	if err != nil {
-		ctx.APIError(http.StatusUnprocessableEntity, err)
+		ctx.APIError(http.StatusUnprocessableEntity, ctx.APIErrorMessage(err))
 		return nil
 	}
 	opts := &activities_model.FindNotificationOptions{

@@ -54,7 +54,7 @@ func GetNote(ctx *context.APIContext) {
 
 	sha := ctx.PathParam("sha")
 	if !git.IsValidRefPattern(sha) {
-		ctx.APIError(http.StatusUnprocessableEntity, "no valid ref or sha: "+sha)
+		ctx.APIError(http.StatusUnprocessableEntity, ctx.APIErrorMessage("no valid ref or sha: "+sha))
 		return
 	}
 	getNote(ctx, sha)

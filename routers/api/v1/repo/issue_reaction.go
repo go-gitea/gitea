@@ -72,7 +72,7 @@ func GetIssueCommentReactions(ctx *context.APIContext) {
 	}
 
 	if !ctx.Repo.Permission.CanReadIssuesOrPulls(comment.Issue.IsPull) {
-		ctx.APIError(http.StatusForbidden, errors.New("no permission to get reactions"))
+		ctx.APIError(http.StatusForbidden, ctx.APIErrorMessage(errors.New("no permission to get reactions")))
 		return
 	}
 
@@ -214,7 +214,7 @@ func changeIssueCommentReaction(ctx *context.APIContext, form api.EditReactionOp
 	}
 
 	if comment.Issue.IsLocked && !ctx.Repo.Permission.CanWriteIssuesOrPulls(comment.Issue.IsPull) {
-		ctx.APIError(http.StatusForbidden, errors.New("no permission to change reaction"))
+		ctx.APIError(http.StatusForbidden, ctx.APIErrorMessage(errors.New("no permission to change reaction")))
 		return
 	}
 
@@ -223,7 +223,7 @@ func changeIssueCommentReaction(ctx *context.APIContext, form api.EditReactionOp
 		reaction, err := issue_service.CreateCommentReaction(ctx, ctx.Doer, comment, form.Reaction)
 		if err != nil {
 			if issues_model.IsErrForbiddenIssueReaction(err) || errors.Is(err, user_model.ErrBlockedUser) {
-				ctx.APIError(http.StatusForbidden, err)
+				ctx.APIError(http.StatusForbidden, ctx.APIErrorMessage(err))
 			} else if issues_model.IsErrReactionAlreadyExist(err) {
 				ctx.JSON(http.StatusOK, api.Reaction{
 					User:     convert.ToUser(ctx, ctx.Doer, ctx.Doer),
@@ -305,7 +305,7 @@ func GetIssueReactions(ctx *context.APIContext) {
 	}
 
 	if !ctx.Repo.Permission.CanReadIssuesOrPulls(issue.IsPull) {
-		ctx.APIError(http.StatusForbidden, errors.New("no permission to get reactions"))
+		ctx.APIError(http.StatusForbidden, ctx.APIErrorMessage(errors.New("no permission to get reactions")))
 		return
 	}
 
@@ -429,7 +429,7 @@ func changeIssueReaction(ctx *context.APIContext, form api.EditReactionOption, i
 	}
 
 	if issue.IsLocked && !ctx.Repo.Permission.CanWriteIssuesOrPulls(issue.IsPull) {
-		ctx.APIError(http.StatusForbidden, errors.New("no permission to change reaction"))
+		ctx.APIError(http.StatusForbidden, ctx.APIErrorMessage(errors.New("no permission to change reaction")))
 		return
 	}
 
@@ -438,7 +438,7 @@ func changeIssueReaction(ctx *context.APIContext, form api.EditReactionOption, i
 		reaction, err := issue_service.CreateIssueReaction(ctx, ctx.Doer, issue, form.Reaction)
 		if err != nil {
 			if issues_model.IsErrForbiddenIssueReaction(err) || errors.Is(err, user_model.ErrBlockedUser) {
-				ctx.APIError(http.StatusForbidden, err)
+				ctx.APIError(http.StatusForbidden, ctx.APIErrorMessage(err))
 			} else if issues_model.IsErrReactionAlreadyExist(err) {
 				ctx.JSON(http.StatusOK, api.Reaction{
 					User:     convert.ToUser(ctx, ctx.Doer, ctx.Doer),

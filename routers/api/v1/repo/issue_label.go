@@ -181,7 +181,7 @@ func DeleteIssueLabel(ctx *context.APIContext) {
 	label, err := issues_model.GetLabelByID(ctx, ctx.PathParamInt64("id"))
 	if err != nil {
 		if issues_model.IsErrLabelNotExist(err) {
-			ctx.APIError(http.StatusUnprocessableEntity, err)
+			ctx.APIError(http.StatusUnprocessableEntity, ctx.APIErrorMessage(err))
 		} else {
 			ctx.APIErrorInternal(err)
 		}
@@ -320,7 +320,7 @@ func prepareForReplaceOrAdd(ctx *context.APIContext, form api.IssueLabelsOption)
 	}
 
 	if !ctx.Repo.Permission.CanWriteIssuesOrPulls(issue.IsPull) {
-		ctx.APIError(http.StatusForbidden, "write permission is required")
+		ctx.APIError(http.StatusForbidden, ctx.APIErrorMessage("write permission is required"))
 		return nil, nil, errors.New("permission denied")
 	}
 
@@ -336,12 +336,12 @@ func prepareForReplaceOrAdd(ctx *context.APIContext, form api.IssueLabelsOption)
 		case reflect.String:
 			labelNames = append(labelNames, rv.String())
 		default:
-			ctx.APIError(http.StatusBadRequest, "a label must be an integer or a string")
+			ctx.APIError(http.StatusBadRequest, ctx.APIErrorMessage("a label must be an integer or a string"))
 			return nil, nil, errors.New("invalid label")
 		}
 	}
 	if len(labelIDs) > 0 && len(labelNames) > 0 {
-		ctx.APIError(http.StatusBadRequest, "labels should be an array of strings or integers")
+		ctx.APIError(http.StatusBadRequest, ctx.APIErrorMessage("labels should be an array of strings or integers"))
 		return nil, nil, errors.New("invalid labels")
 	}
 	if len(labelNames) > 0 {

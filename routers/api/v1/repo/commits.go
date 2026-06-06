@@ -66,7 +66,7 @@ func GetSingleCommit(ctx *context.APIContext) {
 
 	sha := ctx.PathParam("sha")
 	if !git.IsValidRefPattern(sha) {
-		ctx.APIError(http.StatusUnprocessableEntity, "no valid ref or sha: "+sha)
+		ctx.APIError(http.StatusUnprocessableEntity, ctx.APIErrorMessage("no valid ref or sha: "+sha))
 		return
 	}
 
@@ -166,13 +166,13 @@ func GetAllCommits(ctx *context.APIContext) {
 	// Validate since/until as ISO 8601 (RFC3339)
 	if since != "" {
 		if _, err := time.Parse(time.RFC3339, since); err != nil {
-			ctx.APIError(http.StatusUnprocessableEntity, "invalid 'since' format, expected ISO 8601 (RFC3339)")
+			ctx.APIError(http.StatusUnprocessableEntity, ctx.APIErrorMessage("invalid 'since' format, expected ISO 8601 (RFC3339)"))
 			return
 		}
 	}
 	if until != "" {
 		if _, err := time.Parse(time.RFC3339, until); err != nil {
-			ctx.APIError(http.StatusUnprocessableEntity, "invalid 'until' format, expected ISO 8601 (RFC3339)")
+			ctx.APIError(http.StatusUnprocessableEntity, ctx.APIErrorMessage("invalid 'until' format, expected ISO 8601 (RFC3339)"))
 			return
 		}
 	}
@@ -383,7 +383,7 @@ func GetCommitPullRequest(ctx *context.APIContext) {
 	pr, err := issues_model.GetPullRequestByMergedCommit(ctx, ctx.Repo.Repository.ID, ctx.PathParam("sha"))
 	if err != nil {
 		if issues_model.IsErrPullRequestNotExist(err) {
-			ctx.APIError(http.StatusNotFound, err)
+			ctx.APIError(http.StatusNotFound, ctx.APIErrorMessage(err))
 		} else {
 			ctx.APIErrorInternal(err)
 		}

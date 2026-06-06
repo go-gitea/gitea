@@ -243,7 +243,7 @@ func CreateRelease(ctx *context.APIContext) {
 
 	form := web.GetForm(ctx).(*api.CreateReleaseOption)
 	if ctx.Repo.Repository.IsEmpty {
-		ctx.APIError(http.StatusUnprocessableEntity, errors.New("repo is empty"))
+		ctx.APIError(http.StatusUnprocessableEntity, ctx.APIErrorMessage(errors.New("repo is empty")))
 		return
 	}
 	rel, err := repo_model.GetRelease(ctx, ctx.Repo.Repository.ID, form.TagName)
@@ -273,11 +273,11 @@ func CreateRelease(ctx *context.APIContext) {
 		// It doesn't need to be the same as the "release note"
 		if err := release_service.CreateRelease(ctx.Repo.GitRepo, rel, nil, form.TagMessage); err != nil {
 			if repo_model.IsErrReleaseAlreadyExist(err) {
-				ctx.APIError(http.StatusConflict, err)
+				ctx.APIError(http.StatusConflict, ctx.APIErrorMessage(err))
 			} else if release_service.IsErrProtectedTagName(err) {
-				ctx.APIError(http.StatusUnprocessableEntity, err)
+				ctx.APIError(http.StatusUnprocessableEntity, ctx.APIErrorMessage(err))
 			} else if git.IsErrNotExist(err) {
-				ctx.APIError(http.StatusNotFound, fmt.Errorf("target \"%v\" not found: %w", rel.Target, err))
+				ctx.APIError(http.StatusNotFound, ctx.APIErrorMessage(fmt.Errorf("target \"%v\" not found: %w", rel.Target, err)))
 			} else {
 				ctx.APIErrorInternal(err)
 			}
@@ -285,7 +285,7 @@ func CreateRelease(ctx *context.APIContext) {
 		}
 	} else {
 		if !rel.IsTag {
-			ctx.APIError(http.StatusConflict, "Release is has no Tag")
+			ctx.APIError(http.StatusConflict, ctx.APIErrorMessage("Release is has no Tag"))
 			return
 		}
 
@@ -433,7 +433,7 @@ func DeleteRelease(ctx *context.APIContext) {
 	}
 	if err := release_service.DeleteReleaseByID(ctx, ctx.Repo.Repository, rel, ctx.Doer, false); err != nil {
 		if release_service.IsErrProtectedTagName(err) {
-			ctx.APIError(http.StatusUnprocessableEntity, "user not allowed to delete protected tag")
+			ctx.APIError(http.StatusUnprocessableEntity, ctx.APIErrorMessage("user not allowed to delete protected tag"))
 			return
 		}
 		ctx.APIErrorInternal(err)

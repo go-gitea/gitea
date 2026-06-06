@@ -237,7 +237,7 @@ func CreateReleaseAttachment(ctx *context.APIContext) {
 	}
 
 	if filename == "" {
-		ctx.APIError(http.StatusBadRequest, "Could not determine name of attachment.")
+		ctx.APIError(http.StatusBadRequest, ctx.APIErrorMessage("Could not determine name of attachment."))
 		return
 	}
 
@@ -250,12 +250,12 @@ func CreateReleaseAttachment(ctx *context.APIContext) {
 	})
 	if err != nil {
 		if upload.IsErrFileTypeForbidden(err) {
-			ctx.APIError(http.StatusBadRequest, err)
+			ctx.APIError(http.StatusBadRequest, ctx.APIErrorMessage(err))
 			return
 		}
 
 		if errors.Is(err, util.ErrContentTooLarge) {
-			ctx.APIError(http.StatusRequestEntityTooLarge, err)
+			ctx.APIError(http.StatusRequestEntityTooLarge, ctx.APIErrorMessage(err))
 			return
 		}
 
@@ -340,7 +340,7 @@ func EditReleaseAttachment(ctx *context.APIContext) {
 
 	if err := attachment_service.UpdateAttachment(ctx, setting.Repository.Release.AllowedTypes, attach); err != nil {
 		if upload.IsErrFileTypeForbidden(err) {
-			ctx.APIError(http.StatusUnprocessableEntity, err)
+			ctx.APIError(http.StatusUnprocessableEntity, ctx.APIErrorMessage(err))
 			return
 		}
 		ctx.APIErrorInternal(err)

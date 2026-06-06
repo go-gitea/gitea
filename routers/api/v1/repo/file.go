@@ -331,7 +331,7 @@ func ReqChangeRepoFileOptionsAndCheck(ctx *context.APIContext) {
 	commonOpts.BranchName = util.IfZero(commonOpts.BranchName, ctx.Repo.Repository.DefaultBranch)
 	commonOpts.NewBranchName = util.IfZero(commonOpts.NewBranchName, commonOpts.BranchName)
 	if !ctx.Repo.CanWriteToBranch(ctx, ctx.Doer, commonOpts.NewBranchName) && !ctx.IsUserSiteAdmin() {
-		ctx.APIError(http.StatusForbidden, "user should have a permission to write to the target branch")
+		ctx.APIError(http.StatusForbidden, ctx.APIErrorMessage("user should have a permission to write to the target branch"))
 		return
 	}
 	changeFileOpts := &files_service.ChangeRepoFilesOptions{
@@ -409,7 +409,7 @@ func ChangeFiles(ctx *context.APIContext) {
 	for _, file := range apiOpts.Files {
 		contentReader, err := base64Reader(file.ContentBase64)
 		if err != nil {
-			ctx.APIError(http.StatusUnprocessableEntity, err)
+			ctx.APIError(http.StatusUnprocessableEntity, ctx.APIErrorMessage(err))
 			return
 		}
 		// FIXME: ChangeFileOperation.SHA is NOT required for update or delete if last commit is provided in the options
@@ -483,7 +483,7 @@ func CreateFile(ctx *context.APIContext) {
 	}
 	contentReader, err := base64Reader(apiOpts.ContentBase64)
 	if err != nil {
-		ctx.APIError(http.StatusUnprocessableEntity, err)
+		ctx.APIError(http.StatusUnprocessableEntity, ctx.APIErrorMessage(err))
 		return
 	}
 
@@ -554,7 +554,7 @@ func UpdateFile(ctx *context.APIContext) {
 	}
 	contentReader, err := base64Reader(apiOpts.ContentBase64)
 	if err != nil {
-		ctx.APIError(http.StatusUnprocessableEntity, err)
+		ctx.APIError(http.StatusUnprocessableEntity, ctx.APIErrorMessage(err))
 		return
 	}
 	willCreate := apiOpts.SHA == ""
@@ -580,21 +580,21 @@ func UpdateFile(ctx *context.APIContext) {
 func handleChangeRepoFilesError(ctx *context.APIContext, err error) {
 	if git.IsErrPushRejected(err) {
 		err := err.(*git.ErrPushRejected)
-		ctx.APIError(http.StatusForbidden, err.Message)
+		ctx.APIError(http.StatusForbidden, ctx.APIErrorMessage(err.Message))
 		return
 	}
 	if files_service.IsErrUserCannotCommit(err) || pull_service.IsErrFilePathProtected(err) {
-		ctx.APIError(http.StatusForbidden, err)
+		ctx.APIError(http.StatusForbidden, ctx.APIErrorMessage(err))
 		return
 	}
 	if git_model.IsErrBranchAlreadyExists(err) || files_service.IsErrFilenameInvalid(err) || pull_service.IsErrSHADoesNotMatch(err) ||
 		files_service.IsErrFilePathInvalid(err) || files_service.IsErrRepoFileAlreadyExists(err) ||
 		files_service.IsErrCommitIDDoesNotMatch(err) || files_service.IsErrSHAOrCommitIDNotProvided(err) {
-		ctx.APIError(http.StatusUnprocessableEntity, err)
+		ctx.APIError(http.StatusUnprocessableEntity, ctx.APIErrorMessage(err))
 		return
 	}
 	if errors.Is(err, util.ErrNotExist) {
-		ctx.APIError(http.StatusNotFound, err)
+		ctx.APIError(http.StatusNotFound, ctx.APIErrorMessage(err))
 		return
 	}
 	ctx.APIErrorInternal(err)
@@ -770,7 +770,7 @@ func GetContentsExt(ctx *context.APIContext) {
 		case "commit_message":
 			opts.IncludeCommitMessage = true
 		default:
-			ctx.APIError(http.StatusBadRequest, fmt.Sprintf("unknown include option %q", includeOpt))
+			ctx.APIError(http.StatusBadRequest, ctx.APIErrorMessage(fmt.Sprintf("unknown include option %q", includeOpt)))
 			return
 		}
 	}
@@ -957,7 +957,7 @@ func handleGetFileContents(ctx *context.APIContext) {
 	if !ok {
 		err := json.Unmarshal(util.UnsafeStringToBytes(ctx.FormString("body")), &opts)
 		if err != nil {
-			ctx.APIError(http.StatusBadRequest, "invalid body parameter")
+			ctx.APIError(http.StatusBadRequest, ctx.APIErrorMessage("invalid body parameter"))
 			return
 		}
 	}

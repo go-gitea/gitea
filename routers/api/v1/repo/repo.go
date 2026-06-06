@@ -173,7 +173,7 @@ func Search(ctx *context.APIContext) {
 		opts.Collaborate = optional.Some(true)
 	case "":
 	default:
-		ctx.APIError(http.StatusUnprocessableEntity, fmt.Errorf("Invalid search mode: \"%s\"", mode))
+		ctx.APIError(http.StatusUnprocessableEntity, ctx.APIErrorMessage(fmt.Errorf("Invalid search mode: \"%s\"", mode)))
 		return
 	}
 
@@ -234,7 +234,7 @@ func CreateUserRepo(ctx *context.APIContext, owner *user_model.User, opt api.Cre
 
 	// If the readme template does not exist, a 400 will be returned.
 	if opt.AutoInit && len(opt.Readme) > 0 && !slices.Contains(repo_module.Readmes, opt.Readme) {
-		ctx.APIError(http.StatusBadRequest, fmt.Errorf("readme template does not exist, available templates: %v", repo_module.Readmes))
+		ctx.APIError(http.StatusBadRequest, ctx.APIErrorMessage(fmt.Errorf("readme template does not exist, available templates: %v", repo_module.Readmes)))
 		return
 	}
 
@@ -254,13 +254,13 @@ func CreateUserRepo(ctx *context.APIContext, owner *user_model.User, opt api.Cre
 	})
 	if err != nil {
 		if repo_model.IsErrRepoAlreadyExist(err) {
-			ctx.APIError(http.StatusConflict, "The repository with the same name already exists.")
+			ctx.APIError(http.StatusConflict, ctx.APIErrorMessage("The repository with the same name already exists."))
 		} else if db.IsErrNameReserved(err) ||
 			db.IsErrNamePatternNotAllowed(err) ||
 			label.IsErrTemplateLoad(err) {
-			ctx.APIError(http.StatusUnprocessableEntity, err)
+			ctx.APIError(http.StatusUnprocessableEntity, ctx.APIErrorMessage(err))
 		} else if errors.Is(err, util.ErrPermissionDenied) {
-			ctx.APIError(http.StatusForbidden, err)
+			ctx.APIError(http.StatusForbidden, ctx.APIErrorMessage(err))
 		} else {
 			ctx.APIErrorInternal(err)
 		}
@@ -302,7 +302,7 @@ func Create(ctx *context.APIContext) {
 	opt := web.GetForm(ctx).(*api.CreateRepoOption)
 	if ctx.Doer.IsOrganization() {
 		// Shouldn't reach this condition, but just in case.
-		ctx.APIError(http.StatusUnprocessableEntity, "not allowed creating repository for organization")
+		ctx.APIError(http.StatusUnprocessableEntity, ctx.APIErrorMessage("not allowed creating repository for organization"))
 		return
 	}
 	CreateUserRepo(ctx, ctx.Doer, *opt)
@@ -346,12 +346,12 @@ func Generate(ctx *context.APIContext) {
 	form := web.GetForm(ctx).(*api.GenerateRepoOption)
 
 	if !ctx.Repo.Repository.IsTemplate {
-		ctx.APIError(http.StatusUnprocessableEntity, "this is not a template repo")
+		ctx.APIError(http.StatusUnprocessableEntity, ctx.APIErrorMessage("this is not a template repo"))
 		return
 	}
 
 	if ctx.Doer.IsOrganization() {
-		ctx.APIError(http.StatusUnprocessableEntity, "not allowed creating repository for organization")
+		ctx.APIError(http.StatusUnprocessableEntity, ctx.APIErrorMessage("not allowed creating repository for organization"))
 		return
 	}
 
@@ -370,7 +370,7 @@ func Generate(ctx *context.APIContext) {
 	}
 
 	if !opts.IsValid() {
-		ctx.APIError(http.StatusUnprocessableEntity, "must select at least one template item")
+		ctx.APIError(http.StatusUnprocessableEntity, ctx.APIErrorMessage("must select at least one template item"))
 		return
 	}
 
@@ -391,7 +391,7 @@ func Generate(ctx *context.APIContext) {
 		}
 
 		if !ctx.Doer.IsAdmin && !ctxUser.IsOrganization() {
-			ctx.APIError(http.StatusForbidden, "Only admin can generate repository for other user.")
+			ctx.APIError(http.StatusForbidden, ctx.APIErrorMessage("Only admin can generate repository for other user."))
 			return
 		}
 
@@ -401,7 +401,7 @@ func Generate(ctx *context.APIContext) {
 				ctx.APIErrorInternal(err)
 				return
 			} else if !canCreate {
-				ctx.APIError(http.StatusForbidden, "Given user is not allowed to create repository in organization.")
+				ctx.APIError(http.StatusForbidden, ctx.APIErrorMessage("Given user is not allowed to create repository in organization."))
 				return
 			}
 		}
@@ -410,10 +410,10 @@ func Generate(ctx *context.APIContext) {
 	repo, err := repo_service.GenerateRepository(ctx, ctx.Doer, ctxUser, ctx.Repo.Repository, opts)
 	if err != nil {
 		if repo_model.IsErrRepoAlreadyExist(err) {
-			ctx.APIError(http.StatusConflict, "The repository with the same name already exists.")
+			ctx.APIError(http.StatusConflict, ctx.APIErrorMessage("The repository with the same name already exists."))
 		} else if db.IsErrNameReserved(err) ||
 			db.IsErrNamePatternNotAllowed(err) {
-			ctx.APIError(http.StatusUnprocessableEntity, err)
+			ctx.APIError(http.StatusUnprocessableEntity, ctx.APIErrorMessage(err))
 		} else {
 			ctx.APIErrorInternal(err)
 		}
@@ -652,13 +652,13 @@ func updateBasicProperties(ctx *context.APIContext, opts api.EditRepoOption) err
 		if err := repo_service.ChangeRepositoryName(ctx, ctx.Doer, repo, newRepoName); err != nil {
 			switch {
 			case repo_model.IsErrRepoAlreadyExist(err):
-				ctx.APIError(http.StatusUnprocessableEntity, err)
+				ctx.APIError(http.StatusUnprocessableEntity, ctx.APIErrorMessage(err))
 			case db.IsErrNameReserved(err):
-				ctx.APIError(http.StatusUnprocessableEntity, err)
+				ctx.APIError(http.StatusUnprocessableEntity, ctx.APIErrorMessage(err))
 			case db.IsErrNamePatternNotAllowed(err):
-				ctx.APIError(http.StatusUnprocessableEntity, err)
+				ctx.APIError(http.StatusUnprocessableEntity, ctx.APIErrorMessage(err))
 			default:
-				ctx.APIError(http.StatusUnprocessableEntity, fmt.Errorf("ChangeRepositoryName: %w", err))
+				ctx.APIError(http.StatusUnprocessableEntity, ctx.APIErrorMessage(fmt.Errorf("ChangeRepositoryName: %w", err)))
 			}
 			return err
 		}
@@ -692,7 +692,7 @@ func updateBasicProperties(ctx *context.APIContext, opts api.EditRepoOption) err
 		// when ForcePrivate enabled, you could change public repo to private, but only admin users can change private to public
 		if visibilityChanged && setting.Repository.ForcePrivate && !*opts.Private && !ctx.Doer.IsAdmin {
 			err := errors.New("cannot change private repository to public")
-			ctx.APIError(http.StatusUnprocessableEntity, err)
+			ctx.APIError(http.StatusUnprocessableEntity, ctx.APIErrorMessage(err))
 			return err
 		}
 
@@ -756,12 +756,12 @@ func updateRepoUnits(ctx *context.APIContext, opts api.EditRepoOption) error {
 			// Check that values are valid
 			if !validation.IsValidURL(opts.ExternalTracker.ExternalTrackerURL) {
 				err := errors.New("External tracker URL not valid")
-				ctx.APIError(http.StatusUnprocessableEntity, err)
+				ctx.APIError(http.StatusUnprocessableEntity, ctx.APIErrorMessage(err))
 				return err
 			}
 			if len(opts.ExternalTracker.ExternalTrackerFormat) != 0 && !validation.IsValidExternalTrackerURLFormat(opts.ExternalTracker.ExternalTrackerFormat) {
 				err := errors.New("External tracker URL format not valid")
-				ctx.APIError(http.StatusUnprocessableEntity, err)
+				ctx.APIError(http.StatusUnprocessableEntity, ctx.APIErrorMessage(err))
 				return err
 			}
 
@@ -818,7 +818,7 @@ func updateRepoUnits(ctx *context.APIContext, opts api.EditRepoOption) error {
 			// Check that values are valid
 			if !validation.IsValidURL(opts.ExternalWiki.ExternalWikiURL) {
 				err := errors.New("External wiki URL not valid")
-				ctx.APIError(http.StatusUnprocessableEntity, "Invalid external wiki URL")
+				ctx.APIError(http.StatusUnprocessableEntity, ctx.APIErrorMessage("Invalid external wiki URL"))
 				return err
 			}
 
@@ -897,7 +897,7 @@ func updateRepoUnits(ctx *context.APIContext, opts api.EditRepoOption) error {
 			// so unrelated PATCH calls don't reject historical configs.
 			if opts.AllowMergeUpdate != nil || opts.AllowRebaseUpdate != nil || opts.DefaultUpdateStyle != nil {
 				if err := config.ValidateUpdateSettings(); err != nil {
-					ctx.APIError(http.StatusUnprocessableEntity, err)
+					ctx.APIError(http.StatusUnprocessableEntity, ctx.APIErrorMessage(err))
 					return err
 				}
 			}
@@ -988,7 +988,7 @@ func updateRepoArchivedState(ctx *context.APIContext, opts api.EditRepoOption) e
 	if opts.Archived != nil {
 		if repo.IsMirror {
 			err := errors.New("repo is a mirror, cannot archive/un-archive")
-			ctx.APIError(http.StatusUnprocessableEntity, err)
+			ctx.APIError(http.StatusUnprocessableEntity, ctx.APIErrorMessage(err))
 			return err
 		}
 		if *opts.Archived {
@@ -1042,14 +1042,14 @@ func updateMirror(ctx *context.APIContext, opts api.EditRepoOption) error {
 		interval, err := time.ParseDuration(*opts.MirrorInterval)
 		if err != nil {
 			log.Error("Wrong format for MirrorInternal Sent: %s", err)
-			ctx.APIError(http.StatusUnprocessableEntity, err)
+			ctx.APIError(http.StatusUnprocessableEntity, ctx.APIErrorMessage(err))
 			return err
 		}
 
 		// Ensure the provided duration is not too short
 		if interval != 0 && interval < setting.Mirror.MinInterval {
 			err := fmt.Errorf("invalid mirror interval: %s is below minimum interval: %s", interval, setting.Mirror.MinInterval)
-			ctx.APIError(http.StatusUnprocessableEntity, err)
+			ctx.APIError(http.StatusUnprocessableEntity, ctx.APIErrorMessage(err))
 			return err
 		}
 
@@ -1119,7 +1119,7 @@ func updateMirror(ctx *context.APIContext, opts api.EditRepoOption) error {
 	// finally update the mirror in the DB
 	if err := repo_model.UpdateMirror(ctx, mirror); err != nil {
 		log.Error("Failed to Set Mirror Interval: %s", err)
-		ctx.APIError(http.StatusUnprocessableEntity, err)
+		ctx.APIError(http.StatusUnprocessableEntity, ctx.APIErrorMessage(err))
 		return err
 	}
 
@@ -1160,7 +1160,7 @@ func Delete(ctx *context.APIContext) {
 		ctx.APIErrorInternal(err)
 		return
 	} else if !canDelete {
-		ctx.APIError(http.StatusForbidden, "Given user is not owner of organization.")
+		ctx.APIError(http.StatusForbidden, ctx.APIErrorMessage("Given user is not owner of organization."))
 		return
 	}
 

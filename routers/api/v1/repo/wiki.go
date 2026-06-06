@@ -59,7 +59,7 @@ func NewWikiPage(ctx *context.APIContext) {
 	form := web.GetForm(ctx).(*api.CreateWikiPageOptions)
 
 	if util.IsEmptyString(form.Title) {
-		ctx.APIError(http.StatusBadRequest, nil)
+		ctx.APIError(http.StatusBadRequest, ctx.APIErrorMessage(nil))
 		return
 	}
 
@@ -71,16 +71,16 @@ func NewWikiPage(ctx *context.APIContext) {
 
 	content, err := base64.StdEncoding.DecodeString(form.ContentBase64)
 	if err != nil {
-		ctx.APIError(http.StatusBadRequest, err)
+		ctx.APIError(http.StatusBadRequest, ctx.APIErrorMessage(err))
 		return
 	}
 	form.ContentBase64 = string(content)
 
 	if err := wiki_service.AddWikiPage(ctx, ctx.Doer, ctx.Repo.Repository, wikiName, form.ContentBase64, form.Message); err != nil {
 		if repo_model.IsErrWikiReservedName(err) {
-			ctx.APIError(http.StatusBadRequest, err)
+			ctx.APIError(http.StatusBadRequest, ctx.APIErrorMessage(err))
 		} else if repo_model.IsErrWikiAlreadyExist(err) {
-			ctx.APIError(http.StatusBadRequest, err)
+			ctx.APIError(http.StatusBadRequest, ctx.APIErrorMessage(err))
 		} else {
 			ctx.APIErrorInternal(err)
 		}
@@ -149,7 +149,7 @@ func EditWikiPage(ctx *context.APIContext) {
 
 	content, err := base64.StdEncoding.DecodeString(form.ContentBase64)
 	if err != nil {
-		ctx.APIError(http.StatusBadRequest, err)
+		ctx.APIError(http.StatusBadRequest, ctx.APIErrorMessage(err))
 		return
 	}
 	form.ContentBase64 = string(content)
