@@ -306,6 +306,10 @@ func ListBranches(ctx *context.APIContext) {
 	//   in: query
 	//   description: page size of results
 	//   type: integer
+	// - name: q
+	//   in: query
+	//   description: branch name substring to filter by
+	//   type: string
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/BranchList"
@@ -314,6 +318,7 @@ func ListBranches(ctx *context.APIContext) {
 	var apiBranches []*api.Branch
 
 	listOptions := utils.GetListOptions(ctx)
+	keyword := ctx.FormString("q")
 
 	if !ctx.Repo.Repository.IsEmpty {
 		if ctx.Repo.GitRepo == nil {
@@ -325,6 +330,7 @@ func ListBranches(ctx *context.APIContext) {
 			ListOptions:     listOptions,
 			RepoID:          ctx.Repo.Repository.ID,
 			IsDeletedBranch: optional.Some(false),
+			Keyword:         keyword,
 		}
 		var err error
 		totalNumOfBranches, err = db.Count[git_model.Branch](ctx, branchOpts)

@@ -22,8 +22,9 @@
 @import "./modules/tab.css";
 @import "./modules/form.css";
 @import "./modules/dropdown.css";
-@import "./modules/shortcut.css";
+@import "./modules/transition.css";
 
+@import "./modules/shortcut.css";
 @import "./modules/tippy.css";
 @import "./modules/breadcrumb.css";
 @import "./modules/comment.css";
