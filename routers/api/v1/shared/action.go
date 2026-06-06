@@ -16,6 +16,7 @@ import (
 	"gitea.dev/modules/optional"
 	"gitea.dev/modules/setting"
 	api "gitea.dev/modules/structs"
+	"gitea.dev/modules/util"
 	"gitea.dev/modules/webhook"
 	"gitea.dev/routers/api/v1/utils"
 	"gitea.dev/services/context"
@@ -53,7 +54,7 @@ func ListJobs(ctx *context.APIContext, ownerID, repoID, runID int64, runAttemptI
 	for _, status := range ctx.FormStrings("status") {
 		values, err := convertToInternal(status)
 		if err != nil {
-			ctx.APIError(http.StatusBadRequest, "invalid status")
+			ctx.APIError(http.StatusBadRequest, err.Error())
 			return
 		}
 		opts.Statuses = append(opts.Statuses, values...)
@@ -125,7 +126,7 @@ func convertToInternal(s string) ([]actions_model.Status, error) {
 	case "cancelled", "timed_out":
 		return []actions_model.Status{actions_model.StatusCancelled}, nil
 	default:
-		return nil, fmt.Errorf("invalid status %s", s)
+		return nil, util.NewInvalidArgumentErrorf("invalid status %s", s)
 	}
 }
 
@@ -155,7 +156,7 @@ func ListRuns(ctx *context.APIContext, ownerID, repoID int64) {
 	for _, status := range ctx.FormStrings("status") {
 		values, err := convertToInternal(status)
 		if err != nil {
-			ctx.APIError(http.StatusBadRequest, "invalid status")
+			ctx.APIError(http.StatusBadRequest, err.Error())
 			return
 		}
 		opts.Status = append(opts.Status, values...)
