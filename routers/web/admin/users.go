@@ -29,6 +29,7 @@ import (
 	"gitea.dev/services/context"
 	"gitea.dev/services/forms"
 	"gitea.dev/services/mailer"
+	org_service "gitea.dev/services/org"
 	user_service "gitea.dev/services/user"
 )
 
@@ -519,6 +520,81 @@ func DeleteUser(ctx *context.Context) {
 
 	ctx.Flash.Success(ctx.Tr("admin.users.deletion_success"))
 	ctx.Redirect(setting.AppSubURL + "/-/admin/users")
+}
+
+// RemoveUserFromOrg removes a user from an organization
+func RemoveUserFromOrg(ctx *context.Context) {
+	u := prepareUserInfo(ctx)
+	if ctx.Written() {
+		return
+	}
+
+	orgID := ctx.PathParamInt64("orgid")
+	org, err := org_model.GetOrgByID(ctx, orgID)
+	if err != nil {
+		ctx.ServerError("GetOrgByID", err)
+		return
+	}
+
+	if err := org_service.RemoveOrgUser(ctx, org, u); err != nil {
+		if org_model.IsErrLastOrgOwner(err) {
+			ctx.Flash.Error(ctx.Tr("form.last_org_owner"))
+		} else {
+			ctx.ServerError("RemoveOrgUser", err)
+		}
+		ctx.Redirect(setting.AppSubURL + "/-/admin/users/" + url.PathEscape(ctx.PathParam("userid")))
+		return
+	}
+
+	ctx.Flash.Success(ctx.Tr("admin.users.org_removed"))
+	ctx.Redirect(setting.AppSubURL + "/-/admin/users/" + url.PathEscape(ctx.PathParam("userid")))
+}
+
+// RemoveUserFromAllOrgs removes a user from all organizations
+func RemoveUserFromAllOrgs(ctx *context.Context) {
+	u := prepareUserInfo(ctx)
+	if ctx.Written() {
+		return
+	}
+
+	orgs, err := db.Find[org_model.Organization](ctx, org_model.FindOrgOptions{
+		ListOptions:       db.ListOptionsAll,
+		UserID:            u.ID,
+		IncludeVisibility: structs.VisibleTypePrivate,
+	})
+	if err != nil {
+		ctx.ServerError("FindOrgs", err)
+		return
+	}
+
+	if len(orgs) == 0 {
+		ctx.Flash.Info(ctx.Tr("admin.users.no_orgs_to_remove"))
+		ctx.Redirect(setting.AppSubURL + "/-/admin/users/" + url.PathEscape(ctx.PathParam("userid")))
+		return
+	}
+
+	removedCount := 0
+	for i := range orgs {
+		if err := org_service.RemoveOrgUser(ctx, orgs[i], u); err != nil {
+			if org_model.IsErrLastOrgOwner(err) {
+				log.Warn("Cannot remove user %s from org %s: last owner", u.Name, orgs[i].Name)
+				continue
+			}
+			log.Error("Failed to remove user %s from org %s: %v", u.Name, orgs[i].Name, err)
+			continue
+		}
+		removedCount++
+	}
+
+	if removedCount == 0 {
+		ctx.Flash.Error(ctx.Tr("admin.users.no_orgs_removed"))
+	} else if removedCount < len(orgs) {
+		ctx.Flash.Warning(ctx.Tr("admin.users.some_orgs_removed", removedCount, len(orgs)))
+	} else {
+		ctx.Flash.Success(ctx.Tr("admin.users.all_orgs_removed"))
+	}
+
+	ctx.Redirect(setting.AppSubURL + "/-/admin/users/" + url.PathEscape(ctx.PathParam("userid")))
 }
 
 // AvatarPost response for change user's avatar request
