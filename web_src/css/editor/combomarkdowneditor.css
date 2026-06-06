@@ -118,7 +118,7 @@
   flex-direction: column;
   background: var(--color-body);
   color: var(--color-text);
-  box-shadow: var(--shadow-md);
+  box-shadow: 0 6px 18px var(--color-shadow);
 }
 
 .saved-replies-dialog[open] {
@@ -137,7 +137,7 @@
 .saved-replies-dialog-title {
   margin: 0;
   font-size: 16px;
-  font-weight: 600;
+  font-weight: var(--font-weight-semibold);
 }
 
 .saved-replies-dialog-search {
@@ -195,7 +195,7 @@
 }
 
 .saved-replies-item-title {
-  font-weight: 600;
+  font-weight: var(--font-weight-semibold);
   font-size: 14px;
   margin-bottom: 2px;
 }

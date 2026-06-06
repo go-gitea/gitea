@@ -1,10 +1,10 @@
-import { GET } from '../../modules/fetch.ts';
-import { svg } from '../../svg.ts';
-import { triggerEditorContentChanged } from './EditorMarkdown.ts';
-import { createElementFromAttrs, createElementFromHTML } from '../../utils/dom.ts';
-import type { ComboMarkdownEditor } from './ComboMarkdownEditor.ts';
+import {GET} from '../../modules/fetch.ts';
+import {svg} from '../../svg.ts';
+import {triggerEditorContentChanged} from './EditorMarkdown.ts';
+import {createElementFromAttrs, createElementFromHTML} from '../../utils/dom.ts';
+import type {ComboMarkdownEditor} from './ComboMarkdownEditor.ts';
 
-const { appSubUrl } = window.config;
+const {appSubUrl} = window.config;
 
 type SavedReply = {
   id: number;
@@ -27,9 +27,9 @@ let sharedDialog: HTMLDialogElement | null = null;
 let sharedSearchInputController: AbortController | null = null;
 let sharedOpenerButton: HTMLElement | null = null;
 
-export function insertSavedReply(value: string, cursorPos: number, content: string): { value: string; pos: number } {
+export function insertSavedReply(value: string, cursorPos: number, content: string): {value: string; pos: number} {
   if (!value) {
-    return { value: content, pos: content.length };
+    return {value: content, pos: content.length};
   }
 
   const safeCursorPos = Math.max(0, Math.min(cursorPos, value.length));
@@ -45,12 +45,12 @@ export function insertSavedReply(value: string, cursorPos: number, content: stri
 function renderSavedReplies(listEl: Element, replies: SavedReply[], editor: ComboMarkdownEditor, noResultsText: string) {
   listEl.replaceChildren();
   if (replies.length === 0) {
-    listEl.append(createElementFromAttrs('div', { class: 'saved-replies-empty' }, noResultsText));
+    listEl.append(createElementFromAttrs('div', {class: 'saved-replies-empty'}, noResultsText));
     return;
   }
   for (const reply of replies) {
-    const titleEl = createElementFromAttrs('div', { class: 'saved-replies-item-title' }, reply.title);
-    const bodyEl = createElementFromAttrs('div', { class: 'saved-replies-item-body' },
+    const titleEl = createElementFromAttrs('div', {class: 'saved-replies-item-title'}, reply.title);
+    const bodyEl = createElementFromAttrs('div', {class: 'saved-replies-item-body'},
       reply.content.length > 100 ? `${reply.content.substring(0, 100)}…` : reply.content,
     );
 
@@ -87,8 +87,8 @@ function createDialog(): HTMLDialogElement {
   });
 
   // Header
-  const headerTitle = createElementFromAttrs('h4', { class: 'saved-replies-dialog-title', id: dialogTitleId });
-  const header = createElementFromAttrs('div', { class: 'saved-replies-dialog-header' }, headerTitle);
+  const headerTitle = createElementFromAttrs('h4', {class: 'saved-replies-dialog-title', id: dialogTitleId});
+  const header = createElementFromAttrs('div', {class: 'saved-replies-dialog-header'}, headerTitle);
 
   // Search
   const searchInput = createElementFromAttrs<HTMLInputElement>('input', {
@@ -96,10 +96,10 @@ function createDialog(): HTMLDialogElement {
     class: 'saved-replies-search-input',
     autofocus: true,
   });
-  const searchSection = createElementFromAttrs('div', { class: 'saved-replies-dialog-search' }, searchInput);
+  const searchSection = createElementFromAttrs('div', {class: 'saved-replies-dialog-search'}, searchInput);
 
   // List
-  const listEl = createElementFromAttrs('div', { class: 'saved-replies-dialog-list' });
+  const listEl = createElementFromAttrs('div', {class: 'saved-replies-dialog-list'});
 
   // Footer
   const cancelBtn = createElementFromAttrs<HTMLButtonElement>('button', {
@@ -122,7 +122,7 @@ function createDialog(): HTMLDialogElement {
   });
   dialog.addEventListener('close', () => {
     document.body.classList.remove('tw-overflow-hidden');
-    sharedOpenerButton?.focus({ preventScroll: true });
+    sharedOpenerButton?.focus({preventScroll: true});
   });
 
   document.body.append(dialog);
@@ -169,7 +169,7 @@ async function openSavedRepliesDialog(btn: HTMLElement, editor: ComboMarkdownEdi
 
   // show loading
   listEl.replaceChildren();
-  listEl.append(createElementFromAttrs('div', { class: 'saved-replies-loading' }, '…'));
+  listEl.append(createElementFromAttrs('div', {class: 'saved-replies-loading'}, '…'));
   searchInput.value = '';
   document.body.classList.add('tw-overflow-hidden');
   dialog.showModal();
@@ -186,11 +186,11 @@ async function openSavedRepliesDialog(btn: HTMLElement, editor: ComboMarkdownEdi
       const query = searchInput.value.toLowerCase().trim();
       const filtered = query ? allReplies.filter((r) => r.title.toLowerCase().includes(query)) : allReplies;
       renderSavedReplies(listEl, filtered, editor, locale.noResults);
-    }, { signal: sharedSearchInputController.signal });
-    searchInput.focus({ preventScroll: true });
+    }, {signal: sharedSearchInputController.signal});
+    searchInput.focus({preventScroll: true});
   } catch {
     listEl.replaceChildren();
-    listEl.append(createElementFromAttrs('div', { class: 'saved-replies-empty' }, locale.errorLoading));
+    listEl.append(createElementFromAttrs('div', {class: 'saved-replies-empty'}, locale.errorLoading));
   }
 }
 
