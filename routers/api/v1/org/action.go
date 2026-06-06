@@ -387,7 +387,7 @@ func (Action) CreateVariable(ctx *context.APIContext) {
 		return
 	}
 	if v != nil && v.ID > 0 {
-		ctx.APIError(http.StatusConflict, util.NewAlreadyExistErrorf("variable name %s already exists", variableName).Error())
+		ctx.APIError(http.StatusConflict, "variable name already exists")
 		return
 	}
 

@@ -4,7 +4,6 @@
 package repo
 
 import (
-	"fmt"
 	"net/http"
 
 	auth_model "gitea.dev/models/auth"
@@ -276,7 +275,7 @@ func CreateRelease(ctx *context.APIContext) {
 			} else if release_service.IsErrProtectedTagName(err) {
 				ctx.APIError(http.StatusUnprocessableEntity, err.Error())
 			} else if git.IsErrNotExist(err) {
-				ctx.APIError(http.StatusNotFound, fmt.Sprintf("target \"%v\" not found: %v", rel.Target, err))
+				ctx.APIError(http.StatusNotFound, "target not found")
 			} else {
 				ctx.APIErrorInternal(err)
 			}

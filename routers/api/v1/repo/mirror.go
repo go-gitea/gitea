@@ -5,6 +5,7 @@ package repo
 
 import (
 	"errors"
+	"fmt"
 	"net/http"
 	"strings"
 	"time"
@@ -344,8 +345,12 @@ func CreatePushMirror(ctx *context.APIContext, mirrorOption *api.CreatePushMirro
 	repo := ctx.Repo.Repository
 
 	interval, err := time.ParseDuration(mirrorOption.Interval)
-	if err != nil || (interval != 0 && interval < setting.Mirror.MinInterval) {
-		ctx.APIError(http.StatusBadRequest, err.Error())
+	if err != nil {
+		ctx.APIError(http.StatusBadRequest, fmt.Sprintf("invalid interval: %v", err))
+		return
+	}
+	if interval != 0 && interval < setting.Mirror.MinInterval {
+		ctx.APIError(http.StatusBadRequest, fmt.Sprintf("interval is shorter than minimum %v", setting.Mirror.MinInterval.String()))
 		return
 	}
 

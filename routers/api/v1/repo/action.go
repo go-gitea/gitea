@@ -361,7 +361,7 @@ func (Action) CreateVariable(ctx *context.APIContext) {
 		return
 	}
 	if v != nil && v.ID > 0 {
-		ctx.APIError(http.StatusConflict, util.NewAlreadyExistErrorf("variable name %s already exists", variableName).Error())
+		ctx.APIError(http.StatusConflict, "variable name already exists")
 		return
 	}
 
@@ -1062,7 +1062,7 @@ func ActionsDispatchWorkflow(ctx *context.APIContext) {
 	workflowID := ctx.PathParam("workflow_id")
 	opt := web.GetForm(ctx).(*api.CreateActionWorkflowDispatch)
 	if opt.Ref == "" {
-		ctx.APIError(http.StatusUnprocessableEntity, util.NewInvalidArgumentErrorf("ref is required parameter").Error())
+		ctx.APIError(http.StatusUnprocessableEntity, "ref is required parameter")
 		return
 	}
 
@@ -1560,7 +1560,7 @@ func ListWorkflowRunJobs(ctx *context.APIContext) {
 
 	// Avoid the list all jobs functionality for this api route to be used with a runID == 0.
 	if runID <= 0 {
-		ctx.APIError(http.StatusBadRequest, util.NewInvalidArgumentErrorf("runID must be a positive integer").Error())
+		ctx.APIError(http.StatusBadRequest, "runID must be a positive integer")
 		return
 	}
 
