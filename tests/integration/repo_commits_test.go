@@ -69,6 +69,28 @@ func TestRepoCommits(t *testing.T) {
 		assert.Equal(t, "6543", strings.TrimSpace(authorElem.Text()))
 	})
 
+	t.Run("CommitPageUsesCommitterDate", func(t *testing.T) {
+		const (
+			commitID              = "5099b81332712fe655e34e8dd63574f503f61811"
+			expectedCommitterTime = "2017-08-06T19:56:13+02:00"
+			authorTime            = "2017-08-06T19:55:01+02:00"
+		)
+
+		req := NewRequest(t, "GET", "/user2/repo16/commits/branch/master")
+		resp := session.MakeRequest(t, req, http.StatusOK)
+		doc := NewHTMLParser(t, resp.Body)
+
+		var commitListTime string
+		doc.doc.Find("#commits-table tbody tr").EachWithBreak(func(_ int, row *goquery.Selection) bool {
+			if path.Base(row.Find(".commit-id-short").AttrOr("href", "")) != commitID {
+				return true
+			}
+			commitListTime = row.Find("td").Eq(3).Find("relative-time").AttrOr("datetime", "")
+			return false
+		})
+		require.Equal(t, expectedCommitterTime, commitListTime)
+	})
+
 	t.Run("LastCommitNonExistingCommiter", func(t *testing.T) {
 		req := NewRequest(t, "GET", "/user2/repo1/src/branch/branch2")
 		resp := session.MakeRequest(t, req, http.StatusOK)

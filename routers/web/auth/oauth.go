@@ -188,10 +188,6 @@ func SignInOAuthCallback(ctx *context.Context) {
 
 			source := authSource.Cfg.(*oauth2.Source)
 
-			isAdmin, isRestricted := getUserAdminAndRestrictedFromGroupClaims(source, &gothUser)
-			u.IsAdmin = isAdmin.ValueOrDefault(user_service.UpdateOptionField[bool]{FieldValue: false}).FieldValue
-			u.IsRestricted = isRestricted.ValueOrDefault(setting.Service.DefaultUserIsRestricted)
-
 			linkAccountData := &LinkAccountData{authSource.ID, gothUser}
 			if setting.OAuth2Client.AccountLinking == setting.OAuth2AccountLinkingDisabled {
 				linkAccountData = nil
@@ -368,13 +364,22 @@ func handleOAuth2SignIn(ctx *context.Context, authSource *auth.Source, u *user_m
 
 	opts := &user_service.UpdateOptions{}
 
-	// Reactivate user if they are deactivated
+	// HINT: OAUTH-AUTO-SYNC-USER-ACTIVATION: see services/auth/source/oauth2/source_sync.go
+	// Reactivate user only if they were disabled by the OAuth2 auto sync cron (invalid_grant),
+	// which clears AccessToken/RefreshToken/ExpiresAt on the ExternalLoginUser row
+	// An admin-disabled user has no such signature, so we leave IsActive alone
+	// and let verifyAuthWithOptions route them through the prohibit-login / activate page.
 	if !u.IsActive {
-		opts.IsActive = optional.Some(true)
+		extLogin, hasExt, err := user_model.GetExternalLogin(ctx, authSource.ID, gothUser.UserID)
+		if err != nil {
+			ctx.ServerError("GetExternalLogin", err)
+			return
+		}
+		isDisabledByAutoSync := hasExt && extLogin.RefreshToken == ""
+		if isDisabledByAutoSync {
+			opts.IsActive = optional.Some(true)
+		}
 	}
-
-	// Update GroupClaims
-	opts.IsAdmin, opts.IsRestricted = getUserAdminAndRestrictedFromGroupClaims(oauth2Source, &gothUser)
 
 	if oauth2Source.GroupTeamMap != "" || oauth2Source.GroupTeamMapRemoval {
 		if err := source_service.SyncGroupsToTeams(ctx, u, groups, groupTeamMapping, oauth2Source.GroupTeamMapRemoval); err != nil {
