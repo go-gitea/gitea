@@ -364,18 +364,19 @@ func handleOAuth2SignIn(ctx *context.Context, authSource *auth.Source, u *user_m
 
 	opts := &user_service.UpdateOptions{}
 
-	// Reactivate user only if they were disabled by the OAuth2 sync cron (invalid_grant),
+	// HINT: OAUTH-AUTO-SYNC-USER-ACTIVATION: see services/auth/source/oauth2/source_sync.go
+	// Reactivate user only if they were disabled by the OAuth2 auto sync cron (invalid_grant),
 	// which clears AccessToken/RefreshToken/ExpiresAt on the ExternalLoginUser row
-	// (see services/auth/source/oauth2/source_sync.go). An admin-disabled user has no
-	// such signature, so we leave IsActive alone and let verifyAuthWithOptions route
-	// them through the prohibit-login / activate page.
+	// An admin-disabled user has no such signature, so we leave IsActive alone
+	// and let verifyAuthWithOptions route them through the prohibit-login / activate page.
 	if !u.IsActive {
 		extLogin, hasExt, err := user_model.GetExternalLogin(ctx, authSource.ID, gothUser.UserID)
 		if err != nil {
 			ctx.ServerError("GetExternalLogin", err)
 			return
 		}
-		if hasExt && extLogin.RefreshToken == "" && extLogin.AccessToken == "" && extLogin.ExpiresAt.IsZero() {
+		isDisabledByAutoSync := hasExt && extLogin.RefreshToken == ""
+		if isDisabledByAutoSync {
 			opts.IsActive = optional.Some(true)
 		}
 	}

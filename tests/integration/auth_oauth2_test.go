@@ -13,6 +13,7 @@ import (
 	"time"
 
 	auth_model "gitea.dev/models/auth"
+	"gitea.dev/models/db"
 	"gitea.dev/models/unittest"
 	user_model "gitea.dev/models/user"
 	"gitea.dev/modules/json"
@@ -23,6 +24,7 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"xorm.io/builder"
 )
 
 // TestMigrateAzureADV2ToOIDC simulates a login source migration from the Azure AD V2 OAuth2 provider to the OpenID Connect provider,
@@ -192,70 +194,52 @@ func TestOIDCIgnoresStaleExternalLoginLinks(t *testing.T) {
 }
 
 // TestOAuth2CallbackReactivationGating exercises the gate in handleOAuth2SignIn:
-// an inactive user must be reactivated only when their ExternalLoginUser
-// row carries the signature left by the OAuth2 sync cron (empty access/refresh tokens
-// and zero expiry, see services/auth/source/oauth2/source_sync.go). Admin-initiated
-// disables leave the link's tokens intact, so reactivation must not happen.
+// an inactive user can only be reactivated when who was disabled by auto-sync
 func TestOAuth2CallbackReactivationGating(t *testing.T) {
-	setup := func(t *testing.T, sourceName, sub, email, userName string, link *user_model.ExternalLoginUser) *user_model.User {
-		t.Helper()
-		srv := newFakeOIDCServer(t, FakeOIDCConfig{Sub: sub, Email: email, Name: "Test User"})
-		addOAuth2Source(t, sourceName, oauth2.Source{
-			Provider:                      "openidConnect",
-			ClientID:                      "test-client-id",
-			ClientSecret:                  "test-client-secret",
-			OpenIDConnectAutoDiscoveryURL: srv.URL + "/.well-known/openid-configuration",
-		})
-		authSource, err := auth_model.GetActiveOAuth2SourceByAuthName(t.Context(), sourceName)
+	defer tests.PrepareTestEnv(t)()
+	defer test.MockVariableValue(&setting.OAuth2Client.EnableAutoRegistration, true)()
+	defer test.MockVariableValue(&setting.OAuth2Client.Username, setting.OAuth2UsernameUserid)()
+
+	srv := newFakeOIDCServer(t, FakeOIDCConfig{Sub: "test-sub", Email: "test@example.com", Name: "Test User"})
+	addOAuth2Source(t, "test-oauth-source", oauth2.Source{
+		Provider:                      "openidConnect",
+		ClientID:                      "test-client-id",
+		ClientSecret:                  "test-client-secret",
+		OpenIDConnectAutoDiscoveryURL: srv.URL + "/.well-known/openid-configuration",
+	})
+	authSource, err := auth_model.GetActiveOAuth2SourceByAuthName(t.Context(), "test-oauth-source")
+	require.NoError(t, err)
+
+	u := &user_model.User{Name: "test-user", Email: "test@example.com"}
+	require.NoError(t, user_model.CreateUser(t.Context(), u, &user_model.Meta{}))
+
+	extLink := &user_model.ExternalLoginUser{
+		UserID:        u.ID,
+		LoginSourceID: authSource.ID,
+		Provider:      authSource.Name,
+		ExternalID:    "test-sub",
+	}
+	require.NoError(t, user_model.LinkExternalToUser(t.Context(), u, extLink))
+
+	prepareUserExternalLink := func(t *testing.T, refreshToken string) {
+		err := user_model.UpdateUserCols(t.Context(), &user_model.User{ID: u.ID, IsActive: false}, "is_active")
 		require.NoError(t, err)
-
-		u := &user_model.User{Name: userName, Email: email}
-		require.NoError(t, user_model.CreateUser(t.Context(), u, &user_model.Meta{}))
-
-		link.ExternalID = sub
-		link.UserID = u.ID
-		link.LoginSourceID = authSource.ID
-		link.Provider = authSource.Name
-		require.NoError(t, user_model.LinkExternalToUser(t.Context(), u, link))
-
-		u.IsActive = false
-		require.NoError(t, user_model.UpdateUserCols(t.Context(), u, "is_active"))
+		_, err = db.GetEngine(t.Context()).Where(builder.Eq{"user_id": u.ID}).Cols("refresh_token").
+			Update(&user_model.ExternalLoginUser{RefreshToken: refreshToken})
+		require.NoError(t, err)
 		require.False(t, unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: u.ID}).IsActive)
-		return u
 	}
 
 	t.Run("admin-disabled user is not reactivated", func(t *testing.T) {
-		defer tests.PrepareTestEnv(t)()
-		defer test.MockVariableValue(&setting.OAuth2Client.EnableAutoRegistration, true)()
-		defer test.MockVariableValue(&setting.OAuth2Client.Username, setting.OAuth2UsernameUserid)()
-
-		// Link carries tokens from a prior successful sign-in — the state an admin
-		// disable leaves untouched. The fix must leave IsActive=false in place.
-		u := setup(t, "test-admin-disabled", "admin-disabled-sub", "admin-disabled@example.com", "admin-disabled-oauth-user",
-			&user_model.ExternalLoginUser{
-				AccessToken:  "prior-access-token",
-				RefreshToken: "prior-refresh-token",
-				ExpiresAt:    time.Now().Add(time.Hour),
-			})
-
-		doOIDCSignIn(t, "test-admin-disabled")
-
+		prepareUserExternalLink(t, "non-empty-refresh-token")
+		doOIDCSignIn(t, authSource.Name)
 		after := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: u.ID})
 		assert.False(t, after.IsActive, "OAuth callback must not re-enable an administrator-disabled account")
 	})
 
-	t.Run("sync-disabled user is reactivated", func(t *testing.T) {
-		defer tests.PrepareTestEnv(t)()
-		defer test.MockVariableValue(&setting.OAuth2Client.EnableAutoRegistration, true)()
-		defer test.MockVariableValue(&setting.OAuth2Client.Username, setting.OAuth2UsernameUserid)()
-
-		// Link with zeroed tokens reproduces what source_sync.go writes on invalid_grant.
-		// A successful OAuth login should restore IsActive — the intent of PR #31572.
-		u := setup(t, "test-sync-disabled", "sync-disabled-sub", "sync-disabled@example.com", "sync-disabled-oauth-user",
-			&user_model.ExternalLoginUser{})
-
-		doOIDCSignIn(t, "test-sync-disabled")
-
+	t.Run("auto-sync-disabled user is reactivated", func(t *testing.T) {
+		prepareUserExternalLink(t, "" /* empty refresh token */)
+		doOIDCSignIn(t, authSource.Name)
 		after := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: u.ID})
 		assert.True(t, after.IsActive, "OAuth callback must reactivate a sync-disabled account on successful login")
 	})
