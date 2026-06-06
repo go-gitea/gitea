@@ -86,7 +86,7 @@ func TestInitKeys(t *testing.T) {
 		metadata[pubKeyPath] = info
 	}
 
-	// Test recreation on missing private key
+	// Test recreation on missing private key and noop for missing pub key
 	require.NoError(t, os.Remove(filepath.Join(tempDir, "gitea.ecdsa.pub")))
 	require.NoError(t, os.Remove(filepath.Join(tempDir, "gitea.ed25519")))
 
@@ -100,23 +100,22 @@ func TestInitKeys(t *testing.T) {
 
 		infoPriv, err := os.Stat(privKeyPath)
 		require.NoError(t, err)
-		infoPub, err := os.Stat(pubKeyPath)
-		require.NoError(t, err)
+
 		switch keyType {
 		case "rsa":
 			// No modification to RSA key
+			infoPub, err := os.Stat(pubKeyPath)
+			require.NoError(t, err)
 			assert.Equal(t, metadata[privKeyPath], infoPriv)
 			assert.Equal(t, metadata[pubKeyPath], infoPub)
 		case "ecdsa":
-			// No modification to ECDSA private key, public one was regenerated
-
-			// check if it's not modified by modtime, mode and size, Atim sys attribute will be different
-			assert.Equal(t, metadata[privKeyPath].ModTime(), infoPriv.ModTime())
-			assert.Equal(t, metadata[privKeyPath].Size(), infoPriv.Size())
-			assert.Equal(t, metadata[privKeyPath].Mode(), infoPriv.Mode())
-			assert.NotEqual(t, metadata[pubKeyPath], infoPub)
+			// ECDSA public key should be missing, private unchanged
+			assert.Equal(t, metadata[privKeyPath], infoPriv)
+			assert.NoFileExists(t, pubKeyPath)
 		case "ed25519":
-			// ed25519 has private part removed so it was fully regenerated
+			// ed25519 private key was removed, so both keys regenerated
+			infoPub, err := os.Stat(pubKeyPath)
+			require.NoError(t, err)
 			assert.NotEqual(t, metadata[privKeyPath], infoPriv)
 			assert.NotEqual(t, metadata[pubKeyPath], infoPub)
 		}

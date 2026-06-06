@@ -419,37 +419,14 @@ func InitDefaultHostKeys(path string) (keyFiles []string, _ error) {
 	for _, keyType := range keyTypes {
 		keyPath := filepath.Join(path, "gitea."+string(keyType))
 		_, errStatPriv := os.Stat(keyPath)
-		_, errStatPub := os.Stat(keyPath + ".pub")
 		if errStatPriv != nil {
 			err := GenKeyPair(keyPath, keyType, 0)
 			if err != nil {
 				errs = append(errs, err)
 				continue
 			}
-		} else if errStatPub != nil {
-			// Try to generate the public key if it doesn't exist, but we have private available.
-			// appending the keyPath is safe since this triggers only if public is missing but private is present.
-			err := getSSHPublicKey(keyPath)
-			if err != nil {
-				errs = append(errs, err)
-			}
 		}
 		keyFiles = append(keyFiles, keyPath)
 	}
 	return keyFiles, errors.Join(errs...)
-}
-
-// getSSHPublicKey generates the public key from the private key if it doesn't exist
-func getSSHPublicKey(path string) error {
-	key, err := os.ReadFile(path)
-	if err != nil {
-		return err
-	}
-
-	priv, err := gossh.ParsePrivateKey(key)
-	if err != nil {
-		return err
-	}
-
-	return os.WriteFile(path+".pub", gossh.MarshalAuthorizedKey(priv.PublicKey()), 0o644)
 }
