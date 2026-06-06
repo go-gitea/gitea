@@ -656,7 +656,7 @@ func TeamUserGroup(ctx *context.Context) {
 		return
 	}
 
-	visibleTeams := make([]*org_model.Team, 0, len(teamIDs))
+	var visibleTeams []*org_model.Team
 	if shouldSeeAllTeams {
 		visibleTeams, err = org.LoadTeams(ctx)
 		if err != nil {

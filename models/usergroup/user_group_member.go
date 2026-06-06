@@ -13,14 +13,18 @@ import (
 	"xorm.io/builder"
 )
 
-// UserGroupMember represents a user membership in a user group.
-type UserGroupMember struct {
+// Member represents a user membership in a user group.
+type Member struct {
 	GroupID int64 `xorm:"UNIQUE(s) INDEX"`
 	UserID  int64 `xorm:"UNIQUE(s) INDEX"`
 }
 
+func (Member) TableName() string {
+	return "user_group_member"
+}
+
 func init() {
-	db.RegisterModel(new(UserGroupMember))
+	db.RegisterModel(new(Member))
 }
 
 // globalGroupMemberCount is a helper for a batch member-count query.
@@ -55,7 +59,7 @@ func ReplaceUserGroupMembers(ctx context.Context, groupID int64, userIDs []int64
 	uniqueIDs.AddMultiple(userIDs...)
 
 	return db.WithTx(ctx, func(ctx context.Context) error {
-		if _, err := db.GetEngine(ctx).Where("group_id=?", groupID).Delete(new(UserGroupMember)); err != nil {
+		if _, err := db.GetEngine(ctx).Where("group_id=?", groupID).Delete(new(Member)); err != nil {
 			return err
 		}
 
@@ -63,9 +67,9 @@ func ReplaceUserGroupMembers(ctx context.Context, groupID int64, userIDs []int64
 			return nil
 		}
 
-		members := make([]UserGroupMember, 0, len(uniqueIDs))
+		members := make([]Member, 0, len(uniqueIDs))
 		for _, userID := range uniqueIDs.Values() {
-			members = append(members, UserGroupMember{
+			members = append(members, Member{
 				GroupID: groupID,
 				UserID:  userID,
 			})
@@ -76,12 +80,12 @@ func ReplaceUserGroupMembers(ctx context.Context, groupID int64, userIDs []int64
 
 // AddUserToUserGroup adds a user to the user group.
 func AddUserToUserGroup(ctx context.Context, groupID, userID int64) error {
-	return db.Insert(ctx, &UserGroupMember{GroupID: groupID, UserID: userID})
+	return db.Insert(ctx, &Member{GroupID: groupID, UserID: userID})
 }
 
 // RemoveUserFromUserGroup removes a user from the user group.
 func RemoveUserFromUserGroup(ctx context.Context, groupID, userID int64) error {
-	_, err := db.GetEngine(ctx).Delete(&UserGroupMember{GroupID: groupID, UserID: userID})
+	_, err := db.GetEngine(ctx).Delete(&Member{GroupID: groupID, UserID: userID})
 	return err
 }
 

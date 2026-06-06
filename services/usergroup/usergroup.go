@@ -32,7 +32,7 @@ func DeleteUserGroup(ctx context.Context, groupID int64) error {
 
 		return db.DeleteBeans(ctx,
 			&usergroup.UserGroup{ID: groupID},
-			&usergroup.UserGroupMember{GroupID: groupID},
+			&usergroup.Member{GroupID: groupID},
 			&organization.TeamUserGroup{GroupID: groupID},
 		)
 	})

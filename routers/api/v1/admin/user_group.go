@@ -7,7 +7,6 @@ import (
 	"net/http"
 
 	user_model "gitea.dev/models/user"
-	"gitea.dev/models/usergroup"
 	usergroup_model "gitea.dev/models/usergroup"
 	api "gitea.dev/modules/structs"
 	"gitea.dev/modules/web"
@@ -44,7 +43,7 @@ func ListUserGroups(ctx *context.APIContext) {
 // CreateUserGroup creates a new user group.
 func CreateUserGroup(ctx *context.APIContext) {
 	form := web.GetForm(ctx).(*api.CreateUserGroupOption)
-	group := &usergroup.UserGroup{
+	group := &usergroup_model.UserGroup{
 		Name:     form.Name,
 		ParentID: form.ParentID,
 	}
