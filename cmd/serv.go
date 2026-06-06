@@ -113,23 +113,25 @@ func handleCliResponseExtra(extra private.ResponseExtra) error {
 	return nil
 }
 
-func getAccessMode(verb, lfsVerb string) perm.AccessMode {
+// getAccessMode maps an SSH git/LFS verb to the access mode it requires, with
+// ok=false for an unrecognised verb. Callers MUST reject the request when ok is
+// false: AccessModeNone would otherwise pass the `userMode < mode` permission
+// check in routers/private/serv.go and grant access.
+func getAccessMode(verb, lfsVerb string) (mode perm.AccessMode, ok bool) {
 	switch verb {
 	case git.CmdVerbUploadPack, git.CmdVerbUploadArchive:
-		return perm.AccessModeRead
+		return perm.AccessModeRead, true
 	case git.CmdVerbReceivePack:
-		return perm.AccessModeWrite
+		return perm.AccessModeWrite, true
 	case git.CmdVerbLfsAuthenticate, git.CmdVerbLfsTransfer:
 		switch lfsVerb {
 		case git.CmdSubVerbLfsUpload:
-			return perm.AccessModeWrite
+			return perm.AccessModeWrite, true
 		case git.CmdSubVerbLfsDownload:
-			return perm.AccessModeRead
+			return perm.AccessModeRead, true
 		}
 	}
-	// should be unreachable
-	setting.PanicInDevOrTesting("unknown verb: %s %s", verb, lfsVerb)
-	return perm.AccessModeNone
+	return perm.AccessModeNone, false
 }
 
 func runServ(ctx context.Context, c *cli.Command) error {
@@ -247,7 +249,10 @@ func runServ(ctx context.Context, c *cli.Command) error {
 		}
 	}
 
-	requestedMode := getAccessMode(verb, lfsVerb)
+	requestedMode, ok := getAccessMode(verb, lfsVerb)
+	if !ok {
+		return fail(ctx, "Unknown git command", "Unknown git command %s %s", verb, lfsVerb)
+	}
 
 	results, extra := private.ServCommand(ctx, keyID, username, reponame, requestedMode, verb, lfsVerb)
 	if extra.HasError() {
