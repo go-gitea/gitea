@@ -329,7 +329,7 @@ func GetLatestPackageVersion(ctx *context.APIContext) {
 		return
 	}
 	if len(pvs) == 0 {
-		ctx.APIError(http.StatusNotFound, err.Error())
+		ctx.APIErrorNotFound()
 		return
 	}
 

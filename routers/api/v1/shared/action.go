@@ -53,7 +53,7 @@ func ListJobs(ctx *context.APIContext, ownerID, repoID, runID int64, runAttemptI
 	for _, status := range ctx.FormStrings("status") {
 		values, err := convertToInternal(status)
 		if err != nil {
-			ctx.APIError(http.StatusBadRequest, fmt.Sprintf("Invalid status %s", status))
+			ctx.APIError(http.StatusBadRequest, "invalid status")
 			return
 		}
 		opts.Statuses = append(opts.Statuses, values...)
@@ -155,7 +155,7 @@ func ListRuns(ctx *context.APIContext, ownerID, repoID int64) {
 	for _, status := range ctx.FormStrings("status") {
 		values, err := convertToInternal(status)
 		if err != nil {
-			ctx.APIError(http.StatusBadRequest, fmt.Sprintf("Invalid status %s", status))
+			ctx.APIError(http.StatusBadRequest, "invalid status")
 			return
 		}
 		opts.Status = append(opts.Status, values...)

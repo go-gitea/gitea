@@ -1230,7 +1230,7 @@ func UpdatePullRequest(ctx *context.APIContext) {
 	}
 
 	if pr.HasMerged {
-		ctx.APIError(http.StatusUnprocessableEntity, err.Error())
+		ctx.APIError(http.StatusUnprocessableEntity, "pull request is already merged")
 		return
 	}
 
@@ -1240,7 +1240,7 @@ func UpdatePullRequest(ctx *context.APIContext) {
 	}
 
 	if pr.Issue.IsClosed {
-		ctx.APIError(http.StatusUnprocessableEntity, err.Error())
+		ctx.APIError(http.StatusUnprocessableEntity, "pull request is already closed")
 		return
 	}
 
