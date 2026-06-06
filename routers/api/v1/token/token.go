@@ -4,12 +4,14 @@
 package token
 
 import (
+	"errors"
 	"net/http"
 
 	auth_model "gitea.dev/models/auth"
 	user_model "gitea.dev/models/user"
 	"gitea.dev/modules/auth/httpauth"
 	api "gitea.dev/modules/structs"
+	"gitea.dev/modules/util"
 	"gitea.dev/services/context"
 )
 
@@ -23,15 +25,16 @@ func GetCurrentToken(ctx *context.APIContext) {
 	// responses:
 	//	"200":
 	//	  "$ref": "#/responses/CurrentAccessToken"
-	accessToken := getToken(ctx)
-	if accessToken == nil {
+	accessToken, err := getToken(ctx)
+	if err != nil {
+		ctx.APIErrorAuto(err)
 		return
 	}
 
 	// Get user info
 	user, err := user_model.GetUserByID(ctx, accessToken.UID)
 	if err != nil {
-		ctx.APIErrorInternal(err)
+		ctx.APIErrorAuto(err)
 		return
 	}
 
@@ -58,40 +61,28 @@ func DeleteCurrentToken(ctx *context.APIContext) {
 	// responses:
 	//	"204":
 	//	  description: token deleted
-	accessToken := getToken(ctx)
-	if accessToken == nil {
+	accessToken, err := getToken(ctx)
+	if err != nil {
+		ctx.APIErrorAuto(err)
 		return
 	}
 
 	// Delete the token
-	if err := auth_model.DeleteAccessTokenByID(ctx, accessToken.ID, accessToken.UID); err != nil {
-		if auth_model.IsErrAccessTokenNotExist(err) {
-			ctx.NotFoundOrServerError(err)
-		}
+	err = auth_model.DeleteAccessTokenByID(ctx, accessToken.ID, accessToken.UID)
+	if err != nil && !errors.Is(err, util.ErrNotExist) {
+		ctx.APIErrorAuto(err)
 		return
 	}
-
 	ctx.Status(http.StatusNoContent)
 }
 
 // getToken retrieves an access token from the API context's Authorization header and validates it against the database.
 // Returns nil if the token is invalid and handles the response
-func getToken(ctx *context.APIContext) *auth_model.AccessToken {
+func getToken(ctx *context.APIContext) (*auth_model.AccessToken, error) {
 	authHeader := ctx.Req.Header.Get("Authorization")
 	parsed, ok := httpauth.ParseAuthorizationHeader(authHeader)
 	if !ok || parsed.BearerToken == nil {
-		ctx.APIError(http.StatusNotFound, "invalid personal token")
-		return nil
+		return nil, util.NewNotExistErrorf("invalid access token")
 	}
-
-	accessToken, err := auth_model.GetAccessTokenBySHA(ctx, parsed.BearerToken.Token)
-	if err != nil {
-		if auth_model.IsErrAccessTokenNotExist(err) || auth_model.IsErrAccessTokenEmpty(err) {
-			ctx.APIError(http.StatusNotFound, "token not found")
-			return nil
-		}
-		ctx.APIErrorInternal(err)
-		return nil
-	}
-	return accessToken
+	return auth_model.GetAccessTokenBySHA(ctx, parsed.BearerToken.Token)
 }

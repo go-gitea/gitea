@@ -329,15 +329,24 @@ func RepoRefForAPI(next http.Handler) http.Handler {
 	})
 }
 
-// NotFoundOrServerError use error check function to determine if the error
-// is about not found. It responds with 404 status code for not found error,
-// or error context description for logging purpose of 500 server error.
-func (ctx *APIContext) NotFoundOrServerError(err error) {
-	if errors.Is(err, util.ErrNotExist) {
-		ctx.JSON(http.StatusNotFound, nil)
-		return
+// APIErrorAuto use error check function to determine the response code
+func (ctx *APIContext) APIErrorAuto(err error) {
+	switch {
+	case errors.Is(err, util.ErrInvalidArgument):
+		ctx.APIError(http.StatusBadRequest, err.Error())
+	case errors.Is(err, util.ErrPermissionDenied):
+		ctx.APIError(http.StatusForbidden, err.Error())
+	case errors.Is(err, util.ErrNotExist):
+		ctx.APIError(http.StatusNotFound, err.Error())
+	case errors.Is(err, util.ErrAlreadyExist):
+		ctx.APIError(http.StatusConflict, err.Error())
+	case errors.Is(err, util.ErrContentTooLarge):
+		ctx.APIError(http.StatusRequestEntityTooLarge, err.Error())
+	case errors.Is(err, util.ErrUnprocessableContent):
+		ctx.APIError(http.StatusUnprocessableEntity, err.Error())
+	default:
+		ctx.apiErrorInternal(1, err)
 	}
-	ctx.APIErrorInternal(err)
 }
 
 // IsUserSiteAdmin returns true if current user is a site admin

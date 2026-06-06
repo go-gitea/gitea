@@ -192,17 +192,9 @@ func DeleteAccessToken(ctx *context.APIContext) {
 			return
 		}
 	}
-	if tokenID == 0 {
-		ctx.APIErrorInternal(nil)
-		return
-	}
 
 	if err := auth_model.DeleteAccessTokenByID(ctx, tokenID, ctx.ContextUser.ID); err != nil {
-		if auth_model.IsErrAccessTokenNotExist(err) {
-			ctx.APIErrorNotFound()
-		} else {
-			ctx.APIErrorInternal(err)
-		}
+		ctx.APIErrorAuto(err)
 		return
 	}
 

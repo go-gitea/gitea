@@ -346,7 +346,7 @@ func DeleteIssueCommentAttachment(ctx *context.APIContext) {
 func getIssueCommentSafe(ctx *context.APIContext) *issues_model.Comment {
 	comment, err := issues_model.GetCommentByID(ctx, ctx.PathParamInt64("id"))
 	if err != nil {
-		ctx.NotFoundOrServerError(err)
+		ctx.APIErrorAuto(err)
 		return nil
 	}
 	if err := comment.LoadIssue(ctx); err != nil {
@@ -391,7 +391,7 @@ func canUserWriteIssueCommentAttachment(ctx *context.APIContext, comment *issues
 func getIssueCommentAttachmentSafeRead(ctx *context.APIContext, comment *issues_model.Comment) *repo_model.Attachment {
 	attachment, err := repo_model.GetAttachmentByID(ctx, ctx.PathParamInt64("attachment_id"))
 	if err != nil {
-		ctx.NotFoundOrServerError(err)
+		ctx.APIErrorAuto(err)
 		return nil
 	}
 	if !attachmentBelongsToRepoOrComment(ctx, attachment, comment) {
