@@ -5,6 +5,7 @@ package markup
 
 import (
 	"fmt"
+	"html/template"
 	"strconv"
 	"strings"
 	"testing"
@@ -261,7 +262,7 @@ func TestRender_PostProcessIssueTitle(t *testing.T) {
 		"style":  IssueNameStyleNumeric,
 	}
 	actual := PostProcessIssueTitle(NewTestRenderContext(metas), "#1")
-	assert.Equal(t, "#1", actual)
+	assert.Equal(t, template.HTML("#1"), actual)
 }
 
 func testRenderIssueIndexPattern(t *testing.T, input, expected string, ctx *RenderContext) {
