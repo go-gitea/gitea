@@ -48,7 +48,7 @@ func DeleteNotPassedAssignee(ctx context.Context, issue *issues_model.Issue, doe
 			return err
 		}
 		if removed {
-			notify_service.IssueChangeAssignee(ctx, issue.Poster, issue, assignee, true, comment)
+			notify_service.IssueChangeAssignee(ctx, doer, issue, assignee, true, comment)
 		}
 	}
 
@@ -143,7 +143,6 @@ func UpdateAssignees(ctx context.Context, issue *issues_model.Issue, oneAssignee
 			if err != nil {
 				return err
 			}
-
 			assigneeCommentMap[assignee.ID] = comment
 		}
 
@@ -157,7 +156,10 @@ func UpdateAssignees(ctx context.Context, issue *issues_model.Issue, oneAssignee
 	}
 
 	for _, assignee := range allNewAssignees {
-		notify_service.IssueChangeAssignee(ctx, issue.Poster, issue, assignee, false, assigneeCommentMap[assignee.ID])
+		comment := assigneeCommentMap[assignee.ID]
+		if comment != nil {
+			notify_service.IssueChangeAssignee(ctx, issue.Poster, issue, assignee, false, comment)
+		}
 	}
 
 	return nil
@@ -276,7 +278,7 @@ func RemoveAssignees(ctx context.Context, issue *issues_model.Issue, doer *user_
 
 	if len(assignees) > 0 {
 		for assigneeID, assignee := range assignees {
-			notify_service.IssueChangeAssignee(ctx, issue.Poster, issue, assignee, false, assigneeCommentMap[assigneeID])
+			notify_service.IssueChangeAssignee(ctx, issue.Poster, issue, assignee, true, assigneeCommentMap[assigneeID])
 		}
 	}
 	return nil
