@@ -5,6 +5,7 @@ package lfs
 
 import (
 	"context"
+	"fmt"
 	"io"
 	"net/http"
 	"net/url"
@@ -29,4 +30,17 @@ func NewClient(endpoint *url.URL, httpTransport *http.Transport) Client {
 		return newFilesystemClient(endpoint)
 	}
 	return newHTTPClient(endpoint, httpTransport)
+}
+
+// NewClientFromEndpoint creates a LFS client after resolving its endpoint.
+func NewClientFromEndpoint(cloneurl, lfsurl string, httpTransport *http.Transport) (Client, error) {
+	endpoint := DetermineEndpoint(cloneurl, lfsurl)
+	if endpoint == nil {
+		source := cloneurl
+		if lfsurl != "" {
+			source = lfsurl
+		}
+		return nil, fmt.Errorf("unable to determine LFS endpoint from %q", source)
+	}
+	return NewClient(endpoint, httpTransport), nil
 }
