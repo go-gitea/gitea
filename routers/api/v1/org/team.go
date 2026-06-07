@@ -236,7 +236,7 @@ func CreateTeam(ctx *context.APIContext) {
 
 	if err := org_service.NewTeam(ctx, team); err != nil {
 		if organization.IsErrTeamAlreadyExist(err) {
-			ctx.APIError(http.StatusUnprocessableEntity, err)
+			ctx.APIError(http.StatusUnprocessableEntity, err.Error())
 		} else {
 			ctx.APIErrorInternal(err)
 		}
@@ -490,7 +490,7 @@ func AddTeamMember(ctx *context.APIContext) {
 	}
 	if err := org_service.AddTeamMember(ctx, ctx.Org.Team, u); err != nil {
 		if errors.Is(err, user_model.ErrBlockedUser) {
-			ctx.APIError(http.StatusForbidden, err)
+			ctx.APIError(http.StatusForbidden, err.Error())
 		} else {
 			ctx.APIErrorInternal(err)
 		}
