@@ -603,21 +603,24 @@ func repoAssignmentPrepareRepo(ctx *Context, data *repoAssignmentPrepareDataStru
 		}
 		return
 	}
-	if repo.GroupID != gid {
-		ctx.NotFound(nil)
-		return
-	}
 
-	if gid > 0 {
-		GroupAssignmentWeb(GroupAssignmentOptions{
-			RequireMember: true,
-		})(ctx)
-	}
 	if ctx.Written() {
 		return
 	}
 	repo.Owner = ctx.Repo.Owner
 	data.repo = repo
+}
+
+func repoAssignmentPrepareRepoGroup(ctx *Context, data *repoAssignmentPrepareDataStruct) {
+	gid, _ := strconv.ParseInt(data.rawGroupID, 10, 64)
+	if data.repo.GroupID != gid {
+		ctx.NotFound(nil)
+		return
+	}
+
+	if gid > 0 {
+		GroupAssignmentWeb(GroupAssignmentOptions{})(ctx)
+	}
 }
 
 func repoAssignmentPrepareTemplateData(ctx *Context, data *repoAssignmentPrepareDataStruct) {
@@ -834,6 +837,7 @@ func RepoAssignment(ctx *Context) {
 		repoAssignmentAutoRedirectWiki,
 		repoAssignmentPrepareRepo,
 		repoAssignmentLegacy,
+		repoAssignmentPrepareRepoGroup,
 		repoAssignmentPrepareTemplateData,
 		repoAssignmentAutoRedirectNotReady,
 		repoAssignmentPrepareGitRepo,
