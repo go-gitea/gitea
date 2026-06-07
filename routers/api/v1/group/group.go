@@ -26,7 +26,7 @@ func createCommonGroup(ctx *context.APIContext, parentGroupID, ownerID int64) *a
 	if ownerID < 1 {
 		if parentGroupID < 1 {
 			ctx.APIError(http.StatusUnprocessableEntity,
-				errors.New("cannot determine new group's owner"))
+				"cannot determine new group's owner")
 			return nil
 		}
 		npg, err := group_model.GetGroupByID(ctx, parentGroupID)
@@ -51,13 +51,13 @@ func createCommonGroup(ctx *context.APIContext, parentGroupID, ownerID int64) *a
 	}
 	if err := group_service.NewGroup(ctx, group, ctx.Doer); err != nil {
 		if group_model.IsErrGroupTooDeep(err) {
-			ctx.APIError(http.StatusUnprocessableEntity, err)
+			ctx.APIError(http.StatusUnprocessableEntity, err.Error())
 		} else if org_model.IsErrOrgNotExist(err) {
 			ctx.APIErrorNotFound()
 		} else if group_model.IsErrUserDoesNotHaveAccessToGroup(err) {
-			ctx.APIError(http.StatusForbidden, err)
+			ctx.APIError(http.StatusForbidden, err.Error())
 		} else if errors.Is(errors.Unwrap(err), util.ErrInvalidArgument) {
-			ctx.APIError(http.StatusUnprocessableEntity, err)
+			ctx.APIError(http.StatusUnprocessableEntity, err.Error())
 		}
 		return nil
 	}
@@ -212,7 +212,7 @@ func MoveGroup(ctx *context.APIContext) {
 		return
 	}
 	if group_model.IsErrUserDoesNotHaveAccessToGroup(err) {
-		ctx.APIError(http.StatusForbidden, err)
+		ctx.APIError(http.StatusForbidden, err.Error())
 		return
 	}
 	if err != nil {
