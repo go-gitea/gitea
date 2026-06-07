@@ -136,13 +136,15 @@ onBeforeUnmount(() => {
 .action-run-summary-block {
   display: flex;
   flex-wrap: wrap;
-  align-items: flex-end;
+  align-items: stretch; /* equal-height columns so labels align at top and values at bottom */
   padding: 12px 16px;
   border-bottom: 1px solid var(--color-secondary);
   background: var(--color-console-bg);
 }
 
 .action-run-summary-trigger {
+  display: flex;
+  flex-direction: column;
   flex: 0 1 auto;
   min-width: 0;
   max-width: 100%;
@@ -158,6 +160,7 @@ onBeforeUnmount(() => {
 }
 
 .action-run-summary-trigger-content {
+  margin-top: auto; /* pin trigger content to the bottom, aligned with the stat values */
   color: var(--color-text-light-2);
   align-items: center;
 }
@@ -204,6 +207,8 @@ onBeforeUnmount(() => {
 }
 
 .action-run-summary-stat {
+  display: flex;
+  flex-direction: column;
   flex: 0 0 auto;
   min-width: 72px;
   margin-left: 24px;
@@ -223,6 +228,7 @@ onBeforeUnmount(() => {
 
 .action-run-summary-stat-value {
   display: block;
+  margin-top: auto; /* pin value to the bottom so all column values share a baseline */
   font-size: 16px;
   line-height: 1.25;
   font-weight: var(--font-weight-semibold);
@@ -230,10 +236,6 @@ onBeforeUnmount(() => {
 }
 
 @media (max-width: 767.98px) {
-  .action-run-summary-block {
-    align-items: flex-start;
-  }
-
   .action-run-summary-trigger {
     flex: 0 0 100%;
     margin-right: 0;

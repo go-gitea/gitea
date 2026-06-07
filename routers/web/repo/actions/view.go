@@ -31,6 +31,7 @@ import (
 	"gitea.dev/modules/json"
 	"gitea.dev/modules/log"
 	"gitea.dev/modules/storage"
+	api "gitea.dev/modules/structs"
 	"gitea.dev/modules/templates"
 	"gitea.dev/modules/translation"
 	"gitea.dev/modules/util"
@@ -399,7 +400,7 @@ type ViewStepLogLine struct {
 	Timestamp float64 `json:"timestamp"`
 }
 
-func viewPullRequestFromRun(ctx context.Context, run *actions_model.ActionRun) *ViewPullRequest {
+func viewPullRequestFromRun(ctx context.Context, run *actions_model.ActionRun, prPayload *api.PullRequestPayload) *ViewPullRequest {
 	if run.Repo == nil {
 		return nil
 	}
@@ -410,7 +411,7 @@ func viewPullRequestFromRun(ctx context.Context, run *actions_model.ActionRun) *
 			Link:  run.RefLink(),
 		}
 	}
-	if prPayload, err := run.GetPullRequestEventPayload(); err == nil && prPayload.Index > 0 {
+	if prPayload != nil && prPayload.Index > 0 {
 		return &ViewPullRequest{
 			Index: fmt.Sprintf("#%d", prPayload.Index),
 			Link:  fmt.Sprintf("%s/pulls/%d", run.Repo.Link(), prPayload.Index),
@@ -437,9 +438,9 @@ func viewPullRequestFromRun(ctx context.Context, run *actions_model.ActionRun) *
 	return nil
 }
 
-func viewSummaryBranchFromRun(ctx context.Context, run *actions_model.ActionRun) ViewBranch {
+func viewSummaryBranchFromRun(ctx context.Context, run *actions_model.ActionRun, prPayload *api.PullRequestPayload) ViewBranch {
 	refName := git.RefName(run.Ref)
-	if prPayload, err := run.GetPullRequestEventPayload(); err == nil && prPayload.PullRequest != nil && prPayload.PullRequest.Head != nil {
+	if prPayload != nil && prPayload.PullRequest != nil && prPayload.PullRequest.Head != nil {
 		head := prPayload.PullRequest.Head
 		name := head.Name
 		if name == "" {
@@ -500,9 +501,11 @@ type viewSummaryRefInfo struct {
 // every request (GetUnmergedPullRequestsByHeadInfo / GetBranch).
 func getViewSummaryRefInfo(ctx context.Context, run *actions_model.ActionRun) viewSummaryRefInfo {
 	compute := func() viewSummaryRefInfo {
+		// parse the event payload once and share it between both resolvers
+		prPayload, _ := run.GetPullRequestEventPayload() // nil unless this is a pull request event
 		return viewSummaryRefInfo{
-			PullRequest: viewPullRequestFromRun(ctx, run),
-			Branch:      viewSummaryBranchFromRun(ctx, run),
+			PullRequest: viewPullRequestFromRun(ctx, run, prPayload),
+			Branch:      viewSummaryBranchFromRun(ctx, run, prPayload),
 		}
 	}
 	c := cache.GetCache()
