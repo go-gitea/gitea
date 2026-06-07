@@ -215,7 +215,7 @@ func (opts FindOrgMembersOpts) applyKeywordFilter(sess db.Session) bool {
 	}
 	keywordCond = keywordCond.Or(emailCond)
 
-	sess.Join("INNER", "`user`", "org_user.uid = `user`.id").And(keywordCond)
+	_ = sess.Join("INNER", "`user`", "org_user.uid = `user`.id").And(keywordCond)
 	return true
 }
 
