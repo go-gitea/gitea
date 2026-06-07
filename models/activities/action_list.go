@@ -206,8 +206,8 @@ func (actions ActionList) LoadIssues(ctx context.Context) error {
 
 // GetFeeds returns actions according to the provided options
 func GetFeeds(ctx context.Context, opts GetFeedsOptions) (ActionList, int64, error) {
-	if opts.RequestedUser == nil && opts.RequestedTeam == nil && opts.RequestedRepo == nil {
-		return nil, 0, errors.New("need at least one of these filters: RequestedUser, RequestedTeam, RequestedRepo")
+	if opts.RequestedUser == nil && opts.RequestedTeam == nil && opts.RequestedRepo == nil && opts.RequestedGroup == nil {
+		return nil, 0, errors.New("need at least one of these filters: RequestedUser, RequestedTeam, RequestedRepo, RequestedGroup")
 	}
 
 	var err error
