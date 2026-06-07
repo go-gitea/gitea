@@ -16,7 +16,7 @@
 			<div class="item-main">
 				<div class="item-header">
 					<div>
-						<a class="issue-item-title" href="{{if .Link}}{{.Link}}{{else}}{{$.Link}}/{{.Index}}{{end}}">{{.Title | ctx.RenderUtils.RenderIssueSimpleTitle}}</a>
+						<a class="list-item-large-title" href="{{if .Link}}{{.Link}}{{else}}{{$.Link}}/{{.Index}}{{end}}">{{.Title | ctx.RenderUtils.RenderIssueSimpleTitle}}</a>
 						{{if .IsPull}}
 							{{if (index $.CommitStatuses .PullRequest.ID)}}
 								<span class="tw-align-[1px]">{{/* make the "flex" children align with parent "inline" */}}
@@ -37,14 +37,16 @@
 					</div>
 					{{end}}
 				</div>
-				<div class="item-body">
-					<a class="index" href="{{if .Link}}{{.Link}}{{else}}{{$.Link}}/{{.Index}}{{end}}">
+				<div class="item-body tw-gap-2">
+					<a class="index flex-text-inline" href="{{if .Link}}{{.Link}}{{else}}{{$.Link}}/{{.Index}}{{end}}">
 						{{if eq $.listType "dashboard"}}
 							{{.Repo.FullName}}#{{.Index}}
 						{{else}}
 							#{{.Index}}
 						{{end}}
 					</a>
+
+					<div class="flex-text-inline">
 					{{$timeStr := DateUtils.TimeSince .GetLastEventTimestamp}}
 					{{if .OriginalAuthor}}
 						{{ctx.Locale.Tr .GetLastEventLabelFake $timeStr .OriginalAuthor}}
@@ -53,6 +55,8 @@
 					{{else}}
 						{{ctx.Locale.Tr .GetLastEventLabelFake $timeStr .Poster.GetDisplayName}}
 					{{end}}
+					</div>
+
 					{{if .IsPull}}
 						<div class="branches flex-text-inline">
 							<div class="branch">
@@ -99,11 +103,9 @@
 						</span>
 					{{end}}
 					{{if ne .DeadlineUnix 0}}
-						<span class="due-date flex-text-inline" data-tooltip-content="{{ctx.Locale.Tr "repo.issues.due_date"}}">
-							<span{{if .IsOverdue}} class="tw-text-red"{{end}}>
-								{{svg "octicon-calendar" 14}}
-								{{DateUtils.AbsoluteShort .DeadlineUnix}}
-							</span>
+						<span class="due-date flex-text-inline {{if .IsOverdue}}tw-text-red{{end}}" data-tooltip-content="{{ctx.Locale.Tr "repo.issues.due_date"}}">
+							{{svg "octicon-calendar" 14}}
+							{{DateUtils.AbsoluteShort .DeadlineUnix}}
 						</span>
 					{{end}}
 					{{if .IsPull}}
