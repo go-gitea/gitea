@@ -446,11 +446,6 @@ a.label,
   margin-right: 4px;
 }
 
-.ui.inline.delete-button {
-  padding: 8px 15px;
-  font-weight: var(--font-weight-normal);
-}
-
 .ui .migrate {
   color: var(--color-text-light-2) !important;
 }

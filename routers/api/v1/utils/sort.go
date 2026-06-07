@@ -26,12 +26,12 @@ func ResolveSortOrder(ctx *context.APIContext, orderByMap map[string]map[string]
 	}
 	orderMap, ok := orderByMap[sortOrder]
 	if !ok {
-		ctx.APIError(http.StatusUnprocessableEntity, fmt.Errorf("Invalid sort order: %q", sortOrder))
+		ctx.APIError(http.StatusUnprocessableEntity, fmt.Sprintf("Invalid sort order: %q", sortOrder))
 		return "", false
 	}
 	orderBy, ok := orderMap[sortMode]
 	if !ok {
-		ctx.APIError(http.StatusUnprocessableEntity, fmt.Errorf("Invalid sort mode: %q", sortMode))
+		ctx.APIError(http.StatusUnprocessableEntity, fmt.Sprintf("Invalid sort mode: %q", sortMode))
 		return "", false
 	}
 	return orderBy, true

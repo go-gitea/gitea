@@ -12,7 +12,6 @@ import (
 	"regexp"
 	"slices"
 	"strings"
-	"unicode"
 
 	user_model "gitea.dev/models/gituser"
 	issues_model "gitea.dev/models/issues"
@@ -43,60 +42,35 @@ func NewRenderUtils(ctx reqctx.RequestContext) *RenderUtils {
 	return &RenderUtils{ctx: ctx, avatarUtils: NewAvatarUtils(ctx)}
 }
 
-// RenderCommitMessage renders commit message with XSS-safe and special links.
+// RenderCommitMessage renders commit message title (only title)
 func (ut *RenderUtils) RenderCommitMessage(msg string, repo *repo.Repository) template.HTML {
-	cleanMsg := template.HTML(template.HTMLEscapeString(msg))
-	// we can safely assume that it will not return any error, since there shouldn't be any special HTML.
-	// "repo" can be nil when rendering commit messages for deleted repositories in a user's dashboard feed.
-	fullMessage, err := markup.PostProcessCommitMessage(renderhelper.NewRenderContextRepoComment(ut.ctx, repo), cleanMsg)
-	if err != nil {
-		log.Error("PostProcessCommitMessage: %v", err)
-		return ""
-	}
-	msgLines := strings.Split(strings.TrimSpace(string(fullMessage)), "\n")
-	if len(msgLines) == 0 {
-		return ""
-	}
-	return renderCodeBlock(template.HTML(msgLines[0]))
+	msgLine := strings.TrimSpace(msg)
+	msgLine, _, _ = strings.Cut(msgLine, "\n")
+	msgLine = strings.TrimSpace(msgLine)
+	rendered := markup.PostProcessCommitMessage(renderhelper.NewRenderContextRepoComment(ut.ctx, repo), htmlutil.EscapeString(msgLine))
+	return renderCodeBlock(rendered)
 }
 
 // RenderCommitMessageLinkSubject renders commit message as a XSS-safe link to
 // the provided default url, handling for special links without email to links.
 func (ut *RenderUtils) RenderCommitMessageLinkSubject(msg, urlDefault string, repo *repo.Repository) template.HTML {
-	msgLine := strings.TrimLeftFunc(msg, unicode.IsSpace)
-	lineEnd := strings.IndexByte(msgLine, '\n')
-	if lineEnd > 0 {
-		msgLine = msgLine[:lineEnd]
-	}
-	msgLine = strings.TrimRightFunc(msgLine, unicode.IsSpace)
-	if len(msgLine) == 0 {
-		return ""
-	}
-
-	// we can safely assume that it will not return any error, since there shouldn't be any special HTML.
-	renderedMessage, err := markup.PostProcessCommitMessageSubject(renderhelper.NewRenderContextRepoComment(ut.ctx, repo), urlDefault, template.HTMLEscapeString(msgLine))
-	if err != nil {
-		log.Error("PostProcessCommitMessageSubject: %v", err)
-		return ""
-	}
-	return renderCodeBlock(template.HTML(renderedMessage))
+	msgLine := strings.TrimSpace(msg)
+	msgLine, _, _ = strings.Cut(msgLine, "\n")
+	msgLine = strings.TrimSpace(msgLine)
+	rctx := renderhelper.NewRenderContextRepoComment(ut.ctx, repo)
+	rendered := markup.PostProcessCommitMessageSubject(rctx, urlDefault, htmlutil.EscapeString(msgLine))
+	return renderCodeBlock(rendered)
 }
 
 // RenderCommitBody extracts the body of a commit message without its title.
 func (ut *RenderUtils) RenderCommitBody(msg string, repo *repo.Repository) template.HTML {
 	_, body, _ := strings.Cut(strings.TrimSpace(msg), "\n")
-	body = strings.TrimFunc(body, unicode.IsSpace)
+	body = strings.TrimSpace(body)
 	if body == "" {
 		return ""
 	}
-
 	rctx := renderhelper.NewRenderContextRepoComment(ut.ctx, repo)
-	htmlContent := template.HTML(template.HTMLEscapeString(body))
-	renderedMessage, err := markup.PostProcessCommitMessage(rctx, htmlContent)
-	if err != nil {
-		log.Error("PostProcessCommitMessage: %v", err)
-		return ""
-	}
+	renderedMessage := markup.PostProcessCommitMessage(rctx, htmlutil.EscapeString(body))
 	return renderedMessage
 }
 
@@ -112,25 +86,15 @@ func renderCodeBlock(htmlEscapedTextToRender template.HTML) template.HTML {
 // RenderIssueTitle renders issue/pull title with defined post processors
 func (ut *RenderUtils) RenderIssueTitle(text string, repo *repo.Repository) template.HTML {
 	// wrap "`…`" in <code> before post-processing so code-span content stays literal, like comment bodies
-	htmlWithCode := renderCodeBlock(template.HTML(template.HTMLEscapeString(text)))
-	renderedText, err := markup.PostProcessIssueTitle(renderhelper.NewRenderContextRepoComment(ut.ctx, repo), string(htmlWithCode))
-	if err != nil {
-		log.Error("PostProcessIssueTitle: %v", err)
-		return ""
-	}
-	return template.HTML(renderedText)
+	htmlWithCode := renderCodeBlock(htmlutil.EscapeString(text))
+	return markup.PostProcessIssueTitle(renderhelper.NewRenderContextRepoComment(ut.ctx, repo), htmlWithCode)
 }
 
 // RenderIssueSimpleTitle only renders with emoji and inline code block
 func (ut *RenderUtils) RenderIssueSimpleTitle(text string) template.HTML {
 	// see RenderIssueTitle: wrap code spans before processing emoji
-	htmlWithCode := renderCodeBlock(template.HTML(template.HTMLEscapeString(text)))
-	renderedText, err := markup.PostProcessEmoji(markup.NewRenderContext(ut.ctx), string(htmlWithCode))
-	if err != nil {
-		log.Error("RenderIssueSimpleTitle: %v", err)
-		return ""
-	}
-	return template.HTML(renderedText)
+	htmlWithCode := renderCodeBlock(htmlutil.EscapeString(text))
+	return markup.PostProcessEmoji(markup.NewRenderContext(ut.ctx), htmlWithCode)
 }
 
 func (ut *RenderUtils) RenderLabel(label *issues_model.Label) template.HTML {
@@ -206,12 +170,7 @@ func (ut *RenderUtils) RenderLabel(label *issues_model.Label) template.HTML {
 
 // RenderEmoji renders html text with emoji post processors
 func (ut *RenderUtils) RenderEmoji(text string) template.HTML {
-	renderedText, err := markup.PostProcessEmoji(markup.NewRenderContext(ut.ctx), template.HTMLEscapeString(text))
-	if err != nil {
-		log.Error("RenderEmoji: %v", err)
-		return ""
-	}
-	return template.HTML(renderedText)
+	return markup.PostProcessEmoji(markup.NewRenderContext(ut.ctx), htmlutil.EscapeString(text))
 }
 
 // reactionToEmoji renders emoji for use in reactions

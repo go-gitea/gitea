@@ -416,11 +416,7 @@ func Diff(ctx *context.Context) {
 		ctx.Data["NoteAuthor"] = user_model.GetUserByGitAuthor(ctx, note.Commit)
 		rctx := renderhelper.NewRenderContextRepoComment(ctx, ctx.Repo.Repository, renderhelper.RepoCommentOptions{CurrentRefSubURL: "commit/" + util.PathEscapeSegments(commitID)})
 		htmlMessage := template.HTML(template.HTMLEscapeString(string(charset.ToUTF8WithFallback(note.Message, charset.ConvertOpts{}))))
-		ctx.Data["NoteRendered"], err = markup.PostProcessCommitMessage(rctx, htmlMessage)
-		if err != nil {
-			ctx.ServerError("PostProcessCommitMessage", err)
-			return
-		}
+		ctx.Data["NoteRendered"] = markup.PostProcessCommitMessage(rctx, htmlMessage)
 	} else if !git.IsErrNotExist(err) {
 		log.Error("GetNote: %v", err)
 	}
