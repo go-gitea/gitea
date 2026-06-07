@@ -26,7 +26,6 @@ const {currentRun: run, runArtifacts: artifacts} = toRefs(store.viewData);
 type JobListItem = {
   job: ActionsJob;
   depth: number;
-  hasChildren: boolean;
 };
 
 // Caller jobs default to collapsed. Membership in this set means "user has manually expanded this caller"
@@ -71,9 +70,8 @@ const visibleJobListItems = computed<JobListItem[]>(() => {
   while (stack.length > 0) {
     const {job, depth} = stack.pop()!;
     const children = childrenByParent.get(job.id) || [];
-    const hasChildren = children.length > 0;
-    result.push({job, depth, hasChildren});
-    if (hasChildren && isJobCollapsed(job.id)) continue;
+    result.push({job, depth});
+    if (children.length > 0 && isJobCollapsed(job.id)) continue;
     for (let i = children.length - 1; i >= 0; i--) stack.push({job: children[i], depth: depth + 1});
   }
   return result;
@@ -210,24 +208,28 @@ async function deleteArtifact(name: string) {
             v-for="item in visibleJobListItems"
             :key="item.job.id"
           >
-            <a class="tw-contents silenced" :href="item.job.link">
-              <ActionStatusIcon :locale-status="locale.status[item.job.status]" :status="item.job.status" icon-variant="circle-fill"/>
-              <span class="tw-min-w-0 gt-ellipsis">{{ item.job.name }}</span>
-              <SvgIcon name="octicon-sync" role="button" :data-tooltip-content="locale.rerun" class="job-rerun-button tw-cursor-pointer link-action interact-fg" :data-url="`${run.link}/jobs/${item.job.id}/rerun`" v-if="item.job.canRerun"/>
-              <span class="job-duration">{{ item.job.duration }}</span>
-            </a>
+            <!-- Callers have no log page of their own; the whole row toggles expansion
+                 (matches GitHub Actions, where caller rows are not navigation targets). -->
             <button
-              v-if="item.hasChildren"
+              v-if="item.job.isReusableCaller"
               type="button"
-              class="job-brief-toggle"
-              :class="{'collapsed': isJobCollapsed(item.job.id)}"
+              class="tw-contents caller-row-toggle"
               @click="toggleExpandedJob(item.job.id)"
               :title="isJobCollapsed(item.job.id) ? locale.expandCallerJobs : locale.collapseCallerJobs"
               :aria-label="isJobCollapsed(item.job.id) ? locale.expandCallerJobs : locale.collapseCallerJobs"
               :aria-expanded="!isJobCollapsed(item.job.id)"
             >
-              <SvgIcon name="octicon-chevron-down" :size="14"/>
+              <ActionStatusIcon :locale-status="locale.status[item.job.status]" :status="item.job.status" icon-variant="circle-fill"/>
+              <span class="tw-min-w-0 gt-ellipsis">{{ item.job.name }}</span>
+              <span class="job-duration">{{ item.job.duration }}</span>
+              <SvgIcon name="octicon-chevron-down" :size="14" class="job-brief-toggle-icon" :class="{'collapsed': isJobCollapsed(item.job.id)}"/>
             </button>
+            <a v-else class="tw-contents silenced" :href="item.job.link">
+              <ActionStatusIcon :locale-status="locale.status[item.job.status]" :status="item.job.status" icon-variant="circle-fill"/>
+              <span class="tw-min-w-0 gt-ellipsis">{{ item.job.name }}</span>
+              <SvgIcon name="octicon-sync" role="button" :data-tooltip-content="locale.rerun" class="job-rerun-button tw-cursor-pointer link-action interact-fg" :data-url="`${run.link}/jobs/${item.job.id}/rerun`" v-if="item.job.canRerun"/>
+              <span class="job-duration">{{ item.job.duration }}</span>
+            </a>
           </div>
         </div>
 
@@ -252,7 +254,7 @@ async function deleteArtifact(name: string) {
                   <SvgIcon name="octicon-trash"/>
                 </a>
               </template>
-              <span v-else class="flex-text-block tw-flex-1 tw-text-text-light-2">
+              <span v-else class="flex-text-block tw-flex-1 tw-min-w-0 tw-text-text-light-2">
                 <SvgIcon name="octicon-file-removed"/>
                 <span class="tw-flex-1 gt-ellipsis">{{ artifact.name }}</span>
                 <span class="ui label tw-flex-shrink-0">{{ locale.artifactExpired }}</span>
@@ -407,23 +409,23 @@ async function deleteArtifact(name: string) {
   background-color: var(--color-active);
 }
 
-.job-brief-toggle {
+.caller-row-toggle {
   border: none;
   padding: 0;
   background: transparent;
-  cursor: pointer;
   color: inherit;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
+  cursor: pointer;
+  text-align: inherit;
+}
+
+.job-brief-toggle-icon {
   flex-shrink: 0;
-  /* the icon is always chevron-down; flip to chevron-up when expanded */
   transition: transform 0.15s ease;
-  /* sit right after the job name; rerun/duration float to the right via auto-margin */
+  /* sit between name and duration; duration uses order:2 with margin-left:auto to float right */
   order: 1;
 }
 
-.job-brief-toggle:not(.collapsed) {
+.job-brief-toggle-icon:not(.collapsed) {
   transform: rotate(180deg);
 }
 
