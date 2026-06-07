@@ -13,6 +13,7 @@ import (
 	"time"
 
 	auth_model "gitea.dev/models/auth"
+	"gitea.dev/models/db"
 	"gitea.dev/models/unittest"
 	user_model "gitea.dev/models/user"
 	"gitea.dev/modules/json"
@@ -23,6 +24,7 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"xorm.io/builder"
 )
 
 // TestMigrateAzureADV2ToOIDC simulates a login source migration from the Azure AD V2 OAuth2 provider to the OpenID Connect provider,
@@ -188,6 +190,58 @@ func TestOIDCIgnoresStaleExternalLoginLinks(t *testing.T) {
 			Provider:      authSource.Name,
 		}))
 		assertRelinked(t, authSource, sub, correctUser)
+	})
+}
+
+// TestOAuth2CallbackReactivationGating exercises the gate in handleOAuth2SignIn:
+// an inactive user can only be reactivated when who was disabled by auto-sync
+func TestOAuth2CallbackReactivationGating(t *testing.T) {
+	defer tests.PrepareTestEnv(t)()
+	defer test.MockVariableValue(&setting.OAuth2Client.EnableAutoRegistration, true)()
+	defer test.MockVariableValue(&setting.OAuth2Client.Username, setting.OAuth2UsernameUserid)()
+
+	srv := newFakeOIDCServer(t, FakeOIDCConfig{Sub: "test-sub", Email: "test@example.com", Name: "Test User"})
+	addOAuth2Source(t, "test-oauth-source", oauth2.Source{
+		Provider:                      "openidConnect",
+		ClientID:                      "test-client-id",
+		ClientSecret:                  "test-client-secret",
+		OpenIDConnectAutoDiscoveryURL: srv.URL + "/.well-known/openid-configuration",
+	})
+	authSource, err := auth_model.GetActiveOAuth2SourceByAuthName(t.Context(), "test-oauth-source")
+	require.NoError(t, err)
+
+	u := &user_model.User{Name: "test-user", Email: "test@example.com"}
+	require.NoError(t, user_model.CreateUser(t.Context(), u, &user_model.Meta{}))
+
+	extLink := &user_model.ExternalLoginUser{
+		UserID:        u.ID,
+		LoginSourceID: authSource.ID,
+		Provider:      authSource.Name,
+		ExternalID:    "test-sub",
+	}
+	require.NoError(t, user_model.LinkExternalToUser(t.Context(), u, extLink))
+
+	prepareUserExternalLink := func(t *testing.T, refreshToken string) {
+		err := user_model.UpdateUserCols(t.Context(), &user_model.User{ID: u.ID, IsActive: false}, "is_active")
+		require.NoError(t, err)
+		_, err = db.GetEngine(t.Context()).Where(builder.Eq{"user_id": u.ID}).Cols("refresh_token").
+			Update(&user_model.ExternalLoginUser{RefreshToken: refreshToken})
+		require.NoError(t, err)
+		require.False(t, unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: u.ID}).IsActive)
+	}
+
+	t.Run("admin-disabled user is not reactivated", func(t *testing.T) {
+		prepareUserExternalLink(t, "non-empty-refresh-token")
+		doOIDCSignIn(t, authSource.Name)
+		after := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: u.ID})
+		assert.False(t, after.IsActive, "OAuth callback must not re-enable an administrator-disabled account")
+	})
+
+	t.Run("auto-sync-disabled user is reactivated", func(t *testing.T) {
+		prepareUserExternalLink(t, "" /* empty refresh token */)
+		doOIDCSignIn(t, authSource.Name)
+		after := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: u.ID})
+		assert.True(t, after.IsActive, "OAuth callback must reactivate a sync-disabled account on successful login")
 	})
 }
 
