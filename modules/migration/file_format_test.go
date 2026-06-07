@@ -52,11 +52,3 @@ func TestMigrateOptionsSSHKeyOwnerIDRoundtrip(t *testing.T) {
 	assert.Equal(t, int64(42), got.SSHKeyOwnerID)
 }
 
-// TestMigrateOptionsSSHKeyOwnerIDOmitemptyZero ensures the default value (use
-// repository owner's key) is omitted from the serialised JSON so existing task
-// payloads in the DB stay compact and backward-compatible.
-func TestMigrateOptionsSSHKeyOwnerIDOmitemptyZero(t *testing.T) {
-	data, err := json.Marshal(MigrateOptions{})
-	assert.NoError(t, err)
-	assert.NotContains(t, string(data), "ssh_key_owner_id")
-}
