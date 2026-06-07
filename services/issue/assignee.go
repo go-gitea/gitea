@@ -152,13 +152,13 @@ func UpdateAssignees(ctx context.Context, issue *issues_model.Issue, oneAssignee
 	}
 
 	for _, assignee := range assigneeRemoved {
-		notify_service.IssueChangeAssignee(ctx, issue.Poster, issue, assignee, true, assigneeRemovedCommentMap[assignee.ID])
+		notify_service.IssueChangeAssignee(ctx, doer, issue, assignee, true, assigneeRemovedCommentMap[assignee.ID])
 	}
 
 	for _, assignee := range allNewAssignees {
 		comment := assigneeCommentMap[assignee.ID]
 		if comment != nil {
-			notify_service.IssueChangeAssignee(ctx, issue.Poster, issue, assignee, false, comment)
+			notify_service.IssueChangeAssignee(ctx, doer, issue, assignee, false, comment)
 		}
 	}
 
@@ -239,7 +239,7 @@ func AddAssignees(ctx context.Context, issue *issues_model.Issue, doer *user_mod
 
 	if len(assignees) > 0 {
 		for assigneeID, assignee := range assignees {
-			notify_service.IssueChangeAssignee(ctx, issue.Poster, issue, assignee, false, assigneeCommentMap[assigneeID])
+			notify_service.IssueChangeAssignee(ctx, doer, issue, assignee, false, assigneeCommentMap[assigneeID])
 		}
 	}
 	return nil
@@ -278,7 +278,7 @@ func RemoveAssignees(ctx context.Context, issue *issues_model.Issue, doer *user_
 
 	if len(assignees) > 0 {
 		for assigneeID, assignee := range assignees {
-			notify_service.IssueChangeAssignee(ctx, issue.Poster, issue, assignee, true, assigneeCommentMap[assigneeID])
+			notify_service.IssueChangeAssignee(ctx, doer, issue, assignee, true, assigneeCommentMap[assigneeID])
 		}
 	}
 	return nil
