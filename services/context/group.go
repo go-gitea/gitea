@@ -219,8 +219,10 @@ func GroupAssignmentWeb(args GroupAssignmentOptions) func(ctx *Context) {
 				return
 			}
 
-			if (opts.RequireMember && !repoGroup.IsMember) ||
-				(opts.RequireOwner && !repoGroup.IsOwner) {
+			if ((opts.RequireMember && !repoGroup.IsMember) ||
+				(opts.RequireOwner && !repoGroup.IsOwner)) &&
+				(ctx.Repo.Repository != nil &&
+					!ctx.Repo.Permission.HasAnyUnitAccessOrPublicAccess()) {
 				ctx.NotFound(nil)
 				return
 			}
