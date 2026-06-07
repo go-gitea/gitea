@@ -1371,7 +1371,7 @@ func MoveRepoToGroup(ctx *context.APIContext) {
 	}, ctx.Doer)
 	if err != nil {
 		if group_model.IsErrUserDoesNotHaveAccessToGroup(err) {
-			ctx.APIError(http.StatusForbidden, err)
+			ctx.APIError(http.StatusForbidden, err.Error())
 			return
 		}
 		if group_model.IsErrGroupNotExist(err) {
