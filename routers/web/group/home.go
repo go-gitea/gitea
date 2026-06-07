@@ -10,6 +10,7 @@ import (
 	repo_model "gitea.dev/models/repo"
 	user_model "gitea.dev/models/user"
 	"gitea.dev/modules/setting"
+	"gitea.dev/routers/web/feed"
 	shared_group "gitea.dev/routers/web/shared/group"
 	"gitea.dev/services/context"
 )
@@ -20,6 +21,9 @@ const (
 )
 
 func Home(ctx *context.Context) {
+	if handleGroupHomeFeed(ctx) {
+		return
+	}
 	org := ctx.ContextUser
 
 	ctx.Data["PageIsUserProfile"] = true
@@ -129,4 +133,16 @@ func Home(ctx *context.Context) {
 	} else {
 		ctx.HTML(http.StatusOK, tplGroupHomeOrg)
 	}
+}
+
+func handleGroupHomeFeed(ctx *context.Context) bool {
+	if !setting.Other.EnableFeed {
+		return false
+	}
+	isFeed, showFeedType := feed.GetFeedType(ctx.PathParam("group_id"), ctx.Req)
+	if !isFeed {
+		return false
+	}
+	feed.ShowGroupFeed(ctx, ctx.RepoGroup.Group, showFeedType)
+	return true
 }
