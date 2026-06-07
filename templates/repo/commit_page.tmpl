@@ -139,8 +139,7 @@
 					<strong>{{.Commit.Author.Name}}</strong>
 				{{end}}
 			</div>
-
-			<span class="tw-text-text-light">{{DateUtils.TimeSince .Commit.Author.When}}</span>
+			<span class="tw-text-text-light">{{DateUtils.TimeSince .Commit.Committer.When}}</span>
 
 			<div class="flex-text-inline">
 				{{if or (ne .Commit.Committer.Name .Commit.Author.Name) (ne .Commit.Committer.Email .Commit.Author.Email)}}

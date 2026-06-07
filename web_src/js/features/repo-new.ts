@@ -47,7 +47,6 @@ function initRepoNewTemplateSearch(form: HTMLFormElement) {
               value: String(tmplRepo.repository.id),
             });
           }
-          $repoTemplateDropdown.fomanticExt.onResponseKeepSelectedItem($repoTemplateDropdown, inputRepoTemplate.value);
           return {results};
         },
         cache: false,
