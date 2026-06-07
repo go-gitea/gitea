@@ -7544,6 +7544,12 @@
             "type": "string",
             "x-go-name": "Service"
           },
+          "ssh_key_owner_id": {
+            "description": "SSHKeyOwnerID picks which managed SSH keypair to use for SSH clones.\n0 means use the target repo owner (default).",
+            "format": "int64",
+            "type": "integer",
+            "x-go-name": "SSHKeyOwnerID"
+          },
           "uid": {
             "deprecated": true,
             "description": "deprecated (only for backwards compatibility, use repo_owner instead)",
