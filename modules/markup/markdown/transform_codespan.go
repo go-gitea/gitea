@@ -68,9 +68,6 @@ func cssColorHandler(value string) bool {
 }
 
 func (g *ASTTransformer) transformCodeSpan(_ *markup.RenderContext, v *ast.CodeSpan, reader text.Reader) {
-	if v.FirstChild() == nil || v.FirstChild() != v.LastChild() {
-		return
-	}
 	colorContent, ok := childSingleText(v, reader.Source())
 	if !ok {
 		return
