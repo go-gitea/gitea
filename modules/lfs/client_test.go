@@ -8,7 +8,6 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
 )
 
 func TestNewClient(t *testing.T) {
@@ -23,11 +22,11 @@ func TestNewClient(t *testing.T) {
 
 func TestNewClientFromEndpoint(t *testing.T) {
 	client, err := NewClientFromEndpoint("ssh://git@example.com/owner/repo.git", "", nil)
-	require.NoError(t, err)
+	assert.NoError(t, err)
 	assert.NotNil(t, client)
 
 	client, err = NewClientFromEndpoint("ftp://example.com/owner/repo.git", "", nil)
 	assert.Nil(t, client)
-	require.Error(t, err)
+	assert.Error(t, err)
 	assert.Contains(t, err.Error(), "unable to determine LFS endpoint")
 }
