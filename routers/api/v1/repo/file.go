@@ -409,7 +409,7 @@ func ChangeFiles(ctx *context.APIContext) {
 	for _, file := range apiOpts.Files {
 		contentReader, err := base64Reader(file.ContentBase64)
 		if err != nil {
-			ctx.APIError(http.StatusUnprocessableEntity, err)
+			ctx.APIError(http.StatusUnprocessableEntity, err.Error())
 			return
 		}
 		// FIXME: ChangeFileOperation.SHA is NOT required for update or delete if last commit is provided in the options
@@ -483,7 +483,7 @@ func CreateFile(ctx *context.APIContext) {
 	}
 	contentReader, err := base64Reader(apiOpts.ContentBase64)
 	if err != nil {
-		ctx.APIError(http.StatusUnprocessableEntity, err)
+		ctx.APIError(http.StatusUnprocessableEntity, err.Error())
 		return
 	}
 
@@ -554,7 +554,7 @@ func UpdateFile(ctx *context.APIContext) {
 	}
 	contentReader, err := base64Reader(apiOpts.ContentBase64)
 	if err != nil {
-		ctx.APIError(http.StatusUnprocessableEntity, err)
+		ctx.APIError(http.StatusUnprocessableEntity, err.Error())
 		return
 	}
 	willCreate := apiOpts.SHA == ""
@@ -584,17 +584,17 @@ func handleChangeRepoFilesError(ctx *context.APIContext, err error) {
 		return
 	}
 	if files_service.IsErrUserCannotCommit(err) || pull_service.IsErrFilePathProtected(err) {
-		ctx.APIError(http.StatusForbidden, err)
+		ctx.APIError(http.StatusForbidden, err.Error())
 		return
 	}
 	if git_model.IsErrBranchAlreadyExists(err) || files_service.IsErrFilenameInvalid(err) || pull_service.IsErrSHADoesNotMatch(err) ||
 		files_service.IsErrFilePathInvalid(err) || files_service.IsErrRepoFileAlreadyExists(err) ||
 		files_service.IsErrCommitIDDoesNotMatch(err) || files_service.IsErrSHAOrCommitIDNotProvided(err) {
-		ctx.APIError(http.StatusUnprocessableEntity, err)
+		ctx.APIError(http.StatusUnprocessableEntity, err.Error())
 		return
 	}
 	if errors.Is(err, util.ErrNotExist) {
-		ctx.APIError(http.StatusNotFound, err)
+		ctx.APIError(http.StatusNotFound, err.Error())
 		return
 	}
 	ctx.APIErrorInternal(err)

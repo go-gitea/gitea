@@ -194,9 +194,9 @@ func CreateIssueAttachment(ctx *context.APIContext) {
 	})
 	if err != nil {
 		if upload.IsErrFileTypeForbidden(err) {
-			ctx.APIError(http.StatusUnprocessableEntity, err)
+			ctx.APIError(http.StatusUnprocessableEntity, err.Error())
 		} else if errors.Is(err, util.ErrContentTooLarge) {
-			ctx.APIError(http.StatusRequestEntityTooLarge, err)
+			ctx.APIError(http.StatusRequestEntityTooLarge, err.Error())
 		} else {
 			ctx.APIErrorInternal(err)
 		}
@@ -272,7 +272,7 @@ func EditIssueAttachment(ctx *context.APIContext) {
 
 	if err := attachment_service.UpdateAttachment(ctx, setting.Attachment.AllowedTypes, attachment); err != nil {
 		if upload.IsErrFileTypeForbidden(err) {
-			ctx.APIError(http.StatusUnprocessableEntity, err)
+			ctx.APIError(http.StatusUnprocessableEntity, err.Error())
 			return
 		}
 		ctx.APIErrorInternal(err)
@@ -336,7 +336,7 @@ func DeleteIssueAttachment(ctx *context.APIContext) {
 func getIssueFromContext(ctx *context.APIContext) *issues_model.Issue {
 	issue, err := issues_model.GetIssueByIndex(ctx, ctx.Repo.Repository.ID, ctx.PathParamInt64("index"))
 	if err != nil {
-		ctx.NotFoundOrServerError(err)
+		ctx.APIErrorAuto(err)
 		return nil
 	}
 
@@ -361,7 +361,7 @@ func getIssueAttachmentSafeWrite(ctx *context.APIContext) *repo_model.Attachment
 func getIssueAttachmentSafeRead(ctx *context.APIContext, issue *issues_model.Issue) *repo_model.Attachment {
 	attachment, err := repo_model.GetAttachmentByID(ctx, ctx.PathParamInt64("attachment_id"))
 	if err != nil {
-		ctx.NotFoundOrServerError(err)
+		ctx.APIErrorAuto(err)
 		return nil
 	}
 	if !attachmentBelongsToRepoOrIssue(ctx, attachment, issue) {
