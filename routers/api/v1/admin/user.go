@@ -287,7 +287,7 @@ func DeleteUser(ctx *context.APIContext) {
 	//     "$ref": "#/responses/validationError"
 
 	if ctx.ContextUser.IsOrganization() {
-		ctx.APIError(http.StatusUnprocessableEntity, "target is an organization but not an user")
+		ctx.APIError(http.StatusUnprocessableEntity, "target is an organization but not user")
 		return
 	}
 
@@ -547,7 +547,7 @@ func RenameUser(ctx *context.APIContext) {
 	//     "$ref": "#/responses/validationError"
 
 	if ctx.ContextUser.IsOrganization() {
-		ctx.APIError(http.StatusUnprocessableEntity, "target is an organization but not an user")
+		ctx.APIError(http.StatusUnprocessableEntity, "target is an organization but not user")
 		return
 	}
 
