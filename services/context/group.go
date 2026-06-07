@@ -219,14 +219,16 @@ func GroupAssignmentWeb(args GroupAssignmentOptions) func(ctx *Context) {
 				return
 			}
 
-			if ((opts.RequireMember && !repoGroup.IsMember) ||
-				(opts.RequireOwner && !repoGroup.IsOwner)) &&
-				(ctx.Repo.Repository != nil &&
-					!ctx.Repo.Permission.HasAnyUnitAccessOrPublicAccess()) {
+			if (opts.RequireMember && !repoGroup.IsMember) ||
+				(opts.RequireOwner && !repoGroup.IsOwner) {
+				if ctx.Repo.Repository != nil && ctx.Repo.Permission.HasAnyUnitAccess() {
+					goto end
+				}
 				ctx.NotFound(nil)
 				return
 			}
 
+		end:
 			ctx.Data["EnableFeed"] = setting.Other.EnableFeed
 			ctx.Data["FeedURL"] = group.GroupLink()
 			ctx.Data["IsOwnerOrg"] = group.Owner.IsOrganization()
