@@ -17,9 +17,9 @@ func serveRepoArchive(ctx *context.APIContext, reqFileName string, paths []strin
 	aReq, err := archiver_service.NewRequest(ctx.Repo.Repository, ctx.Repo.GitRepo, reqFileName, paths)
 	if err != nil {
 		if errors.Is(err, util.ErrInvalidArgument) {
-			ctx.APIError(http.StatusBadRequest, err)
+			ctx.APIError(http.StatusBadRequest, err.Error())
 		} else if errors.Is(err, util.ErrNotExist) {
-			ctx.APIError(http.StatusNotFound, err)
+			ctx.APIError(http.StatusNotFound, err.Error())
 		} else {
 			ctx.APIErrorInternal(err)
 		}
@@ -28,7 +28,7 @@ func serveRepoArchive(ctx *context.APIContext, reqFileName string, paths []strin
 	err = archiver_service.ServeRepoArchive(ctx.Base, aReq)
 	if err != nil {
 		if errors.Is(err, util.ErrInvalidArgument) {
-			ctx.APIError(http.StatusBadRequest, err)
+			ctx.APIError(http.StatusBadRequest, err.Error())
 		} else {
 			ctx.APIErrorInternal(err)
 		}
