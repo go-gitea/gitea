@@ -5,13 +5,14 @@ package ssh
 
 import (
 	"context"
+	"errors"
 	"fmt"
 
-	"gitea.dev/models/db"
 	repo_model "gitea.dev/models/repo"
 	user_model "gitea.dev/models/user"
 	giturl "gitea.dev/modules/git/url"
 	"gitea.dev/modules/log"
+	"gitea.dev/modules/util"
 )
 
 // IsSSHURL checks if a URL is an SSH URL
@@ -25,7 +26,7 @@ func IsSSHURL(remote string) bool {
 func GetOrCreateSSHKeypair(ctx context.Context, ownerID int64) (*user_model.SSHKeypair, error) {
 	keypair, err := user_model.GetSSHKeypairByOwner(ctx, ownerID)
 	if err != nil {
-		if db.IsErrNotExist(err) {
+		if errors.Is(err, util.ErrNotExist) {
 			log.Debug("Creating new SSH keypair for owner %d", ownerID)
 			return user_model.CreateSSHKeypair(ctx, ownerID)
 		}
@@ -43,15 +44,22 @@ func GetSSHKeypairForRepository(ctx context.Context, repo *repo_model.Repository
 // migration git operation against remoteURL on behalf of repo. For non-SSH
 // URLs (or when no keypair is available) it is a no-op. The returned cleanup
 // is never nil and must always be called by the caller (typically via defer).
-func SetupManagedSSHAgent(ctx context.Context, repo *repo_model.Repository, remoteURL string) (sshAuthSock string, cleanup func(), err error) {
+// If sshKeyOwnerID is non-zero, the keypair of that owner is used instead of
+// the repository owner's (used when migrating to an org and the user wants
+// to authenticate with their personal managed key).
+func SetupManagedSSHAgent(ctx context.Context, repo *repo_model.Repository, remoteURL string, sshKeyOwnerID int64) (sshAuthSock string, cleanup func(), err error) {
 	noop := func() {}
 	if !IsSSHURL(remoteURL) {
 		return "", noop, nil
 	}
 
-	keypair, err := GetSSHKeypairForRepository(ctx, repo)
+	ownerID := repo.OwnerID
+	if sshKeyOwnerID != 0 {
+		ownerID = sshKeyOwnerID
+	}
+	keypair, err := GetOrCreateSSHKeypair(ctx, ownerID)
 	if err != nil {
-		return "", noop, fmt.Errorf("failed to get SSH keypair for repository: %w", err)
+		return "", noop, fmt.Errorf("failed to get SSH keypair for owner %d: %w", ownerID, err)
 	}
 	if keypair == nil {
 		return "", noop, nil
@@ -67,6 +75,6 @@ func SetupManagedSSHAgent(ctx context.Context, repo *repo_model.Repository, remo
 		return "", noop, fmt.Errorf("failed to create SSH agent: %w", err)
 	}
 
-	log.Debug("SSH agent ready for mirror %s (socket: %s)", repo.FullName(), socketPath)
+	log.Debug("SSH agent ready for %s (socket: %s)", repo.FullName(), socketPath)
 	return socketPath, agentCleanup, nil
 }

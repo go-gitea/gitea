@@ -17,6 +17,9 @@ type MigrateOptions struct {
 	AuthPasswordEncrypted string `json:"auth_password_encrypted,omitempty"`
 	AuthToken             string `json:"-"`
 	AuthTokenEncrypted    string `json:"auth_token_encrypted,omitempty"`
+	// SSHKeyOwnerID overrides the owner whose managed SSH keypair authenticates
+	// the SSH clone. 0 means use the target repository owner (the default).
+	SSHKeyOwnerID int64 `json:"ssh_key_owner_id,omitempty"`
 	// required: true
 	UID int `json:"uid" binding:"Required"`
 	// required: true

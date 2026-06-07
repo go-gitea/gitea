@@ -28,8 +28,8 @@ import (
 	"gitea.dev/modules/util"
 )
 
-func cloneExternalRepoWithSSHAuth(ctx context.Context, repo *repo_model.Repository, remoteURL string, storageRepo gitrepo.Repository, cloneOpts git.CloneRepoOptions) error {
-	sshAuthSock, cleanup, err := ssh_module.SetupManagedSSHAgent(ctx, repo, remoteURL)
+func cloneExternalRepoWithSSHAuth(ctx context.Context, repo *repo_model.Repository, remoteURL string, storageRepo gitrepo.Repository, cloneOpts git.CloneRepoOptions, sshKeyOwnerID int64) error {
+	sshAuthSock, cleanup, err := ssh_module.SetupManagedSSHAgent(ctx, repo, remoteURL, sshKeyOwnerID)
 	if err != nil {
 		return err
 	}
@@ -63,7 +63,7 @@ func cloneWiki(ctx context.Context, repo *repo_model.Repository, opts migration.
 		SkipTLSVerify: setting.Migrations.SkipTLSVerify,
 	}
 
-	if err := cloneExternalRepoWithSSHAuth(ctx, repo, wikiRemoteURL, storageRepo, cloneOpts); err != nil {
+	if err := cloneExternalRepoWithSSHAuth(ctx, repo, wikiRemoteURL, storageRepo, cloneOpts, opts.SSHKeyOwnerID); err != nil {
 		log.Error("Clone wiki failed, err: %v", err)
 		cleanIncompleteWikiPath()
 		return "", err
@@ -115,7 +115,7 @@ func MigrateRepositoryGitData(ctx context.Context, u *user_model.User,
 		repo.Owner = u
 	}
 
-	if err := cloneExternalRepoWithSSHAuth(ctx, repo, opts.CloneAddr, repo, cloneOpts); err != nil {
+	if err := cloneExternalRepoWithSSHAuth(ctx, repo, opts.CloneAddr, repo, cloneOpts, opts.SSHKeyOwnerID); err != nil {
 		if errors.Is(err, context.DeadlineExceeded) {
 			return repo, fmt.Errorf("clone timed out, consider increasing [git.timeout] MIGRATE in app.ini, underlying err: %w", err)
 		}

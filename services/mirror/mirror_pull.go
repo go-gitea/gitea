@@ -119,7 +119,7 @@ func runSync(ctx context.Context, m *repo_model.Mirror) ([]*repo_module.SyncResu
 	timeout := time.Duration(setting.Git.Timeout.Mirror) * time.Second
 
 	// Setup SSH authentication if needed
-	sshAuthSock, cleanup, sshErr := ssh_module.SetupManagedSSHAgent(ctx, m.Repo, remoteURL.String())
+	sshAuthSock, cleanup, sshErr := ssh_module.SetupManagedSSHAgent(ctx, m.Repo, remoteURL.String(), 0)
 	if sshErr != nil {
 		log.Error("SyncMirrors [repo: %-v]: SSH setup error %v", m.Repo, sshErr)
 		return nil, false

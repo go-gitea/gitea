@@ -30,6 +30,13 @@
 					<label for="auth_password">{{ctx.Locale.Tr "password"}}</label>
 					<input id="auth_password" name="auth_password" type="password" value="{{.auth_password}}">
 				</div>
+				<div class="inline field ssh-key-owner-selector tw-hidden" data-signed-user-id="{{.SignedUser.ID}}" data-signed-user-name="{{.SignedUser.Name}}">
+					<label for="ssh_key_owner_select">{{ctx.Locale.Tr "repo.migrate.ssh_key_owner_label"}}</label>
+					<select id="ssh_key_owner_select" name="ssh_key_owner_id_select">
+						<option value="0">{{ctx.Locale.Tr "repo.migrate.ssh_key_owner_repo_default"}}</option>
+					</select>
+					<input id="ssh_key_owner_id" name="ssh_key_owner_id" type="hidden" value="0">
+				</div>
 
 				{{template "repo/migrate/options" .}}
 
