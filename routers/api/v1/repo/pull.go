@@ -1435,7 +1435,7 @@ func GetPullRequestCommits(ctx *context.APIContext) {
 		compareInfo, err = git_service.GetCompareInfo(ctx, pr.BaseRepo, pr.BaseRepo, baseGitRepo, git.RefNameFromBranch(pr.BaseBranch), git.RefName(pr.GetGitHeadRefName()), false, false)
 	}
 
-	if gitcmd.StderrHasPrefix(err, "fatal: bad revision") {
+	if gitcmd.IsStderr(err, gitcmd.StderrBadRevision) {
 		ctx.APIError(http.StatusNotFound, "invalid base branch or revision")
 		return
 	} else if err != nil {
