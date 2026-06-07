@@ -115,13 +115,13 @@ function initSSHKeyOwnerSelector(cloneAddrInput: HTMLInputElement) {
   const uidInput = document.querySelector<HTMLInputElement>('#uid');
   if (!container || !select || !hiddenId || !uidInput) return;
 
-  const signedUserID = container.dataset.signedUserId ?? '';
-  const signedUserName = container.dataset.signedUserName ?? '';
+  const signedUserID = container.getAttribute('data-signed-user-id') ?? '';
+  const signedUserName = container.getAttribute('data-signed-user-name') ?? '';
 
   // Build {ownerID -> name} from the owner dropdown menu items
   const ownerNameById = new Map<string, string>();
   for (const item of document.querySelectorAll<HTMLElement>('.owner.dropdown .menu .item')) {
-    const id = item.dataset.value;
+    const id = item.getAttribute('data-value');
     const name = item.getAttribute('title') ?? item.textContent?.trim() ?? '';
     if (id) ownerNameById.set(id, name);
   }
@@ -148,7 +148,7 @@ function initSSHKeyOwnerSelector(cloneAddrInput: HTMLInputElement) {
   }
 
   select.addEventListener('change', () => {
-    hiddenId!.value = select!.value;
+    hiddenId.value = select.value;
   });
 
   // Semantic UI updates the #uid hidden input via menu item clicks
