@@ -268,14 +268,10 @@ func (b *Indexer) Search(ctx context.Context, options *internal.SearchOptions) (
 		} else {
 			// "(none)" becomes 0, it means no assignee
 			assigneeIDInt64, _ := strconv.ParseInt(options.AssigneeID, 10, 64)
-			if options.AssigneeID == "(none)" {
-				queries = append(queries, inner_bleve.NumericEqualityQuery(assigneeIDInt64, "assignee_id"))
-			} else {
-				queries = append(queries, bleve.NewDisjunctionQuery(
-					inner_bleve.NumericEqualityQuery(assigneeIDInt64, "assignee_ids"),
-					inner_bleve.NumericEqualityQuery(assigneeIDInt64, "assignee_id"),
-				))
-			}
+			queries = append(queries, bleve.NewDisjunctionQuery(
+				inner_bleve.NumericEqualityQuery(assigneeIDInt64, "assignee_ids"),
+				inner_bleve.NumericEqualityQuery(assigneeIDInt64, "assignee_id"),
+			))
 		}
 	}
 
