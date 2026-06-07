@@ -29,7 +29,7 @@ var codeOwnerFiles = []string{"CODEOWNERS", "docs/CODEOWNERS", ".gitea/CODEOWNER
 
 // codeOwnerMatchBudget caps the total wall-clock time spent evaluating all
 // CODEOWNERS rules against all changed files for a single PR.
-const codeOwnerMatchBudget = 5 * time.Second
+const codeOwnerMatchBudget = 2 * time.Second
 
 func IsCodeOwnerFile(f string) bool {
 	return slices.Contains(codeOwnerFiles, f)
@@ -106,7 +106,7 @@ ruleLoop:
 	for _, rule := range rules {
 		for _, f := range changedFiles {
 			if time.Now().After(matchDeadline) {
-				log.Warn("CODEOWNERS matching for PR %s#%d exceeded its time budget; some rules were not evaluated", pr.BaseRepo.Name, pr.ID)
+				log.Warn("CODEOWNERS matching for PR %s#%d exceeded its time budget; some rules were not evaluated", pr.BaseRepo.FullName(), pr.ID)
 				break ruleLoop
 			}
 			shouldMatch := !rule.Negative

@@ -392,7 +392,7 @@ func testCodeOwnerPatternMatchTimeout(t *testing.T) {
 	elapsed := time.Since(start)
 
 	require.Error(t, err, "expected MatchTimeout error on pathological input")
-	assert.Less(t, elapsed, 5*time.Second, "match timeout did not bound regex evaluation; took %s", elapsed)
+	assert.Less(t, elapsed, time.Second, "match timeout did not bound regex evaluation; took %s", elapsed)
 }
 
 func testGetApprovers(t *testing.T) {
