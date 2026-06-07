@@ -62,30 +62,23 @@ onBeforeUnmount(() => {
           {{ triggerLabel }} <relative-time :datetime="run.triggeredAt || ''" prefix=""/>
         </span>
         <div class="flex-text-block tw-flex-wrap action-run-summary-trigger-content">
-          <template v-if="triggerUser">
-            <a v-if="triggerUser.link" class="flex-text-inline action-run-summary-user silenced" :href="triggerUser.link">
-              <img
-                v-if="triggerUser.avatar"
-                class="ui avatar tw-align-middle"
-                :src="triggerUser.avatar"
-                width="16"
-                height="16"
-                :alt="triggerUser.name"
-              >
-              <span>{{ triggerUser.name }}</span>
-            </a>
-            <span v-else class="flex-text-inline action-run-summary-user">
-              <img
-                v-if="triggerUser.avatar"
-                class="ui avatar tw-align-middle"
-                :src="triggerUser.avatar"
-                width="16"
-                height="16"
-                :alt="triggerUser.name"
-              >
-              <span>{{ triggerUser.name }}</span>
-            </span>
-          </template>
+          <component
+            :is="triggerUser.link ? 'a' : 'span'"
+            v-if="triggerUser"
+            class="flex-text-inline action-run-summary-user"
+            :class="{silenced: triggerUser.link}"
+            :href="triggerUser.link || undefined"
+          >
+            <img
+              v-if="triggerUser.avatar"
+              class="ui avatar tw-align-middle"
+              :src="triggerUser.avatar"
+              width="16"
+              height="16"
+              :alt="triggerUser.name"
+            >
+            <span>{{ triggerUser.name }}</span>
+          </component>
           <a v-if="run.pullRequest" class="action-run-summary-pr silenced" :href="run.pullRequest.link">{{ run.pullRequest.index }}</a>
           <span v-else-if="run.commit.branch.name" class="action-run-summary-branch-label tw-max-w-full">
             <a

@@ -25,8 +25,10 @@ import (
 	"gitea.dev/models/unit"
 	"gitea.dev/modules/actions"
 	"gitea.dev/modules/base"
+	"gitea.dev/modules/cache"
 	"gitea.dev/modules/git"
 	"gitea.dev/modules/httplib"
+	"gitea.dev/modules/json"
 	"gitea.dev/modules/log"
 	"gitea.dev/modules/storage"
 	"gitea.dev/modules/templates"
@@ -482,6 +484,45 @@ func viewSummaryBranchFromRun(ctx context.Context, run *actions_model.ActionRun)
 	return branch
 }
 
+// actionsSummaryRefCacheTTL bounds how long the resolved PR/branch summary is
+// cached. ViewPost is polled every second, but this metadata is stable for a
+// run, so a short TTL collapses the repeated DB lookups while staying fresh
+// enough for the navigation links.
+const actionsSummaryRefCacheTTL = 10 // seconds
+
+type viewSummaryRefInfo struct {
+	PullRequest *ViewPullRequest `json:"pullRequest"`
+	Branch      ViewBranch       `json:"branch"`
+}
+
+// getViewSummaryRefInfo resolves the run's pull request and head branch summary,
+// caching the result briefly so the per-second poll does not hit the database on
+// every request (GetUnmergedPullRequestsByHeadInfo / GetBranch).
+func getViewSummaryRefInfo(ctx context.Context, run *actions_model.ActionRun) viewSummaryRefInfo {
+	compute := func() viewSummaryRefInfo {
+		return viewSummaryRefInfo{
+			PullRequest: viewPullRequestFromRun(ctx, run),
+			Branch:      viewSummaryBranchFromRun(ctx, run),
+		}
+	}
+	c := cache.GetCache()
+	if c == nil {
+		return compute()
+	}
+	cacheKey := fmt.Sprintf("actions_run_summary_ref:%d", run.ID)
+	if cached, ok := c.Get(cacheKey); ok && cached != "" {
+		var info viewSummaryRefInfo
+		if err := json.Unmarshal([]byte(cached), &info); err == nil {
+			return info
+		}
+	}
+	info := compute()
+	if data, err := json.Marshal(info); err == nil {
+		_ = c.Put(cacheKey, string(data), actionsSummaryRefCacheTTL)
+	}
+	return info
+}
+
 func ViewPost(ctx *context_module.Context) {
 	run, attempt, jobs := getCurrentRunJobsByPathParam(ctx)
 	if ctx.Written() {
@@ -595,13 +636,14 @@ func fillViewRunResponseSummary(ctx *context_module.Context, resp *ViewResponse,
 		AvatarLink:  run.TriggerUser.AvatarLinkWithSize(ctx, 16),
 	}
 
+	refInfo := getViewSummaryRefInfo(ctx, run)
 	resp.State.Run.Commit = ViewCommit{
 		ShortSha: base.ShortSha(run.CommitSHA),
 		Link:     fmt.Sprintf("%s/commit/%s", run.Repo.Link(), run.CommitSHA),
 		Pusher:   pusher,
-		Branch:   viewSummaryBranchFromRun(ctx, run),
+		Branch:   refInfo.Branch,
 	}
-	resp.State.Run.PullRequest = viewPullRequestFromRun(ctx, run)
+	resp.State.Run.PullRequest = refInfo.PullRequest
 	resp.State.Run.TriggerEvent = run.TriggerEvent
 
 	// Legacy runs (LatestAttemptID == 0) have no attempt; their artifacts all share run_attempt_id=0,

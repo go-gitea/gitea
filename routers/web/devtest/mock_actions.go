@@ -93,7 +93,7 @@ func MockActionsRunsJobs(ctx *context.Context) {
 	if user2 == nil {
 		user2 = &user_model.User{Name: "user2"}
 	}
-	user3, _ := user_model.GetUserByID(ctx, 1)
+	user3, _ := user_model.GetUserByID(ctx, 3)
 	if user3 == nil {
 		user3 = &user_model.User{Name: "user3"}
 	}
