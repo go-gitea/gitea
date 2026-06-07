@@ -187,7 +187,7 @@ func SearchIssues(ctx *context.APIContext) {
 
 	before, since, err := context.GetQueryBeforeSince(ctx.Base)
 	if err != nil {
-		ctx.APIError(http.StatusUnprocessableEntity, err)
+		ctx.APIError(http.StatusUnprocessableEntity, err.Error())
 		return
 	}
 
@@ -196,7 +196,7 @@ func SearchIssues(ctx *context.APIContext) {
 	repoIDs, allPublic, err := buildSearchIssuesRepoIDs(ctx)
 	if err != nil {
 		if errors.Is(err, util.ErrNotExist) || errors.Is(err, util.ErrInvalidArgument) {
-			ctx.APIError(http.StatusBadRequest, err)
+			ctx.APIError(http.StatusBadRequest, err.Error())
 		} else {
 			ctx.APIErrorInternal(err)
 		}
@@ -384,7 +384,7 @@ func ListIssues(ctx *context.APIContext) {
 	//     "$ref": "#/responses/notFound"
 	before, since, err := context.GetQueryBeforeSince(ctx.Base)
 	if err != nil {
-		ctx.APIError(http.StatusUnprocessableEntity, err)
+		ctx.APIError(http.StatusUnprocessableEntity, err.Error())
 		return
 	}
 
@@ -682,7 +682,7 @@ func CreateIssue(ctx *context.APIContext) {
 				return
 			}
 			if !valid {
-				ctx.APIError(http.StatusUnprocessableEntity, repo_model.ErrUserDoesNotHaveAccessToRepo{UserID: aID, RepoName: ctx.Repo.Repository.Name})
+				ctx.APIError(http.StatusUnprocessableEntity, repo_model.ErrUserDoesNotHaveAccessToRepo{UserID: aID, RepoName: ctx.Repo.Repository.Name}.Error())
 				return
 			}
 		}
@@ -693,9 +693,9 @@ func CreateIssue(ctx *context.APIContext) {
 
 	if err := issue_service.NewIssue(ctx, ctx.Repo.Repository, issue, form.Labels, nil, assigneeIDs, form.Projects); err != nil {
 		if errors.Is(err, user_model.ErrBlockedUser) {
-			ctx.APIError(http.StatusForbidden, err)
+			ctx.APIError(http.StatusForbidden, err.Error())
 		} else if errors.Is(err, util.ErrPermissionDenied) || errors.Is(err, util.ErrNotExist) {
-			ctx.APIError(http.StatusBadRequest, err)
+			ctx.APIError(http.StatusBadRequest, err.Error())
 		} else {
 			ctx.APIErrorInternal(err)
 		}
@@ -794,7 +794,7 @@ func EditIssue(ctx *context.APIContext) {
 	// handles concurrent requests.
 	// TODO: wrap all mutations in a transaction to fully prevent partial writes.
 	if form.ContentVersion != nil && *form.ContentVersion != issue.ContentVersion {
-		ctx.APIError(http.StatusConflict, issues_model.ErrIssueAlreadyChanged)
+		ctx.APIError(http.StatusConflict, issues_model.ErrIssueAlreadyChanged.Error())
 		return
 	}
 
@@ -813,7 +813,7 @@ func EditIssue(ctx *context.APIContext) {
 		err = issue_service.ChangeContent(ctx, issue, ctx.Doer, *form.Body, contentVersion)
 		if err != nil {
 			if errors.Is(err, issues_model.ErrIssueAlreadyChanged) {
-				ctx.APIError(http.StatusConflict, err)
+				ctx.APIError(http.StatusConflict, err.Error())
 				return
 			}
 
@@ -869,7 +869,7 @@ func EditIssue(ctx *context.APIContext) {
 		err = issue_service.UpdateAssignees(ctx, issue, oneAssignee, form.Assignees, ctx.Doer)
 		if err != nil {
 			if errors.Is(err, user_model.ErrBlockedUser) {
-				ctx.APIError(http.StatusForbidden, err)
+				ctx.APIError(http.StatusForbidden, err.Error())
 			} else {
 				ctx.APIErrorInternal(err)
 			}
@@ -918,7 +918,7 @@ func EditIssue(ctx *context.APIContext) {
 	if canWrite && form.Projects != nil {
 		if err := issues_model.IssueAssignOrRemoveProject(ctx, issue, ctx.Doer, *form.Projects); err != nil {
 			if errors.Is(err, util.ErrPermissionDenied) || errors.Is(err, util.ErrNotExist) {
-				ctx.APIError(http.StatusBadRequest, err)
+				ctx.APIError(http.StatusBadRequest, err.Error())
 			} else {
 				ctx.APIErrorInternal(err)
 			}
