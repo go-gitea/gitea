@@ -294,7 +294,7 @@ func HandleAddGPGKeyError(ctx *context.APIContext, err error, token string) {
 	case asymkey_model.IsErrGPGKeyIDAlreadyUsed(err):
 		ctx.APIError(http.StatusUnprocessableEntity, "A key with the same id already exists")
 	case asymkey_model.IsErrGPGKeyParsing(err):
-		ctx.APIError(http.StatusUnprocessableEntity, err)
+		ctx.APIError(http.StatusUnprocessableEntity, err.Error())
 	case asymkey_model.IsErrGPGNoEmailFound(err):
 		ctx.APIError(http.StatusNotFound, "None of the emails attached to the GPG key could be found. It may still be added if you provide a valid signature for the token: "+token)
 	case asymkey_model.IsErrGPGInvalidTokenSignature(err):
