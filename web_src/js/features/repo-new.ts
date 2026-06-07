@@ -86,7 +86,6 @@ export function initGroupSelector(form: HTMLFormElement) {
             return retVal;
           };
           results.push(...response.data.subgroups.map(forEachFn));
-          $dropdown.fomanticExt.onResponseKeepSelectedItem($dropdown, elGID.value);
           return {results};
         },
         cache: false,
