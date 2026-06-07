@@ -149,12 +149,8 @@ func CheckIssueAssignee(ctx *context.APIContext) {
 	//     "$ref": "#/responses/notFound"
 
 	issue, err := issues_model.GetIssueByIndex(ctx, ctx.Repo.Repository.ID, ctx.PathParamInt64("index"))
-	switch {
-	case errors.Is(err, util.ErrNotExist):
-		ctx.APIErrorNotFound()
-		return
-	case err != nil:
-		ctx.APIErrorInternal(err)
+	if err != nil {
+		ctx.APIErrorAuto(err)
 		return
 	}
 
@@ -173,22 +169,14 @@ func CheckIssueAssignee(ctx *context.APIContext) {
 // On any failure it writes the appropriate API response and returns false.
 func checkAssignableUser(ctx *context.APIContext, assigneeName string, repo *repo_model.Repository) bool {
 	assignee, err := user_model.GetUserByName(ctx, assigneeName)
-	switch {
-	case errors.Is(err, util.ErrNotExist):
-		ctx.APIErrorNotFound()
-		return false
-	case err != nil:
-		ctx.APIErrorInternal(err)
+	if err != nil {
+		ctx.APIErrorAuto(err)
 		return false
 	}
 
 	canAssign, err := access_model.CanBeAssigned(ctx, assignee, repo)
-	switch {
-	case errors.Is(err, util.ErrInvalidArgument):
-		ctx.APIError(http.StatusBadRequest, err)
-		return false
-	case err != nil:
-		ctx.APIErrorInternal(err)
+	if err != nil {
+		ctx.APIErrorAuto(err)
 		return false
 	}
 
@@ -202,12 +190,8 @@ func checkAssignableUser(ctx *context.APIContext, assigneeName string, repo *rep
 
 func updateIssueAssignees(ctx *context.APIContext, opts api.IssueAssigneesOption, isAdd bool) {
 	issue, err := issues_model.GetIssueByIndex(ctx, ctx.Repo.Repository.ID, ctx.PathParamInt64("index"))
-	switch {
-	case errors.Is(err, util.ErrNotExist):
-		ctx.APIErrorNotFound()
-		return
-	case err != nil:
-		ctx.APIErrorInternal(err)
+	if err != nil {
+		ctx.APIErrorAuto(err)
 		return
 	}
 
@@ -222,12 +206,8 @@ func updateIssueAssignees(ctx *context.APIContext, opts api.IssueAssigneesOption
 	}
 
 	assigneeIDs, err := user_model.GetUserIDsByNames(ctx, opts.Assignees, false)
-	switch {
-	case errors.Is(err, util.ErrNotExist):
-		ctx.APIError(http.StatusUnprocessableEntity, err)
-		return
-	case err != nil:
-		ctx.APIErrorInternal(err)
+	if err != nil {
+		ctx.APIErrorAuto(err)
 		return
 	}
 
@@ -239,13 +219,13 @@ func updateIssueAssignees(ctx *context.APIContext, opts api.IssueAssigneesOption
 
 	switch {
 	case errors.Is(err, user_model.ErrBlockedUser):
-		ctx.APIError(http.StatusForbidden, err)
+		ctx.APIError(http.StatusForbidden, err.Error())
 		return
 	case errors.Is(err, util.ErrPermissionDenied):
-		ctx.APIError(http.StatusForbidden, err)
+		ctx.APIError(http.StatusForbidden, err.Error())
 		return
 	case errors.Is(err, util.ErrInvalidArgument):
-		ctx.APIError(http.StatusBadRequest, err)
+		ctx.APIError(http.StatusBadRequest, err.Error())
 		return
 	case err != nil:
 		ctx.APIErrorInternal(err)
