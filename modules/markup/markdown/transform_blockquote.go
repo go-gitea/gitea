@@ -43,10 +43,10 @@ func (g *ASTTransformer) extractBlockquoteAttentionEmphasis(firstParagraph ast.N
 		return "", nil
 	}
 	node1, ok := firstParagraph.FirstChild().(*ast.Emphasis)
-	if !ok {
+	if !ok || node1.FirstChild() == nil || node1.FirstChild() != node1.LastChild() {
 		return "", nil
 	}
-	val1 := string(node1.Text(reader.Source()))
+	val1 := string(node1.FirstChild().Text(reader.Source()))
 	attentionType := strings.ToLower(val1)
 	if g.attentionTypes.Contains(attentionType) {
 		return attentionType, []ast.Node{node1}
