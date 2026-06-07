@@ -308,12 +308,12 @@ $.fn.dropdown = function(parameters) {
           firstUnfiltered: function() {
             module.verbose('Selecting first non-filtered element');
             module.remove.selectedItem();
-            $item
+            const $selectable = $item
               .not(selector.unselectable)
-              .not(selector.addition + selector.hidden)
-                .eq(0)
-                .addClass(className.selected)
-            ;
+              .not(selector.addition + selector.hidden);
+            let $selectedItem = $selectable.filter(`[data-value="${CSS.escape($input.val())}"]`); // GITEA-PATCH: try to re-select the last selected item for single selection
+            if (!$selectedItem.length) $selectedItem = $item.eq(0);
+            $selectedItem.addClass(className.selected);
           },
           nextAvailable: function($selected) {
             $selected = $selected.eq(0);
@@ -772,11 +772,13 @@ $.fn.dropdown = function(parameters) {
                 if(!Array.isArray(preSelected)) {
                     preSelected = preSelected && preSelected!=="" ? preSelected.split(settings.delimiter) : [];
                 }
-                $.each(preSelected,function(index,value){
-                  $item.filter('[data-value="'+CSS.escape(value)+'"]') // GITEA-PATCH: use "CSS.escape" for query selector
+                if (module.is.multiple()) { // GITEA-PATCH: only hide selected items when the dropdown is "multiple selection"
+                  $.each(preSelected, function (index, value) {
+                    $item.filter('[data-value="' + CSS.escape(value) + '"]') // GITEA-PATCH: use "CSS.escape" for query selector
                       .addClass(className.filtered)
-                  ;
-                });
+                    ;
+                  });
+                }
                 afterFiltered();
               });
             }
