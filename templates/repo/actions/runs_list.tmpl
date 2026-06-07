@@ -13,13 +13,10 @@
 				</span>
 			</div>
 			<div class="item-main">
-				<span class="item-title" title="{{$run.Title}}">
-					{{if $run.Title}}
-						{{ctx.RenderUtils.RenderCommitMessageLinkSubject $run.Title $run.Link $.Repository}}
-					{{else}}
-						<a href="{{$run.Link}}">{{ctx.Locale.Tr "actions.runs.empty_commit_message"}}</a>
-					{{end}}
-				</span>
+				<div class="item-title">
+					{{$title := or $run.Title (ctx.Locale.Tr "actions.runs.empty_commit_message")}}
+					{{ctx.RenderUtils.RenderCommitMessageLinkSubject $title $run.Link $.Repository}}
+				</div>
 				<div class="item-body">
 					{{$workflowName := index $.WorkflowNames $run.WorkflowID}}
 					<span><b>{{if not $.CurWorkflow}}{{if $workflowName}}{{$workflowName}}{{else}}{{$run.WorkflowID}}{{end}} {{end}}#{{$run.Index}}</b>:</span>

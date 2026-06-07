@@ -242,7 +242,7 @@ func APIContexter() func(http.Handler) http.Handler {
 				}
 			}
 
-			httpcache.SetCacheControlInHeader(ctx.Resp.Header(), &httpcache.CacheControlOptions{NoTransform: true})
+			httpcache.SetCacheControlInHeader(ctx.Resp.Header(), &httpcache.CacheControlOptions{})
 			next.ServeHTTP(ctx.Resp, ctx.Req)
 		})
 	}
