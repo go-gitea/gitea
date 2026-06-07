@@ -7,7 +7,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-
 	"gitea.dev/models/db"
 	issue_model "gitea.dev/models/issues"
 	"gitea.dev/modules/container"
@@ -87,6 +86,11 @@ func getIssueIndexerData(ctx context.Context, issueID int64) (*internal.IndexerD
 		return nil, false, err
 	}
 
+	assigneeIDs, err := issue_model.GetAssigneeIDsByIssue(ctx, issue.ID)
+	if err != nil {
+		return nil, false, err
+	}
+
 	projectIDs := make([]int64, 0, len(issue.Projects))
 	for _, project := range issue.Projects {
 		projectIDs = append(projectIDs, project.ID)
@@ -113,6 +117,7 @@ func getIssueIndexerData(ctx context.Context, issueID int64) (*internal.IndexerD
 		NoProject:          len(projectIDs) == 0,
 		PosterID:           issue.PosterID,
 		AssigneeID:         issue.AssigneeID,
+		AssigneeIDs:        assigneeIDs,
 		MentionIDs:         mentionIDs,
 		ReviewedIDs:        reviewedIDs,
 		ReviewRequestedIDs: reviewRequestedIDs,

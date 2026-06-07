@@ -35,6 +35,7 @@ type IndexerData struct {
 	ProjectColumnMap   map[int64]int64    `json:"project_column_map,omitempty"` // Maps project ID to column ID for each project the issue is in
 	PosterID           int64              `json:"poster_id"`
 	AssigneeID         int64              `json:"assignee_id"`
+	AssigneeIDs        []int64            `json:"assignee_ids"`
 	MentionIDs         []int64            `json:"mention_ids"`
 	ReviewedIDs        []int64            `json:"reviewed_ids"`
 	ReviewRequestedIDs []int64            `json:"review_requested_ids"`

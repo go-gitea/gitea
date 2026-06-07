@@ -27,7 +27,7 @@ import (
 const (
 	issueIndexerAnalyzer      = "issueIndexer"
 	issueIndexerDocType       = "issueIndexerDocType"
-	issueIndexerLatestVersion = 6
+	issueIndexerLatestVersion = 7
 )
 
 const unicodeNormalizeName = "unicodeNormalize"
@@ -87,6 +87,7 @@ func generateIssueIndexMapping() (mapping.IndexMapping, error) {
 	docMapping.AddFieldMappingsAt("no_project", boolFieldMapping)
 	docMapping.AddFieldMappingsAt("poster_id", numberFieldMapping)
 	docMapping.AddFieldMappingsAt("assignee_id", numberFieldMapping)
+	docMapping.AddFieldMappingsAt("assignee_ids", numberFieldMapping)
 	docMapping.AddFieldMappingsAt("mention_ids", numberFieldMapping)
 	docMapping.AddFieldMappingsAt("reviewed_ids", numberFieldMapping)
 	docMapping.AddFieldMappingsAt("review_requested_ids", numberFieldMapping)
@@ -260,11 +261,21 @@ func (b *Indexer) Search(ctx context.Context, options *internal.SearchOptions) (
 
 	if options.AssigneeID != "" {
 		if options.AssigneeID == "(any)" {
-			queries = append(queries, inner_bleve.NumericRangeInclusiveQuery(optional.Some[int64](1), optional.None[int64](), "assignee_id"))
+			queries = append(queries, bleve.NewDisjunctionQuery(
+				inner_bleve.NumericRangeInclusiveQuery(optional.Some[int64](1), optional.None[int64](), "assignee_ids"),
+				inner_bleve.NumericRangeInclusiveQuery(optional.Some[int64](1), optional.None[int64](), "assignee_id"),
+			))
 		} else {
 			// "(none)" becomes 0, it means no assignee
 			assigneeIDInt64, _ := strconv.ParseInt(options.AssigneeID, 10, 64)
-			queries = append(queries, inner_bleve.NumericEqualityQuery(assigneeIDInt64, "assignee_id"))
+			if options.AssigneeID == "(none)" {
+				queries = append(queries, inner_bleve.NumericEqualityQuery(assigneeIDInt64, "assignee_id"))
+			} else {
+				queries = append(queries, bleve.NewDisjunctionQuery(
+					inner_bleve.NumericEqualityQuery(assigneeIDInt64, "assignee_ids"),
+					inner_bleve.NumericEqualityQuery(assigneeIDInt64, "assignee_id"),
+				))
+			}
 		}
 	}
 
