@@ -2,7 +2,7 @@
  and material icons should have no "fill" set explicitly, otherwise some like ".editorconfig" won't render correctly */
 .svg:not(.git-entry-icon) {
   display: inline-block;
-  vertical-align: text-top;
+  vertical-align: middle; /* middle is the best choice for different font sizes from 1px to 36px when no flex */
   fill: currentcolor;
 }
 

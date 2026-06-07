@@ -5,7 +5,6 @@
 package user
 
 import (
-	"errors"
 	"fmt"
 	"net/http"
 	"strconv"
@@ -112,13 +111,13 @@ func CreateAccessToken(ctx *context.APIContext) {
 		return
 	}
 	if exist {
-		ctx.APIError(http.StatusBadRequest, errors.New("access token name has been used already"))
+		ctx.APIError(http.StatusBadRequest, "access token name has been used already")
 		return
 	}
 
 	scope, err := auth_model.AccessTokenScope(strings.Join(form.Scopes, ",")).Normalize()
 	if err != nil {
-		ctx.APIError(http.StatusBadRequest, fmt.Errorf("invalid access token scope provided: %w", err))
+		ctx.APIError(http.StatusBadRequest, fmt.Sprintf("invalid access token scope provided: %v", err))
 		return
 	}
 	if scope == "" {
@@ -188,7 +187,7 @@ func DeleteAccessToken(ctx *context.APIContext) {
 		case 1:
 			tokenID = tokens[0].ID
 		default:
-			ctx.APIError(http.StatusUnprocessableEntity, fmt.Errorf("multiple matches for token name '%s'", token))
+			ctx.APIError(http.StatusUnprocessableEntity, fmt.Sprintf("multiple matches for token name '%s'", token))
 			return
 		}
 	}

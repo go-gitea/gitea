@@ -194,9 +194,9 @@ func CreateIssueAttachment(ctx *context.APIContext) {
 	})
 	if err != nil {
 		if upload.IsErrFileTypeForbidden(err) {
-			ctx.APIError(http.StatusUnprocessableEntity, err)
+			ctx.APIError(http.StatusUnprocessableEntity, err.Error())
 		} else if errors.Is(err, util.ErrContentTooLarge) {
-			ctx.APIError(http.StatusRequestEntityTooLarge, err)
+			ctx.APIError(http.StatusRequestEntityTooLarge, err.Error())
 		} else {
 			ctx.APIErrorInternal(err)
 		}
@@ -272,7 +272,7 @@ func EditIssueAttachment(ctx *context.APIContext) {
 
 	if err := attachment_service.UpdateAttachment(ctx, setting.Attachment.AllowedTypes, attachment); err != nil {
 		if upload.IsErrFileTypeForbidden(err) {
-			ctx.APIError(http.StatusUnprocessableEntity, err)
+			ctx.APIError(http.StatusUnprocessableEntity, err.Error())
 			return
 		}
 		ctx.APIErrorInternal(err)

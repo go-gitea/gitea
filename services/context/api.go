@@ -137,16 +137,34 @@ func (ctx *APIContext) apiErrorInternal(skip int, err error) {
 	})
 }
 
-// APIError responds with an error message to client with given obj as the message.
-// If status is 500, also it prints error to log.
-func (ctx *APIContext) APIError(status int, obj any) {
+// APIErrorNotFound handles 404s for APIContext
+// String will replace message, errors will be added to a slice
+func (ctx *APIContext) APIErrorNotFound(objs ...any) {
 	var message string
-	if err, ok := obj.(error); ok {
-		message = err.Error()
-	} else {
-		message = fmt.Sprintf("%s", obj)
-	}
+	var errs []string
+	for _, obj := range objs {
+		// Ignore nil
+		if obj == nil {
+			continue
+		}
 
+		if err, ok := obj.(error); ok {
+			errs = append(errs, err.Error())
+		} else {
+			message = obj.(string)
+		}
+	}
+	ctx.JSON(http.StatusNotFound, map[string]any{
+		"message": util.IfZero(message, "not found"), // do not use locale in API
+		"url":     setting.API.SwaggerURL,
+		"errors":  errs,
+	})
+}
+
+// APIError responds with an error message to client.
+// If status is 500, also it prints error to log.
+func (ctx *APIContext) APIError(status int, msg string) {
+	message := msg
 	if status == http.StatusInternalServerError {
 		log.ErrorWithSkip(1, "APIError: %s", message)
 
@@ -159,6 +177,26 @@ func (ctx *APIContext) APIError(status int, obj any) {
 		Message: message,
 		URL:     setting.API.SwaggerURL,
 	})
+}
+
+// APIErrorAuto use error check function to determine the response code
+func (ctx *APIContext) APIErrorAuto(err error) {
+	switch {
+	case errors.Is(err, util.ErrInvalidArgument):
+		ctx.APIError(http.StatusBadRequest, err.Error())
+	case errors.Is(err, util.ErrPermissionDenied):
+		ctx.APIError(http.StatusForbidden, err.Error())
+	case errors.Is(err, util.ErrNotExist):
+		ctx.APIError(http.StatusNotFound, err.Error())
+	case errors.Is(err, util.ErrAlreadyExist):
+		ctx.APIError(http.StatusConflict, err.Error())
+	case errors.Is(err, util.ErrContentTooLarge):
+		ctx.APIError(http.StatusRequestEntityTooLarge, err.Error())
+	case errors.Is(err, util.ErrUnprocessableContent):
+		ctx.APIError(http.StatusUnprocessableEntity, err.Error())
+	default:
+		ctx.apiErrorInternal(1, err)
+	}
 }
 
 type apiContextKeyType struct{}
@@ -248,30 +286,6 @@ func APIContexter() func(http.Handler) http.Handler {
 	}
 }
 
-// APIErrorNotFound handles 404s for APIContext
-// String will replace message, errors will be added to a slice
-func (ctx *APIContext) APIErrorNotFound(objs ...any) {
-	var message string
-	var errs []string
-	for _, obj := range objs {
-		// Ignore nil
-		if obj == nil {
-			continue
-		}
-
-		if err, ok := obj.(error); ok {
-			errs = append(errs, err.Error())
-		} else {
-			message = obj.(string)
-		}
-	}
-	ctx.JSON(http.StatusNotFound, map[string]any{
-		"message": util.IfZero(message, "not found"), // do not use locale in API
-		"url":     setting.API.SwaggerURL,
-		"errors":  errs,
-	})
-}
-
 // ReferencesGitRepo injects the GitRepo into the Context
 // you can optional skip the IsEmpty check
 func ReferencesGitRepo(allowEmpty ...bool) func(ctx *APIContext) {
@@ -327,26 +341,6 @@ func RepoRefForAPI(next http.Handler) http.Handler {
 		ctx.Repo.CommitID = ctx.Repo.Commit.ID.String()
 		next.ServeHTTP(w, req)
 	})
-}
-
-// APIErrorAuto use error check function to determine the response code
-func (ctx *APIContext) APIErrorAuto(err error) {
-	switch {
-	case errors.Is(err, util.ErrInvalidArgument):
-		ctx.APIError(http.StatusBadRequest, err.Error())
-	case errors.Is(err, util.ErrPermissionDenied):
-		ctx.APIError(http.StatusForbidden, err.Error())
-	case errors.Is(err, util.ErrNotExist):
-		ctx.APIError(http.StatusNotFound, err.Error())
-	case errors.Is(err, util.ErrAlreadyExist):
-		ctx.APIError(http.StatusConflict, err.Error())
-	case errors.Is(err, util.ErrContentTooLarge):
-		ctx.APIError(http.StatusRequestEntityTooLarge, err.Error())
-	case errors.Is(err, util.ErrUnprocessableContent):
-		ctx.APIError(http.StatusUnprocessableEntity, err.Error())
-	default:
-		ctx.apiErrorInternal(1, err)
-	}
 }
 
 // IsUserSiteAdmin returns true if current user is a site admin
