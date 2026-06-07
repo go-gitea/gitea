@@ -4,7 +4,6 @@
 package repo
 
 import (
-	"errors"
 	"net/http"
 
 	issues_model "gitea.dev/models/issues"
@@ -63,7 +62,7 @@ func LockIssue(ctx *context.APIContext) {
 	}
 
 	if !ctx.Repo.Permission.CanWriteIssuesOrPulls(issue.IsPull) {
-		ctx.APIError(http.StatusForbidden, errors.New("no permission to lock this issue"))
+		ctx.APIError(http.StatusForbidden, "no permission to lock this issue")
 		return
 	}
 
@@ -130,7 +129,7 @@ func UnlockIssue(ctx *context.APIContext) {
 	}
 
 	if !ctx.Repo.Permission.CanWriteIssuesOrPulls(issue.IsPull) {
-		ctx.APIError(http.StatusForbidden, errors.New("no permission to unlock this issue"))
+		ctx.APIError(http.StatusForbidden, "no permission to unlock this issue")
 		return
 	}
 
