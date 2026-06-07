@@ -51,4 +51,3 @@ func TestMigrateOptionsSSHKeyOwnerIDRoundtrip(t *testing.T) {
 	assert.NoError(t, json.Unmarshal(data, &got))
 	assert.Equal(t, int64(42), got.SSHKeyOwnerID)
 }
-
