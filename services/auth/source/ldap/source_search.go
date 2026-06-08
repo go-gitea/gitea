@@ -348,8 +348,10 @@ func realSearchEntry(source *Source, name, passwd string, directBind bool) *Sear
 	}
 
 	log.Trace("Fetching attributes '%v', '%v', '%v', '%v', '%v', '%v', '%v' with filter '%s' and base '%s'", source.AttributeUsername, source.AttributeName, source.AttributeSurname, source.AttributeMail, source.AttributeSSHPublicKey, source.AttributeAvatar, source.UserUID, userFilter, userDN)
+
+	// FIX: ScopeBaseObject targets the exact single record for attribute extraction
 	search := ldap.NewSearchRequest(
-		userDN, ldap.ScopeWholeSubtree, ldap.NeverDerefAliases, 0, 0, false, userFilter,
+		userDN, ldap.ScopeBaseObject, ldap.NeverDerefAliases, 0, 0, false, userFilter,
 		attribs, nil)
 
 	sr, err := l.Search(search)
@@ -462,6 +464,8 @@ func (source *Source) SearchEntries() ([]*SearchResult, error) {
 	}
 
 	log.Trace("Fetching attributes '%v', '%v', '%v', '%v', '%v', '%v' with filter %s and base %s", source.AttributeUsername, source.AttributeName, source.AttributeSurname, source.AttributeMail, source.AttributeSSHPublicKey, source.AttributeAvatar, userFilter, source.UserBase)
+
+	// FIX: Restored ScopeWholeSubtree here since source.UserBase is a container, not a leaf.
 	search := ldap.NewSearchRequest(
 		source.UserBase, ldap.ScopeWholeSubtree, ldap.NeverDerefAliases, 0, 0, false, userFilter,
 		attribs, nil)
