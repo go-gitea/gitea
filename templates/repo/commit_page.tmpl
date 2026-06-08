@@ -139,8 +139,7 @@
 					<strong>{{.Commit.Author.Name}}</strong>
 				{{end}}
 			</div>
-
-			<span class="tw-text-text-light">{{DateUtils.TimeSince .Commit.Author.When}}</span>
+			<span class="tw-text-text-light">{{DateUtils.TimeSince .Commit.Committer.When}}</span>
 
 			<div class="flex-text-inline">
 				{{if or (ne .Commit.Committer.Name .Commit.Author.Name) (ne .Commit.Committer.Email .Commit.Author.Email)}}
@@ -154,6 +153,29 @@
 					{{end}}
 				{{end}}
 			</div>
+
+			{{if .CommitOtherParticipants}}
+				<div class="flex-text-inline">
+					<span class="tw-text-text-light">{{ctx.Locale.Tr "repo.diff.coauthored_by"}}</span>
+					{{range $participant := .CommitOtherParticipants}}
+						{{$user := $participant.GiteaUser}}
+						{{$gitIdentity := $participant.GitIdentity}}
+						{{if $user}}
+							{{ctx.AvatarUtils.Avatar $user 20}}
+							<a class="muted" href="{{$user.HomeLink}}"><strong>{{$user.GetDisplayName}}</strong></a>
+						{{else}}
+							{{$gitName := $gitIdentity.Name}}
+							{{$gitEmail := $gitIdentity.Email}}
+							{{ctx.AvatarUtils.AvatarByEmail $gitEmail $gitName 20}}
+							{{if $gitEmail}}
+								<a class="muted" href="mailto:{{$gitEmail}}"><strong>{{$gitName}}</strong></a>
+							{{else}}
+								<strong>{{$gitName}}</strong>
+							{{end}}
+						{{end}}
+					{{end}}
+				</div>
+			{{end}}
 
 			{{if .Verification}}
 				{{template "repo/commit_sign_badge" dict "CommitSignVerification" .Verification}}

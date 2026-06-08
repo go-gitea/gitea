@@ -173,7 +173,7 @@ func Search(ctx *context.APIContext) {
 		opts.Collaborate = optional.Some(true)
 	case "":
 	default:
-		ctx.APIError(http.StatusUnprocessableEntity, fmt.Errorf("Invalid search mode: \"%s\"", mode))
+		ctx.APIError(http.StatusUnprocessableEntity, "invalid search mode")
 		return
 	}
 
@@ -234,7 +234,7 @@ func CreateUserRepo(ctx *context.APIContext, owner *user_model.User, opt api.Cre
 
 	// If the readme template does not exist, a 400 will be returned.
 	if opt.AutoInit && len(opt.Readme) > 0 && !slices.Contains(repo_module.Readmes, opt.Readme) {
-		ctx.APIError(http.StatusBadRequest, fmt.Errorf("readme template does not exist, available templates: %v", repo_module.Readmes))
+		ctx.APIError(http.StatusBadRequest, fmt.Sprintf("readme template does not exist, available templates: %v", repo_module.Readmes))
 		return
 	}
 
@@ -258,9 +258,9 @@ func CreateUserRepo(ctx *context.APIContext, owner *user_model.User, opt api.Cre
 		} else if db.IsErrNameReserved(err) ||
 			db.IsErrNamePatternNotAllowed(err) ||
 			label.IsErrTemplateLoad(err) {
-			ctx.APIError(http.StatusUnprocessableEntity, err)
+			ctx.APIError(http.StatusUnprocessableEntity, err.Error())
 		} else if errors.Is(err, util.ErrPermissionDenied) {
-			ctx.APIError(http.StatusForbidden, err)
+			ctx.APIError(http.StatusForbidden, err.Error())
 		} else {
 			ctx.APIErrorInternal(err)
 		}
@@ -413,7 +413,7 @@ func Generate(ctx *context.APIContext) {
 			ctx.APIError(http.StatusConflict, "The repository with the same name already exists.")
 		} else if db.IsErrNameReserved(err) ||
 			db.IsErrNamePatternNotAllowed(err) {
-			ctx.APIError(http.StatusUnprocessableEntity, err)
+			ctx.APIError(http.StatusUnprocessableEntity, err.Error())
 		} else {
 			ctx.APIErrorInternal(err)
 		}
@@ -652,13 +652,13 @@ func updateBasicProperties(ctx *context.APIContext, opts api.EditRepoOption) err
 		if err := repo_service.ChangeRepositoryName(ctx, ctx.Doer, repo, newRepoName); err != nil {
 			switch {
 			case repo_model.IsErrRepoAlreadyExist(err):
-				ctx.APIError(http.StatusUnprocessableEntity, err)
+				ctx.APIError(http.StatusUnprocessableEntity, err.Error())
 			case db.IsErrNameReserved(err):
-				ctx.APIError(http.StatusUnprocessableEntity, err)
+				ctx.APIError(http.StatusUnprocessableEntity, err.Error())
 			case db.IsErrNamePatternNotAllowed(err):
-				ctx.APIError(http.StatusUnprocessableEntity, err)
+				ctx.APIError(http.StatusUnprocessableEntity, err.Error())
 			default:
-				ctx.APIError(http.StatusUnprocessableEntity, fmt.Errorf("ChangeRepositoryName: %w", err))
+				ctx.APIError(http.StatusUnprocessableEntity, fmt.Sprintf("ChangeRepositoryName: %v", err))
 			}
 			return err
 		}
@@ -692,7 +692,7 @@ func updateBasicProperties(ctx *context.APIContext, opts api.EditRepoOption) err
 		// when ForcePrivate enabled, you could change public repo to private, but only admin users can change private to public
 		if visibilityChanged && setting.Repository.ForcePrivate && !*opts.Private && !ctx.Doer.IsAdmin {
 			err := errors.New("cannot change private repository to public")
-			ctx.APIError(http.StatusUnprocessableEntity, err)
+			ctx.APIError(http.StatusUnprocessableEntity, err.Error())
 			return err
 		}
 
@@ -756,12 +756,12 @@ func updateRepoUnits(ctx *context.APIContext, opts api.EditRepoOption) error {
 			// Check that values are valid
 			if !validation.IsValidURL(opts.ExternalTracker.ExternalTrackerURL) {
 				err := errors.New("External tracker URL not valid")
-				ctx.APIError(http.StatusUnprocessableEntity, err)
+				ctx.APIError(http.StatusUnprocessableEntity, err.Error())
 				return err
 			}
 			if len(opts.ExternalTracker.ExternalTrackerFormat) != 0 && !validation.IsValidExternalTrackerURLFormat(opts.ExternalTracker.ExternalTrackerFormat) {
 				err := errors.New("External tracker URL format not valid")
-				ctx.APIError(http.StatusUnprocessableEntity, err)
+				ctx.APIError(http.StatusUnprocessableEntity, err.Error())
 				return err
 			}
 
@@ -897,7 +897,7 @@ func updateRepoUnits(ctx *context.APIContext, opts api.EditRepoOption) error {
 			// so unrelated PATCH calls don't reject historical configs.
 			if opts.AllowMergeUpdate != nil || opts.AllowRebaseUpdate != nil || opts.DefaultUpdateStyle != nil {
 				if err := config.ValidateUpdateSettings(); err != nil {
-					ctx.APIError(http.StatusUnprocessableEntity, err)
+					ctx.APIError(http.StatusUnprocessableEntity, err.Error())
 					return err
 				}
 			}
@@ -988,7 +988,7 @@ func updateRepoArchivedState(ctx *context.APIContext, opts api.EditRepoOption) e
 	if opts.Archived != nil {
 		if repo.IsMirror {
 			err := errors.New("repo is a mirror, cannot archive/un-archive")
-			ctx.APIError(http.StatusUnprocessableEntity, err)
+			ctx.APIError(http.StatusUnprocessableEntity, err.Error())
 			return err
 		}
 		if *opts.Archived {
@@ -1042,14 +1042,14 @@ func updateMirror(ctx *context.APIContext, opts api.EditRepoOption) error {
 		interval, err := time.ParseDuration(*opts.MirrorInterval)
 		if err != nil {
 			log.Error("Wrong format for MirrorInternal Sent: %s", err)
-			ctx.APIError(http.StatusUnprocessableEntity, err)
+			ctx.APIError(http.StatusUnprocessableEntity, err.Error())
 			return err
 		}
 
 		// Ensure the provided duration is not too short
 		if interval != 0 && interval < setting.Mirror.MinInterval {
 			err := fmt.Errorf("invalid mirror interval: %s is below minimum interval: %s", interval, setting.Mirror.MinInterval)
-			ctx.APIError(http.StatusUnprocessableEntity, err)
+			ctx.APIError(http.StatusUnprocessableEntity, err.Error())
 			return err
 		}
 
@@ -1119,7 +1119,7 @@ func updateMirror(ctx *context.APIContext, opts api.EditRepoOption) error {
 	// finally update the mirror in the DB
 	if err := repo_model.UpdateMirror(ctx, mirror); err != nil {
 		log.Error("Failed to Set Mirror Interval: %s", err)
-		ctx.APIError(http.StatusUnprocessableEntity, err)
+		ctx.APIError(http.StatusUnprocessableEntity, err.Error())
 		return err
 	}
 

@@ -213,7 +213,7 @@ func getBlobForEntry(ctx *context.APIContext) (blob *git.Blob, entry *git.TreeEn
 	}
 
 	if entry.IsDir() || entry.IsSubModule() {
-		ctx.APIErrorNotFound("getBlobForEntry", nil)
+		ctx.APIErrorNotFound()
 		return nil, nil, nil
 	}
 
@@ -301,18 +301,14 @@ func GetEditorconfig(ctx *context.APIContext) {
 
 	ec, _, err := ctx.Repo.GetEditorconfig(ctx.Repo.Commit)
 	if err != nil {
-		if git.IsErrNotExist(err) {
-			ctx.APIErrorNotFound(err)
-		} else {
-			ctx.APIErrorInternal(err)
-		}
+		ctx.APIErrorAuto(err)
 		return
 	}
 
 	fileName := ctx.PathParam("filename")
 	def, err := ec.GetDefinitionForFilename(fileName)
-	if def == nil {
-		ctx.APIErrorNotFound(err)
+	if err != nil {
+		ctx.APIErrorNotFound(err.Error())
 		return
 	}
 	ctx.JSON(http.StatusOK, def)
@@ -409,7 +405,7 @@ func ChangeFiles(ctx *context.APIContext) {
 	for _, file := range apiOpts.Files {
 		contentReader, err := base64Reader(file.ContentBase64)
 		if err != nil {
-			ctx.APIError(http.StatusUnprocessableEntity, err)
+			ctx.APIError(http.StatusUnprocessableEntity, err.Error())
 			return
 		}
 		// FIXME: ChangeFileOperation.SHA is NOT required for update or delete if last commit is provided in the options
@@ -483,7 +479,7 @@ func CreateFile(ctx *context.APIContext) {
 	}
 	contentReader, err := base64Reader(apiOpts.ContentBase64)
 	if err != nil {
-		ctx.APIError(http.StatusUnprocessableEntity, err)
+		ctx.APIError(http.StatusUnprocessableEntity, err.Error())
 		return
 	}
 
@@ -554,7 +550,7 @@ func UpdateFile(ctx *context.APIContext) {
 	}
 	contentReader, err := base64Reader(apiOpts.ContentBase64)
 	if err != nil {
-		ctx.APIError(http.StatusUnprocessableEntity, err)
+		ctx.APIError(http.StatusUnprocessableEntity, err.Error())
 		return
 	}
 	willCreate := apiOpts.SHA == ""
@@ -584,17 +580,17 @@ func handleChangeRepoFilesError(ctx *context.APIContext, err error) {
 		return
 	}
 	if files_service.IsErrUserCannotCommit(err) || pull_service.IsErrFilePathProtected(err) {
-		ctx.APIError(http.StatusForbidden, err)
+		ctx.APIError(http.StatusForbidden, err.Error())
 		return
 	}
 	if git_model.IsErrBranchAlreadyExists(err) || files_service.IsErrFilenameInvalid(err) || pull_service.IsErrSHADoesNotMatch(err) ||
 		files_service.IsErrFilePathInvalid(err) || files_service.IsErrRepoFileAlreadyExists(err) ||
 		files_service.IsErrCommitIDDoesNotMatch(err) || files_service.IsErrSHAOrCommitIDNotProvided(err) {
-		ctx.APIError(http.StatusUnprocessableEntity, err)
+		ctx.APIError(http.StatusUnprocessableEntity, err.Error())
 		return
 	}
 	if errors.Is(err, util.ErrNotExist) {
-		ctx.APIError(http.StatusNotFound, err)
+		ctx.APIError(http.StatusNotFound, err.Error())
 		return
 	}
 	ctx.APIErrorInternal(err)
@@ -699,10 +695,8 @@ func DeleteFile(ctx *context.APIContext) {
 func resolveRefCommit(ctx *context.APIContext, ref string, minCommitIDLen ...int) *utils.RefCommit {
 	ref = util.IfZero(ref, ctx.Repo.Repository.DefaultBranch)
 	refCommit, err := utils.ResolveRefCommit(ctx, ctx.Repo.Repository, ref, minCommitIDLen...)
-	if errors.Is(err, util.ErrNotExist) {
-		ctx.APIErrorNotFound(err)
-	} else if err != nil {
-		ctx.APIErrorInternal(err)
+	if err != nil {
+		ctx.APIErrorAuto(err)
 	}
 	return refCommit
 }
@@ -828,11 +822,8 @@ func getRepoContents(ctx *context.APIContext, opts files_service.GetContentsOrLi
 	}
 	ret, err := files_service.GetContentsOrList(ctx, ctx.Repo.Repository, ctx.Repo.GitRepo, refCommit, opts)
 	if err != nil {
-		if git.IsErrNotExist(err) {
-			ctx.APIErrorNotFound("GetContentsOrList", err)
-			return nil
-		}
-		ctx.APIErrorInternal(err)
+		ctx.APIErrorAuto(err)
+		return nil
 	}
 	return &ret
 }

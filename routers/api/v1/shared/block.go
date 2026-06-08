@@ -45,7 +45,7 @@ func ListBlocks(ctx *context.APIContext, blocker *user_model.User) {
 func CheckUserBlock(ctx *context.APIContext, blocker *user_model.User) {
 	blockee, err := user_model.GetUserByName(ctx, ctx.PathParam("username"))
 	if err != nil {
-		ctx.APIErrorNotFound("GetUserByName", err)
+		ctx.APIErrorAuto(err)
 		return
 	}
 
@@ -62,13 +62,13 @@ func CheckUserBlock(ctx *context.APIContext, blocker *user_model.User) {
 func BlockUser(ctx *context.APIContext, blocker *user_model.User) {
 	blockee, err := user_model.GetUserByName(ctx, ctx.PathParam("username"))
 	if err != nil {
-		ctx.APIErrorNotFound("GetUserByName", err)
+		ctx.APIErrorAuto(err)
 		return
 	}
 
 	if err := user_service.BlockUser(ctx, ctx.Doer, blocker, blockee, ctx.FormString("note")); err != nil {
 		if errors.Is(err, user_model.ErrCanNotBlock) || errors.Is(err, user_model.ErrBlockOrganization) {
-			ctx.APIError(http.StatusBadRequest, err)
+			ctx.APIError(http.StatusBadRequest, err.Error())
 		} else {
 			ctx.APIErrorInternal(err)
 		}
@@ -81,13 +81,13 @@ func BlockUser(ctx *context.APIContext, blocker *user_model.User) {
 func UnblockUser(ctx *context.APIContext, doer, blocker *user_model.User) {
 	blockee, err := user_model.GetUserByName(ctx, ctx.PathParam("username"))
 	if err != nil {
-		ctx.APIErrorNotFound("GetUserByName", err)
+		ctx.APIErrorAuto(err)
 		return
 	}
 
 	if err := user_service.UnblockUser(ctx, doer, blocker, blockee); err != nil {
 		if errors.Is(err, user_model.ErrCanNotUnblock) || errors.Is(err, user_model.ErrBlockOrganization) {
-			ctx.APIError(http.StatusBadRequest, err)
+			ctx.APIError(http.StatusBadRequest, err.Error())
 		} else {
 			ctx.APIErrorInternal(err)
 		}
