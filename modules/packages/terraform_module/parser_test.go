@@ -177,6 +177,25 @@ func TestParseModuleArchive_BadGzip(t *testing.T) {
 	require.Error(t, err)
 }
 
+// TestParseModuleArchive_DecompressionBomb proves the hard parse ceiling
+// clamps an "unlimited" (-1) caller: a small archive that decompresses to
+// more than maxParseSize must be rejected rather than buffered whole.
+func TestParseModuleArchive_DecompressionBomb(t *testing.T) {
+	// A single .tf entry whose decompressed body exceeds maxParseSize.
+	// Highly compressible content keeps the archive itself tiny.
+	bomb := strings.Repeat("a", maxParseSize+(1<<20))
+	archive := buildArchive(t, map[string]string{"main.tf": bomb})
+
+	// Sanity: the compressed archive is orders of magnitude smaller than
+	// the ceiling, so only the decompressed-size guard can catch it.
+	require.Less(t, len(archive), 1<<20)
+
+	// maxSize = -1 means "unlimited storage quota"; the parser must still
+	// clamp to maxParseSize and refuse the bomb.
+	_, err := ParseModuleArchive(bytes.NewReader(archive), -1)
+	require.ErrorIs(t, err, ErrArchiveTooLarge)
+}
+
 func TestParseModuleArchive_MalformedHCL(t *testing.T) {
 	archive := buildArchive(t, map[string]string{
 		"main.tf": `variable "x" { type = `, // truncated expression

@@ -31,6 +31,13 @@ var (
 	ErrUnsupportedTFFormat = errors.New("only .tf files are supported (.tf.json is not parsed in v1)")
 )
 
+// maxParseSize is a hard ceiling on the total decompressed bytes read
+// while parsing an archive, independent of the configurable storage
+// quota (LIMIT_SIZE_TERRAFORM_MODULE). It guards against gzip bombs even
+// when the operator disables the storage quota with -1. Real Terraform
+// modules are KB-scale, so 32 MiB is generous.
+const maxParseSize = 32 << 20 // 32 MiB
+
 // Module is the result of parsing a Terraform module archive.
 type Module struct {
 	Metadata *Metadata
@@ -71,9 +78,14 @@ func ValidateProvider(s string) error {
 
 // ParseModuleArchive consumes a gzipped tar archive containing the
 // Terraform module sources at its root and returns the extracted
-// metadata. maxSize caps the total uncompressed bytes read; pass 0 to
-// disable the limit.
+// metadata. maxSize caps the total uncompressed bytes read; values <= 0
+// (e.g. an unlimited storage quota) or above maxParseSize are clamped to
+// maxParseSize so a gzip bomb can never be fully buffered into memory.
 func ParseModuleArchive(r io.Reader, maxSize int64) (*Module, error) {
+	if maxSize <= 0 || maxSize > maxParseSize {
+		maxSize = maxParseSize
+	}
+
 	gz, err := gzip.NewReader(r)
 	if err != nil {
 		return nil, fmt.Errorf("invalid gzip stream: %w", err)

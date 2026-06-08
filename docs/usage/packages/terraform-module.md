@@ -122,5 +122,8 @@ and pulls the archive from `:base/.../{version}/archive`.
 LIMIT_SIZE_TERRAFORM_MODULE = 100MB
 ```
 
-`-1` disables the per-module size limit; the global
-`LIMIT_TOTAL_OWNER_SIZE` still applies.
+`-1` disables the per-module *storage* limit; the global
+`LIMIT_TOTAL_OWNER_SIZE` still applies. Independently of this setting,
+the registry always enforces a 32 MiB ceiling on the decompressed bytes
+read while parsing an archive, so a malformed or malicious gzip stream
+cannot exhaust memory.
