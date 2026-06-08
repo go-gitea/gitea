@@ -104,7 +104,7 @@ func ParseModuleArchive(r io.Reader, maxSize int64) (*Module, error) {
 			return nil, ErrUnsafeArchivePath
 		}
 
-		if hdr.Typeflag != tar.TypeReg && hdr.Typeflag != tar.TypeRegA {
+		if hdr.Typeflag != tar.TypeReg {
 			continue
 		}
 

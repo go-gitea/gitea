@@ -7,7 +7,6 @@ import (
 	"archive/tar"
 	"bytes"
 	"compress/gzip"
-	"errors"
 	"strings"
 	"testing"
 
@@ -187,7 +186,7 @@ func TestParseModuleArchive_MalformedHCL(t *testing.T) {
 	// We surface the underlying parse error; ensure it's not one of the
 	// known sentinel errors that callers might branch on.
 	for _, sentinel := range []error{ErrEmptyModule, ErrUnsafeArchivePath, ErrArchiveTooLarge, ErrUnsupportedTFFormat} {
-		require.False(t, errors.Is(err, sentinel))
+		require.NotErrorIs(t, err, sentinel)
 	}
 }
 
