@@ -41,7 +41,8 @@ export function createViewFileTreeStore(props: {repoLink: string, treePath: stri
       const u = new URL(url, window.origin);
       u.searchParams.set('only_content', 'true');
       const response = await GET(u.href);
-      const elViewContent = document.querySelector('.repo-view-content')!;
+      const elViewContent = document.querySelector('.repo-view-content');
+      if (!elViewContent) return;
       elViewContent.innerHTML = await response.text();
       const elViewContentData = elViewContent.querySelector('.repo-view-content-data');
       if (!elViewContentData) return; // if error occurs, there is no such element
