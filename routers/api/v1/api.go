@@ -151,7 +151,7 @@ func repoAssignment() func(ctx *context.APIContext) {
 					if redirectUserID, err := user_model.LookupUserRedirect(ctx, userName); err == nil {
 						context.RedirectToUser(ctx.Base, ctx.Doer, userName, redirectUserID)
 					} else if user_model.IsErrUserRedirectNotExist(err) {
-						ctx.APIErrorNotFound("GetUserByName", err)
+						ctx.APIErrorNotFound()
 					} else {
 						ctx.APIErrorInternal(err)
 					}
@@ -648,7 +648,7 @@ func orgAssignment(args ...bool) func(ctx *context.APIContext) {
 					if err == nil {
 						context.RedirectToUser(ctx.Base, ctx.Doer, ctx.PathParam("org"), redirectUserID)
 					} else if user_model.IsErrUserRedirectNotExist(err) {
-						ctx.APIErrorNotFound("GetOrgByName", err)
+						ctx.APIErrorNotFound()
 					} else {
 						ctx.APIErrorInternal(err)
 					}
@@ -756,14 +756,14 @@ func mustEnableWiki(ctx *context.APIContext) {
 // FIXME: for consistency, maybe most mustNotBeArchived checks should be replaced with mustEnableEditor
 func mustNotBeArchived(ctx *context.APIContext) {
 	if ctx.Repo.Repository.IsArchived {
-		ctx.APIError(http.StatusLocked, fmt.Errorf("%s is archived", ctx.Repo.Repository.FullName()))
+		ctx.APIError(http.StatusLocked, "repo is archived")
 		return
 	}
 }
 
 func mustEnableEditor(ctx *context.APIContext) {
 	if !ctx.Repo.Repository.CanEnableEditor() {
-		ctx.APIError(http.StatusLocked, fmt.Errorf("%s is not allowed to edit", ctx.Repo.Repository.FullName()))
+		ctx.APIError(http.StatusLocked, "repo is not allowed to edit")
 		return
 	}
 }
@@ -884,12 +884,12 @@ func individualPermsChecker(ctx *context.APIContext) {
 		switch ctx.ContextUser.Visibility {
 		case api.VisibleTypePrivate:
 			if ctx.Doer == nil || (ctx.ContextUser.ID != ctx.Doer.ID && !ctx.Doer.IsAdmin) {
-				ctx.APIErrorNotFound("Visit Project", nil)
+				ctx.APIErrorNotFound()
 				return
 			}
 		case api.VisibleTypeLimited:
 			if ctx.Doer == nil {
-				ctx.APIErrorNotFound("Visit Project", nil)
+				ctx.APIErrorNotFound()
 				return
 			}
 		}
