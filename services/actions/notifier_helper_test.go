@@ -8,10 +8,10 @@ import (
 	"errors"
 	"testing"
 
-	actions_model "gitea.dev/models/actions"
-	repo_model "gitea.dev/models/repo"
-	user_model "gitea.dev/models/user"
-	actions_module "gitea.dev/modules/actions"
+	actions_model "code.gitea.io/gitea/models/actions"
+	repo_model "code.gitea.io/gitea/models/repo"
+	user_model "code.gitea.io/gitea/models/user"
+	actions_module "code.gitea.io/gitea/modules/actions"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
