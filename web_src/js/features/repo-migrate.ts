@@ -78,20 +78,19 @@ export function initRepoMigrationForm() {
     const url = cloneAddrInput!.value.trim();
     const isSSH = isSSHURL(url);
 
+    const usernameField = authUsernameInput!.parentElement!;
+    const passwordField = authPasswordInput!.parentElement!;
+
     if (isSSH) {
-      // Disable auth fields for SSH URLs
-      authUsernameInput!.disabled = true;
-      authPasswordInput!.disabled = true;
+      // Hide auth fields entirely for SSH URLs (key-based auth only)
       authUsernameInput!.value = '';
       authPasswordInput!.value = '';
-      authUsernameInput!.parentElement?.classList.add('disabled');
-      authPasswordInput!.parentElement?.classList.add('disabled');
+      hideElem(usernameField);
+      hideElem(passwordField);
       showElem(sshHelpText!);
     } else {
-      authUsernameInput!.disabled = false;
-      authPasswordInput!.disabled = false;
-      authUsernameInput!.parentElement?.classList.remove('disabled');
-      authPasswordInput!.parentElement?.classList.remove('disabled');
+      showElem(usernameField);
+      showElem(passwordField);
       hideElem(sshHelpText!);
     }
   }
