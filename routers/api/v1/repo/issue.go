@@ -540,16 +540,10 @@ func getUserIDForFilter(ctx *context.APIContext, queryName string) int64 {
 	}
 
 	user, err := user_model.GetUserByName(ctx, userName)
-	if user_model.IsErrUserNotExist(err) {
-		ctx.APIErrorNotFound(err)
-		return 0
-	}
-
 	if err != nil {
-		ctx.APIErrorInternal(err)
+		ctx.APIErrorAuto(err)
 		return 0
 	}
-
 	return user.ID
 }
 
@@ -969,11 +963,7 @@ func DeleteIssue(ctx *context.APIContext) {
 	//     "$ref": "#/responses/notFound"
 	issue, err := issues_model.GetIssueByIndex(ctx, ctx.Repo.Repository.ID, ctx.PathParamInt64("index"))
 	if err != nil {
-		if issues_model.IsErrIssueNotExist(err) {
-			ctx.APIErrorNotFound(err)
-		} else {
-			ctx.APIErrorInternal(err)
-		}
+		ctx.APIErrorAuto(err)
 		return
 	}
 
