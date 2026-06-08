@@ -9,6 +9,7 @@ import (
 	"compress/gzip"
 	"fmt"
 	"net/http"
+	"sort"
 	"strings"
 	"testing"
 
@@ -21,13 +22,23 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-// buildTFModuleArchive returns a gzipped tarball with the given files at the root.
+// buildTFModuleArchive returns a gzipped tarball with the given files at the
+// root. Entries are written in sorted filename order so the output is
+// byte-for-byte reproducible — map iteration order is randomized in Go, which
+// would otherwise make the archive (and tests comparing it) nondeterministic.
 func buildTFModuleArchive(t *testing.T, files map[string]string) []byte {
 	t.Helper()
+	names := make([]string, 0, len(files))
+	for name := range files {
+		names = append(names, name)
+	}
+	sort.Strings(names)
+
 	var buf bytes.Buffer
 	gz := gzip.NewWriter(&buf)
 	tw := tar.NewWriter(gz)
-	for name, content := range files {
+	for _, name := range names {
+		content := files[name]
 		require.NoError(t, tw.WriteHeader(&tar.Header{
 			Name:     name,
 			Typeflag: tar.TypeReg,
@@ -94,17 +105,18 @@ func TestPackageTerraformModule(t *testing.T) {
 	// exercise the read path. Registered cleanup deletes it, which keeps
 	// every subtest self-contained — running `go test -run .../Download_*`
 	// or any individual subtest works without the others having run.
-	uploadFixture := func(t *testing.T) {
+	uploadFixture := func(t *testing.T) []byte {
 		t.Helper()
 		archive := canonicalModuleArchive(t)
 		req := NewRequestWithBody(t, "PUT", base+"/"+version, bytes.NewReader(archive)).AddBasicAuth(user.Name)
 		MakeRequest(t, req, http.StatusCreated)
 		t.Cleanup(func() {
 			req := NewRequest(t, "DELETE", base+"/"+version).AddBasicAuth(user.Name)
-			// Accept 204 (deleted) or 404 (subtest already deleted it).
-			resp := MakeRequest(t, req, http.StatusNoContent)
-			_ = resp
+			MakeRequest(t, req, http.StatusNoContent)
 		})
+		// Return the exact bytes uploaded so a caller can assert a
+		// byte-for-byte download round-trip without rebuilding the archive.
+		return archive
 	}
 
 	t.Run("ServiceDiscovery", func(t *testing.T) {
@@ -189,11 +201,13 @@ func TestPackageTerraformModule(t *testing.T) {
 	})
 
 	t.Run("Download_Archive", func(t *testing.T) {
-		uploadFixture(t)
-		expected := canonicalModuleArchive(t)
+		// Compare against the exact bytes uploaded, not a freshly built
+		// archive, so the assertion tests the storage round-trip rather
+		// than gzip/tar reproducibility.
+		uploaded := uploadFixture(t)
 		req := NewRequest(t, "GET", base+"/"+version+"/archive").AddBasicAuth(user.Name)
 		resp := MakeRequest(t, req, http.StatusOK)
-		assert.Equal(t, expected, resp.Body.Bytes())
+		assert.Equal(t, uploaded, resp.Body.Bytes())
 	})
 
 	t.Run("Download_UnknownVersion", func(t *testing.T) {
