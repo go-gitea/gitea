@@ -128,6 +128,7 @@ func InfoOAuth(ctx *context.Context) {
 
 // IntrospectOAuth introspects an oauth token
 func IntrospectOAuth(ctx *context.Context) {
+	var introspectingApp *auth.OAuth2Application
 	clientIDValid := false
 	authHeader := ctx.Req.Header.Get("Authorization")
 	if parsed, ok := httpauth.ParseAuthorizationHeader(authHeader); ok && parsed.BasicAuth != nil {
@@ -140,6 +141,9 @@ func IntrospectOAuth(ctx *context.Context) {
 			return
 		}
 		clientIDValid = err == nil && app.ValidateClientSecret([]byte(clientSecret))
+		if clientIDValid {
+			introspectingApp = app
+		}
 	}
 	if !clientIDValid {
 		ctx.Resp.Header().Set("WWW-Authenticate", `Basic realm="Gitea OAuth2"`)
@@ -158,13 +162,10 @@ func IntrospectOAuth(ctx *context.Context) {
 	token, err := oauth2_provider.ParseToken(form.Token, oauth2_provider.DefaultSigningKey)
 	if err == nil {
 		grant, err := auth.GetOAuth2GrantByID(ctx, token.GrantID)
-		if err == nil && grant != nil {
-			app, err := auth.GetOAuth2ApplicationByID(ctx, grant.ApplicationID)
-			if err == nil && app != nil {
-				response.Active = true
-				response.Scope = grant.Scope
-				response.RegisteredClaims = oauth2_provider.NewJwtRegisteredClaimsFromUser(app.ClientID, grant.UserID, nil /*exp*/)
-			}
+		if err == nil && grant != nil && grant.ApplicationID == introspectingApp.ID {
+			response.Active = true
+			response.Scope = grant.Scope
+			response.RegisteredClaims = oauth2_provider.NewJwtRegisteredClaimsFromUser(introspectingApp.ClientID, grant.UserID, nil /*exp*/)
 			if user, err := user_model.GetUserByID(ctx, grant.UserID); err == nil {
 				response.Username = user.Name
 			}

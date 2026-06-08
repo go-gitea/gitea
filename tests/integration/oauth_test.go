@@ -122,6 +122,7 @@ func TestOAuth2(t *testing.T) {
 		t.Run("RefreshTokenInvalidation", testRefreshTokenInvalidation)
 		t.Run("RefreshTokenCrossClientUsage", testRefreshTokenCrossClientUsage)
 		t.Run("OAuthIntrospection", testOAuthIntrospection)
+		t.Run("OAuthIntrospectionCrossClientIsolation", testOAuthIntrospectionCrossClientIsolation)
 		t.Run("OAuthGrantScopesReadUserFailRepos", testOAuthGrantScopesReadUserFailRepos)
 		t.Run("OAuthGrantScopesBasicRespectsWriteUser", testOAuthGrantScopesBasicRespectsWriteUser)
 		t.Run("OAuthGrantScopesReadRepositoryFailOrganization", testOAuthGrantScopesReadRepositoryFailOrganization)
@@ -703,6 +704,80 @@ func testOAuthIntrospection(t *testing.T) {
 	req.Header.Add("Authorization", "Basic ZGE3ZGEzYmEtOWExMy00MTY3LTg1NmYtMzg5OWRlMGIwMTM4OjRNSzhOYTZSNTVzbWRDWTBXdUNDdW1aNmhqUlBuR1k1c2FXVlJISGpK")
 	resp = MakeRequest(t, req, http.StatusUnauthorized)
 	assert.Contains(t, resp.Body.String(), "no valid authorization")
+}
+
+func testOAuthIntrospectionCrossClientIsolation(t *testing.T) {
+	resourceOwner := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
+	clientA := createOAuthTestApplication(t, "user1", "introspection-primary-client", []string{"https://primary.example/oauth/callback"})
+	clientB := createOAuthTestApplication(t, "user2", "introspection-secondary-client", []string{"https://secondary.example/oauth/callback"})
+	code, verifier := issueOAuthAuthorizationCode(t, resourceOwner, clientA, clientA.RedirectURIs[0], "openid profile")
+
+	req := NewRequestWithValues(t, "POST", "/login/oauth/access_token", map[string]string{
+		"grant_type":    "authorization_code",
+		"client_id":     clientA.ClientID,
+		"client_secret": clientA.ClientSecret,
+		"redirect_uri":  clientA.RedirectURIs[0],
+		"code":          code,
+		"code_verifier": verifier,
+	})
+	resp := MakeRequest(t, req, http.StatusOK)
+	type tokenResponse struct {
+		AccessToken  string `json:"access_token"`
+		RefreshToken string `json:"refresh_token"`
+	}
+	tokenParsed := new(tokenResponse)
+	require.NoError(t, json.Unmarshal(resp.Body.Bytes(), tokenParsed))
+	require.NotEmpty(t, tokenParsed.AccessToken)
+	require.NotEmpty(t, tokenParsed.RefreshToken)
+
+	type introspectResponse struct {
+		Active   bool     `json:"active"`
+		Scope    string   `json:"scope,omitempty"`
+		Username string   `json:"username,omitempty"`
+		Subject  string   `json:"sub,omitempty"`
+		Audience []string `json:"aud,omitempty"`
+	}
+
+	assertBlockedIntrospection := func(token string) {
+		t.Helper()
+
+		req = NewRequestWithValues(t, "POST", "/login/oauth/introspect", map[string]string{
+			"token": token,
+		})
+		req.SetBasicAuth(clientB.ClientID, clientB.ClientSecret)
+		resp = MakeRequest(t, req, http.StatusOK)
+
+		blocked := new(introspectResponse)
+		require.NoError(t, json.Unmarshal(resp.Body.Bytes(), blocked))
+		assert.False(t, blocked.Active)
+		assert.Empty(t, blocked.Scope)
+		assert.Empty(t, blocked.Username)
+		assert.Empty(t, blocked.Subject)
+		assert.Empty(t, blocked.Audience)
+	}
+
+	assertAllowedIntrospection := func(token string) {
+		t.Helper()
+
+		req = NewRequestWithValues(t, "POST", "/login/oauth/introspect", map[string]string{
+			"token": token,
+		})
+		req.SetBasicAuth(clientA.ClientID, clientA.ClientSecret)
+		resp = MakeRequest(t, req, http.StatusOK)
+
+		allowed := new(introspectResponse)
+		require.NoError(t, json.Unmarshal(resp.Body.Bytes(), allowed))
+		assert.True(t, allowed.Active)
+		assert.Equal(t, "openid profile", allowed.Scope)
+		assert.Equal(t, resourceOwner.Name, allowed.Username)
+		assert.Equal(t, fmt.Sprint(resourceOwner.ID), allowed.Subject)
+		assert.Equal(t, []string{clientA.ClientID}, allowed.Audience)
+	}
+
+	assertBlockedIntrospection(tokenParsed.AccessToken)
+	assertAllowedIntrospection(tokenParsed.AccessToken)
+	assertBlockedIntrospection(tokenParsed.RefreshToken)
+	assertAllowedIntrospection(tokenParsed.RefreshToken)
 }
 
 func testOAuthGrantScopesReadUserFailRepos(t *testing.T) {
