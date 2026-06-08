@@ -7,7 +7,6 @@ package wiki
 import (
 	"context"
 	"fmt"
-	"os"
 
 	"gitea.dev/models/db"
 	repo_model "gitea.dev/models/repo"
@@ -21,6 +20,7 @@ import (
 	"gitea.dev/modules/graceful"
 	"gitea.dev/modules/log"
 	repo_module "gitea.dev/modules/repository"
+	"gitea.dev/modules/util"
 	asymkey_service "gitea.dev/services/asymkey"
 	repo_service "gitea.dev/services/repository"
 )
@@ -304,7 +304,7 @@ func DeleteWikiPage(ctx context.Context, doer *user_model.User, repo *repo_model
 			return err
 		}
 	} else {
-		return os.ErrNotExist
+		return util.ErrNotExist
 	}
 
 	// FIXME: The wiki doesn't have lfs support at present - if this changes need to check attributes here

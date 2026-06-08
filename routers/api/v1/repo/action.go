@@ -1164,11 +1164,8 @@ func ActionsEnableWorkflow(ctx *context.APIContext) {
 func getCurrentRepoActionRunByID(ctx *context.APIContext) *actions_model.ActionRun {
 	runID := ctx.PathParamInt64("run")
 	run, err := actions_model.GetRunByRepoAndID(ctx, ctx.Repo.Repository.ID, runID)
-	if errors.Is(err, util.ErrNotExist) {
-		ctx.APIErrorNotFound(err)
-		return nil
-	} else if err != nil {
-		ctx.APIErrorInternal(err)
+	if err != nil {
+		ctx.APIErrorAuto(err)
 		return nil
 	}
 	run.Repo = ctx.Repo.Repository
@@ -1198,11 +1195,8 @@ func getCurrentRepoActionRunAttemptByNumber(ctx *context.APIContext) (*actions_m
 
 	attemptNum := ctx.PathParamInt64("attempt")
 	attempt, err := actions_model.GetRunAttemptByRunIDAndAttemptNum(ctx, run.ID, attemptNum)
-	if errors.Is(err, util.ErrNotExist) {
-		ctx.APIErrorNotFound(err)
-		return nil, nil
-	} else if err != nil {
-		ctx.APIErrorInternal(err)
+	if err != nil {
+		ctx.APIErrorAuto(err)
 		return nil, nil
 	}
 	return run, attempt
@@ -1454,7 +1448,7 @@ func RerunWorkflowJob(ctx *context.APIContext) {
 	jobID := ctx.PathParamInt64("job_id")
 	jobIdx := slices.IndexFunc(jobs, func(job *actions_model.ActionRunJob) bool { return job.ID == jobID })
 	if jobIdx == -1 {
-		ctx.APIErrorNotFound(util.NewNotExistErrorf("workflow job with id %d", jobID))
+		ctx.APIErrorNotFound("workflow job not found")
 		return
 	}
 
@@ -1566,11 +1560,7 @@ func ListWorkflowRunJobs(ctx *context.APIContext) {
 
 	run, err := actions_model.GetRunByRepoAndID(ctx, repoID, runID)
 	if err != nil {
-		if errors.Is(err, util.ErrNotExist) {
-			ctx.APIErrorNotFound(err)
-		} else {
-			ctx.APIErrorInternal(err)
-		}
+		ctx.APIErrorAuto(err)
 		return
 	}
 	// runID is used as an additional filter next to repoID to ensure that we only list jobs for the specified repoID and runID.
@@ -1674,7 +1664,7 @@ func GetWorkflowJob(ctx *context.APIContext) {
 	}
 
 	if !has || job.RepoID != ctx.Repo.Repository.ID {
-		ctx.APIErrorNotFound(util.ErrNotExist)
+		ctx.APIErrorNotFound()
 		return
 	}
 
