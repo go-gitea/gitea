@@ -33,6 +33,7 @@ import (
 	"gitea.dev/routers/api/packages/rubygems"
 	"gitea.dev/routers/api/packages/swift"
 	"gitea.dev/routers/api/packages/terraform"
+	tfmodule "gitea.dev/routers/api/packages/terraform_module"
 	"gitea.dev/routers/api/packages/vagrant"
 	"gitea.dev/services/auth"
 	"gitea.dev/services/context"
@@ -126,6 +127,22 @@ func CommonRoutes() *web.Router {
 		&Auth{},
 		&chef.Auth{},
 	}, verifyAuthOptions{})
+
+	// Terraform Module Registry — mounted under the `-` system prefix so
+	// {namespace} (first path param) maps directly to a Gitea user/org and
+	// the HashiCorp service-discovery URL stays host-level (no username in
+	// the base). See routers/api/packages/terraform_module/.
+	r.Group("/-/terraform/modules", func() {
+		r.Group("/{namespace}/{name}/{provider}", func() {
+			r.Get("/versions", tfmodule.ListVersions)
+			r.Get("/{version}/download", tfmodule.DownloadRedirect)
+			r.Get("/{version}/archive", tfmodule.DownloadArchive)
+			r.Group("/{version}", func() {
+				r.Put("", tfmodule.UploadModule)
+				r.Delete("", tfmodule.DeleteModule)
+			}, reqPackageAccess(perm.AccessModeWrite))
+		}, tfmodule.NamespaceAssignment(), reqPackageAccess(perm.AccessModeRead))
+	})
 
 	r.Group("/{username}", func() {
 		r.Group("/alpine", func() {
