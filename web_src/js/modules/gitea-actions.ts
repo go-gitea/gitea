@@ -28,6 +28,7 @@ export type ActionsRun = {
     link: string,
   } | null,
   jobs: Array<ActionsJob>,
+  jobSummaries?: Array<ActionsJobSummary>,
   commit: {
     localeCommit: string,
     localePushedBy: string,
@@ -44,6 +45,12 @@ export type ActionsRun = {
       isDeleted: boolean,
     },
   },
+};
+
+export type ActionsJobSummary = {
+  jobId: number,
+  jobName: string,
+  summaryHTML: string,
 };
 
 export type ActionsRunAttempt = {

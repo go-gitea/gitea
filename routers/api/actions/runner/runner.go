@@ -161,7 +161,7 @@ func (s *Service) Declare(
 		return nil, status.Errorf(codes.Internal, "update runner: %v", err)
 	}
 
-	return connect.NewResponse(&runnerv1.DeclareResponse{
+	resp := connect.NewResponse(&runnerv1.DeclareResponse{
 		Runner: &runnerv1.Runner{
 			Id:      runner.ID,
 			Uuid:    runner.UUID,
@@ -170,7 +170,11 @@ func (s *Service) Declare(
 			Version: runner.Version,
 			Labels:  runner.AgentLabels,
 		},
-	}), nil
+	})
+	// Capabilities are communicated via headers to avoid a hard dependency on a proto bump.
+	// Older runners ignore unknown headers; newer runners can use this for feature negotiation.
+	resp.Header().Set("X-Gitea-Actions-Capabilities", actions_model.RunnerCapabilities())
+	return resp, nil
 }
 
 // FetchTask assigns a task to the runner
