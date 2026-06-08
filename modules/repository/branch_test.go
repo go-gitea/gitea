@@ -10,8 +10,11 @@ import (
 	git_model "gitea.dev/models/git"
 	repo_model "gitea.dev/models/repo"
 	"gitea.dev/models/unittest"
+	"gitea.dev/modules/git"
+	"gitea.dev/modules/gitrepo"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestSyncRepoBranches(t *testing.T) {
@@ -28,4 +31,28 @@ func TestSyncRepoBranches(t *testing.T) {
 	branch, err := git_model.GetBranch(t.Context(), 1, "master")
 	assert.NoError(t, err)
 	assert.Equal(t, "master", branch.Name)
+}
+
+func TestSyncRepoBranchesWithRepoSkipsAlreadyDeletedBranches(t *testing.T) {
+	require.NoError(t, unittest.PrepareTestDatabase())
+
+	ctx := t.Context()
+	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
+	gitRepo, err := gitrepo.OpenRepository(ctx, repo)
+	require.NoError(t, err)
+	defer gitRepo.Close()
+
+	require.NoError(t, git_model.AddBranches(ctx, []*git_model.Branch{{
+		RepoID:    repo.ID,
+		Name:      "already-deleted",
+		CommitID:  git.Sha1ObjectFormat.EmptyObjectID().String(),
+		IsDeleted: true,
+	}}))
+
+	_, results, err := SyncRepoBranchesWithRepo(ctx, repo, gitRepo, 0)
+	require.NoError(t, err)
+
+	for _, result := range results {
+		assert.NotEqual(t, git.RefNameFromBranch("already-deleted"), result.RefName)
+	}
 }

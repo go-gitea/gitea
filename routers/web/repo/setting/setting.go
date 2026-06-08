@@ -289,6 +289,7 @@ func handleSettingsPostMirror(ctx *context.Context) {
 	}
 
 	pullMirror.EnablePrune = form.EnablePrune
+	pullMirror.ForcePushBackup = form.ForcePushBackup
 	pullMirror.Interval = interval
 	pullMirror.ScheduleNextUpdate()
 	if err := repo_model.UpdateMirror(ctx, pullMirror); err != nil {

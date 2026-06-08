@@ -11,17 +11,21 @@ import (
 
 // Mirror settings
 var Mirror = struct {
-	Enabled         bool
-	DisableNewPull  bool
-	DisableNewPush  bool
-	DefaultInterval time.Duration
-	MinInterval     time.Duration
+	Enabled                     bool
+	DisableNewPull              bool
+	DisableNewPush              bool
+	DefaultInterval             time.Duration
+	MinInterval                 time.Duration
+	DefaultForcePushBackup      bool
+	DefaultForcePushBackupLimit int
 }{
-	Enabled:         true,
-	DisableNewPull:  false,
-	DisableNewPush:  false,
-	MinInterval:     10 * time.Minute,
-	DefaultInterval: 8 * time.Hour,
+	Enabled:                     true,
+	DisableNewPull:              false,
+	DisableNewPush:              false,
+	MinInterval:                 10 * time.Minute,
+	DefaultInterval:             8 * time.Hour,
+	DefaultForcePushBackup:      false,
+	DefaultForcePushBackupLimit: 5,
 }
 
 func loadMirrorFrom(rootCfg ConfigProvider) {
@@ -50,5 +54,9 @@ func loadMirrorFrom(rootCfg ConfigProvider) {
 	if Mirror.DefaultInterval < Mirror.MinInterval {
 		Mirror.DefaultInterval = max(time.Hour*8, Mirror.MinInterval)
 		log.Warn("Mirror.DefaultInterval is less than Mirror.MinInterval, set to %s", Mirror.DefaultInterval.String())
+	}
+	if Mirror.DefaultForcePushBackupLimit < 1 {
+		log.Warn("Mirror.DefaultForcePushBackupLimit is too low, set to 1")
+		Mirror.DefaultForcePushBackupLimit = 1
 	}
 }

@@ -2502,6 +2502,7 @@
               "mirror_sync_push",
               "mirror_sync_create",
               "mirror_sync_delete",
+              "mirror_sync_backup",
               "approve_pull_request",
               "reject_pull_request",
               "comment_pull",
@@ -5749,6 +5750,11 @@
           "external_wiki": {
             "$ref": "#/components/schemas/ExternalWiki"
           },
+          "force_push_backup": {
+            "description": "create backup refs before destructive mirror updates",
+            "type": "boolean",
+            "x-go-name": "ForcePushBackup"
+          },
           "has_actions": {
             "description": "either `true` to enable actions unit, or `false` to disable them.",
             "type": "boolean",
@@ -7479,6 +7485,16 @@
           "description": {
             "type": "string",
             "x-go-name": "Description"
+          },
+          "enable_prune": {
+            "description": "enable prune - remove obsolete remote-tracking references when mirroring",
+            "type": "boolean",
+            "x-go-name": "EnablePrune"
+          },
+          "force_push_backup": {
+            "description": "create backup refs before destructive mirror updates",
+            "type": "boolean",
+            "x-go-name": "ForcePushBackup"
           },
           "issues": {
             "type": "boolean",

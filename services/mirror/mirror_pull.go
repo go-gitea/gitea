@@ -6,9 +6,12 @@ package mirror
 import (
 	"context"
 	"fmt"
+	"slices"
+	"strconv"
 	"strings"
 	"time"
 
+	activities_model "gitea.dev/models/activities"
 	repo_model "gitea.dev/models/repo"
 	system_model "gitea.dev/models/system"
 	"gitea.dev/modules/cache"
@@ -25,6 +28,7 @@ import (
 	"gitea.dev/modules/setting"
 	"gitea.dev/modules/timeutil"
 	"gitea.dev/modules/util"
+	feed_service "gitea.dev/services/feed"
 	"gitea.dev/services/migrations"
 	notify_service "gitea.dev/services/notify"
 	repo_service "gitea.dev/services/repository"
@@ -105,6 +109,15 @@ func checkRecoverableSyncError(stderrMessage string) bool {
 	}
 }
 
+const (
+	temporaryFetchBranchPrefix  = "refs/mirror-fetch/heads/"
+	temporaryFetchTagPrefix     = "refs/mirror-fetch/tags/"
+	temporaryFetchPrefix        = "refs/mirror-fetch/"
+	mirrorBackupBranchPrefix    = git.BranchPrefix + "mirror-backup/branch/"
+	mirrorBackupTagPrefix       = git.TagPrefix + "mirror-backup/tag/"
+	mirrorBackupTimestampLayout = "20060102-150405"
+)
+
 // runSync returns true if sync finished without error.
 func runSync(ctx context.Context, m *repo_model.Mirror) ([]*repo_module.SyncResult, bool) {
 	log.Trace("SyncMirrors [repo: %-v]: running git remote update...", m.Repo)
@@ -119,11 +132,31 @@ func runSync(ctx context.Context, m *repo_model.Mirror) ([]*repo_module.SyncResu
 
 	// use fetch but not remote update because git fetch support --tags but remote update doesn't
 	cmdFetch := func() *gitcmd.Command {
-		cmd := gitcmd.NewCommand("fetch", "--tags")
+		cmd := gitcmd.NewCommand("fetch")
+		if m.ForcePushBackup {
+			cmd.AddArguments("--no-tags", "--refmap=")
+			return cmd.AddDynamicArguments(m.GetRemoteName(),
+				"+refs/heads/*:"+temporaryFetchBranchPrefix+"*",
+				"+refs/tags/*:"+temporaryFetchTagPrefix+"*",
+			).WithTimeout(timeout).WithEnv(envs)
+		}
+		cmd.AddArguments("--tags")
 		if m.EnablePrune {
 			cmd.AddArguments("--prune")
 		}
 		return cmd.AddDynamicArguments(m.GetRemoteName()).WithTimeout(timeout).WithEnv(envs)
+	}
+
+	if m.ForcePushBackup {
+		if err := removeRefsWithPrefix(ctx, m.Repo, temporaryFetchPrefix); err != nil {
+			log.Error("SyncMirrors [repo: %-v]: failed to clear temporary fetch refs: %v", m.Repo, err)
+			return nil, false
+		}
+		defer func() {
+			if err := removeRefsWithPrefix(ctx, m.Repo, temporaryFetchPrefix); err != nil {
+				log.Error("SyncMirrors [repo: %-v]: failed to clean temporary fetch refs: %v", m.Repo, err)
+			}
+		}()
 	}
 
 	var err error
@@ -168,6 +201,14 @@ func runSync(ctx context.Context, m *repo_model.Mirror) ([]*repo_module.SyncResu
 	if err != nil {
 		log.Error("SyncMirrors [repo: %-v]: failed to OpenRepository: %v", m.Repo, err)
 		return nil, false
+	}
+
+	if m.ForcePushBackup {
+		if err := applyFetchedMirrorRefs(ctx, m); err != nil {
+			log.Error("SyncMirrors [repo: %-v]: failed to apply fetched refs with backup: %v", m.Repo, err)
+			gitRepo.Close()
+			return nil, false
+		}
 	}
 
 	if m.LFS && setting.LFS.StartServer {
@@ -259,6 +300,278 @@ func runSync(ctx context.Context, m *repo_model.Mirror) ([]*repo_module.SyncResu
 
 	m.UpdatedUnix = timeutil.TimeStampNow()
 	return results, true
+}
+
+type mirrorRef struct {
+	name     string
+	objectID string
+}
+
+func listRefsWithPrefix(ctx context.Context, repo gitrepo.Repository, prefix string) ([]mirrorRef, error) {
+	stdout, _, err := gitrepo.RunCmdString(ctx, repo, gitcmd.NewCommand("for-each-ref", "--format=%(objectname) %(refname)").
+		AddDynamicArguments(prefix))
+	if err != nil {
+		return nil, err
+	}
+	var refs []mirrorRef
+	for line := range strings.SplitSeq(stdout, "\n") {
+		line = strings.TrimSpace(line)
+		if line == "" {
+			continue
+		}
+		fields := strings.Fields(line)
+		if len(fields) != 2 {
+			continue
+		}
+		refs = append(refs, mirrorRef{
+			objectID: fields[0],
+			name:     fields[1],
+		})
+	}
+	return refs, nil
+}
+
+func removeRefsWithPrefix(ctx context.Context, repo gitrepo.Repository, prefix string) error {
+	refs, err := listRefsWithPrefix(ctx, repo, prefix)
+	if err != nil {
+		return err
+	}
+	slices.SortFunc(refs, func(a, b mirrorRef) int {
+		return strings.Compare(b.name, a.name)
+	})
+	for _, ref := range refs {
+		if err := gitrepo.RemoveRef(ctx, repo, ref.name); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func applyFetchedMirrorRefs(ctx context.Context, m *repo_model.Mirror) error {
+	remoteBranches, err := refsByName(ctx, m.Repo, temporaryFetchBranchPrefix, git.BranchPrefix, "")
+	if err != nil {
+		return err
+	}
+	remoteTags, err := refsByName(ctx, m.Repo, temporaryFetchTagPrefix, git.TagPrefix, "")
+	if err != nil {
+		return err
+	}
+	localBranches, err := refsByName(ctx, m.Repo, git.BranchPrefix, git.BranchPrefix, mirrorBackupBranchPrefix)
+	if err != nil {
+		return err
+	}
+	localTags, err := refsByName(ctx, m.Repo, git.TagPrefix, git.TagPrefix, mirrorBackupTagPrefix)
+	if err != nil {
+		return err
+	}
+
+	for refName, remoteRef := range remoteBranches {
+		localRef, hasLocal := localBranches[refName]
+		if !hasLocal {
+			if err := gitrepo.UpdateRef(ctx, m.Repo, refName, remoteRef.objectID); err != nil {
+				return err
+			}
+			continue
+		}
+		if localRef.objectID == remoteRef.objectID {
+			continue
+		}
+		canReplace, err := canFastForwardRef(ctx, m.Repo, localRef.objectID, remoteRef.objectID)
+		if err != nil {
+			return err
+		}
+		if !canReplace {
+			if err := backupRef(ctx, m, "branch", strings.TrimPrefix(refName, git.BranchPrefix), localRef.objectID); err != nil {
+				return err
+			}
+		}
+		if err := gitrepo.UpdateRef(ctx, m.Repo, refName, remoteRef.objectID); err != nil {
+			return err
+		}
+	}
+
+	for refName, remoteRef := range remoteTags {
+		localRef, hasLocal := localTags[refName]
+		if !hasLocal {
+			if err := gitrepo.UpdateRef(ctx, m.Repo, refName, remoteRef.objectID); err != nil {
+				return err
+			}
+			continue
+		}
+		if localRef.objectID == remoteRef.objectID {
+			continue
+		}
+		if err := backupRef(ctx, m, "tag", strings.TrimPrefix(refName, git.TagPrefix), localRef.objectID); err != nil {
+			return err
+		}
+		if err := gitrepo.UpdateRef(ctx, m.Repo, refName, remoteRef.objectID); err != nil {
+			return err
+		}
+	}
+
+	if m.EnablePrune {
+		for refName, localRef := range localBranches {
+			if _, ok := remoteBranches[refName]; ok {
+				continue
+			}
+			if err := backupRef(ctx, m, "branch", strings.TrimPrefix(refName, git.BranchPrefix), localRef.objectID); err != nil {
+				return err
+			}
+			if err := gitrepo.RemoveRef(ctx, m.Repo, refName); err != nil {
+				return err
+			}
+		}
+		for refName, localRef := range localTags {
+			if _, ok := remoteTags[refName]; ok {
+				continue
+			}
+			if err := backupRef(ctx, m, "tag", strings.TrimPrefix(refName, git.TagPrefix), localRef.objectID); err != nil {
+				return err
+			}
+			if err := gitrepo.RemoveRef(ctx, m.Repo, refName); err != nil {
+				return err
+			}
+		}
+	}
+	return nil
+}
+
+func refsByName(ctx context.Context, repo gitrepo.Repository, listPrefix, refPrefix, excludePrefix string) (map[string]mirrorRef, error) {
+	refs, err := listRefsWithPrefix(ctx, repo, listPrefix)
+	if err != nil {
+		return nil, err
+	}
+	refsMap := make(map[string]mirrorRef, len(refs))
+	for _, ref := range refs {
+		if excludePrefix != "" && strings.HasPrefix(ref.name, excludePrefix) {
+			continue
+		}
+		if !strings.HasPrefix(ref.name, listPrefix) {
+			continue
+		}
+		refsMap[refPrefix+strings.TrimPrefix(ref.name, listPrefix)] = ref
+	}
+	return refsMap, nil
+}
+
+func canFastForwardRef(ctx context.Context, repo gitrepo.Repository, oldObjectID, newObjectID string) (bool, error) {
+	_, _, err := gitrepo.RunCmdString(ctx, repo, gitcmd.NewCommand("merge-base", "--is-ancestor").
+		AddDynamicArguments(oldObjectID, newObjectID))
+	if err == nil {
+		return true, nil
+	}
+	if gitcmd.IsErrorExitCode(err, 1) {
+		return false, nil
+	}
+	return false, err
+}
+
+func backupRef(ctx context.Context, m *repo_model.Mirror, refType, shortName, objectID string) error {
+	backupRefName := generateBackupRefName(ctx, m.Repo, refType, shortName)
+	if err := gitrepo.UpdateRef(ctx, m.Repo, backupRefName, objectID); err != nil {
+		return err
+	}
+	log.Trace("SyncMirrors [repo: %-v]: created backup ref %s -> %s", m.Repo, backupRefName, objectID)
+	originalRefName := git.RefNameFromBranch(shortName).String()
+	if refType == "tag" {
+		originalRefName = git.RefNameFromTag(shortName).String()
+	}
+	if err := feed_service.NotifyWatchers(ctx, &activities_model.Action{
+		ActUserID: m.Repo.OwnerID,
+		ActUser:   m.Repo.MustOwner(ctx),
+		OpType:    activities_model.ActionMirrorSyncBackup,
+		RepoID:    m.Repo.ID,
+		Repo:      m.Repo,
+		IsPrivate: m.Repo.IsPrivate,
+		RefName:   backupRefName,
+		Content:   originalRefName,
+	}); err != nil {
+		log.Error("NotifyWatchers: %v", err)
+	}
+	return pruneBackupRefs(ctx, m, refType, shortName)
+}
+
+func pruneBackupRefs(ctx context.Context, m *repo_model.Mirror, refType, shortName string) error {
+	limit := setting.Mirror.DefaultForcePushBackupLimit
+	refs, err := listBackupRefs(ctx, m.Repo, refType, shortName)
+	if err != nil {
+		return err
+	}
+	if len(refs) <= limit {
+		return nil
+	}
+	slices.SortFunc(refs, func(a, b mirrorRef) int {
+		return strings.Compare(b.name, a.name)
+	})
+	for _, ref := range refs[limit:] {
+		if err := gitrepo.RemoveRef(ctx, m.Repo, ref.name); err != nil {
+			return err
+		}
+		log.Trace("SyncMirrors [repo: %-v]: pruned backup ref %s", m.Repo, ref.name)
+	}
+	return nil
+}
+
+func generateBackupRefName(ctx context.Context, repo gitrepo.Repository, refType, shortName string) string {
+	timestamp := time.Now().UTC().Format(mirrorBackupTimestampLayout)
+	backupRefName := fmt.Sprintf("%s%s-%s", backupRefPrefix(refType), shortName, timestamp)
+
+	if !gitrepo.IsReferenceExist(ctx, repo, backupRefName) {
+		return backupRefName
+	}
+	for i := 2; ; i++ {
+		candidate := fmt.Sprintf("%s-%d", backupRefName, i)
+		if !gitrepo.IsReferenceExist(ctx, repo, candidate) {
+			return candidate
+		}
+	}
+}
+
+func backupRefPrefix(refType string) string {
+	if refType == "tag" {
+		return mirrorBackupTagPrefix
+	}
+	return mirrorBackupBranchPrefix
+}
+
+func listBackupRefs(ctx context.Context, repo gitrepo.Repository, refType, shortName string) ([]mirrorRef, error) {
+	prefix := backupRefPrefix(refType) + shortName + "-"
+	listPrefix := prefix
+	if idx := strings.LastIndexByte(prefix, '/'); idx >= 0 {
+		listPrefix = prefix[:idx+1]
+	}
+	refs, err := listRefsWithPrefix(ctx, repo, listPrefix)
+	if err != nil {
+		return nil, err
+	}
+	matchingRefs := make([]mirrorRef, 0, len(refs))
+	for _, ref := range refs {
+		if isBackupRefForPrefix(ref.name, prefix) {
+			matchingRefs = append(matchingRefs, ref)
+		}
+	}
+	return matchingRefs, nil
+}
+
+func isBackupRefForPrefix(refName, prefix string) bool {
+	suffix, ok := strings.CutPrefix(refName, prefix)
+	if !ok {
+		return false
+	}
+	if len(suffix) < len(mirrorBackupTimestampLayout) {
+		return false
+	}
+	if _, err := time.Parse(mirrorBackupTimestampLayout, suffix[:len(mirrorBackupTimestampLayout)]); err != nil {
+		return false
+	}
+	if len(suffix) == len(mirrorBackupTimestampLayout) {
+		return true
+	}
+	if suffix[len(mirrorBackupTimestampLayout)] != '-' {
+		return false
+	}
+	_, err := strconv.Atoi(suffix[len(mirrorBackupTimestampLayout)+1:])
+	return err == nil
 }
 
 func getRepoPullMirrorLockKey(repoID int64) string {
