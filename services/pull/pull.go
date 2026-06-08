@@ -919,7 +919,7 @@ func GetSquashMergeCommitMessages(ctx context.Context, pr *issues_model.PullRequ
 	}
 
 	for _, author := range authors {
-		stringBuilder.WriteString("Co-authored-by: ")
+		stringBuilder.WriteString(git.CoAuthoredByTrailer + ": ")
 		stringBuilder.WriteString(author)
 		stringBuilder.WriteRune('\n')
 	}
