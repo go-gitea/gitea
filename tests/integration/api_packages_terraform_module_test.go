@@ -175,8 +175,9 @@ resource "aws_vpc" "this" {
 		MakeRequest(t, req, http.StatusNotFound)
 	})
 
-	t.Run("Anonymous_PrivateOwner_Forbidden", func(t *testing.T) {
-		// User #2 (visible to anyone) — re-upload to set up, then test anon read.
+	t.Run("Anonymous_PublicOwner_ReadAllowed_WriteDenied", func(t *testing.T) {
+		// user2 has the default (public) visibility, so an anonymous
+		// caller may read but never write.
 		req := NewRequestWithBody(t, "PUT", base+"/"+v, bytes.NewReader(archive)).AddBasicAuth(user.Name)
 		MakeRequest(t, req, http.StatusCreated)
 		t.Cleanup(func() {
@@ -184,11 +185,14 @@ resource "aws_vpc" "this" {
 			MakeRequest(t, req, http.StatusNoContent)
 		})
 
-		// Anonymous read on a public owner is allowed in Gitea's default
-		// access model; assert the endpoint at least responds successfully
-		// rather than 401, to mirror the State endpoint behavior.
 		req = NewRequest(t, "GET", base+"/versions")
 		resp := MakeRequest(t, req, http.StatusOK)
 		assert.Contains(t, resp.Body.String(), v)
+
+		req = NewRequestWithBody(t, "PUT", base+"/3.0.0", bytes.NewReader(archive))
+		MakeRequest(t, req, http.StatusUnauthorized)
+
+		req = NewRequest(t, "DELETE", base+"/"+v)
+		MakeRequest(t, req, http.StatusUnauthorized)
 	})
 }

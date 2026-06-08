@@ -45,11 +45,13 @@ func apiError(ctx *context.Context, status int, obj any) {
 }
 
 // NamespaceAssignment resolves the {namespace} path parameter to a Gitea
-// user/org and stores it on ctx.Package.Owner so the standard
-// reqPackageAccess() and quota helpers can be reused. Namespaces are
-// validated against the HashiCorp naming rules before lookup so an
-// invalid value yields 400 rather than a 404 from the user lookup.
+// user/org and delegates to context.PackageAssignment so ctx.Package
+// (owner + access mode) is fully populated for reqPackageAccess and the
+// quota helpers. Namespaces are validated against the HashiCorp naming
+// rules before lookup so an invalid value yields 400 rather than a 404
+// from the user lookup.
 func NamespaceAssignment() func(ctx *context.Context) {
+	assignPackage := context.PackageAssignment()
 	return func(ctx *context.Context) {
 		namespace := ctx.PathParam("namespace")
 		if err := tfmod.ValidateNamespace(namespace); err != nil {
@@ -66,10 +68,10 @@ func NamespaceAssignment() func(ctx *context.Context) {
 			return
 		}
 		ctx.ContextUser = owner
-		if ctx.Package == nil {
-			ctx.Package = &context.Package{}
-		}
-		ctx.Package.Owner = owner
+		// PackageAssignment reads ctx.ContextUser, determines the access
+		// mode, and skips the version lookup because our routes do not
+		// carry the {type} path parameter it would otherwise use.
+		assignPackage(ctx)
 	}
 }
 
