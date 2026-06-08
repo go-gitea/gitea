@@ -42,17 +42,12 @@ func buildTFModuleArchive(t *testing.T, files map[string]string) []byte {
 	return buf.Bytes()
 }
 
-func TestPackageTerraformModule(t *testing.T) {
-	defer tests.PrepareTestEnv(t)()
-
-	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
-
-	name := "vpc"
-	provider := "aws"
-	v := "1.0.0"
-	base := fmt.Sprintf("/api/packages/-/terraform/modules/%s/%s/%s", user.Name, name, provider)
-
-	tfSrc := `
+// canonicalModuleArchive returns the .tar.gz used across most subtests.
+// Kept as a function so each subtest gets its own buffer (the helpers
+// below read it).
+func canonicalModuleArchive(t *testing.T) []byte {
+	t.Helper()
+	src := `
 terraform {
   required_version = ">= 1.5.0"
   required_providers {
@@ -77,10 +72,40 @@ resource "aws_vpc" "this" {
   cidr_block = "10.0.0.0/16"
 }
 `
-	archive := buildTFModuleArchive(t, map[string]string{
-		"main.tf":   tfSrc,
+	return buildTFModuleArchive(t, map[string]string{
+		"main.tf":   src,
 		"README.md": "# vpc\n",
 	})
+}
+
+func TestPackageTerraformModule(t *testing.T) {
+	defer tests.PrepareTestEnv(t)()
+
+	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
+
+	const (
+		name     = "vpc"
+		provider = "aws"
+		version  = "1.0.0"
+	)
+	base := fmt.Sprintf("/api/packages/-/terraform/modules/%s/%s/%s", user.Name, name, provider)
+
+	// uploadFixture publishes the canonical module so the subtest can
+	// exercise the read path. Registered cleanup deletes it, which keeps
+	// every subtest self-contained — running `go test -run .../Download_*`
+	// or any individual subtest works without the others having run.
+	uploadFixture := func(t *testing.T) {
+		t.Helper()
+		archive := canonicalModuleArchive(t)
+		req := NewRequestWithBody(t, "PUT", base+"/"+version, bytes.NewReader(archive)).AddBasicAuth(user.Name)
+		MakeRequest(t, req, http.StatusCreated)
+		t.Cleanup(func() {
+			req := NewRequest(t, "DELETE", base+"/"+version).AddBasicAuth(user.Name)
+			// Accept 204 (deleted) or 404 (subtest already deleted it).
+			resp := MakeRequest(t, req, http.StatusNoContent)
+			_ = resp
+		})
+	}
 
 	t.Run("ServiceDiscovery", func(t *testing.T) {
 		req := NewRequest(t, "GET", "/.well-known/terraform.json")
@@ -90,31 +115,36 @@ resource "aws_vpc" "this" {
 		assert.Equal(t, "/api/packages/-/terraform/modules/", doc["modules.v1"])
 	})
 
-	t.Run("ListVersions_BeforeUpload", func(t *testing.T) {
-		req := NewRequest(t, "GET", base+"/versions").AddBasicAuth(user.Name)
+	t.Run("ListVersions_UnknownPackage", func(t *testing.T) {
+		req := NewRequest(t, "GET",
+			fmt.Sprintf("/api/packages/-/terraform/modules/%s/does-not-exist/%s/versions", user.Name, provider),
+		).AddBasicAuth(user.Name)
 		MakeRequest(t, req, http.StatusNotFound)
 	})
 
 	t.Run("Upload", func(t *testing.T) {
-		req := NewRequestWithBody(t, "PUT", base+"/"+v, bytes.NewReader(archive)).AddBasicAuth(user.Name)
-		MakeRequest(t, req, http.StatusCreated)
+		uploadFixture(t)
 	})
 
 	t.Run("Upload_DuplicateVersion", func(t *testing.T) {
-		req := NewRequestWithBody(t, "PUT", base+"/"+v, bytes.NewReader(archive)).AddBasicAuth(user.Name)
+		uploadFixture(t)
+		archive := canonicalModuleArchive(t)
+		req := NewRequestWithBody(t, "PUT", base+"/"+version, bytes.NewReader(archive)).AddBasicAuth(user.Name)
 		MakeRequest(t, req, http.StatusConflict)
 	})
 
 	t.Run("Upload_InvalidSemver", func(t *testing.T) {
+		archive := canonicalModuleArchive(t)
 		req := NewRequestWithBody(t, "PUT", base+"/not-semver", bytes.NewReader(archive)).AddBasicAuth(user.Name)
 		MakeRequest(t, req, http.StatusBadRequest)
 	})
 
 	t.Run("Upload_InvalidProvider", func(t *testing.T) {
-		req := NewRequestWithBody(t, "PUT",
-			fmt.Sprintf("/api/packages/-/terraform/modules/%s/%s/AWS/%s", user.Name, name, v),
-			bytes.NewReader(archive)).AddBasicAuth(user.Name)
+		archive := canonicalModuleArchive(t)
 		// Uppercase provider violates the naming rule.
+		req := NewRequestWithBody(t, "PUT",
+			fmt.Sprintf("/api/packages/-/terraform/modules/%s/%s/AWS/%s", user.Name, name, version),
+			bytes.NewReader(archive)).AddBasicAuth(user.Name)
 		MakeRequest(t, req, http.StatusBadRequest)
 	})
 
@@ -126,12 +156,12 @@ resource "aws_vpc" "this" {
 		require.NoError(t, tw.Close())
 		require.NoError(t, gz.Close())
 
-		// Use a fresh version so the 400 we expect isn't masked by the 409 duplicate.
 		req := NewRequestWithBody(t, "PUT", base+"/2.0.0", bytes.NewReader(buf.Bytes())).AddBasicAuth(user.Name)
 		MakeRequest(t, req, http.StatusBadRequest)
 	})
 
 	t.Run("ListVersions", func(t *testing.T) {
+		uploadFixture(t)
 		req := NewRequest(t, "GET", base+"/versions").AddBasicAuth(user.Name)
 		resp := MakeRequest(t, req, http.StatusOK)
 		var body struct {
@@ -144,55 +174,63 @@ resource "aws_vpc" "this" {
 		require.NoError(t, json.Unmarshal(resp.Body.Bytes(), &body))
 		require.Len(t, body.Modules, 1)
 		require.Len(t, body.Modules[0].Versions, 1)
-		assert.Equal(t, v, body.Modules[0].Versions[0].Version)
+		assert.Equal(t, version, body.Modules[0].Versions[0].Version)
 	})
 
 	t.Run("Download_XTerraformGet", func(t *testing.T) {
-		req := NewRequest(t, "GET", base+"/"+v+"/download").AddBasicAuth(user.Name)
+		uploadFixture(t)
+		req := NewRequest(t, "GET", base+"/"+version+"/download").AddBasicAuth(user.Name)
 		resp := MakeRequest(t, req, http.StatusNoContent)
 		got := resp.Header().Get("X-Terraform-Get")
 		require.NotEmpty(t, got)
-		assert.True(t, strings.HasSuffix(got, fmt.Sprintf("/api/packages/-/terraform/modules/%s/%s/%s/%s/archive", user.Name, name, provider, v)),
+		assert.True(t, strings.HasSuffix(got,
+			fmt.Sprintf("/api/packages/-/terraform/modules/%s/%s/%s/%s/archive", user.Name, name, provider, version)),
 			"X-Terraform-Get should point at the archive endpoint, got %q", got)
 	})
 
 	t.Run("Download_Archive", func(t *testing.T) {
-		req := NewRequest(t, "GET", base+"/"+v+"/archive").AddBasicAuth(user.Name)
+		uploadFixture(t)
+		expected := canonicalModuleArchive(t)
+		req := NewRequest(t, "GET", base+"/"+version+"/archive").AddBasicAuth(user.Name)
 		resp := MakeRequest(t, req, http.StatusOK)
-		assert.Equal(t, archive, resp.Body.Bytes())
+		assert.Equal(t, expected, resp.Body.Bytes())
 	})
 
 	t.Run("Download_UnknownVersion", func(t *testing.T) {
+		uploadFixture(t)
 		req := NewRequest(t, "GET", base+"/9.9.9/download").AddBasicAuth(user.Name)
 		MakeRequest(t, req, http.StatusNotFound)
 	})
 
 	t.Run("Delete", func(t *testing.T) {
-		req := NewRequest(t, "DELETE", base+"/"+v).AddBasicAuth(user.Name)
+		// Upload directly (no Cleanup) since this subtest owns the
+		// deletion. Skipping uploadFixture also avoids a double-DELETE
+		// returning 404 in cleanup.
+		archive := canonicalModuleArchive(t)
+		req := NewRequestWithBody(t, "PUT", base+"/"+version, bytes.NewReader(archive)).AddBasicAuth(user.Name)
+		MakeRequest(t, req, http.StatusCreated)
+
+		req = NewRequest(t, "DELETE", base+"/"+version).AddBasicAuth(user.Name)
 		MakeRequest(t, req, http.StatusNoContent)
 
-		req = NewRequest(t, "GET", base+"/"+v+"/download").AddBasicAuth(user.Name)
+		req = NewRequest(t, "GET", base+"/"+version+"/download").AddBasicAuth(user.Name)
 		MakeRequest(t, req, http.StatusNotFound)
 	})
 
 	t.Run("Anonymous_PublicOwner_ReadAllowed_WriteDenied", func(t *testing.T) {
 		// user2 has the default (public) visibility, so an anonymous
 		// caller may read but never write.
-		req := NewRequestWithBody(t, "PUT", base+"/"+v, bytes.NewReader(archive)).AddBasicAuth(user.Name)
-		MakeRequest(t, req, http.StatusCreated)
-		t.Cleanup(func() {
-			req := NewRequest(t, "DELETE", base+"/"+v).AddBasicAuth(user.Name)
-			MakeRequest(t, req, http.StatusNoContent)
-		})
+		uploadFixture(t)
 
-		req = NewRequest(t, "GET", base+"/versions")
+		req := NewRequest(t, "GET", base+"/versions")
 		resp := MakeRequest(t, req, http.StatusOK)
-		assert.Contains(t, resp.Body.String(), v)
+		assert.Contains(t, resp.Body.String(), version)
 
+		archive := canonicalModuleArchive(t)
 		req = NewRequestWithBody(t, "PUT", base+"/3.0.0", bytes.NewReader(archive))
 		MakeRequest(t, req, http.StatusUnauthorized)
 
-		req = NewRequest(t, "DELETE", base+"/"+v)
+		req = NewRequest(t, "DELETE", base+"/"+version)
 		MakeRequest(t, req, http.StatusUnauthorized)
 	})
 }
