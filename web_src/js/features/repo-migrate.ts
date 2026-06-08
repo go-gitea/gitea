@@ -109,21 +109,11 @@ export function initRepoMigrationForm() {
 // managed key. The hidden #ssh_key_owner_id field is submitted with the form.
 function initSSHKeyOwnerSelector(cloneAddrInput: HTMLInputElement) {
   const container = document.querySelector<HTMLElement>('.ssh-key-owner-selector');
-  const select = document.querySelector<HTMLSelectElement>('#ssh_key_owner_select');
   const hiddenId = document.querySelector<HTMLInputElement>('#ssh_key_owner_id');
   const uidInput = document.querySelector<HTMLInputElement>('#uid');
-  if (!container || !select || !hiddenId || !uidInput) return;
+  if (!container || !hiddenId || !uidInput) return;
 
   const signedUserID = container.getAttribute('data-signed-user-id') ?? '';
-  const signedUserName = container.getAttribute('data-signed-user-name') ?? '';
-
-  // Build {ownerID -> name} from the owner dropdown menu items
-  const ownerNameById = new Map<string, string>();
-  for (const item of document.querySelectorAll<HTMLElement>('.owner.dropdown .menu .item')) {
-    const id = item.getAttribute('data-value');
-    const name = item.getAttribute('title') ?? item.textContent?.trim() ?? '';
-    if (id) ownerNameById.set(id, name);
-  }
 
   function update() {
     const isSSH = isSSHURL(cloneAddrInput.value.trim());
@@ -136,19 +126,9 @@ function initSSHKeyOwnerSelector(cloneAddrInput: HTMLInputElement) {
       return;
     }
 
-    // Target is an organisation — offer both keys
-    const orgName = ownerNameById.get(targetUid) ?? `#${targetUid}`;
-    select!.innerHTML = '';
-    select!.add(new Option(`Use ${orgName}'s managed SSH key (default)`, '0'));
-    select!.add(new Option(`Use your personal managed SSH key (${signedUserName})`, signedUserID));
-    select!.value = hiddenId!.value || '0';
-    hiddenId!.value = select!.value;
+    // Target is an organisation — show selector (Fomantic dropdown wires the hidden input itself)
     showElem(container!);
   }
-
-  select.addEventListener('change', () => {
-    hiddenId.value = select.value;
-  });
 
   // Semantic UI updates the #uid hidden input via menu item clicks
   for (const item of document.querySelectorAll<HTMLElement>('.owner.dropdown .menu .item')) {

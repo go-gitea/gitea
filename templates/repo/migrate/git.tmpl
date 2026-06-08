@@ -30,12 +30,17 @@
 					<label for="auth_password">{{ctx.Locale.Tr "password"}}</label>
 					<input id="auth_password" name="auth_password" type="password" value="{{.auth_password}}">
 				</div>
-				<div class="inline field ssh-key-owner-selector tw-hidden" data-signed-user-id="{{.SignedUser.ID}}" data-signed-user-name="{{.SignedUser.Name}}">
-					<label for="ssh_key_owner_select">{{ctx.Locale.Tr "repo.migrate.ssh_key_owner_label"}}</label>
-					<select id="ssh_key_owner_select" name="ssh_key_owner_id_select">
-						<option value="0">{{ctx.Locale.Tr "repo.migrate.ssh_key_owner_repo_default"}}</option>
-					</select>
-					<input id="ssh_key_owner_id" name="ssh_key_owner_id" type="hidden" value="0">
+				<div class="inline field ssh-key-owner-selector tw-hidden" data-signed-user-id="{{.SignedUser.ID}}">
+					<label>{{ctx.Locale.Tr "repo.migrate.ssh_key_owner_label"}}</label>
+					<div class="ui selection dropdown">
+						<input id="ssh_key_owner_id" name="ssh_key_owner_id" type="hidden" value="0">
+						<div class="default text">{{ctx.Locale.Tr "repo.migrate.ssh_key_owner_org_default"}}</div>
+						{{svg "octicon-triangle-down" 14 "dropdown icon"}}
+						<div class="menu">
+							<div class="item" data-value="0">{{ctx.Locale.Tr "repo.migrate.ssh_key_owner_org_default"}}</div>
+							<div class="item" data-value="{{.SignedUser.ID}}">{{ctx.Locale.Tr "repo.migrate.ssh_key_owner_personal" .SignedUser.Name}}</div>
+						</div>
+					</div>
 				</div>
 
 				{{template "repo/migrate/options" .}}
