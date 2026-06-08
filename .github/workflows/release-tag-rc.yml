@@ -30,7 +30,7 @@ jobs:
           cache: pnpm
           cache-dependency-path: pnpm-lock.yaml
       - run: make deps-frontend deps-backend
-      # xgo build
+      # release build
       - run: make release
         env:
           TAGS: bindata
