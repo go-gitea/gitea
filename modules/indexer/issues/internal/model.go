@@ -36,6 +36,7 @@ type IndexerData struct {
 	PosterID           int64              `json:"poster_id"`
 	AssigneeID         int64              `json:"assignee_id"`
 	AssigneeIDs        []int64            `json:"assignee_ids"`
+	NoAssignee         bool               `json:"no_assignee"` // True if AssigneeID and AssigneeIDs are empty
 	MentionIDs         []int64            `json:"mention_ids"`
 	ReviewedIDs        []int64            `json:"reviewed_ids"`
 	ReviewRequestedIDs []int64            `json:"review_requested_ids"`

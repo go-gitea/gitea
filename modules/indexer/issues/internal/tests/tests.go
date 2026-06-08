@@ -395,10 +395,10 @@ var cases = []*testIndexerCase{
 		Expected: func(t *testing.T, data map[int64]*internal.IndexerData, result *internal.SearchResult) {
 			assert.Len(t, result.Hits, 5)
 			for _, v := range result.Hits {
-				assert.Equal(t, int64(0), data[v.ID].AssigneeID)
+				assert.True(t, data[v.ID].NoAssignee)
 			}
 			assert.Equal(t, countIndexerData(data, func(v *internal.IndexerData) bool {
-				return v.AssigneeID == 0
+				return v.NoAssignee
 			}), result.Total)
 		},
 	},
@@ -630,10 +630,10 @@ var cases = []*testIndexerCase{
 		Expected: func(t *testing.T, data map[int64]*internal.IndexerData, result *internal.SearchResult) {
 			assert.Len(t, result.Hits, 180)
 			for _, v := range result.Hits {
-				assert.GreaterOrEqual(t, data[v.ID].AssigneeID, int64(1))
+				assert.False(t, data[v.ID].NoAssignee)
 			}
 			assert.Equal(t, countIndexerData(data, func(v *internal.IndexerData) bool {
-				return v.AssigneeID >= 1
+				return !v.NoAssignee
 			}), result.Total)
 		},
 	},
@@ -686,6 +686,7 @@ func generateDefaultIndexerData() []*internal.IndexerData {
 			for i := range projectIDs {
 				projectIDs[i] = int64(i) + 1 // projectID should not be 0
 			}
+			assigneeID := issueIndex % 10
 
 			data = append(data, &internal.IndexerData{
 				ID:                 id,
@@ -702,7 +703,8 @@ func generateDefaultIndexerData() []*internal.IndexerData {
 				ProjectIDs:         projectIDs,
 				NoProject:          len(projectIDs) == 0,
 				PosterID:           id%10 + 1, // PosterID should not be 0
-				AssigneeID:         issueIndex % 10,
+				AssigneeID:         assigneeID,
+				NoAssignee:         assigneeID == 0,
 				MentionIDs:         mentionIDs,
 				ReviewedIDs:        reviewedIDs,
 				ReviewRequestedIDs: reviewRequestedIDs,
