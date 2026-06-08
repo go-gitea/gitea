@@ -3798,6 +3798,7 @@
   "actions.runs.view_workflow_file": "View workflow file",
   "actions.runs.summary": "Summary",
   "actions.runs.all_jobs": "All jobs",
+  "actions.runs.job_summaries": "Job summaries",
   "actions.runs.expand_caller_jobs": "Show jobs of this reusable workflow caller",
   "actions.runs.collapse_caller_jobs": "Hide jobs of this reusable workflow caller",
   "actions.runs.attempt": "Attempt",
