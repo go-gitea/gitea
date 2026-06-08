@@ -151,7 +151,7 @@ func repoAssignment() func(ctx *context.APIContext) {
 					if redirectUserID, err := user_model.LookupUserRedirect(ctx, userName); err == nil {
 						context.RedirectToUser(ctx.Base, ctx.Doer, userName, redirectUserID)
 					} else if user_model.IsErrUserRedirectNotExist(err) {
-						ctx.APIErrorNotFound("GetUserByName", err)
+						ctx.APIErrorNotFound()
 					} else {
 						ctx.APIErrorInternal(err)
 					}
@@ -626,7 +626,7 @@ func orgAssignment(args ...bool) func(ctx *context.APIContext) {
 					if err == nil {
 						context.RedirectToUser(ctx.Base, ctx.Doer, ctx.PathParam("org"), redirectUserID)
 					} else if user_model.IsErrUserRedirectNotExist(err) {
-						ctx.APIErrorNotFound("GetOrgByName", err)
+						ctx.APIErrorNotFound()
 					} else {
 						ctx.APIErrorInternal(err)
 					}
@@ -862,12 +862,12 @@ func individualPermsChecker(ctx *context.APIContext) {
 		switch ctx.ContextUser.Visibility {
 		case api.VisibleTypePrivate:
 			if ctx.Doer == nil || (ctx.ContextUser.ID != ctx.Doer.ID && !ctx.Doer.IsAdmin) {
-				ctx.APIErrorNotFound("Visit Project", nil)
+				ctx.APIErrorNotFound()
 				return
 			}
 		case api.VisibleTypeLimited:
 			if ctx.Doer == nil {
-				ctx.APIErrorNotFound("Visit Project", nil)
+				ctx.APIErrorNotFound()
 				return
 			}
 		}
