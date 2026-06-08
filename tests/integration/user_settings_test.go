@@ -465,3 +465,71 @@ func TestUserSettingsBlockedUsers(t *testing.T) {
 
 	assertNavbar(t, doc)
 }
+
+func TestUserSettingsSavedReplies(t *testing.T) {
+	defer tests.PrepareTestEnv(t)()
+
+	session := loginUser(t, "user2")
+
+	t.Run("page renders", func(t *testing.T) {
+		defer tests.PrintCurrentTest(t)()
+
+		req := NewRequest(t, "GET", "/user/settings/saved_replies")
+		resp := session.MakeRequest(t, req, http.StatusOK)
+		doc := NewHTMLParser(t, resp.Body)
+
+		assertNavbar(t, doc)
+
+		AssertHTMLElement(t, doc, ".empty-saved-replies", true)
+	})
+
+	t.Run("create", func(t *testing.T) {
+		defer tests.PrintCurrentTest(t)()
+
+		req := NewRequestWithValues(t, "POST", "/user/settings/saved_replies", map[string]string{
+			"action":  "create",
+			"title":   "Test Reply",
+			"content": "Thank you for the report!",
+		})
+		resp := session.MakeRequest(t, req, http.StatusOK)
+		redirect := test.ParseJSONRedirect(resp.Body.Bytes())
+		assert.NotNil(t, redirect.Redirect)
+	})
+
+	t.Run("json endpoint", func(t *testing.T) {
+		defer tests.PrintCurrentTest(t)()
+
+		req := NewRequest(t, "GET", "/user/settings/saved_replies/json")
+		resp := session.MakeRequest(t, req, http.StatusOK)
+
+		type savedReplyJSON struct {
+			ID      int64  `json:"id"`
+			Title   string `json:"title"`
+			Content string `json:"content"`
+		}
+		replies := DecodeJSON(t, resp, []savedReplyJSON{})
+		assert.NotEmpty(t, replies)
+		assert.Equal(t, "Test Reply", replies[0].Title)
+		assert.Equal(t, "Thank you for the report!", replies[0].Content)
+	})
+
+	t.Run("validation error", func(t *testing.T) {
+		defer tests.PrintCurrentTest(t)()
+
+		req := NewRequestWithValues(t, "POST", "/user/settings/saved_replies", map[string]string{
+			"action":  "create",
+			"title":   "",
+			"content": "content without title",
+		})
+		resp := session.MakeRequest(t, req, http.StatusBadRequest)
+		errMsg := test.ParseJSONError(resp.Body.Bytes())
+		assert.NotEmpty(t, errMsg.ErrorMessage)
+	})
+
+	t.Run("requires login", func(t *testing.T) {
+		defer tests.PrintCurrentTest(t)()
+
+		req := NewRequest(t, "GET", "/user/settings/saved_replies")
+		MakeRequest(t, req, http.StatusSeeOther) // redirects to login
+	})
+}

@@ -452,3 +452,15 @@ func (f *BlockUserForm) Validate(req *http.Request, errs binding.Errors) binding
 	ctx := context.GetValidateContext(req)
 	return middleware.Validate(errs, ctx.Data, f, ctx.Locale)
 }
+
+type SavedReplyForm struct {
+	Action  string `binding:"Required;In(create,edit,delete)"`
+	Title   string `binding:"MaxSize(255)"`
+	Content string
+	ID      int64 `form:"id"`
+}
+
+func (f *SavedReplyForm) Validate(req *http.Request, errs binding.Errors) binding.Errors {
+	ctx := context.GetValidateContext(req)
+	return middleware.Validate(errs, ctx.Data, f, ctx.Locale)
+}

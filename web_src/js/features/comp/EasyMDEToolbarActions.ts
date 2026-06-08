@@ -142,6 +142,14 @@ export function easyMDEToolbarActions(easyMde: typeof EasyMDE, editor: ComboMark
       icon: svg('octicon-chevron-right'),
       title: 'Add Inline Code',
     },
+    'gitea-saved-replies': {
+      action: () => {
+        const savedRepliesBtn = editor.container.querySelector('.markdown-button-saved-replies');
+        if (savedRepliesBtn) (savedRepliesBtn as HTMLElement).click();
+      },
+      icon: svg('octicon-reply'),
+      title: 'Saved Replies',
+    },
   };
 
   for (const [key, value] of Object.entries(actions)) {
