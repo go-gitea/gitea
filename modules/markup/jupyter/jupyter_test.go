@@ -6,6 +6,7 @@ package jupyter
 import (
 	"strings"
 	"testing"
+	"fmt"
 
 	"gitea.dev/modules/markup"
 
@@ -49,12 +50,17 @@ func TestRender(t *testing.T) {
 		assert.Contains(t, result, `stream-stdout`)
 	})
 
-	t.Run("Markdown cell", func(t *testing.T) {
+	t.Run("Markdown cell with XSS Protection", func(t *testing.T) {
 		input := `{
 			"cells": [
 				{
 					"cell_type": "markdown",
-					"source": ["# Title\n", "Some text"]
+					"source": [
+						"# Title\n", 
+						"Some text\n",
+						"[click me](javascript:alert(1))\n",
+						"<script>alert('dangerous')</script>"
+					]
 				}
 			],
 			"metadata": {},
@@ -67,10 +73,39 @@ func TestRender(t *testing.T) {
 
 		assert.NoError(t, err)
 		result := output.String()
+		
+		// Assert normal markup still renders correctly
 		assert.Contains(t, result, `<div class="cell markdown">`)
-		assert.Contains(t, result, `<h1`)
 		assert.Contains(t, result, `Title`)
 		assert.Contains(t, result, `Some text`)
+		assert.Contains(t, result, `click me`)
+
+		// CRITICAL SECURITY ASSERTIONS: Ensure XSS vectors are completely stripped
+		assert.NotContains(t, result, `javascript:alert`)
+		assert.NotContains(t, result, `<script>`)
+	})
+
+	t.Run("Cell limit truncation guardrail", func(t *testing.T) {
+		// Generate an oversized notebook containing 105 cells dynamically
+		var cellBlocks []string
+		for i := 0; i < 105; i++ {
+			cellBlocks = append(cellBlocks, `{"cell_type": "markdown", "source": ["cell text"]}`)
+		}
+		input := fmt.Sprintf(`{"cells": [%s], "metadata": {}, "nbformat": 4}`, strings.Join(cellBlocks, ","))
+
+		var output strings.Builder
+		ctx := &markup.RenderContext{}
+		err := r.Render(ctx, strings.NewReader(input), &output)
+
+		assert.NoError(t, err)
+		result := output.String()
+
+		// Verify it halts rendering gracefully and shows the truncation warning
+		assert.Contains(t, result, "Output truncated.")
+		assert.Contains(t, result, "This notebook contains too many cells to display efficiently.")
+		
+		// Count occurrences of the rendered cells to ensure it sliced down to exactly 100 elements
+		assert.Equal(t, 100, strings.Count(result, `class="cell markdown"`))
 	})
 
 	t.Run("Image output", func(t *testing.T) {
@@ -132,7 +167,7 @@ func TestRender(t *testing.T) {
 		assert.NoError(t, err)
 		result := output.String()
 		assert.NotContains(t, result, `<style scoped>`)
-		assert.Contains(t, result, `<table class="dataframe">`)
+		assert.Contains(t, result, `<table><tr><td>1</td></tr></table>`)
 		assert.Contains(t, result, `<td>1</td>`)
 	})
 

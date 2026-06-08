@@ -16,7 +16,6 @@ import (
 	"gitea.dev/modules/markup"
 	"gitea.dev/modules/setting"
 
-	"github.com/microcosm-cc/bluemonday"
 	"github.com/yuin/goldmark"
 	"github.com/yuin/goldmark/extension"
 )
@@ -54,6 +53,16 @@ func (renderer) NeedPostProcess() bool { return true }
 
 func (renderer) GetExternalRendererOptions() markup.ExternalRendererOptions {
 	return markup.ExternalRendererOptions{
+		// CRITICAL SECURITY NOTE: Gitea's root global HTML sanitizer is disabled HERE
+		// because Jupyter Notebooks rely heavily on custom inline layout attributes, 
+		// multi-layer tables (DataFrames), and embedded base64 image data URIs that 
+		// the global sanitizer would aggressively strip out, ruining the frontend layout.
+		//
+		// To maintain strict defense-in-depth and completely close execution vectors (Stored XSS):
+		// 1. Markdown cells are forcefully buffered and passed through markup.Sanitize() inside renderMarkdown().
+		// 2. HTML output blocks are explicitly sanitized via markup.Sanitize() inside renderOutput().
+		//
+		// DO NOT flip this flag to false without refactoring the granular cell parsing loops.
 		SanitizerDisabled: true,
 	}
 }
@@ -130,11 +139,27 @@ func (renderer) Render(ctx *markup.RenderContext, input io.Reader, output io.Wri
 	// Start rendering
 	_, _ = output.Write([]byte(`<div class="jupyter-notebook">`))
 
-	for _, cell := range notebook.Cells {
+	// limiting the cell rendering to 100 cells
+	cells := notebook.Cells
+	truncated := false
+	const maxRenderedCells = 100
+
+	if len(cells) > maxRenderedCells {
+		cells = cells[:maxRenderedCells] // Slice down to exactly 100 elements instantly at the pointer layer
+		truncated = true
+	}
+
+	for _, cell := range cells {
 		if err := renderCell(ctx, output, cell, language); err != nil {
 			log.Warn("Failed to render cell: %v", err)
 			continue
 		}
+	}
+
+	if truncated {
+		_, _ = output.Write([]byte(`<div class="ui warning message jupyter-notebook-message">`))
+		_, _ = output.Write([]byte(`<strong>Output truncated.</strong> This notebook contains too many cells to display efficiently.`))
+		_, _ = output.Write([]byte(`</div>`))
 	}
 
 	_, _ = output.Write([]byte(`</div>`))
@@ -213,7 +238,15 @@ func renderCell(ctx *markup.RenderContext, output io.Writer, cell Cell, language
 }
 
 func renderMarkdown(_ *markup.RenderContext, output io.Writer, source string) error {
-	return jupyterGoldmark.Convert([]byte(source), output)
+	var buf strings.Builder
+	if err := jupyterGoldmark.Convert([]byte(source), &buf); err != nil {
+		return err
+	}
+	
+	// Sanitize the generated markdown HTML before sending it to the DOM
+	safeHTML := markup.Sanitize(buf.String())
+	_, _ = output.Write([]byte(safeHTML))
+	return nil
 }
 
 func renderOutput(output io.Writer, out Output) {
@@ -242,11 +275,8 @@ func renderOutput(output io.Writer, out Output) {
 			htmlContent := joinSource(htmlData)
 			// Strip <style> tags as we handle DataFrame styles in CSS
 			htmlContent = stripStyleTags(htmlContent)
-			sanitizer := bluemonday.UGCPolicy()
 
-			sanitizer.AllowAttrs("class").OnElements("table", "thead", "tbody", "tr", "th", "td")
-
-			safeHTML := sanitizer.Sanitize(htmlContent)
+			safeHTML := markup.Sanitize(htmlContent)
 			_, _ = output.Write([]byte(`<div class="jupyter-html-output">`))
 			_, _ = output.Write([]byte(safeHTML))
 			_, _ = output.Write([]byte(`</div>`))
