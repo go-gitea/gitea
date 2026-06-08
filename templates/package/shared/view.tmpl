@@ -39,6 +39,7 @@
 		{{template "package/content/rubygems" .}}
 		{{template "package/content/swift" .}}
 		{{template "package/content/terraform" .}}
+		{{template "package/content/terraform_module" .}}
 		{{template "package/content/vagrant" .}}
 	</div>
 	<div class="ui segment packages-content-right">
@@ -71,6 +72,7 @@
 			{{template "package/metadata/rubygems" .}}
 			{{template "package/metadata/swift" .}}
 			{{template "package/metadata/terraform" .}}
+			{{template "package/metadata/terraform_module" .}}
 			{{template "package/metadata/vagrant" .}}
 			{{if not (and (eq .PackageDescriptor.Package.Type "container") .PackageDescriptor.Metadata.Manifests)}}
 			<div class="item">{{svg "octicon-database"}} {{FileSize .PackageDescriptor.CalculateBlobSize}}</div>
