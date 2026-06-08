@@ -68,30 +68,27 @@ function isSSHURL(url: string): boolean {
 
 export function initRepoMigrationForm() {
   const cloneAddrInput = document.querySelector<HTMLInputElement>('#clone_addr');
-  const authUsernameInput = document.querySelector<HTMLInputElement>('#auth_username');
-  const authPasswordInput = document.querySelector<HTMLInputElement>('#auth_password');
-  const sshHelpText = document.querySelector('.help.ssh-help');
+  if (!cloneAddrInput) return;
 
-  if (!cloneAddrInput || !authUsernameInput || !authPasswordInput || !sshHelpText) return;
+  // SSH URLs use key-based auth, so username/password fields become useless
+  // and are hidden. Forge token fields stay visible — the token is still
+  // needed for API calls (issues/PRs/etc.) regardless of the git transport.
+  const userpassFields = document.querySelectorAll<HTMLElement>('.auth-userpass-field');
+  const sshHelpField = document.querySelector<HTMLElement>('.ssh-help-field');
 
   function updateAuthFields() {
-    const url = cloneAddrInput!.value.trim();
-    const isSSH = isSSHURL(url);
+    const isSSH = isSSHURL(cloneAddrInput!.value.trim());
 
-    const usernameField = authUsernameInput!.parentElement!;
-    const passwordField = authPasswordInput!.parentElement!;
-
-    if (isSSH) {
-      // Hide auth fields entirely for SSH URLs (key-based auth only)
-      authUsernameInput!.value = '';
-      authPasswordInput!.value = '';
-      hideElem(usernameField);
-      hideElem(passwordField);
-      showElem(sshHelpText!);
-    } else {
-      showElem(usernameField);
-      showElem(passwordField);
-      hideElem(sshHelpText!);
+    for (const field of userpassFields) {
+      if (isSSH) {
+        for (const input of field.querySelectorAll<HTMLInputElement>('input')) input.value = '';
+        hideElem(field);
+      } else {
+        showElem(field);
+      }
+    }
+    if (sshHelpField) {
+      if (isSSH) showElem(sshHelpField); else hideElem(sshHelpField);
     }
   }
 

@@ -19,14 +19,15 @@
 					</span>
 				</div>
 
-				<div class="inline field {{if .Err_Auth}}error{{end}}">
+				<div class="inline field {{if .Err_Auth}}error{{end}} auth-userpass-field">
 					<label for="auth_username">{{ctx.Locale.Tr "username"}}</label>
 					<input id="auth_username" name="auth_username" value="{{.auth_username}}" {{if not .auth_username}}data-need-clear="true"{{end}}>
 				</div>
-				<div class="inline field {{if .Err_Auth}}error{{end}}">
+				<div class="inline field {{if .Err_Auth}}error{{end}} auth-userpass-field">
 					<label for="auth_password">{{ctx.Locale.Tr "password"}}</label>
 					<input id="auth_password" name="auth_password" type="password" value="{{.auth_password}}">
 				</div>
+				{{template "repo/migrate/ssh_options" .}}
 
 				{{template "repo/migrate/options" .}}
 

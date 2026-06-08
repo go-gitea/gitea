@@ -34,26 +34,23 @@ type CodeCommitDownloaderFactory struct{}
 
 // New returns a Downloader related to this factory according MigrateOptions
 func (c *CodeCommitDownloaderFactory) New(ctx context.Context, opts base.MigrateOptions) (base.Downloader, error) {
-	u, err := url.Parse(opts.CloneAddr)
+	info, err := parseServiceCloneURL(opts.CloneAddr)
 	if err != nil {
 		return nil, err
 	}
 
-	hostElems := strings.Split(u.Host, ".")
+	hostElems := strings.Split(info.apiURL.Host, ".")
 	if len(hostElems) != 4 {
 		return nil, errors.New("cannot get the region from clone URL")
 	}
 	region := hostElems[1]
 
-	pathElems := strings.Split(u.Path, "/")
-	if len(pathElems) == 0 {
+	if len(info.segments) == 0 || info.segments[len(info.segments)-1] == "" {
 		return nil, errors.New("cannot get the repo name from clone URL")
 	}
-	repoName := pathElems[len(pathElems)-1]
+	repoName := info.segments[len(info.segments)-1]
 
-	baseURL := u.Scheme + "://" + u.Host
-
-	return NewCodeCommitDownloader(ctx, repoName, baseURL, opts.AWSAccessKeyID, opts.AWSSecretAccessKey, region), nil
+	return NewCodeCommitDownloader(ctx, repoName, info.apiURL.String(), opts.AWSAccessKeyID, opts.AWSSecretAccessKey, region), nil
 }
 
 // GitServiceType returns the type of git service

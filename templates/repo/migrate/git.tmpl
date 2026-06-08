@@ -17,31 +17,16 @@
 					<span class="help">
 					{{ctx.Locale.Tr "repo.migrate.clone_address_desc"}}{{if .ContextUser.CanImportLocal}} {{ctx.Locale.Tr "repo.migrate.clone_local_path"}}{{end}}
 					</span>
-					<span class="help ssh-help tw-hidden">
-					<br><strong>{{ctx.Locale.Tr "repo.migrate.ssh_helper_title"}}:</strong> {{ctx.Locale.Tr "repo.migrate.ssh_helper_desc"}}
-					<a href="{{AppSubUrl}}/user/settings/keys" target="_blank">{{ctx.Locale.Tr "repo.migrate.ssh_helper_link"}}</a>
-					</span>
 				</div>
-				<div class="inline field {{if .Err_Auth}}error{{end}}">
+				<div class="inline field {{if .Err_Auth}}error{{end}} auth-userpass-field">
 					<label for="auth_username">{{ctx.Locale.Tr "username"}}</label>
 					<input id="auth_username" name="auth_username" value="{{.auth_username}}" {{if not .auth_username}}data-need-clear="true"{{end}}>
 				</div>
-				<div class="inline field {{if .Err_Auth}}error{{end}}">
+				<div class="inline field {{if .Err_Auth}}error{{end}} auth-userpass-field">
 					<label for="auth_password">{{ctx.Locale.Tr "password"}}</label>
 					<input id="auth_password" name="auth_password" type="password" value="{{.auth_password}}">
 				</div>
-				<div class="inline field ssh-key-owner-selector tw-hidden" data-signed-user-id="{{.SignedUser.ID}}">
-					<label>{{ctx.Locale.Tr "repo.migrate.ssh_key_owner_label"}}</label>
-					<div class="ui selection dropdown">
-						<input id="ssh_key_owner_id" name="ssh_key_owner_id" type="hidden" value="0">
-						<div class="default text">{{ctx.Locale.Tr "repo.migrate.ssh_key_owner_org_default"}}</div>
-						{{svg "octicon-triangle-down" 14 "dropdown icon"}}
-						<div class="menu">
-							<div class="item" data-value="0">{{ctx.Locale.Tr "repo.migrate.ssh_key_owner_org_default"}}</div>
-							<div class="item" data-value="{{.SignedUser.ID}}">{{ctx.Locale.Tr "repo.migrate.ssh_key_owner_personal" .SignedUser.Name}}</div>
-						</div>
-					</div>
-				</div>
+				{{template "repo/migrate/ssh_options" .}}
 
 				{{template "repo/migrate/options" .}}
 

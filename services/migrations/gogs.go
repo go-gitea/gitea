@@ -32,22 +32,19 @@ type GogsDownloaderFactory struct{}
 
 // New returns a Downloader related to this factory according MigrateOptions
 func (f *GogsDownloaderFactory) New(ctx context.Context, opts base.MigrateOptions) (base.Downloader, error) {
-	u, err := url.Parse(opts.CloneAddr)
+	info, err := parseServiceCloneURL(opts.CloneAddr)
 	if err != nil {
 		return nil, err
 	}
 
-	baseURL := u.Scheme + "://" + u.Host
-	repoNameSpace := strings.TrimSuffix(u.Path, ".git")
-	repoNameSpace = strings.Trim(repoNameSpace, "/")
-
-	fields := strings.Split(repoNameSpace, "/")
-	if len(fields) < 2 {
+	repoNameSpace := strings.TrimSuffix(info.repoPath, ".git")
+	if len(info.segments) < 2 || info.segments[0] == "" {
 		return nil, fmt.Errorf("invalid path: %s", repoNameSpace)
 	}
 
-	log.Trace("Create gogs downloader. BaseURL: %s RepoOwner: %s RepoName: %s", baseURL, fields[0], fields[1])
-	return NewGogsDownloader(ctx, baseURL, opts.AuthUsername, opts.AuthPassword, opts.AuthToken, fields[0], fields[1]), nil
+	baseURL := info.apiURL.String()
+	log.Trace("Create gogs downloader. BaseURL: %s RepoOwner: %s RepoName: %s", baseURL, info.segments[0], info.segments[1])
+	return NewGogsDownloader(ctx, baseURL, opts.AuthUsername, opts.AuthPassword, opts.AuthToken, info.segments[0], strings.TrimSuffix(info.segments[1], ".git")), nil
 }
 
 // GitServiceType returns the type of git service

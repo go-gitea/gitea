@@ -6,7 +6,6 @@ package migrations
 import (
 	"context"
 	"fmt"
-	"net/url"
 	"strings"
 
 	"gitea.dev/modules/log"
@@ -28,19 +27,24 @@ type GitBucketDownloaderFactory struct{}
 
 // New returns a Downloader related to this factory according MigrateOptions
 func (f *GitBucketDownloaderFactory) New(ctx context.Context, opts base.MigrateOptions) (base.Downloader, error) {
-	u, err := url.Parse(opts.CloneAddr)
+	info, err := parseServiceCloneURL(opts.CloneAddr)
 	if err != nil {
 		return nil, err
 	}
-
-	fields := strings.Split(u.Path, "/")
-	if len(fields) < 2 {
-		return nil, fmt.Errorf("invalid path: %s", u.Path)
+	if len(info.segments) < 2 {
+		return nil, fmt.Errorf("invalid path: %s", info.repoPath)
 	}
-	baseURL := u.Scheme + "://" + u.Host + strings.TrimSuffix(strings.Join(fields[:len(fields)-2], "/"), "/git")
 
-	oldOwner := fields[len(fields)-2]
-	oldName := strings.TrimSuffix(fields[len(fields)-1], ".git")
+	// GitBucket exposes its API at "<host>/<sub-path>" where <sub-path> is the URL
+	// minus the trailing "/git/<owner>/<repo>.git" used for the git clone endpoint.
+	subPath := strings.Join(info.segments[:len(info.segments)-2], "/")
+	if subPath != "" {
+		subPath = "/" + subPath
+	}
+	baseURL := info.apiURL.String() + strings.TrimSuffix(subPath, "/git")
+
+	oldOwner := info.segments[len(info.segments)-2]
+	oldName := strings.TrimSuffix(info.segments[len(info.segments)-1], ".git")
 
 	log.Trace("Create GitBucket downloader. BaseURL: %s RepoOwner: %s RepoName: %s", baseURL, oldOwner, oldName)
 	return NewGitBucketDownloader(ctx, baseURL, opts.AuthUsername, opts.AuthPassword, opts.AuthToken, oldOwner, oldName)
