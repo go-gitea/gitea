@@ -205,6 +205,10 @@ func updateIssueAssignees(ctx *context.APIContext, opts api.IssueAssigneesOption
 
 	assigneeIDs, err := user_model.GetUserIDsByNames(ctx, opts.Assignees, false)
 	if err != nil {
+		if user_model.IsErrUserNotExist(err) {
+			ctx.APIError(http.StatusUnprocessableEntity, err.Error())
+			return
+		}
 		ctx.APIErrorAuto(err)
 		return
 	}
