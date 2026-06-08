@@ -1967,3 +1967,7 @@ tbody.commit-list {
 .branch-selector-dropdown .scrolling.menu .loading-indicator {
   height: 4em;
 }
+
+.ssh-key-owner-selector .item-fingerprint:empty {
+  display: none;
+}

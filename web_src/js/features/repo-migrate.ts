@@ -99,35 +99,47 @@ export function initRepoMigrationForm() {
   initSSHKeyOwnerSelector(cloneAddrInput);
 }
 
-// initSSHKeyOwnerSelector wires the "managed SSH key owner" selector. It is
-// hidden by default and only shown when an SSH URL is entered AND the chosen
-// target owner is an organisation (i.e. not the signed-in user) — in that case
-// the user can pick between the org's managed key (default) and their personal
-// managed key. The hidden #ssh_key_owner_id field is submitted with the form.
+// initSSHKeyOwnerSelector wires the managed SSH key UI on the migrate form.
+// For SSH URLs it shows either a single fingerprint line (personal target —
+// no choice) or a dropdown with "this org's key" vs "your personal key", and
+// updates the org default item with the current org's fingerprint so the user
+// always sees which key will be used. For non-SSH URLs everything stays hidden.
 function initSSHKeyOwnerSelector(cloneAddrInput: HTMLInputElement) {
-  const container = document.querySelector<HTMLElement>('.ssh-key-owner-selector');
+  const selector = document.querySelector<HTMLElement>('.ssh-key-owner-selector');
+  const fingerprintOnly = document.querySelector<HTMLElement>('.ssh-key-fingerprint-only');
   const hiddenId = document.querySelector<HTMLInputElement>('#ssh_key_owner_id');
   const uidInput = document.querySelector<HTMLInputElement>('#uid');
-  if (!container || !hiddenId || !uidInput) return;
+  if (!selector || !hiddenId || !uidInput) return;
 
-  const signedUserID = container.getAttribute('data-signed-user-id') ?? '';
+  const signedUserID = selector.getAttribute('data-signed-user-id') ?? '';
+  const ownerFingerprints: Record<string, string> = JSON.parse(selector.getAttribute('data-owner-fingerprints') || '{}');
+  const orgDefaultFingerprintEl = selector.querySelector<HTMLElement>('.menu .item[data-value="0"] .item-fingerprint');
 
   function update() {
     const isSSH = isSSHURL(cloneAddrInput.value.trim());
     const targetUid = uidInput!.value;
 
-    // No choice: non-SSH URL, or migrating into the user's own account
-    if (!isSSH || targetUid === signedUserID) {
-      hideElem(container!);
+    if (!isSSH) {
+      hideElem(selector!);
+      if (fingerprintOnly) hideElem(fingerprintOnly);
       hiddenId!.value = '0';
       return;
     }
 
-    // Target is an organisation — show selector (Fomantic dropdown wires the hidden input itself)
-    showElem(container!);
+    // Personal target — no choice to make, just surface the fingerprint.
+    if (targetUid === signedUserID) {
+      hideElem(selector!);
+      if (fingerprintOnly) showElem(fingerprintOnly);
+      hiddenId!.value = '0';
+      return;
+    }
+
+    // Org target — show dropdown; populate the org-default item's fingerprint.
+    if (fingerprintOnly) hideElem(fingerprintOnly);
+    if (orgDefaultFingerprintEl) orgDefaultFingerprintEl.textContent = ownerFingerprints[targetUid] ?? '';
+    showElem(selector!);
   }
 
-  // Semantic UI updates the #uid hidden input via menu item clicks
   for (const item of document.querySelectorAll<HTMLElement>('.owner.dropdown .menu .item')) {
     item.addEventListener('click', () => setTimeout(update, 0));
   }
