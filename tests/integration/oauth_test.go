@@ -14,6 +14,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"net/url"
+	"strconv"
 	"strings"
 	"testing"
 
@@ -770,7 +771,7 @@ func testOAuthIntrospectionCrossClientIsolation(t *testing.T) {
 		assert.True(t, allowed.Active)
 		assert.Equal(t, "openid profile", allowed.Scope)
 		assert.Equal(t, resourceOwner.Name, allowed.Username)
-		assert.Equal(t, fmt.Sprint(resourceOwner.ID), allowed.Subject)
+		assert.Equal(t, strconv.FormatInt(resourceOwner.ID, 10), allowed.Subject)
 		assert.Equal(t, []string{clientA.ClientID}, allowed.Audience)
 	}
 
