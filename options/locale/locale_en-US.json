@@ -3774,6 +3774,7 @@
   "actions.runs.no_matching_online_runner_helper": "No matching online runner with label: %s",
   "actions.runs.no_job_without_needs": "The workflow must contain at least one job without dependencies.",
   "actions.runs.no_job": "The workflow must contain at least one job",
+  "actions.runs.invalid_reusable_workflow_uses": "Invalid reusable workflow \"uses\": %s",
   "actions.runs.actor": "Actor",
   "actions.runs.status": "Status",
   "actions.runs.actors_no_select": "All actors",
