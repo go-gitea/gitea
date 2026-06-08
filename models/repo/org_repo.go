@@ -37,11 +37,20 @@ type SearchTeamRepoOptions struct {
 func GetTeamRepositories(ctx context.Context, opts *SearchTeamRepoOptions) (RepositoryList, error) {
 	sess := db.GetEngine(ctx)
 	if opts.TeamID > 0 {
-		sess = sess.In("id",
-			builder.Select("repo_id").
-				From("team_repo").
-				Where(builder.Eq{"team_id": opts.TeamID}),
-		)
+		team, err := org_model.GetTeamByID(ctx, opts.TeamID)
+		if err != nil {
+			return nil, err
+		}
+
+		if team.IncludesAllRepositories {
+			sess = sess.Where(builder.Eq{"owner_id": team.OrgID})
+		} else {
+			sess = sess.In("id",
+				builder.Select("repo_id").
+					From("team_repo").
+					Where(builder.Eq{"team_id": opts.TeamID}),
+			)
+		}
 	}
 	if opts.PageSize > 0 {
 		sess.Limit(opts.PageSize, (opts.Page-1)*opts.PageSize)

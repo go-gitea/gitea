@@ -15,10 +15,12 @@ import (
 	repo_model "gitea.dev/models/repo"
 	"gitea.dev/models/unittest"
 	user_model "gitea.dev/models/user"
+	"gitea.dev/models/usergroup"
 	"gitea.dev/modules/structs"
 	repo_service "gitea.dev/services/repository"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestTeam_AddMember(t *testing.T) {
@@ -171,6 +173,26 @@ func TestAddTeamMember(t *testing.T) {
 	test(team1, user2)
 	test(team1, user4)
 	test(team3, user2)
+}
+
+func TestAddTeamMemberAllowsDirectMembershipAlongsideAssignedGroup(t *testing.T) {
+	require.NoError(t, unittest.PrepareTestDatabase())
+	ctx := t.Context()
+
+	team := unittest.AssertExistsAndLoadBean(t, &organization.Team{ID: 2})
+	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 8})
+	group := &usergroup.UserGroup{Name: "direct-member-group-warning"}
+	require.NoError(t, usergroup.CreateUserGroup(ctx, group))
+	require.NoError(t, usergroup.AddUserToUserGroup(ctx, group.ID, user.ID))
+	require.NoError(t, organization.AddUserGroupToTeam(ctx, team.ID, group.ID, team.OrgID))
+
+	isMember, err := organization.IsTeamMemberWithGroups(ctx, team.OrgID, team.ID, user.ID)
+	require.NoError(t, err)
+	assert.True(t, isMember)
+
+	require.NoError(t, AddTeamMember(ctx, team, user))
+	unittest.AssertExistsAndLoadBean(t, &organization.TeamUser{UID: user.ID, TeamID: team.ID})
+	unittest.CheckConsistencyFor(t, &organization.Team{ID: team.ID}, &user_model.User{ID: team.OrgID})
 }
 
 func TestRemoveTeamMember(t *testing.T) {

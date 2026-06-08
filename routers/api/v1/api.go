@@ -525,7 +525,7 @@ func reqTeamMembership() func(ctx *context.APIContext) {
 			return
 		}
 
-		if isTeamMember, err := organization.IsTeamMember(ctx, orgID, ctx.Org.Team.ID, ctx.Doer.ID); err != nil {
+		if isTeamMember, err := organization.IsTeamMemberWithGroups(ctx, orgID, ctx.Org.Team.ID, ctx.Doer.ID); err != nil {
 			ctx.APIErrorInternal(err)
 			return
 		} else if !isTeamMember {
@@ -1701,6 +1701,14 @@ func Routes() *web.Router {
 					Put(reqToken(), reqOrgOwnership(), org.AddTeamMember).
 					Delete(reqToken(), reqOrgOwnership(), org.RemoveTeamMember)
 			})
+			if setting.Service.EnableUserGroups {
+				m.Group("/groups", func() {
+					m.Get("", reqToken(), org.ListTeamUserGroups)
+					m.Combo("/{group_id}").
+						Put(reqToken(), reqOrgOwnership(), org.AddTeamUserGroup).
+						Delete(reqToken(), reqOrgOwnership(), org.RemoveTeamUserGroup)
+				})
+			}
 			m.Group("/repos", func() {
 				m.Get("", reqToken(), org.GetTeamRepos)
 				m.Combo("/{org}/{reponame}").
@@ -1716,6 +1724,21 @@ func Routes() *web.Router {
 				m.Get("", admin.ListCronTasks)
 				m.Post("/{task}", admin.PostCronTask)
 			})
+			if setting.Service.EnableUserGroups {
+				m.Group("/groups", func() {
+					m.Get("", admin.ListUserGroups)
+					m.Post("", bind(api.CreateUserGroupOption{}), admin.CreateUserGroup)
+					m.Group("/{id}", func() {
+						m.Combo("").
+							Patch(bind(api.EditUserGroupOption{}), admin.EditUserGroup).
+							Delete(admin.DeleteUserGroup)
+						m.Group("/members", func() {
+							m.Get("", admin.ListUserGroupMembers)
+							m.Put("", bind(api.UserGroupMembersOption{}), admin.ReplaceUserGroupMembers)
+						})
+					})
+				})
+			}
 			m.Get("/orgs", admin.GetAllOrgs)
 			m.Group("/users", func() {
 				m.Get("", admin.SearchUsers)

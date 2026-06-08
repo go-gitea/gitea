@@ -335,12 +335,18 @@ func removeInvalidOrgUser(ctx context.Context, orgID int64, user *user_model.Use
 	}); err != nil {
 		return err
 	} else if count == 0 {
-		org, err := organization.GetOrgByID(ctx, orgID)
+		// Also check membership via user groups before removing from the org.
+		inGroupTeam, err := organization.IsUserInAnyOrgTeamViaUserGroups(ctx, orgID, user.ID)
 		if err != nil {
 			return err
 		}
-
-		return RemoveOrgUser(ctx, org, user)
+		if !inGroupTeam {
+			org, err := organization.GetOrgByID(ctx, orgID)
+			if err != nil {
+				return err
+			}
+			return RemoveOrgUser(ctx, org, user)
+		}
 	}
 	return nil
 }

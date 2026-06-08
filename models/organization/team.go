@@ -145,7 +145,7 @@ func (t *Team) IsOwnerTeam() bool {
 
 // IsMember returns true if given user is a member of team.
 func (t *Team) IsMember(ctx context.Context, userID int64) bool {
-	isMember, err := IsTeamMember(ctx, t.OrgID, t.ID, userID)
+	isMember, err := IsTeamMemberWithGroups(ctx, t.OrgID, t.ID, userID)
 	if err != nil {
 		log.Error("IsMember: %v", err)
 		return false
@@ -160,6 +160,14 @@ func (t *Team) HasAdminAccess() bool {
 // LoadMembers returns paginated members in team of organization.
 func (t *Team) LoadMembers(ctx context.Context) (err error) {
 	t.Members, err = GetTeamMembers(ctx, &SearchMembersOptions{
+		TeamID: t.ID,
+	})
+	return err
+}
+
+// LoadMembersWithGroups returns members including assigned user groups.
+func (t *Team) LoadMembersWithGroups(ctx context.Context) (err error) {
+	t.Members, err = GetTeamMembersWithGroups(ctx, &SearchMembersOptions{
 		TeamID: t.ID,
 	})
 	return err

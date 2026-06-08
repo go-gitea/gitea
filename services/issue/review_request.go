@@ -268,9 +268,9 @@ func CanDoerChangeReviewRequests(ctx context.Context, doer *user_model.User, rep
 			if !team.UnitEnabled(ctx, unit.TypePullRequests) {
 				continue
 			}
-			isMember, err := organization.IsTeamMember(ctx, repo.OwnerID, team.ID, doer.ID)
+			isMember, err := organization.IsTeamMemberWithGroups(ctx, repo.OwnerID, team.ID, doer.ID)
 			if err != nil {
-				log.Error("IsTeamMember: %v", err)
+				log.Error("IsTeamMemberWithGroups: %v", err)
 				continue
 			}
 			if isMember {

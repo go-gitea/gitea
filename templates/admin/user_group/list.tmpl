@@ -1,0 +1,62 @@
+{{template "admin/layout_head" (dict "ctxData" . "pageClass" "admin")}}
+	<div class="admin-setting-content">
+		<h4 class="ui top attached header">
+			{{ctx.Locale.Tr "admin.user_groups.manage_panel"}} ({{ctx.Locale.Tr "admin.total" .Total}})
+			<div class="ui right">
+				<a class="ui primary tiny button" href="{{AppSubUrl}}/-/admin/user-groups/new">{{ctx.Locale.Tr "admin.user_groups.new"}}</a>
+			</div>
+		</h4>
+		<div class="ui attached segment">
+			<form class="ui form ignore-dirty">
+				{{template "shared/search/combo" dict "Value" .Keyword "Placeholder" (ctx.Locale.Tr "admin.user_groups.name")}}
+			</form>
+		</div>
+		<div class="ui attached table segment">
+			<table class="ui very basic selectable table">
+				<thead>
+					<tr>
+						<th>{{ctx.Locale.Tr "admin.user_groups.name"}}</th>
+						<th>{{ctx.Locale.Tr "admin.user_groups.parent"}}</th>
+						<th>{{ctx.Locale.Tr "admin.user_groups.members"}}</th>
+						<th>{{ctx.Locale.Tr "admin.user_groups.teams"}}</th>
+						<th></th>
+					</tr>
+				</thead>
+				<tbody>
+					{{range .Groups}}
+						<tr>
+							<td>
+								<div class="tw-flex tw-flex-col tw-gap-1">
+									<a href="{{AppSubUrl}}/-/admin/user-groups/{{.Group.ID}}">{{.Group.Name}}</a>
+									<span class="tw-text-text-light">{{.Group.Slug}}</span>
+									{{if .Group.Description}}
+										<span class="tw-inline-block tw-max-w-[28rem] tw-text-text-light tw-truncate" data-tooltip-content="{{.Group.Description}}">{{.Group.Description}}</span>
+									{{end}}
+								</div>
+							</td>
+							<td>
+								{{if .Parent}}
+									<a href="{{AppSubUrl}}/-/admin/user-groups/{{.Parent.ID}}">{{.Parent.Name}}</a>
+								{{else}}
+									<span class="tw-text-text-light">{{ctx.Locale.Tr "admin.user_groups.none"}}</span>
+								{{end}}
+							</td>
+							<td>{{.NumMembers}}</td>
+							<td>{{.NumTeams}}</td>
+							<td>
+								<a href="{{AppSubUrl}}/-/admin/user-groups/{{.Group.ID}}" data-tooltip-content="{{ctx.Locale.Tr "edit"}}">{{svg "octicon-pencil"}}</a>
+								<a class="tw-ml-2" href="{{AppSubUrl}}/-/admin/user-groups/new?parent_id={{.Group.ID}}" data-tooltip-content="{{ctx.Locale.Tr "admin.user_groups.new_child"}}">{{svg "octicon-repo-forked"}}</a>
+							</td>
+						</tr>
+					{{else}}
+						<tr>
+							<td class="tw-text-center" colspan="5">{{ctx.Locale.Tr "no_results_found"}}</td>
+						</tr>
+					{{end}}
+				</tbody>
+			</table>
+		</div>
+
+		{{template "base/paginate" .}}
+	</div>
+{{template "admin/layout_footer" .}}

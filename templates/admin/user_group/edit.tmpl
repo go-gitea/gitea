@@ -1,0 +1,180 @@
+{{template "admin/layout_head" (dict "ctxData" . "pageClass" "admin")}}
+	<div class="admin-setting-content">
+		<h4 class="ui top attached header">
+			{{ctx.Locale.Tr "admin.user_groups.edit"}}: {{.Group.Name}}
+		</h4>
+		<div class="ui attached segment">
+			<form class="ui form" method="post" action="{{AppSubUrl}}/-/admin/user-groups/{{.Group.ID}}">
+				<div class="field">
+					<label>{{ctx.Locale.Tr "admin.user_groups.name"}}</label>
+					<input name="name" value="{{.Group.Name}}" maxlength="255" required>
+					<div class="help tw-mt-1">{{ctx.Locale.Tr "admin.user_groups.name_helper"}}</div>
+				</div>
+				<div class="field">
+					<label>{{ctx.Locale.Tr "admin.user_groups.slug"}}</label>
+					<input name="slug" value="{{.Group.Slug}}" maxlength="255" required>
+					<div class="help tw-mt-1">{{ctx.Locale.Tr "admin.user_groups.slug_helper"}}</div>
+				</div>
+				<div class="field">
+					<label>{{ctx.Locale.Tr "admin.user_groups.description"}}</label>
+					<textarea name="description" rows="4">{{.Group.Description}}</textarea>
+					<div class="help tw-mt-1">{{ctx.Locale.Tr "admin.user_groups.description_helper"}}</div>
+				</div>
+				<div class="field">
+					<label>{{ctx.Locale.Tr "admin.user_groups.parent"}}</label>
+					<div class="ui search selection dropdown">
+						<input type="hidden" name="parent_id" value="{{.Group.ParentID}}">
+						{{/* show the current selection as default text */}}
+						{{if eq .Group.ParentID 0}}
+							<div class="default text">{{ctx.Locale.Tr "admin.user_groups.none"}}</div>
+						{{else}}
+							<div class="text">{{index .AllGroupPaths .Group.ParentID}}</div>
+						{{end}}
+						{{svg "octicon-triangle-down" 14 "dropdown icon"}}
+						<div class="menu">
+							<div class="item" data-value="0">{{ctx.Locale.Tr "admin.user_groups.none"}}</div>
+							{{range .EligibleParentGroups}}
+								<div class="item {{if eq .ID $.Group.ParentID}}active selected{{end}}" data-value="{{.ID}}">
+									{{index $.AllGroupPaths .ID}}
+								</div>
+							{{end}}
+						</div>
+					</div>
+				</div>
+			<div class="tw-flex tw-gap-2">
+				<button class="ui primary button">{{ctx.Locale.Tr "save"}}</button>
+				<button type="button" class="ui red button show-modal" data-modal="#delete-group-modal">{{ctx.Locale.Tr "admin.user_groups.delete"}}</button>
+				<a class="ui button" href="{{AppSubUrl}}/-/admin/user-groups">{{ctx.Locale.Tr "cancel"}}</a>
+			</div>
+		</form>
+	</div>
+
+		<h4 class="ui top attached header">{{ctx.Locale.Tr "admin.user_groups.children"}} ({{ctx.Locale.Tr "admin.total" .ChildGroupsTotal}})</h4>
+		<div class="ui attached segment">
+			<div class="flex-divided-list items-with-main">
+				{{range .ChildGroups}}
+					<div class="item tw-items-center">
+						<div class="item-leading">
+							{{svg "octicon-repo-forked" 18}}
+						</div>
+						<div class="item-main">
+							<div class="item-title">
+								<a href="{{AppSubUrl}}/-/admin/user-groups/{{.ID}}">{{index $.AllGroupPaths .ID}}</a>
+							</div>
+							<div class="item-body">
+								<span class="tw-text-text-light">{{.Slug}}</span>
+								·
+								{{index $.ChildGroupMemberCounts .ID}} {{ctx.Locale.Tr "admin.user_groups.members"}}
+								{{if .Description}} · <span class="tw-inline-block tw-max-w-[28rem] tw-align-bottom tw-truncate" data-tooltip-content="{{.Description}}">{{.Description}}</span>{{end}}
+							</div>
+						</div>
+						<div class="item-trailing">
+							<a class="ui tiny button" href="{{AppSubUrl}}/-/admin/user-groups/new?parent_id={{.ID}}">{{ctx.Locale.Tr "admin.user_groups.new_child"}}</a>
+						</div>
+					</div>
+				{{else}}
+					<div class="item">
+						<span class="tw-text-text-light tw-italic">{{ctx.Locale.Tr "admin.user_groups.children.empty"}}</span>
+					</div>
+				{{end}}
+			</div>
+		</div>
+		{{template "base/paginate_custom" dict "Page" .ChildPage "Link" .Link "PageParam" "child_page"}}
+
+		<h4 class="ui top attached header">{{ctx.Locale.Tr "admin.user_groups.members"}} ({{ctx.Locale.Tr "admin.total" .MembersTotal}})</h4>
+		<div class="ui attached segment">
+			<form class="ui form ignore-dirty tw-flex tw-gap-2" method="post" action="{{AppSubUrl}}/-/admin/user-groups/{{.Group.ID}}/members/add">
+				<div id="search-user-box" class="ui search input tw-flex-1">
+					<input class="prompt" name="uname" placeholder="{{ctx.Locale.Tr "search.user_kind"}}" autocomplete="off" required>
+				</div>
+				<button class="ui primary button">{{ctx.Locale.Tr "admin.user_groups.add"}}</button>
+			</form>
+		</div>
+		<div class="ui attached segment">
+			<div class="flex-divided-list items-with-main">
+				{{range .Members}}
+					<div class="item tw-items-center">
+						<div class="item-leading">
+							<a href="{{.HomeLink}}">{{ctx.AvatarUtils.Avatar . 32}}</a>
+						</div>
+						<div class="item-main">
+							<div class="item-title">
+								{{template "shared/user/name" .}}
+							</div>
+						</div>
+						<div class="item-trailing">
+							<a class="ui red tiny button link-action"
+								data-url="{{AppSubUrl}}/-/admin/user-groups/{{$.Group.ID}}/members/remove?uid={{.ID}}"
+								data-modal-confirm="{{ctx.Locale.Tr "admin.user_groups.remove_member_confirm"}}">
+								{{ctx.Locale.Tr "admin.user_groups.remove"}}
+							</a>
+						</div>
+					</div>
+				{{else}}
+					<div class="item">
+						<span class="tw-text-text-light tw-italic">{{ctx.Locale.Tr "admin.user_groups.members.empty"}}</span>
+					</div>
+				{{end}}
+			</div>
+		</div>
+
+		{{template "base/paginate" .}}
+
+		<h4 class="ui top attached header">{{ctx.Locale.Tr "admin.user_groups.org_teams"}} ({{ctx.Locale.Tr "admin.total" .TeamWithOrgsTotal}})</h4>
+		<div class="ui attached table segment">
+			<table class="ui very basic table">
+				<thead>
+					<tr>
+						<th>{{ctx.Locale.Tr "admin.organizations"}}</th>
+						<th>{{ctx.Locale.Tr "admin.user_groups.teams"}}</th>
+						<th></th>
+					</tr>
+				</thead>
+				<tbody>
+					{{range .TeamWithOrgs}}
+						<tr>
+							<td>
+								{{if .Org}}
+									<a href="{{.Org.HomeLink}}">{{ctx.AvatarUtils.Avatar .Org 20}} {{.Org.Name}}</a>
+								{{end}}
+							</td>
+							<td>
+								{{if .Org}}
+									<a href="{{.Org.OrganisationLink}}/teams/{{.Team.LowerName | PathEscape}}">{{.Team.Name}}</a>
+								{{else}}
+									{{.Team.Name}}
+								{{end}}
+							</td>
+							<td>
+								<a class="ui red tiny button link-action"
+									data-url="{{AppSubUrl}}/-/admin/user-groups/{{$.Group.ID}}/teams/remove?team_id={{.Team.ID}}"
+									data-modal-confirm="{{ctx.Locale.Tr "admin.user_groups.remove_from_team_confirm"}}">
+									{{ctx.Locale.Tr "admin.user_groups.remove_from_team"}}
+								</a>
+							</td>
+						</tr>
+					{{else}}
+						<tr>
+							<td class="tw-text-center" colspan="3">{{ctx.Locale.Tr "admin.user_groups.org_teams.empty"}}</td>
+						</tr>
+					{{end}}
+				</tbody>
+			</table>
+		</div>
+		{{template "base/paginate_custom" dict "Page" .TeamPage "Link" .Link "PageParam" "team_page"}}
+	</div>
+
+<div class="ui g-modal-confirm modal" id="delete-group-modal">
+	<div class="header">
+		{{svg "octicon-trash"}}
+		{{ctx.Locale.Tr "admin.user_groups.delete"}}
+	</div>
+	<form class="ui form" method="post" action="{{AppSubUrl}}/-/admin/user-groups/{{.Group.ID}}/delete">
+		<div class="content">
+			<p>{{ctx.Locale.Tr "admin.user_groups.delete_desc"}}</p>
+		</div>
+		{{template "base/modal_actions_confirm" .}}
+	</form>
+</div>
+
+{{template "admin/layout_footer" .}}

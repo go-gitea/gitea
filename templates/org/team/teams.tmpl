@@ -25,6 +25,7 @@
 						<div class="flex-text-block tw-flex-wrap">
 							<a href="{{$.OrgLink}}/teams/{{.LowerName | PathEscape}}">{{.NumMembers}} {{ctx.Locale.Tr "org.lower_members"}}</a>
 							·
+							{{if EnableUserGroups}}<a href="{{$.OrgLink}}/teams/{{.LowerName | PathEscape}}">{{index $.OrgListTeamGroupCounts .ID}} {{ctx.Locale.Tr "org.lower_groups"}}</a> ·{{end}}
 							<a href="{{$.OrgLink}}/teams/{{.LowerName | PathEscape}}/repositories">{{.NumRepos}} {{ctx.Locale.Tr "org.lower_repositories"}}</a>
 							{{if .IsMember ctx $.SignedUser.ID}}
 								<button class="ui red mini compact button show-modal" data-modal="#org-member-leave-team"

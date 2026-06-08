@@ -457,7 +457,7 @@ func GetIndividualUserRepoPermission(ctx context.Context, repo *repo_model.Repos
 	perm.AccessMode = max(perm.AccessMode, minAccessMode)
 
 	// get units mode from teams
-	teams, err := organization.GetUserRepoTeams(ctx, repo.OwnerID, user.ID, repo.ID)
+	teams, err := organization.GetUserRepoTeamsWithGroups(ctx, repo.OwnerID, user.ID, repo.ID)
 	if err != nil {
 		return perm, err
 	}
@@ -529,7 +529,7 @@ func IsUserRepoAdmin(ctx context.Context, repo *repo_model.Repository, user *use
 		return true, nil
 	}
 
-	teams, err := organization.GetUserRepoTeams(ctx, repo.OwnerID, user.ID, repo.ID)
+	teams, err := organization.GetUserRepoTeamsWithGroups(ctx, repo.OwnerID, user.ID, repo.ID)
 	if err != nil {
 		return false, err
 	}

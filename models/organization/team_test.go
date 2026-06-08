@@ -10,8 +10,10 @@ import (
 	"gitea.dev/models/organization"
 	repo_model "gitea.dev/models/repo"
 	"gitea.dev/models/unittest"
+	"gitea.dev/models/usergroup"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestTeam_IsOwnerTeam(t *testing.T) {
@@ -69,6 +71,35 @@ func TestTeam_GetMembers(t *testing.T) {
 	}
 	test(1)
 	test(3)
+}
+
+func TestGetTeamUserGroupCounts(t *testing.T) {
+	require.NoError(t, unittest.PrepareTestDatabase())
+	ctx := t.Context()
+
+	team1 := unittest.AssertExistsAndLoadBean(t, &organization.Team{ID: 1})
+	team2 := unittest.AssertExistsAndLoadBean(t, &organization.Team{ID: 2})
+
+	g1 := &usergroup.UserGroup{Name: "count-team-g1"}
+	g2 := &usergroup.UserGroup{Name: "count-team-g2"}
+	g3 := &usergroup.UserGroup{Name: "count-team-g3"}
+	require.NoError(t, usergroup.CreateUserGroup(ctx, g1))
+	require.NoError(t, usergroup.CreateUserGroup(ctx, g2))
+	require.NoError(t, usergroup.CreateUserGroup(ctx, g3))
+
+	require.NoError(t, organization.AddUserGroupToTeam(ctx, team1.ID, g1.ID, team1.OrgID))
+	require.NoError(t, organization.AddUserGroupToTeam(ctx, team1.ID, g2.ID, team1.OrgID))
+	require.NoError(t, organization.AddUserGroupToTeam(ctx, team2.ID, g3.ID, team2.OrgID))
+
+	counts, err := organization.GetTeamUserGroupCounts(ctx, []int64{team1.ID, team2.ID, team2.ID + 100})
+	require.NoError(t, err)
+	assert.Equal(t, int64(2), counts[team1.ID])
+	assert.Equal(t, int64(1), counts[team2.ID])
+	assert.Zero(t, counts[team2.ID+100])
+
+	emptyCounts, err := organization.GetTeamUserGroupCounts(ctx, nil)
+	require.NoError(t, err)
+	assert.Empty(t, emptyCounts)
 }
 
 func TestGetTeam(t *testing.T) {

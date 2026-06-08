@@ -514,7 +514,7 @@ func SubmitReview(ctx context.Context, doer *user_model.User, issue *Issue, revi
 		}
 
 		for _, teamReviewRequest := range teamReviewRequests {
-			ok, err := organization.IsTeamMember(ctx, issue.Repo.OwnerID, teamReviewRequest.ReviewerTeamID, doer.ID)
+			ok, err := organization.IsTeamMemberWithGroups(ctx, issue.Repo.OwnerID, teamReviewRequest.ReviewerTeamID, doer.ID)
 			if err != nil {
 				return nil, nil, err
 			} else if !ok {
