@@ -146,7 +146,7 @@ func GetUserOrgsPermissions(ctx *context.APIContext) {
 	op := api.OrganizationPermissions{}
 
 	if !organization.HasOrgOrUserVisible(ctx, o, ctx.Doer) {
-		ctx.APIErrorNotFound("HasOrgOrUserVisible", nil)
+		ctx.APIErrorNotFound()
 		return
 	}
 
@@ -312,7 +312,7 @@ func Get(ctx *context.APIContext) {
 	//     "$ref": "#/responses/notFound"
 
 	if !organization.HasOrgOrUserVisible(ctx, ctx.Org.Organization.AsUser(), ctx.Doer) {
-		ctx.APIErrorNotFound("HasOrgOrUserVisible", nil)
+		ctx.APIErrorNotFound()
 		return
 	}
 

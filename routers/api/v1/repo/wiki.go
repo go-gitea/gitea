@@ -245,11 +245,7 @@ func DeleteWikiPage(ctx *context.APIContext) {
 	wikiName := wiki_service.WebPathFromRequest(ctx.PathParamRaw("pageName"))
 
 	if err := wiki_service.DeleteWikiPage(ctx, ctx.Doer, ctx.Repo.Repository, wikiName); err != nil {
-		if err.Error() == "file does not exist" {
-			ctx.APIErrorNotFound(err)
-			return
-		}
-		ctx.APIErrorInternal(err)
+		ctx.APIErrorAuto(err)
 		return
 	}
 
@@ -474,21 +470,13 @@ func findEntryForFile(commit *git.Commit, target string) (*git.TreeEntry, error)
 func findWikiRepoCommit(ctx *context.APIContext) (*git.Repository, *git.Commit) {
 	wikiRepo, err := gitrepo.OpenRepository(ctx, ctx.Repo.Repository.WikiStorageRepo())
 	if err != nil {
-		if git.IsErrNotExist(err) || err.Error() == "no such file or directory" {
-			ctx.APIErrorNotFound(err)
-		} else {
-			ctx.APIErrorInternal(err)
-		}
+		ctx.APIErrorAuto(err)
 		return nil, nil
 	}
 
 	commit, err := wikiRepo.GetBranchCommit(ctx.Repo.Repository.DefaultWikiBranch)
 	if err != nil {
-		if git.IsErrNotExist(err) {
-			ctx.APIErrorNotFound(err)
-		} else {
-			ctx.APIErrorInternal(err)
-		}
+		ctx.APIErrorAuto(err)
 		return wikiRepo, nil
 	}
 	return wikiRepo, commit
