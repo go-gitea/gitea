@@ -15,6 +15,7 @@ import (
 	actions_model "gitea.dev/models/actions"
 	user_model "gitea.dev/models/user"
 	"gitea.dev/modules/setting"
+	"gitea.dev/modules/templates"
 	"gitea.dev/modules/timeutil"
 	"gitea.dev/modules/util"
 	"gitea.dev/modules/web"
@@ -89,6 +90,7 @@ func MockActionsRunsJobs(ctx *context.Context) {
 	resp.State.Run.CanDeleteArtifact = true
 	resp.State.Run.WorkflowID = "workflow-id.yml"
 	resp.State.Run.TriggerEvent = "push"
+	renderUtils := templates.NewRenderUtils(ctx)
 	user2, _ := user_model.GetUserByID(ctx, 2)
 	if user2 == nil {
 		user2 = &user_model.User{Name: "user2"}
@@ -195,6 +197,20 @@ func MockActionsRunsJobs(ctx *context.Context) {
 	resp.State.Run.CanApprove = runID == 20 && isLatestAttempt
 	resp.State.Run.CanRerun = runID == 30 && isLatestAttempt
 	resp.State.Run.CanRerunFailed = runID == 30 && isLatestAttempt
+
+	// Mock job summaries so the devtest page can preview the Summary panel rendering.
+	resp.State.Run.JobSummaries = []*actions.ViewJobSummary{
+		{
+			JobID:       runID * 10,
+			JobName:     "job 100 (testsubname)",
+			SummaryHTML: renderUtils.MarkdownToHtml("### Devtest job summary\n\n- Markdown rendering\n- Links: [example](https://example.com)\n\n```sh\necho hello\n```\n"),
+		},
+		{
+			JobID:       runID*10 + 2,
+			JobName:     "ULTRA LOOOOOOOOOOOONG job name 102 that exceeds the limit",
+			SummaryHTML: renderUtils.MarkdownToHtml("### Another summary\n\nThis demonstrates multiple job summaries in one run.\n\n- Item A\n- Item B\n"),
+		},
+	}
 
 	resp.Artifacts = append(resp.Artifacts, &actions.ArtifactsViewItem{
 		Name:        "artifact-a",
