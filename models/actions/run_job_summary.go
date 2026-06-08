@@ -191,25 +191,16 @@ WHEN NOT MATCHED THEN
 	return util.ErrInvalidArgument
 }
 
-func ListActionRunJobSummariesByRunAttempt(ctx context.Context, repoID, runID, runAttemptID int64) ([]*ActionRunJobSummary, error) {
-	var summaries []*ActionRunJobSummary
-	if err := db.GetEngine(ctx).
-		Where("repo_id=? AND run_id=? AND run_attempt_id=?", repoID, runID, runAttemptID).
-		OrderBy("job_id ASC, step_index ASC").
-		Find(&summaries); err != nil {
-		return nil, err
+// ListActionRunJobSummaries lists the stored summaries for a run attempt, ordered by job
+// then step. A positive jobID scopes the lookup to that single job, used by the job view to
+// avoid rendering every job's summary on each poll; jobID<=0 returns all jobs in the attempt.
+func ListActionRunJobSummaries(ctx context.Context, repoID, runID, runAttemptID, jobID int64) ([]*ActionRunJobSummary, error) {
+	sess := db.GetEngine(ctx).Where("repo_id=? AND run_id=? AND run_attempt_id=?", repoID, runID, runAttemptID)
+	if jobID > 0 {
+		sess = sess.And("job_id=?", jobID)
 	}
-	return summaries, nil
-}
-
-// ListActionRunJobSummariesByJob scopes the lookup to a single job, used by the job view
-// to avoid rendering every job's summary on each poll.
-func ListActionRunJobSummariesByJob(ctx context.Context, repoID, runID, runAttemptID, jobID int64) ([]*ActionRunJobSummary, error) {
 	var summaries []*ActionRunJobSummary
-	if err := db.GetEngine(ctx).
-		Where("repo_id=? AND run_id=? AND run_attempt_id=? AND job_id=?", repoID, runID, runAttemptID, jobID).
-		OrderBy("step_index ASC").
-		Find(&summaries); err != nil {
+	if err := sess.OrderBy("job_id ASC, step_index ASC").Find(&summaries); err != nil {
 		return nil, err
 	}
 	return summaries, nil

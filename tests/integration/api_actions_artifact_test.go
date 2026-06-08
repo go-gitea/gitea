@@ -130,7 +130,7 @@ func TestActionsJobSummaryUpload(t *testing.T) {
 		require.NoError(t, err)
 		assert.Equal(t, stepTwoBody, summary.Content)
 
-		summaries, err := actions_model.ListActionRunJobSummariesByRunAttempt(t.Context(), task.Job.RepoID, task.Job.RunID, task.Job.RunAttemptID)
+		summaries, err := actions_model.ListActionRunJobSummaries(t.Context(), task.Job.RepoID, task.Job.RunID, task.Job.RunAttemptID, 0)
 		require.NoError(t, err)
 		require.Len(t, summaries, 2)
 		assert.Equal(t, int64(0), summaries[0].StepIndex)
