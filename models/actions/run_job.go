@@ -4,6 +4,7 @@
 package actions
 
 import (
+	"cmp"
 	"context"
 	"fmt"
 	"slices"
@@ -671,18 +672,18 @@ func cancelOneJob(ctx context.Context, job *ActionRunJob) (*ActionRunJob, error)
 func cancelReusableCaller(ctx context.Context, caller *ActionRunJob) ([]*ActionRunJob, error) {
 	cancelledJobs := make([]*ActionRunJob, 0)
 
-	if c, err := cancelOneJob(ctx, caller); err != nil {
-		return cancelledJobs, err
-	} else if c != nil {
-		cancelledJobs = append(cancelledJobs, c)
-	}
-
 	attemptJobs, err := GetRunJobsByRunAndAttemptID(ctx, caller.RunID, caller.RunAttemptID)
 	if err != nil {
 		return cancelledJobs, err
 	}
 
-	for _, c := range CollectAllDescendantJobs(caller, attemptJobs) {
+	// Cancel descendants deepest-first, then the caller: a caller's status is aggregated from its children,
+	// so each child must reach its final state before its parent caller is re-aggregated.
+	// A child's ID always exceeds its parent's, so descending ID is a valid deepest-first order.
+	descendants := CollectAllDescendantJobs(caller, attemptJobs)
+	slices.SortFunc(descendants, func(a, b *ActionRunJob) int { return cmp.Compare(b.ID, a.ID) })
+
+	for _, c := range descendants {
 		cancelled, err := cancelOneJob(ctx, c)
 		if err != nil {
 			return cancelledJobs, err
@@ -690,6 +691,12 @@ func cancelReusableCaller(ctx context.Context, caller *ActionRunJob) ([]*ActionR
 		if cancelled != nil {
 			cancelledJobs = append(cancelledJobs, cancelled)
 		}
+	}
+
+	if c, err := cancelOneJob(ctx, caller); err != nil {
+		return cancelledJobs, err
+	} else if c != nil {
+		cancelledJobs = append(cancelledJobs, c)
 	}
 	return cancelledJobs, nil
 }
