@@ -4,7 +4,6 @@
 package repo
 
 import (
-	"errors"
 	"net/http"
 
 	issues_model "gitea.dev/models/issues"
@@ -12,7 +11,6 @@ import (
 	repo_model "gitea.dev/models/repo"
 	user_model "gitea.dev/models/user"
 	api "gitea.dev/modules/structs"
-	"gitea.dev/modules/util"
 	"gitea.dev/modules/web"
 	"gitea.dev/services/context"
 	"gitea.dev/services/convert"
@@ -217,18 +215,8 @@ func updateIssueAssignees(ctx *context.APIContext, opts api.IssueAssigneesOption
 		err = issue_service.RemoveAssignees(ctx, issue, ctx.Doer, assigneeIDs)
 	}
 
-	switch {
-	case errors.Is(err, user_model.ErrBlockedUser):
-		ctx.APIError(http.StatusForbidden, err.Error())
-		return
-	case errors.Is(err, util.ErrPermissionDenied):
-		ctx.APIError(http.StatusForbidden, err.Error())
-		return
-	case errors.Is(err, util.ErrInvalidArgument):
-		ctx.APIError(http.StatusBadRequest, err.Error())
-		return
-	case err != nil:
-		ctx.APIErrorInternal(err)
+	if err != nil {
+		ctx.APIErrorAuto(err)
 		return
 	}
 
