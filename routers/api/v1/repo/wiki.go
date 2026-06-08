@@ -59,7 +59,7 @@ func NewWikiPage(ctx *context.APIContext) {
 	form := web.GetForm(ctx).(*api.CreateWikiPageOptions)
 
 	if util.IsEmptyString(form.Title) {
-		ctx.APIError(http.StatusBadRequest, nil)
+		ctx.APIError(http.StatusBadRequest, "title is required")
 		return
 	}
 
@@ -71,16 +71,16 @@ func NewWikiPage(ctx *context.APIContext) {
 
 	content, err := base64.StdEncoding.DecodeString(form.ContentBase64)
 	if err != nil {
-		ctx.APIError(http.StatusBadRequest, err)
+		ctx.APIError(http.StatusBadRequest, err.Error())
 		return
 	}
 	form.ContentBase64 = string(content)
 
 	if err := wiki_service.AddWikiPage(ctx, ctx.Doer, ctx.Repo.Repository, wikiName, form.ContentBase64, form.Message); err != nil {
 		if repo_model.IsErrWikiReservedName(err) {
-			ctx.APIError(http.StatusBadRequest, err)
+			ctx.APIError(http.StatusBadRequest, err.Error())
 		} else if repo_model.IsErrWikiAlreadyExist(err) {
-			ctx.APIError(http.StatusBadRequest, err)
+			ctx.APIError(http.StatusBadRequest, err.Error())
 		} else {
 			ctx.APIErrorInternal(err)
 		}
@@ -149,7 +149,7 @@ func EditWikiPage(ctx *context.APIContext) {
 
 	content, err := base64.StdEncoding.DecodeString(form.ContentBase64)
 	if err != nil {
-		ctx.APIError(http.StatusBadRequest, err)
+		ctx.APIError(http.StatusBadRequest, err.Error())
 		return
 	}
 	form.ContentBase64 = string(content)
@@ -245,11 +245,7 @@ func DeleteWikiPage(ctx *context.APIContext) {
 	wikiName := wiki_service.WebPathFromRequest(ctx.PathParamRaw("pageName"))
 
 	if err := wiki_service.DeleteWikiPage(ctx, ctx.Doer, ctx.Repo.Repository, wikiName); err != nil {
-		if err.Error() == "file does not exist" {
-			ctx.APIErrorNotFound(err)
-			return
-		}
-		ctx.APIErrorInternal(err)
+		ctx.APIErrorAuto(err)
 		return
 	}
 
@@ -474,21 +470,13 @@ func findEntryForFile(commit *git.Commit, target string) (*git.TreeEntry, error)
 func findWikiRepoCommit(ctx *context.APIContext) (*git.Repository, *git.Commit) {
 	wikiRepo, err := gitrepo.OpenRepository(ctx, ctx.Repo.Repository.WikiStorageRepo())
 	if err != nil {
-		if git.IsErrNotExist(err) || err.Error() == "no such file or directory" {
-			ctx.APIErrorNotFound(err)
-		} else {
-			ctx.APIErrorInternal(err)
-		}
+		ctx.APIErrorAuto(err)
 		return nil, nil
 	}
 
 	commit, err := wikiRepo.GetBranchCommit(ctx.Repo.Repository.DefaultWikiBranch)
 	if err != nil {
-		if git.IsErrNotExist(err) {
-			ctx.APIErrorNotFound(err)
-		} else {
-			ctx.APIErrorInternal(err)
-		}
+		ctx.APIErrorAuto(err)
 		return wikiRepo, nil
 	}
 	return wikiRepo, commit

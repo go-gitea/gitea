@@ -386,14 +386,6 @@ a.label,
   color: var(--color-text-light-2);
 }
 
-img.ui.avatar,
-.ui.avatar img,
-.ui.avatar svg {
-  border-radius: var(--border-radius);
-  object-fit: contain;
-  aspect-ratio: 1;
-}
-
 .full.height {
   flex-grow: 1;
   padding-bottom: var(--page-space-bottom);
@@ -452,11 +444,6 @@ img.ui.avatar,
 
 .ui.status.buttons .svg {
   margin-right: 4px;
-}
-
-.ui.inline.delete-button {
-  padding: 8px 15px;
-  font-weight: var(--font-weight-normal);
 }
 
 .ui .migrate {

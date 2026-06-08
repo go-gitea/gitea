@@ -32,7 +32,7 @@
 
 .items-with-main > .item {
   display: flex;
-  gap: 8px;
+  gap: var(--gap-block);
   align-items: flex-start;
 }
 
@@ -44,7 +44,7 @@
 .items-with-main > .item .item-main {
   display: flex;
   flex-direction: column;
-  gap: 0.25em;
+  gap: var(--gap-inline);
   flex-grow: 1;
   flex-basis: 60%; /* avoid wrapping the "item-trailing" too aggressively */
   min-width: 0; /* make the "text truncate" work, otherwise the flex axis is not limited and the text just overflows */
@@ -52,7 +52,7 @@
 
 .items-with-main > .item .item-header {
   display: flex;
-  gap: .25rem;
+  gap: var(--gap-inline);
   justify-content: space-between;
   flex-wrap: wrap;
 }
@@ -63,7 +63,7 @@
 
 .items-with-main > .item .item-trailing {
   display: flex;
-  gap: 0.5rem;
+  gap: var(--gap-block);
   align-items: center;
   flex-grow: 0;
   flex-wrap: wrap;
@@ -92,7 +92,7 @@
   display: flex;
   align-items: center;
   flex-wrap: wrap;
-  gap: .25rem;
+  gap: var(--gap-inline);
   color: var(--color-text-light-2);
   overflow-wrap: anywhere;
 }

@@ -24,9 +24,9 @@ func (repo *Repository) GetTagCommitID(name string) (string, error) {
 	return repo.GetRefCommitID(TagPrefix + name)
 }
 
-// GetCommit returns commit object of by ID string.
-func (repo *Repository) GetCommit(commitID string) (*Commit, error) {
-	id, err := repo.ConvertToGitID(commitID)
+// GetCommit returns a commit object of by the git ref.
+func (repo *Repository) GetCommit(ref string) (*Commit, error) {
+	id, err := repo.ConvertToGitID(ref)
 	if err != nil {
 		return nil, err
 	}
