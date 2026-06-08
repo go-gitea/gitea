@@ -119,7 +119,7 @@ func getIssueIndexerData(ctx context.Context, issueID int64) (*internal.IndexerD
 		PosterID:           issue.PosterID,
 		AssigneeID:         issue.AssigneeID,
 		AssigneeIDs:        assigneeIDs,
-		NoAssignee:         issue.AssigneeID == 0 && len(assigneeIDs) == 0,
+		NoAssignee:         len(assigneeIDs) == 0,
 		MentionIDs:         mentionIDs,
 		ReviewedIDs:        reviewedIDs,
 		ReviewRequestedIDs: reviewRequestedIDs,

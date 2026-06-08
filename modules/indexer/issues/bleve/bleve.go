@@ -259,18 +259,18 @@ func (b *Indexer) Search(ctx context.Context, options *internal.SearchOptions) (
 		queries = append(queries, inner_bleve.NumericEqualityQuery(posterIDInt64, "poster_id"))
 	}
 
-	if options.AssigneeID != "" {
-		if options.AssigneeID == "(any)" {
-			queries = append(queries, inner_bleve.BoolFieldQuery(false, "no_assignee"))
-		} else if options.AssigneeID == "(none)" {
-			queries = append(queries, inner_bleve.BoolFieldQuery(true, "no_assignee"))
-		} else {
-			assigneeIDInt64, _ := strconv.ParseInt(options.AssigneeID, 10, 64)
-			queries = append(queries, bleve.NewDisjunctionQuery(
-				inner_bleve.NumericEqualityQuery(assigneeIDInt64, "assignee_ids"),
-				inner_bleve.NumericEqualityQuery(assigneeIDInt64, "assignee_id"),
-			))
-		}
+	switch options.AssigneeID {
+	case "":
+	case "(any)":
+		queries = append(queries, inner_bleve.BoolFieldQuery(false, "no_assignee"))
+	case "(none)":
+		queries = append(queries, inner_bleve.BoolFieldQuery(true, "no_assignee"))
+	default:
+		assigneeIDInt64, _ := strconv.ParseInt(options.AssigneeID, 10, 64)
+		queries = append(queries, bleve.NewDisjunctionQuery(
+			inner_bleve.NumericEqualityQuery(assigneeIDInt64, "assignee_ids"),
+			inner_bleve.NumericEqualityQuery(assigneeIDInt64, "assignee_id"),
+		))
 	}
 
 	if options.MentionID.Has() {
