@@ -13,8 +13,10 @@ import (
 	asymkey_model "gitea.dev/models/asymkey"
 	"gitea.dev/models/db"
 	git_model "gitea.dev/models/git"
+	"gitea.dev/models/gituser"
 	repo_model "gitea.dev/models/repo"
 	user_model "gitea.dev/models/user"
+	"gitea.dev/modules/container"
 	"gitea.dev/modules/git"
 	"gitea.dev/modules/log"
 	asymkey_service "gitea.dev/services/asymkey"
@@ -93,9 +95,7 @@ func (graph *Graph) AddCommit(row, column int, flowID int64, data []byte) error 
 // before finally retrieving the latest status
 func (graph *Graph) LoadAndProcessCommits(ctx context.Context, repository *repo_model.Repository, gitRepo *git.Repository) error {
 	var err error
-	var ok bool
-
-	emails := map[string]*user_model.User{}
+	emailSet := make(container.Set[string])
 	keyMap := map[string]bool{}
 
 	for _, c := range graph.Commits {
@@ -106,14 +106,26 @@ func (graph *Graph) LoadAndProcessCommits(ctx context.Context, repository *repo_
 		if err != nil {
 			return fmt.Errorf("GetCommit: %s Error: %w", c.Rev, err)
 		}
-
 		if c.Commit.Author != nil {
-			email := c.Commit.Author.Email
-			if c.User, ok = emails[email]; !ok {
-				c.User, _ = user_model.GetUserByEmail(ctx, email)
-				emails[email] = c.User
-			}
+			emailSet.Add(c.Commit.Author.Email)
 		}
+		for _, sig := range c.Commit.AllParticipantIdentities() {
+			emailSet.Add(sig.Email)
+		}
+	}
+
+	emailUserMap, err := user_model.GetUsersByEmails(ctx, emailSet.Values())
+	if err != nil {
+		log.Error("GetUsersByEmails: %v", err)
+	}
+
+	for _, c := range graph.Commits {
+		if c.Commit == nil {
+			continue
+		}
+
+		c.User = emailUserMap.GetByEmail(c.Commit.Author.Email)
+		c.AvatarStackData = gituser.BuildAvatarStackData(ctx, c.Commit.AllParticipantIdentities(), emailUserMap)
 
 		c.Verification = asymkey_service.ParseCommitWithSignature(ctx, c.Commit)
 
@@ -246,18 +258,19 @@ func newRefsFromRefNames(refNames []byte) []git.Reference {
 
 // Commit represents a commit at coordinate X, Y with the data
 type Commit struct {
-	Commit       *git.Commit
-	User         *user_model.User
-	Verification *asymkey_model.CommitVerification
-	Status       *git_model.CommitStatus
-	Flow         int64
-	Row          int
-	Column       int
-	Refs         []git.Reference
-	Rev          string
-	Date         time.Time
-	ShortRev     string
-	Subject      string
+	Commit          *git.Commit
+	User            *user_model.User // author
+	AvatarStackData *gituser.AvatarStackData
+	Verification    *asymkey_model.CommitVerification
+	Status          *git_model.CommitStatus
+	Flow            int64
+	Row             int
+	Column          int
+	Refs            []git.Reference
+	Rev             string
+	Date            time.Time // author date from "%ad"
+	ShortRev        string
+	Subject         string
 }
 
 // OnlyRelation returns whether this a relation only commit

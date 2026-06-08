@@ -117,7 +117,7 @@ func GetInfo(ctx *context.APIContext) {
 
 	if !user_model.IsUserVisibleToViewer(ctx, ctx.ContextUser, ctx.Doer) {
 		// fake ErrUserNotExist error message to not leak information about existence
-		ctx.APIErrorNotFound("GetUserByName", user_model.ErrUserNotExist{Name: ctx.PathParam("username")})
+		ctx.APIErrorNotFound()
 		return
 	}
 	ctx.JSON(http.StatusOK, convert.ToUser(ctx, ctx.ContextUser, ctx.Doer))

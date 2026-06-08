@@ -27,6 +27,7 @@ import (
 	"gitea.dev/modules/templates"
 	"gitea.dev/modules/util"
 	shared_user "gitea.dev/routers/web/shared/user"
+	actions_service "gitea.dev/services/actions"
 	"gitea.dev/services/context"
 	"gitea.dev/services/convert"
 
@@ -208,12 +209,20 @@ func prepareWorkflowTemplate(ctx *context.Context, commit *git.Commit) (workflow
 			if !hasJobWithoutNeeds && len(j.Needs()) == 0 {
 				hasJobWithoutNeeds = true
 			}
+			if j.Uses != "" {
+				if _, err := actions_service.ResolveUses(ctx, j.Uses); err != nil {
+					workflow.ErrMsg = ctx.Locale.TrString("actions.runs.invalid_reusable_workflow_uses", err.Error())
+					break
+				}
+			}
 		}
-		if !hasJobWithoutNeeds {
-			workflow.ErrMsg = ctx.Locale.TrString("actions.runs.no_job_without_needs")
-		}
-		if emptyJobsNumber == len(wf.Jobs) {
-			workflow.ErrMsg = ctx.Locale.TrString("actions.runs.no_job")
+		if workflow.ErrMsg == "" {
+			if !hasJobWithoutNeeds {
+				workflow.ErrMsg = ctx.Locale.TrString("actions.runs.no_job_without_needs")
+			}
+			if emptyJobsNumber == len(wf.Jobs) {
+				workflow.ErrMsg = ctx.Locale.TrString("actions.runs.no_job")
+			}
 		}
 		workflows = append(workflows, workflow)
 	}
@@ -352,7 +361,7 @@ func prepareWorkflowList(ctx *context.Context, workflows []WorkflowInfo, otherWo
 		return
 	}
 	for _, run := range runs {
-		if !run.Status.In(actions_model.StatusWaiting, actions_model.StatusRunning) {
+		if !run.Status.In(actions_model.StatusWaiting, actions_model.StatusRunning, actions_model.StatusBlocked) {
 			continue
 		}
 		jobs, err := actions_model.GetLatestAttemptJobsByRepoAndRunID(ctx, run.RepoID, run.ID)
@@ -361,23 +370,31 @@ func prepareWorkflowList(ctx *context.Context, workflows []WorkflowInfo, otherWo
 			return
 		}
 		for _, job := range jobs {
-			if !job.Status.IsWaiting() {
+			if !job.Status.In(actions_model.StatusWaiting, actions_model.StatusBlocked) {
 				continue
 			}
 			if err := actions.ValidateWorkflowContent(job.WorkflowPayload); err != nil {
 				runErrors[run.ID] = ctx.Locale.TrString("actions.runs.invalid_workflow_helper", err.Error())
 				break
 			}
-			hasOnlineRunner := false
-			for _, runner := range runners {
-				if !runner.IsDisabled && runner.CanMatchLabels(job.RunsOn) {
-					hasOnlineRunner = true
+			if job.CallUses != "" {
+				if _, err := actions_service.ResolveUses(ctx, job.CallUses); err != nil {
+					runErrors[run.ID] = ctx.Locale.TrString("actions.runs.invalid_reusable_workflow_uses", err.Error())
 					break
 				}
 			}
-			if !hasOnlineRunner {
-				runErrors[run.ID] = ctx.Locale.TrString("actions.runs.no_matching_online_runner_helper", strings.Join(job.RunsOn, ","))
-				break
+			if job.Status.IsWaiting() {
+				hasOnlineRunner := false
+				for _, runner := range runners {
+					if !runner.IsDisabled && runner.CanMatchLabels(job.RunsOn) {
+						hasOnlineRunner = true
+						break
+					}
+				}
+				if !hasOnlineRunner {
+					runErrors[run.ID] = ctx.Locale.TrString("actions.runs.no_matching_online_runner_helper", strings.Join(job.RunsOn, ","))
+					break
+				}
 			}
 		}
 	}

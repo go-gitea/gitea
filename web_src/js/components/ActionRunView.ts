@@ -104,12 +104,6 @@ export function buildJobsByParentJobID(jobs: ActionsJob[]): Map<number, ActionsJ
   return childrenByParent;
 }
 
-// collectCallerChildJobs returns the direct children of a caller job.
-export function collectCallerChildJobs(jobs: ActionsJob[], callerJobID: number): ActionsJob[] {
-  if (!callerJobID) return [];
-  return buildJobsByParentJobID(jobs).get(callerJobID) || [];
-}
-
 export function createEmptyActionsRun(): ActionsRun {
   return {
     repoId: 0,
@@ -132,6 +126,7 @@ export function createEmptyActionsRun(): ActionsRun {
     duration: '',
     triggeredAt: 0,
     triggerEvent: '',
+    pullRequest: null,
     jobs: [] as Array<ActionsJob>,
     commit: {
       localeCommit: '',
@@ -141,6 +136,7 @@ export function createEmptyActionsRun(): ActionsRun {
       pusher: {
         displayName: '',
         link: '',
+        avatarLink: '',
       },
       branch: {
         name: '',

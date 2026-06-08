@@ -45,7 +45,7 @@ func ListBlocks(ctx *context.APIContext, blocker *user_model.User) {
 func CheckUserBlock(ctx *context.APIContext, blocker *user_model.User) {
 	blockee, err := user_model.GetUserByName(ctx, ctx.PathParam("username"))
 	if err != nil {
-		ctx.APIErrorNotFound("GetUserByName", err)
+		ctx.APIErrorAuto(err)
 		return
 	}
 
@@ -62,7 +62,7 @@ func CheckUserBlock(ctx *context.APIContext, blocker *user_model.User) {
 func BlockUser(ctx *context.APIContext, blocker *user_model.User) {
 	blockee, err := user_model.GetUserByName(ctx, ctx.PathParam("username"))
 	if err != nil {
-		ctx.APIErrorNotFound("GetUserByName", err)
+		ctx.APIErrorAuto(err)
 		return
 	}
 
@@ -81,7 +81,7 @@ func BlockUser(ctx *context.APIContext, blocker *user_model.User) {
 func UnblockUser(ctx *context.APIContext, doer, blocker *user_model.User) {
 	blockee, err := user_model.GetUserByName(ctx, ctx.PathParam("username"))
 	if err != nil {
-		ctx.APIErrorNotFound("GetUserByName", err)
+		ctx.APIErrorAuto(err)
 		return
 	}
 

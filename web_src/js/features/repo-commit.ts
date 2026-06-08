@@ -25,6 +25,22 @@ export function initCommitStatuses() {
   });
 }
 
+export function initAvatarStackPopup() {
+  registerGlobalInitFunc('initAvatarStackPopup', (el: HTMLElement) => {
+    const nextEl = el.nextElementSibling!;
+    if (!nextEl.matches('.tippy-target')) throw new Error('Expected next element to be a tippy target');
+    createTippy(el, {
+      content: nextEl,
+      placement: 'bottom-start',
+      interactive: true,
+      role: 'dialog',
+      theme: 'menu',
+      trigger: 'click',
+      hideOnClick: true,
+    });
+  });
+}
+
 export function initCommitFileHistoryFollowRename() {
   registerGlobalInitFunc('initCommitHistoryFollowRename', (el: HTMLInputElement) => {
     el.addEventListener('change', () => {
