@@ -866,6 +866,7 @@ func registerWebRoutes(m *web.Router, webAuth *AuthMiddleware) {
 			m.Get("", misc.LocationRedirect("./actions/runners"))
 			addSettingsRunnersRoutes()
 			addSettingsVariablesRoutes()
+			m.Post("/runners/bulk", shared_actions.RunnerBulkActionPost)
 		})
 	}, adminReq, ctxDataSet("EnableOAuth2", setting.OAuth2.Enabled, "EnablePackages", setting.Packages.Enabled))
 	// ***** END: Admin *****
