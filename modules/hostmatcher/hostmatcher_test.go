@@ -174,6 +174,25 @@ func TestReservedRanges(t *testing.T) {
 		assert.Falsef(t, private.MatchIPAddr(addr), "public ip %s should not be private", ip)
 	}
 
+	// RFC 1918 / RFC 4193 private ranges (now folded into privateIPNets instead of net.IP.IsPrivate):
+	// not external, blockable as private. Includes range edges to guard the CIDR boundaries.
+	for _, ip := range []string{
+		"10.0.0.0", "10.255.255.255", // 10.0.0.0/8
+		"172.16.0.0", "172.31.255.255", // 172.16.0.0/12
+		"192.168.0.0", "192.168.255.255", // 192.168.0.0/16
+		"fc00::", "fdff:ffff:ffff:ffff:ffff:ffff:ffff:ffff", // fc00::/7
+	} {
+		addr := net.ParseIP(ip)
+		assert.Falsef(t, external.MatchIPAddr(addr), "private ip %s must not be external", ip)
+		assert.Truef(t, private.MatchIPAddr(addr), "private ip %s should match private block-list", ip)
+	}
+
+	// 172.32.0.0 is just outside 172.16.0.0/12: a public destination, not private
+	if addr := net.ParseIP("172.32.0.0"); assert.NotNil(t, addr) {
+		assert.True(t, external.MatchIPAddr(addr), "172.32.0.0 should be external")
+		assert.False(t, private.MatchIPAddr(addr), "172.32.0.0 should not be private")
+	}
+
 	// reserved ranges that IsPrivate does not cover: not external, but blockable as private
 	for _, ip := range []string{
 		"100.64.0.1",         // CGNAT
