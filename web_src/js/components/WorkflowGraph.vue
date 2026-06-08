@@ -30,6 +30,8 @@ const props = defineProps<{
   jobs: ActionsJob[];
   runLink: string;
   workflowId: string;
+  workflowLink?: string;
+  triggerEvent?: string;
   locale: Record<string, string>;
 }>();
 
@@ -231,9 +233,13 @@ function onNodeClick(job: GraphNode | ActionsJob, event: MouseEvent) {
 <template>
   <div v-if="jobs.length > 0" class="workflow-graph">
     <div class="graph-header">
-      <h4 class="graph-title">{{ locale.workflowDependencies }}</h4>
+      <div class="graph-workflow-info">
+        <a v-if="workflowLink" class="graph-workflow-name silenced" :href="workflowLink">{{ workflowId }}</a>
+        <span v-else class="graph-workflow-name">{{ workflowId }}</span>
+        <div v-if="triggerEvent" class="graph-workflow-trigger">on: {{ triggerEvent }}</div>
+      </div>
       <div class="graph-stats">{{ graphStats }}</div>
-      <div class="flex-text-block">
+      <div class="flex-text-block graph-controls">
         <button
           type="button"
           @click="zoomIn"
@@ -424,20 +430,29 @@ function onNodeClick(job: GraphNode | ActionsJob, event: MouseEvent) {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 8px 14px;
-  background: var(--color-box-header);
-  border-bottom: 1px solid var(--color-secondary);
+  padding: 16px 16px 8px;
+  background: var(--color-console-bg);
   gap: var(--gap-block);
   flex-wrap: wrap;
 }
 
-.graph-title {
-  margin: 0;
+.graph-workflow-info {
+  min-width: 0;
+}
+
+.graph-workflow-name {
+  display: block;
   color: var(--color-text);
   font-size: 16px;
   font-weight: var(--font-weight-semibold);
-  flex: 1;
-  min-width: 200px;
+  line-height: 1.25;
+}
+
+.graph-workflow-trigger {
+  margin-top: 4px;
+  color: var(--color-text-light-2);
+  font-size: 12px;
+  line-height: 1.4;
 }
 
 .graph-stats {
@@ -447,6 +462,12 @@ function onNodeClick(job: GraphNode | ActionsJob, event: MouseEvent) {
   color: var(--color-text-light-1);
   font-size: 13px;
   white-space: nowrap;
+  margin-left: auto;
+  padding: 0 16px;
+}
+
+.graph-controls {
+  flex-shrink: 0;
 }
 
 .graph-container {

@@ -126,6 +126,7 @@ export function createEmptyActionsRun(): ActionsRun {
     duration: '',
     triggeredAt: 0,
     triggerEvent: '',
+    pullRequest: null,
     jobs: [] as Array<ActionsJob>,
     jobSummaries: [],
     commit: {
@@ -136,6 +137,7 @@ export function createEmptyActionsRun(): ActionsRun {
       pusher: {
         displayName: '',
         link: '',
+        avatarLink: '',
       },
       branch: {
         name: '',
