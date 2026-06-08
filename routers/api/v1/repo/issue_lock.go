@@ -53,11 +53,7 @@ func LockIssue(ctx *context.APIContext) {
 	reason := web.GetForm(ctx).(*api.LockIssueOption).Reason
 	issue, err := issues_model.GetIssueByIndex(ctx, ctx.Repo.Repository.ID, ctx.PathParamInt64("index"))
 	if err != nil {
-		if issues_model.IsErrIssueNotExist(err) {
-			ctx.APIErrorNotFound(err)
-		} else {
-			ctx.APIErrorInternal(err)
-		}
+		ctx.APIErrorAuto(err)
 		return
 	}
 
@@ -120,11 +116,7 @@ func UnlockIssue(ctx *context.APIContext) {
 
 	issue, err := issues_model.GetIssueByIndex(ctx, ctx.Repo.Repository.ID, ctx.PathParamInt64("index"))
 	if err != nil {
-		if issues_model.IsErrIssueNotExist(err) {
-			ctx.APIErrorNotFound(err)
-		} else {
-			ctx.APIErrorInternal(err)
-		}
+		ctx.APIErrorAuto(err)
 		return
 	}
 
