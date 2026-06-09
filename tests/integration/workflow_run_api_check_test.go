@@ -65,8 +65,7 @@ func testAPIWorkflowRunsPullRequestsField(t *testing.T) {
 
 	req := NewRequest(t, "GET", runsURL).AddTokenAuth(token)
 	resp := MakeRequest(t, req, http.StatusOK)
-	list := api.ActionWorkflowRunsResponse{}
-	DecodeJSON(t, resp, &list)
+	list := DecodeJSON(t, resp, api.ActionWorkflowRunsResponse{})
 
 	var got *api.ActionWorkflowRun
 	for _, r := range list.Entries {
@@ -86,8 +85,7 @@ func testAPIWorkflowRunsPullRequestsField(t *testing.T) {
 
 	req = NewRequest(t, "GET", runsURL+"?exclude_pull_requests=true").AddTokenAuth(token)
 	resp = MakeRequest(t, req, http.StatusOK)
-	excluded := api.ActionWorkflowRunsResponse{}
-	DecodeJSON(t, resp, &excluded)
+	excluded := DecodeJSON(t, resp, api.ActionWorkflowRunsResponse{})
 	for _, r := range excluded.Entries {
 		if r.ID == run.ID {
 			assert.Empty(t, r.PullRequests)
@@ -103,8 +101,7 @@ func testAPIWorkflowRunsByWorkflowID(t *testing.T, owner, repo, workflowID, user
 
 	req := NewRequest(t, "GET", workflowRunsURL).AddTokenAuth(token)
 	resp := MakeRequest(t, req, http.StatusOK)
-	runList := api.ActionWorkflowRunsResponse{}
-	DecodeJSON(t, resp, &runList)
+	runList := DecodeJSON(t, resp, api.ActionWorkflowRunsResponse{})
 
 	found := false
 	for _, run := range runList.Entries {
@@ -121,8 +118,7 @@ func testAPIWorkflowRunsByWorkflowID(t *testing.T, owner, repo, workflowID, user
 
 	req = NewRequest(t, "GET", workflowRunsURL+"?exclude_pull_requests=true").AddTokenAuth(token)
 	resp = MakeRequest(t, req, http.StatusOK)
-	excludedList := api.ActionWorkflowRunsResponse{}
-	DecodeJSON(t, resp, &excludedList)
+	excludedList := DecodeJSON(t, resp, api.ActionWorkflowRunsResponse{})
 	excludedFound := false
 	for _, run := range excludedList.Entries {
 		assert.Empty(t, run.PullRequests, "expected pull_requests to be empty when excluded")

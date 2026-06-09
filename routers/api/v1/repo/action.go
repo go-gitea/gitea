@@ -1055,11 +1055,7 @@ func ActionsListWorkflowRuns(ctx *context.APIContext) {
 	}
 	if !runExists {
 		if _, err := convert.GetActionWorkflow(ctx, ctx.Repo.GitRepo, ctx.Repo.Repository, workflowID); err != nil {
-			if errors.Is(err, util.ErrNotExist) {
-				ctx.APIError(http.StatusNotFound, err.Error())
-			} else {
-				ctx.APIErrorInternal(err)
-			}
+			ctx.APIErrorAuto(err)
 			return
 		}
 	}
