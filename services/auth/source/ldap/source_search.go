@@ -249,8 +249,8 @@ func (source *Source) getUserAttributeListedInGroup(entry *ldap.Entry) string {
 	return entry.GetAttributeValue(source.UserUID)
 }
 
-func userAttributeFilter(userFilter string, userDNFoundBySearch bool) string {
-	if userDNFoundBySearch {
+func userAttributeFilter(userFilter string, directBind bool, userBase string) string {
+	if !directBind || userBase != "" {
 		return "(objectClass=*)"
 	}
 	return userFilter
@@ -281,7 +281,6 @@ func realSearchEntry(source *Source, name, passwd string, directBind bool) *Sear
 	defer l.Close()
 
 	var userDN string
-	userDNFoundBySearch := false
 	if directBind {
 		log.Trace("LDAP will bind directly via UserDN template: %s", source.UserDN)
 
@@ -305,7 +304,6 @@ func realSearchEntry(source *Source, name, passwd string, directBind bool) *Sear
 			if !ok {
 				return nil
 			}
-			userDNFoundBySearch = true
 		}
 	} else {
 		log.Trace("LDAP will use BindDN.")
@@ -327,7 +325,6 @@ func realSearchEntry(source *Source, name, passwd string, directBind bool) *Sear
 		if !found {
 			return nil
 		}
-		userDNFoundBySearch = true
 	}
 
 	if !source.AttributesInBind {
@@ -342,7 +339,7 @@ func realSearchEntry(source *Source, name, passwd string, directBind bool) *Sear
 	if !ok {
 		return nil
 	}
-	attributeFilter := userAttributeFilter(userFilter, userDNFoundBySearch)
+	attributeFilter := userAttributeFilter(userFilter, directBind, source.UserBase)
 
 	isAttributeSSHPublicKeySet := strings.TrimSpace(source.AttributeSSHPublicKey) != ""
 	isAttributeAvatarSet := strings.TrimSpace(source.AttributeAvatar) != ""
