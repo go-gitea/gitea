@@ -4,7 +4,6 @@
 package repo
 
 import (
-	"errors"
 	"net/http"
 
 	issues_model "gitea.dev/models/issues"
@@ -54,16 +53,12 @@ func LockIssue(ctx *context.APIContext) {
 	reason := web.GetForm(ctx).(*api.LockIssueOption).Reason
 	issue, err := issues_model.GetIssueByIndex(ctx, ctx.Repo.Repository.ID, ctx.PathParamInt64("index"))
 	if err != nil {
-		if issues_model.IsErrIssueNotExist(err) {
-			ctx.APIErrorNotFound(err)
-		} else {
-			ctx.APIErrorInternal(err)
-		}
+		ctx.APIErrorAuto(err)
 		return
 	}
 
 	if !ctx.Repo.Permission.CanWriteIssuesOrPulls(issue.IsPull) {
-		ctx.APIError(http.StatusForbidden, errors.New("no permission to lock this issue"))
+		ctx.APIError(http.StatusForbidden, "no permission to lock this issue")
 		return
 	}
 
@@ -121,16 +116,12 @@ func UnlockIssue(ctx *context.APIContext) {
 
 	issue, err := issues_model.GetIssueByIndex(ctx, ctx.Repo.Repository.ID, ctx.PathParamInt64("index"))
 	if err != nil {
-		if issues_model.IsErrIssueNotExist(err) {
-			ctx.APIErrorNotFound(err)
-		} else {
-			ctx.APIErrorInternal(err)
-		}
+		ctx.APIErrorAuto(err)
 		return
 	}
 
 	if !ctx.Repo.Permission.CanWriteIssuesOrPulls(issue.IsPull) {
-		ctx.APIError(http.StatusForbidden, errors.New("no permission to unlock this issue"))
+		ctx.APIError(http.StatusForbidden, "no permission to unlock this issue")
 		return
 	}
 
