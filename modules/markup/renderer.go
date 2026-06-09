@@ -29,6 +29,7 @@ type ExternalRendererOptions struct {
 	SanitizerDisabled bool
 	DisplayInIframe   bool
 	ContentSandbox    string
+	FrontendRender    bool
 }
 
 // ExternalRenderer defines an interface for external renderers

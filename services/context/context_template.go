@@ -115,6 +115,10 @@ func (c TemplateContext) CspScriptNonce() (ret string) {
 }
 
 func (c TemplateContext) HeadMetaContentSecurityPolicy() template.HTML {
+	if setting.Security.ContentSecurityPolicyGeneral == "unset" {
+		return ""
+	}
+
 	// The CSP problem is more complicated than it looks.
 	// Gitea was designed to support various "customizations", including:
 	// * custom themes (custom CSS and JS)

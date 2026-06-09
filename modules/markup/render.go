@@ -6,6 +6,7 @@ package markup
 import (
 	"bytes"
 	"context"
+	"encoding/base64"
 	"errors"
 	"fmt"
 	"html/template"
@@ -14,6 +15,7 @@ import (
 	"strconv"
 	"strings"
 	"time"
+	"unicode/utf8"
 
 	"gitea.dev/modules/htmlutil"
 	"gitea.dev/modules/markup/internal"
@@ -198,7 +200,7 @@ func Render(rctx *RenderContext, origInput io.Reader, output io.Writer) error {
 	return RenderWithRenderer(rctx, renderer, input, output)
 }
 
-func RenderIFrame(ctx *RenderContext, opts *ExternalRendererOptions, output io.Writer) error {
+func RenderIFrame(ctx *RenderContext, opts *ExternalRendererOptions, input io.Reader, output io.Writer) error {
 	ownerName, repoName := ctx.RenderOptions.Metas["user"], ctx.RenderOptions.Metas["repo"]
 	refSubURL := ctx.RenderOptions.Metas["RefTypeNameSubURL"]
 	if ownerName == "" || repoName == "" || refSubURL == "" {
@@ -211,12 +213,33 @@ func RenderIFrame(ctx *RenderContext, opts *ExternalRendererOptions, output io.W
 		ctx.RenderOptions.Metas["RefTypeNameSubURL"],
 		util.PathEscapeSegments(ctx.RenderOptions.RelativePath),
 	)
-	var extraAttrs template.HTML
-	if opts.ContentSandbox != "" {
-		extraAttrs = htmlutil.HTMLFormat(` sandbox="%s"`, opts.ContentSandbox)
+
+	// The render response should always have correct "sandbox" limits (no same-origin),
+	// otherwise the "render link" direct access can still cause XSS without iframe.
+	// So here we do not need to set sandbox attribute on the iframe.
+	_, err := htmlutil.HTMLPrintf(output, `<iframe data-src="%s" data-global-init="initExternalRenderIframe" class="external-render-iframe"></iframe>`, src)
+	if err != nil {
+		return err
 	}
-	_, err := htmlutil.HTMLPrintf(output, `<iframe data-src="%s" data-global-init="initExternalRenderIframe" class="external-render-iframe"%s></iframe>`, src, extraAttrs)
-	return err
+
+	// Frontend render needs the parent to prepare the content ahead,
+	// because the frontend render plugin is not executed in the same origin, unable to read private repo contents.
+	if opts.FrontendRender {
+		content, err := util.ReadWithLimit(input, int(setting.UI.MaxDisplayFileSize))
+		if err != nil {
+			return err
+		}
+		contentEncoding, contentString := "text", util.UnsafeBytesToString(content)
+		if !utf8.Valid(content) {
+			contentEncoding = "base64"
+			contentString = base64.StdEncoding.EncodeToString(content)
+		}
+		_, err = htmlutil.HTMLPrintf(output, `<textarea data-content-encoding="%s" hidden>%s</textarea>`, contentEncoding, contentString)
+		if err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 func pipes() (io.ReadCloser, io.WriteCloser, func()) {
@@ -240,7 +263,7 @@ func RenderWithRenderer(ctx *RenderContext, renderer Renderer, input io.Reader, 
 		if ctx.RenderOptions.StandalonePageOptions == nil {
 			// for an external "DisplayInIFrame" render, it could only output its content in a standalone page
 			// otherwise, a <iframe> should be outputted to embed the external rendered page
-			return RenderIFrame(ctx, &extOpts, output)
+			return RenderIFrame(ctx, &extOpts, input, output)
 		}
 		// else: this is a standalone page, fallthrough to the real rendering, and add extra JS/CSS
 		extraScriptSrc := public.AssetURI("web_src/js/external-render-helper.ts")

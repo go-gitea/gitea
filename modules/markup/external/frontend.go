@@ -4,15 +4,12 @@
 package external
 
 import (
-	"encoding/base64"
 	"io"
-	"unicode/utf8"
 
 	"gitea.dev/modules/htmlutil"
 	"gitea.dev/modules/markup"
 	"gitea.dev/modules/public"
 	"gitea.dev/modules/setting"
-	"gitea.dev/modules/util"
 )
 
 type frontendRenderer struct {
@@ -54,28 +51,13 @@ func (p *frontendRenderer) SanitizerRules() []setting.MarkupSanitizerRule {
 func (p *frontendRenderer) GetExternalRendererOptions() (ret markup.ExternalRendererOptions) {
 	ret.SanitizerDisabled = true
 	ret.DisplayInIframe = true
-	ret.ContentSandbox = "allow-scripts allow-forms allow-modals allow-popups allow-downloads"
+	ret.ContentSandbox = setting.MarkupRenderDefaultSandbox
+	ret.FrontendRender = true
 	return ret
 }
 
 func (p *frontendRenderer) Render(ctx *markup.RenderContext, input io.Reader, output io.Writer) error {
-	if ctx.RenderOptions.StandalonePageOptions == nil {
-		opts := p.GetExternalRendererOptions()
-		return markup.RenderIFrame(ctx, &opts, output)
-	}
-
-	content, err := util.ReadWithLimit(input, int(setting.UI.MaxDisplayFileSize))
-	if err != nil {
-		return err
-	}
-
-	contentEncoding, contentString := "text", util.UnsafeBytesToString(content)
-	if !utf8.Valid(content) {
-		contentEncoding = "base64"
-		contentString = base64.StdEncoding.EncodeToString(content)
-	}
-
-	_, err = htmlutil.HTMLPrintf(output,
+	_, err := htmlutil.HTMLPrintf(output,
 		`<!DOCTYPE html>
 <html>
 <head>
@@ -84,12 +66,10 @@ func (p *frontendRenderer) Render(ctx *markup.RenderContext, input io.Reader, ou
 </head>
 <body>
 	<div id="frontend-render-viewer" data-frontend-renders="%s" data-file-tree-path="%s"></div>
-	<textarea id="frontend-render-data" data-content-encoding="%s" hidden>%s</textarea>
 	<script nonce type="module" src="%s"></script>
 </body>
 </html>`,
 		p.name, ctx.RenderOptions.RelativePath,
-		contentEncoding, contentString,
 		public.AssetURI("web_src/js/external-render-frontend.ts"))
 	return err
 }
