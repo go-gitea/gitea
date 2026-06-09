@@ -8,6 +8,7 @@ import (
 	"path/filepath"
 	"slices"
 	"strings"
+	"sync"
 )
 
 // HostMatchList is used to check if a host or IP is in a list.
@@ -24,23 +25,18 @@ type HostMatchList struct {
 }
 
 // MatchBuiltinExternal A valid global-unicast IP that is neither private (see MatchBuiltinPrivate)
-// nor a reserved special-purpose range (see privateIPNets); i.e. a routable host on the public internet.
+// nor a reserved special-purpose range (see reservedIPNets); i.e. a routable host on the public internet.
 const MatchBuiltinExternal = "external"
 
-// privateIPNets are the ranges treated as non-public internet destinations. They cover the same
-// space as Go's net.IP.IsPrivate (RFC 1918 / RFC 4193) plus special-purpose ranges it omits
-// (CGNAT, cloud metadata, IPv6 transition, etc.). MatchBuiltinPrivate matches these and
-// MatchBuiltinExternal excludes them, so the two builtins stay complementary; otherwise the
-// default allow-list would let authenticated users reach cloud metadata, internal, and IPv6
-// transition endpoints (SSRF), and a "private" block-list would fail to catch them.
-var privateIPNets = func() []*net.IPNet {
+// reservedIPNets are special-purpose ranges that net.IP.IsPrivate omits but that must not be
+// treated as public/external destinations (CGNAT, cloud metadata, IPv6 transition, etc.). We layer
+// these on top of net.IP.IsPrivate (RFC 1918 / RFC 4193) so future additions to Go's IsPrivate are
+// picked up automatically, while still covering the ranges it leaves out; otherwise the default
+// allow-list would let authenticated users reach cloud metadata, internal, and IPv6 transition
+// endpoints (SSRF), and a "private" block-list would fail to catch them.
+var reservedIPNets = sync.OnceValue(func() []*net.IPNet {
 	var nets []*net.IPNet
 	for _, cidr := range []string{
-		// RFC 1918 private + RFC 4193 unique-local (also covered by net.IP.IsPrivate)
-		"10.0.0.0/8",
-		"172.16.0.0/12",
-		"192.168.0.0/16",
-		"fc00::/7",
 		// IPv4
 		"100.64.0.0/10",    // RFC 6598 Carrier-Grade NAT
 		"168.63.129.16/32", // Azure WireServer metadata endpoint
@@ -67,12 +63,15 @@ var privateIPNets = func() []*net.IPNet {
 		nets = append(nets, ipNet)
 	}
 	return nets
-}()
+})
 
-// isPrivateIP reports whether ip falls in a private or special-purpose range (see privateIPNets)
-// that must not be considered a public/external destination.
+// isPrivateIP reports whether ip falls in a private (net.IP.IsPrivate) or reserved special-purpose
+// range (see reservedIPNets) that must not be considered a public/external destination.
 func isPrivateIP(ip net.IP) bool {
-	for _, ipNet := range privateIPNets {
+	if ip.IsPrivate() {
+		return true
+	}
+	for _, ipNet := range reservedIPNets() {
 		if ipNet.Contains(ip) {
 			return true
 		}
@@ -81,7 +80,7 @@ func isPrivateIP(ip net.IP) bool {
 }
 
 // MatchBuiltinPrivate RFC 1918 (10.0.0.0/8, 172.16.0.0/12, 192.168.0.0/16) and RFC 4193 (FC00::/7),
-// plus the reserved special-purpose ranges in privateIPNets (CGNAT, NAT64, cloud metadata, etc.).
+// plus the reserved special-purpose ranges in reservedIPNets (CGNAT, NAT64, cloud metadata, etc.).
 // Also called LAN/Intranet.
 const MatchBuiltinPrivate = "private"
 
