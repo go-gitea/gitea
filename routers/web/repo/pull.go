@@ -376,9 +376,7 @@ func (prInfo *pullRequestViewInfo) prepareViewFillCompareInfo(ctx *context.Conte
 	pull := prInfo.issue.PullRequest
 	prInfo.CompareInfo, err = git_service.GetCompareInfo(ctx, ctx.Repo.Repository, ctx.Repo.Repository, ctx.Repo.GitRepo, baseRef, git.RefName(pull.GetGitHeadRefName()), false, false)
 	if err != nil {
-		isKnownErrorForBroken := gitcmd.IsStdErrorNotValidObjectName(err) ||
-			// fatal: ambiguous argument 'origin': unknown revision or path not in the working tree.
-			gitcmd.StderrContains(err, "unknown revision or path not in the working tree")
+		isKnownErrorForBroken := gitcmd.IsStderr(err, gitcmd.StderrNotValidObjectName) || gitcmd.IsStderr(err, gitcmd.StderrUnknownRevisionOrPath)
 		if !isKnownErrorForBroken {
 			log.Error("GetCompareInfo: %v", err)
 		}

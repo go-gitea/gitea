@@ -14,6 +14,7 @@ import (
 	asymkey_model "gitea.dev/models/asymkey"
 	"gitea.dev/models/db"
 	git_model "gitea.dev/models/git"
+	"gitea.dev/models/gituser"
 	issues_model "gitea.dev/models/issues"
 	"gitea.dev/models/renderhelper"
 	repo_model "gitea.dev/models/repo"
@@ -49,7 +50,7 @@ func RefCommits(ctx *context.Context) {
 	switch {
 	case len(ctx.Repo.TreePath) == 0:
 		Commits(ctx)
-	case ctx.Repo.TreePath == "search":
+	case ctx.Repo.TreePath == "search": // FIXME: legacy dirty design, it conflicts with the FileHistory
 		SearchCommits(ctx)
 	default:
 		FileHistory(ctx)
@@ -396,7 +397,8 @@ func Diff(ctx *context.Context) {
 
 	verification := asymkey_service.ParseCommitWithSignature(ctx, commit)
 	ctx.Data["Verification"] = verification
-	ctx.Data["Author"] = user_model.ValidateCommitWithEmail(ctx, commit)
+	ctx.Data["Author"] = user_model.GetUserByGitAuthor(ctx, commit)
+	ctx.Data["CommitOtherParticipants"] = gituser.BuildAvatarStackData(ctx, commit.AllParticipantIdentities(), nil).Participants[1:]
 	ctx.Data["Parents"] = parents
 	ctx.Data["DiffNotAvailable"] = diffShortStat.NumFiles == 0
 
@@ -411,14 +413,10 @@ func Diff(ctx *context.Context) {
 	err = git.GetNote(ctx, ctx.Repo.GitRepo, commitID, note)
 	if err == nil {
 		ctx.Data["NoteCommit"] = note.Commit
-		ctx.Data["NoteAuthor"] = user_model.ValidateCommitWithEmail(ctx, note.Commit)
+		ctx.Data["NoteAuthor"] = user_model.GetUserByGitAuthor(ctx, note.Commit)
 		rctx := renderhelper.NewRenderContextRepoComment(ctx, ctx.Repo.Repository, renderhelper.RepoCommentOptions{CurrentRefSubURL: "commit/" + util.PathEscapeSegments(commitID)})
 		htmlMessage := template.HTML(template.HTMLEscapeString(string(charset.ToUTF8WithFallback(note.Message, charset.ConvertOpts{}))))
-		ctx.Data["NoteRendered"], err = markup.PostProcessCommitMessage(rctx, htmlMessage)
-		if err != nil {
-			ctx.ServerError("PostProcessCommitMessage", err)
-			return
-		}
+		ctx.Data["NoteRendered"] = markup.PostProcessCommitMessage(rctx, htmlMessage)
 	} else if !git.IsErrNotExist(err) {
 		log.Error("GetNote: %v", err)
 	}
@@ -465,7 +463,7 @@ func RawDiff(ctx *context.Context) {
 }
 
 func processGitCommits(ctx *context.Context, gitCommits []*git.Commit) ([]*git_model.SignCommitWithStatuses, error) {
-	commits, err := git_service.ConvertFromGitCommit(ctx, gitCommits, ctx.Repo.Repository)
+	commits, err := git_service.ConvertFromGitCommit(ctx, gitCommits, ctx.Repo.Repository, ctx.Repo.RefFullName)
 	if err != nil {
 		return nil, err
 	}

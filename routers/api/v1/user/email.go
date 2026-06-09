@@ -122,7 +122,7 @@ func DeleteEmail(ctx *context.APIContext) {
 
 	if err := user_service.DeleteEmailAddresses(ctx, ctx.Doer, form.Emails); err != nil {
 		if user_model.IsErrEmailAddressNotExist(err) {
-			ctx.APIError(http.StatusNotFound, err)
+			ctx.APIError(http.StatusNotFound, err.Error())
 		} else {
 			ctx.APIErrorInternal(err)
 		}
