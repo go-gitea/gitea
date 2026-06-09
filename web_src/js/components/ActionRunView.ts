@@ -128,6 +128,7 @@ export function createEmptyActionsRun(): ActionsRun {
     triggerEvent: '',
     pullRequest: null,
     jobs: [] as Array<ActionsJob>,
+    jobSummaries: [],
     commit: {
       localeCommit: '',
       localePushedBy: '',

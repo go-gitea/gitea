@@ -100,7 +100,7 @@ func DeleteCollaboration(ctx context.Context, repo *repo_model.Repository, colla
 }
 
 func ReconsiderRepoIssuesAssignee(ctx context.Context, repo *repo_model.Repository, user *user_model.User) error {
-	if canAssigned, err := access_model.CanBeAssigned(ctx, user, repo, true); err != nil || canAssigned {
+	if canAssigned, err := access_model.CanBeAssigned(ctx, user, repo); err != nil || canAssigned {
 		return err
 	}
 

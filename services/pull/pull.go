@@ -96,7 +96,7 @@ func NewPullRequest(ctx context.Context, opts *NewPullRequestOptions) error {
 	}
 
 	assigneeCommentMap := make(map[int64]*issues_model.Comment)
-
+	assignees := make(map[int64]*user_model.User)
 	var reviewNotifiers []*issue_service.ReviewRequestNotifier
 	if err := db.WithTx(ctx, func(ctx context.Context) error {
 		if err := issues_model.NewPullRequest(ctx, repo, issue, labelIDs, uuids, pr); err != nil {
@@ -104,10 +104,16 @@ func NewPullRequest(ctx context.Context, opts *NewPullRequestOptions) error {
 		}
 
 		for _, assigneeID := range assigneeIDs {
-			comment, err := issue_service.AddAssigneeIfNotAssigned(ctx, issue, issue.Poster, assigneeID, false)
+			assignee, err := user_model.GetUserByID(ctx, assigneeID)
+			if err != nil {
+				log.Error("GetUserByID: %v", err)
+				continue
+			}
+			comment, err := issue_service.AddAssigneeIfNotAssigned(ctx, issue, issue.Poster, assignee)
 			if err != nil {
 				return err
 			}
+			assignees[assigneeID] = assignee
 			assigneeCommentMap[assigneeID] = comment
 		}
 
@@ -186,12 +192,8 @@ func NewPullRequest(ctx context.Context, opts *NewPullRequestOptions) error {
 	if issue.Milestone != nil {
 		notify_service.IssueChangeMilestone(ctx, issue.Poster, issue, 0)
 	}
-	for _, assigneeID := range assigneeIDs {
-		assignee, err := user_model.GetUserByID(ctx, assigneeID)
-		if err != nil {
-			return ErrDependenciesLeft
-		}
-		notify_service.IssueChangeAssignee(ctx, issue.Poster, issue, assignee, false, assigneeCommentMap[assigneeID])
+	for _, assignee := range assignees {
+		notify_service.IssueChangeAssignee(ctx, issue.Poster, issue, assignee, false, assigneeCommentMap[assignee.ID])
 	}
 
 	return nil
