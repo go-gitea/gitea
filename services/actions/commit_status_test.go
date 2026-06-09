@@ -11,8 +11,10 @@ import (
 	git_model "gitea.dev/models/git"
 	repo_model "gitea.dev/models/repo"
 	"gitea.dev/models/unittest"
+	user_model "gitea.dev/models/user"
 	actions_module "gitea.dev/modules/actions"
 	"gitea.dev/modules/commitstatus"
+	"gitea.dev/modules/git"
 	"gitea.dev/modules/gitrepo"
 	"gitea.dev/modules/timeutil"
 
@@ -144,6 +146,158 @@ func TestGetCommitActionsStatusMap(t *testing.T) {
 	// Nil receiver returns "" without panicking — used by callers that skip enrichment.
 	var nilInfo actions_module.CommitActionsStatusMap
 	assert.Empty(t, nilInfo.IconStatus(statuses[0]))
+}
+
+// TestCreateCommitStatus_DistinctWorkflowFilesSameName covers issue #35699:
+// two workflow files with the same `name:` and same job name must produce
+// two distinct commit statuses, not be deduplicated into one.
+func TestCreateCommitStatus_DistinctWorkflowFilesSameName(t *testing.T) {
+	assert.NoError(t, unittest.PrepareTestDatabase())
+
+	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 4})
+	branch := unittest.AssertExistsAndLoadBean(t, &git_model.Branch{RepoID: repo.ID, Name: repo.DefaultBranch})
+
+	payload := []byte(`
+name: test-run
+on: pull_request
+jobs:
+  my-test:
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo hi
+`)
+
+	for _, spec := range []struct {
+		workflowID   string
+		runID, jobID int64
+	}{
+		{"workflow1.yaml", 99101, 99201},
+		{"workflow2.yaml", 99102, 99202},
+	} {
+		run := &actions_model.ActionRun{
+			ID: spec.runID, Index: spec.runID, RepoID: repo.ID, Repo: repo, OwnerID: repo.OwnerID, TriggerUserID: repo.OwnerID,
+			WorkflowID: spec.workflowID, CommitSHA: branch.CommitID,
+		}
+		require.NoError(t, db.Insert(t.Context(), run))
+		job := &actions_model.ActionRunJob{
+			ID: spec.jobID, RunID: run.ID, RepoID: repo.ID, OwnerID: repo.OwnerID,
+			Name: "my-test", Status: actions_model.StatusWaiting,
+			WorkflowPayload: payload,
+		}
+		require.NoError(t, db.Insert(t.Context(), job))
+		require.NoError(t, createCommitStatus(t.Context(), repo, "pull_request", branch.CommitID, run, job))
+	}
+
+	statuses, err := git_model.GetLatestCommitStatus(t.Context(), repo.ID, branch.CommitID, db.ListOptionsAll)
+	require.NoError(t, err)
+
+	// Both workflow files should produce a row even though the display
+	// Context is identical — matching GitHub's behavior.
+	hashes := map[string]struct{}{}
+	targets := map[string]struct{}{}
+	for _, st := range statuses {
+		hashes[st.ContextHash] = struct{}{}
+		targets[st.TargetURL] = struct{}{}
+		assert.Equal(t, "test-run / my-test (pull_request)", st.Context)
+	}
+	assert.Len(t, hashes, 2, "expected distinct ContextHash per workflow file")
+	assert.Len(t, targets, 2, "expected distinct TargetURL per workflow file")
+}
+
+// TestCreateCommitStatus_LegacyHashRecovery covers the upgrade path: a pending
+// status created before the fix (hashed from Context alone) must still be
+// superseded by a follow-up event, instead of being orphaned in its own dedupe
+// group while a new row accumulates under the new hash.
+func TestCreateCommitStatus_LegacyHashRecovery(t *testing.T) {
+	assert.NoError(t, unittest.PrepareTestDatabase())
+
+	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 4})
+	branch := unittest.AssertExistsAndLoadBean(t, &git_model.Branch{RepoID: repo.ID, Name: repo.DefaultBranch})
+
+	ctxName := "legacy.yaml / my-job (push)"
+	legacyHash := git_model.HashCommitStatusContext(ctxName)
+	sha, err := git.NewIDFromString(branch.CommitID)
+	require.NoError(t, err)
+	creator := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: repo.OwnerID})
+	require.NoError(t, git_model.NewCommitStatus(t.Context(), git_model.NewCommitStatusOptions{
+		Repo:    repo,
+		Creator: creator,
+		SHA:     sha,
+		CommitStatus: &git_model.CommitStatus{
+			State:       commitstatus.CommitStatusPending,
+			Context:     ctxName,
+			ContextHash: legacyHash,
+			TargetURL:   "https://example.invalid/legacy",
+			Description: "Waiting to run",
+		},
+	}))
+
+	run := &actions_model.ActionRun{
+		ID: 99301, Index: 99301, RepoID: repo.ID, Repo: repo, OwnerID: repo.OwnerID, TriggerUserID: repo.OwnerID,
+		WorkflowID: "legacy.yaml", CommitSHA: branch.CommitID,
+	}
+	require.NoError(t, db.Insert(t.Context(), run))
+	job := &actions_model.ActionRunJob{
+		ID: 99302, RunID: run.ID, RepoID: repo.ID, OwnerID: repo.OwnerID,
+		Name: "my-job", Status: actions_model.StatusSuccess,
+	}
+	require.NoError(t, db.Insert(t.Context(), job))
+	require.NoError(t, createCommitStatus(t.Context(), repo, "push", branch.CommitID, run, job))
+
+	latest, err := git_model.GetLatestCommitStatus(t.Context(), repo.ID, branch.CommitID, db.ListOptionsAll)
+	require.NoError(t, err)
+	// The new row must reuse the legacy hash so GetLatestCommitStatus returns
+	// only one entry for this Context — the success, not the orphaned pending.
+	matches := 0
+	for _, s := range latest {
+		if s.Context == ctxName {
+			matches++
+			assert.Equal(t, legacyHash, s.ContextHash)
+			assert.Equal(t, commitstatus.CommitStatusSuccess, s.State)
+		}
+	}
+	assert.Equal(t, 1, matches)
+}
+
+// TestCreateCommitStatus_UnnamedWorkflowUsesFileName: a workflow with no
+// non-blank `name:` uses the file name in the Context, not an empty
+// "/ job (event)" — covers both an omitted and a whitespace-only name.
+func TestCreateCommitStatus_UnnamedWorkflowUsesFileName(t *testing.T) {
+	assert.NoError(t, unittest.PrepareTestDatabase())
+
+	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 4})
+	branch := unittest.AssertExistsAndLoadBean(t, &git_model.Branch{RepoID: repo.ID, Name: repo.DefaultBranch})
+
+	for _, tc := range []struct {
+		workflowID   string
+		runID, jobID int64
+		payload      string
+	}{
+		{"unnamed.yaml", 99401, 99411, "on: push\n"},
+		{"blank.yaml", 99402, 99412, "name: \"   \"\non: push\n"},
+	} {
+		run := &actions_model.ActionRun{
+			ID: tc.runID, Index: tc.runID, RepoID: repo.ID, Repo: repo, OwnerID: repo.OwnerID, TriggerUserID: repo.OwnerID,
+			WorkflowID: tc.workflowID, CommitSHA: branch.CommitID,
+		}
+		require.NoError(t, db.Insert(t.Context(), run))
+		job := &actions_model.ActionRunJob{
+			ID: tc.jobID, RunID: run.ID, RepoID: repo.ID, OwnerID: repo.OwnerID,
+			Name: "my-test", Status: actions_model.StatusWaiting,
+			WorkflowPayload: []byte(tc.payload + `jobs:
+  my-test:
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo hi
+`),
+		}
+		require.NoError(t, db.Insert(t.Context(), job))
+		require.NoError(t, createCommitStatus(t.Context(), repo, "push", branch.CommitID, run, job))
+
+		statuses := findCommitStatusesForContext(t, repo.ID, branch.CommitID, tc.workflowID+" / my-test (push)")
+		require.Len(t, statuses, 1)
+		assert.Equal(t, commitstatus.CommitStatusPending, statuses[0].State)
+	}
 }
 
 func findCommitStatusesForContext(t *testing.T, repoID int64, sha, context string) []*git_model.CommitStatus {
