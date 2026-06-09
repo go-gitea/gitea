@@ -539,10 +539,11 @@ func RemoveUserFromOrg(ctx *context.Context) {
 	if err := org_service.RemoveOrgUser(ctx, org, u); err != nil {
 		if org_model.IsErrLastOrgOwner(err) {
 			ctx.Flash.Error(ctx.Tr("form.last_org_owner"))
-		} else {
-			ctx.ServerError("RemoveOrgUser", err)
+			ctx.Redirect(setting.AppSubURL + "/-/admin/users/" + url.PathEscape(ctx.PathParam("userid")))
+			return
 		}
-		ctx.Redirect(setting.AppSubURL + "/-/admin/users/" + url.PathEscape(ctx.PathParam("userid")))
+
+		ctx.ServerError("RemoveOrgUser", err)
 		return
 	}
 
