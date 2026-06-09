@@ -139,9 +139,11 @@ func getCommitStatusEventNameAndCommitID(run *actions_model.ActionRun) (event, c
 func createCommitStatus(ctx context.Context, repo *repo_model.Repository, event, commitID string, run *actions_model.ActionRun, job *actions_model.ActionRunJob) error {
 	// TODO: store workflow name as a field in ActionRun to avoid parsing
 	runName := path.Base(run.WorkflowID)
-	// fall back to the file name when the workflow omits `name:`
-	if wfs, err := jobparser.Parse(job.WorkflowPayload); err == nil && len(wfs) > 0 && wfs[0].Name != "" {
-		runName = wfs[0].Name
+	// fall back to the file name when the workflow has no non-blank `name:`
+	if wfs, err := jobparser.Parse(job.WorkflowPayload); err == nil && len(wfs) > 0 {
+		if name := strings.TrimSpace(wfs[0].Name); name != "" {
+			runName = name
+		}
 	}
 	ctxName := strings.TrimSpace(fmt.Sprintf("%s / %s (%s)", runName, job.Name, event)) // git_model.NewCommitStatus also trims spaces
 	// Mix the workflow file path into the hash so two workflow files that

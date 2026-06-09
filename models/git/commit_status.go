@@ -505,6 +505,7 @@ func NewCommitStatus(ctx context.Context, opts NewCommitStatusOptions) error {
 		opts.CommitStatus.Description = strings.TrimSpace(opts.CommitStatus.Description)
 		opts.CommitStatus.Context = strings.TrimSpace(opts.CommitStatus.Context)
 		opts.CommitStatus.TargetURL = strings.TrimSpace(opts.CommitStatus.TargetURL)
+		opts.CommitStatus.ContextHash = strings.TrimSpace(opts.CommitStatus.ContextHash)
 		opts.CommitStatus.SHA = opts.SHA.String()
 		opts.CommitStatus.CreatorID = opts.Creator.ID
 		opts.CommitStatus.RepoID = opts.Repo.ID

@@ -259,37 +259,45 @@ func TestCreateCommitStatus_LegacyHashRecovery(t *testing.T) {
 	assert.Equal(t, 1, matches)
 }
 
-// TestCreateCommitStatus_UnnamedWorkflowUsesFileName: a workflow omitting `name:`
-// uses the file name in the Context, not an empty "/ job (event)".
+// TestCreateCommitStatus_UnnamedWorkflowUsesFileName: a workflow with no
+// non-blank `name:` uses the file name in the Context, not an empty
+// "/ job (event)" — covers both an omitted and a whitespace-only name.
 func TestCreateCommitStatus_UnnamedWorkflowUsesFileName(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 
 	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 4})
 	branch := unittest.AssertExistsAndLoadBean(t, &git_model.Branch{RepoID: repo.ID, Name: repo.DefaultBranch})
 
-	run := &actions_model.ActionRun{
-		ID: 99401, Index: 99401, RepoID: repo.ID, Repo: repo, OwnerID: repo.OwnerID, TriggerUserID: repo.OwnerID,
-		WorkflowID: "unnamed.yaml", CommitSHA: branch.CommitID,
-	}
-	require.NoError(t, db.Insert(t.Context(), run))
-	job := &actions_model.ActionRunJob{
-		ID: 99402, RunID: run.ID, RepoID: repo.ID, OwnerID: repo.OwnerID,
-		Name: "my-test", Status: actions_model.StatusWaiting,
-		WorkflowPayload: []byte(`
-on: push
-jobs:
+	for _, tc := range []struct {
+		workflowID   string
+		runID, jobID int64
+		payload      string
+	}{
+		{"unnamed.yaml", 99401, 99411, "on: push\n"},
+		{"blank.yaml", 99402, 99412, "name: \"   \"\non: push\n"},
+	} {
+		run := &actions_model.ActionRun{
+			ID: tc.runID, Index: tc.runID, RepoID: repo.ID, Repo: repo, OwnerID: repo.OwnerID, TriggerUserID: repo.OwnerID,
+			WorkflowID: tc.workflowID, CommitSHA: branch.CommitID,
+		}
+		require.NoError(t, db.Insert(t.Context(), run))
+		job := &actions_model.ActionRunJob{
+			ID: tc.jobID, RunID: run.ID, RepoID: repo.ID, OwnerID: repo.OwnerID,
+			Name: "my-test", Status: actions_model.StatusWaiting,
+			WorkflowPayload: []byte(tc.payload + `jobs:
   my-test:
     runs-on: ubuntu-latest
     steps:
       - run: echo hi
 `),
-	}
-	require.NoError(t, db.Insert(t.Context(), job))
-	require.NoError(t, createCommitStatus(t.Context(), repo, "push", branch.CommitID, run, job))
+		}
+		require.NoError(t, db.Insert(t.Context(), job))
+		require.NoError(t, createCommitStatus(t.Context(), repo, "push", branch.CommitID, run, job))
 
-	statuses := findCommitStatusesForContext(t, repo.ID, branch.CommitID, "unnamed.yaml / my-test (push)")
-	require.Len(t, statuses, 1)
-	assert.Equal(t, commitstatus.CommitStatusPending, statuses[0].State)
+		statuses := findCommitStatusesForContext(t, repo.ID, branch.CommitID, tc.workflowID+" / my-test (push)")
+		require.Len(t, statuses, 1)
+		assert.Equal(t, commitstatus.CommitStatusPending, statuses[0].State)
+	}
 }
 
 func findCommitStatusesForContext(t *testing.T, repoID int64, sha, context string) []*git_model.CommitStatus {
