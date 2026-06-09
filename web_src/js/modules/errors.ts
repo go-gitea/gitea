@@ -24,7 +24,7 @@ export function showGlobalErrorMessage(msg: string, msgType: Intent = 'error', d
   if (!msgContainer) {
     const el = document.createElement('div');
     el.innerHTML = html`<div class="ui container js-global-error tw-my-[--page-spacing]"><details class="ui ${msgType} message"><summary></summary></details></div>`;
-    msgContainer = el.childNodes[0] as HTMLDivElement;
+    msgContainer = el.firstChild as HTMLDivElement;
   }
 
   // merge duplicated messages into "the message (count)" format

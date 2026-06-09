@@ -86,8 +86,8 @@ function prepareProcessors(ctx:ProcessorContext): Processors {
 
 function processElement(ctx :ProcessorContext, processors: Processors, el: HTMLElement): string | void {
   if (el.hasAttribute('data-markdown-generated-content')) return el.textContent;
-  if (el.tagName === 'A' && el.children.length === 1 && el.children[0].tagName === 'IMG') {
-    return processElement(ctx, processors, el.children[0] as HTMLElement);
+  if (el.tagName === 'A' && el.children.length === 1 && el.firstElementChild!.tagName === 'IMG') {
+    return processElement(ctx, processors, el.firstElementChild as HTMLElement);
   }
 
   const isListContainer = el.tagName === 'OL' || el.tagName === 'UL';

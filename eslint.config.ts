@@ -723,7 +723,7 @@ export default defineConfig([
       'strict': [0],
       'symbol-description': [2],
       'unicode-bom': [2, 'never'],
-      'unicorn/better-dom-traversing': [0], // false-positives on non-DOM `.children` access
+      'unicorn/better-dom-traversing': [2],
       'unicorn/catch-error-name': [0],
       'unicorn/consistent-assert': [0],
       'unicorn/consistent-compound-words': [0], // too opinionated
@@ -790,7 +790,7 @@ export default defineConfig([
       'unicorn/no-process-exit': [0],
       'unicorn/no-single-promise-in-promise-methods': [2],
       'unicorn/no-static-only-class': [2],
-      'unicorn/no-thenable': [2], // false-positives on json schemas
+      'unicorn/no-thenable': [2],
       'unicorn/no-this-assignment': [2],
       'unicorn/no-this-outside-of-class': [0], // false-positives on `this` in standalone functions
       'unicorn/no-typeof-undefined': [2],
@@ -898,7 +898,7 @@ export default defineConfig([
       'unicorn/template-indent': [2],
       'unicorn/text-encoding-identifier-case': [0],
       'unicorn/throw-new-error': [2],
-      'unicorn/try-complexity': [0], // overly strict at its default max complexity of 1
+      'unicorn/try-complexity': [0],
       'use-isnan': [2],
       'valid-typeof': [2, {requireStringLiterals: true}],
       'vars-on-top': [0],
