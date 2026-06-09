@@ -516,10 +516,8 @@ td .commit-summary {
 }
 
 .repository.view.issue .comment-list .timeline-item .comment-text-line {
-  /* TODO: this "line-height" is not ideal (actually it is abused), many layouts depend on this magic value,
-      for example: alignment of the header arrow and the avatar, view PR commit list left icon layout, dismiss review with reason, etc */
-  line-height: 32px;
   color: var(--color-text-light);
+  flex: 1;
   min-width: 0;
 }
 
@@ -644,11 +642,6 @@ td .commit-summary {
   height: 32px;
   display: inline-flex;
   align-items: center;
-}
-
-.repository.view.issue .comment-list .event > .comment-text-line {
-  flex: 1;
-  min-width: 0;
 }
 
 .repository.view.issue .comment-list .event > .detail {
@@ -1393,19 +1386,12 @@ tbody.commit-list {
   vertical-align: baseline;
 }
 
-.message-wrapper,
-.author-wrapper {
+.message-wrapper {
   overflow: hidden;
   text-overflow: ellipsis;
   max-width: 100%;
   display: inline-block;
   vertical-align: middle;
-}
-
-.author-wrapper {
-  max-width: 180px;
-  align-self: center;
-  white-space: nowrap;
 }
 
 .latest-commit .message-wrapper {
@@ -1421,9 +1407,6 @@ tbody.commit-list {
 @media (max-width: 767.98px) {
   tr.commit-list {
     width: 100%;
-  }
-  .author-wrapper {
-    max-width: 80px;
   }
 }
 
@@ -1585,6 +1568,7 @@ tbody.commit-list {
 
 #diff-container {
   display: flex;
+  gap: var(--page-spacing);
 }
 
 #diff-file-boxes {
@@ -1822,14 +1806,6 @@ tbody.commit-list {
   box-shadow: 0 0.5rem 1rem var(--color-shadow) !important;
 }
 
-.commits-table .commits-table-right form {
-  display: flex;
-  align-items: center;
-  gap: 0.75em;
-  justify-content: center;
-  flex-wrap: wrap;
-}
-
 @media (max-width: 767.98px) {
   .repository.view.issue .comment-list,
   .repository.view.issue .comment-list .timeline-item {
@@ -1853,22 +1829,6 @@ tbody.commit-list {
   .commit-header h3 {
     flex-basis: auto !important;
     margin-bottom: 0.5rem !important;
-  }
-  .commits-table {
-    flex-direction: column;
-  }
-  .commits-table .commits-table-left {
-    align-items: initial !important;
-    margin-bottom: 6px;
-  }
-  .commits-table .commits-table-right form > div:nth-child(1) {
-    order: 1; /* the "commit search" input */
-  }
-  .commits-table .commits-table-right form > div:nth-child(2) {
-    order: 3; /* the "search all" checkbox */
-  }
-  .commits-table .commits-table-right form > button:nth-child(3) {
-    order: 2; /* the "search" button */
   }
   .commit-table {
     overflow-x: auto;

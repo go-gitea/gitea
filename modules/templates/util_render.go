@@ -10,88 +10,67 @@ import (
 	"math"
 	"net/url"
 	"regexp"
+	"slices"
 	"strings"
-	"unicode"
 
-	issues_model "code.gitea.io/gitea/models/issues"
-	"code.gitea.io/gitea/models/renderhelper"
-	"code.gitea.io/gitea/models/repo"
-	"code.gitea.io/gitea/modules/charset"
-	"code.gitea.io/gitea/modules/emoji"
-	"code.gitea.io/gitea/modules/htmlutil"
-	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/markup"
-	"code.gitea.io/gitea/modules/markup/markdown"
-	"code.gitea.io/gitea/modules/reqctx"
-	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/modules/svg"
-	"code.gitea.io/gitea/modules/translation"
-	"code.gitea.io/gitea/modules/util"
-	"code.gitea.io/gitea/services/webtheme"
+	user_model "gitea.dev/models/gituser"
+	issues_model "gitea.dev/models/issues"
+	"gitea.dev/models/renderhelper"
+	"gitea.dev/models/repo"
+	"gitea.dev/modules/charset"
+	"gitea.dev/modules/emoji"
+	"gitea.dev/modules/git"
+	"gitea.dev/modules/htmlutil"
+	"gitea.dev/modules/log"
+	"gitea.dev/modules/markup"
+	"gitea.dev/modules/markup/markdown"
+	"gitea.dev/modules/repository"
+	"gitea.dev/modules/reqctx"
+	"gitea.dev/modules/setting"
+	"gitea.dev/modules/svg"
+	"gitea.dev/modules/translation"
+	"gitea.dev/modules/util"
+	"gitea.dev/services/webtheme"
 )
 
 type RenderUtils struct {
-	ctx reqctx.RequestContext
+	ctx         reqctx.RequestContext
+	avatarUtils *AvatarUtils
 }
 
 func NewRenderUtils(ctx reqctx.RequestContext) *RenderUtils {
-	return &RenderUtils{ctx: ctx}
+	return &RenderUtils{ctx: ctx, avatarUtils: NewAvatarUtils(ctx)}
 }
 
-// RenderCommitMessage renders commit message with XSS-safe and special links.
+// RenderCommitMessage renders commit message title (only title)
 func (ut *RenderUtils) RenderCommitMessage(msg string, repo *repo.Repository) template.HTML {
-	cleanMsg := template.HTML(template.HTMLEscapeString(msg))
-	// we can safely assume that it will not return any error, since there shouldn't be any special HTML.
-	// "repo" can be nil when rendering commit messages for deleted repositories in a user's dashboard feed.
-	fullMessage, err := markup.PostProcessCommitMessage(renderhelper.NewRenderContextRepoComment(ut.ctx, repo), cleanMsg)
-	if err != nil {
-		log.Error("PostProcessCommitMessage: %v", err)
-		return ""
-	}
-	msgLines := strings.Split(strings.TrimSpace(string(fullMessage)), "\n")
-	if len(msgLines) == 0 {
-		return ""
-	}
-	return renderCodeBlock(template.HTML(msgLines[0]))
+	msgLine := strings.TrimSpace(msg)
+	msgLine, _, _ = strings.Cut(msgLine, "\n")
+	msgLine = strings.TrimSpace(msgLine)
+	rendered := markup.PostProcessCommitMessage(renderhelper.NewRenderContextRepoComment(ut.ctx, repo), htmlutil.EscapeString(msgLine))
+	return renderCodeBlock(rendered)
 }
 
 // RenderCommitMessageLinkSubject renders commit message as a XSS-safe link to
 // the provided default url, handling for special links without email to links.
 func (ut *RenderUtils) RenderCommitMessageLinkSubject(msg, urlDefault string, repo *repo.Repository) template.HTML {
-	msgLine := strings.TrimLeftFunc(msg, unicode.IsSpace)
-	lineEnd := strings.IndexByte(msgLine, '\n')
-	if lineEnd > 0 {
-		msgLine = msgLine[:lineEnd]
-	}
-	msgLine = strings.TrimRightFunc(msgLine, unicode.IsSpace)
-	if len(msgLine) == 0 {
-		return ""
-	}
-
-	// we can safely assume that it will not return any error, since there shouldn't be any special HTML.
-	renderedMessage, err := markup.PostProcessCommitMessageSubject(renderhelper.NewRenderContextRepoComment(ut.ctx, repo), urlDefault, template.HTMLEscapeString(msgLine))
-	if err != nil {
-		log.Error("PostProcessCommitMessageSubject: %v", err)
-		return ""
-	}
-	return renderCodeBlock(template.HTML(renderedMessage))
+	msgLine := strings.TrimSpace(msg)
+	msgLine, _, _ = strings.Cut(msgLine, "\n")
+	msgLine = strings.TrimSpace(msgLine)
+	rctx := renderhelper.NewRenderContextRepoComment(ut.ctx, repo)
+	rendered := markup.PostProcessCommitMessageSubject(rctx, urlDefault, htmlutil.EscapeString(msgLine))
+	return renderCodeBlock(rendered)
 }
 
 // RenderCommitBody extracts the body of a commit message without its title.
 func (ut *RenderUtils) RenderCommitBody(msg string, repo *repo.Repository) template.HTML {
 	_, body, _ := strings.Cut(strings.TrimSpace(msg), "\n")
-	body = strings.TrimFunc(body, unicode.IsSpace)
+	body = strings.TrimSpace(body)
 	if body == "" {
 		return ""
 	}
-
 	rctx := renderhelper.NewRenderContextRepoComment(ut.ctx, repo)
-	htmlContent := template.HTML(template.HTMLEscapeString(body))
-	renderedMessage, err := markup.PostProcessCommitMessage(rctx, htmlContent)
-	if err != nil {
-		log.Error("PostProcessCommitMessage: %v", err)
-		return ""
-	}
+	renderedMessage := markup.PostProcessCommitMessage(rctx, htmlutil.EscapeString(body))
 	return renderedMessage
 }
 
@@ -106,38 +85,19 @@ func renderCodeBlock(htmlEscapedTextToRender template.HTML) template.HTML {
 
 // RenderIssueTitle renders issue/pull title with defined post processors
 func (ut *RenderUtils) RenderIssueTitle(text string, repo *repo.Repository) template.HTML {
-	renderedText, err := markup.PostProcessIssueTitle(renderhelper.NewRenderContextRepoComment(ut.ctx, repo), template.HTMLEscapeString(text))
-	if err != nil {
-		log.Error("PostProcessIssueTitle: %v", err)
-		return ""
-	}
-	return renderCodeBlock(template.HTML(renderedText))
+	// wrap "`…`" in <code> before post-processing so code-span content stays literal, like comment bodies
+	htmlWithCode := renderCodeBlock(htmlutil.EscapeString(text))
+	return markup.PostProcessIssueTitle(renderhelper.NewRenderContextRepoComment(ut.ctx, repo), htmlWithCode)
 }
 
 // RenderIssueSimpleTitle only renders with emoji and inline code block
 func (ut *RenderUtils) RenderIssueSimpleTitle(text string) template.HTML {
-	ret := ut.RenderEmoji(text)
-	ret = renderCodeBlock(ret)
-	return ret
-}
-
-func (ut *RenderUtils) RenderLabelWithLink(label *issues_model.Label, link any) template.HTML {
-	var attrHref template.HTML
-	switch link.(type) {
-	case template.URL, string:
-		attrHref = htmlutil.HTMLFormat(`href="%s"`, link)
-	default:
-		panic(fmt.Sprintf("unexpected type %T for link", link))
-	}
-	return ut.renderLabelWithTag(label, "a", attrHref)
+	// see RenderIssueTitle: wrap code spans before processing emoji
+	htmlWithCode := renderCodeBlock(htmlutil.EscapeString(text))
+	return markup.PostProcessEmoji(markup.NewRenderContext(ut.ctx), htmlWithCode)
 }
 
 func (ut *RenderUtils) RenderLabel(label *issues_model.Label) template.HTML {
-	return ut.renderLabelWithTag(label, "span", "")
-}
-
-// RenderLabel renders a label
-func (ut *RenderUtils) renderLabelWithTag(label *issues_model.Label, tagName, tagAttrs template.HTML) template.HTML {
 	locale := ut.ctx.Value(translation.ContextKey).(translation.Locale)
 	var extraCSSClasses string
 	textColor := util.ContrastColor(label.Color)
@@ -151,8 +111,8 @@ func (ut *RenderUtils) renderLabelWithTag(label *issues_model.Label, tagName, ta
 
 	if labelScope == "" {
 		// Regular label
-		return htmlutil.HTMLFormat(`<%s %s class="ui label %s" style="color: %s !important; background-color: %s !important;" data-tooltip-content title="%s"><span class="gt-ellipsis">%s</span></%s>`,
-			tagName, tagAttrs, extraCSSClasses, textColor, label.Color, descriptionText, ut.RenderEmoji(label.Name), tagName)
+		return htmlutil.HTMLFormat(`<span class="ui label %s" style="color: %s !important; background-color: %s !important;" data-tooltip-content title="%s"><span class="gt-ellipsis">%s</span></span>`,
+			extraCSSClasses, textColor, label.Color, descriptionText, ut.RenderEmoji(label.Name))
 	}
 
 	// Scoped label
@@ -187,39 +147,30 @@ func (ut *RenderUtils) renderLabelWithTag(label *issues_model.Label, tagName, ta
 
 	if label.ExclusiveOrder > 0 {
 		// <scope> | <label> | <order>
-		return htmlutil.HTMLFormat(`<%s %s class="ui label %s scope-parent" data-tooltip-content title="%s">`+
+		return htmlutil.HTMLFormat(`<span class="ui label %s scope-parent" data-tooltip-content title="%s">`+
 			`<div class="ui label scope-left" style="color: %s !important; background-color: %s !important">%s</div>`+
 			`<div class="ui label scope-middle" style="color: %s !important; background-color: %s !important">%s</div>`+
 			`<div class="ui label scope-right">%d</div>`+
-			`</%s>`,
-			tagName, tagAttrs,
+			`</span>`,
 			extraCSSClasses, descriptionText,
 			textColor, scopeColor, scopeHTML,
 			textColor, itemColor, itemHTML,
-			label.ExclusiveOrder,
-			tagName)
+			label.ExclusiveOrder)
 	}
 
 	// <scope> | <label>
-	return htmlutil.HTMLFormat(`<%s %s class="ui label %s scope-parent" data-tooltip-content title="%s">`+
+	return htmlutil.HTMLFormat(`<span class="ui label %s scope-parent" data-tooltip-content title="%s">`+
 		`<div class="ui label scope-left" style="color: %s !important; background-color: %s !important">%s</div>`+
 		`<div class="ui label scope-right" style="color: %s !important; background-color: %s !important">%s</div>`+
-		`</%s>`,
-		tagName, tagAttrs,
+		`</span>`,
 		extraCSSClasses, descriptionText,
 		textColor, scopeColor, scopeHTML,
-		textColor, itemColor, itemHTML,
-		tagName)
+		textColor, itemColor, itemHTML)
 }
 
 // RenderEmoji renders html text with emoji post processors
 func (ut *RenderUtils) RenderEmoji(text string) template.HTML {
-	renderedText, err := markup.PostProcessEmoji(markup.NewRenderContext(ut.ctx), template.HTMLEscapeString(text))
-	if err != nil {
-		log.Error("RenderEmoji: %v", err)
-		return ""
-	}
-	return template.HTML(renderedText)
+	return markup.PostProcessEmoji(markup.NewRenderContext(ut.ctx), htmlutil.EscapeString(text))
 }
 
 // reactionToEmoji renders emoji for use in reactions
@@ -243,21 +194,41 @@ func (ut *RenderUtils) MarkdownToHtml(input string) template.HTML { //nolint:rev
 	return output
 }
 
+// RenderPackageMarkdown renders package page Markdown so relative links resolve against the
+// linked repository's default branch instead of the site root, falling back to plain rendering
+// when there is no linked repository. pkgTreePath optionally roots links in a subdirectory
+// (e.g. npm's repository.directory for monorepo packages).
+func (ut *RenderUtils) RenderPackageMarkdown(input string, linkedRepo *repo.Repository, pkgTreePath ...string) template.HTML {
+	if linkedRepo == nil {
+		return `<div class="markup markdown">` + ut.MarkdownToHtml(input) + `</div>`
+	}
+	rctx := renderhelper.NewRenderContextRepoFile(ut.ctx, linkedRepo, renderhelper.RepoFileOptions{
+		CurrentRefSubURL: git.RefNameFromBranch(linkedRepo.DefaultBranch).RefWebLinkPath(),
+		CurrentTreePath:  util.OptionalArg(pkgTreePath),
+	})
+	output, err := markdown.RenderString(rctx, input)
+	if err != nil {
+		log.Error("RenderString: %v", err)
+	}
+	return `<div class="markup markdown">` + output + `</div>`
+}
+
 func (ut *RenderUtils) RenderLabels(labels []*issues_model.Label, repoLink string, issue *issues_model.Issue) template.HTML {
 	isPullRequest := issue != nil && issue.IsPull
 	baseLink := fmt.Sprintf("%s/%s", repoLink, util.Iif(isPullRequest, "pulls", "issues"))
-	var htmlCode strings.Builder
-	htmlCode.WriteString(`<span class="labels-list">`)
+	var htmlCode htmlutil.HTMLBuilder
+	htmlCode.WriteHTML(`<span class="labels-list">`)
 	for _, label := range labels {
 		// Protect against nil value in labels - shouldn't happen but would cause a panic if so
 		if label == nil {
 			continue
 		}
-		link := fmt.Sprintf("%s?labels=%d", baseLink, label.ID)
-		htmlCode.WriteString(string(ut.RenderLabelWithLink(label, template.URL(link))))
+		htmlCode.WriteFormat(`<a class="item" href="%s?labels=%d">`, baseLink, label.ID)
+		htmlCode.WriteHTML(ut.RenderLabel(label))
+		htmlCode.WriteHTML("</a>")
 	}
-	htmlCode.WriteString("</span>")
-	return template.HTML(htmlCode.String())
+	htmlCode.WriteHTML("</span>")
+	return htmlCode.HTMLString()
 }
 
 func (ut *RenderUtils) RenderThemeItem(info *webtheme.ThemeMetaInfo, iconSize int) template.HTML {
@@ -323,4 +294,135 @@ func (ut *RenderUtils) RenderUnicodeEscapeToggleTd(combined, escapeStatus *chars
 		return ""
 	}
 	return `<td class="lines-escape">` + ut.RenderUnicodeEscapeToggleButton(escapeStatus) + `</td>`
+}
+
+func renderAvatarStackViewEmailLink(data *user_model.AvatarStackData, email string) template.URL {
+	if data.SearchByEmailLink != "" && email != "" {
+		return template.URL(strings.ReplaceAll(data.SearchByEmailLink, "{email}", url.QueryEscape(email)))
+	}
+	return ""
+}
+
+func (ut *RenderUtils) participantHref(data *user_model.AvatarStackData, participant *user_model.CommitParticipant) template.URL {
+	if href := renderAvatarStackViewEmailLink(data, participant.GitIdentity.Email); href != "" {
+		return href
+	}
+	if participant.GiteaUser != nil {
+		return template.URL(participant.GiteaUser.HomeLink())
+	} else if participant.GitIdentity.Email != "" {
+		return template.URL("mailto:" + participant.GitIdentity.Email)
+	}
+	return ""
+}
+
+func (ut *RenderUtils) participantAvatar(participant *user_model.CommitParticipant) template.HTML {
+	if participant.GiteaUser != nil {
+		return ut.avatarUtils.Avatar(participant.GiteaUser, 20)
+	}
+	return ut.avatarUtils.AvatarByEmail(participant.GitIdentity.Email, participant.GitIdentity.Name, 20)
+}
+
+func participantName(participant *user_model.CommitParticipant) string {
+	if participant.GiteaUser != nil {
+		return participant.GiteaUser.GetDisplayName()
+	}
+	return participant.GitIdentity.Name
+}
+
+const renderAvatarStackMaxVisible = 10
+
+// AvatarStack renders overlapping avatars for the stack participants. It emits children in reverse
+// so CSS `flex-direction: row-reverse` places the primary (Participants[0]) leftmost and last-painted (on top).
+func (ut *RenderUtils) AvatarStack(data *user_model.AvatarStackData) template.HTML {
+	visible := data.Participants
+	overflow := len(visible) - renderAvatarStackMaxVisible
+	if overflow > 0 {
+		visible = visible[:renderAvatarStackMaxVisible]
+	}
+
+	var b htmlutil.HTMLBuilder
+	b.WriteHTML(`<span class="avatar-stack">`)
+	if overflow > 0 {
+		b.WriteFormat(`<span class="avatar-stack-overflow-chip tw-text-xs" aria-label="+%d more">+%d</span>`, overflow, overflow)
+	}
+
+	// FIXME: such "backward" breaks a11y like screen readers
+	for _, participant := range slices.Backward(visible) {
+		ut.writeAvatarStackItem(&b, data, participant)
+	}
+	b.WriteHTML(`</span>`)
+	return b.HTMLString()
+}
+
+func (ut *RenderUtils) writeAvatarStackItem(b *htmlutil.HTMLBuilder, data *user_model.AvatarStackData, participant *user_model.CommitParticipant) {
+	avatar := ut.participantAvatar(participant)
+	if href := ut.participantHref(data, participant); href != "" {
+		b.WriteFormat(`<a href="%s">%s</a>`, href, avatar)
+	} else {
+		b.WriteFormat(`<span>%s</span>`, avatar)
+	}
+}
+
+func (ut *RenderUtils) AvatarStackPushCommit(pushCommit *repository.PushCommit) template.HTML {
+	fakeGitCommit := git.Commit{
+		CommitMessage: git.CommitMessage{MessageRaw: pushCommit.Message},
+		Author:        &git.Signature{Name: pushCommit.AuthorName, Email: pushCommit.AuthorEmail},
+		// there is no way to know the real committer, but the field can't be nil
+		Committer: &git.Signature{Name: pushCommit.AuthorName, Email: pushCommit.AuthorEmail},
+	}
+	data := user_model.BuildAvatarStackData(ut.ctx, fakeGitCommit.AllParticipantIdentities(), nil)
+	return ut.AvatarStack(data)
+}
+
+// AvatarStackWithNames renders the avatar stack plus a label: `name` / `a and b` / `N people` (opens popup).
+func (ut *RenderUtils) AvatarStackWithNames(data *user_model.AvatarStackData) template.HTML {
+	locale := ut.ctx.Value(translation.ContextKey).(translation.Locale)
+	participants := data.Participants
+
+	var b htmlutil.HTMLBuilder
+	b.WriteHTML(`<span class="avatar-stack-names">`)
+	b.WriteHTML(ut.AvatarStack(data))
+
+	switch len(participants) {
+	case 1:
+		b.WriteHTML(ut.participantNameLink(data, participants[0]))
+	case 2:
+		b.WriteHTML(ut.participantNameLink(data, participants[0]))
+		b.WriteFormat(`<span>%s</span>`, locale.Tr("repo.commits.avatar_stack_and"))
+		b.WriteHTML(ut.participantNameLink(data, participants[1]))
+	default:
+		b.WriteFormat(`<button type="button" class="avatar-stack-popup-trigger" data-global-init="initAvatarStackPopup">%s</button>`,
+			locale.Tr("repo.commits.avatar_stack_people", len(participants)))
+		b.WriteHTML(`<div class="tippy-target"><div class="avatar-stack-popup">`)
+		for _, participant := range participants {
+			b.WriteHTML(ut.participantPopupRow(data, participant))
+		}
+		b.WriteHTML(`</div></div>`)
+	}
+
+	b.WriteHTML(`</span>`)
+	return b.HTMLString()
+}
+
+// participantNameLink prefers (in order): commits-by-author search, `GetShortDisplayNameLinkHTML` (keeps alt-name tooltip), `mailto:`, bare name.
+func (ut *RenderUtils) participantNameLink(data *user_model.AvatarStackData, participant *user_model.CommitParticipant) template.HTML {
+	if href := renderAvatarStackViewEmailLink(data, participant.GitIdentity.Email); href != "" {
+		return htmlutil.HTMLFormat(`<a class="muted" href="%s">%s</a>`, href, participantName(participant))
+	}
+	if participant.GiteaUser != nil {
+		return participant.GiteaUser.GetShortDisplayNameLinkHTML()
+	}
+	if participant.GitIdentity.Email != "" {
+		return htmlutil.HTMLFormat(`<a class="muted" href="mailto:%s">%s</a>`, participant.GitIdentity.Email, participant.GitIdentity.Name)
+	}
+	return template.HTML(template.HTMLEscapeString(participant.GitIdentity.Name))
+}
+
+func (ut *RenderUtils) participantPopupRow(data *user_model.AvatarStackData, participant *user_model.CommitParticipant) template.HTML {
+	avatar := ut.participantAvatar(participant)
+	name := participantName(participant)
+	if href := ut.participantHref(data, participant); href != "" {
+		return htmlutil.HTMLFormat(`<a class="silenced flex-text-block" href="%s">%s<span>%s</span></a>`, href, avatar, name)
+	}
+	return htmlutil.HTMLFormat(`<span class="flex-text-block">%s<span>%s</span></span>`, avatar, name)
 }

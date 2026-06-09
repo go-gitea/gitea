@@ -2,7 +2,8 @@ import '../fomantic/build/fomantic.js';
 import '../css/index.css';
 
 import {initDashboardRepoList} from './features/dashboard.ts';
-import {initGlobalCopyToClipboardListener} from './features/clipboard.ts';
+import {initGlobalCopyToClipboardListener} from './modules/clipboard.ts';
+import {initCopyContent} from './features/copycontent.ts';
 import {initRepoGraphGit} from './features/repo-graph.ts';
 import {initHeatmap} from './features/heatmap.ts';
 import {initImageDiff} from './features/imagediff.ts';
@@ -20,7 +21,7 @@ import {initMarkupContent} from './markup/content.ts';
 import {initRepoFileView} from './features/file-view.ts';
 import {initUserExternalLogins, initUserCheckAppUrl} from './features/user-auth.ts';
 import {initRepoPullRequestReview, initRepoIssueFilterItemLabel} from './features/repo-issue.ts';
-import {initRepoEllipsisButton, initCommitStatuses} from './features/repo-commit.ts';
+import {initRepoEllipsisButton, initCommitStatuses, initAvatarStackPopup, initCommitFileHistoryFollowRename} from './features/repo-commit.ts';
 import {initRepoTopicBar} from './features/repo-home.ts';
 import {initAdminCommon} from './features/admin/common.ts';
 import {initRepoCodeView} from './features/repo-code.ts';
@@ -40,7 +41,6 @@ import {initRepoBranchButton} from './features/repo-branch.ts';
 import {initCommonOrganization} from './features/common-organization.ts';
 import {initRepoWikiForm} from './features/repo-wiki.ts';
 import {initRepository, initBranchSelectorTabs} from './features/repo-legacy.ts';
-import {initCopyContent} from './features/copycontent.ts';
 import {initCaptcha} from './features/captcha.ts';
 import {initRepositoryActionView} from './features/repo-actions.ts';
 import {initGlobalTooltips} from './modules/tippy.ts';
@@ -123,6 +123,7 @@ const initPerformanceTracer = callInitFunctions([
   initRepoCodeView,
   initBranchSelectorTabs,
   initRepoEllipsisButton,
+  initCommitFileHistoryFollowRename,
   initRepoDiffCommitBranchesAndTags,
   initRepoEditor,
   initRepoGraphGit,
@@ -145,6 +146,7 @@ const initPerformanceTracer = callInitFunctions([
   initRepoRecentCommits,
 
   initCommitStatuses,
+  initAvatarStackPopup,
   initCaptcha,
 
   initUserCheckAppUrl,

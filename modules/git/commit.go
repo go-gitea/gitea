@@ -11,17 +11,9 @@ import (
 	"os/exec"
 	"strings"
 
-	"code.gitea.io/gitea/modules/charset"
-	"code.gitea.io/gitea/modules/git/gitcmd"
-	"code.gitea.io/gitea/modules/util"
+	"gitea.dev/modules/git/gitcmd"
+	"gitea.dev/modules/util"
 )
-
-type CommitMessage struct {
-	MessageRaw   string
-	messageUTF8  *string
-	messageTitle *string
-	messageBody  *string
-}
 
 // Commit represents a git commit.
 type Commit struct {
@@ -42,30 +34,6 @@ type Commit struct {
 type CommitSignature struct {
 	Signature string
 	Payload   string
-}
-
-func (c *CommitMessage) MessageUTF8() string {
-	if c.messageUTF8 == nil {
-		bs := charset.ToUTF8(util.UnsafeStringToBytes(c.MessageRaw), charset.ConvertOpts{ErrorReplacement: []byte{'?'}})
-		c.messageUTF8 = new(util.UnsafeBytesToString(bs))
-	}
-	return *c.messageUTF8
-}
-
-func (c *CommitMessage) MessageTitle() string {
-	if c.messageTitle == nil {
-		s, _, _ := strings.Cut(strings.TrimSpace(c.MessageUTF8()), "\n")
-		c.messageTitle = new(strings.TrimSpace(s))
-	}
-	return *c.messageTitle
-}
-
-func (c *CommitMessage) MessageBody() string {
-	if c.messageBody == nil {
-		_, s, _ := strings.Cut(strings.TrimSpace(c.MessageUTF8()), "\n")
-		c.messageBody = new(strings.TrimSpace(s))
-	}
-	return *c.messageBody
 }
 
 // ParentID returns oid of n-th parent (0-based index).

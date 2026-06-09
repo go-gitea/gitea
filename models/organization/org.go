@@ -9,14 +9,14 @@ import (
 	"fmt"
 	"strings"
 
-	"code.gitea.io/gitea/models/db"
-	"code.gitea.io/gitea/models/perm"
-	"code.gitea.io/gitea/models/unit"
-	user_model "code.gitea.io/gitea/models/user"
-	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/modules/structs"
-	"code.gitea.io/gitea/modules/util"
+	"gitea.dev/models/db"
+	"gitea.dev/models/perm"
+	"gitea.dev/models/unit"
+	user_model "gitea.dev/models/user"
+	"gitea.dev/modules/log"
+	"gitea.dev/modules/setting"
+	"gitea.dev/modules/structs"
+	"gitea.dev/modules/util"
 
 	"xorm.io/builder"
 )
@@ -183,10 +183,40 @@ type FindOrgMembersOpts struct {
 	Doer         *user_model.User
 	IsDoerMember bool
 	OrgID        int64
+	Keyword      string
 }
 
 func (opts FindOrgMembersOpts) PublicOnly() bool {
 	return opts.Doer == nil || !(opts.IsDoerMember || opts.Doer.IsAdmin)
+}
+
+// applyKeywordFilter adds keyword search conditions to session
+func (opts FindOrgMembersOpts) applyKeywordFilter(sess db.Session) bool {
+	if opts.Keyword == "" {
+		return false
+	}
+
+	keywordCond := builder.Or(
+		db.BuildCaseInsensitiveLike("`user`.lower_name", opts.Keyword),
+		db.BuildCaseInsensitiveLike("`user`.full_name", opts.Keyword),
+	)
+
+	emailCond := db.BuildCaseInsensitiveLike("`user`.email", opts.Keyword)
+	switch {
+	case opts.Doer == nil:
+		emailCond = emailCond.And(builder.Eq{"`user`.keep_email_private": false})
+	case !opts.Doer.IsAdmin:
+		emailCond = emailCond.And(
+			builder.Or(
+				builder.Eq{"`user`.keep_email_private": false},
+				builder.Eq{"`user`.id": opts.Doer.ID},
+			),
+		)
+	}
+	keywordCond = keywordCond.Or(emailCond)
+
+	_ = sess.Join("INNER", "`user`", "org_user.uid = `user`.id").And(keywordCond)
+	return true
 }
 
 // applyTeamMatesOnlyFilter make sure restricted users only see public team members and there own team mates
@@ -212,6 +242,7 @@ func CountOrgMembers(ctx context.Context, opts *FindOrgMembersOpts) (int64, erro
 	} else {
 		opts.applyTeamMatesOnlyFilter(sess)
 	}
+	_ = opts.applyKeywordFilter(sess)
 
 	return sess.Count(new(OrgUser))
 }
@@ -460,7 +491,11 @@ func GetOrgUsersByOrgID(ctx context.Context, opts *FindOrgMembersOpts) ([]*OrgUs
 	} else {
 		opts.applyTeamMatesOnlyFilter(sess)
 	}
+	if opts.applyKeywordFilter(sess) {
+		sess = sess.Select("org_user.*")
+	}
 
+	sess = sess.OrderBy("org_user.uid ASC")
 	if opts.ListOptions.PageSize > 0 {
 		db.SetSessionPagination(sess, opts)
 

@@ -6,10 +6,10 @@ package internal
 import (
 	"strconv"
 
-	"code.gitea.io/gitea/models/db"
-	"code.gitea.io/gitea/modules/indexer"
-	"code.gitea.io/gitea/modules/optional"
-	"code.gitea.io/gitea/modules/timeutil"
+	"gitea.dev/models/db"
+	"gitea.dev/modules/indexer"
+	"gitea.dev/modules/optional"
+	"gitea.dev/modules/timeutil"
 )
 
 // IndexerData data stored in the issue indexer

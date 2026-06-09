@@ -14,26 +14,31 @@ import (
 	"net/http"
 	"net/url"
 	"strconv"
+	"strings"
 	"time"
 
-	actions_model "code.gitea.io/gitea/models/actions"
-	"code.gitea.io/gitea/models/db"
-	git_model "code.gitea.io/gitea/models/git"
-	repo_model "code.gitea.io/gitea/models/repo"
-	"code.gitea.io/gitea/models/unit"
-	"code.gitea.io/gitea/modules/actions"
-	"code.gitea.io/gitea/modules/base"
-	"code.gitea.io/gitea/modules/git"
-	"code.gitea.io/gitea/modules/httplib"
-	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/storage"
-	"code.gitea.io/gitea/modules/templates"
-	"code.gitea.io/gitea/modules/translation"
-	"code.gitea.io/gitea/modules/util"
-	"code.gitea.io/gitea/modules/web"
-	"code.gitea.io/gitea/routers/common"
-	actions_service "code.gitea.io/gitea/services/actions"
-	context_module "code.gitea.io/gitea/services/context"
+	actions_model "gitea.dev/models/actions"
+	"gitea.dev/models/db"
+	git_model "gitea.dev/models/git"
+	issues_model "gitea.dev/models/issues"
+	repo_model "gitea.dev/models/repo"
+	"gitea.dev/models/unit"
+	"gitea.dev/modules/actions"
+	"gitea.dev/modules/base"
+	"gitea.dev/modules/cache"
+	"gitea.dev/modules/git"
+	"gitea.dev/modules/httplib"
+	"gitea.dev/modules/json"
+	"gitea.dev/modules/log"
+	"gitea.dev/modules/storage"
+	api "gitea.dev/modules/structs"
+	"gitea.dev/modules/templates"
+	"gitea.dev/modules/translation"
+	"gitea.dev/modules/util"
+	"gitea.dev/modules/web"
+	"gitea.dev/routers/common"
+	actions_service "gitea.dev/services/actions"
+	context_module "gitea.dev/services/context"
 
 	"gitea.com/gitea/runner/act/model"
 )
@@ -206,6 +211,16 @@ func View(ctx *context_module.Context) {
 	jobID := ctx.PathParamInt64("job")
 	ctx.Data["JobID"] = jobID // it can be 0 when no job (e.g.: run summary view)
 
+	// Browser tab title, ordered most-specific → least-specific so narrow tabs keep the useful part.
+	// Separator matches the " - " used by head.tmpl when joining to PageTitleCommon.
+	titleParts := []string{run.Title, run.WorkflowID}
+	if jobID > 0 {
+		if job, err := actions_model.GetRunJobByRunAndID(ctx, run.ID, jobID); err == nil && job.Name != "" {
+			titleParts = append([]string{job.Name}, titleParts...)
+		}
+	}
+	ctx.Data["Title"] = strings.Join(titleParts, " - ")
+
 	attemptNum := ctx.PathParamInt64("attempt")
 
 	// ActionsViewURL is the endpoint for viewing a run (job summary), a job, or a job attempt.
@@ -295,10 +310,13 @@ type ViewResponse struct {
 			Attempts          []*ViewRunAttempt `json:"attempts"`
 			Jobs              []*ViewJob        `json:"jobs"`
 			Commit            ViewCommit        `json:"commit"`
+			PullRequest       *ViewPullRequest  `json:"pullRequest,omitempty"`
 			// Summary view: run duration and trigger time/event
 			Duration     string `json:"duration"`
 			TriggeredAt  int64  `json:"triggeredAt"`  // unix seconds for relative time
 			TriggerEvent string `json:"triggerEvent"` // e.g. pull_request, push, schedule
+
+			JobSummaries []*ViewJobSummary `json:"jobSummaries,omitempty"`
 		} `json:"run"`
 		CurrentJob struct {
 			Title  string         `json:"title"`
@@ -320,18 +338,36 @@ type ViewJob struct {
 	CanRerun bool     `json:"canRerun"`
 	Duration string   `json:"duration"`
 	Needs    []string `json:"needs,omitempty"`
+
+	ParentJobID int64 `json:"parentJobID"`
+
+	// Reusable workflow caller fields. Zero/empty for non-caller jobs.
+	IsReusableCaller bool   `json:"isReusableCaller"`
+	CallUses         string `json:"callUses,omitempty"`
+}
+
+type ViewJobSummary struct {
+	JobID       int64         `json:"jobId"`
+	JobName     string        `json:"jobName"`
+	SummaryHTML template.HTML `json:"summaryHTML"`
 }
 
 type ViewRunAttempt struct {
-	Attempt         int64  `json:"attempt"`
-	Status          string `json:"status"`
-	Done            bool   `json:"done"`
-	Link            string `json:"link"`
-	Current         bool   `json:"current"`
-	Latest          bool   `json:"latest"`
-	TriggeredAt     int64  `json:"triggeredAt"`
-	TriggerUserName string `json:"triggerUserName"`
-	TriggerUserLink string `json:"triggerUserLink"`
+	Attempt           int64  `json:"attempt"`
+	Status            string `json:"status"`
+	Done              bool   `json:"done"`
+	Link              string `json:"link"`
+	Current           bool   `json:"current"`
+	Latest            bool   `json:"latest"`
+	TriggeredAt       int64  `json:"triggeredAt"`
+	TriggerUserName   string `json:"triggerUserName"`
+	TriggerUserLink   string `json:"triggerUserLink"`
+	TriggerUserAvatar string `json:"triggerUserAvatar"`
+}
+
+type ViewPullRequest struct {
+	Index string `json:"index"`
+	Link  string `json:"link"`
 }
 
 type ViewCommit struct {
@@ -344,6 +380,7 @@ type ViewCommit struct {
 type ViewUser struct {
 	DisplayName string `json:"displayName"`
 	Link        string `json:"link"`
+	AvatarLink  string `json:"avatarLink,omitempty"`
 }
 
 type ViewBranch struct {
@@ -369,6 +406,132 @@ type ViewStepLogLine struct {
 	Index     int64   `json:"index"`
 	Message   string  `json:"message"`
 	Timestamp float64 `json:"timestamp"`
+}
+
+func viewPullRequestFromRun(ctx context.Context, run *actions_model.ActionRun, prPayload *api.PullRequestPayload) *ViewPullRequest {
+	if run.Repo == nil {
+		return nil
+	}
+	refName := git.RefName(run.Ref)
+	if refName.IsPull() {
+		return &ViewPullRequest{
+			Index: "#" + refName.ShortName(),
+			Link:  run.RefLink(),
+		}
+	}
+	if prPayload != nil && prPayload.Index > 0 {
+		return &ViewPullRequest{
+			Index: fmt.Sprintf("#%d", prPayload.Index),
+			Link:  fmt.Sprintf("%s/pulls/%d", run.Repo.Link(), prPayload.Index),
+		}
+	}
+	// Push-triggered run: surface an open PR whose head matches this branch so
+	// users coming from a PR's check details can navigate back to it.
+	if refName.IsBranch() {
+		prs, err := issues_model.GetUnmergedPullRequestsByHeadInfo(ctx, run.RepoID, refName.ShortName())
+		if err != nil {
+			log.Error("GetUnmergedPullRequestsByHeadInfo: %v", err)
+		} else if len(prs) == 1 {
+			pr := prs[0]
+			if err := pr.LoadBaseRepo(ctx); err != nil {
+				log.Error("LoadBaseRepo: %v", err)
+				return nil
+			}
+			return &ViewPullRequest{
+				Index: fmt.Sprintf("#%d", pr.Index),
+				Link:  fmt.Sprintf("%s/pulls/%d", pr.BaseRepo.Link(), pr.Index),
+			}
+		}
+	}
+	return nil
+}
+
+func viewSummaryBranchFromRun(ctx context.Context, run *actions_model.ActionRun, prPayload *api.PullRequestPayload) ViewBranch {
+	refName := git.RefName(run.Ref)
+	if prPayload != nil && prPayload.PullRequest != nil && prPayload.PullRequest.Head != nil {
+		head := prPayload.PullRequest.Head
+		name := head.Name
+		if name == "" {
+			name = git.RefName(head.Ref).ShortName()
+		}
+		if head.Repository != nil && run.Repo != nil && head.RepoID > 0 && head.RepoID != run.Repo.ID {
+			ownerName := ""
+			if head.Repository.Owner != nil {
+				ownerName = head.Repository.Owner.UserName
+			} else if head.Repository.FullName != "" {
+				ownerName, _, _ = strings.Cut(head.Repository.FullName, "/")
+			}
+			if ownerName != "" && !strings.Contains(name, ":") {
+				name = ownerName + ":" + name
+			}
+		}
+		link := ""
+		if head.Repository != nil && head.Ref != "" {
+			repoLink := head.Repository.Link
+			if repoLink == "" {
+				repoLink = head.Repository.HTMLURL
+			}
+			if repoLink != "" {
+				link = repoLink + "/src/" + git.RefName(head.Ref).RefWebLinkPath()
+			}
+		}
+		return ViewBranch{Name: name, Link: link}
+	}
+
+	branch := ViewBranch{
+		Name: run.PrettyRef(),
+		Link: run.RefLink(),
+	}
+	if refName.IsBranch() {
+		b, err := git_model.GetBranch(ctx, run.RepoID, refName.ShortName())
+		if err != nil && !git_model.IsErrBranchNotExist(err) {
+			log.Error("GetBranch: %v", err)
+		} else if git_model.IsErrBranchNotExist(err) || (b != nil && b.IsDeleted) {
+			branch.IsDeleted = true
+		}
+	}
+	return branch
+}
+
+// actionsSummaryRefCacheTTL bounds how long the resolved PR/branch summary is
+// cached. ViewPost is polled every second, but this metadata is stable for a
+// run, so a short TTL collapses the repeated DB lookups while staying fresh
+// enough for the navigation links.
+const actionsSummaryRefCacheTTL = 10 // seconds
+
+type viewSummaryRefInfo struct {
+	PullRequest *ViewPullRequest `json:"pullRequest"`
+	Branch      ViewBranch       `json:"branch"`
+}
+
+// getViewSummaryRefInfo resolves the run's pull request and head branch summary,
+// caching the result briefly so the per-second poll does not hit the database on
+// every request (GetUnmergedPullRequestsByHeadInfo / GetBranch).
+func getViewSummaryRefInfo(ctx context.Context, run *actions_model.ActionRun) viewSummaryRefInfo {
+	compute := func() viewSummaryRefInfo {
+		// parse the event payload once and share it between both resolvers
+		prPayload, _ := run.GetPullRequestEventPayload() // nil unless this is a pull request event
+		return viewSummaryRefInfo{
+			PullRequest: viewPullRequestFromRun(ctx, run, prPayload),
+			Branch:      viewSummaryBranchFromRun(ctx, run, prPayload),
+		}
+	}
+	c := cache.GetCache()
+	if c == nil {
+		return compute()
+	}
+	cacheKey := fmt.Sprintf("actions_run_summary_ref:%d", run.ID)
+	if cached, ok := c.Get(cacheKey); ok && cached != "" {
+		var info viewSummaryRefInfo
+		if err := json.Unmarshal([]byte(cached), &info); err == nil {
+			return info
+		}
+	}
+	info := compute()
+	if data, err := json.Marshal(info); err == nil {
+		_ = c.Put(cacheKey, string(data), actionsSummaryRefCacheTTL)
+	}
+	return info
 }
 
 func ViewPost(ctx *context_module.Context) {
@@ -447,6 +610,10 @@ func fillViewRunResponseSummary(ctx *context_module.Context, resp *ViewResponse,
 			CanRerun: resp.State.Run.CanRerun,
 			Duration: v.Duration().String(),
 			Needs:    v.Needs,
+
+			IsReusableCaller: v.IsReusableCaller,
+			ParentJobID:      v.ParentJobID,
+			CallUses:         v.CallUses,
 		})
 	}
 
@@ -461,50 +628,71 @@ func fillViewRunResponseSummary(ctx *context_module.Context, resp *ViewResponse,
 	}
 	for _, runAttempt := range attempts {
 		resp.State.Run.Attempts = append(resp.State.Run.Attempts, &ViewRunAttempt{
-			Attempt:         runAttempt.Attempt,
-			Status:          runAttempt.Status.String(),
-			Done:            runAttempt.Status.IsDone(),
-			Link:            getRunViewLink(run, runAttempt),
-			Current:         runAttempt.ID == attempt.ID,
-			Latest:          runAttempt.ID == run.LatestAttemptID,
-			TriggeredAt:     runAttempt.Created.AsTime().Unix(),
-			TriggerUserName: runAttempt.TriggerUser.GetDisplayName(),
-			TriggerUserLink: runAttempt.TriggerUser.HomeLink(),
+			Attempt:           runAttempt.Attempt,
+			Status:            runAttempt.Status.String(),
+			Done:              runAttempt.Status.IsDone(),
+			Link:              getRunViewLink(run, runAttempt),
+			Current:           runAttempt.ID == attempt.ID,
+			Latest:            runAttempt.ID == run.LatestAttemptID,
+			TriggeredAt:       runAttempt.Created.AsTime().Unix(),
+			TriggerUserName:   runAttempt.TriggerUser.GetDisplayName(),
+			TriggerUserLink:   runAttempt.TriggerUser.HomeLink(),
+			TriggerUserAvatar: runAttempt.TriggerUser.AvatarLinkWithSize(ctx, 16),
 		})
 	}
 
 	pusher := ViewUser{
 		DisplayName: run.TriggerUser.GetDisplayName(),
 		Link:        run.TriggerUser.HomeLink(),
-	}
-	branch := ViewBranch{
-		Name: run.PrettyRef(),
-		Link: run.RefLink(),
-	}
-	refName := git.RefName(run.Ref)
-	if refName.IsBranch() {
-		b, err := git_model.GetBranch(ctx, ctx.Repo.Repository.ID, refName.ShortName())
-		if err != nil && !git_model.IsErrBranchNotExist(err) {
-			log.Error("GetBranch: %v", err)
-		} else if git_model.IsErrBranchNotExist(err) || (b != nil && b.IsDeleted) {
-			branch.IsDeleted = true
-		}
+		AvatarLink:  run.TriggerUser.AvatarLinkWithSize(ctx, 16),
 	}
 
+	refInfo := getViewSummaryRefInfo(ctx, run)
 	resp.State.Run.Commit = ViewCommit{
 		ShortSha: base.ShortSha(run.CommitSHA),
 		Link:     fmt.Sprintf("%s/commit/%s", run.Repo.Link(), run.CommitSHA),
 		Pusher:   pusher,
-		Branch:   branch,
+		Branch:   refInfo.Branch,
 	}
+	resp.State.Run.PullRequest = refInfo.PullRequest
 	resp.State.Run.TriggerEvent = run.TriggerEvent
 
-	// Legacy runs (LatestAttemptID == 0) have no attempt; their artifacts all share run_attempt_id=0,
-	// so passing 0 here scopes to this run's legacy artifacts only.
+	// Legacy runs (LatestAttemptID == 0) have no attempt; their artifacts and summaries all
+	// share run_attempt_id=0, so passing 0 here scopes to this run's legacy rows only.
 	var runAttemptID int64
 	if attempt != nil {
 		runAttemptID = attempt.ID
 	}
+
+	// Each step's markdown is rendered independently so an unclosed construct
+	// in one step can't bleed into the next.
+	// On a single-job view only that job's summaries are needed; the run view shows all.
+	// Scoping server-side avoids rendering every job's markdown on each 1s poll.
+	summaries, err := actions_model.ListActionRunJobSummaries(ctx, ctx.Repo.Repository.ID, run.ID, runAttemptID, ctx.PathParamInt64("job"))
+	if err != nil {
+		ctx.ServerError("ListActionRunJobSummaries", err)
+		return
+	}
+	if len(summaries) > 0 {
+		jobNameByID := make(map[int64]string, len(jobs))
+		for _, j := range jobs {
+			jobNameByID[j.ID] = j.Name
+		}
+		renderUtils := templates.NewRenderUtils(ctx)
+		var current *ViewJobSummary
+		for _, s := range summaries {
+			if s.ContentType != actions_model.JobSummaryContentTypeMarkdown {
+				log.Warn("Skip unsupported job summary content type %q for run %d job %d step %d", s.ContentType, s.RunID, s.JobID, s.StepIndex)
+				continue
+			}
+			if current == nil || current.JobID != s.JobID {
+				current = &ViewJobSummary{JobID: s.JobID, JobName: jobNameByID[s.JobID]}
+				resp.State.Run.JobSummaries = append(resp.State.Run.JobSummaries, current)
+			}
+			current.SummaryHTML += renderUtils.MarkdownToHtml(s.Content)
+		}
+	}
+
 	arts, err := actions_model.ListUploadedArtifactsMetaByRunAttempt(ctx, ctx.Repo.Repository.ID, run.ID, runAttemptID)
 	if err != nil {
 		ctx.ServerError("ListUploadedArtifactsMetaByRunAttempt", err)
@@ -1103,14 +1291,14 @@ func disableOrEnableWorkflowFile(ctx *context_module.Context, isEnable bool) {
 		ctx.Flash.Success(ctx.Tr("actions.workflow.disable_success", workflow))
 	}
 
-	redirectURL := fmt.Sprintf("%s/actions?workflow=%s&actor=%s&status=%s", ctx.Repo.RepoLink, url.QueryEscape(workflow),
-		url.QueryEscape(ctx.FormString("actor")), url.QueryEscape(ctx.FormString("status")))
+	redirectURL := actionsListRedirectURL(ctx.Repo.RepoLink, workflow,
+		ctx.FormString("actor"), ctx.FormString("status"), ctx.FormString("branch"))
 	ctx.JSONRedirect(redirectURL)
 }
 
 func Run(ctx *context_module.Context) {
-	redirectURL := fmt.Sprintf("%s/actions?workflow=%s&actor=%s&status=%s", ctx.Repo.RepoLink, url.QueryEscape(ctx.FormString("workflow")),
-		url.QueryEscape(ctx.FormString("actor")), url.QueryEscape(ctx.FormString("status")))
+	redirectURL := actionsListRedirectURL(ctx.Repo.RepoLink, ctx.FormString("workflow"),
+		ctx.FormString("actor"), ctx.FormString("status"), ctx.FormString("branch"))
 
 	workflowID := ctx.FormString("workflow")
 	if len(workflowID) == 0 {

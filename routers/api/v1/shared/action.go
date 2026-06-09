@@ -7,19 +7,20 @@ import (
 	"fmt"
 	"net/http"
 
-	actions_model "code.gitea.io/gitea/models/actions"
-	"code.gitea.io/gitea/models/db"
-	repo_model "code.gitea.io/gitea/models/repo"
-	user_model "code.gitea.io/gitea/models/user"
-	"code.gitea.io/gitea/modules/container"
-	"code.gitea.io/gitea/modules/git"
-	"code.gitea.io/gitea/modules/optional"
-	"code.gitea.io/gitea/modules/setting"
-	api "code.gitea.io/gitea/modules/structs"
-	"code.gitea.io/gitea/modules/webhook"
-	"code.gitea.io/gitea/routers/api/v1/utils"
-	"code.gitea.io/gitea/services/context"
-	"code.gitea.io/gitea/services/convert"
+	actions_model "gitea.dev/models/actions"
+	"gitea.dev/models/db"
+	repo_model "gitea.dev/models/repo"
+	user_model "gitea.dev/models/user"
+	"gitea.dev/modules/container"
+	"gitea.dev/modules/git"
+	"gitea.dev/modules/optional"
+	"gitea.dev/modules/setting"
+	api "gitea.dev/modules/structs"
+	"gitea.dev/modules/util"
+	"gitea.dev/modules/webhook"
+	"gitea.dev/routers/api/v1/utils"
+	"gitea.dev/services/context"
+	"gitea.dev/services/convert"
 )
 
 // ListJobs lists jobs for api route validated ownerID and repoID
@@ -53,7 +54,7 @@ func ListJobs(ctx *context.APIContext, ownerID, repoID, runID int64, runAttemptI
 	for _, status := range ctx.FormStrings("status") {
 		values, err := convertToInternal(status)
 		if err != nil {
-			ctx.APIError(http.StatusBadRequest, fmt.Errorf("Invalid status %s", status))
+			ctx.APIError(http.StatusBadRequest, err.Error())
 			return
 		}
 		opts.Statuses = append(opts.Statuses, values...)
@@ -125,7 +126,7 @@ func convertToInternal(s string) ([]actions_model.Status, error) {
 	case "cancelled", "timed_out":
 		return []actions_model.Status{actions_model.StatusCancelled}, nil
 	default:
-		return nil, fmt.Errorf("invalid status %s", s)
+		return nil, util.NewInvalidArgumentErrorf("invalid status %s", s)
 	}
 }
 
@@ -157,7 +158,7 @@ func ListRuns(ctx *context.APIContext, ownerID, repoID int64, workflowID string)
 	for _, status := range ctx.FormStrings("status") {
 		values, err := convertToInternal(status)
 		if err != nil {
-			ctx.APIError(http.StatusBadRequest, fmt.Errorf("Invalid status %s", status))
+			ctx.APIError(http.StatusBadRequest, err.Error())
 			return
 		}
 		opts.Status = append(opts.Status, values...)
