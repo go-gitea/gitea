@@ -9,6 +9,8 @@ import (
 	"io"
 	"net/http"
 	"net/url"
+
+	"gitea.dev/modules/util"
 )
 
 // DownloadCallback gets called for every requested LFS object to process its content
@@ -24,8 +26,8 @@ type Client interface {
 	Upload(ctx context.Context, objects []Pointer, callback UploadCallback) error
 }
 
-// NewClient creates a LFS client
-func NewClient(endpoint *url.URL, httpTransport *http.Transport) Client {
+// newClient creates a LFS client
+func newClient(endpoint *url.URL, httpTransport *http.Transport) Client {
 	if endpoint.Scheme == "file" {
 		return newFilesystemClient(endpoint)
 	}
@@ -40,7 +42,7 @@ func NewClientFromEndpoint(cloneurl, lfsurl string, httpTransport *http.Transpor
 		if lfsurl != "" {
 			source = lfsurl
 		}
-		return nil, fmt.Errorf("unable to determine LFS endpoint from %q", source)
+		return nil, fmt.Errorf("unable to determine LFS endpoint from %q", util.SanitizeCredentialURLs(source))
 	}
-	return NewClient(endpoint, httpTransport), nil
+	return newClient(endpoint, httpTransport), nil
 }

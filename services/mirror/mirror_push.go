@@ -146,7 +146,7 @@ func runPushSync(ctx context.Context, m *repo_model.PushMirror) error {
 
 			lfsClient, err := lfs.NewClientFromEndpoint(remoteURL.String(), "", migrations.NewMigrationHTTPTransport())
 			if err != nil {
-				return util.SanitizeErrorCredentialURLs(err)
+				return err
 			}
 			if err := pushAllLFSObjects(ctx, gitRepo, lfsClient); err != nil {
 				return util.SanitizeErrorCredentialURLs(err)
