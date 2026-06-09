@@ -172,7 +172,7 @@ func Watch(ctx *context.APIContext) {
 	err := repo_model.WatchRepo(ctx, ctx.Doer, ctx.Repo.Repository, true)
 	if err != nil {
 		if errors.Is(err, user_model.ErrBlockedUser) {
-			ctx.APIError(http.StatusForbidden, err)
+			ctx.APIError(http.StatusForbidden, err.Error())
 		} else {
 			ctx.APIErrorInternal(err)
 		}

@@ -40,10 +40,6 @@
       "allowedVersions": "^3", // need to migrate
     },
     {
-      "matchPackageNames": ["github.com/urfave/cli/v3"],
-      "allowedVersions": "<3.6.2", // v3.6.2 breaks -c flag parsing in help commands
-    },
-    {
       "matchPackageNames": ["github.com/Azure/azure-sdk-for-go/sdk/azcore"],
       "allowedVersions": "<1.21.0", // v1.21.0+ uses API version unsupported by Azurite in CI
     },
@@ -99,7 +95,7 @@
       "matchManagers": ["npm"],
       "postUpdateOptions": ["pnpmDedupe"],
       "postUpgradeTasks": {
-        "commands": ["make svg nolyfill"],
+        "commands": ["make svg"],
         "fileFilters": ["package.json", "pnpm-lock.yaml", "pnpm-workspace.yaml", "public/assets/img/svg/**"],
         "executionMode": "branch",
       },

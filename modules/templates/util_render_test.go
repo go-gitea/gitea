@@ -7,15 +7,19 @@ import (
 	"context"
 	"html/template"
 	"os"
+	"strconv"
 	"strings"
 	"testing"
 
+	"gitea.dev/models/gituser"
 	"gitea.dev/models/issues"
 	"gitea.dev/models/repo"
 	user_model "gitea.dev/models/user"
+	"gitea.dev/modules/git"
 	"gitea.dev/modules/markup"
 	"gitea.dev/modules/reqctx"
 	"gitea.dev/modules/setting"
+	"gitea.dev/modules/setting/config"
 	"gitea.dev/modules/test"
 	"gitea.dev/modules/translation"
 
@@ -131,13 +135,25 @@ com 88fc37a3c0a4dda553bdcfc80c178a58247f42fb mit
 	})
 
 	t.Run("RenderCommitMessage", func(t *testing.T) {
-		expected := `space <a href="/mention-user" data-markdown-generated-content="">@mention-user</a>  `
+		expected := `space <a href="/mention-user" data-markdown-generated-content="">@mention-user</a>`
 		assert.EqualValues(t, expected, newTestRenderUtils(t).RenderCommitMessage(testInput(), mockRepo))
 	})
 
 	t.Run("RenderCommitMessageLinkSubject", func(t *testing.T) {
-		expected := `<a href="https://example.com/link" class="muted">space </a><a href="/mention-user" data-markdown-generated-content="">@mention-user</a>`
+		expected := `<span class="title-full-link-hover"><a href="https://example.com/link" class="muted title-full-link">space </a><a href="/mention-user" data-markdown-generated-content="">@mention-user</a></span>`
 		assert.EqualValues(t, expected, newTestRenderUtils(t).RenderCommitMessageLinkSubject(testInput(), "https://example.com/link", mockRepo))
+	})
+
+	t.Run("RenderCommitMessageLinkSubjectURLOnly", func(t *testing.T) {
+		// a bare URL in the subject must not hijack the default link
+		expected := `<span class="title-full-link-hover"><a href="https://example.com/link" class="muted title-full-link">https://example.com/file.bin</a></span>`
+		assert.EqualValues(t, expected, newTestRenderUtils(t).RenderCommitMessageLinkSubject("https://example.com/file.bin", "https://example.com/link", mockRepo))
+	})
+
+	t.Run("RenderCommitMessageLinkSubjectPartialURL", func(t *testing.T) {
+		// a URL embedded in larger subject text still becomes its own link
+		expected := `<span class="title-full-link-hover"><a href="https://example.com/link" class="muted title-full-link">see </a><a href="https://example.com/x" data-markdown-generated-content="">https://example.com/x</a><a href="https://example.com/link" class="muted title-full-link"> here</a></span>`
+		assert.EqualValues(t, expected, newTestRenderUtils(t).RenderCommitMessageLinkSubject("see https://example.com/x here", "https://example.com/link", mockRepo))
 	})
 
 	t.Run("RenderIssueTitle", func(t *testing.T) {
@@ -166,6 +182,38 @@ mail@domain.com
 		expected = strings.ReplaceAll(expected, "<SPACE>", " ")
 		assert.Equal(t, expected, string(newTestRenderUtils(t).RenderIssueTitle(testInput(), mockRepo)))
 	})
+}
+
+func TestRenderIssueTitleCodeSpan(t *testing.T) {
+	defer test.MockVariableValue(&markup.RenderBehaviorForTesting.DisableAdditionalAttributes, true)()
+	mockRepo := &repo.Repository{
+		ID: 1, OwnerName: "user13", Name: "repo11",
+		Owner: &user_model.User{ID: 13, Name: "user13"},
+		Units: []*repo.RepoUnit{},
+	}
+	ut := newTestRenderUtils(t)
+
+	cases := []struct {
+		input     string
+		expected  string
+		emojiSafe bool
+	}{
+		{"foo `:100:`", `foo <code class="inline-code-block">:100:</code>`, true},
+		{"`#123`", `<code class="inline-code-block">#123</code>`, false},
+		{"`88fc37a3c0a4dda553bdcfc80c178a58247f42fb`", `<code class="inline-code-block">88fc37a3c0a4dda553bdcfc80c178a58247f42fb</code>`, false},
+		{"foo `:100:", "foo `:100:", true},
+		{"foo ` :100:", `foo ` + "`" + ` <span class="emoji" aria-label="hundred points">💯</span>`, true},
+		{":100:", `<span class="emoji" aria-label="hundred points">💯</span>`, true},
+		{"#123", `<a href="/user13/repo11/issues/123" class="ref-issue">#123</a>`, false},
+		{"`x`:100:", `<code class="inline-code-block">x</code><span class="emoji" aria-label="hundred points">💯</span>`, true},
+		{"a `:100:` b `:+1:` c", `a <code class="inline-code-block">:100:</code> b <code class="inline-code-block">:+1:</code> c`, true},
+	}
+	for _, c := range cases {
+		assert.Equal(t, c.expected, string(ut.RenderIssueTitle(c.input, mockRepo)), "input=%q", c.input)
+		if c.emojiSafe {
+			assert.Equal(t, c.expected, string(ut.RenderIssueSimpleTitle(c.input)), "simple input=%q", c.input)
+		}
+	}
 }
 
 func TestRenderMarkdownToHtml(t *testing.T) {
@@ -253,4 +301,53 @@ func TestUserMention(t *testing.T) {
 	markup.RenderBehaviorForTesting.DisableAdditionalAttributes = true
 	rendered := newTestRenderUtils(t).MarkdownToHtml("@no-such-user @mention-user @mention-user")
 	assert.Equal(t, `<p>@no-such-user <a href="/mention-user" rel="nofollow">@mention-user</a> <a href="/mention-user" rel="nofollow">@mention-user</a></p>`, strings.TrimSpace(string(rendered)))
+}
+
+func TestAvatarStack(t *testing.T) {
+	defer test.MockVariableValue(&config.SkipDatabaseConfig, true)()
+
+	ut := newTestRenderUtils(t)
+	mkCo := func(name, email string) *git.CommitIdentity {
+		return &git.CommitIdentity{Name: name, Email: email}
+	}
+	authorSig := mkCo("Alice", "alice@example.com")
+	mkData := func(co ...*git.CommitIdentity) *gituser.AvatarStackData {
+		all := append([]*git.CommitIdentity{authorSig}, co...)
+		return gituser.BuildAvatarStackData(t.Context(), all, &user_model.EmailUserMap{})
+	}
+
+	t.Run("lone author renders bare name, no label", func(t *testing.T) {
+		got := string(ut.AvatarStackWithNames(mkData()))
+		assert.Contains(t, got, `<span class="avatar-stack-names">`)
+		assert.Contains(t, got, "Alice")
+		assert.NotContains(t, got, "avatar_stack_and")
+		assert.NotContains(t, got, "avatar_stack_people")
+	})
+
+	t.Run("two participants use and label", func(t *testing.T) {
+		got := string(ut.AvatarStackWithNames(mkData(mkCo("Bob", "bob@example.com"))))
+		assert.Contains(t, got, "repo.commits.avatar_stack_and")
+		assert.Contains(t, got, "Bob")
+		assert.NotContains(t, got, "avatar_stack_people")
+		assert.Contains(t, got, `<span class="avatar-stack">`)
+	})
+
+	t.Run("three participants switch to N people label with tippy popup", func(t *testing.T) {
+		got := string(ut.AvatarStackWithNames(mkData(mkCo("Bob", "bob@example.com"), mkCo("Carol", "carol@example.com"))))
+		assert.Contains(t, got, "repo.commits.avatar_stack_people:3")
+		assert.NotContains(t, got, "repo.commits.avatar_stack_and")
+		assert.Contains(t, got, `data-global-init="initAvatarStackPopup"`)
+		assert.Contains(t, got, `<div class="tippy-target">`)
+		assert.Contains(t, got, `class="avatar-stack-popup"`)
+	})
+
+	t.Run("overflow chip renders beyond 10 participants", func(t *testing.T) {
+		cos := make([]*git.CommitIdentity, 0, renderAvatarStackMaxVisible+1)
+		for i := range renderAvatarStackMaxVisible + 1 {
+			cos = append(cos, mkCo("X", strconv.Itoa(i)+"@example.com"))
+		}
+		got := ut.AvatarStack(gituser.BuildAvatarStackData(t.Context(), cos, &user_model.EmailUserMap{}))
+		assert.Contains(t, got, `class="avatar-stack-overflow-chip`)
+		assert.Contains(t, got, "+1")
+	})
 }

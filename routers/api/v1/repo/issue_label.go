@@ -181,7 +181,7 @@ func DeleteIssueLabel(ctx *context.APIContext) {
 	label, err := issues_model.GetLabelByID(ctx, ctx.PathParamInt64("id"))
 	if err != nil {
 		if issues_model.IsErrLabelNotExist(err) {
-			ctx.APIError(http.StatusUnprocessableEntity, err)
+			ctx.APIError(http.StatusUnprocessableEntity, err.Error())
 		} else {
 			ctx.APIErrorInternal(err)
 		}
