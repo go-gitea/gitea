@@ -8,8 +8,8 @@
 <div class="inline field ssh-key-fingerprint-only tw-hidden">
 	<label>{{ctx.Locale.Tr "repo.migrate.ssh_key_owner_label"}}</label>
 	<div class="inline-right">
-		<span>{{ctx.Locale.Tr "repo.migrate.ssh_key_owner_personal" .SignedUser.Name}}</span>
-		<code class="tw-text-12">{{.SignedUserSSHFingerprint}}</code>
+		<span class="ssh-key-label">{{ctx.Locale.Tr "repo.migrate.ssh_key_owner_personal" .SignedUser.Name}}</span>
+		<code class="ssh-key-fingerprint">{{.SignedUserSSHFingerprint}}</code>
 	</div>
 </div>
 <div class="inline field ssh-key-owner-selector tw-hidden"
@@ -23,16 +23,12 @@
 		{{svg "octicon-triangle-down" 14 "dropdown icon"}}
 		<div class="menu">
 			<div class="item" data-value="0" data-text="{{ctx.Locale.Tr "repo.migrate.ssh_key_owner_org_default"}}">
-				<div class="tw-flex tw-flex-col tw-gap-1">
-					<span>{{ctx.Locale.Tr "repo.migrate.ssh_key_owner_org_default"}}</span>
-					<code class="item-fingerprint tw-text-12"></code>
-				</div>
+				<span class="ssh-key-label">{{ctx.Locale.Tr "repo.migrate.ssh_key_owner_org_default"}}</span>
+				<code class="item-fingerprint ssh-key-fingerprint"></code>
 			</div>
 			<div class="item" data-value="{{.SignedUser.ID}}" data-text="{{ctx.Locale.Tr "repo.migrate.ssh_key_owner_personal" .SignedUser.Name}}">
-				<div class="tw-flex tw-flex-col tw-gap-1">
-					<span>{{ctx.Locale.Tr "repo.migrate.ssh_key_owner_personal" .SignedUser.Name}}</span>
-					<code class="item-fingerprint tw-text-12">{{.SignedUserSSHFingerprint}}</code>
-				</div>
+				<span class="ssh-key-label">{{ctx.Locale.Tr "repo.migrate.ssh_key_owner_personal" .SignedUser.Name}}</span>
+				<code class="item-fingerprint ssh-key-fingerprint">{{.SignedUserSSHFingerprint}}</code>
 			</div>
 		</div>
 	</div>
