@@ -146,6 +146,7 @@ func ParseControlFile(r io.Reader) (*Package, error) {
 	var depends strings.Builder
 	var control strings.Builder
 
+	// https://www.debian.org/doc/debian-policy/ch-controlfields.html#syntax-of-control-files
 	s := bufio.NewScanner(r)
 	for s.Scan() {
 		line := s.Text()
