@@ -153,7 +153,7 @@ func checkAdmin(l *ldap.Conn, ls *Source, userDN string) bool {
 	}
 	log.Trace("Checking admin with filter %s and base %s", ls.AdminFilter, userDN)
 	search := ldap.NewSearchRequest(
-		userDN, ldap.ScopeWholeSubtree, ldap.NeverDerefAliases, 0, 0, false, ls.AdminFilter,
+		userDN, ldap.ScopeBaseObject, ldap.NeverDerefAliases, 0, 0, false, ls.AdminFilter,
 		[]string{ls.AttributeName},
 		nil)
 
@@ -178,7 +178,7 @@ func checkRestricted(l *ldap.Conn, ls *Source, userDN string) bool {
 	}
 	log.Trace("Checking restricted with filter %s and base %s", ls.RestrictedFilter, userDN)
 	search := ldap.NewSearchRequest(
-		userDN, ldap.ScopeWholeSubtree, ldap.NeverDerefAliases, 0, 0, false, ls.RestrictedFilter,
+		userDN, ldap.ScopeBaseObject, ldap.NeverDerefAliases, 0, 0, false, ls.RestrictedFilter,
 		[]string{ls.AttributeName},
 		nil)
 
