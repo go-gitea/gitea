@@ -213,7 +213,7 @@ func getBlobForEntry(ctx *context.APIContext) (blob *git.Blob, entry *git.TreeEn
 	}
 
 	if entry.IsDir() || entry.IsSubModule() {
-		ctx.APIErrorNotFound("getBlobForEntry", nil)
+		ctx.APIErrorNotFound()
 		return nil, nil, nil
 	}
 
@@ -301,18 +301,14 @@ func GetEditorconfig(ctx *context.APIContext) {
 
 	ec, _, err := ctx.Repo.GetEditorconfig(ctx.Repo.Commit)
 	if err != nil {
-		if git.IsErrNotExist(err) {
-			ctx.APIErrorNotFound(err)
-		} else {
-			ctx.APIErrorInternal(err)
-		}
+		ctx.APIErrorAuto(err)
 		return
 	}
 
 	fileName := ctx.PathParam("filename")
 	def, err := ec.GetDefinitionForFilename(fileName)
-	if def == nil {
-		ctx.APIErrorNotFound(err)
+	if err != nil {
+		ctx.APIErrorNotFound(err.Error())
 		return
 	}
 	ctx.JSON(http.StatusOK, def)
@@ -699,10 +695,8 @@ func DeleteFile(ctx *context.APIContext) {
 func resolveRefCommit(ctx *context.APIContext, ref string, minCommitIDLen ...int) *utils.RefCommit {
 	ref = util.IfZero(ref, ctx.Repo.Repository.DefaultBranch)
 	refCommit, err := utils.ResolveRefCommit(ctx, ctx.Repo.Repository, ref, minCommitIDLen...)
-	if errors.Is(err, util.ErrNotExist) {
-		ctx.APIErrorNotFound(err)
-	} else if err != nil {
-		ctx.APIErrorInternal(err)
+	if err != nil {
+		ctx.APIErrorAuto(err)
 	}
 	return refCommit
 }
@@ -828,11 +822,8 @@ func getRepoContents(ctx *context.APIContext, opts files_service.GetContentsOrLi
 	}
 	ret, err := files_service.GetContentsOrList(ctx, ctx.Repo.Repository, ctx.Repo.GitRepo, refCommit, opts)
 	if err != nil {
-		if git.IsErrNotExist(err) {
-			ctx.APIErrorNotFound("GetContentsOrList", err)
-			return nil
-		}
-		ctx.APIErrorInternal(err)
+		ctx.APIErrorAuto(err)
+		return nil
 	}
 	return &ret
 }

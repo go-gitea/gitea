@@ -138,26 +138,10 @@ func (ctx *APIContext) apiErrorInternal(skip int, err error) {
 }
 
 // APIErrorNotFound handles 404s for APIContext
-// String will replace message, errors will be added to a slice
-func (ctx *APIContext) APIErrorNotFound(objs ...any) {
-	var message string
-	var errs []string
-	for _, obj := range objs {
-		// Ignore nil
-		if obj == nil {
-			continue
-		}
-
-		if err, ok := obj.(error); ok {
-			errs = append(errs, err.Error())
-		} else {
-			message = obj.(string)
-		}
-	}
-	ctx.JSON(http.StatusNotFound, map[string]any{
-		"message": util.IfZero(message, "not found"), // do not use locale in API
-		"url":     setting.API.SwaggerURL,
-		"errors":  errs,
+func (ctx *APIContext) APIErrorNotFound(msg ...string) {
+	ctx.JSON(http.StatusNotFound, APIError{
+		Message: util.OptionalArg(msg, "not found"),
+		URL:     setting.API.SwaggerURL,
 	})
 }
 

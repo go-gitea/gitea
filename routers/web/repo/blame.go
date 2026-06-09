@@ -12,8 +12,8 @@ import (
 	"path"
 	"strconv"
 
+	"gitea.dev/models/gituser"
 	repo_model "gitea.dev/models/repo"
-	user_model "gitea.dev/models/user"
 	"gitea.dev/modules/charset"
 	"gitea.dev/modules/git"
 	"gitea.dev/modules/git/languagestats"
@@ -29,12 +29,13 @@ import (
 type blameRow struct {
 	RowNumber int
 
-	Avatar         template.HTML
 	PreviousSha    string
 	PreviousShaURL string
 	CommitURL      string
 	CommitMessage  string
 	CommitSince    template.HTML
+
+	AvatarStackData *gituser.AvatarStackData
 
 	Code         template.HTML
 	EscapeStatus *charset.EscapeStatus
@@ -174,9 +175,9 @@ func fillBlameResult(br *gitrepo.BlameReader, r *blameResult) error {
 	return nil
 }
 
-func processBlameParts(ctx *context.Context, blameParts []*gitrepo.BlamePart) map[string]*user_model.UserCommit {
+func processBlameParts(ctx *context.Context, blameParts []*gitrepo.BlamePart) map[string]*gituser.UserCommit {
 	// store commit data by SHA to look up avatar info etc
-	commitNames := make(map[string]*user_model.UserCommit)
+	commitNames := make(map[string]*gituser.UserCommit)
 	// and as blameParts can reference the same commits multiple
 	// times, we cache the lookup work locally
 	commits := make([]*git.Commit, 0, len(blameParts))
@@ -209,33 +210,28 @@ func processBlameParts(ctx *context.Context, blameParts []*gitrepo.BlamePart) ma
 	}
 
 	// populate commit email addresses to later look up avatars.
-	validatedCommits, err := user_model.ValidateCommitsWithEmails(ctx, commits)
+	userCommits, err := gituser.GetUserCommitsByGitCommits(ctx, commits, ctx.Repo.RepoLink, ctx.Repo.RefFullName)
 	if err != nil {
-		ctx.ServerError("ValidateCommitsWithEmails", err)
+		ctx.ServerError("GetUserCommitsByGitCommits", err)
 		return nil
 	}
-	for _, c := range validatedCommits {
-		commitNames[c.ID.String()] = c
+	for _, c := range userCommits {
+		commitNames[c.GitCommit.ID.String()] = c
 	}
 
 	return commitNames
 }
 
-func renderBlameFillFirstBlameRow(repoLink string, avatarUtils *templates.AvatarUtils, part *gitrepo.BlamePart, commit *user_model.UserCommit, br *blameRow) {
-	if commit.User != nil {
-		br.Avatar = avatarUtils.Avatar(commit.User, 18)
-	} else {
-		br.Avatar = avatarUtils.AvatarByEmail(commit.Author.Email, commit.Author.Name, 18)
-	}
-
+func renderBlameFillFirstBlameRow(ctx *context.Context, repoLink string, part *gitrepo.BlamePart, commit *gituser.UserCommit, br *blameRow) {
+	br.AvatarStackData = gituser.BuildAvatarStackData(ctx, commit.GitCommit.AllParticipantIdentities(), nil)
 	br.PreviousSha = part.PreviousSha
 	br.PreviousShaURL = fmt.Sprintf("%s/blame/commit/%s/%s", repoLink, url.PathEscape(part.PreviousSha), util.PathEscapeSegments(part.PreviousPath))
 	br.CommitURL = fmt.Sprintf("%s/commit/%s", repoLink, url.PathEscape(part.Sha))
-	br.CommitMessage = commit.MessageUTF8()
-	br.CommitSince = templates.TimeSince(commit.Author.When)
+	br.CommitMessage = commit.GitCommit.MessageUTF8()
+	br.CommitSince = templates.TimeSince(commit.GitCommit.Author.When)
 }
 
-func renderBlame(ctx *context.Context, blameParts []*gitrepo.BlamePart, commitNames map[string]*user_model.UserCommit) {
+func renderBlame(ctx *context.Context, blameParts []*gitrepo.BlamePart, commitNames map[string]*gituser.UserCommit) {
 	language, err := languagestats.GetFileLanguage(ctx, ctx.Repo.GitRepo, ctx.Repo.CommitID, ctx.Repo.TreePath)
 	if err != nil {
 		log.Error("Unable to get file language for %-v:%s. Error: %v", ctx.Repo.Repository, ctx.Repo.TreePath, err)
@@ -243,7 +239,6 @@ func renderBlame(ctx *context.Context, blameParts []*gitrepo.BlamePart, commitNa
 
 	buf := &bytes.Buffer{}
 	rows := make([]*blameRow, 0)
-	avatarUtils := templates.NewAvatarUtils(ctx)
 	rowNumber := 0 // will be 1-based
 	for _, part := range blameParts {
 		for partLineIdx, line := range part.Lines {
@@ -258,7 +253,7 @@ func renderBlame(ctx *context.Context, blameParts []*gitrepo.BlamePart, commitNa
 			}
 
 			if partLineIdx == 0 {
-				renderBlameFillFirstBlameRow(ctx.Repo.RepoLink, avatarUtils, part, commitNames[part.Sha], br)
+				renderBlameFillFirstBlameRow(ctx, ctx.Repo.RepoLink, part, commitNames[part.Sha], br)
 			}
 		}
 	}
