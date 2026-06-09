@@ -12,10 +12,10 @@
 						{{template "base/alert" .}}
 						<div class="required field {{if .Err_TeamName}}error{{end}}">
 							<label for="team_name">{{ctx.Locale.Tr "org.team_name"}}</label>
-							{{if eq .Team.LowerName "owners"}}
+							{{if .Team.IsOwnerTeam}}
 								<input type="hidden" name="team_name" value="{{.Team.Name}}">
 							{{end}}
-							<input id="team_name" name="team_name" value="{{.Team.Name}}" required {{if eq .Team.LowerName "owners"}}disabled{{end}} autofocus>
+							<input id="team_name" name="team_name" value="{{.Team.Name}}" required {{if .Team.IsOwnerTeam}}disabled{{end}} autofocus>
 							<span class="help">{{ctx.Locale.Tr "org.team_name_helper"}}</span>
 						</div>
 						<div class="field {{if .Err_Description}}error{{end}}">
@@ -23,7 +23,7 @@
 							<input id="description" name="description" value="{{.Team.Description}}" maxlength="255">
 							<span class="help">{{ctx.Locale.Tr "org.team_desc_helper"}}</span>
 						</div>
-						{{if eq .Team.LowerName "owners"}}
+						{{if .Team.IsOwnerTeam}}
 							<div class="field">
 								<label>{{ctx.Locale.Tr "org.teams.visibility"}}</label>
 								<div class="tw-mb-1">
@@ -38,7 +38,7 @@
 								<span class="help">{{ctx.Locale.Tr "org.teams.owners_visibility_fixed"}}</span>
 							</div>
 						{{end}}
-						{{if not (eq .Team.LowerName "owners")}}
+						{{if not .Team.IsOwnerTeam}}
 							<div class="grouped field">
 								<label>{{ctx.Locale.Tr "org.teams.visibility"}}</label>
 								<br>
@@ -175,7 +175,7 @@
 								<button class="ui primary button">{{ctx.Locale.Tr "org.create_team"}}</button>
 							{{else}}
 								<button class="ui primary button">{{ctx.Locale.Tr "org.teams.update_settings"}}</button>
-								{{if not (eq .Team.LowerName "owners")}}
+								{{if not .Team.IsOwnerTeam}}
 									<button class="ui red button delete-button" data-url="{{.OrgLink}}/teams/{{.Team.Name | PathEscape}}/delete">{{ctx.Locale.Tr "org.teams.delete_team"}}</button>
 								{{end}}
 							{{end}}
