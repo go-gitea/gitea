@@ -4,9 +4,9 @@
 package jupyter
 
 import (
+	"fmt"
 	"strings"
 	"testing"
-	"fmt"
 
 	"gitea.dev/modules/markup"
 
@@ -73,7 +73,7 @@ func TestRender(t *testing.T) {
 
 		assert.NoError(t, err)
 		result := output.String()
-		
+
 		// Assert normal markup still renders correctly
 		assert.Contains(t, result, `<div class="cell markdown">`)
 		assert.Contains(t, result, `Title`)
@@ -88,7 +88,7 @@ func TestRender(t *testing.T) {
 	t.Run("Cell limit truncation guardrail", func(t *testing.T) {
 		// Generate an oversized notebook containing 105 cells dynamically
 		var cellBlocks []string
-		for i := 0; i < 105; i++ {
+		for range 105 {
 			cellBlocks = append(cellBlocks, `{"cell_type": "markdown", "source": ["cell text"]}`)
 		}
 		input := fmt.Sprintf(`{"cells": [%s], "metadata": {}, "nbformat": 4}`, strings.Join(cellBlocks, ","))
@@ -103,7 +103,7 @@ func TestRender(t *testing.T) {
 		// Verify it halts rendering gracefully and shows the truncation warning
 		assert.Contains(t, result, "Output truncated.")
 		assert.Contains(t, result, "This notebook contains too many cells to display efficiently.")
-		
+
 		// Count occurrences of the rendered cells to ensure it sliced down to exactly 100 elements
 		assert.Equal(t, 100, strings.Count(result, `class="cell markdown"`))
 	})

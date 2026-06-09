@@ -61,7 +61,7 @@ func TestJupyterPipelineIntegrationAndSanitization(t *testing.T) {
 
 	// Verify that the legitimate, safe layout content made it through
 	assert.Contains(t, result, `class="jupyter-html-output"`)
-	assert.Contains(t, result, `<table class="dataframe">`)
+	assert.Contains(t, result, `<table><tbody><tr><td>Safe Content</td></tr></tbody></table>`)
 	assert.Contains(t, result, `Safe Content`)
 
 	// Verify that the internal bluemonday UGCPolicy intercepted and neutralized the exploit

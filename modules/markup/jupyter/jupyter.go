@@ -54,8 +54,8 @@ func (renderer) NeedPostProcess() bool { return true }
 func (renderer) GetExternalRendererOptions() markup.ExternalRendererOptions {
 	return markup.ExternalRendererOptions{
 		// CRITICAL SECURITY NOTE: Gitea's root global HTML sanitizer is disabled HERE
-		// because Jupyter Notebooks rely heavily on custom inline layout attributes, 
-		// multi-layer tables (DataFrames), and embedded base64 image data URIs that 
+		// because Jupyter Notebooks rely heavily on custom inline layout attributes,
+		// multi-layer tables (DataFrames), and embedded base64 image data URIs that
 		// the global sanitizer would aggressively strip out, ruining the frontend layout.
 		//
 		// To maintain strict defense-in-depth and completely close execution vectors (Stored XSS):
@@ -242,7 +242,7 @@ func renderMarkdown(_ *markup.RenderContext, output io.Writer, source string) er
 	if err := jupyterGoldmark.Convert([]byte(source), &buf); err != nil {
 		return err
 	}
-	
+
 	// Sanitize the generated markdown HTML before sending it to the DOM
 	safeHTML := markup.Sanitize(buf.String())
 	_, _ = output.Write([]byte(safeHTML))
