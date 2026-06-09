@@ -25,6 +25,7 @@ func TestAPIFork(t *testing.T) {
 	t.Run("CreateForkOrgNoCreatePermission", testCreateForkOrgNoCreatePermission)
 	t.Run("APIForkListLimitedAndPrivateRepos", testAPIForkListLimitedAndPrivateRepos)
 	t.Run("GetPrivateReposForks", testGetPrivateReposForks)
+	t.Run("APIForkListPagination", testAPIForkListPagination)
 }
 
 func testCreateForkNoLogin(t *testing.T) {
@@ -131,4 +132,64 @@ func testGetPrivateReposForks(t *testing.T) {
 	assert.Equal(t, "1", resp.Header().Get("X-Total-Count"))
 	assert.Equal(t, "forked-repo", forks[0].Name)
 	assert.Equal(t, privateOrg.Name, forks[0].Owner.UserName)
+}
+
+func testAPIForkListPagination(t *testing.T) {
+	user1Sess := loginUser(t, "user1")
+	user1Token := getTokenForLoggedInUser(t, user1Sess, auth_model.AccessTokenScopeWriteRepository)
+
+	user4Sess := loginUser(t, "user4")
+	user4Token := getTokenForLoggedInUser(t, user4Sess, auth_model.AccessTokenScopeWriteRepository)
+
+	user5Sess := loginUser(t, "user5")
+	user5Token := getTokenForLoggedInUser(t, user5Sess, auth_model.AccessTokenScopeWriteRepository)
+
+	// create forks
+	req := NewRequestWithJSON(t, "POST", "/api/v1/repos/user2/repo1/forks", &api.CreateForkOption{}).
+		AddTokenAuth(user1Token)
+	MakeRequest(t, req, http.StatusAccepted)
+
+	req = NewRequestWithJSON(t, "POST", "/api/v1/repos/user2/repo1/forks", &api.CreateForkOption{}).
+		AddTokenAuth(user4Token)
+	MakeRequest(t, req, http.StatusAccepted)
+
+	req = NewRequestWithJSON(t, "POST", "/api/v1/repos/user2/repo1/forks", &api.CreateForkOption{}).
+		AddTokenAuth(user5Token)
+	MakeRequest(t, req, http.StatusAccepted)
+
+	t.Run("Page 1", func(t *testing.T) {
+		defer tests.PrintCurrentTest(t)()
+
+		req := NewRequest(t, "GET", "/api/v1/repos/user2/repo1/forks?page=1&limit=2")
+		resp := MakeRequest(t, req, http.StatusOK)
+
+		forks := DecodeJSON(t, resp, []*api.Repository{})
+		assert.Len(t, forks, 2)
+		assert.Equal(t, "3", resp.Header().Get("X-Total-Count"))
+	})
+
+	t.Run("Page 2", func(t *testing.T) {
+		defer tests.PrintCurrentTest(t)()
+
+		req := NewRequest(t, "GET", "/api/v1/repos/user2/repo1/forks?page=2&limit=2")
+		resp := MakeRequest(t, req, http.StatusOK)
+
+		forks := DecodeJSON(t, resp, []*api.Repository{})
+		assert.Len(t, forks, 1)
+		assert.Equal(t, "3", resp.Header().Get("X-Total-Count"))
+	})
+
+	t.Run("Link Header on Page 1", func(t *testing.T) {
+		defer tests.PrintCurrentTest(t)()
+
+		req := NewRequest(t, "GET", "/api/v1/repos/user2/repo1/forks?page=1&limit=2")
+		resp := MakeRequest(t, req, http.StatusOK)
+
+		linkHeader := resp.Header().Get("Link")
+
+		assert.NotEmpty(t, linkHeader, "Link header should not be empty")
+		assert.Contains(t, linkHeader, `rel="next"`)
+		assert.Contains(t, linkHeader, `rel="last"`)
+		assert.Contains(t, linkHeader, `/api/v1/repos/user2/repo1/forks?limit=2&page=2>`)
+	})
 }
