@@ -18,6 +18,7 @@
   border: 1px solid var(--color-secondary);
   border-radius: var(--border-radius);
   background-color: var(--color-secondary-alpha-10);
+  text-align: center;
 }
 
 /* Error message */
