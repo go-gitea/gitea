@@ -323,6 +323,10 @@ func logUnexpectedResponse(t testing.TB, recorder *httptest.ResponseRecorder) {
 	}
 }
 
+// DecodeJSON decodes then response as JSON into typed variable and return it
+// HINT: don't use it on existing variable (reuse existing variable):
+// if the existing var already contains some values but the new input doesn't, then it leads to wrong test result in edge cases.
+// For slice decoding, use: v := DecodeJSON(t, resp, []T{})
 func DecodeJSON[T any](t testing.TB, resp *httptest.ResponseRecorder, v T) (ret T) {
 	t.Helper()
 

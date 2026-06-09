@@ -351,7 +351,7 @@ func renderRevisionPage(ctx *context.Context) (*git.Repository, *git.TreeEntry) 
 	page := max(ctx.FormInt("page"), 1)
 
 	// get Commit Count
-	commitsHistory, err := wikiGitRepo.CommitsByFileAndRange(
+	commitsHistory, _, err := wikiGitRepo.CommitsByFileAndRange(
 		git.CommitsByFileAndRangeOptions{
 			Revision: ctx.Repo.Repository.DefaultWikiBranch,
 			File:     pageFilename,
@@ -361,7 +361,7 @@ func renderRevisionPage(ctx *context.Context) (*git.Repository, *git.TreeEntry) 
 		ctx.ServerError("CommitsByFileAndRange", err)
 		return nil, nil
 	}
-	ctx.Data["Commits"], err = git_service.ConvertFromGitCommit(ctx, commitsHistory, ctx.Repo.Repository)
+	ctx.Data["Commits"], err = git_service.ConvertFromGitCommit(ctx, commitsHistory, ctx.Repo.Repository, "") // no current ref sub path for wiki commit list
 	if err != nil {
 		ctx.ServerError("ConvertFromGitCommit", err)
 		return nil, nil
@@ -496,7 +496,7 @@ func Wiki(ctx *context.Context) {
 		ctx.ServerError("GetCommitByPath", err)
 		return
 	}
-	ctx.Data["Author"] = lastCommit.Author
+	ctx.Data["Committer"] = lastCommit.Committer
 
 	ctx.HTML(http.StatusOK, tplWikiView)
 }
@@ -528,7 +528,7 @@ func WikiRevision(ctx *context.Context) {
 		ctx.ServerError("GetCommitByPath", err)
 		return
 	}
-	ctx.Data["Author"] = lastCommit.Author
+	ctx.Data["Committer"] = lastCommit.Committer
 
 	ctx.HTML(http.StatusOK, tplWikiRevision)
 }
@@ -587,7 +587,7 @@ func WikiPages(ctx *context.Context) {
 			Name:         displayName,
 			SubURL:       wiki_service.WebPathToURLPath(wikiName),
 			GitEntryName: entry.Entry.Name(),
-			UpdatedUnix:  timeutil.TimeStamp(entry.Commit.Author.When.Unix()),
+			UpdatedUnix:  timeutil.TimeStamp(entry.Commit.Committer.When.Unix()),
 		})
 	}
 	ctx.Data["Pages"] = pages

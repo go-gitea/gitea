@@ -391,14 +391,14 @@ func prepareNewPullRequestTitleContent(ci *git_service.CompareInfo, commits []*g
 	if useFirstCommitAsTitle {
 		// the "commits" are from "ShowPrettyFormatLogToList", which is ordered from newest to oldest, here take the oldest one
 		c := commits[len(commits)-1]
-		title = c.UserCommit.MessageTitle()
+		title = c.UserCommit.GitCommit.MessageTitle()
 	} else {
 		title = autoTitleFromBranchName(ci.HeadRef.ShortName())
 	}
 
 	if len(commits) == 1 {
 		c := commits[0]
-		content = c.MessageBody()
+		content = c.GitCommit.MessageBody()
 	}
 
 	var titleTrailer string

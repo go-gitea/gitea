@@ -6,7 +6,6 @@ package user
 
 import (
 	std_ctx "context"
-	"errors"
 	"net/http"
 
 	asymkey_model "gitea.dev/models/asymkey"
@@ -201,7 +200,7 @@ func GetPublicKey(ctx *context.APIContext) {
 // CreateUserPublicKey creates new public key to given user by ID.
 func CreateUserPublicKey(ctx *context.APIContext, form api.CreateKeyOption, uid int64) {
 	if user_model.IsFeatureDisabledWithLoginType(ctx.Doer, setting.UserFeatureManageSSHKeys) {
-		ctx.APIErrorNotFound("Not Found", errors.New("ssh keys setting is not allowed to be visited"))
+		ctx.APIErrorNotFound("ssh keys setting is not allowed to be changed")
 		return
 	}
 
@@ -271,7 +270,7 @@ func DeletePublicKey(ctx *context.APIContext) {
 	//     "$ref": "#/responses/notFound"
 
 	if user_model.IsFeatureDisabledWithLoginType(ctx.Doer, setting.UserFeatureManageSSHKeys) {
-		ctx.APIErrorNotFound("Not Found", errors.New("ssh keys setting is not allowed to be visited"))
+		ctx.APIErrorNotFound("ssh keys setting is not allowed to be changed")
 		return
 	}
 

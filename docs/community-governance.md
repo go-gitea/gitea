@@ -2,6 +2,36 @@
 
 This document describes maintainer expectations, project governance, and the detailed pull request review workflow (labels, merge queue, commit message format for mergers). For what contributors should do when opening and updating a PR, see [CONTRIBUTING.md](../CONTRIBUTING.md).
 
+## Table of contents
+
+- [Community governance and review process](#community-governance-and-review-process)
+  - [Table of contents](#table-of-contents)
+  - [Code review](#code-review)
+    - [Milestone](#milestone)
+    - [Labels](#labels)
+    - [Reviewing PRs](#reviewing-prs)
+      - [For reviewers](#for-reviewers)
+    - [Getting PRs merged](#getting-prs-merged)
+    - [Final call](#final-call)
+    - [Commit messages](#commit-messages)
+      - [PR Co-authors](#pr-co-authors)
+      - [PRs targeting `main`](#prs-targeting-main)
+      - [Backport PRs](#backport-prs)
+  - [Contribution Roles](#contribution-roles)
+    - [Maintainers](#maintainers)
+      - [Review expectations](#review-expectations)
+      - [Becoming a maintainer](#becoming-a-maintainer)
+      - [Stepping down, advisors, and inactivity](#stepping-down-advisors-and-inactivity)
+      - [Account security](#account-security)
+    - [Mergers](#mergers)
+      - [Becoming a merger](#becoming-a-merger)
+    - [Technical Oversight Committee (TOC)](#technical-oversight-committee-toc)
+      - [TOC election process](#toc-election-process)
+    - [Current TOC members](#current-toc-members)
+    - [Previous TOC/owners members](#previous-tocowners-members)
+  - [Governance Compensation](#governance-compensation)
+  - [Roadmap](#roadmap)
+
 ## Code review
 
 ### Milestone
@@ -92,7 +122,9 @@ $PR_TITLE ($INITIAL_PR_INDEX) ($BACKPORT_PR_INDEX)
 $REWRITTEN_PR_SUMMARY
 ```
 
-## Maintainers
+## Contribution Roles
+
+### Maintainers
 
 We list [maintainers](../MAINTAINERS) so every PR gets proper review.
 
@@ -121,12 +153,25 @@ For security, maintainers should enable 2FA and sign commits with GPG when possi
 
 Any account with write access (including bots and TOC members) **must** use [2FA](https://docs.github.com/en/authentication/securing-your-account-with-two-factor-authentication-2fa/configuring-two-factor-authentication).
 
-## Technical Oversight Committee (TOC)
+### Mergers
+
+Mergers are the maintainers who carry out the final merge of approved PRs. Their responsibilities, described throughout this guide, are:
+
+- Merging PRs from the [merge queue](#getting-prs-merged) in order, once a PR has `lgtm/done`, no open discussions, and no merge conflicts.
+- Rewriting the PR title and summary so the squash [commit message](#commit-messages) is clear, removing false-positive co-authors while keeping every true co-author.
+- Assigning the correct labels (including `type/…`) needed for changelog and backport decisions.
+- Agreeing, together with the owners, on when a release is ready (see [release management](release-management.md)).
+
+#### Becoming a merger
+
+A merger should already be a Gitea maintainer. To apply, use the [Discord](https://discord.gg/Gitea) `#maintainers` channel. Mergers teams may also invite contributors.
+
+### Technical Oversight Committee (TOC)
 
 At the start of 2023, the `Owners` team was dissolved. Instead, the governance charter proposed a technical oversight committee (TOC) which expands the ownership team of the Gitea project from three elected positions to six positions. Three positions are elected as it has been over the past years, and the other three consist of appointed members from the Gitea company.
 https://blog.gitea.com/quarterly-23q1/
 
-### TOC election process
+#### TOC election process
 
 Any maintainer is eligible to be part of the community TOC if they are not associated with the Gitea company.
 A maintainer can either nominate themselves, or can be nominated by other maintainers to be a candidate for the TOC election.
@@ -142,7 +187,7 @@ If an elected member that accepts the seat does not have 2FA configured yet, the
 
 ### Current TOC members
 
-- 2024-01-01 ~ 2024-12-31
+- 2025-01-01 ~ 2026-06-14
   - Company
     - [Jason Song](https://gitea.com/wolfogre) <i@wolfogre.com>
     - [Lunny Xiao](https://gitea.com/lunny) <xiaolunwen@gmail.com>
@@ -150,7 +195,7 @@ If an elected member that accepts the seat does not have 2FA configured yet, the
   - Community
     - [6543](https://gitea.com/6543) <6543@obermui.de>
     - [delvh](https://gitea.com/delvh) <dev.lh@web.de>
-    - [John Olheiser](https://gitea.com/jolheiser) <john.olheiser@gmail.com>
+    - [lafriks](https://gitea.com/lafriks) <lauris@nix.lv>
 
 ### Previous TOC/owners members
 
@@ -163,7 +208,7 @@ Here's the history of the owners and the time they served:
 - [Matti Ranta](https://gitea.com/techknowlogick) - [2019](https://github.com/go-gitea/gitea/issues/5572), [2020](https://github.com/go-gitea/gitea/issues/9230), [2021](https://github.com/go-gitea/gitea/issues/13801), [2022](https://github.com/go-gitea/gitea/issues/17872), 2023
 - [Andrew Thornton](https://gitea.com/zeripath) - [2020](https://github.com/go-gitea/gitea/issues/9230), [2021](https://github.com/go-gitea/gitea/issues/13801), [2022](https://github.com/go-gitea/gitea/issues/17872), 2023
 - [6543](https://gitea.com/6543) - 2023
-- [John Olheiser](https://gitea.com/jolheiser) - 2023
+- [John Olheiser](https://gitea.com/jolheiser) - 2023, 2024
 - [Jason Song](https://gitea.com/wolfogre) - 2023
 
 ## Governance Compensation
@@ -175,18 +220,6 @@ Furthermore, any community release manager for a specific release or LTS will be
 These funds will come from community sources like the OpenCollective rather than directly from the company.
 Only non-company members are eligible for this compensation, and if a member of the community TOC takes the responsibility of release manager, they would only be compensated for their TOC duties.
 Gitea Ltd employees are not eligible to receive any funds from the OpenCollective unless it is reimbursement for a purchase made for the Gitea project itself.
-
-## TOC & Working groups
-
-With Gitea covering many projects outside of the main repository, several groups will be created to help focus on specific areas instead of requiring maintainers to be a jack-of-all-trades. Maintainers are of course more than welcome to be part of multiple groups should they wish to contribute in multiple places.
-
-The currently proposed groups are:
-
-- **Core Group**: maintain the primary Gitea repository
-- **Integration Group**: maintain the Gitea ecosystem's related tools, including go-sdk/tea/changelog/bots etc.
-- **Documentation Group**: maintain related documents and repositories
-- **Translation Group**: coordinate with translators and maintain translations
-- **Security Group**: managed by TOC directly, members are decided by TOC, maintains security patches/responsible for security items
 
 ## Roadmap
 
