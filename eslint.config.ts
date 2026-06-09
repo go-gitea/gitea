@@ -792,7 +792,7 @@ export default defineConfig([
       'unicorn/no-static-only-class': [2],
       'unicorn/no-thenable': [2],
       'unicorn/no-this-assignment': [2],
-      'unicorn/no-this-outside-of-class': [0], // false-positives on `this` in standalone functions
+      'unicorn/no-this-outside-of-class': [0], // gitea uses `this` in non-class functions
       'unicorn/no-typeof-undefined': [2],
       'unicorn/no-unnecessary-array-flat-depth': [2],
       'unicorn/no-unnecessary-array-splice-count': [2],
