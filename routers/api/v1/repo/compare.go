@@ -116,7 +116,7 @@ func CompareDiff(ctx *context.APIContext) {
 // negotiateDiffType returns "diff" or "patch" when the Accept header requests the
 // corresponding raw GitHub media type, or "" when JSON should be returned.
 func negotiateDiffType(accept string) string {
-	for _, part := range strings.Split(accept, ",") {
+	for part := range strings.SplitSeq(accept, ",") {
 		switch strings.TrimSpace(strings.SplitN(part, ";", 2)[0]) {
 		case mediaTypeDiff:
 			return "diff"

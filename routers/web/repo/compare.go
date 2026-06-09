@@ -201,12 +201,12 @@ func newComparePageInfo() *comparePageInfoType {
 }
 
 // parseCompareInfo parse compare info between two commit for preparing comparing references
-func (cpi *comparePageInfoType) parseCompareInfo(ctx *context.Context) error {
+func (cpi *comparePageInfoType) parseCompareInfo(ctx *context.Context, compareParam string) error {
 	baseRepo := ctx.Repo.Repository
 	fileOnly := ctx.FormBool("file-only")
 
 	// 1 Parse compare router param
-	compareReq := common.ParseCompareRouterParam(ctx.PathParam("*"))
+	compareReq := common.ParseCompareRouterParam(compareParam)
 
 	// remove the check when we support compare with carets
 	if compareReq.BaseOriRefSuffix != "" {
@@ -545,7 +545,7 @@ func getBranchesAndTagsForRepo(ctx gocontext.Context, repo *repo_model.Repositor
 // CompareDiff show different from one commit to another commit
 func CompareDiff(ctx *context.Context) {
 	comparePageInfo := newComparePageInfo()
-	err := comparePageInfo.parseCompareInfo(ctx)
+	err := comparePageInfo.parseCompareInfo(ctx, ctx.PathParam("*"))
 	if errors.Is(err, util.ErrNotExist) || errors.Is(err, util.ErrInvalidArgument) {
 		ctx.NotFound(nil)
 		return
@@ -616,15 +616,10 @@ func DownloadComparePatch(ctx *context.Context) {
 }
 
 func downloadCompareDiffOrPatch(ctx *context.Context, patch bool) {
-	// The route captures `basehead` separately so the `.diff`/`.patch` suffix
-	// is stripped. parseCompareInfo reads the catch-all `*` param, so override
-	// it with the suffix-free value. Use the raw (still-escaped) value because
-	// PathParam unescapes on read; passing the already-unescaped value would
-	// unescape it a second time and corrupt refs containing percent-encoded characters.
-	ctx.SetPathParamRaw("*", ctx.PathParamRaw("basehead"))
-
+	// The route captures `basehead` separately so the `.diff`/`.patch` suffix is
+	// stripped from the catch-all `*` param parseCompareInfo would otherwise read.
 	cpi := newComparePageInfo()
-	if err := cpi.parseCompareInfo(ctx); err != nil {
+	if err := cpi.parseCompareInfo(ctx, ctx.PathParam("basehead")); err != nil {
 		if errors.Is(err, util.ErrNotExist) || errors.Is(err, util.ErrInvalidArgument) {
 			ctx.NotFound(nil)
 		} else {
