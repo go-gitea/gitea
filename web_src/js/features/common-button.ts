@@ -24,7 +24,7 @@ export function initGlobalDeleteButton(): void {
     btn.addEventListener('click', (e) => {
       e.preventDefault();
 
-      // eslint-disable-next-line github/no-dataset -- code depends on the camel-casing
+      // `dataset` is used here because the code below depends on it
       const dataObj = btn.dataset;
 
       const modalId = btn.getAttribute('data-modal-id');
@@ -156,7 +156,7 @@ function onShowModalClick(el: HTMLElement, e: MouseEvent) {
     const [attrTargetName, attrTargetProp] = attrTargetCombo.split('.');
     // try to find target by: "#target" -> "[name=target]" -> ".target" -> "<target> tag", and then try the modal itself
     const attrTarget = elModal.querySelector(`#${attrTargetName}`) ||
-      elModal.querySelector(`[name=${attrTargetName}]`) ||
+      elModal.querySelector(`[name=${CSS.escape(attrTargetName)}]`) ||
       elModal.querySelector(`.${attrTargetName}`) ||
       elModal.querySelector(`${attrTargetName}`) ||
       (elModal.matches(`${attrTargetName}`) || elModal.matches(`#${attrTargetName}`) || elModal.matches(`.${attrTargetName}`) ? elModal : null);

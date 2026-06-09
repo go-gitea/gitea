@@ -54,6 +54,6 @@ export function linkifyURLs(html: string): string {
     const cleanUrl = trailingPunct ? url.slice(0, -trailingPunct[0].length) : url;
     const trailing = trailingPunct ? trailingPunct[0] : '';
     // safe because regexp only matches valid URLs (no quotes or angle brackets)
-    return `<a href="${cleanUrl}" target="_blank">${cleanUrl}</a>${trailing}`; // eslint-disable-line github/unescaped-html-literal
+    return `<a href="${cleanUrl}" target="_blank">${cleanUrl}</a>${trailing}`;
   });
 }

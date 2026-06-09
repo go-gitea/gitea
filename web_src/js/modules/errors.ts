@@ -20,7 +20,7 @@ export function showGlobalErrorMessage(msg: string, msgType: Intent = 'error', d
   }
   // compact the message to a data attribute to avoid too many duplicated messages
   const msgCompact = `${msgType}-${msg.trim()}`.replace(/[^-\w\u{80}-\u{10FFFF}]+/gu, '');
-  let msgContainer = parentContainer.querySelector<HTMLDivElement>(`.js-global-error[data-global-error-msg-compact="${msgCompact}"]`);
+  let msgContainer = parentContainer.querySelector<HTMLDivElement>(`.js-global-error[data-global-error-msg-compact="${CSS.escape(msgCompact)}"]`);
   if (!msgContainer) {
     const el = document.createElement('div');
     el.innerHTML = html`<div class="ui container js-global-error tw-my-[--page-spacing]"><details class="ui ${msgType} message"><summary></summary></details></div>`;

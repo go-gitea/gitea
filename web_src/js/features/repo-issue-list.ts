@@ -192,7 +192,7 @@ function initPinRemoveButton() {
         // Delete the tooltip
         el._tippy.destroy();
         // Remove the Card
-        el.closest(`div.issue-card[data-issue-id="${id}"]`)!.remove();
+        el.closest(`div.issue-card[data-issue-id="${CSS.escape(String(id))}"]`)!.remove();
       }
     });
   }
