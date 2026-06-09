@@ -1,10 +1,18 @@
 name: free-disk-space
 description: Free space on / before large cache restores
 
-# EXPERIMENT (#37974): toolchain deletion disabled to test whether the ~89G free
-# baseline suffices on its own. df logs starting headroom; restore the rm if low.
+# Delete unused preinstalled toolchains in parallel (independent trees). The df
+# calls bracket the cleanup to log real free space.
 runs:
   using: composite
   steps:
     - shell: bash
-      run: df -h /
+      run: |
+        echo "free space before cleanup:"
+        df -h /
+        for dir in /usr/local/lib/android /usr/local/.ghcup /opt/ghc /usr/share/dotnet; do
+          sudo rm -rf "$dir" &
+        done
+        wait
+        echo "free space after cleanup:"
+        df -h /

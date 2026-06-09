@@ -15,7 +15,7 @@ jobs:
     uses: ./.github/workflows/files-changed.yml
 
   test-pgsql-shard-1:
-    if: needs.files-changed.outputs.backend == 'true' || needs.files-changed.outputs.actions == 'true'
+    if: needs.files-changed.outputs.backend == 'true'
     needs: files-changed
     runs-on: ubuntu-latest
     timeout-minutes: 50
@@ -49,11 +49,9 @@ jobs:
           shard: 1
           total-shards: 2
           run-migration: "true"
-      - if: always()
-        run: df -h /
 
   test-pgsql-shard-2:
-    if: needs.files-changed.outputs.backend == 'true' || needs.files-changed.outputs.actions == 'true'
+    if: needs.files-changed.outputs.backend == 'true'
     needs: files-changed
     runs-on: ubuntu-latest
     timeout-minutes: 50
@@ -86,8 +84,6 @@ jobs:
         with:
           shard: 2
           total-shards: 2
-      - if: always()
-        run: df -h /
 
   test-sqlite:
     if: needs.files-changed.outputs.backend == 'true' || needs.files-changed.outputs.actions == 'true'
@@ -112,8 +108,6 @@ jobs:
           GOTEST_FLAGS: -timeout=40m
           TAGS: bindata gogit
           GOEXPERIMENT:
-      - if: always()
-        run: df -h /
 
   test-unit:
     if: needs.files-changed.outputs.backend == 'true'
