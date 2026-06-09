@@ -7959,8 +7959,10 @@
     },
     "/repos/{owner}/{repo}/compare/{basehead}": {
       "get": {
+        "description": "By default returns JSON commit comparison information. The raw diff or patch can be\nrequested by setting the `Accept` header to `application/vnd.github.diff` or\n`application/vnd.github.patch` respectively.\n",
         "produces": [
-          "application/json"
+          "application/json",
+          "text/plain"
         ],
         "tags": [
           "repository"
@@ -7984,7 +7986,7 @@
           },
           {
             "type": "string",
-            "description": "compare two branches or commits",
+            "description": "compare two refs as `base...head` (or `base..head`); refs may be branches, tags, full or short SHAs, including branch names that contain slashes.",
             "name": "basehead",
             "in": "path",
             "required": true
@@ -7993,60 +7995,6 @@
         "responses": {
           "200": {
             "$ref": "#/responses/Compare"
-          },
-          "404": {
-            "$ref": "#/responses/notFound"
-          }
-        }
-      }
-    },
-    "/repos/{owner}/{repo}/compare/{basehead}.{diffType}": {
-      "get": {
-        "produces": [
-          "text/plain"
-        ],
-        "tags": [
-          "repository"
-        ],
-        "summary": "Get a comparison's diff or patch between two refs",
-        "operationId": "repoDownloadCompareDiffOrPatch",
-        "parameters": [
-          {
-            "type": "string",
-            "description": "owner of the repo",
-            "name": "owner",
-            "in": "path",
-            "required": true
-          },
-          {
-            "type": "string",
-            "description": "name of the repo",
-            "name": "repo",
-            "in": "path",
-            "required": true
-          },
-          {
-            "type": "string",
-            "description": "compare two refs as `base...head` (or `base..head`); refs may be branches, tags, full or short SHAs, including branch names that contain slashes.",
-            "name": "basehead",
-            "in": "path",
-            "required": true
-          },
-          {
-            "enum": [
-              "diff",
-              "patch"
-            ],
-            "type": "string",
-            "description": "whether the output is diff or patch",
-            "name": "diffType",
-            "in": "path",
-            "required": true
-          }
-        ],
-        "responses": {
-          "200": {
-            "$ref": "#/responses/string"
           },
           "404": {
             "$ref": "#/responses/notFound"

@@ -1170,10 +1170,7 @@ func Routes() *web.Router {
 			m.Post("/migrate", reqToken(), bind(api.MigrateRepoOptions{}), repo.Migrate)
 
 			m.Group("/{username}/{reponame}", func() {
-				m.PathGroup("/compare/*", func(g *web.RouterPathGroup) {
-					g.MatchPath("GET", "/<basehead:*>.<diffType:diff|patch>", repo.DownloadCompareDiffOrPatch)
-					g.MatchPath("GET", "/<*:*>", repo.CompareDiff)
-				}, reqRepoReader(unit.TypeCode))
+				m.Get("/compare/*", reqRepoReader(unit.TypeCode), repo.CompareDiff)
 
 				m.Combo("").Get(reqAnyRepoReader(), repo.Get).
 					Delete(reqToken(), reqOwner(), repo.Delete).

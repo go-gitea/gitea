@@ -19106,53 +19106,8 @@
     },
     "/repos/{owner}/{repo}/compare/{basehead}": {
       "get": {
+        "description": "By default returns JSON commit comparison information. The raw diff or patch can be\nrequested by setting the `Accept` header to `application/vnd.github.diff` or\n`application/vnd.github.patch` respectively.\n",
         "operationId": "repoCompareDiff",
-        "parameters": [
-          {
-            "description": "owner of the repo",
-            "in": "path",
-            "name": "owner",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "description": "name of the repo",
-            "in": "path",
-            "name": "repo",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "description": "compare two branches or commits",
-            "in": "path",
-            "name": "basehead",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "$ref": "#/components/responses/Compare"
-          },
-          "404": {
-            "$ref": "#/components/responses/notFound"
-          }
-        },
-        "summary": "Get commit comparison information",
-        "tags": [
-          "repository"
-        ]
-      }
-    },
-    "/repos/{owner}/{repo}/compare/{basehead}.{diffType}": {
-      "get": {
-        "operationId": "repoDownloadCompareDiffOrPatch",
         "parameters": [
           {
             "description": "owner of the repo",
@@ -19180,30 +19135,17 @@
             "schema": {
               "type": "string"
             }
-          },
-          {
-            "description": "whether the output is diff or patch",
-            "in": "path",
-            "name": "diffType",
-            "required": true,
-            "schema": {
-              "enum": [
-                "diff",
-                "patch"
-              ],
-              "type": "string"
-            }
           }
         ],
         "responses": {
           "200": {
-            "$ref": "#/components/responses/string"
+            "$ref": "#/components/responses/Compare"
           },
           "404": {
             "$ref": "#/components/responses/notFound"
           }
         },
-        "summary": "Get a comparison's diff or patch between two refs",
+        "summary": "Get commit comparison information",
         "tags": [
           "repository"
         ]
