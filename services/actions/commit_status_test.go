@@ -157,9 +157,8 @@ func TestCreateCommitStatus_DistinctWorkflowFilesSameName(t *testing.T) {
 	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 4})
 	branch := unittest.AssertExistsAndLoadBean(t, &git_model.Branch{RepoID: repo.ID, Name: repo.DefaultBranch})
 
-	payload := func(name string) []byte {
-		return []byte(`
-name: ` + name + `
+	payload := []byte(`
+name: test-run
 on: pull_request
 jobs:
   my-test:
@@ -167,29 +166,23 @@ jobs:
     steps:
       - run: echo hi
 `)
-	}
 
-	type runJob struct {
-		workflowID string
-		jobID      int64
-		runID      int64
-		runIndex   int64
-	}
-	specs := []runJob{
-		{workflowID: "workflow1.yaml", runID: 99101, jobID: 99201, runIndex: 99101},
-		{workflowID: "workflow2.yaml", runID: 99102, jobID: 99202, runIndex: 99102},
-	}
-
-	for _, s := range specs {
+	for _, spec := range []struct {
+		workflowID   string
+		runID, jobID int64
+	}{
+		{"workflow1.yaml", 99101, 99201},
+		{"workflow2.yaml", 99102, 99202},
+	} {
 		run := &actions_model.ActionRun{
-			ID: s.runID, Index: s.runIndex, RepoID: repo.ID, Repo: repo, OwnerID: repo.OwnerID, TriggerUserID: repo.OwnerID,
-			WorkflowID: s.workflowID, CommitSHA: branch.CommitID,
+			ID: spec.runID, Index: spec.runID, RepoID: repo.ID, Repo: repo, OwnerID: repo.OwnerID, TriggerUserID: repo.OwnerID,
+			WorkflowID: spec.workflowID, CommitSHA: branch.CommitID,
 		}
 		require.NoError(t, db.Insert(t.Context(), run))
 		job := &actions_model.ActionRunJob{
-			ID: s.jobID, RunID: run.ID, RepoID: repo.ID, OwnerID: repo.OwnerID,
+			ID: spec.jobID, RunID: run.ID, RepoID: repo.ID, OwnerID: repo.OwnerID,
 			Name: "my-test", Status: actions_model.StatusWaiting,
-			WorkflowPayload: payload("test-run"),
+			WorkflowPayload: payload,
 		}
 		require.NoError(t, db.Insert(t.Context(), job))
 		require.NoError(t, createCommitStatus(t.Context(), repo, "pull_request", branch.CommitID, run, job))
@@ -264,6 +257,39 @@ func TestCreateCommitStatus_LegacyHashRecovery(t *testing.T) {
 		}
 	}
 	assert.Equal(t, 1, matches)
+}
+
+// TestCreateCommitStatus_UnnamedWorkflowUsesFileName: a workflow omitting `name:`
+// uses the file name in the Context, not an empty "/ job (event)".
+func TestCreateCommitStatus_UnnamedWorkflowUsesFileName(t *testing.T) {
+	assert.NoError(t, unittest.PrepareTestDatabase())
+
+	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 4})
+	branch := unittest.AssertExistsAndLoadBean(t, &git_model.Branch{RepoID: repo.ID, Name: repo.DefaultBranch})
+
+	run := &actions_model.ActionRun{
+		ID: 99401, Index: 99401, RepoID: repo.ID, Repo: repo, OwnerID: repo.OwnerID, TriggerUserID: repo.OwnerID,
+		WorkflowID: "unnamed.yaml", CommitSHA: branch.CommitID,
+	}
+	require.NoError(t, db.Insert(t.Context(), run))
+	job := &actions_model.ActionRunJob{
+		ID: 99402, RunID: run.ID, RepoID: repo.ID, OwnerID: repo.OwnerID,
+		Name: "my-test", Status: actions_model.StatusWaiting,
+		WorkflowPayload: []byte(`
+on: push
+jobs:
+  my-test:
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo hi
+`),
+	}
+	require.NoError(t, db.Insert(t.Context(), job))
+	require.NoError(t, createCommitStatus(t.Context(), repo, "push", branch.CommitID, run, job))
+
+	statuses := findCommitStatusesForContext(t, repo.ID, branch.CommitID, "unnamed.yaml / my-test (push)")
+	require.Len(t, statuses, 1)
+	assert.Equal(t, commitstatus.CommitStatusPending, statuses[0].State)
 }
 
 func findCommitStatusesForContext(t *testing.T, repoID int64, sha, context string) []*git_model.CommitStatus {
