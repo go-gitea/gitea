@@ -88,7 +88,7 @@ export async function initExternalRenderIframe(iframe: HTMLIFrameElement) {
 
   // It must use "src" here, because the frame content should not inherit parent's CSP.
   // Otherwise, "srcdoc" makes the frame content inherit the parent's CSP,
-  // then some renders like "asciicast (asciinema)" which require "unsafe-evel" won't work.
+  // then some renders like "asciicast (asciinema)" which require "unsafe-eval" won't work.
   //
   // When using "src", Chrome can report false-alarm error like:
   // * Unsafe attempt to load URL http://localhost/owner/repo/render/branch/main/file from frame with URL http://localhost/owner/repo/render/branch/main/file. Domains, protocols and ports must match.
