@@ -249,6 +249,13 @@ func (source *Source) getUserAttributeListedInGroup(entry *ldap.Entry) string {
 	return entry.GetAttributeValue(source.UserUID)
 }
 
+func userAttributeFilter(userFilter string, userDNFoundBySearch bool) string {
+	if userDNFoundBySearch {
+		return "(objectClass=*)"
+	}
+	return userFilter
+}
+
 // SearchEntry : search an LDAP source if an entry (name, passwd) is valid and in the specific filter
 func (source *Source) SearchEntry(name, passwd string, directBind bool) *SearchResult {
 	if MockedSearchEntry != nil {
@@ -274,6 +281,7 @@ func realSearchEntry(source *Source, name, passwd string, directBind bool) *Sear
 	defer l.Close()
 
 	var userDN string
+	userDNFoundBySearch := false
 	if directBind {
 		log.Trace("LDAP will bind directly via UserDN template: %s", source.UserDN)
 
@@ -297,6 +305,7 @@ func realSearchEntry(source *Source, name, passwd string, directBind bool) *Sear
 			if !ok {
 				return nil
 			}
+			userDNFoundBySearch = true
 		}
 	} else {
 		log.Trace("LDAP will use BindDN.")
@@ -318,6 +327,7 @@ func realSearchEntry(source *Source, name, passwd string, directBind bool) *Sear
 		if !found {
 			return nil
 		}
+		userDNFoundBySearch = true
 	}
 
 	if !source.AttributesInBind {
@@ -332,6 +342,7 @@ func realSearchEntry(source *Source, name, passwd string, directBind bool) *Sear
 	if !ok {
 		return nil
 	}
+	attributeFilter := userAttributeFilter(userFilter, userDNFoundBySearch)
 
 	isAttributeSSHPublicKeySet := strings.TrimSpace(source.AttributeSSHPublicKey) != ""
 	isAttributeAvatarSet := strings.TrimSpace(source.AttributeAvatar) != ""
@@ -347,11 +358,11 @@ func realSearchEntry(source *Source, name, passwd string, directBind bool) *Sear
 		attribs = append(attribs, source.AttributeAvatar)
 	}
 
-	log.Trace("Fetching attributes '%v', '%v', '%v', '%v', '%v', '%v', '%v' with filter '%s' and base '%s'", source.AttributeUsername, source.AttributeName, source.AttributeSurname, source.AttributeMail, source.AttributeSSHPublicKey, source.AttributeAvatar, source.UserUID, userFilter, userDN)
+	log.Trace("Fetching attributes '%v', '%v', '%v', '%v', '%v', '%v', '%v' with filter '%s' and base '%s'", source.AttributeUsername, source.AttributeName, source.AttributeSurname, source.AttributeMail, source.AttributeSSHPublicKey, source.AttributeAvatar, source.UserUID, attributeFilter, userDN)
 
-	// FIX: ScopeBaseObject targets the exact single record for attribute extraction
+	// userDN is already the resolved leaf entry; do not search child entries.
 	search := ldap.NewSearchRequest(
-		userDN, ldap.ScopeBaseObject, ldap.NeverDerefAliases, 0, 0, false, userFilter,
+		userDN, ldap.ScopeBaseObject, ldap.NeverDerefAliases, 0, 0, false, attributeFilter,
 		attribs, nil)
 
 	sr, err := l.Search(search)
