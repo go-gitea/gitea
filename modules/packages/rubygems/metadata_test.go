@@ -36,30 +36,13 @@ version:
 	t.Run("InvalidName", func(t *testing.T) {
 		// a name carrying a newline would be re-emitted verbatim into the
 		// line-based compact index, letting an upload forge extra entries
-		for _, name := range []string{"evil\n1.0.0 |checksum:deadbeef", "a b", "a/b", ""} {
-			content := test.CompressGzip("name: " + quoteYAML(name) + "\nversion:\n  version: 1\n")
+		for _, quotedName := range []string{`"evil\n1.0.0"`, `"a b"`, `"a/b"`, `""`} {
+			content := test.CompressGzip("name: " + quotedName + "\nversion:\n  version: 1\n")
 			rp, err := parseMetadataFile(content)
-			assert.ErrorIs(t, err, ErrInvalidName, "name %q should be rejected", name)
+			assert.ErrorIs(t, err, ErrInvalidName, "name %s should be rejected", quotedName)
 			assert.Nil(t, rp)
 		}
 	})
-}
-
-func quoteYAML(s string) string {
-	out := make([]byte, 0, len(s)+2)
-	out = append(out, '"')
-	for i := 0; i < len(s); i++ {
-		switch s[i] {
-		case '\n':
-			out = append(out, '\\', 'n')
-		case '"', '\\':
-			out = append(out, '\\', s[i])
-		default:
-			out = append(out, s[i])
-		}
-	}
-	out = append(out, '"')
-	return string(out)
 }
 
 func TestParseMetadataFile(t *testing.T) {
