@@ -48,10 +48,10 @@ func (t TeamList) UnitMaxAccess(tp unit.Type) perm.AccessMode {
 // SearchTeamOptions holds the search options
 type SearchTeamOptions struct {
 	db.ListOptions
-	UserID              int64
-	Keyword             string
-	OrgID               int64
-	IncludeDesc         bool
+	UserID      int64
+	Keyword     string
+	OrgID       int64
+	IncludeDesc bool
 	// IncludeVisibilities, when combined with UserID, also returns teams whose
 	// visibility is in this list, even if UserID is not a member. Typical values:
 	//   - {limited,public} for org members
