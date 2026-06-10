@@ -423,15 +423,6 @@ func GetTeamMembers(ctx *context.APIContext) {
 	//   "404":
 	//     "$ref": "#/responses/notFound"
 
-	isMember, err := organization.IsOrganizationMember(ctx, ctx.Org.Team.OrgID, ctx.Doer.ID)
-	if err != nil {
-		ctx.APIErrorInternal(err)
-		return
-	} else if !isMember && !ctx.Doer.IsAdmin {
-		ctx.APIErrorNotFound()
-		return
-	}
-
 	listOptions := utils.GetListOptions(ctx)
 	teamMembers, err := organization.GetTeamMembers(ctx, &organization.SearchMembersOptions{
 		ListOptions: listOptions,

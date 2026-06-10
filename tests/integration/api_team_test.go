@@ -10,6 +10,7 @@ import (
 	"testing"
 
 	auth_model "gitea.dev/models/auth"
+	"gitea.dev/models/db"
 	"gitea.dev/models/organization"
 	"gitea.dev/models/perm"
 	"gitea.dev/models/repo"
@@ -301,5 +302,48 @@ func TestAPIGetTeamRepo(t *testing.T) {
 
 	req = NewRequestf(t, "GET", "/api/v1/teams/%d/repos/%s/", team.ID, teamRepo.FullName()).
 		AddTokenAuth(token5)
+	MakeRequest(t, req, http.StatusNotFound)
+}
+
+func insertTestTeam(t *testing.T, orgID int64, name, visibility string) *organization.Team {
+	t.Helper()
+	team := &organization.Team{
+		OrgID:      orgID,
+		LowerName:  name,
+		Name:       name,
+		AccessMode: perm.AccessModeRead,
+		Visibility: visibility,
+	}
+	assert.NoError(t, db.Insert(t.Context(), team))
+	t.Cleanup(func() {
+		_, _ = db.GetEngine(t.Context()).ID(team.ID).Delete(&organization.Team{})
+	})
+	return team
+}
+
+func TestAPITeamVisibilityAccess(t *testing.T) {
+	defer tests.PrepareTestEnv(t)()
+
+	limitedTeam := insertTestTeam(t, 3, "limited-team", organization.TeamVisibilityLimited)
+
+	// Org member who can read a limited team must not mutate its repos without membership.
+	user4 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 4})
+	token := getUserToken(t, user4.Name, auth_model.AccessTokenScopeWriteOrganization)
+	req := NewRequestf(t, "PUT", "/api/v1/teams/%d/repos/org3/repo3", limitedTeam.ID).
+		AddTokenAuth(token)
+	MakeRequest(t, req, http.StatusForbidden)
+
+	publicTeam := insertTestTeam(t, 23, "public-team", organization.TeamVisibilityPublic)
+
+	// Public team in a private org must not be readable by outsiders.
+	outsider := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
+	token = getUserToken(t, outsider.Name, auth_model.AccessTokenScopeReadOrganization)
+	req = NewRequestf(t, "GET", "/api/v1/teams/%d", publicTeam.ID).
+		AddTokenAuth(token)
+	MakeRequest(t, req, http.StatusNotFound)
+
+	// Member lookup must require org membership even for public teams.
+	req = NewRequestf(t, "GET", "/api/v1/teams/%d/members/%s", publicTeam.ID, outsider.Name).
+		AddTokenAuth(token)
 	MakeRequest(t, req, http.StatusNotFound)
 }
