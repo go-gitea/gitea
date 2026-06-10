@@ -41,13 +41,17 @@ class Options implements FrontendRenderOptions {
   }
 }
 
-async function initFrontendExternalRender(contentEncoding: string, contentString: string) {
+async function initFrontendExternalRender() {
   const viewerContainer = document.querySelector<HTMLElement>('#frontend-render-viewer')!;
   const renderNames = viewerContainer.getAttribute('data-frontend-renders')!.split(' ');
   const fileTreePath = viewerContainer.getAttribute('data-file-tree-path')!;
+  viewerContainer.setAttribute('data-window-origin', window.origin); // mainly for testing purpose
 
-  const opts = new Options(viewerContainer, fileTreePath, contentEncoding, contentString);
-
+  const fileDataElem = document.querySelector<HTMLTextAreaElement>('#frontend-render-data')!;
+  fileDataElem.remove();
+  const fileDataContent = fileDataElem.value;
+  const fileDataEncoding = fileDataElem.getAttribute('data-content-encoding')!;
+  const opts = new Options(viewerContainer, fileTreePath, fileDataEncoding, fileDataContent);
   let renderName = '', rendered = false;
   for (const name of renderNames) {
     if (!(name in frontendPlugins)) continue;
@@ -62,13 +66,9 @@ async function initFrontendExternalRender(contentEncoding: string, contentString
   } else if (!rendered) {
     viewerContainer.textContent = `Failed to render by ${renderName}`;
   } else {
+    // save the render name which succeeds to render, mainly for testing purpose
     viewerContainer.setAttribute('data-frontend-render-name', renderName);
   }
 }
 
-window.addEventListener('message', (e) => {
-  if (e.data?.giteaIframeCmd === 'frontend-render-content') {
-    initFrontendExternalRender(e.data.contentEncoding, e.data.contentString);
-  }
-});
-window.giteaExternalRenderHelper!.postIframeMsg('frontend-render-init');
+initFrontendExternalRender();

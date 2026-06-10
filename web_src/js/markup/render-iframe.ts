@@ -54,13 +54,6 @@ export async function initExternalRenderIframe(iframe: HTMLIFrameElement) {
       iframe.style.height = `${e.data.iframeHeight}px`;
     } else if (cmd === 'open-link') {
       navigateToIframeLink(e.data.openLink, e.data.anchorTarget);
-    } else if (cmd === 'frontend-render-init') {
-      const textarea = iframe.nextSibling as HTMLTextAreaElement;
-      iframe.contentWindow!.postMessage({
-        giteaIframeCmd: 'frontend-render-content',
-        contentEncoding: textarea.getAttribute('data-content-encoding')!,
-        contentString: textarea.value,
-      }, '*');
     } else {
       throw new Error(`Unknown gitea iframe cmd: ${cmd}`);
     }
@@ -73,14 +66,13 @@ export async function initExternalRenderIframe(iframe: HTMLIFrameElement) {
 
   // There are 3 kinds of external render modes:
   // * external frontend render:
-  //   * parent page creates iframe and hidden textarea (file content), iframe navigates to render page
-  //   * render generates frame page with external-render-helper and external-render-frontend
-  //   * frame page posts message to parent to notify that frame page is ready
-  //   * parent page posts message to frame to send the file content from textarea
-  //   * frame page finds frontend plugin to render
+  //   * parent page creates iframe, iframe navigates to render page
+  //   * render generates frame page with external-render-helper (injected), external-render-frontend and file content (hidden textarea)
+  //   * frame page executes external-render-frontend JS code to finds a frontend plugin to render
   // * external backend render (HTML)
   //   * parent page creates iframe, iframe navigates to render page
-  //   * render executes command to generate rendered HTML content (with external-render-helper injected)
+  //   * render executes command to generate rendered HTML content with external-render-helper (injected)
+  //   * frame page displays the rendered content
   // * external backend render (non-HTML, e.g.: PDF, image)
   //   * parent page creates iframe, iframe navigates to render page
   //   * render executes command to generate rendered content

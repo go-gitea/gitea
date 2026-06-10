@@ -53,7 +53,8 @@ test('asciicast file', async ({page, request}) => {
   const iframe = page.locator('iframe.external-render-iframe');
   const frame = iframe.contentFrame();
   const viewer = frame.locator('#frontend-render-viewer[data-frontend-render-name]');
-  await expect(viewer).toHaveAttribute('data-frontend-render-name', 'asciicast');
+  await expect(viewer).toHaveAttribute('data-frontend-render-name', 'asciicast'); // render succeeded
+  await expect(viewer).toHaveAttribute('data-window-origin', 'null'); // no same-origin, avoid XSS
   const wrapper = frame.locator('.ap-wrapper');
   await expect(wrapper).toBeVisible();
   await expect(wrapper).toContainText('test-content');

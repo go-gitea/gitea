@@ -4,12 +4,16 @@
 package external
 
 import (
+	"encoding/base64"
+	"errors"
 	"io"
+	"unicode/utf8"
 
 	"gitea.dev/modules/htmlutil"
 	"gitea.dev/modules/markup"
 	"gitea.dev/modules/public"
 	"gitea.dev/modules/setting"
+	"gitea.dev/modules/util"
 )
 
 type frontendRenderer struct {
@@ -52,12 +56,24 @@ func (p *frontendRenderer) GetExternalRendererOptions() (ret markup.ExternalRend
 	ret.SanitizerDisabled = true
 	ret.DisplayInIframe = true
 	ret.ContentSandbox = setting.MarkupRenderDefaultSandbox
-	ret.FrontendRender = true
 	return ret
 }
 
 func (p *frontendRenderer) Render(ctx *markup.RenderContext, input io.Reader, output io.Writer) error {
-	_, err := htmlutil.HTMLPrintf(output,
+	if ctx.RenderOptions.StandalonePageOptions == nil {
+		return errors.New("should only be rendered in standalone page")
+	}
+	content, err := util.ReadWithLimit(input, int(setting.UI.MaxDisplayFileSize))
+	if err != nil {
+		return err
+	}
+	contentEncoding, contentString := "text", util.UnsafeBytesToString(content)
+	if !utf8.Valid(content) {
+		contentEncoding = "base64"
+		contentString = base64.StdEncoding.EncodeToString(content)
+	}
+
+	_, _ = htmlutil.HTMLPrintf(output,
 		`<!DOCTYPE html>
 <html>
 <head>
@@ -66,10 +82,12 @@ func (p *frontendRenderer) Render(ctx *markup.RenderContext, input io.Reader, ou
 </head>
 <body>
 	<div id="frontend-render-viewer" data-frontend-renders="%s" data-file-tree-path="%s"></div>
+	<textarea id="frontend-render-data" data-content-encoding="%s" hidden>%s</textarea>
 	<script nonce type="module" src="%s"></script>
 </body>
 </html>`,
 		p.name, ctx.RenderOptions.RelativePath,
+		contentEncoding, contentString,
 		public.AssetURI("web_src/js/external-render-frontend.ts"))
-	return err
+	return nil
 }

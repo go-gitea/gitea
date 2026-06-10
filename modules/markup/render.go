@@ -6,7 +6,6 @@ package markup
 import (
 	"bytes"
 	"context"
-	"encoding/base64"
 	"errors"
 	"fmt"
 	"html/template"
@@ -15,7 +14,6 @@ import (
 	"strconv"
 	"strings"
 	"time"
-	"unicode/utf8"
 
 	"gitea.dev/modules/htmlutil"
 	"gitea.dev/modules/markup/internal"
@@ -220,24 +218,6 @@ func RenderIFrame(ctx *RenderContext, opts *ExternalRendererOptions, input io.Re
 	_, err := htmlutil.HTMLPrintf(output, `<iframe data-src="%s" data-global-init="initExternalRenderIframe" class="external-render-iframe"></iframe>`, src)
 	if err != nil {
 		return err
-	}
-
-	// Frontend render needs the parent to prepare the content ahead,
-	// because the frontend render plugin is not executed in the same origin, unable to read private repo contents.
-	if opts.FrontendRender {
-		content, err := util.ReadWithLimit(input, int(setting.UI.MaxDisplayFileSize))
-		if err != nil {
-			return err
-		}
-		contentEncoding, contentString := "text", util.UnsafeBytesToString(content)
-		if !utf8.Valid(content) {
-			contentEncoding = "base64"
-			contentString = base64.StdEncoding.EncodeToString(content)
-		}
-		_, err = htmlutil.HTMLPrintf(output, `<textarea data-content-encoding="%s" hidden>%s</textarea>`, contentEncoding, contentString)
-		if err != nil {
-			return err
-		}
 	}
 	return nil
 }
