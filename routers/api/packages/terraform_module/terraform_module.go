@@ -22,7 +22,6 @@ import (
 	"net/http"
 
 	packages_model "gitea.dev/models/packages"
-	user_model "gitea.dev/models/user"
 	"gitea.dev/modules/json"
 	"gitea.dev/modules/log"
 	"gitea.dev/modules/optional"
@@ -42,37 +41,6 @@ const archiveFilename = "module.tar.gz"
 func apiError(ctx *context.Context, status int, obj any) {
 	message := helper.ProcessErrorForUser(ctx, status, obj)
 	ctx.PlainText(status, message)
-}
-
-// NamespaceAssignment resolves the {namespace} path parameter to a Gitea
-// user/org and delegates to context.PackageAssignment so ctx.Package
-// (owner + access mode) is fully populated for reqPackageAccess and the
-// quota helpers. Namespaces are validated against the HashiCorp naming
-// rules before lookup so an invalid value yields 400 rather than a 404
-// from the user lookup.
-func NamespaceAssignment() func(ctx *context.Context) {
-	assignPackage := context.PackageAssignment()
-	return func(ctx *context.Context) {
-		namespace := ctx.PathParam("namespace")
-		if err := tfmod.ValidateNamespace(namespace); err != nil {
-			apiError(ctx, http.StatusBadRequest, err)
-			return
-		}
-		owner, err := user_model.GetUserByName(ctx, namespace)
-		if err != nil {
-			if user_model.IsErrUserNotExist(err) {
-				apiError(ctx, http.StatusNotFound, err)
-			} else {
-				apiError(ctx, http.StatusInternalServerError, err)
-			}
-			return
-		}
-		ctx.ContextUser = owner
-		// PackageAssignment reads ctx.ContextUser, determines the access
-		// mode, and skips the version lookup because our routes do not
-		// carry the {type} path parameter it would otherwise use.
-		assignPackage(ctx)
-	}
 }
 
 // packageName encodes the registry tuple `{name}/{provider}` into the
@@ -97,12 +65,10 @@ func parsePackagePath(ctx *context.Context) (string, string, error) {
 	return name, provider, nil
 }
 
-// ListVersions implements:
-//
-//	GET :base/:namespace/:name/:provider/versions
-//
-// Response shape per the spec: an object with a single "modules" array
-// whose first element holds the "versions" array.
+// ListVersions implements GET :base/:username/:name/:provider/versions.
+// Response shape per protocol: a "modules" array whose first element
+// holds the "versions" array.
+// https://developer.hashicorp.com/terraform/internals/module-registry-protocol#list-available-versions-for-a-specific-module
 func ListVersions(ctx *context.Context) {
 	name, provider, err := parsePackagePath(ctx)
 	if err != nil {
@@ -146,14 +112,11 @@ func ListVersions(ctx *context.Context) {
 	ctx.JSON(http.StatusOK, resp)
 }
 
-// DownloadRedirect implements:
-//
-//	GET :base/:namespace/:name/:provider/:version/download
-//
-// Per spec, this returns 204 No Content with an X-Terraform-Get header
-// pointing at the archive. We keep the archive on the same authenticated
-// path so the credentials Terraform attached to the initial request are
-// reused.
+// DownloadRedirect implements GET :base/:username/:name/:provider/:version/download.
+// Per protocol it returns 204 with an X-Terraform-Get header pointing at
+// the archive, kept on the same authenticated path so Terraform reuses
+// the credentials from the initial request.
+// https://developer.hashicorp.com/terraform/internals/module-registry-protocol#download-source-code-for-a-specific-module-version
 func DownloadRedirect(ctx *context.Context) {
 	name, provider, err := parsePackagePath(ctx)
 	if err != nil {
@@ -175,12 +138,28 @@ func DownloadRedirect(ctx *context.Context) {
 		apiError(ctx, http.StatusInternalServerError, err)
 		return
 	}
-	_ = pv // existence is enough; the archive endpoint will re-resolve.
 
+	pd, err := packages_model.GetPackageDescriptor(ctx, pv)
+	if err != nil {
+		apiError(ctx, http.StatusInternalServerError, err)
+		return
+	}
+
+	// The archive has no file extension, so force the decompressor with
+	// ?archive=tar.gz. When the module is wrapped in a single top-level
+	// directory, append that directory as a go-getter `//subdir` so
+	// Terraform descends into it. We emit the exact directory name rather
+	// than the `//*` glob so a stray root-level file (e.g. LICENSE beside
+	// the wrapper) can't make the glob match more than one entry.
+	// See module-registry-protocol / go-getter.
+	subdir := ""
+	if md, ok := pd.Metadata.(*tfmod.Metadata); ok && md.ModuleDir != "" {
+		subdir = "//" + md.ModuleDir
+	}
 	archiveURL := fmt.Sprintf(
-		"%sapi/packages/-/terraform/modules/%s/%s/%s/%s/archive",
+		"%sapi/packages/-/terraform/modules/%s/%s/%s/%s/archive%s?archive=tar.gz",
 		setting.AppURL,
-		ctx.Package.Owner.Name, name, provider, v,
+		ctx.Package.Owner.Name, name, provider, v, subdir,
 	)
 	ctx.Resp.Header().Set("X-Terraform-Get", archiveURL)
 	ctx.Status(http.StatusNoContent)

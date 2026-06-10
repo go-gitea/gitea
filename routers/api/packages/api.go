@@ -128,12 +128,13 @@ func CommonRoutes() *web.Router {
 		&chef.Auth{},
 	}, verifyAuthOptions{})
 
-	// Terraform Module Registry — mounted under the `-` system prefix so
-	// {namespace} (first path param) maps directly to a Gitea user/org and
-	// the HashiCorp service-discovery URL stays host-level (no username in
-	// the base). See routers/api/packages/terraform_module/.
+	// Terraform Module Registry — mounted under the `-` system prefix so the
+	// HashiCorp service-discovery base URL stays host-level. The module
+	// namespace is the leading {username} path param, resolved by the same
+	// user/package middleware as every other registry.
+	// See routers/api/packages/terraform_module/.
 	r.Group("/-/terraform/modules", func() {
-		r.Group("/{namespace}/{name}/{provider}", func() {
+		r.Group("/{username}/{name}/{provider}", func() {
 			r.Get("/versions", tfmodule.ListVersions)
 			r.Get("/{version}/download", tfmodule.DownloadRedirect)
 			r.Get("/{version}/archive", tfmodule.DownloadArchive)
@@ -141,7 +142,7 @@ func CommonRoutes() *web.Router {
 				r.Put("", tfmodule.UploadModule)
 				r.Delete("", tfmodule.DeleteModule)
 			}, reqPackageAccess(perm.AccessModeWrite))
-		}, tfmodule.NamespaceAssignment(), reqPackageAccess(perm.AccessModeRead))
+		}, context.UserAssignmentWeb(), context.PackageAssignment(), reqPackageAccess(perm.AccessModeRead))
 	})
 
 	r.Group("/{username}", func() {

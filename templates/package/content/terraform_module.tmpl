@@ -1,17 +1,24 @@
 {{if eq .PackageDescriptor.Package.Type "terraform-module"}}
+	{{$nameProvider := StringUtils.Cut $.PackageDescriptor.Package.Name "/"}}
 	<h4 class="ui top attached header">{{ctx.Locale.Tr "packages.installation"}}</h4>
 	<div class="ui attached segment">
 		<div class="ui form">
 			<div class="field">
 				<label>{{svg "octicon-code"}} {{ctx.Locale.Tr "packages.terraform_module.install"}}</label>
-				<div class="markup"><pre class="code-block"><code>module "{{$.PackageDescriptor.Package.Name}}" {
-	source  = "{{ctx.AppFullLink}}/{{$.PackageDescriptor.Owner.Name}}/{{$.PackageDescriptor.Package.Name}}"
+				<div class="markup"><pre class="code-block"><code>module "{{index $nameProvider 0}}" {
+	source  = "{{ctx.AppHost}}/{{$.PackageDescriptor.Owner.Name}}/{{$.PackageDescriptor.Package.Name}}"
 	version = "{{$.PackageDescriptor.Version.Version}}"
 }</code></pre></div>
 			</div>
 			<div class="field">
+				<label>{{svg "octicon-code"}} {{ctx.Locale.Tr "packages.terraform_module.install_terragrunt"}}</label>
+				<div class="markup"><pre class="code-block"><code>terraform {
+	source = "tfr://{{ctx.AppHost}}/{{$.PackageDescriptor.Owner.Name}}/{{$.PackageDescriptor.Package.Name}}?version={{$.PackageDescriptor.Version.Version}}"
+}</code></pre></div>
+			</div>
+			<div class="field">
 				<label>{{svg "octicon-key"}} {{ctx.Locale.Tr "packages.terraform_module.credentials"}}</label>
-				<div class="markup"><pre class="code-block"><code>credentials "{{ctx.AppFullLink}}" {
+				<div class="markup"><pre class="code-block"><code>credentials "{{ctx.AppHost}}" {
 	token = "&lt;token&gt;"
 }</code></pre></div>
 			</div>

@@ -3643,6 +3643,7 @@
   "packages.terraform.delete.locked": "Terraform state is locked and cannot be deleted.",
   "packages.terraform.delete.latest": "The latest version of a Terraform state cannot be deleted.",
   "packages.terraform_module.install": "Add the module to your Terraform configuration:",
+  "packages.terraform_module.install_terragrunt": "Or add it to your Terragrunt configuration:",
   "packages.terraform_module.credentials": "Configure credentials for this registry in ~/.terraformrc:",
   "packages.terraform_module.latest": "Latest",
   "packages.terraform_module.inputs": "Inputs",

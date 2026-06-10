@@ -13,6 +13,7 @@ import (
 	"regexp"
 	"sort"
 	"strings"
+	"sync"
 
 	"github.com/hashicorp/hcl/v2/hclparse"
 	"github.com/hashicorp/hcl/v2/hclsyntax"
@@ -21,13 +22,13 @@ import (
 
 // Validation errors returned by the parser.
 var (
-	ErrInvalidNamespace    = errors.New("module namespace is invalid")
 	ErrInvalidName         = errors.New("module name is invalid")
 	ErrInvalidProvider     = errors.New("module provider is invalid")
 	ErrInvalidVersion      = errors.New("module version is invalid")
 	ErrArchiveTooLarge     = errors.New("module archive exceeds size limit")
 	ErrUnsafeArchivePath   = errors.New("module archive contains an unsafe file path")
-	ErrEmptyModule         = errors.New("module archive contains no terraform files")
+	ErrEmptyModule         = errors.New("module archive contains no .tf files at its root or in a single top-level directory; package the module so its .tf files are at the archive root (e.g. `tar -czf module.tgz *`) or wrapped in one directory")
+	ErrAmbiguousModuleRoot = errors.New("module archive has multiple top-level directories and no .tf files at its root; cannot determine the module root")
 	ErrUnsupportedTFFormat = errors.New("only .tf files are supported (.tf.json is not parsed in v1)")
 )
 
@@ -43,26 +44,22 @@ type Module struct {
 	Metadata *Metadata
 }
 
-// HashiCorp constrains namespace/name/provider to lowercase alphanumeric
-// plus underscores/dashes. See module-registry-protocol.
+// HashiCorp constrains module name and provider to lowercase alphanumeric
+// plus underscores/dashes. The namespace is a Gitea user/org and is
+// validated by the user lookup instead. See:
+// https://developer.hashicorp.com/terraform/internals/module-registry-protocol
 var (
-	namespaceRe = regexp.MustCompile(`\A[a-z0-9][a-z0-9_-]{0,63}\z`)
-	nameRe      = regexp.MustCompile(`\A[a-z0-9][a-z0-9_-]{0,63}\z`)
-	providerRe  = regexp.MustCompile(`\A[a-z0-9][a-z0-9-]{0,63}\z`)
+	nameRe = sync.OnceValue(func() *regexp.Regexp {
+		return regexp.MustCompile(`\A[a-z0-9][a-z0-9_-]{0,63}\z`)
+	})
+	providerRe = sync.OnceValue(func() *regexp.Regexp {
+		return regexp.MustCompile(`\A[a-z0-9][a-z0-9-]{0,63}\z`)
+	})
 )
-
-// ValidateNamespace returns ErrInvalidNamespace if s violates the
-// HashiCorp module-registry naming rules.
-func ValidateNamespace(s string) error {
-	if !namespaceRe.MatchString(s) {
-		return ErrInvalidNamespace
-	}
-	return nil
-}
 
 // ValidateName returns ErrInvalidName for non-conforming module names.
 func ValidateName(s string) error {
-	if !nameRe.MatchString(s) {
+	if !nameRe().MatchString(s) {
 		return ErrInvalidName
 	}
 	return nil
@@ -70,16 +67,29 @@ func ValidateName(s string) error {
 
 // ValidateProvider returns ErrInvalidProvider for non-conforming provider segments.
 func ValidateProvider(s string) error {
-	if !providerRe.MatchString(s) {
+	if !providerRe().MatchString(s) {
 		return ErrInvalidProvider
 	}
 	return nil
 }
 
-// ParseModuleArchive consumes a gzipped tar archive containing the
-// Terraform module sources at its root and returns the extracted
-// metadata. maxSize caps the total uncompressed bytes read; values <= 0
-// (e.g. an unlimited storage quota) or above maxParseSize are clamped to
+// dirFiles holds the parse-relevant files collected for a single
+// directory level of the archive (the root, or a top-level directory).
+type dirFiles struct {
+	tf     map[string][]byte // basename -> .tf source
+	readme string
+	tfJSON bool // a .tf.json was present (unsupported in v1)
+}
+
+// ParseModuleArchive consumes a gzipped tar archive and extracts the root
+// module's metadata. The module sources may sit either at the archive
+// root (`tar -czf module.tgz *`) or wrapped in a single top-level
+// directory (a GitHub release tarball, `git archive --prefix`, ...). The
+// detected layout is reported via Metadata.ModuleDir so the download
+// handler can serve the archive with the matching go-getter subdir.
+//
+// maxSize caps the total uncompressed bytes read; values <= 0 (e.g. an
+// unlimited storage quota) or above maxParseSize are clamped to
 // maxParseSize so a gzip bomb can never be fully buffered into memory.
 func ParseModuleArchive(r io.Reader, maxSize int64) (*Module, error) {
 	if maxSize <= 0 || maxSize > maxParseSize {
@@ -93,13 +103,61 @@ func ParseModuleArchive(r io.Reader, maxSize int64) (*Module, error) {
 	defer gz.Close()
 
 	var (
-		tr           = tar.NewReader(gz)
-		consumed     int64
-		hclFiles     = map[string][]byte{}
-		readme       string
-		hasAnyTFFile bool
-		hasAnyTFJSON bool
+		tr       = tar.NewReader(gz)
+		consumed int64
+		// byDir maps a directory level ("" for the archive root, or a
+		// top-level directory name) to its collected files.
+		byDir = map[string]*dirFiles{}
+		// topDirs is the set of distinct top-level directory names, used
+		// to detect the single-wrapper-directory layout.
+		topDirs = map[string]struct{}{}
 	)
+
+	dirEntry := func(dir string) *dirFiles {
+		df := byDir[dir]
+		if df == nil {
+			df = &dirFiles{tf: map[string][]byte{}}
+			byDir[dir] = df
+		}
+		return df
+	}
+
+	// handleFile reads .tf and README payloads for the given directory
+	// level and discards everything else, while always counting bytes
+	// against the size cap.
+	handleFile := func(dir, base string) error {
+		lower := strings.ToLower(base)
+		switch {
+		case strings.HasSuffix(lower, ".tf.json"):
+			n, err := skipCapped(tr, maxSize, consumed)
+			if err != nil {
+				return err
+			}
+			consumed += n
+			dirEntry(dir).tfJSON = true
+		case strings.HasSuffix(lower, ".tf"):
+			data, n, err := readCapped(tr, maxSize, consumed)
+			if err != nil {
+				return err
+			}
+			consumed += n
+			dirEntry(dir).tf[base] = data
+		case lower == "readme.md" || lower == "readme":
+			data, n, err := readCapped(tr, maxSize, consumed)
+			if err != nil {
+				return err
+			}
+			consumed += n
+			dirEntry(dir).readme = string(data)
+		default:
+			n, err := skipCapped(tr, maxSize, consumed)
+			if err != nil {
+				return err
+			}
+			consumed += n
+		}
+		return nil
+	}
 
 	for {
 		hdr, err := tr.Next()
@@ -115,45 +173,41 @@ func ParseModuleArchive(r io.Reader, maxSize int64) (*Module, error) {
 		if path.IsAbs(clean) || strings.HasPrefix(clean, "../") || clean == ".." {
 			return nil, ErrUnsafeArchivePath
 		}
+		if clean == "." || isArchiveJunk(clean) {
+			if hdr.Typeflag == tar.TypeReg {
+				n, err := skipCapped(tr, maxSize, consumed)
+				if err != nil {
+					return nil, err
+				}
+				consumed += n
+			}
+			continue
+		}
+
+		// Record top-level directories so we can spot a single wrapper dir.
+		if strings.Contains(clean, "/") {
+			topDirs[clean[:strings.IndexByte(clean, '/')]] = struct{}{}
+		} else if hdr.Typeflag == tar.TypeDir {
+			topDirs[clean] = struct{}{}
+		}
 
 		if hdr.Typeflag != tar.TypeReg {
 			continue
 		}
 
-		// Only consider files at the archive root (no submodule extraction in v1).
-		if strings.Contains(clean, "/") {
-			n, err := skipCapped(tr, maxSize, consumed)
-			if err != nil {
+		// Only the archive root (depth 0) and one level deep (depth 1,
+		// the wrapper directory) can hold the root module. Anything
+		// deeper is a submodule or example and is skipped in v1.
+		switch strings.Count(clean, "/") {
+		case 0:
+			if err := handleFile("", clean); err != nil {
 				return nil, err
 			}
-			consumed += n
-			continue
-		}
-
-		lower := strings.ToLower(clean)
-		switch {
-		case strings.HasSuffix(lower, ".tf.json"):
-			hasAnyTFJSON = true
-			n, err := skipCapped(tr, maxSize, consumed)
-			if err != nil {
+		case 1:
+			dir, base, _ := strings.Cut(clean, "/")
+			if err := handleFile(dir, base); err != nil {
 				return nil, err
 			}
-			consumed += n
-		case strings.HasSuffix(lower, ".tf"):
-			hasAnyTFFile = true
-			data, n, err := readCapped(tr, maxSize, consumed)
-			if err != nil {
-				return nil, err
-			}
-			consumed += n
-			hclFiles[clean] = data
-		case lower == "readme.md" || lower == "readme":
-			data, n, err := readCapped(tr, maxSize, consumed)
-			if err != nil {
-				return nil, err
-			}
-			consumed += n
-			readme = string(data)
 		default:
 			n, err := skipCapped(tr, maxSize, consumed)
 			if err != nil {
@@ -163,14 +217,12 @@ func ParseModuleArchive(r io.Reader, maxSize int64) (*Module, error) {
 		}
 	}
 
-	if !hasAnyTFFile {
-		if hasAnyTFJSON {
-			return nil, ErrUnsupportedTFFormat
-		}
-		return nil, ErrEmptyModule
+	moduleDir, df, err := selectModuleRoot(byDir, topDirs)
+	if err != nil {
+		return nil, err
 	}
 
-	root, description, err := parseRoot(hclFiles)
+	root, description, err := parseRoot(df.tf)
 	if err != nil {
 		return nil, err
 	}
@@ -178,11 +230,59 @@ func ParseModuleArchive(r io.Reader, maxSize int64) (*Module, error) {
 	return &Module{
 		Metadata: &Metadata{
 			Description: description,
-			Readme:      readme,
+			Readme:      df.readme,
 			Root:        root,
 			Providers:   root.Providers,
+			ModuleDir:   moduleDir,
 		},
 	}, nil
+}
+
+// selectModuleRoot picks the directory level that holds the root module.
+// Root-level .tf files win (flat layout); otherwise a single top-level
+// directory containing .tf files is the module root (wrapped layout).
+func selectModuleRoot(byDir map[string]*dirFiles, topDirs map[string]struct{}) (string, *dirFiles, error) {
+	if df := byDir[""]; df != nil && len(df.tf) > 0 {
+		return "", df, nil
+	}
+	if len(topDirs) == 1 {
+		var only string
+		for d := range topDirs {
+			only = d
+		}
+		if df := byDir[only]; df != nil && len(df.tf) > 0 {
+			return only, df, nil
+		}
+		if df := byDir[only]; df != nil && df.tfJSON {
+			return "", nil, ErrUnsupportedTFFormat
+		}
+		return "", nil, ErrEmptyModule
+	}
+	// No usable .tf at the root or in a single wrapper directory.
+	if df := byDir[""]; df != nil && df.tfJSON {
+		return "", nil, ErrUnsupportedTFFormat
+	}
+	if len(topDirs) > 1 {
+		return "", nil, ErrAmbiguousModuleRoot
+	}
+	return "", nil, ErrEmptyModule
+}
+
+// isArchiveJunk reports whether a cleaned path is packaging cruft that
+// must never be treated as module source: macOS AppleDouble sidecars
+// (`._foo`) and `__MACOSX/` entries, plus VCS/state directories that
+// release tooling sometimes leaks (`.git/`, `.terraform/`).
+func isArchiveJunk(clean string) bool {
+	if strings.HasPrefix(path.Base(clean), "._") {
+		return true
+	}
+	for comp := range strings.SplitSeq(clean, "/") {
+		switch comp {
+		case "__MACOSX", ".git", ".terraform":
+			return true
+		}
+	}
+	return false
 }
 
 // readCapped reads the current tar entry into memory and rejects once

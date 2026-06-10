@@ -91,6 +91,7 @@ module "subnets" {
 	require.NotNil(t, mod)
 	require.NotNil(t, mod.Metadata)
 	assert.Equal(t, "# example\n", mod.Metadata.Readme)
+	assert.Empty(t, mod.Metadata.ModuleDir, "flat archive: module sits at the root")
 
 	root := mod.Metadata.Root
 	require.NotNil(t, root)
@@ -127,6 +128,80 @@ module "subnets" {
 
 	require.Len(t, root.RequiredCore, 1)
 	assert.Equal(t, ">= 1.5.0", root.RequiredCore[0])
+}
+
+func TestParseModuleArchive_WrappedSingleDir(t *testing.T) {
+	// A GitHub-style release tarball wraps the whole module in one
+	// top-level directory. The parser must descend into it and report the
+	// directory via ModuleDir so the download handler can append `//*`.
+	archive := buildArchive(t, map[string]string{
+		"mod-1.0.0/main.tf":                `variable "region" { type = string }`,
+		"mod-1.0.0/README.md":              "# wrapped\n",
+		"mod-1.0.0/examples/basic/main.tf": `variable "ignored" { type = string }`,
+	}, "mod-1.0.0/", "mod-1.0.0/examples/", "mod-1.0.0/examples/basic/")
+
+	mod, err := ParseModuleArchive(bytes.NewReader(archive), 1<<20)
+	require.NoError(t, err)
+	require.NotNil(t, mod.Metadata.Root)
+	assert.Equal(t, "mod-1.0.0", mod.Metadata.ModuleDir)
+	assert.Equal(t, "# wrapped\n", mod.Metadata.Readme)
+	require.Len(t, mod.Metadata.Root.Inputs, 1)
+	assert.Equal(t, "region", mod.Metadata.Root.Inputs[0].Name)
+}
+
+func TestParseModuleArchive_IgnoresAppleDoubleJunk(t *testing.T) {
+	// macOS tar emits `._foo` AppleDouble sidecars and a `__MACOSX/` tree.
+	// `._main.tf` would crash the HCL parser if not filtered out.
+	archive := buildArchive(t, map[string]string{
+		"main.tf":            `variable "x" { type = string }`,
+		"._main.tf":          "\x00\x05\x16\x07garbage",
+		"._README.md":        "\x00garbage",
+		"__MACOSX/._main.tf": "\x00garbage",
+	}, "__MACOSX/")
+
+	mod, err := ParseModuleArchive(bytes.NewReader(archive), 1<<20)
+	require.NoError(t, err)
+	assert.Empty(t, mod.Metadata.ModuleDir)
+	require.Len(t, mod.Metadata.Root.Inputs, 1)
+	assert.Equal(t, "x", mod.Metadata.Root.Inputs[0].Name)
+}
+
+func TestParseModuleArchive_FlatWinsOverSubdir(t *testing.T) {
+	// Root-level .tf files take precedence: a sibling examples/ directory
+	// must not be mistaken for the module root.
+	archive := buildArchive(t, map[string]string{
+		"main.tf":              `variable "x" { type = string }`,
+		"examples/basic/ex.tf": `variable "y" { type = string }`,
+	}, "examples/", "examples/basic/")
+
+	mod, err := ParseModuleArchive(bytes.NewReader(archive), 1<<20)
+	require.NoError(t, err)
+	assert.Empty(t, mod.Metadata.ModuleDir)
+	require.Len(t, mod.Metadata.Root.Inputs, 1)
+	assert.Equal(t, "x", mod.Metadata.Root.Inputs[0].Name)
+}
+
+func TestParseModuleArchive_AmbiguousTopLevelDirs(t *testing.T) {
+	// No root .tf and more than one top-level directory: the module root
+	// is undeterminable and must be rejected, not guessed.
+	archive := buildArchive(t, map[string]string{
+		"a/main.tf": `variable "x" { type = string }`,
+		"b/main.tf": `variable "y" { type = string }`,
+	}, "a/", "b/")
+
+	_, err := ParseModuleArchive(bytes.NewReader(archive), 1<<20)
+	require.ErrorIs(t, err, ErrAmbiguousModuleRoot)
+}
+
+func TestParseModuleArchive_WrappedTFJSONOnly(t *testing.T) {
+	// A wrapped module whose only sources are .tf.json must surface the
+	// unsupported-format error, just like the flat case.
+	archive := buildArchive(t, map[string]string{
+		"mod/main.tf.json": `{"variable": {"x": [{"type": "string"}]}}`,
+	}, "mod/")
+
+	_, err := ParseModuleArchive(bytes.NewReader(archive), 1<<20)
+	require.ErrorIs(t, err, ErrUnsupportedTFFormat)
 }
 
 func TestParseModuleArchive_RejectsTraversal(t *testing.T) {
@@ -209,19 +284,17 @@ func TestParseModuleArchive_MalformedHCL(t *testing.T) {
 	}
 }
 
-func TestValidateNamespaceNameProvider(t *testing.T) {
+func TestValidateNameProvider(t *testing.T) {
 	cases := []struct {
 		fn   func(string) error
 		in   string
 		want error
 	}{
-		{ValidateNamespace, "acme", nil},
-		{ValidateNamespace, "acme_corp", nil},
-		{ValidateNamespace, "ACME", ErrInvalidNamespace},
-		{ValidateNamespace, "", ErrInvalidNamespace},
 		{ValidateName, "vpc", nil},
 		{ValidateName, "vpc-prod", nil},
 		{ValidateName, "vpc/sub", ErrInvalidName},
+		{ValidateName, "", ErrInvalidName},
+		{ValidateName, "VPC", ErrInvalidName},
 		{ValidateProvider, "aws", nil},
 		{ValidateProvider, "AWS", ErrInvalidProvider},
 		{ValidateProvider, "aws_legacy", ErrInvalidProvider}, // providers reject underscores

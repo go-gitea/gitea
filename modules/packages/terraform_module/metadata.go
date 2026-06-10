@@ -13,6 +13,13 @@ type Metadata struct {
 	Root        *Root                  `json:"root,omitempty"`
 	Source      string                 `json:"source,omitempty"`
 	Providers   []*ProviderRequirement `json:"providers,omitempty"`
+	// ModuleDir is the directory inside the archive that holds the root
+	// module. Empty means the .tf files sit at the archive root; a
+	// non-empty value means they are wrapped in a single top-level
+	// directory (e.g. a GitHub release tarball). The download handler
+	// uses this to decide whether to append the go-getter `//*` subdir
+	// glob to the X-Terraform-Get header.
+	ModuleDir string `json:"module_dir,omitempty"`
 }
 
 // Root describes the root module contents extracted from the archive.

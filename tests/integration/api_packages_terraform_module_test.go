@@ -195,9 +195,35 @@ func TestPackageTerraformModule(t *testing.T) {
 		resp := MakeRequest(t, req, http.StatusNoContent)
 		got := resp.Header().Get("X-Terraform-Get")
 		require.NotEmpty(t, got)
+		// Flat archive: bare archive URL with the forced decompressor and
+		// no subdir glob. ?archive=tar.gz is required because the URL has
+		// no file extension for go-getter to sniff.
 		assert.True(t, strings.HasSuffix(got,
-			fmt.Sprintf("/api/packages/-/terraform/modules/%s/%s/%s/%s/archive", user.Name, name, provider, version)),
+			fmt.Sprintf("/api/packages/-/terraform/modules/%s/%s/%s/%s/archive?archive=tar.gz", user.Name, name, provider, version)),
 			"X-Terraform-Get should point at the archive endpoint, got %q", got)
+	})
+
+	t.Run("Download_XTerraformGet_Wrapped", func(t *testing.T) {
+		// A module wrapped in a single top-level directory (GitHub-style
+		// tarball) must be served with the go-getter `//*` subdir glob so
+		// terraform init descends into it.
+		wrapped := buildTFModuleArchive(t, map[string]string{
+			"mymod-1.0.0/main.tf":   `variable "x" { type = string }`,
+			"mymod-1.0.0/README.md": "# wrapped\n",
+		})
+		wbase := fmt.Sprintf("/api/packages/-/terraform/modules/%s/wrapped/aws", user.Name)
+		req := NewRequestWithBody(t, "PUT", wbase+"/1.0.0", bytes.NewReader(wrapped)).AddBasicAuth(user.Name)
+		MakeRequest(t, req, http.StatusCreated)
+		t.Cleanup(func() {
+			req := NewRequest(t, "DELETE", wbase+"/1.0.0").AddBasicAuth(user.Name)
+			MakeRequest(t, req, http.StatusNoContent)
+		})
+
+		req = NewRequest(t, "GET", wbase+"/1.0.0/download").AddBasicAuth(user.Name)
+		resp := MakeRequest(t, req, http.StatusNoContent)
+		got := resp.Header().Get("X-Terraform-Get")
+		assert.True(t, strings.HasSuffix(got, "/archive//mymod-1.0.0?archive=tar.gz"),
+			"wrapped module should get the exact wrapper dir as subdir, got %q", got)
 	})
 
 	t.Run("Download_Archive", func(t *testing.T) {
