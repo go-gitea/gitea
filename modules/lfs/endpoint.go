@@ -67,8 +67,8 @@ func endpointFromURL(rawurl string) *url.URL {
 		u.Scheme = "https"
 		return u
 	case "ssh", "git+ssh":
-		u.Scheme = "https"
-		u.Host = util.IfZero(u.Hostname(), u.Host)
+		u.Scheme = "https"    // is it possible http?
+		u.Host = u.Hostname() // remove ssh port if any
 		u.Path = "/" + strings.TrimPrefix(u.Path, "/")
 		u.User = nil
 		return u
