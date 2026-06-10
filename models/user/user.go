@@ -1148,14 +1148,7 @@ func GetUsersBySource(ctx context.Context, s *auth.Source) ([]*User, error) {
 	return users, err
 }
 
-// UserCommit represents a commit with validation of user.
-type UserCommit struct { //revive:disable-line:exported
-	User *User
-	*git.Commit
-}
-
-// ValidateCommitWithEmail check if author's e-mail of commit is corresponding to a user.
-func ValidateCommitWithEmail(ctx context.Context, c *git.Commit) *User {
+func GetUserByGitAuthor(ctx context.Context, c *git.Commit) *User {
 	if c.Author == nil {
 		return nil
 	}
@@ -1164,33 +1157,6 @@ func ValidateCommitWithEmail(ctx context.Context, c *git.Commit) *User {
 		return nil
 	}
 	return u
-}
-
-// ValidateCommitsWithEmails checks if authors' e-mails of commits are corresponding to users.
-func ValidateCommitsWithEmails(ctx context.Context, oldCommits []*git.Commit) ([]*UserCommit, error) {
-	var (
-		newCommits = make([]*UserCommit, 0, len(oldCommits))
-		emailSet   = make(container.Set[string])
-	)
-	for _, c := range oldCommits {
-		if c.Author != nil {
-			emailSet.Add(c.Author.Email)
-		}
-	}
-
-	emailUserMap, err := GetUsersByEmails(ctx, emailSet.Values())
-	if err != nil {
-		return nil, err
-	}
-
-	for _, c := range oldCommits {
-		user := emailUserMap.GetByEmail(c.Author.Email) // FIXME: why ValidateCommitsWithEmails uses "Author", but ParseCommitsWithSignature uses "Committer"?
-		newCommits = append(newCommits, &UserCommit{
-			User:   user,
-			Commit: c,
-		})
-	}
-	return newCommits, nil
 }
 
 type EmailUserMap struct {
@@ -1203,7 +1169,7 @@ func (eum *EmailUserMap) GetByEmail(email string) *User {
 
 func GetUsersByEmails(ctx context.Context, emails []string) (*EmailUserMap, error) {
 	if len(emails) == 0 {
-		return nil, nil //nolint:nilnil // return nil when there are no emails to look up
+		return &EmailUserMap{}, nil
 	}
 
 	needCheckEmails := make(container.Set[string])

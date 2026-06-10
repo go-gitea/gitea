@@ -151,7 +151,7 @@ func repoAssignment() func(ctx *context.APIContext) {
 					if redirectUserID, err := user_model.LookupUserRedirect(ctx, userName); err == nil {
 						context.RedirectToUser(ctx.Base, ctx.Doer, userName, redirectUserID)
 					} else if user_model.IsErrUserRedirectNotExist(err) {
-						ctx.APIErrorNotFound("GetUserByName", err)
+						ctx.APIErrorNotFound()
 					} else {
 						ctx.APIErrorInternal(err)
 					}
@@ -626,7 +626,7 @@ func orgAssignment(args ...bool) func(ctx *context.APIContext) {
 					if err == nil {
 						context.RedirectToUser(ctx.Base, ctx.Doer, ctx.PathParam("org"), redirectUserID)
 					} else if user_model.IsErrUserRedirectNotExist(err) {
-						ctx.APIErrorNotFound("GetOrgByName", err)
+						ctx.APIErrorNotFound()
 					} else {
 						ctx.APIErrorInternal(err)
 					}
@@ -862,12 +862,12 @@ func individualPermsChecker(ctx *context.APIContext) {
 		switch ctx.ContextUser.Visibility {
 		case api.VisibleTypePrivate:
 			if ctx.Doer == nil || (ctx.ContextUser.ID != ctx.Doer.ID && !ctx.Doer.IsAdmin) {
-				ctx.APIErrorNotFound("Visit Project", nil)
+				ctx.APIErrorNotFound()
 				return
 			}
 		case api.VisibleTypeLimited:
 			if ctx.Doer == nil {
-				ctx.APIErrorNotFound("Visit Project", nil)
+				ctx.APIErrorNotFound()
 				return
 			}
 		}
@@ -1226,6 +1226,7 @@ func Routes() *web.Router {
 					})
 				}, reqToken())
 				m.Get("/assignees", reqToken(), reqAnyRepoReader(), repo.GetAssignees)
+				m.Get("/assignees/{assignee}", reqToken(), reqAnyRepoReader(), repo.CheckRepoIssueAssignee)
 				m.Get("/reviewers", reqToken(), reqAnyRepoReader(), repo.GetReviewers)
 				m.Group("/teams", func() {
 					m.Get("", reqAnyRepoReader(), repo.ListTeams)
@@ -1517,6 +1518,10 @@ func Routes() *web.Router {
 						m.Combo("").Get(repo.GetIssue).
 							Patch(reqToken(), bind(api.EditIssueOption{}), repo.EditIssue).
 							Delete(reqToken(), reqAdmin(), context.ReferencesGitRepo(), repo.DeleteIssue)
+						m.Combo("/assignees").
+							Post(reqToken(), mustNotBeArchived, bind(api.IssueAssigneesOption{}), repo.AddIssueAssignees).
+							Delete(reqToken(), mustNotBeArchived, bind(api.IssueAssigneesOption{}), repo.DeleteIssueAssignees)
+						m.Get("/assignees/{assignee}", repo.CheckIssueAssignee)
 						m.Group("/comments", func() {
 							m.Combo("").Get(repo.ListIssueComments).
 								Post(reqToken(), mustNotBeArchived, bind(api.CreateIssueCommentOption{}), repo.CreateIssueComment)
