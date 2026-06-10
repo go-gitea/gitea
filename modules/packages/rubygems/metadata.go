@@ -8,7 +8,6 @@ import (
 	"compress/gzip"
 	"io"
 	"regexp"
-	"strings"
 	"sync"
 
 	"gitea.dev/modules/util"
@@ -25,6 +24,11 @@ var (
 	// ErrInvalidVersion indicates an invalid version in the metadata.gz file
 	ErrInvalidVersion = util.NewInvalidArgumentErrorf("package version is invalid")
 )
+
+// https://github.com/rubygems/rubygems/blob/master/lib/rubygems/specification.rb (VALID_NAME_PATTERN)
+var nameMatcher = sync.OnceValue(func() *regexp.Regexp {
+	return regexp.MustCompile(`\A[a-zA-Z0-9._-]+\z`)
+})
 
 var versionMatcher = sync.OnceValue(func() *regexp.Regexp {
 	return regexp.MustCompile(`\A[0-9]+(?:\.[0-9a-zA-Z]+)*(?:-[0-9A-Za-z-]+(?:\.[0-9A-Za-z-]+)*)?\z`)
@@ -175,7 +179,7 @@ func parseMetadataFile(r io.Reader) (*Package, error) {
 		return nil, err
 	}
 
-	if len(spec.Name) == 0 || strings.Contains(spec.Name, "/") {
+	if !nameMatcher().MatchString(spec.Name) {
 		return nil, ErrInvalidName
 	}
 
