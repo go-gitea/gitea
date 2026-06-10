@@ -64,6 +64,11 @@ jobs:
               - ".golangci.yml"
               - ".editorconfig"
               - "options/locale/locale_en-US.json"
+              - "models/fixtures/**"
+              - "tests/*.ini.tmpl"
+              - "tests/gitea-repositories-meta/**"
+              - "tests/testdata/**"
+              - "tools/test-integration.sh"
 
             frontend:
               - "*.ts"
