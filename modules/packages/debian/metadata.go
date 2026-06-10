@@ -146,14 +146,25 @@ func ParseControlFile(r io.Reader) (*Package, error) {
 	var depends strings.Builder
 	var control strings.Builder
 
-	s := bufio.NewScanner(io.TeeReader(r, &control))
+	// https://www.debian.org/doc/debian-policy/ch-controlfields.html#syntax-of-control-files
+	s := bufio.NewScanner(r)
 	for s.Scan() {
 		line := s.Text()
 
 		trimmed := strings.TrimSpace(line)
 		if trimmed == "" {
-			continue
+			// A binary package control file holds exactly one stanza. Stop at the
+			// blank line that terminates it, otherwise a crafted control file could
+			// smuggle additional stanzas (with attacker-chosen Filename/Package
+			// fields) into the generated repository "Packages" index.
+			if control.Len() == 0 {
+				continue
+			}
+			break
 		}
+
+		control.WriteString(line)
+		control.WriteByte('\n')
 
 		if line[0] == ' ' || line[0] == '\t' {
 			switch key {
