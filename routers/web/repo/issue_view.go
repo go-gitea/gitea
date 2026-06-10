@@ -525,10 +525,7 @@ func (prInfo *pullRequestViewInfo) prepareMergeBoxCommitSigning(ctx *context.Con
 	}
 
 	if data.requireSigned && !data.willSign {
-		data.infoProtectionBlockers.AddErrorItem(
-			svg.RenderHTML("octicon-x"),
-			ctx.Locale.Tr("repo.pulls.require_signed_wont_sign"),
-		)
+		data.infoProtectionBlockers.AddErrorItem(ctx.Locale.Tr("repo.pulls.require_signed_wont_sign"))
 		if wontSignReason != "" {
 			data.infoProtectionBlockers.AddInfoItem(
 				svg.RenderHTML("octicon-unlock"),
@@ -1053,29 +1050,28 @@ func (prInfo *pullRequestViewInfo) prepareMergeBoxProtectedRules(ctx *context.Co
 		if pb.EnableApprovalsWhitelist {
 			blockerInfo = ctx.Locale.Tr("repo.pulls.blocked_by_approvals_whitelisted", grantedApprovals, pb.RequiredApprovals)
 		}
-		data.infoProtectionBlockers.AddErrorItem(svg.RenderHTML("octicon-x"), blockerInfo)
+		data.infoProtectionBlockers.AddErrorItem(blockerInfo)
 	}
 
 	data.isBlockedByRejection = issues_model.MergeBlockedByRejectedReview(ctx, pb, pull)
 	if data.isBlockedByRejection {
-		data.infoProtectionBlockers.AddErrorItem(svg.RenderHTML("octicon-x"), ctx.Locale.Tr("repo.pulls.blocked_by_rejection"))
+		data.infoProtectionBlockers.AddErrorItem(ctx.Locale.Tr("repo.pulls.blocked_by_rejection"))
 	}
 
 	data.isBlockedByOfficialReviewRequests = issues_model.MergeBlockedByOfficialReviewRequests(ctx, pb, pull)
 	if data.isBlockedByOfficialReviewRequests {
-		data.infoProtectionBlockers.AddErrorItem(svg.RenderHTML("octicon-x"), ctx.Locale.Tr("repo.pulls.blocked_by_official_review_requests"))
+		data.infoProtectionBlockers.AddErrorItem(ctx.Locale.Tr("repo.pulls.blocked_by_official_review_requests"))
 	}
 
 	data.isBlockedByOutdatedBranch = issues_model.MergeBlockedByOutdatedBranch(pb, pull)
 	if data.isBlockedByOutdatedBranch {
-		data.infoProtectionBlockers.AddErrorItem(svg.RenderHTML("octicon-x"), ctx.Locale.Tr("repo.pulls.blocked_by_outdated_branch"))
+		data.infoProtectionBlockers.AddErrorItem(ctx.Locale.Tr("repo.pulls.blocked_by_outdated_branch"))
 	}
 
 	data.isBlockedByChangedProtectedFiles = len(pull.ChangedProtectedFiles) != 0
 	if data.isBlockedByChangedProtectedFiles {
 		detailItems := escapeStringSliceToHTML(pull.ChangedProtectedFiles)
 		data.infoProtectionBlockers.AddErrorItem(
-			svg.RenderHTML("octicon-x"),
 			ctx.Locale.TrN(len(pull.ChangedProtectedFiles), "repo.pulls.blocked_by_changed_protected_files_1", "repo.pulls.blocked_by_changed_protected_files_n"),
 			detailItems,
 		)
