@@ -100,12 +100,12 @@ func TestExternalMarkupRenderer(t *testing.T) {
 				assert.Equal(t, "(non-existing)", iframe.AttrOr("sandbox", "(non-existing)"))
 				assert.Equal(t, "/user2/repo1/render/branch/master/test.html", iframe.AttrOr("data-src", ""))
 			})
-			t.Run("SubPage", func(t *testing.T) {
+			t.Run("FramePage", func(t *testing.T) {
 				req = NewRequest(t, "GET", "/user2/repo1/render/branch/master/test.html")
 				respSub := MakeRequest(t, req, http.StatusOK)
 				assert.Equal(t, "text/html; charset=utf-8", respSub.Header().Get("Content-Type"))
 
-				// default sandbox in sub-page response
+				// default sandbox in sub-page response (there should be no "allow-same-origin")
 				assert.Equal(t, "sandbox allow-scripts allow-forms allow-modals allow-popups allow-downloads", respSub.Header().Get("Content-Security-Policy"))
 				// FIXME: actually here is a bug (legacy design problem), the "PostProcess" will escape "<script>" tag, but it indeed is the sanitizer's job
 				assert.Equal(t,
@@ -127,9 +127,7 @@ func TestExternalMarkupRenderer(t *testing.T) {
 				req = NewRequest(t, "GET", "/user2/repo1/render/branch/master/bin.no-sanitizer")
 				respSub := MakeRequest(t, req, http.StatusOK)
 				assert.Equal(t, binaryContent, respSub.Body.String()) // raw content should keep the raw bytes (including invalid UTF-8 bytes), and no "external-render-iframe" helpers
-
-				// no sandbox (disabled by RENDER_CONTENT_SANDBOX)
-				assert.Empty(t, respSub.Header().Get("Content-Security-Policy"))
+				assert.Empty(t, respSub.Header().Get("Content-Security-Policy"), "sandbox is disabled by RENDER_CONTENT_SANDBOX")
 			})
 
 			t.Run("HTMLContentWithExternalRenderIframeHelper", func(t *testing.T) {

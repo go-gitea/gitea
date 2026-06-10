@@ -10,14 +10,11 @@ import (
 )
 
 func TestLoadSecurityFrom(t *testing.T) {
-	cfg, err := NewConfigProviderFromData(`
-[security]
+	cfg, err := NewConfigProviderFromData(`[security]
 X_FRAME_OPTIONS = DENY
 X_CONTENT_TYPE_OPTIONS = unset
-CONTENT_SECURITY_POLICY_GENERAL = "script-src *; foo"
-`)
+CONTENT_SECURITY_POLICY_GENERAL = "script-src *; foo"`)
 	assert.NoError(t, err)
-
 	loadSecurityFrom(cfg)
 	assert.Equal(t, "DENY", Security.XFrameOptions)
 	assert.Equal(t, "unset", Security.XContentTypeOptions)

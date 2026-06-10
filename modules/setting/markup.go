@@ -237,7 +237,8 @@ func fileExtensionsToPatterns(sectionName string, extensions []string) []string 
 	return patterns
 }
 
-// MarkupRenderDefaultSandbox is used to protect users from XSS attack, DO NOT USE "allow-same-origin" by default
+// MarkupRenderDefaultSandbox only contains a safe set of "sandbox allow" values, it is used to protect users from XSS attack,
+// DO NOT USE "allow-same-origin" by default: if there is XSS in rendered content, same-origin makes the frame page can access parent window and send requests with user's credentials.
 const MarkupRenderDefaultSandbox = "allow-scripts allow-forms allow-modals allow-popups allow-downloads"
 
 func newMarkupRenderer(name string, sec ConfigSection) {
@@ -272,8 +273,6 @@ func newMarkupRenderer(name string, sec ConfigSection) {
 		renderContentMode = RenderContentModeSanitized
 	}
 
-	// ATTENTION! at the moment, only a safe set like "allow-scripts" are allowed for sandbox mode.
-	// "allow-same-origin" should NEVER be used, it leads to XSS attack: makes the JS in iframe can access parent window's config and send requests with user's credentials.
 	renderContentSandbox := sec.Key("RENDER_CONTENT_SANDBOX").MustString(MarkupRenderDefaultSandbox)
 	if renderContentSandbox == "disabled" {
 		renderContentSandbox = ""
