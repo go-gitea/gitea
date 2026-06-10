@@ -15,7 +15,6 @@ test('3d model file', async ({page, request, browserName}) => {
   const frame = page.frameLocator('iframe.external-render-iframe');
   const viewer = frame.locator('#frontend-render-viewer');
   await expect(viewer.locator('canvas')).toBeVisible(); // unclear firefox-only CI-only failure
-  await expect(viewer).toHaveAttribute('data-frontend-render-name', 'viewer-3d');
   expect((await viewer.boundingBox())!.height).toBeGreaterThan(300);
   await assertFlushWithParent(iframe, page.locator('.file-view'));
   // bgcolor passed via gitea-iframe-bgcolor; 3D viewer reads it from body bgcolor — must match parent

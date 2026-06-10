@@ -198,7 +198,7 @@ func Render(rctx *RenderContext, origInput io.Reader, output io.Writer) error {
 	return RenderWithRenderer(rctx, renderer, input, output)
 }
 
-func RenderIFrame(ctx *RenderContext, opts *ExternalRendererOptions, input io.Reader, output io.Writer) error {
+func RenderIFrame(ctx *RenderContext, opts *ExternalRendererOptions, output io.Writer) error {
 	ownerName, repoName := ctx.RenderOptions.Metas["user"], ctx.RenderOptions.Metas["repo"]
 	refSubURL := ctx.RenderOptions.Metas["RefTypeNameSubURL"]
 	if ownerName == "" || repoName == "" || refSubURL == "" {
@@ -216,10 +216,7 @@ func RenderIFrame(ctx *RenderContext, opts *ExternalRendererOptions, input io.Re
 	// otherwise the "render link" direct access can still cause XSS without iframe.
 	// So here we do not need to set sandbox attribute on the iframe.
 	_, err := htmlutil.HTMLPrintf(output, `<iframe data-src="%s" data-global-init="initExternalRenderIframe" class="external-render-iframe"></iframe>`, src)
-	if err != nil {
-		return err
-	}
-	return nil
+	return err
 }
 
 func pipes() (io.ReadCloser, io.WriteCloser, func()) {
@@ -243,7 +240,7 @@ func RenderWithRenderer(ctx *RenderContext, renderer Renderer, input io.Reader, 
 		if ctx.RenderOptions.StandalonePageOptions == nil {
 			// for an external "DisplayInIFrame" render, it could only output its content in a standalone page
 			// otherwise, a <iframe> should be outputted to embed the external rendered page
-			return RenderIFrame(ctx, &extOpts, input, output)
+			return RenderIFrame(ctx, &extOpts, output)
 		}
 		// else: this is a standalone page, fallthrough to the real rendering, and add extra JS/CSS
 		extraScriptSrc := public.AssetURI("web_src/js/external-render-helper.ts")

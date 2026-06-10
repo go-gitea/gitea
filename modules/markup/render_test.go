@@ -4,7 +4,6 @@
 package markup
 
 import (
-	"bytes"
 	"strings"
 	"testing"
 
@@ -15,7 +14,7 @@ import (
 func TestRenderIFrame(t *testing.T) {
 	render := func(ctx *RenderContext, opts ExternalRendererOptions) string {
 		sb := &strings.Builder{}
-		require.NoError(t, RenderIFrame(ctx, &opts, bytes.NewReader(nil), sb))
+		require.NoError(t, RenderIFrame(ctx, &opts, sb))
 		return sb.String()
 	}
 

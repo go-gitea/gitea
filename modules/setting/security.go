@@ -19,7 +19,7 @@ var Security = struct {
 	XFrameOptions       string
 	XContentTypeOptions string
 
-	ContentSecurityPolicyGeneral string // it only supports empty (default policy) or "unset"
+	ContentSecurityPolicyGeneral string // it only supports empty (default policy) or "unset", maybe it can support more in the future
 }{
 	XFrameOptions:       "SAMEORIGIN",
 	XContentTypeOptions: "nosniff",

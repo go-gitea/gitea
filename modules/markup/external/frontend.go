@@ -63,17 +63,19 @@ func (p *frontendRenderer) Render(ctx *markup.RenderContext, input io.Reader, ou
 	if ctx.RenderOptions.StandalonePageOptions == nil {
 		return errors.New("should only be rendered in standalone page")
 	}
+
 	content, err := util.ReadWithLimit(input, int(setting.UI.MaxDisplayFileSize))
 	if err != nil {
 		return err
 	}
+
 	contentEncoding, contentString := "text", util.UnsafeBytesToString(content)
 	if !utf8.Valid(content) {
 		contentEncoding = "base64"
 		contentString = base64.StdEncoding.EncodeToString(content)
 	}
 
-	_, _ = htmlutil.HTMLPrintf(output,
+	_, err = htmlutil.HTMLPrintf(output,
 		`<!DOCTYPE html>
 <html>
 <head>
@@ -89,5 +91,5 @@ func (p *frontendRenderer) Render(ctx *markup.RenderContext, input io.Reader, ou
 		p.name, ctx.RenderOptions.RelativePath,
 		contentEncoding, contentString,
 		public.AssetURI("web_src/js/external-render-frontend.ts"))
-	return nil
+	return err
 }

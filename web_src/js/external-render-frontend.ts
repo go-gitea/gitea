@@ -66,8 +66,7 @@ async function initFrontendExternalRender() {
   } else if (!rendered) {
     viewerContainer.textContent = `Failed to render by ${renderName}`;
   } else {
-    // save the render name which succeeds to render, mainly for testing purpose
-    viewerContainer.setAttribute('data-frontend-render-name', renderName);
+    viewerContainer.setAttribute('data-frontend-render-name', renderName); // succeeded render, mainly for testing purpose
   }
 }
 
