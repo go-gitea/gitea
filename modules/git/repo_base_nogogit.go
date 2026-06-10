@@ -23,9 +23,10 @@ type Repository struct {
 
 	tagCache *ObjectCache[*Tag]
 
-	mu                 sync.Mutex
-	catFileBatchCloser CatFileBatchCloser
-	catFileBatchInUse  bool
+	mu                    sync.Mutex
+	catFileBatchCloser    CatFileBatchCloser
+	catFileBatchInUse     bool
+	tempCatFileBatchStore map[CatFileBatchCloser]struct{}
 
 	Ctx             context.Context
 	LastCommitCache *LastCommitCache
@@ -82,7 +83,21 @@ func (repo *Repository) CatFileBatch(ctx context.Context) (_ CatFileBatch, close
 	if err != nil {
 		return nil, nil, err
 	}
-	return tempBatch, tempBatch.Close, nil
+	if repo.tempCatFileBatchStore == nil {
+		repo.tempCatFileBatchStore = make(map[CatFileBatchCloser]struct{})
+	}
+	repo.tempCatFileBatchStore[tempBatch] = struct{}{}
+	return tempBatch, func() {
+		repo.mu.Lock()
+		_, ok := repo.tempCatFileBatchStore[tempBatch]
+		if ok {
+			delete(repo.tempCatFileBatchStore, tempBatch)
+		}
+		repo.mu.Unlock()
+		if ok {
+			tempBatch.Close()
+		}
+	}, nil
 }
 
 func (repo *Repository) Close() error {
@@ -90,13 +105,23 @@ func (repo *Repository) Close() error {
 		return nil
 	}
 	repo.mu.Lock()
-	defer repo.mu.Unlock()
-	if repo.catFileBatchCloser != nil {
-		repo.catFileBatchCloser.Close()
-		repo.catFileBatchCloser = nil
-		repo.catFileBatchInUse = false
+	batchCloser := repo.catFileBatchCloser
+	tempBatchClosers := make([]CatFileBatchCloser, 0, len(repo.tempCatFileBatchStore))
+	for tempBatchCloser := range repo.tempCatFileBatchStore {
+		tempBatchClosers = append(tempBatchClosers, tempBatchCloser)
 	}
+	repo.catFileBatchCloser = nil
+	repo.catFileBatchInUse = false
+	repo.tempCatFileBatchStore = nil
 	repo.LastCommitCache = nil
 	repo.tagCache = nil
+	repo.mu.Unlock()
+
+	if batchCloser != nil {
+		batchCloser.Close()
+	}
+	for _, tempBatchCloser := range tempBatchClosers {
+		tempBatchCloser.Close()
+	}
 	return nil
 }
