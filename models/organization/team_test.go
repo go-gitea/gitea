@@ -10,6 +10,7 @@ import (
 	"gitea.dev/models/organization"
 	repo_model "gitea.dev/models/repo"
 	"gitea.dev/models/unittest"
+	"gitea.dev/modules/structs"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -184,7 +185,7 @@ func TestSearchTeamIncludeVisible(t *testing.T) {
 		LowerName:  "visible-team",
 		Name:       "visible-team",
 		AccessMode: 1, // read
-		Visibility: organization.TeamVisibilityLimited,
+		Visibility: structs.VisibleTypeLimited,
 	}
 	assert.NoError(t, db.Insert(t.Context(), visible))
 	t.Cleanup(func() {

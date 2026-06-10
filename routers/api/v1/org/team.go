@@ -27,32 +27,6 @@ import (
 	repo_service "gitea.dev/services/repository"
 )
 
-// applyTeamVisibilityFilter narrows opts to the set of teams the caller is
-// entitled to see. Privileged callers (site admins and org owners) are left
-// unfiltered — they already see every team in the org. Other callers are
-// restricted to teams they belong to plus teams whose privacy tier they are
-// entitled to see (limited/public for org members, public for other signed-in
-// users).
-func applyTeamVisibilityFilter(ctx *context.APIContext, opts *organization.SearchTeamOptions) error {
-	if ctx.Doer.IsAdmin {
-		return nil
-	}
-	isOwner, err := organization.IsOrganizationOwner(ctx, ctx.Org.Organization.ID, ctx.Doer.ID)
-	if err != nil {
-		return err
-	}
-	if isOwner {
-		return nil
-	}
-	isOrgMember, err := organization.IsOrganizationMember(ctx, ctx.Org.Organization.ID, ctx.Doer.ID)
-	if err != nil {
-		return err
-	}
-	opts.UserID = ctx.Doer.ID
-	opts.IncludeVisibilities = organization.VisibleTeamVisibilitiesFor(isOrgMember, ctx.IsSigned)
-	return nil
-}
-
 // ListTeams list all the teams of an organization
 func ListTeams(ctx *context.APIContext) {
 	// swagger:operation GET /orgs/{org}/teams organization orgListTeams
@@ -85,7 +59,7 @@ func ListTeams(ctx *context.APIContext) {
 		ListOptions: listOptions,
 		OrgID:       ctx.Org.Organization.ID,
 	}
-	if err := applyTeamVisibilityFilter(ctx, opts); err != nil {
+	if err := organization.ApplyTeamListFilter(ctx, ctx.Org.Organization.ID, ctx.Doer, ctx.IsSigned, opts); err != nil {
 		ctx.APIErrorInternal(err)
 		return
 	}
@@ -833,7 +807,7 @@ func SearchTeam(ctx *context.APIContext) {
 		ListOptions: listOptions,
 	}
 
-	if err := applyTeamVisibilityFilter(ctx, opts); err != nil {
+	if err := organization.ApplyTeamListFilter(ctx, ctx.Org.Organization.ID, ctx.Doer, ctx.IsSigned, opts); err != nil {
 		ctx.APIErrorInternal(err)
 		return
 	}

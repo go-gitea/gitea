@@ -504,8 +504,6 @@ func reqOrgOwnership() func(ctx *context.APIContext) {
 	}
 }
 
-// teamAccessPrivileged reports whether the caller bypasses team visibility rules
-// (site admin, org owner, or team member). Returns ok=false when a response was written.
 func teamAccessPrivileged(ctx *context.APIContext) (orgID int64, privileged, ok bool) {
 	if ctx.IsUserSiteAdmin() {
 		return 0, true, true
@@ -546,7 +544,7 @@ func denyNonTeamMember(ctx *context.APIContext, orgID int64) {
 
 // reqTeamReadAccess allows callers who can list the team to read its metadata.
 // Non-members are admitted by the team's visibility tier and parent org visibility.
-// Not sufficient for mutations — layer reqOrgOwnership() or reqTeamMembership().
+// Not sufficient for mutations — use reqOrgOwnership() or reqTeamMembership() for those.
 func reqTeamReadAccess() func(ctx *context.APIContext) {
 	return func(ctx *context.APIContext) {
 		orgID, privileged, ok := teamAccessPrivileged(ctx)
@@ -555,7 +553,7 @@ func reqTeamReadAccess() func(ctx *context.APIContext) {
 		}
 
 		switch ctx.Org.Team.Visibility {
-		case organization.TeamVisibilityPublic:
+		case api.VisibleTypePublic:
 			if ctx.Org.Organization == nil {
 				setting.PanicInDevOrTesting("reqTeamReadAccess: organization not loaded")
 				ctx.APIErrorInternal(errors.New("reqTeamReadAccess: organization not loaded"))
@@ -564,7 +562,7 @@ func reqTeamReadAccess() func(ctx *context.APIContext) {
 			if !organization.HasOrgOrUserVisible(ctx, ctx.Org.Organization.AsUser(), ctx.Doer) {
 				ctx.APIErrorNotFound()
 			}
-		case organization.TeamVisibilityLimited:
+		case api.VisibleTypeLimited:
 			isOrgMember, err := organization.IsOrganizationMember(ctx, orgID, ctx.Doer.ID)
 			if err != nil {
 				ctx.APIErrorInternal(err)

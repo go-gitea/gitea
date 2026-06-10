@@ -9,8 +9,10 @@ import (
 	"xorm.io/xorm"
 )
 
+type VisibleType int
+
 type teamWithVisibility struct {
-	Visibility string `xorm:"VARCHAR(16) NOT NULL DEFAULT 'private'"`
+	Visibility VisibleType `xorm:"NOT NULL DEFAULT 2"`
 }
 
 func (teamWithVisibility) TableName() string {
@@ -29,6 +31,6 @@ func AddVisibilityToTeam(x db.EngineMigration) error {
 	// them as "limited", so make existing owner teams limited too.
 	// Filter on authorize=4 (AccessModeOwner) so a user-created team that
 	// happens to share the name "owners" is not accidentally affected.
-	_, err := x.Exec("UPDATE `team` SET visibility = ? WHERE lower_name = ? AND authorize = ?", "limited", "owners", 4)
+	_, err := x.Exec("UPDATE `team` SET visibility = ? WHERE lower_name = ? AND authorize = ?", 1, "owners", 4)
 	return err
 }

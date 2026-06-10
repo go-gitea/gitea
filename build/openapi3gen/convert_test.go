@@ -139,6 +139,54 @@ func TestFixFileSchemas_recursesIntoNested(t *testing.T) {
 	}
 }
 
+func TestExtractEnumTypeName_TeamVisibility(t *testing.T) {
+	enum := []any{"public", "limited", "private"}
+	key := EnumKey(enum)
+	astMap := map[string][]string{key: {"UserVisibility", "TeamVisibility"}}
+	schema := &openapi3.Schema{
+		Type: &openapi3.Types{"string"},
+		Enum: enum,
+		Extensions: map[string]any{
+			"x-go-enum-desc": "public TeamVisibilityPublic\nlimited TeamVisibilityLimited\nprivate TeamVisibilityPrivate",
+		},
+	}
+	if got := extractEnumTypeName(schema, astMap); got != "TeamVisibility" {
+		t.Fatalf("got %q, want %q", got, "TeamVisibility")
+	}
+}
+
+func TestExtractEnumTypeName_ambiguousPrefixTie(t *testing.T) {
+	enum := []any{"one", "two"}
+	key := EnumKey(enum)
+	astMap := map[string][]string{key: {"AB", "AC"}}
+	schema := &openapi3.Schema{
+		Type: &openapi3.Types{"string"},
+		Enum: enum,
+		Extensions: map[string]any{
+			"x-go-enum-desc": "one ABOne\ntwo ACTwo",
+		},
+	}
+	if got := extractEnumTypeName(schema, astMap); got != "" {
+		t.Fatalf("got %q, want empty string for ambiguous tie", got)
+	}
+}
+
+func TestExtractEnumTypeName_rejectsIncidentalPrefix(t *testing.T) {
+	enum := []any{"a", "b"}
+	key := EnumKey(enum)
+	astMap := map[string][]string{key: {"Alpha", "Alphabet"}}
+	schema := &openapi3.Schema{
+		Type: &openapi3.Types{"string"},
+		Enum: enum,
+		Extensions: map[string]any{
+			"x-go-enum-desc": "a AlphabetA\nb AlphabetB",
+		},
+	}
+	if got := extractEnumTypeName(schema, astMap); got != "Alphabet" {
+		t.Fatalf("got %q, want %q", got, "Alphabet")
+	}
+}
+
 func TestExtractSharedEnums_missReturnsError(t *testing.T) {
 	doc := &openapi3.T{
 		Components: &openapi3.Components{

@@ -21,6 +21,7 @@ import (
 	user_model "gitea.dev/models/user"
 	"gitea.dev/modules/log"
 	"gitea.dev/modules/setting"
+	"gitea.dev/modules/structs"
 	"gitea.dev/modules/templates"
 	"gitea.dev/modules/util"
 	"gitea.dev/modules/web"
@@ -572,7 +573,7 @@ func EditTeamPost(ctx *context.Context) {
 	} else {
 		t.CanCreateOrgRepo = true
 		// The owner team must remain listable to all org members.
-		t.Visibility = org_model.TeamVisibilityLimited
+		t.Visibility = structs.VisibleTypeLimited
 	}
 
 	t.Description = form.Description

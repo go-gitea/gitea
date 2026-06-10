@@ -14,6 +14,7 @@ import (
 	"gitea.dev/models/unit"
 	user_model "gitea.dev/models/user"
 	"gitea.dev/modules/log"
+	"gitea.dev/modules/structs"
 	"gitea.dev/modules/util"
 
 	"xorm.io/builder"
@@ -70,16 +71,6 @@ func (err ErrTeamNotExist) Unwrap() error {
 // OwnerTeamName return the owner team name
 const OwnerTeamName = "Owners"
 
-// Team visibility values. They reuse Gitea's user/org visibility vocabulary:
-//   - "public":  visible to any signed-in user (still bounded by org visibility)
-//   - "limited": visible to any member of the parent organization
-//   - "private": visible only to team members and org owners
-const (
-	TeamVisibilityPublic  = "public"
-	TeamVisibilityLimited = "limited"
-	TeamVisibilityPrivate = "private"
-)
-
 // Team represents a organization team.
 type Team struct {
 	ID                      int64 `xorm:"pk autoincr"`
@@ -91,32 +82,21 @@ type Team struct {
 	Members                 []*user_model.User `xorm:"-"`
 	NumRepos                int
 	NumMembers              int
-	Units                   []*TeamUnit `xorm:"-"`
-	IncludesAllRepositories bool        `xorm:"NOT NULL DEFAULT false"`
-	CanCreateOrgRepo        bool        `xorm:"NOT NULL DEFAULT false"`
-	Visibility              string      `xorm:"VARCHAR(16) NOT NULL DEFAULT 'private'"`
+	Units                   []*TeamUnit         `xorm:"-"`
+	IncludesAllRepositories bool                `xorm:"NOT NULL DEFAULT false"`
+	CanCreateOrgRepo        bool                `xorm:"NOT NULL DEFAULT false"`
+	Visibility              structs.VisibleType `xorm:"NOT NULL DEFAULT 2"`
 }
 
-// IsPublic reports whether the team is listable by any signed-in user.
-func (t *Team) IsPublic() bool { return t.Visibility == TeamVisibilityPublic }
+func (t *Team) IsPublic() bool  { return t.Visibility.IsPublic() }
+func (t *Team) IsLimited() bool { return t.Visibility.IsLimited() }
+func (t *Team) IsPrivate() bool { return t.Visibility.IsPrivate() }
 
-// IsLimited reports whether the team is listable by any member of the
-// parent organization.
-func (t *Team) IsLimited() bool { return t.Visibility == TeamVisibilityLimited }
-
-// IsPrivate reports whether the team is listable only by team members and
-// org owners.
-func (t *Team) IsPrivate() bool { return t.Visibility == TeamVisibilityPrivate }
-
-// NormalizeTeamVisibility returns a valid visibility value. Unknown input is
-// normalized to the safest default ("private"). Input is matched strictly;
-// callers that want lenient handling must lowercase beforehand.
-func NormalizeTeamVisibility(s string) string {
-	switch s {
-	case TeamVisibilityPublic, TeamVisibilityLimited, TeamVisibilityPrivate:
-		return s
+func NormalizeTeamVisibility(s string) structs.VisibleType {
+	if vt, ok := structs.VisibilityModes[s]; ok {
+		return vt
 	}
-	return TeamVisibilityPrivate
+	return structs.VisibleTypePrivate
 }
 
 func init() {

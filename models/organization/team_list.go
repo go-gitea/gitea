@@ -10,6 +10,8 @@ import (
 	"gitea.dev/models/db"
 	"gitea.dev/models/perm"
 	"gitea.dev/models/unit"
+	user_model "gitea.dev/models/user"
+	"gitea.dev/modules/structs"
 
 	"xorm.io/builder"
 )
@@ -46,16 +48,16 @@ func (t TeamList) UnitMaxAccess(tp unit.Type) perm.AccessMode {
 // SearchTeamOptions holds the search options
 type SearchTeamOptions struct {
 	db.ListOptions
-	UserID      int64
-	Keyword     string
-	OrgID       int64
-	IncludeDesc bool
+	UserID              int64
+	Keyword             string
+	OrgID               int64
+	IncludeDesc         bool
 	// IncludeVisibilities, when combined with UserID, also returns teams whose
 	// visibility is in this list, even if UserID is not a member. Typical values:
-	//   - {"limited","public"} for org members
-	//   - {"public"} for signed-in users who are not org members
+	//   - {limited,public} for org members
+	//   - {public} for signed-in users who are not org members
 	// Leave empty to return only teams the user is a member of.
-	IncludeVisibilities []string
+	IncludeVisibilities []structs.VisibleType
 }
 
 func (opts *SearchTeamOptions) toCond() builder.Cond {
@@ -89,21 +91,35 @@ func (opts *SearchTeamOptions) toCond() builder.Cond {
 	return cond
 }
 
-// VisibleTeamVisibilitiesFor returns the visibility tiers a viewer is entitled
-// to list in addition to teams they are a direct member of. Pass true for
-// isOrgMember when the viewer belongs to the parent organization; otherwise
-// pass true for isSignedIn for any other authenticated user. Returns nil for
-// anonymous viewers (caller should then skip the search entirely or pass the
-// result to IncludeVisibilities as-is).
-func VisibleTeamVisibilitiesFor(isOrgMember, isSignedIn bool) []string {
+func VisibleTeamVisibilitiesFor(isOrgMember, isSignedIn bool) []structs.VisibleType {
 	switch {
 	case isOrgMember:
-		return []string{TeamVisibilityLimited, TeamVisibilityPublic}
+		return []structs.VisibleType{structs.VisibleTypeLimited, structs.VisibleTypePublic}
 	case isSignedIn:
-		return []string{TeamVisibilityPublic}
+		return []structs.VisibleType{structs.VisibleTypePublic}
 	default:
 		return nil
 	}
+}
+
+func ApplyTeamListFilter(ctx context.Context, orgID int64, viewer *user_model.User, isSignedIn bool, opts *SearchTeamOptions) error {
+	if viewer.IsAdmin {
+		return nil
+	}
+	isOwner, err := IsOrganizationOwner(ctx, orgID, viewer.ID)
+	if err != nil {
+		return err
+	}
+	if isOwner {
+		return nil
+	}
+	isOrgMember, err := IsOrganizationMember(ctx, orgID, viewer.ID)
+	if err != nil {
+		return err
+	}
+	opts.UserID = viewer.ID
+	opts.IncludeVisibilities = VisibleTeamVisibilitiesFor(isOrgMember, isSignedIn)
+	return nil
 }
 
 // SearchTeam search for teams. Caller is responsible to check permissions.

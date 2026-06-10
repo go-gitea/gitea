@@ -17,6 +17,7 @@ import (
 	"gitea.dev/models/unit"
 	"gitea.dev/models/unittest"
 	user_model "gitea.dev/models/user"
+	"gitea.dev/modules/structs"
 	api "gitea.dev/modules/structs"
 	"gitea.dev/services/convert"
 	"gitea.dev/tests"
@@ -305,7 +306,7 @@ func TestAPIGetTeamRepo(t *testing.T) {
 	MakeRequest(t, req, http.StatusNotFound)
 }
 
-func insertTestTeam(t *testing.T, orgID int64, name, visibility string) *organization.Team {
+func insertTestTeam(t *testing.T, orgID int64, name string, visibility structs.VisibleType) *organization.Team {
 	t.Helper()
 	team := &organization.Team{
 		OrgID:      orgID,
@@ -324,7 +325,7 @@ func insertTestTeam(t *testing.T, orgID int64, name, visibility string) *organiz
 func TestAPITeamVisibilityAccess(t *testing.T) {
 	defer tests.PrepareTestEnv(t)()
 
-	limitedTeam := insertTestTeam(t, 3, "limited-team", organization.TeamVisibilityLimited)
+	limitedTeam := insertTestTeam(t, 3, "limited-team", structs.VisibleTypeLimited)
 
 	// Org member who can read a limited team must not mutate its repos without membership.
 	user4 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 4})
@@ -333,7 +334,7 @@ func TestAPITeamVisibilityAccess(t *testing.T) {
 		AddTokenAuth(token)
 	MakeRequest(t, req, http.StatusForbidden)
 
-	publicTeam := insertTestTeam(t, 23, "public-team", organization.TeamVisibilityPublic)
+	publicTeam := insertTestTeam(t, 23, "public-team", structs.VisibleTypePublic)
 
 	// Public team in a private org must not be readable by outsiders.
 	outsider := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})

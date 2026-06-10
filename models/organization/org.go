@@ -370,7 +370,7 @@ func CreateOrganization(ctx context.Context, org *Organization, owner *user_mode
 			NumMembers:              1,
 			IncludesAllRepositories: true,
 			CanCreateOrgRepo:        true,
-			Visibility:              TeamVisibilityLimited,
+			Visibility:              structs.VisibleTypeLimited,
 		}
 		if err = db.Insert(ctx, t); err != nil {
 			return fmt.Errorf("insert owner team: %w", err)
