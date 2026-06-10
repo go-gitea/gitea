@@ -14,8 +14,10 @@ import (
 	"sync"
 
 	"gitea.dev/modules/htmlutil"
+	"gitea.dev/modules/log"
 	"gitea.dev/modules/markup/common"
 	"gitea.dev/modules/translation"
+	"gitea.dev/modules/util"
 
 	"golang.org/x/net/html"
 	"golang.org/x/net/html/atom"
@@ -151,8 +153,7 @@ func PostProcessDefault(ctx *RenderContext, input io.Reader, output io.Writer) e
 }
 
 // PostProcessCommitMessage will use the same logic as PostProcess, but will disable the shortLinkProcessor.
-// FIXME: this function and its family have a very strange design: it takes HTML as input and output, processes the "escaped" content.
-func PostProcessCommitMessage(ctx *RenderContext, content template.HTML) (template.HTML, error) {
+func PostProcessCommitMessage(ctx *RenderContext, content template.HTML) template.HTML {
 	procs := []processor{
 		fullIssuePatternProcessor,
 		comparePatternProcessor,
@@ -166,8 +167,7 @@ func PostProcessCommitMessage(ctx *RenderContext, content template.HTML) (templa
 		emojiProcessor,
 		emojiShortCodeProcessor,
 	}
-	s, err := postProcessString(ctx, procs, string(content))
-	return template.HTML(s), err
+	return postProcessHTML(ctx, procs, content)
 }
 
 var emojiProcessors = []processor{
@@ -189,7 +189,7 @@ func isBareURLSubject(content string) bool {
 // PostProcessCommitMessageSubject will use the same logic as PostProcess and
 // PostProcessCommitMessage, but will disable the shortLinkProcessor and
 // emailAddressProcessor, and wraps the whole subject in defaultLink.
-func PostProcessCommitMessageSubject(ctx *RenderContext, defaultLink, content string) (string, error) {
+func PostProcessCommitMessageSubject(ctx *RenderContext, defaultLink string, content template.HTML) template.HTML {
 	procs := []processor{
 		fullIssuePatternProcessor,
 		comparePatternProcessor,
@@ -207,7 +207,7 @@ func PostProcessCommitMessageSubject(ctx *RenderContext, defaultLink, content st
 	// plain text inside defaultLink. Partial URLs inside larger text still become
 	// their own links (nested anchors aren't legal HTML, so the outer defaultLink
 	// naturally breaks on that span, same as on GitHub).
-	if !isBareURLSubject(content) {
+	if !isBareURLSubject(string(content)) {
 		procs = append(procs, linkProcessor)
 	}
 	procs = append(procs, func(ctx *RenderContext, node *html.Node) {
@@ -215,27 +215,28 @@ func PostProcessCommitMessageSubject(ctx *RenderContext, defaultLink, content st
 		node.Type = html.ElementNode
 		node.Data = "a"
 		node.DataAtom = atom.A
-		node.Attr = []html.Attribute{{Key: "href", Val: defaultLink}, {Key: "class", Val: "muted"}}
+		node.Attr = []html.Attribute{{Key: "href", Val: defaultLink}, {Key: "class", Val: "muted title-full-link"}}
 		node.FirstChild, node.LastChild = ch, ch
 	})
-	return postProcessString(ctx, procs, content)
+	rendered := postProcessHTML(ctx, procs, content)
+	return htmlutil.HTMLFormat(`<span class="title-full-link-hover">%s</span>`, rendered)
 }
 
 // PostProcessIssueTitle to process title on individual issue/pull page
-func PostProcessIssueTitle(ctx *RenderContext, title string) (string, error) {
-	return postProcessString(ctx, []processor{
+func PostProcessIssueTitle(ctx *RenderContext, titleHTML template.HTML) template.HTML {
+	return postProcessHTML(ctx, []processor{
 		issueIndexPatternProcessor,
 		commitCrossReferencePatternProcessor,
 		hashCurrentPatternProcessor,
 		emojiShortCodeProcessor,
 		emojiProcessor,
-	}, title)
+	}, titleHTML)
 }
 
 // PostProcessDescriptionHTML will use similar logic as PostProcess, but will
 // use a single special linkProcessor.
-func PostProcessDescriptionHTML(ctx *RenderContext, content string) (string, error) {
-	return postProcessString(ctx, []processor{
+func PostProcessDescriptionHTML(ctx *RenderContext, content template.HTML) template.HTML {
+	return postProcessHTML(ctx, []processor{
 		descriptionLinkProcessor,
 		emojiShortCodeProcessor,
 		emojiProcessor,
@@ -243,17 +244,18 @@ func PostProcessDescriptionHTML(ctx *RenderContext, content string) (string, err
 }
 
 // PostProcessEmoji for when we want to just process emoji and shortcodes
-// in various places it isn't already run through the normal markdown processor
-func PostProcessEmoji(ctx *RenderContext, content string) (string, error) {
-	return postProcessString(ctx, emojiProcessors, content)
+// in various places it isn't already run through the normal Markdown processor
+func PostProcessEmoji(ctx *RenderContext, content template.HTML) template.HTML {
+	return postProcessHTML(ctx, emojiProcessors, content)
 }
 
-func postProcessString(ctx *RenderContext, procs []processor, content string) (string, error) {
+func postProcessHTML(ctx *RenderContext, procs []processor, content template.HTML) template.HTML {
 	var buf strings.Builder
-	if err := postProcess(ctx, procs, strings.NewReader(content), &buf); err != nil {
-		return "", err
+	if err := postProcess(ctx, procs, strings.NewReader(string(content)), &buf); err != nil {
+		log.Warn("postProcessHTML err: %v, input: %s", err, util.TruncateRunes(string(content), 200))
+		return content
 	}
-	return buf.String(), nil
+	return template.HTML(buf.String())
 }
 
 func RenderTocHeadingItems(ctx *RenderContext, nodeDetailsAttrs map[string]string, out io.Writer) {
