@@ -78,7 +78,10 @@
 								</a>
 								{{range .StatusInfoList}}
 									<a class="item{{if eq .Status $.CurStatus}} selected{{end}}" href="?workflow={{$.CurWorkflow}}&actor={{$.CurActor}}&status={{.Status}}&branch={{$.CurBranch}}">
-										{{.DisplayedStatus}}
+										<span class="flex-text-inline">
+											{{template "repo/icons/action_status" (dict "Status" .StatusName)}}
+											{{.DisplayedStatus}}
+										</span>
 									</a>
 								{{end}}
 							</div>
