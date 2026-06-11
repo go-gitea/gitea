@@ -1,7 +1,8 @@
 <script setup lang="ts">
 import {SvgIcon} from '../svg.ts';
 import ActionStatusIcon from './ActionStatusIcon.vue';
-import {computed, ref, toRefs} from 'vue';
+import {computed, onBeforeUnmount, ref, toRefs, watch} from 'vue';
+import {resetActionFavicon, syncActionRunFavicon} from '../modules/favicon-status.ts';
 import {POST, DELETE} from '../modules/fetch.ts';
 import ActionRunSummaryView from './ActionRunSummaryView.vue';
 import ActionRunJobView from './ActionRunJobView.vue';
@@ -118,6 +119,14 @@ async function deleteArtifact(name: string) {
   await DELETE(buildArtifactLink(name));
   await store.forceReloadCurrentRun();
 }
+
+watch(() => run.value.status, (status) => {
+  syncActionRunFavicon(status);
+}, {immediate: true});
+
+onBeforeUnmount(() => {
+  resetActionFavicon();
+});
 </script>
 <template>
   <!-- make the view container full width to make users easier to read logs -->
