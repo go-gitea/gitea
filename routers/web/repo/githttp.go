@@ -141,6 +141,15 @@ func httpBase(ctx *context.Context, optGitService ...string) *serviceHandler {
 		askAuth = askAuth || (repo.Owner.Visibility != structs.VisibleTypePublic)
 	}
 
+	// private repos with anonymous code/wiki access (via public access settings) allow pulls without auth
+	if repoExist && repo.IsPrivate && isPull && !setting.Service.RequireSignInViewStrict {
+		if anonPerm, anonErr := access_model.GetDoerRepoPermission(ctx, repo, nil); anonErr == nil {
+			if anonPerm.CanAccess(accessMode, unitType) {
+				askAuth = false
+			}
+		}
+	}
+
 	// check access
 	if askAuth {
 		// rely on the results of Contexter
