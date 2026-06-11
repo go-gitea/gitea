@@ -849,6 +849,7 @@ table th[data-sortt-desc] .svg {
 }
 
 /* this is useful to make a left-right (e.g.: title .... operations) layout with default gap, and it wrap for small widths */
+.ui.modal .header.flex-left-right,
 .flex-left-right {
   display: flex;
   flex-wrap: wrap;
