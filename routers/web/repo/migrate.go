@@ -69,7 +69,9 @@ func Migrate(ctx *context.Context) {
 		return
 	}
 	ctx.Data["ContextUser"] = ctxUser
-	setManagedSSHKeyFingerprints(ctx, ctxUser)
+	if serviceType == structs.PlainGitService {
+		setManagedSSHKeyFingerprints(ctx, ctxUser)
+	}
 
 	ctx.HTML(http.StatusOK, templates.TplName("repo/migrate/"+serviceType.Name()))
 }
@@ -204,12 +206,23 @@ func MigratePost(ctx *context.Context) {
 		return
 	}
 	ctx.Data["ContextUser"] = ctxUser
-	setManagedSSHKeyFingerprints(ctx, ctxUser)
+	if form.Service == structs.PlainGitService {
+		setManagedSSHKeyFingerprints(ctx, ctxUser)
+	}
 
 	tpl := templates.TplName("repo/migrate/" + form.Service.Name())
 
 	if ctx.HasError() {
 		ctx.HTML(http.StatusOK, tpl)
+		return
+	}
+
+	// Managed SSH keys are only wired up for the plain Git migration form.
+	// Forge migrations (GitHub/GitLab/etc.) authenticate against both the
+	// git remote and the forge API with a token, so reject ssh:// here.
+	if form.Service != structs.PlainGitService && ssh_module.IsSSHURL(strings.TrimSpace(form.CloneAddr)) {
+		ctx.Data["Err_CloneAddr"] = true
+		ctx.RenderWithErrDeprecated(ctx.Tr("repo.migrate.ssh_not_supported_for_forge"), tpl, form)
 		return
 	}
 

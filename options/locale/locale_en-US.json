@@ -1119,6 +1119,7 @@
   "repo.migrate.clone_address_desc": "The HTTP(S), Git, or SSH 'clone' URL of an existing repository",
   "repo.migrate.github_token_desc": "You can put one or more tokens here, separated by commas, to make migrating faster by circumventing the GitHub API rate limit. WARNING: Abusing this feature may violate the service provider's policy and may lead to getting your account(s) blocked.",
   "repo.migrate.clone_local_path": "or a local server path",
+  "repo.migrate.ssh_not_supported_for_forge": "SSH clone URLs are only supported for the plain Git migration. To use SSH against this forge, switch to the Git service.",
   "repo.migrate.ssh_helper_title": "SSH URLs",
   "repo.migrate.ssh_helper_desc": "Upload your SSH mirror keys to the remote SSH server for authentication.",
   "repo.migrate.ssh_helper_link": "View your SSH keys (if migrating to an organization, you may need to upload the organization's SSH keys).",
