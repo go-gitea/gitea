@@ -47,7 +47,7 @@ func HookPostReceive(ctx *gitea_context.PrivateContext) {
 		repo    *repo_model.Repository
 		gitRepo *git.Repository
 	)
-	defer gitRepo.Close() // it's safe to call Close on a nil pointer
+	defer func() { _ = gitRepo.Close() }() // it's safe to call Close on a nil pointer, but it needs to use the latest value
 
 	updates := make([]*repo_module.PushUpdateOptions, 0, len(opts.OldCommitIDs))
 	wasEmpty := false
