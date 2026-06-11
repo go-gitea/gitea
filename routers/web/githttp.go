@@ -5,11 +5,12 @@ package web
 
 import (
 	"gitea.dev/modules/web"
+	"gitea.dev/routers/common"
 	"gitea.dev/routers/web/repo"
 )
 
 func addOwnerRepoGitHTTPRouters(m *web.Router, middlewares ...any) {
-	fn := func() {
+	common.RegisterRepoRouteGroup(m, "/{username}/{reponame}", nil, func() {
 		m.Methods("POST,OPTIONS", "/git-upload-pack", repo.ServiceUploadPack)
 		m.Methods("POST,OPTIONS", "/git-receive-pack", repo.ServiceReceivePack)
 		m.Methods("POST,OPTIONS", "/git-upload-archive", repo.ServiceUploadArchive)
@@ -22,7 +23,5 @@ func addOwnerRepoGitHTTPRouters(m *web.Router, middlewares ...any) {
 		m.Methods("GET,OPTIONS", "/objects/{head:[0-9a-f]{2}}/{hash:[0-9a-f]{38,62}}", repo.GetLooseObject)
 		m.Methods("GET,OPTIONS", "/objects/pack/pack-{file:[0-9a-f]{40,64}}.pack", repo.GetPackFile)
 		m.Methods("GET,OPTIONS", "/objects/pack/pack-{file:[0-9a-f]{40,64}}.idx", repo.GetIdxFile)
-	}
-	m.Group("/{username}/{reponame}", fn, middlewares...)
-	m.Group("/{username}/group/{group_id}/{reponame}", fn, middlewares...)
+	}, middlewares...)
 }

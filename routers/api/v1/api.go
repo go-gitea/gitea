@@ -1305,13 +1305,11 @@ func Routes() *web.Router {
 			// (repo scope)
 			m.Group("/starred", func() {
 				m.Get("", user.GetMyStarredRepos)
-				fn := func() {
+				common.RegisterRepoRouteGroup(m, "/{username}/{reponame}", context.GroupAssignmentAPI(true), func() {
 					m.Get("", user.IsStarring)
 					m.Put("", user.Star)
 					m.Delete("", user.Unstar)
-				}
-				m.Group("/{username}/{reponame}", fn, repoAssignment(), checkTokenPublicOnly())
-				m.Group("/{username}/group/{group_id}/{reponame}", fn, context.GroupAssignmentAPI(true), repoAssignment(), reqGroupMembership(perm.AccessModeRead, false), checkTokenPublicOnly())
+				}, repoAssignment(), checkTokenPublicOnly())
 			}, reqStarsEnabled(), tokenRequiresScopes(auth_model.AccessTokenScopeCategoryRepository))
 			m.Get("/times", rejectPublicOnly(), repo.ListMyTrackedTimes)
 			m.Get("/stopwatches", rejectPublicOnly(), repo.GetStopwatches)
@@ -1358,7 +1356,7 @@ func Routes() *web.Router {
 
 			// (repo scope)
 			m.Post("/migrate", reqToken(), bind(api.MigrateRepoOptions{}), repo.Migrate)
-			fn := func() {
+			common.RegisterRepoRouteGroup(m, "/{username}/{reponame}", context.GroupAssignmentAPI(true), func() {
 				m.Get("/compare/*", reqRepoReader(unit.TypeCode), repo.CompareDiff)
 
 				m.Combo("").Get(reqAnyRepoReader(), repo.Get).
@@ -1658,31 +1656,28 @@ func Routes() *web.Router {
 				}, reqAdmin(), reqToken())
 
 				m.Methods("HEAD,GET", "/{ball_type:tarball|zipball|bundle}/*", reqRepoReader(unit.TypeCode), context.ReferencesGitRepo(true), repo.DownloadArchive)
-			}
-			m.Group("/{username}/{reponame}", fn, repoAssignment(), checkTokenPublicOnly())
-			m.Group("/{username}/group/{group_id}/{reponame}", fn, context.GroupAssignmentAPI(true), repoAssignment(), checkTokenPublicOnly())
+			}, repoAssignment(), checkTokenPublicOnly())
 		}, tokenRequiresScopes(auth_model.AccessTokenScopeCategoryRepository))
 
 		// Artifacts direct download endpoint authenticates via signed url
 		// it is protected by the "sig" parameter (to help to access private repo), so no need to use other middlewares
-		m.Get("/repos/{username}/{reponame}/actions/artifacts/{artifact_id}/zip/raw", repo.DownloadArtifactRaw)
-		m.Get("/repos/{username}/group/{group_id}/{reponame}/actions/artifacts/{artifact_id}/zip/raw", repo.DownloadArtifactRaw)
+		common.RegisterRepoRouteGroup(m, "/repos/{username}/{reponame}/actions/artifacts/{artifact_id}/zip/raw", context.GroupAssignmentAPI(true), func() {
+			m.Get("", repo.DownloadArtifactRaw)
+		})
 
 		// Notifications (requires notifications scope)
 		m.Group("/repos", func() {
-			fn := func() {
+			common.RegisterRepoRouteGroup(m, "/{username}/{reponame}", context.GroupAssignmentAPI(true), func() {
 				m.Combo("/notifications", reqToken()).
 					Get(notify.ListRepoNotifications).
 					Put(notify.ReadRepoNotifications)
-			}
-			m.Group("/{username}/{reponame}", fn, repoAssignment(), checkTokenPublicOnly())
-			m.Group("/{username}/group/{group_id}/{reponame}", fn, repoAssignment(), context.GroupAssignmentAPI(true), reqGroupMembership(perm.AccessModeRead, false), checkTokenPublicOnly())
+			}, repoAssignment(), checkTokenPublicOnly())
 		}, tokenRequiresScopes(auth_model.AccessTokenScopeCategoryNotification))
 
 		// Issue (requires issue scope)
 		m.Group("/repos", func() {
 			m.Get("/issues/search", repo.SearchIssues)
-			fn := func() {
+			common.RegisterRepoRouteGroup(m, "/{username}/{reponame}", context.GroupAssignmentAPI(true), func() {
 				m.Group("/issues", func() {
 					m.Combo("").Get(repo.ListIssues).
 						Post(reqToken(), mustNotBeArchived, bind(api.CreateIssueOption{}), reqRepoReader(unit.TypeIssues), repo.CreateIssue)
@@ -1798,9 +1793,7 @@ func Routes() *web.Router {
 						Patch(reqToken(), reqRepoWriter(unit.TypeIssues, unit.TypePullRequests), bind(api.EditMilestoneOption{}), repo.EditMilestone).
 						Delete(reqToken(), reqRepoWriter(unit.TypeIssues, unit.TypePullRequests), repo.DeleteMilestone)
 				})
-			}
-			m.Group("/{username}/{reponame}", fn, repoAssignment(), checkTokenPublicOnly())
-			m.Group("/{username}/group/{group_id}/{reponame}", fn, context.GroupAssignmentAPI(true), repoAssignment(), checkTokenPublicOnly())
+			}, repoAssignment(), checkTokenPublicOnly())
 		}, tokenRequiresScopes(auth_model.AccessTokenScopeCategoryIssue))
 
 		// NOTE: these are Gitea package management API - see packages.CommonRoutes and packages.DockerContainerRoutes for endpoints that implement package manager APIs
@@ -1917,13 +1910,11 @@ func Routes() *web.Router {
 					Delete(reqToken(), reqOrgOwnership(), org.RemoveTeamMember)
 			})
 			m.Group("/repos", func() {
-				m.Combo("/{org}/group/{group_id}/{reponame}").
-					Put(reqToken(), org.AddTeamRepository).
-					Delete(reqToken(), org.RemoveTeamRepository).
-					Get(reqToken(), org.GetTeamRepo)
-				m.Combo("/{org}/{reponame}").
-					Put(reqToken(), reqTeamMembership(), org.AddTeamRepository).
-					Delete(reqToken(), reqTeamMembership(), org.RemoveTeamRepository)
+				common.RegisterRepoRouteGroup(m, "/{org}/{reponame}", context.GroupAssignmentAPI(true), func() {
+					m.Combo("").
+						Put(reqToken(), reqTeamMembership(), org.AddTeamRepository).
+						Delete(reqToken(), reqTeamMembership(), org.RemoveTeamRepository)
+				})
 			})
 		}, tokenRequiresScopes(auth_model.AccessTokenScopeCategoryOrganization), orgAssignment(false, true), reqToken(), checkTokenPublicOnly())
 
