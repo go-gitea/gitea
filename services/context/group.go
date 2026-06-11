@@ -286,7 +286,7 @@ func GroupAssignmentWeb(args GroupAssignmentOptions) func(ctx *Context) {
 func GroupAssignmentAPI(early404 bool) func(ctx *APIContext) {
 	return func(ctx *APIContext) {
 		groupAssignment(ctx, ctx.Doer, ctx.IsSigned, true, func(err error) {
-			ctx.APIErrorNotFound(err)
+			ctx.APIErrorNotFound()
 		}, func(str string, err error) {
 			ctx.APIErrorInternal(fmt.Errorf("%s: %w", str, err))
 		}, func(repoGroup *RepoGroup) {
@@ -297,12 +297,12 @@ func GroupAssignmentAPI(early404 bool) func(ctx *APIContext) {
 			canAccess := repoGroup.doerCanAccess
 			group := repoGroup.Group
 			if group.Visibility != structs.VisibleTypePublic && !ctx.IsSigned {
-				ctx.APIErrorNotFound(nil)
+				ctx.APIErrorNotFound()
 				return
 			}
 
 			if !canAccess && early404 {
-				ctx.APIErrorNotFound(nil)
+				ctx.APIErrorNotFound()
 				return
 			}
 			ctx.RepoGroup = repoGroup

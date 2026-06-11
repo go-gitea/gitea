@@ -444,7 +444,7 @@ func getGroupsCommon(ctx *context.APIContext, isOrg bool) {
 		org, err := org_model.GetOrgByName(ctx, ctx.PathParam("org"))
 		if err != nil {
 			if org_model.IsErrOrgNotExist(err) {
-				ctx.APIErrorNotFound(err)
+				ctx.APIErrorNotFound()
 			} else {
 				ctx.APIErrorInternal(err)
 			}
@@ -452,7 +452,7 @@ func getGroupsCommon(ctx *context.APIContext, isOrg bool) {
 		}
 
 		if !org_model.HasOrgOrUserVisible(ctx, org.AsUser(), ctx.Doer) {
-			ctx.APIErrorNotFound("HasOrgOrUserVisible", nil)
+			ctx.APIErrorNotFound("HasOrgOrUserVisible")
 			return
 		}
 		ownerID = org.ID
@@ -460,14 +460,14 @@ func getGroupsCommon(ctx *context.APIContext, isOrg bool) {
 		user, err := user_model.GetUserByName(ctx, ctx.PathParam("username"))
 		if err != nil {
 			if user_model.IsErrUserNotExist(err) {
-				ctx.APIErrorNotFound(err)
+				ctx.APIErrorNotFound()
 			} else {
 				ctx.APIErrorInternal(err)
 			}
 			return
 		}
 		if user_model.IsUserBlockedBy(ctx, ctx.Doer, user.ID) {
-			ctx.APIErrorNotFound("IsUserBlockedBy", nil)
+			ctx.APIErrorNotFound("IsUserBlockedBy")
 			return
 		}
 		ownerID = user.ID
