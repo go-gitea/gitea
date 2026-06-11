@@ -8,6 +8,7 @@ import playwright from 'eslint-plugin-playwright';
 import regexp from 'eslint-plugin-regexp';
 import sonarjs from 'eslint-plugin-sonarjs';
 import stylistic from '@stylistic/eslint-plugin';
+import unescapedHtmlLiteral from './tools/eslint-rules/unescaped-html-literal.ts';
 import typescriptParser from '@typescript-eslint/parser';
 import typescriptPlugin from 'typescript-eslint';
 import unicorn from 'eslint-plugin-unicorn';
@@ -65,6 +66,7 @@ export default defineConfig([
       '@typescript-eslint': typescriptPlugin.plugin,
       'array-func': arrayFunc,
       'de-morgan': deMorgan,
+      'gitea': {rules: {'unescaped-html-literal': unescapedHtmlLiteral}},
       'import-x': importPlugin as unknown as ESLint.Plugin, // https://github.com/un-ts/eslint-plugin-import-x/issues/203
       regexp,
       sonarjs,
@@ -331,7 +333,7 @@ export default defineConfig([
       'github/no-useless-passive': [2],
       'github/prefer-observers': [0],
       'github/require-passive-events': [2],
-      'github/unescaped-html-literal': [2],
+      'gitea/unescaped-html-literal': [2],
       'grouped-accessor-pairs': [2],
       'guard-for-in': [0],
       'id-blacklist': [0],
@@ -952,7 +954,7 @@ export default defineConfig([
     plugins: {vitest},
     languageOptions: {globals: globals.vitest},
     rules: {
-      'github/unescaped-html-literal': [0],
+      'gitea/unescaped-html-literal': [0],
       'vitest/consistent-test-filename': [0],
       'vitest/consistent-test-it': [0],
       'vitest/expect-expect': [0],
