@@ -20,8 +20,8 @@ import (
 // SyncResult describes a reference update detected during sync.
 type SyncResult struct {
 	RefName     git.RefName
-	OldCommitID string
-	NewCommitID string
+	OldCommitID git.RefName
+	NewCommitID git.RefName
 }
 
 // SyncRepoBranches synchronizes branch table with repository branches
@@ -104,7 +104,7 @@ func SyncRepoBranchesWithRepo(ctx context.Context, repo *repo_model.Repository, 
 			syncResults = append(syncResults, &SyncResult{
 				RefName:     git.RefNameFromBranch(branch),
 				OldCommitID: "",
-				NewCommitID: commit.ID.String(),
+				NewCommitID: commit.ID.RefName(),
 			})
 		} else if commit.ID.String() != dbb.CommitID || dbb.IsDeleted {
 			toUpdate = append(toUpdate, &git_model.Branch{
@@ -118,8 +118,8 @@ func SyncRepoBranchesWithRepo(ctx context.Context, repo *repo_model.Repository, 
 			})
 			syncResults = append(syncResults, &SyncResult{
 				RefName:     git.RefNameFromBranch(branch),
-				OldCommitID: dbb.CommitID,
-				NewCommitID: commit.ID.String(),
+				OldCommitID: git.RefNameFromCommit(dbb.CommitID),
+				NewCommitID: commit.ID.RefName(),
 			})
 		}
 	}
@@ -129,7 +129,7 @@ func SyncRepoBranchesWithRepo(ctx context.Context, repo *repo_model.Repository, 
 			toRemove = append(toRemove, dbBranch.ID)
 			syncResults = append(syncResults, &SyncResult{
 				RefName:     git.RefNameFromBranch(dbBranch.Name),
-				OldCommitID: dbBranch.CommitID,
+				OldCommitID: git.RefNameFromCommit(dbBranch.CommitID),
 				NewCommitID: "",
 			})
 		}
