@@ -267,8 +267,14 @@ export function isElemVisible(el: HTMLElement): boolean {
 
 export function createElementFromHTML<T extends Element>(htmlString: string): T {
   htmlString = htmlString.trim();
+  const isLetter = (code: number) => (code >= 65 && code <= 90) || (code >= 97 && code <= 122);
+  const startsWithTag = (s: string, tag: string) => {
+    return s.startsWith('<') &&
+      s.substring(1, 1 + tag.length).toLowerCase() === tag.toLowerCase() &&
+      !isLetter(s[1 + tag.length].charCodeAt(0));
+  };
   // There is no way to create some elements without a proper parent, jQuery's approach: https://github.com/jquery/jquery/blob/main/src/manipulation/wrapMap.js
-  if (htmlString.startsWith('<tr')) {
+  if (startsWithTag(htmlString, 'tr')) {
     const container = document.createElement('table');
     container.innerHTML = htmlString;
     return container.querySelector<T>('tr')!;

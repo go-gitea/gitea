@@ -36,7 +36,6 @@ import (
 	"gitea.dev/modules/log"
 	"gitea.dev/modules/optional"
 	"gitea.dev/modules/setting"
-	"gitea.dev/modules/svg"
 	"gitea.dev/modules/templates"
 	"gitea.dev/modules/translation"
 	"gitea.dev/modules/util"
@@ -484,15 +483,9 @@ func (prInfo *pullRequestViewInfo) prepareMergeBoxStatusCheckData(ctx *context.C
 
 	if data.enableStatusCheck {
 		if statusCheckData.RequiredChecksState.IsError() || statusCheckData.RequiredChecksState.IsFailure() {
-			data.infoProtectionBlockers.AddErrorItem(
-				svg.RenderHTML("octicon-x"),
-				ctx.Locale.Tr("repo.pulls.required_status_check_failed"),
-			)
+			data.infoProtectionBlockers.AddErrorItem(ctx.Locale.Tr("repo.pulls.required_status_check_failed"))
 		} else if !statusCheckData.RequiredChecksState.IsSuccess() {
-			data.infoProtectionBlockers.AddErrorItem(
-				svg.RenderHTML("octicon-x"),
-				ctx.Locale.Tr("repo.pulls.required_status_check_missing"),
-			)
+			data.infoProtectionBlockers.AddErrorItem(ctx.Locale.Tr("repo.pulls.required_status_check_missing"))
 		}
 	}
 }
