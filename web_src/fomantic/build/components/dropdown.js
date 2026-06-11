@@ -1953,8 +1953,12 @@ $.fn.dropdown = function(parameters) {
                 $choice.find(selector.menu).remove();
                 $choice.find(selector.menuIcon).remove();
               }
-              return ($choice.data(metadata.text) !== undefined)
-                ? $choice.data(metadata.text)
+              // GITEA-PATCH: jQuery `.data()` auto-coerces `data-text` values, so `data-text="false"` becomes the boolean `false`
+              // (and "true"/numbers similarly). A boolean `false` then makes `set.text()` render empty text, so a "false" choice
+              // would lose its displayed text. Force a string to keep such values intact, matching `get.choiceValue` below.
+              var choiceTextData = $choice.data(metadata.text);
+              return (choiceTextData !== undefined)
+                ? String(choiceTextData)
                 : (preserveHTML)
                   ? $choice.html().trim()
                   : $choice.text().trim()
