@@ -127,8 +127,17 @@ func httpBase(ctx *context.Context, optGitService ...string) *serviceHandler {
 		return nil
 	}
 
-	// Only public pull don't need auth.
-	isPublicPull := repoExist && !repo.IsPrivate && isPull
+	// Only public pulls don't need auth: either a non-private repo, or a private
+	// repo that grants anonymous access to the requested unit via public access settings.
+	isPublicPull := repoExist && isPull && !repo.IsPrivate
+	if repoExist && isPull && repo.IsPrivate {
+		anonPerm, err := access_model.GetDoerRepoPermission(ctx, repo, nil)
+		if err != nil {
+			ctx.ServerError("GetDoerRepoPermission", err)
+			return nil
+		}
+		isPublicPull = anonPerm.CanAccess(accessMode, unitType)
+	}
 	askAuth := !isPublicPull || setting.Service.RequireSignInViewStrict
 
 	// don't allow anonymous pulls if organization is not public
@@ -139,15 +148,6 @@ func httpBase(ctx *context.Context, optGitService ...string) *serviceHandler {
 		}
 
 		askAuth = askAuth || (repo.Owner.Visibility != structs.VisibleTypePublic)
-	}
-
-	// private repos with anonymous code/wiki access (via public access settings) allow pulls without auth
-	if repoExist && repo.IsPrivate && isPull && !setting.Service.RequireSignInViewStrict {
-		if anonPerm, anonErr := access_model.GetDoerRepoPermission(ctx, repo, nil); anonErr == nil {
-			if anonPerm.CanAccess(accessMode, unitType) {
-				askAuth = false
-			}
-		}
 	}
 
 	// check access
