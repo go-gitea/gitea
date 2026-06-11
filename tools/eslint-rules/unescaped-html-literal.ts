@@ -1,20 +1,12 @@
-import type {JSRuleDefinition as RuleDefinition, JSRuleDefinitionTypeOptions as RuleDefinitionTypeOptions} from 'eslint';
-
-type UnescapedHtmlLiteralRuleDefinitionTypeOptions = RuleDefinitionTypeOptions & {
-  MessageIds: 'unescapedHtmlLiteral';
-  RuleOptions: [];
-};
+// MIT license, Copyright (c) GitHub, Inc.
+// https://github.com/github/eslint-plugin-github/blob/main/lib/rules/unescaped-html-literal.js
+import type {JSRuleDefinition, JSRuleDefinitionTypeOptions} from 'eslint';
 
 const htmlOpenTag = /^\s*<[a-zA-Z]/;
 
-const rule: RuleDefinition<UnescapedHtmlLiteralRuleDefinitionTypeOptions> = {
+const rule: JSRuleDefinition<JSRuleDefinitionTypeOptions> = {
   meta: {
     type: 'problem',
-    docs: {
-      description: 'disallow unescaped HTML literals',
-      url: 'https://github.com/go-gitea/gitea/blob/main/tools/eslint-rules/unescaped-html-literal.ts',
-    },
-    schema: [],
     messages: {
       unescapedHtmlLiteral: 'Unescaped HTML literal. Use html`` tag template literal for secure escaping.',
     },

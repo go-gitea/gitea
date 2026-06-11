@@ -8,7 +8,6 @@ import playwright from 'eslint-plugin-playwright';
 import regexp from 'eslint-plugin-regexp';
 import sonarjs from 'eslint-plugin-sonarjs';
 import stylistic from '@stylistic/eslint-plugin';
-import unescapedHtmlLiteral from './tools/eslint-rules/unescaped-html-literal.ts';
 import typescriptParser from '@typescript-eslint/parser';
 import typescriptPlugin from 'typescript-eslint';
 import unicorn from 'eslint-plugin-unicorn';
@@ -18,6 +17,8 @@ import vueScopedCss from 'eslint-plugin-vue-scoped-css';
 import wc from 'eslint-plugin-wc';
 import {defineConfig, globalIgnores} from 'eslint/config';
 import type {ESLint} from 'eslint';
+
+import unescapedHtmlLiteral from './tools/eslint-rules/unescaped-html-literal.ts';
 
 const jsExts = ['js', 'mjs', 'cjs'] as const;
 const tsExts = ['ts', 'mts', 'cts'] as const;
