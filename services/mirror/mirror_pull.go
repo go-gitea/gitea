@@ -298,7 +298,7 @@ func SyncPullMirror(ctx context.Context, repoID int64) bool {
 		log.Error("SyncMirrors [repo_id: %v]: unable to GetMirrorByRepoID: %v", repoID, err)
 		return false
 	}
-	repo := m.GetRepository(ctx) // force load repository of mirror
+	m.GetRepository(ctx) // force load repository of mirror
 
 	ctx, _, finished := process.GetManager().AddContext(ctx, fmt.Sprintf("Syncing Mirror %s/%s", m.Repo.OwnerName, m.Repo.Name))
 	defer finished()
@@ -364,41 +364,27 @@ func SyncPullMirror(ctx context.Context, repoID int64) bool {
 			continue
 		}
 
-		// Push commits
-		oldCommitID, err := gitrepo.GetFullCommitID(ctx, repo, result.OldCommitID)
+		oldCommitID, newCommitID := result.OldCommitID, result.NewCommitID
+		commits, err := gitRepo.CommitsBetween(newCommitID, oldCommitID, setting.UI.FeedMaxCommitNum)
 		if err != nil {
-			log.Error("SyncMirrors [repo: %-v]: unable to get GetFullCommitID[%s]: %v", m.Repo, result.OldCommitID, err)
+			log.Error("SyncMirrors [repo: %-v]: unable to get CommitsBetween [new_commit_id: %s, old_commit_id: %s]: %v", m.Repo, newCommitID, oldCommitID, err)
 			continue
 		}
-		newCommitID, err := gitrepo.GetFullCommitID(ctx, repo, result.NewCommitID)
-		if err != nil {
-			log.Error("SyncMirrors [repo: %-v]: unable to get GetFullCommitID [%s]: %v", m.Repo, result.NewCommitID, err)
-			continue
-		}
-		commits, err := gitRepo.CommitsBetweenIDs(newCommitID, oldCommitID)
-		if err != nil {
-			log.Error("SyncMirrors [repo: %-v]: unable to get CommitsBetweenIDs [new_commit_id: %s, old_commit_id: %s]: %v", m.Repo, newCommitID, oldCommitID, err)
-			continue
-		}
-
 		theCommits := repo_module.GitToPushCommits(commits)
-		if len(theCommits.Commits) > setting.UI.FeedMaxCommitNum {
-			theCommits.Commits = theCommits.Commits[:setting.UI.FeedMaxCommitNum]
-		}
 
-		newCommit, err := gitRepo.GetCommit(newCommitID)
+		newCommit, err := gitRepo.GetCommit(newCommitID.String())
 		if err != nil {
 			log.Error("SyncMirrors [repo: %-v]: unable to get commit %s: %v", m.Repo, newCommitID, err)
 			continue
 		}
 
 		theCommits.HeadCommit = repo_module.CommitToPushCommit(newCommit)
-		theCommits.CompareURL = m.Repo.ComposeCompareURL(oldCommitID, newCommitID)
+		theCommits.CompareURL = m.Repo.ComposeCompareURL(oldCommitID.String(), newCommitID.String())
 
 		notify_service.SyncPushCommits(ctx, m.Repo.MustOwner(ctx), m.Repo, &repo_module.PushUpdateOptions{
 			RefFullName: result.RefName,
-			OldCommitID: oldCommitID,
-			NewCommitID: newCommitID,
+			OldCommitID: oldCommitID.String(),
+			NewCommitID: newCommitID.String(),
 		}, theCommits)
 	}
 	log.Trace("SyncMirrors [repo: %-v]: done notifying updated branches/tags - now updating last commit time", m.Repo)

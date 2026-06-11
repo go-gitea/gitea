@@ -39,24 +39,15 @@ a.ui.label {
   height: 2.1666em;
 }
 
-.ui.label > .color-icon {
-  margin-left: 0;
-}
-
 .ui.label > .icon {
   width: auto;
   margin: 0 0.75em 0 0;
 }
 
 .ui.label > .detail {
-  display: inline-block;
-  vertical-align: top;
   font-weight: var(--font-weight-medium);
-  margin-left: 1em;
+  margin-left: 0.5em; /* our .ui.label already provides flex gap, so the margin here shouldn't be too large */
   opacity: 0.8;
-}
-.ui.label > .detail .icon {
-  margin: 0 0.25em 0 0;
 }
 
 .ui.label > .close.icon,

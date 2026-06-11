@@ -1855,8 +1855,10 @@ tbody.commit-list {
   width: 100%;
 }
 
-.commit-status-item {
+.commit-status-item { /* the item can be used at 2 places: PR's merge box (commit-status-list), commit's status popup (no commit-status-list) */
   height: 40px;
+  padding-top: 0 !important; /* use "height" + "align items center", don't use padding-y (from the list container) to layout */
+  padding-bottom: 0 !important;
   display: flex;
   gap: var(--gap-block);
   align-items: center;

@@ -17,7 +17,7 @@
 				{{$cs.Context}} <span class="tw-text-text-light-2">{{$cs.Description}}</span>
 			</div>
 		</div>
-		<div class="status-details">
+		<div class="flex-text-block">
 			{{if and $statusCheckData $statusCheckData.IsContextRequired}}
 				{{if (call $statusCheckData.IsContextRequired $cs.Context)}}
 					<div class="ui label">{{ctx.Locale.Tr "repo.pulls.status_checks_requested"}}</div>
