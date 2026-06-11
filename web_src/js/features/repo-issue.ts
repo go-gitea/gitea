@@ -1,5 +1,5 @@
 import {errorMessage} from '../modules/errors.ts';
-import {htmlEscape} from '../utils/html.ts';
+import {html, htmlEscape, htmlRaw} from '../utils/html.ts';
 import {createTippy} from '../modules/tippy.ts';
 import {
   addDelegatedEventListener,
@@ -274,15 +274,13 @@ export function initRepoPullRequestReview() {
 
     let ntr = tr.nextElementSibling;
     if (!ntr?.classList.contains('add-comment')) {
-      ntr = createElementFromHTML(`
-        <tr class="add-comment" data-line-type="${htmlEscape(lineType)}">
-          ${isSplit ? `
-            <td class="add-comment-left" colspan="4"></td>
-            <td class="add-comment-right" colspan="4"></td>
-          ` : `
-            <td class="add-comment-left add-comment-right" colspan="5"></td>
-          `}
-        </tr>`);
+      const tdSplit = html`<td class="add-comment-left" colspan="4"></td><td class="add-comment-right" colspan="4"></td>`;
+      const tdUnified = html`<td class="add-comment-left add-comment-right" colspan="5"></td>`;
+      ntr = createElementFromHTML(html`
+        <tr class="add-comment" data-line-type="${lineType}">
+          ${isSplit ? htmlRaw(tdSplit) : htmlRaw(tdUnified)}
+        </tr>
+      `);
       tr.after(ntr);
     }
     const td = ntr.querySelector(`.add-comment-${side}`)!;
