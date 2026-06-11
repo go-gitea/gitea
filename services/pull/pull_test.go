@@ -5,6 +5,9 @@
 package pull
 
 import (
+	"os"
+	"os/exec"
+	"path/filepath"
 	"testing"
 
 	issues_model "gitea.dev/models/issues"
@@ -14,6 +17,7 @@ import (
 	"gitea.dev/modules/gitrepo"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 // TODO TestPullRequest_PushToBaseRepo
@@ -87,4 +91,68 @@ func TestPullRequest_GetDefaultMergeMessage_ExternalTracker(t *testing.T) {
 	assert.NoError(t, err)
 
 	assert.Equal(t, "Merge pull request 'issue3' (#3) from user2/repo2:branch2 into master", mergeMessage)
+}
+
+func TestCheckIfPRContentChanged_ForkPR(t *testing.T) {
+	require.NoError(t, unittest.PrepareTestDatabase())
+
+	pr := unittest.AssertExistsAndLoadBean(t, &issues_model.PullRequest{ID: 3})
+	require.NoError(t, pr.LoadBaseRepo(t.Context()))
+	require.NoError(t, pr.LoadHeadRepo(t.Context()))
+
+	oldBaseCommitID, err := gitrepo.GetFullCommitID(t.Context(), pr.BaseRepo, pr.BaseBranch)
+	require.NoError(t, err)
+	oldHeadCommitID, err := gitrepo.GetFullCommitID(t.Context(), pr.HeadRepo, pr.HeadBranch)
+	require.NoError(t, err)
+
+	baseWorktreePath := filepath.Join(t.TempDir(), "base-worktree")
+	runGitCommand(t, "clone", pr.BaseRepo.RepoPath(), baseWorktreePath)
+	runGitCommand(t, "-C", baseWorktreePath, "config", "user.name", "Gitea Tests")
+	runGitCommand(t, "-C", baseWorktreePath, "config", "user.email", "tests@gitea.io")
+
+	regressionFilePath := filepath.Join(baseWorktreePath, "fork-pr-regression.txt")
+	require.NoError(t, os.WriteFile(regressionFilePath, []byte("fork PR regression\n"), 0o644))
+	runGitCommand(t, "-C", baseWorktreePath, "add", filepath.Base(regressionFilePath))
+	runGitCommand(t, "-C", baseWorktreePath, "commit", "-m", "Advance base branch for fork PR regression test")
+	runGitCommand(t, "--git-dir", pr.BaseRepo.RepoPath(), "fetch", baseWorktreePath, "HEAD:refs/heads/"+pr.BaseBranch)
+
+	newBaseCommitID, err := gitrepo.GetFullCommitID(t.Context(), pr.BaseRepo, pr.BaseBranch)
+	require.NoError(t, err)
+	require.NotEqual(t, oldBaseCommitID, newBaseCommitID)
+
+	headWorktreePath := filepath.Join(t.TempDir(), "head-worktree")
+	runGitCommand(t, "clone", pr.HeadRepo.RepoPath(), headWorktreePath)
+	runGitCommand(t, "-C", headWorktreePath, "checkout", pr.HeadBranch)
+	runGitCommand(t, "-C", headWorktreePath, "config", "user.name", "Gitea Tests")
+	runGitCommand(t, "-C", headWorktreePath, "config", "user.email", "tests@gitea.io")
+
+	headChangePath := filepath.Join(headWorktreePath, "fork-pr-head-change.txt")
+	require.NoError(t, os.WriteFile(headChangePath, []byte("new head content\n"), 0o644))
+	runGitCommand(t, "-C", headWorktreePath, "add", filepath.Base(headChangePath))
+	runGitCommand(t, "-C", headWorktreePath, "commit", "-m", "Add head change for fork PR regression test")
+	runGitCommand(t, "--git-dir", pr.HeadRepo.RepoPath(), "fetch", headWorktreePath, "HEAD:refs/heads/"+pr.HeadBranch)
+
+	newHeadCommitID, err := gitrepo.GetFullCommitID(t.Context(), pr.HeadRepo, pr.HeadBranch)
+	require.NoError(t, err)
+	require.NotEqual(t, oldHeadCommitID, newHeadCommitID)
+
+	_, err = gitrepo.MergeBase(t.Context(), pr.HeadRepo, newBaseCommitID, newHeadCommitID)
+	require.Error(t, err)
+
+	changed, mergeBase, err := checkIfPRContentChanged(t.Context(), pr, oldHeadCommitID, newHeadCommitID)
+	require.NoError(t, err)
+	assert.True(t, changed)
+	assert.Equal(t, oldBaseCommitID, mergeBase)
+
+	mergeBaseAfterFetch, err := gitrepo.MergeBase(t.Context(), pr.HeadRepo, newBaseCommitID, newHeadCommitID)
+	require.NoError(t, err)
+	assert.Equal(t, oldBaseCommitID, mergeBaseAfterFetch)
+}
+
+func runGitCommand(t *testing.T, args ...string) {
+	t.Helper()
+
+	cmd := exec.CommandContext(t.Context(), "git", args...)
+	output, err := cmd.CombinedOutput()
+	require.NoErrorf(t, err, "git %v failed: %s", args, output)
 }
