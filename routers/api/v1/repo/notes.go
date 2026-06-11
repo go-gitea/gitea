@@ -68,11 +68,7 @@ func getNote(ctx *context.APIContext, identifier string) {
 
 	commitID, err := ctx.Repo.GitRepo.ConvertToGitID(identifier)
 	if err != nil {
-		if git.IsErrNotExist(err) {
-			ctx.APIErrorNotFound(err)
-		} else {
-			ctx.APIErrorInternal(err)
-		}
+		ctx.APIErrorAuto(err)
 		return
 	}
 

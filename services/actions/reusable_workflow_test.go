@@ -10,6 +10,9 @@ import (
 	actions_model "gitea.dev/models/actions"
 	"gitea.dev/models/db"
 	"gitea.dev/models/unittest"
+	"gitea.dev/modules/actions/jobparser"
+	"gitea.dev/modules/setting"
+	"gitea.dev/modules/test"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -131,4 +134,45 @@ func buildCallerChain(t *testing.T, callerUses ...string) []*actions_model.Actio
 		parentID = job.ID
 	}
 	return jobs
+}
+
+func TestResolveUses(t *testing.T) {
+	defer test.MockVariableValue(&setting.AppURL, "https://gitea.example.com/sub/")()
+	defer test.MockVariableValue(&setting.AppSubURL, "/sub")()
+	ctx := t.Context()
+
+	t.Run("LocalForms", func(t *testing.T) {
+		// Same-repo and cross-repo forms are not URLs and are parsed as-is.
+		ref, err := ResolveUses(ctx, "./.gitea/workflows/build.yml")
+		require.NoError(t, err)
+		assert.Equal(t, jobparser.UsesRef{Kind: jobparser.UsesKindLocalSameRepo, Path: ".gitea/workflows/build.yml"}, *ref)
+
+		ref, err = ResolveUses(ctx, "owner/repo/.gitea/workflows/build.yml@v1")
+		require.NoError(t, err)
+		assert.Equal(t, jobparser.UsesRef{Kind: jobparser.UsesKindLocalCrossRepo, Owner: "owner", Repo: "repo", Path: ".gitea/workflows/build.yml", Ref: "v1"}, *ref)
+	})
+
+	t.Run("LocalInstanceURL", func(t *testing.T) {
+		// An absolute URL on this instance (incl. AppSubURL) resolves to the equivalent cross-repo ref.
+		ref, err := ResolveUses(ctx, "https://gitea.example.com/sub/owner/repo/.gitea/workflows/ci.yml@refs/heads/main")
+		require.NoError(t, err)
+		assert.Equal(t, jobparser.UsesRef{Kind: jobparser.UsesKindLocalCrossRepo, Owner: "owner", Repo: "repo", Path: ".gitea/workflows/ci.yml", Ref: "refs/heads/main"}, *ref)
+	})
+
+	t.Run("InvalidSyntax", func(t *testing.T) {
+		for _, in := range []string{
+			"owner/.gitea/workflows/foo.yml",                                             // missing repo segment
+			"owner/repo/.gitea/workflows/foo.yml",                                        // missing @ref
+			"https://gitea.example.com/sub/repo/.gitea/workflows/ci.yml@refs/heads/main", // local absolute URL but missing owner
+			"not a valid uses at all",
+		} {
+			_, err := ResolveUses(ctx, in)
+			require.Error(t, err, "in = %s", in)
+		}
+	})
+
+	t.Run("ForeignURL", func(t *testing.T) {
+		_, err := ResolveUses(ctx, "https://other.gitea-example.com/owner/repo/.gitea/workflows/ci.yaml@v1")
+		assert.ErrorContains(t, err, "must point to this Gitea instance")
+	})
 }

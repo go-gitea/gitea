@@ -4,6 +4,8 @@ description: Restore the go module, build, and golangci-lint caches. Save only o
 # Only the cache-seeder workflow saves; rename requires updating cache-seeder.yml.
 # The lint job restores but does not save the gobuild cache, so only one writer
 # (the gobuild job) populates it and there is no contention on the cache key.
+# Seeder restores by exact key only (no restore-keys) so each go.sum seeds a clean
+# cache and size stays bounded; do not add restore-keys here. PR runs keep them.
 
 inputs:
   lint-cache:
@@ -18,7 +20,6 @@ runs:
       with:
         path: ~/go/pkg/mod
         key: gomod-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('go.sum') }}
-        restore-keys: gomod-${{ runner.os }}-${{ runner.arch }}
     - if: ${{ github.workflow != 'cache-seeder' }}
       uses: actions/cache/restore@27d5ce7f107fe9357f9df03efb73ab90386fccae # v5.0.5
       with:
@@ -30,7 +31,6 @@ runs:
       with:
         path: ~/.cache/go-build
         key: gobuild-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('go.sum') }}
-        restore-keys: gobuild-${{ runner.os }}-${{ runner.arch }}
     - if: ${{ github.workflow != 'cache-seeder' || inputs.lint-cache == 'true' }}
       uses: actions/cache/restore@27d5ce7f107fe9357f9df03efb73ab90386fccae # v5.0.5
       with:
@@ -42,7 +42,6 @@ runs:
       with:
         path: ~/.cache/golangci-lint
         key: golint-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('go.sum', '.golangci.yml') }}
-        restore-keys: golint-${{ runner.os }}-${{ runner.arch }}
     - if: ${{ inputs.lint-cache == 'true' && github.workflow != 'cache-seeder' }}
       uses: actions/cache/restore@27d5ce7f107fe9357f9df03efb73ab90386fccae # v5.0.5
       with:
