@@ -16,13 +16,13 @@ import (
 )
 
 type actionBeforeV337 struct {
-	ID          int64              `xorm:"pk autoincr"`
-	UserID      int64              `xorm:"INDEX"`
+	ID          int64 `xorm:"pk autoincr"`
+	UserID      int64 `xorm:"INDEX"`
 	OpType      int
 	ActUserID   int64
 	RepoID      int64
-	CommentID   int64              `xorm:"INDEX"`
-	IsDeleted   bool               `xorm:"NOT NULL DEFAULT false"`
+	CommentID   int64 `xorm:"INDEX"`
+	IsDeleted   bool  `xorm:"NOT NULL DEFAULT false"`
 	RefName     string
 	IsPrivate   bool               `xorm:"NOT NULL DEFAULT false"`
 	Content     string             `xorm:"TEXT"`
