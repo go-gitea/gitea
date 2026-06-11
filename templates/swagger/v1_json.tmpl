@@ -1558,7 +1558,8 @@
                 "issue",
                 "pull",
                 "commit",
-                "repository"
+                "repository",
+                "release"
               ],
               "type": "string"
             },
@@ -14219,7 +14220,8 @@
                 "issue",
                 "pull",
                 "commit",
-                "repository"
+                "repository",
+                "release"
               ],
               "type": "string"
             },
@@ -28029,15 +28031,16 @@
           "x-go-name": "Title"
         },
         "type": {
-          "description": "Type indicates the type of the notification subject\nIssue NotifySubjectIssue a issue is subject of an notification\nPull NotifySubjectPull a pull is subject of an notification\nCommit NotifySubjectCommit a commit is subject of an notification\nRepository NotifySubjectRepository a repository is subject of an notification",
+          "description": "Type indicates the type of the notification subject\nIssue NotifySubjectIssue  NotifySubjectIssue a issue is subject of an notification\nPull NotifySubjectPull  NotifySubjectPull a pull is subject of an notification\nCommit NotifySubjectCommit  NotifySubjectCommit a commit is subject of an notification\nRepository NotifySubjectRepository  NotifySubjectRepository a repository is subject of an notification\nRelease NotifySubjectRelease  NotifySubjectRelease an release is subject of an notification",
           "type": "string",
           "enum": [
             "Issue",
             "Pull",
             "Commit",
-            "Repository"
+            "Repository",
+            "Release"
           ],
-          "x-go-enum-desc": "Issue NotifySubjectIssue a issue is subject of an notification\nPull NotifySubjectPull a pull is subject of an notification\nCommit NotifySubjectCommit a commit is subject of an notification\nRepository NotifySubjectRepository a repository is subject of an notification",
+          "x-go-enum-desc": "Issue NotifySubjectIssue  NotifySubjectIssue a issue is subject of an notification\nPull NotifySubjectPull  NotifySubjectPull a pull is subject of an notification\nCommit NotifySubjectCommit  NotifySubjectCommit a commit is subject of an notification\nRepository NotifySubjectRepository  NotifySubjectRepository a repository is subject of an notification\nRelease NotifySubjectRelease  NotifySubjectRelease an release is subject of an notification",
           "x-go-name": "Type"
         },
         "url": {

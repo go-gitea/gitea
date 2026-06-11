@@ -6,6 +6,7 @@
   source: 1 # issue
   updated_by: 2
   issue_id: 1
+  unique_key: issue-1
   created_unix: 946684800
   updated_unix: 946684820
 
@@ -17,6 +18,7 @@
   source: 1 # issue
   updated_by: 1
   issue_id: 2
+  unique_key: issue-2
   created_unix: 946685800
   updated_unix: 946685820
 
@@ -28,6 +30,7 @@
   source: 1 # issue
   updated_by: 1
   issue_id: 3
+  unique_key: issue-3
   created_unix: 946686800
   updated_unix: 946686800
 
@@ -39,6 +42,7 @@
   source: 1 # issue
   updated_by: 1
   issue_id: 5
+  unique_key: issue-5
   created_unix: 946687800
   updated_unix: 946687800
 
@@ -50,6 +54,7 @@
   source: 1 # issue
   updated_by: 5
   issue_id: 4
+  unique_key: issue-4
   created_unix: 946688800
   updated_unix: 946688820
 

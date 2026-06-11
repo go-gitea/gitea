@@ -21,6 +21,7 @@ import (
 	"gitea.dev/modules/optional"
 	"gitea.dev/modules/setting"
 	api "gitea.dev/modules/structs"
+	"gitea.dev/modules/svg"
 	"gitea.dev/modules/timeutil"
 	"gitea.dev/modules/util"
 
@@ -420,6 +421,32 @@ func (issue *Issue) PatchURL() string {
 		return fmt.Sprintf("%s/pulls/%d.patch", issue.Repo.HTMLURL(), issue.Index)
 	}
 	return ""
+}
+
+// IconHTML returns the HTML for the issue icon.
+// the logic should be kept the same as getIssueIcon/getIssueColor in TS code
+func (issue *Issue) IconHTML(ctx context.Context) template.HTML {
+	if !issue.IsPull {
+		if issue.IsClosed {
+			return svg.RenderHTML("octicon-issue-closed", 16, "tw-text-red")
+		}
+		return svg.RenderHTML("octicon-issue-opened", 16, "tw-text-green")
+	}
+
+	switch {
+	case issue.PullRequest == nil: // pull request should be loaded before calling this function
+		setting.PanicInDevOrTesting("Issue.IconHTML called on pull request %d without PullRequest loaded", issue.ID)
+		return ""
+	case issue.IsClosed:
+		if issue.PullRequest.HasMerged {
+			return svg.RenderHTML("octicon-git-merge", 16, "tw-text-purple")
+		}
+		return svg.RenderHTML("octicon-git-pull-request-closed", 16, "tw-text-red")
+	case issue.PullRequest.IsWorkInProgress(ctx):
+		return svg.RenderHTML("octicon-git-pull-request-draft", 16, "tw-text-text-light")
+	default:
+		return svg.RenderHTML("octicon-git-pull-request", 16, "tw-text-green")
+	}
 }
 
 // State returns string representation of issue status.
