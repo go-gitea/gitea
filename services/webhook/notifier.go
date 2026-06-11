@@ -1046,7 +1046,7 @@ func (*webhookNotifier) WorkflowRunStatusUpdate(ctx context.Context, repo *repo_
 	}
 
 	run.Repo = repo
-	convertedRun, err := convert.ToActionWorkflowRun(ctx, run, nil)
+	convertedRun, err := convert.ToActionWorkflowRun(ctx, run, nil, false)
 	if err != nil {
 		log.Error("ToActionWorkflowRun: %v", err)
 		return

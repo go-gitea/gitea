@@ -23,7 +23,10 @@ func (repo *Repository) GetRefCommitID(name string) (string, error) {
 	}
 	refName := plumbing.ReferenceName(name)
 	if err := refName.Validate(); err != nil {
-		return "", err
+		// Match the nogogit behavior: an unresolvable/invalid ref name
+		// is reported as not-existing rather than a generic validation error,
+		// so callers can rely on IsErrNotExist regardless of build tag.
+		return "", ErrNotExist{ID: name}
 	}
 	ref, err := repo.gogitRepo.Reference(refName, true)
 	if err != nil {
