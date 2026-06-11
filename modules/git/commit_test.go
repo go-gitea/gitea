@@ -199,3 +199,10 @@ func Test_GetCommitBranchStart(t *testing.T) {
 	assert.NotEmpty(t, startCommitID)
 	assert.Equal(t, "95bb4d39648ee7e325106df01a621c530863a653", startCommitID)
 }
+
+func TestIsStringLikelyCommitID(t *testing.T) {
+	assert.True(t, IsStringLikelyCommitID(nil, "abc", 3))
+	assert.False(t, IsStringLikelyCommitID(nil, "abc", 4))
+	assert.True(t, IsStringLikelyCommitID(nil, strings.Repeat("a", 64), 4))
+	assert.False(t, IsStringLikelyCommitID(nil, strings.Repeat("a", 65), 4))
+}

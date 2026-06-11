@@ -297,7 +297,7 @@ func pushNewBranch(ctx context.Context, repo *repo_model.Repository, pusher *use
 }
 
 func pushUpdateBranch(_ context.Context, repo *repo_model.Repository, pusher *user_model.User, opts *repo_module.PushUpdateOptions, newCommit *git.Commit) ([]*git.Commit, error) {
-	l, err := newCommit.CommitsBeforeUntil(opts.OldCommitID)
+	l, err := newCommit.CommitsBeforeUntil(git.RefNameFromCommit(opts.OldCommitID))
 	if err != nil {
 		return nil, fmt.Errorf("newCommit.CommitsBeforeUntil: %w", err)
 	}

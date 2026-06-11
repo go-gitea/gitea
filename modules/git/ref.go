@@ -7,6 +7,7 @@ import (
 	"regexp"
 	"strings"
 
+	"gitea.dev/modules/setting"
 	"gitea.dev/modules/util"
 )
 
@@ -72,6 +73,8 @@ const ForPrefix = "refs/for/"
 // RefName represents a full git reference name
 type RefName string
 
+const RefNameHead = "HEAD"
+
 func RefNameFromBranch(shortName string) RefName {
 	return RefName(BranchPrefix + shortName)
 }
@@ -81,6 +84,10 @@ func RefNameFromTag(shortName string) RefName {
 }
 
 func RefNameFromCommit(shortName string) RefName {
+	if !isStringLowerHex(shortName) {
+		setting.PanicInDevOrTesting("BUG! invalid commit id %s", shortName)
+		return RefName("refs/invalid-commit/" + shortName)
+	}
 	return RefName(shortName)
 }
 
