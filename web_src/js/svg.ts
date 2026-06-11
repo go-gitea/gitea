@@ -199,6 +199,10 @@ export function svg(name: SvgName, size = 16, classNames?: string | string[]): s
   return serializeXml(svgNode);
 }
 
+export function svgRaw(name: SvgName, size = 16, classNames?: string | string[]) {
+  return htmlRaw(svg(name, size, classNames));
+}
+
 export function svgParseOuterInner(name: SvgName) {
   const svgStr = svgs[name];
   if (!svgStr) throw new Error(`Unknown SVG icon: ${name}`);
