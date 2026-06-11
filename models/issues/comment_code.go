@@ -83,10 +83,6 @@ func findCodeComments(ctx context.Context, opts FindCommentsOptions, issue *Issu
 		return nil, err
 	}
 
-	if err := issue.LoadRepo(ctx); err != nil {
-		return nil, err
-	}
-
 	if err := comments.loadReactions(ctx, issue.Repo); err != nil {
 		return nil, err
 	}
