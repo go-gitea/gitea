@@ -1,9 +1,17 @@
 name: free-disk-space
 description: Free space on / before large cache restores
 
-# Delete preinstalled toolchains which gitea doesn't use
+# Delete preinstalled toolchains which gitea doesn't use and show disk space usage
 runs:
   using: composite
   steps:
     - shell: bash
-      run: sudo rm -rf /usr/local/lib/android /usr/local/.ghcup /opt/ghc /usr/share/dotnet
+      run: |
+        echo "free space before cleanup:"
+        df -h /
+        for dir in /usr/local/lib/android /usr/local/.ghcup /opt/ghc /usr/share/dotnet; do
+          sudo rm -rf "$dir" &
+        done
+        wait
+        echo "free space after cleanup:"
+        df -h /
