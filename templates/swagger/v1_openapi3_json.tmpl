@@ -2344,6 +2344,13 @@
             "type": "string",
             "x-go-name": "PreviousAttemptURL"
           },
+          "pull_requests": {
+            "items": {
+              "$ref": "#/components/schemas/PullRequestMinimal"
+            },
+            "type": "array",
+            "x-go-name": "PullRequests"
+          },
           "repository": {
             "$ref": "#/components/schemas/Repository"
           },
@@ -8687,6 +8694,73 @@
             "x-go-name": "Merged"
           }
         },
+        "type": "object",
+        "x-go-package": "gitea.dev/modules/structs"
+      },
+      "PullRequestMinimal": {
+        "description": "PullRequestMinimal is the minimal information about a pull request, as\nreturned in the `pull_requests` field of a workflow run.",
+        "properties": {
+          "base": {
+            "$ref": "#/components/schemas/PullRequestMinimalHead"
+          },
+          "head": {
+            "$ref": "#/components/schemas/PullRequestMinimalHead"
+          },
+          "id": {
+            "format": "int64",
+            "type": "integer",
+            "x-go-name": "ID"
+          },
+          "number": {
+            "format": "int64",
+            "type": "integer",
+            "x-go-name": "Number"
+          },
+          "url": {
+            "format": "uri",
+            "type": "string",
+            "x-go-name": "URL"
+          }
+        },
+        "type": "object",
+        "x-go-package": "gitea.dev/modules/structs"
+      },
+      "PullRequestMinimalHead": {
+        "properties": {
+          "ref": {
+            "type": "string",
+            "x-go-name": "Ref"
+          },
+          "repo": {
+            "$ref": "#/components/schemas/PullRequestMinimalHeadRepo"
+          },
+          "sha": {
+            "type": "string",
+            "x-go-name": "SHA"
+          }
+        },
+        "title": "PullRequestMinimalHead is a minimal description of one side of a pull request.",
+        "type": "object",
+        "x-go-package": "gitea.dev/modules/structs"
+      },
+      "PullRequestMinimalHeadRepo": {
+        "properties": {
+          "id": {
+            "format": "int64",
+            "type": "integer",
+            "x-go-name": "ID"
+          },
+          "name": {
+            "type": "string",
+            "x-go-name": "Name"
+          },
+          "url": {
+            "format": "uri",
+            "type": "string",
+            "x-go-name": "URL"
+          }
+        },
+        "title": "PullRequestMinimalHeadRepo is a minimal description of the repository on one side of a pull request.",
         "type": "object",
         "x-go-package": "gitea.dev/modules/structs"
       },
@@ -16270,6 +16344,14 @@
             }
           },
           {
+            "description": "if true, the `pull_requests` field on each returned run is emptied",
+            "in": "query",
+            "name": "exclude_pull_requests",
+            "schema": {
+              "type": "boolean"
+            }
+          },
+          {
             "description": "page number of results to return (1-based)",
             "in": "query",
             "name": "page",
@@ -17667,6 +17749,122 @@
           }
         },
         "summary": "Enable a workflow",
+        "tags": [
+          "repository"
+        ]
+      }
+    },
+    "/repos/{owner}/{repo}/actions/workflows/{workflow_id}/runs": {
+      "get": {
+        "operationId": "ActionsListWorkflowRuns",
+        "parameters": [
+          {
+            "description": "owner of the repo",
+            "in": "path",
+            "name": "owner",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "name of the repo",
+            "in": "path",
+            "name": "repo",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "id of the workflow, must be the workflow file name (e.g. `build.yml`)",
+            "in": "path",
+            "name": "workflow_id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "workflow event name",
+            "in": "query",
+            "name": "event",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "workflow branch",
+            "in": "query",
+            "name": "branch",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "workflow status (pending, queued, in_progress, failure, success, skipped)",
+            "in": "query",
+            "name": "status",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "triggered by user",
+            "in": "query",
+            "name": "actor",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "triggering sha of the workflow run",
+            "in": "query",
+            "name": "head_sha",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "if true, the `pull_requests` field on each returned run is emptied",
+            "in": "query",
+            "name": "exclude_pull_requests",
+            "schema": {
+              "type": "boolean"
+            }
+          },
+          {
+            "description": "page number of results to return (1-based)",
+            "in": "query",
+            "name": "page",
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "description": "page size of results",
+            "in": "query",
+            "name": "limit",
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/components/responses/WorkflowRunsList"
+          },
+          "400": {
+            "$ref": "#/components/responses/error"
+          },
+          "403": {
+            "$ref": "#/components/responses/forbidden"
+          },
+          "404": {
+            "$ref": "#/components/responses/notFound"
+          }
+        },
+        "summary": "List runs for a workflow",
         "tags": [
           "repository"
         ]
