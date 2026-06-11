@@ -83,9 +83,9 @@
       "matchFileNames": ["**/Makefile"],
     },
     {
+      // bump the toolchain directive immediately
       "matchManagers": ["gomod"],
-      "matchDepNames": ["go"],
-      "matchDepTypes": ["golang"],
+      "matchDepTypes": ["toolchain"],
       "rangeStrategy": "bump",
       "schedule": ["at any time"],
       "minimumReleaseAge": "0",

@@ -1,6 +1,8 @@
 module gitea.dev
 
-go 1.26.3
+go 1.26.0
+
+toolchain go1.26.3
 
 require (
 	codeberg.org/gusted/mcaptcha v0.0.0-20220723083913-4f3072e1d570
