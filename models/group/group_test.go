@@ -10,9 +10,12 @@ import (
 	"gitea.dev/models/db"
 	group_model "gitea.dev/models/group"
 	"gitea.dev/models/unittest"
+	user_model "gitea.dev/models/user"
+	"gitea.dev/modules/structs"
 	"gitea.dev/modules/util"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	"xorm.io/builder"
 )
 
@@ -55,6 +58,60 @@ func assertGroupOrder(t *testing.T, pgid int64, expectedIDs []int64) {
 
 func getID(it *group_model.Group) int64 {
 	return it.ID
+}
+
+func TestIsPrivateBecauseOfParentPermissions(t *testing.T) {
+	require.NoError(t, unittest.PrepareTestDatabase())
+
+	ctx := t.Context()
+	admin := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 1})
+	orgMember := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
+
+	setVisibility := func(t *testing.T, group *group_model.Group, visibility structs.VisibleType) {
+		t.Helper()
+		_, err := db.GetEngine(ctx).ID(group.ID).Cols("visibility").Update(&group_model.Group{
+			Visibility: visibility,
+		})
+		require.NoError(t, err)
+	}
+
+	t.Run("PublicHierarchy", func(t *testing.T) {
+		root := createTestGroup(t, "public root", 0)
+		child := createTestGroup(t, "public child", root.ID)
+
+		private, err := child.IsPrivateBecauseOfParentPermissions(ctx, nil)
+		require.NoError(t, err)
+		assert.False(t, private)
+	})
+
+	t.Run("PrivateRoot", func(t *testing.T) {
+		root := createTestGroup(t, "private root", 0)
+		setVisibility(t, root, structs.VisibleTypePrivate)
+		child := createTestGroup(t, "public child", root.ID)
+
+		private, err := child.IsPrivateBecauseOfParentPermissions(ctx, nil)
+		require.NoError(t, err)
+		assert.True(t, private)
+
+		private, err = child.IsPrivateBecauseOfParentPermissions(ctx, orgMember)
+		require.NoError(t, err)
+		assert.False(t, private)
+
+		private, err = child.IsPrivateBecauseOfParentPermissions(ctx, admin)
+		require.NoError(t, err)
+		assert.False(t, private)
+	})
+
+	t.Run("PrivateIntermediateAncestor", func(t *testing.T) {
+		root := createTestGroup(t, "public root", 0)
+		parent := createTestGroup(t, "private parent", root.ID)
+		setVisibility(t, parent, structs.VisibleTypePrivate)
+		child := createTestGroup(t, "public child", parent.ID)
+
+		private, err := child.IsPrivateBecauseOfParentPermissions(ctx, nil)
+		require.NoError(t, err)
+		assert.True(t, private)
+	})
 }
 
 func TestMoveGroup(t *testing.T) {
