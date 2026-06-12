@@ -5,20 +5,17 @@ import {hideScopedEmptyDividers} from './dropdown.ts';
 test('dropdown keeps the literal "false" choice text selected', () => {
   // a "choice" workflow_dispatch input can offer the string "false" as an option.
   // jQuery `.data()` would coerce `data-text="false"` to the boolean `false`, which then renders as empty text.
-  const select = createElementFromHTML<HTMLSelectElement>(`<select class="ui selection dropdown">
+  const select = createElementFromHTML<HTMLSelectElement>(`<select class="ui dropdown">
     <option value="1">1</option>
     <option value="0">0</option>
     <option value="true">true</option>
     <option value="false">false</option>
   </select>`);
-  document.body.append(select);
-  const $dropdown = ($(select) as any);
-  $dropdown.dropdown();
+  const $dropdown = $(select).dropdown();
   for (const value of ['1', '0', 'true', 'false']) {
     $dropdown.dropdown('set selected', value);
     expect($dropdown.dropdown('get text')).toEqual(value);
   }
-  select.remove();
 });
 
 test('hideScopedEmptyDividers-simple', () => {

@@ -1953,12 +1953,8 @@ $.fn.dropdown = function(parameters) {
                 $choice.find(selector.menu).remove();
                 $choice.find(selector.menuIcon).remove();
               }
-              // GITEA-PATCH: jQuery `.data()` auto-coerces `data-text` values, so `data-text="false"` becomes the boolean `false`
-              // (and "true"/numbers similarly). A boolean `false` then makes `set.text()` render empty text, so a "false" choice
-              // would lose its displayed text. Force a string to keep such values intact, matching `get.choiceValue` below.
-              var choiceTextData = $choice.data(metadata.text);
-              return (choiceTextData !== undefined)
-                ? String(choiceTextData)
+              return ($choice.attr('data-' + metadata.text) !== undefined) // GITEA-PATCH: use "attr" but not "data", don't decode JSON like "false"
+                ? $choice.attr('data-' + metadata.text)
                 : (preserveHTML)
                   ? $choice.html().trim()
                   : $choice.text().trim()
@@ -2011,8 +2007,8 @@ $.fn.dropdown = function(parameters) {
                     value    = ( $option.attr('value') !== undefined )
                       ? $option.attr('value')
                       : name,
-                    text     = ( $option.data(metadata.text) !== undefined )
-                      ? $option.data(metadata.text)
+                    text     = ( $option.attr('data-' + metadata.text) !== undefined ) // GITEA-PATCH: use "attr" but not "data", don't decode JSON like "false"
+                      ? $option.attr('data-' + metadata.text)
                       : name,
                     group = $option.parent('optgroup')
                   ;
