@@ -15,7 +15,6 @@ import (
 	"gitea.dev/models/perm"
 	"gitea.dev/models/unit"
 	user_model "gitea.dev/models/user"
-	"gitea.dev/modules/log"
 	"gitea.dev/modules/setting"
 	"gitea.dev/modules/structs"
 	"gitea.dev/modules/util"
@@ -239,11 +238,38 @@ func (g *Group) ShortName(length int) string {
 }
 
 func (g *Group) IsPrivateBecauseOfParentPermissions(ctx context.Context, user *user_model.User) (bool, error) {
-	cond := AccessibleParentGroupCond(ctx, "`repo_group`.`id`", user)
-	has, err := db.GetEngine(ctx).Where(cond.And(builder.Eq{
-		"`repo_group`.id": g.ID,
-	})).Table(g.TableName()).Exist()
-	return !has, err
+	accessibleSQL, accessibleArgs, err := builder.ToSQL(AccessibleGroupCondition(user))
+	if err != nil {
+		return false, err
+	}
+
+	var recursiveKeyword string
+	if !setting.Database.Type.IsMSSQL() {
+		recursiveKeyword = "RECURSIVE "
+	}
+
+	query := fmt.Sprintf(`WITH %sgroup_hierarchy AS (
+		SELECT id, parent_group_id, owner_id, visibility, 1 AS depth
+		FROM repo_group
+		WHERE id = ?
+
+		UNION ALL
+
+		SELECT parent.id, parent.parent_group_id, parent.owner_id, parent.visibility, child.depth + 1
+		FROM repo_group parent
+		INNER JOIN group_hierarchy child ON parent.id = child.parent_group_id
+		WHERE child.depth < ?
+	),
+	group_access AS (
+		SELECT COALESCE(MIN(CASE WHEN (%s) THEN 1 ELSE 0 END), 0) AS accessible
+		FROM group_hierarchy repo_group
+	)
+	SELECT accessible FROM group_access`, recursiveKeyword, accessibleSQL)
+
+	args := append([]any{g.ID, NestingLimit}, accessibleArgs...)
+	var accessible int
+	_, err = db.GetEngine(ctx).SQL(query, args...).Get(&accessible)
+	return accessible == 0, err
 }
 
 func GetGroupByIDAndCond(ctx context.Context, id int64, cond builder.Cond) (*Group, error) {
@@ -270,14 +296,6 @@ func GetGroupByRepoID(ctx context.Context, repoID int64) (*Group, error) {
 		Where(builder.Eq{"repository.`id`": repoID}).
 		Get(group)
 	return group, err
-}
-
-func ParentGroupCondByRepoID(ctx context.Context, repoID int64, idStr string) builder.Cond {
-	g, err := GetGroupByRepoID(ctx, repoID)
-	if err != nil {
-		return builder.In(idStr)
-	}
-	return ParentGroupCond(ctx, idStr, g.ID)
 }
 
 type FindGroupsOptions struct {
@@ -383,53 +401,6 @@ func GetParentGroupIDChain(ctx context.Context, groupID int64) ([]int64, error) 
 		return g.ID
 	})
 	return ids, err
-}
-
-func groupHierarchyCTEBuilder(cond builder.Cond) string {
-	firstPart := builder.Dialect(db.BuilderDialect()).Select("repo_group.*", "1 as depth", "id as ancestor_id").
-		From("repo_group")
-	if cond != nil {
-		firstPart = firstPart.Where(cond)
-	}
-	secondPart := builder.Dialect(db.BuilderDialect()).Select("r.*", "h.depth + 1", "h.ancestor_id").
-		From("repo_group", "r").
-		Join("INNER", "group_hierarchy h", "r.parent_group_id = h.id")
-
-	firstSQL, _ := firstPart.ToBoundSQL()
-	secondSQL, _ := secondPart.ToBoundSQL()
-	return firstSQL + " UNION ALL " + secondSQL
-}
-
-func AccessibleParentGroupCond(ctx context.Context, idStr string, user *user_model.User) builder.Cond {
-	accessibleCond := AccessibleGroupCondition(user)
-	unionSQL := groupHierarchyCTEBuilder(
-		accessibleCond.And(builder.Eq{
-			"parent_group_id": 0,
-		}))
-	var recursiveKeyword string
-
-	if !setting.Database.Type.IsMSSQL() {
-		recursiveKeyword = "RECURSIVE "
-	}
-
-	e := db.GetEngine(ctx)
-	sql := "WITH " + recursiveKeyword + "group_hierarchy AS (" + unionSQL + ")"
-	var ids []int64
-	err := e.SQL(sql + " select id from group_hierarchy").Find(&ids)
-	if err != nil {
-		return builder.NotIn(idStr)
-	}
-	return builder.In(idStr, ids)
-}
-
-// ParentGroupCond returns a condition matching a group and its ancestors
-func ParentGroupCond(ctx context.Context, idStr string, groupID int64) builder.Cond {
-	groupList, err := GetParentGroupIDChain(ctx, groupID)
-	if err != nil {
-		log.Info("Error building group cond: %w", err)
-		return builder.NotIn(idStr)
-	}
-	return builder.In(idStr, groupList)
 }
 
 // ChildGroupCond returns a condition recursively matching a group and its descendants
