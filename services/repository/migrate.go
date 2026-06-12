@@ -160,6 +160,10 @@ func MigrateRepositoryGitData(ctx context.Context, u *user_model.User,
 
 		if opts.LFS {
 			endpoint := lfs.DetermineEndpoint(opts.CloneAddr, opts.LFSEndpoint)
+			if endpoint == nil {
+				// unlike mirror sync, migration explicitly requested LFS, so a missing endpoint is an error, not a skip
+				return repo, errors.New("no LFS endpoint could be determined, only http(s), git and local file endpoints are supported")
+			}
 			lfsClient := lfs.NewClient(endpoint, httpTransport)
 			if err = repo_module.StoreMissingLfsObjectsInRepository(ctx, repo, gitRepo, lfsClient); err != nil {
 				log.Error("Failed to store missing LFS objects for repository: %v", err)

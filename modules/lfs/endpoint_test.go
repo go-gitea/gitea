@@ -64,6 +64,18 @@ func TestDetermineEndpoint(t *testing.T) {
 			lfsurl:   "git://gitlfs.com/repo",
 			expected: str2url("https://gitlfs.com/repo"),
 		},
+		// case 7: ssh remotes have no LFS endpoint, callers must handle nil (#38016)
+		{
+			cloneurl: "ssh://git@example.com/owner/repo.git",
+			lfsurl:   "",
+			expected: nil,
+		},
+		// case 8: scp-like ssh syntax
+		{
+			cloneurl: "git@example.com:owner/repo.git",
+			lfsurl:   "",
+			expected: nil,
+		},
 	}
 
 	for n, c := range cases {

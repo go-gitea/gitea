@@ -137,17 +137,22 @@ func runPushSync(ctx context.Context, m *repo_model.PushMirror) error {
 		if setting.LFS.StartServer {
 			log.Trace("SyncMirrors [repo: %-v]: syncing LFS objects...", m.Repo)
 
-			gitRepo, err := gitrepo.OpenRepository(ctx, storageRepo)
-			if err != nil {
-				log.Error("OpenRepository: %v", err)
-				return errors.New("Unexpected error")
-			}
-			defer gitRepo.Close()
-
 			endpoint := lfs.DetermineEndpoint(remoteURL.String(), "")
-			lfsClient := lfs.NewClient(endpoint, migrations.NewMigrationHTTPTransport())
-			if err := pushAllLFSObjects(ctx, gitRepo, lfsClient); err != nil {
-				return util.SanitizeErrorCredentialURLs(err)
+			if endpoint == nil {
+				// the LFS client only supports http(s) and file endpoints, skip LFS but still push the git data (#38016)
+				log.Warn("SyncMirrors [repo: %-v]: no LFS endpoint could be determined from remote %q, skipping LFS sync", m.Repo, util.SanitizeCredentialURLs(remoteURL.String()))
+			} else {
+				gitRepo, err := gitrepo.OpenRepository(ctx, storageRepo)
+				if err != nil {
+					log.Error("OpenRepository: %v", err)
+					return errors.New("Unexpected error")
+				}
+				defer gitRepo.Close()
+
+				lfsClient := lfs.NewClient(endpoint, migrations.NewMigrationHTTPTransport())
+				if err := pushAllLFSObjects(ctx, gitRepo, lfsClient); err != nil {
+					return util.SanitizeErrorCredentialURLs(err)
+				}
 			}
 		}
 
