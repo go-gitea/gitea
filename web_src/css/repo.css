@@ -210,10 +210,6 @@ td .commit-summary {
   overflow: auto;
 }
 
-.non-diff-file-content .asciicast {
-  padding: 0 !important;
-}
-
 .repo-editor-header {
   /* it should match ".repo-button-row" so the tree toggle button stays aligned */
   margin: 8px 0;
