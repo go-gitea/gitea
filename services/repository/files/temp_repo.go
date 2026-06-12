@@ -47,7 +47,8 @@ func NewTemporaryUploadRepository(repo *repo_model.Repository) (*TemporaryUpload
 
 // Close the repository cleaning up all files
 func (t *TemporaryUploadRepository) Close() {
-	defer t.gitRepo.Close()
+	// must stop the repo access before removal, otherwise Windows can't remove the directory occupied by other processes
+	t.gitRepo.Close()
 	if t.cleanup != nil {
 		t.cleanup()
 	}
