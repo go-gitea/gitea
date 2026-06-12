@@ -26,12 +26,23 @@ type SSHKeypair struct {
 	Fingerprint         string
 }
 
+// fingerprintFromPublicKey derives the canonical SHA256 fingerprint from a
+// stored authorized-key string. The public key is the single source of truth,
+// so the displayed format never drifts from however the fingerprint happened
+// to be stored historically.
+func fingerprintFromPublicKey(publicKey string) (string, error) {
+	pk, _, _, _, err := ssh.ParseAuthorizedKey([]byte(publicKey))
+	if err != nil {
+		return "", fmt.Errorf("failed to parse stored public key: %w", err)
+	}
+	return ssh.FingerprintSHA256(pk), nil
+}
+
 // GetSSHKeypairByOwner gets the SSH keypair for the given owner
 func GetSSHKeypairByOwner(ctx context.Context, ownerID int64) (*SSHKeypair, error) {
 	settings, err := GetSettings(ctx, ownerID, []string{
 		UserSSHMirrorPrivPem,
 		UserSSHMirrorPubPem,
-		UserSSHMirrorFingerprint,
 	})
 	if err != nil {
 		return nil, err
@@ -50,12 +61,15 @@ func GetSSHKeypairByOwner(ctx context.Context, ownerID int64) (*SSHKeypair, erro
 	if pubSetting, exists := settings[UserSSHMirrorPubPem]; exists {
 		keypair.PublicKey = pubSetting.SettingValue
 	}
-	if fpSetting, exists := settings[UserSSHMirrorFingerprint]; exists {
-		keypair.Fingerprint = fpSetting.SettingValue
+
+	if keypair.PrivateKeyEncrypted == "" || keypair.PublicKey == "" {
+		return nil, util.NewNotExistErrorf("SSH keypair incomplete for owner %d", ownerID)
 	}
 
-	if keypair.PrivateKeyEncrypted == "" || keypair.PublicKey == "" || keypair.Fingerprint == "" {
-		return nil, util.NewNotExistErrorf("SSH keypair incomplete for owner %d", ownerID)
+	// same canonical SHA256 fingerprint.
+	keypair.Fingerprint, err = fingerprintFromPublicKey(keypair.PublicKey)
+	if err != nil {
+		return nil, err
 	}
 
 	return keypair, nil
@@ -88,9 +102,6 @@ func CreateSSHKeypair(ctx context.Context, ownerID int64) (*SSHKeypair, error) {
 		}
 		if err := SetUserSetting(ctx, ownerID, UserSSHMirrorPubPem, publicKeyStr); err != nil {
 			return fmt.Errorf("failed to save public key: %w", err)
-		}
-		if err := SetUserSetting(ctx, ownerID, UserSSHMirrorFingerprint, fingerprintStr); err != nil {
-			return fmt.Errorf("failed to save fingerprint: %w", err)
 		}
 		return nil
 	})
