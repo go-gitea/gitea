@@ -1951,8 +1951,8 @@ $.fn.dropdown = function(parameters) {
                 $choice.find(selector.menu).remove();
                 $choice.find(selector.menuIcon).remove();
               }
-              return ($choice.data(metadata.text) !== undefined)
-                ? $choice.data(metadata.text)
+              return ($choice.attr('data-' + metadata.text) !== undefined) // GITEA-PATCH: use "attr" but not "data", don't decode JSON like "false"
+                ? $choice.attr('data-' + metadata.text)
                 : (preserveHTML)
                   ? $choice.html().trim()
                   : $choice.text().trim()
@@ -2005,8 +2005,8 @@ $.fn.dropdown = function(parameters) {
                     value    = ( $option.attr('value') !== undefined )
                       ? $option.attr('value')
                       : name,
-                    text     = ( $option.data(metadata.text) !== undefined )
-                      ? $option.data(metadata.text)
+                    text     = ( $option.attr('data-' + metadata.text) !== undefined ) // GITEA-PATCH: use "attr" but not "data", don't decode JSON like "false"
+                      ? $option.attr('data-' + metadata.text)
                       : name,
                     group = $option.parent('optgroup')
                   ;
