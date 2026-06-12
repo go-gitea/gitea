@@ -14,6 +14,7 @@ test('dropdown-item-literal-text', () => {
   for (const value of ['1', '0', 'true', 'false']) {
     $dropdown.dropdown('set selected', value);
     expect($dropdown.dropdown('get text')).toEqual(value);
+    expect($dropdown.dropdown('get value')).toEqual(value);
   }
 });
 
