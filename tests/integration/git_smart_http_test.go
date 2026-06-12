@@ -17,7 +17,6 @@ import (
 	"gitea.dev/modules/setting"
 	"gitea.dev/modules/test"
 	"gitea.dev/modules/util"
-	"gitea.dev/tests"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -152,29 +151,27 @@ func testGitArchiveRemote(t *testing.T, u *url.URL) {
 // testGitSmartHTTPPrivateRepoAnonymousAccess tests that a private repo with
 // anonymous code access enabled can be cloned without credentials.
 func testGitSmartHTTPPrivateRepoAnonymousAccess(t *testing.T) {
-	defer tests.PrepareTestEnv(t)()
-
 	// repo1 (ID=1) belongs to user2 and is public by default in fixtures
 	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1, OwnerName: "user2", Name: "repo1"})
-	uploadPackPath := "/" + repo.FullName() + "/info/refs?service=git-upload-pack"
+	gitPullPath := "/" + repo.FullName() + "/info/refs?service=git-upload-pack"
+	gitPushPath := "/" + repo.FullName() + "/info/refs?service=git-receive-pack"
 
 	// make the repo private
 	require.NoError(t, repo_model.UpdateRepositoryColsNoAutoTime(t.Context(), &repo_model.Repository{ID: repo.ID, IsPrivate: true}, "is_private"))
 
 	// without anonymous access: anonymous pull must require auth
-	MakeRequest(t, NewRequest(t, "GET", uploadPackPath), http.StatusUnauthorized)
+	MakeRequest(t, NewRequest(t, "GET", gitPullPath), http.StatusUnauthorized)
 
 	// enable anonymous read access on the code unit
 	require.NoError(t, repo_model.UpdateRepoUnitPublicAccess(t.Context(), &repo_model.RepoUnit{RepoID: repo.ID, Type: unit.TypeCode, AnonymousAccessMode: perm.AccessModeRead}))
 
 	// with anonymous code access: anonymous pull must succeed without credentials
-	MakeRequest(t, NewRequest(t, "GET", uploadPackPath), http.StatusOK)
+	MakeRequest(t, NewRequest(t, "GET", gitPullPath), http.StatusOK)
 
 	// push (receive-pack) must still require auth even with anonymous code access
-	receivePackPath := "/" + repo.FullName() + "/info/refs?service=git-receive-pack"
-	MakeRequest(t, NewRequest(t, "GET", receivePackPath), http.StatusUnauthorized)
+	MakeRequest(t, NewRequest(t, "GET", gitPushPath), http.StatusUnauthorized)
 
 	// RequireSignInViewStrict must override anonymous access
 	defer test.MockVariableValue(&setting.Service.RequireSignInViewStrict, true)()
-	MakeRequest(t, NewRequest(t, "GET", uploadPackPath), http.StatusUnauthorized)
+	MakeRequest(t, NewRequest(t, "GET", gitPullPath), http.StatusUnauthorized)
 }
