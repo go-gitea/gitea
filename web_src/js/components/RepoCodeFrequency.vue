@@ -86,12 +86,13 @@ async function fetchGraphData() {
 }
 
 function toGraphData(data: Array<Record<string, any>>): ChartData<'line'> {
+  const hasSinglePoint = data.length <= 1;
   return {
     datasets: [
       {
         data: data.map((i) => ({x: i.week, y: i.additions})),
-        pointRadius: 0,
-        pointHitRadius: 0,
+        pointRadius: hasSinglePoint ? 3 : 0,
+        pointHitRadius: hasSinglePoint ? 3 : 0,
         fill: true,
         label: 'Additions',
         backgroundColor: chartJsColors['additions'],
@@ -100,8 +101,8 @@ function toGraphData(data: Array<Record<string, any>>): ChartData<'line'> {
       },
       {
         data: data.map((i) => ({x: i.week, y: -i.deletions})),
-        pointRadius: 0,
-        pointHitRadius: 0,
+        pointRadius: hasSinglePoint ? 3 : 0,
+        pointHitRadius: hasSinglePoint ? 3 : 0,
         fill: true,
         label: 'Deletions',
         backgroundColor: chartJsColors['deletions'],

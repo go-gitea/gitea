@@ -31,4 +31,5 @@ export const chartJsColors = resolveColors({
   commits: '--color-primary-alpha-60',
   additions: '--color-green',
   deletions: '--color-red',
+  additions_deletions: '--color-orange',
 });

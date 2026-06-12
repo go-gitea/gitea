@@ -1,0 +1,27 @@
+{{if .RepoTopContributors}}
+<div class="flex-item">
+	<div class="flex-item-main">
+		<div class="flex-item-title">
+			<a class="item muted" href="{{.RepoLink}}/activity/contributors">
+				{{ctx.Locale.Tr "repo.activity.navbar.contributors"}}
+			</a>
+			<span class="ui small label">{{ctx.Locale.PrettyNumber .RepoContributorCount}}</span>
+		</div>
+		<div class="flex-item-body">
+			<div class="tw-flex tw-flex-wrap tw-gap-2 tw-w-full">
+				{{range .RepoTopContributors}}
+					{{if .HomeLink}}
+						<a href="{{.HomeLink}}" title="{{.Name}}" class="ui avatar image tw-flex tw-flex-none tw-justify-center">
+							<img src="{{.AvatarLink}}" width="36" height="36" alt="{{.Name}}">
+						</a>
+					{{else}}
+						<span title="{{.Name}}" class="ui avatar image tw-flex tw-flex-none tw-justify-center">
+							<img src="{{.AvatarLink}}" width="36" height="36" alt="{{.Name}}">
+						</span>
+					{{end}}
+				{{end}}
+			</div>
+		</div>
+	</div>
+</div>
+{{end}}

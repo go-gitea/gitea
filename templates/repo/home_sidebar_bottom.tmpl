@@ -19,6 +19,8 @@
 		</div>
 	{{end}}
 
+	{{template "repo/home_sidebar_contributors" .}}
+
 	{{if and (not .IsEmptyRepo) .LanguageStats}}
 		<div class="divider"></div>
 		<div class="repo-home-sidebar-header">

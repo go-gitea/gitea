@@ -1602,7 +1602,7 @@ func registerWebRoutes(m *web.Router, webAuth *AuthMiddleware) {
 			})
 			m.Group("/recent-commits", func() {
 				m.Get("", repo.RecentCommits)
-				m.Get("/data", repo.CodeFrequencyData) // "recent-commits" also uses the same data as "code-frequency"
+				m.Get("/data", repo.RecentCommitsData)
 			})
 		}, reqUnitCodeReader)
 	},

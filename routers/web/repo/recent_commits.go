@@ -4,10 +4,13 @@
 package repo
 
 import (
+	"errors"
 	"net/http"
 
+	contribution_model "gitea.dev/models/repo/contribution"
 	"gitea.dev/modules/templates"
 	"gitea.dev/services/context"
+	repo_service "gitea.dev/services/repository"
 )
 
 const (
@@ -23,4 +26,18 @@ func RecentCommits(ctx *context.Context) {
 	ctx.PageData["repoLink"] = ctx.Repo.RepoLink
 
 	ctx.HTML(http.StatusOK, tplRecentCommits)
+}
+
+// RecentCommitsData returns JSON of commits over time data.
+func RecentCommitsData(ctx *context.Context) {
+	data, err := repo_service.GetContributionsOverTime(ctx, ctx.Repo.Repository, nil, nil, contribution_model.RepoStatCommits)
+	if err != nil {
+		if errors.Is(err, repo_service.ErrAwaitGeneration) {
+			ctx.Status(http.StatusAccepted)
+			return
+		}
+		ctx.ServerError("GetContributionsOverTime", err)
+		return
+	}
+	ctx.JSON(http.StatusOK, data)
 }
