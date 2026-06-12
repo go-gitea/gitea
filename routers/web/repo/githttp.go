@@ -58,8 +58,6 @@ func CorsHandler() func(next http.Handler) http.Handler {
 // httpBase does the common work for git http services,
 // including early response, authentication, repository lookup and permission check.
 func httpBase(ctx *context.Context, optGitService ...string) *serviceHandler {
-	reponame := strings.TrimSuffix(ctx.PathParam("reponame"), ".git")
-
 	if ctx.FormString("go-get") == "1" {
 		context.EarlyResponseForGoGetMeta(ctx)
 		return nil
@@ -93,11 +91,11 @@ func httpBase(ctx *context.Context, optGitService ...string) *serviceHandler {
 
 	isWiki := false
 	unitType := unit.TypeCode
-
-	if strings.HasSuffix(reponame, ".wiki") {
+	repoName := strings.TrimSuffix(ctx.PathParam("reponame"), ".git")
+	if strings.HasSuffix(repoName, ".wiki") {
 		isWiki = true
 		unitType = unit.TypeWiki
-		reponame = reponame[:len(reponame)-5]
+		repoName = repoName[:len(repoName)-5]
 	}
 
 	owner := ctx.ContextUser
@@ -107,14 +105,14 @@ func httpBase(ctx *context.Context, optGitService ...string) *serviceHandler {
 	}
 
 	repoExist := true
-	repo, err := repo_model.GetRepositoryByName(ctx, owner.ID, reponame)
+	repo, err := repo_model.GetRepositoryByName(ctx, owner.ID, repoName)
 	if err != nil {
 		if !repo_model.IsErrRepoNotExist(err) {
 			ctx.ServerError("GetRepositoryByName", err)
 			return nil
 		}
 
-		if redirectRepoID, err := repo_model.LookupRedirect(ctx, owner.ID, reponame); err == nil {
+		if redirectRepoID, err := repo_model.LookupRedirect(ctx, owner.ID, repoName); err == nil {
 			context.RedirectToRepo(ctx.Base, redirectRepoID)
 			return nil
 		}
@@ -232,7 +230,7 @@ func httpBase(ctx *context.Context, optGitService ...string) *serviceHandler {
 			return nil
 		}
 
-		repo, err = repo_service.PushCreateRepo(ctx, ctx.Doer, owner, reponame)
+		repo, err = repo_service.PushCreateRepo(ctx, ctx.Doer, owner, repoName)
 		if err != nil {
 			log.Error("pushCreateRepo: %v", err)
 			ctx.Status(http.StatusNotFound)
