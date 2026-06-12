@@ -8,6 +8,7 @@ import (
 	"gitea.dev/modules/httplib"
 	"gitea.dev/services/context"
 	feed_service "gitea.dev/services/feed"
+
 	"github.com/gorilla/feeds"
 )
 
