@@ -127,32 +127,26 @@ func httpBase(ctx *context.Context, optGitService ...string) *serviceHandler {
 		return nil
 	}
 
-	// Only public pulls don't need auth: either a non-private repo, or a private
-	// repo that grants anonymous access to the requested unit via public access settings.
-	isPublicPull := repoExist && isPull && !repo.IsPrivate
-	if repoExist && isPull && repo.IsPrivate {
-		anonPerm, err := access_model.GetDoerRepoPermission(ctx, repo, nil)
-		if err != nil {
-			ctx.ServerError("GetDoerRepoPermission", err)
-			return nil
+	// Only public pulls don't need auth: repo must exist, not require-sign-in
+	canAnonymousPull := false
+	if isPull && repoExist && !setting.Service.RequireSignInViewStrict {
+		// allow anonymous pulls if owner is public and repo is public (not private)
+		if owner.Visibility == structs.VisibleTypePublic && !repo.IsPrivate {
+			canAnonymousPull = true
 		}
-		isPublicPull = anonPerm.CanAccess(accessMode, unitType)
-	}
-	askAuth := !isPublicPull || setting.Service.RequireSignInViewStrict
-
-	// don't allow anonymous pulls if organization is not public
-	if isPublicPull {
-		if err := repo.LoadOwner(ctx); err != nil {
-			ctx.ServerError("LoadOwner", err)
-			return nil
+		// then check "public anonymous access" permission
+		if !canAnonymousPull && ctx.Doer == nil {
+			anonPerm, err := access_model.GetDoerRepoPermission(ctx, repo, nil)
+			if err != nil {
+				ctx.ServerError("GetDoerRepoPermission", err)
+				return nil
+			}
+			canAnonymousPull = anonPerm.CanAccess(accessMode, unitType)
 		}
-
-		askAuth = askAuth || (repo.Owner.Visibility != structs.VisibleTypePublic)
 	}
 
 	// check access
-	if askAuth {
-		// rely on the results of Contexter
+	if !canAnonymousPull { // not public pull, then either the pull needs auth, or the push needs "write" permission, so ask auth
 		if !ctx.IsSigned {
 			// TODO: support digit auth - which would be Authorization header with digit
 			if setting.OAuth2.Enabled {
