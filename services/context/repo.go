@@ -972,12 +972,9 @@ func RepoRefByType(detectRefType git.RefType) func(*Context) {
 			ctx.Repo.Commit, err = ctx.Repo.GitRepo.GetBranchCommit(refShortName)
 			if err == nil {
 				ctx.Repo.CommitID = ctx.Repo.Commit.ID.String()
-			} else if strings.Contains(err.Error(), "fatal: not a git repository") || strings.Contains(err.Error(), "object does not exist") {
+			} else {
 				// if the repository is broken, we can continue to the handler code, to show "Settings -> Delete Repository" for end users
 				log.Error("GetBranchCommit: %v", err)
-			} else {
-				ctx.ServerError("GetBranchCommit", err)
-				return
 			}
 		} else { // there is a path in request
 			guessLegacyPath := refType == ""

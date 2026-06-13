@@ -63,9 +63,7 @@ func RenderFile(ctx *context.Context) {
 	// HINT: PDF-RENDER-SANDBOX: PDF won't render in sandboxed context
 	extRendererOpts := extRenderer.GetExternalRendererOptions()
 	if extRendererOpts.ContentSandbox != "" {
-		ctx.Resp.Header().Add("Content-Security-Policy", "frame-src 'self'; sandbox "+extRendererOpts.ContentSandbox)
-	} else {
-		ctx.Resp.Header().Add("Content-Security-Policy", "frame-src 'self'")
+		ctx.Resp.Header().Add("Content-Security-Policy", "sandbox "+extRendererOpts.ContentSandbox)
 	}
 
 	err = markup.RenderWithRenderer(rctx, renderer, rendererInput, ctx.Resp)

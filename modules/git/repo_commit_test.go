@@ -85,15 +85,15 @@ func TestIsCommitInBranch(t *testing.T) {
 	assert.False(t, result)
 }
 
-func TestRepository_CommitsBetweenIDs(t *testing.T) {
+func TestRepository_CommitsBetween(t *testing.T) {
 	bareRepo1Path := filepath.Join(testReposDir, "repo4_commitsbetween")
 	bareRepo1, err := OpenRepository(t.Context(), bareRepo1Path)
 	assert.NoError(t, err)
 	defer bareRepo1.Close()
 
 	cases := []struct {
-		OldID           string
-		NewID           string
+		OldID           RefName
+		NewID           RefName
 		ExpectedCommits int
 	}{
 		{"fdc1b615bdcff0f0658b216df0c9209e5ecb7c78", "78a445db1eac62fe15e624e1137965969addf344", 1}, // com1 -> com2
@@ -101,7 +101,7 @@ func TestRepository_CommitsBetweenIDs(t *testing.T) {
 		{"78a445db1eac62fe15e624e1137965969addf344", "a78e5638b66ccfe7e1b4689d3d5684e42c97d7ca", 1}, // com2 -> com2_new
 	}
 	for i, c := range cases {
-		commits, err := bareRepo1.CommitsBetweenIDs(c.NewID, c.OldID)
+		commits, err := bareRepo1.CommitsBetween(c.NewID, c.OldID, -1)
 		assert.NoError(t, err)
 		assert.Len(t, commits, c.ExpectedCommits, "case %d", i)
 	}

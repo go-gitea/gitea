@@ -278,6 +278,7 @@ a {
 
 a:hover {
   text-decoration-line: underline;
+  text-underline-position: under; /* necessary for CJK fonts, otherwise, default "auto" makes the underline cross-over the CJK text bottom */
 }
 
 /* a = always colored, underlined on hover */
