@@ -85,9 +85,12 @@ func DeleteGroup(ctx context.Context, doer *user_model.User, gid int64, recursiv
 		}
 		if cnt > 0 {
 			for i, repo := range repos {
-				repo.GroupID = toDelete.ParentGroupID
-				repo.GroupSortOrder = int(inParent + int64(i))
-				if _, err = sess.Table(&repo_model.Repository{}).ID(repo.ID).Update(repo); err != nil {
+				if err = MoveGroupItem(ctx, MoveGroupOptions{
+					IsGroup:   false,
+					NewParent: toDelete.ParentGroupID,
+					NewPos:    int(inParent) + i,
+					ItemID:    repo.ID,
+				}, doer); err != nil {
 					return err
 				}
 			}
@@ -102,9 +105,12 @@ func DeleteGroup(ctx context.Context, doer *user_model.User, gid int64, recursiv
 				return err
 			}
 			for i, group := range childGroups {
-				group.ParentGroupID = toDelete.ParentGroupID
-				group.SortOrder = int(inParent) + i
-				if _, err = sess.Table(&group_model.Group{}).Update(group); err != nil {
+				if err = MoveGroupItem(ctx, MoveGroupOptions{
+					IsGroup:   true,
+					ItemID:    group.ID,
+					NewParent: toDelete.ParentGroupID,
+					NewPos:    int(inParent) + i,
+				}, doer); err != nil {
 					return err
 				}
 			}
