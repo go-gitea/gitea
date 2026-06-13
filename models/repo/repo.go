@@ -229,12 +229,17 @@ func init() {
 	db.RegisterModel(new(Repository))
 }
 
-func RelativePathBaseName(ownerName, repoName string, groupID int64) string {
-	var groupSegment string
-	if groupID > 0 {
-		groupSegment = strconv.FormatInt(groupID, 10) + "/"
+func (repo Repository) GetLocator() giturl.Locator {
+	return giturl.Locator{
+		Owner:   repo.OwnerName,
+		Repo:    repo.Name,
+		GroupID: repo.GroupID,
 	}
-	return strings.ToLower(ownerName) + "/" + groupSegment + strings.ToLower(repoName)
+}
+
+func RelativePathBaseName(ownerName, repoName string, groupID int64) string {
+	loc := giturl.NewLocator(ownerName, repoName, groupID)
+	return loc.StoragePath()
 }
 
 func RelativePath(ownerName, repoName string, groupID int64) string {
@@ -366,7 +371,7 @@ func (repo *Repository) LoadAttributes(ctx context.Context) error {
 
 // FullName returns the repository full name
 func (repo *Repository) FullName() string {
-	return repo.OwnerName + "/" + groupSegmentWithTrailingSlash(repo.GroupID) + repo.Name
+	return repo.GetLocator().FullName()
 }
 
 // HTMLURL returns the repository HTML URL
@@ -390,11 +395,7 @@ func (repo *Repository) CommitLink(commitID string) (result string) {
 // APIURL returns the repository API URL
 func (repo *Repository) APIURL(ctxOpt ...context.Context) string {
 	ctx := util.OptionalArg(ctxOpt, context.TODO())
-	var groupSegment string
-	if repo.GroupID > 0 {
-		groupSegment = fmt.Sprintf("group/%d/", repo.GroupID)
-	}
-	return httplib.MakeAbsoluteURL(ctx, setting.AppSubURL+"/api/v1/repos/"+url.PathEscape(repo.OwnerName)+"/"+groupSegment+url.PathEscape(repo.Name))
+	return httplib.MakeAbsoluteURL(ctx, setting.AppSubURL+"/api/v1/repos/"+repo.GetLocator().WebPath())
 }
 
 // GetCommitsCountCacheKey returns cache key used for commits count caching.
@@ -613,18 +614,18 @@ func (repo *Repository) RepoPath() string {
 
 // Link returns the repository relative url
 func (repo *Repository) Link() string {
-	return setting.AppSubURL + "/" + url.PathEscape(repo.OwnerName) + "/" + groupSegmentWithTrailingSlash(repo.GroupID) + url.PathEscape(repo.Name)
+	return setting.AppSubURL + "/" + repo.GetLocator().WebPath()
 }
 
 // ComposeCompareURL returns the repository comparison URL
 func (repo *Repository) ComposeCompareURL(oldCommitID, newCommitID string) string {
-	return fmt.Sprintf("%s/%s%s/compare/%s...%s", url.PathEscape(repo.OwnerName), groupSegmentWithTrailingSlash(repo.GroupID), url.PathEscape(repo.Name), util.PathEscapeSegments(oldCommitID), util.PathEscapeSegments(newCommitID))
+	return fmt.Sprintf("%s/compare/%s...%s", repo.GetLocator().WebPath(), util.PathEscapeSegments(oldCommitID), util.PathEscapeSegments(newCommitID))
 }
 
 func (repo *Repository) ComposeBranchCompareURL(baseRepo *Repository, baseBranch, branchName string) string {
 	var cmpBranchEscaped string
 	if repo.ID != baseRepo.ID {
-		cmpBranchEscaped = fmt.Sprintf("%s/%s%s:", url.PathEscape(repo.OwnerName), groupSegmentWithTrailingSlash(repo.GroupID), url.PathEscape(repo.Name))
+		cmpBranchEscaped = fmt.Sprintf("%s:", repo.GetLocator().WebPath())
 	}
 	cmpBranchEscaped = fmt.Sprintf("%s%s", cmpBranchEscaped, util.PathEscapeSegments(branchName))
 	return fmt.Sprintf("%s/compare/%s...%s", baseRepo.Link(), util.PathEscapeSegments(baseBranch), cmpBranchEscaped)
@@ -673,30 +674,17 @@ type CloneLink struct {
 	Tea   string
 }
 
-func getGroupSegment(gid int64) string {
-	var groupSegment string
-	if gid > 0 {
-		groupSegment = fmt.Sprintf("group/%d", gid)
-	}
-	return groupSegment
-}
-
-func groupSegmentWithTrailingSlash(gid int64) string {
-	if gid < 1 {
-		return ""
-	}
-	return getGroupSegment(gid) + "/"
-}
-
 // ComposeHTTPSCloneURL returns HTTPS clone URL based on the given owner and repository name.
 func ComposeHTTPSCloneURL(ctx context.Context, owner, repo string, groupID int64) string {
-	return fmt.Sprintf("%s%s/%s%s.git", httplib.GuessCurrentAppURL(ctx), url.PathEscape(owner), groupSegmentWithTrailingSlash(groupID), url.PathEscape(repo))
+	loc := giturl.NewLocator(owner, repo, groupID)
+	return fmt.Sprintf("%s%s.git", httplib.GuessCurrentAppURL(ctx), loc.WebPath())
 }
 
 // ComposeSSHCloneURL returns SSH clone URL based on the given owner and repository name.
 func ComposeSSHCloneURL(doer *user_model.User, ownerName, repoName string, groupID int64) string {
 	sshUser := setting.SSH.User
 	sshDomain := setting.SSH.Domain
+	locator := giturl.NewLocator(ownerName, repoName, groupID)
 
 	if sshUser == "(DOER_USERNAME)" {
 		// Some users use SSH reverse-proxy and need to use the current signed-in username as the SSH user
@@ -713,7 +701,7 @@ func ComposeSSHCloneURL(doer *user_model.User, ownerName, repoName string, group
 	// non-standard port, it must use full URI
 	if setting.SSH.Port != 22 {
 		sshHost := net.JoinHostPort(sshDomain, strconv.Itoa(setting.SSH.Port))
-		return fmt.Sprintf("ssh://%s@%s/%s/%s%s.git", sshUser, sshHost, url.PathEscape(ownerName), groupSegmentWithTrailingSlash(groupID), url.PathEscape(repoName))
+		return fmt.Sprintf("ssh://%s@%s/%s.git", sshUser, sshHost, locator.WebPath())
 	}
 
 	// for standard port, it can use a shorter URI (without the port)
@@ -722,14 +710,15 @@ func ComposeSSHCloneURL(doer *user_model.User, ownerName, repoName string, group
 		sshHost = "[" + sshHost + "]" // for IPv6 address, wrap it with brackets
 	}
 	if setting.Repository.UseCompatSSHURI {
-		return fmt.Sprintf("ssh://%s@%s/%s/%s%s.git", sshUser, sshHost, url.PathEscape(ownerName), groupSegmentWithTrailingSlash(groupID), url.PathEscape(repoName))
+		return fmt.Sprintf("ssh://%s@%s/%s.git", sshUser, sshHost, locator.WebPath())
 	}
-	return fmt.Sprintf("%s@%s:%s/%s%s.git", sshUser, sshHost, url.PathEscape(ownerName), groupSegmentWithTrailingSlash(groupID), url.PathEscape(repoName))
+	return fmt.Sprintf("%s@%s:%s.git", sshUser, sshHost, locator.WebPath())
 }
 
 // ComposeTeaCloneCommand returns Tea CLI clone command based on the given owner and repository name.
 func ComposeTeaCloneCommand(ctx context.Context, owner, repo string, groupID int64) string {
-	return fmt.Sprintf("tea clone %s/%s%s", url.PathEscape(owner), groupSegmentWithTrailingSlash(groupID), url.PathEscape(repo))
+	locator := giturl.NewLocator(owner, repo, groupID)
+	return fmt.Sprintf("tea clone %s", locator.WebPath())
 }
 
 func (repo *Repository) cloneLink(ctx context.Context, doer *user_model.User, repoPathName string, groupID int64) *CloneLink {

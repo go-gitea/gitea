@@ -7,7 +7,6 @@ package activities
 import (
 	"context"
 	"fmt"
-	"net/url"
 	"path"
 	"slices"
 	"strconv"
@@ -21,6 +20,7 @@ import (
 	repo_model "gitea.dev/models/repo"
 	user_model "gitea.dev/models/user"
 	"gitea.dev/modules/git"
+	giturl "gitea.dev/modules/git/url"
 	"gitea.dev/modules/log"
 	"gitea.dev/modules/setting"
 	"gitea.dev/modules/structs"
@@ -236,6 +236,24 @@ func (a *Action) GetActDisplayNameTitle(ctx context.Context) string {
 	return a.GetActFullName(ctx)
 }
 
+func (a *Action) ShortLocator(ctx context.Context) giturl.Locator {
+	var gid int64
+	_ = a.LoadRepo(ctx)
+	if a.Repo != nil {
+		gid = a.Repo.GroupID
+	}
+	return giturl.NewLocator(a.ShortActUserName(ctx), a.ShortRepoName(ctx), gid)
+}
+
+func (a *Action) GetLocator(ctx context.Context) giturl.Locator {
+	var gid int64
+	_ = a.LoadRepo(ctx)
+	if a.Repo != nil {
+		gid = a.Repo.GroupID
+	}
+	return giturl.NewLocator(a.GetRepoUserName(ctx), a.GetRepoName(ctx), gid)
+}
+
 // GetRepoUserName returns the name of the action repository owner.
 func (a *Action) GetRepoUserName(ctx context.Context) string {
 	_ = a.LoadRepo(ctx)
@@ -260,14 +278,6 @@ func (a *Action) GetRepoName(ctx context.Context) string {
 	return a.Repo.Name
 }
 
-func (a *Action) GetRepoGroup(ctx context.Context) string {
-	_ = a.LoadRepo(ctx)
-	if a.Repo == nil || a.Repo.GroupID == 0 {
-		return ""
-	}
-	return strconv.FormatInt(a.Repo.GroupID, 10)
-}
-
 // ShortRepoName returns the name of the action repository
 // trimmed to max 33 chars.
 func (a *Action) ShortRepoName(ctx context.Context) string {
@@ -276,32 +286,25 @@ func (a *Action) ShortRepoName(ctx context.Context) string {
 
 // GetRepoPath returns the virtual path to the action repository.
 func (a *Action) GetRepoPath(ctx context.Context) string {
-	return path.Join(a.GetRepoUserName(ctx), a.GetRepoGroup(ctx), a.GetRepoName(ctx))
+	loc := a.GetLocator(ctx)
+	return path.Join(loc.Owner, util.Iif(loc.GroupID == 0, "", strconv.FormatInt(loc.GroupID, 10)), loc.Repo)
 }
 
 // ShortRepoPath returns the virtual path to the action repository
 // trimmed to max 20 + 1 + 33 chars.
 func (a *Action) ShortRepoPath(ctx context.Context) string {
-	return path.Join(a.ShortRepoUserName(ctx), a.makeGroupSegment(ctx), a.GetRepoGroup(ctx), a.ShortRepoName(ctx))
+	return path.Join(a.ShortRepoUserName(ctx), a.ShortLocator(ctx).FullName())
 }
 
 // GetRepoLink returns relative link to action repository.
 func (a *Action) GetRepoLink(ctx context.Context) string {
 	// path.Join will skip empty strings
-	return path.Join(setting.AppSubURL, "/", url.PathEscape(a.GetRepoUserName(ctx)), a.makeGroupSegment(ctx), a.GetRepoGroup(ctx), url.PathEscape(a.GetRepoName(ctx)))
-}
-
-func (a *Action) makeGroupSegment(ctx context.Context) string {
-	if a.GetRepoGroup(ctx) != "" {
-		return "group"
-	}
-	return ""
+	return path.Join(setting.AppSubURL, "/", a.GetLocator(ctx).WebPath())
 }
 
 // GetRepoAbsoluteLink returns the absolute link to action repository.
 func (a *Action) GetRepoAbsoluteLink(ctx context.Context) string {
-	groupSegment := util.Iif(a.makeGroupSegment(ctx) != "", path.Join(a.makeGroupSegment(ctx), a.GetRepoGroup(ctx))+"/", "")
-	return setting.AppURL + url.PathEscape(a.GetRepoUserName(ctx)) + "/" + groupSegment + url.PathEscape(a.GetRepoName(ctx))
+	return setting.AppURL + a.GetLocator(ctx).WebPath()
 }
 
 func (a *Action) loadComment(ctx context.Context) (err error) {

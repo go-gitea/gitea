@@ -15,6 +15,7 @@ import (
 	activities_model "gitea.dev/models/activities"
 	repo_model "gitea.dev/models/repo"
 	user_model "gitea.dev/models/user"
+	giturl "gitea.dev/modules/git/url"
 	"gitea.dev/modules/gitrepo"
 	"gitea.dev/modules/json"
 	"gitea.dev/modules/log"
@@ -57,8 +58,8 @@ type Actioner interface {
 	GetOpType() activities_model.ActionType
 	GetActUserName(ctx context.Context) string
 	GetRepoUserName(ctx context.Context) string
+	GetLocator(ctx context.Context) giturl.Locator
 	GetRepoName(ctx context.Context) string
-	GetRepoGroup(ctx context.Context) string
 	GetRepoPath(ctx context.Context) string
 	GetRepoLink(ctx context.Context) string
 	GetBranch() string

@@ -9,6 +9,7 @@ import (
 	"net/url"
 
 	"gitea.dev/modules/git"
+	giturl "gitea.dev/modules/git/url"
 	"gitea.dev/modules/httplib"
 	"gitea.dev/modules/repository"
 	"gitea.dev/modules/setting"
@@ -80,16 +81,9 @@ type HookProcReceiveRefResult struct {
 	HeadBranch        string
 }
 
-func genGroupSegment(groupID int64) string {
-	var groupSegment string
-	if groupID > 0 {
-		groupSegment = fmt.Sprintf("group/%d/", groupID)
-	}
-	return groupSegment
-}
-
 func newInternalRequestAPIForHooks(ctx context.Context, hookName, ownerName, repoName string, groupID int64, opts HookOptions) *httplib.Request {
-	reqURL := setting.LocalURL + fmt.Sprintf("api/internal/hook/%s/%s/%s%s", hookName, url.PathEscape(ownerName), genGroupSegment(groupID), url.PathEscape(repoName))
+	locator := giturl.NewLocator(ownerName, repoName, groupID)
+	reqURL := setting.LocalURL + fmt.Sprintf("api/internal/hook/%s/%s", hookName, locator.WebPath())
 	req := newInternalRequestAPI(ctx, reqURL, "POST", opts)
 	// This "timeout" applies to http.Client's timeout: A Timeout of zero means no timeout.
 	// This "timeout" was previously set to `time.Duration(60+len(opts.OldCommitIDs))` seconds, but it caused unnecessary timeout failures.
@@ -119,10 +113,9 @@ func HookProcReceive(ctx context.Context, ownerName, repoName string, groupID in
 
 // SetDefaultBranch will set the default branch to the provided branch for the provided repository
 func SetDefaultBranch(ctx context.Context, ownerName, repoName string, groupID int64, branch string) ResponseExtra {
-	reqURL := setting.LocalURL + fmt.Sprintf("api/internal/hook/set-default-branch/%s/%s%s/%s",
-		url.PathEscape(ownerName),
-		genGroupSegment(groupID),
-		url.PathEscape(repoName),
+	locator := giturl.NewLocator(ownerName, repoName, groupID)
+	reqURL := setting.LocalURL + fmt.Sprintf("api/internal/hook/set-default-branch/%s/%s",
+		locator.WebPath(),
 		url.PathEscape(branch),
 	)
 	req := newInternalRequestAPI(ctx, reqURL, "POST")

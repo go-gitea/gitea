@@ -176,11 +176,8 @@ func ParseRepositoryURL(ctx context.Context, repoURL string) (*RepositoryURL, er
 // MakeRepositoryWebLink generates a web link (http/https) for a git repository (by guessing sometimes)
 func MakeRepositoryWebLink(repoURL *RepositoryURL) string {
 	if repoURL.OwnerName != "" {
-		var groupSegment string
-		if repoURL.GroupID > 0 {
-			groupSegment = "group/" + strconv.FormatInt(repoURL.GroupID, 10) + "/"
-		}
-		return setting.AppSubURL + "/" + repoURL.OwnerName + "/" + groupSegment + repoURL.RepoName
+		locator := NewLocator(repoURL.OwnerName, repoURL.RepoName, repoURL.GroupID)
+		return setting.AppSubURL + "/" + locator.WebPath()
 	}
 
 	// now, let's guess, for example:
