@@ -66,6 +66,12 @@ func Init(ctx context.Context) error {
 	}
 	go graceful.GetManager().RunWithCancel(jobEmitterQueue)
 
+	actionsNotifyQueue = queue.CreateSimpleQueue(graceful.GetManager().ShutdownContext(), "actions_notify", actionsNotifyQueueHandler)
+	if actionsNotifyQueue == nil {
+		return errors.New("unable to create actions_notify queue")
+	}
+	go graceful.GetManager().RunWithCancel(actionsNotifyQueue)
+
 	notify_service.RegisterNotifier(NewNotifier())
 	return initGlobalRunnerToken(ctx)
 }
