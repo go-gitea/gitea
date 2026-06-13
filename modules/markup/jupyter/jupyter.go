@@ -45,6 +45,51 @@ var (
 	jupyterGoldmark goldmark.Markdown
 )
 
+type mimeHandler struct {
+	Mime string
+	Fn   func(w io.Writer, data string) error
+}
+
+var dataMimeHandlers = []mimeHandler{
+	// Images (PNG, JPEG, SVG)
+	{"image/png", func(w io.Writer, d string) error { return renderJupyterImg(w, "png", d) }},
+	{"image/jpeg", func(w io.Writer, d string) error { return renderJupyterImg(w, "jpeg", d) }},
+	{"image/svg+xml", func(w io.Writer, d string) error {
+		return renderJupyterImg(w, "svg+xml", base64.StdEncoding.EncodeToString([]byte(d)))
+	}},
+
+	// Rich & Math Layouts
+	{"text/html", func(w io.Writer, d string) error {
+		_, err := w.Write([]byte(`<div class="jupyter-html-output">` + markup.Sanitize(stripStyleTags(d)) + `</div>`))
+		return err
+	}},
+	{"text/latex", func(w io.Writer, d string) error {
+		_, err := htmlutil.HTMLPrintf(w, `<pre><code class="language-math display">%s</code></pre>`, strings.Trim(d, "$"))
+		return err
+	}},
+	{"text/plain", func(w io.Writer, d string) error {
+		_, err := htmlutil.HTMLPrintf(w, `<pre>%s</pre>`, d)
+		return err
+	}},
+
+	// Security Placeholders
+	{"application/javascript", renderUnsupported("[JavaScript output - execution disabled for security]")},
+	{"application/vnd.plotly.v1+json", renderUnsupported("[Plotly output - interactive plots not supported]")},
+	{"application/vnd.jupyter.widget-view+json", renderUnsupported("[Jupyter widget - interactive widgets not supported]")},
+}
+
+func renderJupyterImg(w io.Writer, subtype, payload string) error {
+	_, err := htmlutil.HTMLPrintf(w, `<img src="data:image/%s;base64,%s" class="jupyter-output-image">`, subtype, payload)
+	return err
+}
+
+func renderUnsupported(message string) func(io.Writer, string) error {
+	return func(w io.Writer, _ string) error {
+		_, err := w.Write([]byte(`<div class="jupyter-unsupported-output">` + message + `</div>`))
+		return err
+	}
+}
+
 func (renderer) Name() string {
 	return "jupyter"
 }
@@ -232,6 +277,9 @@ func renderCell(ctx *markup.RenderContext, output io.Writer, cell Cell, language
 		}
 
 		_, _ = output.Write([]byte(`</div>`))
+
+	default:
+		log.Debug("Jupyter markup: unknown cell type %q encountered in notebook, skipping", cell.CellType)
 	}
 
 	return nil
@@ -251,65 +299,29 @@ func renderMarkdown(_ *markup.RenderContext, output io.Writer, source string) er
 
 func renderOutput(output io.Writer, out Output) {
 	if out.Data != nil {
-		// Image outputs
-		if pngData, ok := out.Data["image/png"]; ok {
-			imgData := joinSource(pngData)
-			_, _ = htmlutil.HTMLPrintf(output, `<img src="data:image/png;base64,%s" class="jupyter-output-image">`, imgData)
-			return
-		}
-		if jpegData, ok := out.Data["image/jpeg"]; ok {
-			imgData := joinSource(jpegData)
-			_, _ = htmlutil.HTMLPrintf(output, `<img src="data:image/jpeg;base64,%s" class="jupyter-output-image">`, imgData)
-			return
-		}
-		if svgData, ok := out.Data["image/svg+xml"]; ok {
-			// Encode SVG as base64 data URI for safety
-			svgContent := joinSource(svgData)
-			svgBase64 := base64.StdEncoding.EncodeToString([]byte(svgContent))
-			_, _ = htmlutil.HTMLPrintf(output, `<img src="data:image/svg+xml;base64,%s" class="jupyter-output-image">`, svgBase64)
-			return
-		}
+		// Iterate through our priority list to find the best matching MIME handler available
+		for _, h := range dataMimeHandlers {
+			if rawPayload, exists := out.Data[h.Mime]; exists {
+				var stringPayload string
 
-		// HTML output
-		if htmlData, ok := out.Data["text/html"]; ok {
-			htmlContent := joinSource(htmlData)
-			// Strip <style> tags as we handle DataFrame styles in CSS
-			htmlContent = stripStyleTags(htmlContent)
+				// Flatten the polymorphic JSON input (string or []any) into a single clean string
+				switch v := rawPayload.(type) {
+				case string:
+					stringPayload = v
+				case []any:
+					stringPayload = joinSource(v)
+				default:
+					log.Debug("Jupyter markup: unexpected format variant type for MIME key %s, skipping", h.Mime)
+					continue
+				}
 
-			safeHTML := markup.Sanitize(htmlContent)
-			_, _ = output.Write([]byte(`<div class="jupyter-html-output">`))
-			_, _ = output.Write([]byte(safeHTML))
-			_, _ = output.Write([]byte(`</div>`))
-			return
-		}
+				if err := h.Fn(output, stringPayload); err != nil {
+					log.Error("Jupyter rendering engine failed for MIME type %s: %v", h.Mime, err)
+				}
 
-		// LaTeX output
-		if latexData, ok := out.Data["text/latex"]; ok {
-			latex := joinSource(latexData)
-			latex = strings.TrimPrefix(latex, "$$")
-			latex = strings.TrimSuffix(latex, "$$")
-			_, _ = htmlutil.HTMLPrintf(output, `<pre><code class="language-math display">%s</code></pre>`, latex)
-			return
-		}
-
-		// Plain text output
-		if plainData, ok := out.Data["text/plain"]; ok {
-			_, _ = htmlutil.HTMLPrintf(output, `<pre>%s</pre>`, joinSource(plainData))
-			return
-		}
-
-		// Unsupported outputs
-		if _, ok := out.Data["application/javascript"]; ok {
-			_, _ = output.Write([]byte(`<div class="jupyter-unsupported-output">[JavaScript output - execution disabled for security]</div>`))
-			return
-		}
-		if _, ok := out.Data["application/vnd.plotly.v1+json"]; ok {
-			_, _ = output.Write([]byte(`<div class="jupyter-unsupported-output">[Plotly output - interactive plots not supported]</div>`))
-			return
-		}
-		if _, ok := out.Data["application/vnd.jupyter.widget-view+json"]; ok {
-			_, _ = output.Write([]byte(`<div class="jupyter-unsupported-output">[Jupyter widget - interactive widgets not supported]</div>`))
-			return
+				// Return immediately after rendering the top matching priority format
+				return
+			}
 		}
 	}
 
