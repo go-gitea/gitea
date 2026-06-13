@@ -118,9 +118,13 @@ func (g *Group) IsPrivateBecauseOfParentPermissions(ctx context.Context, user *u
 	}
 
 	query := fmt.Sprintf(`WITH %s%s,
-	group_access AS (
-		SELECT COALESCE(MIN(CASE WHEN (%s) THEN 1 ELSE 0 END), 0) AS can_access
+	group_visibility AS (
+		SELECT CASE WHEN (%s) THEN 1 ELSE 0 END AS can_access
 		FROM group_hierarchy repo_group
+	),
+	group_access AS (
+		SELECT COALESCE(MIN(can_access), 0) AS can_access
+		FROM group_visibility
 	)
 	SELECT can_access FROM group_access`, recursiveKeyword, groupHierarchyCTEBuilder(
 		builder.And(
