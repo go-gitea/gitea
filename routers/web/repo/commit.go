@@ -11,6 +11,7 @@ import (
 	"net/http"
 	"strings"
 
+	activities_model "gitea.dev/models/activities"
 	asymkey_model "gitea.dev/models/asymkey"
 	"gitea.dev/models/db"
 	git_model "gitea.dev/models/git"
@@ -313,6 +314,14 @@ func Diff(ctx *context.Context) {
 	}
 	if len(commitID) != commit.ID.Type().FullLength() {
 		commitID = commit.ID.String()
+	}
+
+	if ctx.IsSigned {
+		err = activities_model.SetCommitReadBy(ctx, ctx.Repo.Repository.ID, ctx.Doer.ID, commitID)
+		if err != nil {
+			ctx.ServerError("SetCommitReadBy", err)
+			return
+		}
 	}
 
 	fileOnly := ctx.FormBool("file-only")

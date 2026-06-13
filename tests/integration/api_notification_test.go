@@ -4,8 +4,10 @@
 package integration
 
 import (
+	"encoding/base64"
 	"fmt"
 	"net/http"
+	"net/url"
 	"testing"
 
 	activities_model "gitea.dev/models/activities"
@@ -13,7 +15,9 @@ import (
 	repo_model "gitea.dev/models/repo"
 	"gitea.dev/models/unittest"
 	user_model "gitea.dev/models/user"
+	repo_module "gitea.dev/modules/repository"
 	api "gitea.dev/modules/structs"
+	repo_service "gitea.dev/services/repository"
 	"gitea.dev/tests"
 
 	"github.com/stretchr/testify/assert"
@@ -208,6 +212,171 @@ func TestAPINotificationPUT(t *testing.T) {
 	assert.EqualValues(t, 2, apiNL[0].ID)
 	assert.True(t, apiNL[0].Unread)
 	assert.False(t, apiNL[0].Pinned)
+}
+
+func TestAPICommitNotificationTaggedUserHasNoAccess(t *testing.T) {
+	onGiteaRun(t, func(t *testing.T, u *url.URL) {
+		// user2 pushes a commit to user2's private repo that mentions @user4;
+		// user4 should not receive a commit notification because they have no access.
+		user2 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
+		user4 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 4})
+		repo2 := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 2})
+		// Prepare test data
+		_, err := repo_module.SyncRepoBranches(t.Context(), repo2.ID, 0)
+		assert.NoError(t, err)
+		// Fix repository hooks, otherwise the commit won't trigger notifications for repo2.
+		assert.NoError(t, repo_service.SyncRepositoryHooks(t.Context()))
+
+		session2 := loginUser(t, user2.Name)
+		token2 := getTokenForLoggedInUser(t, session2, auth_model.AccessTokenScopeWriteRepository)
+
+		contentEncoded := base64.StdEncoding.EncodeToString([]byte("notification test content"))
+		req := NewRequestWithJSON(t, "POST", fmt.Sprintf("/api/v1/repos/%s/%s/contents/new_commit_notification.txt", user2.Name, repo2.Name), &api.CreateFileOptions{
+			FileOptions: api.FileOptions{
+				BranchName:    "master",
+				NewBranchName: "master",
+				Message:       "Test commit to mention @user4",
+			},
+			ContentBase64: contentEncoded,
+		}).AddTokenAuth(token2)
+		MakeRequest(t, req, http.StatusCreated)
+
+		// Check that user4 did not receive a commit notification
+		session4 := loginUser(t, user4.Name)
+		token4 := getTokenForLoggedInUser(t, session4, auth_model.AccessTokenScopeWriteNotification)
+
+		req = NewRequestWithJSON(t, "GET", fmt.Sprintf("/api/v1/repos/%s/%s", user2.Name, repo2.Name), nil).AddTokenAuth(token4)
+		MakeRequest(t, req, http.StatusForbidden)
+
+		req = NewRequest(t, "GET", "/api/v1/notifications?all=true").
+			AddTokenAuth(token4)
+		resp := MakeRequest(t, req, http.StatusOK)
+		var apiNL []api.NotificationThread
+		DecodeJSON(t, resp, &apiNL)
+
+		assert.Empty(t, apiNL)
+	})
+}
+
+func TestAPICommitNotification(t *testing.T) {
+	onGiteaRun(t, func(t *testing.T, u *url.URL) {
+		// user1 (admin) pushes a commit to user2's repo that mentions @user2;
+		// user2 should receive a commit notification.
+		user1 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 1})
+		user2 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
+		repo1 := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
+
+		session1 := loginUser(t, user1.Name)
+		token1 := getTokenForLoggedInUser(t, session1, auth_model.AccessTokenScopeWriteRepository)
+
+		contentEncoded := base64.StdEncoding.EncodeToString([]byte("notification test content"))
+		req := NewRequestWithJSON(t, "POST", fmt.Sprintf("/api/v1/repos/%s/%s/contents/new_commit_notification.txt", user2.Name, repo1.Name), &api.CreateFileOptions{
+			FileOptions: api.FileOptions{
+				BranchName:    "master",
+				NewBranchName: "master",
+				Message:       "Test commit to mention @user2",
+			},
+			ContentBase64: contentEncoded,
+		}).AddTokenAuth(token1)
+		MakeRequest(t, req, http.StatusCreated)
+
+		// Check that user2 received a commit notification
+		session2 := loginUser(t, user2.Name)
+		token2 := getTokenForLoggedInUser(t, session2, auth_model.AccessTokenScopeWriteNotification)
+		req = NewRequest(t, "GET", "/api/v1/notifications?all=true").
+			AddTokenAuth(token2)
+		resp := MakeRequest(t, req, http.StatusOK)
+		var apiNL []api.NotificationThread
+		DecodeJSON(t, resp, &apiNL)
+
+		if assert.NotEmpty(t, apiNL) {
+			assert.Equal(t, api.NotifySubjectCommit, apiNL[0].Subject.Type)
+			assert.Equal(t, "Test commit to mention @user2", apiNL[0].Subject.Title)
+			assert.True(t, apiNL[0].Unread)
+			assert.False(t, apiNL[0].Pinned)
+		}
+	})
+}
+
+func TestAPIReleaseNotification(t *testing.T) {
+	onGiteaRun(t, func(t *testing.T, u *url.URL) {
+		user1 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 1})
+		user2 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
+		repo1 := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
+
+		session1 := loginUser(t, user1.Name)
+		token1 := getTokenForLoggedInUser(t, session1, auth_model.AccessTokenScopeWriteRepository)
+
+		// user1 create a release, it's expected to create a notification
+		createNewReleaseUsingAPI(t, token1, user2, repo1, "v0.0.2", "", "v0.0.2 is released", "test notification release")
+
+		// user2 login to check notifications
+		session2 := loginUser(t, user2.Name)
+
+		// Check notifications are as expected
+		token2 := getTokenForLoggedInUser(t, session2, auth_model.AccessTokenScopeWriteNotification)
+		req := NewRequest(t, "GET", "/api/v1/notifications?all=true").
+			AddTokenAuth(token2)
+		resp := MakeRequest(t, req, http.StatusOK)
+		var apiNL []api.NotificationThread
+		DecodeJSON(t, resp, &apiNL)
+
+		if assert.NotEmpty(t, apiNL) {
+			assert.Equal(t, api.NotifySubjectRelease, apiNL[0].Subject.Type)
+			assert.Equal(t, "v0.0.2 is released", apiNL[0].Subject.Title)
+			assert.True(t, apiNL[0].Unread)
+			assert.False(t, apiNL[0].Pinned)
+		}
+	})
+}
+
+func TestAPIRepoTransferNotification(t *testing.T) {
+	onGiteaRun(t, func(t *testing.T, u *url.URL) {
+		user2 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
+
+		session := loginUser(t, user2.Name)
+		token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeWriteRepository, auth_model.AccessTokenScopeWriteUser)
+
+		// create a repo to transfer
+		repoName := "moveME"
+		apiRepo := new(api.Repository)
+		req := NewRequestWithJSON(t, "POST", "/api/v1/user/repos", &api.CreateRepoOption{
+			Name:        repoName,
+			Description: "repo move around",
+			Private:     false,
+			Readme:      "Default",
+			AutoInit:    true,
+		}).AddTokenAuth(token)
+		resp := MakeRequest(t, req, http.StatusCreated)
+		DecodeJSON(t, resp, apiRepo)
+
+		defer func() {
+			_ = repo_service.DeleteRepositoryDirectly(t.Context(), apiRepo.ID)
+		}()
+
+		// transfer user2/moveME to org6; user5 is a member of org6's Owners team and should be notified
+		repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: apiRepo.ID})
+		req = NewRequestWithJSON(t, "POST", fmt.Sprintf("/api/v1/repos/%s/%s/transfer", repo.OwnerName, repo.Name), &api.TransferRepoOption{
+			NewOwner: "org6",
+		}).AddTokenAuth(token)
+		MakeRequest(t, req, http.StatusCreated)
+
+		user5 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 5})
+		session5 := loginUser(t, user5.Name)
+		token5 := getTokenForLoggedInUser(t, session5, auth_model.AccessTokenScopeWriteNotification)
+		req = NewRequest(t, "GET", "/api/v1/notifications?all=true").
+			AddTokenAuth(token5)
+		resp = MakeRequest(t, req, http.StatusOK)
+		var apiNL []api.NotificationThread
+		DecodeJSON(t, resp, &apiNL)
+
+		if assert.NotEmpty(t, apiNL) {
+			assert.Equal(t, api.NotifySubjectRepository, apiNL[0].Subject.Type)
+			assert.Equal(t, "user2/moveME", apiNL[0].Subject.Title)
+			assert.True(t, apiNL[0].Unread)
+			assert.False(t, apiNL[0].Pinned)
+		}
+	})
 }
 
 func TestAPINotificationPublicOnly(t *testing.T) {
