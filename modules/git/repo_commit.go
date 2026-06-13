@@ -36,25 +36,17 @@ func (repo *Repository) GetCommit(ref string) (*Commit, error) {
 
 // GetBranchCommit returns the last commit of given branch.
 func (repo *Repository) GetBranchCommit(name string) (*Commit, error) {
-	commitID, err := repo.GetBranchCommitID(name)
-	if err != nil {
-		return nil, err
-	}
-	return repo.GetCommit(commitID)
+	return repo.GetCommit(RefNameFromBranch(name).String())
 }
 
 // GetTagCommit get the commit of the specific tag via name
 func (repo *Repository) GetTagCommit(name string) (*Commit, error) {
-	commitID, err := repo.GetTagCommitID(name)
-	if err != nil {
-		return nil, err
-	}
-	return repo.GetCommit(commitID)
+	return repo.GetCommit(RefNameFromTag(name).String())
 }
 
 func (repo *Repository) getCommitByPathWithID(id ObjectID, relpath string) (*Commit, error) {
 	// File name starts with ':' must be escaped.
-	if relpath[0] == ':' {
+	if strings.HasPrefix(relpath, ":") {
 		relpath = `\` + relpath
 	}
 
