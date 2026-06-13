@@ -8005,7 +8005,7 @@
     },
     "/repos/{owner}/{repo}/compare/{basehead}": {
       "get": {
-        "description": "By default returns JSON commit comparison information. The raw diff or patch can be\nrequested by setting the `Accept` header to `application/vnd.github.diff` or\n`application/vnd.github.patch` respectively.\n",
+        "description": "By default returns JSON commit comparison information. The raw diff or patch can be\nrequested with the `output` query parameter set to `diff` or `patch` respectively.\n",
         "produces": [
           "application/json",
           "text/plain"
@@ -8036,6 +8036,16 @@
             "name": "basehead",
             "in": "path",
             "required": true
+          },
+          {
+            "enum": [
+              "diff",
+              "patch"
+            ],
+            "type": "string",
+            "description": "return the raw comparison as `diff` or `patch` instead of JSON",
+            "name": "output",
+            "in": "query"
           }
         ],
         "responses": {

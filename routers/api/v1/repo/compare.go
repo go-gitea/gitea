@@ -5,7 +5,6 @@ package repo
 
 import (
 	"net/http"
-	"strings"
 
 	user_model "gitea.dev/models/user"
 	"gitea.dev/modules/gitrepo"
@@ -15,12 +14,6 @@ import (
 	git_service "gitea.dev/services/git"
 )
 
-// Media types for Accept-header content negotiation, matching GitHub's API.
-const (
-	mediaTypeDiff  = "application/vnd.github.diff"
-	mediaTypePatch = "application/vnd.github.patch"
-)
-
 // CompareDiff compare two branches or commits
 func CompareDiff(ctx *context.APIContext) {
 	// swagger:operation GET /repos/{owner}/{repo}/compare/{basehead} repository repoCompareDiff
@@ -28,8 +21,7 @@ func CompareDiff(ctx *context.APIContext) {
 	// summary: Get commit comparison information
 	// description: |
 	//   By default returns JSON commit comparison information. The raw diff or patch can be
-	//   requested by setting the `Accept` header to `application/vnd.github.diff` or
-	//   `application/vnd.github.patch` respectively.
+	//   requested with the `output` query parameter set to `diff` or `patch` respectively.
 	// produces:
 	// - application/json
 	// - text/plain
@@ -49,6 +41,13 @@ func CompareDiff(ctx *context.APIContext) {
 	//   description: compare two refs as `base...head` (or `base..head`); refs may be branches, tags, full or short SHAs, including branch names that contain slashes.
 	//   type: string
 	//   required: true
+	// - name: output
+	//   in: query
+	//   description: return the raw comparison as `diff` or `patch` instead of JSON
+	//   type: string
+	//   enum:
+	//   - diff
+	//   - patch
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/Compare"
@@ -70,9 +69,8 @@ func CompareDiff(ctx *context.APIContext) {
 	}
 	defer closer()
 
-	// GitHub-style content negotiation: an Accept header of diff/patch returns the
-	// raw output, otherwise the JSON comparison is returned.
-	switch negotiateDiffType(ctx.Req.Header.Get("Accept")) {
+	// ?output=diff|patch returns the raw output, otherwise the JSON comparison is returned.
+	switch ctx.FormString("output") {
 	case "diff":
 		downloadCompareDiffOrPatch(ctx, compareInfo, false)
 		return
@@ -111,20 +109,6 @@ func CompareDiff(ctx *context.APIContext) {
 		TotalCommits: len(compareInfo.Commits),
 		Commits:      apiCommits,
 	})
-}
-
-// negotiateDiffType returns "diff" or "patch" when the Accept header requests the
-// corresponding raw GitHub media type, or "" when JSON should be returned.
-func negotiateDiffType(accept string) string {
-	for part := range strings.SplitSeq(accept, ",") {
-		switch strings.TrimSpace(strings.SplitN(part, ";", 2)[0]) {
-		case mediaTypeDiff:
-			return "diff"
-		case mediaTypePatch:
-			return "patch"
-		}
-	}
-	return ""
 }
 
 // downloadCompareDiffOrPatch writes a comparison's raw diff or patch to the response.

@@ -69,15 +69,10 @@ func TestAPIDownloadCompareDiffOrPatch(t *testing.T) {
 		session := loginUser(t, "user2")
 		token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeReadRepository)
 
-		// GitHub-style content negotiation: raw diff/patch is requested via the Accept header.
-		const acceptDiff = "application/vnd.github.diff"
-		const acceptPatch = "application/vnd.github.patch"
-
 		t.Run("BranchToBranchDiff", func(t *testing.T) {
 			defer tests.PrintCurrentTest(t)()
 
-			req := NewRequest(t, "GET", "/api/v1/repos/user2/repo20/compare/add-csv...remove-files-b").AddTokenAuth(token)
-			req.Header.Set("Accept", acceptDiff)
+			req := NewRequest(t, "GET", "/api/v1/repos/user2/repo20/compare/add-csv...remove-files-b?output=diff").AddTokenAuth(token)
 			resp := MakeRequest(t, req, http.StatusOK)
 			assert.Equal(t, "text/plain; charset=utf-8", resp.Header().Get("Content-Type"))
 			body := resp.Body.String()
@@ -87,8 +82,7 @@ func TestAPIDownloadCompareDiffOrPatch(t *testing.T) {
 		t.Run("BranchToBranchPatch", func(t *testing.T) {
 			defer tests.PrintCurrentTest(t)()
 
-			req := NewRequest(t, "GET", "/api/v1/repos/user2/repo20/compare/add-csv...remove-files-b").AddTokenAuth(token)
-			req.Header.Set("Accept", acceptPatch)
+			req := NewRequest(t, "GET", "/api/v1/repos/user2/repo20/compare/add-csv...remove-files-b?output=patch").AddTokenAuth(token)
 			resp := MakeRequest(t, req, http.StatusOK)
 			assert.Equal(t, "text/plain; charset=utf-8", resp.Header().Get("Content-Type"))
 			body := resp.Body.String()
@@ -98,8 +92,7 @@ func TestAPIDownloadCompareDiffOrPatch(t *testing.T) {
 		t.Run("CommitToCommitDiff", func(t *testing.T) {
 			defer tests.PrintCurrentTest(t)()
 
-			req := NewRequest(t, "GET", "/api/v1/repos/user2/repo20/compare/808038d2f71b0ab02099...c8e31bc7688741a5287f").AddTokenAuth(token)
-			req.Header.Set("Accept", acceptDiff)
+			req := NewRequest(t, "GET", "/api/v1/repos/user2/repo20/compare/808038d2f71b0ab02099...c8e31bc7688741a5287f?output=diff").AddTokenAuth(token)
 			resp := MakeRequest(t, req, http.StatusOK)
 			assert.Contains(t, resp.Body.String(), "diff --git ")
 		})
@@ -108,8 +101,7 @@ func TestAPIDownloadCompareDiffOrPatch(t *testing.T) {
 			defer tests.PrintCurrentTest(t)()
 
 			// 8babce96... is the head of remove-files-b; pairing it with add-csv guarantees a non-empty diff.
-			req := NewRequest(t, "GET", "/api/v1/repos/user2/repo20/compare/add-csv...8babce967f21b9dfa6987f943b91093dac58a4f0").AddTokenAuth(token)
-			req.Header.Set("Accept", acceptDiff)
+			req := NewRequest(t, "GET", "/api/v1/repos/user2/repo20/compare/add-csv...8babce967f21b9dfa6987f943b91093dac58a4f0?output=diff").AddTokenAuth(token)
 			resp := MakeRequest(t, req, http.StatusOK)
 			assert.Contains(t, resp.Body.String(), "diff --git ")
 		})
@@ -117,8 +109,7 @@ func TestAPIDownloadCompareDiffOrPatch(t *testing.T) {
 		t.Run("TwoDotSeparator", func(t *testing.T) {
 			defer tests.PrintCurrentTest(t)()
 
-			req := NewRequest(t, "GET", "/api/v1/repos/user2/repo20/compare/add-csv..remove-files-b").AddTokenAuth(token)
-			req.Header.Set("Accept", acceptDiff)
+			req := NewRequest(t, "GET", "/api/v1/repos/user2/repo20/compare/add-csv..remove-files-b?output=diff").AddTokenAuth(token)
 			resp := MakeRequest(t, req, http.StatusOK)
 			assert.Contains(t, resp.Body.String(), "diff --git ")
 		})
@@ -129,20 +120,19 @@ func TestAPIDownloadCompareDiffOrPatch(t *testing.T) {
 			// user2/repo1's `feature/1` branch contains a slash; the route must match it
 			// without URL-encoding. master and feature/1 happen to share a SHA in the fixture,
 			// so we only assert the route resolves (200 OK) rather than checking diff content.
-			req := NewRequest(t, "GET", "/api/v1/repos/user2/repo1/compare/master...feature/1").AddTokenAuth(token)
-			req.Header.Set("Accept", acceptDiff)
+			req := NewRequest(t, "GET", "/api/v1/repos/user2/repo1/compare/master...feature/1?output=diff").AddTokenAuth(token)
 			resp := MakeRequest(t, req, http.StatusOK)
 			assert.Equal(t, "text/plain; charset=utf-8", resp.Header().Get("Content-Type"))
 		})
 
-		t.Run("NoSuffixStripping", func(t *testing.T) {
+		t.Run("UnknownOutputReturnsJSON", func(t *testing.T) {
 			defer tests.PrintCurrentTest(t)()
 
-			// The format now lives in the Accept header, not the path, so a dotted suffix is
-			// part of the ref name. "remove-files-b.foo" is taken literally as the head ref;
-			// it does not exist, so the JSON handler returns 404 (no suffix is stripped).
-			req := NewRequest(t, "GET", "/api/v1/repos/user2/repo20/compare/add-csv...remove-files-b.foo").AddTokenAuth(token)
-			MakeRequest(t, req, http.StatusNotFound)
+			// Only "diff"/"patch" switch to raw output; any other value falls through to JSON.
+			req := NewRequest(t, "GET", "/api/v1/repos/user2/repo20/compare/add-csv...remove-files-b?output=foo").AddTokenAuth(token)
+			resp := MakeRequest(t, req, http.StatusOK)
+			apiResp := DecodeJSON(t, resp, &api.Compare{})
+			assert.Equal(t, 2, apiResp.TotalCommits)
 		})
 
 		t.Run("SingleRefImplicitBase", func(t *testing.T) {
@@ -151,8 +141,7 @@ func TestAPIDownloadCompareDiffOrPatch(t *testing.T) {
 			// No `...`/`..` separator: parseCompareInfo defaults the base to the
 			// repo's PR target branch (master for repo20) and compares it against
 			// the given head.
-			req := NewRequest(t, "GET", "/api/v1/repos/user2/repo20/compare/add-csv").AddTokenAuth(token)
-			req.Header.Set("Accept", acceptDiff)
+			req := NewRequest(t, "GET", "/api/v1/repos/user2/repo20/compare/add-csv?output=diff").AddTokenAuth(token)
 			resp := MakeRequest(t, req, http.StatusOK)
 			assert.Equal(t, "text/plain; charset=utf-8", resp.Header().Get("Content-Type"))
 			assert.Contains(t, resp.Body.String(), "diff --git ")
@@ -162,8 +151,7 @@ func TestAPIDownloadCompareDiffOrPatch(t *testing.T) {
 			defer tests.PrintCurrentTest(t)()
 
 			// repo16 is private; an unauthenticated request must not leak its existence.
-			req := NewRequest(t, "GET", "/api/v1/repos/user2/repo16/compare/master...good-sign")
-			req.Header.Set("Accept", acceptDiff)
+			req := NewRequest(t, "GET", "/api/v1/repos/user2/repo16/compare/master...good-sign?output=diff")
 			MakeRequest(t, req, http.StatusNotFound)
 		})
 
@@ -178,8 +166,7 @@ func TestAPIDownloadCompareDiffOrPatch(t *testing.T) {
 			_, err := createFileInBranch(user13, repo11, createFileInBranchOptions{OldBranch: "master", NewBranch: "cross-repo-diff"}, map[string]string{"hello.txt": "hi\n"})
 			require.NoError(t, err)
 
-			req := NewRequest(t, "GET", "/api/v1/repos/user12/repo10/compare/master...user13:cross-repo-diff").AddTokenAuth(user13Token)
-			req.Header.Set("Accept", acceptDiff)
+			req := NewRequest(t, "GET", "/api/v1/repos/user12/repo10/compare/master...user13:cross-repo-diff?output=diff").AddTokenAuth(user13Token)
 			resp := MakeRequest(t, req, http.StatusOK)
 			assert.Equal(t, "text/plain; charset=utf-8", resp.Header().Get("Content-Type"))
 			assert.Contains(t, resp.Body.String(), "diff --git ")
