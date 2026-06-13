@@ -204,7 +204,9 @@ func GetPullDiffStats(ctx *context.Context) {
 
 	// do not report 500 server error to end users if error occurs, otherwise a PR missing ref won't be able to view.
 	headCommitID, err := ctx.Repo.GitRepo.GetRefCommitID(pull.GetGitHeadRefName())
-	if err != nil {
+	if errors.Is(err, util.ErrNotExist) {
+		return
+	} else if err != nil {
 		log.Error("Failed to GetRefCommitID: %v, repo: %v", err, ctx.Repo.Repository.FullName())
 		return
 	}
@@ -375,7 +377,7 @@ func (prInfo *pullRequestViewInfo) prepareViewFillCompareInfo(ctx *context.Conte
 	pull := prInfo.issue.PullRequest
 	prInfo.CompareInfo, err = git_service.GetCompareInfo(ctx, ctx.Repo.Repository, ctx.Repo.Repository, ctx.Repo.GitRepo, baseRef, git.RefName(pull.GetGitHeadRefName()), false, false)
 	if err != nil {
-		isKnownErrorForBroken := gitcmd.IsStderr(err, gitcmd.StderrNotValidObjectName) || gitcmd.IsStderr(err, gitcmd.StderrUnknownRevisionOrPath)
+		isKnownErrorForBroken := errors.Is(err, util.ErrNotExist) || gitcmd.IsStderr(err, gitcmd.StderrNotValidObjectName) || gitcmd.IsStderr(err, gitcmd.StderrUnknownRevisionOrPath)
 		if !isKnownErrorForBroken {
 			log.Error("GetCompareInfo: %v", err)
 		}
