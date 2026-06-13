@@ -19,7 +19,6 @@ import (
 	asymkey_model "gitea.dev/models/asymkey"
 	"gitea.dev/models/db"
 	git_model "gitea.dev/models/git"
-	group_model "gitea.dev/models/group"
 	issues_model "gitea.dev/models/issues"
 	access_model "gitea.dev/models/perm/access"
 	repo_model "gitea.dev/models/repo"
@@ -659,8 +658,8 @@ func repoAssignmentPrepareTemplateData(ctx *Context, data *repoAssignmentPrepare
 	ctx.Data["PageTitleCommon"] = repo.Name + " - " + setting.AppName
 	ctx.Data["Repository"] = repo
 	if repo.GroupID > 0 {
-		if ctx.Data["Breadcrumbs"], err = group_model.GetParentGroupChain(ctx, repo.GroupID); err != nil {
-			ctx.ServerError("GetParentGroupChain", err)
+		if err = AddGroupBreadcrumbs(ctx, repo.GroupID); err != nil {
+			ctx.ServerError("AddGroupBreadcrumbs", err)
 			return
 		}
 	} else {
