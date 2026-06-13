@@ -504,6 +504,21 @@ func reqOrgOwnership() func(ctx *context.APIContext) {
 	}
 }
 
+// reqOrgVisible requires the organization to be visible to the doer, or a site admin
+func reqOrgVisible() func(ctx *context.APIContext) {
+	return func(ctx *context.APIContext) {
+		if ctx.Org.Organization == nil {
+			setting.PanicInDevOrTesting("reqOrgVisible: unprepared context")
+			ctx.APIErrorInternal(errors.New("reqOrgVisible: unprepared context"))
+			return
+		}
+		if !organization.HasOrgOrUserVisible(ctx, ctx.Org.Organization.AsUser(), ctx.Doer) {
+			ctx.APIErrorNotFound()
+			return
+		}
+	}
+}
+
 // reqTeamMembership user should be an team member, or a site admin
 func reqTeamMembership() func(ctx *context.APIContext) {
 	return func(ctx *context.APIContext) {
@@ -1673,7 +1688,7 @@ func Routes() *web.Router {
 				m.Combo("/{id}").Get(reqToken(), org.GetLabel).
 					Patch(reqToken(), reqOrgOwnership(), bind(api.EditLabelOption{}), org.EditLabel).
 					Delete(reqToken(), reqOrgOwnership(), org.DeleteLabel)
-			})
+			}, reqOrgVisible())
 			m.Group("/hooks", func() {
 				m.Combo("").Get(org.ListHooks).
 					Post(bind(api.CreateHookOption{}), org.CreateHook)
