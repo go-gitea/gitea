@@ -26,6 +26,7 @@ import (
 	"gitea.dev/models/unit"
 	user_model "gitea.dev/models/user"
 	"gitea.dev/modules/auth/httpauth"
+	giturl "gitea.dev/modules/git/url"
 	"gitea.dev/modules/httplib"
 	"gitea.dev/modules/json"
 	lfs_module "gitea.dev/modules/lfs"
@@ -425,13 +426,13 @@ func getRequestContext(ctx *context.Context) *requestContext {
 	ownerName := ctx.PathParam("username")
 	repoName := strings.TrimSuffix(ctx.PathParam("reponame"), ".git")
 	gid := ctx.PathParamInt64("group_id")
-	groupSegment := util.Iif(gid != 0, fmt.Sprintf("group/%d/", gid), "")
+	locator := giturl.NewLocator(ownerName, repoName, gid)
 	return &requestContext{
 		User:          ownerName,
 		Repo:          repoName,
 		GroupID:       gid,
 		Authorization: ctx.Req.Header.Get("Authorization"),
-		RepoGitURL:    httplib.GuessCurrentAppURL(ctx) + url.PathEscape(ownerName) + "/" + groupSegment + url.PathEscape(repoName+".git"),
+		RepoGitURL:    httplib.GuessCurrentAppURL(ctx) + locator.WebPath() + url.PathEscape(".git"),
 	}
 }
 

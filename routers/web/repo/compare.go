@@ -7,7 +7,6 @@ import (
 	gocontext "context"
 	"encoding/csv"
 	"errors"
-	"fmt"
 	"io"
 	"net/http"
 	"net/url"
@@ -29,6 +28,7 @@ import (
 	"gitea.dev/modules/fileicon"
 	"gitea.dev/modules/git"
 	"gitea.dev/modules/git/gitcmd"
+	giturl "gitea.dev/modules/git/url"
 	"gitea.dev/modules/gitrepo"
 	"gitea.dev/modules/log"
 	"gitea.dev/modules/markup"
@@ -91,20 +91,14 @@ func setCompareContext(ctx *context.Context, before, head *git.Commit, headOwner
 
 // SourceCommitURL creates a relative URL for a commit in the given repository
 func SourceCommitURL(owner, name string, gid int64, commit *git.Commit) string {
-	var groupSegment string
-	if gid > 0 {
-		groupSegment = fmt.Sprintf("group/%d/", gid)
-	}
-	return setting.AppSubURL + "/" + url.PathEscape(owner) + "/" + groupSegment + url.PathEscape(name) + "/src/commit/" + url.PathEscape(commit.ID.String())
+	locator := giturl.NewLocator(owner, name, gid)
+	return setting.AppSubURL + "/" + locator.WebPath() + "/src/commit/" + url.PathEscape(commit.ID.String())
 }
 
 // RawCommitURL creates a relative URL for the raw commit in the given repository
 func RawCommitURL(owner, name string, gid int64, commit *git.Commit) string {
-	var groupSegment string
-	if gid > 0 {
-		groupSegment = fmt.Sprintf("group/%d/", gid)
-	}
-	return setting.AppSubURL + "/" + url.PathEscape(owner) + "/" + groupSegment + url.PathEscape(name) + "/raw/commit/" + url.PathEscape(commit.ID.String())
+	locator := giturl.NewLocator(owner, name, gid)
+	return setting.AppSubURL + "/" + locator.WebPath() + "/raw/commit/" + url.PathEscape(commit.ID.String())
 }
 
 // setPathsCompareContext sets context data for source and raw paths
