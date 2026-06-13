@@ -238,7 +238,7 @@ func GroupAssignmentAPI(early404 bool) func(ctx *APIContext) {
 				return
 			}
 
-			if !ctx.RepoGroup.Capabilities().CanRead && early404 {
+			if !repoGroup.Capabilities().CanRead && early404 {
 				ctx.APIErrorNotFound()
 				return
 			}
