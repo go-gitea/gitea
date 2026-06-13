@@ -67,7 +67,7 @@ func NewGroup(ctx context.Context, g *group_model.Group, doer *user_model.User) 
 		if err != nil {
 			return err
 		}
-		if len(gidChain) >= 20 {
+		if len(gidChain) >= group_model.NestingLimit {
 			return group_model.ErrGroupTooDeep{
 				ID: g.ParentGroupID,
 			}
