@@ -122,7 +122,7 @@ async function deleteArtifact(name: string) {
 
 watch(() => run.value.status, (status) => {
   syncActionRunFavicon(status);
-}, {immediate: true});
+});
 
 onBeforeUnmount(() => {
   resetActionFavicon();
