@@ -278,6 +278,7 @@ a {
 
 a:hover {
   text-decoration-line: underline;
+  text-underline-position: under; /* necessary for CJK fonts, otherwise, default "auto" makes the underline cross-over the CJK text bottom */
 }
 
 /* a = always colored, underlined on hover */
@@ -839,7 +840,8 @@ table th[data-sortt-desc] .svg {
   align-items: center;
   gap: var(--gap-inline);
   vertical-align: middle;
-  min-width: 0; /* make ellipsis work */
+  max-width: 100%; /* the inner part might have "gt-ellipsis" */
+  min-width: 0; /* if it is the top flex container, "max-width" works; but if it is inside another flex container, the parent needs to handle the x-axis and here also needs "min-width" */
 }
 
 .ui.ui.labeled.button {
@@ -848,12 +850,14 @@ table th[data-sortt-desc] .svg {
 }
 
 /* this is useful to make a left-right (e.g.: title .... operations) layout with default gap, and it wrap for small widths */
+.ui.modal .header.flex-left-right,
 .flex-left-right {
   display: flex;
   flex-wrap: wrap;
   justify-content: space-between;
   align-items: center;
   gap: var(--gap-block);
+  max-width: 100%;
   min-width: 0;
 }
 
@@ -866,6 +870,7 @@ table th[data-sortt-desc] .svg {
   align-items: center;
   gap: var(--gap-block);
   max-width: 100%;
+  min-width: 0;
 }
 
 .flex-left-right > .ui.button,

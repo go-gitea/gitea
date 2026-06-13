@@ -797,31 +797,23 @@ func GetSquashMergeCommitMessages(ctx context.Context, pr *issues_model.PullRequ
 	}
 	defer closer.Close()
 
-	var headCommit *git.Commit
+	var headCommitRef git.RefName
 	if pr.Flow == issues_model.PullRequestFlowGithub {
-		headCommit, err = gitRepo.GetBranchCommit(pr.HeadBranch)
+		headCommitRef = git.RefNameFromBranch(pr.HeadBranch)
 	} else {
 		pr.HeadCommitID, err = gitRepo.GetRefCommitID(pr.GetGitHeadRefName())
 		if err != nil {
 			log.Error("Unable to get head commit: %s Error: %v", pr.GetGitHeadRefName(), err)
 			return ""
 		}
-		headCommit, err = gitRepo.GetCommit(pr.HeadCommitID)
-	}
-	if err != nil {
-		log.Error("Unable to get head commit: %s Error: %v", pr.HeadBranch, err)
-		return ""
+		headCommitRef = git.RefNameFromCommit(pr.HeadCommitID)
 	}
 
-	mergeBase, err := gitRepo.GetCommit(pr.MergeBase)
-	if err != nil {
-		log.Error("Unable to get merge base commit: %s Error: %v", pr.MergeBase, err)
-		return ""
-	}
+	mergeBaseRef := git.RefNameFromCommit(pr.MergeBase)
 
 	limit := setting.Repository.PullRequest.DefaultMergeMessageCommitsLimit
 
-	commits, err := gitRepo.CommitsBetweenLimit(headCommit, mergeBase, limit, 0)
+	limitedCommits, err := gitRepo.CommitsBetween(headCommitRef, mergeBaseRef, limit)
 	if err != nil {
 		log.Error("Unable to get commits between: %s %s Error: %v", pr.HeadBranch, pr.MergeBase, err)
 		return ""
@@ -830,7 +822,7 @@ func GetSquashMergeCommitMessages(ctx context.Context, pr *issues_model.PullRequ
 	posterSig := pr.Issue.Poster.NewGitSig().String()
 
 	uniqueAuthors := make(container.Set[string])
-	authors := make([]string, 0, len(commits))
+	authors := make([]string, 0, len(limitedCommits))
 	stringBuilder := strings.Builder{}
 
 	if !setting.Repository.PullRequest.PopulateSquashCommentWithCommitMessages {
@@ -848,7 +840,7 @@ func GetSquashMergeCommitMessages(ctx context.Context, pr *issues_model.PullRequ
 		// use PR's commit messages as squash commit message
 		// commits list is in reverse chronological order
 		maxMsgSize := setting.Repository.PullRequest.DefaultMergeMessageSize
-		for _, commit := range slices.Backward(commits) {
+		for _, commit := range slices.Backward(limitedCommits) {
 			msg := strings.TrimSpace(commit.MessageUTF8())
 			if msg == "" {
 				continue
@@ -875,7 +867,7 @@ func GetSquashMergeCommitMessages(ctx context.Context, pr *issues_model.PullRequ
 	}
 
 	// collect co-authors
-	for _, commit := range commits {
+	for _, commit := range limitedCommits {
 		authorString := commit.Author.String()
 		if uniqueAuthors.Add(authorString) && authorString != posterSig {
 			// Compare use account as well to avoid adding the same author multiple times
@@ -892,7 +884,7 @@ func GetSquashMergeCommitMessages(ctx context.Context, pr *issues_model.PullRequ
 		skip := limit
 		limit = 30
 		for {
-			commits, err = gitRepo.CommitsBetweenLimit(headCommit, mergeBase, limit, skip)
+			commits, err := gitRepo.CommitsBetween(headCommitRef, mergeBaseRef, limit, skip)
 			if err != nil {
 				log.Error("Unable to get commits between: %s %s Error: %v", pr.HeadBranch, pr.MergeBase, err)
 				return ""
