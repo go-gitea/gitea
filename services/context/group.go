@@ -208,11 +208,11 @@ func GroupAssignmentWeb(args GroupAssignmentOptions) func(ctx *Context) {
 			ctx.Data["Doer"] = ctx.Doer
 			ctx.Data["GroupLink"] = group.GroupLink()
 			ctx.Data["OrgGroupLink"] = repoGroup.OrgGroupLink
-			ctx.Data["Breadcrumbs"], err = group_model.GetParentGroupChain(ctx, group.ID)
-			if err != nil {
-				ctx.ServerError("GetParentGroupChain", err)
-				return
+
+			if err = AddGroupBreadcrumbs(ctx, group.ID); err != nil {
+				ctx.ServerError("AddGroupBreadcrumbs", err)
 			}
+
 			if !ctx.IsSigned {
 				ctx.Data["SignedUser"] = &user_model.User{}
 			}
@@ -254,4 +254,21 @@ func groupIsCurrent(ctx *Context) func(groupID int64) bool { //nolint:unused // 
 		}
 		return ctx.RepoGroup.Group.ID == groupID
 	}
+}
+
+func AddGroupBreadcrumbs(ctx *Context, gid int64) error {
+	var err error
+	ctx.Data["Breadcrumbs"], err = group_model.GetParentGroupChain(ctx, gid)
+	if err != nil {
+		return err
+	}
+	ctx.Data["CanAccessGroup"] = func(g *group_model.Group) bool {
+		caps, err := g.GetCapabilities(ctx, ctx.Doer)
+		if err != nil {
+			return false
+		}
+		return caps.CanRead
+	}
+
+	return nil
 }
