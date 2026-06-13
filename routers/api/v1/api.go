@@ -1243,6 +1243,7 @@ func Routes() *web.Router {
 				m.Group("/actions/workflows", func() {
 					m.Get("", repo.ActionsListRepositoryWorkflows)
 					m.Get("/{workflow_id}", repo.ActionsGetWorkflow)
+					m.Get("/{workflow_id}/runs", repo.ActionsListWorkflowRuns)
 					m.Put("/{workflow_id}/disable", reqRepoWriter(unit.TypeActions), repo.ActionsDisableWorkflow)
 					m.Put("/{workflow_id}/enable", reqRepoWriter(unit.TypeActions), repo.ActionsEnableWorkflow)
 					m.Post("/{workflow_id}/dispatches", reqRepoWriter(unit.TypeActions), bind(api.CreateActionWorkflowDispatch{}), repo.ActionsDispatchWorkflow)

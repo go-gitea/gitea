@@ -365,7 +365,7 @@ func AllHeadCommitsVerified(ctx context.Context, pr *issues_model.PullRequest, g
 	if err != nil {
 		return false, err
 	}
-	commitList, err := headCommit.CommitsBeforeUntil(mergeBaseCommit)
+	commitList, err := headCommit.CommitsBeforeUntil(git.RefNameFromCommit(mergeBaseCommit))
 	if err != nil {
 		return false, err
 	}
