@@ -13,6 +13,7 @@ import (
 	user_model "gitea.dev/models/user"
 	"gitea.dev/modules/setting"
 	"gitea.dev/modules/structs"
+
 	"xorm.io/builder"
 )
 
@@ -161,9 +162,7 @@ func (g *Group) GetCapabilities(ctx context.Context, doer *user_model.User) (Cap
 		if caps.CanCreate, err = g.CanCreateIn(ctx, doer.ID); err != nil {
 			return caps, err
 		}
-		var (
-			isAdmin, isOwner bool
-		)
+		var isAdmin, isOwner bool
 		if isAdmin, err = g.IsAdminOf(ctx, doer.ID); err != nil {
 			return caps, err
 		}

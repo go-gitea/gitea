@@ -238,10 +238,8 @@ func UpdateGroupOwnerName(ctx context.Context, oldUser, newUser string) error {
 }
 
 func groupHierarchyCTEBuilder(cond builder.Cond, maybeInitialCond ...builder.Cond) string {
-	var (
-		descendantCTE,
+	var descendantCTE,
 		finalCTE string
-	)
 
 	icond := builder.Cond(builder.Eq{"parent_group_id": 0})
 	if len(maybeInitialCond) > 0 {
