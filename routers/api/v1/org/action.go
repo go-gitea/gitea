@@ -679,7 +679,7 @@ func (Action) ListWorkflowRuns(ctx *context.APIContext) {
 	//     "$ref": "#/responses/error"
 	//   "404":
 	//     "$ref": "#/responses/notFound"
-	shared.ListRuns(ctx, ctx.Org.Organization.ID, 0)
+	shared.ListRuns(ctx, ctx.Org.Organization.ID, 0, "")
 }
 
 var _ actions_service.API = new(Action)
