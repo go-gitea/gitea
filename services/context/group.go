@@ -100,7 +100,7 @@ type GroupAssignmentOptions struct {
 	RequireGroupAdmin bool
 }
 
-func groupAssignment(ctx commonCtx, doer *user_model.User, isSigned, _ bool, handleNotFound func(error), handleOtherError func(string, error), assign func(repoGroup *RepoGroup)) {
+func groupAssignment(ctx commonCtx, doer *user_model.User, _ bool, handleNotFound func(error), handleOtherError func(string, error), assign func(repoGroup *RepoGroup)) {
 	var err error
 	repoGroup := new(RepoGroup)
 	err = getGroupByParams(ctx, repoGroup, handleNotFound, handleOtherError)
@@ -135,7 +135,7 @@ func GroupAssignmentWeb(args GroupAssignmentOptions) func(ctx *Context) {
 	return func(ctx *Context) {
 		opts := args
 		var err error
-		groupAssignment(ctx, ctx.Doer, ctx.IsSigned, false, ctx.NotFound, ctx.ServerError, func(repoGroup *RepoGroup) {
+		groupAssignment(ctx, ctx.Doer, false, ctx.NotFound, ctx.ServerError, func(repoGroup *RepoGroup) {
 			if ctx.Written() {
 				return
 			}
@@ -223,7 +223,7 @@ func GroupAssignmentWeb(args GroupAssignmentOptions) func(ctx *Context) {
 
 func GroupAssignmentAPI(early404 bool) func(ctx *APIContext) {
 	return func(ctx *APIContext) {
-		groupAssignment(ctx, ctx.Doer, ctx.IsSigned, true, func(err error) {
+		groupAssignment(ctx, ctx.Doer, true, func(err error) {
 			ctx.APIErrorNotFound()
 		}, func(str string, err error) {
 			ctx.APIErrorInternal(fmt.Errorf("%s: %w", str, err))
