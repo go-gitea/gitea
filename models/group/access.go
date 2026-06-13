@@ -39,6 +39,9 @@ func (g *Group) CanAccessAtLevel(ctx context.Context, user *user_model.User, lev
 		if ownedBy {
 			return true, nil
 		}
+		if level >= perm.AccessModeOwner {
+			return ownedBy, nil
+		}
 		if level >= perm.AccessModeAdmin {
 			return g.IsAdminOf(ctx, user.ID)
 		}
