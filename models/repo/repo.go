@@ -625,7 +625,7 @@ func (repo *Repository) ComposeCompareURL(oldCommitID, newCommitID string) strin
 func (repo *Repository) ComposeBranchCompareURL(baseRepo *Repository, baseBranch, branchName string) string {
 	var cmpBranchEscaped string
 	if repo.ID != baseRepo.ID {
-		cmpBranchEscaped = fmt.Sprintf("%s:", repo.GetLocator().WebPath())
+		cmpBranchEscaped = repo.GetLocator().WebPath() + ":"
 	}
 	cmpBranchEscaped = fmt.Sprintf("%s%s", cmpBranchEscaped, util.PathEscapeSegments(branchName))
 	return fmt.Sprintf("%s/compare/%s...%s", baseRepo.Link(), util.PathEscapeSegments(baseBranch), cmpBranchEscaped)
@@ -718,7 +718,7 @@ func ComposeSSHCloneURL(doer *user_model.User, ownerName, repoName string, group
 // ComposeTeaCloneCommand returns Tea CLI clone command based on the given owner and repository name.
 func ComposeTeaCloneCommand(ctx context.Context, owner, repo string, groupID int64) string {
 	locator := giturl.NewLocator(owner, repo, groupID)
-	return fmt.Sprintf("tea clone %s", locator.WebPath())
+	return "tea clone " + locator.WebPath()
 }
 
 func (repo *Repository) cloneLink(ctx context.Context, doer *user_model.User, repoPathName string, groupID int64) *CloneLink {
