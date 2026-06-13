@@ -101,37 +101,54 @@ func generateExpansion(ctx context.Context, src string, templateRepo, generateRe
 	})
 }
 
-// giteaTemplateFileMatcher holds information about a .gitea/template file
+// giteaTemplateFileMatcher holds include and exclude globs from .gitea/template
 type giteaTemplateFileMatcher struct {
-	relPath string
-	globs   []glob.Glob
+	relPath      string
+	includeGlobs []glob.Glob
+	excludeGlobs []glob.Glob
 }
 
 func newGiteaTemplateFileMatcher(relPath string, content []byte) *giteaTemplateFileMatcher {
 	gt := &giteaTemplateFileMatcher{relPath: relPath}
-	gt.globs = make([]glob.Glob, 0)
+	gt.includeGlobs = make([]glob.Glob, 0)
+	gt.excludeGlobs = make([]glob.Glob, 0)
 	scanner := bufio.NewScanner(bytes.NewReader(content))
+	addGlob := func(globs *[]glob.Glob, pattern, kind string) {
+		g, err := glob.Compile(pattern, '/')
+		if err != nil {
+			log.Debug("Invalid %s glob expression '%s' (skipped): %v", kind, pattern, err)
+			return
+		}
+		*globs = append(*globs, g)
+	}
 	for scanner.Scan() {
 		line := strings.TrimSpace(scanner.Text())
 		if line == "" || strings.HasPrefix(line, "#") {
 			continue
 		}
-		g, err := glob.Compile(line, '/')
-		if err != nil {
-			log.Debug("Invalid glob expression '%s' (skipped): %v", line, err)
-			continue
+		if strings.HasPrefix(line, "!") {
+			addGlob(&gt.excludeGlobs, strings.TrimSpace(line[1:]), "exclude")
+		} else {
+			addGlob(&gt.includeGlobs, line, "include")
 		}
-		gt.globs = append(gt.globs, g)
 	}
 	return gt
 }
 
 func (gt *giteaTemplateFileMatcher) HasRules() bool {
-	return len(gt.globs) != 0
+	return len(gt.includeGlobs) != 0
 }
 
-func (gt *giteaTemplateFileMatcher) Match(s string) bool {
-	for _, g := range gt.globs {
+func (gt *giteaTemplateFileMatcher) HasExcludeRules() bool {
+	return len(gt.excludeGlobs) != 0
+}
+
+func (gt *giteaTemplateFileMatcher) Match(s string, exclude bool) bool {
+	globs := gt.includeGlobs
+	if exclude {
+		globs = gt.excludeGlobs
+	}
+	for _, g := range globs {
 		if g.Match(s) {
 			return true
 		}
@@ -166,31 +183,50 @@ func substGiteaTemplateFile(ctx context.Context, tmpDir, tmpDirSubPath string, t
 }
 
 // processGiteaTemplateFile processes and removes the .gitea/template file, does variable expansion for template files
-// and save the processed files to the filesystem. It returns a list of skipped files that are not regular paths.
+// and save the processed files to the filesystem. It also deletes files/directories matching exclude patterns ('!' prefix).
+// It returns a list of skipped files that are not regular paths.
 func processGiteaTemplateFile(ctx context.Context, tmpDir string, templateRepo, generateRepo *repo_model.Repository, fileMatcher *giteaTemplateFileMatcher) (skippedFiles []string, _ error) {
 	// Why not use "os.Root" here: symlink is unsafe even in the same root but "os.Root" can't help, it's more difficult to use "os.Root" to do the WalkDir.
 	if err := os.Remove(util.FilePathJoinAbs(tmpDir, fileMatcher.relPath)); err != nil {
 		return nil, fmt.Errorf("unable to remove .gitea/template: %w", err)
 	}
-	if !fileMatcher.HasRules() {
+	if !fileMatcher.HasRules() && !fileMatcher.HasExcludeRules() {
 		return skippedFiles, nil // Avoid walking tree if there are no globs
 	}
 
+	hasRules := fileMatcher.HasRules()
 	err := filepath.WalkDir(tmpDir, func(fullPath string, d os.DirEntry, walkErr error) error {
 		if walkErr != nil {
 			return walkErr
 		}
-		if d.IsDir() {
-			return nil
-		}
-		tmpDirSubPath, err := filepath.Rel(tmpDir, fullPath)
+		relPath, err := filepath.Rel(tmpDir, fullPath)
 		if err != nil {
 			return err
 		}
-		if fileMatcher.Match(filepath.ToSlash(tmpDirSubPath)) {
-			err := substGiteaTemplateFile(ctx, tmpDir, tmpDirSubPath, templateRepo, generateRepo)
+		if relPath == "." {
+			// WalkDir always visits the root "." first.
+			// Matching "." would let a pattern like "*" call RemoveAll on
+			// the working directory while WalkDir is still recursing into it.
+			return nil
+		}
+
+		if d.Type()&os.ModeSymlink == 0 && fileMatcher.Match(filepath.ToSlash(relPath), true) {
+			if d.IsDir() {
+				if err := os.RemoveAll(fullPath); err != nil {
+					return err
+				}
+				return filepath.SkipDir
+			}
+			if err := os.Remove(fullPath); err != nil && !os.IsNotExist(err) {
+				return err
+			}
+			return nil
+		}
+
+		if hasRules && !d.IsDir() && fileMatcher.Match(filepath.ToSlash(relPath), false) {
+			err := substGiteaTemplateFile(ctx, tmpDir, relPath, templateRepo, generateRepo)
 			if errors.Is(err, util.ErrNotRegularPathFile) {
-				skippedFiles = append(skippedFiles, tmpDirSubPath)
+				skippedFiles = append(skippedFiles, relPath)
 			} else if err != nil {
 				return err
 			}
@@ -228,11 +264,10 @@ func generateRepoCommit(ctx context.Context, repo, templateRepo, generateRepo *r
 		return fmt.Errorf("remove git dir: %w", err)
 	}
 
-	// Variable expansion
+	// Variable expansion and exclusion (both defined in .gitea/template)
 	fileMatcher, err := readGiteaTemplateFile(tmpDir)
 	if err == nil {
-		_, err = processGiteaTemplateFile(ctx, tmpDir, templateRepo, generateRepo, fileMatcher)
-		if err != nil {
+		if _, err = processGiteaTemplateFile(ctx, tmpDir, templateRepo, generateRepo, fileMatcher); err != nil {
 			return fmt.Errorf("processGiteaTemplateFile: %w", err)
 		}
 	} else if errors.Is(err, fs.ErrNotExist) {
