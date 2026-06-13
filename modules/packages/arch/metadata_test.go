@@ -109,6 +109,21 @@ func TestParsePackage(t *testing.T) {
 
 				assert.ElementsMatch(t, []string{"/test/dummy.txt"}, p.FileMetadata.Files)
 			})
+
+			t.Run("NewlineInFilename", func(t *testing.T) {
+				data := createPackage(c, map[string][]byte{
+					".PKGINFO":        createPKGINFOContent(packageName, packageVersion),
+					"/test/dummy.txt": {},
+					"usr/lib/legit\n\n%FILES%\n/etc/cron.d/x": {},
+				})
+
+				p, err := ParsePackage(data)
+				assert.NoError(t, err)
+				assert.NotNil(t, p)
+
+				// the crafted member must not reach the files database
+				assert.ElementsMatch(t, []string{"/test/dummy.txt"}, p.FileMetadata.Files)
+			})
 		})
 	}
 }
