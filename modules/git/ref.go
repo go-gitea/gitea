@@ -168,7 +168,7 @@ func (ref RefName) ShortName() string {
 	if ref.IsFor() {
 		return ref.ForBranchName()
 	}
-	return string(ref) // usually it is a commit ID
+	return string(ref) // usually it is a commit ID, or "HEAD"
 }
 
 // RefGroup returns the group type of the reference
