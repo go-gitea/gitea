@@ -237,37 +237,86 @@ func UpdateGroupOwnerName(ctx context.Context, oldUser, newUser string) error {
 	return nil
 }
 
+func groupHierarchyCTEBuilder(cond builder.Cond, maybeInitialCond ...builder.Cond) string {
+	var (
+		descendantCTE,
+		finalCTE string
+	)
+
+	icond := builder.Cond(builder.Eq{"parent_group_id": 0})
+	if len(maybeInitialCond) > 0 {
+		if maybeInitialCond[0] != nil {
+			icond = maybeInitialCond[0]
+		}
+	}
+
+	firstPart := builder.Dialect(db.BuilderDialect()).Select("repo_group.*", "1 as depth", "name as path").
+		From("repo_group").Where(icond)
+
+	secondPart := builder.Dialect(db.BuilderDialect()).Select("r.*", "h.depth + 1", "concat(h.path, '/', r.name) as path").
+		From("repo_group", "r").
+		Join("INNER", "group_descendants h", "r.parent_group_id = h.id")
+
+	firstSQL, _ := firstPart.ToBoundSQL()
+	secondSQL, _ := secondPart.ToBoundSQL()
+	descendantCTE = firstSQL + " UNION ALL " + secondSQL
+
+	firstPart = builder.Dialect(db.BuilderDialect()).Select("group_descendants.*").
+		From("group_descendants")
+
+	if cond != nil {
+		firstPart = firstPart.Where(cond)
+	}
+	secondPart = builder.Dialect(db.BuilderDialect()).Select("parent.*").
+		From("group_descendants", "parent").
+		Join("INNER", "group_hierarchy child", "child.parent_group_id = parent.id")
+
+	firstSQL, _ = firstPart.ToBoundSQL()
+	secondSQL, _ = secondPart.ToBoundSQL()
+	finalCTE = "group_descendants AS (" + descendantCTE + "), group_hierarchy AS (" + firstSQL + " UNION ALL " + secondSQL + ")"
+	return finalCTE
+}
+
 // GetParentGroupChain returns a slice containing a group and its ancestors
 func GetParentGroupChain(ctx context.Context, groupID int64) (RepoGroupList, error) {
 	groupList := make([]*Group, 0, NestingLimit)
-	currentGroupID := groupID
-	for {
-		if currentGroupID < 1 {
-			break
-		}
-		if len(groupList) >= NestingLimit {
-			return nil, ErrGroupTooDeep{currentGroupID}
-		}
-		currentGroup, err := GetGroupByID(ctx, currentGroupID)
-		if err != nil {
-			return nil, err
-		}
-		groupList = append(groupList, currentGroup)
-		currentGroupID = currentGroup.ParentGroupID
+
+	var (
+		err              error
+		recursiveKeyword string
+	)
+	if !setting.Database.Type.IsMSSQL() {
+		recursiveKeyword = " recursive"
 	}
-	slices.Reverse(groupList)
+
+	foundGroups := make([]*Group, 0)
+	err = db.GetEngine(ctx).SQL(fmt.Sprintf(`WITH%s %s
+SELECT group_hierarchy.* FROM group_hierarchy
+ORDER BY group_hierarchy.depth ASC`,
+		recursiveKeyword, groupHierarchyCTEBuilder(builder.Eq{"id": groupID}))).Find(&foundGroups)
+	if err != nil {
+		return nil, err
+	}
+
+	for i := range min(NestingLimit, len(foundGroups)) {
+		groupList = append(groupList, foundGroups[i])
+	}
 	return groupList, nil
 }
 
 func GetParentGroupIDChain(ctx context.Context, groupID int64) ([]int64, error) {
-	var ids []int64
-	groupList, err := GetParentGroupChain(ctx, groupID)
-	if err != nil {
-		return nil, err
+	var (
+		ids []int64
+		err error
+	)
+	var recursiveKeyword string
+	if !setting.Database.Type.IsMSSQL() {
+		recursiveKeyword = " recursive"
 	}
-	ids = util.SliceMap(groupList, func(g *Group) int64 {
-		return g.ID
-	})
+	err = db.GetEngine(ctx).SQL(fmt.Sprintf(`WITH%s %s
+SELECT group_hierarchy.id FROM group_hierarchy
+ORDER BY group_hierarchy.depth ASC`,
+		recursiveKeyword, groupHierarchyCTEBuilder(builder.Eq{"id": groupID}, nil))).Find(&ids)
 	return ids, err
 }
 
@@ -277,35 +326,20 @@ func ChildGroupCond(ctx context.Context, firstParent int64, cond builder.Cond) (
 		firstParent = 0
 	}
 	var (
-		filter string
-		err    error
+		err error
+		ids []int64
 	)
-
-	if cond != nil {
-		var boundFilter string
-		boundFilter, err = builder.ToBoundSQL(cond)
-		if err == nil {
-			filter = "AND (" + boundFilter + ")"
-		}
-	}
-
-	var ids []int64
 
 	var recursiveKeyword string
 	if !setting.Database.Type.IsMSSQL() {
 		recursiveKeyword = "RECURSIVE "
 	}
 
-	err = db.GetEngine(ctx).SQL(fmt.Sprintf(`WITH %srepo_groups AS (
-		SELECT * from repo_group
-		WHERE parent_group_id = %d %s
-
-		UNION ALL
-
-		SELECT subgroup.*
-		FROM repo_group subgroup
-		JOIN repo_groups g ON g.id = subgroup.parent_group_id
-	) SELECT g.id FROM repo_groups g ORDER BY id ASC`, recursiveKeyword, firstParent, filter)).Find(&ids)
+	err = db.GetEngine(ctx).SQL(fmt.Sprintf(`WITH %s%s SELECT g.id FROM group_hierarchy g ORDER BY id ASC`,
+		recursiveKeyword,
+		groupHierarchyCTEBuilder(nil,
+			builder.And(builder.Eq{"parent_group_id": firstParent}, cond)))).
+		Find(&ids)
 	return ids, err
 }
 
