@@ -180,17 +180,7 @@ func GroupAssignmentWeb(args GroupAssignmentOptions) func(ctx *Context) {
 			ctx.Data["EnableFeed"] = setting.Other.EnableFeed
 			ctx.Data["FeedURL"] = group.GroupLink()
 			ctx.Data["IsOwnerOrg"] = group.Owner.IsOrganization()
-			var isDoerOwner bool
-			if ctx.IsSigned {
-				if ctx.ContextUser != nil {
-					isDoerOwner = ctx.ContextUser.ID == ctx.Doer.ID
-				} else {
-					isDoerOwner = repoGroup.Capabilities().IsOwner
-				}
-			}
-			ctx.Data["IsDoerOwner"] = isDoerOwner
-			ctx.Data["IsGroupOwner"] = repoGroup.Capabilities().IsOwner
-			ctx.Data["IsGroupMember"] = repoGroup.Capabilities().IsMember
+
 			ctx.Data["IsPackageEnabled"] = setting.Packages.Enabled
 			ctx.Data["IsRepoIndexerEnabled"] = setting.Indexer.RepoIndexerEnabled
 			ctx.Data["IsPublicMember"] = func(uid int64) bool {
@@ -288,6 +278,17 @@ func AddGroupValues(ctx *Context) {
 		}
 		return shared_group_model.ItemHasChild(ctx, it, ctx.RepoGroup.Group.ID, ctx.Doer, false)
 	}
+	var isDoerOwner bool
+	if ctx.IsSigned {
+		if ctx.ContextUser != nil {
+			isDoerOwner = ctx.ContextUser.ID == ctx.Doer.ID
+		} else {
+			isDoerOwner = ctx.RepoGroup.Capabilities().IsOwner
+		}
+	}
+	ctx.Data["IsDoerOwner"] = isDoerOwner
+	ctx.Data["IsGroupOwner"] = ctx.RepoGroup.Capabilities().IsOwner
+	ctx.Data["IsGroupMember"] = ctx.RepoGroup.Capabilities().IsMember
 }
 
 func AddGroupBreadcrumbs(ctx *Context, gid int64) error {
