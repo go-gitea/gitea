@@ -682,56 +682,48 @@ func reqGroupMembership(mode perm.AccessMode, needsCreatePerm bool) func(ctx *co
 			return
 		}
 		var err error
-		isOrgOwner := false
-		isOrgAdmin := false
-		isOrgMember := false
-		g := ctx.RepoGroup.Group
 
-		if ctx.Doer != nil {
-			isOrgOwner, err = organization.IsOrganizationOwner(ctx, g.OwnerID, ctx.Doer.ID)
-			if err != nil {
-				ctx.APIErrorInternal(err)
-				return
-			}
-			isOrgAdmin, err = organization.IsOrganizationAdmin(ctx, g.OwnerID, ctx.Doer.ID)
-			if err != nil {
-				ctx.APIErrorInternal(err)
-				return
-			}
-			if isOrgOwner || isOrgAdmin {
-				return
-			}
+		var isOrgMember bool
 
-			isOrgMember, err = organization.IsOrganizationMember(ctx, g.OwnerID, ctx.Doer.ID)
-			if err != nil {
+		if ctx.RepoGroup.OwnerAsOrg != nil {
+			if isOrgMember, err = ctx.RepoGroup.OwnerAsOrg.IsOrgMember(ctx, ctx.Doer.ID); err != nil {
 				ctx.APIErrorInternal(err)
 				return
 			}
 		}
 
-		canAccess, err := ctx.RepoGroup.Group.CanAccessAtLevel(ctx, ctx.Doer, mode)
-		if err != nil {
-			ctx.APIErrorInternal(err)
-			return
-		}
-		canAccess = canAccess && ctx.RepoGroup.DoerCanAccess()
-
-		if mode > perm.AccessModeRead && !canAccess && isOrgMember {
-			ctx.APIError(http.StatusForbidden, "")
-			return
+		if mode > perm.AccessModeRead {
+			var check bool
+			switch mode {
+			case perm.AccessModeWrite:
+				check = ctx.RepoGroup.Capabilities().CanWrite
+			case perm.AccessModeAdmin:
+				check = ctx.RepoGroup.Capabilities().CanAdmin
+			case perm.AccessModeOwner:
+				check = ctx.RepoGroup.Capabilities().IsOwner
+			case perm.AccessModeRead:
+			case perm.AccessModeNone:
+				check = ctx.RepoGroup.Capabilities().CanRead
+			}
+			if !check && isOrgMember {
+				ctx.APIError(http.StatusForbidden, "")
+				return
+			} else if !check {
+				ctx.APIErrorNotFound()
+				return
+			}
 		}
 		if needsCreatePerm {
-			canCreateIn := ctx.RepoGroup.CanCreateRepoOrGroup
-			if !canCreateIn && !(isOrgOwner || isOrgAdmin) {
-				if isOrgMember {
-					ctx.APIError(http.StatusForbidden, fmt.Sprintf("User[%d] does not have permission to create new items in group[%d]", ctx.Doer.ID, g.ID))
+			if !ctx.RepoGroup.Capabilities().CanCreate && !(ctx.RepoGroup.Capabilities().IsOwner || ctx.RepoGroup.Capabilities().CanAdmin) {
+				if ctx.RepoGroup.Capabilities().IsMember {
+					ctx.APIError(http.StatusForbidden, fmt.Sprintf("User[%d] does not have permission to create new items in group[%d]", ctx.Doer.ID, ctx.RepoGroup.Group.ID))
 				} else {
 					ctx.APIErrorNotFound()
 				}
 				return
 			}
 		}
-		if !canAccess {
+		if !ctx.RepoGroup.Capabilities().CanRead {
 			ctx.APIErrorNotFound()
 			return
 		}

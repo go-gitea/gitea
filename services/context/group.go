@@ -16,7 +16,6 @@ import (
 	"gitea.dev/modules/markup/markdown"
 	"gitea.dev/modules/setting"
 	"gitea.dev/modules/structs"
-	"gitea.dev/modules/util"
 )
 
 // commonCtx contains some common functions between APIContext and Context
@@ -28,18 +27,15 @@ type commonCtx interface {
 }
 
 type RepoGroup struct {
-	IsOwner              bool
-	IsMember             bool
-	IsGroupAdmin         bool
-	Group                *group_model.Group
-	GroupLink            string
-	OrgGroupLink         string
-	CanCreateRepoOrGroup bool
-	doerCanAccess        bool
+	OwnerAsOrg   *organization.Organization
+	Group        *group_model.Group
+	GroupLink    string
+	OrgGroupLink string
+	capabilities group_model.Capabilities
 }
 
-func (g *RepoGroup) DoerCanAccess() bool {
-	return g.doerCanAccess
+func (g RepoGroup) Capabilities() group_model.Capabilities {
+	return g.capabilities
 }
 
 func (g *RepoGroup) CanWriteUnit(ctx context.Context, doer *user_model.User, unitType unit.Type) bool {
@@ -115,16 +111,7 @@ func groupAssignment(ctx commonCtx, doer *user_model.User, isSigned, _ bool, han
 		return
 	}
 	group := repoGroup.Group
-	canAccess, err := group.CanAccess(ctx, doer)
-	if err != nil {
-		handleOtherError("error checking group access", err)
-		return
-	}
-	privateBecauseOfParent, err := group.IsPrivateBecauseOfParentPermissions(ctx, doer)
-	if err != nil {
-		handleOtherError("error checking group access", err)
-		return
-	}
+
 	if group.Owner == nil {
 		err = group.LoadOwner(ctx)
 		if err != nil {
@@ -132,67 +119,15 @@ func groupAssignment(ctx commonCtx, doer *user_model.User, isSigned, _ bool, han
 			return
 		}
 	}
+	if repoGroup.capabilities, err = group.GetCapabilities(ctx, doer); err != nil {
+		handleOtherError("GetCapabilities", err)
+		return
+	}
 	ownerAsOrg := organization.OrgFromUser(group.Owner)
-	var orgWideAdmin, orgWideOwner, isOwnedBy bool
-
-	if isSigned {
-		if orgWideAdmin, err = ownerAsOrg.IsOrgAdmin(ctx, doer.ID); err != nil {
-			handleOtherError("IsOrgAdmin", err)
-			return
-		}
-		if orgWideOwner, err = ownerAsOrg.IsOwnedBy(ctx, doer.ID); err != nil {
-			handleOtherError("IsOwnedBy", err)
-			return
-		}
-	}
-	if orgWideOwner {
-		repoGroup.IsOwner = true
-	}
-	if orgWideAdmin {
-		repoGroup.IsGroupAdmin = true
+	if group.Owner.IsOrganization() {
+		repoGroup.OwnerAsOrg = ownerAsOrg
 	}
 
-	if isSigned && (doer.IsAdmin || doer.ID == group.OwnerID) {
-		repoGroup.IsOwner = true
-		repoGroup.IsMember = true
-		repoGroup.IsGroupAdmin = true
-		repoGroup.CanCreateRepoOrGroup = true
-	} else if isSigned {
-		isOwnedBy, err = group.IsOwnedBy(ctx, doer.ID)
-		if err != nil {
-			handleOtherError("IsOwnedBy", err)
-			return
-		}
-		repoGroup.IsOwner = repoGroup.IsOwner || isOwnedBy
-
-		if repoGroup.IsOwner {
-			repoGroup.IsMember = true
-			repoGroup.IsGroupAdmin = true
-			repoGroup.CanCreateRepoOrGroup = true
-		} else {
-			repoGroup.IsMember, err = group.IsMemberOf(ctx, doer)
-			if err != nil {
-				handleOtherError("IsOrgMember", err)
-				return
-			}
-			repoGroup.CanCreateRepoOrGroup, err = group.CanCreateIn(ctx, doer.ID)
-			if err != nil {
-				handleOtherError("CanCreateIn", err)
-				return
-			}
-			repoGroup.IsGroupAdmin, err = group.IsAdminOf(ctx, doer.ID)
-			if err != nil {
-				handleOtherError("IsAdminOf", err)
-				return
-			}
-		}
-	}
-	repoGroup.GroupLink = group.GroupLink()
-	repoGroup.OrgGroupLink = util.Iif(group.Owner.IsOrganization(), group.OrgGroupLink(), group.UserGroupLink())
-	if !repoGroup.IsOwner && !repoGroup.IsGroupAdmin {
-		canAccess = canAccess && !privateBecauseOfParent
-	}
-	repoGroup.doerCanAccess = canAccess
 	assign(repoGroup)
 }
 
@@ -205,7 +140,7 @@ func GroupAssignmentWeb(args GroupAssignmentOptions) func(ctx *Context) {
 				return
 			}
 
-			canAccess := repoGroup.doerCanAccess
+			canAccess := repoGroup.Capabilities().CanRead
 			group := repoGroup.Group
 			if group.Visibility != structs.VisibleTypePublic && !ctx.IsSigned {
 				ctx.NotFound(nil)
@@ -219,16 +154,19 @@ func GroupAssignmentWeb(args GroupAssignmentOptions) func(ctx *Context) {
 				return
 			}
 
-			if (opts.RequireMember && !repoGroup.IsMember) ||
-				(opts.RequireOwner && !repoGroup.IsOwner) {
-				if ctx.Repo.Repository != nil && ctx.Repo.Permission.HasAnyUnitAccess() {
-					goto end
+			if (opts.RequireMember && !repoGroup.Capabilities().IsMember) ||
+				(opts.RequireOwner && !repoGroup.Capabilities().IsOwner) {
+				if ctx.Repo.Repository != nil {
+					if !ctx.Repo.Permission.HasAnyUnitAccess() {
+						ctx.NotFound(nil)
+						return
+					}
+				} else {
+					ctx.NotFound(nil)
+					return
 				}
-				ctx.NotFound(nil)
-				return
 			}
 
-		end:
 			ctx.Data["EnableFeed"] = setting.Other.EnableFeed
 			ctx.Data["FeedURL"] = group.GroupLink()
 			ctx.Data["IsOwnerOrg"] = group.Owner.IsOrganization()
@@ -237,12 +175,12 @@ func GroupAssignmentWeb(args GroupAssignmentOptions) func(ctx *Context) {
 				if ctx.ContextUser != nil {
 					isDoerOwner = ctx.ContextUser.ID == ctx.Doer.ID
 				} else {
-					isDoerOwner = repoGroup.IsOwner
+					isDoerOwner = repoGroup.Capabilities().IsOwner
 				}
 			}
 			ctx.Data["IsDoerOwner"] = isDoerOwner
-			ctx.Data["IsGroupOwner"] = repoGroup.IsOwner
-			ctx.Data["IsGroupMember"] = repoGroup.IsMember
+			ctx.Data["IsGroupOwner"] = repoGroup.Capabilities().IsOwner
+			ctx.Data["IsGroupMember"] = repoGroup.Capabilities().IsMember
 			ctx.Data["IsPackageEnabled"] = setting.Packages.Enabled
 			ctx.Data["IsRepoIndexerEnabled"] = setting.Indexer.RepoIndexerEnabled
 			ctx.Data["IsPublicMember"] = func(uid int64) bool {
@@ -250,10 +188,10 @@ func GroupAssignmentWeb(args GroupAssignmentOptions) func(ctx *Context) {
 				return is
 			}
 			ctx.Data["CanReadProjects"] = repoGroup.CanReadUnit(ctx, ctx.Doer, unit.TypeProjects)
-			ctx.Data["CanCreateOrgRepo"] = repoGroup.CanCreateRepoOrGroup
+			ctx.Data["CanCreateOrgRepo"] = repoGroup.Capabilities().CanCreate
 
-			ctx.Data["IsGroupAdmin"] = repoGroup.IsGroupAdmin
-			if opts.RequireGroupAdmin && !repoGroup.IsGroupAdmin {
+			ctx.Data["IsGroupAdmin"] = repoGroup.Capabilities().CanAdmin
+			if opts.RequireGroupAdmin && !repoGroup.Capabilities().CanAdmin {
 				ctx.NotFound(nil)
 				return
 			}
@@ -294,14 +232,13 @@ func GroupAssignmentAPI(early404 bool) func(ctx *APIContext) {
 				return
 			}
 
-			canAccess := repoGroup.doerCanAccess
 			group := repoGroup.Group
 			if group.Visibility != structs.VisibleTypePublic && !ctx.IsSigned {
 				ctx.APIErrorNotFound()
 				return
 			}
 
-			if !canAccess && early404 {
+			if !ctx.RepoGroup.Capabilities().CanRead && early404 {
 				ctx.APIErrorNotFound()
 				return
 			}
