@@ -56,37 +56,38 @@ func (g *Group) CanAccessAtLevel(ctx context.Context, user *user_model.User, lev
 	return db.GetEngine(ctx).Table(g.TableName()).Where(builder.And(builder.Eq{"`repo_group`.id": g.ID}, orCond)).Exist()
 }
 
-func (g *Group) IsOwnedBy(ctx context.Context, userID int64) (bool, error) {
+func (g *Group) loadGroupMembershipWith(ctx context.Context, p perm.AccessMode, userID int64) (bool, error) {
 	owner, err := user_model.GetUserByID(ctx, g.OwnerID)
 	if err != nil {
 		return false, err
 	}
-	if owner.Type == user_model.UserTypeIndividual {
-		return owner.ID == userID, nil
+	var org *org_model.Organization
+	if owner.IsOrganization() {
+		org = org_model.OrgFromUser(owner)
 	}
-	org, err := org_model.GetOrgByID(ctx, g.OwnerID)
-	if err != nil {
-		return false, err
+	if org == nil {
+		return g.OwnerID == userID, nil
 	}
-	return org.IsOwnedBy(ctx, userID)
+	switch p {
+	case perm.AccessModeNone, perm.AccessModeRead, perm.AccessModeWrite:
+		return org.IsOrgMember(ctx, userID)
+	case perm.AccessModeAdmin:
+		return org.IsOrgAdmin(ctx, userID)
+	case perm.AccessModeOwner:
+		return org.IsOwnedBy(ctx, userID)
+	}
+	return false, nil
+}
+
+func (g *Group) IsOwnedBy(ctx context.Context, userID int64) (bool, error) {
+	return g.loadGroupMembershipWith(ctx, perm.AccessModeOwner, userID)
 }
 
 func (g *Group) IsMemberOf(ctx context.Context, user *user_model.User) (bool, error) {
 	if user == nil {
 		return false, nil
 	}
-	owner, err := user_model.GetUserByID(ctx, g.OwnerID)
-	if err != nil {
-		return false, err
-	}
-	if owner.Type == user_model.UserTypeIndividual {
-		return owner.ID == user.ID, nil
-	}
-	org, err := org_model.GetOrgByID(ctx, g.OwnerID)
-	if err != nil {
-		return false, err
-	}
-	return org.IsOrgMember(ctx, user.ID)
+	return g.loadGroupMembershipWith(ctx, perm.AccessModeRead, user.ID)
 }
 
 func (g *Group) CanCreateIn(ctx context.Context, userID int64) (bool, error) {
@@ -98,19 +99,7 @@ func (g *Group) CanCreateIn(ctx context.Context, userID int64) (bool, error) {
 }
 
 func (g *Group) IsAdminOf(ctx context.Context, userID int64) (bool, error) {
-	owner, err := user_model.GetUserByID(ctx, g.OwnerID)
-	if err != nil {
-		return false, err
-	}
-	if owner.Type == user_model.UserTypeIndividual {
-		return owner.ID == userID, nil
-	}
-	org, err := org_model.GetOrgByID(ctx, g.OwnerID)
-	if err != nil {
-		return false, err
-	}
-	return org.IsOrgAdmin(ctx, userID)
-
+	return g.loadGroupMembershipWith(ctx, perm.AccessModeAdmin, userID)
 }
 
 func (g *Group) IsPrivateBecauseOfParentPermissions(ctx context.Context, user *user_model.User) (bool, error) {
