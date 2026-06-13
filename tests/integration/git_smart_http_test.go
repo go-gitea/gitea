@@ -28,7 +28,8 @@ func TestGitSmartHTTP(t *testing.T) {
 		testGitSmartHTTPTokenScopes(t)
 		testRenamedRepoRedirect(t)
 		testGitArchiveRemote(t, u)
-		testGitSmartHTTPPrivateRepoAnonymousAccess(t)
+		t.Run("AnonymousAccess-Repo", func(t *testing.T) { testGitSmartHTTPPrivateRepoAnonymousAccess(t, false) })
+		t.Run("AnonymousAccess-Wiki", func(t *testing.T) { testGitSmartHTTPPrivateRepoAnonymousAccess(t, true) })
 	})
 }
 
@@ -150,11 +151,13 @@ func testGitArchiveRemote(t *testing.T, u *url.URL) {
 
 // testGitSmartHTTPPrivateRepoAnonymousAccess tests that a private repo with
 // anonymous code access enabled can be cloned without credentials.
-func testGitSmartHTTPPrivateRepoAnonymousAccess(t *testing.T) {
+func testGitSmartHTTPPrivateRepoAnonymousAccess(t *testing.T, isWiki bool) {
 	// repo1 (ID=1) belongs to user2 and is public by default in fixtures
 	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1, OwnerName: "user2", Name: "repo1"})
-	gitPullPath := "/" + repo.FullName() + "/info/refs?service=git-upload-pack"
-	gitPushPath := "/" + repo.FullName() + "/info/refs?service=git-receive-pack"
+	unitType := util.Iif(isWiki, unit.TypeWiki, unit.TypeCode)
+	repoLink := "/" + repo.FullName() + util.Iif(isWiki, ".wiki", "")
+	gitPullPath := repoLink + "/info/refs?service=git-upload-pack"
+	gitPushPath := repoLink + "/info/refs?service=git-receive-pack"
 
 	// make the repo private
 	require.NoError(t, repo_model.UpdateRepositoryColsNoAutoTime(t.Context(), &repo_model.Repository{ID: repo.ID, IsPrivate: true}, "is_private"))
@@ -162,8 +165,8 @@ func testGitSmartHTTPPrivateRepoAnonymousAccess(t *testing.T) {
 	// without anonymous access: anonymous pull must require auth
 	MakeRequest(t, NewRequest(t, "GET", gitPullPath), http.StatusUnauthorized)
 
-	// enable anonymous read access on the code unit
-	require.NoError(t, repo_model.UpdateRepoUnitPublicAccess(t.Context(), &repo_model.RepoUnit{RepoID: repo.ID, Type: unit.TypeCode, AnonymousAccessMode: perm.AccessModeRead}))
+	// enable anonymous read access on the unit
+	require.NoError(t, repo_model.UpdateRepoUnitPublicAccess(t.Context(), &repo_model.RepoUnit{RepoID: repo.ID, Type: unitType, AnonymousAccessMode: perm.AccessModeRead}))
 
 	// with anonymous code access: anonymous pull must succeed without credentials
 	MakeRequest(t, NewRequest(t, "GET", gitPullPath), http.StatusOK)
