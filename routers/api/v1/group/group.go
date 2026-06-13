@@ -58,6 +58,8 @@ func createCommonGroup(ctx *context.APIContext, parentGroupID, ownerID int64) *a
 			ctx.APIError(http.StatusForbidden, err.Error())
 		} else if errors.Is(errors.Unwrap(err), util.ErrInvalidArgument) {
 			ctx.APIError(http.StatusUnprocessableEntity, err.Error())
+		} else {
+			ctx.APIErrorInternal(err)
 		}
 		return nil
 	}
