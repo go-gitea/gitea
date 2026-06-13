@@ -4,6 +4,7 @@
 package repo
 
 import (
+	"errors"
 	"fmt"
 	"math/big"
 	"net/http"
@@ -502,7 +503,9 @@ func (prInfo *pullRequestViewInfo) prepareMergeBoxCommitSigning(ctx *context.Con
 				wontSignReason = string(err.(*asymkey_service.ErrWontSign).Reason)
 			} else {
 				wontSignReason = "error"
-				log.Error("Error whilst checking if could sign pr %d in repo %s. Error: %v", pull.ID, pull.BaseRepo.FullName(), err)
+				if !errors.Is(err, util.ErrNotExist) {
+					log.Error("Error whilst checking if could sign pr %d in repo %s. Error: %v", pull.ID, pull.BaseRepo.FullName(), err)
+				}
 			}
 		}
 	}

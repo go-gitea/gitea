@@ -130,13 +130,9 @@ func (c *Commit) CommitsBeforeLimit(num int) ([]*Commit, error) {
 	return c.repo.getCommitsBeforeLimit(c.ID, num)
 }
 
-// CommitsBeforeUntil returns the commits between commitID to current revision
-func (c *Commit) CommitsBeforeUntil(commitID string) ([]*Commit, error) {
-	endCommit, err := c.repo.GetCommit(commitID)
-	if err != nil {
-		return nil, err
-	}
-	return c.repo.CommitsBetween(c, endCommit)
+// CommitsBeforeUntil returns the commits in range "[cur, ref)"
+func (c *Commit) CommitsBeforeUntil(ref RefName) ([]*Commit, error) {
+	return c.repo.CommitsBetween(c.ID.RefName(), ref, -1)
 }
 
 // SearchCommitsOptions specify the parameters for SearchCommits
@@ -257,11 +253,15 @@ func IsStringLikelyCommitID(objFmt ObjectFormat, s string, minLength ...int) boo
 	if len(s) < minLen || len(s) > maxLen {
 		return false
 	}
+	return isStringLowerHex(s)
+}
+
+func isStringLowerHex(s string) bool {
 	for _, c := range s {
 		isHex := (c >= '0' && c <= '9') || (c >= 'a' && c <= 'f')
 		if !isHex {
 			return false
 		}
 	}
-	return true
+	return len(s) > 0 // it accepts odd length because "shorten commit id" can be 7-chars
 }

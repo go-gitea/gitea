@@ -23,6 +23,7 @@ import (
 	"gitea.dev/modules/setting"
 	"gitea.dev/modules/timeutil"
 	"gitea.dev/modules/translation"
+	"gitea.dev/modules/util"
 
 	"xorm.io/builder"
 )
@@ -119,7 +120,7 @@ WHEN NOT MATCHED
 func GetNextCommitStatusIndex(ctx context.Context, repoID int64, sha string) (int64, error) {
 	_, err := git.NewIDFromString(sha)
 	if err != nil {
-		return 0, git.ErrInvalidSHA{SHA: sha}
+		return 0, util.NewInvalidArgumentErrorf("invalid sha: %v", err)
 	}
 
 	switch {

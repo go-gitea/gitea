@@ -278,6 +278,7 @@ a {
 
 a:hover {
   text-decoration-line: underline;
+  text-underline-position: under; /* necessary for CJK fonts, otherwise, default "auto" makes the underline cross-over the CJK text bottom */
 }
 
 /* a = always colored, underlined on hover */
@@ -848,6 +849,7 @@ table th[data-sortt-desc] .svg {
 }
 
 /* this is useful to make a left-right (e.g.: title .... operations) layout with default gap, and it wrap for small widths */
+.ui.modal .header.flex-left-right,
 .flex-left-right {
   display: flex;
   flex-wrap: wrap;
