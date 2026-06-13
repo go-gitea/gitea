@@ -1,6 +1,12 @@
 <div class="ui wide column">
 	<div>
-		{{template "group/shared/breadcrumbs" .}}
+		<div class="repo-group-header flex-left-right">
+			<div class="flex-text-block">
+				<div class="flex-text-block tw-flex-wrap tw-text-18">
+		{{template "group/shared/breadcrumbs" dict "." . "GroupID" .Group.ID "Owner" .Group.Owner "ShowOwner" true}}
+				</div>
+			</div>
+		</div>
 	</div>
 	<div class="tw-flex tw-gap-4">
 		<div>

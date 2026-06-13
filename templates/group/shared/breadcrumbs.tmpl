@@ -1,11 +1,9 @@
-<div class="repo-group-header flex-left-right">
-	<div class="flex-text-block">
-		<div class="flex-text-block tw-flex-wrap tw-text-18">
-			<a class="muted tw-font-normal" href="{{.Group.Owner.HomeLink}}">{{.Group.Owner.Name}}</a>
+
+			{{if .ShowOwner}}<a class="muted tw-font-normal" href="{{.Owner.HomeLink}}">{{.Owner.Name}}</a>{{end}}
 			{{- range .Breadcrumbs -}}
-			/<a class="muted{{if eq .ID $.Group.ID}} tw-font-bold active{{else}} tw-font-normal{{end}}"
-					href="{{.GroupLink}}">{{.Name}}</a>
+			/{{- if (call $.CanAccessGroup .) -}}
+				<a class="muted{{if eq .ID $.GroupID}} tw-font-bold active{{else}} tw-font-normal{{end}}"
+					href="{{.GroupLink}}">{{.Name}}</a>{{else}}
+			&lt;private-group&gt;
+			{{end}}
 			{{- end -}}
-		</div>
-	</div>
-</div>
