@@ -551,25 +551,19 @@ func reqTeamReadAccess() func(ctx *context.APIContext) {
 		if !ok || privileged {
 			return
 		}
+		if ctx.Org.Organization == nil {
+			setting.PanicInDevOrTesting("reqTeamReadAccess: organization not loaded")
+			ctx.APIErrorInternal(errors.New("reqTeamReadAccess: organization not loaded"))
+			return
+		}
 
-		switch ctx.Org.Team.Visibility {
-		case api.VisibleTypePublic:
-			if ctx.Org.Organization == nil {
-				setting.PanicInDevOrTesting("reqTeamReadAccess: organization not loaded")
-				ctx.APIErrorInternal(errors.New("reqTeamReadAccess: organization not loaded"))
-				return
-			}
-			if !organization.HasOrgOrUserVisible(ctx, ctx.Org.Organization.AsUser(), ctx.Doer) {
-				ctx.APIErrorNotFound()
-			}
-		case api.VisibleTypeLimited:
-			isOrgMember, err := organization.IsOrganizationMember(ctx, orgID, ctx.Doer.ID)
-			if err != nil {
-				ctx.APIErrorInternal(err)
-			} else if !isOrgMember {
-				ctx.APIErrorNotFound()
-			}
-		default:
+		visible, err := ctx.Org.Team.CanNonMemberReadMeta(ctx, ctx.Org.Organization.AsUser(), ctx.Doer)
+		if err != nil {
+			ctx.APIErrorInternal(err)
+			return
+		}
+		if !visible {
+			// Not admitted by visibility: 403 for org members, 404 otherwise.
 			denyNonTeamMember(ctx, orgID)
 		}
 	}

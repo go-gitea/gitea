@@ -10,6 +10,7 @@ import (
 	"gitea.dev/models/organization"
 	repo_model "gitea.dev/models/repo"
 	"gitea.dev/models/unittest"
+	user_model "gitea.dev/models/user"
 	"gitea.dev/modules/structs"
 
 	"github.com/stretchr/testify/assert"
@@ -37,6 +38,43 @@ func TestTeam_IsMember(t *testing.T) {
 	assert.True(t, team.IsMember(t.Context(), 2))
 	assert.True(t, team.IsMember(t.Context(), 4))
 	assert.False(t, team.IsMember(t.Context(), unittest.NonexistentID))
+}
+
+func TestTeam_CanNonMemberReadMeta(t *testing.T) {
+	assert.NoError(t, unittest.PrepareTestDatabase())
+
+	org3 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 3})     // public org
+	org35 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 35})   // private org
+	member := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})   // member of org 3 and org 35
+	outsider := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 5}) // member of neither org
+
+	test := func(name string, team *organization.Team, org, doer *user_model.User, expected bool) {
+		t.Run(name, func(t *testing.T) {
+			ok, err := team.CanNonMemberReadMeta(t.Context(), org, doer)
+			assert.NoError(t, err)
+			assert.Equal(t, expected, ok)
+		})
+	}
+
+	// Public team is gated only by the parent org's visibility.
+	publicTeam := &organization.Team{OrgID: 3, Visibility: structs.VisibleTypePublic}
+	test("public team, public org, member", publicTeam, org3, member, true)
+	test("public team, public org, outsider", publicTeam, org3, outsider, true)
+
+	// Public team inside a private org: only org members may see it.
+	publicTeamPrivOrg := &organization.Team{OrgID: 35, Visibility: structs.VisibleTypePublic}
+	test("public team, private org, org member", publicTeamPrivOrg, org35, member, true)
+	test("public team, private org, outsider", publicTeamPrivOrg, org35, outsider, false)
+
+	// Limited team: any org member, but never outsiders.
+	limitedTeam := &organization.Team{OrgID: 3, Visibility: structs.VisibleTypeLimited}
+	test("limited team, org member", limitedTeam, org3, member, true)
+	test("limited team, outsider", limitedTeam, org3, outsider, false)
+
+	// Private team is never visible to non-members; members/owners are admitted by the caller.
+	privateTeam := &organization.Team{OrgID: 3, Visibility: structs.VisibleTypePrivate}
+	test("private team, org member", privateTeam, org3, member, false)
+	test("private team, outsider", privateTeam, org3, outsider, false)
 }
 
 func TestTeam_GetRepositories(t *testing.T) {
