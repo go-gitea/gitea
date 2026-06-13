@@ -72,6 +72,31 @@ func TestRepoComment(t *testing.T) {
 `, rendered)
 	})
 
+	t.Run("HeadingAnchor", func(t *testing.T) {
+		// markdown headings in comments must get an id so anchor links like "[x](#section-name)" can jump to them.
+		// The per-comment context ID keeps the heading id and its link unique across comments on the same page,
+		// so a link resolves to the heading in its own comment instead of the first matching one.
+		input := "## Section Name\n\n[jump](#section-name)\n"
+
+		rctx1 := NewRenderContextRepoComment(t.Context(), repo1, RepoCommentOptions{FootnoteContextID: "11"}).
+			WithMarkupType(markdown.MarkupName)
+		rendered1, err := testRenderString(rctx1, input)
+		assert.NoError(t, err)
+		assert.Equal(t,
+			`<h2 id="user-content-section-name-11">Section Name</h2>
+<p><a href="#user-content-section-name-11" rel="nofollow">jump</a></p>
+`, rendered1)
+
+		rctx2 := NewRenderContextRepoComment(t.Context(), repo1, RepoCommentOptions{FootnoteContextID: "22"}).
+			WithMarkupType(markdown.MarkupName)
+		rendered2, err := testRenderString(rctx2, input)
+		assert.NoError(t, err)
+		assert.Equal(t,
+			`<h2 id="user-content-section-name-22">Section Name</h2>
+<p><a href="#user-content-section-name-22" rel="nofollow">jump</a></p>
+`, rendered2)
+	})
+
 	t.Run("NoRepo", func(t *testing.T) {
 		rctx := NewRenderContextRepoComment(t.Context(), nil).WithMarkupType(markdown.MarkupName)
 		rendered, err := testRenderString(rctx, "any")

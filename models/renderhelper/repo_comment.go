@@ -69,6 +69,7 @@ func NewRenderContextRepoComment(ctx context.Context, repo *repo_model.Repositor
 		metas["markupAllowShortIssuePattern"] = "true"
 	}
 	metas["footnoteContextId"] = helper.opts.FootnoteContextID
-	rctx = rctx.WithMetas(metas).WithHelper(helper)
+	// comments support markdown headings, so anchor links like "[x](#section)" can jump to them
+	rctx = rctx.WithMetas(metas).WithHelper(helper).WithEnableHeadingIDGeneration(true)
 	return rctx
 }

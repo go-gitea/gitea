@@ -17,6 +17,18 @@ func isAnchorIDUserContent(s string) bool {
 	return strings.HasPrefix(s, "user-content-") || strings.Contains(s, ":user-content-") || isAnchorIDFootnote(s)
 }
 
+// anchorContextSuffix returns a per-render-context suffix (e.g. "-1234" for a comment ID) appended to
+// generated anchor IDs and their "#" links. It keeps anchors unique across multiple user contents on the
+// same page (for example, several issue comments that each contain a heading with the same text), so a
+// link resolves to the heading in its own comment instead of the first matching one on the page.
+// It reuses the same context ID already used to disambiguate footnotes.
+func anchorContextSuffix(ctx *RenderContext) string {
+	if contextID := ctx.RenderOptions.Metas["footnoteContextId"]; contextID != "" {
+		return "-" + contextID
+	}
+	return ""
+}
+
 func isAnchorIDFootnote(s string) bool {
 	return strings.HasPrefix(s, "fnref:user-content-") || strings.HasPrefix(s, "fn:user-content-")
 }
@@ -58,12 +70,13 @@ func processNodeHeadingAndID(ctx *RenderContext, node *html.Node) {
 	// TODO: handle duplicate IDs, need to track existing IDs in the document
 	// Add user-content- to IDs and "#" links if they don't already have them,
 	// and convert the link href to a relative link to the host root
+	contextSuffix := anchorContextSuffix(ctx)
 	attrIDVal := ""
 	for idx, attr := range node.Attr {
 		if attr.Key == "id" {
 			attrIDVal = attr.Val
 			if !isAnchorIDUserContent(attrIDVal) {
-				attrIDVal = "user-content-" + attrIDVal
+				attrIDVal = "user-content-" + attrIDVal + contextSuffix
 				node.Attr[idx].Val = attrIDVal
 			}
 		}
@@ -84,7 +97,7 @@ func processNodeHeadingAndID(ctx *RenderContext, node *html.Node) {
 			// Use the same CleanValue function used by Markdown heading ID generation
 			attrIDVal = string(common.CleanValue([]byte(nodeText)))
 			if attrIDVal != "" {
-				attrIDVal = "user-content-" + attrIDVal
+				attrIDVal = "user-content-" + attrIDVal + contextSuffix
 				node.Attr = append(node.Attr, html.Attribute{Key: "id", Val: attrIDVal})
 			}
 		}
@@ -118,7 +131,8 @@ func processNodeA(ctx *RenderContext, node *html.Node) {
 		if attr.Key == "href" {
 			if anchorID, ok := strings.CutPrefix(attr.Val, "#"); ok {
 				if !isAnchorIDUserContent(attr.Val) {
-					node.Attr[idx].Val = "#user-content-" + anchorID
+					// match the suffix added to the heading ID so the link resolves within its own context (e.g. comment)
+					node.Attr[idx].Val = "#user-content-" + anchorID + anchorContextSuffix(ctx)
 				}
 			} else {
 				node.Attr[idx].Val = ctx.RenderHelper.ResolveLink(attr.Val, LinkTypeDefault)
