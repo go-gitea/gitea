@@ -669,7 +669,7 @@ func reqGroupMembership(mode perm.AccessMode, needsCreatePerm bool) func(ctx *co
 
 		var isOrgMember bool
 
-		if ctx.RepoGroup.OwnerAsOrg != nil {
+		if ctx.RepoGroup.OwnerAsOrg != nil && ctx.Doer != nil {
 			if isOrgMember, err = ctx.RepoGroup.OwnerAsOrg.IsOrgMember(ctx, ctx.Doer.ID); err != nil {
 				ctx.APIErrorInternal(err)
 				return
