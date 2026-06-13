@@ -36,25 +36,17 @@ func (repo *Repository) GetCommit(ref string) (*Commit, error) {
 
 // GetBranchCommit returns the last commit of given branch.
 func (repo *Repository) GetBranchCommit(name string) (*Commit, error) {
-	commitID, err := repo.GetBranchCommitID(name)
-	if err != nil {
-		return nil, err
-	}
-	return repo.GetCommit(commitID)
+	return repo.GetCommit(RefNameFromBranch(name).String())
 }
 
 // GetTagCommit get the commit of the specific tag via name
 func (repo *Repository) GetTagCommit(name string) (*Commit, error) {
-	commitID, err := repo.GetTagCommitID(name)
-	if err != nil {
-		return nil, err
-	}
-	return repo.GetCommit(commitID)
+	return repo.GetCommit(RefNameFromTag(name).String())
 }
 
 func (repo *Repository) getCommitByPathWithID(id ObjectID, relpath string) (*Commit, error) {
 	// File name starts with ':' must be escaped.
-	if relpath[0] == ':' {
+	if strings.HasPrefix(relpath, ":") {
 		relpath = `\` + relpath
 	}
 
@@ -287,105 +279,35 @@ func (repo *Repository) CommitsByFileAndRange(opts CommitsByFileAndRangeOptions)
 	return commits, hasMore, err
 }
 
-// FilesCountBetween return the number of files changed between two commits
-func (repo *Repository) FilesCountBetween(startCommitID, endCommitID string) (int, error) {
-	stdout, _, err := gitcmd.NewCommand("diff", "--name-only").
-		AddDynamicArguments(startCommitID + "..." + endCommitID).
-		WithDir(repo.Path).
-		RunStdString(repo.Ctx)
-	if err != nil && strings.Contains(err.Error(), "no merge base") {
-		// git >= 2.28 now returns an error if startCommitID and endCommitID have become unrelated.
-		// previously it would return the results of git diff --name-only startCommitID endCommitID so let's try that...
-		stdout, _, err = gitcmd.NewCommand("diff", "--name-only").
-			AddDynamicArguments(startCommitID, endCommitID).
-			WithDir(repo.Path).
-			RunStdString(repo.Ctx)
+// CommitsBetween returns a list that contains commits between [after, before). After is the first item in the slice.
+// If "before" and "after" are not related, it returns the all commits for the "after" commit.
+func (repo *Repository) CommitsBetween(afterRef, beforeRef RefName, limit int, optSkip ...int) ([]*Commit, error) {
+	gitCmd := func() *gitcmd.Command {
+		cmd := gitcmd.NewCommand("rev-list").WithDir(repo.Path)
+		if limit >= 0 {
+			cmd.AddOptionValues("--max-count", strconv.Itoa(limit))
+		}
+		if len(optSkip) > 0 {
+			cmd.AddOptionValues("--skip", strconv.Itoa(optSkip[0]))
+		}
+		return cmd
 	}
-	if err != nil {
-		return 0, err
-	}
-	return len(strings.Split(stdout, "\n")) - 1, nil
-}
-
-// CommitsBetween returns a list that contains commits between [before, last).
-// If before is detached (removed by reset + push) it is not included.
-func (repo *Repository) CommitsBetween(last, before *Commit) ([]*Commit, error) {
 	var stdout []byte
 	var err error
-	if before == nil {
-		stdout, _, err = gitcmd.NewCommand("rev-list").
-			AddDynamicArguments(last.ID.String()).
-			WithDir(repo.Path).
-			RunStdBytes(repo.Ctx)
+	if beforeRef == "" {
+		stdout, _, err = gitCmd().AddDynamicArguments(afterRef.String()).RunStdBytes(repo.Ctx)
 	} else {
-		stdout, _, err = gitcmd.NewCommand("rev-list").
-			AddDynamicArguments(before.ID.String() + ".." + last.ID.String()).
-			WithDir(repo.Path).
-			RunStdBytes(repo.Ctx)
-		if err != nil && strings.Contains(err.Error(), "no merge base") {
+		stdout, _, err = gitCmd().AddDynamicArguments(beforeRef.String() + ".." + afterRef.String()).RunStdBytes(repo.Ctx)
+		if gitcmd.IsStderr(err, gitcmd.StderrNoMergeBase) {
 			// future versions of git >= 2.28 are likely to return an error if before and last have become unrelated.
-			// previously it would return the results of git rev-list before last so let's try that...
-			stdout, _, err = gitcmd.NewCommand("rev-list").
-				AddDynamicArguments(before.ID.String(), last.ID.String()).
-				WithDir(repo.Path).
-				RunStdBytes(repo.Ctx)
+			// if the beforeRef and afterRef are not related (no merge base), just get all commits pushed by afterRef
+			stdout, _, err = gitCmd().AddDynamicArguments(afterRef.String()).RunStdBytes(repo.Ctx)
 		}
 	}
 	if err != nil {
 		return nil, err
 	}
 	return repo.parsePrettyFormatLogToList(bytes.TrimSpace(stdout))
-}
-
-// CommitsBetweenLimit returns a list that contains at most limit commits skipping the first skip commits between [before, last)
-func (repo *Repository) CommitsBetweenLimit(last, before *Commit, limit, skip int) ([]*Commit, error) {
-	var stdout []byte
-	var err error
-	if before == nil {
-		stdout, _, err = gitcmd.NewCommand("rev-list").
-			AddOptionValues("--max-count", strconv.Itoa(limit)).
-			AddOptionValues("--skip", strconv.Itoa(skip)).
-			AddDynamicArguments(last.ID.String()).
-			WithDir(repo.Path).
-			RunStdBytes(repo.Ctx)
-	} else {
-		stdout, _, err = gitcmd.NewCommand("rev-list").
-			AddOptionValues("--max-count", strconv.Itoa(limit)).
-			AddOptionValues("--skip", strconv.Itoa(skip)).
-			AddDynamicArguments(before.ID.String() + ".." + last.ID.String()).
-			WithDir(repo.Path).
-			RunStdBytes(repo.Ctx)
-		if err != nil && strings.Contains(err.Error(), "no merge base") {
-			// future versions of git >= 2.28 are likely to return an error if before and last have become unrelated.
-			// previously it would return the results of git rev-list --max-count n before last so let's try that...
-			stdout, _, err = gitcmd.NewCommand("rev-list").
-				AddOptionValues("--max-count", strconv.Itoa(limit)).
-				AddOptionValues("--skip", strconv.Itoa(skip)).
-				AddDynamicArguments(before.ID.String(), last.ID.String()).
-				WithDir(repo.Path).
-				RunStdBytes(repo.Ctx)
-		}
-	}
-	if err != nil {
-		return nil, err
-	}
-	return repo.parsePrettyFormatLogToList(bytes.TrimSpace(stdout))
-}
-
-// CommitsBetweenIDs return commits between twoe commits
-func (repo *Repository) CommitsBetweenIDs(last, before string) ([]*Commit, error) {
-	lastCommit, err := repo.GetCommit(last)
-	if err != nil {
-		return nil, err
-	}
-	if before == "" {
-		return repo.CommitsBetween(lastCommit, nil)
-	}
-	beforeCommit, err := repo.GetCommit(before)
-	if err != nil {
-		return nil, err
-	}
-	return repo.CommitsBetween(lastCommit, beforeCommit)
 }
 
 // commitsBefore the limit is depth, not total number of returned commits.

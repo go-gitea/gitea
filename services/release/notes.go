@@ -26,32 +26,32 @@ type GenerateReleaseNotesOptions struct {
 	PreviousTag string
 }
 
-// GenerateReleaseNotes builds the markdown snippet for release notes.
+// GenerateReleaseNotes builds the Markdown snippet for release notes.
 func GenerateReleaseNotes(ctx context.Context, repo *repo_model.Repository, gitRepo *git.Repository, opts GenerateReleaseNotesOptions) (string, error) {
 	headCommit, err := resolveHeadCommit(gitRepo, opts.TagName, opts.TagTarget)
 	if err != nil {
 		return "", err
 	}
 
-	isFirstRelease, err := isFirstRelease(ctx, repo.ID)
+	isFirstRelease, err := repoReleaseIsEmpty(ctx, repo.ID)
 	if err != nil {
-		return "", fmt.Errorf("isFirstRelease: %w", err)
+		return "", fmt.Errorf("repoReleaseIsEmpty: %w", err)
 	}
 
-	baseCommitID := ""
+	var baseCommitID git.RefName
 	if opts.PreviousTag != "" {
 		baseCommit, err := gitRepo.GetCommit(opts.PreviousTag)
 		if err != nil {
-			return "", util.ErrorWrapTranslatable(util.ErrNotExist, "repo.release.generate_notes_tag_not_found", opts.TagName)
+			return "", util.ErrorWrapTranslatable(util.ErrNotExist, "repo.release.generate_notes_tag_not_found", opts.PreviousTag)
 		}
-		baseCommitID = baseCommit.ID.String()
+		baseCommitID = baseCommit.ID.RefName()
 	} else if !isFirstRelease {
 		return "", util.ErrorWrapTranslatable(util.ErrNotExist, "repo.release.generate_notes_tag_not_found", opts.TagName)
 	}
 
-	commits, err := gitRepo.CommitsBetweenIDs(headCommit.ID.String(), baseCommitID)
+	commits, err := gitRepo.CommitsBetween(headCommit.ID.RefName(), baseCommitID, -1)
 	if err != nil {
-		return "", fmt.Errorf("CommitsBetweenIDs: %w", err)
+		return "", fmt.Errorf("CommitsBetween: %w", err)
 	}
 
 	prs, err := collectPullRequestsFromCommits(ctx, repo.ID, commits)
@@ -74,7 +74,7 @@ func GenerateReleaseNotes(ctx context.Context, repo *repo_model.Repository, gitR
 	return content, nil
 }
 
-func isFirstRelease(ctx context.Context, repoID int64) (bool, error) {
+func repoReleaseIsEmpty(ctx context.Context, repoID int64) (bool, error) {
 	count, err := db.Count[repo_model.Release](ctx, repo_model.FindReleasesOptions{
 		RepoID:        repoID,
 		IncludeDrafts: false,

@@ -53,7 +53,6 @@
 @import "./markup/codeblock.css";
 @import "./markup/codepreview.css";
 @import "./markup/asciicast.css";
-@import "./markup/jupyter.css";
 
 @import "./font_i18n.css";
 @import "./base.css";
