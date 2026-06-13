@@ -113,25 +113,21 @@ func (g *Group) IsPrivateBecauseOfParentPermissions(ctx context.Context, user *u
 		recursiveKeyword = "RECURSIVE "
 	}
 
-	query := fmt.Sprintf(`WITH %sgroup_hierarchy AS (
-		SELECT id, parent_group_id, owner_id, visibility, 1 AS depth
-		FROM repo_group
-		WHERE id = ?
-
-		UNION ALL
-
-		SELECT parent.id, parent.parent_group_id, parent.owner_id, parent.visibility, child.depth + 1
-		FROM repo_group parent
-		INNER JOIN group_hierarchy child ON parent.id = child.parent_group_id
-		WHERE child.depth < ?
-	),
+	query := fmt.Sprintf(`WITH %s%s,
 	group_access AS (
 		SELECT COALESCE(MIN(CASE WHEN (%s) THEN 1 ELSE 0 END), 0) AS accessible
 		FROM group_hierarchy repo_group
 	)
-	SELECT accessible FROM group_access`, recursiveKeyword, accessibleSQL)
+	SELECT accessible FROM group_access`, recursiveKeyword, groupHierarchyCTEBuilder(
+		builder.And(
+			builder.Eq{
+				"id": g.ID,
+			},
+			builder.Lt{
+				"depth": NestingLimit,
+			})), accessibleSQL)
 
-	args := append([]any{g.ID, NestingLimit}, accessibleArgs...)
+	args := accessibleArgs
 	var accessible int
 	_, err = db.GetEngine(ctx).SQL(query, args...).Get(&accessible)
 	return accessible == 0, err
