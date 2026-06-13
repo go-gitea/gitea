@@ -40,9 +40,6 @@ type preReceiveContext struct {
 	canCreatePullRequest        bool
 	checkedCanCreatePullRequest bool
 
-	canWriteCode        bool
-	checkedCanWriteCode bool
-
 	protectedTags    []*git_model.ProtectedTag
 	gotProtectedTags bool
 
@@ -55,14 +52,13 @@ type preReceiveContext struct {
 
 // CanWriteCode returns true if pusher can write code
 func (ctx *preReceiveContext) CanWriteCode() bool {
-	if !ctx.checkedCanWriteCode {
-		if !ctx.loadPusherAndPermission() {
-			return false
-		}
-		ctx.canWriteCode = issues_model.CanMaintainerWriteToBranch(ctx, ctx.userPerm, ctx.branchName, ctx.user) || ctx.deployKeyAccessMode >= perm_model.AccessModeWrite
-		ctx.checkedCanWriteCode = true
+	if !ctx.loadPusherAndPermission() {
+		return false
 	}
-	return ctx.canWriteCode
+	// Must not be cached: CanMaintainerWriteToBranch is evaluated against ctx.branchName, which
+	// differs for each ref in a batch push. Caching the first result would let a per-branch
+	// maintainer-edit grant on one ref authorize writes to every other ref in the same push.
+	return issues_model.CanMaintainerWriteToBranch(ctx, ctx.userPerm, ctx.branchName, ctx.user) || ctx.deployKeyAccessMode >= perm_model.AccessModeWrite
 }
 
 // AssertCanWriteCode returns true if pusher can write code
