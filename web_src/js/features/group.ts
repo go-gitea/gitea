@@ -42,7 +42,7 @@ async function moveItem({item, from, to, oldIndex}: SortableEvent): Promise<void
     newPath = jsonRes.newPath;
     const fromItem = from.closest('li');
     const fromLabel = fromItem?.querySelector(':scope > label');
-    const itemAnchor = item?.querySelector(":scope > label > a") as HTMLAnchorElement
+    const itemAnchor = item?.querySelector(':scope > label > a') as HTMLAnchorElement;
     itemAnchor.href = newPath;
     if (from.children.length) {
       fromLabel?.classList?.add('has-children');
