@@ -144,7 +144,8 @@ const options: SortableOptions = {
           console.error(error);
         }
       }
-      for (const r of ndata.repos) {
+      for (let i = 0; i < ndata.repos.length; i++) {
+        const r = ndata.repos[i];
         const data = {
           newParent: curGroup,
           id: r.id,
@@ -152,13 +153,16 @@ const options: SortableOptions = {
           isGroup: false,
         };
         try {
-          await POST(`/${orgName}/groups/items/move`, {
+          const {newPath, fullName} = await POST(`/${orgName}/groups/items/move`, {
             data,
-          });
+          }).then(r => r.json());
+          ndata.repos[i].link = newPath;
+          ndata.repos[i].full_name = fullName;
         } catch (error) {
           console.error(error);
         }
       }
+      groupData.set(curGroup, {...groupData.get(curGroup)!, repos: ndata.repos})
       nextTick(() => {
         const finalSorted = [
           ...ndata.subgroups,

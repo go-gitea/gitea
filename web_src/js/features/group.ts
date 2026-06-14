@@ -33,12 +33,17 @@ async function moveItem({item, from, to, oldIndex}: SortableEvent): Promise<void
     newPos: newIndex,
     isGroup,
   };
+  let newPath: string;
   try {
-    await POST(`${to.getAttribute('data-url')}/items/move`, {
+    const p = await POST(`${to.getAttribute('data-url')}/items/move`, {
       data,
     });
+    const jsonRes = await p.json();
+    newPath = jsonRes.newPath;
     const fromItem = from.closest('li');
     const fromLabel = fromItem?.querySelector(':scope > label');
+    const itemAnchor = item?.querySelector(":scope > label > a") as HTMLAnchorElement
+    itemAnchor.href = newPath;
     if (from.children.length) {
       fromLabel?.classList?.add('has-children');
     } else {
