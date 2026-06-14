@@ -186,6 +186,7 @@ As long as seats are empty in the TOC, members of the previous TOC can fill them
 If an elected member that accepts the seat does not have 2FA configured yet, they will be temporarily counted as `answer pending` until they manage to configure 2FA, thus leaving their seat empty for this duration.
 
 If multiple persons have the same amount of votes, a random draw will be used to determine the order of the candidates with the same amount of votes, and thus who gets the seat first.
+The candidates will be placed in the list in an alphabetical insensitive order by their username.
 We use this script to determine the order of candidates with the same amount of votes:
 
 ```python
@@ -198,7 +199,7 @@ The result of this script needs then to be published in the TOC election issue t
 
 ### Current TOC members
 
-- 2025-01-01 ~ 2026-06-14
+- 2026-06-14 ~ 2026-12-31
   - Company
     - [Jason Song](https://gitea.com/wolfogre) <i@wolfogre.com>
     - [Lunny Xiao](https://gitea.com/lunny) <xiaolunwen@gmail.com>
