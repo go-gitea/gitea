@@ -55,7 +55,7 @@ func RenderUserSearch(ctx *context.Context, opts user_model.SearchUserOptions, t
 	)
 
 	// we can not set orderBy to `models.SearchOrderByXxx`, because there may be a JOIN in the statement, different tables may have the same name columns
-	sortOrder := ctx.FormString("sort", setting.UI.ExploreDefaultSort)
+	sortOrder := util.IfZero(string(opts.OrderBy), ctx.FormString("sort", setting.UI.ExploreDefaultSort))
 	ctx.Data["SortType"] = sortOrder
 
 	switch sortOrder {
