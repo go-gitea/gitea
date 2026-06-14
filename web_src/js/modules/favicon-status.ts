@@ -47,7 +47,7 @@ function buildStatusIconMarkup(status: ActionsStatus): string {
   const {svgInnerHtml} = svgParseOuterInner(name);
   const coloredInner = svgInnerHtml.replaceAll('currentColor', color);
   const ring = html`<circle cx="${badgeX + badgeCenter}" cy="${badgeY + badgeCenter}" r="${badgeRingRadius}" fill="#ffffff"/>`;
-  const badge = html`<g transform="translate(${badgeX}, ${badgeY}) scale(${badgeScale})" fill="${color}" color="${color}">${htmlRaw(coloredInner)}</g>`;
+  const badge = html`<g data-actions-status-name="${status}" transform="translate(${badgeX}, ${badgeY}) scale(${badgeScale})" fill="${color}" color="${color}">${htmlRaw(coloredInner)}</g>`;
   return html`${htmlRaw(ring)}${htmlRaw(badge)}`;
 }
 

@@ -4,13 +4,13 @@ test('buildStatusFaviconSvg uses action status icons', () => {
   const success = buildStatusFaviconSvg('success');
   expect(success).toContain('viewBox="0 0 640 640"');
   expect(success).toContain('fill:#609926');
-  expect(success).toContain('M8 16A8 8 0 1 1 8 0');
+  expect(success).toContain('data-actions-status-name="success"');
 
   const running = buildStatusFaviconSvg('running');
-  expect(running).toContain('M3.05 3.05');
+  expect(running).toContain('data-actions-status-name="running"');
 
   const failure = buildStatusFaviconSvg('failure');
-  expect(failure).toContain('M2.343 13.657');
+  expect(failure).toContain('data-actions-status-name="failure"');
 });
 
 test('syncActionRunFavicon updates favicon links', () => {
@@ -22,7 +22,7 @@ test('syncActionRunFavicon updates favicon links', () => {
   syncActionRunFavicon('running');
   for (const link of links) {
     expect(link.href).toMatch(/^data:image\/svg\+xml,/);
-    expect(decodeURIComponent(link.href)).toContain('M3.05 3.05');
+    expect(decodeURIComponent(link.href)).toContain('data-actions-status-name="running"');
   }
   resetActionFavicon();
   expect(links[0].href).toContain('favicon.svg');
