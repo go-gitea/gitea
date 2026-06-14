@@ -185,17 +185,30 @@ As long as seats are empty in the TOC, members of the previous TOC can fill them
 
 If an elected member that accepts the seat does not have 2FA configured yet, they will be temporarily counted as `answer pending` until they manage to configure 2FA, thus leaving their seat empty for this duration.
 
+If multiple persons have the same amount of votes, a random draw will be used to determine the order of the candidates with the same amount of votes, and thus who gets the seat first.
+The candidates will be placed in the list in an alphabetical insensitive order by their username.
+We use this script to determine the order of candidates with the same amount of votes:
+
+```python
+import random
+random.seed("Gitea TOC <YEAR> Election")
+random.choice([<CANDIDATE_1>, <CANDIDATE_2>, ...])
+```
+
+The result of this script needs then to be published in the TOC election issue to ensure transparency of the process. 
+
 ### Current TOC members
 
-- 2025-01-01 ~ 2026-06-14
+- 2026-06-14 ~ 2026-12-31
   - Company
     - [Jason Song](https://gitea.com/wolfogre) <i@wolfogre.com>
     - [Lunny Xiao](https://gitea.com/lunny) <xiaolunwen@gmail.com>
     - [Matti Ranta](https://gitea.com/techknowlogick) <techknowlogick@gitea.com>
   - Community
-    - [6543](https://gitea.com/6543) <6543@obermui.de>
+    - [bircni](https://gitea.com/bircni) <bircni@icloud.com>
     - [delvh](https://gitea.com/delvh) <dev.lh@web.de>
-    - [lafriks](https://gitea.com/lafriks) <lauris@nix.lv>
+    - [TheFox0x7](https://gitea.com/TheFox0x7) <thefox0x7@gmail.com>
+    
 
 ### Previous TOC/owners members
 
@@ -207,9 +220,10 @@ Here's the history of the owners and the time they served:
 - [Lauris Bukšis-Haberkorns](https://gitea.com/lafriks) - [2018](https://github.com/go-gitea/gitea/issues/3255), [2019](https://github.com/go-gitea/gitea/issues/5572), [2020](https://github.com/go-gitea/gitea/issues/9230), [2021](https://github.com/go-gitea/gitea/issues/13801)
 - [Matti Ranta](https://gitea.com/techknowlogick) - [2019](https://github.com/go-gitea/gitea/issues/5572), [2020](https://github.com/go-gitea/gitea/issues/9230), [2021](https://github.com/go-gitea/gitea/issues/13801), [2022](https://github.com/go-gitea/gitea/issues/17872), 2023
 - [Andrew Thornton](https://gitea.com/zeripath) - [2020](https://github.com/go-gitea/gitea/issues/9230), [2021](https://github.com/go-gitea/gitea/issues/13801), [2022](https://github.com/go-gitea/gitea/issues/17872), 2023
-- [6543](https://gitea.com/6543) - 2023
+- [6543](https://gitea.com/6543) - 2023, 2025
 - [John Olheiser](https://gitea.com/jolheiser) - 2023, 2024
 - [Jason Song](https://gitea.com/wolfogre) - 2023
+- [lafriks](https://gitea.com/lafriks) <lauris@nix.lv> - 2025
 
 ## Governance Compensation
 
