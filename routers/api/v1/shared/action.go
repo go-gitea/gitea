@@ -16,6 +16,7 @@ import (
 	"gitea.dev/modules/optional"
 	"gitea.dev/modules/setting"
 	api "gitea.dev/modules/structs"
+	"gitea.dev/modules/util"
 	"gitea.dev/modules/webhook"
 	"gitea.dev/routers/api/v1/utils"
 	"gitea.dev/services/context"
@@ -53,7 +54,7 @@ func ListJobs(ctx *context.APIContext, ownerID, repoID, runID int64, runAttemptI
 	for _, status := range ctx.FormStrings("status") {
 		values, err := convertToInternal(status)
 		if err != nil {
-			ctx.APIError(http.StatusBadRequest, fmt.Errorf("Invalid status %s", status))
+			ctx.APIError(http.StatusBadRequest, err.Error())
 			return
 		}
 		opts.Statuses = append(opts.Statuses, values...)
@@ -125,7 +126,7 @@ func convertToInternal(s string) ([]actions_model.Status, error) {
 	case "cancelled", "timed_out":
 		return []actions_model.Status{actions_model.StatusCancelled}, nil
 	default:
-		return nil, fmt.Errorf("invalid status %s", s)
+		return nil, util.NewInvalidArgumentErrorf("invalid status %s", s)
 	}
 }
 
@@ -134,8 +135,9 @@ func convertToInternal(s string) ([]actions_model.Status, error) {
 // ownerID == 0 and repoID != 0 means all runs for the given repo
 // ownerID != 0 and repoID == 0 means all runs for the given user/org
 // ownerID != 0 and repoID != 0 undefined behavior
+// workflowID filters runs by workflow file name (e.g. "build.yml"), empty means no filter
 // Access rights are checked at the API route level
-func ListRuns(ctx *context.APIContext, ownerID, repoID int64) {
+func ListRuns(ctx *context.APIContext, ownerID, repoID int64, workflowID string) {
 	if ownerID != 0 && repoID != 0 {
 		setting.PanicInDevOrTesting("ownerID and repoID should not be both set")
 	}
@@ -143,6 +145,7 @@ func ListRuns(ctx *context.APIContext, ownerID, repoID int64) {
 	opts := actions_model.FindRunOptions{
 		OwnerID:     ownerID,
 		RepoID:      repoID,
+		WorkflowID:  workflowID,
 		ListOptions: listOptions,
 	}
 
@@ -155,7 +158,7 @@ func ListRuns(ctx *context.APIContext, ownerID, repoID int64) {
 	for _, status := range ctx.FormStrings("status") {
 		values, err := convertToInternal(status)
 		if err != nil {
-			ctx.APIError(http.StatusBadRequest, fmt.Errorf("Invalid status %s", status))
+			ctx.APIError(http.StatusBadRequest, err.Error())
 			return
 		}
 		opts.Status = append(opts.Status, values...)
@@ -171,6 +174,7 @@ func ListRuns(ctx *context.APIContext, ownerID, repoID int64) {
 	if headSHA := ctx.FormString("head_sha"); headSHA != "" {
 		opts.CommitSHA = headSHA
 	}
+	excludePullRequests := ctx.FormBool("exclude_pull_requests")
 
 	runs, total, err := db.FindAndCount[actions_model.ActionRun](ctx, opts)
 	if err != nil {
@@ -202,7 +206,7 @@ func ListRuns(ctx *context.APIContext, ownerID, repoID int64) {
 	res.Entries = make([]*api.ActionWorkflowRun, len(runs))
 	for i := range runs {
 		// TODO: load run attempts in batch
-		convertedRun, err := convert.ToActionWorkflowRun(ctx, runs[i], nil)
+		convertedRun, err := convert.ToActionWorkflowRun(ctx, runs[i], nil, excludePullRequests)
 		if err != nil {
 			ctx.APIErrorInternal(err)
 			return

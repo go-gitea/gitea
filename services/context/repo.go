@@ -242,7 +242,7 @@ func (r *Repository) CanUseTimetracker(ctx context.Context, issue *issues_model.
 	// Checking for following:
 	// 1. Is timetracker enabled
 	// 2. Is the user a contributor, admin, poster or assignee and do the repository policies require this?
-	isAssigned, _ := issues_model.IsUserAssignedToIssue(ctx, issue, user)
+	isAssigned, _ := issues_model.IsUserAssignedToIssue(ctx, issue, user.ID)
 	return r.Repository.IsTimetrackerEnabled(ctx) && (!r.Repository.AllowOnlyContributorsToTrackTime(ctx) ||
 		r.Permission.CanWriteIssuesOrPulls(issue.IsPull) || issue.IsPoster(user.ID) || isAssigned)
 }
@@ -972,12 +972,9 @@ func RepoRefByType(detectRefType git.RefType) func(*Context) {
 			ctx.Repo.Commit, err = ctx.Repo.GitRepo.GetBranchCommit(refShortName)
 			if err == nil {
 				ctx.Repo.CommitID = ctx.Repo.Commit.ID.String()
-			} else if strings.Contains(err.Error(), "fatal: not a git repository") || strings.Contains(err.Error(), "object does not exist") {
+			} else {
 				// if the repository is broken, we can continue to the handler code, to show "Settings -> Delete Repository" for end users
 				log.Error("GetBranchCommit: %v", err)
-			} else {
-				ctx.ServerError("GetBranchCommit", err)
-				return
 			}
 		} else { // there is a path in request
 			guessLegacyPath := refType == ""

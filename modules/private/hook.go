@@ -48,9 +48,7 @@ type SSHLogOption struct {
 
 // HookPostReceiveResult represents an individual result from PostReceive
 type HookPostReceiveResult struct {
-	Results      []HookPostReceiveBranchResult
-	RepoWasEmpty bool
-	Err          string
+	Results []HookPostReceiveBranchResult
 }
 
 // HookPostReceiveBranchResult represents an individual branch result from PostReceive
