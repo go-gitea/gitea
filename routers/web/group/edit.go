@@ -14,15 +14,9 @@ import (
 	group_service "gitea.dev/services/group"
 )
 
-type movedSubItem struct {
-	ID       int64  `json:"id"`
-	IsGroup  bool   `json:"isGroup"`
+type moveResult struct {
 	NewPath  string `json:"newPath"`
 	FullName string `json:"fullName,omitempty"`
-}
-type moveResult struct {
-	NewPath  string         `json:"newPath"`
-	FullName string         `json:"fullName,omitempty"`
 }
 
 func MoveGroupItem(ctx *context.Context) {
