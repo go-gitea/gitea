@@ -5,148 +5,89 @@
 .markup .jupyter-notebook {
   padding: 20px;
   background: var(--color-body);
-  color: var(--color-text);
-  font-family: inherit;
-  margin: 0;
-}
-
-/* Cell containers */
-.markup .jupyter-notebook .cell {
-  margin-bottom: 20px;
-}
-
-/* Code cells */
-.markup .jupyter-notebook .cell.code {
-  background: transparent;
-  border: none;
-}
-
-.markup .jupyter-notebook .cell.code .input-wrapper,
-.markup .jupyter-notebook .cell.code .output-wrapper {
-  display: flex;
-  align-items: flex-start;
-}
-
-.markup .jupyter-notebook .cell.code .prompt {
-  padding: 10px 10px 10px 0;
-  color: var(--color-text-light-2);
+  border-bottom-left-radius: var(--border-radius);
+  border-bottom-right-radius: var(--border-radius);
   font-family: var(--fonts-monospace);
-  font-size: 13px;
-  white-space: nowrap;
-  user-select: none;
-  text-align: right;
+  display: flex;
+  flex-direction: column;
+  gap: 2em;
+}
+
+/* cell code */
+.markup .jupyter-notebook .cell-line {
+  display: flex;
+  width: 100%;
+  gap: 0.5em;
+}
+
+.markup .jupyter-notebook .cell-left {
   width: 100px;
   flex-shrink: 0;
 }
 
-.markup .jupyter-notebook .cell.code .input {
-  flex: 1;
-  background-color: var(--color-code-bg);
-  border: 1px solid var(--color-secondary-alpha-20);
-  border-radius: 4px;
+.markup .jupyter-notebook .cell-right {
+  flex: 1
+}
+
+.markup .jupyter-notebook .cell-prompt {
+  padding: 10px 0;
+  color: var(--color-text-light-2);
+  font-size: 13px;
+}
+
+.markup .jupyter-notebook .cell-left.cell-prompt {
+  padding-left: 10px;
+  text-align: right;
+  white-space: nowrap;
+  user-select: none;
+}
+
+.markup .jupyter-notebook .cell-right.cell-prompt {
+  padding-right: 10px;
+}
+
+.markup .jupyter-notebook .cell-input,
+.markup .jupyter-notebook .cell-output {
+  overflow-x: auto;
+}
+
+.markup .jupyter-notebook .cell-input pre,
+.markup .jupyter-notebook .cell-output pre {
+  padding: 10px 16px;
+  font-size: 13px;
   min-height: 40px;
-}
-
-.markup .jupyter-notebook .cell.code .input pre {
   margin: 0;
-  padding: 10px 16px;
-  font-family: var(--fonts-monospace, monospace);
-  font-size: 13px;
-  line-height: 1.5;
-  overflow-x: auto;
-  color: var(--color-text);
-  background: transparent;
 }
 
-.markup .jupyter-notebook .cell.code .input code {
-  display: block;
-  font-family: inherit;
-}
-
-/* Code outputs */
-.markup .jupyter-notebook .cell.code .output {
-  flex: 1;
-  background: var(--color-body);
-  color: var(--color-text);
-  overflow-x: auto;
-  min-width: 0;
-}
-
-.markup .jupyter-notebook .cell.code .output pre {
-  margin: 0;
-  padding: 10px 16px;
-  font-family: var(--fonts-monospace);
-  font-size: 13px;
-  line-height: 1.5;
-  overflow-x: auto;
-  color: var(--color-text);
-  background: var(--color-body);
+.markup .jupyter-notebook .cell-input pre {
+  background-color: var(--color-code-bg);
   white-space: pre-wrap;
-  overflow-wrap: break-word;
+  overflow-wrap: anywhere;
 }
 
-.markup .jupyter-notebook .cell.code .output table {
-  border-collapse: collapse;
-  margin: 10px 16px;
-  font-size: 13px;
-  max-width: 100%;
+.markup .jupyter-notebook .cell-output {
+  display: flex;
+  flex-direction: column;
+  gap: 1em;
 }
 
-.markup .jupyter-notebook .cell.code .output table th,
-.markup .jupyter-notebook .cell.code .output table td {
-  border: 1px solid var(--color-secondary);
-  padding: 6px 13px;
-  text-align: left;
+.markup .jupyter-notebook .cell-type-code {
+  display: flex;
+  flex-direction: column;
+  gap: 1em;
 }
 
-.markup .jupyter-notebook .cell.code .output table th {
-  background: var(--color-secondary-alpha-20);
-  font-weight: var(--font-weight-semibold);
-}
-
-.markup .jupyter-notebook .cell.code .output table tr:nth-child(even) {
-  background: var(--color-secondary-alpha-10);
-}
-
-.markup .jupyter-notebook .cell.code .output img {
-  max-width: 90%;
-  height: auto;
-  display: block;
-  margin: 10px 0;
-}
-
-.markup .jupyter-notebook .jupyter-output-image {
-  max-width: 100%;
-  height: auto;
-}
-
-.markup .jupyter-notebook .jupyter-html-output {
-  overflow-x: auto;
-  max-width: 100%;
-}
-
-.markup .jupyter-notebook .jupyter-unsupported-output {
+.markup .jupyter-notebook .cell-output-unsupported {
   color: var(--color-text-light-2);
   font-style: italic;
+  font-size: 13px;
 }
 
-.markup .jupyter-notebook .cell.code .output pre.error-output {
+.markup .jupyter-notebook .cell-output-error {
   color: var(--color-red);
 }
 
-/* Pandas DataFrame styles */
-.markup .jupyter-notebook .dataframe tbody tr th:only-of-type {
-  vertical-align: middle;
-}
-
-.markup .jupyter-notebook .dataframe tbody tr th {
-  vertical-align: top;
-}
-
-.markup .jupyter-notebook .dataframe thead th {
-  text-align: right;
-}
-
-.markup .jupyter-notebook .dataframe tbody tr:hover {
-  background-color: var(--color-secondary-alpha-30);
+/* cell markdown */
+.markup .jupyter-notebook .cell-right .embedded-markdown {
+  padding: 0 16px; /* match cell code right padding */
 }

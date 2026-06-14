@@ -44,7 +44,7 @@ func TestRender(t *testing.T) {
 		assert.NoError(t, err)
 		result := output.String()
 		assert.Contains(t, result, `<div class="jupyter-notebook">`)
-		assert.Contains(t, result, `<div class="cell code">`)
+		assert.Contains(t, result, `<div class="notebook-cell cell-type-code">`)
 		assert.Contains(t, result, `In [1]:`)
 		assert.Contains(t, result, `print`)
 		assert.Contains(t, result, `hello`)
@@ -76,7 +76,7 @@ func TestRender(t *testing.T) {
 		result := output.String()
 
 		// Assert normal markup still renders correctly
-		assert.Contains(t, result, `<div class="cell markdown">`)
+		assert.Contains(t, result, `<div class="notebook-cell cell-type-markdown">`)
 		assert.Contains(t, result, `Title`)
 		assert.Contains(t, result, `Some text`)
 		assert.Contains(t, result, `click me`)
@@ -106,7 +106,7 @@ func TestRender(t *testing.T) {
 		assert.Contains(t, result, "This notebook contains too many cells to display efficiently.")
 
 		// Count occurrences of the rendered cells to ensure it sliced down to exactly 100 elements
-		assert.Equal(t, 100, strings.Count(result, `class="cell markdown"`))
+		assert.Equal(t, 100, strings.Count(result, `class="notebook-cell cell-type-markdown"`))
 	})
 
 	t.Run("Image output", func(t *testing.T) {
@@ -200,7 +200,7 @@ func TestRender(t *testing.T) {
 		assert.NoError(t, err)
 		result := output.String()
 		assert.Contains(t, result, `ValueError: test error`)
-		assert.Contains(t, result, `error-output`)
+		assert.Contains(t, result, `cell-output-error`)
 	})
 
 	t.Run("Old nbformat version", func(t *testing.T) {
@@ -286,24 +286,24 @@ func TestIntegrationAndSanitization(t *testing.T) {
 
 	var output strings.Builder
 	ctx := markup.NewRenderContext(t.Context())
-	ctx.RenderOptions.MarkupType = "jupyter"
+	ctx.RenderOptions.MarkupType = "jupyter-render"
 	err := markup.Render(ctx, strings.NewReader(maliciousNotebook), &output)
 	assert.NoError(t, err)
 	const expected = `
 <div class="jupyter-notebook">
-	<div class="cell code">
-		<div class="input-wrapper">
-			<div class="prompt input-prompt">In [1]:</div>
-				<div class="input">
-					<pre><code class="chroma language-python">
-						<span class="n">a</span><span class="o">=</span><span class="mi">1</span>
-					</code></pre>
-				</div>
+	<div class="notebook-cell cell-type-code">
+		<div class="cell-line">
+			<div class="cell-left cell-prompt">In [1]:</div>
+			<div class="cell-right cell-input">
+				<pre><code class="chroma language-python">
+					<span class="n">a</span><span class="o">=</span><span class="mi">1</span>
+				</code></pre>
 			</div>
-			<div class="output-wrapper">
-			<div class="prompt output-prompt">Out[1]:</div>
-			<div class="output">
-				<div class="jupyter-html-output">
+		</div>
+		<div class="cell-line">
+			<div class="cell-left cell-prompt">Out [1]:</div>
+			<div class="cell-right cell-output">
+				<div class="cell-output-html">
 					<div><table><tbody><tr><td>Safe Content</td></tr></tbody></table></div>
 				</div>
 			</div>
