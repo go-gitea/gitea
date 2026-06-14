@@ -184,4 +184,19 @@ func TestParseControlFile(t *testing.T) {
 			assert.NotNil(t, p)
 		}
 	})
+
+	t.Run("SingleStanzaOnly", func(t *testing.T) {
+		// A control file with a trailing stanza must not leak the extra fields into
+		// p.Control, otherwise buildPackagesIndices would emit a second package entry
+		// with an attacker-chosen Filename into the repository "Packages" index.
+		content := bytes.NewBufferString("Package: realpkg\nVersion: 1.0.0\nArchitecture: amd64\nMaintainer: a <a@b.c>\nDescription: real\n\nPackage: openssl\nVersion: 99.0\nArchitecture: amd64\nFilename: pool/main/o/openssl/evil.deb\nDescription: spoofed\n")
+
+		p, err := ParseControlFile(content)
+		assert.NoError(t, err)
+		assert.NotNil(t, p)
+		assert.Equal(t, "realpkg", p.Name)
+		assert.Equal(t, "1.0.0", p.Version)
+		assert.NotContains(t, p.Control, "openssl")
+		assert.NotContains(t, p.Control, "evil.deb")
+	})
 }
