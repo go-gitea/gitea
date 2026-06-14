@@ -25,6 +25,29 @@ cd "${REPO_DIR}"
 echo "拉取最新代码..."
 git pull
 
+echo "检查构建依赖 (node / pnpm / go)..."
+if ! command -v node >/dev/null 2>&1; then
+  echo "未检测到 node，请先安装 Node.js (建议 LTS, >=20)" >&2
+  exit 1
+fi
+if ! command -v go >/dev/null 2>&1; then
+  echo "未检测到 go，请先安装 Go" >&2
+  exit 1
+fi
+if ! command -v pnpm >/dev/null 2>&1; then
+  if command -v corepack >/dev/null 2>&1; then
+    echo "通过 corepack 启用 pnpm..."
+    corepack enable
+    corepack prepare pnpm@latest --activate
+  elif command -v npm >/dev/null 2>&1; then
+    echo "通过 npm 全局安装 pnpm..."
+    npm install -g pnpm
+  else
+    echo "无法自动安装 pnpm：未找到 corepack 或 npm，请先手动安装 pnpm" >&2
+    exit 1
+  fi
+fi
+
 echo "编译 Gitea (前端 + 后端)..."
 make clean-all >/dev/null 2>&1 || true
 TAGS="${TAGS:-bindata sqlite sqlite_unlock_notify}" make build
