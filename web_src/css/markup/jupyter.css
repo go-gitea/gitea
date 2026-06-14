@@ -1,5 +1,4 @@
-/* Gitea styles for Jupyter notebook content */
-.markup:has(.jupyter-notebook) {
+.markup.jupyter-render {
   padding: 0;
 }
 
@@ -14,81 +13,6 @@
 /* Cell containers */
 .markup .jupyter-notebook .cell {
   margin-bottom: 20px;
-}
-
-/* Markdown cells */
-.markup .jupyter-notebook .cell.markdown {
-  background: var(--color-body);
-  border: none;
-}
-
-.markup .jupyter-notebook .cell.markdown .input {
-  padding: 6px 12px;
-  line-height: 1.6;
-  background: var(--color-body);
-  color: var(--color-text);
-  margin-left: 110px;
-}
-
-.markup .jupyter-notebook .cell.markdown h1,
-.markup .jupyter-notebook .cell.markdown h2,
-.markup .jupyter-notebook .cell.markdown h3 {
-  margin-top: 24px;
-  margin-bottom: 16px;
-  font-weight: var(--font-weight-semibold);
-  line-height: 1.25;
-  color: var(--color-text);
-}
-
-.markup .jupyter-notebook .cell.markdown h1 {
-  font-size: 1.875em;
-  border-bottom: 1px solid var(--color-secondary-alpha-20);
-  padding-bottom: 0.3em;
-}
-
-.markup .jupyter-notebook .cell.markdown h2 {
-  font-size: 1.5em;
-}
-
-.markup .jupyter-notebook .cell.markdown h3 {
-  font-size: 1.25em;
-}
-
-.markup .jupyter-notebook .cell.markdown p {
-  margin-top: 0;
-  margin-bottom: 16px;
-}
-
-.markup .jupyter-notebook .cell.markdown code {
-  padding: 0.2em 0.4em;
-  margin: 0;
-  font-size: 85%;
-  background-color: var(--color-secondary-alpha-20);
-  border-radius: 3px;
-  font-family: var(--fonts-monospace);
-}
-
-.markup .jupyter-notebook .cell.markdown table {
-  border-collapse: collapse;
-  width: 100%;
-  margin: 16px 0;
-  font-size: 13px;
-}
-
-.markup .jupyter-notebook .cell.markdown table th,
-.markup .jupyter-notebook .cell.markdown table td {
-  border: 1px solid var(--color-secondary);
-  padding: 6px 13px;
-  text-align: left;
-}
-
-.markup .jupyter-notebook .cell.markdown table th {
-  background: var(--color-secondary-alpha-20);
-  font-weight: var(--font-weight-semibold);
-}
-
-.markup .jupyter-notebook .cell.markdown table tr:nth-child(even) {
-  background: var(--color-secondary-alpha-10);
 }
 
 /* Code cells */

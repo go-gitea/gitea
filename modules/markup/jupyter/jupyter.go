@@ -84,7 +84,7 @@ var dataMimeHandlers = sync.OnceValue(func() []mimeHandler {
 })
 
 func (renderer) Name() string {
-	return "jupyter"
+	return "jupyter-render"
 }
 
 func (renderer) NeedPostProcess() bool { return true }
@@ -191,80 +191,79 @@ func (renderer) Render(ctx *markup.RenderContext, input io.Reader, outputWriter 
 	return htmlWriter.Err()
 }
 
-func renderCell(ctx *markup.RenderContext, output htmlutil.HTMLWriter, cell Cell, language string) error {
+func renderCellCode(ctx *markup.RenderContext, output htmlutil.HTMLWriter, cell Cell, language string) error {
 	source := joinSource(cell.Source)
-
-	switch cell.CellType {
-	case "markdown":
-		output.WriteHTML(`<div class="cell markdown"><div class="input markup">`)
-		if err := renderMarkdown(ctx, output, source); err != nil {
-			return err
+	var executionCount *int64
+	if cell.ExecutionCount != nil {
+		if count, err := util.ToInt64(cell.ExecutionCount); err == nil {
+			executionCount = &count
 		}
-		output.WriteHTML(`</div></div>`)
-
-	case "code":
-		hasCount := false
-		countVal := 0
-		if cell.ExecutionCount != nil {
-			if count, ok := cell.ExecutionCount.(float64); ok {
-				hasCount = true
-				countVal = int(count)
-			}
-		}
-
-		output.WriteHTML(`<div class="cell code">`)
-
-		{
-			output.WriteHTML(`<div class="input-wrapper">`)
-			if hasCount {
-				output.WriteFormat(`<div class="prompt input-prompt">In [%d]:</div>`, countVal)
-			} else {
-				output.WriteHTML(`<div class="prompt input-prompt">In [ ]:</div>`)
-			}
-			output.WriteHTML(`<div class="input">`)
-
-			// Highlight code
-			lexer := highlight.DetectChromaLexerByFileName("", language)
-			output.WriteFormat(`<pre><code class="chroma language-%s">`, strings.ToLower(language))
-			output.WriteHTML(highlight.RenderCodeByLexer(lexer, source))
-			output.WriteHTML("</code></pre>")
-			output.WriteHTML(`</div></div>`) // end: input, input-wrapper
-		}
-
-		// Render outputs
-		if len(cell.Outputs) > 0 {
-			hasExecutionResult := false
-			for _, out := range cell.Outputs {
-				if out.OutputType == "execute_result" {
-					hasExecutionResult = true
-					break
-				}
-			}
-
-			output.WriteHTML(`<div class="output-wrapper">`)
-			if hasExecutionResult && hasCount {
-				output.WriteFormat(`<div class="prompt output-prompt">Out [%d]:</div>`, countVal)
-			} else {
-				output.WriteHTML(`<div class="prompt output-prompt"></div>`)
-			}
-
-			output.WriteHTML(`<div class="output">`)
-			for _, out := range cell.Outputs {
-				renderOutput(output, out)
-			}
-			output.WriteHTML(`</div></div>`) // end: output, output-wrapper
-		}
-
-		output.WriteHTML(`</div>`) // end: cell code
-
-	default:
-		output.WriteFormat(`<div class="cell markdown"><div class="input markup">(unsupported cell type %s, skipped)</div></div>`, cell.CellType)
 	}
 
+	{
+		output.WriteHTML(`<div class="input-wrapper">`)
+		if executionCount != nil {
+			output.WriteFormat(`<div class="prompt input-prompt">In [%d]:</div>`, *executionCount)
+		} else {
+			output.WriteHTML(`<div class="prompt input-prompt">In [ ]:</div>`)
+		}
+
+		// Highlight code
+		lexer := highlight.DetectChromaLexerByFileName("", language)
+		output.WriteFormat(`<div class="input"><pre><code class="chroma language-%s">`, strings.ToLower(language))
+		output.WriteHTML(highlight.RenderCodeByLexer(lexer, source))
+		output.WriteHTML("</code></pre></div>")
+
+		output.WriteHTML(`</div>`) // end: input
+	}
+
+	// Render outputs
+	if len(cell.Outputs) > 0 {
+		hasExecutionResult := false
+		for _, out := range cell.Outputs {
+			if out.OutputType == "execute_result" {
+				hasExecutionResult = true
+				break
+			}
+		}
+
+		output.WriteHTML(`<div class="output-wrapper">`)
+		if hasExecutionResult && executionCount != nil {
+			output.WriteFormat(`<div class="prompt output-prompt">Out [%d]:</div>`, *executionCount)
+		} else {
+			output.WriteHTML(`<div class="prompt output-prompt"></div>`)
+		}
+
+		output.WriteHTML(`<div class="output">`)
+		for _, out := range cell.Outputs {
+			renderOutput(output, out)
+		}
+		output.WriteHTML(`</div></div>`) // end: output, output-wrapper
+	}
 	return output.Err()
 }
 
-func renderMarkdown(rctx *markup.RenderContext, output htmlutil.HTMLWriter, source string) error {
+func renderCell(ctx *markup.RenderContext, output htmlutil.HTMLWriter, cell Cell, language string) error {
+	switch cell.CellType {
+	case "markdown":
+		output.WriteHTML(`<div class="cell markdown"><div class="input markup">`)
+		if err := renderCellMarkdown(ctx, output, joinSource(cell.Source)); err != nil {
+			return err
+		}
+		output.WriteHTML(`</div></div>`)
+	case "code":
+		output.WriteHTML(`<div class="cell code">`)
+		if err := renderCellCode(ctx, output, cell, language); err != nil {
+			return err
+		}
+		output.WriteHTML(`</div>`)
+	default:
+		output.WriteFormat(`<div class="cell markdown"><div class="input markup">(unsupported cell type %s, skipped)</div></div>`, cell.CellType)
+	}
+	return output.Err()
+}
+
+func renderCellMarkdown(rctx *markup.RenderContext, output htmlutil.HTMLWriter, source string) error {
 	markdownCtx := markup.NewRenderContext(rctx)
 	// make sure the markdown render use the same options and helper to generate correct contents (e.g.: links)
 	markdownCtx.RenderOptions = rctx.RenderOptions
