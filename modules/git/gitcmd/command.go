@@ -445,6 +445,17 @@ func (c *Command) Start(ctx context.Context) (retErr error) {
 	c.cmd.Stdout = c.cmdStdout
 	c.cmd.Stdin = c.cmdStdin
 	c.cmd.Stderr = c.cmdStderr
+	c.cmd.Cancel = func() error {
+		// Golang's default cmd.Cancel only calls Process.Kill(), but here we need to close the parent pipes together:
+		// * for some commands like "git --batch-xxx", Windows git might have 2 processes (a wrapper and a real git process)
+		// * on Windows, if parent process is killed (context canceled), the children process won't be killed, and the pipe handles are still open.
+		// * if we don't close the parent pipes here, the children process won't exit.
+		//
+		// There is no such problem on POSIX, while it won't make things worse by closing the parent pipes also on POSIX.
+		err := c.cmd.Process.Kill()
+		c.closePipeFiles(c.parentPipeFiles)
+		return err
+	}
 	return c.cmd.Start()
 }
 
