@@ -11,25 +11,6 @@
   margin: 0;
 }
 
-/* Message for unsupported notebook versions */
-.markup .jupyter-notebook-message {
-  padding: 16px;
-  color: var(--color-text-light-2);
-  border: 1px solid var(--color-secondary);
-  border-radius: var(--border-radius);
-  background-color: var(--color-secondary-alpha-10);
-  text-align: center;
-}
-
-/* Error message */
-.markup .jupyter-notebook-error {
-  padding: 16px;
-  color: var(--color-red);
-  border: 1px solid var(--color-red);
-  border-radius: var(--border-radius);
-  background-color: var(--color-red-badge-bg);
-}
-
 /* Cell containers */
 .markup .jupyter-notebook .cell {
   margin-bottom: 20px;

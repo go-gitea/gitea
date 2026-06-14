@@ -35,30 +35,34 @@ var (
 
 type mimeHandler struct {
 	Mime string
-	Fn   func(w io.Writer, data string) error
+	Fn   func(w htmlutil.HTMLWriter, data string) error
 }
 
 var dataMimeHandlers = sync.OnceValue(func() []mimeHandler {
 	return []mimeHandler{
 		// Images (PNG, JPEG, SVG)
-		{"image/png", func(w io.Writer, d string) error { return renderJupyterImg(w, "png", d) }},
-		{"image/jpeg", func(w io.Writer, d string) error { return renderJupyterImg(w, "jpeg", d) }},
-		{"image/svg+xml", func(w io.Writer, d string) error {
+		{"image/png", func(w htmlutil.HTMLWriter, d string) error {
+			return renderJupyterImg(w, "png", d)
+		}},
+		{"image/jpeg", func(w htmlutil.HTMLWriter, d string) error {
+			return renderJupyterImg(w, "jpeg", d)
+		}},
+		{"image/svg+xml", func(w htmlutil.HTMLWriter, d string) error {
 			return renderJupyterImg(w, "svg+xml", base64.StdEncoding.EncodeToString([]byte(d)))
 		}},
 
 		// Rich & Math Layouts
-		{"text/html", func(w io.Writer, d string) error {
-			_, err := w.Write([]byte(`<div class="jupyter-html-output">` + markup.Sanitize(d) + `</div>`))
-			return err
+		{"text/html", func(w htmlutil.HTMLWriter, d string) error {
+			w.WriteFormat(`<div class="jupyter-html-output">%s</div>`, markup.Sanitize(d))
+			return w.Err()
 		}},
-		{"text/latex", func(w io.Writer, d string) error {
-			_, err := htmlutil.HTMLPrintf(w, `<pre><code class="language-math display">%s</code></pre>`, strings.Trim(d, "$"))
-			return err
+		{"text/latex", func(w htmlutil.HTMLWriter, d string) error {
+			w.WriteFormat(`<pre><code class="language-math display">%s</code></pre>`, strings.Trim(d, "$"))
+			return w.Err()
 		}},
-		{"text/plain", func(w io.Writer, d string) error {
-			_, err := htmlutil.HTMLPrintf(w, `<pre>%s</pre>`, d)
-			return err
+		{"text/plain", func(w htmlutil.HTMLWriter, d string) error {
+			w.WriteFormat(`<pre>%s</pre>`, d)
+			return w.Err()
 		}},
 
 		// Security Placeholders
@@ -68,15 +72,15 @@ var dataMimeHandlers = sync.OnceValue(func() []mimeHandler {
 	}
 })
 
-func renderJupyterImg(w io.Writer, subtype, payload string) error {
-	_, err := htmlutil.HTMLPrintf(w, `<img src="data:image/%s;base64,%s" class="jupyter-output-image">`, subtype, payload)
-	return err
+func renderJupyterImg(w htmlutil.HTMLWriter, subtype, payload string) error {
+	w.WriteFormat(`<img src="data:image/%s;base64,%s" class="jupyter-output-image">`, subtype, payload)
+	return w.Err()
 }
 
-func renderUnsupported(message string) func(io.Writer, string) error {
-	return func(w io.Writer, _ string) error {
-		_, err := w.Write([]byte(`<div class="jupyter-unsupported-output">` + message + `</div>`))
-		return err
+func renderUnsupported(message string) func(htmlutil.HTMLWriter, string) error {
+	return func(w htmlutil.HTMLWriter, _ string) error {
+		w.WriteFormat(`<div class="jupyter-unsupported-output">%s</div>`, message)
+		return w.Err()
 	}
 }
 
@@ -128,21 +132,22 @@ type Output struct {
 }
 
 // Render renders Jupyter notebook to HTML
-func (renderer) Render(ctx *markup.RenderContext, input io.Reader, output io.Writer) error {
+func (renderer) Render(ctx *markup.RenderContext, input io.Reader, outputWriter io.Writer) error {
+	htmlWriter := htmlutil.NewHTMLWriter(outputWriter)
 	// the size is (should be) checked and/or limited by the caller to avoid OOM
 	var notebook Notebook
 	if err := json.NewDecoder(input).Decode(&notebook); err != nil {
-		_, _ = htmlutil.HTMLPrintf(output, `<div class="jupyter-notebook-error">Failed to parse notebook JSON: %v</div>`, err)
-		return nil
+		htmlWriter.WriteFormat(`<div class="ui error message">Failed to parse notebook JSON: %v</div>`, err)
+		return htmlWriter.Err()
 	}
 
 	// Check nbformat version
 	if notebook.Nbformat < 4 {
-		_, _ = htmlutil.HTMLPrintf(output,
-			`<div class="jupyter-notebook-message">This notebook uses an older format (nbformat %d). Only nbformat 4+ is supported for rendering. Please upgrade the notebook in Jupyter or view the raw JSON.</div>`,
+		htmlWriter.WriteFormat(
+			`<div class="ui info message">This notebook uses an older format (nbformat %d). Only nbformat 4+ is supported for rendering. Please upgrade the notebook in Jupyter or view the raw JSON.</div>`,
 			notebook.Nbformat,
 		)
-		return nil
+		return htmlWriter.Err()
 	}
 
 	// Detect language
@@ -158,7 +163,7 @@ func (renderer) Render(ctx *markup.RenderContext, input io.Reader, output io.Wri
 	}
 
 	// Start rendering
-	_, _ = output.Write([]byte(`<div class="jupyter-notebook">`))
+	htmlWriter.WriteHTML(`<div class="jupyter-notebook">`)
 
 	// limiting the cell rendering to 100 cells
 	cells := notebook.Cells
@@ -171,32 +176,32 @@ func (renderer) Render(ctx *markup.RenderContext, input io.Reader, output io.Wri
 	}
 
 	for _, cell := range cells {
-		if err := renderCell(ctx, output, cell, language); err != nil {
+		if err := renderCell(ctx, htmlWriter, cell, language); err != nil {
 			log.Warn("Failed to render cell: %v", err)
 			continue
 		}
 	}
 
 	if truncated {
-		_, _ = output.Write([]byte(`<div class="ui warning message jupyter-notebook-message">`))
-		_, _ = output.Write([]byte(`<strong>Output truncated.</strong> This notebook contains too many cells to display efficiently.`))
-		_, _ = output.Write([]byte(`</div>`))
+		htmlWriter.WriteHTML(`<div class="ui warning message">`)
+		htmlWriter.WriteHTML(`<strong>Output truncated.</strong> This notebook contains too many cells to display efficiently.`)
+		htmlWriter.WriteHTML(`</div>`)
 	}
 
-	_, _ = output.Write([]byte(`</div>`))
-	return nil
+	htmlWriter.WriteHTML(`</div>`)
+	return htmlWriter.Err()
 }
 
-func renderCell(ctx *markup.RenderContext, output io.Writer, cell Cell, language string) error {
+func renderCell(ctx *markup.RenderContext, output htmlutil.HTMLWriter, cell Cell, language string) error {
 	source := joinSource(cell.Source)
 
 	switch cell.CellType {
 	case "markdown":
-		_, _ = output.Write([]byte(`<div class="cell markdown"><div class="input markup">`))
+		output.WriteHTML(`<div class="cell markdown"><div class="input markup">`)
 		if err := renderMarkdown(ctx, output, source); err != nil {
 			return err
 		}
-		_, _ = output.Write([]byte(`</div></div>`))
+		output.WriteHTML(`</div></div>`)
 
 	case "code":
 		hasCount := false
@@ -208,25 +213,24 @@ func renderCell(ctx *markup.RenderContext, output io.Writer, cell Cell, language
 			}
 		}
 
-		_, _ = output.Write([]byte(`<div class="cell code">`))
-		_, _ = output.Write([]byte(`<div class="input-wrapper">`))
+		output.WriteHTML(`<div class="cell code">`)
+		output.WriteHTML(`<div class="input-wrapper">`)
 		if hasCount {
-			_, _ = htmlutil.HTMLPrintf(output, `<div class="prompt input-prompt">In [%d]:</div>`, countVal)
+			output.WriteFormat(`<div class="prompt input-prompt">In [%d]:</div>`, countVal)
 		} else {
-			_, _ = output.Write([]byte(`<div class="prompt input-prompt">In [ ]:</div>`))
+			output.WriteHTML(`<div class="prompt input-prompt">In [ ]:</div>`)
 		}
-		_, _ = output.Write([]byte(`<div class="input">`))
+		output.WriteHTML(`<div class="input">`)
 
 		// Highlight code
 		lexer := highlight.DetectChromaLexerByFileName("", language)
 		if lexer == nil {
 			lexer = highlight.DetectChromaLexerByFileName("", "plaintext")
 		}
-		_, _ = htmlutil.HTMLPrintf(output, `<pre><code class="chroma language-%s">`, strings.ToLower(language))
-		_, _ = output.Write([]byte(highlight.RenderCodeByLexer(lexer, source)))
-		_, _ = output.Write([]byte("</code></pre>"))
-
-		_, _ = output.Write([]byte(`</div></div>`))
+		output.WriteFormat(`<pre><code class="chroma language-%s">`, strings.ToLower(language))
+		output.WriteHTML(highlight.RenderCodeByLexer(lexer, source))
+		output.WriteHTML("</code></pre>")
+		output.WriteHTML(`</div></div>`)
 
 		// Render outputs
 		if len(cell.Outputs) > 0 {
@@ -238,35 +242,35 @@ func renderCell(ctx *markup.RenderContext, output io.Writer, cell Cell, language
 				}
 			}
 
-			_, _ = output.Write([]byte(`<div class="output-wrapper">`))
+			output.WriteHTML(`<div class="output-wrapper">`)
 			if hasExecutionResult && hasCount {
-				_, _ = htmlutil.HTMLPrintf(output, `<div class="prompt output-prompt">Out[%d]:</div>`, countVal)
+				output.WriteFormat(`<div class="prompt output-prompt">Out[%d]:</div>`, countVal)
 			} else {
-				_, _ = output.Write([]byte(`<div class="prompt output-prompt"></div>`))
+				output.WriteHTML(`<div class="prompt output-prompt"></div>`)
 			}
 
-			_, _ = output.Write([]byte(`<div class="output">`))
+			output.WriteHTML(`<div class="output">`)
 			for _, out := range cell.Outputs {
 				renderOutput(output, out)
 			}
-			_, _ = output.Write([]byte(`</div></div>`))
+			output.WriteHTML(`</div></div>`)
 		}
 
-		_, _ = output.Write([]byte(`</div>`))
+		output.WriteHTML(`</div>`)
 
 	default:
 		log.Debug("Jupyter markup: unknown cell type %q encountered in notebook, skipping", cell.CellType)
 	}
 
-	return nil
+	return output.Err()
 }
 
-func renderMarkdown(rctx *markup.RenderContext, output io.Writer, source string) error {
+func renderMarkdown(rctx *markup.RenderContext, output htmlutil.HTMLWriter, source string) error {
 	markdownCtx := markup.NewRenderContext(rctx)
-	return markdown.Render(markdownCtx, strings.NewReader(source), output)
+	return markdown.Render(markdownCtx, strings.NewReader(source), output.OriginWriter())
 }
 
-func renderOutput(output io.Writer, out Output) {
+func renderOutput(output htmlutil.HTMLWriter, out Output) {
 	if out.Data != nil {
 		// Iterate through our priority list to find the best matching MIME handler available
 		for _, h := range dataMimeHandlers() {
@@ -297,7 +301,7 @@ func renderOutput(output io.Writer, out Output) {
 	// Stream output
 	if out.OutputType == "stream" && out.Text != nil {
 		streamName := util.Iif(out.Name == "stderr", "stderr", "stdout")
-		_, _ = htmlutil.HTMLPrintf(output, `<pre class="stream-%s">%s</pre>`, streamName, joinSource(out.Text))
+		output.WriteFormat(`<pre class="stream-%s">%s</pre>`, streamName, joinSource(out.Text))
 		return
 	}
 
@@ -314,13 +318,13 @@ func renderOutput(output io.Writer, out Output) {
 		if traceback == "" && out.Ename != "" {
 			traceback = fmt.Sprintf("%s: %s", out.Ename, out.Evalue)
 		}
-		_, _ = htmlutil.HTMLPrintf(output, `<pre class="error-output">%s</pre>`, traceback)
+		output.WriteFormat(`<pre class="error-output">%s</pre>`, traceback)
 		return
 	}
 
 	// Generic text output
 	if out.Text != nil {
-		_, _ = htmlutil.HTMLPrintf(output, `<pre>%s</pre>`, joinSource(out.Text))
+		output.WriteFormat(`<pre>%s</pre>`, joinSource(out.Text))
 	}
 }
 

@@ -9,6 +9,7 @@ import (
 	"testing"
 
 	"gitea.dev/modules/markup"
+	"gitea.dev/modules/test"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -214,46 +215,8 @@ func TestRender(t *testing.T) {
 		err := r.Render(ctx, strings.NewReader(input), &output)
 
 		assert.NoError(t, err)
-		result := output.String()
-		assert.Contains(t, result, `jupyter-notebook-message`)
-		assert.Contains(t, result, `nbformat 3`)
+		assert.Regexp(t, `<div class="ui info message">This notebook uses an older format.*</div>`, output.String())
 	})
-}
-
-func TestStripStyleTags(t *testing.T) {
-	tests := []struct {
-		name     string
-		input    string
-		expected string
-	}{
-		{
-			name:     "Single style tag",
-			input:    `<style scoped>.test { color: red; }</style><div>content</div>`,
-			expected: `<div>content</div>`,
-		},
-		{
-			name:     "Multiple style tags",
-			input:    `<style>.a{}</style><div>text</div><style>.b{}</style>`,
-			expected: `<div>text</div>`,
-		},
-		{
-			name:     "No style tags",
-			input:    `<div>content</div>`,
-			expected: `<div>content</div>`,
-		},
-		{
-			name:     "Style tag with attributes",
-			input:    `<style type="text/css" scoped>.test{}</style><p>text</p>`,
-			expected: `<p>text</p>`,
-		},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			result := stripStyleTags(tt.input)
-			assert.Equal(t, tt.expected, result)
-		})
-	}
 }
 
 func TestJoinSource(t *testing.T) {
@@ -290,4 +253,62 @@ func TestJoinSource(t *testing.T) {
 			assert.Equal(t, tt.expected, result)
 		})
 	}
+}
+
+func TestIntegrationAndSanitization(t *testing.T) {
+	// A mock malicious Jupyter notebook containing an XSS injection attempt
+	// inside a text/html output cell (e.g., pretending to be a poisoned Pandas DataFrame).
+	maliciousNotebook := `{
+		"nbformat": 4,
+		"nbformat_minor": 2,
+		"metadata": {},
+		"cells": [
+			{
+				"cell_type": "code",
+				"execution_count": 1,
+				"metadata": {},
+				"source": ["a=1"],
+				"outputs": [
+					{
+						"output_type": "execute_result",
+						"execution_count": 1,
+						"data": {
+							"text/html": [
+								"<div><script>alert('XSS Vector')</script><table class=\"dataframe\"><tr><td>Safe Content</td></tr></table></div>"
+							]
+						},
+						"metadata": {}
+					}
+				]
+			}
+		]
+	}`
+
+	var output strings.Builder
+	ctx := markup.NewRenderContext(t.Context())
+	ctx.RenderOptions.MarkupType = "jupyter"
+	err := markup.Render(ctx, strings.NewReader(maliciousNotebook), &output)
+	assert.NoError(t, err)
+	const expected = `
+<div class="jupyter-notebook">
+	<div class="cell code">
+		<div class="input-wrapper">
+			<div class="prompt input-prompt">In [1]:</div>
+				<div class="input">
+					<pre><code class="chroma language-python">
+						<span class="n">a</span><span class="o">=</span><span class="mi">1</span>
+					</code></pre>
+				</div>
+			</div>
+			<div class="output-wrapper">
+			<div class="prompt output-prompt">Out[1]:</div>
+			<div class="output">
+				<div class="jupyter-html-output">
+					<div><table><tbody><tr><td>Safe Content</td></tr></tbody></table></div>
+				</div>
+			</div>
+		</div>
+	</div>
+</div>`
+	assert.Equal(t, test.NormalizeHTMLSpaces(expected), test.NormalizeHTMLSpaces(output.String()))
 }
