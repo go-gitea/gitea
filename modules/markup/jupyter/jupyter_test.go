@@ -56,7 +56,7 @@ func TestRender(t *testing.T) {
 				{
 					"cell_type": "markdown",
 					"source": [
-						"# Title\n", 
+						"# Title\n",
 						"Some text\n",
 						"[click me](javascript:alert(1))\n",
 						"<script>alert('dangerous')</script>"
@@ -68,7 +68,7 @@ func TestRender(t *testing.T) {
 		}`
 
 		var output strings.Builder
-		ctx := &markup.RenderContext{}
+		ctx := markup.NewRenderContext(t.Context())
 		err := r.Render(ctx, strings.NewReader(input), &output)
 
 		assert.NoError(t, err)
@@ -94,7 +94,7 @@ func TestRender(t *testing.T) {
 		input := fmt.Sprintf(`{"cells": [%s], "metadata": {}, "nbformat": 4}`, strings.Join(cellBlocks, ","))
 
 		var output strings.Builder
-		ctx := &markup.RenderContext{}
+		ctx := markup.NewRenderContext(t.Context())
 		err := r.Render(ctx, strings.NewReader(input), &output)
 
 		assert.NoError(t, err)
@@ -130,7 +130,7 @@ func TestRender(t *testing.T) {
 		}`
 
 		var output strings.Builder
-		ctx := &markup.RenderContext{}
+		ctx := markup.NewRenderContext(t.Context())
 		err := r.Render(ctx, strings.NewReader(input), &output)
 
 		assert.NoError(t, err)
@@ -161,7 +161,7 @@ func TestRender(t *testing.T) {
 		}`
 
 		var output strings.Builder
-		ctx := &markup.RenderContext{}
+		ctx := markup.NewRenderContext(t.Context())
 		err := r.Render(ctx, strings.NewReader(input), &output)
 
 		assert.NoError(t, err)
@@ -193,7 +193,7 @@ func TestRender(t *testing.T) {
 		}`
 
 		var output strings.Builder
-		ctx := &markup.RenderContext{}
+		ctx := markup.NewRenderContext(t.Context())
 		err := r.Render(ctx, strings.NewReader(input), &output)
 
 		assert.NoError(t, err)
@@ -210,7 +210,7 @@ func TestRender(t *testing.T) {
 		}`
 
 		var output strings.Builder
-		ctx := &markup.RenderContext{}
+		ctx := markup.NewRenderContext(t.Context())
 		err := r.Render(ctx, strings.NewReader(input), &output)
 
 		assert.NoError(t, err)

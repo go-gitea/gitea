@@ -14,24 +14,12 @@ import (
 	"gitea.dev/modules/json"
 	"gitea.dev/modules/log"
 	"gitea.dev/modules/markup"
+	"gitea.dev/modules/markup/markdown"
 	"gitea.dev/modules/setting"
-
-	"github.com/yuin/goldmark"
-	"github.com/yuin/goldmark/extension"
 )
 
 func init() {
 	markup.RegisterRenderer(renderer{})
-
-	jupyterGoldmark = goldmark.New(
-		goldmark.WithExtensions(
-			extension.Table,
-			extension.Strikethrough,
-			extension.Linkify,
-			extension.TaskList,
-			extension.DefinitionList,
-		),
-	)
 }
 
 // Renderer implements markup.Renderer for Jupyter notebooks
@@ -41,8 +29,6 @@ var (
 	_ markup.Renderer            = (*renderer)(nil)
 	_ markup.PostProcessRenderer = (*renderer)(nil)
 	_ markup.ExternalRenderer    = (*renderer)(nil)
-
-	jupyterGoldmark goldmark.Markdown
 )
 
 type mimeHandler struct {
@@ -285,16 +271,9 @@ func renderCell(ctx *markup.RenderContext, output io.Writer, cell Cell, language
 	return nil
 }
 
-func renderMarkdown(_ *markup.RenderContext, output io.Writer, source string) error {
-	var buf strings.Builder
-	if err := jupyterGoldmark.Convert([]byte(source), &buf); err != nil {
-		return err
-	}
-
-	// Sanitize the generated markdown HTML before sending it to the DOM
-	safeHTML := markup.Sanitize(buf.String())
-	_, _ = output.Write([]byte(safeHTML))
-	return nil
+func renderMarkdown(rctx *markup.RenderContext, output io.Writer, source string) error {
+	markdownCtx := markup.NewRenderContext(rctx)
+	return markdown.Render(markdownCtx, strings.NewReader(source), output)
 }
 
 func renderOutput(output io.Writer, out Output) {
