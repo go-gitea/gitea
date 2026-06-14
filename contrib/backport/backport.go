@@ -21,7 +21,7 @@ import (
 	"gopkg.in/yaml.v3"
 )
 
-const defaultVersion = "v1.18" // to backport to
+const defaultVersion = "v1.26" // to backport to
 
 func main() {
 	app := &cli.Command{}
