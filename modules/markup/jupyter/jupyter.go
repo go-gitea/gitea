@@ -68,7 +68,7 @@ var dataMimeHandlers = sync.OnceValue(func() []mimeHandler {
 			return w.Err()
 		}},
 		{"text/latex", func(w htmlutil.HTMLWriter, d string) error {
-			w.WriteFormat(`<pre><code class="language-math display">%s</code></pre>`, strings.Trim(d, "$"))
+			w.WriteFormat(`<pre><code class="language-math display">%s</code></pre>`, trimMathDelimiters(d))
 			return w.Err()
 		}},
 		{"text/plain", func(w htmlutil.HTMLWriter, d string) error {
@@ -341,10 +341,8 @@ func joinSource(source any) string {
 		return ""
 	case string:
 		return v
-	case []string:
-		// the "source slice item" has EOL ("\n"), so just join them together
-		return strings.Join(v, "")
 	case []any:
+		// the "source slice item" has EOL ("\n"), so just join them together
 		parts := make([]string, len(v))
 		for i, part := range v {
 			parts[i] = fmt.Sprint(part)
@@ -353,4 +351,18 @@ func joinSource(source any) string {
 	default:
 		return fmt.Sprint(v)
 	}
+}
+
+// trimMathDelimiters strips a single pair of surrounding math delimiters ("$$...$$" or "$...$"),
+// so the inner expression is handled by the math post-processor. Unlike strings.Trim, it does not
+// eat unrelated "$" characters elsewhere in multi-expression content.
+func trimMathDelimiters(s string) string {
+	s = strings.TrimSpace(s)
+	if t, ok := strings.CutPrefix(s, "$$"); ok {
+		return strings.TrimSuffix(t, "$$")
+	}
+	if t, ok := strings.CutPrefix(s, "$"); ok {
+		return strings.TrimSuffix(t, "$")
+	}
+	return s
 }
