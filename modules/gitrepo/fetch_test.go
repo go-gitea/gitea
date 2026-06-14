@@ -49,11 +49,9 @@ func TestFetchRemoteCommitConcurrentDifferentCommits(t *testing.T) {
 	errCh := make(chan error, len(commitIDs))
 	var wg sync.WaitGroup
 	for _, commitID := range commitIDs {
-		wg.Add(1)
-		go func(commitID string) {
-			defer wg.Done()
+		wg.Go(func() {
 			errCh <- FetchRemoteCommit(t.Context(), targetRepo, sourceRepo, commitID)
-		}(commitID)
+		})
 	}
 	wg.Wait()
 	close(errCh)
