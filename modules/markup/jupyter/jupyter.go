@@ -17,6 +17,7 @@ import (
 	"gitea.dev/modules/markup"
 	"gitea.dev/modules/markup/markdown"
 	"gitea.dev/modules/setting"
+	"gitea.dev/modules/util"
 )
 
 func init() {
@@ -48,7 +49,7 @@ var dataMimeHandlers = sync.OnceValue(func() []mimeHandler {
 
 		// Rich & Math Layouts
 		{"text/html", func(w io.Writer, d string) error {
-			_, err := w.Write([]byte(`<div class="jupyter-html-output">` + markup.Sanitize(stripStyleTags(d)) + `</div>`))
+			_, err := w.Write([]byte(`<div class="jupyter-html-output">` + markup.Sanitize(d) + `</div>`))
 			return err
 		}},
 		{"text/latex", func(w io.Writer, d string) error {
@@ -295,10 +296,7 @@ func renderOutput(output io.Writer, out Output) {
 
 	// Stream output
 	if out.OutputType == "stream" && out.Text != nil {
-		streamName := "stdout"
-		if out.Name == "stderr" {
-			streamName = "stderr"
-		}
+		streamName := util.Iif(out.Name == "stderr", "stderr", "stdout")
 		_, _ = htmlutil.HTMLPrintf(output, `<pre class="stream-%s">%s</pre>`, streamName, joinSource(out.Text))
 		return
 	}
@@ -306,14 +304,12 @@ func renderOutput(output io.Writer, out Output) {
 	// Error output
 	if out.OutputType == "error" {
 		traceback := ""
-		if out.Traceback != nil {
-			if tb, ok := out.Traceback.([]any); ok {
-				lines := make([]string, len(tb))
-				for i, line := range tb {
-					lines[i] = fmt.Sprint(line)
-				}
-				traceback = strings.Join(lines, "\n")
+		if tb, ok := out.Traceback.([]any); ok {
+			lines := make([]string, len(tb))
+			for i, line := range tb {
+				lines[i] = fmt.Sprint(line)
 			}
+			traceback = strings.Join(lines, "\n")
 		}
 		if traceback == "" && out.Ename != "" {
 			traceback = fmt.Sprintf("%s: %s", out.Ename, out.Evalue)
@@ -345,18 +341,4 @@ func joinSource(source any) string {
 	default:
 		return fmt.Sprint(v)
 	}
-}
-
-func stripStyleTags(html string) string {
-	// Remove <style>...</style> tags (including scoped attribute)
-	start := strings.Index(html, "<style")
-	for start != -1 {
-		end := strings.Index(html[start:], "</style>")
-		if end == -1 {
-			break
-		}
-		html = html[:start] + html[start+end+8:]
-		start = strings.Index(html, "<style")
-	}
-	return html
 }
