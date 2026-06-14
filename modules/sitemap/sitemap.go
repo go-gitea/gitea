@@ -63,20 +63,24 @@ func (s *Sitemap) Add(u URL) {
 // WriteTo writes the sitemap to a response
 func (s *Sitemap) WriteTo(w io.Writer) (int64, error) {
 	if l := len(s.URLs); l > urlsLimit {
-		return 0, fmt.Errorf("The sitemap contains %d URLs, but only %d are allowed", l, urlsLimit)
+		return 0, fmt.Errorf("sitemap contains %d URLs, but only %d are allowed", l, urlsLimit)
 	}
 	if l := len(s.Sitemaps); l > urlsLimit {
-		return 0, fmt.Errorf("The sitemap contains %d sub-sitemaps, but only %d are allowed", l, urlsLimit)
+		return 0, fmt.Errorf("sitemap contains %d sub-sitemaps, but only %d are allowed", l, urlsLimit)
 	}
 	buf := bytes.NewBufferString(xml.Header)
-	if err := xml.NewEncoder(buf).Encode(s); err != nil {
+	encoder := xml.NewEncoder(buf)
+	defer encoder.Close()
+	if err := encoder.Encode(s); err != nil {
 		return 0, err
 	}
+	_ = encoder.Flush()
 	if err := buf.WriteByte('\n'); err != nil {
 		return 0, err
 	}
+	// FIXME: such limit is not right, the content has been written, it would have already caused OOM
 	if buf.Len() > sitemapFileLimit {
-		return 0, fmt.Errorf("The sitemap has %d bytes, but only %d are allowed", buf.Len(), sitemapFileLimit)
+		return 0, fmt.Errorf("sitemap has %d bytes, but only %d are allowed", buf.Len(), sitemapFileLimit)
 	}
 	return buf.WriteTo(w)
 }
