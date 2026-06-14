@@ -226,10 +226,6 @@ func TestSearchTeamIncludeVisible(t *testing.T) {
 		Visibility: structs.VisibleTypeLimited,
 	}
 	assert.NoError(t, db.Insert(t.Context(), visible))
-	t.Cleanup(func() {
-		_, _ = db.GetEngine(t.Context()).ID(visible.ID).Delete(&organization.Team{})
-	})
-
 	teams, _, err := organization.SearchTeam(t.Context(), &organization.SearchTeamOptions{
 		OrgID:               orgID,
 		UserID:              2,

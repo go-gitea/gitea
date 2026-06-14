@@ -306,24 +306,20 @@ func TestAPIGetTeamRepo(t *testing.T) {
 	MakeRequest(t, req, http.StatusNotFound)
 }
 
-func insertTestTeam(t *testing.T, orgID int64, name string, visibility structs.VisibleType) *organization.Team {
-	t.Helper()
-	team := &organization.Team{
-		OrgID:      orgID,
-		LowerName:  name,
-		Name:       name,
-		AccessMode: perm.AccessModeRead,
-		Visibility: visibility,
-	}
-	assert.NoError(t, db.Insert(t.Context(), team))
-	t.Cleanup(func() {
-		_, _ = db.GetEngine(t.Context()).ID(team.ID).Delete(&organization.Team{})
-	})
-	return team
-}
-
 func TestAPITeamVisibilityAccess(t *testing.T) {
 	defer tests.PrepareTestEnv(t)()
+	insertTestTeam := func(t *testing.T, orgID int64, name string, visibility structs.VisibleType) *organization.Team {
+		t.Helper()
+		team := &organization.Team{
+			OrgID:      orgID,
+			LowerName:  name,
+			Name:       name,
+			AccessMode: perm.AccessModeRead,
+			Visibility: visibility,
+		}
+		assert.NoError(t, db.Insert(t.Context(), team))
+		return team
+	}
 
 	limitedTeam := insertTestTeam(t, 3, "limited-team", structs.VisibleTypeLimited)
 
