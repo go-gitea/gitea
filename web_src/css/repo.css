@@ -210,10 +210,6 @@ td .commit-summary {
   overflow: auto;
 }
 
-.non-diff-file-content .asciicast {
-  padding: 0 !important;
-}
-
 .repo-editor-header {
   /* it should match ".repo-button-row" so the tree toggle button stays aligned */
   margin: 8px 0;
@@ -1386,19 +1382,12 @@ tbody.commit-list {
   vertical-align: baseline;
 }
 
-.message-wrapper,
-.author-wrapper {
+.message-wrapper {
   overflow: hidden;
   text-overflow: ellipsis;
   max-width: 100%;
   display: inline-block;
   vertical-align: middle;
-}
-
-.author-wrapper {
-  max-width: 180px;
-  align-self: center;
-  white-space: nowrap;
 }
 
 .latest-commit .message-wrapper {
@@ -1414,9 +1403,6 @@ tbody.commit-list {
 @media (max-width: 767.98px) {
   tr.commit-list {
     width: 100%;
-  }
-  .author-wrapper {
-    max-width: 80px;
   }
 }
 
@@ -1865,8 +1851,10 @@ tbody.commit-list {
   width: 100%;
 }
 
-.commit-status-item {
+.commit-status-item { /* the item can be used at 2 places: PR's merge box (commit-status-list), commit's status popup (no commit-status-list) */
   height: 40px;
+  padding-top: 0 !important; /* use "height" + "align items center", don't use padding-y (from the list container) to layout */
+  padding-bottom: 0 !important;
   display: flex;
   gap: var(--gap-block);
   align-items: center;
@@ -1875,11 +1863,11 @@ tbody.commit-list {
 }
 
 .username-display {
-  max-width: 100%; /* the inner part might have "gt-ellipsis" */
-  min-width: 0; /* if it is the top flex container, "max-width" works; but if it is inside another flex container, the parent needs to handle the x-axis and here also needs "min-width" */
   display: inline-flex;
   gap: var(--gap-inline);
   align-items: center;
+  max-width: 100%; /* min/max widths are for "gt-ellipsis", see the comment of other "flex-xxx" family classes */
+  min-width: 0;
 }
 
 .username-display > .username-fullname {

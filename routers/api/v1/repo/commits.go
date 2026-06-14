@@ -258,7 +258,7 @@ func GetAllCommits(ctx *context.APIContext) {
 			ctx.APIErrorInternal(err)
 			return
 		} else if commitsCountTotal == 0 {
-			ctx.APIErrorNotFound("FileCommitsCount", nil)
+			ctx.APIErrorNotFound()
 			return
 		}
 

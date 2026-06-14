@@ -545,7 +545,7 @@ func CreatePullRequest(ctx *context.APIContext) {
 			return
 		}
 
-		valid, err := access_model.CanBeAssigned(ctx, assignee, repo, true)
+		valid, err := access_model.CanBeAssigned(ctx, assignee, repo)
 		if err != nil {
 			ctx.APIErrorInternal(err)
 			return
@@ -927,11 +927,7 @@ func MergePullRequest(ctx *context.APIContext) {
 
 	pr, err := issues_model.GetPullRequestByIndex(ctx, ctx.Repo.Repository.ID, ctx.PathParamInt64("index"))
 	if err != nil {
-		if issues_model.IsErrPullRequestNotExist(err) {
-			ctx.APIErrorNotFound("GetPullRequestByIndex", err)
-		} else {
-			ctx.APIErrorInternal(err)
-		}
+		ctx.APIErrorAuto(err)
 		return
 	}
 
