@@ -4,7 +4,6 @@
 package integration
 
 import (
-	"encoding/json"
 	"fmt"
 	"net/http"
 	"testing"
@@ -14,6 +13,7 @@ import (
 	issues_model "gitea.dev/models/issues"
 	"gitea.dev/models/unittest"
 	user_model "gitea.dev/models/user"
+	"gitea.dev/modules/json"
 	api "gitea.dev/modules/structs"
 	"gitea.dev/tests"
 
