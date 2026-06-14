@@ -88,6 +88,7 @@ import (
 	"gitea.dev/routers/api/v1/packages"
 	"gitea.dev/routers/api/v1/repo"
 	"gitea.dev/routers/api/v1/settings"
+	"gitea.dev/routers/api/v1/token"
 	"gitea.dev/routers/api/v1/user"
 	"gitea.dev/routers/common"
 	"gitea.dev/services/actions"
@@ -976,6 +977,11 @@ func Routes() *web.Router {
 				m.Get("/repository", settings.GetGeneralRepoSettings)
 			})
 		})
+
+		// Token introspection and deletion endpoint
+		m.Combo("/token").
+			Get(reqToken(), token.GetCurrentToken).
+			Delete(reqToken(), token.DeleteCurrentToken)
 
 		// Notifications (requires 'notifications' scope)
 		// The notifications API is not available for public-only tokens because a user's notifications mix
