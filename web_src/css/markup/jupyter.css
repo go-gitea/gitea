@@ -91,3 +91,8 @@
 .markup .jupyter-notebook .cell-right .embedded-markdown {
   padding: 0 16px; /* match cell code right padding */
 }
+
+/* center the info message */
+.markup.jupyter-render .ui.message {
+  text-align: center;
+}
