@@ -8,6 +8,7 @@ import (
 	"strings"
 
 	"code.gitea.io/gitea/modules/git/gitcmd"
+	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/util"
 )
 
@@ -86,8 +87,11 @@ func (repo *Repository) UnstableGuessRefByShortName(shortName string) RefName {
 	commit, err := repo.GetCommit(shortName)
 	if err == nil {
 		commitIDString := commit.ID.String()
-		if strings.HasPrefix(commitIDString, shortName) {
+		// Make sure the short name is either a partial commit ID, or the symbolic HEAD ref.
+		if strings.HasPrefix(commitIDString, shortName) || shortName == "HEAD" {
 			return RefName(commitIDString)
+		} else {
+			setting.PanicInDevOrTesting("abuse of UnstableGuessRefByShortName, queried %s, got %s", shortName, commitIDString)
 		}
 	}
 	return ""

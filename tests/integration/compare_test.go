@@ -36,9 +36,17 @@ func TestCompareTag(t *testing.T) {
 	// A dropdown for both base and head.
 	assert.Lenf(t, selection.Nodes, 2, "The template has changed")
 
+	req = NewRequest(t, "GET", "/user2/repo1/compare/v1.1...HEAD")
+	resp = session.MakeRequest(t, req, http.StatusOK)
+	assert.True(t, test.IsNormalPageCompleted(resp.Body.String()))
+
+	req = NewRequest(t, "GET", "/user2/repo1/compare/v1.1...NotExisting").SetHeader("Accept", "text/html")
+	resp = session.MakeRequest(t, req, http.StatusNotFound)
+	assert.True(t, test.IsNormalPageCompleted(resp.Body.String()))
+
 	req = NewRequest(t, "GET", "/user2/repo1/compare/invalid").SetHeader("Accept", "text/html")
 	resp = session.MakeRequest(t, req, http.StatusNotFound)
-	assert.True(t, test.IsNormalPageCompleted(resp.Body.String()), "expect 404 page not 500")
+	assert.True(t, test.IsNormalPageCompleted(resp.Body.String()))
 }
 
 // Compare with inferred default branch (master)

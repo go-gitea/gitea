@@ -53,3 +53,18 @@ func TestRepository_GetRefsFiltered(t *testing.T) {
 		assert.Equal(t, "3ad28a9149a2864384548f3d17ed7f38014c9e8a", refs[1].Object.String())
 	}
 }
+
+func TestRepository_UnstableGuessRefByShortName(t *testing.T) {
+	bareRepo1Path := filepath.Join(testReposDir, "repo1_bare")
+	bareRepo1, err := OpenRepository(t.Context(), bareRepo1Path)
+	assert.NoError(t, err)
+	defer bareRepo1.Close()
+
+	headCommit, err := bareRepo1.GetCommit("HEAD")
+	assert.NoError(t, err)
+
+	assert.Equal(t, RefName(headCommit.ID.String()), bareRepo1.UnstableGuessRefByShortName("HEAD"))
+	assert.Equal(t, RefName(headCommit.ID.String()), bareRepo1.UnstableGuessRefByShortName(headCommit.ID.String()[:8]))
+	assert.Equal(t, RefNameFromBranch("master"), bareRepo1.UnstableGuessRefByShortName("master"))
+	assert.Empty(t, bareRepo1.UnstableGuessRefByShortName("NotExisting"))
+}
