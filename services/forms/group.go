@@ -28,7 +28,7 @@ type CreateGroupTeamForm struct {
 }
 
 type UpdateGroupSettingForm struct {
-	Name          string `binding:"Required;MaxSize(255)" locale:"group.group_name_holder"`
+	Name          string `binding:"Required;MaxSize(100)" locale:"group.group_name_holder"`
 	ParentGroupID int64  `binding:"Required"`
 	Description   string `binding:"MaxSize(2048)"`
 	Visibility    structs.VisibleType
