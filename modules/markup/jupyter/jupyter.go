@@ -267,6 +267,9 @@ func renderCell(ctx *markup.RenderContext, output htmlutil.HTMLWriter, cell Cell
 
 func renderMarkdown(rctx *markup.RenderContext, output htmlutil.HTMLWriter, source string) error {
 	markdownCtx := markup.NewRenderContext(rctx)
+	// make sure the markdown render use the same options and helper to generate correct contents (e.g.: links)
+	markdownCtx.RenderOptions = rctx.RenderOptions
+	markdownCtx.RenderHelper = rctx.RenderHelper
 	return markdown.Render(markdownCtx, strings.NewReader(source), output.OriginWriter())
 }
 
