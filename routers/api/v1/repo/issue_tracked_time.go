@@ -91,6 +91,7 @@ func ListTrackedTimes(ctx *context.APIContext) {
 		user, err := user_model.GetUserByName(ctx, qUser)
 		if user_model.IsErrUserNotExist(err) {
 			ctx.APIError(http.StatusNotFound, err.Error())
+			return
 		} else if err != nil {
 			ctx.APIErrorInternal(err)
 			return
@@ -499,6 +500,7 @@ func ListTrackedTimesByRepository(ctx *context.APIContext) {
 		user, err := user_model.GetUserByName(ctx, qUser)
 		if user_model.IsErrUserNotExist(err) {
 			ctx.APIError(http.StatusNotFound, err.Error())
+			return
 		} else if err != nil {
 			ctx.APIErrorInternal(err)
 			return
