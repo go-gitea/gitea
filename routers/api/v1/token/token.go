@@ -23,8 +23,8 @@ func GetCurrentToken(ctx *context.APIContext) {
 	// produces:
 	// - application/json
 	// responses:
-	//	"200":
-	//	  "$ref": "#/responses/CurrentAccessToken"
+	//   "200":
+	//     "$ref": "#/responses/CurrentAccessToken"
 	accessToken, err := getToken(ctx)
 	if err != nil {
 		ctx.APIErrorAuto(err)
@@ -59,8 +59,8 @@ func DeleteCurrentToken(ctx *context.APIContext) {
 	// produces:
 	// - application/json
 	// responses:
-	//	"204":
-	//	  description: token deleted
+	//   "204":
+	//     description: token deleted
 	accessToken, err := getToken(ctx)
 	if err != nil {
 		ctx.APIErrorAuto(err)
