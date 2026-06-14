@@ -45,10 +45,11 @@ func cloneWiki(ctx context.Context, repo *repo_model.Repository, opts migration.
 		}
 	}
 	if err := gitrepo.CloneExternalRepo(ctx, wikiRemoteURL, storageRepo, git.CloneRepoOptions{
-		Mirror:        true,
-		Quiet:         true,
-		Timeout:       migrateTimeout,
-		SkipTLSVerify: setting.Migrations.SkipTLSVerify,
+		Mirror:            true,
+		Quiet:             true,
+		Timeout:           migrateTimeout,
+		SkipTLSVerify:     setting.Migrations.SkipTLSVerify,
+		NoFollowRedirects: true,
 	}); err != nil {
 		log.Error("Clone wiki failed, err: %v", err)
 		cleanIncompleteWikiPath()
@@ -91,10 +92,11 @@ func MigrateRepositoryGitData(ctx context.Context, u *user_model.User,
 	}
 
 	if err := gitrepo.CloneExternalRepo(ctx, opts.CloneAddr, repo, git.CloneRepoOptions{
-		Mirror:        true,
-		Quiet:         true,
-		Timeout:       migrateTimeout,
-		SkipTLSVerify: setting.Migrations.SkipTLSVerify,
+		Mirror:            true,
+		Quiet:             true,
+		Timeout:           migrateTimeout,
+		SkipTLSVerify:     setting.Migrations.SkipTLSVerify,
+		NoFollowRedirects: true,
 	}); err != nil {
 		if errors.Is(err, context.DeadlineExceeded) {
 			return repo, fmt.Errorf("clone timed out, consider increasing [git.timeout] MIGRATE in app.ini, underlying err: %w", err)
