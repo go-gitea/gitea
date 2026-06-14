@@ -39,16 +39,27 @@ type mimeHandler struct {
 }
 
 var dataMimeHandlers = sync.OnceValue(func() []mimeHandler {
+	renderImage := func(w htmlutil.HTMLWriter, subtype, payload string) error {
+		w.WriteFormat(`<img src="data:image/%s;base64,%s" class="jupyter-output-image">`, subtype, payload)
+		return w.Err()
+	}
+	renderUnsupportedOutput := func(message string) func(htmlutil.HTMLWriter, string) error {
+		return func(w htmlutil.HTMLWriter, _ string) error {
+			w.WriteFormat(`<div class="jupyter-unsupported-output">%s</div>`, message)
+			return w.Err()
+		}
+	}
+
 	return []mimeHandler{
 		// Images (PNG, JPEG, SVG)
 		{"image/png", func(w htmlutil.HTMLWriter, d string) error {
-			return renderJupyterImg(w, "png", d)
+			return renderImage(w, "png", d)
 		}},
 		{"image/jpeg", func(w htmlutil.HTMLWriter, d string) error {
-			return renderJupyterImg(w, "jpeg", d)
+			return renderImage(w, "jpeg", d)
 		}},
 		{"image/svg+xml", func(w htmlutil.HTMLWriter, d string) error {
-			return renderJupyterImg(w, "svg+xml", base64.StdEncoding.EncodeToString([]byte(d)))
+			return renderImage(w, "svg+xml", base64.StdEncoding.EncodeToString([]byte(d)))
 		}},
 
 		// Rich & Math Layouts
@@ -66,23 +77,11 @@ var dataMimeHandlers = sync.OnceValue(func() []mimeHandler {
 		}},
 
 		// Security Placeholders
-		{"application/javascript", renderUnsupported("[JavaScript output - execution disabled for security]")},
-		{"application/vnd.plotly.v1+json", renderUnsupported("[Plotly output - interactive plots not supported]")},
-		{"application/vnd.jupyter.widget-view+json", renderUnsupported("[Jupyter widget - interactive widgets not supported]")},
+		{"application/javascript", renderUnsupportedOutput("[JavaScript output - execution disabled for security]")},
+		{"application/vnd.plotly.v1+json", renderUnsupportedOutput("[Plotly output - interactive plots not supported]")},
+		{"application/vnd.jupyter.widget-view+json", renderUnsupportedOutput("[Jupyter widget - interactive widgets not supported]")},
 	}
 })
-
-func renderJupyterImg(w htmlutil.HTMLWriter, subtype, payload string) error {
-	w.WriteFormat(`<img src="data:image/%s;base64,%s" class="jupyter-output-image">`, subtype, payload)
-	return w.Err()
-}
-
-func renderUnsupported(message string) func(htmlutil.HTMLWriter, string) error {
-	return func(w htmlutil.HTMLWriter, _ string) error {
-		w.WriteFormat(`<div class="jupyter-unsupported-output">%s</div>`, message)
-		return w.Err()
-	}
-}
 
 func (renderer) Name() string {
 	return "jupyter"
@@ -214,23 +213,23 @@ func renderCell(ctx *markup.RenderContext, output htmlutil.HTMLWriter, cell Cell
 		}
 
 		output.WriteHTML(`<div class="cell code">`)
-		output.WriteHTML(`<div class="input-wrapper">`)
-		if hasCount {
-			output.WriteFormat(`<div class="prompt input-prompt">In [%d]:</div>`, countVal)
-		} else {
-			output.WriteHTML(`<div class="prompt input-prompt">In [ ]:</div>`)
-		}
-		output.WriteHTML(`<div class="input">`)
 
-		// Highlight code
-		lexer := highlight.DetectChromaLexerByFileName("", language)
-		if lexer == nil {
-			lexer = highlight.DetectChromaLexerByFileName("", "plaintext")
+		{
+			output.WriteHTML(`<div class="input-wrapper">`)
+			if hasCount {
+				output.WriteFormat(`<div class="prompt input-prompt">In [%d]:</div>`, countVal)
+			} else {
+				output.WriteHTML(`<div class="prompt input-prompt">In [ ]:</div>`)
+			}
+			output.WriteHTML(`<div class="input">`)
+
+			// Highlight code
+			lexer := highlight.DetectChromaLexerByFileName("", language)
+			output.WriteFormat(`<pre><code class="chroma language-%s">`, strings.ToLower(language))
+			output.WriteHTML(highlight.RenderCodeByLexer(lexer, source))
+			output.WriteHTML("</code></pre>")
+			output.WriteHTML(`</div></div>`) // end: input, input-wrapper
 		}
-		output.WriteFormat(`<pre><code class="chroma language-%s">`, strings.ToLower(language))
-		output.WriteHTML(highlight.RenderCodeByLexer(lexer, source))
-		output.WriteHTML("</code></pre>")
-		output.WriteHTML(`</div></div>`)
 
 		// Render outputs
 		if len(cell.Outputs) > 0 {
@@ -253,13 +252,13 @@ func renderCell(ctx *markup.RenderContext, output htmlutil.HTMLWriter, cell Cell
 			for _, out := range cell.Outputs {
 				renderOutput(output, out)
 			}
-			output.WriteHTML(`</div></div>`)
+			output.WriteHTML(`</div></div>`) // end: output, output-wrapper
 		}
 
-		output.WriteHTML(`</div>`)
+		output.WriteHTML(`</div>`) // end: cell code
 
 	default:
-		log.Debug("Jupyter markup: unknown cell type %q encountered in notebook, skipping", cell.CellType)
+		output.WriteFormat(`<div class="cell markdown"><div class="input markup">(unsupported cell type %s, skipped)</div></div>`, cell.CellType)
 	}
 
 	return output.Err()
@@ -338,6 +337,7 @@ func joinSource(source any) string {
 	case string:
 		return v
 	case []string:
+		// the "source slice item" has EOL ("\n"), so just join them together
 		return strings.Join(v, "")
 	case []any:
 		parts := make([]string, len(v))
