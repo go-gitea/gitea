@@ -343,4 +343,23 @@ func TestAPITeamVisibilityAccess(t *testing.T) {
 	req = NewRequestf(t, "GET", "/api/v1/teams/%d/members/%s", publicTeam.ID, outsider.Name).
 		AddTokenAuth(token)
 	MakeRequest(t, req, http.StatusNotFound)
+
+	// A limited team's repo list must not leak repos the viewer cannot access.
+	// repo3 is private; user28 is an org3 member (team12, no repo access) who can
+	// read the limited team but has no access to repo3.
+	assert.NoError(t, db.Insert(t.Context(), &organization.TeamRepo{OrgID: 3, TeamID: limitedTeam.ID, RepoID: 3}))
+	user28 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 28})
+	token28 := getUserToken(t, user28.Name, auth_model.AccessTokenScopeReadOrganization)
+
+	req = NewRequestf(t, "GET", "/api/v1/teams/%d/repos", limitedTeam.ID).AddTokenAuth(token28)
+	resp := MakeRequest(t, req, http.StatusOK)
+	var repos []*api.Repository
+	DecodeJSON(t, resp, &repos)
+	for _, r := range repos {
+		assert.NotEqual(t, int64(3), r.ID, "must not leak inaccessible private repo3")
+	}
+
+	// The single-repo lookup must not confirm an inaccessible repo's existence.
+	req = NewRequestf(t, "GET", "/api/v1/teams/%d/repos/org3/repo3", limitedTeam.ID).AddTokenAuth(token28)
+	MakeRequest(t, req, http.StatusNotFound)
 }

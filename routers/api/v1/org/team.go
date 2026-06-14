@@ -575,14 +575,20 @@ func GetTeamRepos(ctx *context.APIContext) {
 		ctx.APIErrorInternal(err)
 		return
 	}
-	repos := make([]*api.Repository, len(teamRepos))
-	for i, repo := range teamRepos {
+	repos := make([]*api.Repository, 0, len(teamRepos))
+	for _, repo := range teamRepos {
 		permission, err := access_model.GetDoerRepoPermission(ctx, repo, ctx.Doer)
 		if err != nil {
 			ctx.APIErrorInternal(err)
 			return
 		}
-		repos[i] = convert.ToRepo(ctx, repo, permission)
+		// A team's repo list is reachable by non-team-members through the team's
+		// visibility tier, so never expose repos (incl. their names) the doer
+		// cannot access.
+		if !permission.HasAnyUnitAccessOrPublicAccess() {
+			continue
+		}
+		repos = append(repos, convert.ToRepo(ctx, repo, permission))
 	}
 	ctx.SetLinkHeader(int64(team.NumRepos), listOptions.PageSize)
 	ctx.SetTotalCountHeader(int64(team.NumRepos))
@@ -632,6 +638,12 @@ func GetTeamRepo(ctx *context.APIContext) {
 	permission, err := access_model.GetDoerRepoPermission(ctx, repo, ctx.Doer)
 	if err != nil {
 		ctx.APIErrorInternal(err)
+		return
+	}
+	// The team may be reachable by a non-team-member via its visibility tier;
+	// don't confirm the existence of a repo the doer cannot access.
+	if !permission.HasAnyUnitAccessOrPublicAccess() {
+		ctx.APIErrorNotFound()
 		return
 	}
 
