@@ -210,7 +210,7 @@ func SyncReleasesWithTags(ctx context.Context, repo *repo_model.Repository, gitR
 			syncResults = append(syncResults, &SyncResult{
 				RefName:     git.RefNameFromTag(tag.Name),
 				OldCommitID: "",
-				NewCommitID: tag.Object.String(),
+				NewCommitID: tag.Object.RefName(),
 			})
 		}
 		for _, deleteID := range deletes {
@@ -220,20 +220,20 @@ func SyncReleasesWithTags(ctx context.Context, repo *repo_model.Repository, gitR
 			}
 			syncResults = append(syncResults, &SyncResult{
 				RefName:     git.RefNameFromTag(release.TagName),
-				OldCommitID: release.Sha1,
+				OldCommitID: git.RefNameFromCommit(release.Sha1),
 				NewCommitID: "",
 			})
 		}
 		for _, tag := range updates {
 			release := dbReleasesByTag[tag.Name]
-			oldSha := ""
+			var oldCommitID git.RefName
 			if release != nil {
-				oldSha = release.Sha1
+				oldCommitID = git.RefNameFromCommit(release.Sha1)
 			}
 			syncResults = append(syncResults, &SyncResult{
 				RefName:     git.RefNameFromTag(tag.Name),
-				OldCommitID: oldSha,
-				NewCommitID: tag.Object.String(),
+				OldCommitID: oldCommitID,
+				NewCommitID: tag.Object.RefName(),
 			})
 		}
 		//
