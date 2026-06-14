@@ -60,7 +60,7 @@ type SearchTeamOptions struct {
 	IncludeVisibilities []structs.VisibleType
 }
 
-func (opts *SearchTeamOptions) toCond() builder.Cond {
+func (opts *SearchTeamOptions) applyToSession(sess db.Engine) {
 	cond := builder.NewCond()
 
 	if len(opts.Keyword) > 0 {
@@ -78,17 +78,18 @@ func (opts *SearchTeamOptions) toCond() builder.Cond {
 
 	switch {
 	case opts.UserID > 0 && len(opts.IncludeVisibilities) > 0:
+		sess = sess.Join("LEFT", "team_user", "team_user.team_id = team.id AND team_user.uid = ?", opts.UserID)
 		cond = cond.And(builder.Or(
 			builder.Eq{"team_user.uid": opts.UserID},
 			builder.In("`team`.visibility", opts.IncludeVisibilities),
 		))
 	case opts.UserID > 0:
+		sess = sess.Join("INNER", "team_user", "team_user.team_id = team.id")
 		cond = cond.And(builder.Eq{"team_user.uid": opts.UserID})
 	case len(opts.IncludeVisibilities) > 0:
 		cond = cond.And(builder.In("`team`.visibility", opts.IncludeVisibilities))
 	}
-
-	return cond
+	sess.Where(cond)
 }
 
 func VisibleTeamVisibilitiesFor(isOrgMember, isSignedIn bool) []structs.VisibleType {
@@ -127,21 +128,12 @@ func SearchTeam(ctx context.Context, opts *SearchTeamOptions) (TeamList, int64, 
 	sess := db.GetEngine(ctx)
 
 	opts.SetDefaultValues()
-	cond := opts.toCond()
+	opts.applyToSession(sess)
 
-	if opts.UserID > 0 {
-		if len(opts.IncludeVisibilities) > 0 {
-			sess = sess.Join("LEFT", "team_user", "team_user.team_id = team.id AND team_user.uid = ?", opts.UserID)
-		} else {
-			sess = sess.Join("INNER", "team_user", "team_user.team_id = team.id")
-		}
-	}
-	// When UserID is zero but IncludeVisibilities is set, no team_user join is
-	// needed — the WHERE clause already restricts to the requested tier(s).
 	db.SetSessionPagination(sess, opts)
 
 	teams := make([]*Team, 0, opts.PageSize)
-	count, err := sess.Where(cond).OrderBy("CASE WHEN name=? THEN '' ELSE lower_name END", OwnerTeamName).FindAndCount(&teams)
+	count, err := sess.OrderBy("CASE WHEN name=? THEN '' ELSE lower_name END", OwnerTeamName).FindAndCount(&teams)
 	if err != nil {
 		return nil, 0, err
 	}
