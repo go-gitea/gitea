@@ -261,7 +261,7 @@ func renderCell(ctx *markup.RenderContext, output htmlutil.HTMLWriter, cell Cell
 <div class="notebook-cell cell-type-markdown">
 	<div class="cell-line">
 		<div class="cell-left cell-prompt"></div>
-		<div class="cell-right>`)
+		<div class="cell-right">`)
 		if err := renderCellMarkdown(ctx, output, joinSource(cell.Source)); err != nil {
 			return err
 		}
