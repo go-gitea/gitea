@@ -60,7 +60,7 @@ type SearchTeamOptions struct {
 	IncludeVisibilities []structs.VisibleType
 }
 
-func (opts *SearchTeamOptions) applyToSession(sess db.Engine) {
+func (opts *SearchTeamOptions) applyToSession(sess db.SQLSession) {
 	cond := builder.NewCond()
 
 	if len(opts.Keyword) > 0 {
