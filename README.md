@@ -134,6 +134,10 @@ We're [working on it](https://github.com/go-gitea/gitea/issues/1029).
 
 In the [release log](https://github.com/go-gitea/gitea/releases) or the [change log](https://github.com/go-gitea/gitea/blob/main/CHANGELOG.md), search for the keyword `SECURITY` to find the security patches.
 
+### Inline Comments on Commits
+
+Gitea now supports adding inline comments directly on individual commits, outside of pull requests. This feature allows for more granular feedback and discussion on specific code changes, enhancing code review workflows for standalone commits and providing a dedicated space for contextual feedback on any commit's diff.
+
 ## License
 
 This project is licensed under the MIT License.
