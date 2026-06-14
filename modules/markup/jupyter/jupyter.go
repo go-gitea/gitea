@@ -243,7 +243,7 @@ func renderCell(ctx *markup.RenderContext, output htmlutil.HTMLWriter, cell Cell
 
 			output.WriteHTML(`<div class="output-wrapper">`)
 			if hasExecutionResult && hasCount {
-				output.WriteFormat(`<div class="prompt output-prompt">Out[%d]:</div>`, countVal)
+				output.WriteFormat(`<div class="prompt output-prompt">Out [%d]:</div>`, countVal)
 			} else {
 				output.WriteHTML(`<div class="prompt output-prompt"></div>`)
 			}
