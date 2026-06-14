@@ -14,5 +14,9 @@ func AddContinueOnErrorToActionRunJob(x db.EngineMigration) error {
 		ContinueOnError bool `xorm:"NOT NULL DEFAULT FALSE"`
 	}
 
-	return x.Sync(new(ActionRunJob))
+	_, err := x.SyncWithOptions(xorm.SyncOptions{
+		IgnoreDropIndices: true,
+		IgnoreConstrains:  true,
+	}, new(ActionRunJob))
+	return err
 }
