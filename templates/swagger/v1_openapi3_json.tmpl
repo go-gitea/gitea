@@ -399,6 +399,16 @@
         },
         "description": "CronList"
       },
+      "CurrentAccessToken": {
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/CurrentAccessToken"
+            }
+          }
+        },
+        "description": "CurrentAccessToken represents the currently authenticated access token."
+      },
       "DeployKey": {
         "content": {
           "application/json": {
@@ -4957,6 +4967,47 @@
             "x-go-name": "Schedule"
           }
         },
+        "type": "object",
+        "x-go-package": "gitea.dev/modules/structs"
+      },
+      "CurrentAccessToken": {
+        "properties": {
+          "created_at": {
+            "description": "The timestamp when the token was created",
+            "format": "date-time",
+            "type": "string",
+            "x-go-name": "CreatedAt"
+          },
+          "id": {
+            "description": "The unique identifier of the access token",
+            "format": "int64",
+            "type": "integer",
+            "x-go-name": "ID"
+          },
+          "last_used_at": {
+            "description": "The timestamp when the token was last used",
+            "format": "date-time",
+            "type": "string",
+            "x-go-name": "LastUsedAt"
+          },
+          "name": {
+            "description": "The name of the access token",
+            "type": "string",
+            "x-go-name": "Name"
+          },
+          "scopes": {
+            "description": "The scopes granted to this access token",
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "x-go-name": "Scopes"
+          },
+          "user": {
+            "$ref": "#/components/schemas/UserMeta"
+          }
+        },
+        "title": "CurrentAccessToken represents the metadata of the currently authenticated token.",
         "type": "object",
         "x-go-package": "gitea.dev/modules/structs"
       },
@@ -10485,6 +10536,24 @@
         },
         "type": "object",
         "x-go-package": "gitea.dev/models/activities"
+      },
+      "UserMeta": {
+        "properties": {
+          "id": {
+            "description": "The unique identifier of the user",
+            "format": "int64",
+            "type": "integer",
+            "x-go-name": "ID"
+          },
+          "login": {
+            "description": "The username of the user",
+            "type": "string",
+            "x-go-name": "Login"
+          }
+        },
+        "title": "UserMeta represents minimal user information for the token owner.",
+        "type": "object",
+        "x-go-package": "gitea.dev/modules/structs"
       },
       "UserSettings": {
         "description": "UserSettings represents user settings",
@@ -31414,6 +31483,32 @@
         "summary": "Add a repository to a team",
         "tags": [
           "organization"
+        ]
+      }
+    },
+    "/token": {
+      "delete": {
+        "operationId": "deleteCurrentToken",
+        "responses": {
+          "204": {
+            "description": "token deleted"
+          }
+        },
+        "summary": "Delete the currently authenticated token",
+        "tags": [
+          "miscellaneous"
+        ]
+      },
+      "get": {
+        "operationId": "getCurrentToken",
+        "responses": {
+          "200": {
+            "$ref": "#/components/responses/CurrentAccessToken"
+          }
+        },
+        "summary": "Get the currently authenticated token",
+        "tags": [
+          "miscellaneous"
         ]
       }
     },

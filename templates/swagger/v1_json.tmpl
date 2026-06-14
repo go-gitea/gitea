@@ -19202,6 +19202,38 @@
         }
       }
     },
+    "/token": {
+      "get": {
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "miscellaneous"
+        ],
+        "summary": "Get the currently authenticated token",
+        "operationId": "getCurrentToken",
+        "responses": {
+          "200": {
+            "$ref": "#/responses/CurrentAccessToken"
+          }
+        }
+      },
+      "delete": {
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "miscellaneous"
+        ],
+        "summary": "Delete the currently authenticated token",
+        "operationId": "deleteCurrentToken",
+        "responses": {
+          "204": {
+            "description": "token deleted"
+          }
+        }
+      }
+    },
     "/topics/search": {
       "get": {
         "produces": [
@@ -25127,6 +25159,47 @@
       },
       "x-go-package": "gitea.dev/modules/structs"
     },
+    "CurrentAccessToken": {
+      "type": "object",
+      "title": "CurrentAccessToken represents the metadata of the currently authenticated token.",
+      "properties": {
+        "created_at": {
+          "description": "The timestamp when the token was created",
+          "type": "string",
+          "format": "date-time",
+          "x-go-name": "CreatedAt"
+        },
+        "id": {
+          "description": "The unique identifier of the access token",
+          "type": "integer",
+          "format": "int64",
+          "x-go-name": "ID"
+        },
+        "last_used_at": {
+          "description": "The timestamp when the token was last used",
+          "type": "string",
+          "format": "date-time",
+          "x-go-name": "LastUsedAt"
+        },
+        "name": {
+          "description": "The name of the access token",
+          "type": "string",
+          "x-go-name": "Name"
+        },
+        "scopes": {
+          "description": "The scopes granted to this access token",
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "x-go-name": "Scopes"
+        },
+        "user": {
+          "$ref": "#/definitions/UserMeta"
+        }
+      },
+      "x-go-package": "gitea.dev/modules/structs"
+    },
     "DeleteEmailOption": {
       "description": "DeleteEmailOption options when deleting email addresses",
       "type": "object",
@@ -30618,6 +30691,24 @@
       },
       "x-go-package": "gitea.dev/models/activities"
     },
+    "UserMeta": {
+      "type": "object",
+      "title": "UserMeta represents minimal user information for the token owner.",
+      "properties": {
+        "id": {
+          "description": "The unique identifier of the user",
+          "type": "integer",
+          "format": "int64",
+          "x-go-name": "ID"
+        },
+        "login": {
+          "description": "The username of the user",
+          "type": "string",
+          "x-go-name": "Login"
+        }
+      },
+      "x-go-package": "gitea.dev/modules/structs"
+    },
     "UserSettings": {
       "description": "UserSettings represents user settings",
       "type": "object",
@@ -31120,6 +31211,12 @@
         "items": {
           "$ref": "#/definitions/Cron"
         }
+      }
+    },
+    "CurrentAccessToken": {
+      "description": "CurrentAccessToken represents the currently authenticated access token.",
+      "schema": {
+        "$ref": "#/definitions/CurrentAccessToken"
       }
     },
     "DeployKey": {
