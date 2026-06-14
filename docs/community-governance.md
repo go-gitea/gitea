@@ -167,7 +167,7 @@ Mergers are the maintainers who carry out the final merge of approved PRs. Their
 A merger must already be a Gitea maintainer.
 To apply, use the [Discord](https://discord.gg/Gitea) `#maintainers` channel.
 The minimum requirement for applications to become a merger is to have participated actively in the community for at least four months before applying.
-Ultimately, regardless of previous participation, the TOC must vote in your favor so that you can become a merger.
+Ultimately, regardless of previous participation, you can only become a merger if the TOC votes in your favor.
 
 You may also be invited by the TOC to become a merger.
 
