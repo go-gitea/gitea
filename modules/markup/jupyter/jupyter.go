@@ -176,7 +176,7 @@ func (renderer) Render(ctx *markup.RenderContext, input io.Reader, outputWriter 
 
 	for _, cell := range cells {
 		if err := renderCell(ctx, htmlWriter, cell, language); err != nil {
-			log.Warn("Failed to render cell: %v", err)
+			log.Warn("Failed to render cell: %v", err) // TODO: RENDER-LOG-HANDLING: see other comments
 			continue
 		}
 	}
@@ -286,11 +286,16 @@ func renderOutput(output htmlutil.HTMLWriter, out Output) {
 				case []any:
 					stringPayload = joinSource(v)
 				default:
-					log.Debug("Jupyter markup: unexpected format variant type for MIME key %s, skipping", h.Mime)
+					log.Debug("Jupyter markup: unexpected format variant type for MIME key %s, skipping", h.Mime) // TODO: RENDER-LOG-HANDLING: see other comments
 					continue
 				}
 
 				if err := h.Fn(output, stringPayload); err != nil {
+					// TODO: RENDER-LOG-HANDLING: outputting render's error to sever's log is not a proper approach
+					// The errors can be:
+					// * unsupported element (cell, data, etc): it should render the message on the UI to tell users that the content is not supported, or ignore them if they are ignore-able
+					// * logic error: it should report to server logs
+					// * network error: io.Writer tries to write to the HTTP connection, so the error can also be a network error, such error should be ignored
 					log.Error("Jupyter rendering engine failed for MIME type %s: %v", h.Mime, err)
 				}
 
