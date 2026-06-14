@@ -215,7 +215,7 @@ func TestRender(t *testing.T) {
 		err := r.Render(ctx, strings.NewReader(input), &output)
 
 		assert.NoError(t, err)
-		assert.Regexp(t, `<div class="ui info message">This notebook uses an older format.*</div>`, output.String())
+		assert.Regexp(t, `<div class="ui info message tw-text-center">This notebook uses an older format.*</div>`, output.String())
 	})
 }
 
