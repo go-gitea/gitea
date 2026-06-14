@@ -5,18 +5,32 @@ package v1_27
 
 import (
 	"gitea.dev/models/db"
+
+	"xorm.io/xorm"
 )
 
-// AddContinueOnErrorToActionRunJob adds the ContinueOnError column to ActionRunJob,
-// storing the job-level continue-on-error value from the workflow YAML.
-func AddContinueOnErrorToActionRunJob(x db.EngineMigration) error {
-	type ActionRunJob struct {
-		ContinueOnError bool `xorm:"NOT NULL DEFAULT FALSE"`
-	}
+type VisibleType int
 
-	_, err := x.SyncWithOptions(xorm.SyncOptions{
+type teamWithVisibility struct {
+	Visibility VisibleType `xorm:"NOT NULL DEFAULT 2"`
+}
+
+func (teamWithVisibility) TableName() string {
+	return "team"
+}
+
+func AddVisibilityToTeam(x db.EngineMigration) error {
+	if _, err := x.SyncWithOptions(xorm.SyncOptions{
 		IgnoreDropIndices: true,
 		IgnoreConstrains:  true,
-	}, new(ActionRunJob))
+	}, new(teamWithVisibility)); err != nil {
+		return err
+	}
+
+	// Owner teams must remain listable to all org members; new orgs create
+	// them as "limited", so make existing owner teams limited too.
+	// Filter on authorize=4 (AccessModeOwner) so a user-created team that
+	// happens to share the name "owners" is not accidentally affected.
+	_, err := x.Exec("UPDATE `team` SET visibility = ? WHERE lower_name = ? AND authorize = ?", 1, "owners", 4)
 	return err
 }
