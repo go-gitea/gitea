@@ -4,9 +4,7 @@
 package repo
 
 import (
-	"errors"
 	"net/http"
-	"os"
 
 	actions_model "gitea.dev/models/actions"
 	"gitea.dev/models/db"
@@ -98,11 +96,7 @@ func CancelWorkflowRun(ctx *context.APIContext) {
 
 	_, run, err := getRunID(ctx)
 	if err != nil {
-		if errors.Is(err, util.ErrNotExist) {
-			ctx.APIErrorNotFound(err.Error())
-		} else {
-			ctx.APIErrorInternal(err)
-		}
+		ctx.APIErrorAuto(err)
 		return
 	}
 
@@ -166,11 +160,7 @@ func ApproveWorkflowRun(ctx *context.APIContext) {
 
 	runID, run, err := getRunID(ctx)
 	if err != nil {
-		if errors.Is(err, util.ErrNotExist) {
-			ctx.APIErrorNotFound(err.Error())
-		} else {
-			ctx.APIErrorInternal(err)
-		}
+		ctx.APIErrorAuto(err)
 		return
 	}
 
@@ -187,11 +177,7 @@ func ApproveWorkflowRun(ctx *context.APIContext) {
 	}
 
 	if err := actions_service.ApproveRuns(ctx, ctx.Repo.Repository, ctx.Doer, []int64{runID}); err != nil {
-		if errors.Is(err, util.ErrNotExist) {
-			ctx.APIErrorNotFound(err.Error())
-		} else {
-			ctx.APIErrorInternal(err)
-		}
+		ctx.APIErrorAuto(err)
 		return
 	}
 
@@ -264,20 +250,12 @@ func GetWorkflowRunLogs(ctx *context.APIContext) {
 
 	_, run, err := getRunID(ctx)
 	if err != nil {
-		if errors.Is(err, util.ErrNotExist) {
-			ctx.APIErrorNotFound(err.Error())
-		} else {
-			ctx.APIErrorInternal(err)
-		}
+		ctx.APIErrorAuto(err)
 		return
 	}
 
 	if err = common.DownloadActionsRunAllJobLogs(ctx.Base, ctx.Repo.Repository, run.ID); err != nil {
-		if errors.Is(err, util.ErrNotExist) {
-			ctx.APIErrorNotFound(err.Error())
-		} else {
-			ctx.APIErrorInternal(err)
-		}
+		ctx.APIErrorAuto(err)
 		return
 	}
 }
@@ -317,11 +295,7 @@ func GetWorkflowJobLogs(ctx *context.APIContext) {
 
 	runID, _, err := getRunID(ctx)
 	if err != nil {
-		if errors.Is(err, util.ErrNotExist) {
-			ctx.APIErrorNotFound(err.Error())
-		} else {
-			ctx.APIErrorInternal(err)
-		}
+		ctx.APIErrorAuto(err)
 		return
 	}
 
@@ -329,22 +303,14 @@ func GetWorkflowJobLogs(ctx *context.APIContext) {
 
 	job, err := actions_model.GetRunJobByRunAndID(ctx, runID, jobID)
 	if err != nil {
-		if errors.Is(err, util.ErrNotExist) {
-			ctx.APIErrorNotFound(err.Error())
-		} else {
-			ctx.APIErrorInternal(err)
-		}
+		ctx.APIErrorAuto(err)
 		return
 	}
 
 	job.Repo = ctx.Repo.Repository
 
 	if err = common.DownloadActionsRunJobLogs(ctx.Base, ctx.Repo.Repository, job); err != nil {
-		if errors.Is(err, util.ErrNotExist) || errors.Is(err, os.ErrNotExist) {
-			ctx.APIErrorNotFound(err.Error())
-		} else {
-			ctx.APIErrorInternal(err)
-		}
+		ctx.APIErrorAuto(err)
 		return
 	}
 }
