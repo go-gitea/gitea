@@ -783,7 +783,8 @@ func GetUserRepositories(ctx context.Context, opts SearchRepoOptions) (Repositor
 
 	sess = sess.Where(cond).OrderBy(opts.OrderBy.String())
 	repos := make(RepositoryList, 0, opts.PageSize)
-	return repos, count, db.SetSessionPagination(sess, &opts).Find(&repos)
+	db.SetSessionPagination(sess, &opts)
+	return repos, count, sess.Find(&repos)
 }
 
 func GetOwnerRepositoriesByIDs(ctx context.Context, ownerID int64, repoIDs []int64) (RepositoryList, error) {
