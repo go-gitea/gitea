@@ -30,7 +30,7 @@ func TestManagedSSHCommand(t *testing.T) {
 
 		knownHosts := filepath.Join(dataPath, "home", ".ssh", "known_hosts")
 		expected := "ssh -o BatchMode=yes -o StrictHostKeyChecking=accept-new -o UserKnownHostsFile=" + util.ShellEscape(knownHosts)
-		assert.Equal(t, expected, managedSSHCommand())
+		assert.Equal(t, expected, managedSSHCommand(""))
 
 		// the known_hosts directory must be created so ssh can write to it
 		info, err := os.Stat(filepath.Dir(knownHosts))
@@ -45,7 +45,7 @@ func TestManagedSSHCommand(t *testing.T) {
 
 		knownHosts := filepath.Join(dataPath, "home", ".ssh", "known_hosts")
 		expected := "ssh -o BatchMode=yes -o StrictHostKeyChecking=yes -o UserKnownHostsFile=" + util.ShellEscape(knownHosts)
-		assert.Equal(t, expected, managedSSHCommand())
+		assert.Equal(t, expected, managedSSHCommand(""))
 	})
 
 	t.Run("no disables verification with /dev/null known_hosts", func(t *testing.T) {
@@ -53,21 +53,28 @@ func TestManagedSSHCommand(t *testing.T) {
 		setting.Migrations.SSHHostKeyChecking = "no"
 
 		expected := "ssh -o BatchMode=yes -o StrictHostKeyChecking=no -o UserKnownHostsFile=" + util.ShellEscape(os.DevNull)
-		assert.Equal(t, expected, managedSSHCommand())
+		assert.Equal(t, expected, managedSSHCommand(""))
 	})
 
 	t.Run("empty AppDataPath falls back without UserKnownHostsFile", func(t *testing.T) {
 		setting.AppDataPath = ""
 		setting.Migrations.SSHHostKeyChecking = "accept-new"
 
-		assert.Equal(t, "ssh -o BatchMode=yes -o StrictHostKeyChecking=accept-new", managedSSHCommand())
+		assert.Equal(t, "ssh -o BatchMode=yes -o StrictHostKeyChecking=accept-new", managedSSHCommand(""))
 	})
 
 	t.Run("BatchMode is always set so the worker never hangs", func(t *testing.T) {
 		setting.AppDataPath = t.TempDir()
 		for _, mode := range []string{"accept-new", "yes", "no"} {
 			setting.Migrations.SSHHostKeyChecking = mode
-			assert.Contains(t, managedSSHCommand(), "ssh -o BatchMode=yes ", "mode %q must run ssh non-interactively", mode)
+			assert.Contains(t, managedSSHCommand(""), "ssh -o BatchMode=yes ", "mode %q must run ssh non-interactively", mode)
 		}
+	})
+
+	t.Run("identityFile pins authentication to the managed key", func(t *testing.T) {
+		setting.AppDataPath = t.TempDir()
+		setting.Migrations.SSHHostKeyChecking = "no"
+		keyFile := filepath.Join(t.TempDir(), "id.pub")
+		assert.Contains(t, managedSSHCommand(keyFile), "-o IdentitiesOnly=yes -i "+util.ShellEscape(keyFile))
 	})
 }

@@ -61,19 +61,25 @@ type Command struct {
 // operations (migration / mirror with a generated keypair). ssh runs
 // non-interactively (BatchMode) so the worker never hangs on an unknown host,
 // and the configured host-key policy is applied.
-func managedSSHCommand() string {
+func managedSSHCommand(identityFile string) string {
+	var cmd string
 	mode := setting.Migrations.SSHHostKeyChecking
 	if mode == "no" {
-		return "ssh -o BatchMode=yes -o StrictHostKeyChecking=no -o UserKnownHostsFile=" + util.ShellEscape(os.DevNull)
-	}
-	cmd := "ssh -o BatchMode=yes -o StrictHostKeyChecking=" + mode
-	// Persist accepted host keys in a Gitea-managed file so a later key change
-	// is detected (TOFU); fall back to ssh's default known_hosts if unset.
-	if setting.AppDataPath != "" {
-		knownHosts := filepath.Join(setting.AppDataPath, "home", ".ssh", "known_hosts")
-		if err := os.MkdirAll(filepath.Dir(knownHosts), 0o700); err == nil {
-			cmd += " -o UserKnownHostsFile=" + util.ShellEscape(knownHosts)
+		cmd = "ssh -o BatchMode=yes -o StrictHostKeyChecking=no -o UserKnownHostsFile=" + util.ShellEscape(os.DevNull)
+	} else {
+		cmd = "ssh -o BatchMode=yes -o StrictHostKeyChecking=" + mode
+		// Persist accepted host keys in a Gitea-managed file so a later key change
+		// is detected (TOFU); fall back to ssh's default known_hosts if unset.
+		if setting.AppDataPath != "" {
+			knownHosts := filepath.Join(setting.AppDataPath, "home", ".ssh", "known_hosts")
+			if err := os.MkdirAll(filepath.Dir(knownHosts), 0o700); err == nil {
+				cmd += " -o UserKnownHostsFile=" + util.ShellEscape(knownHosts)
+			}
 		}
+	}
+	// pin auth to the managed key so ssh ignores the OS user's $HOME/.ssh identities
+	if identityFile != "" {
+		cmd += " -o IdentitiesOnly=yes -i " + util.ShellEscape(identityFile)
 	}
 	return cmd
 }
@@ -242,6 +248,9 @@ type runOpts struct {
 	// If provided, SSH_AUTH_SOCK environment variable will be set
 	SSHAuthSock string
 
+	// SSHIdentityFile is the managed public key file used to pin ssh authentication
+	SSHIdentityFile string
+
 	PipelineFunc func(Context) error
 }
 
@@ -302,6 +311,11 @@ func (c *Command) WithTimeout(timeout time.Duration) *Command {
 
 func (c *Command) WithSSHAuthSock(sshAuthSock string) *Command {
 	c.opts.SSHAuthSock = sshAuthSock
+	return c
+}
+
+func (c *Command) WithSSHIdentityFile(identityFile string) *Command {
+	c.opts.SSHIdentityFile = identityFile
 	return c
 }
 
@@ -475,7 +489,7 @@ func (c *Command) Start(ctx context.Context) (retErr error) {
 
 	if c.opts.SSHAuthSock != "" {
 		c.cmd.Env = append(c.cmd.Env, "SSH_AUTH_SOCK="+c.opts.SSHAuthSock)
-		c.cmd.Env = append(c.cmd.Env, "GIT_SSH_COMMAND="+managedSSHCommand())
+		c.cmd.Env = append(c.cmd.Env, "GIT_SSH_COMMAND="+managedSSHCommand(c.opts.SSHIdentityFile))
 	}
 
 	c.cmd.Dir = c.opts.Dir

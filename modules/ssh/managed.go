@@ -7,6 +7,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"os"
 
 	repo_model "gitea.dev/models/repo"
 	user_model "gitea.dev/models/user"
@@ -47,10 +48,10 @@ func GetSSHKeypairForRepository(ctx context.Context, repo *repo_model.Repository
 // If sshKeyOwnerID is non-zero, the keypair of that owner is used instead of
 // the repository owner's (used when migrating to an org and the user wants
 // to authenticate with their personal managed key).
-func SetupManagedSSHAgent(ctx context.Context, repo *repo_model.Repository, remoteURL string, sshKeyOwnerID int64) (sshAuthSock string, cleanup func(), err error) {
+func SetupManagedSSHAgent(ctx context.Context, repo *repo_model.Repository, remoteURL string, sshKeyOwnerID int64) (sshAuthSock, sshIdentityFile string, cleanup func(), err error) {
 	noop := func() {}
 	if !IsSSHURL(remoteURL) {
-		return "", noop, nil
+		return "", "", noop, nil
 	}
 
 	ownerID := repo.OwnerID
@@ -59,22 +60,53 @@ func SetupManagedSSHAgent(ctx context.Context, repo *repo_model.Repository, remo
 	}
 	keypair, err := GetOrCreateSSHKeypair(ctx, ownerID)
 	if err != nil {
-		return "", noop, fmt.Errorf("failed to get SSH keypair for owner %d: %w", ownerID, err)
+		return "", "", noop, fmt.Errorf("failed to get SSH keypair for owner %d: %w", ownerID, err)
 	}
 	if keypair == nil {
-		return "", noop, nil
+		return "", "", noop, nil
 	}
 
 	privateKey, err := keypair.GetDecryptedPrivateKey()
 	if err != nil {
-		return "", noop, fmt.Errorf("failed to decrypt SSH private key: %w", err)
+		return "", "", noop, fmt.Errorf("failed to decrypt SSH private key: %w", err)
 	}
 
 	socketPath, agentCleanup, err := CreateTemporaryAgent(privateKey)
 	if err != nil {
-		return "", noop, fmt.Errorf("failed to create SSH agent: %w", err)
+		return "", "", noop, fmt.Errorf("failed to create SSH agent: %w", err)
+	}
+
+	identityFile, keyCleanup, err := writeManagedPublicKey(keypair.PublicKey)
+	if err != nil {
+		agentCleanup()
+		return "", "", noop, fmt.Errorf("failed to write managed public key: %w", err)
+	}
+
+	cleanup = func() {
+		keyCleanup()
+		agentCleanup()
 	}
 
 	log.Debug("SSH agent ready for %s (socket: %s)", repo.FullName(), socketPath)
-	return socketPath, agentCleanup, nil
+	return socketPath, identityFile, cleanup, nil
+}
+
+// writeManagedPublicKey writes the managed public key to a temporary file so the
+// git SSH command can pin authentication to it via "-i". The returned cleanup
+// removes the file.
+func writeManagedPublicKey(publicKey string) (path string, cleanup func(), err error) {
+	f, err := os.CreateTemp("", "gitea-managed-ssh-*.pub")
+	if err != nil {
+		return "", nil, err
+	}
+	if _, err = f.WriteString(publicKey); err != nil {
+		f.Close()
+		os.Remove(f.Name())
+		return "", nil, err
+	}
+	if err = f.Close(); err != nil {
+		os.Remove(f.Name())
+		return "", nil, err
+	}
+	return f.Name(), func() { os.Remove(f.Name()) }, nil
 }

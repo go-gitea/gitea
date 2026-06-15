@@ -119,7 +119,7 @@ func runSync(ctx context.Context, m *repo_model.Mirror) ([]*repo_module.SyncResu
 	timeout := time.Duration(setting.Git.Timeout.Mirror) * time.Second
 
 	// Setup SSH authentication if needed
-	sshAuthSock, cleanup, sshErr := ssh_module.SetupManagedSSHAgent(ctx, m.Repo, remoteURL.String(), 0)
+	sshAuthSock, sshIdentityFile, cleanup, sshErr := ssh_module.SetupManagedSSHAgent(ctx, m.Repo, remoteURL.String(), 0)
 	if sshErr != nil {
 		log.Error("SyncMirrors [repo: %-v]: SSH setup error %v", m.Repo, sshErr)
 		return nil, false
@@ -132,7 +132,7 @@ func runSync(ctx context.Context, m *repo_model.Mirror) ([]*repo_module.SyncResu
 		if m.EnablePrune {
 			cmd.AddArguments("--prune")
 		}
-		return cmd.AddDynamicArguments(m.GetRemoteName()).WithTimeout(timeout).WithEnv(envs).WithSSHAuthSock(sshAuthSock)
+		return cmd.AddDynamicArguments(m.GetRemoteName()).WithTimeout(timeout).WithEnv(envs).WithSSHAuthSock(sshAuthSock).WithSSHIdentityFile(sshIdentityFile)
 	}
 
 	var err error
@@ -209,7 +209,7 @@ func runSync(ctx context.Context, m *repo_model.Mirror) ([]*repo_module.SyncResu
 
 	cmdRemoteUpdatePrune := func() *gitcmd.Command {
 		return gitcmd.NewCommand("remote", "update", "--prune").
-			AddDynamicArguments(m.GetRemoteName()).WithTimeout(timeout).WithEnv(envs).WithSSHAuthSock(sshAuthSock)
+			AddDynamicArguments(m.GetRemoteName()).WithTimeout(timeout).WithEnv(envs).WithSSHAuthSock(sshAuthSock).WithSSHIdentityFile(sshIdentityFile)
 	}
 
 	if repo_service.HasWiki(ctx, m.Repo) {

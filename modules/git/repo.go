@@ -99,19 +99,20 @@ func (repo *Repository) IsEmpty() (bool, error) {
 
 // CloneRepoOptions options when clone a repository
 type CloneRepoOptions struct {
-	Timeout       time.Duration
-	Mirror        bool
-	Bare          bool
-	Quiet         bool
-	Branch        string
-	Shared        bool
-	NoCheckout    bool
-	Depth         int
-	Filter        string
-	SkipTLSVerify bool
-	SSHAuthSock   string
-	SingleBranch  bool
-	Env           []string
+	Timeout         time.Duration
+	Mirror          bool
+	Bare            bool
+	Quiet           bool
+	Branch          string
+	Shared          bool
+	NoCheckout      bool
+	Depth           int
+	Filter          string
+	SkipTLSVerify   bool
+	SSHAuthSock     string
+	SSHIdentityFile string
+	SingleBranch    bool
+	Env             []string
 }
 
 // Clone clones original repository to target path.
@@ -172,20 +173,22 @@ func Clone(ctx context.Context, from, to string, opts CloneRepoOptions) error {
 		WithTimeout(opts.Timeout).
 		WithEnv(envs).
 		WithSSHAuthSock(opts.SSHAuthSock).
+		WithSSHIdentityFile(opts.SSHIdentityFile).
 		RunWithStderr(ctx)
 }
 
 // PushOptions options when push to remote
 type PushOptions struct {
-	Remote         string
-	LocalRefName   string
-	Branch         string
-	Force          bool
-	ForceWithLease string
-	Mirror         bool
-	Env            []string
-	Timeout        time.Duration
-	SSHAuthSock    string
+	Remote          string
+	LocalRefName    string
+	Branch          string
+	Force           bool
+	ForceWithLease  string
+	Mirror          bool
+	Env             []string
+	Timeout         time.Duration
+	SSHAuthSock     string
+	SSHIdentityFile string
 }
 
 // Push pushs local commits to given remote branch.
@@ -211,7 +214,7 @@ func Push(ctx context.Context, repoPath string, opts PushOptions) error {
 	}
 	cmd.AddDashesAndList(remoteBranchArgs...)
 
-	stdout, stderr, err := cmd.WithEnv(opts.Env).WithTimeout(opts.Timeout).WithDir(repoPath).WithSSHAuthSock(opts.SSHAuthSock).RunStdString(ctx)
+	stdout, stderr, err := cmd.WithEnv(opts.Env).WithTimeout(opts.Timeout).WithDir(repoPath).WithSSHAuthSock(opts.SSHAuthSock).WithSSHIdentityFile(opts.SSHIdentityFile).RunStdString(ctx)
 	if err != nil {
 		if strings.Contains(stderr, "non-fast-forward") {
 			return &ErrPushOutOfDate{StdOut: stdout, StdErr: stderr, Err: err}

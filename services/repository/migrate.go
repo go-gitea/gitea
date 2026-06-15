@@ -29,13 +29,14 @@ import (
 )
 
 func cloneExternalRepoWithSSHAuth(ctx context.Context, repo *repo_model.Repository, remoteURL string, storageRepo gitrepo.Repository, cloneOpts git.CloneRepoOptions, sshKeyOwnerID int64) error {
-	sshAuthSock, cleanup, err := ssh_module.SetupManagedSSHAgent(ctx, repo, remoteURL, sshKeyOwnerID)
+	sshAuthSock, sshIdentityFile, cleanup, err := ssh_module.SetupManagedSSHAgent(ctx, repo, remoteURL, sshKeyOwnerID)
 	if err != nil {
 		return err
 	}
 	defer cleanup()
 
 	cloneOpts.SSHAuthSock = sshAuthSock
+	cloneOpts.SSHIdentityFile = sshIdentityFile
 	return gitrepo.CloneExternalRepo(ctx, remoteURL, storageRepo, cloneOpts)
 }
 
