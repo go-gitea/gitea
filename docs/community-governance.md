@@ -222,13 +222,12 @@ Here's the history of the owners and the time they served:
 - [Lunny Xiao](https://gitea.com/lunny) - 2016, 2017, [2018](https://github.com/go-gitea/gitea/issues/3255), [2019](https://github.com/go-gitea/gitea/issues/5572), [2020](https://github.com/go-gitea/gitea/issues/9230), [2021](https://github.com/go-gitea/gitea/issues/13801), [2022](https://github.com/go-gitea/gitea/issues/17872), 2023
 - [Kim Carlbäcker](https://github.com/bkcsoft) - 2016, 2017
 - [Thomas Boerger](https://gitea.com/tboerger) - 2016, 2017
-- [Lauris Bukšis-Haberkorns](https://gitea.com/lafriks) - [2018](https://github.com/go-gitea/gitea/issues/3255), [2019](https://github.com/go-gitea/gitea/issues/5572), [2020](https://github.com/go-gitea/gitea/issues/9230), [2021](https://github.com/go-gitea/gitea/issues/13801)
+- [Lauris Bukšis](https://gitea.com/lafriks) - [2018](https://github.com/go-gitea/gitea/issues/3255), [2019](https://github.com/go-gitea/gitea/issues/5572), [2020](https://github.com/go-gitea/gitea/issues/9230), [2021](https://github.com/go-gitea/gitea/issues/13801), 2025
 - [Matti Ranta](https://gitea.com/techknowlogick) - [2019](https://github.com/go-gitea/gitea/issues/5572), [2020](https://github.com/go-gitea/gitea/issues/9230), [2021](https://github.com/go-gitea/gitea/issues/13801), [2022](https://github.com/go-gitea/gitea/issues/17872), 2023
 - [Andrew Thornton](https://gitea.com/zeripath) - [2020](https://github.com/go-gitea/gitea/issues/9230), [2021](https://github.com/go-gitea/gitea/issues/13801), [2022](https://github.com/go-gitea/gitea/issues/17872), 2023
 - [6543](https://gitea.com/6543) - 2023, 2025
 - [John Olheiser](https://gitea.com/jolheiser) - 2023, 2024
 - [Jason Song](https://gitea.com/wolfogre) - 2023
-- [lafriks](https://gitea.com/lafriks) <lauris@nix.lv> - 2025
 
 ## Governance Compensation
 
