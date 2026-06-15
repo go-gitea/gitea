@@ -13,6 +13,7 @@ import (
 	issues_model "gitea.dev/models/issues"
 	"gitea.dev/models/unittest"
 	user_model "gitea.dev/models/user"
+	"gitea.dev/modules/json"
 	api "gitea.dev/modules/structs"
 	"gitea.dev/tests"
 
@@ -59,6 +60,44 @@ func TestAPIGetTrackedTimes(t *testing.T) {
 	assert.Len(t, filterAPITimes, 2)
 	assert.Equal(t, int64(3), filterAPITimes[0].ID)
 	assert.Equal(t, int64(6), filterAPITimes[1].ID)
+}
+
+// TestAPIGetTrackedTimesNonExistentUserFilter ensures filtering by a user that
+// does not exist returns a clean 404 instead of panicking (nil pointer dereference).
+func TestAPIGetTrackedTimesNonExistentUserFilter(t *testing.T) {
+	defer tests.PrepareTestEnv(t)()
+
+	user2 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
+	issue2 := unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{ID: 2})
+	assert.NoError(t, issue2.LoadRepo(t.Context()))
+
+	session := loginUser(t, user2.Name)
+	token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeReadIssue, auth_model.AccessTokenScopeReadRepository)
+
+	for _, tc := range []struct {
+		name string
+		url  string
+	}{
+		{"repository level", fmt.Sprintf("/api/v1/repos/%s/%s/times?user=nonexistentuser", user2.Name, issue2.Repo.Name)},
+		{"issue level", fmt.Sprintf("/api/v1/repos/%s/%s/issues/%d/times?user=nonexistentuser", user2.Name, issue2.Repo.Name, issue2.Index)},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			req := NewRequest(t, "GET", tc.url).AddTokenAuth(token)
+			resp := MakeRequest(t, req, http.StatusNotFound)
+
+			assert.True(t, json.Valid(resp.Body.Bytes()), "response body must be a single JSON value, got: %s", resp.Body.Bytes())
+
+			var apiError api.APIError
+			DecodeJSON(t, resp, &apiError)
+			assert.Contains(t, apiError.Message, "user does not exist")
+		})
+	}
+
+	t.Run("existing user", func(t *testing.T) {
+		req := NewRequestf(t, "GET", "/api/v1/repos/%s/%s/times?user=%s", user2.Name, issue2.Repo.Name, user2.Name).AddTokenAuth(token)
+		resp := MakeRequest(t, req, http.StatusOK)
+		DecodeJSON(t, resp, api.TrackedTimeList{})
+	})
 }
 
 func TestAPIDeleteTrackedTime(t *testing.T) {

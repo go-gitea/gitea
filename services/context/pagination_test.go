@@ -32,4 +32,24 @@ func TestPagination(t *testing.T) {
 	params.Del("foo")
 	v, _ = url.ParseQuery(string(p.GetParams()))
 	assert.Equal(t, params, v)
+
+	p = NewPagination(-1, 1, 1, 1)
+	p.WithUnlimitedPaging(0, false)
+	assert.Zero(t, p.Paginater.TotalPages())
+	assert.False(t, p.Paginater.HasNext())
+
+	p = NewPagination(-1, 1, 1, 1)
+	p.WithUnlimitedPaging(10, false)
+	assert.Equal(t, 1, p.Paginater.TotalPages()) // first page, no next, so it should know that the total page number is 1
+	assert.False(t, p.Paginater.HasNext())
+
+	p = NewPagination(-1, 1, 2, 1)
+	p.WithUnlimitedPaging(10, false)
+	assert.Equal(t, -1, p.Paginater.TotalPages())
+	assert.False(t, p.Paginater.HasNext())
+
+	p = NewPagination(-1, 1, 1, 1)
+	p.WithUnlimitedPaging(10, true)
+	assert.Equal(t, -1, p.Paginater.TotalPages())
+	assert.True(t, p.Paginater.HasNext())
 }

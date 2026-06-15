@@ -24,10 +24,9 @@ type Paginator interface {
 }
 
 // SetSessionPagination sets pagination for a database session
-func SetSessionPagination(sess Engine, p Paginator) Session {
+func SetSessionPagination(sess Engine, p Paginator) {
 	skip, take := p.GetSkipTake()
-
-	return sess.Limit(take, skip)
+	sess.Limit(take, skip)
 }
 
 // ListOptions options to paginate results

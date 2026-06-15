@@ -40,7 +40,7 @@ type contextKey struct {
 }
 
 // RepositoryFromContextOrOpen attempts to get the repository from the context or just opens it
-// The caller must call "defer gitRepo.Close()"
+// The caller must call Closer.Close()
 func RepositoryFromContextOrOpen(ctx context.Context, repo Repository) (*git.Repository, io.Closer, error) {
 	reqCtx := reqctx.FromContext(ctx)
 	if reqCtx != nil {

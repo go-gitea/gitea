@@ -4,6 +4,20 @@
 
 package structs
 
+// TeamVisibility controls who can list a team within its organization.
+//   - "public":  visible to any signed-in user (still bounded by org visibility)
+//   - "limited": visible to any member of the parent organization
+//   - "private": visible only to team members and org owners
+//
+// swagger:enum TeamVisibility
+type TeamVisibility string
+
+const (
+	TeamVisibilityPublic  TeamVisibility = "public"
+	TeamVisibilityLimited TeamVisibility = "limited"
+	TeamVisibilityPrivate TeamVisibility = "private"
+)
+
 // Team represents a team in an organization
 type Team struct {
 	// The unique identifier of the team
@@ -24,6 +38,11 @@ type Team struct {
 	UnitsMap map[string]string `json:"units_map"`
 	// Whether the team can create repositories in the organization
 	CanCreateOrgRepo bool `json:"can_create_org_repo"`
+	// Team visibility within the organization. "private" teams are only
+	// listable by members and org owners; "limited" teams are listable by
+	// any organization member; "public" teams are listable by any signed-in
+	// user.
+	Visibility TeamVisibility `json:"visibility"`
 }
 
 // CreateTeamOption options for creating a team
@@ -42,6 +61,8 @@ type CreateTeamOption struct {
 	UnitsMap map[string]string `json:"units_map"`
 	// Whether the team can create repositories in the organization
 	CanCreateOrgRepo bool `json:"can_create_org_repo"`
+	// Team visibility within the organization. Defaults to "private".
+	Visibility TeamVisibility `json:"visibility" binding:"OmitEmpty;In(public,limited,private)"`
 }
 
 // EditTeamOption options for editing a team
@@ -60,4 +81,7 @@ type EditTeamOption struct {
 	UnitsMap map[string]string `json:"units_map"`
 	// Whether the team can create repositories in the organization
 	CanCreateOrgRepo *bool `json:"can_create_org_repo"`
+	// Team visibility within the organization. When omitted, visibility is
+	// left unchanged.
+	Visibility *TeamVisibility `json:"visibility" binding:"OmitEmpty;In(public,limited,private)"`
 }

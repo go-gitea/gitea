@@ -80,6 +80,10 @@
   border-top-width: 0;
 }
 
+.ui.dropdown .menu .hidden { /* for hidden items and dividers */
+  display: none;
+}
+
 .ui.dropdown .menu > .header {
   margin: 1rem 0 0.75rem;
   padding: 0 1.14285714rem;

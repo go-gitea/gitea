@@ -32,10 +32,26 @@ import (
 // pushQueue represents a queue to handle update pull request tests
 var pushQueue *queue.WorkerPoolQueue[[]*repo_module.PushUpdateOptions]
 
-// handle passed PR IDs and test the PRs
-func handler(items ...[]*repo_module.PushUpdateOptions) [][]*repo_module.PushUpdateOptions {
+func initPushQueue() error {
+	pushQueue = queue.CreateSimpleQueue(graceful.GetManager().ShutdownContext(), "push_update", pushQueueHandler)
+	if pushQueue == nil {
+		return errors.New("unable to create push_update queue")
+	}
+	go graceful.GetManager().RunWithCancel(pushQueue)
+	return nil
+}
+
+// PushUpdates adds a push update to push queue, each call must pass the same repo updates
+func PushUpdates(opts ...*repo_module.PushUpdateOptions) error {
+	if len(opts) == 0 {
+		return nil
+	}
+	return pushQueue.Push(opts)
+}
+
+func pushQueueHandler(items ...[]*repo_module.PushUpdateOptions) [][]*repo_module.PushUpdateOptions {
 	for _, opts := range items {
-		if err := pushUpdates(opts); err != nil {
+		if err := pushQueueHandleUpdates(opts); err != nil {
 			// Username and repository stays the same between items in opts.
 			pushUpdate := opts[0]
 			log.Error("pushUpdate[%s/%s] failed: %v", pushUpdate.RepoUserName, pushUpdate.RepoName, err)
@@ -44,37 +60,8 @@ func handler(items ...[]*repo_module.PushUpdateOptions) [][]*repo_module.PushUpd
 	return nil
 }
 
-func initPushQueue() error {
-	pushQueue = queue.CreateSimpleQueue(graceful.GetManager().ShutdownContext(), "push_update", handler)
-	if pushQueue == nil {
-		return errors.New("unable to create push_update queue")
-	}
-	go graceful.GetManager().RunWithCancel(pushQueue)
-	return nil
-}
-
-// PushUpdate is an alias of PushUpdates for single push update options
-func PushUpdate(opts *repo_module.PushUpdateOptions) error {
-	return PushUpdates([]*repo_module.PushUpdateOptions{opts})
-}
-
-// PushUpdates adds a push update to push queue
-func PushUpdates(opts []*repo_module.PushUpdateOptions) error {
-	if len(opts) == 0 {
-		return nil
-	}
-
-	for _, opt := range opts {
-		if opt.IsNewRef() && opt.IsDelRef() {
-			return errors.New("Old and new revisions are both NULL")
-		}
-	}
-
-	return pushQueue.Push(opts)
-}
-
-// pushUpdates generates push action history feeds for push updating multiple refs
-func pushUpdates(optsList []*repo_module.PushUpdateOptions) error {
+// pushQueueHandleUpdates generates push action history feeds for push updating multiple refs
+func pushQueueHandleUpdates(optsList []*repo_module.PushUpdateOptions) error {
 	if len(optsList) == 0 {
 		return nil
 	}
@@ -94,7 +81,7 @@ func pushUpdates(optsList []*repo_module.PushUpdateOptions) error {
 	defer gitRepo.Close()
 
 	if err = repo_module.UpdateRepoSize(ctx, repo); err != nil {
-		return fmt.Errorf("Failed to update size for repository: %v", err)
+		return fmt.Errorf("failed to update size for repository: %v", err)
 	}
 
 	addTags := make([]string, 0, len(optsList))
@@ -104,10 +91,11 @@ func pushUpdates(optsList []*repo_module.PushUpdateOptions) error {
 
 	for _, opts := range optsList {
 		log.Trace("pushUpdates: %-v %s %s %s", repo, opts.OldCommitID, opts.NewCommitID, opts.RefFullName)
-
 		if opts.IsNewRef() && opts.IsDelRef() {
-			return fmt.Errorf("old and new revisions are both %s", objectFormat.EmptyObjectID())
+			setting.PanicInDevOrTesting("invalid push update (add+del): %+v", opts)
+			continue
 		}
+
 		if opts.RefFullName.IsTag() {
 			if pusher == nil || pusher.ID != opts.PusherID {
 				if opts.PusherID == user_model.ActionsUserID {
@@ -188,10 +176,13 @@ func pushUpdates(optsList []*repo_module.PushUpdateOptions) error {
 					return err
 				}
 
-				// delete cache for divergence
+				// sync branch related database data
 				if branch == repo.DefaultBranch {
 					if err := DelRepoDivergenceFromCache(ctx, repo.ID); err != nil {
 						log.Error("DelRepoDivergenceFromCache: %v", err)
+					}
+					if err := AddRepoToLicenseUpdaterQueue(&LicenseUpdaterOptions{RepoID: repo.ID}); err != nil {
+						log.Error("AddRepoToLicenseUpdaterQueue: %v", err)
 					}
 				} else {
 					if err := DelDivergenceFromCache(repo.ID, branch); err != nil {
@@ -297,7 +288,7 @@ func pushNewBranch(ctx context.Context, repo *repo_model.Repository, pusher *use
 }
 
 func pushUpdateBranch(_ context.Context, repo *repo_model.Repository, pusher *user_model.User, opts *repo_module.PushUpdateOptions, newCommit *git.Commit) ([]*git.Commit, error) {
-	l, err := newCommit.CommitsBeforeUntil(opts.OldCommitID)
+	l, err := newCommit.CommitsBeforeUntil(git.RefNameFromCommit(opts.OldCommitID))
 	if err != nil {
 		return nil, fmt.Errorf("newCommit.CommitsBeforeUntil: %w", err)
 	}
