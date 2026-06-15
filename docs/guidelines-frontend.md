@@ -30,7 +30,6 @@ Mixing frameworks arbitrarily makes code hard to maintain. Recommended combinati
 
 - Vue with vanilla JavaScript
 - Fomantic-UI (jQuery)
-- htmx for partial page reloads
 - Vanilla JavaScript
 
 Avoid combinations such as Vue with Fomantic-UI, jQuery with htmx, or htmx with heavy
