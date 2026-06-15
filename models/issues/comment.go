@@ -260,6 +260,7 @@ type Comment struct {
 	OriginalAuthorID int64
 	IssueID          int64  `xorm:"INDEX"`
 	Issue            *Issue `xorm:"-"`
+	RepoID           int64  `xorm:"INDEX"` // only set for issue-less comments, currently inline comments on commits
 	LabelID          int64
 	Label            *Label   `xorm:"-"`
 	AddedLabels      []*Label `xorm:"-"`

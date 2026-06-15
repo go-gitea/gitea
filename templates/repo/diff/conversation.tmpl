@@ -1,4 +1,7 @@
-{{if len .comments}}
+{{if .PageIsCommitDiff}}
+	{{/* inline comments on commits are not bound to an issue/review, so they use a dedicated, simpler conversation */}}
+	{{template "repo/diff/commit_conversation" dict "root" . "comments" .comments}}
+{{else if len .comments}}
 	{{$comment := index .comments 0}}
 	{{$resolved := $comment.IsResolved}}
 	{{$invalid := $comment.Invalidated}}

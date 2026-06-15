@@ -22,6 +22,7 @@ import (
 	git_model "gitea.dev/models/git"
 	issues_model "gitea.dev/models/issues"
 	pull_model "gitea.dev/models/pull"
+	repo_model "gitea.dev/models/repo"
 	user_model "gitea.dev/models/user"
 	"gitea.dev/modules/analyze"
 	"gitea.dev/modules/base"
@@ -618,6 +619,34 @@ func (diff *Diff) LoadComments(ctx context.Context, issue *issues_model.Issue, c
 					})
 					// Mark expand buttons that have comments in hidden lines
 					FillHiddenCommentIDsForDiffLine(line, lineCommits)
+				}
+			}
+		}
+	}
+	return nil
+}
+
+// LoadCommitComments loads inline commit comments into each diff line. It is the
+// counterpart of LoadComments for standalone commits, which are not bound to an issue.
+func (diff *Diff) LoadCommitComments(ctx context.Context, repo *repo_model.Repository, commitSHA string, currentUser *user_model.User) error {
+	allComments, err := issues_model.FetchCommitCodeComments(ctx, repo, commitSHA, currentUser)
+	if err != nil {
+		return err
+	}
+	for _, file := range diff.Files {
+		if lineComments, ok := allComments[file.Name]; ok {
+			for _, section := range file.Sections {
+				for _, line := range section.Lines {
+					if comments, ok := lineComments[int64(line.LeftIdx*-1)]; ok {
+						line.Comments = append(line.Comments, comments...)
+					}
+					if comments, ok := lineComments[int64(line.RightIdx)]; ok {
+						line.Comments = append(line.Comments, comments...)
+					}
+					sort.SliceStable(line.Comments, func(i, j int) bool {
+						return line.Comments[i].CreatedUnix < line.Comments[j].CreatedUnix
+					})
+					FillHiddenCommentIDsForDiffLine(line, lineComments)
 				}
 			}
 		}

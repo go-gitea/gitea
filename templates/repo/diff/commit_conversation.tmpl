@@ -1,0 +1,27 @@
+{{/* This template is used both as a sub-template (data: {root, comments}) and rendered
+directly by the create handler (data: ctx.Data, with comments under .comments). */}}
+{{$root := .root}}
+{{if not $root}}{{$root = .}}{{end}}
+{{$comments := .comments}}
+{{if len $comments}}
+	{{$comment := index $comments 0}}
+	<div class="conversation-holder" data-path="{{$comment.TreePath}}" data-side="{{if lt $comment.Line 0}}left{{else}}right{{end}}" data-idx="{{$comment.UnsignedLine}}">
+		<div class="field comment-code-cloud">
+			<div class="comment-list">
+				<div class="ui comments">
+					{{template "repo/diff/commit_comments" dict "root" $root "comments" $comments}}
+				</div>
+			</div>
+			{{if and $root.SignedUserID (not $root.Repository.IsArchived)}}
+				<div class="flex-text-block tw-mt-2 tw-flex-wrap tw-justify-end">
+					<button class="comment-form-reply ui primary icon tiny button">
+						{{svg "octicon-reply" 12}}{{ctx.Locale.Tr "repo.diff.comment.reply"}}
+					</button>
+				</div>
+				{{template "repo/diff/commit_comment_form" dict "root" $root "hidden" true "Line" $comment.UnsignedLine "File" $comment.TreePath "Side" $comment.DiffSide "HasComments" true}}
+			{{end}}
+		</div>
+	</div>
+{{else}}
+	{{template "repo/diff/conversation_outdated"}}
+{{end}}

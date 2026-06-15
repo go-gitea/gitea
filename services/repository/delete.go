@@ -149,6 +149,7 @@ func DeleteRepositoryDirectly(ctx context.Context, repoID int64, ignoreOrgTeams 
 		&activities_model.Action{RepoID: repo.ID},
 		&repo_model.Collaboration{RepoID: repoID},
 		&issues_model.Comment{RefRepoID: repoID},
+		&issues_model.Comment{RepoID: repoID}, // inline comments on commits are bound to the repo, not an issue
 		&git_model.CommitStatus{RepoID: repoID},
 		&git_model.Branch{RepoID: repoID},
 		&git_model.LFSLock{RepoID: repoID},
