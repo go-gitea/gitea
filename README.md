@@ -136,24 +136,9 @@ In the [release log](https://github.com/go-gitea/gitea/releases) or the [change 
 
 ## Subgroups
 
-Gitea supports organizing groups into hierarchical structures through subgroups. This allows for better organization of teams and projects within larger organizations.
+Gitea now supports subgroups, allowing for a more hierarchical organization of repositories and teams within your Gitea instance. This feature enables administrators to create nested groups, mirroring complex organizational structures and simplifying permission management.
 
-### Creating Subgroups
-
-Subgroups can be created within existing groups, enabling a nested organizational structure similar to GitLab's subgroups feature. This is useful for:
-
-- Organizing teams by department or project
-- Managing permissions at multiple levels
-- Creating logical hierarchies that match your organization's structure
-
-### Features
-
-- Create nested group hierarchies
-- Inherit permissions from parent groups
-- Manage access control at each level
-- Display full group paths in URLs and navigation
-
-For more information, see the [Groups documentation](https://docs.gitea.com/en-us/organizations/groups).
+Subgroups inherit permissions from their parent groups, providing a flexible and powerful way to manage access control across multiple projects and teams. This enhances the scalability and manageability of larger Gitea deployments.
 
 ## License
 
