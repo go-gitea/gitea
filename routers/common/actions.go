@@ -20,6 +20,13 @@ import (
 	"gitea.dev/services/context"
 )
 
+func actionsWorkflowBaseName(workflowID string) string {
+	if p := strings.Index(workflowID, "."); p > 0 {
+		return workflowID[:p]
+	}
+	return workflowID
+}
+
 func DownloadActionsRunJobLogsWithID(ctx *context.Base, ctxRepo *repo_model.Repository, runID, jobID int64) error {
 	job, err := actions_model.GetRunJobByRunAndID(ctx, runID, jobID)
 	if err != nil {
@@ -46,21 +53,16 @@ func DownloadActionsRunAllJobLogs(ctx *context.Base, ctxRepo *repo_model.Reposit
 		return fmt.Errorf("LoadRun: %w", err)
 	}
 
-	workflowName := runJobs[0].Run.WorkflowID
-	if p := strings.Index(workflowName, "."); p > 0 {
-		workflowName = workflowName[0:p]
-	}
+	workflowName := actionsWorkflowBaseName(runJobs[0].Run.WorkflowID)
 	safeWorkflowName := strings.NewReplacer(`"`, "", "\r", "", "\n", "", "/", "-", `\`, "-").Replace(workflowName)
 
-	// Set headers for zip download
 	ctx.Resp.Header().Set("Content-Type", "application/zip")
-	ctx.Resp.Header().Set("Content-Disposition", fmt.Sprintf(`attachment; filename="%s-run-%d-logs.zip"`, safeWorkflowName, runID))
+	ctx.Resp.Header().Set("Content-Disposition", httplib.EncodeContentDispositionAttachment(fmt.Sprintf("%s-run-%d-logs.zip", safeWorkflowName, runID)))
 
-	// Create zip writer
 	zipWriter := zip.NewWriter(ctx.Resp)
 	defer zipWriter.Close()
 
-	// Add each job's logs to the zip
+	jobNameReplacer := strings.NewReplacer("/", "-", `\`, "-", "..", "__")
 	for _, job := range runJobs {
 		taskID := job.EffectiveTaskID()
 		if taskID == 0 {
@@ -76,28 +78,26 @@ func DownloadActionsRunAllJobLogs(ctx *context.Base, ctxRepo *repo_model.Reposit
 			continue
 		}
 
-		// Create file in zip with job name and task ID; sanitize job names for safe zip entry paths
-		safeJobName := strings.NewReplacer("/", "-", `\`, "-", "..", "__").Replace(job.Name)
+		safeJobName := jobNameReplacer.Replace(job.Name)
 		fileName := fmt.Sprintf("%s-%s-%d.log", safeWorkflowName, safeJobName, task.ID)
 
-		if err := func() error {
-			reader, err := actions.OpenLogs(ctx, task.LogInStorage, task.LogFilename)
-			if err != nil {
-				return err
-			}
-			defer reader.Close()
+		reader, err := actions.OpenLogs(ctx, task.LogInStorage, task.LogFilename)
+		if err != nil {
+			log.Error("Failed to open logs for job %d: %v", job.ID, err)
+			continue
+		}
 
-			zipFile, err := zipWriter.Create(fileName)
-			if err != nil {
-				return err
-			}
-
-			_, err = io.Copy(zipFile, reader)
-			return err
-		}(); err != nil {
+		zipFile, err := zipWriter.Create(fileName)
+		if err != nil {
+			reader.Close()
 			log.Error("Failed to add logs for job %d to zip: %v", job.ID, err)
 			continue
 		}
+
+		if _, err = io.Copy(zipFile, reader); err != nil {
+			log.Error("Failed to add logs for job %d to zip: %v", job.ID, err)
+		}
+		reader.Close()
 	}
 
 	return nil
@@ -139,10 +139,7 @@ func DownloadActionsRunJobLogs(ctx *context.Base, ctxRepo *repo_model.Repository
 	}
 	defer reader.Close()
 
-	workflowName := curJob.Run.WorkflowID
-	if p := strings.Index(workflowName, "."); p > 0 {
-		workflowName = workflowName[0:p]
-	}
+	workflowName := actionsWorkflowBaseName(curJob.Run.WorkflowID)
 	ctx.ServeContent(reader, context.ServeHeaderOptions{
 		Filename:           fmt.Sprintf("%v-%v-%v.log", workflowName, curJob.Name, task.ID),
 		ContentLength:      &task.LogSize,
