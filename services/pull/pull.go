@@ -820,42 +820,43 @@ func GetSquashMergeCommitMessages(ctx context.Context, pr *issues_model.PullRequ
 		return ""
 	}
 
-	posterSig := pr.Issue.Poster.NewGitSig().String()
+	mergeMessage := strings.TrimSpace(pr.Issue.Content) // use PR's title and description as squash commit message
+	if setting.Repository.PullRequest.PopulateSquashCommentWithCommitMessages {
+		mergeMessage = formatSquashMergeCommitMessages(limitedCommits) // use PR's commit messages as squash commit message
+	}
+	coAuthors := collectSquashMergeCommitCoAuthors(ctx, gitRepo, pr, headCommitRef, mergeBaseRef, limit, limitedCommits)
+	return buildSquashMergeCommitMessages(mergeMessage, coAuthors)
+}
 
-	uniqueAuthors := make(container.Set[string])
-	authors := make([]string, 0, len(limitedCommits))
-	stringBuilder := strings.Builder{}
-
-	// trailerBlockAtEnd tracks whether the message currently ends with a Git trailer block.
-	// When true, we skip the "---------" separator so Co-authored-by lines stay contiguous with it.
-	trailerBlockAtEnd := false
-	if !setting.Repository.PullRequest.PopulateSquashCommentWithCommitMessages {
-		// use PR's title and description as squash commit message
-		message := strings.TrimSpace(pr.Issue.Content)
-		messageHasTrailers := commitMessageTrailersPattern.MatchString(message)
-		stringBuilder.WriteString(message)
-		// FIXME: is it right? why `len(commits)-1)`?
-		additionalCommitMessages := formatSquashMergeCommitMessages(commits[:max(0, len(commits)-1)])
-		if additionalCommitMessages != "" {
-			if stringBuilder.Len() > 0 {
-				stringBuilder.WriteString("\n\n")
-			}
-			// FIXME: is it right? what if `pr.Issue.Content` contains trailers?
-			stringBuilder.WriteString(additionalCommitMessages)
-			// appended bullets push the PR-description trailers (if any) out of the trailer-block position
-		} else if stringBuilder.Len() > 0 {
-			stringBuilder.WriteRune('\n')
-			if !messageHasTrailers {
-				stringBuilder.WriteRune('\n')
-			}
-			trailerBlockAtEnd = messageHasTrailers
-		}
-	} else {
-		// use PR's commit messages as squash commit message
-		stringBuilder.WriteString(formatSquashMergeCommitMessages(commits))
+func buildSquashMergeCommitMessages(mergeMessage string, coAuthors []string) string {
+	if len(coAuthors) == 0 {
+		return mergeMessage
 	}
 
-	// collect co-authors
+	msgContent, msgSep, msgTrailer := git.CommitMessageSplitTrailer(mergeMessage)
+	if msgTrailer == "" {
+		msgSep = "\n---------\n"
+	}
+	var sb strings.Builder
+	sb.WriteString(msgContent)
+	sb.WriteString(msgSep)
+	if msgTrailer = strings.TrimSpace(msgTrailer); msgTrailer != "" {
+		sb.WriteString(msgTrailer)
+		sb.WriteRune('\n')
+	}
+	for _, author := range coAuthors {
+		sb.WriteString(git.CoAuthoredByTrailer + ": ")
+		sb.WriteString(author)
+		sb.WriteRune('\n')
+	}
+	return sb.String()
+}
+
+func collectSquashMergeCommitCoAuthors(ctx context.Context, gitRepo *git.Repository, pr *issues_model.PullRequest, headCommitRef, mergeBaseRef git.RefName, limitFirst int, limitedCommits []*git.Commit) []string {
+	posterSig := pr.Issue.Poster.NewGitSig().String()
+	uniqueAuthors := make(container.Set[string])
+	authors := make([]string, 0, len(limitedCommits))
+
 	for _, commit := range limitedCommits {
 		authorString := commit.Author.String()
 		if uniqueAuthors.Add(authorString) && authorString != posterSig {
@@ -869,14 +870,14 @@ func GetSquashMergeCommitMessages(ctx context.Context, pr *issues_model.PullRequ
 	}
 
 	// collect the remaining authors
-	if limit >= 0 && setting.Repository.PullRequest.DefaultMergeMessageAllAuthors {
-		skip := limit
-		limit = 30
+	if limitFirst >= 0 && setting.Repository.PullRequest.DefaultMergeMessageAllAuthors {
+		skip := limitFirst
+		batchLimit := 30
 		for {
-			commits, err := gitRepo.CommitsBetween(headCommitRef, mergeBaseRef, limit, skip)
+			commits, err := gitRepo.CommitsBetween(headCommitRef, mergeBaseRef, batchLimit, skip)
 			if err != nil {
 				log.Error("Unable to get commits between: %s %s Error: %v", pr.HeadBranch, pr.MergeBase, err)
-				return ""
+				return authors
 			}
 			if len(commits) == 0 {
 				break
@@ -890,21 +891,10 @@ func GetSquashMergeCommitMessages(ctx context.Context, pr *issues_model.PullRequ
 					}
 				}
 			}
-			skip += limit
+			skip += batchLimit
 		}
 	}
-
-	if stringBuilder.Len() > 0 && len(authors) > 0 && !trailerBlockAtEnd {
-		stringBuilder.WriteString("---------\n\n")
-	}
-
-	for _, author := range authors {
-		stringBuilder.WriteString(git.CoAuthoredByTrailer + ": ")
-		stringBuilder.WriteString(author)
-		stringBuilder.WriteRune('\n')
-	}
-
-	return stringBuilder.String()
+	return authors
 }
 
 func formatSquashMergeCommitMessages(commits []*git.Commit) string {

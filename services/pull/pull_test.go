@@ -116,3 +116,25 @@ func TestPullRequest_GetDefaultMergeMessage_ExternalTracker(t *testing.T) {
 
 	assert.Equal(t, "Merge pull request 'issue3' (#3) from user2/repo2:branch2 into master", mergeMessage)
 }
+
+func TestBuildSquashMergeCommitMessages(t *testing.T) {
+	cases := []struct {
+		msg       string
+		coAuthors []string
+		expected  string
+	}{
+		{"title", nil, "title"},
+		{"title", []string{"the-user"}, "title\n---------\nCo-authored-by: the-user\n"},
+		{"title\n\nKey: val", []string{"the-user"}, "title\n\nKey: val\nCo-authored-by: the-user\n"},
+		{"title\n\n----\nKey: val", []string{"the-user"}, "title\n\n----\nKey: val\nCo-authored-by: the-user\n"},
+
+		{"title\n\nbody", nil, "title\n\nbody"},
+		{"title\n\nbody", []string{"the-user"}, "title\n\nbody\n---------\nCo-authored-by: the-user\n"},
+		{"title\n\nbody\n\nKey: val", []string{"the-user"}, "title\n\nbody\n\nKey: val\nCo-authored-by: the-user\n"},
+		{"title\n\nbody\n\n----\nKey: val", []string{"the-user"}, "title\n\nbody\n\n----\nKey: val\nCo-authored-by: the-user\n"},
+	}
+	for _, c := range cases {
+		msg := buildSquashMergeCommitMessages(c.msg, c.coAuthors)
+		assert.Equal(t, c.expected, msg, "msg: %s", c.msg)
+	}
+}
