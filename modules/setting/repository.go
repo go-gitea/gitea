@@ -56,6 +56,7 @@ var (
 		DisableMigrations                       bool
 		DisableStars                            bool `ini:"DISABLE_STARS"`
 		DefaultBranch                           string
+		DefaultRejectForcePush                  bool
 		AllowAdoptionOfUnadoptedRepositories    bool
 		AllowDeleteOfUnadoptedRepositories      bool
 		DisableDownloadSourceArchives           bool
@@ -185,6 +186,7 @@ var (
 		DisableMigrations:                       false,
 		DisableStars:                            false,
 		DefaultBranch:                           "main",
+		DefaultRejectForcePush:                  false,
 		AllowForkWithoutMaximumLimit:            true,
 		StreamArchives:                          true,
 
