@@ -41,6 +41,7 @@ func Test_ExpandIssueAndCommentLongTextFieldsForMSSQL(t *testing.T) {
 	defer deferrable()
 
 	require.NoError(t, ExpandIssueAndCommentLongTextFieldsForMSSQL(x))
+	require.NoError(t, ExpandIssueAndCommentLongTextFieldsForMSSQL(x))
 
 	longText := strings.Repeat("x", 5000)
 	_, err := x.Insert(&issueBeforeLongTextMSSQLMigration{Content: longText})

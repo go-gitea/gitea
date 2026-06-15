@@ -5,6 +5,7 @@ package v1_27
 
 import (
 	"fmt"
+	"strings"
 
 	"gitea.dev/models/db"
 	"gitea.dev/models/migrations/base"
@@ -29,6 +30,13 @@ func (commentWithLongTextFields) TableName() string {
 	return "comment"
 }
 
+func isMSSQLMaxTextColumn(column *schemas.Column) bool {
+	if column.Length != -1 {
+		return false
+	}
+	return strings.EqualFold(column.SQLType.Name, schemas.Varchar) || strings.EqualFold(column.SQLType.Name, schemas.NVarchar)
+}
+
 func modifyLongTextColumnsForMSSQL(x db.EngineMigration, bean any, columnNames ...string) error {
 	table, err := x.TableInfo(bean)
 	if err != nil {
@@ -39,6 +47,9 @@ func modifyLongTextColumnsForMSSQL(x db.EngineMigration, bean any, columnNames .
 		column := table.GetColumn(columnName)
 		if column == nil {
 			return fmt.Errorf("column %s does not exist in table %s", columnName, table.Name)
+		}
+		if isMSSQLMaxTextColumn(column) {
+			continue
 		}
 		if err := base.ModifyColumn(x, table.Name, column); err != nil {
 			return fmt.Errorf("modify %s.%s: %w", table.Name, columnName, err)
