@@ -51,20 +51,25 @@ type preReceiveContext struct {
 }
 
 // CanWriteCode returns true if pusher can write code
-func (ctx *preReceiveContext) CanWriteCode(ref git.RefName) bool {
+func (ctx *preReceiveContext) CanWriteCode(refFullName git.RefName) bool {
 	if !ctx.loadPusherAndPermission() {
 		return false
 	}
-	// Must not be cached: CanMaintainerWriteToBranch is evaluated against ctx.branchName, which
-	// differs for each ref in a batch push. Caching the first result would let a per-branch
-	// maintainer-edit grant on one ref authorize writes to every other ref in the same push.
-	// FIXME: the ref can be a branch, a tag, or something else?
-	return issues_model.CanMaintainerWriteToBranch(ctx, ctx.userPerm, branchName, ctx.user) || ctx.deployKeyAccessMode >= perm_model.AccessModeWrite
+	// The maintainer-edit grant is scoped to a single PR head branch, so it must be evaluated
+	// against the exact branch being pushed and only for branch refs. Tags and other refs can
+	// never match a PR head branch, so they pass an empty name. Deriving this per ref (instead of
+	// from shared mutable state) prevents a per-branch grant from authorizing writes to other refs
+	// batched into the same push.
+	maintainerEditBranch := ""
+	if refFullName.IsBranch() {
+		maintainerEditBranch = refFullName.BranchName()
+	}
+	return issues_model.CanMaintainerWriteToBranch(ctx, ctx.userPerm, maintainerEditBranch, ctx.user) || ctx.deployKeyAccessMode >= perm_model.AccessModeWrite
 }
 
 // AssertCanWriteCode returns true if pusher can write code
-func (ctx *preReceiveContext) AssertCanWriteCode(ref git.RefName) bool {
-	if !ctx.CanWriteCode(ref) {
+func (ctx *preReceiveContext) AssertCanWriteCode(refFullName git.RefName) bool {
+	if !ctx.CanWriteCode(refFullName) {
 		if ctx.Written() {
 			return false
 		}

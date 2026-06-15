@@ -10,6 +10,7 @@ import (
 	"gitea.dev/models/perm/access"
 	repo_model "gitea.dev/models/repo"
 	"gitea.dev/models/unittest"
+	"gitea.dev/modules/git"
 	"gitea.dev/services/contexttest"
 
 	"github.com/stretchr/testify/assert"
@@ -17,9 +18,9 @@ import (
 )
 
 // TestPreReceiveCanWriteCodePerBranch ensures the maintainer-edit write grant is evaluated against
-// the current branch on every call, instead of being cached from the first ref of a batch push.
+// the exact ref being pushed on every call, derived from that ref rather than shared mutable state.
 // Otherwise a per-branch grant (an open PR with "allow edits from maintainers") could be batched
-// together with a protected branch to escalate into full repository write.
+// together with a protected branch or a tag to escalate into full repository write.
 func TestPreReceiveCanWriteCodePerBranch(t *testing.T) {
 	require.NoError(t, unittest.PrepareTestDatabase())
 
@@ -57,10 +58,13 @@ func TestPreReceiveCanWriteCodePerBranch(t *testing.T) {
 	}
 
 	// The granted branch must be writable...
-	ctx.branchName = "granted-branch"
-	assert.True(t, ctx.CanWriteCode())
+	assert.True(t, ctx.CanWriteCode(git.RefNameFromBranch("granted-branch")))
 
 	// ...but another branch in the same push must NOT inherit that grant.
-	ctx.branchName = "master"
-	assert.False(t, ctx.CanWriteCode())
+	assert.False(t, ctx.CanWriteCode(git.RefNameFromBranch("master")))
+
+	// ...and a tag sharing the granted branch's name must NOT inherit it either: the grant is
+	// scoped to PR head branches, so a non-branch ref can never match it. (A tag ref already
+	// yields an empty branch name, so this guards the per-ref evaluation, not the IsBranch check.)
+	assert.False(t, ctx.CanWriteCode(git.RefNameFromTag("granted-branch")))
 }
