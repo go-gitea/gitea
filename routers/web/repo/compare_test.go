@@ -7,14 +7,14 @@ import (
 	"strings"
 	"testing"
 
-	asymkey_model "code.gitea.io/gitea/models/asymkey"
-	git_model "code.gitea.io/gitea/models/git"
-	issues_model "code.gitea.io/gitea/models/issues"
-	user_model "code.gitea.io/gitea/models/user"
-	"code.gitea.io/gitea/modules/git"
-	"code.gitea.io/gitea/modules/setting"
-	git_service "code.gitea.io/gitea/services/git"
-	"code.gitea.io/gitea/services/gitdiff"
+	asymkey_model "gitea.dev/models/asymkey"
+	git_model "gitea.dev/models/git"
+	"gitea.dev/models/gituser"
+	issues_model "gitea.dev/models/issues"
+	"gitea.dev/modules/git"
+	"gitea.dev/modules/setting"
+	git_service "gitea.dev/services/git"
+	"gitea.dev/services/gitdiff"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -52,8 +52,8 @@ func TestNewPullRequestTitleContent(t *testing.T) {
 	mockCommit := func(msg string) *git_model.SignCommitWithStatuses {
 		return &git_model.SignCommitWithStatuses{
 			SignCommit: &asymkey_model.SignCommit{
-				UserCommit: &user_model.UserCommit{
-					Commit: &git.Commit{
+				UserCommit: &gituser.UserCommit{
+					GitCommit: &git.Commit{
 						CommitMessage: git.CommitMessage{MessageRaw: msg},
 					},
 				},

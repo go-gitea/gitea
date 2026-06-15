@@ -7,7 +7,7 @@
 - Run single playwright e2e test files with `GITEA_TEST_E2E_FLAGS='<filepath>' make test-e2e`
 - Add the current year into the copyright header of new `.go` files
 - Ensure no trailing whitespace in edited files
-- Use Conventional Commits format for commit messages and PR titles (e.g. `type(scope): subject`)
+- Use Conventional Commits for commit messages and PR titles, e.g. `type(scope): subject`; `!` before the colon if breaking. Use `test` type for test-only changes.
 - Never force-push, amend, or squash unless asked. Use new commits and normal push for pull request updates
 - Preserve existing code comments, do not remove or rewrite comments that are still relevant
 - Keep comments short, prefer same-line, explain why, never narrate code
@@ -16,4 +16,5 @@
 - In TypeScript, use `!` (non-null assertion) instead of `?.`/`??` when a value is known to always exist
 - For CSS layout, prefer `flex-*` helpers over per-child `tw-ml-*` / `tw-mr-*` margins; fall back to `tw-*` utilities when specificity requires `!important`
 - Include authorship attribution in issue and pull request comments
-- Add `Co-Authored-By` lines to all commits, indicating name and model used
+- Always add `Assisted-By` trailers to commit messages in format `Assisted-by: AGENT_NAME:MODEL_VERSION`
+- Never add `Co-Authored-By` `Signed-off-by` trailer to commit messages. Sign off must be done by a human.

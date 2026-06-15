@@ -7,7 +7,7 @@ import (
 	"fmt"
 	"testing"
 
-	"code.gitea.io/gitea/models/unittest"
+	"gitea.dev/models/unittest"
 
 	"github.com/stretchr/testify/assert"
 )

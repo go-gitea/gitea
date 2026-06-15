@@ -6,14 +6,13 @@ package v1_21
 import (
 	"context"
 
-	repo_model "code.gitea.io/gitea/models/repo"
-	"code.gitea.io/gitea/modules/gitrepo"
-	"code.gitea.io/gitea/modules/setting"
-
-	"xorm.io/xorm"
+	"gitea.dev/models/db"
+	repo_model "gitea.dev/models/repo"
+	"gitea.dev/modules/gitrepo"
+	"gitea.dev/modules/setting"
 )
 
-func AddRemoteAddressToMirrors(x *xorm.Engine) error {
+func AddRemoteAddressToMirrors(x db.EngineMigration) error {
 	type Mirror struct {
 		RemoteAddress string `xorm:"VARCHAR(2048)"`
 	}
@@ -33,7 +32,7 @@ func AddRemoteAddressToMirrors(x *xorm.Engine) error {
 	return migratePushMirrors(x)
 }
 
-func migratePullMirrors(x *xorm.Engine) error {
+func migratePullMirrors(x db.EngineMigration) error {
 	type Mirror struct {
 		ID            int64  `xorm:"pk autoincr"`
 		RepoID        int64  `xorm:"INDEX"`
@@ -95,7 +94,7 @@ func migratePullMirrors(x *xorm.Engine) error {
 	return sess.Commit()
 }
 
-func migratePushMirrors(x *xorm.Engine) error {
+func migratePushMirrors(x db.EngineMigration) error {
 	type PushMirror struct {
 		ID            int64 `xorm:"pk autoincr"`
 		RepoID        int64 `xorm:"INDEX"`

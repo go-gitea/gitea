@@ -3,9 +3,9 @@
 
 package v1_22
 
-import "xorm.io/xorm"
+import "gitea.dev/models/db"
 
-func AddCommitStatusSummary(x *xorm.Engine) error {
+func AddCommitStatusSummary(x db.EngineMigration) error {
 	type CommitStatusSummary struct {
 		ID     int64  `xorm:"pk autoincr"`
 		RepoID int64  `xorm:"INDEX UNIQUE(repo_id_sha)"`
@@ -14,5 +14,5 @@ func AddCommitStatusSummary(x *xorm.Engine) error {
 	}
 	// there is no migrations because if there is no data on this table, it will fall back to get data
 	// from commit status
-	return x.Sync2(new(CommitStatusSummary))
+	return x.Sync(new(CommitStatusSummary))
 }

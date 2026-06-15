@@ -20,6 +20,7 @@ const LogLinePrefixCommandMap: Record<string, LogLineCommandName> = {
   '##[warning]': 'warning',
   '##[notice]': 'notice',
   '##[debug]': 'debug',
+  '##[command]': 'command',
   '[command]': 'command',
 
   // https://github.com/actions/toolkit/blob/master/docs/commands.md
@@ -87,6 +88,22 @@ export function createLogLineMessage(line: LogLine, cmd: LogLineCommand | null) 
   return logMsg;
 }
 
+// buildJobsByParentJobID groups jobs by their parentJobID (0 = top level).
+// Useful for rendering the reusable-workflow caller/child tree in the sidebar.
+export function buildJobsByParentJobID(jobs: ActionsJob[]): Map<number, ActionsJob[]> {
+  const childrenByParent = new Map<number, ActionsJob[]>();
+  for (const job of jobs) {
+    const parentID = job.parentJobID || 0;
+    const existing = childrenByParent.get(parentID);
+    if (existing) {
+      existing.push(job);
+    } else {
+      childrenByParent.set(parentID, [job]);
+    }
+  }
+  return childrenByParent;
+}
+
 export function createEmptyActionsRun(): ActionsRun {
   return {
     repoId: 0,
@@ -109,7 +126,9 @@ export function createEmptyActionsRun(): ActionsRun {
     duration: '',
     triggeredAt: 0,
     triggerEvent: '',
+    pullRequest: null,
     jobs: [] as Array<ActionsJob>,
+    jobSummaries: [],
     commit: {
       localeCommit: '',
       localePushedBy: '',
@@ -118,6 +137,7 @@ export function createEmptyActionsRun(): ActionsRun {
       pusher: {
         displayName: '',
         link: '',
+        avatarLink: '',
       },
       branch: {
         name: '',
@@ -160,7 +180,7 @@ export function createActionRunViewStore(viewUrl: string) {
     }
   };
 
-  return reactive({
+  return {
     viewData,
 
     async startPollingCurrentRun() {
@@ -177,7 +197,7 @@ export function createActionRunViewStore(viewUrl: string) {
       clearInterval(intervalID);
       intervalID = null;
     },
-  });
+  };
 }
 
 export type ActionRunViewStore = ReturnType<typeof createActionRunViewStore>;

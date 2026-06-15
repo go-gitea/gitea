@@ -15,16 +15,16 @@ import (
 	"sync"
 	"testing"
 
-	auth_model "code.gitea.io/gitea/models/auth"
-	packages_model "code.gitea.io/gitea/models/packages"
-	"code.gitea.io/gitea/models/unittest"
-	user_model "code.gitea.io/gitea/models/user"
-	container_module "code.gitea.io/gitea/modules/packages/container"
-	"code.gitea.io/gitea/modules/setting"
-	api "code.gitea.io/gitea/modules/structs"
-	"code.gitea.io/gitea/modules/test"
-	package_service "code.gitea.io/gitea/services/packages"
-	"code.gitea.io/gitea/tests"
+	auth_model "gitea.dev/models/auth"
+	packages_model "gitea.dev/models/packages"
+	"gitea.dev/models/unittest"
+	user_model "gitea.dev/models/user"
+	container_module "gitea.dev/modules/packages/container"
+	"gitea.dev/modules/setting"
+	api "gitea.dev/modules/structs"
+	"gitea.dev/modules/test"
+	package_service "gitea.dev/services/packages"
+	"gitea.dev/tests"
 
 	oci "github.com/opencontainers/image-spec/specs-go/v1"
 	"github.com/stretchr/testify/assert"
@@ -766,20 +766,16 @@ func TestPackageContainer(t *testing.T) {
 
 		var wg sync.WaitGroup
 		for i := range 10 {
-			wg.Add(1)
-
 			content := []byte{byte(i)}
 			digest := fmt.Sprintf("sha256:%x", sha256.Sum256(content))
 
-			go func() {
-				defer wg.Done()
-
+			wg.Go(func() {
 				req := NewRequestWithBody(t, "POST", fmt.Sprintf("%s/blobs/uploads?digest=%s", url, digest), bytes.NewReader(content)).
 					AddTokenAuth(userToken)
 				resp := MakeRequest(t, req, http.StatusCreated)
 
 				assert.Equal(t, digest, resp.Header().Get("Docker-Content-Digest"))
-			}()
+			})
 		}
 		wg.Wait()
 	})

@@ -3,9 +3,9 @@
 
 package v1_10
 
-import "xorm.io/xorm"
+import "gitea.dev/models/db"
 
-func AddIndexOnRepositoryAndComment(x *xorm.Engine) error {
+func AddIndexOnRepositoryAndComment(x db.EngineMigration) error {
 	type Repository struct {
 		ID      int64 `xorm:"pk autoincr"`
 		OwnerID int64 `xorm:"index"`

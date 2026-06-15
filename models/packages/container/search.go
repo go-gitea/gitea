@@ -8,11 +8,11 @@ import (
 	"strings"
 	"time"
 
-	"code.gitea.io/gitea/models/db"
-	"code.gitea.io/gitea/models/packages"
-	user_model "code.gitea.io/gitea/models/user"
-	container_module "code.gitea.io/gitea/modules/packages/container"
-	"code.gitea.io/gitea/modules/util"
+	"gitea.dev/models/db"
+	"gitea.dev/models/packages"
+	user_model "gitea.dev/models/user"
+	container_module "gitea.dev/modules/packages/container"
+	"gitea.dev/modules/util"
 
 	"xorm.io/builder"
 )
@@ -223,7 +223,7 @@ func SearchImageTags(ctx context.Context, opts *ImageTagsSearchOptions) ([]*pack
 	opts.configureOrderBy(sess)
 
 	if opts.Paginator != nil {
-		sess = db.SetSessionPagination(sess, opts)
+		db.SetSessionPagination(sess, opts)
 	}
 
 	pvs := make([]*packages.PackageVersion, 0, 10)

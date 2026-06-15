@@ -7,6 +7,8 @@ import (
 	"io"
 	"testing"
 
+	"gitea.dev/modules/test"
+
 	"github.com/PuerkitoBio/goquery"
 	"github.com/stretchr/testify/assert"
 )
@@ -46,4 +48,14 @@ func AssertHTMLElement[T int | bool](t testing.TB, doc *HTMLDoc, selector string
 	case int:
 		assert.Equal(t, v, sel.Length())
 	}
+}
+
+func assertHTMLEq(t testing.TB, expected, actual string) {
+	t.Helper()
+	if expected == actual { // fast path
+		return
+	}
+	exp := test.NormalizeHTMLAttributes(t, expected)
+	act := test.NormalizeHTMLAttributes(t, actual)
+	assert.Equal(t, exp, act)
 }

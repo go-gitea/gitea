@@ -7,8 +7,8 @@ import (
 	"strings"
 	"testing"
 
-	"code.gitea.io/gitea/modules/markup"
-	"code.gitea.io/gitea/modules/typesniffer"
+	"gitea.dev/modules/markup"
+	"gitea.dev/modules/typesniffer"
 
 	"github.com/stretchr/testify/assert"
 )

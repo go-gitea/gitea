@@ -11,24 +11,24 @@ import (
 	"net/url"
 	"strings"
 
-	git_model "code.gitea.io/gitea/models/git"
-	repo_model "code.gitea.io/gitea/models/repo"
-	"code.gitea.io/gitea/models/unit"
-	"code.gitea.io/gitea/modules/git"
-	"code.gitea.io/gitea/modules/gitrepo"
-	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/optional"
-	repo_module "code.gitea.io/gitea/modules/repository"
-	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/modules/templates"
-	"code.gitea.io/gitea/modules/util"
-	"code.gitea.io/gitea/modules/web"
-	"code.gitea.io/gitea/routers/utils"
-	"code.gitea.io/gitea/services/context"
-	"code.gitea.io/gitea/services/forms"
-	pull_service "code.gitea.io/gitea/services/pull"
-	release_service "code.gitea.io/gitea/services/release"
-	repo_service "code.gitea.io/gitea/services/repository"
+	git_model "gitea.dev/models/git"
+	repo_model "gitea.dev/models/repo"
+	"gitea.dev/models/unit"
+	"gitea.dev/modules/git"
+	"gitea.dev/modules/gitrepo"
+	"gitea.dev/modules/log"
+	"gitea.dev/modules/optional"
+	repo_module "gitea.dev/modules/repository"
+	"gitea.dev/modules/setting"
+	"gitea.dev/modules/templates"
+	"gitea.dev/modules/util"
+	"gitea.dev/modules/web"
+	"gitea.dev/routers/utils"
+	"gitea.dev/services/context"
+	"gitea.dev/services/forms"
+	pull_service "gitea.dev/services/pull"
+	release_service "gitea.dev/services/release"
+	repo_service "gitea.dev/services/repository"
 )
 
 const (
@@ -52,13 +52,16 @@ func Branches(ctx *context.Context) {
 
 	kw := ctx.FormString("q")
 
-	defaultBranch, branches, branchesCount, err := repo_service.LoadBranches(ctx, ctx.Repo.Repository, ctx.Repo.GitRepo, optional.None[bool](), kw, page, pageSize)
+	defaultBranchOptional, branches, branchesCount, err := repo_service.LoadBranches(ctx, ctx.Repo.Repository, ctx.Repo.GitRepo, optional.None[bool](), kw, page, pageSize)
 	if err != nil {
 		ctx.ServerError("LoadBranches", err)
 		return
 	}
 
-	commitIDs := []string{defaultBranch.DBBranch.CommitID}
+	commitIDs := make([]string, 0, len(branches)+1)
+	if defaultBranchOptional != nil {
+		commitIDs = append(commitIDs, defaultBranchOptional.DBBranch.CommitID)
+	}
 	for _, branch := range branches {
 		commitIDs = append(commitIDs, branch.DBBranch.CommitID)
 	}
@@ -83,7 +86,7 @@ func Branches(ctx *context.Context) {
 	ctx.Data["Branches"] = branches
 	ctx.Data["CommitStatus"] = commitStatus
 	ctx.Data["CommitStatuses"] = commitStatuses
-	ctx.Data["DefaultBranchBranch"] = defaultBranch
+	ctx.Data["DefaultBranchBranch"] = defaultBranchOptional
 	pager := context.NewPagination(branchesCount, pageSize, page, 5)
 	pager.AddParamFromRequest(ctx.Req)
 	ctx.Data["Page"] = pager
@@ -152,7 +155,7 @@ func RestoreBranchPost(ctx *context.Context) {
 	objectFormat := git.ObjectFormatFromName(ctx.Repo.Repository.ObjectFormatName)
 
 	// Don't return error below this
-	if err := repo_service.PushUpdate(
+	if err := repo_service.PushUpdates(
 		&repo_module.PushUpdateOptions{
 			RefFullName:  git.RefNameFromBranch(deletedBranch.Name),
 			OldCommitID:  objectFormat.EmptyObjectID().String(),

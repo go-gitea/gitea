@@ -8,14 +8,14 @@ import (
 	"strings"
 	"testing"
 
-	actions_model "code.gitea.io/gitea/models/actions"
-	db "code.gitea.io/gitea/models/db"
-	repo_model "code.gitea.io/gitea/models/repo"
-	"code.gitea.io/gitea/models/unit"
-	"code.gitea.io/gitea/models/unittest"
-	"code.gitea.io/gitea/modules/git"
-	"code.gitea.io/gitea/modules/git/gitcmd"
-	"code.gitea.io/gitea/modules/util"
+	actions_model "gitea.dev/models/actions"
+	db "gitea.dev/models/db"
+	repo_model "gitea.dev/models/repo"
+	"gitea.dev/models/unit"
+	"gitea.dev/models/unittest"
+	"gitea.dev/modules/git"
+	"gitea.dev/modules/git/gitcmd"
+	"gitea.dev/modules/util"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -119,8 +119,9 @@ func TestToActionWorkflowRun_UsesTriggerEvent(t *testing.T) {
 	// Scheduled runs keep Event as the registration event (push) and use TriggerEvent as the real trigger.
 	run.Event = "push"
 	run.TriggerEvent = "schedule"
+	run.Repo = repo
 
-	apiRun, err := ToActionWorkflowRun(t.Context(), repo, run, nil)
+	apiRun, err := ToActionWorkflowRun(t.Context(), run, nil, false)
 	require.NoError(t, err)
 	assert.Equal(t, "schedule", apiRun.Event)
 }

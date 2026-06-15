@@ -14,13 +14,13 @@ import (
 	"strings"
 	"time"
 
-	"code.gitea.io/gitea/modules/git"
-	"code.gitea.io/gitea/modules/log"
-	base "code.gitea.io/gitea/modules/migration"
-	"code.gitea.io/gitea/modules/proxy"
-	"code.gitea.io/gitea/modules/structs"
+	"gitea.dev/modules/git"
+	"gitea.dev/modules/log"
+	base "gitea.dev/modules/migration"
+	"gitea.dev/modules/proxy"
+	"gitea.dev/modules/structs"
 
-	"github.com/google/go-github/v85/github"
+	"github.com/google/go-github/v88/github"
 	"golang.org/x/oauth2"
 )
 
@@ -52,7 +52,7 @@ func (f *GithubDownloaderV3Factory) New(ctx context.Context, opts base.MigrateOp
 
 	log.Trace("Create github downloader BaseURL: %s %s/%s", baseURL, oldOwner, oldName)
 
-	return NewGithubDownloaderV3(ctx, baseURL, opts.AuthUsername, opts.AuthPassword, opts.AuthToken, oldOwner, oldName), nil
+	return NewGithubDownloaderV3(ctx, baseURL, opts.AuthUsername, opts.AuthPassword, opts.AuthToken, oldOwner, oldName)
 }
 
 // GitServiceType returns the type of git service
@@ -78,7 +78,7 @@ type GithubDownloaderV3 struct {
 }
 
 // NewGithubDownloaderV3 creates a github Downloader via github v3 API
-func NewGithubDownloaderV3(_ context.Context, baseURL, userName, password, token, repoOwner, repoName string) *GithubDownloaderV3 {
+func NewGithubDownloaderV3(_ context.Context, baseURL, userName, password, token, repoOwner, repoName string) (*GithubDownloaderV3, error) {
 	downloader := GithubDownloaderV3{
 		userName:   userName,
 		baseURL:    baseURL,
@@ -102,7 +102,9 @@ func NewGithubDownloaderV3(_ context.Context, baseURL, userName, password, token
 				},
 			}
 
-			downloader.addClient(client, baseURL)
+			if err := downloader.addClient(client, baseURL); err != nil {
+				return nil, err
+			}
 		}
 	} else {
 		transport := NewMigrationHTTPTransport()
@@ -113,9 +115,11 @@ func NewGithubDownloaderV3(_ context.Context, baseURL, userName, password, token
 		client := &http.Client{
 			Transport: transport,
 		}
-		downloader.addClient(client, baseURL)
+		if err := downloader.addClient(client, baseURL); err != nil {
+			return nil, err
+		}
 	}
-	return &downloader
+	return &downloader, nil
 }
 
 // String implements Stringer
@@ -130,13 +134,18 @@ func (g *GithubDownloaderV3) LogString() string {
 	return fmt.Sprintf("<GithubDownloaderV3 %s %s/%s>", g.baseURL, g.repoOwner, g.repoName)
 }
 
-func (g *GithubDownloaderV3) addClient(client *http.Client, baseURL string) {
-	githubClient := github.NewClient(client)
+func (g *GithubDownloaderV3) addClient(client *http.Client, baseURL string) error {
+	opts := []github.ClientOptionsFunc{github.WithHTTPClient(client)}
 	if baseURL != "https://github.com" {
-		githubClient, _ = githubClient.WithEnterpriseURLs(baseURL, baseURL)
+		opts = append(opts, github.WithEnterpriseURLs(baseURL, baseURL))
+	}
+	githubClient, err := github.NewClient(opts...)
+	if err != nil {
+		return err
 	}
 	g.clients = append(g.clients, githubClient)
 	g.rates = append(g.rates, nil)
+	return nil
 }
 
 func (g *GithubDownloaderV3) waitAndPickClient(ctx context.Context) {

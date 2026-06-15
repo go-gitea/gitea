@@ -8,13 +8,13 @@ import (
 	"net/http"
 	"os"
 
-	actions_model "code.gitea.io/gitea/models/actions"
-	"code.gitea.io/gitea/models/db"
-	"code.gitea.io/gitea/modules/util"
-	"code.gitea.io/gitea/routers/common"
-	actions_service "code.gitea.io/gitea/services/actions"
-	"code.gitea.io/gitea/services/context"
-	"code.gitea.io/gitea/services/convert"
+	actions_model "gitea.dev/models/actions"
+	"gitea.dev/models/db"
+	"gitea.dev/modules/util"
+	"gitea.dev/routers/common"
+	actions_service "gitea.dev/services/actions"
+	"gitea.dev/services/context"
+	"gitea.dev/services/convert"
 )
 
 func DownloadActionsRunJobLogs(ctx *context.APIContext) {
@@ -50,11 +50,7 @@ func DownloadActionsRunJobLogs(ctx *context.APIContext) {
 	jobID := ctx.PathParamInt64("job_id")
 	curJob, err := actions_model.GetRunJobByRepoAndID(ctx, ctx.Repo.Repository.ID, jobID)
 	if err != nil {
-		if errors.Is(err, util.ErrNotExist) {
-			ctx.APIErrorNotFound(err)
-		} else {
-			ctx.APIErrorInternal(err)
-		}
+		ctx.APIErrorAuto(err)
 		return
 	}
 	if err = curJob.LoadRepo(ctx); err != nil {
@@ -64,11 +60,7 @@ func DownloadActionsRunJobLogs(ctx *context.APIContext) {
 
 	err = common.DownloadActionsRunJobLogs(ctx.Base, ctx.Repo.Repository, curJob)
 	if err != nil {
-		if errors.Is(err, util.ErrNotExist) {
-			ctx.APIErrorNotFound(err)
-		} else {
-			ctx.APIErrorInternal(err)
-		}
+		ctx.APIErrorAuto(err)
 	}
 }
 
@@ -107,7 +99,7 @@ func CancelWorkflowRun(ctx *context.APIContext) {
 	_, run, err := getRunID(ctx)
 	if err != nil {
 		if errors.Is(err, util.ErrNotExist) {
-			ctx.APIErrorNotFound(err)
+			ctx.APIErrorNotFound(err.Error())
 		} else {
 			ctx.APIErrorInternal(err)
 		}
@@ -131,7 +123,8 @@ func CancelWorkflowRun(ctx *context.APIContext) {
 		return
 	}
 
-	convertedRun, err := convert.ToActionWorkflowRun(ctx, ctx.Repo.Repository, updatedRun, nil)
+	updatedRun.Repo = ctx.Repo.Repository
+	convertedRun, err := convert.ToActionWorkflowRun(ctx, updatedRun, nil, false)
 	if err != nil {
 		ctx.APIErrorInternal(err)
 		return
@@ -174,7 +167,7 @@ func ApproveWorkflowRun(ctx *context.APIContext) {
 	runID, run, err := getRunID(ctx)
 	if err != nil {
 		if errors.Is(err, util.ErrNotExist) {
-			ctx.APIErrorNotFound(err)
+			ctx.APIErrorNotFound(err.Error())
 		} else {
 			ctx.APIErrorInternal(err)
 		}
@@ -183,7 +176,8 @@ func ApproveWorkflowRun(ctx *context.APIContext) {
 
 	// GitHub-compatible: return 200 if already approved (idempotent)
 	if !run.NeedApproval {
-		convertedRun, err := convert.ToActionWorkflowRun(ctx, ctx.Repo.Repository, run, nil)
+		run.Repo = ctx.Repo.Repository
+		convertedRun, err := convert.ToActionWorkflowRun(ctx, run, nil, false)
 		if err != nil {
 			ctx.APIErrorInternal(err)
 			return
@@ -194,7 +188,7 @@ func ApproveWorkflowRun(ctx *context.APIContext) {
 
 	if err := actions_service.ApproveRuns(ctx, ctx.Repo.Repository, ctx.Doer, []int64{runID}); err != nil {
 		if errors.Is(err, util.ErrNotExist) {
-			ctx.APIErrorNotFound(err)
+			ctx.APIErrorNotFound(err.Error())
 		} else {
 			ctx.APIErrorInternal(err)
 		}
@@ -207,7 +201,8 @@ func ApproveWorkflowRun(ctx *context.APIContext) {
 	run.NeedApproval = false
 	run.ApprovedBy = ctx.Doer.ID
 
-	convertedRun, err := convert.ToActionWorkflowRun(ctx, ctx.Repo.Repository, run, nil)
+	run.Repo = ctx.Repo.Repository
+	convertedRun, err := convert.ToActionWorkflowRun(ctx, run, nil, false)
 	if err != nil {
 		ctx.APIErrorInternal(err)
 		return
@@ -270,7 +265,7 @@ func GetWorkflowRunLogs(ctx *context.APIContext) {
 	_, run, err := getRunID(ctx)
 	if err != nil {
 		if errors.Is(err, util.ErrNotExist) {
-			ctx.APIErrorNotFound(err)
+			ctx.APIErrorNotFound(err.Error())
 		} else {
 			ctx.APIErrorInternal(err)
 		}
@@ -279,7 +274,7 @@ func GetWorkflowRunLogs(ctx *context.APIContext) {
 
 	if err = common.DownloadActionsRunAllJobLogs(ctx.Base, ctx.Repo.Repository, run.ID); err != nil {
 		if errors.Is(err, util.ErrNotExist) {
-			ctx.APIErrorNotFound(err)
+			ctx.APIErrorNotFound(err.Error())
 		} else {
 			ctx.APIErrorInternal(err)
 		}
@@ -323,7 +318,7 @@ func GetWorkflowJobLogs(ctx *context.APIContext) {
 	runID, _, err := getRunID(ctx)
 	if err != nil {
 		if errors.Is(err, util.ErrNotExist) {
-			ctx.APIErrorNotFound(err)
+			ctx.APIErrorNotFound(err.Error())
 		} else {
 			ctx.APIErrorInternal(err)
 		}
@@ -335,7 +330,7 @@ func GetWorkflowJobLogs(ctx *context.APIContext) {
 	job, err := actions_model.GetRunJobByRunAndID(ctx, runID, jobID)
 	if err != nil {
 		if errors.Is(err, util.ErrNotExist) {
-			ctx.APIErrorNotFound(err)
+			ctx.APIErrorNotFound(err.Error())
 		} else {
 			ctx.APIErrorInternal(err)
 		}
@@ -346,7 +341,7 @@ func GetWorkflowJobLogs(ctx *context.APIContext) {
 
 	if err = common.DownloadActionsRunJobLogs(ctx.Base, ctx.Repo.Repository, job); err != nil {
 		if errors.Is(err, util.ErrNotExist) || errors.Is(err, os.ErrNotExist) {
-			ctx.APIErrorNotFound(err)
+			ctx.APIErrorNotFound(err.Error())
 		} else {
 			ctx.APIErrorInternal(err)
 		}
