@@ -49,7 +49,7 @@ func TestStatusFromResult(t *testing.T) {
 	}
 }
 
-func job(status Status, continueOnError bool) *ActionRunJob {
+func newJob(status Status, continueOnError bool) *ActionRunJob {
 	return &ActionRunJob{Status: status, ContinueOnError: continueOnError}
 }
 
@@ -61,37 +61,37 @@ func TestAggregateJobStatusContinueOnError(t *testing.T) {
 	}{
 		{
 			name: "all success",
-			jobs: []*ActionRunJob{job(StatusSuccess, false), job(StatusSuccess, false)},
+			jobs: []*ActionRunJob{newJob(StatusSuccess, false), newJob(StatusSuccess, false)},
 			want: StatusSuccess,
 		},
 		{
 			name: "one failure without continue-on-error",
-			jobs: []*ActionRunJob{job(StatusSuccess, false), job(StatusFailure, false)},
+			jobs: []*ActionRunJob{newJob(StatusSuccess, false), newJob(StatusFailure, false)},
 			want: StatusFailure,
 		},
 		{
 			name: "one failure with continue-on-error",
-			jobs: []*ActionRunJob{job(StatusSuccess, false), job(StatusFailure, true)},
+			jobs: []*ActionRunJob{newJob(StatusSuccess, false), newJob(StatusFailure, true)},
 			want: StatusSuccess,
 		},
 		{
 			name: "only continued-failure",
-			jobs: []*ActionRunJob{job(StatusFailure, true)},
+			jobs: []*ActionRunJob{newJob(StatusFailure, true)},
 			want: StatusSuccess,
 		},
 		{
 			name: "continued-failure plus real failure",
-			jobs: []*ActionRunJob{job(StatusFailure, true), job(StatusFailure, false)},
+			jobs: []*ActionRunJob{newJob(StatusFailure, true), newJob(StatusFailure, false)},
 			want: StatusFailure,
 		},
 		{
 			name: "all skipped",
-			jobs: []*ActionRunJob{job(StatusSkipped, false), job(StatusSkipped, false)},
+			jobs: []*ActionRunJob{newJob(StatusSkipped, false), newJob(StatusSkipped, false)},
 			want: StatusSkipped,
 		},
 		{
 			name: "continued-failure plus skipped counts as success",
-			jobs: []*ActionRunJob{job(StatusFailure, true), job(StatusSkipped, false)},
+			jobs: []*ActionRunJob{newJob(StatusFailure, true), newJob(StatusSkipped, false)},
 			want: StatusSuccess,
 		},
 	}
