@@ -23,10 +23,9 @@ func TestRepoIsEmpty(t *testing.T) {
 	assert.True(t, isEmpty)
 }
 
-// TestCloneNoFollowRedirects ensures the migration clone refuses HTTP redirects,
-// so a remote cannot redirect to an otherwise-blocked address (SSRF). Without the
-// option git follows the redirect and reaches the target.
-func TestCloneNoFollowRedirects(t *testing.T) {
+// TestCloneRefusesRedirects ensures Clone never follows HTTP redirects, so a remote
+// cannot redirect to an otherwise-blocked address (SSRF, e.g. during migration).
+func TestCloneRefusesRedirects(t *testing.T) {
 	var targetHit atomic.Bool
 	target := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		targetHit.Store(true)
@@ -39,17 +38,7 @@ func TestCloneNoFollowRedirects(t *testing.T) {
 	}))
 	defer redirect.Close()
 
-	t.Run("FollowsRedirectByDefault", func(t *testing.T) {
-		targetHit.Store(false)
-		err := Clone(t.Context(), redirect.URL, filepath.Join(t.TempDir(), "dst"), CloneRepoOptions{})
-		assert.Error(t, err)
-		assert.True(t, targetHit.Load(), "git should reach the redirect target without the protection")
-	})
-
-	t.Run("RefusesRedirect", func(t *testing.T) {
-		targetHit.Store(false)
-		err := Clone(t.Context(), redirect.URL, filepath.Join(t.TempDir(), "dst"), CloneRepoOptions{NoFollowRedirects: true})
-		assert.Error(t, err)
-		assert.False(t, targetHit.Load(), "git must not follow the redirect to the target")
-	})
+	err := Clone(t.Context(), redirect.URL, filepath.Join(t.TempDir(), "dst"), CloneRepoOptions{})
+	assert.Error(t, err)
+	assert.False(t, targetHit.Load(), "git must not follow the redirect to the target")
 }

@@ -111,9 +111,6 @@ type CloneRepoOptions struct {
 	SkipTLSVerify bool
 	SingleBranch  bool
 	Env           []string
-	// NoFollowRedirects refuses HTTP redirects during the clone. It is used for
-	// migrations to stop a remote redirecting to an otherwise-blocked address (SSRF).
-	NoFollowRedirects bool
 }
 
 // Clone clones original repository to target path.
@@ -124,11 +121,11 @@ func Clone(ctx context.Context, from, to string, opts CloneRepoOptions) error {
 	}
 
 	cmd := gitcmd.NewCommand().AddArguments("clone")
+	// Never follow HTTP redirects: no clone caller needs them, and a remote redirecting to an
+	// otherwise-blocked address would be an SSRF vector (e.g. migrating from an attacker URL).
+	cmd.AddArguments("-c", "http.followRedirects=false")
 	if opts.SkipTLSVerify {
 		cmd.AddArguments("-c", "http.sslVerify=false")
-	}
-	if opts.NoFollowRedirects {
-		cmd.AddArguments("-c", "http.followRedirects=false")
 	}
 	if opts.Mirror {
 		cmd.AddArguments("--mirror")
