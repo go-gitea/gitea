@@ -19468,6 +19468,7 @@
     },
     "/repos/{owner}/{repo}/compare/{basehead}": {
       "get": {
+        "description": "By default returns JSON commit comparison information. The raw diff or patch can be\nrequested with the `output` query parameter set to `diff` or `patch` respectively.\n",
         "operationId": "repoCompareDiff",
         "parameters": [
           {
@@ -19489,11 +19490,23 @@
             }
           },
           {
-            "description": "compare two branches or commits",
+            "description": "compare two refs as `base...head` (or `base..head`); refs may be branches, tags, full or short SHAs, including branch names that contain slashes.",
             "in": "path",
             "name": "basehead",
             "required": true,
             "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "return the raw comparison as `diff` or `patch` instead of JSON",
+            "in": "query",
+            "name": "output",
+            "schema": {
+              "enum": [
+                "diff",
+                "patch"
+              ],
               "type": "string"
             }
           }
