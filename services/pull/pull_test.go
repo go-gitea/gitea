@@ -44,13 +44,7 @@ func TestPullRequest_FormatSquashMergeCommitMessages(t *testing.T) {
 
 	defer test.MockVariableValue(&setting.Repository.PullRequest.DefaultMergeMessageSize, 0)()
 
-	// all commits
-	assert.Equal(t, "* commit msg 1\n\n* commit msg 2\n\nCommit description.\n\n",
-		formatSquashMergeCommitMessages([]*git.Commit{newest, oldest}))
-
-	// PR-description mode: pass all-but-oldest so the oldest is not duplicated
-	assert.Equal(t, "* commit msg 2\n\nCommit description.\n\n",
-		formatSquashMergeCommitMessages([]*git.Commit{newest}))
+	assert.Equal(t, "* commit msg 1\n\n* commit msg 2\n\nCommit description.\n\n", formatSquashMergeCommitMessages([]*git.Commit{newest, oldest}))
 
 	utf8Msg := &git.Commit{CommitMessage: git.CommitMessage{MessageRaw: "🌞"}}
 	setting.Repository.PullRequest.DefaultMergeMessageSize = 3
@@ -127,6 +121,7 @@ func TestBuildSquashMergeCommitMessages(t *testing.T) {
 		{"title", []string{"the-user"}, "title\n---------\nCo-authored-by: the-user\n"},
 		{"title\n\nKey: val", []string{"the-user"}, "title\n\nKey: val\nCo-authored-by: the-user\n"},
 		{"title\n\n----\nKey: val", []string{"the-user"}, "title\n\n----\nKey: val\nCo-authored-by: the-user\n"},
+		{"title\n\n----\nKey: val\n\n", []string{"the-user"}, "title\n\n----\nKey: val\nCo-authored-by: the-user\n"},
 
 		{"title\n\nbody", nil, "title\n\nbody"},
 		{"title\n\nbody", []string{"the-user"}, "title\n\nbody\n---------\nCo-authored-by: the-user\n"},
