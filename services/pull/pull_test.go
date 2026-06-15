@@ -5,6 +5,7 @@
 package pull
 
 import (
+	"context"
 	"testing"
 
 	issues_model "gitea.dev/models/issues"
@@ -14,9 +15,49 @@ import (
 	"gitea.dev/modules/gitrepo"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 // TODO TestPullRequest_PushToBaseRepo
+
+func TestUpdatePullHeadRefIfObjectExists(t *testing.T) {
+	assert.NoError(t, unittest.PrepareTestDatabase())
+
+	pr := unittest.AssertExistsAndLoadBean(t, &issues_model.PullRequest{ID: 1})
+	require.NoError(t, pr.LoadBaseRepo(t.Context()))
+	pr.Index = 987654
+
+	gitRepo, err := gitrepo.OpenRepository(t.Context(), pr.BaseRepo)
+	require.NoError(t, err)
+	defer gitRepo.Close()
+
+	pr.HeadCommitID, err = gitRepo.GetBranchCommitID(pr.BaseBranch)
+	require.NoError(t, err)
+
+	updated, err := updatePullHeadRefIfObjectExists(t.Context(), pr)
+	require.NoError(t, err)
+	require.True(t, updated)
+
+	refCommitID, err := gitRepo.GetRefCommitID(pr.GetGitHeadRefName())
+	require.NoError(t, err)
+	assert.Equal(t, pr.HeadCommitID, refCommitID)
+
+	t.Cleanup(func() {
+		assert.NoError(t, gitrepo.RemoveRef(context.Background(), pr.BaseRepo, pr.GetGitHeadRefName()))
+	})
+}
+
+func TestUpdatePullHeadRefIfObjectExistsMissingObject(t *testing.T) {
+	assert.NoError(t, unittest.PrepareTestDatabase())
+
+	pr := unittest.AssertExistsAndLoadBean(t, &issues_model.PullRequest{ID: 1})
+	pr.Index = 987654
+	pr.HeadCommitID = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+
+	updated, err := updatePullHeadRefIfObjectExists(t.Context(), pr)
+	require.NoError(t, err)
+	assert.False(t, updated)
+}
 
 func TestPullRequest_CommitMessageTrailersPattern(t *testing.T) {
 	// Not a valid trailer section

@@ -555,6 +555,34 @@ func PushToBaseRepo(ctx context.Context, pr *issues_model.PullRequest) (err erro
 	return pushToBaseRepoHelper(ctx, pr, "")
 }
 
+func updatePullHeadRefIfObjectExists(ctx context.Context, pr *issues_model.PullRequest) (bool, error) {
+	if pr.HeadCommitID == "" {
+		return false, nil
+	}
+
+	if err := pr.LoadBaseRepo(ctx); err != nil {
+		return false, err
+	}
+
+	baseGitRepo, err := gitrepo.OpenRepository(ctx, pr.BaseRepo)
+	if err != nil {
+		return false, fmt.Errorf("OpenRepository: %w", err)
+	}
+	defer baseGitRepo.Close()
+
+	// `IsReferenceExist` also accepts full object IDs here, which lets us cheaply
+	// detect whether mergeability checks already imported the head commit.
+	if !baseGitRepo.IsReferenceExist(pr.HeadCommitID) {
+		return false, nil
+	}
+
+	if err := gitrepo.UpdateRef(ctx, pr.BaseRepo, pr.GetGitHeadRefName(), pr.HeadCommitID); err != nil {
+		return false, fmt.Errorf("UpdateRef: %w", err)
+	}
+
+	return true, nil
+}
+
 func pushToBaseRepoHelper(ctx context.Context, pr *issues_model.PullRequest, prefixHeadBranch string) (err error) {
 	log.Trace("PushToBaseRepo[%d]: pushing commits to base repo '%s'", pr.BaseRepoID, pr.GetGitHeadRefName())
 
@@ -576,6 +604,12 @@ func pushToBaseRepoHelper(ctx context.Context, pr *issues_model.PullRequest, pre
 	}
 
 	gitRefName := pr.GetGitHeadRefName()
+	if updated, err := updatePullHeadRefIfObjectExists(ctx, pr); err != nil {
+		log.Info("Unable to update PR head ref directly for %s#%d (%-v:%s), falling back to push: %v", pr.BaseRepo.FullName(), pr.Index, pr.BaseRepo, gitRefName, err)
+	} else if updated {
+		log.Trace("PushToBaseRepo[%d]: updated PR head ref directly in base repo '%s'", pr.BaseRepoID, gitRefName)
+		return nil
+	}
 
 	if err := gitrepo.Push(ctx, pr.HeadRepo, pr.BaseRepo, git.PushOptions{
 		Branch: prefixHeadBranch + pr.HeadBranch + ":" + gitRefName,
