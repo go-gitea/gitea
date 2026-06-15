@@ -89,10 +89,14 @@ func setManagedSSHKeyFingerprints(ctx *context.Context, ctxUser *user_model.User
 	}
 
 	fingerprints := map[int64]string{}
+	// keysURLs maps an org owner id to its managed SSH keys settings page, so the
+	// form links to the right page to copy the key when authenticating as that org.
+	keysURLs := map[int64]string{}
 	if orgs, ok := ctx.Data["Orgs"].([]*organization.Organization); ok {
 		for _, org := range orgs {
 			if kp, err := ssh_module.GetOrCreateSSHKeypair(ctx, org.ID); err == nil {
 				fingerprints[org.ID] = kp.Fingerprint
+				keysURLs[org.ID] = org.OrganisationLink() + "/settings/ssh_keys"
 			}
 		}
 	}
@@ -100,11 +104,17 @@ func setManagedSSHKeyFingerprints(ctx *context.Context, ctxUser *user_model.User
 		if _, seen := fingerprints[ctxUser.ID]; !seen {
 			if kp, err := ssh_module.GetOrCreateSSHKeypair(ctx, ctxUser.ID); err == nil {
 				fingerprints[ctxUser.ID] = kp.Fingerprint
+				if ctxUser.IsOrganization() {
+					keysURLs[ctxUser.ID] = ctxUser.OrganisationLink() + "/settings/ssh_keys"
+				}
 			}
 		}
 	}
 	if data, err := json.Marshal(fingerprints); err == nil {
 		ctx.Data["OwnerSSHFingerprintsJSON"] = string(data)
+	}
+	if data, err := json.Marshal(keysURLs); err == nil {
+		ctx.Data["OwnerSSHKeysURLsJSON"] = string(data)
 	}
 }
 

@@ -113,7 +113,10 @@ function initSSHKeyOwnerSelector(cloneAddrInput: HTMLInputElement) {
 
   const signedUserID = selector.getAttribute('data-signed-user-id') ?? '';
   const ownerFingerprints: Record<string, string> = JSON.parse(selector.getAttribute('data-owner-fingerprints') || '{}');
+  const ownerKeysURLs: Record<string, string> = JSON.parse(selector.getAttribute('data-owner-keys-links') || '{}');
+  const personalKeysURL = selector.getAttribute('data-personal-keys-link') ?? '';
   const orgDefaultFingerprintEl = selector.querySelector<HTMLElement>('.menu .item[data-value="0"] .item-fingerprint');
+  const keysLink = selector.querySelector<HTMLAnchorElement>('.js-ssh-keys-link');
 
   function update() {
     const isSSH = isSSHURL(cloneAddrInput.value.trim());
@@ -137,10 +140,15 @@ function initSSHKeyOwnerSelector(cloneAddrInput: HTMLInputElement) {
     // Org target — show dropdown; populate the org-default item's fingerprint.
     if (fingerprintOnly) hideElem(fingerprintOnly);
     if (orgDefaultFingerprintEl) orgDefaultFingerprintEl.textContent = ownerFingerprints[targetUid] ?? '';
+    // Point the link at the page holding the key that will actually be used:
+    // the org's keys page for the org default, or the personal keys page.
+    if (keysLink) {
+      keysLink.href = hiddenId!.value === signedUserID ? personalKeysURL : (ownerKeysURLs[targetUid] ?? personalKeysURL);
+    }
     showElem(selector!);
   }
 
-  for (const item of document.querySelectorAll<HTMLElement>('.owner.dropdown .menu .item')) {
+  for (const item of document.querySelectorAll<HTMLElement>('.owner.dropdown .menu .item, .ssh-key-owner-selector .menu .item')) {
     item.addEventListener('click', () => setTimeout(update, 0));
   }
 
