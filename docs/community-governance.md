@@ -228,7 +228,6 @@ Here's the history of the owners and the time they served:
 - [6543](https://gitea.com/6543) - 2023, 2025
 - [John Olheiser](https://gitea.com/jolheiser) - 2023, 2024
 - [Jason Song](https://gitea.com/wolfogre) - 2023
-- [lafriks](https://gitea.com/lafriks) <lauris@nix.lv> - 2025
 
 ## Governance Compensation
 
