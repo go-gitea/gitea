@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"net/url"
 	"strings"
 	"time"
 
@@ -32,21 +33,24 @@ type GiteaDownloaderFactory struct{}
 
 // New returns a Downloader related to this factory according MigrateOptions
 func (f *GiteaDownloaderFactory) New(ctx context.Context, opts base.MigrateOptions) (base.Downloader, error) {
-	info, err := parseServiceCloneURL(opts.CloneAddr)
+	u, err := url.Parse(opts.CloneAddr)
 	if err != nil {
 		return nil, err
 	}
 
-	repoNameSpace := strings.TrimSuffix(info.repoPath, ".git")
+	baseURL := u.Scheme + "://" + u.Host
+	repoNameSpace := strings.TrimPrefix(u.Path, "/")
+	repoNameSpace = strings.TrimSuffix(repoNameSpace, ".git")
+
 	path := strings.Split(repoNameSpace, "/")
 	if len(path) < 2 {
 		return nil, fmt.Errorf("invalid path: %s", repoNameSpace)
 	}
 
-	baseURL := info.apiURL.String()
 	repoPath := strings.Join(path[len(path)-2:], "/")
 	if len(path) > 2 {
-		baseURL += "/" + strings.Join(path[:len(path)-2], "/")
+		subPath := strings.Join(path[:len(path)-2], "/")
+		baseURL += "/" + subPath
 	}
 
 	log.Trace("Create gitea downloader. BaseURL: %s RepoName: %s", baseURL, repoNameSpace)

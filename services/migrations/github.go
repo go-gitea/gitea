@@ -40,17 +40,15 @@ type GithubDownloaderV3Factory struct{}
 
 // New returns a Downloader related to this factory according MigrateOptions
 func (f *GithubDownloaderV3Factory) New(ctx context.Context, opts base.MigrateOptions) (base.Downloader, error) {
-	info, err := parseServiceCloneURL(opts.CloneAddr)
+	u, err := url.Parse(opts.CloneAddr)
 	if err != nil {
 		return nil, err
 	}
-	if len(info.segments) < 2 {
-		return nil, fmt.Errorf("invalid path: %s", info.repoPath)
-	}
 
-	baseURL := info.apiURL.String()
-	oldOwner := info.segments[0]
-	oldName := strings.TrimSuffix(info.segments[1], ".git")
+	baseURL := u.Scheme + "://" + u.Host
+	fields := strings.Split(u.Path, "/")
+	oldOwner := fields[1]
+	oldName := strings.TrimSuffix(fields[2], ".git")
 
 	log.Trace("Create github downloader BaseURL: %s %s/%s", baseURL, oldOwner, oldName)
 

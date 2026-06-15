@@ -39,13 +39,14 @@ type GitlabDownloaderFactory struct{}
 
 // New returns a Downloader related to this factory according MigrateOptions
 func (f *GitlabDownloaderFactory) New(ctx context.Context, opts base.MigrateOptions) (base.Downloader, error) {
-	info, err := parseServiceCloneURL(opts.CloneAddr)
+	u, err := url.Parse(opts.CloneAddr)
 	if err != nil {
 		return nil, err
 	}
 
-	baseURL := info.apiURL.String()
-	repoNameSpace := strings.TrimSuffix(info.repoPath, ".git")
+	baseURL := u.Scheme + "://" + u.Host
+	repoNameSpace := strings.TrimPrefix(u.Path, "/")
+	repoNameSpace = strings.TrimSuffix(repoNameSpace, ".git")
 
 	log.Trace("Create gitlab downloader. BaseURL: %s RepoName: %s", baseURL, repoNameSpace)
 

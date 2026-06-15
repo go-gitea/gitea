@@ -33,19 +33,22 @@ type CodebaseDownloaderFactory struct{}
 
 // New returns a downloader related to this factory according MigrateOptions
 func (f *CodebaseDownloaderFactory) New(ctx context.Context, opts base.MigrateOptions) (base.Downloader, error) {
-	info, err := parseServiceCloneURL(opts.CloneAddr)
+	u, err := url.Parse(opts.CloneAddr)
 	if err != nil {
 		return nil, err
 	}
-	if len(info.segments) != 2 {
-		return nil, fmt.Errorf("invalid path: %s", info.repoPath)
+	u.User = nil
+
+	fields := strings.Split(strings.Trim(u.Path, "/"), "/")
+	if len(fields) != 2 {
+		return nil, fmt.Errorf("invalid path: %s", u.Path)
 	}
-	project := info.segments[0]
-	repoName := strings.TrimSuffix(info.segments[1], ".git")
+	project := fields[0]
+	repoName := strings.TrimSuffix(fields[1], ".git")
 
-	log.Trace("Create Codebase downloader. BaseURL: %v RepoName: %s", info.apiURL, repoName)
+	log.Trace("Create Codebase downloader. BaseURL: %v RepoName: %s", u, repoName)
 
-	return NewCodebaseDownloader(ctx, info.apiURL, project, repoName, opts.AuthUsername, opts.AuthPassword), nil
+	return NewCodebaseDownloader(ctx, u, project, repoName, opts.AuthUsername, opts.AuthPassword), nil
 }
 
 // GitServiceType returns the type of git service

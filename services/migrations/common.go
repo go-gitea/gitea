@@ -5,7 +5,6 @@ package migrations
 
 import (
 	"fmt"
-	"net/url"
 	"strings"
 
 	system_model "gitea.dev/models/system"
@@ -13,36 +12,6 @@ import (
 	"gitea.dev/modules/log"
 	base "gitea.dev/modules/migration"
 )
-
-// serviceCloneURLInfo bundles the API base URL and parsed repo path of a clone
-// address, hiding scheme conversion (ssh→https) needed for forge API calls.
-type serviceCloneURLInfo struct {
-	apiURL   *url.URL
-	repoPath string
-	segments []string
-}
-
-// parseServiceCloneURL parses a clone address and returns its API base URL
-// (always http/https — ssh/git are promoted to https for API calls) together
-// with the repo path and its segments.
-func parseServiceCloneURL(cloneAddr string) (*serviceCloneURLInfo, error) {
-	u, err := url.Parse(cloneAddr)
-	if err != nil {
-		return nil, err
-	}
-	apiURL := *u
-	apiURL.User = nil
-	apiURL.Path = ""
-	apiURL.RawQuery = ""
-	apiURL.Fragment = ""
-	// Forge APIs are HTTP(S) only; promote ssh/git clone schemes to https.
-	if apiURL.Scheme == "ssh" || apiURL.Scheme == "git" {
-		apiURL.Scheme = "https"
-	}
-	repoPath := strings.TrimPrefix(u.Path, "/")
-	segments := strings.Split(repoPath, "/")
-	return &serviceCloneURLInfo{apiURL: &apiURL, repoPath: repoPath, segments: segments}, nil
-}
 
 // WarnAndNotice will log the provided message and send a repository notice
 func WarnAndNotice(fmtStr string, args ...any) {

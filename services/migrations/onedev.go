@@ -37,14 +37,19 @@ type OneDevDownloaderFactory struct{}
 
 // New returns a downloader related to this factory according MigrateOptions
 func (f *OneDevDownloaderFactory) New(ctx context.Context, opts base.MigrateOptions) (base.Downloader, error) {
-	info, err := parseServiceCloneURL(opts.CloneAddr)
+	u, err := url.Parse(opts.CloneAddr)
 	if err != nil {
 		return nil, err
 	}
 
-	log.Trace("Create onedev downloader. BaseURL: %v RepoPath: %s", info.apiURL, info.repoPath)
+	repoPath := strings.Trim(u.Path, "/")
 
-	return NewOneDevDownloader(ctx, info.apiURL, opts.AuthUsername, opts.AuthPassword, info.repoPath), nil
+	u.Path = ""
+	u.Fragment = ""
+
+	log.Trace("Create onedev downloader. BaseURL: %v RepoPath: %s", u, repoPath)
+
+	return NewOneDevDownloader(ctx, u, opts.AuthUsername, opts.AuthPassword, repoPath), nil
 }
 
 // GitServiceType returns the type of git service
