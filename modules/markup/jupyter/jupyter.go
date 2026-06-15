@@ -150,10 +150,8 @@ func (renderer) Render(ctx *markup.RenderContext, input io.Reader, outputWriter 
 
 	// Check nbformat version
 	if notebook.Nbformat < 4 {
-		htmlWriter.WriteFormat(
-			`<div class="ui info message tw-text-center">This notebook uses an older format (nbformat %d). Only nbformat 4+ is supported for rendering. Please upgrade the notebook in Jupyter or view the raw JSON.</div>`,
-			notebook.Nbformat,
-		)
+		msg := fmt.Sprintf("This notebook uses an older format (nbformat %d). Only nbformat 4+ is supported for rendering. Please upgrade the notebook in Jupyter or view the raw JSON.", notebook.Nbformat)
+		htmlWriter.WriteFormat(`<div class="file-not-rendered-prompt">%s</div>`, msg)
 		return htmlWriter.Err()
 	}
 
