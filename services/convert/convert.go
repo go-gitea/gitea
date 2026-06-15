@@ -836,6 +836,7 @@ func ToTeams(ctx context.Context, teams []*organization.Team, loadOrgs bool) ([]
 			Permission:              api.AccessLevelName(t.AccessMode.ToString()),
 			Units:                   t.GetUnitNames(),
 			UnitsMap:                t.GetUnitsMap(),
+			Visibility:              api.TeamVisibility(t.Visibility.String()),
 		}
 
 		if loadOrgs {
