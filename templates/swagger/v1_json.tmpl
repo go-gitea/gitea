@@ -8191,8 +8191,10 @@
     },
     "/repos/{owner}/{repo}/compare/{basehead}": {
       "get": {
+        "description": "By default returns JSON commit comparison information. The raw diff or patch can be\nrequested with the `output` query parameter set to `diff` or `patch` respectively.\n",
         "produces": [
-          "application/json"
+          "application/json",
+          "text/plain"
         ],
         "tags": [
           "repository"
@@ -8216,10 +8218,20 @@
           },
           {
             "type": "string",
-            "description": "compare two branches or commits",
+            "description": "compare two refs as `base...head` (or `base..head`); refs may be branches, tags, full or short SHAs, including branch names that contain slashes.",
             "name": "basehead",
             "in": "path",
             "required": true
+          },
+          {
+            "enum": [
+              "diff",
+              "patch"
+            ],
+            "type": "string",
+            "description": "return the raw comparison as `diff` or `patch` instead of JSON",
+            "name": "output",
+            "in": "query"
           }
         ],
         "responses": {
@@ -19285,6 +19297,38 @@
         }
       }
     },
+    "/token": {
+      "get": {
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "miscellaneous"
+        ],
+        "summary": "Get the currently authenticated token",
+        "operationId": "getCurrentToken",
+        "responses": {
+          "200": {
+            "$ref": "#/responses/CurrentAccessToken"
+          }
+        }
+      },
+      "delete": {
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "miscellaneous"
+        ],
+        "summary": "Delete the currently authenticated token",
+        "operationId": "deleteCurrentToken",
+        "responses": {
+          "204": {
+            "description": "token deleted"
+          }
+        }
+      }
+    },
     "/topics/search": {
       "get": {
         "produces": [
@@ -25102,6 +25146,17 @@
           },
           "x-go-name": "UnitsMap",
           "example": "{\"repo.actions\",\"repo.packages\",\"repo.code\":\"read\",\"repo.issues\":\"write\",\"repo.ext_issues\":\"none\",\"repo.wiki\":\"admin\",\"repo.pulls\":\"owner\",\"repo.releases\":\"none\",\"repo.projects\":\"none\",\"repo.ext_wiki\":\"none\"}"
+        },
+        "visibility": {
+          "description": "Team visibility within the organization. Defaults to \"private\".\npublic TeamVisibilityPublic\nlimited TeamVisibilityLimited\nprivate TeamVisibilityPrivate",
+          "type": "string",
+          "enum": [
+            "public",
+            "limited",
+            "private"
+          ],
+          "x-go-enum-desc": "public TeamVisibilityPublic\nlimited TeamVisibilityLimited\nprivate TeamVisibilityPrivate",
+          "x-go-name": "Visibility"
         }
       },
       "x-go-package": "gitea.dev/modules/structs"
@@ -25254,6 +25309,47 @@
           "description": "The cron schedule expression (e.g., \"0 0 * * *\")",
           "type": "string",
           "x-go-name": "Schedule"
+        }
+      },
+      "x-go-package": "gitea.dev/modules/structs"
+    },
+    "CurrentAccessToken": {
+      "type": "object",
+      "title": "CurrentAccessToken represents the metadata of the currently authenticated token.",
+      "properties": {
+        "created_at": {
+          "description": "The timestamp when the token was created",
+          "type": "string",
+          "format": "date-time",
+          "x-go-name": "CreatedAt"
+        },
+        "id": {
+          "description": "The unique identifier of the access token",
+          "type": "integer",
+          "format": "int64",
+          "x-go-name": "ID"
+        },
+        "last_used_at": {
+          "description": "The timestamp when the token was last used",
+          "type": "string",
+          "format": "date-time",
+          "x-go-name": "LastUsedAt"
+        },
+        "name": {
+          "description": "The name of the access token",
+          "type": "string",
+          "x-go-name": "Name"
+        },
+        "scopes": {
+          "description": "The scopes granted to this access token",
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "x-go-name": "Scopes"
+        },
+        "user": {
+          "$ref": "#/definitions/UserMeta"
         }
       },
       "x-go-package": "gitea.dev/modules/structs"
@@ -26259,6 +26355,17 @@
             "repo.releases": "none",
             "repo.wiki": "admin"
           }
+        },
+        "visibility": {
+          "description": "Team visibility within the organization. When omitted, visibility is\nleft unchanged.\npublic TeamVisibilityPublic\nlimited TeamVisibilityLimited\nprivate TeamVisibilityPrivate",
+          "type": "string",
+          "enum": [
+            "public",
+            "limited",
+            "private"
+          ],
+          "x-go-enum-desc": "public TeamVisibilityPublic\nlimited TeamVisibilityLimited\nprivate TeamVisibilityPrivate",
+          "x-go-name": "Visibility"
         }
       },
       "x-go-package": "gitea.dev/modules/structs"
@@ -30171,6 +30278,17 @@
             "repo.releases": "none",
             "repo.wiki": "admin"
           }
+        },
+        "visibility": {
+          "description": "Team visibility within the organization. \"private\" teams are only\nlistable by members and org owners; \"limited\" teams are listable by\nany organization member; \"public\" teams are listable by any signed-in\nuser.\npublic TeamVisibilityPublic\nlimited TeamVisibilityLimited\nprivate TeamVisibilityPrivate",
+          "type": "string",
+          "enum": [
+            "public",
+            "limited",
+            "private"
+          ],
+          "x-go-enum-desc": "public TeamVisibilityPublic\nlimited TeamVisibilityLimited\nprivate TeamVisibilityPrivate",
+          "x-go-name": "Visibility"
         }
       },
       "x-go-package": "gitea.dev/modules/structs"
@@ -30733,6 +30851,24 @@
       },
       "x-go-package": "gitea.dev/models/activities"
     },
+    "UserMeta": {
+      "type": "object",
+      "title": "UserMeta represents minimal user information for the token owner.",
+      "properties": {
+        "id": {
+          "description": "The unique identifier of the user",
+          "type": "integer",
+          "format": "int64",
+          "x-go-name": "ID"
+        },
+        "login": {
+          "description": "The username of the user",
+          "type": "string",
+          "x-go-name": "Login"
+        }
+      },
+      "x-go-package": "gitea.dev/modules/structs"
+    },
     "UserSettings": {
       "description": "UserSettings represents user settings",
       "type": "object",
@@ -31235,6 +31371,12 @@
         "items": {
           "$ref": "#/definitions/Cron"
         }
+      }
+    },
+    "CurrentAccessToken": {
+      "description": "CurrentAccessToken represents the currently authenticated access token.",
+      "schema": {
+        "$ref": "#/definitions/CurrentAccessToken"
       }
     },
     "DeployKey": {
