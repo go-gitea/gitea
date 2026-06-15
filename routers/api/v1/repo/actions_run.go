@@ -8,7 +8,6 @@ import (
 
 	actions_model "gitea.dev/models/actions"
 	"gitea.dev/models/db"
-	"gitea.dev/modules/util"
 	"gitea.dev/routers/common"
 	actions_service "gitea.dev/services/actions"
 	"gitea.dev/services/context"
@@ -94,15 +93,8 @@ func CancelWorkflowRun(ctx *context.APIContext) {
 	//   "404":
 	//     "$ref": "#/responses/notFound"
 
-	_, run, err := getRunID(ctx)
-	if err != nil {
-		ctx.APIErrorAuto(err)
-		return
-	}
-
-	jobs, err := getRunJobs(ctx, run)
-	if err != nil {
-		ctx.APIErrorInternal(err)
+	run, jobs := getCurrentRepoActionRunJobsByID(ctx)
+	if ctx.Written() {
 		return
 	}
 
@@ -118,12 +110,7 @@ func CancelWorkflowRun(ctx *context.APIContext) {
 	}
 
 	updatedRun.Repo = ctx.Repo.Repository
-	convertedRun, err := convert.ToActionWorkflowRun(ctx, updatedRun, nil, false)
-	if err != nil {
-		ctx.APIErrorInternal(err)
-		return
-	}
-	ctx.JSON(http.StatusOK, convertedRun)
+	respondActionWorkflowRun(ctx, updatedRun)
 }
 
 func ApproveWorkflowRun(ctx *context.APIContext) {
@@ -158,35 +145,30 @@ func ApproveWorkflowRun(ctx *context.APIContext) {
 	//   "404":
 	//     "$ref": "#/responses/notFound"
 
-	runID, run, err := getRunID(ctx)
-	if err != nil {
-		ctx.APIErrorAuto(err)
+	run := getCurrentRepoActionRunByID(ctx)
+	if ctx.Written() {
 		return
 	}
 
 	// GitHub-compatible: return 200 if already approved (idempotent)
 	if !run.NeedApproval {
-		run.Repo = ctx.Repo.Repository
-		convertedRun, err := convert.ToActionWorkflowRun(ctx, run, nil, false)
-		if err != nil {
-			ctx.APIErrorInternal(err)
-			return
-		}
-		ctx.JSON(http.StatusOK, convertedRun)
+		respondActionWorkflowRun(ctx, run)
 		return
 	}
 
-	if err := actions_service.ApproveRuns(ctx, ctx.Repo.Repository, ctx.Doer, []int64{runID}); err != nil {
+	if err := actions_service.ApproveRuns(ctx, ctx.Repo.Repository, ctx.Doer, []int64{run.ID}); err != nil {
 		ctx.APIErrorAuto(err)
 		return
 	}
 
-	// Update known-changed fields on the run object in memory.
 	// Note: the overall run status is updated asynchronously by the notifier,
 	// so the status field may still reflect the pre-approval state.
 	run.NeedApproval = false
 	run.ApprovedBy = ctx.Doer.ID
+	respondActionWorkflowRun(ctx, run)
+}
 
+func respondActionWorkflowRun(ctx *context.APIContext, run *actions_model.ActionRun) {
 	run.Repo = ctx.Repo.Repository
 	convertedRun, err := convert.ToActionWorkflowRun(ctx, run, nil, false)
 	if err != nil {
@@ -194,30 +176,6 @@ func ApproveWorkflowRun(ctx *context.APIContext) {
 		return
 	}
 	ctx.JSON(http.StatusOK, convertedRun)
-}
-
-func getRunID(ctx *context.APIContext) (int64, *actions_model.ActionRun, error) {
-	runID := ctx.PathParamInt64("run")
-	run, has, err := db.GetByID[actions_model.ActionRun](ctx, runID)
-	if err != nil {
-		return 0, nil, err
-	}
-	if !has || run.RepoID != ctx.Repo.Repository.ID {
-		return 0, nil, util.ErrNotExist
-	}
-	return runID, run, nil
-}
-
-func getRunJobs(ctx *context.APIContext, run *actions_model.ActionRun) ([]*actions_model.ActionRunJob, error) {
-	run.Repo = ctx.Repo.Repository
-	jobs, err := actions_model.GetLatestAttemptJobsByRepoAndRunID(ctx, run.RepoID, run.ID)
-	if err != nil {
-		return nil, err
-	}
-	for _, v := range jobs {
-		v.Run = run
-	}
-	return jobs, nil
 }
 
 func GetWorkflowRunLogs(ctx *context.APIContext) {
@@ -248,13 +206,12 @@ func GetWorkflowRunLogs(ctx *context.APIContext) {
 	//   "404":
 	//     "$ref": "#/responses/notFound"
 
-	_, run, err := getRunID(ctx)
-	if err != nil {
-		ctx.APIErrorAuto(err)
+	run := getCurrentRepoActionRunByID(ctx)
+	if ctx.Written() {
 		return
 	}
 
-	if err = common.DownloadActionsRunAllJobLogs(ctx.Base, ctx.Repo.Repository, run.ID); err != nil {
+	if err := common.DownloadActionsRunAllJobLogs(ctx.Base, ctx.Repo.Repository, run.ID); err != nil {
 		ctx.APIErrorAuto(err)
 		return
 	}
@@ -293,23 +250,13 @@ func GetWorkflowJobLogs(ctx *context.APIContext) {
 	//   "404":
 	//     "$ref": "#/responses/notFound"
 
-	runID, _, err := getRunID(ctx)
-	if err != nil {
-		ctx.APIErrorAuto(err)
+	run := getCurrentRepoActionRunByID(ctx)
+	if ctx.Written() {
 		return
 	}
 
 	jobID := ctx.PathParamInt64("job_id")
-
-	job, err := actions_model.GetRunJobByRunAndID(ctx, runID, jobID)
-	if err != nil {
-		ctx.APIErrorAuto(err)
-		return
-	}
-
-	job.Repo = ctx.Repo.Repository
-
-	if err = common.DownloadActionsRunJobLogs(ctx.Base, ctx.Repo.Repository, job); err != nil {
+	if err := common.DownloadActionsRunJobLogsWithID(ctx.Base, ctx.Repo.Repository, run.ID, jobID); err != nil {
 		ctx.APIErrorAuto(err)
 		return
 	}
