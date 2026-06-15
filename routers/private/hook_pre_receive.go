@@ -47,23 +47,24 @@ type preReceiveContext struct {
 
 	opts *private.HookOptions
 
-	branchName string
+	// this context should only contain shared variables, mutable variables like "current branch name" shouldn't be put here
 }
 
 // CanWriteCode returns true if pusher can write code
-func (ctx *preReceiveContext) CanWriteCode() bool {
+func (ctx *preReceiveContext) CanWriteCode(ref git.RefName) bool {
 	if !ctx.loadPusherAndPermission() {
 		return false
 	}
 	// Must not be cached: CanMaintainerWriteToBranch is evaluated against ctx.branchName, which
 	// differs for each ref in a batch push. Caching the first result would let a per-branch
 	// maintainer-edit grant on one ref authorize writes to every other ref in the same push.
-	return issues_model.CanMaintainerWriteToBranch(ctx, ctx.userPerm, ctx.branchName, ctx.user) || ctx.deployKeyAccessMode >= perm_model.AccessModeWrite
+	// FIXME: the ref can be a branch, a tag, or something else?
+	return issues_model.CanMaintainerWriteToBranch(ctx, ctx.userPerm, branchName, ctx.user) || ctx.deployKeyAccessMode >= perm_model.AccessModeWrite
 }
 
 // AssertCanWriteCode returns true if pusher can write code
-func (ctx *preReceiveContext) AssertCanWriteCode() bool {
-	if !ctx.CanWriteCode() {
+func (ctx *preReceiveContext) AssertCanWriteCode(ref git.RefName) bool {
+	if !ctx.CanWriteCode(ref) {
 		if ctx.Written() {
 			return false
 		}
@@ -125,7 +126,7 @@ func HookPreReceive(ctx *gitea_context.PrivateContext) {
 		case git.DefaultFeatures().SupportProcReceive && refFullName.IsFor():
 			preReceiveFor(ourCtx, refFullName)
 		default:
-			ourCtx.AssertCanWriteCode()
+			ourCtx.AssertCanWriteCode(refFullName)
 		}
 		if ctx.Written() {
 			return
@@ -137,9 +138,8 @@ func HookPreReceive(ctx *gitea_context.PrivateContext) {
 
 func preReceiveBranch(ctx *preReceiveContext, oldCommitID, newCommitID string, refFullName git.RefName) {
 	branchName := refFullName.BranchName()
-	ctx.branchName = branchName
 
-	if !ctx.AssertCanWriteCode() {
+	if !ctx.AssertCanWriteCode(refFullName) {
 		return
 	}
 
@@ -400,7 +400,7 @@ func preReceiveBranch(ctx *preReceiveContext, oldCommitID, newCommitID string, r
 }
 
 func preReceiveTag(ctx *preReceiveContext, refFullName git.RefName) {
-	if !ctx.AssertCanWriteCode() {
+	if !ctx.AssertCanWriteCode(refFullName) {
 		return
 	}
 
