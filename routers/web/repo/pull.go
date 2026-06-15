@@ -1310,7 +1310,7 @@ func CompareAndPullRequestPost(ctx *context.Context) {
 	form := web.GetForm(ctx).(*forms.CreateIssueForm)
 	repo := ctx.Repo.Repository
 	comparePageInfo := newComparePageInfo()
-	err := comparePageInfo.parseCompareInfo(ctx)
+	err := comparePageInfo.parseCompareInfo(ctx, ctx.PathParam("*"))
 	if errors.Is(err, util.ErrNotExist) {
 		ctx.JSONErrorNotFound()
 		return
