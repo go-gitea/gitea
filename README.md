@@ -134,11 +134,9 @@ We're [working on it](https://github.com/go-gitea/gitea/issues/1029).
 
 In the [release log](https://github.com/go-gitea/gitea/releases) or the [change log](https://github.com/go-gitea/gitea/blob/main/CHANGELOG.md), search for the keyword `SECURITY` to find the security patches.
 
-## Subgroups
+### Subgroups
 
-Gitea now supports subgroups, allowing for a more hierarchical organization of repositories and teams within your Gitea instance. This feature enables administrators to create nested groups, mirroring complex organizational structures and simplifying permission management.
-
-Subgroups inherit permissions from their parent groups, providing a flexible and powerful way to manage access control across multiple projects and teams. This enhances the scalability and manageability of larger Gitea deployments.
+Gitea supports nested groups, allowing for a more organized and hierarchical structure for your repositories and teams. This feature enables you to create subgroups within existing organizations, mirroring complex organizational structures and improving access management and discoverability.
 
 ## License
 
