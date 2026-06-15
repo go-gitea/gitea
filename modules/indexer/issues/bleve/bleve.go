@@ -85,7 +85,6 @@ func generateIssueIndexMapping() (mapping.IndexMapping, error) {
 	docMapping.AddFieldMappingsAt("project_ids", numberFieldMapping)
 	docMapping.AddFieldMappingsAt("no_project", boolFieldMapping)
 	docMapping.AddFieldMappingsAt("poster_id", numberFieldMapping)
-	docMapping.AddFieldMappingsAt("assignee_id", numberFieldMapping)
 	docMapping.AddFieldMappingsAt("assignee_ids", numberFieldMapping)
 	docMapping.AddFieldMappingsAt("no_assignee", boolFieldMapping)
 	docMapping.AddFieldMappingsAt("mention_ids", numberFieldMapping)
@@ -267,10 +266,7 @@ func (b *Indexer) Search(ctx context.Context, options *internal.SearchOptions) (
 		queries = append(queries, inner_bleve.BoolFieldQuery(true, "no_assignee"))
 	default:
 		assigneeIDInt64, _ := strconv.ParseInt(options.AssigneeID, 10, 64)
-		queries = append(queries, bleve.NewDisjunctionQuery(
-			inner_bleve.NumericEqualityQuery(assigneeIDInt64, "assignee_ids"),
-			inner_bleve.NumericEqualityQuery(assigneeIDInt64, "assignee_id"),
-		))
+		queries = append(queries, inner_bleve.NumericEqualityQuery(assigneeIDInt64, "assignee_ids"))
 	}
 
 	if options.MentionID.Has() {
