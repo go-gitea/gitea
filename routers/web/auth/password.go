@@ -179,7 +179,7 @@ func ResetPasswdPost(ctx *context.Context) {
 			passcode := ctx.FormString("passcode")
 			ok, err := twofa.ValidateAndConsumeTOTP(ctx, passcode)
 			if err != nil {
-				ctx.HTTPError(http.StatusInternalServerError, "ValidateTOTP", err.Error())
+				ctx.HTTPError(http.StatusInternalServerError, "ValidateAndConsumeTOTP", err.Error())
 				return
 			}
 			if !ok {
