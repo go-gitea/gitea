@@ -14,6 +14,7 @@ import (
 	"gitea.dev/models/unit"
 	user_model "gitea.dev/models/user"
 	"gitea.dev/modules/log"
+	"gitea.dev/modules/structs"
 	"gitea.dev/modules/util"
 
 	"xorm.io/builder"
@@ -81,9 +82,36 @@ type Team struct {
 	Members                 []*user_model.User `xorm:"-"`
 	NumRepos                int
 	NumMembers              int
-	Units                   []*TeamUnit `xorm:"-"`
-	IncludesAllRepositories bool        `xorm:"NOT NULL DEFAULT false"`
-	CanCreateOrgRepo        bool        `xorm:"NOT NULL DEFAULT false"`
+	Units                   []*TeamUnit         `xorm:"-"`
+	IncludesAllRepositories bool                `xorm:"NOT NULL DEFAULT false"`
+	CanCreateOrgRepo        bool                `xorm:"NOT NULL DEFAULT false"`
+	Visibility              structs.VisibleType `xorm:"NOT NULL DEFAULT 2"`
+}
+
+func (t *Team) IsPublic() bool  { return t.Visibility.IsPublic() }
+func (t *Team) IsLimited() bool { return t.Visibility.IsLimited() }
+func (t *Team) IsPrivate() bool { return t.Visibility.IsPrivate() }
+
+// CanNonMemberReadMeta reports whether a non-member, non-owner doer may read
+// the team's metadata, based on the team's visibility tier and the parent org's
+// visibility. Privileged callers (site admins, org owners, team members) are
+// decided by the caller before reaching here.
+func (t *Team) CanNonMemberReadMeta(ctx context.Context, org, doer *user_model.User) (bool, error) {
+	switch t.Visibility {
+	case structs.VisibleTypePublic:
+		return HasOrgOrUserVisible(ctx, org, doer), nil
+	case structs.VisibleTypeLimited:
+		return IsOrganizationMember(ctx, t.OrgID, doer.ID)
+	default:
+		return false, nil
+	}
+}
+
+func NormalizeTeamVisibility(s string) structs.VisibleType {
+	if vt, ok := structs.VisibilityModes[s]; ok {
+		return vt
+	}
+	return structs.VisibleTypePrivate
 }
 
 func init() {
