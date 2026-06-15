@@ -211,11 +211,11 @@ func RenderIFrame(ctx *RenderContext, opts *ExternalRendererOptions, output io.W
 		ctx.RenderOptions.Metas["RefTypeNameSubURL"],
 		util.PathEscapeSegments(ctx.RenderOptions.RelativePath),
 	)
-	var extraAttrs template.HTML
-	if opts.ContentSandbox != "" {
-		extraAttrs = htmlutil.HTMLFormat(` sandbox="%s"`, opts.ContentSandbox)
-	}
-	_, err := htmlutil.HTMLPrintf(output, `<iframe data-src="%s" data-global-init="initExternalRenderIframe" class="external-render-iframe"%s></iframe>`, src, extraAttrs)
+
+	// The render response should always have correct "sandbox" limits (no same-origin),
+	// otherwise the "render link" direct access can still cause XSS without iframe.
+	// So here we do not need to set sandbox attribute on the iframe.
+	_, err := htmlutil.HTMLPrintf(output, `<iframe data-src="%s" data-global-init="initExternalRenderIframe" class="external-render-iframe"></iframe>`, src)
 	return err
 }
 
@@ -243,7 +243,7 @@ func RenderWithRenderer(ctx *RenderContext, renderer Renderer, input io.Reader, 
 			return RenderIFrame(ctx, &extOpts, output)
 		}
 		// else: this is a standalone page, fallthrough to the real rendering, and add extra JS/CSS
-		extraScriptSrc := public.AssetURI("js/external-render-helper.js")
+		extraScriptSrc := public.AssetURI("web_src/js/external-render-helper.ts")
 		extraLinkHref := ctx.RenderOptions.StandalonePageOptions.CurrentWebTheme.PublicAssetURI()
 		// "<script>" must go before "<link>", to make Golang's http.DetectContentType() can still recognize the content as "text/html"
 		// DO NOT use "type=module", the script must run as early as possible, to set up the environment in the iframe

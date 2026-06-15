@@ -638,7 +638,7 @@ jobs:
 				return false
 			}
 			if latestCommitStatuses[0].State == commitstatus.CommitStatusPending {
-				insertFakeStatus(t, repo, sha, latestCommitStatuses[0].TargetURL, latestCommitStatuses[0].Context)
+				insertFakeStatus(t, repo, sha, latestCommitStatuses[0])
 				return true
 			}
 			return false
@@ -680,14 +680,18 @@ func checkCommitStatusAndInsertFakeStatus(t *testing.T, repo *repo_model.Reposit
 	assert.Len(t, latestCommitStatuses, 1)
 	assert.Equal(t, commitstatus.CommitStatusPending, latestCommitStatuses[0].State)
 
-	insertFakeStatus(t, repo, sha, latestCommitStatuses[0].TargetURL, latestCommitStatuses[0].Context)
+	insertFakeStatus(t, repo, sha, latestCommitStatuses[0])
 }
 
-func insertFakeStatus(t *testing.T, repo *repo_model.Repository, sha, targetURL, context string) {
+// insertFakeStatus inserts a success status that lands in the same dedupe
+// group as `prev` — the actions runner mixes the workflow file path into
+// ContextHash, so we must reuse it (rather than recomputing from Context).
+func insertFakeStatus(t *testing.T, repo *repo_model.Repository, sha string, prev *git_model.CommitStatus) {
 	err := commitstatus_service.CreateCommitStatus(t.Context(), repo, user_model.NewActionsUser(), sha, &git_model.CommitStatus{
-		State:     commitstatus.CommitStatusSuccess,
-		TargetURL: targetURL,
-		Context:   context,
+		State:       commitstatus.CommitStatusSuccess,
+		TargetURL:   prev.TargetURL,
+		Context:     prev.Context,
+		ContextHash: prev.ContextHash,
 	})
 	assert.NoError(t, err)
 }
@@ -822,7 +826,7 @@ jobs:
 				return false
 			}
 			if latestCommitStatuses[0].State == commitstatus.CommitStatusPending {
-				insertFakeStatus(t, repo, sha, latestCommitStatuses[0].TargetURL, latestCommitStatuses[0].Context)
+				insertFakeStatus(t, repo, sha, latestCommitStatuses[0])
 				return true
 			}
 			return false
@@ -928,6 +932,76 @@ jobs:
 			CommitSHA:  branch.CommitID,
 		})
 		assert.NotNil(t, run)
+	})
+}
+
+func TestWorkflowDispatchPublicApiRequiresWorkflowDispatchTrigger(t *testing.T) {
+	onGiteaRun(t, func(t *testing.T, u *url.URL) {
+		user2 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
+		session := loginUser(t, user2.Name)
+		token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeWriteRepository)
+
+		repo, err := repo_service.CreateRepository(t.Context(), user2, user2, repo_service.CreateRepoOptions{
+			Name:          "workflow-dispatch-requires-trigger",
+			Description:   "test workflow dispatch requires workflow_dispatch",
+			AutoInit:      true,
+			Gitignores:    "Go",
+			License:       "MIT",
+			Readme:        "Default",
+			DefaultBranch: "main",
+			IsPrivate:     false,
+		})
+		require.NoError(t, err)
+		require.NotNil(t, repo)
+
+		addWorkflowToBaseResp, err := files_service.ChangeRepoFiles(t.Context(), repo, user2, &files_service.ChangeRepoFilesOptions{
+			Files: []*files_service.ChangeRepoFile{
+				{
+					Operation: "create",
+					TreePath:  ".gitea/workflows/push-only.yml",
+					ContentReader: strings.NewReader(`
+on:
+  push:
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo helloworld
+`),
+				},
+			},
+			Message:   "add workflow",
+			OldBranch: "main",
+			NewBranch: "main",
+			Author: &files_service.IdentityOptions{
+				GitUserName:  user2.Name,
+				GitUserEmail: user2.Email,
+			},
+			Committer: &files_service.IdentityOptions{
+				GitUserName:  user2.Name,
+				GitUserEmail: user2.Email,
+			},
+			Dates: &files_service.CommitDateOptions{
+				Author:    time.Now(),
+				Committer: time.Now(),
+			},
+		})
+		require.NoError(t, err)
+		require.NotNil(t, addWorkflowToBaseResp)
+
+		values := url.Values{}
+		values.Set("ref", "main")
+		req := NewRequestWithURLValues(t, "POST", fmt.Sprintf("/api/v1/repos/%s/actions/workflows/push-only.yml/dispatches", repo.FullName()), values).
+			AddTokenAuth(token)
+		resp := MakeRequest(t, req, http.StatusUnprocessableEntity)
+		apiError := DecodeJSON(t, resp, &api.APIError{})
+		assert.Contains(t, apiError.Message, "has no workflow_dispatch event trigger")
+
+		unittest.AssertNotExistsBean(t, &actions_model.ActionRun{
+			RepoID:     repo.ID,
+			Event:      "workflow_dispatch",
+			WorkflowID: "push-only.yml",
+		})
 	})
 }
 

@@ -88,6 +88,7 @@ import (
 	"gitea.dev/routers/api/v1/packages"
 	"gitea.dev/routers/api/v1/repo"
 	"gitea.dev/routers/api/v1/settings"
+	"gitea.dev/routers/api/v1/token"
 	"gitea.dev/routers/api/v1/user"
 	"gitea.dev/routers/common"
 	"gitea.dev/services/actions"
@@ -151,7 +152,7 @@ func repoAssignment() func(ctx *context.APIContext) {
 					if redirectUserID, err := user_model.LookupUserRedirect(ctx, userName); err == nil {
 						context.RedirectToUser(ctx.Base, ctx.Doer, userName, redirectUserID)
 					} else if user_model.IsErrUserRedirectNotExist(err) {
-						ctx.APIErrorNotFound("GetUserByName", err)
+						ctx.APIErrorNotFound()
 					} else {
 						ctx.APIErrorInternal(err)
 					}
@@ -504,41 +505,79 @@ func reqOrgOwnership() func(ctx *context.APIContext) {
 	}
 }
 
-// reqTeamMembership user should be an team member, or a site admin
-func reqTeamMembership() func(ctx *context.APIContext) {
+func teamAccessPrivileged(ctx *context.APIContext) (orgID int64, privileged, ok bool) {
+	if ctx.IsUserSiteAdmin() {
+		return 0, true, true
+	}
+	if ctx.Org.Team == nil {
+		setting.PanicInDevOrTesting("teamAccess: unprepared context")
+		ctx.APIErrorInternal(errors.New("teamAccess: unprepared context"))
+		return 0, false, false
+	}
+
+	orgID = ctx.Org.Team.OrgID
+	isOwner, err := organization.IsOrganizationOwner(ctx, orgID, ctx.Doer.ID)
+	if err != nil {
+		ctx.APIErrorInternal(err)
+		return 0, false, false
+	} else if isOwner {
+		return orgID, true, true
+	}
+
+	isTeamMember, err := organization.IsTeamMember(ctx, orgID, ctx.Org.Team.ID, ctx.Doer.ID)
+	if err != nil {
+		ctx.APIErrorInternal(err)
+		return 0, false, false
+	}
+	return orgID, isTeamMember, true
+}
+
+func denyNonTeamMember(ctx *context.APIContext, orgID int64) {
+	isOrgMember, err := organization.IsOrganizationMember(ctx, orgID, ctx.Doer.ID)
+	if err != nil {
+		ctx.APIErrorInternal(err)
+	} else if isOrgMember {
+		ctx.APIError(http.StatusForbidden, "Must be a team member")
+	} else {
+		ctx.APIErrorNotFound()
+	}
+}
+
+// reqTeamReadAccess allows callers who can list the team to read its metadata.
+// Non-members are admitted by the team's visibility tier and parent org visibility.
+// Not sufficient for mutations — use reqOrgOwnership() or reqTeamMembership() for those.
+func reqTeamReadAccess() func(ctx *context.APIContext) {
 	return func(ctx *context.APIContext) {
-		if ctx.IsUserSiteAdmin() {
+		orgID, privileged, ok := teamAccessPrivileged(ctx)
+		if !ok || privileged {
 			return
 		}
-		if ctx.Org.Team == nil {
-			setting.PanicInDevOrTesting("reqTeamMembership: unprepared context")
-			ctx.APIErrorInternal(errors.New("reqTeamMembership: unprepared context"))
+		if ctx.Org.Organization == nil {
+			setting.PanicInDevOrTesting("reqTeamReadAccess: organization not loaded")
+			ctx.APIErrorInternal(errors.New("reqTeamReadAccess: organization not loaded"))
 			return
 		}
 
-		orgID := ctx.Org.Team.OrgID
-		isOwner, err := organization.IsOrganizationOwner(ctx, orgID, ctx.Doer.ID)
+		visible, err := ctx.Org.Team.CanNonMemberReadMeta(ctx, ctx.Org.Organization.AsUser(), ctx.Doer)
 		if err != nil {
 			ctx.APIErrorInternal(err)
 			return
-		} else if isOwner {
-			return
 		}
+		if !visible {
+			// Not admitted by visibility: 403 for org members, 404 otherwise.
+			denyNonTeamMember(ctx, orgID)
+		}
+	}
+}
 
-		if isTeamMember, err := organization.IsTeamMember(ctx, orgID, ctx.Org.Team.ID, ctx.Doer.ID); err != nil {
-			ctx.APIErrorInternal(err)
-			return
-		} else if !isTeamMember {
-			isOrgMember, err := organization.IsOrganizationMember(ctx, orgID, ctx.Doer.ID)
-			if err != nil {
-				ctx.APIErrorInternal(err)
-			} else if isOrgMember {
-				ctx.APIError(http.StatusForbidden, "Must be a team member")
-			} else {
-				ctx.APIErrorNotFound()
-			}
+// reqTeamMembership user should be a team member, or a site admin
+func reqTeamMembership() func(ctx *context.APIContext) {
+	return func(ctx *context.APIContext) {
+		orgID, privileged, ok := teamAccessPrivileged(ctx)
+		if !ok || privileged {
 			return
 		}
+		denyNonTeamMember(ctx, orgID)
 	}
 }
 
@@ -626,7 +665,7 @@ func orgAssignment(args ...bool) func(ctx *context.APIContext) {
 					if err == nil {
 						context.RedirectToUser(ctx.Base, ctx.Doer, ctx.PathParam("org"), redirectUserID)
 					} else if user_model.IsErrUserRedirectNotExist(err) {
-						ctx.APIErrorNotFound("GetOrgByName", err)
+						ctx.APIErrorNotFound()
 					} else {
 						ctx.APIErrorInternal(err)
 					}
@@ -647,6 +686,17 @@ func orgAssignment(args ...bool) func(ctx *context.APIContext) {
 					ctx.APIErrorInternal(err)
 				}
 				return
+			}
+			if ctx.Org.Organization == nil {
+				ctx.Org.Organization, err = organization.GetOrgByID(ctx, ctx.Org.Team.OrgID)
+				if err != nil {
+					if organization.IsErrOrgNotExist(err) {
+						ctx.APIErrorNotFound()
+					} else {
+						ctx.APIErrorInternal(err)
+					}
+					return
+				}
 			}
 		}
 	}
@@ -734,14 +784,14 @@ func mustEnableWiki(ctx *context.APIContext) {
 // FIXME: for consistency, maybe most mustNotBeArchived checks should be replaced with mustEnableEditor
 func mustNotBeArchived(ctx *context.APIContext) {
 	if ctx.Repo.Repository.IsArchived {
-		ctx.APIError(http.StatusLocked, fmt.Errorf("%s is archived", ctx.Repo.Repository.FullName()))
+		ctx.APIError(http.StatusLocked, "repo is archived")
 		return
 	}
 }
 
 func mustEnableEditor(ctx *context.APIContext) {
 	if !ctx.Repo.Repository.CanEnableEditor() {
-		ctx.APIError(http.StatusLocked, fmt.Errorf("%s is not allowed to edit", ctx.Repo.Repository.FullName()))
+		ctx.APIError(http.StatusLocked, "repo is not allowed to edit")
 		return
 	}
 }
@@ -862,12 +912,12 @@ func individualPermsChecker(ctx *context.APIContext) {
 		switch ctx.ContextUser.Visibility {
 		case api.VisibleTypePrivate:
 			if ctx.Doer == nil || (ctx.ContextUser.ID != ctx.Doer.ID && !ctx.Doer.IsAdmin) {
-				ctx.APIErrorNotFound("Visit Project", nil)
+				ctx.APIErrorNotFound()
 				return
 			}
 		case api.VisibleTypeLimited:
 			if ctx.Doer == nil {
-				ctx.APIErrorNotFound("Visit Project", nil)
+				ctx.APIErrorNotFound()
 				return
 			}
 		}
@@ -975,6 +1025,11 @@ func Routes() *web.Router {
 				m.Get("/repository", settings.GetGeneralRepoSettings)
 			})
 		})
+
+		// Token introspection and deletion endpoint
+		m.Combo("/token").
+			Get(reqToken(), token.GetCurrentToken).
+			Delete(reqToken(), token.DeleteCurrentToken)
 
 		// Notifications (requires 'notifications' scope)
 		// The notifications API is not available for public-only tokens because a user's notifications mix
@@ -1188,6 +1243,7 @@ func Routes() *web.Router {
 				m.Group("/actions/workflows", func() {
 					m.Get("", repo.ActionsListRepositoryWorkflows)
 					m.Get("/{workflow_id}", repo.ActionsGetWorkflow)
+					m.Get("/{workflow_id}/runs", repo.ActionsListWorkflowRuns)
 					m.Put("/{workflow_id}/disable", reqRepoWriter(unit.TypeActions), repo.ActionsDisableWorkflow)
 					m.Put("/{workflow_id}/enable", reqRepoWriter(unit.TypeActions), repo.ActionsEnableWorkflow)
 					m.Post("/{workflow_id}/dispatches", reqRepoWriter(unit.TypeActions), bind(api.CreateActionWorkflowDispatch{}), repo.ActionsDispatchWorkflow)
@@ -1226,6 +1282,7 @@ func Routes() *web.Router {
 					})
 				}, reqToken())
 				m.Get("/assignees", reqToken(), reqAnyRepoReader(), repo.GetAssignees)
+				m.Get("/assignees/{assignee}", reqToken(), reqAnyRepoReader(), repo.CheckRepoIssueAssignee)
 				m.Get("/reviewers", reqToken(), reqAnyRepoReader(), repo.GetReviewers)
 				m.Group("/teams", func() {
 					m.Get("", reqAnyRepoReader(), repo.ListTeams)
@@ -1517,6 +1574,10 @@ func Routes() *web.Router {
 						m.Combo("").Get(repo.GetIssue).
 							Patch(reqToken(), bind(api.EditIssueOption{}), repo.EditIssue).
 							Delete(reqToken(), reqAdmin(), context.ReferencesGitRepo(), repo.DeleteIssue)
+						m.Combo("/assignees").
+							Post(reqToken(), mustNotBeArchived, bind(api.IssueAssigneesOption{}), repo.AddIssueAssignees).
+							Delete(reqToken(), mustNotBeArchived, bind(api.IssueAssigneesOption{}), repo.DeleteIssueAssignees)
+						m.Get("/assignees/{assignee}", repo.CheckIssueAssignee)
 						m.Group("/comments", func() {
 							m.Combo("").Get(repo.ListIssueComments).
 								Post(reqToken(), mustNotBeArchived, bind(api.CreateIssueCommentOption{}), repo.CreateIssueComment)
@@ -1691,25 +1752,31 @@ func Routes() *web.Router {
 			}, reqToken(), reqOrgOwnership())
 		}, tokenRequiresScopes(auth_model.AccessTokenScopeCategoryOrganization), orgAssignment(true), checkTokenPublicOnly())
 		m.Group("/teams/{teamid}", func() {
-			m.Combo("").Get(reqToken(), org.GetTeam).
-				Patch(reqToken(), reqOrgOwnership(), bind(api.EditTeamOption{}), org.EditTeam).
+			m.Combo("").Patch(reqToken(), reqOrgOwnership(), bind(api.EditTeamOption{}), org.EditTeam).
 				Delete(reqToken(), reqOrgOwnership(), org.DeleteTeam)
+			m.Group("", func() {
+				m.Get("", org.GetTeam)
+				m.Group("/members", func() {
+					m.Get("", reqOrgMembership(), org.GetTeamMembers)
+					m.Combo("/{username}").Get(reqOrgMembership(), org.GetTeamMember)
+				})
+				m.Group("/repos", func() {
+					m.Get("", org.GetTeamRepos)
+					m.Combo("/{org}/{reponame}").Get(org.GetTeamRepo)
+				})
+				m.Get("/activities/feeds", org.ListTeamActivityFeeds)
+			}, reqTeamReadAccess())
 			m.Group("/members", func() {
-				m.Get("", reqToken(), org.GetTeamMembers)
 				m.Combo("/{username}").
-					Get(reqToken(), org.GetTeamMember).
 					Put(reqToken(), reqOrgOwnership(), org.AddTeamMember).
 					Delete(reqToken(), reqOrgOwnership(), org.RemoveTeamMember)
 			})
 			m.Group("/repos", func() {
-				m.Get("", reqToken(), org.GetTeamRepos)
 				m.Combo("/{org}/{reponame}").
-					Put(reqToken(), org.AddTeamRepository).
-					Delete(reqToken(), org.RemoveTeamRepository).
-					Get(reqToken(), org.GetTeamRepo)
+					Put(reqToken(), reqTeamMembership(), org.AddTeamRepository).
+					Delete(reqToken(), reqTeamMembership(), org.RemoveTeamRepository)
 			})
-			m.Get("/activities/feeds", org.ListTeamActivityFeeds)
-		}, tokenRequiresScopes(auth_model.AccessTokenScopeCategoryOrganization), orgAssignment(false, true), reqToken(), reqTeamMembership(), checkTokenPublicOnly())
+		}, tokenRequiresScopes(auth_model.AccessTokenScopeCategoryOrganization), orgAssignment(false, true), reqToken(), checkTokenPublicOnly())
 
 		m.Group("/admin", func() {
 			m.Group("/cron", func() {

@@ -308,12 +308,12 @@ $.fn.dropdown = function(parameters) {
           firstUnfiltered: function() {
             module.verbose('Selecting first non-filtered element');
             module.remove.selectedItem();
-            $item
+            const $selectable = $item
               .not(selector.unselectable)
-              .not(selector.addition + selector.hidden)
-                .eq(0)
-                .addClass(className.selected)
-            ;
+              .not(selector.addition + selector.hidden);
+            let $selectedItem = $selectable.filter(`[data-value="${CSS.escape($input.val())}"]`); // GITEA-PATCH: try to re-select the last selected item for single selection
+            if (!$selectedItem.length) $selectedItem = $item.eq(0);
+            $selectedItem.addClass(className.selected);
           },
           nextAvailable: function($selected) {
             $selected = $selected.eq(0);
@@ -772,11 +772,13 @@ $.fn.dropdown = function(parameters) {
                 if(!Array.isArray(preSelected)) {
                     preSelected = preSelected && preSelected!=="" ? preSelected.split(settings.delimiter) : [];
                 }
-                $.each(preSelected,function(index,value){
-                  $item.filter('[data-value="'+CSS.escape(value)+'"]') // GITEA-PATCH: use "CSS.escape" for query selector
+                if (module.is.multiple()) { // GITEA-PATCH: only hide selected items when the dropdown is "multiple selection"
+                  $.each(preSelected, function (index, value) {
+                    $item.filter('[data-value="' + CSS.escape(value) + '"]') // GITEA-PATCH: use "CSS.escape" for query selector
                       .addClass(className.filtered)
-                  ;
-                });
+                    ;
+                  });
+                }
                 afterFiltered();
               });
             }
@@ -1951,8 +1953,8 @@ $.fn.dropdown = function(parameters) {
                 $choice.find(selector.menu).remove();
                 $choice.find(selector.menuIcon).remove();
               }
-              return ($choice.data(metadata.text) !== undefined)
-                ? $choice.data(metadata.text)
+              return ($choice.attr('data-' + metadata.text) !== undefined) // GITEA-PATCH: use "attr" but not "data", don't decode JSON like "false"
+                ? $choice.attr('data-' + metadata.text)
                 : (preserveHTML)
                   ? $choice.html().trim()
                   : $choice.text().trim()
@@ -2005,8 +2007,8 @@ $.fn.dropdown = function(parameters) {
                     value    = ( $option.attr('value') !== undefined )
                       ? $option.attr('value')
                       : name,
-                    text     = ( $option.data(metadata.text) !== undefined )
-                      ? $option.data(metadata.text)
+                    text     = ( $option.attr('data-' + metadata.text) !== undefined ) // GITEA-PATCH: use "attr" but not "data", don't decode JSON like "false"
+                      ? $option.attr('data-' + metadata.text)
                       : name,
                     group = $option.parent('optgroup')
                   ;

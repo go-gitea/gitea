@@ -64,7 +64,6 @@ type FindRunOptions struct {
 	Ref              string // the commit/tag/… that caused this workflow
 	TriggerUserID    int64
 	TriggerEvent     webhook_module.HookEventType
-	Approved         bool // not util.OptionalBool, it works only when it's true
 	Status           []Status
 	ConcurrencyGroup string
 	CommitSHA        string
@@ -80,9 +79,6 @@ func (opts FindRunOptions) ToConds() builder.Cond {
 	}
 	if opts.TriggerUserID > 0 {
 		cond = cond.And(builder.Eq{"`action_run`.trigger_user_id": opts.TriggerUserID})
-	}
-	if opts.Approved {
-		cond = cond.And(builder.Gt{"`action_run`.approved_by": 0})
 	}
 	if len(opts.Status) > 0 {
 		cond = cond.And(builder.In("`action_run`.status", opts.Status))
@@ -115,6 +111,7 @@ func (opts FindRunOptions) ToOrders() string {
 
 type StatusInfo struct {
 	Status          int
+	StatusName      string
 	DisplayedStatus string
 }
 
@@ -126,6 +123,7 @@ func GetStatusInfoList(ctx context.Context, lang translation.Locale) []StatusInf
 	for _, s := range allStatus {
 		statusInfoList = append(statusInfoList, StatusInfo{
 			Status:          int(s),
+			StatusName:      s.String(),
 			DisplayedStatus: s.LocaleString(lang),
 		})
 	}

@@ -9,6 +9,7 @@ import (
 	"net/url"
 	"testing"
 
+	runnerv1 "gitea.dev/actions-proto-go/runner/v1"
 	actions_model "gitea.dev/models/actions"
 	auth_model "gitea.dev/models/auth"
 	"gitea.dev/models/db"
@@ -17,7 +18,6 @@ import (
 	"gitea.dev/modules/setting"
 	actions_web "gitea.dev/routers/web/repo/actions"
 
-	runnerv1 "code.gitea.io/actions-proto-go/runner/v1"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -63,18 +63,51 @@ jobs:
 	task2 := runner2.fetchTask(t)
 	_, job2, run2 := getTaskAndJobAndRunByTaskID(t, task2.Id)
 
+	require.NoError(t, actions_model.UpsertActionRunJobSummary(t.Context(), repo1.ID, run1.ID, job1.RunAttemptID, job1.ID, 0, "text/markdown", []byte("### Hello summary\n\nFrom first step.\n")))
+	require.NoError(t, actions_model.UpsertActionRunJobSummary(t.Context(), repo1.ID, run1.ID, job1.RunAttemptID, job1.ID, 1, "text/markdown", []byte("From second step.\n")))
+	// A second job's summary in the same run/attempt: the run view must include it,
+	// but the single-job view must scope it out.
+	otherJobID := job1.ID + 1
+	require.NoError(t, actions_model.UpsertActionRunJobSummary(t.Context(), repo1.ID, run1.ID, job1.RunAttemptID, otherJobID, 0, "text/markdown", []byte("### Other job summary\n")))
+
 	req := NewRequest(t, "GET", fmt.Sprintf("/%s/%s/actions/runs/%d", user2.Name, repo1.Name, run1.ID))
 	user2Session.MakeRequest(t, req, http.StatusOK)
 
 	req = NewRequest(t, "GET", fmt.Sprintf("/%s/%s/actions/runs/%d", user2.Name, repo1.Name, 999999))
 	user2Session.MakeRequest(t, req, http.StatusNotFound)
 
-	// run1 and job1 belong to repo1, success
-	req = NewRequest(t, "POST", fmt.Sprintf("/%s/%s/actions/runs/%d/jobs/%d", user2.Name, repo1.Name, run1.ID, job1.ID))
+	findSummary := func(viewResp *actions_web.ViewResponse, jobID int64) *actions_web.ViewJobSummary {
+		for _, s := range viewResp.State.Run.JobSummaries {
+			if s.JobID == jobID {
+				return s
+			}
+		}
+		return nil
+	}
+	assertJob1Summary := func(t *testing.T, s *actions_web.ViewJobSummary) {
+		t.Helper()
+		require.NotNil(t, s)
+		assert.Contains(t, string(s.SummaryHTML), "Hello summary")
+		assert.Contains(t, string(s.SummaryHTML), "From second step")
+	}
+
+	// Run view: summaries for every job in the run.
+	req = NewRequest(t, "POST", fmt.Sprintf("/%s/%s/actions/runs/%d", user2.Name, repo1.Name, run1.ID))
 	resp := user2Session.MakeRequest(t, req, http.StatusOK)
 	viewResp := DecodeJSON(t, resp, &actions_web.ViewResponse{})
+	require.Len(t, viewResp.State.Run.JobSummaries, 2)
+	assertJob1Summary(t, findSummary(viewResp, job1.ID))
+	assert.Contains(t, string(findSummary(viewResp, otherJobID).SummaryHTML), "Other job summary")
+
+	// Job view: scoped server-side to the requested job, the other job's summary excluded.
+	req = NewRequest(t, "POST", fmt.Sprintf("/%s/%s/actions/runs/%d/jobs/%d", user2.Name, repo1.Name, run1.ID, job1.ID))
+	resp = user2Session.MakeRequest(t, req, http.StatusOK)
+	viewResp = DecodeJSON(t, resp, &actions_web.ViewResponse{})
 	assert.Len(t, viewResp.State.Run.Jobs, 1)
 	assert.Equal(t, job1.ID, viewResp.State.Run.Jobs[0].ID)
+	require.Len(t, viewResp.State.Run.JobSummaries, 1)
+	assertJob1Summary(t, findSummary(viewResp, job1.ID))
+	assert.Nil(t, findSummary(viewResp, otherJobID))
 
 	// run2 and job2 do not belong to repo1, failure
 	req = NewRequest(t, "POST", fmt.Sprintf("/%s/%s/actions/runs/%d/jobs/%d", user2.Name, repo1.Name, run2.ID, job2.ID))
