@@ -70,9 +70,11 @@ func (c *CommitMessage) MessageTrailer() CommitMessageTrailerValues {
 
 var commitMessageTrailerSplit = sync.OnceValue(func() *regexp.Regexp {
 	// the sep is either something like "\n---\n" or "\n\n" in the body, or at the start of the body like "---\n"
-	return regexp.MustCompile(`(?s)^(?P<content>.*?)(?P<sep>^|^\n|^-{3,}\n|\n-{3,}\n|\n\n)(?P<trailer>(?:[A-Za-z0-9][-A-Za-z0-9]*:[^\n]*\n?)*\n*)$`)
+	return regexp.MustCompile(`(?s)^(?P<content>.*?)(?P<sep>^|^\n|^-{3,}\n+|\n-{3,}\n+|\n\n)(?P<trailer>(?:[A-Za-z0-9][-A-Za-z0-9]*:[^\n]*\n?)*\n*)$`)
 })
 
+// CommitMessageSplitTrailer tries to split the message by the trailer separator
+// content + sep + trailer will reconstruct the original message
 func CommitMessageSplitTrailer(s string) (content, sep, trailer string) {
 	s = util.NormalizeStringEOL(s)
 	re := commitMessageTrailerSplit()

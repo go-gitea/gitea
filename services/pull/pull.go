@@ -9,10 +9,10 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"regexp"
 	"slices"
 	"strings"
 	"time"
+	"unicode"
 	"unicode/utf8"
 
 	"gitea.dev/models/db"
@@ -768,8 +768,6 @@ func CloseRepoBranchesPulls(ctx context.Context, doer *user_model.User, repo *re
 	return errors.Join(errs...)
 }
 
-var commitMessageTrailersPattern = regexp.MustCompile(`(?:^|\n\n)(?:[\w-]+[ \t]*:[^\n]+\n*(?:[ \t]+[^\n]+\n*)*)+$`)
-
 // GetSquashMergeCommitMessages returns the commit messages between head and merge base (if there is one)
 func GetSquashMergeCommitMessages(ctx context.Context, pr *issues_model.PullRequest) string {
 	if err := pr.LoadIssue(ctx); err != nil {
@@ -834,8 +832,9 @@ func buildSquashMergeCommitMessages(mergeMessage string, coAuthors []string) str
 	}
 
 	msgContent, msgSep, msgTrailer := git.CommitMessageSplitTrailer(mergeMessage)
-	if msgTrailer == "" {
-		msgSep = "\n---------\n"
+	if (msgSep == "" || msgSep == "\n\n") && msgTrailer == "" {
+		msgContent = strings.TrimRightFunc(msgContent, unicode.IsSpace)
+		msgSep = "\n\n---------\n\n"
 	}
 	var sb strings.Builder
 	sb.WriteString(msgContent)
