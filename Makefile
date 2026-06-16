@@ -234,7 +234,7 @@ generate-swagger: $(SWAGGER_SPEC) $(OPENAPI3_SPEC) ## generate the swagger spec 
 $(SWAGGER_SPEC): $(GO_SOURCES) $(SWAGGER_SPEC_INPUT)
 	@output="$$($(GO) run $(SWAGGER_PACKAGE) generate spec --enable-allof-compounding --skip-enum-desc --exclude "$(SWAGGER_EXCLUDE)" --input "$(SWAGGER_SPEC_INPUT)" --output './$(SWAGGER_SPEC)' 2>&1)" || { printf '%s\n' "$$output" >&2; exit 1; }; \
 	warnings="$$(printf '%s\n' "$$output" | grep -v '^go: ')"; \
-	if [ -n "$$warnings" ]; then printf '%s\n' "$$warnings" >&2; exit 1; fi \
+	if [ -n "$$warnings" ]; then printf '%s\n' "$$warnings" >&2; exit 1; fi; \
 	$(GO) generate -v ./build_tools/...; \
   $(GO) run $(SWAGGER_PACKAGE) mixin -o './$(SWAGGER_SPEC)' './$(SWAGGER_SPEC)' $(SWAGGER_SPEC_GROUP_INPUT)
 

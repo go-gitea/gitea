@@ -64,7 +64,7 @@ func (opts FindGroupsOptions) ToConds() builder.Cond {
 func FindGroups(ctx context.Context, opts *FindGroupsOptions) (RepoGroupList, error) {
 	sess := db.GetEngine(ctx)
 	if opts.Page > 0 {
-		sess = db.SetSessionPagination(sess, opts)
+		db.SetSessionPagination(sess, opts)
 	}
 	sess = sess.Where(opts.ToConds())
 

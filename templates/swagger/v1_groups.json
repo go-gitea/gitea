@@ -4055,8 +4055,10 @@
     },
     "/repos/{owner}/group/{group_id}/{repo}/compare/{basehead}": {
       "get": {
+        "description": "By default returns JSON commit comparison information. The raw diff or patch can be\nrequested with the `output` query parameter set to `diff` or `patch` respectively.\n",
         "produces": [
-          "application/json"
+          "application/json",
+          "text/plain"
         ],
         "tags": [
           "repository"
@@ -4080,10 +4082,20 @@
           },
           {
             "type": "string",
-            "description": "compare two branches or commits",
+            "description": "compare two refs as `base...head` (or `base..head`); refs may be branches, tags, full or short SHAs, including branch names that contain slashes.",
             "name": "basehead",
             "in": "path",
             "required": true
+          },
+          {
+            "enum": [
+              "diff",
+              "patch"
+            ],
+            "type": "string",
+            "description": "return the raw comparison as `diff` or `patch` instead of JSON",
+            "name": "output",
+            "in": "query"
           },
           {
             "description": "group ID of the repo",
