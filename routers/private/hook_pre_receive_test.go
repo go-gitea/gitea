@@ -58,13 +58,13 @@ func TestPreReceiveCanWriteCodePerBranch(t *testing.T) {
 	}
 
 	// The granted branch must be writable...
-	assert.True(t, ctx.CanWriteCode(git.RefNameFromBranch("granted-branch")))
+	assert.True(t, ctx.canWriteCodeRef(git.RefNameFromBranch("granted-branch")))
 
 	// ...but another branch in the same push must NOT inherit that grant.
-	assert.False(t, ctx.CanWriteCode(git.RefNameFromBranch("master")))
+	assert.False(t, ctx.canWriteCodeRef(git.RefNameFromBranch("master")))
 
 	// ...and a tag sharing the granted branch's name must NOT inherit it either: the grant is
 	// scoped to PR head branches, so a non-branch ref can never match it. (A tag ref already
 	// yields an empty branch name, so this guards the per-ref evaluation, not the IsBranch check.)
-	assert.False(t, ctx.CanWriteCode(git.RefNameFromTag("granted-branch")))
+	assert.False(t, ctx.canWriteCodeRef(git.RefNameFromTag("granted-branch")))
 }

@@ -48,28 +48,35 @@ type preReceiveContext struct {
 	opts *private.HookOptions
 
 	// this context should only contain shared variables, mutable variables like "current branch name" shouldn't be put here
+	canWriteCodeUnitCached *bool
 }
 
-// CanWriteCode returns true if pusher can write code
-func (ctx *preReceiveContext) CanWriteCode(refFullName git.RefName) bool {
-	if !ctx.loadPusherAndPermission() {
+func (ctx *preReceiveContext) canWriteCodeUnit() bool {
+	if ctx.canWriteCodeUnitCached == nil {
+		var canWrite bool
+		if ctx.loadPusherAndPermission() {
+			canWrite = ctx.userPerm.CanWrite(unit.TypeCode) || ctx.deployKeyAccessMode >= perm_model.AccessModeWrite
+		}
+		ctx.canWriteCodeUnitCached = &canWrite
+	}
+	return *ctx.canWriteCodeUnitCached
+}
+
+// canWriteCodeRef returns true if pusher can write to the code ref (branch/tag/commit)
+func (ctx *preReceiveContext) canWriteCodeRef(refFullName git.RefName) bool {
+	if ctx.canWriteCodeUnit() {
+		return true
+	}
+	// then check whether if the pusher is a maintainer who can write the PR author's head repo branch
+	if !refFullName.IsBranch() {
 		return false
 	}
-	// The maintainer-edit grant is scoped to a single PR head branch, so it must be evaluated
-	// against the exact branch being pushed and only for branch refs. Tags and other refs can
-	// never match a PR head branch, so they pass an empty name. Deriving this per ref (instead of
-	// from shared mutable state) prevents a per-branch grant from authorizing writes to other refs
-	// batched into the same push.
-	maintainerEditBranch := ""
-	if refFullName.IsBranch() {
-		maintainerEditBranch = refFullName.BranchName()
-	}
-	return issues_model.CanMaintainerWriteToBranch(ctx, ctx.userPerm, maintainerEditBranch, ctx.user) || ctx.deployKeyAccessMode >= perm_model.AccessModeWrite
+	return issues_model.CanMaintainerWriteToBranch(ctx, ctx.userPerm, refFullName.BranchName(), ctx.user)
 }
 
-// AssertCanWriteCode returns true if pusher can write code
-func (ctx *preReceiveContext) AssertCanWriteCode(refFullName git.RefName) bool {
-	if !ctx.CanWriteCode(refFullName) {
+// assertCanWriteRef returns true if pusher can write to the code ref, otherwise it responds with 403 Forbidden and returns false
+func (ctx *preReceiveContext) assertCanWriteRef(refFullName git.RefName) bool {
+	if !ctx.canWriteCodeRef(refFullName) {
 		if ctx.Written() {
 			return false
 		}
@@ -131,7 +138,7 @@ func HookPreReceive(ctx *gitea_context.PrivateContext) {
 		case git.DefaultFeatures().SupportProcReceive && refFullName.IsFor():
 			preReceiveFor(ourCtx, refFullName)
 		default:
-			ourCtx.AssertCanWriteCode(refFullName)
+			ourCtx.assertCanWriteRef(refFullName)
 		}
 		if ctx.Written() {
 			return
@@ -144,7 +151,7 @@ func HookPreReceive(ctx *gitea_context.PrivateContext) {
 func preReceiveBranch(ctx *preReceiveContext, oldCommitID, newCommitID string, refFullName git.RefName) {
 	branchName := refFullName.BranchName()
 
-	if !ctx.AssertCanWriteCode(refFullName) {
+	if !ctx.assertCanWriteRef(refFullName) {
 		return
 	}
 
@@ -405,7 +412,7 @@ func preReceiveBranch(ctx *preReceiveContext, oldCommitID, newCommitID string, r
 }
 
 func preReceiveTag(ctx *preReceiveContext, refFullName git.RefName) {
-	if !ctx.AssertCanWriteCode(refFullName) {
+	if !ctx.assertCanWriteRef(refFullName) {
 		return
 	}
 
