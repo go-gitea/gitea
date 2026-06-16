@@ -22,7 +22,7 @@ func getAuthorSignatureSquash(ctx *mergeContext) (*git.Signature, error) {
 		return nil, err
 	}
 
-	// Try to get an signature from the same user in one of the commits, as the
+	// Try to get a signature from the same user in one of the commits, as the
 	// poster email might be private or commits might have a different signature
 	// than the primary email address of the poster.
 	gitRepo, err := git.OpenRepository(ctx, ctx.tmpBasePath)
@@ -32,9 +32,9 @@ func getAuthorSignatureSquash(ctx *mergeContext) (*git.Signature, error) {
 	}
 	defer gitRepo.Close()
 
-	commits, err := gitRepo.CommitsBetweenIDs(tmpRepoTrackingBranch, "HEAD")
+	commits, err := gitRepo.CommitsBetween(git.RefNameFromBranch(tmpRepoTrackingBranch), git.RefNameHead, -1)
 	if err != nil {
-		log.Error("%-v Unable to get commits between: %s %s: %v", ctx.pr, "HEAD", tmpRepoTrackingBranch, err)
+		log.Error("%-v Unable to get commits between: head and tracking branch: %v", ctx.pr, err)
 		return nil, err
 	}
 
@@ -65,9 +65,7 @@ func doMergeStyleSquash(ctx *mergeContext, message string) error {
 	}
 
 	if setting.Repository.PullRequest.AddCoCommitterTrailers && ctx.committer.String() != sig.String() {
-		// add trailer
-		message = AddCommitMessageTailer(message, "Co-authored-by", sig.String())
-		message = AddCommitMessageTailer(message, "Co-committed-by", sig.String()) // FIXME: this one should be removed, it is not really used or widely used
+		message = AddCommitMessageTailer(message, git.CoAuthoredByTrailer, sig.String())
 	}
 	cmdCommit := gitcmd.NewCommand("commit").
 		AddOptionFormat("--author='%s <%s>'", sig.Name, sig.Email).

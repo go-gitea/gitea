@@ -412,7 +412,11 @@ func prepareMigrationTasks() []*migration {
 		newMigration(332, "Add last_sync_unix to mirror", v1_27.AddLastSyncUnixToMirror),
 		newMigration(333, "Add bypass allowlist to branch protection", v1_27.AddBranchProtectionBypassAllowlist),
 		newMigration(334, "Add cancelling support to action runners", v1_27.AddCancellingSupportToActionRunner),
-		newMigration(335, "Add support for matrix actions evaluation", v1_27.AddMatrixEvaluationColumnsToActionRunJob),
+		newMigration(335, "Add reusable workflow fields and action_run_attempt_job_id_index table for ActionRunJob", v1_27.AddReusableWorkflowFieldsToActionRunJob),
+		newMigration(336, "Add ActionRunJobSummary table", v1_27.AddActionRunJobSummaryTable),
+		newMigration(337, "Add visibility to team", v1_27.AddVisibilityToTeam),
+		newMigration(338, "Add job max-parallel support", v1_27.AddJobMaxParallel),
+		newMigration(339, "Add support for matrix actions evaluation", v1_27.AddMatrixEvaluationColumnsToActionRunJob),
 	}
 	return preparedMigrations
 }

@@ -58,8 +58,6 @@ func CorsHandler() func(next http.Handler) http.Handler {
 // httpBase does the common work for git http services,
 // including early response, authentication, repository lookup and permission check.
 func httpBase(ctx *context.Context, optGitService ...string) *serviceHandler {
-	reponame := strings.TrimSuffix(ctx.PathParam("reponame"), ".git")
-
 	if ctx.FormString("go-get") == "1" {
 		context.EarlyResponseForGoGetMeta(ctx)
 		return nil
@@ -93,11 +91,11 @@ func httpBase(ctx *context.Context, optGitService ...string) *serviceHandler {
 
 	isWiki := false
 	unitType := unit.TypeCode
-
-	if strings.HasSuffix(reponame, ".wiki") {
+	repoName := strings.TrimSuffix(ctx.PathParam("reponame"), ".git")
+	if strings.HasSuffix(repoName, ".wiki") {
 		isWiki = true
 		unitType = unit.TypeWiki
-		reponame = reponame[:len(reponame)-5]
+		repoName = repoName[:len(repoName)-5]
 	}
 
 	owner := ctx.ContextUser
@@ -107,14 +105,14 @@ func httpBase(ctx *context.Context, optGitService ...string) *serviceHandler {
 	}
 
 	repoExist := true
-	repo, err := repo_model.GetRepositoryByName(ctx, owner.ID, reponame)
+	repo, err := repo_model.GetRepositoryByName(ctx, owner.ID, repoName)
 	if err != nil {
 		if !repo_model.IsErrRepoNotExist(err) {
 			ctx.ServerError("GetRepositoryByName", err)
 			return nil
 		}
 
-		if redirectRepoID, err := repo_model.LookupRedirect(ctx, owner.ID, reponame); err == nil {
+		if redirectRepoID, err := repo_model.LookupRedirect(ctx, owner.ID, repoName); err == nil {
 			context.RedirectToRepo(ctx.Base, redirectRepoID)
 			return nil
 		}
@@ -127,23 +125,26 @@ func httpBase(ctx *context.Context, optGitService ...string) *serviceHandler {
 		return nil
 	}
 
-	// Only public pull don't need auth.
-	isPublicPull := repoExist && !repo.IsPrivate && isPull
-	askAuth := !isPublicPull || setting.Service.RequireSignInViewStrict
-
-	// don't allow anonymous pulls if organization is not public
-	if isPublicPull {
-		if err := repo.LoadOwner(ctx); err != nil {
-			ctx.ServerError("LoadOwner", err)
-			return nil
+	// Only public pulls don't need auth: repo must exist, not require-sign-in
+	canAnonymousPull := false
+	if isPull && repoExist && !setting.Service.RequireSignInViewStrict {
+		// allow anonymous pulls if owner is public and repo is public (not private)
+		if owner.Visibility == structs.VisibleTypePublic && !repo.IsPrivate {
+			canAnonymousPull = true
 		}
-
-		askAuth = askAuth || (repo.Owner.Visibility != structs.VisibleTypePublic)
+		// then check "public anonymous access" permission
+		if !canAnonymousPull && ctx.Doer == nil {
+			anonPerm, err := access_model.GetDoerRepoPermission(ctx, repo, nil)
+			if err != nil {
+				ctx.ServerError("GetDoerRepoPermission", err)
+				return nil
+			}
+			canAnonymousPull = anonPerm.CanAccess(accessMode, unitType)
+		}
 	}
 
 	// check access
-	if askAuth {
-		// rely on the results of Contexter
+	if !canAnonymousPull { // not public pull, then either the pull needs auth, or the push needs "write" permission, so ask auth
 		if !ctx.IsSigned {
 			// TODO: support digit auth - which would be Authorization header with digit
 			if setting.OAuth2.Enabled {
@@ -229,7 +230,7 @@ func httpBase(ctx *context.Context, optGitService ...string) *serviceHandler {
 			return nil
 		}
 
-		repo, err = repo_service.PushCreateRepo(ctx, ctx.Doer, owner, reponame)
+		repo, err = repo_service.PushCreateRepo(ctx, ctx.Doer, owner, repoName)
 		if err != nil {
 			log.Error("pushCreateRepo: %v", err)
 			ctx.Status(http.StatusNotFound)

@@ -14,11 +14,8 @@ import (
 // UserAssignmentWeb returns a middleware to handle context-user assignment for web routes
 func UserAssignmentWeb() func(ctx *Context) {
 	return func(ctx *Context) {
-		errorFn := func(status int, obj any) {
-			err, ok := obj.(error)
-			if !ok {
-				err = fmt.Errorf("%s", obj)
-			}
+		errorFn := func(status int, msg string) {
+			err := fmt.Errorf("%s", msg)
 			if status == http.StatusNotFound {
 				ctx.NotFound(err)
 			} else {
@@ -37,7 +34,7 @@ func UserAssignmentAPI() func(ctx *APIContext) {
 	}
 }
 
-func userAssignment(ctx *Base, doer *user_model.User, errCb func(int, any)) (contextUser *user_model.User) {
+func userAssignment(ctx *Base, doer *user_model.User, errCb func(int, string)) (contextUser *user_model.User) {
 	username := ctx.PathParam("username")
 
 	if doer != nil && strings.EqualFold(doer.LowerName, username) {
@@ -50,12 +47,12 @@ func userAssignment(ctx *Base, doer *user_model.User, errCb func(int, any)) (con
 				if redirectUserID, err := user_model.LookupUserRedirect(ctx, username); err == nil {
 					RedirectToUser(ctx, doer, username, redirectUserID)
 				} else if user_model.IsErrUserRedirectNotExist(err) {
-					errCb(http.StatusNotFound, err)
+					errCb(http.StatusNotFound, err.Error())
 				} else {
-					errCb(http.StatusInternalServerError, fmt.Errorf("LookupUserRedirect: %w", err))
+					errCb(http.StatusInternalServerError, fmt.Sprintf("LookupUserRedirect: %v", err))
 				}
 			} else {
-				errCb(http.StatusInternalServerError, fmt.Errorf("GetUserByName: %w", err))
+				errCb(http.StatusInternalServerError, fmt.Sprintf("GetUserByName: %v", err))
 			}
 		}
 	}
