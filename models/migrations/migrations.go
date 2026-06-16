@@ -415,7 +415,7 @@ func prepareMigrationTasks() []*migration {
 		newMigration(335, "Add reusable workflow fields and action_run_attempt_job_id_index table for ActionRunJob", v1_27.AddReusableWorkflowFieldsToActionRunJob),
 		newMigration(336, "Add ActionRunJobSummary table", v1_27.AddActionRunJobSummaryTable),
 		newMigration(337, "Add visibility to team", v1_27.AddVisibilityToTeam),
-		newMigration(338, "Add job max-parallel support", v1_26.AddJobMaxParallel),
+		newMigration(338, "Add job max-parallel support", v1_27.AddJobMaxParallel),
 	}
 	return preparedMigrations
 }

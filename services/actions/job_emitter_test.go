@@ -180,7 +180,7 @@ jobs:
 			want: nil, // exactly 1 promoted; checked by count below
 		},
 		{
-			name: "max-parallel=1: cancelled waiting job frees slot for one blocked job",
+			name: "max-parallel=2: cancelled waiting job frees slot for one blocked job",
 			jobs: actions_model.ActionJobList{
 				{ID: 1, JobID: "build", Status: actions_model.StatusRunning, Needs: []string{}, MaxParallel: 2},
 				{ID: 2, JobID: "build", Status: actions_model.StatusCancelled, Needs: []string{}, MaxParallel: 2},
@@ -320,6 +320,14 @@ func Test_maxParallelWorkflowLifecycle(t *testing.T) {
 				Status:      actions_model.StatusBlocked,
 				Needs:       []string{},
 				MaxParallel: maxParallel,
+				WorkflowPayload: fmt.Appendf(nil, `name: test
+on: push
+jobs:
+  %s:
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo
+`, matrixJobID),
 			}
 		}
 		return list
@@ -446,6 +454,15 @@ func Test_maxParallelWorkflowLifecycle(t *testing.T) {
 func Test_maxParallel_CancelCornerCase(t *testing.T) {
 	const jobID = "matrix"
 
+	minimalPayload := fmt.Appendf(nil, `name: test
+on: push
+jobs:
+  %s:
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo
+`, jobID)
+
 	countStatus := func(jobs actions_model.ActionJobList, s actions_model.Status) int {
 		n := 0
 		for _, j := range jobs {
@@ -524,6 +541,7 @@ func Test_maxParallel_CancelCornerCase(t *testing.T) {
 			jobs[i] = &actions_model.ActionRunJob{
 				ID: int64(i + 1), JobID: jobID,
 				Status: actions_model.StatusBlocked, Needs: []string{}, MaxParallel: 1,
+				WorkflowPayload: minimalPayload,
 			}
 		}
 
@@ -569,6 +587,7 @@ func Test_maxParallel_CancelCornerCase(t *testing.T) {
 			jobs[i] = &actions_model.ActionRunJob{
 				ID: int64(i + 1), JobID: jobID,
 				Status: actions_model.StatusBlocked, Needs: []string{}, MaxParallel: 2,
+				WorkflowPayload: minimalPayload,
 			}
 		}
 
@@ -621,6 +640,7 @@ func Test_maxParallel_CancelCornerCase(t *testing.T) {
 			jobs[i] = &actions_model.ActionRunJob{
 				ID: int64(i + 1), JobID: jobID,
 				Status: actions_model.StatusBlocked, Needs: []string{}, MaxParallel: 2,
+				WorkflowPayload: minimalPayload,
 			}
 		}
 

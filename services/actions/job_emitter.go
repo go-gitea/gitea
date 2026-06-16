@@ -394,7 +394,7 @@ func (r *jobStatusResolver) resolve(ctx context.Context) map[int64]actions_model
 	// Pre-calculate the number of running-or-waiting jobs per JobID
 	runningOrWaiting := make(map[string]int)
 	for id, status := range r.statuses {
-		if status == actions_model.StatusRunning || status == actions_model.StatusWaiting {
+		if status == actions_model.StatusRunning || status == actions_model.StatusWaiting || status == actions_model.StatusCancelling {
 			runningOrWaiting[r.jobMap[id].JobID]++
 		}
 	}

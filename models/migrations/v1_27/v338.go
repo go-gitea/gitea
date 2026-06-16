@@ -1,9 +1,13 @@
 // Copyright 2026 The Gitea Authors. All rights reserved.
 // SPDX-License-Identifier: MIT
 
-package v1_26
+package v1_27
 
-import "gitea.dev/models/db"
+import (
+	"gitea.dev/models/db"
+
+	"xorm.io/xorm"
+)
 
 // AddJobMaxParallel adds the max_parallel column to action_run_job.
 func AddJobMaxParallel(x db.EngineMigration) error {
@@ -11,5 +15,9 @@ func AddJobMaxParallel(x db.EngineMigration) error {
 		MaxParallel int `xorm:"NOT NULL DEFAULT 0"`
 	}
 
-	return x.Sync(new(ActionRunJob))
+	_, err := x.SyncWithOptions(xorm.SyncOptions{
+		IgnoreConstrains:  true,
+		IgnoreDropIndices: true,
+	}, new(ActionRunJob))
+	return err
 }

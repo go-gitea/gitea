@@ -177,11 +177,12 @@ func InsertRun(ctx context.Context, run *actions_model.ActionRun, content []byte
 			// Extract max-parallel from strategy if present.
 			// TODO: only literal integers are supported; expressions are not evaluated.
 			if job.Strategy.MaxParallelString != "" {
-				if maxParallel, err := strconv.Atoi(job.Strategy.MaxParallelString); err == nil && maxParallel > 0 {
+				if maxParallel, err := strconv.Atoi(job.Strategy.MaxParallelString); err != nil {
+					log.Debug("failed to process max-parallel for job %s: invalid value %q: %v", id, job.Strategy.MaxParallelString, err)
+				} else if maxParallel > 0 {
 					runJob.MaxParallel = maxParallel
-				} else {
-					log.Debug("failed to process max-parallel for job %s: invalid value %v: %v", id, job.Strategy.MaxParallelString, err)
 				}
+				// maxParallel == 0 or negative means unlimited; no log needed
 			}
 
 			if isReusableWorkflowCaller {
