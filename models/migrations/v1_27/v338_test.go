@@ -15,7 +15,7 @@ import (
 	"xorm.io/xorm/schemas"
 )
 
-type actionBeforeV337 struct {
+type actionBeforeV338 struct {
 	ID          int64 `xorm:"pk autoincr"`
 	UserID      int64 `xorm:"INDEX"`
 	OpType      int
@@ -29,9 +29,9 @@ type actionBeforeV337 struct {
 	CreatedUnix timeutil.TimeStamp `xorm:"created"`
 }
 
-func (actionBeforeV337) TableName() string { return "action" }
+func (actionBeforeV338) TableName() string { return "action" }
 
-func (actionBeforeV337) TableIndices() []*schemas.Index {
+func (actionBeforeV338) TableIndices() []*schemas.Index {
 	repoIndex := schemas.NewIndex("r_u_d", schemas.IndexType)
 	repoIndex.AddColumn("repo_id", "user_id", "is_deleted")
 
@@ -52,7 +52,7 @@ func (actionBeforeV337) TableIndices() []*schemas.Index {
 }
 
 func Test_AddCreatedUnixToActionUserIsDeletedIndex(t *testing.T) {
-	x, deferable := migrationtest.PrepareTestEnv(t, 0, new(actionBeforeV337))
+	x, deferable := migrationtest.PrepareTestEnv(t, 0, new(actionBeforeV338))
 	defer deferable()
 	if x == nil || t.Failed() {
 		return

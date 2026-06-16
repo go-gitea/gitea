@@ -4,37 +4,33 @@
 package v1_27
 
 import (
-	"context"
-
 	"gitea.dev/models/db"
 
-	"xorm.io/xorm/schemas"
+	"xorm.io/xorm"
 )
 
-// AddCreatedUnixToActionUserIsDeletedIndex extends the c_u composite index on
-// the action table to include created_unix, enabling efficient ORDER BY on the
-// dashboard feed query without a full sort of all matching rows.
-func AddCreatedUnixToActionUserIsDeletedIndex(x db.EngineMigration) error {
-	// xorm Sync cannot reliably update an index when another index already
-	// covers the same columns in a different order (Equal() is order-insensitive).
-	// Drop the old c_u index explicitly, then recreate it with the new column set.
-	indexes, err := x.Dialect().GetIndexes(x.DB(), context.Background(), "action")
-	if err != nil {
+type VisibleType int
+
+type teamWithVisibility struct {
+	Visibility VisibleType `xorm:"NOT NULL DEFAULT 2"`
+}
+
+func (teamWithVisibility) TableName() string {
+	return "team"
+}
+
+func AddVisibilityToTeam(x db.EngineMigration) error {
+	if _, err := x.SyncWithOptions(xorm.SyncOptions{
+		IgnoreDropIndices: true,
+		IgnoreConstrains:  true,
+	}, new(teamWithVisibility)); err != nil {
 		return err
-	}
-	for _, idx := range indexes {
-		if idx.Name == "c_u" {
-			if _, err := x.Exec(x.Dialect().DropIndexSQL("action", idx)); err != nil {
-				return err
-			}
-			break
-		}
 	}
 
-	newIndex := schemas.NewIndex("c_u", schemas.IndexType)
-	newIndex.AddColumn("user_id", "is_deleted", "created_unix")
-	if _, err := x.Exec(x.Dialect().CreateIndexSQL("action", newIndex)); err != nil {
-		return err
-	}
-	return nil
+	// Owner teams must remain listable to all org members; new orgs create
+	// them as "limited", so make existing owner teams limited too.
+	// Filter on authorize=4 (AccessModeOwner) so a user-created team that
+	// happens to share the name "owners" is not accidentally affected.
+	_, err := x.Exec("UPDATE `team` SET visibility = ? WHERE lower_name = ? AND authorize = ?", 1, "owners", 4)
+	return err
 }
