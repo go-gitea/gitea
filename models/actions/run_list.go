@@ -111,6 +111,7 @@ func (opts FindRunOptions) ToOrders() string {
 
 type StatusInfo struct {
 	Status          int
+	StatusName      string
 	DisplayedStatus string
 }
 
@@ -122,6 +123,7 @@ func GetStatusInfoList(ctx context.Context, lang translation.Locale) []StatusInf
 	for _, s := range allStatus {
 		statusInfoList = append(statusInfoList, StatusInfo{
 			Status:          int(s),
+			StatusName:      s.String(),
 			DisplayedStatus: s.LocaleString(lang),
 		})
 	}

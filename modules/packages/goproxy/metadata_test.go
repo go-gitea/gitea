@@ -59,6 +59,16 @@ func TestParsePackage(t *testing.T) {
 		assert.Equal(t, "module gitea.com/go-gitea/gitea", p.GoMod)
 	})
 
+	t.Run("InvalidVersion", func(t *testing.T) {
+		data := createArchive(map[string][]byte{
+			packageName + "@v1.0.0\nv99.0.0/go.mod": []byte("module " + packageName),
+		})
+
+		p, err := ParsePackage(data, int64(data.Len()))
+		assert.Nil(t, p)
+		assert.ErrorIs(t, err, ErrInvalidVersion)
+	})
+
 	t.Run("Valid", func(t *testing.T) {
 		data := createArchive(map[string][]byte{
 			packageName + "@" + packageVersion + "/subdir/go.mod": []byte("invalid"),

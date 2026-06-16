@@ -6,6 +6,7 @@ package jupyter
 import (
 	"encoding/base64"
 	"fmt"
+	"html/template"
 	"io"
 	"strings"
 	"sync"
@@ -150,10 +151,8 @@ func (renderer) Render(ctx *markup.RenderContext, input io.Reader, outputWriter 
 
 	// Check nbformat version
 	if notebook.Nbformat < 4 {
-		htmlWriter.WriteFormat(
-			`<div class="ui info message">This notebook uses an older format (nbformat %d). Only nbformat 4+ is supported for rendering. Please upgrade the notebook in Jupyter or view the raw JSON.</div>`,
-			notebook.Nbformat,
-		)
+		msg := htmlutil.HTMLFormat("This notebook uses an older format (nbformat %d). Only nbformat 4+ is supported for rendering. Please upgrade the notebook in Jupyter or view the raw JSON.", notebook.Nbformat)
+		htmlWriter.WriteFormat(`<div class="file-not-rendered-prompt">%s</div>`, msg)
 		return htmlWriter.Err()
 	}
 
@@ -190,9 +189,7 @@ func (renderer) Render(ctx *markup.RenderContext, input io.Reader, outputWriter 
 	}
 
 	if truncated {
-		htmlWriter.WriteHTML(`<div class="ui warning message">`)
-		htmlWriter.WriteHTML(`<strong>Output truncated.</strong> This notebook contains too many cells to display efficiently.`)
-		htmlWriter.WriteHTML(`</div>`)
+		renderCellPrompt(htmlWriter, "Warning:", "Output truncated. This notebook contains too many cells to display efficiently.")
 	}
 
 	htmlWriter.WriteHTML(`</div>`)
@@ -254,6 +251,16 @@ func renderCellCode(output htmlutil.HTMLWriter, cell Cell, language string) erro
 	return output.Err()
 }
 
+func renderCellPrompt(output htmlutil.HTMLWriter, left, right template.HTML) {
+	output.WriteFormat(`
+<div class="notebook-cell">
+	<div class="cell-line">
+		<div class="cell-left cell-prompt">%s</div>
+		<div class="cell-right cell-prompt">%s</div>
+	</div>
+</div>`, left, right)
+}
+
 func renderCell(ctx *markup.RenderContext, output htmlutil.HTMLWriter, cell Cell, language string) error {
 	switch cell.CellType {
 	case "markdown":
@@ -265,7 +272,10 @@ func renderCell(ctx *markup.RenderContext, output htmlutil.HTMLWriter, cell Cell
 		if err := renderCellMarkdown(ctx, output, joinSource(cell.Source)); err != nil {
 			return err
 		}
-		output.WriteHTML(`</div></div></div>`)
+		output.WriteHTML(`
+		</div>
+	</div>
+</div>`)
 	case "code":
 		output.WriteHTML(`<div class="notebook-cell cell-type-code">`)
 		if err := renderCellCode(output, cell, language); err != nil {
@@ -273,13 +283,7 @@ func renderCell(ctx *markup.RenderContext, output htmlutil.HTMLWriter, cell Cell
 		}
 		output.WriteHTML(`</div>`)
 	default:
-		output.WriteFormat(`
-<div class="notebook-cell">
-	<div class="cell-line">
-		<div class="cell-left cell-prompt">Cell:</div>
-		<div class="cell-right cell-prompt">[Cell type %s - unsupported, skipped]</div>
-	</div>
-</div>`, cell.CellType)
+		renderCellPrompt(output, "Cell:", htmlutil.HTMLFormat("[Cell type %s - unsupported, skipped]", cell.CellType))
 	}
 	return output.Err()
 }
