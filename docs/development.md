@@ -2,7 +2,7 @@
 
 This document describes how to build Gitea from source and the day-to-day
 development workflow. For prerequisites and how to obtain the code, see
-[setup.md](setup.md). For running tests, see [testing.md](testing.md). For the
+[build-setup.md](build-setup.md). For running tests, see [testing.md](testing.md). For the
 contribution workflow and review process, see [CONTRIBUTING.md](../CONTRIBUTING.md).
 
 Area-specific guidelines:

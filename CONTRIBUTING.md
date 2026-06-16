@@ -2,16 +2,17 @@
 
 This document explains how to contribute changes to the Gitea project. Topic-specific guides live in separate files so the essentials are easier to find.
 
-| Topic | Document |
-| :---- | :------- |
-| Setup and requirements | [docs/setup.md](docs/setup.md) |
-| Building and the development workflow | [docs/development.md](docs/development.md) |
-| Running the tests | [docs/testing.md](docs/testing.md) |
-| Backend architecture and API v1 | [docs/guidelines-backend.md](docs/guidelines-backend.md) |
-| Frontend architecture and UI guidelines | [docs/guidelines-frontend.md](docs/guidelines-frontend.md) |
-| Refactoring | [docs/guidelines-refactoring.md](docs/guidelines-refactoring.md) |
-| Maintainers, TOC, labels, merge queue, commit format for mergers | [docs/community-governance.md](docs/community-governance.md) |
-| Release cycle, backports, tagging releases | [docs/release-management.md](docs/release-management.md) |
+| Topic                  | Document                                                         |
+|:-----------------------|:-----------------------------------------------------------------|
+| Setup and requirements | [docs/build-setup.md](docs/build-setup.md)                       |
+| Development workflow   | [docs/development.md](docs/development.md)                       |
+| Build from source      | [docs/build-source.md](docs/build-source.md)                     |
+| Running the tests      | [docs/testing.md](docs/testing.md)                               |
+| Frontend guidelines    | [docs/guidelines-frontend.md](docs/guidelines-frontend.md)       |
+| Backend guidelines     | [docs/guidelines-backend.md](docs/guidelines-backend.md)         |
+| Refactoring            | [docs/guidelines-refactoring.md](docs/guidelines-refactoring.md) |
+| Community Governance   | [docs/community-governance.md](docs/community-governance.md)     |
+| Release management     | [docs/release-management.md](docs/release-management.md)         |
 
 <details><summary>Table of Contents</summary>
 

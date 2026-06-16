@@ -62,11 +62,6 @@ Operations that must roll back together should run inside `db.WithTx()` (or
 Functions that participate in a transaction take a `context.Context` as their first
 parameter so the transaction can be propagated.
 
-### Implementing `io.Closer`
-
-Types that implement `io.Closer` must tolerate `Close()` being called more than once
-without panicking.
-
 ### XORM gotchas
 
 - Never call `x.Update(exemplar)` without an explicit `WHERE` clause — it updates

@@ -6,9 +6,8 @@ and testing see [development.md](development.md) and [testing.md](testing.md).
 
 ## Background
 
-The frontend uses [Vue 3](https://vuejs.org/), [Fomantic-UI](https://fomantic-ui.com/)
-(built on jQuery), [htmx](https://htmx.org/) for partial page updates, and
-[Tailwind CSS](https://tailwindcss.com/). Pages are rendered with Go HTML templates.
+The frontend uses [Vue 3](https://vuejs.org/), [Fomantic-UI](https://fomantic-ui.com/) (built on jQuery)
+and [Tailwind CSS](https://tailwindcss.com/). Pages are rendered with Go HTML templates.
 Source files live in:
 
 - `web_src/css/`: CSS styles
@@ -28,15 +27,14 @@ reference an existing published version.
 
 Mixing frameworks arbitrarily makes code hard to maintain. Recommended combinations:
 
-- Vue with vanilla JavaScript
-- Fomantic-UI (jQuery)
+- Vue3
 - Vanilla JavaScript
+- Fomantic-UI (jQuery), deprecated, we vendored a specific version with a lot of changes.
 
-Avoid combinations such as Vue with Fomantic-UI, jQuery with htmx, or htmx with heavy
-JavaScript dependencies. Vue components may reuse Fomantic-UI CSS classes for visual
-consistency. Use Go templates for simple or SEO-relevant pages and Vue for complex,
-interactive pages. Gitea uses Vue 3 **without** JSX to keep HTML and JavaScript
-separate.
+Avoid combinations such as Vue with Fomantic-UI.
+Vue components may reuse Fomantic-UI CSS classes for visual consistency.
+Use Go templates for simple or SEO-relevant pages and Vue for complex, interactive pages.
+Gitea uses Vue 3 **without** JSX to keep HTML and JavaScript separate.
 
 > [!NOTE]
 > Fomantic-UI is not an accessibility-friendly framework. Gitea patches some ARIA
@@ -47,12 +45,9 @@ separate.
 
 - Keep features in their own files or directories.
 - Use kebab-case for HTML `id`s and classes, ideally with 2-3 feature keywords.
-- Prefix classes used only as JavaScript hooks with `js-`, and keep them unique
-  across the project.
-- Create a new class name when overriding framework styles instead of editing the
-  framework's own classes.
-- Pass complex data to the frontend via `ctx.PageData["myModuleData"]` rather than
-  embedding models directly, to avoid leaking sensitive fields.
+- Prefix classes to avoid short-name conflicts between different frameworks.
+- Create a new class name when overriding framework styles instead of editing the framework's own classes,
+  or fix the framework's source to fix all cases.
 - Prefer semantic elements such as `<button>` over generic `<div>`s.
 - Avoid `!important`; when it is unavoidable, document why.
 - Prefix custom DOM events with `ce-`.
@@ -67,15 +62,14 @@ helpers over per-child margins. Gitea also ships a small set of custom helpers:
 Write class attributes as a single readable unit in templates:
 
 ```html
-<div class="tw-flex tw-items-center {{if .IsFoo}}tw-hidden{{end}}"></div>
+<div class="flex-text-inline {{if .IsFoo}}tw-hidden{{end}}"></div>
 ```
 
 ## TypeScript
 
 - Use `import type` for type-only imports.
 - Prefer `@ts-expect-error` over `@ts-ignore`.
-- Use the `!` non-null assertion (rather than `?.`/`??`) when a value is known to
-  always exist.
+- Use the `!` non-null assertion (rather than `?.`/`??`) when a value is known to always exist.
 - Only mark a function `async` when it actually uses `await` or returns a `Promise`.
   Avoid async event listeners; if unavoidable, call `e.preventDefault()` before the
   first `await`. For a deliberately un-awaited call, assign it: `const _promise = asyncFoo()`.
@@ -83,8 +77,7 @@ Write class attributes as a single readable unit in templates:
 ## Data fetching
 
 Use the `GET`, `POST`, `PUT`, `PATCH`, and `DELETE` wrappers from
-[`web_src/js/modules/fetch.ts`](../web_src/js/modules/fetch.ts); they add the CSRF
-token automatically.
+[`web_src/js/modules/fetch.ts`](../web_src/js/modules/fetch.ts).
 
 ## DOM attributes
 

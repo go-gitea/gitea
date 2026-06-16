@@ -4,7 +4,7 @@ Gitea has four kinds of automated tests: backend unit tests, integration tests,
 end-to-end (e2e) tests, and migration tests. Local runs default to SQLite, so no
 extra services are required to get started.
 
-For prerequisites see [setup.md](setup.md); for the build workflow see
+For prerequisites see [build-setup.md](build-setup.md); for the build workflow see
 [development.md](development.md).
 
 ## Unit tests
