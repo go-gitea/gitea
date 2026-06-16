@@ -4,14 +4,15 @@
 package pull
 
 import (
+	"bytes"
 	"context"
 	"errors"
 	"fmt"
 	"io"
-	"regexp"
 	"slices"
 	"strings"
 	"time"
+	"unicode"
 	"unicode/utf8"
 
 	"gitea.dev/models/db"
@@ -96,7 +97,7 @@ func NewPullRequest(ctx context.Context, opts *NewPullRequestOptions) error {
 	}
 
 	assigneeCommentMap := make(map[int64]*issues_model.Comment)
-
+	assignees := make(map[int64]*user_model.User)
 	var reviewNotifiers []*issue_service.ReviewRequestNotifier
 	if err := db.WithTx(ctx, func(ctx context.Context) error {
 		if err := issues_model.NewPullRequest(ctx, repo, issue, labelIDs, uuids, pr); err != nil {
@@ -104,10 +105,16 @@ func NewPullRequest(ctx context.Context, opts *NewPullRequestOptions) error {
 		}
 
 		for _, assigneeID := range assigneeIDs {
-			comment, err := issue_service.AddAssigneeIfNotAssigned(ctx, issue, issue.Poster, assigneeID, false)
+			assignee, err := user_model.GetUserByID(ctx, assigneeID)
+			if err != nil {
+				log.Error("GetUserByID: %v", err)
+				continue
+			}
+			comment, err := issue_service.AddAssigneeIfNotAssigned(ctx, issue, issue.Poster, assignee)
 			if err != nil {
 				return err
 			}
+			assignees[assigneeID] = assignee
 			assigneeCommentMap[assigneeID] = comment
 		}
 
@@ -186,12 +193,8 @@ func NewPullRequest(ctx context.Context, opts *NewPullRequestOptions) error {
 	if issue.Milestone != nil {
 		notify_service.IssueChangeMilestone(ctx, issue.Poster, issue, 0)
 	}
-	for _, assigneeID := range assigneeIDs {
-		assignee, err := user_model.GetUserByID(ctx, assigneeID)
-		if err != nil {
-			return ErrDependenciesLeft
-		}
-		notify_service.IssueChangeAssignee(ctx, issue.Poster, issue, assignee, false, assigneeCommentMap[assigneeID])
+	for _, assignee := range assignees {
+		notify_service.IssueChangeAssignee(ctx, issue.Poster, issue, assignee, false, assigneeCommentMap[assignee.ID])
 	}
 
 	return nil
@@ -765,8 +768,6 @@ func CloseRepoBranchesPulls(ctx context.Context, doer *user_model.User, repo *re
 	return errors.Join(errs...)
 }
 
-var commitMessageTrailersPattern = regexp.MustCompile(`(?:^|\n\n)(?:[\w-]+[ \t]*:[^\n]+\n*(?:[ \t]+[^\n]+\n*)*)+$`)
-
 // GetSquashMergeCommitMessages returns the commit messages between head and merge base (if there is one)
 func GetSquashMergeCommitMessages(ctx context.Context, pr *issues_model.PullRequest) string {
 	if err := pr.LoadIssue(ctx); err != nil {
@@ -795,85 +796,67 @@ func GetSquashMergeCommitMessages(ctx context.Context, pr *issues_model.PullRequ
 	}
 	defer closer.Close()
 
-	var headCommit *git.Commit
+	var headCommitRef git.RefName
 	if pr.Flow == issues_model.PullRequestFlowGithub {
-		headCommit, err = gitRepo.GetBranchCommit(pr.HeadBranch)
+		headCommitRef = git.RefNameFromBranch(pr.HeadBranch)
 	} else {
 		pr.HeadCommitID, err = gitRepo.GetRefCommitID(pr.GetGitHeadRefName())
 		if err != nil {
 			log.Error("Unable to get head commit: %s Error: %v", pr.GetGitHeadRefName(), err)
 			return ""
 		}
-		headCommit, err = gitRepo.GetCommit(pr.HeadCommitID)
-	}
-	if err != nil {
-		log.Error("Unable to get head commit: %s Error: %v", pr.HeadBranch, err)
-		return ""
+		headCommitRef = git.RefNameFromCommit(pr.HeadCommitID)
 	}
 
-	mergeBase, err := gitRepo.GetCommit(pr.MergeBase)
-	if err != nil {
-		log.Error("Unable to get merge base commit: %s Error: %v", pr.MergeBase, err)
-		return ""
-	}
+	mergeBaseRef := git.RefNameFromCommit(pr.MergeBase)
 
 	limit := setting.Repository.PullRequest.DefaultMergeMessageCommitsLimit
 
-	commits, err := gitRepo.CommitsBetweenLimit(headCommit, mergeBase, limit, 0)
+	limitedCommits, err := gitRepo.CommitsBetween(headCommitRef, mergeBaseRef, limit)
 	if err != nil {
 		log.Error("Unable to get commits between: %s %s Error: %v", pr.HeadBranch, pr.MergeBase, err)
 		return ""
 	}
 
-	posterSig := pr.Issue.Poster.NewGitSig().String()
+	mergeMessage := strings.TrimSpace(pr.Issue.Content) // use PR's title and description as squash commit message
+	if setting.Repository.PullRequest.PopulateSquashCommentWithCommitMessages {
+		mergeMessage = formatSquashMergeCommitMessages(limitedCommits) // use PR's commit messages as squash commit message
+	}
+	coAuthors := collectSquashMergeCommitCoAuthors(ctx, gitRepo, pr, headCommitRef, mergeBaseRef, limit, limitedCommits)
+	return buildSquashMergeCommitMessages(mergeMessage, coAuthors)
+}
 
-	uniqueAuthors := make(container.Set[string])
-	authors := make([]string, 0, len(commits))
-	stringBuilder := strings.Builder{}
-
-	if !setting.Repository.PullRequest.PopulateSquashCommentWithCommitMessages {
-		// use PR's title and description as squash commit message
-		message := strings.TrimSpace(pr.Issue.Content)
-		stringBuilder.WriteString(message)
-		if stringBuilder.Len() > 0 {
-			stringBuilder.WriteRune('\n')
-			if !commitMessageTrailersPattern.MatchString(message) {
-				// TODO: this trailer check doesn't work with the separator line added below for the co-authors
-				stringBuilder.WriteRune('\n')
-			}
-		}
-	} else {
-		// use PR's commit messages as squash commit message
-		// commits list is in reverse chronological order
-		maxMsgSize := setting.Repository.PullRequest.DefaultMergeMessageSize
-		for _, commit := range slices.Backward(commits) {
-			msg := strings.TrimSpace(commit.MessageUTF8())
-			if msg == "" {
-				continue
-			}
-
-			// This format follows GitHub's squash commit message style,
-			// even if there are other "* " in the commit message body, they are written as-is.
-			// Maybe, ideally, we should indent those lines too.
-			_, _ = fmt.Fprintf(&stringBuilder, "* %s\n\n", msg)
-			if maxMsgSize > 0 && stringBuilder.Len() >= maxMsgSize {
-				tmp := stringBuilder.String()
-				wasValidUtf8 := utf8.ValidString(tmp)
-				tmp = tmp[:maxMsgSize] + "..."
-				if wasValidUtf8 {
-					// If the message was valid UTF-8 before truncation, ensure it remains valid after truncation
-					// For non-utf8 messages, we can't do much about it, end users should use utf-8 as much as possible
-					tmp = strings.ToValidUTF8(tmp, "")
-				}
-				stringBuilder.Reset()
-				stringBuilder.WriteString(tmp)
-				break
-			}
-		}
+func buildSquashMergeCommitMessages(mergeMessage string, coAuthors []string) string {
+	if len(coAuthors) == 0 {
+		return mergeMessage
 	}
 
-	// collect co-authors
-	for _, commit := range commits {
+	msgContent, msgSep, msgTrailer := git.CommitMessageSplitTrailer(mergeMessage)
+	if (msgSep == "" || msgSep == "\n\n") && msgTrailer == "" {
+		msgContent = strings.TrimRightFunc(msgContent, unicode.IsSpace)
+		msgSep = "\n\n---------\n\n"
+	}
+	var sb strings.Builder
+	sb.WriteString(msgContent)
+	sb.WriteString(msgSep)
+	if msgTrailer = strings.TrimSpace(msgTrailer); msgTrailer != "" {
+		sb.WriteString(msgTrailer)
+		sb.WriteRune('\n')
+	}
+	for _, author := range coAuthors {
+		sb.WriteString(git.CoAuthoredByTrailer + ": ")
+		sb.WriteString(author)
+		sb.WriteRune('\n')
+	}
+	return sb.String()
+}
+
+func collectSquashMergeCommitCoAuthors(ctx context.Context, gitRepo *git.Repository, pr *issues_model.PullRequest, headCommitRef, mergeBaseRef git.RefName, limitFirst int, limitedCommits []*git.Commit) []string {
+	posterSig := pr.Issue.Poster.NewGitSig().String()
+	uniqueAuthors := make(container.Set[string])
+	authors := make([]string, 0, len(limitedCommits))
+
+	for _, commit := range limitedCommits {
 		authorString := commit.Author.String()
 		if uniqueAuthors.Add(authorString) && authorString != posterSig {
 			// Compare use account as well to avoid adding the same author multiple times
@@ -886,14 +869,14 @@ func GetSquashMergeCommitMessages(ctx context.Context, pr *issues_model.PullRequ
 	}
 
 	// collect the remaining authors
-	if limit >= 0 && setting.Repository.PullRequest.DefaultMergeMessageAllAuthors {
-		skip := limit
-		limit = 30
+	if limitFirst >= 0 && setting.Repository.PullRequest.DefaultMergeMessageAllAuthors {
+		skip := limitFirst
+		batchLimit := 30
 		for {
-			commits, err = gitRepo.CommitsBetweenLimit(headCommit, mergeBase, limit, skip)
+			commits, err := gitRepo.CommitsBetween(headCommitRef, mergeBaseRef, batchLimit, skip)
 			if err != nil {
 				log.Error("Unable to get commits between: %s %s Error: %v", pr.HeadBranch, pr.MergeBase, err)
-				return ""
+				return authors
 			}
 			if len(commits) == 0 {
 				break
@@ -907,22 +890,46 @@ func GetSquashMergeCommitMessages(ctx context.Context, pr *issues_model.PullRequ
 					}
 				}
 			}
-			skip += limit
+			skip += batchLimit
+		}
+	}
+	return authors
+}
+
+func formatSquashMergeCommitMessages(commits []*git.Commit) string {
+	maxMsgSize := setting.Repository.PullRequest.DefaultMergeMessageSize
+	sb := &bytes.Buffer{}
+	// commits list is in reverse chronological order
+	for _, commit := range slices.Backward(commits) {
+		msg := strings.TrimSpace(commit.MessageUTF8())
+		if msg == "" {
+			continue
+		}
+
+		// This format follows GitHub's squash commit message style,
+		// even if there are other "* " in the commit message body, they are written as-is.
+		// Maybe, ideally, we should indent those lines too.
+		_, _ = fmt.Fprintf(sb, "* %s\n\n", msg)
+		if maxMsgSize > 0 && sb.Len() >= maxMsgSize {
+			break
 		}
 	}
 
-	if stringBuilder.Len() > 0 && len(authors) > 0 {
-		// TODO: this separator line doesn't work with the trailer check (commitMessageTrailersPattern) above
-		stringBuilder.WriteString("---------\n\n")
+	buf := bytes.TrimSpace(sb.Bytes())
+	if maxMsgSize > 0 && len(buf) > maxMsgSize {
+		buf = buf[:maxMsgSize]
+		for {
+			r, sz := utf8.DecodeLastRune(buf)
+			if r == utf8.RuneError && sz == 1 {
+				buf = buf[:len(buf)-1]
+				continue
+			}
+			break
+		}
+		buf = append(buf, '.', '.', '.')
 	}
-
-	for _, author := range authors {
-		stringBuilder.WriteString("Co-authored-by: ")
-		stringBuilder.WriteString(author)
-		stringBuilder.WriteRune('\n')
-	}
-
-	return stringBuilder.String()
+	buf = append(buf, '\n', '\n')
+	return util.UnsafeBytesToString(buf)
 }
 
 // GetIssuesAllCommitStatus returns a map of issue ID to a list of all statuses for the most recent commit as well as a map of issue ID to only the commit's latest status

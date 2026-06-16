@@ -6,9 +6,18 @@ package openapi3gen
 import (
 	"os"
 	"path/filepath"
+	"slices"
 	"strings"
 	"testing"
 )
+
+func single(got map[string][]string, key string) string {
+	v := got[key]
+	if len(v) != 1 {
+		return ""
+	}
+	return v[0]
+}
 
 func TestEnumKey_sortsAndJoins(t *testing.T) {
 	key := EnumKey([]any{"b", "a", "c"})
@@ -47,7 +56,7 @@ const (
 		t.Fatalf("ScanSwaggerEnumTypes: %v", err)
 	}
 	wantKey := EnumKey([]any{"red", "green", "blue"})
-	if got[wantKey] != "Color" {
+	if single(got, wantKey) != "Color" {
 		t.Fatalf("map[%q] = %q, want %q", wantKey, got[wantKey], "Color")
 	}
 }
@@ -98,13 +107,14 @@ const (
 		t.Fatal(err)
 	}
 
-	_, err := ScanSwaggerEnumTypes([]string{dir})
-	if err == nil {
-		t.Fatal("expected collision error, got nil")
+	got, err := ScanSwaggerEnumTypes([]string{dir})
+	if err != nil {
+		t.Fatalf("ScanSwaggerEnumTypes: %v", err)
 	}
-	msg := err.Error()
-	if !strings.Contains(msg, "Alpha") || !strings.Contains(msg, "Beta") {
-		t.Fatalf("error %q should mention both Alpha and Beta", msg)
+	key := EnumKey([]any{"x", "y"})
+	names := got[key]
+	if !slices.Equal(names, []string{"Alpha", "Beta"}) {
+		t.Fatalf("map[%q] = %v, want [Alpha Beta]", key, names)
 	}
 }
 
@@ -168,7 +178,7 @@ type Hue string
 		t.Fatalf("ScanSwaggerEnumTypes: %v", err)
 	}
 	wantKey := EnumKey([]any{"a", "b"})
-	if got[wantKey] != "Hue" {
+	if single(got, wantKey) != "Hue" {
 		t.Fatalf("map[%q] = %q, want %q", wantKey, got[wantKey], "Hue")
 	}
 }
@@ -194,7 +204,7 @@ type Shade string
 		t.Fatalf("ScanSwaggerEnumTypes: %v", err)
 	}
 	wantKey := EnumKey([]any{"dark", "light"})
-	if got[wantKey] != "Shade" {
+	if single(got, wantKey) != "Shade" {
 		t.Fatalf("map[%q] = %q, want %q", wantKey, got[wantKey], "Shade")
 	}
 }
@@ -230,10 +240,10 @@ const (
 	}
 	colorKey := EnumKey([]any{"red", "blue"})
 	shadeKey := EnumKey([]any{"dark", "light"})
-	if got[colorKey] != "Color" {
+	if single(got, colorKey) != "Color" {
 		t.Fatalf("Color: map[%q] = %q, want %q", colorKey, got[colorKey], "Color")
 	}
-	if got[shadeKey] != "Shade" {
+	if single(got, shadeKey) != "Shade" {
 		t.Fatalf("Shade: map[%q] = %q, want %q", shadeKey, got[shadeKey], "Shade")
 	}
 }

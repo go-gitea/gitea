@@ -38,11 +38,15 @@ func TestRepoCommits(t *testing.T) {
 		doc.doc.Find("#commits-table .commit-id-short").Each(func(i int, s *goquery.Selection) {
 			commits = append(commits, path.Base(s.AttrOr("href", "")))
 		})
-		doc.doc.Find("#commits-table .author-wrapper a").Each(func(i int, s *goquery.Selection) {
+		doc.doc.Find("#commits-table .avatar-stack-names a.muted").Each(func(i int, s *goquery.Selection) {
 			userHrefs = append(userHrefs, s.AttrOr("href", ""))
 		})
 		assert.Equal(t, []string{"69554a64c1e6030f051e5c3f94bfbd773cd6a324", "27566bd5738fc8b4e3fef3c5e72cce608537bd95", "5099b81332712fe655e34e8dd63574f503f61811"}, commits)
-		assert.Equal(t, []string{"/user2", "/user21", "/user2"}, userHrefs)
+		assert.Equal(t, []string{
+			"/user2/repo16/commits/branch/master/search?q=author%3Auser2%40example.com",
+			"/user2/repo16/commits/branch/master/search?q=author%3Auser21%40example.com",
+			"/user2/repo16/commits/branch/master/search?q=author%3Auser2%40example.com",
+		}, userHrefs)
 	})
 
 	t.Run("LastCommit", func(t *testing.T) {
@@ -50,9 +54,9 @@ func TestRepoCommits(t *testing.T) {
 		resp := session.MakeRequest(t, req, http.StatusOK)
 		doc := NewHTMLParser(t, resp.Body)
 		commitHref := doc.doc.Find(".latest-commit .commit-id-short").AttrOr("href", "")
-		authorHref := doc.doc.Find(".latest-commit .author-wrapper a").AttrOr("href", "")
+		authorHref := doc.doc.Find(".latest-commit .avatar-stack-names a").AttrOr("href", "")
 		assert.Equal(t, "/user2/repo16/commit/69554a64c1e6030f051e5c3f94bfbd773cd6a324", commitHref)
-		assert.Equal(t, "/user2", authorHref)
+		assert.Equal(t, "/user2/repo16/commits/branch/master/search?q=author%3Auser2%40example.com", authorHref)
 	})
 
 	t.Run("CommitListNonExistingCommiter", func(t *testing.T) {
@@ -65,8 +69,30 @@ func TestRepoCommits(t *testing.T) {
 		doc := NewHTMLParser(t, resp.Body)
 		commitHref := doc.doc.Find("#commits-table tr:first-child .commit-id-short").AttrOr("href", "")
 		assert.Equal(t, "/user2/repo1/commit/985f0301dba5e7b34be866819cd15ad3d8f508ee", commitHref)
-		authorElem := doc.doc.Find("#commits-table tr:first-child .author-wrapper")
+		authorElem := doc.doc.Find("#commits-table tr:first-child .avatar-stack-names")
 		assert.Equal(t, "6543", strings.TrimSpace(authorElem.Text()))
+	})
+
+	t.Run("CommitPageUsesCommitterDate", func(t *testing.T) {
+		const (
+			commitID              = "5099b81332712fe655e34e8dd63574f503f61811"
+			expectedCommitterTime = "2017-08-06T19:56:13+02:00"
+			authorTime            = "2017-08-06T19:55:01+02:00"
+		)
+
+		req := NewRequest(t, "GET", "/user2/repo16/commits/branch/master")
+		resp := session.MakeRequest(t, req, http.StatusOK)
+		doc := NewHTMLParser(t, resp.Body)
+
+		var commitListTime string
+		doc.doc.Find("#commits-table tbody tr").EachWithBreak(func(_ int, row *goquery.Selection) bool {
+			if path.Base(row.Find(".commit-id-short").AttrOr("href", "")) != commitID {
+				return true
+			}
+			commitListTime = row.Find("td").Eq(3).Find("relative-time").AttrOr("datetime", "")
+			return false
+		})
+		require.Equal(t, expectedCommitterTime, commitListTime)
 	})
 
 	t.Run("LastCommitNonExistingCommiter", func(t *testing.T) {
@@ -75,7 +101,7 @@ func TestRepoCommits(t *testing.T) {
 		doc := NewHTMLParser(t, resp.Body)
 		commitHref := doc.doc.Find(".latest-commit .commit-id-short").AttrOr("href", "")
 		assert.Equal(t, "/user2/repo1/commit/985f0301dba5e7b34be866819cd15ad3d8f508ee", commitHref)
-		authorElem := doc.doc.Find(".latest-commit .author-wrapper")
+		authorElem := doc.doc.Find(".latest-commit .avatar-stack-names")
 		assert.Equal(t, "6543", strings.TrimSpace(authorElem.Text()))
 	})
 }

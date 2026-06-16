@@ -221,7 +221,7 @@ func checkCanChangeOrgUserStatus(ctx *context.APIContext, targetUser *user_model
 	// allow org owners to change status of members
 	isOwner, err := ctx.Org.Organization.IsOwnedBy(ctx, ctx.Doer.ID)
 	if err != nil {
-		ctx.APIError(http.StatusInternalServerError, err)
+		ctx.APIErrorInternal(err)
 	} else if !isOwner {
 		ctx.APIError(http.StatusForbidden, "Cannot change member visibility")
 	}

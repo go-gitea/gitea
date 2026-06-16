@@ -55,10 +55,15 @@ func ListTeams(ctx *context.APIContext) {
 	//     "$ref": "#/responses/notFound"
 
 	listOptions := utils.GetListOptions(ctx)
-	teams, count, err := organization.SearchTeam(ctx, &organization.SearchTeamOptions{
+	opts := &organization.SearchTeamOptions{
 		ListOptions: listOptions,
 		OrgID:       ctx.Org.Organization.ID,
-	})
+	}
+	if err := organization.ApplyTeamListFilter(ctx, ctx.Org.Organization.ID, ctx.Doer, ctx.IsSigned, opts); err != nil {
+		ctx.APIErrorInternal(err)
+		return
+	}
+	teams, count, err := organization.SearchTeam(ctx, opts)
 	if err != nil {
 		ctx.APIErrorInternal(err)
 		return
@@ -218,6 +223,7 @@ func CreateTeam(ctx *context.APIContext) {
 		IncludesAllRepositories: form.IncludesAllRepositories,
 		CanCreateOrgRepo:        form.CanCreateOrgRepo,
 		AccessMode:              teamPermission,
+		Visibility:              organization.NormalizeTeamVisibility(string(form.Visibility)),
 	}
 
 	if team.AccessMode < perm.AccessModeAdmin {
@@ -236,7 +242,7 @@ func CreateTeam(ctx *context.APIContext) {
 
 	if err := org_service.NewTeam(ctx, team); err != nil {
 		if organization.IsErrTeamAlreadyExist(err) {
-			ctx.APIError(http.StatusUnprocessableEntity, err)
+			ctx.APIError(http.StatusUnprocessableEntity, err.Error())
 		} else {
 			ctx.APIErrorInternal(err)
 		}
@@ -293,6 +299,10 @@ func EditTeam(ctx *context.APIContext) {
 
 	if form.Description != nil {
 		team.Description = *form.Description
+	}
+
+	if form.Visibility != nil && !team.IsOwnerTeam() {
+		team.Visibility = organization.NormalizeTeamVisibility(string(*form.Visibility))
 	}
 
 	isAuthChanged := false
@@ -386,15 +396,6 @@ func GetTeamMembers(ctx *context.APIContext) {
 	//     "$ref": "#/responses/UserList"
 	//   "404":
 	//     "$ref": "#/responses/notFound"
-
-	isMember, err := organization.IsOrganizationMember(ctx, ctx.Org.Team.OrgID, ctx.Doer.ID)
-	if err != nil {
-		ctx.APIErrorInternal(err)
-		return
-	} else if !isMember && !ctx.Doer.IsAdmin {
-		ctx.APIErrorNotFound()
-		return
-	}
 
 	listOptions := utils.GetListOptions(ctx)
 	teamMembers, err := organization.GetTeamMembers(ctx, &organization.SearchMembersOptions{
@@ -490,7 +491,7 @@ func AddTeamMember(ctx *context.APIContext) {
 	}
 	if err := org_service.AddTeamMember(ctx, ctx.Org.Team, u); err != nil {
 		if errors.Is(err, user_model.ErrBlockedUser) {
-			ctx.APIError(http.StatusForbidden, err)
+			ctx.APIError(http.StatusForbidden, err.Error())
 		} else {
 			ctx.APIErrorInternal(err)
 		}
@@ -574,14 +575,20 @@ func GetTeamRepos(ctx *context.APIContext) {
 		ctx.APIErrorInternal(err)
 		return
 	}
-	repos := make([]*api.Repository, len(teamRepos))
-	for i, repo := range teamRepos {
+	repos := make([]*api.Repository, 0, len(teamRepos))
+	for _, repo := range teamRepos {
 		permission, err := access_model.GetDoerRepoPermission(ctx, repo, ctx.Doer)
 		if err != nil {
 			ctx.APIErrorInternal(err)
 			return
 		}
-		repos[i] = convert.ToRepo(ctx, repo, permission)
+		// A team's repo list is reachable by non-team-members through the team's
+		// visibility tier, so never expose repos (incl. their names) the doer
+		// cannot access.
+		if !permission.HasAnyUnitAccessOrPublicAccess() {
+			continue
+		}
+		repos = append(repos, convert.ToRepo(ctx, repo, permission))
 	}
 	ctx.SetLinkHeader(int64(team.NumRepos), listOptions.PageSize)
 	ctx.SetTotalCountHeader(int64(team.NumRepos))
@@ -631,6 +638,12 @@ func GetTeamRepo(ctx *context.APIContext) {
 	permission, err := access_model.GetDoerRepoPermission(ctx, repo, ctx.Doer)
 	if err != nil {
 		ctx.APIErrorInternal(err)
+		return
+	}
+	// The team may be reachable by a non-team-member via its visibility tier;
+	// don't confirm the existence of a repo the doer cannot access.
+	if !permission.HasAnyUnitAccessOrPublicAccess() {
+		ctx.APIErrorNotFound()
 		return
 	}
 
@@ -806,9 +819,9 @@ func SearchTeam(ctx *context.APIContext) {
 		ListOptions: listOptions,
 	}
 
-	// Only admin is allowed to search for all teams
-	if !ctx.Doer.IsAdmin {
-		opts.UserID = ctx.Doer.ID
+	if err := organization.ApplyTeamListFilter(ctx, ctx.Org.Organization.ID, ctx.Doer, ctx.IsSigned, opts); err != nil {
+		ctx.APIErrorInternal(err)
+		return
 	}
 
 	teams, maxResults, err := organization.SearchTeam(ctx, opts)
