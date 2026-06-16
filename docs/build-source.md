@@ -33,7 +33,8 @@ To include all assets, use the `bindata` tag:
 TAGS="bindata" make build
 ```
 
-`gogit` is used to try to resolve some Windows-specific performance problems, you can build a Windows binary by:
+Tag `gogit` is used to try to resolve some Windows-specific performance problems, POSIX systems don't need it.
+You can build a Windows binary by:
 
 ```bash
 GOOS=windows TAGS="bindata gogit" make build
@@ -45,19 +46,17 @@ Gitea will search for a number of things from the _`CustomPath`_.
 By default, this is the `custom/` directory in the current working directory when running Gitea.
 It will also look for its configuration file _`CustomConf`_ in `$(CustomPath)/conf/app.ini`,
 and will use the current working directory as the relative base path _`AppWorkPath`_.
-The static files will be served from _`StaticRootPath`_ which defaults to the _`AppWorkPath`_.
 
 These values, although useful when developing, may conflict with downstream users preferences.
 
 For packagers who need to use paths like `/etc/gitea/app.ini`,
-they should define these values at build time by `LDFLAGS` environment variable for `make`.
-The appropriate settings are as follows:
+they should define these values at build time for `make build` by environment variable
+`LDFLAGS='-X "module.Var1=Value1" -X "module.Var2=Value2"'`.
 
-- To set the _`CustomPath`_ use `LDFLAGS="-X \"code.gitea.io/gitea/modules/setting.CustomPath=custom-path\""`
-- For _`CustomConf`_ you should use `-X \"code.gitea.io/gitea/modules/setting.CustomConf=conf.ini\"`
-- For _`AppWorkPath`_ you should use `-X \"code.gitea.io/gitea/modules/setting.AppWorkPath=working-path\"`
-- For _`StaticRootPath`_ you should use `-X \"code.gitea.io/gitea/modules/setting.StaticRootPath=static-root-path\"`
-- To change the default PID file location use `-X \"code.gitea.io/gitea/cmd.PIDFile=/run/gitea.pid\"`
+- _`CustomConf`_: `-X "code.gitea.io/gitea/modules/setting.CustomConf=/etc/gitea/app.ini"`
+- _`AppWorkPath`_: `-X "code.gitea.io/gitea/modules/setting.AppWorkPath=/var/lib/gitea"`
+- _`CustomPath`_: `-X "code.gitea.io/gitea/modules/setting.CustomPath=/var/lib/gitea/custom"`
+- Default PID file location: `-X "code.gitea.io/gitea/cmd.PIDFile=/run/gitea.pid"`
 
 Add as many of the strings with their preceding `-X` to the `LDFLAGS` variable and run `make build`
 with the appropriate `TAGS` as above.
@@ -77,7 +76,6 @@ GOOS=linux GOARCH=arm64 TAGS="bindata" make build
 ### Adding shell autocompletion
 
 Shell completion can be generated directly from binary with:
-
 ```sh
 gitea completion <shell>
 ```
