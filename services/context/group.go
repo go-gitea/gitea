@@ -48,21 +48,30 @@ func (g *RepoGroup) CanReadUnit(ctx context.Context, doer *user_model.User, unit
 
 func (g *RepoGroup) UnitPermission(ctx context.Context, doer *user_model.User, unitType unit.Type) perm.AccessMode {
 	if doer != nil {
-		teams, err := organization.GetUserOrgTeams(ctx, g.Group.OwnerID, doer.ID)
-		if err != nil {
-			return perm.AccessModeNone
-		}
+		if g.OwnerAsOrg != nil {
+			teams, err := organization.GetUserOrgTeams(ctx, g.Group.OwnerID, doer.ID)
+			if err != nil {
+				return perm.AccessModeNone
+			}
 
-		if err := teams.LoadUnits(ctx); err != nil {
-			return perm.AccessModeNone
-		}
+			if err := teams.LoadUnits(ctx); err != nil {
+				return perm.AccessModeNone
+			}
 
-		if len(teams) > 0 {
-			return teams.UnitMaxAccess(unitType)
+			if len(teams) > 0 {
+				return teams.UnitMaxAccess(unitType)
+			}
 		}
 	}
 
-	if g.Group.Visibility.IsPublic() {
+	switch {
+	case g.Capabilities().IsOwner:
+		return perm.AccessModeOwner
+	case g.Capabilities().CanAdmin:
+		return perm.AccessModeAdmin
+	case g.Capabilities().CanWrite:
+		return perm.AccessModeWrite
+	case g.Capabilities().CanRead:
 		return perm.AccessModeRead
 	}
 
