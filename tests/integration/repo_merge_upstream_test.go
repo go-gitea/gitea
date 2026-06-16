@@ -178,12 +178,6 @@ func TestRepoMergeUpstream(t *testing.T) {
 			baseRepo.IsPrivate = true
 			_, err := db.GetEngine(t.Context()).ID(baseRepo.ID).Cols("is_private").Update(baseRepo)
 			require.NoError(t, err)
-			defer func() {
-				baseRepo.IsPrivate = false
-				_, err := db.GetEngine(t.Context()).ID(baseRepo.ID).Cols("is_private").Update(baseRepo)
-				require.NoError(t, err)
-			}()
-
 			// the fork owner can no longer read the base repo, so syncing must be refused
 			req = NewRequestWithJSON(t, "POST", fmt.Sprintf("/api/v1/repos/%s/test-repo-fork/merge-upstream", forkUser.Name), &api.MergeUpstreamRequest{
 				Branch: "fork-branch",
