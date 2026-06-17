@@ -263,6 +263,32 @@ func testAPIOrgGeneral(t *testing.T) {
 	})
 }
 
+func TestAPIOrgPrivateMembersNotLeaked(t *testing.T) {
+	defer tests.PrepareTestEnv(t)()
+
+	// privated_org (org 23) has private visibility and a single member, user5
+	const orgName = "privated_org"
+	const memberName = "user5"
+
+	// member publicizes their own membership inside the private org
+	memberSession := loginUser(t, memberName)
+	memberToken := getTokenForLoggedInUser(t, memberSession, auth_model.AccessTokenScopeWriteOrganization)
+	req := NewRequest(t, "PUT", "/api/v1/orgs/"+orgName+"/public_members/"+memberName).AddTokenAuth(memberToken)
+	MakeRequest(t, req, http.StatusNoContent)
+
+	// an outsider must not be able to learn about the membership of a private org
+	outsiderSession := loginUser(t, "user2")
+	outsiderToken := getTokenForLoggedInUser(t, outsiderSession, auth_model.AccessTokenScopeReadOrganization)
+	req = NewRequest(t, "GET", "/api/v1/orgs/"+orgName+"/public_members/"+memberName).AddTokenAuth(outsiderToken)
+	MakeRequest(t, req, http.StatusNotFound)
+	req = NewRequest(t, "GET", "/api/v1/orgs/"+orgName+"/public_members").AddTokenAuth(outsiderToken)
+	MakeRequest(t, req, http.StatusNotFound)
+
+	// the member can still see the public membership of their own org
+	req = NewRequest(t, "GET", "/api/v1/orgs/"+orgName+"/public_members/"+memberName).AddTokenAuth(memberToken)
+	MakeRequest(t, req, http.StatusNoContent)
+}
+
 func testAPIDeleteOrgRepos(t *testing.T) {
 	org3 := unittest.AssertExistsAndLoadBean(t, &user_model.User{Name: "org3"})
 	orgRepos, err := repo_model.GetOrgRepositories(t.Context(), org3.ID)
