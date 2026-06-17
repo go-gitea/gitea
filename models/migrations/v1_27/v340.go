@@ -9,16 +9,15 @@ import (
 	"xorm.io/xorm"
 )
 
-// AddMatrixEvaluationColumnsToActionRunJob adds RawStrategy and IsMatrixEvaluated columns
-// to support deferred matrix expansion for jobs whose matrix depends on other jobs' outputs.
-func AddMatrixEvaluationColumnsToActionRunJob(x db.EngineMigration) error {
+// AddJobMaxParallel adds the MaxParallel column to ActionRunJob to support
+// limiting how many matrix jobs from the same job definition run concurrently.
+func AddJobMaxParallel(x db.EngineMigration) error {
 	type ActionRunJob struct {
-		RawStrategy       string `xorm:"TEXT"`
-		IsMatrixEvaluated bool
+		MaxParallel int `xorm:"NOT NULL DEFAULT 0"`
 	}
 	_, err := x.SyncWithOptions(xorm.SyncOptions{
-		IgnoreDropIndices: true,
 		IgnoreConstrains:  true,
+		IgnoreDropIndices: true,
 	}, new(ActionRunJob))
 	return err
 }
