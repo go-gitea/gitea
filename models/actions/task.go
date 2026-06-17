@@ -227,6 +227,10 @@ func makeTaskStepDisplayName(step *jobparser.Step, limit int) (name string) {
 	return util.EllipsisDisplayString(name, limit) // database column has a length limit
 }
 
+// maxWaitingJobsScan bounds how many waiting jobs a single FetchTask considers
+// for label matching, keeping the assignment query cheap under a large backlog.
+const maxWaitingJobsScan = 100
+
 func CreateTaskForRunner(ctx context.Context, runner *ActionRunner) (*ActionTask, bool, error) {
 	ctx, committer, err := db.TxContext(ctx)
 	if err != nil {
@@ -249,7 +253,11 @@ func CreateTaskForRunner(ctx context.Context, runner *ActionRunner) (*ActionTask
 	}
 
 	var jobs []*ActionRunJob
-	if err := e.Where("task_id=? AND status=? AND is_reusable_caller=?", 0, StatusWaiting, false).And(jobCond).Asc("updated", "id").Find(&jobs); err != nil {
+	// Bound the scan so an accumulating backlog doesn't make every poll load all
+	// waiting jobs (which would feed back into more load). Oldest-first ordering means
+	// a label-matchable job behind maxWaitingJobsScan non-matching older jobs may be
+	// skipped this round, but it will be reconsidered on the next poll.
+	if err := e.Where("task_id=? AND status=? AND is_reusable_caller=?", 0, StatusWaiting, false).And(jobCond).Asc("updated", "id").Limit(maxWaitingJobsScan).Find(&jobs); err != nil {
 		return nil, false, err
 	}
 

@@ -75,7 +75,16 @@ type ActionRunner struct {
 const (
 	RunnerOfflineTime = time.Minute
 	RunnerIdleTime    = 10 * time.Second
+	// RunnerHeartbeatInterval is how often last_online is persisted on poll.
+	// Must stay well below RunnerOfflineTime so runners don't flap to offline.
+	RunnerHeartbeatInterval = 30 * time.Second
 )
+
+// ShouldPersistLastOnline reports whether last_online is stale enough to be
+// worth writing back. Avoids a DB write on every runner poll.
+func ShouldPersistLastOnline(last timeutil.TimeStamp, now time.Time) bool {
+	return now.Sub(last.AsTime()) >= RunnerHeartbeatInterval
+}
 
 // BelongsToOwnerName before calling, should guarantee that all attributes are loaded
 func (r *ActionRunner) BelongsToOwnerName() string {

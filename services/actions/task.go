@@ -7,14 +7,49 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"sync"
 
 	runnerv1 "gitea.dev/actions-proto-go/runner/v1"
 	actions_model "gitea.dev/models/actions"
 	"gitea.dev/models/db"
 	secret_model "gitea.dev/models/secret"
+	"gitea.dev/modules/setting"
 
 	"google.golang.org/protobuf/types/known/structpb"
 )
+
+var (
+	taskPickSem     chan struct{}
+	taskPickSemOnce sync.Once
+)
+
+func taskPickLimiter() chan struct{} {
+	taskPickSemOnce.Do(func() {
+		n := setting.Actions.MaxConcurrentTaskPicks
+		if n <= 0 {
+			n = 1
+		}
+		taskPickSem = make(chan struct{}, n)
+	})
+	return taskPickSem
+}
+
+// TryPickTask attempts to assign a task to the runner, bounding the number of
+// concurrent assignment transactions to avoid a thundering herd when many
+// runners poll at once. When the concurrency limit is reached it returns
+// throttled=true without touching the DB, so the caller can let the runner
+// retry on its next poll instead of advancing its tasks version.
+func TryPickTask(ctx context.Context, runner *actions_model.ActionRunner) (task *runnerv1.Task, ok, throttled bool, err error) {
+	sem := taskPickLimiter()
+	select {
+	case sem <- struct{}{}:
+		defer func() { <-sem }()
+	default:
+		return nil, false, true, nil
+	}
+	task, ok, err = PickTask(ctx, runner)
+	return task, ok, false, err
+}
 
 func PickTask(ctx context.Context, runner *actions_model.ActionRunner) (*runnerv1.Task, bool, error) {
 	var (
