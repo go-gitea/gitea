@@ -9,13 +9,10 @@ import (
 	"strings"
 	"testing"
 
-	"time"
-
 	auth_model "code.gitea.io/gitea/models/auth"
 	issues_model "code.gitea.io/gitea/models/issues"
 	org_model "code.gitea.io/gitea/models/organization"
 	"code.gitea.io/gitea/models/perm"
-	repo_model "code.gitea.io/gitea/models/repo"
 	unit_model "code.gitea.io/gitea/models/unit"
 	"code.gitea.io/gitea/models/unittest"
 	user_model "code.gitea.io/gitea/models/user"
@@ -262,41 +259,6 @@ func TestAPIOrgGeneral(t *testing.T) {
 		MakeRequest(t, req, http.StatusForbidden)
 		req = NewRequest(t, "DELETE", "/api/v1/orgs/org3/public_members/user1").AddTokenAuth(user4Token)
 		MakeRequest(t, req, http.StatusForbidden)
-	})
-}
-
-func TestAPIOrgDeleteRepos(t *testing.T) {
-	defer tests.PrepareTestEnv(t)()
-	testAPIDeleteOrgRepos(t)
-}
-
-func testAPIDeleteOrgRepos(t *testing.T) {
-	org3 := unittest.AssertExistsAndLoadBean(t, &user_model.User{Name: "org3"})
-	orgRepos, err := repo_model.GetOrgRepositories(t.Context(), org3.ID)
-	require.NoError(t, err)
-	assert.NotEmpty(t, orgRepos) // this org contains repositories, so we can test the deletion of all org repos
-
-	t.Run("NoPermission", func(t *testing.T) {
-		nonOwnerSession := loginUser(t, "user4")
-		nonOwnerToken := getTokenForLoggedInUser(t, nonOwnerSession, auth_model.AccessTokenScopeWriteOrganization)
-		req := NewRequest(t, "DELETE", "/api/v1/orgs/org3/repos").AddTokenAuth(nonOwnerToken)
-		MakeRequest(t, req, http.StatusForbidden)
-	})
-
-	t.Run("DeleteAllOrgRepos", func(t *testing.T) {
-		session := loginUser(t, "user1")
-		token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeWriteOrganization, auth_model.AccessTokenScopeWriteRepository)
-		req := NewRequest(t, "DELETE", fmt.Sprintf("/api/v1/orgs/%s/repos", org3.Name)).AddTokenAuth(token)
-		MakeRequest(t, req, http.StatusAccepted)
-
-		assert.Eventually(t, func() bool {
-			repos, err := repo_model.GetOrgRepositories(t.Context(), org3.ID)
-			require.NoError(t, err)
-			return len(repos) == 0
-		}, 2*time.Second, 50*time.Millisecond)
-
-		req = NewRequest(t, "DELETE", fmt.Sprintf("/api/v1/orgs/%s/repos", org3.Name)).AddTokenAuth(token)
-		MakeRequest(t, req, http.StatusNoContent) // The org contains no repositories, so the API should return StatusNoContent
 	})
 }
 

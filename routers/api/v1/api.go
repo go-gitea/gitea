@@ -558,42 +558,25 @@ func denyNonTeamMember(ctx *context.APIContext, orgID int64) {
 }
 
 // reqTeamReadAccess allows callers who can list the team to read its metadata.
-// Non-members are admitted by the team's visibility tier and parent org visibility.
 // Not sufficient for mutations — use reqOrgOwnership() or reqTeamMembership() for those.
 func reqTeamReadAccess() func(ctx *context.APIContext) {
 	return func(ctx *context.APIContext) {
-		if ctx.IsUserSiteAdmin() {
+		orgID, privileged, ok := teamAccessPrivileged(ctx)
+		if !ok || privileged {
 			return
 		}
-		if ctx.Org.Team == nil {
-			setting.PanicInDevOrTesting("reqTeamMembership: unprepared context")
-			ctx.APIErrorInternal(errors.New("reqTeamMembership: unprepared context"))
-			return
-		}
+		denyNonTeamMember(ctx, orgID)
+	}
+}
 
-		orgID := ctx.Org.Team.OrgID
-		isOwner, err := organization.IsOrganizationOwner(ctx, orgID, ctx.Doer.ID)
-		if err != nil {
-			ctx.APIErrorInternal(err)
-			return
-		} else if isOwner {
-			return
-		}
-
-		if isTeamMember, err := organization.IsTeamMember(ctx, orgID, ctx.Org.Team.ID, ctx.Doer.ID); err != nil {
-			ctx.APIErrorInternal(err)
-			return
-		} else if !isTeamMember {
-			isOrgMember, err := organization.IsOrganizationMember(ctx, orgID, ctx.Doer.ID)
-			if err != nil {
-				ctx.APIErrorInternal(err)
-			} else if isOrgMember {
-				ctx.APIError(http.StatusForbidden, "Must be a team member")
-			} else {
-				ctx.APIErrorNotFound()
-			}
+// reqTeamMembership user should be a team member, or a site admin
+func reqTeamMembership() func(ctx *context.APIContext) {
+	return func(ctx *context.APIContext) {
+		orgID, privileged, ok := teamAccessPrivileged(ctx)
+		if !ok || privileged {
 			return
 		}
+		denyNonTeamMember(ctx, orgID)
 	}
 }
 
@@ -1754,8 +1737,8 @@ func Routes() *web.Router {
 			m.Group("/repos", func() {
 				m.Get("", reqToken(), org.GetTeamRepos)
 				m.Combo("/{org}/{reponame}").
-					Put(reqToken(), org.AddTeamRepository).
-					Delete(reqToken(), org.RemoveTeamRepository).
+					Put(reqToken(), reqTeamMembership(), org.AddTeamRepository).
+					Delete(reqToken(), reqTeamMembership(), org.RemoveTeamRepository).
 					Get(reqToken(), org.GetTeamRepo)
 			})
 			m.Get("/activities/feeds", org.ListTeamActivityFeeds)
