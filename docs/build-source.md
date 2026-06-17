@@ -50,8 +50,8 @@ and will use the current working directory as the relative base path _`AppWorkPa
 These values, although useful when developing, may conflict with downstream users preferences.
 
 For packagers who need to use paths like `/etc/gitea/app.ini`,
-they should define these values at build time for `make build` by environment variable
-`LDFLAGS='-X "module.Var1=Value1" -X "module.Var2=Value2"'`.
+they should define these values at build time for `make build` by environment variable like
+`LDFLAGS='-X "module.Var1=Value1" -X "module.Var2=Value2"' TAGS="bindata" make build`.
 
 - _`CustomConf`_: `-X "code.gitea.io/gitea/modules/setting.CustomConf=/etc/gitea/app.ini"`
 - _`AppWorkPath`_: `-X "code.gitea.io/gitea/modules/setting.AppWorkPath=/var/lib/gitea"`
