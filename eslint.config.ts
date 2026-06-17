@@ -812,7 +812,7 @@ export default defineConfig([
       'unicorn/no-nested-ternary': [0],
       'unicorn/no-new-array': [0],
       'unicorn/no-new-buffer': [0],
-      'unicorn/no-non-function-verb-prefix': [2],
+      'unicorn/no-non-function-verb-prefix': [0],
       'unicorn/no-null': [0],
       'unicorn/no-object-as-default-parameter': [0],
       'unicorn/no-object-methods-with-collections': [2],
@@ -1053,6 +1053,7 @@ export default defineConfig([
     languageOptions: {globals: globals.vitest},
     rules: {
       'gitea/unescaped-html-literal': [0],
+      'unicorn/no-error-property-assignment': [0],
       'vitest/consistent-test-filename': [0],
       'vitest/consistent-test-it': [0],
       'vitest/expect-expect': [0],

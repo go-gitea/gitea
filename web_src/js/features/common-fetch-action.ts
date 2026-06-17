@@ -114,7 +114,7 @@ function buildFetchActionUrl(el: HTMLElement, opt: FetchActionOpts) {
     const u = new URL(url, window.location.href);
     if (name && !u.searchParams.has(name)) {
       u.searchParams.set(name, val);
-      url = u.toString();
+      url = u.href;
     }
   }
   return url;

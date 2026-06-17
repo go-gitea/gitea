@@ -18,15 +18,9 @@ function prepareProcessors(ctx:ProcessorContext): Processors {
       const level = parseInt(el.tagName.slice(1));
       el.textContent = `${'#'.repeat(level)} ${el.textContent.trim()}`;
     },
-    STRONG(el: HTMLElement) {
-      return `**${el.textContent}**`;
-    },
-    EM(el: HTMLElement) {
-      return `_${el.textContent}_`;
-    },
-    DEL(el: HTMLElement) {
-      return `~~${el.textContent}~~`;
-    },
+    STRONG: (el: HTMLElement) => `**${el.textContent}**`,
+    EM: (el: HTMLElement) => `_${el.textContent}_`,
+    DEL: (el: HTMLElement) => `~~${el.textContent}~~`,
     A(el: HTMLElement) {
       const text = el.textContent || 'link';
       const href = el.getAttribute('href');
@@ -62,9 +56,7 @@ function prepareProcessors(ctx:ProcessorContext): Processors {
       el.textContent = `${' '.repeat(nestingIdentLevel * 4)}${bullet}${el.textContent}${ctx.elementIsLast ? '' : '\n'}`;
       return el;
     },
-    INPUT(el: HTMLElement) {
-      return (el as HTMLInputElement).checked ? '[x] ' : '[ ] ';
-    },
+    INPUT: (el: HTMLElement) => (el as HTMLInputElement).checked ? '[x] ' : '[ ] ',
     CODE(el: HTMLElement) {
       const text = el.textContent;
       if (el.parentNode && (el.parentNode as HTMLElement).tagName === 'PRE') {

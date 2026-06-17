@@ -129,7 +129,7 @@ function initRepoDiffConversationNav() {
     const navIndex = isPrevious ? previousIndex : nextIndex;
     const elNavConversation = elAllConversations[navIndex];
     const anchor = elNavConversation.querySelector('.comment')!.id;
-    window.location.href = `#${anchor}`;
+    window.location.assign(`#${anchor}`);
   });
 }
 

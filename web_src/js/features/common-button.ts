@@ -24,7 +24,7 @@ export function initGlobalDeleteButton(): void {
     btn.addEventListener('click', (e) => {
       e.preventDefault();
 
-      // `dataset` is used here because the code below depends on it
+      // eslint-disable-next-line unicorn/dom-node-dataset -- code depends on the camel-casing
       const dataObj = btn.dataset;
 
       const modalId = btn.getAttribute('data-modal-id');
@@ -70,7 +70,7 @@ export function initGlobalDeleteButton(): void {
             const response = await POST(btn.getAttribute('data-url')!, {data: postData});
             if (response.ok) {
               const data = await response.json();
-              window.location.href = data.redirect;
+              window.location.assign(data.redirect);
             }
           })();
           modal.classList.add('is-loading'); // the request is in progress, so also add loading indicator to the modal
@@ -158,8 +158,8 @@ function onShowModalClick(el: HTMLElement, e: MouseEvent) {
     const attrTarget = elModal.querySelector(`#${attrTargetName}`) ||
       elModal.querySelector(`[name=${CSS.escape(attrTargetName)}]`) ||
       elModal.querySelector(`.${attrTargetName}`) ||
-      elModal.querySelector(`${attrTargetName}`) ||
-      (elModal.matches(`${attrTargetName}`) || elModal.matches(`#${attrTargetName}`) || elModal.matches(`.${attrTargetName}`) ? elModal : null);
+      elModal.querySelector(attrTargetName) ||
+      (elModal.matches(attrTargetName) || elModal.matches(`#${attrTargetName}`) || elModal.matches(`.${attrTargetName}`) ? elModal : null);
     if (!attrTarget) {
       if (!window.config.runModeIsProd) throw new Error(`attr target "${attrTargetCombo}" not found for modal`);
       continue;

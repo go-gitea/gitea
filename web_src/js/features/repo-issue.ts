@@ -28,7 +28,7 @@ function initRepoIssueLabelFilter(elDropdown: HTMLElement) {
   const queryLabels = url.searchParams.get('labels') || '';
   const selectedLabelIds = new Set<string>();
   for (const id of queryLabels ? queryLabels.split(',') : []) {
-    selectedLabelIds.add(`${Math.abs(parseInt(id))}`); // "labels" contains negative ids, which are excluded
+    selectedLabelIds.add(String(Math.abs(parseInt(id)))); // "labels" contains negative ids, which are excluded
   }
 
   const excludeLabel = (e: MouseEvent | KeyboardEvent, item: Element) => {
