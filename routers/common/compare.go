@@ -5,6 +5,7 @@ package common
 
 import (
 	"context"
+	"regexp"
 	"strings"
 
 	repo_model "gitea.dev/models/repo"
@@ -19,9 +20,10 @@ type CompareRouterReq struct {
 
 	CompareSeparator string
 
-	HeadOwner    string
-	HeadRepoName string
-	HeadOriRef   string
+	HeadOwner        string
+	HeadRepoName     string
+	HeadOriRef       string
+	HeadOriRefSuffix string
 }
 
 func (cr *CompareRouterReq) DirectComparison() bool {
@@ -80,8 +82,10 @@ func ParseCompareRouterParam(routerParam string) *CompareRouterReq {
 		basePart, headPart, ok = strings.Cut(routerParam, sep)
 		if !ok {
 			headOwnerName, headRepoName, headRef := parseHead(routerParam)
+			headRef, headRefSuffix := git.ParseRefSuffix(headRef)
 			return &CompareRouterReq{
 				HeadOriRef:       headRef,
+				HeadOriRefSuffix: headRefSuffix,
 				HeadOwner:        headOwnerName,
 				HeadRepoName:     headRepoName,
 				CompareSeparator: "...",
@@ -92,7 +96,28 @@ func ParseCompareRouterParam(routerParam string) *CompareRouterReq {
 	ci := &CompareRouterReq{CompareSeparator: sep}
 	ci.BaseOriRef, ci.BaseOriRefSuffix = git.ParseRefSuffix(basePart)
 	ci.HeadOwner, ci.HeadRepoName, ci.HeadOriRef = parseHead(headPart)
+	ci.HeadOriRef, ci.HeadOriRefSuffix = git.ParseRefSuffix(ci.HeadOriRef)
 	return ci
+}
+
+// validRefSuffix matches git ancestry navigation (^, ^N, ~, ~N and combinations). It rejects the
+// ^{...}, @{...} and :path forms, which would let a reader probe object types or commit messages.
+var validRefSuffix = regexp.MustCompile(`^(?:[~^][0-9]*)+$`)
+
+// ResolveRefWithSuffix resolves oriRef plus an optional revision suffix (^, ~N) to a RefName,
+// returning the peeled commit ID for a suffix or an empty RefName when it can not be resolved.
+func ResolveRefWithSuffix(gitRepo *git.Repository, oriRef, refSuffix string) git.RefName {
+	if refSuffix == "" {
+		return gitRepo.UnstableGuessRefByShortName(oriRef)
+	}
+	if !validRefSuffix.MatchString(refSuffix) {
+		return ""
+	}
+	commit, err := gitRepo.GetCommit(oriRef + refSuffix)
+	if err != nil {
+		return ""
+	}
+	return git.RefNameFromCommit(commit.ID.String())
 }
 
 // maxForkTraverseLevel defines the maximum levels to traverse when searching for the head repository.

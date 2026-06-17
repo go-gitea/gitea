@@ -38,7 +38,7 @@ func CompareDiff(ctx *context.APIContext) {
 	//   required: true
 	// - name: basehead
 	//   in: path
-	//   description: compare two refs as `base...head` (or `base..head`); refs may be branches, tags, full or short SHAs, including branch names that contain slashes.
+	//   description: compare two refs as `base...head` (or `base..head`); refs may be branches, tags, full or short SHAs (including branch names that contain slashes), optionally with a `^` or `~N` revision suffix.
 	//   type: string
 	//   required: true
 	// - name: output

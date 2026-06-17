@@ -1087,12 +1087,6 @@ func parseCompareInfo(ctx *context.APIContext, compareParam string) (result *git
 	baseRepo := ctx.Repo.Repository
 	compareReq := common.ParseCompareRouterParam(compareParam)
 
-	// remove the check when we support compare with carets
-	if compareReq.BaseOriRefSuffix != "" {
-		ctx.APIError(http.StatusBadRequest, "Unsupported comparison syntax: ref with suffix")
-		return nil, nil
-	}
-
 	_, headRepo, err := common.GetHeadOwnerAndRepo(ctx, baseRepo, compareReq)
 	switch {
 	case errors.Is(err, util.ErrInvalidArgument):
@@ -1152,10 +1146,10 @@ func parseCompareInfo(ctx *context.APIContext, compareParam string) (result *git
 		return nil, nil
 	}
 
-	baseRef := ctx.Repo.GitRepo.UnstableGuessRefByShortName(util.IfZero(compareReq.BaseOriRef, baseRepo.GetPullRequestTargetBranch(ctx)))
-	headRef := headGitRepo.UnstableGuessRefByShortName(util.IfZero(compareReq.HeadOriRef, headRepo.DefaultBranch))
+	baseRef := common.ResolveRefWithSuffix(ctx.Repo.GitRepo, util.IfZero(compareReq.BaseOriRef, baseRepo.GetPullRequestTargetBranch(ctx)), compareReq.BaseOriRefSuffix)
+	headRef := common.ResolveRefWithSuffix(headGitRepo, util.IfZero(compareReq.HeadOriRef, headRepo.DefaultBranch), compareReq.HeadOriRefSuffix)
 
-	log.Trace("Repo path: %q, base ref: %q->%q, head ref: %q->%q", ctx.Repo.Repository.RelativePath(), compareReq.BaseOriRef, baseRef, compareReq.HeadOriRef, headRef)
+	log.Trace("Repo path: %q, base ref: %q->%q, head ref: %q->%q", ctx.Repo.Repository.RelativePath(), compareReq.BaseOriRef+compareReq.BaseOriRefSuffix, baseRef, compareReq.HeadOriRef+compareReq.HeadOriRefSuffix, headRef)
 
 	baseRefValid := baseRef.IsBranch() || baseRef.IsTag() || git.IsStringLikelyCommitID(git.ObjectFormatFromName(ctx.Repo.Repository.ObjectFormatName), baseRef.ShortName())
 	headRefValid := headRef.IsBranch() || headRef.IsTag() || git.IsStringLikelyCommitID(git.ObjectFormatFromName(headRepo.ObjectFormatName), headRef.ShortName())

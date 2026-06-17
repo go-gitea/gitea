@@ -208,8 +208,8 @@ func (cpi *comparePageInfoType) parseCompareInfo(ctx *context.Context, comparePa
 	// 1 Parse compare router param
 	compareReq := common.ParseCompareRouterParam(compareParam)
 
-	// remove the check when we support compare with carets
-	if compareReq.BaseOriRefSuffix != "" {
+	// remove the check when the web compare page supports carets
+	if compareReq.BaseOriRefSuffix != "" || compareReq.HeadOriRefSuffix != "" {
 		return util.NewInvalidArgumentErrorf("unsupported comparison syntax: ref with suffix")
 	}
 
