@@ -20,8 +20,8 @@ including Git hosting, code management, code review, issue tracking, project kan
 team collaboration, package registry and CI/CD which can reuse GitHub Actions.
 
 As Gitea is written in Go, it works across **all** the platforms and
-architectures that are supported by Go, including Linux, macOS, and
-Windows on x86, amd64, ARM and PowerPC architectures.
+architectures that are supported by Go, including Linux, macOS, FreeBSD/OpenBSD and Windows
+on x86, amd64, ARM, RISC-V 64 and PowerPC architectures.
 
 For online demonstrations, you can visit [demo.gitea.com](https://demo.gitea.com).
 
