@@ -49,5 +49,4 @@ test('delete team via confirm modal', async ({page, request}) => {
   await page.getByRole('button', {name: 'Yes'}).click();
   await expect(page).toHaveURL(new RegExp(`/org/${orgName}/teams$`));
   await expect(page.getByText('The team has been deleted.')).toBeVisible();
-  await apiDeleteOrg(request, orgName);
 });
