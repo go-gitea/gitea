@@ -504,41 +504,79 @@ func reqOrgOwnership() func(ctx *context.APIContext) {
 	}
 }
 
-// reqTeamMembership user should be an team member, or a site admin
+// reqOrgVisible requires the organization to be visible to the doer, or a site admin
+func reqOrgVisible() func(ctx *context.APIContext) {
+	return func(ctx *context.APIContext) {
+		if ctx.Org.Organization == nil {
+			setting.PanicInDevOrTesting("reqOrgVisible: unprepared context")
+			ctx.APIErrorInternal(errors.New("reqOrgVisible: unprepared context"))
+			return
+		}
+		if !organization.HasOrgOrUserVisible(ctx, ctx.Org.Organization.AsUser(), ctx.Doer) {
+			ctx.APIErrorNotFound()
+			return
+		}
+	}
+}
+
+func teamAccessPrivileged(ctx *context.APIContext) (orgID int64, privileged, ok bool) {
+	if ctx.IsUserSiteAdmin() {
+		return 0, true, true
+	}
+	if ctx.Org.Team == nil {
+		setting.PanicInDevOrTesting("teamAccess: unprepared context")
+		ctx.APIErrorInternal(errors.New("teamAccess: unprepared context"))
+		return 0, false, false
+	}
+
+	orgID = ctx.Org.Team.OrgID
+	isOwner, err := organization.IsOrganizationOwner(ctx, orgID, ctx.Doer.ID)
+	if err != nil {
+		ctx.APIErrorInternal(err)
+		return 0, false, false
+	} else if isOwner {
+		return orgID, true, true
+	}
+
+	isTeamMember, err := organization.IsTeamMember(ctx, orgID, ctx.Org.Team.ID, ctx.Doer.ID)
+	if err != nil {
+		ctx.APIErrorInternal(err)
+		return 0, false, false
+	}
+	return orgID, isTeamMember, true
+}
+
+func denyNonTeamMember(ctx *context.APIContext, orgID int64) {
+	isOrgMember, err := organization.IsOrganizationMember(ctx, orgID, ctx.Doer.ID)
+	if err != nil {
+		ctx.APIErrorInternal(err)
+	} else if isOrgMember {
+		ctx.APIError(http.StatusForbidden, "Must be a team member")
+	} else {
+		ctx.APIErrorNotFound()
+	}
+}
+
+// reqTeamReadAccess allows callers who can list the team to read its metadata.
+// Not sufficient for mutations — use reqOrgOwnership() or reqTeamMembership() for those.
+func reqTeamReadAccess() func(ctx *context.APIContext) {
+	return func(ctx *context.APIContext) {
+		orgID, privileged, ok := teamAccessPrivileged(ctx)
+		if !ok || privileged {
+			return
+		}
+		denyNonTeamMember(ctx, orgID)
+	}
+}
+
+// reqTeamMembership user should be a team member, or a site admin
 func reqTeamMembership() func(ctx *context.APIContext) {
 	return func(ctx *context.APIContext) {
-		if ctx.IsUserSiteAdmin() {
+		orgID, privileged, ok := teamAccessPrivileged(ctx)
+		if !ok || privileged {
 			return
 		}
-		if ctx.Org.Team == nil {
-			setting.PanicInDevOrTesting("reqTeamMembership: unprepared context")
-			ctx.APIErrorInternal(errors.New("reqTeamMembership: unprepared context"))
-			return
-		}
-
-		orgID := ctx.Org.Team.OrgID
-		isOwner, err := organization.IsOrganizationOwner(ctx, orgID, ctx.Doer.ID)
-		if err != nil {
-			ctx.APIErrorInternal(err)
-			return
-		} else if isOwner {
-			return
-		}
-
-		if isTeamMember, err := organization.IsTeamMember(ctx, orgID, ctx.Org.Team.ID, ctx.Doer.ID); err != nil {
-			ctx.APIErrorInternal(err)
-			return
-		} else if !isTeamMember {
-			isOrgMember, err := organization.IsOrganizationMember(ctx, orgID, ctx.Doer.ID)
-			if err != nil {
-				ctx.APIErrorInternal(err)
-			} else if isOrgMember {
-				ctx.APIError(http.StatusForbidden, "Must be a team member")
-			} else {
-				ctx.APIErrorNotFound()
-			}
-			return
-		}
+		denyNonTeamMember(ctx, orgID)
 	}
 }
 
@@ -1662,7 +1700,7 @@ func Routes() *web.Router {
 				m.Combo("/{id}").Get(reqToken(), org.GetLabel).
 					Patch(reqToken(), reqOrgOwnership(), bind(api.EditLabelOption{}), org.EditLabel).
 					Delete(reqToken(), reqOrgOwnership(), org.DeleteLabel)
-			})
+			}, reqOrgVisible())
 			m.Group("/hooks", func() {
 				m.Combo("").Get(org.ListHooks).
 					Post(bind(api.CreateHookOption{}), org.CreateHook)
@@ -1699,12 +1737,12 @@ func Routes() *web.Router {
 			m.Group("/repos", func() {
 				m.Get("", reqToken(), org.GetTeamRepos)
 				m.Combo("/{org}/{reponame}").
-					Put(reqToken(), org.AddTeamRepository).
-					Delete(reqToken(), org.RemoveTeamRepository).
+					Put(reqToken(), reqTeamMembership(), org.AddTeamRepository).
+					Delete(reqToken(), reqTeamMembership(), org.RemoveTeamRepository).
 					Get(reqToken(), org.GetTeamRepo)
 			})
 			m.Get("/activities/feeds", org.ListTeamActivityFeeds)
-		}, tokenRequiresScopes(auth_model.AccessTokenScopeCategoryOrganization), orgAssignment(false, true), reqToken(), reqTeamMembership(), checkTokenPublicOnly())
+		}, tokenRequiresScopes(auth_model.AccessTokenScopeCategoryOrganization), orgAssignment(false, true), reqToken(), reqTeamReadAccess(), checkTokenPublicOnly())
 
 		m.Group("/admin", func() {
 			m.Group("/cron", func() {

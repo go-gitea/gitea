@@ -1268,6 +1268,9 @@ func MergeUpstream(ctx *context.APIContext) {
 		} else if errors.Is(err, util.ErrNotExist) {
 			ctx.APIError(http.StatusNotFound, err)
 			return
+		} else if errors.Is(err, util.ErrPermissionDenied) {
+			ctx.APIError(http.StatusForbidden, err.Error())
+			return
 		}
 		ctx.APIErrorInternal(err)
 		return

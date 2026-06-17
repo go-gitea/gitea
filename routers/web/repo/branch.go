@@ -261,7 +261,7 @@ func MergeUpstream(ctx *context.Context) {
 	branchName := ctx.FormString("branch")
 	_, err := repo_service.MergeUpstream(ctx, ctx.Doer, ctx.Repo.Repository, branchName, false)
 	if err != nil {
-		if errors.Is(err, util.ErrNotExist) {
+		if errors.Is(err, util.ErrNotExist) || errors.Is(err, util.ErrPermissionDenied) {
 			ctx.JSONErrorNotFound()
 			return
 		} else if pull_service.IsErrMergeConflicts(err) {

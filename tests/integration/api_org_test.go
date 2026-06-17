@@ -10,6 +10,7 @@ import (
 	"testing"
 
 	auth_model "code.gitea.io/gitea/models/auth"
+	issues_model "code.gitea.io/gitea/models/issues"
 	org_model "code.gitea.io/gitea/models/organization"
 	"code.gitea.io/gitea/models/perm"
 	unit_model "code.gitea.io/gitea/models/unit"
@@ -258,5 +259,52 @@ func TestAPIOrgGeneral(t *testing.T) {
 		MakeRequest(t, req, http.StatusForbidden)
 		req = NewRequest(t, "DELETE", "/api/v1/orgs/org3/public_members/user1").AddTokenAuth(user4Token)
 		MakeRequest(t, req, http.StatusForbidden)
+	})
+}
+
+// TestAPIOrgLabelsVisibility ensures the organization label read endpoints honor
+// the organization visibility: labels of a private org must not be disclosed to
+// users who cannot see the org.
+func TestAPIOrgLabelsVisibility(t *testing.T) {
+	defer tests.PrepareTestEnv(t)()
+
+	// privated_org (id 23) is a private organization; user5 is its only member.
+	privateOrg := unittest.AssertExistsAndLoadBean(t, &org_model.Organization{ID: 23})
+	label := &issues_model.Label{OrgID: privateOrg.ID, Name: "internal-label", Color: "#aabbcc", Description: "private organization label"}
+	require.NoError(t, issues_model.NewLabel(t.Context(), label))
+
+	listURL := fmt.Sprintf("/api/v1/orgs/%s/labels", privateOrg.Name)
+	getURL := fmt.Sprintf("/api/v1/orgs/%s/labels/%d", privateOrg.Name, label.ID)
+
+	t.Run("NonMemberDenied", func(t *testing.T) {
+		// user2 is not a member of the private org and must not see its labels.
+		token := getUserToken(t, "user2", auth_model.AccessTokenScopeReadOrganization)
+		MakeRequest(t, NewRequest(t, "GET", listURL).AddTokenAuth(token), http.StatusNotFound)
+		MakeRequest(t, NewRequest(t, "GET", getURL).AddTokenAuth(token), http.StatusNotFound)
+	})
+
+	t.Run("AnonymousDenied", func(t *testing.T) {
+		MakeRequest(t, NewRequest(t, "GET", listURL), http.StatusNotFound)
+		MakeRequest(t, NewRequest(t, "GET", getURL), http.StatusNotFound)
+	})
+
+	t.Run("MemberAllowed", func(t *testing.T) {
+		token := getUserToken(t, "user5", auth_model.AccessTokenScopeReadOrganization)
+		resp := MakeRequest(t, NewRequest(t, "GET", listURL).AddTokenAuth(token), http.StatusOK)
+		labels := DecodeJSON(t, resp, &[]*api.Label{})
+		assert.Len(t, *labels, 1)
+		MakeRequest(t, NewRequest(t, "GET", getURL).AddTokenAuth(token), http.StatusOK)
+	})
+
+	t.Run("SiteAdminAllowed", func(t *testing.T) {
+		token := getUserToken(t, "user1", auth_model.AccessTokenScopeReadOrganization)
+		MakeRequest(t, NewRequest(t, "GET", listURL).AddTokenAuth(token), http.StatusOK)
+		MakeRequest(t, NewRequest(t, "GET", getURL).AddTokenAuth(token), http.StatusOK)
+	})
+
+	t.Run("PublicOrgStillReadable", func(t *testing.T) {
+		// org3 (id 3) is a public org with labels; non-members may read them.
+		token := getUserToken(t, "user2", auth_model.AccessTokenScopeReadOrganization)
+		MakeRequest(t, NewRequest(t, "GET", "/api/v1/orgs/org3/labels").AddTokenAuth(token), http.StatusOK)
 	})
 }
