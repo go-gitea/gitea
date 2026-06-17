@@ -427,6 +427,7 @@ func (r *jobStatusResolver) resolve(ctx context.Context) map[int64]actions_model
 			r.matrixExpanded = true
 		}
 		if actionRunJob.Status != actions_model.StatusBlocked {
+			r.statuses[id] = actionRunJob.Status
 			continue
 		}
 

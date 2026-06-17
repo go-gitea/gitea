@@ -200,5 +200,11 @@ func ReEvaluateMatrixForJobWithNeeds(ctx context.Context, job *actions_model.Act
 		return nil, fmt.Errorf("expand matrix for job %d: %w", job.ID, err)
 	}
 
+	if children != nil {
+		if err := actions_model.IncreaseTaskVersion(ctx, job.OwnerID, job.RepoID); err != nil {
+			log.Error("IncreaseTaskVersion after matrix expand for job %d: %v", job.ID, err)
+		}
+	}
+
 	return children, nil
 }
