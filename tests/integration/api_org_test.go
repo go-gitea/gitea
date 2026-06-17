@@ -9,9 +9,13 @@ import (
 	"strings"
 	"testing"
 
+	"time"
+
 	auth_model "code.gitea.io/gitea/models/auth"
+	issues_model "code.gitea.io/gitea/models/issues"
 	org_model "code.gitea.io/gitea/models/organization"
 	"code.gitea.io/gitea/models/perm"
+	repo_model "code.gitea.io/gitea/models/repo"
 	unit_model "code.gitea.io/gitea/models/unit"
 	"code.gitea.io/gitea/models/unittest"
 	user_model "code.gitea.io/gitea/models/user"
@@ -258,5 +262,87 @@ func TestAPIOrgGeneral(t *testing.T) {
 		MakeRequest(t, req, http.StatusForbidden)
 		req = NewRequest(t, "DELETE", "/api/v1/orgs/org3/public_members/user1").AddTokenAuth(user4Token)
 		MakeRequest(t, req, http.StatusForbidden)
+	})
+}
+
+func TestAPIOrgDeleteRepos(t *testing.T) {
+	defer tests.PrepareTestEnv(t)()
+	testAPIDeleteOrgRepos(t)
+}
+
+func testAPIDeleteOrgRepos(t *testing.T) {
+	org3 := unittest.AssertExistsAndLoadBean(t, &user_model.User{Name: "org3"})
+	orgRepos, err := repo_model.GetOrgRepositories(t.Context(), org3.ID)
+	require.NoError(t, err)
+	assert.NotEmpty(t, orgRepos) // this org contains repositories, so we can test the deletion of all org repos
+
+	t.Run("NoPermission", func(t *testing.T) {
+		nonOwnerSession := loginUser(t, "user4")
+		nonOwnerToken := getTokenForLoggedInUser(t, nonOwnerSession, auth_model.AccessTokenScopeWriteOrganization)
+		req := NewRequest(t, "DELETE", "/api/v1/orgs/org3/repos").AddTokenAuth(nonOwnerToken)
+		MakeRequest(t, req, http.StatusForbidden)
+	})
+
+	t.Run("DeleteAllOrgRepos", func(t *testing.T) {
+		session := loginUser(t, "user1")
+		token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeWriteOrganization, auth_model.AccessTokenScopeWriteRepository)
+		req := NewRequest(t, "DELETE", fmt.Sprintf("/api/v1/orgs/%s/repos", org3.Name)).AddTokenAuth(token)
+		MakeRequest(t, req, http.StatusAccepted)
+
+		assert.Eventually(t, func() bool {
+			repos, err := repo_model.GetOrgRepositories(t.Context(), org3.ID)
+			require.NoError(t, err)
+			return len(repos) == 0
+		}, 2*time.Second, 50*time.Millisecond)
+
+		req = NewRequest(t, "DELETE", fmt.Sprintf("/api/v1/orgs/%s/repos", org3.Name)).AddTokenAuth(token)
+		MakeRequest(t, req, http.StatusNoContent) // The org contains no repositories, so the API should return StatusNoContent
+	})
+}
+
+// TestAPIOrgLabelsVisibility ensures the organization label read endpoints honor
+// the organization visibility: labels of a private org must not be disclosed to
+// users who cannot see the org.
+func TestAPIOrgLabelsVisibility(t *testing.T) {
+	defer tests.PrepareTestEnv(t)()
+
+	// privated_org (id 23) is a private organization; user5 is its only member.
+	privateOrg := unittest.AssertExistsAndLoadBean(t, &org_model.Organization{ID: 23})
+	label := &issues_model.Label{OrgID: privateOrg.ID, Name: "internal-label", Color: "#aabbcc", Description: "private organization label"}
+	require.NoError(t, issues_model.NewLabel(t.Context(), label))
+
+	listURL := fmt.Sprintf("/api/v1/orgs/%s/labels", privateOrg.Name)
+	getURL := fmt.Sprintf("/api/v1/orgs/%s/labels/%d", privateOrg.Name, label.ID)
+
+	t.Run("NonMemberDenied", func(t *testing.T) {
+		// user2 is not a member of the private org and must not see its labels.
+		token := getUserToken(t, "user2", auth_model.AccessTokenScopeReadOrganization)
+		MakeRequest(t, NewRequest(t, "GET", listURL).AddTokenAuth(token), http.StatusNotFound)
+		MakeRequest(t, NewRequest(t, "GET", getURL).AddTokenAuth(token), http.StatusNotFound)
+	})
+
+	t.Run("AnonymousDenied", func(t *testing.T) {
+		MakeRequest(t, NewRequest(t, "GET", listURL), http.StatusNotFound)
+		MakeRequest(t, NewRequest(t, "GET", getURL), http.StatusNotFound)
+	})
+
+	t.Run("MemberAllowed", func(t *testing.T) {
+		token := getUserToken(t, "user5", auth_model.AccessTokenScopeReadOrganization)
+		resp := MakeRequest(t, NewRequest(t, "GET", listURL).AddTokenAuth(token), http.StatusOK)
+		labels := DecodeJSON(t, resp, &[]*api.Label{})
+		assert.Len(t, *labels, 1)
+		MakeRequest(t, NewRequest(t, "GET", getURL).AddTokenAuth(token), http.StatusOK)
+	})
+
+	t.Run("SiteAdminAllowed", func(t *testing.T) {
+		token := getUserToken(t, "user1", auth_model.AccessTokenScopeReadOrganization)
+		MakeRequest(t, NewRequest(t, "GET", listURL).AddTokenAuth(token), http.StatusOK)
+		MakeRequest(t, NewRequest(t, "GET", getURL).AddTokenAuth(token), http.StatusOK)
+	})
+
+	t.Run("PublicOrgStillReadable", func(t *testing.T) {
+		// org3 (id 3) is a public org with labels; non-members may read them.
+		token := getUserToken(t, "user2", auth_model.AccessTokenScopeReadOrganization)
+		MakeRequest(t, NewRequest(t, "GET", "/api/v1/orgs/org3/labels").AddTokenAuth(token), http.StatusOK)
 	})
 }
