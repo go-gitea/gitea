@@ -177,7 +177,8 @@ func validateTOTP(req *http.Request, u *user_model.User) error {
 		}
 		return err
 	}
-	if ok, err := twofa.ValidateTOTP(req.Header.Get("X-Gitea-OTP")); err != nil {
+	// Consume the passcode atomically so a captured OTP cannot be replayed within its validity window.
+	if ok, err := twofa.ValidateAndConsumeTOTP(req.Context(), req.Header.Get("X-Gitea-OTP")); err != nil {
 		return err
 	} else if !ok {
 		return util.NewInvalidArgumentErrorf("invalid provided OTP")
