@@ -66,6 +66,7 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"strconv"
 	"strings"
 
 	auth_model "gitea.dev/models/auth"
@@ -82,6 +83,7 @@ import (
 	"gitea.dev/modules/web"
 	"gitea.dev/routers/api/v1/activitypub"
 	"gitea.dev/routers/api/v1/admin"
+	"gitea.dev/routers/api/v1/group"
 	"gitea.dev/routers/api/v1/misc"
 	"gitea.dev/routers/api/v1/notify"
 	"gitea.dev/routers/api/v1/org"
@@ -136,7 +138,15 @@ func repoAssignment() func(ctx *context.APIContext) {
 	return func(ctx *context.APIContext) {
 		userName := ctx.PathParam("username")
 		repoName := ctx.PathParam("reponame")
-
+		var gid int64
+		groupParam := ctx.PathParam("group_id")
+		if groupParam != "" {
+			gid, _ = strconv.ParseInt(groupParam, 10, 64)
+			if gid == 0 {
+				ctx.Redirect(strings.Replace(ctx.Req.URL.RequestURI(), "/0/", "/", 1), 307)
+				return
+			}
+		}
 		var (
 			owner *user_model.User
 			err   error
@@ -166,7 +176,7 @@ func repoAssignment() func(ctx *context.APIContext) {
 		ctx.ContextUser = owner
 
 		// Get repository.
-		repo, err := repo_model.GetRepositoryByName(ctx, owner.ID, repoName)
+		repo, err := repo_model.GetRepositoryByName(ctx, owner.ID, gid, repoName)
 		if err != nil {
 			if repo_model.IsErrRepoNotExist(err) {
 				redirectRepoID, err := repo_model.LookupRedirect(ctx, owner.ID, repoName)
@@ -180,6 +190,10 @@ func repoAssignment() func(ctx *context.APIContext) {
 			} else {
 				ctx.APIErrorInternal(err)
 			}
+			return
+		}
+		if repo.GroupID != gid {
+			ctx.APIErrorNotFound()
 			return
 		}
 
@@ -445,7 +459,7 @@ func reqAdmin() func(ctx *context.APIContext) {
 // reqRepoWriter user should have a permission to write to a repo, or be a site admin
 func reqRepoWriter(unitTypes ...unit.Type) func(ctx *context.APIContext) {
 	return func(ctx *context.APIContext) {
-		if !ctx.IsUserRepoWriter(unitTypes) && !ctx.IsUserRepoAdmin() && !ctx.IsUserSiteAdmin() {
+		if !ctx.IsUserRepoWriter(unitTypes) && !ctx.IsUserRepoAdmin() && !ctx.IsUserSiteAdmin() && !(ctx.RepoGroup != nil && ctx.IsUserGroupWriter(unitTypes)) {
 			ctx.APIError(http.StatusForbidden, "user should have a permission to write to a repo")
 			return
 		}
@@ -467,6 +481,37 @@ func reqAnyRepoReader() func(ctx *context.APIContext) {
 	return func(ctx *context.APIContext) {
 		if !ctx.Repo.Permission.HasAnyUnitAccess() && !ctx.IsUserSiteAdmin() {
 			ctx.APIError(http.StatusForbidden, "user should have any permission to read repository or permissions of site admin")
+			return
+		}
+	}
+}
+
+// reqOrgAdmin user should be an organization or site-wide admin
+func reqOrgAdmin() func(ctx *context.APIContext) {
+	return func(ctx *context.APIContext) {
+		if ctx.IsUserSiteAdmin() {
+			return
+		}
+		var orgID int64
+		if ctx.Org.Organization != nil {
+			orgID = ctx.Org.Organization.ID
+		} else if ctx.Org.Team != nil {
+			orgID = ctx.Org.Team.OrgID
+		} else {
+			setting.PanicInDevOrTesting("reqOrgOwnership: unprepared context")
+			ctx.APIErrorInternal(errors.New("reqOrgOwnership: unprepared context"))
+			return
+		}
+		isAdmin, err := organization.IsOrganizationAdmin(ctx, orgID, ctx.Doer.ID)
+		if err != nil {
+			ctx.APIErrorInternal(err)
+			return
+		} else if !isAdmin {
+			if ctx.Org.Organization != nil {
+				ctx.APIError(http.StatusForbidden, "Must be an organization owner")
+			} else {
+				ctx.APIErrorNotFound()
+			}
 			return
 		}
 	}
@@ -608,6 +653,62 @@ func reqOrgMembership() func(ctx *context.APIContext) {
 			} else {
 				ctx.APIErrorNotFound()
 			}
+			return
+		}
+	}
+}
+
+// reqGroupMembership user should be organization owner,
+// a member of a team with access to the group, or site admin
+func reqGroupMembership(mode perm.AccessMode, needsCreatePerm bool) func(ctx *context.APIContext) {
+	return func(ctx *context.APIContext) {
+		if ctx.IsUserSiteAdmin() {
+			return
+		}
+		var err error
+
+		var isOrgMember bool
+
+		if ctx.RepoGroup.OwnerAsOrg != nil && ctx.Doer != nil {
+			if isOrgMember, err = ctx.RepoGroup.OwnerAsOrg.IsOrgMember(ctx, ctx.Doer.ID); err != nil {
+				ctx.APIErrorInternal(err)
+				return
+			}
+		}
+
+		if mode > perm.AccessModeRead {
+			var check bool
+			switch mode {
+			case perm.AccessModeWrite:
+				check = ctx.RepoGroup.Capabilities().CanWrite
+			case perm.AccessModeAdmin:
+				check = ctx.RepoGroup.Capabilities().CanAdmin
+			case perm.AccessModeOwner:
+				check = ctx.RepoGroup.Capabilities().IsOwner
+			case perm.AccessModeRead:
+			case perm.AccessModeNone:
+				check = ctx.RepoGroup.Capabilities().CanRead
+			}
+			if !check && isOrgMember {
+				ctx.APIError(http.StatusForbidden, "")
+				return
+			} else if !check {
+				ctx.APIErrorNotFound()
+				return
+			}
+		}
+		if needsCreatePerm {
+			if !ctx.RepoGroup.Capabilities().CanCreate && !(ctx.RepoGroup.Capabilities().IsOwner || ctx.RepoGroup.Capabilities().CanAdmin) {
+				if ctx.RepoGroup.Capabilities().IsMember {
+					ctx.APIError(http.StatusForbidden, fmt.Sprintf("User[%d] does not have permission to create new items in group[%d]", ctx.Doer.ID, ctx.RepoGroup.Group.ID))
+				} else {
+					ctx.APIErrorNotFound()
+				}
+				return
+			}
+		}
+		if !ctx.RepoGroup.Capabilities().CanRead {
+			ctx.APIErrorNotFound()
 			return
 		}
 	}
@@ -1053,6 +1154,7 @@ func Routes() *web.Router {
 
 				if setting.Service.EnableUserHeatmap {
 					m.Get("/heatmap", user.GetUserHeatmapData)
+					m.Get("/group/{group_id}/heatmap", context.GroupAssignmentAPI(true), user.GetUserHeatmapDataInGroup)
 				}
 
 				m.Get("/repos", tokenRequiresScopes(auth_model.AccessTokenScopeCategoryRepository), reqExploreSignIn(), user.ListUserRepos)
@@ -1169,10 +1271,14 @@ func Routes() *web.Router {
 			m.Combo("/repos", tokenRequiresScopes(auth_model.AccessTokenScopeCategoryRepository)).Get(user.ListMyRepos).
 				Post(rejectPublicOnly(), bind(api.CreateRepoOption{}), repo.Create)
 
+			m.Group("/groups", func() {
+				m.Get("", group.GetUserGroups)
+				m.Post("/new", rejectPublicOnly(), bind(api.NewGroupOption{}), group.NewUserGroup)
+			})
 			// (repo scope)
 			m.Group("/starred", func() {
 				m.Get("", user.GetMyStarredRepos)
-				m.Group("/{username}/{reponame}", func() {
+				common.RegisterRepoRouteGroup(m, "/{username}/{reponame}", context.GroupAssignmentAPI(true), func() {
 					m.Get("", user.IsStarring)
 					m.Put("", user.Star)
 					m.Delete("", user.Unstar)
@@ -1223,13 +1329,13 @@ func Routes() *web.Router {
 
 			// (repo scope)
 			m.Post("/migrate", reqToken(), bind(api.MigrateRepoOptions{}), repo.Migrate)
-
-			m.Group("/{username}/{reponame}", func() {
+			common.RegisterRepoRouteGroup(m, "/{username}/{reponame}", context.GroupAssignmentAPI(true), func() {
 				m.Get("/compare/*", reqRepoReader(unit.TypeCode), repo.CompareDiff)
 
 				m.Combo("").Get(reqAnyRepoReader(), repo.Get).
 					Delete(reqToken(), reqOwner(), repo.Delete).
 					Patch(reqToken(), reqAdmin(), bind(api.EditRepoOption{}), repo.Edit)
+				m.Post("/groups/move", reqToken(), bind(api.MoveGroupOption{}), reqOrgMembership(), reqGroupMembership(perm.AccessModeWrite, false), repo.MoveRepoToGroup)
 				m.Post("/generate", reqToken(), reqRepoReader(unit.TypeCode), bind(api.GenerateRepoOption{}), repo.Generate)
 				m.Group("/transfer", func() {
 					m.Post("", reqOwner(), bind(api.TransferRepoOption{}), repo.Transfer)
@@ -1528,11 +1634,13 @@ func Routes() *web.Router {
 
 		// Artifacts direct download endpoint authenticates via signed url
 		// it is protected by the "sig" parameter (to help to access private repo), so no need to use other middlewares
-		m.Get("/repos/{username}/{reponame}/actions/artifacts/{artifact_id}/zip/raw", repo.DownloadArtifactRaw)
+		common.RegisterRepoRouteGroup(m, "/repos/{username}/{reponame}/actions/artifacts/{artifact_id}/zip/raw", context.GroupAssignmentAPI(true), func() {
+			m.Get("", repo.DownloadArtifactRaw)
+		})
 
 		// Notifications (requires notifications scope)
 		m.Group("/repos", func() {
-			m.Group("/{username}/{reponame}", func() {
+			common.RegisterRepoRouteGroup(m, "/{username}/{reponame}", context.GroupAssignmentAPI(true), func() {
 				m.Combo("/notifications", reqToken()).
 					Get(notify.ListRepoNotifications).
 					Put(notify.ReadRepoNotifications)
@@ -1542,8 +1650,7 @@ func Routes() *web.Router {
 		// Issue (requires issue scope)
 		m.Group("/repos", func() {
 			m.Get("/issues/search", repo.SearchIssues)
-
-			m.Group("/{username}/{reponame}", func() {
+			common.RegisterRepoRouteGroup(m, "/{username}/{reponame}", context.GroupAssignmentAPI(true), func() {
 				m.Group("/issues", func() {
 					m.Combo("").Get(repo.ListIssues).
 						Post(reqToken(), mustNotBeArchived, bind(api.CreateIssueOption{}), reqRepoReader(unit.TypeIssues), repo.CreateIssue)
@@ -1750,6 +1857,10 @@ func Routes() *web.Router {
 					m.Delete("", org.UnblockUser)
 				})
 			}, reqToken(), reqOrgOwnership())
+			m.Group("/groups", func() {
+				m.Get("", group.GetOrgGroups)
+				m.Post("/new", reqToken(), reqOrgAdmin(), bind(api.NewGroupOption{}), group.NewOrgGroup)
+			})
 		}, tokenRequiresScopes(auth_model.AccessTokenScopeCategoryOrganization), orgAssignment(true), checkTokenPublicOnly())
 		m.Group("/teams/{teamid}", func() {
 			m.Combo("").Patch(reqToken(), reqOrgOwnership(), bind(api.EditTeamOption{}), org.EditTeam).
@@ -1772,9 +1883,11 @@ func Routes() *web.Router {
 					Delete(reqToken(), reqOrgOwnership(), org.RemoveTeamMember)
 			})
 			m.Group("/repos", func() {
-				m.Combo("/{org}/{reponame}").
-					Put(reqToken(), reqTeamMembership(), org.AddTeamRepository).
-					Delete(reqToken(), reqTeamMembership(), org.RemoveTeamRepository)
+				common.RegisterRepoRouteGroup(m, "/{org}/{reponame}", context.GroupAssignmentAPI(true), func() {
+					m.Combo("").
+						Put(reqToken(), reqTeamMembership(), org.AddTeamRepository).
+						Delete(reqToken(), reqTeamMembership(), org.RemoveTeamRepository)
+				})
 			})
 		}, tokenRequiresScopes(auth_model.AccessTokenScopeCategoryOrganization), orgAssignment(false, true), reqToken(), checkTokenPublicOnly())
 
@@ -1809,8 +1922,12 @@ func Routes() *web.Router {
 			})
 			m.Group("/unadopted", func() {
 				m.Get("", admin.ListUnadoptedRepositories)
-				m.Post("/{username}/{reponame}", admin.AdoptRepository)
-				m.Delete("/{username}/{reponame}", admin.DeleteUnadoptedRepository)
+				m.Group("/{username}", func() {
+					m.Post("/{reponame}", admin.AdoptRepository)
+					m.Delete("/{reponame}", admin.DeleteUnadoptedRepository)
+					m.Post("/group/{group_id}/{reponame}", admin.AdoptGroupRepository)
+					m.Delete("/group/{group_id}/{reponame}", admin.DeleteUnadoptedRepositoryInGroup)
+				})
 			})
 			m.Group("/hooks", func() {
 				m.Combo("").Get(admin.ListHooks).
@@ -1836,6 +1953,17 @@ func Routes() *web.Router {
 			m.Get("/search", repo.TopicSearch)
 		}, tokenRequiresScopes(auth_model.AccessTokenScopeCategoryRepository))
 	}, sudo())
-
+	m.Group("/groups", func() {
+		m.Group("/{group_id}", func() {
+			m.Combo("").
+				Get(reqGroupMembership(perm.AccessModeRead, false), group.GetGroup).
+				Patch(reqToken(), reqGroupMembership(perm.AccessModeWrite, false), bind(api.EditGroupOption{}), group.EditGroup).
+				Delete(reqToken(), reqGroupMembership(perm.AccessModeAdmin, false), group.DeleteGroup)
+			m.Post("/move", reqToken(), reqGroupMembership(perm.AccessModeWrite, false), bind(api.MoveGroupOption{}), group.MoveGroup)
+			m.Post("/new", reqToken(), reqGroupMembership(perm.AccessModeWrite, true), bind(api.NewGroupOption{}), group.NewSubGroup)
+			m.Get("/subgroups", reqGroupMembership(perm.AccessModeRead, false), group.GetGroupSubGroups)
+			m.Get("/repos", tokenRequiresScopes(auth_model.AccessTokenScopeCategoryRepository), reqGroupMembership(perm.AccessModeRead, false), group.GetGroupRepos)
+		}, context.GroupAssignmentAPI(false), checkTokenPublicOnly())
+	})
 	return m
 }

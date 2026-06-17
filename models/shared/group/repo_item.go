@@ -1,0 +1,54 @@
+// Copyright 2025 The Gitea Authors. All rights reserved.
+// SPDX-License-Identifier: MIT
+
+package group
+
+import (
+	"context"
+
+	group_model "gitea.dev/models/group"
+	repo_model "gitea.dev/models/repo"
+	user_model "gitea.dev/models/user"
+)
+
+type groupItemRepo struct {
+	Repo *repo_model.Repository
+}
+
+func (repo *groupItemRepo) Link() string {
+	return repo.Repo.Link()
+}
+
+func (repo *groupItemRepo) Title() string {
+	return repo.Repo.Name
+}
+
+func (repo *groupItemRepo) Parent() Item {
+	if repo.Repo.GroupID == 0 {
+		return nil
+	}
+	group, _ := group_model.GetGroupByID(context.TODO(), repo.Repo.GroupID)
+	return &groupItemGroup{group}
+}
+
+func (repo *groupItemRepo) Children(doer *user_model.User, requireMember bool) []Item {
+	return []Item{}
+}
+
+func (repo *groupItemRepo) Avatar(ctx context.Context) string {
+	return repo.Repo.AvatarLink(ctx)
+}
+
+func (repo *groupItemRepo) IsGroup() bool {
+	return false
+}
+
+func (repo *groupItemRepo) HasChildren(doer *user_model.User, requireMember bool) bool { return false }
+
+func (repo *groupItemRepo) ID() int64 {
+	return repo.Repo.ID
+}
+
+func (repo *groupItemRepo) Sort() int {
+	return repo.Repo.GroupSortOrder
+}

@@ -9,6 +9,7 @@ import (
 	"strings"
 
 	"gitea.dev/models/db"
+	"gitea.dev/models/group"
 	"gitea.dev/models/perm"
 	"gitea.dev/models/unit"
 	user_model "gitea.dev/models/user"
@@ -158,6 +159,7 @@ type SearchRepoOptions struct {
 	OwnerID         int64
 	PriorityOwnerID int64
 	TeamID          int64
+	GroupID         int64
 	OrderBy         db.SearchOrderBy
 	Private         bool // Include private repositories in results
 	StarredByID     int64
@@ -296,7 +298,7 @@ func UserCollaborationRepoCond(idStr string, userID int64) builder.Cond {
 	)
 }
 
-// UserOrgTeamRepoCond selects repos that the given user has access to through team membership
+// UserOrgTeamRepoCond selects repos that the given user has access to through team membership.
 func UserOrgTeamRepoCond(idStr string, userID int64) builder.Cond {
 	return builder.In(idStr, userOrgTeamRepoBuilder(userID))
 }
@@ -326,8 +328,7 @@ func userOrgTeamUnitRepoCond(idStr string, userID int64, unitType unit.Type) bui
 func UserOrgUnitRepoCond(idStr string, userID, orgID int64, unitType unit.Type) builder.Cond {
 	return builder.In(idStr,
 		userOrgTeamUnitRepoBuilder(userID, unitType).
-			And(builder.Eq{"`team_unit`.org_id": orgID}),
-	)
+			And(builder.Eq{"`team_unit`.org_id": orgID}))
 }
 
 // userOrgPublicRepoCond returns the condition that one user could access all public repositories in organizations
@@ -451,6 +452,11 @@ func SearchRepositoryCondition(opts SearchRepoOptions) builder.Cond {
 
 	if opts.TeamID > 0 {
 		cond = cond.And(builder.In("`repository`.id", builder.Select("`team_repo`.repo_id").From("team_repo").Where(builder.Eq{"`team_repo`.team_id": opts.TeamID})))
+	}
+	if opts.GroupID > 0 {
+		cond = cond.And(builder.Eq{"`repository`.group_id": opts.GroupID})
+	} else if opts.GroupID == -1 {
+		cond = cond.And(builder.Lt{"`repository`.group_id": 1})
 	}
 
 	if opts.Keyword != "" {
@@ -699,7 +705,11 @@ func AccessibleRepositoryCondition(user *user_model.User, unitType unit.Type) bu
 			cond = userAllPublicRepoCond(cond, orgVisibilityLimit)
 		}
 	}
-
+	cond = cond.Or(
+		builder.In("repository.group_id",
+			builder.Select("id").
+				From("repo_group").
+				Where(group.AccessibleGroupCondition(user))))
 	return cond
 }
 

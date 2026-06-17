@@ -73,6 +73,9 @@
 					<a class="item" href="{{AppSubUrl}}/repo/create">
 						{{svg "octicon-plus"}} {{ctx.Locale.Tr "new_repo"}}
 					</a>
+					<a class="item" href="{{AppSubUrl}}/group/new">
+						{{svg "octicon-file-directory"}} {{ctx.Locale.Tr "new_group"}}
+					</a>
 					{{if not .DisableMigrations}}
 						<a class="item" href="{{AppSubUrl}}/repo/migrate">
 							{{svg "octicon-repo-push"}} {{ctx.Locale.Tr "new_migrate"}}

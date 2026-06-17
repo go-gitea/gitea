@@ -1,0 +1,58 @@
+{{template "base/head" .}}
+<div role="main" aria-label="{{.Title}}" class="page-content repo-group  new group">
+	<div class="ui middle very relaxed page grid">
+		<div class="column">
+			<form class="ui form left-right-form new-group-form" action="{{.Link}}" method="post">
+				{{.CsrfTokenHtml}}
+				<h3 class="ui top attached header">
+					{{ctx.Locale.Tr "new_group"}}
+				</h3>
+				<div class="ui attached segment">
+					{{template "base/alert" .}}
+					<div class="inline required field {{if .Err_GroupName}}error{{end}}">
+						<label for="group_name">{{ctx.Locale.Tr "group.group_name"}}</label>
+						<input id="group_name" name="group_name" value="{{.Group.Name}}" required {{if eq .Group.LowerName "owners"}}disabled{{end}} autofocus>
+						<span class="help">{{ctx.Locale.Tr "group.group_name_helper"}}</span>
+					</div>
+					<div class="inline required field {{if .Err_Owner}}error{{end}}">
+						<label>{{ctx.Locale.Tr "group.owner"}}</label>
+						<div class="ui selection dropdown ellipsis-text-items" id="group_owner_dropdown">
+							<input type="hidden" name="uid" value="{{.SignedUser.ID}}">
+							<span class="text"></span>
+							{{svg "octicon-triangle-down" 14 "dropdown icon"}}
+							<div class="menu">
+								<div class="item" data-value="{{.SignedUser.ID}}" title="{{.SignedUser.Name}}">
+									{{ctx.AvatarUtils.Avatar .SignedUser 28 "mini"}}
+									{{.SignedUser.ShortName 40}}
+								</div>
+								{{range .Orgs}}
+								<div class="item" data-value="{{.ID}}" title="{{.Name}}">
+									{{ctx.AvatarUtils.Avatar . 28 "mini"}}
+									{{.ShortName 40}}
+								</div>
+								{{end}}
+							</div>
+						</div>
+					</div>
+					{{template "group/selector_dynamic" dict "." . "Label" (ctx.Locale.Tr "group.parent") "Inline" true}}
+
+					<div class="inline field {{if .Err_Description}}error{{end}}">
+						<label for="description">{{ctx.Locale.Tr "group.group_desc"}}</label>
+						<textarea id="description" rows="5" name="description">{{.Group.Description}}</textarea>
+						<span class="help">{{ctx.Locale.Tr "group.group_desc_helper"}}</span>
+					</div>
+					<div class="inline field">
+						<label></label>
+						{{if .PageIsNewGroup}}
+							<button class="ui primary button">{{ctx.Locale.Tr "org.create_group"}}</button>
+						{{else}}
+							<button class="ui primary button">{{ctx.Locale.Tr "org.groups.update_settings"}}</button>
+							<button class="ui red button delete-button" data-url="{{.GroupLink}}/groups/{{.Group.Name | PathEscape}}/delete">{{ctx.Locale.Tr "org.groups.delete_team"}}</button>
+						{{end}}
+					</div>
+				</div>
+			</form>
+		</div>
+	</div>
+</div>
+{{template "base/footer" .}}

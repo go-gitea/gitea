@@ -11,6 +11,7 @@
 					<label>{{ctx.Locale.Tr "repo.repo_name"}}</label>
 					<input name="repo_name" value="{{.Repository.Name}}" data-repo-name="{{.Repository.Name}}" required>
 				</div>
+				{{template "group/selector" dict "." . "Parent" .Repository.GroupID "Label" (ctx.Locale.Tr "repo.group") "FieldName" "group_id" "ErrField" .Err_GroupID}}
 				<div class="inline field">
 					<label>{{ctx.Locale.Tr "repo.repo_size"}}</label>
 					<span {{if not (eq .Repository.Size 0)}} data-tooltip-content="{{.Repository.SizeDetailsString}}"{{end}}>{{FileSize .Repository.Size}}</span>

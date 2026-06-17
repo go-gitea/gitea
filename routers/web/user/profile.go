@@ -281,6 +281,7 @@ func prepareUserProfileTabData(ctx *context.Context, profileDbRepo *repo_model.R
 				Page:     page,
 			},
 			Actor:              ctx.Doer,
+			GroupID:            -1,
 			Keyword:            keyword,
 			OwnerID:            ctx.ContextUser.ID,
 			OrderBy:            orderBy,

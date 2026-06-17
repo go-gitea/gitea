@@ -1,0 +1,6 @@
+{{range.Items}}
+{{if .IsGroup}}
+
+{{template "group/dashboard/menu_item" dict "." $ "Item" . "Depth" $.Depth}}
+{{end}}
+{{end}}

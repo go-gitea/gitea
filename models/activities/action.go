@@ -7,7 +7,6 @@ package activities
 import (
 	"context"
 	"fmt"
-	"net/url"
 	"path"
 	"slices"
 	"strconv"
@@ -15,11 +14,13 @@ import (
 	"time"
 
 	"gitea.dev/models/db"
+	group_model "gitea.dev/models/group"
 	issues_model "gitea.dev/models/issues"
 	"gitea.dev/models/organization"
 	repo_model "gitea.dev/models/repo"
 	user_model "gitea.dev/models/user"
 	"gitea.dev/modules/git"
+	giturl "gitea.dev/modules/git/url"
 	"gitea.dev/modules/log"
 	"gitea.dev/modules/setting"
 	"gitea.dev/modules/structs"
@@ -235,6 +236,24 @@ func (a *Action) GetActDisplayNameTitle(ctx context.Context) string {
 	return a.GetActFullName(ctx)
 }
 
+func (a *Action) ShortLocator(ctx context.Context) giturl.Locator {
+	var gid int64
+	_ = a.LoadRepo(ctx)
+	if a.Repo != nil {
+		gid = a.Repo.GroupID
+	}
+	return giturl.NewLocator(a.ShortActUserName(ctx), a.ShortRepoName(ctx), gid)
+}
+
+func (a *Action) GetLocator(ctx context.Context) giturl.Locator {
+	var gid int64
+	_ = a.LoadRepo(ctx)
+	if a.Repo != nil {
+		gid = a.Repo.GroupID
+	}
+	return giturl.NewLocator(a.GetRepoUserName(ctx), a.GetRepoName(ctx), gid)
+}
+
 // GetRepoUserName returns the name of the action repository owner.
 func (a *Action) GetRepoUserName(ctx context.Context) string {
 	_ = a.LoadRepo(ctx)
@@ -267,24 +286,25 @@ func (a *Action) ShortRepoName(ctx context.Context) string {
 
 // GetRepoPath returns the virtual path to the action repository.
 func (a *Action) GetRepoPath(ctx context.Context) string {
-	return path.Join(a.GetRepoUserName(ctx), a.GetRepoName(ctx))
+	loc := a.GetLocator(ctx)
+	return path.Join(loc.Owner, util.Iif(loc.GroupID == 0, "", strconv.FormatInt(loc.GroupID, 10)), loc.Repo)
 }
 
 // ShortRepoPath returns the virtual path to the action repository
 // trimmed to max 20 + 1 + 33 chars.
 func (a *Action) ShortRepoPath(ctx context.Context) string {
-	return path.Join(a.ShortRepoUserName(ctx), a.ShortRepoName(ctx))
+	return path.Join(a.ShortRepoUserName(ctx), a.ShortLocator(ctx).FullName())
 }
 
 // GetRepoLink returns relative link to action repository.
 func (a *Action) GetRepoLink(ctx context.Context) string {
 	// path.Join will skip empty strings
-	return path.Join(setting.AppSubURL, "/", url.PathEscape(a.GetRepoUserName(ctx)), url.PathEscape(a.GetRepoName(ctx)))
+	return path.Join(setting.AppSubURL, "/", a.GetLocator(ctx).WebPath())
 }
 
 // GetRepoAbsoluteLink returns the absolute link to action repository.
 func (a *Action) GetRepoAbsoluteLink(ctx context.Context) string {
-	return setting.AppURL + url.PathEscape(a.GetRepoUserName(ctx)) + "/" + url.PathEscape(a.GetRepoName(ctx))
+	return setting.AppURL + a.GetLocator(ctx).WebPath()
 }
 
 func (a *Action) loadComment(ctx context.Context) (err error) {
@@ -427,6 +447,7 @@ type GetFeedsOptions struct {
 	db.ListOptions
 	RequestedUser   *user_model.User       // the user we want activity for
 	RequestedTeam   *organization.Team     // the team we want activity for
+	RequestedGroup  *group_model.Group     // the group we want activity for
 	RequestedRepo   *repo_model.Repository // the repo we want activity for
 	Actor           *user_model.User       // the user viewing the activity
 	IncludePrivate  bool                   // include private actions
@@ -512,8 +533,24 @@ func ActivityQueryCondition(ctx context.Context, opts GetFeedsOptions) (builder.
 	if opts.Actor == nil || !opts.Actor.IsAdmin {
 		cond = cond.And(builder.In("repo_id", repo_model.AccessibleRepoIDsQuery(opts.Actor)))
 	}
+	if opts.RequestedGroup != nil {
+		var subCond builder.Cond
 
-	if opts.RequestedRepo != nil {
+		groupFilter := group_model.AccessibleGroupCondition(opts.Actor)
+		if childGroupCondIDs, err := group_model.ChildGroupCond(ctx, opts.RequestedGroup.ID, groupFilter); err != nil {
+			subCond = builder.NotIn("`repository`.group_id")
+		} else {
+			subCond = builder.In("`repository`.group_id", childGroupCondIDs)
+		}
+		cond = cond.And(builder.In("`action`.repo_id",
+			builder.Select("id").
+				From("repository").
+				Where(builder.Or(
+					subCond,
+					builder.Eq{"`repository`.group_id": opts.RequestedGroup.ID}),
+				),
+		))
+	} else if opts.RequestedRepo != nil {
 		// repo's actions could have duplicate items, see the comment of NotifyWatchers
 		// so here we only filter the "original items", aka: user_id == act_user_id
 		cond = cond.And(

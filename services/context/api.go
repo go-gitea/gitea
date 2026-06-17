@@ -44,6 +44,7 @@ type APIContext struct {
 
 	Repo       *Repository
 	Org        *APIOrganization
+	RepoGroup  *RepoGroup
 	Package    *Package
 	PublicOnly bool // Whether the request is for a public endpoint
 }
@@ -340,4 +341,10 @@ func (ctx *APIContext) IsUserRepoAdmin() bool {
 // IsUserRepoWriter returns true if current user has "write" privilege in current repo
 func (ctx *APIContext) IsUserRepoWriter(unitTypes []unit.Type) bool {
 	return slices.ContainsFunc(unitTypes, ctx.Repo.Permission.CanWrite)
+}
+
+func (ctx *APIContext) IsUserGroupWriter(unitTypes []unit.Type) bool {
+	return slices.ContainsFunc(unitTypes, func(u unit.Type) bool {
+		return ctx.RepoGroup.CanWriteUnit(ctx, ctx.Doer, u)
+	})
 }

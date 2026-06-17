@@ -12,6 +12,7 @@ type PushUpdateOptions struct {
 	PusherID     int64
 	PusherName   string
 	RepoUserName string
+	RepoGroupID  int64
 	RepoName     string
 
 	// FIXME: this struct's design is not right, the changed commits should be in a separate slice

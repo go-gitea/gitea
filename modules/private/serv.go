@@ -11,6 +11,7 @@ import (
 	asymkey_model "gitea.dev/models/asymkey"
 	"gitea.dev/models/perm"
 	user_model "gitea.dev/models/user"
+	giturl "gitea.dev/modules/git/url"
 	"gitea.dev/modules/setting"
 )
 
@@ -46,11 +47,11 @@ type ServCommandResults struct {
 }
 
 // ServCommand preps for a serv call
-func ServCommand(ctx context.Context, keyID int64, ownerName, repoName string, mode perm.AccessMode, verb, lfsVerb string) (*ServCommandResults, ResponseExtra) {
-	reqURL := setting.LocalURL + fmt.Sprintf("api/internal/serv/command/%d/%s/%s?mode=%d",
+func ServCommand(ctx context.Context, keyID int64, ownerName, repoName string, groupID int64, mode perm.AccessMode, verb, lfsVerb string) (*ServCommandResults, ResponseExtra) {
+	locator := giturl.NewLocator(ownerName, repoName, groupID)
+	reqURL := setting.LocalURL + fmt.Sprintf("api/internal/serv/command/%d/%s?mode=%d",
 		keyID,
-		url.PathEscape(ownerName),
-		url.PathEscape(repoName),
+		locator.WebPath(),
 		mode,
 	)
 	reqURL += "&verb=" + url.QueryEscape(verb)

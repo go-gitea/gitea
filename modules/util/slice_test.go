@@ -53,3 +53,20 @@ func TestSliceRemoveAll(t *testing.T) {
 	assert.ElementsMatch(t, []float64{2, 2, 3}, SliceRemoveAll([]float64{2, 0, 2, 3}, 0))
 	assert.ElementsMatch(t, []bool{false, false}, SliceRemoveAll([]bool{false, true, false}, true))
 }
+
+func TestSliceRemove(t *testing.T) {
+	assert.Equal(t, []int{2, 3}, SliceRemove([]int{1, 2, 3}, 0))
+	assert.Equal(t, []int{1, 3}, SliceRemove([]int{1, 2, 3}, 1))
+	assert.Equal(t, []int{1, 2}, SliceRemove([]int{1, 2, 3}, 2))
+	assert.Equal(t, []int{1, 2}, SliceRemove([]int{1, 2, 3}, 10))
+	assert.Equal(t, []int{2, 3}, SliceRemove([]int{1, 2, 3}, -10))
+	assert.Empty(t, SliceRemove([]int{}, 0))
+}
+
+func TestSliceInsert(t *testing.T) {
+	assert.Equal(t, []int{1}, SliceInsert([]int{}, 1, 0))
+	assert.Equal(t, []int{1, 2, 3}, SliceInsert([]int{2, 3}, 1, 0))
+	assert.Equal(t, []int{1, 2, 3}, SliceInsert([]int{1, 3}, 2, 1))
+	assert.Equal(t, []int{1, 2, 3}, SliceInsert([]int{1, 2}, 3, 10))
+	assert.Equal(t, []int{1, 2, 3}, SliceInsert([]int{1, 2}, 3, -10))
+}

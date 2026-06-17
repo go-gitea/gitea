@@ -30,9 +30,11 @@ import (
 	"gitea.dev/modules/validation"
 	"gitea.dev/modules/web"
 	repo_router "gitea.dev/routers/web/repo"
+	shared_group "gitea.dev/routers/web/shared/group"
 	actions_service "gitea.dev/services/actions"
 	"gitea.dev/services/context"
 	"gitea.dev/services/forms"
+	group_service "gitea.dev/services/group"
 	"gitea.dev/services/migrations"
 	mirror_service "gitea.dev/services/mirror"
 	repo_service "gitea.dev/services/repository"
@@ -99,6 +101,13 @@ func SettingsCtxData(ctx *context.Context) {
 	ctx.Data["PushMirrors"] = pushMirrors
 
 	repo_router.PrepareBranchList(ctx)
+
+	// prepare selectable groups
+	if err = shared_group.LoadSelectableGroups(ctx); err != nil {
+		ctx.ServerError("LoadSelectableGroups", err)
+		return
+	}
+
 	if ctx.Written() {
 		return
 	}
@@ -243,12 +252,24 @@ func handleSettingsPostUpdate(ctx *context.Context) {
 
 		log.Trace("Repository name changed: %s/%s -> %s", ctx.Repo.Owner.Name, repo.Name, newRepoName)
 	}
+	if repo.GroupID != form.GroupID {
+		if err := group_service.MoveGroupItem(ctx, group_service.MoveGroupOptions{
+			ItemID:    repo.ID,
+			NewParent: form.GroupID,
+			NewPos:    -1,
+			IsGroup:   false,
+		}, ctx.Doer); err != nil {
+			ctx.ServerError("MoveGroupItem", err)
+			return
+		}
+	}
 	// In case it's just a case change.
 	repo.Name = newRepoName
 	repo.LowerName = strings.ToLower(newRepoName)
 	repo.Description = form.Description
 	repo.Website = form.Website
 	repo.IsTemplate = form.Template
+	repo.GroupID = form.GroupID
 
 	if err := repo_service.UpdateRepository(ctx, repo, false); err != nil {
 		ctx.ServerError("UpdateRepository", err)

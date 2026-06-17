@@ -1,0 +1,53 @@
+<div class="ui wide column">
+	<div>
+		<div class="repo-group-header flex-left-right">
+			<div class="flex-text-block">
+				<div class="flex-text-block tw-flex-wrap tw-text-18">
+		{{template "group/shared/breadcrumbs" dict "." . "GroupID" .Group.ID "Owner" .Group.Owner "ShowOwner" true}}
+				</div>
+			</div>
+		</div>
+	</div>
+	<div class="tw-flex tw-gap-4">
+		<div>
+			{{ctx.AvatarUtils.Avatar .Group 100 "group-avatar"}}
+		</div>
+		<div id="repo-group-info" class="flex-relaxed-list">
+			<div class="ui header flex-left-right tw-m-0">
+				<div class="flex-text-block tw-text-2xl">
+					{{.Group.Name}}
+				</div>
+				{{if or .Group.Visibility.IsLimited .Group.Visibility.IsPrivate}}
+				<div class="flex-text-block">
+					{{if .Group.Visibility.IsLimited}}
+					<span
+						class="ui large basic horizontal label">
+						{{ctx.Locale.Tr "org.settings.visibility.limited_shortname"}}
+					</span>
+					{{end}}
+					{{if .Group.Visibility.IsPrivate}}
+					<span class="ui large basic horizontal label">
+						{{ctx.Locale.Tr "org.settings.visibility.private_shortname"}}
+					</span>
+					{{end}}
+				</div>
+				{{end}}
+				<div class="flex-text-block">
+				<span class="tw-flex tw-items-center tw-gap-1 tw-ml-auto tw-text-16 tw-whitespace-nowrap">
+					{{if .EnableFeed}}
+						<a class="ui basic label button tw-mr-0" href="{{.Group.GroupLink}}.rss" data-tooltip-content="{{ctx.Locale.Tr "rss_feed"}}">
+							{{svg "octicon-rss" 24}}
+						</a>
+					{{end}}
+				</span>
+				</div>
+			</div>
+			{{if .RenderedGroupDescription}}
+			<div class="render-content markup tw-break-anywhere">{{.RenderedGroupDescription}}</div>
+			{{end}}
+		</div>
+	</div>
+
+	{{template "group/menu" .}}
+
+</div>

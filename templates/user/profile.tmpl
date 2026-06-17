@@ -2,8 +2,11 @@
 <div role="main" aria-label="{{.Title}}" class="page-content user profile">
 	<div class="ui container">
 		<div class="ui stackable grid">
-			<div class="ui four wide column">
+			<div class="ui four wide column tw-space-y-4">
 				{{template "shared/user/profile_big_avatar" .}}
+				<div>
+					{{template "group/sidebar/menu" .}}
+				</div>
 			</div>
 			<div class="ui twelve wide column tw-mb-4">
 				{{template "user/overview/header" .}}

@@ -14,7 +14,7 @@ const RouterMockPointCommonLFS = "common-lfs"
 
 func AddOwnerRepoGitLFSRoutes(m *web.Router, middlewares ...any) {
 	// shared by web and internal routers
-	m.Group("/{username}/{reponame}/info/lfs", func() {
+	RegisterRepoRouteGroup(m, "/{username}/{reponame}/info/lfs", nil, func() {
 		m.Post("/objects/batch", lfs.CheckAcceptMediaType, lfs.BatchHandler)
 		m.Put("/objects/{oid}/{size}", lfs.UploadHandler)
 		m.Get("/objects/{oid}/{filename}", lfs.DownloadHandler)
