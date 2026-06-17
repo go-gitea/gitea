@@ -8,15 +8,15 @@ import (
 	"fmt"
 	"strings"
 
-	"code.gitea.io/gitea/models/db"
-	"code.gitea.io/gitea/models/perm"
-	"code.gitea.io/gitea/models/unit"
-	user_model "code.gitea.io/gitea/models/user"
-	"code.gitea.io/gitea/modules/container"
-	"code.gitea.io/gitea/modules/optional"
-	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/modules/structs"
-	"code.gitea.io/gitea/modules/util"
+	"gitea.dev/models/db"
+	"gitea.dev/models/perm"
+	"gitea.dev/models/unit"
+	user_model "gitea.dev/models/user"
+	"gitea.dev/modules/container"
+	"gitea.dev/modules/optional"
+	"gitea.dev/modules/setting"
+	"gitea.dev/modules/structs"
+	"gitea.dev/modules/util"
 
 	"xorm.io/builder"
 )
@@ -783,7 +783,8 @@ func GetUserRepositories(ctx context.Context, opts SearchRepoOptions) (Repositor
 
 	sess = sess.Where(cond).OrderBy(opts.OrderBy.String())
 	repos := make(RepositoryList, 0, opts.PageSize)
-	return repos, count, db.SetSessionPagination(sess, &opts).Find(&repos)
+	db.SetSessionPagination(sess, &opts)
+	return repos, count, sess.Find(&repos)
 }
 
 func GetOwnerRepositoriesByIDs(ctx context.Context, ownerID int64, repoIDs []int64) (RepositoryList, error) {

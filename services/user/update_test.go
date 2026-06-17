@@ -6,11 +6,11 @@ package user
 import (
 	"testing"
 
-	"code.gitea.io/gitea/models/unittest"
-	user_model "code.gitea.io/gitea/models/user"
-	password_module "code.gitea.io/gitea/modules/auth/password"
-	"code.gitea.io/gitea/modules/optional"
-	"code.gitea.io/gitea/modules/structs"
+	"gitea.dev/models/unittest"
+	user_model "gitea.dev/models/user"
+	password_module "gitea.dev/modules/auth/password"
+	"gitea.dev/modules/optional"
+	"gitea.dev/modules/structs"
 
 	"github.com/stretchr/testify/assert"
 )

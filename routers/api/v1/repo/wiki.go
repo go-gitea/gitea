@@ -9,17 +9,17 @@ import (
 	"net/http"
 	"net/url"
 
-	repo_model "code.gitea.io/gitea/models/repo"
-	"code.gitea.io/gitea/modules/git"
-	"code.gitea.io/gitea/modules/gitrepo"
-	"code.gitea.io/gitea/modules/setting"
-	api "code.gitea.io/gitea/modules/structs"
-	"code.gitea.io/gitea/modules/util"
-	"code.gitea.io/gitea/modules/web"
-	"code.gitea.io/gitea/services/context"
-	"code.gitea.io/gitea/services/convert"
-	notify_service "code.gitea.io/gitea/services/notify"
-	wiki_service "code.gitea.io/gitea/services/wiki"
+	repo_model "gitea.dev/models/repo"
+	"gitea.dev/modules/git"
+	"gitea.dev/modules/gitrepo"
+	"gitea.dev/modules/setting"
+	api "gitea.dev/modules/structs"
+	"gitea.dev/modules/util"
+	"gitea.dev/modules/web"
+	"gitea.dev/services/context"
+	"gitea.dev/services/convert"
+	notify_service "gitea.dev/services/notify"
+	wiki_service "gitea.dev/services/wiki"
 )
 
 // NewWikiPage response for wiki create request
@@ -59,7 +59,7 @@ func NewWikiPage(ctx *context.APIContext) {
 	form := web.GetForm(ctx).(*api.CreateWikiPageOptions)
 
 	if util.IsEmptyString(form.Title) {
-		ctx.APIError(http.StatusBadRequest, nil)
+		ctx.APIError(http.StatusBadRequest, "title is required")
 		return
 	}
 
@@ -71,16 +71,16 @@ func NewWikiPage(ctx *context.APIContext) {
 
 	content, err := base64.StdEncoding.DecodeString(form.ContentBase64)
 	if err != nil {
-		ctx.APIError(http.StatusBadRequest, err)
+		ctx.APIError(http.StatusBadRequest, err.Error())
 		return
 	}
 	form.ContentBase64 = string(content)
 
 	if err := wiki_service.AddWikiPage(ctx, ctx.Doer, ctx.Repo.Repository, wikiName, form.ContentBase64, form.Message); err != nil {
 		if repo_model.IsErrWikiReservedName(err) {
-			ctx.APIError(http.StatusBadRequest, err)
+			ctx.APIError(http.StatusBadRequest, err.Error())
 		} else if repo_model.IsErrWikiAlreadyExist(err) {
-			ctx.APIError(http.StatusBadRequest, err)
+			ctx.APIError(http.StatusBadRequest, err.Error())
 		} else {
 			ctx.APIErrorInternal(err)
 		}
@@ -149,7 +149,7 @@ func EditWikiPage(ctx *context.APIContext) {
 
 	content, err := base64.StdEncoding.DecodeString(form.ContentBase64)
 	if err != nil {
-		ctx.APIError(http.StatusBadRequest, err)
+		ctx.APIError(http.StatusBadRequest, err.Error())
 		return
 	}
 	form.ContentBase64 = string(content)
@@ -245,11 +245,7 @@ func DeleteWikiPage(ctx *context.APIContext) {
 	wikiName := wiki_service.WebPathFromRequest(ctx.PathParamRaw("pageName"))
 
 	if err := wiki_service.DeleteWikiPage(ctx, ctx.Doer, ctx.Repo.Repository, wikiName); err != nil {
-		if err.Error() == "file does not exist" {
-			ctx.APIErrorNotFound(err)
-			return
-		}
-		ctx.APIErrorInternal(err)
+		ctx.APIErrorAuto(err)
 		return
 	}
 
@@ -435,7 +431,7 @@ func ListPageRevisions(ctx *context.APIContext) {
 	page := max(ctx.FormInt("page"), 1)
 
 	// get Commit Count
-	commitsHistory, err := wikiRepo.CommitsByFileAndRange(
+	commitsHistory, _, err := wikiRepo.CommitsByFileAndRange(
 		git.CommitsByFileAndRangeOptions{
 			Revision: ctx.Repo.Repository.DefaultWikiBranch,
 			File:     pageFilename,
@@ -474,21 +470,13 @@ func findEntryForFile(commit *git.Commit, target string) (*git.TreeEntry, error)
 func findWikiRepoCommit(ctx *context.APIContext) (*git.Repository, *git.Commit) {
 	wikiRepo, err := gitrepo.OpenRepository(ctx, ctx.Repo.Repository.WikiStorageRepo())
 	if err != nil {
-		if git.IsErrNotExist(err) || err.Error() == "no such file or directory" {
-			ctx.APIErrorNotFound(err)
-		} else {
-			ctx.APIErrorInternal(err)
-		}
+		ctx.APIErrorAuto(err)
 		return nil, nil
 	}
 
 	commit, err := wikiRepo.GetBranchCommit(ctx.Repo.Repository.DefaultWikiBranch)
 	if err != nil {
-		if git.IsErrNotExist(err) {
-			ctx.APIErrorNotFound(err)
-		} else {
-			ctx.APIErrorInternal(err)
-		}
+		ctx.APIErrorAuto(err)
 		return wikiRepo, nil
 	}
 	return wikiRepo, commit

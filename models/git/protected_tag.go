@@ -9,10 +9,10 @@ import (
 	"slices"
 	"strings"
 
-	"code.gitea.io/gitea/models/db"
-	"code.gitea.io/gitea/models/organization"
-	"code.gitea.io/gitea/modules/glob"
-	"code.gitea.io/gitea/modules/timeutil"
+	"gitea.dev/models/db"
+	"gitea.dev/models/organization"
+	"gitea.dev/modules/glob"
+	"gitea.dev/modules/timeutil"
 )
 
 // ProtectedTag struct

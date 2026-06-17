@@ -12,25 +12,25 @@ import (
 	"strings"
 	"time"
 
-	"code.gitea.io/gitea/models/db"
-	issues_model "code.gitea.io/gitea/models/issues"
-	"code.gitea.io/gitea/models/organization"
-	access_model "code.gitea.io/gitea/models/perm/access"
-	repo_model "code.gitea.io/gitea/models/repo"
-	"code.gitea.io/gitea/models/unit"
-	user_model "code.gitea.io/gitea/models/user"
-	issue_indexer "code.gitea.io/gitea/modules/indexer/issues"
-	"code.gitea.io/gitea/modules/optional"
-	"code.gitea.io/gitea/modules/setting"
-	api "code.gitea.io/gitea/modules/structs"
-	"code.gitea.io/gitea/modules/timeutil"
-	"code.gitea.io/gitea/modules/util"
-	"code.gitea.io/gitea/modules/web"
-	"code.gitea.io/gitea/routers/api/v1/utils"
-	"code.gitea.io/gitea/routers/common"
-	"code.gitea.io/gitea/services/context"
-	"code.gitea.io/gitea/services/convert"
-	issue_service "code.gitea.io/gitea/services/issue"
+	"gitea.dev/models/db"
+	issues_model "gitea.dev/models/issues"
+	"gitea.dev/models/organization"
+	access_model "gitea.dev/models/perm/access"
+	repo_model "gitea.dev/models/repo"
+	"gitea.dev/models/unit"
+	user_model "gitea.dev/models/user"
+	issue_indexer "gitea.dev/modules/indexer/issues"
+	"gitea.dev/modules/optional"
+	"gitea.dev/modules/setting"
+	api "gitea.dev/modules/structs"
+	"gitea.dev/modules/timeutil"
+	"gitea.dev/modules/util"
+	"gitea.dev/modules/web"
+	"gitea.dev/routers/api/v1/utils"
+	"gitea.dev/routers/common"
+	"gitea.dev/services/context"
+	"gitea.dev/services/convert"
+	issue_service "gitea.dev/services/issue"
 )
 
 // buildSearchIssuesRepoIDs builds the list of repository IDs for issue search based on query parameters.
@@ -187,7 +187,7 @@ func SearchIssues(ctx *context.APIContext) {
 
 	before, since, err := context.GetQueryBeforeSince(ctx.Base)
 	if err != nil {
-		ctx.APIError(http.StatusUnprocessableEntity, err)
+		ctx.APIError(http.StatusUnprocessableEntity, err.Error())
 		return
 	}
 
@@ -196,7 +196,7 @@ func SearchIssues(ctx *context.APIContext) {
 	repoIDs, allPublic, err := buildSearchIssuesRepoIDs(ctx)
 	if err != nil {
 		if errors.Is(err, util.ErrNotExist) || errors.Is(err, util.ErrInvalidArgument) {
-			ctx.APIError(http.StatusBadRequest, err)
+			ctx.APIError(http.StatusBadRequest, err.Error())
 		} else {
 			ctx.APIErrorInternal(err)
 		}
@@ -384,7 +384,7 @@ func ListIssues(ctx *context.APIContext) {
 	//     "$ref": "#/responses/notFound"
 	before, since, err := context.GetQueryBeforeSince(ctx.Base)
 	if err != nil {
-		ctx.APIError(http.StatusUnprocessableEntity, err)
+		ctx.APIError(http.StatusUnprocessableEntity, err.Error())
 		return
 	}
 
@@ -540,16 +540,10 @@ func getUserIDForFilter(ctx *context.APIContext, queryName string) int64 {
 	}
 
 	user, err := user_model.GetUserByName(ctx, userName)
-	if user_model.IsErrUserNotExist(err) {
-		ctx.APIErrorNotFound(err)
-		return 0
-	}
-
 	if err != nil {
-		ctx.APIErrorInternal(err)
+		ctx.APIErrorAuto(err)
 		return 0
 	}
-
 	return user.ID
 }
 
@@ -676,13 +670,13 @@ func CreateIssue(ctx *context.APIContext) {
 				return
 			}
 
-			valid, err := access_model.CanBeAssigned(ctx, assignee, ctx.Repo.Repository, false)
+			valid, err := access_model.CanBeAssigned(ctx, assignee, ctx.Repo.Repository)
 			if err != nil {
 				ctx.APIErrorInternal(err)
 				return
 			}
 			if !valid {
-				ctx.APIError(http.StatusUnprocessableEntity, repo_model.ErrUserDoesNotHaveAccessToRepo{UserID: aID, RepoName: ctx.Repo.Repository.Name})
+				ctx.APIError(http.StatusUnprocessableEntity, repo_model.ErrUserDoesNotHaveAccessToRepo{UserID: aID, RepoName: ctx.Repo.Repository.Name}.Error())
 				return
 			}
 		}
@@ -693,9 +687,9 @@ func CreateIssue(ctx *context.APIContext) {
 
 	if err := issue_service.NewIssue(ctx, ctx.Repo.Repository, issue, form.Labels, nil, assigneeIDs, form.Projects); err != nil {
 		if errors.Is(err, user_model.ErrBlockedUser) {
-			ctx.APIError(http.StatusForbidden, err)
+			ctx.APIError(http.StatusForbidden, err.Error())
 		} else if errors.Is(err, util.ErrPermissionDenied) || errors.Is(err, util.ErrNotExist) {
-			ctx.APIError(http.StatusBadRequest, err)
+			ctx.APIError(http.StatusBadRequest, err.Error())
 		} else {
 			ctx.APIErrorInternal(err)
 		}
@@ -794,7 +788,7 @@ func EditIssue(ctx *context.APIContext) {
 	// handles concurrent requests.
 	// TODO: wrap all mutations in a transaction to fully prevent partial writes.
 	if form.ContentVersion != nil && *form.ContentVersion != issue.ContentVersion {
-		ctx.APIError(http.StatusConflict, issues_model.ErrIssueAlreadyChanged)
+		ctx.APIError(http.StatusConflict, issues_model.ErrIssueAlreadyChanged.Error())
 		return
 	}
 
@@ -813,7 +807,7 @@ func EditIssue(ctx *context.APIContext) {
 		err = issue_service.ChangeContent(ctx, issue, ctx.Doer, *form.Body, contentVersion)
 		if err != nil {
 			if errors.Is(err, issues_model.ErrIssueAlreadyChanged) {
-				ctx.APIError(http.StatusConflict, err)
+				ctx.APIError(http.StatusConflict, err.Error())
 				return
 			}
 
@@ -869,7 +863,7 @@ func EditIssue(ctx *context.APIContext) {
 		err = issue_service.UpdateAssignees(ctx, issue, oneAssignee, form.Assignees, ctx.Doer)
 		if err != nil {
 			if errors.Is(err, user_model.ErrBlockedUser) {
-				ctx.APIError(http.StatusForbidden, err)
+				ctx.APIError(http.StatusForbidden, err.Error())
 			} else {
 				ctx.APIErrorInternal(err)
 			}
@@ -918,7 +912,7 @@ func EditIssue(ctx *context.APIContext) {
 	if canWrite && form.Projects != nil {
 		if err := issues_model.IssueAssignOrRemoveProject(ctx, issue, ctx.Doer, *form.Projects); err != nil {
 			if errors.Is(err, util.ErrPermissionDenied) || errors.Is(err, util.ErrNotExist) {
-				ctx.APIError(http.StatusBadRequest, err)
+				ctx.APIError(http.StatusBadRequest, err.Error())
 			} else {
 				ctx.APIErrorInternal(err)
 			}
@@ -969,11 +963,7 @@ func DeleteIssue(ctx *context.APIContext) {
 	//     "$ref": "#/responses/notFound"
 	issue, err := issues_model.GetIssueByIndex(ctx, ctx.Repo.Repository.ID, ctx.PathParamInt64("index"))
 	if err != nil {
-		if issues_model.IsErrIssueNotExist(err) {
-			ctx.APIErrorNotFound(err)
-		} else {
-			ctx.APIErrorInternal(err)
-		}
+		ctx.APIErrorAuto(err)
 		return
 	}
 
