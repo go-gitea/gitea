@@ -686,11 +686,9 @@ func generateDefaultIndexerData() []*internal.IndexerData {
 			for i := range projectIDs {
 				projectIDs[i] = int64(i) + 1 // projectID should not be 0
 			}
-			assigneeID := issueIndex % 10
-
 			var assigneeIDs []int64
-			if assigneeID != 0 {
-				assigneeIDs = []int64{assigneeID}
+			if issueIndex%10 != 0 {
+				assigneeIDs = []int64{issueIndex % 10}
 			}
 
 			data = append(data, &internal.IndexerData{
@@ -708,9 +706,8 @@ func generateDefaultIndexerData() []*internal.IndexerData {
 				ProjectIDs:         projectIDs,
 				NoProject:          len(projectIDs) == 0,
 				PosterID:           id%10 + 1, // PosterID should not be 0
-				AssigneeID:         assigneeID,
 				AssigneeIDs:        assigneeIDs,
-				NoAssignee:         assigneeID == 0,
+				NoAssignee:         len(assigneeIDs) == 0,
 				MentionIDs:         mentionIDs,
 				ReviewedIDs:        reviewedIDs,
 				ReviewRequestedIDs: reviewRequestedIDs,

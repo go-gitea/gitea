@@ -117,7 +117,6 @@ func getIssueIndexerData(ctx context.Context, issueID int64) (*internal.IndexerD
 		ProjectIDs:         projectIDs,
 		NoProject:          len(projectIDs) == 0,
 		PosterID:           issue.PosterID,
-		AssigneeID:         issue.AssigneeID,
 		AssigneeIDs:        assigneeIDs,
 		NoAssignee:         len(assigneeIDs) == 0,
 		MentionIDs:         mentionIDs,

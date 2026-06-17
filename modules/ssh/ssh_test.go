@@ -18,6 +18,14 @@ import (
 	gossh "golang.org/x/crypto/ssh"
 )
 
+func assertSameFileMetadata(t *testing.T, expected, actual os.FileInfo) {
+	t.Helper()
+	assert.Equal(t, expected.Name(), actual.Name())
+	assert.Equal(t, expected.Size(), actual.Size())
+	assert.Equal(t, expected.Mode(), actual.Mode())
+	assert.Equal(t, expected.ModTime(), actual.ModTime())
+}
+
 func TestGenKeyPair(t *testing.T) {
 	testCases := []struct {
 		keyType      generate.SSHKeyType
@@ -106,11 +114,11 @@ func TestInitKeys(t *testing.T) {
 			// No modification to RSA key
 			infoPub, err := os.Stat(pubKeyPath)
 			require.NoError(t, err)
-			assert.Equal(t, metadata[privKeyPath], infoPriv)
-			assert.Equal(t, metadata[pubKeyPath], infoPub)
+			assertSameFileMetadata(t, metadata[privKeyPath], infoPriv)
+			assertSameFileMetadata(t, metadata[pubKeyPath], infoPub)
 		case "ecdsa":
 			// ECDSA public key should be missing, private unchanged
-			assert.Equal(t, metadata[privKeyPath], infoPriv)
+			assertSameFileMetadata(t, metadata[privKeyPath], infoPriv)
 			assert.NoFileExists(t, pubKeyPath)
 		case "ed25519":
 			// ed25519 private key was removed, so both keys regenerated
