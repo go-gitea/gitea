@@ -415,7 +415,8 @@ func prepareMigrationTasks() []*migration {
 		newMigration(335, "Add reusable workflow fields and action_run_attempt_job_id_index table for ActionRunJob", v1_27.AddReusableWorkflowFieldsToActionRunJob),
 		newMigration(336, "Add ActionRunJobSummary table", v1_27.AddActionRunJobSummaryTable),
 		newMigration(337, "Add visibility to team", v1_27.AddVisibilityToTeam),
-		newMigration(338, "Add ContinueOnError column to ActionRunJob", v1_27.AddContinueOnErrorToActionRunJob),
+		newMigration(338, "Expand legacy MSSQL issue/comment long-text columns", v1_27.ExpandIssueAndCommentLongTextFieldsForMSSQL),
+		newMigration(339, "Add ContinueOnError column to ActionRunJob", v1_27.AddContinueOnErrorToActionRunJob),
 	}
 	return preparedMigrations
 }
