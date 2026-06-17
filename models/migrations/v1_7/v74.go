@@ -3,7 +3,7 @@
 
 package v1_7
 
-import "code.gitea.io/gitea/models/db"
+import "gitea.dev/models/db"
 
 func AddApprovalWhitelistsToProtectedBranches(x db.EngineMigration) error {
 	type ProtectedBranch struct {

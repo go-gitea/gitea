@@ -4,6 +4,7 @@
 package ssh
 
 import (
+	"crypto/ecdsa"
 	"crypto/ed25519"
 	"crypto/rand"
 	"crypto/rsa"
@@ -13,6 +14,8 @@ import (
 	"path/filepath"
 	"testing"
 
+	"gitea.dev/modules/generate"
+
 	"github.com/gliderlabs/ssh"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -20,30 +23,42 @@ import (
 )
 
 func TestGenKeyPair(t *testing.T) {
-	dir := t.TempDir()
-	keyPath := filepath.Join(dir, "test_host_key")
+	testCases := []struct {
+		keyType      generate.SSHKeyType
+		expectedType any
+	}{
+		{
+			keyType:      generate.SSHKeyRSA,
+			expectedType: &rsa.PrivateKey{},
+		},
+		{
+			keyType:      generate.SSHKeyED25519,
+			expectedType: &ed25519.PrivateKey{},
+		},
+		{
+			keyType:      generate.SSHKeyECDSA,
+			expectedType: &ecdsa.PrivateKey{},
+		},
+	}
+	tmpDir := t.TempDir()
+	for _, tc := range testCases {
+		name := "gitea." + string(tc.keyType)
+		fn := filepath.Join(tmpDir, name)
+		t.Run("Generate "+name, func(t *testing.T) {
+			require.NoError(t, GenKeyPair(fn, tc.keyType, 0))
 
-	require.NoError(t, GenKeyPair(keyPath))
+			bytes, err := os.ReadFile(fn)
+			require.NoError(t, err)
 
-	info, err := os.Stat(keyPath)
-	require.NoError(t, err)
-	assert.Equal(t, os.FileMode(0o600), info.Mode().Perm())
-
-	_, err = os.Stat(keyPath + ".pub")
-	require.NoError(t, err)
-
-	privPEM, err := os.ReadFile(keyPath)
-	require.NoError(t, err)
-	block, rest := pem.Decode(privPEM)
-	require.NotNil(t, block, "expected PEM block in private key file")
-	assert.Empty(t, rest, "unexpected trailing data in private key file")
-	assert.Equal(t, "OPENSSH PRIVATE KEY", block.Type)
-
-	key, err := gossh.ParseRawPrivateKey(privPEM)
-	require.NoError(t, err)
-
-	_, ok := key.(*ed25519.PrivateKey)
-	assert.True(t, ok, "expected Ed25519 private key, got %T", key)
+			privateKey, err := gossh.ParseRawPrivateKey(bytes)
+			require.NoError(t, err)
+			assert.IsType(t, tc.expectedType, privateKey)
+		})
+	}
+	t.Run("Generate unknown key type", func(t *testing.T) {
+		err := GenKeyPair(t.TempDir()+"gitea.badkey", "badkey", 0)
+		require.Error(t, err)
+	})
 }
 
 func TestAddHostKey_RSARestrictedToSHA2(t *testing.T) {
@@ -75,11 +90,76 @@ func TestAddHostKey_RSARestrictedToSHA2(t *testing.T) {
 func TestAddHostKey_Ed25519NotRestricted(t *testing.T) {
 	dir := t.TempDir()
 	keyPath := filepath.Join(dir, "ed25519_host_key")
-	require.NoError(t, GenKeyPair(keyPath))
+	require.NoError(t, GenKeyPair(keyPath, generate.SSHKeyED25519, 0))
 
 	srv := &ssh.Server{}
 	require.NoError(t, addHostKey(srv, keyPath))
 	require.Len(t, srv.HostSigners, 1)
 
 	assert.Equal(t, gossh.KeyAlgoED25519, srv.HostSigners[0].PublicKey().Type())
+}
+
+func TestInitKeys(t *testing.T) {
+	tempDir := t.TempDir()
+
+	keyTypes := []string{"rsa", "ecdsa", "ed25519"}
+	for _, keyType := range keyTypes {
+		privKeyPath := filepath.Join(tempDir, "gitea."+keyType)
+		pubKeyPath := filepath.Join(tempDir, "gitea."+keyType+".pub")
+		assert.NoFileExists(t, privKeyPath)
+		assert.NoFileExists(t, pubKeyPath)
+	}
+
+	// Test basic creation
+	keyFiles, err := InitDefaultHostKeys(tempDir)
+	require.NoError(t, err)
+	assert.Len(t, keyFiles, len(keyTypes))
+
+	metadata := map[string]os.FileInfo{}
+	for _, keyType := range keyTypes {
+		privKeyPath := filepath.Join(tempDir, "gitea."+keyType)
+		pubKeyPath := filepath.Join(tempDir, "gitea."+keyType+".pub")
+		info, err := os.Stat(privKeyPath)
+		require.NoError(t, err)
+		metadata[privKeyPath] = info
+
+		info, err = os.Stat(pubKeyPath)
+		require.NoError(t, err)
+		metadata[pubKeyPath] = info
+	}
+
+	// Test recreation on missing private key and noop for missing pub key
+	require.NoError(t, os.Remove(filepath.Join(tempDir, "gitea.ecdsa.pub")))
+	require.NoError(t, os.Remove(filepath.Join(tempDir, "gitea.ed25519")))
+
+	keyFiles, err = InitDefaultHostKeys(tempDir)
+	require.NoError(t, err)
+	assert.Len(t, keyFiles, len(keyTypes))
+
+	for _, keyType := range keyTypes {
+		privKeyPath := filepath.Join(tempDir, "gitea."+keyType)
+		pubKeyPath := filepath.Join(tempDir, "gitea."+keyType+".pub")
+
+		infoPriv, err := os.Stat(privKeyPath)
+		require.NoError(t, err)
+
+		switch keyType {
+		case "rsa":
+			// No modification to RSA key
+			infoPub, err := os.Stat(pubKeyPath)
+			require.NoError(t, err)
+			assert.Equal(t, metadata[privKeyPath], infoPriv)
+			assert.Equal(t, metadata[pubKeyPath], infoPub)
+		case "ecdsa":
+			// ECDSA public key should be missing, private unchanged
+			assert.Equal(t, metadata[privKeyPath], infoPriv)
+			assert.NoFileExists(t, pubKeyPath)
+		case "ed25519":
+			// ed25519 private key was removed, so both keys regenerated
+			infoPub, err := os.Stat(pubKeyPath)
+			require.NoError(t, err)
+			assert.NotEqual(t, metadata[privKeyPath], infoPriv)
+			assert.NotEqual(t, metadata[pubKeyPath], infoPub)
+		}
+	}
 }

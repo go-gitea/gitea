@@ -9,32 +9,32 @@ import (
 	"errors"
 	"fmt"
 
-	"code.gitea.io/gitea/models/db"
-	"code.gitea.io/gitea/models/migrations/v1_10"
-	"code.gitea.io/gitea/models/migrations/v1_11"
-	"code.gitea.io/gitea/models/migrations/v1_12"
-	"code.gitea.io/gitea/models/migrations/v1_13"
-	"code.gitea.io/gitea/models/migrations/v1_14"
-	"code.gitea.io/gitea/models/migrations/v1_15"
-	"code.gitea.io/gitea/models/migrations/v1_16"
-	"code.gitea.io/gitea/models/migrations/v1_17"
-	"code.gitea.io/gitea/models/migrations/v1_18"
-	"code.gitea.io/gitea/models/migrations/v1_19"
-	"code.gitea.io/gitea/models/migrations/v1_20"
-	"code.gitea.io/gitea/models/migrations/v1_21"
-	"code.gitea.io/gitea/models/migrations/v1_22"
-	"code.gitea.io/gitea/models/migrations/v1_23"
-	"code.gitea.io/gitea/models/migrations/v1_24"
-	"code.gitea.io/gitea/models/migrations/v1_25"
-	"code.gitea.io/gitea/models/migrations/v1_26"
-	"code.gitea.io/gitea/models/migrations/v1_27"
-	"code.gitea.io/gitea/models/migrations/v1_6"
-	"code.gitea.io/gitea/models/migrations/v1_7"
-	"code.gitea.io/gitea/models/migrations/v1_8"
-	"code.gitea.io/gitea/models/migrations/v1_9"
-	"code.gitea.io/gitea/modules/git"
-	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/setting"
+	"gitea.dev/models/db"
+	"gitea.dev/models/migrations/v1_10"
+	"gitea.dev/models/migrations/v1_11"
+	"gitea.dev/models/migrations/v1_12"
+	"gitea.dev/models/migrations/v1_13"
+	"gitea.dev/models/migrations/v1_14"
+	"gitea.dev/models/migrations/v1_15"
+	"gitea.dev/models/migrations/v1_16"
+	"gitea.dev/models/migrations/v1_17"
+	"gitea.dev/models/migrations/v1_18"
+	"gitea.dev/models/migrations/v1_19"
+	"gitea.dev/models/migrations/v1_20"
+	"gitea.dev/models/migrations/v1_21"
+	"gitea.dev/models/migrations/v1_22"
+	"gitea.dev/models/migrations/v1_23"
+	"gitea.dev/models/migrations/v1_24"
+	"gitea.dev/models/migrations/v1_25"
+	"gitea.dev/models/migrations/v1_26"
+	"gitea.dev/models/migrations/v1_27"
+	"gitea.dev/models/migrations/v1_6"
+	"gitea.dev/models/migrations/v1_7"
+	"gitea.dev/models/migrations/v1_8"
+	"gitea.dev/models/migrations/v1_9"
+	"gitea.dev/modules/git"
+	"gitea.dev/modules/log"
+	"gitea.dev/modules/setting"
 
 	"xorm.io/xorm/names"
 )
@@ -412,6 +412,10 @@ func prepareMigrationTasks() []*migration {
 		newMigration(332, "Add last_sync_unix to mirror", v1_27.AddLastSyncUnixToMirror),
 		newMigration(333, "Add bypass allowlist to branch protection", v1_27.AddBranchProtectionBypassAllowlist),
 		newMigration(334, "Add cancelling support to action runners", v1_27.AddCancellingSupportToActionRunner),
+		newMigration(335, "Add reusable workflow fields and action_run_attempt_job_id_index table for ActionRunJob", v1_27.AddReusableWorkflowFieldsToActionRunJob),
+		newMigration(336, "Add ActionRunJobSummary table", v1_27.AddActionRunJobSummaryTable),
+		newMigration(337, "Add visibility to team", v1_27.AddVisibilityToTeam),
+		newMigration(338, "Expand legacy MSSQL issue/comment long-text columns", v1_27.ExpandIssueAndCommentLongTextFieldsForMSSQL),
 	}
 	return preparedMigrations
 }

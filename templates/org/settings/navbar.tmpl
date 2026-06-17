@@ -26,7 +26,7 @@
 		</a>
 		{{end}}
 		{{if .EnableActions}}
-		<details class="item toggleable-item" {{if or .PageIsOrgSettingsActionsGeneral .PageIsSharedSettingsRunners .PageIsSharedSettingsSecrets .PageIsSharedSettingsVariables}}open{{end}}>
+		<details class="item" {{if or .PageIsOrgSettingsActionsGeneral .PageIsSharedSettingsRunners .PageIsSharedSettingsSecrets .PageIsSharedSettingsVariables}}open{{end}}>
 			<summary>{{ctx.Locale.Tr "actions.actions"}}</summary>
 			<div class="menu">
 				<a class="{{if .PageIsOrgSettingsActionsGeneral}}active {{end}}item" href="{{.OrgLink}}/settings/actions">

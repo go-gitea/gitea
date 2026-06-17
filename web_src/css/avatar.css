@@ -1,0 +1,125 @@
+img.ui.avatar,
+.ui.avatar img,
+.ui.avatar svg {
+  border-radius: var(--border-radius);
+  object-fit: contain;
+  aspect-ratio: 1;
+}
+
+.avatar-stack-names {
+  display: inline-flex;
+  align-items: center;
+  align-self: center;
+  gap: 4px;
+  white-space: nowrap;
+  vertical-align: middle;
+}
+
+.avatar-stack-names > a.muted,
+.avatar-stack-names > .avatar-stack-popup-trigger {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 240px;
+}
+
+/* use semibold for latest commit author */
+.latest-commit .avatar-stack-names > a,
+.latest-commit .avatar-stack-names > .avatar-stack-popup-trigger {
+  font-weight: var(--font-weight-semibold);
+}
+
+/* template emits children reversed; row-reverse re-orders visually and keeps the author last-painted (on top) */
+.avatar-stack {
+  display: inline-flex;
+  align-items: center;
+  flex-direction: row-reverse;
+}
+
+.avatar-stack > * {
+  margin-left: -16px;
+  transition: transform 0.15s ease, opacity 0.15s ease;
+  position: relative;
+  display: inline-flex;
+}
+
+.avatar-stack > *:last-child { margin-left: 0; }
+.avatar-stack > *:nth-last-child(2) { margin-left: -14px; }
+
+/* hover spreads via transform (no layout shift); positions count from visual-left = last DOM child = :nth-last-child */
+.avatar-stack:hover > *:nth-last-child(2) { transform: translateX(14px); }
+.avatar-stack:hover > *:nth-last-child(3) { transform: translateX(30px); }
+.avatar-stack:hover > *:nth-last-child(4) { transform: translateX(46px); }
+.avatar-stack:hover > *:nth-last-child(5) { transform: translateX(62px); }
+.avatar-stack:hover > *:nth-last-child(6) { transform: translateX(78px); }
+.avatar-stack:hover > *:nth-last-child(7) { transform: translateX(94px); }
+.avatar-stack:hover > *:nth-last-child(8) { transform: translateX(110px); }
+.avatar-stack:hover > *:nth-last-child(9) { transform: translateX(126px); }
+.avatar-stack:hover > *:nth-last-child(10) { transform: translateX(142px); }
+.avatar-stack:hover > *:nth-last-child(11) { transform: translateX(158px); }
+
+.avatar-stack .avatar {
+  border: 1px solid var(--color-body);
+  background: var(--color-body);
+  transition: border-color 0.15s ease, background-color 0.15s ease;
+}
+
+.avatar-stack:hover .avatar {
+  background-color: var(--color-body);
+}
+
+.avatar-stack-overflow-chip {
+  align-items: center;
+  justify-content: center;
+  width: 0;
+  height: 20px;
+  margin-left: 0;
+  border: 0 solid var(--color-body);
+  border-radius: var(--border-radius);
+  color: var(--color-text);
+  font-weight: var(--font-weight-semibold);
+  overflow: hidden;
+  opacity: 0;
+  transition: all 0.15s ease;
+}
+
+.avatar-stack:hover .avatar-stack-overflow-chip {
+  width: 20px;
+  margin-left: -16px;
+  border-width: 1px;
+  opacity: 1;
+}
+
+.avatar-stack-popup-trigger {
+  cursor: pointer;
+  background: none;
+  border: none;
+  padding: 0;
+  font: inherit;
+  color: inherit;
+}
+
+.avatar-stack-popup-trigger:hover {
+  color: var(--color-primary);
+}
+
+.avatar-stack-popup {
+  min-width: 200px;
+  display: flex;
+  flex-direction: column;
+  padding: 4px 0;
+}
+
+.avatar-stack-popup > a {
+  padding: 6px 12px;
+  gap: 8px;
+}
+
+.avatar-stack-popup > a:hover {
+  background: var(--color-hover);
+}
+
+@media (max-width: 767.98px) {
+  .avatar-stack-names {
+    max-width: 80px;
+  }
+}

@@ -6,8 +6,8 @@ package web
 import (
 	"net/http"
 
-	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/services/context"
+	"gitea.dev/modules/setting"
+	"gitea.dev/services/context"
 )
 
 type nodeInfoLinks struct {

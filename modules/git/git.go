@@ -13,16 +13,16 @@ import (
 	"runtime"
 	"strings"
 
-	"code.gitea.io/gitea/modules/git/gitcmd"
-	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/modules/tempdir"
-	"code.gitea.io/gitea/modules/testlogger"
+	"gitea.dev/modules/git/gitcmd"
+	"gitea.dev/modules/log"
+	"gitea.dev/modules/setting"
+	"gitea.dev/modules/tempdir"
+	"gitea.dev/modules/testlogger"
 
 	"github.com/hashicorp/go-version"
 )
 
-const RequiredVersion = "2.6.0" // the minimum Git version required
+const RequiredVersion = "2.13.0" // the minimum Git version required
 
 type Features struct {
 	gitVersion *version.Version
@@ -173,13 +173,6 @@ func InitFull() (err error) {
 	if err = InitSimple(); err != nil {
 		return err
 	}
-
-	if setting.LFS.StartServer {
-		if !DefaultFeatures().CheckVersionAtLeast("2.1.2") {
-			return errors.New("LFS server support requires Git >= 2.1.2")
-		}
-	}
-
 	return syncGitConfig(context.Background())
 }
 

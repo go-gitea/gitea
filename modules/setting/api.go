@@ -7,7 +7,7 @@ import (
 	"net/url"
 	"path"
 
-	"code.gitea.io/gitea/modules/log"
+	"gitea.dev/modules/log"
 )
 
 // API settings

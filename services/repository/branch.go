@@ -9,30 +9,30 @@ import (
 	"fmt"
 	"strings"
 
-	actions_model "code.gitea.io/gitea/models/actions"
-	"code.gitea.io/gitea/models/db"
-	git_model "code.gitea.io/gitea/models/git"
-	issues_model "code.gitea.io/gitea/models/issues"
-	access_model "code.gitea.io/gitea/models/perm/access"
-	repo_model "code.gitea.io/gitea/models/repo"
-	"code.gitea.io/gitea/models/unit"
-	user_model "code.gitea.io/gitea/models/user"
-	"code.gitea.io/gitea/modules/cache"
-	"code.gitea.io/gitea/modules/git"
-	"code.gitea.io/gitea/modules/gitrepo"
-	"code.gitea.io/gitea/modules/graceful"
-	"code.gitea.io/gitea/modules/json"
-	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/optional"
-	"code.gitea.io/gitea/modules/queue"
-	repo_module "code.gitea.io/gitea/modules/repository"
-	"code.gitea.io/gitea/modules/reqctx"
-	"code.gitea.io/gitea/modules/timeutil"
-	"code.gitea.io/gitea/modules/util"
-	webhook_module "code.gitea.io/gitea/modules/webhook"
-	actions_service "code.gitea.io/gitea/services/actions"
-	notify_service "code.gitea.io/gitea/services/notify"
-	release_service "code.gitea.io/gitea/services/release"
+	actions_model "gitea.dev/models/actions"
+	"gitea.dev/models/db"
+	git_model "gitea.dev/models/git"
+	issues_model "gitea.dev/models/issues"
+	access_model "gitea.dev/models/perm/access"
+	repo_model "gitea.dev/models/repo"
+	"gitea.dev/models/unit"
+	user_model "gitea.dev/models/user"
+	"gitea.dev/modules/cache"
+	"gitea.dev/modules/git"
+	"gitea.dev/modules/gitrepo"
+	"gitea.dev/modules/graceful"
+	"gitea.dev/modules/json"
+	"gitea.dev/modules/log"
+	"gitea.dev/modules/optional"
+	"gitea.dev/modules/queue"
+	repo_module "gitea.dev/modules/repository"
+	"gitea.dev/modules/reqctx"
+	"gitea.dev/modules/timeutil"
+	"gitea.dev/modules/util"
+	webhook_module "gitea.dev/modules/webhook"
+	actions_service "gitea.dev/services/actions"
+	notify_service "gitea.dev/services/notify"
+	release_service "gitea.dev/services/release"
 
 	"xorm.io/builder"
 )
@@ -59,9 +59,9 @@ type Branch struct {
 }
 
 // LoadBranches loads branches from the repository limited by page & pageSize.
-func LoadBranches(ctx context.Context, repo *repo_model.Repository, gitRepo *git.Repository, isDeletedBranch optional.Option[bool], keyword string, page, pageSize int) (*Branch, []*Branch, int64, error) {
-	defaultDBBranch, err := git_model.GetBranch(ctx, repo.ID, repo.DefaultBranch)
-	if err != nil {
+func LoadBranches(ctx context.Context, repo *repo_model.Repository, gitRepo *git.Repository, isDeletedBranch optional.Option[bool], keyword string, page, pageSize int) (defaultBranchOptional *Branch, _ []*Branch, _ int64, _ error) {
+	defaultDBBranchOptional, err := git_model.GetBranch(ctx, repo.ID, repo.DefaultBranch)
+	if err != nil && !errors.Is(err, util.ErrNotExist) {
 		return nil, nil, 0, err
 	}
 
@@ -108,13 +108,14 @@ func LoadBranches(ctx context.Context, repo *repo_model.Repository, gitRepo *git
 		branches = append(branches, branch)
 	}
 
-	// Always add the default branch
-	log.Debug("loadOneBranch: load default: '%s'", defaultDBBranch.Name)
-	defaultBranch, err := loadOneBranch(ctx, repo, defaultDBBranch, &rules, repoIDToRepo, repoIDToGitRepo)
-	if err != nil {
-		return nil, nil, 0, fmt.Errorf("loadOneBranch: %v", err)
+	if defaultDBBranchOptional != nil {
+		// Always add the default branch
+		defaultBranchOptional, err = loadOneBranch(ctx, repo, defaultDBBranchOptional, &rules, repoIDToRepo, repoIDToGitRepo)
+		if err != nil {
+			return nil, nil, 0, fmt.Errorf("loadOneBranch: %v", err)
+		}
 	}
-	return defaultBranch, branches, totalNumOfBranches, nil
+	return defaultBranchOptional, branches, totalNumOfBranches, nil
 }
 
 func getDivergenceCacheKey(repoID int64, branchName string) string {
@@ -640,7 +641,7 @@ func DeleteBranch(ctx context.Context, doer *user_model.User, repo *repo_model.R
 
 func deleteBranchSuccessPostProcess(doer *user_model.User, repo *repo_model.Repository, branchName string, branchCommit *git.Commit) {
 	objectFormat := git.ObjectFormatFromName(repo.ObjectFormatName)
-	if err := PushUpdate(
+	if err := PushUpdates(
 		&repo_module.PushUpdateOptions{
 			RefFullName:  git.RefNameFromBranch(branchName),
 			OldCommitID:  branchCommit.ID.String(),

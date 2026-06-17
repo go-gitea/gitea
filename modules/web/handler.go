@@ -11,9 +11,9 @@ import (
 	"reflect"
 	"slices"
 
-	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/web/routing"
-	"code.gitea.io/gitea/modules/web/types"
+	"gitea.dev/modules/log"
+	"gitea.dev/modules/web/routing"
+	"gitea.dev/modules/web/types"
 )
 
 var responseStatusProviders = map[reflect.Type]func(req *http.Request) types.ResponseStatusProvider{}

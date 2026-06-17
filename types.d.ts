@@ -50,7 +50,7 @@ declare module 'swagger-ui-dist/swagger-ui-es-bundle.js' {
 
 declare module 'asciinema-player' {
   interface AsciinemaPlayer {
-    create(src: string, element: HTMLElement, options?: Record<string, unknown>): void;
+    create(src: string | {data: string}, element: HTMLElement, options?: Record<string, unknown>): void;
   }
   const exports: AsciinemaPlayer;
   export = exports;

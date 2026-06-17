@@ -12,12 +12,12 @@ import (
 	"strings"
 	"time"
 
-	"code.gitea.io/gitea/modules/httplib"
-	"code.gitea.io/gitea/modules/public"
-	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/modules/util"
-	"code.gitea.io/gitea/modules/web/middleware"
-	"code.gitea.io/gitea/services/webtheme"
+	"gitea.dev/modules/httplib"
+	"gitea.dev/modules/public"
+	"gitea.dev/modules/setting"
+	"gitea.dev/modules/util"
+	"gitea.dev/modules/web/middleware"
+	"gitea.dev/services/webtheme"
 )
 
 type TemplateContext map[string]any
@@ -115,6 +115,9 @@ func (c TemplateContext) CspScriptNonce() (ret string) {
 }
 
 func (c TemplateContext) HeadMetaContentSecurityPolicy() template.HTML {
+	if setting.Security.ContentSecurityPolicyGeneral == "unset" {
+		return "" // if site admin disables the general CSP, then we don't use it
+	}
 	// The CSP problem is more complicated than it looks.
 	// Gitea was designed to support various "customizations", including:
 	// * custom themes (custom CSS and JS)

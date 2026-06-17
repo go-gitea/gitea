@@ -9,7 +9,7 @@
 	</div>
 	{{template "custom/body_outer_post" .}}
 	{{template "base/footer_content" .}}
-	{{ctx.ScriptImport "js/index.js" "module"}}
+	{{ctx.ScriptImport "web_src/js/index.ts" "module"}}
 	{{template "custom/footer" .}}
 	<script nonce="{{ctx.CspScriptNonce}}" type="module">
 	if (!window.config?.frontendInited && window.config?.runModeIsProd) alert("Frontend is not initialized, check console errors or asset files.");

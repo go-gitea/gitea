@@ -4,11 +4,14 @@
 package actions
 
 import (
+	"fmt"
 	"testing"
 
-	actions_model "code.gitea.io/gitea/models/actions"
-	"code.gitea.io/gitea/models/db"
-	"code.gitea.io/gitea/models/unittest"
+	actions_model "gitea.dev/models/actions"
+	"gitea.dev/models/db"
+	repo_model "gitea.dev/models/repo"
+	"gitea.dev/models/unittest"
+	user_model "gitea.dev/models/user"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -129,10 +132,48 @@ jobs:
 			want: map[int64]actions_model.Status{2: actions_model.StatusSkipped},
 		},
 	}
-	for _, tt := range tests {
+	assert.NoError(t, unittest.PrepareTestDatabase())
+	ctx := t.Context()
+	stubRun := &actions_model.ActionRun{TriggerUser: &user_model.User{}, Repo: &repo_model.Repository{}}
+	for i, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			// Each subtest gets a unique RunID / RunAttemptID so jobs from different subtests don't bleed into each other's FindTaskNeeds queries
+			runID := int64(9001 + i)
+			attemptID := int64(9001 + i)
+
+			// Insert each test job (letting the DB assign IDs) and remember the testID -> dbID mapping so we can translate the expected map.
+			idMap := make(map[int64]int64, len(tt.jobs))
+			for _, j := range tt.jobs {
+				origID := j.ID
+				j.ID = 0
+				j.RunID = runID
+				j.RunAttemptID = attemptID
+				j.Run = stubRun
+
+				// The resolver evaluates Blocked jobs via evaluateJobIf, which needs a valid YAML payload;
+				// supply a minimal one when the case didn't.
+				if j.Status == actions_model.StatusBlocked && len(j.WorkflowPayload) == 0 {
+					j.WorkflowPayload = fmt.Appendf(nil, `name: test
+on: push
+jobs:
+  %s:
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo
+`, j.JobID)
+				}
+
+				assert.NoError(t, db.Insert(ctx, j))
+				idMap[origID] = j.ID
+			}
+
+			want := make(map[int64]actions_model.Status, len(tt.want))
+			for k, v := range tt.want {
+				want[idMap[k]] = v
+			}
+
 			r := newJobStatusResolver(tt.jobs, nil)
-			assert.Equal(t, tt.want, r.Resolve(t.Context()))
+			assert.Equal(t, want, r.Resolve(ctx))
 		})
 	}
 }
@@ -221,11 +262,11 @@ func Test_checkRunConcurrency_NoDuplicateConcurrencyGroupCheck(t *testing.T) {
 	assert.NoError(t, db.Insert(ctx, jobBBlocked))
 
 	runA, _, _ = db.GetByID[actions_model.ActionRun](t.Context(), runA.ID)
-	jobs, _, _, err := checkRunConcurrency(ctx, runA)
+	result, err := checkRunConcurrency(ctx, runA)
 	assert.NoError(t, err)
 
-	if assert.Len(t, jobs, 1) {
-		assert.Equal(t, jobBBlocked.ID, jobs[0].ID)
+	if assert.Len(t, result.Jobs, 1) {
+		assert.Equal(t, jobBBlocked.ID, result.Jobs[0].ID)
 	}
 }
 
@@ -286,9 +327,9 @@ jobs:
 	}
 	assert.NoError(t, db.Insert(ctx, blockedJob))
 
-	_, updated, _, err := checkJobsOfCurrentRunAttempt(ctx, blockedRun)
+	result, err := checkJobsOfCurrentRunAttempt(ctx, blockedRun)
 	assert.NoError(t, err)
-	assert.Empty(t, updated)
+	assert.Empty(t, result.UpdatedJobs)
 
 	refreshed := unittest.AssertExistsAndLoadBean(t, &actions_model.ActionRunJob{ID: blockedJob.ID})
 	assert.Equal(t, actions_model.StatusBlocked, refreshed.Status)
