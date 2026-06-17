@@ -78,7 +78,7 @@
   "devDependencies": {
     "@eslint-community/eslint-plugin-eslint-comments": "4.7.1",
     "@eslint/json": "1.2.0",
-    "@playwright/test": "1.59.0",
+    "@playwright/test": "1.60.0",
     "@stylistic/eslint-plugin": "5.10.0",
     "@stylistic/stylelint-plugin": "5.1.0",
     "@types/codemirror": "5.60.17",
