@@ -109,7 +109,7 @@ func Parse(content []byte, options ...ParseOption) ([]*SingleWorkflow, error) {
 					if placeholder.Name == "" {
 						placeholder.Name = id
 					}
-					swf := newSingleWorkflow(workflow)
+					swf := workflow.Clone()
 					if err := swf.SetJob(id, placeholder); err != nil {
 						return nil, fmt.Errorf("SetJob: %w", err)
 					}
@@ -125,7 +125,7 @@ func Parse(content []byte, options ...ParseOption) ([]*SingleWorkflow, error) {
 			return nil, fmt.Errorf("getMatrixes: %w", err)
 		}
 		for _, matrix := range matricxes {
-			swf := newSingleWorkflow(workflow)
+			swf := workflow.Clone()
 			if err := swf.SetJob(id, expandJobCombo(id, job, matrix, evaluatedJob, pc.gitContext, results, pc.vars, pc.inputs)); err != nil {
 				return nil, fmt.Errorf("SetJob: %w", err)
 			}
@@ -135,8 +135,8 @@ func Parse(content []byte, options ...ParseOption) ([]*SingleWorkflow, error) {
 	return ret, nil
 }
 
-// newSingleWorkflow returns a SingleWorkflow carrying w's global fields and no job.
-func newSingleWorkflow(w *SingleWorkflow) *SingleWorkflow {
+// Clone returns a copy of w with its global fields but no jobs.
+func (w *SingleWorkflow) Clone() *SingleWorkflow {
 	return &SingleWorkflow{
 		Name:           w.Name,
 		RawOn:          w.RawOn,
