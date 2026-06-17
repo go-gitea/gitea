@@ -87,9 +87,9 @@ func getIssueIndexerData(ctx context.Context, issueID int64) (*internal.IndexerD
 		return nil, false, err
 	}
 
-	assigneeIDs, err := issue_model.GetAssigneeIDsByIssue(ctx, issue.ID)
-	if err != nil {
-		return nil, false, err
+	assigneeIDs := make([]int64, 0, len(issue.Assignees))
+	for _, a := range issue.Assignees {
+		assigneeIDs = append(assigneeIDs, a.ID)
 	}
 
 	projectIDs := make([]int64, 0, len(issue.Projects))
