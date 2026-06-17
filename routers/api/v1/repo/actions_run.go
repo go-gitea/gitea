@@ -4,14 +4,10 @@
 package repo
 
 import (
-	"net/http"
-
 	actions_model "gitea.dev/models/actions"
-	"gitea.dev/models/db"
 	"gitea.dev/routers/common"
 	actions_service "gitea.dev/services/actions"
 	"gitea.dev/services/context"
-	"gitea.dev/services/convert"
 )
 
 func DownloadActionsRunJobLogs(ctx *context.APIContext) {
@@ -50,11 +46,6 @@ func DownloadActionsRunJobLogs(ctx *context.APIContext) {
 		ctx.APIErrorAuto(err)
 		return
 	}
-	if err = curJob.LoadRepo(ctx); err != nil {
-		ctx.APIErrorInternal(err)
-		return
-	}
-
 	err = common.DownloadActionsRunJobLogs(ctx.Base, ctx.Repo.Repository, curJob)
 	if err != nil {
 		ctx.APIErrorAuto(err)
@@ -99,18 +90,15 @@ func CancelWorkflowRun(ctx *context.APIContext) {
 	}
 
 	if err := actions_service.CancelRun(ctx, run, jobs); err != nil {
-		ctx.APIErrorInternal(err)
+		ctx.APIErrorAuto(err)
 		return
 	}
 
-	updatedRun, has, err := db.GetByID[actions_model.ActionRun](ctx, run.ID)
-	if err != nil || !has {
-		ctx.APIErrorInternal(err)
+	run = getCurrentRepoActionRunByID(ctx)
+	if ctx.Written() {
 		return
 	}
-
-	updatedRun.Repo = ctx.Repo.Repository
-	respondActionWorkflowRun(ctx, updatedRun)
+	respondRepoActionWorkflowRun(ctx, run)
 }
 
 func ApproveWorkflowRun(ctx *context.APIContext) {
@@ -152,7 +140,7 @@ func ApproveWorkflowRun(ctx *context.APIContext) {
 
 	// GitHub-compatible: return 200 if already approved (idempotent)
 	if !run.NeedApproval {
-		respondActionWorkflowRun(ctx, run)
+		respondRepoActionWorkflowRun(ctx, run)
 		return
 	}
 
@@ -161,21 +149,11 @@ func ApproveWorkflowRun(ctx *context.APIContext) {
 		return
 	}
 
-	// Note: the overall run status is updated asynchronously by the notifier,
-	// so the status field may still reflect the pre-approval state.
-	run.NeedApproval = false
-	run.ApprovedBy = ctx.Doer.ID
-	respondActionWorkflowRun(ctx, run)
-}
-
-func respondActionWorkflowRun(ctx *context.APIContext, run *actions_model.ActionRun) {
-	run.Repo = ctx.Repo.Repository
-	convertedRun, err := convert.ToActionWorkflowRun(ctx, run, nil, false)
-	if err != nil {
-		ctx.APIErrorInternal(err)
+	run = getCurrentRepoActionRunByID(ctx)
+	if ctx.Written() {
 		return
 	}
-	ctx.JSON(http.StatusOK, convertedRun)
+	respondRepoActionWorkflowRun(ctx, run)
 }
 
 func GetWorkflowRunLogs(ctx *context.APIContext) {
