@@ -118,7 +118,7 @@ func UpdateGeneralSettings(ctx *context.Context) {
 	if ctx.FormBool("cross_repo_add_target") {
 		targetRepoName := ctx.FormString("cross_repo_add_target_name")
 		if targetRepoName != "" {
-			targetRepo, err := repo_model.GetRepositoryByName(ctx, rCtx.OwnerID, targetRepoName)
+			targetRepo, err := repo_model.GetRepositoryByName(ctx, rCtx.OwnerID, rCtx.GroupID, targetRepoName)
 			if err != nil {
 				if repo_model.IsErrRepoNotExist(err) {
 					ctx.JSONError("Repository doesn't exist")

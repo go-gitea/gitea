@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"net"
 	stdurl "net/url"
+	"strconv"
 	"strings"
 
 	"gitea.dev/modules/httplib"
@@ -102,6 +103,7 @@ type RepositoryURL struct {
 
 	// if the URL belongs to current Gitea instance, then the below fields have values
 	OwnerName     string
+	GroupID       int64
 	RepoName      string
 	RemainingPath string
 }
@@ -128,7 +130,20 @@ func ParseRepositoryURL(ctx context.Context, repoURL string) (*RepositoryURL, er
 			ret.OwnerName = fields[0]
 			ret.RepoName = strings.TrimSuffix(fields[1], ".git")
 			if len(fields) == 3 {
-				ret.RemainingPath = "/" + fields[2]
+				rest := strings.SplitN(fields[2], "/", 3)
+				if len(rest) >= 2 {
+					ret.GroupID, err = strconv.ParseInt(rest[0], 10, 64)
+					if err != nil {
+						ret.RemainingPath = "/" + fields[2]
+						return
+					}
+					ret.RepoName = strings.TrimSuffix(rest[1], ".git")
+					if len(rest) >= 3 {
+						ret.RemainingPath = "/" + strings.Join(rest[2:], "/")
+					}
+				} else {
+					ret.RemainingPath = "/" + rest[0]
+				}
 			}
 		}
 	}
@@ -161,7 +176,8 @@ func ParseRepositoryURL(ctx context.Context, repoURL string) (*RepositoryURL, er
 // MakeRepositoryWebLink generates a web link (http/https) for a git repository (by guessing sometimes)
 func MakeRepositoryWebLink(repoURL *RepositoryURL) string {
 	if repoURL.OwnerName != "" {
-		return setting.AppSubURL + "/" + repoURL.OwnerName + "/" + repoURL.RepoName
+		locator := NewLocator(repoURL.OwnerName, repoURL.RepoName, repoURL.GroupID)
+		return setting.AppSubURL + "/" + locator.WebPath()
 	}
 
 	// now, let's guess, for example:

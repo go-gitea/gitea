@@ -37,6 +37,7 @@ const (
 type runnersCtx struct {
 	OwnerID            int64
 	RepoID             int64
+	GroupID            int64
 	IsRepo             bool
 	IsOrg              bool
 	IsAdmin            bool
@@ -50,6 +51,7 @@ func getRunnersCtx(ctx *context.Context) (*runnersCtx, error) {
 	if ctx.Data["PageIsRepoSettings"] == true {
 		return &runnersCtx{
 			RepoID:             ctx.Repo.Repository.ID,
+			GroupID:            ctx.Repo.Repository.GroupID,
 			OwnerID:            0,
 			IsRepo:             true,
 			RunnersTemplate:    tplRepoRunners,

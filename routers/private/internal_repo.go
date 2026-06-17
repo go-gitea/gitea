@@ -20,8 +20,9 @@ import (
 func RepoAssignment(ctx *gitea_context.PrivateContext) {
 	ownerName := ctx.PathParam("owner")
 	repoName := ctx.PathParam("repo")
+	gid := ctx.PathParamInt64("group_id")
 
-	repo := loadRepository(ctx, ownerName, repoName)
+	repo := loadRepository(ctx, ownerName, repoName, gid)
 	if ctx.Written() {
 		// Error handled in loadRepository
 		return
@@ -41,8 +42,8 @@ func RepoAssignment(ctx *gitea_context.PrivateContext) {
 	}
 }
 
-func loadRepository(ctx *gitea_context.PrivateContext, ownerName, repoName string) *repo_model.Repository {
-	repo, err := repo_model.GetRepositoryByOwnerAndName(ctx, ownerName, repoName)
+func loadRepository(ctx *gitea_context.PrivateContext, ownerName, repoName string, groupID int64) *repo_model.Repository {
+	repo, err := repo_model.GetRepositoryByOwnerAndName(ctx, ownerName, repoName, groupID)
 	if err != nil {
 		log.Error("Failed to get repository: %s/%s Error: %v", ownerName, repoName, err)
 		ctx.JSON(http.StatusInternalServerError, private.Response{
