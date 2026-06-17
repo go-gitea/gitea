@@ -26,8 +26,10 @@ func TestCommitMessageTrailer(t *testing.T) {
 		{"a", "a", "", ""},
 		{"a\n\nk", "a\n\nk", "", ""},
 		{"a\n\nk:v", "a", "\n\n", "k:v"},
+		{"a\n\nk:v\n\n", "a", "\n\n", "k:v\n\n"},
 		{"a\n--\nk:v", "a\n--\nk:v", "", ""},
 		{"a\n---\nk:v", "a", "\n---\n", "k:v"},
+		{"a\n\n---\n\nk:v", "a\n", "\n---\n\n", "k:v"},
 
 		{"k: v", "", "", "k: v"},
 		{"\nk:v", "", "\n", "k:v"},

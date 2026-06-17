@@ -18,7 +18,6 @@ import (
 	repo_model "gitea.dev/models/repo"
 	"gitea.dev/models/unit"
 	user_model "gitea.dev/models/user"
-	"gitea.dev/modules/cache"
 	"gitea.dev/modules/git"
 	"gitea.dev/modules/log"
 	"gitea.dev/modules/optional"
@@ -61,22 +60,6 @@ func MustBeAbleToUpload(ctx *context.Context) {
 	if !setting.Repository.Upload.Enabled {
 		ctx.NotFound(nil)
 	}
-}
-
-func CommitInfoCache(ctx *context.Context) {
-	var err error
-	ctx.Repo.Commit, err = ctx.Repo.GitRepo.GetBranchCommit(ctx.Repo.Repository.DefaultBranch)
-	if err != nil {
-		ctx.ServerError("GetBranchCommit", err)
-		return
-	}
-	ctx.Repo.CommitsCount, err = ctx.Repo.GetCommitsCount(ctx)
-	if err != nil {
-		ctx.ServerError("GetCommitsCount", err)
-		return
-	}
-	ctx.Data["CommitsCount"] = ctx.Repo.CommitsCount
-	ctx.Repo.GitRepo.LastCommitCache = git.NewLastCommitCache(ctx.Repo.CommitsCount, ctx.Repo.Repository.FullName(), ctx.Repo.GitRepo, cache.GetCache())
 }
 
 func checkContextUser(ctx *context.Context, uid int64) *user_model.User {

@@ -10,6 +10,8 @@ import (
 	"gitea.dev/models/db"
 	"gitea.dev/models/perm"
 	"gitea.dev/models/unit"
+	user_model "gitea.dev/models/user"
+	"gitea.dev/modules/structs"
 
 	"xorm.io/builder"
 )
@@ -50,9 +52,15 @@ type SearchTeamOptions struct {
 	Keyword     string
 	OrgID       int64
 	IncludeDesc bool
+	// IncludeVisibilities, when combined with UserID, also returns teams whose
+	// visibility is in this list, even if UserID is not a member. Typical values:
+	//   - {limited,public} for org members
+	//   - {public} for signed-in users who are not org members
+	// Leave empty to return only teams the user is a member of.
+	IncludeVisibilities []structs.VisibleType
 }
 
-func (opts *SearchTeamOptions) toCond() builder.Cond {
+func (opts *SearchTeamOptions) applyToSession(sess db.SQLSession) {
 	cond := builder.NewCond()
 
 	if len(opts.Keyword) > 0 {
@@ -68,11 +76,51 @@ func (opts *SearchTeamOptions) toCond() builder.Cond {
 		cond = cond.And(builder.Eq{"`team`.org_id": opts.OrgID})
 	}
 
-	if opts.UserID > 0 {
+	switch {
+	case opts.UserID > 0 && len(opts.IncludeVisibilities) > 0:
+		sess = sess.Join("LEFT", "team_user", "team_user.team_id = team.id AND team_user.uid = ?", opts.UserID)
+		cond = cond.And(builder.Or(
+			builder.Eq{"team_user.uid": opts.UserID},
+			builder.In("`team`.visibility", opts.IncludeVisibilities),
+		))
+	case opts.UserID > 0:
+		sess = sess.Join("INNER", "team_user", "team_user.team_id = team.id")
 		cond = cond.And(builder.Eq{"team_user.uid": opts.UserID})
+	case len(opts.IncludeVisibilities) > 0:
+		cond = cond.And(builder.In("`team`.visibility", opts.IncludeVisibilities))
 	}
+	sess.Where(cond)
+}
 
-	return cond
+func VisibleTeamVisibilitiesFor(isOrgMember, isSignedIn bool) []structs.VisibleType {
+	switch {
+	case isOrgMember:
+		return []structs.VisibleType{structs.VisibleTypeLimited, structs.VisibleTypePublic}
+	case isSignedIn:
+		return []structs.VisibleType{structs.VisibleTypePublic}
+	default:
+		return nil
+	}
+}
+
+func ApplyTeamListFilter(ctx context.Context, orgID int64, viewer *user_model.User, isSignedIn bool, opts *SearchTeamOptions) error {
+	if viewer.IsAdmin {
+		return nil
+	}
+	isOwner, err := IsOrganizationOwner(ctx, orgID, viewer.ID)
+	if err != nil {
+		return err
+	}
+	if isOwner {
+		return nil
+	}
+	isOrgMember, err := IsOrganizationMember(ctx, orgID, viewer.ID)
+	if err != nil {
+		return err
+	}
+	opts.UserID = viewer.ID
+	opts.IncludeVisibilities = VisibleTeamVisibilitiesFor(isOrgMember, isSignedIn)
+	return nil
 }
 
 // SearchTeam search for teams. Caller is responsible to check permissions.
@@ -80,15 +128,12 @@ func SearchTeam(ctx context.Context, opts *SearchTeamOptions) (TeamList, int64, 
 	sess := db.GetEngine(ctx)
 
 	opts.SetDefaultValues()
-	cond := opts.toCond()
+	opts.applyToSession(sess)
 
-	if opts.UserID > 0 {
-		sess = sess.Join("INNER", "team_user", "team_user.team_id = team.id")
-	}
 	db.SetSessionPagination(sess, opts)
 
 	teams := make([]*Team, 0, opts.PageSize)
-	count, err := sess.Where(cond).OrderBy("CASE WHEN name=? THEN '' ELSE lower_name END", OwnerTeamName).FindAndCount(&teams)
+	count, err := sess.OrderBy("CASE WHEN name=? THEN '' ELSE lower_name END", OwnerTeamName).FindAndCount(&teams)
 	if err != nil {
 		return nil, 0, err
 	}

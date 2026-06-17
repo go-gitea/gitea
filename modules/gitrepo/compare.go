@@ -56,11 +56,10 @@ func GetCommitIDsBetweenReverse(ctx context.Context, repo Repository, startRef, 
 		return cmd
 	}
 	stdout, _, err := RunCmdString(ctx, repo, genCmd(startRef+".."+endRef))
-	// example git error message: fatal: origin/main..HEAD: no merge base
-	if err != nil && strings.Contains(err.Stderr(), "no merge base") {
-		// future versions of git >= 2.28 are likely to return an error if before and last have become unrelated.
+	if gitcmd.IsStderr(err, gitcmd.StderrNoMergeBase) {
+		// if the start and end are not related (no merge base), just get all commits pushed by "end ref"
 		// previously it would return the results of git rev-list before last so let's try that...
-		stdout, _, err = RunCmdString(ctx, repo, genCmd(startRef, endRef))
+		stdout, _, err = RunCmdString(ctx, repo, genCmd(endRef))
 	}
 	if err != nil {
 		return nil, err
