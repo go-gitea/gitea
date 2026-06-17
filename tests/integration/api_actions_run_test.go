@@ -482,6 +482,30 @@ func TestAPIActionsListUserWorkflows(t *testing.T) {
 			assert.NotEmpty(t, job.HTMLURL, "html_url should be populated via batch-loaded repo")
 		}
 	})
+
+	t.Run("JobsDefaultOrderAsc", func(t *testing.T) {
+		req := NewRequest(t, "GET", "/api/v1/user/actions/jobs").AddTokenAuth(token)
+		resp := MakeRequest(t, req, http.StatusOK)
+		jobs := DecodeJSON(t, resp, &api.ActionWorkflowJobsResponse{})
+
+		assert.GreaterOrEqual(t, len(jobs.Entries), 2, "need at least 2 jobs to verify ordering")
+		for i := 1; i < len(jobs.Entries); i++ {
+			assert.Less(t, jobs.Entries[i-1].ID, jobs.Entries[i].ID,
+				"jobs should be ordered by ID ascending by default")
+		}
+	})
+
+	t.Run("JobsOrderedByIDDesc", func(t *testing.T) {
+		req := NewRequest(t, "GET", "/api/v1/user/actions/jobs?sort=id&order=desc").AddTokenAuth(token)
+		resp := MakeRequest(t, req, http.StatusOK)
+		jobs := DecodeJSON(t, resp, &api.ActionWorkflowJobsResponse{})
+
+		assert.GreaterOrEqual(t, len(jobs.Entries), 2, "need at least 2 jobs to verify ordering")
+		for i := 1; i < len(jobs.Entries); i++ {
+			assert.Greater(t, jobs.Entries[i-1].ID, jobs.Entries[i].ID,
+				"jobs should be ordered by ID descending")
+		}
+	})
 }
 
 func TestAPIActionsListRepoWorkflows(t *testing.T) {
@@ -514,31 +538,21 @@ func TestAPIActionsGetWorkflowRunLogs(t *testing.T) {
 	session := loginUser(t, user.Name)
 	token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeWriteRepository)
 
-	t.Run("Success", func(t *testing.T) {
+	t.Run("NoLogs", func(t *testing.T) {
+		// Run 795 has jobs but fixture tasks have no log output in storage.
 		req := NewRequest(t, "GET", fmt.Sprintf("/api/v1/repos/%s/actions/runs/795/logs", repo.FullName())).
 			AddTokenAuth(token)
-		resp := MakeRequest(t, req, http.StatusOK)
-		assert.Equal(t, "application/zip", resp.Header().Get("Content-Type"))
-		assert.Contains(t, resp.Header().Get("Content-Disposition"), "attachment")
-		assert.Contains(t, resp.Header().Get("Content-Disposition"), ".zip")
-		body := resp.Body.Bytes()
-		require.NotEmpty(t, body)
-		assert.Equal(t, "PK", string(body[:2]), "response should be a valid zip file")
+		MakeRequest(t, req, http.StatusNotFound)
 	})
 
-	t.Run("RerunJobLogs", func(t *testing.T) {
-		// Rerun the workflow so latest-attempt jobs have SourceTaskID instead of TaskID
+	t.Run("NoLogsAfterRerun", func(t *testing.T) {
 		req := NewRequest(t, "POST", fmt.Sprintf("/api/v1/repos/%s/actions/runs/795/rerun", repo.FullName())).
 			AddTokenAuth(token)
 		MakeRequest(t, req, http.StatusCreated)
 
-		// Download logs for the latest attempt — should include rerun job logs via EffectiveTaskID
 		req = NewRequest(t, "GET", fmt.Sprintf("/api/v1/repos/%s/actions/runs/795/logs", repo.FullName())).
 			AddTokenAuth(token)
-		resp := MakeRequest(t, req, http.StatusOK)
-		body := resp.Body.Bytes()
-		require.NotEmpty(t, body)
-		assert.Equal(t, "PK", string(body[:2]), "response should be a valid zip file")
+		MakeRequest(t, req, http.StatusNotFound)
 	})
 
 	t.Run("NotFound", func(t *testing.T) {

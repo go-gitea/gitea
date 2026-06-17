@@ -1298,6 +1298,16 @@ func getCurrentRepoActionRunAttemptByNumber(ctx *context.APIContext) (*actions_m
 	return run, attempt
 }
 
+func respondRepoActionWorkflowRun(ctx *context.APIContext, run *actions_model.ActionRun) {
+	run.Repo = ctx.Repo.Repository
+	convertedRun, err := convert.ToActionWorkflowRun(ctx, run, nil, false)
+	if err != nil {
+		ctx.APIErrorInternal(err)
+		return
+	}
+	ctx.JSON(http.StatusOK, convertedRun)
+}
+
 // GetWorkflowRun Gets a specific workflow run.
 func GetWorkflowRun(ctx *context.APIContext) {
 	// swagger:operation GET /repos/{owner}/{repo}/actions/runs/{run} repository GetWorkflowRun
@@ -1334,12 +1344,7 @@ func GetWorkflowRun(ctx *context.APIContext) {
 		return
 	}
 
-	convertedRun, err := convert.ToActionWorkflowRun(ctx, run, nil, false)
-	if err != nil {
-		ctx.APIErrorInternal(err)
-		return
-	}
-	ctx.JSON(http.StatusOK, convertedRun)
+	respondRepoActionWorkflowRun(ctx, run)
 }
 
 // GetWorkflowRunAttempt Gets a specific workflow run attempt.

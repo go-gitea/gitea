@@ -98,7 +98,14 @@ func (opts FindRunOptions) ToConds() builder.Cond {
 func (opts FindRunOptions) ToJoins() []db.JoinFunc {
 	if opts.OwnerID > 0 {
 		return []db.JoinFunc{func(sess db.Engine) error {
-			sess.Join("INNER", "repository", "repository.id = repo_id AND repository.owner_id = ?", opts.OwnerID)
+			sess.Join("INNER", "repository", "repository.id = action_run.repo_id AND repository.owner_id = ?", opts.OwnerID)
+			return nil
+		}}
+	}
+	if opts.RepoID == 0 {
+		// Exclude runs whose repository has been deleted.
+		return []db.JoinFunc{func(sess db.Engine) error {
+			sess.Join("INNER", "repository", "repository.id = action_run.repo_id")
 			return nil
 		}}
 	}
