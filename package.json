@@ -69,7 +69,7 @@
     "vanilla-colorful": "0.7.2",
     "vite": "8.0.16",
     "vite-string-plugin": "2.0.4",
-    "vue": "3.5.35",
+    "vue": "3.5.37",
     "vue-bar-graph": "2.2.0",
     "vue-chartjs": "5.3.3"
   },
@@ -83,7 +83,7 @@
     "@types/jquery": "4.0.1",
     "@types/js-yaml": "4.0.9",
     "@types/katex": "0.16.8",
-    "@types/node": "25.9.2",
+    "@types/node": "25.9.3",
     "@types/pdfobject": "2.2.5",
     "@types/sortablejs": "1.15.9",
     "@types/swagger-ui-dist": "3.30.6",
