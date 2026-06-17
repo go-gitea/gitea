@@ -16,6 +16,9 @@ import (
 
 // ShowFileFeed shows tags and/or releases on the repo as RSS / Atom feed
 func ShowFileFeed(ctx *context.Context, repo *repo.Repository, formatType string) {
+	if !checkRepoFeedTokenScope(ctx) {
+		return
+	}
 	fileName := ctx.Repo.TreePath
 	if len(fileName) == 0 {
 		return
