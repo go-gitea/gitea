@@ -176,7 +176,7 @@
 							{{else}}
 								<button class="ui primary button">{{ctx.Locale.Tr "org.teams.update_settings"}}</button>
 								{{if not .Team.IsOwnerTeam}}
-									<button class="ui red button delete-button" data-url="{{.OrgLink}}/teams/{{.Team.Name | PathEscape}}/delete">{{ctx.Locale.Tr "org.teams.delete_team"}}</button>
+									<button class="ui red button link-action" data-modal-confirm="#delete-team" data-url="{{.OrgLink}}/teams/{{.Team.Name | PathEscape}}/delete">{{ctx.Locale.Tr "org.teams.delete_team"}}</button>
 								{{end}}
 							{{end}}
 						</div>
@@ -187,7 +187,7 @@
 	</div>
 </div>
 
-<div class="ui g-modal-confirm delete modal">
+<div class="ui small modal" id="delete-team">
 	<div class="header">
 		{{svg "octicon-trash"}}
 		{{ctx.Locale.Tr "org.teams.delete_team_title"}}

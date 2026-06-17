@@ -249,21 +249,13 @@ func DeleteAccount(ctx *context.Context) {
 	if _, _, err := auth.UserSignIn(ctx, ctx.Doer.Name, ctx.FormString("password")); err != nil {
 		switch {
 		case user_model.IsErrUserNotExist(err):
-			loadAccountData(ctx)
-
-			ctx.RenderWithErrDeprecated(ctx.Tr("form.user_not_exist"), tplSettingsAccount, nil)
+			ctx.JSONError(ctx.Tr("form.user_not_exist"))
 		case errors.Is(err, smtp.ErrUnsupportedLoginType):
-			loadAccountData(ctx)
-
-			ctx.RenderWithErrDeprecated(ctx.Tr("form.unsupported_login_type"), tplSettingsAccount, nil)
+			ctx.JSONError(ctx.Tr("form.unsupported_login_type"))
 		case errors.As(err, &db.ErrUserPasswordNotSet{}):
-			loadAccountData(ctx)
-
-			ctx.RenderWithErrDeprecated(ctx.Tr("form.unset_password"), tplSettingsAccount, nil)
+			ctx.JSONError(ctx.Tr("form.unset_password"))
 		case errors.As(err, &db.ErrUserPasswordInvalid{}):
-			loadAccountData(ctx)
-
-			ctx.RenderWithErrDeprecated(ctx.Tr("form.enterred_invalid_password"), tplSettingsAccount, nil)
+			ctx.JSONError(ctx.Tr("form.enterred_invalid_password"))
 		default:
 			ctx.ServerError("UserSignIn", err)
 		}
