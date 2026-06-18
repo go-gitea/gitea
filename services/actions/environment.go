@@ -9,6 +9,7 @@ import (
 
 	actions_model "gitea.dev/models/actions"
 	"gitea.dev/models/db"
+	secret_model "gitea.dev/models/secret"
 	secret_module "gitea.dev/modules/secret"
 	"gitea.dev/modules/setting"
 	"gitea.dev/modules/util"
@@ -55,7 +56,7 @@ func CreateOrUpdateEnvSecret(ctx context.Context, repoID, envID int64, name, dat
 	if err := secret_service.ValidateName(name); err != nil {
 		return nil, false, err
 	}
-	if len(data) > 65536 {
+	if len(data) > secret_model.SecretDataMaxLength {
 		return nil, false, util.NewInvalidArgumentErrorf("secret data too long")
 	}
 
@@ -110,17 +111,24 @@ func DeleteEnvSecret(ctx context.Context, repoID, envID int64, name string) erro
 
 // CreateEnvVariable creates a variable scoped to an environment.
 func CreateEnvVariable(ctx context.Context, repoID, envID int64, name, data, description string) (*actions_model.ActionEnvironmentVariable, error) {
+	name = strings.ToUpper(name)
 	if err := secret_service.ValidateName(name); err != nil {
 		return nil, err
 	}
 	v := &actions_model.ActionEnvironmentVariable{
 		RepoID:        repoID,
 		EnvironmentID: envID,
-		Name:          strings.ToUpper(name),
+		Name:          name,
 		Data:          util.NormalizeStringEOL(data),
 		Description:   description,
 	}
-	return v, db.Insert(ctx, v)
+	if err := db.Insert(ctx, v); err != nil {
+		if isUniqueViolation(err) {
+			return nil, actions_model.ErrEnvVariableAlreadyExists{Name: name}
+		}
+		return nil, err
+	}
+	return v, nil
 }
 
 // UpdateEnvVariable updates a variable scoped to an environment.
@@ -143,9 +151,7 @@ func UpdateEnvVariable(ctx context.Context, repoID, envID, varID int64, name, da
 		}
 		v.Name = strings.ToUpper(name)
 	}
-	if data != "" {
-		v.Data = util.NormalizeStringEOL(data)
-	}
+	v.Data = util.NormalizeStringEOL(data)
 	v.Description = description
 	_, err = db.GetEngine(ctx).ID(v.ID).Cols("name", "data", "description").Update(v)
 	return v, err
@@ -166,4 +172,12 @@ func DeleteEnvVariable(ctx context.Context, repoID, envID, varID int64) error {
 	}
 	_, err = db.DeleteByID[actions_model.ActionEnvironmentVariable](ctx, vars[0].ID)
 	return err
+}
+
+// isUniqueViolation reports whether err is a database unique-constraint violation.
+func isUniqueViolation(err error) bool {
+	msg := err.Error()
+	return strings.Contains(msg, "Duplicate entry") || // MySQL
+		strings.Contains(msg, "duplicate key") || // PostgreSQL
+		strings.Contains(msg, "UNIQUE constraint") // SQLite
 }

@@ -63,6 +63,19 @@ func (err ErrEnvironmentAlreadyExists) Unwrap() error {
 	return util.ErrAlreadyExist
 }
 
+// ErrEnvVariableAlreadyExists is returned when creating a duplicate environment variable.
+type ErrEnvVariableAlreadyExists struct {
+	Name string
+}
+
+func (err ErrEnvVariableAlreadyExists) Error() string {
+	return fmt.Sprintf("environment variable already exists [name: %s]", err.Name)
+}
+
+func (err ErrEnvVariableAlreadyExists) Unwrap() error {
+	return util.ErrAlreadyExist
+}
+
 // FindEnvironmentsOptions holds filter parameters for listing environments.
 type FindEnvironmentsOptions struct {
 	db.ListOptions
@@ -140,14 +153,17 @@ func DeleteEnvironment(ctx context.Context, repoID, envID int64) error {
 	})
 }
 
-// MatchesBranch reports whether ref (e.g. "refs/heads/main") is permitted by the environment's branch policy.
-// An empty policy allows everything.
+// MatchesBranch reports whether ref (e.g. "refs/heads/main" or "refs/tags/v1.0") is permitted
+// by the environment's branch/tag protection policy. An empty policy allows everything.
 func (env *ActionEnvironment) MatchesBranch(ref string) bool {
 	if env.ProtectedBranches == "" {
 		return true
 	}
-	// Strip refs/heads/ prefix for comparison
-	branch := strings.TrimPrefix(ref, "refs/heads/")
+	// Strip refs/heads/ or refs/tags/ prefix for comparison
+	shortRef := strings.TrimPrefix(ref, "refs/heads/")
+	if shortRef == ref {
+		shortRef = strings.TrimPrefix(ref, "refs/tags/")
+	}
 	for pattern := range strings.SplitSeq(env.ProtectedBranches, ",") {
 		pattern = strings.TrimSpace(pattern)
 		if pattern == "" {
@@ -157,7 +173,7 @@ func (env *ActionEnvironment) MatchesBranch(ref string) bool {
 		if err != nil {
 			return false
 		}
-		ok := g.Match(branch)
+		ok := g.Match(shortRef)
 		if ok {
 			return true
 		}

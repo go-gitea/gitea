@@ -1256,10 +1256,10 @@ func Routes() *web.Router {
 				addActionsRoutes(m, reqRepoReader(unit.TypeActions), reqOwner(), repo.NewAction())
 
 				m.Group("/environments", func() {
-					m.Get("", reqToken(), reqAnyRepoReader(), repo.ListEnvironments)
+					m.Get("", reqToken(), reqOwner(), repo.ListEnvironments)
 					m.Post("", reqToken(), reqAdmin(), bind(api.CreateEnvironmentOption{}), repo.CreateEnvironment)
 					m.Group("/{environment_name}", func() {
-						m.Get("", reqToken(), reqAnyRepoReader(), repo.GetEnvironment)
+						m.Get("", reqToken(), reqOwner(), repo.GetEnvironment)
 						m.Patch("", reqToken(), reqAdmin(), bind(api.UpdateEnvironmentOption{}), repo.UpdateEnvironment)
 						m.Delete("", reqToken(), reqAdmin(), repo.DeleteEnvironment)
 						m.Group("/secrets", func() {

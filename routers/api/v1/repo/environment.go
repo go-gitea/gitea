@@ -6,6 +6,7 @@ package repo
 import (
 	"errors"
 	"net/http"
+	"strings"
 
 	actions_model "gitea.dev/models/actions"
 	"gitea.dev/models/db"
@@ -494,25 +495,12 @@ func CreateEnvVariable(ctx *context.APIContext) {
 		return
 	}
 	opt := web.GetForm(ctx).(*api.CreateEnvironmentVariableOption)
-	variableName := ctx.PathParam("variablename")
-
-	// check for duplicate
-	existing, err := db.Find[actions_model.ActionEnvironmentVariable](ctx, actions_model.FindEnvVariablesOptions{
-		RepoID:        ctx.Repo.Repository.ID,
-		EnvironmentID: env.ID,
-		Name:          variableName,
-	})
-	if err != nil {
-		ctx.APIErrorInternal(err)
-		return
-	}
-	if len(existing) > 0 {
-		ctx.APIError(http.StatusConflict, "variable name already exists")
-		return
-	}
+	variableName := strings.ToUpper(ctx.PathParam("variablename"))
 
 	if _, err := actions_service.CreateEnvVariable(ctx, ctx.Repo.Repository.ID, env.ID, variableName, opt.Value, opt.Description); err != nil {
-		if errors.Is(err, util.ErrInvalidArgument) {
+		if errors.Is(err, util.ErrAlreadyExist) {
+			ctx.APIError(http.StatusConflict, err.Error())
+		} else if errors.Is(err, util.ErrInvalidArgument) {
 			ctx.APIError(http.StatusBadRequest, err.Error())
 		} else {
 			ctx.APIErrorInternal(err)
