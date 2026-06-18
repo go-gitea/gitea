@@ -48,7 +48,11 @@ var withRunner = connect.WithInterceptors(connect.UnaryInterceptorFunc(func(unar
 
 		now := time.Now()
 		cols := make([]string, 0, 2)
-		if methodName == "UpdateTask" || methodName == "UpdateLog" {
+		// Debounce last_active too: while a runner streams logs, UpdateLog fires
+		// many times per second and writing on each is a major source of DB load.
+		// Persist only when stale enough to affect the active/idle status.
+		if (methodName == "UpdateTask" || methodName == "UpdateLog") &&
+			actions_model.ShouldPersistLastActive(runner.LastActive, now) {
 			runner.LastActive = timeutil.TimeStamp(now.Unix())
 			cols = append(cols, "last_active")
 		}
