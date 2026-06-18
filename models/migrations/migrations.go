@@ -416,6 +416,7 @@ func prepareMigrationTasks() []*migration {
 		newMigration(336, "Add ActionRunJobSummary table", v1_27.AddActionRunJobSummaryTable),
 		newMigration(337, "Add visibility to team", v1_27.AddVisibilityToTeam),
 		newMigration(338, "Add job max-parallel support", v1_27.AddJobMaxParallel),
+		newMigration(339, "Add composite index on action_run_job(run_id, job_id)", v1_27.AddRunJobRunIDJobIDIndex),
 	}
 	return preparedMigrations
 }
