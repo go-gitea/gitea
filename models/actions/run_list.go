@@ -106,7 +106,13 @@ func (opts FindRunOptions) ToJoins() []db.JoinFunc {
 }
 
 func (opts FindRunOptions) ToOrders() string {
-	return "`action_run`.`index` DESC"
+	// Sort by a column with an index (`index`) when possible.
+	if opts.RepoID > 0 {
+		return "`action_run`.`index` DESC"
+	}
+	// The `index` column is scoped by repo, so when no RepoID is specified,
+	// sort by the `id` to return a predictable order.
+	return "`action_run`.`id` DESC"
 }
 
 type StatusInfo struct {
