@@ -65,12 +65,9 @@ var reservedIPNets = sync.OnceValue(func() []*net.IPNet {
 	return nets
 })
 
-// isPrivateIP reports whether ip falls in a private (net.IP.IsPrivate) or reserved special-purpose
+// isReservedIP reports whether ip falls in reserved special-purpose
 // range (see reservedIPNets) that must not be considered a public/external destination.
-func isPrivateIP(ip net.IP) bool {
-	if ip.IsPrivate() {
-		return true
-	}
+func isReservedIP(ip net.IP) bool {
 	for _, ipNet := range reservedIPNets() {
 		if ipNet.Contains(ip) {
 			return true
@@ -155,11 +152,11 @@ func (hl *HostMatchList) checkIP(ip net.IP) bool {
 	for _, builtin := range hl.builtins {
 		switch builtin {
 		case MatchBuiltinExternal:
-			if ip.IsGlobalUnicast() && !isPrivateIP(ip) {
+			if ip.IsGlobalUnicast() && !isReservedIP(ip) && !ip.IsPrivate() {
 				return true
 			}
 		case MatchBuiltinPrivate:
-			if isPrivateIP(ip) {
+			if ip.IsGlobalUnicast() && !isReservedIP(ip) && ip.IsPrivate() {
 				return true
 			}
 		case MatchBuiltinLoopback:
