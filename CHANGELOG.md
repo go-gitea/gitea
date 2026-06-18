@@ -38,6 +38,7 @@ been added to each release, please refer to the [blog](https://blog.gitea.com).
   * fix(actions): ack re-sent `UpdateLog` finalize idempotently (#37885) (#37892)
   * fix: http content file render (#37850) (#37856)
   * fix(issues): clear stale ReviewTypeRequest when submitting pending review (#37809) (#37815)
+  * fix: Fix issue target branch selection for non-collaborators (#36916) (#38164)
 
 * BUILD
   * fix(deps): update `@playwright/test` to 1.60.0 (#38144)
