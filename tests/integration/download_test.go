@@ -194,6 +194,20 @@ func TestDownloadRepoContentTokenScopes(t *testing.T) {
 			withScope:    http.StatusOK,
 			publicOnlyOK: false,
 		},
+		{
+			name:         "PublicPullDiff",
+			method:       http.MethodGet,
+			url:          "/user2/repo1/pulls/2.diff",
+			withScope:    http.StatusOK,
+			publicOnlyOK: true,
+		},
+		{
+			name:         "PublicPullPatch",
+			method:       http.MethodGet,
+			url:          "/user2/repo1/pulls/2.patch",
+			withScope:    http.StatusOK,
+			publicOnlyOK: true,
+		},
 	}
 
 	for _, tc := range cases {

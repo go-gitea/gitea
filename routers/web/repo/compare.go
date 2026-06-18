@@ -616,6 +616,10 @@ func DownloadComparePatch(ctx *context.Context) {
 }
 
 func downloadCompareDiffOrPatch(ctx *context.Context, patch bool) {
+	if !checkDownloadTokenScope(ctx) {
+		return
+	}
+
 	// The route captures `basehead` separately so the `.diff`/`.patch` suffix is
 	// stripped from the catch-all `*` param parseCompareInfo would otherwise read.
 	cpi := newComparePageInfo()
