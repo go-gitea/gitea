@@ -15,10 +15,14 @@ var Migrations = struct {
 	// "accept-new" (default, trust on first use, reject changed keys), "yes" (strict,
 	// host must already be known) or "no" (disable verification).
 	SSHHostKeyChecking string
+	// SSHCommand is the ssh executable used for SSH migrations/mirrors. Defaults to
+	// "ssh"; set an absolute path when ssh is not on PATH (e.g. on Windows).
+	SSHCommand string
 }{
 	MaxAttempts:        3,
 	RetryBackoff:       3,
 	SSHHostKeyChecking: "accept-new",
+	SSHCommand:         "ssh",
 }
 
 func loadMigrationsFrom(rootCfg ConfigProvider) {
@@ -31,4 +35,5 @@ func loadMigrationsFrom(rootCfg ConfigProvider) {
 	Migrations.AllowLocalNetworks = sec.Key("ALLOW_LOCALNETWORKS").MustBool(false)
 	Migrations.SkipTLSVerify = sec.Key("SKIP_TLS_VERIFY").MustBool(false)
 	Migrations.SSHHostKeyChecking = sec.Key("SSH_HOST_KEY_CHECKING").In("accept-new", []string{"accept-new", "yes", "no"})
+	Migrations.SSHCommand = sec.Key("SSH_COMMAND").MustString("ssh")
 }

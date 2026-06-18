@@ -6,6 +6,7 @@ package gitcmd
 import (
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 
 	"gitea.dev/modules/setting"
@@ -18,9 +19,12 @@ import (
 func TestManagedSSHCommand(t *testing.T) {
 	origMode := setting.Migrations.SSHHostKeyChecking
 	origData := setting.AppDataPath
+	origCmd := setting.Migrations.SSHCommand
+	setting.Migrations.SSHCommand = "ssh"
 	t.Cleanup(func() {
 		setting.Migrations.SSHHostKeyChecking = origMode
 		setting.AppDataPath = origData
+		setting.Migrations.SSHCommand = origCmd
 	})
 
 	t.Run("accept-new persists to managed known_hosts", func(t *testing.T) {
@@ -76,5 +80,12 @@ func TestManagedSSHCommand(t *testing.T) {
 		setting.Migrations.SSHHostKeyChecking = "no"
 		keyFile := filepath.Join(t.TempDir(), "id.pub")
 		assert.Contains(t, managedSSHCommand(keyFile), "-o IdentitiesOnly=yes -i "+util.ShellEscape(keyFile))
+	})
+
+	t.Run("ssh command is configurable", func(t *testing.T) {
+		setting.AppDataPath = ""
+		setting.Migrations.SSHHostKeyChecking = "accept-new"
+		setting.Migrations.SSHCommand = `C:\Program Files\ssh.exe`
+		assert.True(t, strings.HasPrefix(managedSSHCommand(""), util.ShellEscape(`C:\Program Files\ssh.exe`)+" -o BatchMode=yes "))
 	})
 }
