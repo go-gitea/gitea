@@ -643,7 +643,7 @@ func registerWebRoutes(m *web.Router, webAuth *AuthMiddleware) {
 			m.Group("/webauthn", func() {
 				m.Post("/request_register", web.Bind(forms.WebauthnRegistrationForm{}), security.WebAuthnRegister)
 				m.Post("/register", security.WebauthnRegisterPost)
-				m.Post("/delete", web.Bind(forms.WebauthnDeleteForm{}), security.WebauthnDelete)
+				m.Post("/delete", security.WebauthnDelete)
 			})
 			m.Group("/openid", func() {
 				m.Post("", web.Bind(forms.AddOpenIDForm{}), security.OpenIDPost)
