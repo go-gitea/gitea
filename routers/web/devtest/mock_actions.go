@@ -85,6 +85,7 @@ func MockActionsRunsJobs(ctx *context.Context) {
 	}
 	resp := &actions.ViewResponse{}
 	resp.State.Run.RepoID = 12345
+	resp.State.Run.Index = runID
 	resp.State.Run.TitleHTML = `mock run title <a href="/">link</a>`
 	resp.State.Run.Link = setting.AppSubURL + "/devtest/repo-action-view/runs/" + strconv.FormatInt(runID, 10)
 	resp.State.Run.CanDeleteArtifact = true
@@ -199,17 +200,20 @@ func MockActionsRunsJobs(ctx *context.Context) {
 	resp.State.Run.CanRerunFailed = runID == 30 && isLatestAttempt
 
 	// Mock job summaries so the devtest page can preview the Summary panel rendering.
-	resp.State.Run.JobSummaries = []*actions.ViewJobSummary{
-		{
-			JobID:       runID * 10,
-			JobName:     "job 100 (testsubname)",
-			SummaryHTML: renderUtils.MarkdownToHtml("### Devtest job summary\n\n- Markdown rendering\n- Links: [example](https://example.com)\n\n```sh\necho hello\n```\n"),
-		},
-		{
-			JobID:       runID*10 + 2,
-			JobName:     "ULTRA LOOOOOOOOOOOONG job name 102 that exceeds the limit",
-			SummaryHTML: renderUtils.MarkdownToHtml("### Another summary\n\nThis demonstrates multiple job summaries in one run.\n\n- Item A\n- Item B\n"),
-		},
+	// Only some runs have summaries, so the page also exercises the "no summary" state.
+	if runID == 10 || runID == 20 {
+		resp.State.Run.JobSummaries = []*actions.ViewJobSummary{
+			{
+				JobID:       runID * 10,
+				JobName:     "job 100 (testsubname)",
+				SummaryHTML: renderUtils.MarkdownToHtml("### Devtest job summary\n\n- Markdown rendering\n- Links: [example](https://example.com)\n\n```sh\necho hello\n```\n"),
+			},
+			{
+				JobID:       runID*10 + 2,
+				JobName:     "ULTRA LOOOOOOOOOOOONG job name 102 that exceeds the limit",
+				SummaryHTML: renderUtils.MarkdownToHtml("### Another summary\n\nThis demonstrates multiple job summaries in one run.\n\n- Item A\n- Item B\n"),
+			},
+		}
 	}
 
 	resp.Artifacts = append(resp.Artifacts, &actions.ArtifactsViewItem{
