@@ -326,11 +326,6 @@
   margin: 0 0.25em 0 0;
 }
 
-.delete-button,
-.delete-button:hover {
-  color: var(--color-red);
-}
-
 /* btn is a plain button without any opinionated styling, it only uses flex for vertical alignment like ".ui.button" in base.css */
 
 .btn {
