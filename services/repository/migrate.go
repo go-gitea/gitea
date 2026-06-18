@@ -159,8 +159,10 @@ func MigrateRepositoryGitData(ctx context.Context, u *user_model.User,
 		}
 
 		if opts.LFS {
-			endpoint := lfs.DetermineEndpoint(opts.CloneAddr, opts.LFSEndpoint)
-			lfsClient := lfs.NewClient(endpoint, httpTransport)
+			lfsClient, err := lfs.NewClientFromEndpoint(opts.CloneAddr, opts.LFSEndpoint, httpTransport)
+			if err != nil {
+				return repo, fmt.Errorf("NewClientFromEndpoint: %w", err)
+			}
 			if err = repo_module.StoreMissingLfsObjectsInRepository(ctx, repo, gitRepo, lfsClient); err != nil {
 				log.Error("Failed to store missing LFS objects for repository: %v", err)
 				return repo, fmt.Errorf("StoreMissingLfsObjectsInRepository: %w", err)
