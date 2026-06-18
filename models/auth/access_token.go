@@ -20,42 +20,6 @@ import (
 	"xorm.io/builder"
 )
 
-// ErrAccessTokenNotExist represents a "AccessTokenNotExist" kind of error.
-type ErrAccessTokenNotExist struct {
-	Token string
-}
-
-// IsErrAccessTokenNotExist checks if an error is a ErrAccessTokenNotExist.
-func IsErrAccessTokenNotExist(err error) bool {
-	_, ok := err.(ErrAccessTokenNotExist)
-	return ok
-}
-
-func (err ErrAccessTokenNotExist) Error() string {
-	return fmt.Sprintf("access token does not exist [sha: %s]", err.Token)
-}
-
-func (err ErrAccessTokenNotExist) Unwrap() error {
-	return util.ErrNotExist
-}
-
-// ErrAccessTokenEmpty represents a "AccessTokenEmpty" kind of error.
-type ErrAccessTokenEmpty struct{}
-
-// IsErrAccessTokenEmpty checks if an error is a ErrAccessTokenEmpty.
-func IsErrAccessTokenEmpty(err error) bool {
-	_, ok := err.(ErrAccessTokenEmpty)
-	return ok
-}
-
-func (err ErrAccessTokenEmpty) Error() string {
-	return "access token is empty"
-}
-
-func (err ErrAccessTokenEmpty) Unwrap() error {
-	return util.ErrInvalidArgument
-}
-
 var successfulAccessTokenCache *lru.Cache[string, any]
 
 // AccessToken represents a personal access token.
@@ -134,21 +98,11 @@ func getAccessTokenIDFromCache(token string) int64 {
 
 // GetAccessTokenBySHA returns access token by given token value
 func GetAccessTokenBySHA(ctx context.Context, token string) (*AccessToken, error) {
-	if token == "" {
-		return nil, ErrAccessTokenEmpty{}
-	}
-	// A token is defined as being SHA1 sum these are 40 hexadecimal bytes long
-	if len(token) != 40 {
-		return nil, ErrAccessTokenNotExist{token}
-	}
-	for _, x := range []byte(token) {
-		if x < '0' || (x > '9' && x < 'a') || x > 'f' {
-			return nil, ErrAccessTokenNotExist{token}
-		}
+	if len(token) < 8 {
+		return nil, util.NewNotExistErrorf("access token not found")
 	}
 
 	lastEight := token[len(token)-8:]
-
 	if id := getAccessTokenIDFromCache(token); id > 0 {
 		accessToken := &AccessToken{
 			TokenLastEight: lastEight,
@@ -169,7 +123,7 @@ func GetAccessTokenBySHA(ctx context.Context, token string) (*AccessToken, error
 	if err != nil {
 		return nil, err
 	} else if len(tokens) == 0 {
-		return nil, ErrAccessTokenNotExist{token}
+		return nil, util.NewNotExistErrorf("access token not found")
 	}
 
 	for _, t := range tokens {
@@ -181,7 +135,7 @@ func GetAccessTokenBySHA(ctx context.Context, token string) (*AccessToken, error
 			return &t, nil
 		}
 	}
-	return nil, ErrAccessTokenNotExist{token}
+	return nil, util.NewNotExistErrorf("access token not found")
 }
 
 // AccessTokenByNameExists checks if a token name has been used already by a user.
@@ -218,13 +172,11 @@ func UpdateAccessToken(ctx context.Context, t *AccessToken) error {
 
 // DeleteAccessTokenByID deletes access token by given ID.
 func DeleteAccessTokenByID(ctx context.Context, id, userID int64) error {
-	cnt, err := db.GetEngine(ctx).ID(id).Delete(&AccessToken{
-		UID: userID,
-	})
+	cnt, err := db.GetEngine(ctx).ID(id).Delete(&AccessToken{UID: userID})
 	if err != nil {
 		return err
 	} else if cnt != 1 {
-		return ErrAccessTokenNotExist{}
+		return util.NewNotExistErrorf("access token not found")
 	}
 	return nil
 }
