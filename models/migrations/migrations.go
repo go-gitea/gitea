@@ -415,8 +415,10 @@ func prepareMigrationTasks() []*migration {
 		newMigration(335, "Add reusable workflow fields and action_run_attempt_job_id_index table for ActionRunJob", v1_27.AddReusableWorkflowFieldsToActionRunJob),
 		newMigration(336, "Add ActionRunJobSummary table", v1_27.AddActionRunJobSummaryTable),
 		newMigration(337, "Add visibility to team", v1_27.AddVisibilityToTeam),
-		newMigration(338, "Add job max-parallel support", v1_27.AddJobMaxParallel),
-		newMigration(339, "Add composite index on action_run_job(run_id, job_id)", v1_27.AddRunJobRunIDJobIDIndex),
+		newMigration(338, "Expand legacy MSSQL issue/comment long-text columns", v1_27.ExpandIssueAndCommentLongTextFieldsForMSSQL),
+		newMigration(339, "Extend action c_u index to include created_unix for faster dashboard feed queries", v1_27.AddCreatedUnixToActionUserIsDeletedIndex),
+		newMigration(340, "Add job max-parallel support", v1_27.AddJobMaxParallel),
+		newMigration(341, "Add composite index on action_run_job(run_id, job_id)", v1_27.AddRunJobRunIDJobIDIndex),
 	}
 	return preparedMigrations
 }
