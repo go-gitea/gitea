@@ -5,6 +5,7 @@ package secret
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"strings"
 
@@ -184,6 +185,33 @@ func GetSecretsOfTask(ctx context.Context, task *actions_model.ActionTask) (map[
 			continue
 		}
 		baseSecrets[secret.Name] = v
+	}
+
+	// Environment-scoped secrets override repo/org secrets when the job targets a deployment environment.
+	if task.Job.EnvironmentName != "" {
+		env, err := actions_model.GetEnvironmentByRepoAndName(ctx, task.Job.Run.RepoID, task.Job.EnvironmentName)
+		if err != nil {
+			if !errors.Is(err, util.ErrNotExist) {
+				log.Error("get environment %q for task %d: %v", task.Job.EnvironmentName, task.ID, err)
+			}
+		} else if env.MatchesBranch(task.Job.Run.Ref) {
+			envSecrets, err := db.Find[actions_model.ActionEnvironmentSecret](ctx, actions_model.FindEnvSecretsOptions{
+				RepoID:        task.Job.Run.RepoID,
+				EnvironmentID: env.ID,
+			})
+			if err != nil {
+				log.Error("find environment secrets for env %d: %v", env.ID, err)
+			} else {
+				for _, s := range envSecrets {
+					v, err := secret_module.DecryptSecret(setting.SecretKey, s.Data)
+					if err != nil {
+						log.Error("Unable to decrypt environment secret %v %q: %v", s.ID, s.Name, err)
+						continue
+					}
+					baseSecrets[s.Name] = v
+				}
+			}
+		}
 	}
 
 	return getScopedSecretsForJob(ctx, task.Job, baseSecrets)

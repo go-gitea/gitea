@@ -53,3 +53,31 @@ type swaggerResponseRunDetails struct {
 	// in:body
 	Body api.RunDetails `json:"body"`
 }
+
+// Environment
+// swagger:response Environment
+type swaggerResponseEnvironment struct {
+	// in:body
+	Body api.ActionEnvironment `json:"body"`
+}
+
+// EnvironmentList
+// swagger:response EnvironmentList
+type swaggerResponseEnvironmentList struct {
+	// in:body
+	Body []api.ActionEnvironment `json:"body"`
+}
+
+// EnvironmentSecretList
+// swagger:response EnvironmentSecretList
+type swaggerResponseEnvironmentSecretList struct {
+	// in:body
+	Body []api.EnvironmentSecret `json:"body"`
+}
+
+// EnvironmentVariableList
+// swagger:response EnvironmentVariableList
+type swaggerResponseEnvironmentVariableList struct {
+	// in:body
+	Body []api.EnvironmentVariable `json:"body"`
+}

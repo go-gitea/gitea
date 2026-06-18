@@ -5,6 +5,8 @@ package actions
 
 import (
 	"context"
+	"errors"
+	"fmt"
 	"strings"
 	"unicode/utf8"
 
@@ -166,6 +168,47 @@ func GetVariablesOfRun(ctx context.Context, run *ActionRun) (map[string]string, 
 		variables[v.Name] = v.Data
 	}
 
+	return variables, nil
+}
+
+// GetVariablesOfJob returns variables for a job, overlaying environment-scoped variables when the job
+// targets a deployment environment whose branch policy matches the run's ref.
+// Precedence (high to low): environment > repo > org/user > global
+func GetVariablesOfJob(ctx context.Context, job *ActionRunJob) (map[string]string, error) {
+	if err := job.LoadRun(ctx); err != nil {
+		return nil, err
+	}
+	variables, err := GetVariablesOfRun(ctx, job.Run)
+	if err != nil {
+		return nil, err
+	}
+
+	if job.EnvironmentName == "" {
+		return variables, nil
+	}
+
+	env, err := GetEnvironmentByRepoAndName(ctx, job.RepoID, job.EnvironmentName)
+	if err != nil {
+		if !errors.Is(err, util.ErrNotExist) {
+			return nil, fmt.Errorf("get environment %q for job %d: %w", job.EnvironmentName, job.ID, err)
+		}
+		return variables, nil
+	}
+	if !env.MatchesBranch(job.Run.Ref) {
+		return variables, nil
+	}
+
+	envVars, err := db.Find[ActionEnvironmentVariable](ctx, FindEnvVariablesOptions{
+		RepoID:        job.RepoID,
+		EnvironmentID: env.ID,
+	})
+	if err != nil {
+		log.Error("find environment variables for env %d: %v", env.ID, err)
+		return variables, nil
+	}
+	for _, v := range envVars {
+		variables[v.Name] = v.Data
+	}
 	return variables, nil
 }
 

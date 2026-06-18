@@ -1,0 +1,243 @@
+// Copyright 2026 The Gitea Authors. All rights reserved.
+// SPDX-License-Identifier: MIT
+
+package actions
+
+import (
+	"context"
+	"fmt"
+	"strings"
+
+	"gitea.dev/models/db"
+	"gitea.dev/modules/glob"
+	"gitea.dev/modules/timeutil"
+	"gitea.dev/modules/util"
+
+	"xorm.io/builder"
+)
+
+// ActionEnvironment represents a deployment environment for a repository.
+// Secrets and variables can be scoped to an environment and optionally protected by branch policies.
+type ActionEnvironment struct {
+	ID     int64  `xorm:"pk autoincr"`
+	RepoID int64  `xorm:"UNIQUE(repo_name) NOT NULL"`
+	Name   string `xorm:"UNIQUE(repo_name) NOT NULL"`
+
+	// ProtectedBranches is a glob pattern list (comma-separated) that restricts
+	// which branches can deploy to this environment. Empty means no restriction.
+	ProtectedBranches string `xorm:"TEXT"`
+
+	CreatedUnix timeutil.TimeStamp `xorm:"created NOT NULL"`
+	UpdatedUnix timeutil.TimeStamp `xorm:"updated"`
+}
+
+func init() {
+	db.RegisterModel(new(ActionEnvironment))
+	db.RegisterModel(new(ActionEnvironmentSecret))
+	db.RegisterModel(new(ActionEnvironmentVariable))
+}
+
+// ErrEnvironmentNotFound is returned when an environment does not exist.
+type ErrEnvironmentNotFound struct {
+	Name string
+}
+
+func (err ErrEnvironmentNotFound) Error() string {
+	return fmt.Sprintf("environment not found [name: %s]", err.Name)
+}
+
+func (err ErrEnvironmentNotFound) Unwrap() error {
+	return util.ErrNotExist
+}
+
+// ErrEnvironmentAlreadyExists is returned when creating a duplicate environment.
+type ErrEnvironmentAlreadyExists struct {
+	Name string
+}
+
+func (err ErrEnvironmentAlreadyExists) Error() string {
+	return fmt.Sprintf("environment already exists [name: %s]", err.Name)
+}
+
+func (err ErrEnvironmentAlreadyExists) Unwrap() error {
+	return util.ErrAlreadyExist
+}
+
+// FindEnvironmentsOptions holds filter parameters for listing environments.
+type FindEnvironmentsOptions struct {
+	db.ListOptions
+	RepoID int64
+	Name   string
+}
+
+func (opts FindEnvironmentsOptions) ToConds() builder.Cond {
+	cond := builder.NewCond()
+	if opts.RepoID != 0 {
+		cond = cond.And(builder.Eq{"repo_id": opts.RepoID})
+	}
+	if opts.Name != "" {
+		cond = cond.And(builder.Eq{"name": opts.Name})
+	}
+	return cond
+}
+
+// GetEnvironmentByRepoAndName returns the environment matching the given repo and name.
+func GetEnvironmentByRepoAndName(ctx context.Context, repoID int64, name string) (*ActionEnvironment, error) {
+	envs, err := db.Find[ActionEnvironment](ctx, FindEnvironmentsOptions{RepoID: repoID, Name: name})
+	if err != nil {
+		return nil, err
+	}
+	if len(envs) == 0 {
+		return nil, ErrEnvironmentNotFound{Name: name}
+	}
+	return envs[0], nil
+}
+
+// GetEnvironmentByID returns the environment with the given id.
+func GetEnvironmentByID(ctx context.Context, id int64) (*ActionEnvironment, error) {
+	env := &ActionEnvironment{}
+	has, err := db.GetEngine(ctx).ID(id).Get(env)
+	if err != nil {
+		return nil, err
+	}
+	if !has {
+		return nil, ErrEnvironmentNotFound{}
+	}
+	return env, nil
+}
+
+// InsertEnvironment creates a new environment for a repository.
+func InsertEnvironment(ctx context.Context, repoID int64, name, protectedBranches string) (*ActionEnvironment, error) {
+	env := &ActionEnvironment{
+		RepoID:            repoID,
+		Name:              name,
+		ProtectedBranches: protectedBranches,
+	}
+	return env, db.Insert(ctx, env)
+}
+
+// UpdateEnvironment updates mutable fields of an environment.
+func UpdateEnvironment(ctx context.Context, env *ActionEnvironment) error {
+	_, err := db.GetEngine(ctx).ID(env.ID).Cols("name", "protected_branches").Update(env)
+	return err
+}
+
+// DeleteEnvironment removes an environment and all its associated secrets and variables.
+func DeleteEnvironment(ctx context.Context, repoID, envID int64) error {
+	return db.WithTx(ctx, func(ctx context.Context) error {
+		if _, err := db.GetEngine(ctx).
+			Where("repo_id = ? AND environment_id = ?", repoID, envID).
+			Delete(new(ActionEnvironmentSecret)); err != nil {
+			return err
+		}
+		if _, err := db.GetEngine(ctx).
+			Where("repo_id = ? AND environment_id = ?", repoID, envID).
+			Delete(new(ActionEnvironmentVariable)); err != nil {
+			return err
+		}
+		_, err := db.GetEngine(ctx).Where("id = ? AND repo_id = ?", envID, repoID).Delete(new(ActionEnvironment))
+		return err
+	})
+}
+
+// MatchesBranch reports whether ref (e.g. "refs/heads/main") is permitted by the environment's branch policy.
+// An empty policy allows everything.
+func (env *ActionEnvironment) MatchesBranch(ref string) bool {
+	if env.ProtectedBranches == "" {
+		return true
+	}
+	// Strip refs/heads/ prefix for comparison
+	branch := strings.TrimPrefix(ref, "refs/heads/")
+	for pattern := range strings.SplitSeq(env.ProtectedBranches, ",") {
+		pattern = strings.TrimSpace(pattern)
+		if pattern == "" {
+			continue
+		}
+		g, err := glob.Compile(pattern)
+		if err != nil {
+			return false
+		}
+		ok := g.Match(branch)
+		if ok {
+			return true
+		}
+	}
+	return false
+}
+
+// ActionEnvironmentSecret is a secret scoped to an environment.
+type ActionEnvironmentSecret struct {
+	ID            int64  `xorm:"pk autoincr"`
+	RepoID        int64  `xorm:"UNIQUE(env_name) NOT NULL"`
+	EnvironmentID int64  `xorm:"UNIQUE(env_name) NOT NULL"`
+	Name          string `xorm:"UNIQUE(env_name) NOT NULL"`
+	Data          string `xorm:"LONGTEXT"` // encrypted
+	Description   string `xorm:"TEXT"`
+
+	CreatedUnix timeutil.TimeStamp `xorm:"created NOT NULL"`
+}
+
+// FindEnvSecretsOptions holds filter options for env secrets.
+type FindEnvSecretsOptions struct {
+	db.ListOptions
+	RepoID        int64
+	EnvironmentID int64
+	Name          string
+	SecretID      int64
+}
+
+func (opts FindEnvSecretsOptions) ToConds() builder.Cond {
+	cond := builder.NewCond()
+	if opts.RepoID != 0 {
+		cond = cond.And(builder.Eq{"repo_id": opts.RepoID})
+	}
+	if opts.EnvironmentID != 0 {
+		cond = cond.And(builder.Eq{"environment_id": opts.EnvironmentID})
+	}
+	if opts.SecretID != 0 {
+		cond = cond.And(builder.Eq{"id": opts.SecretID})
+	}
+	if opts.Name != "" {
+		cond = cond.And(builder.Eq{"name": strings.ToUpper(opts.Name)})
+	}
+	return cond
+}
+
+// ActionEnvironmentVariable is a plain-text variable scoped to an environment.
+type ActionEnvironmentVariable struct {
+	ID            int64  `xorm:"pk autoincr"`
+	RepoID        int64  `xorm:"UNIQUE(env_var_name) NOT NULL"`
+	EnvironmentID int64  `xorm:"UNIQUE(env_var_name) NOT NULL"`
+	Name          string `xorm:"UNIQUE(env_var_name) NOT NULL"`
+	Data          string `xorm:"LONGTEXT NOT NULL"`
+	Description   string `xorm:"TEXT"`
+
+	CreatedUnix timeutil.TimeStamp `xorm:"created NOT NULL"`
+	UpdatedUnix timeutil.TimeStamp `xorm:"updated"`
+}
+
+// FindEnvVariablesOptions holds filter options for env variables.
+type FindEnvVariablesOptions struct {
+	db.ListOptions
+	RepoID        int64
+	EnvironmentID int64
+	Name          string
+	VariableID    int64
+}
+
+func (opts FindEnvVariablesOptions) ToConds() builder.Cond {
+	cond := builder.NewCond()
+	if opts.RepoID != 0 {
+		cond = cond.And(builder.Eq{"repo_id": opts.RepoID})
+	}
+	if opts.EnvironmentID != 0 {
+		cond = cond.And(builder.Eq{"environment_id": opts.EnvironmentID})
+	}
+	if opts.VariableID != 0 {
+		cond = cond.And(builder.Eq{"id": opts.VariableID})
+	}
+	if opts.Name != "" {
+		cond = cond.And(builder.Eq{"name": strings.ToUpper(opts.Name)})
+	}
+	return cond
+}

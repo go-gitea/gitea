@@ -96,6 +96,7 @@ type Job struct {
 	RawSecrets     yaml.Node                 `yaml:"secrets,omitempty"`
 	RawConcurrency *model.RawConcurrency     `yaml:"concurrency,omitempty"`
 	RawPermissions yaml.Node                 `yaml:"permissions,omitempty"`
+	RawEnvironment yaml.Node                 `yaml:"environment,omitempty"` // deployment environment
 }
 
 func (j *Job) Clone() *Job {
@@ -120,6 +121,7 @@ func (j *Job) Clone() *Job {
 		RawSecrets:     j.RawSecrets,
 		RawConcurrency: j.RawConcurrency,
 		RawPermissions: j.RawPermissions,
+		RawEnvironment: j.RawEnvironment,
 	}
 }
 
@@ -134,6 +136,27 @@ func (j *Job) EraseNeeds() *Job {
 
 func (j *Job) RunsOn() []string {
 	return (&model.Job{RawRunsOn: j.RawRunsOn}).RunsOn()
+}
+
+// DeploymentEnvironmentName returns the deployment environment name from the job's "environment:" key.
+// It supports both the simple string form ("environment: production") and
+// the object form ("environment: {name: production, url: ...}").
+func (j *Job) DeploymentEnvironmentName() string {
+	if j.RawEnvironment.IsZero() {
+		return ""
+	}
+	switch j.RawEnvironment.Kind {
+	case yaml.ScalarNode:
+		return j.RawEnvironment.Value
+	case yaml.MappingNode:
+		var envMap struct {
+			Name string `yaml:"name"`
+		}
+		if err := j.RawEnvironment.Decode(&envMap); err == nil {
+			return envMap.Name
+		}
+	}
+	return ""
 }
 
 type Step struct {

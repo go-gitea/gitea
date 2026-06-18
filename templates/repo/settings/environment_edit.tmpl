@@ -1,0 +1,251 @@
+{{template "repo/settings/layout_head" (dict "pageClass" "repository settings environment-edit")}}
+	<div class="repo-setting-content">
+
+		{{/* Breadcrumb */}}
+		<div class="tw-mb-4">
+			<a href="{{.RepoLink}}/settings/environments">{{ctx.Locale.Tr "environments.environments"}}</a>
+			{{svg "octicon-chevron-right" 14}}
+			<strong>{{.Environment.Name}}</strong>
+		</div>
+
+		{{/* ── Deployment branch rules ────────────────────────────────── */}}
+		<h4 class="ui top attached header">{{ctx.Locale.Tr "environments.protected_branches"}}</h4>
+		<div class="ui attached segment">
+			<form class="ui form" action="{{.Link}}" method="post">
+				{{$.CsrfTokenHtml}}
+				<div class="field">
+					<label for="env-protected-branches">{{ctx.Locale.Tr "environments.protected_branches"}}</label>
+					<input
+						id="env-protected-branches"
+						name="protected_branches"
+						value="{{.Environment.ProtectedBranches}}"
+						placeholder="{{ctx.Locale.Tr "environments.protected_branches_placeholder"}}"
+					>
+					<p class="help">{{ctx.Locale.Tr "environments.protected_branches_help"}}</p>
+				</div>
+				<button class="ui primary button">{{ctx.Locale.Tr "environments.save"}}</button>
+			</form>
+		</div>
+
+		{{/* ── Environment Secrets ─────────────────────────────────────── */}}
+		<div class="tw-mt-6">
+			<h4 class="ui top attached header">
+				{{ctx.Locale.Tr "environments.secrets"}}
+				<div class="ui right">
+					<button class="ui primary tiny button show-modal"
+						data-modal="#add-env-secret-modal"
+						data-modal-form.action="{{.Link}}/secrets"
+						data-modal-header="{{ctx.Locale.Tr "secrets.add_secret"}}"
+						data-modal-secret-name.value=""
+						data-modal-secret-name.read-only="false"
+						data-modal-secret-data=""
+						data-modal-secret-description=""
+					>
+						{{ctx.Locale.Tr "secrets.add_secret"}}
+					</button>
+				</div>
+			</h4>
+			<div class="ui attached segment">
+				{{if .Secrets}}
+				<div class="flex-divided-list items-with-main">
+					{{range .Secrets}}
+					<div class="item tw-items-center">
+						<div class="item-leading">{{svg "octicon-key" 32}}</div>
+						<div class="item-main">
+							<div class="item-title">{{.Name}}</div>
+							<div class="item-body">{{if .Description}}{{.Description}}{{else}}-{{end}}</div>
+							<div class="item-body">******</div>
+						</div>
+						<div class="item-trailing">
+							<span class="color-text-light-2">
+								{{ctx.Locale.Tr "settings.added_on" (DateUtils.AbsoluteShort .CreatedUnix)}}
+							</span>
+							<button class="btn interact-bg show-modal tw-p-2"
+								data-modal="#add-env-secret-modal"
+								data-modal-form.action="{{$.Link}}/secrets"
+								data-modal-header="{{ctx.Locale.Tr "secrets.edit_secret"}}"
+								data-tooltip-content="{{ctx.Locale.Tr "secrets.edit_secret"}}"
+								data-modal-secret-name.value="{{.Name}}"
+								data-modal-secret-name.read-only="true"
+								data-modal-secret-data=""
+								data-modal-secret-description="{{if .Description}}{{.Description}}{{end}}"
+							>
+								{{svg "octicon-pencil"}}
+							</button>
+							<button class="btn interact-bg link-action tw-p-2"
+								data-url="{{$.Link}}/secrets/delete?id={{.ID}}"
+								data-modal-confirm="{{ctx.Locale.Tr "secrets.deletion.description"}}"
+								data-tooltip-content="{{ctx.Locale.Tr "secrets.deletion"}}"
+							>
+								{{svg "octicon-trash"}}
+							</button>
+						</div>
+					</div>
+					{{end}}
+				</div>
+				{{else}}
+				<p>{{ctx.Locale.Tr "secrets.none"}}</p>
+				{{end}}
+			</div>
+		</div>
+
+		{{/* ── Environment Variables ───────────────────────────────────── */}}
+		<div class="tw-mt-6">
+			<h4 class="ui top attached header">
+				{{ctx.Locale.Tr "environments.variables"}}
+				<div class="ui right">
+					<button class="ui primary tiny button show-modal"
+						data-modal="#edit-env-variable-modal"
+						data-modal-form.action="{{.Link}}/variables/new"
+						data-modal-header="{{ctx.Locale.Tr "actions.variables.creation"}}"
+						data-modal-dialog-variable-name=""
+						data-modal-dialog-variable-data=""
+						data-modal-dialog-variable-description=""
+					>
+						{{ctx.Locale.Tr "actions.variables.creation"}}
+					</button>
+				</div>
+			</h4>
+			<div class="ui attached segment">
+				{{if .Variables}}
+				<div class="flex-divided-list items-with-main">
+					{{range .Variables}}
+					<div class="item tw-items-center">
+						<div class="item-leading">{{svg "octicon-pencil" 32}}</div>
+						<div class="item-main">
+							<div class="item-title">{{.Name}}</div>
+							<div class="item-body">{{if .Description}}{{.Description}}{{else}}-{{end}}</div>
+							<div class="item-body">{{.Data}}</div>
+						</div>
+						<div class="item-trailing">
+							<span class="color-text-light-2">
+								{{ctx.Locale.Tr "settings.added_on" (DateUtils.AbsoluteShort .CreatedUnix)}}
+							</span>
+							<button class="btn interact-bg tw-p-2 show-modal"
+								data-tooltip-content="{{ctx.Locale.Tr "actions.variables.edit"}}"
+								data-modal="#edit-env-variable-modal"
+								data-modal-form.action="{{$.Link}}/variables/{{.ID}}/edit"
+								data-modal-header="{{ctx.Locale.Tr "actions.variables.edit"}}"
+								data-modal-dialog-variable-name="{{.Name}}"
+								data-modal-dialog-variable-data="{{.Data}}"
+								data-modal-dialog-variable-description="{{.Description}}"
+							>
+								{{svg "octicon-pencil"}}
+							</button>
+							<button class="btn interact-bg tw-p-2 link-action"
+								data-tooltip-content="{{ctx.Locale.Tr "actions.variables.deletion"}}"
+								data-url="{{$.Link}}/variables/{{.ID}}/delete"
+								data-modal-confirm="{{ctx.Locale.Tr "actions.variables.deletion.description"}}"
+							>
+								{{svg "octicon-trash"}}
+							</button>
+						</div>
+					</div>
+					{{end}}
+				</div>
+				{{else}}
+				<p>{{ctx.Locale.Tr "actions.variables.none"}}</p>
+				{{end}}
+			</div>
+		</div>
+
+		{{/* ── Danger zone ─────────────────────────────────────────────── */}}
+		<div class="tw-mt-6">
+			<h4 class="ui top attached error header">{{ctx.Locale.Tr "repo.settings.danger_zone"}}</h4>
+			<div class="ui attached error segment">
+				<div class="flex-between tw-items-center">
+					<div>
+						<strong>{{ctx.Locale.Tr "environments.deletion"}}</strong>
+						<p class="color-text-light-2">{{ctx.Locale.Tr "environments.deletion.description"}}</p>
+					</div>
+					<button class="ui red tiny button link-action"
+						data-url="{{.Link}}/delete"
+						data-modal-confirm="{{ctx.Locale.Tr "environments.deletion.description"}}"
+					>
+						{{ctx.Locale.Tr "environments.deletion"}}
+					</button>
+				</div>
+			</div>
+		</div>
+	</div>
+
+{{/* Add/edit secret dialog (reuse the same modal pattern as shared/secrets/add_list.tmpl) */}}
+<div class="ui small modal" id="add-env-secret-modal">
+	<div class="header"></div>
+	<form class="ui form form-fetch-action" method="post">
+		{{$.CsrfTokenHtml}}
+		<div class="content">
+			<div class="field">{{ctx.Locale.Tr "secrets.description"}}</div>
+			<div class="field">
+				<label for="secret-name">{{ctx.Locale.Tr "name"}}</label>
+				<input autofocus required
+					id="secret-name"
+					name="name"
+					pattern="^(?!GITEA_|GITHUB_)[a-zA-Z_][a-zA-Z0-9_]*$"
+					placeholder="{{ctx.Locale.Tr "secrets.creation.name_placeholder"}}"
+				>
+			</div>
+			<div class="field">
+				<label for="secret-data">{{ctx.Locale.Tr "value"}}</label>
+				<textarea required
+					id="secret-data"
+					name="data"
+					maxlength="{{.DataMaxLength}}"
+					placeholder="{{ctx.Locale.Tr "secrets.creation.value_placeholder"}}"
+				></textarea>
+			</div>
+			<div class="field">
+				<label for="secret-description">{{ctx.Locale.Tr "secrets.creation.description"}}</label>
+				<textarea
+					id="secret-description"
+					name="description"
+					rows="2"
+					maxlength="{{.DescriptionMaxLength}}"
+					placeholder="{{ctx.Locale.Tr "secrets.creation.description_placeholder"}}"
+				></textarea>
+			</div>
+		</div>
+		{{template "base/modal_actions_confirm" (dict "ModalButtonTypes" "confirm")}}
+	</form>
+</div>
+
+{{/* Edit variable dialog */}}
+<div class="ui small modal" id="edit-env-variable-modal">
+	<div class="header"></div>
+	<form class="ui form form-fetch-action" method="post">
+		{{$.CsrfTokenHtml}}
+		<div class="content">
+			<div class="field">{{ctx.Locale.Tr "actions.variables.description"}}</div>
+			<div class="field">
+				<label for="dialog-variable-name">{{ctx.Locale.Tr "name"}}</label>
+				<input autofocus required
+					name="name"
+					id="dialog-variable-name"
+					pattern="^(?!GITEA_|GITHUB_)[a-zA-Z_][a-zA-Z0-9_]*$"
+					placeholder="{{ctx.Locale.Tr "secrets.creation.name_placeholder"}}"
+				>
+			</div>
+			<div class="field">
+				<label for="dialog-variable-data">{{ctx.Locale.Tr "value"}}</label>
+				<textarea required
+					name="data"
+					id="dialog-variable-data"
+					maxlength="{{.DataMaxLength}}"
+					placeholder="{{ctx.Locale.Tr "secrets.creation.value_placeholder"}}"
+				></textarea>
+			</div>
+			<div class="field">
+				<label for="dialog-variable-description">{{ctx.Locale.Tr "secrets.creation.description"}}</label>
+				<textarea
+					name="description"
+					id="dialog-variable-description"
+					rows="2"
+					maxlength="{{.DescriptionMaxLength}}"
+					placeholder="{{ctx.Locale.Tr "secrets.creation.description_placeholder"}}"
+				></textarea>
+			</div>
+		</div>
+		{{template "base/modal_actions_confirm" (dict "ModalButtonTypes" "confirm")}}
+	</form>
+</div>
+{{template "repo/settings/layout_footer" .}}

@@ -8652,6 +8652,568 @@
         }
       }
     },
+    "/repos/{owner}/{repo}/environments": {
+      "get": {
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "repository"
+        ],
+        "summary": "List environments for a repository",
+        "operationId": "listEnvironments",
+        "parameters": [
+          {
+            "type": "string",
+            "name": "owner",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "name": "repo",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "integer",
+            "name": "page",
+            "in": "query"
+          },
+          {
+            "type": "integer",
+            "name": "limit",
+            "in": "query"
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/responses/EnvironmentList"
+          },
+          "404": {
+            "$ref": "#/responses/notFound"
+          }
+        }
+      },
+      "post": {
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "repository"
+        ],
+        "summary": "Create a deployment environment",
+        "operationId": "createEnvironment",
+        "parameters": [
+          {
+            "type": "string",
+            "name": "owner",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "name": "repo",
+            "in": "path",
+            "required": true
+          },
+          {
+            "name": "body",
+            "in": "body",
+            "schema": {
+              "$ref": "#/definitions/CreateEnvironmentOption"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "$ref": "#/responses/Environment"
+          },
+          "400": {
+            "$ref": "#/responses/error"
+          }
+        }
+      }
+    },
+    "/repos/{owner}/{repo}/environments/{environment_name}": {
+      "get": {
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "repository"
+        ],
+        "summary": "Get a deployment environment",
+        "operationId": "getEnvironment",
+        "parameters": [
+          {
+            "type": "string",
+            "name": "owner",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "name": "repo",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "name": "environment_name",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/responses/Environment"
+          },
+          "404": {
+            "$ref": "#/responses/notFound"
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "repository"
+        ],
+        "summary": "Delete a deployment environment",
+        "operationId": "deleteEnvironment",
+        "parameters": [
+          {
+            "type": "string",
+            "name": "owner",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "name": "repo",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "name": "environment_name",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "No Content"
+          },
+          "404": {
+            "$ref": "#/responses/notFound"
+          }
+        }
+      },
+      "patch": {
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "repository"
+        ],
+        "summary": "Update a deployment environment",
+        "operationId": "updateEnvironment",
+        "parameters": [
+          {
+            "type": "string",
+            "name": "owner",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "name": "repo",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "name": "environment_name",
+            "in": "path",
+            "required": true
+          },
+          {
+            "name": "body",
+            "in": "body",
+            "schema": {
+              "$ref": "#/definitions/UpdateEnvironmentOption"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/responses/Environment"
+          },
+          "404": {
+            "$ref": "#/responses/notFound"
+          }
+        }
+      }
+    },
+    "/repos/{owner}/{repo}/environments/{environment_name}/secrets": {
+      "get": {
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "repository"
+        ],
+        "summary": "List secrets for a deployment environment",
+        "operationId": "listEnvSecrets",
+        "parameters": [
+          {
+            "type": "string",
+            "name": "owner",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "name": "repo",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "name": "environment_name",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "integer",
+            "name": "page",
+            "in": "query"
+          },
+          {
+            "type": "integer",
+            "name": "limit",
+            "in": "query"
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/responses/EnvironmentSecretList"
+          },
+          "404": {
+            "$ref": "#/responses/notFound"
+          }
+        }
+      }
+    },
+    "/repos/{owner}/{repo}/environments/{environment_name}/secrets/{secretname}": {
+      "put": {
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "repository"
+        ],
+        "summary": "Create or update a secret for a deployment environment",
+        "operationId": "createOrUpdateEnvSecret",
+        "parameters": [
+          {
+            "type": "string",
+            "name": "owner",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "name": "repo",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "name": "environment_name",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "name": "secretname",
+            "in": "path",
+            "required": true
+          },
+          {
+            "name": "body",
+            "in": "body",
+            "schema": {
+              "$ref": "#/definitions/CreateOrUpdateEnvironmentSecretOption"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": "secret created"
+          },
+          "204": {
+            "description": "secret updated"
+          },
+          "400": {
+            "$ref": "#/responses/error"
+          },
+          "404": {
+            "$ref": "#/responses/notFound"
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "repository"
+        ],
+        "summary": "Delete a secret from a deployment environment",
+        "operationId": "deleteEnvSecret",
+        "parameters": [
+          {
+            "type": "string",
+            "name": "owner",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "name": "repo",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "name": "environment_name",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "name": "secretname",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "No Content"
+          },
+          "404": {
+            "$ref": "#/responses/notFound"
+          }
+        }
+      }
+    },
+    "/repos/{owner}/{repo}/environments/{environment_name}/variables": {
+      "get": {
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "repository"
+        ],
+        "summary": "List variables for a deployment environment",
+        "operationId": "listEnvVariables",
+        "parameters": [
+          {
+            "type": "string",
+            "name": "owner",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "name": "repo",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "name": "environment_name",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/responses/EnvironmentVariableList"
+          },
+          "404": {
+            "$ref": "#/responses/notFound"
+          }
+        }
+      }
+    },
+    "/repos/{owner}/{repo}/environments/{environment_name}/variables/{variablename}": {
+      "put": {
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "repository"
+        ],
+        "summary": "Update a variable for a deployment environment",
+        "operationId": "updateEnvVariable",
+        "parameters": [
+          {
+            "type": "string",
+            "name": "owner",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "name": "repo",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "name": "environment_name",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "name": "variablename",
+            "in": "path",
+            "required": true
+          },
+          {
+            "name": "body",
+            "in": "body",
+            "schema": {
+              "$ref": "#/definitions/UpdateEnvironmentVariableOption"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "variable updated"
+          },
+          "400": {
+            "$ref": "#/responses/error"
+          },
+          "404": {
+            "$ref": "#/responses/notFound"
+          }
+        }
+      },
+      "post": {
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "repository"
+        ],
+        "summary": "Create a variable for a deployment environment",
+        "operationId": "createEnvVariable",
+        "parameters": [
+          {
+            "type": "string",
+            "name": "owner",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "name": "repo",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "name": "environment_name",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "name": "variablename",
+            "in": "path",
+            "required": true
+          },
+          {
+            "name": "body",
+            "in": "body",
+            "schema": {
+              "$ref": "#/definitions/CreateEnvironmentVariableOption"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": "variable created"
+          },
+          "400": {
+            "$ref": "#/responses/error"
+          },
+          "404": {
+            "$ref": "#/responses/notFound"
+          },
+          "409": {
+            "description": "variable already exists"
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "repository"
+        ],
+        "summary": "Delete a variable from a deployment environment",
+        "operationId": "deleteEnvVariable",
+        "parameters": [
+          {
+            "type": "string",
+            "name": "owner",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "name": "repo",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "name": "environment_name",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "name": "variablename",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "No Content"
+          },
+          "404": {
+            "$ref": "#/responses/notFound"
+          }
+        }
+      }
+    },
     "/repos/{owner}/{repo}/file-contents": {
       "get": {
         "description": "See the POST method. This GET method supports using JSON encoded request body in query parameter.",
@@ -22095,6 +22657,39 @@
       },
       "x-go-package": "gitea.dev/modules/structs"
     },
+    "ActionEnvironment": {
+      "description": "ActionEnvironment represents a deployment environment",
+      "type": "object",
+      "properties": {
+        "created_at": {
+          "type": "string",
+          "format": "date-time",
+          "x-go-name": "CreatedAt"
+        },
+        "id": {
+          "description": "the environment's id",
+          "type": "integer",
+          "format": "int64",
+          "x-go-name": "ID"
+        },
+        "name": {
+          "description": "the environment's name",
+          "type": "string",
+          "x-go-name": "Name"
+        },
+        "protected_branches": {
+          "description": "glob patterns (comma-separated) that restrict which branches can deploy here; empty means unrestricted",
+          "type": "string",
+          "x-go-name": "ProtectedBranches"
+        },
+        "updated_at": {
+          "type": "string",
+          "format": "date-time",
+          "x-go-name": "UpdatedAt"
+        }
+      },
+      "x-go-package": "gitea.dev/modules/structs"
+    },
     "ActionRunner": {
       "description": "ActionRunner represents a Runner",
       "type": "object",
@@ -24109,6 +24704,43 @@
       },
       "x-go-package": "gitea.dev/modules/structs"
     },
+    "CreateEnvironmentOption": {
+      "description": "CreateEnvironmentOption options for creating a new environment",
+      "type": "object",
+      "required": [
+        "name"
+      ],
+      "properties": {
+        "name": {
+          "type": "string",
+          "x-go-name": "Name"
+        },
+        "protected_branches": {
+          "description": "glob patterns (comma-separated) restricting deployable branches",
+          "type": "string",
+          "x-go-name": "ProtectedBranches"
+        }
+      },
+      "x-go-package": "gitea.dev/modules/structs"
+    },
+    "CreateEnvironmentVariableOption": {
+      "description": "CreateEnvironmentVariableOption options for creating an environment variable",
+      "type": "object",
+      "required": [
+        "value"
+      ],
+      "properties": {
+        "description": {
+          "type": "string",
+          "x-go-name": "Description"
+        },
+        "value": {
+          "type": "string",
+          "x-go-name": "Value"
+        }
+      },
+      "x-go-package": "gitea.dev/modules/structs"
+    },
     "CreateFileOptions": {
       "description": "CreateFileOptions options for creating a file\nNote: `author` and `committer` are optional (if only one is given, it will be used for the other, otherwise the authenticated user will be used)",
       "type": "object",
@@ -24462,6 +25094,24 @@
           "description": "Whether to skip secondary authorization",
           "type": "boolean",
           "x-go-name": "SkipSecondaryAuthorization"
+        }
+      },
+      "x-go-package": "gitea.dev/modules/structs"
+    },
+    "CreateOrUpdateEnvironmentSecretOption": {
+      "description": "CreateOrUpdateEnvironmentSecretOption options for creating or updating an environment secret",
+      "type": "object",
+      "required": [
+        "data"
+      ],
+      "properties": {
+        "data": {
+          "type": "string",
+          "x-go-name": "Data"
+        },
+        "description": {
+          "type": "string",
+          "x-go-name": "Description"
         }
       },
       "x-go-package": "gitea.dev/modules/structs"
@@ -26366,6 +27016,55 @@
           "description": "Whether the email address has been verified",
           "type": "boolean",
           "x-go-name": "Verified"
+        }
+      },
+      "x-go-package": "gitea.dev/modules/structs"
+    },
+    "EnvironmentSecret": {
+      "description": "EnvironmentSecret represents a secret scoped to an environment (value is never returned)",
+      "type": "object",
+      "properties": {
+        "created_at": {
+          "type": "string",
+          "format": "date-time",
+          "x-go-name": "CreatedAt"
+        },
+        "description": {
+          "description": "the secret's description",
+          "type": "string",
+          "x-go-name": "Description"
+        },
+        "name": {
+          "description": "the secret's name",
+          "type": "string",
+          "x-go-name": "Name"
+        }
+      },
+      "x-go-package": "gitea.dev/modules/structs"
+    },
+    "EnvironmentVariable": {
+      "description": "EnvironmentVariable represents a variable scoped to an environment",
+      "type": "object",
+      "properties": {
+        "created_at": {
+          "type": "string",
+          "format": "date-time",
+          "x-go-name": "CreatedAt"
+        },
+        "description": {
+          "description": "the variable's description",
+          "type": "string",
+          "x-go-name": "Description"
+        },
+        "name": {
+          "description": "the variable's name",
+          "type": "string",
+          "x-go-name": "Name"
+        },
+        "value": {
+          "description": "the variable's value",
+          "type": "string",
+          "x-go-name": "Value"
         }
       },
       "x-go-package": "gitea.dev/modules/structs"
@@ -30435,6 +31134,41 @@
       },
       "x-go-package": "gitea.dev/modules/structs"
     },
+    "UpdateEnvironmentOption": {
+      "description": "UpdateEnvironmentOption options for updating an environment",
+      "type": "object",
+      "properties": {
+        "name": {
+          "type": "string",
+          "x-go-name": "Name"
+        },
+        "protected_branches": {
+          "description": "glob patterns (comma-separated) restricting deployable branches",
+          "type": "string",
+          "x-go-name": "ProtectedBranches"
+        }
+      },
+      "x-go-package": "gitea.dev/modules/structs"
+    },
+    "UpdateEnvironmentVariableOption": {
+      "description": "UpdateEnvironmentVariableOption options for updating an environment variable",
+      "type": "object",
+      "properties": {
+        "description": {
+          "type": "string",
+          "x-go-name": "Description"
+        },
+        "name": {
+          "type": "string",
+          "x-go-name": "Name"
+        },
+        "value": {
+          "type": "string",
+          "x-go-name": "Value"
+        }
+      },
+      "x-go-package": "gitea.dev/modules/structs"
+    },
     "UpdateFileOptions": {
       "description": "UpdateFileOptions options for updating or creating a file\nNote: `author` and `committer` are optional (if only one is given, it will be used for the other, otherwise the authenticated user will be used)",
       "type": "object",
@@ -31261,6 +31995,39 @@
         "$ref": "#/definitions/APIError"
       }
     },
+    "Environment": {
+      "description": "Environment",
+      "schema": {
+        "$ref": "#/definitions/ActionEnvironment"
+      }
+    },
+    "EnvironmentList": {
+      "description": "EnvironmentList",
+      "schema": {
+        "type": "array",
+        "items": {
+          "$ref": "#/definitions/ActionEnvironment"
+        }
+      }
+    },
+    "EnvironmentSecretList": {
+      "description": "EnvironmentSecretList",
+      "schema": {
+        "type": "array",
+        "items": {
+          "$ref": "#/definitions/EnvironmentSecret"
+        }
+      }
+    },
+    "EnvironmentVariableList": {
+      "description": "EnvironmentVariableList",
+      "schema": {
+        "type": "array",
+        "items": {
+          "$ref": "#/definitions/EnvironmentVariable"
+        }
+      }
+    },
     "FileDeleteResponse": {
       "description": "FileDeleteResponse",
       "schema": {
@@ -32071,7 +32838,7 @@
     "parameterBodies": {
       "description": "parameterBodies",
       "schema": {
-        "$ref": "#/definitions/LockIssueOption"
+        "$ref": "#/definitions/UpdateEnvironmentVariableOption"
       }
     },
     "redirect": {
