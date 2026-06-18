@@ -1891,6 +1891,98 @@ tbody.commit-list {
   max-height: 200px;
 }
 
+.repo-switcher {
+  position: relative;
+  display: inline-flex;
+}
+
+.repo-switcher-button {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 4px;
+  border: none;
+  background: none;
+  cursor: pointer;
+  border-radius: var(--border-radius);
+  color: var(--color-text-light-2);
+}
+
+.repo-switcher-button:hover {
+  background: var(--color-hover);
+  color: var(--color-text);
+}
+
+.repo-switcher-menu {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  z-index: 1000;
+  margin-top: 6px;
+  width: 300px;
+  max-width: calc(100vw - 2rem);
+  padding: 8px;
+  font-size: 14px;
+  background: var(--color-body);
+  border: 1px solid var(--color-secondary);
+  border-radius: var(--border-radius);
+  box-shadow: 0 6px 18px var(--color-shadow);
+}
+
+.repo-switcher-menu .repo-switcher-header {
+  padding: 2px 4px 8px;
+  font-size: 12px;
+  font-weight: var(--font-weight-medium);
+  color: var(--color-text-light-2);
+}
+
+.repo-switcher-menu .ui.search,
+.repo-switcher-menu .ui.input,
+.repo-switcher-menu .ui.input > input {
+  width: 100%;
+}
+
+.repo-switcher-menu .ui.input > input {
+  padding: 6px 10px;
+}
+
+/* render results inline within the popover card instead of as a floating overlay */
+.repo-switcher-menu .ui.search > .results {
+  position: static;
+  display: none;
+  width: 100%;
+  margin-top: 8px;
+  max-height: 320px;
+  overflow-y: auto;
+  box-shadow: none;
+}
+
+.repo-switcher-menu .ui.search > .results .result {
+  padding: 8px 10px;
+  gap: 8px;
+}
+
+.repo-switcher-menu .result-check {
+  display: flex;
+  align-items: center;
+  width: 16px;
+  flex-shrink: 0;
+  color: var(--color-text);
+}
+
+.repo-switcher-menu .result-icon {
+  display: flex;
+  align-items: center;
+  color: var(--color-text-light-2);
+}
+
+.repo-switcher-menu .ui.search > .results .result .title {
+  font-size: 14px;
+}
+
+.repo-switcher-menu .ui.search > .results .result .description {
+  font-size: 12px;
+}
+
 .branch-selector-dropdown {
   max-width: 100%;
 }

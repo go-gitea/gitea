@@ -7,6 +7,19 @@
 				{{template "repo/icon" .}}
 				<div class="flex-text-block tw-flex-wrap tw-text-18">
 					<a class="muted tw-font-normal" href="{{.Owner.HomeLink}}">{{.Owner.Name}}</a>/<a class="muted" href="{{$.RepoLink}}">{{.Name}}</a>
+					{{if $.IsSigned}}
+						<div class="repo-switcher" data-global-init="initRepoSwitcher" data-uid="{{.Owner.ID}}" data-current-full-name="{{.FullName}}">
+							<button class="repo-switcher-button" aria-label="{{ctx.Locale.Tr "repo.switch_repository"}}" data-tooltip-content="{{ctx.Locale.Tr "repo.switch_repository"}}">{{svg "octicon-triangle-down" 14}}</button>
+							<div class="repo-switcher-menu tw-hidden">
+								<div class="repo-switcher-header">{{ctx.Locale.Tr "repo.switch_repository"}}</div>
+								<div class="ui search">
+									<div class="ui input">
+										<input class="prompt" type="text" autocomplete="off" placeholder="{{ctx.Locale.Tr "repo.switch_repository.search"}}">
+									</div>
+								</div>
+							</div>
+						</div>
+					{{end}}
 				</div>
 				<div class="flex-text-block tw-flex-wrap">
 					{{if .IsArchived}}
