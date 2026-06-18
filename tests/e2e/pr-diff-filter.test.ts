@@ -14,7 +14,7 @@ test('diff sidebar filtering', async ({page, request}) => {
     {path: 'styles/x.css', content: 'x\n'},
     {path: 'docs/intro.md', content: 'r\n'},
     {path: 'Makefile', content: 'm\n'},
-  ], {branch: 'main', newBranch: 'feat'});
+  ], {branch: 'main', newBranch: 'feat', headers});
   const prIndex = await apiCreatePR(request, user, repo, 'feat', 'main', 'diff filter test', {headers});
 
   await loginUser(page, user);

@@ -88,7 +88,7 @@ export function getDiffTreeExtensionStats(store: Reactive<DiffFileTree>): DiffEx
   const extensionMap = new Map<string, number>();
   for (const entry of Object.values(store.fullNameMap)) {
     if (entry.EntryMode === 'tree' || !entry.FullName) continue;
-    const ext = extname(entry.FullName);
+    const ext = extname(entry.FullName).toLowerCase();
     extensionMap.set(ext, (extensionMap.get(ext) ?? 0) + 1);
   }
   return Array.from(extensionMap.entries(), ([ext, count]) => ({ext, count}))
@@ -105,7 +105,7 @@ function buildFilter(store: Reactive<DiffFileTree>): DiffFilter | null {
   return (filename) => {
     if (!filename) return false;
     if (query && !filename.toLowerCase().includes(query)) return false;
-    if (exts && !exts.has(extname(filename))) return false;
+    if (exts && !exts.has(extname(filename).toLowerCase())) return false;
     return true;
   };
 }

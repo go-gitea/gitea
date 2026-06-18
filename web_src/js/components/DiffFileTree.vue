@@ -94,6 +94,7 @@ function updateState(visible: boolean) {
           v-model="store.filenameFilterQuery"
           class="diff-file-search-input"
           :placeholder="filterFilesPlaceholder"
+          :aria-label="filterFilesPlaceholder"
         >
         <button
           v-if="store.filenameFilterQuery"

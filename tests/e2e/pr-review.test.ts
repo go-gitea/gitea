@@ -8,7 +8,7 @@ test('pr review flow', async ({page, request}) => {
   const posterHeaders = apiUserHeaders(poster);
   const repoName = `e2e-prreview-${randomString(8)}`;
   await apiCreateRepo(request, {name: repoName, headers: posterHeaders});
-  await apiCreateFiles(request, poster, repoName, [{path: 'added.txt', content: 'new content\n'}], {branch: 'main', newBranch: 'feat'});
+  await apiCreateFiles(request, poster, repoName, [{path: 'added.txt', content: 'new content\n'}], {branch: 'main', newBranch: 'feat', headers: posterHeaders});
   const prIndex = await apiCreatePR(request, poster, repoName, 'feat', 'main', 'review test', {headers: posterHeaders});
 
   // reviewer seeds an inline comment via API so the poster's UI reply exercises the reply-to-review path (#35994)

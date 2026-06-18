@@ -87,3 +87,18 @@ test('getDiffTreeExtensionStats counts every file in the diff tree', () => {
     {ext: '.ts', count: 1},
   ]);
 });
+
+test('extension filtering is case-insensitive', () => {
+  const store = makeStore([
+    file('a.ts'),
+    file('b.TS'),
+    file('c.Ts'),
+  ]);
+  // mixed-case extensions collapse into one normalized bucket
+  expect(getDiffTreeExtensionStats(store)).toEqual([
+    {ext: '.ts', count: 3},
+  ]);
+
+  store.activeExtensions = ['.ts'];
+  expect(visibleNames(filterDiffTree(store))).toEqual(['a.ts', 'b.TS', 'c.Ts']);
+});
