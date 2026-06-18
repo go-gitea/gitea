@@ -1,16 +1,8 @@
-<div class="inline field tw-hidden ssh-help-field">
-	<label></label>
-	<span class="help">
-		<strong>{{ctx.Locale.Tr "repo.migrate.ssh_helper_title"}}:</strong> {{ctx.Locale.Tr "repo.migrate.ssh_helper_desc"}}
-		<a href="{{AppSubUrl}}/user/settings/keys" target="_blank">{{ctx.Locale.Tr "repo.migrate.ssh_helper_link"}}</a>
-	</span>
-</div>
 <div class="inline field ssh-key-fingerprint-only tw-hidden">
 	<label>{{ctx.Locale.Tr "repo.migrate.ssh_key_owner_label"}}</label>
 	<div class="inline-right">
 		<span class="ssh-key-label">{{ctx.Locale.Tr "repo.migrate.ssh_key_owner_personal" .SignedUser.Name}}</span>
 		<code class="ssh-key-fingerprint">{{.SignedUserSSHFingerprint}}</code>
-		<a href="{{AppSubUrl}}/user/settings/keys" target="_blank">{{ctx.Locale.Tr "repo.migrate.ssh_key_manage_link"}}</a>
 	</div>
 </div>
 <div class="inline field ssh-key-owner-selector tw-hidden"
@@ -35,7 +27,10 @@
 			</div>
 		</div>
 	</div>
+</div>
+<div class="inline field tw-hidden ssh-help-field">
 	<span class="help">
+		<strong>{{ctx.Locale.Tr "repo.migrate.ssh_helper_title"}}:</strong> {{ctx.Locale.Tr "repo.migrate.ssh_helper_desc"}}
 		<a class="js-ssh-keys-link" href="{{AppSubUrl}}/user/settings/keys" target="_blank">{{ctx.Locale.Tr "repo.migrate.ssh_key_manage_link"}}</a>
 	</span>
 </div>

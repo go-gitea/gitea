@@ -116,7 +116,7 @@ function initSSHKeyOwnerSelector(cloneAddrInput: HTMLInputElement) {
   const ownerKeysURLs: Record<string, string> = JSON.parse(selector.getAttribute('data-owner-keys-links') || '{}');
   const personalKeysURL = selector.getAttribute('data-personal-keys-link') ?? '';
   const orgDefaultFingerprintEl = selector.querySelector<HTMLElement>('.menu .item[data-value="0"] .item-fingerprint');
-  const keysLink = selector.querySelector<HTMLAnchorElement>('.js-ssh-keys-link');
+  const keysLink = document.querySelector<HTMLAnchorElement>('.js-ssh-keys-link');
 
   function update() {
     const isSSH = isSSHURL(cloneAddrInput.value.trim());
@@ -134,6 +134,7 @@ function initSSHKeyOwnerSelector(cloneAddrInput: HTMLInputElement) {
       hideElem(selector!);
       if (fingerprintOnly) showElem(fingerprintOnly);
       hiddenId!.value = '0';
+      if (keysLink) keysLink.href = personalKeysURL;
       return;
     }
 

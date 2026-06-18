@@ -1122,7 +1122,6 @@
   "repo.migrate.ssh_not_supported_for_forge": "SSH clone URLs are only supported for the plain Git migration. To use SSH against this forge, switch to the Git service.",
   "repo.migrate.ssh_helper_title": "SSH URLs",
   "repo.migrate.ssh_helper_desc": "Upload your SSH mirror keys to the remote SSH server for authentication.",
-  "repo.migrate.ssh_helper_link": "View your SSH keys (if migrating to an organization, you may need to upload the organization's SSH keys).",
   "repo.migrate.ssh_key_owner_label": "Authenticate with",
   "repo.migrate.ssh_key_owner_org_default": "This organization's managed SSH key (default)",
   "repo.migrate.ssh_key_owner_personal": "Your personal managed SSH key (%s)",
