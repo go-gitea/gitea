@@ -13,7 +13,7 @@ import (
 
 func TestAddRunJobRunIDJobIDIndex(t *testing.T) {
 	type ActionRunJob struct {
-		ID    int64  `xorm:"pk autoincr"`
+		ID    int64 `xorm:"pk autoincr"`
 		RunID int64
 		JobID string `xorm:"VARCHAR(255)"`
 	}
