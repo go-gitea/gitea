@@ -40,4 +40,14 @@ func TestNaturalSortLess(t *testing.T) {
 
 	testLess("A-2", "A-11")
 	testLess("0.txt", "1.txt")
+
+	// leading zeros must not inflate the numeric magnitude
+	testLess("file0001", "file2")
+	testLess("0001", "2")
+	testLess("a08", "a9")
+	testLess("v1.0001", "v1.2")
+	testLess("0", "00") // equal magnitude, fewer leading zeros sorts first
+	testLess("0", "1")
+	testLess("00", "1")
+	testLess("file1", "file01") // equal magnitude, fewer leading zeros sorts first
 }
