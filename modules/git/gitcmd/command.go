@@ -246,14 +246,18 @@ type runOpts struct {
 	// The correct approach is to use `--git-dir" global argument
 	Dir string
 
-	// SSHAuthSock is the path to an SSH agent socket for authentication
-	// If provided, SSH_AUTH_SOCK environment variable will be set
-	SSHAuthSock string
-
-	// SSHIdentityFile is the managed public key file used to pin ssh authentication
-	SSHIdentityFile string
+	// SSHAuth carries the managed SSH authentication context. When AuthSock is
+	// set, SSH_AUTH_SOCK and GIT_SSH_COMMAND are configured for the command.
+	SSHAuth SSHAuth
 
 	PipelineFunc func(Context) error
+}
+
+// SSHAuth bundles the managed SSH authentication context: the agent socket that
+// serves the private key and the public key file used to pin authentication.
+type SSHAuth struct {
+	AuthSock     string
+	IdentityFile string
 }
 
 func commonBaseEnvs() []string {
@@ -311,13 +315,8 @@ func (c *Command) WithTimeout(timeout time.Duration) *Command {
 	return c
 }
 
-func (c *Command) WithSSHAuthSock(sshAuthSock string) *Command {
-	c.opts.SSHAuthSock = sshAuthSock
-	return c
-}
-
-func (c *Command) WithSSHIdentityFile(identityFile string) *Command {
-	c.opts.SSHIdentityFile = identityFile
+func (c *Command) WithSSHAuth(sshAuth SSHAuth) *Command {
+	c.opts.SSHAuth = sshAuth
 	return c
 }
 
@@ -489,9 +488,9 @@ func (c *Command) Start(ctx context.Context) (retErr error) {
 	process.SetSysProcAttribute(c.cmd)
 	c.cmd.Env = append(c.cmd.Env, CommonGitCmdEnvs()...)
 
-	if c.opts.SSHAuthSock != "" {
-		c.cmd.Env = append(c.cmd.Env, "SSH_AUTH_SOCK="+c.opts.SSHAuthSock)
-		c.cmd.Env = append(c.cmd.Env, "GIT_SSH_COMMAND="+managedSSHCommand(c.opts.SSHIdentityFile))
+	if c.opts.SSHAuth.AuthSock != "" {
+		c.cmd.Env = append(c.cmd.Env, "SSH_AUTH_SOCK="+c.opts.SSHAuth.AuthSock)
+		c.cmd.Env = append(c.cmd.Env, "GIT_SSH_COMMAND="+managedSSHCommand(c.opts.SSHAuth.IdentityFile))
 	}
 
 	c.cmd.Dir = c.opts.Dir

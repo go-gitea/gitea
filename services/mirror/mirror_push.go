@@ -170,14 +170,13 @@ func runPushSync(ctx context.Context, m *repo_model.PushMirror) error {
 		}
 
 		// Setup SSH authentication
-		sshAuthSock, sshIdentityFile, cleanup, err := ssh_module.SetupManagedSSHAgent(ctx, repo, remoteURL.String(), 0)
+		sshAuth, cleanup, err := ssh_module.SetupManagedSSHAgent(ctx, repo, remoteURL.String(), 0)
 		if err != nil {
 			log.Error("Failed to set up SSH agent for push mirror %s: %v", repo.FullName(), err)
 			return util.SanitizeErrorCredentialURLs(err)
 		}
 		defer cleanup()
-		pushOpts.SSHAuthSock = sshAuthSock
-		pushOpts.SSHIdentityFile = sshIdentityFile
+		pushOpts.SSHAuth = sshAuth
 
 		if err := gitrepo.PushToExternal(ctx, storageRepo, pushOpts); err != nil {
 			log.Error("Error pushing %s mirror[%d] remote %s: %v", storageRepo.RelativePath(), m.ID, m.RemoteName, err)
