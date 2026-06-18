@@ -34,12 +34,10 @@
 								</div>
 								<div class="item-trailing">
 									{{if and $.IsOrganizationOwner (not (and ($.Team.IsOwnerTeam) (eq (len $.Team.Members) 1)))}}
-										<form>
-											<button class="ui red button delete-button" data-modal-id="remove-team-member"
-												data-url="{{$.OrgLink}}/teams/{{$.Team.LowerName | PathEscape}}/action/remove" data-datauid="{{.ID}}"
-												data-name="{{.DisplayName}}"
-												data-data-team-name="{{$.Team.Name}}">{{ctx.Locale.Tr "org.members.remove"}}</button>
-										</form>
+										<button class="ui red button show-modal" data-modal="#remove-team-member"
+											data-modal-form.action="{{$.OrgLink}}/teams/{{$.Team.LowerName | PathEscape}}/action/remove?uid={{.ID}}"
+											data-modal-name="{{.DisplayName}}"
+											data-modal-team-name="{{$.Team.Name}}">{{ctx.Locale.Tr "org.members.remove"}}</button>
 									{{end}}
 								</div>
 							</div>
@@ -74,13 +72,13 @@
 		</div>
 	</div>
 </div>
-<div class="ui g-modal-confirm delete modal" id="remove-team-member">
+<form class="ui small modal form-fetch-action" method="post" id="remove-team-member">
 	<div class="header">
 		{{ctx.Locale.Tr "org.members.remove"}}
 	</div>
 	<div class="content">
-		<p>{{ctx.Locale.Tr "org.members.remove.detail" (HTMLFormat `<span class="%s"></span>` "name") (HTMLFormat `<span class="%s"></span>` "dataTeamName")}}</p>
+		<p>{{ctx.Locale.Tr "org.members.remove.detail" (HTMLFormat `<span class="%s"></span>` "name") (HTMLFormat `<span class="%s"></span>` "team-name")}}</p>
 	</div>
 	{{template "base/modal_actions_confirm" .}}
-</div>
+</form>
 {{template "base/footer" .}}
