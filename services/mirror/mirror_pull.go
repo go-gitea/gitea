@@ -25,7 +25,6 @@ import (
 	"gitea.dev/modules/setting"
 	"gitea.dev/modules/timeutil"
 	"gitea.dev/modules/util"
-	"gitea.dev/services/migrations"
 	notify_service "gitea.dev/services/notify"
 	repo_service "gitea.dev/services/repository"
 )
@@ -173,8 +172,10 @@ func runSync(ctx context.Context, m *repo_model.Mirror) ([]*repo_module.SyncResu
 	if m.LFS && setting.LFS.StartServer {
 		log.Trace("SyncMirrors [repo: %-v]: syncing LFS objects...", m.Repo)
 		endpoint := lfs.DetermineEndpoint(remoteURL.String(), m.LFSEndpoint)
-		lfsClient := lfs.NewClient(endpoint, migrations.NewMigrationHTTPTransport())
-		if err = repo_module.StoreMissingLfsObjectsInRepository(ctx, m.Repo, gitRepo, lfsClient); err != nil {
+		lfsClient, err := newLFSClient(endpoint)
+		if err != nil {
+			log.Error("SyncMirrors [repo: %-v]: failed to determine LFS endpoint: %v", m.Repo.FullName(), err)
+		} else if err = repo_module.StoreMissingLfsObjectsInRepository(ctx, m.Repo, gitRepo, lfsClient); err != nil {
 			log.Error("SyncMirrors [repo: %-v]: failed to synchronize LFS objects for repository: %v", m.Repo.FullName(), err)
 		}
 	}

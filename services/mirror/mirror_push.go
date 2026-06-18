@@ -8,6 +8,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"net/url"
 	"regexp"
 	"time"
 
@@ -28,6 +29,13 @@ import (
 )
 
 var stripExitStatus = regexp.MustCompile(`exit status \d+ - `)
+
+func newLFSClient(endpoint *url.URL) (lfs.Client, error) {
+	if endpoint == nil {
+		return nil, errors.New("the LFS endpoint is not valid")
+	}
+	return lfs.NewClient(endpoint, migrations.NewMigrationHTTPTransport()), nil
+}
 
 // AddPushMirrorRemote registers the push mirror remote.
 func AddPushMirrorRemote(ctx context.Context, m *repo_model.PushMirror, addr string) error {
@@ -145,7 +153,10 @@ func runPushSync(ctx context.Context, m *repo_model.PushMirror) error {
 			defer gitRepo.Close()
 
 			endpoint := lfs.DetermineEndpoint(remoteURL.String(), "")
-			lfsClient := lfs.NewClient(endpoint, migrations.NewMigrationHTTPTransport())
+			lfsClient, err := newLFSClient(endpoint)
+			if err != nil {
+				return err
+			}
 			if err := pushAllLFSObjects(ctx, gitRepo, lfsClient); err != nil {
 				return util.SanitizeErrorCredentialURLs(err)
 			}

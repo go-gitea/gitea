@@ -4,9 +4,11 @@
 package mirror
 
 import (
+	"net/url"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func Test_checkRecoverableSyncError(t *testing.T) {
@@ -35,4 +37,18 @@ func Test_checkRecoverableSyncError(t *testing.T) {
 	for _, c := range cases {
 		assert.Equal(t, c.recoverable, checkRecoverableSyncError(c.message), "test case: %s", c.message)
 	}
+}
+
+func Test_newLFSClient(t *testing.T) {
+	client, err := newLFSClient(nil)
+	require.Error(t, err)
+	assert.Nil(t, client)
+	assert.EqualError(t, err, "the LFS endpoint is not valid")
+
+	endpoint, err := url.Parse("https://example.com/repo.git/info/lfs")
+	require.NoError(t, err)
+
+	client, err = newLFSClient(endpoint)
+	require.NoError(t, err)
+	assert.NotNil(t, client)
 }
