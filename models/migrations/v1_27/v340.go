@@ -47,3 +47,12 @@ func AddActionEnvironmentTables(x db.EngineMigration) error {
 		new(ActionEnvironmentVariable),
 	)
 }
+
+// AddEnvironmentNameToActionRunJob adds environment_name column to action_run_job
+// to track the deployment environment a job targets.
+func AddEnvironmentNameToActionRunJob(x db.EngineMigration) error {
+	type ActionRunJob struct {
+		EnvironmentName string `xorm:"VARCHAR(255) NOT NULL DEFAULT ''"`
+	}
+	return x.Sync(new(ActionRunJob))
+}
