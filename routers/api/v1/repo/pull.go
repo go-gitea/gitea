@@ -1146,8 +1146,16 @@ func parseCompareInfo(ctx *context.APIContext, compareParam string) (result *git
 		return nil, nil
 	}
 
-	baseRef := common.ResolveRefWithSuffix(ctx.Repo.GitRepo, util.IfZero(compareReq.BaseOriRef, baseRepo.GetPullRequestTargetBranch(ctx)), compareReq.BaseOriRefSuffix)
-	headRef := common.ResolveRefWithSuffix(headGitRepo, util.IfZero(compareReq.HeadOriRef, headRepo.DefaultBranch), compareReq.HeadOriRefSuffix)
+	baseRef, err := common.ResolveRefWithSuffix(ctx.Repo.GitRepo, util.IfZero(compareReq.BaseOriRef, baseRepo.GetPullRequestTargetBranch(ctx)), compareReq.BaseOriRefSuffix)
+	if err != nil {
+		ctx.APIErrorAuto(err)
+		return nil, nil
+	}
+	headRef, err := common.ResolveRefWithSuffix(headGitRepo, util.IfZero(compareReq.HeadOriRef, headRepo.DefaultBranch), compareReq.HeadOriRefSuffix)
+	if err != nil {
+		ctx.APIErrorAuto(err)
+		return nil, nil
+	}
 
 	log.Trace("Repo path: %q, base ref: %q->%q, head ref: %q->%q", ctx.Repo.Repository.RelativePath(), compareReq.BaseOriRef+compareReq.BaseOriRefSuffix, baseRef, compareReq.HeadOriRef+compareReq.HeadOriRefSuffix, headRef)
 

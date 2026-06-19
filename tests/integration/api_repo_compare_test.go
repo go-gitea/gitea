@@ -70,11 +70,13 @@ func TestAPICompareBranches(t *testing.T) {
 			assert.Equal(t, 1, apiResp.TotalCommits)
 			assert.Len(t, apiResp.Commits, 1)
 
-			// an unresolvable suffix is not found, and only ^/~ navigation is accepted (^{...} is rejected)
+			// a valid but unresolvable suffix is not found, while an unsupported suffix (^{...}) is a bad request
 			req = NewRequestf(t, "GET", "/api/v1/repos/user2/repo20/compare/add-csv...remove-files-b~50").AddTokenAuth(token2)
 			MakeRequest(t, req, http.StatusNotFound)
 			req = NewRequestf(t, "GET", "/api/v1/repos/user2/repo20/compare/add-csv...remove-files-b^{/Add}").AddTokenAuth(token2)
-			MakeRequest(t, req, http.StatusNotFound)
+			MakeRequest(t, req, http.StatusBadRequest)
+			req = NewRequestf(t, "GET", "/api/v1/repos/user2/repo20/compare/add-csv^{/Add}...remove-files-b").AddTokenAuth(token2)
+			MakeRequest(t, req, http.StatusBadRequest)
 		})
 
 		t.Run("CompareForkOnlyCommit", func(t *testing.T) {

@@ -81,11 +81,11 @@ func ParseCompareRouterParam(routerParam string) *CompareRouterReq {
 		sep = ".."
 		basePart, headPart, ok = strings.Cut(routerParam, sep)
 		if !ok {
-			headOwnerName, headRepoName, headRef := parseHead(routerParam)
-			headRef, headRefSuffix := git.ParseRefSuffix(headRef)
+			headOwnerName, headRepoName, headOriRef := parseHead(routerParam)
+			headOriRef, headOriRefSuffix := git.ParseRefSuffix(headOriRef)
 			return &CompareRouterReq{
-				HeadOriRef:       headRef,
-				HeadOriRefSuffix: headRefSuffix,
+				HeadOriRef:       headOriRef,
+				HeadOriRefSuffix: headOriRefSuffix,
 				HeadOwner:        headOwnerName,
 				HeadRepoName:     headRepoName,
 				CompareSeparator: "...",
@@ -104,20 +104,20 @@ func ParseCompareRouterParam(routerParam string) *CompareRouterReq {
 // ^{...}, @{...} and :path forms, which would let a reader probe object types or commit messages.
 var validRefSuffix = regexp.MustCompile(`^(?:[~^][0-9]*)+$`)
 
-// ResolveRefWithSuffix resolves oriRef plus an optional revision suffix (^, ~N) to a RefName,
-// returning the peeled commit ID for a suffix or an empty RefName when it can not be resolved.
-func ResolveRefWithSuffix(gitRepo *git.Repository, oriRef, refSuffix string) git.RefName {
+// ResolveRefWithSuffix resolves oriRef plus an optional revision suffix (^, ~N) to a RefName.
+// An unsupported suffix yields an invalid-argument error, and an unresolvable ref yields an empty RefName.
+func ResolveRefWithSuffix(gitRepo *git.Repository, oriRef, refSuffix string) (git.RefName, error) {
 	if refSuffix == "" {
-		return gitRepo.UnstableGuessRefByShortName(oriRef)
+		return gitRepo.UnstableGuessRefByShortName(oriRef), nil
 	}
 	if !validRefSuffix.MatchString(refSuffix) {
-		return ""
+		return "", util.NewInvalidArgumentErrorf("unsupported ref suffix %q", refSuffix)
 	}
 	commit, err := gitRepo.GetCommit(oriRef + refSuffix)
 	if err != nil {
-		return ""
+		return "", nil
 	}
-	return git.RefNameFromCommit(commit.ID.String())
+	return git.RefNameFromCommit(commit.ID.String()), nil
 }
 
 // maxForkTraverseLevel defines the maximum levels to traverse when searching for the head repository.
