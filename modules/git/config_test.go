@@ -66,3 +66,14 @@ func TestSyncConfig(t *testing.T) {
 	assert.True(t, gitConfigContains("[sync-test]"))
 	assert.True(t, gitConfigContains("cfg-key-a = CfgValA"))
 }
+
+func TestSyncConfigUserOverridesBuiltin(t *testing.T) {
+	oldGitConfig := setting.GitConfig
+	defer func() {
+		setting.GitConfig = oldGitConfig
+	}()
+
+	setting.GitConfig.Options["core.commitgraph"] = "false"
+	assert.NoError(t, syncGitConfig(t.Context()))
+	assert.True(t, gitConfigContains("commitgraph = false"))
+}
