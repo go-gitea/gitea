@@ -51,8 +51,7 @@ export function isGiteaError(filename: string, stack: string): boolean {
   if (extensionRe.test(filename) || extensionRe.test(stack)) return false;
   const assetBaseUrl = new URL(`${window.config.assetUrlPrefix}/`, window.location.origin).href;
   if (filename && !filename.startsWith(assetBaseUrl) && !filename.startsWith(window.location.origin)) return false;
-  if (stack && !stack.includes(assetBaseUrl)) return false;
-  return true;
+  return !stack || stack.includes(assetBaseUrl);
 }
 
 export function processWindowErrorEvent({error, reason, message, type, filename, lineno, colno}: ErrorEvent & PromiseRejectionEvent) {
