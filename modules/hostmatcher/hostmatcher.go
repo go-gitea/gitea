@@ -145,17 +145,21 @@ func (hl *HostMatchList) checkPattern(host string) bool {
 	return false
 }
 
-func (hl *HostMatchList) checkIP(ip net.IP) bool {
+// matchesIP determines if the given IP matches any of the configured rules
+func (hl *HostMatchList) matchesIP(ip net.IP) bool {
 	if slices.Contains(hl.patterns, "*") {
 		return true
 	}
 	for _, builtin := range hl.builtins {
 		switch builtin {
 		case MatchBuiltinExternal:
+			// External address must be a global unicast, must not be in reserved range and must not be in private range
 			if ip.IsGlobalUnicast() && !isReservedIP(ip) && !ip.IsPrivate() {
 				return true
 			}
 		case MatchBuiltinPrivate:
+			// Private address must be global unicast, must not be in range we explicitly exclude for security reasons
+			// and must be in private range
 			if ip.IsGlobalUnicast() && !isReservedIP(ip) && ip.IsPrivate() {
 				return true
 			}
@@ -187,7 +191,7 @@ func (hl *HostMatchList) MatchHostName(host string) bool {
 		return true
 	}
 	if ip := net.ParseIP(hostname); ip != nil {
-		return hl.checkIP(ip)
+		return hl.matchesIP(ip)
 	}
 	return false
 }
@@ -198,7 +202,7 @@ func (hl *HostMatchList) MatchIPAddr(ip net.IP) bool {
 		return false
 	}
 	host := ip.String() // nil-safe, we will get "<nil>" if ip is nil
-	return hl.checkPattern(host) || hl.checkIP(ip)
+	return hl.checkPattern(host) || hl.matchesIP(ip)
 }
 
 // MatchHostOrIP checks if the host or IP matches an allow/deny(block) list
