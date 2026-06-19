@@ -227,10 +227,6 @@ func makeTaskStepDisplayName(step *jobparser.Step, limit int) (name string) {
 	return util.EllipsisDisplayString(name, limit) // database column has a length limit
 }
 
-// maxWaitingJobsScan bounds how many waiting jobs a single FetchTask considers
-// for label matching, keeping the assignment query cheap under a large backlog.
-const maxWaitingJobsScan = 100
-
 func CreateTaskForRunner(ctx context.Context, runner *ActionRunner) (*ActionTask, bool, error) {
 	ctx, committer, err := db.TxContext(ctx)
 	if err != nil {
@@ -252,30 +248,90 @@ func CreateTaskForRunner(ctx context.Context, runner *ActionRunner) (*ActionTask
 		jobCond = builder.In("run_id", builder.Select("id").From("action_run").Where(jobCond))
 	}
 
-	var jobs []*ActionRunJob
-	// Bound the scan so an accumulating backlog doesn't make every poll load all
-	// waiting jobs (which would feed back into more load). Oldest-first ordering means
-	// a label-matchable job behind maxWaitingJobsScan non-matching older jobs may be
-	// skipped this round, but it will be reconsidered on the next poll.
-	if err := e.Where("task_id=? AND status=? AND is_reusable_caller=?", 0, StatusWaiting, false).And(jobCond).Asc("updated", "id").Limit(maxWaitingJobsScan).Find(&jobs); err != nil {
-		return nil, false, err
-	}
-
-	// TODO: a more efficient way to filter labels
-	var job *ActionRunJob
+	// Pick the oldest waiting job the runner's labels can run and prepare a task for
+	// it. Label matching is pushed into SQL via the normalized action_run_job_label
+	// table (runner labels must cover every required label), so the query stays
+	// O(1 row) regardless of backlog size and never skips a matchable job behind an
+	// unmatchable head.
+	//
+	// A job that can't be prepared — its run was deleted out from under it (#37586)
+	// or its payload won't parse — is marked failed so it leaves the queue instead of
+	// stalling every runner's poll, and the next candidate is tried. The attempt
+	// bound keeps a single poll from clearing an unbounded backlog of such jobs.
 	log.Trace("runner labels: %v", runner.AgentLabels)
-	for _, v := range jobs {
-		if runner.CanMatchLabels(v.RunsOn) {
-			job = v
+	matchCond := runnerMatchableJobCond(runner.AgentLabels)
+	for range maxTaskPickAttempts {
+		job := new(ActionRunJob)
+		has, err := e.Where(builder.Eq{"task_id": 0, "status": StatusWaiting, "is_reusable_caller": false}).
+			And(jobCond).
+			And(matchCond).
+			Asc("updated", "id").
+			Limit(1).
+			Get(job)
+		if err != nil {
+			return nil, false, err
+		}
+		if !has {
 			break
 		}
+
+		if err := job.LoadAttributes(ctx); err != nil {
+			if !errors.Is(err, util.ErrNotExist) {
+				return nil, false, err
+			}
+			// The run no longer exists (#37586); fail the orphaned job and move on.
+			log.Warn("fail unpreparable action job %d (run %d): %v", job.ID, job.RunID, err)
+			if err := failUnpreparableJob(ctx, job); err != nil {
+				return nil, false, err
+			}
+			continue
+		}
+
+		workflowJob, err := job.ParseJob()
+		if err != nil {
+			// A job that never parses would otherwise stall the queue forever.
+			log.Warn("fail unparsable action job %d: %v", job.ID, err)
+			if err := failUnpreparableJob(ctx, job); err != nil {
+				return nil, false, err
+			}
+			continue
+		}
+
+		task, claimed, err := assignJobToRunner(ctx, runner, job, workflowJob)
+		if err != nil {
+			return nil, false, err
+		}
+		if !claimed {
+			// Another runner claimed this job between the select and the CAS. The task
+			// and steps inserted by assignJobToRunner are discarded by the rollback; the
+			// runner retries on its next poll.
+			return nil, false, nil
+		}
+
+		if err := committer.Commit(); err != nil {
+			return nil, false, err
+		}
+		return task, true, nil
 	}
-	if job == nil {
-		return nil, false, nil
-	}
-	if err := job.LoadAttributes(ctx); err != nil {
+
+	// No assignable job (or we only found unpreparable ones); commit so any
+	// fail-markings above persist, then report no task.
+	if err := committer.Commit(); err != nil {
 		return nil, false, err
 	}
+	return nil, false, nil
+}
+
+// maxTaskPickAttempts bounds how many candidate jobs a single assignment will
+// skip past (failing unpreparable ones) before giving up for this poll.
+const maxTaskPickAttempts = 10
+
+// assignJobToRunner creates the task (and its steps) for job and claims the job
+// for the runner via a task_id compare-and-swap. claimed is false when another
+// runner won the job first; the caller must then roll back the transaction to
+// discard the speculatively inserted task.
+func assignJobToRunner(ctx context.Context, runner *ActionRunner, job *ActionRunJob, workflowJob *jobparser.Job) (*ActionTask, bool, error) {
+	e := db.GetEngine(ctx)
 
 	now := timeutil.TimeStampNow()
 	job.Started = now
@@ -293,11 +349,6 @@ func CreateTaskForRunner(ctx context.Context, runner *ActionRunner) (*ActionTask
 		IsForkPullRequest: job.IsForkPullRequest,
 	}
 	task.GenerateAndFillToken()
-
-	workflowJob, err := job.ParseJob()
-	if err != nil {
-		return nil, false, fmt.Errorf("load job %d: %w", job.ID, err)
-	}
 
 	if _, err := e.Insert(task); err != nil {
 		return nil, false, err
@@ -333,12 +384,21 @@ func CreateTaskForRunner(ctx context.Context, runner *ActionRunner) (*ActionTask
 	}
 
 	task.Job = job
-
-	if err := committer.Commit(); err != nil {
-		return nil, false, err
-	}
-
 	return task, true, nil
+}
+
+// failUnpreparableJob marks a waiting job failed with a direct row update,
+// bypassing run/attempt aggregation: the run may have been deleted (#37586), in
+// which case aggregation can't run, and the only goal is to get the job out of the
+// waiting queue so it stops stalling task assignment. The CAS guards against a
+// concurrent claim. If the run still exists its status self-heals when sibling
+// jobs finish and aggregate this one.
+func failUnpreparableJob(ctx context.Context, job *ActionRunJob) error {
+	_, err := db.GetEngine(ctx).
+		Where(builder.Eq{"id": job.ID, "task_id": 0, "status": StatusWaiting}).
+		Cols("status", "stopped").
+		Update(&ActionRunJob{Status: StatusFailure, Stopped: timeutil.TimeStampNow()})
+	return err
 }
 
 func UpdateTask(ctx context.Context, task *ActionTask, cols ...string) error {

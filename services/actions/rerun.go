@@ -288,7 +288,7 @@ func execRerunPlan(ctx context.Context, plan *rerunPlan) (*actions_model.ActionR
 				newJob.Stopped = util.Iif(isAncestor, 0, templateJob.Stopped)
 			}
 
-			if err := db.Insert(ctx, newJob); err != nil {
+			if err := actions_model.InsertActionRunJob(ctx, newJob); err != nil {
 				return err
 			}
 			templateIDToNewID[templateJob.ID] = newJob.ID

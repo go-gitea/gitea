@@ -9,7 +9,6 @@ import (
 	"strings"
 
 	actions_model "gitea.dev/models/actions"
-	"gitea.dev/models/db"
 	perm_model "gitea.dev/models/perm"
 	access_model "gitea.dev/models/perm/access"
 	repo_model "gitea.dev/models/repo"
@@ -337,7 +336,7 @@ func insertCallerChildren(ctx context.Context, run *actions_model.ActionRun, att
 			child.IsReusableCaller = true
 			child.CallUses = parsedChild.Uses
 		}
-		if err := db.Insert(ctx, child); err != nil {
+		if err := actions_model.InsertActionRunJob(ctx, child); err != nil {
 			return fmt.Errorf("insert child %q under caller %d: %w", jobID, caller.ID, err)
 		}
 	}
