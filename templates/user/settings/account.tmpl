@@ -56,7 +56,7 @@
 							</div>
 							<div class="flex-text-block">
 							{{if not .IsPrimary}}
-								<button class="ui red tiny button delete-button" data-modal-id="delete-email" data-url="{{AppSubUrl}}/user/settings/account/email/delete" data-id="{{.ID}}">
+								<button class="ui red tiny button link-action" data-modal-confirm="#delete-email" data-url="{{AppSubUrl}}/user/settings/account/email/delete?id={{.ID}}">
 									{{ctx.Locale.Tr "settings.delete_email"}}
 								</button>
 								{{if .CanBePrimary}}
@@ -115,19 +115,19 @@
 				<p class="text left tw-font-semibold">{{ctx.Locale.Tr "settings.delete_with_all_comments" .UserDeleteWithCommentsMaxTime}}</p>
 				{{end}}
 			</div>
-			<form class="ui form ignore-dirty" id="delete-form" action="{{AppSubUrl}}/user/settings/account/delete" method="post">
+			<form class="ui form ignore-dirty form-fetch-action" action="{{AppSubUrl}}/user/settings/account/delete" method="post">
 				{{template "base/disable_form_autofill"}}
 				<div class="required field {{if .Err_Password}}error{{end}}">
 					<label for="password-confirmation">{{ctx.Locale.Tr "password"}}</label>
 					<input id="password-confirmation" name="password" type="password" autocomplete="off" required>
 				</div>
 				<div class="field">
-					<button class="ui red button delete-button" data-modal-id="delete-account" data-type="form" data-form="#delete-form">
+					<button class="ui red button" data-modal-confirm="#delete-account">
 						{{ctx.Locale.Tr "settings.confirm_delete_account"}}
 					</button>
 				</div>
 			</form>
-			<div class="ui g-modal-confirm delete modal" id="delete-account">
+			<div class="ui small modal" id="delete-account">
 				<div class="header">
 					{{svg "octicon-trash"}}
 					{{ctx.Locale.Tr "settings.delete_account_title"}}
@@ -141,7 +141,7 @@
 		{{end}}
 	</div>
 
-<div class="ui g-modal-confirm delete modal" id="delete-email">
+<div class="ui small modal" id="delete-email">
 	<div class="header">
 		{{svg "octicon-trash"}}
 		{{ctx.Locale.Tr "settings.email_deletion"}}
