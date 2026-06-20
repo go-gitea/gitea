@@ -446,7 +446,7 @@ func GenKeyPair(keyPath string, keyType generate.SSHKeyType, bits int) error {
 // key naming does not follow the OpenSSH convention due to existing settings being gitea.{KeyType} so generation follows gitea convention
 func InitDefaultHostKeys(path string) (keyFiles []string, _ error) {
 	var errs []error
-	keyTypes := []generate.SSHKeyType{generate.SSHKeyRSA, generate.SSHKeyECDSA, generate.SSHKeyED25519}
+	keyTypes := []generate.SSHKeyType{generate.SSHKeyED25519, generate.SSHKeyRSA, generate.SSHKeyECDSA}
 	for _, keyType := range keyTypes {
 		keyPath := filepath.Join(path, "gitea."+string(keyType))
 		_, errStatPriv := os.Stat(keyPath)
