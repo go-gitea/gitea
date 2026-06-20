@@ -135,6 +135,43 @@ func TestCompareBranches(t *testing.T) {
 	inspectCompare(t, htmlDoc, diffCount, diffChanges)
 }
 
+func TestCompareWithRefSuffix(t *testing.T) {
+	defer tests.PrepareTestEnv(t)()
+
+	session := loginUser(t, "user2")
+
+	// remove-files-b^ resolves to the tip's parent, so the test.txt added by the tip is excluded
+	req := NewRequest(t, "GET", "/user2/repo20/compare/add-csv...remove-files-b^")
+	resp := session.MakeRequest(t, req, http.StatusOK)
+	htmlDoc := NewHTMLParser(t, resp.Body)
+	inspectCompare(t, htmlDoc, 2, []string{"link_hi", "test.csv"})
+
+	// a suffix resolves to a commit rather than a branch, so the page offers no pull request to create
+	assert.Equal(t, 0, htmlDoc.doc.Find(".pullrequest-form").Length())
+
+	// the same suffix on the direct ".." comparison resolves to the same commit
+	req = NewRequest(t, "GET", "/user2/repo20/compare/add-csv..remove-files-b^")
+	resp = session.MakeRequest(t, req, http.StatusOK)
+	htmlDoc = NewHTMLParser(t, resp.Body)
+	inspectCompare(t, htmlDoc, 2, []string{"link_hi", "test.csv"})
+
+	// a ~N suffix on the base side resolves and renders the compare page
+	req = NewRequest(t, "GET", "/user2/repo20/compare/add-csv~1...remove-files-b")
+	resp = session.MakeRequest(t, req, http.StatusOK)
+	assert.True(t, test.IsNormalPageCompleted(resp.Body.String()))
+
+	// the web handler folds an unsupported (^{...}) and an unresolvable (~50) suffix alike into 404
+	for _, basehead := range []string{
+		"add-csv...remove-files-b~50",
+		"add-csv...remove-files-b^{/Add}",
+		"add-csv^{/Add}...remove-files-b",
+	} {
+		req = NewRequest(t, "GET", "/user2/repo20/compare/"+basehead).SetHeader("Accept", "text/html")
+		resp = session.MakeRequest(t, req, http.StatusNotFound)
+		assert.True(t, test.IsNormalPageCompleted(resp.Body.String()))
+	}
+}
+
 func TestCompareBranchesNoCommonMergeBase(t *testing.T) {
 	defer tests.PrepareTestEnv(t)()
 

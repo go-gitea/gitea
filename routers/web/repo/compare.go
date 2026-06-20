@@ -208,11 +208,6 @@ func (cpi *comparePageInfoType) parseCompareInfo(ctx *context.Context, comparePa
 	// 1 Parse compare router param
 	compareReq := common.ParseCompareRouterParam(compareParam)
 
-	// remove the check when the web compare page supports carets
-	if compareReq.BaseOriRefSuffix != "" || compareReq.HeadOriRefSuffix != "" {
-		return util.NewInvalidArgumentErrorf("unsupported comparison syntax: ref with suffix")
-	}
-
 	// 2 get repository and owner for head
 	headOwner, headRepo, err := common.GetHeadOwnerAndRepo(ctx, baseRepo, compareReq)
 	if err != nil {
@@ -241,7 +236,10 @@ func (cpi *comparePageInfoType) parseCompareInfo(ctx *context.Context, comparePa
 	baseRefName := util.IfZero(compareReq.BaseOriRef, baseRepo.GetPullRequestTargetBranch(ctx))
 	headRefName := util.IfZero(compareReq.HeadOriRef, headRepo.DefaultBranch)
 
-	baseRef := ctx.Repo.GitRepo.UnstableGuessRefByShortName(baseRefName)
+	baseRef, err := common.ResolveRefWithSuffix(ctx.Repo.GitRepo, baseRefName, compareReq.BaseOriRefSuffix)
+	if err != nil {
+		return err
+	}
 	if baseRef == "" {
 		return util.NewNotExistErrorf("no base ref: %s", baseRefName)
 	}
@@ -250,7 +248,10 @@ func (cpi *comparePageInfoType) parseCompareInfo(ctx *context.Context, comparePa
 		return err
 	}
 
-	headRef := headGitRepo.UnstableGuessRefByShortName(headRefName)
+	headRef, err := common.ResolveRefWithSuffix(headGitRepo, headRefName, compareReq.HeadOriRefSuffix)
+	if err != nil {
+		return err
+	}
 	if headRef == "" {
 		return util.NewNotExistErrorf("no head ref: %s", headRefName)
 	}
