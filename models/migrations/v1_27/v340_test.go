@@ -25,27 +25,18 @@ func Test_AddActionRunJobMatchingSchema(t *testing.T) {
 		Label string `xorm:"UNIQUE(job_label) INDEX VARCHAR(255) NOT NULL"`
 	}
 
-	const statusWaiting = 5
-	const statusRunning = 6
-	const statusBlocked = 7
+	// Fixture data (loaded from fixtures/Test_AddActionRunJobMatchingSchema/action_run_job.yml):
+	//   id=1 runs_on=["ubuntu-latest","self-hosted"] status=waiting  → backfilled (dedup of duplicate labels)
+	//   id=2 runs_on=["linux","linux"]               status=waiting  → backfilled (dedup)
+	//   id=3 runs_on=null                            status=waiting  → no rows (matches any runner)
+	//   id=4 runs_on=["macos"]                       status=running  → not backfilled (already assigned)
+	//   id=5 runs_on=["windows"]                     status=blocked  → backfilled (becomes waiting later)
 
 	x, deferable := migrationtest.PrepareTestEnv(t, 0, new(ActionRunJob))
 	defer deferable()
-
-	// waiting jobs: backfilled (with dedup of duplicate labels)
-	_, err := x.Insert(&ActionRunJob{ID: 1, RunsOn: []string{"ubuntu-latest", "self-hosted"}, Status: statusWaiting})
-	require.NoError(t, err)
-	_, err = x.Insert(&ActionRunJob{ID: 2, RunsOn: []string{"linux", "linux"}, Status: statusWaiting})
-	require.NoError(t, err)
-	// waiting job with empty runs_on: no rows (matches any runner)
-	_, err = x.Insert(&ActionRunJob{ID: 3, RunsOn: nil, Status: statusWaiting})
-	require.NoError(t, err)
-	// running job: not assigned again, so not backfilled
-	_, err = x.Insert(&ActionRunJob{ID: 4, RunsOn: []string{"macos"}, Status: statusRunning})
-	require.NoError(t, err)
-	// blocked job: becomes waiting once its needs complete, so it must be backfilled
-	_, err = x.Insert(&ActionRunJob{ID: 5, RunsOn: []string{"windows"}, Status: statusBlocked})
-	require.NoError(t, err)
+	if x == nil || t.Failed() {
+		return
+	}
 
 	require.NoError(t, AddActionRunJobMatchingSchema(x))
 

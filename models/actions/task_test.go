@@ -130,7 +130,7 @@ func TestCreateTaskForRunnerSkipsUnmatchableBacklog(t *testing.T) {
 
 	// A head of older jobs this runner can never match, queued ahead of the
 	// matchable job. The matchable job must not be starved behind them.
-	for i := 0; i < 5; i++ {
+	for range 5 {
 		newPickTestWaitingJob(t, run.ID, "unmatchable", []string{"macos-special"}, nil)
 	}
 	matchable := newPickTestWaitingJob(t, run.ID, "matchable", []string{"ubuntu-latest"}, pickTestPayload)
