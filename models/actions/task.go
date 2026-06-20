@@ -281,7 +281,7 @@ func CreateTaskForRunner(ctx context.Context, runner *ActionRunner) (*ActionTask
 			}
 			// The run no longer exists (#37586); fail the orphaned job and move on.
 			log.Warn("fail unpreparable action job %d (run %d): %v", job.ID, job.RunID, err)
-			if err := failUnpreparableJob(ctx, job); err != nil {
+			if err := failUnpreparableJob(ctx, job, false); err != nil {
 				return nil, false, err
 			}
 			continue
@@ -291,7 +291,7 @@ func CreateTaskForRunner(ctx context.Context, runner *ActionRunner) (*ActionTask
 		if err != nil {
 			// A job that never parses would otherwise stall the queue forever.
 			log.Warn("fail unparsable action job %d: %v", job.ID, err)
-			if err := failUnpreparableJob(ctx, job); err != nil {
+			if err := failUnpreparableJob(ctx, job, true); err != nil {
 				return nil, false, err
 			}
 			continue
@@ -302,10 +302,11 @@ func CreateTaskForRunner(ctx context.Context, runner *ActionRunner) (*ActionTask
 			return nil, false, err
 		}
 		if !claimed {
-			// Another runner claimed this job between the select and the CAS. The task
-			// and steps inserted by assignJobToRunner are discarded by the rollback; the
-			// runner retries on its next poll.
-			return nil, false, nil
+			// Another runner claimed this job between the select and the CAS;
+			// assignJobToRunner already discarded the speculative task it inserted. Try
+			// the next candidate rather than rolling back the whole transaction, so any
+			// fail-markings from earlier iterations are preserved.
+			continue
 		}
 
 		if err := committer.Commit(); err != nil {
@@ -380,6 +381,12 @@ func assignJobToRunner(ctx context.Context, runner *ActionRunner, job *ActionRun
 	if n, err := UpdateRunJob(ctx, job, builder.Eq{"task_id": 0}); err != nil {
 		return nil, false, err
 	} else if n != 1 {
+		// Another runner won the job between our select and this CAS. Discard the task
+		// and steps we speculatively inserted so the caller can continue to the next
+		// candidate without rolling back the surrounding transaction.
+		if err := deleteSpeculativeTask(ctx, task); err != nil {
+			return nil, false, err
+		}
 		return nil, false, nil
 	}
 
@@ -387,17 +394,38 @@ func assignJobToRunner(ctx context.Context, runner *ActionRunner, job *ActionRun
 	return task, true, nil
 }
 
-// failUnpreparableJob marks a waiting job failed with a direct row update,
-// bypassing run/attempt aggregation: the run may have been deleted (#37586), in
-// which case aggregation can't run, and the only goal is to get the job out of the
-// waiting queue so it stops stalling task assignment. The CAS guards against a
-// concurrent claim. If the run still exists its status self-heals when sibling
-// jobs finish and aggregate this one.
-func failUnpreparableJob(ctx context.Context, job *ActionRunJob) error {
+// deleteSpeculativeTask removes a task (and its steps) inserted while attempting to
+// claim a job whose task_id CAS then lost the race, so the surrounding transaction
+// can move on to the next candidate without leaking the task.
+func deleteSpeculativeTask(ctx context.Context, task *ActionTask) error {
+	e := db.GetEngine(ctx)
+	if _, err := e.Where("task_id = ?", task.ID).Delete(new(ActionTaskStep)); err != nil {
+		return err
+	}
+	_, err := e.ID(task.ID).Delete(new(ActionTask))
+	return err
+}
+
+// failUnpreparableJob marks a waiting job failed so it leaves the queue instead of
+// stalling task assignment for every runner. The CAS guards against a concurrent claim.
+//
+// When the run still exists (runExists) it goes through UpdateRunJob so the
+// attempt/run status re-aggregate to a terminal state, exactly as a normal job
+// failure would; otherwise a last/only failed job would strand its run forever.
+// When the run was deleted out from under the job (#37586, runExists=false),
+// aggregation can't run — it would fail loading the missing run/attempt — so it
+// falls back to a direct row update whose only goal is to clear the waiting queue.
+func failUnpreparableJob(ctx context.Context, job *ActionRunJob, runExists bool) error {
+	job.Status = StatusFailure
+	job.Stopped = timeutil.TimeStampNow()
+	if runExists {
+		_, err := UpdateRunJob(ctx, job, builder.Eq{"task_id": 0, "status": StatusWaiting}, "status", "stopped")
+		return err
+	}
 	_, err := db.GetEngine(ctx).
 		Where(builder.Eq{"id": job.ID, "task_id": 0, "status": StatusWaiting}).
 		Cols("status", "stopped").
-		Update(&ActionRunJob{Status: StatusFailure, Stopped: timeutil.TimeStampNow()})
+		Update(&ActionRunJob{Status: StatusFailure, Stopped: job.Stopped})
 	return err
 }
 

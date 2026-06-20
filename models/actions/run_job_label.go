@@ -42,17 +42,10 @@ func InsertActionRunJob(ctx context.Context, job *ActionRunJob) error {
 // same transaction as the job insert. runs_on is immutable after creation, so
 // labels never need updating afterwards.
 func InsertActionRunJobLabels(ctx context.Context, jobID int64, runsOn []string) error {
-	if len(runsOn) == 0 {
-		return nil
-	}
-	seen := make(container.Set[string], len(runsOn))
-	labels := make([]ActionRunJobLabel, 0, len(runsOn))
-	for _, label := range runsOn {
-		if label == "" || !seen.Add(label) {
-			continue
-		}
-		labels = append(labels, ActionRunJobLabel{JobID: jobID, Label: label})
-	}
+	// FilterSlice drops empty labels and deduplicates by label, so the UNIQUE(job_label) constraint holds.
+	labels := container.FilterSlice(runsOn, func(label string) (ActionRunJobLabel, bool) {
+		return ActionRunJobLabel{JobID: jobID, Label: label}, label != ""
+	})
 	if len(labels) == 0 {
 		return nil
 	}
@@ -69,9 +62,27 @@ func DeleteActionRunJobLabelsByRunID(ctx context.Context, repoID, runID int64) e
 	return err
 }
 
+// DeleteActionRunJobLabelsByRepoID removes label rows for every job of a repo.
+// Used on repo deletion, which deletes the jobs directly by repo_id and would
+// otherwise orphan their label rows. It must run before the jobs themselves are
+// deleted so the subquery can resolve.
+func DeleteActionRunJobLabelsByRepoID(ctx context.Context, repoID int64) error {
+	_, err := db.GetEngine(ctx).Where(
+		builder.In("job_id", builder.Select("id").From("action_run_job").
+			Where(builder.Eq{"repo_id": repoID})),
+	).Delete(new(ActionRunJobLabel))
+	return err
+}
+
 // runnerMatchableJobCond returns a condition selecting jobs the given runner
 // labels can run: jobs with no required label outside the runner's label set.
 // A runner without labels matches only jobs that require no label.
+//
+// Label comparison happens in SQL, so its case sensitivity follows the label
+// column's collation. This matches the case-sensitive Go comparison it replaces
+// (ActionRunner.CanMatchLabels) only on a case-sensitive collation, which is the
+// collation Gitea converges DBs to; a case-insensitive collation would match
+// labels that differ only in case.
 func runnerMatchableJobCond(runnerLabels []string) builder.Cond {
 	sub := builder.Expr("action_run_job_label.job_id = action_run_job.id")
 	if len(runnerLabels) > 0 {

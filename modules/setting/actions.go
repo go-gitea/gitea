@@ -33,7 +33,8 @@ var (
 		WorkflowDirs          []string          `ini:"WORKFLOW_DIRS"`
 		MaxRerunAttempts      int64             `ini:"MAX_RERUN_ATTEMPTS"`
 		// MaxConcurrentTaskPicks bounds how many runners may run the task-assignment
-		// transaction at once, to avoid a thundering herd when many runners poll together.
+		// transaction at once per Gitea instance, to avoid a thundering herd when many
+		// runners poll together. It is a per-process limit, not a cluster-wide one.
 		MaxConcurrentTaskPicks int `ini:"MAX_CONCURRENT_TASK_PICKS"`
 	}{
 		Enabled:                true,

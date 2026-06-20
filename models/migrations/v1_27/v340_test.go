@@ -25,17 +25,23 @@ func Test_AddActionRunJobMatchingSchema(t *testing.T) {
 		Label string `xorm:"UNIQUE(job_label) INDEX VARCHAR(255) NOT NULL"`
 	}
 
-	// Fixture data (loaded from fixtures/Test_AddActionRunJobMatchingSchema/action_run_job.yml):
-	//   id=1 runs_on=["ubuntu-latest","self-hosted"] status=waiting  → backfilled (dedup of duplicate labels)
-	//   id=2 runs_on=["linux","linux"]               status=waiting  → backfilled (dedup)
-	//   id=3 runs_on=null                            status=waiting  → no rows (matches any runner)
-	//   id=4 runs_on=["macos"]                       status=running  → not backfilled (already assigned)
-	//   id=5 runs_on=["windows"]                     status=blocked  → backfilled (becomes waiting later)
-
 	x, deferable := migrationtest.PrepareTestEnv(t, 0, new(ActionRunJob))
 	defer deferable()
 	if x == nil || t.Failed() {
 		return
+	}
+
+	// statusWaiting=5, statusRunning=6, statusBlocked=7. Seed directly because the
+	// migration package can't register the real ActionRunJob bean for YAML fixtures.
+	for _, job := range []ActionRunJob{
+		{ID: 1, RunsOn: []string{"ubuntu-latest", "self-hosted"}, Status: 5}, // backfilled
+		{ID: 2, RunsOn: []string{"linux", "linux"}, Status: 5},               // backfilled (dedup)
+		{ID: 3, RunsOn: nil, Status: 5},                                      // no rows (matches any runner)
+		{ID: 4, RunsOn: []string{"macos"}, Status: 6},                        // running, not backfilled
+		{ID: 5, RunsOn: []string{"windows"}, Status: 7},                      // blocked, becomes waiting later
+	} {
+		_, err := x.Insert(&job)
+		require.NoError(t, err)
 	}
 
 	require.NoError(t, AddActionRunJobMatchingSchema(x))
