@@ -8,6 +8,8 @@ import (
 	"testing"
 
 	activities_model "gitea.dev/models/activities"
+	issues_model "gitea.dev/models/issues"
+	project_model "gitea.dev/models/project"
 	repo_model "gitea.dev/models/repo"
 	"gitea.dev/models/unittest"
 	user_model "gitea.dev/models/user"
@@ -49,4 +51,33 @@ func TestRenameRepoAction(t *testing.T) {
 
 	unittest.AssertExistsAndLoadBean(t, actionBean)
 	unittest.CheckConsistencyFor(t, &activities_model.Action{})
+}
+
+// TestIssueChangeStatusByWorkflowDoerNoFeedEntry verifies that when a project
+// workflow (a virtual doer with ExtDoerData set) closes or reopens an issue,
+// NO feed action is created. Without the guard the feed would show "Ghost"
+// because the workflow doer's ID (-1) equals GhostUserID.
+func TestIssueChangeStatusByWorkflowDoerNoFeedEntry(t *testing.T) {
+	assert.NoError(t, unittest.PrepareTestDatabase())
+
+	issue := unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{ID: 1})
+	assert.NoError(t, issue.LoadRepo(t.Context()))
+
+	// Simulate the close comment that CloseIssue/ReopenIssue would create.
+	closeComment := &issues_model.Comment{
+		ID:      99999,
+		Type:    issues_model.CommentTypeClose,
+		IssueID: issue.ID,
+	}
+
+	workflowDoer := issues_model.NewProjectWorkflowDoer("My Project", 1, project_model.WorkflowEventItemClosed)
+
+	// Count actions before the call.
+	countBefore := unittest.GetCount(t, &activities_model.Action{})
+
+	NewNotifier().IssueChangeStatus(t.Context(), workflowDoer, "", issue, closeComment, true)
+
+	// No new action must have been recorded.
+	countAfter := unittest.GetCount(t, &activities_model.Action{})
+	assert.Equal(t, countBefore, countAfter, "workflow doer must not produce a feed entry")
 }

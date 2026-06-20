@@ -46,6 +46,9 @@ type Column struct {
 	Color   string `xorm:"VARCHAR(7)"`
 
 	ProjectID int64 `xorm:"INDEX NOT NULL"`
+
+	Project *Project `xorm:"-"`
+
 	CreatorID int64 `xorm:"NOT NULL"`
 
 	NumIssues int64 `xorm:"-"`
@@ -57,6 +60,19 @@ type Column struct {
 // TableName return the real table name
 func (Column) TableName() string {
 	return "project_board" // TODO: the legacy table name should be project_column
+}
+
+func (c *Column) LoadProject(ctx context.Context) error {
+	if c.Project != nil {
+		return nil
+	}
+
+	project, err := GetProjectByID(ctx, c.ProjectID)
+	if err != nil {
+		return err
+	}
+	c.Project = project
+	return nil
 }
 
 func (c *Column) GetIssues(ctx context.Context) ([]*ProjectIssue, error) {
