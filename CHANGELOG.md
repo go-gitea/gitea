@@ -10,6 +10,7 @@ been added to each release, please refer to the [blog](https://blog.gitea.com).
   * fix(actions)!: require merged PR to bypass fork PR approval gate (#38010) (#38041)
 
 * SECURITY
+  * fix(hostmacher): patch incorrect private list (#38170) (#38173)
   * fix: Various security fixes (#38103) (#38151)
   * fix: Various sec fixes (#38108) (#38147)
   * fix: allow git clone of private repos with anonymous code access (#38074) (#38146)
