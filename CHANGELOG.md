@@ -4,6 +4,14 @@ This changelog goes through the changes that have been made in each release
 without substantial changes to our git log; to see the highlights of what has
 been added to each release, please refer to the [blog](https://blog.gitea.com).
 
+## [1.26.4](https://github.com/go-gitea/gitea/releases/tag/1.26.4) - 2026-06-21
+
+* SECURITY
+  * fix(auth): do not auto-reactivate disabled users on OAuth2 callback (#38009) (#38183)
+
+* BUGFIXES
+  * fix: walk git log context error handling (#38182) (#38185)
+
 ## [1.26.3](https://github.com/go-gitea/gitea/releases/tag/1.26.3) - 2026-06-18
 
 * BREAKING
