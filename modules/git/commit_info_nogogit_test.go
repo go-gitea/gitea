@@ -10,8 +10,8 @@ import (
 	"path/filepath"
 	"testing"
 
-	"gitea.dev/modules/test"
-	"gitea.dev/modules/util"
+	"code.gitea.io/gitea/modules/test"
+	"code.gitea.io/gitea/modules/util"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
