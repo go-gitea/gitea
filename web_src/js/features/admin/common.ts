@@ -57,15 +57,18 @@ function initAdminUser() {
   const pageContent = document.querySelector('.page-content.admin.edit.user, .page-content.admin.new.user');
   if (!pageContent) return;
 
-  document.querySelector<HTMLInputElement>('#login_type')?.addEventListener('change', function () {
-    if (this.value?.startsWith('0')) {
+  const elLoginType = document.querySelector<HTMLInputElement>('#login_type');
+  const elUserType = document.querySelector<HTMLInputElement>('#user_type');
+
+  function onLoginTypeChange() {
+    if (elLoginType!.value?.startsWith('0')) {
       document.querySelector<HTMLInputElement>('#user_name')?.removeAttribute('disabled');
       document.querySelector<HTMLInputElement>('#login_name')?.removeAttribute('required');
       hideElem('.non-local');
       showElem('.local');
       document.querySelector<HTMLInputElement>('#user_name')?.focus();
 
-      if (this.getAttribute('data-password') === 'required') {
+      if (elLoginType!.getAttribute('data-password') === 'required') {
         document.querySelector('#password')?.setAttribute('required', 'required');
       }
     } else {
@@ -79,7 +82,23 @@ function initAdminUser() {
 
       document.querySelector<HTMLInputElement>('#password')?.removeAttribute('required');
     }
-  });
+  }
+
+  // bot users are local accounts without an auth source or password, so hide those fields
+  function onUserTypeChange() {
+    if (elUserType?.value === 'bot') {
+      hideElem('.non-bot');
+      document.querySelector<HTMLInputElement>('#password')?.removeAttribute('required');
+      document.querySelector<HTMLInputElement>('#login_name')?.removeAttribute('required');
+    } else {
+      showElem('.non-bot');
+      onLoginTypeChange();
+    }
+  }
+
+  elLoginType?.addEventListener('change', onLoginTypeChange);
+  elUserType?.addEventListener('change', onUserTypeChange);
+  onUserTypeChange();
 }
 
 function initAdminAuthentication() {
