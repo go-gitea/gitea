@@ -244,3 +244,55 @@ func UpdateAuth(ctx context.Context, u *user_model.User, opts *UpdateAuthOptions
 	}
 	return nil
 }
+
+// ConvertUserType converts a user between the individual and bot types.
+// Organizations and reserved user types cannot be converted.
+// When converting to a bot the user becomes a local, non-interactive account:
+// its password and auth source are cleared so it can only be used with access tokens.
+func ConvertUserType(ctx context.Context, u *user_model.User, targetType user_model.UserType) error {
+	if u.Type != user_model.UserTypeIndividual && u.Type != user_model.UserTypeBot {
+		return fmt.Errorf("user %q cannot change its type", u.Name)
+	}
+	if targetType != user_model.UserTypeIndividual && targetType != user_model.UserTypeBot {
+		return fmt.Errorf("user %q cannot be converted to the requested type", u.Name)
+	}
+	if u.Type == targetType {
+		return nil
+	}
+
+	u.Type = targetType
+	cols := []string{"type"}
+
+	if targetType == user_model.UserTypeBot {
+		// A bot is a local, token-only account that cannot sign in interactively, so
+		// every credential and interactive-auth artifact of the former individual is
+		// removed. Access tokens are intentionally KEPT: they are the whole point of a
+		// bot and are managed by the admin afterwards. Owned content (repositories,
+		// organization memberships, issues, ...) is left untouched.
+		u.Passwd = ""
+		u.PasswdHashAlgo = ""
+		u.Salt = ""
+		u.MustChangePassword = false
+		u.LoginType = auth_model.Plain
+		u.LoginSource = 0
+		u.LoginName = ""
+		cols = append(cols, "passwd", "passwd_hash_algo", "salt", "must_change_password", "login_type", "login_source", "login_name")
+
+		if err := user_model.UpdateUserCols(ctx, u, cols...); err != nil {
+			return err
+		}
+
+		// revoke persisted sign-in sessions so the former individual cannot stay logged in
+		if err := auth_model.DeleteAuthTokensByUserID(ctx, u.ID); err != nil {
+			return err
+		}
+		// remove OAuth2 applications and grants owned/authorized by the account
+		if err := auth_model.DeleteOAuth2RelictsByUserID(ctx, u.ID); err != nil {
+			return err
+		}
+		// the account is now local, so drop any external (OAuth2/LDAP/...) login links
+		return user_model.RemoveAllAccountLinks(ctx, u)
+	}
+
+	return user_model.UpdateUserCols(ctx, u, cols...)
+}

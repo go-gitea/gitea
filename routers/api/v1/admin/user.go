@@ -564,3 +564,48 @@ func RenameUser(ctx *context.APIContext) {
 	}
 	ctx.Status(http.StatusNoContent)
 }
+
+// ConvertUserType converts a user between the individual and bot types
+func ConvertUserType(ctx *context.APIContext) {
+	// swagger:operation POST /admin/users/{username}/convert-type admin adminConvertUserType
+	// ---
+	// summary: Convert a user between the individual and bot types
+	// consumes:
+	// - application/json
+	// produces:
+	// - application/json
+	// parameters:
+	// - name: username
+	//   in: path
+	//   description: username of the user to convert
+	//   type: string
+	//   required: true
+	// - name: body
+	//   in: body
+	//   required: true
+	//   schema:
+	//     "$ref": "#/definitions/ConvertUserTypeOption"
+	// responses:
+	//   "204":
+	//     "$ref": "#/responses/empty"
+	//   "403":
+	//     "$ref": "#/responses/forbidden"
+	//   "422":
+	//     "$ref": "#/responses/validationError"
+
+	if ctx.ContextUser.IsOrganization() {
+		ctx.APIError(http.StatusUnprocessableEntity, "target is an organization, not a user")
+		return
+	}
+
+	targetType := user_model.UserTypeIndividual
+	if web.GetForm(ctx).(*api.ConvertUserTypeOption).UserType == "bot" {
+		targetType = user_model.UserTypeBot
+	}
+
+	if err := user_service.ConvertUserType(ctx, ctx.ContextUser, targetType); err != nil {
+		ctx.APIErrorInternal(err)
+		return
+	}
+	ctx.Status(http.StatusNoContent)
+}

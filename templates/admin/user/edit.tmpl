@@ -10,8 +10,22 @@
 					<label for="user_name">{{ctx.Locale.Tr "username"}}</label>
 					<input id="user_name" name="user_name" value="{{.User.Name}}" maxlength="40">
 				</div>
+				{{if or .User.IsIndividual .User.IsTypeBot}}
+				<div class="inline required field">
+					<label>{{ctx.Locale.Tr "admin.users.user_type"}}</label>
+					<div class="ui selection type dropdown">
+						<input type="hidden" id="user_type" name="user_type" value="{{if .User.IsTypeBot}}bot{{else}}individual{{end}}" required>
+						<div class="text">{{if .User.IsTypeBot}}{{ctx.Locale.Tr "admin.users.user_type.bot"}}{{else}}{{ctx.Locale.Tr "admin.users.user_type.individual"}}{{end}}</div>
+						{{svg "octicon-triangle-down" 14 "dropdown icon"}}
+						<div class="menu">
+							<div class="item" data-value="individual">{{ctx.Locale.Tr "admin.users.user_type.individual"}}</div>
+							<div class="item" data-value="bot">{{ctx.Locale.Tr "admin.users.user_type.bot"}}</div>
+						</div>
+					</div>
+				</div>
+				{{end}}
 				<!-- Types and name -->
-				<div class="inline required field {{if .Err_LoginType}}error{{end}}">
+				<div class="inline required field non-bot {{if .Err_LoginType}}error{{end}}">
 					<label>{{ctx.Locale.Tr "admin.users.auth_source"}}</label>
 					<div class="ui selection type dropdown">
 						<input type="hidden" id="login_type" name="login_type" value="{{.LoginSource.Type.Int}}-{{.LoginSource.ID}}" required>
@@ -52,7 +66,7 @@
 					</div>
 				</div>
 
-				<div class="required non-local field {{if .Err_LoginName}}error{{end}} {{if eq .User.LoginSource 0}}tw-hidden{{end}}">
+				<div class="required non-local non-bot field {{if .Err_LoginName}}error{{end}} {{if eq .User.LoginSource 0}}tw-hidden{{end}}">
 					<label for="login_name">{{ctx.Locale.Tr "admin.users.auth_login_name"}}</label>
 					<input id="login_name" name="login_name" value="{{.User.LoginName}}">
 				</div>
@@ -64,7 +78,7 @@
 					<label for="email">{{ctx.Locale.Tr "email"}}</label>
 					<input id="email" name="email" type="email" value="{{.User.Email}}" required>
 				</div>
-				<div class="local field {{if .Err_Password}}error{{end}} {{if or .User.IsTypeBot (not (or (.User.IsLocal) (.User.IsOAuth2)))}}tw-hidden{{end}}">
+				<div class="local non-bot field {{if .Err_Password}}error{{end}} {{if or .User.IsTypeBot (not (or (.User.IsLocal) (.User.IsOAuth2)))}}tw-hidden{{end}}">
 					<label for="password">{{ctx.Locale.Tr "password"}}</label>
 					<input id="password" name="password" type="password" autocomplete="new-password">
 					<p class="help">{{ctx.Locale.Tr "admin.users.password_helper"}}</p>

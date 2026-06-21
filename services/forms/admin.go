@@ -61,6 +61,7 @@ func (f *AdminCreateUserForm) Validate(req *http.Request, errs binding.Errors) b
 type AdminEditUserForm struct {
 	LoginType               string `binding:"Required"`
 	UserName                string `binding:"Username;MaxSize(40)"`
+	UserType                string
 	LoginName               string
 	FullName                string `binding:"MaxSize(100)"`
 	Email                   string `binding:"Required;Email;MaxSize(254)"`

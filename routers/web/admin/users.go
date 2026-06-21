@@ -470,14 +470,24 @@ func EditUserPost(ctx *context.Context) {
 		}
 	}
 
+	// Convert between individual and bot when the admin changed the user type.
+	// Organizations and reserved types are left untouched.
+	if form.UserType != "" && (u.IsIndividual() || u.IsTypeBot()) {
+		targetType := user_model.UserTypeIndividual
+		if form.UserType == "bot" {
+			targetType = user_model.UserTypeBot
+		}
+		if targetType != u.Type {
+			if err := user_service.ConvertUserType(ctx, u, targetType); err != nil {
+				ctx.ServerError("ConvertUserType", err)
+				return
+			}
+		}
+	}
+
 	authOpts := &user_service.UpdateAuthOptions{
 		Password:  optional.FromNonDefault(form.Password),
 		LoginName: optional.Some(form.LoginName),
-	}
-
-	// Bot accounts cannot sign in interactively, so they never have a password (matching the CLI behavior).
-	if u.IsTypeBot() {
-		authOpts.Password = optional.None[string]()
 	}
 
 	// skip self Prohibit Login
@@ -492,6 +502,15 @@ func EditUserPost(ctx *context.Context) {
 		authSource, _ := strconv.ParseInt(fields[1], 10, 64)
 
 		authOpts.LoginSource = optional.Some(authSource)
+	}
+
+	// Bot accounts cannot sign in interactively, so they are local accounts with no
+	// password or auth source (matching the CLI behavior). This must run after the
+	// auth-source fields above so it overrides whatever the (hidden) form submitted.
+	if u.IsTypeBot() {
+		authOpts.Password = optional.None[string]()
+		authOpts.LoginSource = optional.Some(int64(0))
+		authOpts.LoginName = optional.Some("")
 	}
 
 	if err := user_service.UpdateAuth(ctx, u, authOpts); err != nil {

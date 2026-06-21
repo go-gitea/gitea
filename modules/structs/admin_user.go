@@ -81,3 +81,11 @@ type EditUserOption struct {
 	// User visibility level: public, limited, or private
 	Visibility UserVisibility `json:"visibility" binding:"In(,public,limited,private)"`
 }
+
+// ConvertUserTypeOption options when converting a user between individual and bot
+type ConvertUserTypeOption struct {
+	// The target user type: "individual" or "bot"
+	//
+	// required: true
+	UserType string `json:"user_type" binding:"Required;In(individual,bot)"`
+}
