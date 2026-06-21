@@ -17,7 +17,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestEntries_GetCommitsInfo_Deadline(t *testing.T) {
+func TestEntries_GetCommitsInfo_ContextErr(t *testing.T) {
 	repo, err := OpenRepository(t.Context(), filepath.Join(testReposDir, "repo1_bare"))
 	require.NoError(t, err)
 	defer repo.Close()
