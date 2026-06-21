@@ -106,7 +106,7 @@ func getLastCommitForPathsByCache(commitID, treePath string, paths []string, cac
 // GetLastCommitForPaths returns last commit information
 func GetLastCommitForPaths(ctx context.Context, commit *Commit, treePath string, paths []string) (map[string]*Commit, error) {
 	// We read backwards from the commit to obtain all of the commits
-	revs, err := WalkGitLog(ctx, commit.repo, commit, treePath, paths...)
+	revs, err := walkGitLog(ctx, commit.repo, commit, treePath, paths...)
 	if err != nil {
 		return nil, err
 	}
