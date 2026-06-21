@@ -9,22 +9,21 @@ import (
 	"net/http"
 	"strings"
 
-	"code.gitea.io/gitea/models/db"
-	issues_model "code.gitea.io/gitea/models/issues"
-	org_model "code.gitea.io/gitea/models/organization"
-	project_model "code.gitea.io/gitea/models/project"
-	repo_model "code.gitea.io/gitea/models/repo"
-	"code.gitea.io/gitea/models/unit"
-	"code.gitea.io/gitea/modules/json"
-	"code.gitea.io/gitea/modules/optional"
-	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/modules/templates"
-	"code.gitea.io/gitea/modules/web"
-	"code.gitea.io/gitea/routers/web/shared/issue"
-	shared_user "code.gitea.io/gitea/routers/web/shared/user"
-	"code.gitea.io/gitea/services/context"
-	"code.gitea.io/gitea/services/forms"
-	project_service "code.gitea.io/gitea/services/projects"
+	"gitea.dev/models/db"
+	issues_model "gitea.dev/models/issues"
+	project_model "gitea.dev/models/project"
+	repo_model "gitea.dev/models/repo"
+	"gitea.dev/models/unit"
+	"gitea.dev/modules/json"
+	"gitea.dev/modules/optional"
+	"gitea.dev/modules/setting"
+	"gitea.dev/modules/templates"
+	"gitea.dev/modules/web"
+	"gitea.dev/routers/web/shared/issue"
+	shared_user "gitea.dev/routers/web/shared/user"
+	"gitea.dev/services/context"
+	"gitea.dev/services/forms"
+	project_service "gitea.dev/services/projects"
 
 	"xorm.io/builder"
 )
@@ -34,14 +33,6 @@ const (
 	tplProjectsNew  templates.TplName = "org/projects/new"
 	tplProjectsView templates.TplName = "org/projects/view"
 )
-
-// MustEnableProjects check if projects are enabled in settings
-func MustEnableProjects(ctx *context.Context) {
-	if unit.TypeProjects.UnitGlobalDisabled() {
-		ctx.NotFound(nil)
-		return
-	}
-}
 
 // Projects renders the home page of projects
 func Projects(ctx *context.Context) {
@@ -459,9 +450,9 @@ func ViewProject(ctx *context.Context) {
 	ctx.Data["MilestoneID"] = milestoneID
 
 	// Get assignees.
-	assigneeUsers, err := org_model.GetOrgAssignees(ctx, project.OwnerID)
+	assigneeUsers, err := project_service.LoadIssuesAssigneesForProject(ctx, issuesMap)
 	if err != nil {
-		ctx.ServerError("GetRepoAssignees", err)
+		ctx.ServerError("LoadIssuesAssigneesForProject", err)
 		return
 	}
 	ctx.Data["Assignees"] = shared_user.MakeSelfOnTop(ctx.Doer, assigneeUsers)

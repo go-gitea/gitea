@@ -7,10 +7,11 @@ import (
 	"net/http"
 	"strings"
 
-	user_model "code.gitea.io/gitea/models/user"
-	"code.gitea.io/gitea/modules/reqctx"
-	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/modules/web/middleware"
+	user_model "gitea.dev/models/user"
+	"gitea.dev/modules/reqctx"
+	"gitea.dev/modules/setting"
+	"gitea.dev/modules/web/middleware"
+	"gitea.dev/modules/web/routing"
 
 	"github.com/go-chi/chi/v5"
 )
@@ -71,10 +72,6 @@ func isRoutePathExpensive(routePattern string) bool {
 	return false
 }
 
-func isRoutePathForLongPolling(routePattern string) bool {
-	return routePattern == "/user/events"
-}
-
 func determineRequestPriority(reqCtx reqctx.RequestContext) (ret struct {
 	SignedIn    bool
 	Expensive   bool
@@ -86,7 +83,7 @@ func determineRequestPriority(reqCtx reqctx.RequestContext) (ret struct {
 		ret.SignedIn = true
 	} else {
 		ret.Expensive = isRoutePathExpensive(chiRoutePath)
-		ret.LongPolling = isRoutePathForLongPolling(chiRoutePath)
+		ret.LongPolling = routing.GetRequestRecordInfo(reqCtx).IsLongPolling
 	}
 	return ret
 }

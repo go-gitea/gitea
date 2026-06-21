@@ -1,7 +1,16 @@
 <div class="ui six wide column">
 	<h4 class="ui top attached header flex-left-right">
-		<strong>{{.Team.Name}}</strong>
-		<div class="flex-center-wrap">
+		<div class="flex-text-inline">
+			<strong>{{.Team.Name}}</strong>
+			{{if .Team.IsPrivate}}
+				<span class="ui mini label" data-tooltip-content="{{ctx.Locale.Tr "org.teams.visibility_private_helper"}}">{{ctx.Locale.Tr "org.teams.visibility_private"}}</span>
+			{{else if .Team.IsLimited}}
+				<span class="ui mini label" data-tooltip-content="{{ctx.Locale.Tr "org.teams.visibility_limited_helper"}}">{{ctx.Locale.Tr "org.teams.visibility_limited"}}</span>
+			{{else if .Team.IsPublic}}
+				<span class="ui mini label" data-tooltip-content="{{ctx.Locale.Tr "org.teams.visibility_public_helper"}}">{{ctx.Locale.Tr "org.teams.visibility_public"}}</span>
+			{{end}}
+		</div>
+		<div class="flex-text-block">
 			{{if .Team.IsMember ctx $.SignedUser.ID}}
 				<button class="ui red mini compact button show-modal" data-modal="#org-member-leave-team"
 					data-modal-form.action="{{$.OrgLink}}/teams/{{$.Team.LowerName | PathEscape}}/action/leave?uid={{$.SignedUser.ID}}"
@@ -15,21 +24,21 @@
 			{{end}}
 		</div>
 	</h4>
-	<div class="ui attached table segment detail">
-		<div class="item">
+
+		<div class="ui attached segment">
 			{{if .Team.Description}}
 				{{.Team.Description}}
 			{{else}}
 				<span class="tw-text-text-light tw-italic">{{ctx.Locale.Tr "org.teams.no_desc"}}</span>
 			{{end}}
 		</div>
-		{{if eq .Team.LowerName "owners"}}
-			<div class="item">
+
+		<div class="ui attached segment">
+			{{/* TODO: old indent is kept to make diff changes minimal, can be reformatted in the future */}}
+			{{if .Team.IsOwnerTeam}}
 				<p>{{ctx.Locale.Tr "org.teams.owners_permission_desc"}}</p>
 				<p>{{ctx.Locale.Tr "org.teams.owners_permission_suggestion"}}</p>
-			</div>
-		{{else}}
-			<div class="item">
+			{{else}}
 				<h3>{{ctx.Locale.Tr "org.team_access_desc"}}</h3>
 				<ul>
 					{{if .Team.IncludesAllRepositories}}
@@ -75,9 +84,9 @@
 						</tbody>
 					</table>
 				{{end}}
-			</div>
-		{{end}}
-	</div>
+			{{end}}
+		</div>
+
 	{{if .IsOrganizationOwner}}
 		<div class="ui bottom attached segment">
 			<a class="ui small button" href="{{.OrgLink}}/teams/{{.Team.LowerName | PathEscape}}/edit">{{svg "octicon-gear"}} {{ctx.Locale.Tr "org.teams.settings"}}</a>

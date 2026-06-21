@@ -11,8 +11,8 @@ import (
 	"runtime"
 	"strings"
 
-	"code.gitea.io/gitea/modules/git/gitcmd"
-	"code.gitea.io/gitea/modules/setting"
+	"gitea.dev/modules/git/gitcmd"
+	"gitea.dev/modules/setting"
 )
 
 // syncGitConfig only modifies gitconfig, won't change global variables (otherwise there will be data-race problem)
@@ -46,10 +46,8 @@ func syncGitConfig(ctx context.Context) (err error) {
 		return err
 	}
 
-	if DefaultFeatures().CheckVersionAtLeast("2.10") {
-		if err := configSet(ctx, "receive.advertisePushOptions", "true"); err != nil {
-			return err
-		}
+	if err := configSet(ctx, "receive.advertisePushOptions", "true"); err != nil {
+		return err
 	}
 
 	if DefaultFeatures().CheckVersionAtLeast("2.18") {

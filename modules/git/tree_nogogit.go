@@ -7,9 +7,8 @@ package git
 
 import (
 	"io"
-	"strings"
 
-	"code.gitea.io/gitea/modules/git/gitcmd"
+	"gitea.dev/modules/git/gitcmd"
 )
 
 // Tree represents a flat directory listing.
@@ -65,7 +64,7 @@ func (t *Tree) ListEntries() (Entries, error) {
 
 	stdout, _, runErr := gitcmd.NewCommand("ls-tree", "-l").AddDynamicArguments(t.ID.String()).WithDir(t.repo.Path).RunStdBytes(t.repo.Ctx)
 	if runErr != nil {
-		if gitcmd.IsStdErrorNotValidObjectName(runErr) || strings.Contains(runErr.Error(), "fatal: not a tree object") {
+		if gitcmd.IsStderr(runErr, gitcmd.StderrNotValidObjectName) || gitcmd.IsStderr(runErr, gitcmd.StderrNotTreeObject) {
 			return nil, ErrNotExist{
 				ID: t.ID.String(),
 			}

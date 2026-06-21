@@ -6,7 +6,7 @@ package asymkey
 import (
 	"fmt"
 
-	"code.gitea.io/gitea/modules/util"
+	"gitea.dev/modules/util"
 )
 
 // ErrKeyUnableVerify represents a "KeyUnableVerify" kind of error.
@@ -190,28 +190,6 @@ func (err ErrGPGKeyIDAlreadyUsed) Error() string {
 
 func (err ErrGPGKeyIDAlreadyUsed) Unwrap() error {
 	return util.ErrAlreadyExist
-}
-
-// ErrGPGKeyAccessDenied represents a "GPGKeyAccessDenied" kind of Error.
-type ErrGPGKeyAccessDenied struct {
-	UserID int64
-	KeyID  int64
-}
-
-// IsErrGPGKeyAccessDenied checks if an error is a ErrGPGKeyAccessDenied.
-func IsErrGPGKeyAccessDenied(err error) bool {
-	_, ok := err.(ErrGPGKeyAccessDenied)
-	return ok
-}
-
-// Error pretty-prints an error of type ErrGPGKeyAccessDenied.
-func (err ErrGPGKeyAccessDenied) Error() string {
-	return fmt.Sprintf("user does not have access to the key [user_id: %d, key_id: %d]",
-		err.UserID, err.KeyID)
-}
-
-func (err ErrGPGKeyAccessDenied) Unwrap() error {
-	return util.ErrPermissionDenied
 }
 
 // ErrKeyAccessDenied represents a "KeyAccessDenied" kind of error.

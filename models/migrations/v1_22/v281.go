@@ -4,12 +4,11 @@
 package v1_22
 
 import (
-	"code.gitea.io/gitea/modules/timeutil"
-
-	"xorm.io/xorm"
+	"gitea.dev/models/db"
+	"gitea.dev/modules/timeutil"
 )
 
-func CreateAuthTokenTable(x *xorm.Engine) error {
+func CreateAuthTokenTable(x db.EngineMigration) error {
 	type AuthToken struct {
 		ID          string `xorm:"pk"`
 		TokenHash   string

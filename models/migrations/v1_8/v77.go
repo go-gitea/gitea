@@ -3,11 +3,9 @@
 
 package v1_8
 
-import (
-	"xorm.io/xorm"
-)
+import "gitea.dev/models/db"
 
-func AddUserDefaultTheme(x *xorm.Engine) error {
+func AddUserDefaultTheme(x db.EngineMigration) error {
 	type User struct {
 		Theme string `xorm:"VARCHAR(30) NOT NULL DEFAULT ''"`
 	}

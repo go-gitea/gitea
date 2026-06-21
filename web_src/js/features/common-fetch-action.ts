@@ -1,6 +1,7 @@
 import {GET, request} from '../modules/fetch.ts';
 import {hideToastsAll, showErrorToast} from '../modules/toast.ts';
-import {addDelegatedEventListener, createElementFromHTML, submitEventSubmitter} from '../utils/dom.ts';
+import {addDelegatedEventListener, createElementFromHTML} from '../utils/dom.ts';
+import {errorMessage, errorName} from '../modules/errors.ts';
 import {confirmModal, createConfirmModal} from './comp/ConfirmModal.ts';
 import {ignoreAreYouSure} from '../vendor/jquery.are-you-sure.ts';
 import {registerGlobalSelectorFunc} from '../modules/observer.ts';
@@ -15,6 +16,7 @@ type FetchActionOpts = {
   url: string;
   headers?: HeadersInit;
   body?: FormData;
+  formSubmitter?: HTMLElement | null;
 
   // pseudo selectors/commands to update the current page with the response text when the response is text (html)
   // e.g.: "$this", "$innerHTML", "$closest(tr) td .the-class", "$body #the-id"
@@ -33,7 +35,7 @@ function fetchActionDoRedirect(redirect: string) {
   // * Also do so in development, to make sure the redirection logic is always tested by real users
   const needBackendHelp = redirect.includes('#');
   if (runModeIsProd && !needBackendHelp) {
-    window.location.href = redirect;
+    window.location.assign(redirect);
     return;
   }
 
@@ -65,11 +67,13 @@ function toggleLoadingIndicator(el: HTMLElement, opt: FetchActionOpts, isLoading
   }
 }
 
-async function handleFetchActionSuccessJson(el: HTMLElement, respJson: any) {
+export async function handleFetchActionSuccessJson(el: HTMLElement, respJson: any) {
   ignoreAreYouSure(el); // ignore the areYouSure check before reloading
-  if (typeof respJson?.redirect === 'string') {
-    fetchActionDoRedirect(respJson.redirect);
+  const redirect = respJson?.redirect;
+  if (typeof redirect === 'string' && redirect) {
+    fetchActionDoRedirect(redirect);
   } else {
+    // reserved behavior, in the future, there can be more fields to introduce more behaviors
     window.location.reload();
   }
 }
@@ -90,7 +94,7 @@ async function handleFetchActionSuccess(el: HTMLElement, opt: FetchActionOpts, r
 async function handleFetchActionError(resp: Response) {
   const isRespJson = resp.headers.get('content-type')?.includes('application/json');
   const respText = await resp.text();
-  const respJson = isRespJson ? JSON.parse(await resp.text()) : null;
+  const respJson = isRespJson ? JSON.parse(respText) : null;
   if (respJson?.errorMessage) {
     // the code was quite messy, sometimes the backend uses "err", sometimes it uses "error", and even "user_error"
     // but at the moment, as a new approach, we only use "errorMessage" here, backend can use JSONError() to respond.
@@ -110,7 +114,7 @@ function buildFetchActionUrl(el: HTMLElement, opt: FetchActionOpts) {
     const u = new URL(url, window.location.href);
     if (name && !u.searchParams.has(name)) {
       u.searchParams.set(name, val);
-      url = u.toString();
+      url = u.href;
     }
   }
   return url;
@@ -119,7 +123,7 @@ function buildFetchActionUrl(el: HTMLElement, opt: FetchActionOpts) {
 async function performActionRequest(el: HTMLElement, opt: FetchActionOpts) {
   const attrIsLoading = 'data-fetch-is-loading';
   if (el.getAttribute(attrIsLoading)) return;
-  if (!await confirmFetchAction(el)) return;
+  if (!await confirmFetchAction(opt.formSubmitter ?? el)) return;
 
   el.setAttribute(attrIsLoading, 'true');
   toggleLoadingIndicator(el, opt, true);
@@ -134,10 +138,10 @@ async function performActionRequest(el: HTMLElement, opt: FetchActionOpts) {
       return;
     }
     await handleFetchActionError(resp);
-  } catch (e) {
-    if (e.name !== 'AbortError') {
-      console.error(`Fetch action request error:`, e);
-      showErrorToast(`Error: ${e.message ?? e}`);
+  } catch (err) {
+    if (errorName(err) !== 'AbortError') {
+      console.error(`Fetch action request error:`, err);
+      showErrorToast(`Error: ${errorMessage(err)}`);
     }
   } finally {
     toggleLoadingIndicator(el, opt, false);
@@ -146,7 +150,7 @@ async function performActionRequest(el: HTMLElement, opt: FetchActionOpts) {
 }
 
 type SubmitFormFetchActionOpts = {
-  formSubmitter?: HTMLElement;
+  formSubmitter?: HTMLElement | null;
   formData?: FormData;
 };
 
@@ -178,6 +182,7 @@ function prepareFormFetchActionOpts(formEl: HTMLFormElement, opts: SubmitFormFet
     method: formMethodUpper,
     url: reqUrl,
     body: reqBody,
+    formSubmitter: opts.formSubmitter,
     loadingIndicator: '$this', // for form submit, by default, the loading indicator is the whole form
     successSync: formEl.getAttribute('data-fetch-sync') ?? '', // by default, no fetch sync for form submit
   };
@@ -396,10 +401,10 @@ export function initGlobalFetchAction() {
   //   * it has "-header" and "-content" variants to set the header and content of the "confirm modal"
   //   * it can refer an existing modal element by "#the-modal-id"
 
-  addDelegatedEventListener(document, 'submit', '.form-fetch-action', async (el: HTMLFormElement, e) => {
+  addDelegatedEventListener<HTMLFormElement, SubmitEvent>(document, 'submit', '.form-fetch-action', async (el, e) => {
     // "fetch-action" will use the form's data to send the request
     e.preventDefault();
-    await submitFormFetchAction(el, {formSubmitter: submitEventSubmitter(e)});
+    await submitFormFetchAction(el, {formSubmitter: e.submitter});
   });
 
   addDelegatedEventListener(document, 'click', '.link-action', async (el, e) => {

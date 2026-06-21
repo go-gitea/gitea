@@ -8,8 +8,9 @@ import (
 	"net/http"
 	"testing"
 
-	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/tests"
+	"gitea.dev/modules/setting"
+	"gitea.dev/modules/test"
+	"gitea.dev/tests"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -36,12 +37,7 @@ func TestGoGet(t *testing.T) {
 
 func TestGoGetForSSH(t *testing.T) {
 	defer tests.PrepareTestEnv(t)()
-
-	old := setting.Repository.GoGetCloneURLProtocol
-	defer func() {
-		setting.Repository.GoGetCloneURLProtocol = old
-	}()
-	setting.Repository.GoGetCloneURLProtocol = "ssh"
+	defer test.MockVariableValue(&setting.Repository.GoGetCloneURLProtocol, "ssh")()
 
 	req := NewRequest(t, "GET", "/blah/glah/plah?go-get=1")
 	resp := MakeRequest(t, req, http.StatusOK)

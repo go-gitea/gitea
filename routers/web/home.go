@@ -8,19 +8,19 @@ import (
 	"net/http"
 	"strconv"
 
-	"code.gitea.io/gitea/models/db"
-	repo_model "code.gitea.io/gitea/models/repo"
-	user_model "code.gitea.io/gitea/models/user"
-	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/optional"
-	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/modules/sitemap"
-	"code.gitea.io/gitea/modules/structs"
-	"code.gitea.io/gitea/modules/templates"
-	"code.gitea.io/gitea/modules/web/middleware"
-	"code.gitea.io/gitea/routers/web/auth"
-	"code.gitea.io/gitea/routers/web/user"
-	"code.gitea.io/gitea/services/context"
+	"gitea.dev/models/db"
+	repo_model "gitea.dev/models/repo"
+	user_model "gitea.dev/models/user"
+	"gitea.dev/modules/log"
+	"gitea.dev/modules/optional"
+	"gitea.dev/modules/setting"
+	"gitea.dev/modules/sitemap"
+	"gitea.dev/modules/structs"
+	"gitea.dev/modules/templates"
+	"gitea.dev/modules/web/middleware"
+	"gitea.dev/routers/web/auth"
+	"gitea.dev/routers/web/user"
+	"gitea.dev/services/context"
 )
 
 const (
@@ -108,10 +108,4 @@ func HomeSitemap(ctx *context.Context) {
 	if _, err := m.WriteTo(ctx.Resp); err != nil {
 		log.Error("Failed writing sitemap: %v", err)
 	}
-}
-
-// NotFound render 404 page
-func NotFound(ctx *context.Context) {
-	ctx.Data["Title"] = "Page Not Found"
-	ctx.NotFound(nil)
 }

@@ -6,13 +6,12 @@ package v1_20
 import (
 	"context"
 
-	"code.gitea.io/gitea/models/migrations/base"
-	"code.gitea.io/gitea/modules/setting"
-
-	"xorm.io/xorm"
+	"gitea.dev/models/db"
+	"gitea.dev/models/migrations/base"
+	"gitea.dev/modules/setting"
 )
 
-func RenameWebhookOrgToOwner(x *xorm.Engine) error {
+func RenameWebhookOrgToOwner(x db.EngineMigration) error {
 	type Webhook struct {
 		OrgID int64 `xorm:"INDEX"`
 	}

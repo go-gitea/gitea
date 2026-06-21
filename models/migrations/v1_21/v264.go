@@ -7,13 +7,11 @@ import (
 	"context"
 	"errors"
 
-	"code.gitea.io/gitea/models/db"
-	"code.gitea.io/gitea/modules/timeutil"
-
-	"xorm.io/xorm"
+	"gitea.dev/models/db"
+	"gitea.dev/modules/timeutil"
 )
 
-func AddBranchTable(x *xorm.Engine) error {
+func AddBranchTable(x db.EngineMigration) error {
 	type Branch struct {
 		ID            int64
 		RepoID        int64  `xorm:"UNIQUE(s)"`

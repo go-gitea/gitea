@@ -6,15 +6,15 @@ package v1_22
 import (
 	"testing"
 
-	"code.gitea.io/gitea/models/migrations/base"
-	"code.gitea.io/gitea/models/project"
+	"gitea.dev/models/migrations/migrationtest"
+	"gitea.dev/models/project"
 
 	"github.com/stretchr/testify/assert"
 )
 
 func Test_CheckProjectColumnsConsistency(t *testing.T) {
 	// Prepare and load the testing database
-	x, deferable := base.PrepareTestEnv(t, 0, new(project.Project), new(project.Column))
+	x, deferable := migrationtest.PrepareTestEnv(t, 0, new(project.Project), new(project.Column))
 	defer deferable()
 	if x == nil || t.Failed() {
 		return

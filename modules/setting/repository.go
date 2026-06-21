@@ -8,7 +8,7 @@ import (
 	"path/filepath"
 	"strings"
 
-	"code.gitea.io/gitea/modules/log"
+	"gitea.dev/modules/log"
 )
 
 // enumerates all the policy repository creating
@@ -16,6 +16,12 @@ const (
 	RepoCreatingLastUserVisibility = "last"
 	RepoCreatingPrivate            = "private"
 	RepoCreatingPublic             = "public"
+)
+
+// enumerates the values for [repository.pull-request] DEFAULT_TITLE_SOURCE
+const (
+	RepoPRTitleSourceFirstCommit = "first-commit"
+	RepoPRTitleSourceAuto        = "auto"
 )
 
 // ItemsPerPage maximum items per page in forks, watchers and stars of a repo
@@ -31,6 +37,8 @@ var (
 		DefaultPrivate                          string
 		DefaultPushCreatePrivate                bool
 		MaxCreationLimit                        int
+		UserMaxCreationLimit                    int
+		OrgMaxCreationLimit                     int
 		PreferredLicenses                       []string
 		DisableHTTPGit                          bool
 		AccessControlAllowOrigin                string
@@ -89,6 +97,7 @@ var (
 			RetargetChildrenOnMerge                  bool
 			DelayCheckForInactiveDays                int
 			DefaultDeleteBranchAfterMerge            bool
+			DefaultTitleSource                       string
 		} `ini:"repository.pull-request"`
 
 		// Issue Setting
@@ -158,6 +167,8 @@ var (
 		DefaultPrivate:                          RepoCreatingLastUserVisibility,
 		DefaultPushCreatePrivate:                true,
 		MaxCreationLimit:                        -1,
+		UserMaxCreationLimit:                    -1,
+		OrgMaxCreationLimit:                     -1,
 		PreferredLicenses:                       []string{"Apache License 2.0", "MIT License"},
 		DisableHTTPGit:                          false,
 		AccessControlAllowOrigin:                "",
@@ -213,6 +224,7 @@ var (
 			RetargetChildrenOnMerge                  bool
 			DelayCheckForInactiveDays                int
 			DefaultDeleteBranchAfterMerge            bool
+			DefaultTitleSource                       string
 		}{
 			WorkInProgressPrefixes: []string{"WIP:", "[WIP]"},
 			// Same as GitHub. See
@@ -229,6 +241,7 @@ var (
 			AddCoCommitterTrailers:                   true,
 			RetargetChildrenOnMerge:                  true,
 			DelayCheckForInactiveDays:                7,
+			DefaultTitleSource:                       RepoPRTitleSourceAuto,
 		},
 
 		// Issue settings
@@ -288,7 +301,11 @@ func loadRepositoryFrom(rootCfg ConfigProvider) {
 	Repository.DisableHTTPGit = sec.Key("DISABLE_HTTP_GIT").MustBool()
 	Repository.UseCompatSSHURI = sec.Key("USE_COMPAT_SSH_URI").MustBool()
 	Repository.GoGetCloneURLProtocol = sec.Key("GO_GET_CLONE_URL_PROTOCOL").MustString("https")
+	// MAX_CREATION_LIMIT is a shortcut that sets the default for the two per-type limits below.
+	// USER_/ORG_MAX_CREATION_LIMIT take precedence when explicitly set.
 	Repository.MaxCreationLimit = sec.Key("MAX_CREATION_LIMIT").MustInt(-1)
+	Repository.UserMaxCreationLimit = sec.Key("USER_MAX_CREATION_LIMIT").MustInt(Repository.MaxCreationLimit)
+	Repository.OrgMaxCreationLimit = sec.Key("ORG_MAX_CREATION_LIMIT").MustInt(Repository.MaxCreationLimit)
 	Repository.DefaultBranch = sec.Key("DEFAULT_BRANCH").MustString(Repository.DefaultBranch)
 	RepoRootPath = sec.Key("ROOT").MustString(filepath.Join(AppDataPath, "gitea-repositories"))
 	if !filepath.IsAbs(RepoRootPath) {

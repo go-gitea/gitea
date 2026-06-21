@@ -12,19 +12,19 @@ import (
 	"strings"
 	"time"
 
-	activities_model "code.gitea.io/gitea/models/activities"
-	issues_model "code.gitea.io/gitea/models/issues"
-	"code.gitea.io/gitea/models/renderhelper"
-	user_model "code.gitea.io/gitea/models/user"
-	"code.gitea.io/gitea/modules/emoji"
-	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/markup/markdown"
-	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/modules/translation"
-	"code.gitea.io/gitea/modules/util"
-	incoming_payload "code.gitea.io/gitea/services/mailer/incoming/payload"
-	sender_service "code.gitea.io/gitea/services/mailer/sender"
-	"code.gitea.io/gitea/services/mailer/token"
+	activities_model "gitea.dev/models/activities"
+	issues_model "gitea.dev/models/issues"
+	"gitea.dev/models/renderhelper"
+	user_model "gitea.dev/models/user"
+	"gitea.dev/modules/emoji"
+	"gitea.dev/modules/log"
+	"gitea.dev/modules/markup/markdown"
+	"gitea.dev/modules/setting"
+	"gitea.dev/modules/translation"
+	"gitea.dev/modules/util"
+	incoming_payload "gitea.dev/services/mailer/incoming/payload"
+	sender_service "gitea.dev/services/mailer/sender"
+	"gitea.dev/services/mailer/token"
 )
 
 // maxEmailBodySize is the approximate maximum size of an email body in bytes
@@ -182,7 +182,7 @@ func composeIssueCommentMessages(ctx context.Context, comment *mailComment, lang
 				if err != nil {
 					log.Error("CreateToken failed: %v", err)
 				} else {
-					replyAddress := strings.Replace(setting.IncomingEmail.ReplyToAddress, setting.IncomingEmail.TokenPlaceholder, token, 1)
+					replyAddress := strings.Replace(setting.IncomingEmail.ReplyToAddress, setting.IncomingEmailTokenPlaceholder, token, 1)
 					msg.ReplyTo = replyAddress
 					msg.SetHeader("List-Post", fmt.Sprintf("<mailto:%s>", replyAddress))
 
@@ -194,7 +194,7 @@ func composeIssueCommentMessages(ctx context.Context, comment *mailComment, lang
 			if err != nil {
 				log.Error("CreateToken failed: %v", err)
 			} else {
-				unsubAddress := strings.Replace(setting.IncomingEmail.ReplyToAddress, setting.IncomingEmail.TokenPlaceholder, token, 1)
+				unsubAddress := strings.Replace(setting.IncomingEmail.ReplyToAddress, setting.IncomingEmailTokenPlaceholder, token, 1)
 				listUnsubscribe = append(listUnsubscribe, "<mailto:"+unsubAddress+">")
 			}
 		}

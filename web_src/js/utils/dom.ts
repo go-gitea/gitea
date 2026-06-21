@@ -9,8 +9,8 @@ type ElementsCallback<T extends Element> = (el: T) => Promisable<any>;
 type ElementsCallbackWithArgs = (el: Element, ...args: any[]) => Promisable<any>;
 
 function elementsCall(el: ElementArg, func: ElementsCallbackWithArgs, ...args: any[]): ArrayLikeIterable<Element> {
-  if (typeof el === 'string' || el instanceof String) {
-    el = document.querySelectorAll(el as string);
+  if (typeof el === 'string') {
+    el = document.querySelectorAll(el);
   }
   if (el instanceof Node) {
     func(el, ...args);
@@ -257,28 +257,6 @@ export function loadElem(el: LoadableElement, src: string) {
   });
 }
 
-// some browsers like PaleMoon don't have "SubmitEvent" support, so polyfill it by a tricky method: use the last clicked button as submitter
-// it can't use other transparent polyfill patches because PaleMoon also doesn't support "addEventListener(capture)"
-const needSubmitEventPolyfill = typeof SubmitEvent === 'undefined';
-
-export function submitEventSubmitter(e: any) {
-  e = e.originalEvent ?? e; // if the event is wrapped by jQuery, use "originalEvent", otherwise, use the event itself
-  return needSubmitEventPolyfill ? (e.target._submitter || null) : e.submitter;
-}
-
-function submitEventPolyfillListener(e: Event) {
-  const form = (e.target as HTMLElement).closest('form');
-  if (!form) return;
-  form._submitter = (e.target as HTMLElement).closest('button:not([type]), button[type="submit"], input[type="submit"]');
-}
-
-export function initSubmitEventPolyfill() {
-  if (!needSubmitEventPolyfill) return;
-  console.warn(`This browser doesn't have "SubmitEvent" support, use a tricky method to polyfill`);
-  document.body.addEventListener('click', submitEventPolyfillListener);
-  document.body.addEventListener('focus', submitEventPolyfillListener);
-}
-
 export function isElemVisible(el: HTMLElement): boolean {
   // Check if an element is visible, equivalent to jQuery's `:visible` pseudo.
   // This function DOESN'T account for all possible visibility scenarios, its behavior is covered by the tests of "querySingleVisibleElem"
@@ -287,11 +265,16 @@ export function isElemVisible(el: HTMLElement): boolean {
   return Boolean(!el.classList.contains('tw-hidden') && (el.offsetWidth || el.offsetHeight || el.getClientRects().length) && el.style.display !== 'none');
 }
 
-export function createElementFromHTML<T extends HTMLElement>(htmlString: string): T {
+export function createElementFromHTML<T extends Element>(htmlString: string): T {
   htmlString = htmlString.trim();
+  const isLetter = (code: number) => (code >= 65 && code <= 90) || (code >= 97 && code <= 122);
+  const startsWithTag = (s: string, tag: string) => {
+    return s.startsWith('<') &&
+      s.substring(1, 1 + tag.length).toLowerCase() === tag.toLowerCase() &&
+      !isLetter(s[1 + tag.length].charCodeAt(0));
+  };
   // There is no way to create some elements without a proper parent, jQuery's approach: https://github.com/jquery/jquery/blob/main/src/manipulation/wrapMap.js
-  // eslint-disable-next-line github/unescaped-html-literal
-  if (htmlString.startsWith('<tr')) {
+  if (startsWithTag(htmlString, 'tr')) {
     const container = document.createElement('table');
     container.innerHTML = htmlString;
     return container.querySelector<T>('tr')!;

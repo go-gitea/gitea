@@ -10,13 +10,13 @@ import (
 	"testing"
 	"time"
 
-	auth_model "code.gitea.io/gitea/models/auth"
-	"code.gitea.io/gitea/modules/setting"
+	pingv1 "gitea.dev/actions-proto-go/ping/v1"
+	"gitea.dev/actions-proto-go/ping/v1/pingv1connect"
+	runnerv1 "gitea.dev/actions-proto-go/runner/v1"
+	"gitea.dev/actions-proto-go/runner/v1/runnerv1connect"
+	auth_model "gitea.dev/models/auth"
+	"gitea.dev/modules/setting"
 
-	pingv1 "code.gitea.io/actions-proto-go/ping/v1"
-	"code.gitea.io/actions-proto-go/ping/v1/pingv1connect"
-	runnerv1 "code.gitea.io/actions-proto-go/runner/v1"
-	"code.gitea.io/actions-proto-go/runner/v1/runnerv1connect"
 	"connectrpc.com/connect"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -86,10 +86,9 @@ func (r *mockRunner) registerAsRepoRunner(t *testing.T, ownerName, repoName, run
 	token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeWriteRepository)
 	req := NewRequest(t, http.MethodPost, fmt.Sprintf("/api/v1/repos/%s/%s/actions/runners/registration-token", ownerName, repoName)).AddTokenAuth(token)
 	resp := MakeRequest(t, req, http.StatusOK)
-	var registrationToken struct {
+	registrationToken := DecodeJSON(t, resp, &struct {
 		Token string `json:"token"`
-	}
-	DecodeJSON(t, resp, &registrationToken)
+	}{})
 	r.doRegister(t, runnerName, registrationToken.Token, labels, ephemeral)
 }
 

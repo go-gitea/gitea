@@ -6,27 +6,30 @@ package integration
 import (
 	"fmt"
 	"net/http"
+	"net/http/cgi"
+	"net/http/httptest"
 	"net/url"
 	"os"
+	"os/exec"
 	"path/filepath"
+	"runtime"
 	"strconv"
 	"strings"
 	"testing"
-	"time"
 
-	auth_model "code.gitea.io/gitea/models/auth"
-	"code.gitea.io/gitea/models/db"
-	git_model "code.gitea.io/gitea/models/git"
-	issues_model "code.gitea.io/gitea/models/issues"
-	repo_model "code.gitea.io/gitea/models/repo"
-	"code.gitea.io/gitea/models/unittest"
-	user_model "code.gitea.io/gitea/models/user"
-	"code.gitea.io/gitea/modules/gitrepo"
-	"code.gitea.io/gitea/modules/httplib"
-	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/modules/structs"
-	"code.gitea.io/gitea/services/migrations"
-	"code.gitea.io/gitea/tests"
+	auth_model "gitea.dev/models/auth"
+	"gitea.dev/models/db"
+	git_model "gitea.dev/models/git"
+	issues_model "gitea.dev/models/issues"
+	repo_model "gitea.dev/models/repo"
+	"gitea.dev/models/unittest"
+	user_model "gitea.dev/models/user"
+	"gitea.dev/modules/gitrepo"
+	"gitea.dev/modules/setting"
+	"gitea.dev/modules/structs"
+	"gitea.dev/modules/test"
+	"gitea.dev/services/migrations"
+	"gitea.dev/tests"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -34,11 +37,9 @@ import (
 
 func TestMigrateLocalPath(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
+	defer test.MockVariableValue(&setting.ImportLocalPaths, true)()
 
 	adminUser := unittest.AssertExistsAndLoadBean(t, &user_model.User{Name: "user1"})
-
-	old := setting.ImportLocalPaths
-	setting.ImportLocalPaths = true
 
 	basePath := t.TempDir()
 
@@ -55,22 +56,13 @@ func TestMigrateLocalPath(t *testing.T) {
 
 	err = migrations.IsMigrateURLAllowed(mixedcasePath, adminUser)
 	assert.NoError(t, err, "case mixedcase path")
-
-	setting.ImportLocalPaths = old
 }
 
 func TestMigrateGiteaForm(t *testing.T) {
 	onGiteaRun(t, func(t *testing.T, u *url.URL) {
-		AllowLocalNetworks := setting.Migrations.AllowLocalNetworks
-		setting.Migrations.AllowLocalNetworks = true
-		AppVer := setting.AppVer
 		// Gitea SDK (go-sdk) need to parse the AppVer from server response, so we must set it to a valid version string.
-		setting.AppVer = "1.16.0"
-		defer func() {
-			setting.Migrations.AllowLocalNetworks = AllowLocalNetworks
-			setting.AppVer = AppVer
-			migrations.Init()
-		}()
+		defer test.MockVariableValue(&setting.Migrations.AllowLocalNetworks, true)()
+		defer test.MockVariableValue(&setting.AppVer, "1.16.0")()
 		assert.NoError(t, migrations.Init())
 
 		ownerName := "user2"
@@ -120,24 +112,127 @@ func Test_UpdateCommentsMigrationsByType(t *testing.T) {
 	assert.NoError(t, err)
 }
 
+// setupGiteaMockServer creates a mock HTTP server that replays API responses from fixture files.
+// If a GITEA_TOKEN environment variable is set, the mock server proxies requests to the live
+// gitea.com instance and saves the responses as fixture files for future test runs.
+// Example: GITEA_TOKEN=your_token go test -run Test_MigrateFromGiteaToGitea
+func setupGiteaMockServer(t *testing.T) *httptest.Server {
+	t.Helper()
+
+	giteaToken := os.Getenv("GITEA_TOKEN")
+	liveMode := giteaToken != ""
+
+	// fast-import data creates deterministic commits (fixed author/committer/timestamps),
+	// so the resulting SHAs are always the same across runs.
+	fastImportData := `commit refs/heads/master
+mark :1
+author Test <test@test.com> 1000000000 +0000
+committer Test <test@test.com> 1000000000 +0000
+data 8
+initial
+
+commit refs/heads/master
+mark :2
+author Test <test@test.com> 1000000001 +0000
+committer Test <test@test.com> 1000000001 +0000
+data 7
+second
+
+from :1
+
+commit refs/heads/6543-patch-1
+mark :3
+author Test <test@test.com> 1000000002 +0000
+committer Test <test@test.com> 1000000002 +0000
+data 6
+patch
+
+from :2
+
+reset refs/tags/V1
+from :1
+
+reset refs/tags/v2-rc1
+from :2
+
+done
+`
+	// Fork adds one extra branch for the PR head (from master = 873987e)
+	forkExtraData := `commit refs/heads/add-xkcd-2199
+author Test <test@test.com> 1000000003 +0000
+committer Test <test@test.com> 1000000003 +0000
+data 5
+xkcd
+
+from 873987ea3e99c206bb0841266845098ee74d4ce9
+
+done
+`
+	fastImport := func(dir, data string) {
+		cmd := exec.Command("git", "-C", dir, "fast-import", "--date-format=raw", "--done")
+		cmd.Stdin = strings.NewReader(data)
+		out, err := cmd.CombinedOutput()
+		require.NoError(t, err, "fast-import failed: %s", out)
+	}
+
+	repoDir := t.TempDir()
+	out, err := exec.Command("git", "init", "--bare", repoDir).CombinedOutput()
+	require.NoError(t, err, "git init failed: %s", out)
+	fastImport(repoDir, fastImportData)
+
+	forkDir := t.TempDir()
+	out, err = exec.Command("git", "clone", "--bare", repoDir, forkDir).CombinedOutput()
+	require.NoError(t, err, "git clone failed: %s", out)
+	fastImport(forkDir, forkExtraData)
+
+	// Find git-http-backend
+	execPathBytes, err := exec.Command("git", "--exec-path").Output()
+	require.NoError(t, err)
+	httpBackend := filepath.Join(strings.TrimSpace(string(execPathBytes)), "git-http-backend")
+
+	_, callerFile, _, _ := runtime.Caller(0)
+	fixtureDir := filepath.Join(filepath.Dir(callerFile), "_mock_data/Test_MigrateFromGiteaToGitea")
+	return unittest.NewMockWebServer(t, "https://gitea.com",
+		fixtureDir, liveMode,
+		unittest.MockServerOptions{
+			Routes: func(mux *http.ServeMux) {
+				mux.HandleFunc("/gitea/test_repo.wiki.git/", func(w http.ResponseWriter, _ *http.Request) {
+					http.Error(w, "wiki not found", http.StatusNotFound)
+				})
+				gitHandler := func(dir, prefix string) http.HandlerFunc {
+					return func(w http.ResponseWriter, r *http.Request) {
+						handler := &cgi.Handler{
+							Path: httpBackend,
+							Dir:  dir,
+							Env: []string{
+								"GIT_PROJECT_ROOT=" + filepath.Dir(dir),
+								"GIT_HTTP_EXPORT_ALL=1",
+							},
+						}
+						r.URL.Path = "/" + filepath.Base(dir) + strings.TrimPrefix(r.URL.Path, prefix)
+						handler.ServeHTTP(w, r)
+					}
+				}
+				mux.HandleFunc("/gitea/test_repo.git/", gitHandler(repoDir, "/gitea/test_repo.git"))
+				mux.HandleFunc("/6543-forks/test_repo.git/", gitHandler(forkDir, "/6543-forks/test_repo.git"))
+			},
+		},
+	)
+}
+
 func Test_MigrateFromGiteaToGitea(t *testing.T) {
 	defer tests.PrepareTestEnv(t)()
+	defer test.MockVariableValue(&setting.Migrations.AllowLocalNetworks, true)()
+	assert.NoError(t, migrations.Init())
+
+	mockServer := setupGiteaMockServer(t)
 
 	owner := unittest.AssertExistsAndLoadBean(t, &user_model.User{Name: "user2"})
 	session := loginUser(t, owner.Name)
 	token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeAll)
 
-	resp, err := httplib.NewRequest("https://gitea.com/gitea/test_repo.git", "GET").SetReadWriteTimeout(5 * time.Second).Response()
-	if err != nil || resp.StatusCode != http.StatusOK {
-		if resp != nil {
-			resp.Body.Close()
-		}
-		t.Skipf("Can't reach https://gitea.com, skipping %s", t.Name())
-	}
-	resp.Body.Close()
-
-	repoName := fmt.Sprintf("gitea-to-gitea-%d", time.Now().UnixNano())
-	cloneAddr := "https://gitea.com/gitea/test_repo.git"
+	repoName := "migrated-from-mock-gitea"
+	cloneAddr := mockServer.URL + "/gitea/test_repo.git"
 
 	req := NewRequestWithJSON(t, "POST", "/api/v1/repos/migrate", &structs.MigrateRepoOptions{
 		CloneAddr:    cloneAddr,

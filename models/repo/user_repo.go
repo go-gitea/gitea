@@ -7,11 +7,12 @@ import (
 	"context"
 	"strings"
 
-	"code.gitea.io/gitea/models/db"
-	"code.gitea.io/gitea/models/perm"
-	"code.gitea.io/gitea/models/unit"
-	user_model "code.gitea.io/gitea/models/user"
-	"code.gitea.io/gitea/modules/container"
+	"gitea.dev/models/db"
+	"gitea.dev/models/organization"
+	"gitea.dev/models/perm"
+	"gitea.dev/models/unit"
+	user_model "gitea.dev/models/user"
+	"gitea.dev/modules/container"
 
 	"xorm.io/builder"
 )
@@ -21,6 +22,12 @@ type StarredReposOptions struct {
 	StarrerID      int64
 	RepoOwnerID    int64
 	IncludePrivate bool
+}
+
+func (opts *StarredReposOptions) ApplyPublicOnly(publicOnly bool) {
+	if publicOnly {
+		opts.IncludePrivate = false
+	}
 }
 
 func (opts *StarredReposOptions) ToConds() builder.Cond {
@@ -61,6 +68,12 @@ type WatchedReposOptions struct {
 	IncludePrivate bool
 }
 
+func (opts *WatchedReposOptions) ApplyPublicOnly(publicOnly bool) {
+	if publicOnly {
+		opts.IncludePrivate = false
+	}
+}
+
 func (opts *WatchedReposOptions) ToConds() builder.Cond {
 	var cond builder.Cond = builder.Eq{
 		"watch.user_id": opts.WatcherID,
@@ -94,8 +107,7 @@ func GetWatchedRepos(ctx context.Context, opts *WatchedReposOptions) ([]*Reposit
 	return db.FindAndCount[Repository](ctx, opts)
 }
 
-// GetRepoAssignees returns all users that have write access and can be assigned to issues
-// of the repository,
+// GetRepoAssignees returns all users that have write access and can be assigned to issues or pull-requests of the repository,
 func GetRepoAssignees(ctx context.Context, repo *Repository) (_ []*user_model.User, err error) {
 	if err = repo.LoadOwner(ctx); err != nil {
 		return nil, err
@@ -114,15 +126,9 @@ func GetRepoAssignees(ctx context.Context, repo *Repository) (_ []*user_model.Us
 	uniqueUserIDs.AddMultiple(userIDs...)
 
 	if repo.Owner.IsOrganization() {
-		additionalUserIDs := make([]int64, 0, 10)
-		if err = e.Table("team_user").
-			Join("INNER", "team_repo", "`team_repo`.team_id = `team_user`.team_id").
-			Join("INNER", "team_unit", "`team_unit`.team_id = `team_user`.team_id").
-			Where("`team_repo`.repo_id = ? AND (`team_unit`.access_mode >= ? OR (`team_unit`.access_mode = ? AND `team_unit`.`type` = ?))",
-				repo.ID, perm.AccessModeWrite, perm.AccessModeRead, unit.TypePullRequests).
-			Distinct("`team_user`.uid").
-			Select("`team_user`.uid").
-			Find(&additionalUserIDs); err != nil {
+		// issues and pull requests both need "assignee list"
+		additionalUserIDs, err := organization.GetTeamUserIDsWithAccessToAnyRepoUnit(ctx, repo.OwnerID, repo.ID, perm.AccessModeRead, unit.TypeIssues, unit.TypePullRequests)
+		if err != nil {
 			return nil, err
 		}
 		uniqueUserIDs.AddMultiple(additionalUserIDs...)

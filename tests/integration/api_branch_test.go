@@ -11,11 +11,11 @@ import (
 	"net/url"
 	"testing"
 
-	auth_model "code.gitea.io/gitea/models/auth"
-	"code.gitea.io/gitea/models/db"
-	git_model "code.gitea.io/gitea/models/git"
-	api "code.gitea.io/gitea/modules/structs"
-	"code.gitea.io/gitea/tests"
+	auth_model "gitea.dev/models/auth"
+	"gitea.dev/models/db"
+	git_model "gitea.dev/models/git"
+	api "gitea.dev/modules/structs"
+	"gitea.dev/tests"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -30,8 +30,7 @@ func testAPIGetBranch(t *testing.T, branchName string, exists bool) {
 		return
 	}
 	assert.Equal(t, http.StatusOK, resp.Code)
-	var branch api.Branch
-	DecodeJSON(t, resp, &branch)
+	branch := DecodeJSON(t, resp, &api.Branch{})
 	assert.Equal(t, branchName, branch.Name)
 	assert.True(t, branch.UserCanPush)
 	assert.True(t, branch.UserCanMerge)
@@ -44,10 +43,9 @@ func testAPIGetBranchProtection(t *testing.T, branchName string, expectedHTTPSta
 	resp := MakeRequest(t, req, expectedHTTPStatus)
 
 	if resp.Code == http.StatusOK {
-		var branchProtection api.BranchProtection
-		DecodeJSON(t, resp, &branchProtection)
+		branchProtection := DecodeJSON(t, resp, &api.BranchProtection{})
 		assert.Equal(t, branchName, branchProtection.RuleName)
-		return &branchProtection
+		return branchProtection
 	}
 	return nil
 }
@@ -60,8 +58,7 @@ func testAPICreateBranchProtection(t *testing.T, branchName string, expectedPrio
 	resp := MakeRequest(t, req, expectedHTTPStatus)
 
 	if resp.Code == http.StatusCreated {
-		var branchProtection api.BranchProtection
-		DecodeJSON(t, resp, &branchProtection)
+		branchProtection := DecodeJSON(t, resp, &api.BranchProtection{})
 		assert.Equal(t, branchName, branchProtection.RuleName)
 		assert.EqualValues(t, expectedPriority, branchProtection.Priority)
 	}
@@ -74,8 +71,7 @@ func testAPIEditBranchProtection(t *testing.T, branchName string, body *api.Bran
 	resp := MakeRequest(t, req, expectedHTTPStatus)
 
 	if resp.Code == http.StatusOK {
-		var branchProtection api.BranchProtection
-		DecodeJSON(t, resp, &branchProtection)
+		branchProtection := DecodeJSON(t, resp, &api.BranchProtection{})
 		assert.Equal(t, branchName, branchProtection.RuleName)
 	}
 }
@@ -179,8 +175,7 @@ func testAPICreateBranch(t testing.TB, session *TestSession, user, repo, oldBran
 	}).AddTokenAuth(token)
 	resp := MakeRequest(t, req, status)
 
-	var branch api.Branch
-	DecodeJSON(t, resp, &branch)
+	branch := DecodeJSON(t, resp, &api.Branch{})
 
 	if resp.Result().StatusCode == http.StatusCreated {
 		assert.Equal(t, newBranch, branch.Name)
@@ -353,7 +348,7 @@ func TestAPIUpdateBranchReference(t *testing.T) {
 
 func testAPIRenameBranch(t *testing.T, doerName, ownerName, repoName, from, to string, expectedHTTPStatus int) *httptest.ResponseRecorder {
 	token := getUserToken(t, doerName, auth_model.AccessTokenScopeWriteRepository)
-	req := NewRequestWithJSON(t, "PATCH", "api/v1/repos/"+ownerName+"/"+repoName+"/branches/"+from, &api.RenameBranchRepoOption{
+	req := NewRequestWithJSON(t, "PATCH", "/api/v1/repos/"+ownerName+"/"+repoName+"/branches/"+from, &api.RenameBranchRepoOption{
 		Name: to,
 	}).AddTokenAuth(token)
 	return MakeRequest(t, req, expectedHTTPStatus)
@@ -361,7 +356,11 @@ func testAPIRenameBranch(t *testing.T, doerName, ownerName, repoName, from, to s
 
 func TestAPIBranchProtection(t *testing.T) {
 	defer tests.PrepareTestEnv(t)()
+	t.Run("Basic", testAPIBranchProtectionBasic)
+	t.Run("BypassAllowlistValidation", testAPIBranchProtectionBypassAllowlistValidation)
+}
 
+func testAPIBranchProtectionBasic(t *testing.T) {
 	// Can create branch protection on branch that not exist
 	testAPICreateBranchProtection(t, "non-existing/branch", 1, http.StatusCreated)
 	testAPIGetBranchProtection(t, "non-existing/branch", http.StatusOK)
@@ -409,6 +408,35 @@ func TestAPIBranchProtection(t *testing.T) {
 	testAPIDeleteBranch(t, "branch2", http.StatusNoContent)
 	testAPIDeleteBranch(t, "branch2", http.StatusNotFound)        // deleted branch, there is a record in DB with IsDelete=true
 	testAPIDeleteBranch(t, "no-such-branch", http.StatusNotFound) // non-existing branch, not exist in git or DB
+}
+
+func testAPIBranchProtectionBypassAllowlistValidation(t *testing.T) {
+	token := getUserToken(t, "user2", auth_model.AccessTokenScopeWriteRepository)
+
+	t.Run("IgnoreInvalidBypassUsernamesWhenDisabled", func(t *testing.T) {
+		ruleName := "bypass-disabled-invalid-user"
+		req := NewRequestWithJSON(t, "POST", "/api/v1/repos/user2/repo1/branch_protections", &api.CreateBranchProtectionOption{
+			RuleName:                 ruleName,
+			EnableBypassAllowlist:    false,
+			BypassAllowlistUsernames: []string{"nonexistent-user"},
+		}).AddTokenAuth(token)
+		MakeRequest(t, req, http.StatusCreated)
+		testAPIDeleteBranchProtection(t, ruleName, http.StatusNoContent)
+	})
+
+	t.Run("IgnoreInvalidBypassTeamsWhenDisabled", func(t *testing.T) {
+		ruleName := "bypass-disabled-invalid-team"
+		req := NewRequestWithJSON(t, "POST", "/api/v1/repos/org3/repo3/branch_protections", &api.CreateBranchProtectionOption{
+			RuleName:              ruleName,
+			EnableBypassAllowlist: false,
+			BypassAllowlistTeams:  []string{"nonexistent-team"},
+		}).AddTokenAuth(token)
+		MakeRequest(t, req, http.StatusCreated)
+
+		deleteReq := NewRequestf(t, "DELETE", "/api/v1/repos/org3/repo3/branch_protections/%s", ruleName).
+			AddTokenAuth(token)
+		MakeRequest(t, deleteReq, http.StatusNoContent)
+	})
 }
 
 func TestAPICreateBranchWithSyncBranches(t *testing.T) {

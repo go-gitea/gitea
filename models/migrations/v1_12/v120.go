@@ -3,11 +3,9 @@
 
 package v1_12
 
-import (
-	"xorm.io/xorm"
-)
+import "gitea.dev/models/db"
 
-func AddOwnerNameOnRepository(x *xorm.Engine) error {
+func AddOwnerNameOnRepository(x db.EngineMigration) error {
 	type Repository struct {
 		OwnerName string
 	}

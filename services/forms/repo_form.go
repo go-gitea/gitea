@@ -8,14 +8,14 @@ import (
 	"net/http"
 	"strings"
 
-	issues_model "code.gitea.io/gitea/models/issues"
-	project_model "code.gitea.io/gitea/models/project"
-	"code.gitea.io/gitea/modules/json"
-	"code.gitea.io/gitea/modules/structs"
-	"code.gitea.io/gitea/modules/util"
-	"code.gitea.io/gitea/modules/web/middleware"
-	"code.gitea.io/gitea/services/context"
-	"code.gitea.io/gitea/services/webhook"
+	issues_model "gitea.dev/models/issues"
+	project_model "gitea.dev/models/project"
+	"gitea.dev/modules/json"
+	"gitea.dev/modules/structs"
+	"gitea.dev/modules/util"
+	"gitea.dev/modules/web/middleware"
+	"gitea.dev/services/context"
+	"gitea.dev/services/webhook"
 
 	"gitea.com/go-chi/binding"
 )
@@ -142,7 +142,9 @@ type RepoSettingForm struct {
 	PullsAllowManualMerge            bool
 	PullsDefaultMergeStyle           string
 	EnableAutodetectManualMerge      bool
+	PullsAllowMergeUpdate            bool
 	PullsAllowRebaseUpdate           bool
+	PullsDefaultUpdateStyle          string
 	DefaultDeleteBranchAfterMerge    bool
 	DefaultAllowMaintainerEdit       bool
 	DefaultTargetBranch              string
@@ -179,6 +181,9 @@ type ProtectBranchForm struct {
 	EnableMergeWhitelist          bool
 	MergeWhitelistUsers           string
 	MergeWhitelistTeams           string
+	EnableBypassAllowlist         bool
+	BypassAllowlistUsers          string
+	BypassAllowlistTeams          string
 	EnableStatusCheck             bool
 	StatusCheckContexts           string
 	RequiredApprovals             int64
@@ -200,10 +205,6 @@ type ProtectBranchForm struct {
 func (f *ProtectBranchForm) Validate(req *http.Request, errs binding.Errors) binding.Errors {
 	ctx := context.GetValidateContext(req)
 	return middleware.Validate(errs, ctx.Data, f, ctx.Locale)
-}
-
-type ProtectBranchPriorityForm struct {
-	IDs []int64
 }
 
 // WebhookForm form for changing web hook
@@ -412,12 +413,10 @@ func (f *NewPackagistHookForm) Validate(req *http.Request, errs binding.Errors) 
 // CreateIssueForm form for creating issue
 type CreateIssueForm struct {
 	Title               string `binding:"Required;MaxSize(255)"`
-	LabelIDs            string `form:"label_ids"`
 	AssigneeIDs         string `form:"assignee_ids"`
 	ReviewerIDs         string `form:"reviewer_ids"`
 	Ref                 string `form:"ref"`
 	MilestoneID         int64
-	ProjectID           int64
 	Content             string
 	Files               []string
 	AllowMaintainerEdit bool
@@ -739,15 +738,4 @@ func (f *AddTimeManuallyForm) Validate(req *http.Request, errs binding.Errors) b
 // SaveTopicForm form for save topics for repository
 type SaveTopicForm struct {
 	Topics []string `binding:"topics;Required;"`
-}
-
-// DeadlineForm hold the validation rules for deadlines
-type DeadlineForm struct {
-	DateString string `form:"date" binding:"Required;Size(10)"`
-}
-
-// Validate validates the fields
-func (f *DeadlineForm) Validate(req *http.Request, errs binding.Errors) binding.Errors {
-	ctx := context.GetValidateContext(req)
-	return middleware.Validate(errs, ctx.Data, f, ctx.Locale)
 }

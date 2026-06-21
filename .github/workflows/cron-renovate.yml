@@ -1,0 +1,32 @@
+name: cron-renovate
+
+on:
+  schedule:
+    - cron: "23 * * * *" # hourly at :23
+  workflow_dispatch:
+
+concurrency:
+  group: cron-renovate
+
+env:
+  RENOVATE_VERSION: 43.141.5 # renovate: datasource=docker depName=ghcr.io/renovatebot/renovate
+
+permissions:
+  contents: read
+
+jobs:
+  cron-renovate:
+    runs-on: ubuntu-latest
+    if: github.repository == 'go-gitea/gitea' # prevent running on forks
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
+      - uses: renovatebot/github-action@8217b3fc286df088d7c27f3255fe8414463bc0fd # v46.1.15
+        with:
+          renovate-version: ${{ env.RENOVATE_VERSION }}
+          configurationFile: renovate.json5
+          token: ${{ secrets.RENOVATE_TOKEN }}
+        env:
+          RENOVATE_BINARY_SOURCE: install # auto-install go/node toolchains needed by post-upgrade tasks.
+          RENOVATE_ALLOWED_POST_UPGRADE_COMMANDS: '["^make (tidy|svg)$"]'
+          RENOVATE_REPOSITORIES: '["go-gitea/gitea"]'

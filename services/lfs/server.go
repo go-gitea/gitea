@@ -18,21 +18,22 @@ import (
 	"strings"
 	"time"
 
-	auth_model "code.gitea.io/gitea/models/auth"
-	git_model "code.gitea.io/gitea/models/git"
-	perm_model "code.gitea.io/gitea/models/perm"
-	access_model "code.gitea.io/gitea/models/perm/access"
-	repo_model "code.gitea.io/gitea/models/repo"
-	"code.gitea.io/gitea/models/unit"
-	user_model "code.gitea.io/gitea/models/user"
-	"code.gitea.io/gitea/modules/auth/httpauth"
-	"code.gitea.io/gitea/modules/httplib"
-	"code.gitea.io/gitea/modules/json"
-	lfs_module "code.gitea.io/gitea/modules/lfs"
-	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/modules/storage"
-	"code.gitea.io/gitea/services/context"
+	auth_model "gitea.dev/models/auth"
+	git_model "gitea.dev/models/git"
+	perm_model "gitea.dev/models/perm"
+	access_model "gitea.dev/models/perm/access"
+	repo_model "gitea.dev/models/repo"
+	"gitea.dev/models/unit"
+	user_model "gitea.dev/models/user"
+	"gitea.dev/modules/auth/httpauth"
+	"gitea.dev/modules/httplib"
+	"gitea.dev/modules/json"
+	lfs_module "gitea.dev/modules/lfs"
+	"gitea.dev/modules/log"
+	"gitea.dev/modules/setting"
+	"gitea.dev/modules/storage"
+	"gitea.dev/modules/util"
+	"gitea.dev/services/context"
 
 	"github.com/golang-jwt/jwt/v5"
 )
@@ -604,6 +605,18 @@ func handleLFSToken(ctx stdCtx.Context, tokenSHA string, target *repo_model.Repo
 	if err != nil {
 		log.Error("Unable to GetUserById[%d]: Error: %v", claims.UserID, err)
 		return nil, err
+	}
+	if !u.IsActive || u.ProhibitLogin {
+		return nil, util.NewPermissionDeniedErrorf("not allowed to access any repository")
+	}
+
+	perm, err := access_model.GetDoerRepoPermission(ctx, target, u)
+	if err != nil {
+		log.Error("Unable to GetDoerRepoPermission for user[%d] repo[%d]: %v", claims.UserID, target.ID, err)
+		return nil, err
+	}
+	if !perm.CanAccess(mode, unit.TypeCode) {
+		return nil, util.NewPermissionDeniedErrorf("no permission to access the repository")
 	}
 	return u, nil
 }

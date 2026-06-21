@@ -10,13 +10,16 @@ import (
 	"strings"
 	"testing"
 
-	"code.gitea.io/gitea/models/unittest"
-	user_model "code.gitea.io/gitea/models/user"
-	"code.gitea.io/gitea/modules/test"
-	repo_service "code.gitea.io/gitea/services/repository"
-	"code.gitea.io/gitea/tests"
+	repo_model "gitea.dev/models/repo"
+	"gitea.dev/models/unittest"
+	user_model "gitea.dev/models/user"
+	"gitea.dev/modules/git/gitcmd"
+	"gitea.dev/modules/test"
+	repo_service "gitea.dev/services/repository"
+	"gitea.dev/tests"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestCompareTag(t *testing.T) {
@@ -30,9 +33,17 @@ func TestCompareTag(t *testing.T) {
 	// A dropdown for both base and head.
 	assert.Lenf(t, selection.Nodes, 2, "The template has changed")
 
+	req = NewRequest(t, "GET", "/user2/repo1/compare/v1.1...HEAD")
+	resp = session.MakeRequest(t, req, http.StatusOK)
+	assert.True(t, test.IsNormalPageCompleted(resp.Body.String()))
+
+	req = NewRequest(t, "GET", "/user2/repo1/compare/v1.1...NotExisting").SetHeader("Accept", "text/html")
+	resp = session.MakeRequest(t, req, http.StatusNotFound)
+	assert.True(t, test.IsNormalPageCompleted(resp.Body.String()))
+
 	req = NewRequest(t, "GET", "/user2/repo1/compare/invalid").SetHeader("Accept", "text/html")
 	resp = session.MakeRequest(t, req, http.StatusNotFound)
-	assert.True(t, test.IsNormalPageCompleted(resp.Body.String()), "expect 404 page not 500")
+	assert.True(t, test.IsNormalPageCompleted(resp.Body.String()))
 }
 
 // Compare with inferred default branch (master)
@@ -122,6 +133,85 @@ func TestCompareBranches(t *testing.T) {
 	diffChanges = []string{"test.txt"}
 
 	inspectCompare(t, htmlDoc, diffCount, diffChanges)
+}
+
+func TestCompareBranchesNoCommonMergeBase(t *testing.T) {
+	defer tests.PrepareTestEnv(t)()
+
+	user2 := unittest.AssertExistsAndLoadBean(t, &user_model.User{Name: "user2"})
+	repo1 := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{OwnerID: user2.ID, Name: "repo1"})
+
+	repoPath := repo_model.RepoPath(user2.Name, repo1.Name)
+	_, _, runErr := gitcmd.NewCommand("fast-import").WithDir(repoPath).WithStdinBytes([]byte(strings.TrimSpace(`
+commit refs/heads/unrelated-history
+committer User <user@example.com> 1714310400 +0000
+data 13
+Second commit
+M 100644 inline file2.txt
+data 12
+Hello from 2
+`))).RunStdString(t.Context())
+	require.NoError(t, runErr)
+
+	session := loginUser(t, "user2")
+	req := NewRequest(t, "GET", "/user2/repo1/compare/master...unrelated-history")
+	resp := session.MakeRequest(t, req, http.StatusOK)
+	body := resp.Body.String()
+	htmlDoc := NewHTMLParser(t, resp.Body)
+
+	selection := htmlDoc.doc.Find(".ui.dropdown.select-branch")
+	assert.Lenf(t, selection.Nodes, 2, "The template has changed")
+	assert.Contains(t, body, "These branches do not share a common merge base")
+	assert.Equal(t, 1, htmlDoc.doc.Find(`a.item[href="/user2/repo1/compare/master...unrelated-history"]`).Length())
+	assert.Equal(t, 1, htmlDoc.doc.Find(`a.item[href="/user2/repo1/compare/master...master"]`).Length())
+	assert.Equal(t, 0, htmlDoc.doc.Find(".pullrequest-form").Length())
+}
+
+func TestCompareDownloadDiffOrPatch(t *testing.T) {
+	defer tests.PrepareTestEnv(t)()
+
+	session := loginUser(t, "user2")
+
+	t.Run("BranchToBranchDiff", func(t *testing.T) {
+		defer tests.PrintCurrentTest(t)()
+
+		req := NewRequest(t, "GET", "/user2/repo20/compare/add-csv...remove-files-b.diff")
+		resp := session.MakeRequest(t, req, http.StatusOK)
+		assert.Equal(t, "text/plain; charset=utf-8", resp.Header().Get("Content-Type"))
+		assert.Contains(t, resp.Body.String(), "diff --git ")
+	})
+
+	t.Run("BranchToBranchPatch", func(t *testing.T) {
+		defer tests.PrintCurrentTest(t)()
+
+		req := NewRequest(t, "GET", "/user2/repo20/compare/add-csv...remove-files-b.patch")
+		resp := session.MakeRequest(t, req, http.StatusOK)
+		assert.Equal(t, "text/plain; charset=utf-8", resp.Header().Get("Content-Type"))
+		assert.True(t, strings.HasPrefix(resp.Body.String(), "From "), "patch output should start with a format-patch header")
+	})
+
+	t.Run("SingleRefImplicitBase", func(t *testing.T) {
+		defer tests.PrintCurrentTest(t)()
+
+		req := NewRequest(t, "GET", "/user2/repo20/compare/add-csv.diff")
+		resp := session.MakeRequest(t, req, http.StatusOK)
+		assert.Contains(t, resp.Body.String(), "diff --git ")
+	})
+
+	t.Run("InvalidBaseRef", func(t *testing.T) {
+		defer tests.PrintCurrentTest(t)()
+
+		req := NewRequest(t, "GET", "/user2/repo20/compare/does-not-exist...remove-files-b.diff")
+		session.MakeRequest(t, req, http.StatusNotFound)
+	})
+
+	t.Run("PrivateRepoAnonymous", func(t *testing.T) {
+		defer tests.PrintCurrentTest(t)()
+
+		// repo16 is private; an unauthenticated request must not leak its existence.
+		req := NewRequest(t, "GET", "/user2/repo16/compare/master...good-sign.diff")
+		MakeRequest(t, req, http.StatusNotFound)
+	})
 }
 
 func TestCompareCodeExpand(t *testing.T) {

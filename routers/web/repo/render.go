@@ -7,11 +7,11 @@ import (
 	"net/http"
 	"path"
 
-	"code.gitea.io/gitea/models/renderhelper"
-	"code.gitea.io/gitea/modules/git"
-	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/markup"
-	"code.gitea.io/gitea/services/context"
+	"gitea.dev/models/renderhelper"
+	"gitea.dev/modules/git"
+	"gitea.dev/modules/log"
+	"gitea.dev/modules/markup"
+	"gitea.dev/services/context"
 )
 
 // RenderFile renders a file by repos path
@@ -40,10 +40,11 @@ func RenderFile(ctx *context.Context) {
 	defer blobReader.Close()
 
 	rctx := renderhelper.NewRenderContextRepoFile(ctx, ctx.Repo.Repository, renderhelper.RepoFileOptions{
-		CurrentRefPath:  ctx.Repo.RefTypeNameSubURL(),
-		CurrentTreePath: path.Dir(ctx.Repo.TreePath),
+		CurrentRefSubURL: ctx.Repo.RefTypeNameSubURL(),
+		CurrentTreePath:  path.Dir(ctx.Repo.TreePath),
 	}).WithRelativePath(ctx.Repo.TreePath).WithStandalonePage(markup.StandalonePageOptions{
-		CurrentWebTheme: ctx.TemplateContext.CurrentWebTheme(),
+		CurrentWebTheme:   ctx.TemplateContext.CurrentWebTheme(),
+		RenderQueryString: ctx.Req.URL.RawQuery,
 	})
 	renderer, rendererInput, err := rctx.DetectMarkupRendererByReader(blobReader)
 	if err != nil {
@@ -62,9 +63,7 @@ func RenderFile(ctx *context.Context) {
 	// HINT: PDF-RENDER-SANDBOX: PDF won't render in sandboxed context
 	extRendererOpts := extRenderer.GetExternalRendererOptions()
 	if extRendererOpts.ContentSandbox != "" {
-		ctx.Resp.Header().Add("Content-Security-Policy", "frame-src 'self'; sandbox "+extRendererOpts.ContentSandbox)
-	} else {
-		ctx.Resp.Header().Add("Content-Security-Policy", "frame-src 'self'")
+		ctx.Resp.Header().Add("Content-Security-Policy", "sandbox "+extRendererOpts.ContentSandbox)
 	}
 
 	err = markup.RenderWithRenderer(rctx, renderer, rendererInput, ctx.Resp)

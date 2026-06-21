@@ -6,7 +6,7 @@ package bleve
 import (
 	"testing"
 
-	"code.gitea.io/gitea/modules/indexer/issues/internal/tests"
+	"gitea.dev/modules/indexer/issues/internal/tests"
 )
 
 func TestBleveIndexer(t *testing.T) {

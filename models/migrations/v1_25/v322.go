@@ -4,13 +4,13 @@
 package v1_25
 
 import (
-	"code.gitea.io/gitea/models/migrations/base"
+	"gitea.dev/models/db"
+	"gitea.dev/models/migrations/base"
 
-	"xorm.io/xorm"
 	"xorm.io/xorm/schemas"
 )
 
-func ExtendCommentTreePathLength(x *xorm.Engine) error {
+func ExtendCommentTreePathLength(x db.EngineMigration) error {
 	dbType := x.Dialect().URI().DBType
 	if dbType == schemas.SQLITE { // For SQLITE, varchar or char will always be represented as TEXT
 		return nil

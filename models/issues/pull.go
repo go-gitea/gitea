@@ -10,20 +10,21 @@ import (
 	"fmt"
 	"io"
 	"strings"
+	"time"
 
-	"code.gitea.io/gitea/models/db"
-	git_model "code.gitea.io/gitea/models/git"
-	org_model "code.gitea.io/gitea/models/organization"
-	pull_model "code.gitea.io/gitea/models/pull"
-	repo_model "code.gitea.io/gitea/models/repo"
-	user_model "code.gitea.io/gitea/models/user"
-	"code.gitea.io/gitea/modules/git"
-	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/modules/timeutil"
-	"code.gitea.io/gitea/modules/util"
+	"gitea.dev/models/db"
+	git_model "gitea.dev/models/git"
+	org_model "gitea.dev/models/organization"
+	pull_model "gitea.dev/models/pull"
+	repo_model "gitea.dev/models/repo"
+	user_model "gitea.dev/models/user"
+	"gitea.dev/modules/git"
+	"gitea.dev/modules/log"
+	"gitea.dev/modules/setting"
+	"gitea.dev/modules/timeutil"
+	"gitea.dev/modules/util"
 
-	"github.com/dlclark/regexp2"
+	"github.com/dlclark/regexp2/v2"
 	"xorm.io/builder"
 )
 
@@ -413,7 +414,7 @@ func (pr *PullRequest) getReviewedByLines(ctx context.Context, writer io.Writer)
 }
 
 // GetGitHeadRefName returns git ref for hidden pull request branch
-func (pr *PullRequest) GetGitHeadRefName() string {
+func (pr *PullRequest) GetGitHeadRefName() string { // TODO: make it return RefName but not string
 	return fmt.Sprintf("%s%d/head", git.PullPrefix, pr.Index)
 }
 
@@ -437,8 +438,8 @@ func (pr *PullRequest) IsChecking() bool {
 	return pr.Status == PullRequestStatusChecking
 }
 
-// CanAutoMerge returns true if this pull request can be merged automatically.
-func (pr *PullRequest) CanAutoMerge() bool {
+// IsStatusMergeable returns true if this pull request is mergeable to its base
+func (pr *PullRequest) IsStatusMergeable() bool {
 	return pr.Status == PullRequestStatusMergeable
 }
 
@@ -475,7 +476,7 @@ func NewPullRequest(ctx context.Context, repo *repo_model.Repository, issue *Iss
 			LabelIDs:    labelIDs,
 			Attachments: uuids,
 		}); err != nil {
-			if repo_model.IsErrUserDoesNotHaveAccessToRepo(err) || IsErrNewIssueInsert(err) {
+			if repo_model.IsErrUserDoesNotHaveAccessToRepo(err) {
 				return err
 			}
 			return fmt.Errorf("newIssue: %w", err)
@@ -860,6 +861,11 @@ func GetCodeOwnersFromContent(ctx context.Context, data string) ([]*CodeOwnerRul
 	return rules, warnings
 }
 
+// codeOwnerMatchTimeout bounds a single pattern match so a crafted pattern
+// cannot stall via catastrophic backtracking. See also the aggregate budget
+// enforced by the caller across the whole rules×files match loop.
+const codeOwnerMatchTimeout = 150 * time.Millisecond
+
 type CodeOwnerRule struct {
 	Rule     *regexp2.Regexp // it supports negative lookahead, does better for end users
 	Negative bool
@@ -877,12 +883,19 @@ func ParseCodeOwnersLine(ctx context.Context, tokens []string) (*CodeOwnerRule, 
 
 	warnings := make([]string, 0)
 
-	expr := fmt.Sprintf("^%s$", strings.TrimPrefix(tokens[0], "!"))
+	// Strip leading "!" for negative rules, then strip leading "/" since
+	// git returns relative paths (e.g. "docs/foo.md" not "/docs/foo.md")
+	// and the regex is already anchored with ^...$, so the "/" is redundant.
+	pattern := strings.TrimPrefix(tokens[0], "!")
+	pattern = strings.TrimPrefix(pattern, "/")
+	expr := fmt.Sprintf("^%s$", pattern)
 	rule.Rule, err = regexp2.Compile(expr, regexp2.None)
 	if err != nil {
 		warnings = append(warnings, fmt.Sprintf("incorrect codeowner regexp: %s", err))
 		return nil, warnings
 	}
+	// Bound matching time so user-supplied patterns cannot stall PR creation via catastrophic backtracking.
+	rule.Rule.MatchTimeout = codeOwnerMatchTimeout
 
 	for _, user := range tokens[1:] {
 		user = strings.TrimPrefix(user, "@")

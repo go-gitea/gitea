@@ -8,10 +8,10 @@ import (
 	"errors"
 	"fmt"
 
-	issues_model "code.gitea.io/gitea/models/issues"
-	"code.gitea.io/gitea/modules/gitrepo"
-	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/queue"
+	issues_model "gitea.dev/models/issues"
+	"gitea.dev/modules/gitrepo"
+	"gitea.dev/modules/log"
+	"gitea.dev/modules/queue"
 )
 
 var AutoMergeQueue *queue.WorkerPoolQueue[string]
@@ -25,7 +25,7 @@ var AddToQueue = func(pr *issues_model.PullRequest, sha string) {
 
 // StartPRCheckAndAutoMerge start an automerge check and auto merge task for a pull request
 func StartPRCheckAndAutoMerge(ctx context.Context, pull *issues_model.PullRequest) {
-	if pull == nil || pull.HasMerged || !pull.CanAutoMerge() {
+	if pull == nil || pull.HasMerged || !pull.IsStatusMergeable() {
 		return
 	}
 

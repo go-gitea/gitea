@@ -8,21 +8,20 @@ import (
 	"errors"
 	"fmt"
 	"path"
-	"strconv"
 	"strings"
 
-	actions_model "code.gitea.io/gitea/models/actions"
-	"code.gitea.io/gitea/models/db"
-	git_model "code.gitea.io/gitea/models/git"
-	repo_model "code.gitea.io/gitea/models/repo"
-	user_model "code.gitea.io/gitea/models/user"
-	actions_module "code.gitea.io/gitea/modules/actions"
-	"code.gitea.io/gitea/modules/actions/jobparser"
-	"code.gitea.io/gitea/modules/commitstatus"
-	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/util"
-	webhook_module "code.gitea.io/gitea/modules/webhook"
-	commitstatus_service "code.gitea.io/gitea/services/repository/commitstatus"
+	actions_model "gitea.dev/models/actions"
+	"gitea.dev/models/db"
+	git_model "gitea.dev/models/git"
+	repo_model "gitea.dev/models/repo"
+	user_model "gitea.dev/models/user"
+	actions_module "gitea.dev/modules/actions"
+	"gitea.dev/modules/actions/jobparser"
+	"gitea.dev/modules/commitstatus"
+	"gitea.dev/modules/log"
+	"gitea.dev/modules/util"
+	webhook_module "gitea.dev/modules/webhook"
+	commitstatus_service "gitea.dev/services/repository/commitstatus"
 )
 
 // CreateCommitStatusForRunJobs creates a commit status for the given job if it has a supported event and related commit.
@@ -140,58 +139,83 @@ func getCommitStatusEventNameAndCommitID(run *actions_model.ActionRun) (event, c
 func createCommitStatus(ctx context.Context, repo *repo_model.Repository, event, commitID string, run *actions_model.ActionRun, job *actions_model.ActionRunJob) error {
 	// TODO: store workflow name as a field in ActionRun to avoid parsing
 	runName := path.Base(run.WorkflowID)
+	// fall back to the file name when the workflow has no non-blank `name:`
 	if wfs, err := jobparser.Parse(job.WorkflowPayload); err == nil && len(wfs) > 0 {
-		runName = wfs[0].Name
-	}
-	ctxName := fmt.Sprintf("%s / %s (%s)", runName, job.Name, event)
-	ctxName = strings.TrimSpace(ctxName) // git_model.NewCommitStatus also trims spaces
-	state := toCommitStatus(job.Status)
-	if statuses, err := git_model.GetLatestCommitStatus(ctx, repo.ID, commitID, db.ListOptionsAll); err == nil {
-		for _, v := range statuses {
-			if v.Context == ctxName {
-				if v.State == state {
-					// no need to update
-					return nil
-				}
-				break
-			}
+		if name := strings.TrimSpace(wfs[0].Name); name != "" {
+			runName = name
 		}
-	} else {
+	}
+	ctxName := strings.TrimSpace(fmt.Sprintf("%s / %s (%s)", runName, job.Name, event)) // git_model.NewCommitStatus also trims spaces
+	// Mix the workflow file path into the hash so two workflow files that
+	// share the same `name:` and job name produce distinct commit statuses
+	// even though they render identically — matching GitHub's behavior
+	// (issue #35699).
+	ctxHash := git_model.HashCommitStatusContext(ctxName + "\x00" + run.WorkflowID)
+	// Pre-fix rows were hashed from Context alone. If a pre-existing row with
+	// the legacy hash is still the "latest" for this SHA, reuse that hash so
+	// the new row supersedes it; otherwise the old pending status would stay
+	// stuck forever (it lives in its own dedupe group). Only relevant for
+	// in-flight workflows at upgrade time.
+	legacyHash := git_model.HashCommitStatusContext(ctxName)
+	state := toCommitStatus(job.Status)
+	targetURL := fmt.Sprintf("%s/jobs/%d", run.Link(), job.ID)
+	description := toCommitStatusDescription(job)
+
+	statuses, err := git_model.GetLatestCommitStatus(ctx, repo.ID, commitID, db.ListOptionsAll)
+	if err != nil {
 		return fmt.Errorf("GetLatestCommitStatus: %w", err)
 	}
-
-	var description string
-	switch job.Status {
-	// TODO: if we want support description in different languages, we need to support i18n placeholders in it
-	case actions_model.StatusSuccess:
-		description = fmt.Sprintf("Successful in %s", job.Duration())
-	case actions_model.StatusFailure:
-		description = fmt.Sprintf("Failing after %s", job.Duration())
-	case actions_model.StatusCancelled:
-		description = "Has been cancelled"
-	case actions_model.StatusSkipped:
-		description = "Has been skipped"
-	case actions_model.StatusRunning:
-		description = "Has started running"
-	case actions_model.StatusWaiting:
-		description = "Waiting to run"
-	case actions_model.StatusBlocked:
-		description = "Blocked by required conditions"
-	default:
-		description = "Unknown status: " + strconv.Itoa(int(job.Status))
+	for _, v := range statuses {
+		if v.ContextHash == legacyHash && v.Context == ctxName {
+			ctxHash = legacyHash
+			break
+		}
+	}
+	for _, v := range statuses {
+		if v.ContextHash == ctxHash {
+			if v.State == state && v.TargetURL == targetURL && v.Description == description {
+				return nil
+			}
+			break
+		}
 	}
 
 	creator := user_model.NewActionsUser()
 	status := git_model.CommitStatus{
 		SHA:         commitID,
-		TargetURL:   fmt.Sprintf("%s/jobs/%d", run.Link(), job.ID),
+		TargetURL:   targetURL,
 		Description: description,
 		Context:     ctxName,
-		CreatorID:   creator.ID,
+		ContextHash: ctxHash,
 		State:       state,
+		CreatorID:   creator.ID,
 	}
 
 	return commitstatus_service.CreateCommitStatus(ctx, repo, creator, commitID, &status)
+}
+
+func toCommitStatusDescription(job *actions_model.ActionRunJob) string {
+	switch job.Status {
+	// TODO: if we want support description in different languages, we need to support i18n placeholders in it
+	case actions_model.StatusSuccess:
+		return fmt.Sprintf("Successful in %s", job.Duration())
+	case actions_model.StatusFailure:
+		return fmt.Sprintf("Failing after %s", job.Duration())
+	case actions_model.StatusCancelled:
+		return fmt.Sprintf("Canceled after %s", job.Duration())
+	case actions_model.StatusSkipped:
+		return "Skipped"
+	case actions_model.StatusRunning:
+		return "In progress"
+	case actions_model.StatusCancelling:
+		return "Canceling"
+	case actions_model.StatusWaiting:
+		return "Waiting to run"
+	case actions_model.StatusBlocked:
+		return "Blocked by required conditions"
+	default:
+		return fmt.Sprintf("Unknown status: %d", job.Status)
+	}
 }
 
 func toCommitStatus(status actions_model.Status) commitstatus.CommitStatusState {
@@ -200,7 +224,7 @@ func toCommitStatus(status actions_model.Status) commitstatus.CommitStatusState 
 		return commitstatus.CommitStatusSuccess
 	case actions_model.StatusFailure, actions_model.StatusCancelled:
 		return commitstatus.CommitStatusFailure
-	case actions_model.StatusWaiting, actions_model.StatusBlocked, actions_model.StatusRunning:
+	case actions_model.StatusWaiting, actions_model.StatusBlocked, actions_model.StatusRunning, actions_model.StatusCancelling:
 		return commitstatus.CommitStatusPending
 	case actions_model.StatusSkipped:
 		return commitstatus.CommitStatusSkipped

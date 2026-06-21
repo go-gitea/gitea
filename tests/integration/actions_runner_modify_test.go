@@ -6,14 +6,16 @@ package integration
 import (
 	"fmt"
 	"net/http"
+	"strings"
 	"testing"
 
-	actions_model "code.gitea.io/gitea/models/actions"
-	"code.gitea.io/gitea/models/db"
-	repo_model "code.gitea.io/gitea/models/repo"
-	"code.gitea.io/gitea/models/unittest"
-	user_model "code.gitea.io/gitea/models/user"
-	"code.gitea.io/gitea/tests"
+	actions_model "gitea.dev/models/actions"
+	"gitea.dev/models/db"
+	repo_model "gitea.dev/models/repo"
+	"gitea.dev/models/unittest"
+	user_model "gitea.dev/models/user"
+	"gitea.dev/modules/base"
+	"gitea.dev/tests"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -161,6 +163,57 @@ func TestActionsRunnerModify(t *testing.T) {
 		})
 		t.Run("Admin", func(t *testing.T) {
 			assertSuccess(t, sessionAdmin, adminWebURL, globalRunner.ID)
+		})
+	})
+
+	t.Run("BulkAction", func(t *testing.T) {
+		// Previous subtests deleted all runners; create a fresh set scoped to this subtest.
+		require.NoError(t, actions_model.CreateRunner(ctx, &actions_model.ActionRunner{Name: "bulk-runner-1", TokenHash: "e", UUID: "e"}))
+		require.NoError(t, actions_model.CreateRunner(ctx, &actions_model.ActionRunner{Name: "bulk-runner-2", TokenHash: "f", UUID: "f"}))
+		require.NoError(t, actions_model.CreateRunner(ctx, &actions_model.ActionRunner{Name: "bulk-runner-3", TokenHash: "g", UUID: "g"}))
+		r1 := unittest.AssertExistsAndLoadBean(t, &actions_model.ActionRunner{Name: "bulk-runner-1"})
+		r2 := unittest.AssertExistsAndLoadBean(t, &actions_model.ActionRunner{Name: "bulk-runner-2"})
+		r3 := unittest.AssertExistsAndLoadBean(t, &actions_model.ActionRunner{Name: "bulk-runner-3"})
+		allIDs := []int64{r1.ID, r2.ID, r3.ID}
+		bulkURL := adminWebURL + "/bulk"
+		doBulk := func(t *testing.T, sess *TestSession, action string, ids []int64, expectedStatus int) {
+			req := NewRequestWithValues(t, "POST", bulkURL, map[string]string{
+				"action": action,
+				"ids":    strings.Join(base.Int64sToStrings(ids), ","),
+			})
+			sess.MakeRequest(t, req, expectedStatus)
+		}
+
+		t.Run("NonAdminForbidden", func(t *testing.T) {
+			doBulk(t, sessionUser2, "disable", allIDs, http.StatusForbidden)
+			for _, id := range allIDs {
+				v := unittest.AssertExistsAndLoadBean(t, &actions_model.ActionRunner{ID: id})
+				assert.False(t, v.IsDisabled, "runner %d should not have been disabled", id)
+			}
+		})
+
+		t.Run("InvalidAction", func(t *testing.T) {
+			doBulk(t, sessionAdmin, "evict", allIDs, http.StatusBadRequest)
+		})
+
+		t.Run("DisableEnable", func(t *testing.T) {
+			doBulk(t, sessionAdmin, "disable", allIDs, http.StatusOK)
+			for _, id := range allIDs {
+				v := unittest.AssertExistsAndLoadBean(t, &actions_model.ActionRunner{ID: id})
+				assert.True(t, v.IsDisabled, "runner %d should be disabled", id)
+			}
+			doBulk(t, sessionAdmin, "enable", allIDs, http.StatusOK)
+			for _, id := range allIDs {
+				v := unittest.AssertExistsAndLoadBean(t, &actions_model.ActionRunner{ID: id})
+				assert.False(t, v.IsDisabled, "runner %d should be enabled", id)
+			}
+		})
+
+		t.Run("Delete", func(t *testing.T) {
+			doBulk(t, sessionAdmin, "delete", allIDs, http.StatusOK)
+			for _, id := range allIDs {
+				unittest.AssertNotExistsBean(t, &actions_model.ActionRunner{ID: id})
+			}
 		})
 	})
 }

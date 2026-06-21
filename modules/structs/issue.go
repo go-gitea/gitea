@@ -10,7 +10,7 @@ import (
 	"strings"
 	"time"
 
-	"gopkg.in/yaml.v3"
+	"go.yaml.in/yaml/v4"
 )
 
 // StateType issue state type
@@ -60,6 +60,7 @@ type Issue struct {
 	Attachments      []*Attachment `json:"assets"`
 	Labels           []*Label      `json:"labels"`
 	Milestone        *Milestone    `json:"milestone"`
+	Projects         []*Project    `json:"projects"`
 	// deprecated
 	Assignee  *User     `json:"assignee"`
 	Assignees []*User   `json:"assignees"`
@@ -100,7 +101,9 @@ type CreateIssueOption struct {
 	Milestone int64 `json:"milestone"`
 	// list of label ids
 	Labels []int64 `json:"labels"`
-	Closed bool    `json:"closed"`
+	// list of project ids
+	Projects []int64 `json:"projects"`
+	Closed   bool    `json:"closed"`
 }
 
 // EditIssueOption options for editing an issue
@@ -112,12 +115,19 @@ type EditIssueOption struct {
 	Assignee  *string  `json:"assignee"`
 	Assignees []string `json:"assignees"`
 	Milestone *int64   `json:"milestone"`
-	State     *string  `json:"state"`
+	// list of project ids to set (replaces existing projects)
+	Projects *[]int64 `json:"projects"`
+	State    *string  `json:"state"`
 	// swagger:strfmt date-time
 	Deadline       *time.Time `json:"due_date"`
 	RemoveDeadline *bool      `json:"unset_due_date"`
 	// The current version of the issue content to detect conflicts during editing
 	ContentVersion *int `json:"content_version"`
+}
+
+// IssueAssigneesOption options for adding/removing issue assignees
+type IssueAssigneesOption struct {
+	Assignees []string `json:"assignees"`
 }
 
 // EditDeadlineOption options for creating a deadline
@@ -226,7 +236,7 @@ func (l *IssueTemplateStringSlice) UnmarshalYAML(value *yaml.Node) error {
 		*l = labels
 		return nil
 	}
-	return fmt.Errorf("line %d: cannot unmarshal %s into IssueTemplateStringSlice", value.Line, value.ShortTag())
+	return fmt.Errorf("cannot unmarshal %s into IssueTemplateStringSlice", value.ShortTag())
 }
 
 type IssueConfigContactLink struct {

@@ -53,6 +53,7 @@ interface Window {
     enableTimeTracking: boolean,
     mermaidMaxSourceCharacters: number,
     i18n: Record<string, string>,
+    frontendInited: boolean,
   },
   $: JQueryStatic,
   jQuery: JQueryStatic,
@@ -67,13 +68,13 @@ interface Window {
   turnstile: any,
   hcaptcha: any,
 
-  // Make IIFE private functions can be tested in unit tests, without exposing the IIFE module to global scope.
+  // Make IIFE private functions can be managed by us in our scope, without exposing the IIFE module to global scope.
   // Otherwise, when using "export" in IIFE code, the compiled JS will inject global "var externalRenderHelper = ..."
   // which is not expected and may cause conflicts with other modules.
-  testModules: {
-    externalRenderHelper?: {
-      isValidCssColor(s: string | null): boolean,
-    }
+  giteaExternalRenderHelper?: {
+    isValidCssColor(s: string | null): boolean,
+    queryParams: URLSearchParams,
+    postIframeMsg(cmd: string, data: Record<string, any> = {}),
   }
 
   // do not add more properties here unless it is a must

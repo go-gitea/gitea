@@ -13,24 +13,24 @@ import (
 	"testing"
 	"time"
 
-	auth_model "code.gitea.io/gitea/models/auth"
-	issues_model "code.gitea.io/gitea/models/issues"
-	"code.gitea.io/gitea/models/perm"
-	repo_model "code.gitea.io/gitea/models/repo"
-	unit_model "code.gitea.io/gitea/models/unit"
-	"code.gitea.io/gitea/models/unittest"
-	user_model "code.gitea.io/gitea/models/user"
-	"code.gitea.io/gitea/modules/setting"
-	api "code.gitea.io/gitea/modules/structs"
-	"code.gitea.io/gitea/modules/util"
-	"code.gitea.io/gitea/services/convert"
-	"code.gitea.io/gitea/services/forms"
-	"code.gitea.io/gitea/services/gitdiff"
-	issue_service "code.gitea.io/gitea/services/issue"
-	pull_service "code.gitea.io/gitea/services/pull"
-	repo_service "code.gitea.io/gitea/services/repository"
-	files_service "code.gitea.io/gitea/services/repository/files"
-	"code.gitea.io/gitea/tests"
+	auth_model "gitea.dev/models/auth"
+	issues_model "gitea.dev/models/issues"
+	"gitea.dev/models/perm"
+	repo_model "gitea.dev/models/repo"
+	unit_model "gitea.dev/models/unit"
+	"gitea.dev/models/unittest"
+	user_model "gitea.dev/models/user"
+	"gitea.dev/modules/setting"
+	api "gitea.dev/modules/structs"
+	"gitea.dev/modules/util"
+	"gitea.dev/services/convert"
+	"gitea.dev/services/forms"
+	"gitea.dev/services/gitdiff"
+	issue_service "gitea.dev/services/issue"
+	pull_service "gitea.dev/services/pull"
+	repo_service "gitea.dev/services/repository"
+	files_service "gitea.dev/services/repository/files"
+	"gitea.dev/tests"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -47,8 +47,7 @@ func TestAPIViewPulls(t *testing.T) {
 		AddTokenAuth(ctx.Token)
 	resp := ctx.Session.MakeRequest(t, req, http.StatusOK)
 
-	var pulls []*api.PullRequest
-	DecodeJSON(t, resp, &pulls)
+	pulls := DecodeJSON(t, resp, []*api.PullRequest{})
 	expectedLen := unittest.GetCount(t, &issues_model.Issue{RepoID: repo.ID}, unittest.Cond("is_pull = ?", true))
 	assert.Len(t, pulls, expectedLen)
 
@@ -156,8 +155,7 @@ func TestAPIViewPullsByBaseHead(t *testing.T) {
 		AddTokenAuth(ctx.Token)
 	resp := ctx.Session.MakeRequest(t, req, http.StatusOK)
 
-	pull := &api.PullRequest{}
-	DecodeJSON(t, resp, pull)
+	pull := DecodeJSON(t, resp, &api.PullRequest{})
 	assert.EqualValues(t, 3, pull.Index)
 	assert.EqualValues(t, 2, pull.ID)
 
@@ -395,10 +393,8 @@ func TestAPICreatePullWithFieldsSuccess(t *testing.T) {
 
 	req := NewRequestWithJSON(t, http.MethodPost, fmt.Sprintf("/api/v1/repos/%s/%s/pulls", owner10.Name, repo10.Name), opts).
 		AddTokenAuth(token)
-
-	res := MakeRequest(t, req, http.StatusCreated)
-	pull := new(api.PullRequest)
-	DecodeJSON(t, res, pull)
+	resp := MakeRequest(t, req, http.StatusCreated)
+	pull := DecodeJSON(t, resp, &api.PullRequest{})
 
 	assert.NotNil(t, pull.Milestone)
 	assert.Equal(t, opts.Milestone, pull.Milestone.ID)
@@ -550,8 +546,7 @@ func doAPIGetPullFiles(ctx APITestContext, pr *api.PullRequest, callback func(*t
 		}
 		resp := ctx.Session.MakeRequest(t, req, ctx.ExpectedCode)
 
-		files := make([]*api.ChangedFile, 0, 1)
-		DecodeJSON(t, resp, &files)
+		files := DecodeJSON(t, resp, []*api.ChangedFile{})
 
 		if callback != nil {
 			callback(t, files)

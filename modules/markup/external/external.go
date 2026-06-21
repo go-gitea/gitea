@@ -12,16 +12,47 @@ import (
 	"runtime"
 	"strings"
 
-	"code.gitea.io/gitea/modules/markup"
-	"code.gitea.io/gitea/modules/process"
-	"code.gitea.io/gitea/modules/setting"
+	"gitea.dev/modules/markup"
+	"gitea.dev/modules/process"
+	"gitea.dev/modules/setting"
 
 	"github.com/kballard/go-shellquote"
 )
 
 // RegisterRenderers registers all supported third part renderers according settings
 func RegisterRenderers() {
-	markup.RegisterRenderer(&openAPIRenderer{})
+	markup.RegisterRenderer(&frontendRenderer{
+		name: "openapi-swagger",
+		patterns: []string{
+			"openapi.yaml",
+			"openapi.yml",
+			"openapi.json",
+			"swagger.yaml",
+			"swagger.yml",
+			"swagger.json",
+		},
+	})
+
+	markup.RegisterRenderer(&frontendRenderer{
+		name: "viewer-3d",
+		patterns: []string{
+			// It needs more logic to make it overall right (render a text 3D model automatically):
+			// we need to distinguish the ambiguous filename extensions.
+			// For example: "*.amf, *.obj, *.off, *.step" might be or not be a 3D model file.
+			// So when it is a text file, we can't assume that "we only render it by 3D plugin",
+			// otherwise the end users would be impossible to view its real content when the file is not a 3D model.
+			"*.3dm", "*.3ds", "*.3mf", "*.amf", "*.bim", "*.brep",
+			"*.dae", "*.fbx", "*.fcstd", "*.glb", "*.gltf",
+			"*.ifc", "*.igs", "*.iges", "*.stp", "*.step",
+			"*.stl", "*.obj", "*.off", "*.ply", "*.wrl",
+		},
+	})
+
+	markup.RegisterRenderer(&frontendRenderer{
+		name:     "asciicast",
+		patterns: []string{"*.cast"},
+	})
+
 	for _, renderer := range setting.ExternalMarkupRenderers {
 		markup.RegisterRenderer(&Renderer{renderer})
 	}

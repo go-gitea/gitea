@@ -8,14 +8,15 @@ import (
 	"net/http"
 	"testing"
 
-	repo_model "code.gitea.io/gitea/models/repo"
-	"code.gitea.io/gitea/models/unittest"
-	user_model "code.gitea.io/gitea/models/user"
-	api "code.gitea.io/gitea/modules/structs"
-	"code.gitea.io/gitea/tests"
+	auth_model "gitea.dev/models/auth"
+	repo_model "gitea.dev/models/repo"
+	"gitea.dev/models/unittest"
+	user_model "gitea.dev/models/user"
+	api "gitea.dev/modules/structs"
+	"gitea.dev/tests"
 
 	"github.com/stretchr/testify/assert"
-	"gopkg.in/yaml.v3"
+	"go.yaml.in/yaml/v4"
 )
 
 func createIssueConfig(t *testing.T, user *user_model.User, repo *repo_model.Repository, issueConfig map[string]any) {
@@ -31,10 +32,9 @@ func getIssueConfig(t *testing.T, owner, repo string) api.IssueConfig {
 	req := NewRequest(t, "GET", urlStr)
 	resp := MakeRequest(t, req, http.StatusOK)
 
-	var issueConfig api.IssueConfig
-	DecodeJSON(t, resp, &issueConfig)
+	issueConfig := DecodeJSON(t, resp, &api.IssueConfig{})
 
-	return issueConfig
+	return *issueConfig
 }
 
 func TestAPIRepoGetIssueConfig(t *testing.T) {
@@ -156,8 +156,7 @@ func TestAPIRepoValidateIssueConfig(t *testing.T) {
 		req := NewRequest(t, "GET", urlStr)
 		resp := MakeRequest(t, req, http.StatusOK)
 
-		var issueConfigValidation api.IssueConfigValidation
-		DecodeJSON(t, resp, &issueConfigValidation)
+		issueConfigValidation := DecodeJSON(t, resp, &api.IssueConfigValidation{})
 
 		assert.True(t, issueConfigValidation.Valid)
 		assert.Empty(t, issueConfigValidation.Message)
@@ -172,10 +171,25 @@ func TestAPIRepoValidateIssueConfig(t *testing.T) {
 		req := NewRequest(t, "GET", urlStr)
 		resp := MakeRequest(t, req, http.StatusOK)
 
-		var issueConfigValidation api.IssueConfigValidation
-		DecodeJSON(t, resp, &issueConfigValidation)
+		issueConfigValidation := DecodeJSON(t, resp, &api.IssueConfigValidation{})
 
 		assert.False(t, issueConfigValidation.Valid)
 		assert.NotEmpty(t, issueConfigValidation.Message)
 	})
+}
+
+func TestAPIRepoIssueConfigRequiresCodeUnit(t *testing.T) {
+	defer tests.PrepareTestEnv(t)()
+
+	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 24})
+	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
+	token := getUserToken(t, user.Name, auth_model.AccessTokenScopeReadRepository)
+
+	for _, path := range []string{
+		fmt.Sprintf("/api/v1/repos/%s/issue_config", repo.FullName()),
+		fmt.Sprintf("/api/v1/repos/%s/issue_config/validate", repo.FullName()),
+	} {
+		req := NewRequest(t, "GET", path).AddTokenAuth(token)
+		MakeRequest(t, req, http.StatusForbidden)
+	}
 }

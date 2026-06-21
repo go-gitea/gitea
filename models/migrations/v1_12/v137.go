@@ -3,11 +3,9 @@
 
 package v1_12
 
-import (
-	"xorm.io/xorm"
-)
+import "gitea.dev/models/db"
 
-func AddBlockOnOutdatedBranch(x *xorm.Engine) error {
+func AddBlockOnOutdatedBranch(x db.EngineMigration) error {
 	type ProtectedBranch struct {
 		BlockOnOutdatedBranch bool `xorm:"NOT NULL DEFAULT false"`
 	}

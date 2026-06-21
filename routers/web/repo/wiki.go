@@ -13,28 +13,28 @@ import (
 	"path"
 	"strings"
 
-	"code.gitea.io/gitea/models/renderhelper"
-	repo_model "code.gitea.io/gitea/models/repo"
-	"code.gitea.io/gitea/models/unit"
-	"code.gitea.io/gitea/modules/base"
-	"code.gitea.io/gitea/modules/charset"
-	"code.gitea.io/gitea/modules/git"
-	"code.gitea.io/gitea/modules/gitrepo"
-	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/markup"
-	"code.gitea.io/gitea/modules/markup/markdown"
-	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/modules/templates"
-	"code.gitea.io/gitea/modules/timeutil"
-	"code.gitea.io/gitea/modules/util"
-	"code.gitea.io/gitea/modules/web"
-	"code.gitea.io/gitea/routers/common"
-	"code.gitea.io/gitea/services/context"
-	"code.gitea.io/gitea/services/forms"
-	git_service "code.gitea.io/gitea/services/git"
-	notify_service "code.gitea.io/gitea/services/notify"
-	repo_service "code.gitea.io/gitea/services/repository"
-	wiki_service "code.gitea.io/gitea/services/wiki"
+	"gitea.dev/models/renderhelper"
+	repo_model "gitea.dev/models/repo"
+	"gitea.dev/models/unit"
+	"gitea.dev/modules/base"
+	"gitea.dev/modules/charset"
+	"gitea.dev/modules/git"
+	"gitea.dev/modules/gitrepo"
+	"gitea.dev/modules/log"
+	"gitea.dev/modules/markup"
+	"gitea.dev/modules/markup/markdown"
+	"gitea.dev/modules/setting"
+	"gitea.dev/modules/templates"
+	"gitea.dev/modules/timeutil"
+	"gitea.dev/modules/util"
+	"gitea.dev/modules/web"
+	"gitea.dev/routers/common"
+	"gitea.dev/services/context"
+	"gitea.dev/services/forms"
+	git_service "gitea.dev/services/git"
+	notify_service "gitea.dev/services/notify"
+	repo_service "gitea.dev/services/repository"
+	wiki_service "gitea.dev/services/wiki"
 )
 
 const (
@@ -47,8 +47,8 @@ const (
 
 // MustEnableWiki check if wiki is enabled, if external then redirect
 func MustEnableWiki(ctx *context.Context) {
-	if !ctx.Repo.CanRead(unit.TypeWiki) &&
-		!ctx.Repo.CanRead(unit.TypeExternalWiki) {
+	if !ctx.Repo.Permission.CanRead(unit.TypeWiki) &&
+		!ctx.Repo.Permission.CanRead(unit.TypeExternalWiki) {
 		if log.IsTrace() {
 			log.Trace("Permission Denied: User %-v cannot read %-v or %-v of repo %-v\n"+
 				"User in repo has Permissions: %-+v",
@@ -334,9 +334,6 @@ func renderRevisionPage(ctx *context.Context) (*git.Repository, *git.TreeEntry) 
 	ctx.Data["Title"] = displayName
 	ctx.Data["title"] = displayName
 
-	ctx.Data["Username"] = ctx.Repo.Owner.Name
-	ctx.Data["Reponame"] = ctx.Repo.Repository.Name
-
 	// lookup filename in wiki - get page content, gitTree entry , real filename
 	_, entry, pageFilename, noEntry := wikiContentsByName(ctx, commit, pageName)
 	if noEntry {
@@ -354,7 +351,7 @@ func renderRevisionPage(ctx *context.Context) (*git.Repository, *git.TreeEntry) 
 	page := max(ctx.FormInt("page"), 1)
 
 	// get Commit Count
-	commitsHistory, err := wikiGitRepo.CommitsByFileAndRange(
+	commitsHistory, _, err := wikiGitRepo.CommitsByFileAndRange(
 		git.CommitsByFileAndRangeOptions{
 			Revision: ctx.Repo.Repository.DefaultWikiBranch,
 			File:     pageFilename,
@@ -364,7 +361,7 @@ func renderRevisionPage(ctx *context.Context) (*git.Repository, *git.TreeEntry) 
 		ctx.ServerError("CommitsByFileAndRange", err)
 		return nil, nil
 	}
-	ctx.Data["Commits"], err = git_service.ConvertFromGitCommit(ctx, commitsHistory, ctx.Repo.Repository)
+	ctx.Data["Commits"], err = git_service.ConvertFromGitCommit(ctx, commitsHistory, ctx.Repo.Repository, "") // no current ref sub path for wiki commit list
 	if err != nil {
 		ctx.ServerError("ConvertFromGitCommit", err)
 		return nil, nil
@@ -423,14 +420,14 @@ func renderEditPage(ctx *context.Context) {
 func WikiPost(ctx *context.Context) {
 	switch ctx.FormString("action") {
 	case "_new":
-		if !ctx.Repo.CanWrite(unit.TypeWiki) {
+		if !ctx.Repo.Permission.CanWrite(unit.TypeWiki) {
 			ctx.NotFound(nil)
 			return
 		}
 		NewWikiPost(ctx)
 		return
 	case "_delete":
-		if !ctx.Repo.CanWrite(unit.TypeWiki) {
+		if !ctx.Repo.Permission.CanWrite(unit.TypeWiki) {
 			ctx.NotFound(nil)
 			return
 		}
@@ -438,7 +435,7 @@ func WikiPost(ctx *context.Context) {
 		return
 	}
 
-	if !ctx.Repo.CanWrite(unit.TypeWiki) {
+	if !ctx.Repo.Permission.CanWrite(unit.TypeWiki) {
 		ctx.NotFound(nil)
 		return
 	}
@@ -447,7 +444,7 @@ func WikiPost(ctx *context.Context) {
 
 // Wiki renders single wiki page
 func Wiki(ctx *context.Context) {
-	ctx.Data["CanWriteWiki"] = ctx.Repo.CanWrite(unit.TypeWiki) && !ctx.Repo.Repository.IsArchived
+	ctx.Data["CanWriteWiki"] = ctx.Repo.Permission.CanWrite(unit.TypeWiki) && !ctx.Repo.Repository.IsArchived
 
 	switch ctx.FormString("action") {
 	case "_pages":
@@ -457,14 +454,14 @@ func Wiki(ctx *context.Context) {
 		WikiRevision(ctx)
 		return
 	case "_edit":
-		if !ctx.Repo.CanWrite(unit.TypeWiki) {
+		if !ctx.Repo.Permission.CanWrite(unit.TypeWiki) {
 			ctx.NotFound(nil)
 			return
 		}
 		EditWiki(ctx)
 		return
 	case "_new":
-		if !ctx.Repo.CanWrite(unit.TypeWiki) {
+		if !ctx.Repo.Permission.CanWrite(unit.TypeWiki) {
 			ctx.NotFound(nil)
 			return
 		}
@@ -499,14 +496,14 @@ func Wiki(ctx *context.Context) {
 		ctx.ServerError("GetCommitByPath", err)
 		return
 	}
-	ctx.Data["Author"] = lastCommit.Author
+	ctx.Data["Committer"] = lastCommit.Committer
 
 	ctx.HTML(http.StatusOK, tplWikiView)
 }
 
 // WikiRevision renders file revision list of wiki page
 func WikiRevision(ctx *context.Context) {
-	ctx.Data["CanWriteWiki"] = ctx.Repo.CanWrite(unit.TypeWiki) && !ctx.Repo.Repository.IsArchived
+	ctx.Data["CanWriteWiki"] = ctx.Repo.Permission.CanWrite(unit.TypeWiki) && !ctx.Repo.Repository.IsArchived
 
 	if !repo_service.HasWiki(ctx, ctx.Repo.Repository) {
 		ctx.Data["Title"] = ctx.Tr("repo.wiki")
@@ -531,7 +528,7 @@ func WikiRevision(ctx *context.Context) {
 		ctx.ServerError("GetCommitByPath", err)
 		return
 	}
-	ctx.Data["Author"] = lastCommit.Author
+	ctx.Data["Committer"] = lastCommit.Committer
 
 	ctx.HTML(http.StatusOK, tplWikiRevision)
 }
@@ -544,7 +541,7 @@ func WikiPages(ctx *context.Context) {
 	}
 
 	ctx.Data["Title"] = ctx.Tr("repo.wiki.pages")
-	ctx.Data["CanWriteWiki"] = ctx.Repo.CanWrite(unit.TypeWiki) && !ctx.Repo.Repository.IsArchived
+	ctx.Data["CanWriteWiki"] = ctx.Repo.Permission.CanWrite(unit.TypeWiki) && !ctx.Repo.Repository.IsArchived
 
 	_, commit, err := findWikiRepoCommit(ctx)
 	if err != nil {
@@ -590,7 +587,7 @@ func WikiPages(ctx *context.Context) {
 			Name:         displayName,
 			SubURL:       wiki_service.WebPathToURLPath(wikiName),
 			GitEntryName: entry.Entry.Name(),
-			UpdatedUnix:  timeutil.TimeStamp(entry.Commit.Author.When.Unix()),
+			UpdatedUnix:  timeutil.TimeStamp(entry.Commit.Committer.When.Unix()),
 		})
 	}
 	ctx.Data["Pages"] = pages

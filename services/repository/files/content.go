@@ -10,15 +10,15 @@ import (
 	"path"
 	"strings"
 
-	repo_model "code.gitea.io/gitea/models/repo"
-	"code.gitea.io/gitea/modules/cache"
-	"code.gitea.io/gitea/modules/git"
-	"code.gitea.io/gitea/modules/gitrepo"
-	"code.gitea.io/gitea/modules/lfs"
-	"code.gitea.io/gitea/modules/setting"
-	api "code.gitea.io/gitea/modules/structs"
-	"code.gitea.io/gitea/modules/util"
-	"code.gitea.io/gitea/routers/api/v1/utils"
+	repo_model "gitea.dev/models/repo"
+	"gitea.dev/modules/cache"
+	"gitea.dev/modules/git"
+	"gitea.dev/modules/gitrepo"
+	"gitea.dev/modules/lfs"
+	"gitea.dev/modules/setting"
+	api "gitea.dev/modules/structs"
+	"gitea.dev/modules/util"
+	"gitea.dev/routers/api/v1/utils"
 )
 
 // ContentType repo content type
@@ -31,11 +31,6 @@ const (
 	ContentTypeLink      ContentType = "symlink"   // link content type (symlink)
 	ContentTypeSubmodule ContentType = "submodule" // submodule content type (submodule)
 )
-
-// String gets the string of ContentType
-func (ct *ContentType) String() string {
-	return string(*ct)
-}
 
 type GetContentsOrListOptions struct {
 	TreePath                 string
@@ -184,7 +179,7 @@ func getFileContentsByEntryInternal(ctx context.Context, repo *repo_model.Reposi
 			}
 		}
 		if opts.IncludeCommitMessage {
-			contentsResponse.LastCommitMessage = new(lastCommit.Message())
+			contentsResponse.LastCommitMessage = new(lastCommit.MessageUTF8())
 		}
 	}
 

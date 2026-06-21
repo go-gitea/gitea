@@ -6,14 +6,13 @@ package v1_6
 import (
 	"fmt"
 
-	"code.gitea.io/gitea/models/migrations/base"
-	"code.gitea.io/gitea/modules/timeutil"
-	"code.gitea.io/gitea/modules/util"
-
-	"xorm.io/xorm"
+	"gitea.dev/models/db"
+	"gitea.dev/models/migrations/base"
+	"gitea.dev/modules/timeutil"
+	"gitea.dev/modules/util"
 )
 
-func AddScratchHash(x *xorm.Engine) error {
+func AddScratchHash(x db.EngineMigration) error {
 	// TwoFactor see models/twofactor.go
 	type TwoFactor struct {
 		ID               int64 `xorm:"pk autoincr"`

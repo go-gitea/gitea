@@ -12,19 +12,19 @@ import (
 	"testing"
 	"time"
 
-	auth_model "code.gitea.io/gitea/models/auth"
-	"code.gitea.io/gitea/models/db"
-	packages_model "code.gitea.io/gitea/models/packages"
-	"code.gitea.io/gitea/models/unittest"
-	user_model "code.gitea.io/gitea/models/user"
-	container_module "code.gitea.io/gitea/modules/packages/container"
-	"code.gitea.io/gitea/modules/setting"
-	api "code.gitea.io/gitea/modules/structs"
-	"code.gitea.io/gitea/modules/util"
-	packages_service "code.gitea.io/gitea/services/packages"
-	packages_cleanup_service "code.gitea.io/gitea/services/packages/cleanup"
-	repo_service "code.gitea.io/gitea/services/repository"
-	"code.gitea.io/gitea/tests"
+	auth_model "gitea.dev/models/auth"
+	"gitea.dev/models/db"
+	packages_model "gitea.dev/models/packages"
+	"gitea.dev/models/unittest"
+	user_model "gitea.dev/models/user"
+	container_module "gitea.dev/modules/packages/container"
+	"gitea.dev/modules/setting"
+	api "gitea.dev/modules/structs"
+	"gitea.dev/modules/util"
+	packages_service "gitea.dev/services/packages"
+	packages_cleanup_service "gitea.dev/services/packages/cleanup"
+	repo_service "gitea.dev/services/repository"
+	"gitea.dev/tests"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -53,8 +53,7 @@ func TestPackageAPI(t *testing.T) {
 			AddTokenAuth(tokenReadPackage)
 		resp := MakeRequest(t, req, http.StatusOK)
 
-		var apiPackages []*api.Package
-		DecodeJSON(t, resp, &apiPackages)
+		apiPackages := DecodeJSON(t, resp, []*api.Package{})
 
 		assert.Len(t, apiPackages, 1)
 		assert.Equal(t, string(packages_model.TypeGeneric), apiPackages[0].Type)
@@ -135,8 +134,7 @@ func TestPackageAPI(t *testing.T) {
 			AddTokenAuth(tokenReadPackage)
 		resp := MakeRequest(t, req, http.StatusOK)
 
-		var apiPackages []*api.Package
-		DecodeJSON(t, resp, &apiPackages)
+		apiPackages := DecodeJSON(t, resp, []*api.Package{})
 
 		assert.Len(t, apiPackages, 1)
 		assert.Equal(t, string(packages_model.TypeGeneric), apiPackages[0].Type)
@@ -229,8 +227,7 @@ func TestPackageAPI(t *testing.T) {
 			AddTokenAuth(tokenReadPackage)
 		resp := MakeRequest(t, req, http.StatusOK)
 
-		var files []*api.PackageFile
-		DecodeJSON(t, resp, &files)
+		files := DecodeJSON(t, resp, []*api.PackageFile{})
 
 		assert.Len(t, files, 1)
 		assert.Equal(t, int64(0), files[0].Size)

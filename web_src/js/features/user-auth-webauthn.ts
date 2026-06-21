@@ -1,5 +1,6 @@
 import {encodeURLEncodedBase64, decodeURLEncodedBase64} from '../utils.ts';
 import {hideElem, showElem} from '../utils/dom.ts';
+import {errorMessage} from '../modules/errors.ts';
 import {GET, POST} from '../modules/fetch.ts';
 
 const {appSubUrl} = window.config;
@@ -78,9 +79,9 @@ async function loginPasskey() {
     }
     const reply = await res.json();
 
-    window.location.href = reply?.redirect ?? `${appSubUrl}/`;
+    window.location.assign(reply?.redirect ?? `${appSubUrl}/`);
   } catch (err) {
-    webAuthnError('general', err.message);
+    webAuthnError('general', errorMessage(err));
   }
 }
 
@@ -104,7 +105,7 @@ async function login2FA() {
     await verifyAssertion(credential);
   } catch (err) {
     if (!options.publicKey.extensions?.appid) {
-      webAuthnError('general', err.message);
+      webAuthnError('general', errorMessage(err));
       return;
     }
     delete options.publicKey.extensions.appid;
@@ -114,7 +115,7 @@ async function login2FA() {
       });
       await verifyAssertion(credential);
     } catch (err) {
-      webAuthnError('general', err.message);
+      webAuthnError('general', errorMessage(err));
     }
   }
 }
@@ -150,7 +151,7 @@ async function verifyAssertion(assertedCredential: any) { // TODO: Credential ty
   }
   const reply = await res.json();
 
-  window.location.href = reply?.redirect ?? `${appSubUrl}/`;
+  window.location.assign(reply?.redirect ?? `${appSubUrl}/`);
 }
 
 async function webauthnRegistered(newCredential: any) { // TODO: Credential type does not work
@@ -187,7 +188,7 @@ function webAuthnError(errorType: ErrorType, message:string = '') {
   if (errorType === 'general') {
     elErrorMsg.textContent = message || 'unknown error';
   } else {
-    const elTypedError = document.querySelector(`#webauthn-error [data-webauthn-error-msg=${errorType}]`);
+    const elTypedError = document.querySelector(`#webauthn-error [data-webauthn-error-msg=${CSS.escape(errorType)}]`);
     if (elTypedError) {
       elErrorMsg.textContent = `${elTypedError.textContent}${message ? ` ${message}` : ''}`;
     } else {
@@ -262,6 +263,6 @@ async function webAuthnRegisterRequest() {
     });
     await webauthnRegistered(credential);
   } catch (err) {
-    webAuthnError('unknown', err);
+    webAuthnError('unknown', errorMessage(err));
   }
 }

@@ -52,7 +52,7 @@
 				<button type="button" class="ui button link-action" data-url="{{.Link}}/update-runner?disabled={{not .Runner.IsDisabled}}">
 					{{if .Runner.IsDisabled}}{{ctx.Locale.Tr "actions.runners.enable_runner"}}{{else}}{{ctx.Locale.Tr "actions.runners.disable_runner"}}{{end}}
 				</button>
-				<button class="ui red button delete-button" data-url="{{.Link}}/delete" data-modal="#runner-delete-modal">
+				<button class="ui red button link-action" data-url="{{.Link}}/delete" data-modal-confirm="#runner-delete-modal">
 					{{ctx.Locale.Tr "actions.runners.delete_runner"}}</button>
 			</div>
 		</form>
@@ -95,7 +95,7 @@
 		</table>
 		{{template "base/paginate" .}}
 	</div>
-	<div class="ui g-modal-confirm delete modal" id="runner-delete-modal">
+	<div class="ui small modal" id="runner-delete-modal">
 		<div class="header">
 			{{svg "octicon-trash"}}
 			{{ctx.Locale.Tr "actions.runners.delete_runner_header"}}

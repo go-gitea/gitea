@@ -6,15 +6,16 @@ package project
 import (
 	"testing"
 
-	"code.gitea.io/gitea/models/db"
-	issues_model "code.gitea.io/gitea/models/issues"
-	org_model "code.gitea.io/gitea/models/organization"
-	project_model "code.gitea.io/gitea/models/project"
-	repo_model "code.gitea.io/gitea/models/repo"
-	"code.gitea.io/gitea/models/unittest"
-	user_model "code.gitea.io/gitea/models/user"
+	"gitea.dev/models/db"
+	issues_model "gitea.dev/models/issues"
+	org_model "gitea.dev/models/organization"
+	project_model "gitea.dev/models/project"
+	repo_model "gitea.dev/models/repo"
+	"gitea.dev/models/unittest"
+	user_model "gitea.dev/models/user"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func Test_Projects(t *testing.T) {
@@ -101,28 +102,18 @@ func Test_Projects(t *testing.T) {
 			assert.NoError(t, err)
 		}()
 
-		column1 := project_model.Column{
-			Title:     "column 1",
-			ProjectID: project1.ID,
-		}
-		err = project_model.NewColumn(t.Context(), &column1)
-		assert.NoError(t, err)
-
-		column2 := project_model.Column{
-			Title:     "column 2",
-			ProjectID: project1.ID,
-		}
-		err = project_model.NewColumn(t.Context(), &column2)
+		// Get the default column created by the template (issues will be assigned here)
+		defaultColumn, err := project1.MustDefaultColumn(t.Context())
 		assert.NoError(t, err)
 
 		// issue 6 belongs to private repo 3 under org 3
 		issue6 := unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{ID: 6})
-		err = issues_model.IssueAssignOrRemoveProject(t.Context(), issue6, user2, project1.ID, column1.ID)
+		err = issues_model.IssueAssignOrRemoveProject(t.Context(), issue6, user2, []int64{project1.ID})
 		assert.NoError(t, err)
 
 		// issue 16 belongs to public repo 16 under org 3
 		issue16 := unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{ID: 16})
-		err = issues_model.IssueAssignOrRemoveProject(t.Context(), issue16, user2, project1.ID, column1.ID)
+		err = issues_model.IssueAssignOrRemoveProject(t.Context(), issue16, user2, []int64{project1.ID})
 		assert.NoError(t, err)
 
 		projects, err := db.Find[project_model.Project](t.Context(), project_model.SearchOptions{
@@ -138,8 +129,8 @@ func Test_Projects(t *testing.T) {
 				Doer:  userAdmin,
 			})
 			assert.NoError(t, err)
-			assert.Len(t, columnIssues, 1)             // column1 has 2 issues, 6 will not contains here because 0 issues
-			assert.Len(t, columnIssues[column1.ID], 2) // user2 can visit both issues, one from public repository one from private repository
+			assert.Len(t, columnIssues, 1)                   // default column has 2 issues
+			assert.Len(t, columnIssues[defaultColumn.ID], 2) // admin can visit both issues, one from public repository one from private repository
 		})
 
 		t.Run("Anonymous user", func(t *testing.T) {
@@ -148,7 +139,7 @@ func Test_Projects(t *testing.T) {
 			})
 			assert.NoError(t, err)
 			assert.Len(t, columnIssues, 1)
-			assert.Len(t, columnIssues[column1.ID], 1) // anonymous user can only visit public repo issues
+			assert.Len(t, columnIssues[defaultColumn.ID], 1) // anonymous user can only visit public repo issues
 		})
 
 		t.Run("Authenticated user with no permission to the private repo", func(t *testing.T) {
@@ -158,7 +149,7 @@ func Test_Projects(t *testing.T) {
 			})
 			assert.NoError(t, err)
 			assert.Len(t, columnIssues, 1)
-			assert.Len(t, columnIssues[column1.ID], 1) // user4 can only visit public repo issues
+			assert.Len(t, columnIssues[defaultColumn.ID], 1) // user2 can only visit public repo issues
 		})
 	})
 
@@ -206,5 +197,19 @@ func Test_Projects(t *testing.T) {
 			assert.Len(t, columnIssues[2], 1)
 			assert.Len(t, columnIssues[3], 1)
 		})
+	})
+
+	t.Run("LoadIssuesAssigneesForProject", func(t *testing.T) {
+		issuesMap := map[int64]issues_model.IssueList{}
+		issue1 := unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{ID: 1})
+		issue6 := unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{ID: 6})
+		issuesMap[1] = issues_model.IssueList{issue1}
+		issuesMap[2] = issues_model.IssueList{issue6}
+		assignees, err := LoadIssuesAssigneesForProject(t.Context(), issuesMap)
+		require.NoError(t, err)
+		require.Len(t, assignees, 3)
+		require.Equal(t, "user1", assignees[0].Name)
+		require.Equal(t, "user10", assignees[1].Name)
+		require.Equal(t, "user2", assignees[2].Name)
 	})
 }

@@ -4,12 +4,11 @@
 package v1_16
 
 import (
-	"code.gitea.io/gitea/modules/setting"
-
-	"xorm.io/xorm"
+	"gitea.dev/models/db"
+	"gitea.dev/modules/setting"
 )
 
-func AlterIssueAndCommentTextFieldsToLongText(x *xorm.Engine) error {
+func AlterIssueAndCommentTextFieldsToLongText(x db.EngineMigration) error {
 	sess := x.NewSession()
 	defer sess.Close()
 	if err := sess.Begin(); err != nil {

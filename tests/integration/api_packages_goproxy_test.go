@@ -10,11 +10,11 @@ import (
 	"testing"
 	"time"
 
-	"code.gitea.io/gitea/models/packages"
-	"code.gitea.io/gitea/models/unittest"
-	user_model "code.gitea.io/gitea/models/user"
-	"code.gitea.io/gitea/modules/test"
-	"code.gitea.io/gitea/tests"
+	"gitea.dev/models/packages"
+	"gitea.dev/models/unittest"
+	user_model "gitea.dev/models/user"
+	"gitea.dev/modules/test"
+	"gitea.dev/tests"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -106,25 +106,20 @@ func TestPackageGo(t *testing.T) {
 			Time    time.Time `json:"Time"`
 		}
 
-		info := &Info{}
-		DecodeJSON(t, resp, &info)
+		info := DecodeJSON(t, resp, &Info{})
 
 		assert.Equal(t, packageVersion, info.Version)
 
 		req = NewRequest(t, "GET", fmt.Sprintf("%s/%s/@v/latest.info", url, packageName))
 		resp = MakeRequest(t, req, http.StatusOK)
 
-		info = &Info{}
-		DecodeJSON(t, resp, &info)
-
+		info = DecodeJSON(t, resp, &Info{})
 		assert.Equal(t, packageVersion2, info.Version)
 
 		req = NewRequest(t, "GET", fmt.Sprintf("%s/%s/@latest", url, packageName))
 		resp = MakeRequest(t, req, http.StatusOK)
 
-		info = &Info{}
-		DecodeJSON(t, resp, &info)
-
+		info = DecodeJSON(t, resp, &Info{})
 		assert.Equal(t, packageVersion2, info.Version)
 	})
 

@@ -10,9 +10,9 @@ import (
 	"path/filepath"
 	"strconv"
 
-	base "code.gitea.io/gitea/modules/migration"
+	base "gitea.dev/modules/migration"
 
-	"gopkg.in/yaml.v3"
+	"go.yaml.in/yaml/v4"
 )
 
 // RepositoryRestorer implements an Downloader from the local directory
@@ -75,6 +75,7 @@ func (r *RepositoryRestorer) GetRepoInfo(_ context.Context) (*base.Repository, e
 		Name:          r.repoName,
 		IsPrivate:     isPrivate,
 		Description:   opts["description"],
+		Website:       opts["website"],
 		OriginalURL:   opts["original_url"],
 		CloneURL:      filepath.Join(r.baseDir, "git"),
 		DefaultBranch: opts["default_branch"],

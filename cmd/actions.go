@@ -7,8 +7,8 @@ import (
 	"context"
 	"fmt"
 
-	"code.gitea.io/gitea/modules/private"
-	"code.gitea.io/gitea/modules/setting"
+	"gitea.dev/modules/private"
+	"gitea.dev/modules/setting"
 
 	"github.com/urfave/cli/v3"
 )

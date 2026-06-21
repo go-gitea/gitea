@@ -13,14 +13,14 @@ import (
 	"path"
 	"strings"
 
-	"code.gitea.io/gitea/models/renderhelper"
-	"code.gitea.io/gitea/modules/base"
-	"code.gitea.io/gitea/modules/charset"
-	"code.gitea.io/gitea/modules/git"
-	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/modules/util"
-	"code.gitea.io/gitea/services/context"
+	"gitea.dev/models/renderhelper"
+	"gitea.dev/modules/base"
+	"gitea.dev/modules/charset"
+	"gitea.dev/modules/git"
+	"gitea.dev/modules/log"
+	"gitea.dev/modules/setting"
+	"gitea.dev/modules/util"
+	"gitea.dev/services/context"
 )
 
 // locate a README for a tree in one of the supported paths.
@@ -190,21 +190,21 @@ func prepareToRenderReadmeFile(ctx *context.Context, subfolder string, readmeFil
 	rd := charset.ToUTF8WithFallbackReader(io.MultiReader(bytes.NewReader(buf), dataRc), charset.ConvertOpts{})
 
 	rctx := renderhelper.NewRenderContextRepoFile(ctx, ctx.Repo.Repository, renderhelper.RepoFileOptions{
-		CurrentRefPath:  ctx.Repo.RefTypeNameSubURL(),
-		CurrentTreePath: path.Dir(readmeFullPath),
+		CurrentRefSubURL: ctx.Repo.RefTypeNameSubURL(),
+		CurrentTreePath:  path.Dir(readmeFullPath),
 	}).WithRelativePath(readmeFullPath)
 	renderer := rctx.DetectMarkupRenderer(buf)
 	if renderer != nil {
-		ctx.Data["IsMarkup"] = true
+		ctx.Data["RenderAsMarkup"] = "markup-inplace"
 		ctx.Data["MarkupType"] = rctx.RenderOptions.MarkupType
 		ctx.Data["EscapeStatus"], ctx.Data["FileContent"], err = markupRenderToHTML(ctx, rctx, renderer, rd)
 		if err != nil {
 			log.Error("Render failed for %s in %-v: %v Falling back to rendering source", readmeFile.Name(), ctx.Repo.Repository, err)
-			delete(ctx.Data, "IsMarkup")
+			delete(ctx.Data, "RenderAsMarkup")
 		}
 	}
 
-	if ctx.Data["IsMarkup"] != true {
+	if ctx.Data["RenderAsMarkup"] == nil {
 		ctx.Data["IsPlainText"] = true
 		content, err := io.ReadAll(rd)
 		if err != nil {

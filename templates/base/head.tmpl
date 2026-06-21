@@ -4,7 +4,7 @@
 	{{ctx.HeadMetaContentSecurityPolicy}}
 	<meta name="viewport" content="width=device-width, initial-scale=1">
 	<title>{{if .Title}}{{.Title}} - {{end}}{{.PageTitleCommon}}</title>
-	{{if .ManifestData}}<link rel="manifest" href="data:{{.ManifestData}}">{{end}}
+	<link rel="manifest" href="{{AssetUrlPrefix}}/site-manifest.json">
 	<meta name="author" content="{{if .Repository}}{{.Owner.Name}}{{else}}{{MetaAuthor}}{{end}}">
 	<meta name="description" content="{{if .Repository}}{{.Repository.Name}}{{if .Repository.Description}} - {{.Repository.Description}}{{end}}{{else}}{{MetaDescription}}{{end}}">
 	<meta name="keywords" content="{{MetaKeywords}}">

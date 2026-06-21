@@ -14,17 +14,17 @@ import (
 	"strings"
 	"time"
 
-	repo_model "code.gitea.io/gitea/models/repo"
-	user_model "code.gitea.io/gitea/models/user"
-	"code.gitea.io/gitea/modules/git"
-	"code.gitea.io/gitea/modules/git/gitcmd"
-	"code.gitea.io/gitea/modules/gitrepo"
-	"code.gitea.io/gitea/modules/log"
-	repo_module "code.gitea.io/gitea/modules/repository"
-	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/modules/util"
-	asymkey_service "code.gitea.io/gitea/services/asymkey"
-	"code.gitea.io/gitea/services/gitdiff"
+	repo_model "gitea.dev/models/repo"
+	user_model "gitea.dev/models/user"
+	"gitea.dev/modules/git"
+	"gitea.dev/modules/git/gitcmd"
+	"gitea.dev/modules/gitrepo"
+	"gitea.dev/modules/log"
+	repo_module "gitea.dev/modules/repository"
+	"gitea.dev/modules/setting"
+	"gitea.dev/modules/util"
+	asymkey_service "gitea.dev/services/asymkey"
+	"gitea.dev/services/gitdiff"
 )
 
 // TemporaryUploadRepository is a type to wrap our upload repositories as a shallow clone
@@ -47,7 +47,8 @@ func NewTemporaryUploadRepository(repo *repo_model.Repository) (*TemporaryUpload
 
 // Close the repository cleaning up all files
 func (t *TemporaryUploadRepository) Close() {
-	defer t.gitRepo.Close()
+	// must stop the repo access before removal, otherwise Windows can't remove the directory occupied by other processes
+	t.gitRepo.Close()
 	if t.cleanup != nil {
 		t.cleanup()
 	}
@@ -178,8 +179,9 @@ func (t *TemporaryUploadRepository) HashObjectAndWrite(ctx context.Context, cont
 
 // AddObjectToIndex adds the provided object hash to the index with the provided mode and path
 func (t *TemporaryUploadRepository) AddObjectToIndex(ctx context.Context, mode, objectHash, objectPath string) error {
-	if err := gitcmd.NewCommand("update-index", "--add", "--replace", "--cacheinfo").
-		AddDynamicArguments(mode, objectHash, objectPath).WithDir(t.basePath).RunWithStderr(ctx); err != nil {
+	cmd := gitcmd.NewCommand("update-index", "--add", "--replace", "--cacheinfo").
+		AddDynamicArguments(mode + "," + objectHash + "," + objectPath).WithDir(t.basePath)
+	if err := cmd.RunWithStderr(ctx); err != nil {
 		if matched, _ := regexp.MatchString(".*Invalid path '.*", err.Stderr()); matched {
 			return ErrFilePathInvalid{
 				Message: objectPath,
@@ -299,12 +301,7 @@ func (t *TemporaryUploadRepository) CommitTree(ctx context.Context, opts *Commit
 		cmdCommitTree.AddOptionFormat("-S%s", key.KeyID)
 		if t.repo.GetTrustModel() == repo_model.CommitterTrustModel || t.repo.GetTrustModel() == repo_model.CollaboratorCommitterTrustModel {
 			if committerSig.Name != authorSig.Name || committerSig.Email != authorSig.Email {
-				// Add trailers
-				_, _ = messageBytes.WriteString("\n")
-				_, _ = messageBytes.WriteString("Co-authored-by: ")
-				_, _ = messageBytes.WriteString(committerSig.String())
-				_, _ = messageBytes.WriteString("\n")
-				_, _ = messageBytes.WriteString("Co-committed-by: ")
+				_, _ = messageBytes.WriteString("\n" + git.CoAuthoredByTrailer + ": ")
 				_, _ = messageBytes.WriteString(committerSig.String())
 				_, _ = messageBytes.WriteString("\n")
 			}

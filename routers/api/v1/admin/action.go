@@ -4,8 +4,8 @@
 package admin
 
 import (
-	"code.gitea.io/gitea/routers/api/v1/shared"
-	"code.gitea.io/gitea/services/context"
+	"gitea.dev/routers/api/v1/shared"
+	"gitea.dev/services/context"
 )
 
 // ListWorkflowJobs Lists all jobs
@@ -29,6 +29,14 @@ func ListWorkflowJobs(ctx *context.APIContext) {
 	//   in: query
 	//   description: page size of results
 	//   type: integer
+	// - name: sort
+	//   in: query
+	//   description: sort jobs by attribute. Supported values are "id". Default is "id"
+	//   type: string
+	// - name: order
+	//   in: query
+	//   description: sort order, either "asc" (ascending) or "desc" (descending). Default is "asc"
+	//   type: string
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/WorkflowJobsList"
@@ -36,8 +44,10 @@ func ListWorkflowJobs(ctx *context.APIContext) {
 	//     "$ref": "#/responses/error"
 	//   "404":
 	//     "$ref": "#/responses/notFound"
+	//   "422":
+	//     "$ref": "#/responses/validationError"
 
-	shared.ListJobs(ctx, 0, 0, 0)
+	shared.ListJobs(ctx, 0, 0, 0, nil)
 }
 
 // ListWorkflowRuns Lists all runs
@@ -89,5 +99,5 @@ func ListWorkflowRuns(ctx *context.APIContext) {
 	//   "404":
 	//     "$ref": "#/responses/notFound"
 
-	shared.ListRuns(ctx, 0, 0)
+	shared.ListRuns(ctx, 0, 0, "")
 }

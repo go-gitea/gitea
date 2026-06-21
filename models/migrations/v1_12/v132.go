@@ -6,10 +6,10 @@ package v1_12
 import (
 	"fmt"
 
-	"xorm.io/xorm"
+	"gitea.dev/models/db"
 )
 
-func AddBranchProtectionProtectedFilesColumn(x *xorm.Engine) error {
+func AddBranchProtectionProtectedFilesColumn(x db.EngineMigration) error {
 	type ProtectedBranch struct {
 		ProtectedFilePatterns string `xorm:"TEXT"`
 	}

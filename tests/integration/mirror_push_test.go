@@ -11,17 +11,18 @@ import (
 	"testing"
 	"time"
 
-	"code.gitea.io/gitea/models/db"
-	repo_model "code.gitea.io/gitea/models/repo"
-	"code.gitea.io/gitea/models/unittest"
-	user_model "code.gitea.io/gitea/models/user"
-	"code.gitea.io/gitea/modules/gitrepo"
-	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/services/migrations"
-	mirror_service "code.gitea.io/gitea/services/mirror"
-	repo_service "code.gitea.io/gitea/services/repository"
-	wiki_service "code.gitea.io/gitea/services/wiki"
-	"code.gitea.io/gitea/tests"
+	"gitea.dev/models/db"
+	repo_model "gitea.dev/models/repo"
+	"gitea.dev/models/unittest"
+	user_model "gitea.dev/models/user"
+	"gitea.dev/modules/gitrepo"
+	"gitea.dev/modules/setting"
+	"gitea.dev/modules/test"
+	"gitea.dev/services/migrations"
+	mirror_service "gitea.dev/services/mirror"
+	repo_service "gitea.dev/services/repository"
+	wiki_service "gitea.dev/services/wiki"
+	"gitea.dev/tests"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -35,7 +36,7 @@ func TestMirrorPushWikiDefaultBranchMismatch(t *testing.T) {
 }
 
 func testMirrorPush(t *testing.T, u *url.URL) {
-	setting.Migrations.AllowLocalNetworks = true
+	defer test.MockVariableValue(&setting.Migrations.AllowLocalNetworks, true)()
 	assert.NoError(t, migrations.Init())
 
 	_ = db.TruncateBeans(t.Context(), &repo_model.PushMirror{})
@@ -83,7 +84,7 @@ func testMirrorPush(t *testing.T, u *url.URL) {
 }
 
 func testMirrorPushWikiDefaultBranchMismatch(t *testing.T, u *url.URL) {
-	setting.Migrations.AllowLocalNetworks = true
+	defer test.MockVariableValue(&setting.Migrations.AllowLocalNetworks, true)()
 	assert.NoError(t, migrations.Init())
 
 	_ = db.TruncateBeans(t.Context(), &repo_model.PushMirror{})
@@ -154,7 +155,7 @@ func doUpdatePushMirror(t *testing.T, session *TestSession, owner, repo string, 
 
 func TestRepoSettingPushMirrorUpdate(t *testing.T) {
 	defer tests.PrepareTestEnv(t)()
-	setting.Migrations.AllowLocalNetworks = true
+	defer test.MockVariableValue(&setting.Migrations.AllowLocalNetworks, true)()
 	assert.NoError(t, migrations.Init())
 
 	session := loginUser(t, "user2")

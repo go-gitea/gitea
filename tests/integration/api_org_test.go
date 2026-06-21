@@ -10,17 +10,18 @@ import (
 	"testing"
 	"time"
 
-	auth_model "code.gitea.io/gitea/models/auth"
-	org_model "code.gitea.io/gitea/models/organization"
-	"code.gitea.io/gitea/models/perm"
-	repo_model "code.gitea.io/gitea/models/repo"
-	unit_model "code.gitea.io/gitea/models/unit"
-	"code.gitea.io/gitea/models/unittest"
-	user_model "code.gitea.io/gitea/models/user"
-	"code.gitea.io/gitea/modules/setting"
-	api "code.gitea.io/gitea/modules/structs"
-	"code.gitea.io/gitea/modules/test"
-	"code.gitea.io/gitea/tests"
+	auth_model "gitea.dev/models/auth"
+	issues_model "gitea.dev/models/issues"
+	org_model "gitea.dev/models/organization"
+	"gitea.dev/models/perm"
+	repo_model "gitea.dev/models/repo"
+	unit_model "gitea.dev/models/unit"
+	"gitea.dev/models/unittest"
+	user_model "gitea.dev/models/user"
+	"gitea.dev/modules/setting"
+	api "gitea.dev/modules/structs"
+	"gitea.dev/modules/test"
+	"gitea.dev/tests"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -47,8 +48,7 @@ func testAPIOrgCreateRename(t *testing.T) {
 	req := NewRequestWithJSON(t, "POST", "/api/v1/orgs", &org).AddTokenAuth(token)
 	resp := MakeRequest(t, req, http.StatusCreated)
 
-	var apiOrg api.Organization
-	DecodeJSON(t, resp, &apiOrg)
+	apiOrg := DecodeJSON(t, resp, &api.Organization{})
 
 	assert.Equal(t, org.UserName, apiOrg.Name)
 	assert.Equal(t, org.FullName, apiOrg.FullName)
@@ -66,7 +66,7 @@ func testAPIOrgCreateRename(t *testing.T) {
 	// check org name
 	req = NewRequestf(t, "GET", "/api/v1/orgs/%s", org.UserName).AddTokenAuth(token)
 	resp = MakeRequest(t, req, http.StatusOK)
-	DecodeJSON(t, resp, &apiOrg)
+	apiOrg = DecodeJSON(t, resp, &api.Organization{})
 	assert.Equal(t, org.UserName, apiOrg.Name)
 
 	t.Run("CheckPermission", func(t *testing.T) {
@@ -91,8 +91,7 @@ func testAPIOrgCreateRename(t *testing.T) {
 		resp = MakeRequest(t, req, http.StatusOK)
 
 		// user1 on this org is public
-		var users []*api.User
-		DecodeJSON(t, resp, &users)
+		users := DecodeJSON(t, resp, []*api.User{})
 		assert.Len(t, users, 1)
 		assert.Equal(t, "user1", users[0].UserName)
 	})
@@ -110,8 +109,7 @@ func testAPIOrgCreateRename(t *testing.T) {
 		// FIXME: this test is wrong, there is no repository at all, so the for-loop is empty
 		req = NewRequestf(t, "GET", "/api/v1/orgs/%s/repos", org.UserName).AddTokenAuth(token)
 		resp = MakeRequest(t, req, http.StatusOK)
-		var repos []*api.Repository
-		DecodeJSON(t, resp, &repos)
+		repos := DecodeJSON(t, resp, []*api.Repository{})
 		for _, repo := range repos {
 			assert.False(t, repo.Private)
 		}
@@ -126,21 +124,20 @@ func testAPIOrgGeneral(t *testing.T) {
 		// accessing with a token will return all orgs
 		req := NewRequest(t, "GET", "/api/v1/orgs").AddTokenAuth(user1Token)
 		resp := MakeRequest(t, req, http.StatusOK)
-		var apiOrgList []*api.Organization
 
-		DecodeJSON(t, resp, &apiOrgList)
+		apiOrgList := DecodeJSON(t, resp, []*api.Organization{})
 		assert.Len(t, apiOrgList, 13)
 		assert.Equal(t, "Limited Org 36", apiOrgList[1].FullName)
-		assert.Equal(t, "limited", apiOrgList[1].Visibility)
+		assert.Equal(t, api.UserVisibilityLimited, apiOrgList[1].Visibility)
 
 		// accessing without a token will return only public orgs
 		req = NewRequest(t, "GET", "/api/v1/orgs")
 		resp = MakeRequest(t, req, http.StatusOK)
 
-		DecodeJSON(t, resp, &apiOrgList)
+		apiOrgList = DecodeJSON(t, resp, []*api.Organization{})
 		assert.Len(t, apiOrgList, 9)
 		assert.Equal(t, "org 17", apiOrgList[0].FullName)
-		assert.Equal(t, "public", apiOrgList[0].Visibility)
+		assert.Equal(t, api.UserVisibilityPublic, apiOrgList[0].Visibility)
 	})
 
 	t.Run("OrgEdit", func(t *testing.T) {
@@ -152,7 +149,7 @@ func testAPIOrgGeneral(t *testing.T) {
 			Description: new("new description"),
 			Website:     new("https://org3-new-website.example.com"),
 			Location:    new("new location"),
-			Visibility:  new("limited"),
+			Visibility:  new(api.UserVisibilityLimited),
 			Email:       new("org3-new-email@example.com"),
 		}
 		req := NewRequestWithJSON(t, "PATCH", "/api/v1/orgs/org3", &org3Edit).AddTokenAuth(user1Token)
@@ -182,7 +179,7 @@ func testAPIOrgGeneral(t *testing.T) {
 
 	t.Run("OrgEditInvalidVisibility", func(t *testing.T) {
 		org := api.EditOrgOption{
-			Visibility: new("invalid-visibility"),
+			Visibility: new(api.UserVisibility("invalid-visibility")),
 		}
 		req := NewRequestWithJSON(t, "PATCH", "/api/v1/orgs/org3", &org).AddTokenAuth(user1Token)
 		MakeRequest(t, req, http.StatusUnprocessableEntity)
@@ -223,11 +220,10 @@ func testAPIOrgGeneral(t *testing.T) {
 		req = NewRequest(t, "GET", fmt.Sprintf("/api/v1/orgs/%s/teams/search?q=%s", orgName, "empty")).
 			AddTokenAuth(user1Token)
 		resp := MakeRequest(t, req, http.StatusOK)
-		data := struct {
+		data := DecodeJSON(t, resp, &struct {
 			Ok   bool
 			Data []*api.Team
-		}{}
-		DecodeJSON(t, resp, &data)
+		}{})
 		assert.True(t, data.Ok)
 		if assert.Len(t, data.Data, 1) {
 			assert.Equal(t, "Empty", data.Data[0].Name)
@@ -295,5 +291,52 @@ func testAPIDeleteOrgRepos(t *testing.T) {
 
 		req = NewRequest(t, "DELETE", fmt.Sprintf("/api/v1/orgs/%s/repos", org3.Name)).AddTokenAuth(token)
 		MakeRequest(t, req, http.StatusNoContent) // The org contains no repositories, so the API should return StatusNoContent
+	})
+}
+
+// TestAPIOrgLabelsVisibility ensures the organization label read endpoints honor
+// the organization visibility: labels of a private org must not be disclosed to
+// users who cannot see the org (GHSA: unauthorized access to private org labels).
+func TestAPIOrgLabelsVisibility(t *testing.T) {
+	defer tests.PrepareTestEnv(t)()
+
+	// privated_org (id 23) is a private organization; user5 is its only member.
+	privateOrg := unittest.AssertExistsAndLoadBean(t, &org_model.Organization{ID: 23})
+	label := &issues_model.Label{OrgID: privateOrg.ID, Name: "internal-label", Color: "#aabbcc", Description: "private organization label"}
+	require.NoError(t, issues_model.NewLabel(t.Context(), label))
+
+	listURL := fmt.Sprintf("/api/v1/orgs/%s/labels", privateOrg.Name)
+	getURL := fmt.Sprintf("/api/v1/orgs/%s/labels/%d", privateOrg.Name, label.ID)
+
+	t.Run("NonMemberDenied", func(t *testing.T) {
+		// user2 is not a member of the private org and must not see its labels.
+		token := getUserToken(t, "user2", auth_model.AccessTokenScopeReadOrganization)
+		MakeRequest(t, NewRequest(t, "GET", listURL).AddTokenAuth(token), http.StatusNotFound)
+		MakeRequest(t, NewRequest(t, "GET", getURL).AddTokenAuth(token), http.StatusNotFound)
+	})
+
+	t.Run("AnonymousDenied", func(t *testing.T) {
+		MakeRequest(t, NewRequest(t, "GET", listURL), http.StatusNotFound)
+		MakeRequest(t, NewRequest(t, "GET", getURL), http.StatusNotFound)
+	})
+
+	t.Run("MemberAllowed", func(t *testing.T) {
+		token := getUserToken(t, "user5", auth_model.AccessTokenScopeReadOrganization)
+		resp := MakeRequest(t, NewRequest(t, "GET", listURL).AddTokenAuth(token), http.StatusOK)
+		labels := DecodeJSON(t, resp, &[]*api.Label{})
+		assert.Len(t, *labels, 1)
+		MakeRequest(t, NewRequest(t, "GET", getURL).AddTokenAuth(token), http.StatusOK)
+	})
+
+	t.Run("SiteAdminAllowed", func(t *testing.T) {
+		token := getUserToken(t, "user1", auth_model.AccessTokenScopeReadOrganization)
+		MakeRequest(t, NewRequest(t, "GET", listURL).AddTokenAuth(token), http.StatusOK)
+		MakeRequest(t, NewRequest(t, "GET", getURL).AddTokenAuth(token), http.StatusOK)
+	})
+
+	t.Run("PublicOrgStillReadable", func(t *testing.T) {
+		// org3 (id 3) is a public org with labels; non-members may read them.
+		token := getUserToken(t, "user2", auth_model.AccessTokenScopeReadOrganization)
+		MakeRequest(t, NewRequest(t, "GET", "/api/v1/orgs/org3/labels").AddTokenAuth(token), http.StatusOK)
 	})
 }

@@ -3,9 +3,9 @@
 
 package v1_12
 
-import "xorm.io/xorm"
+import "gitea.dev/models/db"
 
-func AddEmailHashTable(x *xorm.Engine) error {
+func AddEmailHashTable(x db.EngineMigration) error {
 	// EmailHash represents a pre-generated hash map
 	type EmailHash struct {
 		Hash  string `xorm:"pk varchar(32)"`

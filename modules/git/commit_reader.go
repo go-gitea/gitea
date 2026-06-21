@@ -92,7 +92,7 @@ func CommitFromReader(gitRepo *Repository, objectID ObjectID, reader io.Reader) 
 		}
 	}
 
-	commit.CommitMessage = messageSB.String()
+	commit.MessageRaw = messageSB.String()
 	if commit.Signature != nil {
 		commit.Signature.Payload = payloadSB.String()
 	}

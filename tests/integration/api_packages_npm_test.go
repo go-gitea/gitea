@@ -11,15 +11,17 @@ import (
 	"strings"
 	"testing"
 
-	auth_model "code.gitea.io/gitea/models/auth"
-	"code.gitea.io/gitea/models/packages"
-	"code.gitea.io/gitea/models/unittest"
-	user_model "code.gitea.io/gitea/models/user"
-	"code.gitea.io/gitea/modules/packages/npm"
-	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/tests"
+	auth_model "gitea.dev/models/auth"
+	"gitea.dev/models/packages"
+	repo_model "gitea.dev/models/repo"
+	"gitea.dev/models/unittest"
+	user_model "gitea.dev/models/user"
+	"gitea.dev/modules/packages/npm"
+	"gitea.dev/modules/setting"
+	"gitea.dev/tests"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestPackageNpm(t *testing.T) {
@@ -39,6 +41,7 @@ func TestPackageNpm(t *testing.T) {
 	packageBinPath := "./cli.sh"
 	repoType := "gitea"
 	repoURL := "http://localhost:3000/gitea/test.git"
+	repoDirectory := "package-subdir"
 
 	data := "H4sIAAAAAAAA/ytITM5OTE/VL4DQelnF+XkMVAYGBgZmJiYK2MRBwNDcSIHB2NTMwNDQzMwAqA7IMDUxA9LUdgg2UFpcklgEdAql5kD8ogCnhwio5lJQUMpLzE1VslJQcihOzi9I1S9JLS7RhSYIJR2QgrLUouLM/DyQGkM9Az1D3YIiqExKanFyUWZBCVQ2BKhVwQVJDKwosbQkI78IJO/tZ+LsbRykxFXLNdA+HwWjYBSMgpENACgAbtAACAAA"
 
@@ -67,8 +70,10 @@ func TestPackageNpm(t *testing.T) {
 					},
 					"repository": {
 						"type": "` + repoType + `",
-						"url": "` + repoURL + `"
+						"url": "` + repoURL + `",
+						"directory": "` + repoDirectory + `"
 					},
+					"readme": "[docs](docs/usage.md)\n![logo](logo.png)",
 					"peerDependencies": {
 						"tea": "2.x",
 						"soy-milk": "1.2"
@@ -165,8 +170,7 @@ func TestPackageNpm(t *testing.T) {
 			AddTokenAuth(token)
 		resp := MakeRequest(t, req, http.StatusOK)
 
-		var result npm.PackageMetadata
-		DecodeJSON(t, resp, &result)
+		result := DecodeJSON(t, resp, &npm.PackageMetadata{})
 
 		assert.Equal(t, packageName, result.ID)
 		assert.Equal(t, packageName, result.Name)
@@ -213,8 +217,7 @@ func TestPackageNpm(t *testing.T) {
 			AddTokenAuth(token)
 		resp := MakeRequest(t, req, http.StatusOK)
 
-		var result map[string]string
-		DecodeJSON(t, resp, &result)
+		result := DecodeJSON(t, resp, map[string]string{})
 
 		assert.Len(t, result, 2)
 		assert.Contains(t, result, packageTag)
@@ -230,8 +233,7 @@ func TestPackageNpm(t *testing.T) {
 			AddTokenAuth(token)
 		resp := MakeRequest(t, req, http.StatusOK)
 
-		var result npm.PackageMetadata
-		DecodeJSON(t, resp, &result)
+		result := DecodeJSON(t, resp, &npm.PackageMetadata{})
 
 		assert.Len(t, result.DistTags, 2)
 		assert.Contains(t, result.DistTags, packageTag)
@@ -278,12 +280,33 @@ func TestPackageNpm(t *testing.T) {
 			req := NewRequest(t, "GET", fmt.Sprintf("%s?text=%s&from=%d&size=%d", url, c.Query, c.Skip, c.Take))
 			resp := MakeRequest(t, req, http.StatusOK)
 
-			var result npm.PackageSearch
-			DecodeJSON(t, resp, &result)
+			result := DecodeJSON(t, resp, &npm.PackageSearch{})
 
 			assert.Equal(t, c.ExpectedTotal, result.Total, "case %d: unexpected total hits", i)
 			assert.Len(t, result.Objects, c.ExpectedResults, "case %d: unexpected result count", i)
 		}
+	})
+
+	t.Run("WebViewReadmeRepoLinks", func(t *testing.T) {
+		defer tests.PrintCurrentTest(t)()
+
+		pvs, err := packages.GetVersionsByPackageType(t.Context(), user.ID, packages.TypeNpm)
+		assert.NoError(t, err)
+		require.Len(t, pvs, 1)
+
+		// link the package to a repository so README relative links resolve against
+		// repository files instead of the site root
+		repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
+		assert.NoError(t, packages.SetRepositoryLink(t.Context(), pvs[0].PackageID, repo.ID))
+
+		req := NewRequest(t, "GET", fmt.Sprintf("/%s/-/packages/npm/%s/%s", user.Name, url.PathEscape(packageName), packageVersion)).
+			AddBasicAuth(user.Name)
+		resp := MakeRequest(t, req, http.StatusOK)
+		doc := NewHTMLParser(t, resp.Body)
+		rendered, _ := doc.Find(".markup.markdown").Html()
+		assertHTMLEq(t, `<p dir="auto"><a href="/user2/repo1/src/branch/master/package-subdir/docs/usage.md" rel="nofollow">docs</a>
+<a href="/user2/repo1/src/branch/master/package-subdir/logo.png" rel="nofollow noopener" target="_blank"><img src="/user2/repo1/media/branch/master/package-subdir/logo.png" alt="logo" loading="lazy"/></a></p>
+`, rendered)
 	})
 
 	t.Run("Delete", func(t *testing.T) {

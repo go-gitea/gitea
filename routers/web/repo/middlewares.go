@@ -6,13 +6,14 @@ package repo
 import (
 	"strconv"
 
-	user_model "code.gitea.io/gitea/models/user"
-	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/optional"
-	"code.gitea.io/gitea/modules/util"
-	"code.gitea.io/gitea/services/context"
-	"code.gitea.io/gitea/services/gitdiff"
-	user_service "code.gitea.io/gitea/services/user"
+	user_model "gitea.dev/models/user"
+	"gitea.dev/modules/log"
+	"gitea.dev/modules/optional"
+	"gitea.dev/modules/setting"
+	"gitea.dev/modules/util"
+	"gitea.dev/services/context"
+	"gitea.dev/services/gitdiff"
+	user_service "gitea.dev/services/user"
 )
 
 // SetEditorconfigIfExists set editor config as render variable
@@ -80,6 +81,14 @@ func SetWhitespaceBehavior(ctx *context.Context) {
 	}
 }
 
+func GetWhitespaceBehavior(ctx *context.Context) string {
+	behavior, ok := ctx.Data["WhitespaceBehavior"].(string)
+	if !ok {
+		setting.PanicInDevOrTesting("WhitespaceBehavior is not set in context data or is not a string")
+	}
+	return behavior
+}
+
 // SetShowOutdatedComments set the show outdated comments option as context variable
 func SetShowOutdatedComments(ctx *context.Context) {
 	showOutdatedCommentsValue := ctx.FormString("show-outdated")
@@ -94,4 +103,12 @@ func SetShowOutdatedComments(ctx *context.Context) {
 		_ = user_model.SetUserSetting(ctx, ctx.Doer.ID, user_model.SettingsKeyShowOutdatedComments, showOutdatedCommentsValue)
 	}
 	ctx.Data["ShowOutdatedComments"], _ = strconv.ParseBool(showOutdatedCommentsValue)
+}
+
+func GetShowOutdatedComments(ctx *context.Context) bool {
+	show, ok := ctx.Data["ShowOutdatedComments"].(bool)
+	if !ok {
+		setting.PanicInDevOrTesting("ShowOutdatedComments is not set in context data or is not a bool")
+	}
+	return show
 }

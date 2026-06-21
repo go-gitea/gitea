@@ -10,18 +10,18 @@ import (
 	"net/http"
 	"net/url"
 
-	asymkey_model "code.gitea.io/gitea/models/asymkey"
-	"code.gitea.io/gitea/models/db"
-	"code.gitea.io/gitea/models/perm"
-	access_model "code.gitea.io/gitea/models/perm/access"
-	repo_model "code.gitea.io/gitea/models/repo"
-	"code.gitea.io/gitea/modules/setting"
-	api "code.gitea.io/gitea/modules/structs"
-	"code.gitea.io/gitea/modules/web"
-	"code.gitea.io/gitea/routers/api/v1/utils"
-	asymkey_service "code.gitea.io/gitea/services/asymkey"
-	"code.gitea.io/gitea/services/context"
-	"code.gitea.io/gitea/services/convert"
+	asymkey_model "gitea.dev/models/asymkey"
+	"gitea.dev/models/db"
+	"gitea.dev/models/perm"
+	access_model "gitea.dev/models/perm/access"
+	repo_model "gitea.dev/models/repo"
+	"gitea.dev/modules/setting"
+	api "gitea.dev/modules/structs"
+	"gitea.dev/modules/web"
+	"gitea.dev/routers/api/v1/utils"
+	asymkey_service "gitea.dev/services/asymkey"
+	"gitea.dev/services/context"
+	"gitea.dev/services/convert"
 )
 
 // appendPrivateInformation appends the owner and key type information to api.PublicKey
@@ -179,7 +179,7 @@ func HandleCheckKeyStringError(ctx *context.APIContext, err error) {
 	} else if asymkey_model.IsErrKeyUnableVerify(err) {
 		ctx.APIError(http.StatusUnprocessableEntity, "Unable to verify key content")
 	} else {
-		ctx.APIError(http.StatusUnprocessableEntity, fmt.Errorf("Invalid key content: %w", err))
+		ctx.APIError(http.StatusUnprocessableEntity, fmt.Sprintf("Invalid key content: %v", err))
 	}
 }
 

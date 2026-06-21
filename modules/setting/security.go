@@ -8,17 +8,21 @@ import (
 	"os"
 	"strings"
 
-	"code.gitea.io/gitea/modules/auth/password/hash"
-	"code.gitea.io/gitea/modules/generate"
-	"code.gitea.io/gitea/modules/log"
+	"gitea.dev/modules/auth/password/hash"
+	"gitea.dev/modules/generate"
+	"gitea.dev/modules/log"
 )
 
 // Security settings
 var Security = struct {
 	// TODO: move more settings to this struct in future
-	XFrameOptions string
+	XFrameOptions       string
+	XContentTypeOptions string
+
+	ContentSecurityPolicyGeneral string // it only supports empty (default policy) or "unset", maybe it can support more in the future
 }{
-	XFrameOptions: "SAMEORIGIN",
+	XFrameOptions:       "SAMEORIGIN",
+	XContentTypeOptions: "nosniff",
 }
 
 var (
@@ -148,10 +152,11 @@ func loadSecurityFrom(rootCfg ConfigProvider) {
 	SuccessfulTokensCacheSize = sec.Key("SUCCESSFUL_TOKENS_CACHE_SIZE").MustInt(20)
 
 	deprecatedSetting(rootCfg, "cors", "X_FRAME_OPTIONS", "security", "X_FRAME_OPTIONS", "v1.26.0")
-	if sec.HasKey("X_FRAME_OPTIONS") {
-		Security.XFrameOptions = sec.Key("X_FRAME_OPTIONS").MustString(Security.XFrameOptions)
-	} else {
+	if !sec.HasKey("X_FRAME_OPTIONS") {
 		Security.XFrameOptions = rootCfg.Section("cors").Key("X_FRAME_OPTIONS").MustString(Security.XFrameOptions)
+	}
+	if err := sec.MapTo(&Security); err != nil {
+		log.Fatal("Failed to map security settings: %v", err)
 	}
 
 	twoFactorAuth := sec.Key("TWO_FACTOR_AUTH").String()
