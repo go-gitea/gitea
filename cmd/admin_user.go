@@ -19,6 +19,7 @@ func newUserCommand() *cli.Command {
 			newUserGenerateAccessTokenCommand(),
 			microcmdUserMustChangePassword(),
 			microcmdUserDisableTwoFactor(),
+			microcmdUserChangeType(),
 		},
 	}
 }
