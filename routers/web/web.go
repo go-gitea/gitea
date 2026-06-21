@@ -785,6 +785,7 @@ func registerWebRoutes(m *web.Router, webAuth *AuthMiddleware) {
 			m.Combo("/new").Get(admin.NewUser).Post(web.Bind(forms.AdminCreateUserForm{}), admin.NewUserPost)
 			m.Get("/{userid}", admin.ViewUser)
 			m.Combo("/{userid}/edit").Get(admin.EditUser).Post(web.Bind(forms.AdminEditUserForm{}), admin.EditUserPost)
+			m.Post("/{userid}/convert_type", admin.ConvertUserType)
 			m.Post("/{userid}/delete", admin.DeleteUser)
 			m.Post("/{userid}/avatar", web.Bind(forms.AvatarForm{}), admin.AvatarPost)
 			m.Post("/{userid}/avatar/delete", admin.DeleteAvatar)

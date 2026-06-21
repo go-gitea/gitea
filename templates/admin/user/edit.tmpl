@@ -6,24 +6,12 @@
 		<div class="ui attached segment">
 			<form class="ui form" action="./edit" method="post">
 				{{template "base/disable_form_autofill"}}
+				{{/* bot users have no auth source or password; this drives common.ts to hide the .non-bot fields */}}
+				{{if .User.IsTypeBot}}<input type="hidden" id="user_type" value="bot">{{end}}
 				<div class="field {{if .Err_UserName}}error{{end}}">
 					<label for="user_name">{{ctx.Locale.Tr "username"}}</label>
 					<input id="user_name" name="user_name" value="{{.User.Name}}" maxlength="40">
 				</div>
-				{{if or .User.IsIndividual .User.IsTypeBot}}
-				<div class="inline required field">
-					<label>{{ctx.Locale.Tr "admin.users.user_type"}}</label>
-					<div class="ui selection type dropdown">
-						<input type="hidden" id="user_type" name="user_type" value="{{if .User.IsTypeBot}}bot{{else}}individual{{end}}" required>
-						<div class="text">{{if .User.IsTypeBot}}{{ctx.Locale.Tr "admin.users.user_type.bot"}}{{else}}{{ctx.Locale.Tr "admin.users.user_type.individual"}}{{end}}</div>
-						{{svg "octicon-triangle-down" 14 "dropdown icon"}}
-						<div class="menu">
-							<div class="item" data-value="individual">{{ctx.Locale.Tr "admin.users.user_type.individual"}}</div>
-							<div class="item" data-value="bot">{{ctx.Locale.Tr "admin.users.user_type.bot"}}</div>
-						</div>
-					</div>
-				</div>
-				{{end}}
 				<!-- Types and name -->
 				<div class="inline required field non-bot {{if .Err_LoginType}}error{{end}}">
 					<label>{{ctx.Locale.Tr "admin.users.auth_source"}}</label>
@@ -216,7 +204,62 @@
 				</div>
 			</form>
 		</div>
+		{{if or .User.IsIndividual .User.IsTypeBot}}
+		<h4 class="ui top attached error header">
+			{{ctx.Locale.Tr "repo.settings.danger_zone"}}
+		</h4>
+		<div class="ui attached error danger segment">
+			<div class="flex-divided-list items-with-main">
+				<div class="item">
+					<div class="item-main">
+						<div class="item-title">{{ctx.Locale.Tr "admin.users.convert_type"}}</div>
+						<div class="item-body">
+							{{if .User.IsTypeBot}}
+								{{ctx.Locale.Tr "admin.users.convert_type.to_individual_desc"}}
+							{{else}}
+								{{ctx.Locale.Tr "admin.users.convert_type.to_bot_desc"}}
+							{{end}}
+						</div>
+					</div>
+					<div class="item-trailing">
+						<button class="ui basic red show-modal button" data-modal="#convert-user-type-modal">
+							{{if .User.IsTypeBot}}
+								{{ctx.Locale.Tr "admin.users.convert_type.to_individual"}}
+							{{else}}
+								{{ctx.Locale.Tr "admin.users.convert_type.to_bot"}}
+							{{end}}
+						</button>
+					</div>
+				</div>
+			</div>
+		</div>
+		{{end}}
 	</div>
+
+{{if or .User.IsIndividual .User.IsTypeBot}}
+<div class="ui small modal" id="convert-user-type-modal">
+	<div class="header">
+		{{if .User.IsTypeBot}}
+			{{ctx.Locale.Tr "admin.users.convert_type.to_individual"}}
+		{{else}}
+			{{ctx.Locale.Tr "admin.users.convert_type.to_bot"}}
+		{{end}}
+	</div>
+	<form class="ui form" method="post" action="./convert_type">
+		<input type="hidden" name="user_type" value="{{if .User.IsTypeBot}}individual{{else}}bot{{end}}">
+		<div class="content">
+			<p>
+				{{if .User.IsTypeBot}}
+					{{ctx.Locale.Tr "admin.users.convert_type.to_individual_notice"}}
+				{{else}}
+					{{ctx.Locale.Tr "admin.users.convert_type.to_bot_notice"}}
+				{{end}}
+			</p>
+		</div>
+		{{template "base/modal_actions_confirm" (dict "ModalButtonDangerText" (ctx.Locale.Tr "admin.users.convert_type"))}}
+	</form>
+</div>
+{{end}}
 
 <div class="ui g-modal-confirm delete modal" id="delete-user-modal">
 	<div class="header">

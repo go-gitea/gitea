@@ -489,21 +489,6 @@ func EditUserPost(ctx *context.Context) {
 		}
 	}
 
-	// Convert between individual and bot when the admin changed the user type.
-	// Organizations and reserved types are left untouched.
-	if form.UserType != "" && (u.IsIndividual() || u.IsTypeBot()) {
-		targetType := user_model.UserTypeIndividual
-		if form.UserType == "bot" {
-			targetType = user_model.UserTypeBot
-		}
-		if targetType != u.Type {
-			if err := user_service.ConvertUserType(ctx, u, targetType); err != nil {
-				ctx.ServerError("ConvertUserType", err)
-				return
-			}
-		}
-	}
-
 	authOpts := &user_service.UpdateAuthOptions{
 		Password:  optional.FromNonDefault(form.Password),
 		LoginName: optional.Some(form.LoginName),
@@ -663,6 +648,44 @@ func DeleteUser(ctx *context.Context) {
 
 	ctx.Flash.Success(ctx.Tr("admin.users.deletion_success"))
 	ctx.Redirect(setting.AppSubURL + "/-/admin/users")
+}
+
+// ConvertUserType converts a user between the individual and bot types.
+func ConvertUserType(ctx *context.Context) {
+	u, err := user_model.GetUserByID(ctx, ctx.PathParamInt64("userid"))
+	if err != nil {
+		ctx.ServerError("GetUserByID", err)
+		return
+	}
+
+	redirect := setting.AppSubURL + "/-/admin/users/" + url.PathEscape(ctx.PathParam("userid")) + "/edit"
+
+	targetType := user_model.UserTypeIndividual
+	switch ctx.FormString("user_type") {
+	case "bot":
+		targetType = user_model.UserTypeBot
+	case "individual":
+		targetType = user_model.UserTypeIndividual
+	default:
+		ctx.Flash.Error(ctx.Tr("admin.users.user_type.invalid"))
+		ctx.Redirect(redirect)
+		return
+	}
+
+	if targetType == u.Type {
+		ctx.Redirect(redirect)
+		return
+	}
+
+	if err := user_service.ConvertUserType(ctx, u, targetType); err != nil {
+		ctx.Flash.Error(err.Error())
+		ctx.Redirect(redirect)
+		return
+	}
+
+	log.Trace("Account type converted by admin (%s): %s", ctx.Doer.Name, u.Name)
+	ctx.Flash.Success(ctx.Tr("admin.users.update_profile_success"))
+	ctx.Redirect(redirect)
 }
 
 // AvatarPost response for change user's avatar request

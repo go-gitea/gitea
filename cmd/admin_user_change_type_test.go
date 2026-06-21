@@ -20,6 +20,7 @@ func TestChangeTypeCommand(t *testing.T) {
 
 	defer func() {
 		require.NoError(t, db.TruncateBeans(t.Context(), &user_model.User{}))
+		require.NoError(t, db.TruncateBeans(t.Context(), &user_model.EmailAddress{}))
 	}()
 
 	t.Run("convert individual to bot and back", func(t *testing.T) {
