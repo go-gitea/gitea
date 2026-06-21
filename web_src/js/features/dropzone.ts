@@ -110,8 +110,8 @@ export async function initDropzone(dropzoneEl: HTMLElement) {
   });
 
   dzInst.on('submit', () => {
-    for (const fileUuid of Object.keys(fileUuidDict)) {
-      fileUuidDict[fileUuid].submitted = true;
+    for (const value of Object.values(fileUuidDict)) {
+      value.submitted = true;
     }
   });
 
