@@ -47,9 +47,9 @@ export type LogLineCommand = {
 
 export function parseLogLineCommand(line: LogLine): LogLineCommand | null {
   // TODO: in the future it can be refactored to be a general parser that can parse arguments, drop the "prefix match"
-  for (const prefix of Object.keys(LogLinePrefixCommandMap)) {
+  for (const [prefix, commandName] of Object.entries(LogLinePrefixCommandMap)) {
     if (line.message.startsWith(prefix)) {
-      return {name: LogLinePrefixCommandMap[prefix], prefix};
+      return {name: commandName, prefix};
     }
   }
   // Handle ::cmd:: and ::cmd args:: format (runner may pass these through raw)
