@@ -122,10 +122,15 @@ func UserSignIn(ctx context.Context, username, password string) (*user_model.Use
 		authUser, err := authenticator.Authenticate(ctx, nil, username, password)
 
 		if err == nil {
-			if !authUser.ProhibitLogin {
+			// only individual users may sign in interactively; an external source
+			// must not return a bot/organization account for a login session
+			if !authUser.IsIndividual() {
+				err = user_model.ErrUserNotExist{Name: username}
+			} else if !authUser.ProhibitLogin {
 				return authUser, source, nil
+			} else {
+				err = user_model.ErrUserProhibitLogin{UID: authUser.ID, Name: authUser.Name}
 			}
-			err = user_model.ErrUserProhibitLogin{UID: authUser.ID, Name: authUser.Name}
 		}
 
 		if user_model.IsErrUserNotExist(err) {
