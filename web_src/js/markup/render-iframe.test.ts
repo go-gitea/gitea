@@ -29,7 +29,6 @@ describe('navigateToIframeLink', () => {
 
   test('unsafe links', () => {
     const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => undefined);
-    window.location.href = 'http://localhost:3000/';
 
     // eslint-disable-next-line no-script-url
     navigateToIframeLink('javascript:void(0);', '_blank');
