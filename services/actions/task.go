@@ -25,11 +25,7 @@ var (
 
 func taskPickLimiter() chan struct{} {
 	taskPickSemOnce.Do(func() {
-		n := setting.Actions.MaxConcurrentTaskPicks
-		if n <= 0 {
-			n = 1
-		}
-		taskPickSem = make(chan struct{}, n)
+		taskPickSem = make(chan struct{}, setting.Actions.MaxConcurrentTaskPicks)
 	})
 	return taskPickSem
 }

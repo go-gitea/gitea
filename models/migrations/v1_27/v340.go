@@ -74,6 +74,7 @@ func AddActionRunJobMatchingSchema(x db.EngineMigration) error {
 		var labels []ActionRunJobLabel
 		for _, job := range jobs {
 			lastID = job.ID
+			// Same empty-label skip and dedup as InsertActionRunJobLabels in models/actions/run_job_label.go.
 			seen := make(map[string]struct{}, len(job.RunsOn))
 			for _, label := range job.RunsOn {
 				if label == "" {

@@ -55,11 +55,7 @@ func InsertActionRunJobLabels(ctx context.Context, jobID int64, runsOn []string)
 // DeleteActionRunJobLabelsByRunID removes label rows for all jobs of a run.
 // It must run before the jobs themselves are deleted so the subquery can resolve.
 func DeleteActionRunJobLabelsByRunID(ctx context.Context, repoID, runID int64) error {
-	_, err := db.GetEngine(ctx).Where(
-		builder.In("job_id", builder.Select("id").From("action_run_job").
-			Where(builder.Eq{"repo_id": repoID, "run_id": runID})),
-	).Delete(new(ActionRunJobLabel))
-	return err
+	return deleteActionRunJobLabels(ctx, repoID, runID)
 }
 
 // DeleteActionRunJobLabelsByRepoID removes label rows for every job of a repo.
@@ -67,9 +63,17 @@ func DeleteActionRunJobLabelsByRunID(ctx context.Context, repoID, runID int64) e
 // otherwise orphan their label rows. It must run before the jobs themselves are
 // deleted so the subquery can resolve.
 func DeleteActionRunJobLabelsByRepoID(ctx context.Context, repoID int64) error {
+	return deleteActionRunJobLabels(ctx, repoID, 0)
+}
+
+func deleteActionRunJobLabels(ctx context.Context, repoID, runID int64) error {
+	jobWhere := builder.NewCond()
+	jobWhere = builder.Eq{"repo_id": repoID}
+	if runID != 0 {
+		jobWhere = jobWhere.And(builder.Eq{"run_id": runID})
+	}
 	_, err := db.GetEngine(ctx).Where(
-		builder.In("job_id", builder.Select("id").From("action_run_job").
-			Where(builder.Eq{"repo_id": repoID})),
+		builder.In("job_id", builder.Select("id").From("action_run_job").Where(jobWhere)),
 	).Delete(new(ActionRunJobLabel))
 	return err
 }
