@@ -20,11 +20,11 @@ func TestUpdateUser(t *testing.T) {
 
 	admin := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 1})
 
-	assert.Error(t, UpdateUser(t.Context(), admin, &UpdateOptions{
+	assert.Error(t, UpdateUser(t.Context(), admin, admin, &UpdateOptions{
 		IsAdmin: UpdateOptionFieldFromValue(false),
 	}))
 
-	assert.NoError(t, UpdateUser(t.Context(), admin, &UpdateOptions{
+	assert.NoError(t, UpdateUser(t.Context(), admin, admin, &UpdateOptions{
 		IsAdmin: UpdateOptionFieldFromSync(false),
 	}))
 
@@ -51,7 +51,7 @@ func TestUpdateUser(t *testing.T) {
 		EmailNotificationsPreference: optional.Some("disabled"),
 		SetLastLogin:                 true,
 	}
-	assert.NoError(t, UpdateUser(t.Context(), user, opts))
+	assert.NoError(t, UpdateUser(t.Context(), user, user, opts))
 
 	assert.Equal(t, opts.KeepEmailPrivate.Value(), user.KeepEmailPrivate)
 	assert.Equal(t, opts.FullName.Value(), user.FullName)
@@ -99,12 +99,12 @@ func TestUpdateAuth(t *testing.T) {
 	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 28})
 	userCopy := *user
 
-	assert.NoError(t, UpdateAuth(t.Context(), user, &UpdateAuthOptions{
+	assert.NoError(t, UpdateAuth(t.Context(), user, user, &UpdateAuthOptions{
 		LoginName: optional.Some("new-login"),
 	}))
 	assert.Equal(t, "new-login", user.LoginName)
 
-	assert.NoError(t, UpdateAuth(t.Context(), user, &UpdateAuthOptions{
+	assert.NoError(t, UpdateAuth(t.Context(), user, user, &UpdateAuthOptions{
 		Password:           optional.Some("%$DRZUVB576tfzgu"),
 		MustChangePassword: optional.Some(true),
 	}))
@@ -112,12 +112,12 @@ func TestUpdateAuth(t *testing.T) {
 	assert.NotEqual(t, userCopy.Passwd, user.Passwd)
 	assert.NotEqual(t, userCopy.Salt, user.Salt)
 
-	assert.NoError(t, UpdateAuth(t.Context(), user, &UpdateAuthOptions{
+	assert.NoError(t, UpdateAuth(t.Context(), user, user, &UpdateAuthOptions{
 		ProhibitLogin: optional.Some(true),
 	}))
 	assert.True(t, user.ProhibitLogin)
 
-	assert.ErrorIs(t, UpdateAuth(t.Context(), user, &UpdateAuthOptions{
+	assert.ErrorIs(t, UpdateAuth(t.Context(), user, user, &UpdateAuthOptions{
 		Password: optional.Some("aaaa"),
 	}), password_module.ErrMinLength)
 }

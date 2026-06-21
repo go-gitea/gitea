@@ -4,12 +4,15 @@
 package admin
 
 import (
+	"fmt"
 	"net/http"
 
+	audit_model "gitea.dev/models/audit"
 	"gitea.dev/models/webhook"
 	"gitea.dev/modules/optional"
 	"gitea.dev/modules/setting"
 	"gitea.dev/modules/templates"
+	"gitea.dev/services/audit"
 	"gitea.dev/services/context"
 )
 
@@ -61,9 +64,19 @@ func DefaultOrSystemWebhooks(ctx *context.Context) {
 
 // DeleteDefaultOrSystemWebhook handler to delete an admin-defined system or default webhook
 func DeleteDefaultOrSystemWebhook(ctx *context.Context) {
-	if err := webhook.DeleteDefaultSystemWebhook(ctx, ctx.FormInt64("id")); err != nil {
+	hook, err := webhook.GetWebhookByID(ctx, ctx.FormInt64("id"))
+	if err != nil {
+		ctx.Flash.Error("GetWebhookByID: " + err.Error())
+		ctx.JSONRedirect(setting.AppSubURL + "/-/admin/hooks")
+		return
+	}
+
+	if err := webhook.DeleteDefaultSystemWebhook(ctx, hook.ID); err != nil {
 		ctx.Flash.Error("DeleteDefaultWebhook: " + err.Error())
 	} else {
+		audit.Record(ctx, audit_model.SystemWebhookRemove, ctx.Doer, nil,
+			fmt.Sprintf("Removed instance-wide webhook %s.", hook.URL), "webhook", hook.URL)
+
 		ctx.Flash.Success(ctx.Tr("repo.settings.webhook_deletion_success"))
 	}
 

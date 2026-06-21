@@ -5,7 +5,9 @@ package secrets
 
 import (
 	"gitea.dev/models/db"
+	repo_model "gitea.dev/models/repo"
 	secret_model "gitea.dev/models/secret"
+	user_model "gitea.dev/models/user"
 	"gitea.dev/modules/log"
 	"gitea.dev/modules/util"
 	"gitea.dev/modules/web"
@@ -26,10 +28,10 @@ func SetSecretsContext(ctx *context.Context, ownerID, repoID int64) {
 	ctx.Data["DescriptionMaxLength"] = secret_model.SecretDescriptionMaxLength
 }
 
-func PerformSecretsPost(ctx *context.Context, ownerID, repoID int64, redirectURL string) {
+func PerformSecretsPost(ctx *context.Context, owner *user_model.User, repo *repo_model.Repository, redirectURL string) {
 	form := web.GetForm(ctx).(*forms.AddSecretForm)
 
-	s, _, err := secret_service.CreateOrUpdateSecret(ctx, ownerID, repoID, form.Name, util.NormalizeStringEOL(form.Data), form.Description)
+	s, _, err := secret_service.CreateOrUpdateSecret(ctx, ctx.Doer, owner, repo, form.Name, util.NormalizeStringEOL(form.Data), form.Description)
 	if err != nil {
 		log.Error("CreateOrUpdateSecret failed: %v", err)
 		ctx.JSONError(ctx.Tr("secrets.save_failed"))
@@ -40,10 +42,10 @@ func PerformSecretsPost(ctx *context.Context, ownerID, repoID int64, redirectURL
 	ctx.JSONRedirect(redirectURL)
 }
 
-func PerformSecretsDelete(ctx *context.Context, ownerID, repoID int64, redirectURL string) {
+func PerformSecretsDelete(ctx *context.Context, owner *user_model.User, repo *repo_model.Repository, redirectURL string) {
 	id := ctx.FormInt64("id")
 
-	err := secret_service.DeleteSecretByID(ctx, ownerID, repoID, id)
+	err := secret_service.DeleteSecretByID(ctx, ctx.Doer, owner, repo, id)
 	if err != nil {
 		log.Error("DeleteSecretByID(%d) failed: %v", id, err)
 		ctx.JSONError(ctx.Tr("secrets.deletion.failed"))

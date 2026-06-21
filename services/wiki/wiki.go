@@ -8,6 +8,7 @@ import (
 	"context"
 	"fmt"
 
+	audit_model "gitea.dev/models/audit"
 	"gitea.dev/models/db"
 	repo_model "gitea.dev/models/repo"
 	system_model "gitea.dev/models/system"
@@ -22,6 +23,7 @@ import (
 	repo_module "gitea.dev/modules/repository"
 	"gitea.dev/modules/util"
 	asymkey_service "gitea.dev/services/asymkey"
+	"gitea.dev/services/audit"
 	repo_service "gitea.dev/services/repository"
 )
 
@@ -363,7 +365,7 @@ func DeleteWikiPage(ctx context.Context, doer *user_model.User, repo *repo_model
 }
 
 // DeleteWiki removes the actual and local copy of repository wiki.
-func DeleteWiki(ctx context.Context, repo *repo_model.Repository) error {
+func DeleteWiki(ctx context.Context, doer *user_model.User, repo *repo_model.Repository) error {
 	if err := repo_service.UpdateRepositoryUnits(ctx, repo, nil, []unit.Type{unit.TypeWiki}); err != nil {
 		return err
 	}
@@ -375,6 +377,9 @@ func DeleteWiki(ctx context.Context, repo *repo_model.Repository) error {
 			log.Error("CreateRepositoryNotice: %v", err)
 		}
 	}
+
+	audit.Record(ctx, audit_model.RepositoryWikiDelete, doer, repo,
+		fmt.Sprintf("Deleted wiki of repository %s.", repo.FullName()))
 
 	return nil
 }

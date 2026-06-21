@@ -117,7 +117,7 @@ func TestAPIPullUpdateByRebase(t *testing.T) {
 
 		// use a user which have write access to the pr but not write permission to the head repository to do the rebase
 		user40 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 40})
-		err = repo_service.AddOrUpdateCollaborator(t.Context(), pr.BaseRepo, user40, perm.AccessModeWrite)
+		err = repo_service.AddOrUpdateCollaborator(t.Context(), user40, pr.BaseRepo, user40, perm.AccessModeWrite)
 		assert.NoError(t, err)
 		token40 := getUserToken(t, "user40", auth_model.AccessTokenScopeWriteRepository)
 
@@ -125,7 +125,7 @@ func TestAPIPullUpdateByRebase(t *testing.T) {
 			AddTokenAuth(token40)
 		session.MakeRequest(t, req, http.StatusForbidden)
 
-		err = repo_service.AddOrUpdateCollaborator(t.Context(), pr.HeadRepo, user40, perm.AccessModeWrite)
+		err = repo_service.AddOrUpdateCollaborator(t.Context(), user40, pr.HeadRepo, user40, perm.AccessModeWrite)
 		assert.NoError(t, err)
 
 		req = NewRequestf(t, "POST", "/api/v1/repos/%s/%s/pulls/%d/update?style=rebase", pr.BaseRepo.OwnerName, pr.BaseRepo.Name, pr.Issue.Index).
@@ -153,8 +153,8 @@ func TestAPIPullUpdateStyleSettings(t *testing.T) {
 		})
 
 		user40 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 40})
-		require.NoError(t, repo_service.AddOrUpdateCollaborator(t.Context(), pr.BaseRepo, user40, perm.AccessModeWrite))
-		require.NoError(t, repo_service.AddOrUpdateCollaborator(t.Context(), pr.HeadRepo, user40, perm.AccessModeWrite))
+		require.NoError(t, repo_service.AddOrUpdateCollaborator(t.Context(), user40, pr.BaseRepo, user40, perm.AccessModeWrite))
+		require.NoError(t, repo_service.AddOrUpdateCollaborator(t.Context(), user40, pr.HeadRepo, user40, perm.AccessModeWrite))
 
 		session := loginUser(t, "user40")
 		token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeWriteRepository)

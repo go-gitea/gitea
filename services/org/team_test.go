@@ -326,5 +326,5 @@ func TestIncludesAllRepositoriesTeams(t *testing.T) {
 			assert.NoError(t, repo_service.DeleteRepositoryDirectly(t.Context(), rid), "DeleteRepository %d", i)
 		}
 	}
-	assert.NoError(t, DeleteOrganization(t.Context(), org, false), "DeleteOrganization")
+	assert.NoError(t, DeleteOrganization(t.Context(), org.AsUser(), org, false), "DeleteOrganization")
 }

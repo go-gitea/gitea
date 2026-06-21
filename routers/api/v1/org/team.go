@@ -6,9 +6,11 @@ package org
 
 import (
 	"errors"
+	"fmt"
 	"net/http"
 
 	activities_model "gitea.dev/models/activities"
+	audit_model "gitea.dev/models/audit"
 	"gitea.dev/models/organization"
 	"gitea.dev/models/perm"
 	access_model "gitea.dev/models/perm/access"
@@ -20,6 +22,7 @@ import (
 	"gitea.dev/modules/web"
 	"gitea.dev/routers/api/v1/user"
 	"gitea.dev/routers/api/v1/utils"
+	"gitea.dev/services/audit"
 	"gitea.dev/services/context"
 	"gitea.dev/services/convert"
 	feed_service "gitea.dev/services/feed"
@@ -249,6 +252,9 @@ func CreateTeam(ctx *context.APIContext) {
 		return
 	}
 
+	audit.Record(ctx, audit_model.OrganizationTeamAdd, ctx.Doer, ctx.Org.Organization,
+		fmt.Sprintf("Added team %s to organization %s.", team.Name, ctx.Org.Organization.Name), "team", team.Name)
+
 	apiTeam, err := convert.ToTeam(ctx, team, true)
 	if err != nil {
 		ctx.APIErrorInternal(err)
@@ -336,6 +342,14 @@ func EditTeam(ctx *context.APIContext) {
 		return
 	}
 
+	audit.Record(ctx, audit_model.OrganizationTeamUpdate, ctx.Doer, ctx.Org.Organization,
+		fmt.Sprintf("Updated settings of team %s/%s.", ctx.Org.Organization.Name, team.Name), "team", team.Name)
+	if isAuthChanged {
+		audit.Record(ctx, audit_model.OrganizationTeamPermission, ctx.Doer, ctx.Org.Organization,
+			fmt.Sprintf("Changed permission of team %s/%s to %s.", ctx.Org.Organization.Name, team.Name, team.AccessMode.ToString()),
+			"team", team.Name, "permission", team.AccessMode.ToString())
+	}
+
 	apiTeam, err := convert.ToTeam(ctx, team)
 	if err != nil {
 		ctx.APIErrorInternal(err)
@@ -366,6 +380,11 @@ func DeleteTeam(ctx *context.APIContext) {
 		ctx.APIErrorInternal(err)
 		return
 	}
+
+	audit.Record(ctx, audit_model.OrganizationTeamRemove, ctx.Doer, ctx.Org.Organization,
+		fmt.Sprintf("Removed team %s from organization %s.", ctx.Org.Team.Name, ctx.Org.Organization.Name),
+		"team", ctx.Org.Team.Name)
+
 	ctx.Status(http.StatusNoContent)
 }
 
@@ -497,6 +516,11 @@ func AddTeamMember(ctx *context.APIContext) {
 		}
 		return
 	}
+
+	audit.Record(ctx, audit_model.OrganizationTeamMemberAdd, ctx.Doer, ctx.Org.Organization,
+		fmt.Sprintf("Added user %s to team %s/%s.", u.Name, ctx.Org.Organization.Name, ctx.Org.Team.Name),
+		"team", ctx.Org.Team.Name, "member", u.Name)
+
 	ctx.Status(http.StatusNoContent)
 }
 
@@ -534,6 +558,11 @@ func RemoveTeamMember(ctx *context.APIContext) {
 		ctx.APIErrorInternal(err)
 		return
 	}
+
+	audit.Record(ctx, audit_model.OrganizationTeamMemberRemove, ctx.Doer, ctx.Org.Organization,
+		fmt.Sprintf("Removed user %s from team %s/%s.", u.Name, ctx.Org.Organization.Name, ctx.Org.Team.Name),
+		"team", ctx.Org.Team.Name, "member", u.Name)
+
 	ctx.Status(http.StatusNoContent)
 }
 
@@ -707,7 +736,7 @@ func AddTeamRepository(ctx *context.APIContext) {
 		ctx.APIError(http.StatusForbidden, "Must have admin-level access to the repository")
 		return
 	}
-	if err := repo_service.TeamAddRepository(ctx, ctx.Org.Team, repo); err != nil {
+	if err := repo_service.TeamAddRepository(ctx, ctx.Doer, ctx.Org.Team, repo); err != nil {
 		ctx.APIErrorInternal(err)
 		return
 	}
@@ -759,7 +788,7 @@ func RemoveTeamRepository(ctx *context.APIContext) {
 		ctx.APIError(http.StatusForbidden, "Must have admin-level access to the repository")
 		return
 	}
-	if err := repo_service.RemoveRepositoryFromTeam(ctx, ctx.Org.Team, repo.ID); err != nil {
+	if err := repo_service.RemoveRepositoryFromTeam(ctx, ctx.Doer, ctx.Org.Team, repo.ID); err != nil {
 		ctx.APIErrorInternal(err)
 		return
 	}

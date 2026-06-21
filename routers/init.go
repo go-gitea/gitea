@@ -35,6 +35,7 @@ import (
 	web_routers "gitea.dev/routers/web"
 	actions_service "gitea.dev/services/actions"
 	asymkey_service "gitea.dev/services/asymkey"
+	audit_service "gitea.dev/services/audit"
 	"gitea.dev/services/auth"
 	"gitea.dev/services/auth/source/oauth2"
 	"gitea.dev/services/automerge"
@@ -151,6 +152,7 @@ func InitWebInstalled(ctx context.Context) {
 
 	mirror_service.InitSyncMirrors()
 	mustInit(webhook.Init)
+	mustInit(audit_service.Init)
 	mustInit(pull_service.Init)
 	mustInit(automerge.Init)
 	mustInit(task.Init)

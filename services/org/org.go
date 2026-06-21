@@ -9,6 +9,7 @@ import (
 
 	actions_model "gitea.dev/models/actions"
 	activities_model "gitea.dev/models/activities"
+	audit_model "gitea.dev/models/audit"
 	"gitea.dev/models/db"
 	org_model "gitea.dev/models/organization"
 	packages_model "gitea.dev/models/packages"
@@ -20,6 +21,7 @@ import (
 	"gitea.dev/modules/storage"
 	"gitea.dev/modules/structs"
 	"gitea.dev/modules/util"
+	"gitea.dev/services/audit"
 	repo_service "gitea.dev/services/repository"
 )
 
@@ -51,7 +53,7 @@ func deleteOrganization(ctx context.Context, org *org_model.Organization) error 
 }
 
 // DeleteOrganization completely and permanently deletes everything of organization.
-func DeleteOrganization(ctx context.Context, org *org_model.Organization, purge bool) error {
+func DeleteOrganization(ctx context.Context, doer *user_model.User, org *org_model.Organization, purge bool) error {
 	if err := db.WithTx(ctx, func(ctx context.Context) error {
 		if purge {
 			err := repo_service.DeleteOwnerRepositoriesDirectly(ctx, org.AsUser())
@@ -82,6 +84,9 @@ func DeleteOrganization(ctx context.Context, org *org_model.Organization, purge 
 	}); err != nil {
 		return err
 	}
+
+	audit.Record(ctx, audit_model.OrganizationDelete, doer, org.AsUser(),
+		fmt.Sprintf("Deleted organization %s.", org.Name))
 
 	// FIXME: system notice
 	// Note: There are something just cannot be roll back,

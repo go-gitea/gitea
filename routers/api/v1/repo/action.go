@@ -138,7 +138,7 @@ func (Action) CreateOrUpdateSecret(ctx *context.APIContext) {
 
 	opt := web.GetForm(ctx).(*api.CreateOrUpdateSecretOption)
 
-	_, created, err := secret_service.CreateOrUpdateSecret(ctx, 0, repo.ID, ctx.PathParam("secretname"), opt.Data, opt.Description)
+	_, created, err := secret_service.CreateOrUpdateSecret(ctx, ctx.Doer, nil, repo, ctx.PathParam("secretname"), opt.Data, opt.Description)
 	if err != nil {
 		if errors.Is(err, util.ErrInvalidArgument) {
 			ctx.APIError(http.StatusBadRequest, err.Error())
@@ -192,7 +192,7 @@ func (Action) DeleteSecret(ctx *context.APIContext) {
 
 	repo := ctx.Repo.Repository
 
-	err := secret_service.DeleteSecretByName(ctx, 0, repo.ID, ctx.PathParam("secretname"))
+	err := secret_service.DeleteSecretByName(ctx, ctx.Doer, nil, repo, ctx.PathParam("secretname"))
 	if err != nil {
 		if errors.Is(err, util.ErrInvalidArgument) {
 			ctx.APIError(http.StatusBadRequest, err.Error())

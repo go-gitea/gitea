@@ -8,11 +8,13 @@ import (
 	"fmt"
 	"strings"
 
+	audit_model "gitea.dev/models/audit"
 	"gitea.dev/models/auth"
 	user_model "gitea.dev/models/user"
 	"gitea.dev/modules/auth/pam"
 	"gitea.dev/modules/optional"
 	"gitea.dev/modules/setting"
+	"gitea.dev/services/audit"
 
 	"github.com/google/uuid"
 )
@@ -66,6 +68,9 @@ func (source *Source) Authenticate(ctx context.Context, user *user_model.User, u
 	if err := user_model.CreateUser(ctx, user, &user_model.Meta{}, overwriteDefault); err != nil {
 		return user, err
 	}
+
+	audit.Record(ctx, audit_model.UserCreate, user_model.NewAuthenticationSourceUser(), user,
+		fmt.Sprintf("Created user %s.", user.Name))
 
 	return user, nil
 }

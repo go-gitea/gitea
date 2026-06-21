@@ -13,6 +13,7 @@ import (
 	"strconv"
 	"strings"
 
+	audit_model "gitea.dev/models/audit"
 	"gitea.dev/models/db"
 	org_model "gitea.dev/models/organization"
 	"gitea.dev/models/perm"
@@ -26,6 +27,7 @@ import (
 	"gitea.dev/modules/util"
 	"gitea.dev/modules/web"
 	shared_user "gitea.dev/routers/web/shared/user"
+	"gitea.dev/services/audit"
 	"gitea.dev/services/context"
 	"gitea.dev/services/convert"
 	"gitea.dev/services/forms"
@@ -121,6 +123,11 @@ func TeamsAction(ctx *context.Context) {
 			return
 		}
 		err = org_service.AddTeamMember(ctx, ctx.Org.Team, ctx.Doer)
+		if err == nil {
+			audit.Record(ctx, audit_model.OrganizationTeamMemberAdd, ctx.Doer, ctx.Org.Organization,
+				fmt.Sprintf("Added user %s to team %s/%s.", ctx.Doer.Name, ctx.Org.Organization.Name, ctx.Org.Team.Name),
+				"team", ctx.Org.Team.Name, "member", ctx.Doer.Name)
+		}
 	case "leave":
 		err = org_service.RemoveTeamMember(ctx, ctx.Org.Team, ctx.Doer)
 		if err != nil {
@@ -134,6 +141,10 @@ func TeamsAction(ctx *context.Context) {
 				})
 				return
 			}
+		} else {
+			audit.Record(ctx, audit_model.OrganizationTeamMemberRemove, ctx.Doer, ctx.Org.Organization,
+				fmt.Sprintf("Removed user %s from team %s/%s.", ctx.Doer.Name, ctx.Org.Organization.Name, ctx.Org.Team.Name),
+				"team", ctx.Org.Team.Name, "member", ctx.Doer.Name)
 		}
 		checkIsOrgMemberAndRedirect(ctx, ctx.Org.OrgLink+"/teams/")
 		return
@@ -161,6 +172,10 @@ func TeamsAction(ctx *context.Context) {
 				})
 				return
 			}
+		} else {
+			audit.Record(ctx, audit_model.OrganizationTeamMemberRemove, ctx.Doer, ctx.Org.Organization,
+				fmt.Sprintf("Removed user %s from team %s/%s.", user.Name, ctx.Org.Organization.Name, ctx.Org.Team.Name),
+				"team", ctx.Org.Team.Name, "member", user.Name)
 		}
 		checkIsOrgMemberAndRedirect(ctx, ctx.Org.OrgLink+"/teams/"+url.PathEscape(ctx.Org.Team.LowerName))
 		return
@@ -205,6 +220,11 @@ func TeamsAction(ctx *context.Context) {
 			ctx.Flash.Error(ctx.Tr("org.teams.add_duplicate_users"))
 		} else {
 			err = org_service.AddTeamMember(ctx, ctx.Org.Team, u)
+			if err == nil {
+				audit.Record(ctx, audit_model.OrganizationTeamMemberAdd, ctx.Doer, ctx.Org.Organization,
+					fmt.Sprintf("Added user %s to team %s/%s.", u.Name, ctx.Org.Organization.Name, ctx.Org.Team.Name),
+					"team", ctx.Org.Team.Name, "member", u.Name)
+			}
 		}
 
 		page = "team"
@@ -291,13 +311,32 @@ func TeamsRepoAction(ctx *context.Context) {
 			ctx.ServerError("GetRepositoryByName", err)
 			return
 		}
-		err = repo_service.TeamAddRepository(ctx, ctx.Org.Team, repo)
+		err = repo_service.TeamAddRepository(ctx, ctx.Doer, ctx.Org.Team, repo)
 	case "remove":
-		err = repo_service.RemoveRepositoryFromTeam(ctx, ctx.Org.Team, ctx.FormInt64("repoid"))
+		err = repo_service.RemoveRepositoryFromTeam(ctx, ctx.Doer, ctx.Org.Team, ctx.FormInt64("repoid"))
 	case "addall":
-		err = repo_service.AddAllRepositoriesToTeam(ctx, ctx.Org.Team)
+		var added []*repo_model.Repository
+		added, err = repo_service.AddAllRepositoriesToTeam(ctx, ctx.Org.Team)
+		if err == nil {
+			for _, repo := range added {
+				audit.Record(ctx, audit_model.RepositoryCollaboratorTeamAdd, ctx.Doer, repo,
+					fmt.Sprintf("Added team %s as collaborator for repository %s.", ctx.Org.Team.Name, repo.FullName()),
+					"team", ctx.Org.Team.Name)
+			}
+		}
 	case "removeall":
-		err = repo_service.RemoveAllRepositoriesFromTeam(ctx, ctx.Org.Team)
+		var repos repo_model.RepositoryList
+		repos, err = repo_model.GetTeamRepositories(ctx, &repo_model.SearchTeamRepoOptions{TeamID: ctx.Org.Team.ID})
+		if err == nil {
+			err = repo_service.RemoveAllRepositoriesFromTeam(ctx, ctx.Org.Team)
+		}
+		if err == nil {
+			for _, repo := range repos {
+				audit.Record(ctx, audit_model.RepositoryCollaboratorTeamRemove, ctx.Doer, repo,
+					fmt.Sprintf("Removed team %s as collaborator from repository %s.", ctx.Org.Team.Name, repo.FullName()),
+					"team", ctx.Org.Team.Name)
+			}
+		}
 	}
 
 	if err != nil {
@@ -419,6 +458,9 @@ func NewTeamPost(ctx *context.Context) {
 		}
 		return
 	}
+	audit.Record(ctx, audit_model.OrganizationTeamAdd, ctx.Doer, ctx.Org.Organization,
+		fmt.Sprintf("Added team %s to organization %s.", t.Name, ctx.Org.Organization.Name), "team", t.Name)
+
 	log.Trace("Team created: %s/%s", ctx.Org.Organization.Name, t.Name)
 	ctx.Redirect(ctx.Org.OrgLink + "/teams/" + url.PathEscape(t.LowerName))
 }
@@ -608,6 +650,15 @@ func EditTeamPost(ctx *context.Context) {
 		}
 		return
 	}
+
+	audit.Record(ctx, audit_model.OrganizationTeamUpdate, ctx.Doer, ctx.Org.Organization,
+		fmt.Sprintf("Updated settings of team %s/%s.", ctx.Org.Organization.Name, t.Name), "team", t.Name)
+	if isAuthChanged {
+		audit.Record(ctx, audit_model.OrganizationTeamPermission, ctx.Doer, ctx.Org.Organization,
+			fmt.Sprintf("Changed permission of team %s/%s to %s.", ctx.Org.Organization.Name, t.Name, t.AccessMode.ToString()),
+			"team", t.Name, "permission", t.AccessMode.ToString())
+	}
+
 	ctx.Redirect(ctx.Org.OrgLink + "/teams/" + url.PathEscape(t.LowerName))
 }
 
@@ -616,6 +667,9 @@ func DeleteTeam(ctx *context.Context) {
 	if err := org_service.DeleteTeam(ctx, ctx.Org.Team); err != nil {
 		ctx.Flash.Error("DeleteTeam: " + err.Error())
 	} else {
+		audit.Record(ctx, audit_model.OrganizationTeamRemove, ctx.Doer, ctx.Org.Organization,
+			fmt.Sprintf("Removed team %s from organization %s.", ctx.Org.Team.Name, ctx.Org.Organization.Name),
+			"team", ctx.Org.Team.Name)
 		ctx.Flash.Success(ctx.Tr("org.teams.delete_team_success"))
 	}
 
@@ -661,6 +715,10 @@ func TeamInvitePost(ctx *context.Context) {
 		ctx.ServerError("AddTeamMember", err)
 		return
 	}
+
+	audit.Record(ctx, audit_model.OrganizationTeamMemberAdd, ctx.Doer, org,
+		fmt.Sprintf("Added user %s to team %s/%s.", ctx.Doer.Name, org.Name, team.Name),
+		"team", team.Name, "member", ctx.Doer.Name)
 
 	if err := org_model.RemoveInviteByID(ctx, invite.ID, team.ID); err != nil {
 		log.Error("RemoveInviteByID: %v", err)

@@ -140,7 +140,7 @@ func resetLocale(ctx *context.Context, u *user_model.User) error {
 		opts := &user_service.UpdateOptions{
 			Language: optional.Some(ctx.Locale.Language()),
 		}
-		if err := user_service.UpdateUser(ctx, u, opts); err != nil {
+		if err := user_service.UpdateUser(ctx, u, u, opts); err != nil {
 			return err
 		}
 	}
@@ -423,7 +423,7 @@ func handleSignInFull(ctx *context.Context, u *user_model.User, remember bool) {
 		opts := &user_service.UpdateOptions{
 			Language: optional.Some(ctx.Locale.Language()),
 		}
-		if err := user_service.UpdateUser(ctx, u, opts); err != nil {
+		if err := user_service.UpdateUser(ctx, u, u, opts); err != nil {
 			ctx.ServerError("UpdateUser Language", fmt.Errorf("Error updating user language [user: %d, locale: %s]", u.ID, ctx.Locale.Language()))
 			return
 		}
@@ -436,7 +436,7 @@ func handleSignInFull(ctx *context.Context, u *user_model.User, remember bool) {
 	}
 
 	// Register last login
-	if err := user_service.UpdateUser(ctx, u, &user_service.UpdateOptions{SetLastLogin: true}); err != nil {
+	if err := user_service.UpdateUser(ctx, u, u, &user_service.UpdateOptions{SetLastLogin: true}); err != nil {
 		ctx.ServerError("UpdateUser", err)
 		return
 	}
@@ -702,7 +702,7 @@ func handleUserCreated(ctx *context.Context, u *user_model.User, possibleLinkAcc
 			IsAdmin:      user_service.UpdateOptionFieldFromValue(true),
 			SetLastLogin: true,
 		}
-		if err := user_service.UpdateUser(ctx, u, opts); err != nil {
+		if err := user_service.UpdateUser(ctx, u, u, opts); err != nil {
 			ctx.ServerError("UpdateUser", err)
 			return false
 		}
@@ -893,7 +893,7 @@ func handleAccountActivation(ctx *context.Context, user *user_model.User) {
 		return
 	}
 
-	if err := user_service.UpdateUser(ctx, user, &user_service.UpdateOptions{SetLastLogin: true}); err != nil {
+	if err := user_service.UpdateUser(ctx, user, user, &user_service.UpdateOptions{SetLastLogin: true}); err != nil {
 		ctx.ServerError("UpdateUser", err)
 		return
 	}

@@ -4,23 +4,35 @@
 package setting
 
 import (
+	"errors"
 	"fmt"
 	"net/http"
 
+	audit_model "gitea.dev/models/audit"
 	"gitea.dev/models/auth"
+	user_model "gitea.dev/models/user"
 	"gitea.dev/modules/templates"
 	"gitea.dev/modules/util"
 	"gitea.dev/modules/web"
 	shared_user "gitea.dev/routers/web/shared/user"
+	"gitea.dev/services/audit"
 	"gitea.dev/services/context"
 	"gitea.dev/services/forms"
 )
 
 type OAuth2CommonHandlers struct {
-	OwnerID            int64             // 0 for instance-wide, otherwise OrgID or UserID
+	Doer               *user_model.User  // the doer performing the action
+	Owner              *user_model.User  // nil for instance-wide, otherwise the Org or User owning the applications
 	BasePathList       string            // the base URL for the application list page, eg: "/user/setting/applications"
 	BasePathEditPrefix string            // the base URL for the application edit page, will be appended with app id, eg: "/user/setting/applications/oauth2"
 	TplAppEdit         templates.TplName // the template for the application edit page
+}
+
+func (oa *OAuth2CommonHandlers) ownerID() int64 {
+	if oa.Owner != nil {
+		return oa.Owner.ID
+	}
+	return 0
 }
 
 func (oa *OAuth2CommonHandlers) renderEditPage(ctx *context.Context) {
@@ -50,7 +62,7 @@ func (oa *OAuth2CommonHandlers) AddApp(ctx *context.Context) {
 	app, err := auth.CreateOAuth2Application(ctx, auth.CreateOAuth2ApplicationOptions{
 		Name:                       form.Name,
 		RedirectURIs:               util.SplitTrimSpace(form.RedirectURIs, "\n"),
-		UserID:                     oa.OwnerID,
+		UserID:                     oa.ownerID(),
 		ConfidentialClient:         form.ConfidentialClient,
 		SkipSecondaryAuthorization: form.SkipSecondaryAuthorization,
 	})
@@ -58,6 +70,8 @@ func (oa *OAuth2CommonHandlers) AddApp(ctx *context.Context) {
 		ctx.ServerError("CreateOAuth2Application", err)
 		return
 	}
+
+	audit.Record(ctx, audit_model.UserOAuth2ApplicationAdd, oa.Doer, oa.Owner, fmt.Sprintf("Added OAuth2 application %s for user %s.", app.Name, oa.Owner.Name), "oauth2application", app.Name)
 
 	// render the edit page with secret
 	ctx.Flash.Success(ctx.Tr("settings.create_oauth2_application_success"), true)
@@ -82,7 +96,7 @@ func (oa *OAuth2CommonHandlers) EditShow(ctx *context.Context) {
 		ctx.ServerError("GetOAuth2ApplicationByID", err)
 		return
 	}
-	if app.UID != oa.OwnerID {
+	if app.UID != oa.ownerID() {
 		ctx.NotFound(nil)
 		return
 	}
@@ -104,7 +118,7 @@ func (oa *OAuth2CommonHandlers) EditSave(ctx *context.Context) {
 			ctx.ServerError("GetOAuth2ApplicationByID", err)
 			return
 		}
-		if app.UID != oa.OwnerID {
+		if app.UID != oa.ownerID() {
 			ctx.NotFound(nil)
 			return
 		}
@@ -119,13 +133,16 @@ func (oa *OAuth2CommonHandlers) EditSave(ctx *context.Context) {
 		ID:                         ctx.PathParamInt64("id"),
 		Name:                       form.Name,
 		RedirectURIs:               util.SplitTrimSpace(form.RedirectURIs, "\n"),
-		UserID:                     oa.OwnerID,
+		UserID:                     oa.ownerID(),
 		ConfidentialClient:         form.ConfidentialClient,
 		SkipSecondaryAuthorization: form.SkipSecondaryAuthorization,
 	}); err != nil {
 		ctx.ServerError("UpdateOAuth2Application", err)
 		return
 	}
+
+	audit.Record(ctx, audit_model.UserOAuth2ApplicationUpdate, oa.Doer, oa.Owner, fmt.Sprintf("Updated OAuth2 application %s of user %s.", ctx.Data["App"].(*auth.OAuth2Application).Name, oa.Owner.Name), "oauth2application", ctx.Data["App"].(*auth.OAuth2Application).Name)
+
 	ctx.Flash.Success(ctx.Tr("settings.update_oauth2_application_success"))
 	ctx.Redirect(oa.BasePathList)
 }
@@ -141,7 +158,7 @@ func (oa *OAuth2CommonHandlers) RegenerateSecret(ctx *context.Context) {
 		ctx.ServerError("GetOAuth2ApplicationByID", err)
 		return
 	}
-	if app.UID != oa.OwnerID {
+	if app.UID != oa.ownerID() {
 		ctx.NotFound(nil)
 		return
 	}
@@ -151,16 +168,31 @@ func (oa *OAuth2CommonHandlers) RegenerateSecret(ctx *context.Context) {
 		ctx.ServerError("GenerateClientSecret", err)
 		return
 	}
+
+	audit.Record(ctx, audit_model.UserOAuth2ApplicationSecret, oa.Doer, oa.Owner, fmt.Sprintf("Regenerated secret for OAuth2 application %s of user %s.", app.Name, oa.Owner.Name), "oauth2application", app.Name)
+
 	ctx.Flash.Success(ctx.Tr("settings.update_oauth2_application_success"), true)
 	oa.renderEditPage(ctx)
 }
 
 // DeleteApp deletes the given oauth2 application
 func (oa *OAuth2CommonHandlers) DeleteApp(ctx *context.Context) {
-	if err := auth.DeleteOAuth2Application(ctx, ctx.PathParamInt64("id"), oa.OwnerID); err != nil {
+	app, err := auth.GetOAuth2ApplicationByID(ctx, ctx.PathParamInt64("id"))
+	if err != nil {
+		if errors.Is(err, util.ErrNotExist) {
+			ctx.NotFound(err)
+		} else {
+			ctx.ServerError("GetOAuth2ApplicationByID", err)
+		}
+		return
+	}
+
+	if err := auth.DeleteOAuth2Application(ctx, app.ID, oa.ownerID()); err != nil {
 		ctx.ServerError("DeleteOAuth2Application", err)
 		return
 	}
+
+	audit.Record(ctx, audit_model.UserOAuth2ApplicationRemove, oa.Doer, oa.Owner, fmt.Sprintf("Removed OAuth2 application %s of user %s.", app.Name, oa.Owner.Name), "oauth2application", app.Name)
 
 	ctx.Flash.Success(ctx.Tr("settings.remove_oauth2_application_success"))
 	ctx.JSONRedirect(oa.BasePathList)
@@ -168,10 +200,32 @@ func (oa *OAuth2CommonHandlers) DeleteApp(ctx *context.Context) {
 
 // RevokeGrant revokes the grant
 func (oa *OAuth2CommonHandlers) RevokeGrant(ctx *context.Context) {
-	if err := auth.RevokeOAuth2Grant(ctx, ctx.PathParamInt64("grantId"), oa.OwnerID); err != nil {
+	grant, err := auth.GetOAuth2GrantByID(ctx, ctx.PathParamInt64("grantId"))
+	if err != nil {
+		ctx.ServerError("GetOAuth2GrantByID", err)
+		return
+	}
+	if grant == nil {
+		ctx.NotFound(nil)
+		return
+	}
+
+	app, err := auth.GetOAuth2ApplicationByID(ctx, grant.ApplicationID)
+	if err != nil {
+		if errors.Is(err, util.ErrNotExist) {
+			ctx.NotFound(err)
+		} else {
+			ctx.ServerError("GetOAuth2ApplicationByID", err)
+		}
+		return
+	}
+
+	if err := auth.RevokeOAuth2Grant(ctx, grant.ID, oa.ownerID()); err != nil {
 		ctx.ServerError("RevokeOAuth2Grant", err)
 		return
 	}
+
+	audit.Record(ctx, audit_model.UserOAuth2ApplicationRevoke, oa.Doer, oa.Owner, fmt.Sprintf("Revoked OAuth2 grant %d for application %s of user %s.", grant.ID, app.Name, oa.Owner.Name), "oauth2application", app.Name)
 
 	ctx.Flash.Success(ctx.Tr("settings.revoke_oauth2_grant_success"))
 	ctx.JSONRedirect(oa.BasePathList)

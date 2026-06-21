@@ -5,16 +5,22 @@ package security
 
 import (
 	"errors"
+	"fmt"
 	"net/http"
 
+	audit_model "gitea.dev/models/audit"
+	"gitea.dev/models/db"
 	user_model "gitea.dev/models/user"
 	"gitea.dev/modules/auth/openid"
 	"gitea.dev/modules/log"
 	"gitea.dev/modules/setting"
 	"gitea.dev/modules/util"
 	"gitea.dev/modules/web"
+	"gitea.dev/services/audit"
 	"gitea.dev/services/context"
 	"gitea.dev/services/forms"
+
+	"xorm.io/builder"
 )
 
 // OpenIDPost response for change user's openid
@@ -105,6 +111,10 @@ func settingsOpenIDVerify(ctx *context.Context) {
 		return
 	}
 	log.Trace("Associated OpenID %s to user %s", id, ctx.Doer.Name)
+
+	audit.Record(ctx, audit_model.UserOpenIDAdd, ctx.Doer, ctx.Doer,
+		fmt.Sprintf("Associated OpenID %s to user %s.", oid.URI, ctx.Doer.Name), "openid", oid.URI)
+
 	ctx.Flash.Success(ctx.Tr("settings.add_openid_success"))
 
 	ctx.Redirect(setting.AppSubURL + "/user/settings/security")
@@ -117,7 +127,16 @@ func DeleteOpenID(ctx *context.Context) {
 		return
 	}
 
-	if err := user_model.DeleteUserOpenID(ctx, &user_model.UserOpenID{ID: ctx.FormInt64("id"), UID: ctx.Doer.ID}); err != nil {
+	oid, exist, err := db.Get[user_model.UserOpenID](ctx, builder.Eq{"id": ctx.FormInt64("id"), "uid": ctx.Doer.ID})
+	if err != nil {
+		ctx.ServerError("GetUserOpenID", err)
+		return
+	} else if !exist {
+		ctx.HTTPError(http.StatusNotFound)
+		return
+	}
+
+	if err := user_model.DeleteUserOpenID(ctx, oid); err != nil {
 		if errors.Is(err, util.ErrNotExist) {
 			ctx.HTTPError(http.StatusNotFound)
 		} else {
@@ -125,6 +144,10 @@ func DeleteOpenID(ctx *context.Context) {
 		}
 		return
 	}
+
+	audit.Record(ctx, audit_model.UserOpenIDRemove, ctx.Doer, ctx.Doer,
+		fmt.Sprintf("Removed OpenID %s from user %s.", oid.URI, ctx.Doer.Name), "openid", oid.URI)
+
 	log.Trace("OpenID address deleted: %s", ctx.Doer.Name)
 
 	ctx.Flash.Success(ctx.Tr("settings.openid_deletion_success"))

@@ -5,6 +5,7 @@
 package install
 
 import (
+	"fmt"
 	"net/http"
 	"net/mail"
 	"os"
@@ -15,6 +16,7 @@ import (
 	"strings"
 	"time"
 
+	audit_model "gitea.dev/models/audit"
 	"gitea.dev/models/db"
 	db_install "gitea.dev/models/db/install"
 	user_model "gitea.dev/models/user"
@@ -29,6 +31,7 @@ import (
 	"gitea.dev/modules/web"
 	"gitea.dev/modules/web/middleware"
 	"gitea.dev/routers/common"
+	"gitea.dev/services/audit"
 	auth_service "gitea.dev/services/auth"
 	"gitea.dev/services/context"
 	"gitea.dev/services/forms"
@@ -492,6 +495,8 @@ func SubmitInstall(ctx *context.Context) {
 			log.Info("Admin account already exist")
 			u, _ = user_model.GetUserByName(ctx, u.Name)
 		}
+
+		audit.Record(ctx, audit_model.UserCreate, u, u, fmt.Sprintf("Created user %s.", u.Name))
 
 		nt, token, err := auth_service.CreateAuthTokenForUserID(ctx, u.ID)
 		if err != nil {
