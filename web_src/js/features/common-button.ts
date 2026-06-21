@@ -87,10 +87,10 @@ function onShowModalClick(el: HTMLElement, e: MouseEvent) {
     const [attrTargetName, attrTargetProp] = attrTargetCombo.split('.');
     // try to find target by: "#target" -> "[name=target]" -> ".target" -> "<target> tag", and then try the modal itself
     const attrTarget = elModal.querySelector(`#${attrTargetName}`) ||
-      elModal.querySelector(`[name=${attrTargetName}]`) ||
+      elModal.querySelector(`[name=${CSS.escape(attrTargetName)}]`) ||
       elModal.querySelector(`.${attrTargetName}`) ||
-      elModal.querySelector(`${attrTargetName}`) ||
-      (elModal.matches(`${attrTargetName}`) || elModal.matches(`#${attrTargetName}`) || elModal.matches(`.${attrTargetName}`) ? elModal : null);
+      elModal.querySelector(attrTargetName) ||
+      (elModal.matches(attrTargetName) || elModal.matches(`#${attrTargetName}`) || elModal.matches(`.${attrTargetName}`) ? elModal : null);
     if (!attrTarget) {
       if (!window.config.runModeIsProd) throw new Error(`attr target "${attrTargetCombo}" not found for modal`);
       continue;

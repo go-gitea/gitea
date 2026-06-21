@@ -92,7 +92,7 @@ async function processMaterialFileIcons() {
   }
 
   // Use VSCode's "Language ID" mapping from its extensions
-  for (const [_, langIdExtMap] of Object.entries(vscodeExtensions)) {
+  for (const langIdExtMap of Object.values(vscodeExtensions)) {
     for (const [langId, names] of Object.entries(langIdExtMap)) {
       for (const name of names) {
         const nameLower = name.toLowerCase();
