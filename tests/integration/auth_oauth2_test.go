@@ -13,6 +13,7 @@ import (
 	"time"
 
 	auth_model "code.gitea.io/gitea/models/auth"
+	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/models/unittest"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/json"
@@ -23,6 +24,7 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"xorm.io/builder"
 )
 
 func TestOIDCIgnoresStaleExternalLoginLinks(t *testing.T) {
@@ -126,6 +128,117 @@ func newFakeOIDCServerWithProfile(t *testing.T, sub, oid, email, name string) *h
 				"sub":   sub,
 				"email": email,
 				"name":  name,
+			})
+		default:
+			http.NotFound(w, r)
+		}
+	}))
+	t.Cleanup(srv.Close)
+	return srv
+}
+
+// TestOAuth2CallbackReactivationGating exercises the gate in handleOAuth2SignIn:
+// an inactive user can only be reactivated when who was disabled by auto-sync
+func TestOAuth2CallbackReactivationGating(t *testing.T) {
+	defer tests.PrepareTestEnv(t)()
+	defer test.MockVariableValue(&setting.OAuth2Client.EnableAutoRegistration, true)()
+	defer test.MockVariableValue(&setting.OAuth2Client.Username, setting.OAuth2UsernameUserid)()
+
+	srv := newFakeOIDCServer(t, FakeOIDCConfig{Sub: "test-sub", Email: "test@example.com", Name: "Test User"})
+	addOAuth2Source(t, "test-oauth-source", oauth2.Source{
+		Provider:                      "openidConnect",
+		ClientID:                      "test-client-id",
+		ClientSecret:                  "test-client-secret",
+		OpenIDConnectAutoDiscoveryURL: srv.URL + "/.well-known/openid-configuration",
+	})
+	authSource, err := auth_model.GetActiveOAuth2SourceByAuthName(t.Context(), "test-oauth-source")
+	require.NoError(t, err)
+
+	u := &user_model.User{Name: "test-user", Email: "test@example.com"}
+	require.NoError(t, user_model.CreateUser(t.Context(), u, &user_model.Meta{}))
+
+	extLink := &user_model.ExternalLoginUser{
+		UserID:        u.ID,
+		LoginSourceID: authSource.ID,
+		Provider:      authSource.Name,
+		ExternalID:    "test-sub",
+	}
+	require.NoError(t, user_model.LinkExternalToUser(t.Context(), u, extLink))
+
+	prepareUserExternalLink := func(t *testing.T, refreshToken string) {
+		err := user_model.UpdateUserCols(t.Context(), &user_model.User{ID: u.ID, IsActive: false}, "is_active")
+		require.NoError(t, err)
+		_, err = db.GetEngine(t.Context()).Where(builder.Eq{"user_id": u.ID}).Cols("refresh_token").
+			Update(&user_model.ExternalLoginUser{RefreshToken: refreshToken})
+		require.NoError(t, err)
+		require.False(t, unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: u.ID}).IsActive)
+	}
+
+	t.Run("admin-disabled user is not reactivated", func(t *testing.T) {
+		prepareUserExternalLink(t, "non-empty-refresh-token")
+		doOIDCSignIn(t, authSource.Name)
+		after := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: u.ID})
+		assert.False(t, after.IsActive, "OAuth callback must not re-enable an administrator-disabled account")
+	})
+
+	t.Run("auto-sync-disabled user is reactivated", func(t *testing.T) {
+		prepareUserExternalLink(t, "" /* empty refresh token */)
+		doOIDCSignIn(t, authSource.Name)
+		after := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: u.ID})
+		assert.True(t, after.IsActive, "OAuth callback must reactivate a sync-disabled account on successful login")
+	})
+}
+
+// FakeOIDCConfig holds configuration for the fake OIDC server used in tests.
+type FakeOIDCConfig struct {
+	Sub    string
+	OID    string
+	Email  string
+	Name   string
+	Groups []string
+}
+
+// newFakeOIDCServer starts a httptest.Server that implements the minimum OIDC endpoints needed to complete a sign-in flow
+func newFakeOIDCServer(t *testing.T, cfg FakeOIDCConfig) *httptest.Server {
+	t.Helper()
+
+	var srv *httptest.Server
+	srv = httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		switch r.URL.Path {
+		case "/.well-known/openid-configuration": // discovery document
+			_ = json.NewEncoder(w).Encode(map[string]string{
+				"issuer":                 srv.URL,
+				"authorization_endpoint": srv.URL + "/authorize",
+				"token_endpoint":         srv.URL + "/token",
+				"userinfo_endpoint":      srv.URL + "/userinfo",
+			})
+		case "/token": // returns an ID token with both "sub" and "oid" claims so tests can verify which one ends up as ExternalID
+			claims := map[string]any{
+				"iss": srv.URL,
+				"aud": "test-client-id",
+				"exp": time.Now().Add(time.Hour).Unix(),
+				"sub": cfg.Sub,
+				"oid": cfg.OID,
+			}
+			payload, _ := json.Marshal(claims)
+			header := base64.RawURLEncoding.EncodeToString([]byte(`{"alg":"none"}`))
+
+			// build a JWT-shaped string whose payload encodes claims.
+			// goth's decodeJWT only base64-decodes the payload without verifying the signature, so no real signing infrastructure is needed.
+			idToken := header + "." + base64.RawURLEncoding.EncodeToString(payload) + ".fakesig"
+
+			_ = json.NewEncoder(w).Encode(map[string]any{
+				"access_token": "fake-access-token",
+				"token_type":   "Bearer",
+				"id_token":     idToken,
+			})
+		case "/userinfo":
+			// sub MUST match the id_token sub; goth rejects mismatches.
+			_ = json.NewEncoder(w).Encode(map[string]any{
+				"sub":   cfg.Sub,
+				"email": cfg.Email,
+				"name":  cfg.Name,
 			})
 		default:
 			http.NotFound(w, r)
