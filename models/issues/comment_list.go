@@ -11,6 +11,7 @@ import (
 	user_model "gitea.dev/models/user"
 	"gitea.dev/modules/container"
 	"gitea.dev/modules/log"
+	"gitea.dev/modules/setting"
 )
 
 // CommentList defines a list of comments
@@ -439,6 +440,73 @@ func (comments CommentList) loadReviews(ctx context.Context) error {
 			if err := comment.Review.LoadReviewer(ctx); err != nil {
 				return err
 			}
+		}
+	}
+	return nil
+}
+
+// loadResolveDoers bulk-loads the resolve doer for all code comments that have one.
+func (comments CommentList) loadResolveDoers(ctx context.Context) error {
+	resolveDoerIDs := container.FilterSlice(comments, func(c *Comment) (int64, bool) {
+		return c.ResolveDoerID, c.ResolveDoerID != 0 && c.Type == CommentTypeCode
+	})
+	if len(resolveDoerIDs) == 0 {
+		return nil
+	}
+
+	userMaps, err := user_model.GetUsersMapByIDs(ctx, resolveDoerIDs)
+	if err != nil {
+		return err
+	}
+
+	for _, comment := range comments {
+		if comment.ResolveDoerID == 0 || comment.Type != CommentTypeCode {
+			continue
+		}
+		if u, ok := userMaps[comment.ResolveDoerID]; ok {
+			comment.ResolveDoer = u
+		} else {
+			comment.ResolveDoer = user_model.NewGhostUser()
+		}
+	}
+	return nil
+}
+
+// loadReactions bulk-loads reactions for all comments in the list.
+func (comments CommentList) loadReactions(ctx context.Context, repo *repo_model.Repository) error {
+	if len(comments) == 0 {
+		return nil
+	}
+
+	commentIDs := container.FilterSlice(comments, func(c *Comment) (int64, bool) {
+		return c.ID, c.Reactions == nil
+	})
+	if len(commentIDs) == 0 {
+		return nil
+	}
+
+	var allReactions ReactionList
+	if err := db.GetEngine(ctx).
+		Where("`comment_id` > 0").
+		In("comment_id", commentIDs).
+		In("`type`", setting.UI.Reactions).
+		Asc("issue_id", "comment_id", "created_unix", "id").
+		Find(&allReactions); err != nil {
+		return err
+	}
+
+	if _, err := allReactions.LoadUsers(ctx, repo); err != nil {
+		return err
+	}
+
+	reactByComment := make(map[int64]ReactionList, len(commentIDs))
+	for _, r := range allReactions {
+		reactByComment[r.CommentID] = append(reactByComment[r.CommentID], r)
+	}
+
+	for _, comment := range comments {
+		if comment.Reactions == nil {
+			comment.Reactions = reactByComment[comment.ID]
 		}
 	}
 	return nil
