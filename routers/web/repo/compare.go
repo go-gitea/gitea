@@ -240,9 +240,6 @@ func (cpi *comparePageInfoType) parseCompareInfo(ctx *context.Context, comparePa
 	if err != nil {
 		return err
 	}
-	if baseRef == "" {
-		return util.NewNotExistErrorf("no base ref: %s", baseRefName)
-	}
 	headGitRepo, err := gitrepo.RepositoryFromRequestContextOrOpen(ctx, headRepo)
 	if err != nil {
 		return err
@@ -251,9 +248,6 @@ func (cpi *comparePageInfoType) parseCompareInfo(ctx *context.Context, comparePa
 	headRef, err := common.ResolveRefWithSuffix(headGitRepo, headRefName, compareReq.HeadOriRefSuffix)
 	if err != nil {
 		return err
-	}
-	if headRef == "" {
-		return util.NewNotExistErrorf("no head ref: %s", headRefName)
 	}
 
 	ctx.Data["BaseName"] = baseRepo.OwnerName

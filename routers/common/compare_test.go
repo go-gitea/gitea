@@ -144,7 +144,7 @@ func TestCompareRouterReq(t *testing.T) {
 }
 
 func TestResolveRefWithSuffix(t *testing.T) {
-	// The ^{...}, @{...} and :path forms could probe object types or commit messages, so they are
+	// The ^{...}, @{...} and :path forms address non-commit objects or reflog state, so they are
 	// rejected before any repository access and a nil repo is fine here.
 	for _, refSuffix := range []string{"^{/Add}", "^{commit}", "@{upstream}", "~1:path"} {
 		ref, err := ResolveRefWithSuffix(nil, "branch", refSuffix)

@@ -14,7 +14,10 @@ import (
 	"gitea.dev/models/unittest"
 	user_model "gitea.dev/models/user"
 	"gitea.dev/modules/git/gitcmd"
+	"gitea.dev/modules/gitrepo"
 	"gitea.dev/modules/test"
+	"gitea.dev/modules/util"
+	"gitea.dev/routers/common"
 	repo_service "gitea.dev/services/repository"
 	"gitea.dev/tests"
 
@@ -169,6 +172,30 @@ func TestCompareWithRefSuffix(t *testing.T) {
 		req = NewRequest(t, "GET", "/user2/repo20/compare/"+basehead).SetHeader("Accept", "text/html")
 		resp = session.MakeRequest(t, req, http.StatusNotFound)
 		assert.True(t, test.IsNormalPageCompleted(resp.Body.String()))
+	}
+}
+
+func TestResolveRefWithSuffixContract(t *testing.T) {
+	defer tests.PrepareTestEnv(t)()
+
+	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 31})
+	gitRepo, err := gitrepo.OpenRepository(t.Context(), repo)
+	require.NoError(t, err)
+	defer gitRepo.Close()
+
+	// a nil error guarantees a usable RefName
+	ref, err := common.ResolveRefWithSuffix(gitRepo, "add-csv", "^")
+	require.NoError(t, err)
+	assert.NotEmpty(t, ref)
+
+	// a missing ref and an unresolvable suffix both report not-found instead of an empty RefName
+	for _, tc := range []struct{ oriRef, suffix string }{
+		{"does-not-exist", ""},
+		{"add-csv", "~50"},
+	} {
+		ref, err := common.ResolveRefWithSuffix(gitRepo, tc.oriRef, tc.suffix)
+		assert.ErrorIs(t, err, util.ErrNotExist, "ref %q suffix %q", tc.oriRef, tc.suffix)
+		assert.Empty(t, ref, "ref %q suffix %q", tc.oriRef, tc.suffix)
 	}
 }
 

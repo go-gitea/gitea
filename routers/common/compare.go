@@ -7,6 +7,7 @@ import (
 	"context"
 	"regexp"
 	"strings"
+	"sync"
 
 	repo_model "gitea.dev/models/repo"
 	user_model "gitea.dev/models/user"
@@ -100,22 +101,28 @@ func ParseCompareRouterParam(routerParam string) *CompareRouterReq {
 	return ci
 }
 
-// validRefSuffix matches git ancestry navigation (^, ^N, ~, ~N and combinations). It rejects the
-// ^{...}, @{...} and :path forms, which would let a reader probe object types or commit messages.
-var validRefSuffix = regexp.MustCompile(`^(?:[~^][0-9]*)+$`)
+// validRefSuffix matches only ^/~ ancestry navigation. The ^{...}, @{...} and :path forms address
+// other objects (trees, blobs) or reflog/upstream state that compare does not resolve, so they are rejected.
+var validRefSuffix = sync.OnceValue(func() *regexp.Regexp {
+	return regexp.MustCompile(`^(?:[~^][0-9]*)+$`)
+})
 
 // ResolveRefWithSuffix resolves oriRef plus an optional revision suffix (^, ~N) to a RefName.
-// An unsupported suffix yields an invalid-argument error, and an unresolvable ref yields an empty RefName.
+// A nil error guarantees a usable RefName: an unsupported suffix yields an invalid-argument error
+// and an unresolvable ref yields a not-found error.
 func ResolveRefWithSuffix(gitRepo *git.Repository, oriRef, refSuffix string) (git.RefName, error) {
 	if refSuffix == "" {
-		return gitRepo.UnstableGuessRefByShortName(oriRef), nil
+		if refName := gitRepo.UnstableGuessRefByShortName(oriRef); refName != "" {
+			return refName, nil
+		}
+		return "", util.NewNotExistErrorf("ref %q does not exist", oriRef)
 	}
-	if !validRefSuffix.MatchString(refSuffix) {
+	if !validRefSuffix().MatchString(refSuffix) {
 		return "", util.NewInvalidArgumentErrorf("unsupported ref suffix %q", refSuffix)
 	}
 	commit, err := gitRepo.GetCommit(oriRef + refSuffix)
 	if err != nil {
-		return "", nil
+		return "", util.NewNotExistErrorf("ref %q does not exist", oriRef+refSuffix)
 	}
 	return git.RefNameFromCommit(commit.ID.String()), nil
 }
