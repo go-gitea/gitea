@@ -134,6 +134,46 @@ func TestNewUserPost_Bot(t *testing.T) {
 	})
 }
 
+func TestConvertUserType(t *testing.T) {
+	unittest.PrepareTestEnv(t)
+
+	doer := unittest.AssertExistsAndLoadBean(t, &user_model.User{IsAdmin: true, ID: 2})
+
+	t.Run("to bot", func(t *testing.T) {
+		ctx, _ := contexttest.MockContext(t, "admin/users/4/convert_type?user_type=bot")
+		ctx.Doer = doer
+		ctx.SetPathParam("userid", "4")
+		ConvertUserType(ctx)
+
+		assert.NotEmpty(t, ctx.Flash.SuccessMsg)
+		u := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 4})
+		assert.True(t, u.IsTypeBot())
+		assert.Empty(t, u.Passwd)
+	})
+
+	t.Run("back to individual", func(t *testing.T) {
+		ctx, _ := contexttest.MockContext(t, "admin/users/4/convert_type?user_type=individual")
+		ctx.Doer = doer
+		ctx.SetPathParam("userid", "4")
+		ConvertUserType(ctx)
+
+		assert.NotEmpty(t, ctx.Flash.SuccessMsg)
+		u := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 4})
+		assert.True(t, u.IsIndividual())
+	})
+
+	t.Run("invalid user type", func(t *testing.T) {
+		ctx, _ := contexttest.MockContext(t, "admin/users/4/convert_type?user_type=invalid")
+		ctx.Doer = doer
+		ctx.SetPathParam("userid", "4")
+		ConvertUserType(ctx)
+
+		assert.NotEmpty(t, ctx.Flash.ErrorMsg)
+		u := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 4})
+		assert.True(t, u.IsIndividual())
+	})
+}
+
 func TestNewUserPost_InvalidEmail(t *testing.T) {
 	unittest.PrepareTestEnv(t)
 	ctx, _ := contexttest.MockContext(t, "admin/users/new")
