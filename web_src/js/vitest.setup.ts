@@ -14,5 +14,3 @@ window.config = {
   i18n: {},
   frontendInited: false,
 };
-
-window.testModules = {};

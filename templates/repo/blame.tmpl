@@ -28,7 +28,7 @@
 			</div>
 		</div>
 	</h4>
-	<div class="ui bottom attached table unstackable segment">
+	<div class="ui bottom attached segment file-view-container">
 		<div class="file-view code-view unicode-escaped">
 			{{if .IsFileTooLarge}}
 				{{template "shared/filetoolarge" dict "RawFileLink" .RawFileLink}}
@@ -43,7 +43,7 @@
 								<div class="blame-info">
 									<div class="blame-data">
 										<div class="blame-avatar">
-											{{$row.Avatar}}
+											{{if $row.AvatarStackData}}{{ctx.RenderUtils.AvatarStack $row.AvatarStackData}}{{end}}
 										</div>
 										<div class="blame-message muted-links" title="{{$row.CommitMessage}}">
 											{{ctx.RenderUtils.RenderCommitMessageLinkSubject $row.CommitMessage $row.CommitURL $.Repository}}

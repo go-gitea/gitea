@@ -4,15 +4,17 @@
 package repo
 
 import (
+	"errors"
 	"html/template"
 
-	pull_model "code.gitea.io/gitea/models/pull"
-	repo_model "code.gitea.io/gitea/models/repo"
-	"code.gitea.io/gitea/models/unit"
-	"code.gitea.io/gitea/modules/svg"
-	"code.gitea.io/gitea/modules/templates"
-	"code.gitea.io/gitea/services/context"
-	pull_service "code.gitea.io/gitea/services/pull"
+	pull_model "gitea.dev/models/pull"
+	repo_model "gitea.dev/models/repo"
+	"gitea.dev/models/unit"
+	"gitea.dev/modules/svg"
+	"gitea.dev/modules/templates"
+	"gitea.dev/modules/util"
+	"gitea.dev/services/context"
+	pull_service "gitea.dev/services/pull"
 )
 
 func (prInfo *pullRequestViewInfo) prepareMergeBoxFormProps(ctx *context.Context) {
@@ -61,12 +63,12 @@ func (prInfo *pullRequestViewInfo) prepareMergeBoxFormProps(ctx *context.Context
 	}
 
 	defaultMergeTitle, defaultMergeBody, err := pull_service.GetDefaultMergeMessage(ctx, ctx.Repo.GitRepo, pull, mergeStyle)
-	if err != nil {
+	if err != nil && !errors.Is(err, util.ErrNotExist) {
 		ctx.ServerError("GetDefaultMergeMessage", err)
 		return
 	}
 	defaultSquashMergeTitle, defaultSquashMergeBody, err := pull_service.GetDefaultMergeMessage(ctx, ctx.Repo.GitRepo, pull, repo_model.MergeStyleSquash)
-	if err != nil {
+	if err != nil && !errors.Is(err, util.ErrNotExist) {
 		ctx.ServerError("GetDefaultSquashMergeMessage", err)
 		return
 	}

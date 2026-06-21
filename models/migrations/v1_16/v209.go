@@ -3,7 +3,7 @@
 
 package v1_16
 
-import "code.gitea.io/gitea/models/db"
+import "gitea.dev/models/db"
 
 func IncreaseCredentialIDTo410(x db.EngineMigration) error {
 	// no-op

@@ -6,7 +6,7 @@ package v1_14
 import (
 	"fmt"
 
-	"code.gitea.io/gitea/models/db"
+	"gitea.dev/models/db"
 )
 
 func AddRepoTransfer(x db.EngineMigration) error {

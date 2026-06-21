@@ -21,7 +21,16 @@
 			{{range $team := $.OrgListTeams}}
 				<div class="column team-item-box">
 					<div class="ui top attached header muted-links flex-left-right team-item-header">
-						<a href="{{$.OrgLink}}/teams/{{.LowerName | PathEscape}}"><strong>{{.Name}}</strong></a>
+						<div class="flex-text-inline">
+							<a href="{{$.OrgLink}}/teams/{{.LowerName | PathEscape}}"><strong>{{.Name}}</strong></a>
+							{{if .IsPrivate}}
+								<span class="ui mini label" data-tooltip-content="{{ctx.Locale.Tr "org.teams.visibility_private_helper"}}">{{ctx.Locale.Tr "org.teams.visibility_private"}}</span>
+							{{else if .IsLimited}}
+								<span class="ui mini label" data-tooltip-content="{{ctx.Locale.Tr "org.teams.visibility_limited_helper"}}">{{ctx.Locale.Tr "org.teams.visibility_limited"}}</span>
+							{{else if .IsPublic}}
+								<span class="ui mini label" data-tooltip-content="{{ctx.Locale.Tr "org.teams.visibility_public_helper"}}">{{ctx.Locale.Tr "org.teams.visibility_public"}}</span>
+							{{end}}
+						</div>
 						<div class="flex-text-block tw-flex-wrap">
 							<a href="{{$.OrgLink}}/teams/{{.LowerName | PathEscape}}">{{.NumMembers}} {{ctx.Locale.Tr "org.lower_members"}}</a>
 							·

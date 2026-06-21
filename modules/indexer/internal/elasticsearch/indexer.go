@@ -16,8 +16,8 @@ import (
 	"strings"
 	"time"
 
-	"code.gitea.io/gitea/modules/indexer/internal"
-	"code.gitea.io/gitea/modules/json"
+	"gitea.dev/modules/indexer/internal"
+	"gitea.dev/modules/json"
 )
 
 var _ internal.Indexer = &Indexer{}

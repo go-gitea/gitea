@@ -34,7 +34,7 @@
 		</a>
 		{{end}}
 		{{if .EnableActions}}
-		<details class="item toggleable-item" {{if or .PageIsUserSettingsActionsGeneral .PageIsSharedSettingsRunners .PageIsSharedSettingsSecrets .PageIsSharedSettingsVariables}}open{{end}}>
+		<details class="item" {{if or .PageIsUserSettingsActionsGeneral .PageIsSharedSettingsRunners .PageIsSharedSettingsSecrets .PageIsSharedSettingsVariables}}open{{end}}>
 			<summary>{{ctx.Locale.Tr "actions.actions"}}</summary>
 			<div class="menu">
 				<a class="{{if .PageIsUserSettingsActionsGeneral}}active {{end}}item" href="{{AppSubUrl}}/user/settings/actions/general">
