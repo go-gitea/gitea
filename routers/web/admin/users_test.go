@@ -91,6 +91,49 @@ func TestNewUserPost_MustChangePasswordFalse(t *testing.T) {
 	assert.False(t, u.MustChangePassword)
 }
 
+func TestNewUserPost_Bot(t *testing.T) {
+	unittest.PrepareTestEnv(t)
+
+	t.Run("rejects password", func(t *testing.T) {
+		ctx, _ := contexttest.MockContext(t, "admin/users/new")
+		ctx.Doer = unittest.AssertExistsAndLoadBean(t, &user_model.User{IsAdmin: true, ID: 2})
+
+		web.SetForm(ctx, &forms.AdminCreateUserForm{
+			LoginType: "local",
+			UserName:  "bot-with-pw",
+			UserType:  "bot",
+			Email:     "bot-with-pw@gitea.io",
+			Password:  "abc123ABC!=$",
+		})
+		NewUserPost(ctx)
+
+		// a bot must not be created with a password
+		assert.NotEmpty(t, ctx.Flash.ErrorMsg)
+		unittest.AssertNotExistsBean(t, &user_model.User{LowerName: "bot-with-pw"})
+	})
+
+	t.Run("creates passwordless bot", func(t *testing.T) {
+		ctx, _ := contexttest.MockContext(t, "admin/users/new")
+		ctx.Doer = unittest.AssertExistsAndLoadBean(t, &user_model.User{IsAdmin: true, ID: 2})
+
+		web.SetForm(ctx, &forms.AdminCreateUserForm{
+			LoginType: "local",
+			UserName:  "bot-user",
+			UserType:  "bot",
+			Email:     "bot-user@gitea.io",
+		})
+		NewUserPost(ctx)
+
+		assert.NotEmpty(t, ctx.Flash.SuccessMsg)
+		u, err := user_model.GetUserByName(ctx, "bot-user")
+		assert.NoError(t, err)
+		assert.True(t, u.IsTypeBot())
+		assert.Empty(t, u.Passwd)
+		assert.Empty(t, u.Salt)
+		assert.False(t, u.MustChangePassword)
+	})
+}
+
 func TestNewUserPost_InvalidEmail(t *testing.T) {
 	unittest.PrepareTestEnv(t)
 	ctx, _ := contexttest.MockContext(t, "admin/users/new")

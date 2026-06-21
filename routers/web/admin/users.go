@@ -141,7 +141,13 @@ func NewUserPost(ctx *context.Context) {
 	// Bot users are created as local accounts without a password or auth source,
 	// matching the behavior of the "gitea admin user create --user-type bot" command.
 	if form.UserType == "bot" {
+		if form.Password != "" {
+			ctx.Data["Err_Password"] = true
+			ctx.RenderWithErrDeprecated(ctx.Tr("admin.users.bot_no_password"), tplUserNew, &form)
+			return
+		}
 		u.Type = user_model.UserTypeBot
+		u.Passwd = ""
 		if err := user_model.AdminCreateUser(ctx, u, &user_model.Meta{}, overwriteDefault); err != nil {
 			handleAdminCreateUserError(ctx, err, form)
 			return
@@ -400,13 +406,26 @@ func NewBotTokenPost(ctx *context.Context) {
 
 // DeleteBotToken deletes an access token of a bot user on behalf of an admin
 func DeleteBotToken(ctx *context.Context) {
-	uid := ctx.PathParamInt64("userid")
+	u := prepareUserInfo(ctx)
+	if ctx.Written() {
+		return
+	}
+
+	uid := u.ID
+	redirect := setting.AppSubURL + "/-/admin/users/" + strconv.FormatInt(uid, 10)
+	// only bot tokens are managed here; regular users manage their own tokens
+	if !u.IsTypeBot() {
+		ctx.Flash.Error(ctx.Tr("admin.users.bot_token_only"))
+		ctx.JSONRedirect(redirect)
+		return
+	}
+
 	if err := auth.DeleteAccessTokenByID(ctx, ctx.FormInt64("id"), uid); err != nil {
 		ctx.Flash.Error("DeleteAccessTokenByID: " + err.Error())
 	} else {
 		ctx.Flash.Success(ctx.Tr("settings.delete_token_success"))
 	}
-	ctx.JSONRedirect(setting.AppSubURL + "/-/admin/users/" + strconv.FormatInt(uid, 10))
+	ctx.JSONRedirect(redirect)
 }
 
 func editUserCommon(ctx *context.Context) {
