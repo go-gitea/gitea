@@ -91,7 +91,7 @@ export function getDiffTreeExtensionStats(store: Reactive<DiffFileTree>): DiffEx
     const ext = extname(entry.FullName).toLowerCase();
     extensionMap.set(ext, (extensionMap.get(ext) ?? 0) + 1);
   }
-  return Array.from(extensionMap.entries(), ([ext, count]) => ({ext, count}))
+  return Array.from(extensionMap, ([ext, count]) => ({ext, count}))
     .sort((a, b) => b.count - a.count);
 }
 
@@ -105,8 +105,7 @@ function buildFilter(store: Reactive<DiffFileTree>): DiffFilter | null {
   return (filename) => {
     if (!filename) return false;
     if (query && !filename.toLowerCase().includes(query)) return false;
-    if (exts && !exts.has(extname(filename).toLowerCase())) return false;
-    return true;
+    return !exts || exts.has(extname(filename).toLowerCase());
   };
 }
 

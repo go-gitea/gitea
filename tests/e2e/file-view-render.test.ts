@@ -47,7 +47,7 @@ test('asciicast file', async ({page, request}) => {
   await Promise.all([apiCreateRepo(request, {name: repoName, autoInit: false}), login(page)]);
   const cast = '{"version": 2, "width": 80, "height": 24}\n[0.0, "o", "test-content"]\n';
   // on an empty repo, apiCreateFile with newBranch creates that branch as the initial commit
-  await apiCreateFile(request, owner, repoName, 'test.cast', cast, {newBranch: branch});
+  await apiCreateFiles(request, owner, repoName, [{path: 'test.cast', content: cast}], {newBranch: branch});
   await page.goto(`/${owner}/${repoName}/src/branch/${branchEnc}/test.cast`);
   const iframe = page.locator('iframe.external-render-iframe');
   const frame = iframe.contentFrame();
