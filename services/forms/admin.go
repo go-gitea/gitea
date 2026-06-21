@@ -18,6 +18,7 @@ type AdminCreateUserForm struct {
 	LoginType          string `binding:"Required"`
 	LoginName          string
 	UserName           string `binding:"Required;Username;MaxSize(40)"`
+	UserType           string
 	Email              string `binding:"Required;Email;MaxSize(254)"`
 	Password           string `binding:"MaxSize(255)"`
 	SendNotify         bool
