@@ -175,6 +175,9 @@ func TestEntries_GetCommitsInfo(t *testing.T) {
 }
 
 func TestEntries_GetCommitsInfo_Deadline(t *testing.T) {
+	if isGogit {
+		t.Skip("for nogogit only")
+	}
 	repo, err := OpenRepository(t.Context(), filepath.Join(testReposDir, "repo1_bare"))
 	require.NoError(t, err)
 	defer repo.Close()
