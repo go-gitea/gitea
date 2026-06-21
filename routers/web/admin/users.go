@@ -354,15 +354,7 @@ func NewBotTokenPost(ctx *context.Context) {
 	}
 
 	_ = ctx.Req.ParseForm()
-	var scopeNames []string
-	const accessTokenScopePrefix = "scope-"
-	for k, v := range ctx.Req.Form {
-		if strings.HasPrefix(k, accessTokenScopePrefix) {
-			scopeNames = append(scopeNames, v...)
-		}
-	}
-
-	scope, err := auth.AccessTokenScope(strings.Join(scopeNames, ",")).Normalize()
+	scope, err := auth.AccessTokenScopeFromForm(ctx.Req.Form).Normalize()
 	if err != nil {
 		ctx.ServerError("GetScope", err)
 		return

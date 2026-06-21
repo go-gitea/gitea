@@ -5,11 +5,24 @@ package auth
 
 import (
 	"fmt"
+	"net/url"
 	"slices"
 	"strings"
 
 	"gitea.dev/models/perm"
 )
+
+// AccessTokenScopeFromForm collects all "scope-*" values from a submitted form
+// and joins them into a single comma-separated AccessTokenScope.
+func AccessTokenScopeFromForm(form url.Values) AccessTokenScope {
+	var scopeNames []string
+	for k, v := range form {
+		if strings.HasPrefix(k, "scope-") {
+			scopeNames = append(scopeNames, v...)
+		}
+	}
+	return AccessTokenScope(strings.Join(scopeNames, ","))
+}
 
 // AccessTokenScopeCategory represents the scope category for an access token
 type AccessTokenScopeCategory int
