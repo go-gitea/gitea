@@ -351,18 +351,22 @@ heaploop:
 		}
 		current, err := g.Next(treepath, path2idx, changed, maxpathlen)
 		if err != nil {
-			// When the context times out or is cancelled, the git command is killed and its
-			// output pipe is closed, so the read above may fail with an error like
-			// "file already closed" instead of context.DeadlineExceeded. Treat a deadline
-			// the same way as the select above: stop and return the partial results gathered
-			// so far (the caller falls back to async last-commit loading).
-			if errors.Is(err, context.DeadlineExceeded) || ctx.Err() == context.DeadlineExceeded {
+			// A timeout or cancellation kills the git command and closes its output pipe,
+			// so the read above may surface as "file already closed" instead of
+			// context.DeadlineExceeded. Reconcile against the context: on a deadline, stop
+			// and return the partial results gathered so far (the caller falls back to async
+			// last-commit loading); on cancellation, return the context error.
+			if ctxErr := ctx.Err(); ctxErr != nil {
+				if ctxErr == context.DeadlineExceeded {
+					break heaploop
+				}
+				g.Close()
+				return nil, ctxErr
+			}
+			if errors.Is(err, context.DeadlineExceeded) {
 				break heaploop
 			}
 			g.Close()
-			if ctx.Err() != nil {
-				return nil, ctx.Err()
-			}
 			return nil, err
 		}
 		if current == nil {
