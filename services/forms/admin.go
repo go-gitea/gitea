@@ -42,7 +42,6 @@ type AdminEditUserForm struct {
 	middleware.FormDefaultValidator
 	LoginType               string `binding:"Required"`
 	UserName                string `binding:"Username;MaxSize(40)"`
-	UserType                string
 	LoginName               string
 	FullName                string `binding:"MaxSize(100)"`
 	Email                   string `binding:"Required;Email;MaxSize(254)"`
