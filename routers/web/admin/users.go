@@ -660,7 +660,7 @@ func ConvertUserType(ctx *context.Context) {
 
 	redirect := setting.AppSubURL + "/-/admin/users/" + url.PathEscape(ctx.PathParam("userid")) + "/edit"
 
-	targetType := user_model.UserTypeIndividual
+	var targetType user_model.UserType
 	switch ctx.FormString("user_type") {
 	case "bot":
 		targetType = user_model.UserTypeBot
