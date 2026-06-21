@@ -8,7 +8,7 @@ import type {Issue, Mention} from '../types.ts';
 const maxMatches = 6;
 
 function sortAndReduce<T>(map: Map<T, number>): T[] {
-  const sortedMap = new Map(Array.from(map.entries()).sort((a, b) => a[1] - b[1]));
+  const sortedMap = new Map(Array.from(map).sort((a, b) => a[1] - b[1]));
   return Array.from(sortedMap.keys()).slice(0, maxMatches);
 }
 

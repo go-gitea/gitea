@@ -166,7 +166,7 @@ function buildDirectNeedsMap(jobs: ActionsJob[]): Map<string, string[]> {
   const reducedNeedsByJobId = new Map<string, string[]>();
   for (const [jobId, needs] of directNeedsByJobId) {
     reducedNeedsByJobId.set(jobId, needs.filter((need) => {
-      return !needs.some((other) => other !== need && canReach(need, other));
+      return needs.every((other) => other === need || !canReach(need, other));
     }));
   }
   return reducedNeedsByJobId;

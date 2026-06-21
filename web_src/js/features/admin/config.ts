@@ -102,9 +102,7 @@ export class ConfigFormValueMapper {
     } else if (el.matches('[type="datetime-local"]')) {
       if (valType !== 'timestamp') requireExplicitValueType(el);
       if (val) el.value = toDatetimeLocalValue(val);
-    } else if (el.matches('textarea')) {
-      el.value = String(val ?? el.value);
-    } else if (el.matches('input') && (el.getAttribute('type') ?? 'text') === 'text') {
+    } else if (el.matches('textarea') || (el.matches('input') && (el.getAttribute('type') ?? 'text') === 'text')) {
       el.value = String(val ?? el.value);
     } else {
       unsupportedElement(el);
@@ -123,9 +121,7 @@ export class ConfigFormValueMapper {
     } else if (el.matches('[type="datetime-local"]')) {
       if (valType !== 'timestamp') requireExplicitValueType(el);
       val = Math.floor(new Date(el.value).getTime() / 1000) ?? 0; // NaN is fine to JSON.stringify, it becomes null.
-    } else if (el.matches('textarea')) {
-      val = el.value;
-    } else if (el.matches('input') && (el.getAttribute('type') ?? 'text') === 'text') {
+    } else if (el.matches('textarea') || (el.matches('input') && (el.getAttribute('type') ?? 'text') === 'text')) {
       val = el.value;
     } else {
       unsupportedElement(el);
@@ -178,7 +174,7 @@ export class ConfigFormValueMapper {
 
   collectToFormData(): FormData {
     const namedElems: Array<GeneralFormFieldElement | null> = [];
-    queryElems(this.form, '[name]', (el) => namedElems.push(el as GeneralFormFieldElement));
+    queryElems(this.form, '[name]', (el) => { namedElems.push(el as GeneralFormFieldElement) });
 
     // first, process the config options with sub values, for example:
     // merge "foo.bar.Enabled", "foo.bar.Message" to "foo.bar"
