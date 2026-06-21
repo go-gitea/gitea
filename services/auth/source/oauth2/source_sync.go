@@ -88,8 +88,8 @@ func (source *Source) refresh(ctx context.Context, provider goth.Provider, u *us
 				}
 			}
 
-			// Delete stored tokens, since they are invalid. This
-			// also provents us from checking this in subsequent runs.
+			// HINT: OAUTH-AUTO-SYNC-USER-ACTIVATION
+			// Delete stored tokens, since they are invalid. This also prevents us from checking this in subsequent runs.
 			u.AccessToken = ""
 			u.RefreshToken = ""
 			u.ExpiresAt = time.Time{}
