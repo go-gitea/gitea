@@ -31,16 +31,18 @@ func Test_AddActionRunJobMatchingSchema(t *testing.T) {
 		return
 	}
 
-	// statusWaiting=5, statusRunning=6, statusBlocked=7. Seed directly because the
-	// migration package can't register the real ActionRunJob bean for YAML fixtures.
-	for _, job := range []ActionRunJob{
-		{ID: 1, RunsOn: []string{"ubuntu-latest", "self-hosted"}, Status: 5}, // backfilled
-		{ID: 2, RunsOn: []string{"linux", "linux"}, Status: 5},               // backfilled (dedup)
-		{ID: 3, RunsOn: nil, Status: 5},                                      // no rows (matches any runner)
-		{ID: 4, RunsOn: []string{"macos"}, Status: 6},                        // running, not backfilled
-		{ID: 5, RunsOn: []string{"windows"}, Status: 7},                      // blocked, becomes waiting later
-	} {
-		_, err := x.Insert(&job)
+	// statusWaiting=5, statusRunning=6, statusBlocked=7. Seed without explicit ids so
+	// xorm lets the identity column assign them (MSSQL rejects explicit identity inserts),
+	// and read the assigned ids back to key the expected labels.
+	jobs := []*ActionRunJob{
+		{RunsOn: []string{"ubuntu-latest", "self-hosted"}, Status: 5}, // backfilled
+		{RunsOn: []string{"linux", "linux"}, Status: 5},               // backfilled (dedup)
+		{RunsOn: nil, Status: 5},                                      // no rows (matches any runner)
+		{RunsOn: []string{"macos"}, Status: 6},                        // running, not backfilled
+		{RunsOn: []string{"windows"}, Status: 7},                      // blocked, becomes waiting later
+	}
+	for _, job := range jobs {
+		_, err := x.Insert(job)
 		require.NoError(t, err)
 	}
 
@@ -54,8 +56,8 @@ func Test_AddActionRunJobMatchingSchema(t *testing.T) {
 		got[l.JobID] = append(got[l.JobID], l.Label)
 	}
 	assert.Equal(t, map[int64][]string{
-		1: {"self-hosted", "ubuntu-latest"},
-		2: {"linux"},
-		5: {"windows"},
+		jobs[0].ID: {"self-hosted", "ubuntu-latest"},
+		jobs[1].ID: {"linux"},
+		jobs[4].ID: {"windows"},
 	}, got)
 }
