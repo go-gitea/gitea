@@ -727,7 +727,10 @@ func TestUpdateIssueRefByPoster(t *testing.T) {
 	// user4 is a non-admin, non-collaborator on user2/repo1.
 	// They create an issue, making them the poster.
 	posterSession := loginUser(t, "user4")
-	issueURL := testNewIssue(t, posterSession, "user2", "repo1", "Poster ref test", "body")
+	issueURL := testNewIssue(t, posterSession, "user2", "repo1", newIssueOptions{
+		Title:   "Poster ref test",
+		Content: "body",
+	})
 	refURL := issueURL + "/ref"
 
 	// The poster (non-collaborator) must be able to update the ref.
@@ -745,7 +748,10 @@ func TestIssueRefSelectorEnabledForPoster(t *testing.T) {
 
 	// user4 creates an issue in user2/repo1 (user4 has no write permission there).
 	posterSession := loginUser(t, "user4")
-	issueURL := testNewIssue(t, posterSession, "user2", "repo1", "Ref selector test", "body")
+	issueURL := testNewIssue(t, posterSession, "user2", "repo1", newIssueOptions{
+		Title:   "Ref selector test",
+		Content: "body",
+	})
 
 	resp := posterSession.MakeRequest(t, NewRequest(t, "GET", issueURL), http.StatusOK)
 	htmlDoc := NewHTMLParser(t, resp.Body)
