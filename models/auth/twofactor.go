@@ -21,6 +21,7 @@ import (
 
 	"github.com/pquerna/otp/totp"
 	"golang.org/x/crypto/pbkdf2"
+	"xorm.io/builder"
 )
 
 //
@@ -104,18 +105,41 @@ func (t *TwoFactor) SetSecret(secretString string) error {
 	return nil
 }
 
-// ValidateTOTP validates the provided passcode.
-func (t *TwoFactor) ValidateTOTP(passcode string) (bool, error) {
+// validateTOTP validates the provided passcode. It does not consume the passcode; all login
+// surfaces must go through ValidateAndConsumeTOTP so that a passcode cannot be redeemed twice.
+func (t *TwoFactor) validateTOTP(passcode string) (bool, error) {
 	decodedStoredSecret, err := base64.StdEncoding.DecodeString(t.Secret)
 	if err != nil {
-		return false, fmt.Errorf("ValidateTOTP invalid base64: %w", err)
+		return false, fmt.Errorf("validateTOTP invalid base64: %w", err)
 	}
 	secretBytes, err := secret.AesDecrypt(t.getEncryptionKey(), decodedStoredSecret)
 	if err != nil {
-		return false, fmt.Errorf("ValidateTOTP unable to decrypt (maybe SECRET_KEY is wrong): %w", err)
+		return false, fmt.Errorf("validateTOTP unable to decrypt (maybe SECRET_KEY is wrong): %w", err)
 	}
 	secretStr := string(secretBytes)
 	return totp.Validate(passcode, secretStr), nil
+}
+
+// ValidateAndConsumeTOTP validates the passcode and atomically records it as used so that the
+// same passcode cannot be redeemed more than once (RFC 6238 §5.2). It returns false for an
+// invalid passcode as well as for a replay, including the case where a concurrent request with
+// the same passcode won the race first. All TOTP login surfaces must go through this helper.
+func (t *TwoFactor) ValidateAndConsumeTOTP(ctx context.Context, passcode string) (bool, error) {
+	ok, err := t.validateTOTP(passcode)
+	if err != nil || !ok {
+		return false, err
+	}
+	// Conditional update: only a row whose stored passcode differs from this one is updated, so a
+	// replay (or a concurrent duplicate) matches zero rows and is rejected. The row lock taken by
+	// the UPDATE serializes racing requests, closing the read-validate-write TOCTOU window.
+	t.LastUsedPasscode = passcode
+	n, err := db.GetEngine(ctx).ID(t.ID).
+		Where(builder.Or(builder.IsNull{"last_used_passcode"}, builder.Neq{"last_used_passcode": passcode})).
+		Cols("last_used_passcode").Update(t)
+	if err != nil {
+		return false, err
+	}
+	return n == 1, nil
 }
 
 // NewTwoFactor creates a new two-factor authentication token.

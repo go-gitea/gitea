@@ -101,7 +101,26 @@ func home(ctx *context.Context, viewRepositories bool) {
 
 	const orgOverviewTeamsLimit = 5
 	ctx.Data["OrgOverviewMembers"] = members
-	ctx.Data["OrgOverviewTeams"] = ctx.Org.Teams[:min(len(ctx.Org.Teams), orgOverviewTeamsLimit)]
+	// The overview widget shows only teams the viewer belongs to. ctx.Org.Teams
+	// may include visible-but-not-joined teams (via IncludeVisibilities for
+	// signed-in non-members), so re-query the viewer's own membership; owners
+	// keep the full list they are entitled to manage.
+	overviewTeams := ctx.Org.Teams
+	if !ctx.Org.IsOwner {
+		overviewTeams = nil
+		if ctx.Org.IsMember {
+			overviewTeams, _, err = organization.SearchTeam(ctx, &organization.SearchTeamOptions{
+				OrgID:       org.ID,
+				UserID:      ctx.Doer.ID,
+				ListOptions: db.ListOptions{Page: 1, PageSize: orgOverviewTeamsLimit},
+			})
+			if err != nil {
+				ctx.ServerError("SearchTeam", err)
+				return
+			}
+		}
+	}
+	ctx.Data["OrgOverviewTeams"] = overviewTeams[:min(len(overviewTeams), orgOverviewTeamsLimit)]
 	ctx.Data["DisableNewPullMirrors"] = setting.Mirror.DisableNewPull
 	ctx.Data["ShowMemberAndTeamTab"] = ctx.Org.IsMember || len(members) > 0
 
