@@ -57,7 +57,8 @@ func SyncRepoTags(ctx context.Context, repoID int64) error {
 	return err
 }
 
-// StoreMissingLfsObjectsInRepository downloads missing LFS objects
+// StoreMissingLfsObjectsInRepository downloads missing LFS objects using a full
+// repository scan. Used for initial mirror sync and migrations.
 func StoreMissingLfsObjectsInRepository(ctx context.Context, repo *repo_model.Repository, gitRepo *git.Repository, lfsClient lfs.Client) error {
 	contentStore := lfs.NewContentStore()
 
@@ -67,10 +68,72 @@ func StoreMissingLfsObjectsInRepository(ctx context.Context, repo *repo_model.Re
 		errChan <- lfs.SearchPointerBlobs(ctx, gitRepo, pointerChan)
 	}()
 
+	if err := processLFSPointerChan(ctx, repo, contentStore, lfsClient, pointerChan); err != nil {
+		return err
+	}
+
+	err, has := <-errChan
+	if has {
+		log.Error("Repo[%-v]: Error enumerating LFS objects for repository: %v", repo, err)
+		return err
+	}
+
+	return nil
+}
+
+// SyncMirrorLfsObjects performs an incremental LFS sync for a pull mirror. It
+// scans only objects reachable from current refs but not from lastRefs (the ref
+// tips recorded after the previous successful sync), then retries any previously
+// discovered pointers whose content was unavailable upstream.
+// Returns the current ref tips to be stored for the next sync.
+func SyncMirrorLfsObjects(ctx context.Context, repo *repo_model.Repository, gitRepo *git.Repository, lfsClient lfs.Client, lastRefs []string) (currentRefs []string, err error) {
+	contentStore := lfs.NewContentStore()
+
+	currentRefs, err = getCurrentRefSHAs(ctx, gitRepo)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get current refs: %w", err)
+	}
+
+	if len(lastRefs) == 0 {
+		log.Trace("Repo[%-v]: No previous LFS ref state, performing full scan", repo)
+		if err := StoreMissingLfsObjectsInRepository(ctx, repo, gitRepo, lfsClient); err != nil {
+			return nil, err
+		}
+		return currentRefs, nil
+	}
+
+	// Incremental scan: only look at objects new since last sync
+	pointerChan := make(chan lfs.PointerBlob)
+	errChan := make(chan error, 1)
+	go lfs.SearchPointerBlobsInRange(ctx, gitRepo, currentRefs, lastRefs, pointerChan, errChan)
+
+	if err := processLFSPointerChan(ctx, repo, contentStore, lfsClient, pointerChan); err != nil {
+		return nil, err
+	}
+
+	scanErr, has := <-errChan
+	if has {
+		log.Error("Repo[%-v]: Error in incremental LFS scan: %v", repo, scanErr)
+		return nil, scanErr
+	}
+
+	// Retry previously failed (pending) objects
+	if err := retryPendingLFSObjects(ctx, repo, contentStore, lfsClient); err != nil {
+		return nil, err
+	}
+
+	return currentRefs, nil
+}
+
+// processLFSPointerChan processes discovered LFS pointers: records them as
+// pending in lfs_mirror_pending, then attempts to download their content from
+// the upstream LFS server. Successfully downloaded objects are promoted to
+// lfs_meta_object and removed from the pending table.
+func processLFSPointerChan(ctx context.Context, repo *repo_model.Repository, contentStore *lfs.ContentStore, lfsClient lfs.Client, pointerChan <-chan lfs.PointerBlob) error {
 	downloadObjects := func(pointers []lfs.Pointer) error {
 		err := lfsClient.Download(ctx, pointers, func(p lfs.Pointer, content io.ReadCloser, objectError error) error {
 			if errors.Is(objectError, lfs.ErrObjectNotExist) {
-				log.Warn("Ignoring missing upstream LFS object %-v: %v", p, objectError)
+				log.Warn("Repo[%-v]: Upstream missing LFS object %-v: %v", repo, p, objectError)
 				return nil
 			}
 
@@ -80,45 +143,40 @@ func StoreMissingLfsObjectsInRepository(ctx context.Context, repo *repo_model.Re
 
 			defer content.Close()
 
-			_, err := git_model.NewLFSMetaObject(ctx, repo.ID, p)
-			if err != nil {
+			if err := contentStore.Put(p, content); err != nil {
+				log.Error("Repo[%-v]: Error storing content for LFS meta object %-v: %v", repo, p, err)
+				return err
+			}
+			if _, err := git_model.NewLFSMetaObject(ctx, repo.ID, p); err != nil {
 				log.Error("Repo[%-v]: Error creating LFS meta object %-v: %v", repo, p, err)
 				return err
 			}
-
-			if err := contentStore.Put(p, content); err != nil {
-				log.Error("Repo[%-v]: Error storing content for LFS meta object %-v: %v", repo, p, err)
-				if _, err2 := git_model.RemoveLFSMetaObjectByOid(ctx, repo.ID, p.Oid); err2 != nil {
-					log.Error("Repo[%-v]: Error removing LFS meta object %-v: %v", repo, p, err2)
-				}
+			if err := git_model.RemoveLFSMirrorPending(ctx, repo.ID, p.Oid); err != nil {
+				log.Error("Repo[%-v]: Error removing pending LFS object %-v: %v", repo, p, err)
 				return err
 			}
 			return nil
 		})
-		if err != nil {
-			select {
-			case <-ctx.Done():
-				return nil
-			default:
-			}
-		}
+		// err may be a context-cancellation error if the parent context was
+		// killed; nil on the happy path, a real error otherwise. We deliberately
+		// return it unmodified so a cancelled/failed sync does not advance the
+		// mirror's LFSLastRefs watermark (see runSync).
 		return err
 	}
 
 	var batch []lfs.Pointer
 	for pointerBlob := range pointerChan {
-		meta, err := git_model.GetLFSMetaObjectByOid(ctx, repo.ID, pointerBlob.Oid)
-		if err != nil && err != git_model.ErrLFSObjectNotExist {
-			log.Error("Repo[%-v]: Error querying LFS meta object %-v: %v", repo, pointerBlob.Pointer, err)
+		// Record as pending if not already tracked
+		isNew, err := git_model.AddLFSMirrorPending(ctx, repo.ID, pointerBlob)
+		if err != nil {
+			log.Error("Repo[%-v]: Error recording pending LFS object %-v: %v", repo, pointerBlob.Pointer, err)
 			return err
 		}
-		if meta != nil {
-			log.Trace("Repo[%-v]: Skipping unknown LFS meta object %-v", repo, pointerBlob.Pointer)
+		if !isNew {
 			continue
 		}
 
-		log.Trace("Repo[%-v]: LFS object %-v not present in repository", repo, pointerBlob.Pointer)
-
+		// Check if content already exists in the local store
 		exist, err := contentStore.Exists(pointerBlob.Pointer)
 		if err != nil {
 			log.Error("Repo[%-v]: Error checking if LFS object %-v exists: %v", repo, pointerBlob.Pointer, err)
@@ -127,9 +185,12 @@ func StoreMissingLfsObjectsInRepository(ctx context.Context, repo *repo_model.Re
 
 		if exist {
 			log.Trace("Repo[%-v]: LFS object %-v already present; creating meta object", repo, pointerBlob.Pointer)
-			_, err := git_model.NewLFSMetaObject(ctx, repo.ID, pointerBlob.Pointer)
-			if err != nil {
+			if _, err := git_model.NewLFSMetaObject(ctx, repo.ID, pointerBlob.Pointer); err != nil {
 				log.Error("Repo[%-v]: Error creating LFS meta object %-v: %v", repo, pointerBlob.Pointer, err)
+				return err
+			}
+			if err := git_model.RemoveLFSMirrorPending(ctx, repo.ID, pointerBlob.Oid); err != nil {
+				log.Error("Repo[%-v]: Error removing pending LFS object %-v: %v", repo, pointerBlob.Pointer, err)
 				return err
 			}
 		} else {
@@ -152,13 +213,87 @@ func StoreMissingLfsObjectsInRepository(ctx context.Context, repo *repo_model.Re
 			return err
 		}
 	}
+	return nil
+}
 
-	err := <-errChan
+// retryPendingLFSObjects re-attempts download of LFS objects that were
+// previously discovered but whose content was unavailable upstream.
+func retryPendingLFSObjects(ctx context.Context, repo *repo_model.Repository, contentStore *lfs.ContentStore, lfsClient lfs.Client) error {
+	pending, err := git_model.GetLFSMirrorPendingByRepoID(ctx, repo.ID)
 	if err != nil {
-		log.Error("Repo[%-v]: Error enumerating LFS objects for repository: %v", repo, err)
+		log.Error("Repo[%-v]: Error getting pending LFS objects: %v", repo, err)
+		return err
+	}
+	if len(pending) == 0 {
+		return nil
 	}
 
-	return err
+	log.Trace("Repo[%-v]: Retrying %d pending LFS objects", repo, len(pending))
+
+	downloadObjects := func(pointers []lfs.Pointer) error {
+		err := lfsClient.Download(ctx, pointers, func(p lfs.Pointer, content io.ReadCloser, objectError error) error {
+			if errors.Is(objectError, lfs.ErrObjectNotExist) {
+				log.Trace("Repo[%-v]: Upstream still missing LFS object %-v", repo, p)
+				return nil
+			}
+			if objectError != nil {
+				return objectError
+			}
+
+			defer content.Close()
+
+			if err := contentStore.Put(p, content); err != nil {
+				log.Error("Repo[%-v]: Error storing content for LFS object %-v: %v", repo, p, err)
+				return err
+			}
+			if _, err := git_model.NewLFSMetaObject(ctx, repo.ID, p); err != nil {
+				log.Error("Repo[%-v]: Error creating LFS meta object %-v: %v", repo, p, err)
+				return err
+			}
+			if err := git_model.RemoveLFSMirrorPending(ctx, repo.ID, p.Oid); err != nil {
+				log.Error("Repo[%-v]: Error removing pending LFS object %-v: %v", repo, p, err)
+				return err
+			}
+			return nil
+		})
+		// See processLFSPointerChan: return err unmodified (including any
+		// context-cancellation error) so a cancelled retry does not let the
+		// caller advance LFSLastRefs past objects that were never downloaded.
+		return err
+	}
+
+	var batch []lfs.Pointer
+	for _, obj := range pending {
+		if setting.LFS.MaxFileSize > 0 && obj.Size > setting.LFS.MaxFileSize {
+			continue
+		}
+		batch = append(batch, lfs.Pointer{Oid: obj.Oid, Size: obj.Size})
+		if len(batch) >= lfsClient.BatchSize() {
+			if err := downloadObjects(batch); err != nil {
+				return err
+			}
+			batch = nil
+		}
+	}
+	if len(batch) > 0 {
+		if err := downloadObjects(batch); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+// getCurrentRefSHAs returns the SHA of every ref in the repository.
+func getCurrentRefSHAs(ctx context.Context, gitRepo *git.Repository) ([]string, error) {
+	allRefs, err := gitRepo.GetRefs(ctx)
+	if err != nil {
+		return nil, err
+	}
+	refs := make([]string, 0, len(allRefs))
+	for _, ref := range allRefs {
+		refs = append(refs, ref.Object.String())
+	}
+	return refs, nil
 }
 
 // shortRelease to reduce load memory, this struct can replace repo_model.Release

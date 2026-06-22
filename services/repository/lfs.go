@@ -132,5 +132,23 @@ func GarbageCollectLFSMetaObjectsForRepo(ctx context.Context, repo *repo_model.R
 	} else if err != nil {
 		return err
 	}
+
+	// Clean up orphaned lfs_mirror_pending rows whose pointer blobs have been
+	// garbage-collected (e.g. after a branch deletion and git gc).
+	if opts.AutoFix {
+		pending, err := git_model.GetLFSMirrorPendingByRepoID(ctx, repo.ID)
+		if err != nil {
+			return err
+		}
+		for _, pointerBlob := range pending {
+			if pointerBlob.BlobSha == "" || gitRepo.IsObjectExist(ctx, pointerBlob.BlobSha) {
+				continue
+			}
+			if err := git_model.RemoveLFSMirrorPending(ctx, repo.ID, pointerBlob.Oid); err != nil {
+				log.Error("Unable to remove orphaned pending LFS object %s in %s: %v", pointerBlob.Oid, repo.FullName(), err)
+			}
+		}
+	}
+
 	return nil
 }

@@ -426,6 +426,7 @@ func prepareMigrationTasks() []*migration {
 		newMigration(350, "Add published_unix column to release", v28.AddPublishedUnixToRelease),
 		newMigration(351, "Track transfer recipient access grants", v28.AddRecipientAccessGrantedToRepoTransfer),
 		newMigration(352, "Add token columns to deploy_key", v28.AddTokenToDeployKey),
+		newMigration(353, "Add lfs_mirror_pending table and lfs_last_refs to mirror", v28.AddLFSMirrorPendingAndLFSLastRefsToMirror),
 	}
 	return preparedMigrations
 }
