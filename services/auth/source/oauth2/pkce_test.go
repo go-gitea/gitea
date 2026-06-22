@@ -78,7 +78,7 @@ func TestInjectPKCEVerifier(t *testing.T) {
 		require.NoError(t, store.Set(pkceSessionKey(sourceName), verifier))
 
 		req := newReq(t, store)
-		newSource(pkceProvider, sourceName).injectPKCEVerifier(req)
+		newSource("openidConnect", sourceName).injectPKCEVerifier(req)
 
 		q := req.URL.Query() // exactly what gothic.CompleteUserAuth reads
 		assert.Equal(t, verifier, q.Get("code_verifier"))
@@ -89,7 +89,7 @@ func TestInjectPKCEVerifier(t *testing.T) {
 
 	t.Run("no stored verifier is a no-op", func(t *testing.T) {
 		req := newReq(t, session_module.NewMockMemStore("test-sid"))
-		newSource(pkceProvider, sourceName).injectPKCEVerifier(req)
+		newSource("openidConnect", sourceName).injectPKCEVerifier(req)
 		assert.Empty(t, req.URL.Query().Get("code_verifier"))
 	})
 

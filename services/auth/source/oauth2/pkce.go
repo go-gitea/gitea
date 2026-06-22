@@ -7,14 +7,19 @@ import (
 	"net/http"
 	"net/url"
 
+	"gitea.dev/modules/log"
 	session_module "gitea.dev/modules/session"
 
 	"golang.org/x/oauth2"
 )
 
-// pkceProvider is the goth provider name (OpenIDProvider.Name()) of the OIDC login source.
-// PKCE is only applied to this provider; see beginPKCE and injectPKCEVerifier.
-const pkceProvider = "openidConnect"
+// supportsPKCE reports whether the source's provider type opts into PKCE (see Provider.SupportsPKCE).
+// PKCE is gated on the provider capability rather than a hardcoded provider name so it stays correct as
+// OIDC-based providers (e.g. AWS Cognito, which embeds OpenIDProvider) are added.
+func (source *Source) supportsPKCE() bool {
+	p, ok := gothProviders[source.Provider]
+	return ok && p.SupportsPKCE()
+}
 
 // pkceSessionKey returns the Gitea-session key under which the PKCE code_verifier is stored for a login source.
 // Keyed per source name (unique) to avoid collision with other session keys.
@@ -37,9 +42,9 @@ func addPKCEChallengeToURL(rawURL, verifier string) (string, error) {
 	return u.String(), nil
 }
 
-// beginPKCE generates a PKCE code_verifier for an OIDC login source, stashes it in the Gitea session, and
-// returns authURL with the matching S256 code_challenge appended so IdPs that REQUIRE PKCE accept the login
-// (gitea#21376, gitea#34747). For any other provider authURL is returned unchanged.
+// beginPKCE generates a PKCE code_verifier for a PKCE-capable login source, stashes it in the Gitea session,
+// and returns authURL with the matching S256 code_challenge appended so IdPs that REQUIRE PKCE accept the
+// login (gitea#21376, gitea#34747). For any other provider authURL is returned unchanged.
 //
 // goth's provider-level authCodeOptions are shared/static and cannot carry a per-request verifier, hence the
 // manual challenge plus own-session stash instead of going through goth. The verifier is keyed by source name
@@ -49,7 +54,7 @@ func addPKCEChallengeToURL(rawURL, verifier string) (string, error) {
 // Must be called AFTER gothic.GetAuthURL: GetAuthURL triggers RegenerateSession, which carries data forward,
 // so storing the verifier afterwards lands it in the surviving session.
 func (source *Source) beginPKCE(request *http.Request, authURL string) (string, error) {
-	if source.Provider != pkceProvider {
+	if !source.supportsPKCE() {
 		return authURL, nil
 	}
 	verifier := oauth2.GenerateVerifier()
@@ -71,7 +76,7 @@ func (source *Source) beginPKCE(request *http.Request, authURL string) (string, 
 // rewrite here is how the verifier reaches the exchange. If a goth upgrade changes where it reads the verifier
 // from, TestInjectPKCEVerifier still passes but real logins break, so re-verify that seam on any goth bump.
 func (source *Source) injectPKCEVerifier(request *http.Request) {
-	if source.Provider != pkceProvider {
+	if !source.supportsPKCE() {
 		return
 	}
 	sess := session_module.GetContextSession(request)
@@ -85,6 +90,12 @@ func (source *Source) injectPKCEVerifier(request *http.Request) {
 		q.Set("code_verifier", verifier)
 		request.URL.RawQuery = q.Encode()
 	}
-	_ = sess.Delete(key)
-	_ = sess.Release()
+	// Best-effort single-use cleanup: the verifier is already injected, so a failure here must not
+	// break the login, but it shouldn't be silent either (a stale verifier would otherwise be invisible).
+	if err := sess.Delete(key); err != nil {
+		log.Error("Failed to delete PKCE verifier from session for source %q: %v", source.AuthSource.Name, err)
+	}
+	if err := sess.Release(); err != nil {
+		log.Error("Failed to release session after consuming PKCE verifier for source %q: %v", source.AuthSource.Name, err)
+	}
 }
