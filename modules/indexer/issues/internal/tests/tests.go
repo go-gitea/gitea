@@ -688,7 +688,15 @@ func generateDefaultIndexerData() []*internal.IndexerData {
 			}
 			var assigneeIDs []int64
 			if issueIndex%10 != 0 {
-				assigneeIDs = []int64{issueIndex % 10}
+				assigneeID := issueIndex % 10
+				assigneeIDs = []int64{assigneeID}
+				if issueIndex%3 == 0 {
+					nextAssigneeID := assigneeID + 1
+					if nextAssigneeID == 10 {
+						nextAssigneeID = 1
+					}
+					assigneeIDs = append(assigneeIDs, nextAssigneeID)
+				}
 			}
 
 			data = append(data, &internal.IndexerData{

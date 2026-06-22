@@ -32,6 +32,7 @@ func TestBleveIndexerNoAssignee(t *testing.T) {
 	require.NoError(t, indexer.Index(t.Context(),
 		&internal.IndexerData{ID: 1, Title: "assigned through assignee_ids", AssigneeIDs: []int64{2}},
 		&internal.IndexerData{ID: 2, Title: "unassigned", NoAssignee: true},
+		&internal.IndexerData{ID: 3, Title: "assigned through multiple assignee_ids", AssigneeIDs: []int64{3, 4}},
 	))
 
 	testCases := []struct {
@@ -47,12 +48,22 @@ func TestBleveIndexerNoAssignee(t *testing.T) {
 		{
 			name:        "any",
 			opts:        &internal.SearchOptions{AssigneeID: "(any)"},
-			expectedIDs: []int64{1},
+			expectedIDs: []int64{1, 3},
 		},
 		{
 			name:        "specific",
 			opts:        &internal.SearchOptions{AssigneeID: "2"},
 			expectedIDs: []int64{1},
+		},
+		{
+			name:        "specific first multi-assignee",
+			opts:        &internal.SearchOptions{AssigneeID: "3"},
+			expectedIDs: []int64{3},
+		},
+		{
+			name:        "specific second multi-assignee",
+			opts:        &internal.SearchOptions{AssigneeID: "4"},
+			expectedIDs: []int64{3},
 		},
 	}
 
@@ -61,7 +72,7 @@ func TestBleveIndexerNoAssignee(t *testing.T) {
 			result, err := indexer.Search(t.Context(), testCase.opts)
 			require.NoError(t, err)
 			assert.Equal(t, int64(len(testCase.expectedIDs)), result.Total)
-			assert.Equal(t, testCase.expectedIDs, searchResultIDs(result))
+			assert.ElementsMatch(t, testCase.expectedIDs, searchResultIDs(result))
 		})
 	}
 }
