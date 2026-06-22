@@ -506,6 +506,7 @@ func cloneRunJobForAttempt(templateJob *actions_model.ActionRunJob, attempt *act
 		AttemptJobID:           templateJob.AttemptJobID,
 		Needs:                  slices.Clone(templateJob.Needs),
 		RunsOn:                 slices.Clone(templateJob.RunsOn),
+		ContinueOnError:        templateJob.ContinueOnError,
 		Status:                 templateJob.Status,
 		RawConcurrency:         templateJob.RawConcurrency,
 		IsConcurrencyEvaluated: templateJob.IsConcurrencyEvaluated,
