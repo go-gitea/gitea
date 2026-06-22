@@ -106,6 +106,12 @@
 							</div>
 						</div>
 
+						{{if .WorkflowBadge}}
+						<button class="ui mini button show-modal" data-modal="#workflow-status-badge-modal">
+							<span class="flex-text-inline">{{svg "octicon-file-badge" 14}}{{ctx.Locale.Tr "actions.workflow.create_status_badge"}}</span>
+						</button>
+						{{end}}
+
 						{{if and .AllowDisableOrEnableWorkflow .CurWorkflowIsListed $.CurWorkflow}}
 						<button class="ui jump dropdown btn interact-bg tw-p-2">
 							{{svg "octicon-kebab-horizontal"}}
@@ -126,6 +132,35 @@
 				<div class="ui attached segment">
 					{{template "repo/actions/runs_list" .}}
 				</div>
+				{{if .WorkflowBadge}}
+					<div id="workflow-status-badge-modal" class="ui tiny modal">
+						<div class="header">{{ctx.Locale.Tr "actions.workflow.status_badge"}}</div>
+						<div class="content">
+							<div class="ui form">
+								<div class="field">
+									<img src="{{.WorkflowBadge.URL}}" alt="{{.CurWorkflow}}">
+								</div>
+								<div class="field">
+									<label>{{ctx.Locale.Tr "actions.workflow.status_badge_url"}}</label>
+									<div class="ui action input">
+										<input id="workflow-badge-url" readonly value="{{.WorkflowBadge.URL}}">
+										<button class="ui icon button" data-tooltip-content="{{ctx.Locale.Tr "copy"}}" data-clipboard-target="#workflow-badge-url">{{svg "octicon-copy" 14}}</button>
+									</div>
+								</div>
+								<div class="field">
+									<label>{{ctx.Locale.Tr "actions.workflow.status_badge_markdown"}}</label>
+									<textarea id="workflow-badge-markdown" rows="2" readonly>{{.WorkflowBadge.Markdown}}</textarea>
+									<button class="ui icon button" data-tooltip-content="{{ctx.Locale.Tr "copy"}}" data-clipboard-target="#workflow-badge-markdown">{{svg "octicon-copy" 14}}</button>
+								</div>
+								<div class="field">
+									<label>{{ctx.Locale.Tr "actions.workflow.status_badge_html"}}</label>
+									<textarea id="workflow-badge-html" rows="2" readonly>{{.WorkflowBadge.HTML}}</textarea>
+									<button class="ui icon button" data-tooltip-content="{{ctx.Locale.Tr "copy"}}" data-clipboard-target="#workflow-badge-html">{{svg "octicon-copy" 14}}</button>
+								</div>
+							</div>
+						</div>
+					</div>
+				{{end}}
 			</div>
 		</div>
 		{{else}}
