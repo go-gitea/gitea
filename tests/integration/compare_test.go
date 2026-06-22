@@ -162,8 +162,8 @@ func TestCompareWithRefSuffix(t *testing.T) {
 	// resolves to a commit rather than a branch, so no pull request form is offered
 	req = NewRequest(t, "GET", "/user2/repo20/compare/add-csv~1...remove-files-b")
 	resp = session.MakeRequest(t, req, http.StatusOK)
-	htmlDoc = NewHTMLParser(t, resp.Body)
 	assert.True(t, test.IsNormalPageCompleted(resp.Body.String()))
+	htmlDoc = NewHTMLParser(t, resp.Body)
 	assert.Equal(t, 0, htmlDoc.doc.Find(".pullrequest-form").Length())
 
 	// the web handler folds an unsupported (^{...}) and an unresolvable (~50) suffix alike into 404
