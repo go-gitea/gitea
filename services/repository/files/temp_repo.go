@@ -47,7 +47,8 @@ func NewTemporaryUploadRepository(repo *repo_model.Repository) (*TemporaryUpload
 
 // Close the repository cleaning up all files
 func (t *TemporaryUploadRepository) Close() {
-	defer t.gitRepo.Close()
+	// must stop the repo access before removal, otherwise Windows can't remove the directory occupied by other processes
+	t.gitRepo.Close()
 	if t.cleanup != nil {
 		t.cleanup()
 	}
@@ -300,12 +301,7 @@ func (t *TemporaryUploadRepository) CommitTree(ctx context.Context, opts *Commit
 		cmdCommitTree.AddOptionFormat("-S%s", key.KeyID)
 		if t.repo.GetTrustModel() == repo_model.CommitterTrustModel || t.repo.GetTrustModel() == repo_model.CollaboratorCommitterTrustModel {
 			if committerSig.Name != authorSig.Name || committerSig.Email != authorSig.Email {
-				// Add trailers
-				_, _ = messageBytes.WriteString("\n")
-				_, _ = messageBytes.WriteString("Co-authored-by: ")
-				_, _ = messageBytes.WriteString(committerSig.String())
-				_, _ = messageBytes.WriteString("\n")
-				_, _ = messageBytes.WriteString("Co-committed-by: ")
+				_, _ = messageBytes.WriteString("\n" + git.CoAuthoredByTrailer + ": ")
 				_, _ = messageBytes.WriteString(committerSig.String())
 				_, _ = messageBytes.WriteString("\n")
 			}

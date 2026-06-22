@@ -64,7 +64,7 @@ func GetBranch(ctx *context.APIContext) {
 		ctx.APIErrorInternal(err)
 		return
 	} else if !exist {
-		ctx.APIErrorNotFound(err)
+		ctx.APIErrorNotFound()
 		return
 	}
 
@@ -153,7 +153,7 @@ func DeleteBranch(ctx *context.APIContext) {
 	if err := repo_service.DeleteBranch(ctx, ctx.Doer, ctx.Repo.Repository, ctx.Repo.GitRepo, branchName); err != nil {
 		switch {
 		case git.IsErrBranchNotExist(err):
-			ctx.APIErrorNotFound(err)
+			ctx.APIErrorNotFound()
 		case errors.Is(err, repo_service.ErrBranchIsDefault):
 			ctx.APIError(http.StatusForbidden, "can not delete default or pull request target branch")
 		case errors.Is(err, git_model.ErrBranchIsProtected):
@@ -446,7 +446,7 @@ func UpdateBranch(ctx *context.APIContext) {
 	if err := repo_service.UpdateBranch(ctx, repo, ctx.Repo.GitRepo, ctx.Doer, branchName, opt.NewCommitID, opt.OldCommitID, opt.Force); err != nil {
 		switch {
 		case git_model.IsErrBranchNotExist(err):
-			ctx.APIErrorNotFound(err)
+			ctx.APIErrorNotFound()
 		case errors.Is(err, util.ErrInvalidArgument):
 			ctx.APIError(http.StatusUnprocessableEntity, err.Error())
 		case git.IsErrPushRejected(err):
@@ -1335,6 +1335,9 @@ func MergeUpstream(ctx *context.APIContext) {
 			return
 		} else if errors.Is(err, util.ErrNotExist) {
 			ctx.APIError(http.StatusNotFound, err.Error())
+			return
+		} else if errors.Is(err, util.ErrPermissionDenied) {
+			ctx.APIError(http.StatusForbidden, err.Error())
 			return
 		}
 		ctx.APIErrorInternal(err)

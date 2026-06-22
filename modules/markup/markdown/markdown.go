@@ -65,17 +65,17 @@ func newParserContext(ctx *markup.RenderContext) parser.Context {
 	return pc
 }
 
-type GlodmarkRender struct {
+type GoldmarkRender struct {
 	ctx *markup.RenderContext
 
 	goldmarkMarkdown goldmark.Markdown
 }
 
-func (r *GlodmarkRender) Convert(source []byte, writer io.Writer, opts ...parser.ParseOption) error {
+func (r *GoldmarkRender) Convert(source []byte, writer io.Writer, opts ...parser.ParseOption) error {
 	return r.goldmarkMarkdown.Convert(source, writer, opts...)
 }
 
-func (r *GlodmarkRender) highlightingRenderer(w util.BufWriter, c highlighting.CodeBlockContext, entering bool) {
+func (r *GoldmarkRender) highlightingRenderer(w util.BufWriter, c highlighting.CodeBlockContext, entering bool) {
 	if entering {
 		languageBytes, _ := c.Language()
 		languageStr := giteautil.IfZero(string(languageBytes), "text")
@@ -136,10 +136,10 @@ func goldmarkDefaultParser() parser.Parser {
 }
 
 // SpecializedMarkdown sets up the Gitea specific markdown extensions
-func SpecializedMarkdown(ctx *markup.RenderContext) *GlodmarkRender {
+func SpecializedMarkdown(ctx *markup.RenderContext) *GoldmarkRender {
 	// TODO: it could use a pool to cache the renderers to reuse them with different contexts
 	// at the moment it is fast enough (see the benchmarks)
-	r := &GlodmarkRender{ctx: ctx}
+	r := &GoldmarkRender{ctx: ctx}
 	r.goldmarkMarkdown = goldmark.New(
 		goldmark.WithParser(goldmarkDefaultParser()),
 		goldmark.WithExtensions(

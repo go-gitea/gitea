@@ -21,7 +21,7 @@ import {initMarkupContent} from './markup/content.ts';
 import {initRepoFileView} from './features/file-view.ts';
 import {initUserExternalLogins, initUserCheckAppUrl} from './features/user-auth.ts';
 import {initRepoPullRequestReview, initRepoIssueFilterItemLabel} from './features/repo-issue.ts';
-import {initRepoEllipsisButton, initCommitStatuses, initCommitFileHistoryFollowRename} from './features/repo-commit.ts';
+import {initRepoEllipsisButton, initCommitStatuses, initAvatarStackPopup, initCommitFileHistoryFollowRename} from './features/repo-commit.ts';
 import {initRepoTopicBar} from './features/repo-home.ts';
 import {initAdminCommon} from './features/admin/common.ts';
 import {initRepoCodeView} from './features/repo-code.ts';
@@ -58,7 +58,7 @@ import {initAdminSelfCheck} from './features/admin/selfcheck.ts';
 import {initOAuth2SettingsDisableCheckbox} from './features/oauth2-settings.ts';
 import {initGlobalFetchAction} from './features/common-fetch-action.ts';
 import {initCommmPageComponents, initGlobalComponent, initGlobalDropdown, initGlobalInput} from './features/common-page.ts';
-import {initGlobalButtonClickOnEnter, initGlobalButtons, initGlobalDeleteButton} from './features/common-button.ts';
+import {initGlobalButtonClickOnEnter, initGlobalButtons} from './features/common-button.ts';
 import {initGlobalComboMarkdownEditor, initGlobalEnterQuickSubmit, initGlobalFormDirtyLeaveConfirm} from './features/common-form.ts';
 import {callInitFunctions} from './modules/init.ts';
 import {initRepoViewFileTree} from './features/repo-view-file-tree.ts';
@@ -81,7 +81,6 @@ const initPerformanceTracer = callInitFunctions([
   initGlobalEnterQuickSubmit,
   initGlobalFormDirtyLeaveConfirm,
   initGlobalComboMarkdownEditor,
-  initGlobalDeleteButton,
   initGlobalInput,
   initGlobalShortcut,
 
@@ -146,6 +145,7 @@ const initPerformanceTracer = callInitFunctions([
   initRepoRecentCommits,
 
   initCommitStatuses,
+  initAvatarStackPopup,
   initCaptcha,
 
   initUserCheckAppUrl,

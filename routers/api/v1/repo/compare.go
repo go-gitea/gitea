@@ -11,6 +11,7 @@ import (
 	api "gitea.dev/modules/structs"
 	"gitea.dev/services/context"
 	"gitea.dev/services/convert"
+	git_service "gitea.dev/services/git"
 )
 
 // CompareDiff compare two branches or commits
@@ -18,8 +19,12 @@ func CompareDiff(ctx *context.APIContext) {
 	// swagger:operation GET /repos/{owner}/{repo}/compare/{basehead} repository repoCompareDiff
 	// ---
 	// summary: Get commit comparison information
+	// description: |
+	//   By default returns JSON commit comparison information. The raw diff or patch can be
+	//   requested with the `output` query parameter set to `diff` or `patch` respectively.
 	// produces:
 	// - application/json
+	// - text/plain
 	// parameters:
 	// - name: owner
 	//   in: path
@@ -33,9 +38,16 @@ func CompareDiff(ctx *context.APIContext) {
 	//   required: true
 	// - name: basehead
 	//   in: path
-	//   description: compare two branches or commits
+	//   description: compare two refs as `base...head` (or `base..head`); refs may be branches, tags, full or short SHAs, including branch names that contain slashes.
 	//   type: string
 	//   required: true
+	// - name: output
+	//   in: query
+	//   description: return the raw comparison as `diff` or `patch` instead of JSON
+	//   type: string
+	//   enum:
+	//   - diff
+	//   - patch
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/Compare"
@@ -56,6 +68,16 @@ func CompareDiff(ctx *context.APIContext) {
 		return
 	}
 	defer closer()
+
+	// ?output=diff|patch returns the raw output, otherwise the JSON comparison is returned.
+	switch ctx.FormString("output") {
+	case "diff":
+		downloadCompareDiffOrPatch(ctx, compareInfo, false)
+		return
+	case "patch":
+		downloadCompareDiffOrPatch(ctx, compareInfo, true)
+		return
+	}
 
 	verification := ctx.FormString("verification") == "" || ctx.FormBool("verification")
 	files := ctx.FormString("files") == "" || ctx.FormBool("files")
@@ -87,4 +109,21 @@ func CompareDiff(ctx *context.APIContext) {
 		TotalCommits: len(compareInfo.Commits),
 		Commits:      apiCommits,
 	})
+}
+
+// downloadCompareDiffOrPatch writes a comparison's raw diff or patch to the response.
+func downloadCompareDiffOrPatch(ctx *context.APIContext, compareInfo *git_service.CompareInfo, patch bool) {
+	ctx.Resp.Header().Set("Content-Type", "text/plain; charset=utf-8")
+	compareArg := compareInfo.BaseCommitID + compareInfo.CompareSeparator + compareInfo.HeadCommitID
+
+	var err error
+	if patch {
+		err = compareInfo.HeadGitRepo.GetPatch(compareArg, ctx.Resp)
+	} else {
+		err = compareInfo.HeadGitRepo.GetDiff(compareArg, ctx.Resp)
+	}
+	if err != nil {
+		ctx.APIErrorInternal(err)
+		return
+	}
 }

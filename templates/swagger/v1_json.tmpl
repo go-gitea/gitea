@@ -5336,6 +5336,12 @@
             "in": "query"
           },
           {
+            "type": "boolean",
+            "description": "if true, the `pull_requests` field on each returned run is emptied",
+            "name": "exclude_pull_requests",
+            "in": "query"
+          },
+          {
             "type": "integer",
             "description": "page number of results to return (1-based)",
             "name": "page",
@@ -6622,6 +6628,103 @@
         }
       }
     },
+    "/repos/{owner}/{repo}/actions/workflows/{workflow_id}/runs": {
+      "get": {
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "repository"
+        ],
+        "summary": "List runs for a workflow",
+        "operationId": "ActionsListWorkflowRuns",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "owner of the repo",
+            "name": "owner",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "name of the repo",
+            "name": "repo",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "id of the workflow, must be the workflow file name (e.g. `build.yml`)",
+            "name": "workflow_id",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "workflow event name",
+            "name": "event",
+            "in": "query"
+          },
+          {
+            "type": "string",
+            "description": "workflow branch",
+            "name": "branch",
+            "in": "query"
+          },
+          {
+            "type": "string",
+            "description": "workflow status (pending, queued, in_progress, failure, success, skipped)",
+            "name": "status",
+            "in": "query"
+          },
+          {
+            "type": "string",
+            "description": "triggered by user",
+            "name": "actor",
+            "in": "query"
+          },
+          {
+            "type": "string",
+            "description": "triggering sha of the workflow run",
+            "name": "head_sha",
+            "in": "query"
+          },
+          {
+            "type": "boolean",
+            "description": "if true, the `pull_requests` field on each returned run is emptied",
+            "name": "exclude_pull_requests",
+            "in": "query"
+          },
+          {
+            "type": "integer",
+            "description": "page number of results to return (1-based)",
+            "name": "page",
+            "in": "query"
+          },
+          {
+            "type": "integer",
+            "description": "page size of results",
+            "name": "limit",
+            "in": "query"
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/responses/WorkflowRunsList"
+          },
+          "400": {
+            "$ref": "#/responses/error"
+          },
+          "403": {
+            "$ref": "#/responses/forbidden"
+          },
+          "404": {
+            "$ref": "#/responses/notFound"
+          }
+        }
+      }
+    },
     "/repos/{owner}/{repo}/activities/feeds": {
       "get": {
         "produces": [
@@ -6759,6 +6862,52 @@
         "responses": {
           "200": {
             "$ref": "#/responses/UserList"
+          },
+          "404": {
+            "$ref": "#/responses/notFound"
+          }
+        }
+      }
+    },
+    "/repos/{owner}/{repo}/assignees/{assignee}": {
+      "get": {
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "repository"
+        ],
+        "summary": "Check if a user can be assigned to issues in a repository",
+        "operationId": "repoCheckAssignee",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "owner of the repo",
+            "name": "owner",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "name of the repo",
+            "name": "repo",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "username of the user to check for being an assignee",
+            "name": "assignee",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "204": {
+            "$ref": "#/responses/empty"
+          },
+          "400": {
+            "$ref": "#/responses/error"
           },
           "404": {
             "$ref": "#/responses/notFound"
@@ -7959,8 +8108,10 @@
     },
     "/repos/{owner}/{repo}/compare/{basehead}": {
       "get": {
+        "description": "By default returns JSON commit comparison information. The raw diff or patch can be\nrequested with the `output` query parameter set to `diff` or `patch` respectively.\n",
         "produces": [
-          "application/json"
+          "application/json",
+          "text/plain"
         ],
         "tags": [
           "repository"
@@ -7984,10 +8135,20 @@
           },
           {
             "type": "string",
-            "description": "compare two branches or commits",
+            "description": "compare two refs as `base...head` (or `base..head`); refs may be branches, tags, full or short SHAs, including branch names that contain slashes.",
             "name": "basehead",
             "in": "path",
             "required": true
+          },
+          {
+            "enum": [
+              "diff",
+              "patch"
+            ],
+            "type": "string",
+            "description": "return the raw comparison as `diff` or `patch` instead of JSON",
+            "name": "output",
+            "in": "query"
           }
         ],
         "responses": {
@@ -10958,6 +11119,183 @@
           },
           "423": {
             "$ref": "#/responses/repoArchivedError"
+          }
+        }
+      }
+    },
+    "/repos/{owner}/{repo}/issues/{index}/assignees": {
+      "post": {
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "issue"
+        ],
+        "summary": "Add assignees to an issue",
+        "operationId": "issueAddAssignees",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "owner of the repo",
+            "name": "owner",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "name of the repo",
+            "name": "repo",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "integer",
+            "format": "int64",
+            "description": "index of the issue",
+            "name": "index",
+            "in": "path",
+            "required": true
+          },
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/IssueAssigneesOption"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "$ref": "#/responses/Issue"
+          },
+          "400": {
+            "$ref": "#/responses/error"
+          },
+          "403": {
+            "$ref": "#/responses/forbidden"
+          },
+          "404": {
+            "$ref": "#/responses/notFound"
+          },
+          "422": {
+            "$ref": "#/responses/validationError"
+          }
+        }
+      },
+      "delete": {
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "issue"
+        ],
+        "summary": "Remove assignees from an issue",
+        "operationId": "issueRemoveAssignees",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "owner of the repo",
+            "name": "owner",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "name of the repo",
+            "name": "repo",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "integer",
+            "format": "int64",
+            "description": "index of the issue",
+            "name": "index",
+            "in": "path",
+            "required": true
+          },
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/IssueAssigneesOption"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/responses/Issue"
+          },
+          "403": {
+            "$ref": "#/responses/forbidden"
+          },
+          "404": {
+            "$ref": "#/responses/notFound"
+          },
+          "422": {
+            "$ref": "#/responses/validationError"
+          }
+        }
+      }
+    },
+    "/repos/{owner}/{repo}/issues/{index}/assignees/{assignee}": {
+      "get": {
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "issue"
+        ],
+        "summary": "Check if a user can be assigned to an issue",
+        "operationId": "issueCheckAssignee",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "owner of the repo",
+            "name": "owner",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "name of the repo",
+            "name": "repo",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "integer",
+            "format": "int64",
+            "description": "index of the issue",
+            "name": "index",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "username of the user to check for being an assignee",
+            "name": "assignee",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "204": {
+            "$ref": "#/responses/empty"
+          },
+          "400": {
+            "$ref": "#/responses/error"
+          },
+          "404": {
+            "$ref": "#/responses/notFound"
           }
         }
       }
@@ -18876,6 +19214,38 @@
         }
       }
     },
+    "/token": {
+      "get": {
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "miscellaneous"
+        ],
+        "summary": "Get the currently authenticated token",
+        "operationId": "getCurrentToken",
+        "responses": {
+          "200": {
+            "$ref": "#/responses/CurrentAccessToken"
+          }
+        }
+      },
+      "delete": {
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "miscellaneous"
+        ],
+        "summary": "Delete the currently authenticated token",
+        "operationId": "deleteCurrentToken",
+        "responses": {
+          "204": {
+            "description": "token deleted"
+          }
+        }
+      }
+    },
     "/topics/search": {
       "get": {
         "produces": [
@@ -22172,6 +22542,13 @@
           "type": "string",
           "x-go-name": "PreviousAttemptURL"
         },
+        "pull_requests": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/PullRequestMinimal"
+          },
+          "x-go-name": "PullRequests"
+        },
         "repository": {
           "$ref": "#/definitions/Repository"
         },
@@ -22995,7 +23372,7 @@
           "x-go-name": "SHA"
         },
         "state": {
-          "description": "State is the overall combined status state\npending CommitStatusPending  CommitStatusPending is for when the CommitStatus is Pending\nsuccess CommitStatusSuccess  CommitStatusSuccess is for when the CommitStatus is Success\nerror CommitStatusError  CommitStatusError is for when the CommitStatus is Error\nfailure CommitStatusFailure  CommitStatusFailure is for when the CommitStatus is Failure\nwarning CommitStatusWarning  CommitStatusWarning is for when the CommitStatus is Warning\nskipped CommitStatusSkipped  CommitStatusSkipped is for when CommitStatus is Skipped",
+          "description": "State is the overall combined status state\npending CommitStatusPending is for when the CommitStatus is Pending\nsuccess CommitStatusSuccess is for when the CommitStatus is Success\nerror CommitStatusError is for when the CommitStatus is Error\nfailure CommitStatusFailure is for when the CommitStatus is Failure\nwarning CommitStatusWarning is for when the CommitStatus is Warning\nskipped CommitStatusSkipped is for when CommitStatus is Skipped",
           "type": "string",
           "enum": [
             "pending",
@@ -23005,7 +23382,7 @@
             "warning",
             "skipped"
           ],
-          "x-go-enum-desc": "pending CommitStatusPending  CommitStatusPending is for when the CommitStatus is Pending\nsuccess CommitStatusSuccess  CommitStatusSuccess is for when the CommitStatus is Success\nerror CommitStatusError  CommitStatusError is for when the CommitStatus is Error\nfailure CommitStatusFailure  CommitStatusFailure is for when the CommitStatus is Failure\nwarning CommitStatusWarning  CommitStatusWarning is for when the CommitStatus is Warning\nskipped CommitStatusSkipped  CommitStatusSkipped is for when CommitStatus is Skipped",
+          "x-go-enum-desc": "pending CommitStatusPending is for when the CommitStatus is Pending\nsuccess CommitStatusSuccess is for when the CommitStatus is Success\nerror CommitStatusError is for when the CommitStatus is Error\nfailure CommitStatusFailure is for when the CommitStatus is Failure\nwarning CommitStatusWarning is for when the CommitStatus is Warning\nskipped CommitStatusSkipped is for when CommitStatus is Skipped",
           "x-go-name": "State"
         },
         "statuses": {
@@ -23260,7 +23637,7 @@
           "x-go-name": "ID"
         },
         "status": {
-          "description": "State represents the status state (pending, success, error, failure)\npending CommitStatusPending  CommitStatusPending is for when the CommitStatus is Pending\nsuccess CommitStatusSuccess  CommitStatusSuccess is for when the CommitStatus is Success\nerror CommitStatusError  CommitStatusError is for when the CommitStatus is Error\nfailure CommitStatusFailure  CommitStatusFailure is for when the CommitStatus is Failure\nwarning CommitStatusWarning  CommitStatusWarning is for when the CommitStatus is Warning\nskipped CommitStatusSkipped  CommitStatusSkipped is for when CommitStatus is Skipped",
+          "description": "State represents the status state (pending, success, error, failure)\npending CommitStatusPending is for when the CommitStatus is Pending\nsuccess CommitStatusSuccess is for when the CommitStatus is Success\nerror CommitStatusError is for when the CommitStatus is Error\nfailure CommitStatusFailure is for when the CommitStatus is Failure\nwarning CommitStatusWarning is for when the CommitStatus is Warning\nskipped CommitStatusSkipped is for when CommitStatus is Skipped",
           "type": "string",
           "enum": [
             "pending",
@@ -23270,7 +23647,7 @@
             "warning",
             "skipped"
           ],
-          "x-go-enum-desc": "pending CommitStatusPending  CommitStatusPending is for when the CommitStatus is Pending\nsuccess CommitStatusSuccess  CommitStatusSuccess is for when the CommitStatus is Success\nerror CommitStatusError  CommitStatusError is for when the CommitStatus is Error\nfailure CommitStatusFailure  CommitStatusFailure is for when the CommitStatus is Failure\nwarning CommitStatusWarning  CommitStatusWarning is for when the CommitStatus is Warning\nskipped CommitStatusSkipped  CommitStatusSkipped is for when CommitStatus is Skipped",
+          "x-go-enum-desc": "pending CommitStatusPending is for when the CommitStatus is Pending\nsuccess CommitStatusSuccess is for when the CommitStatus is Success\nerror CommitStatusError is for when the CommitStatus is Error\nfailure CommitStatusFailure is for when the CommitStatus is Failure\nwarning CommitStatusWarning is for when the CommitStatus is Warning\nskipped CommitStatusSkipped is for when CommitStatus is Skipped",
           "x-go-name": "State"
         },
         "target_url": {
@@ -24313,7 +24690,7 @@
             "REQUEST_CHANGES",
             "REQUEST_REVIEW"
           ],
-          "x-go-enum-desc": "APPROVED ReviewStateApproved  ReviewStateApproved pr is approved\nPENDING ReviewStatePending  ReviewStatePending pr state is pending\nCOMMENT ReviewStateComment  ReviewStateComment is a comment review\nREQUEST_CHANGES ReviewStateRequestChanges  ReviewStateRequestChanges changes for pr are requested\nREQUEST_REVIEW ReviewStateRequestReview  ReviewStateRequestReview review is requested from user",
+          "x-go-enum-desc": "APPROVED ReviewStateApproved pr is approved\nPENDING ReviewStatePending pr state is pending\nCOMMENT ReviewStateComment is a comment review\nREQUEST_CHANGES ReviewStateRequestChanges changes for pr are requested\nREQUEST_REVIEW ReviewStateRequestReview review is requested from user",
           "x-go-name": "Event"
         }
       },
@@ -24492,7 +24869,7 @@
           "x-go-name": "Description"
         },
         "state": {
-          "description": "State represents the status state to set (pending, success, error, failure)\npending CommitStatusPending  CommitStatusPending is for when the CommitStatus is Pending\nsuccess CommitStatusSuccess  CommitStatusSuccess is for when the CommitStatus is Success\nerror CommitStatusError  CommitStatusError is for when the CommitStatus is Error\nfailure CommitStatusFailure  CommitStatusFailure is for when the CommitStatus is Failure\nwarning CommitStatusWarning  CommitStatusWarning is for when the CommitStatus is Warning\nskipped CommitStatusSkipped  CommitStatusSkipped is for when CommitStatus is Skipped",
+          "description": "State represents the status state to set (pending, success, error, failure)\npending CommitStatusPending is for when the CommitStatus is Pending\nsuccess CommitStatusSuccess is for when the CommitStatus is Success\nerror CommitStatusError is for when the CommitStatus is Error\nfailure CommitStatusFailure is for when the CommitStatus is Failure\nwarning CommitStatusWarning is for when the CommitStatus is Warning\nskipped CommitStatusSkipped is for when CommitStatus is Skipped",
           "type": "string",
           "enum": [
             "pending",
@@ -24502,7 +24879,7 @@
             "warning",
             "skipped"
           ],
-          "x-go-enum-desc": "pending CommitStatusPending  CommitStatusPending is for when the CommitStatus is Pending\nsuccess CommitStatusSuccess  CommitStatusSuccess is for when the CommitStatus is Success\nerror CommitStatusError  CommitStatusError is for when the CommitStatus is Error\nfailure CommitStatusFailure  CommitStatusFailure is for when the CommitStatus is Failure\nwarning CommitStatusWarning  CommitStatusWarning is for when the CommitStatus is Warning\nskipped CommitStatusSkipped  CommitStatusSkipped is for when CommitStatus is Skipped",
+          "x-go-enum-desc": "pending CommitStatusPending is for when the CommitStatus is Pending\nsuccess CommitStatusSuccess is for when the CommitStatus is Success\nerror CommitStatusError is for when the CommitStatus is Error\nfailure CommitStatusFailure is for when the CommitStatus is Failure\nwarning CommitStatusWarning is for when the CommitStatus is Warning\nskipped CommitStatusSkipped is for when CommitStatus is Skipped",
           "x-go-name": "State"
         },
         "target_url": {
@@ -24627,6 +25004,17 @@
           },
           "x-go-name": "UnitsMap",
           "example": "{\"repo.actions\",\"repo.packages\",\"repo.code\":\"read\",\"repo.issues\":\"write\",\"repo.ext_issues\":\"none\",\"repo.wiki\":\"admin\",\"repo.pulls\":\"owner\",\"repo.releases\":\"none\",\"repo.projects\":\"none\",\"repo.ext_wiki\":\"none\"}"
+        },
+        "visibility": {
+          "description": "Team visibility within the organization. Defaults to \"private\".\npublic TeamVisibilityPublic\nlimited TeamVisibilityLimited\nprivate TeamVisibilityPrivate",
+          "type": "string",
+          "enum": [
+            "public",
+            "limited",
+            "private"
+          ],
+          "x-go-enum-desc": "public TeamVisibilityPublic\nlimited TeamVisibilityLimited\nprivate TeamVisibilityPrivate",
+          "x-go-name": "Visibility"
         }
       },
       "x-go-package": "gitea.dev/modules/structs"
@@ -24779,6 +25167,47 @@
           "description": "The cron schedule expression (e.g., \"0 0 * * *\")",
           "type": "string",
           "x-go-name": "Schedule"
+        }
+      },
+      "x-go-package": "gitea.dev/modules/structs"
+    },
+    "CurrentAccessToken": {
+      "type": "object",
+      "title": "CurrentAccessToken represents the metadata of the currently authenticated token.",
+      "properties": {
+        "created_at": {
+          "description": "The timestamp when the token was created",
+          "type": "string",
+          "format": "date-time",
+          "x-go-name": "CreatedAt"
+        },
+        "id": {
+          "description": "The unique identifier of the access token",
+          "type": "integer",
+          "format": "int64",
+          "x-go-name": "ID"
+        },
+        "last_used_at": {
+          "description": "The timestamp when the token was last used",
+          "type": "string",
+          "format": "date-time",
+          "x-go-name": "LastUsedAt"
+        },
+        "name": {
+          "description": "The name of the access token",
+          "type": "string",
+          "x-go-name": "Name"
+        },
+        "scopes": {
+          "description": "The scopes granted to this access token",
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "x-go-name": "Scopes"
+        },
+        "user": {
+          "$ref": "#/definitions/UserMeta"
         }
       },
       "x-go-package": "gitea.dev/modules/structs"
@@ -25784,6 +26213,17 @@
             "repo.releases": "none",
             "repo.wiki": "admin"
           }
+        },
+        "visibility": {
+          "description": "Team visibility within the organization. When omitted, visibility is\nleft unchanged.\npublic TeamVisibilityPublic\nlimited TeamVisibilityLimited\nprivate TeamVisibilityPrivate",
+          "type": "string",
+          "enum": [
+            "public",
+            "limited",
+            "private"
+          ],
+          "x-go-enum-desc": "public TeamVisibilityPublic\nlimited TeamVisibilityLimited\nprivate TeamVisibilityPrivate",
+          "x-go-name": "Visibility"
         }
       },
       "x-go-package": "gitea.dev/modules/structs"
@@ -26811,7 +27251,7 @@
             "open",
             "closed"
           ],
-          "x-go-enum-desc": "open StateOpen  StateOpen pr is opened\nclosed StateClosed  StateClosed pr is closed",
+          "x-go-enum-desc": "open StateOpen pr is opened\nclosed StateClosed pr is closed",
           "x-go-name": "State"
         },
         "time_estimate": {
@@ -26834,6 +27274,20 @@
         },
         "user": {
           "$ref": "#/definitions/User"
+        }
+      },
+      "x-go-package": "gitea.dev/modules/structs"
+    },
+    "IssueAssigneesOption": {
+      "description": "IssueAssigneesOption options for adding/removing issue assignees",
+      "type": "object",
+      "properties": {
+        "assignees": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "x-go-name": "Assignees"
         }
       },
       "x-go-package": "gitea.dev/modules/structs"
@@ -27169,19 +27623,19 @@
       "type": "object",
       "properties": {
         "Context": {
-          "description": "URL path for rendering issue, media and file links\nExpected format: /subpath/{user}/{repo}/src/{branch, commit, tag}/{identifier/path}/{file/dir}\n\nin: body",
+          "description": "URL path for rendering issue, media and file links\nExpected format: /subpath/{user}/{repo}/src/{branch, commit, tag}/{identifier/path}/{file/dir}",
           "type": "string"
         },
         "Mode": {
-          "description": "Mode to render (markdown, comment, wiki, file)\n\nin: body",
+          "description": "Mode to render (markdown, comment, wiki, file)",
           "type": "string"
         },
         "Text": {
-          "description": "Text markdown to render\n\nin: body",
+          "description": "Text markdown to render",
           "type": "string"
         },
         "Wiki": {
-          "description": "Is it a wiki page? (use mode=wiki instead)\n\nDeprecated: true\nin: body",
+          "description": "Is it a wiki page? (use mode=wiki instead)\n\nDeprecated: true",
           "type": "boolean"
         }
       },
@@ -27192,23 +27646,23 @@
       "type": "object",
       "properties": {
         "Context": {
-          "description": "URL path for rendering issue, media and file links\nExpected format: /subpath/{user}/{repo}/src/{branch, commit, tag}/{identifier/path}/{file/dir}\n\nin: body",
+          "description": "URL path for rendering issue, media and file links\nExpected format: /subpath/{user}/{repo}/src/{branch, commit, tag}/{identifier/path}/{file/dir}",
           "type": "string"
         },
         "FilePath": {
-          "description": "File path for detecting extension in file mode\n\nin: body",
+          "description": "File path for detecting extension in file mode",
           "type": "string"
         },
         "Mode": {
-          "description": "Mode to render (markdown, comment, wiki, file)\n\nin: body",
+          "description": "Mode to render (markdown, comment, wiki, file)",
           "type": "string"
         },
         "Text": {
-          "description": "Text markup to render\n\nin: body",
+          "description": "Text markup to render",
           "type": "string"
         },
         "Wiki": {
-          "description": "Is it a wiki page? (use mode=wiki instead)\n\nDeprecated: true\nin: body",
+          "description": "Is it a wiki page? (use mode=wiki instead)\n\nDeprecated: true",
           "type": "boolean"
         }
       },
@@ -27445,13 +27899,13 @@
           "x-go-name": "OpenIssues"
         },
         "state": {
-          "description": "State indicates if the milestone is open or closed\nopen StateOpen  StateOpen pr is opened\nclosed StateClosed  StateClosed pr is closed",
+          "description": "State indicates if the milestone is open or closed\nopen StateOpen pr is opened\nclosed StateClosed pr is closed",
           "type": "string",
           "enum": [
             "open",
             "closed"
           ],
-          "x-go-enum-desc": "open StateOpen  StateOpen pr is opened\nclosed StateClosed  StateClosed pr is closed",
+          "x-go-enum-desc": "open StateOpen pr is opened\nclosed StateClosed pr is closed",
           "x-go-name": "State"
         },
         "title": {
@@ -27666,14 +28120,14 @@
           "x-go-name": "LatestCommentURL"
         },
         "state": {
-          "description": "State indicates the current state of the notification subject\nopen NotifySubjectStateOpen  NotifySubjectStateOpen is an open subject\nclosed NotifySubjectStateClosed  NotifySubjectStateClosed is a closed subject\nmerged NotifySubjectStateMerged  NotifySubjectStateMerged is a merged pull request",
+          "description": "State indicates the current state of the notification subject\nopen NotifySubjectStateOpen is an open subject\nclosed NotifySubjectStateClosed is a closed subject\nmerged NotifySubjectStateMerged is a merged pull request",
           "type": "string",
           "enum": [
             "open",
             "closed",
             "merged"
           ],
-          "x-go-enum-desc": "open NotifySubjectStateOpen  NotifySubjectStateOpen is an open subject\nclosed NotifySubjectStateClosed  NotifySubjectStateClosed is a closed subject\nmerged NotifySubjectStateMerged  NotifySubjectStateMerged is a merged pull request",
+          "x-go-enum-desc": "open NotifySubjectStateOpen is an open subject\nclosed NotifySubjectStateClosed is a closed subject\nmerged NotifySubjectStateMerged is a merged pull request",
           "x-go-name": "State"
         },
         "title": {
@@ -27682,7 +28136,7 @@
           "x-go-name": "Title"
         },
         "type": {
-          "description": "Type indicates the type of the notification subject\nIssue NotifySubjectIssue  NotifySubjectIssue a issue is subject of an notification\nPull NotifySubjectPull  NotifySubjectPull a pull is subject of an notification\nCommit NotifySubjectCommit  NotifySubjectCommit a commit is subject of an notification\nRepository NotifySubjectRepository  NotifySubjectRepository a repository is subject of an notification",
+          "description": "Type indicates the type of the notification subject\nIssue NotifySubjectIssue a issue is subject of an notification\nPull NotifySubjectPull a pull is subject of an notification\nCommit NotifySubjectCommit a commit is subject of an notification\nRepository NotifySubjectRepository a repository is subject of an notification",
           "type": "string",
           "enum": [
             "Issue",
@@ -27690,7 +28144,7 @@
             "Commit",
             "Repository"
           ],
-          "x-go-enum-desc": "Issue NotifySubjectIssue  NotifySubjectIssue a issue is subject of an notification\nPull NotifySubjectPull  NotifySubjectPull a pull is subject of an notification\nCommit NotifySubjectCommit  NotifySubjectCommit a commit is subject of an notification\nRepository NotifySubjectRepository  NotifySubjectRepository a repository is subject of an notification",
+          "x-go-enum-desc": "Issue NotifySubjectIssue a issue is subject of an notification\nPull NotifySubjectPull a pull is subject of an notification\nCommit NotifySubjectCommit a commit is subject of an notification\nRepository NotifySubjectRepository a repository is subject of an notification",
           "x-go-name": "Type"
         },
         "url": {
@@ -28446,13 +28900,13 @@
           "x-go-name": "ReviewComments"
         },
         "state": {
-          "description": "The current state of the pull request\nopen StateOpen  StateOpen pr is opened\nclosed StateClosed  StateClosed pr is closed",
+          "description": "The current state of the pull request\nopen StateOpen pr is opened\nclosed StateClosed pr is closed",
           "type": "string",
           "enum": [
             "open",
             "closed"
           ],
-          "x-go-enum-desc": "open StateOpen  StateOpen pr is opened\nclosed StateClosed  StateClosed pr is closed",
+          "x-go-enum-desc": "open StateOpen pr is opened\nclosed StateClosed pr is closed",
           "x-go-name": "State"
         },
         "title": {
@@ -28496,6 +28950,71 @@
           "type": "string",
           "format": "date-time",
           "x-go-name": "Merged"
+        }
+      },
+      "x-go-package": "gitea.dev/modules/structs"
+    },
+    "PullRequestMinimal": {
+      "description": "PullRequestMinimal is the minimal information about a pull request, as\nreturned in the `pull_requests` field of a workflow run.",
+      "type": "object",
+      "properties": {
+        "base": {
+          "$ref": "#/definitions/PullRequestMinimalHead"
+        },
+        "head": {
+          "$ref": "#/definitions/PullRequestMinimalHead"
+        },
+        "id": {
+          "type": "integer",
+          "format": "int64",
+          "x-go-name": "ID"
+        },
+        "number": {
+          "type": "integer",
+          "format": "int64",
+          "x-go-name": "Number"
+        },
+        "url": {
+          "type": "string",
+          "x-go-name": "URL"
+        }
+      },
+      "x-go-package": "gitea.dev/modules/structs"
+    },
+    "PullRequestMinimalHead": {
+      "type": "object",
+      "title": "PullRequestMinimalHead is a minimal description of one side of a pull request.",
+      "properties": {
+        "ref": {
+          "type": "string",
+          "x-go-name": "Ref"
+        },
+        "repo": {
+          "$ref": "#/definitions/PullRequestMinimalHeadRepo"
+        },
+        "sha": {
+          "type": "string",
+          "x-go-name": "SHA"
+        }
+      },
+      "x-go-package": "gitea.dev/modules/structs"
+    },
+    "PullRequestMinimalHeadRepo": {
+      "type": "object",
+      "title": "PullRequestMinimalHeadRepo is a minimal description of the repository on one side of a pull request.",
+      "properties": {
+        "id": {
+          "type": "integer",
+          "format": "int64",
+          "x-go-name": "ID"
+        },
+        "name": {
+          "type": "string",
+          "x-go-name": "Name"
+        },
+        "url": {
+          "type": "string",
+          "x-go-name": "URL"
         }
       },
       "x-go-package": "gitea.dev/modules/structs"
@@ -28553,7 +29072,7 @@
             "REQUEST_CHANGES",
             "REQUEST_REVIEW"
           ],
-          "x-go-enum-desc": "APPROVED ReviewStateApproved  ReviewStateApproved pr is approved\nPENDING ReviewStatePending  ReviewStatePending pr state is pending\nCOMMENT ReviewStateComment  ReviewStateComment is a comment review\nREQUEST_CHANGES ReviewStateRequestChanges  ReviewStateRequestChanges changes for pr are requested\nREQUEST_REVIEW ReviewStateRequestReview  ReviewStateRequestReview review is requested from user",
+          "x-go-enum-desc": "APPROVED ReviewStateApproved pr is approved\nPENDING ReviewStatePending pr state is pending\nCOMMENT ReviewStateComment is a comment review\nREQUEST_CHANGES ReviewStateRequestChanges changes for pr are requested\nREQUEST_REVIEW ReviewStateRequestReview review is requested from user",
           "x-go-name": "State"
         },
         "submitted_at": {
@@ -29448,7 +29967,7 @@
             "REQUEST_CHANGES",
             "REQUEST_REVIEW"
           ],
-          "x-go-enum-desc": "APPROVED ReviewStateApproved  ReviewStateApproved pr is approved\nPENDING ReviewStatePending  ReviewStatePending pr state is pending\nCOMMENT ReviewStateComment  ReviewStateComment is a comment review\nREQUEST_CHANGES ReviewStateRequestChanges  ReviewStateRequestChanges changes for pr are requested\nREQUEST_REVIEW ReviewStateRequestReview  ReviewStateRequestReview review is requested from user",
+          "x-go-enum-desc": "APPROVED ReviewStateApproved pr is approved\nPENDING ReviewStatePending pr state is pending\nCOMMENT ReviewStateComment is a comment review\nREQUEST_CHANGES ReviewStateRequestChanges changes for pr are requested\nREQUEST_REVIEW ReviewStateRequestReview review is requested from user",
           "x-go-name": "Event"
         }
       },
@@ -29611,6 +30130,17 @@
             "repo.releases": "none",
             "repo.wiki": "admin"
           }
+        },
+        "visibility": {
+          "description": "Team visibility within the organization. \"private\" teams are only\nlistable by members and org owners; \"limited\" teams are listable by\nany organization member; \"public\" teams are listable by any signed-in\nuser.\npublic TeamVisibilityPublic\nlimited TeamVisibilityLimited\nprivate TeamVisibilityPrivate",
+          "type": "string",
+          "enum": [
+            "public",
+            "limited",
+            "private"
+          ],
+          "x-go-enum-desc": "public TeamVisibilityPublic\nlimited TeamVisibilityLimited\nprivate TeamVisibilityPrivate",
+          "x-go-name": "Visibility"
         }
       },
       "x-go-package": "gitea.dev/modules/structs"
@@ -30173,6 +30703,24 @@
       },
       "x-go-package": "gitea.dev/models/activities"
     },
+    "UserMeta": {
+      "type": "object",
+      "title": "UserMeta represents minimal user information for the token owner.",
+      "properties": {
+        "id": {
+          "description": "The unique identifier of the user",
+          "type": "integer",
+          "format": "int64",
+          "x-go-name": "ID"
+        },
+        "login": {
+          "description": "The username of the user",
+          "type": "string",
+          "x-go-name": "Login"
+        }
+      },
+      "x-go-package": "gitea.dev/modules/structs"
+    },
     "UserSettings": {
       "description": "UserSettings represents user settings",
       "type": "object",
@@ -30675,6 +31223,12 @@
         "items": {
           "$ref": "#/definitions/Cron"
         }
+      }
+    },
+    "CurrentAccessToken": {
+      "description": "CurrentAccessToken represents the currently authenticated access token.",
+      "schema": {
+        "$ref": "#/definitions/CurrentAccessToken"
       }
     },
     "DeployKey": {

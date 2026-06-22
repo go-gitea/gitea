@@ -63,11 +63,7 @@ func ListPullReviews(ctx *context.APIContext) {
 
 	pr, err := issues_model.GetPullRequestByIndex(ctx, ctx.Repo.Repository.ID, ctx.PathParamInt64("index"))
 	if err != nil {
-		if issues_model.IsErrPullRequestNotExist(err) {
-			ctx.APIErrorNotFound("GetPullRequestByIndex", err)
-		} else {
-			ctx.APIErrorInternal(err)
-		}
+		ctx.APIErrorAuto(err)
 		return
 	}
 
@@ -389,11 +385,7 @@ func updatePullReviewCommentResolve(ctx *context.APIContext, isResolve bool) {
 func getPullReviewCommentToResolve(ctx *context.APIContext) *issues_model.Comment {
 	comment, err := issues_model.GetCommentWithRepoID(ctx, ctx.Repo.Repository.ID, ctx.PathParamInt64("id"))
 	if err != nil {
-		if issues_model.IsErrCommentNotExist(err) {
-			ctx.APIErrorNotFound("GetCommentByID", err)
-		} else {
-			ctx.APIErrorInternal(err)
-		}
+		ctx.APIErrorAuto(err)
 		return nil
 	}
 
@@ -510,11 +502,7 @@ func CreatePullReview(ctx *context.APIContext) {
 	opts := web.GetForm(ctx).(*api.CreatePullReviewOptions)
 	pr, err := issues_model.GetPullRequestByIndex(ctx, ctx.Repo.Repository.ID, ctx.PathParamInt64("index"))
 	if err != nil {
-		if issues_model.IsErrPullRequestNotExist(err) {
-			ctx.APIErrorNotFound("GetPullRequestByIndex", err)
-		} else {
-			ctx.APIErrorInternal(err)
-		}
+		ctx.APIErrorAuto(err)
 		return
 	}
 
@@ -737,33 +725,25 @@ func preparePullReviewType(ctx *context.APIContext, pr *issues_model.PullRequest
 func prepareSingleReview(ctx *context.APIContext) (*issues_model.Review, *issues_model.PullRequest, bool) {
 	pr, err := issues_model.GetPullRequestByIndex(ctx, ctx.Repo.Repository.ID, ctx.PathParamInt64("index"))
 	if err != nil {
-		if issues_model.IsErrPullRequestNotExist(err) {
-			ctx.APIErrorNotFound("GetPullRequestByIndex", err)
-		} else {
-			ctx.APIErrorInternal(err)
-		}
+		ctx.APIErrorAuto(err)
 		return nil, nil, true
 	}
 
 	review, err := issues_model.GetReviewByID(ctx, ctx.PathParamInt64("id"))
 	if err != nil {
-		if issues_model.IsErrReviewNotExist(err) {
-			ctx.APIErrorNotFound("GetReviewByID", err)
-		} else {
-			ctx.APIErrorInternal(err)
-		}
+		ctx.APIErrorAuto(err)
 		return nil, nil, true
 	}
 
 	// validate the review is for the given PR
 	if review.IssueID != pr.IssueID {
-		ctx.APIErrorNotFound("ReviewNotInPR")
+		ctx.APIErrorNotFound()
 		return nil, nil, true
 	}
 
 	// make sure that the user has access to this review if it is pending
 	if review.Type == issues_model.ReviewTypePending && review.ReviewerID != ctx.Doer.ID && !ctx.Doer.IsAdmin {
-		ctx.APIErrorNotFound("GetReviewByID")
+		ctx.APIErrorNotFound()
 		return nil, nil, true
 	}
 
@@ -870,7 +850,7 @@ func parseReviewersByNames(ctx *context.APIContext, reviewerNames, teamReviewerN
 
 		if err != nil {
 			if user_model.IsErrUserNotExist(err) {
-				ctx.APIErrorNotFound("UserNotExist", fmt.Sprintf("User '%s' not exist", r))
+				ctx.APIErrorNotFound("user doesn't exist: " + r)
 				return nil, nil
 			}
 			ctx.APIErrorInternal(err)
@@ -886,7 +866,7 @@ func parseReviewersByNames(ctx *context.APIContext, reviewerNames, teamReviewerN
 			teamReviewer, err = organization.GetTeam(ctx, ctx.Repo.Owner.ID, t)
 			if err != nil {
 				if organization.IsErrTeamNotExist(err) {
-					ctx.APIErrorNotFound("TeamNotExist", fmt.Sprintf("Team '%s' not exist", t))
+					ctx.APIErrorNotFound("team doesn't exist: " + t)
 					return nil, nil
 				}
 				ctx.APIErrorInternal(err)
@@ -902,11 +882,7 @@ func parseReviewersByNames(ctx *context.APIContext, reviewerNames, teamReviewerN
 func apiReviewRequest(ctx *context.APIContext, opts api.PullReviewRequestOptions, isAdd bool) {
 	pr, err := issues_model.GetPullRequestByIndex(ctx, ctx.Repo.Repository.ID, ctx.PathParamInt64("index"))
 	if err != nil {
-		if issues_model.IsErrPullRequestNotExist(err) {
-			ctx.APIErrorNotFound("GetPullRequestByIndex", err)
-		} else {
-			ctx.APIErrorInternal(err)
-		}
+		ctx.APIErrorAuto(err)
 		return
 	}
 
