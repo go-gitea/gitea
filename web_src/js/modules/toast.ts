@@ -45,7 +45,7 @@ type ToastifyElement = HTMLElement & {_giteaToastifyInstance?: Toast};
 /** See https://github.com/apvarun/toastify-js#api for options */
 function showToast(message: string, level: Intent, {gravity, position, duration, useHtmlBody, preventDuplicates = true, ...other}: ToastOpts = {}): Toast | null {
   const parent = document.querySelector('.ui.dimmer.active') ?? document.body;
-  const duplicateKey = preventDuplicates ? (preventDuplicates === true ? `${level}-${message}` : preventDuplicates) : '';
+  const duplicateKey = preventDuplicates ? (typeof preventDuplicates === 'string' ? preventDuplicates : `${level}-${message}`) : '';
 
   // prevent showing duplicate toasts with the same level and message, and give visual feedback for end users
   if (preventDuplicates) {
