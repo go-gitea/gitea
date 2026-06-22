@@ -38,13 +38,13 @@ func TestViewBranches(t *testing.T) {
 }
 
 func TestUndoDeleteBranch(t *testing.T) {
-	branchAction := func(t *testing.T, button string) (*HTMLDoc, string) {
+	branchAction := func(t *testing.T, button, attr string) (*HTMLDoc, string) {
 		session := loginUser(t, "user2")
 		req := NewRequest(t, "GET", "/user2/repo1/branches")
 		resp := session.MakeRequest(t, req, http.StatusOK)
 
 		htmlDoc := NewHTMLParser(t, resp.Body)
-		link, exists := htmlDoc.doc.Find(button).Attr("data-url")
+		link, exists := htmlDoc.doc.Find(button).Attr(attr)
 		require.True(t, exists, "The template has changed")
 		linkURL, err := url.Parse(link)
 		require.NoError(t, err)
@@ -58,12 +58,12 @@ func TestUndoDeleteBranch(t *testing.T) {
 	}
 
 	onGiteaRun(t, func(t *testing.T, u *url.URL) {
-		htmlDoc, name := branchAction(t, ".delete-branch-button")
+		htmlDoc, name := branchAction(t, ".delete-branch-button", "data-modal-form.action")
 		assert.Contains(t,
 			htmlDoc.doc.Find(".ui.positive.message").Text(),
 			translation.NewLocale("en-US").TrString("repo.branch.deletion_success", name),
 		)
-		htmlDoc, name = branchAction(t, ".restore-branch-button")
+		htmlDoc, name = branchAction(t, ".restore-branch-button", "data-url")
 		assert.Contains(t,
 			htmlDoc.doc.Find(".ui.positive.message").Text(),
 			translation.NewLocale("en-US").TrString("repo.branch.restore_success", name),
