@@ -158,10 +158,13 @@ func TestCompareWithRefSuffix(t *testing.T) {
 	htmlDoc = NewHTMLParser(t, resp.Body)
 	inspectCompare(t, htmlDoc, 2, []string{"link_hi", "test.csv"})
 
-	// a ~N suffix on the base side resolves and renders the compare page
+	// a ~N suffix on the base side resolves and renders the compare page, but also
+	// resolves to a commit rather than a branch, so no pull request form is offered
 	req = NewRequest(t, "GET", "/user2/repo20/compare/add-csv~1...remove-files-b")
 	resp = session.MakeRequest(t, req, http.StatusOK)
+	htmlDoc = NewHTMLParser(t, resp.Body)
 	assert.True(t, test.IsNormalPageCompleted(resp.Body.String()))
+	assert.Equal(t, 0, htmlDoc.doc.Find(".pullrequest-form").Length())
 
 	// the web handler folds an unsupported (^{...}) and an unresolvable (~50) suffix alike into 404
 	for _, basehead := range []string{
@@ -187,6 +190,9 @@ func TestResolveRefWithSuffixContract(t *testing.T) {
 	ref, err := common.ResolveRefWithSuffix(gitRepo, "add-csv", "^")
 	require.NoError(t, err)
 	assert.NotEmpty(t, ref)
+	// a ref resolved with a suffix must be a commit SHA, not a branch ref
+	// (branch refs would break "New Pull Request" logic)
+	assert.False(t, ref.IsBranch(), "ref with suffix must not resolve to a branch")
 
 	// a missing ref and an unresolvable suffix both report not-found instead of an empty RefName
 	for _, tc := range []struct{ oriRef, suffix string }{
