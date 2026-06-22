@@ -131,6 +131,24 @@ jobs:
 			},
 			want: map[int64]actions_model.Status{2: actions_model.StatusSkipped},
 		},
+		{
+			name: "`if` is empty and a failed need has continue-on-error",
+			jobs: actions_model.ActionJobList{
+				{ID: 1, JobID: "job1", Status: actions_model.StatusFailure, ContinueOnError: true, Needs: []string{}},
+				{ID: 2, JobID: "job2", Status: actions_model.StatusBlocked, Needs: []string{"job1"}, WorkflowPayload: []byte(
+					`
+name: test
+on: push
+jobs:
+  job2:
+    runs-on: ubuntu-latest
+    needs: job1
+    steps:
+      - run: echo "should run, job1 failure is masked by continue-on-error"
+`)},
+			},
+			want: map[int64]actions_model.Status{2: actions_model.StatusWaiting},
+		},
 	}
 	assert.NoError(t, unittest.PrepareTestDatabase())
 	ctx := t.Context()
