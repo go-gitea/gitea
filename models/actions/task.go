@@ -227,13 +227,19 @@ func makeTaskStepDisplayName(step *jobparser.Step, limit int) (name string) {
 	return util.EllipsisDisplayString(name, limit) // database column has a length limit
 }
 
-func CreateTaskForRunner(ctx context.Context, runner *ActionRunner) (*ActionTask, bool, error) {
-	ctx, committer, err := db.TxContext(ctx)
-	if err != nil {
-		return nil, false, err
-	}
-	defer committer.Close()
+// errJobAlreadyClaimed is a sentinel used inside claimJobForRunner to signal that
+// another runner won the optimistic-lock race; it is never returned to callers.
+var errJobAlreadyClaimed = errors.New("job already claimed by another runner")
 
+// CreateTaskForRunner finds a waiting job that matches the runner's labels and
+// atomically claims it. It iterates through all matching jobs so that a
+// concurrent claim by another runner (which would lose the optimistic lock on
+// job #1) does not leave the remaining jobs permanently unassigned.
+//
+// Must NOT be called from within an existing database transaction: each claim
+// attempt opens its own independent transaction so that a failed attempt can be
+// rolled back cleanly before the next job is tried.
+func CreateTaskForRunner(ctx context.Context, runner *ActionRunner) (*ActionTask, bool, error) {
 	e := db.GetEngine(ctx)
 
 	jobCond := builder.NewCond()
@@ -254,83 +260,108 @@ func CreateTaskForRunner(ctx context.Context, runner *ActionRunner) (*ActionTask
 	}
 
 	// TODO: a more efficient way to filter labels
-	var job *ActionRunJob
 	log.Trace("runner labels: %v", runner.AgentLabels)
 	for _, v := range jobs {
-		if runner.CanMatchLabels(v.RunsOn) {
-			job = v
-			break
+		if !runner.CanMatchLabels(v.RunsOn) {
+			continue
 		}
-	}
-	if job == nil {
-		return nil, false, nil
-	}
-	if err := job.LoadAttributes(ctx); err != nil {
-		return nil, false, err
-	}
-
-	now := timeutil.TimeStampNow()
-	job.Started = now
-	job.Status = StatusRunning
-
-	task := &ActionTask{
-		JobID:             job.ID,
-		Attempt:           job.Attempt,
-		RunnerID:          runner.ID,
-		Started:           now,
-		Status:            StatusRunning,
-		RepoID:            job.RepoID,
-		OwnerID:           job.OwnerID,
-		CommitSHA:         job.CommitSHA,
-		IsForkPullRequest: job.IsForkPullRequest,
-	}
-	task.GenerateAndFillToken()
-
-	workflowJob, err := job.ParseJob()
-	if err != nil {
-		return nil, false, fmt.Errorf("load job %d: %w", job.ID, err)
-	}
-
-	if _, err := e.Insert(task); err != nil {
-		return nil, false, err
-	}
-
-	task.LogFilename = logFileName(job.Run.Repo.FullName(), task.ID)
-	if err := UpdateTask(ctx, task, "log_filename"); err != nil {
-		return nil, false, err
-	}
-
-	if len(workflowJob.Steps) > 0 {
-		steps := make([]*ActionTaskStep, len(workflowJob.Steps))
-		for i, v := range workflowJob.Steps {
-			steps[i] = &ActionTaskStep{
-				Name:   makeTaskStepDisplayName(v, 255),
-				TaskID: task.ID,
-				Index:  int64(i),
-				RepoID: task.RepoID,
-				Status: StatusWaiting,
-			}
-		}
-		if _, err := e.Insert(steps); err != nil {
+		task, ok, err := claimJobForRunner(ctx, runner, v)
+		if err != nil {
 			return nil, false, err
 		}
-		task.Steps = steps
+		if ok {
+			return task, true, nil
+		}
+		// Another runner claimed this job concurrently; try the next one.
 	}
+	return nil, false, nil
+}
 
-	job.TaskID = task.ID
-	if n, err := UpdateRunJob(ctx, job, builder.Eq{"task_id": 0}); err != nil {
-		return nil, false, err
-	} else if n != 1 {
+// claimJobForRunner attempts to atomically claim job for runner inside its own
+// transaction. Returns (task, true, nil) on success, or (nil, false, nil) when
+// another runner wins the optimistic-lock race (the caller should try the next
+// candidate job).
+func claimJobForRunner(ctx context.Context, runner *ActionRunner, job *ActionRunJob) (*ActionTask, bool, error) {
+	var resultTask *ActionTask
+
+	err := db.WithTx(ctx, func(ctx context.Context) error {
+		e := db.GetEngine(ctx)
+
+		if err := job.LoadAttributes(ctx); err != nil {
+			return err
+		}
+
+		now := timeutil.TimeStampNow()
+		job.Started = now
+		job.Status = StatusRunning
+
+		task := &ActionTask{
+			JobID:             job.ID,
+			Attempt:           job.Attempt,
+			RunnerID:          runner.ID,
+			Started:           now,
+			Status:            StatusRunning,
+			RepoID:            job.RepoID,
+			OwnerID:           job.OwnerID,
+			CommitSHA:         job.CommitSHA,
+			IsForkPullRequest: job.IsForkPullRequest,
+		}
+		task.GenerateAndFillToken()
+
+		workflowJob, err := job.ParseJob()
+		if err != nil {
+			return fmt.Errorf("load job %d: %w", job.ID, err)
+		}
+
+		if _, err := e.Insert(task); err != nil {
+			return err
+		}
+
+		task.LogFilename = logFileName(job.Run.Repo.FullName(), task.ID)
+		if err := UpdateTask(ctx, task, "log_filename"); err != nil {
+			return err
+		}
+
+		if len(workflowJob.Steps) > 0 {
+			steps := make([]*ActionTaskStep, len(workflowJob.Steps))
+			for i, v := range workflowJob.Steps {
+				steps[i] = &ActionTaskStep{
+					Name:   makeTaskStepDisplayName(v, 255),
+					TaskID: task.ID,
+					Index:  int64(i),
+					RepoID: task.RepoID,
+					Status: StatusWaiting,
+				}
+			}
+			if _, err := e.Insert(steps); err != nil {
+				return err
+			}
+			task.Steps = steps
+		}
+
+		job.TaskID = task.ID
+		n, err := UpdateRunJob(ctx, job, builder.Eq{"task_id": 0})
+		if err != nil {
+			return err
+		}
+		if n != 1 {
+			// Another runner claimed this job between our scan and this update;
+			// signal the outer loop to move on without treating this as an error.
+			return errJobAlreadyClaimed
+		}
+
+		task.Job = job
+		resultTask = task
+		return nil
+	})
+
+	if errors.Is(err, errJobAlreadyClaimed) {
 		return nil, false, nil
 	}
-
-	task.Job = job
-
-	if err := committer.Commit(); err != nil {
+	if err != nil {
 		return nil, false, err
 	}
-
-	return task, true, nil
+	return resultTask, true, nil
 }
 
 func UpdateTask(ctx context.Context, task *ActionTask, cols ...string) error {

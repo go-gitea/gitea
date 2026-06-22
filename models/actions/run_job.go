@@ -400,6 +400,18 @@ func UpdateRunJob(ctx context.Context, job *ActionRunJob, cond builder.Cond, col
 		}
 	}
 
+	// When a job finishes, bump the version so that idle runners — whose
+	// tasksVersion already equals the current latestVersion — learn that
+	// remaining waiting jobs are still available and attempt PickTask again.
+	// Without this bump, runners that completed their tasks would see
+	// tasksVersion==latestVersion and skip PickTask, leaving the other jobs
+	// permanently unassigned until the version changes for another reason.
+	if statusUpdated && job.Status.IsDone() && !job.IsReusableCaller {
+		if err := IncreaseTaskVersion(ctx, job.OwnerID, job.RepoID); err != nil {
+			return 0, err
+		}
+	}
+
 	if statusUpdated && job.ParentJobID > 0 {
 		// Reusable workflow caller's children cascade their status changes upward to the parent caller.
 		parent, err := GetRunJobByRunAndID(ctx, job.RunID, job.ParentJobID)

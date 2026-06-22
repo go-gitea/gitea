@@ -47,57 +47,47 @@ func PickTask(ctx context.Context, runner *actions_model.ActionRunner) (*runnerv
 		}
 	}
 
-	if err := db.WithTx(ctx, func(ctx context.Context) error {
-		t, ok, err := actions_model.CreateTaskForRunner(ctx, runner)
-		if err != nil {
-			return fmt.Errorf("CreateTaskForRunner: %w", err)
-		}
-		if !ok {
-			return nil
-		}
-
-		if err := t.LoadAttributes(ctx); err != nil {
-			return fmt.Errorf("task LoadAttributes: %w", err)
-		}
-		job = t.Job
-		actionTask = t
-
-		secrets, err := secret_model.GetSecretsOfTask(ctx, t)
-		if err != nil {
-			return fmt.Errorf("GetSecretsOfTask: %w", err)
-		}
-
-		vars, err := actions_model.GetVariablesOfRun(ctx, t.Job.Run)
-		if err != nil {
-			return fmt.Errorf("GetVariablesOfRun: %w", err)
-		}
-
-		needs, err := findTaskNeeds(ctx, job)
-		if err != nil {
-			return fmt.Errorf("findTaskNeeds: %w", err)
-		}
-
-		taskContext, err := generateTaskContext(ctx, t)
-		if err != nil {
-			return fmt.Errorf("generateTaskContext: %w", err)
-		}
-
-		task = &runnerv1.Task{
-			Id:              t.ID,
-			WorkflowPayload: t.Job.WorkflowPayload,
-			Context:         taskContext,
-			Secrets:         secrets,
-			Vars:            vars,
-			Needs:           needs,
-		}
-
-		return nil
-	}); err != nil {
-		return nil, false, err
+	t, ok, err := actions_model.CreateTaskForRunner(ctx, runner)
+	if err != nil {
+		return nil, false, fmt.Errorf("CreateTaskForRunner: %w", err)
+	}
+	if !ok {
+		return nil, false, nil
 	}
 
-	if task == nil {
-		return nil, false, nil
+	if err := t.LoadAttributes(ctx); err != nil {
+		return nil, false, fmt.Errorf("task LoadAttributes: %w", err)
+	}
+	job = t.Job
+	actionTask = t
+
+	secrets, err := secret_model.GetSecretsOfTask(ctx, t)
+	if err != nil {
+		return nil, false, fmt.Errorf("GetSecretsOfTask: %w", err)
+	}
+
+	vars, err := actions_model.GetVariablesOfRun(ctx, t.Job.Run)
+	if err != nil {
+		return nil, false, fmt.Errorf("GetVariablesOfRun: %w", err)
+	}
+
+	needs, err := findTaskNeeds(ctx, job)
+	if err != nil {
+		return nil, false, fmt.Errorf("findTaskNeeds: %w", err)
+	}
+
+	taskContext, err := generateTaskContext(ctx, t)
+	if err != nil {
+		return nil, false, fmt.Errorf("generateTaskContext: %w", err)
+	}
+
+	task = &runnerv1.Task{
+		Id:              t.ID,
+		WorkflowPayload: t.Job.WorkflowPayload,
+		Context:         taskContext,
+		Secrets:         secrets,
+		Vars:            vars,
+		Needs:           needs,
 	}
 
 	CreateCommitStatusForRunJobs(ctx, job.Run, job)
