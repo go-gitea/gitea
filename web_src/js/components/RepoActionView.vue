@@ -141,6 +141,7 @@ onBeforeUnmount(() => {
           <ActionStatusIcon :locale-status="locale.status[run.status]" :status="run.status" :size="22" icon-variant="circle-fill"/>
           <!-- eslint-disable-next-line vue/no-v-html -->
           <h2 class="action-info-summary-title-text" v-html="run.titleHTML"/>
+          <span class="action-info-summary-title-index">#{{ run.index }}</span>
         </div>
         <div class="flex-text-block tw-shrink-0 tw-flex-wrap">
           <button class="ui basic small compact button primary" @click="approveRun()" v-if="run.canApprove">
@@ -377,8 +378,13 @@ onBeforeUnmount(() => {
 .action-info-summary-title-text {
   font-size: 20px;
   margin: 0;
-  flex: 1;
   overflow-wrap: anywhere;
+}
+
+.action-info-summary-title-index {
+  font-size: 20px;
+  color: var(--color-text-light-2);
+  flex: 1;
 }
 
 .action-info-summary .ui.button {
@@ -497,6 +503,7 @@ onBeforeUnmount(() => {
 }
 
 .action-view-right-panel {
+  flex: 1; /* fill the right column so the summary graph stretches even without a job-summary section */
   border: 1px solid var(--color-console-border);
   border-radius: var(--border-radius);
   background: var(--color-console-bg);
@@ -538,6 +545,7 @@ onBeforeUnmount(() => {
 }
 
 .job-summary-section {
+  flex: 0 0 auto; /* size to its content; let the summary panel keep the remaining height */
   overflow: hidden;
 }
 

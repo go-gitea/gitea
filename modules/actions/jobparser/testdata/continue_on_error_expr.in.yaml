@@ -1,0 +1,10 @@
+name: test
+jobs:
+  job1:
+    strategy:
+      matrix:
+        experimental: [false, true]
+    runs-on: ubuntu-22.04
+    continue-on-error: ${{ matrix.experimental }}
+    steps:
+      - run: echo hi
