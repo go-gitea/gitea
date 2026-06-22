@@ -14,6 +14,16 @@ import (
 	"github.com/go-git/go-git/v5/plumbing/object"
 )
 
+// SearchPointerBlobsInRange scans objects reachable from headRefs but not
+// excludeRefs for LFS pointer files. For the gogit build this falls back to a
+// full scan since go-git does not easily support rev-list range queries.
+func SearchPointerBlobsInRange(ctx context.Context, repo *git.Repository, headRefs, excludeRefs []string, pointerChan chan<- PointerBlob, errChan chan<- error) {
+	if err := SearchPointerBlobs(ctx, repo, pointerChan); err != nil {
+		errChan <- err
+	}
+	close(errChan)
+}
+
 // SearchPointerBlobs scans the whole repository for LFS pointer files
 func SearchPointerBlobs(ctx context.Context, repo *git.Repository, pointerChan chan<- PointerBlob) error {
 	gitRepo := repo.GoGitRepo()
