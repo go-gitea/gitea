@@ -9,15 +9,16 @@ import (
 	"xorm.io/xorm"
 )
 
-// AddJobMaxParallel adds the max_parallel column to action_run_job.
-func AddJobMaxParallel(x db.EngineMigration) error {
+// AddContinueOnErrorToActionRunJob adds the ContinueOnError column to ActionRunJob,
+// storing the job-level continue-on-error value from the workflow YAML.
+func AddContinueOnErrorToActionRunJob(x db.EngineMigration) error {
 	type ActionRunJob struct {
-		MaxParallel int `xorm:"NOT NULL DEFAULT 0"`
+		ContinueOnError bool `xorm:"NOT NULL DEFAULT FALSE"`
 	}
 
 	_, err := x.SyncWithOptions(xorm.SyncOptions{
-		IgnoreConstrains:  true,
 		IgnoreDropIndices: true,
+		IgnoreConstrains:  true,
 	}, new(ActionRunJob))
 	return err
 }

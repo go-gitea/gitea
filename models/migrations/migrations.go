@@ -417,9 +417,9 @@ func prepareMigrationTasks() []*migration {
 		newMigration(337, "Add visibility to team", v1_27.AddVisibilityToTeam),
 		newMigration(338, "Expand legacy MSSQL issue/comment long-text columns", v1_27.ExpandIssueAndCommentLongTextFieldsForMSSQL),
 		newMigration(339, "Extend action c_u index to include created_unix for faster dashboard feed queries", v1_27.AddCreatedUnixToActionUserIsDeletedIndex),
-		newMigration(340, "Add job max-parallel support", v1_27.AddJobMaxParallel),
-		newMigration(341, "Add composite index on action_run_job(run_id, job_id)", v1_27.AddRunJobRunIDJobIDIndex),
-		newMigration(342, "Add ContinueOnError column to ActionRunJob", v1_27.AddContinueOnErrorToActionRunJob),
+		newMigration(340, "Add ContinueOnError column to ActionRunJob", v1_27.AddContinueOnErrorToActionRunJob),
+		newMigration(341, "Add job max-parallel support", v1_27.AddJobMaxParallel),
+		newMigration(342, "Add composite index on action_run_job(run_id, job_id)", v1_27.AddRunJobRunIDJobIDIndex),
 	}
 	return preparedMigrations
 }

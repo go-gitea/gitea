@@ -11,11 +11,10 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestAddRunJobRunIDJobIDIndex(t *testing.T) {
+func TestAddJobMaxParallel(t *testing.T) {
 	type ActionRunJob struct {
-		ID    int64 `xorm:"pk autoincr"`
-		RunID int64
-		JobID string `xorm:"VARCHAR(255)"`
+		ID   int64  `xorm:"pk autoincr"`
+		Name string `xorm:"VARCHAR(255)"`
 	}
 
 	x, deferable := migrationtest.PrepareTestEnv(t, 0, new(ActionRunJob))
@@ -24,14 +23,14 @@ func TestAddRunJobRunIDJobIDIndex(t *testing.T) {
 		return
 	}
 
-	_, err := x.Insert(&ActionRunJob{RunID: 1, JobID: "build"})
+	_, err := x.Insert(&ActionRunJob{Name: "job-a"})
 	require.NoError(t, err)
 
-	require.NoError(t, AddRunJobRunIDJobIDIndex(x))
+	require.NoError(t, AddJobMaxParallel(x))
 
-	var jobID string
-	has, err := x.SQL("SELECT job_id FROM action_run_job WHERE run_id = ? AND job_id = ?", 1, "build").Get(&jobID)
+	var maxParallel int
+	has, err := x.SQL("SELECT max_parallel FROM action_run_job WHERE id = ?", 1).Get(&maxParallel)
 	require.NoError(t, err)
 	require.True(t, has)
-	require.Equal(t, "build", jobID)
+	require.Equal(t, 0, maxParallel)
 }

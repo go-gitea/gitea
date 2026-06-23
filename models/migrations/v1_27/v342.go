@@ -9,16 +9,17 @@ import (
 	"xorm.io/xorm"
 )
 
-// AddContinueOnErrorToActionRunJob adds the ContinueOnError column to ActionRunJob,
-// storing the job-level continue-on-error value from the workflow YAML.
-func AddContinueOnErrorToActionRunJob(x db.EngineMigration) error {
+// AddRunJobRunIDJobIDIndex adds a composite index on (run_id, job_id) to action_run_job
+// to speed up max-parallel slot queries that filter by run_id and group by job_id.
+func AddRunJobRunIDJobIDIndex(x db.EngineMigration) error {
 	type ActionRunJob struct {
-		ContinueOnError bool `xorm:"NOT NULL DEFAULT FALSE"`
+		RunID int64  `xorm:"index index(idx_run_id_job_id)"`
+		JobID string `xorm:"VARCHAR(255) index(idx_run_id_job_id)"`
 	}
 
 	_, err := x.SyncWithOptions(xorm.SyncOptions{
-		IgnoreDropIndices: true,
 		IgnoreConstrains:  true,
+		IgnoreDropIndices: true,
 	}, new(ActionRunJob))
 	return err
 }
