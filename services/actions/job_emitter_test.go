@@ -132,7 +132,6 @@ jobs:
 			want: map[int64]actions_model.Status{2: actions_model.StatusSkipped},
 		},
 		{
-		{
 			name: "max-parallel=1 promotes exactly one blocked job when one slot is open",
 			jobs: actions_model.ActionJobList{
 				{ID: 1, JobID: "build", Status: actions_model.StatusRunning, Needs: []string{}, MaxParallel: 1},
