@@ -111,6 +111,10 @@ type ActionRunJob struct {
 	// ParentJobID scopes `Needs` resolution: name lookups happen only among rows sharing the same ParentJobID. 0 for top-level rows.
 	ParentJobID int64 `xorm:"index NOT NULL DEFAULT 0"`
 
+	// ContinueOnError mirrors the job-level continue-on-error field from the workflow YAML.
+	// When true, a failure of this job does not fail the overall workflow run.
+	ContinueOnError bool `xorm:"NOT NULL DEFAULT FALSE"`
+
 	Started timeutil.TimeStamp
 	Stopped timeutil.TimeStamp
 	Created timeutil.TimeStamp `xorm:"created"`
@@ -503,9 +507,12 @@ func AggregateJobStatus(jobs []*ActionRunJob) Status {
 	allSkipped := len(jobs) != 0
 	var hasFailure, hasCancelled, hasCancelling, hasWaiting, hasRunning, hasBlocked bool
 	for _, job := range jobs {
-		allSuccessOrSkipped = allSuccessOrSkipped && (job.Status == StatusSuccess || job.Status == StatusSkipped)
+		// A failed job with continue-on-error:true does not fail the workflow run.
+		// It counts as a "continued failure" and is treated like success for aggregation.
+		isContinuedFailure := job.ContinueOnError && job.Status == StatusFailure
+		allSuccessOrSkipped = allSuccessOrSkipped && (job.Status == StatusSuccess || job.Status == StatusSkipped || isContinuedFailure)
 		allSkipped = allSkipped && job.Status == StatusSkipped
-		hasFailure = hasFailure || job.Status == StatusFailure
+		hasFailure = hasFailure || (job.Status == StatusFailure && !job.ContinueOnError)
 		hasCancelled = hasCancelled || job.Status == StatusCancelled
 		hasCancelling = hasCancelling || job.Status == StatusCancelling
 		hasWaiting = hasWaiting || job.Status == StatusWaiting

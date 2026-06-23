@@ -419,6 +419,7 @@ func prepareMigrationTasks() []*migration {
 		newMigration(339, "Extend action c_u index to include created_unix for faster dashboard feed queries", v1_27.AddCreatedUnixToActionUserIsDeletedIndex),
 		newMigration(340, "Add job max-parallel support", v1_27.AddJobMaxParallel),
 		newMigration(341, "Add composite index on action_run_job(run_id, job_id)", v1_27.AddRunJobRunIDJobIDIndex),
+		newMigration(342, "Add ContinueOnError column to ActionRunJob", v1_27.AddContinueOnErrorToActionRunJob),
 	}
 	return preparedMigrations
 }

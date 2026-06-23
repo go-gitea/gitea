@@ -132,6 +132,7 @@ jobs:
 			want: map[int64]actions_model.Status{2: actions_model.StatusSkipped},
 		},
 		{
+		{
 			name: "max-parallel=1 promotes exactly one blocked job when one slot is open",
 			jobs: actions_model.ActionJobList{
 				{ID: 1, JobID: "build", Status: actions_model.StatusRunning, Needs: []string{}, MaxParallel: 1},
@@ -212,6 +213,24 @@ jobs:
 				{ID: 4, JobID: "test", Status: actions_model.StatusBlocked, Needs: []string{}, MaxParallel: 2},
 			},
 			want: nil, // exactly 1 promoted (running=1 + new waiting=1 == max-parallel=2)
+		},
+		{
+			name: "`if` is empty and a failed need has continue-on-error",
+			jobs: actions_model.ActionJobList{
+				{ID: 1, JobID: "job1", Status: actions_model.StatusFailure, ContinueOnError: true, Needs: []string{}},
+				{ID: 2, JobID: "job2", Status: actions_model.StatusBlocked, Needs: []string{"job1"}, WorkflowPayload: []byte(
+					`
+name: test
+on: push
+jobs:
+  job2:
+    runs-on: ubuntu-latest
+    needs: job1
+    steps:
+      - run: echo "should run, job1 failure is masked by continue-on-error"
+`)},
+			},
+			want: map[int64]actions_model.Status{2: actions_model.StatusWaiting},
 		},
 	}
 	assert.NoError(t, unittest.PrepareTestDatabase())
