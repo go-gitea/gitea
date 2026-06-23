@@ -50,7 +50,7 @@ export class UserEventsSharedWorker {
         //     * in this case, the logout fetch call already completes and has sent the "logout" message to the worker
         //   * there can be a data-race between the fetch call's redirection and the "logout" message from the worker
         //     * the fetch call's logout redirection should always win over the worker message, because it might have a custom location
-        setTimeout(() => { window.location.href = `${appSubUrl}/` }, 1000);
+        setTimeout(() => { window.location.assign(`${appSubUrl}/`) }, 1000);
       } else if (event.data.type === 'close') {
         this.sharedWorker.port.postMessage({type: 'close'});
         this.sharedWorker.port.close();

@@ -164,6 +164,7 @@ func InsertRun(ctx context.Context, run *actions_model.ActionRun, content []byte
 				Status:                  util.Iif(shouldBlockJob, actions_model.StatusBlocked, actions_model.StatusWaiting),
 				WorkflowSourceRepoID:    run.RepoID,
 				WorkflowSourceCommitSHA: run.CommitSHA,
+				ContinueOnError:         job.GetContinueOnError(),
 			}
 			// Parse workflow/job permissions (no clamping here)
 			if perms := ExtractJobPermissionsFromWorkflow(v, job); perms != nil {

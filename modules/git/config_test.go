@@ -10,6 +10,7 @@ import (
 
 	"gitea.dev/modules/git/gitcmd"
 	"gitea.dev/modules/setting"
+	"gitea.dev/modules/test"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -55,14 +56,18 @@ func TestGitConfig(t *testing.T) {
 	assert.False(t, gitConfigContains("key-x = *"))
 }
 
-func TestSyncConfig(t *testing.T) {
-	oldGitConfig := setting.GitConfig
-	defer func() {
-		setting.GitConfig = oldGitConfig
-	}()
+func TestSyncGitConfig(t *testing.T) {
+	defer test.MockVariableValue(&setting.GitConfig)()
+
+	assert.Empty(t, setting.GitConfig.Options)
+	assert.NoError(t, syncGitConfig(t.Context()))
+	assert.True(t, gitConfigContains("commitGraph = true")) // builtin default config
 
 	setting.GitConfig.Options["sync-test.cfg-key-a"] = "CfgValA"
+	setting.GitConfig.Options["core.commitgraph"] = "false"
 	assert.NoError(t, syncGitConfig(t.Context()))
 	assert.True(t, gitConfigContains("[sync-test]"))
 	assert.True(t, gitConfigContains("cfg-key-a = CfgValA"))
+	assert.False(t, gitConfigContains("commitGraph"))        // builtin default config can be overridden
+	assert.True(t, gitConfigContains("commitgraph = false")) // git config key is case-insensitive
 }
