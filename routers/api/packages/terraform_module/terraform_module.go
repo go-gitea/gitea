@@ -138,28 +138,15 @@ func DownloadRedirect(ctx *context.Context) {
 		apiError(ctx, http.StatusInternalServerError, err)
 		return
 	}
+	_ = pv // existence is enough; the archive endpoint re-resolves the file.
 
-	pd, err := packages_model.GetPackageDescriptor(ctx, pv)
-	if err != nil {
-		apiError(ctx, http.StatusInternalServerError, err)
-		return
-	}
-
-	// The archive has no file extension, so force the decompressor with
-	// ?archive=tar.gz. When the module is wrapped in a single top-level
-	// directory, append that directory as a go-getter `//subdir` so
-	// Terraform descends into it. We emit the exact directory name rather
-	// than the `//*` glob so a stray root-level file (e.g. LICENSE beside
-	// the wrapper) can't make the glob match more than one entry.
-	// See module-registry-protocol / go-getter.
-	subdir := ""
-	if md, ok := pd.Metadata.(*tfmod.Metadata); ok && md.ModuleDir != "" {
-		subdir = "//" + md.ModuleDir
-	}
+	// Stored archives are always flat (the module at the root), so we serve
+	// the bare archive endpoint. The URL has no file extension, hence the
+	// ?archive=tar.gz hint so go-getter knows to decompress it.
 	archiveURL := fmt.Sprintf(
-		"%sapi/packages/-/terraform/modules/%s/%s/%s/%s/archive%s?archive=tar.gz",
+		"%sapi/packages/-/terraform/modules/%s/%s/%s/%s/archive?archive=tar.gz",
 		setting.AppURL,
-		ctx.Package.Owner.Name, name, provider, v, subdir,
+		ctx.Package.Owner.Name, name, provider, v,
 	)
 	ctx.Resp.Header().Set("X-Terraform-Get", archiveURL)
 	ctx.Status(http.StatusNoContent)
@@ -250,6 +237,25 @@ func UploadModule(ctx *context.Context) {
 		return
 	}
 
+	// Normalize a wrapped archive (a single top-level directory, e.g. a
+	// GitHub release tarball) to a flat layout so the registry stores and
+	// serves one standard format. Flat uploads are stored verbatim.
+	storeBuf := buf
+	if module.RootDir != "" {
+		pr, pw := io.Pipe()
+		go func() {
+			_ = pw.CloseWithError(tfmod.NormalizeArchive(pw, buf, module.RootDir))
+		}()
+		normBuf, err := packages_module.CreateHashedBufferFromReader(pr)
+		if err != nil {
+			log.Error("terraform_module: normalize archive: %v", err)
+			apiError(ctx, http.StatusInternalServerError, err)
+			return
+		}
+		defer normBuf.Close()
+		storeBuf = normBuf
+	}
+
 	_, _, err = packages_service.CreatePackageAndAddFile(
 		ctx,
 		&packages_service.PackageCreationInfo{
@@ -266,7 +272,7 @@ func UploadModule(ctx *context.Context) {
 		&packages_service.PackageFileCreationInfo{
 			PackageFileInfo: packages_service.PackageFileInfo{Filename: archiveFilename},
 			Creator:         ctx.Doer,
-			Data:            buf,
+			Data:            storeBuf,
 			IsLead:          true,
 		},
 	)
@@ -323,10 +329,11 @@ func DeleteModule(ctx *context.Context) {
 // ServiceDiscovery returns the host-level Terraform service-discovery
 // document. Per the spec only the `modules.v1` capability is advertised;
 // other capabilities (login.v1, providers.v1, ...) are unimplemented
-// and therefore omitted.
+// and therefore omitted. The path is prefixed with AppSubURL so it stays
+// correct when Gitea is deployed under a sub-path.
 func ServiceDiscovery(ctx *context.Context) {
 	resp := map[string]string{
-		"modules.v1": "/api/packages/-/terraform/modules/",
+		"modules.v1": setting.AppSubURL + "/api/packages/-/terraform/modules/",
 	}
 	ctx.Resp.Header().Set("Content-Type", "application/json")
 	_ = json.NewEncoder(ctx.Resp).Encode(resp)

@@ -53,6 +53,23 @@ func buildTFModuleArchive(t *testing.T, files map[string]string) []byte {
 	return buf.Bytes()
 }
 
+// tarGzEntryNames returns the entry names inside a gzipped tarball.
+func tarGzEntryNames(t *testing.T, data []byte) []string {
+	t.Helper()
+	gz, err := gzip.NewReader(bytes.NewReader(data))
+	require.NoError(t, err)
+	tr := tar.NewReader(gz)
+	var names []string
+	for {
+		hdr, err := tr.Next()
+		if err != nil {
+			break
+		}
+		names = append(names, hdr.Name)
+	}
+	return names
+}
+
 // canonicalModuleArchive returns the .tar.gz used across most subtests.
 // Kept as a function so each subtest gets its own buffer (the helpers
 // below read it).
@@ -203,10 +220,11 @@ func TestPackageTerraformModule(t *testing.T) {
 			"X-Terraform-Get should point at the archive endpoint, got %q", got)
 	})
 
-	t.Run("Download_XTerraformGet_Wrapped", func(t *testing.T) {
+	t.Run("Upload_Wrapped_NormalizedToFlat", func(t *testing.T) {
 		// A module wrapped in a single top-level directory (GitHub-style
-		// tarball) must be served with the go-getter `//*` subdir glob so
-		// terraform init descends into it.
+		// tarball) is normalized to a flat layout on upload: it is served
+		// from the bare archive endpoint (no subdir), and the stored
+		// archive has the module files at its root.
 		wrapped := buildTFModuleArchive(t, map[string]string{
 			"mymod-1.0.0/main.tf":   `variable "x" { type = string }`,
 			"mymod-1.0.0/README.md": "# wrapped\n",
@@ -219,11 +237,19 @@ func TestPackageTerraformModule(t *testing.T) {
 			MakeRequest(t, req, http.StatusNoContent)
 		})
 
+		// Header points at the bare archive endpoint — no subdir glob.
 		req = NewRequest(t, "GET", wbase+"/1.0.0/download").AddBasicAuth(user.Name)
 		resp := MakeRequest(t, req, http.StatusNoContent)
 		got := resp.Header().Get("X-Terraform-Get")
-		assert.True(t, strings.HasSuffix(got, "/archive//mymod-1.0.0?archive=tar.gz"),
-			"wrapped module should get the exact wrapper dir as subdir, got %q", got)
+		assert.True(t, strings.HasSuffix(got, "/archive?archive=tar.gz"),
+			"wrapped upload should be served flat, got %q", got)
+
+		// The stored archive must now be flat: main.tf at the root.
+		req = NewRequest(t, "GET", wbase+"/1.0.0/archive").AddBasicAuth(user.Name)
+		resp = MakeRequest(t, req, http.StatusOK)
+		names := tarGzEntryNames(t, resp.Body.Bytes())
+		assert.Contains(t, names, "main.tf", "module should be normalized to the archive root")
+		assert.NotContains(t, names, "mymod-1.0.0/main.tf", "wrapper directory must be stripped")
 	})
 
 	t.Run("Download_Archive", func(t *testing.T) {

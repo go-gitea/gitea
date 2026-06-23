@@ -91,7 +91,7 @@ module "subnets" {
 	require.NotNil(t, mod)
 	require.NotNil(t, mod.Metadata)
 	assert.Equal(t, "# example\n", mod.Metadata.Readme)
-	assert.Empty(t, mod.Metadata.ModuleDir, "flat archive: module sits at the root")
+	assert.Empty(t, mod.RootDir, "flat archive: module sits at the root")
 
 	root := mod.Metadata.Root
 	require.NotNil(t, root)
@@ -133,7 +133,7 @@ module "subnets" {
 func TestParseModuleArchive_WrappedSingleDir(t *testing.T) {
 	// A GitHub-style release tarball wraps the whole module in one
 	// top-level directory. The parser must descend into it and report the
-	// directory via ModuleDir so the download handler can append `//*`.
+	// directory via RootDir so the upload handler can normalize it to flat.
 	archive := buildArchive(t, map[string]string{
 		"mod-1.0.0/main.tf":                `variable "region" { type = string }`,
 		"mod-1.0.0/README.md":              "# wrapped\n",
@@ -143,10 +143,51 @@ func TestParseModuleArchive_WrappedSingleDir(t *testing.T) {
 	mod, err := ParseModuleArchive(bytes.NewReader(archive), 1<<20)
 	require.NoError(t, err)
 	require.NotNil(t, mod.Metadata.Root)
-	assert.Equal(t, "mod-1.0.0", mod.Metadata.ModuleDir)
+	assert.Equal(t, "mod-1.0.0", mod.RootDir)
 	assert.Equal(t, "# wrapped\n", mod.Metadata.Readme)
 	require.Len(t, mod.Metadata.Root.Inputs, 1)
 	assert.Equal(t, "region", mod.Metadata.Root.Inputs[0].Name)
+}
+
+func TestNormalizeArchive(t *testing.T) {
+	// A wrapped archive must be rewritten so the wrapper directory's
+	// contents become the archive root: examples/ is re-rooted, a stray
+	// file outside the wrapper is dropped, and the result parses flat.
+	wrapped := buildArchive(t, map[string]string{
+		"mod-1.0.0/main.tf":                `variable "region" { type = string }`,
+		"mod-1.0.0/README.md":              "# wrapped\n",
+		"mod-1.0.0/examples/basic/main.tf": `variable "ignored" { type = string }`,
+		"stray.txt":                        "outside the module",
+	}, "mod-1.0.0/", "mod-1.0.0/examples/", "mod-1.0.0/examples/basic/")
+
+	var flat bytes.Buffer
+	require.NoError(t, NormalizeArchive(&flat, bytes.NewReader(wrapped), "mod-1.0.0"))
+
+	// Inspect the rewritten entries.
+	names := map[string]bool{}
+	gz, err := gzip.NewReader(bytes.NewReader(flat.Bytes()))
+	require.NoError(t, err)
+	tr := tar.NewReader(gz)
+	for {
+		hdr, err := tr.Next()
+		if err != nil {
+			break
+		}
+		names[hdr.Name] = true
+	}
+	assert.True(t, names["main.tf"], "module file should be at the root")
+	assert.True(t, names["README.md"], "readme should be re-rooted")
+	assert.True(t, names["examples/basic/main.tf"], "examples should be preserved, re-rooted")
+	assert.False(t, names["mod-1.0.0/main.tf"], "wrapper prefix must be gone")
+	assert.False(t, names["stray.txt"], "entries outside the wrapper must be dropped")
+
+	// The normalized archive must now parse as a flat module.
+	mod, err := ParseModuleArchive(bytes.NewReader(flat.Bytes()), 1<<20)
+	require.NoError(t, err)
+	assert.Empty(t, mod.RootDir)
+	require.Len(t, mod.Metadata.Root.Inputs, 1)
+	assert.Equal(t, "region", mod.Metadata.Root.Inputs[0].Name)
+	assert.Equal(t, "# wrapped\n", mod.Metadata.Readme)
 }
 
 func TestParseModuleArchive_IgnoresAppleDoubleJunk(t *testing.T) {
@@ -161,7 +202,7 @@ func TestParseModuleArchive_IgnoresAppleDoubleJunk(t *testing.T) {
 
 	mod, err := ParseModuleArchive(bytes.NewReader(archive), 1<<20)
 	require.NoError(t, err)
-	assert.Empty(t, mod.Metadata.ModuleDir)
+	assert.Empty(t, mod.RootDir)
 	require.Len(t, mod.Metadata.Root.Inputs, 1)
 	assert.Equal(t, "x", mod.Metadata.Root.Inputs[0].Name)
 }
@@ -176,7 +217,7 @@ func TestParseModuleArchive_FlatWinsOverSubdir(t *testing.T) {
 
 	mod, err := ParseModuleArchive(bytes.NewReader(archive), 1<<20)
 	require.NoError(t, err)
-	assert.Empty(t, mod.Metadata.ModuleDir)
+	assert.Empty(t, mod.RootDir)
 	require.Len(t, mod.Metadata.Root.Inputs, 1)
 	assert.Equal(t, "x", mod.Metadata.Root.Inputs[0].Name)
 }

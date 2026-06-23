@@ -42,6 +42,12 @@ const maxParseSize = 32 << 20 // 32 MiB
 // Module is the result of parsing a Terraform module archive.
 type Module struct {
 	Metadata *Metadata
+	// RootDir is the single top-level directory the module was wrapped in
+	// (e.g. a GitHub release tarball), or "" when the module sits at the
+	// archive root. It is transient parse state — not persisted — used by
+	// the upload handler to normalize a wrapped archive to a flat one via
+	// NormalizeArchive.
+	RootDir string
 }
 
 // HashiCorp constrains module name and provider to lowercase alphanumeric
@@ -233,9 +239,73 @@ func ParseModuleArchive(r io.Reader, maxSize int64) (*Module, error) {
 			Readme:      df.readme,
 			Root:        root,
 			Providers:   root.Providers,
-			ModuleDir:   moduleDir,
 		},
+		RootDir: moduleDir,
 	}, nil
+}
+
+// NormalizeArchive rewrites a gzipped tar so that the contents of the
+// single wrapper directory rootDir become the archive root, dropping the
+// wrapper (and any stray entries outside it). The result is a flat
+// archive that the registry stores and serves verbatim, so the download
+// path never needs a go-getter subdir. The total decompressed size is
+// capped at maxParseSize as a safety net (the archive has already passed
+// the same ceiling during parsing).
+func NormalizeArchive(dst io.Writer, src io.Reader, rootDir string) error {
+	gzr, err := gzip.NewReader(src)
+	if err != nil {
+		return fmt.Errorf("invalid gzip stream: %w", err)
+	}
+	defer gzr.Close()
+
+	gzw := gzip.NewWriter(dst)
+	tw := tar.NewWriter(gzw)
+	tr := tar.NewReader(gzr)
+	prefix := rootDir + "/"
+
+	var written int64
+	for {
+		hdr, err := tr.Next()
+		if err == io.EOF {
+			break
+		}
+		if err != nil {
+			return fmt.Errorf("tar read: %w", err)
+		}
+
+		clean := path.Clean(hdr.Name)
+		if clean == rootDir {
+			continue // the wrapper directory entry itself
+		}
+		rel := strings.TrimPrefix(clean, prefix)
+		if rel == clean {
+			continue // entry outside the wrapper directory
+		}
+		if hdr.Typeflag == tar.TypeDir {
+			rel += "/"
+		}
+
+		hdr.Name = rel
+		if err := tw.WriteHeader(hdr); err != nil {
+			return err
+		}
+		if hdr.Typeflag != tar.TypeReg {
+			continue
+		}
+		n, err := io.Copy(tw, io.LimitReader(tr, maxParseSize-written+1))
+		if err != nil {
+			return err
+		}
+		written += n
+		if written > maxParseSize {
+			return ErrArchiveTooLarge
+		}
+	}
+
+	if err := tw.Close(); err != nil {
+		return err
+	}
+	return gzw.Close()
 }
 
 // selectModuleRoot picks the directory level that holds the root module.
