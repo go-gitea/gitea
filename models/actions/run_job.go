@@ -361,6 +361,14 @@ func CollectAllDescendantJobs(parent *ActionRunJob, allJobs []*ActionRunJob) []*
 	return out
 }
 
+// hasWaitingJobsToPick reports whether any waiting, unclaimed, non-reusable job
+// remains in the repo, i.e. work that an idle runner could still pick up.
+func hasWaitingJobsToPick(ctx context.Context, repoID int64) (bool, error) {
+	return db.GetEngine(ctx).
+		Where("repo_id = ? AND task_id = ? AND status = ? AND is_reusable_caller = ?", repoID, 0, StatusWaiting, false).
+		Exist(&ActionRunJob{})
+}
+
 func UpdateRunJob(ctx context.Context, job *ActionRunJob, cond builder.Cond, cols ...string) (int64, error) {
 	e := db.GetEngine(ctx)
 
@@ -406,9 +414,18 @@ func UpdateRunJob(ctx context.Context, job *ActionRunJob, cond builder.Cond, col
 	// Without this bump, runners that completed their tasks would see
 	// tasksVersion==latestVersion and skip PickTask, leaving the other jobs
 	// permanently unassigned until the version changes for another reason.
+	// Only bump when waiting work actually remains for this repo, otherwise
+	// every job completion would needlessly bump the global version and wake
+	// every idle runner instance-wide for nothing.
 	if statusUpdated && job.Status.IsDone() && !job.IsReusableCaller {
-		if err := IncreaseTaskVersion(ctx, job.OwnerID, job.RepoID); err != nil {
+		hasWaiting, err := hasWaitingJobsToPick(ctx, job.RepoID)
+		if err != nil {
 			return 0, err
+		}
+		if hasWaiting {
+			if err := IncreaseTaskVersion(ctx, job.OwnerID, job.RepoID); err != nil {
+				return 0, err
+			}
 		}
 	}
 

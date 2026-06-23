@@ -406,3 +406,68 @@ func TestCreateTaskForRunnerConcurrentClaim(t *testing.T) {
 		assert.NotZero(t, updated.TaskID)
 	}
 }
+
+// TestReleaseTaskForRunner verifies that releasing a freshly-claimed task returns
+// its job to the waiting queue and deletes the task and its steps, so a failure
+// while assembling the runner response cannot strand the job in running state.
+func TestReleaseTaskForRunner(t *testing.T) {
+	require.NoError(t, unittest.PrepareTestDatabase())
+
+	run := &ActionRun{
+		Title:         "release-task-test-run",
+		RepoID:        1,
+		OwnerID:       2,
+		WorkflowID:    "test.yaml",
+		Index:         9902,
+		TriggerUserID: 2,
+		Ref:           "refs/heads/main",
+		CommitSHA:     "c2d72f548424103f01ee1dc02889c1e2bff816b0",
+		Event:         "push",
+		TriggerEvent:  "push",
+		Status:        StatusWaiting,
+	}
+	require.NoError(t, db.Insert(t.Context(), run))
+
+	job := &ActionRunJob{
+		RunID:           run.ID,
+		RepoID:          run.RepoID,
+		OwnerID:         run.OwnerID,
+		CommitSHA:       run.CommitSHA,
+		Name:            "release-job",
+		Attempt:         1,
+		JobID:           "release-job",
+		Status:          StatusWaiting,
+		RunsOn:          []string{"ubuntu-latest"},
+		WorkflowPayload: []byte("on: push\njobs:\n  release-job:\n    runs-on: ubuntu-latest\n    steps:\n      - run: echo hi\n"),
+	}
+	require.NoError(t, db.Insert(t.Context(), job))
+
+	runner := &ActionRunner{
+		UUID:        "release-runner-uuid",
+		Name:        "release-runner",
+		AgentLabels: []string{"ubuntu-latest"},
+	}
+	runner.GenerateAndFillToken()
+	require.NoError(t, db.Insert(t.Context(), runner))
+
+	task, ok, err := CreateTaskForRunner(t.Context(), runner)
+	require.NoError(t, err)
+	require.True(t, ok)
+	require.NotNil(t, task)
+
+	claimed := unittest.AssertExistsAndLoadBean(t, &ActionRunJob{ID: job.ID})
+	require.Equal(t, StatusRunning, claimed.Status)
+	require.Equal(t, task.ID, claimed.TaskID)
+
+	require.NoError(t, ReleaseTaskForRunner(t.Context(), task))
+
+	// Job is back in the waiting queue with no task assigned.
+	released := unittest.AssertExistsAndLoadBean(t, &ActionRunJob{ID: job.ID})
+	assert.Equal(t, StatusWaiting, released.Status)
+	assert.Zero(t, released.TaskID)
+	assert.Zero(t, released.Started)
+
+	// The task and its steps are gone.
+	unittest.AssertNotExistsBean(t, &ActionTask{ID: task.ID})
+	unittest.AssertNotExistsBean(t, &ActionTaskStep{TaskID: task.ID})
+}

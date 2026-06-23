@@ -363,6 +363,41 @@ func claimJobForRunner(ctx context.Context, runner *ActionRunner, job *ActionRun
 	return resultTask, true, nil
 }
 
+// ReleaseTaskForRunner reverts a freshly-claimed but undelivered task: it deletes
+// the task together with its steps and returns the job to the waiting queue. It is
+// used when assembling the runner response fails after the job was already claimed,
+// so the job is not stranded in running state with no runner ever executing it.
+func ReleaseTaskForRunner(ctx context.Context, task *ActionTask) error {
+	return db.WithTx(ctx, func(ctx context.Context) error {
+		e := db.GetEngine(ctx)
+
+		job, err := GetRunJobByRepoAndID(ctx, task.RepoID, task.JobID)
+		if err != nil {
+			return err
+		}
+
+		job.Status = StatusWaiting
+		job.Started = 0
+		job.TaskID = 0
+		// Guard on task_id so we only release while the job still references this task.
+		n, err := UpdateRunJob(ctx, job, builder.Eq{"task_id": task.ID}, "status", "started", "task_id")
+		if err != nil {
+			return err
+		}
+		if n != 1 {
+			return fmt.Errorf("release task %d: job %d no longer references it", task.ID, task.JobID)
+		}
+
+		if _, err := e.Delete(&ActionTaskStep{TaskID: task.ID}); err != nil {
+			return err
+		}
+		if _, err := e.ID(task.ID).Delete(&ActionTask{}); err != nil {
+			return err
+		}
+		return nil
+	})
+}
+
 func UpdateTask(ctx context.Context, task *ActionTask, cols ...string) error {
 	sess := db.GetEngine(ctx).ID(task.ID)
 	if len(cols) > 0 {
