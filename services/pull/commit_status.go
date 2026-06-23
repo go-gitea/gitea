@@ -8,11 +8,15 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"slices"
 
+	actions_model "gitea.dev/models/actions"
 	"gitea.dev/models/db"
 	git_model "gitea.dev/models/git"
 	issues_model "gitea.dev/models/issues"
+	repo_model "gitea.dev/models/repo"
 	"gitea.dev/modules/commitstatus"
+	"gitea.dev/modules/container"
 	"gitea.dev/modules/gitrepo"
 	"gitea.dev/modules/glob"
 	"gitea.dev/modules/log"
@@ -130,10 +134,45 @@ func GetPullRequestCommitStatusState(ctx context.Context, pr *issues_model.PullR
 	if err != nil {
 		return "", fmt.Errorf("LoadProtectedBranch: %w", err)
 	}
-	var requiredContexts []string
-	if pb != nil {
-		requiredContexts = pb.StatusCheckContexts
+	requiredContexts, err := EffectiveRequiredContexts(ctx, pr.BaseRepo, pb)
+	if err != nil {
+		return "", err
 	}
 
 	return MergeRequiredContextsCommitStatus(commitStatuses, requiredContexts), nil
+}
+
+// EffectiveRequiredContexts returns the required status-check contexts for a PR head:
+//  1. the branch protection's configured contexts
+//  2. the status-check patterns of every required scoped workflow effective for the repo
+func EffectiveRequiredContexts(ctx context.Context, repo *repo_model.Repository, pb *git_model.ProtectedBranch) ([]string, error) {
+	if pb == nil {
+		return nil, nil
+	}
+	if !pb.EnableStatusCheck {
+		return pb.StatusCheckContexts, nil
+	}
+
+	sources, err := actions_model.GetEffectiveScopedWorkflowSources(ctx, repo.OwnerID)
+	if err != nil {
+		return nil, fmt.Errorf("GetEffectiveScopedWorkflowSources: %w", err)
+	}
+
+	// Append each required scoped workflow's admin-authored status-check patterns to the required set.
+	// They are matched must-present-and-pass: a required scoped check that posts no matching status blocks the merge.
+	required := slices.Clone(pb.StatusCheckContexts)
+	seen := make(container.Set[string])
+	for _, source := range sources {
+		for _, cfg := range source.WorkflowConfigs {
+			if !cfg.Required {
+				continue
+			}
+			for _, p := range cfg.Patterns {
+				if seen.Add(p) {
+					required = append(required, p)
+				}
+			}
+		}
+	}
+	return required, nil
 }

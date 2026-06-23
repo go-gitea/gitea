@@ -1141,6 +1141,11 @@ func ActionsDispatchWorkflow(ctx *context.APIContext) {
 	//   description: Whether the response should include the workflow run ID and URLs.
 	//   in: query
 	//   type: boolean
+	// - name: workflow_source_repo_id
+	//   description: For a scoped workflow, the ID of the source repository providing it; omit or 0 for a repo-level workflow.
+	//   in: query
+	//   type: integer
+	//   format: int64
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/RunDetails"
@@ -1162,7 +1167,9 @@ func ActionsDispatchWorkflow(ctx *context.APIContext) {
 		return
 	}
 
-	runID, err := actions_service.DispatchActionWorkflow(ctx, ctx.Doer, ctx.Repo.Repository, ctx.Repo.GitRepo, workflowID, opt.Ref, func(workflowDispatch *model.WorkflowDispatch, inputs map[string]any) error {
+	// a non-zero workflow_source_repo_id dispatches a scoped workflow from that source repo; 0/absent is repo-level.
+	sourceRepoID := ctx.FormInt64("workflow_source_repo_id")
+	runID, err := actions_service.DispatchActionWorkflow(ctx, ctx.Doer, ctx.Repo.Repository, ctx.Repo.GitRepo, workflowID, opt.Ref, sourceRepoID, func(workflowDispatch *model.WorkflowDispatch, inputs map[string]any) error {
 		if strings.Contains(ctx.Req.Header.Get("Content-Type"), "form-urlencoded") {
 			// The chi framework's "Binding" doesn't support to bind the form map values into a map[string]string
 			// So we have to manually read the `inputs[key]` from the form

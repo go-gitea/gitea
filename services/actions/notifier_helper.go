@@ -19,6 +19,7 @@ import (
 	unit_model "gitea.dev/models/unit"
 	user_model "gitea.dev/models/user"
 	actions_module "gitea.dev/modules/actions"
+	"gitea.dev/modules/container"
 	"gitea.dev/modules/git"
 	"gitea.dev/modules/gitrepo"
 	"gitea.dev/modules/json"
@@ -239,7 +240,11 @@ func notify(ctx context.Context, input *notifyInput) error {
 		}
 	}
 
-	return handleWorkflows(ctx, detectedWorkflows, commit, input, ref)
+	if err := handleWorkflows(ctx, detectedWorkflows, commit, input, ref); err != nil {
+		return err
+	}
+
+	return detectAndHandleScopedWorkflows(ctx, input, ref, gitRepo, commit)
 }
 
 func skipWorkflows(ctx context.Context, input *notifyInput, commit *git.Commit) bool {
@@ -303,20 +308,7 @@ func handleWorkflows(
 		return fmt.Errorf("json.Marshal: %w", err)
 	}
 
-	isForkPullRequest := false
-	if pr := input.PullRequest; pr != nil {
-		switch pr.Flow {
-		case issues_model.PullRequestFlowGithub:
-			isForkPullRequest = pr.IsFromFork()
-		case issues_model.PullRequestFlowAGit:
-			// There is no fork concept in agit flow, anyone with read permission can push refs/for/<target-branch>/<topic-branch> to the repo.
-			// So we can treat it as a fork pull request because it may be from an untrusted user
-			isForkPullRequest = true
-		default:
-			// unknown flow, assume it's a fork pull request to be safe
-			isForkPullRequest = true
-		}
-	}
+	isForkPullRequest := isForkPullRequestInput(input)
 
 	for _, dwf := range detectedWorkflows {
 		run := &actions_model.ActionRun{
@@ -334,6 +326,10 @@ func handleWorkflows(
 			EventPayload:      string(p),
 			TriggerEvent:      dwf.TriggerEvent.Name,
 			Status:            actions_model.StatusWaiting,
+			// repo-level run: the workflow content is this repo at this commit
+			WorkflowRepoID:    input.Repo.ID,
+			WorkflowCommitSHA: commit.ID.String(),
+			IsScopedRun:       false,
 		}
 
 		need, err := ifNeedApproval(ctx, run, input.Repo, input.Doer)
@@ -550,4 +546,135 @@ func DetectAndHandleSchedules(ctx context.Context, repo *repo_model.Repository) 
 	notifyInput := newNotifyInputForSchedules(repo)
 
 	return handleSchedules(ctx, scheduleWorkflows, commit, notifyInput, git.RefNameFromBranch(repo.DefaultBranch))
+}
+
+// isForkPullRequestInput reports whether the run should be treated as a fork pull request.
+func isForkPullRequestInput(input *notifyInput) bool {
+	pr := input.PullRequest
+	if pr == nil {
+		return false
+	}
+	switch pr.Flow {
+	case issues_model.PullRequestFlowGithub:
+		return pr.IsFromFork()
+	case issues_model.PullRequestFlowAGit:
+		// There is no fork concept in agit flow, anyone with read permission can push refs/for/<target-branch>/<topic-branch> to the repo.
+		// So we can treat it as a fork pull request because it may be from an untrusted user
+		return true
+	default:
+		// unknown flow, assume it's a fork pull request to be safe
+		return true
+	}
+}
+
+// detectAndHandleScopedWorkflows detects scoped workflows registered for the consuming repo
+func detectAndHandleScopedWorkflows(
+	ctx context.Context,
+	input *notifyInput,
+	ref git.RefName,
+	consumerGitRepo *git.Repository,
+	consumerCommit *git.Commit,
+) error {
+	// TODO: support workflow_run and schedule
+	if input.Event == webhook_module.HookEventWorkflowRun || input.Event == webhook_module.HookEventSchedule {
+		return nil
+	}
+
+	sources, err := actions_model.GetEffectiveScopedWorkflowSources(ctx, input.Repo.OwnerID)
+	if err != nil {
+		return fmt.Errorf("GetEffectiveScopedWorkflowSources: %w", err)
+	}
+	if len(sources) == 0 {
+		return nil
+	}
+
+	p, err := json.Marshal(input.Payload)
+	if err != nil {
+		return fmt.Errorf("json.Marshal: %w", err)
+	}
+	isForkPullRequest := isForkPullRequestInput(input)
+	actionsConfig := input.Repo.MustGetUnit(ctx, unit_model.TypeActions).ActionsConfig()
+
+	seen := make(container.Set[int64], len(sources))
+	for _, source := range sources {
+		if !seen.Add(source.SourceRepoID) {
+			// The same source repo may be registered at both the owner and instance level; skip if it's already handled
+			continue
+		}
+
+		sourceRepo, err := repo_model.GetRepositoryByID(ctx, source.SourceRepoID)
+		if err != nil {
+			// don't abort the other effective sources for this event
+			log.Error("scoped workflows: load source repo %d for consumer %s: %v", source.SourceRepoID, input.Repo.RelativePath(), err)
+			continue
+		}
+		if sourceRepo.IsEmpty {
+			continue
+		}
+
+		sourceCommitSHA, detected, err := detectScopedWorkflowsForSource(ctx, input, consumerGitRepo, consumerCommit, sourceRepo)
+		if err != nil {
+			log.Error("scoped workflows: source %d for consumer %s: %v", source.SourceRepoID, input.Repo.RelativePath(), err)
+			continue
+		}
+
+		for _, dwf := range detected {
+			// A consuming repo can opt out of a non-required scoped workflow.
+			// A required workflow (marked required at any effective level) can never be opted out.
+			required := actions_model.IsWorkflowRequiredInSources(sources, sourceRepo.ID, dwf.EntryName)
+			if !required && actionsConfig.IsScopedWorkflowDisabled(sourceRepo.ID, dwf.EntryName) {
+				continue
+			}
+
+			run := &actions_model.ActionRun{
+				Title:             consumerCommit.MessageTitle(),
+				RepoID:            input.Repo.ID,
+				Repo:              input.Repo,
+				OwnerID:           input.Repo.OwnerID,
+				WorkflowID:        dwf.EntryName,
+				TriggerUserID:     input.Doer.ID,
+				TriggerUser:       input.Doer,
+				Ref:               ref.String(),
+				CommitSHA:         consumerCommit.ID.String(),
+				IsForkPullRequest: isForkPullRequest,
+				Event:             input.Event,
+				EventPayload:      string(p),
+				TriggerEvent:      dwf.TriggerEvent.Name,
+				Status:            actions_model.StatusWaiting,
+				WorkflowRepoID:    sourceRepo.ID,
+				WorkflowCommitSHA: sourceCommitSHA,
+				IsScopedRun:       true,
+			}
+
+			need, err := ifNeedApproval(ctx, run, input.Repo, input.Doer)
+			if err != nil {
+				log.Error("scoped workflows: check approval for repo %d user %d: %v", input.Repo.ID, input.Doer.ID, err)
+				continue
+			}
+			run.NeedApproval = need
+
+			if err := PrepareRunAndInsert(ctx, dwf.Content, run, nil); err != nil {
+				log.Error("scoped workflows: PrepareRunAndInsert (source %s, workflow %s): %v", sourceRepo.RelativePath(), dwf.EntryName, err)
+				continue
+			}
+		}
+	}
+
+	return nil
+}
+
+// detectScopedWorkflowsForSource detects the scoped workflows from the source repo at its default branch
+func detectScopedWorkflowsForSource(
+	ctx context.Context,
+	input *notifyInput,
+	consumerGitRepo *git.Repository,
+	consumerCommit *git.Commit,
+	sourceRepo *repo_model.Repository,
+) (sourceCommitSHA string, detected []*actions_module.DetectedWorkflow, err error) {
+	// scoped workflow content is always taken from the source repo's default branch; the parse is cached per (source, default-branch SHA) and reused across consuming repos/events
+	sourceCommitSHA, parsed, err := LoadParsedScopedWorkflows(ctx, sourceRepo)
+	if err != nil {
+		return "", nil, err
+	}
+	return sourceCommitSHA, actions_module.MatchScopedWorkflows(parsed, consumerGitRepo, consumerCommit, input.Event, input.Payload), nil
 }

@@ -88,7 +88,11 @@ func validateRerun(ctx context.Context, run *actions_model.ActionRun, repo *repo
 	}
 	cfgUnit := repo.MustGetUnit(ctx, unit.TypeActions)
 	cfg := cfgUnit.ActionsConfig()
-	if cfg.IsWorkflowDisabled(run.WorkflowID) {
+	if run.IsScopedRun {
+		if cfg.IsScopedWorkflowDisabled(run.WorkflowRepoID, run.WorkflowID) {
+			return util.NewInvalidArgumentErrorf("scoped workflow %s is disabled", run.WorkflowID)
+		}
+	} else if cfg.IsWorkflowDisabled(run.WorkflowID) {
 		return util.NewInvalidArgumentErrorf("workflow %s is disabled", run.WorkflowID)
 	}
 

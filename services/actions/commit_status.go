@@ -7,7 +7,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"path"
 	"strings"
 
 	actions_model "gitea.dev/models/actions"
@@ -16,7 +15,6 @@ import (
 	repo_model "gitea.dev/models/repo"
 	user_model "gitea.dev/models/user"
 	actions_module "gitea.dev/modules/actions"
-	"gitea.dev/modules/actions/jobparser"
 	"gitea.dev/modules/commitstatus"
 	"gitea.dev/modules/log"
 	"gitea.dev/modules/util"
@@ -137,15 +135,13 @@ func getCommitStatusEventNameAndCommitID(run *actions_model.ActionRun) (event, c
 }
 
 func createCommitStatus(ctx context.Context, repo *repo_model.Repository, event, commitID string, run *actions_model.ActionRun, job *actions_model.ActionRunJob) error {
-	// TODO: store workflow name as a field in ActionRun to avoid parsing
-	runName := path.Base(run.WorkflowID)
-	// fall back to the file name when the workflow has no non-blank `name:`
-	if wfs, err := jobparser.Parse(job.WorkflowPayload); err == nil && len(wfs) > 0 {
-		if name := strings.TrimSpace(wfs[0].Name); name != "" {
-			runName = name
-		}
+	displayName := actions_module.WorkflowDisplayName(run.WorkflowID, job.WorkflowPayload)
+	ctxName := strings.TrimSpace(fmt.Sprintf("%s / %s (%s)", displayName, job.Name, event)) // git_model.NewCommitStatus also trims spaces
+	if run.IsScopedRun {
+		// A scoped run is prefixed with its source repo (set off by a colon) so it stays distinct from a same-named repo-level workflow.
+		ctxName = strings.TrimSpace(fmt.Sprintf("%s: %s", actions_model.ScopedStatusContextPrefix(ctx, run.WorkflowRepoID), ctxName))
 	}
-	ctxName := strings.TrimSpace(fmt.Sprintf("%s / %s (%s)", runName, job.Name, event)) // git_model.NewCommitStatus also trims spaces
+
 	// Mix the workflow file path into the hash so two workflow files that
 	// share the same `name:` and job name produce distinct commit statuses
 	// even though they render identically — matching GitHub's behavior

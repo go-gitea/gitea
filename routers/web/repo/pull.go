@@ -423,6 +423,15 @@ func (prInfo *pullRequestViewInfo) prepareMergeBoxStatusCheckData(ctx *context.C
 	if err != nil {
 		log.Error("GetLatestCommitStatus: %v", err)
 	}
+
+	// Effective required contexts = branch-protection contexts + required scoped workflow checks.
+	requiredContexts := pbRequiredContexts
+	if effective, err := pull_service.EffectiveRequiredContexts(ctx, ctx.Repo.Repository, prInfo.ProtectedBranchRule); err != nil {
+		log.Error("EffectiveRequiredContexts: %v", err)
+	} else {
+		requiredContexts = effective
+	}
+
 	if !ctx.Repo.Permission.CanRead(unit.TypeActions) {
 		git_model.CommitStatusesHideActionsURL(ctx, commitStatuses)
 	}
@@ -449,7 +458,7 @@ func (prInfo *pullRequestViewInfo) prepareMergeBoxStatusCheckData(ctx *context.C
 	}
 
 	var missingRequiredChecks []string
-	for _, requiredContext := range pbRequiredContexts {
+	for _, requiredContext := range requiredContexts {
 		contextFound := false
 		matchesRequiredContext := createRequiredContextMatcher(requiredContext)
 		for _, presentStatus := range commitStatuses {
@@ -466,7 +475,7 @@ func (prInfo *pullRequestViewInfo) prepareMergeBoxStatusCheckData(ctx *context.C
 	statusCheckData.MissingRequiredChecks = missingRequiredChecks
 
 	statusCheckData.IsContextRequired = func(context string) bool {
-		for _, c := range pbRequiredContexts {
+		for _, c := range requiredContexts {
 			if c == context {
 				return true
 			}
@@ -481,7 +490,7 @@ func (prInfo *pullRequestViewInfo) prepareMergeBoxStatusCheckData(ctx *context.C
 		}
 		return false
 	}
-	statusCheckData.RequiredChecksState = pull_service.MergeRequiredContextsCommitStatus(commitStatuses, pbRequiredContexts)
+	statusCheckData.RequiredChecksState = pull_service.MergeRequiredContextsCommitStatus(commitStatuses, requiredContexts)
 
 	if data.enableStatusCheck {
 		if statusCheckData.RequiredChecksState.IsError() || statusCheckData.RequiredChecksState.IsFailure() {

@@ -21,12 +21,14 @@ import (
 	"gitea.dev/models/db"
 	git_model "gitea.dev/models/git"
 	issues_model "gitea.dev/models/issues"
+	access_model "gitea.dev/models/perm/access"
 	repo_model "gitea.dev/models/repo"
 	"gitea.dev/models/unit"
 	"gitea.dev/modules/actions"
 	"gitea.dev/modules/base"
 	"gitea.dev/modules/cache"
 	"gitea.dev/modules/git"
+	"gitea.dev/modules/gitrepo"
 	"gitea.dev/modules/httplib"
 	"gitea.dev/modules/json"
 	"gitea.dev/modules/log"
@@ -243,6 +245,11 @@ func ViewWorkflowFile(ctx *context_module.Context) {
 		return
 	}
 
+	if run.IsScopedRun {
+		viewScopedWorkflowFile(ctx, run)
+		return
+	}
+
 	commit, err := ctx.Repo.GitRepo.GetCommit(run.CommitSHA)
 	if err != nil {
 		ctx.NotFoundOrServerError("GetCommit", func(err error) bool {
@@ -293,25 +300,26 @@ type ViewResponse struct {
 			// ViewLink is the attempt-aware URL for navigation, e.g. "/owner/repo/actions/runs/123" for the latest attempt
 			// or "/owner/repo/actions/runs/123/attempts/2" for a historical attempt.
 			// Use this when the target should reflect the currently-viewed attempt.
-			ViewLink          string            `json:"viewLink"`
-			Index             int64             `json:"index"` // the per-repository run number, displayed as "#N"
-			Title             string            `json:"title"`
-			TitleHTML         template.HTML     `json:"titleHTML"`
-			Status            string            `json:"status"`
-			CanCancel         bool              `json:"canCancel"`
-			CanApprove        bool              `json:"canApprove"` // the run needs an approval and the doer has permission to approve
-			CanRerun          bool              `json:"canRerun"`
-			CanRerunFailed    bool              `json:"canRerunFailed"`
-			CanDeleteArtifact bool              `json:"canDeleteArtifact"`
-			Done              bool              `json:"done"`
-			WorkflowID        string            `json:"workflowID"`
-			WorkflowLink      string            `json:"workflowLink"`
-			IsSchedule        bool              `json:"isSchedule"`
-			RunAttempt        int64             `json:"runAttempt"`
-			Attempts          []*ViewRunAttempt `json:"attempts"`
-			Jobs              []*ViewJob        `json:"jobs"`
-			Commit            ViewCommit        `json:"commit"`
-			PullRequest       *ViewPullRequest  `json:"pullRequest,omitempty"`
+			ViewLink            string            `json:"viewLink"`
+			Index               int64             `json:"index"` // the per-repository run number, displayed as "#N"
+			Title               string            `json:"title"`
+			TitleHTML           template.HTML     `json:"titleHTML"`
+			Status              string            `json:"status"`
+			CanCancel           bool              `json:"canCancel"`
+			CanApprove          bool              `json:"canApprove"` // the run needs an approval and the doer has permission to approve
+			CanRerun            bool              `json:"canRerun"`
+			CanRerunFailed      bool              `json:"canRerunFailed"`
+			CanDeleteArtifact   bool              `json:"canDeleteArtifact"`
+			Done                bool              `json:"done"`
+			WorkflowID          string            `json:"workflowID"`
+			WorkflowLink        string            `json:"workflowLink"`
+			CanViewWorkflowFile bool              `json:"canViewWorkflowFile"`
+			IsSchedule          bool              `json:"isSchedule"`
+			RunAttempt          int64             `json:"runAttempt"`
+			Attempts            []*ViewRunAttempt `json:"attempts"`
+			Jobs                []*ViewJob        `json:"jobs"`
+			Commit              ViewCommit        `json:"commit"`
+			PullRequest         *ViewPullRequest  `json:"pullRequest,omitempty"`
 			// Summary view: run duration and trigger time/event
 			Duration     string `json:"duration"`
 			TriggeredAt  int64  `json:"triggeredAt"`  // unix seconds for relative time
@@ -600,6 +608,11 @@ func fillViewRunResponseSummary(ctx *context_module.Context, resp *ViewResponse,
 	if isLatestAttempt {
 		resp.State.Run.WorkflowLink = run.WorkflowLink()
 	}
+	resp.State.Run.CanViewWorkflowFile = true
+	if run.IsScopedRun {
+		// For a scoped run the workflow file lives in the source repo; only show its link when the viewer can read that repo.
+		resp.State.Run.CanViewWorkflowFile = canViewScopedWorkflowFile(ctx, run)
+	}
 	resp.State.Run.IsSchedule = run.IsSchedule()
 	resp.State.Run.Jobs = make([]*ViewJob, 0, len(jobs)) // marshal to '[]' instead fo 'null' in json
 	for _, v := range jobs {
@@ -848,7 +861,11 @@ func checkRunRerunAllowed(ctx *context_module.Context, run *actions_model.Action
 	}
 	cfgUnit := ctx.Repo.Repository.MustGetUnit(ctx, unit.TypeActions)
 	cfg := cfgUnit.ActionsConfig()
-	if cfg.IsWorkflowDisabled(run.WorkflowID) {
+	disabled := cfg.IsWorkflowDisabled(run.WorkflowID)
+	if run.IsScopedRun {
+		disabled = cfg.IsScopedWorkflowDisabled(run.WorkflowRepoID, run.WorkflowID)
+	}
+	if disabled {
 		ctx.JSONError(ctx.Locale.Tr("actions.workflow.disabled"))
 		return false
 	}
@@ -1276,7 +1293,24 @@ func disableOrEnableWorkflowFile(ctx *context_module.Context, isEnable bool) {
 	cfgUnit := ctx.Repo.Repository.MustGetUnit(ctx, unit.TypeActions)
 	cfg := cfgUnit.ActionsConfig()
 
-	if isEnable {
+	scopedRepoID := ctx.FormInt64("scoped_workflow_source_repo_id")
+	if scopedRepoID > 0 {
+		if !isEnable {
+			// a required scoped workflow can never be opted out
+			required, err := actions_model.IsScopedWorkflowRequired(ctx, ctx.Repo.Repository.OwnerID, scopedRepoID, workflow)
+			if err != nil {
+				ctx.ServerError("IsScopedWorkflowRequired", err)
+				return
+			}
+			if required {
+				ctx.JSONError(ctx.Locale.Tr("actions.workflow.scoped_required_cannot_disable"))
+				return
+			}
+			cfg.DisableScopedWorkflow(scopedRepoID, workflow)
+		} else {
+			cfg.EnableScopedWorkflow(scopedRepoID, workflow)
+		}
+	} else if isEnable {
 		cfg.EnableWorkflow(workflow)
 	} else {
 		cfg.DisableWorkflow(workflow)
@@ -1293,13 +1327,13 @@ func disableOrEnableWorkflowFile(ctx *context_module.Context, isEnable bool) {
 		ctx.Flash.Success(ctx.Tr("actions.workflow.disable_success", workflow))
 	}
 
-	redirectURL := actionsListRedirectURL(ctx.Repo.RepoLink, workflow,
+	redirectURL := actionsListRedirectURL(ctx.Repo.RepoLink, workflow, ctx.FormString("scoped_workflow_source_repo_id"),
 		ctx.FormString("actor"), ctx.FormString("status"), ctx.FormString("branch"))
 	ctx.JSONRedirect(redirectURL)
 }
 
 func Run(ctx *context_module.Context) {
-	redirectURL := actionsListRedirectURL(ctx.Repo.RepoLink, ctx.FormString("workflow"),
+	redirectURL := actionsListRedirectURL(ctx.Repo.RepoLink, ctx.FormString("workflow"), ctx.FormString("scoped_workflow_source_repo_id"),
 		ctx.FormString("actor"), ctx.FormString("status"), ctx.FormString("branch"))
 
 	workflowID := ctx.FormString("workflow")
@@ -1313,7 +1347,8 @@ func Run(ctx *context_module.Context) {
 		ctx.ServerError("ref", nil)
 		return
 	}
-	_, err := actions_service.DispatchActionWorkflow(ctx, ctx.Doer, ctx.Repo.Repository, ctx.Repo.GitRepo, workflowID, ref, func(workflowDispatch *model.WorkflowDispatch, inputs map[string]any) error {
+	sourceRepoID := ctx.FormInt64("scoped_workflow_source_repo_id")
+	_, err := actions_service.DispatchActionWorkflow(ctx, ctx.Doer, ctx.Repo.Repository, ctx.Repo.GitRepo, workflowID, ref, sourceRepoID, func(workflowDispatch *model.WorkflowDispatch, inputs map[string]any) error {
 		for name, config := range workflowDispatch.Inputs {
 			value := ctx.Req.PostFormValue(name)
 			if config.Type == "boolean" {
@@ -1338,4 +1373,66 @@ func Run(ctx *context_module.Context) {
 
 	ctx.Flash.Success(ctx.Tr("actions.workflow.run_success", workflowID))
 	ctx.Redirect(redirectURL)
+}
+
+// viewScopedWorkflowFile redirects to the scoped workflow file in its SOURCE repo.
+func viewScopedWorkflowFile(ctx *context_module.Context, run *actions_model.ActionRun) {
+	sourceRepo, err := repo_model.GetRepositoryByID(ctx, run.WorkflowRepoID)
+	if err != nil {
+		ctx.NotFoundOrServerError("GetRepositoryByID", func(err error) bool {
+			return errors.Is(err, util.ErrNotExist)
+		}, err)
+		return
+	}
+
+	perm, err := access_model.GetDoerRepoPermission(ctx, sourceRepo, ctx.Doer)
+	if err != nil {
+		ctx.ServerError("GetUserRepoPermission", err)
+		return
+	}
+	if !perm.CanRead(unit.TypeCode) {
+		ctx.NotFound(nil)
+		return
+	}
+
+	sourceGitRepo, err := gitrepo.OpenRepository(ctx, sourceRepo)
+	if err != nil {
+		ctx.ServerError("OpenRepository", err)
+		return
+	}
+	defer sourceGitRepo.Close()
+
+	commit, err := sourceGitRepo.GetCommit(run.WorkflowCommitSHA)
+	if err != nil {
+		ctx.NotFoundOrServerError("GetCommit", func(err error) bool {
+			return errors.Is(err, util.ErrNotExist)
+		}, err)
+		return
+	}
+	rpath, entries, err := actions.ListScopedWorkflows(commit)
+	if err != nil {
+		ctx.ServerError("ListScopedWorkflows", err)
+		return
+	}
+	for _, entry := range entries {
+		if entry.Name() == run.WorkflowID {
+			ctx.Redirect(fmt.Sprintf("%s/src/commit/%s/%s/%s", sourceRepo.Link(), url.PathEscape(run.WorkflowCommitSHA), util.PathEscapeSegments(rpath), util.PathEscapeSegments(run.WorkflowID)))
+			return
+		}
+	}
+	ctx.NotFound(nil)
+}
+
+// canViewScopedWorkflowFile reports whether the viewer may follow the "Workflow file" link of a scoped run.
+func canViewScopedWorkflowFile(ctx *context_module.Context, run *actions_model.ActionRun) bool {
+	sourceRepo, err := repo_model.GetRepositoryByID(ctx, run.WorkflowRepoID)
+	if err != nil {
+		return false
+	}
+	perm, err := access_model.GetDoerRepoPermission(ctx, sourceRepo, ctx.Doer)
+	if err != nil {
+		log.Error("GetUserRepoPermission: %v", err)
+		return false
+	}
+	return perm.CanRead(unit.TypeCode)
 }

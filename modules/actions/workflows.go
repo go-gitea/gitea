@@ -5,6 +5,7 @@ package actions
 
 import (
 	"bytes"
+	"path"
 	"slices"
 	"strings"
 
@@ -38,11 +39,20 @@ func init() {
 }
 
 func IsWorkflow(path string) bool {
+	return isWorkflowInDirs(path, setting.Actions.WorkflowDirs)
+}
+
+// IsWorkflowOrScopedWorkflow reports whether path is a workflow file under WORKFLOW_DIRS or SCOPED_WORKFLOW_DIRS.
+func IsWorkflowOrScopedWorkflow(path string) bool {
+	return isWorkflowInDirs(path, setting.Actions.WorkflowDirs) || isWorkflowInDirs(path, setting.Actions.ScopedWorkflowDirs)
+}
+
+func isWorkflowInDirs(path string, dirs []string) bool {
 	if (!strings.HasSuffix(path, ".yaml")) && (!strings.HasSuffix(path, ".yml")) {
 		return false
 	}
 
-	for _, workflowDir := range setting.Actions.WorkflowDirs {
+	for _, workflowDir := range dirs {
 		if strings.HasPrefix(path, workflowDir+"/") {
 			return true
 		}
@@ -51,10 +61,14 @@ func IsWorkflow(path string) bool {
 }
 
 func ListWorkflows(commit *git.Commit) (string, git.Entries, error) {
+	return listWorkflowsInDirs(commit, setting.Actions.WorkflowDirs)
+}
+
+func listWorkflowsInDirs(commit *git.Commit, dirs []string) (string, git.Entries, error) {
 	var tree *git.Tree
 	var err error
 	var workflowDir string
-	for _, workflowDir = range setting.Actions.WorkflowDirs {
+	for _, workflowDir = range dirs {
 		tree, err = commit.SubTree(workflowDir)
 		if err == nil {
 			break
@@ -115,6 +129,18 @@ func GetEventsFromContent(content []byte) ([]*jobparser.Event, error) {
 func ValidateWorkflowContent(content []byte) error {
 	_, err := jobparser.Parse(content)
 	return err
+}
+
+// WorkflowDisplayName returns a workflow's display name: its `name:` if non-blank, otherwise the base file name.
+// This is the value used as the workflow segment of its commit-status context.
+func WorkflowDisplayName(file string, content []byte) string {
+	displayName := path.Base(file)
+	if wfs, err := jobparser.Parse(content); err == nil && len(wfs) > 0 {
+		if name := strings.TrimSpace(wfs[0].Name); name != "" {
+			displayName = name
+		}
+	}
+	return displayName
 }
 
 func DetectWorkflows(

@@ -48,6 +48,13 @@ type ActionRun struct {
 	Version           int                          `xorm:"version default 0"` // Status could be updated concomitantly, so an optimistic lock is needed
 	RawConcurrency    string                       // raw concurrency
 
+	// WorkflowRepoID/WorkflowCommitSHA record the (repo, commit) the run's workflow file content came from.
+	// Always filled (repo-level run = the repo itself; scoped run = the source repo).
+	WorkflowRepoID    int64  `xorm:"NOT NULL DEFAULT 0"`
+	WorkflowCommitSHA string `xorm:"VARCHAR(64) NOT NULL DEFAULT ''"`
+
+	IsScopedRun bool `xorm:"NOT NULL DEFAULT false"` // IsScopedRun explicitly classifies scoped runs.
+
 	// Started and Stopped are identical to the latest attempt after ActionRunAttempt was introduced.
 	// When a rerun creates a new latest attempt, they are reset until the new attempt starts and stops.
 	Started timeutil.TimeStamp
@@ -85,6 +92,10 @@ func (run *ActionRun) Link() string {
 func (run *ActionRun) WorkflowLink() string {
 	if run.Repo == nil {
 		return ""
+	}
+	// A scoped run's workflow is disambiguated by its source repo, so carry scoped_workflow_source_repo_id back to the run list
+	if run.IsScopedRun {
+		return fmt.Sprintf("%s/actions/?workflow=%s&scoped_workflow_source_repo_id=%d", run.Repo.Link(), run.WorkflowID, run.WorkflowRepoID)
 	}
 	return fmt.Sprintf("%s/actions/?workflow=%s", run.Repo.Link(), run.WorkflowID)
 }

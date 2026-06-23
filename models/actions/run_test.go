@@ -44,3 +44,15 @@ func TestActionRun_Duration_NonNegative(t *testing.T) {
 	}
 	assert.Equal(t, time.Duration(0), run.Duration())
 }
+
+func TestActionRun_WorkflowLink(t *testing.T) {
+	repo := &repo_model.Repository{OwnerName: "org", Name: "consumer"}
+
+	// a repo-level run links by file name only
+	repoLevel := &ActionRun{Repo: repo, WorkflowID: "ci.yaml", WorkflowRepoID: repo.ID}
+	assert.Equal(t, repo.Link()+"/actions/?workflow=ci.yaml", repoLevel.WorkflowLink())
+
+	// a scoped run carries its source repo id back, so the list stays filtered to that source
+	scoped := &ActionRun{Repo: repo, WorkflowID: "ci.yaml", WorkflowRepoID: 42, IsScopedRun: true}
+	assert.Equal(t, repo.Link()+"/actions/?workflow=ci.yaml&scoped_workflow_source_repo_id=42", scoped.WorkflowLink())
+}

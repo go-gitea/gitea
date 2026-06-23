@@ -13,6 +13,7 @@ import (
 	perm_model "gitea.dev/models/perm"
 	access_model "gitea.dev/models/perm/access"
 	repo_model "gitea.dev/models/repo"
+	actions_module "gitea.dev/modules/actions"
 	"gitea.dev/modules/actions/jobparser"
 	"gitea.dev/modules/container"
 	"gitea.dev/modules/gitrepo"
@@ -359,5 +360,13 @@ func ResolveUses(ctx context.Context, uses string) (*jobparser.UsesRef, error) {
 		// RoutePath is the instance-relative path (AppSubURL already stripped), e.g. "/owner/repo/.gitea/workflows/file.yml@ref".
 		uses = strings.TrimPrefix(gsu.RoutePath, "/")
 	}
-	return jobparser.ParseUses(uses)
+	ref, err := jobparser.ParseUses(uses)
+	if err != nil {
+		return nil, err
+	}
+	// jobparser only validates syntax; enforce the (instance-configurable) directory allowlist here.
+	if !actions_module.IsWorkflowOrScopedWorkflow(ref.Path) {
+		return nil, fmt.Errorf(`"uses:" path %q must be under a configured workflow directory (WORKFLOW_DIRS or SCOPED_WORKFLOW_DIRS)`, ref.Path)
+	}
+	return ref, nil
 }

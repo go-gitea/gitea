@@ -93,16 +93,22 @@ func List(ctx *context.Context) {
 	if ctx.Written() {
 		return
 	}
-	otherWorkflows := prepareOtherWorkflows(ctx, workflows, curWorkflowID)
+	curWorkflowRepoID := ctx.FormInt64("scoped_workflow_source_repo_id")
+	ctx.Data["CurWorkflowRepoID"] = curWorkflowRepoID
+	scopedNames := prepareScopedWorkflows(ctx, curWorkflowID, curWorkflowRepoID)
 	if ctx.Written() {
 		return
 	}
-	prepareWorkflowDispatchTemplate(ctx, workflows, curWorkflowID)
+	otherWorkflows := prepareOtherWorkflows(ctx, workflows, scopedNames, curWorkflowID)
+	if ctx.Written() {
+		return
+	}
+	prepareWorkflowDispatchTemplate(ctx, workflows, curWorkflowID, curWorkflowRepoID)
 	if ctx.Written() {
 		return
 	}
 
-	prepareWorkflowList(ctx, workflows, otherWorkflows)
+	prepareWorkflowList(ctx, workflows, otherWorkflows, len(scopedNames) > 0)
 	if ctx.Written() {
 		return
 	}
@@ -112,11 +118,13 @@ func List(ctx *context.Context) {
 
 // prepareOtherWorkflows surfaces historical runs whose workflow file no longer
 // exists on the default branch (renamed, removed, or only on other branches).
-func prepareOtherWorkflows(ctx *context.Context, workflows []WorkflowInfo, curWorkflowID string) []string {
-	listed := make(container.Set[string], len(workflows))
+func prepareOtherWorkflows(ctx *context.Context, workflows []WorkflowInfo, scopedNames container.Set[string], curWorkflowID string) []string {
+	listed := make(container.Set[string], len(workflows)+len(scopedNames))
 	for _, w := range workflows {
 		listed.Add(w.Entry.Name())
 	}
+	// scoped workflows are listed in their own sidebar section, so their runs must not also surface as orphans
+	listed.AddMultiple(scopedNames.Values()...)
 
 	var other []string
 	if ctx.Repo.Repository.NumActionRuns > 0 {
@@ -161,7 +169,7 @@ func WorkflowDispatchInputs(ctx *context.Context) {
 	if ctx.Written() {
 		return
 	}
-	prepareWorkflowDispatchTemplate(ctx, workflows, curWorkflowID)
+	prepareWorkflowDispatchTemplate(ctx, workflows, curWorkflowID, ctx.FormInt64("scoped_workflow_source_repo_id"))
 	if ctx.Written() {
 		return
 	}
@@ -229,6 +237,7 @@ func prepareWorkflowTemplate(ctx *context.Context, commit *git.Commit) (workflow
 
 	ctx.Data["workflows"] = workflows
 	ctx.Data["RepoLink"] = ctx.Repo.Repository.Link()
+	ctx.Data["RepoID"] = ctx.Repo.Repository.ID
 	ctx.Data["AllowDisableOrEnableWorkflow"] = ctx.Repo.Permission.IsAdmin()
 	actionsConfig := ctx.Repo.Repository.MustGetUnit(ctx, unit.TypeActions).ActionsConfig()
 	ctx.Data["ActionsConfig"] = actionsConfig
@@ -238,21 +247,159 @@ func prepareWorkflowTemplate(ctx *context.Context, commit *git.Commit) (workflow
 	return workflows, curWorkflowID
 }
 
-func prepareWorkflowDispatchTemplate(ctx *context.Context, workflowInfos []WorkflowInfo, curWorkflowID string) {
-	actionsConfig := ctx.Repo.Repository.MustGetUnit(ctx, unit.TypeActions).ActionsConfig()
-	if curWorkflowID == "" || !ctx.Repo.Permission.CanWrite(unit.TypeActions) || actionsConfig.IsWorkflowDisabled(curWorkflowID) {
+// ScopedWorkflowInfo describes a scoped workflow effective for the current repo, listed under its source group.
+type ScopedWorkflowInfo struct {
+	SourceRepoID int64
+	EntryName    string
+	DisplayName  string
+	Required     bool
+	Disabled     bool
+}
+
+// ScopedWorkflowSourceGroup groups the scoped workflows contributed by one source repo for the All-Workflows sidebar.
+type ScopedWorkflowSourceGroup struct {
+	SourceRepoID        int64
+	SourceRepoName      string // owner/name of the source repo; shown for instance-level sources and used as the tooltip
+	SourceRepoShortName string // name only; shown for owner-level sources, where the owner is always the current owner
+	FromInstance        bool   // registered at instance level (owner_id == 0) rather than by the owner
+	IsActive            bool   // the currently-selected workflow belongs to this source; render the group expanded
+	Workflows           []ScopedWorkflowInfo
+}
+
+// prepareScopedWorkflows lists the scoped workflows effective for the repo's owner (and instance) for the All-Workflows sidebar.
+func prepareScopedWorkflows(ctx *context.Context, curWorkflowID string, curWorkflowRepoID int64) container.Set[string] {
+	scopedNames := make(container.Set[string])
+
+	repo := ctx.Repo.Repository
+	sources, err := actions_model.GetEffectiveScopedWorkflowSources(ctx, repo.OwnerID)
+	if err != nil {
+		ctx.ServerError("GetEffectiveScopedWorkflowSources", err)
+		return scopedNames
+	}
+	if len(sources) == 0 {
+		return scopedNames
+	}
+
+	actionsConfig := repo.MustGetUnit(ctx, unit.TypeActions).ActionsConfig()
+
+	groups := make([]ScopedWorkflowSourceGroup, 0, len(sources))
+	seen := make(map[int64]bool, len(sources))
+	for _, source := range sources {
+		if seen[source.SourceRepoID] {
+			continue
+		}
+		seen[source.SourceRepoID] = true
+
+		sourceRepo, err := repo_model.GetRepositoryByID(ctx, source.SourceRepoID)
+		if err != nil {
+			log.Error("scoped workflows list: load source repo %d: %v", source.SourceRepoID, err)
+			continue
+		}
+		if sourceRepo.IsEmpty {
+			continue
+		}
+
+		_, entries, err := actions_service.LoadParsedScopedWorkflows(ctx, sourceRepo)
+		if err != nil {
+			log.Error("scoped workflows list: parse %s: %v", sourceRepo.FullName(), err)
+			continue
+		}
+		if len(entries) == 0 {
+			continue
+		}
+
+		group := ScopedWorkflowSourceGroup{
+			SourceRepoID:        sourceRepo.ID,
+			SourceRepoName:      sourceRepo.FullName(),
+			SourceRepoShortName: sourceRepo.Name,
+			FromInstance:        source.OwnerID == 0,
+		}
+		for _, e := range entries {
+			scopedNames.Add(e.EntryName)
+			required := actions_model.IsWorkflowRequiredInSources(sources, sourceRepo.ID, e.EntryName)
+			disabled := actionsConfig.IsScopedWorkflowDisabled(sourceRepo.ID, e.EntryName)
+			group.Workflows = append(group.Workflows, ScopedWorkflowInfo{
+				SourceRepoID: sourceRepo.ID,
+				EntryName:    e.EntryName,
+				DisplayName:  e.DisplayName,
+				Required:     required,
+				Disabled:     disabled,
+			})
+
+			if curWorkflowID == e.EntryName && curWorkflowRepoID == sourceRepo.ID {
+				ctx.Data["CurWorkflowDisabled"] = disabled
+				ctx.Data["CurWorkflowScopedRepoID"] = sourceRepo.ID
+				ctx.Data["CurWorkflowRequired"] = required
+				group.IsActive = true // keep this group expanded so the selected workflow stays visible
+			}
+		}
+		groups = append(groups, group)
+	}
+
+	ctx.Data["ScopedWorkflowGroups"] = groups
+	return scopedNames
+}
+
+// loadScopedWorkflowModel reads and parses a scoped workflow's content from its source repo's default branch.
+func loadScopedWorkflowModel(ctx *context.Context, repo *repo_model.Repository, sourceRepoID int64, workflowID string) *act_model.Workflow {
+	effective, err := actions_model.IsScopedWorkflowSourceEffective(ctx, repo.OwnerID, sourceRepoID)
+	if err != nil {
+		log.Error("scoped dispatch: IsScopedWorkflowSourceEffective: %v", err)
+		return nil
+	}
+	if !effective {
+		return nil
+	}
+
+	sourceRepo, err := repo_model.GetRepositoryByID(ctx, sourceRepoID)
+	if err != nil || sourceRepo.IsEmpty {
+		return nil
+	}
+	content, err := actions_service.ScopedWorkflowContent(ctx, sourceRepo, workflowID)
+	if err != nil {
+		log.Error("scoped dispatch: content of %s in %s: %v", workflowID, sourceRepo.RelativePath(), err)
+		return nil
+	}
+	if content == nil {
+		return nil // the workflow does not exist on the source's default branch
+	}
+	wf, err := act_model.ReadWorkflow(bytes.NewReader(content))
+	if err != nil {
+		return nil
+	}
+	return wf
+}
+
+func prepareWorkflowDispatchTemplate(ctx *context.Context, workflowInfos []WorkflowInfo, curWorkflowID string, curWorkflowRepoID int64) {
+	repo := ctx.Repo.Repository
+	if curWorkflowID == "" || !ctx.Repo.Permission.CanWrite(unit.TypeActions) {
+		return
+	}
+	actionsConfig := repo.MustGetUnit(ctx, unit.TypeActions).ActionsConfig()
+
+	isScoped := curWorkflowRepoID > 0
+	if isScoped {
+		if actionsConfig.IsScopedWorkflowDisabled(curWorkflowRepoID, curWorkflowID) {
+			return
+		}
+	} else if actionsConfig.IsWorkflowDisabled(curWorkflowID) {
 		return
 	}
 
 	var curWorkflow *act_model.Workflow
-	for _, workflowInfo := range workflowInfos {
-		if workflowInfo.Entry.Name() == curWorkflowID {
-			if workflowInfo.Workflow == nil {
-				log.Debug("CurWorkflowID %s is found but its workflowInfo.Workflow is nil", curWorkflowID)
-				return
+	if isScoped {
+		// a scoped workflow's content lives in its source repo, not in workflowInfos (the consumer's own files)
+		curWorkflow = loadScopedWorkflowModel(ctx, repo, curWorkflowRepoID, curWorkflowID)
+	} else {
+		for _, workflowInfo := range workflowInfos {
+			if workflowInfo.Entry.Name() == curWorkflowID {
+				if workflowInfo.Workflow == nil {
+					log.Debug("CurWorkflowID %s is found but its workflowInfo.Workflow is nil", curWorkflowID)
+					return
+				}
+				curWorkflow = workflowInfo.Workflow
+				break
 			}
-			curWorkflow = workflowInfo.Workflow
-			break
 		}
 	}
 
@@ -293,10 +440,11 @@ func prepareWorkflowDispatchTemplate(ctx *context.Context, workflowInfos []Workf
 	ctx.Data["Tags"] = tags
 }
 
-func prepareWorkflowList(ctx *context.Context, workflows []WorkflowInfo, otherWorkflows []string) {
+func prepareWorkflowList(ctx *context.Context, workflows []WorkflowInfo, otherWorkflows []string, hasScopedWorkflows bool) {
 	actorID := ctx.FormInt64("actor")
 	status := ctx.FormInt("status")
 	workflowID := ctx.FormString("workflow")
+	scopedWorkflowSourceRepoID := ctx.FormInt64("scoped_workflow_source_repo_id")
 	branch := ctx.FormString("branch")
 	page := ctx.FormInt("page")
 	if page <= 0 {
@@ -317,9 +465,15 @@ func prepareWorkflowList(ctx *context.Context, workflows []WorkflowInfo, otherWo
 			Page:     page,
 			PageSize: convert.ToCorrectPageSize(ctx.FormInt("limit")),
 		},
-		RepoID:        ctx.Repo.Repository.ID,
-		WorkflowID:    workflowID,
-		TriggerUserID: actorID,
+		RepoID:         ctx.Repo.Repository.ID,
+		WorkflowID:     workflowID,
+		WorkflowRepoID: scopedWorkflowSourceRepoID,
+		TriggerUserID:  actorID,
+	}
+
+	// Constrain scoped vs repo-level only for a listed workflow, whose link carries scoped_workflow_source_repo_id.
+	if workflowID != "" && !slices.Contains(otherWorkflows, workflowID) {
+		opts.IsScopedRun = optional.Some(scopedWorkflowSourceRepoID > 0)
 	}
 
 	// if status is not StatusUnknown, it means user has selected a status filter
@@ -427,7 +581,7 @@ func prepareWorkflowList(ctx *context.Context, workflows []WorkflowInfo, otherWo
 	pager := context.NewPagination(total, opts.PageSize, opts.Page, 5)
 	pager.AddParamFromRequest(ctx.Req)
 	ctx.Data["Page"] = pager
-	ctx.Data["HasWorkflowsOrRuns"] = len(workflows) > 0 || len(otherWorkflows) > 0 || len(runs) > 0
+	ctx.Data["HasWorkflowsOrRuns"] = len(workflows) > 0 || len(otherWorkflows) > 0 || len(runs) > 0 || hasScopedWorkflows
 
 	ctx.Data["CanWriteRepoUnitActions"] = ctx.Repo.Permission.CanWrite(unit.TypeActions)
 }
@@ -541,10 +695,11 @@ func decodeNode(node yaml.Node, out any) bool {
 	return true
 }
 
-func actionsListRedirectURL(repoLink, workflow, actor, status, branch string) string {
-	return fmt.Sprintf("%s/actions?workflow=%s&actor=%s&status=%s&branch=%s",
+func actionsListRedirectURL(repoLink, workflow, scopedWorkflowSourceRepoID, actor, status, branch string) string {
+	return fmt.Sprintf("%s/actions?workflow=%s&scoped_workflow_source_repo_id=%s&actor=%s&status=%s&branch=%s",
 		repoLink,
 		url.QueryEscape(workflow),
+		url.QueryEscape(scopedWorkflowSourceRepoID),
 		url.QueryEscape(actor),
 		url.QueryEscape(status),
 		url.QueryEscape(branch),

@@ -6,10 +6,12 @@ package actions
 import (
 	"testing"
 
+	"gitea.dev/models/db"
 	"gitea.dev/models/unittest"
 	"gitea.dev/modules/translation"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestGetRunWorkflowIDs(t *testing.T) {
@@ -34,4 +36,49 @@ func TestGetStatusInfoList(t *testing.T) {
 		{Status: int(StatusRunning), StatusName: StatusRunning.String(), DisplayedStatus: "actions.status.running"},
 		{Status: int(StatusCancelling), StatusName: StatusCancelling.String(), DisplayedStatus: "actions.status.cancelling"},
 	}, statusInfoList)
+}
+
+// TestFindRunOptions_WorkflowRepoID: two runs share the bare WorkflowID but come from different content-source repos;
+// the source-aware WorkflowRepoID filter must separate them.
+func TestFindRunOptions_WorkflowRepoID(t *testing.T) {
+	assert.NoError(t, unittest.PrepareTestDatabase())
+
+	const (
+		repoID     = int64(4)
+		sourceA    = int64(111)
+		sourceB    = int64(222)
+		workflowID = "u3-shared.yaml"
+	)
+	for _, spec := range []struct{ id, workflowRepoID int64 }{
+		{99801, sourceA},
+		{99802, sourceB},
+	} {
+		require.NoError(t, db.Insert(t.Context(), &ActionRun{
+			ID:             spec.id,
+			Index:          spec.id,
+			RepoID:         repoID,
+			OwnerID:        1,
+			TriggerUserID:  1,
+			WorkflowID:     workflowID,
+			WorkflowRepoID: spec.workflowRepoID,
+			IsScopedRun:    true,
+		}))
+	}
+
+	// no source filter -> both
+	all, err := db.Find[ActionRun](t.Context(), FindRunOptions{RepoID: repoID, WorkflowID: workflowID})
+	require.NoError(t, err)
+	assert.Len(t, all, 2)
+
+	// filter by source A -> only the run whose content came from A
+	onlyA, err := db.Find[ActionRun](t.Context(), FindRunOptions{RepoID: repoID, WorkflowID: workflowID, WorkflowRepoID: sourceA})
+	require.NoError(t, err)
+	require.Len(t, onlyA, 1)
+	assert.EqualValues(t, 99801, onlyA[0].ID)
+
+	// filter by source B -> only the run whose content came from B
+	onlyB, err := db.Find[ActionRun](t.Context(), FindRunOptions{RepoID: repoID, WorkflowID: workflowID, WorkflowRepoID: sourceB})
+	require.NoError(t, err)
+	require.Len(t, onlyB, 1)
+	assert.EqualValues(t, 99802, onlyB[0].ID)
 }
