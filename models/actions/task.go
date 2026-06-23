@@ -235,11 +235,10 @@ var errJobAlreadyClaimed = errors.New("job already claimed by another runner")
 // atomically claims it. It iterates through all matching jobs so that a
 // concurrent claim by another runner (which would lose the optimistic lock on
 // job #1) does not leave the remaining jobs permanently unassigned.
-//
-// Must NOT be called from within an existing database transaction: each claim
-// attempt opens its own independent transaction so that a failed attempt can be
-// rolled back cleanly before the next job is tried.
 func CreateTaskForRunner(ctx context.Context, runner *ActionRunner) (*ActionTask, bool, error) {
+	if db.InTransaction(ctx) {
+		return nil, false, errors.New("CreateTaskForRunner must not be called within a database transaction")
+	}
 	e := db.GetEngine(ctx)
 
 	jobCond := builder.NewCond()
@@ -340,7 +339,7 @@ func claimJobForRunner(ctx context.Context, runner *ActionRunner, job *ActionRun
 		}
 
 		job.TaskID = task.ID
-		n, err := UpdateRunJob(ctx, job, builder.Eq{"task_id": 0})
+		n, err := UpdateRunJob(ctx, job, builder.And(builder.Eq{"task_id": 0}, builder.Eq{"status": StatusWaiting}))
 		if err != nil {
 			return err
 		}
