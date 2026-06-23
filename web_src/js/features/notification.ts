@@ -10,7 +10,7 @@ async function receiveUpdateCount(event: MessageEvent<{type: string, data: strin
     const data = JSON.parse(event.data.data);
     for (const count of document.querySelectorAll('.notification_count')) {
       count.classList.toggle('tw-hidden', data.Count === 0);
-      count.textContent = `${data.Count}`;
+      count.textContent = String(data.Count);
     }
     await updateNotificationTable();
   } catch (error) {
@@ -112,7 +112,7 @@ async function updateNotificationCount(): Promise<number> {
     toggleElem('.notification_count', data.new !== 0);
 
     for (const el of document.querySelectorAll('.notification_count')) {
-      el.textContent = `${data.new}`;
+      el.textContent = String(data.new);
     }
 
     return data.new as number;

@@ -125,8 +125,12 @@ func Parse(content []byte, options ...ParseOption) ([]*SingleWorkflow, error) {
 			return nil, fmt.Errorf("getMatrixes: %w", err)
 		}
 		for _, matrix := range matricxes {
+			combo, err := expandJobCombo(id, job, matrix, evaluatedJob, pc.gitContext, results, pc.vars, pc.inputs)
+			if err != nil {
+				return nil, err
+			}
 			swf := workflow.Clone()
-			if err := swf.SetJob(id, expandJobCombo(id, job, matrix, evaluatedJob, pc.gitContext, results, pc.vars, pc.inputs)); err != nil {
+			if err := swf.SetJob(id, combo); err != nil {
 				return nil, fmt.Errorf("SetJob: %w", err)
 			}
 			ret = append(ret, swf)
@@ -150,7 +154,7 @@ func (w *SingleWorkflow) Clone() *SingleWorkflow {
 // expandJobCombo builds the Job for one matrix combination: it bakes the matrix into the strategy
 // and interpolates the name and runs-on. actJob drives the interpreter (it supplies the job's
 // needs and strategy contexts) and may differ from src (an act model.Job vs the source *Job).
-func expandJobCombo(jobID string, src *Job, matrix map[string]any, actJob *model.Job, gitCtx *model.GithubContext, results map[string]*JobResult, vars map[string]string, inputs map[string]any) *Job {
+func expandJobCombo(jobID string, src *Job, matrix map[string]any, actJob *model.Job, gitCtx *model.GithubContext, results map[string]*JobResult, vars map[string]string, inputs map[string]any) (*Job, error) {
 	combo := src.Clone()
 	if combo.Name == "" {
 		combo.Name = jobID
@@ -163,7 +167,10 @@ func expandJobCombo(jobID string, src *Job, matrix map[string]any, actJob *model
 		runsOn[i] = evaluator.Interpolate(runsOn[i])
 	}
 	combo.RawRunsOn = encodeRunsOn(runsOn)
-	return combo
+	if err := evaluator.EvaluateYamlNode(&combo.RawContinueOnError); err != nil {
+		return nil, fmt.Errorf("evaluate continue-on-error for job %q: %w", jobID, err)
+	}
+	return combo, nil
 }
 
 // RawMatrixHasExpression reports whether the job's matrix contains a ${{ }} expression.
@@ -201,7 +208,11 @@ func ExpandMatrixWithNeeds(jobID string, job *Job, gitCtx *model.GithubContext, 
 
 	expanded := make([]*Job, 0, len(matrixes))
 	for _, matrix := range matrixes {
-		expanded = append(expanded, expandJobCombo(jobID, job, matrix, actJob, gitCtx, results, vars, inputs))
+		combo, err := expandJobCombo(jobID, job, matrix, actJob, gitCtx, results, vars, inputs)
+		if err != nil {
+			return nil, err
+		}
+		expanded = append(expanded, combo)
 	}
 	return expanded, nil
 }
