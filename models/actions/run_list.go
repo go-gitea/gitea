@@ -106,12 +106,15 @@ func (opts FindRunOptions) ToJoins() []db.JoinFunc {
 }
 
 func (opts FindRunOptions) ToOrders() string {
-	// Sort by a repo-scoped index when possible.
+	// When scoped to a repo, sort by `index`: it reuses the unique
+	// `repo_index` (repo_id, index) index, so the query seeks repo_id and
+	// walks index descending instead of filesorting all matching rows.
+	// Within a repo `index` is co-monotonic with `id`, so the order is the same.
 	if opts.RepoID > 0 {
 		return "`action_run`.`index` DESC"
 	}
-	// The `index` column is scoped by repo, so when no RepoID is specified,
-	// sort by the global `id` column to return a predictable order.
+	// `index` is scoped per repo, so it is meaningless across repos. With no
+	// RepoID, sort by the global, PK-indexed `id` for a deterministic order.
 	return "`action_run`.`id` DESC"
 }
 
