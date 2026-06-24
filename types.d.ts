@@ -36,14 +36,6 @@ declare module 'swagger-ui-dist/swagger-ui-es-bundle.js' {
   export default value.SwaggerUIBundle;
 }
 
-declare module 'asciinema-player' {
-  interface AsciinemaPlayer {
-    create(src: string | {data: string}, element: HTMLElement, options?: Record<string, unknown>): void;
-  }
-  const exports: AsciinemaPlayer;
-  export = exports;
-}
-
 declare module '@citation-js/core' {
   export class Cite {
     constructor(data: string);
