@@ -1374,6 +1374,12 @@ func Routes() *web.Router {
 					m.Combo("/{id}").Get(repo.GetDeployKey).
 						Delete(repo.DeleteDeploykey)
 				}, reqToken(), reqAdmin())
+				m.Group("/https_keys", func() {
+					m.Combo("").Get(repo.ListHTTPSDeployKeys).
+						Post(bind(api.CreateHTTPSDeployKeyOption{}), repo.CreateHTTPSDeployKey)
+					m.Combo("/{id}").Get(repo.GetHTTPSDeployKey).
+						Delete(repo.DeleteHTTPSDeployKey)
+				}, reqToken(), reqAdmin())
 				m.Group("/times", func() {
 					m.Combo("").Get(repo.ListTrackedTimesByRepository)
 					m.Combo("/{timetrackingusername}").Get(repo.ListTrackedTimesByUser)
