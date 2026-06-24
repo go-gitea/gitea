@@ -80,6 +80,22 @@ func TestGetFailedJobsForRerun(t *testing.T) {
 	})
 }
 
+func TestCloneRunJobForAttempt(t *testing.T) {
+	attempt := &actions_model.ActionRunAttempt{ID: 42, Attempt: 2}
+
+	t.Run("preserves continue-on-error", func(t *testing.T) {
+		template := &actions_model.ActionRunJob{ContinueOnError: true, Status: actions_model.StatusFailure}
+		clone := cloneRunJobForAttempt(template, attempt)
+		assert.True(t, clone.ContinueOnError)
+	})
+
+	t.Run("defaults to false when template has it unset", func(t *testing.T) {
+		template := &actions_model.ActionRunJob{ContinueOnError: false}
+		clone := cloneRunJobForAttempt(template, attempt)
+		assert.False(t, clone.ContinueOnError)
+	})
+}
+
 func TestRerunValidation(t *testing.T) {
 	runningRun := &actions_model.ActionRun{Status: actions_model.StatusRunning}
 

@@ -58,6 +58,11 @@ func TestParse(t *testing.T) {
 			options: nil,
 			wantErr: false,
 		},
+		{
+			name:    "continue_on_error_expr",
+			options: nil,
+			wantErr: false,
+		},
 	}
 	invalidFileTests := []struct {
 		name string
