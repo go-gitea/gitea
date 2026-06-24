@@ -81,10 +81,19 @@ func TestActionsScopedWorkflows(t *testing.T) {
 		}
 
 		t.Run("Trigger and run creation", func(t *testing.T) {
+			// Registered at INSTANCE level via the admin route (owner/name resolution + OwnerID=0 storage);
+			// the trigger->execute->rerun below proves an instance-level source drives a consumer run end-to-end and that a rerun stays scoped.
+			adminSession := loginUser(t, "user1")
 			source := createTestRepo(t, "sw-trigger-source", false)
 			// commit the scoped workflow BEFORE registering so the source's own push does not self-trigger.
 			createRepoWorkflowFile(t, user2, user2Token, source, ".gitea/scoped_workflows/push.yaml", scopedPushWorkflow)
-			registerUserScopedSource(t, source)
+			adminAdd := NewRequestWithValues(t, "POST", "/-/admin/actions/scoped-workflows/add", map[string]string{"repo_name": source.FullName()})
+			adminSession.MakeRequest(t, adminAdd, http.StatusOK)
+			t.Cleanup(func() {
+				rm := NewRequestWithValues(t, "POST", "/-/admin/actions/scoped-workflows/remove", map[string]string{"repo_id": strconv.FormatInt(source.ID, 10)})
+				adminSession.MakeRequest(t, rm, http.StatusOK)
+			})
+			unittest.AssertExistsAndLoadBean(t, &actions_model.ActionScopedWorkflowSource{OwnerID: 0, SourceRepoID: source.ID})
 
 			consumer := createTestRepo(t, "sw-trigger-consumer", false)
 			runner := newMockRunner()
@@ -96,6 +105,7 @@ func TestActionsScopedWorkflows(t *testing.T) {
 			assert.Equal(t, source.ID, run.WorkflowRepoID, "content source is the source repo")
 			assert.Equal(t, "push.yaml", run.WorkflowID)
 			assert.Equal(t, 1, unittest.GetCount(t, &actions_model.ActionRun{RepoID: consumer.ID}), "only the scoped run, no repo-level run")
+			job := unittest.AssertExistsAndLoadBean(t, &actions_model.ActionRunJob{RunID: run.ID})
 
 			// runs in the CONSUMER's context and reaches a terminal state
 			task := runner.fetchTask(t)
@@ -103,6 +113,18 @@ func TestActionsScopedWorkflows(t *testing.T) {
 			assert.Equal(t, consumer.ID, taskJob.RepoID)
 			assert.Equal(t, run.ID, taskRun.ID)
 			runner.execTask(t, task, &mockTaskOutcome{result: runnerv1.Result_RESULT_SUCCESS})
+			run = unittest.AssertExistsAndLoadBean(t, &actions_model.ActionRun{ID: run.ID})
+			assert.Equal(t, actions_model.StatusSuccess, run.Status)
+
+			// rerun: the rerun is still a scoped run and again executes in the consumer's context
+			rerunReq := NewRequest(t, "POST", fmt.Sprintf("/%s/%s/actions/runs/%d/jobs/%d/rerun", consumer.OwnerName, consumer.Name, run.ID, job.ID))
+			user2Session.MakeRequest(t, rerunReq, http.StatusOK)
+			unittest.AssertExistsAndLoadBean(t, &actions_model.ActionRunAttempt{RunID: run.ID, Attempt: 2})
+			task2 := runner.fetchTask(t)
+			_, taskJob2, taskRun2 := getTaskAndJobAndRunByTaskID(t, task2.Id)
+			assert.Equal(t, consumer.ID, taskJob2.RepoID)
+			assert.True(t, taskRun2.IsScopedRun, "the rerun is still a scoped run")
+			runner.execTask(t, task2, &mockTaskOutcome{result: runnerv1.Result_RESULT_SUCCESS})
 			run = unittest.AssertExistsAndLoadBean(t, &actions_model.ActionRun{ID: run.ID})
 			assert.Equal(t, actions_model.StatusSuccess, run.Status)
 		})
@@ -127,38 +149,6 @@ func TestActionsScopedWorkflows(t *testing.T) {
 			reqConsumer := createTestRepo(t, "sw-optout-req-consumer", false)
 			rejectReq := NewRequest(t, "POST", fmt.Sprintf("/%s/%s/actions/disable?workflow=push.yaml&scoped_workflow_source_repo_id=%d", reqConsumer.OwnerName, reqConsumer.Name, reqSource.ID))
 			user2Session.MakeRequest(t, rejectReq, http.StatusBadRequest) // scoped_required_cannot_disable
-		})
-
-		t.Run("Rerun scoped workflow", func(t *testing.T) {
-			// rerun: a scoped run can be rerun and the rerun is still scoped, runs in the consumer's context.
-			source := createTestRepo(t, "sw-rerun-source", false)
-			createRepoWorkflowFile(t, user2, user2Token, source, ".gitea/scoped_workflows/push.yaml", scopedPushWorkflow)
-			registerUserScopedSource(t, source)
-
-			consumer := createTestRepo(t, "sw-rerun-consumer", false)
-			runner := newMockRunner()
-			runner.registerAsRepoRunner(t, consumer.OwnerName, consumer.Name, "sw-rerun-runner", []string{"ubuntu-latest"}, false)
-			createRepoWorkflowFile(t, user2, user2Token, consumer, "marker.txt", "trigger")
-
-			run := unittest.AssertExistsAndLoadBean(t, &actions_model.ActionRun{RepoID: consumer.ID, IsScopedRun: true})
-			job := unittest.AssertExistsAndLoadBean(t, &actions_model.ActionRunJob{RunID: run.ID})
-
-			task := runner.fetchTask(t)
-			runner.execTask(t, task, &mockTaskOutcome{result: runnerv1.Result_RESULT_SUCCESS})
-			run = unittest.AssertExistsAndLoadBean(t, &actions_model.ActionRun{ID: run.ID})
-			assert.Equal(t, actions_model.StatusSuccess, run.Status)
-
-			rerunReq := NewRequest(t, "POST", fmt.Sprintf("/%s/%s/actions/runs/%d/jobs/%d/rerun", consumer.OwnerName, consumer.Name, run.ID, job.ID))
-			user2Session.MakeRequest(t, rerunReq, http.StatusOK)
-
-			unittest.AssertExistsAndLoadBean(t, &actions_model.ActionRunAttempt{RunID: run.ID, Attempt: 2})
-			task2 := runner.fetchTask(t)
-			_, taskJob2, taskRun2 := getTaskAndJobAndRunByTaskID(t, task2.Id)
-			assert.Equal(t, consumer.ID, taskJob2.RepoID)
-			assert.True(t, taskRun2.IsScopedRun, "the rerun is still a scoped run")
-			runner.execTask(t, task2, &mockTaskOutcome{result: runnerv1.Result_RESULT_SUCCESS})
-			run = unittest.AssertExistsAndLoadBean(t, &actions_model.ActionRun{ID: run.ID})
-			assert.Equal(t, actions_model.StatusSuccess, run.Status)
 		})
 
 		t.Run("Local uses resolves to source", func(t *testing.T) {
@@ -318,48 +308,61 @@ jobs:
 			})
 		})
 
-		t.Run("Settings page renders saved required patterns", func(t *testing.T) {
+		t.Run("Settings page required patterns", func(t *testing.T) {
 			source := createTestRepo(t, "sw-settings-source", false)
 			createRepoWorkflowFile(t, user2, user2Token, source, ".gitea/scoped_workflows/push.yaml", scopedPushWorkflow)
-			registerUserScopedSource(t, source, "push.yaml") // required -> stores the default pattern
-
-			resp := user2Session.MakeRequest(t, NewRequest(t, "GET", "/user/settings/actions/scoped-workflows"), http.StatusOK)
-			body := resp.Body.String()
-			assert.Contains(t, body, `name="required_patterns[push.yaml]"`, "the patterns textarea is rendered")
-			assert.Contains(t, body, source.FullName()+": * / *", "the saved pattern round-trips into the textarea")
-			// the prefill default is built from the workflow display name (scopedPushWorkflow has `name: Scoped Push`)
-			assert.Contains(t, body, `data-default-pattern="`+source.FullName()+`: Scoped Push / *"`, "default pattern uses the display name")
-		})
-
-		t.Run("Required patterns kept as history after un-require", func(t *testing.T) {
-			source := createTestRepo(t, "sw-hist-source", false)
-			createRepoWorkflowFile(t, user2, user2Token, source, ".gitea/scoped_workflows/push.yaml", scopedPushWorkflow)
-			registerUserScopedSource(t, source, "push.yaml") // required, with a pattern
+			registerUserScopedSource(t, source) // registered; each phase configures it via the /required endpoint
 			pattern := source.FullName() + ": * / *"
 
-			src := unittest.AssertExistsAndLoadBean(t, &actions_model.ActionScopedWorkflowSource{OwnerID: user2.ID, SourceRepoID: source.ID})
-			require.True(t, src.IsWorkflowRequired("push.yaml"))
+			setConfigs := func(t *testing.T, vals url.Values) {
+				vals.Set("repo_id", strconv.FormatInt(source.ID, 10))
+				user2Session.MakeRequest(t, NewRequestWithURLValues(t, "POST", "/user/settings/actions/scoped-workflows/required", vals), http.StatusOK)
+			}
+			loadSource := func(t *testing.T) *actions_model.ActionScopedWorkflowSource {
+				return unittest.AssertExistsAndLoadBean(t, &actions_model.ActionScopedWorkflowSource{OwnerID: user2.ID, SourceRepoID: source.ID})
+			}
+			settingsBody := func(t *testing.T) string {
+				return user2Session.MakeRequest(t, NewRequest(t, "GET", "/user/settings/actions/scoped-workflows"), http.StatusOK).Body.String()
+			}
 
-			// un-require: the row still submits workflow_ids + its patterns (the hidden textarea), but not required_workflow_ids
-			uncheck := NewRequestWithURLValues(t, "POST", "/user/settings/actions/scoped-workflows/required",
-				url.Values{
-					"repo_id":                      {strconv.FormatInt(source.ID, 10)},
-					"workflow_ids":                 {"push.yaml"},
-					"required_patterns[push.yaml]": {pattern},
+			t.Run("renders the saved pattern and display-name default", func(t *testing.T) {
+				setConfigs(t, url.Values{"workflow_ids": {"push.yaml"}, "required_workflow_ids": {"push.yaml"}, "required_patterns[push.yaml]": {pattern}})
+				body := settingsBody(t)
+				assert.Contains(t, body, `name="required_patterns[push.yaml]"`, "patterns textarea uses the field name the parser expects")
+				assert.Contains(t, body, pattern, "the saved pattern round-trips into the textarea")
+				// the default prefill must use the workflow display name so it matches the status context the run posts (name: Scoped Push)
+				assert.Contains(t, body, `data-default-pattern="`+source.FullName()+`: Scoped Push / *"`)
+			})
+
+			t.Run("live pattern kept as history after un-require", func(t *testing.T) {
+				setConfigs(t, url.Values{"workflow_ids": {"push.yaml"}, "required_workflow_ids": {"push.yaml"}, "required_patterns[push.yaml]": {pattern}})
+				// un-require: the row still submits workflow_ids + its patterns (the hidden textarea), but not required_workflow_ids
+				setConfigs(t, url.Values{"workflow_ids": {"push.yaml"}, "required_patterns[push.yaml]": {pattern}})
+				cfg := loadSource(t).WorkflowConfigs["push.yaml"]
+				require.NotNil(t, cfg)
+				assert.False(t, cfg.Required, "no longer required")
+				assert.Equal(t, []string{pattern}, cfg.Patterns, "pattern retained as history")
+				assert.Contains(t, settingsBody(t), pattern, "history pattern still rendered, so re-requiring restores it")
+			})
+
+			t.Run("orphan config dropped when un-required", func(t *testing.T) {
+				// An orphan entry (gone.yaml: required for a file that no longer exists in the source) has no history worth keeping:
+				// un-checking Required must drop it entirely, unlike a live un-required workflow.
+				setConfigs(t, url.Values{
+					"workflow_ids": {"push.yaml", "gone.yaml"}, "required_workflow_ids": {"push.yaml", "gone.yaml"},
+					"required_patterns[push.yaml]": {pattern}, "required_patterns[gone.yaml]": {pattern},
 				})
-			user2Session.MakeRequest(t, uncheck, http.StatusOK)
+				require.True(t, loadSource(t).IsWorkflowRequired("gone.yaml"), "orphan kept while still required")
 
-			// no longer required, but the pattern is retained as history
-			src = unittest.AssertExistsAndLoadBean(t, &actions_model.ActionScopedWorkflowSource{OwnerID: user2.ID, SourceRepoID: source.ID})
-			assert.False(t, src.IsWorkflowRequired("push.yaml"))
-			cfg := src.WorkflowConfigs["push.yaml"]
-			require.NotNil(t, cfg)
-			assert.False(t, cfg.Required)
-			assert.Equal(t, []string{pattern}, cfg.Patterns, "pattern retained as history")
-
-			// and the settings page still renders the stored pattern (in the now-hidden textarea)
-			resp := user2Session.MakeRequest(t, NewRequest(t, "GET", "/user/settings/actions/scoped-workflows"), http.StatusOK)
-			assert.Contains(t, resp.Body.String(), pattern, "history pattern still shown so re-requiring restores it")
+				// un-require gone.yaml (its row + patterns are still submitted, as the settings page does); push.yaml stays required
+				setConfigs(t, url.Values{
+					"workflow_ids": {"push.yaml", "gone.yaml"}, "required_workflow_ids": {"push.yaml"},
+					"required_patterns[push.yaml]": {pattern}, "required_patterns[gone.yaml]": {pattern},
+				})
+				src := loadSource(t)
+				assert.Nil(t, src.WorkflowConfigs["gone.yaml"], "orphan dropped after un-require, not kept as history")
+				assert.True(t, src.IsWorkflowRequired("push.yaml"), "live required workflow kept")
+			})
 		})
 
 		t.Run("Orphaned scoped run still lists when its source is un-registered", func(t *testing.T) {

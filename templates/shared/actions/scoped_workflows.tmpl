@@ -40,7 +40,7 @@
 					<tbody>
 						{{range $src.ScopedWorkflowInfos}}
 							<tr>
-								<td>{{.EntryName}}<input type="hidden" name="workflow_ids" value="{{.EntryName}}"></td>
+								<td>{{.EntryName}}{{if .Missing}} <span class="ui red mini label">{{ctx.Locale.Tr "actions.scoped_workflows.required.missing_file"}}</span>{{end}}<input type="hidden" name="workflow_ids" value="{{.EntryName}}"></td>
 								<td class="collapsing tw-pr-4">
 									<div class="ui checkbox">
 										<input type="checkbox" class="js-scoped-required-toggle" name="required_workflow_ids" value="{{.EntryName}}" aria-label="{{.EntryName}}"{{if .Required}} checked{{end}}>

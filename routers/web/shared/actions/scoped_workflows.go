@@ -6,6 +6,7 @@ package actions
 import (
 	"errors"
 	"net/http"
+	"slices"
 	"strings"
 
 	actions_model "gitea.dev/models/actions"
@@ -82,6 +83,7 @@ type scopedWorkflowInfo struct {
 	DisplayName string
 	Required    bool
 	Patterns    string // newline-joined stored status-check patterns (kept even when not required, as history)
+	Missing     bool   // the workflow file no longer exists on the source default branch, but a stored config lingers and must stay clearable
 }
 
 // scopedWorkflowSourceView is the per-source data shown on the settings page.
@@ -154,24 +156,47 @@ func parsePatternLines(raw string) []string {
 }
 
 func listSourceScopedWorkflowFiles(ctx *context.Context, repo *repo_model.Repository, configs map[string]*actions_model.ScopedWorkflowConfig) []scopedWorkflowInfo {
-	if repo.IsEmpty {
-		return nil
-	}
-	_, parsed, err := actions_service.LoadParsedScopedWorkflows(ctx, repo)
-	if err != nil {
-		log.Error("scoped workflows settings: parse %s: %v", repo.RelativePath(), err)
-		return nil
-	}
-	files := make([]scopedWorkflowInfo, len(parsed))
-	for i, p := range parsed {
-		info := scopedWorkflowInfo{EntryName: p.EntryName, DisplayName: p.DisplayName}
-		if cfg := configs[p.EntryName]; cfg != nil {
-			info.Required = cfg.Required
-			info.Patterns = strings.Join(cfg.Patterns, "\n")
+	rendered := make(container.Set[string], len(configs))
+	files := make([]scopedWorkflowInfo, 0, len(configs))
+
+	// An empty source repo (or one that fails to parse) has no live workflow files, but a previously-saved config may still linger;
+	// fall through to surface those as orphan rows below so they remain clearable.
+	if !repo.IsEmpty {
+		_, parsed, err := actions_service.LoadParsedScopedWorkflows(ctx, repo)
+		if err != nil {
+			log.Error("scoped workflows settings: parse %s: %v", repo.RelativePath(), err)
+		} else {
+			for _, p := range parsed {
+				info := scopedWorkflowInfo{EntryName: p.EntryName, DisplayName: p.DisplayName}
+				if cfg := configs[p.EntryName]; cfg != nil {
+					info.Required = cfg.Required
+					info.Patterns = strings.Join(cfg.Patterns, "\n")
+				}
+				rendered.Add(p.EntryName)
+				files = append(files, info)
+			}
 		}
-		files[i] = info
 	}
-	return files
+
+	// Surface configs whose workflow file no longer exists on the source default branch as orphan rows.
+	// A required orphan still gates merges (must-present), so the owner/admin must be able to see and clear it;
+	// otherwise the only escape would be removing the whole source registration.
+	orphans := make([]scopedWorkflowInfo, 0, len(configs))
+	for name, cfg := range configs {
+		if cfg == nil || rendered.Contains(name) {
+			continue
+		}
+		orphans = append(orphans, scopedWorkflowInfo{
+			EntryName:   name,
+			DisplayName: name,
+			Required:    cfg.Required,
+			Patterns:    strings.Join(cfg.Patterns, "\n"),
+			Missing:     true,
+		})
+	}
+	// map iteration order is random; sort orphans for a stable settings page
+	slices.SortFunc(orphans, func(a, b scopedWorkflowInfo) int { return strings.Compare(a.EntryName, b.EntryName) })
+	return append(files, orphans...)
 }
 
 func ScopedWorkflowAdd(ctx *context.Context) {
@@ -223,6 +248,34 @@ func ScopedWorkflowSetRequired(ctx *context.Context) {
 
 	repoID := ctx.FormInt64("repo_id")
 
+	// the source must be registered for this owner
+	if _, err := actions_model.GetScopedWorkflowSource(ctx, swCtx.OwnerID, repoID); err != nil {
+		if errors.Is(err, util.ErrNotExist) {
+			ctx.JSONError(ctx.Tr("actions.scoped_workflows.source.not_found"))
+		} else {
+			ctx.ServerError("GetScopedWorkflowSource", err)
+		}
+		return
+	}
+
+	// Live workflow entry names on the source default branch, used to distinguish orphan configs (whose workflow file no longer exists) from live ones.
+	sourceRepo, err := repo_model.GetRepositoryByID(ctx, repoID)
+	if err != nil {
+		ctx.ServerError("GetRepositoryByID", err)
+		return
+	}
+	liveSet := make(container.Set[string])
+	if !sourceRepo.IsEmpty { // an empty source has no live workflows
+		_, parsed, err := actions_service.LoadParsedScopedWorkflows(ctx, sourceRepo)
+		if err != nil {
+			ctx.ServerError("LoadParsedScopedWorkflows", err)
+			return
+		}
+		for _, p := range parsed {
+			liveSet.Add(p.EntryName)
+		}
+	}
+
 	// Every workflow row submits its ID in workflow_ids and its patterns (one per line) in required_patterns[<id>];
 	// checked rows additionally submit their ID in required_workflow_ids.
 	// A required workflow must have at least one pattern.
@@ -238,18 +291,11 @@ func ScopedWorkflowSetRequired(ctx *context.Context) {
 			ctx.JSONError(ctx.Tr("actions.scoped_workflows.required.patterns_empty"))
 			return
 		}
-		if required || len(patterns) > 0 {
+		// Keep a config only if it is required, or it is a still-existing.
+		// An orphan (file no longer in the source) that is not required is dropped.
+		if required || (liveSet.Contains(workflowID) && len(patterns) > 0) {
 			configs[workflowID] = &actions_model.ScopedWorkflowConfig{Required: required, Patterns: patterns}
 		}
-	}
-	// the source must be registered for this owner
-	if _, err := actions_model.GetScopedWorkflowSource(ctx, swCtx.OwnerID, repoID); err != nil {
-		if errors.Is(err, util.ErrNotExist) {
-			ctx.JSONError(ctx.Tr("actions.scoped_workflows.source.not_found"))
-		} else {
-			ctx.ServerError("GetScopedWorkflowSource", err)
-		}
-		return
 	}
 	if err := actions_model.SetScopedWorkflowSourceConfigs(ctx, swCtx.OwnerID, repoID, configs); err != nil {
 		ctx.ServerError("SetScopedWorkflowSourceConfigs", err)

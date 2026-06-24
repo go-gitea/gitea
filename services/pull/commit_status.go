@@ -161,7 +161,9 @@ func EffectiveRequiredContexts(ctx context.Context, repo *repo_model.Repository,
 	// Append each required scoped workflow's admin-authored status-check patterns to the required set.
 	// They are matched must-present-and-pass: a required scoped check that posts no matching status blocks the merge.
 	required := slices.Clone(pb.StatusCheckContexts)
-	seen := make(container.Set[string])
+	// Seed the de-dupe set with the configured contexts so a scoped pattern identical to one of them is not duplicated.
+	seen := container.SetOf(pb.StatusCheckContexts...)
+	var scoped []string
 	for _, source := range sources {
 		for _, cfg := range source.WorkflowConfigs {
 			if !cfg.Required {
@@ -169,10 +171,12 @@ func EffectiveRequiredContexts(ctx context.Context, repo *repo_model.Repository,
 			}
 			for _, p := range cfg.Patterns {
 				if seen.Add(p) {
-					required = append(required, p)
+					scoped = append(scoped, p)
 				}
 			}
 		}
 	}
-	return required, nil
+	// WorkflowConfigs is a map (random iteration order); sort the appended patterns for stable output.
+	slices.Sort(scoped)
+	return append(required, scoped...), nil
 }
