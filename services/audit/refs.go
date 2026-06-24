@@ -4,12 +4,11 @@
 package audit
 
 import (
-	"fmt"
-
 	audit_model "gitea.dev/models/audit"
 	organization_model "gitea.dev/models/organization"
 	repository_model "gitea.dev/models/repo"
 	user_model "gitea.dev/models/user"
+	"gitea.dev/modules/log"
 )
 
 // EntityRef is a denormalized reference persisted at record time.
@@ -71,6 +70,9 @@ func scopeRef(scope any) EntityRef {
 	case *repository_model.Repository:
 		return ScopeFromRepository(s)
 	default:
-		panic(fmt.Sprintf("audit: unsupported scope type %T", scope))
+		// Audit recording must never crash the request that triggered it; record
+		// a system-scoped event instead of panicking on an unexpected type.
+		log.Error("audit: unsupported scope type %T; recording as system scope", scope)
+		return ScopeSystem()
 	}
 }

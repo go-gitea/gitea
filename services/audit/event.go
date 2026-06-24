@@ -5,7 +5,6 @@ package audit
 
 import (
 	"context"
-	"fmt"
 	"net"
 	"net/http"
 	"net/url"
@@ -114,6 +113,11 @@ func Record(ctx context.Context, action audit_model.Action, doer *user_model.Use
 }
 
 // writeEvent persists an audit event when audit logging is enabled.
+//
+// The database is the source of truth (it backs the in-app audit log views); the
+// file sink is an optional append-only mirror for external log shipping. The two
+// are written independently so a failure in one is logged but never blocks the
+// other or the originating request.
 func writeEvent(ctx context.Context, params RecordParams) {
 	if !setting.Audit.Enabled {
 		return
@@ -187,7 +191,9 @@ func decodeMetadata(raw string) map[string]any {
 }
 
 // metaPairs builds caller-defined metadata from alternating string-key/value
-// pairs. Keys should be stable for log parsers.
+// pairs. Keys should be stable for log parsers. A non-string key is skipped and
+// logged rather than panicking: audit recording must never crash the request
+// that triggered it.
 func metaPairs(pairs ...any) map[string]any {
 	if len(pairs) == 0 {
 		return nil
@@ -196,7 +202,8 @@ func metaPairs(pairs ...any) map[string]any {
 	for i := 0; i+1 < len(pairs); i += 2 {
 		key, ok := pairs[i].(string)
 		if !ok {
-			panic(fmt.Sprintf("audit metadata key must be string, got %T", pairs[i]))
+			log.Error("audit: metadata key must be string, got %T; skipping pair", pairs[i])
+			continue
 		}
 		m[key] = pairs[i+1]
 	}

@@ -4,49 +4,16 @@
 package setting
 
 import (
-	"net/http"
-
 	audit_model "gitea.dev/models/audit"
-	"gitea.dev/models/db"
-	"gitea.dev/modules/setting"
-	"gitea.dev/modules/templates"
-	"gitea.dev/services/audit"
+	shared_audit "gitea.dev/routers/web/shared/audit"
 	"gitea.dev/services/context"
 )
 
-const (
-	tplAuditLogs templates.TplName = "repo/settings/audit_logs"
-)
-
 func ViewAuditLogs(ctx *context.Context) {
-	ctx.Data["Title"] = ctx.Tr("admin.monitor.audit.title")
-	ctx.Data["PageIsSettingsAudit"] = true
-
-	page := max(ctx.FormInt("page"), 1)
-
-	opts := &audit_model.EventSearchOptions{
+	shared_audit.View(ctx, shared_audit.ViewOptions{
+		Template:  "repo/settings/audit_logs",
 		ScopeType: audit_model.ScopeRepository,
 		ScopeID:   ctx.Repo.Repository.ID,
-		Sort:      ctx.FormString("sort"),
-		Paginator: &db.ListOptions{
-			Page:     page,
-			PageSize: setting.UI.Admin.NoticePagingNum,
-		},
-	}
-
-	ctx.Data["AuditSort"] = opts.Sort
-
-	evs, total, err := audit.FindEvents(ctx, opts)
-	if err != nil {
-		ctx.ServerError("", err)
-		return
-	}
-
-	ctx.Data["AuditEvents"] = evs
-
-	pager := context.NewPagination(total, setting.UI.Admin.NoticePagingNum, page, 5)
-	pager.AddParamFromRequest(ctx.Req)
-	ctx.Data["Page"] = pager
-
-	ctx.HTML(http.StatusOK, tplAuditLogs)
+		PageData:  map[string]any{"PageIsSettingsAudit": true},
+	})
 }

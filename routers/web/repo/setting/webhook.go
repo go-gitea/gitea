@@ -117,6 +117,16 @@ func getOwnerRepoCtx(ctx *context.Context) (*ownerRepoCtx, error) {
 	return nil, errors.New("unable to set OwnerRepo context")
 }
 
+// recordWebhookAudit emits a webhook audit event scoped to the repository,
+// organization, user, or instance (admin/system) the webhook belongs to. The
+// shared add/edit handlers run in any of these contexts, so the scope is derived
+// from orCtx rather than assuming a repository.
+func (orCtx *ownerRepoCtx) recordWebhookAudit(ctx *context.Context, actions audit.ScopedActions, url, verb string) {
+	audit.RecordScoped(ctx, ctx.Doer, orCtx.Owner, orCtx.Repo, actions, func(scope string) string {
+		return fmt.Sprintf("%s webhook %s of %s.", verb, url, scope)
+	}, "webhook", url)
+}
+
 func checkHookType(ctx *context.Context) string {
 	hookType := strings.ToLower(ctx.PathParam("type"))
 	if !util.SliceContainsString(setting.Webhook.Types, hookType, true) {
@@ -266,7 +276,12 @@ func createWebhook(ctx *context.Context, params webhookParams) {
 		return
 	}
 
-	audit.Record(ctx, audit_model.RepositoryWebhookAdd, ctx.Doer, orCtx.Repo, fmt.Sprintf("Added webhook %s of repository %s.", w.URL, orCtx.Repo.FullName()), "webhook", w.URL)
+	orCtx.recordWebhookAudit(ctx, audit.ScopedActions{
+		Repo:   audit_model.RepositoryWebhookAdd,
+		Org:    audit_model.OrganizationWebhookAdd,
+		User:   audit_model.UserWebhookAdd,
+		System: audit_model.SystemWebhookAdd,
+	}, w.URL, "Added")
 
 	ctx.Flash.Success(ctx.Tr("repo.settings.add_hook_success"))
 	ctx.Redirect(orCtx.Link)
@@ -321,7 +336,12 @@ func editWebhook(ctx *context.Context, params webhookParams) {
 		return
 	}
 
-	audit.Record(ctx, audit_model.RepositoryWebhookUpdate, ctx.Doer, orCtx.Repo, fmt.Sprintf("Updated webhook %s of repository %s.", w.URL, orCtx.Repo.FullName()), "webhook", w.URL)
+	orCtx.recordWebhookAudit(ctx, audit.ScopedActions{
+		Repo:   audit_model.RepositoryWebhookUpdate,
+		Org:    audit_model.OrganizationWebhookUpdate,
+		User:   audit_model.UserWebhookUpdate,
+		System: audit_model.SystemWebhookUpdate,
+	}, w.URL, "Updated")
 
 	ctx.Flash.Success(ctx.Tr("repo.settings.update_hook_success"))
 	ctx.Redirect(fmt.Sprintf("%s/%d", orCtx.Link, w.ID))

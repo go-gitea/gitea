@@ -7,12 +7,10 @@ import (
 	"context"
 	"fmt"
 
-	audit_model "gitea.dev/models/audit"
 	"gitea.dev/models/organization"
 	user_model "gitea.dev/models/user"
 	"gitea.dev/modules/container"
 	"gitea.dev/modules/log"
-	"gitea.dev/services/audit"
 	org_service "gitea.dev/services/org"
 )
 
@@ -102,21 +100,15 @@ func syncGroupsToTeamsCached(ctx context.Context, user *user_model.User, orgTeam
 			}
 
 			if action == syncAdd && !isMember {
-				if err := org_service.AddTeamMember(ctx, team, user); err != nil {
+				if err := org_service.AddTeamMember(ctx, user_model.NewAuthenticationSourceUser(), team, user); err != nil {
 					log.Error("group sync: Could not add user to team: %v", err)
 					return err
 				}
-
-				audit.Record(ctx, audit_model.OrganizationTeamMemberAdd, user_model.NewAuthenticationSourceUser(), org,
-					fmt.Sprintf("Added user %s to team %s/%s.", user.Name, org.Name, team.Name), "team", team.Name, "member", user.Name)
 			} else if action == syncRemove && isMember {
-				if err := org_service.RemoveTeamMember(ctx, team, user); err != nil {
+				if err := org_service.RemoveTeamMember(ctx, user_model.NewAuthenticationSourceUser(), team, user); err != nil {
 					log.Error("group sync: Could not remove user from team: %v", err)
 					return err
 				}
-
-				audit.Record(ctx, audit_model.OrganizationTeamMemberRemove, user_model.NewAuthenticationSourceUser(), org,
-					fmt.Sprintf("Removed user %s from team %s/%s.", user.Name, org.Name, team.Name), "team", team.Name, "member", user.Name)
 			}
 		}
 	}

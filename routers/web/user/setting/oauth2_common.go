@@ -35,6 +35,14 @@ func (oa *OAuth2CommonHandlers) ownerID() int64 {
 	return 0
 }
 
+// recordAudit emits an OAuth2 application audit event scoped to the owner. The
+// owner is nil for instance-wide (admin) applications, an organization, or a
+// user; RecordScoped selects the matching action and supplies the scope label,
+// so message must never dereference oa.Owner itself.
+func (oa *OAuth2CommonHandlers) recordAudit(ctx *context.Context, actions audit.ScopedActions, appName string, message func(scope string) string) {
+	audit.RecordScoped(ctx, oa.Doer, oa.Owner, nil, actions, message, "oauth2application", appName)
+}
+
 func (oa *OAuth2CommonHandlers) renderEditPage(ctx *context.Context) {
 	app := ctx.Data["App"].(*auth.OAuth2Application)
 	ctx.Data["FormActionPath"] = fmt.Sprintf("%s/%d", oa.BasePathEditPrefix, app.ID)
@@ -71,7 +79,13 @@ func (oa *OAuth2CommonHandlers) AddApp(ctx *context.Context) {
 		return
 	}
 
-	audit.Record(ctx, audit_model.UserOAuth2ApplicationAdd, oa.Doer, oa.Owner, fmt.Sprintf("Added OAuth2 application %s for user %s.", app.Name, oa.Owner.Name), "oauth2application", app.Name)
+	oa.recordAudit(ctx, audit.ScopedActions{
+		User:   audit_model.UserOAuth2ApplicationAdd,
+		Org:    audit_model.OrganizationOAuth2ApplicationAdd,
+		System: audit_model.SystemOAuth2ApplicationAdd,
+	}, app.Name, func(scope string) string {
+		return fmt.Sprintf("Added OAuth2 application %s for %s.", app.Name, scope)
+	})
 
 	// render the edit page with secret
 	ctx.Flash.Success(ctx.Tr("settings.create_oauth2_application_success"), true)
@@ -141,7 +155,14 @@ func (oa *OAuth2CommonHandlers) EditSave(ctx *context.Context) {
 		return
 	}
 
-	audit.Record(ctx, audit_model.UserOAuth2ApplicationUpdate, oa.Doer, oa.Owner, fmt.Sprintf("Updated OAuth2 application %s of user %s.", ctx.Data["App"].(*auth.OAuth2Application).Name, oa.Owner.Name), "oauth2application", ctx.Data["App"].(*auth.OAuth2Application).Name)
+	updatedApp := ctx.Data["App"].(*auth.OAuth2Application)
+	oa.recordAudit(ctx, audit.ScopedActions{
+		User:   audit_model.UserOAuth2ApplicationUpdate,
+		Org:    audit_model.OrganizationOAuth2ApplicationUpdate,
+		System: audit_model.SystemOAuth2ApplicationUpdate,
+	}, updatedApp.Name, func(scope string) string {
+		return fmt.Sprintf("Updated OAuth2 application %s of %s.", updatedApp.Name, scope)
+	})
 
 	ctx.Flash.Success(ctx.Tr("settings.update_oauth2_application_success"))
 	ctx.Redirect(oa.BasePathList)
@@ -169,7 +190,13 @@ func (oa *OAuth2CommonHandlers) RegenerateSecret(ctx *context.Context) {
 		return
 	}
 
-	audit.Record(ctx, audit_model.UserOAuth2ApplicationSecret, oa.Doer, oa.Owner, fmt.Sprintf("Regenerated secret for OAuth2 application %s of user %s.", app.Name, oa.Owner.Name), "oauth2application", app.Name)
+	oa.recordAudit(ctx, audit.ScopedActions{
+		User:   audit_model.UserOAuth2ApplicationSecret,
+		Org:    audit_model.OrganizationOAuth2ApplicationSecret,
+		System: audit_model.SystemOAuth2ApplicationSecret,
+	}, app.Name, func(scope string) string {
+		return fmt.Sprintf("Regenerated secret for OAuth2 application %s of %s.", app.Name, scope)
+	})
 
 	ctx.Flash.Success(ctx.Tr("settings.update_oauth2_application_success"), true)
 	oa.renderEditPage(ctx)
@@ -192,7 +219,13 @@ func (oa *OAuth2CommonHandlers) DeleteApp(ctx *context.Context) {
 		return
 	}
 
-	audit.Record(ctx, audit_model.UserOAuth2ApplicationRemove, oa.Doer, oa.Owner, fmt.Sprintf("Removed OAuth2 application %s of user %s.", app.Name, oa.Owner.Name), "oauth2application", app.Name)
+	oa.recordAudit(ctx, audit.ScopedActions{
+		User:   audit_model.UserOAuth2ApplicationRemove,
+		Org:    audit_model.OrganizationOAuth2ApplicationRemove,
+		System: audit_model.SystemOAuth2ApplicationRemove,
+	}, app.Name, func(scope string) string {
+		return fmt.Sprintf("Removed OAuth2 application %s of %s.", app.Name, scope)
+	})
 
 	ctx.Flash.Success(ctx.Tr("settings.remove_oauth2_application_success"))
 	ctx.JSONRedirect(oa.BasePathList)
@@ -225,7 +258,13 @@ func (oa *OAuth2CommonHandlers) RevokeGrant(ctx *context.Context) {
 		return
 	}
 
-	audit.Record(ctx, audit_model.UserOAuth2ApplicationRevoke, oa.Doer, oa.Owner, fmt.Sprintf("Revoked OAuth2 grant %d for application %s of user %s.", grant.ID, app.Name, oa.Owner.Name), "oauth2application", app.Name)
+	// Grant revocation is only reachable from the per-user application list, so
+	// the user-scoped action always applies here.
+	oa.recordAudit(ctx, audit.ScopedActions{
+		User: audit_model.UserOAuth2ApplicationRevoke,
+	}, app.Name, func(scope string) string {
+		return fmt.Sprintf("Revoked OAuth2 grant %d for application %s of %s.", grant.ID, app.Name, scope)
+	})
 
 	ctx.Flash.Success(ctx.Tr("settings.revoke_oauth2_grant_success"))
 	ctx.JSONRedirect(oa.BasePathList)

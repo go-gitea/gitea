@@ -72,9 +72,9 @@ func addRepositoryToTeam(ctx context.Context, t *organization.Team, repo *repo_m
 
 // AddAllRepositoriesToTeam adds all repositories to the team.
 // If the team already has some repositories they will be left unchanged.
-func AddAllRepositoriesToTeam(ctx context.Context, t *organization.Team) ([]*repo_model.Repository, error) {
+func AddAllRepositoriesToTeam(ctx context.Context, doer *user_model.User, t *organization.Team) ([]*repo_model.Repository, error) {
 	added := make([]*repo_model.Repository, 0, 5)
-	return added, db.WithTx(ctx, func(ctx context.Context) error {
+	if err := db.WithTx(ctx, func(ctx context.Context) error {
 		orgRepos, err := repo_model.GetOrgRepositories(ctx, t.OrgID)
 		if err != nil {
 			return fmt.Errorf("get org repos: %w", err)
@@ -90,18 +90,43 @@ func AddAllRepositoriesToTeam(ctx context.Context, t *organization.Team) ([]*rep
 		}
 
 		return nil
-	})
+	}); err != nil {
+		return nil, err
+	}
+
+	for _, repo := range added {
+		audit.Record(ctx, audit_model.RepositoryCollaboratorTeamAdd, doer, repo,
+			fmt.Sprintf("Added team %s as collaborator for repository %s.", t.Name, repo.FullName()),
+			"team", t.Name)
+	}
+
+	return added, nil
 }
 
 // RemoveAllRepositoriesFromTeam removes all repositories from team and recalculates access
-func RemoveAllRepositoriesFromTeam(ctx context.Context, t *organization.Team) (err error) {
+func RemoveAllRepositoriesFromTeam(ctx context.Context, doer *user_model.User, t *organization.Team) (err error) {
 	if t.IncludesAllRepositories {
 		return nil
 	}
 
-	return db.WithTx(ctx, func(ctx context.Context) error {
+	removed, err := repo_model.GetTeamRepositories(ctx, &repo_model.SearchTeamRepoOptions{TeamID: t.ID})
+	if err != nil {
+		return fmt.Errorf("GetTeamRepositories: %w", err)
+	}
+
+	if err := db.WithTx(ctx, func(ctx context.Context) error {
 		return removeAllRepositoriesFromTeam(ctx, t)
-	})
+	}); err != nil {
+		return err
+	}
+
+	for _, repo := range removed {
+		audit.Record(ctx, audit_model.RepositoryCollaboratorTeamRemove, doer, repo,
+			fmt.Sprintf("Removed team %s as collaborator from repository %s.", t.Name, repo.FullName()),
+			"team", t.Name)
+	}
+
+	return nil
 }
 
 // removeAllRepositoriesFromTeam removes all repositories from team and recalculates access

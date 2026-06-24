@@ -18,18 +18,10 @@ import (
 // recordSecretAudit emits a secret audit event scoped to its repository,
 // organization or user owner. verb/prep build the message ("Added ... for",
 // "Removed ... of").
-func recordSecretAudit(ctx context.Context, doer, owner *user_model.User, repo *repo_model.Repository, secret *secret_model.Secret, repoAction, orgAction, userAction audit_model.Action, verb, prep string) {
-	switch {
-	case owner == nil:
-		audit.Record(ctx, repoAction, doer, repo,
-			fmt.Sprintf("%s secret %s %s repository %s.", verb, secret.Name, prep, repo.FullName()), "secret", secret.Name)
-	case owner.IsOrganization():
-		audit.Record(ctx, orgAction, doer, owner,
-			fmt.Sprintf("%s secret %s %s organization %s.", verb, secret.Name, prep, owner.Name), "secret", secret.Name)
-	default:
-		audit.Record(ctx, userAction, doer, owner,
-			fmt.Sprintf("%s secret %s %s user %s.", verb, secret.Name, prep, owner.Name), "secret", secret.Name)
-	}
+func recordSecretAudit(ctx context.Context, doer, owner *user_model.User, repo *repo_model.Repository, secret *secret_model.Secret, actions audit.ScopedActions, verb, prep string) {
+	audit.RecordScoped(ctx, doer, owner, repo, actions, func(scope string) string {
+		return fmt.Sprintf("%s secret %s %s %s.", verb, secret.Name, prep, scope)
+	}, "secret", secret.Name)
 }
 
 func CreateOrUpdateSecret(ctx context.Context, doer, owner *user_model.User, repo *repo_model.Repository, name, data, description string) (*secret_model.Secret, bool, error) {
@@ -52,7 +44,11 @@ func CreateOrUpdateSecret(ctx context.Context, doer, owner *user_model.User, rep
 			return nil, false, err
 		}
 
-		recordSecretAudit(ctx, doer, owner, repo, s, audit_model.RepositorySecretAdd, audit_model.OrganizationSecretAdd, audit_model.UserSecretAdd, "Added", "for")
+		recordSecretAudit(ctx, doer, owner, repo, s, audit.ScopedActions{
+			Repo: audit_model.RepositorySecretAdd,
+			Org:  audit_model.OrganizationSecretAdd,
+			User: audit_model.UserSecretAdd,
+		}, "Added", "for")
 
 		return s, true, nil
 	}
@@ -63,7 +59,11 @@ func CreateOrUpdateSecret(ctx context.Context, doer, owner *user_model.User, rep
 		return nil, false, err
 	}
 
-	recordSecretAudit(ctx, doer, owner, repo, s, audit_model.RepositorySecretUpdate, audit_model.OrganizationSecretUpdate, audit_model.UserSecretUpdate, "Updated", "of")
+	recordSecretAudit(ctx, doer, owner, repo, s, audit.ScopedActions{
+		Repo: audit_model.RepositorySecretUpdate,
+		Org:  audit_model.OrganizationSecretUpdate,
+		User: audit_model.UserSecretUpdate,
+	}, "Updated", "of")
 
 	return s, false, nil
 }
@@ -109,7 +109,11 @@ func deleteSecret(ctx context.Context, doer, owner *user_model.User, repo *repo_
 		return err
 	}
 
-	recordSecretAudit(ctx, doer, owner, repo, s, audit_model.RepositorySecretRemove, audit_model.OrganizationSecretRemove, audit_model.UserSecretRemove, "Removed", "of")
+	recordSecretAudit(ctx, doer, owner, repo, s, audit.ScopedActions{
+		Repo: audit_model.RepositorySecretRemove,
+		Org:  audit_model.OrganizationSecretRemove,
+		User: audit_model.UserSecretRemove,
+	}, "Removed", "of")
 
 	return nil
 }
