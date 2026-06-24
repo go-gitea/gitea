@@ -1,4 +1,4 @@
-import {diffTreeStoreSetViewed, filterDiffTree, getDiffTreeExtensionStats, reactiveDiffTreeStore, type DiffTreeEntry} from './diff-file.ts';
+import {countMatchingFiles, diffTreeStoreSetViewed, filterDiffTree, getDiffTreeExtensionStats, reactiveDiffTreeStore, type DiffTreeEntry} from './diff-file.ts';
 
 function file(name: string): DiffTreeEntry {
   return {
@@ -88,13 +88,28 @@ test('getDiffTreeExtensionStats counts every file in the diff tree', () => {
   ]);
 });
 
+test('countMatchingFiles counts matching file leaves across the whole PR', () => {
+  const store = makeStore([
+    dir('dir1', [file('dir1/a.ts'), file('dir1/b.css')]),
+    file('c.ts'),
+  ]);
+
+  expect(countMatchingFiles(store)).toBe(3);
+
+  store.activeExtensions = ['.ts'];
+  expect(countMatchingFiles(store)).toBe(2);
+
+  store.activeExtensions = 'all';
+  store.filenameFilterQuery = 'b.';
+  expect(countMatchingFiles(store)).toBe(1);
+});
+
 test('extension filtering is case-insensitive', () => {
   const store = makeStore([
     file('a.ts'),
     file('b.TS'),
     file('c.Ts'),
   ]);
-  // mixed-case extensions collapse into one normalized bucket
   expect(getDiffTreeExtensionStats(store)).toEqual([
     {ext: '.ts', count: 3},
   ]);

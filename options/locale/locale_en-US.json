@@ -2617,6 +2617,8 @@
   "repo.diff.select_all_file_extensions": "Select all",
   "repo.diff.select_none_file_extensions": "Select none",
   "repo.diff.no_files_matched": "No files matched your search",
+  "repo.diff.files_loaded": "Loaded %[1]d of %[2]d files",
+  "repo.diff.show_more_matching": "Show more — %[1]d matching below",
   "repo.diff.submodule_added": "Submodule %[1]s added at %[2]s",
   "repo.diff.submodule_deleted": "Submodule %[1]s deleted from %[2]s",
   "repo.diff.submodule_updated": "Submodule %[1]s updated: %[2]s",

@@ -122,12 +122,56 @@ export function filterDiffTree(store: Reactive<DiffFileTree>): DiffTreeEntry | n
   return visit(store.diffFileTree.TreeRoot);
 }
 
+export function countMatchingFiles(store: Reactive<DiffFileTree>): number {
+  const matches = buildFilter(store);
+  let totalMatchingFilesCount = 0;
+  for (const entry of Object.values(store.fullNameMap)) {
+    if (entry.EntryMode === 'tree' || !entry.FullName) continue;
+    if (!matches || matches(entry.FullName)) totalMatchingFilesCount++;
+  }
+  return totalMatchingFilesCount;
+}
+
+function countEveryFileInDiff(store: Reactive<DiffFileTree>): number {
+  let totalFilesCount = 0;
+  for (const entry of Object.values(store.fullNameMap)) {
+    if (entry.EntryMode !== 'tree' && entry.FullName) totalFilesCount++;
+  }
+  return totalFilesCount;
+}
+
+function fillTemplate(text: string, ...values: number[]): string {
+  let result = text;
+  for (let index = 0; index < values.length; index++) {
+    result = result.replace(`%[${index + 1}]d`, String(values[index]));
+  }
+  return result;
+}
+
+function updateLoadProgress(loadedFiles: number, totalFiles: number) {
+  const el = document.querySelector('#diff-load-progress');
+  if (!el) return;
+  el.textContent = fillTemplate(el.getAttribute('data-text-loaded') ?? '', loadedFiles, totalFiles);
+}
+
+function updateShowMoreButton(matchingBelow: number) {
+  const btn = document.querySelector('#diff-show-more-files');
+  if (!btn) return;
+  if (matchingBelow > 0) {
+    btn.textContent = fillTemplate(btn.getAttribute('data-text-matching') ?? '', matchingBelow);
+  } else {
+    btn.textContent = btn.getAttribute('data-text-default') ?? btn.textContent;
+  }
+}
+
 export function applyFiltersToFileBoxes(store: Reactive<DiffFileTree>) {
   const boxes = document.querySelectorAll<HTMLElement>('#diff-file-boxes .diff-file-box[data-new-filename]');
   const matches = buildFilter(store);
   if (!matches) {
     for (const box of boxes) toggleElem(box, true);
     toggleElem('#diff-no-matches', false);
+    updateShowMoreButton(0);
+    updateLoadProgress(boxes.length, countEveryFileInDiff(store));
     return;
   }
   let visibleCount = 0;
@@ -138,6 +182,8 @@ export function applyFiltersToFileBoxes(store: Reactive<DiffFileTree>) {
     if (matched) visibleCount++;
     toggleElem(box, matched);
   }
+  updateShowMoreButton(Math.max(0, countMatchingFiles(store) - visibleCount));
+  updateLoadProgress(boxes.length, countEveryFileInDiff(store));
   toggleElem('#diff-no-matches', visibleCount === 0);
 }
 

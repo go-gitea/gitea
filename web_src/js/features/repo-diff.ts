@@ -170,9 +170,10 @@ async function loadMoreFiles(btn: Element): Promise<boolean> {
     const resp = await response.text();
     const respDoc = parseDom(resp, 'text/html');
     const respFileBoxes = respDoc.querySelector('#diff-file-boxes')!;
-    // the response is a full HTML page, we need to extract the relevant contents:
-    // * append the newly loaded file list items to the existing list
-    const respFileBoxesChildren = Array.from(respFileBoxes.children); // "children:HTMLCollection" will be empty after replaceWith
+
+    const loadedBoxes = Array.from(respFileBoxes.children);
+    const respFileBoxesChildren = loadedBoxes.filter((el) => el.id !== 'diff-no-matches'); // do not copy "no matches" to not duplicate
+
     document.querySelector('#diff-incomplete')!.replaceWith(...respFileBoxesChildren);
     onShowMoreFiles();
     return true;

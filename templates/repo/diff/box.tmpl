@@ -80,6 +80,11 @@
 			<h4>{{ctx.Locale.Tr "repo.diff.data_not_available"}}</h4>
 		{{else}}
 			<div id="diff-file-boxes" class="sixteen wide column">
+				{{if $showFileTree}}
+					<div id="diff-no-matches" class="empty-placeholder tw-hidden">
+						<h2>{{ctx.Locale.Tr "repo.diff.no_files_matched"}}</h2>
+					</div>
+				{{end}}
 				{{range $i, $file := .Diff.Files}}
 					{{/*notice: the index of Diff.Files should not be used for element ID, because the index will be restarted from 0 when doing load-more for PRs with a lot of files*/}}
 					{{$blobBase := call $.GetBlobByPathForCommit $.BeforeCommit $file.OldName}}
@@ -223,16 +228,15 @@
 					<div class="diff-file-box file-content tw-mt-2" id="diff-incomplete">
 						<h4 class="ui top attached header tw-font-normal flex-left-right">
 							{{ctx.Locale.Tr "repo.diff.too_many_files"}}
-							<a class="ui basic tiny button" id="diff-show-more-files" data-href="?skip-to={{.Diff.End}}&file-only=true">{{ctx.Locale.Tr "repo.diff.show_more"}}</a>
+							<a class="ui basic tiny button" id="diff-show-more-files" data-href="?skip-to={{.Diff.End}}&file-only=true"
+								data-text-default="{{ctx.Locale.Tr "repo.diff.show_more"}}"
+								data-text-matching="{{ctx.Locale.Tr "repo.diff.show_more_matching"}}"
+							>{{ctx.Locale.Tr "repo.diff.show_more"}}</a>
 						</h4>
+						<div id="diff-load-progress" class="tw-text-text-light-2 tw-p-2" data-text-loaded="{{ctx.Locale.Tr "repo.diff.files_loaded"}}">{{ctx.Locale.Tr "repo.diff.files_loaded" (len .Diff.Files) .DiffShortStat.NumFiles}}</div>
 					</div>
 				{{end}}
 			</div>
-			{{if $showFileTree}}
-				<div id="diff-no-matches" class="empty-placeholder tw-hidden">
-					<h2>{{ctx.Locale.Tr "repo.diff.no_files_matched"}}</h2>
-				</div>
-			{{end}}
 		{{end}}
 	</div>
 
