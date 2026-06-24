@@ -393,14 +393,6 @@ func UpdateRunJob(ctx context.Context, job *ActionRunJob, cond builder.Cond, col
 		return affected, nil
 	}
 
-	// Reusable workflow caller jobs are never picked up by runners, so they don't need a task-version bump.
-	if statusUpdated && job.Status.IsWaiting() && !job.IsReusableCaller {
-		// if the status of job changes to waiting again, increase tasks version.
-		if err := IncreaseTaskVersion(ctx, job.OwnerID, job.RepoID); err != nil {
-			return 0, err
-		}
-	}
-
 	if job.RunID == 0 {
 		var err error
 		if job, err = GetRunJobByRepoAndID(ctx, job.RepoID, job.ID); err != nil {
@@ -408,23 +400,33 @@ func UpdateRunJob(ctx context.Context, job *ActionRunJob, cond builder.Cond, col
 		}
 	}
 
-	// When a job finishes, bump the version so that idle runners — whose
-	// tasksVersion already equals the current latestVersion — learn that
-	// remaining waiting jobs are still available and attempt PickTask again.
-	// Without this bump, runners that completed their tasks would see
-	// tasksVersion==latestVersion and skip PickTask, leaving the other jobs
-	// permanently unassigned until the version changes for another reason.
-	// Only bump when waiting work actually remains for this repo, otherwise
-	// every job completion would needlessly bump the global version and wake
-	// every idle runner instance-wide for nothing.
-	if statusUpdated && job.Status.IsDone() && !job.IsReusableCaller {
-		hasWaiting, err := hasWaitingJobsToPick(ctx, job.RepoID)
-		if err != nil {
-			return 0, err
-		}
-		if hasWaiting {
+	// Reusable workflow caller jobs are never picked up by runners, so they don't need a task-version bump.
+	if statusUpdated && !job.IsReusableCaller {
+		switch {
+		case job.Status.IsWaiting():
+			// A job returning to the waiting queue is work a runner can pick up, so bump the
+			// version to wake idle runners whose tasksVersion already equals latestVersion.
 			if err := IncreaseTaskVersion(ctx, job.OwnerID, job.RepoID); err != nil {
 				return 0, err
+			}
+		case job.Status.IsDone():
+			// When a job finishes, bump the version so that idle runners — whose
+			// tasksVersion already equals the current latestVersion — learn that
+			// remaining waiting jobs are still available and attempt PickTask again.
+			// Without this bump, runners that completed their tasks would see
+			// tasksVersion==latestVersion and skip PickTask, leaving the other jobs
+			// permanently unassigned until the version changes for another reason.
+			// Only bump when waiting work actually remains for this repo, otherwise
+			// every job completion would needlessly bump the global version and wake
+			// every idle runner instance-wide for nothing.
+			hasWaiting, err := hasWaitingJobsToPick(ctx, job.RepoID)
+			if err != nil {
+				return 0, err
+			}
+			if hasWaiting {
+				if err := IncreaseTaskVersion(ctx, job.OwnerID, job.RepoID); err != nil {
+					return 0, err
+				}
 			}
 		}
 	}
