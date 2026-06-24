@@ -222,16 +222,38 @@ func TestParseModuleArchive_FlatWinsOverSubdir(t *testing.T) {
 	assert.Equal(t, "x", mod.Metadata.Root.Inputs[0].Name)
 }
 
-func TestParseModuleArchive_AmbiguousTopLevelDirs(t *testing.T) {
-	// No root .tf and more than one top-level directory: the module root
-	// is undeterminable and must be rejected, not guessed.
+func TestParseModuleArchive_SubmoduleCollectionFlat(t *testing.T) {
+	// A collection with no root module — only submodules under modules/ —
+	// is valid. It must be accepted (not rejected) with empty root
+	// metadata, and modules/ must not be mistaken for a wrapper directory.
 	archive := buildArchive(t, map[string]string{
-		"a/main.tf": `variable "x" { type = string }`,
-		"b/main.tf": `variable "y" { type = string }`,
-	}, "a/", "b/")
+		"README.md":                  "# collection\n",
+		"modules/network/main.tf":    `variable "cidr" { type = string }`,
+		"modules/network/outputs.tf": `output "id" { value = "x" }`,
+	}, "modules/", "modules/network/")
 
-	_, err := ParseModuleArchive(bytes.NewReader(archive), 1<<20)
-	require.ErrorIs(t, err, ErrAmbiguousModuleRoot)
+	mod, err := ParseModuleArchive(bytes.NewReader(archive), 1<<20)
+	require.NoError(t, err)
+	assert.Empty(t, mod.RootDir, "modules/ is not a wrapper directory")
+	require.NotNil(t, mod.Metadata.Root)
+	assert.Empty(t, mod.Metadata.Root.Inputs, "no root module: empty root metadata")
+	assert.Equal(t, "# collection\n", mod.Metadata.Readme)
+}
+
+func TestParseModuleArchive_SubmoduleCollectionWrapped(t *testing.T) {
+	// The same collection wrapped in a release directory: the wrapper is
+	// detected for normalization even though it holds no root .tf.
+	archive := buildArchive(t, map[string]string{
+		"coll-1.0.0/README.md":               "# collection\n",
+		"coll-1.0.0/modules/network/main.tf": `variable "cidr" { type = string }`,
+	}, "coll-1.0.0/", "coll-1.0.0/modules/", "coll-1.0.0/modules/network/")
+
+	mod, err := ParseModuleArchive(bytes.NewReader(archive), 1<<20)
+	require.NoError(t, err)
+	assert.Equal(t, "coll-1.0.0", mod.RootDir)
+	require.NotNil(t, mod.Metadata.Root)
+	assert.Empty(t, mod.Metadata.Root.Inputs)
+	assert.Equal(t, "# collection\n", mod.Metadata.Readme)
 }
 
 func TestParseModuleArchive_WrappedTFJSONOnly(t *testing.T) {

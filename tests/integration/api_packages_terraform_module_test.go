@@ -189,6 +189,22 @@ func TestPackageTerraformModule(t *testing.T) {
 		MakeRequest(t, req, http.StatusBadRequest)
 	})
 
+	t.Run("Upload_SubmoduleCollection", func(t *testing.T) {
+		// A module that is only a collection of submodules (no .tf at the
+		// root) is valid and must be accepted.
+		collection := buildTFModuleArchive(t, map[string]string{
+			"README.md":               "# collection\n",
+			"modules/network/main.tf": `variable "cidr" { type = string }`,
+		})
+		cbase := fmt.Sprintf("/api/packages/-/terraform/modules/%s/collection/aws", user.Name)
+		req := NewRequestWithBody(t, "PUT", cbase+"/1.0.0", bytes.NewReader(collection)).AddBasicAuth(user.Name)
+		MakeRequest(t, req, http.StatusCreated)
+		t.Cleanup(func() {
+			req := NewRequest(t, "DELETE", cbase+"/1.0.0").AddBasicAuth(user.Name)
+			MakeRequest(t, req, http.StatusNoContent)
+		})
+	})
+
 	t.Run("ListVersions", func(t *testing.T) {
 		uploadFixture(t)
 		req := NewRequest(t, "GET", base+"/versions").AddBasicAuth(user.Name)

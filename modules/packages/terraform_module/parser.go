@@ -27,8 +27,7 @@ var (
 	ErrInvalidVersion      = errors.New("module version is invalid")
 	ErrArchiveTooLarge     = errors.New("module archive exceeds size limit")
 	ErrUnsafeArchivePath   = errors.New("module archive contains an unsafe file path")
-	ErrEmptyModule         = errors.New("module archive contains no .tf files at its root or in a single top-level directory; package the module so its .tf files are at the archive root (e.g. `tar -czf module.tgz *`) or wrapped in one directory")
-	ErrAmbiguousModuleRoot = errors.New("module archive has multiple top-level directories and no .tf files at its root; cannot determine the module root")
+	ErrEmptyModule         = errors.New("module archive contains no .tf files")
 	ErrUnsupportedTFFormat = errors.New("only .tf files are supported (.tf.json is not parsed in v1)")
 )
 
@@ -79,20 +78,26 @@ func ValidateProvider(s string) error {
 	return nil
 }
 
+// reservedModuleDirs are the standard-module-structure directory names
+// that must never be mistaken for an archive wrapper directory.
+// See https://developer.hashicorp.com/terraform/language/modules/develop/structure
+var reservedModuleDirs = map[string]struct{}{"modules": {}, "examples": {}}
+
 // dirFiles holds the parse-relevant files collected for a single
 // directory level of the archive (the root, or a top-level directory).
 type dirFiles struct {
 	tf     map[string][]byte // basename -> .tf source
 	readme string
-	tfJSON bool // a .tf.json was present (unsupported in v1)
 }
 
 // ParseModuleArchive consumes a gzipped tar archive and extracts the root
 // module's metadata. The module sources may sit either at the archive
 // root (`tar -czf module.tgz *`) or wrapped in a single top-level
-// directory (a GitHub release tarball, `git archive --prefix`, ...). The
-// detected layout is reported via Metadata.ModuleDir so the download
-// handler can serve the archive with the matching go-getter subdir.
+// directory (a GitHub release tarball, `git archive --prefix`, ...); the
+// wrapper is reported via Module.RootDir so the upload handler can
+// normalize it away. The archive only needs to contain at least one .tf
+// file somewhere — a collection of submodules with no root module is
+// valid and yields empty root metadata rather than an error.
 //
 // maxSize caps the total uncompressed bytes read; values <= 0 (e.g. an
 // unlimited storage quota) or above maxParseSize are clamped to
@@ -114,9 +119,14 @@ func ParseModuleArchive(r io.Reader, maxSize int64) (*Module, error) {
 		// byDir maps a directory level ("" for the archive root, or a
 		// top-level directory name) to its collected files.
 		byDir = map[string]*dirFiles{}
-		// topDirs is the set of distinct top-level directory names, used
-		// to detect the single-wrapper-directory layout.
-		topDirs = map[string]struct{}{}
+		// topDirs is the set of distinct top-level directory names and
+		// topLevelFile records whether any file sits at the archive root;
+		// together they detect the single-wrapper-directory layout.
+		topDirs      = map[string]struct{}{}
+		topLevelFile bool
+		// Presence of any .tf / .tf.json anywhere decides whether the
+		// archive is a Terraform module at all.
+		tfAnywhere, tfJSONAnywhere bool
 	)
 
 	dirEntry := func(dir string) *dirFiles {
@@ -140,7 +150,6 @@ func ParseModuleArchive(r io.Reader, maxSize int64) (*Module, error) {
 				return err
 			}
 			consumed += n
-			dirEntry(dir).tfJSON = true
 		case strings.HasSuffix(lower, ".tf"):
 			data, n, err := readCapped(tr, maxSize, consumed)
 			if err != nil {
@@ -201,11 +210,20 @@ func ParseModuleArchive(r io.Reader, maxSize int64) (*Module, error) {
 			continue
 		}
 
-		// Only the archive root (depth 0) and one level deep (depth 1,
-		// the wrapper directory) can hold the root module. Anything
-		// deeper is a submodule or example and is skipped in v1.
+		switch lower := strings.ToLower(path.Base(clean)); {
+		case strings.HasSuffix(lower, ".tf.json"):
+			tfJSONAnywhere = true
+		case strings.HasSuffix(lower, ".tf"):
+			tfAnywhere = true
+		}
+
+		// The root module lives either at the archive root (depth 0) or
+		// one level deep inside the wrapper directory (depth 1). Files
+		// deeper than that are submodules or examples: counted above but
+		// not read for root metadata.
 		switch strings.Count(clean, "/") {
 		case 0:
+			topLevelFile = true
 			if err := handleFile("", clean); err != nil {
 				return nil, err
 			}
@@ -223,9 +241,17 @@ func ParseModuleArchive(r io.Reader, maxSize int64) (*Module, error) {
 		}
 	}
 
-	moduleDir, df, err := selectModuleRoot(byDir, topDirs)
-	if err != nil {
-		return nil, err
+	if !tfAnywhere {
+		if tfJSONAnywhere {
+			return nil, ErrUnsupportedTFFormat
+		}
+		return nil, ErrEmptyModule
+	}
+
+	moduleDir := wrapperDir(topDirs, topLevelFile)
+	df := byDir[moduleDir]
+	if df == nil {
+		df = &dirFiles{} // collection with no root module: empty root metadata
 	}
 
 	root, description, err := parseRoot(df.tf)
@@ -242,6 +268,26 @@ func ParseModuleArchive(r io.Reader, maxSize int64) (*Module, error) {
 		},
 		RootDir: moduleDir,
 	}, nil
+}
+
+// wrapperDir returns the single top-level directory that wraps the whole
+// archive (a GitHub release tarball, `git archive --prefix`, ...), or ""
+// when the module already sits at the archive root. A wrapper exists only
+// when every entry lives under exactly one top-level directory whose name
+// is not a reserved standard-structure directory (so a collection whose
+// sole top-level entry is `modules/` is not mistaken for a wrapper).
+func wrapperDir(topDirs map[string]struct{}, topLevelFile bool) string {
+	if topLevelFile || len(topDirs) != 1 {
+		return ""
+	}
+	var only string
+	for d := range topDirs {
+		only = d
+	}
+	if _, reserved := reservedModuleDirs[only]; reserved {
+		return ""
+	}
+	return only
 }
 
 // NormalizeArchive rewrites a gzipped tar so that the contents of the
@@ -306,36 +352,6 @@ func NormalizeArchive(dst io.Writer, src io.Reader, rootDir string) error {
 		return err
 	}
 	return gzw.Close()
-}
-
-// selectModuleRoot picks the directory level that holds the root module.
-// Root-level .tf files win (flat layout); otherwise a single top-level
-// directory containing .tf files is the module root (wrapped layout).
-func selectModuleRoot(byDir map[string]*dirFiles, topDirs map[string]struct{}) (string, *dirFiles, error) {
-	if df := byDir[""]; df != nil && len(df.tf) > 0 {
-		return "", df, nil
-	}
-	if len(topDirs) == 1 {
-		var only string
-		for d := range topDirs {
-			only = d
-		}
-		if df := byDir[only]; df != nil && len(df.tf) > 0 {
-			return only, df, nil
-		}
-		if df := byDir[only]; df != nil && df.tfJSON {
-			return "", nil, ErrUnsupportedTFFormat
-		}
-		return "", nil, ErrEmptyModule
-	}
-	// No usable .tf at the root or in a single wrapper directory.
-	if df := byDir[""]; df != nil && df.tfJSON {
-		return "", nil, ErrUnsupportedTFFormat
-	}
-	if len(topDirs) > 1 {
-		return "", nil, ErrAmbiguousModuleRoot
-	}
-	return "", nil, ErrEmptyModule
 }
 
 // isArchiveJunk reports whether a cleaned path is packaging cruft that
