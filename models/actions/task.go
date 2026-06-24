@@ -379,8 +379,9 @@ func ReleaseTaskForRunner(ctx context.Context, task *ActionTask) error {
 		job.Status = StatusWaiting
 		job.Started = 0
 		job.TaskID = 0
-		// Guard on task_id so we only release while the job still references this task.
-		n, err := UpdateRunJob(ctx, job, builder.Eq{"task_id": task.ID}, "status", "started", "task_id")
+		// Guard on task_id and status so we only release while the job still
+		// references this task and has not progressed past running.
+		n, err := UpdateRunJob(ctx, job, builder.Eq{"task_id": task.ID, "status": StatusRunning}, "status", "started", "task_id")
 		if err != nil {
 			return err
 		}
