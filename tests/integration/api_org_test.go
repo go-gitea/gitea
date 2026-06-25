@@ -284,10 +284,16 @@ func TestAPIOrgPrivateMembersNotLeaked(t *testing.T) {
 	MakeRequest(t, req, http.StatusNotFound)
 	req = NewRequest(t, "GET", "/api/v1/orgs/"+orgName+"/public_members").AddTokenAuth(outsiderToken)
 	MakeRequest(t, req, http.StatusNotFound)
+	// the full member list of a private org must not be enumerable by an outsider either
+	req = NewRequest(t, "GET", "/api/v1/orgs/"+orgName+"/members").AddTokenAuth(outsiderToken)
+	MakeRequest(t, req, http.StatusNotFound)
 
 	// the member can still see the public membership of their own org
 	req = NewRequest(t, "GET", "/api/v1/orgs/"+orgName+"/public_members/"+memberName).AddTokenAuth(memberToken)
 	MakeRequest(t, req, http.StatusNoContent)
+	// and the member can still list the org's members
+	req = NewRequest(t, "GET", "/api/v1/orgs/"+orgName+"/members").AddTokenAuth(memberToken)
+	MakeRequest(t, req, http.StatusOK)
 }
 
 func testAPIDeleteOrgRepos(t *testing.T) {

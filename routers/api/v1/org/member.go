@@ -77,6 +77,12 @@ func ListMembers(ctx *context.APIContext) {
 	//   "404":
 	//     "$ref": "#/responses/notFound"
 
+	// don't disclose membership of organizations the doer cannot see
+	if !organization.HasOrgOrUserVisible(ctx, ctx.Org.Organization.AsUser(), ctx.Doer) {
+		ctx.APIErrorNotFound()
+		return
+	}
+
 	var (
 		isMember bool
 		err      error
