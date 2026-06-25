@@ -1,13 +1,10 @@
 interface JQuery {
-  areYouSure: any, // jquery.are-you-sure
   fomanticExt: any; // fomantic extension
   api: any, // fomantic
   dimmer: any, // fomantic
   dropdown: any; // fomantic
   modal: any; // fomantic
-  tab: any; // fomantic
   transition: any, // fomantic
-  search: any, // fomantic
 }
 
 interface JQueryStatic {
@@ -41,7 +38,6 @@ interface Window {
       FolderOpenIcon?: string,
       repoLink?: string,
       repoActivityTopAuthors?: any[],
-      pullRequestMergeForm?: Record<string, any>,
       dashboardRepoList?: Record<string, any>,
     },
     notificationSettings: {
@@ -78,9 +74,4 @@ interface Window {
   }
 
   // do not add more properties here unless it is a must
-}
-
-declare module '*?worker' {
-  const workerConstructor: new () => Worker;
-  export default workerConstructor;
 }
