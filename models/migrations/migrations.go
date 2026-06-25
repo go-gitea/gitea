@@ -418,8 +418,9 @@ func prepareMigrationTasks() []*migration {
 		newMigration(338, "Expand legacy MSSQL issue/comment long-text columns", v1_27.ExpandIssueAndCommentLongTextFieldsForMSSQL),
 		newMigration(339, "Extend action c_u index to include created_unix for faster dashboard feed queries", v1_27.AddCreatedUnixToActionUserIsDeletedIndex),
 		newMigration(340, "Add ContinueOnError column to ActionRunJob", v1_27.AddContinueOnErrorToActionRunJob),
-		newMigration(341, "Add job max-parallel support", v1_27.AddJobMaxParallel),
-		newMigration(342, "Add composite index on action_run_job(run_id, job_id)", v1_27.AddRunJobRunIDJobIDIndex),
+		newMigration(341, "Convert legacy MSSQL DATETIME columns to DATETIME2", v1_27.FixLegacyMSSQLDateTimeColumns),
+		newMigration(342, "Add job max-parallel support", v1_27.AddJobMaxParallel),
+		newMigration(343, "Add composite index on action_run_job(run_id, job_id)", v1_27.AddRunJobRunIDJobIDIndex),
 	}
 	return preparedMigrations
 }
