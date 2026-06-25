@@ -9,23 +9,23 @@ import (
 	"net/http"
 	"os"
 
-	asymkey_model "code.gitea.io/gitea/models/asymkey"
-	git_model "code.gitea.io/gitea/models/git"
-	issues_model "code.gitea.io/gitea/models/issues"
-	perm_model "code.gitea.io/gitea/models/perm"
-	access_model "code.gitea.io/gitea/models/perm/access"
-	"code.gitea.io/gitea/models/unit"
-	user_model "code.gitea.io/gitea/models/user"
-	"code.gitea.io/gitea/modules/git"
-	"code.gitea.io/gitea/modules/git/gitcmd"
-	"code.gitea.io/gitea/modules/gitrepo"
-	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/private"
-	"code.gitea.io/gitea/modules/util"
-	"code.gitea.io/gitea/modules/web"
-	"code.gitea.io/gitea/services/agit"
-	gitea_context "code.gitea.io/gitea/services/context"
-	pull_service "code.gitea.io/gitea/services/pull"
+	asymkey_model "gitea.dev/models/asymkey"
+	git_model "gitea.dev/models/git"
+	issues_model "gitea.dev/models/issues"
+	perm_model "gitea.dev/models/perm"
+	access_model "gitea.dev/models/perm/access"
+	"gitea.dev/models/unit"
+	user_model "gitea.dev/models/user"
+	"gitea.dev/modules/git"
+	"gitea.dev/modules/git/gitcmd"
+	"gitea.dev/modules/gitrepo"
+	"gitea.dev/modules/log"
+	"gitea.dev/modules/private"
+	"gitea.dev/modules/util"
+	"gitea.dev/modules/web"
+	"gitea.dev/services/agit"
+	gitea_context "gitea.dev/services/context"
+	pull_service "gitea.dev/services/pull"
 )
 
 type preReceiveContext struct {
@@ -40,9 +40,6 @@ type preReceiveContext struct {
 	canCreatePullRequest        bool
 	checkedCanCreatePullRequest bool
 
-	canWriteCode        bool
-	checkedCanWriteCode bool
-
 	protectedTags    []*git_model.ProtectedTag
 	gotProtectedTags bool
 
@@ -50,24 +47,36 @@ type preReceiveContext struct {
 
 	opts *private.HookOptions
 
-	branchName string
+	// this context should only contain shared variables, mutable variables like "current branch name" shouldn't be put here
+	canWriteCodeUnitCached *bool
 }
 
-// CanWriteCode returns true if pusher can write code
-func (ctx *preReceiveContext) CanWriteCode() bool {
-	if !ctx.checkedCanWriteCode {
-		if !ctx.loadPusherAndPermission() {
-			return false
+func (ctx *preReceiveContext) canWriteCodeUnit() bool {
+	if ctx.canWriteCodeUnitCached == nil {
+		var canWrite bool
+		if ctx.loadPusherAndPermission() {
+			canWrite = ctx.userPerm.CanWrite(unit.TypeCode) || ctx.deployKeyAccessMode >= perm_model.AccessModeWrite
 		}
-		ctx.canWriteCode = issues_model.CanMaintainerWriteToBranch(ctx, ctx.userPerm, ctx.branchName, ctx.user) || ctx.deployKeyAccessMode >= perm_model.AccessModeWrite
-		ctx.checkedCanWriteCode = true
+		ctx.canWriteCodeUnitCached = &canWrite
 	}
-	return ctx.canWriteCode
+	return *ctx.canWriteCodeUnitCached
 }
 
-// AssertCanWriteCode returns true if pusher can write code
-func (ctx *preReceiveContext) AssertCanWriteCode() bool {
-	if !ctx.CanWriteCode() {
+// canWriteCodeRef returns true if pusher can write to the code ref (branch/tag/commit)
+func (ctx *preReceiveContext) canWriteCodeRef(refFullName git.RefName) bool {
+	if ctx.canWriteCodeUnit() {
+		return true
+	}
+	// then check whether if the pusher is a maintainer who can write the PR author's head repo branch
+	if !refFullName.IsBranch() {
+		return false
+	}
+	return issues_model.CanMaintainerWriteToBranch(ctx, ctx.userPerm, refFullName.BranchName(), ctx.user)
+}
+
+// assertCanWriteRef returns true if pusher can write to the code ref, otherwise it responds with 403 Forbidden and returns false
+func (ctx *preReceiveContext) assertCanWriteRef(refFullName git.RefName) bool {
+	if !ctx.canWriteCodeRef(refFullName) {
 		if ctx.Written() {
 			return false
 		}
@@ -129,7 +138,7 @@ func HookPreReceive(ctx *gitea_context.PrivateContext) {
 		case git.DefaultFeatures().SupportProcReceive && refFullName.IsFor():
 			preReceiveFor(ourCtx, refFullName)
 		default:
-			ourCtx.AssertCanWriteCode()
+			ourCtx.assertCanWriteRef(refFullName)
 		}
 		if ctx.Written() {
 			return
@@ -141,9 +150,8 @@ func HookPreReceive(ctx *gitea_context.PrivateContext) {
 
 func preReceiveBranch(ctx *preReceiveContext, oldCommitID, newCommitID string, refFullName git.RefName) {
 	branchName := refFullName.BranchName()
-	ctx.branchName = branchName
 
-	if !ctx.AssertCanWriteCode() {
+	if !ctx.assertCanWriteRef(refFullName) {
 		return
 	}
 
@@ -371,8 +379,8 @@ func preReceiveBranch(ctx *preReceiveContext, oldCommitID, newCommitID string, r
 			return
 		}
 
-		// If we're an admin for the repository we can ignore status checks, reviews and override protected files
-		if ctx.userPerm.IsAdmin() {
+		// If we can bypass branch protection we can ignore status checks, reviews and protected files
+		if git_model.CanBypassBranchProtection(ctx, protectBranch, ctx.user, ctx.userPerm.IsAdmin()) {
 			return
 		}
 
@@ -404,7 +412,7 @@ func preReceiveBranch(ctx *preReceiveContext, oldCommitID, newCommitID string, r
 }
 
 func preReceiveTag(ctx *preReceiveContext, refFullName git.RefName) {
-	if !ctx.AssertCanWriteCode() {
+	if !ctx.assertCanWriteRef(refFullName) {
 		return
 	}
 

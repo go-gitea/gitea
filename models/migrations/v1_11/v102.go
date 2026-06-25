@@ -4,12 +4,11 @@
 package v1_11
 
 import (
-	"code.gitea.io/gitea/models/migrations/base"
-
-	"xorm.io/xorm"
+	"gitea.dev/models/db"
+	"gitea.dev/models/migrations/base"
 )
 
-func DropColumnHeadUserNameOnPullRequest(x *xorm.Engine) error {
+func DropColumnHeadUserNameOnPullRequest(x db.EngineMigration) error {
 	sess := x.NewSession()
 	defer sess.Close()
 	if err := sess.Begin(); err != nil {

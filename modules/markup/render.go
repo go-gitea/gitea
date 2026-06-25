@@ -15,12 +15,12 @@ import (
 	"strings"
 	"time"
 
-	"code.gitea.io/gitea/modules/htmlutil"
-	"code.gitea.io/gitea/modules/markup/internal"
-	"code.gitea.io/gitea/modules/public"
-	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/modules/typesniffer"
-	"code.gitea.io/gitea/modules/util"
+	"gitea.dev/modules/htmlutil"
+	"gitea.dev/modules/markup/internal"
+	"gitea.dev/modules/public"
+	"gitea.dev/modules/setting"
+	"gitea.dev/modules/typesniffer"
+	"gitea.dev/modules/util"
 
 	"golang.org/x/sync/errgroup"
 )
@@ -198,15 +198,6 @@ func Render(rctx *RenderContext, origInput io.Reader, output io.Writer) error {
 	return RenderWithRenderer(rctx, renderer, input, output)
 }
 
-// RenderString renders Markup string to HTML with all specific handling stuff and return string
-func RenderString(ctx *RenderContext, content string) (string, error) {
-	var buf strings.Builder
-	if err := Render(ctx, strings.NewReader(content), &buf); err != nil {
-		return "", err
-	}
-	return buf.String(), nil
-}
-
 func RenderIFrame(ctx *RenderContext, opts *ExternalRendererOptions, output io.Writer) error {
 	ownerName, repoName := ctx.RenderOptions.Metas["user"], ctx.RenderOptions.Metas["repo"]
 	refSubURL := ctx.RenderOptions.Metas["RefTypeNameSubURL"]
@@ -220,11 +211,11 @@ func RenderIFrame(ctx *RenderContext, opts *ExternalRendererOptions, output io.W
 		ctx.RenderOptions.Metas["RefTypeNameSubURL"],
 		util.PathEscapeSegments(ctx.RenderOptions.RelativePath),
 	)
-	var extraAttrs template.HTML
-	if opts.ContentSandbox != "" {
-		extraAttrs = htmlutil.HTMLFormat(` sandbox="%s"`, opts.ContentSandbox)
-	}
-	_, err := htmlutil.HTMLPrintf(output, `<iframe data-src="%s" data-global-init="initExternalRenderIframe" class="external-render-iframe"%s></iframe>`, src, extraAttrs)
+
+	// The render response should always have correct "sandbox" limits (no same-origin),
+	// otherwise the "render link" direct access can still cause XSS without iframe.
+	// So here we do not need to set sandbox attribute on the iframe.
+	_, err := htmlutil.HTMLPrintf(output, `<iframe data-src="%s" data-global-init="initExternalRenderIframe" class="external-render-iframe"></iframe>`, src)
 	return err
 }
 
@@ -252,7 +243,7 @@ func RenderWithRenderer(ctx *RenderContext, renderer Renderer, input io.Reader, 
 			return RenderIFrame(ctx, &extOpts, output)
 		}
 		// else: this is a standalone page, fallthrough to the real rendering, and add extra JS/CSS
-		extraScriptSrc := public.AssetURI("js/external-render-helper.js")
+		extraScriptSrc := public.AssetURI("web_src/js/external-render-helper.ts")
 		extraLinkHref := ctx.RenderOptions.StandalonePageOptions.CurrentWebTheme.PublicAssetURI()
 		// "<script>" must go before "<link>", to make Golang's http.DetectContentType() can still recognize the content as "text/html"
 		// DO NOT use "type=module", the script must run as early as possible, to set up the environment in the iframe

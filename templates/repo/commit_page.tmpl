@@ -5,7 +5,7 @@
 	<div class="ui container fluid padded">
 		<div class="ui top attached header clearing segment tw-relative commit-header">
 			<div class="tw-flex tw-mb-4 tw-gap-1">
-				<h3 class="tw-mb-0 tw-flex-1"><span class="commit-summary" title="{{.Commit.Summary}}">{{ctx.RenderUtils.RenderCommitMessage .Commit.Message $.Repository}}</span>{{template "repo/commit_statuses" dict "Status" .CommitStatus "Statuses" .CommitStatuses "AdditionalClasses" "tw-inline"}}</h3>
+				<h3 class="tw-mb-0 tw-flex-1"><span class="commit-summary" title="{{.Commit.MessageTitle}}">{{ctx.RenderUtils.RenderCommitMessage .Commit.MessageUTF8 $.Repository}}</span>{{template "repo/commit_statuses" dict "Status" .CommitStatus "Statuses" .CommitStatuses "AdditionalClasses" "tw-inline"}}</h3>
 				{{if not $.PageIsWiki}}
 					<div class="commit-header-buttons">
 						<a class="ui primary tiny button" href="{{.SourcePath}}">
@@ -119,8 +119,8 @@
 					</div>
 				{{end}}
 			</div>
-			{{if IsMultilineCommitMessage .Commit.Message}}
-				<pre class="commit-body">{{ctx.RenderUtils.RenderCommitBody .Commit.Message $.Repository}}</pre>
+			{{if .Commit.MessageBody}}
+				<pre class="commit-body">{{ctx.RenderUtils.RenderCommitBody .Commit.MessageUTF8 $.Repository}}</pre>
 			{{end}}
 			{{template "repo/commit_load_branches_and_tags" .}}
 		</div>
@@ -129,31 +129,46 @@
 			<div class="flex-text-inline">
 				{{if .Author}}
 					{{ctx.AvatarUtils.Avatar .Author 20}}
-					{{if .Author.FullName}}
-						<a href="{{.Author.HomeLink}}"><strong>{{.Author.FullName}}</strong></a>
-					{{else}}
-						<a href="{{.Author.HomeLink}}"><strong>{{.Commit.Author.Name}}</strong></a>
-					{{end}}
+					<strong>{{.Author.GetShortDisplayNameLinkHTML}}</strong>
 				{{else}}
 					{{ctx.AvatarUtils.AvatarByEmail .Commit.Author.Email .Commit.Author.Email 20}}
 					<strong>{{.Commit.Author.Name}}</strong>
 				{{end}}
 			</div>
+			<span class="tw-text-text-light">{{DateUtils.TimeSince .Commit.Committer.When}}</span>
 
-			<span class="tw-text-text-light">{{DateUtils.TimeSince .Commit.Author.When}}</span>
-
-			<div class="flex-text-inline">
-				{{if or (ne .Commit.Committer.Name .Commit.Author.Name) (ne .Commit.Committer.Email .Commit.Author.Email)}}
+			{{$committerIsAuthor := and (eq .Commit.Committer.Name .Commit.Author.Name) (eq .Commit.Committer.Email .Commit.Author.Email)}}
+			{{if not $committerIsAuthor}}
+				<div class="flex-text-inline">
 					<span class="tw-text-text-light">{{ctx.Locale.Tr "repo.diff.committed_by"}}</span>
-					{{if and .Verification.CommittingUser .Verification.CommittingUser.ID}}
+					{{if and .Verification.CommittingUser}}
 						{{ctx.AvatarUtils.Avatar .Verification.CommittingUser 20}}
-						<a href="{{.Verification.CommittingUser.HomeLink}}"><strong>{{.Commit.Committer.Name}}</strong></a>
+						<strong>{{.Verification.CommittingUser.GetShortDisplayNameLinkHTML}}</strong>
 					{{else}}
-						{{ctx.AvatarUtils.AvatarByEmail .Commit.Committer.Email .Commit.Committer.Name 20}}
+						{{ctx.AvatarUtils.AvatarByEmail .Commit.Committer.Email .Commit.Committer.Email 20}}
 						<strong>{{.Commit.Committer.Name}}</strong>
 					{{end}}
-				{{end}}
-			</div>
+				</div>
+			{{end}}
+
+			{{if .CommitOtherParticipants}}
+				<div class="flex-text-inline">
+					<span class="tw-text-text-light">{{ctx.Locale.Tr "repo.diff.coauthored_by"}}</span>
+					{{range $participant := .CommitOtherParticipants}}
+						{{$user := $participant.GiteaUser}}
+						{{$gitIdentity := $participant.GitIdentity}}
+						{{if $user}}
+							{{ctx.AvatarUtils.Avatar $user 20}}
+							<strong>{{$user.GetShortDisplayNameLinkHTML}}</strong>
+						{{else}}
+							{{$gitName := $gitIdentity.Name}}
+							{{$gitEmail := $gitIdentity.Email}}
+							{{ctx.AvatarUtils.AvatarByEmail $gitEmail $gitEmail 20}}{{/* use the same layout as the "author" above */}}
+							<strong>{{$gitName}}</strong>
+						{{end}}
+					{{end}}
+				</div>
+			{{end}}
 
 			{{if .Verification}}
 				{{template "repo/commit_sign_badge" dict "CommitSignVerification" .Verification}}

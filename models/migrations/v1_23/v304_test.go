@@ -6,8 +6,8 @@ package v1_23
 import (
 	"testing"
 
-	"code.gitea.io/gitea/models/migrations/base"
-	"code.gitea.io/gitea/modules/timeutil"
+	"gitea.dev/models/migrations/migrationtest"
+	"gitea.dev/modules/timeutil"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -33,7 +33,7 @@ func Test_AddIndexForReleaseSha1(t *testing.T) {
 	}
 
 	// Prepare and load the testing database
-	x, deferable := base.PrepareTestEnv(t, 0, new(Release))
+	x, deferable := migrationtest.PrepareTestEnv(t, 0, new(Release))
 	defer deferable()
 
 	assert.NoError(t, AddIndexForReleaseSha1(x))

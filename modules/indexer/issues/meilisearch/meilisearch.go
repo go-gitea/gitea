@@ -10,17 +10,17 @@ import (
 	"strconv"
 	"strings"
 
-	"code.gitea.io/gitea/modules/indexer"
-	indexer_internal "code.gitea.io/gitea/modules/indexer/internal"
-	inner_meilisearch "code.gitea.io/gitea/modules/indexer/internal/meilisearch"
-	"code.gitea.io/gitea/modules/indexer/issues/internal"
-	"code.gitea.io/gitea/modules/json"
+	"gitea.dev/modules/indexer"
+	indexer_internal "gitea.dev/modules/indexer/internal"
+	inner_meilisearch "gitea.dev/modules/indexer/internal/meilisearch"
+	"gitea.dev/modules/indexer/issues/internal"
+	"gitea.dev/modules/json"
 
 	"github.com/meilisearch/meilisearch-go"
 )
 
 const (
-	issueIndexerLatestVersion = 4
+	issueIndexerLatestVersion = 6
 
 	// TODO: make this configurable if necessary
 	maxTotalHits = 10000
@@ -71,10 +71,11 @@ func NewIndexer(url, apiKey, indexerName string) *Indexer {
 			"label_ids",
 			"no_label",
 			"milestone_id",
-			"project_id",
-			"project_board_id",
+			"project_ids",
+			"no_project",
 			"poster_id",
-			"assignee_id",
+			"assignee_ids",
+			"no_assignee",
 			"mention_ids",
 			"reviewed_ids",
 			"review_requested_ids",
@@ -182,11 +183,11 @@ func (b *Indexer) Search(ctx context.Context, options *internal.SearchOptions) (
 		query.And(inner_meilisearch.NewFilterIn("milestone_id", options.MilestoneIDs...))
 	}
 
-	if options.ProjectID.Has() {
-		query.And(inner_meilisearch.NewFilterEq("project_id", options.ProjectID.Value()))
-	}
-	if options.ProjectColumnID.Has() {
-		query.And(inner_meilisearch.NewFilterEq("project_board_id", options.ProjectColumnID.Value()))
+	if options.NoProjectOnly {
+		query.And(inner_meilisearch.NewFilterEq("no_project", true))
+	} else if len(options.ProjectIDs) > 0 {
+		// FIXME: ISSUE-MULTIPLE-PROJECTS-FILTER: this logic is not right, it should use "AND" but not "OR"
+		query.And(inner_meilisearch.NewFilterIn("project_ids", options.ProjectIDs...))
 	}
 
 	if options.PosterID != "" {
@@ -195,14 +196,15 @@ func (b *Indexer) Search(ctx context.Context, options *internal.SearchOptions) (
 		query.And(inner_meilisearch.NewFilterEq("poster_id", posterIDInt64))
 	}
 
-	if options.AssigneeID != "" {
-		if options.AssigneeID == "(any)" {
-			query.And(inner_meilisearch.NewFilterGte("assignee_id", 1))
-		} else {
-			// "(none)" becomes 0, it means no assignee
-			assigneeIDInt64, _ := strconv.ParseInt(options.AssigneeID, 10, 64)
-			query.And(inner_meilisearch.NewFilterEq("assignee_id", assigneeIDInt64))
-		}
+	switch options.AssigneeID {
+	case "":
+	case "(any)":
+		query.And(inner_meilisearch.NewFilterEq("no_assignee", false))
+	case "(none)":
+		query.And(inner_meilisearch.NewFilterEq("no_assignee", true))
+	default:
+		assigneeIDInt64, _ := strconv.ParseInt(options.AssigneeID, 10, 64)
+		query.And(inner_meilisearch.NewFilterEq("assignee_ids", assigneeIDInt64))
 	}
 
 	if options.MentionID.Has() {

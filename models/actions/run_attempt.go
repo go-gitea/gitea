@@ -9,11 +9,11 @@ import (
 	"slices"
 	"time"
 
-	"code.gitea.io/gitea/models/db"
-	user_model "code.gitea.io/gitea/models/user"
-	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/timeutil"
-	"code.gitea.io/gitea/modules/util"
+	"gitea.dev/models/db"
+	user_model "gitea.dev/models/user"
+	"gitea.dev/modules/log"
+	"gitea.dev/modules/timeutil"
+	"gitea.dev/modules/util"
 )
 
 // ActionRunAttempt represents a single execution attempt of an ActionRun.
@@ -51,10 +51,6 @@ func (attempt *ActionRunAttempt) Duration() time.Duration {
 }
 
 func (attempt *ActionRunAttempt) LoadAttributes(ctx context.Context) (err error) {
-	if attempt == nil {
-		return nil
-	}
-
 	if attempt.Run == nil {
 		run, err := GetRunByRepoAndID(ctx, attempt.RepoID, attempt.RunID)
 		if err != nil {

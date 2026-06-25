@@ -4,12 +4,11 @@
 package v1_20
 
 import (
-	"code.gitea.io/gitea/modules/timeutil"
-
-	"xorm.io/xorm"
+	"gitea.dev/models/db"
+	"gitea.dev/modules/timeutil"
 )
 
-func AddArchivedUnixToRepository(x *xorm.Engine) error {
+func AddArchivedUnixToRepository(x db.EngineMigration) error {
 	type Repository struct {
 		ArchivedUnix timeutil.TimeStamp `xorm:"DEFAULT 0"`
 	}

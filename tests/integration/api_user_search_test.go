@@ -7,11 +7,11 @@ import (
 	"net/http"
 	"testing"
 
-	auth_model "code.gitea.io/gitea/models/auth"
-	"code.gitea.io/gitea/models/unittest"
-	user_model "code.gitea.io/gitea/models/user"
-	api "code.gitea.io/gitea/modules/structs"
-	"code.gitea.io/gitea/tests"
+	auth_model "gitea.dev/models/auth"
+	"gitea.dev/models/unittest"
+	user_model "gitea.dev/models/user"
+	api "gitea.dev/modules/structs"
+	"gitea.dev/tests"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -47,7 +47,7 @@ func TestAPIUserSearchLoggedIn(t *testing.T) {
 	for _, user := range results.Data {
 		assert.Contains(t, user.UserName, query)
 		assert.NotEmpty(t, user.Email)
-		assert.Equal(t, "public", user.Visibility)
+		assert.Equal(t, api.UserVisibilityPublic, user.Visibility)
 	}
 }
 
@@ -103,7 +103,7 @@ func TestAPIUserSearchAdminLoggedInUserHidden(t *testing.T) {
 	for _, user := range results.Data {
 		assert.Contains(t, user.UserName, query)
 		assert.NotEmpty(t, user.Email)
-		assert.Equal(t, "private", user.Visibility)
+		assert.Equal(t, api.UserVisibilityPrivate, user.Visibility)
 	}
 }
 

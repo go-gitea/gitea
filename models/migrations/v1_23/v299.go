@@ -3,9 +3,13 @@
 
 package v1_23
 
-import "xorm.io/xorm"
+import (
+	"gitea.dev/models/db"
 
-func AddContentVersionToIssueAndComment(x *xorm.Engine) error {
+	"xorm.io/xorm"
+)
+
+func AddContentVersionToIssueAndComment(x db.EngineMigration) error {
 	type Issue struct {
 		ContentVersion int `xorm:"NOT NULL DEFAULT 0"`
 	}

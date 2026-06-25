@@ -3,9 +3,9 @@
 
 package v1_22
 
-import "xorm.io/xorm"
+import "gitea.dev/models/db"
 
-func AddCommitStatusSummary2(x *xorm.Engine) error {
+func AddCommitStatusSummary2(x db.EngineMigration) error {
 	type CommitStatusSummary struct {
 		ID        int64  `xorm:"pk autoincr"`
 		TargetURL string `xorm:"TEXT"`

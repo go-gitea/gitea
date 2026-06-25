@@ -12,14 +12,14 @@ import (
 	"testing"
 	"time"
 
-	auth_model "code.gitea.io/gitea/models/auth"
-	repo_model "code.gitea.io/gitea/models/repo"
-	"code.gitea.io/gitea/models/unittest"
-	user_model "code.gitea.io/gitea/models/user"
-	"code.gitea.io/gitea/modules/gitrepo"
-	"code.gitea.io/gitea/modules/setting"
-	api "code.gitea.io/gitea/modules/structs"
-	"code.gitea.io/gitea/services/context"
+	auth_model "gitea.dev/models/auth"
+	repo_model "gitea.dev/models/repo"
+	"gitea.dev/models/unittest"
+	user_model "gitea.dev/models/user"
+	"gitea.dev/modules/gitrepo"
+	"gitea.dev/modules/setting"
+	api "gitea.dev/modules/structs"
+	"gitea.dev/services/context"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -122,35 +122,6 @@ func getExpectedFileResponseForCreate(info apiFileResponseInfo) *api.FileRespons
 	}
 	normalizeFileContentResponseCommitTime(ret.Content)
 	return ret
-}
-
-func BenchmarkAPICreateFileSmall(b *testing.B) {
-	onGiteaRun(b, func(b *testing.B, u *url.URL) {
-		user2 := unittest.AssertExistsAndLoadBean(b, &user_model.User{ID: 2})       // owner of the repo1 & repo16
-		repo1 := unittest.AssertExistsAndLoadBean(b, &repo_model.Repository{ID: 1}) // public repo
-
-		b.ResetTimer()
-		for n := 0; b.Loop(); n++ {
-			treePath := fmt.Sprintf("update/file%d.txt", n)
-			_, _ = createFile(user2, repo1, treePath)
-		}
-	})
-}
-
-func BenchmarkAPICreateFileMedium(b *testing.B) {
-	data := make([]byte, 10*1024*1024)
-
-	onGiteaRun(b, func(b *testing.B, u *url.URL) {
-		user2 := unittest.AssertExistsAndLoadBean(b, &user_model.User{ID: 2})       // owner of the repo1 & repo16
-		repo1 := unittest.AssertExistsAndLoadBean(b, &repo_model.Repository{ID: 1}) // public repo
-
-		b.ResetTimer()
-		for n := 0; b.Loop(); n++ {
-			treePath := fmt.Sprintf("update/file%d.txt", n)
-			copy(data, treePath)
-			_, _ = createFile(user2, repo1, treePath)
-		}
-	})
 }
 
 func TestAPICreateFile(t *testing.T) {

@@ -7,14 +7,13 @@ import (
 	"context"
 	"fmt"
 
-	repo_model "code.gitea.io/gitea/models/repo"
-	"code.gitea.io/gitea/modules/git"
-	"code.gitea.io/gitea/modules/gitrepo"
-
-	"xorm.io/xorm"
+	"gitea.dev/models/db"
+	repo_model "gitea.dev/models/repo"
+	"gitea.dev/modules/git"
+	"gitea.dev/modules/gitrepo"
 )
 
-func FixReleaseSha1OnReleaseTable(ctx context.Context, x *xorm.Engine) error {
+func FixReleaseSha1OnReleaseTable(ctx context.Context, x db.EngineMigration) error {
 	type Release struct {
 		ID      int64
 		RepoID  int64

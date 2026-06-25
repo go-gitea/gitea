@@ -8,9 +8,9 @@ import (
 	"reflect"
 	"strings"
 
-	"code.gitea.io/gitea/modules/translation"
-	"code.gitea.io/gitea/modules/util"
-	"code.gitea.io/gitea/modules/validation"
+	"gitea.dev/modules/translation"
+	"gitea.dev/modules/util"
+	"gitea.dev/modules/validation"
 
 	"gitea.com/go-chi/binding"
 )
@@ -29,7 +29,7 @@ func AssignForm(form any, data map[string]any) {
 	typ := reflect.TypeOf(form)
 	val := reflect.ValueOf(form)
 
-	for typ.Kind() == reflect.Ptr {
+	for typ.Kind() == reflect.Pointer {
 		typ = typ.Elem()
 		val = val.Elem()
 	}
@@ -104,7 +104,7 @@ func Validate(errs binding.Errors, data map[string]any, f Form, l translation.Lo
 	data["ErrorMsg"] = l.TrString("form.unknown_error")
 
 	typ := reflect.TypeOf(f)
-	if typ.Kind() == reflect.Ptr {
+	if typ.Kind() == reflect.Pointer {
 		typ = typ.Elem()
 	}
 

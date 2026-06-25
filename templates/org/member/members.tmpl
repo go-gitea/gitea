@@ -9,17 +9,22 @@
 				<div class="tw-flex-1">{{ctx.Locale.Tr "org.teams.manage_team_member_prompt"}}</div>
 				<a class="ui primary button" href="./teams">{{ctx.Locale.Tr "org.teams.manage_team_member"}}</a>
 			</div>
-			<div class="divider"></div>
 		{{end}}
-		<div class="flex-list">
+		<form class="ui form ignore-dirty tw-my-4">
+			<div class="ui small fluid action input">
+				{{template "shared/search/input" dict "Value" .Keyword "Placeholder" (ctx.Locale.Tr "search.user_kind")}}
+				{{template "shared/search/button"}}
+			</div>
+		</form>
+		<div class="flex-divided-list items-with-main">
 			{{range .Members}}
 				{{$isPublic := index $.MembersIsPublicMember .ID}}
-				<div class="flex-item {{if $.PublicOnly}}tw-items-center{{end}}">
-					<div class="flex-item-leading">
+				<div class="item {{if $.PublicOnly}}tw-items-center{{end}}">
+					<div class="item-leading">
 						<a href="{{.HomeLink}}">{{ctx.AvatarUtils.Avatar . 48}}</a>
 					</div>
-					<div class="flex-item-main">
-						<div class="flex-item-title">
+					<div class="item-main">
+						<div class="item-title">
 							{{template "shared/user/name" .}}
 							{{if not $isPublic}}
 								<span class="ui basic small label">{{ctx.Locale.Tr "org.members.private"}}</span>
@@ -44,7 +49,7 @@
 							{{end}}
 						</div>
 					</div>
-					<div class="flex-item-trailing">
+					<div class="item-trailing">
 						{{if or (eq $.SignedUser.ID .ID) $.IsOrganizationOwner}}
 							{{if $isPublic}}
 								<a class="ui tiny button link-action" href data-url="{{$.OrgLink}}/members/action/private?uid={{.ID}}">{{svg "octicon-eye-closed" 12 "icon"}}{{ctx.Locale.Tr "org.members.public_helper"}}</a>
@@ -65,6 +70,12 @@
 								data-modal-confirm-content="{{ctx.Locale.Tr "org.members.remove.detail" .DisplayName $.Org.DisplayName}}"
 							>{{ctx.Locale.Tr "org.members.remove"}}</button>
 						{{end}}
+					</div>
+				</div>
+			{{else}}
+				<div class="item">
+					<div class="item-main">
+						{{ctx.Locale.Tr "search.no_results"}}
 					</div>
 				</div>
 			{{end}}

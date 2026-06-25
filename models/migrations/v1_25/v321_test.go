@@ -6,9 +6,9 @@ package v1_25
 import (
 	"testing"
 
-	"code.gitea.io/gitea/models/migrations/base"
-	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/modules/timeutil"
+	"gitea.dev/models/migrations/migrationtest"
+	"gitea.dev/modules/setting"
+	"gitea.dev/modules/timeutil"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -44,12 +44,12 @@ func Test_UseLongTextInSomeColumnsAndFixBugs(t *testing.T) {
 	}
 
 	// Prepare and load the testing database
-	x, deferrable := base.PrepareTestEnv(t, 0, new(ReviewState), new(PackageProperty), new(Notice))
+	x, deferrable := migrationtest.PrepareTestEnv(t, 0, new(ReviewState), new(PackageProperty), new(Notice))
 	defer deferrable()
 
 	require.NoError(t, UseLongTextInSomeColumnsAndFixBugs(x))
 
-	tables := base.LoadTableSchemasMap(t, x)
+	tables := migrationtest.LoadTableSchemasMap(t, x)
 	table := tables["review_state"]
 	column := table.GetColumn("updated_files")
 	assert.Equal(t, "LONGTEXT", column.SQLType.Name)

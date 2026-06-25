@@ -7,8 +7,9 @@ import (
 	"context"
 	"time"
 
-	"code.gitea.io/gitea/models/migrations/base"
-	"code.gitea.io/gitea/modules/timeutil"
+	"gitea.dev/models/db"
+	"gitea.dev/models/migrations/base"
+	"gitea.dev/modules/timeutil"
 
 	"xorm.io/xorm"
 )
@@ -90,7 +91,7 @@ func (actionRun) TableName() string {
 }
 
 // AddActionRunAttemptModel adds the ActionRunAttempt table and the supporting ActionRun/ActionRunJob fields.
-func AddActionRunAttemptModel(x *xorm.Engine) error {
+func AddActionRunAttemptModel(x db.EngineMigration) error {
 	// add "action_run_attempt"
 	if _, err := x.SyncWithOptions(xorm.SyncOptions{
 		IgnoreDropIndices: true,

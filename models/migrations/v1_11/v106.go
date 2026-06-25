@@ -3,9 +3,7 @@
 
 package v1_11
 
-import (
-	"xorm.io/xorm"
-)
+import "gitea.dev/models/db"
 
 // RepoWatchMode specifies what kind of watch the user has on a repository
 type RepoWatchMode int8
@@ -16,7 +14,7 @@ type Watch struct {
 	Mode RepoWatchMode `xorm:"SMALLINT NOT NULL DEFAULT 1"`
 }
 
-func AddModeColumnToWatch(x *xorm.Engine) error {
+func AddModeColumnToWatch(x db.EngineMigration) error {
 	if err := x.Sync(new(Watch)); err != nil {
 		return err
 	}

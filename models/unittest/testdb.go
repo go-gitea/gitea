@@ -5,22 +5,24 @@ package unittest
 
 import (
 	"context"
+	"database/sql"
+	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
 	"strings"
 	"testing"
 
-	"code.gitea.io/gitea/models/db"
-	"code.gitea.io/gitea/models/system"
-	"code.gitea.io/gitea/modules/cache"
-	"code.gitea.io/gitea/modules/git"
-	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/modules/setting/config"
-	"code.gitea.io/gitea/modules/storage"
-	"code.gitea.io/gitea/modules/tempdir"
-	"code.gitea.io/gitea/modules/testlogger"
-	"code.gitea.io/gitea/modules/util"
+	"gitea.dev/models/db"
+	"gitea.dev/models/system"
+	"gitea.dev/modules/cache"
+	"gitea.dev/modules/git"
+	"gitea.dev/modules/setting"
+	"gitea.dev/modules/setting/config"
+	"gitea.dev/modules/storage"
+	"gitea.dev/modules/tempdir"
+	"gitea.dev/modules/testlogger"
+	"gitea.dev/modules/util"
 
 	"github.com/stretchr/testify/assert"
 	"xorm.io/xorm"
@@ -54,7 +56,7 @@ func mainTest(m *testing.M, testOptsArg ...*TestOptions) int {
 
 	giteaRoot := setting.GetGiteaTestSourceRoot()
 	fixturesOpts := FixturesOptions{Dir: filepath.Join(giteaRoot, "models", "fixtures"), Files: testOpts.FixtureFiles}
-	if err := CreateTestEngine(fixturesOpts); err != nil {
+	if err := CreateTestEngine(filepath.Join(tempWorkPath, "sqlite-test.db"), fixturesOpts); err != nil {
 		return testlogger.MainErrorf("Error creating test database engine: %v", err)
 	}
 
@@ -102,19 +104,115 @@ func mainTest(m *testing.M, testOptsArg ...*TestOptions) int {
 	return exitStatus
 }
 
+func ResetTestDatabase() (cleanup func(), err error) {
+	defer func() {
+		if cleanup == nil {
+			cleanup = func() {}
+		}
+	}()
+
+	connOpts := db.GlobalConnOptions()
+	driverDefault, connStrDefault, err := db.ConnStrDefaultDatabase(connOpts)
+	if err != nil {
+		return nil, err
+	}
+	driverDatabase, connStrDatabase, err := db.ConnStr(connOpts)
+	if err != nil {
+		return nil, err
+	}
+
+	if connOpts.Type.IsSQLite3() {
+		if !strings.HasSuffix(connOpts.SQLitePath, "-test.db") {
+			return nil, errors.New(`testing database file for sqlite3 must end in "-test.db"`)
+		}
+		_ = os.Remove(connOpts.SQLitePath)
+		err = os.MkdirAll(filepath.Dir(connOpts.SQLitePath), os.ModePerm)
+		if err != nil {
+			return nil, err
+		}
+		cleanup = func() {
+			_ = os.Remove(connOpts.SQLitePath)
+			_ = os.Remove(filepath.Dir(connOpts.SQLitePath))
+		}
+		return cleanup, nil
+	}
+
+	if !strings.Contains(connOpts.Database, "test") {
+		return nil, fmt.Errorf(`testing database name for %s must contain "test"`, connOpts.Database)
+	}
+
+	quotedDbName := connOpts.Database
+	if connOpts.Type.IsMSSQL() {
+		quotedDbName = `[` + connOpts.Database + `]`
+	}
+
+	sqlExec := func(sqlDB *sql.DB, sql string) error {
+		_, err := sqlDB.Exec(sql)
+		if err != nil {
+			return fmt.Errorf("failed to execute SQL %q: %w", sql, err)
+		}
+		return nil
+	}
+
+	createDatabase := func() error {
+		sqlDB, err := sql.Open(driverDefault, connStrDefault)
+		if err != nil {
+			return err
+		}
+		defer sqlDB.Close()
+		if err = sqlExec(sqlDB, "DROP DATABASE IF EXISTS "+quotedDbName); err != nil {
+			return err
+		}
+		return sqlExec(sqlDB, "CREATE DATABASE  "+quotedDbName)
+	}
+	if err = createDatabase(); err != nil {
+		return nil, err
+	}
+
+	cleanup = func() {
+		sqlDB, err := sql.Open(driverDefault, connStrDefault)
+		if err != nil {
+			return
+		}
+		defer sqlDB.Close()
+		_, _ = sqlDB.Exec("DROP DATABASE IF EXISTS " + quotedDbName)
+	}
+
+	createDatabaseSchema := func() error {
+		if !connOpts.Type.IsPostgreSQL() {
+			return nil
+		}
+		if connOpts.Schema == "" {
+			return nil
+		}
+		sqlDB, err := sql.Open(driverDatabase, connStrDatabase)
+		if err != nil {
+			return err
+		}
+		defer sqlDB.Close()
+		if err = sqlExec(sqlDB, "DROP SCHEMA IF EXISTS "+connOpts.Schema); err != nil {
+			return err
+		}
+		return sqlExec(sqlDB, "CREATE SCHEMA "+connOpts.Schema)
+	}
+
+	return cleanup, createDatabaseSchema()
+}
+
 // FixturesOptions fixtures needs to be loaded options
 type FixturesOptions struct {
 	Dir   string
 	Files []string
 }
 
-// CreateTestEngine creates a memory database and loads the fixture data from fixturesDir
-func CreateTestEngine(opts FixturesOptions) error {
-	x, err := xorm.NewEngine("sqlite3", "file::memory:?cache=shared&_txlock=immediate")
+// CreateTestEngine creates a test database and loads the fixture data from fixturesDir
+func CreateTestEngine(testSQLiteFile string, opts FixturesOptions) error {
+	driver, connStr, err := db.ConnStr(db.ConnOptions{Type: setting.DatabaseTypeSQLite3, SQLitePath: testSQLiteFile, SQLiteBusyTimeout: setting.DefaultSQLiteBusyTimeout})
 	if err != nil {
-		if strings.Contains(err.Error(), "unknown driver") {
-			return fmt.Errorf("sqlite3 requires: -tags sqlite,sqlite_unlock_notify\n%w", err)
-		}
+		return err
+	}
+	x, err := xorm.NewEngine(driver, connStr)
+	if err != nil {
 		return err
 	}
 	x.SetMapper(names.GonicMapper{})

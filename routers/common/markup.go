@@ -10,14 +10,14 @@ import (
 	"path"
 	"strings"
 
-	"code.gitea.io/gitea/models/renderhelper"
-	"code.gitea.io/gitea/models/repo"
-	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/markup"
-	"code.gitea.io/gitea/modules/markup/markdown"
-	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/modules/util"
-	"code.gitea.io/gitea/services/context"
+	"gitea.dev/models/renderhelper"
+	"gitea.dev/models/repo"
+	"gitea.dev/modules/log"
+	"gitea.dev/modules/markup"
+	"gitea.dev/modules/markup/markdown"
+	"gitea.dev/modules/setting"
+	"gitea.dev/modules/util"
+	"gitea.dev/services/context"
 )
 
 // RenderMarkup renders markup text for the /markup and /markdown endpoints
@@ -71,7 +71,7 @@ func RenderMarkup(ctx *context.Base, ctxRepo *context.Repository, mode, text, ur
 	case "gfm": // legacy mode
 		rctx = renderhelper.NewRenderContextRepoFile(ctx, repoModel, renderhelper.RepoFileOptions{
 			DeprecatedOwnerName: repoOwnerName, DeprecatedRepoName: repoName,
-			CurrentRefPath: refPath, CurrentTreePath: treePath,
+			CurrentRefSubURL: refPath, CurrentTreePath: treePath,
 		})
 		rctx = rctx.WithMarkupType(markdown.MarkupName)
 	case "comment":
@@ -87,7 +87,7 @@ func RenderMarkup(ctx *context.Base, ctxRepo *context.Repository, mode, text, ur
 	case "file":
 		rctx = renderhelper.NewRenderContextRepoFile(ctx, repoModel, renderhelper.RepoFileOptions{
 			DeprecatedOwnerName: repoOwnerName, DeprecatedRepoName: repoName,
-			CurrentRefPath: refPath, CurrentTreePath: treePath,
+			CurrentRefSubURL: refPath, CurrentTreePath: treePath,
 		})
 		rctx = rctx.WithMarkupType("").WithRelativePath(filePath) // render the repo file content by its extension
 	default:

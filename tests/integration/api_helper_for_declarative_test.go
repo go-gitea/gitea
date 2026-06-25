@@ -12,13 +12,13 @@ import (
 	"testing"
 	"time"
 
-	"code.gitea.io/gitea/models/auth"
-	"code.gitea.io/gitea/models/perm"
-	repo_model "code.gitea.io/gitea/models/repo"
-	"code.gitea.io/gitea/modules/json"
-	"code.gitea.io/gitea/modules/queue"
-	api "code.gitea.io/gitea/modules/structs"
-	"code.gitea.io/gitea/services/forms"
+	"gitea.dev/models/auth"
+	"gitea.dev/models/perm"
+	repo_model "gitea.dev/models/repo"
+	"gitea.dev/modules/json"
+	"gitea.dev/modules/queue"
+	api "gitea.dev/modules/structs"
+	"gitea.dev/services/forms"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -96,12 +96,12 @@ func doAPIEditRepository(ctx APITestContext, editRepoOption *api.EditRepoOption,
 
 func doAPIAddCollaborator(ctx APITestContext, username string, mode perm.AccessMode) func(*testing.T) {
 	return func(t *testing.T) {
-		permission := "read"
+		permission := api.RepoWritePermissionRead
 
 		if mode == perm.AccessModeAdmin {
-			permission = "admin"
+			permission = api.RepoWritePermissionAdmin
 		} else if mode > perm.AccessModeRead {
-			permission = "write"
+			permission = api.RepoWritePermissionWrite
 		}
 		addCollaboratorOption := &api.AddCollaboratorOption{
 			Permission: &permission,

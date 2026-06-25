@@ -11,19 +11,20 @@ import (
 	"os/exec"
 	"strings"
 
-	"code.gitea.io/gitea/modules/git/gitcmd"
-	"code.gitea.io/gitea/modules/util"
+	"gitea.dev/modules/git/gitcmd"
+	"gitea.dev/modules/util"
 )
 
 // Commit represents a git commit.
 type Commit struct {
 	Tree // FIXME: bad design, this field can be nil if the commit is from "last commit cache"
 
-	ID            ObjectID
-	Author        *Signature // never nil
-	Committer     *Signature // never nil
-	CommitMessage string
-	Signature     *CommitSignature
+	CommitMessage
+
+	ID        ObjectID
+	Author    *Signature // never nil
+	Committer *Signature // never nil
+	Signature *CommitSignature
 
 	Parents        []ObjectID // ID strings
 	submoduleCache *ObjectCache[*SubModule]
@@ -33,21 +34,6 @@ type Commit struct {
 type CommitSignature struct {
 	Signature string
 	Payload   string
-}
-
-// Message returns the commit message. Same as retrieving CommitMessage directly.
-func (c *Commit) Message() string {
-	// FIXME: GIT-COMMIT-MESSAGE-ENCODING: this logic is not right
-	// * When need to use commit message in templates/database, it should be valid UTF-8
-	// * When need to get the original commit message, it should just use "c.CommitMessage"
-	// It's not easy to refactor at the moment, many templates need to be updated and tested
-	return c.CommitMessage
-}
-
-// Summary returns first line of commit message.
-// The string is forced to be valid UTF8
-func (c *Commit) Summary() string {
-	return strings.ToValidUTF8(strings.Split(strings.TrimSpace(c.CommitMessage), "\n")[0], "?")
 }
 
 // ParentID returns oid of n-th parent (0-based index).
@@ -144,13 +130,9 @@ func (c *Commit) CommitsBeforeLimit(num int) ([]*Commit, error) {
 	return c.repo.getCommitsBeforeLimit(c.ID, num)
 }
 
-// CommitsBeforeUntil returns the commits between commitID to current revision
-func (c *Commit) CommitsBeforeUntil(commitID string) ([]*Commit, error) {
-	endCommit, err := c.repo.GetCommit(commitID)
-	if err != nil {
-		return nil, err
-	}
-	return c.repo.CommitsBetween(c, endCommit)
+// CommitsBeforeUntil returns the commits in range "[cur, ref)"
+func (c *Commit) CommitsBeforeUntil(ref RefName) ([]*Commit, error) {
+	return c.repo.CommitsBetween(c.ID.RefName(), ref, -1)
 }
 
 // SearchCommitsOptions specify the parameters for SearchCommits
@@ -271,11 +253,15 @@ func IsStringLikelyCommitID(objFmt ObjectFormat, s string, minLength ...int) boo
 	if len(s) < minLen || len(s) > maxLen {
 		return false
 	}
+	return isStringLowerHex(s)
+}
+
+func isStringLowerHex(s string) bool {
 	for _, c := range s {
 		isHex := (c >= '0' && c <= '9') || (c >= 'a' && c <= 'f')
 		if !isHex {
 			return false
 		}
 	}
-	return true
+	return len(s) > 0 // it accepts odd length because "shorten commit id" can be 7-chars
 }

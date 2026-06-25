@@ -18,16 +18,16 @@ import (
 	"sync"
 	"time"
 
-	actions_model "code.gitea.io/gitea/models/actions"
-	"code.gitea.io/gitea/modules/actions"
-	"code.gitea.io/gitea/modules/httplib"
-	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/modules/storage"
-	"code.gitea.io/gitea/modules/typesniffer"
-	"code.gitea.io/gitea/modules/util"
-	"code.gitea.io/gitea/modules/util/filebuffer"
-	context_module "code.gitea.io/gitea/services/context"
+	actions_model "gitea.dev/models/actions"
+	"gitea.dev/modules/httplib"
+	"gitea.dev/modules/log"
+	"gitea.dev/modules/setting"
+	"gitea.dev/modules/storage"
+	"gitea.dev/modules/typesniffer"
+	"gitea.dev/modules/util"
+	"gitea.dev/modules/util/filebuffer"
+	actions_service "gitea.dev/services/actions"
+	context_module "gitea.dev/services/context"
 )
 
 type ArtifactsViewItem struct {
@@ -311,7 +311,7 @@ func setArtifactPreviewV4ZipListCache(artifact *actions_model.ActionArtifact, pa
 }
 
 func listPreviewPaths(artifacts []*actions_model.ActionArtifact) ([]string, error) {
-	if len(artifacts) == 1 && actions.IsArtifactV4(artifacts[0]) {
+	if len(artifacts) == 1 && actions_service.IsArtifactV4(artifacts[0]) {
 		return listPreviewPathsForV4Artifact(artifacts[0])
 	}
 	return listPreviewPathsForLegacyArtifacts(artifacts), nil
@@ -490,7 +490,7 @@ func ArtifactsPreviewRawView(ctx *context_module.Context) {
 	}
 	requested := GetRequestedPreviewPath(ctx)
 
-	if len(artifacts) == 1 && actions.IsArtifactV4(artifacts[0]) {
+	if len(artifacts) == 1 && actions_service.IsArtifactV4(artifacts[0]) {
 		serveArtifactV4PreviewRaw(ctx, artifacts[0], requested)
 		return
 	}
@@ -584,9 +584,16 @@ func ArtifactsDownloadView(ctx *context_module.Context) {
 		return
 	}
 
+	for _, art := range artifacts {
+		if art.Status != actions_model.ArtifactStatusUploadConfirmed {
+			ctx.HTTPError(http.StatusNotFound, "artifact not found")
+			return
+		}
+	}
+
 	ctx.Resp.Header().Set("Content-Disposition", httplib.EncodeContentDispositionAttachment(artifactName+".zip"))
-	if len(artifacts) == 1 && actions.IsArtifactV4(artifacts[0]) {
-		err := actions.DownloadArtifactV4(ctx.Base, artifacts[0])
+	if len(artifacts) == 1 && actions_service.IsArtifactV4(artifacts[0]) {
+		err := actions_service.DownloadArtifactV4(ctx.Base, artifacts[0])
 		if err != nil {
 			ctx.ServerError("DownloadArtifactV4", err)
 			return

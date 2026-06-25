@@ -1,14 +1,15 @@
 // see "models/actions/status.go", if it needs to be used somewhere else, move it to a shared file like "types/actions.ts"
-export type ActionsRunStatus = 'unknown' | 'waiting' | 'running' | 'success' | 'failure' | 'cancelled' | 'skipped' | 'blocked';
+export type ActionsStatus = 'unknown' | 'waiting' | 'running' | 'cancelling' | 'success' | 'failure' | 'cancelled' | 'skipped' | 'blocked';
 export type ActionsArtifactStatus = 'expired' | 'completed';
 
 export type ActionsRun = {
   repoId: number,
+  index: number,
   link: string,
   viewLink: string,
   title: string,
   titleHTML: string,
-  status: ActionsRunStatus,
+  status: ActionsStatus,
   canCancel: boolean,
   canApprove: boolean,
   canRerun: boolean,
@@ -23,7 +24,12 @@ export type ActionsRun = {
   duration: string,
   triggeredAt: number,
   triggerEvent: string,
+  pullRequest?: {
+    index: string,
+    link: string,
+  } | null,
   jobs: Array<ActionsJob>,
+  jobSummaries?: Array<ActionsJobSummary>,
   commit: {
     localeCommit: string,
     localePushedBy: string,
@@ -32,6 +38,7 @@ export type ActionsRun = {
     pusher: {
       displayName: string,
       link: string,
+      avatarLink: string,
     },
     branch: {
       name: string,
@@ -41,9 +48,15 @@ export type ActionsRun = {
   },
 };
 
+export type ActionsJobSummary = {
+  jobId: number,
+  jobName: string,
+  summaryHTML: string,
+};
+
 export type ActionsRunAttempt = {
   attempt: number;
-  status: ActionsRunStatus;
+  status: ActionsStatus;
   done: boolean;
   link: string;
   current: boolean;
@@ -51,6 +64,7 @@ export type ActionsRunAttempt = {
   triggeredAt: number;
   triggerUserName: string;
   triggerUserLink: string;
+  triggerUserAvatar: string;
 };
 
 export type ActionsJob = {
@@ -58,10 +72,14 @@ export type ActionsJob = {
   link: string;
   jobId: string;
   name: string;
-  status: ActionsRunStatus;
+  status: ActionsStatus;
   canRerun: boolean;
   needs?: string[];
   duration: string;
+
+  isReusableCaller: boolean;
+  parentJobID: number; // 0 for top-level jobs.
+  callUses?: string;
 };
 
 export type ActionsArtifact = {

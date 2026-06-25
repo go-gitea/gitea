@@ -1,7 +1,7 @@
 import {createElementFromAttrs} from '../utils/dom.ts';
 import {renderAnsi} from '../render/ansi.ts';
 import {reactive} from 'vue';
-import type {ActionsArtifact, ActionsJob, ActionsRun, ActionsRunStatus} from '../modules/gitea-actions.ts';
+import type {ActionsArtifact, ActionsJob, ActionsRun, ActionsStatus} from '../modules/gitea-actions.ts';
 import type {IntervalId} from '../types.ts';
 import {POST} from '../modules/fetch.ts';
 
@@ -20,6 +20,7 @@ const LogLinePrefixCommandMap: Record<string, LogLineCommandName> = {
   '##[warning]': 'warning',
   '##[notice]': 'notice',
   '##[debug]': 'debug',
+  '##[command]': 'command',
   '[command]': 'command',
 
   // https://github.com/actions/toolkit/blob/master/docs/commands.md
@@ -46,9 +47,9 @@ export type LogLineCommand = {
 
 export function parseLogLineCommand(line: LogLine): LogLineCommand | null {
   // TODO: in the future it can be refactored to be a general parser that can parse arguments, drop the "prefix match"
-  for (const prefix of Object.keys(LogLinePrefixCommandMap)) {
+  for (const [prefix, commandName] of Object.entries(LogLinePrefixCommandMap)) {
     if (line.message.startsWith(prefix)) {
-      return {name: LogLinePrefixCommandMap[prefix], prefix};
+      return {name: commandName, prefix};
     }
   }
   // Handle ::cmd:: and ::cmd args:: format (runner may pass these through raw)
@@ -87,14 +88,31 @@ export function createLogLineMessage(line: LogLine, cmd: LogLineCommand | null) 
   return logMsg;
 }
 
+// buildJobsByParentJobID groups jobs by their parentJobID (0 = top level).
+// Useful for rendering the reusable-workflow caller/child tree in the sidebar.
+export function buildJobsByParentJobID(jobs: ActionsJob[]): Map<number, ActionsJob[]> {
+  const childrenByParent = new Map<number, ActionsJob[]>();
+  for (const job of jobs) {
+    const parentID = job.parentJobID || 0;
+    const existing = childrenByParent.get(parentID);
+    if (existing) {
+      existing.push(job);
+    } else {
+      childrenByParent.set(parentID, [job]);
+    }
+  }
+  return childrenByParent;
+}
+
 export function createEmptyActionsRun(): ActionsRun {
   return {
     repoId: 0,
+    index: 0,
     link: '',
     viewLink: '',
     title: '',
     titleHTML: '',
-    status: '' as ActionsRunStatus, // do not show the status before initialized, otherwise it would show an incorrect "error" icon
+    status: '' as ActionsStatus, // do not show the status before initialized, otherwise it would show an incorrect "error" icon
     canCancel: false,
     canApprove: false,
     canRerun: false,
@@ -109,7 +127,9 @@ export function createEmptyActionsRun(): ActionsRun {
     duration: '',
     triggeredAt: 0,
     triggerEvent: '',
+    pullRequest: null,
     jobs: [] as Array<ActionsJob>,
+    jobSummaries: [],
     commit: {
       localeCommit: '',
       localePushedBy: '',
@@ -118,6 +138,7 @@ export function createEmptyActionsRun(): ActionsRun {
       pusher: {
         displayName: '',
         link: '',
+        avatarLink: '',
       },
       branch: {
         name: '',
@@ -160,7 +181,7 @@ export function createActionRunViewStore(viewUrl: string) {
     }
   };
 
-  return reactive({
+  return {
     viewData,
 
     async startPollingCurrentRun() {
@@ -177,7 +198,7 @@ export function createActionRunViewStore(viewUrl: string) {
       clearInterval(intervalID);
       intervalID = null;
     },
-  });
+  };
 }
 
 export type ActionRunViewStore = ReturnType<typeof createActionRunViewStore>;

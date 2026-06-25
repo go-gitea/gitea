@@ -7,23 +7,20 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"slices"
 	"strings"
 	"time"
 
-	"code.gitea.io/gitea/models/db"
-	repo_model "code.gitea.io/gitea/models/repo"
-	user_model "code.gitea.io/gitea/models/user"
-	"code.gitea.io/gitea/modules/git"
-	"code.gitea.io/gitea/modules/json"
-	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/setting"
-	api "code.gitea.io/gitea/modules/structs"
-	"code.gitea.io/gitea/modules/timeutil"
-	"code.gitea.io/gitea/modules/util"
-	webhook_module "code.gitea.io/gitea/modules/webhook"
-
-	"xorm.io/builder"
+	"gitea.dev/models/db"
+	repo_model "gitea.dev/models/repo"
+	user_model "gitea.dev/models/user"
+	"gitea.dev/modules/git"
+	"gitea.dev/modules/json"
+	"gitea.dev/modules/log"
+	"gitea.dev/modules/setting"
+	api "gitea.dev/modules/structs"
+	"gitea.dev/modules/timeutil"
+	"gitea.dev/modules/util"
+	webhook_module "gitea.dev/modules/webhook"
 )
 
 // ActionRun represents a run of a workflow file
@@ -71,11 +68,11 @@ func init() {
 	db.RegisterModel(new(ActionRunIndex))
 }
 
-func (run *ActionRun) HTMLURL() string {
+func (run *ActionRun) HTMLURL(ctxOpt ...context.Context) string {
 	if run.Repo == nil {
 		return ""
 	}
-	return fmt.Sprintf("%s/actions/runs/%d", run.Repo.HTMLURL(), run.ID)
+	return fmt.Sprintf("%s/actions/runs/%d", run.Repo.HTMLURL(ctxOpt...), run.ID)
 }
 
 func (run *ActionRun) Link() string {
@@ -120,11 +117,7 @@ func (run *ActionRun) RefTooltip() string {
 }
 
 // LoadAttributes load Repo TriggerUser if not loaded
-func (run *ActionRun) LoadAttributes(ctx context.Context) (err error) {
-	if run == nil {
-		return nil
-	}
-
+func (run *ActionRun) LoadAttributes(ctx context.Context) error {
 	if err := run.LoadRepo(ctx); err != nil {
 		return err
 	}
@@ -133,18 +126,19 @@ func (run *ActionRun) LoadAttributes(ctx context.Context) (err error) {
 		return err
 	}
 
-	if run.TriggerUser == nil {
-		run.TriggerUserID, run.TriggerUser, err = user_model.GetPossibleUserByID(ctx, run.TriggerUserID)
-		if err != nil {
-			return err
-		}
-	}
+	return run.LoadTriggerUser(ctx)
+}
 
-	return nil
+func (run *ActionRun) LoadTriggerUser(ctx context.Context) (err error) {
+	if run.TriggerUser != nil {
+		return nil
+	}
+	run.TriggerUserID, run.TriggerUser, err = user_model.GetPossibleUserByID(ctx, run.TriggerUserID)
+	return err
 }
 
 func (run *ActionRun) LoadRepo(ctx context.Context) error {
-	if run == nil || run.Repo != nil {
+	if run.Repo != nil {
 		return nil
 	}
 
@@ -227,120 +221,34 @@ func (run *ActionRun) IsSchedule() bool {
 }
 
 // UpdateRepoRunsNumbers updates the number of runs and closed runs of a repository.
-func UpdateRepoRunsNumbers(ctx context.Context, repo *repo_model.Repository) error {
-	_, err := db.GetEngine(ctx).ID(repo.ID).
-		NoAutoTime().
-		Cols("num_action_runs", "num_closed_action_runs").
-		SetExpr("num_action_runs",
-			builder.Select("count(*)").From("action_run").
-				Where(builder.Eq{"repo_id": repo.ID}),
-		).
-		SetExpr("num_closed_action_runs",
-			builder.Select("count(*)").From("action_run").
-				Where(builder.Eq{
-					"repo_id": repo.ID,
-				}.And(
-					builder.In("status",
-						StatusSuccess,
-						StatusFailure,
-						StatusCancelled,
-						StatusSkipped,
-					),
-				),
-				),
-		).
-		Update(repo)
-	return err
-}
+// Callers MUST invoke this from outside any transaction that has X-locked action_run rows for the same repo, otherwise, transaction deadlock
+func UpdateRepoRunsNumbers(ctx context.Context, repoID int64) {
+	if db.InTransaction(ctx) {
+		setting.PanicInDevOrTesting("UpdateRepoRunsNumbers must not be called inside a transaction")
+	}
 
-// CancelPreviousJobs cancels all previous jobs of the same repository, reference, workflow, and event.
-// It's useful when a new run is triggered, and all previous runs needn't be continued anymore.
-func CancelPreviousJobs(ctx context.Context, repoID int64, ref, workflowID string, event webhook_module.HookEventType) ([]*ActionRunJob, error) {
-	// Find all runs in the specified repository, reference, and workflow with non-final status
-	runs, total, err := db.FindAndCount[ActionRun](ctx, FindRunOptions{
-		RepoID:       repoID,
-		Ref:          ref,
-		WorkflowID:   workflowID,
-		TriggerEvent: event,
-		Status:       []Status{StatusRunning, StatusWaiting, StatusBlocked},
-	})
+	e := db.GetEngine(ctx)
+
+	numActionRuns, err := e.Where("repo_id = ?", repoID).Count(new(ActionRun))
 	if err != nil {
-		return nil, err
+		log.Error("UpdateRepoRunsNumbers count num_action_runs for repo %d: %v", repoID, err)
+		return
 	}
 
-	// If there are no runs found, there's no need to proceed with cancellation, so return nil.
-	if total == 0 {
-		return nil, nil
+	numClosedActionRuns, err := e.Where("repo_id = ?", repoID).
+		In("status", StatusSuccess, StatusFailure, StatusCancelled, StatusSkipped).
+		Count(new(ActionRun))
+	if err != nil {
+		log.Error("UpdateRepoRunsNumbers count num_closed_action_runs for repo %d: %v", repoID, err)
+		return
 	}
 
-	cancelledJobs := make([]*ActionRunJob, 0, total)
-
-	// Iterate over each found run and cancel its associated jobs.
-	for _, run := range runs {
-		// Find all jobs associated with the current run.
-		jobs, err := db.Find[ActionRunJob](ctx, FindRunJobOptions{
-			RunID: run.ID,
-		})
-		if err != nil {
-			return cancelledJobs, err
-		}
-
-		cjs, err := CancelJobs(ctx, jobs)
-		if err != nil {
-			return cancelledJobs, err
-		}
-		cancelledJobs = append(cancelledJobs, cjs...)
+	if _, err := e.ID(repoID).Cols("num_action_runs", "num_closed_action_runs").NoAutoTime().Update(&repo_model.Repository{
+		NumActionRuns:       int(numActionRuns),
+		NumClosedActionRuns: int(numClosedActionRuns),
+	}); err != nil {
+		log.Error("UpdateRepoRunsNumbers update repo %d: %v", repoID, err)
 	}
-
-	// Return nil to indicate successful cancellation of all running and waiting jobs.
-	return cancelledJobs, nil
-}
-
-func CancelJobs(ctx context.Context, jobs []*ActionRunJob) ([]*ActionRunJob, error) {
-	cancelledJobs := make([]*ActionRunJob, 0, len(jobs))
-	// Iterate over each job and attempt to cancel it.
-	for _, job := range jobs {
-		// Skip jobs that are already in a terminal state (completed, cancelled, etc.).
-		status := job.Status
-		if status.IsDone() {
-			continue
-		}
-
-		// If the job has no associated task (probably an error), set its status to 'Cancelled' and stop it.
-		if job.TaskID == 0 {
-			job.Status = StatusCancelled
-			job.Stopped = timeutil.TimeStampNow()
-
-			// Update the job's status and stopped time in the database.
-			n, err := UpdateRunJob(ctx, job, builder.Eq{"task_id": 0}, "status", "stopped")
-			if err != nil {
-				return cancelledJobs, err
-			}
-
-			// If the update affected 0 rows, it means the job has changed in the meantime
-			if n == 0 {
-				log.Error("Failed to cancel job %d because it has changed", job.ID)
-				continue
-			}
-
-			cancelledJobs = append(cancelledJobs, job)
-			// Continue with the next job.
-			continue
-		}
-
-		// If the job has an associated task, try to stop the task, effectively cancelling the job.
-		if err := StopTask(ctx, job.TaskID, StatusCancelled); err != nil {
-			return cancelledJobs, err
-		}
-		updatedJob, err := GetRunJobByRunAndID(ctx, job.RunID, job.ID)
-		if err != nil {
-			return cancelledJobs, fmt.Errorf("get job: %w", err)
-		}
-		cancelledJobs = append(cancelledJobs, updatedJob)
-	}
-
-	// Return nil to indicate successful cancellation of all running and waiting jobs.
-	return cancelledJobs, nil
 }
 
 func GetRunByRepoAndID(ctx context.Context, repoID, runID int64) (*ActionRun, error) {
@@ -418,18 +326,6 @@ func UpdateRun(ctx context.Context, run *ActionRun, cols ...string) error {
 		// It's impossible that the run is not found, since Gitea never deletes runs.
 	}
 
-	if run.Status != 0 || slices.Contains(cols, "status") {
-		if run.RepoID == 0 {
-			setting.PanicInDevOrTesting("RepoID should not be 0")
-		}
-		if err = run.LoadRepo(ctx); err != nil {
-			return err
-		}
-		if err := UpdateRepoRunsNumbers(ctx, run.Repo); err != nil {
-			return err
-		}
-	}
-
 	return nil
 }
 
@@ -464,6 +360,7 @@ func CancelPreviousJobsByRunConcurrency(ctx context.Context, attempt *ActionRunA
 	statusFindOption := []Status{StatusWaiting, StatusBlocked}
 	if attempt.ConcurrencyCancel {
 		statusFindOption = append(statusFindOption, StatusRunning)
+		statusFindOption = append(statusFindOption, StatusCancelling)
 	}
 	attempts, jobs, err := GetConcurrentRunAttemptsAndJobs(ctx, attempt.RepoID, attempt.ConcurrencyGroup, statusFindOption)
 	if err != nil {

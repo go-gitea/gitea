@@ -7,12 +7,12 @@ import (
 	"context"
 	"strings"
 
-	"code.gitea.io/gitea/models/db"
-	"code.gitea.io/gitea/models/organization"
-	"code.gitea.io/gitea/models/perm"
-	"code.gitea.io/gitea/models/unit"
-	user_model "code.gitea.io/gitea/models/user"
-	"code.gitea.io/gitea/modules/container"
+	"gitea.dev/models/db"
+	"gitea.dev/models/organization"
+	"gitea.dev/models/perm"
+	"gitea.dev/models/unit"
+	user_model "gitea.dev/models/user"
+	"gitea.dev/modules/container"
 
 	"xorm.io/builder"
 )
@@ -22,6 +22,12 @@ type StarredReposOptions struct {
 	StarrerID      int64
 	RepoOwnerID    int64
 	IncludePrivate bool
+}
+
+func (opts *StarredReposOptions) ApplyPublicOnly(publicOnly bool) {
+	if publicOnly {
+		opts.IncludePrivate = false
+	}
 }
 
 func (opts *StarredReposOptions) ToConds() builder.Cond {
@@ -60,6 +66,12 @@ type WatchedReposOptions struct {
 	WatcherID      int64
 	RepoOwnerID    int64
 	IncludePrivate bool
+}
+
+func (opts *WatchedReposOptions) ApplyPublicOnly(publicOnly bool) {
+	if publicOnly {
+		opts.IncludePrivate = false
+	}
 }
 
 func (opts *WatchedReposOptions) ToConds() builder.Cond {

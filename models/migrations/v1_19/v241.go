@@ -3,12 +3,10 @@
 
 package v1_19
 
-import (
-	"xorm.io/xorm"
-)
+import "gitea.dev/models/db"
 
 // AddCardTypeToProjectTable: add CardType column, setting existing rows to CardTypeTextOnly
-func AddCardTypeToProjectTable(x *xorm.Engine) error {
+func AddCardTypeToProjectTable(x db.EngineMigration) error {
 	type Project struct {
 		CardType int `xorm:"NOT NULL DEFAULT 0"`
 	}

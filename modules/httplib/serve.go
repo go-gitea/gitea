@@ -15,12 +15,12 @@ import (
 	"strings"
 	"time"
 
-	charsetModule "code.gitea.io/gitea/modules/charset"
-	"code.gitea.io/gitea/modules/container"
-	"code.gitea.io/gitea/modules/httpcache"
-	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/modules/typesniffer"
-	"code.gitea.io/gitea/modules/util"
+	charsetModule "gitea.dev/modules/charset"
+	"gitea.dev/modules/container"
+	"gitea.dev/modules/httpcache"
+	"gitea.dev/modules/setting"
+	"gitea.dev/modules/typesniffer"
+	"gitea.dev/modules/util"
 
 	"github.com/klauspost/compress/gzhttp"
 )
@@ -37,6 +37,50 @@ type ServeHeaderOptions struct {
 	LastModified  time.Time
 }
 
+const (
+	// Disable JS execution on the same origin, since we serve the file from the same origin as Gitea server.
+	// This rule can be relaxed in the future as long as it is properly sandboxed.
+	// "style-src" is for SVG inline styles (from Display SVG files as images instead of text #14101)
+	serveHeaderCspDefault = "default-src 'none'; style-src 'unsafe-inline'; sandbox"
+
+	// No sandbox attribute for PDF as it breaks rendering in at least Safari.
+	// This should generally be safe as scripts inside PDF can not escape the PDF document.
+	// See https://bugs.chromium.org/p/chromium/issues/detail?id=413851 for more discussion.
+	// HINT: PDF-RENDER-SANDBOX: PDF won't render in sandboxed context
+	serveHeaderCspPdf = "default-src 'none'; style-src 'unsafe-inline'"
+
+	// For audios and videos, actually it doesn't really need CSP (just like Gitea <= 1.25)
+	serveHeaderCspAudioVideo = ""
+
+	// For HTML, allow scripts in a sandboxed null origin so coverage reports and similar
+	// artifacts can use JavaScript while being unable to access Gitea cookies or make
+	// authenticated API calls (connect-src 'none' blocks fetch/XHR).
+	serveHeaderCspHTML = "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'none'; sandbox allow-scripts"
+)
+
+func serveSetHeaderContentRelated(w http.ResponseWriter, contentType string) {
+	header := w.Header()
+	contentType = util.IfZero(contentType, typesniffer.MimeTypeApplicationOctetStream)
+	header.Set("Content-Type", contentType)
+	header.Set("X-Content-Type-Options", "nosniff")
+
+	csp := serveHeaderCspDefault
+	if strings.HasPrefix(contentType, "text/html") {
+		csp = serveHeaderCspHTML
+	}
+	if strings.HasPrefix(contentType, "application/pdf") {
+		csp = serveHeaderCspPdf
+	}
+	if strings.HasPrefix(contentType, "video/") || strings.HasPrefix(contentType, "audio/") {
+		csp = serveHeaderCspAudioVideo
+	}
+	if csp != "" {
+		header.Set("Content-Security-Policy", csp)
+	} else {
+		header.Del("Content-Security-Policy")
+	}
+}
+
 // ServeSetHeaders sets necessary content serve headers
 func ServeSetHeaders(w http.ResponseWriter, opts ServeHeaderOptions) {
 	header := w.Header()
@@ -46,44 +90,20 @@ func ServeSetHeaders(w http.ResponseWriter, opts ServeHeaderOptions) {
 		w.Header().Add(gzhttp.HeaderNoCompression, "1")
 	}
 
-	contentType := util.IfZero(opts.ContentType, typesniffer.MimeTypeApplicationOctetStream)
-	header.Set("Content-Type", contentType)
-	header.Set("X-Content-Type-Options", "nosniff")
+	serveSetHeaderContentRelated(w, opts.ContentType)
 
 	if opts.ContentLength != nil {
 		header.Set("Content-Length", strconv.FormatInt(*opts.ContentLength, 10))
 	}
-
-	// Served files share the Gitea origin, so we sandbox them to prevent privilege escalation.
-	// HTML artifacts may include JavaScript (e.g. coverage reports, genhtml output) so we allow
-	// scripts for text/html but keep the origin opaque by omitting allow-same-origin: scripts
-	// run in a null origin and cannot access Gitea cookies or the parent frame. connect-src
-	// 'none' blocks fetch/XHR so scripts cannot exfiltrate data or make authenticated API calls.
-	switch {
-	case strings.Contains(contentType, "text/html"):
-		// sandbox allow-scripts: scripts execute but in null origin (no allow-same-origin).
-		// default-src 'self' allows artifact sub-resources (sort.js, gcov.css, etc.) to load
-		// from the same preview/raw/* route without opening any external origin.
-		header.Set("Content-Security-Policy", "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'none'; sandbox allow-scripts")
-	case strings.Contains(contentType, "application/pdf"):
-		// no sandbox attribute for PDF as it breaks rendering in at least safari. this
-		// should generally be safe as scripts inside PDF can not escape the PDF document
-		// see https://bugs.chromium.org/p/chromium/issues/detail?id=413851 for more discussion
-		// HINT: PDF-RENDER-SANDBOX: PDF won't render in sandboxed context
-		header.Set("Content-Security-Policy", "default-src 'none'; style-src 'unsafe-inline'")
-	default:
-		header.Set("Content-Security-Policy", "default-src 'none'; style-src 'unsafe-inline'; sandbox")
-	}
-
-	if opts.Filename != "" && opts.ContentDisposition != "" {
-		header.Set("Content-Disposition", encodeContentDisposition(opts.ContentDisposition, path.Base(opts.Filename)))
+	if opts.Filename != "" {
+		contentDisposition := util.IfZero(opts.ContentDisposition, ContentDispositionAttachment)
+		header.Set("Content-Disposition", encodeContentDisposition(contentDisposition, path.Base(opts.Filename)))
 		header.Set("Access-Control-Expose-Headers", "Content-Disposition")
 	}
 
 	httpcache.SetCacheControlInHeader(header, &httpcache.CacheControlOptions{
-		IsPublic:    opts.CacheIsPublic,
-		MaxAge:      opts.CacheDuration,
-		NoTransform: true,
+		IsPublic: opts.CacheIsPublic,
+		MaxAge:   opts.CacheDuration,
 	})
 
 	if !opts.LastModified.IsZero() {

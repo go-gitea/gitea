@@ -4,11 +4,12 @@
 package v1_10
 
 import (
+	"gitea.dev/models/db"
+
 	"xorm.io/builder"
-	"xorm.io/xorm"
 )
 
-func RemoveLingeringIndexStatus(x *xorm.Engine) error {
+func RemoveLingeringIndexStatus(x db.EngineMigration) error {
 	_, err := x.Exec(builder.Delete(builder.NotIn("`repo_id`", builder.Select("`id`").From("`repository`"))).From("`repo_indexer_status`"))
 	return err
 }
