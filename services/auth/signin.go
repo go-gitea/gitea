@@ -59,6 +59,9 @@ func UserSignIn(ctx context.Context, username, password string) (*user_model.Use
 			if err != nil && !user_model.IsErrUserNotExist(err) {
 				return nil, nil, err
 			}
+			if user != nil && user.Type != user_model.UserTypeIndividual {
+				return nil, nil, user_model.ErrUserNotExist{Name: username}
+			}
 			hasUser = user != nil
 		} else if user.LowerName != "" {
 			user, err = user_model.GetIndividualUserByName(ctx, user.LowerName)
