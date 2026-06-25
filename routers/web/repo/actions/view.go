@@ -294,6 +294,7 @@ type ViewResponse struct {
 			// or "/owner/repo/actions/runs/123/attempts/2" for a historical attempt.
 			// Use this when the target should reflect the currently-viewed attempt.
 			ViewLink          string            `json:"viewLink"`
+			Index             int64             `json:"index"` // the per-repository run number, displayed as "#N"
 			Title             string            `json:"title"`
 			TitleHTML         template.HTML     `json:"titleHTML"`
 			Status            string            `json:"status"`
@@ -561,6 +562,7 @@ func fillViewRunResponseSummary(ctx *context_module.Context, resp *ViewResponse,
 	isLatestAttempt := run.LatestAttemptID == 0 || (attempt != nil && attempt.ID == run.LatestAttemptID)
 
 	resp.State.Run.RepoID = ctx.Repo.Repository.ID
+	resp.State.Run.Index = run.Index
 	// the title for the "run" is from the commit message
 	resp.State.Run.Title = run.Title
 	resp.State.Run.TitleHTML = templates.NewRenderUtils(ctx).RenderCommitMessage(run.Title, ctx.Repo.Repository)

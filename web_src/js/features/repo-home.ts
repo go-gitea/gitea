@@ -96,10 +96,7 @@ export function initRepoTopicBar() {
         };
         const query = stripTags(this.urlData.query.trim());
         let found_query = false;
-        const current_topics = [];
-        for (const el of queryElemChildren(topicDropdown, 'a.ui.label.visible')) {
-          current_topics.push(el.getAttribute('data-value'));
-        }
+        const current_topics = Array.from(queryElemChildren(topicDropdown, 'a.ui.label.visible'), (el) => el.getAttribute('data-value'));
 
         if (res.topics) {
           let found = false;

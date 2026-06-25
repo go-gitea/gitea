@@ -4,6 +4,7 @@ export type ActionsArtifactStatus = 'expired' | 'completed';
 
 export type ActionsRun = {
   repoId: number,
+  index: number,
   link: string,
   viewLink: string,
   title: string,

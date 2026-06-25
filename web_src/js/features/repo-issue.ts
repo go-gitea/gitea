@@ -28,7 +28,7 @@ function initRepoIssueLabelFilter(elDropdown: HTMLElement) {
   const queryLabels = url.searchParams.get('labels') || '';
   const selectedLabelIds = new Set<string>();
   for (const id of queryLabels ? queryLabels.split(',') : []) {
-    selectedLabelIds.add(`${Math.abs(parseInt(id))}`); // "labels" contains negative ids, which are excluded
+    selectedLabelIds.add(String(Math.abs(parseInt(id)))); // "labels" contains negative ids, which are excluded
   }
 
   const excludeLabel = (e: MouseEvent | KeyboardEvent, item: Element) => {
@@ -130,9 +130,9 @@ export function initRepoIssueCommentDelete() {
           // on the Conversation page, there is no parent "tr", so no need to do anything for "add-code-comment"
           if (lineType) {
             if (lineType === 'same') {
-              document.querySelector(`[data-path="${path}"] .add-code-comment[data-idx="${idx}"]`)!.classList.remove('tw-invisible');
+              document.querySelector(`[data-path="${CSS.escape(String(path))}"] .add-code-comment[data-idx="${CSS.escape(String(idx))}"]`)!.classList.remove('tw-invisible');
             } else {
-              document.querySelector(`[data-path="${path}"] .add-code-comment[data-side="${side}"][data-idx="${idx}"]`)!.classList.remove('tw-invisible');
+              document.querySelector(`[data-path="${CSS.escape(String(path))}"] .add-code-comment[data-side="${CSS.escape(String(side))}"][data-idx="${CSS.escape(String(idx))}"]`)!.classList.remove('tw-invisible');
             }
           }
           conversationHolder.remove();
