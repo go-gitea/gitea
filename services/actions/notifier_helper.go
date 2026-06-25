@@ -619,12 +619,11 @@ func detectAndHandleScopedWorkflows(
 	// The same source repo may be registered at both the owner and instance level; dedup
 	// the IDs and batch-load them in one query instead of one round-trip per source.
 	seen := make(container.Set[int64], len(sources))
-	sourceRepoIDs := make([]int64, 0, len(sources))
 	for _, source := range sources {
-		if seen.Add(source.SourceRepoID) {
-			sourceRepoIDs = append(sourceRepoIDs, source.SourceRepoID)
-		}
+		seen.Add(source.SourceRepoID)
 	}
+	sourceRepoIDs := seen.Values()
+
 	sourceRepos, err := repo_model.GetRepositoriesMapByIDs(ctx, sourceRepoIDs)
 	if err != nil {
 		return fmt.Errorf("GetRepositoriesMapByIDs: %w", err)
