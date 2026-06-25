@@ -228,13 +228,16 @@ func (ref RefName) RefWebLinkPath() string {
 	return string(refType) + "/" + util.PathEscapeSegments(ref.ShortName())
 }
 
-func ParseRefSuffix(ref string) (string, string) {
+func ParseRefSuffix(ref string) (refName, refSuffix string) {
 	// Partially support https://git-scm.com/docs/gitrevisions
-	if idx := strings.Index(ref, "@{"); idx != -1 {
-		return ref[:idx], ref[idx:]
+	suffixIdx := -1 // earliest suffix mark, so a combined suffix like "main~2^" stays intact
+	for _, mark := range []string{"@{", "^", "~"} {
+		if idx := strings.Index(ref, mark); idx != -1 && (suffixIdx == -1 || idx < suffixIdx) {
+			suffixIdx = idx
+		}
 	}
-	if idx := strings.Index(ref, "^"); idx != -1 {
-		return ref[:idx], ref[idx:]
+	if suffixIdx == -1 {
+		return ref, ""
 	}
-	return ref, ""
+	return ref[:suffixIdx], ref[suffixIdx:]
 }
