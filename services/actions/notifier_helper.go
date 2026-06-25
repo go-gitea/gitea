@@ -311,39 +311,60 @@ func handleWorkflows(
 	isForkPullRequest := isForkPullRequestInput(input)
 
 	for _, dwf := range detectedWorkflows {
-		run := &actions_model.ActionRun{
-			Title:             commit.MessageTitle(),
-			RepoID:            input.Repo.ID,
-			Repo:              input.Repo,
-			OwnerID:           input.Repo.OwnerID,
-			WorkflowID:        dwf.EntryName,
-			TriggerUserID:     input.Doer.ID,
-			TriggerUser:       input.Doer,
-			Ref:               ref.String(),
-			CommitSHA:         commit.ID.String(),
-			IsForkPullRequest: isForkPullRequest,
-			Event:             input.Event,
-			EventPayload:      string(p),
-			TriggerEvent:      dwf.TriggerEvent.Name,
-			Status:            actions_model.StatusWaiting,
-			// repo-level run: the workflow content is this repo at this commit
-			WorkflowRepoID:    input.Repo.ID,
-			WorkflowCommitSHA: commit.ID.String(),
-			IsScopedRun:       false,
-		}
-
-		need, err := ifNeedApproval(ctx, run, input.Repo, input.Doer)
-		if err != nil {
-			log.Error("check if need approval for repo %d with user %d: %v", input.Repo.ID, input.Doer.ID, err)
+		// repo-level run: the workflow content is this repo at this commit
+		if err := buildApproveAndInsertRun(ctx, input, ref, commit, string(p), isForkPullRequest, dwf, input.Repo.ID, commit.ID.String(), false); err != nil {
+			log.Error("repo %s: %v", input.Repo.RelativePath(), err)
 			continue
 		}
+	}
+	return nil
+}
 
-		run.NeedApproval = need
+// buildApproveAndInsertRun assembles an ActionRun for a detected workflow, runs the
+// fork-PR approval gate, and inserts it. Repo-level and scoped runs share this path so
+// run construction and the approval flow have a single implementation that can't drift.
+// workflowRepoID/workflowCommitSHA point at the repo+commit the workflow content comes
+// from (the repo itself for repo-level runs, the source repo for scoped runs).
+func buildApproveAndInsertRun(
+	ctx context.Context,
+	input *notifyInput,
+	ref git.RefName,
+	commit *git.Commit,
+	payload string,
+	isForkPullRequest bool,
+	dwf *actions_module.DetectedWorkflow,
+	workflowRepoID int64,
+	workflowCommitSHA string,
+	isScopedRun bool,
+) error {
+	run := &actions_model.ActionRun{
+		Title:             commit.MessageTitle(),
+		RepoID:            input.Repo.ID,
+		Repo:              input.Repo,
+		OwnerID:           input.Repo.OwnerID,
+		WorkflowID:        dwf.EntryName,
+		TriggerUserID:     input.Doer.ID,
+		TriggerUser:       input.Doer,
+		Ref:               ref.String(),
+		CommitSHA:         commit.ID.String(),
+		IsForkPullRequest: isForkPullRequest,
+		Event:             input.Event,
+		EventPayload:      payload,
+		TriggerEvent:      dwf.TriggerEvent.Name,
+		Status:            actions_model.StatusWaiting,
+		WorkflowRepoID:    workflowRepoID,
+		WorkflowCommitSHA: workflowCommitSHA,
+		IsScopedRun:       isScopedRun,
+	}
 
-		if err := PrepareRunAndInsert(ctx, dwf.Content, run, nil); err != nil {
-			log.Error("PrepareRunAndInsert: %v", err)
-			continue
-		}
+	need, err := ifNeedApproval(ctx, run, input.Repo, input.Doer)
+	if err != nil {
+		return fmt.Errorf("check if need approval for user %d: %w", input.Doer.ID, err)
+	}
+	run.NeedApproval = need
+
+	if err := PrepareRunAndInsert(ctx, dwf.Content, run, nil); err != nil {
+		return fmt.Errorf("PrepareRunAndInsert: %w", err)
 	}
 	return nil
 }
@@ -595,17 +616,25 @@ func detectAndHandleScopedWorkflows(
 	isForkPullRequest := isForkPullRequestInput(input)
 	actionsConfig := input.Repo.MustGetUnit(ctx, unit_model.TypeActions).ActionsConfig()
 
+	// The same source repo may be registered at both the owner and instance level; dedup
+	// the IDs and batch-load them in one query instead of one round-trip per source.
 	seen := make(container.Set[int64], len(sources))
+	sourceRepoIDs := make([]int64, 0, len(sources))
 	for _, source := range sources {
-		if !seen.Add(source.SourceRepoID) {
-			// The same source repo may be registered at both the owner and instance level; skip if it's already handled
-			continue
+		if seen.Add(source.SourceRepoID) {
+			sourceRepoIDs = append(sourceRepoIDs, source.SourceRepoID)
 		}
+	}
+	sourceRepos, err := repo_model.GetRepositoriesMapByIDs(ctx, sourceRepoIDs)
+	if err != nil {
+		return fmt.Errorf("GetRepositoriesMapByIDs: %w", err)
+	}
 
-		sourceRepo, err := repo_model.GetRepositoryByID(ctx, source.SourceRepoID)
-		if err != nil {
+	for _, sourceRepoID := range sourceRepoIDs {
+		sourceRepo := sourceRepos[sourceRepoID]
+		if sourceRepo == nil {
 			// don't abort the other effective sources for this event
-			log.Error("scoped workflows: load source repo %d for consumer %s: %v", source.SourceRepoID, input.Repo.RelativePath(), err)
+			log.Error("scoped workflows: source repo %d for consumer %s not found", sourceRepoID, input.Repo.RelativePath())
 			continue
 		}
 		if sourceRepo.IsEmpty {
@@ -614,7 +643,7 @@ func detectAndHandleScopedWorkflows(
 
 		sourceCommitSHA, detected, err := detectScopedWorkflowsForSource(ctx, input, consumerGitRepo, consumerCommit, sourceRepo)
 		if err != nil {
-			log.Error("scoped workflows: source %d for consumer %s: %v", source.SourceRepoID, input.Repo.RelativePath(), err)
+			log.Error("scoped workflows: source %d for consumer %s: %v", sourceRepoID, input.Repo.RelativePath(), err)
 			continue
 		}
 
@@ -626,35 +655,8 @@ func detectAndHandleScopedWorkflows(
 				continue
 			}
 
-			run := &actions_model.ActionRun{
-				Title:             consumerCommit.MessageTitle(),
-				RepoID:            input.Repo.ID,
-				Repo:              input.Repo,
-				OwnerID:           input.Repo.OwnerID,
-				WorkflowID:        dwf.EntryName,
-				TriggerUserID:     input.Doer.ID,
-				TriggerUser:       input.Doer,
-				Ref:               ref.String(),
-				CommitSHA:         consumerCommit.ID.String(),
-				IsForkPullRequest: isForkPullRequest,
-				Event:             input.Event,
-				EventPayload:      string(p),
-				TriggerEvent:      dwf.TriggerEvent.Name,
-				Status:            actions_model.StatusWaiting,
-				WorkflowRepoID:    sourceRepo.ID,
-				WorkflowCommitSHA: sourceCommitSHA,
-				IsScopedRun:       true,
-			}
-
-			need, err := ifNeedApproval(ctx, run, input.Repo, input.Doer)
-			if err != nil {
-				log.Error("scoped workflows: check approval for repo %d user %d: %v", input.Repo.ID, input.Doer.ID, err)
-				continue
-			}
-			run.NeedApproval = need
-
-			if err := PrepareRunAndInsert(ctx, dwf.Content, run, nil); err != nil {
-				log.Error("scoped workflows: PrepareRunAndInsert (source %s, workflow %s): %v", sourceRepo.RelativePath(), dwf.EntryName, err)
+			if err := buildApproveAndInsertRun(ctx, input, ref, consumerCommit, string(p), isForkPullRequest, dwf, sourceRepo.ID, sourceCommitSHA, true); err != nil {
+				log.Error("scoped workflows: source %s workflow %s: %v", sourceRepo.RelativePath(), dwf.EntryName, err)
 				continue
 			}
 		}
