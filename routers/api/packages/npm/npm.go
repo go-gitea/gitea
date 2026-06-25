@@ -17,6 +17,7 @@ import (
 	access_model "gitea.dev/models/perm/access"
 	repo_model "gitea.dev/models/repo"
 	"gitea.dev/models/unit"
+	"gitea.dev/modules/json"
 	"gitea.dev/modules/optional"
 	packages_module "gitea.dev/modules/packages"
 	npm_module "gitea.dev/modules/packages/npm"
@@ -31,6 +32,15 @@ import (
 
 // errInvalidTagName indicates an invalid tag name
 var errInvalidTagName = errors.New("The tag name is invalid")
+
+// maxNpmDeprecateProbeBytes bounds the prefix of an npm publish PUT body
+// that UploadPackage buffers in order to distinguish a `npm deprecate`
+// request (no `_attachments`, a small versions map) from a regular publish
+// (carries a base64-encoded tarball, can be many MiB). Real deprecate
+// payloads are well under this limit; anything larger is treated as a
+// publish and streamed through to ParsePackage so peak memory stays bounded
+// regardless of LimitSizeNpm.
+const maxNpmDeprecateProbeBytes = int64(1 << 20) // 1 MiB
 
 func apiError(ctx *context.Context, status int, obj any) {
 	message := helper.ProcessErrorForUser(ctx, status, obj)
@@ -154,7 +164,26 @@ func DownloadPackageFileByName(ctx *context.Context) {
 
 // UploadPackage creates a new package
 func UploadPackage(ctx *context.Context) {
-	npmPackage, err := npm_module.ParsePackage(ctx.Req.Body)
+	// Buffer only enough of the body to distinguish a deprecate request
+	// (small JSON, no _attachments) from a publish (large, base64 tarball).
+	// Anything bigger than the probe limit cannot be a deprecate payload, so
+	// we splice the buffered prefix back onto the live request body via
+	// io.MultiReader and let ParsePackage stream it as before.
+	probe := &io.LimitedReader{R: ctx.Req.Body, N: maxNpmDeprecateProbeBytes + 1}
+	head, err := io.ReadAll(probe)
+	if err != nil {
+		apiError(ctx, http.StatusInternalServerError, err)
+		return
+	}
+
+	if int64(len(head)) <= maxNpmDeprecateProbeBytes && npm_module.IsDeprecateRequest(head) {
+		deprecatePackage(ctx, head)
+		return
+	}
+
+	body := io.MultiReader(bytes.NewReader(head), ctx.Req.Body)
+
+	npmPackage, err := npm_module.ParsePackage(body)
 	if err != nil {
 		if errors.Is(err, util.ErrInvalidArgument) {
 			apiError(ctx, http.StatusBadRequest, err)
@@ -249,6 +278,67 @@ func UploadPackage(ctx *context.Context) {
 // DeletePreview does nothing
 // The client tells the server what package version it knows about after deleting a version.
 func DeletePreview(ctx *context.Context) {
+	ctx.Status(http.StatusOK)
+}
+
+// deprecatePackage handles an `npm deprecate` request, which is a PUT to the
+// package URL with no attachments and a `deprecated` string set on each
+// affected version (empty string means undeprecate).
+func deprecatePackage(ctx *context.Context, body []byte) {
+	dep, err := npm_module.ParsePackageDeprecation(bytes.NewReader(body))
+	if err != nil {
+		if errors.Is(err, util.ErrInvalidArgument) {
+			apiError(ctx, http.StatusBadRequest, err)
+		} else {
+			apiError(ctx, http.StatusInternalServerError, err)
+		}
+		return
+	}
+
+	if len(dep.Versions) == 0 {
+		apiError(ctx, http.StatusBadRequest, "npm deprecate request contains no versions")
+		return
+	}
+
+	// Run the per-version updates in a single transaction so a partial
+	// failure does not leave some versions deprecated and others untouched.
+	err = db.WithTx(ctx, func(txCtx std_ctx.Context) error {
+		for version, message := range dep.Versions {
+			pv, err := packages_model.GetVersionByNameAndVersion(txCtx, ctx.Package.Owner.ID, packages_model.TypeNpm, dep.PackageName, version)
+			if err != nil {
+				if errors.Is(err, packages_model.ErrPackageNotExist) {
+					continue
+				}
+				return err
+			}
+
+			metadata := &npm_module.Metadata{}
+			if err := json.Unmarshal([]byte(pv.MetadataJSON), metadata); err != nil {
+				return err
+			}
+
+			if metadata.Deprecated == message {
+				continue
+			}
+			metadata.Deprecated = message
+
+			raw, err := json.Marshal(metadata)
+			if err != nil {
+				return err
+			}
+			pv.MetadataJSON = string(raw)
+
+			if err := packages_model.UpdateVersion(txCtx, pv); err != nil {
+				return err
+			}
+		}
+		return nil
+	})
+	if err != nil {
+		apiError(ctx, http.StatusInternalServerError, err)
+		return
+	}
+
 	ctx.Status(http.StatusOK)
 }
 

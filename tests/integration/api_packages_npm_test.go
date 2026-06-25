@@ -82,6 +82,23 @@ func TestPackageNpm(t *testing.T) {
 						"soy-milk": {
 							"optional": true
 						}
+					},
+					"scripts": {
+						"postinstall": "echo hi"
+					},
+					"engines": {
+						"node": ">=22.7.0",
+						"npm": ">=10.8.2"
+					},
+					"cpu": ["x64", "arm64"],
+					"os": ["linux", "darwin"],
+					"directories": {
+						"doc": "./doc",
+						"man": "./man"
+					},
+					"funding": "https://example.com/fund",
+					"acceptDependencies": {
+						"left-pad": "1.x"
 					}
 			  }
 			},
@@ -192,6 +209,16 @@ func TestPackageNpm(t *testing.T) {
 		assert.Equal(t, repoURL, result.Repository.URL)
 		assert.Equal(t, map[string]string{"tea": "2.x", "soy-milk": "1.2"}, pmv.PeerDependencies)
 		assert.Equal(t, map[string]any{"soy-milk": map[string]any{"optional": true}}, pmv.PeerDependenciesMeta)
+		assert.Equal(t, map[string]string{"postinstall": "echo hi"}, pmv.Scripts)
+		assert.True(t, pmv.HasInstallScript)
+		assert.False(t, pmv.HasShrinkwrap)
+		assert.Equal(t, map[string]string{"node": ">=22.7.0", "npm": ">=10.8.2"}, pmv.Engines)
+		assert.Equal(t, []string{"x64", "arm64"}, pmv.CPU)
+		assert.Equal(t, []string{"linux", "darwin"}, pmv.OS)
+		assert.Equal(t, map[string]string{"doc": "./doc", "man": "./man"}, pmv.Directories)
+		assert.Equal(t, "https://example.com/fund", pmv.Funding)
+		assert.Equal(t, map[string]string{"left-pad": "1.x"}, pmv.AcceptDependencies)
+		assert.Empty(t, pmv.Deprecated)
 	})
 
 	t.Run("AddTag", func(t *testing.T) {
@@ -307,6 +334,132 @@ func TestPackageNpm(t *testing.T) {
 		assertHTMLEq(t, `<p dir="auto"><a href="/user2/repo1/src/branch/master/package-subdir/docs/usage.md" rel="nofollow">docs</a>
 <a href="/user2/repo1/src/branch/master/package-subdir/logo.png" rel="nofollow noopener" target="_blank"><img src="/user2/repo1/media/branch/master/package-subdir/logo.png" alt="logo" loading="lazy"/></a></p>
 `, rendered)
+	})
+
+	t.Run("Deprecate", func(t *testing.T) {
+		defer tests.PrintCurrentTest(t)()
+
+		deprecationMessage := "critical bug fixed in v0.2.3"
+		buildDeprecate := func(message string) string {
+			return `{
+				"_id": "` + packageName + `",
+				"name": "` + packageName + `",
+				"versions": {
+					"` + packageVersion + `": {
+						"name": "` + packageName + `",
+						"version": "` + packageVersion + `",
+						"deprecated": "` + message + `"
+					}
+				}
+			}`
+		}
+
+		req := NewRequestWithBody(t, "PUT", root, strings.NewReader(buildDeprecate(deprecationMessage))).
+			AddTokenAuth(token)
+		MakeRequest(t, req, http.StatusOK)
+
+		req = NewRequest(t, "GET", root).AddTokenAuth(token)
+		resp := MakeRequest(t, req, http.StatusOK)
+
+		result := DecodeJSON(t, resp, &npm.PackageMetadata{})
+
+		assert.Contains(t, result.Versions, packageVersion)
+		assert.Equal(t, deprecationMessage, result.Versions[packageVersion].Deprecated)
+
+		// Empty deprecation message clears the flag (undeprecate).
+		req = NewRequestWithBody(t, "PUT", root, strings.NewReader(buildDeprecate(""))).
+			AddTokenAuth(token)
+		MakeRequest(t, req, http.StatusOK)
+
+		req = NewRequest(t, "GET", root).AddTokenAuth(token)
+		resp = MakeRequest(t, req, http.StatusOK)
+		result = DecodeJSON(t, resp, &npm.PackageMetadata{})
+		assert.Empty(t, result.Versions[packageVersion].Deprecated)
+
+		// Unknown versions are silently skipped (idempotent); the known
+		// version is still updated.
+		mixedBody := `{
+			"_id": "` + packageName + `",
+			"name": "` + packageName + `",
+			"versions": {
+				"` + packageVersion + `": {
+					"name": "` + packageName + `",
+					"version": "` + packageVersion + `",
+					"deprecated": "` + deprecationMessage + `"
+				},
+				"99.99.99": {
+					"name": "` + packageName + `",
+					"version": "99.99.99",
+					"deprecated": "ghost"
+				}
+			}
+		}`
+		req = NewRequestWithBody(t, "PUT", root, strings.NewReader(mixedBody)).
+			AddTokenAuth(token)
+		MakeRequest(t, req, http.StatusOK)
+
+		req = NewRequest(t, "GET", root).AddTokenAuth(token)
+		resp = MakeRequest(t, req, http.StatusOK)
+		result = DecodeJSON(t, resp, &npm.PackageMetadata{})
+		assert.Equal(t, deprecationMessage, result.Versions[packageVersion].Deprecated)
+		assert.NotContains(t, result.Versions, "99.99.99")
+
+		// Restore the cleared state for subsequent subtests.
+		req = NewRequestWithBody(t, "PUT", root, strings.NewReader(buildDeprecate(""))).
+			AddTokenAuth(token)
+		MakeRequest(t, req, http.StatusOK)
+
+		// A user who has no write access to the URL owner's packages must
+		// be rejected by reqPackageAccess before deprecatePackage runs.
+		otherUser := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 4})
+		otherToken := "Bearer " + getTokenForLoggedInUser(t, loginUser(t, otherUser.Name), auth_model.AccessTokenScopeWritePackage)
+		req = NewRequestWithBody(t, "PUT", root, strings.NewReader(buildDeprecate(deprecationMessage))).
+			AddTokenAuth(otherToken)
+		MakeRequest(t, req, http.StatusUnauthorized)
+	})
+
+	t.Run("UploadHasShrinkwrapClaim", func(t *testing.T) {
+		defer tests.PrintCurrentTest(t)()
+
+		// The tarball in `data` does not contain npm-shrinkwrap.json.
+		// Even when the client claims _hasShrinkwrap: true, the
+		// authoritative tarball scan must overrule the claim.
+		claimPackageName := "@scope/test-shrinkwrap-claim"
+		claimVersion := "1.0.0"
+		claimRoot := fmt.Sprintf("/api/packages/%s/npm/%s", user.Name, url.QueryEscape(claimPackageName))
+		body := `{
+			"_id": "` + claimPackageName + `",
+			"name": "` + claimPackageName + `",
+			"versions": {
+				"` + claimVersion + `": {
+					"name": "` + claimPackageName + `",
+					"version": "` + claimVersion + `",
+					"_hasShrinkwrap": true,
+					"dist": {
+						"integrity": "sha512-yA4FJsVhetynGfOC1jFf79BuS+jrHbm0fhh+aHzCQkOaOBXKf9oBnC4a6DnLLnEsHQDRLYd00cwj8sCXpC+wIg==",
+						"shasum": "aaa7eaf852a948b0aa05afeda35b1badca155d90"
+					}
+				}
+			},
+			"_attachments": {
+				"` + claimPackageName + `-` + claimVersion + `.tgz": {
+					"data": "` + data + `"
+				}
+			}
+		}`
+		req := NewRequestWithBody(t, "PUT", claimRoot, strings.NewReader(body)).
+			AddTokenAuth(token)
+		MakeRequest(t, req, http.StatusCreated)
+
+		req = NewRequest(t, "GET", claimRoot).AddTokenAuth(token)
+		resp := MakeRequest(t, req, http.StatusOK)
+		result := DecodeJSON(t, resp, &npm.PackageMetadata{})
+		require.Contains(t, result.Versions, claimVersion)
+		assert.False(t, result.Versions[claimVersion].HasShrinkwrap, "client-claimed _hasShrinkwrap must be overridden by tarball scan")
+
+		// Clean up so the subsequent Delete subtest's version counts match.
+		req = NewRequest(t, "DELETE", claimRoot+"/-rev/dummy").AddTokenAuth(token)
+		MakeRequest(t, req, http.StatusOK)
 	})
 
 	t.Run("Delete", func(t *testing.T) {
