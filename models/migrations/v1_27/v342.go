@@ -34,6 +34,9 @@ func AddScopedWorkflowsSchema(x db.EngineMigration) error {
 		WorkflowCommitSHA string `xorm:"VARCHAR(64) NOT NULL DEFAULT ''"`
 		IsScopedRun       bool   `xorm:"NOT NULL DEFAULT false"`
 	}
-	_, err := x.SyncWithOptions(xorm.SyncOptions{IgnoreDropIndices: true}, new(ActionRun))
+	_, err := x.SyncWithOptions(xorm.SyncOptions{
+		IgnoreDropIndices: true,
+		IgnoreConstrains:  true,
+	}, new(ActionRun))
 	return err
 }
