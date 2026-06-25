@@ -29,11 +29,11 @@
 			<form class="ui form form-fetch-action tw-mt-3" method="post" action="{{$.Link}}/required" data-global-init="initScopedWorkflowRequired">
 				<input type="hidden" name="repo_id" value="{{$src.Repo.ID}}">
 				<div class="text grey tw-mb-2">{{ctx.Locale.Tr "actions.scoped_workflows.required.label"}}</div>
-				<table class="ui table">
+				<table class="ui table tw-table-fixed">
 					<thead>
 						<tr>
-							<th>{{ctx.Locale.Tr "actions.runs.workflow_file"}}</th>
-							<th class="collapsing tw-pr-4">{{ctx.Locale.Tr "actions.workflow.required"}}</th>
+							<th class="tw-w-1/5">{{ctx.Locale.Tr "actions.runs.workflow_file"}}</th>
+							<th class="tw-w-24 tw-pr-4">{{ctx.Locale.Tr "actions.workflow.required"}}</th>
 							<th>{{ctx.Locale.Tr "actions.scoped_workflows.required.patterns"}} <span class="tw-font-normal tw-text-text-light-2">({{ctx.Locale.Tr "actions.scoped_workflows.required.patterns_note"}})</span></th>
 						</tr>
 					</thead>
@@ -50,6 +50,27 @@
 								<td>
 									<textarea class="js-scoped-required-patterns{{if not .Required}} tw-hidden{{end}}" name="required_patterns[{{.EntryName}}]" rows="2" aria-label="{{ctx.Locale.Tr "actions.scoped_workflows.required.patterns_aria" .EntryName}}" data-default-pattern="{{$src.Repo.FullName}}: {{.DisplayName}} / *" placeholder="{{$src.Repo.FullName}}: {{.DisplayName}} / *">{{.Patterns}}</textarea>
 									<span class="js-scoped-required-hint text grey{{if .Required}} tw-hidden{{end}}">{{ctx.Locale.Tr "actions.scoped_workflows.required.patterns_hint"}}</span>
+									{{if or .Contexts (not .Missing)}}
+										<table class="ui celled table js-scoped-required-contexts tw-mt-2{{if not .Required}} tw-hidden{{end}}">
+											<thead>
+												<tr><th>{{ctx.Locale.Tr "actions.scoped_workflows.required.expected_contexts"}}</th></tr>
+											</thead>
+											<tbody>
+												{{if .Contexts}}
+													{{range .Contexts}}
+														<tr>
+															<td>
+																<span class="js-scoped-context" data-context="{{.}}">{{.}}</span>
+																<span class="js-scoped-context-matched tw-font-semibold tw-italic tw-hidden">{{ctx.Locale.Tr "repo.settings.protect_status_check_matched"}}</span>
+															</td>
+														</tr>
+													{{end}}
+												{{else}}
+													<tr><td class="tw-text-red">{{ctx.Locale.Tr "actions.scoped_workflows.required.no_status_contexts"}}</td></tr>
+												{{end}}
+											</tbody>
+										</table>
+									{{end}}
 								</td>
 							</tr>
 						{{end}}

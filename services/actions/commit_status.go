@@ -7,7 +7,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"strings"
 
 	actions_model "gitea.dev/models/actions"
 	"gitea.dev/models/db"
@@ -142,11 +141,11 @@ func getCommitStatusEventNameAndCommitID(run *actions_model.ActionRun) (event, c
 
 func createCommitStatus(ctx context.Context, repo *repo_model.Repository, event, commitID, scopedPrefix string, run *actions_model.ActionRun, job *actions_model.ActionRunJob) error {
 	displayName := actions_module.WorkflowDisplayName(run.WorkflowID, job.WorkflowPayload)
-	ctxName := strings.TrimSpace(fmt.Sprintf("%s / %s (%s)", displayName, job.Name, event)) // git_model.NewCommitStatus also trims spaces
+	ctxName := actions_module.WorkflowStatusContextName(displayName, job.Name, event) // git_model.NewCommitStatus also trims spaces
 	if run.IsScopedRun {
 		// A scoped run is prefixed with its source repo (set off by a colon) so it stays distinct from a same-named repo-level workflow.
-		// scopedPrefix is computed once per run by the caller.
-		ctxName = strings.TrimSpace(fmt.Sprintf("%s: %s", scopedPrefix, ctxName))
+		// scopedPrefix is computed once per run by the caller. The settings page derives the same string to preview expected checks.
+		ctxName = actions_module.ScopedWorkflowStatusContextName(scopedPrefix, displayName, job.Name, event)
 	}
 
 	// Mix the workflow file path into the hash so two workflow files that

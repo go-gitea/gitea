@@ -229,23 +229,26 @@ jobs:
 		})
 
 		t.Run("Required scoped check gates the PR merge", func(t *testing.T) {
-			// A required scoped workflow's check gates PR merges on a protected branch and cannot be bypassed.
-			// The scoped check is added to the required set dynamically.
+			// A required scoped workflow's check gates PR merges on a protected branch and cannot be bypassed,
+			// whether or not the branch enables its own status check. The scoped check is added to the required set dynamically.
 			source := createTestRepo(t, "sw-gate-source", false)
 			createRepoWorkflowFile(t, user2, user2Token, source, ".gitea/scoped_workflows/pr.yaml", scopedPRWorkflow)
 			registerUserScopedSource(t, source, "pr.yaml") // required
 
-			// protectAndOpenPR protects consumer's default branch (only "ci/manual" is a CONFIGURED context, not the scoped one),
-			// opens a PR on `branch`, satisfies ci/manual so the scoped check is the only thing that can gate the merge, and returns a builder for the merge request.
-			protectAndOpenPR := func(t *testing.T, consumer *repo_model.Repository, branch string) func() *RequestWrapper {
-				pbReq := NewRequestWithValues(t, "POST", fmt.Sprintf("/%s/%s/settings/branches/edit", consumer.OwnerName, consumer.Name), map[string]string{
+			// protectAndOpenPR protects consumer's default branch and opens a PR on `branch`, returning a merge-request builder.
+			// When statusCheckEnabled it also configures "ci/manual" as the only CONFIGURED required context and satisfies it,
+			// so the scoped check is the only thing that can gate the merge; otherwise the rule's own status check stays off.
+			protectAndOpenPR := func(t *testing.T, consumer *repo_model.Repository, branch string, statusCheckEnabled bool) func() *RequestWrapper {
+				pbValues := map[string]string{
 					"rule_name":                  consumer.DefaultBranch,
 					"enable_push":                "true",
-					"enable_status_check":        "true",
-					"status_check_contexts":      "ci/manual",
 					"block_admin_merge_override": "true", // otherwise the repo owner bypasses the status check
-				})
-				user2Session.MakeRequest(t, pbReq, http.StatusSeeOther)
+				}
+				if statusCheckEnabled {
+					pbValues["enable_status_check"] = "true"
+					pbValues["status_check_contexts"] = "ci/manual"
+				}
+				user2Session.MakeRequest(t, NewRequestWithValues(t, "POST", fmt.Sprintf("/%s/%s/settings/branches/edit", consumer.OwnerName, consumer.Name), pbValues), http.StatusSeeOther)
 
 				prFile := &api.CreateFileOptions{
 					FileOptions: api.FileOptions{
@@ -261,10 +264,12 @@ jobs:
 				pr, err := doAPICreatePullRequest(apiCtx, consumer.OwnerName, consumer.Name, consumer.DefaultBranch, branch)(t)
 				require.NoError(t, err)
 
-				// satisfy the configured "ci/manual" check so only the scoped check can gate the merge
-				manualStatus := NewRequestWithJSON(t, "POST", fmt.Sprintf("/api/v1/repos/%s/%s/statuses/%s", consumer.OwnerName, consumer.Name, pr.Head.Sha),
-					api.CreateStatusOption{State: commitstatus.CommitStatusSuccess, Context: "ci/manual", TargetURL: "http://test.ci/"}).AddTokenAuth(user2Token)
-				user2Session.MakeRequest(t, manualStatus, http.StatusCreated)
+				if statusCheckEnabled {
+					// satisfy the configured "ci/manual" check so only the scoped check can gate the merge
+					manualStatus := NewRequestWithJSON(t, "POST", fmt.Sprintf("/api/v1/repos/%s/%s/statuses/%s", consumer.OwnerName, consumer.Name, pr.Head.Sha),
+						api.CreateStatusOption{State: commitstatus.CommitStatusSuccess, Context: "ci/manual", TargetURL: "http://test.ci/"}).AddTokenAuth(user2Token)
+					user2Session.MakeRequest(t, manualStatus, http.StatusCreated)
+				}
 
 				return func() *RequestWrapper {
 					return NewRequestWithJSON(t, "POST", fmt.Sprintf("/api/v1/repos/%s/%s/pulls/%d/merge", consumer.OwnerName, consumer.Name, pr.Index),
@@ -277,7 +282,7 @@ jobs:
 				runner := newMockRunner()
 				runner.registerAsRepoRunner(t, consumer.OwnerName, consumer.Name, "sw-gate-runner", []string{"ubuntu-latest"}, false)
 
-				mergeReq := protectAndOpenPR(t, consumer, "gate-pr")
+				mergeReq := protectAndOpenPR(t, consumer, "gate-pr", true)
 				run := unittest.AssertExistsAndLoadBean(t, &actions_model.ActionRun{RepoID: consumer.ID, IsScopedRun: true})
 				assert.Equal(t, source.ID, run.WorkflowRepoID)
 
@@ -298,7 +303,7 @@ jobs:
 				consumer := createTestRepo(t, "sw-noact-consumer", false)
 				require.NoError(t, repo_service.UpdateRepositoryUnits(t.Context(), consumer, nil, []unit_model.Type{unit_model.TypeActions}))
 
-				mergeReq := protectAndOpenPR(t, consumer, "noact-pr")
+				mergeReq := protectAndOpenPR(t, consumer, "noact-pr", true)
 				assert.Equal(t, 0, unittest.GetCount(t, &actions_model.ActionRun{RepoID: consumer.ID, IsScopedRun: true}),
 					"Actions disabled, so no scoped run is created")
 
@@ -306,11 +311,39 @@ jobs:
 				assert.NoError(t, queue.GetManager().FlushAll(t.Context(), 5*time.Second))
 				user2Session.MakeRequest(t, mergeReq(), http.StatusMethodNotAllowed)
 			})
+
+			t.Run("status check disabled: the scoped check still gates", func(t *testing.T) {
+				// the scoped check gates the merge even when the branch's OWN status check is off
+				consumer := createTestRepo(t, "sw-nocheck-consumer", false)
+				runner := newMockRunner()
+				runner.registerAsRepoRunner(t, consumer.OwnerName, consumer.Name, "sw-nocheck-runner", []string{"ubuntu-latest"}, false)
+
+				mergeReq := protectAndOpenPR(t, consumer, "nocheck-pr", false)
+				unittest.AssertExistsAndLoadBean(t, &actions_model.ActionRun{RepoID: consumer.ID, IsScopedRun: true})
+
+				// pending scoped check blocks the merge despite the branch's own status check being off
+				assert.NoError(t, queue.GetManager().FlushAll(t.Context(), 5*time.Second))
+				user2Session.MakeRequest(t, mergeReq(), http.StatusMethodNotAllowed)
+
+				// the required scoped run succeeds ->  merge allowed
+				task := runner.fetchTask(t)
+				runner.execTask(t, task, &mockTaskOutcome{result: runnerv1.Result_RESULT_SUCCESS})
+				assert.NoError(t, queue.GetManager().FlushAll(t.Context(), 5*time.Second))
+				user2Session.MakeRequest(t, mergeReq(), http.StatusOK)
+			})
 		})
 
 		t.Run("Settings page required patterns", func(t *testing.T) {
 			source := createTestRepo(t, "sw-settings-source", false)
 			createRepoWorkflowFile(t, user2, user2Token, source, ".gitea/scoped_workflows/push.yaml", scopedPushWorkflow)
+			createRepoWorkflowFile(t, user2, user2Token, source, ".gitea/scoped_workflows/manual.yaml", `name: Manual
+on: workflow_dispatch
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo
+`) // workflow_dispatch posts no status -> the settings page must warn instead of listing contexts
 			registerUserScopedSource(t, source) // registered; each phase configures it via the /required endpoint
 			pattern := source.FullName() + ": * / *"
 
@@ -332,6 +365,8 @@ jobs:
 				assert.Contains(t, body, pattern, "the saved pattern round-trips into the textarea")
 				// the default prefill must use the workflow display name so it matches the status context the run posts (name: Scoped Push)
 				assert.Contains(t, body, `data-default-pattern="`+source.FullName()+`: Scoped Push / *"`)
+				// the expected-checks preview derives the exact context a run posts (job scoped-job, event push) for live glob matching
+				assert.Contains(t, body, `data-context="`+source.FullName()+`: Scoped Push / scoped-job (push)"`)
 			})
 
 			t.Run("live pattern kept as history after un-require", func(t *testing.T) {
@@ -362,6 +397,14 @@ jobs:
 				src := loadSource(t)
 				assert.Nil(t, src.WorkflowConfigs["gone.yaml"], "orphan dropped after un-require, not kept as history")
 				assert.True(t, src.IsWorkflowRequired("push.yaml"), "live required workflow kept")
+			})
+
+			t.Run("warns when a workflow posts no status checks", func(t *testing.T) {
+				// manual.yaml only runs on workflow_dispatch, which posts no commit status: instead of listing expected checks,
+				// its row shows a warning not to mark it required (must-present would block forever).
+				body := settingsBody(t)
+				assert.Contains(t, body, "posts no status checks", "the no-status-check warning is shown")
+				assert.NotContains(t, body, `data-context="`+source.FullName()+`: Manual /`, "a workflow_dispatch-only workflow must list no expected contexts")
 			})
 		})
 

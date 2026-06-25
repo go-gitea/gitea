@@ -5,6 +5,7 @@ package actions
 
 import (
 	"bytes"
+	"fmt"
 	"path"
 	"slices"
 	"strings"
@@ -141,6 +142,28 @@ func WorkflowDisplayName(file string, content []byte) string {
 		}
 	}
 	return displayName
+}
+
+// WorkflowStatusContextName builds a workflow job's commit-status context name: "<display> / <job> (<event>)".
+func WorkflowStatusContextName(displayName, jobName, event string) string {
+	return strings.TrimSpace(fmt.Sprintf("%s / %s (%s)", displayName, jobName, event))
+}
+
+// ScopedWorkflowStatusContextName prefixes a scoped run's status-check context with its source repo, set off by a colon: "<prefix>: <display> / <job> (<event>)".
+func ScopedWorkflowStatusContextName(prefix, displayName, jobName, event string) string {
+	return strings.TrimSpace(fmt.Sprintf("%s: %s", prefix, WorkflowStatusContextName(displayName, jobName, event)))
+}
+
+// ShouldEventCreateCommitStatus reports whether a run triggered by the given workflow `on:` event posts a commit status,
+// so its context can serve as a required status check.
+// TODO: this allowlist duplicates the truth in services/actions.getCommitStatusEventNameAndCommitID, which decides the actual event string and whether a status is posted.
+// The two are kept in sync by hand and can drift; unify them into a single source so adding a status-producing event in one place automatically updates the other.
+func ShouldEventCreateCommitStatus(event string) bool {
+	switch event {
+	case "push", "pull_request", "pull_request_target", "release":
+		return true
+	}
+	return false
 }
 
 func DetectWorkflows(

@@ -11,6 +11,8 @@ import (
 
 	actions_model "gitea.dev/models/actions"
 	repo_model "gitea.dev/models/repo"
+	actions_module "gitea.dev/modules/actions"
+	"gitea.dev/modules/actions/jobparser"
 	"gitea.dev/modules/container"
 	"gitea.dev/modules/log"
 	"gitea.dev/modules/setting"
@@ -82,8 +84,9 @@ type scopedWorkflowInfo struct {
 	EntryName   string
 	DisplayName string
 	Required    bool
-	Patterns    string // newline-joined stored status-check patterns (kept even when not required, as history)
-	Missing     bool   // the workflow file no longer exists on the source default branch, but a stored config lingers and must stay clearable
+	Patterns    string   // newline-joined stored status-check patterns (kept even when not required, as history)
+	Contexts    []string // the commit-status contexts this workflow is expected to post, to preview which patterns match
+	Missing     bool     // the workflow file no longer exists on the source default branch, but a stored config lingers and must stay clearable
 }
 
 // scopedWorkflowSourceView is the per-source data shown on the settings page.
@@ -155,6 +158,41 @@ func parsePatternLines(raw string) []string {
 	return patterns
 }
 
+// deriveScopedStatusContexts returns the commit-status contexts a scoped workflow is expected to post on a consumer:
+// "<source FullName>: <display> / <job> (<event>)" for each parsed job (matrix-expanded, matching run creation) and triggering event.
+// Job names that depend on run-context expressions cannot resolve here (no run context) and appear as authored; a glob pattern still matches them.
+func deriveScopedStatusContexts(prefix, displayName string, content []byte, events []*jobparser.Event) []string {
+	parsed, err := jobparser.Parse(content)
+	if err != nil {
+		return nil
+	}
+	eventNames := make([]string, 0, len(events))
+	for _, e := range events {
+		// only events whose runs post a commit status can be a required check; workflow_dispatch, schedule, etc. post none.
+		if actions_module.ShouldEventCreateCommitStatus(e.Name) {
+			eventNames = append(eventNames, e.Name)
+		}
+	}
+	seen := make(container.Set[string])
+	contexts := make([]string, 0, len(parsed)*len(eventNames))
+	for _, sw := range parsed {
+		_, job := sw.Job()
+		if job == nil {
+			continue
+		}
+		jobName := util.EllipsisDisplayString(job.Name, 255) // run creation truncates job names the same way
+		for _, ev := range eventNames {
+			ctxName := actions_module.ScopedWorkflowStatusContextName(prefix, displayName, jobName, ev)
+			if seen.Contains(ctxName) {
+				continue
+			}
+			seen.Add(ctxName)
+			contexts = append(contexts, ctxName)
+		}
+	}
+	return contexts
+}
+
 func listSourceScopedWorkflowFiles(ctx *context.Context, repo *repo_model.Repository, configs map[string]*actions_model.ScopedWorkflowConfig) []scopedWorkflowInfo {
 	rendered := make(container.Set[string], len(configs))
 	files := make([]scopedWorkflowInfo, 0, len(configs))
@@ -167,7 +205,11 @@ func listSourceScopedWorkflowFiles(ctx *context.Context, repo *repo_model.Reposi
 			log.Error("scoped workflows settings: parse %s: %v", repo.RelativePath(), err)
 		} else {
 			for _, p := range parsed {
-				info := scopedWorkflowInfo{EntryName: p.EntryName, DisplayName: p.DisplayName}
+				info := scopedWorkflowInfo{
+					EntryName:   p.EntryName,
+					DisplayName: p.DisplayName,
+					Contexts:    deriveScopedStatusContexts(repo.FullName(), p.DisplayName, p.Content, p.Events),
+				}
 				if cfg := configs[p.EntryName]; cfg != nil {
 					info.Required = cfg.Required
 					info.Patterns = strings.Join(cfg.Patterns, "\n")

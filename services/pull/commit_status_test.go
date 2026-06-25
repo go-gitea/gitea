@@ -109,11 +109,11 @@ func TestEffectiveRequiredContexts(t *testing.T) {
 		assert.Nil(t, got)
 	})
 
-	t.Run("status checks disabled: configured contexts unchanged", func(t *testing.T) {
+	t.Run("status checks disabled, no required scoped: nothing required", func(t *testing.T) {
 		pbOff := &git_model.ProtectedBranch{EnableStatusCheck: false, StatusCheckContexts: []string{"configured/check"}}
 		got, err := EffectiveRequiredContexts(t.Context(), consumer, pbOff)
 		require.NoError(t, err)
-		assert.Equal(t, []string{"configured/check"}, got)
+		assert.Empty(t, got) // the rule's own status check is off and no required scoped workflow applies -> nothing gates
 	})
 
 	t.Run("owner with no scoped sources: configured contexts unchanged", func(t *testing.T) {
@@ -141,5 +141,16 @@ func TestEffectiveRequiredContexts(t *testing.T) {
 			"org/src: ci.yaml / lint (pull_request)",
 		}, got)
 		assert.NotContains(t, got, "org/src: old.yaml / *", "a non-required (history) config must not be enforced")
+	})
+
+	t.Run("status checks disabled, with required scoped: only the scoped patterns gate", func(t *testing.T) {
+		pbOff := &git_model.ProtectedBranch{EnableStatusCheck: false, StatusCheckContexts: []string{"configured/check"}}
+		got, err := EffectiveRequiredContexts(t.Context(), consumer, pbOff)
+		require.NoError(t, err)
+		// "configured/check" is dropped (the rule's own status check is off); only the required scoped patterns remain.
+		assert.ElementsMatch(t, []string{
+			"org/src: ci.yaml / build (pull_request)",
+			"org/src: ci.yaml / lint (pull_request)",
+		}, got)
 	})
 }

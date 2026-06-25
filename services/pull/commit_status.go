@@ -73,10 +73,24 @@ func MergeRequiredContextsCommitStatus(commitStatuses []*git_model.CommitStatus,
 func IsPullCommitStatusPass(ctx context.Context, pr *issues_model.PullRequest) (bool, error) {
 	pb, err := git_model.GetFirstMatchProtectedBranchRule(ctx, pr.BaseRepoID, pr.BaseBranch)
 	if err != nil {
-		return false, fmt.Errorf("GetLatestCommitStatus: %w", err)
+		return false, fmt.Errorf("GetFirstMatchProtectedBranchRule: %w", err)
 	}
-	if pb == nil || !pb.EnableStatusCheck {
+	if pb == nil {
 		return true, nil
+	}
+	if !pb.EnableStatusCheck {
+		// The branch's own status check is off, but required scoped checks (mandated by the owner or instance admin) still gate the merge.
+		if err := pr.LoadBaseRepo(ctx); err != nil {
+			return false, err
+		}
+		required, err := EffectiveRequiredContexts(ctx, pr.BaseRepo, pb)
+		if err != nil {
+			return false, err
+		}
+		if len(required) == 0 {
+			// With none in effect there is nothing to enforce, so don't block
+			return true, nil
+		}
 	}
 
 	state, err := GetPullRequestCommitStatusState(ctx, pr)
@@ -143,14 +157,11 @@ func GetPullRequestCommitStatusState(ctx context.Context, pr *issues_model.PullR
 }
 
 // EffectiveRequiredContexts returns the required status-check contexts for a PR head:
-//  1. the branch protection's configured contexts
-//  2. the status-check patterns of every required scoped workflow effective for the repo
+//  1. every required scoped workflow's status-check patterns effective for the repo (always)
+//  2. the branch protection's own configured contexts, only when its status check is enabled
 func EffectiveRequiredContexts(ctx context.Context, repo *repo_model.Repository, pb *git_model.ProtectedBranch) ([]string, error) {
 	if pb == nil {
 		return nil, nil
-	}
-	if !pb.EnableStatusCheck {
-		return pb.StatusCheckContexts, nil
 	}
 
 	sources, err := actions_model.GetEffectiveScopedWorkflowSources(ctx, repo.OwnerID)
@@ -158,11 +169,9 @@ func EffectiveRequiredContexts(ctx context.Context, repo *repo_model.Repository,
 		return nil, fmt.Errorf("GetEffectiveScopedWorkflowSources: %w", err)
 	}
 
-	// Append each required scoped workflow's admin-authored status-check patterns to the required set.
-	// They are matched must-present-and-pass: a required scoped check that posts no matching status blocks the merge.
-	required := slices.Clone(pb.StatusCheckContexts)
-	// Seed the de-dupe set with the configured contexts so a scoped pattern identical to one of them is not duplicated.
-	seen := container.SetOf(pb.StatusCheckContexts...)
+	// Every required scoped workflow's admin-authored status-check patterns, matched must-present-and-pass:
+	// a required scoped check that posts no matching status blocks the merge.
+	seen := make(container.Set[string])
 	var scoped []string
 	for _, source := range sources {
 		for _, cfg := range source.WorkflowConfigs {
@@ -176,7 +185,20 @@ func EffectiveRequiredContexts(ctx context.Context, repo *repo_model.Repository,
 			}
 		}
 	}
-	// WorkflowConfigs is a map (random iteration order); sort the appended patterns for stable output.
-	slices.Sort(scoped)
-	return append(required, scoped...), nil
+
+	slices.Sort(scoped) // sort for stable output
+
+	// With the branch protection's own status check disabled, only the required scoped checks (mandated by the owner or instance admin) gate the merge.
+	if !pb.EnableStatusCheck {
+		return scoped, nil
+	}
+
+	// Status check enabled: the rule's configured contexts, then the scoped patterns not already among them.
+	required := slices.Clone(pb.StatusCheckContexts)
+	for _, p := range scoped {
+		if !slices.Contains(pb.StatusCheckContexts, p) {
+			required = append(required, p)
+		}
+	}
+	return required, nil
 }

@@ -58,3 +58,40 @@ test('an already-required row stays shown with its stored patterns (not re-prefi
   expect(textarea.classList.contains('tw-hidden')).toBe(false);
   expect(textarea.value).toBe('org/src: custom / build (push)');
 });
+
+function setupFormWithContexts(patterns: string) {
+  window.document.body.innerHTML = `
+<form>
+  <table><tbody>
+    <tr>
+      <td>ci.yaml<input type="hidden" name="workflow_ids" value="ci.yaml"></td>
+      <td><div class="ui checkbox"><input type="checkbox" class="js-scoped-required-toggle" checked><label></label></div></td>
+      <td>
+        <textarea class="js-scoped-required-patterns" data-default-pattern="org/src: CI / *">${patterns}</textarea>
+        <span class="js-scoped-required-hint tw-hidden">hint</span>
+        <table class="js-scoped-required-contexts"><tbody>
+          <tr><td><span class="js-scoped-context" data-context="org/src: CI / lint (push)"></span><span class="js-scoped-context-matched tw-hidden">Matched</span></td></tr>
+          <tr><td><span class="js-scoped-context" data-context="org/src: CI / build (push)"></span><span class="js-scoped-context-matched tw-hidden">Matched</span></td></tr>
+        </tbody></table>
+      </td>
+    </tr>
+  </tbody></table>
+</form>`;
+  const form = document.querySelector('form')!;
+  const [lintMark, buildMark] = Array.from(form.querySelectorAll<HTMLElement>('.js-scoped-context-matched'));
+  return {form, lintMark, buildMark};
+}
+
+test('an exact pattern marks only the context it matches', () => {
+  const {form, lintMark, buildMark} = setupFormWithContexts('org/src: CI / lint (push)');
+  initScopedWorkflowRequired(form);
+  expect(lintMark.classList.contains('tw-hidden')).toBe(false); // matched
+  expect(buildMark.classList.contains('tw-hidden')).toBe(true); // not matched
+});
+
+test('a wildcard pattern marks every matching context (glob is /-aware)', () => {
+  const {form, lintMark, buildMark} = setupFormWithContexts('org/src: CI / *');
+  initScopedWorkflowRequired(form);
+  expect(lintMark.classList.contains('tw-hidden')).toBe(false);
+  expect(buildMark.classList.contains('tw-hidden')).toBe(false);
+});
