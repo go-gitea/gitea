@@ -5,9 +5,12 @@ package devtest
 
 import (
 	"archive/zip"
+	"bytes"
+	"embed"
 	"fmt"
 	"io"
 	mathRand "math/rand/v2"
+	"mime"
 	"net/http"
 	"net/url"
 	"path"
@@ -33,6 +36,44 @@ type mockArtifactFile struct {
 	Content string
 }
 
+//go:embed testdata/artifact-lcov-coverage.zip
+var mockActionsArtifactFixtureFS embed.FS
+
+func loadMockArtifactFilesFromFixtureZip(name string) []mockArtifactFile {
+	data, err := mockActionsArtifactFixtureFS.ReadFile(name)
+	if err != nil {
+		panic(fmt.Sprintf("read devtest artifact fixture %q: %v", name, err))
+	}
+	reader, err := zip.NewReader(bytes.NewReader(data), int64(len(data)))
+	if err != nil {
+		panic(fmt.Sprintf("open devtest artifact fixture %q: %v", name, err))
+	}
+
+	files := make([]mockArtifactFile, 0, len(reader.File))
+	for _, file := range reader.File {
+		if file.FileInfo().IsDir() {
+			continue
+		}
+		rc, err := file.Open()
+		if err != nil {
+			panic(fmt.Sprintf("open devtest artifact fixture file %q: %v", file.Name, err))
+		}
+		content, err := io.ReadAll(rc)
+		_ = rc.Close()
+		if err != nil {
+			panic(fmt.Sprintf("read devtest artifact fixture file %q: %v", file.Name, err))
+		}
+		files = append(files, mockArtifactFile{
+			Path:    file.Name,
+			Content: string(content),
+		})
+	}
+	slices.SortFunc(files, func(a, b mockArtifactFile) int {
+		return strings.Compare(a.Path, b.Path)
+	})
+	return files
+}
+
 var mockActionsArtifactFiles = map[string][]mockArtifactFile{
 	"artifact-b": {
 		{
@@ -40,95 +81,7 @@ var mockActionsArtifactFiles = map[string][]mockArtifactFile{
 			Content: "artifact-b report",
 		},
 	},
-	"artifact-lcov-coverage": {
-		{
-			Path: "coverage/index.html",
-			// Realistic genhtml-style report. CSS is inlined because the raw
-			// handler sniffs external .css files as text/plain, which browsers
-			// refuse to apply as a stylesheet. JS is intentionally blocked by
-			// the iframe sandbox="" (no allow-scripts).
-			Content: `<!DOCTYPE html>
-<html lang="en">
-<head>
-<meta charset="UTF-8"/>
-<title>LCOV - Coverage Report</title>
-<style>
-body{font-family:sans-serif;font-size:14px;margin:1em}
-table{border-collapse:collapse;width:100%}
-th,td{padding:4px 8px;text-align:left;border:1px solid #ccc}
-th{background:#4a90d9;color:#fff;cursor:pointer}
-.hi{background:#cfc}.med{background:#ffc}.lo{background:#fcc}
-.bar{display:inline-block;height:12px;background:#4a90d9}
-.pct{min-width:3em;text-align:right}
-#sort-note{color:#888;font-size:12px;margin-top:.5em}
-</style>
-<script>
-// Column sorting — blocked by iframe sandbox="" (no allow-scripts)
-document.addEventListener("DOMContentLoaded", function() {
-  document.getElementById("sort-note").textContent = "JS loaded: sorting enabled";
-  document.querySelectorAll("th[data-col]").forEach(function(th) {
-    th.addEventListener("click", function() {
-      var col = parseInt(th.getAttribute("data-col"));
-      var tbody = document.querySelector("tbody");
-      var rows = Array.from(tbody.querySelectorAll("tr"));
-      rows.sort(function(a, b) {
-        return a.cells[col].textContent.localeCompare(b.cells[col].textContent, undefined, {numeric: true});
-      });
-      rows.forEach(function(r) { tbody.appendChild(r); });
-    });
-  });
-});
-</script>
-</head>
-<body>
-<h2>Coverage Report</h2>
-<table>
-  <thead>
-    <tr>
-      <th>Directory/File</th>
-      <th>Lines</th>
-      <th>Coverage</th>
-    </tr>
-  </thead>
-  <tbody>
-    <tr><td>src/</td><td></td><td></td></tr>
-    <tr class="hi"><td>&nbsp;&nbsp;<a href="main.go.html">main.go</a></td><td>120 / 132</td><td>90.9 %</td></tr>
-    <tr class="med"><td>&nbsp;&nbsp;<a href="util.go.html">util.go</a></td><td>45 / 60</td><td>75.0 %</td></tr>
-    <tr class="lo"><td>&nbsp;&nbsp;<a href="legacy.go.html">legacy.go</a></td><td>12 / 38</td><td>31.6 %</td></tr>
-    <tr><th colspan="3">Total: 177 / 230 &mdash; 76.9 %</th></tr>
-  </tbody>
-</table>
-<p id="sort-note">(JS sandboxed — column sorting disabled)</p>
-</body>
-</html>`,
-		},
-		{
-			Path:    "coverage/lcov.info",
-			Content: "TN:\nSF:src/main.go\nDA:1,1\nDA:2,1\nDA:10,0\nend_of_record\nTN:\nSF:src/util.go\nDA:1,1\nDA:5,0\nend_of_record\n",
-		},
-		{
-			Path: "coverage/main.go.html",
-			Content: `<!DOCTYPE html>
-<html lang="en">
-<head><meta charset="UTF-8"/><title>main.go - Coverage</title>
-<style>
-body{font-family:monospace;font-size:13px}
-.hit{background:#cfc}.miss{background:#fcc}.neutral{background:#eee}
-td:first-child{color:#888;text-align:right;padding-right:8px;user-select:none}
-</style>
-</head>
-<body>
-<h3>src/main.go</h3>
-<table>
-<tr><td>1</td><td class="hit">func main() {</td></tr>
-<tr><td>2</td><td class="hit">  fmt.Println("hello")</td></tr>
-<tr><td>3</td><td class="neutral">}</td></tr>
-<tr><td>10</td><td class="miss">  unusedFunc()</td></tr>
-</table>
-</body>
-</html>`,
-		},
-	},
+	"artifact-lcov-coverage": loadMockArtifactFilesFromFixtureZip("testdata/artifact-lcov-coverage.zip"),
 	"artifact-really-loooooooooooooooooooooooooooooooooooooooooooooooooooooooong": {
 		{
 			Path:    "index.html",
@@ -676,13 +629,7 @@ func MockActionsArtifactPreview(ctx *context.Context) {
 
 	requested := actions.GetRequestedPreviewPath(ctx)
 	selectedPath := actions.ChoosePreviewPath(mockArtifactFilePaths(files), requested)
-	previewFiles := make([]actions.ArtifactPreviewFile, 0, len(files))
-	for _, file := range files {
-		previewFiles = append(previewFiles, actions.ArtifactPreviewFile{
-			Path:     file.Path,
-			Selected: file.Path == selectedPath,
-		})
-	}
+	previewFiles := actions.BuildArtifactPreviewFiles(mockArtifactFilePaths(files), selectedPath)
 
 	runURL := fmt.Sprintf("%s/devtest/repo-action-view/runs/%d", setting.AppSubURL, runID)
 	previewURL := runURL + "/artifacts/" + url.PathEscape(artifactName) + "/preview"
@@ -727,13 +674,19 @@ func MockActionsArtifactPreviewRaw(ctx *context.Context) {
 	}
 
 	contentType := "text/plain; charset=utf-8"
+	contentSecurityPolicy := ""
 	if path.Ext(selectedFile.Path) == ".html" {
 		contentType = "text/html"
+		contentSecurityPolicy = actions.ArtifactPreviewHTMLContentSecurityPolicy(ctx)
+	} else if mappedContentType := mime.TypeByExtension(path.Ext(selectedFile.Path)); strings.HasPrefix(mappedContentType, "text/") || strings.Contains(mappedContentType, "javascript") {
+		contentType = mappedContentType
 	}
 	size := int64(len(selectedFile.Content))
 	ctx.ServeContent(strings.NewReader(selectedFile.Content), context.ServeHeaderOptions{
-		Filename:      selectedFile.Path,
-		ContentLength: &size,
-		ContentType:   contentType,
+		Filename:              selectedFile.Path,
+		ContentDisposition:    httplib.ContentDispositionInline,
+		ContentLength:         &size,
+		ContentType:           contentType,
+		ContentSecurityPolicy: contentSecurityPolicy,
 	})
 }

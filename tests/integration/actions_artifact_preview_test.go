@@ -11,10 +11,11 @@ import (
 	"strings"
 	"testing"
 
-	actions_model "code.gitea.io/gitea/models/actions"
-	repo_model "code.gitea.io/gitea/models/repo"
-	"code.gitea.io/gitea/models/unittest"
-	"code.gitea.io/gitea/modules/storage"
+	actions_model "gitea.dev/models/actions"
+	repo_model "gitea.dev/models/repo"
+	"gitea.dev/models/unittest"
+	"gitea.dev/modules/setting"
+	"gitea.dev/modules/storage"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -51,8 +52,9 @@ func TestActionsArtifactPreviewSingleFile(t *testing.T) {
 	resp := session.MakeRequest(t, req, http.StatusOK)
 	assert.Contains(t, resp.Body.String(), "abc.txt")
 	assert.Contains(t, resp.Body.String(), "/preview/raw/abc.txt")
-	assert.Contains(t, resp.Body.String(), `sandbox="allow-scripts"`)
-	assert.Contains(t, resp.Body.String(), `referrerpolicy="no-referrer"`)
+	assert.Contains(t, resp.Body.String(), `target="_blank"`)
+	assert.Contains(t, resp.Body.String(), `rel="noopener noreferrer"`)
+	assert.NotContains(t, resp.Body.String(), "<iframe")
 
 	req = NewRequestf(t, "GET", "/%s/actions/runs/791/artifacts/artifact-download/preview/raw", repo.FullName())
 	resp = session.MakeRequest(t, req, http.StatusOK)
@@ -74,6 +76,7 @@ func TestActionsArtifactPreviewMultiFile(t *testing.T) {
 	req = NewRequestf(t, "GET", "/%s/actions/runs/791/artifacts/multi-file-download/preview?path=%s", repo.FullName(), url.QueryEscape("xyz/def.txt"))
 	resp = session.MakeRequest(t, req, http.StatusOK)
 	assert.Contains(t, resp.Body.String(), "/preview/raw/xyz/def.txt")
+	assert.Contains(t, resp.Body.String(), `target="_blank"`)
 
 	req = NewRequestf(t, "GET", "/%s/actions/runs/791/artifacts/multi-file-download/preview/raw/xyz/def.txt", repo.FullName())
 	resp = session.MakeRequest(t, req, http.StatusOK)
@@ -92,7 +95,7 @@ func TestActionsArtifactPreviewPathTraversal(t *testing.T) {
 	resp := session.MakeRequest(t, req, http.StatusOK)
 	assert.Contains(t, resp.Body.String(), "abc.txt")
 	assert.NotContains(t, resp.Body.String(), "etc/passwd")
-	// the iframe element is rendered only when a preview file is selected.
+	// The artifact browser is still rendered, but no embedded preview is used.
 	assert.NotContains(t, resp.Body.String(), "<iframe")
 
 	// URL-encoded so the router doesn't collapse the segments before the handler sees them.
@@ -121,7 +124,30 @@ func TestActionsArtifactPreviewHTMLSandboxCSP(t *testing.T) {
 	req := NewRequestf(t, "GET", "/%s/actions/runs/791/artifacts/artifact-download/preview/raw", repo.FullName())
 	resp := session.MakeRequest(t, req, http.StatusOK)
 	assert.Contains(t, resp.Header().Get("Content-Security-Policy"), "sandbox")
+	assert.Contains(t, resp.Header().Get("Content-Security-Policy"), "default-src 'none'")
+	assert.Contains(t, resp.Header().Get("Content-Security-Policy"), "connect-src 'none'")
+	assert.NotContains(t, resp.Header().Get("Content-Security-Policy"), "allow-same-origin")
 	assert.Contains(t, resp.Header().Get("Content-Type"), "text/html")
+}
+
+func TestActionsArtifactPreviewArtifactTooLarge(t *testing.T) {
+	defer prepareTestEnvActionsArtifacts(t)()
+	oldMaxSize := setting.Actions.ArtifactPreviewMaxSize
+	defer func() {
+		setting.Actions.ArtifactPreviewMaxSize = oldMaxSize
+	}()
+	setting.Actions.ArtifactPreviewMaxSize = 1
+
+	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 4})
+	session := loginUser(t, "user2")
+
+	req := NewRequestf(t, "GET", "/%s/actions/runs/791/artifacts/artifact-download/preview", repo.FullName())
+	resp := session.MakeRequest(t, req, http.StatusOK)
+	assert.Contains(t, resp.Body.String(), "This artifact is too large to preview")
+	assert.NotContains(t, resp.Body.String(), "/preview/raw/abc.txt")
+
+	req = NewRequestf(t, "GET", "/%s/actions/runs/791/artifacts/artifact-download/preview/raw/abc.txt", repo.FullName())
+	session.MakeRequest(t, req, http.StatusRequestEntityTooLarge)
 }
 
 func TestActionsArtifactPreviewV4Zip(t *testing.T) {
@@ -129,6 +155,8 @@ func TestActionsArtifactPreviewV4Zip(t *testing.T) {
 
 	zipBytes := buildArtifactZip(t, map[string]string{
 		"index.html":      "<html><body><h1>v4 zip</h1></body></html>",
+		"style.css":       "body{color:red}",
+		"sort.js":         "document.body.dataset.sorted = 'true';",
 		"logs/output.txt": "v4 log output",
 	})
 	overwriteArtifactStorageContent(t, 22, zipBytes)
@@ -143,12 +171,26 @@ func TestActionsArtifactPreviewV4Zip(t *testing.T) {
 	assert.Contains(t, body, "index.html")
 	assert.Contains(t, body, "logs/output.txt")
 	assert.Contains(t, body, "/preview/raw/index.html")
+	assert.Contains(t, body, `target="_blank"`)
+	assert.Contains(t, body, `rel="noopener noreferrer"`)
+	assert.NotContains(t, body, "<iframe")
 
 	req = NewRequestf(t, "GET", "/%s/actions/runs/792/artifacts/artifact-v4-download/preview/raw/index.html", repo.FullName())
 	resp = session.MakeRequest(t, req, http.StatusOK)
 	assert.Equal(t, "<html><body><h1>v4 zip</h1></body></html>", resp.Body.String())
 	assert.Contains(t, resp.Header().Get("Content-Type"), "text/html")
+	assert.Contains(t, resp.Header().Get("Content-Disposition"), "inline")
 	assert.Contains(t, resp.Header().Get("Content-Security-Policy"), "sandbox")
+
+	req = NewRequestf(t, "GET", "/%s/actions/runs/792/artifacts/artifact-v4-download/preview/raw/style.css", repo.FullName())
+	resp = session.MakeRequest(t, req, http.StatusOK)
+	assert.Equal(t, "body{color:red}", resp.Body.String())
+	assert.Contains(t, resp.Header().Get("Content-Type"), "text/css")
+
+	req = NewRequestf(t, "GET", "/%s/actions/runs/792/artifacts/artifact-v4-download/preview/raw/sort.js", repo.FullName())
+	resp = session.MakeRequest(t, req, http.StatusOK)
+	assert.Equal(t, "document.body.dataset.sorted = 'true';", resp.Body.String())
+	assert.Contains(t, resp.Header().Get("Content-Type"), "javascript")
 
 	req = NewRequestf(t, "GET", "/%s/actions/runs/792/artifacts/artifact-v4-download/preview/raw/logs/output.txt", repo.FullName())
 	resp = session.MakeRequest(t, req, http.StatusOK)

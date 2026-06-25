@@ -10,8 +10,10 @@ import (
 	"fmt"
 	"html"
 	"io"
+	"mime"
 	"net/http"
 	"net/url"
+	pathpkg "path"
 	"sort"
 	"strconv"
 	"strings"
@@ -38,13 +40,17 @@ type ArtifactsViewItem struct {
 }
 
 type ArtifactPreviewFile struct {
-	Path     string
-	Selected bool
+	Path        string
+	Name        string
+	IndentClass string
+	IsDir       bool
+	Selected    bool
 }
 
 const (
 	artifactPreviewV4ZipListCacheTTL        = 10 * time.Minute
 	artifactPreviewV4ZipListCacheMaxEntries = 128
+	artifactPreviewMaxFiles                 = 2000
 )
 
 type artifactPreviewV4ZipListCacheEntry struct {
@@ -173,6 +179,81 @@ func ChoosePreviewPath(paths []string, requested string) string {
 		return requested
 	}
 	return ""
+}
+
+func artifactPreviewIndentClass(depth int) string {
+	if depth <= 0 {
+		return ""
+	}
+	return fmt.Sprintf("artifact-preview-depth-%d", min(depth, 10))
+}
+
+// BuildArtifactPreviewFiles builds a directory-grouped file tree for the artifact browser.
+func BuildArtifactPreviewFiles(paths []string, selectedPath string) []ArtifactPreviewFile {
+	previewFiles := make([]ArtifactPreviewFile, 0, len(paths))
+	seenDirs := map[string]struct{}{}
+	for _, filePath := range paths {
+		parts := strings.Split(filePath, "/")
+		for i := 0; i < len(parts)-1; i++ {
+			dirPath := strings.Join(parts[:i+1], "/")
+			if _, ok := seenDirs[dirPath]; ok {
+				continue
+			}
+			seenDirs[dirPath] = struct{}{}
+			previewFiles = append(previewFiles, ArtifactPreviewFile{
+				Path:        dirPath,
+				Name:        parts[i],
+				IndentClass: artifactPreviewIndentClass(i),
+				IsDir:       true,
+			})
+		}
+		previewFiles = append(previewFiles, ArtifactPreviewFile{
+			Path:        filePath,
+			Name:        pathpkg.Base(filePath),
+			IndentClass: artifactPreviewIndentClass(len(parts) - 1),
+			Selected:    filePath == selectedPath,
+		})
+	}
+	return previewFiles
+}
+
+func limitArtifactPreviewPaths(paths []string, selectedPath string) ([]string, bool) {
+	if len(paths) <= artifactPreviewMaxFiles {
+		return paths, false
+	}
+	limited := append([]string(nil), paths[:artifactPreviewMaxFiles]...)
+	if selectedPath != "" && !util.SliceContainsString(limited, selectedPath) && util.SliceContainsString(paths, selectedPath) {
+		limited[len(limited)-1] = selectedPath
+	}
+	return limited, true
+}
+
+func artifactPreviewTotalSize(artifacts []*actions_model.ActionArtifact) int64 {
+	var size int64
+	for _, artifact := range artifacts {
+		size += artifact.FileSize
+	}
+	return size
+}
+
+func isArtifactPreviewSizeAllowed(artifacts []*actions_model.ActionArtifact) bool {
+	maxSize := setting.Actions.ArtifactPreviewMaxSize
+	if maxSize < 0 {
+		return true
+	}
+	if maxSize == 0 {
+		return false
+	}
+	return artifactPreviewTotalSize(artifacts) <= maxSize
+}
+
+// ArtifactPreviewHTMLContentSecurityPolicy returns the sandboxed CSP for rendered artifact HTML.
+func ArtifactPreviewHTMLContentSecurityPolicy(ctx *context_module.Context) string {
+	source := "'self'"
+	if currentURL, err := url.Parse(httplib.GuessCurrentHostURL(ctx)); err == nil && currentURL.Scheme != "" && currentURL.Host != "" {
+		source += " " + currentURL.Scheme + "://" + currentURL.Host
+	}
+	return fmt.Sprintf("default-src 'none'; script-src %s 'unsafe-inline'; style-src %s 'unsafe-inline'; img-src %s data:; connect-src 'none'; sandbox allow-scripts", source, source, source)
 }
 
 func listPreviewPathsForLegacyArtifacts(artifacts []*actions_model.ActionArtifact) []string {
@@ -321,6 +402,29 @@ func isPreviewableArtifactType(st typesniffer.SniffedType) bool {
 	return st.IsText() || st.IsPDF()
 }
 
+func artifactPreviewContentType(filename string, st typesniffer.SniffedType) string {
+	switch strings.ToLower(pathpkg.Ext(filename)) {
+	case ".css", ".js", ".mjs":
+		if contentType := mime.TypeByExtension(pathpkg.Ext(filename)); contentType != "" {
+			return contentType
+		}
+	}
+	return st.GetMimeType()
+}
+
+func artifactPreviewServeHeaderOptions(ctx *context_module.Context, path string, st typesniffer.SniffedType) context_module.ServeHeaderOptions {
+	contentType := artifactPreviewContentType(path, st)
+	opts := context_module.ServeHeaderOptions{
+		Filename:           path,
+		ContentDisposition: httplib.ContentDispositionInline,
+		ContentType:        contentType,
+	}
+	if strings.HasPrefix(contentType, "text/html") {
+		opts.ContentSecurityPolicy = ArtifactPreviewHTMLContentSecurityPolicy(ctx)
+	}
+	return opts
+}
+
 // WritePreviewRawError writes a minimal self-contained HTML error page directly to the response,
 // bypassing Gitea's template system so the full Gitea UI is never rendered inside the preview iframe.
 func WritePreviewRawError(ctx *context_module.Context, status int, msg string) {
@@ -380,10 +484,7 @@ func previewArtifactByReadSeeker(ctx *context_module.Context, path string, reade
 	}
 
 	// CSP sandbox is applied by httplib.ServeSetHeaders, see HINT: PDF-RENDER-SANDBOX
-	ctx.ServeContent(reader, context_module.ServeHeaderOptions{
-		Filename:    path,
-		ContentType: st.GetMimeType(),
-	})
+	ctx.ServeContent(reader, artifactPreviewServeHeaderOptions(ctx, path, st))
 }
 
 func ArtifactsPreviewView(ctx *context_module.Context) {
@@ -394,21 +495,19 @@ func ArtifactsPreviewView(ctx *context_module.Context) {
 		return
 	}
 
-	paths, err := listPreviewPaths(artifacts)
-	if err != nil {
-		ctx.ServerError("listPreviewPaths", err)
-		return
+	var paths []string
+	if isArtifactPreviewSizeAllowed(artifacts) {
+		var err error
+		paths, err = listPreviewPaths(artifacts)
+		if err != nil {
+			ctx.ServerError("listPreviewPaths", err)
+			return
+		}
 	}
 	requested := GetRequestedPreviewPath(ctx)
 	selectedPath := ChoosePreviewPath(paths, requested)
-
-	previewFiles := make([]ArtifactPreviewFile, 0, len(paths))
-	for _, path := range paths {
-		previewFiles = append(previewFiles, ArtifactPreviewFile{
-			Path:     path,
-			Selected: path == selectedPath,
-		})
-	}
+	limitedPaths, previewFilesTruncated := limitArtifactPreviewPaths(paths, selectedPath)
+	previewFiles := BuildArtifactPreviewFiles(limitedPaths, selectedPath)
 
 	runURL := run.Link()
 	artifactPath := url.PathEscape(artifactName)
@@ -431,6 +530,8 @@ func ArtifactsPreviewView(ctx *context_module.Context) {
 	ctx.Data["AttemptAmpQuery"] = attemptAmpQuery
 	ctx.Data["SelectedPath"] = selectedPath
 	ctx.Data["RequestedPathMissing"] = requested != "" && selectedPath == ""
+	ctx.Data["PreviewTooLarge"] = !isArtifactPreviewSizeAllowed(artifacts)
+	ctx.Data["PreviewFilesTruncated"] = previewFilesTruncated
 	ctx.Data["PreviewFiles"] = previewFiles
 
 	ctx.HTML(http.StatusOK, tplArtifactPreviewAction)
@@ -486,6 +587,10 @@ func ArtifactsPreviewRawView(ctx *context_module.Context) {
 
 	_, artifacts, ok := getCurrentRunAndUploadedArtifacts(ctx, artifactName)
 	if !ok {
+		return
+	}
+	if !isArtifactPreviewSizeAllowed(artifacts) {
+		WritePreviewRawError(ctx, http.StatusRequestEntityTooLarge, "artifact is too large to preview, please download it instead")
 		return
 	}
 	requested := GetRequestedPreviewPath(ctx)

@@ -156,6 +156,28 @@ func Test_WorkflowDirs(t *testing.T) {
 	}
 }
 
+func TestArtifactPreviewMaxSize(t *testing.T) {
+	oldActions := Actions
+	defer func() {
+		Actions = oldActions
+	}()
+
+	cfg, err := NewConfigProviderFromData(`[actions]`)
+	require.NoError(t, err)
+	require.NoError(t, loadActionsFrom(cfg))
+	assert.EqualValues(t, defaultArtifactPreviewMaxSize, Actions.ArtifactPreviewMaxSize)
+
+	cfg, err = NewConfigProviderFromData("[actions]\nARTIFACT_PREVIEW_MAX_SIZE = 12345")
+	require.NoError(t, err)
+	require.NoError(t, loadActionsFrom(cfg))
+	assert.EqualValues(t, 12345, Actions.ArtifactPreviewMaxSize)
+
+	cfg, err = NewConfigProviderFromData("[actions]\nARTIFACT_PREVIEW_MAX_SIZE = 0")
+	require.NoError(t, err)
+	require.NoError(t, loadActionsFrom(cfg))
+	assert.EqualValues(t, 0, Actions.ArtifactPreviewMaxSize)
+}
+
 func Test_getDefaultActionsURLForActions(t *testing.T) {
 	oldActions := Actions
 	oldAppURL := AppURL

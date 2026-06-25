@@ -4,6 +4,7 @@
 package actions
 
 import (
+	"strconv"
 	"testing"
 	"time"
 
@@ -194,6 +195,19 @@ func TestArtifactPreviewV4ZipListCacheEvictsOldest(t *testing.T) {
 	}
 	_, ok = getArtifactPreviewV4ZipListFromCache(newest)
 	assert.True(t, ok)
+}
+
+func TestLimitArtifactPreviewPathsKeepsSelectedPath(t *testing.T) {
+	paths := make([]string, artifactPreviewMaxFiles+10)
+	for i := range paths {
+		paths[i] = "file-" + strconv.Itoa(i) + ".txt"
+	}
+	selectedPath := paths[len(paths)-1]
+
+	limited, truncated := limitArtifactPreviewPaths(paths, selectedPath)
+	require.True(t, truncated)
+	require.Len(t, limited, artifactPreviewMaxFiles)
+	assert.Contains(t, limited, selectedPath)
 }
 
 func TestConvertToViewModelCancellingTaskDoesNotRenderRunningSteps(t *testing.T) {

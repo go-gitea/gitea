@@ -3840,6 +3840,8 @@
   "actions.workflow.has_no_workflow_dispatch": "Workflow '%s' has no workflow_dispatch event trigger.",
   "actions.artifacts.preview_file_not_found": "The requested file is not present in this artifact.",
   "actions.artifacts.preview_file_too_large": "This file is too large to preview. Please download the artifact to view it.",
+  "actions.artifacts.preview_artifact_too_large": "This artifact is too large to preview. Please download it to view its contents.",
+  "actions.artifacts.preview_file_list_truncated": "This artifact contains many files, so only the first files are shown.",
   "actions.need_approval_desc": "Need approval to run workflows for fork pull request.",
   "actions.approve_all_success": "All workflow runs are approved successfully.",
   "actions.variables": "Variables",

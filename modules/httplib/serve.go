@@ -29,8 +29,9 @@ type ServeHeaderOptions struct {
 	ContentType   string // defaults to "application/octet-stream"
 	ContentLength *int64
 
-	Filename           string
-	ContentDisposition ContentDispositionType
+	Filename              string
+	ContentDisposition    ContentDispositionType
+	ContentSecurityPolicy string
 
 	CacheIsPublic bool
 	CacheDuration time.Duration // defaults to 5 minutes
@@ -55,7 +56,7 @@ const (
 	// For HTML, allow scripts in a sandboxed null origin so coverage reports and similar
 	// artifacts can use JavaScript while being unable to access Gitea cookies or make
 	// authenticated API calls (connect-src 'none' blocks fetch/XHR).
-	serveHeaderCspHTML = "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'none'; sandbox allow-scripts"
+	serveHeaderCspHTML = "default-src 'none'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'none'; sandbox allow-scripts"
 )
 
 func serveSetHeaderContentRelated(w http.ResponseWriter, contentType string) {
@@ -91,6 +92,9 @@ func ServeSetHeaders(w http.ResponseWriter, opts ServeHeaderOptions) {
 	}
 
 	serveSetHeaderContentRelated(w, opts.ContentType)
+	if opts.ContentSecurityPolicy != "" {
+		header.Set("Content-Security-Policy", opts.ContentSecurityPolicy)
+	}
 
 	if opts.ContentLength != nil {
 		header.Set("Content-Length", strconv.FormatInt(*opts.ContentLength, 10))

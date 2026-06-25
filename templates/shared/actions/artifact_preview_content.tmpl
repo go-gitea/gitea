@@ -1,4 +1,4 @@
-<div class="ui top attached header tw-flex tw-items-center tw-justify-between">
+<div class="artifact-preview-header tw-flex tw-items-center tw-justify-between">
 	<div class="artifact-preview-title">
 		<span class="tw-text-base tw-font-semibold">{{ctx.Locale.Tr "preview"}}: <span class="gt-ellipsis">{{.ArtifactName}}</span></span>
 	</div>
@@ -14,32 +14,32 @@
 	</div>
 </div>
 
-<div class="ui attached segment">
-	<div class="ui stackable grid">
-		<div class="four wide column">
-			<div class="ui fluid vertical menu">
-				<div class="item">
-					<b>{{ctx.Locale.Tr "files"}}</b>
+<div class="artifact-preview-browser">
+	<div class="artifact-preview-browser-title">{{ctx.Locale.Tr "files"}}</div>
+	{{if .PreviewTooLarge}}
+		<div class="ui warning message">{{ctx.Locale.Tr "actions.artifacts.preview_artifact_too_large"}}</div>
+	{{end}}
+	{{if .RequestedPathMissing}}
+		<div class="ui warning message">{{ctx.Locale.Tr "actions.artifacts.preview_file_not_found"}}</div>
+	{{end}}
+	{{if .PreviewFilesTruncated}}
+		<div class="ui info message">{{ctx.Locale.Tr "actions.artifacts.preview_file_list_truncated"}}</div>
+	{{end}}
+	<div class="artifact-preview-file-list">
+		{{range .PreviewFiles}}
+			{{if .IsDir}}
+				<div class="artifact-preview-file-row artifact-preview-file-row-directory {{.IndentClass}}" title="{{.Path}}">
+					{{svg "octicon-file-directory" 16}}
+					<span class="gt-ellipsis">{{.Name}}</span>
 				</div>
-				{{range .PreviewFiles}}
-					<a class="item gt-ellipsis {{if .Selected}}active{{end}}" href="{{$.PreviewURL}}?path={{QueryEscape .Path}}{{$.AttemptAmpQuery}}" title="{{.Path}}">
-						{{.Path}}
-					</a>
-				{{else}}
-					<div class="item disabled">{{ctx.Locale.Tr "none"}}</div>
-				{{end}}
-			</div>
-		</div>
-		<div class="twelve wide column">
-			{{if .SelectedPath}}
-				{{/* sandbox="allow-scripts": scripts execute but in a null/opaque origin (no allow-same-origin), so they cannot
-				     access Gitea cookies or the parent frame. The response CSP reinforces this and blocks connect-src. */}}
-				<iframe class="artifact-preview-frame" src="{{.PreviewRawURL}}/{{PathEscapeSegments .SelectedPath}}{{.AttemptQuery}}" sandbox="allow-scripts" referrerpolicy="no-referrer"></iframe>
-			{{else if .RequestedPathMissing}}
-				<div class="ui attached warning message">{{ctx.Locale.Tr "actions.artifacts.preview_file_not_found"}}</div>
 			{{else}}
-				<div class="ui attached segment">{{ctx.Locale.Tr "none"}}</div>
+				<a class="artifact-preview-file-row artifact-preview-file-row-file {{.IndentClass}} {{if .Selected}}active{{end}}" href="{{$.PreviewRawURL}}/{{PathEscapeSegments .Path}}{{$.AttemptQuery}}" target="_blank" rel="noopener noreferrer" title="{{.Path}}">
+					{{svg "octicon-file" 16}}
+					<span class="gt-ellipsis">{{.Name}}</span>
+				</a>
 			{{end}}
-		</div>
+		{{else}}
+			<div class="artifact-preview-file-row disabled">{{ctx.Locale.Tr "none"}}</div>
+		{{end}}
 	</div>
 </div>
