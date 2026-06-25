@@ -9,6 +9,7 @@ import (
 	"os"
 	"path/filepath"
 	"strconv"
+	"strings"
 
 	base "gitea.dev/modules/migration"
 
@@ -36,6 +37,21 @@ func NewRepositoryRestorer(_ context.Context, baseDir, owner, repoName string, v
 		repoName:   repoName,
 		validation: validation,
 	}, nil
+}
+
+// localFileURL turns a path relative to the dump directory into a file:// URL,
+// ensuring the resolved path stays inside baseDir.
+//
+// SECURITY: the relative path comes from user-supplied dump files (release.yml,
+// pull_request.yml). Without this check a crafted value such as
+// "../../../../etc/passwd" would escape baseDir and let uri.Open read arbitrary
+// files from the host (Local File Inclusion).
+func (r *RepositoryRestorer) localFileURL(relPath string) (string, error) {
+	abs := filepath.Join(r.baseDir, relPath)
+	if abs != r.baseDir && !strings.HasPrefix(abs, r.baseDir+string(os.PathSeparator)) {
+		return "", fmt.Errorf("path %q is outside of the dump directory", relPath)
+	}
+	return "file://" + abs, nil
 }
 
 func (r *RepositoryRestorer) commentDir() string {
@@ -144,7 +160,13 @@ func (r *RepositoryRestorer) GetReleases(_ context.Context) ([]*base.Release, er
 	for _, rel := range releases {
 		for _, asset := range rel.Assets {
 			if asset.DownloadURL != nil {
-				*asset.DownloadURL = "file://" + filepath.Join(r.baseDir, *asset.DownloadURL)
+				downloadURL, err := r.localFileURL(*asset.DownloadURL)
+				if err != nil {
+					WarnAndNotice("Release %s in %s/%s has invalid DownloadURL: %s", rel.TagName, r.repoOwner, r.repoName, *asset.DownloadURL)
+					asset.DownloadURL = nil
+					continue
+				}
+				*asset.DownloadURL = downloadURL
 			}
 		}
 	}
@@ -235,7 +257,15 @@ func (r *RepositoryRestorer) GetPullRequests(_ context.Context, page, perPage in
 		return nil, false, err
 	}
 	for _, pr := range pulls {
-		pr.PatchURL = "file://" + filepath.Join(r.baseDir, pr.PatchURL)
+		if pr.PatchURL != "" {
+			patchURL, err := r.localFileURL(pr.PatchURL)
+			if err != nil {
+				WarnAndNotice("PR #%d in %s/%s has invalid PatchURL: %s", pr.Number, r.repoOwner, r.repoName, pr.PatchURL)
+				pr.PatchURL = ""
+			} else {
+				pr.PatchURL = patchURL
+			}
+		}
 		CheckAndEnsureSafePR(pr, "", r)
 	}
 	return pulls, true, nil
