@@ -121,7 +121,7 @@ func TestServeSetHeaderContentRelated(t *testing.T) {
 		{"audio/mp4", serveHeaderCspAudioVideo},
 		{"video/ogg; other", serveHeaderCspAudioVideo},
 		{typesniffer.MimeTypeImageSvg, serveHeaderCspDefault},
-		{"text/html", serveHeaderCspHTML},
+		{"text/html", serveHeaderCspDefault},
 	}
 	for _, c := range cases {
 		w := httptest.NewRecorder()

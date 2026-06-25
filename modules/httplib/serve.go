@@ -52,11 +52,6 @@ const (
 
 	// For audios and videos, actually it doesn't really need CSP (just like Gitea <= 1.25)
 	serveHeaderCspAudioVideo = ""
-
-	// For HTML, allow scripts in a sandboxed null origin so coverage reports and similar
-	// artifacts can use JavaScript while being unable to access Gitea cookies or make
-	// authenticated API calls (connect-src 'none' blocks fetch/XHR).
-	serveHeaderCspHTML = "default-src 'none'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'none'; sandbox allow-scripts"
 )
 
 func serveSetHeaderContentRelated(w http.ResponseWriter, contentType string) {
@@ -66,9 +61,6 @@ func serveSetHeaderContentRelated(w http.ResponseWriter, contentType string) {
 	header.Set("X-Content-Type-Options", "nosniff")
 
 	csp := serveHeaderCspDefault
-	if strings.HasPrefix(contentType, "text/html") {
-		csp = serveHeaderCspHTML
-	}
 	if strings.HasPrefix(contentType, "application/pdf") {
 		csp = serveHeaderCspPdf
 	}
