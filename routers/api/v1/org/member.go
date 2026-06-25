@@ -77,12 +77,6 @@ func ListMembers(ctx *context.APIContext) {
 	//   "404":
 	//     "$ref": "#/responses/notFound"
 
-	// don't disclose membership of organizations the doer cannot see
-	if !organization.HasOrgOrUserVisible(ctx, ctx.Org.Organization.AsUser(), ctx.Doer) {
-		ctx.APIErrorNotFound()
-		return
-	}
-
 	var (
 		isMember bool
 		err      error
@@ -124,12 +118,6 @@ func ListPublicMembers(ctx *context.APIContext) {
 	//     "$ref": "#/responses/UserList"
 	//   "404":
 	//     "$ref": "#/responses/notFound"
-
-	// don't disclose membership of organizations the doer cannot see
-	if !organization.HasOrgOrUserVisible(ctx, ctx.Org.Organization.AsUser(), ctx.Doer) {
-		ctx.APIErrorNotFound()
-		return
-	}
 
 	listMembers(ctx, false)
 }
@@ -211,11 +199,6 @@ func IsPublicMember(ctx *context.APIContext) {
 
 	userToCheck := user.GetContextUserByPathParam(ctx)
 	if ctx.Written() {
-		return
-	}
-	// don't disclose membership of organizations the doer cannot see
-	if !organization.HasOrgOrUserVisible(ctx, ctx.Org.Organization.AsUser(), ctx.Doer) {
-		ctx.APIErrorNotFound()
 		return
 	}
 	is, err := organization.IsPublicMembership(ctx, ctx.Org.Organization.ID, userToCheck.ID)
