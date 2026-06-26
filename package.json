@@ -1,6 +1,6 @@
 {
   "type": "module",
-  "packageManager": "pnpm@11.7.0",
+  "packageManager": "pnpm@11.8.0",
   "engines": {
     "node": ">= 22.18.0",
     "pnpm": ">= 11.0.0"
@@ -36,7 +36,7 @@
     "@resvg/resvg-wasm": "2.6.2",
     "@vitejs/plugin-vue": "6.0.7",
     "ansi_up": "6.0.6",
-    "asciinema-player": "3.15.1",
+    "asciinema-player": "3.16.0",
     "chart.js": "4.5.1",
     "chartjs-adapter-dayjs-4": "1.0.4",
     "chartjs-plugin-zoom": "2.2.0",
@@ -99,13 +99,13 @@
     "eslint-plugin-import-x": "4.16.2",
     "eslint-plugin-playwright": "2.10.4",
     "eslint-plugin-regexp": "3.1.0",
-    "eslint-plugin-sonarjs": "4.0.3",
+    "eslint-plugin-sonarjs": "4.1.0",
     "eslint-plugin-unicorn": "68.0.0",
     "eslint-plugin-vue": "10.9.2",
     "eslint-plugin-vue-scoped-css": "3.1.1",
     "eslint-plugin-wc": "3.1.0",
     "globals": "17.6.0",
-    "happy-dom": "20.10.5",
+    "happy-dom": "20.10.6",
     "jiti": "2.7.0",
     "markdownlint-cli": "0.49.0",
     "material-icon-theme": "5.35.0",

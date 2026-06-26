@@ -1724,7 +1724,7 @@ func Routes() *web.Router {
 				m.Get("", reqToken(), org.ListMembers)
 				m.Combo("/{username}").Get(reqToken(), org.IsMember).
 					Delete(reqToken(), reqOrgOwnership(), org.DeleteMember)
-			})
+			}, reqOrgVisible())
 			addActionsRoutes(
 				m,
 				reqOrgMembership(),
@@ -1736,7 +1736,7 @@ func Routes() *web.Router {
 				m.Combo("/{username}").Get(org.IsPublicMember).
 					Put(reqToken(), reqOrgMembership(), org.PublicizeMember).
 					Delete(reqToken(), reqOrgMembership(), org.ConcealMember)
-			})
+			}, reqOrgVisible())
 			m.Group("/teams", func() {
 				m.Get("", org.ListTeams)
 				m.Post("", reqOrgOwnership(), bind(api.CreateTeamOption{}), org.CreateTeam)
