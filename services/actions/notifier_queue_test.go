@@ -6,6 +6,10 @@ package actions
 import (
 	"testing"
 
+	issues_model "gitea.dev/models/issues"
+	repo_model "gitea.dev/models/repo"
+	"gitea.dev/models/unittest"
+	user_model "gitea.dev/models/user"
 	api "gitea.dev/modules/structs"
 
 	"github.com/stretchr/testify/assert"
@@ -44,4 +48,25 @@ func TestActionsPayloadRoundTripNil(t *testing.T) {
 	decoded, err := unmarshalActionsPayload(payloadType, payloadJSON)
 	require.NoError(t, err)
 	assert.Nil(t, decoded)
+}
+
+func TestActionsNotifyQueueToNotifyInputLoadsPullRequestIssue(t *testing.T) {
+	require.NoError(t, unittest.PrepareTestDatabase())
+
+	pr := unittest.AssertExistsAndLoadBean(t, &issues_model.PullRequest{ID: 2})
+	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: pr.BaseRepoID})
+	doer := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: repo.OwnerID})
+
+	input, err := (&actionsNotifyQueueItem{
+		Method:        "NewPullRequest",
+		RepoID:        repo.ID,
+		DoerID:        doer.ID,
+		Event:         "pull_request",
+		PullRequestID: pr.ID,
+	}).toNotifyInput(t.Context())
+	require.NoError(t, err)
+	require.NotNil(t, input.PullRequest)
+	require.NotNil(t, input.PullRequest.Issue)
+	assert.Equal(t, pr.IssueID, input.PullRequest.Issue.ID)
+	assert.Equal(t, input.PullRequest.GetGitHeadRefName(), input.Ref.String())
 }

@@ -100,6 +100,9 @@ func (item *actionsNotifyQueueItem) toNotifyInput(ctx context.Context) (*notifyI
 		if err != nil {
 			return nil, err
 		}
+		if err := pr.LoadIssue(ctx); err != nil {
+			return nil, err
+		}
 		input.PullRequest = pr
 		if input.Ref == "" {
 			input.Ref = git.RefName(pr.GetGitHeadRefName())
@@ -174,7 +177,7 @@ func marshalActionsPayload(payload api.Payloader) (string, []byte, error) {
 
 func unmarshalActionsPayload(payloadType string, payloadJSON []byte) (api.Payloader, error) {
 	if payloadType == "" {
-		return nil, nil
+		return nil, nil // nolint:nilnil // no payload
 	}
 
 	var payload api.Payloader
