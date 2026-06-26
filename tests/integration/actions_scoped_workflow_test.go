@@ -219,9 +219,9 @@ jobs:
 			assert.NotEmpty(t, run.WorkflowCommitSHA, "scoped dispatch records the source default-branch commit")
 			assert.Contains(t, run.Ref, consumer.DefaultBranch, "dispatch runs on the chosen consumer ref")
 
-			// API: /actions/workflows/dispatch.yaml/dispatches?workflow_source_repo_id=
+			// API: /actions/workflows/dispatch.yaml/dispatches?scoped_workflow_source_repo_id=
 			apiReq := NewRequestWithURLValues(t, "POST",
-				fmt.Sprintf("/api/v1/repos/%s/%s/actions/workflows/dispatch.yaml/dispatches?workflow_source_repo_id=%d", consumer.OwnerName, consumer.Name, source.ID),
+				fmt.Sprintf("/api/v1/repos/%s/%s/actions/workflows/dispatch.yaml/dispatches?scoped_workflow_source_repo_id=%d", consumer.OwnerName, consumer.Name, source.ID),
 				url.Values{"ref": {consumer.DefaultBranch}}).AddTokenAuth(user2Token)
 			MakeRequest(t, apiReq, http.StatusNoContent)
 			assert.Equal(t, 2, unittest.GetCount(t, &actions_model.ActionRun{RepoID: consumer.ID, IsScopedRun: true, WorkflowID: "dispatch.yaml", Event: "workflow_dispatch"}),

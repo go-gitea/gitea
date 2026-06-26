@@ -306,7 +306,10 @@ func GetWorkflowLatestRun(ctx context.Context, repoID int64, workflowFile, branc
 	var run ActionRun
 	q := db.GetEngine(ctx).Where("repo_id=?", repoID).
 		And("ref = ?", branch).
-		And("workflow_id = ?", workflowFile)
+		And("workflow_id = ?", workflowFile).
+		// TODO: the badge only reflects the repo's own (repo-level) runs; a same-named scoped run must not leak in.
+		// Support a scoped-workflow badge later by making this source-aware.
+		And("is_scoped_run = ?", false)
 	if event != "" {
 		q.And("event = ?", event)
 	}

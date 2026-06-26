@@ -8,6 +8,7 @@ import (
 
 	"gitea.dev/models/db"
 	"gitea.dev/models/unittest"
+	"gitea.dev/modules/optional"
 	"gitea.dev/modules/translation"
 
 	"github.com/stretchr/testify/assert"
@@ -81,4 +82,41 @@ func TestFindRunOptions_WorkflowRepoID(t *testing.T) {
 	require.NoError(t, err)
 	require.Len(t, onlyB, 1)
 	assert.EqualValues(t, 99802, onlyB[0].ID)
+}
+
+func TestFindRunOptions_IsScopedRun(t *testing.T) {
+	assert.NoError(t, unittest.PrepareTestDatabase())
+
+	const (
+		repoID     = int64(4)
+		workflowID = "scoped-flag.yaml"
+	)
+	for _, spec := range []struct {
+		id     int64
+		scoped bool
+	}{
+		{99821, false},
+		{99822, true},
+	} {
+		require.NoError(t, db.Insert(t.Context(), &ActionRun{
+			ID:             spec.id,
+			Index:          spec.id,
+			RepoID:         repoID,
+			OwnerID:        1,
+			TriggerUserID:  1,
+			WorkflowID:     workflowID,
+			WorkflowRepoID: repoID,
+			IsScopedRun:    spec.scoped,
+		}))
+	}
+
+	repoLevel, err := db.Find[ActionRun](t.Context(), FindRunOptions{RepoID: repoID, WorkflowID: workflowID, IsScopedRun: optional.Some(false)})
+	require.NoError(t, err)
+	require.Len(t, repoLevel, 1)
+	assert.EqualValues(t, 99821, repoLevel[0].ID)
+
+	scoped, err := db.Find[ActionRun](t.Context(), FindRunOptions{RepoID: repoID, WorkflowID: workflowID, IsScopedRun: optional.Some(true)})
+	require.NoError(t, err)
+	require.Len(t, scoped, 1)
+	assert.EqualValues(t, 99822, scoped[0].ID)
 }

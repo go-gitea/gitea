@@ -13,6 +13,7 @@ import (
 	"gitea.dev/modules/timeutil"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestUpdateRepoRunsNumbers(t *testing.T) {
@@ -55,4 +56,46 @@ func TestActionRun_WorkflowLink(t *testing.T) {
 	// a scoped run carries its source repo id back, so the list stays filtered to that source
 	scoped := &ActionRun{Repo: repo, WorkflowID: "ci.yaml", WorkflowRepoID: 42, IsScopedRun: true}
 	assert.Equal(t, repo.Link()+"/actions/?workflow=ci.yaml&scoped_workflow_source_repo_id=42", scoped.WorkflowLink())
+}
+
+func TestGetWorkflowLatestRun_RepoLevelOnly(t *testing.T) {
+	assert.NoError(t, unittest.PrepareTestDatabase())
+
+	const (
+		repoID     = int64(4)
+		workflowID = "badge-source-aware.yaml"
+		ref        = "refs/heads/main"
+	)
+	require.NoError(t, db.Insert(t.Context(), &ActionRun{
+		ID:                99811,
+		Index:             99811,
+		RepoID:            repoID,
+		OwnerID:           1,
+		TriggerUserID:     1,
+		WorkflowID:        workflowID,
+		Ref:               ref,
+		Event:             "push",
+		Status:            StatusSuccess,
+		WorkflowRepoID:    repoID,
+		WorkflowCommitSHA: "repo-level-sha",
+	}))
+	require.NoError(t, db.Insert(t.Context(), &ActionRun{
+		ID:                99812,
+		Index:             99812,
+		RepoID:            repoID,
+		OwnerID:           1,
+		TriggerUserID:     1,
+		WorkflowID:        workflowID,
+		Ref:               ref,
+		Event:             "push",
+		Status:            StatusFailure,
+		WorkflowRepoID:    111,
+		WorkflowCommitSHA: "scoped-sha",
+		IsScopedRun:       true,
+	}))
+
+	run, err := GetWorkflowLatestRun(t.Context(), repoID, workflowID, ref, "push")
+	require.NoError(t, err)
+	assert.EqualValues(t, 99811, run.ID)
+	assert.False(t, run.IsScopedRun)
 }
