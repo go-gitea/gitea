@@ -137,7 +137,14 @@ func AddScopedWorkflowSource(ctx context.Context, ownerID, repoID int64) error {
 	if exists {
 		return nil
 	}
-	return db.Insert(ctx, &ActionScopedWorkflowSource{OwnerID: ownerID, SourceRepoID: repoID})
+	if err := db.Insert(ctx, &ActionScopedWorkflowSource{OwnerID: ownerID, SourceRepoID: repoID}); err != nil {
+		// Re-check and treat an already-present row as the intended no-op.
+		if exists, existErr := db.GetEngine(ctx).Where("owner_id = ? AND source_repo_id = ?", ownerID, repoID).Exist(new(ActionScopedWorkflowSource)); existErr == nil && exists {
+			return nil
+		}
+		return err
+	}
+	return nil
 }
 
 // SetScopedWorkflowSourceConfigs replaces the per-workflow merge-gate configs (workflow ID -> config).
