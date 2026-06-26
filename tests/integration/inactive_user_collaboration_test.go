@@ -4,7 +4,6 @@
 package integration
 
 import (
-	"fmt"
 	"net/http"
 	"testing"
 
@@ -40,7 +39,7 @@ func TestAPIAddCollaboratorAllowsInactiveUsers(t *testing.T) {
 
 	inactiveUser := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 9})
 	token := getUserToken(t, "user2", auth_model.AccessTokenScopeWriteRepository)
-	req := NewRequestWithJSON(t, "PUT", fmt.Sprintf("/api/v1/repos/user2/repo1/collaborators/%s", inactiveUser.Name), &api.AddCollaboratorOption{}).
+	req := NewRequestWithJSON(t, "PUT", "/api/v1/repos/user2/repo1/collaborators/"+inactiveUser.Name, &api.AddCollaboratorOption{}).
 		AddTokenAuth(token)
 	MakeRequest(t, req, http.StatusNoContent)
 
