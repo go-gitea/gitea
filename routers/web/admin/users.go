@@ -56,11 +56,7 @@ func Users(ctx *context.Context) {
 		statusFilterMap[filterKey] = paramVal
 	}
 
-	sortType := ctx.FormString("sort")
-	if sortType == "" {
-		sortType = UserSearchDefaultAdminSort
-		ctx.SetFormString("sort", sortType)
-	}
+	sortType := ctx.FormString("sort", UserSearchDefaultAdminSort)
 	ctx.PageData["adminUserListSearchForm"] = map[string]any{
 		"StatusFilterMap": statusFilterMap,
 		"SortType":        sortType,
@@ -79,6 +75,7 @@ func Users(ctx *context.Context) {
 		IsTwoFactorEnabled: optional.ParseBool(statusFilterMap["is_2fa_enabled"]),
 		IsProhibitLogin:    optional.ParseBool(statusFilterMap["is_prohibit_login"]),
 		IncludeReserved:    true, // administrator needs to list all accounts include reserved, bot, remote ones
+		OrderBy:            db.SearchOrderBy(sortType),
 	}, tplUsers)
 }
 

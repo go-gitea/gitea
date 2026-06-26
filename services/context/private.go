@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"gitea.dev/modules/graceful"
+	"gitea.dev/modules/private"
 	"gitea.dev/modules/process"
 	"gitea.dev/modules/web"
 	web_types "gitea.dev/modules/web/types"
@@ -47,6 +48,14 @@ func (ctx *PrivateContext) Err() error {
 		return ctx.Override.Err()
 	}
 	return ctx.Base.Err()
+}
+
+func (ctx *PrivateContext) PrivateError(status int, err error, userMsg string) {
+	errMsg := ""
+	if err != nil {
+		errMsg = err.Error()
+	}
+	ctx.JSON(status, private.Response{Err: errMsg, UserMsg: userMsg})
 }
 
 type privateContextKeyType struct{}

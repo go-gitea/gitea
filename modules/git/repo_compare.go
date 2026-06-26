@@ -40,25 +40,16 @@ func (repo *Repository) GetDiffNumChangedFiles(base, head string, directComparis
 		separator = ".."
 	}
 
-	// avoid: ambiguous argument 'refs/a...refs/b': unknown revision or path not in the working tree. Use '--': 'git <command> [<revision>...] -- [<file>...]'
 	if err := gitcmd.NewCommand("diff", "-z", "--name-only").
 		AddDynamicArguments(base + separator + head).
 		AddArguments("--").
 		WithDir(repo.Path).
 		WithStdoutCopy(w).
 		RunWithStderr(repo.Ctx); err != nil {
-		if strings.Contains(err.Stderr(), "no merge base") {
+		if gitcmd.IsStderr(err, gitcmd.StderrNoMergeBase) {
 			// git >= 2.28 now returns an error if base and head have become unrelated.
-			// previously it would return the results of git diff -z --name-only base head so let's try that...
-			w = &lineCountWriter{}
-			if err = gitcmd.NewCommand("diff", "-z", "--name-only").
-				AddDynamicArguments(base, head).
-				AddArguments("--").
-				WithDir(repo.Path).
-				WithStdoutCopy(w).
-				RunWithStderr(repo.Ctx); err == nil {
-				return w.numLines, nil
-			}
+			// it doesn't make sense to count the changed files in this case because UI won't display such diff
+			return 0, nil
 		}
 		return 0, err
 	}
