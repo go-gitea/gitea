@@ -318,9 +318,10 @@ func CreateTaskForRunner(ctx context.Context, runner *ActionRunner) (*ActionTask
 	}
 
 	job.TaskID = task.ID
-	if n, err := UpdateRunJob(ctx, job, builder.Eq{"task_id": 0}); err != nil {
+	if n, err := UpdateRunJob(ctx, job, builder.Eq{"task_id": 0}, "task_id", "status", "started", "updated"); err != nil {
 		return nil, false, err
 	} else if n != 1 {
+		log.Debug("Job %s (run %d) was claimed by another runner, skipping", job.JobID, job.RunID)
 		return nil, false, nil
 	}
 

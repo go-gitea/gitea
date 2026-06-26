@@ -7,6 +7,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"slices"
 
 	actions_model "gitea.dev/models/actions"
 	"gitea.dev/models/db"
@@ -394,7 +395,26 @@ func (r *jobStatusResolver) resolveCheckNeeds(id int64) (allDone, allSucceed boo
 
 func (r *jobStatusResolver) resolve(ctx context.Context) map[int64]actions_model.Status {
 	ret := map[int64]actions_model.Status{}
+
+	// Pre-calculate the number of running-or-waiting jobs per JobID
+	runningOrWaiting := make(map[string]int)
 	for id, status := range r.statuses {
+		if status == actions_model.StatusRunning || status == actions_model.StatusWaiting || status == actions_model.StatusCancelling {
+			runningOrWaiting[r.jobMap[id].JobID]++
+		}
+	}
+
+	// Sort IDs so blocked jobs are promoted in insertion order
+	ids := slices.Sorted(func(yield func(int64) bool) {
+		for id := range r.statuses {
+			if !yield(id) {
+				return
+			}
+		}
+	})
+
+	for _, id := range ids {
+		status := r.statuses[id]
 		actionRunJob := r.jobMap[id]
 		if status != actions_model.StatusBlocked {
 			continue
@@ -436,6 +456,15 @@ func (r *jobStatusResolver) resolve(ctx context.Context) map[int64]actions_model
 			} else {
 				r.cancelledJobs = append(r.cancelledJobs, cancelledJobs...)
 			}
+		}
+
+		// Enforce max-parallel: if the number of running-or-waiting jobs of the same
+		// JobID already fills the limit, leave this job blocked.
+		if newStatus == actions_model.StatusWaiting && actionRunJob.MaxParallel > 0 {
+			if runningOrWaiting[actionRunJob.JobID] >= actionRunJob.MaxParallel {
+				continue // no free slot; leave blocked
+			}
+			runningOrWaiting[actionRunJob.JobID]++
 		}
 
 		if newStatus != actions_model.StatusBlocked {

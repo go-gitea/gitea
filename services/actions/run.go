@@ -6,6 +6,7 @@ package actions
 import (
 	"context"
 	"fmt"
+	"strconv"
 
 	actions_model "gitea.dev/models/actions"
 	"gitea.dev/models/db"
@@ -130,6 +131,9 @@ func InsertRun(ctx context.Context, run *actions_model.ActionRun, content []byte
 		runJobs := make([]*actions_model.ActionRunJob, 0, len(jobs))
 		var hasWaitingJobs bool
 
+		// waitingCountByJobID limits initial Waiting slots per JobID to MaxParallel.
+		waitingCountByJobID := make(map[string]int)
+
 		for _, v := range jobs {
 			id, job := v.Job()
 			needs := job.Needs()
@@ -171,6 +175,17 @@ func InsertRun(ctx context.Context, run *actions_model.ActionRun, content []byte
 				runJob.TokenPermissions = perms
 			}
 
+			// Extract max-parallel from strategy if present.
+			// TODO: only literal integers are supported; expressions are not evaluated.
+			if job.Strategy.MaxParallelString != "" {
+				if maxParallel, err := strconv.Atoi(job.Strategy.MaxParallelString); err != nil {
+					log.Debug("failed to process max-parallel for job %s: invalid value %q: %v", id, job.Strategy.MaxParallelString, err)
+				} else if maxParallel > 0 {
+					runJob.MaxParallel = maxParallel
+				}
+				// maxParallel == 0 or negative means unlimited; no log needed
+			}
+
 			if isReusableWorkflowCaller {
 				runJob.IsReusableCaller = true
 				runJob.CallUses = job.Uses
@@ -201,6 +216,16 @@ func InsertRun(ctx context.Context, run *actions_model.ActionRun, content []byte
 						return fmt.Errorf("prepare to start job with concurrency: %w", err)
 					}
 					cancelledConcurrencyJobs = append(cancelledConcurrencyJobs, jobsToCancel...)
+				}
+			}
+
+			// Enforce max-parallel: excess jobs start as Blocked and are promoted
+			// by jobStatusResolver when a slot opens.
+			if runJob.Status == actions_model.StatusWaiting && runJob.MaxParallel > 0 {
+				if waitingCountByJobID[id] >= runJob.MaxParallel {
+					runJob.Status = actions_model.StatusBlocked
+				} else {
+					waitingCountByJobID[id]++
 				}
 			}
 
