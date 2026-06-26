@@ -412,7 +412,7 @@ func ToWorkflowRunAction(status actions_model.Status) (action string) {
 	switch status {
 	case actions_model.StatusWaiting, actions_model.StatusBlocked:
 		action = "requested"
-	case actions_model.StatusRunning:
+	case actions_model.StatusRunning, actions_model.StatusCancelling:
 		action = "in_progress"
 	default:
 		if status.IsDone() {
@@ -430,7 +430,7 @@ func ToActionsStatus(status actions_model.Status) (action, conclusion string) {
 		action = "queued" // "waiting" is a naming conflict of the webhook between Gitea and GitHub Actions
 	case actions_model.StatusBlocked:
 		action = "waiting" // naming conflict (as above)
-	case actions_model.StatusRunning:
+	case actions_model.StatusRunning, actions_model.StatusCancelling:
 		action = "in_progress"
 	default:
 		action = "completed"
@@ -836,6 +836,7 @@ func ToTeams(ctx context.Context, teams []*organization.Team, loadOrgs bool) ([]
 			Permission:              api.AccessLevelName(t.AccessMode.ToString()),
 			Units:                   t.GetUnitNames(),
 			UnitsMap:                t.GetUnitsMap(),
+			Visibility:              api.TeamVisibility(t.Visibility.String()),
 		}
 
 		if loadOrgs {
