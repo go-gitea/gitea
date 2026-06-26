@@ -89,8 +89,15 @@ test('an exact pattern marks only the context it matches', () => {
   expect(buildMark.classList.contains('tw-hidden')).toBe(true); // not matched
 });
 
-test('a wildcard pattern marks every matching context (glob is /-aware)', () => {
+test('a wildcard pattern marks every matching context', () => {
   const {form, lintMark, buildMark} = setupFormWithContexts('org/src: CI / *');
+  initScopedWorkflowRequired(form);
+  expect(lintMark.classList.contains('tw-hidden')).toBe(false);
+  expect(buildMark.classList.contains('tw-hidden')).toBe(false);
+});
+
+test('a wildcard crossing "/" matches every matching context', () => {
+  const {form, lintMark, buildMark} = setupFormWithContexts('org/src: *');
   initScopedWorkflowRequired(form);
   expect(lintMark.classList.contains('tw-hidden')).toBe(false);
   expect(buildMark.classList.contains('tw-hidden')).toBe(false);

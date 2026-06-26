@@ -1,13 +1,13 @@
 import {addDelegatedEventListener, onInputDebounce, toggleElem} from '../../utils/dom.ts';
 import {globMatch} from '../../utils/glob.ts';
 
-// markRowMatchedContexts marks each expected status-check context whose row's textarea patterns match it (glob, '/'-aware).
+// markRowMatchedContexts marks each expected status-check context whose row's textarea patterns match it.
 function markRowMatchedContexts(row: HTMLElement) {
   const textarea = row.querySelector<HTMLTextAreaElement>('.js-scoped-required-patterns')!;
   const patterns = textarea.value.split(/[\r\n]+/).map((p) => p.trim()).filter(Boolean);
   for (const ctxEl of row.querySelectorAll<HTMLElement>('.js-scoped-context')) {
     const context = ctxEl.getAttribute('data-context')!;
-    const matched = patterns.some((p) => globMatch(context, p, '/'));
+    const matched = patterns.some((p) => globMatch(context, p));
     toggleElem(ctxEl.parentElement!.querySelector('.js-scoped-context-matched')!, matched);
   }
 }
