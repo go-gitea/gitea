@@ -30,10 +30,33 @@
 	</div>
 	<h4 class="ui top attached header">
 		{{ctx.Locale.Tr "settings.organization"}} ({{ctx.Locale.Tr "admin.total" .OrgsTotal}})
+		{{if gt .OrgsTotal 0}}
+			<div class="ui right">
+				<button class="ui red tiny button show-modal" data-modal="#remove-all-orgs-modal">{{ctx.Locale.Tr "remove_all"}}</button>
+			</div>
+		{{end}}
 	</h4>
 	<div class="ui attached segment">
-		{{template "explore/user_list" .}}
+		{{template "admin/user/view_orgs" .}}
 	</div>
 </div>
+
+{{if gt .OrgsTotal 0}}
+<div class="ui small modal" id="remove-all-orgs-modal">
+	<div class="header">
+		{{ctx.Locale.Tr "admin.users.remove_all_orgs_title"}}
+	</div>
+	<div class="content">
+		<p>{{ctx.Locale.Tr "admin.users.remove_all_orgs_desc" .User.Name .OrgsTotal}}</p>
+	</div>
+	<div class="actions">
+		<div class="ui cancel button">{{ctx.Locale.Tr "settings.cancel"}}</div>
+		<form method="post" action="{{.Link}}/orgs/remove-all" style="display: inline;">
+			{{.CsrfTokenHtml}}
+			<button class="ui red button" type="submit">{{ctx.Locale.Tr "remove_all"}}</button>
+		</form>
+	</div>
+</div>
+{{end}}
 
 {{template "admin/layout_footer" .}}

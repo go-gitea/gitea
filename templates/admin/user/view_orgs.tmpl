@@ -1,0 +1,33 @@
+<div class="flex-divided-list items-with-main">
+	{{range .Users}}
+		<div class="item tw-items-center">
+			<div class="item-leading">
+				{{ctx.AvatarUtils.Avatar . 48}}
+			</div>
+			<div class="item-main">
+				<div class="item-title">
+					{{template "shared/user/name" .}}
+					{{if .Visibility.IsPrivate}}
+						<span class="ui basic tiny label">{{ctx.Locale.Tr "repo.desc.private"}}</span>
+					{{end}}
+				</div>
+				<div class="item-body">
+					{{if .Location}}
+						<span class="flex-text-inline">{{svg "octicon-location"}}{{.Location}}</span>
+					{{end}}
+					<span class="flex-text-inline">{{svg "octicon-calendar"}}{{ctx.Locale.Tr "user.joined_on" (DateUtils.AbsoluteShort .CreatedUnix)}}</span>
+				</div>
+			</div>
+			<div class="item-trailing">
+				<form method="post" action="{{$.Link}}/orgs/{{.ID}}/remove">
+					{{$.CsrfTokenHtml}}
+					<button class="ui red tiny button" type="submit">{{ctx.Locale.Tr "remove"}}</button>
+				</form>
+			</div>
+		</div>
+	{{else}}
+		<div class="item">
+			{{ctx.Locale.Tr "search.no_results"}}
+		</div>
+	{{end}}
+</div>
