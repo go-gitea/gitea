@@ -798,6 +798,14 @@ async function hashChangeListener() {
   overflow: hidden;
 }
 
+.job-log-group-summary > .job-log-line .log-time-stamp:not(.tw-hidden) {
+  margin-left: 21px;
+}
+
+.job-log-group-summary > .job-log-line .log-time-stamp:not(.tw-hidden) ~ .log-msg {
+  margin-left: 10px;
+}
+
 .job-log-group-summary > .job-log-line .log-msg {
   margin-left: 21px;
 }
