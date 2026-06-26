@@ -3,6 +3,7 @@
 </h4>
 <div class="ui attached segment">
 	<p>{{.ScopedWorkflowsDesc}}</p>
+	<p>{{ctx.Locale.Tr "actions.scoped_workflows.add_help" .ScopedWorkflowDirs}}</p>
 	<div class="ui warning message">{{ctx.Locale.Tr "actions.scoped_workflows.security_note"}}</div>
 	<form class="ui form form-fetch-action flex-text-block" method="post" action="{{.Link}}/add">
 		<div data-global-init="initSearchRepoBox" data-uid="{{.RepoSearchUID}}"{{if .ScopedWorkflowsSearchExclusive}} data-exclusive="true"{{end}}{{if .ScopedWorkflowsSearchFullName}} data-full-name="true"{{end}} class="ui search tw-flex-1">

@@ -144,6 +144,7 @@ func ScopedWorkflows(ctx *context.Context) {
 	ctx.Data["ScopedWorkflowsSearchExclusive"] = !swCtx.IsGlobal
 	ctx.Data["ScopedWorkflowsSearchFullName"] = swCtx.IsGlobal
 	ctx.Data["RedirectLink"] = swCtx.RedirectLink
+	ctx.Data["ScopedWorkflowDirs"] = strings.Join(setting.Actions.ScopedWorkflowDirs, ", ")
 	ctx.HTML(http.StatusOK, swCtx.Template)
 }
 
