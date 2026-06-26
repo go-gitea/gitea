@@ -1,4 +1,3 @@
-import {POST} from '../modules/fetch.ts';
 import {addDelegatedEventListener, hideElem, isElemVisible, showElem, toggleElem} from '../utils/dom.ts';
 import {showFomanticModal} from '../modules/fomantic/modal.ts';
 import {camelize} from 'vue';
@@ -11,74 +10,6 @@ export function initGlobalButtonClickOnEnter(): void {
       el.click();
     }
   });
-}
-
-export function initGlobalDeleteButton(): void {
-  // ".delete-button" shows a confirmation modal defined by `data-modal-id` attribute.
-  // Some model/form elements will be filled by `data-id` / `data-name` / `data-data-xxx` attributes.
-  // If there is a form defined by `data-form`, then the form will be submitted as-is (without any modification).
-  // If there is no form, then the data will be posted to `data-url`.
-  // TODO: do not use this method in new code. `show-modal` / `link-action(data-modal-confirm)` does far better than this.
-  // FIXME: all legacy `delete-button` should be refactored to use `show-modal` or `link-action`
-  for (const btn of document.querySelectorAll<HTMLElement>('.delete-button')) {
-    btn.addEventListener('click', (e) => {
-      e.preventDefault();
-
-      // eslint-disable-next-line github/no-dataset -- code depends on the camel-casing
-      const dataObj = btn.dataset;
-
-      const modalId = btn.getAttribute('data-modal-id');
-      const modal = document.querySelector(`.delete.modal${modalId ? `#${modalId}` : ''}`)!;
-
-      // set the modal "display name" by `data-name`
-      const modalNameEl = modal.querySelector('.name');
-      if (modalNameEl) modalNameEl.textContent = btn.getAttribute('data-name');
-
-      // fill the modal elements with data-xxx attributes: `data-data-organization-name="..."` => `<span class="dataOrganizationName">...</span>`
-      for (const [key, value] of Object.entries(dataObj)) {
-        if (key.startsWith('data')) {
-          const textEl = modal.querySelector(`.${key}`);
-          if (textEl) textEl.textContent = value ?? null;
-        }
-      }
-
-      showFomanticModal(modal, {
-        closable: false,
-        onApprove: () => {
-          // if `data-type="form"` exists, then submit the form by the selector provided by `data-form="..."`
-          if (btn.getAttribute('data-type') === 'form') {
-            const formSelector = btn.getAttribute('data-form')!;
-            const form = document.querySelector<HTMLFormElement>(formSelector);
-            if (!form) throw new Error(`no form named ${formSelector} found`);
-            modal.classList.add('is-loading'); // the form is not in the modal, so also add loading indicator to the modal
-            form.classList.add('is-loading');
-            form.submit();
-            return false; // prevent modal from closing automatically
-          }
-
-          // prepare an AJAX form by data attributes
-          const postData = new FormData();
-          for (const [key, value] of Object.entries(dataObj)) {
-            if (key.startsWith('data')) { // for data-data-xxx (HTML) -> dataXxx (form)
-              postData.append(key.slice(4), String(value));
-            }
-            if (key === 'id') { // for data-id="..."
-              postData.append('id', String(value));
-            }
-          }
-          (async () => {
-            const response = await POST(btn.getAttribute('data-url')!, {data: postData});
-            if (response.ok) {
-              const data = await response.json();
-              window.location.href = data.redirect;
-            }
-          })();
-          modal.classList.add('is-loading'); // the request is in progress, so also add loading indicator to the modal
-          return false; // prevent modal from closing automatically
-        },
-      });
-    });
-  }
 }
 
 function onShowPanelClick(el: HTMLElement, e: MouseEvent) {
@@ -156,10 +87,10 @@ function onShowModalClick(el: HTMLElement, e: MouseEvent) {
     const [attrTargetName, attrTargetProp] = attrTargetCombo.split('.');
     // try to find target by: "#target" -> "[name=target]" -> ".target" -> "<target> tag", and then try the modal itself
     const attrTarget = elModal.querySelector(`#${attrTargetName}`) ||
-      elModal.querySelector(`[name=${attrTargetName}]`) ||
+      elModal.querySelector(`[name=${CSS.escape(attrTargetName)}]`) ||
       elModal.querySelector(`.${attrTargetName}`) ||
-      elModal.querySelector(`${attrTargetName}`) ||
-      (elModal.matches(`${attrTargetName}`) || elModal.matches(`#${attrTargetName}`) || elModal.matches(`.${attrTargetName}`) ? elModal : null);
+      elModal.querySelector(attrTargetName) ||
+      (elModal.matches(attrTargetName) || elModal.matches(`#${attrTargetName}`) || elModal.matches(`.${attrTargetName}`) ? elModal : null);
     if (!attrTarget) {
       if (!window.config.runModeIsProd) throw new Error(`attr target "${attrTargetCombo}" not found for modal`);
       continue;
