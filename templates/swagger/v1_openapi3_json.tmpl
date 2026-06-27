@@ -399,6 +399,16 @@
         },
         "description": "CronList"
       },
+      "CurrentAccessToken": {
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/CurrentAccessToken"
+            }
+          }
+        },
+        "description": "CurrentAccessToken represents the currently authenticated access token."
+      },
       "DeployKey": {
         "content": {
           "application/json": {
@@ -2343,6 +2353,13 @@
             "format": "uri",
             "type": "string",
             "x-go-name": "PreviousAttemptURL"
+          },
+          "pull_requests": {
+            "items": {
+              "$ref": "#/components/schemas/PullRequestMinimal"
+            },
+            "type": "array",
+            "x-go-name": "PullRequests"
           },
           "repository": {
             "$ref": "#/components/schemas/Repository"
@@ -4788,6 +4805,14 @@
             "example": "{\"repo.actions\",\"repo.packages\",\"repo.code\":\"read\",\"repo.issues\":\"write\",\"repo.ext_issues\":\"none\",\"repo.wiki\":\"admin\",\"repo.pulls\":\"owner\",\"repo.releases\":\"none\",\"repo.projects\":\"none\",\"repo.ext_wiki\":\"none\"}",
             "type": "object",
             "x-go-name": "UnitsMap"
+          },
+          "visibility": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/TeamVisibility"
+              }
+            ],
+            "description": "Team visibility within the organization. Defaults to \"private\".\npublic TeamVisibilityPublic\nlimited TeamVisibilityLimited\nprivate TeamVisibilityPrivate"
           }
         },
         "required": [
@@ -4942,6 +4967,47 @@
             "x-go-name": "Schedule"
           }
         },
+        "type": "object",
+        "x-go-package": "gitea.dev/modules/structs"
+      },
+      "CurrentAccessToken": {
+        "properties": {
+          "created_at": {
+            "description": "The timestamp when the token was created",
+            "format": "date-time",
+            "type": "string",
+            "x-go-name": "CreatedAt"
+          },
+          "id": {
+            "description": "The unique identifier of the access token",
+            "format": "int64",
+            "type": "integer",
+            "x-go-name": "ID"
+          },
+          "last_used_at": {
+            "description": "The timestamp when the token was last used",
+            "format": "date-time",
+            "type": "string",
+            "x-go-name": "LastUsedAt"
+          },
+          "name": {
+            "description": "The name of the access token",
+            "type": "string",
+            "x-go-name": "Name"
+          },
+          "scopes": {
+            "description": "The scopes granted to this access token",
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "x-go-name": "Scopes"
+          },
+          "user": {
+            "$ref": "#/components/schemas/UserMeta"
+          }
+        },
+        "title": "CurrentAccessToken represents the metadata of the currently authenticated token.",
         "type": "object",
         "x-go-package": "gitea.dev/modules/structs"
       },
@@ -5933,6 +5999,14 @@
             },
             "type": "object",
             "x-go-name": "UnitsMap"
+          },
+          "visibility": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/TeamVisibility"
+              }
+            ],
+            "description": "Team visibility within the organization. When omitted, visibility is\nleft unchanged.\npublic TeamVisibilityPublic\nlimited TeamVisibilityLimited\nprivate TeamVisibilityPrivate"
           }
         },
         "required": [
@@ -8690,6 +8764,73 @@
         "type": "object",
         "x-go-package": "gitea.dev/modules/structs"
       },
+      "PullRequestMinimal": {
+        "description": "PullRequestMinimal is the minimal information about a pull request, as\nreturned in the `pull_requests` field of a workflow run.",
+        "properties": {
+          "base": {
+            "$ref": "#/components/schemas/PullRequestMinimalHead"
+          },
+          "head": {
+            "$ref": "#/components/schemas/PullRequestMinimalHead"
+          },
+          "id": {
+            "format": "int64",
+            "type": "integer",
+            "x-go-name": "ID"
+          },
+          "number": {
+            "format": "int64",
+            "type": "integer",
+            "x-go-name": "Number"
+          },
+          "url": {
+            "format": "uri",
+            "type": "string",
+            "x-go-name": "URL"
+          }
+        },
+        "type": "object",
+        "x-go-package": "gitea.dev/modules/structs"
+      },
+      "PullRequestMinimalHead": {
+        "properties": {
+          "ref": {
+            "type": "string",
+            "x-go-name": "Ref"
+          },
+          "repo": {
+            "$ref": "#/components/schemas/PullRequestMinimalHeadRepo"
+          },
+          "sha": {
+            "type": "string",
+            "x-go-name": "SHA"
+          }
+        },
+        "title": "PullRequestMinimalHead is a minimal description of one side of a pull request.",
+        "type": "object",
+        "x-go-package": "gitea.dev/modules/structs"
+      },
+      "PullRequestMinimalHeadRepo": {
+        "properties": {
+          "id": {
+            "format": "int64",
+            "type": "integer",
+            "x-go-name": "ID"
+          },
+          "name": {
+            "type": "string",
+            "x-go-name": "Name"
+          },
+          "url": {
+            "format": "uri",
+            "type": "string",
+            "x-go-name": "URL"
+          }
+        },
+        "title": "PullRequestMinimalHeadRepo is a minimal description of the repository on one side of a pull request.",
+        "type": "object",
+        "x-go-package": "gitea.dev/modules/structs"
+      },
       "PullReview": {
         "description": "PullReview represents a pull request review",
         "properties": {
@@ -9813,10 +9954,26 @@
             },
             "type": "object",
             "x-go-name": "UnitsMap"
+          },
+          "visibility": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/TeamVisibility"
+              }
+            ],
+            "description": "Team visibility within the organization. \"private\" teams are only\nlistable by members and org owners; \"limited\" teams are listable by\nany organization member; \"public\" teams are listable by any signed-in\nuser.\npublic TeamVisibilityPublic\nlimited TeamVisibilityLimited\nprivate TeamVisibilityPrivate"
           }
         },
         "type": "object",
         "x-go-package": "gitea.dev/modules/structs"
+      },
+      "TeamVisibility": {
+        "enum": [
+          "public",
+          "limited",
+          "private"
+        ],
+        "type": "string"
       },
       "TimeStamp": {
         "description": "TimeStamp defines a timestamp",
@@ -10379,6 +10536,24 @@
         },
         "type": "object",
         "x-go-package": "gitea.dev/models/activities"
+      },
+      "UserMeta": {
+        "properties": {
+          "id": {
+            "description": "The unique identifier of the user",
+            "format": "int64",
+            "type": "integer",
+            "x-go-name": "ID"
+          },
+          "login": {
+            "description": "The username of the user",
+            "type": "string",
+            "x-go-name": "Login"
+          }
+        },
+        "title": "UserMeta represents minimal user information for the token owner.",
+        "type": "object",
+        "x-go-package": "gitea.dev/modules/structs"
       },
       "UserSettings": {
         "description": "UserSettings represents user settings",
@@ -16270,6 +16445,14 @@
             }
           },
           {
+            "description": "if true, the `pull_requests` field on each returned run is emptied",
+            "in": "query",
+            "name": "exclude_pull_requests",
+            "schema": {
+              "type": "boolean"
+            }
+          },
+          {
             "description": "page number of results to return (1-based)",
             "in": "query",
             "name": "page",
@@ -17667,6 +17850,122 @@
           }
         },
         "summary": "Enable a workflow",
+        "tags": [
+          "repository"
+        ]
+      }
+    },
+    "/repos/{owner}/{repo}/actions/workflows/{workflow_id}/runs": {
+      "get": {
+        "operationId": "ActionsListWorkflowRuns",
+        "parameters": [
+          {
+            "description": "owner of the repo",
+            "in": "path",
+            "name": "owner",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "name of the repo",
+            "in": "path",
+            "name": "repo",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "id of the workflow, must be the workflow file name (e.g. `build.yml`)",
+            "in": "path",
+            "name": "workflow_id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "workflow event name",
+            "in": "query",
+            "name": "event",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "workflow branch",
+            "in": "query",
+            "name": "branch",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "workflow status (pending, queued, in_progress, failure, success, skipped)",
+            "in": "query",
+            "name": "status",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "triggered by user",
+            "in": "query",
+            "name": "actor",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "triggering sha of the workflow run",
+            "in": "query",
+            "name": "head_sha",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "if true, the `pull_requests` field on each returned run is emptied",
+            "in": "query",
+            "name": "exclude_pull_requests",
+            "schema": {
+              "type": "boolean"
+            }
+          },
+          {
+            "description": "page number of results to return (1-based)",
+            "in": "query",
+            "name": "page",
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "description": "page size of results",
+            "in": "query",
+            "name": "limit",
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/components/responses/WorkflowRunsList"
+          },
+          "400": {
+            "$ref": "#/components/responses/error"
+          },
+          "403": {
+            "$ref": "#/components/responses/forbidden"
+          },
+          "404": {
+            "$ref": "#/components/responses/notFound"
+          }
+        },
+        "summary": "List runs for a workflow",
         "tags": [
           "repository"
         ]
@@ -19169,6 +19468,7 @@
     },
     "/repos/{owner}/{repo}/compare/{basehead}": {
       "get": {
+        "description": "By default returns JSON commit comparison information. The raw diff or patch can be\nrequested with the `output` query parameter set to `diff` or `patch` respectively.\n",
         "operationId": "repoCompareDiff",
         "parameters": [
           {
@@ -19190,11 +19490,23 @@
             }
           },
           {
-            "description": "compare two branches or commits",
+            "description": "compare two refs as `base...head` (or `base..head`); refs may be branches, tags, full or short SHAs (including branch names that contain slashes), optionally with a `^` or `~N` revision suffix.",
             "in": "path",
             "name": "basehead",
             "required": true,
             "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "return the raw comparison as `diff` or `patch` instead of JSON",
+            "in": "query",
+            "name": "output",
+            "schema": {
+              "enum": [
+                "diff",
+                "patch"
+              ],
               "type": "string"
             }
           }
@@ -19202,6 +19514,9 @@
         "responses": {
           "200": {
             "$ref": "#/components/responses/Compare"
+          },
+          "400": {
+            "$ref": "#/components/responses/error"
           },
           "404": {
             "$ref": "#/components/responses/notFound"
@@ -31184,6 +31499,32 @@
         "summary": "Add a repository to a team",
         "tags": [
           "organization"
+        ]
+      }
+    },
+    "/token": {
+      "delete": {
+        "operationId": "deleteCurrentToken",
+        "responses": {
+          "204": {
+            "description": "token deleted"
+          }
+        },
+        "summary": "Delete the currently authenticated token",
+        "tags": [
+          "miscellaneous"
+        ]
+      },
+      "get": {
+        "operationId": "getCurrentToken",
+        "responses": {
+          "200": {
+            "$ref": "#/components/responses/CurrentAccessToken"
+          }
+        },
+        "summary": "Get the currently authenticated token",
+        "tags": [
+          "miscellaneous"
         ]
       }
     },

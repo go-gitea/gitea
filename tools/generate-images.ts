@@ -7,7 +7,7 @@ import {argv, exit} from 'node:process';
 async function generate(svg: string, path: string, {size, bg}: {size: number, bg?: boolean}) {
   const outputFile = new URL(path, import.meta.url);
 
-  if (String(outputFile).endsWith('.svg')) {
+  if (outputFile.href.endsWith('.svg')) {
     const {data} = optimize(svg, {
       plugins: [
         'preset-default',

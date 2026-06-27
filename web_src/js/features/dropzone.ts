@@ -1,4 +1,4 @@
-import {svg} from '../svg.ts';
+import {svgRaw} from '../svg.ts';
 import {html} from '../utils/html.ts';
 import {copyToClipboardWithFeedback} from '../modules/clipboard.ts';
 import {GET, POST} from '../modules/fetch.ts';
@@ -45,10 +45,11 @@ export function generateMarkdownLinkForAttachment(file: Partial<CustomDropzoneFi
 function addCopyLink(file: Partial<CustomDropzoneFile>) {
   // Create a "Copy Link" element, to conveniently copy the image or file link as Markdown to the clipboard
   // The "<a>" element has a hardcoded cursor: pointer because the default is overridden by .dropzone
-  const copyLinkEl = createElementFromHTML<HTMLDivElement>(`
-<div class="tw-text-center">
-  <a href="#" class="tw-cursor-pointer">${svg('octicon-copy', 14)} Copy link</a>
-</div>`);
+  const copyLinkEl = createElementFromHTML<HTMLDivElement>(html`
+    <div class="tw-text-center">
+      <a href="#" class="tw-cursor-pointer">${svgRaw('octicon-copy', 14)} Copy link</a>
+    </div>
+  `);
   copyLinkEl.addEventListener('click', async (e) => {
     e.preventDefault();
     await copyToClipboardWithFeedback(copyLinkEl, generateMarkdownLinkForAttachment(file));
@@ -109,8 +110,8 @@ export async function initDropzone(dropzoneEl: HTMLElement) {
   });
 
   dzInst.on('submit', () => {
-    for (const fileUuid of Object.keys(fileUuidDict)) {
-      fileUuidDict[fileUuid].submitted = true;
+    for (const value of Object.values(fileUuidDict)) {
+      value.submitted = true;
     }
   });
 

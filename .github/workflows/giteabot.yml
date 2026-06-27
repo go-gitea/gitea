@@ -1,9 +1,16 @@
 name: giteabot
 
 on:
+  # When main advances, rerun merge queue maintenance so the oldest
+  # reviewed/wait-merge PR can be updated against the new base promptly.
+  push:
+    branches:
+      - main
   # pull_request_target gives this workflow access to GITEABOT_TOKEN on PRs from
   # forks, which the bot needs to write labels, statuses and comments. Safe here
   # because the job only runs a pinned action and never checks out PR HEAD.
+  # These PR lifecycle events drive label maintenance, queue maintenance, and
+  # explicit bot actions triggered by relevant label changes.
   pull_request_target: # zizmor: ignore[dangerous-triggers]
     types:
       - opened
@@ -13,13 +20,19 @@ on:
       - closed
       - review_requested
       - review_request_removed
+  # Review events keep review-derived state such as lgtm labels and status checks
+  # in sync after approvals, edits, or dismissals.
   pull_request_review:
     types:
       - submitted
       - edited
       - dismissed
+  # Periodic maintenance is still useful as a backstop for queue cleanup and
+  # other housekeeping, even though main pushes now trigger it promptly.
   schedule:
     - cron: "15 3 * * *"
+  # Allow maintainers to rerun selected checks manually when debugging bot
+  # behavior without waiting for another repository event.
   workflow_dispatch:
     inputs:
       checks:

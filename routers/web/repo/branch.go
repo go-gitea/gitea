@@ -52,13 +52,16 @@ func Branches(ctx *context.Context) {
 
 	kw := ctx.FormString("q")
 
-	defaultBranch, branches, branchesCount, err := repo_service.LoadBranches(ctx, ctx.Repo.Repository, ctx.Repo.GitRepo, optional.None[bool](), kw, page, pageSize)
+	defaultBranchOptional, branches, branchesCount, err := repo_service.LoadBranches(ctx, ctx.Repo.Repository, ctx.Repo.GitRepo, optional.None[bool](), kw, page, pageSize)
 	if err != nil {
 		ctx.ServerError("LoadBranches", err)
 		return
 	}
 
-	commitIDs := []string{defaultBranch.DBBranch.CommitID}
+	commitIDs := make([]string, 0, len(branches)+1)
+	if defaultBranchOptional != nil {
+		commitIDs = append(commitIDs, defaultBranchOptional.DBBranch.CommitID)
+	}
 	for _, branch := range branches {
 		commitIDs = append(commitIDs, branch.DBBranch.CommitID)
 	}
@@ -83,7 +86,7 @@ func Branches(ctx *context.Context) {
 	ctx.Data["Branches"] = branches
 	ctx.Data["CommitStatus"] = commitStatus
 	ctx.Data["CommitStatuses"] = commitStatuses
-	ctx.Data["DefaultBranchBranch"] = defaultBranch
+	ctx.Data["DefaultBranchBranch"] = defaultBranchOptional
 	pager := context.NewPagination(branchesCount, pageSize, page, 5)
 	pager.AddParamFromRequest(ctx.Req)
 	ctx.Data["Page"] = pager
@@ -152,7 +155,7 @@ func RestoreBranchPost(ctx *context.Context) {
 	objectFormat := git.ObjectFormatFromName(ctx.Repo.Repository.ObjectFormatName)
 
 	// Don't return error below this
-	if err := repo_service.PushUpdate(
+	if err := repo_service.PushUpdates(
 		&repo_module.PushUpdateOptions{
 			RefFullName:  git.RefNameFromBranch(deletedBranch.Name),
 			OldCommitID:  objectFormat.EmptyObjectID().String(),
@@ -261,7 +264,7 @@ func MergeUpstream(ctx *context.Context) {
 	branchName := ctx.FormString("branch")
 	_, err := repo_service.MergeUpstream(ctx, ctx.Doer, ctx.Repo.Repository, branchName, false)
 	if err != nil {
-		if errors.Is(err, util.ErrNotExist) {
+		if errors.Is(err, util.ErrNotExist) || errors.Is(err, util.ErrPermissionDenied) {
 			ctx.JSONErrorNotFound()
 			return
 		} else if pull_service.IsErrMergeConflicts(err) {

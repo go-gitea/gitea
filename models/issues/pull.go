@@ -414,7 +414,7 @@ func (pr *PullRequest) getReviewedByLines(ctx context.Context, writer io.Writer)
 }
 
 // GetGitHeadRefName returns git ref for hidden pull request branch
-func (pr *PullRequest) GetGitHeadRefName() string {
+func (pr *PullRequest) GetGitHeadRefName() string { // TODO: make it return RefName but not string
 	return fmt.Sprintf("%s%d/head", git.PullPrefix, pr.Index)
 }
 
@@ -535,12 +535,8 @@ func GetPullRequestByIndex(ctx context.Context, repoID, index int64) (*PullReque
 	if index < 1 {
 		return nil, ErrPullRequestNotExist{}
 	}
-	pr := &PullRequest{
-		BaseRepoID: repoID,
-		Index:      index,
-	}
 
-	has, err := db.GetEngine(ctx).Get(pr)
+	pr, has, err := db.Get[PullRequest](ctx, builder.Eq{"base_repo_id": repoID, "`index`": index})
 	if err != nil {
 		return nil, err
 	} else if !has {
