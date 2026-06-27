@@ -4,6 +4,7 @@ import {registerGlobalInitFunc} from '../../modules/observer.ts';
 import {queryElems} from '../../utils/dom.ts';
 import {errorMessage} from '../../modules/errors.ts';
 import {submitFormFetchAction} from '../common-fetch-action.ts';
+import {cutString} from '../../utils/string.ts';
 
 const {appSubUrl} = window.config;
 
@@ -158,7 +159,7 @@ export class ConfigFormValueMapper {
     const apps: Array<{DisplayName: string, OpenURL: string}> = [];
     const lines = cfgVal.split('\n');
     for (const line of lines) {
-      let [displayName, openUrl] = line.split('=', 2);
+      let [displayName, openUrl] = cutString(line, '=');
       displayName = displayName.trim();
       openUrl = openUrl?.trim() ?? '';
       if (!displayName || !openUrl) continue;
