@@ -145,6 +145,8 @@ func IntrospectOAuth(ctx *context.Context) {
 		}
 	}
 	if introspectingApp == nil {
+		// RFC 7662 requires the caller to authenticate to the introspection endpoint.
+		// https://www.rfc-editor.org/rfc/rfc7662.html#section-2.1
 		ctx.Resp.Header().Set("WWW-Authenticate", `Basic realm="Gitea OAuth2"`)
 		ctx.PlainText(http.StatusUnauthorized, "no valid authorization")
 		return
@@ -160,33 +162,36 @@ func IntrospectOAuth(ctx *context.Context) {
 	form := web.GetForm(ctx).(*forms.IntrospectTokenForm)
 	token, err := oauth2_provider.ParseToken(form.Token, oauth2_provider.DefaultSigningKey)
 	if err != nil {
-		log.Error("Error parsing token: %v", err)
-		ctx.Resp.Header().Set("WWW-Authenticate", `Basic realm="Gitea OAuth2"`)
-		ctx.PlainText(http.StatusUnauthorized, "no valid authorization")
+		// RFC 7662 returns inactive token metadata for invalid/unknown tokens.
+		// https://www.rfc-editor.org/rfc/rfc7662.html#section-2.2
+		log.Trace("Ignoring invalid token during introspection: %v", err)
+		ctx.JSON(http.StatusOK, response)
 		return
 	}
 
 	grant, err := auth.GetOAuth2GrantByID(ctx, token.GrantID)
-	if err == nil && grant != nil && grant.ApplicationID == introspectingApp.ID {
-		response.Active = true
-		response.Scope = grant.Scope
-		response.RegisteredClaims = oauth2_provider.NewJwtRegisteredClaimsFromUser(introspectingApp.ClientID, grant.UserID, nil /*exp*/)
-		user, err := user_model.GetUserByID(ctx, grant.UserID)
-		if err != nil {
-			log.Error("Error retrieving user for introspection: %v", err)
-			ctx.Resp.Header().Set("WWW-Authenticate", `Basic realm="Gitea OAuth2"`)
-			ctx.PlainText(http.StatusUnauthorized, "no valid authorization")
-			return
-		}
-		response.Username = user.Name
-	} else {
-		if err != nil {
-			log.Error("Error retrieving grant for introspection: %v", err)
-		}
-		ctx.Resp.Header().Set("WWW-Authenticate", `Basic realm="Gitea OAuth2"`)
-		ctx.PlainText(http.StatusUnauthorized, "no valid authorization")
+	if err != nil {
+		log.Error("Error retrieving grant for introspection: %v", err)
+		ctx.HTTPError(http.StatusInternalServerError)
 		return
 	}
+	if grant == nil || grant.ApplicationID != introspectingApp.ID {
+		// RFC 7662 allows the server to reply inactive when the caller must not learn more.
+		// https://www.rfc-editor.org/rfc/rfc7662.html#section-2.2
+		ctx.JSON(http.StatusOK, response)
+		return
+	}
+
+	response.Active = true
+	response.Scope = grant.Scope
+	response.RegisteredClaims = oauth2_provider.NewJwtRegisteredClaimsFromUser(introspectingApp.ClientID, grant.UserID, nil /*exp*/)
+	user, err := user_model.GetUserByID(ctx, grant.UserID)
+	if err != nil {
+		log.Error("Error retrieving user for introspection: %v", err)
+		ctx.HTTPError(http.StatusInternalServerError)
+		return
+	}
+	response.Username = user.Name
 
 	ctx.JSON(http.StatusOK, response)
 }
