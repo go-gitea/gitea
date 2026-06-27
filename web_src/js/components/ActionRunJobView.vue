@@ -708,8 +708,12 @@ async function hashChangeListener() {
 .job-step-logs .job-log-line .log-msg {
   flex: 1;
   white-space: break-spaces;
-  margin-left: 10px;
+  margin-left: 21px;
   overflow-wrap: anywhere;
+}
+
+.job-step-logs .job-log-line .log-time-stamp:not(.tw-hidden) ~ .log-msg {
+  margin-left: 10px;
 }
 
 .job-step-logs .log-msg a {
@@ -782,27 +786,29 @@ async function hashChangeListener() {
 .job-log-group-summary {
   cursor: pointer;
   position: relative;
-  display: list-item;
-  list-style: disclosure-closed inside;
-  padding-left: 58px; /* line-num gutter (48px) + log-msg margin (10px), so the marker sits in the content column */
+  list-style: none;
 }
 
-.job-log-group[open] > .job-log-group-summary {
-  list-style-type: disclosure-open;
+.job-log-group-summary::-webkit-details-marker {
+  display: none;
 }
 
-.job-log-group-summary > .job-log-line {
+.job-log-group-summary::before {
+  content: "";
   position: absolute;
-  inset: 0;
-  z-index: -1; /* sit behind the disclosure marker */
-  overflow: hidden;
+  left: 54px;
+  top: 50%;
+  transform: translateY(-50%);
+  margin-top: -1px;
+  border-top: 4px solid transparent;
+  border-bottom: 4px solid transparent;
+  border-left: 6px solid var(--color-text-light-3);
+  transition: transform 0.1s ease;
 }
 
-.job-log-group-summary > .job-log-line .log-time-stamp:not(.tw-hidden) ~ .log-msg {
-  margin-left: 10px;
+.job-log-group[open] > .job-log-group-summary::before {
+  transform: translateY(-50%) rotate(90deg);
 }
 
-.job-log-group-summary > .job-log-line .log-msg {
-  margin-left: 21px;
-}
+
 </style>
