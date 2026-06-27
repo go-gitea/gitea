@@ -129,7 +129,6 @@ func InfoOAuth(ctx *context.Context) {
 // IntrospectOAuth introspects an oauth token
 func IntrospectOAuth(ctx *context.Context) {
 	var introspectingApp *auth.OAuth2Application
-	clientIDValid := false
 	authHeader := ctx.Req.Header.Get("Authorization")
 	if parsed, ok := httpauth.ParseAuthorizationHeader(authHeader); ok && parsed.BasicAuth != nil {
 		clientID, clientSecret := parsed.BasicAuth.Username, parsed.BasicAuth.Password
@@ -140,12 +139,12 @@ func IntrospectOAuth(ctx *context.Context) {
 			ctx.HTTPError(http.StatusInternalServerError)
 			return
 		}
-		clientIDValid = err == nil && app.ValidateClientSecret([]byte(clientSecret))
+		clientIDValid := err == nil && app.ValidateClientSecret([]byte(clientSecret))
 		if clientIDValid {
 			introspectingApp = app
 		}
 	}
-	if !clientIDValid {
+	if introspectingApp == nil {
 		ctx.Resp.Header().Set("WWW-Authenticate", `Basic realm="Gitea OAuth2"`)
 		ctx.PlainText(http.StatusUnauthorized, "no valid authorization")
 		return
@@ -160,16 +159,33 @@ func IntrospectOAuth(ctx *context.Context) {
 
 	form := web.GetForm(ctx).(*forms.IntrospectTokenForm)
 	token, err := oauth2_provider.ParseToken(form.Token, oauth2_provider.DefaultSigningKey)
-	if err == nil {
-		grant, err := auth.GetOAuth2GrantByID(ctx, token.GrantID)
-		if err == nil && grant != nil && grant.ApplicationID == introspectingApp.ID {
-			response.Active = true
-			response.Scope = grant.Scope
-			response.RegisteredClaims = oauth2_provider.NewJwtRegisteredClaimsFromUser(introspectingApp.ClientID, grant.UserID, nil /*exp*/)
-			if user, err := user_model.GetUserByID(ctx, grant.UserID); err == nil {
-				response.Username = user.Name
-			}
+	if err != nil {
+		log.Error("Error parsing token: %v", err)
+		ctx.Resp.Header().Set("WWW-Authenticate", `Basic realm="Gitea OAuth2"`)
+		ctx.PlainText(http.StatusUnauthorized, "no valid authorization")
+		return
+	}
+
+	grant, err := auth.GetOAuth2GrantByID(ctx, token.GrantID)
+	if err == nil && grant != nil && grant.ApplicationID == introspectingApp.ID {
+		response.Active = true
+		response.Scope = grant.Scope
+		response.RegisteredClaims = oauth2_provider.NewJwtRegisteredClaimsFromUser(introspectingApp.ClientID, grant.UserID, nil /*exp*/)
+		user, err := user_model.GetUserByID(ctx, grant.UserID)
+		if err != nil {
+			log.Error("Error retrieving user for introspection: %v", err)
+			ctx.Resp.Header().Set("WWW-Authenticate", `Basic realm="Gitea OAuth2"`)
+			ctx.PlainText(http.StatusUnauthorized, "no valid authorization")
+			return
 		}
+		response.Username = user.Name
+	} else {
+		if err != nil {
+			log.Error("Error retrieving grant for introspection: %v", err)
+		}
+		ctx.Resp.Header().Set("WWW-Authenticate", `Basic realm="Gitea OAuth2"`)
+		ctx.PlainText(http.StatusUnauthorized, "no valid authorization")
+		return
 	}
 
 	ctx.JSON(http.StatusOK, response)
