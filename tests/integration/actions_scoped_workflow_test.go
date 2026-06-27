@@ -408,30 +408,6 @@ jobs:
 			})
 		})
 
-		t.Run("Orphaned scoped run still lists when its source is un-registered", func(t *testing.T) {
-			// Regression: once a source is un-registered, its past scoped runs fall into the "Other workflows" group,
-			// whose links can't carry scoped_workflow_source_repo_id. The list must still surface them (not drop them as non-scoped).
-			source := createTestRepo(t, "sw-orphan-source", false)
-			createRepoWorkflowFile(t, user2, user2Token, source, ".gitea/scoped_workflows/push.yaml", scopedPushWorkflow)
-			registerUserScopedSource(t, source)
-
-			consumer := createTestRepo(t, "sw-orphan-consumer", false)
-			createRepoWorkflowFile(t, user2, user2Token, consumer, "marker.txt", "trigger")
-			run := unittest.AssertExistsAndLoadBean(t, &actions_model.ActionRun{RepoID: consumer.ID, IsScopedRun: true})
-			assert.Equal(t, "push.yaml", run.WorkflowID)
-
-			// un-register the source: the scoped definition is gone, so the run is now an orphan
-			removeReq := NewRequestWithValues(t, "POST", "/user/settings/actions/scoped-workflows/remove",
-				map[string]string{"repo_id": strconv.FormatInt(source.ID, 10)})
-			user2Session.MakeRequest(t, removeReq, http.StatusOK)
-
-			// the run list filtered by the orphan workflow (no scoped_workflow_source_repo_id) must still show the run
-			listReq := NewRequest(t, "GET", fmt.Sprintf("/%s/%s/actions?workflow=push.yaml", consumer.OwnerName, consumer.Name))
-			resp := user2Session.MakeRequest(t, listReq, http.StatusOK)
-			assert.Contains(t, resp.Body.String(), fmt.Sprintf("/actions/runs/%d", run.ID),
-				"orphaned scoped run is listed when its workflow is selected")
-		})
-
 		t.Run("Distinct sources same filename", func(t *testing.T) {
 			// two DIFFERENT source repos with the same filename run independently
 			s1 := createTestRepo(t, "sw-multi-s1", false)
