@@ -701,7 +701,7 @@ async function hashChangeListener() {
 .job-log-line .log-time,
 .log-time-stamp {
   color: var(--color-text-light-3);
-  margin-left: 10px;
+  margin-left: 21px;
   white-space: nowrap;
 }
 
@@ -796,10 +796,6 @@ async function hashChangeListener() {
   inset: 0;
   z-index: -1; /* sit behind the disclosure marker */
   overflow: hidden;
-}
-
-.job-log-group-summary > .job-log-line .log-time-stamp:not(.tw-hidden) {
-  margin-left: 21px;
 }
 
 .job-log-group-summary > .job-log-line .log-time-stamp:not(.tw-hidden) ~ .log-msg {
