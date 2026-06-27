@@ -43,5 +43,15 @@ test('linkifyURLs', () => {
   expect(linkifyURLs("https://evil.com/'onclick='alert(1)")).toEqual(`${link('https://evil.com/')}'onclick='alert(1)`);
   expect(linkifyURLs('data:text/html,<script>alert(1)</script>')).toEqual('data:text/html,<script>alert(1)</script>');
   expect(linkifyURLs('https://evil.com/\nonclick=alert(1)')).toEqual(`${link('https://evil.com/')}\nonclick=alert(1)`);
-  expect(linkifyURLs('https://evil.com/&#34;onmouseover=alert(1)')).toEqual(`${link('https://evil.com/&#34;onmouseover=alert')}(1)`);
+  // The input is already HTML-escaped, so an HTML entity marks the real end of a URL and
+  // must not be swallowed into it. Regression test for the actions-log "extra semicolon"
+  // bug where `"https://x"` was escaped to `&#34;https://x&#34;` and the trailing entity
+  // leaked into the link (gitea/runner#1046).
+  expect(linkifyURLs('https://evil.com/&#34;onmouseover=alert(1)')).toEqual(`${link('https://evil.com/')}&#34;onmouseover=alert(1)`);
+  expect(linkifyURLs('&quot;https://example.com&quot;')).toEqual(`&quot;${link('https://example.com')}&quot;`);
+  expect(linkifyURLs('registry = &#34;http://172.17.0.1:4873&#34;')).toEqual(`registry = &#34;${link('http://172.17.0.1:4873')}&#34;`);
+  expect(linkifyURLs('a &lt;https://example.com&gt; b')).toEqual(`a &lt;${link('https://example.com')}&gt; b`);
+  expect(linkifyURLs("https://example.com/&#x27;quoted&#x27;")).toEqual(`${link('https://example.com/')}&#x27;quoted&#x27;`);
+  // A literal "&" (escaped as &amp;) is valid inside URLs and must stay part of the link.
+  expect(linkifyURLs('https://example.com/path?query=1&amp;b=2#frag')).toEqual(link('https://example.com/path?query=1&amp;b=2#frag'));
 });
