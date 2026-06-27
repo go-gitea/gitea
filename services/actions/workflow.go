@@ -62,12 +62,16 @@ func DispatchActionWorkflow(ctx reqctx.RequestContext, doer *user_model.User, re
 
 	isScoped := scopedWorkflowSourceRepoID > 0
 
-	// can not run when the workflow is disabled (opt-out is keyed by source repo for scoped workflows)
 	cfgUnit := repo.MustGetUnit(ctx, unit.TypeActions)
 	cfg := cfgUnit.ActionsConfig()
-	workflowDisabled := cfg.IsWorkflowDisabled(workflowID)
+	var workflowDisabled bool
 	if isScoped {
-		workflowDisabled = cfg.IsScopedWorkflowDisabled(scopedWorkflowSourceRepoID, workflowID)
+		var err error
+		if workflowDisabled, err = actions_model.IsScopedWorkflowOptedOut(ctx, cfg, repo.OwnerID, scopedWorkflowSourceRepoID, workflowID); err != nil {
+			return 0, err
+		}
+	} else {
+		workflowDisabled = cfg.IsWorkflowDisabled(workflowID)
 	}
 	if workflowDisabled {
 		return 0, util.ErrorWrapTranslatable(

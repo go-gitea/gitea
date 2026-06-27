@@ -649,8 +649,7 @@ func detectAndHandleScopedWorkflows(
 		for _, dwf := range detected {
 			// A consuming repo can opt out of a non-required scoped workflow.
 			// A required workflow (marked required at any effective level) can never be opted out.
-			required := actions_model.IsWorkflowRequiredInSources(sources, sourceRepo.ID, dwf.EntryName)
-			if !required && actionsConfig.IsScopedWorkflowDisabled(sourceRepo.ID, dwf.EntryName) {
+			if actions_model.ScopedWorkflowOptedOut(actionsConfig, sources, sourceRepo.ID, dwf.EntryName) {
 				continue
 			}
 

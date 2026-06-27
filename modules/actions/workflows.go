@@ -160,7 +160,7 @@ func ScopedWorkflowStatusContextName(prefix, displayName, jobName, event string)
 // The two are kept in sync by hand and can drift; unify them into a single source so adding a status-producing event in one place automatically updates the other.
 func ShouldEventCreateCommitStatus(event string) bool {
 	switch event {
-	case "push", "pull_request", "pull_request_target", "release":
+	case "push", "pull_request", "pull_request_target", "pull_request_review", "pull_request_review_comment", "release":
 		return true
 	}
 	return false

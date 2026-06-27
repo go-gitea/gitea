@@ -125,6 +125,10 @@ func prepareOtherWorkflows(ctx *context.Context, workflows []WorkflowInfo, scope
 	}
 	// scoped workflows are listed in their own sidebar section, so their runs must not also surface as orphans
 	listed.AddMultiple(scopedNames.Values()...)
+	// TODO: navigation keys on the bare workflow_id, ignoring the source repo.
+	// If an active source still provides a workflow file (e.g. ci.yaml), an orphan scoped run of the same filename from a now-unregistered source is hidden:
+	// the name is in `listed` so it is excluded from "Other workflows", and the active sidebar entry filters by the other source's id.
+	// Surfacing it would mean keying the sidebar, the run filter, and this dedup by (workflowID, sourceRepoID).
 
 	var other []string
 	if ctx.Repo.Repository.NumActionRuns > 0 {
@@ -379,7 +383,13 @@ func prepareWorkflowDispatchTemplate(ctx *context.Context, workflowInfos []Workf
 
 	isScoped := curWorkflowRepoID > 0
 	if isScoped {
-		if actionsConfig.IsScopedWorkflowDisabled(curWorkflowRepoID, curWorkflowID) {
+		// a required scoped workflow can never be opted out, so a stale disabled flag must not hide its dispatch form
+		optedOut, err := actions_model.IsScopedWorkflowOptedOut(ctx, actionsConfig, repo.OwnerID, curWorkflowRepoID, curWorkflowID)
+		if err != nil {
+			log.Error("IsScopedWorkflowOptedOut: %v", err)
+			return
+		}
+		if optedOut {
 			return
 		}
 	} else if actionsConfig.IsWorkflowDisabled(curWorkflowID) {

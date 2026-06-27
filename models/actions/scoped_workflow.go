@@ -110,6 +110,23 @@ func IsScopedWorkflowRequired(ctx context.Context, consumerOwnerID, sourceRepoID
 	return IsWorkflowRequiredInSources(sources, sourceRepoID, workflowID), nil
 }
 
+// IsScopedWorkflowOptedOutloads the consumer's effective sources then calls ScopedWorkflowOptedOut
+func IsScopedWorkflowOptedOut(ctx context.Context, cfg *repo_model.ActionsConfig, consumerOwnerID, sourceRepoID int64, workflowID string) (bool, error) {
+	if !cfg.IsScopedWorkflowDisabled(sourceRepoID, workflowID) {
+		return false, nil
+	}
+	sources, err := GetEffectiveScopedWorkflowSources(ctx, consumerOwnerID)
+	if err != nil {
+		return false, err
+	}
+	return ScopedWorkflowOptedOut(cfg, sources, sourceRepoID, workflowID), nil
+}
+
+// ScopedWorkflowOptedOut reports whether a consumer's opt-out of (sourceRepoID, workflowID) is in effect.
+func ScopedWorkflowOptedOut(cfg *repo_model.ActionsConfig, sources []*ActionScopedWorkflowSource, sourceRepoID int64, workflowID string) bool {
+	return !IsWorkflowRequiredInSources(sources, sourceRepoID, workflowID) && cfg.IsScopedWorkflowDisabled(sourceRepoID, workflowID)
+}
+
 // GetScopedWorkflowSourcesByOwner returns the sources an owner (user/org, or 0 for instance) registered.
 func GetScopedWorkflowSourcesByOwner(ctx context.Context, ownerID int64) ([]*ActionScopedWorkflowSource, error) {
 	return db.Find[ActionScopedWorkflowSource](ctx, FindScopedWorkflowSourceOpts{OwnerIDs: []int64{ownerID}})
