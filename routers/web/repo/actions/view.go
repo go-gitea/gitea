@@ -863,7 +863,12 @@ func checkRunRerunAllowed(ctx *context_module.Context, run *actions_model.Action
 	cfg := cfgUnit.ActionsConfig()
 	disabled := cfg.IsWorkflowDisabled(run.WorkflowID)
 	if run.IsScopedRun {
-		disabled = cfg.IsScopedWorkflowDisabled(run.WorkflowRepoID, run.WorkflowID)
+		optedOut, err := actions_model.IsScopedWorkflowOptedOut(ctx, cfg, ctx.Repo.Repository.OwnerID, run.WorkflowRepoID, run.WorkflowID)
+		if err != nil {
+			ctx.ServerError("IsScopedWorkflowOptedOut", err)
+			return false
+		}
+		disabled = optedOut
 	}
 	if disabled {
 		ctx.JSONError(ctx.Locale.Tr("actions.workflow.disabled"))

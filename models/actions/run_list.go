@@ -165,9 +165,23 @@ func GetRunBranches(ctx context.Context, repoID int64) ([]string, error) {
 // GetRunWorkflowIDs returns all distinct WorkflowIDs that have at least
 // one ActionRun in the given repo.
 func GetRunWorkflowIDs(ctx context.Context, repoID int64) ([]string, error) {
+	return getRunWorkflowIDs(ctx, repoID, builder.NewCond())
+}
+
+// GetRepoRunWorkflowIDs returns all distinct WorkflowIDs that have at least
+// one repo-level ActionRun in the given repo.
+func GetRepoRunWorkflowIDs(ctx context.Context, repoID int64) ([]string, error) {
+	return getRunWorkflowIDs(ctx, repoID, builder.Eq{"is_scoped_run": false})
+}
+
+func getRunWorkflowIDs(ctx context.Context, repoID int64, extraCond builder.Cond) ([]string, error) {
 	ids := make([]string, 0, 10)
+	cond := builder.Eq{"repo_id": repoID}
+	if !extraCond.IsValid() {
+		extraCond = builder.NewCond()
+	}
 	return ids, db.GetEngine(ctx).Table("action_run").
-		Where(builder.Eq{"repo_id": repoID}).
+		Where(cond.And(extraCond)).
 		Distinct("workflow_id").
 		Cols("workflow_id").
 		Asc("workflow_id").

@@ -99,7 +99,7 @@ func List(ctx *context.Context) {
 	if ctx.Written() {
 		return
 	}
-	otherWorkflows := prepareOtherWorkflows(ctx, workflows, scopedNames, curWorkflowID)
+	otherWorkflows := prepareOtherWorkflows(ctx, workflows, curWorkflowID)
 	if ctx.Written() {
 		return
 	}
@@ -118,23 +118,17 @@ func List(ctx *context.Context) {
 
 // prepareOtherWorkflows surfaces historical runs whose workflow file no longer
 // exists on the default branch (renamed, removed, or only on other branches).
-func prepareOtherWorkflows(ctx *context.Context, workflows []WorkflowInfo, scopedNames container.Set[string], curWorkflowID string) []string {
-	listed := make(container.Set[string], len(workflows)+len(scopedNames))
+func prepareOtherWorkflows(ctx *context.Context, workflows []WorkflowInfo, curWorkflowID string) []string {
+	listed := make(container.Set[string], len(workflows))
 	for _, w := range workflows {
 		listed.Add(w.Entry.Name())
 	}
-	// scoped workflows are listed in their own sidebar section, so their runs must not also surface as orphans
-	listed.AddMultiple(scopedNames.Values()...)
-	// TODO: navigation keys on the bare workflow_id, ignoring the source repo.
-	// If an active source still provides a workflow file (e.g. ci.yaml), an orphan scoped run of the same filename from a now-unregistered source is hidden:
-	// the name is in `listed` so it is excluded from "Other workflows", and the active sidebar entry filters by the other source's id.
-	// Surfacing it would mean keying the sidebar, the run filter, and this dedup by (workflowID, sourceRepoID).
 
 	var other []string
 	if ctx.Repo.Repository.NumActionRuns > 0 {
-		ids, err := actions_model.GetRunWorkflowIDs(ctx, ctx.Repo.Repository.ID)
+		ids, err := actions_model.GetRepoRunWorkflowIDs(ctx, ctx.Repo.Repository.ID)
 		if err != nil {
-			ctx.ServerError("GetRunWorkflowIDs", err)
+			ctx.ServerError("GetRepoRunWorkflowIDs", err)
 			return nil
 		}
 		other = container.FilterSlice(ids, func(id string) (string, bool) {

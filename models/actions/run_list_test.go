@@ -27,6 +27,46 @@ func TestGetRunWorkflowIDs(t *testing.T) {
 	assert.Empty(t, ids)
 }
 
+func TestGetRepoRunWorkflowIDs(t *testing.T) {
+	assert.NoError(t, unittest.PrepareTestDatabase())
+
+	const (
+		repoID             = int64(4)
+		repoWorkflowID     = "repo-orphan.yaml"
+		scopedWorkflowID   = "scoped-only.yaml"
+		sharedWorkflowID   = "shared-name.yaml"
+		scopedWorkflowRepo = int64(111)
+	)
+	for _, spec := range []struct {
+		id             int64
+		workflowID     string
+		workflowRepoID int64
+		isScopedRun    bool
+	}{
+		{99811, repoWorkflowID, repoID, false},
+		{99812, scopedWorkflowID, scopedWorkflowRepo, true},
+		{99813, sharedWorkflowID, repoID, false},
+		{99814, sharedWorkflowID, scopedWorkflowRepo, true},
+	} {
+		require.NoError(t, db.Insert(t.Context(), &ActionRun{
+			ID:             spec.id,
+			Index:          spec.id,
+			RepoID:         repoID,
+			OwnerID:        1,
+			TriggerUserID:  1,
+			WorkflowID:     spec.workflowID,
+			WorkflowRepoID: spec.workflowRepoID,
+			IsScopedRun:    spec.isScopedRun,
+		}))
+	}
+
+	ids, err := GetRepoRunWorkflowIDs(t.Context(), repoID)
+	require.NoError(t, err)
+	assert.Contains(t, ids, repoWorkflowID)
+	assert.Contains(t, ids, sharedWorkflowID)
+	assert.NotContains(t, ids, scopedWorkflowID)
+}
+
 func TestGetStatusInfoList(t *testing.T) {
 	statusInfoList := GetStatusInfoList(t.Context(), translation.MockLocale{})
 
