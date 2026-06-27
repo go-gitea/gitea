@@ -28,6 +28,14 @@ type DetectedWorkflow struct {
 	Content      []byte
 }
 
+type detectResult int
+
+const (
+	detectNotApplicable detectResult = iota
+	detectFilteredOut
+	detectMatched
+)
+
 func init() {
 	model.OnDecodeNodeError = func(node yaml.Node, out any, err error) {
 		// Log the error instead of panic or fatal.
@@ -123,18 +131,19 @@ func DetectWorkflows(
 	triggedEvent webhook_module.HookEventType,
 	payload api.Payloader,
 	detectSchedule bool,
-) ([]*DetectedWorkflow, []*DetectedWorkflow, error) {
+) ([]*DetectedWorkflow, []*DetectedWorkflow, []*DetectedWorkflow, error) {
 	_, entries, err := ListWorkflows(commit)
 	if err != nil {
-		return nil, nil, err
+		return nil, nil, nil, err
 	}
 
 	workflows := make([]*DetectedWorkflow, 0, len(entries))
 	schedules := make([]*DetectedWorkflow, 0, len(entries))
+	filtered := make([]*DetectedWorkflow, 0, len(entries))
 	for _, entry := range entries {
 		content, err := GetContentFromEntry(entry)
 		if err != nil {
-			return nil, nil, err
+			return nil, nil, nil, err
 		}
 
 		// one workflow may have multiple events
@@ -154,18 +163,24 @@ func DetectWorkflows(
 					}
 					schedules = append(schedules, dwf)
 				}
-			} else if detectMatched(gitRepo, commit, triggedEvent, payload, evt) {
+			} else {
 				dwf := &DetectedWorkflow{
 					EntryName:    entry.Name(),
 					TriggerEvent: evt,
 					Content:      content,
 				}
-				workflows = append(workflows, dwf)
+				switch detectWorkflowMatch(gitRepo, commit, triggedEvent, payload, evt) {
+				case detectMatched:
+					workflows = append(workflows, dwf)
+				case detectFilteredOut:
+					filtered = append(filtered, dwf)
+				case detectNotApplicable:
+				}
 			}
 		}
 	}
 
-	return workflows, schedules, nil
+	return workflows, schedules, filtered, nil
 }
 
 func DetectScheduledWorkflows(gitRepo *git.Repository, commit *git.Commit) ([]*DetectedWorkflow, error) {
@@ -203,9 +218,9 @@ func DetectScheduledWorkflows(gitRepo *git.Repository, commit *git.Commit) ([]*D
 	return wfs, nil
 }
 
-func detectMatched(gitRepo *git.Repository, commit *git.Commit, triggedEvent webhook_module.HookEventType, payload api.Payloader, evt *jobparser.Event) bool {
+func detectWorkflowMatch(gitRepo *git.Repository, commit *git.Commit, triggedEvent webhook_module.HookEventType, payload api.Payloader, evt *jobparser.Event) detectResult {
 	if !canGithubEventMatch(evt.Name, triggedEvent) {
-		return false
+		return detectNotApplicable
 	}
 
 	switch triggedEvent {
@@ -219,25 +234,34 @@ func detectMatched(gitRepo *git.Repository, commit *git.Commit, triggedEvent web
 			log.Warn("Ignore unsupported %s event arguments %v", triggedEvent, evt.Acts())
 		}
 		// no special filter parameters for these events, just return true if name matched
-		return true
+		return detectMatched
 
 	case // push
 		webhook_module.HookEventPush:
-		return matchPushEvent(commit, payload.(*api.PushPayload), evt)
+		if matchPushEvent(commit, payload.(*api.PushPayload), evt) {
+			return detectMatched
+		}
+		return detectFilteredOut
 
 	case // issues
 		webhook_module.HookEventIssues,
 		webhook_module.HookEventIssueAssign,
 		webhook_module.HookEventIssueLabel,
 		webhook_module.HookEventIssueMilestone:
-		return matchIssuesEvent(payload.(*api.IssuePayload), evt)
+		if matchIssuesEvent(payload.(*api.IssuePayload), evt) {
+			return detectMatched
+		}
+		return detectNotApplicable
 
 	case // issue_comment
 		webhook_module.HookEventIssueComment,
 		// `pull_request_comment` is same as `issue_comment`
 		// See https://docs.github.com/en/actions/using-workflows/events-that-trigger-workflows#pull_request_comment-use-issue_comment
 		webhook_module.HookEventPullRequestComment:
-		return matchIssueCommentEvent(payload.(*api.IssueCommentPayload), evt)
+		if matchIssueCommentEvent(payload.(*api.IssueCommentPayload), evt) {
+			return detectMatched
+		}
+		return detectNotApplicable
 
 	case // pull_request
 		webhook_module.HookEventPullRequest,
@@ -251,27 +275,42 @@ func detectMatched(gitRepo *git.Repository, commit *git.Commit, triggedEvent web
 	case // pull_request_review
 		webhook_module.HookEventPullRequestReviewApproved,
 		webhook_module.HookEventPullRequestReviewRejected:
-		return matchPullRequestReviewEvent(payload.(*api.PullRequestPayload), evt)
+		if matchPullRequestReviewEvent(payload.(*api.PullRequestPayload), evt) {
+			return detectMatched
+		}
+		return detectNotApplicable
 
 	case // pull_request_review_comment
 		webhook_module.HookEventPullRequestReviewComment:
-		return matchPullRequestReviewCommentEvent(payload.(*api.PullRequestPayload), evt)
+		if matchPullRequestReviewCommentEvent(payload.(*api.PullRequestPayload), evt) {
+			return detectMatched
+		}
+		return detectNotApplicable
 
 	case // release
 		webhook_module.HookEventRelease:
-		return matchReleaseEvent(payload.(*api.ReleasePayload), evt)
+		if matchReleaseEvent(payload.(*api.ReleasePayload), evt) {
+			return detectMatched
+		}
+		return detectNotApplicable
 
 	case // registry_package
 		webhook_module.HookEventPackage:
-		return matchPackageEvent(payload.(*api.PackagePayload), evt)
+		if matchPackageEvent(payload.(*api.PackagePayload), evt) {
+			return detectMatched
+		}
+		return detectNotApplicable
 
 	case // workflow_run
 		webhook_module.HookEventWorkflowRun:
-		return matchWorkflowRunEvent(payload.(*api.WorkflowRunPayload), evt)
+		if matchWorkflowRunEvent(payload.(*api.WorkflowRunPayload), evt) {
+			return detectMatched
+		}
+		return detectNotApplicable
 
 	default:
 		log.Warn("unsupported event %q", triggedEvent)
-		return false
+		return detectNotApplicable
 	}
 }
 
@@ -429,7 +468,7 @@ func matchIssuesEvent(issuePayload *api.IssuePayload, evt *jobparser.Event) bool
 	return matchTimes == len(evt.Acts())
 }
 
-func matchPullRequestEvent(gitRepo *git.Repository, commit *git.Commit, prPayload *api.PullRequestPayload, evt *jobparser.Event) bool {
+func matchPullRequestEvent(gitRepo *git.Repository, commit *git.Commit, prPayload *api.PullRequestPayload, evt *jobparser.Event) detectResult {
 	acts := evt.Acts()
 	activityTypeMatched := false
 	matchTimes := 0
@@ -476,7 +515,7 @@ func matchPullRequestEvent(gitRepo *git.Repository, commit *git.Commit, prPayloa
 		headCommit, err = gitRepo.GetCommit(prPayload.PullRequest.Head.Sha)
 		if err != nil {
 			log.Error("GetCommit [ref: %s]: %v", prPayload.PullRequest.Head.Sha, err)
-			return false
+			return detectFilteredOut
 		}
 	}
 
@@ -534,7 +573,13 @@ func matchPullRequestEvent(gitRepo *git.Repository, commit *git.Commit, prPayloa
 			log.Warn("pull request event unsupported condition %q", cond)
 		}
 	}
-	return activityTypeMatched && matchTimes == len(evt.Acts())
+	if !activityTypeMatched {
+		return detectNotApplicable
+	}
+	if matchTimes != len(evt.Acts()) {
+		return detectFilteredOut
+	}
+	return detectMatched
 }
 
 func matchIssueCommentEvent(issueCommentPayload *api.IssueCommentPayload, evt *jobparser.Event) bool {
