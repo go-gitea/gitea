@@ -810,5 +810,4 @@ async function hashChangeListener() {
   transform: translateY(-50%) rotate(90deg);
 }
 
-
 </style>
