@@ -126,6 +126,7 @@ func prepareOtherWorkflows(ctx *context.Context, workflows []WorkflowInfo, curWo
 
 	var other []string
 	if ctx.Repo.Repository.NumActionRuns > 0 {
+		// "Other workflows" lists repo-level orphans only: GetRepoRunWorkflowIDs excludes scoped runs.
 		ids, err := actions_model.GetRepoRunWorkflowIDs(ctx, ctx.Repo.Repository.ID)
 		if err != nil {
 			ctx.ServerError("GetRepoRunWorkflowIDs", err)
