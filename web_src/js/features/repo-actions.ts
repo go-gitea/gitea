@@ -10,7 +10,7 @@ export function updateWorkflowBadgeFields(form: HTMLElement, branch: string): vo
   const badgeURL = new URL(form.getAttribute('data-badge-url')!);
   badgeURL.searchParams.set('branch', branch);
 
-  const badgeURLString = badgeURL.toString();
+  const badgeURLString = badgeURL.href;
   const workflowURL = form.getAttribute('data-workflow-url')!;
   const markdownAltText = form.getAttribute('data-markdown-alt-text')!;
   const htmlAltText = form.getAttribute('data-html-alt-text')!;
