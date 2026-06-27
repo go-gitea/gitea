@@ -106,19 +106,20 @@
 							</div>
 						</div>
 
-						{{if .WorkflowBadge}}
-						<button class="ui mini button show-modal" data-modal="#workflow-status-badge-modal">
-							<span class="flex-text-inline">{{svg "octicon-file-badge" 14}}{{ctx.Locale.Tr "actions.workflow.create_status_badge"}}</span>
-						</button>
-						{{end}}
-
-						{{if and .AllowDisableOrEnableWorkflow .CurWorkflowIsListed $.CurWorkflow}}
+						{{if or .WorkflowBadge (and .AllowDisableOrEnableWorkflow .CurWorkflowIsListed $.CurWorkflow)}}
 						<button class="ui jump dropdown btn interact-bg tw-p-2">
 							{{svg "octicon-kebab-horizontal"}}
 							<div class="menu">
+								{{if .WorkflowBadge}}
+								<div class="item show-modal" data-modal="#workflow-status-badge-modal">
+									{{ctx.Locale.Tr "actions.workflow.create_status_badge"}}
+								</div>
+								{{end}}
+								{{if and .AllowDisableOrEnableWorkflow .CurWorkflowIsListed $.CurWorkflow}}
 								<a class="item link-action" data-url="{{$.Link}}/{{if .CurWorkflowDisabled}}enable{{else}}disable{{end}}?workflow={{$.CurWorkflow}}&actor={{.CurActor}}&status={{$.CurStatus}}&branch={{$.CurBranch}}">
 									{{if .CurWorkflowDisabled}}{{ctx.Locale.Tr "actions.workflow.enable"}}{{else}}{{ctx.Locale.Tr "actions.workflow.disable"}}{{end}}
 								</a>
+								{{end}}
 							</div>
 						</button>
 						{{end}}
@@ -136,26 +137,40 @@
 					<div id="workflow-status-badge-modal" class="ui tiny modal">
 						<div class="header">{{ctx.Locale.Tr "actions.workflow.status_badge"}}</div>
 						<div class="content">
-							<div class="ui form">
+							<div class="ui form" data-workflow-badge-form data-badge-url="{{.WorkflowBadge.URL}}" data-workflow-url="{{.WorkflowBadge.WorkflowURL}}" data-markdown-alt-text="{{.WorkflowBadge.MarkdownAltText}}" data-html-alt-text="{{.WorkflowBadge.HTMLAltText}}">
 								<div class="field">
-									<img src="{{.WorkflowBadge.URL}}" alt="{{.CurWorkflow}}">
+									<img data-workflow-badge-image src="{{.WorkflowBadge.URL}}" alt="{{.CurWorkflow}}">
+								</div>
+								<div class="field">
+									<label>{{ctx.Locale.Tr "actions.runs.branch"}}</label>
+									<div class="ui selection dropdown">
+										<input type="hidden" data-workflow-badge-branch value="{{.Repository.DefaultBranch}}">
+										{{svg "octicon-triangle-down" 14 "dropdown icon"}}
+										<div class="text">{{.Repository.DefaultBranch}}</div>
+										<div class="menu">
+											<div class="item selected" data-value="{{.Repository.DefaultBranch}}">{{.Repository.DefaultBranch}}</div>
+											{{range .RunBranches}}
+												{{if ne . $.Repository.DefaultBranch}}
+													<div class="item" data-value="{{.}}">{{.}}</div>
+												{{end}}
+											{{end}}
+										</div>
+									</div>
 								</div>
 								<div class="field">
 									<label>{{ctx.Locale.Tr "actions.workflow.status_badge_url"}}</label>
 									<div class="ui action input">
-										<input id="workflow-badge-url" readonly value="{{.WorkflowBadge.URL}}">
+										<input id="workflow-badge-url" readonly autofocus value="{{.WorkflowBadge.URL}}">
 										<button class="ui icon button" data-tooltip-content="{{ctx.Locale.Tr "copy"}}" data-clipboard-target="#workflow-badge-url">{{svg "octicon-copy" 14}}</button>
 									</div>
 								</div>
 								<div class="field">
 									<label>{{ctx.Locale.Tr "actions.workflow.status_badge_markdown"}}</label>
 									<textarea id="workflow-badge-markdown" rows="2" readonly>{{.WorkflowBadge.Markdown}}</textarea>
-									<button class="ui icon button" data-tooltip-content="{{ctx.Locale.Tr "copy"}}" data-clipboard-target="#workflow-badge-markdown">{{svg "octicon-copy" 14}}</button>
 								</div>
 								<div class="field">
 									<label>{{ctx.Locale.Tr "actions.workflow.status_badge_html"}}</label>
 									<textarea id="workflow-badge-html" rows="2" readonly>{{.WorkflowBadge.HTML}}</textarea>
-									<button class="ui icon button" data-tooltip-content="{{ctx.Locale.Tr "copy"}}" data-clipboard-target="#workflow-badge-html">{{svg "octicon-copy" 14}}</button>
 								</div>
 							</div>
 						</div>

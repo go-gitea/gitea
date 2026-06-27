@@ -49,9 +49,12 @@ type WorkflowInfo struct {
 }
 
 type workflowBadge struct {
-	URL      string
-	Markdown string
-	HTML     string
+	URL             string
+	WorkflowURL     string
+	Markdown        string
+	MarkdownAltText string
+	HTML            string
+	HTMLAltText     string
 }
 
 // DisplayName returns the workflow name from the YAML file if present, otherwise the filename.
@@ -458,9 +461,12 @@ func prepareWorkflowBadgeTemplate(ctx *context.Context, workflowID, displayName 
 	workflowURL := fmt.Sprintf("%s/actions?workflow=%s", repoURL, url.QueryEscape(workflowID))
 
 	ctx.Data["WorkflowBadge"] = workflowBadge{
-		URL:      badgeURL,
-		Markdown: fmt.Sprintf("[![%s](%s)](%s)", escapeMarkdownImageAltText(displayName), badgeURL, workflowURL),
-		HTML:     fmt.Sprintf(`<a href="%s"><img src="%s" alt="%s"></a>`, html.EscapeString(workflowURL), html.EscapeString(badgeURL), html.EscapeString(displayName)),
+		URL:             badgeURL,
+		WorkflowURL:     workflowURL,
+		Markdown:        fmt.Sprintf("[![%s](%s)](%s)", escapeMarkdownImageAltText(displayName), badgeURL, workflowURL),
+		MarkdownAltText: escapeMarkdownImageAltText(displayName),
+		HTML:            fmt.Sprintf(`<a href="%s"><img src="%s" alt="%s"></a>`, html.EscapeString(workflowURL), html.EscapeString(badgeURL), html.EscapeString(displayName)),
+		HTMLAltText:     displayName,
 	}
 }
 

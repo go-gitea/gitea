@@ -3833,7 +3833,7 @@
   "actions.workflow.enable_success": "Workflow '%s' enabled successfully.",
   "actions.workflow.disabled": "Workflow is disabled.",
   "actions.workflow.run": "Run Workflow",
-  "actions.workflow.create_status_badge": "Create Status Badge",
+  "actions.workflow.create_status_badge": "Create status badge",
   "actions.workflow.status_badge": "Status Badge",
   "actions.workflow.status_badge_url": "Badge URL",
   "actions.workflow.status_badge_markdown": "Markdown",
