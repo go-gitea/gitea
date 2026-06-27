@@ -34,52 +34,12 @@ import (
 	"gitea.dev/tests"
 
 	"github.com/PuerkitoBio/goquery"
+	jwt "github.com/golang-jwt/jwt/v5"
 	"github.com/markbates/goth"
 	"github.com/markbates/goth/gothic"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
-
-type oauthAudience []string
-
-func (a *oauthAudience) UnmarshalJSON(data []byte) error {
-	if len(data) == 0 || string(data) == "null" {
-		return nil
-	}
-
-	switch data[0] {
-	case '"':
-		var value string
-		if err := json.Unmarshal(data, &value); err != nil {
-			return err
-		}
-		*a = oauthAudience{value}
-	case '[':
-		values := make([]string, 0, 1)
-		if err := json.Unmarshal(data, &values); err != nil {
-			return err
-		}
-		*a = values
-	default:
-		return fmt.Errorf("unexpected audience JSON type: %s", data)
-	}
-
-	return nil
-}
-
-func TestOAuthAudienceUnmarshalJSON(t *testing.T) {
-	t.Run("string", func(t *testing.T) {
-		var audience oauthAudience
-		require.NoError(t, json.Unmarshal([]byte(`"client-id"`), &audience))
-		assert.Equal(t, oauthAudience{"client-id"}, audience)
-	})
-
-	t.Run("array", func(t *testing.T) {
-		var audience oauthAudience
-		require.NoError(t, json.Unmarshal([]byte(`["client-a","client-b"]`), &audience))
-		assert.Equal(t, oauthAudience{"client-a", "client-b"}, audience)
-	})
-}
 
 func testOAuth2PrepareTestCode(t *testing.T) {
 	require.NoError(t, db.TruncateBeans(t.Context(), &auth_model.OAuth2AuthorizationCode{}))
@@ -773,11 +733,10 @@ func testOAuthIntrospectionCrossClientIsolation(t *testing.T) {
 	require.NotEmpty(t, tokenParsed.RefreshToken)
 
 	type introspectResponse struct {
-		Active   bool          `json:"active"`
-		Scope    string        `json:"scope,omitempty"`
-		Username string        `json:"username,omitempty"`
-		Subject  string        `json:"sub,omitempty"`
-		Audience oauthAudience `json:"aud,omitempty"`
+		Active   bool   `json:"active"`
+		Scope    string `json:"scope,omitempty"`
+		Username string `json:"username,omitempty"`
+		jwt.RegisteredClaims
 	}
 
 	assertBlockedIntrospection := func(token string) {
@@ -813,7 +772,7 @@ func testOAuthIntrospectionCrossClientIsolation(t *testing.T) {
 		assert.Equal(t, "openid profile", allowed.Scope)
 		assert.Equal(t, resourceOwner.Name, allowed.Username)
 		assert.Equal(t, strconv.FormatInt(resourceOwner.ID, 10), allowed.Subject)
-		assert.Equal(t, oauthAudience{clientA.ClientID}, allowed.Audience)
+		assert.Equal(t, jwt.ClaimStrings{clientA.ClientID}, allowed.Audience)
 	}
 
 	assertBlockedIntrospection(tokenParsed.AccessToken)
