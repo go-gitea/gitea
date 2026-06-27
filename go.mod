@@ -104,7 +104,7 @@ require (
 	gitlab.com/gitlab-org/api/client-go/v2 v2.38.0
 	go.yaml.in/yaml/v4 v4.0.0-rc.5
 	golang.org/x/crypto v0.53.0
-	golang.org/x/image v0.42.0
+	golang.org/x/image v0.43.0
 	golang.org/x/mod v0.37.0
 	golang.org/x/net v0.56.0
 	golang.org/x/oauth2 v0.36.0

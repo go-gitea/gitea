@@ -103,7 +103,7 @@ type PackageMetadataVersion struct {
 	DevDependencies      map[string]string   `json:"devDependencies,omitempty"`
 	PeerDependencies     map[string]string   `json:"peerDependencies,omitempty"`
 	PeerDependenciesMeta map[string]any      `json:"peerDependenciesMeta,omitempty"`
-	Bin                  map[string]string   `json:"bin,omitempty"`
+	Bin                  Bin                 `json:"bin,omitempty"`
 	OptionalDependencies map[string]string   `json:"optionalDependencies,omitempty"`
 	Readme               string              `json:"readme,omitempty"`
 	Dist                 PackageDistribution `json:"dist"`
@@ -188,6 +188,49 @@ type Repository struct {
 	Directory string `json:"directory,omitempty"`
 }
 
+// UnmarshalJSON is needed because the repository field can be a string or an object.
+func (r *Repository) UnmarshalJSON(data []byte) error {
+	switch data[0] {
+	case '"':
+		var value string
+		if err := json.Unmarshal(data, &value); err != nil {
+			return err
+		}
+		r.URL = value
+	case '{':
+		type repositoryAlias Repository // avoid recursion into this method
+		var value repositoryAlias
+		if err := json.Unmarshal(data, &value); err != nil {
+			return err
+		}
+		*r = Repository(value)
+	}
+	return nil
+}
+
+// Bin maps command names to executable files. npm also allows a single string,
+// in which case the command is named after the package (resolved in ParsePackage).
+type Bin map[string]string
+
+// UnmarshalJSON is needed because the bin field can be a string or an object.
+func (b *Bin) UnmarshalJSON(data []byte) error {
+	switch data[0] {
+	case '"':
+		var value string
+		if err := json.Unmarshal(data, &value); err != nil {
+			return err
+		}
+		*b = Bin{"": value}
+	case '{':
+		var value map[string]string
+		if err := json.Unmarshal(data, &value); err != nil {
+			return err
+		}
+		*b = value
+	}
+	return nil
+}
+
 // PackageAttachment https://github.com/npm/registry/blob/master/docs/REGISTRY-API.md#package
 type PackageAttachment struct {
 	ContentType string `json:"content_type"`
@@ -227,6 +270,11 @@ func ParsePackage(r io.Reader) (*Package, error) {
 
 		if !validation.IsValidURL(meta.Homepage) {
 			meta.Homepage = ""
+		}
+
+		// A string "bin" means a single executable named after the package.
+		if cmd, ok := meta.Bin[""]; ok && len(meta.Bin) == 1 {
+			meta.Bin = Bin{name: cmd}
 		}
 
 		p := &Package{
