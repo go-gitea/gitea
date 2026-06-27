@@ -177,9 +177,6 @@ func GetRepoRunWorkflowIDs(ctx context.Context, repoID int64) ([]string, error) 
 func getRunWorkflowIDs(ctx context.Context, repoID int64, extraCond builder.Cond) ([]string, error) {
 	ids := make([]string, 0, 10)
 	cond := builder.Eq{"repo_id": repoID}
-	if !extraCond.IsValid() {
-		extraCond = builder.NewCond()
-	}
 	return ids, db.GetEngine(ctx).Table("action_run").
 		Where(cond.And(extraCond)).
 		Distinct("workflow_id").
