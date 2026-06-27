@@ -182,8 +182,9 @@ func notify(ctx context.Context, input *notifyInput) error {
 	}
 
 	var detectedWorkflows []*actions_module.DetectedWorkflow
+	var filteredWorkflows []*actions_module.DetectedWorkflow
 	actionsConfig := input.Repo.MustGetUnit(ctx, unit_model.TypeActions).ActionsConfig()
-	workflows, schedules, err := actions_module.DetectWorkflows(gitRepo, commit,
+	workflows, schedules, filtered, err := actions_module.DetectWorkflows(gitRepo, commit,
 		input.Event,
 		input.Payload,
 		shouldDetectSchedules,
@@ -211,6 +212,17 @@ func notify(ctx context.Context, input *notifyInput) error {
 		}
 	}
 
+	for _, wf := range filtered {
+		if actionsConfig.IsWorkflowDisabled(wf.EntryName) {
+			log.Trace("repo %s has disable workflows %s", input.Repo.RelativePath(), wf.EntryName)
+			continue
+		}
+
+		if wf.TriggerEvent.Name != actions_module.GithubEventPullRequestTarget {
+			filteredWorkflows = append(filteredWorkflows, wf)
+		}
+	}
+
 	if input.PullRequest != nil {
 		// detect pull_request_target workflows
 		baseRef := git.BranchPrefix + input.PullRequest.BaseBranch
@@ -218,7 +230,7 @@ func notify(ctx context.Context, input *notifyInput) error {
 		if err != nil {
 			return fmt.Errorf("gitRepo.GetCommit: %w", err)
 		}
-		baseWorkflows, _, err := actions_module.DetectWorkflows(gitRepo, baseCommit, input.Event, input.Payload, false)
+		baseWorkflows, _, baseFiltered, err := actions_module.DetectWorkflows(gitRepo, baseCommit, input.Event, input.Payload, false)
 		if err != nil {
 			return fmt.Errorf("DetectWorkflows: %w", err)
 		}
@@ -231,12 +243,21 @@ func notify(ctx context.Context, input *notifyInput) error {
 				}
 			}
 		}
+		for _, wf := range baseFiltered {
+			if wf.TriggerEvent.Name == actions_module.GithubEventPullRequestTarget {
+				filteredWorkflows = append(filteredWorkflows, wf)
+			}
+		}
 	}
 
 	if shouldDetectSchedules {
 		if err := handleSchedules(ctx, schedules, commit, input, ref); err != nil {
 			return err
 		}
+	}
+
+	if err := handleFilteredWorkflows(ctx, filteredWorkflows, commit, input, ref); err != nil {
+		return err
 	}
 
 	return handleWorkflows(ctx, detectedWorkflows, commit, input, ref)
@@ -349,6 +370,61 @@ func handleWorkflows(
 			continue
 		}
 	}
+	return nil
+}
+
+func handleFilteredWorkflows(
+	ctx context.Context,
+	filteredWorkflows []*actions_module.DetectedWorkflow,
+	commit *git.Commit,
+	input *notifyInput,
+	ref git.RefName,
+) error {
+	if len(filteredWorkflows) == 0 {
+		return nil
+	}
+
+	p, err := json.Marshal(input.Payload)
+	if err != nil {
+		return fmt.Errorf("json.Marshal: %w", err)
+	}
+
+	isForkPullRequest := false
+	if pr := input.PullRequest; pr != nil {
+		switch pr.Flow {
+		case issues_model.PullRequestFlowGithub:
+			isForkPullRequest = pr.IsFromFork()
+		case issues_model.PullRequestFlowAGit:
+			isForkPullRequest = true
+		default:
+			isForkPullRequest = true
+		}
+	}
+
+	for _, dwf := range filteredWorkflows {
+		run := &actions_model.ActionRun{
+			Title:             commit.MessageTitle(),
+			RepoID:            input.Repo.ID,
+			Repo:              input.Repo,
+			OwnerID:           input.Repo.OwnerID,
+			WorkflowID:        dwf.EntryName,
+			TriggerUserID:     input.Doer.ID,
+			TriggerUser:       input.Doer,
+			Ref:               ref.String(),
+			CommitSHA:         commit.ID.String(),
+			IsForkPullRequest: isForkPullRequest,
+			Event:             input.Event,
+			EventPayload:      string(p),
+			TriggerEvent:      dwf.TriggerEvent.Name,
+			Status:            actions_model.StatusSkipped,
+		}
+
+		if err := PrepareRunAndInsert(ctx, dwf.Content, run, nil); err != nil {
+			log.Error("PrepareRunAndInsert: %v", err)
+			continue
+		}
+	}
+
 	return nil
 }
 
