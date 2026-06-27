@@ -10,6 +10,7 @@ import (
 	"html/template"
 	"net/http"
 	"strings"
+	stdctx "context"
 
 	asymkey_model "gitea.dev/models/asymkey"
 	"gitea.dev/models/db"
@@ -30,8 +31,10 @@ import (
 	"gitea.dev/modules/setting"
 	"gitea.dev/modules/templates"
 	"gitea.dev/modules/util"
+	"gitea.dev/modules/web"
 	asymkey_service "gitea.dev/services/asymkey"
 	"gitea.dev/services/context"
+	"gitea.dev/services/forms"
 	git_service "gitea.dev/services/git"
 	"gitea.dev/services/gitdiff"
 	repo_service "gitea.dev/services/repository"
@@ -477,4 +480,54 @@ func processGitCommits(ctx *context.Context, gitCommits []*git.Commit) ([]*git_m
 		}
 	}
 	return commits, nil
+}
+
+// CreateCommitComment creates a code comment for a commit
+func CreateCommitComment(ctx *context.Context) {
+	form := web.GetForm(ctx).(*forms.CommitCommentForm)
+	if ctx.HasError() {
+		ctx.Flash.Error(ctx.GetErrMsg())
+		ctx.Redirect(fmt.Sprintf("%s/commit/%s", ctx.Repo.RepoLink, ctx.PathParam("sha")))
+		return
+	}
+
+	sha := ctx.PathParam("sha")
+
+	comment, err := db.WithTx2(ctx, func(txCtx stdctx.Context) (*issues_model.Comment, error) {
+		comment := &issues_model.Comment{
+			Type:      issues_model.CommentTypeComment,
+			PosterID:  ctx.Doer.ID,
+			Poster:    ctx.Doer,
+			CommitSHA: sha,
+			Line:      form.Line,
+			TreePath:  form.TreePath,
+			Content:   form.Content,
+		}
+
+		if err := db.Insert(txCtx, comment); err != nil {
+			return nil, err
+		}
+
+		if setting.Attachment.Enabled && len(form.Files) > 0 {
+			if err := issues_model.UpdateCommentAttachments(txCtx, comment, form.Files); err != nil {
+				return nil, err
+			}
+		}
+
+		return comment, nil
+	})
+
+	if err != nil {
+		ctx.ServerError("CreateCommitComment", err)
+		return
+	}
+
+	ctx.Redirect(fmt.Sprintf("%s/commit/%s#%s", ctx.Repo.RepoLink, sha, comment.HashTag()))
+}
+
+// RenderNewCommitCodeCommentForm will render the form for creating a new commit comment
+func RenderNewCommitCodeCommentForm(ctx *context.Context) {
+	ctx.Data["PageIsCommits"] = true
+	ctx.Data["CommitID"] = ctx.PathParam("sha")
+	ctx.HTML(http.StatusOK, "repo/diff/new_comment")
 }

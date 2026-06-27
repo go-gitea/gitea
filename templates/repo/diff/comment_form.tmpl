@@ -1,5 +1,5 @@
 {{if and ctx.RootData.SignedUserID (not ctx.RootData.Repository.IsArchived)}}
-	<form class="ui form {{if $.hidden}}tw-hidden comment-form{{end}}" action="{{$.root.Issue.Link}}/files/reviews/comments" method="post">
+	<form class="ui form {{if $.hidden}}tw-hidden comment-form{{end}}" action="{{if $.root.PageIsPullFiles}}{{$.root.Issue.Link}}/files/reviews/comments{{else}}{{$.root.RepoLink}}/commit/{{$.root.CommitID}}/comments{{end}}" method="post">
 		<input type="hidden" name="origin" value="{{if $.root.PageIsPullFiles}}diff{{else}}timeline{{end}}">
 		<input type="hidden" name="latest_commit_id" value="{{$.root.AfterCommitID}}">
 		<input type="hidden" name="side" value="{{if $.Side}}{{$.Side}}{{end}}">
@@ -34,8 +34,10 @@
 					{{if $.root.CurrentReview}}
 						<button name="pending_review" type="submit" class="ui submit primary tiny button btn-add-comment">{{ctx.Locale.Tr "repo.diff.comment.add_review_comment"}}</button>
 					{{else}}
-						<button name="pending_review" type="submit" class="ui submit primary tiny button btn-start-review">{{ctx.Locale.Tr "repo.diff.comment.start_review"}}</button>
-						<button name="single_review" value="true" type="submit" class="ui submit tiny basic button btn-add-single">{{ctx.Locale.Tr "repo.diff.comment.add_single_comment"}}</button>
+						{{if $.root.PageIsPullFiles}}
+							<button name="pending_review" type="submit" class="ui submit primary tiny button btn-start-review">{{ctx.Locale.Tr "repo.diff.comment.start_review"}}</button>
+						{{end}}
+						<button name="single_review" value="true" type="submit" class="ui submit {{if $.root.PageIsPullFiles}}tiny basic{{else}}primary tiny{{end}} button btn-add-single">{{ctx.Locale.Tr "repo.diff.comment.add_single_comment"}}</button>
 					{{end}}
 				{{end}}
 				{{if or (not $.HasComments) $.hidden}}

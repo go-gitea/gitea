@@ -28,6 +28,7 @@ type Attachment struct {
 	ReleaseID         int64  `xorm:"INDEX"`           // maybe zero when creating
 	UploaderID        int64  `xorm:"INDEX DEFAULT 0"` // Notice: will be zero before this column added
 	CommentID         int64  `xorm:"INDEX"`
+	CommitSHA         string `xorm:"VARCHAR(64) INDEX"` // direct repository linking for commit comments
 	Name              string
 	DownloadCount     int64              `xorm:"DEFAULT 0"`
 	Size              int64              `xorm:"DEFAULT 0"`
@@ -256,13 +257,13 @@ func DeleteAttachmentsByRelease(ctx context.Context, releaseID int64) error {
 
 // CountOrphanedAttachments returns the number of bad attachments
 func CountOrphanedAttachments(ctx context.Context) (int64, error) {
-	return db.GetEngine(ctx).Where("(issue_id > 0 and issue_id not in (select id from issue)) or (release_id > 0 and release_id not in (select id from `release`))").
+	return db.GetEngine(ctx).Where("(issue_id > 0 and issue_id not in (select id from issue)) or (release_id > 0 and release_id not in (select id from `release`)) or (comment_id > 0 and comment_id not in (select id from `comment`)) or (issue_id = 0 and release_id = 0 and comment_id = 0)").
 		Count(new(Attachment))
 }
 
 // DeleteOrphanedAttachments delete all bad attachments
 func DeleteOrphanedAttachments(ctx context.Context) error {
-	_, err := db.GetEngine(ctx).Where("(issue_id > 0 and issue_id not in (select id from issue)) or (release_id > 0 and release_id not in (select id from `release`))").
+	_, err := db.GetEngine(ctx).Where("(issue_id > 0 and issue_id not in (select id from issue)) or (release_id > 0 and release_id not in (select id from `release`)) or (comment_id > 0 and comment_id not in (select id from `comment`)) or (issue_id = 0 and release_id = 0 and comment_id = 0)").
 		Delete(new(Attachment))
 	return err
 }
