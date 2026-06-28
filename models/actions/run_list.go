@@ -10,6 +10,7 @@ import (
 	repo_model "gitea.dev/models/repo"
 	user_model "gitea.dev/models/user"
 	"gitea.dev/modules/container"
+	"gitea.dev/modules/optional"
 	"gitea.dev/modules/translation"
 	webhook_module "gitea.dev/modules/webhook"
 
@@ -61,7 +62,9 @@ type FindRunOptions struct {
 	RepoID           int64
 	OwnerID          int64
 	WorkflowID       string
-	Ref              string // the commit/tag/… that caused this workflow
+	WorkflowRepoID   int64                 // source-aware filter: the repo a run's workflow content came from (0 = any)
+	IsScopedRun      optional.Option[bool] // is the run from a scoped workflow
+	Ref              string                // the commit/tag/… that caused this workflow
 	TriggerUserID    int64
 	TriggerEvent     webhook_module.HookEventType
 	Status           []Status
@@ -76,6 +79,12 @@ func (opts FindRunOptions) ToConds() builder.Cond {
 	}
 	if opts.WorkflowID != "" {
 		cond = cond.And(builder.Eq{"`action_run`.workflow_id": opts.WorkflowID})
+	}
+	if opts.WorkflowRepoID > 0 {
+		cond = cond.And(builder.Eq{"`action_run`.workflow_repo_id": opts.WorkflowRepoID})
+	}
+	if opts.IsScopedRun.Has() {
+		cond = cond.And(builder.Eq{"`action_run`.is_scoped_run": opts.IsScopedRun.Value()})
 	}
 	if opts.TriggerUserID > 0 {
 		cond = cond.And(builder.Eq{"`action_run`.trigger_user_id": opts.TriggerUserID})
@@ -156,9 +165,20 @@ func GetRunBranches(ctx context.Context, repoID int64) ([]string, error) {
 // GetRunWorkflowIDs returns all distinct WorkflowIDs that have at least
 // one ActionRun in the given repo.
 func GetRunWorkflowIDs(ctx context.Context, repoID int64) ([]string, error) {
+	return getRunWorkflowIDs(ctx, repoID, builder.NewCond())
+}
+
+// GetRepoRunWorkflowIDs returns all distinct WorkflowIDs that have at least
+// one repo-level ActionRun in the given repo.
+func GetRepoRunWorkflowIDs(ctx context.Context, repoID int64) ([]string, error) {
+	return getRunWorkflowIDs(ctx, repoID, builder.Eq{"is_scoped_run": false})
+}
+
+func getRunWorkflowIDs(ctx context.Context, repoID int64, extraCond builder.Cond) ([]string, error) {
 	ids := make([]string, 0, 10)
+	cond := builder.Eq{"repo_id": repoID}
 	return ids, db.GetEngine(ctx).Table("action_run").
-		Where(builder.Eq{"repo_id": repoID}).
+		Where(cond.And(extraCond)).
 		Distinct("workflow_id").
 		Cols("workflow_id").
 		Asc("workflow_id").
