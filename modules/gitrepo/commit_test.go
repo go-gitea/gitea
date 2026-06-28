@@ -51,6 +51,7 @@ func TestCommitsCountWithSinceUntil(t *testing.T) {
 		})
 	}
 }
+
 func TestCommitsCountWithoutBase(t *testing.T) {
 	bareRepo1 := &mockRepository{path: "repo1_bare"}
 
