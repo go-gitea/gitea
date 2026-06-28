@@ -1,9 +1,14 @@
 {{$data := $.MergeBoxData}}
 {{$pull := $.PullRequest}}
 <details>
-	<summary>{{ctx.Locale.Tr "repo.pulls.cmd_instruction_hint"}}</summary>
-	<div class="tw-mt-2">
-		<div><h3>{{ctx.Locale.Tr "repo.pulls.cmd_instruction_checkout_title"}}</h3>{{ctx.Locale.Tr "repo.pulls.cmd_instruction_checkout_desc"}}</div>
+	<summary class="tw-pl-1">{{/* align with other item icon & text */}}
+		<span class="tw-pl-2">{{ctx.Locale.Tr "repo.pulls.cmd_instruction_hint"}}</span>
+	</summary>
+	<div class="tw-my-[5px]">
+		<div>
+			<h3 class="tw-m-0">{{ctx.Locale.Tr "repo.pulls.cmd_instruction_checkout_title"}}</h3>
+			{{ctx.Locale.Tr "repo.pulls.cmd_instruction_checkout_desc"}}
+		</div>
 		{{$localBranch := $pull.HeadBranch}}
 		{{if ne $pull.HeadRepo.ID $pull.BaseRepo.ID}}
 			{{$localBranch = print $pull.HeadRepo.OwnerName "-" $pull.HeadBranch}}
@@ -19,7 +24,7 @@
 		</div>
 		{{if $data.ShowMergeInstructions}}
 		<div>
-			<h3>{{ctx.Locale.Tr "repo.pulls.cmd_instruction_merge_title"}}</h3>
+			<h3 class="tw-m-0">{{ctx.Locale.Tr "repo.pulls.cmd_instruction_merge_title"}}</h3>
 			{{ctx.Locale.Tr "repo.pulls.cmd_instruction_merge_desc"}}
 			{{if not $data.AutodetectManualMerge}}
 				<div>{{ctx.Locale.Tr "repo.pulls.cmd_instruction_merge_warning"}}</div>

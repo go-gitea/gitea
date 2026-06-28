@@ -4,6 +4,8 @@
 package v1_22
 
 import (
+	"gitea.dev/models/db"
+
 	"xorm.io/xorm"
 )
 
@@ -11,7 +13,7 @@ type HookTask struct {
 	PayloadVersion int `xorm:"DEFAULT 1"`
 }
 
-func AddPayloadVersionToHookTaskTable(x *xorm.Engine) error {
+func AddPayloadVersionToHookTaskTable(x db.EngineMigration) error {
 	// create missing column
 	if _, err := x.SyncWithOptions(xorm.SyncOptions{
 		IgnoreIndices:    true,

@@ -4,12 +4,11 @@
 package v1_13
 
 import (
-	"code.gitea.io/gitea/modules/timeutil"
-
-	"xorm.io/xorm"
+	"gitea.dev/models/db"
+	"gitea.dev/modules/timeutil"
 )
 
-func AddProjectsInfo(x *xorm.Engine) error {
+func AddProjectsInfo(x db.EngineMigration) error {
 	// Create new tables
 	type (
 		ProjectType      uint8

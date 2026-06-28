@@ -7,14 +7,13 @@ import (
 	"context"
 	"fmt"
 
-	"code.gitea.io/gitea/models/migrations/base"
-	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/modules/timeutil"
-
-	"xorm.io/xorm"
+	"gitea.dev/models/db"
+	"gitea.dev/models/migrations/base"
+	"gitea.dev/modules/setting"
+	"gitea.dev/modules/timeutil"
 )
 
-func RenameCredentialIDBytes(x *xorm.Engine) error {
+func RenameCredentialIDBytes(x db.EngineMigration) error {
 	// This migration maybe rerun so that we should check if it has been run
 	credentialIDExist, err := x.Dialect().IsColumnExist(x.DB(), context.Background(), "webauthn_credential", "credential_id")
 	if err != nil {

@@ -7,28 +7,32 @@ import (
 	"bytes"
 	stdCtx "context"
 	"errors"
+	"fmt"
+	"html"
 	"net/http"
+	"net/url"
 	"slices"
 	"strings"
 
-	actions_model "code.gitea.io/gitea/models/actions"
-	"code.gitea.io/gitea/models/db"
-	git_model "code.gitea.io/gitea/models/git"
-	repo_model "code.gitea.io/gitea/models/repo"
-	"code.gitea.io/gitea/models/unit"
-	"code.gitea.io/gitea/modules/actions"
-	"code.gitea.io/gitea/modules/container"
-	"code.gitea.io/gitea/modules/git"
-	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/optional"
-	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/modules/templates"
-	"code.gitea.io/gitea/modules/util"
-	shared_user "code.gitea.io/gitea/routers/web/shared/user"
-	"code.gitea.io/gitea/services/context"
-	"code.gitea.io/gitea/services/convert"
+	actions_model "gitea.dev/models/actions"
+	"gitea.dev/models/db"
+	git_model "gitea.dev/models/git"
+	repo_model "gitea.dev/models/repo"
+	"gitea.dev/models/unit"
+	"gitea.dev/modules/actions"
+	"gitea.dev/modules/container"
+	"gitea.dev/modules/git"
+	"gitea.dev/modules/log"
+	"gitea.dev/modules/optional"
+	"gitea.dev/modules/setting"
+	"gitea.dev/modules/templates"
+	"gitea.dev/modules/util"
+	shared_user "gitea.dev/routers/web/shared/user"
+	actions_service "gitea.dev/services/actions"
+	"gitea.dev/services/context"
+	"gitea.dev/services/convert"
 
-	act_model "github.com/nektos/act/pkg/model"
+	act_model "gitea.com/gitea/runner/act/model"
 	"go.yaml.in/yaml/v4"
 )
 
@@ -42,6 +46,23 @@ type WorkflowInfo struct {
 	Entry    git.TreeEntry
 	ErrMsg   string
 	Workflow *act_model.Workflow
+}
+
+type workflowBadge struct {
+	URL             string
+	WorkflowURL     string
+	Markdown        string
+	MarkdownAltText string
+	HTML            string
+	HTMLAltText     string
+}
+
+// DisplayName returns the workflow name from the YAML file if present, otherwise the filename.
+func (w WorkflowInfo) DisplayName() string {
+	if w.Workflow != nil && w.Workflow.Name != "" {
+		return w.Workflow.Name
+	}
+	return w.Entry.Name()
 }
 
 // MustEnableActions check if actions are enabled in settings
@@ -82,17 +103,46 @@ func List(ctx *context.Context) {
 	if ctx.Written() {
 		return
 	}
+	otherWorkflows := prepareOtherWorkflows(ctx, workflows, curWorkflowID)
+	if ctx.Written() {
+		return
+	}
 	prepareWorkflowDispatchTemplate(ctx, workflows, curWorkflowID)
 	if ctx.Written() {
 		return
 	}
 
-	prepareWorkflowList(ctx, workflows)
+	prepareWorkflowList(ctx, workflows, otherWorkflows)
 	if ctx.Written() {
 		return
 	}
 
 	ctx.HTML(http.StatusOK, tplListActions)
+}
+
+// prepareOtherWorkflows surfaces historical runs whose workflow file no longer
+// exists on the default branch (renamed, removed, or only on other branches).
+func prepareOtherWorkflows(ctx *context.Context, workflows []WorkflowInfo, curWorkflowID string) []string {
+	listed := make(container.Set[string], len(workflows))
+	for _, w := range workflows {
+		listed.Add(w.Entry.Name())
+	}
+
+	var other []string
+	if ctx.Repo.Repository.NumActionRuns > 0 {
+		ids, err := actions_model.GetRunWorkflowIDs(ctx, ctx.Repo.Repository.ID)
+		if err != nil {
+			ctx.ServerError("GetRunWorkflowIDs", err)
+			return nil
+		}
+		other = container.FilterSlice(ids, func(id string) (string, bool) {
+			return id, id != "" && !listed.Contains(id)
+		})
+	}
+
+	ctx.Data["OtherWorkflows"] = other
+	ctx.Data["CurWorkflowIsListed"] = curWorkflowID == "" || listed.Contains(curWorkflowID)
+	return other
 }
 
 func WorkflowDispatchInputs(ctx *context.Context) {
@@ -169,12 +219,20 @@ func prepareWorkflowTemplate(ctx *context.Context, commit *git.Commit) (workflow
 			if !hasJobWithoutNeeds && len(j.Needs()) == 0 {
 				hasJobWithoutNeeds = true
 			}
+			if j.Uses != "" {
+				if _, err := actions_service.ResolveUses(ctx, j.Uses); err != nil {
+					workflow.ErrMsg = ctx.Locale.TrString("actions.runs.invalid_reusable_workflow_uses", err.Error())
+					break
+				}
+			}
 		}
-		if !hasJobWithoutNeeds {
-			workflow.ErrMsg = ctx.Locale.TrString("actions.runs.no_job_without_needs")
-		}
-		if emptyJobsNumber == len(wf.Jobs) {
-			workflow.ErrMsg = ctx.Locale.TrString("actions.runs.no_job")
+		if workflow.ErrMsg == "" {
+			if !hasJobWithoutNeeds {
+				workflow.ErrMsg = ctx.Locale.TrString("actions.runs.no_job_without_needs")
+			}
+			if emptyJobsNumber == len(wf.Jobs) {
+				workflow.ErrMsg = ctx.Locale.TrString("actions.runs.no_job")
+			}
 		}
 		workflows = append(workflows, workflow)
 	}
@@ -245,10 +303,11 @@ func prepareWorkflowDispatchTemplate(ctx *context.Context, workflowInfos []Workf
 	ctx.Data["Tags"] = tags
 }
 
-func prepareWorkflowList(ctx *context.Context, workflows []WorkflowInfo) {
+func prepareWorkflowList(ctx *context.Context, workflows []WorkflowInfo, otherWorkflows []string) {
 	actorID := ctx.FormInt64("actor")
 	status := ctx.FormInt("status")
 	workflowID := ctx.FormString("workflow")
+	branch := ctx.FormString("branch")
 	page := ctx.FormInt("page")
 	if page <= 0 {
 		page = 1
@@ -258,7 +317,8 @@ func prepareWorkflowList(ctx *context.Context, workflows []WorkflowInfo) {
 	// they will be 0 by default, which indicates get all status or actors
 	ctx.Data["CurActor"] = actorID
 	ctx.Data["CurStatus"] = status
-	if actorID > 0 || status > int(actions_model.StatusUnknown) {
+	ctx.Data["CurBranch"] = branch
+	if actorID > 0 || status > int(actions_model.StatusUnknown) || branch != "" {
 		ctx.Data["IsFiltered"] = true
 	}
 
@@ -275,6 +335,9 @@ func prepareWorkflowList(ctx *context.Context, workflows []WorkflowInfo) {
 	// if status is not StatusUnknown, it means user has selected a status filter
 	if actions_model.Status(status) != actions_model.StatusUnknown {
 		opts.Status = []actions_model.Status{actions_model.Status(status)}
+	}
+	if branch != "" {
+		opts.Ref = string(git.RefNameFromBranch(branch))
 	}
 
 	runs, total, err := db.FindAndCount[actions_model.ActionRun](ctx, opts)
@@ -308,7 +371,7 @@ func prepareWorkflowList(ctx *context.Context, workflows []WorkflowInfo) {
 		return
 	}
 	for _, run := range runs {
-		if !run.Status.In(actions_model.StatusWaiting, actions_model.StatusRunning) {
+		if !run.Status.In(actions_model.StatusWaiting, actions_model.StatusRunning, actions_model.StatusBlocked) {
 			continue
 		}
 		jobs, err := actions_model.GetLatestAttemptJobsByRepoAndRunID(ctx, run.RepoID, run.ID)
@@ -317,29 +380,49 @@ func prepareWorkflowList(ctx *context.Context, workflows []WorkflowInfo) {
 			return
 		}
 		for _, job := range jobs {
-			if !job.Status.IsWaiting() {
+			if !job.Status.In(actions_model.StatusWaiting, actions_model.StatusBlocked) {
 				continue
 			}
 			if err := actions.ValidateWorkflowContent(job.WorkflowPayload); err != nil {
 				runErrors[run.ID] = ctx.Locale.TrString("actions.runs.invalid_workflow_helper", err.Error())
 				break
 			}
-			hasOnlineRunner := false
-			for _, runner := range runners {
-				if !runner.IsDisabled && runner.CanMatchLabels(job.RunsOn) {
-					hasOnlineRunner = true
+			if job.CallUses != "" {
+				if _, err := actions_service.ResolveUses(ctx, job.CallUses); err != nil {
+					runErrors[run.ID] = ctx.Locale.TrString("actions.runs.invalid_reusable_workflow_uses", err.Error())
 					break
 				}
 			}
-			if !hasOnlineRunner {
-				runErrors[run.ID] = ctx.Locale.TrString("actions.runs.no_matching_online_runner_helper", strings.Join(job.RunsOn, ","))
-				break
+			if job.Status.IsWaiting() {
+				hasOnlineRunner := false
+				for _, runner := range runners {
+					if !runner.IsDisabled && runner.CanMatchLabels(job.RunsOn) {
+						hasOnlineRunner = true
+						break
+					}
+				}
+				if !hasOnlineRunner {
+					runErrors[run.ID] = ctx.Locale.TrString("actions.runs.no_matching_online_runner_helper", strings.Join(job.RunsOn, ","))
+					break
+				}
 			}
 		}
 	}
 	ctx.Data["RunErrors"] = runErrors
 
 	ctx.Data["Runs"] = runs
+
+	workflowNames := make(map[string]string, len(workflows))
+	workflowDisplayName := workflowID
+	for _, wf := range workflows {
+		displayName := wf.DisplayName()
+		workflowNames[wf.Entry.Name()] = displayName
+		if wf.Entry.Name() == workflowID {
+			workflowDisplayName = displayName
+		}
+	}
+	ctx.Data["WorkflowNames"] = workflowNames
+	prepareWorkflowBadgeTemplate(ctx, workflowID, workflowDisplayName)
 
 	actors, err := actions_model.GetActors(ctx, ctx.Repo.Repository.ID)
 	if err != nil {
@@ -350,12 +433,45 @@ func prepareWorkflowList(ctx *context.Context, workflows []WorkflowInfo) {
 
 	ctx.Data["StatusInfoList"] = actions_model.GetStatusInfoList(ctx, ctx.Locale)
 
+	runBranches, err := actions_model.GetRunBranches(ctx, ctx.Repo.Repository.ID)
+	if err != nil {
+		ctx.ServerError("GetRunBranches", err)
+		return
+	}
+	ctx.Data["RunBranches"] = runBranches
+
 	pager := context.NewPagination(total, opts.PageSize, opts.Page, 5)
 	pager.AddParamFromRequest(ctx.Req)
 	ctx.Data["Page"] = pager
-	ctx.Data["HasWorkflowsOrRuns"] = len(workflows) > 0 || len(runs) > 0
+	ctx.Data["HasWorkflowsOrRuns"] = len(workflows) > 0 || len(otherWorkflows) > 0 || len(runs) > 0
 
 	ctx.Data["CanWriteRepoUnitActions"] = ctx.Repo.Permission.CanWrite(unit.TypeActions)
+}
+
+func prepareWorkflowBadgeTemplate(ctx *context.Context, workflowID, displayName string) {
+	if workflowID == "" {
+		return
+	}
+	if displayName == "" {
+		displayName = workflowID
+	}
+
+	repoURL := ctx.Repo.Repository.HTMLURL(ctx)
+	badgeURL := fmt.Sprintf("%s/actions/workflows/%s/badge.svg?branch=%s", repoURL, util.PathEscapeSegments(workflowID), url.QueryEscape(ctx.Repo.Repository.DefaultBranch))
+	workflowURL := fmt.Sprintf("%s/actions?workflow=%s", repoURL, url.QueryEscape(workflowID))
+
+	ctx.Data["WorkflowBadge"] = workflowBadge{
+		URL:             badgeURL,
+		WorkflowURL:     workflowURL,
+		Markdown:        fmt.Sprintf("[![%s](%s)](%s)", escapeMarkdownImageAltText(displayName), badgeURL, workflowURL),
+		MarkdownAltText: escapeMarkdownImageAltText(displayName),
+		HTML:            fmt.Sprintf(`<a href="%s"><img src="%s" alt="%s"></a>`, html.EscapeString(workflowURL), html.EscapeString(badgeURL), html.EscapeString(displayName)),
+		HTMLAltText:     displayName,
+	}
+}
+
+func escapeMarkdownImageAltText(s string) string {
+	return strings.NewReplacer(`\`, `\\`, `[`, `\[`, `]`, `\]`).Replace(s)
 }
 
 // loadIsRefDeleted loads the IsRefDeleted field for each run in the list.
@@ -465,4 +581,14 @@ func decodeNode(node yaml.Node, out any) bool {
 		return false
 	}
 	return true
+}
+
+func actionsListRedirectURL(repoLink, workflow, actor, status, branch string) string {
+	return fmt.Sprintf("%s/actions?workflow=%s&actor=%s&status=%s&branch=%s",
+		repoLink,
+		url.QueryEscape(workflow),
+		url.QueryEscape(actor),
+		url.QueryEscape(status),
+		url.QueryEscape(branch),
+	)
 }

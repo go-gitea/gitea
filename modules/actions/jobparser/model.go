@@ -8,7 +8,8 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/nektos/act/pkg/model"
+	"gitea.com/gitea/runner/act/exprparser"
+	"gitea.com/gitea/runner/act/model"
 	"go.yaml.in/yaml/v4"
 )
 
@@ -78,23 +79,37 @@ func (w *SingleWorkflow) Marshal() ([]byte, error) {
 }
 
 type Job struct {
-	Name           string                    `yaml:"name,omitempty"`
-	RawNeeds       yaml.Node                 `yaml:"needs,omitempty"`
-	RawRunsOn      yaml.Node                 `yaml:"runs-on,omitempty"`
-	Env            yaml.Node                 `yaml:"env,omitempty"`
-	If             yaml.Node                 `yaml:"if,omitempty"`
-	Steps          []*Step                   `yaml:"steps,omitempty"`
-	TimeoutMinutes string                    `yaml:"timeout-minutes,omitempty"`
-	Services       map[string]*ContainerSpec `yaml:"services,omitempty"`
-	Strategy       Strategy                  `yaml:"strategy,omitempty"`
-	RawContainer   yaml.Node                 `yaml:"container,omitempty"`
-	Defaults       Defaults                  `yaml:"defaults,omitempty"`
-	Outputs        map[string]string         `yaml:"outputs,omitempty"`
-	Uses           string                    `yaml:"uses,omitempty"`
-	With           map[string]any            `yaml:"with,omitempty"`
-	RawSecrets     yaml.Node                 `yaml:"secrets,omitempty"`
-	RawConcurrency *model.RawConcurrency     `yaml:"concurrency,omitempty"`
-	RawPermissions yaml.Node                 `yaml:"permissions,omitempty"`
+	Name               string                    `yaml:"name,omitempty"`
+	RawNeeds           yaml.Node                 `yaml:"needs,omitempty"`
+	RawRunsOn          yaml.Node                 `yaml:"runs-on,omitempty"`
+	Env                yaml.Node                 `yaml:"env,omitempty"`
+	If                 yaml.Node                 `yaml:"if,omitempty"`
+	Steps              []*Step                   `yaml:"steps,omitempty"`
+	TimeoutMinutes     string                    `yaml:"timeout-minutes,omitempty"`
+	RawContinueOnError yaml.Node                 `yaml:"continue-on-error,omitempty"`
+	Services           map[string]*ContainerSpec `yaml:"services,omitempty"`
+	Strategy           Strategy                  `yaml:"strategy,omitempty"`
+	RawContainer       yaml.Node                 `yaml:"container,omitempty"`
+	Defaults           Defaults                  `yaml:"defaults,omitempty"`
+	Outputs            map[string]string         `yaml:"outputs,omitempty"`
+	Uses               string                    `yaml:"uses,omitempty"`
+	With               map[string]any            `yaml:"with,omitempty"`
+	RawSecrets         yaml.Node                 `yaml:"secrets,omitempty"`
+	RawConcurrency     *model.RawConcurrency     `yaml:"concurrency,omitempty"`
+	RawPermissions     yaml.Node                 `yaml:"permissions,omitempty"`
+}
+
+// GetContinueOnError decodes the continue-on-error field to a bool.
+// The field may be a literal bool or an already-evaluated expression node.
+func (j *Job) GetContinueOnError() bool {
+	if j.RawContinueOnError.Kind == 0 {
+		return false
+	}
+	var v bool
+	if err := j.RawContinueOnError.Decode(&v); err != nil {
+		return false
+	}
+	return v
 }
 
 func (j *Job) Clone() *Job {
@@ -102,23 +117,24 @@ func (j *Job) Clone() *Job {
 		return nil
 	}
 	return &Job{
-		Name:           j.Name,
-		RawNeeds:       j.RawNeeds,
-		RawRunsOn:      j.RawRunsOn,
-		Env:            j.Env,
-		If:             j.If,
-		Steps:          j.Steps,
-		TimeoutMinutes: j.TimeoutMinutes,
-		Services:       j.Services,
-		Strategy:       j.Strategy,
-		RawContainer:   j.RawContainer,
-		Defaults:       j.Defaults,
-		Outputs:        j.Outputs,
-		Uses:           j.Uses,
-		With:           j.With,
-		RawSecrets:     j.RawSecrets,
-		RawConcurrency: j.RawConcurrency,
-		RawPermissions: j.RawPermissions,
+		Name:               j.Name,
+		RawNeeds:           j.RawNeeds,
+		RawRunsOn:          j.RawRunsOn,
+		Env:                j.Env,
+		If:                 j.If,
+		Steps:              j.Steps,
+		TimeoutMinutes:     j.TimeoutMinutes,
+		RawContinueOnError: j.RawContinueOnError,
+		Services:           j.Services,
+		Strategy:           j.Strategy,
+		RawContainer:       j.RawContainer,
+		Defaults:           j.Defaults,
+		Outputs:            j.Outputs,
+		Uses:               j.Uses,
+		With:               j.With,
+		RawSecrets:         j.RawSecrets,
+		RawConcurrency:     j.RawConcurrency,
+		RawPermissions:     j.RawPermissions,
 	}
 }
 
@@ -298,6 +314,9 @@ func toGitContext(input map[string]any) *model.GithubContext {
 	return gitContext
 }
 
+// workflowCallEvent is only fired by another workflow's `uses:`, so it is excluded from trigger detection.
+const workflowCallEvent = "workflow_call"
+
 func ParseRawOn(rawOn *yaml.Node) ([]*Event, error) {
 	switch rawOn.Kind {
 	case yaml.ScalarNode:
@@ -305,6 +324,9 @@ func ParseRawOn(rawOn *yaml.Node) ([]*Event, error) {
 		err := rawOn.Decode(&val)
 		if err != nil {
 			return nil, err
+		}
+		if val == workflowCallEvent {
+			return []*Event{}, nil
 		}
 		return []*Event{
 			{Name: val},
@@ -319,6 +341,9 @@ func ParseRawOn(rawOn *yaml.Node) ([]*Event, error) {
 		for _, v := range val {
 			switch t := v.(type) {
 			case string:
+				if t == workflowCallEvent {
+					continue
+				}
 				res = append(res, &Event{Name: t})
 			default:
 				return nil, fmt.Errorf("invalid type %T", t)
@@ -332,6 +357,9 @@ func ParseRawOn(rawOn *yaml.Node) ([]*Event, error) {
 		}
 		res := make([]*Event, 0, len(events))
 		for i, k := range events {
+			if k == workflowCallEvent {
+				continue
+			}
 			v := triggers[i]
 			switch v.Kind {
 			case yaml.ScalarNode:
@@ -452,6 +480,26 @@ func ParseRawOn(rawOn *yaml.Node) ([]*Event, error) {
 	default:
 		return nil, fmt.Errorf("unknown on type: %v", rawOn.Kind)
 	}
+}
+
+func EvaluateJobIfExpression(jobID string, job *Job, gitCtx map[string]any, results map[string]*JobResult, vars map[string]string, inputs map[string]any) (bool, error) {
+	actJob := &model.Job{
+		Strategy: &model.Strategy{
+			FailFastString:    job.Strategy.FailFastString,
+			MaxParallelString: job.Strategy.MaxParallelString,
+			RawMatrix:         job.Strategy.RawMatrix,
+		},
+	}
+	evaluator := NewExpressionEvaluator(NewInterpeter(jobID, actJob, nil, toGitContext(gitCtx), results, vars, inputs))
+	expr, err := rewriteSubExpression(job.If.Value, false)
+	if err != nil {
+		return false, err
+	}
+	result, err := evaluator.evaluate(expr, exprparser.DefaultStatusCheckSuccess)
+	if err != nil {
+		return false, err
+	}
+	return exprparser.IsTruthy(result), nil
 }
 
 // parseMappingNode parse a mapping node and preserve order.

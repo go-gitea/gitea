@@ -4,12 +4,13 @@
 package git
 
 import (
-	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 
-	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/modules/test"
+	"gitea.dev/modules/git/gitcmd"
+	"gitea.dev/modules/setting"
+	"gitea.dev/modules/test"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -36,7 +37,7 @@ func TestRepository_GetCommitBranches(t *testing.T) {
 	for _, testCase := range testCases {
 		commit, err := bareRepo1.GetCommit(testCase.CommitID)
 		assert.NoError(t, err)
-		branches, err := bareRepo1.getBranches(os.Environ(), commit.ID.String(), 2)
+		branches, err := bareRepo1.getBranches(nil, commit.ID.String(), 2)
 		assert.NoError(t, err)
 		assert.Equal(t, testCase.ExpectedBranches, branches)
 	}
@@ -54,7 +55,7 @@ func TestGetTagCommitWithSignature(t *testing.T) {
 	assert.NotNil(t, commit)
 	assert.NotNil(t, commit.Signature)
 	// test that signature is not in message
-	assert.Equal(t, "signed-commit\n", commit.CommitMessage)
+	assert.Equal(t, "signed-commit\n", commit.CommitMessage.MessageRaw)
 }
 
 func TestGetCommitWithBadCommitID(t *testing.T) {
@@ -84,15 +85,15 @@ func TestIsCommitInBranch(t *testing.T) {
 	assert.False(t, result)
 }
 
-func TestRepository_CommitsBetweenIDs(t *testing.T) {
+func TestRepository_CommitsBetween(t *testing.T) {
 	bareRepo1Path := filepath.Join(testReposDir, "repo4_commitsbetween")
 	bareRepo1, err := OpenRepository(t.Context(), bareRepo1Path)
 	assert.NoError(t, err)
 	defer bareRepo1.Close()
 
 	cases := []struct {
-		OldID           string
-		NewID           string
+		OldID           RefName
+		NewID           RefName
 		ExpectedCommits int
 	}{
 		{"fdc1b615bdcff0f0658b216df0c9209e5ecb7c78", "78a445db1eac62fe15e624e1137965969addf344", 1}, // com1 -> com2
@@ -100,7 +101,7 @@ func TestRepository_CommitsBetweenIDs(t *testing.T) {
 		{"78a445db1eac62fe15e624e1137965969addf344", "a78e5638b66ccfe7e1b4689d3d5684e42c97d7ca", 1}, // com2 -> com2_new
 	}
 	for i, c := range cases {
-		commits, err := bareRepo1.CommitsBetweenIDs(c.NewID, c.OldID)
+		commits, err := bareRepo1.CommitsBetween(c.NewID, c.OldID, -1)
 		assert.NoError(t, err)
 		assert.Len(t, commits, c.ExpectedCommits, "case %d", i)
 	}
@@ -140,11 +141,52 @@ func TestCommitsByFileAndRange(t *testing.T) {
 	defer bareRepo1.Close()
 
 	// "foo" has 3 commits in "master" branch
-	commits, err := bareRepo1.CommitsByFileAndRange(CommitsByFileAndRangeOptions{Revision: "master", File: "foo", Page: 1})
+	commits, hasMore, err := bareRepo1.CommitsByFileAndRange(CommitsByFileAndRangeOptions{Revision: "master", File: "foo", Page: 1})
 	require.NoError(t, err)
+	assert.True(t, hasMore)
 	assert.Len(t, commits, 2)
 
-	commits, err = bareRepo1.CommitsByFileAndRange(CommitsByFileAndRangeOptions{Revision: "master", File: "foo", Page: 2})
+	commits, hasMore, err = bareRepo1.CommitsByFileAndRange(CommitsByFileAndRangeOptions{Revision: "master", File: "foo", Page: 2})
 	require.NoError(t, err)
 	assert.Len(t, commits, 1)
+	assert.False(t, hasMore)
+
+	repoFollowRenameDir := filepath.Join(t.TempDir(), "repo.git")
+	require.NoError(t, gitcmd.NewCommand("init").AddDynamicArguments(repoFollowRenameDir).Run(t.Context()))
+	_, _, runErr := gitcmd.NewCommand("fast-import").WithDir(repoFollowRenameDir).WithStdinBytes([]byte(strings.TrimSpace(`
+blob
+mark :1
+data 0
+
+reset refs/heads/master
+commit refs/heads/master
+mark :2
+author Chi-Iroh <user@example.com> 1778660718 +0200
+committer Chi-Iroh <user@example.com> 1778660718 +0200
+data 10
+Add a.txt
+M 100644 :1 a.txt
+
+commit refs/heads/master
+mark :3
+author Chi-Iroh <user@example.com> 1778660741 +0200
+committer Chi-Iroh <user@example.com> 1778660741 +0200
+data 22
+Rename a.txt to b.txt
+from :2
+D a.txt
+M 100644 :1 b.txt
+	`))).RunStdString(t.Context())
+	require.NoError(t, runErr)
+
+	repoFollowRename, err := OpenRepository(t.Context(), repoFollowRenameDir)
+	require.NoError(t, err)
+	defer repoFollowRename.Close()
+
+	commits, _, err = repoFollowRename.CommitsByFileAndRange(CommitsByFileAndRangeOptions{Revision: "master", File: "b.txt", Page: 1})
+	require.NoError(t, err)
+	assert.Len(t, commits, 1)
+	commits, _, err = repoFollowRename.CommitsByFileAndRange(CommitsByFileAndRangeOptions{Revision: "master", File: "b.txt", Page: 1, FollowRename: true})
+	require.NoError(t, err)
+	assert.Len(t, commits, 2)
 }

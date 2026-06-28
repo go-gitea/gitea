@@ -6,16 +6,15 @@ package repo
 import (
 	"strings"
 	"testing"
-	"unicode/utf8"
 
-	asymkey_model "code.gitea.io/gitea/models/asymkey"
-	git_model "code.gitea.io/gitea/models/git"
-	issues_model "code.gitea.io/gitea/models/issues"
-	user_model "code.gitea.io/gitea/models/user"
-	"code.gitea.io/gitea/modules/git"
-	"code.gitea.io/gitea/modules/setting"
-	git_service "code.gitea.io/gitea/services/git"
-	"code.gitea.io/gitea/services/gitdiff"
+	asymkey_model "gitea.dev/models/asymkey"
+	git_model "gitea.dev/models/git"
+	"gitea.dev/models/gituser"
+	issues_model "gitea.dev/models/issues"
+	"gitea.dev/modules/git"
+	"gitea.dev/modules/setting"
+	git_service "gitea.dev/services/git"
+	"gitea.dev/services/gitdiff"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -53,9 +52,9 @@ func TestNewPullRequestTitleContent(t *testing.T) {
 	mockCommit := func(msg string) *git_model.SignCommitWithStatuses {
 		return &git_model.SignCommitWithStatuses{
 			SignCommit: &asymkey_model.SignCommit{
-				UserCommit: &user_model.UserCommit{
-					Commit: &git.Commit{
-						CommitMessage: msg,
+				UserCommit: &gituser.UserCommit{
+					GitCommit: &git.Commit{
+						CommitMessage: git.CommitMessage{MessageRaw: msg},
 					},
 				},
 			},
@@ -99,9 +98,9 @@ func TestNewPullRequestTitleContent(t *testing.T) {
 	assert.Equal(t, "title-aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa…", title)
 	assert.Equal(t, "…aaaaaaaaa\n", content)
 
-	title, content = prepareNewPullRequestTitleContent(ci, []*git_model.SignCommitWithStatuses{mockCommit("a\xf0\xf0\xf0\nb\xf0\xf0\xf0")}, setting.RepoPRTitleSourceFirstCommit)
-	assert.Equal(t, "a?", title) // FIXME: GIT-COMMIT-MESSAGE-ENCODING: "title" doesn't use the same charset converting logic as "content"
-	assert.Equal(t, "b"+string(utf8.RuneError)+string(utf8.RuneError), content)
+	title, content = prepareNewPullRequestTitleContent(ci, []*git_model.SignCommitWithStatuses{mockCommit("title \xf0\nbody \xf0")}, setting.RepoPRTitleSourceFirstCommit)
+	assert.Equal(t, "title ð", title)
+	assert.Equal(t, "body ð", content)
 }
 
 func TestAutoTitleFromBranchName(t *testing.T) {

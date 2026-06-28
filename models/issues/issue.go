@@ -12,17 +12,17 @@ import (
 	"slices"
 	"strconv"
 
-	"code.gitea.io/gitea/models/db"
-	project_model "code.gitea.io/gitea/models/project"
-	repo_model "code.gitea.io/gitea/models/repo"
-	user_model "code.gitea.io/gitea/models/user"
-	"code.gitea.io/gitea/modules/container"
-	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/optional"
-	"code.gitea.io/gitea/modules/setting"
-	api "code.gitea.io/gitea/modules/structs"
-	"code.gitea.io/gitea/modules/timeutil"
-	"code.gitea.io/gitea/modules/util"
+	"gitea.dev/models/db"
+	project_model "gitea.dev/models/project"
+	repo_model "gitea.dev/models/repo"
+	user_model "gitea.dev/models/user"
+	"gitea.dev/modules/container"
+	"gitea.dev/modules/log"
+	"gitea.dev/modules/optional"
+	"gitea.dev/modules/setting"
+	api "gitea.dev/modules/structs"
+	"gitea.dev/modules/timeutil"
+	"gitea.dev/modules/util"
 
 	"xorm.io/builder"
 )
@@ -361,8 +361,8 @@ func (issue *Issue) ResetAttributesLoaded() {
 
 // GetIsRead load the `IsRead` field of the issue
 func (issue *Issue) GetIsRead(ctx context.Context, userID int64) error {
-	issueUser := &IssueUser{IssueID: issue.ID, UID: userID}
-	if has, err := db.GetEngine(ctx).Get(issueUser); err != nil {
+	issueUser, has, err := db.Get[IssueUser](ctx, builder.Eq{"issue_id": issue.ID, "uid": userID})
+	if err != nil {
 		return err
 	} else if !has {
 		issue.IsRead = false
@@ -499,11 +499,7 @@ func GetIssueByIndex(ctx context.Context, repoID, index int64) (*Issue, error) {
 	if index < 1 {
 		return nil, ErrIssueNotExist{}
 	}
-	issue := &Issue{
-		RepoID: repoID,
-		Index:  index,
-	}
-	has, err := db.GetEngine(ctx).Get(issue)
+	issue, has, err := db.Get[Issue](ctx, builder.Eq{"repo_id": repoID, "`index`": index})
 	if err != nil {
 		return nil, err
 	} else if !has {
@@ -682,7 +678,7 @@ func (issue *Issue) BlockedByDependencies(ctx context.Context, opts db.ListOptio
 		// sort by repo id then created date, with the issues of the same repo at the beginning of the list
 		OrderBy("CASE WHEN issue.repo_id = ? THEN 0 ELSE issue.repo_id END, issue.created_unix DESC", issue.RepoID)
 	if opts.Page > 0 {
-		sess = db.SetSessionPagination(sess, &opts)
+		db.SetSessionPagination(sess, &opts)
 	}
 	total, err = sess.FindAndCount(&issueDeps)
 

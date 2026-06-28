@@ -5,7 +5,6 @@ import {showErrorToast} from '../modules/toast.ts';
 import {sleep} from '../utils.ts';
 import RepoActivityTopAuthors from '../components/RepoActivityTopAuthors.vue';
 import {createApp} from 'vue';
-import {toOriginUrl} from '../utils/url.ts';
 import {createTippy} from '../modules/tippy.ts';
 import {localUserSettings} from '../modules/user-settings.ts';
 
@@ -24,7 +23,7 @@ async function onDownloadArchive(e: Event) {
       if (data.complete) break;
       await sleep(Math.min((tryCount + 1) * 750, 2000));
     }
-    window.location.href = el.href; // the archive is ready, start real downloading
+    window.location.assign(el.href); // the archive is ready, start real downloading
   } catch (e) {
     console.error(e);
     showErrorToast(`Failed to download the archive: ${errorMessage(e)}`, {duration: 2500});
@@ -79,7 +78,8 @@ function initCloneSchemeUrlSelection(parent: Element) {
     const isTea = scheme === 'tea';
 
     if (tabHttps) {
-      tabHttps.textContent = window.origin.split(':')[0].toUpperCase(); // show "HTTP" or "HTTPS"
+      const link = tabHttps.getAttribute('data-link')!;
+      tabHttps.textContent = link.split(':')[0].toUpperCase(); // show "HTTP" or "HTTPS"
       tabHttps.classList.toggle('active', isHttps);
     }
     if (tabSsh) {
@@ -99,7 +99,7 @@ function initCloneSchemeUrlSelection(parent: Element) {
     }
 
     if (!tab) return;
-    const link = toOriginUrl(tab.getAttribute('data-link')!);
+    const link = tab.getAttribute('data-link')!;
 
     for (const el of document.querySelectorAll('.js-clone-url')) {
       if (el.nodeName === 'INPUT') {

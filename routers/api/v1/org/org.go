@@ -10,28 +10,28 @@ import (
 	"fmt"
 	"net/http"
 
-	activities_model "code.gitea.io/gitea/models/activities"
-	"code.gitea.io/gitea/models/db"
-	"code.gitea.io/gitea/models/organization"
-	"code.gitea.io/gitea/models/perm"
-	repo_model "code.gitea.io/gitea/models/repo"
-	system_model "code.gitea.io/gitea/models/system"
-	user_model "code.gitea.io/gitea/models/user"
-	"code.gitea.io/gitea/modules/graceful"
-	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/optional"
-	"code.gitea.io/gitea/modules/setting"
-	api "code.gitea.io/gitea/modules/structs"
-	"code.gitea.io/gitea/modules/util"
-	"code.gitea.io/gitea/modules/web"
-	"code.gitea.io/gitea/routers/api/v1/user"
-	"code.gitea.io/gitea/routers/api/v1/utils"
-	"code.gitea.io/gitea/services/context"
-	"code.gitea.io/gitea/services/convert"
-	feed_service "code.gitea.io/gitea/services/feed"
-	"code.gitea.io/gitea/services/org"
-	repo_service "code.gitea.io/gitea/services/repository"
-	user_service "code.gitea.io/gitea/services/user"
+	activities_model "gitea.dev/models/activities"
+	"gitea.dev/models/db"
+	"gitea.dev/models/organization"
+	"gitea.dev/models/perm"
+	repo_model "gitea.dev/models/repo"
+	system_model "gitea.dev/models/system"
+	user_model "gitea.dev/models/user"
+	"gitea.dev/modules/graceful"
+	"gitea.dev/modules/log"
+	"gitea.dev/modules/optional"
+	"gitea.dev/modules/setting"
+	api "gitea.dev/modules/structs"
+	"gitea.dev/modules/util"
+	"gitea.dev/modules/web"
+	"gitea.dev/routers/api/v1/user"
+	"gitea.dev/routers/api/v1/utils"
+	"gitea.dev/services/context"
+	"gitea.dev/services/convert"
+	feed_service "gitea.dev/services/feed"
+	"gitea.dev/services/org"
+	repo_service "gitea.dev/services/repository"
+	user_service "gitea.dev/services/user"
 )
 
 func listUserOrgs(ctx *context.APIContext, u *user_model.User) {
@@ -41,6 +41,7 @@ func listUserOrgs(ctx *context.APIContext, u *user_model.User) {
 		UserID:            u.ID,
 		IncludeVisibility: organization.DoerViewOtherVisibility(ctx.Doer, u),
 	}
+	opts.ApplyPublicOnly(ctx.PublicOnly)
 	orgs, maxResults, err := db.FindAndCount[organization.Organization](ctx, opts)
 	if err != nil {
 		ctx.APIErrorInternal(err)
@@ -146,7 +147,7 @@ func GetUserOrgsPermissions(ctx *context.APIContext) {
 	op := api.OrganizationPermissions{}
 
 	if !organization.HasOrgOrUserVisible(ctx, o, ctx.Doer) {
-		ctx.APIErrorNotFound("HasOrgOrUserVisible", nil)
+		ctx.APIErrorNotFound()
 		return
 	}
 
@@ -200,7 +201,7 @@ func GetAll(ctx *context.APIContext) {
 	//     "$ref": "#/responses/OrganizationList"
 
 	vMode := []api.VisibleType{api.VisibleTypePublic}
-	if ctx.IsSigned && !ctx.PublicOnly {
+	if ctx.IsSigned {
 		vMode = append(vMode, api.VisibleTypeLimited)
 		if ctx.Doer.IsAdmin {
 			vMode = append(vMode, api.VisibleTypePrivate)
@@ -209,13 +210,16 @@ func GetAll(ctx *context.APIContext) {
 
 	listOptions := utils.GetListOptions(ctx)
 
-	publicOrgs, maxResults, err := user_model.SearchUsers(ctx, user_model.SearchUserOptions{
+	searchOpts := user_model.SearchUserOptions{
 		Actor:       ctx.Doer,
 		ListOptions: listOptions,
 		Types:       []user_model.UserType{user_model.UserTypeOrganization},
 		OrderBy:     db.SearchOrderByAlphabetically,
 		Visible:     vMode,
-	})
+	}
+	searchOpts.ApplyPublicOnly(ctx.PublicOnly)
+
+	publicOrgs, maxResults, err := user_model.SearchUsers(ctx, searchOpts)
 	if err != nil {
 		ctx.APIErrorInternal(err)
 		return
@@ -253,7 +257,7 @@ func Create(ctx *context.APIContext) {
 	//     "$ref": "#/responses/validationError"
 	form := web.GetForm(ctx).(*api.CreateOrgOption)
 	if !ctx.Doer.CanCreateOrganization() {
-		ctx.APIError(http.StatusForbidden, nil)
+		ctx.APIError(http.StatusForbidden, "not allowed to create org")
 		return
 	}
 
@@ -279,7 +283,7 @@ func Create(ctx *context.APIContext) {
 			db.IsErrNameReserved(err) ||
 			db.IsErrNameCharsNotAllowed(err) ||
 			db.IsErrNamePatternNotAllowed(err) {
-			ctx.APIError(http.StatusUnprocessableEntity, err)
+			ctx.APIError(http.StatusUnprocessableEntity, err.Error())
 		} else {
 			ctx.APIErrorInternal(err)
 		}
@@ -309,7 +313,7 @@ func Get(ctx *context.APIContext) {
 	//     "$ref": "#/responses/notFound"
 
 	if !organization.HasOrgOrUserVisible(ctx, ctx.Org.Organization.AsUser(), ctx.Doer) {
-		ctx.APIErrorNotFound("HasOrgOrUserVisible", nil)
+		ctx.APIErrorNotFound()
 		return
 	}
 
@@ -357,7 +361,7 @@ func Rename(ctx *context.APIContext) {
 	orgUser := ctx.Org.Organization.AsUser()
 	if err := user_service.RenameUser(ctx, orgUser, form.NewName, ctx.Doer); err != nil {
 		if user_model.IsErrUserAlreadyExist(err) || db.IsErrNameReserved(err) || db.IsErrNamePatternNotAllowed(err) || db.IsErrNameCharsNotAllowed(err) {
-			ctx.APIError(http.StatusUnprocessableEntity, err)
+			ctx.APIError(http.StatusUnprocessableEntity, err.Error())
 		} else {
 			ctx.APIErrorInternal(err)
 		}
@@ -401,7 +405,7 @@ func Edit(ctx *context.APIContext) {
 
 	if err := org.UpdateOrgEmailAddress(ctx, ctx.Org.Organization, form.Email); err != nil {
 		if errors.Is(err, util.ErrInvalidArgument) {
-			ctx.APIError(http.StatusUnprocessableEntity, err)
+			ctx.APIError(http.StatusUnprocessableEntity, err.Error())
 			return
 		}
 		ctx.APIErrorInternal(err)
@@ -510,6 +514,7 @@ func ListOrgActivityFeeds(ctx *context.APIContext) {
 		Date:           ctx.FormString("date"),
 		ListOptions:    listOptions,
 	}
+	opts.ApplyPublicOnly(ctx.PublicOnly)
 
 	feeds, count, err := feed_service.GetFeeds(ctx, opts)
 	if err != nil {

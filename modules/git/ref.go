@@ -7,7 +7,8 @@ import (
 	"regexp"
 	"strings"
 
-	"code.gitea.io/gitea/modules/util"
+	"gitea.dev/modules/setting"
+	"gitea.dev/modules/util"
 )
 
 const (
@@ -72,6 +73,8 @@ const ForPrefix = "refs/for/"
 // RefName represents a full git reference name
 type RefName string
 
+const RefNameHead = "HEAD"
+
 func RefNameFromBranch(shortName string) RefName {
 	return RefName(BranchPrefix + shortName)
 }
@@ -81,6 +84,10 @@ func RefNameFromTag(shortName string) RefName {
 }
 
 func RefNameFromCommit(shortName string) RefName {
+	if !isStringLowerHex(shortName) {
+		setting.PanicInDevOrTesting("BUG! invalid commit id %s", shortName)
+		return RefName("refs/invalid-commit/" + shortName)
+	}
 	return RefName(shortName)
 }
 
@@ -161,7 +168,7 @@ func (ref RefName) ShortName() string {
 	if ref.IsFor() {
 		return ref.ForBranchName()
 	}
-	return string(ref) // usually it is a commit ID
+	return string(ref) // usually it is a commit ID, or "HEAD"
 }
 
 // RefGroup returns the group type of the reference
@@ -221,13 +228,16 @@ func (ref RefName) RefWebLinkPath() string {
 	return string(refType) + "/" + util.PathEscapeSegments(ref.ShortName())
 }
 
-func ParseRefSuffix(ref string) (string, string) {
+func ParseRefSuffix(ref string) (refName, refSuffix string) {
 	// Partially support https://git-scm.com/docs/gitrevisions
-	if idx := strings.Index(ref, "@{"); idx != -1 {
-		return ref[:idx], ref[idx:]
+	suffixIdx := -1 // earliest suffix mark, so a combined suffix like "main~2^" stays intact
+	for _, mark := range []string{"@{", "^", "~"} {
+		if idx := strings.Index(ref, mark); idx != -1 && (suffixIdx == -1 || idx < suffixIdx) {
+			suffixIdx = idx
+		}
 	}
-	if idx := strings.Index(ref, "^"); idx != -1 {
-		return ref[:idx], ref[idx:]
+	if suffixIdx == -1 {
+		return ref, ""
 	}
-	return ref, ""
+	return ref[:suffixIdx], ref[suffixIdx:]
 }

@@ -9,13 +9,13 @@ import (
 	"errors"
 	"fmt"
 
-	"code.gitea.io/gitea/models/db"
-	git_model "code.gitea.io/gitea/models/git"
-	issues_model "code.gitea.io/gitea/models/issues"
-	"code.gitea.io/gitea/modules/commitstatus"
-	"code.gitea.io/gitea/modules/gitrepo"
-	"code.gitea.io/gitea/modules/glob"
-	"code.gitea.io/gitea/modules/log"
+	"gitea.dev/models/db"
+	git_model "gitea.dev/models/git"
+	issues_model "gitea.dev/models/issues"
+	"gitea.dev/modules/commitstatus"
+	"gitea.dev/modules/gitrepo"
+	"gitea.dev/modules/glob"
+	"gitea.dev/modules/log"
 )
 
 // MergeRequiredContextsCommitStatus returns a commit status state for given required contexts

@@ -9,7 +9,7 @@
   margin: 0;
 }
 
-/* items have dividers between them, the dividers align with items (use parent padding) */
+/* items have dividers between them, the dividers align with items */
 .flex-divided-list,
 .flex-divided-list > .item.flex-divided-list {
   display: flex;
@@ -22,13 +22,17 @@
   padding: 10px 0;
 }
 
+.flex-divided-list > .divider {
+  margin: 0;
+}
+
 .flex-divided-list > .item + .item {
   border-top: 1px solid var(--color-secondary);
 }
 
 .items-with-main > .item {
   display: flex;
-  gap: 8px;
+  gap: var(--gap-block);
   align-items: flex-start;
 }
 
@@ -40,7 +44,7 @@
 .items-with-main > .item .item-main {
   display: flex;
   flex-direction: column;
-  gap: 0.25em;
+  gap: var(--gap-inline);
   flex-grow: 1;
   flex-basis: 60%; /* avoid wrapping the "item-trailing" too aggressively */
   min-width: 0; /* make the "text truncate" work, otherwise the flex axis is not limited and the text just overflows */
@@ -48,7 +52,7 @@
 
 .items-with-main > .item .item-header {
   display: flex;
-  gap: .25rem;
+  gap: var(--gap-inline);
   justify-content: space-between;
   flex-wrap: wrap;
 }
@@ -59,7 +63,7 @@
 
 .items-with-main > .item .item-trailing {
   display: flex;
-  gap: 0.5rem;
+  gap: var(--gap-block);
   align-items: center;
   flex-grow: 0;
   flex-wrap: wrap;
@@ -70,8 +74,6 @@
   display: inline-flex;
   flex-wrap: wrap;
   align-items: center;
-  /* labels are under effect of this gap here because they are display:contents. Ideally we should make wrapping
-     of labels work without display: contents and set this to a static value again. */
   gap: var(--gap-inline);
   max-width: 100%;
   color: var(--color-text);
@@ -90,7 +92,7 @@
   display: flex;
   align-items: center;
   flex-wrap: wrap;
-  gap: .25rem;
+  gap: var(--gap-inline);
   color: var(--color-text-light-2);
   overflow-wrap: anywhere;
 }
@@ -101,21 +103,16 @@
 }
 
 /* special rules to make the list work with existing UI elements */
-.container-divided > .flex-divided-list > .item {
-  padding-left: 1em;
+.flex-divided-list.items-px-default > .item {
+  padding-left: 1em; /* matches ".ui.segment" padding */
   padding-right: 1em;
 }
-.container-divided > .flex-divided-list > .item.flex-divided-list {
-  padding: 0;
-}
 
-.container-padded > .flex-divided-list > .item:first-child,
-.ui.segment:not(.container-divided) > .flex-divided-list > .item:first-child {
+.ui.segment:not(.fitted) > .flex-divided-list > .item:first-child {
   padding-top: 0;
 }
 
-.container-padded > .flex-divided-list > .item:last-child,
-.ui.segment:not(.container-divided) > .flex-divided-list > .item:last-child {
+.ui.segment:not(.fitted) > .flex-divided-list > .item:last-child {
   padding-bottom: 0;
 }
 
@@ -126,8 +123,4 @@
 
 .flex-divided-list + .divider {
   margin-top: 0;
-}
-
-.container-padded > .flex-divided-list + .divider {
-  margin-top: 10px;
 }

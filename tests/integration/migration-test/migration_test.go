@@ -17,21 +17,20 @@ import (
 	"strings"
 	"testing"
 
-	"code.gitea.io/gitea/models/db"
-	"code.gitea.io/gitea/models/migrations"
-	migrate_base "code.gitea.io/gitea/models/migrations/base"
-	"code.gitea.io/gitea/models/unittest"
-	"code.gitea.io/gitea/modules/git"
-	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/modules/testlogger"
+	"gitea.dev/models/db"
+	"gitea.dev/models/migrations"
+	migrate_base "gitea.dev/models/migrations/base"
+	"gitea.dev/models/unittest"
+	"gitea.dev/modules/git"
+	"gitea.dev/modules/log"
+	"gitea.dev/modules/setting"
+	"gitea.dev/modules/testlogger"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"xorm.io/xorm"
 )
 
-var currentEngine *xorm.Engine
+var currentEngine db.EngineMigration
 
 func initMigrationTest(t *testing.T) func() {
 	testlogger.Init()
@@ -148,7 +147,7 @@ func restoreOldDB(t *testing.T, version string) {
 	_ = sqlDB.Close()
 }
 
-func wrappedMigrate(ctx context.Context, x *xorm.Engine) error {
+func wrappedMigrate(ctx context.Context, x db.EngineMigration) error {
 	currentEngine = x
 	return migrations.Migrate(ctx, x)
 }
@@ -165,7 +164,7 @@ func doMigrationTest(t *testing.T, version string) {
 
 	beans, _ := db.NamesToBean()
 
-	err = db.InitEngineWithMigration(t.Context(), func(ctx context.Context, x *xorm.Engine) error {
+	err = db.InitEngineWithMigration(t.Context(), func(ctx context.Context, x db.EngineMigration) error {
 		currentEngine = x
 		return migrate_base.RecreateTables(beans...)(x)
 	})
@@ -173,7 +172,7 @@ func doMigrationTest(t *testing.T, version string) {
 	currentEngine.Close()
 
 	// We do this a second time to ensure that there is not a problem with retained indices
-	err = db.InitEngineWithMigration(t.Context(), func(ctx context.Context, x *xorm.Engine) error {
+	err = db.InitEngineWithMigration(t.Context(), func(ctx context.Context, x db.EngineMigration) error {
 		currentEngine = x
 		return migrate_base.RecreateTables(beans...)(x)
 	})

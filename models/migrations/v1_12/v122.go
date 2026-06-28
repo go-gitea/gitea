@@ -3,11 +3,9 @@
 
 package v1_12
 
-import (
-	"xorm.io/xorm"
-)
+import "gitea.dev/models/db"
 
-func AddRequireSignedCommits(x *xorm.Engine) error {
+func AddRequireSignedCommits(x db.EngineMigration) error {
 	type ProtectedBranch struct {
 		RequireSignedCommits bool `xorm:"NOT NULL DEFAULT false"`
 	}

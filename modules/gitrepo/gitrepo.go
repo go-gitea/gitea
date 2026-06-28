@@ -11,11 +11,11 @@ import (
 	"os"
 	"path/filepath"
 
-	"code.gitea.io/gitea/modules/git"
-	"code.gitea.io/gitea/modules/git/gitcmd"
-	"code.gitea.io/gitea/modules/reqctx"
-	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/modules/util"
+	"gitea.dev/modules/git"
+	"gitea.dev/modules/git/gitcmd"
+	"gitea.dev/modules/reqctx"
+	"gitea.dev/modules/setting"
+	"gitea.dev/modules/util"
 )
 
 // Repository represents a git repository which stored in a disk
@@ -40,7 +40,7 @@ type contextKey struct {
 }
 
 // RepositoryFromContextOrOpen attempts to get the repository from the context or just opens it
-// The caller must call "defer gitRepo.Close()"
+// The caller must call Closer.Close()
 func RepositoryFromContextOrOpen(ctx context.Context, repo Repository) (*git.Repository, io.Closer, error) {
 	reqCtx := reqctx.FromContext(ctx)
 	if reqCtx != nil {

@@ -6,20 +6,32 @@ package repo
 import (
 	"net/http"
 
-	issues_model "code.gitea.io/gitea/models/issues"
-	access_model "code.gitea.io/gitea/models/perm/access"
-	repo_model "code.gitea.io/gitea/models/repo"
-	"code.gitea.io/gitea/models/unit"
-	"code.gitea.io/gitea/modules/httpcache"
-	"code.gitea.io/gitea/modules/httplib"
-	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/modules/storage"
-	"code.gitea.io/gitea/services/attachment"
-	"code.gitea.io/gitea/services/context"
-	"code.gitea.io/gitea/services/context/upload"
-	repo_service "code.gitea.io/gitea/services/repository"
+	auth_model "gitea.dev/models/auth"
+	issues_model "gitea.dev/models/issues"
+	access_model "gitea.dev/models/perm/access"
+	repo_model "gitea.dev/models/repo"
+	"gitea.dev/models/unit"
+	"gitea.dev/modules/httpcache"
+	"gitea.dev/modules/httplib"
+	"gitea.dev/modules/log"
+	"gitea.dev/modules/setting"
+	"gitea.dev/modules/storage"
+	"gitea.dev/services/attachment"
+	"gitea.dev/services/context"
+	"gitea.dev/services/context/upload"
+	repo_service "gitea.dev/services/repository"
 )
+
+func attachmentReadScope(unitType unit.Type) (auth_model.AccessTokenScope, bool) {
+	switch unitType {
+	case unit.TypeIssues, unit.TypePullRequests:
+		return auth_model.AccessTokenScopeReadIssue, true
+	case unit.TypeReleases:
+		return auth_model.AccessTokenScopeReadRepository, true
+	default:
+		return "", false
+	}
+}
 
 // UploadIssueAttachment response for Issue/PR attachments
 func UploadIssueAttachment(ctx *context.Context) {
@@ -150,9 +162,12 @@ func ServeAttachment(ctx *context.Context, uuid string) {
 			return
 		}
 	} else { // If we have the linked type, we need to check access
-		var perm access_model.Permission
-		if ctx.Repo.Repository == nil {
-			repo, err := repo_model.GetRepositoryByID(ctx, repoID)
+		var (
+			perm access_model.Permission
+			repo = ctx.Repo.Repository
+		)
+		if repo == nil {
+			repo, err = repo_model.GetRepositoryByID(ctx, repoID)
 			if err != nil {
 				ctx.ServerError("GetRepositoryByID", err)
 				return
@@ -169,6 +184,13 @@ func ServeAttachment(ctx *context.Context, uuid string) {
 		if !perm.CanRead(unitType) {
 			ctx.HTTPError(http.StatusNotFound)
 			return
+		}
+
+		if requiredScope, ok := attachmentReadScope(unitType); ok {
+			context.CheckTokenScopes(ctx, repo, requiredScope)
+			if ctx.Written() {
+				return
+			}
 		}
 	}
 

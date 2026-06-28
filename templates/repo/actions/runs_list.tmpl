@@ -8,18 +8,18 @@
 	{{range $run := .Runs}}
 		<div class="item tw-items-center">
 			<div class="item-leading">
-				{{template "repo/actions/status" (dict "status" $run.Status.String)}}
+				<span data-tooltip-content="{{ctx.Locale.Tr (printf "actions.status.%s" $run.Status.String)}}">
+					{{template "repo/icons/action_status" (dict "Status" $run.Status.String "IconVariant" "circle-fill")}}
+				</span>
 			</div>
 			<div class="item-main">
-				<span class="item-title" title="{{$run.Title}}">
-					{{if $run.Title}}
-						{{ctx.RenderUtils.RenderCommitMessageLinkSubject $run.Title $run.Link $.Repository}}
-					{{else}}
-						<a href="{{$run.Link}}">{{ctx.Locale.Tr "actions.runs.empty_commit_message"}}</a>
-					{{end}}
-				</span>
+				<div class="item-title">
+					{{$title := or $run.Title (ctx.Locale.Tr "actions.runs.empty_commit_message")}}
+					{{ctx.RenderUtils.RenderCommitMessageLinkSubject $title $run.Link $.Repository}}
+				</div>
 				<div class="item-body">
-					<span><b>{{if not $.CurWorkflow}}{{$run.WorkflowID}} {{end}}#{{$run.Index}}</b>:</span>
+					{{$workflowName := index $.WorkflowNames $run.WorkflowID}}
+					<span><b>{{if not $.CurWorkflow}}{{if $workflowName}}{{$workflowName}}{{else}}{{$run.WorkflowID}}{{end}} {{end}}#{{$run.Index}}</b>:</span>
 
 					{{- if $run.ScheduleID -}}
 						{{ctx.Locale.Tr "actions.runs.scheduled"}}

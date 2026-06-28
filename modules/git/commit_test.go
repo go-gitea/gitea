@@ -91,7 +91,7 @@ empty commit`, commitFromReader.Signature.Payload)
 
 	commitFromReader2, err := CommitFromReader(gitRepo, sha, strings.NewReader(commitString+"\n\n"))
 	assert.NoError(t, err)
-	commitFromReader.CommitMessage += "\n\n"
+	commitFromReader.CommitMessage.MessageRaw += "\n\n"
 	commitFromReader.Signature.Payload += "\n\n"
 	assert.Equal(t, commitFromReader, commitFromReader2)
 }
@@ -154,7 +154,7 @@ ISO-8859-1`, commitFromReader.Signature.Payload)
 
 	commitFromReader2, err := CommitFromReader(gitRepo, sha, strings.NewReader(commitString+"\n\n"))
 	assert.NoError(t, err)
-	commitFromReader.CommitMessage += "\n\n"
+	commitFromReader.CommitMessage.MessageRaw += "\n\n"
 	commitFromReader.Signature.Payload += "\n\n"
 	assert.Equal(t, commitFromReader, commitFromReader2)
 }
@@ -198,4 +198,11 @@ func Test_GetCommitBranchStart(t *testing.T) {
 	assert.NoError(t, err)
 	assert.NotEmpty(t, startCommitID)
 	assert.Equal(t, "95bb4d39648ee7e325106df01a621c530863a653", startCommitID)
+}
+
+func TestIsStringLikelyCommitID(t *testing.T) {
+	assert.True(t, IsStringLikelyCommitID(nil, "abc", 3))
+	assert.False(t, IsStringLikelyCommitID(nil, "abc", 4))
+	assert.True(t, IsStringLikelyCommitID(nil, strings.Repeat("a", 64), 4))
+	assert.False(t, IsStringLikelyCommitID(nil, strings.Repeat("a", 65), 4))
 }

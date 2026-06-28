@@ -14,33 +14,33 @@ import (
 	"strconv"
 	"strings"
 
-	activities_model "code.gitea.io/gitea/models/activities"
-	asymkey_model "code.gitea.io/gitea/models/asymkey"
-	"code.gitea.io/gitea/models/db"
-	git_model "code.gitea.io/gitea/models/git"
-	issues_model "code.gitea.io/gitea/models/issues"
-	"code.gitea.io/gitea/models/organization"
-	"code.gitea.io/gitea/models/renderhelper"
-	repo_model "code.gitea.io/gitea/models/repo"
-	"code.gitea.io/gitea/models/unit"
-	user_model "code.gitea.io/gitea/models/user"
-	"code.gitea.io/gitea/modules/base"
-	"code.gitea.io/gitea/modules/container"
-	"code.gitea.io/gitea/modules/indexer"
-	issue_indexer "code.gitea.io/gitea/modules/indexer/issues"
-	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/markup/markdown"
-	"code.gitea.io/gitea/modules/optional"
-	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/modules/templates"
-	"code.gitea.io/gitea/modules/util"
-	"code.gitea.io/gitea/routers/web/feed"
-	"code.gitea.io/gitea/routers/web/shared/issue"
-	"code.gitea.io/gitea/routers/web/shared/user"
-	"code.gitea.io/gitea/services/context"
-	feed_service "code.gitea.io/gitea/services/feed"
-	issue_service "code.gitea.io/gitea/services/issue"
-	pull_service "code.gitea.io/gitea/services/pull"
+	activities_model "gitea.dev/models/activities"
+	asymkey_model "gitea.dev/models/asymkey"
+	"gitea.dev/models/db"
+	git_model "gitea.dev/models/git"
+	issues_model "gitea.dev/models/issues"
+	"gitea.dev/models/organization"
+	"gitea.dev/models/renderhelper"
+	repo_model "gitea.dev/models/repo"
+	"gitea.dev/models/unit"
+	user_model "gitea.dev/models/user"
+	"gitea.dev/modules/base"
+	"gitea.dev/modules/container"
+	"gitea.dev/modules/indexer"
+	issue_indexer "gitea.dev/modules/indexer/issues"
+	"gitea.dev/modules/log"
+	"gitea.dev/modules/markup/markdown"
+	"gitea.dev/modules/optional"
+	"gitea.dev/modules/setting"
+	"gitea.dev/modules/templates"
+	"gitea.dev/modules/util"
+	"gitea.dev/routers/web/feed"
+	"gitea.dev/routers/web/shared/issue"
+	"gitea.dev/routers/web/shared/user"
+	"gitea.dev/services/context"
+	feed_service "gitea.dev/services/feed"
+	issue_service "gitea.dev/services/issue"
+	pull_service "gitea.dev/services/pull"
 
 	"github.com/ProtonMail/go-crypto/openpgp"
 	"github.com/ProtonMail/go-crypto/openpgp/armor"
@@ -111,6 +111,7 @@ func Dashboard(ctx *context.Context) {
 
 	prepareHeatmapURL(ctx)
 
+	pageSize := setting.UI.User.RepoPagingNum
 	feeds, count, err := feed_service.GetFeedsForDashboard(ctx, activities_model.GetFeedsOptions{
 		RequestedUser:   ctxUser,
 		RequestedTeam:   ctx.Org.Team,
@@ -119,17 +120,17 @@ func Dashboard(ctx *context.Context) {
 		OnlyPerformedBy: false,
 		IncludeDeleted:  false,
 		Date:            ctx.FormString("date"),
-		ListOptions: db.ListOptions{
-			Page:     page,
-			PageSize: setting.UI.FeedPagingNum,
-		},
+		ListOptions:     db.ListOptions{Page: page, PageSize: pageSize},
 	})
 	if err != nil {
 		ctx.ServerError("GetFeeds", err)
 		return
 	}
 
-	pager := context.NewPagination(count, setting.UI.FeedPagingNum, page, 5).WithCurRows(len(feeds))
+	// FIXME: UNLIMITE-PAGING-ONE-MORE-ROW: here is still an edge case: when curRows==pagingNum, then the "next page" will be an empty page.
+	// Ideally we should query one more row to determine if there is really a next page, but it's impossible in current framework.
+	pager := context.NewPagination(count, pageSize, page, 5).WithUnlimitedPaging(len(feeds), len(feeds) == pageSize)
+
 	pager.AddParamFromRequest(ctx.Req)
 	ctx.Data["Page"] = pager
 	ctx.Data["Feeds"] = feeds
@@ -241,13 +242,13 @@ func Milestones(ctx *context.Context) {
 	}
 	sort.Sort(showRepos)
 
+	repoByID := make(map[int64]*repo_model.Repository, len(showRepos))
+	for _, repo := range showRepos {
+		repoByID[repo.ID] = repo
+	}
+
 	for i := 0; i < len(milestones); {
-		for _, repo := range showRepos {
-			if milestones[i].RepoID == repo.ID {
-				milestones[i].Repo = repo
-				break
-			}
-		}
+		milestones[i].Repo = repoByID[milestones[i].RepoID]
 		if milestones[i].Repo == nil {
 			log.Warn("Cannot find milestone %d 's repository %d", milestones[i].ID, milestones[i].RepoID)
 			milestones = append(milestones[:i], milestones[i+1:]...)

@@ -13,17 +13,17 @@ import (
 	"testing"
 	"time"
 
-	"code.gitea.io/gitea/models/db"
-	issues_model "code.gitea.io/gitea/models/issues"
-	repo_model "code.gitea.io/gitea/models/repo"
-	"code.gitea.io/gitea/models/unit"
-	"code.gitea.io/gitea/models/unittest"
-	user_model "code.gitea.io/gitea/models/user"
-	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/modules/test"
-	"code.gitea.io/gitea/modules/util"
-	repo_service "code.gitea.io/gitea/services/repository"
-	"code.gitea.io/gitea/tests"
+	"gitea.dev/models/db"
+	issues_model "gitea.dev/models/issues"
+	repo_model "gitea.dev/models/repo"
+	"gitea.dev/models/unit"
+	"gitea.dev/models/unittest"
+	user_model "gitea.dev/models/user"
+	"gitea.dev/modules/setting"
+	"gitea.dev/modules/test"
+	"gitea.dev/modules/util"
+	repo_service "gitea.dev/services/repository"
+	"gitea.dev/tests"
 
 	"github.com/PuerkitoBio/goquery"
 	"github.com/stretchr/testify/assert"
@@ -133,13 +133,11 @@ func testViewRepoWithCache(t *testing.T) {
 	// no last commit cache
 	testView(t)
 	// enable last commit cache for all repositories
-	oldCommitsCount := setting.CacheService.LastCommit.CommitsCount
-	setting.CacheService.LastCommit.CommitsCount = 0
+	defer test.MockVariableValue(&setting.CacheService.LastCommit.CommitsCount, 0)()
 	// first view will not hit the cache
 	testView(t)
 	// second view will hit the cache
 	testView(t)
-	setting.CacheService.LastCommit.CommitsCount = oldCommitsCount
 }
 
 func testViewRepoPrivate(t *testing.T) {

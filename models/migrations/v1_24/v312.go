@@ -4,6 +4,8 @@
 package v1_24
 
 import (
+	"gitea.dev/models/db"
+
 	"xorm.io/xorm"
 )
 
@@ -16,7 +18,7 @@ func (pullAutoMerge) TableName() string {
 	return "pull_auto_merge"
 }
 
-func AddDeleteBranchAfterMergeForAutoMerge(x *xorm.Engine) error {
+func AddDeleteBranchAfterMergeForAutoMerge(x db.EngineMigration) error {
 	_, err := x.SyncWithOptions(xorm.SyncOptions{
 		IgnoreConstrains: true,
 		IgnoreIndices:    true,
