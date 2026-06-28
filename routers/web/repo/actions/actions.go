@@ -109,7 +109,7 @@ func List(ctx *context.Context) {
 	if ctx.Written() {
 		return
 	}
-	otherWorkflows := prepareOtherWorkflows(ctx, workflows, curWorkflowID)
+	otherWorkflows := prepareOtherWorkflows(ctx, workflows, scopedNames, curWorkflowID)
 	if ctx.Written() {
 		return
 	}
@@ -128,7 +128,7 @@ func List(ctx *context.Context) {
 
 // prepareOtherWorkflows surfaces historical runs whose workflow file no longer
 // exists on the default branch (renamed, removed, or only on other branches).
-func prepareOtherWorkflows(ctx *context.Context, workflows []WorkflowInfo, curWorkflowID string) []string {
+func prepareOtherWorkflows(ctx *context.Context, workflows []WorkflowInfo, scopedNames container.Set[string], curWorkflowID string) []string {
 	listed := make(container.Set[string], len(workflows))
 	for _, w := range workflows {
 		listed.Add(w.Entry.Name())
@@ -148,7 +148,8 @@ func prepareOtherWorkflows(ctx *context.Context, workflows []WorkflowInfo, curWo
 	}
 
 	ctx.Data["OtherWorkflows"] = other
-	ctx.Data["CurWorkflowIsListed"] = curWorkflowID == "" || listed.Contains(curWorkflowID)
+	// A selected workflow counts as "listed" if it is a repo-level file or an active scoped workflow.
+	ctx.Data["CurWorkflowIsListed"] = curWorkflowID == "" || listed.Contains(curWorkflowID) || scopedNames.Contains(curWorkflowID)
 	return other
 }
 
