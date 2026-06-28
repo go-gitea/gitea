@@ -7,8 +7,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"path"
-	"strings"
 
 	actions_model "gitea.dev/models/actions"
 	"gitea.dev/models/db"
@@ -16,7 +14,6 @@ import (
 	repo_model "gitea.dev/models/repo"
 	user_model "gitea.dev/models/user"
 	actions_module "gitea.dev/modules/actions"
-	"gitea.dev/modules/actions/jobparser"
 	"gitea.dev/modules/commitstatus"
 	"gitea.dev/modules/log"
 	"gitea.dev/modules/util"
@@ -45,8 +42,14 @@ func CreateCommitStatusForRunJobs(ctx context.Context, run *actions_model.Action
 		return
 	}
 
+	// Compute the scoped source-repo prefix once per run; it is identical for every job.
+	var scopedPrefix string
+	if run.IsScopedRun {
+		scopedPrefix = actions_model.ScopedStatusContextPrefix(ctx, run.WorkflowRepoID)
+	}
+
 	for _, job := range jobs {
-		if err = createCommitStatus(ctx, run.Repo, event, commitID, run, job); err != nil {
+		if err = createCommitStatus(ctx, run.Repo, event, commitID, scopedPrefix, run, job); err != nil {
 			log.Error("Failed to create commit status for job %d: %v", job.ID, err)
 		}
 	}
@@ -136,16 +139,15 @@ func getCommitStatusEventNameAndCommitID(run *actions_model.ActionRun) (event, c
 	return event, commitID, nil
 }
 
-func createCommitStatus(ctx context.Context, repo *repo_model.Repository, event, commitID string, run *actions_model.ActionRun, job *actions_model.ActionRunJob) error {
-	// TODO: store workflow name as a field in ActionRun to avoid parsing
-	runName := path.Base(run.WorkflowID)
-	// fall back to the file name when the workflow has no non-blank `name:`
-	if wfs, err := jobparser.Parse(job.WorkflowPayload); err == nil && len(wfs) > 0 {
-		if name := strings.TrimSpace(wfs[0].Name); name != "" {
-			runName = name
-		}
+func createCommitStatus(ctx context.Context, repo *repo_model.Repository, event, commitID, scopedPrefix string, run *actions_model.ActionRun, job *actions_model.ActionRunJob) error {
+	displayName := actions_module.WorkflowDisplayName(run.WorkflowID, job.WorkflowPayload)
+	ctxName := actions_module.WorkflowStatusContextName(displayName, job.Name, event) // git_model.NewCommitStatus also trims spaces
+	if run.IsScopedRun {
+		// A scoped run is prefixed with its source repo (set off by a colon) so it stays distinct from a same-named repo-level workflow.
+		// scopedPrefix is computed once per run by the caller. The settings page derives the same string to preview expected checks.
+		ctxName = actions_module.ScopedWorkflowStatusContextName(scopedPrefix, displayName, job.Name, event)
 	}
-	ctxName := strings.TrimSpace(fmt.Sprintf("%s / %s (%s)", runName, job.Name, event)) // git_model.NewCommitStatus also trims spaces
+
 	// Mix the workflow file path into the hash so two workflow files that
 	// share the same `name:` and job name produce distinct commit statuses
 	// even though they render identically — matching GitHub's behavior
