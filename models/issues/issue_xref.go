@@ -13,6 +13,8 @@ import (
 	user_model "gitea.dev/models/user"
 	"gitea.dev/modules/log"
 	"gitea.dev/modules/references"
+
+	"xorm.io/builder"
 )
 
 type crossReference struct {
@@ -189,11 +191,11 @@ func (issue *Issue) updateCrossReferenceList(list []*crossReference, xref *cross
 func (issue *Issue) verifyReferencedIssue(stdCtx context.Context, ctx *crossReferencesContext, repo *repo_model.Repository,
 	ref references.IssueReference,
 ) (*Issue, references.XRefAction, error) {
-	refIssue := &Issue{RepoID: repo.ID, Index: ref.Index}
 	refAction := ref.Action
-	e := db.GetEngine(stdCtx)
-
-	if has, _ := e.Get(refIssue); !has {
+	refIssue, has, err := db.Get[Issue](stdCtx, builder.Eq{"repo_id": repo.ID, "`index`": ref.Index})
+	if err != nil {
+		return nil, references.XRefActionNone, err
+	} else if !has {
 		return nil, references.XRefActionNone, nil
 	}
 	if err := refIssue.LoadRepo(stdCtx); err != nil {

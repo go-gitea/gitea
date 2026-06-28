@@ -18,6 +18,8 @@ import (
 	"gitea.dev/modules/structs"
 	"gitea.dev/modules/timeutil"
 	"gitea.dev/modules/util"
+
+	"xorm.io/builder"
 )
 
 // Task represents a task
@@ -172,17 +174,13 @@ func (err ErrTaskDoesNotExist) Unwrap() error {
 
 // GetMigratingTask returns the migrating task by repo's id
 func GetMigratingTask(ctx context.Context, repoID int64) (*Task, error) {
-	task := Task{
-		RepoID: repoID,
-		Type:   structs.TaskTypeMigrateRepo,
-	}
-	has, err := db.GetEngine(ctx).Get(&task)
+	task, has, err := db.Get[Task](ctx, builder.Eq{"repo_id": repoID, "`type`": structs.TaskTypeMigrateRepo})
 	if err != nil {
 		return nil, err
 	} else if !has {
-		return nil, ErrTaskDoesNotExist{0, repoID, task.Type}
+		return nil, ErrTaskDoesNotExist{0, repoID, structs.TaskTypeMigrateRepo}
 	}
-	return &task, nil
+	return task, nil
 }
 
 // CreateTask creates a task on database
