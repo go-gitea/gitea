@@ -80,7 +80,7 @@ export function createLogLineMessage(line: LogLine, cmd: LogLineCommand | null) 
   if (label) {
     logMsg.append(createElementFromAttrs('span', {class: 'log-msg-label'}, `${label}:`));
     const msgSpan = document.createElement('span');
-    renderAnsiInto(msgSpan, msgContent.trimStart());
+    renderAnsiInto(msgSpan, ` ${msgContent.trimStart()}`);
     logMsg.append(msgSpan);
   } else {
     renderAnsiInto(logMsg, msgContent);
