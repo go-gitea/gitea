@@ -8,7 +8,6 @@ import (
 	stdCtx "context"
 	"errors"
 	"fmt"
-	"html"
 	"net/http"
 	"net/url"
 	"slices"
@@ -49,12 +48,9 @@ type WorkflowInfo struct {
 }
 
 type workflowBadge struct {
-	URL             string
-	WorkflowURL     string
-	Markdown        string
-	MarkdownAltText string
-	HTML            string
-	HTMLAltText     string
+	DisplayName string
+	BadgeURL    string
+	WorkflowURL string
 }
 
 // DisplayName returns the workflow name from the YAML file if present, otherwise the filename.
@@ -616,26 +612,17 @@ func prepareWorkflowBadgeTemplate(ctx *context.Context, workflowID, displayName 
 	if workflowID == "" {
 		return
 	}
-	if displayName == "" {
-		displayName = workflowID
-	}
+	displayName = util.IfZero(displayName, workflowID)
 
 	repoURL := ctx.Repo.Repository.HTMLURL(ctx)
 	badgeURL := fmt.Sprintf("%s/actions/workflows/%s/badge.svg?branch=%s", repoURL, util.PathEscapeSegments(workflowID), url.QueryEscape(ctx.Repo.Repository.DefaultBranch))
 	workflowURL := fmt.Sprintf("%s/actions?workflow=%s", repoURL, url.QueryEscape(workflowID))
 
 	ctx.Data["WorkflowBadge"] = workflowBadge{
-		URL:             badgeURL,
-		WorkflowURL:     workflowURL,
-		Markdown:        fmt.Sprintf("[![%s](%s)](%s)", escapeMarkdownImageAltText(displayName), badgeURL, workflowURL),
-		MarkdownAltText: escapeMarkdownImageAltText(displayName),
-		HTML:            fmt.Sprintf(`<a href="%s"><img src="%s" alt="%s"></a>`, html.EscapeString(workflowURL), html.EscapeString(badgeURL), html.EscapeString(displayName)),
-		HTMLAltText:     displayName,
+		BadgeURL:    badgeURL,
+		WorkflowURL: workflowURL,
+		DisplayName: displayName,
 	}
-}
-
-func escapeMarkdownImageAltText(s string) string {
-	return strings.NewReplacer(`\`, `\\`, `[`, `\[`, `]`, `\]`).Replace(s)
 }
 
 // loadIsRefDeleted loads the IsRefDeleted field for each run in the list.

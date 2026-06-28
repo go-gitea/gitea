@@ -184,10 +184,7 @@ func Test_loadIsRefDeleted(t *testing.T) {
 }
 
 func TestPrepareWorkflowBadgeTemplate(t *testing.T) {
-	defer test.MockVariableValue(&setting.IsInTesting, true)()
 	defer test.MockVariableValue(&setting.AppURL, "https://gitea.example.com/")()
-	defer test.MockVariableValue(&setting.AppSubURL, "")()
-	defer test.MockVariableValue(&setting.PublicURLDetection, setting.PublicURLNever)()
 
 	t.Run("no workflow selected", func(t *testing.T) {
 		ctx := newWorkflowBadgeTestContext(t)
@@ -203,13 +200,9 @@ func TestPrepareWorkflowBadgeTemplate(t *testing.T) {
 		prepareWorkflowBadgeTemplate(ctx, "build/test workflow.yml", `CI [prod]\build "fast" <ok>`)
 
 		assert.Equal(t, workflowBadge{
-			URL:         "https://gitea.example.com/user1/repo1/actions/workflows/build/test%20workflow.yml/badge.svg?branch=release%2F1.0+%26+hotfix",
+			BadgeURL:    "https://gitea.example.com/user1/repo1/actions/workflows/build/test%20workflow.yml/badge.svg?branch=release%2F1.0+%26+hotfix",
 			WorkflowURL: "https://gitea.example.com/user1/repo1/actions?workflow=build%2Ftest+workflow.yml",
-			Markdown: `[![CI \[prod\]\\build "fast" <ok>](https://gitea.example.com/user1/repo1/actions/workflows/build/test%20workflow.yml/badge.svg?branch=release%2F1.0+%26+hotfix)]` +
-				`(https://gitea.example.com/user1/repo1/actions?workflow=build%2Ftest+workflow.yml)`,
-			MarkdownAltText: `CI \[prod\]\\build "fast" <ok>`,
-			HTML:            `<a href="https://gitea.example.com/user1/repo1/actions?workflow=build%2Ftest+workflow.yml"><img src="https://gitea.example.com/user1/repo1/actions/workflows/build/test%20workflow.yml/badge.svg?branch=release%2F1.0+%26+hotfix" alt="CI [prod]\build &#34;fast&#34; &lt;ok&gt;"></a>`,
-			HTMLAltText:     `CI [prod]\build "fast" <ok>`,
+			DisplayName: `CI [prod]\build "fast" <ok>`,
 		}, ctx.Data["WorkflowBadge"])
 	})
 }
