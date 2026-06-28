@@ -23,6 +23,7 @@ import (
 	api "gitea.dev/modules/structs"
 	"gitea.dev/modules/util"
 	"gitea.dev/modules/web"
+	attachment_service "gitea.dev/services/attachment"
 	"gitea.dev/services/context"
 	"gitea.dev/services/convert"
 	"gitea.dev/services/forms"
@@ -444,6 +445,7 @@ func GetCommentAttachments(ctx *context.Context) {
 		ctx.ServerError("LoadAttachments", err)
 		return
 	}
+	attachment_service.EnsureSHA256(ctx, comment.Attachments...)
 	for i := 0; i < len(comment.Attachments); i++ {
 		attachments = append(attachments, convert.ToAttachment(ctx.Repo.Repository, comment.Attachments[i]))
 	}

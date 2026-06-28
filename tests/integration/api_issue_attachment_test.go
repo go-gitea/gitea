@@ -5,6 +5,8 @@ package integration
 
 import (
 	"bytes"
+	"crypto/sha256"
+	"encoding/hex"
 	"fmt"
 	"mime/multipart"
 	"net/http"
@@ -86,6 +88,9 @@ func TestAPICreateIssueAttachment(t *testing.T) {
 	resp := session.MakeRequest(t, req, http.StatusCreated)
 
 	apiAttachment := DecodeJSON(t, resp, &api.Attachment{})
+	imageBytes := testGeneratePngBytes()
+	sha256Sum := sha256.Sum256(imageBytes)
+	assert.Equal(t, hex.EncodeToString(sha256Sum[:]), apiAttachment.HashSHA256)
 
 	unittest.AssertExistsAndLoadBean(t, &repo_model.Attachment{ID: apiAttachment.ID, IssueID: issue.ID})
 }

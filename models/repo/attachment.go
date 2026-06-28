@@ -31,6 +31,7 @@ type Attachment struct {
 	UploaderID        int64  `xorm:"INDEX DEFAULT 0"` // Notice: will be zero before this column added
 	CommentID         int64  `xorm:"INDEX"`
 	Name              string
+	HashSHA256        string             `xorm:"hash_sha256 VARCHAR(64) NOT NULL DEFAULT ''"`
 	DownloadCount     int64              `xorm:"DEFAULT 0"`
 	Size              int64              `xorm:"DEFAULT 0"`
 	CreatedUnix       timeutil.TimeStamp `xorm:"created"`
