@@ -5,20 +5,20 @@ package v1_27
 
 import (
 	"gitea.dev/models/db"
-	"gitea.dev/modules/timeutil"
+
+	"xorm.io/xorm"
 )
 
-func AddProjectWorkflow(x db.EngineMigration) error {
-	type ProjectWorkflow struct {
-		ID              int64
-		ProjectID       int64 `xorm:"INDEX"`
-		WorkflowEvent   string
-		WorkflowFilters string             `xorm:"TEXT JSON"`
-		WorkflowActions string             `xorm:"TEXT JSON"`
-		Enabled         bool               `xorm:"DEFAULT true"`
-		CreatedUnix     timeutil.TimeStamp `xorm:"created"`
-		UpdatedUnix     timeutil.TimeStamp `xorm:"updated"`
+// AddContinueOnErrorToActionRunJob adds the ContinueOnError column to ActionRunJob,
+// storing the job-level continue-on-error value from the workflow YAML.
+func AddContinueOnErrorToActionRunJob(x db.EngineMigration) error {
+	type ActionRunJob struct {
+		ContinueOnError bool `xorm:"NOT NULL DEFAULT FALSE"`
 	}
 
-	return x.Sync(&ProjectWorkflow{})
+	_, err := x.SyncWithOptions(xorm.SyncOptions{
+		IgnoreDropIndices: true,
+		IgnoreConstrains:  true,
+	}, new(ActionRunJob))
+	return err
 }

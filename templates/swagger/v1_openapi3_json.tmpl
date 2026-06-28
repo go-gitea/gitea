@@ -19659,7 +19659,7 @@
             }
           },
           {
-            "description": "compare two refs as `base...head` (or `base..head`); refs may be branches, tags, full or short SHAs, including branch names that contain slashes.",
+            "description": "compare two refs as `base...head` (or `base..head`); refs may be branches, tags, full or short SHAs (including branch names that contain slashes), optionally with a `^` or `~N` revision suffix.",
             "in": "path",
             "name": "basehead",
             "required": true,
@@ -19683,6 +19683,9 @@
         "responses": {
           "200": {
             "$ref": "#/components/responses/Compare"
+          },
+          "400": {
+            "$ref": "#/components/responses/error"
           },
           "404": {
             "$ref": "#/components/responses/notFound"

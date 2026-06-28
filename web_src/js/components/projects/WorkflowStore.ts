@@ -161,9 +161,7 @@ export function createWorkflowStore(props: StoreProps): WorkflowStoreState {
 
     workflowDrafts: {},
 
-    getDraft(event_id: string): WorkflowDraftState | undefined {
-      return store.workflowDrafts[event_id];
-    },
+    getDraft: (event_id: string): WorkflowDraftState | undefined => store.workflowDrafts[event_id],
 
     updateDraft(event_id: string, filters: WorkflowFilters, actions: WorkflowActions) {
       store.workflowDrafts[event_id] = {

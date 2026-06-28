@@ -336,6 +336,52 @@ func TestSingleWorkflow_SetJob(t *testing.T) {
 	})
 }
 
+func TestGetContinueOnError(t *testing.T) {
+	tests := []struct {
+		name string
+		yaml string
+		want bool
+	}{
+		{
+			name: "absent",
+			yaml: "name: test\non: push\njobs:\n  job1:\n    runs-on: ubuntu-22.04\n    steps:\n      - run: echo hi\n",
+			want: false,
+		},
+		{
+			name: "static true",
+			yaml: "name: test\non: push\njobs:\n  job1:\n    runs-on: ubuntu-22.04\n    continue-on-error: true\n    steps:\n      - run: echo hi\n",
+			want: true,
+		},
+		{
+			name: "static false",
+			yaml: "name: test\non: push\njobs:\n  job1:\n    runs-on: ubuntu-22.04\n    continue-on-error: false\n    steps:\n      - run: echo hi\n",
+			want: false,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got, err := Parse([]byte(tt.yaml))
+			require.NoError(t, err)
+			require.Len(t, got, 1)
+			_, job := got[0].Job()
+			assert.Equal(t, tt.want, job.GetContinueOnError())
+		})
+	}
+
+	// Expression case: ${{ matrix.experimental }} must resolve per matrix variant.
+	t.Run("matrix expression", func(t *testing.T) {
+		content := ReadTestdata(t, "continue_on_error_expr.in.yaml")
+		got, err := Parse(content)
+		require.NoError(t, err)
+		require.Len(t, got, 2)
+		// sorted by matrix name: (false) before (true)
+		_, jobFalse := got[0].Job()
+		_, jobTrue := got[1].Job()
+		assert.False(t, jobFalse.GetContinueOnError())
+		assert.True(t, jobTrue.GetContinueOnError())
+	})
+}
+
 func TestParseMappingNode(t *testing.T) {
 	tests := []struct {
 		input   string
