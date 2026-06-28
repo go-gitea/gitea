@@ -57,12 +57,12 @@ function renderAnsiProcessText(node: ChildNode): ChildNode {
   const url = match[0];
   const after = text.slice(match.index + url.length);
 
-  const newNodes: Array<Node | string> = [];
   const link = document.createElement('a');
   link.setAttribute('href', url);
   link.setAttribute('target', '_blank');
   link.textContent = url;
 
+  const newNodes: Array<Node | string> = [];
   if (before) newNodes.push(before);
   newNodes.push(link);
   if (after) newNodes.push(after);
@@ -73,11 +73,11 @@ function renderAnsiProcessText(node: ChildNode): ChildNode {
 
 function renderAnsiPostWalk(el: ChildNode) {
   for (let node = el.firstChild; node; node = node.nextSibling) {
+    if (node.nodeName === 'A') continue;
     if (node.nodeType !== Node.TEXT_NODE) {
       renderAnsiPostWalk(node);
       continue;
     }
-    if (node.nodeName === 'A') continue;
     node = renderAnsiProcessText(node);
   }
 }
