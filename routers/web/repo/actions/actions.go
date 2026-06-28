@@ -8,7 +8,6 @@ import (
 	stdCtx "context"
 	"errors"
 	"fmt"
-	"html"
 	"net/http"
 	"net/url"
 	"slices"
@@ -22,6 +21,7 @@ import (
 	"gitea.dev/modules/actions"
 	"gitea.dev/modules/container"
 	"gitea.dev/modules/git"
+	"gitea.dev/modules/htmlutil"
 	"gitea.dev/modules/log"
 	"gitea.dev/modules/optional"
 	"gitea.dev/modules/setting"
@@ -465,7 +465,7 @@ func prepareWorkflowBadgeTemplate(ctx *context.Context, workflowID, displayName 
 		WorkflowURL:     workflowURL,
 		Markdown:        fmt.Sprintf("[![%s](%s)](%s)", escapeMarkdownImageAltText(displayName), badgeURL, workflowURL),
 		MarkdownAltText: escapeMarkdownImageAltText(displayName),
-		HTML:            fmt.Sprintf(`<a href="%s"><img src="%s" alt="%s"></a>`, html.EscapeString(workflowURL), html.EscapeString(badgeURL), html.EscapeString(displayName)),
+		HTML:            string(htmlutil.HTMLFormat(`<a href="%s"><img src="%s" alt="%s"></a>`, workflowURL, badgeURL, displayName)),
 		HTMLAltText:     displayName,
 	}
 }

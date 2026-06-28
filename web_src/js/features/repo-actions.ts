@@ -1,10 +1,7 @@
 import {createApp} from 'vue';
 import RepoActionView from '../components/RepoActionView.vue';
-import {queryElems} from '../utils/dom.ts';
-
-function escapeHTMLAttribute(value: string): string {
-  return value.replaceAll('&', '&amp;').replaceAll('"', '&quot;').replaceAll('<', '&lt;').replaceAll('>', '&gt;');
-}
+import {registerGlobalInitFunc} from '../modules/observer.ts';
+import {htmlEscape} from '../utils/html.ts';
 
 export function updateWorkflowBadgeFields(form: HTMLElement, branch: string): void {
   const badgeURL = new URL(form.getAttribute('data-badge-url')!);
@@ -18,18 +15,16 @@ export function updateWorkflowBadgeFields(form: HTMLElement, branch: string): vo
   form.querySelector<HTMLImageElement>('[data-workflow-badge-image]')!.src = badgeURLString;
   form.querySelector<HTMLInputElement>('#workflow-badge-url')!.value = badgeURLString;
   form.querySelector<HTMLTextAreaElement>('#workflow-badge-markdown')!.value = `[![${markdownAltText}](${badgeURLString})](${workflowURL})`;
-  form.querySelector<HTMLTextAreaElement>('#workflow-badge-html')!.value = `<a href="${escapeHTMLAttribute(workflowURL)}"><img src="${escapeHTMLAttribute(badgeURLString)}" alt="${escapeHTMLAttribute(htmlAltText)}"></a>`;
+  form.querySelector<HTMLTextAreaElement>('#workflow-badge-html')!.value = `<a href="${htmlEscape(workflowURL)}"><img src="${htmlEscape(badgeURLString)}" alt="${htmlEscape(htmlAltText)}"></a>`;
 }
 
-function initWorkflowBadgeBranchSelection(): void {
-  queryElems(document, '[data-workflow-badge-form]', (form) => {
-    const branchInput = form.querySelector<HTMLInputElement>('[data-workflow-badge-branch]')!;
-    branchInput.addEventListener('change', () => updateWorkflowBadgeFields(form, branchInput.value));
-  });
+function initWorkflowBadgeForm(form: HTMLElement): void {
+  const branchInput = form.querySelector<HTMLInputElement>('[data-workflow-badge-branch]')!;
+  branchInput.addEventListener('change', () => updateWorkflowBadgeFields(form, branchInput.value));
 }
 
 export function initRepositoryActionView() {
-  initWorkflowBadgeBranchSelection();
+  registerGlobalInitFunc('initWorkflowBadgeForm', initWorkflowBadgeForm);
 
   const el = document.querySelector('#repo-action-view');
   if (!el) return;

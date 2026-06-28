@@ -137,7 +137,7 @@
 					<div id="workflow-status-badge-modal" class="ui tiny modal">
 						<div class="header">{{ctx.Locale.Tr "actions.workflow.status_badge"}}</div>
 						<div class="content">
-							<div class="ui form" data-workflow-badge-form data-badge-url="{{.WorkflowBadge.URL}}" data-workflow-url="{{.WorkflowBadge.WorkflowURL}}" data-markdown-alt-text="{{.WorkflowBadge.MarkdownAltText}}" data-html-alt-text="{{.WorkflowBadge.HTMLAltText}}">
+							<div class="ui form" data-global-init="initWorkflowBadgeForm" data-badge-url="{{.WorkflowBadge.URL}}" data-workflow-url="{{.WorkflowBadge.WorkflowURL}}" data-markdown-alt-text="{{.WorkflowBadge.MarkdownAltText}}" data-html-alt-text="{{.WorkflowBadge.HTMLAltText}}">
 								<div class="field">
 									<img data-workflow-badge-image src="{{.WorkflowBadge.URL}}" alt="{{.CurWorkflow}}">
 								</div>
@@ -169,7 +169,7 @@
 									<textarea id="workflow-badge-markdown" rows="2" readonly>{{.WorkflowBadge.Markdown}}</textarea>
 								</div>
 								<div class="field">
-									<label>{{ctx.Locale.Tr "actions.workflow.status_badge_html"}}</label>
+									<label>HTML</label>
 									<textarea id="workflow-badge-html" rows="2" readonly>{{.WorkflowBadge.HTML}}</textarea>
 								</div>
 							</div>
