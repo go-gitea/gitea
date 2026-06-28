@@ -440,3 +440,13 @@
   border: 1px solid var(--color-secondary);
   padding: 5px;
 }
+
+.EasyMDEContainer .CodeMirror .cm-attribute { color: var(--color-syntax-name); }
+.EasyMDEContainer .CodeMirror .cm-bracket { color: var(--color-syntax-operator); }
+.EasyMDEContainer .CodeMirror .cm-comment { color: var(--color-syntax-comment); }
+.EasyMDEContainer .CodeMirror .cm-error { color: var(--color-syntax-invalid); }
+.EasyMDEContainer .CodeMirror .cm-hr { color: var(--color-syntax-operator); }
+.EasyMDEContainer .CodeMirror .cm-link { color: var(--color-syntax-link); }
+.EasyMDEContainer .CodeMirror .cm-quote { color: var(--color-syntax-comment); }
+.EasyMDEContainer .CodeMirror .cm-tag { color: var(--color-syntax-type); }
+.EasyMDEContainer .CodeMirror .cm-url { color: var(--color-syntax-link); }
