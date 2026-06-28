@@ -863,6 +863,7 @@ table th[data-sortt-desc] .svg {
 
 .ui.list.flex-items-block > .item,
 .ui.vertical.menu.flex-items-block > .item,
+.ui.vertical.menu .item.flex-text-block,
 .ui.form .field > label.flex-text-block, /* override fomantic "block" style */
 .flex-items-block > .item,
 .flex-text-block {
