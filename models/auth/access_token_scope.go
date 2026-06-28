@@ -13,7 +13,7 @@ import (
 )
 
 // AccessTokenScopeFromForm collects all "scope-*" values from a submitted form
-// and joins them into a single comma-separated AccessTokenScope.
+// and joins them into Gitea's comma-separated AccessTokenScope format.
 func AccessTokenScopeFromForm(form url.Values) AccessTokenScope {
 	var scopeNames []string
 	for k, v := range form {
