@@ -1,6 +1,12 @@
-import {renderAnsi} from './ansi.ts';
+import {renderAnsiInto} from './ansi.ts';
 
 test('renderAnsi', () => {
+  const renderAnsi = (line: string) => {
+    const el = document.createElement('div');
+    renderAnsiInto(el, line);
+    return el.innerHTML;
+  };
+
   expect(renderAnsi('abc')).toEqual('abc');
   expect(renderAnsi('abc\n')).toEqual('abc');
   expect(renderAnsi('abc\r\n')).toEqual('abc');

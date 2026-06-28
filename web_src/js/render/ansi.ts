@@ -1,5 +1,4 @@
 import {AnsiUp} from 'ansi_up';
-import {linkifyURLs} from '../utils/url.ts';
 
 const replacements: Array<[RegExp, string]> = [
   [/\x1b\[\d+[A-H]/g, ''], // Move cursor, treat them as no-op
@@ -7,7 +6,7 @@ const replacements: Array<[RegExp, string]> = [
 ];
 
 // render ANSI to HTML
-export function renderAnsi(line: string): string {
+export function renderAnsiInto(el: HTMLElement, line: string) {
   // create a fresh ansi_up instance because otherwise previous renders can influence
   // the output of future renders, because ansi_up is stateful and remembers things like
   // unclosed opening tags for colors.
@@ -44,5 +43,41 @@ export function renderAnsi(line: string): string {
     result = lines.join('\n');
   }
 
-  return linkifyURLs(result);
+  el.innerHTML = result;
+  renderAnsiPostWalk(el);
+}
+
+function renderAnsiProcessText(node: ChildNode): ChildNode {
+  const text = node.textContent!;
+  // TODO: fine tune this regexp, and fine tune the last punctuation mark like "open url https://gitea.com."
+  const match = /\bhttps?:\/\/[^\s<>[\]]+/.exec(text);
+  if (!match || match.index === undefined) return node;
+
+  const before = text.slice(0, match.index);
+  const url = match[0];
+  const after = text.slice(match.index + url.length);
+
+  const newNodes: Array<Node | string> = [];
+  const link = document.createElement('a');
+  link.setAttribute('href', url);
+  link.setAttribute('target', '_blank');
+  link.textContent = url;
+
+  if (before) newNodes.push(before);
+  newNodes.push(link);
+  if (after) newNodes.push(after);
+
+  node.replaceWith(...newNodes);
+  return link;
+}
+
+function renderAnsiPostWalk(el: ChildNode) {
+  for (let node = el.firstChild; node; node = node.nextSibling) {
+    if (node.nodeType !== Node.TEXT_NODE) {
+      renderAnsiPostWalk(node);
+      continue;
+    }
+    if (node.nodeName === 'A') continue;
+    node = renderAnsiProcessText(node);
+  }
 }
