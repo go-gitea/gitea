@@ -42,11 +42,8 @@
 
 .code-editor-container .cm-content {
   align-self: stretch;
+  caret-color: var(--color-caret);
   padding: 0;
-}
-
-.code-editor-container .cm-content * {
-  caret-color: inherit;
 }
 
 .code-editor-container .cm-cursor,
