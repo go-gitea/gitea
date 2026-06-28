@@ -24,8 +24,6 @@ jobs:
 
       - name: Authenticate snapcraft
         shell: bash
-        env:
-          SNAPCRAFT_STORE_CREDENTIALS: ${{ secrets.SNAPCRAFT_STORE_CREDENTIALS }}
         run: snapcraft login --with <(printf '%s' "$SNAPCRAFT_STORE_CREDENTIALS")
 
       - name: Remote build
