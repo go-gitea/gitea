@@ -171,8 +171,7 @@ func IntrospectOAuth(ctx *context.Context) {
 
 	grant, err := auth.GetOAuth2GrantByID(ctx, token.GrantID)
 	if err != nil {
-		log.Error("Error retrieving grant for introspection: %v", err)
-		ctx.HTTPError(http.StatusInternalServerError)
+		ctx.ServerError("GetOAuth2GrantByID", err)
 		return
 	}
 	if grant == nil || grant.ApplicationID != introspectingApp.ID {
@@ -187,8 +186,7 @@ func IntrospectOAuth(ctx *context.Context) {
 	response.RegisteredClaims = oauth2_provider.NewJwtRegisteredClaimsFromUser(introspectingApp.ClientID, grant.UserID, nil /*exp*/)
 	user, err := user_model.GetUserByID(ctx, grant.UserID)
 	if err != nil {
-		log.Error("Error retrieving user for introspection: %v", err)
-		ctx.HTTPError(http.StatusInternalServerError)
+		ctx.ServerError("GetUserByID", err)
 		return
 	}
 	response.Username = user.Name
