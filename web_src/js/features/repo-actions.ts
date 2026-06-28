@@ -1,7 +1,7 @@
 import {createApp} from 'vue';
 import RepoActionView from '../components/RepoActionView.vue';
 import {registerGlobalInitFunc} from '../modules/observer.ts';
-import {htmlEscape} from '../utils/html.ts';
+import {html} from '../utils/html.ts';
 
 export function updateWorkflowBadgeFields(form: HTMLElement, branch: string): void {
   const badgeURL = new URL(form.getAttribute('data-badge-url')!);
@@ -15,7 +15,7 @@ export function updateWorkflowBadgeFields(form: HTMLElement, branch: string): vo
   form.querySelector<HTMLImageElement>('[data-workflow-badge-image]')!.src = badgeURLString;
   form.querySelector<HTMLInputElement>('#workflow-badge-url')!.value = badgeURLString;
   form.querySelector<HTMLTextAreaElement>('#workflow-badge-markdown')!.value = `[![${markdownAltText}](${badgeURLString})](${workflowURL})`;
-  form.querySelector<HTMLTextAreaElement>('#workflow-badge-html')!.value = `<a href="${htmlEscape(workflowURL)}"><img src="${htmlEscape(badgeURLString)}" alt="${htmlEscape(htmlAltText)}"></a>`;
+  form.querySelector<HTMLTextAreaElement>('#workflow-badge-html')!.value = html`<a href="${workflowURL}"><img src="${badgeURLString}" alt="${htmlAltText}"></a>`;
 }
 
 function initWorkflowBadgeForm(form: HTMLElement): void {
