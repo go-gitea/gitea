@@ -7,6 +7,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"net/url"
 	"strings"
 	"time"
 
@@ -97,9 +98,9 @@ func (run *ActionRun) WorkflowLink() string {
 	}
 	// A scoped run's workflow is disambiguated by its source repo, so carry scoped_workflow_source_repo_id back to the run list
 	if run.IsScopedRun {
-		return fmt.Sprintf("%s/actions/?workflow=%s&scoped_workflow_source_repo_id=%d", run.Repo.Link(), run.WorkflowID, run.WorkflowRepoID)
+		return fmt.Sprintf("%s/actions/?workflow=%s&scoped_workflow_source_repo_id=%d", run.Repo.Link(), url.QueryEscape(run.WorkflowID), run.WorkflowRepoID)
 	}
-	return fmt.Sprintf("%s/actions/?workflow=%s", run.Repo.Link(), run.WorkflowID)
+	return fmt.Sprintf("%s/actions/?workflow=%s", run.Repo.Link(), url.QueryEscape(run.WorkflowID))
 }
 
 // RefLink return the url of run's ref

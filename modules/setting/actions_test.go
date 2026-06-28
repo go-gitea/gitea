@@ -8,6 +8,8 @@ import (
 	"slices"
 	"testing"
 
+	"gitea.dev/modules/test"
+
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -241,10 +243,7 @@ DEFAULT_ACTIONS_URL = gitea
 }
 
 func Test_ScopedWorkflowDirs(t *testing.T) {
-	oldActions := Actions
-	defer func() {
-		Actions = oldActions
-	}()
+	defer test.MockVariableValue(&Actions)()
 
 	defaultWorkflowDirs := []string{".gitea/workflows", ".github/workflows"}
 	defaultScopedDirs := []string{".gitea/scoped_workflows"}
