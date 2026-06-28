@@ -627,14 +627,19 @@ func createUserInContext(ctx *context.Context, tpl templates.TplName, form any, 
 		if possibleLinkAccountData != nil && (user_model.IsErrUserAlreadyExist(err) || user_model.IsErrEmailAlreadyUsed(err)) {
 			switch setting.OAuth2Client.AccountLinking {
 			case setting.OAuth2AccountLinkingAuto:
-				var user *user_model.User
-				user = &user_model.User{Name: u.Name}
-				hasUser, err := user_model.GetIndividualUser(ctx, user)
-				if !hasUser || err != nil {
-					user = &user_model.User{Email: u.Email}
-					hasUser, err = user_model.GetIndividualUser(ctx, user)
-					if !hasUser || err != nil {
-						ctx.ServerError("UserLinkAccount", err)
+				user, err := user_model.GetIndividualUserByName(ctx, u.Name)
+				if err != nil {
+					if !user_model.IsErrUserNotExist(err) {
+						ctx.ServerError("GetIndividualUserByName", err)
+						return false
+					}
+					user, err = user_model.GetIndividualUserByPrimaryEmail(ctx, u.Email)
+					if err != nil {
+						if !user_model.IsErrUserNotExist(err) {
+							ctx.ServerError("GetIndividualUserByPrimaryEmail", err)
+						} else {
+							ctx.NotFound(err)
+						}
 						return false
 					}
 				}

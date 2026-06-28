@@ -39,7 +39,7 @@
 		</a>
 		{{end}}
 		{{if .EnableActions}}
-		<details class="item" {{if or .PageIsUserSettingsActionsGeneral .PageIsSharedSettingsRunners .PageIsSharedSettingsSecrets .PageIsSharedSettingsVariables}}open{{end}}>
+		<details class="item" {{if or .PageIsUserSettingsActionsGeneral .PageIsSharedSettingsRunners .PageIsSharedSettingsSecrets .PageIsSharedSettingsVariables .PageIsSharedSettingsScopedWorkflows}}open{{end}}>
 			<summary>{{ctx.Locale.Tr "actions.actions"}}</summary>
 			<div class="menu">
 				<a class="{{if .PageIsUserSettingsActionsGeneral}}active {{end}}item" href="{{AppSubUrl}}/user/settings/actions/general">
@@ -53,6 +53,9 @@
 				</a>
 				<a class="{{if .PageIsSharedSettingsVariables}}active {{end}}item" href="{{AppSubUrl}}/user/settings/actions/variables">
 					{{ctx.Locale.Tr "actions.variables"}}
+				</a>
+				<a class="{{if .PageIsSharedSettingsScopedWorkflows}}active {{end}}item" href="{{AppSubUrl}}/user/settings/actions/scoped-workflows">
+					{{ctx.Locale.Tr "actions.scoped_workflows"}}
 				</a>
 			</div>
 		</details>

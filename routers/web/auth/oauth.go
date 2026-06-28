@@ -503,13 +503,7 @@ func oAuth2UserLoginCallback(ctx *context.Context, authSource *auth.Source, requ
 		}
 	}
 
-	user := &user_model.User{
-		LoginName:   gothUser.UserID,
-		LoginType:   auth.OAuth2,
-		LoginSource: authSource.ID,
-	}
-
-	hasUser, err := user_model.GetIndividualUser(ctx, user)
+	user, hasUser, err := user_model.GetIndividualUserByLoginSource(ctx, auth.OAuth2, authSource.ID, gothUser.UserID)
 	if err != nil {
 		return nil, goth.User{}, err
 	}
