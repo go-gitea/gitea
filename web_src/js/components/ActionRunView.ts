@@ -107,6 +107,7 @@ export function buildJobsByParentJobID(jobs: ActionsJob[]): Map<number, ActionsJ
 export function createEmptyActionsRun(): ActionsRun {
   return {
     repoId: 0,
+    index: 0,
     link: '',
     viewLink: '',
     title: '',
@@ -120,6 +121,7 @@ export function createEmptyActionsRun(): ActionsRun {
     done: false,
     workflowID: '',
     workflowLink: '',
+    canViewWorkflowFile: true,
     isSchedule: false,
     runAttempt: 0,
     attempts: [],

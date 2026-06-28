@@ -7,6 +7,7 @@ import {registerGlobalInitFunc, registerGlobalSelectorFunc} from '../modules/obs
 import {initAvatarUploaderWithCropper} from './comp/Cropper.ts';
 import {initCompSearchRepoBox} from './comp/SearchRepoBox.ts';
 import {initRepoSwitcher} from './repo-switcher.ts';
+import {initScopedWorkflowRequired} from './comp/ScopedWorkflows.ts';
 
 const {appUrl, appSubUrl} = window.config;
 
@@ -106,6 +107,7 @@ export function initGlobalComponent() {
   registerGlobalInitFunc('initAvatarUploader', initAvatarUploaderWithCropper);
   registerGlobalInitFunc('initSearchRepoBox', initCompSearchRepoBox);
   registerGlobalInitFunc('initRepoSwitcher', initRepoSwitcher);
+  registerGlobalInitFunc('initScopedWorkflowRequired', initScopedWorkflowRequired);
 }
 
 // for performance considerations, it only uses performant syntax

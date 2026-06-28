@@ -18,7 +18,7 @@ GXZ_PACKAGE ?= github.com/ulikunitz/xz/cmd/gxz@v0.5.15 # renovate: datasource=go
 MISSPELL_PACKAGE ?= github.com/golangci/misspell/cmd/misspell@v0.8.0 # renovate: datasource=go
 SWAGGER_PACKAGE ?= github.com/go-swagger/go-swagger/cmd/swagger@v0.34.1 # renovate: datasource=go
 XGO_PACKAGE ?= src.techknowlogick.com/xgo@v1.9.0 # renovate: datasource=go
-GOVULNCHECK_PACKAGE ?= golang.org/x/vuln/cmd/govulncheck@v1.3.0 # renovate: datasource=go
+GOVULNCHECK_PACKAGE ?= golang.org/x/vuln/cmd/govulncheck@v1.4.0 # renovate: datasource=go
 ACTIONLINT_PACKAGE ?= github.com/rhysd/actionlint/cmd/actionlint@v1.7.12 # renovate: datasource=go
 SHELLCHECK_IMAGE ?= docker.io/koalaman/shellcheck:v0.11.0@sha256:61862eba1fcf09a484ebcc6feea46f1782532571a34ed51fedf90dd25f925a8d # renovate: datasource=docker
 

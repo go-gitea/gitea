@@ -1,0 +1,25 @@
+name: test
+jobs:
+  job1:
+    name: job1 (false)
+    runs-on: ubuntu-22.04
+    steps:
+      - run: echo hi
+    continue-on-error: false
+    strategy:
+      matrix:
+        experimental:
+          - false
+---
+name: test
+jobs:
+  job1:
+    name: job1 (true)
+    runs-on: ubuntu-22.04
+    steps:
+      - run: echo hi
+    continue-on-error: true
+    strategy:
+      matrix:
+        experimental:
+          - true

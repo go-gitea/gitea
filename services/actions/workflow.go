@@ -43,7 +43,9 @@ func EnableOrDisableWorkflow(ctx *context.APIContext, workflowID string, isEnabl
 	return repo_model.UpdateRepoUnitConfig(ctx, cfgUnit)
 }
 
-func DispatchActionWorkflow(ctx reqctx.RequestContext, doer *user_model.User, repo *repo_model.Repository, gitRepo *git.Repository, workflowID, ref string, processInputs func(model *model.WorkflowDispatch, inputs map[string]any) error) (runID int64, _ error) {
+// DispatchActionWorkflow manually triggers a workflow_dispatch run.
+// scopedWorkflowSourceRepoID selects the workflow source: 0 means a repo-level workflow in this repo; a non-zero value is the source repo of a scoped workflow.
+func DispatchActionWorkflow(ctx reqctx.RequestContext, doer *user_model.User, repo *repo_model.Repository, gitRepo *git.Repository, workflowID, ref string, scopedWorkflowSourceRepoID int64, processInputs func(model *model.WorkflowDispatch, inputs map[string]any) error) (runID int64, _ error) {
 	if workflowID == "" {
 		return 0, util.ErrorWrapTranslatable(
 			util.NewNotExistErrorf("workflowID is empty"),
@@ -58,10 +60,20 @@ func DispatchActionWorkflow(ctx reqctx.RequestContext, doer *user_model.User, re
 		)
 	}
 
-	// can not rerun job when workflow is disabled
+	isScoped := scopedWorkflowSourceRepoID > 0
+
 	cfgUnit := repo.MustGetUnit(ctx, unit.TypeActions)
 	cfg := cfgUnit.ActionsConfig()
-	if cfg.IsWorkflowDisabled(workflowID) {
+	var workflowDisabled bool
+	if isScoped {
+		var err error
+		if workflowDisabled, err = actions_model.IsScopedWorkflowOptedOut(ctx, cfg, repo.OwnerID, scopedWorkflowSourceRepoID, workflowID); err != nil {
+			return 0, err
+		}
+	} else {
+		workflowDisabled = cfg.IsWorkflowDisabled(workflowID)
+	}
+	if workflowDisabled {
 		return 0, util.ErrorWrapTranslatable(
 			util.NewPermissionDeniedErrorf("workflow is disabled"),
 			"actions.workflow.disabled",
@@ -87,15 +99,6 @@ func DispatchActionWorkflow(ctx reqctx.RequestContext, doer *user_model.User, re
 		)
 	}
 
-	// get workflow entry from runTargetCommit
-	_, entries, err := actions.ListWorkflows(runTargetCommit)
-	if err != nil {
-		return 0, err
-	}
-
-	// find workflow from commit
-	var entry *git.TreeEntry
-
 	run := &actions_model.ActionRun{
 		Title:             runTargetCommit.MessageTitle(),
 		RepoID:            repo.ID,
@@ -110,24 +113,13 @@ func DispatchActionWorkflow(ctx reqctx.RequestContext, doer *user_model.User, re
 		Event:             "workflow_dispatch",
 		TriggerEvent:      "workflow_dispatch",
 		Status:            actions_model.StatusWaiting,
+		// local dispatch: own repo at the target commit; the scoped path overrides these below
+		WorkflowRepoID:    repo.ID,
+		WorkflowCommitSHA: runTargetCommit.ID.String(),
 	}
 
-	for _, e := range entries {
-		if e.Name() != workflowID {
-			continue
-		}
-		entry = e
-		break
-	}
-
-	if entry == nil {
-		return 0, util.ErrorWrapTranslatable(
-			util.NewNotExistErrorf("workflow %q doesn't exist", workflowID),
-			"actions.workflow.not_found", workflowID,
-		)
-	}
-
-	content, err := actions.GetContentFromEntry(entry)
+	// resolve the workflow content and record its source on the run (scoped runs read from the source repo)
+	content, err := resolveDispatchWorkflowContent(ctx, repo, runTargetCommit, workflowID, scopedWorkflowSourceRepoID, isScoped, run)
 	if err != nil {
 		return 0, err
 	}
@@ -175,4 +167,63 @@ func DispatchActionWorkflow(ctx reqctx.RequestContext, doer *user_model.User, re
 		return 0, fmt.Errorf("PrepareRun: %w", err)
 	}
 	return run.ID, nil
+}
+
+// resolveDispatchWorkflowContent returns the YAML for a dispatched workflow and records its source on the run.
+//   - Repo-level: from the consumer's runTargetCommit.
+//   - Scoped: from the source repo's default branch.
+func resolveDispatchWorkflowContent(ctx reqctx.RequestContext, repo *repo_model.Repository, runTargetCommit *git.Commit, workflowID string, sourceRepoID int64, isScoped bool, run *actions_model.ActionRun) ([]byte, error) {
+	if isScoped {
+		return resolveScopedDispatchContent(ctx, repo, sourceRepoID, workflowID, run)
+	}
+
+	_, entries, err := actions.ListWorkflows(runTargetCommit)
+	if err != nil {
+		return nil, err
+	}
+	for _, e := range entries {
+		if e.Name() == workflowID {
+			return actions.GetContentFromEntry(e)
+		}
+	}
+	return nil, util.ErrorWrapTranslatable(
+		util.NewNotExistErrorf("workflow %q doesn't exist", workflowID),
+		"actions.workflow.not_found", workflowID,
+	)
+}
+
+func resolveScopedDispatchContent(ctx reqctx.RequestContext, repo *repo_model.Repository, sourceRepoID int64, workflowID string, run *actions_model.ActionRun) ([]byte, error) {
+	// the source must be an effective scoped source for this consumer repo
+	effective, err := actions_model.IsScopedWorkflowSourceEffective(ctx, repo.OwnerID, sourceRepoID)
+	if err != nil {
+		return nil, err
+	}
+	if !effective {
+		return nil, util.ErrorWrapTranslatable(
+			util.NewNotExistErrorf("scoped workflow source %d is not effective for this repository", sourceRepoID),
+			"actions.workflow.not_found", workflowID,
+		)
+	}
+
+	sourceRepo, err := repo_model.GetRepositoryByID(ctx, sourceRepoID)
+	if err != nil {
+		return nil, err
+	}
+
+	sha, parsed, err := LoadParsedScopedWorkflows(ctx, sourceRepo)
+	if err != nil {
+		return nil, err
+	}
+	for _, p := range parsed {
+		if p.EntryName == workflowID {
+			run.WorkflowRepoID = sourceRepo.ID
+			run.WorkflowCommitSHA = sha
+			run.IsScopedRun = true
+			return p.Content, nil
+		}
+	}
+	return nil, util.ErrorWrapTranslatable(
+		util.NewNotExistErrorf("scoped workflow %q doesn't exist", workflowID),
+		"actions.workflow.not_found", workflowID,
+	)
 }
