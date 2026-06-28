@@ -15,7 +15,7 @@ func AddProjectWorkflow(x db.EngineMigration) error {
 		WorkflowEvent   string
 		WorkflowFilters string             `xorm:"TEXT JSON"`
 		WorkflowActions string             `xorm:"TEXT JSON"`
-		Enabled         bool               `xorm:"DEFAULT true"`
+		Enabled         bool               `xorm:"DEFAULT true NOT NULL"`
 		CreatedUnix     timeutil.TimeStamp `xorm:"created"`
 		UpdatedUnix     timeutil.TimeStamp `xorm:"updated"`
 	}

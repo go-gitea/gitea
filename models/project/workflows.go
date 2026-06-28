@@ -162,7 +162,7 @@ type Workflow struct {
 	WorkflowEvent   WorkflowEvent
 	WorkflowFilters []WorkflowFilter   `xorm:"TEXT JSON"`
 	WorkflowActions []WorkflowAction   `xorm:"TEXT JSON"`
-	Enabled         bool               `xorm:"DEFAULT true"`
+	Enabled         bool               `xorm:"DEFAULT true NOT NULL"`
 	CreatedUnix     timeutil.TimeStamp `xorm:"created"`
 	UpdatedUnix     timeutil.TimeStamp `xorm:"updated"`
 }
