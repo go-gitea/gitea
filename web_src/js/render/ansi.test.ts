@@ -29,5 +29,6 @@ test('renderAnsi', () => {
   expect(renderAnsi('foo https://example.com bar')).toEqual(`foo ${link('https://example.com')} bar`);
   expect(renderAnsi('<https://example.com?a=b&c=d#h>')).toEqual(`&lt;${link('https://example.com?a=b&amp;c=d#h')}&gt;`);
   expect(renderAnsi('open https://example.com.')).toEqual(`open ${link('https://example.com')}.`);
+  expect(renderAnsi('"https://example.com"')).toEqual(`"${link('https://example.com')}"`);
   expect(renderAnsi('\x1b[32mhttps://example.com\x1b[0m')).toEqual(`<span class="ansi-green-fg">${link('https://example.com')}</span>`);
 });
