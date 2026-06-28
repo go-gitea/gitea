@@ -31,11 +31,6 @@
   border-radius: 0 0 var(--border-radius) var(--border-radius);
 }
 
-.code-editor-container .cm-content,
-.code-editor-container .cm-gutter {
-  min-height: 200px;
-}
-
 .code-editor-container .cm-scroller {
   overflow: auto;
   line-height: var(--line-height-code);
