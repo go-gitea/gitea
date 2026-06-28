@@ -264,7 +264,6 @@ been added to each release, please refer to the [blog](https://blog.gitea.com).
   * Add bulk repository deletion for organizations (#36763)
   * Feat: Add bypass allowlist for branch protection (#36514)
 
-
 ## [1.26.4](https://github.com/go-gitea/gitea/releases/tag/1.26.4) - 2026-06-21
 
 * SECURITY
