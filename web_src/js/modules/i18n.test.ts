@@ -12,4 +12,7 @@ test('trN', () => {
   // languages without a distinct singular always use the plural form
   vi.mocked(getCurrentLocale).mockReturnValue('zh-CN');
   expect(trN(1, '%d job', '%d jobs')).toEqual('1 jobs');
+  // invalid locales should gracefully fall back
+  vi.mocked(getCurrentLocale).mockReturnValue('C');
+  expect(trN(1, '%d job', '%d jobs')).toEqual('1 job');
 });
