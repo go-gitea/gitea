@@ -13,6 +13,11 @@ been added to each release, please refer to the [blog](https://blog.gitea.com).
 
 * SECURITY
   * Fix(deps): update module github.com/go-git/go-git/v5 to v5.19.1 [security] (#37786)
+  * Fix(api): deny private org member enumeration via /members (#38213)
+  * Fix(oauth): restrict introspection to the token's client (#38042)
+  * Fix(api): don't expose private org membership via public_members (#38145)
+  * Fix(actions): deny fork-PR cross-repo access via collaborative owner (#38214)
+  * Fix(migrations): prevent path traversal in repository restore (#38215)
 
 * FEATURES
   * Feat(actions): add workflow status badge modal (#38196)
@@ -82,15 +87,11 @@ been added to each release, please refer to the [blog](https://blog.gitea.com).
   * Fix(actions): fix 500 error when canceling a canceling task (#38223)
   * Fix(deps): update module golang.org/x/image to v0.43.0 [security] (#38219)
   * Fix(mssql): convert legacy DATETIME columns to DATETIME2 (#38216)
-  * Fix(migrations): prevent path traversal in repository restore (#38215)
-  * Fix(actions): deny fork-PR cross-repo access via collaborative owner (#38214)
-  * Fix(api): deny private org member enumeration via /members (#38213)
   * Fix(actions): ensure all waiting jobs get runners in large workflows (#38200)
   * Fix(deps): update npm dependencies (#38193)
   * Fix(cli): default must-change-password to false for bot users (#38175)
   * Fix(actions): show run index in run view and fix summary graph height (#38165)
   * Fix: csp (#38162)
-  * Fix(api): don't expose private org membership via public_members (#38145)
   * Fix(deps): update npm dependencies (#38123)
   * Fix(mssql): expand legacy issue and comment long-text columns (#38120)
   * Fix(packages): validate module version in goproxy ParsePackage (#38104)
@@ -100,7 +101,6 @@ been added to each release, please refer to the [blog](https://blog.gitea.com).
   * Fix: validate gem name in rubygems parseMetadataFile (#38061)
   * Fix: commit display name (#38057)
   * Fix: csp regressions (#38047)
-  * Fix(oauth): restrict introspection to the token's client (#38042)
   * Fix: api error message (#38031)
   * Fix(deps): update npm dependencies (#38029)
   * Fix: pgsql lint (#38022)
