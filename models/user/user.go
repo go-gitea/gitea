@@ -1276,8 +1276,7 @@ func GetUserByEmail(ctx context.Context, email string) (*User, error) {
 
 	email = strings.ToLower(email)
 	// Otherwise, check in alternative list for activated email addresses
-	emailAddress := &EmailAddress{LowerEmail: email, IsActivated: true}
-	has, err := db.GetEngine(ctx).Get(emailAddress)
+	emailAddress, has, err := db.Get[EmailAddress](ctx, builder.Eq{"lower_email": email, "is_activated": true})
 	if err != nil {
 		return nil, err
 	}
@@ -1297,13 +1296,29 @@ func GetUserByEmail(ctx context.Context, email string) (*User, error) {
 	return nil, ErrUserNotExist{Name: email}
 }
 
-func GetIndividualUser(ctx context.Context, user *User) (bool, error) {
-	// FIXME: the design is wrong, empty User fields won't apply, this function should be removed in the future
-	has, err := db.GetEngine(ctx).Get(user)
+func GetIndividualUserByPrimaryEmail(ctx context.Context, email string) (*User, error) {
+	email = strings.ToLower(strings.TrimSpace(email))
+	if len(email) == 0 {
+		return nil, ErrUserNotExist{Name: email}
+	}
+
+	user, has, err := db.Get[User](ctx, builder.Eq{"email": email, "type": UserTypeIndividual})
+	if err != nil {
+		return nil, err
+	}
+	if !has {
+		return nil, ErrUserNotExist{Name: email}
+	}
+	return user, nil
+}
+
+func GetIndividualUserByLoginSource(ctx context.Context, loginType auth.Type, loginSource int64, loginName string) (*User, bool, error) {
+	user, has, err := db.Get[User](ctx, builder.Eq{"login_type": loginType, "login_source": loginSource, "login_name": loginName})
 	if has && user.Type != UserTypeIndividual {
 		has = false
+		user = nil
 	}
-	return has, err
+	return user, has, err
 }
 
 // GetUserByOpenID returns the user object by given OpenID if exists.
