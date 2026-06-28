@@ -47,7 +47,7 @@
 						{{end}}
 					</td>
 					<td>{{.IPAddress}}</td>
-					<td>{{DateTime "full" .Time}}</td>
+					<td>{{DateUtils.FullTime .Time}}</td>
 				</tr>
 			{{else}}
 				<tr><td colspan="6">{{ctx.Locale.Tr "admin.monitor.audit.no_events"}}</td></tr>
