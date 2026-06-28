@@ -135,18 +135,29 @@ func TestActionsScopedWorkflows(t *testing.T) {
 			createRepoWorkflowFile(t, user2, user2Token, source, ".gitea/scoped_workflows/push.yaml", scopedPushWorkflow)
 			registerUserScopedSource(t, source) // non-required
 
-			// non-required: disable, then a push produces no scoped run.
+			// non-required: the kebab "Disable Workflow" item is an active link; disabling then makes a push produce no scoped run.
 			consumer := createTestRepo(t, "sw-optout-consumer", false)
+			optBody := user2Session.MakeRequest(t, NewRequest(t, "GET",
+				fmt.Sprintf("/%s/%s/actions?workflow=push.yaml&scoped_workflow_source_repo_id=%d", consumer.OwnerName, consumer.Name, source.ID)),
+				http.StatusOK).Body.String()
+			assert.Contains(t, optBody, "Disable Workflow")
+			assert.Contains(t, optBody, "disable?workflow=push.yaml", "non-required scoped workflow: Disable Workflow is a clickable link")
 			disableReq := NewRequest(t, "POST", fmt.Sprintf("/%s/%s/actions/disable?workflow=push.yaml&scoped_workflow_source_repo_id=%d", consumer.OwnerName, consumer.Name, source.ID))
 			user2Session.MakeRequest(t, disableReq, http.StatusOK)
 			createRepoWorkflowFile(t, user2, user2Token, consumer, "marker.txt", "trigger")
 			assert.Equal(t, 0, unittest.GetCount(t, &actions_model.ActionRun{RepoID: consumer.ID, IsScopedRun: true}), "opted-out scoped workflow must not run")
 
-			// required: the disable endpoint rejects it.
+			// required: the kebab "Disable Workflow" item is rendered disabled (no link), and the disable endpoint rejects it.
 			reqSource := createTestRepo(t, "sw-optout-req-source", false)
 			createRepoWorkflowFile(t, user2, user2Token, reqSource, ".gitea/scoped_workflows/push.yaml", scopedPushWorkflow)
 			registerUserScopedSource(t, reqSource, "push.yaml") // required
 			reqConsumer := createTestRepo(t, "sw-optout-req-consumer", false)
+			requiredBody := user2Session.MakeRequest(t, NewRequest(t, "GET",
+				fmt.Sprintf("/%s/%s/actions?workflow=push.yaml&scoped_workflow_source_repo_id=%d", reqConsumer.OwnerName, reqConsumer.Name, reqSource.ID)),
+				http.StatusOK).Body.String()
+			assert.Contains(t, requiredBody, "Disable Workflow")
+			assert.Contains(t, requiredBody, `class="item disabled"`, "required scoped workflow: Disable Workflow is rendered disabled")
+			assert.NotContains(t, requiredBody, "disable?workflow=push.yaml", "required scoped workflow: Disable Workflow has no clickable link")
 			rejectReq := NewRequest(t, "POST", fmt.Sprintf("/%s/%s/actions/disable?workflow=push.yaml&scoped_workflow_source_repo_id=%d", reqConsumer.OwnerName, reqConsumer.Name, reqSource.ID))
 			user2Session.MakeRequest(t, rejectReq, http.StatusBadRequest) // scoped_required_cannot_disable
 		})
