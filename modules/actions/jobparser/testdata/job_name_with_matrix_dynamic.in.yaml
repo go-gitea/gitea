@@ -1,0 +1,24 @@
+name: test
+jobs:
+  job1:
+    runs-on: ubuntu-latest
+    outputs:
+      versions: ${{ steps.version-map.outputs.versions }}
+    steps:
+      - name: Generate the version map
+        id: version-map
+        run: |
+          echo "versions=[1.17, 1.18, 1.19]" >> $GITHUB_OUTPUT
+  job2:
+    needs: job1
+    strategy:
+      matrix:
+        version: ${{ fromJSON(needs.job1.outputs.versions) }}
+        os: ubuntu-24.04
+    runs-on: ${{ matrix.os }}
+    name: test_version_${{ matrix.version }}_on_${{ matrix.os }}
+    steps:
+      - uses: actions/setup-go@v3
+        with:
+          go-version: ${{ matrix.version }}
+      - run: uname -a && go version

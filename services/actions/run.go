@@ -133,6 +133,7 @@ func InsertRun(ctx context.Context, run *actions_model.ActionRun, content []byte
 		for _, v := range jobs {
 			id, job := v.Job()
 			needs := job.Needs()
+			isDeferredMatrix := len(needs) > 0 && jobparser.RawMatrixHasExpression(job)
 			if err := v.SetJob(id, job.EraseNeeds()); err != nil {
 				return err
 			}
@@ -169,6 +170,16 @@ func InsertRun(ctx context.Context, run *actions_model.ActionRun, content []byte
 			// Parse workflow/job permissions (no clamping here)
 			if perms := ExtractJobPermissionsFromWorkflow(v, job); perms != nil {
 				runJob.TokenPermissions = perms
+			}
+
+			// Matrix references needs outputs: jobparser emitted a placeholder. Store the raw
+			// strategy for ReEvaluateMatrixForJobWithNeeds to expand once the needs finish.
+			if isDeferredMatrix {
+				rawStrategy, err := yaml.Marshal(&job.Strategy)
+				if err != nil {
+					return fmt.Errorf("marshal raw strategy for job %s: %w", id, err)
+				}
+				runJob.RawStrategy = string(rawStrategy)
 			}
 
 			if isReusableWorkflowCaller {

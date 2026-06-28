@@ -70,6 +70,13 @@ type ActionRunJob struct {
 	// It is JSON-encoded repo_model.ActionsTokenPermissions and may be empty if not specified.
 	TokenPermissions *repo_model.ActionsTokenPermissions `xorm:"JSON TEXT"`
 
+	RawStrategy string `xorm:"TEXT"` // raw strategy from job YAML's "strategy" section (stored before matrix expansion for deferred evaluation)
+
+	// IsMatrixEvaluated is only valid/needed when this job's RawStrategy is not empty and contains a matrix that depends on job outputs.
+	// If the matrix can't be evaluated yet (e.g. job hasn't completed), this field will be false.
+	// If the matrix has been successfully evaluated with job outputs, this field will be true.
+	IsMatrixEvaluated bool
+
 	// RunAttemptID identifies the ActionRunAttempt this job belongs to.
 	// A value of 0 indicates a legacy job created before ActionRunAttempt existed.
 	RunAttemptID int64 `xorm:"index NOT NULL DEFAULT 0"`
@@ -650,6 +657,26 @@ func CancelPreviousJobsByJobConcurrency(ctx context.Context, job *ActionRunJob) 
 	}
 
 	return CancelJobs(ctx, jobsToCancel)
+}
+
+// InsertActionRunJobs inserts multiple ActionRunJob records into the database
+func InsertActionRunJobs(ctx context.Context, jobs []*ActionRunJob) error {
+	if len(jobs) == 0 {
+		return nil
+	}
+	return db.Insert(ctx, jobs)
+}
+
+// GetMaxAttemptJobID returns the highest AttemptJobID among a run attempt's jobs, or 0 if none.
+// Used to assign ids to jobs created after initial planning (e.g. matrix expansion).
+func GetMaxAttemptJobID(ctx context.Context, runID, runAttemptID int64) (int64, error) {
+	var job ActionRunJob
+	if _, err := db.GetEngine(ctx).
+		Where(builder.Eq{"run_id": runID, "run_attempt_id": runAttemptID}).
+		Desc("attempt_job_id").Get(&job); err != nil {
+		return 0, err
+	}
+	return job.AttemptJobID, nil
 }
 
 func CancelJobs(ctx context.Context, jobs []*ActionRunJob) ([]*ActionRunJob, error) {
