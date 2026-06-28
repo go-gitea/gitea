@@ -8,6 +8,7 @@ import (
 	stdCtx "context"
 	"errors"
 	"fmt"
+	"html"
 	"net/http"
 	"net/url"
 	"slices"
@@ -45,6 +46,15 @@ type WorkflowInfo struct {
 	Entry    git.TreeEntry
 	ErrMsg   string
 	Workflow *act_model.Workflow
+}
+
+type workflowBadge struct {
+	URL             string
+	WorkflowURL     string
+	Markdown        string
+	MarkdownAltText string
+	HTML            string
+	HTMLAltText     string
 }
 
 // DisplayName returns the workflow name from the YAML file if present, otherwise the filename.
@@ -562,10 +572,20 @@ func prepareWorkflowList(ctx *context.Context, workflows []WorkflowInfo, otherWo
 	ctx.Data["Runs"] = runs
 
 	workflowNames := make(map[string]string, len(workflows))
+	workflowDisplayName := workflowID
 	for _, wf := range workflows {
-		workflowNames[wf.Entry.Name()] = wf.DisplayName()
+		displayName := wf.DisplayName()
+		workflowNames[wf.Entry.Name()] = displayName
+		if wf.Entry.Name() == workflowID {
+			workflowDisplayName = displayName
+		}
 	}
 	ctx.Data["WorkflowNames"] = workflowNames
+	// A scoped workflow has no repo-level badge on this repo (the badge endpoint reads is_scoped_run=false runs),
+	// so don't offer the "create status badge" entry for it.
+	if scopedWorkflowSourceRepoID == 0 {
+		prepareWorkflowBadgeTemplate(ctx, workflowID, workflowDisplayName)
+	}
 
 	actors, err := actions_model.GetActors(ctx, ctx.Repo.Repository.ID)
 	if err != nil {
@@ -589,6 +609,32 @@ func prepareWorkflowList(ctx *context.Context, workflows []WorkflowInfo, otherWo
 	ctx.Data["HasWorkflowsOrRuns"] = len(workflows) > 0 || len(otherWorkflows) > 0 || len(runs) > 0 || hasScopedWorkflows
 
 	ctx.Data["CanWriteRepoUnitActions"] = ctx.Repo.Permission.CanWrite(unit.TypeActions)
+}
+
+func prepareWorkflowBadgeTemplate(ctx *context.Context, workflowID, displayName string) {
+	if workflowID == "" {
+		return
+	}
+	if displayName == "" {
+		displayName = workflowID
+	}
+
+	repoURL := ctx.Repo.Repository.HTMLURL(ctx)
+	badgeURL := fmt.Sprintf("%s/actions/workflows/%s/badge.svg?branch=%s", repoURL, util.PathEscapeSegments(workflowID), url.QueryEscape(ctx.Repo.Repository.DefaultBranch))
+	workflowURL := fmt.Sprintf("%s/actions?workflow=%s", repoURL, url.QueryEscape(workflowID))
+
+	ctx.Data["WorkflowBadge"] = workflowBadge{
+		URL:             badgeURL,
+		WorkflowURL:     workflowURL,
+		Markdown:        fmt.Sprintf("[![%s](%s)](%s)", escapeMarkdownImageAltText(displayName), badgeURL, workflowURL),
+		MarkdownAltText: escapeMarkdownImageAltText(displayName),
+		HTML:            fmt.Sprintf(`<a href="%s"><img src="%s" alt="%s"></a>`, html.EscapeString(workflowURL), html.EscapeString(badgeURL), html.EscapeString(displayName)),
+		HTMLAltText:     displayName,
+	}
+}
+
+func escapeMarkdownImageAltText(s string) string {
+	return strings.NewReplacer(`\`, `\\`, `[`, `\[`, `]`, `\]`).Replace(s)
 }
 
 // loadIsRefDeleted loads the IsRefDeleted field for each run in the list.

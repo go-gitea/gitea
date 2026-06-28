@@ -1,7 +1,36 @@
 import {createApp} from 'vue';
 import RepoActionView from '../components/RepoActionView.vue';
+import {queryElems} from '../utils/dom.ts';
+
+function escapeHTMLAttribute(value: string): string {
+  return value.replaceAll('&', '&amp;').replaceAll('"', '&quot;').replaceAll('<', '&lt;').replaceAll('>', '&gt;');
+}
+
+export function updateWorkflowBadgeFields(form: HTMLElement, branch: string): void {
+  const badgeURL = new URL(form.getAttribute('data-badge-url')!);
+  badgeURL.searchParams.set('branch', branch);
+
+  const badgeURLString = badgeURL.href;
+  const workflowURL = form.getAttribute('data-workflow-url')!;
+  const markdownAltText = form.getAttribute('data-markdown-alt-text')!;
+  const htmlAltText = form.getAttribute('data-html-alt-text')!;
+
+  form.querySelector<HTMLImageElement>('[data-workflow-badge-image]')!.src = badgeURLString;
+  form.querySelector<HTMLInputElement>('#workflow-badge-url')!.value = badgeURLString;
+  form.querySelector<HTMLTextAreaElement>('#workflow-badge-markdown')!.value = `[![${markdownAltText}](${badgeURLString})](${workflowURL})`;
+  form.querySelector<HTMLTextAreaElement>('#workflow-badge-html')!.value = `<a href="${escapeHTMLAttribute(workflowURL)}"><img src="${escapeHTMLAttribute(badgeURLString)}" alt="${escapeHTMLAttribute(htmlAltText)}"></a>`;
+}
+
+function initWorkflowBadgeBranchSelection(): void {
+  queryElems(document, '[data-workflow-badge-form]', (form) => {
+    const branchInput = form.querySelector<HTMLInputElement>('[data-workflow-badge-branch]')!;
+    branchInput.addEventListener('change', () => updateWorkflowBadgeFields(form, branchInput.value));
+  });
+}
 
 export function initRepositoryActionView() {
+  initWorkflowBadgeBranchSelection();
+
   const el = document.querySelector('#repo-action-view');
   if (!el) return;
 
