@@ -24,8 +24,6 @@
   font-family: var(--fonts-monospace);
   font-size: 12px;
   max-height: 90vh;
-  flex: 1;
-  min-height: 0;
 }
 
 .code-editor-container .cm-editor,
@@ -33,15 +31,17 @@
   border-radius: 0 0 var(--border-radius) var(--border-radius);
 }
 
+.code-editor-container .cm-content,
+.code-editor-container .cm-gutter {
+  min-height: 200px;
+}
+
 .code-editor-container .cm-scroller {
   overflow: auto;
   line-height: var(--line-height-code);
-  flex: 1;
-  min-height: 0;
 }
 
 .code-editor-container .cm-content {
-  align-self: stretch;
   caret-color: var(--color-caret);
   padding: 0;
 }
@@ -336,8 +336,6 @@
 .code-editor-container {
   position: relative;
   min-height: 90vh;
-  display: flex;
-  flex-direction: column;
 }
 
 .cm-command-palette {
