@@ -7,6 +7,7 @@ import (
 	"context"
 	"fmt"
 
+	activities_model "gitea.dev/models/activities"
 	auth_model "gitea.dev/models/auth"
 	"gitea.dev/models/db"
 	user_model "gitea.dev/models/user"
@@ -292,6 +293,9 @@ func ConvertUserType(ctx context.Context, u *user_model.User, targetType user_mo
 			}
 			// remove OAuth2 applications and grants owned/authorized by the account
 			if err := auth_model.DeleteOAuth2RelictsByUserID(ctx, u.ID); err != nil {
+				return err
+			}
+			if err := activities_model.DeleteNotificationsByUserID(ctx, u.ID); err != nil {
 				return err
 			}
 			// the account is now local, so drop any external (OAuth2/LDAP/...) login links

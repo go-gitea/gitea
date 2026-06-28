@@ -86,7 +86,7 @@ func NewUser(ctx *context.Context) {
 	ctx.Data["AllowedUserVisibilityModes"] = setting.Service.AllowedUserVisibilityModesSlice.ToVisibleTypeSlice()
 
 	ctx.Data["login_type"] = "0-0"
-	ctx.Data["user_type"] = "individual"
+	ctx.Data["UserType"] = "individual"
 
 	sources, err := db.Find[auth.Source](ctx, auth.FindSourcesOptions{
 		IsActive: optional.Some(true),
@@ -119,7 +119,7 @@ func NewUserPost(ctx *context.Context) {
 	ctx.Data["Sources"] = sources
 
 	ctx.Data["CanSendEmail"] = setting.MailService != nil
-	ctx.Data["user_type"] = form.UserType
+	ctx.Data["UserType"] = form.UserType
 
 	if ctx.HasError() {
 		ctx.HTML(http.StatusOK, tplUserNew)
