@@ -1,4 +1,5 @@
 import {AnsiUp} from 'ansi_up';
+import {trimUrlPunctuation, urlRawRegex} from '../utils/url.ts';
 
 const replacements: Array<[RegExp, string]> = [
   [/\x1b\[\d+[A-H]/g, ''], // Move cursor, treat them as no-op
@@ -50,17 +51,18 @@ export function renderAnsiInto(el: HTMLElement, line: string) {
 function renderAnsiProcessText(node: ChildNode): ChildNode {
   const text = node.textContent!;
   // TODO: fine tune this regexp, and fine tune the last punctuation mark like "open url https://gitea.com."
-  const match = /\bhttps?:\/\/[^\s<>[\]]+/.exec(text);
+  const match = urlRawRegex.exec(text);
   if (!match || match.index === undefined) return node;
 
   const before = text.slice(0, match.index);
-  const url = match[0];
-  const after = text.slice(match.index + url.length);
+  const urlMatched = match[0];
+  const urlTrimmed = trimUrlPunctuation(urlMatched);
+  const after = text.slice(match.index + urlMatched.length - (urlMatched.length - urlTrimmed.length));
 
   const link = document.createElement('a');
-  link.setAttribute('href', url);
+  link.setAttribute('href', urlTrimmed);
   link.setAttribute('target', '_blank');
-  link.textContent = url;
+  link.textContent = urlTrimmed;
 
   const newNodes: Array<Node | string> = [];
   if (before) newNodes.push(before);

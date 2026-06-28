@@ -1,4 +1,15 @@
-import {html, htmlRaw} from './html.ts';
+/** Matches URLs, excluding characters that are never valid unencoded in URLs per RFC 3986. */
+export const urlRawRegex = /\bhttps?:\/\/[^\s<>[\]]+/gi;
+
+/** Strip trailing punctuation that is likely not part of the URL. */
+export function trimUrlPunctuation(url: string): string {
+  url = url.replace(/[.,;:'"]+$/, '');
+  // Strip trailing closing parens only if unbalanced (not part of the URL like Wikipedia links)
+  while (url.endsWith(')') && (url.match(/\(/g) || []).length < (url.match(/\)/g) || []).length) {
+    url = url.slice(0, -1);
+  }
+  return url;
+}
 
 export function urlQueryEscape(s: string) {
   // See "TestQueryEscape" in backend
