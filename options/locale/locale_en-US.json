@@ -3863,8 +3863,6 @@
   "actions.workflow.create_status_badge": "Create status badge",
   "actions.workflow.status_badge": "Status Badge",
   "actions.workflow.status_badge_url": "Badge URL",
-  "actions.workflow.status_badge_markdown": "Markdown",
-  "actions.workflow.status_badge_html": "HTML",
   "actions.workflow.not_found": "Workflow '%s' not found.",
   "actions.workflow.run_success": "Workflow '%s' run successfully.",
   "actions.workflow.from_ref": "Use workflow from",
