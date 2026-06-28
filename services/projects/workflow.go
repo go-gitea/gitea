@@ -11,6 +11,7 @@ import (
 	issues_model "gitea.dev/models/issues"
 	project_model "gitea.dev/models/project"
 	"gitea.dev/modules/log"
+	"gitea.dev/modules/translation"
 )
 
 // GetWorkflowSummary returns a human-readable summary of the workflow
@@ -20,6 +21,23 @@ func GetWorkflowSummary(ctx context.Context, wf *project_model.Workflow) string 
 		return ""
 	}
 
+	locale, ok := ctx.Value(translation.ContextKey).(translation.Locale)
+	if !ok {
+		locale = translation.NewLocale("en-US")
+	}
+
+	appendSummaryPart := func(summary *strings.Builder, text string) {
+		if text == "" {
+			return
+		}
+		if summary.Len() > 0 {
+			summary.WriteString(" ")
+		}
+		summary.WriteString("(")
+		summary.WriteString(text)
+		summary.WriteString(")")
+	}
+
 	var summary strings.Builder
 	labelIDs := make([]int64, 0)
 	for _, filter := range filters {
@@ -27,15 +45,9 @@ func GetWorkflowSummary(ctx context.Context, wf *project_model.Workflow) string 
 		case project_model.WorkflowFilterTypeIssueType:
 			switch filter.Value {
 			case "issue":
-				if summary.Len() > 0 {
-					summary.WriteString(" ")
-				}
-				summary.WriteString("(Issues only)")
+				appendSummaryPart(&summary, locale.TrString("projects.workflows.issues_only"))
 			case "pull_request":
-				if summary.Len() > 0 {
-					summary.WriteString(" ")
-				}
-				summary.WriteString("(Pull requests only)")
+				appendSummaryPart(&summary, locale.TrString("projects.workflows.pull_requests_only"))
 			}
 		case project_model.WorkflowFilterTypeSourceColumn:
 			columnID, _ := strconv.ParseInt(filter.Value, 10, 64)
@@ -47,10 +59,7 @@ func GetWorkflowSummary(ctx context.Context, wf *project_model.Workflow) string 
 				log.Error("GetColumn: %v", err)
 				continue
 			}
-			if summary.Len() > 0 {
-				summary.WriteString(" ")
-			}
-			summary.WriteString("(Source: " + col.Title + ")")
+			appendSummaryPart(&summary, locale.TrString("projects.workflows.summary.source", col.Title))
 		case project_model.WorkflowFilterTypeTargetColumn:
 			columnID, _ := strconv.ParseInt(filter.Value, 10, 64)
 			if columnID <= 0 {
@@ -61,10 +70,7 @@ func GetWorkflowSummary(ctx context.Context, wf *project_model.Workflow) string 
 				log.Error("GetColumn: %v", err)
 				continue
 			}
-			if summary.Len() > 0 {
-				summary.WriteString(" ")
-			}
-			summary.WriteString("(Target: " + col.Title + ")")
+			appendSummaryPart(&summary, locale.TrString("projects.workflows.summary.target", col.Title))
 		case project_model.WorkflowFilterTypeLabels:
 			labelID, _ := strconv.ParseInt(filter.Value, 10, 64)
 			if labelID > 0 {
@@ -77,17 +83,11 @@ func GetWorkflowSummary(ctx context.Context, wf *project_model.Workflow) string 
 		if err != nil {
 			log.Error("GetLabelsByIDs: %v", err)
 		} else {
-			if summary.Len() > 0 {
-				summary.WriteString(" ")
+			labelNames := make([]string, 0, len(labels))
+			for _, label := range labels {
+				labelNames = append(labelNames, label.Name)
 			}
-			summary.WriteString("(Labels: ")
-			for i, label := range labels {
-				summary.WriteString(label.Name)
-				if i < len(labels)-1 {
-					summary.WriteString(", ")
-				}
-			}
-			summary.WriteString(")")
+			appendSummaryPart(&summary, locale.TrString("projects.workflows.summary.labels", strings.Join(labelNames, ", ")))
 		}
 	}
 	return summary.String()
