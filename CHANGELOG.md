@@ -78,6 +78,7 @@ been added to each release, please refer to the [blog](https://blog.gitea.com).
   * Batch-load related data in actions run, job, and task API endpoints (#37032)
 
 * BUGFIXES
+  * Fix(api): respect since/until when counting commits for X-Total-Count (#38204)
   * Fix: codemirror regressions (#38248)
   * Fix(api): support HEAD requests on all API GET endpoints (#38245)
   * Fix(actions): Cleanup workflow status badge code (#38241)
