@@ -780,7 +780,7 @@ async function hashChangeListener() {
 }
 
 .job-log-group .job-log-list .job-log-line .log-msg {
-  margin-left: 2em;
+  margin-left: 21px;
 }
 
 .job-log-group-summary {
