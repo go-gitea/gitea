@@ -51,7 +51,6 @@ export function renderAnsiInto(el: HTMLElement, line: string) {
 
 function renderAnsiProcessText(node: ChildNode): ChildNode {
   const text = node.textContent!;
-  // TODO: fine tune this regexp, and fine tune the last punctuation mark like "open url https://gitea.com."
   const match = urlRawRegex().exec(text);
   if (!match || match.index === undefined) return node;
 
