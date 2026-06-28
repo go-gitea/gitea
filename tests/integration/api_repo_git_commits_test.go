@@ -56,6 +56,23 @@ func TestAPIReposGitCommits(t *testing.T) {
 	}
 }
 
+func TestAPIReposGitCommitsHEAD(t *testing.T) {
+	defer tests.PrepareTestEnv(t)()
+	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
+	session := loginUser(t, user.Name)
+	token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeReadRepository)
+
+	// HEAD on a valid ref must return 200 (RFC 9110 §9.3.2)
+	req := NewRequestf(t, "HEAD", "/api/v1/repos/%s/repo1/git/commits/master", user.Name).
+		AddTokenAuth(token)
+	MakeRequest(t, req, http.StatusOK)
+
+	// HEAD on a missing sha must return 404, not 405
+	req = NewRequestf(t, "HEAD", "/api/v1/repos/%s/repo1/git/commits/12345", user.Name).
+		AddTokenAuth(token)
+	MakeRequest(t, req, http.StatusNotFound)
+}
+
 func TestAPIReposGitCommitList(t *testing.T) {
 	defer tests.PrepareTestEnv(t)()
 	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
