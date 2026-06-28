@@ -1,4 +1,5 @@
-import {attachSearchBox} from '../modules/search.ts';
+import {GET} from '../modules/fetch.ts';
+import {html, htmlRaw} from '../utils/html.ts';
 import {svg} from '../svg.ts';
 
 const {appSubUrl} = window.config;
@@ -12,50 +13,46 @@ function repoIcon(repo: RepoItem): string {
   return svg('octicon-repo', 16);
 }
 
-// GitHub-style quick repo switcher: a caret next to the repo name opens a popover
-// that lists/searches the current owner's repositories and navigates to the selection.
 export function initRepoSwitcher(el: HTMLElement) {
   const button = el.querySelector<HTMLButtonElement>('.repo-switcher-button')!;
   const menu = el.querySelector<HTMLElement>('.repo-switcher-menu')!;
-  const search = el.querySelector<HTMLElement>('.ui.search')!;
-  const input = search.querySelector<HTMLInputElement>('input.prompt')!;
+  const list = el.querySelector<HTMLElement>('.repo-switcher-list')!;
   const uid = el.getAttribute('data-uid');
   const currentFullName = el.getAttribute('data-current-full-name');
 
-  // owner-scoped search; minCharacters:0 so opening shows the owner's repos before typing
-  const url = `${appSubUrl}/repo/search?q={query}&uid=${uid}&priority_owner_id=${uid}`;
-  const box = attachSearchBox(search, url, (response: RepoSearchResponse) => response.data.map((item) => ({
-    title: item.repository.full_name.split('/')[1],
-    description: item.repository.full_name,
-    link: item.repository.html_url,
-    icon: repoIcon(item.repository),
-    active: item.repository.full_name === currentFullName,
-  })), {
-    minCharacters: 0,
-    onSelect: (result) => {
-      if (result.link) window.location.href = result.link;
-    },
-  });
+  const url = `${appSubUrl}/repo/search?q=&uid=${uid}&priority_owner_id=${uid}`;
+  let loaded = false;
+
+  const load = async () => {
+    if (loaded) return;
+    const response = await GET(url);
+    if (!response.ok) return;
+    const {data}: RepoSearchResponse = await response.json();
+    list.replaceChildren(...data.map(({repository: repo}) => {
+      const item = document.createElement('a');
+      item.className = 'repo-switcher-item';
+      if (repo.full_name === currentFullName) item.classList.add('active');
+      item.href = repo.html_url;
+      item.innerHTML = html`<span class="result-check">${htmlRaw(repo.full_name === currentFullName ? svg('octicon-check', 16) : '')}</span><span class="result-icon">${htmlRaw(repoIcon(repo))}</span><span>${repo.full_name.split('/')[1]}</span>`;
+      return item;
+    }));
+    loaded = true;
+  };
 
   let open = false;
   const closeMenu = () => {
     menu.classList.add('tw-hidden');
     open = false;
   };
-  const openMenu = () => {
+  const openMenu = async () => {
     menu.classList.remove('tw-hidden');
     open = true;
-    input.focus();
-    box.refresh(); // immediately load the owner's repos (empty query)
+    await load();
   };
 
   button.addEventListener('click', (e) => {
     e.stopPropagation();
-    if (open) {
-      closeMenu();
-    } else {
-      openMenu();
-    }
+    if (open) closeMenu(); else openMenu();
   });
   document.addEventListener('click', (e) => {
     if (open && !el.contains(e.target as Node)) closeMenu();

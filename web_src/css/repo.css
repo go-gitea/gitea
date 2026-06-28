@@ -1935,30 +1935,36 @@ tbody.commit-list {
   color: var(--color-text-light-2);
 }
 
-.repo-switcher-menu .ui.search,
-.repo-switcher-menu .ui.input,
-.repo-switcher-menu .ui.input > input {
-  width: 100%;
-}
-
-.repo-switcher-menu .ui.input > input {
-  padding: 6px 10px;
-}
-
-/* render results inline within the popover card instead of as a floating overlay */
-.repo-switcher-menu .ui.search > .results {
-  position: static;
-  display: none;
-  width: 100%;
-  margin-top: 8px;
-  max-height: 320px;
+.repo-switcher-list {
+  max-height: 288px;
   overflow-y: auto;
-  box-shadow: none;
+  margin-top: 8px;
+  border-radius: var(--border-radius);
+  border: 1px solid var(--color-secondary);
+  overflow-wrap: anywhere;
 }
 
-.repo-switcher-menu .ui.search > .results .result {
+.repo-switcher-item {
+  display: flex;
+  align-items: center;
   padding: 8px 10px;
   gap: 8px;
+  overflow: hidden;
+  cursor: pointer;
+  color: var(--color-text);
+  text-decoration: none;
+  border-bottom: 1px solid var(--color-secondary);
+  background: var(--color-body);
+  line-height: 1.33;
+}
+
+.repo-switcher-item:last-child {
+  border-bottom: none;
+}
+
+.repo-switcher-item:hover,
+.repo-switcher-item.active {
+  background: var(--color-hover);
 }
 
 .repo-switcher-menu .result-check {
@@ -1973,14 +1979,6 @@ tbody.commit-list {
   display: flex;
   align-items: center;
   color: var(--color-text-light-2);
-}
-
-.repo-switcher-menu .ui.search > .results .result .title {
-  font-size: 14px;
-}
-
-.repo-switcher-menu .ui.search > .results .result .description {
-  font-size: 12px;
 }
 
 .branch-selector-dropdown {
