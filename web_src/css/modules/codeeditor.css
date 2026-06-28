@@ -17,6 +17,11 @@
   border: 1px solid var(--color-secondary);
 }
 
+.code-editor-container {
+  position: relative;
+  min-height: 90vh;
+}
+
 /* editor layout */
 .code-editor-container .cm-editor {
   color: var(--color-text);
@@ -31,23 +36,13 @@
   border-radius: 0 0 var(--border-radius) var(--border-radius);
 }
 
-.code-editor-container .cm-scroller {
-  overflow: auto;
-  line-height: var(--line-height-code);
-}
-
 .code-editor-container .cm-content {
   caret-color: var(--color-caret);
-  padding: 0;
 }
 
 .code-editor-container .cm-cursor,
 .code-editor-container .cm-dropCursor {
   border-left-color: var(--color-caret);
-}
-
-.code-editor-container .cm-editor.cm-focused {
-  outline: none;
 }
 
 .code-editor-container .cm-editor.cm-focused > .cm-scroller > .cm-selectionLayer .cm-selectionBackground,
@@ -328,10 +323,6 @@
 }
 
 /* command palette */
-.code-editor-container {
-  position: relative;
-  min-height: 90vh;
-}
 
 .cm-command-palette {
   position: absolute;
