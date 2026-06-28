@@ -1,5 +1,5 @@
 /** Matches URLs, excluding characters that are never valid unencoded in URLs per RFC 3986. */
-export const urlRawRegex = /\bhttps?:\/\/[^\s<>[\]]+/gi;
+export const urlRawRegex = () => /\bhttps?:\/\/[^\s<>[\]]+/gi; // JS regexp has internal states, so always use a new instance
 
 /** Strip trailing punctuation that is likely not part of the URL. */
 export function trimUrlPunctuation(url: string): string {

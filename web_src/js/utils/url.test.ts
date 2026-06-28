@@ -20,7 +20,7 @@ describe('escape', () => {
 });
 
 test('matchUrls', () => {
-  const matchUrls = (text: string) => Array.from(text.matchAll(urlRawRegex), (m) => trimUrlPunctuation(m[0]));
+  const matchUrls = (text: string) => Array.from(text.matchAll(urlRawRegex()), (m) => trimUrlPunctuation(m[0]));
   expect(matchUrls('visit https://example.com for info')).toEqual(['https://example.com']);
   expect(matchUrls('see https://example.com.')).toEqual(['https://example.com']);
   expect(matchUrls('see https://example.com, and')).toEqual(['https://example.com']);

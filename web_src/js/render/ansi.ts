@@ -45,13 +45,14 @@ export function renderAnsiInto(el: HTMLElement, line: string) {
   }
 
   el.innerHTML = result;
-  renderAnsiPostWalk(el);
+  // at the moment, only need to do post-process when there are potential URL links
+  if (result.includes('://')) renderAnsiPostProcessNode(el);
 }
 
 function renderAnsiProcessText(node: ChildNode): ChildNode {
   const text = node.textContent!;
   // TODO: fine tune this regexp, and fine tune the last punctuation mark like "open url https://gitea.com."
-  const match = urlRawRegex.exec(text);
+  const match = urlRawRegex().exec(text);
   if (!match || match.index === undefined) return node;
 
   const before = text.slice(0, match.index);
@@ -73,11 +74,11 @@ function renderAnsiProcessText(node: ChildNode): ChildNode {
   return link;
 }
 
-function renderAnsiPostWalk(el: ChildNode) {
+function renderAnsiPostProcessNode(el: ChildNode) {
   for (let node = el.firstChild; node; node = node.nextSibling) {
     if (node.nodeName === 'A') continue;
     if (node.nodeType !== Node.TEXT_NODE) {
-      renderAnsiPostWalk(node);
+      renderAnsiPostProcessNode(node);
       continue;
     }
     node = renderAnsiProcessText(node);

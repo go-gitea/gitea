@@ -18,7 +18,7 @@ export function trimTrailingWhitespaceFromView(view: EditorView): void {
 
 /** Find the URL at the given character position in a document string, or null if none. */
 export function findUrlAtPosition(doc: string, pos: number): string | null {
-  for (const match of doc.matchAll(urlRawRegex)) {
+  for (const match of doc.matchAll(urlRawRegex())) {
     const url = trimUrlPunctuation(match[0]);
     if (match.index !== undefined && pos >= match.index && pos < match.index + url.length) {
       return url;
@@ -55,7 +55,7 @@ export function goToDefinitionAt(cm: CodemirrorModules, view: EditorView, pos: n
 export function clickableUrls(cm: CodemirrorModules) {
   const urlMark = cm.view.Decoration.mark({class: 'cm-url'});
   const urlDecorator = new cm.view.MatchDecorator({
-    regexp: urlRawRegex,
+    regexp: urlRawRegex(),
     decorate: (add, from, _to, match) => {
       const trimmed = trimUrlPunctuation(match[0]);
       add(from, from + trimmed.length, urlMark);
