@@ -23,6 +23,7 @@ jobs:
         run: sudo snap install snapcraft --classic
 
       - name: Authenticate snapcraft
+        shell: bash
         run: snapcraft login --with <(printf '%s' "$SNAPCRAFT_STORE_CREDENTIALS")
 
       - name: Remote build
