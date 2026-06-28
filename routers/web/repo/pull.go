@@ -446,6 +446,10 @@ func (prInfo *pullRequestViewInfo) prepareMergeBoxStatusCheckData(ctx *context.C
 	if combinedCommitStatus != nil {
 		statusCheckData.pullCommitStatusState = combinedCommitStatus.State
 	}
+	// preload creators so each row can show the avatar of who reported the check (like a provider/app logo)
+	if err := git_model.LoadStatusesCreators(ctx, commitStatuses); err != nil {
+		log.Error("LoadStatusesCreators: %v", err)
+	}
 
 	// Required scoped workflow checks gate the merge even when the branch protection's own status check is disabled,
 	// so the status-check section must render when there are any required contexts, not only when enableStatusCheck is on.
@@ -525,6 +529,39 @@ type pullCommitStatusCheckData struct {
 
 	pullCommitStatusState commitstatus.CommitStatusState
 	PullCommitStatuses    []*git_model.CommitStatus
+}
+
+// CombinedState returns the overall state of all commit statuses, used for the summary header icon.
+func (d *pullCommitStatusCheckData) CombinedState() commitstatus.CommitStatusState {
+	return d.pullCommitStatusState
+}
+
+// CommitStatusCountSummary returns a localized breakdown of the checks by state,
+// e.g. "1 failing check, 2 pending checks, 10 successful checks". Empty when there are no checks.
+func (d *pullCommitStatusCheckData) CommitStatusCountSummary(locale translation.Locale) string {
+	counts := make(map[commitstatus.CommitStatusState]int, len(d.PullCommitStatuses))
+	for _, s := range d.PullCommitStatuses {
+		counts[s.State]++
+	}
+	// problems first, then pending/skipped, then successful
+	order := []struct {
+		state      commitstatus.CommitStatusState
+		key1, keyN string
+	}{
+		{commitstatus.CommitStatusFailure, "repo.pulls.status_checks_count_failure_1", "repo.pulls.status_checks_count_failure_n"},
+		{commitstatus.CommitStatusError, "repo.pulls.status_checks_count_error_1", "repo.pulls.status_checks_count_error_n"},
+		{commitstatus.CommitStatusWarning, "repo.pulls.status_checks_count_warning_1", "repo.pulls.status_checks_count_warning_n"},
+		{commitstatus.CommitStatusPending, "repo.pulls.status_checks_count_pending_1", "repo.pulls.status_checks_count_pending_n"},
+		{commitstatus.CommitStatusSkipped, "repo.pulls.status_checks_count_skipped_1", "repo.pulls.status_checks_count_skipped_n"},
+		{commitstatus.CommitStatusSuccess, "repo.pulls.status_checks_count_success_1", "repo.pulls.status_checks_count_success_n"},
+	}
+	var parts []string
+	for _, o := range order {
+		if c := counts[o.state]; c > 0 {
+			parts = append(parts, string(locale.TrN(c, o.key1, o.keyN, c)))
+		}
+	}
+	return strings.Join(parts, ", ")
 }
 
 func (d *pullCommitStatusCheckData) CommitStatusCheckPrompt(locale translation.Locale) string {

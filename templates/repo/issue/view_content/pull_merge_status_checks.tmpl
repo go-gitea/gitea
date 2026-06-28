@@ -5,7 +5,14 @@
 {{if $statusCheckData}}
 	{{$commitStatuses := $statusCheckData.PullCommitStatuses}}
 	<div class="item flex-left-right commit-status-toggle">
-		<div>{{$statusCheckData.CommitStatusCheckPrompt ctx.Locale}}</div>
+		<div class="flex-text-block">
+			{{template "repo/icons/commit_status" (dict "State" $statusCheckData.CombinedState)}}
+			<div>
+				<div class="tw-font-semibold">{{$statusCheckData.CommitStatusCheckPrompt ctx.Locale}}</div>
+				{{$countSummary := $statusCheckData.CommitStatusCountSummary ctx.Locale}}
+				{{if $countSummary}}<div class="tw-text-text-light-2">{{$countSummary}}</div>{{end}}
+			</div>
+		</div>
 		<button data-global-click="onCommitStatusChecksToggle" class="btn interact-fg"
 						data-show-all="{{ctx.Locale.Tr "repo.pulls.status_checks_show_all"}}"
 						data-hide-all="{{ctx.Locale.Tr "repo.pulls.status_checks_hide_all"}}"

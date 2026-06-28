@@ -18,6 +18,7 @@ import (
 	repo_model "gitea.dev/models/repo"
 	user_model "gitea.dev/models/user"
 	"gitea.dev/modules/commitstatus"
+	"gitea.dev/modules/container"
 	"gitea.dev/modules/git"
 	"gitea.dev/modules/log"
 	"gitea.dev/modules/setting"
@@ -200,6 +201,29 @@ func (status *CommitStatus) loadAttributes(ctx context.Context) (err error) {
 		return err
 	}
 	return status.loadCreator(ctx)
+}
+
+// LoadStatusesCreators batch-loads the Creator of each commit status, avoiding N+1 queries.
+func LoadStatusesCreators(ctx context.Context, statuses []*CommitStatus) error {
+	idSet := make(container.Set[int64], len(statuses))
+	for _, status := range statuses {
+		if status.Creator == nil && status.CreatorID > 0 {
+			idSet.Add(status.CreatorID)
+		}
+	}
+	if len(idSet) == 0 {
+		return nil
+	}
+	usersMap, err := user_model.GetUsersMapByIDs(ctx, idSet.Values())
+	if err != nil {
+		return err
+	}
+	for _, status := range statuses {
+		if status.Creator == nil && status.CreatorID > 0 {
+			status.Creator = usersMap[status.CreatorID]
+		}
+	}
+	return nil
 }
 
 // APIURL returns the absolute APIURL to this commit-status.

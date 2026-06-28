@@ -13,8 +13,9 @@
 			{{else}}
 				{{template "repo/icons/commit_status" $cs}}
 			{{end}}
+			{{if $cs.Creator}}<span class="tw-flex-shrink-0" data-tooltip-content="{{$cs.Creator.GetDisplayName}}">{{ctx.AvatarUtils.Avatar $cs.Creator 18}}</span>{{end}}
 			<div class="gt-ellipsis">
-				{{$cs.Context}} <span class="tw-text-text-light-2">{{$cs.Description}}</span>
+				<span class="tw-font-semibold">{{$cs.Context}}</span> <span class="tw-text-text-light-2 tw-italic">{{$cs.Description}}</span>
 			</div>
 		</div>
 		<div class="flex-text-block">

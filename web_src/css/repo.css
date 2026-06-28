@@ -1845,15 +1845,15 @@ tbody.commit-list {
 }
 
 .commit-status-list {
-  max-height: 240px; /* fit exactly 6 items, commit-status-item.height * 6 */
+  max-height: 280px; /* show about 6 rows before the list starts scrolling */
   overflow-x: hidden;
   transition: max-height .2s;
   width: 100%;
 }
 
 .commit-status-item { /* the item can be used at 2 places: PR's merge box (commit-status-list), commit's status popup (no commit-status-list) */
-  height: 40px;
-  padding-top: 0 !important; /* use "height" + "align items center", don't use padding-y (from the list container) to layout */
+  min-height: 42px;
+  padding-top: 0 !important; /* use "min-height" + "align items center", don't use padding-y (from the list container) to layout */
   padding-bottom: 0 !important;
   display: flex;
   gap: var(--gap-block);
