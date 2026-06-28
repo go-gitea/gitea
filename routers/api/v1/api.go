@@ -65,6 +65,7 @@ import (
 	gocontext "context"
 	"errors"
 	"fmt"
+	chi_middleware "github.com/go-chi/chi/v5/middleware"
 	"net/http"
 	"strings"
 
@@ -959,6 +960,7 @@ func Routes() *web.Router {
 			MaxAge:           int(setting.CORSConfig.MaxAge.Seconds()),
 		}))
 	}
+	m.BeforeRouting(chi_middleware.GetHead)
 
 	m.AfterRouting(context.APIContexter())
 	m.AfterRouting(checkDeprecatedAuthMethods)
