@@ -27,25 +27,6 @@
   color: var(--color-white);
 }
 
-.ui.vertical.menu .actions-workflow-item {
-  display: flex;
-  flex-wrap: nowrap;
-}
-
-.actions-workflow-item > .gt-ellipsis {
-  flex: 1;
-  min-width: 0;
-}
-
-.actions-workflow-item .flex-text-inline {
-  flex-shrink: 0;
-}
-
-.actions-workflow-item > .ui.label {
-  flex-shrink: 0;
-  margin-left: 0 !important;
-}
-
 .run-list-item-right {
   width: 130px;
   display: flex;

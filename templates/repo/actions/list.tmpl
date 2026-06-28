@@ -10,15 +10,15 @@
 				<div class="ui fluid vertical menu">
 					<a class="item {{if not $.CurWorkflow}}active{{end}}" href="?actor={{$.CurActor}}&status={{$.CurStatus}}&branch={{$.CurBranch}}">{{ctx.Locale.Tr "actions.runs.all_workflows"}}</a>
 					{{range .workflows}}
-						<a class="item actions-workflow-item flex-text-block {{if eq .Entry.Name $.CurWorkflow}}active{{end}}" href="?workflow={{.Entry.Name}}&actor={{$.CurActor}}&status={{$.CurStatus}}&branch={{$.CurBranch}}">
+						<a class="item flex-text-block {{if eq .Entry.Name $.CurWorkflow}}active{{end}}" href="?workflow={{.Entry.Name}}&actor={{$.CurActor}}&status={{$.CurStatus}}&branch={{$.CurBranch}}">
 							<span class="gt-ellipsis">{{.DisplayName}}</span>
 
 							{{if .ErrMsg}}
-								<span class="flex-text-inline" data-tooltip-content="{{.ErrMsg}}">{{svg "octicon-alert" 16 "tw-text-red"}}</span>
+								<span class="flex-text-inline tw-shrink-0" data-tooltip-content="{{.ErrMsg}}">{{svg "octicon-alert" 16 "tw-text-red"}}</span>
 							{{end}}
 
 							{{if $.ActionsConfig.IsWorkflowDisabled .Entry.Name}}
-								<div class="ui red label">{{ctx.Locale.Tr "disabled"}}</div>
+								<div class="ui red label tw-shrink-0">{{ctx.Locale.Tr "disabled"}}</div>
 							{{end}}
 						</a>
 					{{end}}
