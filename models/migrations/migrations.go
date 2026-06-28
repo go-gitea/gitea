@@ -419,6 +419,7 @@ func prepareMigrationTasks() []*migration {
 		newMigration(339, "Extend action c_u index to include created_unix for faster dashboard feed queries", v1_27.AddCreatedUnixToActionUserIsDeletedIndex),
 		newMigration(340, "Add ContinueOnError column to ActionRunJob", v1_27.AddContinueOnErrorToActionRunJob),
 		newMigration(341, "Convert legacy MSSQL DATETIME columns to DATETIME2", v1_27.FixLegacyMSSQLDateTimeColumns),
+		newMigration(342, "Add creator_id to package blob uploads", v1_27.AddCreatorIDToPackageBlobUpload),
 	}
 	return preparedMigrations
 }
