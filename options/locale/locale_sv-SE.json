@@ -1720,5 +1720,6 @@
   "actions.runners.task_list.run": "Kör",
   "actions.runners.task_list.repository": "Utvecklingskatalog",
   "actions.runners.status.active": "Aktiv",
-  "actions.runs.summary": "Översikt"
+  "actions.runs.summary": "Översikt",
+  "actions.workflow.scope_owner": "Ägare"
 }
