@@ -10,6 +10,7 @@ import (
 	auth_model "gitea.dev/models/auth"
 	"gitea.dev/models/unittest"
 
+	"github.com/go-webauthn/webauthn/webauthn"
 	"github.com/pquerna/otp/totp"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -44,4 +45,36 @@ func TestTwoFactorValidateAndConsumeTOTP(t *testing.T) {
 	ok, err = reloaded.ValidateAndConsumeTOTP(t.Context(), "000000")
 	require.NoError(t, err)
 	assert.False(t, ok)
+}
+
+func TestDisableTwoFactor(t *testing.T) {
+	require.NoError(t, unittest.PrepareTestDatabase())
+	ctx := t.Context()
+
+	const uid = 1000 // a uid with no user/2FA fixtures
+
+	// Enroll TOTP and register a WebAuthn credential.
+	tfa := &auth_model.TwoFactor{UID: uid}
+	require.NoError(t, tfa.SetSecret("test-secret"))
+	require.NoError(t, auth_model.NewTwoFactor(ctx, tfa))
+	_, err := auth_model.CreateCredential(ctx, uid, "test-key", &webauthn.Credential{ID: []byte("test-cred-id")})
+	require.NoError(t, err)
+
+	has, err := auth_model.HasTwoFactorOrWebAuthn(ctx, uid)
+	require.NoError(t, err)
+	require.True(t, has)
+
+	// Both records are removed and counted.
+	removed, err := auth_model.DisableTwoFactor(ctx, uid)
+	require.NoError(t, err)
+	assert.EqualValues(t, 2, removed)
+
+	has, err = auth_model.HasTwoFactorOrWebAuthn(ctx, uid)
+	require.NoError(t, err)
+	assert.False(t, has)
+
+	// A second call on a user without 2FA is a no-op.
+	removed, err = auth_model.DisableTwoFactor(ctx, uid)
+	require.NoError(t, err)
+	assert.EqualValues(t, 0, removed)
 }
