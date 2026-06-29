@@ -63,3 +63,27 @@ func TestAppFullLink(t *testing.T) {
 	assert.Equal(t, "https://gitea.example.com/sub/user/repo", string(tmplCtx.AppFullLink("user/repo")))
 	assert.Equal(t, "https://gitea.example.com/sub/user/repo", string(tmplCtx.AppFullLink("/user/repo")))
 }
+
+func TestAppHost(t *testing.T) {
+	setting.IsInTesting = true
+	defer test.MockVariableValue(&setting.PublicURLDetection, setting.PublicURLNever)()
+
+	cases := []struct {
+		appURL    string
+		appSubURL string
+		want      string
+	}{
+		{"https://gitea.example.com/", "", "gitea.example.com"},
+		{"https://gitea.example.com/sub/", "/sub", "gitea.example.com"},
+		{"http://localhost:3000/", "", "localhost:3000"},
+	}
+	for _, c := range cases {
+		t.Run(c.appURL, func(t *testing.T) {
+			defer test.MockVariableValue(&setting.AppURL, c.appURL)()
+			defer test.MockVariableValue(&setting.AppSubURL, c.appSubURL)()
+			req := httptest.NewRequest(http.MethodGet, c.appURL, nil)
+			tmplCtx := NewTemplateContext(req.Context(), req)
+			assert.Equal(t, c.want, tmplCtx.AppHost())
+		})
+	}
+}

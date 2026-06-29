@@ -1,0 +1,11 @@
+{{if eq .PackageDescriptor.Package.Type "terraform-module"}}
+	{{$data := $.PackageVersionViewData}}
+	{{if and $data $data.IsLatestVersion}}
+		<div class="item">
+			<span class="ui tiny green label">{{ctx.Locale.Tr "packages.terraform_module.latest"}}</span>
+		</div>
+	{{end}}
+	{{if and .PackageDescriptor.Metadata .PackageDescriptor.Metadata.Description}}
+		<div class="item">{{svg "octicon-note"}} {{.PackageDescriptor.Metadata.Description}}</div>
+	{{end}}
+{{end}}

@@ -1,0 +1,88 @@
+{{if eq .PackageDescriptor.Package.Type "terraform-module"}}
+	{{$nameProvider := StringUtils.Cut $.PackageDescriptor.Package.Name "/"}}
+	<h4 class="ui top attached header">{{ctx.Locale.Tr "packages.installation"}}</h4>
+	<div class="ui attached segment">
+		<div class="ui form">
+			<div class="field">
+				<label>{{svg "octicon-code"}} {{ctx.Locale.Tr "packages.terraform_module.install"}}</label>
+				<div class="markup"><pre class="code-block"><code>module "{{index $nameProvider 0}}" {
+	source  = "{{ctx.AppHost}}/{{$.PackageDescriptor.Owner.Name}}/{{$.PackageDescriptor.Package.Name}}"
+	version = "{{$.PackageDescriptor.Version.Version}}"
+}</code></pre></div>
+			</div>
+			<div class="field">
+				<label>{{svg "octicon-code"}} {{ctx.Locale.Tr "packages.terraform_module.install_terragrunt"}}</label>
+				<div class="markup"><pre class="code-block"><code>terraform {
+	source = "tfr://{{ctx.AppHost}}/{{$.PackageDescriptor.Owner.Name}}/{{$.PackageDescriptor.Package.Name}}?version={{$.PackageDescriptor.Version.Version}}"
+}</code></pre></div>
+			</div>
+			<div class="field">
+				<label>{{svg "octicon-key"}} {{ctx.Locale.Tr "packages.terraform_module.credentials"}}</label>
+				<div class="markup"><pre class="code-block"><code>credentials "{{ctx.AppHost}}" {
+	token = "&lt;token&gt;"
+}</code></pre></div>
+			</div>
+			<div class="field">
+				<label>{{ctx.Locale.Tr "packages.registry.documentation" "Terraform Module" "https://docs.gitea.com/usage/packages/terraform-module"}}</label>
+			</div>
+		</div>
+	</div>
+
+	{{if and .PackageDescriptor.Metadata .PackageDescriptor.Metadata.Root}}
+		{{$root := .PackageDescriptor.Metadata.Root}}
+		{{if $root.Inputs}}
+			<h4 class="ui top attached header">{{ctx.Locale.Tr "packages.terraform_module.inputs"}}</h4>
+			<div class="ui attached segment">
+				<table class="ui table">
+					<thead><tr>
+						<th>{{ctx.Locale.Tr "packages.terraform_module.input.name"}}</th>
+						<th>{{ctx.Locale.Tr "packages.terraform_module.input.type"}}</th>
+						<th>{{ctx.Locale.Tr "packages.terraform_module.input.default"}}</th>
+						<th>{{ctx.Locale.Tr "packages.terraform_module.input.description"}}</th>
+					</tr></thead>
+					<tbody>
+					{{range $root.Inputs}}
+						<tr>
+							<td><code>{{.Name}}</code>{{if .Required}} <span class="ui tiny red label">{{ctx.Locale.Tr "packages.terraform_module.input.required"}}</span>{{end}}</td>
+							<td><code>{{.Type}}</code></td>
+							<td><code>{{.Default}}</code></td>
+							<td>{{.Description}}</td>
+						</tr>
+					{{end}}
+					</tbody>
+				</table>
+			</div>
+		{{end}}
+
+		{{if $root.Outputs}}
+			<h4 class="ui top attached header">{{ctx.Locale.Tr "packages.terraform_module.outputs"}}</h4>
+			<div class="ui attached segment">
+				<table class="ui table">
+					<thead><tr>
+						<th>{{ctx.Locale.Tr "packages.terraform_module.output.name"}}</th>
+						<th>{{ctx.Locale.Tr "packages.terraform_module.output.description"}}</th>
+					</tr></thead>
+					<tbody>
+					{{range $root.Outputs}}
+						<tr>
+							<td><code>{{.Name}}</code></td>
+							<td>{{.Description}}</td>
+						</tr>
+					{{end}}
+					</tbody>
+				</table>
+			</div>
+		{{end}}
+
+		{{if $root.Providers}}
+			<h4 class="ui top attached header">{{ctx.Locale.Tr "packages.terraform_module.providers"}}</h4>
+			<div class="ui attached segment">
+				<ul>
+				{{range $root.Providers}}
+					<li><code>{{.Name}}</code>{{if .Source}} ({{.Source}}){{end}}{{if .VersionConstraint}} — <code>{{.VersionConstraint}}</code>{{end}}</li>
+				{{end}}
+				</ul>
+			</div>
+		{{end}}
+	{{end}}
+{{end}}

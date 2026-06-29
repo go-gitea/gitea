@@ -8,6 +8,7 @@ import (
 	"html"
 	"html/template"
 	"net/http"
+	"net/url"
 	"strconv"
 	"strings"
 	"time"
@@ -87,6 +88,18 @@ func (c TemplateContext) AppFullLink(link ...string) template.URL {
 		return template.URL(s)
 	}
 	return template.URL(s + "/" + strings.TrimPrefix(link[0], "/"))
+}
+
+// AppHost returns the current public host with optional port but no scheme or
+// sub-path, e.g. "gitea.example.com" or "localhost:3000". The Terraform module
+// registry addresses modules by bare host, so AppFullLink (which carries the
+// scheme and sub-path) cannot be used there.
+func (c TemplateContext) AppHost() string {
+	u, err := url.Parse(httplib.GuessCurrentHostURL(c.parentContext()))
+	if err != nil {
+		return setting.Domain
+	}
+	return u.Host
 }
 
 func (c TemplateContext) ScriptImport(path string, typ ...string) template.HTML {
