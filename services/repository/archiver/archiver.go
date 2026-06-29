@@ -43,9 +43,6 @@ type ArchiveRequest struct {
 	archiveRefShortName string // the ref short name to download the archive, for example: "master", "v1.0.0", "commit id"
 }
 
-// archiveQueueItem is the JSON payload stored in repo-archive. It must not embed
-// *repo_model.Repository — interface fields (e.g. Units[].Config) break queue
-// json.Unmarshal and break upgrades from 1.25.x (#38272).
 type archiveQueueItem struct {
 	RepoID              int64                   `json:"RepoID"`
 	Type                repo_model.ArchiveType  `json:"Type"`
@@ -62,7 +59,6 @@ func (item *archiveQueueItem) UnmarshalJSON(data []byte) error {
 		return nil
 	}
 
-	// 1.25.x queued RepoID-only payloads, or 1.26.x payloads that embedded Repo.
 	var legacy struct {
 		RepoID int64 `json:"RepoID"`
 		Repo   *struct {
@@ -303,7 +299,7 @@ func Init(ctx context.Context) error {
 			log.Trace("ArchiverData Process: %#v", item)
 			archiveReq, err := item.toArchiveRequest(ctx)
 			if err != nil {
-				log.Error("Archive queue item repo_id=%d failed to load repository: %v", item.RepoID, err)
+				log.Error("Archive repo %d: %v", item.RepoID, err)
 				continue
 			}
 			if archiver, err := doArchive(ctx, archiveReq); err != nil {

@@ -4,10 +4,12 @@
 package archiver
 
 import (
+	"encoding/json"
 	"testing"
 	"time"
 
 	"gitea.dev/models/unittest"
+	repo_model "gitea.dev/models/repo"
 	"gitea.dev/modules/util"
 	"gitea.dev/services/contexttest"
 
@@ -19,6 +21,45 @@ import (
 
 func TestMain(m *testing.M) {
 	unittest.MainTest(m)
+}
+
+func TestArchiveQueueItemJSON(t *testing.T) {
+	for _, tc := range []struct {
+		name string
+		raw  string
+		want archiveQueueItem
+	}{
+		{
+			name: "repo-id",
+			raw:  `{"RepoID":42,"Type":1,"CommitID":"deadbeef"}`,
+			want: archiveQueueItem{RepoID: 42, Type: repo_model.ArchiveType(1), CommitID: "deadbeef"},
+		},
+		{
+			name: "embedded-repo",
+			raw:  `{"Repo":{"id":99},"Type":2,"CommitID":"cafebabe","Paths":["agents"]}`,
+			want: archiveQueueItem{RepoID: 99, Type: repo_model.ArchiveType(2), CommitID: "cafebabe", Paths: []string{"agents"}},
+		},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			var item archiveQueueItem
+			require.NoError(t, json.Unmarshal([]byte(tc.raw), &item))
+			assert.Equal(t, tc.want, item)
+		})
+	}
+
+	orig := &archiveQueueItem{
+		RepoID:              7,
+		Type:                repo_model.ArchiveZip,
+		CommitID:            "abc123",
+		Paths:               []string{"agents"},
+		ArchiveRefShortName: "main",
+	}
+	bs, err := json.Marshal(orig)
+	require.NoError(t, err)
+
+	var decoded archiveQueueItem
+	require.NoError(t, json.Unmarshal(bs, &decoded))
+	assert.Equal(t, *orig, decoded)
 }
 
 func TestArchive_Basic(t *testing.T) {
