@@ -14,7 +14,6 @@ import vue from 'eslint-plugin-vue';
 import vueScopedCss from 'eslint-plugin-vue-scoped-css';
 import wc from 'eslint-plugin-wc';
 import {defineConfig, globalIgnores} from 'eslint/config';
-import type {ESLint} from 'eslint';
 
 import unescapedHtmlLiteral from './tools/eslint-rules/unescaped-html-literal.ts';
 
@@ -65,7 +64,7 @@ export default defineConfig([
       '@typescript-eslint': typescriptPlugin.plugin,
       'array-func': arrayFunc,
       'gitea': {rules: {'unescaped-html-literal': unescapedHtmlLiteral}},
-      'import-x': importPlugin as unknown as ESLint.Plugin, // https://github.com/un-ts/eslint-plugin-import-x/issues/203
+      'import-x': importPlugin,
       regexp,
       sonarjs,
       unicorn,
@@ -796,7 +795,7 @@ export default defineConfig([
       'unicorn/no-duplicate-loops': [0],
       'unicorn/no-duplicate-set-values': [2],
       'unicorn/no-empty-file': [2],
-      'unicorn/no-error-property-assignment': [0],
+      'unicorn/no-error-property-assignment': [2],
       'unicorn/no-exports-in-scripts': [2],
       'unicorn/no-for-each': [2],
       'unicorn/no-for-loop': [0],
@@ -816,7 +815,7 @@ export default defineConfig([
       'unicorn/no-late-current-target-access': [2],
       'unicorn/no-late-event-control': [2],
       'unicorn/no-lonely-if': [2],
-      'unicorn/no-loop-iterable-mutation': [0],
+      'unicorn/no-loop-iterable-mutation': [2],
       'unicorn/no-magic-array-flat-depth': [0],
       'unicorn/no-manually-wrapped-comments': [0], // too opinionated
       'unicorn/no-mismatched-map-key': [2],
@@ -853,7 +852,7 @@ export default defineConfig([
       'unicorn/no-unnecessary-array-flat-depth': [2],
       'unicorn/no-unnecessary-array-splice-count': [2],
       'unicorn/no-unnecessary-await': [2],
-      'unicorn/no-unnecessary-boolean-comparison': [0],
+      'unicorn/no-unnecessary-boolean-comparison': [2],
       'unicorn/no-unnecessary-global-this': [0],
       'unicorn/no-unnecessary-nested-ternary': [2],
       'unicorn/no-unnecessary-polyfills': [2],
@@ -913,7 +912,7 @@ export default defineConfig([
       'unicorn/prefer-await': [2],
       'unicorn/prefer-bigint-literals': [2],
       'unicorn/prefer-blob-reading-methods': [2],
-      'unicorn/prefer-boolean-return': [0],
+      'unicorn/prefer-boolean-return': [2],
       'unicorn/prefer-class-fields': [2],
       'unicorn/prefer-classlist-toggle': [2],
       'unicorn/prefer-code-point': [0],
@@ -984,7 +983,7 @@ export default defineConfig([
       'unicorn/prefer-response-static-json': [2],
       'unicorn/prefer-scoped-selector': [0],
       'unicorn/prefer-set-has': [0],
-      'unicorn/prefer-set-methods': [0], // requires es2024
+      'unicorn/prefer-set-methods': [0],
       'unicorn/prefer-set-size': [2],
       'unicorn/prefer-short-arrow-method': [2],
       'unicorn/prefer-simple-condition-first': [0],
@@ -1008,7 +1007,7 @@ export default defineConfig([
       'unicorn/prefer-switch': [0],
       'unicorn/prefer-temporal': [0],
       'unicorn/prefer-ternary': [0],
-      'unicorn/prefer-toggle-attribute': [0],
+      'unicorn/prefer-toggle-attribute': [2],
       'unicorn/prefer-top-level-await': [0],
       'unicorn/prefer-type-error': [0],
       'unicorn/prefer-type-literal-last': [0],
@@ -1099,6 +1098,7 @@ export default defineConfig([
     languageOptions: {globals: globals.vitest},
     rules: {
       'gitea/unescaped-html-literal': [0],
+      'unicorn/no-error-property-assignment': [0],
       'vitest/consistent-test-filename': [0],
       'vitest/consistent-test-it': [0],
       'vitest/expect-expect': [0],
