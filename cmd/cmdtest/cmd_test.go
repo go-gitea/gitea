@@ -202,8 +202,8 @@ func TestCliCmdError(t *testing.T) {
 	r, err = runTestApp(app, "./gitea", "test-cmd", "--no-such")
 	assert.Error(t, err)
 	assert.Equal(t, 1, r.ExitCode)
-	assert.NotEmpty(t, r.Stdout) // since cli v3.10, the usage help is printed to stdout on a usage error
-	assert.Equal(t, "Incorrect Usage: flag provided but not defined: -no-such\n\n", r.Stderr)
+	assert.Empty(t, r.Stdout)
+	assert.Equal(t, "Incorrect Usage: flag provided but not defined: -no-such\n", r.Stderr)
 
 	app = newTestApp(cli.Command{Action: func(ctx context.Context, cmd *cli.Command) error { return nil }})
 	r, err = runTestApp(app, "./gitea", "test-cmd")
