@@ -78,23 +78,27 @@ been added to each release, please refer to the [blog](https://blog.gitea.com).
   * Batch-load related data in actions run, job, and task API endpoints (#37032)
 
 * BUGFIXES
+  * Fix: update npm dependencies, fix misc issues (#38257)
   * Fix(api): respect since/until when counting commits for X-Total-Count (#38204)
   * Fix: codemirror regressions (#38248)
   * Fix(api): support HEAD requests on all API GET endpoints (#38245)
   * Fix(actions): Cleanup workflow status badge code (#38241)
   * Fix(web): Correctly align the "disabled" label on larger workflow names (#38240)
+  * Fix(actions): don't swallow HTML entities into linkified URLs (#38239)
   * Fix(packages): accept npm "repository" and "bin" in string form (#38236)
   * Fix(actions): fix 500 error when canceling a canceling task (#38223)
   * Fix(deps): update module golang.org/x/image to v0.43.0 [security] (#38219)
   * Fix(mssql): convert legacy DATETIME columns to DATETIME2 (#38216)
   * Fix(api): deny private org member enumeration via /members (#38213)
   * Fix(actions): ensure all waiting jobs get runners in large workflows (#38200)
+  * Fix(deps): update go dependencies (#38194)
   * Fix(deps): update npm dependencies (#38193)
   * Fix(cli): default must-change-password to false for bot users (#38175)
   * Fix(actions): show run index in run view and fix summary graph height (#38165)
   * Fix: csp (#38162)
   * Fix(deps): update npm dependencies (#38123)
   * Fix(mssql): expand legacy issue and comment long-text columns (#38120)
+  * Fix(packages): validate debian distribution and component names (#38116)
   * Fix(packages): validate module version in goproxy ParsePackage (#38104)
   * Fix(deps): update dependency esbuild to v0.28.1 [security] (#38097)
   * Fix: git push hook post receive (#38089)
@@ -142,6 +146,7 @@ been added to each release, please refer to the [blog](https://blog.gitea.com).
   * Remove external service dependencies in migration tests (#36866)
 
 * BUILD
+  * Fix(actions): authenticate snapcraft before nightly remote build (#38252)
   * Ci: cap Elasticsearch heap in db-tests (#37816)
   * Build(snap): publish nightly version to snapcraft via actions (#37814)
   * Ci: split pgsql shards into plain jobs, dedupe setup actions (#37802)
@@ -174,6 +179,7 @@ been added to each release, please refer to the [blog](https://blog.gitea.com).
   * Docs: add development setup guide (#37960)
 
 * MISC
+  * Revert(sign): restore gpg (#38251)
   * Refactor: replace legacy `delete-button` with `link-action` (#38143)
   * Refactor(actions): read runner capabilities from proto field (#38068)
   * Refactor(api): clarify APIError message usage and fix legacy lint error (#38012)
