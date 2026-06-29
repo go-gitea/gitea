@@ -6,19 +6,37 @@ package v1_27
 import (
 	"gitea.dev/models/db"
 	"gitea.dev/modules/timeutil"
+
+	"xorm.io/xorm"
 )
 
-func AddProjectWorkflow(x db.EngineMigration) error {
-	type ProjectWorkflow struct {
-		ID              int64
-		ProjectID       int64 `xorm:"INDEX"`
-		WorkflowEvent   string
-		WorkflowFilters string             `xorm:"TEXT JSON"`
-		WorkflowActions string             `xorm:"TEXT JSON"`
-		Enabled         bool               `xorm:"DEFAULT true NOT NULL"`
-		CreatedUnix     timeutil.TimeStamp `xorm:"created"`
-		UpdatedUnix     timeutil.TimeStamp `xorm:"updated"`
+func AddScopedWorkflowsSchema(x db.EngineMigration) error {
+	// Create the action_scoped_workflow_source table
+	type ScopedWorkflowConfig struct {
+		Required bool     `json:"required"`
+		Patterns []string `json:"patterns"`
+	}
+	type ActionScopedWorkflowSource struct {
+		ID              int64                            `xorm:"pk autoincr"`
+		OwnerID         int64                            `xorm:"UNIQUE(owner_repo) NOT NULL DEFAULT 0"`
+		SourceRepoID    int64                            `xorm:"INDEX UNIQUE(owner_repo) NOT NULL DEFAULT 0"`
+		WorkflowConfigs map[string]*ScopedWorkflowConfig `xorm:"JSON TEXT 'workflow_configs'"`
+		CreatedUnix     timeutil.TimeStamp               `xorm:"created"`
+		UpdatedUnix     timeutil.TimeStamp               `xorm:"updated"`
+	}
+	if err := x.Sync(new(ActionScopedWorkflowSource)); err != nil {
+		return err
 	}
 
-	return x.Sync(&ProjectWorkflow{})
+	// Add the columns that record where a run's workflow content came from
+	type ActionRun struct {
+		WorkflowRepoID    int64  `xorm:"NOT NULL DEFAULT 0"`
+		WorkflowCommitSHA string `xorm:"VARCHAR(64) NOT NULL DEFAULT ''"`
+		IsScopedRun       bool   `xorm:"NOT NULL DEFAULT false"`
+	}
+	_, err := x.SyncWithOptions(xorm.SyncOptions{
+		IgnoreDropIndices: true,
+		IgnoreConstrains:  true,
+	}, new(ActionRun))
+	return err
 }

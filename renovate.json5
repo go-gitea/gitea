@@ -96,7 +96,7 @@
       "postUpdateOptions": ["pnpmDedupe"],
       "postUpgradeTasks": {
         "commands": ["make svg"],
-        "fileFilters": ["package.json", "pnpm-lock.yaml", "pnpm-workspace.yaml", "public/assets/img/svg/**"],
+        "fileFilters": ["package.json", "pnpm-lock.yaml", "pnpm-workspace.yaml", "public/assets/img/svg/**", "options/fileicon/**"],
         "executionMode": "branch",
       },
     },
