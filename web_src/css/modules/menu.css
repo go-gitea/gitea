@@ -27,6 +27,7 @@
 .ui.menu:not(.vertical) .item {
   display: flex;
   align-items: center;
+  gap: var(--gap-inline);
 }
 
 .ui.menu .item {
