@@ -166,9 +166,10 @@ func oauth2LinkAccount(ctx *context.Context, u *user_model.User, linkAccountData
 
 	if err := updateSession(ctx, nil, map[string]any{
 		// User needs to use 2FA, save data and redirect to 2FA page.
-		"twofaUid":      u.ID,
-		"twofaRemember": remember,
-		"linkAccount":   true,
+		"twofaUid":        u.ID,
+		"twofaRemember":   remember,
+		"linkAccount":     true,
+		"linkAccountData": *linkAccountData,
 	}); err != nil {
 		ctx.ServerError("RegenerateSession", err)
 		return
