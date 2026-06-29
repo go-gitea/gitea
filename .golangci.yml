@@ -107,6 +107,7 @@ linters:
         - -QF1008
     testifylint:
       disable:
+        - empty
         - go-require
         - require-error
     usetesting:
