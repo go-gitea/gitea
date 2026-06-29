@@ -170,7 +170,6 @@ been added to each release, please refer to the [blog](https://blog.gitea.com).
   * Integrate renovate bot for all dependency updates (#37050)
   * Build(sign): move to sigstore (#38250)
 
-
 * DOCS
   * Docs: update changelog for 1.26.3 & 1.26.4 (#38178)
   * Docs: fix duplicated word in foreachref doc comment (#38161)
