@@ -177,13 +177,14 @@ func RunMainApp(app *cli.Command, args ...string) error {
 	ctx, cancel := installSignals()
 	defer cancel()
 	setCLIOnUsageError(app)
-	// the completion subcommands are built during app.Run, after the Walk above, so cover them via this hook
-	app.ConfigureShellCompletionCommand = setCLIOnUsageError
+	// FIXME: why it needs to set ConfigureShellCompletionCommand? What's wrong without it?
+	// // the completion subcommands are built during app.Run, after the Walk above, so cover them via this hook
+	// app.ConfigureShellCompletionCommand = setCLIOnUsageError
 	err := app.Run(ctx, args)
 	if err == nil {
 		return nil
 	}
-	if ue := (usageErr{}); errors.As(err, &ue) {
+	if _, ok := errors.AsType[usageErr](err); ok {
 		cli.OsExiter(1) // cliOnUsageError already reported it
 		return err
 	}
