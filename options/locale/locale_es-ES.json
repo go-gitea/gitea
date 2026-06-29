@@ -2910,6 +2910,8 @@
   "actions.workflow.enable": "Activar flujo de trabajo",
   "actions.workflow.enable_success": "Flujo de trabajo '%s' habilitado con éxito.",
   "actions.workflow.disabled": "El flujo de trabajo está deshabilitado.",
+  "actions.workflow.scope_owner": "Propietario",
+  "actions.workflow.required": "Obligatorio",
   "actions.need_approval_desc": "Necesita aprobación para ejecutar flujos de trabajo para el pull request del fork.",
   "actions.variables.management": "Gestión de variables",
   "actions.variables.creation": "Añadir variable",

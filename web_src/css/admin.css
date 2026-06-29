@@ -1,9 +1,3 @@
-.admin.hooks .list > .item:not(:first-child) {
-  border-top: 1px solid var(--color-secondary);
-  padding: 0.25rem 1rem;
-  margin: 12px -1rem -1rem;
-}
-
 .admin dl.admin-dl-horizontal {
   padding: 1em;
   margin: 0;
