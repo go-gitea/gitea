@@ -62,7 +62,7 @@ func (item *archiveQueueItem) UnmarshalJSON(data []byte) error {
 	var legacy struct {
 		RepoID int64 `json:"RepoID"`
 		Repo   *struct {
-			ID int64 `json:"id"`
+			ID int64 `json:"ID"`
 		} `json:"Repo"`
 		Type     repo_model.ArchiveType `json:"Type"`
 		CommitID string                 `json:"CommitID"`

@@ -35,8 +35,10 @@ func TestArchiveQueueItemJSON(t *testing.T) {
 			want: archiveQueueItem{RepoID: 42, Type: repo_model.ArchiveType(1), CommitID: "deadbeef"},
 		},
 		{
+			// a real *repo_model.Repository serializes its primary key as "ID" (no json tag),
+			// which is the exact shape legacy 1.26.x payloads carried.
 			name: "embedded-repo",
-			raw:  `{"Repo":{"id":99},"Type":2,"CommitID":"cafebabe","Paths":["agents"]}`,
+			raw:  `{"Repo":{"ID":99},"Type":2,"CommitID":"cafebabe","Paths":["agents"]}`,
 			want: archiveQueueItem{RepoID: 99, Type: repo_model.ArchiveType(2), CommitID: "cafebabe", Paths: []string{"agents"}},
 		},
 	} {
@@ -46,6 +48,25 @@ func TestArchiveQueueItemJSON(t *testing.T) {
 			assert.Equal(t, tc.want, item)
 		})
 	}
+
+	t.Run("legacy-marshaled-repo", func(t *testing.T) {
+		// build the legacy payload the way 1.26.x actually did, by marshaling a real
+		// Repository, so this test stays faithful to the on-disk format.
+		legacy, err := json.Marshal(struct {
+			Repo     *repo_model.Repository
+			Type     repo_model.ArchiveType
+			CommitID string
+		}{
+			Repo:     &repo_model.Repository{ID: 123},
+			Type:     repo_model.ArchiveZip,
+			CommitID: "abc",
+		})
+		require.NoError(t, err)
+
+		var item archiveQueueItem
+		require.NoError(t, json.Unmarshal(legacy, &item))
+		assert.Equal(t, int64(123), item.RepoID)
+	})
 
 	orig := &archiveQueueItem{
 		RepoID:              7,
