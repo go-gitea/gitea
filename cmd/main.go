@@ -160,7 +160,7 @@ type usageErr struct{ err error }
 func (e usageErr) Error() string { return e.err.Error() }
 func (e usageErr) Unwrap() error { return e.err }
 
-// cliOnUsageError reports usage errors itself instead of letting cli dump the full help to stdout (since cli v3.10).
+// cliOnUsageError reports usage errors itself instead of letting urfave/cli dump the full help to stdout (since urfave/cli v3.10).
 func cliOnUsageError(_ context.Context, cmd *cli.Command, err error, _ bool) error {
 	_, _ = fmt.Fprintf(cmd.Root().ErrWriter, "Incorrect Usage: %s\n", err.Error())
 	return usageErr{err}

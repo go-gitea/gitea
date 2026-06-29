@@ -39,7 +39,7 @@ func Test_CmdKeys(t *testing.T) {
 				// FIXME: this test is not quite right. Each "command run" always re-initializes settings
 				keysCmd := cmd.NewKeysCommand()
 				keysCmd.Before = nil    // don't re-initialize logger during the test
-				keysCmd.HideHelp = true // skip help on usage error, which would re-initialize settings (cli v3.10)
+				keysCmd.HideHelp = true // skip help on usage error, which would re-initialize settings (urfave/cli v3.10)
 
 				var stdout, stderr bytes.Buffer
 				app := &cli.Command{
