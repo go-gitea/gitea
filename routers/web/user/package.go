@@ -49,10 +49,6 @@ const (
 
 // ListPackages displays a list of all packages of the context user
 func ListPackages(ctx *context.Context) {
-	if _, err := shared_user.RenderUserOrgHeader(ctx); err != nil {
-		ctx.ServerError("RenderUserOrgHeader", err)
-		return
-	}
 	page := max(ctx.FormInt("page"), 1)
 	query := ctx.FormTrim("q")
 	packageType := ctx.FormTrim("type")
