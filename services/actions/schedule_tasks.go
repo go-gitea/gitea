@@ -118,6 +118,9 @@ func CreateScheduleTask(ctx context.Context, spec *actions_model.ActionScheduleS
 		TriggerEvent:  string(webhook_module.HookEventSchedule),
 		ScheduleID:    cron.ID,
 		Status:        actions_model.StatusWaiting,
+		// schedule runs the repo's own workflow at the recorded commit
+		WorkflowRepoID:    cron.RepoID,
+		WorkflowCommitSHA: cron.CommitSHA,
 	}
 
 	// FIXME cron.Content might be outdated if the workflow file has been changed.

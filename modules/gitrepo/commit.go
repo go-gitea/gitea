@@ -33,11 +33,11 @@ func CommitsCount(ctx context.Context, repo Repository, opts CommitsCountOptions
 	}
 
 	if opts.Since != "" {
-		cmd.AddOptionValues("--since", opts.Since)
+		cmd.AddOptionFormat("--since=%s", opts.Since)
 	}
 
 	if opts.Until != "" {
-		cmd.AddOptionValues("--until", opts.Until)
+		cmd.AddOptionFormat("--until=%s", opts.Until)
 	}
 
 	if len(opts.RelPath) > 0 {

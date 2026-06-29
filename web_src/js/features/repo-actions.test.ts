@@ -5,8 +5,7 @@ test('updateWorkflowBadgeFields updates badge snippets for selected branch', () 
     <div
       data-badge-url="https://gitea.example.com/user1/repo1/actions/workflows/build/test%20workflow.yml/badge.svg?branch=main"
       data-workflow-url="https://gitea.example.com/user1/repo1/actions?workflow=build%2Ftest+workflow.yml"
-      data-markdown-alt-text="CI \\[prod\\]\\\\build &quot;fast&quot; &lt;ok&gt;"
-      data-html-alt-text="CI [prod]\\build &quot;fast&quot; &lt;ok&gt;"
+      data-workflow-display-name="CI [prod]\\build &quot;fast&quot; &lt;ok&gt;"
     >
       <img data-workflow-badge-image src="">
       <input id="workflow-badge-url" readonly>

@@ -17,6 +17,7 @@ jobs:
     permissions:
       contents: read
       packages: write # to publish to ghcr.io
+      id-token: write
     steps:
       - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7
       # fetch all commits instead of only the last as some branches are long lived and could have many between versions
@@ -37,6 +38,8 @@ jobs:
       - run: make release
         env:
           TAGS: bindata
+      - name: Install Cosign
+        uses: sigstore/cosign-installer@6f9f17788090df1f26f669e9d70d6ae9567deba6 # v4.1.2
       - name: import gpg key
         id: import_gpg
         uses: crazy-max/ghaction-import-gpg@2dc316deee8e90f13e1a351ab510b4d5bc0c82cd # v7.0.0
@@ -49,6 +52,7 @@ jobs:
           GPG_PASSPHRASE: ${{ secrets.GPGSIGN_PASSPHRASE }}
         run: |
           for f in dist/release/*; do
+            cosign sign-blob "$f" --bundle "$f.sigstore.json" --yes
             echo "$GPG_PASSPHRASE" | gpg --pinentry-mode loopback --passphrase-fd 0 --batch --yes --detach-sign -u "$GPG_FINGERPRINT" --output "$f.asc" "$f"
           done
       # clean branch name to get the folder name in S3
