@@ -38,7 +38,6 @@ jobs:
         run: find . -maxdepth 1 -type f -name '*.snap' -print
 
       - name: Upload and release snapcraft nightly build
-        # upload talks to the Snap Store, which reads SNAPCRAFT_STORE_CREDENTIALS
         env:
           SNAPCRAFT_STORE_CREDENTIALS: ${{ secrets.SNAPCRAFT_STORE_CREDENTIALS }}
         run: |
