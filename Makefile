@@ -127,8 +127,7 @@ BINDATA_DEST_WILDCARD := modules/migration/bindata.* modules/public/bindata.* mo
 GENERATED_GO_DEST := modules/charset/invisible_gen.go modules/charset/ambiguous_gen.go
 
 SVG_DEST_DIR := public/assets/img/svg
-
-FILEICON_DEST_DIR := options/fileicon
+SVG_DEST_DIRS := $(SVG_DEST_DIR) options/fileicon
 
 AIR_TMP_DIR := .air
 
@@ -635,10 +634,10 @@ svg: node_modules ## build svg files
 
 .PHONY: svg-check
 svg-check: svg
-	@git add $(SVG_DEST_DIR) $(FILEICON_DEST_DIR)
-	@diff=$$(git diff --color=always --cached $(SVG_DEST_DIR) $(FILEICON_DEST_DIR)); \
+	@git add $(SVG_DEST_DIRS)
+	@diff=$$(git diff --color=always --cached $(SVG_DEST_DIRS)); \
 	if [ -n "$$diff" ]; then \
-		echo "Please run 'make svg' and 'git add $(SVG_DEST_DIR) $(FILEICON_DEST_DIR)' and commit the result:"; \
+		echo "Please run 'make svg' and 'git add $(SVG_DEST_DIRS)' and commit the result:"; \
 		printf "%s" "$${diff}"; \
 		exit 1; \
 	fi
