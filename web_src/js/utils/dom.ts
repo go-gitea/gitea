@@ -9,8 +9,8 @@ type ElementsCallback<T extends Element> = (el: T) => Promisable<any>;
 type ElementsCallbackWithArgs = (el: Element, ...args: any[]) => Promisable<any>;
 
 function elementsCall(el: ElementArg, func: ElementsCallbackWithArgs, ...args: any[]): ArrayLikeIterable<Element> {
-  if (typeof el === 'string' || el instanceof String) {
-    el = document.querySelectorAll(el as string);
+  if (typeof el === 'string') {
+    el = document.querySelectorAll(el);
   }
   if (el instanceof Node) {
     func(el, ...args);

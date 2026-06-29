@@ -148,6 +148,11 @@ func ListRuns(ctx *context.APIContext, ownerID, repoID int64, workflowID string)
 		WorkflowID:  workflowID,
 		ListOptions: listOptions,
 	}
+	if workflowID != "" {
+		workflowSourceRepoID := ctx.FormInt64("scoped_workflow_source_repo_id")
+		opts.IsScopedRun = optional.Some(workflowSourceRepoID > 0)
+		opts.WorkflowRepoID = workflowSourceRepoID
+	}
 
 	if event := ctx.FormString("event"); event != "" {
 		opts.TriggerEvent = webhook.HookEventType(event)

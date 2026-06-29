@@ -370,6 +370,7 @@ func CreateOrganization(ctx context.Context, org *Organization, owner *user_mode
 			NumMembers:              1,
 			IncludesAllRepositories: true,
 			CanCreateOrgRepo:        true,
+			Visibility:              structs.VisibleTypeLimited,
 		}
 		if err = db.Insert(ctx, t); err != nil {
 			return fmt.Errorf("insert owner team: %w", err)
@@ -410,11 +411,8 @@ func GetOrgByName(ctx context.Context, name string) (*Organization, error) {
 	if len(name) == 0 {
 		return nil, ErrOrgNotExist{0, name}
 	}
-	u := &Organization{
-		LowerName: strings.ToLower(name),
-		Type:      user_model.UserTypeOrganization,
-	}
-	has, err := db.GetEngine(ctx).Get(u)
+
+	u, has, err := db.Get[Organization](ctx, builder.Eq{"lower_name": strings.ToLower(name), "`type`": user_model.UserTypeOrganization})
 	if err != nil {
 		return nil, err
 	} else if !has {
