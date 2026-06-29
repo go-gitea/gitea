@@ -9,7 +9,6 @@ import '../../../css/swagger-render.css';
 
 export const frontendRender: FrontendRenderFunc = async (opts): Promise<boolean> => {
   try {
-    await import('../../../css/swagger-render.css');
     await initSwaggerUI(opts.container, {specText: opts.contentString()});
     return true;
   } catch (error) {
