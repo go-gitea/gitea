@@ -9,6 +9,7 @@ import (
 
 	"gitea.dev/models/db"
 	"gitea.dev/models/organization"
+	packages_model "gitea.dev/models/packages"
 	access_model "gitea.dev/models/perm/access"
 	project_model "gitea.dev/models/project"
 	repo_model "gitea.dev/models/repo"
@@ -191,6 +192,14 @@ func loadHeaderCount(ctx *context.Context) error {
 		return err
 	}
 	ctx.Data["ProjectCount"] = projectCount
+
+	if setting.Packages.Enabled {
+		packageCount, err := packages_model.CountOwnerPackages(ctx, ctx.ContextUser.ID)
+		if err != nil {
+			return err
+		}
+		ctx.Data["PackageCount"] = packageCount
+	}
 
 	return nil
 }
