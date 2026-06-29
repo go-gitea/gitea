@@ -1371,5 +1371,6 @@
   "actions.runners.status.active": "Aktív",
   "actions.runners.version": "Verzió",
   "actions.runs.summary": "Összefoglaló",
+  "actions.workflow.scope_owner": "Tulajdonos",
   "actions.general.token_permissions.mode.restricted": "Korlátozott"
 }
