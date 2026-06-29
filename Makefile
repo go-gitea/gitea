@@ -128,6 +128,8 @@ GENERATED_GO_DEST := modules/charset/invisible_gen.go modules/charset/ambiguous_
 
 SVG_DEST_DIR := public/assets/img/svg
 
+FILEICON_DEST_DIR := options/fileicon
+
 AIR_TMP_DIR := .air
 
 GO_LICENSE_FILE := assets/go-licenses.json
@@ -633,10 +635,10 @@ svg: node_modules ## build svg files
 
 .PHONY: svg-check
 svg-check: svg
-	@git add $(SVG_DEST_DIR)
-	@diff=$$(git diff --color=always --cached $(SVG_DEST_DIR)); \
+	@git add $(SVG_DEST_DIR) $(FILEICON_DEST_DIR)
+	@diff=$$(git diff --color=always --cached $(SVG_DEST_DIR) $(FILEICON_DEST_DIR)); \
 	if [ -n "$$diff" ]; then \
-		echo "Please run 'make svg' and 'git add $(SVG_DEST_DIR)' and commit the result:"; \
+		echo "Please run 'make svg' and 'git add $(SVG_DEST_DIR) $(FILEICON_DEST_DIR)' and commit the result:"; \
 		printf "%s" "$${diff}"; \
 		exit 1; \
 	fi
