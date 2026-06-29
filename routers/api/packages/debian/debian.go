@@ -9,9 +9,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
-	"regexp"
 	"strings"
-	"sync"
 
 	"gitea.dev/models/db"
 	packages_model "gitea.dev/models/packages"
@@ -24,18 +22,6 @@ import (
 	packages_service "gitea.dev/services/packages"
 	debian_service "gitea.dev/services/packages/debian"
 )
-
-// distribution and component are taken from the request path and written
-// verbatim into the generated line-based Release and Packages indices (and
-// into the pool/<distribution>/<component> paths referenced from them), so
-// they must be restricted to a character set that cannot break that format.
-var distributionOrComponentPattern = sync.OnceValue(func() *regexp.Regexp {
-	return regexp.MustCompile(`\A[a-zA-Z0-9][a-zA-Z0-9.~+_-]*\z`)
-})
-
-func isValidDistributionOrComponent(s string) bool {
-	return distributionOrComponentPattern().MatchString(s)
-}
 
 func apiError(ctx *context.Context, status int, obj any) {
 	message := helper.ProcessErrorForUser(ctx, status, obj)
@@ -134,9 +120,9 @@ func GetRepositoryFileByHash(ctx *context.Context) {
 }
 
 func UploadPackageFile(ctx *context.Context) {
-	distribution := strings.TrimSpace(ctx.PathParam("distribution"))
-	component := strings.TrimSpace(ctx.PathParam("component"))
-	if !isValidDistributionOrComponent(distribution) || !isValidDistributionOrComponent(component) {
+	distribution := ctx.PathParam("distribution")
+	component := ctx.PathParam("component")
+	if !debian_module.IsValidDistributionOrComponent(distribution) || !debian_module.IsValidDistributionOrComponent(component) {
 		apiError(ctx, http.StatusBadRequest, "invalid distribution or component")
 		return
 	}
