@@ -7,7 +7,6 @@ been added to each release, please refer to the [blog](https://blog.gitea.com).
 ## [1.27.0-rc0](https://github.com/go-gitea/gitea/releases/tag/v1.27.0-rc0) - 2026-06-28
 
 * BREAKING
-  * Build(sign): move to sigstore (#38250)
   * Feat(actions)!: improve support for reusable workflows (#37478)
   * Use Content-Security-Policy: script nonce (#37232)
 
@@ -169,6 +168,8 @@ been added to each release, please refer to the [blog](https://blog.gitea.com).
   * Replace custom Go formatter with `golangci-lint fmt` (#37194)
   * Refactor htmx and fetch-action related code (#37186)
   * Integrate renovate bot for all dependency updates (#37050)
+  * Build(sign): move to sigstore (#38250)
+
 
 * DOCS
   * Docs: update changelog for 1.26.3 & 1.26.4 (#38178)
