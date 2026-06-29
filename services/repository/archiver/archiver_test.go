@@ -4,12 +4,12 @@
 package archiver
 
 import (
-	"encoding/json"
 	"testing"
 	"time"
 
-	"gitea.dev/models/unittest"
 	repo_model "gitea.dev/models/repo"
+	"gitea.dev/models/unittest"
+	"gitea.dev/modules/json"
 	"gitea.dev/modules/util"
 	"gitea.dev/services/contexttest"
 

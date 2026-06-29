@@ -5,7 +5,6 @@ package archiver
 
 import (
 	"context"
-	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
@@ -20,6 +19,7 @@ import (
 	"gitea.dev/modules/gitrepo"
 	"gitea.dev/modules/graceful"
 	"gitea.dev/modules/httplib"
+	"gitea.dev/modules/json"
 	"gitea.dev/modules/log"
 	"gitea.dev/modules/process"
 	"gitea.dev/modules/queue"
@@ -44,11 +44,11 @@ type ArchiveRequest struct {
 }
 
 type archiveQueueItem struct {
-	RepoID              int64                   `json:"RepoID"`
-	Type                repo_model.ArchiveType  `json:"Type"`
-	CommitID            string                  `json:"CommitID"`
-	Paths               []string                `json:"Paths,omitempty"`
-	ArchiveRefShortName string                  `json:"ArchiveRefShortName,omitempty"`
+	RepoID              int64                  `json:"RepoID"`
+	Type                repo_model.ArchiveType `json:"Type"`
+	CommitID            string                 `json:"CommitID"`
+	Paths               []string               `json:"Paths,omitempty"`
+	ArchiveRefShortName string                 `json:"ArchiveRefShortName,omitempty"`
 }
 
 func (item *archiveQueueItem) UnmarshalJSON(data []byte) error {
