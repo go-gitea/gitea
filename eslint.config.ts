@@ -796,7 +796,7 @@ export default defineConfig([
       'unicorn/no-duplicate-loops': [0],
       'unicorn/no-duplicate-set-values': [2],
       'unicorn/no-empty-file': [2],
-      'unicorn/no-error-property-assignment': [0], // no construction-time API for stack, reassigning it to synthesize or forward stacks is legitimate
+      'unicorn/no-error-property-assignment': [0],
       'unicorn/no-exports-in-scripts': [2],
       'unicorn/no-for-each': [2],
       'unicorn/no-for-loop': [0],
