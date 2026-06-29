@@ -22661,6 +22661,7 @@
       "type": "object",
       "properties": {
         "act_user": {
+          "description": "The user who performed the action",
           "$ref": "#/definitions/User"
         },
         "act_user_id": {
@@ -22670,6 +22671,7 @@
           "x-go-name": "ActUserID"
         },
         "comment": {
+          "description": "The comment associated with the activity (if applicable)",
           "$ref": "#/definitions/Comment"
         },
         "comment_id": {
@@ -22740,6 +22742,7 @@
           "x-go-name": "RefName"
         },
         "repo": {
+          "description": "The repository associated with the activity",
           "$ref": "#/definitions/Repository"
         },
         "repo_id": {
@@ -22811,6 +22814,7 @@
           "x-go-name": "Message"
         },
         "object": {
+          "description": "The object that the annotated tag points to",
           "$ref": "#/definitions/AnnotatedTagObject"
         },
         "sha": {
@@ -22824,6 +22828,7 @@
           "x-go-name": "Tag"
         },
         "tagger": {
+          "description": "The user who created the annotated tag",
           "$ref": "#/definitions/CommitUser"
         },
         "url": {
@@ -22832,6 +22837,7 @@
           "x-go-name": "URL"
         },
         "verification": {
+          "description": "The verification information for the annotated tag",
           "$ref": "#/definitions/PayloadCommitVerification"
         }
       },
@@ -22867,6 +22873,7 @@
       ],
       "properties": {
         "author": {
+          "description": "`author` and `committer` are optional (if only one is given, it will be used for the other, otherwise the authenticated user will be used)",
           "$ref": "#/definitions/Identity"
         },
         "branch": {
@@ -22917,6 +22924,7 @@
           "x-go-name": "DownloadURL"
         },
         "created_at": {
+          "description": "Created is the time when the attachment was uploaded",
           "type": "string",
           "format": "date-time",
           "x-go-name": "Created"
@@ -22981,6 +22989,7 @@
       "type": "object",
       "properties": {
         "commit": {
+          "description": "Commit contains the latest commit information for this branch",
           "$ref": "#/definitions/PayloadCommit"
         },
         "effective_branch_protection_name": {
@@ -23065,8 +23074,8 @@
           "x-go-name": "BlockOnRejectedReviews"
         },
         "branch_name": {
-          "description": "Deprecated: true",
           "type": "string",
+          "x-deprecated": true,
           "x-go-name": "BranchName"
         },
         "bypass_allowlist_teams": {
@@ -23272,6 +23281,7 @@
       ],
       "properties": {
         "author": {
+          "description": "`author` and `committer` are optional (if only one is given, it will be used for the other, otherwise the authenticated user will be used)",
           "$ref": "#/definitions/Identity"
         },
         "branch": {
@@ -23381,6 +23391,7 @@
           "x-go-name": "CommitURL"
         },
         "repository": {
+          "description": "Repository is the repository this status belongs to",
           "$ref": "#/definitions/Repository"
         },
         "sha": {
@@ -23484,6 +23495,7 @@
           "x-go-name": "Updated"
         },
         "user": {
+          "description": "Poster is the user who posted the comment",
           "$ref": "#/definitions/User"
         }
       },
@@ -23494,15 +23506,19 @@
       "title": "Commit contains information generated from a Git commit.",
       "properties": {
         "author": {
+          "description": "Author is the GitHub/Gitea user who authored the commit",
           "$ref": "#/definitions/User"
         },
         "commit": {
+          "description": "RepoCommit contains the commit information",
           "$ref": "#/definitions/RepoCommit"
         },
         "committer": {
+          "description": "Committer is the GitHub/Gitea user who committed the commit",
           "$ref": "#/definitions/User"
         },
         "created": {
+          "description": "Created is the time when the commit was created",
           "type": "string",
           "format": "date-time",
           "x-go-name": "Created"
@@ -23534,6 +23550,7 @@
           "x-go-name": "SHA"
         },
         "stats": {
+          "description": "Stats contains statistics about the commit changes",
           "$ref": "#/definitions/CommitStats"
         },
         "url": {
@@ -23566,11 +23583,13 @@
       "type": "object",
       "properties": {
         "author": {
+          "description": "Author is the author date for the commit",
           "type": "string",
           "format": "date-time",
           "x-go-name": "Author"
         },
         "committer": {
+          "description": "Committer is the committer date for the commit",
           "type": "string",
           "format": "date-time",
           "x-go-name": "Committer"
@@ -23583,6 +23602,7 @@
       "title": "CommitMeta contains meta information of a commit in terms of API.",
       "properties": {
         "created": {
+          "description": "Created is the time when the commit was created",
           "type": "string",
           "format": "date-time",
           "x-go-name": "Created"
@@ -23640,6 +23660,7 @@
           "x-go-name": "Created"
         },
         "creator": {
+          "description": "Creator is the user who created the status",
           "$ref": "#/definitions/User"
         },
         "description": {
@@ -23695,6 +23716,7 @@
           "x-go-name": "Date"
         },
         "email": {
+          "description": "Email is the person's email address",
           "type": "string",
           "format": "email",
           "x-go-name": "Email"
@@ -23738,6 +23760,7 @@
           "x-go-name": "DirContents"
         },
         "file_contents": {
+          "description": "FileContents contains file information when the path represents a file",
           "$ref": "#/definitions/ContentsResponse"
         }
       },
@@ -23748,6 +23771,7 @@
       "type": "object",
       "properties": {
         "_links": {
+          "description": "Links contains related URLs for this file or directory",
           "$ref": "#/definitions/FileLinksResponse"
         },
         "content": {
@@ -23939,8 +23963,8 @@
           "x-go-name": "BlockOnRejectedReviews"
         },
         "branch_name": {
-          "description": "Deprecated: true",
           "type": "string",
+          "x-deprecated": true,
           "x-go-name": "BranchName"
         },
         "bypass_allowlist_teams": {
@@ -24097,9 +24121,10 @@
           "x-go-name": "BranchName"
         },
         "old_branch_name": {
-          "description": "Deprecated: true\nName of the old branch to create from",
+          "description": "Name of the old branch to create from",
           "type": "string",
           "uniqueItems": true,
+          "x-deprecated": true,
           "x-go-name": "OldBranchName"
         },
         "old_ref_name": {
@@ -24134,6 +24159,7 @@
       ],
       "properties": {
         "author": {
+          "description": "`author` and `committer` are optional (if only one is given, it will be used for the other, otherwise the authenticated user will be used)",
           "$ref": "#/definitions/Identity"
         },
         "branch": {
@@ -24222,6 +24248,7 @@
       ],
       "properties": {
         "active": {
+          "description": "Whether the webhook should be active upon creation",
           "type": "boolean",
           "default": false,
           "x-go-name": "Active"
@@ -24237,6 +24264,7 @@
           "x-go-name": "BranchFilter"
         },
         "config": {
+          "description": "Configuration settings for the webhook",
           "$ref": "#/definitions/CreateHookOptionConfig"
         },
         "events": {
@@ -24253,6 +24281,7 @@
           "x-go-name": "Name"
         },
         "type": {
+          "description": "The type of the webhook to create",
           "type": "string",
           "enum": [
             "dingtalk",
@@ -24287,6 +24316,7 @@
       ],
       "properties": {
         "body": {
+          "description": "Body is the comment text content",
           "type": "string",
           "x-go-name": "Body"
         }
@@ -24417,6 +24447,7 @@
           "example": false
         },
         "name": {
+          "description": "Name is the display name for the new label",
           "type": "string",
           "x-go-name": "Name"
         }
@@ -24433,11 +24464,13 @@
           "x-go-name": "Description"
         },
         "due_on": {
+          "description": "Deadline is the due date for the milestone",
           "type": "string",
           "format": "date-time",
           "x-go-name": "Deadline"
         },
         "state": {
+          "description": "State indicates the initial state of the milestone",
           "type": "string",
           "enum": [
             "open",
@@ -24699,6 +24732,7 @@
           "x-go-name": "CommitID"
         },
         "event": {
+          "description": "APPROVED ReviewStateApproved pr is approved\nPENDING ReviewStatePending pr state is pending\nCOMMENT ReviewStateComment is a comment review\nREQUEST_CHANGES ReviewStateRequestChanges changes for pr are requested\nREQUEST_REVIEW ReviewStateRequestReview review is requested from user",
           "type": "string",
           "enum": [
             "APPROVED",
@@ -24920,6 +24954,7 @@
           "x-go-name": "Message"
         },
         "tag_name": {
+          "description": "The name of the tag to create",
           "type": "string",
           "x-go-name": "TagName"
         },
@@ -24986,6 +25021,7 @@
           "x-go-name": "Name"
         },
         "permission": {
+          "description": "read RepoWritePermissionRead\nwrite RepoWritePermissionWrite\nadmin RepoWritePermissionAdmin",
           "type": "string",
           "enum": [
             "read",
@@ -24996,10 +25032,12 @@
           "x-go-name": "Permission"
         },
         "units": {
+          "description": "Deprecated: This variable should be replaced by UnitsMap and will be dropped in later versions.",
           "type": "array",
           "items": {
             "type": "string"
           },
+          "x-deprecated": true,
           "x-go-name": "Units",
           "example": [
             "repo.actions",
@@ -25020,7 +25058,16 @@
             "type": "string"
           },
           "x-go-name": "UnitsMap",
-          "example": "{\"repo.actions\",\"repo.packages\",\"repo.code\":\"read\",\"repo.issues\":\"write\",\"repo.ext_issues\":\"none\",\"repo.wiki\":\"admin\",\"repo.pulls\":\"owner\",\"repo.releases\":\"none\",\"repo.projects\":\"none\",\"repo.ext_wiki\":\"none\"}"
+          "example": {
+            "repo.code": "read",
+            "repo.ext_issues": "none",
+            "repo.ext_wiki": "none",
+            "repo.issues": "write",
+            "repo.projects": "none",
+            "repo.pulls": "owner",
+            "repo.releases": "none",
+            "repo.wiki": "admin"
+          }
         },
         "visibility": {
           "description": "Team visibility within the organization. Defaults to \"private\".\npublic TeamVisibilityPublic\nlimited TeamVisibilityLimited\nprivate TeamVisibilityPrivate",
@@ -25040,8 +25087,7 @@
       "description": "CreateUserOption create user options",
       "type": "object",
       "required": [
-        "username",
-        "email"
+        "username"
       ],
       "properties": {
         "created_at": {
@@ -25224,6 +25270,7 @@
           "x-go-name": "Scopes"
         },
         "user": {
+          "description": "The owner of the access token",
           "$ref": "#/definitions/UserMeta"
         }
       },
@@ -25252,6 +25299,7 @@
       ],
       "properties": {
         "author": {
+          "description": "`author` and `committer` are optional (if only one is given, it will be used for the other, otherwise the authenticated user will be used)",
           "$ref": "#/definitions/Identity"
         },
         "branch": {
@@ -25298,6 +25346,7 @@
       "type": "object",
       "properties": {
         "created_at": {
+          "description": "Created is the time when the deploy key was added",
           "type": "string",
           "format": "date-time",
           "x-go-name": "Created"
@@ -25330,6 +25379,7 @@
           "x-go-name": "ReadOnly"
         },
         "repository": {
+          "description": "Repository is the repository this deploy key belongs to",
           "$ref": "#/definitions/Repository"
         },
         "title": {
@@ -25559,9 +25609,6 @@
     "EditDeadlineOption": {
       "description": "EditDeadlineOption options for creating a deadline",
       "type": "object",
-      "required": [
-        "due_date"
-      ],
       "properties": {
         "due_date": {
           "type": "string",
@@ -25634,6 +25681,7 @@
       ],
       "properties": {
         "body": {
+          "description": "Body is the updated comment text content",
           "type": "string",
           "x-go-name": "Body"
         }
@@ -26031,9 +26079,11 @@
           "x-go-name": "EnablePrune"
         },
         "external_tracker": {
+          "description": "set this structure to use external issue tracker",
           "$ref": "#/definitions/ExternalTracker"
         },
         "external_wiki": {
+          "description": "set this structure to use external wiki instead of internal",
           "$ref": "#/definitions/ExternalWiki"
         },
         "has_actions": {
@@ -26082,6 +26132,7 @@
           "x-go-name": "IgnoreWhitespaceConflicts"
         },
         "internal_tracker": {
+          "description": "set this structure to configure internal issue tracker",
           "$ref": "#/definitions/InternalTracker"
         },
         "mirror_interval": {
@@ -26188,6 +26239,7 @@
           "x-go-name": "Name"
         },
         "permission": {
+          "description": "read RepoWritePermissionRead\nwrite RepoWritePermissionWrite\nadmin RepoWritePermissionAdmin",
           "type": "string",
           "enum": [
             "read",
@@ -26198,10 +26250,12 @@
           "x-go-name": "Permission"
         },
         "units": {
+          "description": "Deprecated: This variable should be replaced by UnitsMap and will be dropped in later versions.",
           "type": "array",
           "items": {
             "type": "string"
           },
+          "x-deprecated": true,
           "x-go-name": "Units",
           "example": [
             "repo.code",
@@ -26284,6 +26338,7 @@
           "x-go-name": "Description"
         },
         "email": {
+          "description": "The email address of the user",
           "type": "string",
           "format": "email",
           "x-go-name": "Email"
@@ -26331,6 +26386,7 @@
           "x-go-name": "Restricted"
         },
         "source_id": {
+          "description": "The authentication source ID to associate with the user",
           "type": "integer",
           "format": "int64",
           "x-go-name": "SourceID"
@@ -26359,6 +26415,7 @@
       "type": "object",
       "properties": {
         "email": {
+          "description": "The email address",
           "type": "string",
           "format": "email",
           "x-go-name": "Email"
@@ -26431,12 +26488,15 @@
       "title": "FileCommitResponse contains information generated from a Git commit for a repo's file.",
       "properties": {
         "author": {
+          "description": "Author is the commit author information",
           "$ref": "#/definitions/CommitUser"
         },
         "committer": {
+          "description": "Committer is the commit committer information",
           "$ref": "#/definitions/CommitUser"
         },
         "created": {
+          "description": "Created is the time when the commit was created",
           "type": "string",
           "format": "date-time",
           "x-go-name": "Created"
@@ -26465,6 +26525,7 @@
           "x-go-name": "SHA"
         },
         "tree": {
+          "description": "Tree contains the tree metadata for this commit",
           "$ref": "#/definitions/CommitMeta"
         },
         "url": {
@@ -26480,6 +26541,7 @@
       "type": "object",
       "properties": {
         "commit": {
+          "description": "Commit contains the commit information for this delete operation",
           "$ref": "#/definitions/FileCommitResponse"
         },
         "content": {
@@ -26487,6 +26549,7 @@
           "x-go-name": "Content"
         },
         "verification": {
+          "description": "Verification contains the commit signature verification information",
           "$ref": "#/definitions/PayloadCommitVerification"
         }
       },
@@ -26519,12 +26582,15 @@
       "type": "object",
       "properties": {
         "commit": {
+          "description": "Commit contains the commit information for this file operation",
           "$ref": "#/definitions/FileCommitResponse"
         },
         "content": {
+          "description": "Content contains the file content and metadata",
           "$ref": "#/definitions/ContentsResponse"
         },
         "verification": {
+          "description": "Verification contains the commit signature verification information",
           "$ref": "#/definitions/PayloadCommitVerification"
         }
       },
@@ -26535,6 +26601,7 @@
       "type": "object",
       "properties": {
         "commit": {
+          "description": "Commit contains the commit information for this file operation",
           "$ref": "#/definitions/FileCommitResponse"
         },
         "files": {
@@ -26546,6 +26613,7 @@
           "x-go-name": "Files"
         },
         "verification": {
+          "description": "Verification contains the commit signature verification information",
           "$ref": "#/definitions/PayloadCommitVerification"
         }
       },
@@ -26576,6 +26644,7 @@
           "x-go-name": "CanSign"
         },
         "created_at": {
+          "description": "The date and time when the GPG key was created",
           "type": "string",
           "format": "date-time",
           "x-go-name": "Created"
@@ -26589,6 +26658,7 @@
           "x-go-name": "Emails"
         },
         "expires_at": {
+          "description": "The date and time when the GPG key expires",
           "type": "string",
           "format": "date-time",
           "x-go-name": "Expires"
@@ -27077,6 +27147,7 @@
           "x-go-name": "Config"
         },
         "created_at": {
+          "description": "The date and time when the webhook was created",
           "type": "string",
           "format": "date-time",
           "x-go-name": "Created"
@@ -27106,6 +27177,7 @@
           "x-go-name": "Type"
         },
         "updated_at": {
+          "description": "The date and time when the webhook was last updated",
           "type": "string",
           "format": "date-time",
           "x-go-name": "Updated"
@@ -27118,6 +27190,7 @@
       "type": "object",
       "properties": {
         "email": {
+          "description": "Email is the person's email address",
           "type": "string",
           "format": "email",
           "x-go-name": "Email"
@@ -27164,6 +27237,7 @@
           "x-go-name": "Attachments"
         },
         "assignee": {
+          "description": "deprecated",
           "$ref": "#/definitions/User"
         },
         "assignees": {
@@ -27263,6 +27337,7 @@
           "$ref": "#/definitions/RepositoryMeta"
         },
         "state": {
+          "description": "open StateOpen pr is opened\nclosed StateClosed pr is closed",
           "type": "string",
           "enum": [
             "open",
@@ -27384,6 +27459,7 @@
           "x-go-name": "ID"
         },
         "type": {
+          "description": "markdown IssueFormFieldTypeMarkdown\ntextarea IssueFormFieldTypeTextarea\ninput IssueFormFieldTypeInput\ndropdown IssueFormFieldTypeDropdown\ncheckboxes IssueFormFieldTypeCheckboxes",
           "type": "string",
           "enum": [
             "markdown",
@@ -27652,8 +27728,9 @@
           "type": "string"
         },
         "Wiki": {
-          "description": "Is it a wiki page? (use mode=wiki instead)\n\nDeprecated: true",
-          "type": "boolean"
+          "description": "Is it a wiki page? (use mode=wiki instead)",
+          "type": "boolean",
+          "x-deprecated": true
         }
       },
       "x-go-package": "gitea.dev/modules/structs"
@@ -27679,8 +27756,9 @@
           "type": "string"
         },
         "Wiki": {
-          "description": "Is it a wiki page? (use mode=wiki instead)\n\nDeprecated: true",
-          "type": "boolean"
+          "description": "Is it a wiki page? (use mode=wiki instead)",
+          "type": "boolean",
+          "x-deprecated": true
         }
       },
       "x-go-package": "gitea.dev/modules/structs"
@@ -27976,12 +28054,15 @@
           "x-go-name": "Protocols"
         },
         "services": {
+          "description": "Services contains third party services this server can connect to",
           "$ref": "#/definitions/NodeInfoServices"
         },
         "software": {
+          "description": "Software contains information about the server software",
           "$ref": "#/definitions/NodeInfoSoftware"
         },
         "usage": {
+          "description": "Usage contains server usage statistics",
           "$ref": "#/definitions/NodeInfoUsage"
         },
         "version": {
@@ -28059,6 +28140,7 @@
           "x-go-name": "LocalPosts"
         },
         "users": {
+          "description": "Users contains user statistics",
           "$ref": "#/definitions/NodeInfoUsageUsers"
         }
       },
@@ -28094,6 +28176,7 @@
       "type": "object",
       "properties": {
         "commit": {
+          "description": "The commit that this note is attached to",
           "$ref": "#/definitions/Commit"
         },
         "message": {
@@ -28188,9 +28271,11 @@
           "x-go-name": "Pinned"
         },
         "repository": {
+          "description": "Repository is the repository associated with the notification",
           "$ref": "#/definitions/Repository"
         },
         "subject": {
+          "description": "Subject contains details about the notification subject",
           "$ref": "#/definitions/NotificationSubject"
         },
         "unread": {
@@ -28380,6 +28465,7 @@
           "x-go-name": "Ref"
         },
         "repo": {
+          "description": "The repository information",
           "$ref": "#/definitions/Repository"
         },
         "repo_id": {
@@ -28401,11 +28487,13 @@
       "type": "object",
       "properties": {
         "created_at": {
+          "description": "The date and time when the package was created",
           "type": "string",
           "format": "date-time",
           "x-go-name": "CreatedAt"
         },
         "creator": {
+          "description": "The user who created this package",
           "$ref": "#/definitions/User"
         },
         "html_url": {
@@ -28425,9 +28513,11 @@
           "x-go-name": "Name"
         },
         "owner": {
+          "description": "The owner of the package",
           "$ref": "#/definitions/User"
         },
         "repository": {
+          "description": "The repository that contains this package",
           "$ref": "#/definitions/Repository"
         },
         "type": {
@@ -28500,9 +28590,11 @@
           "x-go-name": "Added"
         },
         "author": {
+          "description": "The author of the commit",
           "$ref": "#/definitions/PayloadUser"
         },
         "committer": {
+          "description": "The committer of the commit",
           "$ref": "#/definitions/PayloadUser"
         },
         "id": {
@@ -28532,6 +28624,7 @@
           "x-go-name": "Removed"
         },
         "timestamp": {
+          "description": "The timestamp when the commit was made",
           "type": "string",
           "format": "date-time",
           "x-go-name": "Timestamp"
@@ -28542,6 +28635,7 @@
           "x-go-name": "URL"
         },
         "verification": {
+          "description": "GPG verification information for the commit",
           "$ref": "#/definitions/PayloadCommitVerification"
         }
       },
@@ -28567,6 +28661,7 @@
           "x-go-name": "Signature"
         },
         "signer": {
+          "description": "The user who signed the commit",
           "$ref": "#/definitions/PayloadUser"
         },
         "verified": {
@@ -28684,6 +28779,7 @@
       "type": "object",
       "properties": {
         "created_at": {
+          "description": "Created is the time when the key was added",
           "type": "string",
           "format": "date-time",
           "x-go-name": "Created"
@@ -28731,6 +28827,7 @@
           "x-go-name": "URL"
         },
         "user": {
+          "description": "Owner is the user who owns this key",
           "$ref": "#/definitions/User"
         }
       },
@@ -28752,6 +28849,7 @@
           "x-go-name": "AllowMaintainerEdit"
         },
         "assignee": {
+          "description": "The primary assignee of the pull request",
           "$ref": "#/definitions/User"
         },
         "assignees": {
@@ -28763,6 +28861,7 @@
           "x-go-name": "Assignees"
         },
         "base": {
+          "description": "Information about the base branch",
           "$ref": "#/definitions/PRBranchInfo"
         },
         "body": {
@@ -28820,6 +28919,7 @@
           "x-go-name": "Deadline"
         },
         "head": {
+          "description": "Information about the head branch",
           "$ref": "#/definitions/PRBranchInfo"
         },
         "html_url": {
@@ -28872,9 +28972,11 @@
           "x-go-name": "Merged"
         },
         "merged_by": {
+          "description": "The user who merged the pull request",
           "$ref": "#/definitions/User"
         },
         "milestone": {
+          "description": "The milestone associated with the pull request",
           "$ref": "#/definitions/Milestone"
         },
         "number": {
@@ -28942,6 +29044,7 @@
           "x-go-name": "URL"
         },
         "user": {
+          "description": "The user who created the pull request",
           "$ref": "#/definitions/User"
         }
       },
@@ -29081,6 +29184,7 @@
           "x-go-name": "Stale"
         },
         "state": {
+          "description": "APPROVED ReviewStateApproved pr is approved\nPENDING ReviewStatePending pr state is pending\nCOMMENT ReviewStateComment is a comment review\nREQUEST_CHANGES ReviewStateRequestChanges changes for pr are requested\nREQUEST_REVIEW ReviewStateRequestReview review is requested from user",
           "type": "string",
           "enum": [
             "APPROVED",
@@ -29260,11 +29364,13 @@
           "x-go-name": "Reaction"
         },
         "created_at": {
+          "description": "The date and time when the reaction was created",
           "type": "string",
           "format": "date-time",
           "x-go-name": "Created"
         },
         "user": {
+          "description": "The user who created the reaction",
           "$ref": "#/definitions/User"
         }
       },
@@ -29275,6 +29381,7 @@
       "title": "Reference represents a Git reference.",
       "properties": {
         "object": {
+          "description": "The Git object that this reference points to",
           "$ref": "#/definitions/GitObject"
         },
         "ref": {
@@ -29303,6 +29410,7 @@
           "x-go-name": "Attachments"
         },
         "author": {
+          "description": "The user who published the release",
           "$ref": "#/definitions/User"
         },
         "body": {
@@ -29450,6 +29558,7 @@
           "x-go-name": "RoleName"
         },
         "user": {
+          "description": "User information of the collaborator",
           "$ref": "#/definitions/User"
         }
       },
@@ -29460,9 +29569,11 @@
       "title": "RepoCommit contains information of a commit in the context of a repository.",
       "properties": {
         "author": {
+          "description": "Author contains the commit author information",
           "$ref": "#/definitions/CommitUser"
         },
         "committer": {
+          "description": "Committer contains the commit committer information",
           "$ref": "#/definitions/CommitUser"
         },
         "message": {
@@ -29471,6 +29582,7 @@
           "x-go-name": "Message"
         },
         "tree": {
+          "description": "Tree contains the tree information for the commit",
           "$ref": "#/definitions/CommitMeta"
         },
         "url": {
@@ -29479,6 +29591,7 @@
           "x-go-name": "URL"
         },
         "verification": {
+          "description": "Verification contains commit signature verification information",
           "$ref": "#/definitions/PayloadCommitVerification"
         }
       },
@@ -29758,6 +29871,7 @@
           "$ref": "#/definitions/User"
         },
         "parent": {
+          "description": "the original repository if this repository is a fork, otherwise null",
           "$ref": "#/definitions/Repository"
         },
         "permissions": {
@@ -29928,6 +30042,7 @@
       "type": "object",
       "properties": {
         "created": {
+          "description": "Created is the time when the stopwatch was started",
           "type": "string",
           "format": "date-time",
           "x-go-name": "Created"
@@ -29976,6 +30091,7 @@
           "x-go-name": "Body"
         },
         "event": {
+          "description": "APPROVED ReviewStateApproved pr is approved\nPENDING ReviewStatePending pr state is pending\nCOMMENT ReviewStateComment is a comment review\nREQUEST_CHANGES ReviewStateRequestChanges changes for pr are requested\nREQUEST_REVIEW ReviewStateRequestReview review is requested from user",
           "type": "string",
           "enum": [
             "APPROVED",
@@ -29995,6 +30111,7 @@
       "type": "object",
       "properties": {
         "commit": {
+          "description": "The commit information associated with this tag",
           "$ref": "#/definitions/CommitMeta"
         },
         "id": {
@@ -30030,6 +30147,7 @@
       "type": "object",
       "properties": {
         "created_at": {
+          "description": "The date and time when the tag protection was created",
           "type": "string",
           "format": "date-time",
           "x-go-name": "Created"
@@ -30046,6 +30164,7 @@
           "x-go-name": "NamePattern"
         },
         "updated_at": {
+          "description": "The date and time when the tag protection was last updated",
           "type": "string",
           "format": "date-time",
           "x-go-name": "Updated"
@@ -30100,9 +30219,11 @@
           "x-go-name": "Name"
         },
         "organization": {
+          "description": "The organization that the team belongs to",
           "$ref": "#/definitions/Organization"
         },
         "permission": {
+          "description": "none AccessLevelNameNone\nread AccessLevelNameRead\nwrite AccessLevelNameWrite\nadmin AccessLevelNameAdmin\nowner AccessLevelNameOwner",
           "type": "string",
           "enum": [
             "none",
@@ -30115,10 +30236,12 @@
           "x-go-name": "Permission"
         },
         "units": {
+          "description": "Deprecated: This variable should be replaced by UnitsMap and will be dropped in later versions.",
           "type": "array",
           "items": {
             "type": "string"
           },
+          "x-deprecated": true,
           "x-go-name": "Units",
           "example": [
             "repo.code",
@@ -30289,6 +30412,7 @@
           "x-go-name": "Updated"
         },
         "user": {
+          "description": "Poster is the user who created the timeline event",
           "$ref": "#/definitions/User"
         }
       },
@@ -30361,6 +30485,7 @@
           "x-go-name": "ID"
         },
         "issue": {
+          "description": "Issue contains the associated issue information",
           "$ref": "#/definitions/Issue"
         },
         "issue_id": {
@@ -30460,6 +30585,7 @@
       ],
       "properties": {
         "author": {
+          "description": "`author` and `committer` are optional (if only one is given, it will be used for the other, otherwise the authenticated user will be used)",
           "$ref": "#/definitions/Identity"
         },
         "branch": {
@@ -30868,9 +30994,11 @@
       "type": "object",
       "properties": {
         "author": {
+          "description": "The author of the commit",
           "$ref": "#/definitions/CommitUser"
         },
         "commiter": {
+          "description": "The committer of the commit",
           "$ref": "#/definitions/CommitUser"
         },
         "message": {
@@ -30933,6 +31061,7 @@
           "x-go-name": "HTMLURL"
         },
         "last_commit": {
+          "description": "The last commit that modified this wiki page",
           "$ref": "#/definitions/WikiCommit"
         },
         "sidebar": {
@@ -30963,6 +31092,7 @@
           "x-go-name": "HTMLURL"
         },
         "last_commit": {
+          "description": "The last commit that modified this wiki page",
           "$ref": "#/definitions/WikiCommit"
         },
         "sub_url": {

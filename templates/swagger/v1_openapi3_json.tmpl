@@ -2713,6 +2713,7 @@
             "x-go-name": "DownloadURL"
           },
           "created_at": {
+            "description": "Created is the time when the attachment was uploaded",
             "format": "date-time",
             "type": "string",
             "x-go-name": "Created"
@@ -2862,9 +2863,8 @@
             "x-go-name": "BlockOnRejectedReviews"
           },
           "branch_name": {
-            "deprecated": true,
-            "description": "Deprecated: true",
             "type": "string",
+            "x-deprecated": true,
             "x-go-name": "BranchName"
           },
           "bypass_allowlist_teams": {
@@ -3302,6 +3302,7 @@
             "$ref": "#/components/schemas/User"
           },
           "created": {
+            "description": "Created is the time when the commit was created",
             "format": "date-time",
             "type": "string",
             "x-go-name": "Created"
@@ -3368,11 +3369,13 @@
         "description": "CommitDateOptions store dates for GIT_AUTHOR_DATE and GIT_COMMITTER_DATE",
         "properties": {
           "author": {
+            "description": "Author is the author date for the commit",
             "format": "date-time",
             "type": "string",
             "x-go-name": "Author"
           },
           "committer": {
+            "description": "Committer is the committer date for the commit",
             "format": "date-time",
             "type": "string",
             "x-go-name": "Committer"
@@ -3384,6 +3387,7 @@
       "CommitMeta": {
         "properties": {
           "created": {
+            "description": "Created is the time when the commit was created",
             "format": "date-time",
             "type": "string",
             "x-go-name": "Created"
@@ -3504,6 +3508,7 @@
             "x-go-name": "Date"
           },
           "email": {
+            "description": "Email is the person's email address",
             "format": "email",
             "type": "string",
             "x-go-name": "Email"
@@ -3754,9 +3759,8 @@
             "x-go-name": "BlockOnRejectedReviews"
           },
           "branch_name": {
-            "deprecated": true,
-            "description": "Deprecated: true",
             "type": "string",
+            "x-deprecated": true,
             "x-go-name": "BranchName"
           },
           "bypass_allowlist_teams": {
@@ -3910,10 +3914,10 @@
             "x-go-name": "BranchName"
           },
           "old_branch_name": {
-            "deprecated": true,
-            "description": "Deprecated: true\nName of the old branch to create from",
+            "description": "Name of the old branch to create from",
             "type": "string",
             "uniqueItems": true,
+            "x-deprecated": true,
             "x-go-name": "OldBranchName"
           },
           "old_ref_name": {
@@ -4036,6 +4040,7 @@
         "properties": {
           "active": {
             "default": false,
+            "description": "Whether the webhook should be active upon creation",
             "type": "boolean",
             "x-go-name": "Active"
           },
@@ -4066,6 +4071,7 @@
             "x-go-name": "Name"
           },
           "type": {
+            "description": "The type of the webhook to create",
             "enum": [
               "dingtalk",
               "discord",
@@ -4101,6 +4107,7 @@
         "description": "CreateIssueCommentOption options for creating a comment on an issue",
         "properties": {
           "body": {
+            "description": "Body is the comment text content",
             "type": "string",
             "x-go-name": "Body"
           }
@@ -4231,6 +4238,7 @@
             "x-go-name": "IsArchived"
           },
           "name": {
+            "description": "Name is the display name for the new label",
             "type": "string",
             "x-go-name": "Name"
           }
@@ -4251,12 +4259,18 @@
             "x-go-name": "Description"
           },
           "due_on": {
+            "description": "Deadline is the due date for the milestone",
             "format": "date-time",
             "type": "string",
             "x-go-name": "Deadline"
           },
           "state": {
-            "$ref": "#/components/schemas/StateType"
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/StateType"
+              }
+            ],
+            "description": "State indicates the initial state of the milestone"
           },
           "title": {
             "description": "Title is the title of the new milestone",
@@ -4509,7 +4523,12 @@
             "x-go-name": "CommitID"
           },
           "event": {
-            "$ref": "#/components/schemas/ReviewStateType"
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/ReviewStateType"
+              }
+            ],
+            "description": "APPROVED ReviewStateApproved pr is approved\nPENDING ReviewStatePending pr state is pending\nCOMMENT ReviewStateComment is a comment review\nREQUEST_CHANGES ReviewStateRequestChanges changes for pr are requested\nREQUEST_REVIEW ReviewStateRequestReview review is requested from user"
           }
         },
         "type": "object",
@@ -4711,6 +4730,7 @@
             "x-go-name": "Message"
           },
           "tag_name": {
+            "description": "The name of the tag to create",
             "type": "string",
             "x-go-name": "TagName"
           },
@@ -4777,9 +4797,16 @@
             "x-go-name": "Name"
           },
           "permission": {
-            "$ref": "#/components/schemas/RepoWritePermission"
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/RepoWritePermission"
+              }
+            ],
+            "description": "read RepoWritePermissionRead\nwrite RepoWritePermissionWrite\nadmin RepoWritePermissionAdmin"
           },
           "units": {
+            "deprecated": true,
+            "description": "Deprecated: This variable should be replaced by UnitsMap and will be dropped in later versions.",
             "example": [
               "repo.actions",
               "repo.code",
@@ -4796,13 +4823,23 @@
               "type": "string"
             },
             "type": "array",
+            "x-deprecated": true,
             "x-go-name": "Units"
           },
           "units_map": {
             "additionalProperties": {
               "type": "string"
             },
-            "example": "{\"repo.actions\",\"repo.packages\",\"repo.code\":\"read\",\"repo.issues\":\"write\",\"repo.ext_issues\":\"none\",\"repo.wiki\":\"admin\",\"repo.pulls\":\"owner\",\"repo.releases\":\"none\",\"repo.projects\":\"none\",\"repo.ext_wiki\":\"none\"}",
+            "example": {
+              "repo.code": "read",
+              "repo.ext_issues": "none",
+              "repo.ext_wiki": "none",
+              "repo.issues": "write",
+              "repo.projects": "none",
+              "repo.pulls": "owner",
+              "repo.releases": "none",
+              "repo.wiki": "admin"
+            },
             "type": "object",
             "x-go-name": "UnitsMap"
           },
@@ -4887,8 +4924,7 @@
           }
         },
         "required": [
-          "username",
-          "email"
+          "username"
         ],
         "type": "object",
         "x-go-package": "gitea.dev/modules/structs"
@@ -5079,6 +5115,7 @@
         "description": "DeployKey a deploy key",
         "properties": {
           "created_at": {
+            "description": "Created is the time when the deploy key was added",
             "format": "date-time",
             "type": "string",
             "x-go-name": "Created"
@@ -5348,9 +5385,6 @@
             "x-go-name": "Deadline"
           }
         },
-        "required": [
-          "due_date"
-        ],
         "type": "object",
         "x-go-package": "gitea.dev/modules/structs"
       },
@@ -5413,6 +5447,7 @@
         "description": "EditIssueCommentOption options for editing a comment",
         "properties": {
           "body": {
+            "description": "Body is the updated comment text content",
             "type": "string",
             "x-go-name": "Body"
           }
@@ -5964,9 +5999,16 @@
             "x-go-name": "Name"
           },
           "permission": {
-            "$ref": "#/components/schemas/RepoWritePermission"
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/RepoWritePermission"
+              }
+            ],
+            "description": "read RepoWritePermissionRead\nwrite RepoWritePermissionWrite\nadmin RepoWritePermissionAdmin"
           },
           "units": {
+            "deprecated": true,
+            "description": "Deprecated: This variable should be replaced by UnitsMap and will be dropped in later versions.",
             "example": [
               "repo.code",
               "repo.issues",
@@ -5981,6 +6023,7 @@
               "type": "string"
             },
             "type": "array",
+            "x-deprecated": true,
             "x-go-name": "Units"
           },
           "units_map": {
@@ -6049,6 +6092,7 @@
             "x-go-name": "Description"
           },
           "email": {
+            "description": "The email address of the user",
             "format": "email",
             "type": "string",
             "x-go-name": "Email"
@@ -6096,6 +6140,7 @@
             "x-go-name": "Restricted"
           },
           "source_id": {
+            "description": "The authentication source ID to associate with the user",
             "format": "int64",
             "type": "integer",
             "x-go-name": "SourceID"
@@ -6125,6 +6170,7 @@
         "description": "Email an email address belonging to a user",
         "properties": {
           "email": {
+            "description": "The email address",
             "format": "email",
             "type": "string",
             "x-go-name": "Email"
@@ -6204,6 +6250,7 @@
             "$ref": "#/components/schemas/CommitUser"
           },
           "created": {
+            "description": "Created is the time when the commit was created",
             "format": "date-time",
             "type": "string",
             "x-go-name": "Created"
@@ -6346,6 +6393,7 @@
             "x-go-name": "CanSign"
           },
           "created_at": {
+            "description": "The date and time when the GPG key was created",
             "format": "date-time",
             "type": "string",
             "x-go-name": "Created"
@@ -6359,6 +6407,7 @@
             "x-go-name": "Emails"
           },
           "expires_at": {
+            "description": "The date and time when the GPG key expires",
             "format": "date-time",
             "type": "string",
             "x-go-name": "Expires"
@@ -6851,6 +6900,7 @@
             "x-go-name": "Config"
           },
           "created_at": {
+            "description": "The date and time when the webhook was created",
             "format": "date-time",
             "type": "string",
             "x-go-name": "Created"
@@ -6880,6 +6930,7 @@
             "x-go-name": "Type"
           },
           "updated_at": {
+            "description": "The date and time when the webhook was last updated",
             "format": "date-time",
             "type": "string",
             "x-go-name": "Updated"
@@ -6892,6 +6943,7 @@
         "description": "Identity for a person's identity like an author or committer",
         "properties": {
           "email": {
+            "description": "Email is the person's email address",
             "format": "email",
             "type": "string",
             "x-go-name": "Email"
@@ -7038,7 +7090,12 @@
             "$ref": "#/components/schemas/RepositoryMeta"
           },
           "state": {
-            "$ref": "#/components/schemas/StateType"
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/StateType"
+              }
+            ],
+            "description": "open StateOpen pr is opened\nclosed StateClosed pr is closed"
           },
           "time_estimate": {
             "format": "int64",
@@ -7155,6 +7212,7 @@
             "x-go-name": "ID"
           },
           "type": {
+            "description": "markdown IssueFormFieldTypeMarkdown\ntextarea IssueFormFieldTypeTextarea\ninput IssueFormFieldTypeInput\ndropdown IssueFormFieldTypeDropdown\ncheckboxes IssueFormFieldTypeCheckboxes",
             "enum": [
               "markdown",
               "textarea",
@@ -7426,9 +7484,9 @@
             "type": "string"
           },
           "Wiki": {
-            "deprecated": true,
-            "description": "Is it a wiki page? (use mode=wiki instead)\n\nDeprecated: true",
-            "type": "boolean"
+            "description": "Is it a wiki page? (use mode=wiki instead)",
+            "type": "boolean",
+            "x-deprecated": true
           }
         },
         "type": "object",
@@ -7454,9 +7512,9 @@
             "type": "string"
           },
           "Wiki": {
-            "deprecated": true,
-            "description": "Is it a wiki page? (use mode=wiki instead)\n\nDeprecated: true",
-            "type": "boolean"
+            "description": "Is it a wiki page? (use mode=wiki instead)",
+            "type": "boolean",
+            "x-deprecated": true
           }
         },
         "type": "object",
@@ -8187,6 +8245,7 @@
         "description": "Package represents a package",
         "properties": {
           "created_at": {
+            "description": "The date and time when the package was created",
             "format": "date-time",
             "type": "string",
             "x-go-name": "CreatedAt"
@@ -8319,6 +8378,7 @@
             "x-go-name": "Removed"
           },
           "timestamp": {
+            "description": "The timestamp when the commit was made",
             "format": "date-time",
             "type": "string",
             "x-go-name": "Timestamp"
@@ -8472,6 +8532,7 @@
         "description": "PublicKey publickey is a user key to push code to repository",
         "properties": {
           "created_at": {
+            "description": "Created is the time when the key was added",
             "format": "date-time",
             "type": "string",
             "x-go-name": "Created"
@@ -8877,7 +8938,12 @@
             "x-go-name": "Stale"
           },
           "state": {
-            "$ref": "#/components/schemas/ReviewStateType"
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/ReviewStateType"
+              }
+            ],
+            "description": "APPROVED ReviewStateApproved pr is approved\nPENDING ReviewStatePending pr state is pending\nCOMMENT ReviewStateComment is a comment review\nREQUEST_CHANGES ReviewStateRequestChanges changes for pr are requested\nREQUEST_REVIEW ReviewStateRequestReview review is requested from user"
           },
           "submitted_at": {
             "format": "date-time",
@@ -9049,6 +9115,7 @@
             "x-go-name": "Reaction"
           },
           "created_at": {
+            "description": "The date and time when the reaction was created",
             "format": "date-time",
             "type": "string",
             "x-go-name": "Created"
@@ -9751,6 +9818,7 @@
         "description": "StopWatch represent a running stopwatch",
         "properties": {
           "created": {
+            "description": "Created is the time when the stopwatch was started",
             "format": "date-time",
             "type": "string",
             "x-go-name": "Created"
@@ -9799,7 +9867,12 @@
             "x-go-name": "Body"
           },
           "event": {
-            "$ref": "#/components/schemas/ReviewStateType"
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/ReviewStateType"
+              }
+            ],
+            "description": "APPROVED ReviewStateApproved pr is approved\nPENDING ReviewStatePending pr state is pending\nCOMMENT ReviewStateComment is a comment review\nREQUEST_CHANGES ReviewStateRequestChanges changes for pr are requested\nREQUEST_REVIEW ReviewStateRequestReview review is requested from user"
           }
         },
         "type": "object",
@@ -9846,6 +9919,7 @@
         "description": "TagProtection represents a tag protection",
         "properties": {
           "created_at": {
+            "description": "The date and time when the tag protection was created",
             "format": "date-time",
             "type": "string",
             "x-go-name": "Created"
@@ -9862,6 +9936,7 @@
             "x-go-name": "NamePattern"
           },
           "updated_at": {
+            "description": "The date and time when the tag protection was last updated",
             "format": "date-time",
             "type": "string",
             "x-go-name": "Updated"
@@ -9919,9 +9994,16 @@
             "$ref": "#/components/schemas/Organization"
           },
           "permission": {
-            "$ref": "#/components/schemas/AccessLevelName"
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/AccessLevelName"
+              }
+            ],
+            "description": "none AccessLevelNameNone\nread AccessLevelNameRead\nwrite AccessLevelNameWrite\nadmin AccessLevelNameAdmin\nowner AccessLevelNameOwner"
           },
           "units": {
+            "deprecated": true,
+            "description": "Deprecated: This variable should be replaced by UnitsMap and will be dropped in later versions.",
             "example": [
               "repo.code",
               "repo.issues",
@@ -9936,6 +10018,7 @@
               "type": "string"
             },
             "type": "array",
+            "x-deprecated": true,
             "x-go-name": "Units"
           },
           "units_map": {

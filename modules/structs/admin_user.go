@@ -18,7 +18,6 @@ type CreateUserOption struct {
 	Username string `json:"username" binding:"Required;Username;MaxSize(40)"`
 	// The full display name of the user
 	FullName string `json:"full_name" binding:"MaxSize(100)"`
-	// required: true
 	// swagger:strfmt email
 	Email string `json:"email" binding:"Required;Email;MaxSize(254)"`
 	// The plain text password for the user
