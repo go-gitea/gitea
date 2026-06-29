@@ -11,6 +11,7 @@ import (
 	"net/http"
 	"regexp"
 	"strings"
+	"sync"
 
 	"gitea.dev/models/db"
 	packages_model "gitea.dev/models/packages"
@@ -28,10 +29,12 @@ import (
 // verbatim into the generated line-based Release and Packages indices (and
 // into the pool/<distribution>/<component> paths referenced from them), so
 // they must be restricted to a character set that cannot break that format.
-var distributionOrComponentPattern = regexp.MustCompile(`\A[a-zA-Z0-9][a-zA-Z0-9.~+_-]*\z`)
+var distributionOrComponentPattern = sync.OnceValue(func() *regexp.Regexp {
+	return regexp.MustCompile(`\A[a-zA-Z0-9][a-zA-Z0-9.~+_-]*\z`)
+})
 
 func isValidDistributionOrComponent(s string) bool {
-	return distributionOrComponentPattern.MatchString(s)
+	return distributionOrComponentPattern().MatchString(s)
 }
 
 func apiError(ctx *context.Context, status int, obj any) {
