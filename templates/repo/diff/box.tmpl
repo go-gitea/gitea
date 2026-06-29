@@ -79,12 +79,13 @@
 		{{if .DiffNotAvailable}}
 			<h4>{{ctx.Locale.Tr "repo.diff.data_not_available"}}</h4>
 		{{else}}
-			<div id="diff-file-boxes" class="sixteen wide column">
+			<div id="diff-boxes-column" class="sixteen wide column">
 				{{if $showFileTree}}
 					<div id="diff-no-matches" class="empty-placeholder tw-hidden">
 						<h2>{{ctx.Locale.Tr "repo.diff.no_files_matched"}}</h2>
 					</div>
 				{{end}}
+				<div id="diff-file-boxes">
 				{{range $i, $file := .Diff.Files}}
 					{{/*notice: the index of Diff.Files should not be used for element ID, because the index will be restarted from 0 when doing load-more for PRs with a lot of files*/}}
 					{{$blobBase := call $.GetBlobByPathForCommit $.BeforeCommit $file.OldName}}
@@ -236,6 +237,7 @@
 						<div id="diff-load-progress" class="tw-text-text-light-2 tw-p-2" data-text-loaded="{{ctx.Locale.Tr "repo.diff.files_loaded"}}">{{ctx.Locale.Tr "repo.diff.files_loaded" (len .Diff.Files) .DiffShortStat.NumFiles}}</div>
 					</div>
 				{{end}}
+				</div>
 			</div>
 		{{end}}
 	</div>

@@ -170,10 +170,7 @@ async function loadMoreFiles(btn: Element): Promise<boolean> {
     const resp = await response.text();
     const respDoc = parseDom(resp, 'text/html');
     const respFileBoxes = respDoc.querySelector('#diff-file-boxes')!;
-
-    const loadedBoxes = Array.from(respFileBoxes.children);
-    const respFileBoxesChildren = loadedBoxes.filter((el) => el.id !== 'diff-no-matches'); // do not copy "no matches" to not duplicate
-
+    const respFileBoxesChildren = Array.from(respFileBoxes.children);
     document.querySelector('#diff-incomplete')!.replaceWith(...respFileBoxesChildren);
     onShowMoreFiles();
     return true;

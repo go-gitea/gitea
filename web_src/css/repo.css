@@ -1568,9 +1568,16 @@ tbody.commit-list {
   gap: var(--page-spacing);
 }
 
-#diff-file-boxes {
+#diff-boxes-column {
   flex: 1;
+  min-width: 0;
   max-width: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+#diff-file-boxes {
+  min-width: 0;
   display: flex;
   flex-direction: column;
   gap: 8px;
