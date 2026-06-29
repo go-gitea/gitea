@@ -81,7 +81,6 @@
     "@stylistic/stylelint-plugin": "5.2.0",
     "@types/codemirror": "5.60.17",
     "@types/jquery": "4.0.1",
-    "@types/js-yaml": "4.0.9",
     "@types/katex": "0.16.8",
     "@types/node": "25.9.4",
     "@types/pdfobject": "2.2.5",
