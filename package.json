@@ -50,7 +50,7 @@
     "esbuild": "0.28.1",
     "idiomorph": "0.7.4",
     "jquery": "4.0.0",
-    "js-yaml": "4.2.0",
+    "js-yaml": "5.1.0",
     "katex": "0.17.0",
     "mermaid": "11.15.0",
     "online-3d-viewer": "0.18.0",
