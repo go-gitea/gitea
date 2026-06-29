@@ -49,7 +49,7 @@ func TestParsePackage(t *testing.T) {
 
 		p, err := ParsePackage(data)
 		assert.Nil(t, p)
-		assert.ErrorIs(t, err, ErrMissingControlFile)
+		assert.ErrorIs(t, err, GlobalVars().ErrMissingControlFile)
 	})
 
 	t.Run("Compression", func(t *testing.T) {
@@ -58,7 +58,7 @@ func TestParsePackage(t *testing.T) {
 
 			p, err := ParsePackage(data)
 			assert.Nil(t, p)
-			assert.ErrorIs(t, err, ErrUnsupportedCompression)
+			assert.ErrorIs(t, err, GlobalVars().ErrUnsupportedCompression)
 		})
 
 		var buf bytes.Buffer
@@ -141,7 +141,7 @@ func TestParseControlFile(t *testing.T) {
 		for _, name := range []string{"", "-cd"} {
 			p, err := ParseControlFile(buildContent(name, packageVersion, packageArchitecture))
 			assert.Nil(t, p)
-			assert.ErrorIs(t, err, ErrInvalidName)
+			assert.ErrorIs(t, err, GlobalVars().ErrInvalidName)
 		}
 	})
 
@@ -149,14 +149,14 @@ func TestParseControlFile(t *testing.T) {
 		for _, version := range []string{"", "1-", ":1.0", "1_0"} {
 			p, err := ParseControlFile(buildContent(packageName, version, packageArchitecture))
 			assert.Nil(t, p)
-			assert.ErrorIs(t, err, ErrInvalidVersion)
+			assert.ErrorIs(t, err, GlobalVars().ErrInvalidVersion)
 		}
 	})
 
 	t.Run("InvalidArchitecture", func(t *testing.T) {
 		p, err := ParseControlFile(buildContent(packageName, packageVersion, ""))
 		assert.Nil(t, p)
-		assert.ErrorIs(t, err, ErrInvalidArchitecture)
+		assert.ErrorIs(t, err, GlobalVars().ErrInvalidArchitecture)
 	})
 
 	t.Run("Valid", func(t *testing.T) {
@@ -199,4 +199,36 @@ func TestParseControlFile(t *testing.T) {
 		assert.NotContains(t, p.Control, "openssl")
 		assert.NotContains(t, p.Control, "evil.deb")
 	})
+}
+
+func TestValidateDistributionOrComponent(t *testing.T) {
+	bad := []string{
+		"",
+		".",
+		"..",
+		"-stable",
+		".hidden",
+		"a/b",
+		"a b",
+		"bookworm\nSigned-By: evil",
+		"main\nFilename: pool/x",
+		"a\tb",
+	}
+	for _, name := range bad {
+		assert.False(t, IsValidDistributionOrComponent(name), "bad=%q", name)
+	}
+
+	good := []string{
+		"stable",
+		"bookworm",
+		"bookworm-backports",
+		"stable-updates",
+		"main",
+		"non-free-firmware",
+		"a",
+		"1",
+	}
+	for _, name := range good {
+		assert.True(t, IsValidDistributionOrComponent(name), "good=%q", name)
+	}
 }
