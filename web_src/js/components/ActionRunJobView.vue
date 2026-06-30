@@ -728,8 +728,7 @@ async function hashChangeListener() {
   overflow-wrap: anywhere;
 }
 
-.log-line-show-timestamps .job-step-logs .job-log-line .log-msg,
-.log-line-show-timestamps .job-log-group .job-log-list .job-log-line .log-msg {
+.log-line-show-timestamps .job-log-line .log-msg {
   margin-left: 12px;
 }
 
@@ -796,7 +795,7 @@ async function hashChangeListener() {
   border-radius: 0;
 }
 
-.job-log-group .job-log-list .job-log-line .log-msg {
+.job-log-list .job-log-line .log-msg {
   margin-left: 12px;
 }
 
@@ -806,6 +805,7 @@ async function hashChangeListener() {
   list-style: none;
 }
 
+/* don't merge the selectors, some browsers don't support "-webkit-details-marker" */
 .job-log-group-summary::marker {
   display: none;
 }
