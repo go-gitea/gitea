@@ -19,7 +19,6 @@ import (
 	"gitea.dev/modules/gitrepo"
 	"gitea.dev/modules/graceful"
 	"gitea.dev/modules/httplib"
-	"gitea.dev/modules/json"
 	"gitea.dev/modules/log"
 	"gitea.dev/modules/process"
 	"gitea.dev/modules/queue"
@@ -49,36 +48,6 @@ type archiveQueueItem struct {
 	CommitID            string                 `json:"CommitID"`
 	Paths               []string               `json:"Paths,omitempty"`
 	ArchiveRefShortName string                 `json:"ArchiveRefShortName,omitempty"`
-}
-
-func (item *archiveQueueItem) UnmarshalJSON(data []byte) error {
-	type queueItemAlias archiveQueueItem
-	var direct queueItemAlias
-	if err := json.Unmarshal(data, &direct); err == nil && direct.RepoID != 0 {
-		*item = archiveQueueItem(direct)
-		return nil
-	}
-
-	var legacy struct {
-		RepoID int64 `json:"RepoID"`
-		Repo   *struct {
-			ID int64 `json:"ID"`
-		} `json:"Repo"`
-		Type     repo_model.ArchiveType `json:"Type"`
-		CommitID string                 `json:"CommitID"`
-		Paths    []string               `json:"Paths"`
-	}
-	if err := json.Unmarshal(data, &legacy); err != nil {
-		return err
-	}
-	item.RepoID = legacy.RepoID
-	if item.RepoID == 0 && legacy.Repo != nil {
-		item.RepoID = legacy.Repo.ID
-	}
-	item.Type = legacy.Type
-	item.CommitID = legacy.CommitID
-	item.Paths = legacy.Paths
-	return nil
 }
 
 func (aReq *ArchiveRequest) toQueueItem() *archiveQueueItem {
