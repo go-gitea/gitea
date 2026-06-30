@@ -185,9 +185,9 @@ func (protectBranch *ProtectedBranch) CanUserForcePush(ctx context.Context, user
 }
 
 // CanActionsUserPush reports whether the Actions bot may push to this protected branch.
-// The Actions bot is a virtual user that cannot be added to a push whitelist, so an
-// enforced whitelist means it must use a pull request; otherwise it falls back to its
-// computed write permission, matching how a normal write user is evaluated.
+// The Actions bot is a virtual user with no DB row and cannot be added to the push whitelist.
+// When a push whitelist is enabled, this returns false (the caller may still apply other exceptions).
+// Otherwise it falls back to the token's computed write permission, matching how a normal write user is evaluated.
 func (protectBranch *ProtectedBranch) CanActionsUserPush(permissionInRepo access_model.Permission) bool {
 	return protectBranch.CanPush && !protectBranch.EnableWhitelist && permissionInRepo.CanWrite(unit.TypeCode)
 }
