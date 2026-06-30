@@ -106,7 +106,7 @@ func TestEnablePasswordSignInFormAndEnablePasskeyAuth(t *testing.T) {
 	mockLinkAccount := func(ctx *context.Context) {
 		authSource := auth_model.Source{ID: 1}
 		gothUser := goth.User{Email: "invalid-email", Name: "."}
-		_ = auth.Oauth2SetLinkAccountData(ctx, auth.LinkAccountData{AuthSourceID: authSource.ID, GothUser: gothUser})
+		_ = auth.Oauth2SetLinkAccountData(ctx, auth.LinkAccountData{AuthSourceID: authSource.ID, GothUser: gothUser}, nil)
 	}
 
 	t.Run("EnablePasswordSignInForm=false", func(t *testing.T) {

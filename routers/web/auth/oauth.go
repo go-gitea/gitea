@@ -284,14 +284,18 @@ func oauth2GetLinkAccountData(ctx *context.Context) *LinkAccountData {
 	return &v
 }
 
-func Oauth2SetLinkAccountData(ctx *context.Context, linkAccountData LinkAccountData) error {
-	return updateSession(ctx, nil, map[string]any{
+func Oauth2SetLinkAccountData(ctx *context.Context, linkAccountData LinkAccountData, extra map[string]any) error {
+	updates := map[string]any{
 		"linkAccountData": linkAccountData,
-	})
+	}
+	for k, v := range extra {
+		updates[k] = v
+	}
+	return updateSession(ctx, nil, updates)
 }
 
 func showLinkingLogin(ctx *context.Context, authSourceID int64, gothUser goth.User) {
-	if err := Oauth2SetLinkAccountData(ctx, LinkAccountData{authSourceID, gothUser}); err != nil {
+	if err := Oauth2SetLinkAccountData(ctx, LinkAccountData{authSourceID, gothUser}, nil); err != nil {
 		ctx.ServerError("Oauth2SetLinkAccountData", err)
 		return
 	}
