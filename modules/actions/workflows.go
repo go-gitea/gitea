@@ -31,9 +31,9 @@ type DetectedWorkflow struct {
 type detectResult int
 
 const (
-	detectNotApplicable detectResult = iota
+	detectMatched detectResult = iota
+	detectNotApplicable
 	detectFilteredOut
-	detectMatched
 )
 
 func init() {

@@ -215,8 +215,11 @@ jobs:
 		err = pull_service.NewPullRequest(t.Context(), prOpts)
 		assert.NoError(t, err)
 
-		// the new pull request cannot trigger actions, so there is still only 1 record
-		assert.Equal(t, 1, unittest.GetCount(t, &actions_model.ActionRun{RepoID: baseRepo.ID}))
+		// the new pull request is filtered by paths, so it creates a skipped run
+		assert.Equal(t, 2, unittest.GetCount(t, &actions_model.ActionRun{RepoID: baseRepo.ID}))
+		actionRun = unittest.AssertExistsAndLoadBean(t, &actions_model.ActionRun{RepoID: baseRepo.ID, CommitSHA: addFileToForkedResp.Commit.SHA})
+		assert.Equal(t, actions_module.GithubEventPullRequestTarget, actionRun.TriggerEvent)
+		assert.Equal(t, actions_model.StatusSkipped, actionRun.Status)
 	})
 }
 
@@ -338,6 +341,11 @@ jobs:
 		})
 		assert.NoError(t, err)
 		assert.NotEmpty(t, addFileToBranchResp)
+		// the push to test-skip-ci is filtered by branches, so it creates a skipped run
+		assert.Equal(t, 2, unittest.GetCount(t, &actions_model.ActionRun{RepoID: repo.ID}))
+		actionRun := unittest.AssertExistsAndLoadBean(t, &actions_model.ActionRun{RepoID: repo.ID, CommitSHA: addFileToBranchResp.Commit.SHA})
+		assert.Equal(t, webhook_module.HookEventPush, actionRun.Event)
+		assert.Equal(t, actions_model.StatusSkipped, actionRun.Status)
 
 		resp := testPullCreate(t, session, "user2", "skip-ci", true, "master", "test-skip-ci", "[skip ci] test-skip-ci")
 
@@ -345,8 +353,8 @@ jobs:
 		url := test.RedirectURL(resp)
 		assert.Regexp(t, "^/user2/skip-ci/pulls/[0-9]*$", url)
 
-		// the pr title contains a configured skip-ci string, so there is still only 1 record
-		assert.Equal(t, 1, unittest.GetCount(t, &actions_model.ActionRun{RepoID: repo.ID}))
+		// the pr title contains a configured skip-ci string, so no additional run is created
+		assert.Equal(t, 2, unittest.GetCount(t, &actions_model.ActionRun{RepoID: repo.ID}))
 	})
 }
 
