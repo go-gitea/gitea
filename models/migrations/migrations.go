@@ -28,6 +28,7 @@ import (
 	"gitea.dev/models/migrations/v1_25"
 	"gitea.dev/models/migrations/v1_26"
 	"gitea.dev/models/migrations/v1_27"
+	"gitea.dev/models/migrations/v1_28"
 	"gitea.dev/models/migrations/v1_6"
 	"gitea.dev/models/migrations/v1_7"
 	"gitea.dev/models/migrations/v1_8"
@@ -420,7 +421,9 @@ func prepareMigrationTasks() []*migration {
 		newMigration(340, "Add ContinueOnError column to ActionRunJob", v1_27.AddContinueOnErrorToActionRunJob),
 		newMigration(341, "Convert legacy MSSQL DATETIME columns to DATETIME2", v1_27.FixLegacyMSSQLDateTimeColumns),
 		newMigration(342, "Add scoped workflows schema", v1_27.AddScopedWorkflowsSchema),
-		newMigration(343, "Add ActionRunJobLabel table and (status, updated) index for runner task assignment", v1_27.AddActionRunJobMatchingSchema),
+		// Gitea 1.27.0 ends at migration ID number 342 (database version 343)
+
+		newMigration(343, "Add ActionRunJobLabel table and (status, updated) index for runner task assignment", v1_28.AddActionRunJobMatchingSchema),
 	}
 	return preparedMigrations
 }
