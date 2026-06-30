@@ -6592,6 +6592,13 @@
             "description": "Whether the response should include the workflow run ID and URLs.",
             "name": "return_run_details",
             "in": "query"
+          },
+          {
+            "type": "integer",
+            "format": "int64",
+            "description": "For a scoped workflow, the ID of the source repository providing it; omit or 0 for a repo-level workflow.",
+            "name": "scoped_workflow_source_repo_id",
+            "in": "query"
           }
         ],
         "responses": {
@@ -6737,6 +6744,13 @@
             "type": "boolean",
             "description": "if true, the `pull_requests` field on each returned run is emptied",
             "name": "exclude_pull_requests",
+            "in": "query"
+          },
+          {
+            "type": "integer",
+            "format": "int64",
+            "description": "For a scoped workflow, the ID of the source repository providing it; omit or 0 for a repo-level workflow.",
+            "name": "scoped_workflow_source_repo_id",
             "in": "query"
           },
           {

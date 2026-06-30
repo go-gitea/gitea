@@ -2070,5 +2070,7 @@
   "actions.runners.status.active": "Actief",
   "actions.runners.version": "Versie",
   "actions.runs.summary": "Overzicht",
+  "actions.workflow.scope_owner": "Eigenaar",
+  "actions.workflow.required": "Vereist",
   "actions.general.token_permissions.mode.restricted": "Beperkt"
 }

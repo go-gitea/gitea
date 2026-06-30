@@ -283,10 +283,14 @@ onBeforeUnmount(() => {
         <div class="left-list-header">{{ locale.runDetails }}</div>
         <div class="flex-items-block action-view-sidebar-list">
           <div class="item">
-            <a class="flex-text-block silenced" :href="`${run.link}/workflow`">
+            <a v-if="run.canViewWorkflowFile" class="flex-text-block silenced" :href="`${run.link}/workflow`">
               <SvgIcon name="octicon-file-code" class="tw-text-text"/>
               <span class="gt-ellipsis">{{ locale.workflowFile }}</span>
             </a>
+            <span v-else class="flex-text-block silenced" :data-tooltip-content="locale.workflowFileNoPermission">
+              <SvgIcon name="octicon-lock" class="tw-text-text"/>
+              <span class="gt-ellipsis">{{ locale.workflowFileNoPermission }}</span>
+            </span>
           </div>
         </div>
       </div>

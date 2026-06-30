@@ -17816,6 +17816,15 @@
             "schema": {
               "type": "boolean"
             }
+          },
+          {
+            "description": "For a scoped workflow, the ID of the source repository providing it; omit or 0 for a repo-level workflow.",
+            "in": "query",
+            "name": "scoped_workflow_source_repo_id",
+            "schema": {
+              "format": "int64",
+              "type": "integer"
+            }
           }
         ],
         "requestBody": {
@@ -17989,6 +17998,15 @@
             "name": "exclude_pull_requests",
             "schema": {
               "type": "boolean"
+            }
+          },
+          {
+            "description": "For a scoped workflow, the ID of the source repository providing it; omit or 0 for a repo-level workflow.",
+            "in": "query",
+            "name": "scoped_workflow_source_repo_id",
+            "schema": {
+              "format": "int64",
+              "type": "integer"
             }
           },
           {
