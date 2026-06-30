@@ -16,6 +16,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"google.golang.org/protobuf/types/known/timestamppb"
+	"xorm.io/builder"
 )
 
 func TestMakeTaskStepDisplayName(t *testing.T) {
@@ -80,6 +81,145 @@ func TestMakeTaskStepDisplayName(t *testing.T) {
 			assert.Equal(t, tt.expected, result)
 		})
 	}
+}
+
+const (
+	pickTestRepoID  = 1
+	pickTestOwnerID = 2
+)
+
+var pickTestPayload = []byte(`name: test
+on: push
+jobs:
+  j:
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo hi
+`)
+
+func newPickTestRun(t *testing.T, idx int64) *ActionRun {
+	t.Helper()
+	run := &ActionRun{
+		Title: "pick-test-run", RepoID: pickTestRepoID, OwnerID: pickTestOwnerID, WorkflowID: "test.yaml",
+		Index: idx, TriggerUserID: pickTestOwnerID, Ref: "refs/heads/master",
+		CommitSHA: "c2d72f548424103f01ee1dc02889c1e2bff816b0",
+		Event:     "push", TriggerEvent: "push", Status: StatusWaiting,
+	}
+	require.NoError(t, db.Insert(t.Context(), run))
+	return run
+}
+
+// newPickTestWaitingJob inserts a waiting job and its labels via the production
+// InsertActionRunJob path, so tests exercise the same label sync as real inserts.
+func newPickTestWaitingJob(t *testing.T, runID int64, name string, runsOn []string, payload []byte) *ActionRunJob {
+	t.Helper()
+	job := &ActionRunJob{
+		RunID: runID, RepoID: pickTestRepoID, OwnerID: pickTestOwnerID,
+		CommitSHA: "c2d72f548424103f01ee1dc02889c1e2bff816b0",
+		Name:      name, Attempt: 1, JobID: name,
+		RunsOn: runsOn, Status: StatusWaiting, WorkflowPayload: payload,
+	}
+	require.NoError(t, InsertActionRunJob(t.Context(), job))
+	return job
+}
+
+func TestCreateTaskForRunnerSkipsUnmatchableBacklog(t *testing.T) {
+	require.NoError(t, unittest.PrepareTestDatabase())
+
+	run := newPickTestRun(t, 1000)
+
+	// A head of older jobs this runner can never match, queued ahead of the
+	// matchable job. The matchable job must not be starved behind them.
+	for range 5 {
+		newPickTestWaitingJob(t, run.ID, "unmatchable", []string{"macos-special"}, nil)
+	}
+	matchable := newPickTestWaitingJob(t, run.ID, "matchable", []string{"ubuntu-latest"}, pickTestPayload)
+
+	runner := &ActionRunner{UUID: "runner-backlog-skip", Name: "runner-backlog-skip", RepoID: pickTestRepoID, AgentLabels: []string{"ubuntu-latest"}}
+	require.NoError(t, db.Insert(t.Context(), runner))
+
+	// Despite older non-matching jobs queued ahead of it, the matchable job must
+	// be assigned rather than starved behind the unmatchable head.
+	task, ok, err := CreateTaskForRunner(t.Context(), runner)
+	require.NoError(t, err)
+	require.True(t, ok)
+	require.NotNil(t, task)
+	assert.Equal(t, matchable.ID, task.JobID)
+}
+
+func TestCreateTaskForRunnerLabelMatching(t *testing.T) {
+	t.Run("labeled runner matches job with empty runs_on", func(t *testing.T) {
+		require.NoError(t, unittest.PrepareTestDatabase())
+		job := newPickTestWaitingJob(t, newPickTestRun(t, 2001).ID, "j", nil, pickTestPayload)
+		runner := &ActionRunner{UUID: "r-empty-match", Name: "r-empty-match", RepoID: pickTestRepoID, AgentLabels: []string{"ubuntu-latest"}}
+		require.NoError(t, db.Insert(t.Context(), runner))
+
+		task, ok, err := CreateTaskForRunner(t.Context(), runner)
+		require.NoError(t, err)
+		require.True(t, ok)
+		assert.Equal(t, job.ID, task.JobID)
+	})
+
+	t.Run("runner without labels matches only jobs requiring none", func(t *testing.T) {
+		require.NoError(t, unittest.PrepareTestDatabase())
+		run := newPickTestRun(t, 2002)
+		labeled := newPickTestWaitingJob(t, run.ID, "labeled", []string{"ubuntu-latest"}, pickTestPayload)
+		unlabeled := newPickTestWaitingJob(t, run.ID, "unlabeled", nil, pickTestPayload)
+		runner := &ActionRunner{UUID: "r-no-labels", Name: "r-no-labels", RepoID: pickTestRepoID}
+		require.NoError(t, db.Insert(t.Context(), runner))
+
+		task, ok, err := CreateTaskForRunner(t.Context(), runner)
+		require.NoError(t, err)
+		require.True(t, ok)
+		assert.Equal(t, unlabeled.ID, task.JobID, "labeled job %d must not match a runner with no labels", labeled.ID)
+	})
+}
+
+func TestCreateTaskForRunnerFailsUnpreparableJob(t *testing.T) {
+	// A job whose payload won't parse must be failed and skipped, not abort the pick.
+	t.Run("unparsable job is failed and a later job is still assigned", func(t *testing.T) {
+		require.NoError(t, unittest.PrepareTestDatabase())
+		run := newPickTestRun(t, 3001)
+		bad := newPickTestWaitingJob(t, run.ID, "bad", []string{"ubuntu-latest"}, []byte("}{ not a workflow")) // older
+		good := newPickTestWaitingJob(t, run.ID, "good", []string{"ubuntu-latest"}, pickTestPayload)           // newer
+
+		runner := &ActionRunner{UUID: "r-parse-skip", Name: "r-parse-skip", RepoID: pickTestRepoID, AgentLabels: []string{"ubuntu-latest"}}
+		require.NoError(t, db.Insert(t.Context(), runner))
+
+		task, ok, err := CreateTaskForRunner(t.Context(), runner)
+		require.NoError(t, err)
+		require.True(t, ok)
+		assert.Equal(t, good.ID, task.JobID)
+
+		failed := unittest.AssertExistsAndLoadBean(t, &ActionRunJob{ID: bad.ID})
+		assert.Equal(t, StatusFailure, failed.Status, "unparsable job must be marked failed, not left waiting")
+	})
+
+	// #37586: a global runner can select a job whose run was deleted (repo-scoped
+	// runners filter those out via the run_id subquery). LoadAttributes then fails
+	// with not-exist, which must fail the job instead of stalling every poll forever.
+	t.Run("orphaned job (deleted run) is failed for a global runner", func(t *testing.T) {
+		require.NoError(t, unittest.PrepareTestDatabase())
+		// isolate the global runner from fixture waiting jobs
+		_, err := db.GetEngine(t.Context()).
+			Where(builder.In("status", StatusWaiting, StatusBlocked)).
+			Cols("status").Update(&ActionRunJob{Status: StatusCancelled})
+		require.NoError(t, err)
+
+		const missingRunID = 9_999_999
+		orphan := newPickTestWaitingJob(t, missingRunID, "orphan", []string{"ubuntu-latest"}, pickTestPayload)
+
+		runner := &ActionRunner{UUID: "r-global-orphan", Name: "r-global-orphan", AgentLabels: []string{"ubuntu-latest"}}
+		require.NoError(t, db.Insert(t.Context(), runner))
+
+		task, ok, err := CreateTaskForRunner(t.Context(), runner)
+		require.NoError(t, err)
+		assert.False(t, ok)
+		assert.Nil(t, task)
+
+		failed := unittest.AssertExistsAndLoadBean(t, &ActionRunJob{ID: orphan.ID})
+		assert.Equal(t, StatusFailure, failed.Status)
+	})
 }
 
 func TestTaskCancellingFinalizesToCancelled(t *testing.T) {
