@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"html"
 	"io"
+	"maps"
 	"net/http"
 	"net/url"
 	"sort"
@@ -288,9 +289,7 @@ func Oauth2SetLinkAccountData(ctx *context.Context, linkAccountData LinkAccountD
 	updates := map[string]any{
 		"linkAccountData": linkAccountData,
 	}
-	for k, v := range extra {
-		updates[k] = v
-	}
+	maps.Copy(updates, extra)
 	return updateSession(ctx, nil, updates)
 }
 
