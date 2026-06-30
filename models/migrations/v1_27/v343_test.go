@@ -11,12 +11,12 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-type packageBlobUploadBeforeV342 struct {
+type packageBlobUploadBeforeV343 struct {
 	ID            string `xorm:"pk"`
 	BytesReceived int64  `xorm:"NOT NULL DEFAULT 0"`
 }
 
-func (packageBlobUploadBeforeV342) TableName() string {
+func (packageBlobUploadBeforeV343) TableName() string {
 	return "package_blob_upload"
 }
 
