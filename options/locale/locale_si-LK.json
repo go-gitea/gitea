@@ -2162,5 +2162,7 @@
   "actions.runners.version": "අනුවාදය",
   "actions.runs.commit": "කැප",
   "actions.runs.summary": "සාරාංශය",
+  "actions.workflow.scope_owner": "හිමිකරු",
+  "actions.workflow.required": "ඇවැසිය",
   "actions.general.token_permissions.mode.restricted": "සීමා"
 }
