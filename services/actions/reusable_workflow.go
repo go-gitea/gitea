@@ -12,6 +12,7 @@ import (
 	perm_model "gitea.dev/models/perm"
 	access_model "gitea.dev/models/perm/access"
 	repo_model "gitea.dev/models/repo"
+	actions_module "gitea.dev/modules/actions"
 	"gitea.dev/modules/actions/jobparser"
 	"gitea.dev/modules/container"
 	"gitea.dev/modules/gitrepo"
@@ -59,6 +60,11 @@ func loadReusableWorkflowSource(ctx context.Context, run *actions_model.ActionRu
 			return nil, 0, "", err
 		}
 		if !ok {
+			if run.IsScopedRun {
+				// A scoped workflow's cross-repo "uses:" is resolved with the consuming repo's read permission,
+				// so the referenced repo must be readable by every consumer. Make that explicit in the failure.
+				return nil, 0, "", fmt.Errorf("no permission to read reusable workflow %s/%s: a scoped workflow's cross-repo \"uses:\" is resolved with the consuming repository %q read permission", ref.Owner, ref.Repo, run.Repo.RelativePath())
+			}
 			return nil, 0, "", fmt.Errorf("no permission to read reusable workflow from %s/%s", ref.Owner, ref.Repo)
 		}
 		bytes, resolvedSHA, err := readWorkflowFromRepo(ctx, repo, ref.Ref, ref.Path)
@@ -324,6 +330,7 @@ func insertCallerChildren(ctx context.Context, run *actions_model.ActionRun, att
 			AttemptJobID:            attemptJobID,
 			Needs:                   needs,
 			RunsOn:                  parsedChild.RunsOn(),
+			ContinueOnError:         parsedChild.GetContinueOnError(),
 			Status:                  actions_model.StatusBlocked,
 			ParentJobID:             caller.ID,
 			WorkflowSourceRepoID:    sourceRepoID,
@@ -357,5 +364,13 @@ func ResolveUses(ctx context.Context, uses string) (*jobparser.UsesRef, error) {
 		// RoutePath is the instance-relative path (AppSubURL already stripped), e.g. "/owner/repo/.gitea/workflows/file.yml@ref".
 		uses = strings.TrimPrefix(gsu.RoutePath, "/")
 	}
-	return jobparser.ParseUses(uses)
+	ref, err := jobparser.ParseUses(uses)
+	if err != nil {
+		return nil, err
+	}
+	// jobparser only validates syntax; enforce the (instance-configurable) directory allowlist here.
+	if !actions_module.IsWorkflowOrScopedWorkflow(ref.Path) {
+		return nil, fmt.Errorf(`"uses:" path %q must be under a configured workflow directory (WORKFLOW_DIRS or SCOPED_WORKFLOW_DIRS)`, ref.Path)
+	}
+	return ref, nil
 }

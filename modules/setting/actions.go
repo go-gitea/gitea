@@ -31,6 +31,7 @@ var (
 		AbandonedJobTimeout   time.Duration     `ini:"ABANDONED_JOB_TIMEOUT"`
 		SkipWorkflowStrings   []string          `ini:"SKIP_WORKFLOW_STRINGS"`
 		WorkflowDirs          []string          `ini:"WORKFLOW_DIRS"`
+		ScopedWorkflowDirs    []string          `ini:"SCOPED_WORKFLOW_DIRS"`
 		MaxRerunAttempts      int64             `ini:"MAX_RERUN_ATTEMPTS"`
 		// MaxConcurrentTaskPicks bounds how many runners may run the task-assignment
 		// transaction at once per Gitea instance, to avoid a thundering herd when many
@@ -41,6 +42,7 @@ var (
 		DefaultActionsURL:      defaultActionsURLGitHub,
 		SkipWorkflowStrings:    []string{"[skip ci]", "[ci skip]", "[no ci]", "[skip actions]", "[actions skip]"},
 		WorkflowDirs:           []string{".gitea/workflows", ".github/workflows"},
+		ScopedWorkflowDirs:     []string{".gitea/scoped_workflows"},
 		MaxRerunAttempts:       defaultMaxRerunAttempts,
 		MaxConcurrentTaskPicks: defaultMaxConcurrentTaskPicks,
 	}
@@ -141,20 +143,39 @@ func loadActionsFrom(rootCfg ConfigProvider) error {
 		return fmt.Errorf("invalid [actions] LOG_COMPRESSION: %q", Actions.LogCompression)
 	}
 
-	workflowDirs := make([]string, 0, len(Actions.WorkflowDirs))
-	for _, dir := range Actions.WorkflowDirs {
+	workflowDirs := normalizeWorkflowDirs(Actions.WorkflowDirs)
+	if len(workflowDirs) == 0 {
+		return errors.New("[actions] WORKFLOW_DIRS must contain at least one entry")
+	}
+	Actions.WorkflowDirs = workflowDirs
+
+	// SCOPED_WORKFLOW_DIRS may be empty (feature disabled), but it must not overlap with WORKFLOW_DIRS:
+	// a scoped dir nested in (or equal to) a workflow dir would make the same file run both repo-level and scope-level.
+	Actions.ScopedWorkflowDirs = normalizeWorkflowDirs(Actions.ScopedWorkflowDirs)
+	for _, scopedDir := range Actions.ScopedWorkflowDirs {
+		for _, workflowDir := range Actions.WorkflowDirs {
+			if scopedDir == workflowDir ||
+				strings.HasPrefix(scopedDir, workflowDir+"/") ||
+				strings.HasPrefix(workflowDir, scopedDir+"/") {
+				return fmt.Errorf("[actions] SCOPED_WORKFLOW_DIRS entry %q overlaps with WORKFLOW_DIRS entry %q", scopedDir, workflowDir)
+			}
+		}
+	}
+
+	return nil
+}
+
+// normalizeWorkflowDirs trims, normalizes separators and drops empty/trailing-slash entries.
+func normalizeWorkflowDirs(dirs []string) []string {
+	normalized := make([]string, 0, len(dirs))
+	for _, dir := range dirs {
 		dir = strings.TrimSpace(dir)
 		if dir == "" {
 			continue
 		}
 		dir = strings.ReplaceAll(dir, `\`, `/`)
 		dir = strings.TrimRight(dir, "/")
-		workflowDirs = append(workflowDirs, dir)
+		normalized = append(normalized, dir)
 	}
-	if len(workflowDirs) == 0 {
-		return errors.New("[actions] WORKFLOW_DIRS must contain at least one entry")
-	}
-	Actions.WorkflowDirs = workflowDirs
-
-	return nil
+	return normalized
 }

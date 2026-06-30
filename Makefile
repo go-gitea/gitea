@@ -18,7 +18,7 @@ GXZ_PACKAGE ?= github.com/ulikunitz/xz/cmd/gxz@v0.5.15 # renovate: datasource=go
 MISSPELL_PACKAGE ?= github.com/golangci/misspell/cmd/misspell@v0.8.0 # renovate: datasource=go
 SWAGGER_PACKAGE ?= github.com/go-swagger/go-swagger/cmd/swagger@v0.34.1 # renovate: datasource=go
 XGO_PACKAGE ?= src.techknowlogick.com/xgo@v1.9.0 # renovate: datasource=go
-GOVULNCHECK_PACKAGE ?= golang.org/x/vuln/cmd/govulncheck@v1.3.0 # renovate: datasource=go
+GOVULNCHECK_PACKAGE ?= golang.org/x/vuln/cmd/govulncheck@v1.4.0 # renovate: datasource=go
 ACTIONLINT_PACKAGE ?= github.com/rhysd/actionlint/cmd/actionlint@v1.7.12 # renovate: datasource=go
 SHELLCHECK_IMAGE ?= docker.io/koalaman/shellcheck:v0.11.0@sha256:61862eba1fcf09a484ebcc6feea46f1782532571a34ed51fedf90dd25f925a8d # renovate: datasource=docker
 
@@ -127,6 +127,7 @@ BINDATA_DEST_WILDCARD := modules/migration/bindata.* modules/public/bindata.* mo
 GENERATED_GO_DEST := modules/charset/invisible_gen.go modules/charset/ambiguous_gen.go
 
 SVG_DEST_DIR := public/assets/img/svg
+SVG_DEST_DIRS := $(SVG_DEST_DIR) options/fileicon
 
 AIR_TMP_DIR := .air
 
@@ -633,10 +634,10 @@ svg: node_modules ## build svg files
 
 .PHONY: svg-check
 svg-check: svg
-	@git add $(SVG_DEST_DIR)
-	@diff=$$(git diff --color=always --cached $(SVG_DEST_DIR)); \
+	@git add $(SVG_DEST_DIRS)
+	@diff=$$(git diff --color=always --cached $(SVG_DEST_DIRS)); \
 	if [ -n "$$diff" ]; then \
-		echo "Please run 'make svg' and 'git add $(SVG_DEST_DIR)' and commit the result:"; \
+		echo "Please run 'make svg' and 'git add $(SVG_DEST_DIRS)' and commit the result:"; \
 		printf "%s" "$${diff}"; \
 		exit 1; \
 	fi

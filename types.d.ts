@@ -1,16 +1,4 @@
-declare module 'eslint-plugin-no-use-extend-native' {
-  import type {Eslint} from 'eslint';
-  const plugin: Eslint.Plugin;
-  export = plugin;
-}
-
 declare module 'eslint-plugin-array-func' {
-  import type {Eslint} from 'eslint';
-  const plugin: Eslint.Plugin;
-  export = plugin;
-}
-
-declare module 'eslint-plugin-github' {
   import type {Eslint} from 'eslint';
   const plugin: Eslint.Plugin;
   export = plugin;
@@ -30,10 +18,6 @@ declare module '*.vue' {
   import type {DefineComponent} from 'vue';
   const component: DefineComponent<unknown, unknown, any>;
   export default component;
-  // Here we declare all exports from vue files so `tsc` or `tsgo` can work for
-  // non-vue files. To lint .vue files, `vue-tsc` must be used.
-  export function initDashboardRepoList(): void;
-  export function initRepositoryActionView(): void;
 }
 
 declare module 'idiomorph' {
@@ -46,14 +30,6 @@ declare module 'idiomorph' {
 declare module 'swagger-ui-dist/swagger-ui-es-bundle.js' {
   const value = await import('swagger-ui-dist');
   export default value.SwaggerUIBundle;
-}
-
-declare module 'asciinema-player' {
-  interface AsciinemaPlayer {
-    create(src: string | {data: string}, element: HTMLElement, options?: Record<string, unknown>): void;
-  }
-  const exports: AsciinemaPlayer;
-  export = exports;
 }
 
 declare module '@citation-js/core' {
@@ -88,16 +64,4 @@ declare module 'vue-bar-graph' {
     height?: number;
     labelHeight?: number;
   }>;
-}
-
-declare module '@mcaptcha/vanilla-glue' {
-  export let INPUT_NAME: string;
-  export default class Widget {
-    constructor(options: {
-      siteKey: {
-        instanceUrl: URL;
-        key: string;
-      };
-    });
-  }
 }

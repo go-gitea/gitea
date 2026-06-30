@@ -1,6 +1,8 @@
 // Copyright 2021 The Gitea Authors. All rights reserved.
 // SPDX-License-Identifier: MIT
 
+//go:build !gogit
+
 package git
 
 import (
@@ -18,10 +20,8 @@ import (
 	"gitea.dev/modules/log"
 )
 
-// LogNameStatusRepo opens git log --raw in the provided repo and returns a stdin pipe, a stdout reader and cancel function
-func LogNameStatusRepo(ctx context.Context, repository, head, treepath string, paths ...string) (*bufio.Reader, func()) {
-	// Lets also create a context so that we can absolutely ensure that the command should die when we're done
-
+// logNameStatusRepo opens git log --raw in the provided repo and returns a parser
+func logNameStatusRepo(ctx context.Context, repository, head, treepath string, paths ...string) *logNameStatusRepoParser {
 	cmd := gitcmd.NewCommand()
 	cmd.AddArguments("log", "--name-status", "-c", "--format=commit%x00%H %P%x00", "--parents", "--no-renames", "-t", "-z").AddDynamicArguments(head)
 
@@ -54,77 +54,62 @@ func LogNameStatusRepo(ctx context.Context, repository, head, treepath string, p
 	ctx, ctxCancel := context.WithCancel(ctx)
 	go func() {
 		err := cmd.WithDir(repository).RunWithStderr(ctx)
-		if err != nil && !errors.Is(err, context.Canceled) {
+		if err != nil && !errors.Is(err, context.Canceled) && !errors.Is(err, context.DeadlineExceeded) {
 			log.Error("Unable to run git command %v: %v", cmd.LogString(), err)
 		}
 	}()
 
 	bufReader := bufio.NewReaderSize(stdoutReader, 32*1024)
-
-	return bufReader, func() {
-		ctxCancel()
-		stdoutReaderClose()
+	return &logNameStatusRepoParser{
+		treepath: treepath,
+		paths:    paths,
+		rd:       bufReader,
+		close: func() {
+			ctxCancel()
+			stdoutReaderClose()
+		},
 	}
 }
 
-// LogNameStatusRepoParser parses a git log raw output from LogRawRepo
-type LogNameStatusRepoParser struct {
+// logNameStatusRepoParser parses a git log raw output from LogRawRepo
+type logNameStatusRepoParser struct {
 	treepath string
 	paths    []string
 	next     []byte
 	buffull  bool
 	rd       *bufio.Reader
-	cancel   func()
+	close    func()
 }
 
-// NewLogNameStatusRepoParser returns a new parser for a git log raw output
-func NewLogNameStatusRepoParser(ctx context.Context, repository, head, treepath string, paths ...string) *LogNameStatusRepoParser {
-	rd, cancel := LogNameStatusRepo(ctx, repository, head, treepath, paths...)
-	return &LogNameStatusRepoParser{
-		treepath: treepath,
-		paths:    paths,
-		rd:       rd,
-		cancel:   cancel,
-	}
-}
-
-// LogNameStatusCommitData represents a commit artefact from git log raw
-type LogNameStatusCommitData struct {
+// logNameStatusCommitData represents a commit artifact from git log raw
+type logNameStatusCommitData struct {
 	CommitID  string
 	ParentIDs []string
 	Paths     []bool
 }
 
-// Next returns the next LogStatusCommitData
-func (g *LogNameStatusRepoParser) Next(treepath string, paths2ids map[string]int, changed []bool, maxpathlen int) (*LogNameStatusCommitData, error) {
+// walkNext returns the next LogStatusCommitData
+func (g *logNameStatusRepoParser) walkNext(treepath string, paths2ids map[string]int, changed []bool, maxpathlen int) (*logNameStatusCommitData, error) {
 	var err error
 	if len(g.next) == 0 {
 		g.buffull = false
 		g.next, err = g.rd.ReadSlice('\x00')
-		if err != nil {
-			switch err {
-			case bufio.ErrBufferFull:
-				g.buffull = true
-			case io.EOF:
-				return nil, nil //nolint:nilnil // return nil to signal EOF
-			default:
-				return nil, err
-			}
+		switch {
+		case errors.Is(err, bufio.ErrBufferFull):
+			g.buffull = true
+		case err != nil:
+			return nil, err
 		}
 	}
 
-	ret := LogNameStatusCommitData{}
+	ret := logNameStatusCommitData{}
 	if bytes.Equal(g.next, []byte("commit\000")) {
 		g.next, err = g.rd.ReadSlice('\x00')
-		if err != nil {
-			switch err {
-			case bufio.ErrBufferFull:
-				g.buffull = true
-			case io.EOF:
-				return nil, nil //nolint:nilnil // return nil to signal EOF
-			default:
-				return nil, err
-			}
+		switch {
+		case errors.Is(err, bufio.ErrBufferFull):
+			g.buffull = true
+		case err != nil:
+			return nil, err
 		}
 	}
 
@@ -273,13 +258,10 @@ diffloop:
 	}
 }
 
-// Close closes the parser
-func (g *LogNameStatusRepoParser) Close() {
-	g.cancel()
-}
+var walkGitLogDebugBeforeNext func() // is used to simulate various edge git process cases
 
-// WalkGitLog walks the git log --name-status for the head commit in the provided treepath and files
-func WalkGitLog(ctx context.Context, repo *Repository, head *Commit, treepath string, paths ...string) (map[string]string, error) {
+// walkGitLog walks the git log --name-status for the head commit in the provided treepath and files
+func walkGitLog(ctx context.Context, repo *Repository, head *Commit, treepath string, paths ...string) (map[string]string, error) {
 	headRef := head.ID.String()
 
 	tree, err := head.SubTree(treepath)
@@ -322,11 +304,9 @@ func WalkGitLog(ctx context.Context, repo *Repository, head *Commit, treepath st
 		}
 	}
 
-	g := NewLogNameStatusRepoParser(ctx, repo.Path, head.ID.String(), treepath, paths...)
-	// don't use defer g.Close() here as g may change its value - instead wrap in a func
-	defer func() {
-		g.Close()
-	}()
+	g := logNameStatusRepo(ctx, repo.Path, head.ID.String(), treepath, paths...)
+	// don't use defer g.cancel() here as g may change its value - instead wrap in a func
+	defer func() { g.close() }()
 
 	results := make([]string, len(paths))
 	remaining := len(paths)
@@ -340,25 +320,16 @@ func WalkGitLog(ctx context.Context, repo *Repository, head *Commit, treepath st
 
 heaploop:
 	for {
-		select {
-		case <-ctx.Done():
-			if ctx.Err() == context.DeadlineExceeded {
-				break heaploop
-			}
-			g.Close()
-			return nil, ctx.Err()
-		default:
+		if walkGitLogDebugBeforeNext != nil {
+			walkGitLogDebugBeforeNext()
 		}
-		current, err := g.Next(treepath, path2idx, changed, maxpathlen)
-		if err != nil {
-			if errors.Is(err, context.DeadlineExceeded) {
-				break heaploop
-			}
-			g.Close()
-			return nil, err
-		}
-		if current == nil {
-			break heaploop
+		current, err := g.walkNext(treepath, path2idx, changed, maxpathlen)
+		if ctx.Err() != nil {
+			break heaploop // context is either canceled or deadline exceeded - break the loop and return what we have so far
+		} else if errors.Is(err, io.EOF) {
+			break heaploop // reached to the end of log output
+		} else if err != nil {
+			return nil, err // other unknown errors
 		}
 		parentRemaining.Remove(current.CommitID)
 		for i, found := range current.Paths {
@@ -395,14 +366,14 @@ heaploop:
 		if remaining <= nextRestart {
 			commitSinceNextRestart++
 			if 4*commitSinceNextRestart > 3*commitSinceLastEmptyParent {
-				g.Close()
 				remainingPaths := make([]string, 0, len(paths))
 				for i, pth := range paths {
 					if results[i] == "" {
 						remainingPaths = append(remainingPaths, pth)
 					}
 				}
-				g = NewLogNameStatusRepoParser(ctx, repo.Path, lastEmptyParent, treepath, remainingPaths...)
+				g.close()
+				g = logNameStatusRepo(ctx, repo.Path, lastEmptyParent, treepath, remainingPaths...)
 				parentRemaining = make(container.Set[string])
 				nextRestart = (remaining * 3) / 4
 				continue heaploop
@@ -410,7 +381,6 @@ heaploop:
 		}
 		parentRemaining.AddMultiple(current.ParentIDs...)
 	}
-	g.Close()
 
 	resultsMap := map[string]string{}
 	for i, pth := range paths {

@@ -72,7 +72,7 @@ func TestCreateCommitStatus_Dedupe(t *testing.T) {
 	expectedContext := "status-dedupe-test.yaml / status-dedupe-job (push)"
 	expectedTargetURL := run.Link() + "/jobs/99002"
 
-	require.NoError(t, createCommitStatus(t.Context(), repo, "push", commit.ID.String(), run, job))
+	require.NoError(t, createCommitStatus(t.Context(), repo, "push", commit.ID.String(), "", run, job))
 
 	statuses := findCommitStatusesForContext(t, repo.ID, commit.ID.String(), expectedContext)
 	require.Len(t, statuses, 1)
@@ -81,7 +81,7 @@ func TestCreateCommitStatus_Dedupe(t *testing.T) {
 	assert.Equal(t, expectedTargetURL, statuses[0].TargetURL)
 
 	job.Status = actions_model.StatusRunning
-	require.NoError(t, createCommitStatus(t.Context(), repo, "push", commit.ID.String(), run, job))
+	require.NoError(t, createCommitStatus(t.Context(), repo, "push", commit.ID.String(), "", run, job))
 
 	statuses = findCommitStatusesForContext(t, repo.ID, commit.ID.String(), expectedContext)
 	require.Len(t, statuses, 2)
@@ -90,12 +90,12 @@ func TestCreateCommitStatus_Dedupe(t *testing.T) {
 	assert.Equal(t, "In progress", statuses[1].Description)
 	assert.Equal(t, expectedTargetURL, statuses[1].TargetURL)
 
-	require.NoError(t, createCommitStatus(t.Context(), repo, "push", commit.ID.String(), run, job))
+	require.NoError(t, createCommitStatus(t.Context(), repo, "push", commit.ID.String(), "", run, job))
 	statuses = findCommitStatusesForContext(t, repo.ID, commit.ID.String(), expectedContext)
 	assert.Len(t, statuses, 2)
 
 	job.Status = actions_model.StatusSuccess
-	require.NoError(t, createCommitStatus(t.Context(), repo, "push", commit.ID.String(), run, job))
+	require.NoError(t, createCommitStatus(t.Context(), repo, "push", commit.ID.String(), "", run, job))
 	statuses = findCommitStatusesForContext(t, repo.ID, commit.ID.String(), expectedContext)
 	require.Len(t, statuses, 3)
 	assert.Equal(t, commitstatus.CommitStatusSuccess, statuses[2].State)
@@ -126,7 +126,7 @@ func TestGetCommitActionsStatusMap(t *testing.T) {
 			RunID: run.ID, RepoID: repo.ID, OwnerID: repo.OwnerID, Name: tc.jobName, Status: tc.status,
 		}
 		require.NoError(t, db.Insert(t.Context(), job))
-		require.NoError(t, createCommitStatus(t.Context(), repo, "push", branch.CommitID, run, job))
+		require.NoError(t, createCommitStatus(t.Context(), repo, "push", branch.CommitID, "", run, job))
 	}
 
 	statuses, err := git_model.GetLatestCommitStatus(t.Context(), repo.ID, branch.CommitID, db.ListOptionsAll)
@@ -185,7 +185,7 @@ jobs:
 			WorkflowPayload: payload,
 		}
 		require.NoError(t, db.Insert(t.Context(), job))
-		require.NoError(t, createCommitStatus(t.Context(), repo, "pull_request", branch.CommitID, run, job))
+		require.NoError(t, createCommitStatus(t.Context(), repo, "pull_request", branch.CommitID, "", run, job))
 	}
 
 	statuses, err := git_model.GetLatestCommitStatus(t.Context(), repo.ID, branch.CommitID, db.ListOptionsAll)
@@ -242,7 +242,7 @@ func TestCreateCommitStatus_LegacyHashRecovery(t *testing.T) {
 		Name: "my-job", Status: actions_model.StatusSuccess,
 	}
 	require.NoError(t, db.Insert(t.Context(), job))
-	require.NoError(t, createCommitStatus(t.Context(), repo, "push", branch.CommitID, run, job))
+	require.NoError(t, createCommitStatus(t.Context(), repo, "push", branch.CommitID, "", run, job))
 
 	latest, err := git_model.GetLatestCommitStatus(t.Context(), repo.ID, branch.CommitID, db.ListOptionsAll)
 	require.NoError(t, err)
@@ -292,12 +292,73 @@ func TestCreateCommitStatus_UnnamedWorkflowUsesFileName(t *testing.T) {
 `),
 		}
 		require.NoError(t, db.Insert(t.Context(), job))
-		require.NoError(t, createCommitStatus(t.Context(), repo, "push", branch.CommitID, run, job))
+		require.NoError(t, createCommitStatus(t.Context(), repo, "push", branch.CommitID, "", run, job))
 
 		statuses := findCommitStatusesForContext(t, repo.ID, branch.CommitID, tc.workflowID+" / my-test (push)")
 		require.Len(t, statuses, 1)
 		assert.Equal(t, commitstatus.CommitStatusPending, statuses[0].State)
 	}
+}
+
+// TestCreateCommitStatus_ScopedSourcePrefix: a scoped run's commit status Context is prefixed with the source repo's full name,
+// so it is distinct (display AND hash) from a same-named repo-level workflow.
+func TestCreateCommitStatus_ScopedSourcePrefix(t *testing.T) {
+	assert.NoError(t, unittest.PrepareTestDatabase())
+
+	consumer := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 4})
+	source := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
+	branch := unittest.AssertExistsAndLoadBean(t, &git_model.Branch{RepoID: consumer.ID, Name: consumer.DefaultBranch})
+
+	payload := []byte(`name: ci
+on: push
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo hi
+`)
+
+	// A repo-level run and a scoped run share the same workflow name and job name;
+	// only the scoped one points its content source at another repo (WorkflowRepoID=source.ID, IsScopedRun=true).
+	for _, spec := range []struct {
+		runID, jobID int64
+		scoped       bool
+	}{
+		{99501, 99511, false},
+		{99502, 99512, true},
+	} {
+		workflowRepoID := consumer.ID
+		if spec.scoped {
+			workflowRepoID = source.ID
+		}
+		run := &actions_model.ActionRun{
+			ID: spec.runID, Index: spec.runID, RepoID: consumer.ID, Repo: consumer, OwnerID: consumer.OwnerID, TriggerUserID: consumer.OwnerID,
+			WorkflowID: "ci.yaml", CommitSHA: branch.CommitID,
+			WorkflowRepoID: workflowRepoID, WorkflowCommitSHA: branch.CommitID, IsScopedRun: spec.scoped,
+		}
+		require.NoError(t, db.Insert(t.Context(), run))
+		job := &actions_model.ActionRunJob{
+			ID: spec.jobID, RunID: run.ID, RepoID: consumer.ID, OwnerID: consumer.OwnerID,
+			Name: "build", Status: actions_model.StatusWaiting, WorkflowPayload: payload,
+		}
+		require.NoError(t, db.Insert(t.Context(), job))
+		// mirror CreateCommitStatusForRunJobs: compute the scoped prefix once per run
+		scopedPrefix := ""
+		if run.IsScopedRun {
+			scopedPrefix = actions_model.ScopedStatusContextPrefix(t.Context(), run.WorkflowRepoID)
+		}
+		require.NoError(t, createCommitStatus(t.Context(), consumer, "push", branch.CommitID, scopedPrefix, run, job))
+	}
+
+	// repo-level Context is the bare "<display name> / <job> (<event>)"; the scoped one is the same but sets off the source repo with a colon,
+	// so the two stay distinct (and have different hashes) despite the same `name:`.
+	repoStatuses := findCommitStatusesForContext(t, consumer.ID, branch.CommitID, "ci / build (push)")
+	require.Len(t, repoStatuses, 1)
+	scopedStatuses := findCommitStatusesForContext(t, consumer.ID, branch.CommitID, source.FullName()+": ci / build (push)")
+	require.Len(t, scopedStatuses, 1)
+
+	assert.NotEqual(t, repoStatuses[0].ContextHash, scopedStatuses[0].ContextHash,
+		"scoped status must not collide with the same-named repo-level workflow")
 }
 
 func findCommitStatusesForContext(t *testing.T, repoID int64, sha, context string) []*git_model.CommitStatus {
