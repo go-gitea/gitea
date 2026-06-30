@@ -73,7 +73,11 @@
       "postUpdateOptions": ["gomodUpdateImportPaths"],
       "postUpgradeTasks": {
         "commands": ["make tidy"],
-        "fileFilters": ["go.mod", "go.sum", "assets/go-licenses.json"],
+        "fileFilters": [
+          "go.mod",
+          "go.sum",
+          "assets/go-licenses.json",
+        ],
         "executionMode": "branch",
       },
     },
@@ -95,8 +99,15 @@
       "matchManagers": ["npm"],
       "postUpdateOptions": ["pnpmDedupe"],
       "postUpgradeTasks": {
-        "commands": ["make svg"],
-        "fileFilters": ["package.json", "pnpm-lock.yaml", "pnpm-workspace.yaml", "public/assets/img/svg/**", "options/fileicon/**"],
+        "commands": ["make svg", "make generate-codemirror-languages"],
+        "fileFilters": [
+          "package.json",
+          "pnpm-lock.yaml",
+          "pnpm-workspace.yaml",
+          "public/assets/img/svg/**",
+          "options/fileicon/**",
+          "assets/codemirror-languages.json",
+        ],
         "executionMode": "branch",
       },
     },
