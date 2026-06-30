@@ -25,6 +25,7 @@ import (
 	"gitea.dev/modules/setting"
 	"gitea.dev/modules/templates"
 	"gitea.dev/modules/timeutil"
+	"gitea.dev/modules/typesniffer"
 	"gitea.dev/modules/util"
 	"gitea.dev/modules/web"
 	"gitea.dev/routers/web/repo/actions"
@@ -673,7 +674,7 @@ func MockActionsArtifactPreviewRaw(ctx *context.Context) {
 		return
 	}
 
-	contentType := "text/plain; charset=utf-8"
+	contentType := typesniffer.DetectContentType([]byte(selectedFile.Content)).GetMimeType()
 	contentSecurityPolicy := ""
 	if path.Ext(selectedFile.Path) == ".html" {
 		contentType = "text/html"

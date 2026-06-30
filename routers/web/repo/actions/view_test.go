@@ -13,6 +13,7 @@ import (
 	api "gitea.dev/modules/structs"
 	"gitea.dev/modules/timeutil"
 	"gitea.dev/modules/translation"
+	"gitea.dev/modules/typesniffer"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -208,6 +209,21 @@ func TestLimitArtifactPreviewPathsKeepsSelectedPath(t *testing.T) {
 	require.True(t, truncated)
 	require.Len(t, limited, artifactPreviewMaxFiles)
 	assert.Contains(t, limited, selectedPath)
+}
+
+func TestNormalizeArtifactPreviewPath(t *testing.T) {
+	assert.Empty(t, normalizeArtifactPreviewPath("."))
+	assert.Empty(t, normalizeArtifactPreviewPath("./"))
+	assert.Equal(t, "report/index.html", normalizeArtifactPreviewPath("./report/index.html"))
+}
+
+func TestArtifactPreviewContentTypeUsesPreviewableExtensions(t *testing.T) {
+	sniffedText := typesniffer.FromContentType("text/plain; charset=utf-8")
+
+	assert.Equal(t, "text/html; charset=utf-8", artifactPreviewContentType("index.html", sniffedText))
+	assert.Equal(t, "text/html; charset=utf-8", artifactPreviewContentType("index.htm", sniffedText))
+	assert.Equal(t, "text/css; charset=utf-8", artifactPreviewContentType("style.css", sniffedText))
+	assert.Equal(t, "text/plain", artifactPreviewContentType("output.txt", sniffedText))
 }
 
 func TestConvertToViewModelCancellingTaskDoesNotRenderRunningSteps(t *testing.T) {

@@ -404,7 +404,7 @@ func isPreviewableArtifactType(st typesniffer.SniffedType) bool {
 
 func artifactPreviewContentType(filename string, st typesniffer.SniffedType) string {
 	switch strings.ToLower(pathpkg.Ext(filename)) {
-	case ".css", ".js", ".mjs":
+	case ".css", ".htm", ".html", ".js", ".mjs":
 		if contentType := mime.TypeByExtension(pathpkg.Ext(filename)); contentType != "" {
 			return contentType
 		}
