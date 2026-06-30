@@ -67,8 +67,7 @@ func DeleteActionRunJobLabelsByRepoID(ctx context.Context, repoID int64) error {
 }
 
 func deleteActionRunJobLabels(ctx context.Context, repoID, runID int64) error {
-	jobWhere := builder.NewCond()
-	jobWhere = builder.Eq{"repo_id": repoID}
+	jobWhere := builder.Cond(builder.Eq{"repo_id": repoID})
 	if runID != 0 {
 		jobWhere = jobWhere.And(builder.Eq{"run_id": runID})
 	}

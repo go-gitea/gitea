@@ -189,7 +189,11 @@ func assignJobToRunner(ctx context.Context, runner *ActionRunner, job *ActionRun
 	}
 
 	job.TaskID = task.ID
-	if _, err := UpdateRunJob(ctx, job, builder.Eq{"task_id": 0, "status": StatusRunning}, "task_id"); err != nil {
+	// Persist "status"/"started" alongside task_id (no-op values, already set by
+	// claimWaitingJob) so UpdateRunJob re-aggregates the attempt/run status to
+	// running. Without it the run stays "waiting", which leaves stale run status
+	// and lets run-level concurrency admit jobs it should block.
+	if _, err := UpdateRunJob(ctx, job, builder.Eq{"task_id": 0, "status": StatusRunning}, "task_id", "status", "started"); err != nil {
 		return nil, err
 	}
 
