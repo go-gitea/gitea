@@ -434,6 +434,8 @@ func handleFilteredWorkflows(
 			EventPayload:      string(p),
 			TriggerEvent:      dwf.TriggerEvent.Name,
 			Status:            actions_model.StatusSkipped,
+			WorkflowRepoID:    input.Repo.ID,
+			WorkflowCommitSHA: commit.ID.String(),
 		}
 
 		if err := PrepareRunAndInsert(ctx, dwf.Content, run, nil); err != nil {

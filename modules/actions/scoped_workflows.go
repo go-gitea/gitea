@@ -70,7 +70,7 @@ func MatchScopedWorkflows(
 				// schedule is a non-target for scoped workflows
 				continue
 			}
-			if detectMatched(consumerGitRepo, consumerCommit, triggedEvent, payload, evt) {
+			if detectWorkflowMatch(consumerGitRepo, consumerCommit, triggedEvent, payload, evt) == detectMatched {
 				workflows = append(workflows, &DetectedWorkflow{
 					EntryName:    p.EntryName,
 					TriggerEvent: evt,
