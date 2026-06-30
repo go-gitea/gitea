@@ -51,8 +51,6 @@ cpu.out
 /modules/templates/bindata.*
 
 *.db
-*.db-shm
-*.db-wal
 *.log
 *.log.*.gz
 

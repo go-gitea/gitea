@@ -129,8 +129,9 @@ func DownloadRedirect(ctx *context.Context) {
 		return
 	}
 
-	pv, err := packages_model.GetVersionByNameAndVersion(ctx, ctx.Package.Owner.ID, packages_model.TypeTerraformModule, packageName(name, provider), v)
-	if err != nil {
+	// Confirm the version exists (404 otherwise). The archive endpoint
+	// re-resolves the file, so the version record itself is not needed here.
+	if _, err := packages_model.GetVersionByNameAndVersion(ctx, ctx.Package.Owner.ID, packages_model.TypeTerraformModule, packageName(name, provider), v); err != nil {
 		if errors.Is(err, packages_model.ErrPackageNotExist) {
 			apiError(ctx, http.StatusNotFound, err)
 			return
@@ -138,7 +139,6 @@ func DownloadRedirect(ctx *context.Context) {
 		apiError(ctx, http.StatusInternalServerError, err)
 		return
 	}
-	_ = pv // existence is enough; the archive endpoint re-resolves the file.
 
 	// Stored archives are always flat (the module at the root), so we serve
 	// the bare archive endpoint. The URL has no file extension, hence the
@@ -239,20 +239,26 @@ func UploadModule(ctx *context.Context) {
 
 	// Normalize a wrapped archive (a single top-level directory, e.g. a
 	// GitHub release tarball) to a flat layout so the registry stores and
-	// serves one standard format. Flat uploads are stored verbatim.
+	// serves one standard format. Flat uploads are stored verbatim. The
+	// hashed buffer spills to disk past its memory threshold, so the
+	// rewritten archive is never fully held in memory.
 	storeBuf := buf
 	if module.RootDir != "" {
-		pr, pw := io.Pipe()
-		go func() {
-			_ = pw.CloseWithError(tfmod.NormalizeArchive(pw, buf, module.RootDir))
-		}()
-		normBuf, err := packages_module.CreateHashedBufferFromReader(pr)
+		normBuf, err := packages_module.NewHashedBuffer()
 		if err != nil {
-			log.Error("terraform_module: normalize archive: %v", err)
 			apiError(ctx, http.StatusInternalServerError, err)
 			return
 		}
 		defer normBuf.Close()
+		if err := tfmod.NormalizeArchive(normBuf, buf, module.RootDir); err != nil {
+			log.Error("terraform_module: normalize archive: %v", err)
+			apiError(ctx, http.StatusInternalServerError, err)
+			return
+		}
+		if _, err := normBuf.Seek(0, io.SeekStart); err != nil {
+			apiError(ctx, http.StatusInternalServerError, err)
+			return
+		}
 		storeBuf = normBuf
 	}
 
