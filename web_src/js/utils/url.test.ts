@@ -1,4 +1,4 @@
-import {linkifyURLs, pathEscape, pathEscapeSegments, urlQueryEscape} from './url.ts';
+import {pathEscape, pathEscapeSegments, trimUrlPunctuation, urlQueryEscape, urlRawRegex} from './url.ts';
 
 describe('escape', () => {
   const queryNonAscii = " !\"#$%&'()*+,-./:;<=>?@[\\]^_`{|}~";
@@ -19,29 +19,36 @@ describe('escape', () => {
   });
 });
 
-test('linkifyURLs', () => {
-  const link = (url: string) => `<a href="${url}" target="_blank">${url}</a>`;
-  expect(linkifyURLs('https://example.com')).toEqual(link('https://example.com'));
-  expect(linkifyURLs('https://dl.google.com/go/go1.23.6.linux-amd64.tar.gz')).toEqual(link('https://dl.google.com/go/go1.23.6.linux-amd64.tar.gz'));
-  expect(linkifyURLs('https://example.com/path?query=1&amp;b=2#frag')).toEqual(link('https://example.com/path?query=1&amp;b=2#frag'));
-  expect(linkifyURLs('visit https://example.com/repo for info')).toEqual(`visit ${link('https://example.com/repo')} for info`);
-  expect(linkifyURLs('See https://example.com.')).toEqual(`See ${link('https://example.com')}.`);
-  expect(linkifyURLs('https://example.com, and more')).toEqual(`${link('https://example.com')}, and more`);
-  expect(linkifyURLs('<span class="ansi-green-fg">https://proxy.golang.org/cached-only</span>')).toEqual(`<span class="ansi-green-fg">${link('https://proxy.golang.org/cached-only')}</span>`);
-  expect(linkifyURLs('<span style="color:rgb(0,255,0)">https://registry.npmjs.org/@types/node</span>')).toEqual(`<span style="color:rgb(0,255,0)">${link('https://registry.npmjs.org/@types/node')}</span>`);
-  expect(linkifyURLs('https://a.com and https://b.org')).toEqual(`${link('https://a.com')} and ${link('https://b.org')}`);
-  expect(linkifyURLs('no urls here')).toEqual('no urls here');
-  expect(linkifyURLs('http://example.com/path')).toEqual(link('http://example.com/path'));
-  expect(linkifyURLs('http://localhost:3000/repo')).toEqual(link('http://localhost:3000/repo'));
-  expect(linkifyURLs('https://')).toEqual('https://');
-  expect(linkifyURLs('<a href="https://example.com">Click here</a>')).toEqual('<a href="https://example.com">Click here</a>');
-  expect(linkifyURLs('<a\nhref="https://example.com">Click here</a>')).toEqual('<a\nhref="https://example.com">Click here</a>');
-  expect(linkifyURLs('<a href="https://example.com">https://example.com</a>')).toEqual('<a href="https://example.com">https://example.com</a>');
-  expect(linkifyURLs('https://evil.com/<script>alert(1)</script>')).toEqual(`${link('https://evil.com/')}<script>alert(1)</script>`);
-  expect(linkifyURLs('https://evil.com/"onmouseover="alert(1)')).toEqual(`${link('https://evil.com/')}"onmouseover="alert(1)`);
-  expect(linkifyURLs('javascript:alert(1)')).toEqual('javascript:alert(1)'); // eslint-disable-line no-script-url
-  expect(linkifyURLs("https://evil.com/'onclick='alert(1)")).toEqual(`${link('https://evil.com/')}'onclick='alert(1)`);
-  expect(linkifyURLs('data:text/html,<script>alert(1)</script>')).toEqual('data:text/html,<script>alert(1)</script>');
-  expect(linkifyURLs('https://evil.com/\nonclick=alert(1)')).toEqual(`${link('https://evil.com/')}\nonclick=alert(1)`);
-  expect(linkifyURLs('https://evil.com/&#34;onmouseover=alert(1)')).toEqual(`${link('https://evil.com/&#34;onmouseover=alert')}(1)`);
+test('matchUrls', () => {
+  const matchUrls = (text: string) => Array.from(text.matchAll(urlRawRegex()), (m) => trimUrlPunctuation(m[0]));
+  expect(matchUrls('visit https://example.com for info')).toEqual(['https://example.com']);
+  expect(matchUrls('see https://example.com.')).toEqual(['https://example.com']);
+  expect(matchUrls('see https://example.com, and')).toEqual(['https://example.com']);
+  expect(matchUrls('see https://example.com; and')).toEqual(['https://example.com']);
+  expect(matchUrls('(https://example.com)')).toEqual(['https://example.com']);
+  expect(matchUrls('"https://example.com"')).toEqual(['https://example.com']);
+  expect(matchUrls('https://example.com/path?q=1&b=2#hash')).toEqual(['https://example.com/path?q=1&b=2#hash']);
+  expect(matchUrls('https://example.com/path?q=1&b=2#hash.')).toEqual(['https://example.com/path?q=1&b=2#hash']);
+  expect(matchUrls('https://x.co')).toEqual(['https://x.co']);
+  expect(matchUrls('https://example.com/path_(wiki)')).toEqual(['https://example.com/path_(wiki)']);
+  expect(matchUrls('https://en.wikipedia.org/wiki/Rust_(programming_language)')).toEqual(['https://en.wikipedia.org/wiki/Rust_(programming_language)']);
+  expect(matchUrls('(https://en.wikipedia.org/wiki/Rust_(programming_language))')).toEqual(['https://en.wikipedia.org/wiki/Rust_(programming_language)']);
+  expect(matchUrls('http://example.com')).toEqual(['http://example.com']);
+  expect(matchUrls('no url here')).toEqual([]);
+  expect(matchUrls('https://a.com and https://b.com')).toEqual(['https://a.com', 'https://b.com']);
+  expect(matchUrls('[![](https://img.shields.io/npm/v/pkg.svg?style=flat)](https://www.npmjs.org/package/pkg)')).toEqual(['https://img.shields.io/npm/v/pkg.svg?style=flat', 'https://www.npmjs.org/package/pkg']);
+});
+
+test('trimUrlPunctuation', () => {
+  expect(trimUrlPunctuation('https://example.com.')).toEqual('https://example.com');
+  expect(trimUrlPunctuation('https://example.com,')).toEqual('https://example.com');
+  expect(trimUrlPunctuation('https://example.com;')).toEqual('https://example.com');
+  expect(trimUrlPunctuation('https://example.com:')).toEqual('https://example.com');
+  expect(trimUrlPunctuation("https://example.com'")).toEqual('https://example.com');
+  expect(trimUrlPunctuation('https://example.com"')).toEqual('https://example.com');
+  expect(trimUrlPunctuation('https://example.com.,;')).toEqual('https://example.com');
+  expect(trimUrlPunctuation('https://example.com/path')).toEqual('https://example.com/path');
+  expect(trimUrlPunctuation('https://example.com/path_(wiki)')).toEqual('https://example.com/path_(wiki)');
+  expect(trimUrlPunctuation('https://example.com)')).toEqual('https://example.com');
+  expect(trimUrlPunctuation('https://en.wikipedia.org/wiki/Rust_(lang))')).toEqual('https://en.wikipedia.org/wiki/Rust_(lang)');
 });
