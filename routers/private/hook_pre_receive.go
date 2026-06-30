@@ -280,6 +280,17 @@ func preReceiveBranch(ctx *preReceiveContext, oldCommitID, newCommitID string, r
 		} else {
 			canPush = !changedProtectedfiles && protectBranch.CanPush && (!protectBranch.EnableWhitelist || protectBranch.WhitelistDeployKeys)
 		}
+	} else if ctx.opts.UserID == user_model.ActionsUserID {
+		// The Actions bot is a virtual user with no DB row and cannot be on a whitelist, so
+		// evaluate its push against the token's computed permission (already loaded above).
+		if !ctx.loadPusherAndPermission() {
+			return
+		}
+		if isForcePush {
+			canPush = !changedProtectedfiles && protectBranch.CanActionsUserForcePush(ctx.userPerm)
+		} else {
+			canPush = !changedProtectedfiles && protectBranch.CanActionsUserPush(ctx.userPerm)
+		}
 	} else {
 		user, err := user_model.GetUserByID(ctx, ctx.opts.UserID)
 		if err != nil {
