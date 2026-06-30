@@ -450,7 +450,7 @@ func EditUserPost(ctx *context.Context) {
 	log.Trace("Account profile updated by admin (%s): %s", ctx.Doer.Name, u.Name)
 
 	if form.Reset2FA {
-		if _, err := auth.DisableTwoFactor(ctx, u.ID); err != nil {
+		if _, _, err := auth.DisableTwoFactor(ctx, u.ID); err != nil {
 			ctx.ServerError("auth.DisableTwoFactor", err)
 			return
 		}

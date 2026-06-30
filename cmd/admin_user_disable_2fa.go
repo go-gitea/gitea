@@ -7,6 +7,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"strings"
 
 	auth_model "gitea.dev/models/auth"
 	user_model "gitea.dev/models/user"
@@ -38,9 +39,6 @@ func runDisableTwoFactor(ctx context.Context, c *cli.Command) error {
 	if !c.IsSet("id") && !c.IsSet("username") {
 		return errors.New("either --id or --username must be provided")
 	}
-	if c.IsSet("id") && c.IsSet("username") {
-		return errors.New("provide exactly one of --id or --username")
-	}
 
 	if !setting.IsInTesting {
 		if err := initDB(ctx); err != nil {
@@ -59,11 +57,16 @@ func runDisableTwoFactor(ctx context.Context, c *cli.Command) error {
 		return err
 	}
 
-	removed, err := auth_model.DisableTwoFactor(ctx, user.ID)
+	// When both selectors are given, make sure they refer to the same user.
+	if c.IsSet("id") && c.IsSet("username") && user.LowerName != strings.ToLower(strings.TrimSpace(c.String("username"))) {
+		return fmt.Errorf("the user with id %d is %q, which does not match the provided username %q", user.ID, user.Name, c.String("username"))
+	}
+
+	totp, webAuthn, err := auth_model.DisableTwoFactor(ctx, user.ID)
 	if err != nil {
 		return err
 	}
 
-	fmt.Printf("Disabled 2FA for user %q (removed %d credential(s))\n", user.Name, removed)
+	fmt.Printf("Disabled 2FA for user %q (removed %d TOTP and %d WebAuthn credential(s))\n", user.Name, totp, webAuthn)
 	return nil
 }

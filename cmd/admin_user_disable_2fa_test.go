@@ -72,6 +72,22 @@ func TestDisableTwoFactorCommand(t *testing.T) {
 		require.NoError(t, microcmdUserDisableTwoFactor().Run(ctx, []string{"disable-2fa", "--username", "plainuser"}))
 	})
 
+	t.Run("id and username must match when both given", func(t *testing.T) {
+		require.NoError(t, microcmdUserCreate().Run(ctx, []string{"create", "--username", "matchuser", "--email", "matchuser@gitea.local", "--random-password"}))
+		user := unittest.AssertExistsAndLoadBean(t, &user_model.User{LowerName: "matchuser"})
+		id := strconv.FormatInt(user.ID, 10)
+
+		// Matching id + username is accepted.
+		require.NoError(t, microcmdUserDisableTwoFactor().Run(ctx, []string{"disable-2fa", "--id", id, "--username", "matchuser"}))
+
+		// Mismatched id + username is rejected.
+		cmd := microcmdUserDisableTwoFactor()
+		cmd.Writer, cmd.ErrWriter = io.Discard, io.Discard
+		err := cmd.Run(ctx, []string{"disable-2fa", "--id", id, "--username", "someotheruser"})
+		require.Error(t, err)
+		require.Contains(t, err.Error(), "does not match the provided username")
+	})
+
 	t.Run("failure cases", func(t *testing.T) {
 		testCases := []struct {
 			name        string
@@ -87,11 +103,6 @@ func TestDisableTwoFactorCommand(t *testing.T) {
 				name:        "neither id nor username",
 				args:        []string{"disable-2fa"},
 				expectedErr: "either --id or --username must be provided",
-			},
-			{
-				name:        "both id and username",
-				args:        []string{"disable-2fa", "--id", "1", "--username", "someuser"},
-				expectedErr: "provide exactly one of --id or --username",
 			},
 		}
 

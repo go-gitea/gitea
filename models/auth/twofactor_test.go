@@ -64,17 +64,19 @@ func TestDisableTwoFactor(t *testing.T) {
 	require.NoError(t, err)
 	require.True(t, has)
 
-	// Both records are removed and counted.
-	removed, err := auth_model.DisableTwoFactor(ctx, uid)
+	// Both records are removed and counted separately.
+	totp, webAuthn, err := auth_model.DisableTwoFactor(ctx, uid)
 	require.NoError(t, err)
-	assert.EqualValues(t, 2, removed)
+	assert.EqualValues(t, 1, totp)
+	assert.EqualValues(t, 1, webAuthn)
 
 	has, err = auth_model.HasTwoFactorOrWebAuthn(ctx, uid)
 	require.NoError(t, err)
 	assert.False(t, has)
 
 	// A second call on a user without 2FA is a no-op.
-	removed, err = auth_model.DisableTwoFactor(ctx, uid)
+	totp, webAuthn, err = auth_model.DisableTwoFactor(ctx, uid)
 	require.NoError(t, err)
-	assert.EqualValues(t, 0, removed)
+	assert.EqualValues(t, 0, totp)
+	assert.EqualValues(t, 0, webAuthn)
 }
