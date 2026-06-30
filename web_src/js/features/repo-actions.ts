@@ -1,7 +1,35 @@
 import {createApp} from 'vue';
 import RepoActionView from '../components/RepoActionView.vue';
+import {registerGlobalInitFunc} from '../modules/observer.ts';
+import {html} from '../utils/html.ts';
 
-export function initRepositoryActionView() {
+export function updateWorkflowBadgeFields(form: HTMLElement, branch: string): void {
+  const badgeURLParsed = new URL(form.getAttribute('data-badge-url')!);
+  badgeURLParsed.searchParams.set('branch', branch);
+
+  const badgeURL = badgeURLParsed.href;
+  const workflowURL = form.getAttribute('data-workflow-url')!;
+  const displayName = form.getAttribute('data-workflow-display-name')!;
+  const markdownAltText = displayName.replaceAll(/[\\[\]]/g, (c) => `\\${c}`);
+
+  form.querySelector<HTMLImageElement>('[data-workflow-badge-image]')!.src = badgeURL;
+  form.querySelector<HTMLInputElement>('#workflow-badge-url')!.value = badgeURL;
+  form.querySelector<HTMLTextAreaElement>('#workflow-badge-markdown')!.value = `[![${markdownAltText}](${badgeURL})](${workflowURL})`;
+  form.querySelector<HTMLTextAreaElement>('#workflow-badge-html')!.value = html`<a href="${workflowURL}"><img src="${badgeURL}" alt="${displayName}"></a>`;
+}
+
+function initWorkflowBadgeForm(form: HTMLElement): void {
+  const branchInput = form.querySelector<HTMLInputElement>('[data-workflow-badge-branch]')!;
+  branchInput.addEventListener('change', () => updateWorkflowBadgeFields(form, branchInput.value));
+  updateWorkflowBadgeFields(form, branchInput.value);
+}
+
+export function initRepositoryActions() {
+  registerGlobalInitFunc('initWorkflowBadgeForm', initWorkflowBadgeForm);
+  initRepositoryActionsView();
+}
+
+function initRepositoryActionsView() {
   const el = document.querySelector('#repo-action-view');
   if (!el) return;
 
@@ -60,6 +88,7 @@ export function initRepositoryActionView() {
       logsAlwaysAutoScroll: el.getAttribute('data-locale-logs-always-auto-scroll'),
       logsAlwaysExpandRunning: el.getAttribute('data-locale-logs-always-expand-running'),
       workflowFile: el.getAttribute('data-locale-workflow-file'),
+      workflowFileNoPermission: el.getAttribute('data-locale-workflow-file-no-permission'),
       runDetails: el.getAttribute('data-locale-run-details'),
       workflowDependencies: el.getAttribute('data-locale-workflow-dependencies'),
       graphJobsCount1: el.getAttribute('data-locale-graph-jobs-count-1'),

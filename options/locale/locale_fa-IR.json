@@ -2201,5 +2201,7 @@
   "actions.runners.version": "نسخه",
   "actions.runs.commit": "کامیت",
   "actions.runs.summary": "چکیده",
+  "actions.workflow.scope_owner": "مالک",
+  "actions.workflow.required": "الزامی",
   "actions.general.token_permissions.mode.restricted": "محصور"
 }

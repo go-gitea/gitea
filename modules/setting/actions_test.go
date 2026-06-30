@@ -5,7 +5,10 @@ package setting
 
 import (
 	"path/filepath"
+	"slices"
 	"testing"
+
+	"gitea.dev/modules/test"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -257,6 +260,74 @@ DEFAULT_ACTIONS_URL = gitea
 				return
 			}
 			assert.Equal(t, tt.wantURL, Actions.DefaultActionsURL.URL())
+		})
+	}
+}
+
+func Test_ScopedWorkflowDirs(t *testing.T) {
+	defer test.MockVariableValue(&Actions)()
+
+	defaultWorkflowDirs := []string{".gitea/workflows", ".github/workflows"}
+	defaultScopedDirs := []string{".gitea/scoped_workflows"}
+
+	tests := []struct {
+		name       string
+		iniStr     string
+		wantScoped []string
+		wantErr    bool
+	}{
+		{
+			name:       "default",
+			iniStr:     `[actions]`,
+			wantScoped: defaultScopedDirs,
+		},
+		{
+			name:       "custom dir",
+			iniStr:     "[actions]\nSCOPED_WORKFLOW_DIRS = .gitea/my-scoped",
+			wantScoped: []string{".gitea/my-scoped"},
+		},
+		{
+			name:       "empty disables the feature",
+			iniStr:     "[actions]\nSCOPED_WORKFLOW_DIRS = , ,",
+			wantScoped: []string{},
+		},
+		{
+			name:    "overlap equal with workflow dir",
+			iniStr:  "[actions]\nWORKFLOW_DIRS = .gitea/workflows\nSCOPED_WORKFLOW_DIRS = .gitea/workflows",
+			wantErr: true,
+		},
+		{
+			name:    "scoped dir nested under workflow dir",
+			iniStr:  "[actions]\nWORKFLOW_DIRS = .gitea/workflows\nSCOPED_WORKFLOW_DIRS = .gitea/workflows/scoped",
+			wantErr: true,
+		},
+		{
+			name:    "workflow dir nested under scoped dir",
+			iniStr:  "[actions]\nWORKFLOW_DIRS = .gitea/workflows/ci\nSCOPED_WORKFLOW_DIRS = .gitea/workflows",
+			wantErr: true,
+		},
+		{
+			name:       "no overlap",
+			iniStr:     "[actions]\nSCOPED_WORKFLOW_DIRS = .gitea/scoped",
+			wantScoped: []string{".gitea/scoped"},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			// reset to defaults so MapTo starts clean (absent keys keep the defaults)
+			Actions.WorkflowDirs = slices.Clone(defaultWorkflowDirs)
+			Actions.ScopedWorkflowDirs = slices.Clone(defaultScopedDirs)
+
+			cfg, err := NewConfigProviderFromData(tt.iniStr)
+			require.NoError(t, err)
+			err = loadActionsFrom(cfg)
+			if tt.wantErr {
+				require.Error(t, err)
+				return
+			}
+			require.NoError(t, err)
+			assert.Equal(t, tt.wantScoped, Actions.ScopedWorkflowDirs)
 		})
 	}
 }
