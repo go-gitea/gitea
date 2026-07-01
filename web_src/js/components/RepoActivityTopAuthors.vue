@@ -2,7 +2,7 @@
 import {onMounted, shallowRef, useTemplateRef, type ShallowRef} from 'vue';
 
 const barSlotWidth = 40; // horizontal space allotted per author
-const chartHeight = 100;
+const chartHeight = 100; // keep in sync with reserved height in template
 const innerChartHeight = chartHeight - 28; // 28 = avatar/x-axis label row (20) + 8px padding
 const barMidPoint = barSlotWidth / 2;
 const barWidth = barSlotWidth - 2; // 2px gap between bars
