@@ -6,6 +6,8 @@ package user
 import (
 	"testing"
 
+	activities_model "gitea.dev/models/activities"
+	auth_model "gitea.dev/models/auth"
 	"gitea.dev/models/unittest"
 	user_model "gitea.dev/models/user"
 	password_module "gitea.dev/modules/auth/password"
@@ -120,4 +122,43 @@ func TestUpdateAuth(t *testing.T) {
 	assert.ErrorIs(t, UpdateAuth(t.Context(), user, &UpdateAuthOptions{
 		Password: optional.Some("aaaa"),
 	}), password_module.ErrMinLength)
+}
+
+func TestConvertUserType(t *testing.T) {
+	assert.NoError(t, unittest.PrepareTestDatabase())
+
+	// user2 is a local individual that owns an OAuth2 application and an access token
+	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
+	assert.True(t, user.IsIndividual())
+	assert.NotEmpty(t, user.Passwd)
+	assert.Positive(t, unittest.GetCount(t, &auth_model.OAuth2Application{UID: user.ID}))
+	tokensBefore := unittest.GetCount(t, &auth_model.AccessToken{UID: user.ID})
+	assert.Positive(t, tokensBefore)
+	assert.Positive(t, unittest.GetCount(t, &activities_model.Notification{UserID: user.ID}))
+
+	// individual -> bot: credentials, auth source and interactive-auth artifacts are cleared
+	assert.NoError(t, ConvertUserType(t.Context(), user, user_model.UserTypeBot))
+	assert.True(t, user.IsTypeBot())
+
+	user = unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
+	assert.Equal(t, user_model.UserTypeBot, user.Type)
+	assert.Empty(t, user.Passwd)
+	assert.Empty(t, user.Salt)
+	assert.Empty(t, user.PasswdHashAlgo)
+	assert.False(t, user.MustChangePassword)
+	assert.EqualValues(t, 0, user.LoginSource)
+	// OAuth2 applications/grants are removed, but access tokens are kept
+	assert.Equal(t, 0, unittest.GetCount(t, &auth_model.OAuth2Application{UID: user.ID}))
+	assert.Equal(t, tokensBefore, unittest.GetCount(t, &auth_model.AccessToken{UID: user.ID}))
+	assert.Equal(t, 0, unittest.GetCount(t, &activities_model.Notification{UserID: user.ID}))
+
+	// bot -> individual
+	assert.NoError(t, ConvertUserType(t.Context(), user, user_model.UserTypeIndividual))
+	user = unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
+	assert.Equal(t, user_model.UserTypeIndividual, user.Type)
+
+	// organizations cannot be converted
+	org := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 3})
+	assert.True(t, org.IsOrganization())
+	assert.Error(t, ConvertUserType(t.Context(), org, user_model.UserTypeBot))
 }
