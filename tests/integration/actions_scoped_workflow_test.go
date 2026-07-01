@@ -344,6 +344,59 @@ jobs:
 			})
 		})
 
+		t.Run("Filtered required scoped check passes as skipped and allows merge", func(t *testing.T) {
+			// A required scoped workflow excluded by a paths filter posts a skipped (success) commit status,
+			// so the required check is satisfied and the PR can merge.
+
+			const scopedFilteredPRWorkflow = `name: Scoped Filtered PR
+on:
+  pull_request:
+    paths:
+      - src/**
+jobs:
+  scoped-filtered-job:
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo scoped-filtered
+`
+			source := createTestRepo(t, "sw-filtered-source", false)
+			createRepoWorkflowFile(t, user2, user2Token, source, ".gitea/scoped_workflows/pr.yaml", scopedFilteredPRWorkflow)
+			registerUserScopedSource(t, source, "pr.yaml") // required
+
+			consumer := createTestRepo(t, "sw-filtered-consumer", false)
+			// Protect the default branch (its own status check stays off, so only the required scoped check gates the merge).
+			user2Session.MakeRequest(t, NewRequestWithValues(t, "POST", fmt.Sprintf("/%s/%s/settings/branches/edit", consumer.OwnerName, consumer.Name), map[string]string{
+				"rule_name":                  consumer.DefaultBranch,
+				"enable_push":                "true",
+				"block_admin_merge_override": "true", // otherwise the repo owner bypasses the status check
+			}), http.StatusSeeOther)
+
+			// Open a PR that changes a file NOT matching the workflow's `paths: [src/**]`, so it is filtered out.
+			prFile := &api.CreateFileOptions{
+				FileOptions: api.FileOptions{
+					BranchName: consumer.DefaultBranch, NewBranchName: "filtered-pr", Message: "pr change",
+					Author:    api.Identity{Name: user2.Name, Email: user2.Email},
+					Committer: api.Identity{Name: user2.Name, Email: user2.Email},
+					Dates:     api.CommitDateOptions{Author: time.Now(), Committer: time.Now()},
+				},
+				ContentBase64: base64.StdEncoding.EncodeToString([]byte("pr change")),
+			}
+			createWorkflowFile(t, user2Token, consumer.OwnerName, consumer.Name, "docs.txt", prFile)
+			apiCtx := NewAPITestContext(t, user2.Name, consumer.Name, auth_model.AccessTokenScopeWriteRepository)
+			pr, err := doAPICreatePullRequest(apiCtx, consumer.OwnerName, consumer.Name, consumer.DefaultBranch, "filtered-pr")(t)
+			require.NoError(t, err)
+
+			// Filtered: no scoped run is created, but a skipped commit status is posted on the PR head.
+			assert.Equal(t, 0, unittest.GetCount(t, &actions_model.ActionRun{RepoID: consumer.ID, IsScopedRun: true}), "filtered scoped workflow creates no run")
+			assertSkippedCommitStatusExists(t, consumer.ID, pr.Head.Sha, "pull_request")
+
+			// The skipped (success) status satisfies the required scoped check (prefixed with the source repo), so the merge is allowed.
+			assert.NoError(t, queue.GetManager().FlushAll(t.Context(), 5*time.Second))
+			mergeReq := NewRequestWithJSON(t, "POST", fmt.Sprintf("/api/v1/repos/%s/%s/pulls/%d/merge", consumer.OwnerName, consumer.Name, pr.Index),
+				&forms.MergePullRequestForm{Do: string(repo_model.MergeStyleMerge), MergeMessageField: "merge"}).AddTokenAuth(user2Token)
+			user2Session.MakeRequest(t, mergeReq, http.StatusOK)
+		})
+
 		t.Run("Settings page required patterns", func(t *testing.T) {
 			source := createTestRepo(t, "sw-settings-source", false)
 			createRepoWorkflowFile(t, user2, user2Token, source, ".gitea/scoped_workflows/push.yaml", scopedPushWorkflow)
