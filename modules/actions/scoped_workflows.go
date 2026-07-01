@@ -55,29 +55,34 @@ func ParseScopedWorkflows(sourceCommit *git.Commit) ([]*ParsedScopedWorkflow, er
 	return parsed, nil
 }
 
-// MatchScopedWorkflows evaluates already-parsed scoped workflows against one consuming event, returning those whose `on:` matches.
+// MatchScopedWorkflows evaluates already-parsed scoped workflows against one consuming event.
+// It returns the workflows whose `on:` matches, and those that matched the event but were excluded by a branch/paths filter (filtered).
 func MatchScopedWorkflows(
 	parsed []*ParsedScopedWorkflow,
 	consumerGitRepo *git.Repository,
 	consumerCommit *git.Commit,
 	triggedEvent webhook_module.HookEventType,
 	payload api.Payloader,
-) []*DetectedWorkflow {
-	workflows := make([]*DetectedWorkflow, 0, len(parsed))
+) (matched, filtered []*DetectedWorkflow) {
 	for _, p := range parsed {
 		for _, evt := range p.Events {
 			if evt.IsSchedule() {
 				// schedule is a non-target for scoped workflows
 				continue
 			}
-			if detectWorkflowMatch(consumerGitRepo, consumerCommit, triggedEvent, payload, evt) == detectMatched {
-				workflows = append(workflows, &DetectedWorkflow{
-					EntryName:    p.EntryName,
-					TriggerEvent: evt,
-					Content:      p.Content,
-				})
+			dwf := &DetectedWorkflow{
+				EntryName:    p.EntryName,
+				TriggerEvent: evt,
+				Content:      p.Content,
+			}
+			switch detectWorkflowMatch(consumerGitRepo, consumerCommit, triggedEvent, payload, evt) {
+			case detectMatched:
+				matched = append(matched, dwf)
+			case detectFilteredOut:
+				filtered = append(filtered, dwf)
+			case detectNotApplicable:
 			}
 		}
 	}
-	return workflows
+	return matched, filtered
 }

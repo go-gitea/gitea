@@ -215,11 +215,9 @@ jobs:
 		err = pull_service.NewPullRequest(t.Context(), prOpts)
 		assert.NoError(t, err)
 
-		// the new pull request is filtered by paths, so it creates a skipped run
-		assert.Equal(t, 2, unittest.GetCount(t, &actions_model.ActionRun{RepoID: baseRepo.ID}))
-		actionRun = unittest.AssertExistsAndLoadBean(t, &actions_model.ActionRun{RepoID: baseRepo.ID, CommitSHA: addFileToForkedResp.Commit.SHA})
-		assert.Equal(t, actions_module.GithubEventPullRequestTarget, actionRun.TriggerEvent)
-		assert.Equal(t, actions_model.StatusSkipped, actionRun.Status)
+		// the new pull request is filtered by paths, so no run is created; a skipped commit status is posted instead
+		assert.Equal(t, 1, unittest.GetCount(t, &actions_model.ActionRun{RepoID: baseRepo.ID}))
+		assertSkippedCommitStatusExists(t, baseRepo.ID, addFileToForkedResp.Commit.SHA, "pull_request_target")
 	})
 }
 
@@ -341,11 +339,9 @@ jobs:
 		})
 		assert.NoError(t, err)
 		assert.NotEmpty(t, addFileToBranchResp)
-		// the push to test-skip-ci is filtered by branches, so it creates a skipped run
-		assert.Equal(t, 2, unittest.GetCount(t, &actions_model.ActionRun{RepoID: repo.ID}))
-		actionRun := unittest.AssertExistsAndLoadBean(t, &actions_model.ActionRun{RepoID: repo.ID, CommitSHA: addFileToBranchResp.Commit.SHA})
-		assert.Equal(t, webhook_module.HookEventPush, actionRun.Event)
-		assert.Equal(t, actions_model.StatusSkipped, actionRun.Status)
+		// the push to test-skip-ci is filtered by branches, so no run is created; a skipped commit status is posted instead
+		assert.Equal(t, 1, unittest.GetCount(t, &actions_model.ActionRun{RepoID: repo.ID}))
+		assertSkippedCommitStatusExists(t, repo.ID, addFileToBranchResp.Commit.SHA, "push")
 
 		resp := testPullCreate(t, session, "user2", "skip-ci", true, "master", "test-skip-ci", "[skip ci] test-skip-ci")
 
@@ -353,8 +349,8 @@ jobs:
 		url := test.RedirectURL(resp)
 		assert.Regexp(t, "^/user2/skip-ci/pulls/[0-9]*$", url)
 
-		// the pr title contains a configured skip-ci string, so no additional run is created
-		assert.Equal(t, 2, unittest.GetCount(t, &actions_model.ActionRun{RepoID: repo.ID}))
+		// the pr title contains a configured skip-ci string, so no run and no skipped status are created
+		assert.Equal(t, 1, unittest.GetCount(t, &actions_model.ActionRun{RepoID: repo.ID}))
 	})
 }
 
@@ -1886,4 +1882,17 @@ jobs:
 		session.MakeRequest(t, req, http.StatusOK)
 		runner.fetchNoTask(t)
 	})
+}
+
+// assertSkippedCommitStatusExists asserts that a filtered-out workflow posted a skipped commit status on sha
+func assertSkippedCommitStatusExists(t *testing.T, repoID int64, sha, eventSuffix string) {
+	t.Helper()
+	statuses, err := git_model.GetLatestCommitStatus(t.Context(), repoID, sha, db.ListOptionsAll)
+	require.NoError(t, err)
+	for _, s := range statuses {
+		if s.State == commitstatus.CommitStatusSkipped && strings.Contains(s.Context, "("+eventSuffix+")") {
+			return
+		}
+	}
+	assert.Failf(t, "missing skipped commit status", "no skipped commit status with event %q on %s (found %d statuses)", eventSuffix, sha, len(statuses))
 }

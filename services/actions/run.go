@@ -68,12 +68,9 @@ func InsertRun(ctx context.Context, run *actions_model.ActionRun, content []byte
 		}
 		run.Index = index
 		run.Title = util.EllipsisDisplayString(run.Title, 255)
-		createSkipped := run.Status == actions_model.StatusSkipped
-		if !createSkipped {
-			run.Status = actions_model.StatusWaiting
-		}
+		run.Status = actions_model.StatusWaiting
 
-		if !createSkipped && wfRawConcurrency != nil {
+		if wfRawConcurrency != nil {
 			rawConcurrency, err := yaml.Marshal(wfRawConcurrency)
 			if err != nil {
 				return fmt.Errorf("marshal raw concurrency: %w", err)
@@ -95,10 +92,10 @@ func InsertRun(ctx context.Context, run *actions_model.ActionRun, content []byte
 			RunID:         run.ID,
 			Attempt:       1,
 			TriggerUserID: run.TriggerUserID,
-			Status:        util.Iif(createSkipped, actions_model.StatusSkipped, actions_model.StatusWaiting),
+			Status:        actions_model.StatusWaiting,
 		}
 
-		if !createSkipped && wfRawConcurrency != nil {
+		if wfRawConcurrency != nil {
 			if err := EvaluateRunConcurrencyFillModel(ctx, run, runAttempt, wfRawConcurrency, vars, inputs); err != nil {
 				return fmt.Errorf("EvaluateRunConcurrencyFillModel: %w", err)
 			}
@@ -154,12 +151,6 @@ func InsertRun(ctx context.Context, run *actions_model.ActionRun, content []byte
 			}
 
 			job.Name = util.EllipsisDisplayString(job.Name, 255)
-			jobStatus := actions_model.StatusWaiting
-			if createSkipped {
-				jobStatus = actions_model.StatusSkipped
-			} else if shouldBlockJob {
-				jobStatus = actions_model.StatusBlocked
-			}
 			runJob := &actions_model.ActionRunJob{
 				RunID:                   run.ID,
 				RunAttemptID:            runAttempt.ID,
@@ -174,7 +165,7 @@ func InsertRun(ctx context.Context, run *actions_model.ActionRun, content []byte
 				AttemptJobID:            attemptJobID,
 				Needs:                   needs,
 				RunsOn:                  job.RunsOn(),
-				Status:                  jobStatus,
+				Status:                  util.Iif(shouldBlockJob, actions_model.StatusBlocked, actions_model.StatusWaiting),
 				WorkflowSourceRepoID:    run.WorkflowRepoID,
 				WorkflowSourceCommitSHA: run.WorkflowCommitSHA,
 				ContinueOnError:         job.GetContinueOnError(),
@@ -190,7 +181,7 @@ func InsertRun(ctx context.Context, run *actions_model.ActionRun, content []byte
 			}
 
 			// check job concurrency
-			if !createSkipped && job.RawConcurrency != nil {
+			if job.RawConcurrency != nil {
 				rawConcurrency, err := yaml.Marshal(job.RawConcurrency)
 				if err != nil {
 					return fmt.Errorf("marshal raw concurrency: %w", err)

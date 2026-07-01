@@ -33,9 +33,9 @@ type DetectedWorkflow struct {
 type detectResult int
 
 const (
-	detectMatched detectResult = iota
-	detectNotApplicable
-	detectFilteredOut
+	detectMatched       detectResult = iota // event matched; run normally
+	detectNotApplicable                     // event/type doesn't apply; create nothing
+	detectFilteredOut                       // matched but excluded by a branch/paths filter; emits a skipped commit status
 )
 
 func init() {
@@ -180,15 +180,12 @@ func DetectWorkflows(
 	triggedEvent webhook_module.HookEventType,
 	payload api.Payloader,
 	detectSchedule bool,
-) ([]*DetectedWorkflow, []*DetectedWorkflow, []*DetectedWorkflow, error) {
+) (workflows, schedules, filtered []*DetectedWorkflow, err error) {
 	_, entries, err := ListWorkflows(commit)
 	if err != nil {
 		return nil, nil, nil, err
 	}
 
-	workflows := make([]*DetectedWorkflow, 0, len(entries))
-	schedules := make([]*DetectedWorkflow, 0, len(entries))
-	filtered := make([]*DetectedWorkflow, 0, len(entries))
 	for _, entry := range entries {
 		content, err := GetContentFromEntry(entry)
 		if err != nil {
@@ -287,10 +284,7 @@ func detectWorkflowMatch(gitRepo *git.Repository, commit *git.Commit, triggedEve
 
 	case // push
 		webhook_module.HookEventPush:
-		if matchPushEvent(commit, payload.(*api.PushPayload), evt) {
-			return detectMatched
-		}
-		return detectFilteredOut
+		return matchPushEvent(commit, payload.(*api.PushPayload), evt)
 
 	case // issues
 		webhook_module.HookEventIssues,
@@ -363,10 +357,10 @@ func detectWorkflowMatch(gitRepo *git.Repository, commit *git.Commit, triggedEve
 	}
 }
 
-func matchPushEvent(commit *git.Commit, pushPayload *api.PushPayload, evt *jobparser.Event) bool {
+func matchPushEvent(commit *git.Commit, pushPayload *api.PushPayload, evt *jobparser.Event) detectResult {
 	// with no special filter parameters
 	if len(evt.Acts()) == 0 {
-		return true
+		return detectMatched
 	}
 
 	matchTimes := 0
@@ -432,14 +426,14 @@ func matchPushEvent(commit *git.Commit, pushPayload *api.PushPayload, evt *jobpa
 			filesChanged, err := commit.GetFilesChangedSinceCommit(pushPayload.Before)
 			if err != nil {
 				log.Error("GetFilesChangedSinceCommit [commit_sha1: %s]: %v", commit.ID.String(), err)
-			} else {
-				patterns, err := workflowpattern.CompilePatterns(vals...)
-				if err != nil {
-					break
-				}
-				if !workflowpattern.Skip(patterns, filesChanged) {
-					matchTimes++
-				}
+				return detectNotApplicable
+			}
+			patterns, err := workflowpattern.CompilePatterns(vals...)
+			if err != nil {
+				break
+			}
+			if !workflowpattern.Skip(patterns, filesChanged) {
+				matchTimes++
 			}
 		case "paths-ignore":
 			if refName.IsTag() {
@@ -449,14 +443,14 @@ func matchPushEvent(commit *git.Commit, pushPayload *api.PushPayload, evt *jobpa
 			filesChanged, err := commit.GetFilesChangedSinceCommit(pushPayload.Before)
 			if err != nil {
 				log.Error("GetFilesChangedSinceCommit [commit_sha1: %s]: %v", commit.ID.String(), err)
-			} else {
-				patterns, err := workflowpattern.CompilePatterns(vals...)
-				if err != nil {
-					break
-				}
-				if !workflowpattern.Filter(patterns, filesChanged) {
-					matchTimes++
-				}
+				return detectNotApplicable
+			}
+			patterns, err := workflowpattern.CompilePatterns(vals...)
+			if err != nil {
+				break
+			}
+			if !workflowpattern.Filter(patterns, filesChanged) {
+				matchTimes++
 			}
 		default:
 			log.Warn("push event unsupported condition %q", cond)
@@ -466,7 +460,10 @@ func matchPushEvent(commit *git.Commit, pushPayload *api.PushPayload, evt *jobpa
 	if hasBranchFilter && hasTagFilter {
 		matchTimes++
 	}
-	return matchTimes == len(evt.Acts())
+	if matchTimes == len(evt.Acts()) {
+		return detectMatched
+	}
+	return detectFilteredOut
 }
 
 func matchIssuesEvent(issuePayload *api.IssuePayload, evt *jobparser.Event) bool {
@@ -564,7 +561,7 @@ func matchPullRequestEvent(gitRepo *git.Repository, commit *git.Commit, prPayloa
 		headCommit, err = gitRepo.GetCommit(prPayload.PullRequest.Head.Sha)
 		if err != nil {
 			log.Error("GetCommit [ref: %s]: %v", prPayload.PullRequest.Head.Sha, err)
-			return detectFilteredOut
+			return detectNotApplicable
 		}
 	}
 
@@ -596,27 +593,27 @@ func matchPullRequestEvent(gitRepo *git.Repository, commit *git.Commit, prPayloa
 			filesChanged, err := headCommit.GetFilesChangedSinceCommit(prPayload.PullRequest.MergeBase)
 			if err != nil {
 				log.Error("GetFilesChangedSinceCommit [commit_sha1: %s]: %v", headCommit.ID.String(), err)
-			} else {
-				patterns, err := workflowpattern.CompilePatterns(vals...)
-				if err != nil {
-					break
-				}
-				if !workflowpattern.Skip(patterns, filesChanged) {
-					matchTimes++
-				}
+				return detectNotApplicable
+			}
+			patterns, err := workflowpattern.CompilePatterns(vals...)
+			if err != nil {
+				break
+			}
+			if !workflowpattern.Skip(patterns, filesChanged) {
+				matchTimes++
 			}
 		case "paths-ignore":
 			filesChanged, err := headCommit.GetFilesChangedSinceCommit(prPayload.PullRequest.MergeBase)
 			if err != nil {
 				log.Error("GetFilesChangedSinceCommit [commit_sha1: %s]: %v", headCommit.ID.String(), err)
-			} else {
-				patterns, err := workflowpattern.CompilePatterns(vals...)
-				if err != nil {
-					break
-				}
-				if !workflowpattern.Filter(patterns, filesChanged) {
-					matchTimes++
-				}
+				return detectNotApplicable
+			}
+			patterns, err := workflowpattern.CompilePatterns(vals...)
+			if err != nil {
+				break
+			}
+			if !workflowpattern.Filter(patterns, filesChanged) {
+				matchTimes++
 			}
 		default:
 			log.Warn("pull request event unsupported condition %q", cond)
