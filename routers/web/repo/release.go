@@ -101,6 +101,19 @@ func getReleaseInfos(ctx *context.Context, opts *repo_model.FindReleasesOptions)
 
 	canReadActions := ctx.Repo.Permission.CanRead(unit.TypeActions)
 
+	// Bulk-load commit statuses for all releases in one query.
+	var commitStatusMap map[string][]*git_model.CommitStatus
+	if canReadActions && len(releases) > 0 {
+		shas := make([]string, 0, len(releases))
+		for _, r := range releases {
+			shas = append(shas, r.Sha1)
+		}
+		commitStatusMap, err = git_model.GetLatestCommitStatusForRepoCommitIDs(ctx, ctx.Repo.Repository.ID, shas)
+		if err != nil {
+			return nil, err
+		}
+	}
+
 	releaseInfos := make([]*ReleaseInfo, 0, len(releases))
 	for _, r := range releases {
 		if r.Publisher, ok = cacheUsers[r.PublisherID]; !ok {
@@ -130,11 +143,7 @@ func getReleaseInfos(ctx *context.Context, opts *repo_model.FindReleasesOptions)
 		}
 
 		if canReadActions {
-			statuses, err := git_model.GetLatestCommitStatus(ctx, r.Repo.ID, r.Sha1, db.ListOptionsAll)
-			if err != nil {
-				return nil, err
-			}
-
+			statuses := commitStatusMap[r.Sha1]
 			info.CommitStatus = git_model.CalcCommitStatus(statuses)
 			info.CommitStatuses = statuses
 		}

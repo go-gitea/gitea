@@ -110,8 +110,8 @@ export async function initDropzone(dropzoneEl: HTMLElement) {
   });
 
   dzInst.on('submit', () => {
-    for (const fileUuid of Object.keys(fileUuidDict)) {
-      fileUuidDict[fileUuid].submitted = true;
+    for (const value of Object.values(fileUuidDict)) {
+      value.submitted = true;
     }
   });
 
@@ -125,7 +125,7 @@ export async function initDropzone(dropzoneEl: HTMLElement) {
       dzInst.removeAllFiles(true);
       disableRemovedfileEvent = false;
 
-      dropzoneEl.querySelector('.files')!.innerHTML = '';
+      dropzoneEl.querySelector('.files')!.replaceChildren();
       for (const el of dropzoneEl.querySelectorAll('.dz-preview')) el.remove();
       fileUuidDict = {};
       for (const attachment of respData) {

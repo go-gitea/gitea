@@ -42,7 +42,7 @@ import {initCommonOrganization} from './features/common-organization.ts';
 import {initRepoWikiForm} from './features/repo-wiki.ts';
 import {initRepository, initBranchSelectorTabs} from './features/repo-legacy.ts';
 import {initCaptcha} from './features/captcha.ts';
-import {initRepositoryActionView} from './features/repo-actions.ts';
+import {initRepositoryActions} from './features/repo-actions.ts';
 import {initGlobalTooltips} from './modules/tippy.ts';
 import {initGiteaFomantic} from './modules/fomantic.ts';
 import {initRepoIssueList} from './features/repo-issue-list.ts';
@@ -58,7 +58,7 @@ import {initAdminSelfCheck} from './features/admin/selfcheck.ts';
 import {initOAuth2SettingsDisableCheckbox} from './features/oauth2-settings.ts';
 import {initGlobalFetchAction} from './features/common-fetch-action.ts';
 import {initCommmPageComponents, initGlobalComponent, initGlobalDropdown, initGlobalInput} from './features/common-page.ts';
-import {initGlobalButtonClickOnEnter, initGlobalButtons, initGlobalDeleteButton} from './features/common-button.ts';
+import {initGlobalButtonClickOnEnter, initGlobalButtons} from './features/common-button.ts';
 import {initGlobalComboMarkdownEditor, initGlobalEnterQuickSubmit, initGlobalFormDirtyLeaveConfirm} from './features/common-form.ts';
 import {callInitFunctions} from './modules/init.ts';
 import {initRepoViewFileTree} from './features/repo-view-file-tree.ts';
@@ -81,7 +81,6 @@ const initPerformanceTracer = callInitFunctions([
   initGlobalEnterQuickSubmit,
   initGlobalFormDirtyLeaveConfirm,
   initGlobalComboMarkdownEditor,
-  initGlobalDeleteButton,
   initGlobalInput,
   initGlobalShortcut,
 
@@ -139,7 +138,7 @@ const initPerformanceTracer = callInitFunctions([
   initRepoViewFileTree,
   initRepoWikiForm,
   initRepository,
-  initRepositoryActionView,
+  initRepositoryActions,
   initRepositorySearch,
   initRepoContributors,
   initRepoCodeFrequency,

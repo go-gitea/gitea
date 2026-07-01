@@ -1,7 +1,8 @@
 <script setup lang="ts">
 import {SvgIcon} from '../svg.ts';
 import ActionStatusIcon from './ActionStatusIcon.vue';
-import {computed, ref, toRefs} from 'vue';
+import {computed, onBeforeUnmount, ref, toRefs, watch} from 'vue';
+import {resetActionFavicon, syncActionRunFavicon} from '../modules/favicon-status.ts';
 import {POST, DELETE} from '../modules/fetch.ts';
 import ActionRunSummaryView from './ActionRunSummaryView.vue';
 import ActionRunJobView from './ActionRunJobView.vue';
@@ -118,6 +119,14 @@ async function deleteArtifact(name: string) {
   await DELETE(buildArtifactLink(name));
   await store.forceReloadCurrentRun();
 }
+
+watch(() => run.value.status, (status) => {
+  syncActionRunFavicon(status);
+});
+
+onBeforeUnmount(() => {
+  resetActionFavicon();
+});
 </script>
 <template>
   <!-- make the view container full width to make users easier to read logs -->
@@ -132,6 +141,7 @@ async function deleteArtifact(name: string) {
           <ActionStatusIcon :locale-status="locale.status[run.status]" :status="run.status" :size="22" icon-variant="circle-fill"/>
           <!-- eslint-disable-next-line vue/no-v-html -->
           <h2 class="action-info-summary-title-text" v-html="run.titleHTML"/>
+          <span class="action-info-summary-title-index">#{{ run.index }}</span>
         </div>
         <div class="flex-text-block tw-shrink-0 tw-flex-wrap">
           <button class="ui basic small compact button primary" @click="approveRun()" v-if="run.canApprove">
@@ -273,10 +283,14 @@ async function deleteArtifact(name: string) {
         <div class="left-list-header">{{ locale.runDetails }}</div>
         <div class="flex-items-block action-view-sidebar-list">
           <div class="item">
-            <a class="flex-text-block silenced" :href="`${run.link}/workflow`">
+            <a v-if="run.canViewWorkflowFile" class="flex-text-block silenced" :href="`${run.link}/workflow`">
               <SvgIcon name="octicon-file-code" class="tw-text-text"/>
               <span class="gt-ellipsis">{{ locale.workflowFile }}</span>
             </a>
+            <span v-else class="flex-text-block silenced" :data-tooltip-content="locale.workflowFileNoPermission">
+              <SvgIcon name="octicon-lock" class="tw-text-text"/>
+              <span class="gt-ellipsis">{{ locale.workflowFileNoPermission }}</span>
+            </span>
           </div>
         </div>
       </div>
@@ -368,8 +382,13 @@ async function deleteArtifact(name: string) {
 .action-info-summary-title-text {
   font-size: 20px;
   margin: 0;
-  flex: 1;
   overflow-wrap: anywhere;
+}
+
+.action-info-summary-title-index {
+  font-size: 20px;
+  color: var(--color-text-light-2);
+  flex: 1;
 }
 
 .action-info-summary .ui.button {
@@ -488,6 +507,7 @@ async function deleteArtifact(name: string) {
 }
 
 .action-view-right-panel {
+  flex: 1; /* fill the right column so the summary graph stretches even without a job-summary section */
   border: 1px solid var(--color-console-border);
   border-radius: var(--border-radius);
   background: var(--color-console-bg);
@@ -529,6 +549,7 @@ async function deleteArtifact(name: string) {
 }
 
 .job-summary-section {
+  flex: 0 0 auto; /* size to its content; let the summary panel keep the remaining height */
   overflow: hidden;
 }
 

@@ -200,7 +200,7 @@
 											</span>
 										</button>
 									{{else}}
-										<button class="btn interact-bg tw-p-2 delete-button delete-branch-button" data-url="{{$.Link}}/delete?name={{.DBBranch.Name}}&page={{$.Page.Paginater.Current}}" data-tooltip-content="{{ctx.Locale.Tr "repo.branch.delete" (.DBBranch.Name)}}" data-name="{{.DBBranch.Name}}">
+										<button class="btn interact-bg tw-p-2 show-modal delete-branch-button tw-text-red" data-modal="#delete-branch-modal" data-modal-form.action="{{$.Link}}/delete?name={{.DBBranch.Name}}&page={{$.Page.Paginater.Current}}" data-tooltip-content="{{ctx.Locale.Tr "repo.branch.delete" (.DBBranch.Name)}}" data-modal-name="{{.DBBranch.Name}}">
 											{{svg "octicon-trash"}}
 										</button>
 									{{end}}
@@ -216,7 +216,7 @@
 	</div>
 </div>
 
-<div class="ui g-modal-confirm delete modal">
+<form class="ui small modal form-fetch-action" method="post" id="delete-branch-modal">
 	<div class="header">
 		{{svg "octicon-trash"}}
 		{{ctx.Locale.Tr "repo.branch.delete_html"}} <span class="name"></span>
@@ -225,7 +225,7 @@
 		<p>{{ctx.Locale.Tr "repo.branch.delete_desc"}}</p>
 	</div>
 	{{template "base/modal_actions_confirm" .}}
-</div>
+</form>
 
 <div class="ui mini modal" id="create-branch-modal">
 	<div class="header">

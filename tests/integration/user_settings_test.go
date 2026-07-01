@@ -70,7 +70,7 @@ func TestUserSettingsAccount(t *testing.T) {
 
 		AssertHTMLElement(t, doc, "#password", true)
 		AssertHTMLElement(t, doc, "#email", true)
-		AssertHTMLElement(t, doc, "#delete-form", true)
+		AssertHTMLElement(t, doc, `form[action="/user/settings/account/delete"]`, true)
 	})
 
 	t.Run("credentials disabled", func(t *testing.T) {
@@ -87,7 +87,7 @@ func TestUserSettingsAccount(t *testing.T) {
 
 		AssertHTMLElement(t, doc, "#password", false)
 		AssertHTMLElement(t, doc, "#email", false)
-		AssertHTMLElement(t, doc, "#delete-form", true)
+		AssertHTMLElement(t, doc, `form[action="/user/settings/account/delete"]`, true)
 	})
 
 	t.Run("deletion disabled", func(t *testing.T) {

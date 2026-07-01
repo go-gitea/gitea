@@ -27,6 +27,7 @@
 .ui.menu:not(.vertical) .item {
   display: flex;
   align-items: center;
+  gap: var(--gap-inline);
 }
 
 .ui.menu .item {
@@ -173,17 +174,6 @@
   margin-top: 0.35714286em;
 }
 
-.ui.menu .item > .label:not(.floating) {
-  margin-left: 1em;
-  padding: 0.3em 0.78571429em;
-}
-.ui.vertical.menu .item > .label {
-  margin-top: -0.15em;
-  margin-bottom: -0.15em;
-  padding: 0.3em 0.78571429em;
-  float: right;
-  text-align: center;
-}
 .ui.menu .item > .label {
   background: var(--color-label-bg);
   color: var(--color-label-text);
@@ -283,16 +273,6 @@
 }
 .ui.vertical.menu > .item:last-child {
   border-radius: 0 0 0.28571429rem 0.28571429rem;
-}
-
-.ui.vertical.menu .item > i.icon {
-  width: 1.18em;
-  float: right;
-  margin: 0 0 0 0.5em;
-}
-.ui.vertical.menu .item > .label + i.icon {
-  float: none;
-  margin: 0 0.5em 0 0;
 }
 
 .ui.vertical.menu .item::before {
