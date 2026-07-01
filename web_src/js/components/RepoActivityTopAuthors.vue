@@ -82,6 +82,9 @@ onMounted(() => {
 </template>
 
 <style scoped>
+svg {
+  display: block; /* avoid the inline-baseline gap so the reserved container height matches exactly */
+}
 .axis-line {
   stroke: var(--color-secondary-alpha-60);
   stroke-width: 1;
