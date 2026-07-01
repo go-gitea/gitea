@@ -14,7 +14,7 @@
 		{{end}}
 	</h4>
 	<div class="ui attached segment">
-		<div class="ui list">
+		<div class="flex-divided-list">
 			{{range .History}}
 				<div class="item">
 					<div class="flex-left-right">
@@ -32,7 +32,7 @@
 							{{DateUtils.TimeSince .Delivered}}
 						</span>
 					</div>
-					<div class="info tw-hidden" id="info-{{.ID}}">
+					<div class="info tw-hidden tw-mt-2" id="info-{{.ID}}">
 						<div class="ui top attached tabular menu" data-global-init="initTabSwitcher">
 							<a class="item active" data-tab="request-{{.ID}}">
 								{{template "shared/misc/tabtitle" (ctx.Locale.Tr "repo.settings.webhook.request")}}
