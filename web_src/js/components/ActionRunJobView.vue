@@ -796,7 +796,7 @@ async function hashChangeListener() {
   list-style: none; /* hide the standard disclosure marker (Chrome, Edge, Firefox) */
 }
 
-.job-log-group-summary::-webkit-details-marker { /* Safari */
+.job-log-group-summary::-webkit-details-marker { /* hide the disclosure marker on Safari */
   display: none;
 }
 
