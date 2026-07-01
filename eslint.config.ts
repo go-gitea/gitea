@@ -1,4 +1,3 @@
-import arrayFunc from 'eslint-plugin-array-func';
 import comments from '@eslint-community/eslint-plugin-eslint-comments';
 import globals from 'globals';
 import importPlugin from 'eslint-plugin-import-x';
@@ -62,7 +61,6 @@ export default defineConfig([
       '@eslint-community/eslint-comments': comments,
       '@stylistic': stylistic,
       '@typescript-eslint': typescriptPlugin.plugin,
-      'array-func': arrayFunc,
       'gitea': {rules: {'unescaped-html-literal': unescapedHtmlLiteral}},
       'import-x': importPlugin,
       regexp,
@@ -275,12 +273,6 @@ export default defineConfig([
       '@typescript-eslint/unified-signatures': [2],
       'accessor-pairs': [2],
       'array-callback-return': [2, {checkForEach: true}],
-      'array-func/avoid-reverse': [2],
-      'array-func/from-map': [2],
-      'array-func/no-unnecessary-this-arg': [2],
-      'array-func/prefer-array-from': [2],
-      'array-func/prefer-flat-map': [0], // handled by unicorn/prefer-array-flat-map
-      'array-func/prefer-flat': [0], // handled by unicorn/prefer-array-flat
       'arrow-body-style': [0],
       'block-scoped-var': [2],
       'camelcase': [0],

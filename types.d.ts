@@ -1,9 +1,3 @@
-declare module 'eslint-plugin-array-func' {
-  import type {Eslint} from 'eslint';
-  const plugin: Eslint.Plugin;
-  export = plugin;
-}
-
 declare module '*.svg' {
   const value: string;
   export default value;
