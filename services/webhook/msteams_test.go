@@ -223,6 +223,34 @@ func TestMSTeamsPayload(t *testing.T) {
 		assert.Equal(t, "http://localhost:3000/test/repo/pulls/12", pl.PotentialAction[0].Targets[0].URI)
 	})
 
+	t.Run("PullRequestReviewRequest", func(t *testing.T) {
+		p := pullRequestTestPayload()
+		p.Action = api.HookIssueReviewRequested
+		p.RequestedReviewer = &api.User{
+			UserName: "reviewer1",
+			FullName: "Reviewer One",
+		}
+
+		pl, err := mc.PullRequest(p)
+		require.NoError(t, err)
+
+		assert.Len(t, pl.Sections[0].Facts, 3)
+		var hasReviewer bool
+		for _, fact := range pl.Sections[0].Facts {
+			if fact.Name == "Repository:" {
+				assert.Equal(t, p.Repository.FullName, fact.Value)
+			} else if fact.Name == "Pull request #:" {
+				assert.Equal(t, "12", fact.Value)
+			} else if fact.Name == "Requested Reviewer:" {
+				assert.Equal(t, "Reviewer One", fact.Value)
+				hasReviewer = true
+			} else {
+				t.Fail()
+			}
+		}
+		assert.True(t, hasReviewer)
+	})
+
 	t.Run("PullRequestComment", func(t *testing.T) {
 		p := pullRequestCommentTestPayload()
 
