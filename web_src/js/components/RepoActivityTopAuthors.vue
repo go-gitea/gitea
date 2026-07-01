@@ -1,8 +1,6 @@
 <script lang="ts" setup>
 import {onMounted, shallowRef, useTemplateRef, type ShallowRef} from 'vue';
 
-// Inlined SVG bar graph, adapted from the MIT-licensed vue-bar-graph package
-// (https://github.com/lafriks/vue-bar-graph).
 const barSlotWidth = 40; // horizontal space allotted per author
 const chartHeight = 100;
 const innerChartHeight = chartHeight - 28; // 28 = avatar/x-axis label row (20) + 8px padding
