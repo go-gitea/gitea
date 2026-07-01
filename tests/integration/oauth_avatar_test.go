@@ -73,7 +73,7 @@ func TestOAuth2AvatarFromPicture(t *testing.T) {
 					Name:      "OIDC Link Register",
 					AvatarURL: mockServer.URL + "/avatar.png",
 				},
-			}, nil))
+			}))
 		})
 
 		req := NewRequestWithValues(t, "POST", "/user/link_account_signup", map[string]string{

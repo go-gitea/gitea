@@ -9,7 +9,6 @@ import (
 	"fmt"
 	"html"
 	"io"
-	"maps"
 	"net/http"
 	"net/url"
 	"sort"
@@ -285,16 +284,12 @@ func oauth2GetLinkAccountData(ctx *context.Context) *LinkAccountData {
 	return &v
 }
 
-func Oauth2SetLinkAccountData(ctx *context.Context, linkAccountData LinkAccountData, extra map[string]any) error {
-	updates := map[string]any{
-		"linkAccountData": linkAccountData,
-	}
-	maps.Copy(updates, extra)
-	return updateSession(ctx, nil, updates)
+func Oauth2SetLinkAccountData(ctx *context.Context, linkAccountData LinkAccountData) error {
+	return ctx.Session.Set("linkAccountData", linkAccountData)
 }
 
 func showLinkingLogin(ctx *context.Context, authSourceID int64, gothUser goth.User) {
-	if err := Oauth2SetLinkAccountData(ctx, LinkAccountData{authSourceID, gothUser}, nil); err != nil {
+	if err := Oauth2SetLinkAccountData(ctx, LinkAccountData{authSourceID, gothUser}); err != nil {
 		ctx.ServerError("Oauth2SetLinkAccountData", err)
 		return
 	}
@@ -412,7 +407,7 @@ func handleOAuth2SignIn(ctx *context.Context, authSource *auth.Source, u *user_m
 			return
 		}
 
-		if err := updateSession(ctx, nil, map[string]any{
+		if err := regenerateSession(ctx, nil, map[string]any{
 			session.KeyUID:                  u.ID,
 			session.KeyUname:                u.Name,
 			session.KeyUserHasTwoFactorAuth: userHasTwoFactorAuth,
@@ -437,7 +432,7 @@ func handleOAuth2SignIn(ctx *context.Context, authSource *auth.Source, u *user_m
 		}
 	}
 
-	if err := updateSession(ctx, nil, map[string]any{
+	if err := regenerateSession(ctx, nil, map[string]any{
 		// User needs to use 2FA, save data and redirect to 2FA page.
 		"twofaUid":      u.ID,
 		"twofaRemember": false,
