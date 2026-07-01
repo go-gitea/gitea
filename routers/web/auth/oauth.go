@@ -13,15 +13,18 @@ import (
 	"net/url"
 	"sort"
 	"strings"
+	"sync"
 	"time"
 
 	"gitea.dev/models/auth"
 	user_model "gitea.dev/models/user"
 	auth_module "gitea.dev/modules/auth"
 	"gitea.dev/modules/container"
+	"gitea.dev/modules/hostmatcher"
 	"gitea.dev/modules/httplib"
 	"gitea.dev/modules/log"
 	"gitea.dev/modules/optional"
+	"gitea.dev/modules/proxy"
 	"gitea.dev/modules/session"
 	"gitea.dev/modules/setting"
 	source_service "gitea.dev/services/auth/source"
@@ -298,7 +301,23 @@ func showLinkingLogin(ctx *context.Context, authSourceID int64, gothUser goth.Us
 	ctx.Redirect(setting.AppSubURL + "/user/link_account")
 }
 
-var oauth2AvatarHTTPClient = &http.Client{Timeout: 30 * time.Second}
+// avatarURL comes from the provider (goth User.AvatarURL / the OIDC "picture" claim), so
+// the fetch must not be allowed to reach internal hosts. Guard egress the same way webhook
+// and migration requests are guarded, allowing only external (public) hosts.
+var oauth2AvatarHTTPClient = sync.OnceValue(func() *http.Client {
+	return &http.Client{
+		Timeout: 30 * time.Second,
+		Transport: &http.Transport{
+			Proxy: proxy.Proxy(),
+			DialContext: hostmatcher.NewDialContext(
+				"oauth2-avatar",
+				hostmatcher.ParseHostMatchList("", hostmatcher.MatchBuiltinExternal),
+				nil,
+				setting.Proxy.ProxyURLFixed,
+			),
+		},
+	}
+})
 
 func oauth2UpdateAvatarIfNeed(ctx *context.Context, avatarURL string, u *user_model.User) {
 	if !setting.OAuth2Client.UpdateAvatar || len(avatarURL) == 0 {
@@ -312,7 +331,7 @@ func oauth2UpdateAvatarIfNeed(ctx *context.Context, avatarURL string, u *user_mo
 	// Some hosts (e.g. Wikimedia) reject Go's default User-Agent.
 	req.Header.Set("User-Agent", "Gitea "+setting.AppVer)
 
-	resp, err := oauth2AvatarHTTPClient.Do(req)
+	resp, err := oauth2AvatarHTTPClient().Do(req)
 	if err != nil {
 		log.Warn("fetch %q failed: %v", avatarURL, err)
 		return
