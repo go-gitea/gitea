@@ -179,11 +179,6 @@ $(foreach v, $(filter TEST_%, $(.VARIABLES)), $(eval MAKEFILE_VARS+=$v=$($v)))
 $(foreach v, $(filter GITEA_TEST_%, $(.VARIABLES)), $(eval MAKEFILE_VARS+=$v=$($v)))
 export MAKEFILE_VARS
 
-# delete a target file when its recipe fails, so a partially written or
-# rejected output (e.g. a spec that failed the generate-swagger warning gate)
-# is not left behind and treated as up-to-date on the next run
-.DELETE_ON_ERROR:
-
 .PHONY: all
 all: build
 
@@ -236,12 +231,8 @@ endif
 generate-swagger: $(SWAGGER_SPEC) $(OPENAPI3_SPEC) ## generate the swagger spec from code comments
 
 $(SWAGGER_SPEC): $(GO_SOURCES) $(SWAGGER_SPEC_INPUT)
-	@# go-swagger exits 0 even when it emits warnings; propagate a real failure via its exit status and fail on any diagnostic (ignoring go toolchain "go: ..." lines) to keep the spec warning-free
-	@output="$$($(GO) run $(SWAGGER_PACKAGE) generate spec --enable-allof-compounding --exclude "$(SWAGGER_EXCLUDE)" --input "$(SWAGGER_SPEC_INPUT)" --output './$(SWAGGER_SPEC)' 2>&1)"; status=$$?; \
-	warnings="$$(printf '%s\n' "$$output" | grep -v '^go: ' || true)"; \
-	if [ -n "$$warnings" ]; then printf '%s\n' "$$warnings" >&2; fi; \
-	if [ $$status -ne 0 ]; then exit $$status; fi; \
-	if [ -n "$$warnings" ]; then echo 'generate-swagger: the swagger spec must generate without warnings' >&2; exit 1; fi
+	@warnings="$$($(GO) run $(SWAGGER_PACKAGE) generate spec --enable-allof-compounding --skip-enum-desc --exclude "$(SWAGGER_EXCLUDE)" --input "$(SWAGGER_SPEC_INPUT)" --output './$(SWAGGER_SPEC)' 2>&1 | grep -v '^go: ')"; \
+	if [ -n "$$warnings" ]; then printf '%s\n' "$$warnings" >&2; exit 1; fi
 
 .PHONY: swagger-check
 swagger-check: generate-swagger
@@ -256,13 +247,11 @@ swagger-check: generate-swagger
 swagger-validate: ## check if the swagger spec is valid
 	@# swagger "validate" requires that the "basePath" must start with a slash, but we are using Golang template "{{...}}"
 	@$(SED_INPLACE) -E -e 's|"basePath":( *)"(.*)"|"basePath":\1"/\2"|g' './$(SWAGGER_SPEC)' # add a prefix slash to basePath
-	@# swagger "validate" exits 0 even when it prints warnings, so fail on any warning to keep the spec clean
 	@output="$$($(GO) run $(SWAGGER_PACKAGE) validate './$(SWAGGER_SPEC)' 2>&1)"; status=$$?; \
 	$(SED_INPLACE) -E -e 's|"basePath":( *)"/(.*)"|"basePath":\1"\2"|g' './$(SWAGGER_SPEC)'; \
-	filtered="$$(printf '%s\n' "$$output" | grep -v '^go: ' || true)"; \
-	if [ -n "$$filtered" ]; then printf '%s\n' "$$filtered"; fi; \
-	if [ $$status -ne 0 ]; then exit $$status; fi; \
-	if printf '%s\n' "$$filtered" | grep -q 'WARNING:'; then echo 'swagger-validate: the swagger spec must validate without warnings' >&2; exit 1; fi
+	printf '%s\n' "$$output" | grep -v '^go: '; \
+	[ $$status -eq 0 ] || exit $$status; \
+	case "$$output" in *WARNING:*) exit 1;; esac
 
 .PHONY: generate-openapi3
 generate-openapi3: $(OPENAPI3_SPEC) ## generate the OpenAPI 3.0 spec from the Swagger 2.0 spec

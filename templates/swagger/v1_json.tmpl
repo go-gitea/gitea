@@ -22762,7 +22762,7 @@
       "type": "object",
       "properties": {
         "permission": {
-          "description": "Permission level to grant the collaborator\nread RepoWritePermissionRead\nwrite RepoWritePermissionWrite\nadmin RepoWritePermissionAdmin",
+          "description": "Permission level to grant the collaborator",
           "type": "string",
           "enum": [
             "read",
@@ -23390,7 +23390,7 @@
           "x-go-name": "SHA"
         },
         "state": {
-          "description": "State is the overall combined status state\npending CommitStatusPending is for when the CommitStatus is Pending\nsuccess CommitStatusSuccess is for when the CommitStatus is Success\nerror CommitStatusError is for when the CommitStatus is Error\nfailure CommitStatusFailure is for when the CommitStatus is Failure\nwarning CommitStatusWarning is for when the CommitStatus is Warning\nskipped CommitStatusSkipped is for when CommitStatus is Skipped",
+          "description": "State is the overall combined status state",
           "type": "string",
           "enum": [
             "pending",
@@ -23659,7 +23659,7 @@
           "x-go-name": "ID"
         },
         "status": {
-          "description": "State represents the status state (pending, success, error, failure)\npending CommitStatusPending is for when the CommitStatus is Pending\nsuccess CommitStatusSuccess is for when the CommitStatus is Success\nerror CommitStatusError is for when the CommitStatus is Error\nfailure CommitStatusFailure is for when the CommitStatus is Failure\nwarning CommitStatusWarning is for when the CommitStatus is Warning\nskipped CommitStatusSkipped is for when CommitStatus is Skipped",
+          "description": "State represents the status state (pending, success, error, failure)",
           "type": "string",
           "enum": [
             "pending",
@@ -24554,7 +24554,7 @@
           "x-go-name": "UserName"
         },
         "visibility": {
-          "description": "possible values are `public` (default), `limited` or `private`\npublic UserVisibilityPublic\nlimited UserVisibilityLimited\nprivate UserVisibilityPrivate",
+          "description": "possible values are `public` (default), `limited` or `private`",
           "type": "string",
           "enum": [
             "public",
@@ -24712,7 +24712,6 @@
           "x-go-name": "CommitID"
         },
         "event": {
-          "description": "APPROVED ReviewStateApproved pr is approved\nPENDING ReviewStatePending pr state is pending\nCOMMENT ReviewStateComment is a comment review\nREQUEST_CHANGES ReviewStateRequestChanges changes for pr are requested\nREQUEST_REVIEW ReviewStateRequestReview review is requested from user",
           "type": "string",
           "enum": [
             "APPROVED",
@@ -24847,7 +24846,7 @@
           "x-go-name": "Name"
         },
         "object_format_name": {
-          "description": "ObjectFormatName of the underlying git repository, empty string for default (sha1)\nsha1 ObjectFormatSHA1\nsha256 ObjectFormatSHA256",
+          "description": "ObjectFormatName of the underlying git repository, empty string for default (sha1)",
           "type": "string",
           "enum": [
             "sha1",
@@ -24900,7 +24899,7 @@
           "x-go-name": "Description"
         },
         "state": {
-          "description": "State represents the status state to set (pending, success, error, failure)\npending CommitStatusPending is for when the CommitStatus is Pending\nsuccess CommitStatusSuccess is for when the CommitStatus is Success\nerror CommitStatusError is for when the CommitStatus is Error\nfailure CommitStatusFailure is for when the CommitStatus is Failure\nwarning CommitStatusWarning is for when the CommitStatus is Warning\nskipped CommitStatusSkipped is for when CommitStatus is Skipped",
+          "description": "State represents the status state to set (pending, success, error, failure)",
           "type": "string",
           "enum": [
             "pending",
@@ -25001,7 +25000,6 @@
           "x-go-name": "Name"
         },
         "permission": {
-          "description": "read RepoWritePermissionRead\nwrite RepoWritePermissionWrite\nadmin RepoWritePermissionAdmin",
           "type": "string",
           "enum": [
             "read",
@@ -25052,7 +25050,7 @@
           }
         },
         "visibility": {
-          "description": "Team visibility within the organization. Defaults to \"private\".\npublic TeamVisibilityPublic\nlimited TeamVisibilityLimited\nprivate TeamVisibilityPrivate",
+          "description": "Team visibility within the organization. Defaults to \"private\".",
           "type": "string",
           "enum": [
             "public",
@@ -25126,7 +25124,7 @@
           "x-go-name": "Username"
         },
         "visibility": {
-          "description": "User visibility level: public, limited, or private\npublic UserVisibilityPublic\nlimited UserVisibilityLimited\nprivate UserVisibilityPrivate",
+          "description": "User visibility level: public, limited, or private",
           "type": "string",
           "enum": [
             "public",
@@ -25828,7 +25826,7 @@
           "x-go-name": "RepoAdminChangeTeamAccess"
         },
         "visibility": {
-          "description": "possible values are `public`, `limited` or `private`\npublic UserVisibilityPublic\nlimited UserVisibilityLimited\nprivate UserVisibilityPrivate",
+          "description": "possible values are `public`, `limited` or `private`",
           "type": "string",
           "enum": [
             "public",
@@ -26218,7 +26216,6 @@
           "x-go-name": "Name"
         },
         "permission": {
-          "description": "read RepoWritePermissionRead\nwrite RepoWritePermissionWrite\nadmin RepoWritePermissionAdmin",
           "type": "string",
           "enum": [
             "read",
@@ -26265,7 +26262,7 @@
           }
         },
         "visibility": {
-          "description": "Team visibility within the organization. When omitted, visibility is\nleft unchanged.\npublic TeamVisibilityPublic\nlimited TeamVisibilityLimited\nprivate TeamVisibilityPrivate",
+          "description": "Team visibility within the organization. When omitted, visibility is\nleft unchanged.",
           "type": "string",
           "enum": [
             "public",
@@ -26371,7 +26368,7 @@
           "x-go-name": "SourceID"
         },
         "visibility": {
-          "description": "User visibility level: public, limited, or private\npublic UserVisibilityPublic\nlimited UserVisibilityLimited\nprivate UserVisibilityPrivate",
+          "description": "User visibility level: public, limited, or private",
           "type": "string",
           "enum": [
             "public",
@@ -27305,7 +27302,6 @@
           "$ref": "#/definitions/RepositoryMeta"
         },
         "state": {
-          "description": "open StateOpen pr is opened\nclosed StateClosed pr is closed",
           "type": "string",
           "enum": [
             "open",
@@ -27427,7 +27423,6 @@
           "x-go-name": "ID"
         },
         "type": {
-          "description": "markdown IssueFormFieldTypeMarkdown\ntextarea IssueFormFieldTypeTextarea\ninput IssueFormFieldTypeInput\ndropdown IssueFormFieldTypeDropdown\ncheckboxes IssueFormFieldTypeCheckboxes",
           "type": "string",
           "enum": [
             "markdown",
@@ -27962,7 +27957,7 @@
           "x-go-name": "OpenIssues"
         },
         "state": {
-          "description": "State indicates if the milestone is open or closed\nopen StateOpen pr is opened\nclosed StateClosed pr is closed",
+          "description": "State indicates if the milestone is open or closed",
           "type": "string",
           "enum": [
             "open",
@@ -28047,7 +28042,7 @@
           "x-go-name": "LatestCommentURL"
         },
         "state": {
-          "description": "State indicates the current state of the notification subject\nopen NotifySubjectStateOpen is an open subject\nclosed NotifySubjectStateClosed is a closed subject\nmerged NotifySubjectStateMerged is a merged pull request",
+          "description": "State indicates the current state of the notification subject",
           "type": "string",
           "enum": [
             "open",
@@ -28063,7 +28058,7 @@
           "x-go-name": "Title"
         },
         "type": {
-          "description": "Type indicates the type of the notification subject\nIssue NotifySubjectIssue a issue is subject of an notification\nPull NotifySubjectPull a pull is subject of an notification\nCommit NotifySubjectCommit a commit is subject of an notification\nRepository NotifySubjectRepository a repository is subject of an notification",
+          "description": "Type indicates the type of the notification subject",
           "type": "string",
           "enum": [
             "Issue",
@@ -28225,7 +28220,7 @@
           "x-go-name": "UserName"
         },
         "visibility": {
-          "description": "The visibility level of the organization (public, limited, private)\npublic UserVisibilityPublic\nlimited UserVisibilityLimited\nprivate UserVisibilityPrivate",
+          "description": "The visibility level of the organization (public, limited, private)",
           "type": "string",
           "enum": [
             "public",
@@ -28830,7 +28825,7 @@
           "x-go-name": "ReviewComments"
         },
         "state": {
-          "description": "The current state of the pull request\nopen StateOpen pr is opened\nclosed StateClosed pr is closed",
+          "description": "The current state of the pull request",
           "type": "string",
           "enum": [
             "open",
@@ -28994,7 +28989,6 @@
           "x-go-name": "Stale"
         },
         "state": {
-          "description": "APPROVED ReviewStateApproved pr is approved\nPENDING ReviewStatePending pr state is pending\nCOMMENT ReviewStateComment is a comment review\nREQUEST_CHANGES ReviewStateRequestChanges changes for pr are requested\nREQUEST_REVIEW ReviewStateRequestReview review is requested from user",
           "type": "string",
           "enum": [
             "APPROVED",
@@ -29347,7 +29341,7 @@
       "type": "object",
       "properties": {
         "permission": {
-          "description": "Permission level of the collaborator\nnone AccessLevelNameNone\nread AccessLevelNameRead\nwrite AccessLevelNameWrite\nadmin AccessLevelNameAdmin\nowner AccessLevelNameOwner",
+          "description": "Permission level of the collaborator",
           "type": "string",
           "enum": [
             "none",
@@ -29646,7 +29640,7 @@
           "x-go-name": "Name"
         },
         "object_format_name": {
-          "description": "ObjectFormatName of the underlying git repository\nsha1 ObjectFormatSHA1\nsha256 ObjectFormatSHA256",
+          "description": "ObjectFormatName of the underlying git repository",
           "type": "string",
           "enum": [
             "sha1",
@@ -29892,7 +29886,6 @@
           "x-go-name": "Body"
         },
         "event": {
-          "description": "APPROVED ReviewStateApproved pr is approved\nPENDING ReviewStatePending pr state is pending\nCOMMENT ReviewStateComment is a comment review\nREQUEST_CHANGES ReviewStateRequestChanges changes for pr are requested\nREQUEST_REVIEW ReviewStateRequestReview review is requested from user",
           "type": "string",
           "enum": [
             "APPROVED",
@@ -30022,7 +30015,6 @@
           "$ref": "#/definitions/Organization"
         },
         "permission": {
-          "description": "none AccessLevelNameNone\nread AccessLevelNameRead\nwrite AccessLevelNameWrite\nadmin AccessLevelNameAdmin\nowner AccessLevelNameOwner",
           "type": "string",
           "enum": [
             "none",
@@ -30071,7 +30063,7 @@
           }
         },
         "visibility": {
-          "description": "Team visibility within the organization. \"private\" teams are only\nlistable by members and org owners; \"limited\" teams are listable by\nany organization member; \"public\" teams are listable by any signed-in\nuser.\npublic TeamVisibilityPublic\nlimited TeamVisibilityLimited\nprivate TeamVisibilityPrivate",
+          "description": "Team visibility within the organization. \"private\" teams are only\nlistable by members and org owners; \"limited\" teams are listable by\nany organization member; \"public\" teams are listable by any signed-in\nuser.",
           "type": "string",
           "enum": [
             "public",
@@ -30591,7 +30583,7 @@
           "x-go-name": "StarredRepos"
         },
         "visibility": {
-          "description": "User visibility level option: public, limited, private\npublic UserVisibilityPublic\nlimited UserVisibilityLimited\nprivate UserVisibilityPrivate",
+          "description": "User visibility level option: public, limited, private",
           "type": "string",
           "enum": [
             "public",

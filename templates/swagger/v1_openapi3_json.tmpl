@@ -2500,7 +2500,7 @@
                 "$ref": "#/components/schemas/RepoWritePermission"
               }
             ],
-            "description": "Permission level to grant the collaborator\nread RepoWritePermissionRead\nwrite RepoWritePermissionWrite\nadmin RepoWritePermissionAdmin"
+            "description": "Permission level to grant the collaborator"
           }
         },
         "type": "object",
@@ -3133,7 +3133,7 @@
                 "$ref": "#/components/schemas/CommitStatusState"
               }
             ],
-            "description": "State is the overall combined status state\npending CommitStatusPending is for when the CommitStatus is Pending\nsuccess CommitStatusSuccess is for when the CommitStatus is Success\nerror CommitStatusError is for when the CommitStatus is Error\nfailure CommitStatusFailure is for when the CommitStatus is Failure\nwarning CommitStatusWarning is for when the CommitStatus is Warning\nskipped CommitStatusSkipped is for when CommitStatus is Skipped"
+            "description": "State is the overall combined status state"
           },
           "statuses": {
             "description": "Statuses contains all individual commit statuses",
@@ -3403,7 +3403,7 @@
                 "$ref": "#/components/schemas/CommitStatusState"
               }
             ],
-            "description": "State represents the status state (pending, success, error, failure)\npending CommitStatusPending is for when the CommitStatus is Pending\nsuccess CommitStatusSuccess is for when the CommitStatus is Success\nerror CommitStatusError is for when the CommitStatus is Error\nfailure CommitStatusFailure is for when the CommitStatus is Failure\nwarning CommitStatusWarning is for when the CommitStatus is Warning\nskipped CommitStatusSkipped is for when CommitStatus is Skipped"
+            "description": "State represents the status state (pending, success, error, failure)"
           },
           "target_url": {
             "description": "TargetURL is the URL to link to for more details",
@@ -4307,7 +4307,7 @@
                 "$ref": "#/components/schemas/UserVisibility"
               }
             ],
-            "description": "possible values are `public` (default), `limited` or `private`\npublic UserVisibilityPublic\nlimited UserVisibilityLimited\nprivate UserVisibilityPrivate"
+            "description": "possible values are `public` (default), `limited` or `private`"
           },
           "website": {
             "description": "The website URL of the organization",
@@ -4460,12 +4460,7 @@
             "x-go-name": "CommitID"
           },
           "event": {
-            "allOf": [
-              {
-                "$ref": "#/components/schemas/ReviewStateType"
-              }
-            ],
-            "description": "APPROVED ReviewStateApproved pr is approved\nPENDING ReviewStatePending pr state is pending\nCOMMENT ReviewStateComment is a comment review\nREQUEST_CHANGES ReviewStateRequestChanges changes for pr are requested\nREQUEST_REVIEW ReviewStateRequestReview review is requested from user"
+            "$ref": "#/components/schemas/ReviewStateType"
           }
         },
         "type": "object",
@@ -4592,7 +4587,7 @@
                 "$ref": "#/components/schemas/ObjectFormatName"
               }
             ],
-            "description": "ObjectFormatName of the underlying git repository, empty string for default (sha1)\nsha1 ObjectFormatSHA1\nsha256 ObjectFormatSHA256"
+            "description": "ObjectFormatName of the underlying git repository, empty string for default (sha1)"
           },
           "private": {
             "description": "Whether the repository is private",
@@ -4646,7 +4641,7 @@
                 "$ref": "#/components/schemas/CommitStatusState"
               }
             ],
-            "description": "State represents the status state to set (pending, success, error, failure)\npending CommitStatusPending is for when the CommitStatus is Pending\nsuccess CommitStatusSuccess is for when the CommitStatus is Success\nerror CommitStatusError is for when the CommitStatus is Error\nfailure CommitStatusFailure is for when the CommitStatus is Failure\nwarning CommitStatusWarning is for when the CommitStatus is Warning\nskipped CommitStatusSkipped is for when CommitStatus is Skipped"
+            "description": "State represents the status state to set (pending, success, error, failure)"
           },
           "target_url": {
             "description": "TargetURL is the URL to link to for more details",
@@ -4734,12 +4729,7 @@
             "x-go-name": "Name"
           },
           "permission": {
-            "allOf": [
-              {
-                "$ref": "#/components/schemas/RepoWritePermission"
-              }
-            ],
-            "description": "read RepoWritePermissionRead\nwrite RepoWritePermissionWrite\nadmin RepoWritePermissionAdmin"
+            "$ref": "#/components/schemas/RepoWritePermission"
           },
           "units": {
             "deprecated": true,
@@ -4788,7 +4778,7 @@
                 "$ref": "#/components/schemas/TeamVisibility"
               }
             ],
-            "description": "Team visibility within the organization. Defaults to \"private\".\npublic TeamVisibilityPublic\nlimited TeamVisibilityLimited\nprivate TeamVisibilityPrivate"
+            "description": "Team visibility within the organization. Defaults to \"private\"."
           }
         },
         "required": [
@@ -4858,7 +4848,7 @@
                 "$ref": "#/components/schemas/UserVisibility"
               }
             ],
-            "description": "User visibility level: public, limited, or private\npublic UserVisibilityPublic\nlimited UserVisibilityLimited\nprivate UserVisibilityPrivate"
+            "description": "User visibility level: public, limited, or private"
           }
         },
         "required": [
@@ -5562,7 +5552,7 @@
                 "$ref": "#/components/schemas/UserVisibility"
               }
             ],
-            "description": "possible values are `public`, `limited` or `private`\npublic UserVisibilityPublic\nlimited UserVisibilityLimited\nprivate UserVisibilityPrivate"
+            "description": "possible values are `public`, `limited` or `private`"
           },
           "website": {
             "description": "The website URL of the organization",
@@ -5941,12 +5931,7 @@
             "x-go-name": "Name"
           },
           "permission": {
-            "allOf": [
-              {
-                "$ref": "#/components/schemas/RepoWritePermission"
-              }
-            ],
-            "description": "read RepoWritePermissionRead\nwrite RepoWritePermissionWrite\nadmin RepoWritePermissionAdmin"
+            "$ref": "#/components/schemas/RepoWritePermission"
           },
           "units": {
             "deprecated": true,
@@ -5991,7 +5976,7 @@
                 "$ref": "#/components/schemas/TeamVisibility"
               }
             ],
-            "description": "Team visibility within the organization. When omitted, visibility is\nleft unchanged.\npublic TeamVisibilityPublic\nlimited TeamVisibilityLimited\nprivate TeamVisibilityPrivate"
+            "description": "Team visibility within the organization. When omitted, visibility is\nleft unchanged."
           }
         },
         "required": [
@@ -6093,7 +6078,7 @@
                 "$ref": "#/components/schemas/UserVisibility"
               }
             ],
-            "description": "User visibility level: public, limited, or private\npublic UserVisibilityPublic\nlimited UserVisibilityLimited\nprivate UserVisibilityPrivate"
+            "description": "User visibility level: public, limited, or private"
           },
           "website": {
             "description": "The user's personal website URL",
@@ -7032,12 +7017,7 @@
             "$ref": "#/components/schemas/RepositoryMeta"
           },
           "state": {
-            "allOf": [
-              {
-                "$ref": "#/components/schemas/StateType"
-              }
-            ],
-            "description": "open StateOpen pr is opened\nclosed StateClosed pr is closed"
+            "$ref": "#/components/schemas/StateType"
           },
           "time_estimate": {
             "format": "int64",
@@ -7154,7 +7134,6 @@
             "x-go-name": "ID"
           },
           "type": {
-            "description": "markdown IssueFormFieldTypeMarkdown\ntextarea IssueFormFieldTypeTextarea\ninput IssueFormFieldTypeInput\ndropdown IssueFormFieldTypeDropdown\ncheckboxes IssueFormFieldTypeCheckboxes",
             "enum": [
               "markdown",
               "textarea",
@@ -7698,7 +7677,7 @@
                 "$ref": "#/components/schemas/StateType"
               }
             ],
-            "description": "State indicates if the milestone is open or closed\nopen StateOpen pr is opened\nclosed StateClosed pr is closed"
+            "description": "State indicates if the milestone is open or closed"
           },
           "title": {
             "description": "Title is the title of the milestone",
@@ -7779,7 +7758,7 @@
             "x-go-name": "LatestCommentURL"
           },
           "state": {
-            "description": "State indicates the current state of the notification subject\nopen NotifySubjectStateOpen is an open subject\nclosed NotifySubjectStateClosed is a closed subject\nmerged NotifySubjectStateMerged is a merged pull request",
+            "description": "State indicates the current state of the notification subject",
             "enum": [
               "open",
               "closed",
@@ -7795,7 +7774,7 @@
             "x-go-name": "Title"
           },
           "type": {
-            "description": "Type indicates the type of the notification subject\nIssue NotifySubjectIssue a issue is subject of an notification\nPull NotifySubjectPull a pull is subject of an notification\nCommit NotifySubjectCommit a commit is subject of an notification\nRepository NotifySubjectRepository a repository is subject of an notification",
+            "description": "Type indicates the type of the notification subject",
             "enum": [
               "Issue",
               "Pull",
@@ -7973,7 +7952,7 @@
                 "$ref": "#/components/schemas/UserVisibility"
               }
             ],
-            "description": "The visibility level of the organization (public, limited, private)\npublic UserVisibilityPublic\nlimited UserVisibilityLimited\nprivate UserVisibilityPrivate"
+            "description": "The visibility level of the organization (public, limited, private)"
           },
           "website": {
             "description": "The website URL of the organization",
@@ -8581,7 +8560,7 @@
                 "$ref": "#/components/schemas/StateType"
               }
             ],
-            "description": "The current state of the pull request\nopen StateOpen pr is opened\nclosed StateClosed pr is closed"
+            "description": "The current state of the pull request"
           },
           "title": {
             "description": "The title of the pull request",
@@ -8744,12 +8723,7 @@
             "x-go-name": "Stale"
           },
           "state": {
-            "allOf": [
-              {
-                "$ref": "#/components/schemas/ReviewStateType"
-              }
-            ],
-            "description": "APPROVED ReviewStateApproved pr is approved\nPENDING ReviewStatePending pr state is pending\nCOMMENT ReviewStateComment is a comment review\nREQUEST_CHANGES ReviewStateRequestChanges changes for pr are requested\nREQUEST_REVIEW ReviewStateRequestReview review is requested from user"
+            "$ref": "#/components/schemas/ReviewStateType"
           },
           "submitted_at": {
             "format": "date-time",
@@ -9105,7 +9079,7 @@
                 "$ref": "#/components/schemas/AccessLevelName"
               }
             ],
-            "description": "Permission level of the collaborator\nnone AccessLevelNameNone\nread AccessLevelNameRead\nwrite AccessLevelNameWrite\nadmin AccessLevelNameAdmin\nowner AccessLevelNameOwner"
+            "description": "Permission level of the collaborator"
           },
           "role_name": {
             "description": "RoleName is the name of the permission role",
@@ -9412,7 +9386,7 @@
                 "$ref": "#/components/schemas/ObjectFormatName"
               }
             ],
-            "description": "ObjectFormatName of the underlying git repository\nsha1 ObjectFormatSHA1\nsha256 ObjectFormatSHA256"
+            "description": "ObjectFormatName of the underlying git repository"
           },
           "open_issues_count": {
             "format": "int64",
@@ -9673,12 +9647,7 @@
             "x-go-name": "Body"
           },
           "event": {
-            "allOf": [
-              {
-                "$ref": "#/components/schemas/ReviewStateType"
-              }
-            ],
-            "description": "APPROVED ReviewStateApproved pr is approved\nPENDING ReviewStatePending pr state is pending\nCOMMENT ReviewStateComment is a comment review\nREQUEST_CHANGES ReviewStateRequestChanges changes for pr are requested\nREQUEST_REVIEW ReviewStateRequestReview review is requested from user"
+            "$ref": "#/components/schemas/ReviewStateType"
           }
         },
         "type": "object",
@@ -9800,12 +9769,7 @@
             "$ref": "#/components/schemas/Organization"
           },
           "permission": {
-            "allOf": [
-              {
-                "$ref": "#/components/schemas/AccessLevelName"
-              }
-            ],
-            "description": "none AccessLevelNameNone\nread AccessLevelNameRead\nwrite AccessLevelNameWrite\nadmin AccessLevelNameAdmin\nowner AccessLevelNameOwner"
+            "$ref": "#/components/schemas/AccessLevelName"
           },
           "units": {
             "deprecated": true,
@@ -9850,7 +9814,7 @@
                 "$ref": "#/components/schemas/TeamVisibility"
               }
             ],
-            "description": "Team visibility within the organization. \"private\" teams are only\nlistable by members and org owners; \"limited\" teams are listable by\nany organization member; \"public\" teams are listable by any signed-in\nuser.\npublic TeamVisibilityPublic\nlimited TeamVisibilityLimited\nprivate TeamVisibilityPrivate"
+            "description": "Team visibility within the organization. \"private\" teams are only\nlistable by members and org owners; \"limited\" teams are listable by\nany organization member; \"public\" teams are listable by any signed-in\nuser."
           }
         },
         "type": "object",
@@ -10382,7 +10346,7 @@
                 "$ref": "#/components/schemas/UserVisibility"
               }
             ],
-            "description": "User visibility level option: public, limited, private\npublic UserVisibilityPublic\nlimited UserVisibilityLimited\nprivate UserVisibilityPrivate"
+            "description": "User visibility level option: public, limited, private"
           },
           "website": {
             "description": "the user's website",
