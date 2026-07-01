@@ -16,7 +16,7 @@ EDITORCONFIG_CHECKER_PACKAGE ?= github.com/editorconfig-checker/editorconfig-che
 GOLANGCI_LINT_PACKAGE ?= github.com/golangci/golangci-lint/v2/cmd/golangci-lint@v2.12.2 # renovate: datasource=go
 GXZ_PACKAGE ?= github.com/ulikunitz/xz/cmd/gxz@v0.5.15 # renovate: datasource=go
 MISSPELL_PACKAGE ?= github.com/golangci/misspell/cmd/misspell@v0.8.0 # renovate: datasource=go
-SWAGGER_PACKAGE ?= github.com/go-swagger/go-swagger/cmd/swagger@v0.34.1 # renovate: datasource=go
+SWAGGER_PACKAGE ?= github.com/go-swagger/go-swagger/cmd/swagger@v0.35.0 # renovate: datasource=go
 XGO_PACKAGE ?= src.techknowlogick.com/xgo@v1.9.0 # renovate: datasource=go
 GOVULNCHECK_PACKAGE ?= golang.org/x/vuln/cmd/govulncheck@v1.4.0 # renovate: datasource=go
 ACTIONLINT_PACKAGE ?= github.com/rhysd/actionlint/cmd/actionlint@v1.7.12 # renovate: datasource=go
@@ -179,6 +179,11 @@ $(foreach v, $(filter TEST_%, $(.VARIABLES)), $(eval MAKEFILE_VARS+=$v=$($v)))
 $(foreach v, $(filter GITEA_TEST_%, $(.VARIABLES)), $(eval MAKEFILE_VARS+=$v=$($v)))
 export MAKEFILE_VARS
 
+# delete a target file when its recipe fails, so a partially written or
+# rejected output (e.g. a spec that failed the generate-swagger warning gate)
+# is not left behind and treated as up-to-date on the next run
+.DELETE_ON_ERROR:
+
 .PHONY: all
 all: build
 
@@ -231,7 +236,12 @@ endif
 generate-swagger: $(SWAGGER_SPEC) $(OPENAPI3_SPEC) ## generate the swagger spec from code comments
 
 $(SWAGGER_SPEC): $(GO_SOURCES) $(SWAGGER_SPEC_INPUT)
-	$(GO) run $(SWAGGER_PACKAGE) generate spec --exclude "$(SWAGGER_EXCLUDE)" --input "$(SWAGGER_SPEC_INPUT)" --output './$(SWAGGER_SPEC)'
+	@# go-swagger exits 0 even when it emits warnings; propagate a real failure via its exit status and fail on any diagnostic (ignoring go toolchain "go: ..." lines) to keep the spec warning-free
+	@output="$$($(GO) run $(SWAGGER_PACKAGE) generate spec --enable-allof-compounding --exclude "$(SWAGGER_EXCLUDE)" --input "$(SWAGGER_SPEC_INPUT)" --output './$(SWAGGER_SPEC)' 2>&1)"; status=$$?; \
+	warnings="$$(printf '%s\n' "$$output" | grep -v '^go: ' || true)"; \
+	if [ -n "$$warnings" ]; then printf '%s\n' "$$warnings" >&2; fi; \
+	if [ $$status -ne 0 ]; then exit $$status; fi; \
+	if [ -n "$$warnings" ]; then echo 'generate-swagger: the swagger spec must generate without warnings' >&2; exit 1; fi
 
 .PHONY: swagger-check
 swagger-check: generate-swagger
@@ -246,9 +256,13 @@ swagger-check: generate-swagger
 swagger-validate: ## check if the swagger spec is valid
 	@# swagger "validate" requires that the "basePath" must start with a slash, but we are using Golang template "{{...}}"
 	@$(SED_INPLACE) -E -e 's|"basePath":( *)"(.*)"|"basePath":\1"/\2"|g' './$(SWAGGER_SPEC)' # add a prefix slash to basePath
-	@# FIXME: there are some warnings
-	$(GO) run $(SWAGGER_PACKAGE) validate './$(SWAGGER_SPEC)'
-	@$(SED_INPLACE) -E -e 's|"basePath":( *)"/(.*)"|"basePath":\1"\2"|g' './$(SWAGGER_SPEC)' # remove the prefix slash from basePath
+	@# swagger "validate" exits 0 even when it prints warnings, so fail on any warning to keep the spec clean
+	@output="$$($(GO) run $(SWAGGER_PACKAGE) validate './$(SWAGGER_SPEC)' 2>&1)"; status=$$?; \
+	$(SED_INPLACE) -E -e 's|"basePath":( *)"/(.*)"|"basePath":\1"\2"|g' './$(SWAGGER_SPEC)'; \
+	filtered="$$(printf '%s\n' "$$output" | grep -v '^go: ' || true)"; \
+	if [ -n "$$filtered" ]; then printf '%s\n' "$$filtered"; fi; \
+	if [ $$status -ne 0 ]; then exit $$status; fi; \
+	if printf '%s\n' "$$filtered" | grep -q 'WARNING:'; then echo 'swagger-validate: the swagger spec must validate without warnings' >&2; exit 1; fi
 
 .PHONY: generate-openapi3
 generate-openapi3: $(OPENAPI3_SPEC) ## generate the OpenAPI 3.0 spec from the Swagger 2.0 spec
