@@ -1,5 +1,5 @@
 <script lang="ts" setup>
-import {computed, onBeforeUnmount, onMounted, ref, shallowRef, useTemplateRef, type ShallowRef} from 'vue';
+import {onMounted, shallowRef, useTemplateRef, type ShallowRef} from 'vue';
 
 // Inlined SVG bar graph, adapted from the MIT-licensed vue-bar-graph package
 // (https://github.com/lafriks/vue-bar-graph).
@@ -30,11 +30,8 @@ const activityTopAuthors: Array<ActivityAuthorData> = window.config.pageData.rep
 const graphWidth = activityTopAuthors.length * barSlotWidth;
 const maxCommits = Math.max(...activityTopAuthors.map((author) => author.commits));
 
-// eased 0..1 factor animating the bars from zero to full height on mount
-const growth = ref(0);
-
-const bars = computed(() => activityTopAuthors.map((author, index) => {
-  const height = growth.value * (author.commits / maxCommits * innerChartHeight);
+const bars = activityTopAuthors.map((author, index) => {
+  const height = author.commits / maxCommits * innerChartHeight;
   return {
     author,
     index,
@@ -43,12 +40,10 @@ const bars = computed(() => activityTopAuthors.map((author, index) => {
     yOffset: innerChartHeight - height,
     labelInside: height >= labelInsideThreshold,
   };
-}));
+});
 
 const styleElement = useTemplateRef('styleElement') as Readonly<ShallowRef<HTMLDivElement>>;
 const altStyleElement = useTemplateRef('altStyleElement') as Readonly<ShallowRef<HTMLDivElement>>;
-
-let rafId = 0;
 
 onMounted(() => {
   const refStyle = window.getComputedStyle(styleElement.value);
@@ -59,20 +54,6 @@ onMounted(() => {
     textColor: refStyle.color,
     textAltColor: refAltStyle.color,
   };
-
-  const duration = 200;
-  let start = 0;
-  const step = (now: number) => {
-    start ||= now;
-    const fraction = Math.min((now - start) / duration, 1);
-    growth.value = 1 - Math.cos(fraction * (Math.PI / 2)); // ease-in
-    if (fraction < 1) rafId = requestAnimationFrame(step);
-  };
-  rafId = requestAnimationFrame(step);
-});
-
-onBeforeUnmount(() => {
-  if (rafId) cancelAnimationFrame(rafId);
 });
 </script>
 
