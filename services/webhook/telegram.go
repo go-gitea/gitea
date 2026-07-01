@@ -23,9 +23,12 @@ import (
 type (
 	// TelegramPayload represents
 	TelegramPayload struct {
-		Message           string `json:"text"`
-		ParseMode         string `json:"parse_mode"`
-		DisableWebPreview bool   `json:"disable_web_page_preview"`
+		RichMessage InputRichMessage `json:"rich_message"`
+	}
+
+	// InputRichMessage represents input rich message
+	InputRichMessage struct {
+		HTML string `json:"html"`
 	}
 
 	// TelegramMeta contains the telegram metadata
@@ -195,13 +198,14 @@ func (telegramConvertor) WorkflowJob(p *api.WorkflowJobPayload) (TelegramPayload
 func createTelegramPayloadHTML(msgHTML string) TelegramPayload {
 	// https://core.telegram.org/bots/api#formatting-options
 	return TelegramPayload{
-		Message:           strings.TrimSpace(string(markup.Sanitize(msgHTML))),
-		ParseMode:         "HTML",
-		DisableWebPreview: true,
+		RichMessage: InputRichMessage{
+			HTML: strings.TrimSpace(string(markup.Sanitize(msgHTML))),
+		},
 	}
 }
 
 func newTelegramRequest(_ context.Context, w *webhook_model.Webhook, t *webhook_model.HookTask) (*http.Request, []byte, error) {
+	w.URL = strings.Replace(w.URL, "/sendMessage", "/sendRichMessage", 1)
 	var pc payloadConvertor[TelegramPayload] = telegramConvertor{}
 	return newJSONRequest(pc, w, t, true)
 }
