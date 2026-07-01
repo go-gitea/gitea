@@ -380,6 +380,11 @@ func (r *jobStatusResolver) resolveCheckNeeds(id int64) (allDone, allSucceed boo
 		if !needStatus.IsDone() {
 			allDone = false
 		}
+		// A failed need with continue-on-error:true is treated as success, matching AggregateJobStatus,
+		// so a downstream job with an implicit `success()` is not skipped.
+		if needJob := r.jobMap[need]; needJob != nil && needJob.ContinueOnError && needStatus == actions_model.StatusFailure {
+			continue
+		}
 		if needStatus.In(actions_model.StatusFailure, actions_model.StatusCancelled, actions_model.StatusSkipped) {
 			allSucceed = false
 		}

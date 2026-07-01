@@ -7,6 +7,7 @@ package convert
 import (
 	"bytes"
 	"context"
+	"errors"
 	"fmt"
 	"net/url"
 	"path"
@@ -29,6 +30,7 @@ import (
 	"gitea.dev/modules/actions"
 	"gitea.dev/modules/container"
 	"gitea.dev/modules/git"
+	"gitea.dev/modules/gitrepo"
 	"gitea.dev/modules/httplib"
 	"gitea.dev/modules/log"
 	"gitea.dev/modules/setting"
@@ -412,7 +414,7 @@ func ToWorkflowRunAction(status actions_model.Status) (action string) {
 	switch status {
 	case actions_model.StatusWaiting, actions_model.StatusBlocked:
 		action = "requested"
-	case actions_model.StatusRunning:
+	case actions_model.StatusRunning, actions_model.StatusCancelling:
 		action = "in_progress"
 	default:
 		if status.IsDone() {
@@ -430,7 +432,7 @@ func ToActionsStatus(status actions_model.Status) (action, conclusion string) {
 		action = "queued" // "waiting" is a naming conflict of the webhook between Gitea and GitHub Actions
 	case actions_model.StatusBlocked:
 		action = "waiting" // naming conflict (as above)
-	case actions_model.StatusRunning:
+	case actions_model.StatusRunning, actions_model.StatusCancelling:
 		action = "in_progress"
 	default:
 		action = "completed"
@@ -639,6 +641,64 @@ func getActionWorkflowFromCommit(ctx context.Context, repo *repo_model.Repositor
 	}
 
 	return nil, util.NewNotExistErrorf("workflow %q not found", workflowID)
+}
+
+// GetScopedActionWorkflow resolves a scoped workflow definition (under SCOPED_WORKFLOW_DIRS) from the source repo at commitSHA.
+func GetScopedActionWorkflow(ctx context.Context, sourceGitRepo *git.Repository, sourceRepo *repo_model.Repository, workflowID, commitSHA string) (*api.ActionWorkflow, error) {
+	commit, err := sourceGitRepo.GetCommit(commitSHA)
+	if err != nil {
+		return nil, err
+	}
+
+	folder, entries, err := actions.ListScopedWorkflows(commit)
+	if err != nil {
+		return nil, err
+	}
+
+	for _, entry := range entries {
+		if entry.Name() == workflowID {
+			// An empty ref pins HTMLURL to commit (the run's WorkflowCommitSHA) rather than the moving default branch.
+			wf := getActionWorkflowEntry(ctx, sourceRepo, commit, git.RefName(""), folder, entry)
+			// TODO: a scoped workflow has no repo-level representation on the source: the workflow API scans WORKFLOW_DIRS (not SCOPED_WORKFLOW_DIRS),
+			// and the badge only reflects the source's repo-level runs, so neither link resolves a scoped workflow.
+			// Blank them for now and populate once a scoped-aware workflow/badge endpoint exists.
+			wf.URL = ""
+			wf.BadgeURL = ""
+			return wf, nil
+		}
+	}
+
+	return nil, util.NewNotExistErrorf("scoped workflow %q not found", workflowID)
+}
+
+// ResolveActionWorkflowForRun returns the api.ActionWorkflow describing a run's workflow definition.
+// For a scoped run the definition lives in the source repo (run.WorkflowRepoID @ run.WorkflowCommitSHA) under SCOPED_WORKFLOW_DIRS,
+// not in the consuming repo, so it is resolved against the source repo.
+func ResolveActionWorkflowForRun(ctx context.Context, repo *repo_model.Repository, run *actions_model.ActionRun) (*api.ActionWorkflow, error) {
+	if run.IsScopedRun {
+		sourceRepo, err := repo_model.GetRepositoryByID(ctx, run.WorkflowRepoID)
+		if err != nil {
+			return nil, err
+		}
+		sourceGitRepo, err := gitrepo.OpenRepository(ctx, sourceRepo)
+		if err != nil {
+			return nil, err
+		}
+		defer sourceGitRepo.Close()
+		return GetScopedActionWorkflow(ctx, sourceGitRepo, sourceRepo, run.WorkflowID, run.WorkflowCommitSHA)
+	}
+
+	gitRepo, err := gitrepo.OpenRepository(ctx, repo)
+	if err != nil {
+		return nil, err
+	}
+	defer gitRepo.Close()
+
+	convertedWorkflow, err := GetActionWorkflowByRef(ctx, gitRepo, repo, run.WorkflowID, git.RefName(run.Ref))
+	if err != nil && errors.Is(err, util.ErrNotExist) {
+		convertedWorkflow, err = GetActionWorkflow(ctx, gitRepo, repo, run.WorkflowID)
+	}
+	return convertedWorkflow, err
 }
 
 // ToActionArtifact convert a actions_model.ActionArtifact to an api.ActionArtifact

@@ -28,6 +28,7 @@ import (
 	"gitea.dev/models/migrations/v1_25"
 	"gitea.dev/models/migrations/v1_26"
 	"gitea.dev/models/migrations/v1_27"
+	"gitea.dev/models/migrations/v1_28"
 	"gitea.dev/models/migrations/v1_6"
 	"gitea.dev/models/migrations/v1_7"
 	"gitea.dev/models/migrations/v1_8"
@@ -417,7 +418,12 @@ func prepareMigrationTasks() []*migration {
 		newMigration(337, "Add visibility to team", v1_27.AddVisibilityToTeam),
 		newMigration(338, "Expand legacy MSSQL issue/comment long-text columns", v1_27.ExpandIssueAndCommentLongTextFieldsForMSSQL),
 		newMigration(339, "Extend action c_u index to include created_unix for faster dashboard feed queries", v1_27.AddCreatedUnixToActionUserIsDeletedIndex),
-		newMigration(340, "Add action environment tables and environment_name to action_run_job", v1_27.AddActionEnvironmentTables),
+		newMigration(340, "Add ContinueOnError column to ActionRunJob", v1_27.AddContinueOnErrorToActionRunJob),
+		newMigration(341, "Convert legacy MSSQL DATETIME columns to DATETIME2", v1_27.FixLegacyMSSQLDateTimeColumns),
+		newMigration(342, "Add scoped workflows schema", v1_27.AddScopedWorkflowsSchema),
+		// Gitea 1.27.0 ends at migration ID number 342 (database version 343)
+
+		newMigration(343, "Add action environment tables and environment_name to action_run_job", v1_28.AddActionEnvironmentTables),
 	}
 	return preparedMigrations
 }

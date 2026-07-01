@@ -8,7 +8,7 @@ export function initTabSwitcher(tabItemContainer: Element) {
   for (const elItem of tabItems) {
     const tabName = elItem.getAttribute('data-tab')!;
     elItem.addEventListener('click', () => {
-      const elPanel = document.querySelector(`.ui.tab[data-tab="${tabName}"]`)!;
+      const elPanel = document.querySelector(`.ui.tab[data-tab="${CSS.escape(tabName)}"]`)!;
       queryElemSiblings(elPanel, '.ui.tab', (el) => el.classList.remove('active'));
       queryElemSiblings(elItem, '.item[data-tab]', (el) => el.classList.remove('active'));
       elItem.classList.add('active');
