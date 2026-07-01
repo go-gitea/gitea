@@ -120,9 +120,9 @@ func GetRepositoryFileByHash(ctx *context.Context) {
 }
 
 func UploadPackageFile(ctx *context.Context) {
-	distribution := strings.TrimSpace(ctx.PathParam("distribution"))
-	component := strings.TrimSpace(ctx.PathParam("component"))
-	if distribution == "" || component == "" {
+	distribution := ctx.PathParam("distribution")
+	component := ctx.PathParam("component")
+	if !debian_module.IsValidDistributionOrComponent(distribution) || !debian_module.IsValidDistributionOrComponent(component) {
 		apiError(ctx, http.StatusBadRequest, "invalid distribution or component")
 		return
 	}
