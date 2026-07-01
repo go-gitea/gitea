@@ -7,10 +7,7 @@ import (
 	"testing"
 
 	"gitea.dev/models/db"
-	"gitea.dev/models/perm"
-	access_model "gitea.dev/models/perm/access"
 	repo_model "gitea.dev/models/repo"
-	"gitea.dev/models/unit"
 	"gitea.dev/models/unittest"
 	user_model "gitea.dev/models/user"
 
@@ -156,48 +153,6 @@ func TestNewProtectBranchPriority(t *testing.T) {
 	savedPB2, err := GetFirstMatchProtectedBranchRule(t.Context(), repo.ID, "branch-2")
 	assert.NoError(t, err)
 	assert.Equal(t, int64(2), savedPB2.Priority)
-}
-
-func TestCanActionsUserPush(t *testing.T) {
-	// The Actions bot is a virtual user that cannot be added to a push allowlist, so its push
-	// permission must be derived from the token's computed permission instead of user lookup.
-	codeUnits := []*repo_model.RepoUnit{{Type: unit.TypeCode}}
-
-	writePerm := access_model.Permission{}
-	writePerm.SetUnitsWithDefaultAccessMode(codeUnits, perm.AccessModeWrite)
-
-	readPerm := access_model.Permission{}
-	readPerm.SetUnitsWithDefaultAccessMode(codeUnits, perm.AccessModeRead)
-
-	t.Run("Push", func(t *testing.T) {
-		// No whitelist enforced + code-write: allowed, just like a normal write user.
-		assert.True(t, (&ProtectedBranch{CanPush: true, EnableWhitelist: false}).CanActionsUserPush(writePerm))
-		// No whitelist enforced but no code-write: denied.
-		assert.False(t, (&ProtectedBranch{CanPush: true, EnableWhitelist: false}).CanActionsUserPush(readPerm))
-		// Whitelist enforced: the bot can never be on it, so denied even with code-write.
-		assert.False(t, (&ProtectedBranch{CanPush: true, EnableWhitelist: true}).CanActionsUserPush(writePerm))
-		// Push disabled entirely: denied.
-		assert.False(t, (&ProtectedBranch{CanPush: false, EnableWhitelist: false}).CanActionsUserPush(writePerm))
-	})
-
-	t.Run("ForcePush", func(t *testing.T) {
-		// Force-push allowed when force-push is enabled without allowlist and regular push is allowed.
-		assert.True(t, (&ProtectedBranch{
-			CanPush: true, CanForcePush: true, EnableForcePushAllowlist: false,
-		}).CanActionsUserForcePush(writePerm))
-		// Force-push allowlist enforced: the bot can never be on it, so denied.
-		assert.False(t, (&ProtectedBranch{
-			CanPush: true, CanForcePush: true, EnableForcePushAllowlist: true,
-		}).CanActionsUserForcePush(writePerm))
-		// Force-push disabled: denied.
-		assert.False(t, (&ProtectedBranch{
-			CanPush: true, CanForcePush: false, EnableForcePushAllowlist: false,
-		}).CanActionsUserForcePush(writePerm))
-		// Regular push not allowed (e.g. push whitelist enforced): force-push also denied.
-		assert.False(t, (&ProtectedBranch{
-			CanPush: true, EnableWhitelist: true, CanForcePush: true, EnableForcePushAllowlist: false,
-		}).CanActionsUserForcePush(writePerm))
-	})
 }
 
 func TestCanBypassBranchProtection(t *testing.T) {

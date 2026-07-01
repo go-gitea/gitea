@@ -184,21 +184,6 @@ func (protectBranch *ProtectedBranch) CanUserForcePush(ctx context.Context, user
 	return in && protectBranch.CanUserPush(ctx, user)
 }
 
-// CanActionsUserPush reports whether the Actions bot may push to this protected branch.
-// The Actions bot is a virtual user with no DB row and cannot be added to the push whitelist.
-// When a push whitelist is enabled, this returns false (the caller may still apply other exceptions).
-// Otherwise it falls back to the token's computed write permission, matching how a normal write user is evaluated.
-func (protectBranch *ProtectedBranch) CanActionsUserPush(permissionInRepo access_model.Permission) bool {
-	return protectBranch.CanPush && !protectBranch.EnableWhitelist && permissionInRepo.CanWrite(unit.TypeCode)
-}
-
-// CanActionsUserForcePush reports whether the Actions bot may force-push to this branch.
-// Since force-push extends normal push, it also requires regular push access.
-func (protectBranch *ProtectedBranch) CanActionsUserForcePush(permissionInRepo access_model.Permission) bool {
-	return protectBranch.CanForcePush && !protectBranch.EnableForcePushAllowlist &&
-		protectBranch.CanActionsUserPush(permissionInRepo)
-}
-
 // IsUserMergeWhitelisted checks if some user is whitelisted to merge to this branch
 func IsUserMergeWhitelisted(ctx context.Context, protectBranch *ProtectedBranch, userID int64, permissionInRepo access_model.Permission) bool {
 	if !protectBranch.EnableMergeWhitelist {

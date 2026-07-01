@@ -280,30 +280,14 @@ func preReceiveBranch(ctx *preReceiveContext, oldCommitID, newCommitID string, r
 		} else {
 			canPush = !changedProtectedfiles && protectBranch.CanPush && (!protectBranch.EnableWhitelist || protectBranch.WhitelistDeployKeys)
 		}
-	} else if ctx.opts.UserID == user_model.ActionsUserID {
-		// The Actions bot is a virtual user with no DB row and cannot be on a whitelist, so
-		// evaluate its push against the token's computed permission (already loaded above).
+	} else {
 		if !ctx.loadPusherAndPermission() {
 			return
 		}
 		if isForcePush {
-			canPush = !changedProtectedfiles && protectBranch.CanActionsUserForcePush(ctx.userPerm)
+			canPush = !changedProtectedfiles && protectBranch.CanUserForcePush(ctx, ctx.user)
 		} else {
-			canPush = !changedProtectedfiles && protectBranch.CanActionsUserPush(ctx.userPerm)
-		}
-	} else {
-		user, err := user_model.GetUserByID(ctx, ctx.opts.UserID)
-		if err != nil {
-			log.Error("Unable to GetUserByID for commits from %s to %s in %-v: %v", oldCommitID, newCommitID, repo, err)
-			ctx.JSON(http.StatusInternalServerError, private.Response{
-				Err: fmt.Sprintf("Unable to GetUserByID for commits from %s to %s: %v", oldCommitID, newCommitID, err),
-			})
-			return
-		}
-		if isForcePush {
-			canPush = !changedProtectedfiles && protectBranch.CanUserForcePush(ctx, user)
-		} else {
-			canPush = !changedProtectedfiles && protectBranch.CanUserPush(ctx, user)
+			canPush = !changedProtectedfiles && protectBranch.CanUserPush(ctx, ctx.user)
 		}
 	}
 
