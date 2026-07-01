@@ -200,9 +200,6 @@ importers:
       vue:
         specifier: 3.5.38
         version: 3.5.38(typescript@6.0.3)
-      vue-bar-graph:
-        specifier: 2.2.0
-        version: 2.2.0(typescript@6.0.3)
       vue-chartjs:
         specifier: 5.3.3
         version: 5.3.3(chart.js@4.5.1)(vue@3.5.38(typescript@6.0.3))
@@ -4305,9 +4302,6 @@ packages:
 
   vscode-uri@3.1.0:
     resolution: {integrity: sha512-/BpdSx+yCQGnCvecbyXdxHDkuk55/G3xwnC0GqY4gmQ3j+A+g8kzzgB4Nk/SINjqn6+waqw3EgbVF2QKExkRxQ==}
-
-  vue-bar-graph@2.2.0:
-    resolution: {integrity: sha512-1xFPho2nM6nFDziExLu48vKO+Q90gjxz1NyHfc+MhgfYDSxR9BMyhOIXUO5EmwKIVEX5dBoP2n3Ius8SjKRD4g==}
 
   vue-chartjs@5.3.3:
     resolution: {integrity: sha512-jqxtL8KZ6YJ5NTv6XzrzLS7osyegOi28UGNZW0h9OkDL7Sh1396ht4Dorh04aKrl2LiSalQ84WtqiG0RIJb0tA==}
@@ -8978,12 +8972,6 @@ snapshots:
       - msw
 
   vscode-uri@3.1.0: {}
-
-  vue-bar-graph@2.2.0(typescript@6.0.3):
-    dependencies:
-      vue: 3.5.38(typescript@6.0.3)
-    transitivePeerDependencies:
-      - typescript
 
   vue-chartjs@5.3.3(chart.js@4.5.1)(vue@3.5.38(typescript@6.0.3)):
     dependencies:

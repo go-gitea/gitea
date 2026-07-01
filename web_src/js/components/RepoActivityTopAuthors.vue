@@ -1,6 +1,15 @@
 <script lang="ts" setup>
-import {VueBarGraph} from 'vue-bar-graph';
-import {computed, onMounted, shallowRef, useTemplateRef, type ShallowRef} from 'vue';
+import {computed, onBeforeUnmount, onMounted, ref, shallowRef, useTemplateRef, type ShallowRef} from 'vue';
+
+// Inlined SVG bar graph, adapted from the MIT-licensed vue-bar-graph package
+// (https://github.com/lafriks/vue-bar-graph).
+const barSlotWidth = 40; // horizontal space allotted per author
+const chartHeight = 100;
+const innerChartHeight = chartHeight - 28; // 28 = avatar/x-axis label row (20) + 8px padding
+const barMidPoint = barSlotWidth / 2;
+const barWidth = barSlotWidth - 2; // 2px gap between bars
+const avatarSize = 20;
+const labelInsideThreshold = 22; // bars at least this tall carry the commit count inside them
 
 const colors = shallowRef({
   barColor: 'green',
@@ -18,30 +27,28 @@ type ActivityAuthorData = {
 
 const activityTopAuthors: Array<ActivityAuthorData> = window.config.pageData.repoActivityTopAuthors || [];
 
-const graphPoints = computed(() => {
-  return activityTopAuthors.map((item) => {
-    return {
-      value: item.commits,
-      label: item.name,
-    };
-  });
-});
+const graphWidth = activityTopAuthors.length * barSlotWidth;
+const maxCommits = Math.max(...activityTopAuthors.map((author) => author.commits));
 
-const graphAuthors = computed(() => {
-  return activityTopAuthors.map((item, idx: number) => {
-    return {
-      position: idx + 1,
-      ...item,
-    };
-  });
-});
+// eased 0..1 factor animating the bars from zero to full height on mount
+const growth = ref(0);
 
-const graphWidth = computed(() => {
-  return activityTopAuthors.length * 40;
-});
+const bars = computed(() => activityTopAuthors.map((author, index) => {
+  const height = growth.value * (author.commits / maxCommits * innerChartHeight);
+  return {
+    author,
+    index,
+    x: index * barSlotWidth,
+    height,
+    yOffset: innerChartHeight - height,
+    labelInside: height >= labelInsideThreshold,
+  };
+}));
 
 const styleElement = useTemplateRef('styleElement') as Readonly<ShallowRef<HTMLDivElement>>;
 const altStyleElement = useTemplateRef('altStyleElement') as Readonly<ShallowRef<HTMLDivElement>>;
+
+let rafId = 0;
 
 onMounted(() => {
   const refStyle = window.getComputedStyle(styleElement.value);
@@ -52,6 +59,20 @@ onMounted(() => {
     textColor: refStyle.color,
     textAltColor: refAltStyle.color,
   };
+
+  const duration = 200;
+  let start = 0;
+  const step = (now: number) => {
+    start ||= now;
+    const fraction = Math.min((now - start) / duration, 1);
+    growth.value = 1 - Math.cos(fraction * (Math.PI / 2)); // ease-in
+    if (fraction < 1) rafId = requestAnimationFrame(step);
+  };
+  rafId = requestAnimationFrame(step);
+});
+
+onBeforeUnmount(() => {
+  if (rafId) cancelAnimationFrame(rafId);
 });
 </script>
 
@@ -59,49 +80,31 @@ onMounted(() => {
   <div>
     <div class="activity-bar-graph tw-w-0 tw-h-0" ref="styleElement"/>
     <div class="activity-bar-graph-alt tw-w-0 tw-h-0" ref="altStyleElement"/>
-    <vue-bar-graph
-      :points="graphPoints"
-      :show-x-axis="true"
-      :show-y-axis="false"
-      :show-values="true"
-      :width="graphWidth"
-      :bar-color="colors.barColor"
-      :text-color="colors.textColor"
-      :text-alt-color="colors.textAltColor"
-      :height="100"
-      :label-height="20"
-    >
-      <template #label="opt">
-        <g v-for="(author, idx) in graphAuthors" :key="author.position">
-          <a
-            v-if="opt.bar.index === idx && author.home_link"
-            :href="author.home_link"
-          >
-            <image
-              :x="`${opt.bar.midPoint - 10}px`"
-              :y="`${opt.bar.yLabel}px`"
-              height="20"
-              width="20"
-              :href="author.avatar_link"
-            />
-          </a>
-          <image
-            v-else-if="opt.bar.index === idx"
-            :x="`${opt.bar.midPoint - 10}px`"
-            :y="`${opt.bar.yLabel}px`"
-            height="20"
-            width="20"
-            :href="author.avatar_link"
-          />
-        </g>
-      </template>
-      <template #title="opt">
-        <tspan v-for="(author, idx) in graphAuthors" :key="author.position">
-          <tspan v-if="opt.bar.index === idx">
-            {{ author.name }}
-          </tspan>
-        </tspan>
-      </template>
-    </vue-bar-graph>
+    <svg :width="graphWidth" :height="chartHeight">
+      <g v-for="bar in bars" :key="bar.index" :transform="`translate(${bar.x},0)`">
+        <title>{{ bar.author.name }}</title>
+        <rect :width="barWidth" :height="bar.height" :x="2" :y="bar.yOffset" :style="{fill: colors.barColor}"/>
+        <text
+          :x="barMidPoint"
+          :y="bar.yOffset"
+          :dy="bar.labelInside ? '15px' : '-5px'"
+          text-anchor="middle"
+          :style="{fill: bar.labelInside ? colors.textAltColor : colors.textColor, font: '10px sans-serif'}"
+        >{{ bar.author.commits }}</text>
+        <a v-if="bar.author.home_link" :href="bar.author.home_link">
+          <image :x="barMidPoint - avatarSize / 2" :y="innerChartHeight + 4" :height="avatarSize" :width="avatarSize" :href="bar.author.avatar_link"/>
+        </a>
+        <image v-else :x="barMidPoint - avatarSize / 2" :y="innerChartHeight + 4" :height="avatarSize" :width="avatarSize" :href="bar.author.avatar_link"/>
+        <line class="axis-line" :x1="barMidPoint" :x2="barMidPoint" :y1="innerChartHeight + 3" :y2="innerChartHeight"/>
+      </g>
+      <line class="axis-line" :x1="2" :x2="graphWidth" :y1="innerChartHeight" :y2="innerChartHeight"/>
+    </svg>
   </div>
 </template>
+
+<style scoped>
+.axis-line {
+  stroke: var(--color-secondary-alpha-60);
+  stroke-width: 1;
+}
+</style>
