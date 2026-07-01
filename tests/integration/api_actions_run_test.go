@@ -84,6 +84,20 @@ func testAPIActionsGetWorkflowRun(t *testing.T) {
 		require.NotEmpty(t, job198.Steps, "job must return at least one step when task has steps")
 		assert.Equal(t, "main", job198.Steps[0].Name, "first step name")
 	})
+
+	t.Run("ListRunJobsByRunNumber", func(t *testing.T) {
+		run := unittest.AssertExistsAndLoadBean(t, &actions_model.ActionRun{ID: 795})
+		require.NotEqual(t, run.ID, run.Index, "fixture must have distinct run id and run_number")
+
+		req := NewRequest(t, "GET", fmt.Sprintf("/api/v1/repos/%s/actions/runs/%d/jobs", repo.FullName(), run.Index)).
+			AddTokenAuth(token)
+		resp := MakeRequest(t, req, http.StatusOK)
+		jobList := DecodeJSON(t, resp, &api.ActionWorkflowJobsResponse{})
+
+		require.NotZero(t, jobList.TotalCount)
+		job198Idx := slices.IndexFunc(jobList.Entries, func(job *api.ActionWorkflowJob) bool { return job.ID == 198 })
+		require.NotEqual(t, -1, job198Idx, "expected to find job 198 when resolving run by run_number")
+	})
 }
 
 func testAPIActionsGetWorkflowJob(t *testing.T) {

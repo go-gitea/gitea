@@ -1275,11 +1275,24 @@ func ActionsEnableWorkflow(ctx *context.APIContext) {
 }
 
 func getCurrentRepoActionRunByID(ctx *context.APIContext) *actions_model.ActionRun {
-	runID := ctx.PathParamInt64("run")
-	run, err := actions_model.GetRunByRepoAndID(ctx, ctx.Repo.Repository.ID, runID)
-	if err != nil {
+	repoID := ctx.Repo.Repository.ID
+	runNum := ctx.PathParamInt64("run")
+	if runNum <= 0 {
+		ctx.APIError(http.StatusBadRequest, "run must be a positive integer")
+		return nil
+	}
+
+	run, err := actions_model.GetRunByRepoAndID(ctx, repoID, runNum)
+	if err != nil && !errors.Is(err, util.ErrNotExist) {
 		ctx.APIErrorAuto(err)
 		return nil
+	}
+	if errors.Is(err, util.ErrNotExist) {
+		run, err = actions_model.GetRunByRepoAndIndex(ctx, repoID, runNum)
+		if err != nil {
+			ctx.APIErrorAuto(err)
+			return nil
+		}
 	}
 	run.Repo = ctx.Repo.Repository
 	return run
@@ -1663,22 +1676,11 @@ func ListWorkflowRunJobs(ctx *context.APIContext) {
 	//   "422":
 	//     "$ref": "#/responses/validationError"
 
-	repoID, runID := ctx.Repo.Repository.ID, ctx.PathParamInt64("run")
-
-	// Avoid the list all jobs functionality for this api route to be used with a runID == 0.
-	if runID <= 0 {
-		ctx.APIError(http.StatusBadRequest, "runID must be a positive integer")
+	run := getCurrentRepoActionRunByID(ctx)
+	if ctx.Written() {
 		return
 	}
-
-	run, err := actions_model.GetRunByRepoAndID(ctx, repoID, runID)
-	if err != nil {
-		ctx.APIErrorAuto(err)
-		return
-	}
-	// runID is used as an additional filter next to repoID to ensure that we only list jobs for the specified repoID and runID.
-	// no additional checks for runID are needed here
-	shared.ListJobs(ctx, 0, repoID, runID, optional.Some(run.LatestAttemptID))
+	shared.ListJobs(ctx, 0, run.RepoID, run.ID, optional.Some(run.LatestAttemptID))
 }
 
 // ListWorkflowRunAttemptJobs Lists all jobs for a workflow run attempt.
