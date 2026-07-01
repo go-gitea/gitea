@@ -70,7 +70,6 @@
     "vite": "8.1.0",
     "vite-string-plugin": "2.0.4",
     "vue": "3.5.38",
-    "vue-bar-graph": "2.2.0",
     "vue-chartjs": "5.3.3"
   },
   "devDependencies": {
