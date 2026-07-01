@@ -728,10 +728,6 @@ async function hashChangeListener() {
   overflow-wrap: anywhere;
 }
 
-.log-line-show-timestamps .job-log-line .log-msg {
-  margin-left: 12px;
-}
-
 .job-step-logs .log-msg a {
   color: var(--color-console-link) !important;
   text-decoration: underline;
@@ -795,22 +791,12 @@ async function hashChangeListener() {
   border-radius: 0;
 }
 
-.job-log-list .job-log-line .log-msg {
-  margin-left: 12px;
-}
-
 .job-log-group-summary {
   cursor: pointer;
-  position: relative;
-  list-style: none;
+  list-style: none; /* hide the standard disclosure marker (Chrome, Edge, Firefox) */
 }
 
-/* don't merge the selectors, some browsers don't support "-webkit-details-marker" */
-.job-log-group-summary::marker {
-  display: none;
-}
-
-.job-log-group-summary::-webkit-details-marker {
+.job-log-group-summary::-webkit-details-marker { /* Safari */
   display: none;
 }
 
@@ -818,7 +804,7 @@ async function hashChangeListener() {
   content: "";
   display: inline-block;
   vertical-align: middle;
-  margin-top: -3px;
+  margin-top: -2.5px;
   margin-right: 8px;
   border-top: 4px solid transparent;
   border-bottom: 4px solid transparent;
@@ -826,8 +812,7 @@ async function hashChangeListener() {
   transition: transform 0.1s ease;
 }
 
-.job-log-group[open] > .job-log-group-summary .log-line-group .log-msg::before {
+.job-log-group[open] .log-line-group .log-msg::before {
   transform: rotate(90deg);
 }
-
 </style>
