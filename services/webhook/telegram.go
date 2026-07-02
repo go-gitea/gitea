@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"html"
 	"net/http"
+	"net/url"
 	"strings"
 
 	webhook_model "gitea.dev/models/webhook"
@@ -205,7 +206,14 @@ func createTelegramPayloadHTML(msgHTML string) TelegramPayload {
 }
 
 func newTelegramRequest(_ context.Context, w *webhook_model.Webhook, t *webhook_model.HookTask) (*http.Request, []byte, error) {
-	w.URL = strings.Replace(w.URL, "/sendMessage", "/sendRichMessage", 1)
+	u, err := url.Parse(w.URL)
+	if err != nil {
+		return nil, nil, err
+	}
+	if strings.HasSuffix(u.Path, "/sendMessage") {
+		u.Path = u.Path[:len(u.Path)-len("/sendMessage")] + "/sendRichMessage"
+		w.URL = u.String()
+	}
 	var pc payloadConvertor[TelegramPayload] = telegramConvertor{}
 	return newJSONRequest(pc, w, t, true)
 }
