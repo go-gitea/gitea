@@ -3228,6 +3228,8 @@
   "actions.workflow.enable": "Habilitar Workflow",
   "actions.workflow.enable_success": "Workflow '%s' habilitado com sucesso.",
   "actions.workflow.disabled": "Workflow está desativado.",
+  "actions.workflow.scope_owner": "Proprietário",
+  "actions.workflow.required": "Obrigatário",
   "actions.need_approval_desc": "Precisa de aprovação para executar workflows para pull request do fork.",
   "actions.variables": "Variáveis",
   "actions.variables.management": "Gerenciamento de Variáveis",

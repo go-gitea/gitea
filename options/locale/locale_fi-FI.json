@@ -1463,5 +1463,6 @@
   "actions.runners.version": "Versio",
   "actions.runs.branch": "Haara",
   "actions.runs.summary": "Yhteenveto",
+  "actions.workflow.scope_owner": "Omistaja",
   "actions.general.token_permissions.mode.restricted": "Rajoitettu"
 }

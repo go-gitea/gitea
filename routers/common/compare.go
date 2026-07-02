@@ -5,7 +5,9 @@ package common
 
 import (
 	"context"
+	"regexp"
 	"strings"
+	"sync"
 
 	repo_model "gitea.dev/models/repo"
 	user_model "gitea.dev/models/user"
@@ -19,9 +21,10 @@ type CompareRouterReq struct {
 
 	CompareSeparator string
 
-	HeadOwner    string
-	HeadRepoName string
-	HeadOriRef   string
+	HeadOwner        string
+	HeadRepoName     string
+	HeadOriRef       string
+	HeadOriRefSuffix string
 }
 
 func (cr *CompareRouterReq) DirectComparison() bool {
@@ -79,9 +82,11 @@ func ParseCompareRouterParam(routerParam string) *CompareRouterReq {
 		sep = ".."
 		basePart, headPart, ok = strings.Cut(routerParam, sep)
 		if !ok {
-			headOwnerName, headRepoName, headRef := parseHead(routerParam)
+			headOwnerName, headRepoName, headOriRef := parseHead(routerParam)
+			headOriRef, headOriRefSuffix := git.ParseRefSuffix(headOriRef)
 			return &CompareRouterReq{
-				HeadOriRef:       headRef,
+				HeadOriRef:       headOriRef,
+				HeadOriRefSuffix: headOriRefSuffix,
 				HeadOwner:        headOwnerName,
 				HeadRepoName:     headRepoName,
 				CompareSeparator: "...",
@@ -92,7 +97,34 @@ func ParseCompareRouterParam(routerParam string) *CompareRouterReq {
 	ci := &CompareRouterReq{CompareSeparator: sep}
 	ci.BaseOriRef, ci.BaseOriRefSuffix = git.ParseRefSuffix(basePart)
 	ci.HeadOwner, ci.HeadRepoName, ci.HeadOriRef = parseHead(headPart)
+	ci.HeadOriRef, ci.HeadOriRefSuffix = git.ParseRefSuffix(ci.HeadOriRef)
 	return ci
+}
+
+// validRefSuffix matches only ^/~ ancestry navigation. The ^{...}, @{...} and :path forms address
+// other objects (trees, blobs) or reflog/upstream state that compare does not resolve, so they are rejected.
+var validRefSuffix = sync.OnceValue(func() *regexp.Regexp {
+	return regexp.MustCompile(`^(?:[~^][0-9]*)+$`)
+})
+
+// ResolveRefWithSuffix resolves oriRef plus an optional revision suffix (^, ~N) to a RefName.
+// A nil error guarantees a usable RefName: an unsupported suffix yields an invalid-argument error
+// and an unresolvable ref yields a not-found error.
+func ResolveRefWithSuffix(gitRepo *git.Repository, oriRef, refSuffix string) (git.RefName, error) {
+	if refSuffix == "" {
+		if refName := gitRepo.UnstableGuessRefByShortName(oriRef); refName != "" {
+			return refName, nil
+		}
+		return "", util.NewNotExistErrorf("ref %q does not exist", oriRef)
+	}
+	if !validRefSuffix().MatchString(refSuffix) {
+		return "", util.NewInvalidArgumentErrorf("unsupported ref suffix %q", refSuffix)
+	}
+	commit, err := gitRepo.GetCommit(oriRef + refSuffix)
+	if err != nil {
+		return "", util.NewNotExistErrorf("ref %q does not exist", oriRef+refSuffix)
+	}
+	return git.RefNameFromCommit(commit.ID.String()), nil
 }
 
 // maxForkTraverseLevel defines the maximum levels to traverse when searching for the head repository.
