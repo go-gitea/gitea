@@ -1904,6 +1904,77 @@ func DeleteActionRun(ctx *context.APIContext) {
 	ctx.Status(http.StatusNoContent)
 }
 
+// CancelActionRun Cancel a workflow run
+func CancelActionRun(ctx *context.APIContext) {
+	// swagger:operation POST /repos/{owner}/{repo}/actions/runs/{run}/cancel repository cancelActionRun
+	// ---
+	// summary: Cancel a workflow run
+	// produces:
+	// - application/json
+	// parameters:
+	// - name: owner
+	//   in: path
+	//   description: owner of the repo
+	//   type: string
+	//   required: true
+	// - name: repo
+	//   in: path
+	//   description: name of the repository
+	//   type: string
+	//   required: true
+	// - name: run
+	//   in: path
+	//   description: id of the run
+	//   type: integer
+	//   required: true
+	// responses:
+	//   "202":
+	//     description: Cancellation request accepted
+	//   "401":
+	//     "$ref": "#/responses/error"
+	//   "403":
+	//     "$ref": "#/responses/forbidden"
+	//   "404":
+	//     "$ref": "#/responses/notFound"
+	//   "409":
+	//     "$ref": "#/responses/conflict"
+	//   "422":
+	//     "$ref": "#/responses/validationError"
+
+	run, jobs := getCurrentRepoActionRunJobsByID(ctx)
+	if ctx.Written() {
+		return
+	}
+
+	if run.Status.IsDone() {
+		ctx.APIError(http.StatusConflict, "workflow run is already completed")
+		return
+	}
+
+	var updatedJobs []*actions_model.ActionRunJob
+	if err := db.WithTx(ctx, func(ctx go_context.Context) error {
+		cancelledJobs, err := actions_model.CancelJobs(ctx, jobs)
+		if err != nil {
+			return fmt.Errorf("cancel jobs: %w", err)
+		}
+		updatedJobs = append(updatedJobs, cancelledJobs...)
+		return nil
+	}); err != nil {
+		ctx.APIErrorInternal(err)
+		return
+	}
+
+	actions_service.CreateCommitStatusForRunJobs(ctx, run, jobs...)
+	actions_service.EmitJobsIfReadyByJobs(updatedJobs)
+
+	actions_service.NotifyWorkflowJobsStatusUpdate(ctx, updatedJobs...)
+	if len(updatedJobs) > 0 {
+		actions_service.NotifyWorkflowRunStatusUpdateWithReload(ctx, run.RepoID, run.ID)
+	}
+
+	ctx.Status(http.StatusAccepted)
+}
+
 // GetArtifacts Lists all artifacts for a repository.
 func GetArtifacts(ctx *context.APIContext) {
 	// swagger:operation GET /repos/{owner}/{repo}/actions/artifacts repository getArtifacts
