@@ -318,7 +318,7 @@ func PostBlobsUploads(ctx *context.Context) {
 		return
 	}
 
-	upload, err := packages_model.CreateBlobUpload(ctx)
+	upload, err := packages_model.CreateBlobUpload(ctx, ctx.Doer.ID)
 	if err != nil {
 		apiError(ctx, http.StatusInternalServerError, err)
 		return
@@ -336,7 +336,7 @@ func GetBlobsUpload(ctx *context.Context) {
 	image := ctx.PathParam("image")
 	uuid := ctx.PathParam("uuid")
 
-	upload, err := packages_model.GetBlobUploadByID(ctx, uuid)
+	upload, err := packages_model.GetBlobUploadByID(ctx, uuid, ctx.Doer.ID)
 	if err != nil {
 		if errors.Is(err, packages_model.ErrPackageBlobUploadNotExist) {
 			apiErrorDefined(ctx, errBlobUploadUnknown)
@@ -363,7 +363,7 @@ func GetBlobsUpload(ctx *context.Context) {
 func PatchBlobsUpload(ctx *context.Context) {
 	image := ctx.PathParam("image")
 
-	uploader, err := container_service.NewBlobUploader(ctx, ctx.PathParam("uuid"))
+	uploader, err := container_service.NewBlobUploader(ctx, ctx.PathParam("uuid"), ctx.Doer.ID)
 	if err != nil {
 		if errors.Is(err, packages_model.ErrPackageBlobUploadNotExist) {
 			apiErrorDefined(ctx, errBlobUploadUnknown)
@@ -417,7 +417,7 @@ func PutBlobsUpload(ctx *context.Context) {
 		return
 	}
 
-	uploader, err := container_service.NewBlobUploader(ctx, ctx.PathParam("uuid"))
+	uploader, err := container_service.NewBlobUploader(ctx, ctx.PathParam("uuid"), ctx.Doer.ID)
 	if err != nil {
 		if errors.Is(err, packages_model.ErrPackageBlobUploadNotExist) {
 			apiErrorDefined(ctx, errBlobUploadUnknown)
@@ -480,7 +480,7 @@ func PutBlobsUpload(ctx *context.Context) {
 func DeleteBlobsUpload(ctx *context.Context) {
 	uuid := ctx.PathParam("uuid")
 
-	_, err := packages_model.GetBlobUploadByID(ctx, uuid)
+	_, err := packages_model.GetBlobUploadByID(ctx, uuid, ctx.Doer.ID)
 	if err != nil {
 		if errors.Is(err, packages_model.ErrPackageBlobUploadNotExist) {
 			apiErrorDefined(ctx, errBlobUploadUnknown)
