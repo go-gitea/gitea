@@ -478,32 +478,6 @@
         },
         "description": "EnvironmentList"
       },
-      "EnvironmentSecretList": {
-        "content": {
-          "application/json": {
-            "schema": {
-              "items": {
-                "$ref": "#/components/schemas/EnvironmentSecret"
-              },
-              "type": "array"
-            }
-          }
-        },
-        "description": "EnvironmentSecretList"
-      },
-      "EnvironmentVariableList": {
-        "content": {
-          "application/json": {
-            "schema": {
-              "items": {
-                "$ref": "#/components/schemas/EnvironmentVariable"
-              },
-              "type": "array"
-            }
-          }
-        },
-        "description": "EnvironmentVariableList"
-      },
       "FileDeleteResponse": {
         "content": {
           "application/json": {
@@ -1749,7 +1723,7 @@
         "content": {
           "application/json": {
             "schema": {
-              "$ref": "#/components/schemas/UpdateEnvironmentVariableOption"
+              "$ref": "#/components/schemas/UpdateEnvironmentOption"
             }
           }
         },
@@ -1968,7 +1942,7 @@
             "x-go-name": "Name"
           },
           "protected_branches": {
-            "description": "glob patterns (comma-separated) that restrict which branches can deploy here; empty means unrestricted",
+            "description": "glob patterns (comma-separated) that restrict which branches can access this environment's secrets and variables; empty means unrestricted",
             "type": "string",
             "x-go-name": "ProtectedBranches"
           },
@@ -4034,31 +4008,13 @@
             "x-go-name": "Name"
           },
           "protected_branches": {
-            "description": "glob patterns (comma-separated) restricting deployable branches",
+            "description": "glob patterns (comma-separated) restricting which branches can access environment secrets and variables",
             "type": "string",
             "x-go-name": "ProtectedBranches"
           }
         },
         "required": [
           "name"
-        ],
-        "type": "object",
-        "x-go-package": "gitea.dev/modules/structs"
-      },
-      "CreateEnvironmentVariableOption": {
-        "description": "CreateEnvironmentVariableOption options for creating an environment variable",
-        "properties": {
-          "description": {
-            "type": "string",
-            "x-go-name": "Description"
-          },
-          "value": {
-            "type": "string",
-            "x-go-name": "Value"
-          }
-        },
-        "required": [
-          "value"
         ],
         "type": "object",
         "x-go-package": "gitea.dev/modules/structs"
@@ -4413,24 +4369,6 @@
             "x-go-name": "SkipSecondaryAuthorization"
           }
         },
-        "type": "object",
-        "x-go-package": "gitea.dev/modules/structs"
-      },
-      "CreateOrUpdateEnvironmentSecretOption": {
-        "description": "CreateOrUpdateEnvironmentSecretOption options for creating or updating an environment secret",
-        "properties": {
-          "data": {
-            "type": "string",
-            "x-go-name": "Data"
-          },
-          "description": {
-            "type": "string",
-            "x-go-name": "Description"
-          }
-        },
-        "required": [
-          "data"
-        ],
         "type": "object",
         "x-go-package": "gitea.dev/modules/structs"
       },
@@ -6286,55 +6224,6 @@
             "description": "Whether the email address has been verified",
             "type": "boolean",
             "x-go-name": "Verified"
-          }
-        },
-        "type": "object",
-        "x-go-package": "gitea.dev/modules/structs"
-      },
-      "EnvironmentSecret": {
-        "description": "EnvironmentSecret represents a secret scoped to an environment (value is never returned)",
-        "properties": {
-          "created_at": {
-            "format": "date-time",
-            "type": "string",
-            "x-go-name": "CreatedAt"
-          },
-          "description": {
-            "description": "the secret's description",
-            "type": "string",
-            "x-go-name": "Description"
-          },
-          "name": {
-            "description": "the secret's name",
-            "type": "string",
-            "x-go-name": "Name"
-          }
-        },
-        "type": "object",
-        "x-go-package": "gitea.dev/modules/structs"
-      },
-      "EnvironmentVariable": {
-        "description": "EnvironmentVariable represents a variable scoped to an environment",
-        "properties": {
-          "created_at": {
-            "format": "date-time",
-            "type": "string",
-            "x-go-name": "CreatedAt"
-          },
-          "description": {
-            "description": "the variable's description",
-            "type": "string",
-            "x-go-name": "Description"
-          },
-          "name": {
-            "description": "the variable's name",
-            "type": "string",
-            "x-go-name": "Name"
-          },
-          "value": {
-            "description": "the variable's value",
-            "type": "string",
-            "x-go-name": "Value"
           }
         },
         "type": "object",
@@ -10464,28 +10353,9 @@
             "x-go-name": "Name"
           },
           "protected_branches": {
-            "description": "glob patterns (comma-separated) restricting deployable branches",
+            "description": "glob patterns (comma-separated) restricting which branches can access environment secrets and variables",
             "type": "string",
             "x-go-name": "ProtectedBranches"
-          }
-        },
-        "type": "object",
-        "x-go-package": "gitea.dev/modules/structs"
-      },
-      "UpdateEnvironmentVariableOption": {
-        "description": "UpdateEnvironmentVariableOption options for updating an environment variable",
-        "properties": {
-          "description": {
-            "type": "string",
-            "x-go-name": "Description"
-          },
-          "name": {
-            "type": "string",
-            "x-go-name": "Name"
-          },
-          "value": {
-            "type": "string",
-            "x-go-name": "Value"
           }
         },
         "type": "object",
@@ -20561,7 +20431,7 @@
         ],
         "responses": {
           "200": {
-            "$ref": "#/components/responses/EnvironmentSecretList"
+            "$ref": "#/components/responses/SecretList"
           },
           "404": {
             "$ref": "#/components/responses/notFound"
@@ -20663,7 +20533,7 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/CreateOrUpdateEnvironmentSecretOption"
+                "$ref": "#/components/schemas/CreateOrUpdateSecretOption"
               }
             }
           },
@@ -20720,7 +20590,7 @@
         ],
         "responses": {
           "200": {
-            "$ref": "#/components/responses/EnvironmentVariableList"
+            "$ref": "#/components/responses/VariableList"
           },
           "404": {
             "$ref": "#/components/responses/notFound"
@@ -20822,7 +20692,7 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/CreateEnvironmentVariableOption"
+                "$ref": "#/components/schemas/CreateVariableOption"
               }
             }
           },
@@ -20887,7 +20757,7 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/UpdateEnvironmentVariableOption"
+                "$ref": "#/components/schemas/UpdateVariableOption"
               }
             }
           },

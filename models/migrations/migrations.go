@@ -423,7 +423,7 @@ func prepareMigrationTasks() []*migration {
 		newMigration(342, "Add scoped workflows schema", v1_27.AddScopedWorkflowsSchema),
 		// Gitea 1.27.0 ends at migration ID number 342 (database version 343)
 
-		newMigration(343, "Add action environment tables and environment_name to action_run_job", v1_28.AddActionEnvironmentTables),
+		newMigration(343, "Add action environment tables, environment_id to secrets/variables, and environment_name to action_run_job", v1_28.AddActionEnvironmentTables),
 	}
 	return preparedMigrations
 }

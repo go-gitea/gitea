@@ -66,7 +66,6 @@ func TestAPIRepoEnvironments(t *testing.T) {
 		}
 	})
 
-	// helper: create a fresh env for sub-tests that need one
 	createEnv := func(t *testing.T, name, protectedBranches string) *api.ActionEnvironment {
 		t.Helper()
 		req := NewRequestWithJSON(t, "POST", baseURL, api.CreateEnvironmentOption{
@@ -82,7 +81,6 @@ func TestAPIRepoEnvironments(t *testing.T) {
 	t.Run("GetAndList", func(t *testing.T) {
 		env := createEnv(t, "get-test", "main")
 
-		// GET single
 		req := NewRequest(t, "GET", fmt.Sprintf("%s/%s", baseURL, env.Name)).AddTokenAuth(token)
 		resp := MakeRequest(t, req, http.StatusOK)
 		var got api.ActionEnvironment
@@ -90,7 +88,6 @@ func TestAPIRepoEnvironments(t *testing.T) {
 		assert.Equal(t, env.Name, got.Name)
 		assert.Equal(t, "main", got.ProtectedBranches)
 
-		// list includes it
 		req = NewRequest(t, "GET", baseURL).AddTokenAuth(token)
 		resp = MakeRequest(t, req, http.StatusOK)
 		var envs []*api.ActionEnvironment
@@ -119,11 +116,27 @@ func TestAPIRepoEnvironments(t *testing.T) {
 		env := createEnv(t, "delete-test", "")
 		url := fmt.Sprintf("%s/%s", baseURL, env.Name)
 
-		req := NewRequest(t, "DELETE", url).AddTokenAuth(token)
+		// create scoped secret and variable before delete
+		secretsURL := fmt.Sprintf("%s/%s/secrets", baseURL, env.Name)
+		varsURL := fmt.Sprintf("%s/%s/variables", baseURL, env.Name)
+		req := NewRequestWithJSON(t, "PUT", secretsURL+"/DEL_SECRET",
+			api.CreateOrUpdateSecretOption{Data: "val"},
+		).AddTokenAuth(token)
+		MakeRequest(t, req, http.StatusCreated)
+		req = NewRequestWithJSON(t, "POST", varsURL+"/DEL_VAR",
+			api.CreateVariableOption{Value: "val"},
+		).AddTokenAuth(token)
+		MakeRequest(t, req, http.StatusCreated)
+
+		req = NewRequest(t, "DELETE", url).AddTokenAuth(token)
 		MakeRequest(t, req, http.StatusNoContent)
 
 		req = NewRequest(t, "GET", url).AddTokenAuth(token)
 		MakeRequest(t, req, http.StatusNotFound)
+
+		req = NewRequest(t, "GET", secretsURL).AddTokenAuth(token)
+		resp := MakeRequest(t, req, http.StatusNotFound)
+		_ = resp
 	})
 
 	t.Run("GetNotFound", func(t *testing.T) {
@@ -140,18 +153,18 @@ func TestAPIRepoEnvironmentSecrets(t *testing.T) {
 	session := loginUser(t, user.Name)
 	token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeWriteRepository)
 
-	// create environment to use in all sub-tests
 	envURL := fmt.Sprintf("/api/v1/repos/%s/environments", repo.FullName())
 	req := NewRequestWithJSON(t, "POST", envURL, api.CreateEnvironmentOption{Name: "sec-env"}).AddTokenAuth(token)
 	resp := MakeRequest(t, req, http.StatusCreated)
 	var env api.ActionEnvironment
 	DecodeJSON(t, resp, &env)
 	secretsURL := fmt.Sprintf("%s/%s/secrets", envURL, env.Name)
+	repoSecretsURL := fmt.Sprintf("/api/v1/repos/%s/actions/secrets", repo.FullName())
 
 	t.Run("ListEmpty", func(t *testing.T) {
 		req := NewRequest(t, "GET", secretsURL).AddTokenAuth(token)
 		resp := MakeRequest(t, req, http.StatusOK)
-		var secrets []*api.EnvironmentSecret
+		var secrets []*api.Secret
 		DecodeJSON(t, resp, &secrets)
 		assert.Empty(t, secrets)
 	})
@@ -169,7 +182,7 @@ func TestAPIRepoEnvironmentSecrets(t *testing.T) {
 		for _, c := range cases {
 			req := NewRequestWithJSON(t, "PUT",
 				fmt.Sprintf("%s/%s", secretsURL, c.name),
-				api.CreateOrUpdateEnvironmentSecretOption{Data: "val"},
+				api.CreateOrUpdateSecretOption{Data: "val"},
 			).AddTokenAuth(token)
 			MakeRequest(t, req, c.expectedStatus)
 		}
@@ -179,22 +192,20 @@ func TestAPIRepoEnvironmentSecrets(t *testing.T) {
 		url := secretsURL + "/MY_SECRET"
 
 		req := NewRequestWithJSON(t, "PUT", url,
-			api.CreateOrUpdateEnvironmentSecretOption{Data: "initial", Description: "desc"},
+			api.CreateOrUpdateSecretOption{Data: "initial", Description: "desc"},
 		).AddTokenAuth(token)
 		MakeRequest(t, req, http.StatusCreated)
 
-		// list should show it
 		req = NewRequest(t, "GET", secretsURL).AddTokenAuth(token)
 		resp := MakeRequest(t, req, http.StatusOK)
-		var secrets []*api.EnvironmentSecret
+		var secrets []*api.Secret
 		DecodeJSON(t, resp, &secrets)
 		require.Len(t, secrets, 1)
 		assert.Equal(t, "MY_SECRET", secrets[0].Name)
 		assert.Equal(t, "desc", secrets[0].Description)
 
-		// update (same name → 204)
 		req = NewRequestWithJSON(t, "PUT", url,
-			api.CreateOrUpdateEnvironmentSecretOption{Data: "updated"},
+			api.CreateOrUpdateSecretOption{Data: "updated"},
 		).AddTokenAuth(token)
 		MakeRequest(t, req, http.StatusNoContent)
 	})
@@ -203,7 +214,7 @@ func TestAPIRepoEnvironmentSecrets(t *testing.T) {
 		url := secretsURL + "/DEL_SECRET"
 
 		req := NewRequestWithJSON(t, "PUT", url,
-			api.CreateOrUpdateEnvironmentSecretOption{Data: "val"},
+			api.CreateOrUpdateSecretOption{Data: "val"},
 		).AddTokenAuth(token)
 		MakeRequest(t, req, http.StatusCreated)
 
@@ -212,6 +223,40 @@ func TestAPIRepoEnvironmentSecrets(t *testing.T) {
 
 		req = NewRequest(t, "DELETE", url).AddTokenAuth(token)
 		MakeRequest(t, req, http.StatusNotFound)
+	})
+
+	t.Run("RepoSecretsExcludeEnvironmentScoped", func(t *testing.T) {
+		req := NewRequestWithJSON(t, "PUT", secretsURL+"/ENV_ONLY",
+			api.CreateOrUpdateSecretOption{Data: "env-val"},
+		).AddTokenAuth(token)
+		MakeRequest(t, req, http.StatusCreated)
+
+		req = NewRequestWithJSON(t, "PUT", repoSecretsURL+"/REPO_ONLY",
+			api.CreateOrUpdateSecretOption{Data: "repo-val"},
+		).AddTokenAuth(token)
+		MakeRequest(t, req, http.StatusCreated)
+
+		req = NewRequest(t, "GET", repoSecretsURL).AddTokenAuth(token)
+		resp := MakeRequest(t, req, http.StatusOK)
+		var repoSecrets []*api.Secret
+		DecodeJSON(t, resp, &repoSecrets)
+		repoNames := make([]string, len(repoSecrets))
+		for i, s := range repoSecrets {
+			repoNames[i] = s.Name
+		}
+		assert.Contains(t, repoNames, "REPO_ONLY")
+		assert.NotContains(t, repoNames, "ENV_ONLY")
+
+		req = NewRequest(t, "GET", secretsURL).AddTokenAuth(token)
+		resp = MakeRequest(t, req, http.StatusOK)
+		var envSecrets []*api.Secret
+		DecodeJSON(t, resp, &envSecrets)
+		envNames := make([]string, len(envSecrets))
+		for i, s := range envSecrets {
+			envNames[i] = s.Name
+		}
+		assert.Contains(t, envNames, "ENV_ONLY")
+		assert.NotContains(t, envNames, "REPO_ONLY")
 	})
 }
 
@@ -229,11 +274,12 @@ func TestAPIRepoEnvironmentVariables(t *testing.T) {
 	var env api.ActionEnvironment
 	DecodeJSON(t, resp, &env)
 	varsURL := fmt.Sprintf("%s/%s/variables", envURL, env.Name)
+	repoVarsURL := fmt.Sprintf("/api/v1/repos/%s/actions/variables", repo.FullName())
 
 	t.Run("ListEmpty", func(t *testing.T) {
 		req := NewRequest(t, "GET", varsURL).AddTokenAuth(token)
 		resp := MakeRequest(t, req, http.StatusOK)
-		var vars []*api.EnvironmentVariable
+		var vars []*api.ActionVariable
 		DecodeJSON(t, resp, &vars)
 		assert.Empty(t, vars)
 	})
@@ -252,7 +298,7 @@ func TestAPIRepoEnvironmentVariables(t *testing.T) {
 		for _, c := range cases {
 			req := NewRequestWithJSON(t, "POST",
 				varsURL+"/"+c.name,
-				api.CreateEnvironmentVariableOption{Value: "val"},
+				api.CreateVariableOption{Value: "val"},
 			).AddTokenAuth(token)
 			MakeRequest(t, req, c.expectedStatus)
 		}
@@ -261,60 +307,78 @@ func TestAPIRepoEnvironmentVariables(t *testing.T) {
 	t.Run("CreateAndList", func(t *testing.T) {
 		req := NewRequestWithJSON(t, "POST",
 			varsURL+"/APP_URL",
-			api.CreateEnvironmentVariableOption{Value: "https://example.com", Description: "app url"},
+			api.CreateVariableOption{Value: "https://example.com", Description: "app url"},
 		).AddTokenAuth(token)
 		MakeRequest(t, req, http.StatusCreated)
 
-		// duplicate name → conflict
 		req = NewRequestWithJSON(t, "POST",
 			varsURL+"/app_url",
-			api.CreateEnvironmentVariableOption{Value: "other"},
+			api.CreateVariableOption{Value: "other"},
 		).AddTokenAuth(token)
 		MakeRequest(t, req, http.StatusConflict)
 
 		req = NewRequest(t, "GET", varsURL).AddTokenAuth(token)
 		resp := MakeRequest(t, req, http.StatusOK)
-		var vars []*api.EnvironmentVariable
+		var vars []*api.ActionVariable
 		DecodeJSON(t, resp, &vars)
 		require.Len(t, vars, 1)
 		assert.Equal(t, "APP_URL", vars[0].Name)
-		assert.Equal(t, "https://example.com", vars[0].Value)
+		assert.Equal(t, "https://example.com", vars[0].Data)
 	})
 
 	t.Run("UpdateAndDelete", func(t *testing.T) {
-		// create
 		req := NewRequestWithJSON(t, "POST",
 			varsURL+"/DB_HOST",
-			api.CreateEnvironmentVariableOption{Value: "localhost"},
+			api.CreateVariableOption{Value: "localhost"},
 		).AddTokenAuth(token)
 		MakeRequest(t, req, http.StatusCreated)
 
-		// get list to find the id
-		req = NewRequest(t, "GET", varsURL).AddTokenAuth(token)
-		resp := MakeRequest(t, req, http.StatusOK)
-		var vars []*api.EnvironmentVariable
-		DecodeJSON(t, resp, &vars)
-		var dbVar *api.EnvironmentVariable
-		for _, v := range vars {
-			if v.Name == "DB_HOST" {
-				dbVar = v
-				break
-			}
-		}
-		require.NotNil(t, dbVar)
-
-		// update via PUT /{variablename}
 		req = NewRequestWithJSON(t, "PUT",
 			varsURL+"/DB_HOST",
-			api.UpdateEnvironmentVariableOption{Value: "db.internal"},
+			api.UpdateVariableOption{Value: "db.internal"},
 		).AddTokenAuth(token)
 		MakeRequest(t, req, http.StatusNoContent)
 
-		// delete
 		req = NewRequest(t, "DELETE", varsURL+"/DB_HOST").AddTokenAuth(token)
 		MakeRequest(t, req, http.StatusNoContent)
 
 		req = NewRequest(t, "DELETE", varsURL+"/DB_HOST").AddTokenAuth(token)
 		MakeRequest(t, req, http.StatusNotFound)
+	})
+
+	t.Run("RepoVariablesExcludeEnvironmentScoped", func(t *testing.T) {
+		req := NewRequestWithJSON(t, "POST",
+			varsURL+"/ENV_ONLY",
+			api.CreateVariableOption{Value: "env-val"},
+		).AddTokenAuth(token)
+		MakeRequest(t, req, http.StatusCreated)
+
+		req = NewRequestWithJSON(t, "POST",
+			repoVarsURL+"/REPO_ONLY",
+			api.CreateVariableOption{Value: "repo-val"},
+		).AddTokenAuth(token)
+		MakeRequest(t, req, http.StatusCreated)
+
+		req = NewRequest(t, "GET", repoVarsURL).AddTokenAuth(token)
+		resp := MakeRequest(t, req, http.StatusOK)
+		var repoVars []*api.ActionVariable
+		DecodeJSON(t, resp, &repoVars)
+		repoNames := make([]string, len(repoVars))
+		for i, v := range repoVars {
+			repoNames[i] = v.Name
+		}
+		assert.Contains(t, repoNames, "REPO_ONLY")
+		assert.NotContains(t, repoNames, "ENV_ONLY")
+
+		req = NewRequest(t, "GET", varsURL).AddTokenAuth(token)
+		resp = MakeRequest(t, req, http.StatusOK)
+		var envVars []*api.ActionVariable
+		DecodeJSON(t, resp, &envVars)
+		envNames := make([]string, len(envVars))
+		for i, v := range envVars {
+			envNames[i] = v.Name
+		}
+		assert.Contains(t, envNames, "ENV_ONLY")
+		assert.NotContains(t, envNames, "REPO_ONLY")
 	})
 }

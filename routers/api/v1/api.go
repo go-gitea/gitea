@@ -1261,23 +1261,23 @@ func Routes() *web.Router {
 
 				m.Group("/environments", func() {
 					m.Get("", reqToken(), reqOwner(), repo.ListEnvironments)
-					m.Post("", reqToken(), reqAdmin(), bind(api.CreateEnvironmentOption{}), repo.CreateEnvironment)
+					m.Post("", reqToken(), reqOwner(), bind(api.CreateEnvironmentOption{}), repo.CreateEnvironment)
 					m.Group("/{environment_name}", func() {
 						m.Get("", reqToken(), reqOwner(), repo.GetEnvironment)
-						m.Patch("", reqToken(), reqAdmin(), bind(api.UpdateEnvironmentOption{}), repo.UpdateEnvironment)
-						m.Delete("", reqToken(), reqAdmin(), repo.DeleteEnvironment)
+						m.Patch("", reqToken(), reqOwner(), bind(api.UpdateEnvironmentOption{}), repo.UpdateEnvironment)
+						m.Delete("", reqToken(), reqOwner(), repo.DeleteEnvironment)
 						m.Group("/secrets", func() {
-							m.Get("", reqToken(), reqAdmin(), repo.ListEnvSecrets)
+							m.Get("", reqToken(), reqOwner(), repo.ListEnvSecrets)
 							m.Combo("/{secretname}").
-								Put(reqToken(), reqAdmin(), bind(api.CreateOrUpdateEnvironmentSecretOption{}), repo.CreateOrUpdateEnvSecret).
-								Delete(reqToken(), reqAdmin(), repo.DeleteEnvSecret)
+								Put(reqToken(), reqOwner(), bind(api.CreateOrUpdateSecretOption{}), repo.CreateOrUpdateEnvSecret).
+								Delete(reqToken(), reqOwner(), repo.DeleteEnvSecret)
 						})
 						m.Group("/variables", func() {
-							m.Get("", reqToken(), reqAdmin(), repo.ListEnvVariables)
+							m.Get("", reqToken(), reqOwner(), repo.ListEnvVariables)
 							m.Combo("/{variablename}").
-								Post(reqToken(), reqAdmin(), bind(api.CreateEnvironmentVariableOption{}), repo.CreateEnvVariable).
-								Put(reqToken(), reqAdmin(), bind(api.UpdateEnvironmentVariableOption{}), repo.UpdateEnvVariable).
-								Delete(reqToken(), reqAdmin(), repo.DeleteEnvVariable)
+								Post(reqToken(), reqOwner(), bind(api.CreateVariableOption{}), repo.CreateEnvVariable).
+								Put(reqToken(), reqOwner(), bind(api.UpdateVariableOption{}), repo.UpdateEnvVariable).
+								Delete(reqToken(), reqOwner(), repo.DeleteEnvVariable)
 						})
 					})
 				})

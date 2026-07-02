@@ -6,7 +6,6 @@ package actions
 import (
 	"testing"
 
-	"gitea.dev/models/db"
 	"gitea.dev/models/unittest"
 
 	"github.com/stretchr/testify/assert"
@@ -122,48 +121,6 @@ func TestEnvironmentCRUD(t *testing.T) {
 		got, err := GetEnvironmentByID(ctx, env.ID)
 		require.NoError(t, err)
 		assert.Equal(t, "staging,develop", got.ProtectedBranches)
-	})
-
-	t.Run("Delete cascades secrets and variables", func(t *testing.T) {
-		env, err := InsertEnvironment(ctx, repoID, "preview", "")
-		require.NoError(t, err)
-
-		// insert a secret and a variable scoped to the env
-		secret := &ActionEnvironmentSecret{
-			RepoID:        repoID,
-			EnvironmentID: env.ID,
-			Name:          "TOKEN",
-			Data:          "encrypted",
-		}
-		require.NoError(t, db.Insert(ctx, secret))
-		variable := &ActionEnvironmentVariable{
-			RepoID:        repoID,
-			EnvironmentID: env.ID,
-			Name:          "APP_URL",
-			Data:          "https://preview.example.com",
-		}
-		require.NoError(t, db.Insert(ctx, variable))
-
-		require.NoError(t, DeleteEnvironment(ctx, repoID, env.ID))
-
-		// environment should be gone
-		_, err = GetEnvironmentByID(ctx, env.ID)
-		require.ErrorIs(t, err, ErrEnvironmentNotFound{})
-
-		// secrets and variables should be cascaded
-		secrets, err := db.Find[ActionEnvironmentSecret](ctx, FindEnvSecretsOptions{
-			RepoID:        repoID,
-			EnvironmentID: env.ID,
-		})
-		require.NoError(t, err)
-		assert.Empty(t, secrets)
-
-		vars, err := db.Find[ActionEnvironmentVariable](ctx, FindEnvVariablesOptions{
-			RepoID:        repoID,
-			EnvironmentID: env.ID,
-		})
-		require.NoError(t, err)
-		assert.Empty(t, vars)
 	})
 
 	t.Run("NotFound error for unknown env", func(t *testing.T) {

@@ -77,7 +77,7 @@ func EnvironmentEdit(ctx *context.Context) {
 		return
 	}
 
-	secrets, err := db.Find[actions_model.ActionEnvironmentSecret](ctx, actions_model.FindEnvSecretsOptions{
+	secrets, err := db.Find[secret_model.Secret](ctx, secret_model.FindSecretsOptions{
 		RepoID:        ctx.Repo.Repository.ID,
 		EnvironmentID: env.ID,
 	})
@@ -86,7 +86,7 @@ func EnvironmentEdit(ctx *context.Context) {
 		return
 	}
 
-	variables, err := db.Find[actions_model.ActionEnvironmentVariable](ctx, actions_model.FindEnvVariablesOptions{
+	variables, err := db.Find[actions_model.ActionVariable](ctx, actions_model.FindVariablesOpts{
 		RepoID:        ctx.Repo.Repository.ID,
 		EnvironmentID: env.ID,
 	})
@@ -180,7 +180,7 @@ func EnvironmentSecretDelete(ctx *context.Context) {
 	}
 
 	id := ctx.FormInt64("id")
-	secrets, err := db.Find[actions_model.ActionEnvironmentSecret](ctx, actions_model.FindEnvSecretsOptions{
+	secrets, err := db.Find[secret_model.Secret](ctx, secret_model.FindSecretsOptions{
 		RepoID:        ctx.Repo.Repository.ID,
 		EnvironmentID: env.ID,
 		SecretID:      id,

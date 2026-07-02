@@ -241,13 +241,4 @@ type swaggerParameterBodies struct {
 
 	// in:body
 	UpdateEnvironmentOption api.UpdateEnvironmentOption
-
-	// in:body
-	CreateOrUpdateEnvironmentSecretOption api.CreateOrUpdateEnvironmentSecretOption
-
-	// in:body
-	CreateEnvironmentVariableOption api.CreateEnvironmentVariableOption
-
-	// in:body
-	UpdateEnvironmentVariableOption api.UpdateEnvironmentVariableOption
 }

@@ -10,6 +10,7 @@ import (
 
 	actions_model "gitea.dev/models/actions"
 	"gitea.dev/models/db"
+	secret_model "gitea.dev/models/secret"
 	api "gitea.dev/modules/structs"
 	"gitea.dev/modules/util"
 	"gitea.dev/modules/web"
@@ -254,7 +255,7 @@ func ListEnvSecrets(ctx *context.APIContext) {
 	//   type: integer
 	// responses:
 	//   "200":
-	//     "$ref": "#/responses/EnvironmentSecretList"
+	//     "$ref": "#/responses/SecretList"
 	//   "404":
 	//     "$ref": "#/responses/notFound"
 
@@ -264,7 +265,7 @@ func ListEnvSecrets(ctx *context.APIContext) {
 		return
 	}
 	listOptions := utils.GetListOptions(ctx)
-	secrets, count, err := db.FindAndCount[actions_model.ActionEnvironmentSecret](ctx, actions_model.FindEnvSecretsOptions{
+	secrets, count, err := db.FindAndCount[secret_model.Secret](ctx, secret_model.FindSecretsOptions{
 		RepoID:        ctx.Repo.Repository.ID,
 		EnvironmentID: env.ID,
 		ListOptions:   listOptions,
@@ -274,12 +275,12 @@ func ListEnvSecrets(ctx *context.APIContext) {
 		return
 	}
 
-	result := make([]*api.EnvironmentSecret, len(secrets))
+	result := make([]*api.Secret, len(secrets))
 	for i, s := range secrets {
-		result[i] = &api.EnvironmentSecret{
+		result[i] = &api.Secret{
 			Name:        s.Name,
 			Description: s.Description,
-			CreatedAt:   s.CreatedUnix.AsTime(),
+			Created:     s.CreatedUnix.AsTime(),
 		}
 	}
 	ctx.SetLinkHeader(count, listOptions.PageSize)
@@ -316,7 +317,7 @@ func CreateOrUpdateEnvSecret(ctx *context.APIContext) {
 	// - name: body
 	//   in: body
 	//   schema:
-	//     "$ref": "#/definitions/CreateOrUpdateEnvironmentSecretOption"
+	//     "$ref": "#/definitions/CreateOrUpdateSecretOption"
 	// responses:
 	//   "201":
 	//     description: secret created
@@ -332,7 +333,7 @@ func CreateOrUpdateEnvSecret(ctx *context.APIContext) {
 		ctx.APIErrorAuto(err)
 		return
 	}
-	opt := web.GetForm(ctx).(*api.CreateOrUpdateEnvironmentSecretOption)
+	opt := web.GetForm(ctx).(*api.CreateOrUpdateSecretOption)
 	_, created, err := actions_service.CreateOrUpdateEnvSecret(ctx, ctx.Repo.Repository.ID, env.ID, ctx.PathParam("secretname"), opt.Data, opt.Description)
 	if err != nil {
 		if errors.Is(err, util.ErrInvalidArgument) {
@@ -415,7 +416,7 @@ func ListEnvVariables(ctx *context.APIContext) {
 	//   required: true
 	// responses:
 	//   "200":
-	//     "$ref": "#/responses/EnvironmentVariableList"
+	//     "$ref": "#/responses/VariableList"
 	//   "404":
 	//     "$ref": "#/responses/notFound"
 
@@ -425,7 +426,7 @@ func ListEnvVariables(ctx *context.APIContext) {
 		return
 	}
 	listOptions := utils.GetListOptions(ctx)
-	vars, count, err := db.FindAndCount[actions_model.ActionEnvironmentVariable](ctx, actions_model.FindEnvVariablesOptions{
+	vars, count, err := db.FindAndCount[actions_model.ActionVariable](ctx, actions_model.FindVariablesOpts{
 		RepoID:        ctx.Repo.Repository.ID,
 		EnvironmentID: env.ID,
 		ListOptions:   listOptions,
@@ -435,13 +436,13 @@ func ListEnvVariables(ctx *context.APIContext) {
 		return
 	}
 
-	result := make([]*api.EnvironmentVariable, len(vars))
+	result := make([]*api.ActionVariable, len(vars))
 	for i, v := range vars {
-		result[i] = &api.EnvironmentVariable{
+		result[i] = &api.ActionVariable{
+			RepoID:      v.RepoID,
 			Name:        v.Name,
-			Value:       v.Data,
+			Data:        v.Data,
 			Description: v.Description,
-			CreatedAt:   v.CreatedUnix.AsTime(),
 		}
 	}
 	ctx.SetLinkHeader(count, listOptions.PageSize)
@@ -478,7 +479,7 @@ func CreateEnvVariable(ctx *context.APIContext) {
 	// - name: body
 	//   in: body
 	//   schema:
-	//     "$ref": "#/definitions/CreateEnvironmentVariableOption"
+	//     "$ref": "#/definitions/CreateVariableOption"
 	// responses:
 	//   "201":
 	//     description: variable created
@@ -494,7 +495,7 @@ func CreateEnvVariable(ctx *context.APIContext) {
 		ctx.APIErrorAuto(err)
 		return
 	}
-	opt := web.GetForm(ctx).(*api.CreateEnvironmentVariableOption)
+	opt := web.GetForm(ctx).(*api.CreateVariableOption)
 	variableName := strings.ToUpper(ctx.PathParam("variablename"))
 
 	if _, err := actions_service.CreateEnvVariable(ctx, ctx.Repo.Repository.ID, env.ID, variableName, opt.Value, opt.Description); err != nil {
@@ -539,7 +540,7 @@ func UpdateEnvVariable(ctx *context.APIContext) {
 	// - name: body
 	//   in: body
 	//   schema:
-	//     "$ref": "#/definitions/UpdateEnvironmentVariableOption"
+	//     "$ref": "#/definitions/UpdateVariableOption"
 	// responses:
 	//   "204":
 	//     description: variable updated
@@ -553,7 +554,7 @@ func UpdateEnvVariable(ctx *context.APIContext) {
 		ctx.APIErrorAuto(err)
 		return
 	}
-	vars, err := db.Find[actions_model.ActionEnvironmentVariable](ctx, actions_model.FindEnvVariablesOptions{
+	vars, err := db.Find[actions_model.ActionVariable](ctx, actions_model.FindVariablesOpts{
 		RepoID:        ctx.Repo.Repository.ID,
 		EnvironmentID: env.ID,
 		Name:          ctx.PathParam("variablename"),
@@ -562,7 +563,7 @@ func UpdateEnvVariable(ctx *context.APIContext) {
 		ctx.APIErrorNotFound()
 		return
 	}
-	opt := web.GetForm(ctx).(*api.UpdateEnvironmentVariableOption)
+	opt := web.GetForm(ctx).(*api.UpdateVariableOption)
 	if _, err := actions_service.UpdateEnvVariable(ctx, ctx.Repo.Repository.ID, env.ID, vars[0].ID, opt.Name, opt.Value, opt.Description); err != nil {
 		ctx.APIErrorInternal(err)
 		return
@@ -603,7 +604,7 @@ func DeleteEnvVariable(ctx *context.APIContext) {
 		ctx.APIErrorAuto(err)
 		return
 	}
-	vars, err := db.Find[actions_model.ActionEnvironmentVariable](ctx, actions_model.FindEnvVariablesOptions{
+	vars, err := db.Find[actions_model.ActionVariable](ctx, actions_model.FindVariablesOpts{
 		RepoID:        ctx.Repo.Repository.ID,
 		EnvironmentID: env.ID,
 		Name:          ctx.PathParam("variablename"),

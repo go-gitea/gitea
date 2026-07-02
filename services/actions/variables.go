@@ -5,19 +5,23 @@ package actions
 
 import (
 	"context"
+	"strings"
 
 	actions_model "gitea.dev/models/actions"
 	"gitea.dev/modules/util"
 	secret_service "gitea.dev/services/secrets"
 )
 
-func CreateVariable(ctx context.Context, ownerID, repoID int64, name, data, description string) (*actions_model.ActionVariable, error) {
+func CreateVariable(ctx context.Context, ownerID, repoID, environmentID int64, name, data, description string) (*actions_model.ActionVariable, error) {
 	if err := secret_service.ValidateName(name); err != nil {
 		return nil, err
 	}
 
-	v, err := actions_model.InsertVariable(ctx, ownerID, repoID, name, util.NormalizeStringEOL(data), description)
+	v, err := actions_model.InsertVariable(ctx, ownerID, repoID, environmentID, name, util.NormalizeStringEOL(data), description)
 	if err != nil {
+		if isUniqueViolation(err) {
+			return nil, util.ErrAlreadyExist
+		}
 		return nil, err
 	}
 
@@ -38,11 +42,12 @@ func DeleteVariableByID(ctx context.Context, variableID int64) error {
 	return actions_model.DeleteVariable(ctx, variableID)
 }
 
-func DeleteVariableByName(ctx context.Context, ownerID, repoID int64, name string) error {
+func DeleteVariableByName(ctx context.Context, ownerID, repoID, environmentID int64, name string) error {
 	v, err := GetVariable(ctx, actions_model.FindVariablesOpts{
-		OwnerID: ownerID,
-		RepoID:  repoID,
-		Name:    name,
+		OwnerID:       ownerID,
+		RepoID:        repoID,
+		EnvironmentID: environmentID,
+		Name:          name,
 	})
 	if err != nil {
 		return err
@@ -60,4 +65,12 @@ func GetVariable(ctx context.Context, opts actions_model.FindVariablesOpts) (*ac
 		return nil, util.NewNotExistErrorf("variable not found")
 	}
 	return vars[0], nil
+}
+
+// isUniqueViolation reports whether err is a database unique-constraint violation.
+func isUniqueViolation(err error) bool {
+	msg := err.Error()
+	return strings.Contains(msg, "Duplicate entry") || // MySQL
+		strings.Contains(msg, "duplicate key") || // PostgreSQL
+		strings.Contains(msg, "UNIQUE constraint") // SQLite
 }
