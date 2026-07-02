@@ -158,9 +158,13 @@ Any account with write access (including bots and TOC members) **must** use [2FA
 Mergers are the maintainers who carry out the final merge of approved PRs. Their responsibilities, described throughout this guide, are:
 
 - Merging PRs from the [merge queue](#getting-prs-merged) in order, once a PR has `lgtm/done`, no open discussions, and no merge conflicts.
-- Rewriting the PR title and summary so the squash [commit message](#commit-messages) is clear, removing false-positive co-authors while keeping every true co-author.
+- Rewriting the PR title and summary so the squash [commit message](#commit-messages) is clear,
+  removing false-positive co-authors while keeping every true co-author, make commit message correct.
 - Assigning the correct labels (including `type/…`) needed for changelog and backport decisions.
 - Agreeing, together with the owners, on when a release is ready (see [release management](release-management.md)).
+- Merging a PR also means the PR looks good to the merger and is approved by the merger.
+- If a merger keeps violating the guides (e.g.: merge with unresolved reviews, flood garbage commit messages),
+  their permission should be revoked.
 
 #### Becoming a merger
 
@@ -200,7 +204,7 @@ random.seed("Gitea TOC <YEAR> Election")
 random.choice([<CANDIDATE_1>, <CANDIDATE_2>, ...])
 ```
 
-The result of this script needs then to be published in the TOC election issue to ensure transparency of the process. 
+The result of this script needs then to be published in the TOC election issue to ensure transparency of the process.
 
 ### Current TOC members
 
@@ -213,7 +217,7 @@ The result of this script needs then to be published in the TOC election issue t
     - [bircni](https://gitea.com/bircni) <bircni@icloud.com>
     - [delvh](https://gitea.com/delvh) <dev.lh@web.de>
     - [TheFox0x7](https://gitea.com/TheFox0x7) <thefox0x7@gmail.com>
-    
+
 
 ### Previous TOC/owners members
 
