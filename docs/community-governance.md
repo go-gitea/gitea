@@ -169,8 +169,9 @@ Mergers are the maintainers who carry out the final merge of approved PRs. Their
 - Agreeing, together with the owners, on when a release is ready (see [release management](release-management.md)).
 - Merging a PR also means the PR looks good to the merger and is approved by the merger.
 
-If a merger keeps violating the guides for more than 3 times (e.g.: merge with unresolved reviews, flood garbage commit messages),
-their permission should be revoked.
+If a merger violates these merge guides more than 3 times in the past 365 days
+(e.g.: merge with unresolved reviews without TOC decision to ignore the review, merge with garbage commit messages),
+they may lose their merging privileges.
 
 #### Becoming a merger
 
