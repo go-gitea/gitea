@@ -21,6 +21,7 @@ import (
 	"gitea.dev/modules/gitrepo"
 	"gitea.dev/modules/log"
 	"gitea.dev/modules/private"
+	"gitea.dev/modules/setting"
 	"gitea.dev/modules/util"
 	"gitea.dev/modules/web"
 	"gitea.dev/services/agit"
@@ -176,8 +177,34 @@ func preReceiveBranch(ctx *preReceiveContext, oldCommitID, newCommitID string, r
 		return
 	}
 
-	// Allow pushes to non-protected branches
+	// Allow pushes to non-protected branches, but optionally reject force pushes
 	if protectBranch == nil {
+		if !setting.Repository.DefaultRejectForcePush {
+			return
+		}
+
+		// Detect force push when default force push rejection is enabled
+		if oldCommitID != objectFormat.EmptyObjectID().String() {
+			output, _, err := gitrepo.RunCmdString(ctx,
+				repo,
+				gitcmd.NewCommand("rev-list", "--max-count=1").
+					AddDynamicArguments(oldCommitID, "^"+newCommitID).
+					WithEnv(ctx.env),
+			)
+			if err != nil {
+				log.Error("Unable to detect force push between: %s and %s in %-v Error: %v", oldCommitID, newCommitID, repo, err)
+				ctx.JSON(http.StatusInternalServerError, private.Response{
+					Err: fmt.Sprintf("Fail to detect force push: %v", err),
+				})
+				return
+			} else if len(output) > 0 {
+				log.Warn("Forbidden: Branch: %s in %-v is protected from force push by default setting", branchName, repo)
+				ctx.JSON(http.StatusForbidden, private.Response{
+					UserMsg: fmt.Sprintf("force push to branch %q is rejected by default. Add a Branch Protection Rule to allow force push.", branchName),
+				})
+				return
+			}
+		}
 		return
 	}
 	protectBranch.Repo = repo
