@@ -23,10 +23,17 @@ func (source *Source) Callout(request *http.Request, response http.ResponseWrite
 	defer gothRWMutex.RUnlock()
 
 	url, err := gothic.GetAuthURL(response, request)
-	if err == nil {
-		http.Redirect(response, request, url, http.StatusTemporaryRedirect)
+	if err != nil {
+		return err
 	}
-	return err
+
+	// Append a PKCE code_challenge for OIDC login sources. Remove if upstream resolves gitea#21376.
+	if url, err = source.beginPKCE(request, url); err != nil {
+		return err
+	}
+
+	http.Redirect(response, request, url, http.StatusTemporaryRedirect)
+	return nil
 }
 
 // Callback handles OAuth callback, resolve to a goth user and send back to original url
@@ -37,6 +44,9 @@ func (source *Source) Callback(request *http.Request, response http.ResponseWrit
 
 	gothRWMutex.RLock()
 	defer gothRWMutex.RUnlock()
+
+	// Inject the stashed PKCE code_verifier for OIDC login sources. Remove if upstream resolves gitea#21376.
+	source.injectPKCEVerifier(request)
 
 	user, err := gothic.CompleteUserAuth(response, request)
 	if err != nil {
