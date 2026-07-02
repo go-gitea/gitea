@@ -109,10 +109,10 @@ func (input *notifyInput) WithPullRequest(pr *issues_model.PullRequest) *notifyI
 }
 
 func (input *notifyInput) Notify(ctx context.Context) {
-	log.Trace("execute %v for event %v whose doer is %v", getMethod(ctx), input.Event, input.Doer.Name)
-
-	if err := notify(ctx, input); err != nil {
-		log.Error("an error occurred while executing the %s actions method: %v", getMethod(ctx), err)
+	if err := input.enqueue(ctx); err != nil {
+		log.Error("Unable to queue the %s actions method, falling back to synchronous execution: %v", getMethod(ctx), err)
+	} else {
+		log.Trace("queue %v for event %v whose doer is %v", getMethod(ctx), input.Event, input.Doer.Name)
 	}
 }
 
