@@ -24,6 +24,7 @@ const (
 	AccessTokenScopeCategoryIssue
 	AccessTokenScopeCategoryRepository
 	AccessTokenScopeCategoryUser
+	AccessTokenScopeCategoryCommitStatus
 )
 
 // AllAccessTokenScopeCategories contains all access token scope categories
@@ -37,6 +38,7 @@ var AllAccessTokenScopeCategories = []AccessTokenScopeCategory{
 	AccessTokenScopeCategoryIssue,
 	AccessTokenScopeCategoryRepository,
 	AccessTokenScopeCategoryUser,
+	AccessTokenScopeCategoryCommitStatus,
 }
 
 // AccessTokenScopeLevel represents the access levels without a given scope category
@@ -82,6 +84,9 @@ const (
 
 	AccessTokenScopeReadUser  AccessTokenScope = "read:user"
 	AccessTokenScopeWriteUser AccessTokenScope = "write:user"
+
+	AccessTokenScopeReadCommitStatus  AccessTokenScope = "read:commitstatus"
+	AccessTokenScopeWriteCommitStatus AccessTokenScope = "write:commitstatus"
 )
 
 // accessTokenScopeBitmap represents a bitmap of access token scopes.
@@ -93,7 +98,7 @@ const (
 	accessTokenScopeAllBits accessTokenScopeBitmap = accessTokenScopeWriteActivityPubBits |
 		accessTokenScopeWriteAdminBits | accessTokenScopeWriteMiscBits | accessTokenScopeWriteNotificationBits |
 		accessTokenScopeWriteOrganizationBits | accessTokenScopeWritePackageBits | accessTokenScopeWriteIssueBits |
-		accessTokenScopeWriteRepositoryBits | accessTokenScopeWriteUserBits
+		accessTokenScopeWriteRepositoryBits | accessTokenScopeWriteUserBits | accessTokenScopeWriteCommitStatusBits
 
 	accessTokenScopePublicOnlyBits accessTokenScopeBitmap = 1 << iota
 
@@ -118,11 +123,14 @@ const (
 	accessTokenScopeReadIssueBits  accessTokenScopeBitmap = 1 << iota
 	accessTokenScopeWriteIssueBits accessTokenScopeBitmap = 1<<iota | accessTokenScopeReadIssueBits
 
-	accessTokenScopeReadRepositoryBits  accessTokenScopeBitmap = 1 << iota
-	accessTokenScopeWriteRepositoryBits accessTokenScopeBitmap = 1<<iota | accessTokenScopeReadRepositoryBits
+	accessTokenScopeReadRepositoryBits  accessTokenScopeBitmap = 1<<iota | accessTokenScopeReadCommitStatusBits
+	accessTokenScopeWriteRepositoryBits accessTokenScopeBitmap = 1<<iota | accessTokenScopeReadRepositoryBits | accessTokenScopeWriteCommitStatusBits
 
 	accessTokenScopeReadUserBits  accessTokenScopeBitmap = 1 << iota
 	accessTokenScopeWriteUserBits accessTokenScopeBitmap = 1<<iota | accessTokenScopeReadUserBits
+
+	accessTokenScopeReadCommitStatusBits  accessTokenScopeBitmap = 1 << iota
+	accessTokenScopeWriteCommitStatusBits accessTokenScopeBitmap = 1<<iota | accessTokenScopeReadCommitStatusBits
 
 	// The current implementation only supports up to 64 token scopes.
 	// If we need to support > 64 scopes,
@@ -142,6 +150,7 @@ var allAccessTokenScopes = []AccessTokenScope{
 	AccessTokenScopeWriteIssue, AccessTokenScopeReadIssue,
 	AccessTokenScopeWriteRepository, AccessTokenScopeReadRepository,
 	AccessTokenScopeWriteUser, AccessTokenScopeReadUser,
+	AccessTokenScopeWriteCommitStatus, AccessTokenScopeReadCommitStatus,
 }
 
 // allAccessTokenScopeBits contains all access token scopes.
@@ -166,6 +175,8 @@ var allAccessTokenScopeBits = map[AccessTokenScope]accessTokenScopeBitmap{
 	AccessTokenScopeWriteRepository:   accessTokenScopeWriteRepositoryBits,
 	AccessTokenScopeReadUser:          accessTokenScopeReadUserBits,
 	AccessTokenScopeWriteUser:         accessTokenScopeWriteUserBits,
+	AccessTokenScopeReadCommitStatus:  accessTokenScopeReadCommitStatusBits,
+	AccessTokenScopeWriteCommitStatus: accessTokenScopeWriteCommitStatusBits,
 }
 
 // readAccessTokenScopes maps a scope category to the read permission scope
@@ -180,6 +191,7 @@ var accessTokenScopes = map[AccessTokenScopeLevel]map[AccessTokenScopeCategory]A
 		AccessTokenScopeCategoryIssue:        AccessTokenScopeReadIssue,
 		AccessTokenScopeCategoryRepository:   AccessTokenScopeReadRepository,
 		AccessTokenScopeCategoryUser:         AccessTokenScopeReadUser,
+		AccessTokenScopeCategoryCommitStatus: AccessTokenScopeReadCommitStatus,
 	},
 	Write: {
 		AccessTokenScopeCategoryActivityPub:  AccessTokenScopeWriteActivityPub,
@@ -191,6 +203,7 @@ var accessTokenScopes = map[AccessTokenScopeLevel]map[AccessTokenScopeCategory]A
 		AccessTokenScopeCategoryIssue:        AccessTokenScopeWriteIssue,
 		AccessTokenScopeCategoryRepository:   AccessTokenScopeWriteRepository,
 		AccessTokenScopeCategoryUser:         AccessTokenScopeWriteUser,
+		AccessTokenScopeCategoryCommitStatus: AccessTokenScopeWriteCommitStatus,
 	},
 }
 
