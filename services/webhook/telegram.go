@@ -210,8 +210,8 @@ func newTelegramRequest(_ context.Context, w *webhook_model.Webhook, t *webhook_
 	if err != nil {
 		return nil, nil, err
 	}
-	if strings.HasSuffix(u.Path, "/sendMessage") {
-		u.Path = u.Path[:len(u.Path)-len("/sendMessage")] + "/sendRichMessage"
+	if urlPrefix, ok := strings.CutSuffix(u.Path, "/sendMessage"); ok {
+		u.Path = urlPrefix + "/sendRichMessage"
 		w.URL = u.String()
 	}
 	var pc payloadConvertor[TelegramPayload] = telegramConvertor{}
