@@ -96,7 +96,13 @@ However, if there are no objections from maintainers, the PR can be merged with 
 
 Mergers are required to rewrite the PR title and the first comment (the summary) when necessary so the squash commit message is clear.
 
-The final commit message should not hedge: replace phrases like `hopefully, <x> won't happen anymore` with definite wording.
+The final commit message:
+
+- should match the code changes.
+- should only keep true co-authors, false-positive co-authors should be removed.
+- should not hedge: replace phrases like `hopefully, <x> won't happen anymore` with definite wording.
+- should not contain hidden information like `<!-- -->` or extra information after the description's divider `----`.
+- should not contain unrelated contents (e.g.: Release Notes, Configuration, etc.) from a Renovate update PR.
 
 #### PR Co-authors
 
@@ -158,9 +164,14 @@ Any account with write access (including bots and TOC members) **must** use [2FA
 Mergers are the maintainers who carry out the final merge of approved PRs. Their responsibilities, described throughout this guide, are:
 
 - Merging PRs from the [merge queue](#getting-prs-merged) in order, once a PR has `lgtm/done`, no open discussions, and no merge conflicts.
-- Rewriting the PR title and summary so the squash [commit message](#commit-messages) is clear, removing false-positive co-authors while keeping every true co-author.
+- Rewriting the PR title and summary, making the [commit message](#commit-messages) clear.
 - Assigning the correct labels (including `type/…`) needed for changelog and backport decisions.
 - Agreeing, together with the owners, on when a release is ready (see [release management](release-management.md)).
+- Merging a PR also means the PR looks good to the merger and is approved by the merger.
+
+If a merger violates these merge guides more than 3 times in the past 365 days
+(e.g.: merge with unresolved reviews without TOC decision to ignore the review, merge with garbage commit messages),
+they may lose their merging privileges.
 
 #### Becoming a merger
 
@@ -200,7 +211,7 @@ random.seed("Gitea TOC <YEAR> Election")
 random.choice([<CANDIDATE_1>, <CANDIDATE_2>, ...])
 ```
 
-The result of this script needs then to be published in the TOC election issue to ensure transparency of the process. 
+The result of this script needs then to be published in the TOC election issue to ensure transparency of the process.
 
 ### Current TOC members
 
@@ -213,7 +224,7 @@ The result of this script needs then to be published in the TOC election issue t
     - [bircni](https://gitea.com/bircni) <bircni@icloud.com>
     - [delvh](https://gitea.com/delvh) <dev.lh@web.de>
     - [TheFox0x7](https://gitea.com/TheFox0x7) <thefox0x7@gmail.com>
-    
+
 
 ### Previous TOC/owners members
 
