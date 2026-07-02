@@ -4,13 +4,10 @@
 package actions
 
 import (
-	"archive/zip"
-	"compress/gzip"
 	"context"
 	"errors"
 	"fmt"
 	"html/template"
-	"io"
 	"net/http"
 	"net/url"
 	"strconv"
@@ -29,10 +26,8 @@ import (
 	"gitea.dev/modules/cache"
 	"gitea.dev/modules/git"
 	"gitea.dev/modules/gitrepo"
-	"gitea.dev/modules/httplib"
 	"gitea.dev/modules/json"
 	"gitea.dev/modules/log"
-	"gitea.dev/modules/storage"
 	api "gitea.dev/modules/structs"
 	"gitea.dev/modules/templates"
 	"gitea.dev/modules/translation"
@@ -279,13 +274,6 @@ type LogCursor struct {
 
 type ViewRequest struct {
 	LogCursors []LogCursor `json:"logCursors"`
-}
-
-type ArtifactsViewItem struct {
-	Name        string `json:"name"`
-	Size        int64  `json:"size"`
-	Status      string `json:"status"`
-	ExpiresUnix int64  `json:"expiresUnix"`
 }
 
 type ViewResponse struct {
@@ -1117,129 +1105,6 @@ func getCurrentRunJobsByPathParam(ctx *context_module.Context) (*actions_model.A
 		job.Run = run
 	}
 	return run, attempt, jobs
-}
-
-// resolveArtifactAttemptIDFromQuery resolves the run_attempt_id used to scope artifact lookups.
-// If the `attempt` query parameter is present and valid, it returns the matching attempt's ID.
-// Otherwise it falls back to run.LatestAttemptID, which is 0 only for legacy runs created before ActionRunAttempt existed.
-func resolveArtifactAttemptIDFromQuery(ctx *context_module.Context, run *actions_model.ActionRun) (int64, error) {
-	if ctx.FormString("attempt") == "" {
-		return run.LatestAttemptID, nil
-	}
-	attemptNum := ctx.FormInt64("attempt")
-	if attemptNum <= 0 {
-		return 0, util.ErrNotExist
-	}
-	attempt, err := actions_model.GetRunAttemptByRunIDAndAttemptNum(ctx, run.ID, attemptNum)
-	if err != nil {
-		return 0, err
-	}
-	return attempt.ID, nil
-}
-
-func ArtifactsDeleteView(ctx *context_module.Context) {
-	run := getCurrentRunByPathParam(ctx)
-	if ctx.Written() {
-		return
-	}
-	resolvedAttemptID, err := resolveArtifactAttemptIDFromQuery(ctx, run)
-	if err != nil {
-		ctx.NotFoundOrServerError("resolveArtifactAttemptIDFromQuery", func(err error) bool {
-			return errors.Is(err, util.ErrNotExist)
-		}, err)
-		return
-	}
-	artifactName := ctx.PathParam("artifact_name")
-	if err := actions_model.SetArtifactNeedDeleteByRunAttempt(ctx, run.ID, resolvedAttemptID, artifactName); err != nil {
-		ctx.ServerError("SetArtifactNeedDeleteByRunAttempt", err)
-		return
-	}
-	ctx.JSON(http.StatusOK, struct{}{})
-}
-
-func ArtifactsDownloadView(ctx *context_module.Context) {
-	run := getCurrentRunByPathParam(ctx)
-	if ctx.Written() {
-		return
-	}
-	resolvedAttemptID, err := resolveArtifactAttemptIDFromQuery(ctx, run)
-	if err != nil {
-		ctx.NotFoundOrServerError("resolveArtifactAttemptIDFromQuery", func(err error) bool {
-			return errors.Is(err, util.ErrNotExist)
-		}, err)
-		return
-	}
-	artifactName := ctx.PathParam("artifact_name")
-	artifacts, err := actions_model.GetArtifactsByRunAttemptAndName(ctx, run.ID, resolvedAttemptID, artifactName)
-	if err != nil {
-		ctx.ServerError("GetArtifactsByRunAttemptAndName", err)
-		return
-	}
-	if len(artifacts) == 0 {
-		ctx.HTTPError(http.StatusNotFound, "artifact not found")
-		return
-	}
-
-	// if artifacts status is not uploaded-confirmed, treat it as not found
-	for _, art := range artifacts {
-		if art.Status != actions_model.ArtifactStatusUploadConfirmed {
-			ctx.HTTPError(http.StatusNotFound, "artifact not found")
-			return
-		}
-	}
-
-	// A v4 Artifact may only contain a single file
-	// Multiple files are uploaded as a single file archive
-	// All other cases fall back to the legacy v1–v3 zip handling below
-	if len(artifacts) == 1 && actions_service.IsArtifactV4(artifacts[0]) {
-		err := actions_service.DownloadArtifactV4(ctx.Base, artifacts[0])
-		if err != nil {
-			ctx.ServerError("DownloadArtifactV4", err)
-			return
-		}
-		return
-	}
-
-	// Artifacts using the v1-v3 backend are stored as multiple individual files per artifact on the backend
-	// Those need to be zipped for download
-	ctx.Resp.Header().Set("Content-Disposition", httplib.EncodeContentDispositionAttachment(artifactName+".zip"))
-	zipWriter := zip.NewWriter(ctx.Resp)
-	defer zipWriter.Close()
-
-	writeArtifactToZip := func(art *actions_model.ActionArtifact) error {
-		f, err := storage.ActionsArtifacts.Open(art.StoragePath)
-		if err != nil {
-			return fmt.Errorf("ActionsArtifacts.Open: %w", err)
-		}
-		defer f.Close()
-
-		var r io.ReadCloser = f
-		if art.ContentEncodingOrType == actions_model.ContentEncodingV3Gzip {
-			r, err = gzip.NewReader(f)
-			if err != nil {
-				return fmt.Errorf("gzip.NewReader: %w", err)
-			}
-		}
-		defer r.Close()
-
-		w, err := zipWriter.Create(art.ArtifactPath)
-		if err != nil {
-			return fmt.Errorf("zipWriter.Create: %w", err)
-		}
-		_, err = io.Copy(w, r)
-		if err != nil {
-			return fmt.Errorf("io.Copy: %w", err)
-		}
-		return nil
-	}
-
-	for _, art := range artifacts {
-		err := writeArtifactToZip(art)
-		if err != nil {
-			ctx.ServerError("writeArtifactToZip", err)
-			return
-		}
-	}
 }
 
 func ApproveAllChecks(ctx *context_module.Context) {

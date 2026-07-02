@@ -29,8 +29,9 @@ type ServeHeaderOptions struct {
 	ContentType   string // defaults to "application/octet-stream"
 	ContentLength *int64
 
-	Filename           string
-	ContentDisposition ContentDispositionType
+	Filename              string
+	ContentDisposition    ContentDispositionType
+	ContentSecurityPolicy string
 
 	CacheIsPublic bool
 	CacheDuration time.Duration // defaults to 5 minutes
@@ -83,6 +84,9 @@ func ServeSetHeaders(w http.ResponseWriter, opts ServeHeaderOptions) {
 	}
 
 	serveSetHeaderContentRelated(w, opts.ContentType)
+	if opts.ContentSecurityPolicy != "" {
+		header.Set("Content-Security-Policy", opts.ContentSecurityPolicy)
+	}
 
 	if opts.ContentLength != nil {
 		header.Set("Content-Length", strconv.FormatInt(*opts.ContentLength, 10))

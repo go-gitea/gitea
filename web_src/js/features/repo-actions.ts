@@ -72,6 +72,7 @@ function initRepositoryActionsView() {
       showLogSeconds: el.getAttribute('data-locale-show-log-seconds'),
       showFullScreen: el.getAttribute('data-locale-show-full-screen'),
       downloadLogs: el.getAttribute('data-locale-download-logs'),
+      downloadFile: el.getAttribute('data-locale-download-file'),
       copyOutput: el.getAttribute('data-locale-copy-output'),
       status: {
         unknown: el.getAttribute('data-locale-status-unknown'),
