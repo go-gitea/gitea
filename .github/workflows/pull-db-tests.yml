@@ -2,6 +2,7 @@ name: db-tests
 
 on:
   pull_request:
+  workflow_dispatch:
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.head_ref || github.run_id }}
@@ -15,13 +16,13 @@ jobs:
     uses: ./.github/workflows/files-changed.yml
 
   test-pgsql-shard-1:
-    if: needs.files-changed.outputs.backend == 'true'
+    # if: needs.files-changed.outputs.backend == 'true'
     needs: files-changed
     runs-on: ubuntu-latest
     timeout-minutes: 50
     services:
       pgsql:
-        image: postgres:14
+        image: postgres:18
         env:
           POSTGRES_DB: test
           POSTGRES_PASSWORD: postgres
@@ -51,13 +52,13 @@ jobs:
           run-migration: "true"
 
   test-pgsql-shard-2:
-    if: needs.files-changed.outputs.backend == 'true'
+    # if: needs.files-changed.outputs.backend == 'true'
     needs: files-changed
     runs-on: ubuntu-latest
     timeout-minutes: 50
     services:
       pgsql:
-        image: postgres:14
+        image: postgres:18
         env:
           POSTGRES_DB: test
           POSTGRES_PASSWORD: postgres
