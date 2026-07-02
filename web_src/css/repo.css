@@ -1532,27 +1532,42 @@ tbody.commit-list {
 
 #diff-container {
   display: flex;
+  padding-top: 4px; /* for box-shadow from .diff-file-box */
   gap: var(--page-spacing);
 }
 
-#diff-file-boxes {
+#diff-boxes-column {
   flex: 1;
+  min-width: 0;
   max-width: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+#diff-file-boxes {
+  min-width: 0;
   display: flex;
   flex-direction: column;
   gap: 8px;
 }
 
 #diff-file-tree {
-  flex: 0 0 20%;
-  max-width: 380px;
+  flex: 0 0 256px;
+  min-width: 0;
   line-height: inherit;
   position: sticky;
   padding-top: 0;
   top: 47px;
   max-height: calc(100vh - 47px);
   height: 100%;
-  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+}
+
+@media (min-width: 1201px) {
+  #diff-file-tree {
+    flex-basis: 320px;
+  }
 }
 
 .ui.message.unicode-escape-prompt {

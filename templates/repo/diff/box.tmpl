@@ -35,7 +35,7 @@
 			{{template "repo/diff/whitespace_dropdown" .}}
 			{{template "repo/diff/options_dropdown" .}}
 			{{if .PageIsPullFiles}}
-				<div id="diff-commit-select" data-merge-base="{{$.CompareInfo.CompareBase}}" data-issuelink="{{$.Issue.Link}}" data-queryparams="?style={{if $.IsSplitStyle}}split{{else}}unified{{end}}&whitespace={{$.WhitespaceBehavior}}&show-outdated={{$.ShowOutdatedComments}}" data-filter_changes_by_commit="{{ctx.Locale.Tr "repo.pulls.filter_changes_by_commit"}}">
+				<div id="diff-commit-select" data-merge-base="{{$.CompareInfo.CompareBase}}" data-issuelink="{{$.Issue.Link}}" data-queryparams="?style={{if $.IsSplitStyle}}split{{else}}unified{{end}}&whitespace={{$.WhitespaceBehavior}}&show-outdated={{$.ShowOutdatedComments}}" data-filter-changes-by-commit="{{ctx.Locale.Tr "repo.pulls.filter_changes_by_commit"}}">
 					{{/* the following will be replaced by vue component, but this avoids any loading artifacts till the vue component is initialized */}}
 					<div class="ui jump dropdown tiny basic button custom">
 						{{svg "octicon-git-commit"}}
@@ -61,7 +61,17 @@
 	<div id="diff-container">
 		{{if $showFileTree}}
 			{{$.FileIconPoolHTML}}
-			<div id="diff-file-tree" class="tw-hidden not-mobile"></div>
+			<div id="diff-file-tree"
+				class="tw-hidden not-mobile"
+				data-filter-files="{{ctx.Locale.Tr "repo.diff.filter_files"}}"
+				data-filter-files-no-results="{{ctx.Locale.Tr "repo.diff.no_files_matched"}}"
+				data-filter-files-clear="{{ctx.Locale.Tr "repo.diff.filter_files_clear"}}"
+				data-filter-by-file-extension="{{ctx.Locale.Tr "repo.diff.filter_by_file_extension"}}"
+				data-file-extensions="{{ctx.Locale.Tr "repo.diff.file_extensions"}}"
+				data-no-file-extension="{{ctx.Locale.Tr "repo.diff.no_file_extension"}}"
+				data-select-all-file-extensions="{{ctx.Locale.Tr "repo.diff.select_all_file_extensions"}}"
+				data-select-none-file-extensions="{{ctx.Locale.Tr "repo.diff.select_none_file_extensions"}}"
+			></div>
 			<script nonce="{{ctx.CspScriptNonce}}">
 				if (diffTreeVisible) document.getElementById('diff-file-tree').classList.remove('tw-hidden');
 			</script>
@@ -69,7 +79,13 @@
 		{{if .DiffNotAvailable}}
 			<h4>{{ctx.Locale.Tr "repo.diff.data_not_available"}}</h4>
 		{{else}}
-			<div id="diff-file-boxes" class="sixteen wide column">
+			<div id="diff-boxes-column" class="sixteen wide column">
+				{{if $showFileTree}}
+					<div id="diff-no-matches" class="empty-placeholder tw-hidden">
+						<h2>{{ctx.Locale.Tr "repo.diff.no_files_matched"}}</h2>
+					</div>
+				{{end}}
+				<div id="diff-file-boxes">
 				{{range $i, $file := .Diff.Files}}
 					{{/*notice: the index of Diff.Files should not be used for element ID, because the index will be restarted from 0 when doing load-more for PRs with a lot of files*/}}
 					{{$blobBase := call $.GetBlobByPathForCommit $.BeforeCommit $file.OldName}}
@@ -213,10 +229,15 @@
 					<div class="diff-file-box file-content tw-mt-2" id="diff-incomplete">
 						<h4 class="ui top attached header tw-font-normal flex-left-right">
 							{{ctx.Locale.Tr "repo.diff.too_many_files"}}
-							<a class="ui basic tiny button" id="diff-show-more-files" data-href="?skip-to={{.Diff.End}}&file-only=true">{{ctx.Locale.Tr "repo.diff.show_more"}}</a>
+							<a class="ui basic tiny button" id="diff-show-more-files" data-href="?skip-to={{.Diff.End}}&file-only=true"
+								data-text-default="{{ctx.Locale.Tr "repo.diff.show_more"}}"
+								data-text-matching="{{ctx.Locale.Tr "repo.diff.show_more_matching"}}"
+							>{{ctx.Locale.Tr "repo.diff.show_more"}}</a>
 						</h4>
+						<div id="diff-load-progress" class="tw-text-text-light-2 tw-p-2" data-text-loaded="{{ctx.Locale.Tr "repo.diff.files_loaded"}}">{{ctx.Locale.Tr "repo.diff.files_loaded" (len .Diff.Files) .DiffShortStat.NumFiles}}</div>
 					</div>
 				{{end}}
+				</div>
 			</div>
 		{{end}}
 	</div>
