@@ -71,30 +71,7 @@
 
 				<div class="divider"></div>
 
-				<div class="inline required field {{if .Err_Owner}}error{{end}}">
-					<label>{{ctx.Locale.Tr "repo.owner"}}</label>
-					<div class="ui selection owner dropdown ellipsis-text-items">
-						<input type="hidden" id="uid" name="uid" value="{{.ContextUser.ID}}" required>
-						<span class="text" title="{{.ContextUser.Name}}">
-							{{ctx.AvatarUtils.Avatar .ContextUser 28 "mini"}}
-							{{.ContextUser.ShortName 40}}
-						</span>
-						{{svg "octicon-triangle-down" 14 "dropdown icon"}}
-						<div class="menu" title="{{.SignedUser.Name}}">
-							<div class="item" data-value="{{.SignedUser.ID}}">
-								{{ctx.AvatarUtils.Avatar .SignedUser 28 "mini"}}
-								{{.SignedUser.ShortName 40}}
-							</div>
-							{{range .Orgs}}
-								<div class="item" data-value="{{.ID}}" title="{{.Name}}">
-									{{ctx.AvatarUtils.Avatar . 28 "mini"}}
-									{{.ShortName 40}}
-								</div>
-							{{end}}
-						</div>
-					</div>
-				</div>
-
+{{template "repo/migrate/owner_dropdown" .}}
 				<div class="inline required field {{if .Err_RepoName}}error{{end}}">
 					<label for="repo_name">{{ctx.Locale.Tr "repo.repo_name"}}</label>
 					<input id="repo_name" name="repo_name" value="{{.repo_name}}" required maxlength="100">
