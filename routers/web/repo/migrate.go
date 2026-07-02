@@ -11,6 +11,7 @@ import (
 
 	admin_model "gitea.dev/models/admin"
 	"gitea.dev/models/db"
+	"gitea.dev/models/organization"
 	repo_model "gitea.dev/models/repo"
 	user_model "gitea.dev/models/user"
 	"gitea.dev/modules/git"
@@ -18,6 +19,7 @@ import (
 	"gitea.dev/modules/lfs"
 	"gitea.dev/modules/log"
 	"gitea.dev/modules/setting"
+	ssh_module "gitea.dev/modules/ssh"
 	"gitea.dev/modules/structs"
 	"gitea.dev/modules/templates"
 	"gitea.dev/modules/util"
@@ -67,8 +69,53 @@ func Migrate(ctx *context.Context) {
 		return
 	}
 	ctx.Data["ContextUser"] = ctxUser
+	if serviceType == structs.PlainGitService {
+		setManagedSSHKeyFingerprints(ctx, ctxUser)
+	}
 
 	ctx.HTML(http.StatusOK, templates.TplName("repo/migrate/"+serviceType.Name()))
+}
+
+// setManagedSSHKeyFingerprints pre-loads the SignedUser's and each candidate
+// org's managed SSH key fingerprint, so the migrate form can display the
+// fingerprint that will be used to authenticate an SSH clone. The keypair is
+// created lazily by GetOrCreateSSHKeypair, so this also doubles as a primer.
+func setManagedSSHKeyFingerprints(ctx *context.Context, ctxUser *user_model.User) {
+	if ctx.Doer == nil {
+		return
+	}
+	if kp, err := ssh_module.GetOrCreateSSHKeypair(ctx, ctx.Doer.ID); err == nil {
+		ctx.Data["SignedUserSSHFingerprint"] = kp.Fingerprint
+	}
+
+	fingerprints := map[int64]string{}
+	// keysURLs maps an org owner id to its managed SSH keys settings page, so the
+	// form links to the right page to copy the key when authenticating as that org.
+	keysURLs := map[int64]string{}
+	if orgs, ok := ctx.Data["Orgs"].([]*organization.Organization); ok {
+		for _, org := range orgs {
+			if kp, err := ssh_module.GetOrCreateSSHKeypair(ctx, org.ID); err == nil {
+				fingerprints[org.ID] = kp.Fingerprint
+				keysURLs[org.ID] = org.OrganisationLink() + "/settings/ssh_keys"
+			}
+		}
+	}
+	if ctxUser != nil && ctxUser.ID != ctx.Doer.ID {
+		if _, seen := fingerprints[ctxUser.ID]; !seen {
+			if kp, err := ssh_module.GetOrCreateSSHKeypair(ctx, ctxUser.ID); err == nil {
+				fingerprints[ctxUser.ID] = kp.Fingerprint
+				if ctxUser.IsOrganization() {
+					keysURLs[ctxUser.ID] = ctxUser.OrganisationLink() + "/settings/ssh_keys"
+				}
+			}
+		}
+	}
+	if data, err := json.Marshal(fingerprints); err == nil {
+		ctx.Data["OwnerSSHFingerprintsJSON"] = string(data)
+	}
+	if data, err := json.Marshal(keysURLs); err == nil {
+		ctx.Data["OwnerSSHKeysURLsJSON"] = string(data)
+	}
 }
 
 func handleMigrateError(ctx *context.Context, owner *user_model.User, err error, name string, tpl templates.TplName, form *forms.MigrateRepoForm) {
@@ -169,11 +216,23 @@ func MigratePost(ctx *context.Context) {
 		return
 	}
 	ctx.Data["ContextUser"] = ctxUser
+	if form.Service == structs.PlainGitService {
+		setManagedSSHKeyFingerprints(ctx, ctxUser)
+	}
 
 	tpl := templates.TplName("repo/migrate/" + form.Service.Name())
 
 	if ctx.HasError() {
 		ctx.HTML(http.StatusOK, tpl)
+		return
+	}
+
+	// Managed SSH keys are only wired up for the plain Git migration form.
+	// Forge migrations (GitHub/GitLab/etc.) authenticate against both the
+	// git remote and the forge API with a token, so reject ssh:// here.
+	if form.Service != structs.PlainGitService && ssh_module.IsSSHURL(strings.TrimSpace(form.CloneAddr)) {
+		ctx.Data["Err_CloneAddr"] = true
+		ctx.RenderWithErrDeprecated(ctx.Tr("repo.migrate.ssh_not_supported_for_forge"), tpl, form)
 		return
 	}
 
@@ -217,6 +276,7 @@ func MigratePost(ctx *context.Context) {
 		AuthUsername:   form.AuthUsername,
 		AuthPassword:   form.AuthPassword,
 		AuthToken:      form.AuthToken,
+		SSHKeyOwnerID:  form.SSHKeyOwnerID,
 		Wiki:           form.Wiki,
 		Issues:         form.Issues,
 		Milestones:     form.Milestones,

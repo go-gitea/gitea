@@ -3267,6 +3267,89 @@
         }
       }
     },
+    "/orgs/{org}/managed-ssh-key": {
+      "get": {
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "organization"
+        ],
+        "summary": "Get SSH public key for organization mirroring",
+        "operationId": "orgGetManagedSSHKey",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "name of the organization",
+            "name": "org",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "SSH public key",
+            "schema": {
+              "type": "object",
+              "properties": {
+                "fingerprint": {
+                  "type": "string"
+                },
+                "public_key": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "403": {
+            "$ref": "#/responses/forbidden"
+          },
+          "404": {
+            "$ref": "#/responses/notFound"
+          }
+        }
+      }
+    },
+    "/orgs/{org}/managed-ssh-key/regenerate": {
+      "post": {
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "organization"
+        ],
+        "summary": "Regenerate SSH keypair for organization mirroring",
+        "operationId": "orgRegenerateManagedSSHKey",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "name of the organization",
+            "name": "org",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "New SSH public key",
+            "schema": {
+              "type": "object",
+              "properties": {
+                "fingerprint": {
+                  "type": "string"
+                },
+                "public_key": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "403": {
+            "$ref": "#/responses/forbidden"
+          }
+        }
+      }
+    },
     "/orgs/{org}/members": {
       "get": {
         "produces": [
@@ -20834,6 +20917,65 @@
         }
       }
     },
+    "/user/managed-ssh-key": {
+      "get": {
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "user"
+        ],
+        "summary": "Get SSH public key for user mirroring",
+        "operationId": "userGetManagedSSHKey",
+        "responses": {
+          "200": {
+            "description": "SSH public key",
+            "schema": {
+              "type": "object",
+              "properties": {
+                "fingerprint": {
+                  "type": "string"
+                },
+                "public_key": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "404": {
+            "$ref": "#/responses/notFound"
+          }
+        }
+      }
+    },
+    "/user/managed-ssh-key/regenerate": {
+      "post": {
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "user"
+        ],
+        "summary": "Regenerate SSH keypair for user mirroring",
+        "operationId": "userRegenerateManagedSSHKey",
+        "responses": {
+          "200": {
+            "description": "New SSH public key",
+            "schema": {
+              "type": "object",
+              "properties": {
+                "fingerprint": {
+                  "type": "string"
+                },
+                "public_key": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/user/orgs": {
       "get": {
         "produces": [
@@ -27900,6 +28042,12 @@
             "codecommit"
           ],
           "x-go-name": "Service"
+        },
+        "ssh_key_owner_id": {
+          "description": "SSHKeyOwnerID picks which managed SSH keypair to use for SSH clones.\n0 means use the target repo owner (default).",
+          "type": "integer",
+          "format": "int64",
+          "x-go-name": "SSHKeyOwnerID"
         },
         "uid": {
           "description": "deprecated (only for backwards compatibility, use repo_owner instead)",

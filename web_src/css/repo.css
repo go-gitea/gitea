@@ -1933,3 +1933,57 @@ tbody.commit-list {
 .branch-selector-dropdown .scrolling.menu .loading-indicator {
   height: 4em;
 }
+
+/* SSH key authentication UI on the repository migration form.
+   The fingerprint reads as secondary metadata beneath the key label —
+   small monospace muted text, never an inline-code chip.
+   All rules are scoped to .ssh-key-fingerprint-only / .ssh-key-owner-selector
+   so nothing leaks into the global stylesheet. */
+
+.ssh-key-fingerprint-only .inline-right {
+  gap: 2px;
+}
+
+.ssh-key-fingerprint-only .ssh-key-label,
+.ssh-key-owner-selector .ssh-key-label {
+  line-height: 1.4;
+}
+
+.ssh-key-fingerprint-only .ssh-key-fingerprint,
+.ssh-key-owner-selector .ssh-key-fingerprint {
+  font-family: var(--fonts-monospace);
+  font-size: 11.5px;
+  line-height: 1.4;
+  color: var(--color-text-light-2);
+  background: transparent !important;
+  padding: 0 !important;
+  border: 0 !important;
+  letter-spacing: 0.01em;
+  word-break: break-all;
+}
+
+.ssh-key-owner-selector .menu > .item {
+  padding: 10px 14px !important;
+  margin: 0 !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+  box-sizing: border-box;
+  width: 100%;
+}
+
+.ssh-key-owner-selector .menu > .item + .item {
+  border-top: 1px solid var(--color-secondary) !important;
+}
+
+.ssh-key-owner-selector .menu > .item > .ssh-key-label,
+.ssh-key-owner-selector .menu > .item > .ssh-key-fingerprint {
+  display: block;
+}
+
+.ssh-key-owner-selector .menu > .item > .ssh-key-fingerprint {
+  margin-top: 2px;
+}
+
+.ssh-key-owner-selector .item-fingerprint:empty {
+  display: none;
+}

@@ -1222,6 +1222,11 @@ func Routes() *web.Router {
 					m.Delete("", user.UnblockUser)
 				}, context.UserAssignmentAPI(), checkTokenPublicOnly())
 			}, rejectPublicOnly())
+
+			m.Group("/managed-ssh-key", func() {
+				m.Get("", user.GetManagedSSHKey)
+				m.Post("/regenerate", user.RegenerateManagedSSHKey)
+			})
 		}, tokenRequiresScopes(auth_model.AccessTokenScopeCategoryUser), reqToken(), contextAuthenticatedUser(), checkTokenPublicOnly())
 
 		// Repositories (requires repo scope, org scope)
@@ -1769,6 +1774,11 @@ func Routes() *web.Router {
 					m.Delete("", org.UnblockUser)
 				})
 			}, reqToken(), reqOrgOwnership())
+
+			m.Group("/managed-ssh-key", func() {
+				m.Get("", reqToken(), reqOrgOwnership(), org.GetManagedSSHKey)
+				m.Post("/regenerate", reqToken(), reqOrgOwnership(), org.RegenerateManagedSSHKey)
+			})
 		}, tokenRequiresScopes(auth_model.AccessTokenScopeCategoryOrganization), orgAssignment(true), checkTokenPublicOnly())
 		m.Group("/teams/{teamid}", func() {
 			m.Combo("").Patch(reqToken(), reqOrgOwnership(), bind(api.EditTeamOption{}), org.EditTeam).

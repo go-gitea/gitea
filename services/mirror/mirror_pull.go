@@ -23,6 +23,7 @@ import (
 	"gitea.dev/modules/proxy"
 	repo_module "gitea.dev/modules/repository"
 	"gitea.dev/modules/setting"
+	ssh_module "gitea.dev/modules/ssh"
 	"gitea.dev/modules/timeutil"
 	"gitea.dev/modules/util"
 	"gitea.dev/services/migrations"
@@ -117,13 +118,21 @@ func runSync(ctx context.Context, m *repo_model.Mirror) ([]*repo_module.SyncResu
 	envs := proxy.EnvWithProxy(remoteURL.URL)
 	timeout := time.Duration(setting.Git.Timeout.Mirror) * time.Second
 
+	// Setup SSH authentication if needed
+	sshAuth, cleanup, sshErr := ssh_module.SetupManagedSSHAgent(ctx, m.Repo, remoteURL.String(), 0)
+	if sshErr != nil {
+		log.Error("SyncMirrors [repo: %-v]: SSH setup error %v", m.Repo, sshErr)
+		return nil, false
+	}
+	defer cleanup()
+
 	// use fetch but not remote update because git fetch support --tags but remote update doesn't
 	cmdFetch := func() *gitcmd.Command {
 		cmd := gitcmd.NewCommand("fetch", "--tags")
 		if m.EnablePrune {
 			cmd.AddArguments("--prune")
 		}
-		return cmd.AddDynamicArguments(m.GetRemoteName()).WithTimeout(timeout).WithEnv(envs)
+		return cmd.AddDynamicArguments(m.GetRemoteName()).WithTimeout(timeout).WithEnv(envs).WithSSHAuth(sshAuth)
 	}
 
 	var err error
@@ -201,7 +210,7 @@ func runSync(ctx context.Context, m *repo_model.Mirror) ([]*repo_module.SyncResu
 
 	cmdRemoteUpdatePrune := func() *gitcmd.Command {
 		return gitcmd.NewCommand("remote", "update", "--prune").
-			AddDynamicArguments(m.GetRemoteName()).WithTimeout(timeout).WithEnv(envs)
+			AddDynamicArguments(m.GetRemoteName()).WithTimeout(timeout).WithEnv(envs).WithSSHAuth(sshAuth)
 	}
 
 	if repo_service.HasWiki(ctx, m.Repo) {

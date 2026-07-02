@@ -23,9 +23,21 @@ import (
 	"gitea.dev/modules/migration"
 	repo_module "gitea.dev/modules/repository"
 	"gitea.dev/modules/setting"
+	ssh_module "gitea.dev/modules/ssh"
 	"gitea.dev/modules/timeutil"
 	"gitea.dev/modules/util"
 )
+
+func cloneExternalRepoWithSSHAuth(ctx context.Context, repo *repo_model.Repository, remoteURL string, storageRepo gitrepo.Repository, cloneOpts git.CloneRepoOptions, sshKeyOwnerID int64) error {
+	sshAuth, cleanup, err := ssh_module.SetupManagedSSHAgent(ctx, repo, remoteURL, sshKeyOwnerID)
+	if err != nil {
+		return err
+	}
+	defer cleanup()
+
+	cloneOpts.SSHAuth = sshAuth
+	return gitrepo.CloneExternalRepo(ctx, remoteURL, storageRepo, cloneOpts)
+}
 
 func cloneWiki(ctx context.Context, repo *repo_model.Repository, opts migration.MigrateOptions, migrateTimeout time.Duration) (string, error) {
 	wikiRemoteURL := repo_module.WikiRemoteURL(ctx, opts.CloneAddr)
@@ -44,12 +56,14 @@ func cloneWiki(ctx context.Context, repo *repo_model.Repository, opts migration.
 			log.Error("Failed to remove incomplete wiki dir %q, err: %v", storageRepo.RelativePath(), err)
 		}
 	}
-	if err := gitrepo.CloneExternalRepo(ctx, wikiRemoteURL, storageRepo, git.CloneRepoOptions{
+	cloneOpts := git.CloneRepoOptions{
 		Mirror:        true,
 		Quiet:         true,
 		Timeout:       migrateTimeout,
 		SkipTLSVerify: setting.Migrations.SkipTLSVerify,
-	}); err != nil {
+	}
+
+	if err := cloneExternalRepoWithSSHAuth(ctx, repo, wikiRemoteURL, storageRepo, cloneOpts, opts.SSHKeyOwnerID); err != nil {
 		log.Error("Clone wiki failed, err: %v", err)
 		cleanIncompleteWikiPath()
 		return "", err
@@ -90,12 +104,18 @@ func MigrateRepositoryGitData(ctx context.Context, u *user_model.User,
 		return repo, fmt.Errorf("failed to remove existing repo dir %q, err: %w", repo.FullName(), err)
 	}
 
-	if err := gitrepo.CloneExternalRepo(ctx, opts.CloneAddr, repo, git.CloneRepoOptions{
+	cloneOpts := git.CloneRepoOptions{
 		Mirror:        true,
 		Quiet:         true,
 		Timeout:       migrateTimeout,
 		SkipTLSVerify: setting.Migrations.SkipTLSVerify,
-	}); err != nil {
+	}
+
+	if ssh_module.IsSSHURL(opts.CloneAddr) && repo.Owner == nil {
+		repo.Owner = u
+	}
+
+	if err := cloneExternalRepoWithSSHAuth(ctx, repo, opts.CloneAddr, repo, cloneOpts, opts.SSHKeyOwnerID); err != nil {
 		if errors.Is(err, context.DeadlineExceeded) {
 			return repo, fmt.Errorf("clone timed out, consider increasing [git.timeout] MIGRATE in app.ini, underlying err: %w", err)
 		}

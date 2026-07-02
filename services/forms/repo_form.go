@@ -62,6 +62,9 @@ type MigrateRepoForm struct {
 	AuthUsername string                 `json:"auth_username"`
 	AuthPassword string                 `json:"auth_password"`
 	AuthToken    string                 `json:"auth_token"`
+	// SSHKeyOwnerID picks which managed SSH keypair to use for SSH clones.
+	// 0 means use the target repo owner (default).
+	SSHKeyOwnerID int64 `json:"ssh_key_owner_id"`
 	// required: true
 	UID int64 `json:"uid" binding:"Required"`
 	// required: true

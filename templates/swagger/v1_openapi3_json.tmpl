@@ -7611,6 +7611,12 @@
             "type": "string",
             "x-go-name": "Service"
           },
+          "ssh_key_owner_id": {
+            "description": "SSHKeyOwnerID picks which managed SSH keypair to use for SSH clones.\n0 means use the target repo owner (default).",
+            "format": "int64",
+            "type": "integer",
+            "x-go-name": "SSHKeyOwnerID"
+          },
           "uid": {
             "deprecated": true,
             "description": "deprecated (only for backwards compatibility, use repo_owner instead)",
@@ -14024,6 +14030,95 @@
           }
         },
         "summary": "Update a label",
+        "tags": [
+          "organization"
+        ]
+      }
+    },
+    "/orgs/{org}/managed-ssh-key": {
+      "get": {
+        "operationId": "orgGetManagedSSHKey",
+        "parameters": [
+          {
+            "description": "name of the organization",
+            "in": "path",
+            "name": "org",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "fingerprint": {
+                      "type": "string"
+                    },
+                    "public_key": {
+                      "type": "string"
+                    }
+                  },
+                  "type": "object"
+                }
+              }
+            },
+            "description": "SSH public key"
+          },
+          "403": {
+            "$ref": "#/components/responses/forbidden"
+          },
+          "404": {
+            "$ref": "#/components/responses/notFound"
+          }
+        },
+        "summary": "Get SSH public key for organization mirroring",
+        "tags": [
+          "organization"
+        ]
+      }
+    },
+    "/orgs/{org}/managed-ssh-key/regenerate": {
+      "post": {
+        "operationId": "orgRegenerateManagedSSHKey",
+        "parameters": [
+          {
+            "description": "name of the organization",
+            "in": "path",
+            "name": "org",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "fingerprint": {
+                      "type": "string"
+                    },
+                    "public_key": {
+                      "type": "string"
+                    }
+                  },
+                  "type": "object"
+                }
+              }
+            },
+            "description": "New SSH public key"
+          },
+          "403": {
+            "$ref": "#/components/responses/forbidden"
+          }
+        },
+        "summary": "Regenerate SSH keypair for organization mirroring",
         "tags": [
           "organization"
         ]
@@ -32946,6 +33041,67 @@
           }
         },
         "summary": "Get a public key",
+        "tags": [
+          "user"
+        ]
+      }
+    },
+    "/user/managed-ssh-key": {
+      "get": {
+        "operationId": "userGetManagedSSHKey",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "fingerprint": {
+                      "type": "string"
+                    },
+                    "public_key": {
+                      "type": "string"
+                    }
+                  },
+                  "type": "object"
+                }
+              }
+            },
+            "description": "SSH public key"
+          },
+          "404": {
+            "$ref": "#/components/responses/notFound"
+          }
+        },
+        "summary": "Get SSH public key for user mirroring",
+        "tags": [
+          "user"
+        ]
+      }
+    },
+    "/user/managed-ssh-key/regenerate": {
+      "post": {
+        "operationId": "userRegenerateManagedSSHKey",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "fingerprint": {
+                      "type": "string"
+                    },
+                    "public_key": {
+                      "type": "string"
+                    }
+                  },
+                  "type": "object"
+                }
+              }
+            },
+            "description": "New SSH public key"
+          }
+        },
+        "summary": "Regenerate SSH keypair for user mirroring",
         "tags": [
           "user"
         ]
