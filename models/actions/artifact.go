@@ -50,6 +50,18 @@ func (status ArtifactStatus) ToString() string {
 	}
 }
 
+// IsTerminal reports whether the artifact has reached a state where its
+// storage blob has been (or is about to be) removed, so a matching row in
+// this status must never be reused as-is for a new upload.
+func (status ArtifactStatus) IsTerminal() bool {
+	switch status {
+	case ArtifactStatusExpired, ArtifactStatusPendingDeletion, ArtifactStatusDeleted:
+		return true
+	default:
+		return false
+	}
+}
+
 func init() {
 	db.RegisterModel(new(ActionArtifact))
 }
@@ -90,39 +102,72 @@ type ActionArtifact struct {
 	ExpiredUnix  timeutil.TimeStamp `xorm:"index"` // The time when the artifact will be expired
 }
 
+// newPendingArtifact builds a fresh, not-yet-persisted artifact record for
+// the given task/name/path, ready for either Insert (brand-new row) or
+// Update (reviving a row whose previous content already expired).
+func newPendingArtifact(t *ActionTask, artifactName, artifactPath string, expiredDays int64) *ActionArtifact {
+	return &ActionArtifact{
+		ArtifactName: artifactName,
+		ArtifactPath: artifactPath,
+		RunID:        t.Job.RunID,
+		RunAttemptID: t.Job.RunAttemptID,
+		RunnerID:     t.RunnerID,
+		RepoID:       t.RepoID,
+		OwnerID:      t.OwnerID,
+		CommitSHA:    t.CommitSHA,
+		Status:       ArtifactStatusUploadPending,
+		ExpiredUnix:  timeutil.TimeStamp(time.Now().Unix() + timeutil.Day*expiredDays),
+	}
+}
+
 func CreateArtifact(ctx context.Context, t *ActionTask, artifactName, artifactPath string, expiredDays int64) (*ActionArtifact, error) {
 	if err := t.LoadJob(ctx); err != nil {
 		return nil, err
 	}
-	artifact, err := getArtifactByNameAndPath(ctx, t.Job.RunID, t.Job.RunAttemptID, artifactName, artifactPath)
-	if errors.Is(err, util.ErrNotExist) {
-		artifact := &ActionArtifact{
-			ArtifactName: artifactName,
-			ArtifactPath: artifactPath,
-			RunID:        t.Job.RunID,
-			RunAttemptID: t.Job.RunAttemptID,
-			RunnerID:     t.RunnerID,
-			RepoID:       t.RepoID,
-			OwnerID:      t.OwnerID,
-			CommitSHA:    t.CommitSHA,
-			Status:       ArtifactStatusUploadPending,
-			ExpiredUnix:  timeutil.TimeStamp(time.Now().Unix() + timeutil.Day*expiredDays),
-		}
+	existing, err := getArtifactByNameAndPath(ctx, t.Job.RunID, t.Job.RunAttemptID, artifactName, artifactPath)
+	if err != nil && !errors.Is(err, util.ErrNotExist) {
+		return nil, err
+	}
+
+	if existing == nil {
+		artifact := newPendingArtifact(t, artifactName, artifactPath, expiredDays)
 		if _, err := db.GetEngine(ctx).Insert(artifact); err != nil {
 			return nil, err
 		}
 		return artifact, nil
-	} else if err != nil {
-		return nil, err
 	}
 
-	if _, err := db.GetEngine(ctx).ID(artifact.ID).Cols("expired_unix").Update(&ActionArtifact{
-		ExpiredUnix: timeutil.TimeStamp(time.Now().Unix() + timeutil.Day*expiredDays),
-	}); err != nil {
-		return nil, err
+	if !existing.Status.IsTerminal() {
+		// A chunked upload still in progress (or already confirmed) for this
+		// exact run/attempt/name/path: just keep it alive for longer. existing
+		// was loaded via SELECT *, so writing it back with AllCols() preserves
+		// all its real fields (including CreatedUnix) while bumping the expiry.
+		existing.ExpiredUnix = timeutil.TimeStamp(time.Now().Unix() + timeutil.Day*expiredDays)
+		if err := UpdateArtifactByID(ctx, existing.ID, existing); err != nil {
+			return nil, err
+		}
+		return existing, nil
 	}
 
-	return artifact, nil
+	// The matching row already reached a terminal state, so its storage blob
+	// is gone (or on its way out): reinitialize it in place as a brand-new
+	// pending upload rather than just bumping expired_unix, which would leave
+	// it stuck as expired/deleted pointing at a stale StoragePath/FileSize.
+	// The unique index on run/attempt/name/path forces an update of this row
+	// rather than a second insert.
+	revived := newPendingArtifact(t, artifactName, artifactPath, expiredDays)
+	// Preserve the original creation timestamp: keep it out of the Cols()
+	// allowlist below, and carry existing's value on the returned struct so a
+	// caller's later AllCols() UpdateArtifactByID does not overwrite it with 0.
+	revived.CreatedUnix = existing.CreatedUnix
+	if _, err := db.GetEngine(ctx).ID(existing.ID).Cols(
+		"runner_id", "commit_sha", "storage_path", "file_size", "file_compressed_size",
+		"content_encoding", "status", "expired_unix",
+	).Update(revived); err != nil {
+		return nil, err
+	}
+	revived.ID = existing.ID
+	return revived, nil
 }
 
 func getArtifactByNameAndPath(ctx context.Context, runID, runAttemptID int64, name, fpath string) (*ActionArtifact, error) {
