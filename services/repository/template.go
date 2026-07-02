@@ -149,7 +149,7 @@ func GenerateRepository(ctx context.Context, doer, owner *user_model.User, templ
 	}
 
 	// Git Hooks
-	if opts.GitHooks {
+	if opts.GitHooks && doer.CanEditGitHook() {
 		if err = GenerateGitHooks(ctx, templateRepo, generateRepo); err != nil {
 			return nil, err
 		}
