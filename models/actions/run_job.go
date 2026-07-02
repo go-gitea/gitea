@@ -53,7 +53,9 @@ type ActionRunJob struct {
 	TaskID       int64 // the task created by this job in its own attempt
 	SourceTaskID int64 `xorm:"NOT NULL DEFAULT 0"` // SourceTaskID points to a historical task when this job reuses an earlier attempt's result.
 
-	Status Status `xorm:"index"`
+	// index(pick): composite (status, updated) so runner task assignment can serve
+	// "oldest waiting job" as an index seek instead of sorting the waiting backlog.
+	Status Status `xorm:"index index(pick)"`
 
 	RawConcurrency string // raw concurrency from job YAML's "concurrency" section
 
@@ -115,7 +117,7 @@ type ActionRunJob struct {
 	Started timeutil.TimeStamp
 	Stopped timeutil.TimeStamp
 	Created timeutil.TimeStamp `xorm:"created"`
-	Updated timeutil.TimeStamp `xorm:"updated index"`
+	Updated timeutil.TimeStamp `xorm:"updated index index(pick)"`
 }
 
 // ActionRunAttemptJobIDIndex backs the run-wide AttemptJobID counter, keyed by ActionRun.ID.
