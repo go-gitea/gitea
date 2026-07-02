@@ -1,7 +1,7 @@
 // Copyright 2022 The Gitea Authors. All rights reserved.
 // SPDX-License-Identifier: MIT
 
-package container
+package cleanup
 
 import (
 	"context"
@@ -21,6 +21,7 @@ import (
 	container_service "gitea.dev/services/packages/container"
 	debian_service "gitea.dev/services/packages/debian"
 	rpm_service "gitea.dev/services/packages/rpm"
+  maven_service "gitea.dev/services/packages/maven"
 )
 
 // CleanupTask executes cleanup rules and cleanup expired package data
@@ -169,6 +170,10 @@ func CleanupExpiredData(ctx context.Context, olderThan time.Duration) error {
 	if err := db.WithTx(ctx, func(ctx context.Context) error {
 		if err := container_service.Cleanup(ctx, olderThan); err != nil {
 			return err
+		}
+
+		if err := maven_service.CleanupSnapshotVersions(ctx); err != nil {
+			log.Error("Error during maven snapshot versions cleanup: %v", err)
 		}
 
 		ps, err := packages_model.FindUnreferencedPackages(ctx)
