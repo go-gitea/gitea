@@ -1070,6 +1070,8 @@
   "repo.desc.internal": "Internal",
   "repo.desc.archived": "Archived",
   "repo.desc.sha256": "SHA256",
+  "repo.switch_repository": "Switch repository",
+  "repo.switch_repository.search": "Search repositories...",
   "repo.template.items": "Template Items",
   "repo.template.git_content": "Git Content (Default Branch)",
   "repo.template.git_hooks": "Git Hooks",
