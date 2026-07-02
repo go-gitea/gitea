@@ -851,6 +851,7 @@ func apiAuth(authMethod auth.Method) func(*context.APIContext) {
 		if err != nil {
 			msg, ok := auth.ErrAsUserAuthMessage(err)
 			msg = util.Iif(ok, msg, "invalid username, password or token")
+			log.Warn("API auth failure: method=%s path=%s ip=%s reason=%q", ctx.Req.Method, ctx.Req.URL.Path, ctx.RemoteAddr(), msg)
 			ctx.APIError(http.StatusUnauthorized, msg)
 			return
 		}
