@@ -1,6 +1,4 @@
-import arrayFunc from 'eslint-plugin-array-func';
 import comments from '@eslint-community/eslint-plugin-eslint-comments';
-import deMorgan from 'eslint-plugin-de-morgan';
 import globals from 'globals';
 import importPlugin from 'eslint-plugin-import-x';
 import playwright from 'eslint-plugin-playwright';
@@ -15,7 +13,6 @@ import vue from 'eslint-plugin-vue';
 import vueScopedCss from 'eslint-plugin-vue-scoped-css';
 import wc from 'eslint-plugin-wc';
 import {defineConfig, globalIgnores} from 'eslint/config';
-import type {ESLint} from 'eslint';
 
 import unescapedHtmlLiteral from './tools/eslint-rules/unescaped-html-literal.ts';
 
@@ -64,10 +61,8 @@ export default defineConfig([
       '@eslint-community/eslint-comments': comments,
       '@stylistic': stylistic,
       '@typescript-eslint': typescriptPlugin.plugin,
-      'array-func': arrayFunc,
-      'de-morgan': deMorgan,
       'gitea': {rules: {'unescaped-html-literal': unescapedHtmlLiteral}},
-      'import-x': importPlugin as unknown as ESLint.Plugin, // https://github.com/un-ts/eslint-plugin-import-x/issues/203
+      'import-x': importPlugin,
       regexp,
       sonarjs,
       unicorn,
@@ -278,12 +273,6 @@ export default defineConfig([
       '@typescript-eslint/unified-signatures': [2],
       'accessor-pairs': [2],
       'array-callback-return': [2, {checkForEach: true}],
-      'array-func/avoid-reverse': [2],
-      'array-func/from-map': [2],
-      'array-func/no-unnecessary-this-arg': [2],
-      'array-func/prefer-array-from': [2],
-      'array-func/prefer-flat-map': [0], // handled by unicorn/prefer-array-flat-map
-      'array-func/prefer-flat': [0], // handled by unicorn/prefer-array-flat
       'arrow-body-style': [0],
       'block-scoped-var': [2],
       'camelcase': [0],
@@ -294,8 +283,6 @@ export default defineConfig([
       'consistent-this': [0],
       'constructor-super': [2],
       'curly': [0],
-      'de-morgan/no-negated-conjunction': [2],
-      'de-morgan/no-negated-disjunction': [2],
       'default-case-last': [2],
       'default-case': [0],
       'default-param-last': [0],
@@ -745,6 +732,7 @@ export default defineConfig([
       'unicorn/consistent-json-file-read': [2],
       'unicorn/consistent-optional-chaining': [2],
       'unicorn/consistent-template-literal-escape': [2],
+      'unicorn/consistent-tuple-labels': [2],
       'unicorn/custom-error-definition': [0],
       'unicorn/default-export-style': [2],
       'unicorn/dom-node-dataset': [2, {preferAttributes: true}],
@@ -814,8 +802,10 @@ export default defineConfig([
       'unicorn/no-invalid-fetch-options': [2],
       'unicorn/no-invalid-file-input-accept': [2],
       'unicorn/no-invalid-remove-event-listener': [2],
+      'unicorn/no-invalid-well-known-symbol-methods': [2],
       'unicorn/no-keyword-prefix': [0],
       'unicorn/no-late-current-target-access': [2],
+      'unicorn/no-late-event-control': [2],
       'unicorn/no-lonely-if': [2],
       'unicorn/no-loop-iterable-mutation': [2],
       'unicorn/no-magic-array-flat-depth': [0],
@@ -896,8 +886,10 @@ export default defineConfig([
       'unicorn/number-literal-case': [0],
       'unicorn/numeric-separators-style': [0],
       'unicorn/operator-assignment': [2],
+      'unicorn/prefer-abort-signal-timeout': [2],
       'unicorn/prefer-add-event-listener': [2],
       'unicorn/prefer-add-event-listener-options': [2],
+      'unicorn/prefer-aggregate-error': [2],
       'unicorn/prefer-array-find': [0], // handled by @typescript-eslint/prefer-find
       'unicorn/prefer-array-flat': [2],
       'unicorn/prefer-array-flat-map': [2],
@@ -924,9 +916,11 @@ export default defineConfig([
       'unicorn/prefer-dom-node-append': [2],
       'unicorn/prefer-dom-node-html-methods': [0],
       'unicorn/prefer-dom-node-remove': [2],
+      'unicorn/prefer-dom-node-replace-children': [2],
       'unicorn/prefer-dom-node-text-content': [2],
       'unicorn/prefer-early-return': [0],
       'unicorn/prefer-else-if': [2],
+      'unicorn/prefer-error-is-error': [0],
       'unicorn/prefer-event-target': [2],
       'unicorn/prefer-export-from': [0],
       'unicorn/prefer-flat-math-min-max': [2],
@@ -966,9 +960,11 @@ export default defineConfig([
       'unicorn/prefer-object-destructuring-defaults': [2],
       'unicorn/prefer-object-from-entries': [2],
       'unicorn/prefer-object-iterable-methods': [2],
+      'unicorn/prefer-observer-apis': [2],
       'unicorn/prefer-optional-catch-binding': [2],
       'unicorn/prefer-path2d': [2],
       'unicorn/prefer-private-class-fields': [0],
+      'unicorn/prefer-promise-try': [2],
       'unicorn/prefer-promise-with-resolvers': [2],
       'unicorn/prefer-prototype-methods': [0],
       'unicorn/prefer-query-selector': [2],
@@ -979,6 +975,7 @@ export default defineConfig([
       'unicorn/prefer-response-static-json': [2],
       'unicorn/prefer-scoped-selector': [0],
       'unicorn/prefer-set-has': [0],
+      'unicorn/prefer-set-methods': [0],
       'unicorn/prefer-set-size': [2],
       'unicorn/prefer-short-arrow-method': [2],
       'unicorn/prefer-simple-condition-first': [0],
@@ -1002,6 +999,7 @@ export default defineConfig([
       'unicorn/prefer-switch': [0],
       'unicorn/prefer-temporal': [0],
       'unicorn/prefer-ternary': [0],
+      'unicorn/prefer-toggle-attribute': [2],
       'unicorn/prefer-top-level-await': [0],
       'unicorn/prefer-type-error': [0],
       'unicorn/prefer-type-literal-last': [0],
@@ -1010,6 +1008,7 @@ export default defineConfig([
       'unicorn/prefer-unicode-code-point-escapes': [0],
       'unicorn/prefer-url-can-parse': [2],
       'unicorn/prefer-url-href': [2],
+      'unicorn/prefer-url-search-parameters': [2],
       'unicorn/prefer-while-loop-condition': [2],
       'unicorn/prevent-abbreviations': [0],
       'unicorn/relative-url-style': [2],

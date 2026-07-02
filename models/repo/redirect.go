@@ -10,6 +10,8 @@ import (
 
 	"gitea.dev/models/db"
 	"gitea.dev/modules/util"
+
+	"xorm.io/builder"
 )
 
 // ErrRedirectNotExist represents a "RedirectNotExist" kind of error.
@@ -52,8 +54,8 @@ func init() {
 // LookupRedirect look up if a repository has a redirect name
 func LookupRedirect(ctx context.Context, ownerID int64, repoName string) (int64, error) {
 	repoName = strings.ToLower(repoName)
-	redirect := &Redirect{OwnerID: ownerID, LowerName: repoName}
-	if has, err := db.GetEngine(ctx).Get(redirect); err != nil {
+	redirect, has, err := db.Get[Redirect](ctx, builder.Eq{"owner_id": ownerID, "lower_name": repoName})
+	if err != nil {
 		return 0, err
 	} else if !has {
 		return 0, ErrRedirectNotExist{OwnerID: ownerID, RepoName: repoName}

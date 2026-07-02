@@ -1,9 +1,3 @@
-declare module 'eslint-plugin-array-func' {
-  import type {Eslint} from 'eslint';
-  const plugin: Eslint.Plugin;
-  export = plugin;
-}
-
 declare module '*.svg' {
   const value: string;
   export default value;
@@ -47,21 +41,3 @@ declare module '@citation-js/core' {
 declare module '@citation-js/plugin-software-formats' {}
 declare module '@citation-js/plugin-bibtex' {}
 declare module '@citation-js/plugin-csl' {}
-
-declare module 'vue-bar-graph' {
-  import type {DefineComponent} from 'vue';
-
-  interface BarGraphPoint {
-    value: number;
-    label: string;
-  }
-
-  export const VueBarGraph: DefineComponent<{
-    points?: Array<BarGraphPoint>;
-    barColor?: string;
-    textColor?: string;
-    textAltColor?: string;
-    height?: number;
-    labelHeight?: number;
-  }>;
-}

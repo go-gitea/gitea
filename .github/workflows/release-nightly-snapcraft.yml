@@ -13,25 +13,35 @@ jobs:
   build-and-publish:
     runs-on: ubuntu-latest
 
-    env:
-      SNAPCRAFT_STORE_CREDENTIALS: ${{ secrets.SNAPCRAFT_STORE_CREDENTIALS }}
-
     steps:
       - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7
+        with:
+          fetch-depth: 0
 
       - name: Install snapcraft
         run: sudo snap install snapcraft --classic
 
       - name: Remote build
+        # remote-build runs on Launchpad and authenticates via a credentials file,
+        # not the Snap Store credentials used by upload
+        shell: bash
+        env:
+          LAUNCHPAD_CREDENTIALS: ${{ secrets.LAUNCHPAD_CREDENTIALS }}
         run: |
+          set -euo pipefail
+          install -d -m 700 "$HOME/.local/share/snapcraft"
+          printf '%s' "$LAUNCHPAD_CREDENTIALS" > "$HOME/.local/share/snapcraft/launchpad-credentials"
+          chmod 600 "$HOME/.local/share/snapcraft/launchpad-credentials"
           snapcraft remote-build \
             --launchpad-accept-public-upload \
-            --build-for=amd64,arm64,armhf
+            --build-for=amd64,arm64
 
       - name: List built snaps
         run: find . -maxdepth 1 -type f -name '*.snap' -print
 
       - name: Upload and release snapcraft nightly build
+        env:
+          SNAPCRAFT_STORE_CREDENTIALS: ${{ secrets.SNAPCRAFT_STORE_CREDENTIALS }}
         run: |
           set -euo pipefail
 
