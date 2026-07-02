@@ -1,10 +1,8 @@
 import type {SortableOptions, SortableEvent} from 'sortablejs';
 import type SortableType from 'sortablejs';
+import Sortable from 'sortablejs';
 
 export async function createSortable(el: HTMLElement, opts: {handle?: string} & SortableOptions = {}): Promise<SortableType> {
-  // type reassigned because typescript derives the wrong type from this import
-  const {Sortable} = (await import('sortablejs') as unknown as {Sortable: typeof SortableType});
-
   return new Sortable(el, {
     animation: 150,
     ghostClass: 'card-ghost',
