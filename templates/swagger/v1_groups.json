@@ -2258,6 +2258,13 @@
             "in": "query"
           },
           {
+            "type": "integer",
+            "format": "int64",
+            "description": "For a scoped workflow, the ID of the source repository providing it; omit or 0 for a repo-level workflow.",
+            "name": "scoped_workflow_source_repo_id",
+            "in": "query"
+          },
+          {
             "description": "group ID of the repo",
             "name": "group_id",
             "type": "integer",
@@ -2417,6 +2424,13 @@
             "type": "boolean",
             "description": "if true, the `pull_requests` field on each returned run is emptied",
             "name": "exclude_pull_requests",
+            "in": "query"
+          },
+          {
+            "type": "integer",
+            "format": "int64",
+            "description": "For a scoped workflow, the ID of the source repository providing it; omit or 0 for a repo-level workflow.",
+            "name": "scoped_workflow_source_repo_id",
             "in": "query"
           },
           {
@@ -4082,7 +4096,7 @@
           },
           {
             "type": "string",
-            "description": "compare two refs as `base...head` (or `base..head`); refs may be branches, tags, full or short SHAs, including branch names that contain slashes.",
+            "description": "compare two refs as `base...head` (or `base..head`); refs may be branches, tags, full or short SHAs (including branch names that contain slashes), optionally with a `^` or `~N` revision suffix.",
             "name": "basehead",
             "in": "path",
             "required": true
@@ -4109,6 +4123,9 @@
         "responses": {
           "200": {
             "$ref": "#/responses/Compare"
+          },
+          "400": {
+            "$ref": "#/responses/error"
           },
           "404": {
             "$ref": "#/responses/notFound"
