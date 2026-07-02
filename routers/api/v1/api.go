@@ -1259,6 +1259,29 @@ func Routes() *web.Router {
 				// Adds the routes for secrets/variables and runner management
 				addActionsRoutes(m, reqRepoReader(unit.TypeActions), reqOwner(), repo.NewAction())
 
+				m.Group("/environments", func() {
+					m.Get("", reqToken(), reqOwner(), repo.ListEnvironments)
+					m.Post("", reqToken(), reqOwner(), bind(api.CreateEnvironmentOption{}), repo.CreateEnvironment)
+					m.Group("/{environment_name}", func() {
+						m.Get("", reqToken(), reqOwner(), repo.GetEnvironment)
+						m.Patch("", reqToken(), reqOwner(), bind(api.UpdateEnvironmentOption{}), repo.UpdateEnvironment)
+						m.Delete("", reqToken(), reqOwner(), repo.DeleteEnvironment)
+						m.Group("/secrets", func() {
+							m.Get("", reqToken(), reqOwner(), repo.ListEnvSecrets)
+							m.Combo("/{secretname}").
+								Put(reqToken(), reqOwner(), bind(api.CreateOrUpdateSecretOption{}), repo.CreateOrUpdateEnvSecret).
+								Delete(reqToken(), reqOwner(), repo.DeleteEnvSecret)
+						})
+						m.Group("/variables", func() {
+							m.Get("", reqToken(), reqOwner(), repo.ListEnvVariables)
+							m.Combo("/{variablename}").
+								Post(reqToken(), reqOwner(), bind(api.CreateVariableOption{}), repo.CreateEnvVariable).
+								Put(reqToken(), reqOwner(), bind(api.UpdateVariableOption{}), repo.UpdateEnvVariable).
+								Delete(reqToken(), reqOwner(), repo.DeleteEnvVariable)
+						})
+					})
+				})
+
 				m.Group("/actions/workflows", func() {
 					m.Get("", repo.ActionsListRepositoryWorkflows)
 					m.Get("/{workflow_id}", repo.ActionsGetWorkflow)

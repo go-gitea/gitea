@@ -124,7 +124,7 @@ func VariableCreate(ctx *context.Context) {
 
 	form := web.GetForm(ctx).(*forms.EditVariableForm)
 
-	v, err := actions_service.CreateVariable(ctx, vCtx.OwnerID, vCtx.RepoID, form.Name, form.Data, form.Description)
+	v, err := actions_service.CreateVariable(ctx, vCtx.OwnerID, vCtx.RepoID, 0, form.Name, form.Data, form.Description)
 	if err != nil {
 		log.Error("CreateVariable: %v", err)
 		ctx.JSONError(ctx.Tr("actions.variables.creation.failed"))

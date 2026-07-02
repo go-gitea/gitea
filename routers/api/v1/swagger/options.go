@@ -238,5 +238,11 @@ type swaggerParameterBodies struct {
 	LockIssueOption api.LockIssueOption
 
 	// in:body
+	CreateEnvironmentOption api.CreateEnvironmentOption
+
+	// in:body
+	UpdateEnvironmentOption api.UpdateEnvironmentOption
+
+	// in:body
 	MergeUpstreamRequest api.MergeUpstreamRequest
 }

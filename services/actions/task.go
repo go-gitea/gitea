@@ -92,9 +92,9 @@ func buildRunnerTask(ctx context.Context, t *actions_model.ActionTask) (*runnerv
 		return nil, nil, fmt.Errorf("GetSecretsOfTask: %w", err)
 	}
 
-	vars, err := actions_model.GetVariablesOfRun(ctx, t.Job.Run)
+	vars, err := actions_model.GetVariablesOfJob(ctx, t.Job)
 	if err != nil {
-		return nil, nil, fmt.Errorf("GetVariablesOfRun: %w", err)
+		return nil, nil, fmt.Errorf("GetVariablesOfJob: %w", err)
 	}
 
 	needs, err := findTaskNeeds(ctx, job)

@@ -1253,6 +1253,25 @@ func registerWebRoutes(m *web.Router, webAuth *AuthMiddleware) {
 				m.Post("/token_permissions", repo_setting.UpdateTokenPermissions)
 			})
 		}, actions.MustEnableActions)
+		// environments (no MustEnableActions gate — env management is independent)
+		m.Group("/environments", func() {
+			m.Get("", repo_setting.Environments)
+			m.Post("/new", repo_setting.EnvironmentCreate)
+			m.Group("/{environment_name}", func() {
+				m.Get("", repo_setting.EnvironmentEdit)
+				m.Post("", repo_setting.EnvironmentUpdate)
+				m.Post("/delete", repo_setting.EnvironmentDelete)
+				m.Group("/secrets", func() {
+					m.Post("", web.Bind(forms.AddSecretForm{}), repo_setting.EnvironmentSecretPost)
+					m.Post("/delete", repo_setting.EnvironmentSecretDelete)
+				})
+				m.Group("/variables", func() {
+					m.Post("/new", web.Bind(forms.EditVariableForm{}), repo_setting.EnvironmentVariableCreate)
+					m.Post("/{variable_id}/edit", web.Bind(forms.EditVariableForm{}), repo_setting.EnvironmentVariableUpdate)
+					m.Post("/{variable_id}/delete", repo_setting.EnvironmentVariableDelete)
+				})
+			})
+		})
 		// the follow handler must be under "settings", otherwise this incomplete repo can't be accessed
 		m.Group("/migrate", func() {
 			m.Post("/retry", repo.MigrateRetryPost)

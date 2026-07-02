@@ -99,6 +99,7 @@ func GenerateGiteaContext(ctx context.Context, run *actions_model.ActionRun, att
 	if job != nil {
 		gitContext["job"] = job.JobID
 		gitContext["run_attempt"] = strconv.FormatInt(job.Attempt, 10)
+		gitContext["environment"] = job.EnvironmentName
 
 		if job.ParentJobID > 0 {
 			// Inject the caller's resolved workflow_call inputs into gitea.event.inputs.
