@@ -240,7 +240,7 @@ func CreateTeam(ctx *context.APIContext) {
 		attachAdminTeamUnits(team)
 	}
 
-	if err := org_service.NewTeam(ctx, team); err != nil {
+	if err := org_service.NewTeam(ctx, ctx.Doer, team); err != nil {
 		if organization.IsErrTeamAlreadyExist(err) {
 			ctx.APIError(http.StatusUnprocessableEntity, err.Error())
 		} else {
@@ -331,7 +331,7 @@ func EditTeam(ctx *context.APIContext) {
 		attachAdminTeamUnits(team)
 	}
 
-	if err := org_service.UpdateTeam(ctx, team, isAuthChanged, isIncludeAllChanged); err != nil {
+	if err := org_service.UpdateTeam(ctx, ctx.Doer, team, isAuthChanged, isIncludeAllChanged); err != nil {
 		ctx.APIErrorInternal(err)
 		return
 	}
@@ -362,10 +362,11 @@ func DeleteTeam(ctx *context.APIContext) {
 	//   "404":
 	//     "$ref": "#/responses/notFound"
 
-	if err := org_service.DeleteTeam(ctx, ctx.Org.Team); err != nil {
+	if err := org_service.DeleteTeam(ctx, ctx.Doer, ctx.Org.Team); err != nil {
 		ctx.APIErrorInternal(err)
 		return
 	}
+
 	ctx.Status(http.StatusNoContent)
 }
 
@@ -489,7 +490,7 @@ func AddTeamMember(ctx *context.APIContext) {
 	if ctx.Written() {
 		return
 	}
-	if err := org_service.AddTeamMember(ctx, ctx.Org.Team, u); err != nil {
+	if err := org_service.AddTeamMember(ctx, ctx.Doer, ctx.Org.Team, u); err != nil {
 		if errors.Is(err, user_model.ErrBlockedUser) {
 			ctx.APIError(http.StatusForbidden, err.Error())
 		} else {
@@ -497,6 +498,7 @@ func AddTeamMember(ctx *context.APIContext) {
 		}
 		return
 	}
+
 	ctx.Status(http.StatusNoContent)
 }
 
@@ -530,10 +532,11 @@ func RemoveTeamMember(ctx *context.APIContext) {
 		return
 	}
 
-	if err := org_service.RemoveTeamMember(ctx, ctx.Org.Team, u); err != nil {
+	if err := org_service.RemoveTeamMember(ctx, ctx.Doer, ctx.Org.Team, u); err != nil {
 		ctx.APIErrorInternal(err)
 		return
 	}
+
 	ctx.Status(http.StatusNoContent)
 }
 
@@ -707,7 +710,7 @@ func AddTeamRepository(ctx *context.APIContext) {
 		ctx.APIError(http.StatusForbidden, "Must have admin-level access to the repository")
 		return
 	}
-	if err := repo_service.TeamAddRepository(ctx, ctx.Org.Team, repo); err != nil {
+	if err := repo_service.TeamAddRepository(ctx, ctx.Doer, ctx.Org.Team, repo); err != nil {
 		ctx.APIErrorInternal(err)
 		return
 	}
@@ -759,7 +762,7 @@ func RemoveTeamRepository(ctx *context.APIContext) {
 		ctx.APIError(http.StatusForbidden, "Must have admin-level access to the repository")
 		return
 	}
-	if err := repo_service.RemoveRepositoryFromTeam(ctx, ctx.Org.Team, repo.ID); err != nil {
+	if err := repo_service.RemoveRepositoryFromTeam(ctx, ctx.Doer, ctx.Org.Team, repo.ID); err != nil {
 		ctx.APIErrorInternal(err)
 		return
 	}

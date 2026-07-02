@@ -111,7 +111,7 @@ func ProfilePost(ctx *context.Context) {
 		opts.FullName = optional.Some(form.FullName)
 	}
 
-	if err := user_service.UpdateUser(ctx, ctx.Doer, opts); err != nil {
+	if err := user_service.UpdateUser(ctx, ctx.Doer, ctx.Doer, opts); err != nil {
 		ctx.ServerError("UpdateUser", err)
 		return
 	}
@@ -372,7 +372,7 @@ func UpdateUIThemePost(ctx *context.Context) {
 	opts := &user_service.UpdateOptions{
 		Theme: optional.Some(form.Theme),
 	}
-	if err := user_service.UpdateUser(ctx, ctx.Doer, opts); err != nil {
+	if err := user_service.UpdateUser(ctx, ctx.Doer, ctx.Doer, opts); err != nil {
 		ctx.Flash.Error(ctx.Tr("settings.theme_update_error"))
 	} else {
 		ctx.Flash.Success(ctx.Tr("settings.theme_update_success"))
@@ -398,7 +398,7 @@ func UpdateUserLang(ctx *context.Context) {
 	opts := &user_service.UpdateOptions{
 		Language: optional.Some(form.Language),
 	}
-	if err := user_service.UpdateUser(ctx, ctx.Doer, opts); err != nil {
+	if err := user_service.UpdateUser(ctx, ctx.Doer, ctx.Doer, opts); err != nil {
 		ctx.ServerError("UpdateUser", err)
 		return
 	}

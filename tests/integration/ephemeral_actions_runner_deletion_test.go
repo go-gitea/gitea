@@ -69,7 +69,7 @@ func testEphemeralActionsRunnerDeletionByUser(t *testing.T) {
 
 	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
 
-	err = user_service.DeleteUser(t.Context(), user, true)
+	err = user_service.DeleteUser(t.Context(), user, user, true)
 	assert.NoError(t, err)
 
 	_, err = actions_model.GetRunnerByID(t.Context(), 34350)

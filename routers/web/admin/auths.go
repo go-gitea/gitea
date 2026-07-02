@@ -451,7 +451,7 @@ func DeleteAuthSource(ctx *context.Context) {
 		return
 	}
 
-	if err = auth_service.DeleteSource(ctx, source); err != nil {
+	if err = auth_service.DeleteSource(ctx, ctx.Doer, source); err != nil {
 		if auth.IsErrSourceInUse(err) {
 			ctx.Flash.Error(ctx.Tr("admin.auths.still_in_used"))
 		} else {

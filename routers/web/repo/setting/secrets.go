@@ -7,6 +7,8 @@ import (
 	"errors"
 	"net/http"
 
+	repo_model "gitea.dev/models/repo"
+	user_model "gitea.dev/models/user"
 	"gitea.dev/modules/setting"
 	"gitea.dev/modules/templates"
 	shared "gitea.dev/routers/web/shared/secrets"
@@ -22,6 +24,8 @@ const (
 )
 
 type secretsCtx struct {
+	Owner           *user_model.User
+	Repo            *repo_model.Repository
 	OwnerID         int64
 	RepoID          int64
 	IsRepo          bool
@@ -34,7 +38,7 @@ type secretsCtx struct {
 func getSecretsCtx(ctx *context.Context) (*secretsCtx, error) {
 	if ctx.Data["PageIsRepoSettings"] == true {
 		return &secretsCtx{
-			OwnerID:         0,
+			Repo:            ctx.Repo.Repository,
 			RepoID:          ctx.Repo.Repository.ID,
 			IsRepo:          true,
 			SecretsTemplate: tplRepoSecrets,
@@ -48,8 +52,8 @@ func getSecretsCtx(ctx *context.Context) (*secretsCtx, error) {
 			return nil, nil //nolint:nilnil // error is already handled by ctx.ServerError
 		}
 		return &secretsCtx{
+			Owner:           ctx.ContextUser,
 			OwnerID:         ctx.ContextUser.ID,
-			RepoID:          0,
 			IsOrg:           true,
 			SecretsTemplate: tplOrgSecrets,
 			RedirectLink:    ctx.Org.OrgLink + "/settings/actions/secrets",
@@ -58,8 +62,8 @@ func getSecretsCtx(ctx *context.Context) (*secretsCtx, error) {
 
 	if ctx.Data["PageIsUserSettings"] == true {
 		return &secretsCtx{
+			Owner:           ctx.Doer,
 			OwnerID:         ctx.Doer.ID,
-			RepoID:          0,
 			IsUser:          true,
 			SecretsTemplate: tplUserSecrets,
 			RedirectLink:    setting.AppSubURL + "/user/settings/actions/secrets",
@@ -105,8 +109,8 @@ func SecretsPost(ctx *context.Context) {
 
 	shared.PerformSecretsPost(
 		ctx,
-		sCtx.OwnerID,
-		sCtx.RepoID,
+		sCtx.Owner,
+		sCtx.Repo,
 		sCtx.RedirectLink,
 	)
 }
@@ -119,8 +123,8 @@ func SecretsDelete(ctx *context.Context) {
 	}
 	shared.PerformSecretsDelete(
 		ctx,
-		sCtx.OwnerID,
-		sCtx.RepoID,
+		sCtx.Owner,
+		sCtx.Repo,
 		sCtx.RedirectLink,
 	)
 }

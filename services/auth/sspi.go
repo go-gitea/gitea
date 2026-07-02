@@ -6,10 +6,12 @@ package auth
 import (
 	"context"
 	"errors"
+	"fmt"
 	"net/http"
 	"strings"
 	"sync"
 
+	audit_model "gitea.dev/models/audit"
 	"gitea.dev/models/auth"
 	"gitea.dev/models/db"
 	user_model "gitea.dev/models/user"
@@ -17,6 +19,7 @@ import (
 	"gitea.dev/modules/optional"
 	"gitea.dev/modules/setting"
 	"gitea.dev/modules/templates"
+	"gitea.dev/services/audit"
 	"gitea.dev/services/auth/source/sspi"
 	gitea_context "gitea.dev/services/context"
 
@@ -171,6 +174,9 @@ func (s *SSPI) newUser(ctx context.Context, username string, cfg *sspi.Source) (
 	if err := user_model.CreateUser(ctx, user, &user_model.Meta{}, overwriteDefault); err != nil {
 		return nil, err
 	}
+
+	audit.Record(ctx, audit_model.UserCreate, user_model.NewAuthenticationSourceUser(), user,
+		fmt.Sprintf("Created user %s.", user.Name))
 
 	return user, nil
 }

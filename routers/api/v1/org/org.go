@@ -11,6 +11,7 @@ import (
 	"net/http"
 
 	activities_model "gitea.dev/models/activities"
+	audit_model "gitea.dev/models/audit"
 	"gitea.dev/models/db"
 	"gitea.dev/models/organization"
 	"gitea.dev/models/perm"
@@ -25,6 +26,7 @@ import (
 	"gitea.dev/modules/web"
 	"gitea.dev/routers/api/v1/user"
 	"gitea.dev/routers/api/v1/utils"
+	"gitea.dev/services/audit"
 	"gitea.dev/services/context"
 	"gitea.dev/services/convert"
 	feed_service "gitea.dev/services/feed"
@@ -289,6 +291,9 @@ func Create(ctx *context.APIContext) {
 		return
 	}
 
+	audit.Record(ctx, audit_model.OrganizationCreate, ctx.Doer, org.AsUser(),
+		fmt.Sprintf("Created organization %s.", org.Name))
+
 	ctx.JSON(http.StatusCreated, convert.ToOrganization(ctx, org))
 }
 
@@ -409,7 +414,7 @@ func Edit(ctx *context.APIContext) {
 		Visibility:                optional.FromMapLookup(api.VisibilityModes, string(optional.FromPtr(form.Visibility).Value())),
 		RepoAdminChangeTeamAccess: optional.FromPtr(form.RepoAdminChangeTeamAccess),
 	}
-	if err := user_service.UpdateUser(ctx, ctx.Org.Organization.AsUser(), opts); err != nil {
+	if err := user_service.UpdateUser(ctx, ctx.Doer, ctx.Org.Organization.AsUser(), opts); err != nil {
 		ctx.APIErrorInternal(err)
 		return
 	}
@@ -436,7 +441,7 @@ func Delete(ctx *context.APIContext) {
 	//   "404":
 	//     "$ref": "#/responses/notFound"
 
-	if err := org.DeleteOrganization(ctx, ctx.Org.Organization, false); err != nil {
+	if err := org.DeleteOrganization(ctx, ctx.Doer, ctx.Org.Organization, false); err != nil {
 		ctx.APIErrorInternal(err)
 		return
 	}

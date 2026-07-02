@@ -11,6 +11,7 @@ import (
 	repo_model "gitea.dev/models/repo"
 	"gitea.dev/models/unit"
 	"gitea.dev/models/unittest"
+	user_model "gitea.dev/models/user"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -80,7 +81,7 @@ func TestMakeRepoPrivateClearsWatches(t *testing.T) {
 	require.NoError(t, err)
 	require.NotEmpty(t, watchers)
 
-	assert.NoError(t, MakeRepoPrivate(t.Context(), repo, true))
+	assert.NoError(t, MakeRepoPrivate(t.Context(), unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2}), repo, true))
 
 	watchers, err = repo_model.GetRepoWatchersIDs(t.Context(), repo.ID)
 	assert.NoError(t, err)

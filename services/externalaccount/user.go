@@ -5,13 +5,16 @@ package externalaccount
 
 import (
 	"context"
+	"fmt"
 	"strconv"
 	"strings"
 
+	audit_model "gitea.dev/models/audit"
 	issues_model "gitea.dev/models/issues"
 	repo_model "gitea.dev/models/repo"
 	user_model "gitea.dev/models/user"
 	"gitea.dev/modules/structs"
+	"gitea.dev/services/audit"
 
 	"github.com/markbates/goth"
 )
@@ -45,6 +48,10 @@ func LinkAccountToUser(ctx context.Context, authSourceID int64, user *user_model
 	if err := user_model.LinkExternalToUser(ctx, user, externalLoginUser); err != nil {
 		return err
 	}
+
+	audit.Record(ctx, audit_model.UserExternalLoginAdd, user, user,
+		fmt.Sprintf("Added external login %s for user %s using provider %s.", externalLoginUser.ExternalID, user.Name, externalLoginUser.Provider),
+		"external_id", externalLoginUser.ExternalID, "provider", externalLoginUser.Provider)
 
 	externalID := externalLoginUser.ExternalID
 

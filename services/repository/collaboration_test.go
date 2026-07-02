@@ -24,7 +24,7 @@ func TestRepository_AddCollaborator(t *testing.T) {
 		repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: repoID})
 		assert.NoError(t, repo.LoadOwner(t.Context()))
 		user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: userID})
-		assert.NoError(t, AddOrUpdateCollaborator(t.Context(), repo, user, perm.AccessModeWrite))
+		assert.NoError(t, AddOrUpdateCollaborator(t.Context(), user, repo, user, perm.AccessModeWrite))
 		unittest.CheckConsistencyFor(t, &repo_model.Repository{ID: repoID}, &user_model.User{ID: userID})
 	}
 	testSuccess(1, 4)
@@ -39,10 +39,10 @@ func TestRepository_DeleteCollaboration(t *testing.T) {
 	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 22})
 
 	assert.NoError(t, repo.LoadOwner(t.Context()))
-	assert.NoError(t, DeleteCollaboration(t.Context(), repo, user))
+	assert.NoError(t, DeleteCollaboration(t.Context(), user, repo, user))
 	unittest.AssertNotExistsBean(t, &repo_model.Collaboration{RepoID: repo.ID, UserID: user.ID})
 
-	assert.NoError(t, DeleteCollaboration(t.Context(), repo, user))
+	assert.NoError(t, DeleteCollaboration(t.Context(), user, repo, user))
 	unittest.AssertNotExistsBean(t, &repo_model.Collaboration{RepoID: repo.ID, UserID: user.ID})
 
 	unittest.CheckConsistencyFor(t, &repo_model.Repository{ID: repo.ID})
@@ -76,7 +76,7 @@ func TestRepository_DeleteCollaborationRemovesSubscriptionsAndStopwatches(t *tes
 	assert.NoError(t, err)
 	assert.True(t, ok)
 
-	assert.NoError(t, DeleteCollaboration(ctx, repo, user))
+	assert.NoError(t, DeleteCollaboration(ctx, user, repo, user))
 
 	hasAccess, err = access_model.HasAnyUnitAccess(ctx, user.ID, repo)
 	assert.NoError(t, err)

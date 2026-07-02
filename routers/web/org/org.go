@@ -6,8 +6,10 @@ package org
 
 import (
 	"errors"
+	"fmt"
 	"net/http"
 
+	audit_model "gitea.dev/models/audit"
 	"gitea.dev/models/db"
 	"gitea.dev/models/organization"
 	user_model "gitea.dev/models/user"
@@ -15,6 +17,7 @@ import (
 	"gitea.dev/modules/setting"
 	"gitea.dev/modules/templates"
 	"gitea.dev/modules/web"
+	"gitea.dev/services/audit"
 	"gitea.dev/services/context"
 	"gitea.dev/services/forms"
 )
@@ -77,6 +80,9 @@ func CreatePost(ctx *context.Context) {
 		}
 		return
 	}
+	audit.Record(ctx, audit_model.OrganizationCreate, ctx.Doer, org.AsUser(),
+		fmt.Sprintf("Created organization %s.", org.Name))
+
 	log.Trace("Organization created: %s", org.Name)
 
 	ctx.Redirect(org.AsUser().DashboardLink())

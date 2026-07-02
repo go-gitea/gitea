@@ -121,6 +121,7 @@ func loadCommonSettingsFrom(cfg ConfigProvider) error {
 	// WARNING: don't change the sequence except you know what you are doing.
 	loadRunModeFrom(cfg)
 	loadLogGlobalFrom(cfg)
+	loadAuditFrom(cfg)
 	loadServerFrom(cfg)
 	loadSSHFrom(cfg)
 

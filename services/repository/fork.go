@@ -9,6 +9,7 @@ import (
 	"strings"
 	"time"
 
+	audit_model "gitea.dev/models/audit"
 	"gitea.dev/models/db"
 	git_model "gitea.dev/models/git"
 	repo_model "gitea.dev/models/repo"
@@ -20,6 +21,7 @@ import (
 	repo_module "gitea.dev/modules/repository"
 	"gitea.dev/modules/structs"
 	"gitea.dev/modules/util"
+	"gitea.dev/services/audit"
 	notify_service "gitea.dev/services/notify"
 
 	"xorm.io/builder"
@@ -206,12 +208,16 @@ func ForkRepository(ctx context.Context, doer, owner *user_model.User, opts Fork
 
 	notify_service.ForkRepository(ctx, doer, opts.BaseRepo, repo)
 
+	audit.Record(ctx, audit_model.RepositoryCreateFork, doer, repo,
+		fmt.Sprintf("Created fork %s of repository %s.", repo.FullName(), opts.BaseRepo.FullName()),
+		"base_repo", opts.BaseRepo.FullName())
+
 	return repo, nil
 }
 
 // ConvertForkToNormalRepository convert the provided repo from a forked repo to normal repo
-func ConvertForkToNormalRepository(ctx context.Context, repo *repo_model.Repository) error {
-	return db.WithTx(ctx, func(ctx context.Context) error {
+func ConvertForkToNormalRepository(ctx context.Context, doer *user_model.User, repo *repo_model.Repository) error {
+	if err := db.WithTx(ctx, func(ctx context.Context) error {
 		repo, err := repo_model.GetRepositoryByID(ctx, repo.ID)
 		if err != nil {
 			return err
@@ -229,7 +235,14 @@ func ConvertForkToNormalRepository(ctx context.Context, repo *repo_model.Reposit
 		repo.IsFork = false
 		repo.ForkID = 0
 		return repo_model.UpdateRepositoryColsNoAutoTime(ctx, repo, "is_fork", "fork_id")
-	})
+	}); err != nil {
+		return err
+	}
+
+	audit.Record(ctx, audit_model.RepositoryConvertFork, doer, repo,
+		fmt.Sprintf("Converted repository %s from fork to regular repository.", repo.FullName()))
+
+	return nil
 }
 
 type findForksOptions struct {

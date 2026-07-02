@@ -35,7 +35,7 @@ func WebThemeApply(ctx *context.Context) {
 	themeName := ctx.FormString("theme")
 	if ctx.Doer != nil {
 		opts := &user_service.UpdateOptions{Theme: optional.Some(themeName)}
-		_ = user_service.UpdateUser(ctx, ctx.Doer, opts)
+		_ = user_service.UpdateUser(ctx, ctx.Doer, ctx.Doer, opts)
 	} else {
 		middleware.SetSiteCookie(ctx.Resp, middleware.CookieTheme, themeName, 0)
 	}

@@ -5,14 +5,17 @@
 package admin
 
 import (
+	"fmt"
 	"net/http"
 
+	audit_model "gitea.dev/models/audit"
 	"gitea.dev/models/db"
 	"gitea.dev/models/organization"
 	user_model "gitea.dev/models/user"
 	api "gitea.dev/modules/structs"
 	"gitea.dev/modules/web"
 	"gitea.dev/routers/api/v1/utils"
+	"gitea.dev/services/audit"
 	"gitea.dev/services/context"
 	"gitea.dev/services/convert"
 )
@@ -73,6 +76,9 @@ func CreateOrg(ctx *context.APIContext) {
 		}
 		return
 	}
+
+	audit.Record(ctx, audit_model.OrganizationCreate, ctx.Doer, org.AsUser(),
+		fmt.Sprintf("Created organization %s.", org.Name))
 
 	ctx.JSON(http.StatusCreated, convert.ToOrganization(ctx, org))
 }

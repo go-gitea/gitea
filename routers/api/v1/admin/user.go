@@ -10,6 +10,7 @@ import (
 	"net/http"
 
 	asymkey_model "gitea.dev/models/asymkey"
+	audit_model "gitea.dev/models/audit"
 	"gitea.dev/models/auth"
 	"gitea.dev/models/db"
 	org_model "gitea.dev/models/organization"
@@ -26,6 +27,7 @@ import (
 	"gitea.dev/routers/api/v1/user"
 	"gitea.dev/routers/api/v1/utils"
 	asymkey_service "gitea.dev/services/asymkey"
+	"gitea.dev/services/audit"
 	"gitea.dev/services/context"
 	"gitea.dev/services/convert"
 	"gitea.dev/services/mailer"
@@ -152,6 +154,8 @@ func CreateUser(ctx *context.APIContext) {
 		ctx.Resp.Header().Add("X-Gitea-Warning", fmt.Sprintf("the domain of user email %s conflicts with EMAIL_DOMAIN_ALLOWLIST or EMAIL_DOMAIN_BLOCKLIST", u.Email))
 	}
 
+	audit.Record(ctx, audit_model.UserCreate, ctx.Doer, u, fmt.Sprintf("Created user %s.", u.Name))
+
 	log.Trace("Account created by admin (%s): %s", ctx.Doer.Name, u.Name)
 
 	// Send email notification.
@@ -199,7 +203,7 @@ func EditUser(ctx *context.APIContext) {
 		MustChangePassword: optional.FromPtr(form.MustChangePassword),
 		ProhibitLogin:      optional.FromPtr(form.ProhibitLogin),
 	}
-	if err := user_service.UpdateAuth(ctx, ctx.ContextUser, authOpts); err != nil {
+	if err := user_service.UpdateAuth(ctx, ctx.Doer, ctx.ContextUser, authOpts); err != nil {
 		switch {
 		case errors.Is(err, password.ErrMinLength):
 			ctx.APIError(http.StatusBadRequest, fmt.Sprintf("password must be at least %d characters", setting.MinPasswordLength))
@@ -214,7 +218,7 @@ func EditUser(ctx *context.APIContext) {
 	}
 
 	if form.Email != nil {
-		if err := user_service.ReplacePrimaryEmailAddress(ctx, ctx.ContextUser, *form.Email); err != nil {
+		if err := user_service.ReplacePrimaryEmailAddress(ctx, ctx.Doer, ctx.ContextUser, *form.Email); err != nil {
 			switch {
 			case user_model.IsErrEmailCharIsNotSupported(err), user_model.IsErrEmailInvalid(err):
 				if !user_model.IsEmailDomainAllowed(*form.Email) {
@@ -245,7 +249,7 @@ func EditUser(ctx *context.APIContext) {
 		IsRestricted:            optional.FromPtr(form.Restricted),
 	}
 
-	if err := user_service.UpdateUser(ctx, ctx.ContextUser, opts); err != nil {
+	if err := user_service.UpdateUser(ctx, ctx.Doer, ctx.ContextUser, opts); err != nil {
 		if user_model.IsErrDeleteLastAdminUser(err) {
 			ctx.APIError(http.StatusBadRequest, err.Error())
 		} else {
@@ -297,7 +301,7 @@ func DeleteUser(ctx *context.APIContext) {
 		return
 	}
 
-	if err := user_service.DeleteUser(ctx, ctx.ContextUser, ctx.FormBool("purge")); err != nil {
+	if err := user_service.DeleteUser(ctx, ctx.Doer, ctx.ContextUser, ctx.FormBool("purge")); err != nil {
 		if repo_model.IsErrUserOwnRepos(err) ||
 			org_model.IsErrUserHasOrgs(err) ||
 			packages_model.IsErrUserOwnPackages(err) ||

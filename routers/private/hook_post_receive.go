@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"net/http"
 
+	audit_model "gitea.dev/models/audit"
 	git_model "gitea.dev/models/git"
 	issues_model "gitea.dev/models/issues"
 	access_model "gitea.dev/models/perm/access"
@@ -25,6 +26,7 @@ import (
 	"gitea.dev/modules/timeutil"
 	"gitea.dev/modules/util"
 	"gitea.dev/modules/web"
+	"gitea.dev/services/audit"
 	gitea_context "gitea.dev/services/context"
 	pull_service "gitea.dev/services/pull"
 	repo_service "gitea.dev/services/repository"
@@ -167,6 +169,9 @@ func hookPostReceiveUpdateRepoByOptions(ctx *gitea_context.PrivateContext, opts 
 			repo.IsPrivate = isPrivate.Value()
 			if err = repo_model.UpdateRepositoryColsNoAutoTime(ctx, repo, "is_private"); err != nil {
 				log.Error("failed to update repo is_private: %v", err)
+			} else {
+				audit.Record(ctx, audit_model.RepositoryVisibility, pusher, repo,
+					fmt.Sprintf("Changed visibility of repository %s.", repo.FullName()))
 			}
 		}
 		if isTemplate.Has() && repo.IsTemplate != isTemplate.Value() {

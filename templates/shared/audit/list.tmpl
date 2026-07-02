@@ -1,0 +1,58 @@
+<div class="ui attached table segment">
+	<table class="ui very basic striped table unstackable">
+		<thead>
+			<tr>
+				<th>{{ctx.Locale.Tr "admin.monitor.audit.actor"}}</th>
+				<th>{{ctx.Locale.Tr "admin.monitor.audit.scope"}}</th>
+				<th>{{ctx.Locale.Tr "admin.monitor.audit.action"}}</th>
+				<th>{{ctx.Locale.Tr "admin.monitor.audit.details"}}</th>
+				<th>{{ctx.Locale.Tr "admin.monitor.audit.ip_address"}}</th>
+				<th data-sortt-asc="created_asc" data-sortt-desc="created_desc" data-sortt-default="true">{{ctx.Locale.Tr "admin.monitor.audit.timestamp"}}{{SortArrow "timestamp_asc" "timestamp_desc" $.AuditSort true}}</th>
+			</tr>
+		</thead>
+		<tbody>
+			{{range .AuditEvents}}
+				<tr>
+					<td>
+						{{if .Actor.DisplayName}}
+							{{if .Actor.HasLink}}
+								<a href="{{.Actor.HomeLink}}">{{.Actor.DisplayName}}</a>
+							{{else}}
+								{{.Actor.DisplayName}}
+							{{end}}
+						{{else}}
+							<span class="text small">{{ctx.Locale.Tr "admin.monitor.audit.deleted.actor"}}</span>
+						{{end}}
+					</td>
+					<td>
+						{{if or .Scope.DisplayName (eq .Scope.Type "system")}}
+							{{if .Scope.HasLink}}
+								<a href="{{.Scope.HomeLink}}">{{.Scope.DisplayName}}</a>
+							{{else}}
+								{{.Scope.DisplayName}}
+							{{end}}
+						{{else}}
+							<span class="text small">{{ctx.Locale.Tr "admin.monitor.audit.deleted.type" .Scope.Type .Scope.ID}}</span>
+						{{end}}
+					</td>
+					<td>{{.Message}}</td>
+					<td>
+						{{if .Metadata}}
+							<dl class="tw-text-xs tw-m-0">
+								{{range $k, $v := .Metadata}}
+									<dt class="tw-inline tw-font-medium">{{$k}}:</dt>
+									<dd class="tw-inline tw-ml-1 tw-mr-2">{{$v}}</dd>
+								{{end}}
+							</dl>
+						{{end}}
+					</td>
+					<td>{{.IPAddress}}</td>
+					<td>{{DateUtils.FullTime .Time}}</td>
+				</tr>
+			{{else}}
+				<tr><td colspan="6">{{ctx.Locale.Tr "admin.monitor.audit.no_events"}}</td></tr>
+			{{end}}
+		</tbody>
+	</table>
+</div>
+{{template "base/paginate" .}}

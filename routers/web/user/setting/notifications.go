@@ -57,7 +57,7 @@ func NotificationsEmailPost(ctx *context.Context) {
 	opts := &user.UpdateOptions{
 		EmailNotificationsPreference: optional.Some(preference),
 	}
-	if err := user.UpdateUser(ctx, ctx.Doer, opts); err != nil {
+	if err := user.UpdateUser(ctx, ctx.Doer, ctx.Doer, opts); err != nil {
 		ctx.ServerError("UpdateUser", err)
 		return
 	}

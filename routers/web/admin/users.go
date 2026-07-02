@@ -6,11 +6,13 @@ package admin
 
 import (
 	"errors"
+	"fmt"
 	"net/http"
 	"net/url"
 	"strconv"
 	"strings"
 
+	audit_model "gitea.dev/models/audit"
 	"gitea.dev/models/auth"
 	"gitea.dev/models/db"
 	org_model "gitea.dev/models/organization"
@@ -26,6 +28,7 @@ import (
 	"gitea.dev/modules/web"
 	"gitea.dev/routers/web/explore"
 	user_setting "gitea.dev/routers/web/user/setting"
+	"gitea.dev/services/audit"
 	"gitea.dev/services/context"
 	"gitea.dev/services/forms"
 	"gitea.dev/services/mailer"
@@ -198,6 +201,8 @@ func NewUserPost(ctx *context.Context) {
 	if !user_model.IsEmailDomainAllowed(u.Email) {
 		ctx.Flash.Warning(ctx.Tr("form.email_domain_is_not_allowed", u.Email))
 	}
+
+	audit.Record(ctx, audit_model.UserCreate, ctx.Doer, u, fmt.Sprintf("Created user %s.", u.Name))
 
 	log.Trace("Account created by admin (%s): %s", ctx.Doer.Name, u.Name)
 
@@ -385,7 +390,7 @@ func EditUserPost(ctx *context.Context) {
 		authOpts.LoginSource = optional.Some(authSource)
 	}
 
-	if err := user_service.UpdateAuth(ctx, u, authOpts); err != nil {
+	if err := user_service.UpdateAuth(ctx, ctx.Doer, u, authOpts); err != nil {
 		switch {
 		case errors.Is(err, password.ErrMinLength):
 			ctx.Data["Err_Password"] = true
@@ -406,7 +411,7 @@ func EditUserPost(ctx *context.Context) {
 	}
 
 	if form.Email != "" {
-		if err := user_service.ReplacePrimaryEmailAddress(ctx, u, form.Email); err != nil {
+		if err := user_service.ReplacePrimaryEmailAddress(ctx, ctx.Doer, u, form.Email); err != nil {
 			switch {
 			case user_model.IsErrEmailCharIsNotSupported(err), user_model.IsErrEmailInvalid(err):
 				ctx.Data["Err_Email"] = true
@@ -439,7 +444,7 @@ func EditUserPost(ctx *context.Context) {
 		Language:                optional.Some(form.Language),
 	}
 
-	if err := user_service.UpdateUser(ctx, u, opts); err != nil {
+	if err := user_service.UpdateUser(ctx, ctx.Doer, u, opts); err != nil {
 		if user_model.IsErrDeleteLastAdminUser(err) {
 			ctx.RenderWithErrDeprecated(ctx.Tr("auth.last_admin"), tplUserEdit, &form)
 		} else {
@@ -475,7 +480,7 @@ func DeleteUser(ctx *context.Context) {
 		return
 	}
 
-	if err = user_service.DeleteUser(ctx, u, ctx.FormBool("purge")); err != nil {
+	if err = user_service.DeleteUser(ctx, ctx.Doer, u, ctx.FormBool("purge")); err != nil {
 		switch {
 		case repo_model.IsErrUserOwnRepos(err):
 			ctx.Flash.Error(ctx.Tr("admin.users.still_own_repo"))

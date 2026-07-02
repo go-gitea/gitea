@@ -120,9 +120,9 @@ func TeamsAction(ctx *context.Context) {
 			ctx.HTTPError(http.StatusNotFound)
 			return
 		}
-		err = org_service.AddTeamMember(ctx, ctx.Org.Team, ctx.Doer)
+		err = org_service.AddTeamMember(ctx, ctx.Doer, ctx.Org.Team, ctx.Doer)
 	case "leave":
-		err = org_service.RemoveTeamMember(ctx, ctx.Org.Team, ctx.Doer)
+		err = org_service.RemoveTeamMember(ctx, ctx.Doer, ctx.Org.Team, ctx.Doer)
 		if err != nil {
 			if org_model.IsErrLastOrgOwner(err) {
 				ctx.Flash.Error(ctx.Tr("form.last_org_owner"))
@@ -149,7 +149,7 @@ func TeamsAction(ctx *context.Context) {
 			return
 		}
 
-		err = org_service.RemoveTeamMember(ctx, ctx.Org.Team, user)
+		err = org_service.RemoveTeamMember(ctx, ctx.Doer, ctx.Org.Team, user)
 		if err != nil {
 			if org_model.IsErrLastOrgOwner(err) {
 				ctx.Flash.Error(ctx.Tr("form.last_org_owner"))
@@ -204,7 +204,7 @@ func TeamsAction(ctx *context.Context) {
 		if ctx.Org.Team.IsMember(ctx, u.ID) {
 			ctx.Flash.Error(ctx.Tr("org.teams.add_duplicate_users"))
 		} else {
-			err = org_service.AddTeamMember(ctx, ctx.Org.Team, u)
+			err = org_service.AddTeamMember(ctx, ctx.Doer, ctx.Org.Team, u)
 		}
 
 		page = "team"
@@ -291,13 +291,13 @@ func TeamsRepoAction(ctx *context.Context) {
 			ctx.ServerError("GetRepositoryByName", err)
 			return
 		}
-		err = repo_service.TeamAddRepository(ctx, ctx.Org.Team, repo)
+		err = repo_service.TeamAddRepository(ctx, ctx.Doer, ctx.Org.Team, repo)
 	case "remove":
-		err = repo_service.RemoveRepositoryFromTeam(ctx, ctx.Org.Team, ctx.FormInt64("repoid"))
+		err = repo_service.RemoveRepositoryFromTeam(ctx, ctx.Doer, ctx.Org.Team, ctx.FormInt64("repoid"))
 	case "addall":
-		err = repo_service.AddAllRepositoriesToTeam(ctx, ctx.Org.Team)
+		_, err = repo_service.AddAllRepositoriesToTeam(ctx, ctx.Doer, ctx.Org.Team)
 	case "removeall":
-		err = repo_service.RemoveAllRepositoriesFromTeam(ctx, ctx.Org.Team)
+		err = repo_service.RemoveAllRepositoriesFromTeam(ctx, ctx.Doer, ctx.Org.Team)
 	}
 
 	if err != nil {
@@ -409,7 +409,7 @@ func NewTeamPost(ctx *context.Context) {
 		return
 	}
 
-	if err := org_service.NewTeam(ctx, t); err != nil {
+	if err := org_service.NewTeam(ctx, ctx.Doer, t); err != nil {
 		ctx.Data["Err_TeamName"] = true
 		switch {
 		case org_model.IsErrTeamAlreadyExist(err):
@@ -419,6 +419,7 @@ func NewTeamPost(ctx *context.Context) {
 		}
 		return
 	}
+
 	log.Trace("Team created: %s/%s", ctx.Org.Organization.Name, t.Name)
 	ctx.Redirect(ctx.Org.OrgLink + "/teams/" + url.PathEscape(t.LowerName))
 }
@@ -598,7 +599,7 @@ func EditTeamPost(ctx *context.Context) {
 		return
 	}
 
-	if err := org_service.UpdateTeam(ctx, t, isAuthChanged, isIncludeAllChanged); err != nil {
+	if err := org_service.UpdateTeam(ctx, ctx.Doer, t, isAuthChanged, isIncludeAllChanged); err != nil {
 		ctx.Data["Err_TeamName"] = true
 		switch {
 		case org_model.IsErrTeamAlreadyExist(err):
@@ -608,12 +609,13 @@ func EditTeamPost(ctx *context.Context) {
 		}
 		return
 	}
+
 	ctx.Redirect(ctx.Org.OrgLink + "/teams/" + url.PathEscape(t.LowerName))
 }
 
 // DeleteTeam response for the delete team request
 func DeleteTeam(ctx *context.Context) {
-	if err := org_service.DeleteTeam(ctx, ctx.Org.Team); err != nil {
+	if err := org_service.DeleteTeam(ctx, ctx.Doer, ctx.Org.Team); err != nil {
 		ctx.Flash.Error("DeleteTeam: " + err.Error())
 	} else {
 		ctx.Flash.Success(ctx.Tr("org.teams.delete_team_success"))
@@ -657,7 +659,7 @@ func TeamInvitePost(ctx *context.Context) {
 		return
 	}
 
-	if err := org_service.AddTeamMember(ctx, team, ctx.Doer); err != nil {
+	if err := org_service.AddTeamMember(ctx, ctx.Doer, team, ctx.Doer); err != nil {
 		ctx.ServerError("AddTeamMember", err)
 		return
 	}

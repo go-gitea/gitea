@@ -8,8 +8,11 @@ import (
 	"fmt"
 
 	asymkey_model "gitea.dev/models/asymkey"
+	audit_model "gitea.dev/models/audit"
 	"gitea.dev/models/db"
 	repo_model "gitea.dev/models/repo"
+	user_model "gitea.dev/models/user"
+	"gitea.dev/services/audit"
 )
 
 // DeleteRepoDeployKeys deletes all deploy keys of a repository. permissions check should be done outside
@@ -48,7 +51,8 @@ func deleteDeployKeyFromDB(ctx context.Context, key *asymkey_model.DeployKey) er
 
 // DeleteDeployKey deletes deploy key from its repository authorized_keys file if needed.
 // Permissions check should be done outside.
-func DeleteDeployKey(ctx context.Context, repo *repo_model.Repository, id int64) error {
+func DeleteDeployKey(ctx context.Context, doer *user_model.User, repo *repo_model.Repository, id int64) error {
+	var deletedKey *asymkey_model.DeployKey
 	if err := db.WithTx(ctx, func(ctx context.Context) error {
 		key, err := asymkey_model.GetDeployKeyByID(ctx, id)
 		if err != nil {
@@ -62,9 +66,19 @@ func DeleteDeployKey(ctx context.Context, repo *repo_model.Repository, id int64)
 			return fmt.Errorf("deploy key %d does not belong to repository %d", id, repo.ID)
 		}
 
-		return deleteDeployKeyFromDB(ctx, key)
+		if err := deleteDeployKeyFromDB(ctx, key); err != nil {
+			return err
+		}
+		deletedKey = key
+		return nil
 	}); err != nil {
 		return err
+	}
+
+	if deletedKey != nil {
+		audit.Record(ctx, audit_model.RepositoryDeployKeyRemove, doer, repo,
+			fmt.Sprintf("Removed deploy key %s from repository %s.", deletedKey.Name, repo.FullName()),
+			"deploy_key", deletedKey.Name)
 	}
 
 	return RewriteAllPublicKeys(ctx)

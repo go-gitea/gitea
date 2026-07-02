@@ -6,17 +6,20 @@ package user
 import (
 	"context"
 	"errors"
+	"fmt"
 	"strings"
 
+	audit_model "gitea.dev/models/audit"
 	"gitea.dev/models/db"
 	user_model "gitea.dev/models/user"
 	"gitea.dev/modules/setting"
 	"gitea.dev/modules/util"
+	"gitea.dev/services/audit"
 )
 
 // ReplacePrimaryEmailAddress replaces the user's primary email address with the given email address.
 // It also updates the user's email field to match the new primary email address.
-func ReplacePrimaryEmailAddress(ctx context.Context, u *user_model.User, emailStr string) error {
+func ReplacePrimaryEmailAddress(ctx context.Context, doer, u *user_model.User, emailStr string) error {
 	// FIXME: this check is from old logic, but it is not right, there are far more user types, not only "organization"
 	if u.IsOrganization() {
 		return util.NewInvalidArgumentErrorf("user %s is an organization", u.Name)
@@ -30,7 +33,8 @@ func ReplacePrimaryEmailAddress(ctx context.Context, u *user_model.User, emailSt
 		return err
 	}
 
-	return db.WithTx(ctx, func(ctx context.Context) error {
+	var newEmail *user_model.EmailAddress
+	if err := db.WithTx(ctx, func(ctx context.Context) error {
 		// Check if address exists already
 		email, err := user_model.GetEmailAddressByEmail(ctx, emailStr)
 		if err != nil && !errors.Is(err, util.ErrNotExist) {
@@ -53,22 +57,34 @@ func ReplacePrimaryEmailAddress(ctx context.Context, u *user_model.User, emailSt
 		}
 
 		// Insert new primary address
-		if _, err := user_model.InsertEmailAddress(ctx, &user_model.EmailAddress{
+		newEmail = &user_model.EmailAddress{
 			UID:         u.ID,
 			Email:       emailStr,
 			IsActivated: true,
 			IsPrimary:   true,
-		}); err != nil {
+		}
+		if _, err := user_model.InsertEmailAddress(ctx, newEmail); err != nil {
 			return err
 		}
 
 		u.Email = emailStr
 		return user_model.UpdateUserCols(ctx, u, "email")
-	})
+	}); err != nil {
+		return err
+	}
+
+	if newEmail != nil {
+		audit.Record(ctx, audit_model.UserEmailPrimaryChange, doer, u,
+			fmt.Sprintf("Changed primary email of user %s to %s.", u.Name, newEmail.Email), "email", newEmail.Email)
+	}
+
+	return nil
 }
 
-func AddEmailAddresses(ctx context.Context, u *user_model.User, emails []string) error {
-	for _, emailStr := range emails {
+func AddEmailAddresses(ctx context.Context, doer, u *user_model.User, emailsToAdd []string) error {
+	emails := make([]*user_model.EmailAddress, 0, len(emailsToAdd))
+
+	for _, emailStr := range emailsToAdd {
 		if err := user_model.ValidateEmail(emailStr); err != nil {
 			return err
 		}
@@ -92,13 +108,22 @@ func AddEmailAddresses(ctx context.Context, u *user_model.User, emails []string)
 		if _, err := user_model.InsertEmailAddress(ctx, email); err != nil {
 			return err
 		}
+
+		emails = append(emails, email)
+	}
+
+	for _, email := range emails {
+		audit.Record(ctx, audit_model.UserEmailAdd, doer, u,
+			fmt.Sprintf("Added email %s to user %s.", email.Email, u.Name), "email", email.Email)
 	}
 
 	return nil
 }
 
-func DeleteEmailAddresses(ctx context.Context, u *user_model.User, emails []string) error {
-	for _, emailStr := range emails {
+func DeleteEmailAddresses(ctx context.Context, doer, u *user_model.User, emailsToRemove []string) error {
+	emails := make([]*user_model.EmailAddress, 0, len(emailsToRemove))
+
+	for _, emailStr := range emailsToRemove {
 		// Check if address exists
 		email, err := user_model.GetEmailAddressOfUser(ctx, emailStr, u.ID)
 		if err != nil {
@@ -112,6 +137,13 @@ func DeleteEmailAddresses(ctx context.Context, u *user_model.User, emails []stri
 		if _, err := db.DeleteByID[user_model.EmailAddress](ctx, email.ID); err != nil {
 			return err
 		}
+
+		emails = append(emails, email)
+	}
+
+	for _, email := range emails {
+		audit.Record(ctx, audit_model.UserEmailRemove, doer, u,
+			fmt.Sprintf("Removed email %s from user %s.", email.Email, u.Name), "email", email.Email)
 	}
 
 	return nil
