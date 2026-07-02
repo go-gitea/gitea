@@ -8,6 +8,7 @@ import (
 	"context"
 	"encoding/pem"
 	"errors"
+	"fmt"
 	"io"
 	"net"
 	"os"
@@ -374,8 +375,7 @@ func Listen(host string, port int, ciphers, keyExchanges, macs []string) {
 
 	for _, keyFile := range hostKeyFiles {
 		log.Info("Adding SSH host key: %s", keyFile)
-		err := srv.SetOption(ssh.HostKeyFile(keyFile))
-		if err != nil {
+		if err := addHostKey(&srv, keyFile); err != nil {
 			log.Error("Failed to set Host Key. %s", err)
 		}
 	}
@@ -384,6 +384,37 @@ func Listen(host string, port int, ciphers, keyExchanges, macs []string) {
 		defer finished()
 		listen(&srv)
 	}()
+}
+
+// addHostKey loads a private key from keyPath, restricts RSA signers to
+// rsa-sha2-256/512 (dropping the legacy ssh-rsa/SHA-1 algorithm)
+func addHostKey(srv *ssh.Server, keyPath string) error {
+	pemBytes, err := os.ReadFile(keyPath)
+	if err != nil {
+		return err
+	}
+
+	signer, err := gossh.ParsePrivateKey(pemBytes)
+	if err != nil {
+		return err
+	}
+
+	// RSA keys support three algorithms.
+	// Restrict to the two SHA-2 variants so that the
+	// server never advertises or accepts ssh-rsa during the handshake.
+	if signer.PublicKey().Type() == gossh.KeyAlgoRSA {
+		algSigner, ok := signer.(gossh.AlgorithmSigner)
+		if !ok {
+			return fmt.Errorf("SSH: RSA key %s does not implement AlgorithmSigner", keyPath)
+		}
+		signer, err = gossh.NewSignerWithAlgorithms(algSigner, []string{gossh.KeyAlgoRSASHA256, gossh.KeyAlgoRSASHA512})
+		if err != nil {
+			return err
+		}
+	}
+
+	srv.AddHostKey(signer)
+	return nil
 }
 
 // GenKeyPair make a pair of public and private keys for SSH access.
@@ -415,7 +446,7 @@ func GenKeyPair(keyPath string, keyType generate.SSHKeyType, bits int) error {
 // key naming does not follow the OpenSSH convention due to existing settings being gitea.{KeyType} so generation follows gitea convention
 func InitDefaultHostKeys(path string) (keyFiles []string, _ error) {
 	var errs []error
-	keyTypes := []generate.SSHKeyType{generate.SSHKeyRSA, generate.SSHKeyECDSA, generate.SSHKeyED25519}
+	keyTypes := []generate.SSHKeyType{generate.SSHKeyED25519, generate.SSHKeyRSA, generate.SSHKeyECDSA}
 	for _, keyType := range keyTypes {
 		keyPath := filepath.Join(path, "gitea."+string(keyType))
 		_, errStatPriv := os.Stat(keyPath)
