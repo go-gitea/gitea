@@ -32,6 +32,8 @@ const onItemClick = (e: MouseEvent) => {
   // - the user didn't press any special key like "Ctrl+Click" (which may have custom browser behavior)
   // - the editor/commit form isn't dirty (a full page reload shows a confirmation dialog if the form contains unsaved changes)
   if (!isPlainClick(e) || shouldTriggerAreYouSure()) return;
+  // submodules (commit entry mode) point to external repos, let the browser handle navigation normally
+  if (props.item.entryMode === 'commit') return;
   e.preventDefault();
   if (props.item.entryMode === 'tree') doLoadChildren();
   store.navigateTreeView(props.item.fullPath);
