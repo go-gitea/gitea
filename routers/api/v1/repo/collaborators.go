@@ -174,11 +174,6 @@ func AddOrUpdateCollaborator(ctx *context.APIContext) {
 		return
 	}
 
-	if !collaborator.IsActive {
-		ctx.APIErrorInternal(errors.New("collaborator's account is inactive"))
-		return
-	}
-
 	p := perm.AccessModeWrite
 	if form.Permission != nil {
 		p = perm.ParseAccessMode(string(*form.Permission), perm.AccessModeRead, perm.AccessModeWrite, perm.AccessModeAdmin)
