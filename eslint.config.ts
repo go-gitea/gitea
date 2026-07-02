@@ -847,7 +847,7 @@ export default defineConfig([
       'unicorn/no-unnecessary-array-splice-count': [2],
       'unicorn/no-unnecessary-await': [2],
       'unicorn/no-unnecessary-boolean-comparison': [2],
-      'unicorn/no-unnecessary-fetch-options': [2],
+      'unicorn/no-unnecessary-fetch-options': [0],
       'unicorn/no-unnecessary-global-this': [0],
       'unicorn/no-unnecessary-nested-ternary': [2],
       'unicorn/no-unnecessary-polyfills': [2],
