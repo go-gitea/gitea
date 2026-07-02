@@ -3646,7 +3646,7 @@
   "packages.settings.link": "Link this package to a repository",
   "packages.settings.link.description": "If you link a package with a repository, the package will appear in the repository's package list.",
   "packages.settings.link.notice1": "Only repositories under the same owner can be linked.",
-  "packages.settings.link.notice2": "Linking a repository does not change the package visibility.",
+  "packages.settings.link.notice2": "Linking a repository changes the package visibility to match the repository.",
   "packages.settings.link.notice3": "Leaving the field empty will remove the link.",
   "packages.settings.visibility": "Package visibility",
   "packages.settings.visibility.inherit": "Package visibility is inherited from the owner and cannot be changed independently here. To change it, update the visibility settings of the user or organization that owns this package.",

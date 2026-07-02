@@ -11,6 +11,7 @@ import (
 	"gitea.dev/models/organization"
 	packages_model "gitea.dev/models/packages"
 	"gitea.dev/models/perm"
+	repo_model "gitea.dev/models/repo"
 	"gitea.dev/models/unit"
 	user_model "gitea.dev/models/user"
 	"gitea.dev/modules/setting"
@@ -23,6 +24,7 @@ type Package struct {
 	Owner      *user_model.User
 	AccessMode perm.AccessMode
 	Descriptor *packages_model.PackageDescriptor
+	Repository *repo_model.Repository
 }
 
 type packageAssignmentCtx struct {
@@ -56,19 +58,35 @@ func PackageAssignmentAPI() func(ctx *APIContext) {
 }
 
 func packageAssignment(ctx *packageAssignmentCtx, errCb func(int, string)) *Package {
-	pkgOwner := ctx.ContextUser
-	accessMode, err := determineAccessMode(ctx.Base, pkgOwner, ctx.Doer)
+	pkg := getPackage(ctx, errCb)
+
+	accessMode, err := determineAccessMode(ctx.Base, ctx.ContextUser, ctx.Doer, pkg.Repository)
 	if err != nil {
 		errCb(http.StatusInternalServerError, fmt.Sprintf("determineAccessMode: %v", err))
 		return nil
 	}
 
+	pkg.AccessMode = accessMode
+
+	return pkg
+}
+
+func getPackage(ctx *packageAssignmentCtx, errCb func(int, string)) *Package {
+	pkgOwner := ctx.ContextUser
+
 	pkg := &Package{
 		Owner:      pkgOwner,
-		AccessMode: accessMode,
+		AccessMode: perm.AccessModeNone,
+		Repository: nil,
 	}
 	packageType := ctx.PathParam("type")
 	name := ctx.PathParam("name")
+	image := ctx.PathParam("image")
+	if image != "" {
+		name = image
+		packageType = "container"
+	}
+
 	if packageType == "" || name == "" {
 		return pkg
 	}
@@ -90,6 +108,8 @@ func packageAssignment(ctx *packageAssignmentCtx, errCb func(int, string)) *Pack
 			errCb(http.StatusInternalServerError, fmt.Sprintf("GetPackageDescriptor: %v", err))
 			return pkg
 		}
+
+		pkg.Repository = pkg.Descriptor.Repository
 	} else {
 		p, err := packages_model.GetPackageByName(ctx, pkg.Owner.ID, packages_model.Type(packageType), name)
 		if err != nil {
@@ -105,12 +125,20 @@ func packageAssignment(ctx *packageAssignmentCtx, errCb func(int, string)) *Pack
 			Package: p,
 			Owner:   pkg.Owner,
 		}
+
+		if p.RepoID > 0 {
+			pkg.Repository, err = repo_model.GetRepositoryByID(ctx, p.RepoID)
+			if err != nil {
+				errCb(http.StatusInternalServerError, fmt.Sprintf("GetRepositoryByID: %v", err))
+				return pkg
+			}
+		}
 	}
 
 	return pkg
 }
 
-func determineAccessMode(ctx *Base, pkgOwner, doer *user_model.User) (perm.AccessMode, error) {
+func determineAccessMode(ctx *Base, pkgOwner, doer *user_model.User, pkgRepo *repo_model.Repository) (perm.AccessMode, error) {
 	if setting.Service.RequireSignInViewStrict && (doer == nil || doer.IsGhost()) {
 		return perm.AccessModeNone, nil
 	}
@@ -149,6 +177,15 @@ func determineAccessMode(ctx *Base, pkgOwner, doer *user_model.User) (perm.Acces
 		if accessMode == perm.AccessModeNone && organization.HasOrgOrUserVisible(ctx, pkgOwner, doer) {
 			// 2. If user is unauthorized or no org member, check if org is visible
 			accessMode = perm.AccessModeRead
+		}
+	} else if pkgRepo != nil {
+		if doer != nil {
+			// 1. Check if user is package owner
+			if doer.ID == pkgOwner.ID {
+				accessMode = perm.AccessModeOwner
+			} else if !pkgRepo.IsPrivate { // 2. Check if package repository is public
+				accessMode = perm.AccessModeRead
+			}
 		}
 	} else {
 		if doer != nil && !doer.IsGhost() {

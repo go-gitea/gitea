@@ -578,25 +578,25 @@ func ContainerRoutes() *web.Router {
 		r.Post("", container.AuthenticateNotImplemented)
 	})
 	r.Get("/_catalog", container.ReqContainerAccess, container.GetRepositoryList)
-	r.Group("/{username}", func() {
+	r.Group("/{username}/{image}", func() {
 		r.PathGroup("/*", func(g *web.RouterPathGroup) {
-			g.MatchPath("POST", "/<image:*>/blobs/uploads", reqPackageAccess(perm.AccessModeWrite), container.VerifyImageName, container.PostBlobsUploads)
-			g.MatchPath("GET", "/<image:*>/tags/list", container.VerifyImageName, container.GetTagsList)
+			g.MatchPath("POST", "/blobs/uploads", reqPackageAccess(perm.AccessModeWrite), container.VerifyImageName, container.PostBlobsUploads)
+			g.MatchPath("GET", "/tags/list", container.VerifyImageName, container.GetTagsList)
 
-			patternBlobsUploadsUUID := g.PatternRegexp(`/<image:*>/blobs/uploads/<uuid:[-.=\w]+>`, reqPackageAccess(perm.AccessModeWrite), container.VerifyImageName)
+			patternBlobsUploadsUUID := g.PatternRegexp(`/blobs/uploads/<uuid:[-.=\w]+>`, reqPackageAccess(perm.AccessModeWrite), container.VerifyImageName)
 			g.MatchPattern("GET", patternBlobsUploadsUUID, container.GetBlobsUpload)
 			g.MatchPattern("PATCH", patternBlobsUploadsUUID, container.PatchBlobsUpload)
 			g.MatchPattern("PUT", patternBlobsUploadsUUID, container.PutBlobsUpload)
 			g.MatchPattern("DELETE", patternBlobsUploadsUUID, container.DeleteBlobsUpload)
 
-			g.MatchPath("HEAD", `/<image:*>/blobs/<digest>`, container.VerifyImageName, container.HeadBlob)
-			g.MatchPath("GET", `/<image:*>/blobs/<digest>`, container.VerifyImageName, container.GetBlob)
-			g.MatchPath("DELETE", `/<image:*>/blobs/<digest>`, container.VerifyImageName, reqPackageAccess(perm.AccessModeWrite), container.DeleteBlob)
+			g.MatchPath("HEAD", `/blobs/<digest>`, container.VerifyImageName, container.HeadBlob)
+			g.MatchPath("GET", `/blobs/<digest>`, container.VerifyImageName, container.GetBlob)
+			g.MatchPath("DELETE", `/blobs/<digest>`, container.VerifyImageName, reqPackageAccess(perm.AccessModeWrite), container.DeleteBlob)
 
-			g.MatchPath("HEAD", `/<image:*>/manifests/<reference>`, container.VerifyImageName, container.HeadManifest)
-			g.MatchPath("GET", `/<image:*>/manifests/<reference>`, container.VerifyImageName, container.GetManifest)
-			g.MatchPath("PUT", `/<image:*>/manifests/<reference>`, container.VerifyImageName, reqPackageAccess(perm.AccessModeWrite), container.PutManifest)
-			g.MatchPath("DELETE", `/<image:*>/manifests/<reference>`, container.VerifyImageName, reqPackageAccess(perm.AccessModeWrite), container.DeleteManifest)
+			g.MatchPath("HEAD", `/manifests/<reference>`, container.VerifyImageName, container.HeadManifest)
+			g.MatchPath("GET", `/manifests/<reference>`, container.VerifyImageName, container.GetManifest)
+			g.MatchPath("PUT", `/manifests/<reference>`, container.VerifyImageName, reqPackageAccess(perm.AccessModeWrite), container.PutManifest)
+			g.MatchPath("DELETE", `/manifests/<reference>`, container.VerifyImageName, reqPackageAccess(perm.AccessModeWrite), container.DeleteManifest)
 		})
 	}, container.ReqContainerAccess, context.UserAssignmentWeb(), context.PackageAssignment(), reqPackageAccess(perm.AccessModeRead))
 
