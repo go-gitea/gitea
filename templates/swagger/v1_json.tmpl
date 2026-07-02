@@ -23357,7 +23357,7 @@
       "type": "object",
       "properties": {
         "permission": {
-          "description": "Permission level to grant the collaborator\nread RepoWritePermissionRead\nwrite RepoWritePermissionWrite\nadmin RepoWritePermissionAdmin",
+          "description": "Permission level to grant the collaborator",
           "type": "string",
           "enum": [
             "read",
@@ -23512,6 +23512,7 @@
           "x-go-name": "DownloadURL"
         },
         "created_at": {
+          "description": "Created is the time when the attachment was uploaded",
           "type": "string",
           "format": "date-time",
           "x-go-name": "Created"
@@ -23660,8 +23661,8 @@
           "x-go-name": "BlockOnRejectedReviews"
         },
         "branch_name": {
-          "description": "Deprecated: true",
           "type": "string",
+          "x-deprecated": true,
           "x-go-name": "BranchName"
         },
         "bypass_allowlist_teams": {
@@ -23984,7 +23985,7 @@
           "x-go-name": "SHA"
         },
         "state": {
-          "description": "State is the overall combined status state\npending CommitStatusPending is for when the CommitStatus is Pending\nsuccess CommitStatusSuccess is for when the CommitStatus is Success\nerror CommitStatusError is for when the CommitStatus is Error\nfailure CommitStatusFailure is for when the CommitStatus is Failure\nwarning CommitStatusWarning is for when the CommitStatus is Warning\nskipped CommitStatusSkipped is for when CommitStatus is Skipped",
+          "description": "State is the overall combined status state",
           "type": "string",
           "enum": [
             "pending",
@@ -24098,6 +24099,7 @@
           "$ref": "#/definitions/User"
         },
         "created": {
+          "description": "Created is the time when the commit was created",
           "type": "string",
           "format": "date-time",
           "x-go-name": "Created"
@@ -24161,11 +24163,13 @@
       "type": "object",
       "properties": {
         "author": {
+          "description": "Author is the author date for the commit",
           "type": "string",
           "format": "date-time",
           "x-go-name": "Author"
         },
         "committer": {
+          "description": "Committer is the committer date for the commit",
           "type": "string",
           "format": "date-time",
           "x-go-name": "Committer"
@@ -24178,6 +24182,7 @@
       "title": "CommitMeta contains meta information of a commit in terms of API.",
       "properties": {
         "created": {
+          "description": "Created is the time when the commit was created",
           "type": "string",
           "format": "date-time",
           "x-go-name": "Created"
@@ -24249,7 +24254,7 @@
           "x-go-name": "ID"
         },
         "status": {
-          "description": "State represents the status state (pending, success, error, failure)\npending CommitStatusPending is for when the CommitStatus is Pending\nsuccess CommitStatusSuccess is for when the CommitStatus is Success\nerror CommitStatusError is for when the CommitStatus is Error\nfailure CommitStatusFailure is for when the CommitStatus is Failure\nwarning CommitStatusWarning is for when the CommitStatus is Warning\nskipped CommitStatusSkipped is for when CommitStatus is Skipped",
+          "description": "State represents the status state (pending, success, error, failure)",
           "type": "string",
           "enum": [
             "pending",
@@ -24290,6 +24295,7 @@
           "x-go-name": "Date"
         },
         "email": {
+          "description": "Email is the person's email address",
           "type": "string",
           "format": "email",
           "x-go-name": "Email"
@@ -24534,8 +24540,8 @@
           "x-go-name": "BlockOnRejectedReviews"
         },
         "branch_name": {
-          "description": "Deprecated: true",
           "type": "string",
+          "x-deprecated": true,
           "x-go-name": "BranchName"
         },
         "bypass_allowlist_teams": {
@@ -24692,9 +24698,10 @@
           "x-go-name": "BranchName"
         },
         "old_branch_name": {
-          "description": "Deprecated: true\nName of the old branch to create from",
+          "description": "Name of the old branch to create from",
           "type": "string",
           "uniqueItems": true,
+          "x-deprecated": true,
           "x-go-name": "OldBranchName"
         },
         "old_ref_name": {
@@ -24836,6 +24843,7 @@
       ],
       "properties": {
         "active": {
+          "description": "Whether the webhook should be active upon creation",
           "type": "boolean",
           "default": false,
           "x-go-name": "Active"
@@ -24867,6 +24875,7 @@
           "x-go-name": "Name"
         },
         "type": {
+          "description": "The type of the webhook to create",
           "type": "string",
           "enum": [
             "dingtalk",
@@ -24901,6 +24910,7 @@
       ],
       "properties": {
         "body": {
+          "description": "Body is the comment text content",
           "type": "string",
           "x-go-name": "Body"
         }
@@ -25031,6 +25041,7 @@
           "example": false
         },
         "name": {
+          "description": "Name is the display name for the new label",
           "type": "string",
           "x-go-name": "Name"
         }
@@ -25047,11 +25058,13 @@
           "x-go-name": "Description"
         },
         "due_on": {
+          "description": "Deadline is the due date for the milestone",
           "type": "string",
           "format": "date-time",
           "x-go-name": "Deadline"
         },
         "state": {
+          "description": "State indicates the initial state of the milestone",
           "type": "string",
           "enum": [
             "open",
@@ -25155,7 +25168,7 @@
           "x-go-name": "UserName"
         },
         "visibility": {
-          "description": "possible values are `public` (default), `limited` or `private`\npublic UserVisibilityPublic\nlimited UserVisibilityLimited\nprivate UserVisibilityPrivate",
+          "description": "possible values are `public` (default), `limited` or `private`",
           "type": "string",
           "enum": [
             "public",
@@ -25447,7 +25460,7 @@
           "x-go-name": "Name"
         },
         "object_format_name": {
-          "description": "ObjectFormatName of the underlying git repository, empty string for default (sha1)\nsha1 ObjectFormatSHA1\nsha256 ObjectFormatSHA256",
+          "description": "ObjectFormatName of the underlying git repository, empty string for default (sha1)",
           "type": "string",
           "enum": [
             "sha1",
@@ -25500,7 +25513,7 @@
           "x-go-name": "Description"
         },
         "state": {
-          "description": "State represents the status state to set (pending, success, error, failure)\npending CommitStatusPending is for when the CommitStatus is Pending\nsuccess CommitStatusSuccess is for when the CommitStatus is Success\nerror CommitStatusError is for when the CommitStatus is Error\nfailure CommitStatusFailure is for when the CommitStatus is Failure\nwarning CommitStatusWarning is for when the CommitStatus is Warning\nskipped CommitStatusSkipped is for when CommitStatus is Skipped",
+          "description": "State represents the status state to set (pending, success, error, failure)",
           "type": "string",
           "enum": [
             "pending",
@@ -25534,6 +25547,7 @@
           "x-go-name": "Message"
         },
         "tag_name": {
+          "description": "The name of the tag to create",
           "type": "string",
           "x-go-name": "TagName"
         },
@@ -25610,10 +25624,12 @@
           "x-go-name": "Permission"
         },
         "units": {
+          "description": "Deprecated: This variable should be replaced by UnitsMap and will be dropped in later versions.",
           "type": "array",
           "items": {
             "type": "string"
           },
+          "x-deprecated": true,
           "x-go-name": "Units",
           "example": [
             "repo.actions",
@@ -25648,7 +25664,7 @@
           }
         },
         "visibility": {
-          "description": "Team visibility within the organization. Defaults to \"private\".\npublic TeamVisibilityPublic\nlimited TeamVisibilityLimited\nprivate TeamVisibilityPrivate",
+          "description": "Team visibility within the organization. Defaults to \"private\".",
           "type": "string",
           "enum": [
             "public",
@@ -25722,7 +25738,7 @@
           "x-go-name": "Username"
         },
         "visibility": {
-          "description": "User visibility level: public, limited, or private\npublic UserVisibilityPublic\nlimited UserVisibilityLimited\nprivate UserVisibilityPrivate",
+          "description": "User visibility level: public, limited, or private",
           "type": "string",
           "enum": [
             "public",
@@ -25922,6 +25938,7 @@
       "type": "object",
       "properties": {
         "created_at": {
+          "description": "Created is the time when the deploy key was added",
           "type": "string",
           "format": "date-time",
           "x-go-name": "Created"
@@ -26258,6 +26275,7 @@
       ],
       "properties": {
         "body": {
+          "description": "Body is the updated comment text content",
           "type": "string",
           "x-go-name": "Body"
         }
@@ -26422,7 +26440,7 @@
           "x-go-name": "RepoAdminChangeTeamAccess"
         },
         "visibility": {
-          "description": "possible values are `public`, `limited` or `private`\npublic UserVisibilityPublic\nlimited UserVisibilityLimited\nprivate UserVisibilityPrivate",
+          "description": "possible values are `public`, `limited` or `private`",
           "type": "string",
           "enum": [
             "public",
@@ -26822,10 +26840,12 @@
           "x-go-name": "Permission"
         },
         "units": {
+          "description": "Deprecated: This variable should be replaced by UnitsMap and will be dropped in later versions.",
           "type": "array",
           "items": {
             "type": "string"
           },
+          "x-deprecated": true,
           "x-go-name": "Units",
           "example": [
             "repo.code",
@@ -26856,7 +26876,7 @@
           }
         },
         "visibility": {
-          "description": "Team visibility within the organization. When omitted, visibility is\nleft unchanged.\npublic TeamVisibilityPublic\nlimited TeamVisibilityLimited\nprivate TeamVisibilityPrivate",
+          "description": "Team visibility within the organization. When omitted, visibility is\nleft unchanged.",
           "type": "string",
           "enum": [
             "public",
@@ -26908,6 +26928,7 @@
           "x-go-name": "Description"
         },
         "email": {
+          "description": "The email address of the user",
           "type": "string",
           "format": "email",
           "x-go-name": "Email"
@@ -26955,12 +26976,13 @@
           "x-go-name": "Restricted"
         },
         "source_id": {
+          "description": "The authentication source ID to associate with the user",
           "type": "integer",
           "format": "int64",
           "x-go-name": "SourceID"
         },
         "visibility": {
-          "description": "User visibility level: public, limited, or private\npublic UserVisibilityPublic\nlimited UserVisibilityLimited\nprivate UserVisibilityPrivate",
+          "description": "User visibility level: public, limited, or private",
           "type": "string",
           "enum": [
             "public",
@@ -26983,6 +27005,7 @@
       "type": "object",
       "properties": {
         "email": {
+          "description": "The email address",
           "type": "string",
           "format": "email",
           "x-go-name": "Email"
@@ -27061,6 +27084,7 @@
           "$ref": "#/definitions/CommitUser"
         },
         "created": {
+          "description": "Created is the time when the commit was created",
           "type": "string",
           "format": "date-time",
           "x-go-name": "Created"
@@ -27200,6 +27224,7 @@
           "x-go-name": "CanSign"
         },
         "created_at": {
+          "description": "The date and time when the GPG key was created",
           "type": "string",
           "format": "date-time",
           "x-go-name": "Created"
@@ -27213,6 +27238,7 @@
           "x-go-name": "Emails"
         },
         "expires_at": {
+          "description": "The date and time when the GPG key expires",
           "type": "string",
           "format": "date-time",
           "x-go-name": "Expires"
@@ -27701,6 +27727,7 @@
           "x-go-name": "Config"
         },
         "created_at": {
+          "description": "The date and time when the webhook was created",
           "type": "string",
           "format": "date-time",
           "x-go-name": "Created"
@@ -27730,6 +27757,7 @@
           "x-go-name": "Type"
         },
         "updated_at": {
+          "description": "The date and time when the webhook was last updated",
           "type": "string",
           "format": "date-time",
           "x-go-name": "Updated"
@@ -27742,6 +27770,7 @@
       "type": "object",
       "properties": {
         "email": {
+          "description": "Email is the person's email address",
           "type": "string",
           "format": "email",
           "x-go-name": "Email"
@@ -28276,8 +28305,9 @@
           "type": "string"
         },
         "Wiki": {
-          "description": "Is it a wiki page? (use mode=wiki instead)\n\nDeprecated: true",
-          "type": "boolean"
+          "description": "Is it a wiki page? (use mode=wiki instead)",
+          "type": "boolean",
+          "x-deprecated": true
         }
       },
       "x-go-package": "gitea.dev/modules/structs"
@@ -28303,8 +28333,9 @@
           "type": "string"
         },
         "Wiki": {
-          "description": "Is it a wiki page? (use mode=wiki instead)\n\nDeprecated: true",
-          "type": "boolean"
+          "description": "Is it a wiki page? (use mode=wiki instead)",
+          "type": "boolean",
+          "x-deprecated": true
         }
       },
       "x-go-package": "gitea.dev/modules/structs"
@@ -28540,7 +28571,7 @@
           "x-go-name": "OpenIssues"
         },
         "state": {
-          "description": "State indicates if the milestone is open or closed\nopen StateOpen pr is opened\nclosed StateClosed pr is closed",
+          "description": "State indicates if the milestone is open or closed",
           "type": "string",
           "enum": [
             "open",
@@ -28625,7 +28656,7 @@
           "x-go-name": "LatestCommentURL"
         },
         "state": {
-          "description": "State indicates the current state of the notification subject\nopen NotifySubjectStateOpen is an open subject\nclosed NotifySubjectStateClosed is a closed subject\nmerged NotifySubjectStateMerged is a merged pull request",
+          "description": "State indicates the current state of the notification subject",
           "type": "string",
           "enum": [
             "open",
@@ -28641,7 +28672,7 @@
           "x-go-name": "Title"
         },
         "type": {
-          "description": "Type indicates the type of the notification subject\nIssue NotifySubjectIssue a issue is subject of an notification\nPull NotifySubjectPull a pull is subject of an notification\nCommit NotifySubjectCommit a commit is subject of an notification\nRepository NotifySubjectRepository a repository is subject of an notification",
+          "description": "Type indicates the type of the notification subject",
           "type": "string",
           "enum": [
             "Issue",
@@ -28803,7 +28834,7 @@
           "x-go-name": "UserName"
         },
         "visibility": {
-          "description": "The visibility level of the organization (public, limited, private)\npublic UserVisibilityPublic\nlimited UserVisibilityLimited\nprivate UserVisibilityPrivate",
+          "description": "The visibility level of the organization (public, limited, private)",
           "type": "string",
           "enum": [
             "public",
@@ -28889,6 +28920,7 @@
       "type": "object",
       "properties": {
         "created_at": {
+          "description": "The date and time when the package was created",
           "type": "string",
           "format": "date-time",
           "x-go-name": "CreatedAt"
@@ -29020,6 +29052,7 @@
           "x-go-name": "Removed"
         },
         "timestamp": {
+          "description": "The timestamp when the commit was made",
           "type": "string",
           "format": "date-time",
           "x-go-name": "Timestamp"
@@ -29172,6 +29205,7 @@
       "type": "object",
       "properties": {
         "created_at": {
+          "description": "Created is the time when the key was added",
           "type": "string",
           "format": "date-time",
           "x-go-name": "Created"
@@ -29405,7 +29439,7 @@
           "x-go-name": "ReviewComments"
         },
         "state": {
-          "description": "The current state of the pull request\nopen StateOpen pr is opened\nclosed StateClosed pr is closed",
+          "description": "The current state of the pull request",
           "type": "string",
           "enum": [
             "open",
@@ -29748,6 +29782,7 @@
           "x-go-name": "Reaction"
         },
         "created_at": {
+          "description": "The date and time when the reaction was created",
           "type": "string",
           "format": "date-time",
           "x-go-name": "Created"
@@ -29920,7 +29955,7 @@
       "type": "object",
       "properties": {
         "permission": {
-          "description": "Permission level of the collaborator\nnone AccessLevelNameNone\nread AccessLevelNameRead\nwrite AccessLevelNameWrite\nadmin AccessLevelNameAdmin\nowner AccessLevelNameOwner",
+          "description": "Permission level of the collaborator",
           "type": "string",
           "enum": [
             "none",
@@ -30219,7 +30254,7 @@
           "x-go-name": "Name"
         },
         "object_format_name": {
-          "description": "ObjectFormatName of the underlying git repository\nsha1 ObjectFormatSHA1\nsha256 ObjectFormatSHA256",
+          "description": "ObjectFormatName of the underlying git repository",
           "type": "string",
           "enum": [
             "sha1",
@@ -30416,6 +30451,7 @@
       "type": "object",
       "properties": {
         "created": {
+          "description": "Created is the time when the stopwatch was started",
           "type": "string",
           "format": "date-time",
           "x-go-name": "Created"
@@ -30518,6 +30554,7 @@
       "type": "object",
       "properties": {
         "created_at": {
+          "description": "The date and time when the tag protection was created",
           "type": "string",
           "format": "date-time",
           "x-go-name": "Created"
@@ -30534,6 +30571,7 @@
           "x-go-name": "NamePattern"
         },
         "updated_at": {
+          "description": "The date and time when the tag protection was last updated",
           "type": "string",
           "format": "date-time",
           "x-go-name": "Updated"
@@ -30603,10 +30641,12 @@
           "x-go-name": "Permission"
         },
         "units": {
+          "description": "Deprecated: This variable should be replaced by UnitsMap and will be dropped in later versions.",
           "type": "array",
           "items": {
             "type": "string"
           },
+          "x-deprecated": true,
           "x-go-name": "Units",
           "example": [
             "repo.code",
@@ -30637,7 +30677,7 @@
           }
         },
         "visibility": {
-          "description": "Team visibility within the organization. \"private\" teams are only\nlistable by members and org owners; \"limited\" teams are listable by\nany organization member; \"public\" teams are listable by any signed-in\nuser.\npublic TeamVisibilityPublic\nlimited TeamVisibilityLimited\nprivate TeamVisibilityPrivate",
+          "description": "Team visibility within the organization. \"private\" teams are only\nlistable by members and org owners; \"limited\" teams are listable by\nany organization member; \"public\" teams are listable by any signed-in\nuser.",
           "type": "string",
           "enum": [
             "public",
@@ -31173,7 +31213,7 @@
           "x-go-name": "StarredRepos"
         },
         "visibility": {
-          "description": "User visibility level option: public, limited, private\npublic UserVisibilityPublic\nlimited UserVisibilityLimited\nprivate UserVisibilityPrivate",
+          "description": "User visibility level option: public, limited, private",
           "type": "string",
           "enum": [
             "public",
