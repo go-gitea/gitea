@@ -429,6 +429,8 @@
   "auth.oauth.signin.error.general": "There was an error processing the authorization request: %s. If this error persists, please contact the site administrator.",
   "auth.oauth.signin.error.access_denied": "The authorization request was denied.",
   "auth.oauth.signin.error.temporarily_unavailable": "Authorization failed because the authentication server is temporarily unavailable. Please try again later.",
+  "auth.oauth.required_additional_info_fetch_failed_banner.title": "OAuth2 additional information synchronization warning",
+  "auth.oauth.required_additional_info_fetch_failed_banner.desc": "Gitea recently failed to retrieve required additional information from authentication source \"%s\" (last failure: %s). Users may keep their previously synchronized admin/restricted/team state until retrieval succeeds again. Check logs for details.",
   "auth.oauth_callback_unable_auto_reg": "Auto Registration is enabled, but OAuth2 Provider %[1]s returned missing fields: %[2]s, unable to create an account automatically. Please create or link to an account, or contact the site administrator.",
   "auth.openid_connect_submit": "Connect",
   "auth.openid_connect_title": "Connect to an existing account",
