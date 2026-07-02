@@ -130,6 +130,8 @@ type ActionWorkflowRun struct {
 	Conclusion     string                `json:"conclusion,omitempty"`
 	PullRequests   []*PullRequestMinimal `json:"pull_requests"`
 	// swagger:strfmt date-time
+	CreatedAt time.Time `json:"created_at"`
+	// swagger:strfmt date-time
 	StartedAt time.Time `json:"started_at"`
 	// swagger:strfmt date-time
 	CompletedAt time.Time `json:"completed_at"`

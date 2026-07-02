@@ -242,6 +242,7 @@ func ToActionTask(ctx context.Context, t *actions_model.ActionTask) (*api.Action
 	if err := t.Job.Run.LoadRepo(ctx); err != nil {
 		return nil, err
 	}
+
 	return &api.ActionTask{
 		ID:           t.ID,
 		Name:         t.Job.Name,
@@ -252,7 +253,7 @@ func ToActionTask(ctx context.Context, t *actions_model.ActionTask) (*api.Action
 		DisplayTitle: t.Job.Run.Title,
 		Status:       t.Status.String(),
 		WorkflowID:   t.Job.Run.WorkflowID,
-		URL:          httplib.MakeAbsoluteURL(ctx, t.Job.Run.Link()),
+		URL:          httplib.MakeAbsoluteURL(ctx, t.GetRunLink()),
 		CreatedAt:    t.Created.AsLocalTime(),
 		UpdatedAt:    t.Updated.AsLocalTime(),
 		RunStartedAt: t.Started.AsLocalTime(),
@@ -265,9 +266,10 @@ func ToActionWorkflowRun(ctx context.Context, run *actions_model.ActionRun, atte
 	}
 
 	if attempt == nil {
-		attempt, _, err = run.GetLatestAttempt(ctx)
-		if err != nil {
+		if latestAttempt, has, err := run.GetLatestAttempt(ctx); err != nil {
 			return nil, err
+		} else if has {
+			attempt = latestAttempt
 		}
 	}
 
@@ -312,6 +314,7 @@ func ToActionWorkflowRun(ctx context.Context, run *actions_model.ActionRun, atte
 		HTMLURL:            run.HTMLURL(ctx),
 		RunNumber:          run.Index,
 		RunAttempt:         runAttempt,
+		CreatedAt:          run.Created.AsLocalTime(),
 		StartedAt:          startedAt,
 		CompletedAt:        completedAt,
 		Event:              run.TriggerEvent,

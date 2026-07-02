@@ -6,6 +6,7 @@ package repo
 import (
 	actions_model "gitea.dev/models/actions"
 	"gitea.dev/routers/common"
+	actions_service "gitea.dev/services/actions"
 	"gitea.dev/services/context"
 )
 
@@ -45,13 +46,196 @@ func DownloadActionsRunJobLogs(ctx *context.APIContext) {
 		ctx.APIErrorAuto(err)
 		return
 	}
-	if err = curJob.LoadRepo(ctx); err != nil {
-		ctx.APIErrorInternal(err)
-		return
-	}
-
 	err = common.DownloadActionsRunJobLogs(ctx.Base, ctx.Repo.Repository, curJob)
 	if err != nil {
 		ctx.APIErrorAuto(err)
+	}
+}
+
+func CancelWorkflowRun(ctx *context.APIContext) {
+	// swagger:operation POST /repos/{owner}/{repo}/actions/runs/{run}/cancel repository cancelWorkflowRun
+	// ---
+	// summary: Cancel a workflow run and its jobs
+	// produces:
+	// - application/json
+	// parameters:
+	// - name: owner
+	//   in: path
+	//   description: owner of the repo
+	//   type: string
+	//   required: true
+	// - name: repo
+	//   in: path
+	//   description: name of the repository
+	//   type: string
+	//   required: true
+	// - name: run
+	//   in: path
+	//   description: run ID
+	//   type: integer
+	//   required: true
+	// responses:
+	//   "200":
+	//     description: success
+	//   "400":
+	//     "$ref": "#/responses/error"
+	//   "403":
+	//     "$ref": "#/responses/forbidden"
+	//   "404":
+	//     "$ref": "#/responses/notFound"
+
+	run, jobs := getCurrentRepoActionRunJobsByID(ctx)
+	if ctx.Written() {
+		return
+	}
+
+	if err := actions_service.CancelRun(ctx, run, jobs); err != nil {
+		ctx.APIErrorAuto(err)
+		return
+	}
+
+	run = getCurrentRepoActionRunByID(ctx)
+	if ctx.Written() {
+		return
+	}
+	respondRepoActionWorkflowRun(ctx, run)
+}
+
+func ApproveWorkflowRun(ctx *context.APIContext) {
+	// swagger:operation POST /repos/{owner}/{repo}/actions/runs/{run}/approve repository approveWorkflowRun
+	// ---
+	// summary: Approve a workflow run that requires approval
+	// produces:
+	// - application/json
+	// parameters:
+	// - name: owner
+	//   in: path
+	//   description: owner of the repo
+	//   type: string
+	//   required: true
+	// - name: repo
+	//   in: path
+	//   description: name of the repository
+	//   type: string
+	//   required: true
+	// - name: run
+	//   in: path
+	//   description: run ID
+	//   type: integer
+	//   required: true
+	// responses:
+	//   "200":
+	//     description: success
+	//   "400":
+	//     "$ref": "#/responses/error"
+	//   "403":
+	//     "$ref": "#/responses/forbidden"
+	//   "404":
+	//     "$ref": "#/responses/notFound"
+
+	run := getCurrentRepoActionRunByID(ctx)
+	if ctx.Written() {
+		return
+	}
+
+	// GitHub-compatible: return 200 if already approved (idempotent)
+	if !run.NeedApproval {
+		respondRepoActionWorkflowRun(ctx, run)
+		return
+	}
+
+	if err := actions_service.ApproveRuns(ctx, ctx.Repo.Repository, ctx.Doer, []int64{run.ID}); err != nil {
+		ctx.APIErrorAuto(err)
+		return
+	}
+
+	run = getCurrentRepoActionRunByID(ctx)
+	if ctx.Written() {
+		return
+	}
+	respondRepoActionWorkflowRun(ctx, run)
+}
+
+func GetWorkflowRunLogs(ctx *context.APIContext) {
+	// swagger:operation GET /repos/{owner}/{repo}/actions/runs/{run}/logs repository getWorkflowRunLogs
+	// ---
+	// summary: Download workflow run logs as archive
+	// produces:
+	// - application/zip
+	// parameters:
+	// - name: owner
+	//   in: path
+	//   description: owner of the repo
+	//   type: string
+	//   required: true
+	// - name: repo
+	//   in: path
+	//   description: name of the repository
+	//   type: string
+	//   required: true
+	// - name: run
+	//   in: path
+	//   description: run ID
+	//   type: integer
+	//   required: true
+	// responses:
+	//   "200":
+	//     description: Logs archive
+	//   "404":
+	//     "$ref": "#/responses/notFound"
+
+	run := getCurrentRepoActionRunByID(ctx)
+	if ctx.Written() {
+		return
+	}
+
+	if err := common.DownloadActionsRunAllJobLogs(ctx.Base, ctx.Repo.Repository, run.ID); err != nil {
+		ctx.APIErrorAuto(err)
+		return
+	}
+}
+
+func GetWorkflowJobLogs(ctx *context.APIContext) {
+	// swagger:operation GET /repos/{owner}/{repo}/actions/runs/{run}/jobs/{job_id}/logs repository getWorkflowJobLogs
+	// ---
+	// summary: Download job logs as plain text
+	// produces:
+	// - text/plain
+	// parameters:
+	// - name: owner
+	//   in: path
+	//   description: owner of the repo
+	//   type: string
+	//   required: true
+	// - name: repo
+	//   in: path
+	//   description: name of the repository
+	//   type: string
+	//   required: true
+	// - name: run
+	//   in: path
+	//   description: run ID
+	//   type: integer
+	//   required: true
+	// - name: job_id
+	//   in: path
+	//   description: id of the job
+	//   type: integer
+	//   required: true
+	// responses:
+	//   "200":
+	//     description: Job logs
+	//   "404":
+	//     "$ref": "#/responses/notFound"
+
+	run := getCurrentRepoActionRunByID(ctx)
+	if ctx.Written() {
+		return
+	}
+
+	jobID := ctx.PathParamInt64("job_id")
+	if err := common.DownloadActionsRunJobLogsWithID(ctx.Base, ctx.Repo.Repository, run.ID, jobID); err != nil {
+		ctx.APIErrorAuto(err)
+		return
 	}
 }

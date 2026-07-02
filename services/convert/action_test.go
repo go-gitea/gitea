@@ -116,10 +116,10 @@ func TestToActionWorkflowRun_UsesTriggerEvent(t *testing.T) {
 
 	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 2})
 	run := unittest.AssertExistsAndLoadBean(t, &actions_model.ActionRun{ID: 803})
-	run.Repo = repo
 	// Scheduled runs keep Event as the registration event (push) and use TriggerEvent as the real trigger.
 	run.Event = "push"
 	run.TriggerEvent = "schedule"
+	run.Repo = repo
 
 	apiRun, err := ToActionWorkflowRun(t.Context(), run, nil, false)
 	require.NoError(t, err)
