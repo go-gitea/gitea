@@ -522,6 +522,11 @@ overflow-menu {
   position: relative;
 }
 
+/* Hide until JS has arranged the items, `:defined` keeps it visible when JS is disabled */
+overflow-menu:defined:not([data-ready]) {
+  visibility: hidden;
+}
+
 overflow-menu .overflow-menu-popup {
   position: absolute;
   top: calc(100% + 8px);
@@ -584,6 +589,10 @@ overflow-menu .overflow-menu-items .item {
 
 overflow-menu .overflow-menu-items .item-flex-space {
   flex: 1;
+}
+
+overflow-menu .overflow-menu-items .ui.label {
+  font-variant-numeric: tabular-nums; /* equal-width digits so counts don't reflow the row */
 }
 
 overflow-menu .overflow-menu-button {
