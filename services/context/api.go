@@ -104,10 +104,6 @@ type APINotFound struct{}
 // swagger:response conflict
 type APIConflict struct{}
 
-// APIRedirect is a redirect response
-// swagger:response redirect
-type APIRedirect struct{}
-
 // APIString is a string response
 // swagger:response string
 type APIString string
