@@ -27,6 +27,15 @@ func GetReviewers(ctx context.Context, repo *repo_model.Repository, doerID, post
 		return nil, err
 	}
 
+	var doer *user_model.User
+	if doerID > 0 {
+		var err error
+		doer, err = user_model.GetUserByID(ctx, doerID)
+		if err != nil {
+			return nil, err
+		}
+	}
+
 	e := db.GetEngine(ctx)
 	uniqueUserIDs := make(container.Set[int64])
 
@@ -53,8 +62,12 @@ func GetReviewers(ctx context.Context, repo *repo_model.Repository, doerID, post
 	// and just waste 1 unit is cheaper than re-allocate memory once.
 	users := make([]*user_model.User, 0, len(uniqueUserIDs)+1)
 	if len(uniqueUserIDs) > 0 {
+		var userCond builder.Cond = builder.Eq{"`user`.is_active": true}
+		if visibilityCond := reviewerVisibilityCondition(doer); visibilityCond != nil {
+			userCond = userCond.And(visibilityCond)
+		}
 		if err := e.In("id", uniqueUserIDs.Values()).
-			Where(builder.Eq{"`user`.is_active": true}).
+			Where(userCond).
 			OrderBy(user_model.GetOrderByName()).
 			Find(&users); err != nil {
 			return nil, err
@@ -67,6 +80,21 @@ func GetReviewers(ctx context.Context, repo *repo_model.Repository, doerID, post
 	}
 
 	return users, nil
+}
+
+func reviewerVisibilityCondition(doer *user_model.User) builder.Cond {
+	cond := user_model.BuildCanSeeUserCondition(doer)
+	if doer == nil || !doer.IsAdmin {
+		var restrictedCond builder.Cond = builder.Eq{"`user`.is_restricted": false}
+		if doer != nil {
+			restrictedCond = restrictedCond.Or(builder.Eq{"`user`.id": doer.ID})
+		}
+		if cond == nil {
+			return restrictedCond
+		}
+		return cond.And(restrictedCond)
+	}
+	return cond
 }
 
 // GetReviewerTeams get all teams can be requested to review
