@@ -8,6 +8,7 @@ import (
 
 	repo_model "gitea.dev/models/repo"
 	unit_model "gitea.dev/models/unit"
+	attachment_service "gitea.dev/services/attachment"
 	"gitea.dev/services/context"
 	"gitea.dev/services/convert"
 	release_service "gitea.dev/services/release"
@@ -70,6 +71,7 @@ func GetReleaseByTag(ctx *context.APIContext) {
 		ctx.APIErrorInternal(err)
 		return
 	}
+	attachment_service.EnsureSHA256(ctx, release.Attachments...)
 	ctx.JSON(http.StatusOK, convert.ToAPIRelease(ctx, ctx.Repo.Repository, release))
 }
 

@@ -29,6 +29,7 @@ import (
 	"gitea.dev/modules/util"
 	"gitea.dev/modules/web"
 	"gitea.dev/routers/common"
+	attachment_service "gitea.dev/services/attachment"
 	"gitea.dev/services/context"
 	"gitea.dev/services/convert"
 	"gitea.dev/services/forms"
@@ -579,6 +580,7 @@ func GetIssueAttachments(ctx *context.Context) {
 	if ctx.Written() {
 		return
 	}
+	attachment_service.EnsureSHA256(ctx, issue.Attachments...)
 	attachments := make([]*api.Attachment, len(issue.Attachments))
 	for i := 0; i < len(issue.Attachments); i++ {
 		attachments[i] = convert.ToAttachment(ctx.Repo.Repository, issue.Attachments[i])

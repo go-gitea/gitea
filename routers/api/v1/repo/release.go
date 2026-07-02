@@ -14,6 +14,7 @@ import (
 	api "gitea.dev/modules/structs"
 	"gitea.dev/modules/web"
 	"gitea.dev/routers/api/v1/utils"
+	attachment_service "gitea.dev/services/attachment"
 	"gitea.dev/services/context"
 	"gitea.dev/services/convert"
 	release_service "gitea.dev/services/release"
@@ -84,6 +85,7 @@ func GetRelease(ctx *context.APIContext) {
 		ctx.APIErrorInternal(err)
 		return
 	}
+	attachment_service.EnsureSHA256(ctx, release.Attachments...)
 	ctx.JSON(http.StatusOK, convert.ToAPIRelease(ctx, ctx.Repo.Repository, release))
 }
 
@@ -125,6 +127,7 @@ func GetLatestRelease(ctx *context.APIContext) {
 		ctx.APIErrorInternal(err)
 		return
 	}
+	attachment_service.EnsureSHA256(ctx, release.Attachments...)
 	ctx.JSON(http.StatusOK, convert.ToAPIRelease(ctx, ctx.Repo.Repository, release))
 }
 
@@ -191,6 +194,7 @@ func ListReleases(ctx *context.APIContext) {
 			ctx.APIErrorInternal(err)
 			return
 		}
+		attachment_service.EnsureSHA256(ctx, release.Attachments...)
 		rels[i] = convert.ToAPIRelease(ctx, ctx.Repo.Repository, release)
 	}
 

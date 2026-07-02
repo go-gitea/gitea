@@ -71,6 +71,7 @@ func GetIssueCommentAttachment(ctx *context.APIContext) {
 		ctx.APIErrorNotFound("attachment not in comment")
 		return
 	}
+	attachment_service.EnsureSHA256(ctx, attachment)
 
 	ctx.JSON(http.StatusOK, convert.ToAPIAttachment(ctx.Repo.Repository, attachment))
 }
@@ -113,6 +114,7 @@ func ListIssueCommentAttachments(ctx *context.APIContext) {
 		ctx.APIErrorInternal(err)
 		return
 	}
+	attachment_service.EnsureSHA256(ctx, comment.Attachments...)
 
 	ctx.JSON(http.StatusOK, convert.ToAPIAttachments(ctx.Repo.Repository, comment.Attachments))
 }

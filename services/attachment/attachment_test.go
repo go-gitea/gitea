@@ -4,6 +4,8 @@
 package attachment
 
 import (
+	"crypto/sha256"
+	"encoding/hex"
 	"os"
 	"path/filepath"
 	"testing"
@@ -42,4 +44,9 @@ func TestUploadAttachment(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Equal(t, user.ID, attachment.UploaderID)
 	assert.Equal(t, int64(0), attachment.DownloadCount)
+
+	content, err := os.ReadFile(fPath)
+	assert.NoError(t, err)
+	sha256Sum := sha256.Sum256(content)
+	assert.Equal(t, hex.EncodeToString(sha256Sum[:]), attachment.HashSHA256)
 }

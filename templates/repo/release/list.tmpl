@@ -80,15 +80,19 @@
 							<ul class="ui divided list attachment-list">
 								{{range $att := $release.Attachments}}
 									<li class="item">
-										<a target="_blank" class="tw-flex-1 gt-ellipsis" rel="nofollow" download href="{{$att.DownloadURL}}">
+										<a target="_blank" class="tw-flex-1 tw-min-w-0 gt-ellipsis" rel="nofollow" download href="{{$att.DownloadURL}}">
 											<strong class="flex-text-inline">{{svg "octicon-package" 16 "download-icon"}}<span class="gt-ellipsis">{{$att.Name}}</span></strong>
 										</a>
-										<div class="attachment-right-info flex-text-inline">
-											<span class="tw-pl-5">{{$att.Size | FileSize}}</span>
+									<div class="attachment-right-info flex-text-inline">
+										{{if $att.HashSHA256}}
+											<button class="btn interact-fg flex-text-inline tw-text-xs tw-font-mono tw-text-text-light tw-gap-1"
+												data-clipboard-text="{{$att.HashSHA256}}"
+												data-tooltip-content="SHA256: {{$att.HashSHA256}}">{{printf "%.12s" $att.HashSHA256}}{{svg "octicon-copy" 12}}</button>
+										{{end}}
+											<span>{{$att.Size | FileSize}}</span>
 											<span class="flex-text-inline" data-tooltip-content="{{ctx.Locale.Tr "repo.release.download_count" (ctx.Locale.PrettyNumber $att.DownloadCount)}}">
 												{{svg "octicon-info"}}
 											</span>
-											<div class="tw-flex-1"></div>
 											{{DateUtils.TimeSince $att.CreatedUnix}}
 										</div>
 									</li>
