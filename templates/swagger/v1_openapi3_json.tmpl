@@ -825,16 +825,6 @@
         },
         "description": "MarkupRender is a rendered markup document"
       },
-      "MergeUpstreamRequest": {
-        "content": {
-          "application/json": {
-            "schema": {
-              "$ref": "#/components/schemas/MergeUpstreamRequest"
-            }
-          }
-        },
-        "description": ""
-      },
       "MergeUpstreamResponse": {
         "content": {
           "application/json": {
@@ -867,16 +857,6 @@
           }
         },
         "description": "MilestoneList"
-      },
-      "NodeInfo": {
-        "content": {
-          "application/json": {
-            "schema": {
-              "$ref": "#/components/schemas/NodeInfo"
-            }
-          }
-        },
-        "description": "NodeInfo"
       },
       "Note": {
         "content": {
@@ -1151,16 +1131,6 @@
         },
         "description": "ReactionList"
       },
-      "Reference": {
-        "content": {
-          "application/json": {
-            "schema": {
-              "$ref": "#/components/schemas/Reference"
-            }
-          }
-        },
-        "description": "Reference"
-      },
       "ReferenceList": {
         "content": {
           "application/json": {
@@ -1310,16 +1280,6 @@
         },
         "description": "SearchResults"
       },
-      "Secret": {
-        "content": {
-          "application/json": {
-            "schema": {
-              "$ref": "#/components/schemas/Secret"
-            }
-          }
-        },
-        "description": "Secret"
-      },
       "SecretList": {
         "content": {
           "application/json": {
@@ -1342,16 +1302,6 @@
           }
         },
         "description": "ServerVersion"
-      },
-      "StopWatch": {
-        "content": {
-          "application/json": {
-            "schema": {
-              "$ref": "#/components/schemas/StopWatch"
-            }
-          }
-        },
-        "description": "StopWatch"
       },
       "StopWatchList": {
         "content": {
@@ -1718,19 +1668,6 @@
       },
       "notFound": {
         "description": "APINotFound is a not found empty response"
-      },
-      "parameterBodies": {
-        "content": {
-          "application/json": {
-            "schema": {
-              "$ref": "#/components/schemas/UpdateEnvironmentOption"
-            }
-          }
-        },
-        "description": "parameterBodies"
-      },
-      "redirect": {
-        "description": "APIRedirect is a redirect response"
       },
       "repoArchivedError": {
         "description": "APIRepoArchivedError is an error that is raised when an archived repo should be modified",
@@ -4857,11 +4794,11 @@
           "units": {
             "example": [
               "repo.actions",
+              "repo.packages",
               "repo.code",
               "repo.issues",
               "repo.ext_issues",
               "repo.wiki",
-              "repo.ext_wiki",
               "repo.pulls",
               "repo.releases",
               "repo.projects",
@@ -4877,7 +4814,18 @@
             "additionalProperties": {
               "type": "string"
             },
-            "example": "{\"repo.actions\",\"repo.packages\",\"repo.code\":\"read\",\"repo.issues\":\"write\",\"repo.ext_issues\":\"none\",\"repo.wiki\":\"admin\",\"repo.pulls\":\"owner\",\"repo.releases\":\"none\",\"repo.projects\":\"none\",\"repo.ext_wiki\":\"none\"}",
+            "example": {
+              "repo.actions": "read",
+              "repo.code": "read",
+              "repo.ext_issues": "none",
+              "repo.ext_wiki": "none",
+              "repo.issues": "write",
+              "repo.packages": "read",
+              "repo.projects": "none",
+              "repo.pulls": "owner",
+              "repo.releases": "none",
+              "repo.wiki": "admin"
+            },
             "type": "object",
             "x-go-name": "UnitsMap"
           },
@@ -4906,7 +4854,6 @@
             "x-go-name": "Created"
           },
           "email": {
-            "format": "email",
             "type": "string",
             "x-go-name": "Email"
           },
@@ -7799,142 +7746,6 @@
           "pull_requests": {
             "type": "boolean",
             "x-go-name": "PullRequests"
-          }
-        },
-        "type": "object",
-        "x-go-package": "gitea.dev/modules/structs"
-      },
-      "NodeInfo": {
-        "description": "NodeInfo contains standardized way of exposing metadata about a server running one of the distributed social networks",
-        "properties": {
-          "metadata": {
-            "description": "Metadata contains free form key value pairs for software specific values",
-            "type": "object",
-            "x-go-name": "Metadata"
-          },
-          "openRegistrations": {
-            "description": "OpenRegistrations indicates if new user registrations are accepted",
-            "type": "boolean",
-            "x-go-name": "OpenRegistrations"
-          },
-          "protocols": {
-            "description": "Protocols lists the protocols supported by this server",
-            "items": {
-              "type": "string"
-            },
-            "type": "array",
-            "x-go-name": "Protocols"
-          },
-          "services": {
-            "$ref": "#/components/schemas/NodeInfoServices"
-          },
-          "software": {
-            "$ref": "#/components/schemas/NodeInfoSoftware"
-          },
-          "usage": {
-            "$ref": "#/components/schemas/NodeInfoUsage"
-          },
-          "version": {
-            "description": "Version specifies the schema version",
-            "type": "string",
-            "x-go-name": "Version"
-          }
-        },
-        "type": "object",
-        "x-go-package": "gitea.dev/modules/structs"
-      },
-      "NodeInfoServices": {
-        "description": "NodeInfoServices contains the third party sites this server can connect to via their application API",
-        "properties": {
-          "inbound": {
-            "description": "Inbound lists services that can deliver content to this server",
-            "items": {
-              "type": "string"
-            },
-            "type": "array",
-            "x-go-name": "Inbound"
-          },
-          "outbound": {
-            "description": "Outbound lists services this server can deliver content to",
-            "items": {
-              "type": "string"
-            },
-            "type": "array",
-            "x-go-name": "Outbound"
-          }
-        },
-        "type": "object",
-        "x-go-package": "gitea.dev/modules/structs"
-      },
-      "NodeInfoSoftware": {
-        "description": "NodeInfoSoftware contains Metadata about server software in use",
-        "properties": {
-          "homepage": {
-            "description": "Homepage is the URL to the homepage of this server software",
-            "type": "string",
-            "x-go-name": "Homepage"
-          },
-          "name": {
-            "description": "Name is the canonical name of this server software",
-            "type": "string",
-            "x-go-name": "Name"
-          },
-          "repository": {
-            "description": "Repository is the URL to the source code repository",
-            "type": "string",
-            "x-go-name": "Repository"
-          },
-          "version": {
-            "description": "Version is the version of this server software",
-            "type": "string",
-            "x-go-name": "Version"
-          }
-        },
-        "type": "object",
-        "x-go-package": "gitea.dev/modules/structs"
-      },
-      "NodeInfoUsage": {
-        "description": "NodeInfoUsage contains usage statistics for this server",
-        "properties": {
-          "localComments": {
-            "description": "LocalComments is the total amount of comments made by users local to this server",
-            "format": "int64",
-            "type": "integer",
-            "x-go-name": "LocalComments"
-          },
-          "localPosts": {
-            "description": "LocalPosts is the total amount of posts made by users local to this server",
-            "format": "int64",
-            "type": "integer",
-            "x-go-name": "LocalPosts"
-          },
-          "users": {
-            "$ref": "#/components/schemas/NodeInfoUsageUsers"
-          }
-        },
-        "type": "object",
-        "x-go-package": "gitea.dev/modules/structs"
-      },
-      "NodeInfoUsageUsers": {
-        "description": "NodeInfoUsageUsers contains statistics about the users of this server",
-        "properties": {
-          "activeHalfyear": {
-            "description": "ActiveHalfyear is the amount of users that signed in at least once in the last 180 days",
-            "format": "int64",
-            "type": "integer",
-            "x-go-name": "ActiveHalfyear"
-          },
-          "activeMonth": {
-            "description": "ActiveMonth is the amount of users that signed in at least once in the last 30 days",
-            "format": "int64",
-            "type": "integer",
-            "x-go-name": "ActiveMonth"
-          },
-          "total": {
-            "description": "Total is the total amount of users on this server",
-            "format": "int64",
-            "type": "integer",
-            "x-go-name": "Total"
           }
         },
         "type": "object",
