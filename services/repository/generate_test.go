@@ -30,7 +30,7 @@ text/*.txt
 `)
 
 	gt := newGiteaTemplateFileMatcher("", giteaTemplate)
-	assert.Len(t, gt.globs, 3)
+	assert.Len(t, gt.includeGlobs, 3)
 
 	tt := []struct {
 		Path  string
@@ -49,7 +49,7 @@ text/*.txt
 	}
 
 	for _, tc := range tt {
-		assert.Equal(t, tc.Match, gt.Match(tc.Path), "path: %s", tc.Path)
+		assert.Equal(t, tc.Match, gt.Match(tc.Path, false), "path: %s", tc.Path)
 	}
 }
 
@@ -234,7 +234,188 @@ func TestProcessGiteaTemplateFileRead(t *testing.T) {
 	require.Equal(t, "test-data-regular", string(content))
 	fm, err := readGiteaTemplateFile(tmpDir) // regular template file
 	require.NoError(t, err)
-	assert.Len(t, fm.globs, 1)
+	assert.Len(t, fm.includeGlobs, 1)
+}
+
+func TestNewGiteaTemplateMatcherExclude(t *testing.T) {
+	// Test that '!' prefix is parsed as exclude patterns
+	content := []byte("# Comment\n\n*.go\ntext/*.txt\n!vendor/*\n!node_modules/*")
+	gt := newGiteaTemplateFileMatcher(".gitea/template", content)
+	assert.Len(t, gt.includeGlobs, 2, "should parse 2 include globs")
+	assert.Len(t, gt.excludeGlobs, 2, "should parse 2 exclude globs")
+
+	// Include patterns should work as before
+	assert.True(t, gt.Match("main.go", false))
+	assert.True(t, gt.Match("text/a.txt", false))
+	assert.False(t, gt.Match("vendor/pkg.so", false))
+
+	// Exclude patterns should match
+	assert.True(t, gt.Match("vendor/pkg.so", true))
+	assert.True(t, gt.Match("node_modules/foo.js", true))
+	assert.False(t, gt.Match("main.go", true))
+	assert.False(t, gt.Match("text/a.txt", true))
+
+	// Empty content
+	empty := newGiteaTemplateFileMatcher(".gitea/template", []byte{})
+	assert.False(t, empty.HasRules())
+	assert.False(t, empty.HasExcludeRules())
+
+	// Only exclude patterns
+	onlyExclude := newGiteaTemplateFileMatcher(".gitea/template", []byte("!vendor/*\n!node_modules/*"))
+	assert.False(t, onlyExclude.HasRules())
+	assert.True(t, onlyExclude.HasExcludeRules())
+	assert.True(t, onlyExclude.Match("vendor/foo.txt", true))
+	assert.True(t, onlyExclude.Match("node_modules/bar.js", true))
+
+	// Invalid patterns are skipped
+	invalid := newGiteaTemplateFileMatcher(".gitea/template", []byte("valid.txt\n![invalid[glob\n!valid/*"))
+	assert.Len(t, invalid.includeGlobs, 1)
+	assert.Len(t, invalid.excludeGlobs, 1, "should skip invalid exclude glob pattern")
+}
+
+func TestProcessGiteaTemplateFileExclusion(t *testing.T) {
+	t.Run("include and exclude patterns", func(t *testing.T) {
+		tmpDir := t.TempDir()
+
+		assertFileExists := func(path string, shouldExist bool) {
+			_, err := os.Stat(filepath.Join(tmpDir, path))
+			if shouldExist {
+				require.NoError(t, err, "file should exist: %s", path)
+			} else {
+				require.True(t, os.IsNotExist(err), "file should not exist: %s", path)
+			}
+		}
+
+		assertFileContent := func(path, expected string) {
+			data, err := os.ReadFile(filepath.Join(tmpDir, path))
+			if expected == "" {
+				require.True(t, os.IsNotExist(err), "file should not exist: %s", path)
+				return
+			}
+			require.NoError(t, err)
+			assert.Equal(t, expected, string(data))
+		}
+
+		require.NoError(t, os.MkdirAll(filepath.Join(tmpDir, ".gitea"), 0o755))
+		require.NoError(t, os.WriteFile(filepath.Join(tmpDir, ".gitea", "template"),
+			[]byte("*.go\n*.md\n!vendor\n!*.log"), 0o644))
+
+		require.NoError(t, os.WriteFile(filepath.Join(tmpDir, "main.go"),
+			[]byte("package ${REPO_NAME}"), 0o644))
+		require.NoError(t, os.WriteFile(filepath.Join(tmpDir, "readme.md"),
+			[]byte("# ${REPO_NAME}"), 0o644))
+		require.NoError(t, os.MkdirAll(filepath.Join(tmpDir, "vendor"), 0o755))
+		require.NoError(t, os.WriteFile(filepath.Join(tmpDir, "vendor", "dep.go"),
+			[]byte("vendor code"), 0o644))
+		require.NoError(t, os.WriteFile(filepath.Join(tmpDir, "error.log"),
+			[]byte("log content"), 0o644))
+		require.NoError(t, os.WriteFile(filepath.Join(tmpDir, "build.log"),
+			[]byte("build ${REPO_NAME}"), 0o644))
+		require.NoError(t, os.WriteFile(filepath.Join(tmpDir, "Makefile"),
+			[]byte("build: main.go"), 0o644))
+		require.NoError(t, os.Symlink(filepath.Join(tmpDir, "Makefile"),
+			filepath.Join(tmpDir, "link-to-makefile")))
+
+		templateRepo := &repo_model.Repository{Name: "MyTemplate"}
+		generatedRepo := &repo_model.Repository{Name: "MyRepo"}
+
+		fm, err := readGiteaTemplateFile(tmpDir)
+		require.NoError(t, err)
+		require.Len(t, fm.includeGlobs, 2)
+		require.Len(t, fm.excludeGlobs, 2)
+
+		_, err = processGiteaTemplateFile(t.Context(), tmpDir, templateRepo, generatedRepo, fm)
+		require.NoError(t, err)
+
+		assertFileContent("main.go", "package MyRepo")
+		assertFileContent("readme.md", "# MyRepo")
+		assertFileExists("vendor", false)
+		assertFileExists("vendor/dep.go", false)
+		assertFileExists("error.log", false)
+		assertFileExists("build.log", false)
+		assertFileContent("Makefile", "build: main.go")
+		assertFileExists("link-to-makefile", true)
+	})
+
+	t.Run("only exclude, no include rules", func(t *testing.T) {
+		tmpDir := t.TempDir()
+
+		assertFileExists := func(path string, shouldExist bool) {
+			_, err := os.Stat(filepath.Join(tmpDir, path))
+			if shouldExist {
+				require.NoError(t, err, "file should exist: %s", path)
+			} else {
+				require.True(t, os.IsNotExist(err), "file should not exist: %s", path)
+			}
+		}
+
+		require.NoError(t, os.MkdirAll(filepath.Join(tmpDir, ".gitea"), 0o755))
+		require.NoError(t, os.WriteFile(filepath.Join(tmpDir, ".gitea", "template"),
+			[]byte("!vendor\n!*.tmp"), 0o644))
+		require.NoError(t, os.MkdirAll(filepath.Join(tmpDir, "vendor"), 0o755))
+		require.NoError(t, os.WriteFile(filepath.Join(tmpDir, "vendor", "pkg.go"), []byte("vendor"), 0o644))
+		require.NoError(t, os.WriteFile(filepath.Join(tmpDir, "temp.tmp"), []byte("tmp"), 0o644))
+		require.NoError(t, os.WriteFile(filepath.Join(tmpDir, "main.go"), []byte("keep"), 0o644))
+
+		templateRepo := &repo_model.Repository{Name: "T"}
+		generatedRepo := &repo_model.Repository{Name: "R"}
+
+		fm, err := readGiteaTemplateFile(tmpDir)
+		require.NoError(t, err)
+		require.False(t, fm.HasRules(), "only exclude rules, no include rules")
+		require.True(t, fm.HasExcludeRules())
+
+		_, err = processGiteaTemplateFile(t.Context(), tmpDir, templateRepo, generatedRepo, fm)
+		require.NoError(t, err)
+
+		assertFileExists("vendor", false)
+		assertFileExists("vendor/pkg.go", false)
+		assertFileExists("temp.tmp", false)
+		assertFileExists("main.go", true)
+	})
+
+	t.Run("symlink-to-dir and gitea contents", func(t *testing.T) {
+		tmpDir := t.TempDir()
+
+		assertFileExists := func(path string, shouldExist bool) {
+			_, err := os.Stat(filepath.Join(tmpDir, path))
+			if shouldExist {
+				require.NoError(t, err, "file should exist: %s", path)
+			} else {
+				require.True(t, os.IsNotExist(err), "file should not exist: %s", path)
+			}
+		}
+
+		require.NoError(t, os.MkdirAll(filepath.Join(tmpDir, "realdir"), 0o755))
+		require.NoError(t, os.WriteFile(filepath.Join(tmpDir, "realdir", "keep.txt"), []byte("keep"), 0o644))
+		require.NoError(t, os.Symlink(filepath.Join(tmpDir, "realdir"), filepath.Join(tmpDir, "link-to-dir")))
+
+		require.NoError(t, os.MkdirAll(filepath.Join(tmpDir, ".gitea"), 0o755))
+		require.NoError(t, os.WriteFile(filepath.Join(tmpDir, ".gitea", "template"),
+			[]byte("!link-to-dir/*\n!.gitea/delete-me.txt"), 0o644))
+		require.NoError(t, os.WriteFile(filepath.Join(tmpDir, ".gitea", "delete-me.txt"), []byte("x"), 0o644))
+		require.NoError(t, os.WriteFile(filepath.Join(tmpDir, ".gitea", "keep-me.txt"), []byte("y"), 0o644))
+
+		templateRepo := &repo_model.Repository{Name: "T"}
+		generatedRepo := &repo_model.Repository{Name: "R"}
+
+		fm, err := readGiteaTemplateFile(tmpDir)
+		require.NoError(t, err)
+
+		_, err = processGiteaTemplateFile(t.Context(), tmpDir, templateRepo, generatedRepo, fm)
+		require.NoError(t, err)
+
+		// Symlink to directory survives (not followed, not deleted)
+		assertFileExists("link-to-dir", true)
+		assertFileExists("realdir/keep.txt", true)
+
+		// Matched file inside .gitea/ is deleted
+		assertFileExists(".gitea/delete-me.txt", false)
+		// Unmatched file inside .gitea/ survives
+		assertFileExists(".gitea/keep-me.txt", true)
+		// .gitea/ template has already been cleaned up
+		assertFileExists(".gitea/template", false)
+	})
 }
 
 func TestTransformers(t *testing.T) {
