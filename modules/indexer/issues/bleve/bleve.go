@@ -5,12 +5,14 @@ package bleve
 
 import (
 	"context"
+	"fmt"
 	"strconv"
 
 	"gitea.dev/modules/indexer"
 	indexer_internal "gitea.dev/modules/indexer/internal"
 	inner_bleve "gitea.dev/modules/indexer/internal/bleve"
 	"gitea.dev/modules/indexer/issues/internal"
+	"gitea.dev/modules/log"
 	"gitea.dev/modules/util"
 
 	"github.com/blevesearch/bleve/v2"
@@ -159,6 +161,21 @@ func (b *Indexer) Delete(_ context.Context, ids ...int64) error {
 	return batch.Flush()
 }
 
+// searchWithPanicRecover runs a bleve search and converts any panic into an
+// error. A corrupted on-disk index (e.g. a truncated zapx posting list) makes
+// the underlying bleve search panic with "index out of range" (see #38210);
+// recovering here keeps a single corrupted segment from crashing the request
+// and points operators at rebuilding the index.
+func searchWithPanicRecover(fn func() (*bleve.SearchResult, error)) (result *bleve.SearchResult, err error) {
+	defer func() {
+		if r := recover(); r != nil {
+			log.Error("PANIC during issue indexer search, the index files may be corrupted and need to be rebuilt: %v\nStacktrace: %s", r, log.Stack(2))
+			result, err = nil, fmt.Errorf("issue indexer search failed, the index may be corrupted: %v", r)
+		}
+	}()
+	return fn()
+}
+
 // Search searches for issues by given conditions.
 // Returns the matching issue IDs
 func (b *Indexer) Search(ctx context.Context, options *internal.SearchOptions) (*internal.SearchResult, error) {
@@ -305,7 +322,9 @@ func (b *Indexer) Search(ctx context.Context, options *internal.SearchOptions) (
 
 	search.SortBy([]string{string(options.SortBy), "-_id"})
 
-	result, err := b.inner.Indexer.SearchInContext(ctx, search)
+	result, err := searchWithPanicRecover(func() (*bleve.SearchResult, error) {
+		return b.inner.Indexer.SearchInContext(ctx, search)
+	})
 	if err != nil {
 		return nil, err
 	}

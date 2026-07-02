@@ -4,11 +4,13 @@
 package bleve
 
 import (
+	"errors"
 	"testing"
 
 	"gitea.dev/modules/indexer/issues/internal"
 	"gitea.dev/modules/indexer/issues/internal/tests"
 
+	"github.com/blevesearch/bleve/v2"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -75,6 +77,36 @@ func TestBleveIndexerNoAssignee(t *testing.T) {
 			assert.ElementsMatch(t, testCase.expectedIDs, searchResultIDs(result))
 		})
 	}
+}
+
+func TestSearchWithPanicRecover(t *testing.T) {
+	t.Run("passes through results", func(t *testing.T) {
+		want := &bleve.SearchResult{}
+		got, err := searchWithPanicRecover(func() (*bleve.SearchResult, error) {
+			return want, nil
+		})
+		require.NoError(t, err)
+		assert.Same(t, want, got)
+	})
+
+	t.Run("passes through errors", func(t *testing.T) {
+		wantErr := errors.New("boom")
+		got, err := searchWithPanicRecover(func() (*bleve.SearchResult, error) {
+			return nil, wantErr
+		})
+		require.ErrorIs(t, err, wantErr)
+		assert.Nil(t, got)
+	})
+
+	t.Run("recovers from a panic", func(t *testing.T) {
+		// A corrupted on-disk index makes the underlying bleve search panic
+		// with "index out of range" (#38210); it must become an error.
+		got, err := searchWithPanicRecover(func() (*bleve.SearchResult, error) {
+			panic("index out of range [8] with length 8")
+		})
+		require.Error(t, err)
+		assert.Nil(t, got)
+	})
 }
 
 func searchResultIDs(result *internal.SearchResult) []int64 {
