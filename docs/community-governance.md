@@ -158,12 +158,12 @@ Any account with write access (including bots and TOC members) **must** use [2FA
 Mergers are the maintainers who carry out the final merge of approved PRs. Their responsibilities, described throughout this guide, are:
 
 - Merging PRs from the [merge queue](#getting-prs-merged) in order, once a PR has `lgtm/done`, no open discussions, and no merge conflicts.
-- Rewriting the PR title and summary so the squash [commit message](#commit-messages) is clear,
-  removing false-positive co-authors while keeping every true co-author, make commit message correct.
+- Rewriting the PR title and summary, make the [commit message](#commit-messages) clear:
+  remove false-positive co-authors while keeping every true co-author; remove unrelated Renovate update contents from commit message.
 - Assigning the correct labels (including `type/…`) needed for changelog and backport decisions.
 - Agreeing, together with the owners, on when a release is ready (see [release management](release-management.md)).
 - Merging a PR also means the PR looks good to the merger and is approved by the merger.
-- If a merger keeps violating the guides (e.g.: merge with unresolved reviews, flood garbage commit messages),
+- If a merger keeps violating the guides for more than 3 times (e.g.: merge with unresolved reviews, flood garbage commit messages),
   their permission should be revoked.
 
 #### Becoming a merger
