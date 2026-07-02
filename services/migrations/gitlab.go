@@ -598,6 +598,52 @@ func (g *GitlabDownloader) convertNoteToComment(localIndex int64, note *gitlab.N
 	return comment
 }
 
+func (g *GitlabDownloader) fillPullRequestHeadSHA(ctx context.Context, pr *base.PullRequest) error {
+	if pr.Head.SHA != "" {
+		return nil
+	}
+
+	versions, _, err := g.client.MergeRequests.GetMergeRequestDiffVersions(g.repoID, int(pr.ForeignIndex), &gitlab.GetMergeRequestDiffVersionsOptions{
+		Page:    1,
+		PerPage: g.maxPerPage,
+	}, gitlab.WithContext(ctx))
+	if err == nil {
+		var best *gitlab.MergeRequestDiffVersion
+		for _, version := range versions {
+			if version.HeadCommitSHA == "" {
+				continue
+			}
+			switch {
+			case best == nil:
+				best = version
+			case version.CreatedAt != nil && best.CreatedAt != nil && version.CreatedAt.After(*best.CreatedAt):
+				best = version
+			case version.CreatedAt == nil || best.CreatedAt == nil:
+				if version.ID > best.ID {
+					best = version
+				}
+			}
+		}
+		if best != nil && best.HeadCommitSHA != "" {
+			pr.Head.SHA = best.HeadCommitSHA
+			return nil
+		}
+	}
+
+	commits, _, err := g.client.MergeRequests.GetMergeRequestCommits(g.repoID, int(pr.ForeignIndex), &gitlab.GetMergeRequestCommitsOptions{
+		Page:    1,
+		PerPage: g.maxPerPage,
+	}, gitlab.WithContext(ctx))
+	if err != nil {
+		return err
+	}
+	if len(commits) == 0 {
+		return errors.New("merge request has no commits")
+	}
+	pr.Head.SHA = commits[len(commits)-1].ID
+	return nil
+}
+
 // GetPullRequests returns pull requests according page and perPage
 func (g *GitlabDownloader) GetPullRequests(ctx context.Context, page, perPage int) ([]*base.PullRequest, bool, error) {
 	if perPage > g.maxPerPage {
@@ -722,6 +768,9 @@ func (g *GitlabDownloader) GetPullRequests(ctx context.Context, page, perPage in
 
 		// SECURITY: Ensure that the PR is safe
 		_ = CheckAndEnsureSafePR(allPRs[len(allPRs)-1], g.baseURL, g)
+		if err := g.fillPullRequestHeadSHA(ctx, allPRs[len(allPRs)-1]); err != nil {
+			log.Warn("PR #%d in %s unable to resolve head SHA: %v", allPRs[len(allPRs)-1].Number, g, err)
+		}
 	}
 
 	return allPRs, len(prs) < perPage, nil

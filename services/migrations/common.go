@@ -4,7 +4,11 @@
 package migrations
 
 import (
+	"bufio"
+	"errors"
 	"fmt"
+	"io"
+	"regexp"
 	"strings"
 
 	system_model "gitea.dev/models/system"
@@ -26,6 +30,25 @@ func hasBaseURL(toCheck, baseURL string) bool {
 		baseURL += "/"
 	}
 	return strings.HasPrefix(toCheck, baseURL)
+}
+
+var patchCommitPattern = regexp.MustCompile(`^From\s([0-9a-fA-F]{7,64})\s`)
+
+func parsePatchHeadSHA(r io.Reader) (string, error) {
+	scanner := bufio.NewScanner(r)
+	if !scanner.Scan() {
+		if err := scanner.Err(); err != nil {
+			return "", err
+		}
+		return "", errors.New("patch file is empty")
+	}
+
+	match := patchCommitPattern.FindStringSubmatch(scanner.Text())
+	if len(match) < 2 {
+		return "", errors.New("patch file doesn't contain valid commit ID")
+	}
+
+	return match[1], nil
 }
 
 // CheckAndEnsureSafePR will check that a given PR is safe to download
