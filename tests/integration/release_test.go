@@ -10,6 +10,7 @@ import (
 
 	repo_model "gitea.dev/models/repo"
 	"gitea.dev/models/unittest"
+	user_model "gitea.dev/models/user"
 	"gitea.dev/modules/setting"
 	"gitea.dev/modules/test"
 	"gitea.dev/modules/translation"
@@ -252,4 +253,27 @@ func TestDownloadReleaseAttachment(t *testing.T) {
 	req = NewRequest(t, "GET", url)
 	session := loginUser(t, "user2")
 	session.MakeRequest(t, req, http.StatusOK)
+}
+
+func TestEditReleaseAttachmentRejectsForbiddenRename(t *testing.T) {
+	defer tests.PrepareTestEnv(t)()
+	defer test.MockVariableValue(&setting.Repository.Release.AllowedTypes, ".zip")()
+
+	attachment := unittest.AssertExistsAndLoadBean(t, &repo_model.Attachment{ID: 9})
+	release := unittest.AssertExistsAndLoadBean(t, &repo_model.Release{ID: attachment.ReleaseID})
+	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: attachment.RepoID})
+	repoOwner := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: repo.OwnerID})
+
+	session := loginUser(t, repoOwner.Name)
+	req := NewRequestWithValues(t, "POST", fmt.Sprintf("%s/releases/edit/%s", repo.Link(), release.TagName), map[string]string{
+		"title":                              release.Title,
+		"content":                            release.Note,
+		"attachment-edit-" + attachment.UUID: "evil.exe",
+	})
+
+	resp := session.MakeRequest(t, req, http.StatusOK)
+	assert.Contains(t, resp.Body.String(), "This file cannot be uploaded or modified due to a forbidden file extension or type.")
+
+	attachment = unittest.AssertExistsAndLoadBean(t, &repo_model.Attachment{ID: attachment.ID})
+	assert.NotEqual(t, "evil.exe", attachment.Name)
 }

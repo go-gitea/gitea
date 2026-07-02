@@ -627,6 +627,22 @@ func EditReleasePost(ctx *context.Context) {
 		ctx.NotFound(err) // for a pure tag release, don't allow to edit it as a release
 		return
 	}
+	renderFormWithAttachments := func(errMsg string) {
+		rel.Repo = ctx.Repo.Repository
+		if err := rel.LoadAttributes(ctx); err != nil {
+			ctx.ServerError("LoadAttributes", err)
+			return
+		}
+		ctx.Data["attachments"] = rel.Attachments
+
+		assigneeUsers, err := repo_model.GetRepoAssignees(ctx, rel.Repo)
+		if err != nil {
+			ctx.ServerError("GetRepoAssignees", err)
+			return
+		}
+		ctx.Data["Assignees"] = shared_user.MakeSelfOnTop(ctx.Doer, assigneeUsers)
+		ctx.RenderWithErrDeprecated(errMsg, tplReleaseNew, &form)
+	}
 	ctx.Data["tag_name"] = rel.TagName
 	ctx.Data["tag_target"] = util.IfZero(rel.Target, ctx.Repo.Repository.DefaultBranch)
 	ctx.Data["title"] = rel.Title
@@ -659,6 +675,10 @@ func EditReleasePost(ctx *context.Context) {
 	rel.IsPrerelease = form.Prerelease
 	if err = release_service.UpdateRelease(ctx, ctx.Doer, ctx.Repo.GitRepo,
 		rel, addAttachmentUUIDs, delAttachmentUUIDs, editAttachments); err != nil {
+		if upload.IsErrFileTypeForbidden(err) {
+			renderFormWithAttachments(err.Error())
+			return
+		}
 		ctx.ServerError("UpdateRelease", err)
 		return
 	}
