@@ -40,11 +40,10 @@ func createNewRelease(t *testing.T, session *TestSession, repoURL, tag, title st
 	if draft {
 		postData["draft"] = "1"
 	}
+
 	req = NewRequestWithValues(t, "POST", link, postData)
-
-	resp = session.MakeRequest(t, req, http.StatusSeeOther)
-
-	test.RedirectURL(resp) // check that redirect URL exists
+	resp = session.MakeRequest(t, req, http.StatusOK)
+	assert.NotEmpty(t, test.ParseJSONRedirect(resp.Body.Bytes()))
 }
 
 func checkLatestReleaseAndCount(t *testing.T, session *TestSession, repoURL, version, label string, count int) {
