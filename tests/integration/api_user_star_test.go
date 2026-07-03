@@ -9,11 +9,14 @@ import (
 	"testing"
 
 	auth_model "gitea.dev/models/auth"
+	"gitea.dev/models/perm"
+	repo_model "gitea.dev/models/repo"
 	"gitea.dev/models/unittest"
 	user_model "gitea.dev/models/user"
 	"gitea.dev/modules/setting"
 	api "gitea.dev/modules/structs"
 	"gitea.dev/modules/test"
+	repo_service "gitea.dev/services/repository"
 	"gitea.dev/tests"
 
 	"github.com/stretchr/testify/assert"
@@ -174,4 +177,24 @@ func TestAPIStarPublicOnly(t *testing.T) {
 	repos = DecodeJSON(t, resp, []api.Repository{})
 	require.Len(t, repos, 1)
 	assert.Equal(t, "user5/repo4", repos[0].FullName)
+}
+
+func TestAPIStarredReposOmitsInaccessiblePrivateRepos(t *testing.T) {
+	defer tests.PrepareTestEnv(t)()
+
+	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 40})
+	privateRepo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 3})
+	assert.True(t, privateRepo.IsPrivate)
+	assert.NoError(t, repo_service.AddOrUpdateCollaborator(t.Context(), privateRepo, user, perm.AccessModeRead))
+	assert.NoError(t, repo_model.StarRepo(t.Context(), user, privateRepo, true))
+	assert.NoError(t, repo_service.DeleteCollaboration(t.Context(), privateRepo, user))
+
+	token := getUserToken(t, user.Name, auth_model.AccessTokenScopeReadUser, auth_model.AccessTokenScopeReadRepository)
+	req := NewRequest(t, "GET", "/api/v1/user/starred").AddTokenAuth(token)
+	resp := MakeRequest(t, req, http.StatusOK)
+
+	repos := DecodeJSON(t, resp, []api.Repository{})
+	for _, repo := range repos {
+		assert.NotEqual(t, privateRepo.FullName(), repo.FullName)
+	}
 }
