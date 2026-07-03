@@ -66,6 +66,7 @@ func GetIssueAttachment(ctx *context.APIContext) {
 	if attach == nil {
 		return
 	}
+	attachment_service.EnsureSHA256(ctx, attach)
 
 	ctx.JSON(http.StatusOK, convert.ToAPIAttachment(ctx.Repo.Repository, attach))
 }
@@ -109,6 +110,7 @@ func ListIssueAttachments(ctx *context.APIContext) {
 		ctx.APIErrorInternal(err)
 		return
 	}
+	attachment_service.EnsureSHA256(ctx, issue.Attachments...)
 
 	ctx.JSON(http.StatusOK, convert.ToAPIIssue(ctx, ctx.Doer, issue).Attachments)
 }

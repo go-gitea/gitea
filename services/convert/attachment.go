@@ -33,6 +33,7 @@ func toAttachment(repo *repo_model.Repository, a *repo_model.Attachment, getDown
 		Name:          a.Name,
 		Created:       a.CreatedUnix.AsTime(),
 		DownloadCount: a.DownloadCount,
+		HashSHA256:    a.HashSHA256,
 		Size:          a.Size,
 		UUID:          a.UUID,
 		DownloadURL:   getDownloadURL(repo, a), // for web request json and api request json, return different download urls

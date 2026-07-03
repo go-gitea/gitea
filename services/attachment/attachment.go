@@ -6,6 +6,8 @@ package attachment
 import (
 	"bytes"
 	"context"
+	"crypto/sha256"
+	"encoding/hex"
 	"errors"
 	"fmt"
 	"io"
@@ -29,11 +31,13 @@ func NewAttachment(ctx context.Context, attach *repo_model.Attachment, file io.R
 
 	err := db.WithTx(ctx, func(ctx context.Context) error {
 		attach.UUID = uuid.New().String()
-		size, err := storage.Attachments.Save(attach.RelativePath(), file, size)
+		hasher := sha256.New()
+		size, err := storage.Attachments.Save(attach.RelativePath(), io.TeeReader(file, hasher), size)
 		if err != nil {
 			return fmt.Errorf("Attachments.Save: %w", err)
 		}
 		attach.Size = size
+		attach.HashSHA256 = hex.EncodeToString(hasher.Sum(nil))
 		return db.Insert(ctx, attach)
 	})
 

@@ -28,6 +28,7 @@ import (
 	"gitea.dev/modules/web"
 	"gitea.dev/routers/web/feed"
 	shared_user "gitea.dev/routers/web/shared/user"
+	attachment_service "gitea.dev/services/attachment"
 	"gitea.dev/services/context"
 	"gitea.dev/services/context/upload"
 	"gitea.dev/services/forms"
@@ -89,6 +90,9 @@ func getReleaseInfos(ctx *context.Context, opts *repo_model.FindReleasesOptions)
 
 	if err = repo_model.GetReleaseAttachments(ctx, releases...); err != nil {
 		return nil, err
+	}
+	for _, release := range releases {
+		attachment_service.EnsureSHA256(ctx, release.Attachments...)
 	}
 
 	// Temporary cache commits count of used branches to speed up.

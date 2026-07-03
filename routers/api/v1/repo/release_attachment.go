@@ -97,6 +97,7 @@ func GetReleaseAttachment(ctx *context.APIContext) {
 		ctx.APIErrorNotFound()
 		return
 	}
+	attachment_service.EnsureSHA256(ctx, attach)
 	// FIXME Should prove the existence of the given repo, but results in unnecessary database requests
 	ctx.JSON(http.StatusOK, convert.ToAPIAttachment(ctx.Repo.Repository, attach))
 }
@@ -153,6 +154,7 @@ func ListReleaseAttachments(ctx *context.APIContext) {
 		ctx.APIErrorInternal(err)
 		return
 	}
+	attachment_service.EnsureSHA256(ctx, release.Attachments...)
 	ctx.JSON(http.StatusOK, convert.ToAPIRelease(ctx, ctx.Repo.Repository, release).Attachments)
 }
 

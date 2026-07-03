@@ -5,6 +5,8 @@ package integration
 
 import (
 	"bytes"
+	"crypto/sha256"
+	"encoding/hex"
 	"fmt"
 	"io"
 	"mime/multipart"
@@ -433,14 +435,18 @@ func TestAPIUploadAssetRelease(t *testing.T) {
 		t.Run("UploadDefaultName", func(t *testing.T) {
 			resp := performUpload(t, assetURL, bufImageBytes, http.StatusCreated)
 			attachment := DecodeJSON(t, resp, &api.Attachment{})
+			sha256Sum := sha256.Sum256(bufImageBytes)
 			assert.Equal(t, filename, attachment.Name)
 			assert.EqualValues(t, 104, attachment.Size)
+			assert.Equal(t, hex.EncodeToString(sha256Sum[:]), attachment.HashSHA256)
 		})
 		t.Run("UploadWithName", func(t *testing.T) {
 			resp := performUpload(t, assetURL+"?name=test-asset", bufImageBytes, http.StatusCreated)
 			attachment := DecodeJSON(t, resp, &api.Attachment{})
+			sha256Sum := sha256.Sum256(bufImageBytes)
 			assert.Equal(t, "test-asset", attachment.Name)
 			assert.EqualValues(t, 104, attachment.Size)
+			assert.Equal(t, hex.EncodeToString(sha256Sum[:]), attachment.HashSHA256)
 		})
 	})
 
@@ -457,8 +463,10 @@ func TestAPIUploadAssetRelease(t *testing.T) {
 		resp := MakeRequest(t, req, http.StatusCreated)
 
 		attachment := DecodeJSON(t, resp, &api.Attachment{})
+		sha256Sum := sha256.Sum256(bufImageBytes)
 
 		assert.Equal(t, "stream.bin", attachment.Name)
 		assert.EqualValues(t, 104, attachment.Size)
+		assert.Equal(t, hex.EncodeToString(sha256Sum[:]), attachment.HashSHA256)
 	})
 }

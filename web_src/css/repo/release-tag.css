@@ -76,7 +76,8 @@
 
 #release-list .release-entry .attachment-list .attachment-right-info {
   flex-shrink: 0;
-  min-width: 300px;
+  white-space: nowrap;
+  gap: 0.75rem;
 }
 
 #release-list .release-entry .detail .download[open] summary {

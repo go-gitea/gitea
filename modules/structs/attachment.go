@@ -25,6 +25,8 @@ type Attachment struct {
 	UUID string `json:"uuid"`
 	// DownloadURL is the URL to download the attachment
 	DownloadURL string `json:"browser_download_url"`
+	// HashSHA256 is the SHA256 hash of the attachment
+	HashSHA256 string `json:"sha256"`
 }
 
 // EditAttachmentOptions options for editing attachments
