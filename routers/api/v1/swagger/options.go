@@ -4,15 +4,16 @@
 package swagger
 
 import (
-	api "code.gitea.io/gitea/modules/structs"
-	"code.gitea.io/gitea/services/forms"
+	api "gitea.dev/modules/structs"
+	"gitea.dev/services/forms"
 )
 
-// not actually a response, just a hack to get go-swagger to include definitions
-// of the various XYZOption structs
+// not actually a set of parameters, just a hack to get go-swagger to include
+// definitions of the various XYZOption structs. The annotation below uses an
+// operation id that matches no route, so the spec carries no unused response
+// or parameter for it while still emitting the referenced definitions.
 
-// parameterBodies
-// swagger:response parameterBodies
+// swagger:parameters parameterBodies
 type swaggerParameterBodies struct {
 	// in:body
 	AddCollaboratorOption api.AddCollaboratorOption
@@ -36,6 +37,8 @@ type swaggerParameterBodies struct {
 	EditIssueOption api.EditIssueOption
 	// in:body
 	EditDeadlineOption api.EditDeadlineOption
+	// in:body
+	IssueAssigneesOption api.IssueAssigneesOption
 
 	// in:body
 	CreateIssueCommentOption api.CreateIssueCommentOption
@@ -233,4 +236,7 @@ type swaggerParameterBodies struct {
 
 	// in:body
 	LockIssueOption api.LockIssueOption
+
+	// in:body
+	MergeUpstreamRequest api.MergeUpstreamRequest
 }

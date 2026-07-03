@@ -4,9 +4,11 @@
 package repo
 
 import (
-	issues_model "code.gitea.io/gitea/models/issues"
-	"code.gitea.io/gitea/services/context"
-	websocket_service "code.gitea.io/gitea/services/websocket"
+	"gitea.dev/models/db"
+	issues_model "gitea.dev/models/issues"
+	"gitea.dev/modules/eventsource"
+	"gitea.dev/services/context"
+	websocket_service "gitea.dev/services/websocket"
 )
 
 // IssueStartStopwatch creates a stopwatch for the given issue.

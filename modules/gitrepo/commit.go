@@ -9,8 +9,8 @@ import (
 	"strings"
 	"time"
 
-	"code.gitea.io/gitea/modules/git"
-	"code.gitea.io/gitea/modules/git/gitcmd"
+	"gitea.dev/modules/git"
+	"gitea.dev/modules/git/gitcmd"
 )
 
 // CommitsCountOptions the options when counting commits
@@ -30,6 +30,14 @@ func CommitsCount(ctx context.Context, repo Repository, opts CommitsCountOptions
 
 	if opts.Not != "" {
 		cmd.AddOptionValues("--not", opts.Not)
+	}
+
+	if opts.Since != "" {
+		cmd.AddOptionFormat("--since=%s", opts.Since)
+	}
+
+	if opts.Until != "" {
+		cmd.AddOptionFormat("--until=%s", opts.Until)
 	}
 
 	if len(opts.RelPath) > 0 {

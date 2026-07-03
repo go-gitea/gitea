@@ -97,7 +97,7 @@ async function updateNotificationCount(): Promise<number> {
     toggleElem('.notification_count', data.new !== 0);
 
     for (const el of document.querySelectorAll('.notification_count')) {
-      el.textContent = `${data.new}`;
+      el.textContent = String(data.new);
     }
 
     return data.new as number;

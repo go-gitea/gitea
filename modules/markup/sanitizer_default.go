@@ -9,7 +9,7 @@ import (
 	"net/url"
 	"regexp"
 
-	"code.gitea.io/gitea/modules/setting"
+	"gitea.dev/modules/setting"
 
 	"github.com/microcosm-cc/bluemonday"
 )
@@ -54,7 +54,7 @@ func (st *Sanitizer) createDefaultPolicy() *bluemonday.Policy {
 	// Allow 'color' and 'background-color' properties for the style attribute on text elements.
 	policy.AllowStyles("color", "background-color").OnElements("div", "span", "p", "tr", "th", "td")
 
-	policy.AllowAttrs("src", "autoplay", "controls").OnElements("video")
+	policy.AllowAttrs("src", "autoplay", "controls", "muted", "loop", "playsinline").OnElements("video")
 
 	// Native support of "<picture><source media=... srcset=...><img src=...></picture>"
 	// ATTENTION: it only works with "auto" theme, because "media" query doesn't work with the theme chosen by end user manually.
@@ -62,6 +62,38 @@ func (st *Sanitizer) createDefaultPolicy() *bluemonday.Policy {
 	policy.AllowAttrs("media", "srcset").OnElements("source")
 
 	policy.AllowAttrs("loading").OnElements("img")
+
+	// MathML Core (https://www.w3.org/TR/mathml-core/)
+	mathMLElements := []string{
+		"math",
+		// token elements
+		"mi", "mn", "mo", "mtext", "mspace", "ms",
+		// layout elements
+		"mrow", "mfrac", "msqrt", "mroot", "mstyle", "merror", "mpadded", "mphantom",
+		// scripting elements
+		"msub", "msup", "msubsup", "munder", "mover", "munderover", "mmultiscripts", "mprescripts", "none",
+		// tabular elements
+		"mtable", "mtr", "mtd",
+		// semantic annotations
+		"semantics", "annotation", "annotation-xml",
+	}
+	policy.AllowAttrs("display", "alttext").OnElements("math")
+	policy.AllowAttrs(
+		// global presentation attributes
+		"dir", "displaystyle", "mathbackground", "mathcolor", "mathsize", "mathvariant", "scriptlevel",
+		// operator attributes
+		"accent", "accentunder", "fence", "form", "largeop", "lspace", "maxsize", "minsize", "movablelimits", "rspace", "separator", "stretchy", "symmetric",
+		// space and padding attributes
+		"depth", "height", "voffset", "width",
+		// fraction attribute
+		"linethickness",
+		// table attributes
+		"columnalign", "columnlines", "columnspacing", "frame", "framespacing", "rowalign", "rowlines", "rowspacing",
+		// cell attributes
+		"columnspan",
+		// annotation attribute
+		"encoding",
+	).OnElements(mathMLElements...)
 
 	// Allow generally safe attributes (reference: https://github.com/jch/html-pipeline)
 	generalSafeAttrs := []string{

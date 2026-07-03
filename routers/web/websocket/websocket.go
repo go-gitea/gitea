@@ -8,12 +8,12 @@ import (
 	gocontext "context"
 	"time"
 
-	"code.gitea.io/gitea/modules/graceful"
-	"code.gitea.io/gitea/modules/json"
-	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/services/context"
-	"code.gitea.io/gitea/services/pubsub"
-	websocket_service "code.gitea.io/gitea/services/websocket"
+	"gitea.dev/modules/graceful"
+	"gitea.dev/modules/json"
+	"gitea.dev/modules/log"
+	"gitea.dev/services/context"
+	"gitea.dev/services/pubsub"
+	websocket_service "gitea.dev/services/websocket"
 
 	gitea_ws "github.com/coder/websocket"
 )

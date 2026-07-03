@@ -8,12 +8,12 @@ import (
 	"strings"
 	"testing"
 
-	"code.gitea.io/gitea/modules/emoji"
-	"code.gitea.io/gitea/modules/markup"
-	"code.gitea.io/gitea/modules/markup/markdown"
-	"code.gitea.io/gitea/modules/setting"
-	testModule "code.gitea.io/gitea/modules/test"
-	"code.gitea.io/gitea/modules/util"
+	"gitea.dev/modules/emoji"
+	"gitea.dev/modules/markup"
+	"gitea.dev/modules/markup/markdown"
+	"gitea.dev/modules/setting"
+	testModule "gitea.dev/modules/test"
+	"gitea.dev/modules/util"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -377,6 +377,9 @@ func TestRender_emoji(t *testing.T) {
 	test(":100:200", `<p>:100:200</p>`)
 	test("std::thread::something", `<p>std::thread::something</p>`)
 	test(":not exist:", `<p>:not exist:</p>`)
+	test("foo `:smile:", "<p>foo `:smile:</p>")
+	test("foo `:smile:`", `<p>foo <code>:smile:</code></p>`)
+	test("foo ` :smile:", "<p>foo ` <span class=\"emoji\" aria-label=\"grinning face with smiling eyes\">😄</span></p>")
 }
 
 func TestRender_ShortLinks(t *testing.T) {

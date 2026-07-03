@@ -7,12 +7,12 @@ import (
 	"fmt"
 	"net/http"
 
-	activities_model "code.gitea.io/gitea/models/activities"
-	"code.gitea.io/gitea/models/db"
-	issues_model "code.gitea.io/gitea/models/issues"
-	"code.gitea.io/gitea/services/context"
-	"code.gitea.io/gitea/services/convert"
-	"code.gitea.io/gitea/services/notifications"
+	activities_model "gitea.dev/models/activities"
+	"gitea.dev/models/db"
+	issues_model "gitea.dev/models/issues"
+	"gitea.dev/services/context"
+	"gitea.dev/services/convert"
+	"gitea.dev/services/notifications"
 )
 
 // GetThread get notification by ID
@@ -105,14 +105,14 @@ func getThread(ctx *context.APIContext) *activities_model.Notification {
 	n, err := activities_model.GetNotificationByID(ctx, ctx.PathParamInt64("id"))
 	if err != nil {
 		if db.IsErrNotExist(err) {
-			ctx.APIError(http.StatusNotFound, err)
+			ctx.APIError(http.StatusNotFound, err.Error())
 		} else {
 			ctx.APIErrorInternal(err)
 		}
 		return nil
 	}
 	if n.UserID != ctx.Doer.ID && !ctx.Doer.IsAdmin {
-		ctx.APIError(http.StatusForbidden, fmt.Errorf("only user itself and admin are allowed to read/change this thread %d", n.ID))
+		ctx.APIError(http.StatusForbidden, fmt.Sprintf("only user itself and admin are allowed to read/change this thread %d", n.ID))
 		return nil
 	}
 	return n

@@ -10,11 +10,11 @@ export function dedent(str: string) {
   const match = str.match(/^[ \t]*(?=\S)/gm);
   if (!match) return str;
 
-  let minIndent = Number.POSITIVE_INFINITY;
+  let minIndent = Infinity;
   for (const indent of match) {
     minIndent = Math.min(minIndent, indent.length);
   }
-  if (minIndent === 0 || minIndent === Number.POSITIVE_INFINITY) {
+  if (minIndent === 0 || minIndent === Infinity) {
     return str;
   }
 

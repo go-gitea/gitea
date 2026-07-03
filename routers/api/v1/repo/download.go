@@ -7,19 +7,19 @@ import (
 	"errors"
 	"net/http"
 
-	repo_model "code.gitea.io/gitea/models/repo"
-	"code.gitea.io/gitea/modules/util"
-	"code.gitea.io/gitea/services/context"
-	archiver_service "code.gitea.io/gitea/services/repository/archiver"
+	repo_model "gitea.dev/models/repo"
+	"gitea.dev/modules/util"
+	"gitea.dev/services/context"
+	archiver_service "gitea.dev/services/repository/archiver"
 )
 
 func serveRepoArchive(ctx *context.APIContext, reqFileName string, paths []string) {
 	aReq, err := archiver_service.NewRequest(ctx.Repo.Repository, ctx.Repo.GitRepo, reqFileName, paths)
 	if err != nil {
 		if errors.Is(err, util.ErrInvalidArgument) {
-			ctx.APIError(http.StatusBadRequest, err)
+			ctx.APIError(http.StatusBadRequest, err.Error())
 		} else if errors.Is(err, util.ErrNotExist) {
-			ctx.APIError(http.StatusNotFound, err)
+			ctx.APIError(http.StatusNotFound, err.Error())
 		} else {
 			ctx.APIErrorInternal(err)
 		}
@@ -28,7 +28,7 @@ func serveRepoArchive(ctx *context.APIContext, reqFileName string, paths []strin
 	err = archiver_service.ServeRepoArchive(ctx.Base, aReq)
 	if err != nil {
 		if errors.Is(err, util.ErrInvalidArgument) {
-			ctx.APIError(http.StatusBadRequest, err)
+			ctx.APIError(http.StatusBadRequest, err.Error())
 		} else {
 			ctx.APIErrorInternal(err)
 		}

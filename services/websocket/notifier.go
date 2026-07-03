@@ -4,7 +4,7 @@
 package websocket
 
 import (
-	notify_service "code.gitea.io/gitea/services/notify"
+	notify_service "gitea.dev/services/notify"
 )
 
 func Init() error {

@@ -1,20 +1,21 @@
 <script setup lang="ts">
-import {nextTick, onBeforeUnmount, onMounted, ref, toRefs, watch} from 'vue';
+import {computed, nextTick, onBeforeUnmount, onMounted, ref, toRefs, watch} from 'vue';
 import {SvgIcon} from '../svg.ts';
 import ActionStatusIcon from './ActionStatusIcon.vue';
-import {addDelegatedEventListener, createElementFromAttrs, toggleElem} from '../utils/dom.ts';
-import {formatDatetime} from '../utils/time.ts';
+import {addDelegatedEventListener, createElementFromAttrs} from '../utils/dom.ts';
+import {formatDatetime, formatDatetimeISO} from '../utils/time.ts';
 import {POST} from '../modules/fetch.ts';
+import {copyToClipboardWithFeedback} from '../modules/clipboard.ts';
 import type {IntervalId} from '../types.ts';
 import {toggleFullScreen} from '../utils.ts';
 import {localUserSettings} from '../modules/user-settings.ts';
-import type {ActionsArtifact, ActionsRun, ActionsStatus} from '../modules/gitea-actions.ts';
+import type {ActionsArtifact, ActionsJob, ActionsRun, ActionsStatus} from '../modules/gitea-actions.ts';
 import {
   type ActionRunViewStore,
   createLogLineMessage,
   type LogLine,
   type LogLineCommand,
-  parseLogLineCommand
+  parseLogLineCommand,
 } from './ActionRunView.ts';
 
 function isLogElementInViewport(el: Element, {extraViewPortHeight}={extraViewPortHeight: 0}): boolean {
@@ -115,6 +116,12 @@ const currentJob = ref<CurrentJob>({
 const stepsContainer = ref<HTMLElement | null>(null);
 const jobStepLogs = ref<Array<StepContainerElement | undefined>>([]);
 
+// Reusable workflow caller view: the right pane shows just the header (name + uses path +
+// status). Callers don't run on a runner, and the dependency graph for their children lives
+// in the run summary's WorkflowGraph, not here — matching GitHub Actions.
+const selectedJob = computed<ActionsJob | undefined>(() => (run.value.jobs || []).find((it) => it.id === props.jobId));
+const isCallerJob = computed(() => Boolean(selectedJob.value?.isReusableCaller));
+
 watch(optionAlwaysAutoScroll, () => {
   saveLocaleStorageOptions();
 });
@@ -201,6 +208,22 @@ function endLogGroup(stepIndex: number) {
   el._stepLogsActiveContainer = undefined;
 }
 
+async function copyStepOutput(event: MouseEvent, stepIndex: number) {
+  await copyToClipboardWithFeedback(event.currentTarget as HTMLElement, async () => {
+    const data = await fetchJobData([{step: stepIndex, cursor: null, expanded: true}]);
+    const stepLog = data.logs.stepsLog?.find((s) => s.step === stepIndex);
+    const lines: string[] = [];
+    for (const line of stepLog?.lines ?? []) {
+      const cmd = parseLogLineCommand(line);
+      if (cmd?.name === 'hidden' || cmd?.name === 'endgroup') continue;
+      const ts = formatDatetimeISO(line.timestamp);
+      const msg = createLogLineMessage(line, cmd).textContent ?? '';
+      lines.push(`${ts} ${msg}`);
+    }
+    return lines.join('\n');
+  });
+}
+
 // show/hide the step logs for a step
 function toggleStepLogs(idx: number) {
   currentJobStepsStates.value[idx].expanded = !currentJobStepsStates.value[idx].expanded;
@@ -216,16 +239,13 @@ function createLogLine(stepIndex: number, startTime: number, line: LogLine, cmd:
     String(line.index),
   );
   const logTimeStamp = createElementFromAttrs('span', {class: 'log-time-stamp'},
-    formatDatetime(new Date(line.timestamp * 1000)), // for "Show timestamps"
+    formatDatetime(line.timestamp * 1000), // for "Show timestamps"
   );
   const logMsg = createLogLineMessage(line, cmd);
   const seconds = Math.floor(line.timestamp - startTime);
   const logTimeSeconds = createElementFromAttrs('span', {class: 'log-time-seconds'},
     `${seconds}s`, // for "Show seconds"
   );
-
-  toggleElem(logTimeStamp, timeVisible.value['log-time-stamp']);
-  toggleElem(logTimeSeconds, timeVisible.value['log-time-seconds']);
 
   const lineClass = cmd?.name ? `job-log-line log-line-${cmd.name}` : 'job-log-line';
   return createElementFromAttrs('div', {id: `jobstep-${stepIndex}-${line.index}`, class: lineClass},
@@ -261,17 +281,14 @@ function appendLogs(stepIndex: number, startTime: number, logLines: LogLine[]) {
   }
 }
 
-async function fetchJobData(abortController: AbortController): Promise<JobData> {
-  const logCursors = currentJobStepsStates.value.map((it, idx) => {
-    // cursor is used to indicate the last position of the logs
-    // it's only used by backend, frontend just reads it and passes it back, it can be any type.
-    // for example: make cursor=null means the first time to fetch logs, cursor=eof means no more logs, etc
-    return {step: idx, cursor: it.cursor, expanded: it.expanded};
-  });
-  const resp = await POST(props.actionsViewUrl, {
-    signal: abortController.signal,
-    data: {logCursors},
-  });
+// "cursor" is used to indicate the last position of the logs.
+// It's only used by backend, frontend just reads it and passes it back, it can be any type.
+// Frontend knows nothing about its type, never uses its value.
+// For example: backend can make cursor=null means the first time to fetch logs, cursor=1234 for a position, cursor=eof for no more logs, etc.
+type LogCursor = {step: number, cursor: any, expanded: boolean};
+
+async function fetchJobData(logCursors: LogCursor[], signal?: AbortSignal): Promise<JobData> {
+  const resp = await POST(props.actionsViewUrl, {signal, data: {logCursors}});
   return await resp.json();
 }
 
@@ -286,7 +303,8 @@ async function loadJob() {
   const abortController = new AbortController();
   loadingAbortController = abortController;
   try {
-    const runJobResp = await fetchJobData(abortController);
+    const logCursors = currentJobStepsStates.value.map((it, idx) => ({step: idx, cursor: it.cursor, expanded: it.expanded}));
+    const runJobResp = await fetchJobData(logCursors, abortController.signal);
     if (loadingAbortController !== abortController) return;
 
     // FIXME: this logic is quite hacky and dirty, it should be refactored in a better way in the future
@@ -370,9 +388,6 @@ function elStepsContainer(): HTMLElement {
 
 function toggleTimeDisplay(type: 'seconds' | 'stamp') {
   timeVisible.value[`log-time-${type}`] = !timeVisible.value[`log-time-${type}`];
-  for (const el of elStepsContainer().querySelectorAll(`.log-time-${type}`)) {
-    toggleElem(el, timeVisible.value[`log-time-${type}`]);
-  }
   saveLocaleStorageOptions();
 }
 
@@ -402,16 +417,22 @@ async function hashChangeListener() {
 <template>
   <div class="job-info-header">
     <div class="job-info-header-left gt-ellipsis">
-      <h3 class="job-info-header-title gt-ellipsis">
-        {{ currentJob.title }}
-      </h3>
+      <div class="job-info-header-title-row">
+        <h3 class="job-info-header-title gt-ellipsis">
+          {{ isCallerJob ? selectedJob?.name : currentJob.title }}
+        </h3>
+        <span v-if="isCallerJob && selectedJob?.callUses" class="ui label job-info-header-uses">
+          <span>uses:</span>
+          <span class="gt-ellipsis">{{ selectedJob.callUses }}</span>
+        </span>
+      </div>
       <p class="job-info-header-detail">
-        {{ currentJob.detail }}
+        {{ isCallerJob && selectedJob ? locale.status[selectedJob.status] : currentJob.detail }}
       </p>
     </div>
     <div class="job-info-header-right">
       <div class="ui top right pointing dropdown custom jump item" @click.stop="menuVisible = !menuVisible" @keyup.enter="menuVisible = !menuVisible">
-        <button class="ui button tw-px-3">
+        <button class="btn interact-bg tw-p-2">
           <SvgIcon name="octicon-gear" :size="18"/>
         </button>
         <div class="menu transition action-job-menu" :class="{visible: menuVisible}" v-if="menuVisible" v-cloak>
@@ -446,7 +467,15 @@ async function hashChangeListener() {
     </div>
   </div>
   <!-- always create the node because we have our own event listeners on it, don't use "v-if" -->
-  <div class="job-step-container" ref="stepsContainer" v-show="currentJob.steps.length">
+  <div
+    class="job-step-container"
+    ref="stepsContainer"
+    v-show="!isCallerJob && currentJob.steps.length"
+    :class="{
+      'log-line-show-timestamps': timeVisible['log-time-stamp'],
+      'log-line-show-seconds': timeVisible['log-time-seconds']
+    }"
+  >
     <div class="job-step-section" v-for="(jobStep, stepIdx) in currentJob.steps" :key="stepIdx">
       <div
         class="job-step-summary"
@@ -459,15 +488,25 @@ async function hashChangeListener() {
         <SvgIcon
           v-if="isDone(run.status) && currentJobStepsStates[stepIdx].expanded && currentJobStepsStates[stepIdx].cursor === null"
           name="gitea-running"
-          class="tw-mr-2 rotate-clockwise"
+          class="rotate-clockwise"
         />
         <SvgIcon
           v-else
-          :name="currentJobStepsStates[stepIdx].expanded ? 'octicon-chevron-down' : 'octicon-chevron-right'"
-          :class="['tw-mr-2', !isExpandable(jobStep.status) && 'tw-invisible']"
+          name="octicon-chevron-right"
+          class="tw-mr-2 step-summary-chevron"
+          :class="{'tw-invisible': !isExpandable(jobStep.status)}"
         />
-        <ActionStatusIcon :status="jobStep.status" icon-variant="circle-fill" class="tw-mr-2"/>
+        <ActionStatusIcon :status="jobStep.status" icon-variant="circle-fill"/>
         <span class="step-summary-msg gt-ellipsis">{{ jobStep.summary }}</span>
+        <button
+          v-if="isExpandable(jobStep.status)"
+          class="btn interact-fg step-copy-btn"
+          :aria-label="locale.copyOutput"
+          :data-tooltip-content="locale.copyOutput"
+          @click.stop="copyStepOutput($event, stepIdx)"
+        >
+          <SvgIcon name="octicon-copy" :size="14"/>
+        </button>
         <span class="step-summary-duration">{{ jobStep.duration }}</span>
       </div>
       <!-- the log elements could be a lot, do not use v-if to destroy/reconstruct the DOM,
@@ -539,6 +578,21 @@ async function hashChangeListener() {
 
 .job-info-header-left {
   flex: 1;
+  min-width: 0;
+}
+
+.job-info-header-title-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
+.job-info-header-uses {
+  display: inline-flex !important;
+  align-items: baseline;
+  gap: 4px;
+  min-width: 0;
 }
 
 .job-step-container {
@@ -552,6 +606,7 @@ async function hashChangeListener() {
   padding: 5px 10px;
   display: flex;
   align-items: center;
+  gap: 8px;
   border-radius: var(--border-radius);
 }
 
@@ -564,12 +619,32 @@ async function hashChangeListener() {
   background: var(--color-console-hover-bg);
 }
 
+.job-step-container .job-step-summary .step-summary-chevron {
+  transition: transform 0.1s ease;
+}
+
+.job-step-container .job-step-summary.selected .step-summary-chevron {
+  transform: rotate(90deg);
+}
+
 .job-step-container .job-step-summary .step-summary-msg {
   flex: 1;
 }
 
-.job-step-container .job-step-summary .step-summary-duration {
-  margin-left: 16px;
+.job-step-container .job-step-summary .step-copy-btn {
+  visibility: hidden;
+  margin: 0 4px;
+}
+
+.job-step-container .job-step-summary:hover .step-copy-btn,
+.job-step-container .job-step-summary.selected .step-copy-btn {
+  visibility: visible;
+}
+
+@media (hover: none) {
+  .job-step-container .job-step-summary:focus-within .step-copy-btn {
+    visibility: visible;
+  }
 }
 
 .job-step-container .job-step-summary.selected {
@@ -608,8 +683,22 @@ async function hashChangeListener() {
   scroll-margin-top: 95px;
 }
 
+.job-log-line .log-time-stamp,
+.job-log-line .log-time-seconds {
+  display: none;
+}
+
+.log-line-show-timestamps .job-log-line .log-time-stamp {
+  display: inline;
+}
+
+.log-line-show-seconds .job-log-line .log-time-seconds {
+  display: inline;
+}
+
 /* class names 'log-time-seconds' and 'log-time-stamp' are used in the method toggleTimeDisplay */
-.job-log-line .line-num, .log-time-seconds {
+.job-log-line .line-num,
+.job-log-line .log-time-seconds {
   width: 48px;
   color: var(--color-text-light-3);
   text-align: right;
@@ -626,16 +715,16 @@ async function hashChangeListener() {
 }
 
 .job-log-line .log-time,
-.log-time-stamp {
+.job-log-line .log-time-stamp {
   color: var(--color-text-light-3);
-  margin-left: 10px;
+  margin-left: 12px;
   white-space: nowrap;
 }
 
 .job-step-logs .job-log-line .log-msg {
   flex: 1;
   white-space: break-spaces;
-  margin-left: 10px;
+  margin-left: 12px;
   overflow-wrap: anywhere;
 }
 
@@ -702,18 +791,28 @@ async function hashChangeListener() {
   border-radius: 0;
 }
 
-.job-log-group .job-log-list .job-log-line .log-msg {
-  margin-left: 2em;
-}
-
 .job-log-group-summary {
-  position: relative;
+  cursor: pointer;
+  list-style: none; /* hide the standard disclosure marker (Chrome, Edge, Firefox) */
 }
 
-.job-log-group-summary > .job-log-line {
-  position: absolute;
-  inset: 0;
-  z-index: -1; /* to avoid hiding the triangle of the "details" element */
-  overflow: hidden;
+.job-log-group-summary::-webkit-details-marker { /* hide the disclosure marker on Safari */
+  display: none;
+}
+
+.log-line-group .log-msg::before {
+  content: "";
+  display: inline-block;
+  vertical-align: middle;
+  margin-top: -2.5px;
+  margin-right: 8px;
+  border-top: 4px solid transparent;
+  border-bottom: 4px solid transparent;
+  border-left: 6px solid var(--color-text-light-3);
+  transition: transform 0.1s ease;
+}
+
+.job-log-group[open] .log-line-group .log-msg::before {
+  transform: rotate(90deg);
 }
 </style>

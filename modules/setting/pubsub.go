@@ -3,7 +3,7 @@
 
 package setting
 
-import "code.gitea.io/gitea/modules/log"
+import "gitea.dev/modules/log"
 
 const (
 	PubsubTypeMemory = "memory"

@@ -3,7 +3,7 @@
 
 package v1_20
 
-import "code.gitea.io/gitea/models/db"
+import "gitea.dev/models/db"
 
 func AddPinOrderToIssue(x db.EngineMigration) error {
 	type Issue struct {

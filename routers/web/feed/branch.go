@@ -6,15 +6,18 @@ package feed
 import (
 	"time"
 
-	"code.gitea.io/gitea/models/repo"
-	"code.gitea.io/gitea/modules/git"
-	"code.gitea.io/gitea/services/context"
+	"gitea.dev/models/repo"
+	"gitea.dev/modules/git"
+	"gitea.dev/services/context"
 
 	"github.com/gorilla/feeds"
 )
 
 // ShowBranchFeed shows tags and/or releases on the repo as RSS / Atom feed
 func ShowBranchFeed(ctx *context.Context, repo *repo.Repository, formatType string) {
+	if !checkRepoFeedTokenScope(ctx) {
+		return
+	}
 	var commits []*git.Commit
 	var err error
 	if ctx.Repo.Commit != nil {

@@ -6,7 +6,7 @@ package pubsub
 import (
 	"fmt"
 
-	"code.gitea.io/gitea/modules/setting"
+	"gitea.dev/modules/setting"
 )
 
 // Init replaces DefaultBroker according to setting.Pubsub. Called from
