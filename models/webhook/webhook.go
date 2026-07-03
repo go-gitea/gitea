@@ -317,6 +317,14 @@ func UpdateWebhookLastStatus(ctx context.Context, w *Webhook) error {
 	return err
 }
 
+func DeactivateWebhooksByRepoAndOwner(ctx context.Context, repoID, ownerID int64) error {
+	_, err := db.GetEngine(ctx).
+		Where("repo_id=? AND owner_id=?", repoID, ownerID).
+		Cols("is_active").
+		Update(&Webhook{IsActive: false})
+	return err
+}
+
 // DeleteWebhookByID uses argument bean as query condition,
 // ID must be specified and do not assign unnecessary fields.
 func DeleteWebhookByID(ctx context.Context, id int64) (err error) {

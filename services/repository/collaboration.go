@@ -14,6 +14,7 @@ import (
 	access_model "gitea.dev/models/perm/access"
 	repo_model "gitea.dev/models/repo"
 	user_model "gitea.dev/models/user"
+	webhook_model "gitea.dev/models/webhook"
 
 	"xorm.io/builder"
 )
@@ -91,6 +92,10 @@ func DeleteCollaboration(ctx context.Context, repo *repo_model.Repository, colla
 		}
 
 		if err = ReconsiderWatches(ctx, repo, collaborator); err != nil {
+			return err
+		}
+
+		if err = webhook_model.DeactivateWebhooksByRepoAndOwner(ctx, repo.ID, collaborator.ID); err != nil {
 			return err
 		}
 
