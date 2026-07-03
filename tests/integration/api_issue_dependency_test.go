@@ -150,3 +150,47 @@ func TestAPIDeleteIssueDependencyCrossRepoPermission(t *testing.T) {
 		DependencyID: dependencyIssue.ID,
 	})
 }
+
+func TestWebDeleteIssueDependencyCrossRepoPermission(t *testing.T) {
+	defer tests.PrepareTestEnv(t)()
+
+	targetRepo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
+	targetIssue := unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{RepoID: targetRepo.ID, Index: 1})
+	dependencyRepo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 3})
+	assert.True(t, dependencyRepo.IsPrivate)
+	dependencyIssue := unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{RepoID: dependencyRepo.ID, Index: 1})
+
+	enableRepoDependencies(t, targetIssue.RepoID)
+	enableRepoDependencies(t, dependencyRepo.ID)
+
+	user1 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 1})
+	assert.NoError(t, issues_model.CreateIssueDependency(t.Context(), user1, targetIssue, dependencyIssue))
+
+	user40 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 40})
+	assert.NoError(t, repo_service.AddOrUpdateCollaborator(t.Context(), targetRepo, user40, perm.AccessModeWrite))
+
+	session := loginUser(t, user40.Name)
+	req := NewRequestWithValues(t, "POST", fmt.Sprintf("/user2/repo1/issues/%d/dependency/delete", targetIssue.Index), map[string]string{
+		"removeDependencyID": fmt.Sprintf("%d", dependencyIssue.ID),
+		"dependencyType":     "blockedBy",
+	})
+	session.MakeRequest(t, req, http.StatusSeeOther)
+
+	unittest.AssertExistsAndLoadBean(t, &issues_model.IssueDependency{
+		IssueID:      targetIssue.ID,
+		DependencyID: dependencyIssue.ID,
+	})
+
+	assert.NoError(t, repo_service.AddOrUpdateCollaborator(t.Context(), dependencyRepo, user40, perm.AccessModeRead))
+
+	req = NewRequestWithValues(t, "POST", fmt.Sprintf("/user2/repo1/issues/%d/dependency/delete", targetIssue.Index), map[string]string{
+		"removeDependencyID": fmt.Sprintf("%d", dependencyIssue.ID),
+		"dependencyType":     "blockedBy",
+	})
+	session.MakeRequest(t, req, http.StatusSeeOther)
+
+	unittest.AssertNotExistsBean(t, &issues_model.IssueDependency{
+		IssueID:      targetIssue.ID,
+		DependencyID: dependencyIssue.ID,
+	})
+}

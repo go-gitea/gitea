@@ -130,6 +130,27 @@ func RemoveDependency(ctx *context.Context) {
 		return
 	}
 
+	if issue.RepoID != dep.RepoID {
+		if !setting.Service.AllowCrossRepositoryDependencies {
+			ctx.Flash.Error(ctx.Tr("repo.issues.dependency.add_error_dep_not_same_repo"))
+			ctx.Redirect(issue.Link())
+			return
+		}
+		if err := dep.LoadRepo(ctx); err != nil {
+			ctx.ServerError("loadRepo", err)
+			return
+		}
+		depRepoPerm, err := access_model.GetDoerRepoPermission(ctx, dep.Repo, ctx.Doer)
+		if err != nil {
+			ctx.ServerError("GetDoerRepoPermission", err)
+			return
+		}
+		if !depRepoPerm.CanReadIssuesOrPulls(dep.IsPull) {
+			ctx.Redirect(issue.Link())
+			return
+		}
+	}
+
 	if err = issues_model.RemoveIssueDependency(ctx, ctx.Doer, issue, dep, depType); err != nil {
 		if issues_model.IsErrDependencyNotExists(err) {
 			ctx.Flash.Error(ctx.Tr("repo.issues.dependency.add_error_dep_not_exist"))
