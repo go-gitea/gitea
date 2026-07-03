@@ -188,13 +188,13 @@ func (m msteamsConvertor) PullRequest(p *api.PullRequestPayload) (MSTeamsPayload
 	title, _, extraMarkdown, color := getPullRequestPayloadInfo(p, noneLinkFormatter, false)
 
 	facts := []*MSTeamsFact{
-		{"Pull request #:", strconv.FormatInt(p.PullRequest.ID, 10)},
+		{"Pull request:", "#" + strconv.FormatInt(p.PullRequest.ID, 10)},
 	}
 
 	if (p.Action == api.HookIssueReviewRequested || p.Action == api.HookIssueReviewRequestRemoved) && p.RequestedReviewer != nil {
-		reviewerName := p.RequestedReviewer.FullName
-		if reviewerName == "" {
-			reviewerName = p.RequestedReviewer.UserName
+		reviewerName := p.RequestedReviewer.UserName
+		if p.RequestedReviewer.FullName != "" {
+			reviewerName += " (" + p.RequestedReviewer.FullName + ")"
 		}
 		facts = append(facts, &MSTeamsFact{"Requested Reviewer:", reviewerName})
 	}
