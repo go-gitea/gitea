@@ -3,7 +3,7 @@
 
 // Package pubsub fans real-time events out to local WebSocket subscribers.
 // Backend is chosen at boot: in-process map (single-instance) or Redis
-// (multi-process). DefaultBroker is wired by Init from setting.Pubsub.
+// (multi-process). DefaultBroker is wired by Init from setting.Websocket.
 package pubsub
 
 import "fmt"
