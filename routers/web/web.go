@@ -28,7 +28,6 @@ import (
 	"gitea.dev/routers/web/admin"
 	"gitea.dev/routers/web/auth"
 	"gitea.dev/routers/web/devtest"
-	"gitea.dev/routers/web/events"
 	"gitea.dev/routers/web/explore"
 	"gitea.dev/routers/web/feed"
 	"gitea.dev/routers/web/healthcheck"

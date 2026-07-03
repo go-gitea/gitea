@@ -12,7 +12,6 @@ import (
 	"gitea.dev/models"
 	authmodel "gitea.dev/models/auth"
 	"gitea.dev/modules/cache"
-	"gitea.dev/modules/eventsource"
 	"gitea.dev/modules/git"
 	"gitea.dev/modules/git/gitcmd"
 	"gitea.dev/modules/log"

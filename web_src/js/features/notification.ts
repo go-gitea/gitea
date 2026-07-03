@@ -8,7 +8,7 @@ let notificationSequenceNumber = 0;
 async function receiveUpdateCount(count: number) {
   for (const el of document.querySelectorAll('.notification_count')) {
     el.classList.toggle('tw-hidden', count === 0);
-    el.textContent = `${count}`;
+    el.textContent = String(count);
   }
   await updateNotificationTable();
 }
