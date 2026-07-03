@@ -45,7 +45,7 @@ function failOnWarningsPlugin(): Rolldown.Plugin {
     onLog(level) {
       if (level === 'warn') warningCount++;
     },
-    buildEnd() {
+    closeBundle() {
       if (!warningCount) return;
       throw new Error(`${warningCount} warnings present`);
     },

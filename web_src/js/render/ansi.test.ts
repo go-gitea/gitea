@@ -1,6 +1,12 @@
-import {renderAnsi} from './ansi.ts';
+import {renderAnsiInto} from './ansi.ts';
 
 test('renderAnsi', () => {
+  const renderAnsi = (line: string) => {
+    const el = document.createElement('div');
+    renderAnsiInto(el, line);
+    return el.innerHTML;
+  };
+
   expect(renderAnsi('abc')).toEqual('abc');
   expect(renderAnsi('abc\n')).toEqual('abc');
   expect(renderAnsi('abc\r\n')).toEqual('abc');
@@ -20,6 +26,9 @@ test('renderAnsi', () => {
 
   // URLs in ANSI output become clickable links
   const link = (url: string) => `<a href="${url}" target="_blank">${url}</a>`;
-  expect(renderAnsi('Downloading https://github.com/actions/upload-artifact/releases')).toEqual(`Downloading ${link('https://github.com/actions/upload-artifact/releases')}`);
-  expect(renderAnsi('\x1b[32mhttps://proxy.golang.org/cached-only\x1b[0m')).toEqual(`<span class="ansi-green-fg">${link('https://proxy.golang.org/cached-only')}</span>`);
+  expect(renderAnsi('foo https://example.com bar')).toEqual(`foo ${link('https://example.com')} bar`);
+  expect(renderAnsi('<https://example.com?a=b&c=d#h>')).toEqual(`&lt;${link('https://example.com?a=b&amp;c=d#h')}&gt;`);
+  expect(renderAnsi('open https://example.com.')).toEqual(`open ${link('https://example.com')}.`);
+  expect(renderAnsi('"https://example.com"')).toEqual(`"${link('https://example.com')}"`);
+  expect(renderAnsi('\x1b[32mhttps://example.com\x1b[0m')).toEqual(`<span class="ansi-green-fg">${link('https://example.com')}</span>`);
 });

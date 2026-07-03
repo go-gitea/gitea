@@ -20,10 +20,12 @@
 
 .flex-divided-list > .item {
   padding: 10px 0;
+  flex-shrink: 0;
 }
 
 .flex-divided-list > .divider {
   margin: 0;
+  flex-shrink: 0;
 }
 
 .flex-divided-list > .item + .item {

@@ -1111,5 +1111,7 @@
   "actions.runners.version": "Útgáfa",
   "actions.runs.commit": "Framlag",
   "actions.runs.branch": "Grein",
-  "actions.runs.summary": "Yfirlit"
+  "actions.runs.summary": "Yfirlit",
+  "actions.workflow.scope_owner": "Eigandi",
+  "actions.workflow.required": "Nauðsynlegt"
 }

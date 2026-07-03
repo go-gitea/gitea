@@ -1200,38 +1200,6 @@ td .commit-summary {
   }
 }
 
-.settings.webhooks .list > .item:not(:first-child),
-.settings.githooks .list > .item:not(:first-child),
-.settings.actions .list > .item:not(:first-child) {
-  padding: 0.25rem 1rem;
-  margin: 12px -1rem -1rem;
-}
-
-.settings .list > .item:not(:first-child) {
-  border-top: 1px solid var(--color-secondary);
-  padding: 1rem;
-  margin: 16px -1rem -1rem;
-}
-
-.settings .list > .item > .svg {
-  display: table-cell;
-}
-
-.settings .list > .item > .svg + .content {
-  display: table-cell;
-  padding: 0 0 0 0.5em;
-  vertical-align: top;
-}
-
-.settings .list > .item .info {
-  margin-top: 10px;
-}
-
-.settings .list > .item .info .tab.segment {
-  border: 0;
-  padding: 10px 0 0;
-}
-
 .comment:target .comment-container {
   border-color: var(--color-primary) !important;
   box-shadow: 0 0 0 3px var(--color-primary-alpha-30) !important;
