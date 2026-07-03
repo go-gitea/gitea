@@ -160,8 +160,16 @@ func hookPostReceiveUpdateRepoByOptions(ctx *gitea_context.PrivateContext, opts 
 			return false
 		}
 
+		// These options are only meant for "push-to-create": setting the initial
+		// visibility/template flags on a repository created by the very first push.
+		// On an already-populated repository a bare "git push -o repo.private=..."
+		// would silently flip visibility without an audit entry, webhook, or
+		// notification, so restrict the options to the push-to-create case.
+		if !repo.IsEmpty {
+			return true
+		}
+
 		// FIXME: these options are not quite right, for example: changing visibility should do more works than just setting the is_private flag
-		// These options should only be used for "push-to-create"
 		if isPrivate.Has() && repo.IsPrivate != isPrivate.Value() {
 			// TODO: it needs to do more work
 			repo.IsPrivate = isPrivate.Value()
