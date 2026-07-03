@@ -212,8 +212,8 @@ func TestMSTeamsPayload(t *testing.T) {
 		for _, fact := range pl.Sections[0].Facts {
 			if fact.Name == "Repository:" {
 				assert.Equal(t, p.Repository.FullName, fact.Value)
-			} else if fact.Name == "Pull request #:" {
-				assert.Equal(t, "12", fact.Value)
+			} else if fact.Name == "Pull request:" {
+				assert.Equal(t, "#12", fact.Value)
 			} else {
 				t.Fail()
 			}
@@ -239,10 +239,10 @@ func TestMSTeamsPayload(t *testing.T) {
 		for _, fact := range pl.Sections[0].Facts {
 			if fact.Name == "Repository:" {
 				assert.Equal(t, p.Repository.FullName, fact.Value)
-			} else if fact.Name == "Pull request #:" {
-				assert.Equal(t, "12", fact.Value)
+			} else if fact.Name == "Pull request:" {
+				assert.Equal(t, "#12", fact.Value)
 			} else if fact.Name == "Requested Reviewer:" {
-				assert.Equal(t, "Reviewer One", fact.Value)
+				assert.Equal(t, "reviewer1 (Reviewer One)", fact.Value)
 				hasReviewer = true
 			} else {
 				t.Fail()
