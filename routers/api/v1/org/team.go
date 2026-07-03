@@ -577,6 +577,11 @@ func GetTeamRepos(ctx *context.APIContext) {
 	}
 	repos := make([]*api.Repository, 0, len(teamRepos))
 	for _, repo := range teamRepos {
+		// A public-only token must not expose private repos, even when the doer
+		// owning the token otherwise has access to them.
+		if !ctx.TokenCanAccessRepo(repo) {
+			continue
+		}
 		permission, err := access_model.GetDoerRepoPermission(ctx, repo, ctx.Doer)
 		if err != nil {
 			ctx.APIErrorInternal(err)
@@ -627,6 +632,12 @@ func GetTeamRepo(ctx *context.APIContext) {
 
 	repo := getRepositoryByParams(ctx)
 	if ctx.Written() {
+		return
+	}
+
+	// A public-only token must not confirm the existence of a private repo.
+	if !ctx.TokenCanAccessRepo(repo) {
+		ctx.APIErrorNotFound()
 		return
 	}
 
@@ -889,6 +900,8 @@ func ListTeamActivityFeeds(ctx *context.APIContext) {
 		Date:           ctx.FormString("date"),
 		ListOptions:    listOptions,
 	}
+	// A public-only token must not receive private activity entries.
+	opts.ApplyPublicOnly(ctx.PublicOnly)
 
 	feeds, count, err := feed_service.GetFeeds(ctx, opts)
 	if err != nil {
