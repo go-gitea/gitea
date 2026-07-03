@@ -6,6 +6,7 @@ package integration
 import (
 	"fmt"
 	"net/http"
+	"strconv"
 	"testing"
 
 	auth_model "gitea.dev/models/auth"
@@ -171,7 +172,7 @@ func TestWebDeleteIssueDependencyCrossRepoPermission(t *testing.T) {
 
 	session := loginUser(t, user40.Name)
 	req := NewRequestWithValues(t, "POST", fmt.Sprintf("/user2/repo1/issues/%d/dependency/delete", targetIssue.Index), map[string]string{
-		"removeDependencyID": fmt.Sprintf("%d", dependencyIssue.ID),
+		"removeDependencyID": strconv.FormatInt(dependencyIssue.ID, 10),
 		"dependencyType":     "blockedBy",
 	})
 	session.MakeRequest(t, req, http.StatusSeeOther)
@@ -184,7 +185,7 @@ func TestWebDeleteIssueDependencyCrossRepoPermission(t *testing.T) {
 	assert.NoError(t, repo_service.AddOrUpdateCollaborator(t.Context(), dependencyRepo, user40, perm.AccessModeRead))
 
 	req = NewRequestWithValues(t, "POST", fmt.Sprintf("/user2/repo1/issues/%d/dependency/delete", targetIssue.Index), map[string]string{
-		"removeDependencyID": fmt.Sprintf("%d", dependencyIssue.ID),
+		"removeDependencyID": strconv.FormatInt(dependencyIssue.ID, 10),
 		"dependencyType":     "blockedBy",
 	})
 	session.MakeRequest(t, req, http.StatusSeeOther)
