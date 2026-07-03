@@ -188,7 +188,7 @@ func (m msteamsConvertor) PullRequest(p *api.PullRequestPayload) (MSTeamsPayload
 	title, _, extraMarkdown, color := getPullRequestPayloadInfo(p, noneLinkFormatter, false)
 
 	facts := []*MSTeamsFact{
-		{"Pull request:", "#" + strconv.FormatInt(p.PullRequest.ID, 10)},
+		{"Pull request:", fmt.Sprintf("[#%d](%s)", p.PullRequest.Index, p.PullRequest.HTMLURL)},
 	}
 
 	if (p.Action == api.HookIssueReviewRequested || p.Action == api.HookIssueReviewRequestRemoved) && p.RequestedReviewer != nil {
@@ -243,7 +243,7 @@ func (m msteamsConvertor) Review(p *api.PullRequestPayload, event webhook_module
 		text,
 		p.PullRequest.HTMLURL,
 		color,
-		&MSTeamsFact{"Pull request #:", strconv.FormatInt(p.PullRequest.ID, 10)},
+		&MSTeamsFact{"Pull request:", fmt.Sprintf("[#%d](%s)", p.PullRequest.Index, p.PullRequest.HTMLURL)},
 	), nil
 }
 
@@ -283,7 +283,6 @@ func (m msteamsConvertor) Wiki(p *api.WikiPayload) (MSTeamsPayload, error) {
 		"",
 		p.Repository.HTMLURL+"/wiki/"+url.PathEscape(p.Page),
 		color,
-		&MSTeamsFact{"Repository:", p.Repository.FullName},
 	), nil
 }
 
@@ -363,7 +362,7 @@ func createMSTeamsPayload(r *api.Repository, s *api.User, title, text, actionTar
 	if r != nil {
 		facts = append(facts, MSTeamsFact{
 			Name:  "Repository:",
-			Value: r.FullName,
+			Value: fmt.Sprintf("[%s](%s)", r.FullName, r.HTMLURL),
 		})
 	}
 	for _, f := range extraFacts {

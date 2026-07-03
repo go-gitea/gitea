@@ -4,6 +4,7 @@
 package webhook
 
 import (
+	"fmt"
 	"testing"
 
 	webhook_model "gitea.dev/models/webhook"
@@ -31,7 +32,7 @@ func TestMSTeamsPayload(t *testing.T) {
 		assert.Len(t, pl.Sections[0].Facts, 2)
 		for _, fact := range pl.Sections[0].Facts {
 			if fact.Name == "Repository:" {
-				assert.Equal(t, p.Repo.FullName, fact.Value)
+				assert.Equal(t, fmt.Sprintf("[%s](%s)", p.Repo.FullName, p.Repo.HTMLURL), fact.Value)
 			} else if fact.Name == "branch:" {
 				assert.Equal(t, "test", fact.Value)
 			} else {
@@ -57,7 +58,7 @@ func TestMSTeamsPayload(t *testing.T) {
 		assert.Len(t, pl.Sections[0].Facts, 2)
 		for _, fact := range pl.Sections[0].Facts {
 			if fact.Name == "Repository:" {
-				assert.Equal(t, p.Repo.FullName, fact.Value)
+				assert.Equal(t, fmt.Sprintf("[%s](%s)", p.Repo.FullName, p.Repo.HTMLURL), fact.Value)
 			} else if fact.Name == "branch:" {
 				assert.Equal(t, "test", fact.Value)
 			} else {
@@ -83,7 +84,7 @@ func TestMSTeamsPayload(t *testing.T) {
 		assert.Len(t, pl.Sections[0].Facts, 2)
 		for _, fact := range pl.Sections[0].Facts {
 			if fact.Name == "Repository:" {
-				assert.Equal(t, p.Repo.FullName, fact.Value)
+				assert.Equal(t, fmt.Sprintf("[%s](%s)", p.Repo.FullName, p.Repo.HTMLURL), fact.Value)
 			} else if fact.Name == "Forkee:" {
 				assert.Equal(t, p.Forkee.FullName, fact.Value)
 			} else {
@@ -109,7 +110,7 @@ func TestMSTeamsPayload(t *testing.T) {
 		assert.Len(t, pl.Sections[0].Facts, 2)
 		for _, fact := range pl.Sections[0].Facts {
 			if fact.Name == "Repository:" {
-				assert.Equal(t, p.Repo.FullName, fact.Value)
+				assert.Equal(t, fmt.Sprintf("[%s](%s)", p.Repo.FullName, p.Repo.HTMLURL), fact.Value)
 			} else if fact.Name == "Commit count:" {
 				assert.Equal(t, "2", fact.Value)
 			} else {
@@ -136,7 +137,7 @@ func TestMSTeamsPayload(t *testing.T) {
 		assert.Len(t, pl.Sections[0].Facts, 2)
 		for _, fact := range pl.Sections[0].Facts {
 			if fact.Name == "Repository:" {
-				assert.Equal(t, p.Repository.FullName, fact.Value)
+				assert.Equal(t, fmt.Sprintf("[%s](%s)", p.Repository.FullName, p.Repository.HTMLURL), fact.Value)
 			} else if fact.Name == "Issue #:" {
 				assert.Equal(t, "2", fact.Value)
 			} else {
@@ -159,7 +160,7 @@ func TestMSTeamsPayload(t *testing.T) {
 		assert.Len(t, pl.Sections[0].Facts, 2)
 		for _, fact := range pl.Sections[0].Facts {
 			if fact.Name == "Repository:" {
-				assert.Equal(t, p.Repository.FullName, fact.Value)
+				assert.Equal(t, fmt.Sprintf("[%s](%s)", p.Repository.FullName, p.Repository.HTMLURL), fact.Value)
 			} else if fact.Name == "Issue #:" {
 				assert.Equal(t, "2", fact.Value)
 			} else {
@@ -185,7 +186,7 @@ func TestMSTeamsPayload(t *testing.T) {
 		assert.Len(t, pl.Sections[0].Facts, 2)
 		for _, fact := range pl.Sections[0].Facts {
 			if fact.Name == "Repository:" {
-				assert.Equal(t, p.Repository.FullName, fact.Value)
+				assert.Equal(t, fmt.Sprintf("[%s](%s)", p.Repository.FullName, p.Repository.HTMLURL), fact.Value)
 			} else if fact.Name == "Issue #:" {
 				assert.Equal(t, "2", fact.Value)
 			} else {
@@ -211,9 +212,9 @@ func TestMSTeamsPayload(t *testing.T) {
 		assert.Len(t, pl.Sections[0].Facts, 2)
 		for _, fact := range pl.Sections[0].Facts {
 			if fact.Name == "Repository:" {
-				assert.Equal(t, p.Repository.FullName, fact.Value)
+				assert.Equal(t, fmt.Sprintf("[%s](%s)", p.Repository.FullName, p.Repository.HTMLURL), fact.Value)
 			} else if fact.Name == "Pull request:" {
-				assert.Equal(t, "#12", fact.Value)
+				assert.Equal(t, fmt.Sprintf("[#%d](%s)", p.PullRequest.Index, p.PullRequest.HTMLURL), fact.Value)
 			} else {
 				t.Fail()
 			}
@@ -238,9 +239,9 @@ func TestMSTeamsPayload(t *testing.T) {
 		var hasReviewer bool
 		for _, fact := range pl.Sections[0].Facts {
 			if fact.Name == "Repository:" {
-				assert.Equal(t, p.Repository.FullName, fact.Value)
+				assert.Equal(t, fmt.Sprintf("[%s](%s)", p.Repository.FullName, p.Repository.HTMLURL), fact.Value)
 			} else if fact.Name == "Pull request:" {
-				assert.Equal(t, "#12", fact.Value)
+				assert.Equal(t, fmt.Sprintf("[#%d](%s)", p.PullRequest.Index, p.PullRequest.HTMLURL), fact.Value)
 			} else if fact.Name == "Requested Reviewer:" {
 				assert.Equal(t, "reviewer1 (Reviewer One)", fact.Value)
 				hasReviewer = true
@@ -265,7 +266,7 @@ func TestMSTeamsPayload(t *testing.T) {
 		assert.Len(t, pl.Sections[0].Facts, 2)
 		for _, fact := range pl.Sections[0].Facts {
 			if fact.Name == "Repository:" {
-				assert.Equal(t, p.Repository.FullName, fact.Value)
+				assert.Equal(t, fmt.Sprintf("[%s](%s)", p.Repository.FullName, p.Repository.HTMLURL), fact.Value)
 			} else if fact.Name == "Issue #:" {
 				assert.Equal(t, "12", fact.Value)
 			} else {
@@ -292,9 +293,9 @@ func TestMSTeamsPayload(t *testing.T) {
 		assert.Len(t, pl.Sections[0].Facts, 2)
 		for _, fact := range pl.Sections[0].Facts {
 			if fact.Name == "Repository:" {
-				assert.Equal(t, p.Repository.FullName, fact.Value)
-			} else if fact.Name == "Pull request #:" {
-				assert.Equal(t, "12", fact.Value)
+				assert.Equal(t, fmt.Sprintf("[%s](%s)", p.Repository.FullName, p.Repository.HTMLURL), fact.Value)
+			} else if fact.Name == "Pull request:" {
+				assert.Equal(t, fmt.Sprintf("[#%d](%s)", p.PullRequest.Index, p.PullRequest.HTMLURL), fact.Value)
 			} else {
 				t.Fail()
 			}
@@ -318,7 +319,7 @@ func TestMSTeamsPayload(t *testing.T) {
 		assert.Len(t, pl.Sections[0].Facts, 1)
 		for _, fact := range pl.Sections[0].Facts {
 			if fact.Name == "Repository:" {
-				assert.Equal(t, p.Repository.FullName, fact.Value)
+				assert.Equal(t, fmt.Sprintf("[%s](%s)", p.Repository.FullName, p.Repository.HTMLURL), fact.Value)
 			} else {
 				t.Fail()
 			}
@@ -364,17 +365,14 @@ func TestMSTeamsPayload(t *testing.T) {
 		assert.Len(t, pl.Sections, 1)
 		assert.Equal(t, "user1", pl.Sections[0].ActivitySubtitle)
 		assert.Empty(t, pl.Sections[0].Text)
-		assert.Len(t, pl.Sections[0].Facts, 2)
+		assert.Len(t, pl.Sections[0].Facts, 1)
 		for _, fact := range pl.Sections[0].Facts {
 			if fact.Name == "Repository:" {
-				assert.Equal(t, p.Repository.FullName, fact.Value)
+				assert.Equal(t, fmt.Sprintf("[%s](%s)", p.Repository.FullName, p.Repository.HTMLURL), fact.Value)
 			} else {
 				t.Fail()
 			}
 		}
-		assert.Len(t, pl.PotentialAction, 1)
-		assert.Len(t, pl.PotentialAction[0].Targets, 1)
-		assert.Equal(t, "http://localhost:3000/test/repo/wiki/index", pl.PotentialAction[0].Targets[0].URI)
 
 		p.Action = api.HookWikiEdited
 		pl, err = mc.Wiki(p)
@@ -385,10 +383,10 @@ func TestMSTeamsPayload(t *testing.T) {
 		assert.Len(t, pl.Sections, 1)
 		assert.Equal(t, "user1", pl.Sections[0].ActivitySubtitle)
 		assert.Empty(t, pl.Sections[0].Text)
-		assert.Len(t, pl.Sections[0].Facts, 2)
+		assert.Len(t, pl.Sections[0].Facts, 1)
 		for _, fact := range pl.Sections[0].Facts {
 			if fact.Name == "Repository:" {
-				assert.Equal(t, p.Repository.FullName, fact.Value)
+				assert.Equal(t, fmt.Sprintf("[%s](%s)", p.Repository.FullName, p.Repository.HTMLURL), fact.Value)
 			} else {
 				t.Fail()
 			}
@@ -406,10 +404,10 @@ func TestMSTeamsPayload(t *testing.T) {
 		assert.Len(t, pl.Sections, 1)
 		assert.Equal(t, "user1", pl.Sections[0].ActivitySubtitle)
 		assert.Empty(t, pl.Sections[0].Text)
-		assert.Len(t, pl.Sections[0].Facts, 2)
+		assert.Len(t, pl.Sections[0].Facts, 1)
 		for _, fact := range pl.Sections[0].Facts {
 			if fact.Name == "Repository:" {
-				assert.Equal(t, p.Repository.FullName, fact.Value)
+				assert.Equal(t, fmt.Sprintf("[%s](%s)", p.Repository.FullName, p.Repository.HTMLURL), fact.Value)
 			} else {
 				t.Fail()
 			}
@@ -433,7 +431,7 @@ func TestMSTeamsPayload(t *testing.T) {
 		assert.Len(t, pl.Sections[0].Facts, 2)
 		for _, fact := range pl.Sections[0].Facts {
 			if fact.Name == "Repository:" {
-				assert.Equal(t, p.Repository.FullName, fact.Value)
+				assert.Equal(t, fmt.Sprintf("[%s](%s)", p.Repository.FullName, p.Repository.HTMLURL), fact.Value)
 			} else if fact.Name == "Tag:" {
 				assert.Equal(t, "v1.0", fact.Value)
 			} else {
