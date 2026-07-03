@@ -272,7 +272,7 @@ func TestEditReleaseAttachmentRejectsForbiddenRename(t *testing.T) {
 
 	resp := session.MakeRequest(t, req, http.StatusBadRequest)
 	errMsg := test.ParseJSONError(resp.Body.Bytes()).ErrorMessage
-	assert.Equal(t, errMsg, "This file cannot be uploaded or modified due to a forbidden file extension or type.")
+	assert.Equal(t, "This file cannot be uploaded or modified due to a forbidden file extension or type.", errMsg)
 
 	attachment = unittest.AssertExistsAndLoadBean(t, &repo_model.Attachment{ID: attachment.ID})
 	assert.NotEqual(t, "evil.exe", attachment.Name)
