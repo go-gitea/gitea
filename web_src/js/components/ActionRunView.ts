@@ -1,5 +1,5 @@
 import {createElementFromAttrs} from '../utils/dom.ts';
-import {renderAnsi} from '../render/ansi.ts';
+import {renderAnsiInto} from '../render/ansi.ts';
 import {reactive} from 'vue';
 import type {ActionsArtifact, ActionsJob, ActionsRun, ActionsStatus} from '../modules/gitea-actions.ts';
 import type {IntervalId} from '../types.ts';
@@ -47,9 +47,9 @@ export type LogLineCommand = {
 
 export function parseLogLineCommand(line: LogLine): LogLineCommand | null {
   // TODO: in the future it can be refactored to be a general parser that can parse arguments, drop the "prefix match"
-  for (const prefix of Object.keys(LogLinePrefixCommandMap)) {
+  for (const [prefix, commandName] of Object.entries(LogLinePrefixCommandMap)) {
     if (line.message.startsWith(prefix)) {
-      return {name: LogLinePrefixCommandMap[prefix], prefix};
+      return {name: commandName, prefix};
     }
   }
   // Handle ::cmd:: and ::cmd args:: format (runner may pass these through raw)
@@ -80,10 +80,10 @@ export function createLogLineMessage(line: LogLine, cmd: LogLineCommand | null) 
   if (label) {
     logMsg.append(createElementFromAttrs('span', {class: 'log-msg-label'}, `${label}:`));
     const msgSpan = document.createElement('span');
-    msgSpan.innerHTML = ` ${renderAnsi(msgContent.trimStart())}`;
+    renderAnsiInto(msgSpan, ` ${msgContent.trimStart()}`);
     logMsg.append(msgSpan);
   } else {
-    logMsg.innerHTML = renderAnsi(msgContent);
+    renderAnsiInto(logMsg, msgContent);
   }
   return logMsg;
 }
@@ -104,15 +104,10 @@ export function buildJobsByParentJobID(jobs: ActionsJob[]): Map<number, ActionsJ
   return childrenByParent;
 }
 
-// collectCallerChildJobs returns the direct children of a caller job.
-export function collectCallerChildJobs(jobs: ActionsJob[], callerJobID: number): ActionsJob[] {
-  if (!callerJobID) return [];
-  return buildJobsByParentJobID(jobs).get(callerJobID) || [];
-}
-
 export function createEmptyActionsRun(): ActionsRun {
   return {
     repoId: 0,
+    index: 0,
     link: '',
     viewLink: '',
     title: '',
@@ -126,13 +121,16 @@ export function createEmptyActionsRun(): ActionsRun {
     done: false,
     workflowID: '',
     workflowLink: '',
+    canViewWorkflowFile: true,
     isSchedule: false,
     runAttempt: 0,
     attempts: [],
     duration: '',
     triggeredAt: 0,
     triggerEvent: '',
+    pullRequest: null,
     jobs: [] as Array<ActionsJob>,
+    jobSummaries: [],
     commit: {
       localeCommit: '',
       localePushedBy: '',
@@ -141,6 +139,7 @@ export function createEmptyActionsRun(): ActionsRun {
       pusher: {
         displayName: '',
         link: '',
+        avatarLink: '',
       },
       branch: {
         name: '',

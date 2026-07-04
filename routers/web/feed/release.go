@@ -15,6 +15,9 @@ import (
 
 // shows tags and/or releases on the repo as RSS / Atom feed
 func ShowReleaseFeed(ctx *context.Context, repo *repo_model.Repository, isReleasesOnly bool, formatType string) {
+	if !checkRepoFeedTokenScope(ctx) {
+		return
+	}
 	releases, err := db.Find[repo_model.Release](ctx, repo_model.FindReleasesOptions{
 		IncludeTags: !isReleasesOnly,
 		RepoID:      ctx.Repo.Repository.ID,

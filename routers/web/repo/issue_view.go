@@ -4,6 +4,7 @@
 package repo
 
 import (
+	"errors"
 	"fmt"
 	"math/big"
 	"net/http"
@@ -502,7 +503,9 @@ func (prInfo *pullRequestViewInfo) prepareMergeBoxCommitSigning(ctx *context.Con
 				wontSignReason = string(err.(*asymkey_service.ErrWontSign).Reason)
 			} else {
 				wontSignReason = "error"
-				log.Error("Error whilst checking if could sign pr %d in repo %s. Error: %v", pull.ID, pull.BaseRepo.FullName(), err)
+				if !errors.Is(err, util.ErrNotExist) {
+					log.Error("Error whilst checking if could sign pr %d in repo %s. Error: %v", pull.ID, pull.BaseRepo.FullName(), err)
+				}
 			}
 		}
 	}
@@ -525,10 +528,7 @@ func (prInfo *pullRequestViewInfo) prepareMergeBoxCommitSigning(ctx *context.Con
 	}
 
 	if data.requireSigned && !data.willSign {
-		data.infoProtectionBlockers.AddErrorItem(
-			svg.RenderHTML("octicon-x"),
-			ctx.Locale.Tr("repo.pulls.require_signed_wont_sign"),
-		)
+		data.infoProtectionBlockers.AddErrorItem(ctx.Locale.Tr("repo.pulls.require_signed_wont_sign"))
 		if wontSignReason != "" {
 			data.infoProtectionBlockers.AddInfoItem(
 				svg.RenderHTML("octicon-unlock"),
@@ -949,7 +949,9 @@ func (prInfo *pullRequestViewInfo) prepareMergeBox(ctx *context.Context, issue *
 
 	// admin can merge without checks, writer can merge when checks succeed
 	// admin and writer both can make an auto merge schedule (not affected by overridable blockers)
-	data.hasStatusCheckBlocker = data.enableStatusCheck && !data.StatusCheckData.RequiredChecksState.IsSuccess()
+	// Required scoped workflow checks gate the merge even when the rule's own status check is disabled (see IsPullCommitStatusPass),
+	// so block on any required status context, not only when enableStatusCheck is on.
+	data.hasStatusCheckBlocker = (data.enableStatusCheck || data.hasRequiredStatusContexts) && !data.StatusCheckData.RequiredChecksState.IsSuccess()
 
 	// this logic is from:
 	// {{$notAllOverridableChecksOk := or .IsBlockedByApprovals .IsBlockedByRejection .IsBlockedByOfficialReviewRequests .IsBlockedByOutdatedBranch .IsBlockedByChangedProtectedFiles (and .EnableStatusCheck (not $requiredStatusCheckState.IsSuccess))}}
@@ -1053,29 +1055,28 @@ func (prInfo *pullRequestViewInfo) prepareMergeBoxProtectedRules(ctx *context.Co
 		if pb.EnableApprovalsWhitelist {
 			blockerInfo = ctx.Locale.Tr("repo.pulls.blocked_by_approvals_whitelisted", grantedApprovals, pb.RequiredApprovals)
 		}
-		data.infoProtectionBlockers.AddErrorItem(svg.RenderHTML("octicon-x"), blockerInfo)
+		data.infoProtectionBlockers.AddErrorItem(blockerInfo)
 	}
 
 	data.isBlockedByRejection = issues_model.MergeBlockedByRejectedReview(ctx, pb, pull)
 	if data.isBlockedByRejection {
-		data.infoProtectionBlockers.AddErrorItem(svg.RenderHTML("octicon-x"), ctx.Locale.Tr("repo.pulls.blocked_by_rejection"))
+		data.infoProtectionBlockers.AddErrorItem(ctx.Locale.Tr("repo.pulls.blocked_by_rejection"))
 	}
 
 	data.isBlockedByOfficialReviewRequests = issues_model.MergeBlockedByOfficialReviewRequests(ctx, pb, pull)
 	if data.isBlockedByOfficialReviewRequests {
-		data.infoProtectionBlockers.AddErrorItem(svg.RenderHTML("octicon-x"), ctx.Locale.Tr("repo.pulls.blocked_by_official_review_requests"))
+		data.infoProtectionBlockers.AddErrorItem(ctx.Locale.Tr("repo.pulls.blocked_by_official_review_requests"))
 	}
 
 	data.isBlockedByOutdatedBranch = issues_model.MergeBlockedByOutdatedBranch(pb, pull)
 	if data.isBlockedByOutdatedBranch {
-		data.infoProtectionBlockers.AddErrorItem(svg.RenderHTML("octicon-x"), ctx.Locale.Tr("repo.pulls.blocked_by_outdated_branch"))
+		data.infoProtectionBlockers.AddErrorItem(ctx.Locale.Tr("repo.pulls.blocked_by_outdated_branch"))
 	}
 
 	data.isBlockedByChangedProtectedFiles = len(pull.ChangedProtectedFiles) != 0
 	if data.isBlockedByChangedProtectedFiles {
 		detailItems := escapeStringSliceToHTML(pull.ChangedProtectedFiles)
 		data.infoProtectionBlockers.AddErrorItem(
-			svg.RenderHTML("octicon-x"),
 			ctx.Locale.TrN(len(pull.ChangedProtectedFiles), "repo.pulls.blocked_by_changed_protected_files_1", "repo.pulls.blocked_by_changed_protected_files_n"),
 			detailItems,
 		)

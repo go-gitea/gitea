@@ -32,7 +32,7 @@ func (c *Commit) recursiveCache(ctx context.Context, tree *Tree, treePath string
 		entryPaths[i] = entry.Name()
 	}
 
-	_, err = WalkGitLog(ctx, c.repo, c, treePath, entryPaths...)
+	_, err = walkGitLog(ctx, c.repo, c, treePath, entryPaths...)
 	if err != nil {
 		return err
 	}

@@ -1148,14 +1148,7 @@ func GetUsersBySource(ctx context.Context, s *auth.Source) ([]*User, error) {
 	return users, err
 }
 
-// UserCommit represents a commit with validation of user.
-type UserCommit struct { //revive:disable-line:exported
-	User *User
-	*git.Commit
-}
-
-// ValidateCommitWithEmail check if author's e-mail of commit is corresponding to a user.
-func ValidateCommitWithEmail(ctx context.Context, c *git.Commit) *User {
+func GetUserByGitAuthor(ctx context.Context, c *git.Commit) *User {
 	if c.Author == nil {
 		return nil
 	}
@@ -1164,33 +1157,6 @@ func ValidateCommitWithEmail(ctx context.Context, c *git.Commit) *User {
 		return nil
 	}
 	return u
-}
-
-// ValidateCommitsWithEmails checks if authors' e-mails of commits are corresponding to users.
-func ValidateCommitsWithEmails(ctx context.Context, oldCommits []*git.Commit) ([]*UserCommit, error) {
-	var (
-		newCommits = make([]*UserCommit, 0, len(oldCommits))
-		emailSet   = make(container.Set[string])
-	)
-	for _, c := range oldCommits {
-		if c.Author != nil {
-			emailSet.Add(c.Author.Email)
-		}
-	}
-
-	emailUserMap, err := GetUsersByEmails(ctx, emailSet.Values())
-	if err != nil {
-		return nil, err
-	}
-
-	for _, c := range oldCommits {
-		user := emailUserMap.GetByEmail(c.Author.Email) // FIXME: why ValidateCommitsWithEmails uses "Author", but ParseCommitsWithSignature uses "Committer"?
-		newCommits = append(newCommits, &UserCommit{
-			User:   user,
-			Commit: c,
-		})
-	}
-	return newCommits, nil
 }
 
 type EmailUserMap struct {
@@ -1203,7 +1169,7 @@ func (eum *EmailUserMap) GetByEmail(email string) *User {
 
 func GetUsersByEmails(ctx context.Context, emails []string) (*EmailUserMap, error) {
 	if len(emails) == 0 {
-		return nil, nil //nolint:nilnil // return nil when there are no emails to look up
+		return &EmailUserMap{}, nil
 	}
 
 	needCheckEmails := make(container.Set[string])
@@ -1310,8 +1276,7 @@ func GetUserByEmail(ctx context.Context, email string) (*User, error) {
 
 	email = strings.ToLower(email)
 	// Otherwise, check in alternative list for activated email addresses
-	emailAddress := &EmailAddress{LowerEmail: email, IsActivated: true}
-	has, err := db.GetEngine(ctx).Get(emailAddress)
+	emailAddress, has, err := db.Get[EmailAddress](ctx, builder.Eq{"lower_email": email, "is_activated": true})
 	if err != nil {
 		return nil, err
 	}
@@ -1331,13 +1296,29 @@ func GetUserByEmail(ctx context.Context, email string) (*User, error) {
 	return nil, ErrUserNotExist{Name: email}
 }
 
-func GetIndividualUser(ctx context.Context, user *User) (bool, error) {
-	// FIXME: the design is wrong, empty User fields won't apply, this function should be removed in the future
-	has, err := db.GetEngine(ctx).Get(user)
+func GetIndividualUserByPrimaryEmail(ctx context.Context, email string) (*User, error) {
+	email = strings.ToLower(strings.TrimSpace(email))
+	if len(email) == 0 {
+		return nil, ErrUserNotExist{Name: email}
+	}
+
+	user, has, err := db.Get[User](ctx, builder.Eq{"email": email, "type": UserTypeIndividual})
+	if err != nil {
+		return nil, err
+	}
+	if !has {
+		return nil, ErrUserNotExist{Name: email}
+	}
+	return user, nil
+}
+
+func GetIndividualUserByLoginSource(ctx context.Context, loginType auth.Type, loginSource int64, loginName string) (*User, bool, error) {
+	user, has, err := db.Get[User](ctx, builder.Eq{"login_type": loginType, "login_source": loginSource, "login_name": loginName})
 	if has && user.Type != UserTypeIndividual {
 		has = false
+		user = nil
 	}
-	return has, err
+	return user, has, err
 }
 
 // GetUserByOpenID returns the user object by given OpenID if exists.

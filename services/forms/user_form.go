@@ -419,17 +419,6 @@ func (f *WebauthnRegistrationForm) Validate(req *http.Request, errs binding.Erro
 	return middleware.Validate(errs, ctx.Data, f, ctx.Locale)
 }
 
-// WebauthnDeleteForm for deleting WebAuthn keys
-type WebauthnDeleteForm struct {
-	ID int64 `binding:"Required"`
-}
-
-// Validate validates the fields
-func (f *WebauthnDeleteForm) Validate(req *http.Request, errs binding.Errors) binding.Errors {
-	ctx := context.GetValidateContext(req)
-	return middleware.Validate(errs, ctx.Data, f, ctx.Locale)
-}
-
 // PackageSettingForm form for package settings
 type PackageSettingForm struct {
 	Action   string

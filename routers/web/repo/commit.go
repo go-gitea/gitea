@@ -14,6 +14,7 @@ import (
 	asymkey_model "gitea.dev/models/asymkey"
 	"gitea.dev/models/db"
 	git_model "gitea.dev/models/git"
+	"gitea.dev/models/gituser"
 	issues_model "gitea.dev/models/issues"
 	"gitea.dev/models/renderhelper"
 	repo_model "gitea.dev/models/repo"
@@ -49,7 +50,7 @@ func RefCommits(ctx *context.Context) {
 	switch {
 	case len(ctx.Repo.TreePath) == 0:
 		Commits(ctx)
-	case ctx.Repo.TreePath == "search":
+	case ctx.Repo.TreePath == "search": // FIXME: legacy dirty design, it conflicts with the FileHistory
 		SearchCommits(ctx)
 	default:
 		FileHistory(ctx)
@@ -214,37 +215,52 @@ func FileHistory(ctx *context.Context) {
 		return
 	}
 
-	commitsCount, err := gitrepo.FileCommitsCount(ctx, ctx.Repo.Repository, ctx.Repo.RefFullName.ShortName(), ctx.Repo.TreePath)
-	if err != nil {
-		ctx.ServerError("FileCommitsCount", err)
-		return
-	} else if commitsCount == 0 {
-		ctx.NotFound(nil)
-		return
-	}
+	followRename := ctx.FormBool("follow-rename")
+	ctx.Data["ShowFollowRename"] = true
+	ctx.Data["FollowRenameChecked"] = followRename
 
 	page := max(ctx.FormInt("page"), 1)
-
-	commits, err := ctx.Repo.GitRepo.CommitsByFileAndRange(
+	commits, hasMore, err := ctx.Repo.GitRepo.CommitsByFileAndRange(
 		git.CommitsByFileAndRangeOptions{
-			Revision: ctx.Repo.RefFullName.ShortName(), // FIXME: legacy code used ShortName
-			File:     ctx.Repo.TreePath,
-			Page:     page,
+			Revision:     ctx.Repo.RefFullName.ShortName(), // FIXME: legacy code used ShortName
+			File:         ctx.Repo.TreePath,
+			Page:         page,
+			FollowRename: followRename,
 		})
 	if err != nil {
 		ctx.ServerError("CommitsByFileAndRange", err)
 		return
 	}
+
+	var commitsCount int64
+	if followRename {
+		// there is no quick method to know the total count when "follow rename"
+		commitsCount = -1
+	} else {
+		commitsCount, err = gitrepo.FileCommitsCount(ctx, ctx.Repo.Repository, ctx.Repo.RefFullName.ShortName(), ctx.Repo.TreePath)
+		if err != nil {
+			ctx.ServerError("FileCommitsCount", err)
+			return
+		}
+	}
+
+	if len(commits) == 0 {
+		ctx.NotFound(nil)
+		return
+	}
+
+	ctx.Data["FileTreePath"] = ctx.Repo.TreePath
+	ctx.Data["CommitCount"] = commitsCount
 	ctx.Data["Commits"], err = processGitCommits(ctx, commits)
 	if err != nil {
 		ctx.ServerError("processGitCommits", err)
 		return
 	}
 
-	ctx.Data["FileTreePath"] = ctx.Repo.TreePath
-	ctx.Data["CommitCount"] = commitsCount
-
 	pager := context.NewPagination(commitsCount, setting.Git.CommitsRangeSize, page, 5)
+	if commitsCount == -1 {
+		pager.WithUnlimitedPaging(len(commits), hasMore)
+	}
 	pager.AddParamFromRequest(ctx.Req)
 	ctx.Data["Page"] = pager
 	ctx.HTML(http.StatusOK, tplCommits)
@@ -381,7 +397,8 @@ func Diff(ctx *context.Context) {
 
 	verification := asymkey_service.ParseCommitWithSignature(ctx, commit)
 	ctx.Data["Verification"] = verification
-	ctx.Data["Author"] = user_model.ValidateCommitWithEmail(ctx, commit)
+	ctx.Data["Author"] = user_model.GetUserByGitAuthor(ctx, commit)
+	ctx.Data["CommitOtherParticipants"] = gituser.BuildAvatarStackData(ctx, commit.AllParticipantIdentities(), nil).Participants[1:]
 	ctx.Data["Parents"] = parents
 	ctx.Data["DiffNotAvailable"] = diffShortStat.NumFiles == 0
 
@@ -396,14 +413,10 @@ func Diff(ctx *context.Context) {
 	err = git.GetNote(ctx, ctx.Repo.GitRepo, commitID, note)
 	if err == nil {
 		ctx.Data["NoteCommit"] = note.Commit
-		ctx.Data["NoteAuthor"] = user_model.ValidateCommitWithEmail(ctx, note.Commit)
+		ctx.Data["NoteAuthor"] = user_model.GetUserByGitAuthor(ctx, note.Commit)
 		rctx := renderhelper.NewRenderContextRepoComment(ctx, ctx.Repo.Repository, renderhelper.RepoCommentOptions{CurrentRefSubURL: "commit/" + util.PathEscapeSegments(commitID)})
 		htmlMessage := template.HTML(template.HTMLEscapeString(string(charset.ToUTF8WithFallback(note.Message, charset.ConvertOpts{}))))
-		ctx.Data["NoteRendered"], err = markup.PostProcessCommitMessage(rctx, htmlMessage)
-		if err != nil {
-			ctx.ServerError("PostProcessCommitMessage", err)
-			return
-		}
+		ctx.Data["NoteRendered"] = markup.PostProcessCommitMessage(rctx, htmlMessage)
 	} else if !git.IsErrNotExist(err) {
 		log.Error("GetNote: %v", err)
 	}
@@ -450,7 +463,7 @@ func RawDiff(ctx *context.Context) {
 }
 
 func processGitCommits(ctx *context.Context, gitCommits []*git.Commit) ([]*git_model.SignCommitWithStatuses, error) {
-	commits, err := git_service.ConvertFromGitCommit(ctx, gitCommits, ctx.Repo.Repository)
+	commits, err := git_service.ConvertFromGitCommit(ctx, gitCommits, ctx.Repo.Repository, ctx.Repo.RefFullName)
 	if err != nil {
 		return nil, err
 	}

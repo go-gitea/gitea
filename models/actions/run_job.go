@@ -4,6 +4,7 @@
 package actions
 
 import (
+	"cmp"
 	"context"
 	"fmt"
 	"slices"
@@ -106,6 +107,10 @@ type ActionRunJob struct {
 
 	// ParentJobID scopes `Needs` resolution: name lookups happen only among rows sharing the same ParentJobID. 0 for top-level rows.
 	ParentJobID int64 `xorm:"index NOT NULL DEFAULT 0"`
+
+	// ContinueOnError mirrors the job-level continue-on-error field from the workflow YAML.
+	// When true, a failure of this job does not fail the overall workflow run.
+	ContinueOnError bool `xorm:"NOT NULL DEFAULT FALSE"`
 
 	Started timeutil.TimeStamp
 	Stopped timeutil.TimeStamp
@@ -356,6 +361,14 @@ func CollectAllDescendantJobs(parent *ActionRunJob, allJobs []*ActionRunJob) []*
 	return out
 }
 
+// hasWaitingJobsToPick reports whether any waiting, unclaimed, non-reusable job
+// remains in the repo, i.e. work that an idle runner could still pick up.
+func hasWaitingJobsToPick(ctx context.Context, repoID int64) (bool, error) {
+	return db.GetEngine(ctx).
+		Where("repo_id = ? AND task_id = ? AND status = ? AND is_reusable_caller = ?", repoID, 0, StatusWaiting, false).
+		Exist(&ActionRunJob{})
+}
+
 func UpdateRunJob(ctx context.Context, job *ActionRunJob, cond builder.Cond, cols ...string) (int64, error) {
 	e := db.GetEngine(ctx)
 
@@ -380,18 +393,41 @@ func UpdateRunJob(ctx context.Context, job *ActionRunJob, cond builder.Cond, col
 		return affected, nil
 	}
 
-	// Reusable workflow caller jobs are never picked up by runners, so they don't need a task-version bump.
-	if statusUpdated && job.Status.IsWaiting() && !job.IsReusableCaller {
-		// if the status of job changes to waiting again, increase tasks version.
-		if err := IncreaseTaskVersion(ctx, job.OwnerID, job.RepoID); err != nil {
-			return 0, err
-		}
-	}
-
 	if job.RunID == 0 {
 		var err error
 		if job, err = GetRunJobByRepoAndID(ctx, job.RepoID, job.ID); err != nil {
 			return 0, err
+		}
+	}
+
+	// Reusable workflow caller jobs are never picked up by runners, so they don't need a task-version bump.
+	if statusUpdated && !job.IsReusableCaller {
+		switch {
+		case job.Status.IsWaiting():
+			// A job returning to the waiting queue is work a runner can pick up, so bump the
+			// version to wake idle runners whose tasksVersion already equals latestVersion.
+			if err := IncreaseTaskVersion(ctx, job.OwnerID, job.RepoID); err != nil {
+				return 0, err
+			}
+		case job.Status.IsDone():
+			// When a job finishes, bump the version so that idle runners — whose
+			// tasksVersion already equals the current latestVersion — learn that
+			// remaining waiting jobs are still available and attempt PickTask again.
+			// Without this bump, runners that completed their tasks would see
+			// tasksVersion==latestVersion and skip PickTask, leaving the other jobs
+			// permanently unassigned until the version changes for another reason.
+			// Only bump when waiting work actually remains for this repo, otherwise
+			// every job completion would needlessly bump the global version and wake
+			// every idle runner instance-wide for nothing.
+			hasWaiting, err := hasWaitingJobsToPick(ctx, job.RepoID)
+			if err != nil {
+				return 0, err
+			}
+			if hasWaiting {
+				if err := IncreaseTaskVersion(ctx, job.OwnerID, job.RepoID); err != nil {
+					return 0, err
+				}
+			}
 		}
 	}
 
@@ -499,9 +535,12 @@ func AggregateJobStatus(jobs []*ActionRunJob) Status {
 	allSkipped := len(jobs) != 0
 	var hasFailure, hasCancelled, hasCancelling, hasWaiting, hasRunning, hasBlocked bool
 	for _, job := range jobs {
-		allSuccessOrSkipped = allSuccessOrSkipped && (job.Status == StatusSuccess || job.Status == StatusSkipped)
+		// A failed job with continue-on-error:true does not fail the workflow run.
+		// It counts as a "continued failure" and is treated like success for aggregation.
+		isContinuedFailure := job.ContinueOnError && job.Status == StatusFailure
+		allSuccessOrSkipped = allSuccessOrSkipped && (job.Status == StatusSuccess || job.Status == StatusSkipped || isContinuedFailure)
 		allSkipped = allSkipped && job.Status == StatusSkipped
-		hasFailure = hasFailure || job.Status == StatusFailure
+		hasFailure = hasFailure || (job.Status == StatusFailure && !job.ContinueOnError)
 		hasCancelled = hasCancelled || job.Status == StatusCancelled
 		hasCancelling = hasCancelling || job.Status == StatusCancelling
 		hasWaiting = hasWaiting || job.Status == StatusWaiting
@@ -671,18 +710,18 @@ func cancelOneJob(ctx context.Context, job *ActionRunJob) (*ActionRunJob, error)
 func cancelReusableCaller(ctx context.Context, caller *ActionRunJob) ([]*ActionRunJob, error) {
 	cancelledJobs := make([]*ActionRunJob, 0)
 
-	if c, err := cancelOneJob(ctx, caller); err != nil {
-		return cancelledJobs, err
-	} else if c != nil {
-		cancelledJobs = append(cancelledJobs, c)
-	}
-
 	attemptJobs, err := GetRunJobsByRunAndAttemptID(ctx, caller.RunID, caller.RunAttemptID)
 	if err != nil {
 		return cancelledJobs, err
 	}
 
-	for _, c := range CollectAllDescendantJobs(caller, attemptJobs) {
+	// Cancel descendants deepest-first, then the caller: a caller's status is aggregated from its children,
+	// so each child must reach its final state before its parent caller is re-aggregated.
+	// A child's ID always exceeds its parent's, so descending ID is a valid deepest-first order.
+	descendants := CollectAllDescendantJobs(caller, attemptJobs)
+	slices.SortFunc(descendants, func(a, b *ActionRunJob) int { return cmp.Compare(b.ID, a.ID) })
+
+	for _, c := range descendants {
 		cancelled, err := cancelOneJob(ctx, c)
 		if err != nil {
 			return cancelledJobs, err
@@ -690,6 +729,12 @@ func cancelReusableCaller(ctx context.Context, caller *ActionRunJob) ([]*ActionR
 		if cancelled != nil {
 			cancelledJobs = append(cancelledJobs, cancelled)
 		}
+	}
+
+	if c, err := cancelOneJob(ctx, caller); err != nil {
+		return cancelledJobs, err
+	} else if c != nil {
+		cancelledJobs = append(cancelledJobs, c)
 	}
 	return cancelledJobs, nil
 }

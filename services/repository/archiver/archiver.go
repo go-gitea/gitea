@@ -42,6 +42,38 @@ type ArchiveRequest struct {
 	archiveRefShortName string // the ref short name to download the archive, for example: "master", "v1.0.0", "commit id"
 }
 
+type archiveQueueItem struct {
+	RepoID              int64                  `json:"RepoID"`
+	Type                repo_model.ArchiveType `json:"Type"`
+	CommitID            string                 `json:"CommitID"`
+	Paths               []string               `json:"Paths,omitempty"`
+	ArchiveRefShortName string                 `json:"ArchiveRefShortName,omitempty"`
+}
+
+func (aReq *ArchiveRequest) toQueueItem() *archiveQueueItem {
+	return &archiveQueueItem{
+		RepoID:              aReq.Repo.ID,
+		Type:                aReq.Type,
+		CommitID:            aReq.CommitID,
+		Paths:               aReq.Paths,
+		ArchiveRefShortName: aReq.archiveRefShortName,
+	}
+}
+
+func (item *archiveQueueItem) toArchiveRequest(ctx context.Context) (*ArchiveRequest, error) {
+	repo, err := repo_model.GetRepositoryByID(ctx, item.RepoID)
+	if err != nil {
+		return nil, err
+	}
+	return &ArchiveRequest{
+		Repo:                repo,
+		Type:                item.Type,
+		CommitID:            item.CommitID,
+		Paths:               item.Paths,
+		archiveRefShortName: item.ArchiveRefShortName,
+	}, nil
+}
+
 // NewRequest creates an archival request, based on the URI.  The
 // resulting ArchiveRequest is suitable for being passed to Await()
 // if it's determined that the request still needs to be satisfied.
@@ -56,13 +88,13 @@ func NewRequest(repo *repo_model.Repository, gitRepo *git.Repository, archiveRef
 	}
 
 	// Get corresponding commit.
-	commitID, err := gitRepo.ConvertToGitID(archiveRefShortName)
+	commit, err := gitRepo.GetCommit(archiveRefShortName)
 	if err != nil {
 		return nil, util.NewNotExistErrorf("unrecognized repository reference: %s", archiveRefShortName)
 	}
 
 	r := &ArchiveRequest{Repo: repo, archiveRefShortName: archiveRefShortName, Type: archiveType, Paths: paths}
-	r.CommitID = commitID.String()
+	r.CommitID = commit.ID.String()
 	return r, nil
 }
 
@@ -227,13 +259,18 @@ func doArchive(ctx context.Context, r *ArchiveRequest) (*repo_model.RepoArchiver
 	return archiver, nil
 }
 
-var archiverQueue *queue.WorkerPoolQueue[*ArchiveRequest]
+var archiverQueue *queue.WorkerPoolQueue[*archiveQueueItem]
 
 // Init initializes archiver
 func Init(ctx context.Context) error {
-	handler := func(items ...*ArchiveRequest) []*ArchiveRequest {
-		for _, archiveReq := range items {
-			log.Trace("ArchiverData Process: %#v", archiveReq)
+	handler := func(items ...*archiveQueueItem) []*archiveQueueItem {
+		for _, item := range items {
+			log.Trace("ArchiverData Process: %#v", item)
+			archiveReq, err := item.toArchiveRequest(ctx)
+			if err != nil {
+				log.Error("Archive repo %d: %v", item.RepoID, err)
+				continue
+			}
 			if archiver, err := doArchive(ctx, archiveReq); err != nil {
 				log.Error("Archive %v failed: %v", archiveReq, err)
 			} else {
@@ -254,14 +291,15 @@ func Init(ctx context.Context) error {
 
 // StartArchive push the archive request to the queue
 func StartArchive(request *ArchiveRequest) error {
-	has, err := archiverQueue.Has(request)
+	item := request.toQueueItem()
+	has, err := archiverQueue.Has(item)
 	if err != nil {
 		return err
 	}
 	if has {
 		return nil
 	}
-	return archiverQueue.Push(request)
+	return archiverQueue.Push(item)
 }
 
 func deleteOldRepoArchiver(ctx context.Context, archiver *repo_model.RepoArchiver) error {
@@ -330,7 +368,7 @@ func ServeRepoArchive(ctx *gitea_context.Base, archiveReq *ArchiveRequest) error
 		// because errors may happen in git command and such cases aren't in our control.
 		httplib.ServeSetHeaders(ctx.Resp, httplib.ServeHeaderOptions{Filename: downloadName})
 		if err := archiveReq.Stream(ctx, ctx.Resp); err != nil && !ctx.Written() {
-			if gitcmd.StderrHasPrefix(err, "fatal: pathspec") {
+			if gitcmd.IsStderr(err, gitcmd.StderrPathSpec) || gitcmd.IsStderr(err, gitcmd.StderrNotTreeObject) {
 				return util.NewInvalidArgumentErrorf("path doesn't exist or is invalid")
 			}
 			return fmt.Errorf("archive repo %s: failed to stream: %w", archiveReq.Repo.FullName(), err)

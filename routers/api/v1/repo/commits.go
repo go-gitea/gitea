@@ -217,7 +217,7 @@ func GetAllCommits(ctx *context.APIContext) {
 			// get commit specified by sha
 			baseCommit, err = ctx.Repo.GitRepo.GetCommit(sha)
 			if err != nil {
-				ctx.NotFoundOrServerError(err)
+				ctx.APIErrorAuto(err)
 				return
 			}
 		}
@@ -258,11 +258,30 @@ func GetAllCommits(ctx *context.APIContext) {
 			ctx.APIErrorInternal(err)
 			return
 		} else if commitsCountTotal == 0 {
-			ctx.APIErrorNotFound("FileCommitsCount", nil)
-			return
+			// when date filters are active, a zero count may just mean no
+			// commits in the requested range — not that the path is invalid
+			if since == "" && until == "" {
+				ctx.APIErrorNotFound()
+				return
+			}
+			// verify the path actually exists in the revision history
+			totalWithoutDate, err := gitrepo.CommitsCount(ctx, ctx.Repo.Repository,
+				gitrepo.CommitsCountOptions{
+					Not:      not,
+					Revision: []string{sha},
+					RelPath:  []string{path},
+				})
+			if err != nil {
+				ctx.APIErrorInternal(err)
+				return
+			}
+			if totalWithoutDate == 0 {
+				ctx.APIErrorNotFound()
+				return
+			}
 		}
 
-		commits, err = ctx.Repo.GitRepo.CommitsByFileAndRange(
+		commits, _, err = ctx.Repo.GitRepo.CommitsByFileAndRange(
 			git.CommitsByFileAndRangeOptions{
 				Revision: sha,
 				File:     path,
@@ -383,7 +402,7 @@ func GetCommitPullRequest(ctx *context.APIContext) {
 	pr, err := issues_model.GetPullRequestByMergedCommit(ctx, ctx.Repo.Repository.ID, ctx.PathParam("sha"))
 	if err != nil {
 		if issues_model.IsErrPullRequestNotExist(err) {
-			ctx.APIError(http.StatusNotFound, err)
+			ctx.APIError(http.StatusNotFound, err.Error())
 		} else {
 			ctx.APIErrorInternal(err)
 		}

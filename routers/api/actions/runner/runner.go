@@ -69,7 +69,7 @@ func (s *Service) Register(
 	}
 
 	labels := req.Msg.Labels
-	hasCancellingSupport, _ := runnerRequestHasCancellingCapability(req.Msg)
+	hasCancellingSupport := slices.Contains(req.Msg.GetCapabilities(), runnerCapabilityCancelling)
 
 	// create new runner
 	name := util.EllipsisDisplayString(req.Msg.Name, 255)
@@ -116,26 +116,11 @@ func (s *Service) Register(
 // state and will run post-step cleanup before finalizing the task.
 const runnerCapabilityCancelling = "cancelling"
 
-type capabilityGetter interface {
-	GetCapabilities() []string
-}
-
 type declareRequest interface {
 	proto.Message
 	GetVersion() string
 	GetLabels() []string
-}
-
-func runnerRequestHasCancellingCapability(req proto.Message) (bool, bool) {
-	if req == nil {
-		return false, false
-	}
-
-	if typedReq, ok := any(req).(capabilityGetter); ok {
-		return slices.Contains(typedReq.GetCapabilities(), runnerCapabilityCancelling), true
-	}
-
-	return false, false
+	GetCapabilities() []string
 }
 
 func applyDeclareRequestToRunner(runner *actions_model.ActionRunner, req declareRequest) []string {
@@ -143,8 +128,8 @@ func applyDeclareRequestToRunner(runner *actions_model.ActionRunner, req declare
 	runner.Version = req.GetVersion()
 
 	cols := []string{"agent_labels", "version"}
-	hasCancellingSupport, capabilityStateKnown := runnerRequestHasCancellingCapability(req)
-	if capabilityStateKnown && runner.HasCancellingSupport != hasCancellingSupport {
+	hasCancellingSupport := slices.Contains(req.GetCapabilities(), runnerCapabilityCancelling)
+	if runner.HasCancellingSupport != hasCancellingSupport {
 		runner.HasCancellingSupport = hasCancellingSupport
 		cols = append(cols, "has_cancelling_support")
 	}
@@ -161,7 +146,7 @@ func (s *Service) Declare(
 		return nil, status.Errorf(codes.Internal, "update runner: %v", err)
 	}
 
-	return connect.NewResponse(&runnerv1.DeclareResponse{
+	resp := connect.NewResponse(&runnerv1.DeclareResponse{
 		Runner: &runnerv1.Runner{
 			Id:      runner.ID,
 			Uuid:    runner.UUID,
@@ -170,7 +155,11 @@ func (s *Service) Declare(
 			Version: runner.Version,
 			Labels:  runner.AgentLabels,
 		},
-	}), nil
+	})
+	// Capabilities are communicated via headers to avoid a hard dependency on a proto bump.
+	// Older runners ignore unknown headers; newer runners can use this for feature negotiation.
+	resp.Header().Set("X-Gitea-Actions-Capabilities", actions_model.RunnerCapabilities())
+	return resp, nil
 }
 
 // FetchTask assigns a task to the runner

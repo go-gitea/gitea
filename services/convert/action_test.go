@@ -121,7 +121,7 @@ func TestToActionWorkflowRun_UsesTriggerEvent(t *testing.T) {
 	run.Event = "push"
 	run.TriggerEvent = "schedule"
 
-	apiRun, err := ToActionWorkflowRun(t.Context(), run, nil)
+	apiRun, err := ToActionWorkflowRun(t.Context(), run, nil, false)
 	require.NoError(t, err)
 	assert.Equal(t, "schedule", apiRun.Event)
 }
@@ -176,4 +176,14 @@ func TestToActionWorkflowJob_StepStatusIsIndependentOfJobStatus(t *testing.T) {
 	assert.Equal(t, "success", apiJob.Steps[0].Conclusion, "step 0 conclusion (succeeded before the failure)")
 	assert.Equal(t, "completed", apiJob.Steps[1].Status, "step 1 status")
 	assert.Equal(t, "failure", apiJob.Steps[1].Conclusion, "step 1 conclusion")
+}
+
+func TestToActionsStatus_Cancelling(t *testing.T) {
+	action, conclusion := ToActionsStatus(actions_model.StatusCancelling)
+	assert.Equal(t, "in_progress", action)
+	assert.Empty(t, conclusion)
+}
+
+func TestToWorkflowRunAction_Cancelling(t *testing.T) {
+	assert.Equal(t, "in_progress", ToWorkflowRunAction(actions_model.StatusCancelling))
 }

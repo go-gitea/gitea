@@ -15,6 +15,9 @@ import (
 
 // ShowBranchFeed shows tags and/or releases on the repo as RSS / Atom feed
 func ShowBranchFeed(ctx *context.Context, repo *repo.Repository, formatType string) {
+	if !checkRepoFeedTokenScope(ctx) {
+		return
+	}
 	var commits []*git.Commit
 	var err error
 	if ctx.Repo.Commit != nil {

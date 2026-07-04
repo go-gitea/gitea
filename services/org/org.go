@@ -39,6 +39,7 @@ func deleteOrganization(ctx context.Context, org *org_model.Organization) error 
 		&user_model.Blocking{BlockerID: org.ID},
 		&actions_model.ActionRunner{OwnerID: org.ID},
 		&actions_model.ActionRunnerToken{OwnerID: org.ID},
+		&actions_model.ActionScopedWorkflowSource{OwnerID: org.ID},
 	); err != nil {
 		return fmt.Errorf("DeleteBeans: %w", err)
 	}

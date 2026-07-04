@@ -13,6 +13,7 @@ import (
 	"time"
 
 	auth_model "gitea.dev/models/auth"
+	"gitea.dev/models/db"
 	"gitea.dev/models/unittest"
 	user_model "gitea.dev/models/user"
 	"gitea.dev/modules/json"
@@ -21,8 +22,10 @@ import (
 	"gitea.dev/services/auth/source/oauth2"
 	"gitea.dev/tests"
 
+	"github.com/pquerna/otp/totp"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"xorm.io/builder"
 )
 
 // TestMigrateAzureADV2ToOIDC simulates a login source migration from the Azure AD V2 OAuth2 provider to the OpenID Connect provider,
@@ -54,7 +57,7 @@ func TestMigrateAzureADV2ToOIDC(t *testing.T) {
 	)
 
 	// The fake OIDC server issues tokens containing both sub and oid claims, mirroring what Azure AD v2.0 returns.
-	srv := newFakeOIDCServer(t, subValue, oidValue)
+	srv := newFakeOIDCServer(t, FakeOIDCConfig{Sub: subValue, OID: oidValue})
 
 	// --- Step 1: Establish the legacy Azure AD V2 state ---
 	// Create an azureadv2 auth source. In production this would have been the source used before the migration.
@@ -138,7 +141,7 @@ func TestOIDCIgnoresStaleExternalLoginLinks(t *testing.T) {
 
 	setup := func(t *testing.T, sourceName, sub, userName, email string) (*auth_model.Source, *user_model.User) {
 		t.Helper()
-		srv := newFakeOIDCServerWithProfile(t, sub, sub+"-oid", email, "OIDC Test User")
+		srv := newFakeOIDCServer(t, FakeOIDCConfig{Sub: sub, OID: sub + "-oid", Email: email, Name: "OIDC Test User"})
 		addOAuth2Source(t, sourceName, oauth2.Source{
 			Provider:                      "openidConnect",
 			ClientID:                      "test-client-id",
@@ -191,13 +194,78 @@ func TestOIDCIgnoresStaleExternalLoginLinks(t *testing.T) {
 	})
 }
 
-// newFakeOIDCServer starts an httptest.Server that implements the minimum OIDC endpoints needed to complete a sign-in flow:
-func newFakeOIDCServer(t *testing.T, sub, oid string) *httptest.Server {
-	return newFakeOIDCServerWithProfile(t, sub, oid, sub+"@example.com", "OIDC Test User")
+// TestOAuth2CallbackReactivationGating exercises the gate in handleOAuth2SignIn:
+// an inactive user can only be reactivated when who was disabled by auto-sync
+func TestOAuth2CallbackReactivationGating(t *testing.T) {
+	defer tests.PrepareTestEnv(t)()
+	defer test.MockVariableValue(&setting.OAuth2Client.EnableAutoRegistration, true)()
+	defer test.MockVariableValue(&setting.OAuth2Client.Username, setting.OAuth2UsernameUserid)()
+
+	srv := newFakeOIDCServer(t, FakeOIDCConfig{Sub: "test-sub", Email: "test@example.com", Name: "Test User"})
+	addOAuth2Source(t, "test-oauth-source", oauth2.Source{
+		Provider:                      "openidConnect",
+		ClientID:                      "test-client-id",
+		ClientSecret:                  "test-client-secret",
+		OpenIDConnectAutoDiscoveryURL: srv.URL + "/.well-known/openid-configuration",
+	})
+	authSource, err := auth_model.GetActiveOAuth2SourceByAuthName(t.Context(), "test-oauth-source")
+	require.NoError(t, err)
+
+	u := &user_model.User{Name: "test-user", Email: "test@example.com"}
+	require.NoError(t, user_model.CreateUser(t.Context(), u, &user_model.Meta{}))
+
+	extLink := &user_model.ExternalLoginUser{
+		UserID:        u.ID,
+		LoginSourceID: authSource.ID,
+		Provider:      authSource.Name,
+		ExternalID:    "test-sub",
+	}
+	require.NoError(t, user_model.LinkExternalToUser(t.Context(), u, extLink))
+
+	prepareUserExternalLink := func(t *testing.T, refreshToken string) {
+		err := user_model.UpdateUserCols(t.Context(), &user_model.User{ID: u.ID, IsActive: false}, "is_active")
+		require.NoError(t, err)
+		_, err = db.GetEngine(t.Context()).Where(builder.Eq{"user_id": u.ID}).Cols("refresh_token").
+			Update(&user_model.ExternalLoginUser{RefreshToken: refreshToken})
+		require.NoError(t, err)
+		require.False(t, unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: u.ID}).IsActive)
+	}
+
+	t.Run("admin-disabled user is not reactivated", func(t *testing.T) {
+		prepareUserExternalLink(t, "non-empty-refresh-token")
+		doOIDCSignIn(t, authSource.Name)
+		after := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: u.ID})
+		assert.False(t, after.IsActive, "OAuth callback must not re-enable an administrator-disabled account")
+	})
+
+	t.Run("auto-sync-disabled user is reactivated", func(t *testing.T) {
+		prepareUserExternalLink(t, "" /* empty refresh token */)
+		doOIDCSignIn(t, authSource.Name)
+		after := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: u.ID})
+		assert.True(t, after.IsActive, "OAuth callback must reactivate a sync-disabled account on successful login")
+	})
 }
 
-func newFakeOIDCServerWithProfile(t *testing.T, sub, oid, email, name string) *httptest.Server {
+// FakeOIDCConfig holds configuration for the fake OIDC server used in tests.
+type FakeOIDCConfig struct {
+	Sub    string
+	OID    string
+	Email  string
+	Name   string
+	Groups []string
+}
+
+// newFakeOIDCServer starts a httptest.Server that implements the minimum OIDC endpoints needed to complete a sign-in flow
+func newFakeOIDCServer(t *testing.T, cfg FakeOIDCConfig) *httptest.Server {
 	t.Helper()
+
+	// Set defaults for backward compatibility with existing tests
+	if cfg.Email == "" {
+		cfg.Email = cfg.Sub + "@example.com"
+	}
+	if cfg.Name == "" {
+		cfg.Name = "OIDC Test User"
+	}
 
 	var srv *httptest.Server
 	srv = httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -212,11 +280,18 @@ func newFakeOIDCServerWithProfile(t *testing.T, sub, oid, email, name string) *h
 			})
 		case "/token": // returns an ID token with both "sub" and "oid" claims so tests can verify which one ends up as ExternalID
 			claims := map[string]any{
-				"iss": srv.URL,
-				"aud": "test-client-id",
-				"exp": time.Now().Add(time.Hour).Unix(),
-				"sub": sub,
-				"oid": oid,
+				"iss":   srv.URL,
+				"aud":   "test-client-id",
+				"exp":   time.Now().Add(time.Hour).Unix(),
+				"sub":   cfg.Sub,
+				"email": cfg.Email,
+				"name":  cfg.Name,
+			}
+			if cfg.OID != "" {
+				claims["oid"] = cfg.OID
+			}
+			if cfg.Groups != nil {
+				claims["groups"] = cfg.Groups
 			}
 			payload, _ := json.Marshal(claims)
 			header := base64.RawURLEncoding.EncodeToString([]byte(`{"alg":"none"}`))
@@ -232,11 +307,18 @@ func newFakeOIDCServerWithProfile(t *testing.T, sub, oid, email, name string) *h
 			})
 		case "/userinfo":
 			// sub MUST match the id_token sub; goth rejects mismatches.
-			_ = json.NewEncoder(w).Encode(map[string]any{
-				"sub":   sub,
-				"email": email,
-				"name":  name,
-			})
+			response := map[string]any{
+				"sub":   cfg.Sub,
+				"email": cfg.Email,
+				"name":  cfg.Name,
+			}
+			if cfg.OID != "" {
+				response["oid"] = cfg.OID
+			}
+			if cfg.Groups != nil {
+				response["groups"] = cfg.Groups
+			}
+			_ = json.NewEncoder(w).Encode(response)
 		default:
 			http.NotFound(w, r)
 		}
@@ -263,4 +345,218 @@ func doOIDCSignIn(t *testing.T, sourceName string) {
 	// Step 3: simulate the provider redirecting back.
 	callbackURL := fmt.Sprintf("/user/oauth2/%s/callback?code=test-code&state=%s", sourceName, url.QueryEscape(state))
 	session.MakeRequest(t, NewRequest(t, "GET", callbackURL), http.StatusSeeOther)
+}
+
+// newOIDCSource is a helper function to create a configured OAuth2 source for testing
+func newOIDCSource(srv *httptest.Server, withAdmin, withRestricted bool) oauth2.Source {
+	src := oauth2.Source{
+		Provider:                      "openidConnect",
+		ClientID:                      "test-client-id",
+		ClientSecret:                  "test-client-secret",
+		OpenIDConnectAutoDiscoveryURL: srv.URL + "/.well-known/openid-configuration",
+		GroupClaimName:                "groups",
+	}
+	if withAdmin {
+		src.AdminGroup = "admins"
+	}
+	if withRestricted {
+		src.RestrictedGroup = "restricted-users"
+	}
+	return src
+}
+
+// TestOAuth2GroupClaimsAppliedOnFirstLogin verifies that group claims from OAuth2/OIDC
+// are correctly applied to newly created users on the first login
+func TestOAuth2GroupClaimsAppliedOnFirstLogin(t *testing.T) {
+	defer tests.PrepareTestEnv(t)()
+	// Enable auto-registration to ensure first login creates user with group claims
+	defer test.MockVariableValue(&setting.OAuth2Client.EnableAutoRegistration, true)()
+	// Use sub claim as username for deterministic user naming
+	defer test.MockVariableValue(&setting.OAuth2Client.Username, setting.OAuth2UsernameUserid)()
+
+	tt := []struct {
+		Name         string
+		IsAdmin      bool
+		IsRestricted bool
+		SourceName   string
+	}{
+		{
+			Name:         "user in both admin and restricted groups",
+			IsAdmin:      true,
+			IsRestricted: true,
+			SourceName:   "test-group-claims",
+		},
+		{
+			Name:         "no groups",
+			IsAdmin:      false,
+			IsRestricted: false,
+			SourceName:   "test-no-groups",
+		},
+	}
+	for _, tc := range tt {
+		t.Run(tc.Name, func(t *testing.T) {
+			// Set up OIDC server with group claims
+			srv := newFakeOIDCServer(t, FakeOIDCConfig{
+				Sub:    tc.SourceName,
+				Email:  tc.SourceName + "@example.com",
+				Name:   "Test User",
+				Groups: []string{"admins", "restricted-users"},
+			})
+
+			// Ensure it's the first login so no user in database
+			unittest.AssertNotExistsBean(t, &user_model.User{Name: tc.SourceName})
+
+			addOAuth2Source(t, tc.SourceName, newOIDCSource(srv, tc.IsAdmin, tc.IsRestricted))
+
+			doOIDCSignIn(t, tc.SourceName)
+
+			user := unittest.AssertExistsAndLoadBean(t, &user_model.User{Name: tc.SourceName})
+			assert.Equal(t, tc.IsAdmin, user.IsAdmin)
+			assert.Equal(t, tc.IsRestricted, user.IsRestricted)
+			assert.Equal(t, auth_model.OAuth2, user.LoginType)
+		})
+	}
+}
+
+// TestOAuth2GroupClaimsManualLinking tests that group claims are applied correctly
+// when a user goes through the manual linking flow (auto-registration disabled).
+func TestOAuth2GroupClaimsManualLinking(t *testing.T) {
+	defer tests.PrepareTestEnv(t)()
+	// Disable auto-registration to force manual linking flow
+	defer test.MockVariableValue(&setting.OAuth2Client.EnableAutoRegistration, false)()
+	defer test.MockVariableValue(&setting.Service.AllowOnlyInternalRegistration, false)()
+
+	tt := []struct {
+		Name         string
+		IsAdmin      bool
+		IsRestricted bool
+		SourceName   string
+	}{
+		{
+			Name:         "user in both admin and restricted groups",
+			IsAdmin:      true,
+			IsRestricted: true,
+			SourceName:   "test-group-claims-manual-linking",
+		},
+		{
+			Name:         "no groups",
+			IsAdmin:      false,
+			IsRestricted: false,
+			SourceName:   "test-no-groups-manual-linking",
+		},
+	}
+
+	for _, tc := range tt {
+		t.Run(tc.Name, func(t *testing.T) {
+			srv := newFakeOIDCServer(t, FakeOIDCConfig{
+				Sub:    tc.SourceName,
+				Email:  tc.SourceName + "@example.com",
+				Name:   "Manual User",
+				Groups: []string{"admins", "restricted-users"},
+			})
+			addOAuth2Source(t, tc.SourceName, newOIDCSource(srv, tc.IsAdmin, tc.IsRestricted))
+			unittest.AssertNotExistsBean(t, &user_model.User{Name: tc.SourceName})
+			session := emptyTestSession(t)
+			resp := session.MakeRequest(t, NewRequest(t, "GET", "/user/oauth2/"+tc.SourceName), http.StatusTemporaryRedirect)
+
+			location := resp.Header().Get("Location")
+			u, err := url.Parse(location)
+			require.NoError(t, err)
+			state := u.Query().Get("state")
+			require.NotEmpty(t, state, "redirect to OIDC provider must include state")
+
+			callbackURL := fmt.Sprintf("/user/oauth2/%s/callback?code=test-code&state=%s", tc.SourceName, url.QueryEscape(state))
+			session.MakeRequest(t, NewRequest(t, "GET", callbackURL), http.StatusSeeOther)
+
+			// Submit the form to create a new account
+			linkAccountResp := session.MakeRequest(t, NewRequest(t, "GET", "/user/link_account"), http.StatusOK)
+			// Verify we're on the link account page
+			assert.Contains(t, linkAccountResp.Body.String(), "link_account")
+
+			// Use NewRequestWithValues to POST form data (no CSRF needed in tests)
+			// Field names are lowercase in HTML forms: user_name, email, password, retype
+			req := NewRequestWithValues(t, "POST", "/user/link_account_signup", map[string]string{
+				"user_name": tc.SourceName,
+				"email":     tc.SourceName + "@example.com",
+				"password":  "", // AllowOnlyExternalRegistration means no password needed
+				"retype":    "",
+			})
+			session.MakeRequest(t, req, http.StatusSeeOther)
+
+			user := unittest.AssertExistsAndLoadBean(t, &user_model.User{Name: tc.SourceName})
+			assert.Equal(t, tc.IsAdmin, user.IsAdmin)
+			assert.Equal(t, tc.IsRestricted, user.IsRestricted)
+			assert.Equal(t, auth_model.OAuth2, user.LoginType)
+		})
+	}
+}
+
+// TestOAuth2AutoLinkWithTwoFactor verifies that automatic account linking completes
+// after the user passes local 2FA when an OIDC identity matches an existing account.
+func TestOAuth2AutoLinkWithTwoFactor(t *testing.T) {
+	defer tests.PrepareTestEnv(t)()
+	defer test.MockVariableValue(&setting.OAuth2Client.EnableAutoRegistration, true)()
+	defer test.MockVariableValue(&setting.OAuth2Client.AccountLinking, setting.OAuth2AccountLinkingAuto)()
+	defer test.MockVariableValue(&setting.OAuth2Client.Username, setting.OAuth2UsernameEmail)()
+
+	const (
+		sourceName = "test-oauth-auto-link-2fa"
+		sub        = "oidc-auto-link-2fa-sub"
+		email      = "oidc-auto-link-2fa@example.com"
+		userName   = "oidc-auto-link-2fa"
+	)
+
+	srv := newFakeOIDCServer(t, FakeOIDCConfig{Sub: sub, Email: email, Name: "OIDC Auto Link 2FA"})
+	addOAuth2Source(t, sourceName, oauth2.Source{
+		Provider:                      "openidConnect",
+		ClientID:                      "test-client-id",
+		ClientSecret:                  "test-client-secret",
+		OpenIDConnectAutoDiscoveryURL: srv.URL + "/.well-known/openid-configuration",
+	})
+	authSource, err := auth_model.GetActiveOAuth2SourceByAuthName(t.Context(), sourceName)
+	require.NoError(t, err)
+
+	localUser := &user_model.User{Name: userName, Email: email}
+	require.NoError(t, user_model.CreateUser(t.Context(), localUser, &user_model.Meta{}))
+
+	otpKey, err := totp.Generate(totp.GenerateOpts{
+		SecretSize:  40,
+		Issuer:      "gitea-test",
+		AccountName: localUser.Name,
+	})
+	require.NoError(t, err)
+
+	tfa := &auth_model.TwoFactor{UID: localUser.ID}
+	require.NoError(t, tfa.SetSecret(otpKey.Secret()))
+	require.NoError(t, auth_model.NewTwoFactor(t.Context(), tfa))
+
+	unittest.AssertNotExistsBean(t, &user_model.ExternalLoginUser{ExternalID: sub, LoginSourceID: authSource.ID}, unittest.OrderBy("external_id ASC"))
+
+	session := emptyTestSession(t)
+	resp := session.MakeRequest(t, NewRequest(t, "GET", "/user/oauth2/"+sourceName), http.StatusTemporaryRedirect)
+
+	location := resp.Header().Get("Location")
+	u, err := url.Parse(location)
+	require.NoError(t, err)
+	state := u.Query().Get("state")
+	require.NotEmpty(t, state)
+
+	callbackURL := fmt.Sprintf("/user/oauth2/%s/callback?code=test-code&state=%s", sourceName, url.QueryEscape(state))
+	resp = session.MakeRequest(t, NewRequest(t, "GET", callbackURL), http.StatusSeeOther)
+	assert.Contains(t, resp.Header().Get("Location"), "/user/two_factor")
+
+	session.MakeRequest(t, NewRequest(t, "GET", "/user/two_factor"), http.StatusOK)
+
+	passcode, err := totp.GenerateCode(otpKey.Secret(), time.Now())
+	require.NoError(t, err)
+
+	req := NewRequestWithValues(t, "POST", "/user/two_factor", map[string]string{
+		"passcode": passcode,
+	})
+	session.MakeRequest(t, req, http.StatusSeeOther)
+
+	externalLink := unittest.AssertExistsAndLoadBean(t, &user_model.ExternalLoginUser{ExternalID: sub, LoginSourceID: authSource.ID}, unittest.OrderBy("external_id ASC"))
+	assert.Equal(t, localUser.ID, externalLink.UserID)
+
+	session.MakeRequest(t, NewRequest(t, "GET", "/user/settings"), http.StatusOK)
 }

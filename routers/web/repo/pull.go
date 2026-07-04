@@ -36,7 +36,6 @@ import (
 	"gitea.dev/modules/log"
 	"gitea.dev/modules/optional"
 	"gitea.dev/modules/setting"
-	"gitea.dev/modules/svg"
 	"gitea.dev/modules/templates"
 	"gitea.dev/modules/translation"
 	"gitea.dev/modules/util"
@@ -205,7 +204,9 @@ func GetPullDiffStats(ctx *context.Context) {
 
 	// do not report 500 server error to end users if error occurs, otherwise a PR missing ref won't be able to view.
 	headCommitID, err := ctx.Repo.GitRepo.GetRefCommitID(pull.GetGitHeadRefName())
-	if err != nil {
+	if errors.Is(err, util.ErrNotExist) {
+		return
+	} else if err != nil {
 		log.Error("Failed to GetRefCommitID: %v, repo: %v", err, ctx.Repo.Repository.FullName())
 		return
 	}
@@ -275,6 +276,10 @@ type pullMergeBoxData struct {
 	enableStatusCheck bool
 	StatusCheckData   *pullCommitStatusCheckData
 	ShowStatusCheck   bool
+	// hasRequiredStatusContexts is true when at least one required status-check context must be satisfied:
+	// the branch protection's own contexts and/or required scoped workflow checks.
+	// The latter gate the merge even when the rule's own status check is disabled.
+	hasRequiredStatusContexts bool
 
 	hasOverridableBlockers     bool
 	canMergeNow                bool // PR is mergeable, either no blocker, or doer can bypass the blockers
@@ -376,9 +381,7 @@ func (prInfo *pullRequestViewInfo) prepareViewFillCompareInfo(ctx *context.Conte
 	pull := prInfo.issue.PullRequest
 	prInfo.CompareInfo, err = git_service.GetCompareInfo(ctx, ctx.Repo.Repository, ctx.Repo.Repository, ctx.Repo.GitRepo, baseRef, git.RefName(pull.GetGitHeadRefName()), false, false)
 	if err != nil {
-		isKnownErrorForBroken := gitcmd.IsStdErrorNotValidObjectName(err) ||
-			// fatal: ambiguous argument 'origin': unknown revision or path not in the working tree.
-			gitcmd.StderrContains(err, "unknown revision or path not in the working tree")
+		isKnownErrorForBroken := errors.Is(err, util.ErrNotExist) || gitcmd.IsStderr(err, gitcmd.StderrNotValidObjectName) || gitcmd.IsStderr(err, gitcmd.StderrUnknownRevisionOrPath)
 		if !isKnownErrorForBroken {
 			log.Error("GetCompareInfo: %v", err)
 		}
@@ -424,6 +427,16 @@ func (prInfo *pullRequestViewInfo) prepareMergeBoxStatusCheckData(ctx *context.C
 	if err != nil {
 		log.Error("GetLatestCommitStatus: %v", err)
 	}
+
+	// Effective required contexts = branch-protection contexts + required scoped workflow checks.
+	requiredContexts := pbRequiredContexts
+	if effective, err := pull_service.EffectiveRequiredContexts(ctx, ctx.Repo.Repository, prInfo.ProtectedBranchRule); err != nil {
+		log.Error("EffectiveRequiredContexts: %v", err)
+	} else {
+		requiredContexts = effective
+	}
+	data.hasRequiredStatusContexts = len(requiredContexts) > 0
+
 	if !ctx.Repo.Permission.CanRead(unit.TypeActions) {
 		git_model.CommitStatusesHideActionsURL(ctx, commitStatuses)
 	}
@@ -434,7 +447,9 @@ func (prInfo *pullRequestViewInfo) prepareMergeBoxStatusCheckData(ctx *context.C
 		statusCheckData.pullCommitStatusState = combinedCommitStatus.State
 	}
 
-	data.ShowStatusCheck = data.enableStatusCheck || len(statusCheckData.PullCommitStatuses) > 0
+	// Required scoped workflow checks gate the merge even when the branch protection's own status check is disabled,
+	// so the status-check section must render when there are any required contexts, not only when enableStatusCheck is on.
+	data.ShowStatusCheck = data.enableStatusCheck || data.hasRequiredStatusContexts || len(statusCheckData.PullCommitStatuses) > 0
 
 	runs, err := actions_service.GetRunsFromCommitStatuses(ctx, commitStatuses)
 	if err != nil {
@@ -450,7 +465,7 @@ func (prInfo *pullRequestViewInfo) prepareMergeBoxStatusCheckData(ctx *context.C
 	}
 
 	var missingRequiredChecks []string
-	for _, requiredContext := range pbRequiredContexts {
+	for _, requiredContext := range requiredContexts {
 		contextFound := false
 		matchesRequiredContext := createRequiredContextMatcher(requiredContext)
 		for _, presentStatus := range commitStatuses {
@@ -467,7 +482,7 @@ func (prInfo *pullRequestViewInfo) prepareMergeBoxStatusCheckData(ctx *context.C
 	statusCheckData.MissingRequiredChecks = missingRequiredChecks
 
 	statusCheckData.IsContextRequired = func(context string) bool {
-		for _, c := range pbRequiredContexts {
+		for _, c := range requiredContexts {
 			if c == context {
 				return true
 			}
@@ -482,19 +497,13 @@ func (prInfo *pullRequestViewInfo) prepareMergeBoxStatusCheckData(ctx *context.C
 		}
 		return false
 	}
-	statusCheckData.RequiredChecksState = pull_service.MergeRequiredContextsCommitStatus(commitStatuses, pbRequiredContexts)
+	statusCheckData.RequiredChecksState = pull_service.MergeRequiredContextsCommitStatus(commitStatuses, requiredContexts)
 
-	if data.enableStatusCheck {
+	if data.enableStatusCheck || data.hasRequiredStatusContexts {
 		if statusCheckData.RequiredChecksState.IsError() || statusCheckData.RequiredChecksState.IsFailure() {
-			data.infoProtectionBlockers.AddErrorItem(
-				svg.RenderHTML("octicon-x"),
-				ctx.Locale.Tr("repo.pulls.required_status_check_failed"),
-			)
+			data.infoProtectionBlockers.AddErrorItem(ctx.Locale.Tr("repo.pulls.required_status_check_failed"))
 		} else if !statusCheckData.RequiredChecksState.IsSuccess() {
-			data.infoProtectionBlockers.AddErrorItem(
-				svg.RenderHTML("octicon-x"),
-				ctx.Locale.Tr("repo.pulls.required_status_check_missing"),
-			)
+			data.infoProtectionBlockers.AddErrorItem(ctx.Locale.Tr("repo.pulls.required_status_check_missing"))
 		}
 	}
 }
@@ -1317,7 +1326,7 @@ func CompareAndPullRequestPost(ctx *context.Context) {
 	form := web.GetForm(ctx).(*forms.CreateIssueForm)
 	repo := ctx.Repo.Repository
 	comparePageInfo := newComparePageInfo()
-	err := comparePageInfo.parseCompareInfo(ctx)
+	err := comparePageInfo.parseCompareInfo(ctx, ctx.PathParam("*"))
 	if errors.Is(err, util.ErrNotExist) {
 		ctx.JSONErrorNotFound()
 		return
