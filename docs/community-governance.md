@@ -95,6 +95,7 @@ However, if there are no objections from maintainers, the PR can be merged with 
 ### Commit messages
 
 Mergers are required to rewrite the PR title and the first comment (the summary) when necessary so the squash commit message is clear.
+Usually the Pull Request description and commit message body should not be empty, unless the title is already clear enough or the description would be a copy of the comments in code.
 
 The final commit message:
 
