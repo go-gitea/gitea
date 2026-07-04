@@ -133,7 +133,6 @@ type IssueAssigneesOption struct {
 // EditDeadlineOption options for creating a deadline
 type EditDeadlineOption struct {
 	// required:true
-	// swagger:strfmt date-time
 	Deadline *time.Time `json:"due_date"`
 }
 

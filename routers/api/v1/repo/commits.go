@@ -258,8 +258,27 @@ func GetAllCommits(ctx *context.APIContext) {
 			ctx.APIErrorInternal(err)
 			return
 		} else if commitsCountTotal == 0 {
-			ctx.APIErrorNotFound()
-			return
+			// when date filters are active, a zero count may just mean no
+			// commits in the requested range — not that the path is invalid
+			if since == "" && until == "" {
+				ctx.APIErrorNotFound()
+				return
+			}
+			// verify the path actually exists in the revision history
+			totalWithoutDate, err := gitrepo.CommitsCount(ctx, ctx.Repo.Repository,
+				gitrepo.CommitsCountOptions{
+					Not:      not,
+					Revision: []string{sha},
+					RelPath:  []string{path},
+				})
+			if err != nil {
+				ctx.APIErrorInternal(err)
+				return
+			}
+			if totalWithoutDate == 0 {
+				ctx.APIErrorNotFound()
+				return
+			}
 		}
 
 		commits, _, err = ctx.Repo.GitRepo.CommitsByFileAndRange(

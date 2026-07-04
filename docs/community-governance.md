@@ -206,7 +206,7 @@ The result of this script needs then to be published in the TOC election issue t
 
 - 2026-06-14 ~ 2026-12-31
   - Company
-    - [Jason Song](https://gitea.com/wolfogre) <i@wolfogre.com>
+    - [Yu Tian](https://gitea.com/Zettat123) <zettat123@gmail.com>
     - [Lunny Xiao](https://gitea.com/lunny) <xiaolunwen@gmail.com>
     - [Matti Ranta](https://gitea.com/techknowlogick) <techknowlogick@gitea.com>
   - Community
@@ -227,7 +227,7 @@ Here's the history of the owners and the time they served:
 - [Andrew Thornton](https://gitea.com/zeripath) - [2020](https://github.com/go-gitea/gitea/issues/9230), [2021](https://github.com/go-gitea/gitea/issues/13801), [2022](https://github.com/go-gitea/gitea/issues/17872), 2023
 - [6543](https://gitea.com/6543) - 2023, 2025
 - [John Olheiser](https://gitea.com/jolheiser) - 2023, 2024
-- [Jason Song](https://gitea.com/wolfogre) - 2023
+- [Jason Song](https://gitea.com/wolfogre) - 2023, 2025
 
 ## Governance Compensation
 
