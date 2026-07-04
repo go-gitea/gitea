@@ -1,7 +1,9 @@
 import {createApp} from 'vue';
+import {Idiomorph} from 'idiomorph';
 import RepoActionView from '../components/RepoActionView.vue';
 import {registerGlobalInitFunc} from '../modules/observer.ts';
 import {html} from '../utils/html.ts';
+import {GET} from '../modules/fetch.ts';
 
 export function updateWorkflowBadgeFields(form: HTMLElement, branch: string): void {
   const badgeURLParsed = new URL(form.getAttribute('data-badge-url')!);
@@ -27,6 +29,7 @@ function initWorkflowBadgeForm(form: HTMLElement): void {
 export function initRepositoryActions() {
   registerGlobalInitFunc('initWorkflowBadgeForm', initWorkflowBadgeForm);
   initRepositoryActionsView();
+  initRepositoryActionsList();
 }
 
 function initRepositoryActionsView() {
@@ -102,4 +105,54 @@ function initRepositoryActionsView() {
     },
   });
   view.mount(el);
+}
+
+function initRepositoryActionsList(): void {
+  const runsList = document.querySelector('#actions-runs-list');
+  if (!runsList) return;
+
+  let timerId: number | null = null;
+  let pollingInterval = 3000;
+
+  const runPolling = async () => {
+    if (!document.contains(runsList)) {
+      if (timerId) {
+        clearTimeout(timerId);
+      }
+      return;
+    }
+
+    if (document.hidden) {
+      timerId = window.setTimeout(runPolling, pollingInterval);
+      return;
+    }
+
+    const hasActiveRuns = document.querySelector(
+      '#actions-runs-list .run-list .item[data-status="running"], ' +
+      '#actions-runs-list .run-list .item[data-status="waiting"], ' +
+      '#actions-runs-list .run-list .item[data-status="cancelling"]',
+    ) !== null;
+
+    pollingInterval = hasActiveRuns ? 3000 : 10000;
+
+    try {
+      const url = new URL(window.location.href);
+      url.searchParams.set('runs-list-only', 'true');
+      const response = await GET(url.href, {
+        headers: {
+          'X-Requested-With': 'XMLHttpRequest',
+        },
+      });
+      if (response.ok) {
+        const htmlText = await response.text();
+        Idiomorph.morph(runsList, htmlText, {morphStyle: 'innerHTML'});
+      }
+    } catch (e) {
+      console.error('Failed to update actions runs list:', e);
+    }
+
+    timerId = window.setTimeout(runPolling, pollingInterval);
+  };
+
+  timerId = window.setTimeout(runPolling, pollingInterval);
 }

@@ -119,6 +119,11 @@ func List(ctx *context.Context) {
 		return
 	}
 
+	if ctx.FormBool("runs-list-only") {
+		ctx.HTML(http.StatusOK, "repo/actions/runs_list")
+		return
+	}
+
 	ctx.HTML(http.StatusOK, tplListActions)
 }
 
