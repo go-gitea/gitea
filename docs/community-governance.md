@@ -165,7 +165,9 @@ Any account with write access (including bots and TOC members) **must** use [2FA
 Mergers are the maintainers who carry out the final merge of approved PRs. Their responsibilities, described throughout this guide, are:
 
 - Merging PRs from the [merge queue](#getting-prs-merged) in order, once a PR has `lgtm/done`, no open discussions, and no merge conflicts.
-- Rewriting the PR title and summary, making the [commit message](#commit-messages) clear.
+- Rewriting the PR title and description prior to the merge, making the [commit message](#commit-messages) clear.\
+  In particular, mergers should edit the PR description.\
+  Mergers should **not** edit the actual commit message except to remove unnecessary information. Because of that, even if users are looking at the PR, they can understand what changed.
 - Assigning the correct labels (including `type/…`) needed for changelog and backport decisions.
 - Agreeing, together with the owners, on when a release is ready (see [release management](release-management.md)).
 - Merging a PR also means the PR looks good to the merger and is approved by the merger.
