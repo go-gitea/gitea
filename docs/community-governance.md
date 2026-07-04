@@ -171,7 +171,7 @@ Mergers are the maintainers who carry out the final merge of approved PRs. Their
 
 If a merger violates these merge guides more than 3 times in the past 365 days
 (e.g.: merge with unresolved reviews without TOC decision to ignore the review, merge with garbage commit messages),
-they may lose their merging privileges.
+they may lose their merging privileges for at least three months.
 
 #### Becoming a merger
 
