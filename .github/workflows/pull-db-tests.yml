@@ -44,6 +44,9 @@ jobs:
           - "9000:9000"
     steps:
       - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7
+        with:
+          repository: lunny/gitea
+          ref: upgrade_xorm
       - uses: ./.github/actions/go-setup
       - uses: ./.github/actions/pgsql-shard
         with:
