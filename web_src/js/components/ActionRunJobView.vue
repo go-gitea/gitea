@@ -2,7 +2,7 @@
 import {computed, nextTick, onBeforeUnmount, onMounted, ref, toRefs, watch} from 'vue';
 import {SvgIcon} from '../svg.ts';
 import ActionStatusIcon from './ActionStatusIcon.vue';
-import {addDelegatedEventListener, createElementFromAttrs, toggleElem} from '../utils/dom.ts';
+import {addDelegatedEventListener, createElementFromAttrs} from '../utils/dom.ts';
 import {formatDatetime, formatDatetimeISO} from '../utils/time.ts';
 import {POST} from '../modules/fetch.ts';
 import {copyToClipboardWithFeedback} from '../modules/clipboard.ts';
@@ -247,9 +247,6 @@ function createLogLine(stepIndex: number, startTime: number, line: LogLine, cmd:
     `${seconds}s`, // for "Show seconds"
   );
 
-  toggleElem(logTimeStamp, timeVisible.value['log-time-stamp']);
-  toggleElem(logTimeSeconds, timeVisible.value['log-time-seconds']);
-
   const lineClass = cmd?.name ? `job-log-line log-line-${cmd.name}` : 'job-log-line';
   return createElementFromAttrs('div', {id: `jobstep-${stepIndex}-${line.index}`, class: lineClass},
     lineNum, logTimeStamp, logMsg, logTimeSeconds,
@@ -391,9 +388,6 @@ function elStepsContainer(): HTMLElement {
 
 function toggleTimeDisplay(type: 'seconds' | 'stamp') {
   timeVisible.value[`log-time-${type}`] = !timeVisible.value[`log-time-${type}`];
-  for (const el of elStepsContainer().querySelectorAll(`.log-time-${type}`)) {
-    toggleElem(el, timeVisible.value[`log-time-${type}`]);
-  }
   saveLocaleStorageOptions();
 }
 
@@ -473,7 +467,15 @@ async function hashChangeListener() {
     </div>
   </div>
   <!-- always create the node because we have our own event listeners on it, don't use "v-if" -->
-  <div class="job-step-container" ref="stepsContainer" v-show="!isCallerJob && currentJob.steps.length">
+  <div
+    class="job-step-container"
+    ref="stepsContainer"
+    v-show="!isCallerJob && currentJob.steps.length"
+    :class="{
+      'log-line-show-timestamps': timeVisible['log-time-stamp'],
+      'log-line-show-seconds': timeVisible['log-time-seconds']
+    }"
+  >
     <div class="job-step-section" v-for="(jobStep, stepIdx) in currentJob.steps" :key="stepIdx">
       <div
         class="job-step-summary"
@@ -681,8 +683,22 @@ async function hashChangeListener() {
   scroll-margin-top: 95px;
 }
 
+.job-log-line .log-time-stamp,
+.job-log-line .log-time-seconds {
+  display: none;
+}
+
+.log-line-show-timestamps .job-log-line .log-time-stamp {
+  display: inline;
+}
+
+.log-line-show-seconds .job-log-line .log-time-seconds {
+  display: inline;
+}
+
 /* class names 'log-time-seconds' and 'log-time-stamp' are used in the method toggleTimeDisplay */
-.job-log-line .line-num, .log-time-seconds {
+.job-log-line .line-num,
+.job-log-line .log-time-seconds {
   width: 48px;
   color: var(--color-text-light-3);
   text-align: right;
@@ -699,16 +715,16 @@ async function hashChangeListener() {
 }
 
 .job-log-line .log-time,
-.log-time-stamp {
+.job-log-line .log-time-stamp {
   color: var(--color-text-light-3);
-  margin-left: 10px;
+  margin-left: 12px;
   white-space: nowrap;
 }
 
 .job-step-logs .job-log-line .log-msg {
   flex: 1;
   white-space: break-spaces;
-  margin-left: 10px;
+  margin-left: 12px;
   overflow-wrap: anywhere;
 }
 
@@ -775,30 +791,28 @@ async function hashChangeListener() {
   border-radius: 0;
 }
 
-.job-log-group .job-log-list .job-log-line .log-msg {
-  margin-left: 2em;
-}
-
 .job-log-group-summary {
   cursor: pointer;
-  position: relative;
-  display: list-item;
-  list-style: disclosure-closed inside;
-  padding-left: 58px; /* line-num gutter (48px) + log-msg margin (10px), so the marker sits in the content column */
+  list-style: none; /* hide the standard disclosure marker (Chrome, Edge, Firefox) */
 }
 
-.job-log-group[open] > .job-log-group-summary {
-  list-style-type: disclosure-open;
+.job-log-group-summary::-webkit-details-marker { /* hide the disclosure marker on Safari */
+  display: none;
 }
 
-.job-log-group-summary > .job-log-line {
-  position: absolute;
-  inset: 0;
-  z-index: -1; /* sit behind the disclosure marker */
-  overflow: hidden;
+.log-line-group .log-msg::before {
+  content: "";
+  display: inline-block;
+  vertical-align: middle;
+  margin-top: -2.5px;
+  margin-right: 8px;
+  border-top: 4px solid transparent;
+  border-bottom: 4px solid transparent;
+  border-left: 6px solid var(--color-text-light-3);
+  transition: transform 0.1s ease;
 }
 
-.job-log-group-summary > .job-log-line .log-msg {
-  margin-left: 21px;
+.job-log-group[open] .log-line-group .log-msg::before {
+  transform: rotate(90deg);
 }
 </style>

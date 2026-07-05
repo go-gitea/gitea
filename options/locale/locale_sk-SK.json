@@ -1149,5 +1149,7 @@
   "actions.runners.task_list.repository": "Repozitár",
   "actions.runners.status.unspecified": "Neznámy",
   "actions.runners.version": "Verzia",
-  "actions.runs.branch": "Vetva"
+  "actions.runs.branch": "Vetva",
+  "actions.workflow.scope_owner": "Vlastník",
+  "actions.workflow.scope_global": "Globálne"
 }
