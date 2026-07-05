@@ -20,7 +20,14 @@ func CreateEnvironment(ctx context.Context, repoID int64, name, protectedBranche
 	if len(name) > 255 {
 		return nil, util.NewInvalidArgumentErrorf("environment name too long")
 	}
-	return actions_model.InsertEnvironment(ctx, repoID, name, protectedBranches)
+	env, err := actions_model.InsertEnvironment(ctx, repoID, name, protectedBranches)
+	if err != nil {
+		if isUniqueViolation(err) {
+			return nil, actions_model.ErrEnvironmentAlreadyExists{Name: name}
+		}
+		return nil, err
+	}
+	return env, nil
 }
 
 // UpdateEnvironment updates an existing environment.

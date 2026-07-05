@@ -157,7 +157,8 @@ func (env *ActionEnvironment) MatchesBranch(ref string) bool {
 		}
 		g, err := glob.Compile(pattern)
 		if err != nil {
-			return false
+			// Skip malformed patterns so one bad glob doesn't deny an otherwise matching ref.
+			continue
 		}
 		ok := g.Match(shortRef)
 		if ok {

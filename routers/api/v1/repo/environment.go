@@ -127,12 +127,16 @@ func CreateEnvironment(ctx *context.APIContext) {
 	//     "$ref": "#/responses/Environment"
 	//   "400":
 	//     "$ref": "#/responses/error"
+	//   "409":
+	//     description: environment already exists
 
 	opt := web.GetForm(ctx).(*api.CreateEnvironmentOption)
 	env, err := actions_service.CreateEnvironment(ctx, ctx.Repo.Repository.ID, opt.Name, opt.ProtectedBranches)
 	if err != nil {
 		if errors.Is(err, util.ErrInvalidArgument) {
 			ctx.APIError(http.StatusBadRequest, err.Error())
+		} else if errors.Is(err, util.ErrAlreadyExist) {
+			ctx.APIError(http.StatusConflict, err.Error())
 		} else {
 			ctx.APIErrorInternal(err)
 		}
