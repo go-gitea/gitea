@@ -1,10 +1,9 @@
-import {createApp, ref} from 'vue';
-import {Idiomorph} from 'idiomorph';
+import {createApp} from 'vue';
 import RepoActionView from '../components/RepoActionView.vue';
 import {registerGlobalInitFunc} from '../modules/observer.ts';
 import {html} from '../utils/html.ts';
 import {GET} from '../modules/fetch.ts';
-import {ActivePageTimer, createElementFromHTML} from "../utils/dom.ts";
+import {ActivePageTimer, createElementFromHTML} from '../utils/dom.ts';
 
 export function updateWorkflowBadgeFields(form: HTMLElement, branch: string): void {
   const badgeURLParsed = new URL(form.getAttribute('data-badge-url')!);
@@ -109,28 +108,27 @@ function initRepositoryActionsView() {
 }
 
 async function initActionRunsList(el: HTMLElement) {
-  const refreshLink = el.getAttribute('data-action-runs-refresh-link')!;
-  const refreshInterval = Number(el.getAttribute('data-action-runs-refresh-interval'));
-  if (!refreshInterval) return;
-
-  let timer = new ActivePageTimer(refreshInterval, {once: true});
-  const refresh = async () => {
-    const resp = await GET(refreshLink);
+  let timer: ActivePageTimer;
+  let startRefresh: () => void;
+  const refresh = async (link: string) => {
+    const resp = await GET(link);
     if (!resp.ok) {
-      timer.start();
+      timer.start(); // retry on network error
       return;
     }
-
     const newEl = createElementFromHTML(await resp.text());
+    for (const attr of newEl.attributes) el.setAttribute(attr.name, attr.value);
     // FIXME: 1. use HTML id to replace the rows one by one; 2. don't replace the rows which have active elements like opened dropdown
     el.innerHTML = newEl.innerHTML;
-
-    const newInterval = Number(newEl.getAttribute('data-action-runs-refresh-interval'));
-    if (!newInterval) return;
-    timer = new ActivePageTimer(newInterval, {once: true});
-    timer.callback = refresh;
+    startRefresh();
+  };
+  startRefresh = () => {
+    const link = el.getAttribute('data-action-runs-refresh-link')!;
+    const interval = Number(el.getAttribute('data-action-runs-refresh-interval'));
+    if (!interval) return;
+    timer = new ActivePageTimer(interval, {once: true});
+    timer.callback = async () => await refresh(link);
     timer.start();
   };
-  timer.callback = refresh;
-  timer.start();
+  startRefresh();
 }
