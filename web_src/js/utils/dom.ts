@@ -347,12 +347,12 @@ export type ActivePageTimerOptions = {
 export class ActivePageTimer {
   callback?: () => Promise<void>;
 
-  private interval: number;
-  private opts: ActivePageTimerOptions;
+  private readonly interval: number;
+  private readonly opts: ActivePageTimerOptions;
+  private readonly onVisibilityChange: () => void;
 
-  private timerId?: number;
+  private sysTimerId?: number;
   private startTime?: number;
-  private onVisibilityChange: () => void;
 
   constructor(interval: number, opts: ActivePageTimerOptions = {once: false}) {
     this.interval = interval;
@@ -374,7 +374,7 @@ export class ActivePageTimer {
   }
 
   start() {
-    if (this.timerId) return;
+    if (this.sysTimerId) return;
     if (!this.startTime) {
       this.startTime = Date.now();
       document.addEventListener('visibilitychange', this.onVisibilityChange);
@@ -387,14 +387,14 @@ export class ActivePageTimer {
     if (remaining <= 0) {
       this.handler();
     } else {
-      this.timerId = window.setTimeout(() => this.handler(), remaining);
+      this.sysTimerId = window.setTimeout(() => this.handler(), remaining);
     }
   }
 
   private clearSysTimer() {
-    if (this.timerId === undefined) return;
-    window.clearTimeout(this.timerId);
-    this.timerId = undefined;
+    if (this.sysTimerId === undefined) return;
+    window.clearTimeout(this.sysTimerId);
+    this.sysTimerId = undefined;
   }
 
   clear() {
