@@ -1,5 +1,8 @@
 {{$data := .ActionRunListData}}
-<div class="flex-divided-list items-with-main run-list">
+<div class="flex-divided-list items-with-main run-list" data-global-init="initActionRunsList"
+		data-action-runs-refresh-link="{{$data.RefreshLink}}"
+		data-action-runs-refresh-interval="{{$data.RefreshIntervalMs}}"
+>
 	{{if not $data.ActionRuns}}
 	<div class="empty-placeholder">
 		{{svg "octicon-no-entry" 48}}

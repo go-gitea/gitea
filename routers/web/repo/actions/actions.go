@@ -8,6 +8,7 @@ import (
 	stdCtx "context"
 	"errors"
 	"fmt"
+	"html/template"
 	"net/http"
 	"net/url"
 	"slices"
@@ -19,6 +20,7 @@ import (
 	repo_model "gitea.dev/models/repo"
 	"gitea.dev/models/unit"
 	"gitea.dev/modules/actions"
+	"gitea.dev/modules/base"
 	"gitea.dev/modules/container"
 	"gitea.dev/modules/git"
 	"gitea.dev/modules/log"
@@ -114,16 +116,16 @@ func List(ctx *context.Context) {
 		return
 	}
 
-	prepareWorkflowList(ctx, workflows, curWorkflowID, otherWorkflows, len(scopedNames) > 0)
+	data := prepareWorkflowList(ctx, workflows, curWorkflowID, otherWorkflows, len(scopedNames) > 0)
 	if ctx.Written() {
 		return
 	}
 
-	if ctx.FormBool("runs-list-only") {
+	ctx.Data["ActionRunListData"] = data
+	if data.PartialRefresh {
 		ctx.HTML(http.StatusOK, "repo/actions/runs_list")
 		return
 	}
-
 	ctx.HTML(http.StatusOK, tplListActions)
 }
 
@@ -457,13 +459,26 @@ func prepareWorkflowDispatchTemplate(ctx *context.Context, workflowInfos []Workf
 	ctx.Data["Tags"] = tags
 }
 
-func prepareWorkflowList(ctx *context.Context, workflows []WorkflowInfo, curWorkflowID string, otherWorkflows []string, hasScopedWorkflows bool) {
+type actionRunListData struct {
+	PartialRefresh          bool
+	RefreshLink             template.URL
+	RefreshIntervalMs       int64
+	ActionRuns              []*actions_model.ActionRun
+	IsFiltered              bool
+	WorkflowNames           map[string]string
+	RunErrors               map[int64]string
+	CurWorkflow             string
+	CanWriteRepoUnitActions bool
+}
+
+func prepareWorkflowList(ctx *context.Context, workflows []WorkflowInfo, curWorkflowID string, otherWorkflows []string, hasScopedWorkflows bool) (data *actionRunListData) {
+	data = &actionRunListData{}
 	actorID := ctx.FormInt64("actor")
 	status := ctx.FormInt("status")
 	workflowID := ctx.FormString("workflow")
 	scopedWorkflowSourceRepoID := ctx.FormInt64("scoped_workflow_source_repo_id")
 	branch := ctx.FormString("branch")
-	runIDs := ctx.FormStringInt64s("run_ids")
+	refreshRunIDs := ctx.FormStringInt64s("run_ids")
 
 	// if status or actor query param is not given to frontend href, (href="/<repoLink>/actions")
 	// they will be 0 by default, which indicates get all status or actors
@@ -471,8 +486,16 @@ func prepareWorkflowList(ctx *context.Context, workflows []WorkflowInfo, curWork
 	ctx.Data["CurStatus"] = status
 	ctx.Data["CurBranch"] = branch
 
-	var actionRuns []*actions_model.ActionRun
-	if len(runIDs) == 0 {
+	data.RefreshIntervalMs = 10 * 1000
+	data.PartialRefresh = len(refreshRunIDs) != 0
+	if data.PartialRefresh {
+		runs, err := actions_model.GetRunsByRepoAndID(ctx, ctx.Repo.Repository.ID, refreshRunIDs)
+		if err != nil {
+			ctx.ServerError("GetRunsByRepoAndID", err)
+			return data
+		}
+		data.ActionRuns = runs
+	} else {
 		opts := actions_model.FindRunOptions{
 			ListOptions: db.ListOptions{
 				Page:     max(ctx.FormInt("page"), 1),
@@ -500,31 +523,24 @@ func prepareWorkflowList(ctx *context.Context, workflows []WorkflowInfo, curWork
 		runs, total, err := db.FindAndCount[actions_model.ActionRun](ctx, opts)
 		if err != nil {
 			ctx.ServerError("FindAndCount", err)
-			return
+			return data
 		}
 		pager := context.NewPagination(total, opts.PageSize, opts.Page, 5)
 		pager.AddParamFromRequest(ctx.Req)
 		ctx.Data["Page"] = pager
-		actionRuns = runs
-	} else {
-		runs, err := actions_model.GetRunsByRepoAndID(ctx, ctx.Repo.Repository.ID, runIDs)
-		if err != nil {
-			ctx.ServerError("GetRunsByRepoAndID", err)
-			return
-		}
-		actionRuns = runs
+		data.ActionRuns = runs
 	}
 
-	for _, run := range actionRuns {
+	for _, run := range data.ActionRuns {
 		run.Repo = ctx.Repo.Repository
 	}
 
-	if err := actions_model.RunList(actionRuns).LoadTriggerUser(ctx); err != nil {
+	if err := actions_model.RunList(data.ActionRuns).LoadTriggerUser(ctx); err != nil {
 		ctx.ServerError("LoadTriggerUser", err)
-		return
+		return data
 	}
 
-	if err := loadIsRefDeleted(ctx, ctx.Repo.Repository.ID, actionRuns); err != nil {
+	if err := loadIsRefDeleted(ctx, ctx.Repo.Repository.ID, data.ActionRuns); err != nil {
 		log.Error("LoadIsRefDeleted", err)
 	}
 
@@ -537,16 +553,19 @@ func prepareWorkflowList(ctx *context.Context, workflows []WorkflowInfo, curWork
 	})
 	if err != nil {
 		ctx.ServerError("FindRunners", err)
-		return
+		return data
 	}
-	for _, run := range actionRuns {
+
+	var actionRunIDs []int64
+	for _, run := range data.ActionRuns {
+		actionRunIDs = append(actionRunIDs, run.ID)
 		if !run.Status.In(actions_model.StatusWaiting, actions_model.StatusRunning, actions_model.StatusBlocked) {
 			continue
 		}
 		jobs, err := actions_model.GetLatestAttemptJobsByRepoAndRunID(ctx, run.RepoID, run.ID)
 		if err != nil {
 			ctx.ServerError("GetRunJobsByRunID", err)
-			return
+			return data
 		}
 		for _, job := range jobs {
 			if !job.Status.In(actions_model.StatusWaiting, actions_model.StatusBlocked) {
@@ -577,6 +596,7 @@ func prepareWorkflowList(ctx *context.Context, workflows []WorkflowInfo, curWork
 			}
 		}
 	}
+	data.RefreshLink = templates.QueryBuild(setting.AppSubURL+ctx.Req.RequestURI, "run_ids", base.Int64sToStrings(actionRunIDs))
 
 	workflowNames := make(map[string]string, len(workflows))
 	workflowDisplayName := workflowID
@@ -597,7 +617,7 @@ func prepareWorkflowList(ctx *context.Context, workflows []WorkflowInfo, curWork
 	actors, err := actions_model.GetActors(ctx, ctx.Repo.Repository.ID)
 	if err != nil {
 		ctx.ServerError("GetActors", err)
-		return
+		return data
 	}
 	ctx.Data["Actors"] = shared_user.MakeSelfOnTop(ctx.Doer, actors)
 
@@ -606,28 +626,18 @@ func prepareWorkflowList(ctx *context.Context, workflows []WorkflowInfo, curWork
 	runBranches, err := actions_model.GetRunBranches(ctx, ctx.Repo.Repository.ID)
 	if err != nil {
 		ctx.ServerError("GetRunBranches", err)
-		return
+		return data
 	}
 	ctx.Data["RunBranches"] = runBranches
 
-	ctx.Data["HasWorkflowsOrRuns"] = len(workflows) > 0 || len(otherWorkflows) > 0 || len(actionRuns) > 0 || hasScopedWorkflows
+	ctx.Data["HasWorkflowsOrRuns"] = len(workflows) > 0 || len(otherWorkflows) > 0 || len(data.ActionRuns) > 0 || hasScopedWorkflows
 
-	type runListData struct {
-		ActionRuns              []*actions_model.ActionRun
-		IsFiltered              bool
-		WorkflowNames           map[string]string
-		RunErrors               map[int64]string
-		CurWorkflow             string
-		CanWriteRepoUnitActions bool
-	}
-	ctx.Data["ActionRunListData"] = runListData{
-		ActionRuns:              actionRuns,
-		IsFiltered:              actorID > 0 || status != int(actions_model.StatusUnknown) || branch != "",
-		WorkflowNames:           workflowNames,
-		RunErrors:               runErrors,
-		CurWorkflow:             curWorkflowID,
-		CanWriteRepoUnitActions: ctx.Repo.Permission.CanWrite(unit.TypeActions),
-	}
+	data.IsFiltered = actorID > 0 || status != int(actions_model.StatusUnknown) || branch != ""
+	data.WorkflowNames = workflowNames
+	data.RunErrors = runErrors
+	data.CurWorkflow = curWorkflowID
+	data.CanWriteRepoUnitActions = ctx.Repo.Permission.CanWrite(unit.TypeActions)
+	return data
 }
 
 func prepareWorkflowBadgeTemplate(ctx *context.Context, workflowID, displayName string) {
