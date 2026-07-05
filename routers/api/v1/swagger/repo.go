@@ -84,13 +84,6 @@ type swaggerResponseTagProtection struct {
 	Body api.TagProtection `json:"body"`
 }
 
-// Reference
-// swagger:response Reference
-type swaggerResponseReference struct {
-	// in:body
-	Body api.Reference `json:"body"`
-}
-
 // ReferenceList
 // swagger:response ReferenceList
 type swaggerResponseReferenceList struct {
@@ -509,12 +502,6 @@ type swaggerRunner struct {
 type swaggerCompare struct {
 	// in:body
 	Body api.Compare `json:"body"`
-}
-
-// swagger:response MergeUpstreamRequest
-type swaggerMergeUpstreamRequest struct {
-	// in:body
-	Body api.MergeUpstreamRequest `json:"body"`
 }
 
 // swagger:response MergeUpstreamResponse

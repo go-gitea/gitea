@@ -6,36 +6,30 @@ on:
       - main
   workflow_dispatch:
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 permissions:
   contents: read
 
 jobs:
   build-and-publish:
-    runs-on: ubuntu-latest
-
-    env:
-      SNAPCRAFT_STORE_CREDENTIALS: ${{ secrets.SNAPCRAFT_STORE_CREDENTIALS }}
+    strategy:
+      fail-fast: false
+      matrix:
+        runner: [ubuntu-24.04, ubuntu-24.04-arm]
+    runs-on: ${{ matrix.runner }}
 
     steps:
       - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7
-
-      - name: Install snapcraft
-        run: sudo snap install snapcraft --classic
-
-      - name: Remote build
-        run: |
-          snapcraft remote-build \
-            --launchpad-accept-public-upload \
-            --build-for=amd64,arm64,armhf
-
-      - name: List built snaps
-        run: find . -maxdepth 1 -type f -name '*.snap' -print
-
-      - name: Upload and release snapcraft nightly build
-        run: |
-          set -euo pipefail
-
-          for snap in ./*.snap; do
-            echo "Uploading $snap to edge"
-            snapcraft upload --release="latest/edge" "$snap"
-          done
+        with:
+          fetch-depth: 0
+      - uses: snapcore/action-build@3bdaa03e1ba6bf59a65f84a751d943d549a54e79 # v1.3.0
+        id: build
+      - uses: snapcore/action-publish@214b86e5ca036ead1668c79afb81e550e6c54d40 # v1.2.0
+        env:
+          SNAPCRAFT_STORE_CREDENTIALS: ${{ secrets.SNAPCRAFT_STORE_CREDENTIALS }}
+        with:
+          snap: ${{ steps.build.outputs.snap }}
+          release: latest/edge

@@ -22,6 +22,10 @@ import (
 // It parses the workflow content, evaluates concurrency if needed, and inserts the run and its jobs into the database.
 // The title will be cut off at 255 characters if it's longer than 255 characters.
 func PrepareRunAndInsert(ctx context.Context, content []byte, run *actions_model.ActionRun, inputsWithDefaults map[string]any) error {
+	if run.WorkflowRepoID == 0 {
+		return fmt.Errorf("WorkflowRepoID must be set before insert (repo %d, workflow %q)", run.RepoID, run.WorkflowID)
+	}
+
 	if err := run.LoadAttributes(ctx); err != nil {
 		return fmt.Errorf("LoadAttributes: %w", err)
 	}
@@ -166,8 +170,8 @@ func InsertRun(ctx context.Context, run *actions_model.ActionRun, content []byte
 				Needs:                   needs,
 				RunsOn:                  job.RunsOn(),
 				Status:                  util.Iif(shouldBlockJob, actions_model.StatusBlocked, actions_model.StatusWaiting),
-				WorkflowSourceRepoID:    run.RepoID,
-				WorkflowSourceCommitSHA: run.CommitSHA,
+				WorkflowSourceRepoID:    run.WorkflowRepoID,
+				WorkflowSourceCommitSHA: run.WorkflowCommitSHA,
 				ContinueOnError:         job.GetContinueOnError(),
 			}
 			// Parse workflow/job permissions (no clamping here)

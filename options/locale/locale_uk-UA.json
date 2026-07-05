@@ -3115,6 +3115,8 @@
   "actions.workflow.enable": "Увімкнути робочий процес",
   "actions.workflow.enable_success": "Робочий процес '%s' успішно ввімкнено.",
   "actions.workflow.disabled": "Робочий процес вимкнений.",
+  "actions.workflow.scope_owner": "Власник",
+  "actions.workflow.required": "Обов'язково",
   "actions.workflow.run": "Запустити робочий процес",
   "actions.workflow.not_found": "Робочий процес '%s' не знайдено.",
   "actions.workflow.run_success": "Робочий процес '%s' завершився успішно.",

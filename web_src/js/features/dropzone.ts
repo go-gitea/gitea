@@ -125,7 +125,7 @@ export async function initDropzone(dropzoneEl: HTMLElement) {
       dzInst.removeAllFiles(true);
       disableRemovedfileEvent = false;
 
-      dropzoneEl.querySelector('.files')!.innerHTML = '';
+      dropzoneEl.querySelector('.files')!.replaceChildren();
       for (const el of dropzoneEl.querySelectorAll('.dz-preview')) el.remove();
       fileUuidDict = {};
       for (const attachment of respData) {

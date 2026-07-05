@@ -88,7 +88,16 @@ func validateRerun(ctx context.Context, run *actions_model.ActionRun, repo *repo
 	}
 	cfgUnit := repo.MustGetUnit(ctx, unit.TypeActions)
 	cfg := cfgUnit.ActionsConfig()
-	if cfg.IsWorkflowDisabled(run.WorkflowID) {
+	if run.IsScopedRun {
+		// a required scoped workflow can never be opted out, so a stale disabled flag must not block rerun
+		optedOut, err := actions_model.IsScopedWorkflowOptedOut(ctx, cfg, repo.OwnerID, run.WorkflowRepoID, run.WorkflowID)
+		if err != nil {
+			return err
+		}
+		if optedOut {
+			return util.NewInvalidArgumentErrorf("scoped workflow %s is disabled", run.WorkflowID)
+		}
+	} else if cfg.IsWorkflowDisabled(run.WorkflowID) {
 		return util.NewInvalidArgumentErrorf("workflow %s is disabled", run.WorkflowID)
 	}
 
