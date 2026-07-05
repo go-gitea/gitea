@@ -1,9 +1,10 @@
-import {createApp} from 'vue';
+import {createApp, ref} from 'vue';
 import {Idiomorph} from 'idiomorph';
 import RepoActionView from '../components/RepoActionView.vue';
 import {registerGlobalInitFunc} from '../modules/observer.ts';
 import {html} from '../utils/html.ts';
 import {GET} from '../modules/fetch.ts';
+import {ActivePageTimer, createElementFromHTML} from "../utils/dom.ts";
 
 export function updateWorkflowBadgeFields(form: HTMLElement, branch: string): void {
   const badgeURLParsed = new URL(form.getAttribute('data-badge-url')!);
@@ -29,7 +30,7 @@ function initWorkflowBadgeForm(form: HTMLElement): void {
 export function initRepositoryActions() {
   registerGlobalInitFunc('initWorkflowBadgeForm', initWorkflowBadgeForm);
   initRepositoryActionsView();
-  initRepositoryActionsList();
+  registerGlobalInitFunc('initActionRunsList', initActionRunsList);
 }
 
 function initRepositoryActionsView() {
@@ -107,52 +108,29 @@ function initRepositoryActionsView() {
   view.mount(el);
 }
 
-function initRepositoryActionsList(): void {
-  const runsList = document.querySelector('#actions-runs-list');
-  if (!runsList) return;
+async function initActionRunsList(el: HTMLElement) {
+  const refreshLink = el.getAttribute('data-action-runs-refresh-link')!;
+  const refreshInterval = Number(el.getAttribute('data-action-runs-refresh-interval'));
+  if (!refreshInterval) return;
 
-  let timerId: number | null = null;
-  let pollingInterval = 3000;
-
-  const runPolling = async () => {
-    if (!document.contains(runsList)) {
-      if (timerId) {
-        clearTimeout(timerId);
-      }
+  let timer = new ActivePageTimer(refreshInterval, {once: true});
+  const refresh = async () => {
+    const resp = await GET(refreshLink);
+    if (!resp.ok) {
+      timer.start();
       return;
     }
 
-    if (document.hidden) {
-      timerId = window.setTimeout(runPolling, pollingInterval);
-      return;
-    }
+    const newEl = createElementFromHTML(await resp.text());
+    // FIXME: 1. use HTML id to replace the rows one by one; 2. don't replace the rows which have active elements like opened dropdown
+    el.innerHTML = newEl.innerHTML;
 
-    const hasActiveRuns = document.querySelector(
-      '#actions-runs-list .run-list .item[data-status="running"], ' +
-      '#actions-runs-list .run-list .item[data-status="waiting"], ' +
-      '#actions-runs-list .run-list .item[data-status="cancelling"]',
-    ) !== null;
-
-    pollingInterval = hasActiveRuns ? 3000 : 10000;
-
-    try {
-      const url = new URL(window.location.href);
-      url.searchParams.set('runs-list-only', 'true');
-      const response = await GET(url.href, {
-        headers: {
-          'X-Requested-With': 'XMLHttpRequest',
-        },
-      });
-      if (response.ok) {
-        const htmlText = await response.text();
-        Idiomorph.morph(runsList, htmlText, {morphStyle: 'innerHTML'});
-      }
-    } catch (e) {
-      console.error('Failed to update actions runs list:', e);
-    }
-
-    timerId = window.setTimeout(runPolling, pollingInterval);
+    const newInterval = Number(newEl.getAttribute('data-action-runs-refresh-interval'));
+    if (!newInterval) return;
+    timer = new ActivePageTimer(newInterval, {once: true});
+    timer.callback = refresh;
+    timer.start();
   };
-
-  timerId = window.setTimeout(runPolling, pollingInterval);
+  timer.callback = refresh;
+  timer.start();
 }

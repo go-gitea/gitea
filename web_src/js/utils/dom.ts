@@ -339,3 +339,68 @@ let elemIdCounter = 0;
 export function generateElemId(prefix: string = ''): string {
   return `${prefix}${elemIdCounter++}`;
 }
+
+export type ActivePageTimerOptions = {
+  once: boolean;
+};
+
+export class ActivePageTimer {
+  callback?: () => Promise<void>;
+
+  private interval: number;
+  private opts: ActivePageTimerOptions;
+
+  private timerId?: number;
+  private startTime?: number;
+  private onVisibilityChange: () => void;
+
+  constructor(interval: number, opts: ActivePageTimerOptions = {once: false}) {
+    this.interval = interval;
+    this.opts = opts;
+    this.onVisibilityChange = () => {
+      if (!this.startTime) return;
+      if (document.hidden) {
+        this.clearSysTimer();
+      } else {
+        this.startSysTimer();
+      }
+    };
+  }
+
+  private async handler() {
+    this.clear();
+    await this.callback!();
+    if (!this.opts.once) this.start();
+  }
+
+  start() {
+    if (this.timerId) return;
+    if (!this.startTime) {
+      this.startTime = Date.now();
+      document.addEventListener('visibilitychange', this.onVisibilityChange);
+    }
+    if (!document.hidden) this.startSysTimer();
+  }
+
+  private startSysTimer() {
+    const remaining = this.interval - (Date.now() - this.startTime!);
+    if (remaining <= 0) {
+      this.callback!();
+    } else {
+      this.timerId = window.setTimeout(() => this.handler(), remaining);
+    }
+  }
+
+  private clearSysTimer() {
+    if (this.timerId === undefined) return;
+    window.clearTimeout(this.timerId);
+    this.timerId = undefined;
+  }
+
+  clear() {
+    if (this.startTime === undefined) return;
+    this.startTime = undefined;
+    this.clearSysTimer();
+    document.removeEventListener('visibilitychange', this.onVisibilityChange);
+  }
+}

@@ -486,7 +486,9 @@ func prepareWorkflowList(ctx *context.Context, workflows []WorkflowInfo, curWork
 	ctx.Data["CurStatus"] = status
 	ctx.Data["CurBranch"] = branch
 
-	data.RefreshIntervalMs = 10 * 1000
+	// use shorter interval in dev mode to make debug easier
+	// FIXME: if no need to refresh (statuses are all "over"), set data.RefreshIntervalMs to 0
+	data.RefreshIntervalMs = util.Iif[int64](setting.IsProd, 10*1000, 1000)
 	data.PartialRefresh = len(refreshRunIDs) != 0
 	if data.PartialRefresh {
 		runs, err := actions_model.GetRunsByRepoAndID(ctx, ctx.Repo.Repository.ID, refreshRunIDs)
@@ -596,7 +598,7 @@ func prepareWorkflowList(ctx *context.Context, workflows []WorkflowInfo, curWork
 			}
 		}
 	}
-	data.RefreshLink = templates.QueryBuild(setting.AppSubURL+ctx.Req.RequestURI, "run_ids", base.Int64sToStrings(actionRunIDs))
+	data.RefreshLink = templates.QueryBuild(setting.AppSubURL+ctx.Req.RequestURI, "run_ids", strings.Join(base.Int64sToStrings(actionRunIDs), ","))
 
 	workflowNames := make(map[string]string, len(workflows))
 	workflowDisplayName := workflowID
