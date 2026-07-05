@@ -16,6 +16,11 @@
 						{{end}}
 						<a class="tw-text-primary name" href="{{.Link}}">{{.Name}}</a>
 						<span class="label-list">
+							{{range .Badges}}
+								<span class="ui basic label" {{if .Description}}data-tooltip-content="{{.Description}}"{{end}}>
+									{{if .ImageURL}}<img width="16" height="16" src="{{.ImageURL}}" alt="{{.Description}}" class="tw-mr-1 tw-align-middle">{{end}}{{.Slug}}
+								</span>
+							{{end}}
 							{{if .IsArchived}}
 								<span class="ui basic label">{{ctx.Locale.Tr "repo.desc.archived"}}</span>
 							{{end}}

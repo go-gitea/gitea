@@ -10,6 +10,8 @@ import (
 	"strings"
 
 	"gitea.dev/models/db"
+	org_model "gitea.dev/models/organization"
+	repo_model "gitea.dev/models/repo"
 	user_model "gitea.dev/models/user"
 	"gitea.dev/modules/log"
 	"gitea.dev/modules/setting"
@@ -26,6 +28,8 @@ const (
 	tplBadgeView  templates.TplName = "admin/badge/view"
 	tplBadgeEdit  templates.TplName = "admin/badge/edit"
 	tplBadgeUsers templates.TplName = "admin/badge/users"
+	tplBadgeRepos templates.TplName = "admin/badge/repos"
+	tplBadgeOrgs  templates.TplName = "admin/badge/orgs"
 )
 
 // BadgeSearchDefaultAdminSort is the default sort type for admin view
@@ -121,6 +125,40 @@ func ViewBadge(ctx *context.Context) {
 	ctx.Data["Users"] = users
 	ctx.Data["UsersTotal"] = int(count)
 
+	repoOpts := &repo_model.GetBadgeReposOptions{
+		ListOptions: db.ListOptions{
+			Page:     1,
+			PageSize: setting.UI.Admin.UserPagingNum,
+		},
+		BadgeSlug: badge.Slug,
+	}
+	repos, repoCount, err := repo_model.GetBadgeRepos(ctx, repoOpts)
+	if err != nil {
+		ctx.ServerError("GetBadgeRepos", err)
+		return
+	}
+	if err := repo_model.RepositoryList(repos).LoadOwners(ctx); err != nil {
+		ctx.ServerError("LoadOwners", err)
+		return
+	}
+	ctx.Data["Repos"] = repos
+	ctx.Data["ReposTotal"] = int(repoCount)
+
+	orgOpts := &org_model.GetBadgeOrgsOptions{
+		ListOptions: db.ListOptions{
+			Page:     1,
+			PageSize: setting.UI.Admin.UserPagingNum,
+		},
+		BadgeSlug: badge.Slug,
+	}
+	orgs, orgCount, err := org_model.GetBadgeOrgs(ctx, orgOpts)
+	if err != nil {
+		ctx.ServerError("GetBadgeOrgs", err)
+		return
+	}
+	ctx.Data["Orgs"] = orgs
+	ctx.Data["OrgsTotal"] = int(orgCount)
+
 	ctx.HTML(http.StatusOK, tplBadgeView)
 }
 
@@ -182,6 +220,7 @@ func DeleteBadge(ctx *context.Context) {
 	ctx.Redirect(setting.AppSubURL + "/-/admin/badges")
 }
 
+//nolint:dupl // these handlers share identical structure by design
 func BadgeUsers(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("admin.badges.users_with_badge", ctx.PathParam("badge_slug"))
 	ctx.Data["PageIsAdminBadges"] = true
@@ -264,6 +303,183 @@ func DeleteBadgeUser(ctx *context.Context) {
 	}
 
 	ctx.JSONRedirect(badgeUsersURL)
+}
+
+func BadgeRepos(ctx *context.Context) {
+	ctx.Data["Title"] = ctx.Tr("admin.badges.repos_with_badge", ctx.PathParam("badge_slug"))
+	ctx.Data["PageIsAdminBadges"] = true
+
+	page := max(ctx.FormInt("page"), 1)
+
+	badge := &user_model.Badge{Slug: ctx.PathParam("badge_slug")}
+	opts := &repo_model.GetBadgeReposOptions{
+		ListOptions: db.ListOptions{
+			Page:     page,
+			PageSize: setting.UI.Admin.UserPagingNum,
+		},
+		BadgeSlug: badge.Slug,
+	}
+	repos, count, err := repo_model.GetBadgeRepos(ctx, opts)
+	if err != nil {
+		ctx.ServerError("GetBadgeRepos", err)
+		return
+	}
+	if err := repo_model.RepositoryList(repos).LoadOwners(ctx); err != nil {
+		ctx.ServerError("LoadOwners", err)
+		return
+	}
+
+	ctx.Data["Repos"] = repos
+	ctx.Data["Total"] = count
+	ctx.Data["Page"] = context.NewPagination(count, setting.UI.Admin.UserPagingNum, page, 5)
+
+	ctx.HTML(http.StatusOK, tplBadgeRepos)
+}
+
+func BadgeReposPost(ctx *context.Context) {
+	repoFullName := strings.ToLower(ctx.FormString("repo"))
+	parts := strings.Split(repoFullName, "/")
+	if len(parts) != 2 {
+		ctx.Flash.Error(ctx.Tr("form.repo_not_exist"))
+		ctx.Redirect(setting.AppSubURL + ctx.Req.URL.EscapedPath())
+		return
+	}
+	ownerName := parts[0]
+	repoName := parts[1]
+
+	repo, err := repo_model.GetRepositoryByOwnerAndName(ctx, ownerName, repoName)
+	if err != nil {
+		if repo_model.IsErrRepoNotExist(err) {
+			ctx.Flash.Error(ctx.Tr("form.repo_not_exist"))
+			ctx.Redirect(setting.AppSubURL + ctx.Req.URL.EscapedPath())
+		} else {
+			ctx.ServerError("GetRepositoryByOwnerAndName", err)
+		}
+		return
+	}
+
+	if err = repo_model.AddRepoBadge(ctx, repo, &user_model.Badge{Slug: ctx.PathParam("badge_slug")}); err != nil {
+		if errors.Is(err, util.ErrNotExist) {
+			ctx.Flash.Error(ctx.Tr("admin.badges.not_found"))
+			ctx.Redirect(setting.AppSubURL + ctx.Req.URL.EscapedPath())
+		} else if errors.Is(err, util.ErrAlreadyExist) {
+			ctx.Flash.Error(ctx.Tr("admin.badges.repo_already_has"))
+			ctx.Redirect(setting.AppSubURL + ctx.Req.URL.EscapedPath())
+		} else {
+			ctx.ServerError("AddRepoBadge", err)
+		}
+		return
+	}
+
+	ctx.Flash.Success(ctx.Tr("admin.badges.repo_add_success"))
+	ctx.Redirect(setting.AppSubURL + ctx.Req.URL.EscapedPath())
+}
+
+func DeleteBadgeRepo(ctx *context.Context) {
+	badgeReposURL := setting.AppSubURL + "/-/admin/badges/slug/" + url.PathEscape(ctx.PathParam("badge_slug")) + "/repos"
+
+	repo, err := repo_model.GetRepositoryByID(ctx, ctx.FormInt64("id"))
+	if err != nil {
+		if repo_model.IsErrRepoNotExist(err) {
+			ctx.Flash.Error(ctx.Tr("form.repo_not_exist"))
+			ctx.JSONRedirect(badgeReposURL)
+			return
+		} else {
+			ctx.ServerError("GetRepositoryByID", err)
+			return
+		}
+	}
+	if err := repo_model.RemoveRepoBadge(ctx, repo, &user_model.Badge{Slug: ctx.PathParam("badge_slug")}); err == nil {
+		ctx.Flash.Success(ctx.Tr("admin.badges.repo_remove_success"))
+	} else {
+		ctx.ServerError("RemoveRepoBadge", err)
+		return
+	}
+
+	ctx.JSONRedirect(badgeReposURL)
+}
+
+//nolint:dupl // these handlers share identical structure by design
+func BadgeOrgs(ctx *context.Context) {
+	ctx.Data["Title"] = ctx.Tr("admin.badges.orgs_with_badge", ctx.PathParam("badge_slug"))
+	ctx.Data["PageIsAdminBadges"] = true
+
+	page := max(ctx.FormInt("page"), 1)
+
+	badge := &user_model.Badge{Slug: ctx.PathParam("badge_slug")}
+	opts := &org_model.GetBadgeOrgsOptions{
+		ListOptions: db.ListOptions{
+			Page:     page,
+			PageSize: setting.UI.Admin.UserPagingNum,
+		},
+		BadgeSlug: badge.Slug,
+	}
+	orgs, count, err := org_model.GetBadgeOrgs(ctx, opts)
+	if err != nil {
+		ctx.ServerError("GetBadgeOrgs", err)
+		return
+	}
+
+	ctx.Data["Orgs"] = orgs
+	ctx.Data["Total"] = count
+	ctx.Data["Page"] = context.NewPagination(count, setting.UI.Admin.UserPagingNum, page, 5)
+
+	ctx.HTML(http.StatusOK, tplBadgeOrgs)
+}
+
+func BadgeOrgsPost(ctx *context.Context) {
+	name := strings.ToLower(ctx.FormString("org"))
+
+	org, err := org_model.GetOrgByName(ctx, name)
+	if err != nil {
+		if org_model.IsErrOrgNotExist(err) {
+			ctx.Flash.Error(ctx.Tr("form.org_not_exist"))
+			ctx.Redirect(setting.AppSubURL + ctx.Req.URL.EscapedPath())
+		} else {
+			ctx.ServerError("GetOrgByName", err)
+		}
+		return
+	}
+
+	if err = org_model.AddOrgBadge(ctx, org, &user_model.Badge{Slug: ctx.PathParam("badge_slug")}); err != nil {
+		if errors.Is(err, util.ErrNotExist) {
+			ctx.Flash.Error(ctx.Tr("admin.badges.not_found"))
+			ctx.Redirect(setting.AppSubURL + ctx.Req.URL.EscapedPath())
+		} else if errors.Is(err, util.ErrAlreadyExist) {
+			ctx.Flash.Error(ctx.Tr("admin.badges.org_already_has"))
+			ctx.Redirect(setting.AppSubURL + ctx.Req.URL.EscapedPath())
+		} else {
+			ctx.ServerError("AddOrgBadge", err)
+		}
+		return
+	}
+
+	ctx.Flash.Success(ctx.Tr("admin.badges.org_add_success"))
+	ctx.Redirect(setting.AppSubURL + ctx.Req.URL.EscapedPath())
+}
+
+func DeleteBadgeOrg(ctx *context.Context) {
+	badgeOrgsURL := setting.AppSubURL + "/-/admin/badges/slug/" + url.PathEscape(ctx.PathParam("badge_slug")) + "/orgs"
+
+	org, err := org_model.GetOrgByID(ctx, ctx.FormInt64("id"))
+	if err != nil {
+		if org_model.IsErrOrgNotExist(err) {
+			ctx.Flash.Error(ctx.Tr("form.org_not_exist"))
+			ctx.JSONRedirect(badgeOrgsURL)
+			return
+		} else {
+			ctx.ServerError("GetOrgByID", err)
+			return
+		}
+	}
+	if err := org_model.RemoveOrgBadge(ctx, org, &user_model.Badge{Slug: ctx.PathParam("badge_slug")}); err == nil {
+		ctx.Flash.Success(ctx.Tr("admin.badges.org_remove_success"))
+	} else {
+		ctx.ServerError("RemoveOrgBadge", err)
+		return
+	}
+
+	ctx.JSONRedirect(badgeOrgsURL)
 }
 
 func RenderBadgeSearch(ctx *context.Context, opts *user_model.SearchBadgeOptions, tplName templates.TplName) {
