@@ -1,0 +1,35 @@
+{{if and ctx.RootData.SignedUserID (not ctx.RootData.Repository.IsArchived)}}
+	{{/* When a parent comment is passed (reply path), pre-fill side, line, and path so a
+		reply on an existing thread submits with the same coordinates as the parent. */}}
+	{{$side := ""}}
+	{{$line := ""}}
+	{{$path := ""}}
+	{{if $.comment}}
+		{{$side = $.comment.DiffSide}}
+		{{$line = $.comment.UnsignedLine}}
+		{{$path = $.comment.TreePath}}
+	{{end}}
+	<form class="ui form comment-form {{if $.hidden}}tw-hidden{{end}}" action="{{$.root.RepoLink}}/commit/{{$.root.CommitID}}/comment" method="post">
+		<input type="hidden" name="side" value="{{if eq $side "previous"}}previous{{else if eq $side "proposed"}}proposed{{end}}">
+		<input type="hidden" name="line" value="{{$line}}">
+		<input type="hidden" name="path" value="{{$path}}">
+		<div class="field">
+		{{template "shared/combomarkdowneditor" (dict
+			"CustomInit" true
+			"MarkdownEditorContext" (ctx.MiscUtils.MarkdownEditorComment ctx.RootData.Repository)
+			"TextareaName" "content"
+			"TextareaPlaceholder" (ctx.Locale.Tr "repo.diff.comment.placeholder")
+			"DropzoneParentContainer" "form"
+			"DisableAutosize" "true"
+		)}}
+		</div>
+		<div class="field footer">
+			<div class="flex-text-block tw-justify-end">
+				<button type="submit" class="ui submit primary tiny button btn-add-single">{{ctx.Locale.Tr "repo.diff.comment.add_single_comment"}}</button>
+				{{if or (not $.HasComments) $.hidden}}
+					<button type="button" class="ui submit tiny basic button btn-cancel cancel-code-comment">{{ctx.Locale.Tr "cancel"}}</button>
+				{{end}}
+			</div>
+		</div>
+	</form>
+{{end}}

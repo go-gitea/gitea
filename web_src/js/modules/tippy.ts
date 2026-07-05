@@ -25,6 +25,17 @@ export function createTippy(target: Element, opts: TippyOpts = {}): Instance {
     interactiveBorder: 20,
     ignoreAttributes: true,
     maxWidth: 500, // increase over default 350px
+    popperOptions: {
+      modifiers: [
+        {
+          name: 'computeStyles',
+          options: {
+            gpuAcceleration: false,
+            adaptive: false,
+          },
+        },
+      ],
+    },
     onHide: (instance: Instance) => {
       visibleInstances.delete(instance);
       return onHide?.(instance);

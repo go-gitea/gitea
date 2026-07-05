@@ -120,6 +120,11 @@ func prepareUserNotificationsData(ctx *context.Context) {
 	notifications = notifications.Without(failures)
 	failCount += len(failures)
 
+	if err := notifications.LoadCommitComments(ctx); err != nil {
+		ctx.ServerError("LoadCommitComments", err)
+		return
+	}
+
 	if failCount > 0 {
 		ctx.Flash.Error(fmt.Sprintf("ERROR: %d notifications were removed due to missing parts - check the logs", failCount))
 	}
