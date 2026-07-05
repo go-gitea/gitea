@@ -12,8 +12,11 @@ import (
 	"gitea.dev/models/unittest"
 	user_model "gitea.dev/models/user"
 	"gitea.dev/modules/gitrepo"
+	"gitea.dev/modules/setting"
+	"gitea.dev/modules/test"
 	"gitea.dev/modules/timeutil"
 	"gitea.dev/services/attachment"
+	"gitea.dev/services/context/upload"
 
 	_ "gitea.dev/models/actions"
 
@@ -268,6 +271,17 @@ func TestRelease_Update(t *testing.T) {
 	assert.Len(t, release.Attachments, 1)
 	assert.Equal(t, attach.UUID, release.Attachments[0].UUID)
 	assert.Equal(t, release.ID, release.Attachments[0].ReleaseID)
+	assert.Equal(t, "test2.txt", release.Attachments[0].Name)
+
+	defer test.MockVariableValue(&setting.Repository.Release.AllowedTypes, ".zip")()
+	err = UpdateRelease(t.Context(), user, gitRepo, release, nil, nil, map[string]string{
+		attach.UUID: "test.exe",
+	})
+	assert.Error(t, err)
+	assert.True(t, upload.IsErrFileTypeForbidden(err))
+	release.Attachments = nil
+	assert.NoError(t, repo_model.GetReleaseAttachments(t.Context(), release))
+	assert.Len(t, release.Attachments, 1)
 	assert.Equal(t, "test2.txt", release.Attachments[0].Name)
 
 	// delete the attachment
