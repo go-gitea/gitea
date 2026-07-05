@@ -2085,5 +2085,7 @@
   "actions.runners.status.active": "Aktywne",
   "actions.runners.version": "Wersja",
   "actions.runs.summary": "Podsumowanie",
+  "actions.workflow.scope_owner": "Właściciel",
+  "actions.workflow.required": "Wymagane",
   "actions.general.token_permissions.mode.restricted": "Ograniczone"
 }

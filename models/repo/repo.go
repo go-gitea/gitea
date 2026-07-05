@@ -849,9 +849,9 @@ func GetRepositoriesMapByIDs(ctx context.Context, ids []int64) (map[int64]*Repos
 }
 
 func IsRepositoryModelExist(ctx context.Context, u *user_model.User, repoName string) (bool, error) {
-	return db.GetEngine(ctx).Get(&Repository{
-		OwnerID:   u.ID,
-		LowerName: strings.ToLower(repoName),
+	return db.Exist[Repository](ctx, builder.Eq{
+		"owner_id":   u.ID,
+		"lower_name": strings.ToLower(repoName),
 	})
 }
 

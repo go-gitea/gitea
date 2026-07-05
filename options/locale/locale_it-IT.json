@@ -2352,5 +2352,7 @@
   "actions.runners.version": "Versione",
   "actions.runs.branch": "Ramo",
   "actions.runs.summary": "Riepilogo",
+  "actions.workflow.scope_owner": "Proprietario",
+  "actions.workflow.required": "Richiesto",
   "actions.general.token_permissions.mode.restricted": "Limitato"
 }
