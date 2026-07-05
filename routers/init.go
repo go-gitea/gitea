@@ -54,6 +54,7 @@ import (
 	"gitea.dev/services/repository/archiver"
 	"gitea.dev/services/task"
 	"gitea.dev/services/uinotification"
+	"gitea.dev/services/aireview"
 	"gitea.dev/services/webhook"
 )
 
@@ -150,6 +151,7 @@ func InitWebInstalled(ctx context.Context) {
 	mustInit(indexer_service.Init)
 
 	mirror_service.InitSyncMirrors()
+	mustInit(aireview.Init)
 	mustInit(webhook.Init)
 	mustInit(pull_service.Init)
 	mustInit(automerge.Init)
