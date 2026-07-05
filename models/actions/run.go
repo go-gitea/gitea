@@ -277,6 +277,28 @@ func GetRunByRepoAndID(ctx context.Context, repoID, runID int64) (*ActionRun, er
 	return &run, nil
 }
 
+// GetRunByRepoAndIDForUpdate is a locking-read variant of GetRunByRepoAndID.
+// It is used when a run's status is recomputed from concurrently-finishing jobs: on MySQL,
+// FOR UPDATE both serializes those updaters on the run row and bypasses the transaction's
+// snapshot, so the caller sees the latest committed row (including its optimistic `version`)
+// instead of a stale one. Other databases don't exhibit that write-skew and xorm only emits
+// FOR UPDATE for MySQL, so they fall back to a plain read.
+func GetRunByRepoAndIDForUpdate(ctx context.Context, repoID, runID int64) (*ActionRun, error) {
+	sess := db.GetEngine(ctx).Where("id=? AND repo_id=?", runID, repoID)
+	if setting.Database.Type.IsMySQL() {
+		sess = sess.ForUpdate()
+	}
+	var run ActionRun
+	has, err := sess.Get(&run)
+	if err != nil {
+		return nil, err
+	} else if !has {
+		return nil, fmt.Errorf("run with id %d: %w", runID, util.ErrNotExist)
+	}
+
+	return &run, nil
+}
+
 func GetRunByRepoAndIndex(ctx context.Context, repoID, runIndex int64) (*ActionRun, error) {
 	run, has, err := db.Get[ActionRun](ctx, builder.Eq{"repo_id": repoID, "`index`": runIndex})
 	if err != nil {

@@ -124,7 +124,10 @@ func UpdateRunAttempt(ctx context.Context, attempt *ActionRunAttempt, cols ...st
 		return nil
 	}
 
-	run, err := GetRunByRepoAndID(ctx, attempt.RepoID, attempt.RunID)
+	// Locking read: sibling jobs of the same run can drive this update concurrently. FOR UPDATE
+	// serializes them on the run row and returns the latest committed row, so the optimistic
+	// version check in UpdateRun below sees the current version instead of a stale snapshot.
+	run, err := GetRunByRepoAndIDForUpdate(ctx, attempt.RepoID, attempt.RunID)
 	if err != nil {
 		return err
 	}

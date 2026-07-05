@@ -14,6 +14,7 @@ import (
 	repo_model "gitea.dev/models/repo"
 	"gitea.dev/modules/actions/jobparser"
 	"gitea.dev/modules/log"
+	"gitea.dev/modules/setting"
 	"gitea.dev/modules/timeutil"
 	"gitea.dev/modules/util"
 	webhook_module "gitea.dev/modules/webhook"
@@ -266,6 +267,45 @@ func GetRunJobsByRunAndAttemptID(ctx context.Context, runID, runAttemptID int64)
 	return jobs, nil
 }
 
+// getRunJobsByRunAndAttemptIDForUpdate is a locking-read variant used during status aggregation.
+// On MySQL, FOR UPDATE bypasses the transaction's snapshot and returns the latest committed sibling
+// statuses, which a plain read under its default REPEATABLE READ isolation would otherwise miss.
+// Other databases are unaffected by that write-skew (SQLite serializes writes; PostgreSQL/MSSQL
+// default to READ COMMITTED) and xorm only emits FOR UPDATE for MySQL, so they use a plain read.
+func getRunJobsByRunAndAttemptIDForUpdate(ctx context.Context, runID, runAttemptID int64) (ActionJobList, error) {
+	sess := db.GetEngine(ctx).Where("run_id=? AND run_attempt_id=?", runID, runAttemptID).OrderBy("id")
+	if setting.Database.Type.IsMySQL() {
+		sess = sess.ForUpdate()
+	}
+	var jobs []*ActionRunJob
+	if err := sess.Find(&jobs); err != nil {
+		return nil, err
+	}
+	return jobs, nil
+}
+
+// runStatusAggregationNeedsLock reports whether concurrent job completions must be serialized
+// on the run row before aggregating its status. SQLite serializes writes so it can't hit the
+// write-skew; MSSQL uses different locking hints and isn't handled here.
+func runStatusAggregationNeedsLock() bool {
+	return setting.Database.Type.IsMySQL() || setting.Database.Type.IsPostgreSQL()
+}
+
+// lockRunForStatusAggregation takes a row-level lock on the run so that concurrent job
+// completions aggregate the run/attempt status one at a time. Acquiring this lock before
+// writing any job row keeps the lock order consistent (run row, then job rows) and avoids
+// deadlocks between siblings finishing at the same time.
+//
+// xorm only emits FOR UPDATE for MySQL, so the locking read is issued as raw SQL to cover
+// PostgreSQL too. The returned rows are discarded — the point is the row lock the query takes.
+func lockRunForStatusAggregation(ctx context.Context, repoID, runID int64) error {
+	if !runStatusAggregationNeedsLock() {
+		return nil
+	}
+	var ids []int64
+	return db.GetEngine(ctx).SQL("SELECT id FROM action_run WHERE id = ? AND repo_id = ? FOR UPDATE", runID, repoID).Find(&ids)
+}
+
 // GetPriorAttemptChildrenByParent returns the children of the most recent prior attempt where
 // the parent (identified by parentAttemptJobID) actually had children, indexed by child JobID then child Name.
 // Returns (nil, nil) when no such attempt exists.
@@ -372,6 +412,29 @@ func hasWaitingJobsToPick(ctx context.Context, repoID int64) (bool, error) {
 func UpdateRunJob(ctx context.Context, job *ActionRunJob, cond builder.Cond, cols ...string) (int64, error) {
 	e := db.GetEngine(ctx)
 
+	// xorm's Update writes only non-zero fields when cols is empty, so a zero job.Status
+	// with empty cols means status isn't actually being persisted — skip aggregation.
+	statusUpdated := slices.Contains(cols, "status") || (len(cols) == 0 && job.Status != 0)
+
+	// A status change makes this call aggregate the run/attempt status from all sibling jobs.
+	// Serialize those aggregations on the run row so siblings finishing concurrently (e.g. every
+	// leg of a fail-fast:false matrix) don't each read a stale snapshot in which the others are
+	// still running and leave the run stuck in "running". Taking the lock before writing the job
+	// row keeps a consistent lock order (run row, then job rows) and avoids sibling deadlocks.
+	if statusUpdated && runStatusAggregationNeedsLock() {
+		runID, repoID := job.RunID, job.RepoID
+		if runID == 0 {
+			existing, err := GetRunJobByRepoAndID(ctx, job.RepoID, job.ID)
+			if err != nil {
+				return 0, err
+			}
+			runID, repoID = existing.RunID, existing.RepoID
+		}
+		if err := lockRunForStatusAggregation(ctx, repoID, runID); err != nil {
+			return 0, err
+		}
+	}
+
 	sess := e.ID(job.ID)
 	if len(cols) > 0 {
 		sess.Cols(cols...)
@@ -386,9 +449,6 @@ func UpdateRunJob(ctx context.Context, job *ActionRunJob, cond builder.Cond, col
 		return 0, err
 	}
 
-	// xorm's Update writes only non-zero fields when cols is empty, so a zero job.Status
-	// with empty cols means status isn't actually being persisted — skip aggregation.
-	statusUpdated := slices.Contains(cols, "status") || (len(cols) == 0 && job.Status != 0)
 	if affected == 0 || !statusUpdated {
 		return affected, nil
 	}
@@ -441,14 +501,15 @@ func UpdateRunJob(ctx context.Context, job *ActionRunJob, cond builder.Cond, col
 	}
 
 	{
-		// Other goroutines may aggregate the status of the attempt/run and update it too.
-		// So we need to load the current jobs before updating the aggregate state.
+		// Sibling jobs can aggregate the attempt/run status concurrently. We hold the run-row
+		// lock taken above, so read the sibling jobs FOR UPDATE to bypass this transaction's
+		// snapshot and observe the latest committed statuses before recomputing the aggregate.
 		if job.RunAttemptID > 0 {
 			attempt, err := GetRunAttemptByRepoAndID(ctx, job.RepoID, job.RunAttemptID)
 			if err != nil {
 				return 0, err
 			}
-			jobs, err := GetRunJobsByRunAndAttemptID(ctx, job.RunID, job.RunAttemptID)
+			jobs, err := getRunJobsByRunAndAttemptIDForUpdate(ctx, job.RunID, job.RunAttemptID)
 			if err != nil {
 				return 0, err
 			}
@@ -468,11 +529,13 @@ func UpdateRunJob(ctx context.Context, job *ActionRunJob, cond builder.Cond, col
 			// This path keeps those runs' status consistent when their jobs finish, including:
 			//   - jobs created before migration v331 and complete on the new version starts
 			//   - zombie/abandoned cleanup cron tasks that call UpdateRunJob on legacy jobs
-			run, err := GetRunByRepoAndID(ctx, job.RepoID, job.RunID)
+			run, err := GetRunByRepoAndIDForUpdate(ctx, job.RepoID, job.RunID)
 			if err != nil {
 				return 0, err
 			}
-			jobs, err := GetLatestAttemptJobsByRepoAndRunID(ctx, job.RepoID, job.RunID)
+			// Legacy rows have run_attempt_id=0; read them FOR UPDATE for the same
+			// snapshot-bypass reason as the attempt path above.
+			jobs, err := getRunJobsByRunAndAttemptIDForUpdate(ctx, job.RunID, 0)
 			if err != nil {
 				return 0, err
 			}
