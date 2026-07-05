@@ -153,7 +153,7 @@
 				{{end}}
 
 				<div class="ui attached segment" id="actions-runs-list">
-					{{template "repo/actions/runs_list" .}}
+					{{template "repo/actions/runs_list" dict "ActionRunListData" $.ActionRunListData}}
 				</div>
 			</div>
 		</div>

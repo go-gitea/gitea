@@ -1,7 +1,8 @@
-{{$paginationParams := .Page.GetParams}}
-{{$paginationLink := $.Link}}
+{{$page := or $.Page ctx.RootData.Page}}
+{{$paginationParams := $page.GetParams}}
+{{$paginationLink := ctx.RootData.Link}}
 {{if eq $paginationLink AppSubUrl}}{{$paginationLink = print $paginationLink "/"}}{{end}}
-{{with .Page.Paginater}}
+{{with $page.Paginater}}
 	{{if or (eq .TotalPages -1) (gt .TotalPages 1)}}
 		{{$showFirstLast := gt .TotalPages 1}}
 		<div class="center page buttons">

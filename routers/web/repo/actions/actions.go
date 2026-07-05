@@ -114,7 +114,7 @@ func List(ctx *context.Context) {
 		return
 	}
 
-	prepareWorkflowList(ctx, workflows, otherWorkflows, len(scopedNames) > 0)
+	prepareWorkflowList(ctx, workflows, curWorkflowID, otherWorkflows, len(scopedNames) > 0)
 	if ctx.Written() {
 		return
 	}
@@ -457,66 +457,74 @@ func prepareWorkflowDispatchTemplate(ctx *context.Context, workflowInfos []Workf
 	ctx.Data["Tags"] = tags
 }
 
-func prepareWorkflowList(ctx *context.Context, workflows []WorkflowInfo, otherWorkflows []string, hasScopedWorkflows bool) {
+func prepareWorkflowList(ctx *context.Context, workflows []WorkflowInfo, curWorkflowID string, otherWorkflows []string, hasScopedWorkflows bool) {
 	actorID := ctx.FormInt64("actor")
 	status := ctx.FormInt("status")
 	workflowID := ctx.FormString("workflow")
 	scopedWorkflowSourceRepoID := ctx.FormInt64("scoped_workflow_source_repo_id")
 	branch := ctx.FormString("branch")
-	page := ctx.FormInt("page")
-	if page <= 0 {
-		page = 1
-	}
+	runIDs := ctx.FormStringInt64s("run_ids")
 
 	// if status or actor query param is not given to frontend href, (href="/<repoLink>/actions")
 	// they will be 0 by default, which indicates get all status or actors
 	ctx.Data["CurActor"] = actorID
 	ctx.Data["CurStatus"] = status
 	ctx.Data["CurBranch"] = branch
-	if actorID > 0 || status > int(actions_model.StatusUnknown) || branch != "" {
-		ctx.Data["IsFiltered"] = true
+
+	var actionRuns []*actions_model.ActionRun
+	if len(runIDs) == 0 {
+		opts := actions_model.FindRunOptions{
+			ListOptions: db.ListOptions{
+				Page:     max(ctx.FormInt("page"), 1),
+				PageSize: convert.ToCorrectPageSize(ctx.FormInt("limit")),
+			},
+			RepoID:         ctx.Repo.Repository.ID,
+			WorkflowID:     workflowID,
+			WorkflowRepoID: scopedWorkflowSourceRepoID,
+			TriggerUserID:  actorID,
+		}
+
+		// Constrain scoped vs repo-level only for a listed workflow, whose link carries scoped_workflow_source_repo_id.
+		if workflowID != "" && !slices.Contains(otherWorkflows, workflowID) {
+			opts.IsScopedRun = optional.Some(scopedWorkflowSourceRepoID > 0)
+		}
+
+		// if status is not StatusUnknown, it means user has selected a status filter
+		if actions_model.Status(status) != actions_model.StatusUnknown {
+			opts.Status = []actions_model.Status{actions_model.Status(status)}
+		}
+		if branch != "" {
+			opts.Ref = string(git.RefNameFromBranch(branch))
+		}
+
+		runs, total, err := db.FindAndCount[actions_model.ActionRun](ctx, opts)
+		if err != nil {
+			ctx.ServerError("FindAndCount", err)
+			return
+		}
+		pager := context.NewPagination(total, opts.PageSize, opts.Page, 5)
+		pager.AddParamFromRequest(ctx.Req)
+		ctx.Data["Page"] = pager
+		actionRuns = runs
+	} else {
+		runs, err := actions_model.GetRunsByRepoAndID(ctx, ctx.Repo.Repository.ID, runIDs)
+		if err != nil {
+			ctx.ServerError("GetRunsByRepoAndID", err)
+			return
+		}
+		actionRuns = runs
 	}
 
-	opts := actions_model.FindRunOptions{
-		ListOptions: db.ListOptions{
-			Page:     page,
-			PageSize: convert.ToCorrectPageSize(ctx.FormInt("limit")),
-		},
-		RepoID:         ctx.Repo.Repository.ID,
-		WorkflowID:     workflowID,
-		WorkflowRepoID: scopedWorkflowSourceRepoID,
-		TriggerUserID:  actorID,
-	}
-
-	// Constrain scoped vs repo-level only for a listed workflow, whose link carries scoped_workflow_source_repo_id.
-	if workflowID != "" && !slices.Contains(otherWorkflows, workflowID) {
-		opts.IsScopedRun = optional.Some(scopedWorkflowSourceRepoID > 0)
-	}
-
-	// if status is not StatusUnknown, it means user has selected a status filter
-	if actions_model.Status(status) != actions_model.StatusUnknown {
-		opts.Status = []actions_model.Status{actions_model.Status(status)}
-	}
-	if branch != "" {
-		opts.Ref = string(git.RefNameFromBranch(branch))
-	}
-
-	runs, total, err := db.FindAndCount[actions_model.ActionRun](ctx, opts)
-	if err != nil {
-		ctx.ServerError("FindAndCount", err)
-		return
-	}
-
-	for _, run := range runs {
+	for _, run := range actionRuns {
 		run.Repo = ctx.Repo.Repository
 	}
 
-	if err := actions_model.RunList(runs).LoadTriggerUser(ctx); err != nil {
+	if err := actions_model.RunList(actionRuns).LoadTriggerUser(ctx); err != nil {
 		ctx.ServerError("LoadTriggerUser", err)
 		return
 	}
 
-	if err := loadIsRefDeleted(ctx, ctx.Repo.Repository.ID, runs); err != nil {
+	if err := loadIsRefDeleted(ctx, ctx.Repo.Repository.ID, actionRuns); err != nil {
 		log.Error("LoadIsRefDeleted", err)
 	}
 
@@ -531,7 +539,7 @@ func prepareWorkflowList(ctx *context.Context, workflows []WorkflowInfo, otherWo
 		ctx.ServerError("FindRunners", err)
 		return
 	}
-	for _, run := range runs {
+	for _, run := range actionRuns {
 		if !run.Status.In(actions_model.StatusWaiting, actions_model.StatusRunning, actions_model.StatusBlocked) {
 			continue
 		}
@@ -569,9 +577,6 @@ func prepareWorkflowList(ctx *context.Context, workflows []WorkflowInfo, otherWo
 			}
 		}
 	}
-	ctx.Data["RunErrors"] = runErrors
-
-	ctx.Data["Runs"] = runs
 
 	workflowNames := make(map[string]string, len(workflows))
 	workflowDisplayName := workflowID
@@ -582,7 +587,7 @@ func prepareWorkflowList(ctx *context.Context, workflows []WorkflowInfo, otherWo
 			workflowDisplayName = displayName
 		}
 	}
-	ctx.Data["WorkflowNames"] = workflowNames
+
 	// A scoped workflow has no repo-level badge on this repo (the badge endpoint reads is_scoped_run=false runs),
 	// so don't offer the "create status badge" entry for it.
 	if scopedWorkflowSourceRepoID == 0 {
@@ -605,12 +610,24 @@ func prepareWorkflowList(ctx *context.Context, workflows []WorkflowInfo, otherWo
 	}
 	ctx.Data["RunBranches"] = runBranches
 
-	pager := context.NewPagination(total, opts.PageSize, opts.Page, 5)
-	pager.AddParamFromRequest(ctx.Req)
-	ctx.Data["Page"] = pager
-	ctx.Data["HasWorkflowsOrRuns"] = len(workflows) > 0 || len(otherWorkflows) > 0 || len(runs) > 0 || hasScopedWorkflows
+	ctx.Data["HasWorkflowsOrRuns"] = len(workflows) > 0 || len(otherWorkflows) > 0 || len(actionRuns) > 0 || hasScopedWorkflows
 
-	ctx.Data["CanWriteRepoUnitActions"] = ctx.Repo.Permission.CanWrite(unit.TypeActions)
+	type runListData struct {
+		ActionRuns              []*actions_model.ActionRun
+		IsFiltered              bool
+		WorkflowNames           map[string]string
+		RunErrors               map[int64]string
+		CurWorkflow             string
+		CanWriteRepoUnitActions bool
+	}
+	ctx.Data["ActionRunListData"] = runListData{
+		ActionRuns:              actionRuns,
+		IsFiltered:              actorID > 0 || status != int(actions_model.StatusUnknown) || branch != "",
+		WorkflowNames:           workflowNames,
+		RunErrors:               runErrors,
+		CurWorkflow:             curWorkflowID,
+		CanWriteRepoUnitActions: ctx.Repo.Permission.CanWrite(unit.TypeActions),
+	}
 }
 
 func prepareWorkflowBadgeTemplate(ctx *context.Context, workflowID, displayName string) {
