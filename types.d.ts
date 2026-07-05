@@ -15,8 +15,26 @@ declare module '*.vue' {
 }
 
 declare module 'idiomorph' {
+  interface IdiomorphCallbacks {
+    beforeNodeAdded?(node: Node): boolean | void;
+    afterNodeAdded?(node: Node): void;
+    beforeNodeMorphed?(oldNode: Node, newNode: Node): boolean | void;
+    afterNodeMorphed?(oldNode: Node, newNode: Node): void;
+    beforeNodeRemoved?(node: Node): boolean | void;
+    afterNodeRemoved?(node: Node): void;
+    beforeAttributeUpdated?(attributeName: string, node: Node, mutationType: 'update' | 'remove'): boolean | void;
+  }
+
+  interface IdiomorphOptions {
+    morphStyle?: 'innerHTML' | 'outerHTML';
+    ignoreActive?: boolean;
+    ignoreActiveValue?: boolean;
+    restoreFocus?: boolean;
+    callbacks?: IdiomorphCallbacks;
+  }
+
   interface Idiomorph {
-    morph(existing: Node | string, replacement: Node | string, options?: {morphStyle: 'innerHTML' | 'outerHTML'}): void;
+    morph(existing: Node | string, replacement: Node | string, options?: IdiomorphOptions): void;
   }
   export const Idiomorph: Idiomorph;
 }

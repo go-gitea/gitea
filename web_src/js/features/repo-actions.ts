@@ -1,4 +1,5 @@
 import {createApp} from 'vue';
+import {Idiomorph} from 'idiomorph';
 import RepoActionView from '../components/RepoActionView.vue';
 import {registerGlobalInitFunc} from '../modules/observer.ts';
 import {html} from '../utils/html.ts';
@@ -118,8 +119,18 @@ async function initActionRunsList(el: HTMLElement) {
     }
     const newEl = createElementFromHTML(await resp.text());
     for (const attr of newEl.attributes) el.setAttribute(attr.name, attr.value);
-    // FIXME: 1. use HTML id to replace the rows one by one; 2. don't replace the rows which have active elements like opened dropdown
-    el.innerHTML = newEl.innerHTML;
+
+    Idiomorph.morph(el, newEl.innerHTML, {
+      morphStyle: 'innerHTML',
+      callbacks: {
+        beforeNodeMorphed: (oldNode: Node) => !(
+          oldNode instanceof HTMLElement &&
+          oldNode.classList.contains('dropdown') &&
+          (oldNode.classList.contains('active') || oldNode.classList.contains('visible'))
+        ),
+      },
+    });
+
     startRefresh();
   };
   startRefresh = () => {
