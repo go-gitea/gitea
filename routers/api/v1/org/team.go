@@ -567,21 +567,26 @@ func GetTeamRepos(ctx *context.APIContext) {
 
 	team := ctx.Org.Team
 	listOptions := utils.GetListOptions(ctx)
-	teamRepos, err := repo_model.GetTeamRepositories(ctx, &repo_model.SearchTeamRepoOptions{
+	// A public-only token must not expose (or count) private repos, even when the
+	// doer owning the token otherwise has access to them, so filter them out at the
+	// query level to keep the returned page and the total-count header consistent.
+	searchOpts := &repo_model.SearchTeamRepoOptions{
 		ListOptions: listOptions,
 		TeamID:      team.ID,
-	})
+		PublicOnly:  ctx.PublicOnly,
+	}
+	teamRepos, err := repo_model.GetTeamRepositories(ctx, searchOpts)
+	if err != nil {
+		ctx.APIErrorInternal(err)
+		return
+	}
+	count, err := repo_model.CountTeamRepositories(ctx, searchOpts)
 	if err != nil {
 		ctx.APIErrorInternal(err)
 		return
 	}
 	repos := make([]*api.Repository, 0, len(teamRepos))
 	for _, repo := range teamRepos {
-		// A public-only token must not expose private repos, even when the doer
-		// owning the token otherwise has access to them.
-		if !ctx.TokenCanAccessRepo(repo) {
-			continue
-		}
 		permission, err := access_model.GetDoerRepoPermission(ctx, repo, ctx.Doer)
 		if err != nil {
 			ctx.APIErrorInternal(err)
@@ -595,8 +600,8 @@ func GetTeamRepos(ctx *context.APIContext) {
 		}
 		repos = append(repos, convert.ToRepo(ctx, repo, permission))
 	}
-	ctx.SetLinkHeader(int64(team.NumRepos), listOptions.PageSize)
-	ctx.SetTotalCountHeader(int64(team.NumRepos))
+	ctx.SetLinkHeader(count, listOptions.PageSize)
+	ctx.SetTotalCountHeader(count)
 	ctx.JSON(http.StatusOK, repos)
 }
 

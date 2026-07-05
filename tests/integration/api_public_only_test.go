@@ -5,9 +5,14 @@ package integration
 
 import (
 	"net/http"
+	"strconv"
 	"testing"
 
 	auth_model "gitea.dev/models/auth"
+	"gitea.dev/models/organization"
+	repo_model "gitea.dev/models/repo"
+	"gitea.dev/models/unittest"
+	user_model "gitea.dev/models/user"
 	api "gitea.dev/modules/structs"
 	"gitea.dev/tests"
 
@@ -98,51 +103,53 @@ func TestAPIActivityFeedsPublicOnly(t *testing.T) {
 func TestAPIOrgPermissionsPublicOnly(t *testing.T) {
 	defer tests.PrepareTestEnv(t)()
 
-	// user2 is a member of the private org "private_org35". A full org-scoped token
-	// can read the membership permissions...
+	// user2 is a member of the private org private_org35
+	org := unittest.AssertExistsAndLoadBean(t, &user_model.User{Name: "private_org35"})
+
+	// a full org-scoped token can read the membership permissions
 	token := getUserToken(t, "user2", auth_model.AccessTokenScopeReadUser, auth_model.AccessTokenScopeReadOrganization)
-	req := NewRequest(t, "GET", "/api/v1/users/user2/orgs/private_org35/permissions").
-		AddTokenAuth(token)
+	req := NewRequestf(t, "GET", "/api/v1/users/user2/orgs/%s/permissions", org.Name).AddTokenAuth(token)
 	MakeRequest(t, req, http.StatusOK)
 
-	// ...but a public-only token must not disclose permissions for a private org.
+	// a public-only token must not disclose permissions for a private org
 	publicToken := getUserToken(t, "user2", auth_model.AccessTokenScopeReadUser, auth_model.AccessTokenScopeReadOrganization, auth_model.AccessTokenScopePublicOnly)
-	req = NewRequest(t, "GET", "/api/v1/users/user2/orgs/private_org35/permissions").
-		AddTokenAuth(publicToken)
+	req = NewRequestf(t, "GET", "/api/v1/users/user2/orgs/%s/permissions", org.Name).AddTokenAuth(publicToken)
 	MakeRequest(t, req, http.StatusNotFound)
 }
 
 func TestAPITeamReposPublicOnly(t *testing.T) {
 	defer tests.PrepareTestEnv(t)()
 
-	// team 1 (Owners) of the public org "org3" grants access to private repos
-	// (org3/repo3, org3/repo5). A full org-scoped token sees them...
-	token := getUserToken(t, "user2", auth_model.AccessTokenScopeReadOrganization, auth_model.AccessTokenScopeReadRepository)
-	req := NewRequest(t, "GET", "/api/v1/teams/1/repos").
-		AddTokenAuth(token)
-	resp := MakeRequest(t, req, http.StatusOK)
-	var repos []api.Repository
-	DecodeJSON(t, resp, &repos)
-	assert.Contains(t, repoNames(repos), "org3/repo3")
+	// team 1 (Owners of org3) has access to the private repos org3/repo3 and org3/repo5
+	team := unittest.AssertExistsAndLoadBean(t, &organization.Team{ID: 1})
+	privateRepo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 3})
+	privateRepo2 := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 5})
 
-	// ...but a public-only token must not receive any private repo metadata.
+	// a full org+repo scoped token sees the private repos
+	token := getUserToken(t, "user2", auth_model.AccessTokenScopeReadOrganization, auth_model.AccessTokenScopeReadRepository)
+	req := NewRequestf(t, "GET", "/api/v1/teams/%d/repos", team.ID).AddTokenAuth(token)
+	resp := MakeRequest(t, req, http.StatusOK)
+	repos := DecodeJSON(t, resp, []api.Repository{})
+	assert.Contains(t, repoNames(repos), privateRepo.FullName())
+
+	// a public-only token must not receive any private repo
 	publicToken := getUserToken(t, "user2", auth_model.AccessTokenScopeReadOrganization, auth_model.AccessTokenScopeReadRepository, auth_model.AccessTokenScopePublicOnly)
-	req = NewRequest(t, "GET", "/api/v1/teams/1/repos").
-		AddTokenAuth(publicToken)
+	req = NewRequestf(t, "GET", "/api/v1/teams/%d/repos", team.ID).AddTokenAuth(publicToken)
 	resp = MakeRequest(t, req, http.StatusOK)
-	DecodeJSON(t, resp, &repos)
+	repos = DecodeJSON(t, resp, []api.Repository{})
 	for _, repo := range repos {
 		assert.False(t, repo.Private)
 	}
-	assert.NotContains(t, repoNames(repos), "org3/repo3")
-	assert.NotContains(t, repoNames(repos), "org3/repo5")
+	assert.NotContains(t, repoNames(repos), privateRepo.FullName())
+	assert.NotContains(t, repoNames(repos), privateRepo2.FullName())
+	// the total-count header must match the filtered page, otherwise it leaks the
+	// number of hidden private repos
+	assert.Equal(t, strconv.Itoa(len(repos)), resp.Header().Get("X-Total-Count"))
 
 	// the single-repo endpoint must not confirm a private repo for a public-only token
-	req = NewRequest(t, "GET", "/api/v1/teams/1/repos/org3/repo3").
-		AddTokenAuth(token)
+	req = NewRequestf(t, "GET", "/api/v1/teams/%d/repos/%s", team.ID, privateRepo.FullName()).AddTokenAuth(token)
 	MakeRequest(t, req, http.StatusOK)
-	req = NewRequest(t, "GET", "/api/v1/teams/1/repos/org3/repo3").
-		AddTokenAuth(publicToken)
+	req = NewRequestf(t, "GET", "/api/v1/teams/%d/repos/%s", team.ID, privateRepo.FullName()).AddTokenAuth(publicToken)
 	MakeRequest(t, req, http.StatusNotFound)
 }
 

@@ -152,9 +152,6 @@ func TestGitPushVisibilityOption(t *testing.T) {
 		})
 		require.NoError(t, err)
 		require.NotEmpty(t, repo)
-		defer func() {
-			require.NoError(t, repo_service.DeleteRepositoryDirectly(t.Context(), repo.ID))
-		}()
 
 		gitPath := t.TempDir()
 		doGitInitTestRepository(gitPath)(t)
