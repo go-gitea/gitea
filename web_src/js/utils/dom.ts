@@ -385,7 +385,7 @@ export class ActivePageTimer {
   private startSysTimer() {
     const remaining = this.interval - (Date.now() - this.startTime!);
     if (remaining <= 0) {
-      this.callback!();
+      this.handler();
     } else {
       this.timerId = window.setTimeout(() => this.handler(), remaining);
     }
