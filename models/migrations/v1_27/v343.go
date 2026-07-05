@@ -9,10 +9,13 @@ import (
 	"xorm.io/xorm"
 )
 
-// AddJobMaxParallel adds the max_parallel column to action_run_job.
-func AddJobMaxParallel(x db.EngineMigration) error {
+// AddMaxParallelAndRunJobIndex adds the max_parallel column to action_run_job and a
+// composite index on (run_id, job_id) to speed up max-parallel slot queries.
+func AddMaxParallelAndRunJobIndex(x db.EngineMigration) error {
 	type ActionRunJob struct {
-		MaxParallel int `xorm:"NOT NULL DEFAULT 0"`
+		MaxParallel int    `xorm:"NOT NULL DEFAULT 0"`
+		RunID       int64  `xorm:"index index(idx_run_id_job_id)"`
+		JobID       string `xorm:"VARCHAR(255) index(idx_run_id_job_id)"`
 	}
 
 	_, err := x.SyncWithOptions(xorm.SyncOptions{

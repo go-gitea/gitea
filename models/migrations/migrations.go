@@ -420,8 +420,7 @@ func prepareMigrationTasks() []*migration {
 		newMigration(340, "Add ContinueOnError column to ActionRunJob", v1_27.AddContinueOnErrorToActionRunJob),
 		newMigration(341, "Convert legacy MSSQL DATETIME columns to DATETIME2", v1_27.FixLegacyMSSQLDateTimeColumns),
 		newMigration(342, "Add scoped workflows schema", v1_27.AddScopedWorkflowsSchema),
-		newMigration(343, "Add job max-parallel support", v1_27.AddJobMaxParallel),
-		newMigration(344, "Add composite index on action_run_job(run_id, job_id)", v1_27.AddRunJobRunIDJobIDIndex),
+		newMigration(343, "Add max_parallel column and run_id/job_id index to action_run_job", v1_27.AddMaxParallelAndRunJobIndex),
 	}
 	return preparedMigrations
 }
