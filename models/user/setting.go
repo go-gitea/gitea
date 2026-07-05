@@ -125,8 +125,7 @@ func GetUserSetting(ctx context.Context, userID int64, key string, def ...string
 		return "", err
 	}
 
-	setting := &Setting{UserID: userID, SettingKey: key}
-	has, err := db.GetEngine(ctx).Get(setting)
+	setting, has, err := db.Get[Setting](ctx, builder.Eq{"user_id": userID, "setting_key": key})
 	if err != nil {
 		return "", err
 	}
