@@ -56,7 +56,7 @@ func TestReviewCode(t *testing.T) {
 				map[string]any{
 					"message": map[string]any{
 						"role":    "assistant",
-						"content": `{"summary": "Looks good overall.", "walkthrough": [{"title": "Main logic", "description": "Core changes", "files": ["main.go"]}], "architecture": "graph LR; A-->B", "comments": [{"file": "main.go", "line": 10, "severity": "warning", "body": "Consider adding error handling"}]}`,
+						"content": `{"summary": "Looks good overall.", "walkthrough": [{"title": "Main logic", "description": "Core changes", "files": ["main.go"]}], "architecture": "graph LR; A-->B", "comments": [{"file": "main.go", "line": 10, "severity": "warning", "body": "Consider adding error handling", "suggested_fix": {"old_code": "old code", "new_code": "new code"}}]}`,
 					},
 				},
 			},
@@ -93,6 +93,11 @@ func TestReviewCode(t *testing.T) {
 	}
 	if resp.Comments[0].File != "main.go" {
 		t.Errorf("expected file 'main.go', got %q", resp.Comments[0].File)
+	}
+	if resp.Comments[0].SuggestedFix == nil {
+		t.Error("expected suggested_fix to be parsed")
+	} else if resp.Comments[0].SuggestedFix.NewCode != "new code" {
+		t.Errorf("expected new_code 'new code', got %q", resp.Comments[0].SuggestedFix.NewCode)
 	}
 }
 
@@ -202,6 +207,30 @@ func TestMergeRepoConfigPartialOverride(t *testing.T) {
 	}
 	if len(pathInst) != 0 {
 		t.Errorf("expected 0 path instructions, got %d", len(pathInst))
+	}
+}
+
+func TestFormatCommentBodyWithFix(t *testing.T) {
+	body := formatCommentBody(aiComment{
+		ReviewComment: ReviewComment{
+			File:     "main.go",
+			Line:     10,
+			Severity: "critical",
+			Body:     "Potential nil pointer dereference",
+			SuggestedFix: &SuggestedFix{
+				OldCode: "if err != nil",
+				NewCode: "if err != nil { return }",
+			},
+		},
+	})
+	if !strings.Contains(body, "Suggested fix") {
+		t.Error("expected suggested fix section")
+	}
+	if !strings.Contains(body, "CRITICAL") {
+		t.Error("expected CRITICAL severity tag")
+	}
+	if !strings.Contains(body, "if err != nil { return }") {
+		t.Error("expected suggested new code")
 	}
 }
 

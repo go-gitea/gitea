@@ -185,14 +185,30 @@ func RunReview(ctx context.Context, task *AIRreviewTask) error {
 }
 
 func formatCommentBody(c aiComment) string {
+	var b strings.Builder
+
 	switch c.Severity {
 	case "critical":
-		return fmt.Sprintf("**[CRITICAL]** %s", c.Body)
+		b.WriteString("**[CRITICAL]** ")
 	case "warning":
-		return fmt.Sprintf("**[WARNING]** %s", c.Body)
-	default:
-		return c.Body
+		b.WriteString("**[WARNING]** ")
 	}
+	b.WriteString(c.Body)
+	b.WriteString("\n")
+
+	if c.SuggestedFix != nil && c.SuggestedFix.NewCode != "" {
+		b.WriteString("\n<details>\n<summary>Suggested fix</summary>\n\n")
+		if c.SuggestedFix.OldCode != "" {
+			b.WriteString("**Before:**\n```go\n")
+			b.WriteString(c.SuggestedFix.OldCode)
+			b.WriteString("\n```\n\n")
+		}
+		b.WriteString("**After:**\n```go\n")
+		b.WriteString(c.SuggestedFix.NewCode)
+		b.WriteString("\n```\n</details>\n")
+	}
+
+	return strings.TrimRight(b.String(), "\n ")
 }
 
 func formatReviewBody(resp *ReviewResponse, comments []aiComment) string {

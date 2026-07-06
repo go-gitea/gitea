@@ -34,6 +34,14 @@ Focus on:
 - Code style and best practices
 - Potential edge cases
 
+For each issue found, provide a suggested fix when possible:
+{
+  "suggested_fix": {
+    "old_code": "the existing code that needs to change",
+    "new_code": "the fixed version of the code"
+  }
+}
+
 Return your review as JSON with this structure:
 {
   "summary": "Overall review summary",
@@ -42,14 +50,14 @@ Return your review as JSON with this structure:
   ],
   "architecture": "Mermaid diagram describing the architecture (or empty string)",
   "comments": [
-    {"file": "path/to/file.go", "line": 42, "severity": "warning", "body": "Description of the issue"}
+    {"file": "path/to/file.go", "line": 42, "severity": "warning", "body": "Description of the issue", "suggested_fix": {"old_code": "...", "new_code": "..."}}
   ]
 }
 - Group changed files into logical walkthrough sections by concern (e.g. "Backend API changes", "Frontend UI updates").
 - Generate a Mermaid architecture diagram if the changes span multiple components.
 - severity must be one of: "critical", "warning", "info"
 - If there are no issues, return an empty comments array.
-- Omit walkthrough and architecture if not applicable.`
+- Omit walkthrough, architecture, and suggested_fix if not applicable.`
 }
 
 // OpenAIProvider implements the Provider interface for OpenAI-compatible APIs.

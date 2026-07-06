@@ -5,12 +5,19 @@ package aireview
 
 import "context"
 
+// SuggestedFix represents a code change suggested by the AI.
+type SuggestedFix struct {
+	OldCode string `json:"old_code"`
+	NewCode string `json:"new_code"`
+}
+
 // ReviewComment represents a single code review comment from the AI.
 type ReviewComment struct {
-	File     string `json:"file"`
-	Line     int    `json:"line"`
-	Body     string `json:"body"`
-	Severity string `json:"severity"` // "critical", "warning", "info"
+	File         string        `json:"file"`
+	Line         int           `json:"line"`
+	Body         string        `json:"body"`
+	Severity     string        `json:"severity"` // "critical", "warning", "info"
+	SuggestedFix *SuggestedFix `json:"suggested_fix,omitempty"`
 }
 
 // ReviewRequest contains the context sent to the AI provider.
