@@ -96,7 +96,7 @@ func RunReview(ctx context.Context, task *AIRreviewTask) error {
 	if err != nil {
 		log.Warn("aireview: failed to load repo config for PR %d: %v", task.PRID, err)
 	}
-	effectiveSystemPrompt, effectiveExcludePaths, _ := MergeRepoConfig(setting.AIRreview.SystemPrompt, setting.AIRreview.ExcludePaths, repoCfg)
+	effectiveSystemPrompt, effectiveExcludePaths, pathInstructions := MergeRepoConfig(setting.AIRreview.SystemPrompt, setting.AIRreview.ExcludePaths, repoCfg)
 
 	// Apply per-repo exclude paths
 	var filteredFiles []FileDiff
@@ -124,11 +124,11 @@ func RunReview(ctx context.Context, task *AIRreviewTask) error {
 	desc := pr.Issue.Content
 
 	resp, err := provider.ReviewCode(ctx, &ReviewRequest{
-		Files:           reviewFiles,
-		PRTitle:         title,
-		PRDescription:   desc,
-		SystemPrompt:    effectiveSystemPrompt,
-		PathInstructions: nil, // handled in Phase 4
+		Files:            reviewFiles,
+		PRTitle:          title,
+		PRDescription:    desc,
+		SystemPrompt:     effectiveSystemPrompt,
+		PathInstructions: pathInstructions,
 	})
 	if err != nil {
 		return fmt.Errorf("AI review failed: %w", err)
