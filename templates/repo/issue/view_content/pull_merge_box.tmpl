@@ -75,6 +75,9 @@
 					{{template "repo/issue/view_content/pull_merge_instruction" dict "PullRequest" .Issue.PullRequest "MergeBoxData" $data}}
 				</div>
 			{{end}}
+			<div class="item" data-global-init="initRepoAIReview">
+				<div id="ai-review-status" data-status-url="{{.Issue.Link}}/ai-review/status"></div>
+			</div>
 			</div>
 		</div>
 	</div>
