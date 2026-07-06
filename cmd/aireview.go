@@ -33,7 +33,6 @@ var CmdAIReview = &cli.Command{
 }
 
 func runAIReview(ctx context.Context, c *cli.Command) error {
-
 	var diff string
 	if diffPath := c.String("diff"); diffPath != "" {
 		data, err := os.ReadFile(diffPath)
