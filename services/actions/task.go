@@ -76,6 +76,15 @@ func PickTask(ctx context.Context, runner *actions_model.ActionRunner) (*runnerv
 		NotifyWorkflowRunStatusUpdateWithReload(ctx, job.RepoID, job.RunID)
 	}
 
+	// The job is claimed and its payload assembled, but if the request context was cancelled meanwhile, response can no longer reach the runner.
+	// Release the claim so another runner can pick the job up.
+	if err := ctx.Err(); err != nil {
+		if relErr := actions_model.ReleaseTaskForRunner(ctx, t); relErr != nil {
+			log.Error("ReleaseTaskForRunner [task_id: %d]: %v", t.ID, relErr)
+		}
+		return nil, false, err
+	}
+
 	return task, true, nil
 }
 
