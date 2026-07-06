@@ -133,7 +133,7 @@ func (p *OpenAIProvider) ReviewCode(ctx context.Context, req *ReviewRequest) (*R
 	var sysPromptBuilder strings.Builder
 	sysPromptBuilder.WriteString(sysPrompt)
 	for _, pi := range req.PathInstructions {
-		sysPromptBuilder.WriteString(fmt.Sprintf("\nFor files matching %q: %s", pi.Path, pi.Instructions))
+		fmt.Fprintf(&sysPromptBuilder, "\nFor files matching %q: %s", pi.Path, pi.Instructions)
 	}
 	sysPrompt = sysPromptBuilder.String()
 
@@ -150,7 +150,7 @@ func (p *OpenAIProvider) ReviewCode(ctx context.Context, req *ReviewRequest) (*R
 		promptBuilder.WriteString(prompt)
 		promptBuilder.WriteString("\n\n**Pre-merge checks to evaluate:**\n")
 		for i, check := range req.CustomChecks {
-			promptBuilder.WriteString(fmt.Sprintf("%d. %s\n", i+1, check))
+			fmt.Fprintf(&promptBuilder, "%d. %s\n", i+1, check)
 		}
 		promptBuilder.WriteString("\nFor each check, return a check_results entry in the JSON with check name, passed (bool), and details.")
 		prompt = promptBuilder.String()

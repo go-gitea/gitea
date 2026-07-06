@@ -43,7 +43,7 @@ func LoadRepoConfig(ctx context.Context, repo gitrepo.Repository) (*RepoConfig, 
 		return nil, fmt.Errorf("get default branch: %w", err)
 	}
 	if defaultBranch == "" {
-		//nolint: nilnil
+		//nolint: nilnil // empty config is not an error
 		return nil, nil
 	}
 
@@ -55,18 +55,18 @@ func LoadRepoConfig(ctx context.Context, repo gitrepo.Repository) (*RepoConfig, 
 	content, err := commit.GetFileContent(repoConfigFile, 1<<20) // 1 MB limit
 	if err != nil {
 		// File doesn't exist — not an error
-		//nolint: nilnil
+		//nolint: nilnil // config file not found is not an error
 		return nil, nil
 	}
 	if content == "" {
-		//nolint: nilnil
+		//nolint: nilnil // empty config is not an error
 		return nil, nil
 	}
 
 	var cfg RepoConfig
 	if err := yaml.Unmarshal([]byte(content), &cfg); err != nil {
 		log.Warn("aireview: failed to parse %s in %s: %v", repoConfigFile, defaultBranch, err)
-		//nolint: nilnil
+		//nolint: nilnil // malformed config falls back to defaults
 		return nil, nil
 	}
 
