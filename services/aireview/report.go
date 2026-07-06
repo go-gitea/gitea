@@ -35,7 +35,6 @@ func GenerateSprintReport(ctx context.Context, repo *repo_model.Repository) (str
 		b.WriteString(fmt.Sprintf("- **#%d**: %s\n", pr.Index, pr.Issue.Title))
 	}
 
-	// Send to AI for summarization
 	provider, err := GetProvider(setting.AIRreview.Provider)
 	if err != nil {
 		return b.String(), nil

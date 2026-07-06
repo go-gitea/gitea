@@ -62,7 +62,6 @@ func HandlePRComment(ctx context.Context, doer *user_model.User, repo *repo_mode
 		return fmt.Errorf("get PR diff: %w", err)
 	}
 
-	// Build diff summary for context
 	var diffBuf bytes.Buffer
 	diffBuf.WriteString(fmt.Sprintf("PR #%d: %s\n", pr.Index, issue.Title))
 	if issue.Content != "" {
@@ -79,7 +78,6 @@ func HandlePRComment(ctx context.Context, doer *user_model.User, repo *repo_mode
 
 	diffContext := diffBuf.String()
 
-	// Get or create conversation history
 	conversations.mu.Lock()
 	history := conversations.msgs[issue.ID]
 	if history == nil {
@@ -87,20 +85,16 @@ func HandlePRComment(ctx context.Context, doer *user_model.User, repo *repo_mode
 			{Role: "system", Content: systemChatPrompt() + "\n\nHere is the PR diff context:\n" + diffContext},
 		}
 	}
-	// Append user message
 	userMsg := strings.TrimSpace(strings.ReplaceAll(comment.Content, chatBotMention, ""))
 	if userMsg == "" {
 		userMsg = "Explain these changes."
 	}
 
-	// Detect and store learnings from feedback
 	DetectAndStoreLearnings(pr.BaseRepo.ID, userMsg)
 
-	// Handle commands
 	lower := strings.ToLower(userMsg)
 	switch {
 	case strings.HasPrefix(lower, "re-run") || strings.HasPrefix(lower, "rerun"):
-		// Clear cache and re-run review
 		reviewCache.Clear(pr.ID)
 		pushTask(pr.ID, "rerun")
 		// Don't add to conversation — will be handled by the new review
@@ -128,13 +122,11 @@ func HandlePRComment(ctx context.Context, doer *user_model.User, repo *repo_mode
 	conversations.msgs[issue.ID] = history
 	conversations.mu.Unlock()
 
-	// Call AI
 	provider, err := GetProvider(setting.AIRreview.Provider)
 	if err != nil {
 		return fmt.Errorf("get provider: %w", err)
 	}
 
-	// Build chat request using the provider's API
 	openAIProvider, ok := provider.(*OpenAIProvider)
 	if !ok {
 		return fmt.Errorf("chat not supported for provider %s", provider.Name())
@@ -145,17 +137,14 @@ func HandlePRComment(ctx context.Context, doer *user_model.User, repo *repo_mode
 		return fmt.Errorf("AI chat failed: %w", err)
 	}
 
-	// Store AI response in conversation history
 	conversations.mu.Lock()
 	conversations.msgs[issue.ID] = append(conversations.msgs[issue.ID], chatMessage{Role: "assistant", Content: aiResp})
 	conversations.mu.Unlock()
 
-	// Post reply as comment
 	branchLink := fmt.Sprintf("https://git.example.com/%s/pulls/%d", pr.BaseRepo.FullName(), pr.Index)
 	response := fmt.Sprintf("> **%s** asked:\n> %s\n\n---\n\n%s\n\n---\n*AI code review assistant — [PR #%d](%s)*",
 		doer.DisplayName(), userMsg, aiResp, pr.Index, branchLink)
 
-	// Trim response if too long
 	if len(response) > 50000 {
 		response = response[:50000] + "\n\n... (response truncated)"
 	}

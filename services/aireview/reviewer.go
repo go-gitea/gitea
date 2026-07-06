@@ -94,14 +94,12 @@ func RunReview(ctx context.Context, task *AIRreviewTask) error {
 		return fmt.Errorf("get provider: %w", err)
 	}
 
-	// Load per-repo config
 	repoCfg, err := LoadRepoConfig(ctx, pr.BaseRepo)
 	if err != nil {
 		log.Warn("aireview: failed to load repo config for PR %d: %v", task.PRID, err)
 	}
 	effectiveSystemPrompt, effectiveExcludePaths, pathInstructions, customChecks := MergeRepoConfig(setting.AIRreview.SystemPrompt, setting.AIRreview.ExcludePaths, repoCfg)
 
-	// Apply per-repo exclude paths
 	var filteredFiles []FileDiff
 	for _, f := range reviewFiles {
 		excluded := false
@@ -125,14 +123,11 @@ func RunReview(ctx context.Context, task *AIRreviewTask) error {
 	// Sort files by dependency order so AI sees dependencies first
 	reviewFiles = SortFilesByDependency(reviewFiles)
 
-	// Load PR title/description for context
 	title := pr.Issue.Title
 	desc := pr.Issue.Content
 
-	// Detect linter configs
 	linterInfo := DetectLinterConfigs(ctx, pr.BaseRepo)
 
-	// Attach learnings from previous feedback
 	learningsPrompt := BuildLearningsPrompt(pr.BaseRepo.ID)
 	if learningsPrompt != "" {
 		effectiveSystemPrompt += learningsPrompt
@@ -189,14 +184,13 @@ func RunReview(ctx context.Context, task *AIRreviewTask) error {
 		inlineCount++
 	}
 
-	// Append check results to review body
 	if len(resp.CheckResults) > 0 {
 		resp.Summary += "\n\n**Pre-merge checks:**\n"
 		for _, cr := range resp.CheckResults {
-		icon := "[FAIL]"
-		if cr.Passed {
-			icon = "[PASS]"
-		}
+			icon := "[FAIL]"
+			if cr.Passed {
+				icon = "[PASS]"
+			}
 			resp.Summary += fmt.Sprintf("- %s %s", icon, cr.Check)
 			if cr.Details != "" {
 				resp.Summary += fmt.Sprintf(": %s", cr.Details)

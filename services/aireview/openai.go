@@ -134,22 +134,18 @@ func (p *OpenAIProvider) ReviewCode(ctx context.Context, req *ReviewRequest) (*R
 
 	sysPrompt := systemPrompt(req.SystemPrompt)
 
-	// Append path-specific instructions to system prompt
 	for _, pi := range req.PathInstructions {
 		sysPrompt += fmt.Sprintf("\nFor files matching %q: %s", pi.Path, pi.Instructions)
 	}
 
-	// Append linked issue references
 	if refs := extractIssueRefs(req.PRDescription); refs != "" {
 		prompt += "\nReferenced issues: " + refs + "\n"
 	}
 
-	// Append linter config info
 	if len(req.Files) > 0 && req.LinterConfigs != "" {
 		prompt += "\n" + req.LinterConfigs
 	}
 
-	// Append custom checks to the user prompt
 	if len(req.CustomChecks) > 0 {
 		prompt += "\n\n**Pre-merge checks to evaluate:**\n"
 		for i, check := range req.CustomChecks {

@@ -48,7 +48,6 @@ func runAIReview(ctx context.Context, c *cli.Command) error {
 		}
 		diff = fmt.Sprintf("--- a/%s\n+++ b/%s\n@@ -1,%d +1,%d @@\n%s", filePath, filePath, len(strings.Split(string(data), "\n")), len(strings.Split(string(data), "\n")), string(data))
 	} else {
-		// Read from stdin
 		cmd := exec.Command("git", "diff")
 		stdout, err := cmd.Output()
 		if err != nil {

@@ -43,7 +43,6 @@ func GetLearnings(repoID int64) []Learning {
 func DetectAndStoreLearnings(repoID int64, message string) {
 	msg := strings.ToLower(strings.TrimSpace(message))
 
-	// Pattern: "ignore X" or "this is not a bug" or "false positive"
 	switch {
 	case strings.Contains(msg, "ignore"), strings.Contains(msg, "not a bug"),
 		strings.Contains(msg, "false positive"), strings.Contains(msg, "not an issue"):

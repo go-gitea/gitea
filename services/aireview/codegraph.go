@@ -103,7 +103,6 @@ func extractImportsFromDiff(filePath, patch string, allFiles []FileDiff) []strin
 		return nil
 	}
 
-	// Build set of all PR file paths
 	prFiles := make(map[string]bool)
 	for _, f := range allFiles {
 		prFiles[f.Path] = true
