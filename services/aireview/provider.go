@@ -32,6 +32,7 @@ type ReviewRequest struct {
 	SystemPrompt     string            // per-repo system prompt override
 	PathInstructions []PathInstruction  // per-path review instructions
 	CustomChecks     []string           // pre-merge checks to evaluate
+	LinterConfigs    string             // detected linter config info
 }
 
 // WalkthroughSection describes a logical group of changes in the PR.

@@ -129,6 +129,9 @@ func RunReview(ctx context.Context, task *AIRreviewTask) error {
 	title := pr.Issue.Title
 	desc := pr.Issue.Content
 
+	// Detect linter configs
+	linterInfo := DetectLinterConfigs(ctx, pr.BaseRepo)
+
 	// Attach learnings from previous feedback
 	learningsPrompt := BuildLearningsPrompt(pr.BaseRepo.ID)
 	if learningsPrompt != "" {
@@ -142,6 +145,7 @@ func RunReview(ctx context.Context, task *AIRreviewTask) error {
 		SystemPrompt:     effectiveSystemPrompt,
 		PathInstructions: pathInstructions,
 		CustomChecks:     customChecks,
+		LinterConfigs:    linterInfo,
 	})
 	if err != nil {
 		SetReviewStatus(task.PRID, StatusError, 0)
