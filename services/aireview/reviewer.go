@@ -6,7 +6,6 @@ package aireview
 import (
 	"context"
 	"fmt"
-	"sort"
 	"strings"
 
 	issues_model "gitea.dev/models/issues"
@@ -16,6 +15,11 @@ import (
 	"gitea.dev/modules/setting"
 	pull_service "gitea.dev/services/pull"
 )
+
+type aiComment struct {
+	ReviewComment
+	Inlined bool
+}
 
 // RunReview executes an AI code review on a pull request.
 func RunReview(ctx context.Context, task *AIRreviewTask) error {
@@ -69,7 +73,7 @@ func RunReview(ctx context.Context, task *AIRreviewTask) error {
 		return fmt.Errorf("get provider: %w", err)
 	}
 
-	var allComments []ReviewComment
+	var allComments []aiComment
 	var summaries []string
 
 	for _, file := range files {
@@ -91,10 +95,10 @@ func RunReview(ctx context.Context, task *AIRreviewTask) error {
 			continue
 		}
 
-		for i := range resp.Comments {
-			resp.Comments[i].File = file.Path
+		for _, c := range resp.Comments {
+			c.File = file.Path
+			allComments = append(allComments, aiComment{ReviewComment: c})
 		}
-		allComments = append(allComments, resp.Comments...)
 		if resp.Summary != "" {
 			summaries = append(summaries, resp.Summary)
 		}
@@ -105,7 +109,29 @@ func RunReview(ctx context.Context, task *AIRreviewTask) error {
 		return nil
 	}
 
-	reviewContent := formatReviewOutput(summaries, allComments)
+	inlineCount := 0
+	for i, c := range allComments {
+		if c.Line <= 0 {
+			continue
+		}
+		_, err := pull_service.CreateCodeComment(ctx, doer, gitRepo, pr.Issue,
+			int64(c.Line),
+			formatCommentBody(c),
+			c.File,
+			true, // pendingReview — add to pending review
+			0,    // replyReviewID
+			headCommitID,
+			nil, // attachments
+		)
+		if err != nil {
+			log.Warn("aireview: failed to create inline comment at %s:%d: %v", c.File, c.Line, err)
+			continue
+		}
+		allComments[i].Inlined = true
+		inlineCount++
+	}
+
+	reviewContent := formatReviewBody(summaries, allComments)
 
 	_, _, err = pull_service.SubmitReview(ctx, doer, gitRepo, pr.Issue,
 		issues_model.ReviewTypeComment,
@@ -117,45 +143,44 @@ func RunReview(ctx context.Context, task *AIRreviewTask) error {
 		return fmt.Errorf("submit review: %w", err)
 	}
 
-	log.Info("aireview: completed review of PR %d with %d comments", task.PRID, len(allComments))
+	log.Info("aireview: completed review of PR %d — %d inline, %d in summary", task.PRID, inlineCount, len(allComments)-inlineCount)
 	return nil
 }
 
-func formatReviewOutput(summaries []string, comments []ReviewComment) string {
+func formatCommentBody(c aiComment) string {
+	switch c.Severity {
+	case "critical":
+		return fmt.Sprintf("**[CRITICAL]** %s", c.Body)
+	case "warning":
+		return fmt.Sprintf("**[WARNING]** %s", c.Body)
+	default:
+		return c.Body
+	}
+}
+
+func formatReviewBody(summaries []string, comments []aiComment) string {
 	var b strings.Builder
 
 	b.WriteString("### AI Code Review\n\n")
 
 	if len(summaries) > 0 {
-		b.WriteString("**Summary:**\n")
+		b.WriteString("**Overview:**\n")
 		for _, s := range summaries {
 			b.WriteString(s)
 			b.WriteString("\n\n")
 		}
 	}
 
-	sort.Slice(comments, func(i, j int) bool {
-		if comments[i].File != comments[j].File {
-			return comments[i].File < comments[j].File
-		}
-		return comments[i].Line < comments[j].Line
-	})
-
-	severityOrder := map[string]int{"critical": 0, "warning": 1, "info": 2}
-	sort.SliceStable(comments, func(i, j int) bool {
-		return severityOrder[comments[i].Severity] < severityOrder[comments[j].Severity]
-	})
-
-	grouped := make(map[string][]ReviewComment)
+	var nonInlined []aiComment
 	for _, c := range comments {
-		key := c.File
-		grouped[key] = append(grouped[key], c)
+		if !c.Inlined {
+			nonInlined = append(nonInlined, c)
+		}
 	}
 
-	b.WriteString("**Findings:**\n\n")
-	for _, file := range sortedKeys(grouped) {
-		fileComments := grouped[file]
-		for _, c := range fileComments {
+	if len(nonInlined) > 0 {
+		b.WriteString("**Additional findings (no inline location available):**\n")
+		for _, c := range nonInlined {
 			severityTag := ""
 			switch c.Severity {
 			case "critical":
@@ -165,18 +190,13 @@ func formatReviewOutput(summaries []string, comments []ReviewComment) string {
 			default:
 				severityTag = "[INFO]"
 			}
-			b.WriteString(fmt.Sprintf("- %s %s:%d %s\n", severityTag, file, c.Line, c.Body))
+			loc := ""
+			if c.File != "" {
+				loc = fmt.Sprintf(" %s:%d", c.File, c.Line)
+			}
+			b.WriteString(fmt.Sprintf("- %s%s %s\n", severityTag, loc, c.Body))
 		}
 	}
 
-	return b.String()
-}
-
-func sortedKeys(m map[string][]ReviewComment) []string {
-	keys := make([]string, 0, len(m))
-	for k := range m {
-		keys = append(keys, k)
-	}
-	sort.Strings(keys)
-	return keys
+	return strings.TrimRight(b.String(), "\n ")
 }
