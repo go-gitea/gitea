@@ -19,7 +19,10 @@ const (
 	openaiChatEndpoint = "/v1/chat/completions"
 )
 
-func systemPrompt() string {
+func systemPrompt(custom string) string {
+	if custom != "" {
+		return custom
+	}
 	if p := setting.AIRreview.SystemPrompt; p != "" {
 		return p
 	}
@@ -34,12 +37,19 @@ Focus on:
 Return your review as JSON with this structure:
 {
   "summary": "Overall review summary",
+  "walkthrough": [
+    {"title": "Brief group title", "description": "What this group of changes does", "files": ["path/to/file.go"]}
+  ],
+  "architecture": "Mermaid diagram describing the architecture (or empty string)",
   "comments": [
     {"file": "path/to/file.go", "line": 42, "severity": "warning", "body": "Description of the issue"}
   ]
 }
-severity must be one of: "critical", "warning", "info"
-If there are no issues, return an empty comments array.`
+- Group changed files into logical walkthrough sections by concern (e.g. "Backend API changes", "Frontend UI updates").
+- Generate a Mermaid architecture diagram if the changes span multiple components.
+- severity must be one of: "critical", "warning", "info"
+- If there are no issues, return an empty comments array.
+- Omit walkthrough and architecture if not applicable.`
 }
 
 // OpenAIProvider implements the Provider interface for OpenAI-compatible APIs.
@@ -103,13 +113,20 @@ func (p *OpenAIProvider) ReviewCode(ctx context.Context, req *ReviewRequest) (*R
 
 	prompt := buildReviewPrompt(req)
 
+	sysPrompt := systemPrompt(req.SystemPrompt)
+
+	// Append path-specific instructions to system prompt
+	for _, pi := range req.PathInstructions {
+		sysPrompt += fmt.Sprintf("\nFor files matching %q: %s", pi.Path, pi.Instructions)
+	}
+
 	body := chatRequest{
 		Model:       p.model,
 		MaxTokens:   setting.AIRreview.MaxTokens,
 		Temperature: setting.AIRreview.Temperature,
 		ResponseFormat: &responseFormat{Type: "json_object"},
 		Messages: []chatMessage{
-			{Role: "system", Content: systemPrompt()},
+			{Role: "system", Content: sysPrompt},
 			{Role: "user", Content: prompt},
 		},
 	}

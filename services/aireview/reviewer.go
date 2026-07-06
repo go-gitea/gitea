@@ -6,6 +6,7 @@ package aireview
 import (
 	"context"
 	"fmt"
+	"path/filepath"
 	"strings"
 
 	issues_model "gitea.dev/models/issues"
@@ -90,14 +91,44 @@ func RunReview(ctx context.Context, task *AIRreviewTask) error {
 		return fmt.Errorf("get provider: %w", err)
 	}
 
+	// Load per-repo config
+	repoCfg, err := LoadRepoConfig(ctx, pr.BaseRepo)
+	if err != nil {
+		log.Warn("aireview: failed to load repo config for PR %d: %v", task.PRID, err)
+	}
+	effectiveSystemPrompt, effectiveExcludePaths, _ := MergeRepoConfig(setting.AIRreview.SystemPrompt, setting.AIRreview.ExcludePaths, repoCfg)
+
+	// Apply per-repo exclude paths
+	var filteredFiles []FileDiff
+	for _, f := range reviewFiles {
+		excluded := false
+		for _, pattern := range effectiveExcludePaths {
+			if matched, _ := filepath.Match(pattern, f.Path); matched {
+				excluded = true
+				break
+			}
+		}
+		if !excluded {
+			filteredFiles = append(filteredFiles, f)
+		}
+	}
+	reviewFiles = filteredFiles
+
+	if len(reviewFiles) == 0 {
+		log.Info("aireview: PR %d has no files after exclusion filtering", task.PRID)
+		return nil
+	}
+
 	// Load PR title/description for context
 	title := pr.Issue.Title
 	desc := pr.Issue.Content
 
 	resp, err := provider.ReviewCode(ctx, &ReviewRequest{
-		Files:         reviewFiles,
-		PRTitle:       title,
-		PRDescription: desc,
+		Files:           reviewFiles,
+		PRTitle:         title,
+		PRDescription:   desc,
+		SystemPrompt:    effectiveSystemPrompt,
+		PathInstructions: nil, // handled in Phase 4
 	})
 	if err != nil {
 		return fmt.Errorf("AI review failed: %w", err)
@@ -135,7 +166,7 @@ func RunReview(ctx context.Context, task *AIRreviewTask) error {
 		inlineCount++
 	}
 
-	reviewContent := formatReviewBody(resp.Summary, allComments)
+	reviewContent := formatReviewBody(resp, allComments)
 
 	_, _, err = pull_service.SubmitReview(ctx, doer, gitRepo, pr.Issue,
 		issues_model.ReviewTypeComment,
@@ -164,14 +195,28 @@ func formatCommentBody(c aiComment) string {
 	}
 }
 
-func formatReviewBody(summary string, comments []aiComment) string {
+func formatReviewBody(resp *ReviewResponse, comments []aiComment) string {
 	var b strings.Builder
 
 	b.WriteString("### AI Code Review\n\n")
 
-	if summary != "" {
+	if len(resp.Walkthrough) > 0 {
+		b.WriteString("<details>\n<summary>Change Walkthrough</summary>\n\n")
+		for _, s := range resp.Walkthrough {
+			b.WriteString(fmt.Sprintf("- **%s**: %s\n", s.Title, s.Description))
+		}
+		b.WriteString("\n</details>\n\n")
+	}
+
+	if resp.Architecture != "" {
+		b.WriteString("**Architecture:**\n```mermaid\n")
+		b.WriteString(resp.Architecture)
+		b.WriteString("\n```\n\n")
+	}
+
+	if resp.Summary != "" {
 		b.WriteString("**Overview:**\n")
-		b.WriteString(summary)
+		b.WriteString(resp.Summary)
 		b.WriteString("\n\n")
 	}
 

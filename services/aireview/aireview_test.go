@@ -8,6 +8,7 @@ import (
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
 
 	"gitea.dev/modules/setting"
@@ -55,7 +56,7 @@ func TestReviewCode(t *testing.T) {
 				map[string]any{
 					"message": map[string]any{
 						"role":    "assistant",
-						"content": `{"summary": "Looks good overall.", "comments": [{"file": "main.go", "line": 10, "severity": "warning", "body": "Consider adding error handling"}]}`,
+						"content": `{"summary": "Looks good overall.", "walkthrough": [{"title": "Main logic", "description": "Core changes", "files": ["main.go"]}], "architecture": "graph LR; A-->B", "comments": [{"file": "main.go", "line": 10, "severity": "warning", "body": "Consider adding error handling"}]}`,
 					},
 				},
 			},
@@ -151,5 +152,83 @@ func TestProviderRegistryDefaultProviders(t *testing.T) {
 		if p == nil {
 			t.Errorf("GetProvider(%q) returned nil", name)
 		}
+	}
+}
+
+func TestMergeRepoConfigNil(t *testing.T) {
+	sysPrompt, exclPaths, pathInst := MergeRepoConfig("global prompt", []string{"vendor/*"}, nil)
+	if sysPrompt != "global prompt" {
+		t.Errorf("expected global prompt, got %q", sysPrompt)
+	}
+	if len(exclPaths) != 1 || exclPaths[0] != "vendor/*" {
+		t.Errorf("expected [vendor/*], got %v", exclPaths)
+	}
+	if len(pathInst) != 0 {
+		t.Errorf("expected 0 path instructions, got %d", len(pathInst))
+	}
+}
+
+func TestMergeRepoConfigOverride(t *testing.T) {
+	repoPrompt := "repo prompt"
+	repoCfg := &RepoConfig{
+		SystemPrompt: &repoPrompt,
+		ExcludePaths: []string{"node_modules/**"},
+		PathInstructions: []PathInstruction{
+			{Path: "src/*.go", Instructions: "Be strict"},
+		},
+	}
+	sysPrompt, exclPaths, pathInst := MergeRepoConfig("global prompt", []string{"vendor/*"}, repoCfg)
+	if sysPrompt != "repo prompt" {
+		t.Errorf("expected 'repo prompt', got %q", sysPrompt)
+	}
+	if len(exclPaths) != 1 || exclPaths[0] != "node_modules/**" {
+		t.Errorf("expected [node_modules/**], got %v", exclPaths)
+	}
+	if len(pathInst) != 1 || pathInst[0].Path != "src/*.go" {
+		t.Errorf("expected 1 path instruction, got %d", len(pathInst))
+	}
+}
+
+func TestMergeRepoConfigPartialOverride(t *testing.T) {
+	repoCfg := &RepoConfig{
+		ExcludePaths: []string{"generated/**"},
+	}
+	sysPrompt, exclPaths, pathInst := MergeRepoConfig("global prompt", nil, repoCfg)
+	if sysPrompt != "global prompt" {
+		t.Errorf("expected 'global prompt', got %q", sysPrompt)
+	}
+	if len(exclPaths) != 1 || exclPaths[0] != "generated/**" {
+		t.Errorf("expected [generated/**], got %v", exclPaths)
+	}
+	if len(pathInst) != 0 {
+		t.Errorf("expected 0 path instructions, got %d", len(pathInst))
+	}
+}
+
+func TestFormatReviewBodyWalkthrough(t *testing.T) {
+	comments := []aiComment{
+		{ReviewComment: ReviewComment{File: "main.go", Line: 10, Severity: "warning", Body: "Check this"}},
+	}
+	body := formatReviewBody(&ReviewResponse{
+		Summary: "Good PR",
+		Walkthrough: []WalkthroughSection{
+			{Title: "Core", Description: "Core changes", Files: []string{"main.go"}},
+		},
+		Architecture: "graph LR; A-->B",
+		Comments: []ReviewComment{
+			{File: "main.go", Line: 10, Severity: "warning", Body: "Check this"},
+		},
+	}, comments)
+	if body == "" {
+		t.Error("expected non-empty body")
+	}
+	if !strings.Contains(body, "Change Walkthrough") {
+		t.Error("expected walkthrough section")
+	}
+	if !strings.Contains(body, "Core") {
+		t.Error("expected walkthrough title")
+	}
+	if !strings.Contains(body, "mermaid") {
+		t.Error("expected mermaid diagram")
 	}
 }
