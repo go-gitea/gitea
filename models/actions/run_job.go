@@ -285,25 +285,32 @@ func getRunJobsByRunAndAttemptIDForUpdate(ctx context.Context, runID, runAttempt
 }
 
 // runStatusAggregationNeedsLock reports whether concurrent job completions must be serialized
-// on the run row before aggregating its status. SQLite serializes writes so it can't hit the
-// write-skew; MSSQL uses different locking hints and isn't handled here.
+// on the run row before aggregating its status. SQLite serializes writes on its own, so it can't
+// hit the concurrency; every server database can and needs the explicit lock.
 func runStatusAggregationNeedsLock() bool {
-	return setting.Database.Type.IsMySQL() || setting.Database.Type.IsPostgreSQL()
+	return setting.Database.Type.IsMySQL() || setting.Database.Type.IsPostgreSQL() || setting.Database.Type.IsMSSQL()
 }
 
 // lockRunForStatusAggregation takes a row-level lock on the run so that concurrent job
 // completions aggregate the run/attempt status one at a time. Acquiring this lock before
 // writing any job row keeps the lock order consistent (run row, then job rows) and avoids
-// deadlocks between siblings finishing at the same time.
+// deadlocks between siblings finishing at the same time — on MSSQL a plain read serializing on
+// job rows instead would deadlock, since each leg holds an exclusive lock on its own job row
+// while trying to read its siblings'.
 //
 // xorm only emits FOR UPDATE for MySQL, so the locking read is issued as raw SQL to cover
-// PostgreSQL too. The returned rows are discarded — the point is the row lock the query takes.
+// PostgreSQL too. MSSQL has no FOR UPDATE and expresses a held row lock as a table hint instead.
+// The returned rows are discarded — the point is the row lock the query takes.
 func lockRunForStatusAggregation(ctx context.Context, repoID, runID int64) error {
 	if !runStatusAggregationNeedsLock() {
 		return nil
 	}
+	query := "SELECT id FROM action_run WHERE id = ? AND repo_id = ? FOR UPDATE"
+	if setting.Database.Type.IsMSSQL() {
+		query = "SELECT id FROM action_run WITH (UPDLOCK, ROWLOCK) WHERE id = ? AND repo_id = ?"
+	}
 	var ids []int64
-	return db.GetEngine(ctx).SQL("SELECT id FROM action_run WHERE id = ? AND repo_id = ? FOR UPDATE", runID, repoID).Find(&ids)
+	return db.GetEngine(ctx).SQL(query, runID, repoID).Find(&ids)
 }
 
 // GetPriorAttemptChildrenByParent returns the children of the most recent prior attempt where
