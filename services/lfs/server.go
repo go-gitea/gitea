@@ -26,6 +26,7 @@ import (
 	"gitea.dev/models/unit"
 	user_model "gitea.dev/models/user"
 	"gitea.dev/modules/auth/httpauth"
+	giturl "gitea.dev/modules/git/url"
 	"gitea.dev/modules/httplib"
 	"gitea.dev/modules/json"
 	lfs_module "gitea.dev/modules/lfs"
@@ -42,6 +43,7 @@ import (
 type requestContext struct {
 	User          string
 	Repo          string
+	GroupID       int64
 	Authorization string
 	RepoGitURL    string
 }
@@ -423,11 +425,14 @@ func decodeJSON(req *http.Request, v any) error {
 func getRequestContext(ctx *context.Context) *requestContext {
 	ownerName := ctx.PathParam("username")
 	repoName := strings.TrimSuffix(ctx.PathParam("reponame"), ".git")
+	gid := ctx.PathParamInt64("group_id")
+	locator := giturl.NewLocator(ownerName, repoName, gid)
 	return &requestContext{
 		User:          ownerName,
 		Repo:          repoName,
+		GroupID:       gid,
 		Authorization: ctx.Req.Header.Get("Authorization"),
-		RepoGitURL:    httplib.GuessCurrentAppURL(ctx) + url.PathEscape(ownerName) + "/" + url.PathEscape(repoName+".git"),
+		RepoGitURL:    httplib.GuessCurrentAppURL(ctx) + locator.WebPath() + url.PathEscape(".git"),
 	}
 }
 
@@ -454,7 +459,7 @@ func getAuthenticatedMeta(ctx *context.Context, rc *requestContext, p lfs_module
 }
 
 func getAuthenticatedRepository(ctx *context.Context, rc *requestContext, requireWrite bool) *repo_model.Repository {
-	repository, err := repo_model.GetRepositoryByOwnerAndName(ctx, rc.User, rc.Repo)
+	repository, err := repo_model.GetRepositoryByOwnerAndName(ctx, rc.User, rc.Repo, rc.GroupID)
 	if err != nil {
 		log.Error("Unable to get repository: %s/%s Error: %v", rc.User, rc.Repo, err)
 		writeStatus(ctx, http.StatusNotFound)

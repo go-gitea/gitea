@@ -38,7 +38,10 @@ interface Window {
       FolderOpenIcon?: string,
       repoLink?: string,
       repoActivityTopAuthors?: any[],
-      dashboardRepoList?: Record<string, any>,
+      dashboardRepoList?: Record<string, any> & {
+        organizationName: string,
+        userName: string
+      },
     },
     notificationSettings: {
       MinTimeout: number,

@@ -156,7 +156,38 @@ func GetUserHeatmapData(ctx *context.APIContext) {
 	//   "404":
 	//     "$ref": "#/responses/notFound"
 
-	heatmap, err := activities_model.GetUserHeatmapDataByUser(ctx, ctx.ContextUser, ctx.Doer)
+	heatmap, err := activities_model.GetUserHeatmapDataByUser(ctx, ctx.ContextUser, nil, ctx.Doer)
+	if err != nil {
+		ctx.APIErrorInternal(err)
+		return
+	}
+	ctx.JSON(http.StatusOK, heatmap)
+}
+
+func GetUserHeatmapDataInGroup(ctx *context.APIContext) {
+	// swagger:operation GET /users/{username}/group/{group_id}/heatmap user userGetGroupHeatmapData
+	// ---
+	// summary: Get a user's heatmap in a subgroup
+	// produces:
+	// - application/json
+	// parameters:
+	// - name: username
+	//   in: path
+	//   description: username of the user whose heatmap is to be obtained
+	//   type: string
+	//   required: true
+	// - name: group_id
+	//   in: path
+	//   description: id of the parent group
+	//   type: integer
+	//   format: int64
+	//   required: true
+	// responses:
+	//   "200":
+	//     "$ref": "#/responses/UserHeatmapData"
+	//   "404":
+	//     "$ref": "#/responses/notFound"
+	heatmap, err := activities_model.GetUserHeatmapDataByUser(ctx, ctx.ContextUser, ctx.RepoGroup.Group, ctx.Doer)
 	if err != nil {
 		ctx.APIErrorInternal(err)
 		return

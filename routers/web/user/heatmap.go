@@ -6,8 +6,10 @@ package user
 import (
 	"net/http"
 	"net/url"
+	"strconv"
 
 	activities_model "gitea.dev/models/activities"
+	group_model "gitea.dev/models/group"
 	"gitea.dev/modules/setting"
 	"gitea.dev/services/context"
 )
@@ -20,13 +22,19 @@ func prepareHeatmapURL(ctx *context.Context) {
 
 	if ctx.Org.Organization == nil {
 		// for individual user
-		ctx.Data["HeatmapURL"] = ctx.Doer.HomeLink() + "/-/heatmap"
+		if ctx.RepoGroup.Group != nil {
+			ctx.Data["HeatmapURL"] = ctx.Doer.HomeLink() + "/-/heatmap/group/" + url.PathEscape(strconv.FormatInt(ctx.RepoGroup.Group.ID, 10))
+		} else {
+			ctx.Data["HeatmapURL"] = ctx.Doer.HomeLink() + "/-/heatmap"
+		}
 		return
 	}
 
 	// for org or team
 	heatmapURL := ctx.Org.Organization.OrganisationLink() + "/dashboard/-/heatmap"
-	if ctx.Org.Team != nil {
+	if ctx.RepoGroup.Group != nil {
+		heatmapURL += "/group/" + url.PathEscape(strconv.FormatInt(ctx.RepoGroup.Group.ID, 10))
+	} else if ctx.Org.Team != nil {
 		heatmapURL += "/" + url.PathEscape(ctx.Org.Team.LowerName)
 	}
 	ctx.Data["HeatmapURL"] = heatmapURL
@@ -53,10 +61,14 @@ func DashboardHeatmap(ctx *context.Context) {
 	}
 	var data []*activities_model.UserHeatmapData
 	var err error
+	var group *group_model.Group
+	if ctx.RepoGroup != nil {
+		group = ctx.RepoGroup.Group
+	}
 	if ctx.Org.Organization == nil {
-		data, err = activities_model.GetUserHeatmapDataByUser(ctx, ctx.ContextUser, ctx.Doer)
+		data, err = activities_model.GetUserHeatmapDataByUser(ctx, ctx.ContextUser, group, ctx.Doer)
 	} else {
-		data, err = activities_model.GetUserHeatmapDataByOrgTeam(ctx, ctx.Org.Organization, ctx.Org.Team, ctx.Doer)
+		data, err = activities_model.GetUserHeatmapDataByOrgTeam(ctx, ctx.Org.Organization, ctx.Org.Team, group, ctx.Doer)
 	}
 	if err != nil {
 		ctx.ServerError("GetUserHeatmapData", err)

@@ -1,0 +1,35 @@
+// Copyright 2025 The Gitea Authors. All rights reserved.
+// SPDX-License-Identifier: MIT
+
+package forms
+
+import "gitea.dev/modules/structs"
+
+// CreateGroupForm form for creating a repository group
+type CreateGroupForm struct {
+	GroupName          string `binding:"Required;AlphaDashDot;MaxSize(100)"`
+	UID                int64  `binding:"Required"`
+	Description        string `binding:"MaxSize(2048)"`
+	Permission         string
+	CanCreateGroupRepo bool
+	ParentGroupID      int64
+}
+
+type MovedGroupItemForm struct {
+	IsGroup   bool  `json:"isGroup"`
+	ItemID    int64 `json:"id"`
+	NewParent int64 `json:"newParent"`
+	NewPos    int   `json:"newPos"`
+}
+type CreateGroupTeamForm struct {
+	Permission              string
+	Access                  string
+	CanCreateRepoOrSubGroup bool
+}
+
+type UpdateGroupSettingForm struct {
+	Name          string `binding:"Required;MaxSize(100)" locale:"group.group_name_holder"`
+	ParentGroupID int64  `binding:"Required"`
+	Description   string `binding:"MaxSize(2048)"`
+	Visibility    structs.VisibleType
+}

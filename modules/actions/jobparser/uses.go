@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"path"
 	"regexp"
+	"strconv"
 	"strings"
 )
 
@@ -25,21 +26,22 @@ const (
 
 // UsesRef is the parsed form of a reusable workflow "uses:" value.
 type UsesRef struct {
-	Kind  UsesKind
-	Owner string // empty for UsesKindLocalSameRepo
-	Repo  string // empty for UsesKindLocalSameRepo
-	Path  string // workflow file path inside the source repo
-	Ref   string // git ref; empty for UsesKindLocalSameRepo
+	Kind    UsesKind
+	Owner   string // empty for UsesKindLocalSameRepo
+	Repo    string // empty for UsesKindLocalSameRepo
+	GroupID int64  // empty for UsesKindLocalSameRepo
+	Path    string // workflow file path inside the source repo
+	Ref     string // git ref; empty for UsesKindLocalSameRepo
 }
 
 var (
 	reLocalSameRepo  = regexp.MustCompile(`^\./([^@]+\.ya?ml)$`)
-	reLocalCrossRepo = regexp.MustCompile(`^([-.\w]+)/([-.\w]+)/([^@]+\.ya?ml)@(.+)$`)
+	reLocalCrossRepo = regexp.MustCompile(`^([-.\w]+)/(?:group/([-.\w]+)/)?([-.\w]+)/([^@]+\.ya?ml)@(.+)$`)
 )
 
 // ParseUses parses the SYNTAX of a reusable workflow "uses:" value into a UsesRef. Two forms are supported:
 //   - "./<dir>/foo.yml"               (UsesKindLocalSameRepo, no @ref)
-//   - "OWNER/REPO/<dir>/foo.yml@REF"  (UsesKindLocalCrossRepo)
+//   - "OWNER/group/[GROUP_ID/]REPO/<dir>/foo.yml@REF"  (UsesKindLocalCrossRepo)
 //
 // It deliberately does NOT validate that <dir> is an allowed workflow directory: the allowed directories are instance-configurable (WORKFLOW_DIRS / SCOPED_WORKFLOW_DIRS).
 // The caller (services/actions.ResolveUses) enforces the directory allowlist. The returned Path is the cleaned, repo-relative file path.
@@ -65,15 +67,17 @@ func ParseUses(s string) (*UsesRef, error) {
 	if m == nil {
 		return nil, fmt.Errorf(`invalid cross-repo "uses:" %q (expect owner/repo/<dir>/<file>.yml@ref)`, s)
 	}
-	p := m[3]
+	p := m[4]
 	if path.Clean(p) != p {
 		return nil, fmt.Errorf("invalid workflow path %q", s)
 	}
+	gid, _ := strconv.ParseInt(m[2], 10, 64)
 	return &UsesRef{
-		Kind:  UsesKindLocalCrossRepo,
-		Owner: m[1],
-		Repo:  m[2],
-		Path:  p,
-		Ref:   m[4],
+		Kind:    UsesKindLocalCrossRepo,
+		Owner:   m[1],
+		Repo:    m[3],
+		GroupID: gid,
+		Path:    p,
+		Ref:     m[5],
 	}, nil
 }

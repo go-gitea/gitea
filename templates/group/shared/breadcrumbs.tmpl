@@ -1,0 +1,9 @@
+
+			{{if .ShowOwner}}<a class="muted tw-font-normal" href="{{.Owner.HomeLink}}">{{.Owner.Name}}</a>{{end}}
+			{{- range .Breadcrumbs -}}
+			/{{- if (call $.CanAccessGroup .) -}}
+				<a class="muted{{if eq .ID $.GroupID}} tw-font-bold active{{else}} tw-font-normal{{end}}"
+					href="{{.GroupLink}}">{{.Name}}</a>{{else}}
+			&lt;private-group&gt;
+			{{end}}
+			{{- end -}}

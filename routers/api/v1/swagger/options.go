@@ -239,4 +239,13 @@ type swaggerParameterBodies struct {
 
 	// in:body
 	MergeUpstreamRequest api.MergeUpstreamRequest
+
+	// in:body
+	NewGroupOption api.NewGroupOption
+
+	// in:body
+	EditGroupOption api.EditGroupOption
+
+	// in:body
+	MoveGroupOption api.MoveGroupOption
 }

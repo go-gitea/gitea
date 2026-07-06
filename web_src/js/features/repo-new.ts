@@ -1,14 +1,14 @@
 import {hideElem, querySingleVisibleElem, showElem, toggleElem} from '../utils/dom.ts';
-import {htmlEscape} from '../utils/html.ts';
+import {html, htmlEscape} from '../utils/html.ts';
 import {fomanticQuery} from '../modules/fomantic/base.ts';
 import {sanitizeRepoName} from './repo-common.ts';
+import type {FomanticDropdownItem, FomanticMenuDropdownItem} from '../modules/fomantic/dropdown.ts';
 
 const {appSubUrl} = window.config;
-
 function initRepoNewTemplateSearch(form: HTMLFormElement) {
   const elSubmitButton = querySingleVisibleElem<HTMLInputElement>(form, '.ui.primary.button')!;
   const elCreateRepoErrorMessage = form.querySelector('#create-repo-error-message')!;
-  const elRepoOwnerDropdown = form.querySelector('#repo_owner_dropdown')!;
+  const elRepoOwnerDropdown = form.querySelector('#repo_owner_dropdown, #group_owner_dropdown')!;
   const elRepoTemplateDropdown = form.querySelector<HTMLInputElement>('#repo_template_search')!;
   const inputRepoTemplate = form.querySelector<HTMLInputElement>('#repo_template')!;
   const elTemplateUnits = form.querySelector('#template_units')!;
@@ -57,6 +57,67 @@ function initRepoNewTemplateSearch(form: HTMLFormElement) {
   onChangeOwner();
 }
 
+export function initGroupSelector(form: HTMLFormElement) {
+  const inputRepoOwnerUid = form.querySelector<HTMLInputElement>('input[name="uid"]');
+  const elGroupDropdown = form.querySelector<HTMLDivElement>('#group_selector');
+  if (!inputRepoOwnerUid || !elGroupDropdown) {
+    return;
+  }
+  const $dropdown = fomanticQuery(elGroupDropdown);
+  const elGID = elGroupDropdown.querySelector<HTMLInputElement>('input#gid')!;
+  const onChangeRepoOwner = function () {
+    const $dropdownInstance = $dropdown.dropdown('setting', {
+      apiSettings: {
+        url: `${appSubUrl}/group/search?uid=${inputRepoOwnerUid.value}&recurse=true`,
+        onResponse(response: {data: any}) {
+          // const searchTerm: string = $dropdown.dropdown('get query');
+          const results: FomanticDropdownItem[] = [];
+          results.push({name: html`&lt;none&gt;`, value: '0'});
+          const forEachFn = function ({group, subgroups}: {group: any, subgroups: any[]}) {
+            const retVal: FomanticMenuDropdownItem = {
+
+              name: group.name,
+              text: group.name,
+              value: String(group.id),
+              type: 'menu',
+              values: [],
+            };
+            retVal.values = subgroups.map(forEachFn);
+            return retVal;
+          };
+          results.push(...response.data.subgroups.map(forEachFn));
+          return {results};
+        },
+        cache: false,
+      },
+      keepSearchTerm: true,
+      match: 'text',
+      selectOnKeydown: false,
+      filterRemoteData: true,
+      forceSelection: false,
+      action(text: string, val:string, _element: HTMLElement) {
+        const elTxt = elGroupDropdown.querySelector<HTMLSpanElement>('span.text');
+        if (elTxt) {
+          elTxt.innerHTML = text;
+        }
+        elGID.value = val;
+        elGroupDropdown.querySelector<HTMLInputElement>('input.search')!.value = '';
+
+        $dropdown.dropdown('hide');
+      },
+    });
+
+    $dropdownInstance.fomanticExt.onDropdownAfterFiltered = function() {
+      const mod = $dropdown.data('module-dropdown');
+      mod.remove.empty();
+      mod.remove.message();
+    };
+  };
+
+  inputRepoOwnerUid.addEventListener('change', onChangeRepoOwner);
+  onChangeRepoOwner();
+}
+
 export function initRepoNew() {
   const pageContent = document.querySelector('.page-content.repository.new-repo');
   if (!pageContent) return;
@@ -95,4 +156,5 @@ export function initRepoNew() {
   updateUiRepoName();
 
   initRepoNewTemplateSearch(form);
+  initGroupSelector(form);
 }

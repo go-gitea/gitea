@@ -1018,15 +1018,26 @@ $.fn.dropdown = function(parameters) {
             var menuConfig = {};
             menuConfig[fields.values] = values;
             module.setup.menu(menuConfig);
-            $.each(values, function(index, item) {
-              if(item.selected == true) {
-                module.debug('Setting initial selection to', item[fields.value]);
-                module.set.selected(item[fields.value]);
-                if(!module.is.multiple()) {
-                  return false;
+            const findSelected = function (values) {
+              let hasMultiple = true;
+              $.each(values, function (index, item) {
+                const itemType = item.type || 'item';
+                if (item.selected === true) {
+                  module.debug('Setting initial selection to', item[fields.value]);
+                  module.set.selected(item[fields.value]);
+                  if (!module.is.multiple()) {
+                    hasMultiple = false;
+                  }
+                } else if (itemType.includes('menu')) {
+                  hasMultiple = findSelected(item.values || []);
                 }
-              }
-            });
+
+                return hasMultiple;
+              });
+
+              return hasMultiple;
+            };
+            findSelected(values);
 
             if(module.has.selectInput()) {
               module.disconnect.selectObserver();
@@ -3053,8 +3064,10 @@ $.fn.dropdown = function(parameters) {
             $search.css('width', '');
           },
           searchTerm: function() {
-            module.verbose('Cleared search term');
-            $search.val('');
+            if(!module.setting('keepSearchTerm') || module.setting('apiSettings').cache) { // GITEA-PATCH: ensures that the search term isn't cleared when a user types a character
+              module.verbose('Cleared search term');
+              $search.val('');
+            }
             module.set.filtered();
           },
           userAddition: function() {
@@ -4044,6 +4057,7 @@ $.fn.dropdown.settings = {
     name         : 'name',     // displayed dropdown text
     value        : 'value',    // actual dropdown value
     text         : 'text',     // displayed text when selected
+    data         : 'data',     // custom data attributes
     type         : 'type',     // type of dropdown element
     image        : 'image',    // optional image path
     imageClass   : 'imageClass', // optional individual class for image
@@ -4179,7 +4193,10 @@ $.fn.dropdown.settings.templates = {
       values = response[fields.values] || [],
       html   = '',
       escape = $.fn.dropdown.settings.templates.escape,
-      deQuote = $.fn.dropdown.settings.templates.deQuote
+      deQuote = $.fn.dropdown.settings.templates.deQuote,
+
+      // GITEA-PATCH: add ability to render multi-level menus with indentation instead of submenus that show on hovre
+      depth = response['__depth'] || 0
     ;
     $.each(values, function(index, option) {
       var
@@ -4187,8 +4204,32 @@ $.fn.dropdown.settings.templates = {
           ? option[fields.type]
           : 'item'
       ;
+      const isMenu = itemType.includes('menu');
+      const isLeaf = !option[fields.values]?.length
+      let maybeData = '';
+      let maybeLeaf = '';
+      let maybeRoot = '';
+      const dataObject = option[fields.data];
+      if (dataObject) {
+        let dataKey;
+        let dataKeyEscaped;
+        for (dataKey in dataObject) {
+          if (Object.prototype.hasOwnProperty.call(dataObject, dataKey)) {
+            dataKeyEscaped = String(dataKey).replace(/\W/g, '');
+            if (!['text', 'value'].includes(dataKeyEscaped.toLowerCase())) {
+              maybeData += ' data-' + dataKeyEscaped + '="' + escape(String(dataObject[dataKey])) + '"';
+            }
+          }
+        }
+      }
+      if(isLeaf) {
+        maybeLeaf = 'leaf ';
+      }
+      if(!depth) {
+        maybeRoot = 'root ';
+      }
 
-      if( itemType === 'item' ) {
+      if( itemType === 'item' || isMenu ) {
         var
           maybeText = (option[fields.text])
             ? ' data-text="' + escape(option[fields.text]) + '"' // GITEA-PATCH: use "escape" for attribute value
@@ -4198,15 +4239,20 @@ $.fn.dropdown.settings.templates = {
             : ''
         ;
         // GITEA-PATCH: use "escape" for attribute value
-        html += '<div class="'+ maybeDisabled + (option[fields.class] ? deQuote(option[fields.class]) : className.item)+'" data-value="' + escape(option[fields.value]) + '"' + maybeText + '>';
+        html += '<div class="'+maybeLeaf + maybeRoot + maybeDisabled + (option[fields.class] ? deQuote(option[fields.class]) : className.item)+'" data-value="' + escape(option[fields.value]) + '"' + maybeText + maybeData +'>';
+        html += '<span style="margin-inline-start: '+ depth + 'rem;">'
         if(option[fields.image]) {
           html += '<img class="'+(option[fields.imageClass] ? deQuote(option[fields.imageClass]) : className.image)+'" src="' + deQuote(option[fields.image]) + '">';
         }
         if(option[fields.icon]) {
           html += '<i class="'+deQuote(option[fields.icon])+' '+(option[fields.iconClass] ? deQuote(option[fields.iconClass]) : className.icon)+'"></i>';
         }
-        html +=   escape(option[fields.name] || '', preserveHTML);
+        html +=  escape(option[fields.name] || '', preserveHTML);
+        html += '</span>'
         html += '</div>';
+        if (isMenu) {
+          html += $.fn.dropdown.settings.templates.menu({...option, '__depth': depth + 1}, fields, preserveHTML, className);
+        }
       } else if (itemType === 'header') {
         var groupName = escape(option[fields.name] || '', preserveHTML),
             groupIcon = option[fields.icon] ? deQuote(option[fields.icon]) : className.groupIcon

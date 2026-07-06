@@ -10,6 +10,7 @@ import (
 	"strconv"
 
 	"gitea.dev/models/db"
+	group_model "gitea.dev/models/group"
 	issues_model "gitea.dev/models/issues"
 	repo_model "gitea.dev/models/repo"
 	user_model "gitea.dev/models/user"
@@ -205,8 +206,8 @@ func (actions ActionList) LoadIssues(ctx context.Context) error {
 
 // GetFeeds returns actions according to the provided options
 func GetFeeds(ctx context.Context, opts GetFeedsOptions) (ActionList, int64, error) {
-	if opts.RequestedUser == nil && opts.RequestedTeam == nil && opts.RequestedRepo == nil {
-		return nil, 0, errors.New("need at least one of these filters: RequestedUser, RequestedTeam, RequestedRepo")
+	if opts.RequestedUser == nil && opts.RequestedTeam == nil && opts.RequestedRepo == nil && opts.RequestedGroup == nil {
+		return nil, 0, errors.New("need at least one of these filters: RequestedUser, RequestedTeam, RequestedRepo, RequestedGroup")
 	}
 
 	var err error
@@ -228,6 +229,24 @@ func GetFeeds(ctx context.Context, opts GetFeedsOptions) (ActionList, int64, err
 		}
 		if opts.OnlyPerformedBy {
 			cond = cond.And(builder.Eq{"act_user_id": opts.RequestedUser.ID})
+		}
+		if opts.RequestedGroup != nil {
+			var subCond builder.Cond
+
+			groupFilter := group_model.AccessibleGroupCondition(opts.Actor)
+			if childGroupCondIDs, err := group_model.ChildGroupCond(ctx, opts.RequestedGroup.ID, groupFilter); err != nil {
+				subCond = builder.NotIn("`repository`.group_id")
+			} else {
+				subCond = builder.In("`repository`.group_id", childGroupCondIDs)
+			}
+			cond = cond.And(builder.In("`action`.repo_id",
+				builder.Select("id").
+					From("repository").
+					Where(builder.Or(
+						subCond,
+						builder.Eq{"`repository`.group_id": opts.RequestedGroup.ID}),
+					),
+			))
 		}
 	} else {
 		cond, err = ActivityQueryCondition(ctx, opts)

@@ -93,7 +93,7 @@ func prepareContextForProfileBigAvatar(ctx *context.Context) {
 
 func FindOwnerProfileReadme(ctx *context.Context, doer *user_model.User, optProfileRepoName ...string) (profileDbRepo *repo_model.Repository, profileReadmeBlob *git.Blob) {
 	profileRepoName := util.OptionalArg(optProfileRepoName, RepoNameProfile)
-	profileDbRepo, err := repo_model.GetRepositoryByName(ctx, ctx.ContextUser.ID, profileRepoName)
+	profileDbRepo, err := repo_model.GetRepositoryByName(ctx, ctx.ContextUser.ID, ctx.PathParamInt64("group_id"), profileRepoName)
 	if err != nil {
 		if !repo_model.IsErrRepoNotExist(err) {
 			log.Error("FindOwnerProfileReadme failed to GetRepositoryByName: %v", err)
@@ -168,6 +168,7 @@ func loadHeaderCount(ctx *context.Context) error {
 		Actor:              ctx.Doer,
 		OwnerID:            ctx.ContextUser.ID,
 		Private:            ctx.IsSigned,
+		GroupID:            -1,
 		Collaborate:        optional.Some(false),
 		IncludeDescription: setting.UI.SearchRepoDescription,
 	})

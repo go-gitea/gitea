@@ -260,6 +260,7 @@ func OrgAssignment(orgAssignmentOpts OrgAssignmentOptions) func(ctx *Context) {
 			}
 			ctx.Data["RenderedDescription"] = content
 		}
+		AddGroupValues(ctx)
 	}
 }
 

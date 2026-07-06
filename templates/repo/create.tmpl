@@ -42,6 +42,7 @@
 					<span class="help tw-hidden" data-help-for-repo-name=".profile">{{ctx.Locale.Tr "repo.repo_name_profile_public_hint"}}</span>
 					<span class="help tw-hidden" data-help-for-repo-name=".profile-private">{{ctx.Locale.Tr "repo.repo_name_profile_private_hint"}}</span>
 				</div>
+				{{template "group/selector_dynamic" dict "." . "Label" (ctx.Locale.Tr "repo.group") "Inline" true}}
 
 				<div class="inline field">
 					<label>{{ctx.Locale.Tr "repo.visibility"}}</label>

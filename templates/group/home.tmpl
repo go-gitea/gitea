@@ -1,0 +1,20 @@
+{{template "base/head" .}}
+<div role="main" aria-label="{{.Title}}" class="page-content repo-group profile">
+	<div class="ui container user profile">
+		<div class="ui column">
+			<div class="ui mobile reversed stackable grid">
+				<div class="ui four wide column tw-space-y-4">
+					{{template "shared/user/profile_big_avatar" .}}
+					<div>
+						{{template "group/sidebar/menu" .}}
+					</div>
+				</div>
+				<div class="ui twelve wide column">
+					{{template "group/header" .}}
+					{{template "group/shared/content" .}}
+				</div>
+			</div>
+		</div>
+	</div>
+</div>
+{{template "base/footer" .}}

@@ -28,6 +28,7 @@ import (
 	"gitea.dev/modules/fileicon"
 	"gitea.dev/modules/git"
 	"gitea.dev/modules/git/gitcmd"
+	giturl "gitea.dev/modules/git/url"
 	"gitea.dev/modules/gitrepo"
 	"gitea.dev/modules/log"
 	"gitea.dev/modules/markup"
@@ -52,7 +53,7 @@ const (
 )
 
 // setCompareContext sets context data.
-func setCompareContext(ctx *context.Context, before, head *git.Commit, headOwner, headName string) {
+func setCompareContext(ctx *context.Context, before, head *git.Commit, headOwner, headName string, headGID int64) {
 	ctx.Data["BeforeCommit"] = before
 	ctx.Data["HeadCommit"] = head
 
@@ -83,28 +84,30 @@ func setCompareContext(ctx *context.Context, before, head *git.Commit, headOwner
 		return st
 	}
 
-	setPathsCompareContext(ctx, before, head, headOwner, headName)
+	setPathsCompareContext(ctx, before, head, headOwner, headName, headGID)
 	setImageCompareContext(ctx)
 	setCsvCompareContext(ctx)
 }
 
 // SourceCommitURL creates a relative URL for a commit in the given repository
-func SourceCommitURL(owner, name string, commit *git.Commit) string {
-	return setting.AppSubURL + "/" + url.PathEscape(owner) + "/" + url.PathEscape(name) + "/src/commit/" + url.PathEscape(commit.ID.String())
+func SourceCommitURL(owner, name string, gid int64, commit *git.Commit) string {
+	locator := giturl.NewLocator(owner, name, gid)
+	return setting.AppSubURL + "/" + locator.WebPath() + "/src/commit/" + url.PathEscape(commit.ID.String())
 }
 
 // RawCommitURL creates a relative URL for the raw commit in the given repository
-func RawCommitURL(owner, name string, commit *git.Commit) string {
-	return setting.AppSubURL + "/" + url.PathEscape(owner) + "/" + url.PathEscape(name) + "/raw/commit/" + url.PathEscape(commit.ID.String())
+func RawCommitURL(owner, name string, gid int64, commit *git.Commit) string {
+	locator := giturl.NewLocator(owner, name, gid)
+	return setting.AppSubURL + "/" + locator.WebPath() + "/raw/commit/" + url.PathEscape(commit.ID.String())
 }
 
 // setPathsCompareContext sets context data for source and raw paths
-func setPathsCompareContext(ctx *context.Context, base, head *git.Commit, headOwner, headName string) {
-	ctx.Data["SourcePath"] = SourceCommitURL(headOwner, headName, head)
-	ctx.Data["RawPath"] = RawCommitURL(headOwner, headName, head)
+func setPathsCompareContext(ctx *context.Context, base, head *git.Commit, headOwner, headName string, headGID int64) {
+	ctx.Data["SourcePath"] = SourceCommitURL(headOwner, headName, headGID, head)
+	ctx.Data["RawPath"] = RawCommitURL(headOwner, headName, headGID, head)
 	if base != nil {
-		ctx.Data["BeforeSourcePath"] = SourceCommitURL(headOwner, headName, base)
-		ctx.Data["BeforeRawPath"] = RawCommitURL(headOwner, headName, base)
+		ctx.Data["BeforeSourcePath"] = SourceCommitURL(headOwner, headName, headGID, base)
+		ctx.Data["BeforeRawPath"] = RawCommitURL(headOwner, headName, headGID, base)
 	}
 }
 
@@ -518,7 +521,7 @@ func (cpi *comparePageInfoType) prepareCompareDiff(ctx *context.Context, whitesp
 
 	ctx.Data["title"], ctx.Data["content"] = prepareNewPullRequestTitleContent(ci, commits, setting.Repository.PullRequest.DefaultTitleSource)
 
-	setCompareContext(ctx, beforeCommit, headCommit, ci.HeadRepo.OwnerName, repo.Name)
+	setCompareContext(ctx, beforeCommit, headCommit, ci.HeadRepo.OwnerName, repo.Name, repo.GroupID)
 }
 
 func getBranchesAndTagsForRepo(ctx gocontext.Context, repo *repo_model.Repository) (branches, tags []string, err error) {
