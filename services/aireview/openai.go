@@ -264,6 +264,11 @@ func buildReviewPrompt(req *ReviewRequest) string {
 		}
 		b.WriteString(fmt.Sprintf("\nTotal files changed: %d\n\n", len(req.Files)))
 
+		if cg := BuildCodeGraph(req.Files); cg.String() != "" {
+			b.WriteString(cg.String())
+			b.WriteString("\n")
+		}
+
 		for _, f := range req.Files {
 			b.WriteString(fmt.Sprintf("### File: %s", f.Path))
 			if f.Language != "" {
