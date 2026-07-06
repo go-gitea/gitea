@@ -33,8 +33,10 @@ Focus on:
 - Performance issues
 - Code style and best practices
 - Potential edge cases
+- Missing or inadequate documentation on public APIs
 
-For each issue found, provide a suggested fix when possible:
+For each issue found, provide a suggested fix when possible.
+For missing docstrings, always provide a suggested_fix with the docstring to add.
 {
   "suggested_fix": {
     "old_code": "the existing code that needs to change",
