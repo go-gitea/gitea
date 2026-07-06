@@ -17,9 +17,9 @@ import (
 	"xorm.io/builder"
 )
 
-// maxTaskPickAttempts bounds how many unpreparable waiting jobs a single poll will
-// fail and skip before giving up. Contention losses stop immediately instead of
-// consuming this budget.
+// maxTaskPickAttempts bounds how many candidate waiting jobs a single poll will
+// try — whether skipped because they're unpreparable or lost to a concurrent
+// runner's claim — before giving up.
 const maxTaskPickAttempts = 10
 
 func CreateTaskForRunner(ctx context.Context, runner *ActionRunner) (*ActionTask, bool, error) {
@@ -44,11 +44,21 @@ func CreateTaskForRunner(ctx context.Context, runner *ActionRunner) (*ActionTask
 	// bound keeps a single poll from clearing an unbounded backlog of such jobs.
 	log.Trace("runner labels: %v", runner.AgentLabels)
 	matchCond := runnerMatchableJobCond(runner.AgentLabels)
+	// Jobs already tried this poll and skipped (failed as unpreparable, or lost to a
+	// concurrent runner's claim). They are excluded from the next query so the poll
+	// advances to a fresh candidate: under MySQL's REPEATABLE READ the transaction's
+	// snapshot keeps showing a lost job as still waiting, so without this the poll
+	// would re-pick and re-lose the same head until the attempt budget runs out.
+	var triedJobIDs []int64
 	for range maxTaskPickAttempts {
 		job := new(ActionRunJob)
-		has, err := e.Where(builder.Eq{"task_id": 0, "status": StatusWaiting, "is_reusable_caller": false}).
+		query := e.Where(builder.Eq{"task_id": 0, "status": StatusWaiting, "is_reusable_caller": false}).
 			And(jobCond).
-			And(matchCond).
+			And(matchCond)
+		if len(triedJobIDs) > 0 {
+			query = query.And(builder.NotIn("id", triedJobIDs))
+		}
+		has, err := query.
 			Asc("updated", "id").
 			Limit(1).
 			Get(job)
@@ -58,6 +68,7 @@ func CreateTaskForRunner(ctx context.Context, runner *ActionRunner) (*ActionTask
 		if !has {
 			break
 		}
+		triedJobIDs = append(triedJobIDs, job.ID)
 
 		if err := job.LoadAttributes(ctx); err != nil {
 			if !errors.Is(err, util.ErrNotExist) {
@@ -86,9 +97,10 @@ func CreateTaskForRunner(ctx context.Context, runner *ActionRunner) (*ActionTask
 			return nil, false, err
 		}
 		if !claimed {
-			// Another runner claimed this job between the select and the CAS. Stop for
-			// this poll so the runner retries cleanly; fail-markings above still commit.
-			break
+			// Another runner claimed this job between the select and the CAS. Retry
+			// with the next candidate instead of giving up, so contending runners
+			// spread across distinct jobs rather than all bailing on the same head.
+			continue
 		}
 
 		task, err := assignJobToRunner(ctx, runner, job, workflowJob)
@@ -219,7 +231,9 @@ func failUnpreparableJob(ctx context.Context, job *ActionRunJob) error {
 		Cols("status", "stopped").
 		Update(&ActionRunJob{Status: StatusFailure, Stopped: job.Stopped})
 	if fallbackErr != nil {
-		return err
+		// Surface the fallback's failure — the earlier UpdateRunJob error is often the
+		// expected util.ErrNotExist (#37586) and would hide the real DB error here.
+		return fallbackErr
 	}
 	return nil
 }
