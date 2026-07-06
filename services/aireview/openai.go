@@ -10,6 +10,8 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"regexp"
+	"strings"
 	"time"
 
 	"gitea.dev/modules/setting"
@@ -17,6 +19,11 @@ import (
 
 const (
 	openaiChatEndpoint = "/v1/chat/completions"
+)
+
+var (
+	githubIssueRef = regexp.MustCompile(`(?i)(?:fixes|closes|resolves|addresses|refs?)\s+#(\d+)`)
+	jiraIssueRef   = regexp.MustCompile(`[A-Z]{2,9}-\d+`)
 )
 
 func systemPrompt(custom string) string {
@@ -130,6 +137,11 @@ func (p *OpenAIProvider) ReviewCode(ctx context.Context, req *ReviewRequest) (*R
 	// Append path-specific instructions to system prompt
 	for _, pi := range req.PathInstructions {
 		sysPrompt += fmt.Sprintf("\nFor files matching %q: %s", pi.Path, pi.Instructions)
+	}
+
+	// Append linked issue references
+	if refs := extractIssueRefs(req.PRDescription); refs != "" {
+		prompt += "\nReferenced issues: " + refs + "\n"
 	}
 
 	// Append linter config info
@@ -325,4 +337,35 @@ func buildReviewPrompt(req *ReviewRequest) string {
 	}
 
 	return b.String()
+}
+
+// extractIssueRefs finds issue references (Jira, Linear, GitHub) in text.
+func extractIssueRefs(text string) string {
+	if text == "" {
+		return ""
+	}
+
+	var refs []string
+
+	// GitHub-style: Fixes #123, Closes #456
+	ghRefs := githubIssueRef.FindAllStringSubmatch(text, -1)
+	for _, m := range ghRefs {
+		if len(m) >= 2 {
+			refs = append(refs, "#"+m[1])
+		}
+	}
+
+	// Jira-style: PROJ-123, ABC-456
+	jiraRefs := jiraIssueRef.FindAllStringSubmatch(text, -1)
+	for _, m := range jiraRefs {
+		if len(m) >= 1 {
+			refs = append(refs, m[0])
+		}
+	}
+
+	if len(refs) == 0 {
+		return ""
+	}
+
+	return strings.Join(refs, ", ")
 }
