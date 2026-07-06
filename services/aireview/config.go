@@ -90,5 +90,5 @@ func MergeRepoConfig(globalSystemPrompt string, globalExcludePaths []string, rep
 	}
 	pathInstructions = repoCfg.PathInstructions
 	customChecks = repoCfg.CustomChecks
-	return
+	return systemPrompt, excludePaths, pathInstructions, customChecks
 }
