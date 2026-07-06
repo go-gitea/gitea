@@ -68,7 +68,19 @@ func RunReview(ctx context.Context, task *AIRreviewTask) error {
 		return fmt.Errorf("get PR diff: %w", err)
 	}
 
-	if len(files) == 0 {
+	var reviewFiles []FileDiff
+	for _, f := range files {
+		if f.Patch == "" {
+			continue
+		}
+		if setting.IsExcludedPath(f.Path) {
+			log.Debug("aireview: skipping excluded file %s", f.Path)
+			continue
+		}
+		reviewFiles = append(reviewFiles, f)
+	}
+
+	if len(reviewFiles) == 0 {
 		log.Info("aireview: PR %d has no files to review", task.PRID)
 		return nil
 	}
@@ -78,42 +90,25 @@ func RunReview(ctx context.Context, task *AIRreviewTask) error {
 		return fmt.Errorf("get provider: %w", err)
 	}
 
-	var allComments []aiComment
-	var summaries []string
+	// Load PR title/description for context
+	title := pr.Issue.Title
+	desc := pr.Issue.Content
 
-	for _, file := range files {
-		if file.Patch == "" {
-			continue
-		}
-		if setting.IsExcludedPath(file.Path) {
-			log.Debug("aireview: skipping excluded file %s", file.Path)
-			continue
-		}
-		patch := file.Patch
-		if len(patch) > setting.AIRreview.MaxPatchSize {
-			patch = patch[:setting.AIRreview.MaxPatchSize] + "\n... (patch truncated)"
-		}
-
-		resp, err := provider.ReviewCode(ctx, &ReviewRequest{
-			Diff:     patch,
-			FilePath: file.Path,
-			Language: file.Language,
-		})
-		if err != nil {
-			log.Error("aireview: failed to review %s: %v", file.Path, err)
-			continue
-		}
-
-		for _, c := range resp.Comments {
-			c.File = file.Path
-			allComments = append(allComments, aiComment{ReviewComment: c})
-		}
-		if resp.Summary != "" {
-			summaries = append(summaries, resp.Summary)
-		}
+	resp, err := provider.ReviewCode(ctx, &ReviewRequest{
+		Files:         reviewFiles,
+		PRTitle:       title,
+		PRDescription: desc,
+	})
+	if err != nil {
+		return fmt.Errorf("AI review failed: %w", err)
 	}
 
-	if len(allComments) == 0 && len(summaries) == 0 {
+	var allComments []aiComment
+	for _, c := range resp.Comments {
+		allComments = append(allComments, aiComment{ReviewComment: c})
+	}
+
+	if len(allComments) == 0 && resp.Summary == "" {
 		log.Info("aireview: no issues found in PR %d", task.PRID)
 		return nil
 	}
@@ -140,7 +135,7 @@ func RunReview(ctx context.Context, task *AIRreviewTask) error {
 		inlineCount++
 	}
 
-	reviewContent := formatReviewBody(summaries, allComments)
+	reviewContent := formatReviewBody(resp.Summary, allComments)
 
 	_, _, err = pull_service.SubmitReview(ctx, doer, gitRepo, pr.Issue,
 		issues_model.ReviewTypeComment,
@@ -169,17 +164,15 @@ func formatCommentBody(c aiComment) string {
 	}
 }
 
-func formatReviewBody(summaries []string, comments []aiComment) string {
+func formatReviewBody(summary string, comments []aiComment) string {
 	var b strings.Builder
 
 	b.WriteString("### AI Code Review\n\n")
 
-	if len(summaries) > 0 {
+	if summary != "" {
 		b.WriteString("**Overview:**\n")
-		for _, s := range summaries {
-			b.WriteString(s)
-			b.WriteString("\n\n")
-		}
+		b.WriteString(summary)
+		b.WriteString("\n\n")
 	}
 
 	var nonInlined []aiComment

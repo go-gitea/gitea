@@ -16,8 +16,14 @@ import (
 )
 
 const (
-	openaiChatEndpoint  = "/v1/chat/completions"
-	defaultSystemPrompt = `You are an expert code reviewer. Review the following code diff and provide constructive feedback.
+	openaiChatEndpoint = "/v1/chat/completions"
+)
+
+func systemPrompt() string {
+	if p := setting.AIRreview.SystemPrompt; p != "" {
+		return p
+	}
+	return `You are an expert code reviewer. Review the following code changes and provide constructive feedback.
 Focus on:
 - Bugs and logic errors
 - Security vulnerabilities
@@ -34,7 +40,7 @@ Return your review as JSON with this structure:
 }
 severity must be one of: "critical", "warning", "info"
 If there are no issues, return an empty comments array.`
-)
+}
 
 // OpenAIProvider implements the Provider interface for OpenAI-compatible APIs.
 type OpenAIProvider struct {
@@ -89,7 +95,7 @@ type chatResponse struct {
 	} `json:"error,omitempty"`
 }
 
-// ReviewCode sends a code diff to the OpenAI-compatible API and returns review comments.
+// ReviewCode sends code diffs to the OpenAI-compatible API and returns review comments.
 func (p *OpenAIProvider) ReviewCode(ctx context.Context, req *ReviewRequest) (*ReviewResponse, error) {
 	if p.apiKey == "" {
 		return nil, fmt.Errorf("aireview: API token is not configured")
@@ -98,12 +104,12 @@ func (p *OpenAIProvider) ReviewCode(ctx context.Context, req *ReviewRequest) (*R
 	prompt := buildReviewPrompt(req)
 
 	body := chatRequest{
-		Model:          p.model,
-		MaxTokens:      setting.AIRreview.MaxTokens,
-		Temperature:    setting.AIRreview.Temperature,
+		Model:       p.model,
+		MaxTokens:   setting.AIRreview.MaxTokens,
+		Temperature: setting.AIRreview.Temperature,
 		ResponseFormat: &responseFormat{Type: "json_object"},
 		Messages: []chatMessage{
-			{Role: "system", Content: defaultSystemPrompt},
+			{Role: "system", Content: systemPrompt()},
 			{Role: "user", Content: prompt},
 		},
 	}
@@ -161,19 +167,56 @@ func (p *OpenAIProvider) ReviewCode(ctx context.Context, req *ReviewRequest) (*R
 }
 
 func buildReviewPrompt(req *ReviewRequest) string {
-	prompt := fmt.Sprintf("Review the following code changes.\n")
-	if req.PRTitle != "" {
-		prompt += fmt.Sprintf("PR Title: %s\n", req.PRTitle)
+	var b bytes.Buffer
+
+	if len(req.Files) > 0 {
+		b.WriteString("Review the following code changes for this pull request.\n")
+		if req.PRTitle != "" {
+			b.WriteString(fmt.Sprintf("PR Title: %s\n", req.PRTitle))
+		}
+		if req.PRDescription != "" {
+			b.WriteString(fmt.Sprintf("PR Description: %s\n", req.PRDescription))
+		}
+		b.WriteString(fmt.Sprintf("\nTotal files changed: %d\n\n", len(req.Files)))
+
+		for _, f := range req.Files {
+			b.WriteString(fmt.Sprintf("### File: %s", f.Path))
+			if f.Language != "" {
+				b.WriteString(fmt.Sprintf(" (%s)", f.Language))
+			}
+			b.WriteString("\n")
+			b.WriteString("```diff\n")
+			patch := f.Patch
+			if len(patch) > setting.AIRreview.MaxPatchSize {
+				patch = patch[:setting.AIRreview.MaxPatchSize] + "\n... (patch truncated)"
+			}
+			b.WriteString(patch)
+			if !bytes.HasSuffix([]byte(patch), []byte("\n")) {
+				b.WriteString("\n")
+			}
+			b.WriteString("```\n\n")
+		}
+	} else {
+		b.WriteString("Review the following code changes.\n")
+		if req.PRTitle != "" {
+			b.WriteString(fmt.Sprintf("PR Title: %s\n", req.PRTitle))
+		}
+		if req.PRDescription != "" {
+			b.WriteString(fmt.Sprintf("PR Description: %s\n", req.PRDescription))
+		}
+		if req.FilePath != "" {
+			b.WriteString(fmt.Sprintf("File: %s\n", req.FilePath))
+		}
+		if req.Language != "" {
+			b.WriteString(fmt.Sprintf("Language: %s\n", req.Language))
+		}
+		b.WriteString("\n```diff\n")
+		b.WriteString(req.Diff)
+		if !bytes.HasSuffix([]byte(req.Diff), []byte("\n")) {
+			b.WriteString("\n")
+		}
+		b.WriteString("```\n")
 	}
-	if req.PRDescription != "" {
-		prompt += fmt.Sprintf("PR Description: %s\n", req.PRDescription)
-	}
-	if req.FilePath != "" {
-		prompt += fmt.Sprintf("File: %s\n", req.FilePath)
-	}
-	if req.Language != "" {
-		prompt += fmt.Sprintf("Language: %s\n", req.Language)
-	}
-	prompt += fmt.Sprintf("\n```diff\n%s\n```\n", req.Diff)
-	return prompt
+
+	return b.String()
 }

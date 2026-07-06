@@ -23,6 +23,7 @@ var AIRreview = struct {
 	MaxPatchSize    int
 	Timeout         int
 	ExcludePaths    []string
+	SystemPrompt    string
 }{
 	Enabled:         false,
 	Provider:        "openrouter",
@@ -54,6 +55,7 @@ func loadAIReviewFrom(rootCfg ConfigProvider) {
 	AIRreview.TriggerOnUpdate = sec.Key("TRIGGER_ON_UPDATE").MustBool(false)
 	AIRreview.MaxPatchSize = sec.Key("MAX_PATCH_SIZE").MustInt(80000)
 	AIRreview.Timeout = sec.Key("TIMEOUT").MustInt(120)
+	AIRreview.SystemPrompt = sec.Key("SYSTEM_PROMPT").MustString("")
 	raw := sec.Key("EXCLUDE_PATHS").MustString("")
 	if raw != "" {
 		for _, p := range strings.Split(raw, ",") {
