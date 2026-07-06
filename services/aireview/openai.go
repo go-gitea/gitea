@@ -98,16 +98,11 @@ func (p *OpenAIProvider) Name() string {
 	return "openai-compatible"
 }
 
-type chatMessage struct {
-	Role    string `json:"role"`
-	Content string `json:"content"`
-}
-
 type chatRequest struct {
-	Model          string          `json:"model"`
-	Messages       []chatMessage   `json:"messages"`
-	MaxTokens      int             `json:"max_tokens,omitempty"`
-	Temperature    float64         `json:"temperature,omitempty"`
+	Model          string         `json:"model"`
+	Messages       []ChatMessage  `json:"messages"`
+	MaxTokens      int            `json:"max_tokens,omitempty"`
+	Temperature    float64        `json:"temperature,omitempty"`
 	ResponseFormat *responseFormat `json:"response_format,omitempty"`
 }
 
@@ -117,7 +112,7 @@ type responseFormat struct {
 
 type chatResponse struct {
 	Choices []struct {
-		Message chatMessage `json:"message"`
+		Message ChatMessage `json:"message"`
 	} `json:"choices"`
 	Error *struct {
 		Message string `json:"message"`
@@ -159,7 +154,7 @@ func (p *OpenAIProvider) ReviewCode(ctx context.Context, req *ReviewRequest) (*R
 		MaxTokens:   setting.AIRreview.MaxTokens,
 		Temperature: setting.AIRreview.Temperature,
 		ResponseFormat: &responseFormat{Type: "json_object"},
-		Messages: []chatMessage{
+		Messages: []ChatMessage{
 			{Role: "system", Content: sysPrompt},
 			{Role: "user", Content: prompt},
 		},
@@ -218,7 +213,7 @@ func (p *OpenAIProvider) ReviewCode(ctx context.Context, req *ReviewRequest) (*R
 }
 
 // Chat sends a conversational request (no JSON mode) and returns the text response.
-func (p *OpenAIProvider) Chat(ctx context.Context, messages []chatMessage) (string, error) {
+func (p *OpenAIProvider) Chat(ctx context.Context, messages []ChatMessage) (string, error) {
 	if p.apiKey == "" {
 		return "", fmt.Errorf("aireview: API token is not configured")
 	}

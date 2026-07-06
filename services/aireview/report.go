@@ -40,12 +40,7 @@ func GenerateSprintReport(ctx context.Context, repo *repo_model.Repository) (str
 		return b.String(), nil
 	}
 
-	openAIProvider, ok := provider.(*OpenAIProvider)
-	if !ok {
-		return b.String(), nil
-	}
-
-	summary, err := openAIProvider.Chat(ctx, []chatMessage{
+	summary, err := provider.Chat(ctx, []ChatMessage{
 		{Role: "system", Content: "You are a sprint report generator. Summarize the following pull requests in a clear, organized format."},
 		{Role: "user", Content: "Summarize these pull requests:\n\n" + b.String()},
 	})

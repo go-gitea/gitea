@@ -58,10 +58,18 @@ type ReviewResponse struct {
 	CheckResults []CheckResult        `json:"check_results"`
 }
 
+// ChatMessage represents a message in a chat conversation.
+type ChatMessage struct {
+	Role    string `json:"role"`
+	Content string `json:"content"`
+}
+
 // Provider defines the interface for AI code review providers.
 type Provider interface {
 	// ReviewCode sends code diffs to the AI and returns review comments.
 	ReviewCode(ctx context.Context, req *ReviewRequest) (*ReviewResponse, error)
+	// Chat sends a conversational request and returns the text response.
+	Chat(ctx context.Context, messages []ChatMessage) (string, error)
 	// Name returns the provider name for identification.
 	Name() string
 }

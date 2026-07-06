@@ -23,10 +23,10 @@ const chatBotMention = "@aireview"
 // conversation stores chat history per PR.
 type conversation struct {
 	mu  sync.Mutex
-	msgs map[int64][]chatMessage // PRID → message history
+	msgs map[int64][]ChatMessage // PRID → message history
 }
 
-var conversations = &conversation{msgs: make(map[int64][]chatMessage)}
+var conversations = &conversation{msgs: make(map[int64][]ChatMessage)}
 
 func systemChatPrompt() string {
 	return "You are an AI code review assistant integrated with Gitea. " +
@@ -81,7 +81,7 @@ func HandlePRComment(ctx context.Context, doer *user_model.User, repo *repo_mode
 	conversations.mu.Lock()
 	history := conversations.msgs[issue.ID]
 	if history == nil {
-		history = []chatMessage{
+		history = []ChatMessage{
 			{Role: "system", Content: systemChatPrompt() + "\n\nHere is the PR diff context:\n" + diffContext},
 		}
 	}
@@ -118,7 +118,7 @@ func HandlePRComment(ctx context.Context, doer *user_model.User, repo *repo_mode
 		return err
 	}
 
-	history = append(history, chatMessage{Role: "user", Content: userMsg})
+	history = append(history, ChatMessage{Role: "user", Content: userMsg})
 	conversations.msgs[issue.ID] = history
 	conversations.mu.Unlock()
 
@@ -127,18 +127,13 @@ func HandlePRComment(ctx context.Context, doer *user_model.User, repo *repo_mode
 		return fmt.Errorf("get provider: %w", err)
 	}
 
-	openAIProvider, ok := provider.(*OpenAIProvider)
-	if !ok {
-		return fmt.Errorf("chat not supported for provider %s", provider.Name())
-	}
-
-	aiResp, err := openAIProvider.Chat(ctx, history)
+	aiResp, err := provider.Chat(ctx, history)
 	if err != nil {
 		return fmt.Errorf("AI chat failed: %w", err)
 	}
 
 	conversations.mu.Lock()
-	conversations.msgs[issue.ID] = append(conversations.msgs[issue.ID], chatMessage{Role: "assistant", Content: aiResp})
+	conversations.msgs[issue.ID] = append(conversations.msgs[issue.ID], ChatMessage{Role: "assistant", Content: aiResp})
 	conversations.mu.Unlock()
 
 	branchLink := fmt.Sprintf("https://git.example.com/%s/pulls/%d", pr.BaseRepo.FullName(), pr.Index)
