@@ -7,21 +7,20 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"path"
-	"strings"
 
-	actions_model "code.gitea.io/gitea/models/actions"
-	"code.gitea.io/gitea/models/db"
-	git_model "code.gitea.io/gitea/models/git"
-	repo_model "code.gitea.io/gitea/models/repo"
-	user_model "code.gitea.io/gitea/models/user"
-	actions_module "code.gitea.io/gitea/modules/actions"
-	"code.gitea.io/gitea/modules/actions/jobparser"
-	"code.gitea.io/gitea/modules/commitstatus"
-	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/util"
-	webhook_module "code.gitea.io/gitea/modules/webhook"
-	commitstatus_service "code.gitea.io/gitea/services/repository/commitstatus"
+	actions_model "gitea.dev/models/actions"
+	"gitea.dev/models/db"
+	git_model "gitea.dev/models/git"
+	repo_model "gitea.dev/models/repo"
+	user_model "gitea.dev/models/user"
+	actions_module "gitea.dev/modules/actions"
+	"gitea.dev/modules/actions/jobparser"
+	"gitea.dev/modules/commitstatus"
+	"gitea.dev/modules/log"
+	api "gitea.dev/modules/structs"
+	"gitea.dev/modules/util"
+	webhook_module "gitea.dev/modules/webhook"
+	commitstatus_service "gitea.dev/services/repository/commitstatus"
 )
 
 // CreateCommitStatusForRunJobs creates a commit status for the given job if it has a supported event and related commit.
@@ -45,8 +44,14 @@ func CreateCommitStatusForRunJobs(ctx context.Context, run *actions_model.Action
 		return
 	}
 
+	// Compute the scoped source-repo prefix once per run; it is identical for every job.
+	var scopedPrefix string
+	if run.IsScopedRun {
+		scopedPrefix = actions_model.ScopedStatusContextPrefix(ctx, run.WorkflowRepoID)
+	}
+
 	for _, job := range jobs {
-		if err = createCommitStatus(ctx, run.Repo, event, commitID, run, job); err != nil {
+		if err = createCommitStatus(ctx, run.Repo, event, commitID, scopedPrefix, run, job); err != nil {
 			log.Error("Failed to create commit status for job %d: %v", job.ID, err)
 		}
 	}
@@ -136,23 +141,99 @@ func getCommitStatusEventNameAndCommitID(run *actions_model.ActionRun) (event, c
 	return event, commitID, nil
 }
 
-func createCommitStatus(ctx context.Context, repo *repo_model.Repository, event, commitID string, run *actions_model.ActionRun, job *actions_model.ActionRunJob) error {
-	// TODO: store workflow name as a field in ActionRun to avoid parsing
-	runName := path.Base(run.WorkflowID)
-	if wfs, err := jobparser.Parse(job.WorkflowPayload); err == nil && len(wfs) > 0 {
-		runName = wfs[0].Name
+func createCommitStatus(ctx context.Context, repo *repo_model.Repository, event, commitID, scopedPrefix string, run *actions_model.ActionRun, job *actions_model.ActionRunJob) error {
+	displayName := actions_module.WorkflowDisplayName(run.WorkflowID, job.WorkflowPayload)
+	ctxName := actions_module.WorkflowStatusContextName(displayName, job.Name, event) // git_model.NewCommitStatus also trims spaces
+	if run.IsScopedRun {
+		// A scoped run is prefixed with its source repo (set off by a colon) so it stays distinct from a same-named repo-level workflow.
+		// scopedPrefix is computed once per run by the caller. The settings page derives the same string to preview expected checks.
+		ctxName = actions_module.ScopedWorkflowStatusContextName(scopedPrefix, displayName, job.Name, event)
 	}
-	ctxName := strings.TrimSpace(fmt.Sprintf("%s / %s (%s)", runName, job.Name, event)) // git_model.NewCommitStatus also trims spaces
-	state := toCommitStatus(job.Status)
 	targetURL := fmt.Sprintf("%s/jobs/%d", run.Link(), job.ID)
-	description := toCommitStatusDescription(job)
+	return createWorkflowCommitStatus(ctx, repo, commitID, ctxName, run.WorkflowID, toCommitStatus(job.Status), targetURL, toCommitStatusDescription(job))
+}
+
+// CreateSkippedCommitStatusForFilteredWorkflow posts a skipped commit status for each job of a
+// workflow that matched the triggering event but was excluded by a branch/paths filter.
+// This lets a required status check tied to that context be satisfied without the workflow running.
+// No ActionRun is created, so the status has no target URL (there is no run/job to link to).
+// A non-empty scopedPrefix prefixes each context with its source repo, matching scoped runs.
+func CreateSkippedCommitStatusForFilteredWorkflow(ctx context.Context, repo *repo_model.Repository, event webhook_module.HookEventType, triggerEvent, workflowID string, content []byte, payload api.Payloader, scopedPrefix string) error {
+	// Derive the status event name and target commit from the payload.
+	// TODO: this mirrors getCommitStatusEventNameAndCommitID, which derives the same from a persisted run. Should merge the logic if possible.
+	var statusEvent, commitID string
+	switch event {
+	case webhook_module.HookEventPush:
+		if p, ok := payload.(*api.PushPayload); ok && p.HeadCommit != nil {
+			statusEvent, commitID = "push", p.HeadCommit.ID
+		}
+	case webhook_module.HookEventPullRequest,
+		webhook_module.HookEventPullRequestSync,
+		webhook_module.HookEventPullRequestAssign,
+		webhook_module.HookEventPullRequestLabel,
+		webhook_module.HookEventPullRequestReviewRequest,
+		webhook_module.HookEventPullRequestMilestone:
+		if p, ok := payload.(*api.PullRequestPayload); ok && p.PullRequest != nil && p.PullRequest.Head != nil {
+			statusEvent, commitID = "pull_request", p.PullRequest.Head.Sha
+			if triggerEvent == actions_module.GithubEventPullRequestTarget {
+				statusEvent = "pull_request_target"
+			}
+		}
+	}
+	if statusEvent == "" || commitID == "" {
+		return nil // unsupported event or missing commit id, nothing to post
+	}
+
+	workflows, err := jobparser.Parse(content)
+	if err != nil {
+		return fmt.Errorf("jobparser.Parse: %w", err)
+	}
+
+	displayName := actions_module.WorkflowDisplayName(workflowID, content)
+	for _, sw := range workflows {
+		_, job := sw.Job()
+		if job == nil {
+			continue
+		}
+		jobName := util.EllipsisDisplayString(job.Name, 255) // run creation truncates job names the same way
+		ctxName := actions_module.WorkflowStatusContextName(displayName, jobName, statusEvent)
+		if scopedPrefix != "" {
+			ctxName = actions_module.ScopedWorkflowStatusContextName(scopedPrefix, displayName, jobName, statusEvent)
+		}
+		// "Skipped" mirrors toCommitStatusDescription for StatusSkipped.
+		if err := createWorkflowCommitStatus(ctx, repo, commitID, ctxName, workflowID, commitstatus.CommitStatusSkipped, "", "Skipped"); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+// createWorkflowCommitStatus posts the commit status for one workflow-job context.
+func createWorkflowCommitStatus(ctx context.Context, repo *repo_model.Repository, commitID, ctxName, workflowID string, state commitstatus.CommitStatusState, targetURL, description string) error {
+	// Mix the workflow file path into the hash so two workflow files that
+	// share the same `name:` and job name produce distinct commit statuses
+	// even though they render identically — matching GitHub's behavior
+	// (issue #35699).
+	ctxHash := git_model.HashCommitStatusContext(ctxName + "\x00" + workflowID)
+	// Pre-fix rows were hashed from Context alone. If a pre-existing row with
+	// the legacy hash is still the "latest" for this SHA, reuse that hash so
+	// the new row supersedes it; otherwise the old pending status would stay
+	// stuck forever (it lives in its own dedupe group). Only relevant for
+	// in-flight workflows at upgrade time.
+	legacyHash := git_model.HashCommitStatusContext(ctxName)
 
 	statuses, err := git_model.GetLatestCommitStatus(ctx, repo.ID, commitID, db.ListOptionsAll)
 	if err != nil {
 		return fmt.Errorf("GetLatestCommitStatus: %w", err)
 	}
 	for _, v := range statuses {
-		if v.Context == ctxName {
+		if v.ContextHash == legacyHash && v.Context == ctxName {
+			ctxHash = legacyHash
+			break
+		}
+	}
+	for _, v := range statuses {
+		if v.ContextHash == ctxHash {
 			if v.State == state && v.TargetURL == targetURL && v.Description == description {
 				return nil
 			}
@@ -166,6 +247,7 @@ func createCommitStatus(ctx context.Context, repo *repo_model.Repository, event,
 		TargetURL:   targetURL,
 		Description: description,
 		Context:     ctxName,
+		ContextHash: ctxHash,
 		State:       state,
 		CreatorID:   creator.ID,
 	}

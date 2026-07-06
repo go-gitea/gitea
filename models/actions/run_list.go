@@ -6,12 +6,13 @@ package actions
 import (
 	"context"
 
-	"code.gitea.io/gitea/models/db"
-	repo_model "code.gitea.io/gitea/models/repo"
-	user_model "code.gitea.io/gitea/models/user"
-	"code.gitea.io/gitea/modules/container"
-	"code.gitea.io/gitea/modules/translation"
-	webhook_module "code.gitea.io/gitea/modules/webhook"
+	"gitea.dev/models/db"
+	repo_model "gitea.dev/models/repo"
+	user_model "gitea.dev/models/user"
+	"gitea.dev/modules/container"
+	"gitea.dev/modules/optional"
+	"gitea.dev/modules/translation"
+	webhook_module "gitea.dev/modules/webhook"
 
 	"xorm.io/builder"
 )
@@ -61,10 +62,11 @@ type FindRunOptions struct {
 	RepoID           int64
 	OwnerID          int64
 	WorkflowID       string
-	Ref              string // the commit/tag/… that caused this workflow
+	WorkflowRepoID   int64                 // source-aware filter: the repo a run's workflow content came from (0 = any)
+	IsScopedRun      optional.Option[bool] // is the run from a scoped workflow
+	Ref              string                // the commit/tag/… that caused this workflow
 	TriggerUserID    int64
 	TriggerEvent     webhook_module.HookEventType
-	Approved         bool // not util.OptionalBool, it works only when it's true
 	Status           []Status
 	ConcurrencyGroup string
 	CommitSHA        string
@@ -78,11 +80,14 @@ func (opts FindRunOptions) ToConds() builder.Cond {
 	if opts.WorkflowID != "" {
 		cond = cond.And(builder.Eq{"`action_run`.workflow_id": opts.WorkflowID})
 	}
+	if opts.WorkflowRepoID > 0 {
+		cond = cond.And(builder.Eq{"`action_run`.workflow_repo_id": opts.WorkflowRepoID})
+	}
+	if opts.IsScopedRun.Has() {
+		cond = cond.And(builder.Eq{"`action_run`.is_scoped_run": opts.IsScopedRun.Value()})
+	}
 	if opts.TriggerUserID > 0 {
 		cond = cond.And(builder.Eq{"`action_run`.trigger_user_id": opts.TriggerUserID})
-	}
-	if opts.Approved {
-		cond = cond.And(builder.Gt{"`action_run`.approved_by": 0})
 	}
 	if len(opts.Status) > 0 {
 		cond = cond.And(builder.In("`action_run`.status", opts.Status))
@@ -110,26 +115,74 @@ func (opts FindRunOptions) ToJoins() []db.JoinFunc {
 }
 
 func (opts FindRunOptions) ToOrders() string {
+	// When scoped to a repo, sort by `index`: it reuses the unique
+	// `repo_index` (repo_id, index) index, so the query seeks repo_id and
+	// walks index descending instead of filesorting all matching rows.
+	// Within a repo `index` is co-monotonic with `id`, so the order is the same.
+	if opts.RepoID > 0 {
+		return "`action_run`.`index` DESC"
+	}
+	// `index` is scoped per repo, so it is meaningless across repos. With no
+	// RepoID, sort by the global, PK-indexed `id` for a deterministic order.
 	return "`action_run`.`id` DESC"
 }
 
 type StatusInfo struct {
 	Status          int
+	StatusName      string
 	DisplayedStatus string
 }
 
 // GetStatusInfoList returns a slice of StatusInfo
 func GetStatusInfoList(ctx context.Context, lang translation.Locale) []StatusInfo {
-	// same as those in aggregateJobStatus
-	allStatus := []Status{StatusSuccess, StatusFailure, StatusWaiting, StatusRunning, StatusCancelling}
+	// same as those in aggregateJobStatus (StatusUnknown excluded; it's the "shouldn't happen" fallback)
+	allStatus := []Status{StatusSuccess, StatusFailure, StatusCancelled, StatusSkipped, StatusWaiting, StatusRunning, StatusBlocked, StatusCancelling}
 	statusInfoList := make([]StatusInfo, 0, len(allStatus))
 	for _, s := range allStatus {
 		statusInfoList = append(statusInfoList, StatusInfo{
 			Status:          int(s),
+			StatusName:      s.String(),
 			DisplayedStatus: s.LocaleString(lang),
 		})
 	}
 	return statusInfoList
+}
+
+// GetRunBranches returns branch names for the run-list "Branch" filter.
+// Sourced from the `branch` table (indexed by repo_id) rather than DISTINCT-ing
+// `action_run.ref`, which is wildcard-matched and slow on large repos; as a side
+// effect the list reflects existing branches, not only ones that produced a run.
+func GetRunBranches(ctx context.Context, repoID int64) ([]string, error) {
+	branches := make([]string, 0, 10)
+	return branches, db.GetEngine(ctx).Table("branch").
+		Where("repo_id = ?", repoID).
+		And("is_deleted = ?", false).
+		Cols("name").
+		OrderBy("name ASC").
+		Find(&branches)
+}
+
+// GetRunWorkflowIDs returns all distinct WorkflowIDs that have at least
+// one ActionRun in the given repo.
+func GetRunWorkflowIDs(ctx context.Context, repoID int64) ([]string, error) {
+	return getRunWorkflowIDs(ctx, repoID, builder.NewCond())
+}
+
+// GetRepoRunWorkflowIDs returns all distinct WorkflowIDs that have at least
+// one repo-level ActionRun in the given repo.
+func GetRepoRunWorkflowIDs(ctx context.Context, repoID int64) ([]string, error) {
+	return getRunWorkflowIDs(ctx, repoID, builder.Eq{"is_scoped_run": false})
+}
+
+func getRunWorkflowIDs(ctx context.Context, repoID int64, extraCond builder.Cond) ([]string, error) {
+	ids := make([]string, 0, 10)
+	cond := builder.Eq{"repo_id": repoID}
+	return ids, db.GetEngine(ctx).Table("action_run").
+		Where(cond.And(extraCond)).
+		Distinct("workflow_id").
+		Cols("workflow_id").
+		Asc("workflow_id").
+		Find(&ids)
 }
 
 // GetActors returns a slice of Actors

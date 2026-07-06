@@ -7,9 +7,9 @@ package forms
 import (
 	"net/http"
 
-	"code.gitea.io/gitea/modules/structs"
-	"code.gitea.io/gitea/modules/web/middleware"
-	"code.gitea.io/gitea/services/context"
+	"gitea.dev/modules/structs"
+	"gitea.dev/modules/web/middleware"
+	"gitea.dev/services/context"
 
 	"gitea.com/go-chi/binding"
 )
@@ -70,6 +70,7 @@ type CreateTeamForm struct {
 	Permission       string
 	RepoAccess       string
 	CanCreateOrgRepo bool
+	Visibility       string `binding:"OmitEmpty;In(public,limited,private)"`
 }
 
 // Validate validates the fields

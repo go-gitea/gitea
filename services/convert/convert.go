@@ -7,36 +7,39 @@ package convert
 import (
 	"bytes"
 	"context"
+	"errors"
 	"fmt"
 	"net/url"
 	"path"
 	"strconv"
 	"time"
 
-	actions_model "code.gitea.io/gitea/models/actions"
-	asymkey_model "code.gitea.io/gitea/models/asymkey"
-	"code.gitea.io/gitea/models/auth"
-	"code.gitea.io/gitea/models/db"
-	git_model "code.gitea.io/gitea/models/git"
-	issues_model "code.gitea.io/gitea/models/issues"
-	"code.gitea.io/gitea/models/organization"
-	"code.gitea.io/gitea/models/perm"
-	access_model "code.gitea.io/gitea/models/perm/access"
-	repo_model "code.gitea.io/gitea/models/repo"
-	"code.gitea.io/gitea/models/unit"
-	user_model "code.gitea.io/gitea/models/user"
-	"code.gitea.io/gitea/modules/actions"
-	"code.gitea.io/gitea/modules/container"
-	"code.gitea.io/gitea/modules/git"
-	"code.gitea.io/gitea/modules/httplib"
-	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/setting"
-	api "code.gitea.io/gitea/modules/structs"
-	"code.gitea.io/gitea/modules/util"
-	asymkey_service "code.gitea.io/gitea/services/asymkey"
-	"code.gitea.io/gitea/services/gitdiff"
+	runnerv1 "gitea.dev/actions-proto-go/runner/v1"
+	actions_model "gitea.dev/models/actions"
+	asymkey_model "gitea.dev/models/asymkey"
+	"gitea.dev/models/auth"
+	"gitea.dev/models/db"
+	git_model "gitea.dev/models/git"
+	issues_model "gitea.dev/models/issues"
+	"gitea.dev/models/organization"
+	"gitea.dev/models/perm"
+	access_model "gitea.dev/models/perm/access"
+	repo_model "gitea.dev/models/repo"
+	"gitea.dev/models/unit"
+	user_model "gitea.dev/models/user"
+	"gitea.dev/modules/actions"
+	"gitea.dev/modules/container"
+	"gitea.dev/modules/git"
+	"gitea.dev/modules/gitrepo"
+	"gitea.dev/modules/httplib"
+	"gitea.dev/modules/log"
+	"gitea.dev/modules/setting"
+	api "gitea.dev/modules/structs"
+	"gitea.dev/modules/util"
+	webhook_module "gitea.dev/modules/webhook"
+	asymkey_service "gitea.dev/services/asymkey"
+	"gitea.dev/services/gitdiff"
 
-	runnerv1 "code.gitea.io/actions-proto-go/runner/v1"
 	"gitea.com/gitea/runner/act/model"
 )
 
@@ -256,11 +259,8 @@ func ToActionTask(ctx context.Context, t *actions_model.ActionTask) (*api.Action
 	}, nil
 }
 
-func ToActionWorkflowRun(ctx context.Context, run *actions_model.ActionRun, attempt *actions_model.ActionRunAttempt) (_ *api.ActionWorkflowRun, err error) {
-	if err := run.LoadRepo(ctx); err != nil {
-		return nil, err
-	}
-	if err := run.LoadTriggerUser(ctx); err != nil {
+func ToActionWorkflowRun(ctx context.Context, run *actions_model.ActionRun, attempt *actions_model.ActionRunAttempt, excludePullRequests bool) (_ *api.ActionWorkflowRun, err error) {
+	if err := run.LoadAttributes(ctx); err != nil {
 		return nil, err
 	}
 
@@ -293,7 +293,15 @@ func ToActionWorkflowRun(ctx context.Context, run *actions_model.ActionRun, atte
 		completedAt = attempt.Stopped.AsLocalTime()
 		triggerUser = attempt.TriggerUser
 		if attempt.Attempt > 1 {
-			previousAttemptURL = new(fmt.Sprintf("%s/actions/runs/%d/attempts/%d", run.Repo.APIURL(ctx), run.ID, attempt.Attempt-1))
+			url := fmt.Sprintf("%s/actions/runs/%d/attempts/%d", run.Repo.APIURL(ctx), run.ID, attempt.Attempt-1)
+			previousAttemptURL = &url
+		}
+	}
+	pullRequests := []*api.PullRequestMinimal{}
+	if !excludePullRequests {
+		pullRequests, err = loadPullRequestsForRun(ctx, run)
+		if err != nil {
+			return nil, err
 		}
 	}
 
@@ -316,6 +324,89 @@ func ToActionWorkflowRun(ctx context.Context, run *actions_model.ActionRun, atte
 		Repository:         ToRepo(ctx, run.Repo, access_model.Permission{AccessMode: perm.AccessModeNone}),
 		TriggerActor:       ToUser(ctx, triggerUser, nil),
 		Actor:              ToUser(ctx, actor, nil),
+		PullRequests:       pullRequests,
+	}, nil
+}
+
+// loadPullRequestsForRun returns the pull requests associated with a run, matching
+// GitHub's `pull_requests` field on workflow run responses:
+// - For pull_request / pull_request_review events, the PR whose ref triggered the run.
+// - For push events, open PRs whose head branch matches the pushed ref in the same repo.
+// - For other events, no PRs.
+func loadPullRequestsForRun(ctx context.Context, run *actions_model.ActionRun) ([]*api.PullRequestMinimal, error) {
+	result := []*api.PullRequestMinimal{}
+	refName := git.RefName(run.Ref)
+	var prs issues_model.PullRequestList
+	switch {
+	case run.Event.IsPullRequest() || run.Event.IsPullRequestReview():
+		index, err := strconv.ParseInt(refName.PullName(), 10, 64)
+		if err != nil {
+			return result, nil
+		}
+		pr, err := issues_model.GetPullRequestByIndex(ctx, run.RepoID, index)
+		if err != nil {
+			if issues_model.IsErrPullRequestNotExist(err) {
+				return result, nil
+			}
+			return nil, err
+		}
+		prs = issues_model.PullRequestList{pr}
+	case run.Event == webhook_module.HookEventPush:
+		branch := refName.BranchName()
+		if branch == "" {
+			return result, nil
+		}
+		var err error
+		prs, err = issues_model.GetUnmergedPullRequestsByHeadInfo(ctx, run.RepoID, branch)
+		if err != nil {
+			return nil, err
+		}
+	default:
+		return result, nil
+	}
+	for _, pr := range prs {
+		minimal, err := toPullRequestMinimal(ctx, run.Repo, pr, run.CommitSHA)
+		if err != nil {
+			return nil, err
+		}
+		result = append(result, minimal)
+	}
+	return result, nil
+}
+
+func toPullRequestMinimal(ctx context.Context, repo *repo_model.Repository, pr *issues_model.PullRequest, headSHA string) (*api.PullRequestMinimal, error) {
+	if err := pr.LoadBaseRepo(ctx); err != nil {
+		return nil, err
+	}
+	if err := pr.LoadHeadRepo(ctx); err != nil {
+		return nil, err
+	}
+	headRepo := pr.HeadRepo
+	if headRepo == nil {
+		headRepo = pr.BaseRepo
+	}
+	return &api.PullRequestMinimal{
+		ID:     pr.ID,
+		Number: pr.Index,
+		URL:    fmt.Sprintf("%s/pulls/%d", repo.APIURL(ctx), pr.Index),
+		Head: api.PullRequestMinimalHead{
+			Ref: pr.HeadBranch,
+			SHA: headSHA,
+			Repo: api.PullRequestMinimalHeadRepo{
+				ID:   headRepo.ID,
+				URL:  headRepo.APIURL(ctx),
+				Name: headRepo.Name,
+			},
+		},
+		Base: api.PullRequestMinimalHead{
+			Ref: pr.BaseBranch,
+			SHA: pr.MergeBase,
+			Repo: api.PullRequestMinimalHeadRepo{
+				ID:   pr.BaseRepo.ID,
+				URL:  pr.BaseRepo.APIURL(ctx),
+				Name: pr.BaseRepo.Name,
+			},
+		},
 	}, nil
 }
 
@@ -323,7 +414,7 @@ func ToWorkflowRunAction(status actions_model.Status) (action string) {
 	switch status {
 	case actions_model.StatusWaiting, actions_model.StatusBlocked:
 		action = "requested"
-	case actions_model.StatusRunning:
+	case actions_model.StatusRunning, actions_model.StatusCancelling:
 		action = "in_progress"
 	default:
 		if status.IsDone() {
@@ -341,7 +432,7 @@ func ToActionsStatus(status actions_model.Status) (action, conclusion string) {
 		action = "queued" // "waiting" is a naming conflict of the webhook between Gitea and GitHub Actions
 	case actions_model.StatusBlocked:
 		action = "waiting" // naming conflict (as above)
-	case actions_model.StatusRunning:
+	case actions_model.StatusRunning, actions_model.StatusCancelling:
 		action = "in_progress"
 	default:
 		action = "completed"
@@ -552,6 +643,64 @@ func getActionWorkflowFromCommit(ctx context.Context, repo *repo_model.Repositor
 	return nil, util.NewNotExistErrorf("workflow %q not found", workflowID)
 }
 
+// GetScopedActionWorkflow resolves a scoped workflow definition (under SCOPED_WORKFLOW_DIRS) from the source repo at commitSHA.
+func GetScopedActionWorkflow(ctx context.Context, sourceGitRepo *git.Repository, sourceRepo *repo_model.Repository, workflowID, commitSHA string) (*api.ActionWorkflow, error) {
+	commit, err := sourceGitRepo.GetCommit(commitSHA)
+	if err != nil {
+		return nil, err
+	}
+
+	folder, entries, err := actions.ListScopedWorkflows(commit)
+	if err != nil {
+		return nil, err
+	}
+
+	for _, entry := range entries {
+		if entry.Name() == workflowID {
+			// An empty ref pins HTMLURL to commit (the run's WorkflowCommitSHA) rather than the moving default branch.
+			wf := getActionWorkflowEntry(ctx, sourceRepo, commit, git.RefName(""), folder, entry)
+			// TODO: a scoped workflow has no repo-level representation on the source: the workflow API scans WORKFLOW_DIRS (not SCOPED_WORKFLOW_DIRS),
+			// and the badge only reflects the source's repo-level runs, so neither link resolves a scoped workflow.
+			// Blank them for now and populate once a scoped-aware workflow/badge endpoint exists.
+			wf.URL = ""
+			wf.BadgeURL = ""
+			return wf, nil
+		}
+	}
+
+	return nil, util.NewNotExistErrorf("scoped workflow %q not found", workflowID)
+}
+
+// ResolveActionWorkflowForRun returns the api.ActionWorkflow describing a run's workflow definition.
+// For a scoped run the definition lives in the source repo (run.WorkflowRepoID @ run.WorkflowCommitSHA) under SCOPED_WORKFLOW_DIRS,
+// not in the consuming repo, so it is resolved against the source repo.
+func ResolveActionWorkflowForRun(ctx context.Context, repo *repo_model.Repository, run *actions_model.ActionRun) (*api.ActionWorkflow, error) {
+	if run.IsScopedRun {
+		sourceRepo, err := repo_model.GetRepositoryByID(ctx, run.WorkflowRepoID)
+		if err != nil {
+			return nil, err
+		}
+		sourceGitRepo, err := gitrepo.OpenRepository(ctx, sourceRepo)
+		if err != nil {
+			return nil, err
+		}
+		defer sourceGitRepo.Close()
+		return GetScopedActionWorkflow(ctx, sourceGitRepo, sourceRepo, run.WorkflowID, run.WorkflowCommitSHA)
+	}
+
+	gitRepo, err := gitrepo.OpenRepository(ctx, repo)
+	if err != nil {
+		return nil, err
+	}
+	defer gitRepo.Close()
+
+	convertedWorkflow, err := GetActionWorkflowByRef(ctx, gitRepo, repo, run.WorkflowID, git.RefName(run.Ref))
+	if err != nil && errors.Is(err, util.ErrNotExist) {
+		convertedWorkflow, err = GetActionWorkflow(ctx, gitRepo, repo, run.WorkflowID)
+	}
+	return convertedWorkflow, err
+}
+
 // ToActionArtifact convert a actions_model.ActionArtifact to an api.ActionArtifact
 func ToActionArtifact(repo *repo_model.Repository, art *actions_model.ActionArtifact) (*api.ActionArtifact, error) {
 	url := fmt.Sprintf("%s/actions/artifacts/%d", repo.APIURL(), art.ID)
@@ -747,6 +896,7 @@ func ToTeams(ctx context.Context, teams []*organization.Team, loadOrgs bool) ([]
 			Permission:              api.AccessLevelName(t.AccessMode.ToString()),
 			Units:                   t.GetUnitNames(),
 			UnitsMap:                t.GetUnitsMap(),
+			Visibility:              api.TeamVisibility(t.Visibility.String()),
 		}
 
 		if loadOrgs {

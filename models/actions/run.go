@@ -7,20 +7,21 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"net/url"
 	"strings"
 	"time"
 
-	"code.gitea.io/gitea/models/db"
-	repo_model "code.gitea.io/gitea/models/repo"
-	user_model "code.gitea.io/gitea/models/user"
-	"code.gitea.io/gitea/modules/git"
-	"code.gitea.io/gitea/modules/json"
-	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/setting"
-	api "code.gitea.io/gitea/modules/structs"
-	"code.gitea.io/gitea/modules/timeutil"
-	"code.gitea.io/gitea/modules/util"
-	webhook_module "code.gitea.io/gitea/modules/webhook"
+	"gitea.dev/models/db"
+	repo_model "gitea.dev/models/repo"
+	user_model "gitea.dev/models/user"
+	"gitea.dev/modules/git"
+	"gitea.dev/modules/json"
+	"gitea.dev/modules/log"
+	"gitea.dev/modules/setting"
+	api "gitea.dev/modules/structs"
+	"gitea.dev/modules/timeutil"
+	"gitea.dev/modules/util"
+	webhook_module "gitea.dev/modules/webhook"
 
 	"xorm.io/builder"
 )
@@ -49,6 +50,13 @@ type ActionRun struct {
 	Status            Status                       `xorm:"index"`
 	Version           int                          `xorm:"version default 0"` // Status could be updated concomitantly, so an optimistic lock is needed
 	RawConcurrency    string                       // raw concurrency
+
+	// WorkflowRepoID/WorkflowCommitSHA record the (repo, commit) the run's workflow file content came from.
+	// Always filled (repo-level run = the repo itself; scoped run = the source repo).
+	WorkflowRepoID    int64  `xorm:"NOT NULL DEFAULT 0"`
+	WorkflowCommitSHA string `xorm:"VARCHAR(64) NOT NULL DEFAULT ''"`
+
+	IsScopedRun bool `xorm:"NOT NULL DEFAULT false"` // IsScopedRun explicitly classifies scoped runs.
 
 	// Started and Stopped are identical to the latest attempt after ActionRunAttempt was introduced.
 	// When a rerun creates a new latest attempt, they are reset until the new attempt starts and stops.
@@ -88,7 +96,11 @@ func (run *ActionRun) WorkflowLink() string {
 	if run.Repo == nil {
 		return ""
 	}
-	return fmt.Sprintf("%s/actions/?workflow=%s", run.Repo.Link(), run.WorkflowID)
+	// A scoped run's workflow is disambiguated by its source repo, so carry scoped_workflow_source_repo_id back to the run list
+	if run.IsScopedRun {
+		return fmt.Sprintf("%s/actions/?workflow=%s&scoped_workflow_source_repo_id=%d", run.Repo.Link(), url.QueryEscape(run.WorkflowID), run.WorkflowRepoID)
+	}
+	return fmt.Sprintf("%s/actions/?workflow=%s", run.Repo.Link(), url.QueryEscape(run.WorkflowID))
 }
 
 // RefLink return the url of run's ref
@@ -253,96 +265,6 @@ func UpdateRepoRunsNumbers(ctx context.Context, repoID int64) {
 	}
 }
 
-// CancelPreviousJobs cancels all previous jobs of the same repository, reference, workflow, and event.
-// It's useful when a new run is triggered, and all previous runs needn't be continued anymore.
-func CancelPreviousJobs(ctx context.Context, repoID int64, ref, workflowID string, event webhook_module.HookEventType) ([]*ActionRunJob, error) {
-	// Find all runs in the specified repository, reference, and workflow with non-final status
-	runs, total, err := db.FindAndCount[ActionRun](ctx, FindRunOptions{
-		RepoID:       repoID,
-		Ref:          ref,
-		WorkflowID:   workflowID,
-		TriggerEvent: event,
-		Status:       []Status{StatusRunning, StatusWaiting, StatusBlocked, StatusCancelling},
-	})
-	if err != nil {
-		return nil, err
-	}
-
-	// If there are no runs found, there's no need to proceed with cancellation, so return nil.
-	if total == 0 {
-		return nil, nil
-	}
-
-	cancelledJobs := make([]*ActionRunJob, 0, total)
-
-	// Iterate over each found run and cancel its associated jobs.
-	for _, run := range runs {
-		// Find all jobs associated with the current run.
-		jobs, err := db.Find[ActionRunJob](ctx, FindRunJobOptions{
-			RunID: run.ID,
-		})
-		if err != nil {
-			return cancelledJobs, err
-		}
-
-		cjs, err := CancelJobs(ctx, jobs)
-		if err != nil {
-			return cancelledJobs, err
-		}
-		cancelledJobs = append(cancelledJobs, cjs...)
-	}
-
-	// Return nil to indicate successful cancellation of all running and waiting jobs.
-	return cancelledJobs, nil
-}
-
-func CancelJobs(ctx context.Context, jobs []*ActionRunJob) ([]*ActionRunJob, error) {
-	cancelledJobs := make([]*ActionRunJob, 0, len(jobs))
-	// Iterate over each job and attempt to cancel it.
-	for _, job := range jobs {
-		// Skip jobs that are already in a terminal state (completed, cancelled, etc.).
-		status := job.Status
-		if status.IsDone() {
-			continue
-		}
-
-		// If the job has no associated task (probably an error), set its status to 'Cancelled' and stop it.
-		if job.TaskID == 0 {
-			job.Status = StatusCancelled
-			job.Stopped = timeutil.TimeStampNow()
-
-			// Update the job's status and stopped time in the database.
-			n, err := UpdateRunJob(ctx, job, builder.Eq{"task_id": 0}, "status", "stopped")
-			if err != nil {
-				return cancelledJobs, err
-			}
-
-			// If the update affected 0 rows, it means the job has changed in the meantime
-			if n == 0 {
-				log.Error("Failed to cancel job %d because it has changed", job.ID)
-				continue
-			}
-
-			cancelledJobs = append(cancelledJobs, job)
-			// Continue with the next job.
-			continue
-		}
-
-		// If the job has an associated task, try to stop the task, effectively cancelling the job.
-		if err := StopTask(ctx, job.TaskID, StatusCancelling); err != nil {
-			return cancelledJobs, err
-		}
-		updatedJob, err := GetRunJobByRunAndID(ctx, job.RunID, job.ID)
-		if err != nil {
-			return cancelledJobs, fmt.Errorf("get job: %w", err)
-		}
-		cancelledJobs = append(cancelledJobs, updatedJob)
-	}
-
-	// Return nil to indicate successful cancellation of all running and waiting jobs.
-	return cancelledJobs, nil
-}
-
 func GetRunByRepoAndID(ctx context.Context, repoID, runID int64) (*ActionRun, error) {
 	var run ActionRun
 	has, err := db.GetEngine(ctx).Where("id=? AND repo_id=?", runID, repoID).Get(&run)
@@ -356,11 +278,7 @@ func GetRunByRepoAndID(ctx context.Context, repoID, runID int64) (*ActionRun, er
 }
 
 func GetRunByRepoAndIndex(ctx context.Context, repoID, runIndex int64) (*ActionRun, error) {
-	run := &ActionRun{
-		RepoID: repoID,
-		Index:  runIndex,
-	}
-	has, err := db.GetEngine(ctx).Get(run)
+	run, has, err := db.Get[ActionRun](ctx, builder.Eq{"repo_id": repoID, "`index`": runIndex})
 	if err != nil {
 		return nil, err
 	} else if !has {
@@ -371,9 +289,7 @@ func GetRunByRepoAndIndex(ctx context.Context, repoID, runIndex int64) (*ActionR
 }
 
 func GetLatestRun(ctx context.Context, repoID int64) (*ActionRun, error) {
-	run := &ActionRun{
-		RepoID: repoID,
-	}
+	run := &ActionRun{}
 	has, err := db.GetEngine(ctx).Where("repo_id=?", repoID).Desc("index").Get(run)
 	if err != nil {
 		return nil, err
@@ -387,7 +303,10 @@ func GetWorkflowLatestRun(ctx context.Context, repoID int64, workflowFile, branc
 	var run ActionRun
 	q := db.GetEngine(ctx).Where("repo_id=?", repoID).
 		And("ref = ?", branch).
-		And("workflow_id = ?", workflowFile)
+		And("workflow_id = ?", workflowFile).
+		// TODO: the badge only reflects the repo's own (repo-level) runs; a same-named scoped run must not leak in.
+		// Support a scoped-workflow badge later by making this source-aware.
+		And("is_scoped_run = ?", false)
 	if event != "" {
 		q.And("event = ?", event)
 	}

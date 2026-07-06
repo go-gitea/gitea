@@ -6,13 +6,13 @@ package access
 import (
 	"testing"
 
-	actions_model "code.gitea.io/gitea/models/actions"
-	"code.gitea.io/gitea/models/db"
-	perm_model "code.gitea.io/gitea/models/perm"
-	repo_model "code.gitea.io/gitea/models/repo"
-	"code.gitea.io/gitea/models/unit"
-	"code.gitea.io/gitea/models/unittest"
-	user_model "code.gitea.io/gitea/models/user"
+	actions_model "gitea.dev/models/actions"
+	"gitea.dev/models/db"
+	perm_model "gitea.dev/models/perm"
+	repo_model "gitea.dev/models/repo"
+	"gitea.dev/models/unit"
+	"gitea.dev/models/unittest"
+	user_model "gitea.dev/models/user"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -93,6 +93,40 @@ func TestGetActionsUserRepoPermission(t *testing.T) {
 
 		// Fork PR never gets cross-repo access to other private repos
 		assert.False(t, perm.CanRead(unit.TypeCode))
+	})
+
+	t.Run("CollaborativeOwner_ForkPR_Denied", func(t *testing.T) {
+		// Target repo15 trusts repo2's owner as a collaborative owner.
+		repo15ActionsUnit := repo15.MustGetUnit(ctx, unit.TypeActions)
+		repo15ActionsUnit.ActionsConfig().AddCollaborativeOwner(owner2.ID)
+		require.NoError(t, repo_model.UpdateRepoUnitConfig(ctx, repo15ActionsUnit))
+
+		// Owner cross-repo policy does not allow repo15, so the only branch that
+		// could grant access is the collaborative-owner one.
+		require.NoError(t, actions_model.SetOwnerActionsConfig(ctx, owner2.ID, actions_model.OwnerActionsConfig{}))
+
+		task53 := unittest.AssertExistsAndLoadBean(t, &actions_model.ActionTask{ID: 53})
+
+		// Non-fork task is legitimately granted code-read via collaborative owner.
+		task53.IsForkPullRequest = false
+		require.NoError(t, actions_model.UpdateTask(ctx, task53, "is_fork_pull_request"))
+		perm, err := GetActionsUserRepoPermission(ctx, repo15, actionsUser, task53.ID)
+		require.NoError(t, err)
+		assert.True(t, perm.CanRead(unit.TypeCode))
+
+		// Fork PR must NOT be able to read a third private repo through the
+		// collaborative-owner branch.
+		task53.IsForkPullRequest = true
+		require.NoError(t, actions_model.UpdateTask(ctx, task53, "is_fork_pull_request"))
+		perm, err = GetActionsUserRepoPermission(ctx, repo15, actionsUser, task53.ID)
+		require.NoError(t, err)
+		assert.False(t, perm.CanRead(unit.TypeCode))
+
+		// Restore state for subsequent subtests.
+		task53.IsForkPullRequest = false
+		require.NoError(t, actions_model.UpdateTask(ctx, task53, "is_fork_pull_request"))
+		repo15ActionsUnit.ActionsConfig().RemoveCollaborativeOwner(owner2.ID)
+		require.NoError(t, repo_model.UpdateRepoUnitConfig(ctx, repo15ActionsUnit))
 	})
 
 	t.Run("Inheritance_And_Clamping", func(t *testing.T) {

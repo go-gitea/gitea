@@ -9,21 +9,23 @@ import (
 	"fmt"
 	"strings"
 
-	"code.gitea.io/gitea/models/db"
-	git_model "code.gitea.io/gitea/models/git"
-	repo_model "code.gitea.io/gitea/models/repo"
-	user_model "code.gitea.io/gitea/models/user"
-	"code.gitea.io/gitea/modules/container"
-	"code.gitea.io/gitea/modules/git"
-	"code.gitea.io/gitea/modules/git/gitcmd"
-	"code.gitea.io/gitea/modules/gitrepo"
-	"code.gitea.io/gitea/modules/graceful"
-	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/repository"
-	"code.gitea.io/gitea/modules/storage"
-	"code.gitea.io/gitea/modules/timeutil"
-	"code.gitea.io/gitea/modules/util"
-	notify_service "code.gitea.io/gitea/services/notify"
+	"gitea.dev/models/db"
+	git_model "gitea.dev/models/git"
+	repo_model "gitea.dev/models/repo"
+	user_model "gitea.dev/models/user"
+	"gitea.dev/modules/container"
+	"gitea.dev/modules/git"
+	"gitea.dev/modules/git/gitcmd"
+	"gitea.dev/modules/gitrepo"
+	"gitea.dev/modules/graceful"
+	"gitea.dev/modules/log"
+	"gitea.dev/modules/repository"
+	"gitea.dev/modules/setting"
+	"gitea.dev/modules/storage"
+	"gitea.dev/modules/timeutil"
+	"gitea.dev/modules/util"
+	"gitea.dev/services/context/upload"
+	notify_service "gitea.dev/services/notify"
 )
 
 // ErrInvalidTagName represents a "InvalidTagName" kind of error.
@@ -319,13 +321,17 @@ func UpdateRelease(ctx context.Context, doer *user_model.User, gitRepo *git.Repo
 			}
 
 			for uuid, newName := range editAttachments {
-				if !deletedUUIDs.Contains(uuid) {
-					if err = repo_model.UpdateAttachmentByUUID(ctx, &repo_model.Attachment{
-						UUID: uuid,
-						Name: newName,
-					}, "name"); err != nil {
-						return err
-					}
+				if deletedUUIDs.Contains(uuid) {
+					continue
+				}
+				if err = upload.Verify(nil, newName, setting.Repository.Release.AllowedTypes); err != nil {
+					return err
+				}
+				if err = repo_model.UpdateAttachmentByUUID(ctx, &repo_model.Attachment{
+					UUID: uuid,
+					Name: newName,
+				}, "name"); err != nil {
+					return err
 				}
 			}
 		}

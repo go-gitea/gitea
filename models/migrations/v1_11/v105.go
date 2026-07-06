@@ -3,7 +3,7 @@
 
 package v1_11
 
-import "code.gitea.io/gitea/models/db"
+import "gitea.dev/models/db"
 
 func AddTeamIncludesAllRepositories(x db.EngineMigration) error {
 	type Team struct {

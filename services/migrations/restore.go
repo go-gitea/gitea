@@ -10,9 +10,10 @@ import (
 	"path/filepath"
 	"strconv"
 
-	base "code.gitea.io/gitea/modules/migration"
+	base "gitea.dev/modules/migration"
+	"gitea.dev/modules/util"
 
-	"gopkg.in/yaml.v3"
+	"go.yaml.in/yaml/v4"
 )
 
 // RepositoryRestorer implements an Downloader from the local directory
@@ -144,7 +145,7 @@ func (r *RepositoryRestorer) GetReleases(_ context.Context) ([]*base.Release, er
 	for _, rel := range releases {
 		for _, asset := range rel.Assets {
 			if asset.DownloadURL != nil {
-				*asset.DownloadURL = "file://" + filepath.Join(r.baseDir, *asset.DownloadURL)
+				*asset.DownloadURL = "file://" + util.FilePathJoinAbs(r.baseDir, *asset.DownloadURL)
 			}
 		}
 	}
@@ -235,7 +236,9 @@ func (r *RepositoryRestorer) GetPullRequests(_ context.Context, page, perPage in
 		return nil, false, err
 	}
 	for _, pr := range pulls {
-		pr.PatchURL = "file://" + filepath.Join(r.baseDir, pr.PatchURL)
+		if pr.PatchURL != "" {
+			pr.PatchURL = "file://" + util.FilePathJoinAbs(r.baseDir, pr.PatchURL)
+		}
 		CheckAndEnsureSafePR(pr, "", r)
 	}
 	return pulls, true, nil

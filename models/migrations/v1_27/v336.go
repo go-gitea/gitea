@@ -4,21 +4,27 @@
 package v1_27
 
 import (
-	"code.gitea.io/gitea/models/db"
-
-	"xorm.io/xorm"
+	"gitea.dev/models/db"
+	"gitea.dev/modules/timeutil"
 )
 
-// AddCommitCommentIDToNotification adds a dedicated column for linking a
-// notification to a standalone commit comment. The existing comment_id column
-// stays reserved for the issue/PR Comment table.
-func AddCommitCommentIDToNotification(x db.EngineMigration) error {
-	type Notification struct {
-		CommitCommentID int64
+func AddActionRunJobSummaryTable(x db.EngineMigration) error {
+	type ActionRunJobSummary struct {
+		ID int64 `xorm:"pk autoincr"`
+
+		RepoID       int64 `xorm:"UNIQUE(summary_key)"`
+		RunID        int64 `xorm:"UNIQUE(summary_key)"`
+		RunAttemptID int64 `xorm:"UNIQUE(summary_key) NOT NULL DEFAULT 0"`
+		JobID        int64 `xorm:"UNIQUE(summary_key)"`
+		StepIndex    int64 `xorm:"UNIQUE(summary_key)"`
+
+		Content     string `xorm:"LONGTEXT"`
+		ContentType string `xorm:"VARCHAR(255) NOT NULL DEFAULT 'text/markdown'"`
+		ContentSize int64  `xorm:"NOT NULL DEFAULT 0"`
+
+		Created timeutil.TimeStamp `xorm:"created"`
+		Updated timeutil.TimeStamp `xorm:"updated"`
 	}
-	_, err := x.SyncWithOptions(xorm.SyncOptions{
-		IgnoreConstrains:  true,
-		IgnoreDropIndices: true,
-	}, new(Notification))
-	return err
+
+	return x.Sync(new(ActionRunJobSummary))
 }

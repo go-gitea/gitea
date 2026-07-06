@@ -8,17 +8,19 @@ import (
 	"errors"
 	"fmt"
 
-	"code.gitea.io/gitea/models/db"
-	issues_model "code.gitea.io/gitea/models/issues"
-	access_model "code.gitea.io/gitea/models/perm/access"
-	repo_model "code.gitea.io/gitea/models/repo"
-	user_model "code.gitea.io/gitea/models/user"
-	"code.gitea.io/gitea/modules/gitrepo"
-	"code.gitea.io/gitea/modules/json"
-	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/timeutil"
-	git_service "code.gitea.io/gitea/services/git"
-	notify_service "code.gitea.io/gitea/services/notify"
+	"gitea.dev/models/db"
+	issues_model "gitea.dev/models/issues"
+	access_model "gitea.dev/models/perm/access"
+	repo_model "gitea.dev/models/repo"
+	user_model "gitea.dev/models/user"
+	"gitea.dev/modules/gitrepo"
+	"gitea.dev/modules/json"
+	"gitea.dev/modules/log"
+	"gitea.dev/modules/timeutil"
+	git_service "gitea.dev/services/git"
+	notify_service "gitea.dev/services/notify"
+
+	"xorm.io/builder"
 )
 
 // CreateRefComment creates a commit reference comment to issue.
@@ -34,10 +36,10 @@ func CreateRefComment(ctx context.Context, doer *user_model.User, repo *repo_mod
 	}
 
 	// Check if same reference from same commit has already existed.
-	has, err := db.GetEngine(ctx).Get(&issues_model.Comment{
-		Type:      issues_model.CommentTypeCommitRef,
-		IssueID:   issue.ID,
-		CommitSHA: commitSHA,
+	has, err := db.Exist[issues_model.Comment](ctx, builder.Eq{
+		"`type`":     issues_model.CommentTypeCommitRef,
+		"issue_id":   issue.ID,
+		"commit_sha": commitSHA,
 	})
 	if err != nil {
 		return fmt.Errorf("check reference comment: %w", err)
@@ -184,7 +186,7 @@ func LoadCommentPushCommits(ctx context.Context, c *issues_model.Comment) error 
 		}
 		defer closer.Close()
 
-		c.Commits, err = git_service.ConvertFromGitCommit(ctx, gitRepo.GetCommitsFromIDs(data.CommitIDs), c.Issue.Repo)
+		c.Commits, err = git_service.ConvertFromGitCommit(ctx, gitRepo.GetCommitsFromIDs(data.CommitIDs), c.Issue.Repo, "") // no current ref sub path for PR commit list
 		if err != nil {
 			log.Debug("ConvertFromGitCommit: %v", err) // no need to show 500 error to end user when the commit does not exist
 		} else {

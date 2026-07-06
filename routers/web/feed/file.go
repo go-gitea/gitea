@@ -6,21 +6,24 @@ package feed
 import (
 	"time"
 
-	"code.gitea.io/gitea/models/repo"
-	"code.gitea.io/gitea/modules/git"
-	"code.gitea.io/gitea/modules/util"
-	"code.gitea.io/gitea/services/context"
+	"gitea.dev/models/repo"
+	"gitea.dev/modules/git"
+	"gitea.dev/modules/util"
+	"gitea.dev/services/context"
 
 	"github.com/gorilla/feeds"
 )
 
 // ShowFileFeed shows tags and/or releases on the repo as RSS / Atom feed
 func ShowFileFeed(ctx *context.Context, repo *repo.Repository, formatType string) {
+	if !checkRepoFeedTokenScope(ctx) {
+		return
+	}
 	fileName := ctx.Repo.TreePath
 	if len(fileName) == 0 {
 		return
 	}
-	commits, err := ctx.Repo.GitRepo.CommitsByFileAndRange(
+	commits, _, err := ctx.Repo.GitRepo.CommitsByFileAndRange(
 		git.CommitsByFileAndRangeOptions{
 			Revision: ctx.Repo.RefFullName.ShortName(), // FIXME: legacy code used ShortName
 			File:     fileName,

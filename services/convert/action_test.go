@@ -8,14 +8,14 @@ import (
 	"strings"
 	"testing"
 
-	actions_model "code.gitea.io/gitea/models/actions"
-	db "code.gitea.io/gitea/models/db"
-	repo_model "code.gitea.io/gitea/models/repo"
-	"code.gitea.io/gitea/models/unit"
-	"code.gitea.io/gitea/models/unittest"
-	"code.gitea.io/gitea/modules/git"
-	"code.gitea.io/gitea/modules/git/gitcmd"
-	"code.gitea.io/gitea/modules/util"
+	actions_model "gitea.dev/models/actions"
+	db "gitea.dev/models/db"
+	repo_model "gitea.dev/models/repo"
+	"gitea.dev/models/unit"
+	"gitea.dev/models/unittest"
+	"gitea.dev/modules/git"
+	"gitea.dev/modules/git/gitcmd"
+	"gitea.dev/modules/util"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -121,7 +121,7 @@ func TestToActionWorkflowRun_UsesTriggerEvent(t *testing.T) {
 	run.Event = "push"
 	run.TriggerEvent = "schedule"
 
-	apiRun, err := ToActionWorkflowRun(t.Context(), run, nil)
+	apiRun, err := ToActionWorkflowRun(t.Context(), run, nil, false)
 	require.NoError(t, err)
 	assert.Equal(t, "schedule", apiRun.Event)
 }
@@ -176,4 +176,14 @@ func TestToActionWorkflowJob_StepStatusIsIndependentOfJobStatus(t *testing.T) {
 	assert.Equal(t, "success", apiJob.Steps[0].Conclusion, "step 0 conclusion (succeeded before the failure)")
 	assert.Equal(t, "completed", apiJob.Steps[1].Status, "step 1 status")
 	assert.Equal(t, "failure", apiJob.Steps[1].Conclusion, "step 1 conclusion")
+}
+
+func TestToActionsStatus_Cancelling(t *testing.T) {
+	action, conclusion := ToActionsStatus(actions_model.StatusCancelling)
+	assert.Equal(t, "in_progress", action)
+	assert.Empty(t, conclusion)
+}
+
+func TestToWorkflowRunAction_Cancelling(t *testing.T) {
+	assert.Equal(t, "in_progress", ToWorkflowRunAction(actions_model.StatusCancelling))
 }

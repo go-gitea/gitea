@@ -8,10 +8,10 @@ import (
 	"strconv"
 	"strings"
 
-	"code.gitea.io/gitea/models/db"
-	"code.gitea.io/gitea/modules/optional"
-	"code.gitea.io/gitea/modules/timeutil"
-	"code.gitea.io/gitea/modules/util"
+	"gitea.dev/models/db"
+	"gitea.dev/modules/optional"
+	"gitea.dev/modules/timeutil"
+	"gitea.dev/modules/util"
 
 	"xorm.io/builder"
 )
@@ -164,9 +164,7 @@ func DeleteVersionsByPackageID(ctx context.Context, packageID int64) error {
 
 // HasVersionFileReferences checks if there are associated files
 func HasVersionFileReferences(ctx context.Context, versionID int64) (bool, error) {
-	return db.GetEngine(ctx).Get(&PackageFile{
-		VersionID: versionID,
-	})
+	return db.Exist[PackageFile](ctx, builder.Eq{"version_id": versionID})
 }
 
 // SearchValue describes a value to search

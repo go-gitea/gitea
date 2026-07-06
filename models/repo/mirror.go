@@ -8,10 +8,12 @@ import (
 	"context"
 	"time"
 
-	"code.gitea.io/gitea/models/db"
-	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/timeutil"
-	"code.gitea.io/gitea/modules/util"
+	"gitea.dev/models/db"
+	"gitea.dev/modules/log"
+	"gitea.dev/modules/timeutil"
+	"gitea.dev/modules/util"
+
+	"xorm.io/builder"
 )
 
 // ErrMirrorNotExist mirror does not exist error
@@ -76,8 +78,7 @@ func (m *Mirror) ScheduleNextUpdate() {
 
 // GetMirrorByRepoID returns mirror information of a repository.
 func GetMirrorByRepoID(ctx context.Context, repoID int64) (*Mirror, error) {
-	m := &Mirror{RepoID: repoID}
-	has, err := db.GetEngine(ctx).Get(m)
+	m, has, err := db.Get[Mirror](ctx, builder.Eq{"repo_id": repoID})
 	if err != nil {
 		return nil, err
 	} else if !has {
