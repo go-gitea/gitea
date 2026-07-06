@@ -28,5 +28,5 @@ jobs:
           token: ${{ secrets.RENOVATE_TOKEN }}
         env:
           RENOVATE_BINARY_SOURCE: install # auto-install go/node toolchains needed by post-upgrade tasks.
-          RENOVATE_ALLOWED_POST_UPGRADE_COMMANDS: '["^make (tidy|svg)$"]'
+          RENOVATE_ALLOWED_POST_UPGRADE_COMMANDS: '["^make (tidy|svg|generate-codemirror-languages)$"]'
           RENOVATE_REPOSITORIES: '["go-gitea/gitea"]'
