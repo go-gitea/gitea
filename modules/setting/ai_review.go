@@ -3,7 +3,11 @@
 
 package setting
 
-import "strconv"
+import (
+	"path/filepath"
+	"strconv"
+	"strings"
+)
 
 // AIRreview settings
 var AIRreview = struct {
@@ -18,6 +22,7 @@ var AIRreview = struct {
 	TriggerOnUpdate bool
 	MaxPatchSize    int
 	Timeout         int
+	ExcludePaths    []string
 }{
 	Enabled:         false,
 	Provider:        "openrouter",
@@ -29,6 +34,7 @@ var AIRreview = struct {
 	TriggerOnUpdate: false,
 	MaxPatchSize:    80000,
 	Timeout:         120,
+	ExcludePaths:    nil,
 }
 
 func loadAIReviewFrom(rootCfg ConfigProvider) {
@@ -48,4 +54,23 @@ func loadAIReviewFrom(rootCfg ConfigProvider) {
 	AIRreview.TriggerOnUpdate = sec.Key("TRIGGER_ON_UPDATE").MustBool(false)
 	AIRreview.MaxPatchSize = sec.Key("MAX_PATCH_SIZE").MustInt(80000)
 	AIRreview.Timeout = sec.Key("TIMEOUT").MustInt(120)
+	raw := sec.Key("EXCLUDE_PATHS").MustString("")
+	if raw != "" {
+		for _, p := range strings.Split(raw, ",") {
+			p = strings.TrimSpace(p)
+			if p != "" {
+				AIRreview.ExcludePaths = append(AIRreview.ExcludePaths, p)
+			}
+		}
+	}
+}
+
+// IsExcludedPath checks if a file path matches any exclusion pattern.
+func IsExcludedPath(path string) bool {
+	for _, pattern := range AIRreview.ExcludePaths {
+		if matched, _ := filepath.Match(pattern, path); matched {
+			return true
+		}
+	}
+	return false
 }

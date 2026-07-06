@@ -58,6 +58,11 @@ func RunReview(ctx context.Context, task *AIRreviewTask) error {
 		return fmt.Errorf("get head commit: %w", err)
 	}
 
+	if reviewCache.IsAlreadyReviewed(pr.ID, headCommitID) {
+		log.Info("aireview: PR %d already reviewed at commit %s, skipping", pr.ID, headCommitID)
+		return nil
+	}
+
 	files, err := GetPRDiff(ctx, pr)
 	if err != nil {
 		return fmt.Errorf("get PR diff: %w", err)
@@ -78,6 +83,10 @@ func RunReview(ctx context.Context, task *AIRreviewTask) error {
 
 	for _, file := range files {
 		if file.Patch == "" {
+			continue
+		}
+		if setting.IsExcludedPath(file.Path) {
+			log.Debug("aireview: skipping excluded file %s", file.Path)
 			continue
 		}
 		patch := file.Patch
@@ -142,6 +151,8 @@ func RunReview(ctx context.Context, task *AIRreviewTask) error {
 	if err != nil {
 		return fmt.Errorf("submit review: %w", err)
 	}
+
+	reviewCache.MarkReviewed(pr.ID, headCommitID)
 
 	log.Info("aireview: completed review of PR %d — %d inline, %d in summary", task.PRID, inlineCount, len(allComments)-inlineCount)
 	return nil
