@@ -183,6 +183,64 @@ func (p *OpenAIProvider) ReviewCode(ctx context.Context, req *ReviewRequest) (*R
 	return &reviewResp, nil
 }
 
+// Chat sends a conversational request (no JSON mode) and returns the text response.
+func (p *OpenAIProvider) Chat(ctx context.Context, messages []chatMessage) (string, error) {
+	if p.apiKey == "" {
+		return "", fmt.Errorf("aireview: API token is not configured")
+	}
+
+	body := chatRequest{
+		Model:       p.model,
+		MaxTokens:   setting.AIRreview.MaxTokens,
+		Temperature: setting.AIRreview.Temperature,
+		Messages:    messages,
+	}
+
+	payload, err := json.Marshal(body)
+	if err != nil {
+		return "", fmt.Errorf("aireview: failed to marshal chat request: %w", err)
+	}
+
+	endpoint := p.apiURL + openaiChatEndpoint
+	httpReq, err := http.NewRequestWithContext(ctx, http.MethodPost, endpoint, bytes.NewReader(payload))
+	if err != nil {
+		return "", fmt.Errorf("aireview: failed to create chat request: %w", err)
+	}
+
+	httpReq.Header.Set("Content-Type", "application/json")
+	httpReq.Header.Set("Authorization", "Bearer "+p.apiKey)
+
+	resp, err := p.client.Do(httpReq)
+	if err != nil {
+		return "", fmt.Errorf("aireview: chat API request failed: %w", err)
+	}
+	defer resp.Body.Close()
+
+	respBody, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return "", fmt.Errorf("aireview: failed to read chat response: %w", err)
+	}
+
+	if resp.StatusCode != http.StatusOK {
+		return "", fmt.Errorf("aireview: chat API returned status %d: %s", resp.StatusCode, string(respBody))
+	}
+
+	var chatResp chatResponse
+	if err := json.Unmarshal(respBody, &chatResp); err != nil {
+		return "", fmt.Errorf("aireview: failed to parse chat response: %w", err)
+	}
+
+	if chatResp.Error != nil {
+		return "", fmt.Errorf("aireview: chat API error: %s", chatResp.Error.Message)
+	}
+
+	if len(chatResp.Choices) == 0 {
+		return "", fmt.Errorf("aireview: chat API returned no choices")
+	}
+
+	return chatResp.Choices[0].Message.Content, nil
+}
+
 func buildReviewPrompt(req *ReviewRequest) string {
 	var b bytes.Buffer
 

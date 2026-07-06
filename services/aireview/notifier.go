@@ -7,6 +7,7 @@ import (
 	"context"
 
 	issues_model "gitea.dev/models/issues"
+	repo_model "gitea.dev/models/repo"
 	user_model "gitea.dev/models/user"
 	"gitea.dev/modules/log"
 	"gitea.dev/modules/setting"
@@ -40,6 +41,12 @@ func (n *aireviewNotifier) PullRequestSynchronized(ctx context.Context, _ *user_
 		return
 	}
 	pushTask(pr.ID, "synchronized")
+}
+
+func (n *aireviewNotifier) CreateIssueComment(ctx context.Context, doer *user_model.User, repo *repo_model.Repository, issue *issues_model.Issue, comment *issues_model.Comment, _ []*user_model.User) {
+	if err := HandlePRComment(ctx, doer, repo, issue, comment); err != nil {
+		log.Error("aireview: HandlePRComment failed: %v", err)
+	}
 }
 
 func pushTask(prID int64, event string) {
