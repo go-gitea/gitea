@@ -20,9 +20,11 @@ import (
 	"gitea.dev/modules/graceful"
 	"gitea.dev/modules/log"
 	"gitea.dev/modules/repository"
+	"gitea.dev/modules/setting"
 	"gitea.dev/modules/storage"
 	"gitea.dev/modules/timeutil"
 	"gitea.dev/modules/util"
+	"gitea.dev/services/context/upload"
 	notify_service "gitea.dev/services/notify"
 )
 
@@ -319,13 +321,17 @@ func UpdateRelease(ctx context.Context, doer *user_model.User, gitRepo *git.Repo
 			}
 
 			for uuid, newName := range editAttachments {
-				if !deletedUUIDs.Contains(uuid) {
-					if err = repo_model.UpdateAttachmentByUUID(ctx, &repo_model.Attachment{
-						UUID: uuid,
-						Name: newName,
-					}, "name"); err != nil {
-						return err
-					}
+				if deletedUUIDs.Contains(uuid) {
+					continue
+				}
+				if err = upload.Verify(nil, newName, setting.Repository.Release.AllowedTypes); err != nil {
+					return err
+				}
+				if err = repo_model.UpdateAttachmentByUUID(ctx, &repo_model.Attachment{
+					UUID: uuid,
+					Name: newName,
+				}, "name"); err != nil {
+					return err
 				}
 			}
 		}

@@ -101,49 +101,49 @@ func TestDetectMatched(t *testing.T) {
 		triggedEvent webhook_module.HookEventType
 		payload      api.Payloader
 		yamlOn       string
-		expected     bool
+		expected     detectResult
 	}{
 		{
 			desc:         "HookEventCreate(create) matches GithubEventCreate(create)",
 			triggedEvent: webhook_module.HookEventCreate,
 			payload:      nil,
 			yamlOn:       "on: create",
-			expected:     true,
+			expected:     detectMatched,
 		},
 		{
 			desc:         "HookEventIssues(issues) `opened` action matches GithubEventIssues(issues)",
 			triggedEvent: webhook_module.HookEventIssues,
 			payload:      &api.IssuePayload{Action: api.HookIssueOpened},
 			yamlOn:       "on: issues",
-			expected:     true,
+			expected:     detectMatched,
 		},
 		{
 			desc:         "HookEventIssues(issues) `milestoned` action matches GithubEventIssues(issues)",
 			triggedEvent: webhook_module.HookEventIssues,
 			payload:      &api.IssuePayload{Action: api.HookIssueMilestoned},
 			yamlOn:       "on: issues",
-			expected:     true,
+			expected:     detectMatched,
 		},
 		{
 			desc:         "HookEventPullRequestSync(pull_request_sync) matches GithubEventPullRequest(pull_request)",
 			triggedEvent: webhook_module.HookEventPullRequestSync,
 			payload:      &api.PullRequestPayload{Action: api.HookIssueSynchronized},
 			yamlOn:       "on: pull_request",
-			expected:     true,
+			expected:     detectMatched,
 		},
 		{
 			desc:         "HookEventPullRequest(pull_request) `label_updated` action doesn't match GithubEventPullRequest(pull_request) with no activity type",
 			triggedEvent: webhook_module.HookEventPullRequest,
 			payload:      &api.PullRequestPayload{Action: api.HookIssueLabelUpdated},
 			yamlOn:       "on: pull_request",
-			expected:     false,
+			expected:     detectNotApplicable,
 		},
 		{
 			desc:         "HookEventPullRequest(pull_request) `closed` action doesn't match GithubEventPullRequest(pull_request) with no activity type",
 			triggedEvent: webhook_module.HookEventPullRequest,
 			payload:      &api.PullRequestPayload{Action: api.HookIssueClosed},
 			yamlOn:       "on: pull_request",
-			expected:     false,
+			expected:     detectNotApplicable,
 		},
 		{
 			desc:         "HookEventPullRequest(pull_request) `closed` action doesn't match GithubEventPullRequest(pull_request) with branches",
@@ -155,56 +155,56 @@ func TestDetectMatched(t *testing.T) {
 				},
 			},
 			yamlOn:   "on:\n  pull_request:\n    branches: [main]",
-			expected: false,
+			expected: detectNotApplicable,
 		},
 		{
 			desc:         "HookEventPullRequest(pull_request) `label_updated` action matches GithubEventPullRequest(pull_request) with `label` activity type",
 			triggedEvent: webhook_module.HookEventPullRequest,
 			payload:      &api.PullRequestPayload{Action: api.HookIssueLabelUpdated},
 			yamlOn:       "on:\n  pull_request:\n    types: [labeled]",
-			expected:     true,
+			expected:     detectMatched,
 		},
 		{
 			desc:         "HookEventPullRequestReviewComment(pull_request_review_comment) matches GithubEventPullRequestReviewComment(pull_request_review_comment)",
 			triggedEvent: webhook_module.HookEventPullRequestReviewComment,
 			payload:      &api.PullRequestPayload{Action: api.HookIssueReviewed},
 			yamlOn:       "on:\n  pull_request_review_comment:\n    types: [created]",
-			expected:     true,
+			expected:     detectMatched,
 		},
 		{
 			desc:         "HookEventPullRequestReviewRejected(pull_request_review_rejected) doesn't match GithubEventPullRequestReview(pull_request_review) with `dismissed` activity type (we don't support `dismissed` at present)",
 			triggedEvent: webhook_module.HookEventPullRequestReviewRejected,
 			payload:      &api.PullRequestPayload{Action: api.HookIssueReviewed},
 			yamlOn:       "on:\n  pull_request_review:\n    types: [dismissed]",
-			expected:     false,
+			expected:     detectNotApplicable,
 		},
 		{
 			desc:         "HookEventRelease(release) `published` action matches GithubEventRelease(release) with `published` activity type",
 			triggedEvent: webhook_module.HookEventRelease,
 			payload:      &api.ReleasePayload{Action: api.HookReleasePublished},
 			yamlOn:       "on:\n  release:\n    types: [published]",
-			expected:     true,
+			expected:     detectMatched,
 		},
 		{
 			desc:         "HookEventPackage(package) `created` action doesn't match GithubEventRegistryPackage(registry_package) with `updated` activity type",
 			triggedEvent: webhook_module.HookEventPackage,
 			payload:      &api.PackagePayload{Action: api.HookPackageCreated},
 			yamlOn:       "on:\n  registry_package:\n    types: [updated]",
-			expected:     false,
+			expected:     detectNotApplicable,
 		},
 		{
 			desc:         "HookEventWiki(wiki) matches GithubEventGollum(gollum)",
 			triggedEvent: webhook_module.HookEventWiki,
 			payload:      nil,
 			yamlOn:       "on: gollum",
-			expected:     true,
+			expected:     detectMatched,
 		},
 		{
 			desc:         "HookEventSchedule(schedule) matches GithubEventSchedule(schedule)",
 			triggedEvent: webhook_module.HookEventSchedule,
 			payload:      nil,
 			yamlOn:       "on: schedule",
-			expected:     true,
+			expected:     detectMatched,
 		},
 		{
 			desc:         "push to tag matches workflow with paths condition (should skip paths check)",
@@ -222,7 +222,19 @@ func TestDetectMatched(t *testing.T) {
 			},
 			commit:   nil,
 			yamlOn:   "on:\n  push:\n    paths:\n      - src/**",
-			expected: true,
+			expected: detectMatched,
+		},
+		{
+			desc:         "push branch filter excludes -> filtered out",
+			triggedEvent: webhook_module.HookEventPush,
+			payload: &api.PushPayload{
+				Ref:     "refs/heads/feature/x",
+				Before:  "0000000",
+				Commits: []*api.PayloadCommit{{ID: "abc", Added: []string{"a.go"}, Message: "x"}},
+			},
+			commit:   nil,
+			yamlOn:   "on:\n  push:\n    branches: [main]",
+			expected: detectFilteredOut,
 		},
 	}
 
@@ -231,7 +243,7 @@ func TestDetectMatched(t *testing.T) {
 			evts, err := GetEventsFromContent(fullWorkflowContent(tc.yamlOn))
 			assert.NoError(t, err)
 			assert.Len(t, evts, 1)
-			assert.Equal(t, tc.expected, detectMatched(nil, tc.commit, tc.triggedEvent, tc.payload, evts[0]))
+			assert.Equal(t, tc.expected, detectWorkflowMatch(nil, tc.commit, tc.triggedEvent, tc.payload, evts[0]))
 		})
 	}
 }
