@@ -5,7 +5,7 @@ package aireview
 
 import (
 	"context"
-	"encoding/json"
+	"gitea.dev/modules/json"
 	"net/http"
 	"net/http/httptest"
 	"strings"

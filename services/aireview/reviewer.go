@@ -193,7 +193,7 @@ func RunReview(ctx context.Context, task *AIRreviewTask) error {
 			}
 			resp.Summary += fmt.Sprintf("- %s %s", icon, cr.Check)
 			if cr.Details != "" {
-				resp.Summary += fmt.Sprintf(": %s", cr.Details)
+				resp.Summary += ": " + cr.Details
 			}
 			resp.Summary += "\n"
 		}
@@ -258,7 +258,7 @@ func formatReviewBody(resp *ReviewResponse, comments []aiComment) string {
 	if len(resp.Walkthrough) > 0 {
 		b.WriteString("<details>\n<summary>Change Walkthrough</summary>\n\n")
 		for _, s := range resp.Walkthrough {
-			b.WriteString(fmt.Sprintf("- **%s**: %s\n", s.Title, s.Description))
+			fmt.Fprintf(&b, "- **%s**: %s\n", s.Title, s.Description)
 		}
 		b.WriteString("\n</details>\n\n")
 	}
@@ -285,7 +285,7 @@ func formatReviewBody(resp *ReviewResponse, comments []aiComment) string {
 	if len(nonInlined) > 0 {
 		b.WriteString("**Additional findings (no inline location available):**\n")
 		for _, c := range nonInlined {
-			severityTag := ""
+			var severityTag string
 			switch c.Severity {
 			case "critical":
 				severityTag = "[CRITICAL]"
@@ -298,7 +298,7 @@ func formatReviewBody(resp *ReviewResponse, comments []aiComment) string {
 			if c.File != "" {
 				loc = fmt.Sprintf(" %s:%d", c.File, c.Line)
 			}
-			b.WriteString(fmt.Sprintf("- %s%s %s\n", severityTag, loc, c.Body))
+			fmt.Fprintf(&b, "- %s%s %s\n", severityTag, loc, c.Body)
 		}
 	}
 

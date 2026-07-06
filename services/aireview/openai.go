@@ -6,7 +6,7 @@ package aireview
 import (
 	"bytes"
 	"context"
-	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
@@ -14,6 +14,7 @@ import (
 	"strings"
 	"time"
 
+	"gitea.dev/modules/json"
 	"gitea.dev/modules/setting"
 )
 
@@ -122,16 +123,19 @@ type chatResponse struct {
 // ReviewCode sends code diffs to the OpenAI-compatible API and returns review comments.
 func (p *OpenAIProvider) ReviewCode(ctx context.Context, req *ReviewRequest) (*ReviewResponse, error) {
 	if p.apiKey == "" {
-		return nil, fmt.Errorf("aireview: API token is not configured")
+		return nil, errors.New("aireview: API token is not configured")
 	}
 
 	prompt := buildReviewPrompt(req)
 
 	sysPrompt := systemPrompt(req.SystemPrompt)
 
+	var sysPromptBuilder strings.Builder
+	sysPromptBuilder.WriteString(sysPrompt)
 	for _, pi := range req.PathInstructions {
-		sysPrompt += fmt.Sprintf("\nFor files matching %q: %s", pi.Path, pi.Instructions)
+		sysPromptBuilder.WriteString(fmt.Sprintf("\nFor files matching %q: %s", pi.Path, pi.Instructions))
 	}
+	sysPrompt = sysPromptBuilder.String()
 
 	if refs := extractIssueRefs(req.PRDescription); refs != "" {
 		prompt += "\nReferenced issues: " + refs + "\n"
@@ -142,11 +146,14 @@ func (p *OpenAIProvider) ReviewCode(ctx context.Context, req *ReviewRequest) (*R
 	}
 
 	if len(req.CustomChecks) > 0 {
-		prompt += "\n\n**Pre-merge checks to evaluate:**\n"
+		var promptBuilder strings.Builder
+		promptBuilder.WriteString(prompt)
+		promptBuilder.WriteString("\n\n**Pre-merge checks to evaluate:**\n")
 		for i, check := range req.CustomChecks {
-			prompt += fmt.Sprintf("%d. %s\n", i+1, check)
+			promptBuilder.WriteString(fmt.Sprintf("%d. %s\n", i+1, check))
 		}
-		prompt += "\nFor each check, return a check_results entry in the JSON with check name, passed (bool), and details."
+		promptBuilder.WriteString("\nFor each check, return a check_results entry in the JSON with check name, passed (bool), and details.")
+		prompt = promptBuilder.String()
 	}
 
 	body := chatRequest{
@@ -199,7 +206,7 @@ func (p *OpenAIProvider) ReviewCode(ctx context.Context, req *ReviewRequest) (*R
 	}
 
 	if len(chatResp.Choices) == 0 {
-		return nil, fmt.Errorf("aireview: API returned no choices")
+		return nil, errors.New("aireview: API returned no choices")
 	}
 
 	content := chatResp.Choices[0].Message.Content
@@ -215,7 +222,7 @@ func (p *OpenAIProvider) ReviewCode(ctx context.Context, req *ReviewRequest) (*R
 // Chat sends a conversational request (no JSON mode) and returns the text response.
 func (p *OpenAIProvider) Chat(ctx context.Context, messages []ChatMessage) (string, error) {
 	if p.apiKey == "" {
-		return "", fmt.Errorf("aireview: API token is not configured")
+		return "", errors.New("aireview: API token is not configured")
 	}
 
 	body := chatRequest{
@@ -264,7 +271,7 @@ func (p *OpenAIProvider) Chat(ctx context.Context, messages []ChatMessage) (stri
 	}
 
 	if len(chatResp.Choices) == 0 {
-		return "", fmt.Errorf("aireview: chat API returned no choices")
+		return "", errors.New("aireview: chat API returned no choices")
 	}
 
 	return chatResp.Choices[0].Message.Content, nil
@@ -276,12 +283,12 @@ func buildReviewPrompt(req *ReviewRequest) string {
 	if len(req.Files) > 0 {
 		b.WriteString("Review the following code changes for this pull request.\n")
 		if req.PRTitle != "" {
-			b.WriteString(fmt.Sprintf("PR Title: %s\n", req.PRTitle))
+			fmt.Fprintf(&b, "PR Title: %s\n", req.PRTitle)
 		}
 		if req.PRDescription != "" {
-			b.WriteString(fmt.Sprintf("PR Description: %s\n", req.PRDescription))
+			fmt.Fprintf(&b, "PR Description: %s\n", req.PRDescription)
 		}
-		b.WriteString(fmt.Sprintf("\nTotal files changed: %d\n\n", len(req.Files)))
+		fmt.Fprintf(&b, "\nTotal files changed: %d\n\n", len(req.Files))
 
 		if cg := BuildCodeGraph(req.Files); cg.String() != "" {
 			b.WriteString(cg.String())
@@ -289,9 +296,9 @@ func buildReviewPrompt(req *ReviewRequest) string {
 		}
 
 		for _, f := range req.Files {
-			b.WriteString(fmt.Sprintf("### File: %s", f.Path))
+			b.WriteString("### File: " + f.Path)
 			if f.Language != "" {
-				b.WriteString(fmt.Sprintf(" (%s)", f.Language))
+				fmt.Fprintf(&b, " (%s)", f.Language)
 			}
 			b.WriteString("\n")
 			b.WriteString("```diff\n")
@@ -300,7 +307,7 @@ func buildReviewPrompt(req *ReviewRequest) string {
 				patch = patch[:setting.AIRreview.MaxPatchSize] + "\n... (patch truncated)"
 			}
 			b.WriteString(patch)
-			if !bytes.HasSuffix([]byte(patch), []byte("\n")) {
+			if !strings.HasSuffix(patch, "\n") {
 				b.WriteString("\n")
 			}
 			b.WriteString("```\n\n")
@@ -308,20 +315,20 @@ func buildReviewPrompt(req *ReviewRequest) string {
 	} else {
 		b.WriteString("Review the following code changes.\n")
 		if req.PRTitle != "" {
-			b.WriteString(fmt.Sprintf("PR Title: %s\n", req.PRTitle))
+			fmt.Fprintf(&b, "PR Title: %s\n", req.PRTitle)
 		}
 		if req.PRDescription != "" {
-			b.WriteString(fmt.Sprintf("PR Description: %s\n", req.PRDescription))
+			fmt.Fprintf(&b, "PR Description: %s\n", req.PRDescription)
 		}
 		if req.FilePath != "" {
-			b.WriteString(fmt.Sprintf("File: %s\n", req.FilePath))
+			fmt.Fprintf(&b, "File: %s\n", req.FilePath)
 		}
 		if req.Language != "" {
-			b.WriteString(fmt.Sprintf("Language: %s\n", req.Language))
+			fmt.Fprintf(&b, "Language: %s\n", req.Language)
 		}
 		b.WriteString("\n```diff\n")
 		b.WriteString(req.Diff)
-		if !bytes.HasSuffix([]byte(req.Diff), []byte("\n")) {
+		if !strings.HasSuffix(req.Diff, "\n") {
 			b.WriteString("\n")
 		}
 		b.WriteString("```\n")

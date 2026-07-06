@@ -6,13 +6,14 @@ package aireview
 import (
 	"bytes"
 	"context"
-	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
 	"strings"
 	"time"
 
+	"gitea.dev/modules/json"
 	"gitea.dev/modules/setting"
 )
 
@@ -75,15 +76,18 @@ type anthropicResponse struct {
 
 func (p *AnthropicProvider) ReviewCode(ctx context.Context, req *ReviewRequest) (*ReviewResponse, error) {
 	if p.apiKey == "" {
-		return nil, fmt.Errorf("aireview: API token is not configured")
+		return nil, errors.New("aireview: API token is not configured")
 	}
 
 	prompt := buildReviewPrompt(req)
 	sysPrompt := systemPrompt(req.SystemPrompt)
 
+	var sysPromptBuilder strings.Builder
+	sysPromptBuilder.WriteString(sysPrompt)
 	for _, pi := range req.PathInstructions {
-		sysPrompt += fmt.Sprintf("\nFor files matching %q: %s", pi.Path, pi.Instructions)
+		sysPromptBuilder.WriteString(fmt.Sprintf("\nFor files matching %q: %s", pi.Path, pi.Instructions))
 	}
+	sysPrompt = sysPromptBuilder.String()
 
 	if refs := extractIssueRefs(req.PRDescription); refs != "" {
 		prompt += "\nReferenced issues: " + refs + "\n"
@@ -148,15 +152,16 @@ func (p *AnthropicProvider) ReviewCode(ctx context.Context, req *ReviewRequest) 
 		return nil, fmt.Errorf("aireview: API error: %s", aResp.Error.Message)
 	}
 
-	var text string
+	var textBuilder strings.Builder
 	for _, block := range aResp.Content {
 		if block.Type == "text" {
-			text += block.Text
+			textBuilder.WriteString(block.Text)
 		}
 	}
+	text := textBuilder.String()
 
 	if text == "" {
-		return nil, fmt.Errorf("aireview: API returned empty content")
+		return nil, errors.New("aireview: API returned empty content")
 	}
 
 	var reviewResp ReviewResponse
@@ -169,18 +174,20 @@ func (p *AnthropicProvider) ReviewCode(ctx context.Context, req *ReviewRequest) 
 
 func (p *AnthropicProvider) Chat(ctx context.Context, messages []ChatMessage) (string, error) {
 	if p.apiKey == "" {
-		return "", fmt.Errorf("aireview: API token is not configured")
+		return "", errors.New("aireview: API token is not configured")
 	}
 
-	var systemMsg string
+	var systemMsgBuilder strings.Builder
 	var anthropicMsgs []anthropicMessage
 	for _, m := range messages {
 		if m.Role == "system" {
-			systemMsg += m.Content + "\n"
+			systemMsgBuilder.WriteString(m.Content)
+			systemMsgBuilder.WriteString("\n")
 		} else {
-			anthropicMsgs = append(anthropicMsgs, anthropicMessage{Role: m.Role, Content: m.Content})
+			anthropicMsgs = append(anthropicMsgs, anthropicMessage(m))
 		}
 	}
+	systemMsg := systemMsgBuilder.String()
 
 	body := anthropicRequest{
 		Model:       p.model,
@@ -229,12 +236,12 @@ func (p *AnthropicProvider) Chat(ctx context.Context, messages []ChatMessage) (s
 		return "", fmt.Errorf("aireview: chat API error: %s", aResp.Error.Message)
 	}
 
-	var text string
+	var textBuilder strings.Builder
 	for _, block := range aResp.Content {
 		if block.Type == "text" {
-			text += block.Text
+			textBuilder.WriteString(block.Text)
 		}
 	}
 
-	return text, nil
+	return textBuilder.String(), nil
 }

@@ -6,13 +6,14 @@ package aireview
 import (
 	"bytes"
 	"context"
-	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
 	"strings"
 	"time"
 
+	"gitea.dev/modules/json"
 	"gitea.dev/modules/setting"
 )
 
@@ -58,7 +59,7 @@ type geminiPart struct {
 type geminiRequest struct {
 	Contents          []geminiContent `json:"contents"`
 	SystemInstruction *geminiContent  `json:"systemInstruction,omitempty"`
-	GenerationConfig  geminiGenConfig `json:"generationConfig,omitempty"`
+	GenerationConfig  geminiGenConfig `json:"generationConfig"`
 }
 
 type geminiGenConfig struct {
@@ -81,15 +82,18 @@ type geminiAPIError struct {
 
 func (p *GeminiProvider) ReviewCode(ctx context.Context, req *ReviewRequest) (*ReviewResponse, error) {
 	if p.apiKey == "" {
-		return nil, fmt.Errorf("aireview: API token is not configured")
+		return nil, errors.New("aireview: API token is not configured")
 	}
 
 	prompt := buildReviewPrompt(req)
 	sysPrompt := systemPrompt(req.SystemPrompt)
 
+	var sysPromptBuilder strings.Builder
+	sysPromptBuilder.WriteString(sysPrompt)
 	for _, pi := range req.PathInstructions {
-		sysPrompt += fmt.Sprintf("\nFor files matching %q: %s", pi.Path, pi.Instructions)
+		sysPromptBuilder.WriteString(fmt.Sprintf("\nFor files matching %q: %s", pi.Path, pi.Instructions))
 	}
+	sysPrompt = sysPromptBuilder.String()
 	if refs := extractIssueRefs(req.PRDescription); refs != "" {
 		prompt += "\nReferenced issues: " + refs + "\n"
 	}
@@ -97,11 +101,14 @@ func (p *GeminiProvider) ReviewCode(ctx context.Context, req *ReviewRequest) (*R
 		prompt += "\n" + req.LinterConfigs
 	}
 	if len(req.CustomChecks) > 0 {
-		prompt += "\n\n**Pre-merge checks to evaluate:**\n"
+		var promptBuilder strings.Builder
+		promptBuilder.WriteString(prompt)
+		promptBuilder.WriteString("\n\n**Pre-merge checks to evaluate:**\n")
 		for i, check := range req.CustomChecks {
-			prompt += fmt.Sprintf("%d. %s\n", i+1, check)
+			promptBuilder.WriteString(fmt.Sprintf("%d. %s\n", i+1, check))
 		}
-		prompt += "\nFor each check, return a check_results entry with check name, passed (bool), and details."
+		promptBuilder.WriteString("\nFor each check, return a check_results entry with check name, passed (bool), and details.")
+		prompt = promptBuilder.String()
 	}
 
 	body := geminiRequest{
@@ -164,16 +171,17 @@ func (p *GeminiProvider) ReviewCode(ctx context.Context, req *ReviewRequest) (*R
 	}
 
 	if len(gResp.Candidates) == 0 {
-		return nil, fmt.Errorf("aireview: API returned no candidates")
+		return nil, errors.New("aireview: API returned no candidates")
 	}
 
-	var text string
+	var textBuilder strings.Builder
 	for _, part := range gResp.Candidates[0].Content.Parts {
-		text += part.Text
+		textBuilder.WriteString(part.Text)
 	}
+	text := textBuilder.String()
 
 	if text == "" {
-		return nil, fmt.Errorf("aireview: API returned empty content")
+		return nil, errors.New("aireview: API returned empty content")
 	}
 
 	var reviewResp ReviewResponse
@@ -186,14 +194,15 @@ func (p *GeminiProvider) ReviewCode(ctx context.Context, req *ReviewRequest) (*R
 
 func (p *GeminiProvider) Chat(ctx context.Context, messages []ChatMessage) (string, error) {
 	if p.apiKey == "" {
-		return "", fmt.Errorf("aireview: API token is not configured")
+		return "", errors.New("aireview: API token is not configured")
 	}
 
-	var systemMsg string
+	var systemMsgBuilder strings.Builder
 	var contents []geminiContent
 	for _, m := range messages {
 		if m.Role == "system" {
-			systemMsg += m.Content + "\n"
+			systemMsgBuilder.WriteString(m.Content)
+			systemMsgBuilder.WriteString("\n")
 		} else {
 			role := m.Role
 			if role == "assistant" {
@@ -205,6 +214,7 @@ func (p *GeminiProvider) Chat(ctx context.Context, messages []ChatMessage) (stri
 			})
 		}
 	}
+	systemMsg := systemMsgBuilder.String()
 
 	body := geminiRequest{
 		Contents: contents,
@@ -264,13 +274,13 @@ func (p *GeminiProvider) Chat(ctx context.Context, messages []ChatMessage) (stri
 	}
 
 	if len(gResp.Candidates) == 0 {
-		return "", fmt.Errorf("aireview: chat API returned no candidates")
+		return "", errors.New("aireview: chat API returned no candidates")
 	}
 
-	var text string
+	var textBuilder strings.Builder
 	for _, part := range gResp.Candidates[0].Content.Parts {
-		text += part.Text
+		textBuilder.WriteString(part.Text)
 	}
 
-	return text, nil
+	return textBuilder.String(), nil
 }

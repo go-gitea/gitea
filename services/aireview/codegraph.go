@@ -55,13 +55,13 @@ func (cg *CodeGraph) String() string {
 
 		var parts []string
 		if len(exports) > 0 {
-			parts = append(parts, fmt.Sprintf("exports: %s", strings.Join(exports, ", ")))
+			parts = append(parts, "exports: "+strings.Join(exports, ", "))
 		}
 		if len(imports) > 0 {
-			parts = append(parts, fmt.Sprintf("uses from PR: %s", strings.Join(imports, ", ")))
+			parts = append(parts, "uses from PR: "+strings.Join(imports, ", "))
 		}
 		if len(parts) > 0 {
-			b.WriteString(fmt.Sprintf("- `%s` — %s\n", file, strings.Join(parts, "; ")))
+			fmt.Fprintf(&b, "- `%s` — %s\n", file, strings.Join(parts, "; "))
 		}
 	}
 

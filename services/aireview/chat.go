@@ -63,17 +63,17 @@ func HandlePRComment(ctx context.Context, doer *user_model.User, repo *repo_mode
 	}
 
 	var diffBuf bytes.Buffer
-	diffBuf.WriteString(fmt.Sprintf("PR #%d: %s\n", pr.Index, issue.Title))
+	fmt.Fprintf(&diffBuf, "PR #%d: %s\n", pr.Index, issue.Title)
 	if issue.Content != "" {
-		diffBuf.WriteString(fmt.Sprintf("Description: %s\n", issue.Content))
+		fmt.Fprintf(&diffBuf, "Description: %s\n", issue.Content)
 	}
-	diffBuf.WriteString(fmt.Sprintf("Files changed (%d):\n", len(files)))
+	fmt.Fprintf(&diffBuf, "Files changed (%d):\n", len(files))
 	for _, f := range files {
 		patch := f.Patch
 		if len(patch) > 2000 {
 			patch = patch[:2000] + "\n... (truncated)"
 		}
-		diffBuf.WriteString(fmt.Sprintf("\n### %s\n```diff\n%s\n```\n", f.Path, patch))
+		fmt.Fprintf(&diffBuf, "\n### %s\n```diff\n%s\n```\n", f.Path, patch)
 	}
 
 	diffContext := diffBuf.String()
@@ -109,7 +109,7 @@ func HandlePRComment(ctx context.Context, doer *user_model.User, repo *repo_mode
 			dismissTarget := strings.TrimSpace(parts[1])
 			if fileLine := strings.SplitN(dismissTarget, ":", 2); len(fileLine) == 2 {
 				line := 0
-				fmt.Sscanf(fileLine[1], "%d", &line)
+				_, _ = fmt.Sscanf(fileLine[1], "%d", &line)
 				DismissFinding(pr.BaseRepo.ID, fileLine[0], line)
 			}
 		}

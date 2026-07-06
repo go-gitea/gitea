@@ -30,9 +30,6 @@ type PathInstruction struct {
 
 const repoConfigFile = ".gitea/ai-review.yaml"
 
-// defaultBranchForConfig is the branch from which the per-repo config is read.
-const defaultBranchForConfig = ""
-
 // LoadRepoConfig reads the per-repository AI review config from the default branch.
 func LoadRepoConfig(ctx context.Context, repo gitrepo.Repository) (*RepoConfig, error) {
 	gitRepo, err := gitrepo.OpenRepository(ctx, repo)
@@ -46,6 +43,7 @@ func LoadRepoConfig(ctx context.Context, repo gitrepo.Repository) (*RepoConfig, 
 		return nil, fmt.Errorf("get default branch: %w", err)
 	}
 	if defaultBranch == "" {
+		//nolint: nilnil
 		return nil, nil
 	}
 
@@ -57,15 +55,18 @@ func LoadRepoConfig(ctx context.Context, repo gitrepo.Repository) (*RepoConfig, 
 	content, err := commit.GetFileContent(repoConfigFile, 1<<20) // 1 MB limit
 	if err != nil {
 		// File doesn't exist — not an error
+		//nolint: nilnil
 		return nil, nil
 	}
 	if content == "" {
+		//nolint: nilnil
 		return nil, nil
 	}
 
 	var cfg RepoConfig
 	if err := yaml.Unmarshal([]byte(content), &cfg); err != nil {
 		log.Warn("aireview: failed to parse %s in %s: %v", repoConfigFile, defaultBranch, err)
+		//nolint: nilnil
 		return nil, nil
 	}
 

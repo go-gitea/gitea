@@ -60,8 +60,7 @@ func parseUnifiedDiff(diff string) []FileDiff {
 	var current FileDiff
 	var patchBuf strings.Builder
 
-	lines := strings.Split(diff, "\n")
-	for _, line := range lines {
+	for line := range strings.SplitSeq(diff, "\n") {
 		if strings.HasPrefix(line, "diff --git ") {
 			if current.Path != "" {
 				current.Patch = patchBuf.String()

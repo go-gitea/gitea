@@ -4,6 +4,7 @@
 package aireview
 
 import (
+	"maps"
 	"path/filepath"
 	"regexp"
 	"sort"
@@ -60,9 +61,7 @@ func SortFilesByDependency(files []FileDiff) []FileDiff {
 	}
 
 	remaining := make(map[string]int, len(files))
-	for path, deg := range inDegree {
-		remaining[path] = deg
-	}
+	maps.Copy(remaining, inDegree)
 
 	for len(ordered) < len(files) {
 		var zero []string

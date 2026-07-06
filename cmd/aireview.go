@@ -5,6 +5,7 @@ package cmd
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"os"
 	"os/exec"
@@ -57,7 +58,7 @@ func runAIReview(ctx context.Context, c *cli.Command) error {
 	}
 
 	if strings.TrimSpace(diff) == "" {
-		return fmt.Errorf("no diff provided")
+		return errors.New("no diff provided")
 	}
 
 	provider, err := aireview.GetProvider(setting.AIRreview.Provider)
@@ -72,7 +73,7 @@ func runAIReview(ctx context.Context, c *cli.Command) error {
 		return fmt.Errorf("review failed: %w", err)
 	}
 
-	fmt.Println("## AI Code Review Results\n")
+	fmt.Println("## AI Code Review Results")
 	if resp.Summary != "" {
 		fmt.Printf("### Summary\n%s\n\n", resp.Summary)
 	}

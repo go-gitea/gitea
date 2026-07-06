@@ -58,7 +58,7 @@ func loadAIReviewFrom(rootCfg ConfigProvider) {
 	AIRreview.SystemPrompt = sec.Key("SYSTEM_PROMPT").MustString("")
 	raw := sec.Key("EXCLUDE_PATHS").MustString("")
 	if raw != "" {
-		for _, p := range strings.Split(raw, ",") {
+		for p := range strings.SplitSeq(raw, ",") {
 			p = strings.TrimSpace(p)
 			if p != "" {
 				AIRreview.ExcludePaths = append(AIRreview.ExcludePaths, p)

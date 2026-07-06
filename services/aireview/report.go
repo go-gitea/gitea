@@ -28,11 +28,11 @@ func GenerateSprintReport(ctx context.Context, repo *repo_model.Repository) (str
 	}
 
 	var b strings.Builder
-	b.WriteString(fmt.Sprintf("## Current Pull Requests\n\n"))
-	b.WriteString(fmt.Sprintf("Total open PRs: %d\n\n", len(prs)))
+	b.WriteString("## Current Pull Requests\n\n")
+	fmt.Fprintf(&b, "Total open PRs: %d\n\n", len(prs))
 
 	for _, pr := range prs {
-		b.WriteString(fmt.Sprintf("- **#%d**: %s\n", pr.Index, pr.Issue.Title))
+		fmt.Fprintf(&b, "- **#%d**: %s\n", pr.Index, pr.Issue.Title)
 	}
 
 	provider, err := GetProvider(setting.AIRreview.Provider)
