@@ -1180,6 +1180,7 @@
   "actions.workflow.enable": "Aktifkan Alur Kerja",
   "actions.workflow.enable_success": "Alur kerja '%s' berhasil diaktifkan.",
   "actions.workflow.disabled": "Alur kerja dinonaktifkan.",
+  "actions.workflow.scope_owner": "Pemilik",
   "actions.need_approval_desc": "Butuh persetujuan untuk menjalankan alur kerja untuk pull request fork.",
   "actions.variables": "Variabel",
   "actions.variables.management": "Managemen Variabel",
