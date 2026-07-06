@@ -27,11 +27,11 @@ const iconName = computed(() => {
 const iconClass = computed(() => {
   const classes = [];
   switch (status.value) {
-    case 'running': classes.push('rotate-clockwise');
-    case 'completed': classes.push('tw-text-green');
-    case 'issues_found': classes.push('tw-text-orange');
-    case 'error': classes.push('tw-text-red');
-    case 'pending': classes.push('tw-text-secondary');
+    case 'running': classes.push('rotate-clockwise'); break;
+    case 'completed': classes.push('tw-text-green'); break;
+    case 'issues_found': classes.push('tw-text-orange'); break;
+    case 'error': classes.push('tw-text-red'); break;
+    case 'pending': classes.push('tw-text-secondary'); break;
   }
   return classes.join(' ');
 });
@@ -71,7 +71,7 @@ onMounted(() => {
 
 <template>
   <div v-if="status && !loading" class="tw-flex tw-items-center tw-gap-1 tw-text-13">
-    <SvgIcon :name="iconName" :class="iconClass" :size="14"/>
+    <SvgIcon v-if="iconName" :name="iconName" :class="iconClass" :size="14"/>
     <span>{{ label }}</span>
   </div>
 </template>
