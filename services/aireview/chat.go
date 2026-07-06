@@ -89,11 +89,41 @@ func HandlePRComment(ctx context.Context, doer *user_model.User, repo *repo_mode
 	}
 	// Append user message
 	userMsg := strings.TrimSpace(strings.ReplaceAll(comment.Content, chatBotMention, ""))
-	// Detect and store learnings from feedback
-	DetectAndStoreLearnings(pr.BaseRepo.ID, userMsg)
 	if userMsg == "" {
 		userMsg = "Explain these changes."
 	}
+
+	// Detect and store learnings from feedback
+	DetectAndStoreLearnings(pr.BaseRepo.ID, userMsg)
+
+	// Handle commands
+	lower := strings.ToLower(userMsg)
+	switch {
+	case strings.HasPrefix(lower, "re-run") || strings.HasPrefix(lower, "rerun"):
+		// Clear cache and re-run review
+		reviewCache.Clear(pr.ID)
+		pushTask(pr.ID, "rerun")
+		// Don't add to conversation — will be handled by the new review
+		reply := "Re-running AI review for this pull request..."
+		_, err := issue_service.CreateIssueComment(ctx, doer, pr.BaseRepo, issue, reply, nil)
+		return err
+
+	case strings.HasPrefix(lower, "dismiss"):
+		// Parse "dismiss file.go:42"
+		parts := strings.SplitN(userMsg, " ", 2)
+		if len(parts) >= 2 {
+			dismissTarget := strings.TrimSpace(parts[1])
+			if fileLine := strings.SplitN(dismissTarget, ":", 2); len(fileLine) == 2 {
+				line := 0
+				fmt.Sscanf(fileLine[1], "%d", &line)
+				DismissFinding(pr.BaseRepo.ID, fileLine[0], line)
+			}
+		}
+		reply := "Dismissed the requested finding. It will be filtered from future reviews."
+		_, err := issue_service.CreateIssueComment(ctx, doer, pr.BaseRepo, issue, reply, nil)
+		return err
+	}
+
 	history = append(history, chatMessage{Role: "user", Content: userMsg})
 	conversations.msgs[issue.ID] = history
 	conversations.mu.Unlock()

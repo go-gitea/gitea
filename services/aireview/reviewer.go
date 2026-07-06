@@ -149,6 +149,10 @@ func RunReview(ctx context.Context, task *AIRreviewTask) error {
 
 	var allComments []aiComment
 	for _, c := range resp.Comments {
+		if IsFindingDismissed(pr.BaseRepo.ID, c.File, c.Line) {
+			log.Debug("aireview: skipping dismissed finding %s:%d", c.File, c.Line)
+			continue
+		}
 		allComments = append(allComments, aiComment{ReviewComment: c})
 	}
 

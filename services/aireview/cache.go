@@ -34,3 +34,10 @@ func (c *commitCache) MarkReviewed(prID int64, commitSHA string) {
 	defer c.mu.Unlock()
 	c.reviewed[prID] = commitSHA
 }
+
+// Clear removes the review cache entry for a PR, allowing re-review.
+func (c *commitCache) Clear(prID int64) {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	delete(c.reviewed, prID)
+}
