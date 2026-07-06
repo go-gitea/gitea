@@ -79,6 +79,18 @@ func TestEnvironmentMatchesBranch(t *testing.T) {
 			ref:               "main",
 			want:              true,
 		},
+		{
+			name:              "wildcard does not cross path separator",
+			protectedBranches: "release/*",
+			ref:               "refs/heads/release/1.0/hotfix",
+			want:              false,
+		},
+		{
+			name:              "malformed pattern is skipped, later valid pattern still matches",
+			protectedBranches: "[invalid, main",
+			ref:               "refs/heads/main",
+			want:              true,
+		},
 	}
 
 	for _, tt := range tests {
@@ -87,6 +99,12 @@ func TestEnvironmentMatchesBranch(t *testing.T) {
 			assert.Equal(t, tt.want, env.MatchesBranch(tt.ref))
 		})
 	}
+}
+
+func TestValidateProtectedBranches(t *testing.T) {
+	require.NoError(t, ValidateProtectedBranches(""))
+	require.NoError(t, ValidateProtectedBranches("main, release/*, feature/**"))
+	require.Error(t, ValidateProtectedBranches("main, [invalid"))
 }
 
 func TestEnvironmentCRUD(t *testing.T) {

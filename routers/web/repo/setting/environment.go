@@ -118,7 +118,11 @@ func EnvironmentUpdate(ctx *context.Context) {
 	protectedBranches := strings.TrimSpace(ctx.FormString("protected_branches"))
 	_, err = actions_service.UpdateEnvironment(ctx, ctx.Repo.Repository.ID, env.ID, "", protectedBranches)
 	if err != nil {
-		ctx.Flash.Error(ctx.Tr("environments.update.failed"))
+		if errors.Is(err, util.ErrInvalidArgument) {
+			ctx.Flash.Error(err.Error())
+		} else {
+			ctx.Flash.Error(ctx.Tr("environments.update.failed"))
+		}
 	} else {
 		ctx.Flash.Success(ctx.Tr("environments.update.success"))
 	}

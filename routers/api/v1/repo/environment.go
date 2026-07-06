@@ -187,6 +187,8 @@ func UpdateEnvironment(ctx *context.APIContext) {
 	if err != nil {
 		if errors.Is(err, util.ErrAlreadyExist) {
 			ctx.APIError(http.StatusConflict, err.Error())
+		} else if errors.Is(err, util.ErrInvalidArgument) {
+			ctx.APIError(http.StatusBadRequest, err.Error())
 		} else {
 			ctx.APIErrorInternal(err)
 		}

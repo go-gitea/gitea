@@ -139,6 +139,22 @@ func DeleteEnvironment(ctx context.Context, repoID, envID int64) error {
 	})
 }
 
+const protectedBranchGlobSeparator = '/'
+
+// ValidateProtectedBranches reports an error if any comma-separated glob pattern in protectedBranches fails to compile.
+func ValidateProtectedBranches(protectedBranches string) error {
+	for pattern := range strings.SplitSeq(protectedBranches, ",") {
+		pattern = strings.TrimSpace(pattern)
+		if pattern == "" {
+			continue
+		}
+		if _, err := glob.Compile(pattern, protectedBranchGlobSeparator); err != nil {
+			return util.NewInvalidArgumentErrorf("invalid branch pattern %q: %v", pattern, err)
+		}
+	}
+	return nil
+}
+
 // MatchesBranch reports whether ref (e.g. "refs/heads/main" or "refs/tags/v1.0") may access
 // this environment's secrets and variables. An empty policy allows all refs.
 func (env *ActionEnvironment) MatchesBranch(ref string) bool {
@@ -155,7 +171,7 @@ func (env *ActionEnvironment) MatchesBranch(ref string) bool {
 		if pattern == "" {
 			continue
 		}
-		g, err := glob.Compile(pattern)
+		g, err := glob.Compile(pattern, protectedBranchGlobSeparator)
 		if err != nil {
 			// Skip malformed patterns so one bad glob doesn't deny an otherwise matching ref.
 			continue

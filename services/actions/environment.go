@@ -20,6 +20,9 @@ func CreateEnvironment(ctx context.Context, repoID int64, name, protectedBranche
 	if len(name) > 255 {
 		return nil, util.NewInvalidArgumentErrorf("environment name too long")
 	}
+	if err := actions_model.ValidateProtectedBranches(protectedBranches); err != nil {
+		return nil, err
+	}
 	env, err := actions_model.InsertEnvironment(ctx, repoID, name, protectedBranches)
 	if err != nil {
 		if isUniqueViolation(err) {
@@ -38,6 +41,9 @@ func UpdateEnvironment(ctx context.Context, repoID, envID int64, name, protected
 	}
 	if env.RepoID != repoID {
 		return nil, util.ErrNotExist
+	}
+	if err := actions_model.ValidateProtectedBranches(protectedBranches); err != nil {
+		return nil, err
 	}
 	if name != "" && name != env.Name {
 		if existing, err := actions_model.GetEnvironmentByRepoAndName(ctx, repoID, name); err == nil && existing != nil {
