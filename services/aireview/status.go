@@ -19,8 +19,8 @@ const (
 // StatusStore tracks review statuses per PR.
 type StatusStore struct {
 	mu        sync.RWMutex
-	states    map[int64]ReviewStatus // PRID → status
-	counts    map[int64]int          // PRID → issue count
+	states    map[int64]ReviewStatus    // PRID → status
+	counts    map[int64]int             // PRID → issue count
 	dismissed map[int64]map[string]bool // PRID → set of "file:line" dismissed findings
 }
 

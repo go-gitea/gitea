@@ -34,6 +34,7 @@ import (
 	"gitea.dev/routers/private"
 	web_routers "gitea.dev/routers/web"
 	actions_service "gitea.dev/services/actions"
+	"gitea.dev/services/aireview"
 	asymkey_service "gitea.dev/services/asymkey"
 	"gitea.dev/services/auth"
 	"gitea.dev/services/auth/source/oauth2"
@@ -54,7 +55,6 @@ import (
 	"gitea.dev/services/repository/archiver"
 	"gitea.dev/services/task"
 	"gitea.dev/services/uinotification"
-	"gitea.dev/services/aireview"
 	"gitea.dev/services/webhook"
 )
 

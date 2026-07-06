@@ -99,10 +99,10 @@ func (p *OpenAIProvider) Name() string {
 }
 
 type chatRequest struct {
-	Model          string         `json:"model"`
-	Messages       []ChatMessage  `json:"messages"`
-	MaxTokens      int            `json:"max_tokens,omitempty"`
-	Temperature    float64        `json:"temperature,omitempty"`
+	Model          string          `json:"model"`
+	Messages       []ChatMessage   `json:"messages"`
+	MaxTokens      int             `json:"max_tokens,omitempty"`
+	Temperature    float64         `json:"temperature,omitempty"`
 	ResponseFormat *responseFormat `json:"response_format,omitempty"`
 }
 
@@ -150,9 +150,9 @@ func (p *OpenAIProvider) ReviewCode(ctx context.Context, req *ReviewRequest) (*R
 	}
 
 	body := chatRequest{
-		Model:       p.model,
-		MaxTokens:   setting.AIRreview.MaxTokens,
-		Temperature: setting.AIRreview.Temperature,
+		Model:          p.model,
+		MaxTokens:      setting.AIRreview.MaxTokens,
+		Temperature:    setting.AIRreview.Temperature,
 		ResponseFormat: &responseFormat{Type: "json_object"},
 		Messages: []ChatMessage{
 			{Role: "system", Content: sysPrompt},

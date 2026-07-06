@@ -15,7 +15,7 @@ var linterConfigs = []string{
 	".golangci.yml", ".golangci.yaml",
 	".eslintrc", ".eslintrc.json", ".eslintrc.js", ".eslintrc.yaml",
 	".jshintrc",
-	"tsconfig.json", // has compiler options that affect linting
+	"tsconfig.json",                             // has compiler options that affect linting
 	"ruff.toml", ".ruff.toml", "pyproject.toml", // ruff/pylint
 	".pylintrc",
 }

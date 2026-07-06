@@ -47,8 +47,8 @@ func (p *GeminiProvider) Name() string {
 }
 
 type geminiContent struct {
-	Role  string        `json:"role,omitempty"`
-	Parts []geminiPart  `json:"parts"`
+	Role  string       `json:"role,omitempty"`
+	Parts []geminiPart `json:"parts"`
 }
 
 type geminiPart struct {
@@ -56,9 +56,9 @@ type geminiPart struct {
 }
 
 type geminiRequest struct {
-	Contents         []geminiContent  `json:"contents"`
+	Contents          []geminiContent `json:"contents"`
 	SystemInstruction *geminiContent  `json:"systemInstruction,omitempty"`
-	GenerationConfig geminiGenConfig  `json:"generationConfig,omitempty"`
+	GenerationConfig  geminiGenConfig `json:"generationConfig,omitempty"`
 }
 
 type geminiGenConfig struct {

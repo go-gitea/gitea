@@ -11,18 +11,18 @@ import (
 )
 
 var (
-	goFunc    = regexp.MustCompile(`(?m)^func\s+([A-Z]\w*)`)
-	goType    = regexp.MustCompile(`(?m)^type\s+([A-Z]\w*)`)
-	goVar     = regexp.MustCompile(`(?m)^var\s+([A-Z]\w*)`)
-	jsExport  = regexp.MustCompile(`(?m)^export\s+(?:default\s+)?(?:function|class|const|let|var)\s+(\w+)`)
-	pyFunc    = regexp.MustCompile(`(?m)^(?:async\s+)?def\s+([a-z]\w*)`)
-	pyClass   = regexp.MustCompile(`(?m)^class\s+([A-Z]\w*)`)
+	goFunc   = regexp.MustCompile(`(?m)^func\s+([A-Z]\w*)`)
+	goType   = regexp.MustCompile(`(?m)^type\s+([A-Z]\w*)`)
+	goVar    = regexp.MustCompile(`(?m)^var\s+([A-Z]\w*)`)
+	jsExport = regexp.MustCompile(`(?m)^export\s+(?:default\s+)?(?:function|class|const|let|var)\s+(\w+)`)
+	pyFunc   = regexp.MustCompile(`(?m)^(?:async\s+)?def\s+([a-z]\w*)`)
+	pyClass  = regexp.MustCompile(`(?m)^class\s+([A-Z]\w*)`)
 )
 
 // CodeGraph holds the relationship map between files in a PR.
 type CodeGraph struct {
-	Exports  map[string][]string // filePath → exported symbols
-	Imports  map[string][]string // filePath → imported symbols (from other PR files)
+	Exports map[string][]string // filePath → exported symbols
+	Imports map[string][]string // filePath → imported symbols (from other PR files)
 }
 
 // BuildCodeGraph analyzes all changed files and builds a relationship graph.

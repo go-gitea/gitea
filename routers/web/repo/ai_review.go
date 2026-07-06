@@ -19,8 +19,8 @@ func AIReviewStatus(ctx *context.Context) {
 
 	status, count := aireview.GetReviewStatus(pr.ID)
 	ctx.JSON(200, map[string]any{
-		"status":       string(status),
-		"issue_count":  count,
-		"pr_id":        pr.ID,
+		"status":      string(status),
+		"issue_count": count,
+		"pr_id":       pr.ID,
 	})
 }

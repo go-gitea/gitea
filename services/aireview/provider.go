@@ -22,17 +22,17 @@ type ReviewComment struct {
 
 // ReviewRequest contains the context sent to the AI provider.
 type ReviewRequest struct {
-	Files           []FileDiff        // all changed files (preferred over single Diff)
-	Diff            string            // single-file fallback
-	FilePath        string            // single-file fallback
+	Files            []FileDiff // all changed files (preferred over single Diff)
+	Diff             string     // single-file fallback
+	FilePath         string     // single-file fallback
 	CommitSHA        string
 	PRTitle          string
 	PRDescription    string
 	Language         string            // single-file fallback
 	SystemPrompt     string            // per-repo system prompt override
-	PathInstructions []PathInstruction  // per-path review instructions
-	CustomChecks     []string           // pre-merge checks to evaluate
-	LinterConfigs    string             // detected linter config info
+	PathInstructions []PathInstruction // per-path review instructions
+	CustomChecks     []string          // pre-merge checks to evaluate
+	LinterConfigs    string            // detected linter config info
 }
 
 // WalkthroughSection describes a logical group of changes in the PR.
@@ -51,9 +51,9 @@ type CheckResult struct {
 
 // ReviewResponse is the structured result from the AI provider.
 type ReviewResponse struct {
-	Summary      string              `json:"summary"`
+	Summary      string               `json:"summary"`
 	Walkthrough  []WalkthroughSection `json:"walkthrough"`
-	Architecture string              `json:"architecture"` // Mermaid diagram
+	Architecture string               `json:"architecture"` // Mermaid diagram
 	Comments     []ReviewComment      `json:"comments"`
 	CheckResults []CheckResult        `json:"check_results"`
 }

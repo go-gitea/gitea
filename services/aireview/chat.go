@@ -22,7 +22,7 @@ const chatBotMention = "@aireview"
 
 // conversation stores chat history per PR.
 type conversation struct {
-	mu  sync.Mutex
+	mu   sync.Mutex
 	msgs map[int64][]ChatMessage // PRID → message history
 }
 
