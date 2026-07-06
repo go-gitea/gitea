@@ -119,6 +119,9 @@ func RunReview(ctx context.Context, task *AIRreviewTask) error {
 		return nil
 	}
 
+	// Sort files by dependency order so AI sees dependencies first
+	reviewFiles = SortFilesByDependency(reviewFiles)
+
 	// Load PR title/description for context
 	title := pr.Issue.Title
 	desc := pr.Issue.Content

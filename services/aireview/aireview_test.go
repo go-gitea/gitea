@@ -210,6 +210,60 @@ func TestMergeRepoConfigPartialOverride(t *testing.T) {
 	}
 }
 
+func TestExtractImports(t *testing.T) {
+	imports := extractImports("web/handler.go", "package web\n\nimport (\n\t\"gitea.dev/services/core\"\n)\n")
+	if !imports["gitea.dev/services/core"] {
+		t.Error("expected gitea.dev/services/core to be found")
+	}
+}
+
+func TestImportMatchesPath(t *testing.T) {
+	if !importMatchesPath("gitea.dev/services/core", "services/core/engine.go") {
+		t.Error("expected gitea.dev/services/core to match services/core/engine.go")
+	}
+	if !importMatchesPath("gitea.dev/web", "web/handler.go") {
+		t.Error("expected gitea.dev/web to match web/handler.go")
+	}
+	if importMatchesPath("fmt", "main.go") {
+		t.Error("expected fmt not to match main.go")
+	}
+}
+
+func TestSortFilesByDependency(t *testing.T) {
+	files := []FileDiff{
+		{Path: "services/core/engine.go", Patch: "package core\n"},
+		{Path: "web/handler.go", Patch: "package web\n\nimport (\n\t\"gitea.dev/services/core\"\n)\n"},
+		{Path: "main.go", Patch: "package main\n\nimport (\n\t\"gitea.dev/web\"\n)\n"},
+	}
+	ordered := SortFilesByDependency(files)
+	if len(ordered) != 3 {
+		t.Fatalf("expected 3 files, got %d", len(ordered))
+	}
+	// engine.go should come before handler.go (which imports it)
+	if ordered[0].Path != "services/core/engine.go" {
+		t.Errorf("expected engine.go first, got %s", ordered[0].Path)
+	}
+	// main.go should be last (depends on web)
+	if ordered[2].Path != "main.go" {
+		t.Errorf("expected main.go last, got %s", ordered[2].Path)
+	}
+}
+
+func TestSortFilesByDependencyNoImports(t *testing.T) {
+	files := []FileDiff{
+		{Path: "b/b.go", Patch: `package b`},
+		{Path: "a/a.go", Patch: `package a`},
+	}
+	ordered := SortFilesByDependency(files)
+	if len(ordered) != 2 {
+		t.Fatalf("expected 2 files, got %d", len(ordered))
+	}
+	// Should be sorted by depth then alphabetically
+	if ordered[0].Path != "a/a.go" {
+		t.Errorf("expected a/a.go first, got %s", ordered[0].Path)
+	}
+}
+
 func TestFormatCommentBodyWithFix(t *testing.T) {
 	body := formatCommentBody(aiComment{
 		ReviewComment: ReviewComment{
