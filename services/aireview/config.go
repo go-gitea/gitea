@@ -9,6 +9,7 @@ import (
 
 	"gitea.dev/modules/gitrepo"
 	"gitea.dev/modules/log"
+
 	"gopkg.in/yaml.v3"
 )
 
@@ -78,7 +79,7 @@ func MergeRepoConfig(globalSystemPrompt string, globalExcludePaths []string, rep
 	excludePaths = globalExcludePaths
 
 	if repoCfg == nil {
-		return
+		return systemPrompt, excludePaths, pathInstructions, customChecks
 	}
 
 	if repoCfg.SystemPrompt != nil {

@@ -12,6 +12,7 @@ import (
 
 	"gitea.dev/modules/setting"
 	"gitea.dev/services/aireview"
+
 	"github.com/urfave/cli/v3"
 )
 
