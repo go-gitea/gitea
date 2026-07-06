@@ -1,6 +1,7 @@
 <script lang="ts" setup>
 import {ref, onMounted, computed} from 'vue';
 import {SvgIcon} from '../svg.ts';
+import {GET} from '../modules/fetch.ts';
 
 const props = defineProps<{
   statusUrl: string;
@@ -28,9 +29,9 @@ const iconClass = computed(() => {
   switch (status.value) {
     case 'running': classes.push('rotate-clockwise');
     case 'completed': classes.push('tw-text-green');
-    case 'issues_found': classes.push('tw-text-yellow-700');
+    case 'issues_found': classes.push('tw-text-orange');
     case 'error': classes.push('tw-text-red');
-    case 'pending': classes.push('tw-text-gray');
+    case 'pending': classes.push('tw-text-secondary');
   }
   return classes.join(' ');
 });
@@ -48,7 +49,7 @@ const label = computed(() => {
 
 async function fetchStatus() {
   try {
-    const resp = await fetch(props.statusUrl);
+    const resp = await GET(props.statusUrl);
     if (!resp.ok) {
       status.value = 'error';
       return;
