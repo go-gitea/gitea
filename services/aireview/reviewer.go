@@ -86,8 +86,11 @@ func RunReview(ctx context.Context, task *AIRreviewTask) error {
 		return nil
 	}
 
+	SetReviewStatus(task.PRID, StatusRunning, 0)
+
 	provider, err := GetProvider(setting.AIRreview.Provider)
 	if err != nil {
+		SetReviewStatus(task.PRID, StatusError, 0)
 		return fmt.Errorf("get provider: %w", err)
 	}
 
@@ -140,6 +143,7 @@ func RunReview(ctx context.Context, task *AIRreviewTask) error {
 		PathInstructions: pathInstructions,
 	})
 	if err != nil {
+		SetReviewStatus(task.PRID, StatusError, 0)
 		return fmt.Errorf("AI review failed: %w", err)
 	}
 
@@ -149,6 +153,7 @@ func RunReview(ctx context.Context, task *AIRreviewTask) error {
 	}
 
 	if len(allComments) == 0 && resp.Summary == "" {
+		SetReviewStatus(task.PRID, StatusCompleted, 0)
 		log.Info("aireview: no issues found in PR %d", task.PRID)
 		return nil
 	}
@@ -188,6 +193,12 @@ func RunReview(ctx context.Context, task *AIRreviewTask) error {
 	}
 
 	reviewCache.MarkReviewed(pr.ID, headCommitID)
+
+	status := StatusCompleted
+	if len(allComments) > 0 {
+		status = StatusIssues
+	}
+	SetReviewStatus(task.PRID, status, len(allComments))
 
 	log.Info("aireview: completed review of PR %d — %d inline, %d in summary", task.PRID, inlineCount, len(allComments)-inlineCount)
 	return nil
