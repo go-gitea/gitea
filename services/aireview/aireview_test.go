@@ -5,12 +5,12 @@ package aireview
 
 import (
 	"context"
-	"gitea.dev/modules/json"
 	"net/http"
 	"net/http/httptest"
 	"strings"
 	"testing"
 
+	"gitea.dev/modules/json"
 	"gitea.dev/modules/setting"
 )
 
