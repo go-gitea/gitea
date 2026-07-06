@@ -161,7 +161,7 @@ func TestProviderRegistryDefaultProviders(t *testing.T) {
 }
 
 func TestMergeRepoConfigNil(t *testing.T) {
-	sysPrompt, exclPaths, pathInst := MergeRepoConfig("global prompt", []string{"vendor/*"}, nil)
+	sysPrompt, exclPaths, pathInst, checks := MergeRepoConfig("global prompt", []string{"vendor/*"}, nil)
 	if sysPrompt != "global prompt" {
 		t.Errorf("expected global prompt, got %q", sysPrompt)
 	}
@@ -170,6 +170,9 @@ func TestMergeRepoConfigNil(t *testing.T) {
 	}
 	if len(pathInst) != 0 {
 		t.Errorf("expected 0 path instructions, got %d", len(pathInst))
+	}
+	if len(checks) != 0 {
+		t.Errorf("expected 0 custom checks, got %d", len(checks))
 	}
 }
 
@@ -181,8 +184,9 @@ func TestMergeRepoConfigOverride(t *testing.T) {
 		PathInstructions: []PathInstruction{
 			{Path: "src/*.go", Instructions: "Be strict"},
 		},
+		CustomChecks: []string{"All functions must have tests"},
 	}
-	sysPrompt, exclPaths, pathInst := MergeRepoConfig("global prompt", []string{"vendor/*"}, repoCfg)
+	sysPrompt, exclPaths, pathInst, checks := MergeRepoConfig("global prompt", []string{"vendor/*"}, repoCfg)
 	if sysPrompt != "repo prompt" {
 		t.Errorf("expected 'repo prompt', got %q", sysPrompt)
 	}
@@ -192,13 +196,16 @@ func TestMergeRepoConfigOverride(t *testing.T) {
 	if len(pathInst) != 1 || pathInst[0].Path != "src/*.go" {
 		t.Errorf("expected 1 path instruction, got %d", len(pathInst))
 	}
+	if len(checks) != 1 || checks[0] != "All functions must have tests" {
+		t.Errorf("expected 1 custom check, got %d", len(checks))
+	}
 }
 
 func TestMergeRepoConfigPartialOverride(t *testing.T) {
 	repoCfg := &RepoConfig{
 		ExcludePaths: []string{"generated/**"},
 	}
-	sysPrompt, exclPaths, pathInst := MergeRepoConfig("global prompt", nil, repoCfg)
+	sysPrompt, exclPaths, pathInst, checks := MergeRepoConfig("global prompt", nil, repoCfg)
 	if sysPrompt != "global prompt" {
 		t.Errorf("expected 'global prompt', got %q", sysPrompt)
 	}
@@ -207,6 +214,9 @@ func TestMergeRepoConfigPartialOverride(t *testing.T) {
 	}
 	if len(pathInst) != 0 {
 		t.Errorf("expected 0 path instructions, got %d", len(pathInst))
+	}
+	if len(checks) != 0 {
+		t.Errorf("expected 0 custom checks, got %d", len(checks))
 	}
 }
 

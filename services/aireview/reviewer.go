@@ -99,7 +99,7 @@ func RunReview(ctx context.Context, task *AIRreviewTask) error {
 	if err != nil {
 		log.Warn("aireview: failed to load repo config for PR %d: %v", task.PRID, err)
 	}
-	effectiveSystemPrompt, effectiveExcludePaths, pathInstructions := MergeRepoConfig(setting.AIRreview.SystemPrompt, setting.AIRreview.ExcludePaths, repoCfg)
+	effectiveSystemPrompt, effectiveExcludePaths, pathInstructions, customChecks := MergeRepoConfig(setting.AIRreview.SystemPrompt, setting.AIRreview.ExcludePaths, repoCfg)
 
 	// Apply per-repo exclude paths
 	var filteredFiles []FileDiff
@@ -141,6 +141,7 @@ func RunReview(ctx context.Context, task *AIRreviewTask) error {
 		PRDescription:    desc,
 		SystemPrompt:     effectiveSystemPrompt,
 		PathInstructions: pathInstructions,
+		CustomChecks:     customChecks,
 	})
 	if err != nil {
 		SetReviewStatus(task.PRID, StatusError, 0)
@@ -182,6 +183,22 @@ func RunReview(ctx context.Context, task *AIRreviewTask) error {
 		}
 		allComments[i].Inlined = true
 		inlineCount++
+	}
+
+	// Append check results to review body
+	if len(resp.CheckResults) > 0 {
+		resp.Summary += "\n\n**Pre-merge checks:**\n"
+		for _, cr := range resp.CheckResults {
+		icon := "[FAIL]"
+		if cr.Passed {
+			icon = "[PASS]"
+		}
+			resp.Summary += fmt.Sprintf("- %s %s", icon, cr.Check)
+			if cr.Details != "" {
+				resp.Summary += fmt.Sprintf(": %s", cr.Details)
+			}
+			resp.Summary += "\n"
+		}
 	}
 
 	reviewContent := formatReviewBody(resp, allComments)

@@ -18,6 +18,7 @@ type RepoConfig struct {
 	SystemPrompt     *string           `yaml:"system_prompt"`
 	ExcludePaths     []string          `yaml:"exclude_paths"`
 	PathInstructions []PathInstruction `yaml:"path_instructions"`
+	CustomChecks     []string          `yaml:"custom_checks"`
 }
 
 // PathInstruction specifies custom review instructions for files matching a path glob.
@@ -72,7 +73,7 @@ func LoadRepoConfig(ctx context.Context, repo gitrepo.Repository) (*RepoConfig, 
 
 // MergeRepoConfig merges per-repo config into the effective review settings.
 // It returns the effective system prompt and exclude paths for this repo.
-func MergeRepoConfig(globalSystemPrompt string, globalExcludePaths []string, repoCfg *RepoConfig) (systemPrompt string, excludePaths []string, pathInstructions []PathInstruction) {
+func MergeRepoConfig(globalSystemPrompt string, globalExcludePaths []string, repoCfg *RepoConfig) (systemPrompt string, excludePaths []string, pathInstructions []PathInstruction, customChecks []string) {
 	systemPrompt = globalSystemPrompt
 	excludePaths = globalExcludePaths
 
@@ -87,5 +88,6 @@ func MergeRepoConfig(globalSystemPrompt string, globalExcludePaths []string, rep
 		excludePaths = repoCfg.ExcludePaths
 	}
 	pathInstructions = repoCfg.PathInstructions
+	customChecks = repoCfg.CustomChecks
 	return
 }

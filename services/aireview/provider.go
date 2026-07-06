@@ -25,12 +25,13 @@ type ReviewRequest struct {
 	Files           []FileDiff        // all changed files (preferred over single Diff)
 	Diff            string            // single-file fallback
 	FilePath        string            // single-file fallback
-	CommitSHA       string
-	PRTitle         string
-	PRDescription   string
-	Language        string            // single-file fallback
-	SystemPrompt    string            // per-repo system prompt override
-	PathInstructions []PathInstruction // per-path review instructions
+	CommitSHA        string
+	PRTitle          string
+	PRDescription    string
+	Language         string            // single-file fallback
+	SystemPrompt     string            // per-repo system prompt override
+	PathInstructions []PathInstruction  // per-path review instructions
+	CustomChecks     []string           // pre-merge checks to evaluate
 }
 
 // WalkthroughSection describes a logical group of changes in the PR.
@@ -40,12 +41,20 @@ type WalkthroughSection struct {
 	Files       []string `json:"files"`
 }
 
+// CheckResult represents the result of a single custom pre-merge check.
+type CheckResult struct {
+	Check   string `json:"check"`
+	Passed  bool   `json:"passed"`
+	Details string `json:"details,omitempty"`
+}
+
 // ReviewResponse is the structured result from the AI provider.
 type ReviewResponse struct {
 	Summary      string              `json:"summary"`
 	Walkthrough  []WalkthroughSection `json:"walkthrough"`
 	Architecture string              `json:"architecture"` // Mermaid diagram
 	Comments     []ReviewComment      `json:"comments"`
+	CheckResults []CheckResult        `json:"check_results"`
 }
 
 // Provider defines the interface for AI code review providers.

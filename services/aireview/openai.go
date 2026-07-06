@@ -130,6 +130,15 @@ func (p *OpenAIProvider) ReviewCode(ctx context.Context, req *ReviewRequest) (*R
 		sysPrompt += fmt.Sprintf("\nFor files matching %q: %s", pi.Path, pi.Instructions)
 	}
 
+	// Append custom checks to the user prompt
+	if len(req.CustomChecks) > 0 {
+		prompt += "\n\n**Pre-merge checks to evaluate:**\n"
+		for i, check := range req.CustomChecks {
+			prompt += fmt.Sprintf("%d. %s\n", i+1, check)
+		}
+		prompt += "\nFor each check, return a check_results entry in the JSON with check name, passed (bool), and details."
+	}
+
 	body := chatRequest{
 		Model:       p.model,
 		MaxTokens:   setting.AIRreview.MaxTokens,
