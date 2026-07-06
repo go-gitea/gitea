@@ -147,6 +147,9 @@ func MustInitSessioner() func(next http.Handler) http.Handler {
 		Secure:         setting.SessionConfig.Secure,
 		SameSite:       setting.SessionConfig.SameSite,
 		Domain:         setting.SessionConfig.Domain,
+
+		// in the future, if websocket is used, the websocket handler should manage its own session sync (release)
+		IgnoreReleaseForWebSocket: true,
 	})
 	if err != nil {
 		log.Fatal("common.Sessioner failed: %v", err)

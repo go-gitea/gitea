@@ -22,6 +22,7 @@ import (
 	"gitea.dev/services/auth/source/oauth2"
 	"gitea.dev/tests"
 
+	"github.com/pquerna/otp/totp"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"xorm.io/builder"
@@ -488,4 +489,74 @@ func TestOAuth2GroupClaimsManualLinking(t *testing.T) {
 			assert.Equal(t, auth_model.OAuth2, user.LoginType)
 		})
 	}
+}
+
+// TestOAuth2AutoLinkWithTwoFactor verifies that automatic account linking completes
+// after the user passes local 2FA when an OIDC identity matches an existing account.
+func TestOAuth2AutoLinkWithTwoFactor(t *testing.T) {
+	defer tests.PrepareTestEnv(t)()
+	defer test.MockVariableValue(&setting.OAuth2Client.EnableAutoRegistration, true)()
+	defer test.MockVariableValue(&setting.OAuth2Client.AccountLinking, setting.OAuth2AccountLinkingAuto)()
+	defer test.MockVariableValue(&setting.OAuth2Client.Username, setting.OAuth2UsernameEmail)()
+
+	const (
+		sourceName = "test-oauth-auto-link-2fa"
+		sub        = "oidc-auto-link-2fa-sub"
+		email      = "oidc-auto-link-2fa@example.com"
+		userName   = "oidc-auto-link-2fa"
+	)
+
+	srv := newFakeOIDCServer(t, FakeOIDCConfig{Sub: sub, Email: email, Name: "OIDC Auto Link 2FA"})
+	addOAuth2Source(t, sourceName, oauth2.Source{
+		Provider:                      "openidConnect",
+		ClientID:                      "test-client-id",
+		ClientSecret:                  "test-client-secret",
+		OpenIDConnectAutoDiscoveryURL: srv.URL + "/.well-known/openid-configuration",
+	})
+	authSource, err := auth_model.GetActiveOAuth2SourceByAuthName(t.Context(), sourceName)
+	require.NoError(t, err)
+
+	localUser := &user_model.User{Name: userName, Email: email}
+	require.NoError(t, user_model.CreateUser(t.Context(), localUser, &user_model.Meta{}))
+
+	otpKey, err := totp.Generate(totp.GenerateOpts{
+		SecretSize:  40,
+		Issuer:      "gitea-test",
+		AccountName: localUser.Name,
+	})
+	require.NoError(t, err)
+
+	tfa := &auth_model.TwoFactor{UID: localUser.ID}
+	require.NoError(t, tfa.SetSecret(otpKey.Secret()))
+	require.NoError(t, auth_model.NewTwoFactor(t.Context(), tfa))
+
+	unittest.AssertNotExistsBean(t, &user_model.ExternalLoginUser{ExternalID: sub, LoginSourceID: authSource.ID}, unittest.OrderBy("external_id ASC"))
+
+	session := emptyTestSession(t)
+	resp := session.MakeRequest(t, NewRequest(t, "GET", "/user/oauth2/"+sourceName), http.StatusTemporaryRedirect)
+
+	location := resp.Header().Get("Location")
+	u, err := url.Parse(location)
+	require.NoError(t, err)
+	state := u.Query().Get("state")
+	require.NotEmpty(t, state)
+
+	callbackURL := fmt.Sprintf("/user/oauth2/%s/callback?code=test-code&state=%s", sourceName, url.QueryEscape(state))
+	resp = session.MakeRequest(t, NewRequest(t, "GET", callbackURL), http.StatusSeeOther)
+	assert.Contains(t, resp.Header().Get("Location"), "/user/two_factor")
+
+	session.MakeRequest(t, NewRequest(t, "GET", "/user/two_factor"), http.StatusOK)
+
+	passcode, err := totp.GenerateCode(otpKey.Secret(), time.Now())
+	require.NoError(t, err)
+
+	req := NewRequestWithValues(t, "POST", "/user/two_factor", map[string]string{
+		"passcode": passcode,
+	})
+	session.MakeRequest(t, req, http.StatusSeeOther)
+
+	externalLink := unittest.AssertExistsAndLoadBean(t, &user_model.ExternalLoginUser{ExternalID: sub, LoginSourceID: authSource.ID}, unittest.OrderBy("external_id ASC"))
+	assert.Equal(t, localUser.ID, externalLink.UserID)
+
+	session.MakeRequest(t, NewRequest(t, "GET", "/user/settings"), http.StatusOK)
 }

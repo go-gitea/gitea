@@ -7,7 +7,9 @@ import (
 	"testing"
 	"time"
 
+	repo_model "gitea.dev/models/repo"
 	"gitea.dev/models/unittest"
+	"gitea.dev/modules/json"
 	"gitea.dev/modules/util"
 	"gitea.dev/services/contexttest"
 
@@ -19,6 +21,22 @@ import (
 
 func TestMain(m *testing.M) {
 	unittest.MainTest(m)
+}
+
+func TestArchiveQueueItemJSON(t *testing.T) {
+	orig := &archiveQueueItem{
+		RepoID:              7,
+		Type:                repo_model.ArchiveZip,
+		CommitID:            "abc123",
+		Paths:               []string{"agents"},
+		ArchiveRefShortName: "main",
+	}
+	bs, err := json.Marshal(orig)
+	require.NoError(t, err)
+
+	var decoded archiveQueueItem
+	require.NoError(t, json.Unmarshal(bs, &decoded))
+	assert.Equal(t, *orig, decoded)
 }
 
 func TestArchive_Basic(t *testing.T) {
