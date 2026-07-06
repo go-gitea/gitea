@@ -126,6 +126,12 @@ func RunReview(ctx context.Context, task *AIRreviewTask) error {
 	title := pr.Issue.Title
 	desc := pr.Issue.Content
 
+	// Attach learnings from previous feedback
+	learningsPrompt := BuildLearningsPrompt(pr.BaseRepo.ID)
+	if learningsPrompt != "" {
+		effectiveSystemPrompt += learningsPrompt
+	}
+
 	resp, err := provider.ReviewCode(ctx, &ReviewRequest{
 		Files:            reviewFiles,
 		PRTitle:          title,

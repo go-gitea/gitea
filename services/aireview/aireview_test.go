@@ -249,6 +249,39 @@ func TestSortFilesByDependency(t *testing.T) {
 	}
 }
 
+func TestLearnings(t *testing.T) {
+	repoID := int64(42)
+
+	// Initially no learnings
+	if len(GetLearnings(repoID)) != 0 {
+		t.Error("expected 0 learnings initially")
+	}
+
+	// Add a learning
+	AddLearning(repoID, Learning{PathGlob: "*.go", Instruction: "Use errors.Is instead of == for sentinel errors"})
+	if len(GetLearnings(repoID)) != 1 {
+		t.Fatal("expected 1 learning")
+	}
+
+	// Build prompt
+	prompt := BuildLearningsPrompt(repoID)
+	if !strings.Contains(prompt, "errors.Is") {
+		t.Error("expected prompt to contain learning")
+	}
+
+	// Detect from chat message
+	DetectAndStoreLearnings(repoID, "ignore type assertions, they are intentional")
+	if len(GetLearnings(repoID)) != 2 {
+		t.Errorf("expected 2 learnings, got %d", len(GetLearnings(repoID)))
+	}
+
+	// Detect explicit learn: prefix
+	DetectAndStoreLearnings(repoID, "learn: *.py: Use f-strings instead of % formatting")
+	if len(GetLearnings(repoID)) != 3 {
+		t.Errorf("expected 3 learnings, got %d", len(GetLearnings(repoID)))
+	}
+}
+
 func TestSortFilesByDependencyNoImports(t *testing.T) {
 	files := []FileDiff{
 		{Path: "b/b.go", Patch: `package b`},

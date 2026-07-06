@@ -89,6 +89,8 @@ func HandlePRComment(ctx context.Context, doer *user_model.User, repo *repo_mode
 	}
 	// Append user message
 	userMsg := strings.TrimSpace(strings.ReplaceAll(comment.Content, chatBotMention, ""))
+	// Detect and store learnings from feedback
+	DetectAndStoreLearnings(pr.BaseRepo.ID, userMsg)
 	if userMsg == "" {
 		userMsg = "Explain these changes."
 	}
