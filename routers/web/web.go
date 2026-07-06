@@ -1332,6 +1332,7 @@ func registerWebRoutes(m *web.Router, webAuth *AuthMiddleware) {
 					Post(web.Bind(forms.CreateIssueForm{}), repo.NewIssuePost)
 				m.Get("/choose", repo.NewIssueChooseTemplate)
 			})
+			m.Get("/dependency-search", repo.SearchDependencyByRef)
 			m.Get("/search", repo.SearchRepoIssuesJSON)
 		}, reqUnitIssuesReader)
 
