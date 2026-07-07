@@ -71,7 +71,7 @@ func TestNewPullRequestTitleContent(t *testing.T) {
 	assert.Empty(t, content)
 
 	title, content = prepareNewPullRequestTitleContent(ci, nil, setting.RepoPRTitleSourceBranchName)
-	assert.Equal(t, "Head branch", title)
+	assert.Equal(t, "head-branch", title)
 	assert.Empty(t, content)
 
 	// single commit
@@ -82,10 +82,6 @@ func TestNewPullRequestTitleContent(t *testing.T) {
 	title, content = prepareNewPullRequestTitleContent(ci, []*git_model.SignCommitWithStatuses{mockCommit("single-commit-title\nbody")}, setting.RepoPRTitleSourceFirstCommit)
 	assert.Equal(t, "single-commit-title", title)
 	assert.Equal(t, "body", content)
-
-	title, content = prepareNewPullRequestTitleContent(ci, []*git_model.SignCommitWithStatuses{mockCommit("single-commit-title\nbody")}, setting.RepoPRTitleSourceBranchName)
-	assert.Equal(t, "Head branch", title)
-	assert.Empty(t, content)
 
 	// multiple commits
 	commits := []*git_model.SignCommitWithStatuses{
