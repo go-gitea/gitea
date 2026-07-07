@@ -101,9 +101,13 @@ const backLink = computed(() => {
   return null;
 });
 
-function buildArtifactLink(name: string) {
+function artifactAttemptQuery() {
   const searchString = run.value.runAttempt > 0 ? `?attempt=${run.value.runAttempt}` : '';
-  return `${run.value.link}/artifacts/${encodeURIComponent(name)}${searchString}`;
+  return searchString;
+}
+
+function artifactPath(name: string): string {
+  return `${run.value.link}/artifacts/${encodeURIComponent(name)}`;
 }
 
 function cancelRun() {
@@ -114,9 +118,17 @@ function approveRun() {
   POST(`${run.value.link}/approve`);
 }
 
+function artifactDownloadURL(name: string): string {
+  return `${artifactPath(name)}${artifactAttemptQuery()}`;
+}
+
+function artifactPreviewURL(name: string): string {
+  return `${artifactPath(name)}/preview${artifactAttemptQuery()}`;
+}
+
 async function deleteArtifact(name: string) {
   if (!window.confirm(locale.confirmDeleteArtifact.replace('%s', name))) return;
-  await DELETE(buildArtifactLink(name));
+  await DELETE(artifactDownloadURL(name));
   await store.forceReloadCurrentRun();
 }
 
@@ -257,7 +269,7 @@ onBeforeUnmount(() => {
               <template v-if="artifact.status !== 'expired'">
                 <a
                   class="tw-flex-1 tw-min-w-0 flex-text-block silenced" target="_blank"
-                  :href="buildArtifactLink(artifact.name)"
+                  :href="artifactPreviewURL(artifact.name)"
                   :data-tooltip-content="buildArtifactTooltipHtml(artifact, locale.artifactExpiresAt)"
                   data-tooltip-render="html"
                   data-tooltip-placement="top-end"
@@ -265,9 +277,14 @@ onBeforeUnmount(() => {
                   <SvgIcon name="octicon-file" class="tw-text-text-light"/>
                   <span class="tw-flex-1 gt-ellipsis">{{ artifact.name }}</span>
                 </a>
-                <a v-if="run.canDeleteArtifact" class="silenced" @click="deleteArtifact(artifact.name)">
-                  <SvgIcon name="octicon-trash"/>
-                </a>
+                <span class="job-artifact-actions">
+                  <a download class="silenced" :href="artifactDownloadURL(artifact.name)" :data-tooltip-content="locale.downloadFile">
+                    <SvgIcon name="octicon-download"/>
+                  </a>
+                  <a v-if="run.canDeleteArtifact" class="silenced" @click="deleteArtifact(artifact.name)">
+                    <SvgIcon name="octicon-trash"/>
+                  </a>
+                </span>
               </template>
               <span v-else class="flex-text-block tw-flex-1 tw-min-w-0 tw-text-text-light-2">
                 <SvgIcon name="octicon-file-removed"/>
@@ -425,6 +442,13 @@ onBeforeUnmount(() => {
   font-size: 13px;
   font-weight: var(--font-weight-semibold);
   color: var(--color-text-light-2);
+}
+
+.job-artifact-actions {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  flex-shrink: 0;
 }
 
 .action-view-sidebar-list {

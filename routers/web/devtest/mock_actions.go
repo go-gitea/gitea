@@ -4,9 +4,16 @@
 package devtest
 
 import (
+	"archive/zip"
+	"bytes"
+	"embed"
 	"fmt"
+	"io"
 	mathRand "math/rand/v2"
+	"mime"
 	"net/http"
+	"net/url"
+	"path"
 	"slices"
 	"strconv"
 	"strings"
@@ -14,14 +21,87 @@ import (
 
 	actions_model "gitea.dev/models/actions"
 	user_model "gitea.dev/models/user"
+	"gitea.dev/modules/httplib"
 	"gitea.dev/modules/setting"
 	"gitea.dev/modules/templates"
 	"gitea.dev/modules/timeutil"
+	"gitea.dev/modules/typesniffer"
 	"gitea.dev/modules/util"
 	"gitea.dev/modules/web"
 	"gitea.dev/routers/web/repo/actions"
 	"gitea.dev/services/context"
 )
+
+type mockArtifactFile struct {
+	Path    string
+	Content string
+}
+
+//go:embed testdata/artifact-lcov-coverage.zip
+var mockActionsArtifactFixtureFS embed.FS
+
+func loadMockArtifactFilesFromFixtureZip(name string) []mockArtifactFile {
+	data, err := mockActionsArtifactFixtureFS.ReadFile(name)
+	if err != nil {
+		panic(fmt.Sprintf("read devtest artifact fixture %q: %v", name, err))
+	}
+	reader, err := zip.NewReader(bytes.NewReader(data), int64(len(data)))
+	if err != nil {
+		panic(fmt.Sprintf("open devtest artifact fixture %q: %v", name, err))
+	}
+
+	files := make([]mockArtifactFile, 0, len(reader.File))
+	for _, file := range reader.File {
+		if file.FileInfo().IsDir() {
+			continue
+		}
+		rc, err := file.Open()
+		if err != nil {
+			panic(fmt.Sprintf("open devtest artifact fixture file %q: %v", file.Name, err))
+		}
+		content, err := io.ReadAll(rc)
+		_ = rc.Close()
+		if err != nil {
+			panic(fmt.Sprintf("read devtest artifact fixture file %q: %v", file.Name, err))
+		}
+		files = append(files, mockArtifactFile{
+			Path:    file.Name,
+			Content: string(content),
+		})
+	}
+	slices.SortFunc(files, func(a, b mockArtifactFile) int {
+		return strings.Compare(a.Path, b.Path)
+	})
+	return files
+}
+
+var mockActionsArtifactFiles = map[string][]mockArtifactFile{
+	"artifact-b": {
+		{
+			Path:    "report.txt",
+			Content: "artifact-b report",
+		},
+	},
+	"artifact-lcov-coverage": loadMockArtifactFilesFromFixtureZip("testdata/artifact-lcov-coverage.zip"),
+	"artifact-really-loooooooooooooooooooooooooooooooooooooooooooooooooooooooong": {
+		{
+			Path:    "index.html",
+			Content: "<html><body>mock preview</body></html>",
+		},
+		{
+			Path:    "logs/output.txt",
+			Content: "mock logs",
+		},
+	},
+}
+
+func mockArtifactFilePaths(files []mockArtifactFile) []string {
+	paths := make([]string, len(files))
+	for i, file := range files {
+		paths[i] = file.Path
+	}
+	return paths
+}
 
 type generateMockStepsLogOptions struct {
 	mockCountFirst   int
@@ -233,6 +313,12 @@ func MockActionsRunsJobs(ctx *context.Context) {
 		Size:        100 * 1024,
 		Status:      "expired",
 		ExpiresUnix: alignTime(time.Now().Add(-24*time.Hour).Unix(), 3600),
+	})
+	resp.Artifacts = append(resp.Artifacts, &actions.ArtifactsViewItem{
+		Name:        "artifact-lcov-coverage",
+		Size:        256 * 1024,
+		Status:      "completed",
+		ExpiresUnix: alignTime(time.Now().Add(24*time.Hour).Unix(), 3600),
 	})
 	resp.Artifacts = append(resp.Artifacts, &actions.ArtifactsViewItem{
 		Name:        "artifact-really-loooooooooooooooooooooooooooooooooooooooooooooooooooooooong",
@@ -507,4 +593,101 @@ func fillViewRunResponseCurrentJob(ctx *context.Context, resp *actions.ViewRespo
 	} else {
 		time.Sleep(time.Duration(100) * time.Millisecond) // actually, frontend reload every 1 second, any smaller delay is fine
 	}
+}
+
+func MockActionsArtifactDownload(ctx *context.Context) {
+	artifactName := ctx.PathParam("artifact_name")
+	files, ok := mockActionsArtifactFiles[artifactName]
+	if !ok {
+		ctx.NotFound(nil)
+		return
+	}
+
+	ctx.Resp.Header().Set("Content-Disposition", httplib.EncodeContentDispositionAttachment(artifactName+".zip"))
+	writer := zip.NewWriter(ctx.Resp)
+	defer writer.Close()
+	for _, file := range files {
+		w, err := writer.Create(file.Path)
+		if err != nil {
+			ctx.ServerError("writer.Create", err)
+			return
+		}
+		if _, err := io.WriteString(w, file.Content); err != nil {
+			ctx.ServerError("io.WriteString", err)
+			return
+		}
+	}
+}
+
+func MockActionsArtifactPreview(ctx *context.Context) {
+	runID := ctx.PathParamInt64("run")
+	artifactName := ctx.PathParam("artifact_name")
+	files, ok := mockActionsArtifactFiles[artifactName]
+	if !ok {
+		ctx.NotFound(nil)
+		return
+	}
+
+	requested := actions.GetRequestedPreviewPath(ctx)
+	selectedPath := actions.ChoosePreviewPath(mockArtifactFilePaths(files), requested)
+	previewFiles := actions.BuildArtifactPreviewFiles(mockArtifactFilePaths(files), selectedPath)
+
+	runURL := fmt.Sprintf("%s/devtest/repo-action-view/runs/%d", setting.AppSubURL, runID)
+	previewURL := runURL + "/artifacts/" + url.PathEscape(artifactName) + "/preview"
+
+	ctx.Data["ArtifactName"] = artifactName
+	ctx.Data["PreviewFiles"] = previewFiles
+	ctx.Data["RunURL"] = runURL
+	ctx.Data["PreviewURL"] = previewURL
+	ctx.Data["PreviewRawURL"] = previewURL + "/raw"
+	ctx.Data["DownloadURL"] = runURL + "/artifacts/" + url.PathEscape(artifactName)
+	ctx.Data["SelectedPath"] = selectedPath
+	ctx.Data["RequestedPathMissing"] = requested != "" && selectedPath == ""
+	ctx.Data["AttemptQuery"] = ""
+	ctx.Data["AttemptAmpQuery"] = ""
+	ctx.HTML(http.StatusOK, "devtest/repo-action-artifact-preview")
+}
+
+func MockActionsArtifactPreviewRaw(ctx *context.Context) {
+	artifactName := ctx.PathParam("artifact_name")
+	files, ok := mockActionsArtifactFiles[artifactName]
+	if !ok {
+		actions.WritePreviewRawError(ctx, http.StatusNotFound, "artifact not found")
+		return
+	}
+
+	selectedPath := actions.ChoosePreviewPath(mockArtifactFilePaths(files), actions.GetRequestedPreviewPath(ctx))
+	if selectedPath == "" {
+		actions.WritePreviewRawError(ctx, http.StatusNotFound, "artifact file not found")
+		return
+	}
+
+	var selectedFile *mockArtifactFile
+	for i := range files {
+		if files[i].Path == selectedPath {
+			selectedFile = &files[i]
+			break
+		}
+	}
+	if selectedFile == nil {
+		actions.WritePreviewRawError(ctx, http.StatusNotFound, "artifact file not found")
+		return
+	}
+
+	contentType := typesniffer.DetectContentType([]byte(selectedFile.Content)).GetMimeType()
+	contentSecurityPolicy := ""
+	if path.Ext(selectedFile.Path) == ".html" {
+		contentType = "text/html"
+		contentSecurityPolicy = actions.ArtifactPreviewHTMLContentSecurityPolicy(ctx)
+	} else if mappedContentType := mime.TypeByExtension(path.Ext(selectedFile.Path)); strings.HasPrefix(mappedContentType, "text/") || strings.Contains(mappedContentType, "javascript") {
+		contentType = mappedContentType
+	}
+	size := int64(len(selectedFile.Content))
+	ctx.ServeContent(strings.NewReader(selectedFile.Content), context.ServeHeaderOptions{
+		Filename:              selectedFile.Path,
+		ContentDisposition:    httplib.ContentDispositionInline,
+		ContentLength:         &size,
+		ContentType:           contentType,
+		ContentSecurityPolicy: contentSecurityPolicy,
+	})
 }

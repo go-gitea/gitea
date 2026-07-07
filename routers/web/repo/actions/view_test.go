@@ -4,13 +4,16 @@
 package actions
 
 import (
+	"strconv"
 	"testing"
+	"time"
 
 	actions_model "gitea.dev/models/actions"
 	repo_model "gitea.dev/models/repo"
 	api "gitea.dev/modules/structs"
 	"gitea.dev/modules/timeutil"
 	"gitea.dev/modules/translation"
+	"gitea.dev/modules/typesniffer"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -106,6 +109,121 @@ func TestConvertToViewModel(t *testing.T) {
 		},
 	}
 	assert.Equal(t, expectedViewJobs, viewJobSteps)
+}
+
+func resetArtifactPreviewV4ZipListCacheForTest() {
+	artifactPreviewV4ZipListCache.mu.Lock()
+	defer artifactPreviewV4ZipListCache.mu.Unlock()
+	artifactPreviewV4ZipListCache.entries = map[string]artifactPreviewV4ZipListCacheEntry{}
+	artifactPreviewV4ZipListCache.order = nil
+}
+
+func TestArtifactPreviewV4ZipListCacheSetGet(t *testing.T) {
+	resetArtifactPreviewV4ZipListCacheForTest()
+
+	artifact := &actions_model.ActionArtifact{
+		ID:          1,
+		UpdatedUnix: timeutil.TimeStamp(2),
+		StoragePath: "artifact/path.zip",
+	}
+	paths := []string{"index.html", "logs/output.txt"}
+	setArtifactPreviewV4ZipListCache(artifact, paths)
+
+	paths[0] = "changed"
+	got, ok := getArtifactPreviewV4ZipListFromCache(artifact)
+	require.True(t, ok)
+	assert.Equal(t, []string{"index.html", "logs/output.txt"}, got)
+
+	got[0] = "changed-again"
+	got2, ok := getArtifactPreviewV4ZipListFromCache(artifact)
+	require.True(t, ok)
+	assert.Equal(t, []string{"index.html", "logs/output.txt"}, got2)
+}
+
+func TestArtifactPreviewV4ZipListCacheExpires(t *testing.T) {
+	resetArtifactPreviewV4ZipListCacheForTest()
+
+	artifact := &actions_model.ActionArtifact{
+		ID:          2,
+		UpdatedUnix: timeutil.TimeStamp(3),
+		StoragePath: "artifact/expired.zip",
+	}
+	key := artifactPreviewV4ZipListCacheKey(artifact)
+
+	artifactPreviewV4ZipListCache.mu.Lock()
+	artifactPreviewV4ZipListCache.entries[key] = artifactPreviewV4ZipListCacheEntry{
+		paths:     []string{"expired.txt"},
+		expiresAt: time.Now().Add(-time.Second),
+	}
+	artifactPreviewV4ZipListCache.order = []string{key}
+	artifactPreviewV4ZipListCache.mu.Unlock()
+
+	_, ok := getArtifactPreviewV4ZipListFromCache(artifact)
+	require.False(t, ok)
+
+	artifactPreviewV4ZipListCache.mu.Lock()
+	_, exists := artifactPreviewV4ZipListCache.entries[key]
+	order := append([]string(nil), artifactPreviewV4ZipListCache.order...)
+	artifactPreviewV4ZipListCache.mu.Unlock()
+	assert.False(t, exists)
+	assert.NotContains(t, order, key)
+}
+
+func TestArtifactPreviewV4ZipListCacheEvictsOldest(t *testing.T) {
+	resetArtifactPreviewV4ZipListCacheForTest()
+
+	for i := range artifactPreviewV4ZipListCacheMaxEntries + 1 {
+		artifact := &actions_model.ActionArtifact{
+			ID:          int64(i + 1),
+			UpdatedUnix: timeutil.TimeStamp(i + 1),
+			StoragePath: "artifact/cache-entry.zip",
+		}
+		setArtifactPreviewV4ZipListCache(artifact, []string{"file.txt"})
+	}
+
+	oldest := &actions_model.ActionArtifact{
+		ID:          1,
+		UpdatedUnix: timeutil.TimeStamp(1),
+		StoragePath: "artifact/cache-entry.zip",
+	}
+	_, ok := getArtifactPreviewV4ZipListFromCache(oldest)
+	assert.False(t, ok)
+
+	newest := &actions_model.ActionArtifact{
+		ID:          artifactPreviewV4ZipListCacheMaxEntries + 1,
+		UpdatedUnix: timeutil.TimeStamp(artifactPreviewV4ZipListCacheMaxEntries + 1),
+		StoragePath: "artifact/cache-entry.zip",
+	}
+	_, ok = getArtifactPreviewV4ZipListFromCache(newest)
+	assert.True(t, ok)
+}
+
+func TestLimitArtifactPreviewPathsKeepsSelectedPath(t *testing.T) {
+	paths := make([]string, artifactPreviewMaxFiles+10)
+	for i := range paths {
+		paths[i] = "file-" + strconv.Itoa(i) + ".txt"
+	}
+	selectedPath := paths[len(paths)-1]
+
+	limited, truncated := limitArtifactPreviewPaths(paths, selectedPath)
+	require.True(t, truncated)
+	require.Len(t, limited, artifactPreviewMaxFiles)
+	assert.Contains(t, limited, selectedPath)
+}
+
+func TestNormalizeArtifactPreviewPath(t *testing.T) {
+	assert.Empty(t, normalizeArtifactPreviewPath("."))
+	assert.Empty(t, normalizeArtifactPreviewPath("./"))
+	assert.Equal(t, "report/index.html", normalizeArtifactPreviewPath("./report/index.html"))
+}
+
+func TestArtifactPreviewContentTypeUsesPreviewableExtensions(t *testing.T) {
+	sniffedText := typesniffer.FromContentType("text/plain; charset=utf-8")
+
+	assert.Equal(t, "text/html; charset=utf-8", artifactPreviewContentType("index.html", sniffedText))
+	assert.Equal(t, "text/html; charset=utf-8", artifactPreviewContentType("index.htm", sniffedText))
+	assert.Equal(t, "text/css; charset=utf-8", artifactPreviewContentType("style.css", sniffedText))
+	assert.Equal(t, "text/plain", artifactPreviewContentType("output.txt", sniffedText))
 }
 
 func TestConvertToViewModelCancellingTaskDoesNotRenderRunningSteps(t *testing.T) {

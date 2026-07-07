@@ -121,6 +121,7 @@ func TestServeSetHeaderContentRelated(t *testing.T) {
 		{"audio/mp4", serveHeaderCspAudioVideo},
 		{"video/ogg; other", serveHeaderCspAudioVideo},
 		{typesniffer.MimeTypeImageSvg, serveHeaderCspDefault},
+		{"text/html", serveHeaderCspDefault},
 	}
 	for _, c := range cases {
 		w := httptest.NewRecorder()
@@ -140,4 +141,7 @@ func TestServeSetHeaders(t *testing.T) {
 	assert.Equal(t, "attachment; filename=foo.zip", w.Header().Get("Content-Disposition"))
 	ServeSetHeaders(w, ServeHeaderOptions{Filename: "foo.zip", ContentDisposition: ContentDispositionInline})
 	assert.Equal(t, "inline; filename=foo.zip", w.Header().Get("Content-Disposition"))
+
+	ServeSetHeaders(w, ServeHeaderOptions{ContentType: "text/html", ContentSecurityPolicy: "default-src 'none'"})
+	assert.Equal(t, "default-src 'none'", w.Header().Get("Content-Security-Policy"))
 }

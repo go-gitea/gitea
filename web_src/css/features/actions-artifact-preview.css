@@ -1,0 +1,99 @@
+.artifact-preview-page {
+  margin-top: 1rem;
+}
+
+.artifact-preview-header {
+  gap: 1rem;
+  margin-bottom: 1rem;
+  padding-bottom: 1rem;
+  border-bottom: 1px solid var(--color-secondary);
+}
+
+.artifact-preview-title {
+  min-width: 0;
+}
+
+.artifact-preview-browser {
+  border: 1px solid var(--color-secondary);
+  border-radius: var(--border-radius);
+  overflow: hidden;
+  background: var(--color-box-body);
+}
+
+.artifact-preview-browser-title {
+  padding: 0.75rem 1rem;
+  font-weight: var(--font-weight-semibold);
+  background: var(--color-box-header);
+  border-bottom: 1px solid var(--color-secondary);
+}
+
+.artifact-preview-file-list {
+  display: flex;
+  flex-direction: column;
+}
+
+.artifact-preview-file-row {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  min-height: 2.5rem;
+  padding: 0.5rem 1rem;
+  border-bottom: 1px solid var(--color-secondary);
+  color: var(--color-text);
+}
+
+.artifact-preview-file-row:last-child {
+  border-bottom: 0;
+}
+
+.artifact-preview-file-row-directory {
+  color: var(--color-text-light);
+  background: var(--color-light);
+  font-weight: var(--font-weight-semibold);
+}
+
+.artifact-preview-file-row-file:hover,
+.artifact-preview-file-row-file.active {
+  background: var(--color-hover);
+  color: var(--color-primary);
+}
+
+.artifact-preview-depth-1 {
+  padding-left: 2.25rem;
+}
+
+.artifact-preview-depth-2 {
+  padding-left: 3.5rem;
+}
+
+.artifact-preview-depth-3 {
+  padding-left: 4.75rem;
+}
+
+.artifact-preview-depth-4 {
+  padding-left: 6rem;
+}
+
+.artifact-preview-depth-5 {
+  padding-left: 7.25rem;
+}
+
+.artifact-preview-depth-6 {
+  padding-left: 8.5rem;
+}
+
+.artifact-preview-depth-7 {
+  padding-left: 9.75rem;
+}
+
+.artifact-preview-depth-8 {
+  padding-left: 11rem;
+}
+
+.artifact-preview-depth-9 {
+  padding-left: 12.25rem;
+}
+
+.artifact-preview-depth-10 {
+  padding-left: 13.5rem;
+}

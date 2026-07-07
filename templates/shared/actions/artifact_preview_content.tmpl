@@ -1,0 +1,45 @@
+<div class="artifact-preview-header tw-flex tw-items-center tw-justify-between">
+	<div class="artifact-preview-title">
+		<span class="tw-text-base tw-font-semibold">{{ctx.Locale.Tr "preview"}}: <span class="gt-ellipsis">{{.ArtifactName}}</span></span>
+	</div>
+	<div class="tw-flex tw-items-center tw-gap-2">
+		<a class="ui basic button" href="{{.RunURL}}">
+			{{svg "octicon-arrow-left"}}
+			{{ctx.Locale.Tr "go_back"}}
+		</a>
+		<a class="ui button" href="{{.DownloadURL}}">
+			{{svg "octicon-download"}}
+			{{ctx.Locale.Tr "repo.download_file"}}
+		</a>
+	</div>
+</div>
+
+<div class="artifact-preview-browser">
+	<div class="artifact-preview-browser-title">{{ctx.Locale.Tr "files"}}</div>
+	{{if .PreviewTooLarge}}
+		<div class="ui warning message">{{ctx.Locale.Tr "actions.artifacts.preview_artifact_too_large"}}</div>
+	{{end}}
+	{{if .RequestedPathMissing}}
+		<div class="ui warning message">{{ctx.Locale.Tr "actions.artifacts.preview_file_not_found"}}</div>
+	{{end}}
+	{{if .PreviewFilesTruncated}}
+		<div class="ui info message">{{ctx.Locale.Tr "actions.artifacts.preview_file_list_truncated"}}</div>
+	{{end}}
+	<div class="artifact-preview-file-list">
+		{{range .PreviewFiles}}
+			{{if .IsDir}}
+				<div class="artifact-preview-file-row artifact-preview-file-row-directory {{.IndentClass}}" title="{{.Path}}">
+					{{svg "octicon-file-directory" 16}}
+					<span class="gt-ellipsis">{{.Name}}</span>
+				</div>
+			{{else}}
+				<a class="artifact-preview-file-row artifact-preview-file-row-file {{.IndentClass}} {{if .Selected}}active{{end}}" href="{{$.PreviewRawURL}}/{{PathEscapeSegments .Path}}{{$.AttemptQuery}}" target="_blank" rel="noopener noreferrer" title="{{.Path}}">
+					{{svg "octicon-file" 16}}
+					<span class="gt-ellipsis">{{.Name}}</span>
+				</a>
+			{{end}}
+		{{else}}
+			<div class="artifact-preview-file-row disabled">{{ctx.Locale.Tr "none"}}</div>
+		{{end}}
+	</div>
+</div>
