@@ -319,6 +319,11 @@ func GetWorkflowLatestRun(ctx context.Context, repoID int64, workflowFile, branc
 	return &run, nil
 }
 
+// ErrRunHasChanged is returned by UpdateRun when the run's optimistic version lock
+// no longer matches: the run was updated concurrently since it was loaded. Callers
+// that re-aggregate run status can retry with a fresh snapshot to converge.
+var ErrRunHasChanged = errors.New("run has changed")
+
 // UpdateRun updates a run.
 // It requires the inputted run has Version set.
 // It will return error if the version is not matched (it means the run has been changed after loaded).
@@ -333,7 +338,7 @@ func UpdateRun(ctx context.Context, run *ActionRun, cols ...string) error {
 		return err
 	}
 	if affected == 0 {
-		return errors.New("run has changed")
+		return ErrRunHasChanged
 		// It's impossible that the run is not found, since Gitea never deletes runs.
 	}
 

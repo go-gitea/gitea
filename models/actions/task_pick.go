@@ -22,7 +22,34 @@ import (
 // runner's claim — before giving up.
 const maxTaskPickAttempts = 10
 
+// maxRunConflictRetries bounds how many times a poll re-runs its whole claim after
+// losing the run's optimistic version lock to a concurrent runner claiming a
+// different job of the same run. Each retry opens a fresh transaction (hence a fresh
+// snapshot), so the loser re-picks against the winner's committed state.
+const maxRunConflictRetries = 10
+
+// CreateTaskForRunner claims a waiting job for the runner and prepares its task.
+//
+// When several runners claim distinct jobs of the same run at once, each claim
+// re-aggregates the run's status and contends on its optimistic version lock, so all
+// but one lose with ErrRunHasChanged. A retry within the same transaction can't win —
+// MySQL's REPEATABLE READ snapshot keeps returning the stale version — so the loser
+// retries the whole claim in a fresh transaction, re-picking against the winner's
+// committed state instead of failing the poll outright.
 func CreateTaskForRunner(ctx context.Context, runner *ActionRunner) (*ActionTask, bool, error) {
+	var err error
+	for range maxRunConflictRetries {
+		var task *ActionTask
+		var ok bool
+		task, ok, err = createTaskForRunnerOnce(ctx, runner)
+		if err == nil || !errors.Is(err, ErrRunHasChanged) {
+			return task, ok, err
+		}
+	}
+	return nil, false, err
+}
+
+func createTaskForRunnerOnce(ctx context.Context, runner *ActionRunner) (*ActionTask, bool, error) {
 	ctx, committer, err := db.TxContext(ctx)
 	if err != nil {
 		return nil, false, err
