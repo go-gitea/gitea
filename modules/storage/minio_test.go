@@ -92,7 +92,7 @@ func TestS3StorageBadRequest(t *testing.T) {
 		},
 	}
 	_, err := NewStorage(setting.MinioStorageType, cfg)
-	assert.ErrorContains(t, err, "ObjectStorage.NewClient: endpoint="+endpoint)
+	assert.ErrorContains(t, err, "ObjectStorage.BucketExists: endpoint="+endpoint)
 }
 
 func TestMinioCredentials(t *testing.T) {

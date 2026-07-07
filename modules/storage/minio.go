@@ -79,11 +79,10 @@ func convertMinioErr(err error, optMsg ...string) error {
 // NewMinioStorage returns a minio storage
 func NewMinioStorage(ctx context.Context, cfg *setting.Storage) (ObjectStorage, error) {
 	config := cfg.MinioConfig
+	log.Info("Creating minio storage at %s:%s with base path %s", config.Endpoint, config.Bucket, config.BasePath)
 	if config.ChecksumAlgorithm != "" && config.ChecksumAlgorithm != "default" && config.ChecksumAlgorithm != "md5" {
 		return nil, fmt.Errorf("invalid minio checksum algorithm: %s", config.ChecksumAlgorithm)
 	}
-
-	log.Info("Creating minio storage at %s:%s with base path %s", config.Endpoint, config.Bucket, config.BasePath)
 
 	var lookup minio.BucketLookupType
 	switch config.BucketLookUpType {
@@ -97,6 +96,13 @@ func NewMinioStorage(ctx context.Context, cfg *setting.Storage) (ObjectStorage, 
 		return nil, fmt.Errorf("invalid minio bucket lookup type: %s", config.BucketLookUpType)
 	}
 
+	// The request error message is something like:
+	// * "The request signature we calculated does not match the signature you provided. Check your key and signing method."
+	// It doesn't contain useful information to site admin, so here we wrap the error with our error message
+	// to tell the site admin what is the problem.
+	makeErrMsg := func(hint string) string {
+		return fmt.Sprintf("ObjectStorage.%s: endpoint=%s, location=%s, bucket=%s", hint, config.Endpoint, config.Location, config.Bucket)
+	}
 	minioClient, err := minio.New(config.Endpoint, &minio.Options{
 		Creds:        buildMinioCredentials(config),
 		Secure:       config.UseSSL,
@@ -105,20 +111,21 @@ func NewMinioStorage(ctx context.Context, cfg *setting.Storage) (ObjectStorage, 
 		BucketLookup: lookup,
 	})
 	if err != nil {
-		return nil, convertMinioErr(err, fmt.Sprintf("ObjectStorage.NewClient: endpoint=%s, location=%s, bucket=%s", config.Endpoint, config.Location, config.Bucket))
+		return nil, convertMinioErr(err, makeErrMsg("NewClient"))
 	}
 
 	// Check to see if we already own this bucket
 	exists, err := minioClient.BucketExists(ctx, config.Bucket)
 	if err != nil {
-		return nil, convertMinioErr(err, fmt.Sprintf("ObjectStorage.BucketExists: endpoint=%s, location=%s, bucket=%s", config.Endpoint, config.Location, config.Bucket))
+		return nil, convertMinioErr(err, makeErrMsg("BucketExists"))
 	}
 
+	// If the bucket doesn't exist, try to create one
 	if !exists {
 		if err := minioClient.MakeBucket(ctx, config.Bucket, minio.MakeBucketOptions{
 			Region: config.Location,
 		}); err != nil {
-			return nil, convertMinioErr(err, fmt.Sprintf("ObjectStorage.MakeBucket: endpoint=%s, location=%s, bucket=%s", config.Endpoint, config.Location, config.Bucket))
+			return nil, convertMinioErr(err, makeErrMsg("MakeBucket"))
 		}
 	}
 
