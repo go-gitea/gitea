@@ -1951,25 +1951,9 @@ func CancelActionRun(ctx *context.APIContext) {
 		return
 	}
 
-	var updatedJobs []*actions_model.ActionRunJob
-	if err := db.WithTx(ctx, func(ctx go_context.Context) error {
-		cancelledJobs, err := actions_model.CancelJobs(ctx, jobs)
-		if err != nil {
-			return fmt.Errorf("cancel jobs: %w", err)
-		}
-		updatedJobs = append(updatedJobs, cancelledJobs...)
-		return nil
-	}); err != nil {
+	if err := actions_service.CancelRunJobs(ctx, run, jobs); err != nil {
 		ctx.APIErrorInternal(err)
 		return
-	}
-
-	actions_service.CreateCommitStatusForRunJobs(ctx, run, jobs...)
-	actions_service.EmitJobsIfReadyByJobs(updatedJobs)
-
-	actions_service.NotifyWorkflowJobsStatusUpdate(ctx, updatedJobs...)
-	if len(updatedJobs) > 0 {
-		actions_service.NotifyWorkflowRunStatusUpdateWithReload(ctx, run.RepoID, run.ID)
 	}
 
 	ctx.Status(http.StatusAccepted)
