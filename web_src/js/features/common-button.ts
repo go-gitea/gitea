@@ -49,7 +49,7 @@ export type ElementWithAssignableProperties = {
 
 export function assignElementProperty(el: ElementWithAssignableProperties, kebabName: string, val: string) {
   if (el.nodeName === 'FORM') {
-    // A special case for Golang HTML template escaping (html/template/attr.go):
+    // HINT: GOLANG-HTML-TEMPLATE-URL-ESCAPING: a special case for Golang HTML template escaping.
     // Golang HTML template only handles some "known" attribute names as URL (e.g.: when the name is "action" or contains "url")
     // To prevent template developers from making mistakes like `data-modal-form.action="?k={{ValueWithSpecialChars}}" (no escaping),
     // here we use `data-modal-form.url="?k={{ValueWithSpecialChars}}", then the value gets correctly escaped by Golang HTML template.
@@ -80,7 +80,11 @@ function onShowModalClick(el: HTMLElement, e: MouseEvent) {
   // * Then, try to query '[name=target]'
   // * Then, try to query '.target'
   // * Then, try to query 'target' as HTML tag
-  // If there is a ".{prop-name}" part like "data-modal-form.url", the "form" element's "action" property will be set, the "prop-name" will be camel-cased to "propName".
+  // If there's a ".{prop-name}" part like "data-modal-input.value", the "input" element's "value" property will be set,
+  // the "prop-name" will be camel-cased to "propName" (e.g.: "data-modal-input.read-only" for "readOnly" property).
+  //
+  // HINT: GOLANG-HTML-TEMPLATE-URL-ESCAPING: Form element's "action" property must be set by "data-modal-form.url"
+  // to make the template variables get correctly escaped in the URL.
   e.preventDefault();
   const modalSelector = el.getAttribute('data-modal')!;
   const elModal = document.querySelector(modalSelector);

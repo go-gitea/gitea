@@ -4,7 +4,7 @@ test('assignElementProperty', () => {
   const elForm = document.createElement('form');
   expect(() => assignElementProperty(elForm, 'action', '/test-link')).toThrow();
   assignElementProperty(elForm, 'url', '/test-url');
-  expect(elForm.action).contains('/test-url');
+  expect(elForm.action).contains('/test-url'); // the DOM always returns absolute URL
   expect(elForm.getAttribute('action')).eq('/test-url');
   assignElementProperty(elForm, 'text-content', 'dummy');
   expect(elForm.textContent).toBe('dummy');
