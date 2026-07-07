@@ -76,11 +76,6 @@ func convertMinioErr(err error, optMsg ...string) error {
 	return wrapErr(err)
 }
 
-var getBucketVersioning = func(ctx context.Context, minioClient *minio.Client, bucket string) error {
-	_, err := minioClient.GetBucketVersioning(ctx, bucket)
-	return err
-}
-
 // NewMinioStorage returns a minio storage
 func NewMinioStorage(ctx context.Context, cfg *setting.Storage) (ObjectStorage, error) {
 	config := cfg.MinioConfig
