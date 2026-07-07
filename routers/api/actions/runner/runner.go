@@ -201,6 +201,8 @@ func (s *Service) FetchTask(
 			// Concurrency limit reached: don't advance the runner's tasks version,
 			// so it retries on its next poll instead of sleeping until the next bump.
 			latestVersion = tasksVersion
+			//  A steady stream here means MAX_CONCURRENT_TASK_PICKS is too low for the fleet.
+			log.Debug("task pick throttled for runner %q (id %d); it will retry on its next poll", freshRunner.Name, freshRunner.ID)
 		} else if ok {
 			task = t
 		}
