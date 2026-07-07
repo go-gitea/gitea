@@ -6,6 +6,7 @@ package storage
 import (
 	"context"
 	"crypto/tls"
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
@@ -47,24 +48,32 @@ type MinioStorage struct {
 	basePath string
 }
 
-func convertMinioErr(err error) error {
+func convertMinioErr(err error, optMsg ...string) error {
 	if err == nil {
 		return nil
 	}
-	errResp, ok := err.(minio.ErrorResponse)
+
+	wrapErr := func(err error) error {
+		if len(optMsg) == 0 {
+			return err
+		}
+		return fmt.Errorf("%s: %w", optMsg[0], err)
+	}
+
+	errResp, ok := errors.AsType[minio.ErrorResponse](err)
 	if !ok {
-		return err
+		return wrapErr(err)
 	}
 
 	// Convert two responses to standard analogues
 	switch errResp.Code {
 	case "NoSuchKey":
-		return os.ErrNotExist
+		return wrapErr(os.ErrNotExist)
 	case "AccessDenied":
-		return os.ErrPermission
+		return wrapErr(os.ErrPermission)
 	}
 
-	return err
+	return wrapErr(err)
 }
 
 var getBucketVersioning = func(ctx context.Context, minioClient *minio.Client, bucket string) error {
@@ -79,7 +88,7 @@ func NewMinioStorage(ctx context.Context, cfg *setting.Storage) (ObjectStorage, 
 		return nil, fmt.Errorf("invalid minio checksum algorithm: %s", config.ChecksumAlgorithm)
 	}
 
-	log.Info("Creating Minio storage at %s:%s with base path %s", config.Endpoint, config.Bucket, config.BasePath)
+	log.Info("Creating minio storage at %s:%s with base path %s", config.Endpoint, config.Bucket, config.BasePath)
 
 	var lookup minio.BucketLookupType
 	switch config.BucketLookUpType {
@@ -101,37 +110,20 @@ func NewMinioStorage(ctx context.Context, cfg *setting.Storage) (ObjectStorage, 
 		BucketLookup: lookup,
 	})
 	if err != nil {
-		return nil, convertMinioErr(err)
-	}
-
-	// The GetBucketVersioning is only used for checking whether the Object Storage parameters are generally good. It doesn't need to succeed.
-	// The assumption is that if the API returns the HTTP code 400, then the parameters could be incorrect.
-	// Otherwise even if the request itself fails (403, 404, etc), the code should still continue because the parameters seem "good" enough.
-	// Keep in mind that GetBucketVersioning requires "owner" to really succeed, so it can't be used to check the existence.
-	// Not using "BucketExists (HeadBucket)" because it doesn't include detailed failure reasons.
-	err = getBucketVersioning(ctx, minioClient, config.Bucket)
-	if err != nil {
-		errResp, ok := err.(minio.ErrorResponse)
-		if !ok {
-			return nil, err
-		}
-		if errResp.StatusCode == http.StatusBadRequest {
-			log.Error("S3 storage connection failure at %s:%s with base path %s and region: %s", config.Endpoint, config.Bucket, config.Location, errResp.Message)
-			return nil, err
-		}
+		return nil, convertMinioErr(err, fmt.Sprintf("ObjectStorage.NewClient: endpoint=%s, location=%s, bucket=%s", config.Endpoint, config.Location, config.Bucket))
 	}
 
 	// Check to see if we already own this bucket
 	exists, err := minioClient.BucketExists(ctx, config.Bucket)
 	if err != nil {
-		return nil, convertMinioErr(err)
+		return nil, convertMinioErr(err, fmt.Sprintf("ObjectStorage.BucketExists: endpoint=%s, location=%s, bucket=%s", config.Endpoint, config.Location, config.Bucket))
 	}
 
 	if !exists {
 		if err := minioClient.MakeBucket(ctx, config.Bucket, minio.MakeBucketOptions{
 			Region: config.Location,
 		}); err != nil {
-			return nil, convertMinioErr(err)
+			return nil, convertMinioErr(err, fmt.Sprintf("ObjectStorage.MakeBucket: endpoint=%s, location=%s, bucket=%s", config.Endpoint, config.Location, config.Bucket))
 		}
 	}
 
