@@ -2,9 +2,10 @@ import {assignElementProperty, type ElementWithAssignableProperties} from './com
 
 test('assignElementProperty', () => {
   const elForm = document.createElement('form');
-  assignElementProperty(elForm, 'action', '/test-link');
-  expect(elForm.action).contains('/test-link'); // the DOM always returns absolute URL
-  expect(elForm.getAttribute('action')).eq('/test-link');
+  expect(() => assignElementProperty(elForm, 'action', '/test-link')).toThrow();
+  assignElementProperty(elForm, 'url', '/test-url');
+  expect(elForm.action).contains('/test-url');
+  expect(elForm.getAttribute('action')).eq('/test-url');
   assignElementProperty(elForm, 'text-content', 'dummy');
   expect(elForm.textContent).toBe('dummy');
 
@@ -14,8 +15,9 @@ test('assignElementProperty', () => {
     _attrs: Record<string, string> = {};
     setAttribute(name: string, value: string) { this._attrs[name] = value }
     getAttribute(name: string): string | null { return this._attrs[name] }
+    nodeName = 'FORM';
   }();
-  assignElementProperty(elFormWithAction, 'action', '/bar');
+  assignElementProperty(elFormWithAction, 'url', '/bar');
   expect(elFormWithAction.getAttribute('action')).eq('/bar');
 
   const elInput = document.createElement('input');
