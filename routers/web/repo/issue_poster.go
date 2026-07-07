@@ -14,17 +14,6 @@ import (
 	"gitea.dev/services/context"
 )
 
-type userSearchInfo struct {
-	UserID     int64  `json:"user_id"`
-	UserName   string `json:"username"`
-	AvatarLink string `json:"avatar_link"`
-	FullName   string `json:"full_name"`
-}
-
-type userSearchResponse struct {
-	Results []*userSearchInfo `json:"results"`
-}
-
 func IssuePullPosters(ctx *context.Context) {
 	isPullList := ctx.PathParam("type") == "pulls"
 	issuePosters(ctx, isPullList)
@@ -46,14 +35,5 @@ func issuePosters(ctx *context.Context, isPullList bool) {
 			posters = append(posters, ctx.Doer)
 		}
 	}
-
-	posters = shared_user.MakeSelfOnTop(ctx.Doer, posters)
-
-	resp := &userSearchResponse{}
-	resp.Results = make([]*userSearchInfo, len(posters))
-	for i, user := range posters {
-		resp.Results[i] = &userSearchInfo{UserID: user.ID, UserName: user.Name, AvatarLink: user.AvatarLink(ctx)}
-		resp.Results[i].FullName = user.FullName
-	}
-	ctx.JSON(http.StatusOK, resp)
+	ctx.JSON(http.StatusOK, shared_user.ToSearchUserResponse(ctx, ctx.Doer, posters))
 }
