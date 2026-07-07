@@ -363,7 +363,14 @@ func matchPushEvent(commit *git.Commit, pushPayload *api.PushPayload, evt *jobpa
 		return detectMatched
 	}
 
-	matchTimes := 0
+	// Branch/tag filters gate whether the workflow applies to this ref at all: a mismatch means
+	// the workflow is not applicable (like GitHub) and must not emit a skipped commit status.
+	// Paths/paths-ignore filters instead only skip a run whose ref already matched, so a paths
+	// mismatch is reported as filtered-out to keep required status checks satisfied.
+	// Branch and tag filters are counted (rather than a bool) because when both are present only
+	// one needs to match; the paths filters have no such rule so a single bool suffices.
+	refMatchCount, refFilterCount := 0, 0
+	pathMatched := true
 	hasBranchFilter := false
 	hasTagFilter := false
 	refName := git.RefName(pushPayload.Ref)
@@ -372,6 +379,7 @@ func matchPushEvent(commit *git.Commit, pushPayload *api.PushPayload, evt *jobpa
 		switch cond {
 		case "branches":
 			hasBranchFilter = true
+			refFilterCount++
 			if !refName.IsBranch() {
 				break
 			}
@@ -380,10 +388,11 @@ func matchPushEvent(commit *git.Commit, pushPayload *api.PushPayload, evt *jobpa
 				break
 			}
 			if !workflowpattern.Skip(patterns, []string{refName.BranchName()}) {
-				matchTimes++
+				refMatchCount++
 			}
 		case "branches-ignore":
 			hasBranchFilter = true
+			refFilterCount++
 			if !refName.IsBranch() {
 				break
 			}
@@ -392,10 +401,11 @@ func matchPushEvent(commit *git.Commit, pushPayload *api.PushPayload, evt *jobpa
 				break
 			}
 			if !workflowpattern.Filter(patterns, []string{refName.BranchName()}) {
-				matchTimes++
+				refMatchCount++
 			}
 		case "tags":
 			hasTagFilter = true
+			refFilterCount++
 			if !refName.IsTag() {
 				break
 			}
@@ -404,10 +414,11 @@ func matchPushEvent(commit *git.Commit, pushPayload *api.PushPayload, evt *jobpa
 				break
 			}
 			if !workflowpattern.Skip(patterns, []string{refName.TagName()}) {
-				matchTimes++
+				refMatchCount++
 			}
 		case "tags-ignore":
 			hasTagFilter = true
+			refFilterCount++
 			if !refName.IsTag() {
 				break
 			}
@@ -416,11 +427,10 @@ func matchPushEvent(commit *git.Commit, pushPayload *api.PushPayload, evt *jobpa
 				break
 			}
 			if !workflowpattern.Filter(patterns, []string{refName.TagName()}) {
-				matchTimes++
+				refMatchCount++
 			}
 		case "paths":
 			if refName.IsTag() {
-				matchTimes++
 				break
 			}
 			filesChanged, err := commit.GetFilesChangedSinceCommit(pushPayload.Before)
@@ -429,15 +439,11 @@ func matchPushEvent(commit *git.Commit, pushPayload *api.PushPayload, evt *jobpa
 				return detectNotApplicable
 			}
 			patterns, err := workflowpattern.CompilePatterns(vals...)
-			if err != nil {
-				break
-			}
-			if !workflowpattern.Skip(patterns, filesChanged) {
-				matchTimes++
+			if err != nil || workflowpattern.Skip(patterns, filesChanged) {
+				pathMatched = false
 			}
 		case "paths-ignore":
 			if refName.IsTag() {
-				matchTimes++
 				break
 			}
 			filesChanged, err := commit.GetFilesChangedSinceCommit(pushPayload.Before)
@@ -446,11 +452,8 @@ func matchPushEvent(commit *git.Commit, pushPayload *api.PushPayload, evt *jobpa
 				return detectNotApplicable
 			}
 			patterns, err := workflowpattern.CompilePatterns(vals...)
-			if err != nil {
-				break
-			}
-			if !workflowpattern.Filter(patterns, filesChanged) {
-				matchTimes++
+			if err != nil || workflowpattern.Filter(patterns, filesChanged) {
+				pathMatched = false
 			}
 		default:
 			log.Warn("push event unsupported condition %q", cond)
@@ -458,12 +461,17 @@ func matchPushEvent(commit *git.Commit, pushPayload *api.PushPayload, evt *jobpa
 	}
 	// if both branch and tag filter are defined in the workflow only one needs to match
 	if hasBranchFilter && hasTagFilter {
-		matchTimes++
+		refMatchCount++
 	}
-	if matchTimes == len(evt.Acts()) {
-		return detectMatched
+	// a branch/tag filter mismatch means the workflow does not apply to this ref
+	if refMatchCount != refFilterCount {
+		return detectNotApplicable
 	}
-	return detectFilteredOut
+	// the ref matched; a paths filter mismatch skips the run but keeps the required check satisfied
+	if !pathMatched {
+		return detectFilteredOut
+	}
+	return detectMatched
 }
 
 func matchIssuesEvent(issuePayload *api.IssuePayload, evt *jobparser.Event) bool {
@@ -517,7 +525,12 @@ func matchIssuesEvent(issuePayload *api.IssuePayload, evt *jobparser.Event) bool
 func matchPullRequestEvent(gitRepo *git.Repository, commit *git.Commit, prPayload *api.PullRequestPayload, evt *jobparser.Event) detectResult {
 	acts := evt.Acts()
 	activityTypeMatched := false
-	matchTimes := 0
+	// Branch filters gate whether the workflow applies to this pull request's base branch: a
+	// mismatch means the workflow is not applicable (like GitHub) and must not emit a skipped
+	// commit status. Paths/paths-ignore filters instead only skip a run whose branch already
+	// matched, so a paths mismatch is reported as filtered-out to keep required checks satisfied.
+	refMatched := true
+	pathMatched := true
 
 	if vals, ok := acts["types"]; !ok {
 		// defaultly, only pull request `opened`, `reopened` and `synchronized` will trigger workflow
@@ -547,7 +560,6 @@ func matchPullRequestEvent(gitRepo *git.Repository, commit *git.Commit, prPayloa
 		for _, val := range vals {
 			if glob.MustCompile(val, '/').Match(string(action)) {
 				activityTypeMatched = true
-				matchTimes++
 				break
 			}
 		}
@@ -574,20 +586,14 @@ func matchPullRequestEvent(gitRepo *git.Repository, commit *git.Commit, prPayloa
 		case "branches":
 			refName := git.RefName(prPayload.PullRequest.Base.Ref)
 			patterns, err := workflowpattern.CompilePatterns(vals...)
-			if err != nil {
-				break
-			}
-			if !workflowpattern.Skip(patterns, []string{refName.ShortName()}) {
-				matchTimes++
+			if err != nil || workflowpattern.Skip(patterns, []string{refName.ShortName()}) {
+				refMatched = false
 			}
 		case "branches-ignore":
 			refName := git.RefName(prPayload.PullRequest.Base.Ref)
 			patterns, err := workflowpattern.CompilePatterns(vals...)
-			if err != nil {
-				break
-			}
-			if !workflowpattern.Filter(patterns, []string{refName.ShortName()}) {
-				matchTimes++
+			if err != nil || workflowpattern.Filter(patterns, []string{refName.ShortName()}) {
+				refMatched = false
 			}
 		case "paths":
 			filesChanged, err := headCommit.GetFilesChangedSinceCommit(prPayload.PullRequest.MergeBase)
@@ -596,11 +602,8 @@ func matchPullRequestEvent(gitRepo *git.Repository, commit *git.Commit, prPayloa
 				return detectNotApplicable
 			}
 			patterns, err := workflowpattern.CompilePatterns(vals...)
-			if err != nil {
-				break
-			}
-			if !workflowpattern.Skip(patterns, filesChanged) {
-				matchTimes++
+			if err != nil || workflowpattern.Skip(patterns, filesChanged) {
+				pathMatched = false
 			}
 		case "paths-ignore":
 			filesChanged, err := headCommit.GetFilesChangedSinceCommit(prPayload.PullRequest.MergeBase)
@@ -609,11 +612,8 @@ func matchPullRequestEvent(gitRepo *git.Repository, commit *git.Commit, prPayloa
 				return detectNotApplicable
 			}
 			patterns, err := workflowpattern.CompilePatterns(vals...)
-			if err != nil {
-				break
-			}
-			if !workflowpattern.Filter(patterns, filesChanged) {
-				matchTimes++
+			if err != nil || workflowpattern.Filter(patterns, filesChanged) {
+				pathMatched = false
 			}
 		default:
 			log.Warn("pull request event unsupported condition %q", cond)
@@ -622,7 +622,12 @@ func matchPullRequestEvent(gitRepo *git.Repository, commit *git.Commit, prPayloa
 	if !activityTypeMatched {
 		return detectNotApplicable
 	}
-	if matchTimes != len(evt.Acts()) {
+	// the base branch does not match the branches filter: the workflow does not apply
+	if !refMatched {
+		return detectNotApplicable
+	}
+	// the branch matched; a paths filter mismatch skips the run but keeps the required check satisfied
+	if !pathMatched {
 		return detectFilteredOut
 	}
 	return detectMatched

@@ -225,7 +225,9 @@ func TestDetectMatched(t *testing.T) {
 			expected: detectMatched,
 		},
 		{
-			desc:         "push branch filter excludes -> filtered out",
+			// A branch filter mismatch means the workflow does not apply to this ref (like GitHub),
+			// so it must not post a skipped commit status that would leak into a pull request.
+			desc:         "push branch filter excludes -> not applicable",
 			triggedEvent: webhook_module.HookEventPush,
 			payload: &api.PushPayload{
 				Ref:     "refs/heads/feature/x",
@@ -234,7 +236,33 @@ func TestDetectMatched(t *testing.T) {
 			},
 			commit:   nil,
 			yamlOn:   "on:\n  push:\n    branches: [main]",
-			expected: detectFilteredOut,
+			expected: detectNotApplicable,
+		},
+		{
+			desc:         "push branches-ignore excludes -> not applicable",
+			triggedEvent: webhook_module.HookEventPush,
+			payload: &api.PushPayload{
+				Ref:     "refs/heads/main",
+				Before:  "0000000",
+				Commits: []*api.PayloadCommit{{ID: "abc", Added: []string{"a.go"}, Message: "x"}},
+			},
+			commit:   nil,
+			yamlOn:   "on:\n  push:\n    branches-ignore: [main]",
+			expected: detectNotApplicable,
+		},
+		{
+			// The base branch of the pull request does not match the branches filter,
+			// so the workflow does not apply (no skipped status).
+			desc:         "pull_request base branch filter excludes -> not applicable",
+			triggedEvent: webhook_module.HookEventPullRequest,
+			payload: &api.PullRequestPayload{
+				Action: api.HookIssueOpened,
+				PullRequest: &api.PullRequest{
+					Base: &api.PRBranchInfo{Ref: "refs/heads/dev"},
+				},
+			},
+			yamlOn:   "on:\n  pull_request:\n    branches: [main]",
+			expected: detectNotApplicable,
 		},
 	}
 

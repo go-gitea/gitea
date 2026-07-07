@@ -339,9 +339,10 @@ jobs:
 		})
 		assert.NoError(t, err)
 		assert.NotEmpty(t, addFileToBranchResp)
-		// the push to test-skip-ci is filtered by branches, so no run is created; a skipped commit status is posted instead
+		// the push to test-skip-ci does not match the workflow's `branches: [master]`, so the push
+		// workflow does not apply: no run and no skipped commit status (it must not leak into the PR)
 		assert.Equal(t, 1, unittest.GetCount(t, &actions_model.ActionRun{RepoID: repo.ID}))
-		assertSkippedCommitStatusExists(t, repo.ID, addFileToBranchResp.Commit.SHA, "push")
+		assertNoSkippedCommitStatusExists(t, repo.ID, addFileToBranchResp.Commit.SHA, "push")
 
 		resp := testPullCreate(t, session, "user2", "skip-ci", true, "master", "test-skip-ci", "[skip ci] test-skip-ci")
 
@@ -1884,15 +1885,28 @@ jobs:
 	})
 }
 
-// assertSkippedCommitStatusExists asserts that a filtered-out workflow posted a skipped commit status on sha
-func assertSkippedCommitStatusExists(t *testing.T, repoID int64, sha, eventSuffix string) {
+// hasSkippedCommitStatus reports whether a skipped commit status for the given event was posted on sha.
+func hasSkippedCommitStatus(t *testing.T, repoID int64, sha, eventSuffix string) bool {
 	t.Helper()
 	statuses, err := git_model.GetLatestCommitStatus(t.Context(), repoID, sha, db.ListOptionsAll)
 	require.NoError(t, err)
 	for _, s := range statuses {
 		if s.State == commitstatus.CommitStatusSkipped && strings.Contains(s.Context, "("+eventSuffix+")") {
-			return
+			return true
 		}
 	}
-	assert.Failf(t, "missing skipped commit status", "no skipped commit status with event %q on %s (found %d statuses)", eventSuffix, sha, len(statuses))
+	return false
+}
+
+// assertSkippedCommitStatusExists asserts that a filtered-out workflow posted a skipped commit status on sha
+func assertSkippedCommitStatusExists(t *testing.T, repoID int64, sha, eventSuffix string) {
+	t.Helper()
+	assert.Truef(t, hasSkippedCommitStatus(t, repoID, sha, eventSuffix), "missing skipped commit status with event %q on %s", eventSuffix, sha)
+}
+
+// assertNoSkippedCommitStatusExists asserts that no skipped commit status for the given event was posted on sha,
+// e.g. a workflow whose branch filter excludes the ref must not leak a skipped status into a pull request.
+func assertNoSkippedCommitStatusExists(t *testing.T, repoID int64, sha, eventSuffix string) {
+	t.Helper()
+	assert.Falsef(t, hasSkippedCommitStatus(t, repoID, sha, eventSuffix), "unexpected skipped commit status with event %q on %s", eventSuffix, sha)
 }
