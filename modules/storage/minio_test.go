@@ -86,13 +86,13 @@ func TestS3StorageBadRequest(t *testing.T) {
 		MinioConfig: setting.MinioStorageConfig{
 			Endpoint:        endpoint,
 			AccessKeyID:     "123456",
-			SecretAccessKey: "12345678",
+			SecretAccessKey: "invalid-secret",
 			Bucket:          "bucket",
 			Location:        "us-east-1",
 		},
 	}
 	_, err := NewStorage(setting.MinioStorageType, cfg)
-	assert.ErrorContains(t, err, "TODO")
+	assert.ErrorContains(t, err, "ObjectStorage.NewClient: endpoint="+endpoint)
 }
 
 func TestMinioCredentials(t *testing.T) {
