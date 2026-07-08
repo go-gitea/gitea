@@ -6,8 +6,8 @@ package repo
 import (
 	"context"
 
+	"gitea.dev/models/badges"
 	"gitea.dev/models/db"
-	user_model "gitea.dev/models/user"
 	"gitea.dev/modules/util"
 
 	"xorm.io/xorm/schemas"
@@ -34,19 +34,19 @@ func init() {
 }
 
 // GetRepoBadges returns the repo's badges.
-func GetRepoBadges(ctx context.Context, repo *Repository) ([]*user_model.Badge, int64, error) {
+func GetRepoBadges(ctx context.Context, repo *Repository) ([]*badges.Badge, int64, error) {
 	sess := db.GetEngine(ctx).
 		Select("`badge`.*").
 		Join("INNER", "repo_badge", "`repo_badge`.badge_id=badge.id").
 		Where("repo_badge.repo_id=?", repo.ID)
 
-	badges := make([]*user_model.Badge, 0, 8)
-	count, err := sess.FindAndCount(&badges)
-	return badges, count, err
+	badgesSlice := make([]*badges.Badge, 0, 8)
+	count, err := sess.FindAndCount(&badgesSlice)
+	return badgesSlice, count, err
 }
 
 // AddRepoBadge adds a badge to a repository.
-func AddRepoBadge(ctx context.Context, repo *Repository, badge *user_model.Badge) error {
+func AddRepoBadge(ctx context.Context, repo *Repository, badge *badges.Badge) error {
 	return db.WithTx(ctx, func(ctx context.Context) error {
 		// hydrate badge and check if it exists
 		has, err := db.GetEngine(ctx).Where("slug=?", badge.Slug).Get(badge)
@@ -79,7 +79,7 @@ func AddRepoBadge(ctx context.Context, repo *Repository, badge *user_model.Badge
 }
 
 // RemoveRepoBadge removes a badge from a repository.
-func RemoveRepoBadge(ctx context.Context, repo *Repository, badge *user_model.Badge) error {
+func RemoveRepoBadge(ctx context.Context, repo *Repository, badge *badges.Badge) error {
 	return db.WithTx(ctx, func(ctx context.Context) error {
 		var userBadges []RepoBadge
 		if err := db.GetEngine(ctx).Table("repo_badge").

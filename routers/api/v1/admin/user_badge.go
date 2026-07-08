@@ -6,6 +6,7 @@ package admin
 import (
 	"net/http"
 
+	"gitea.dev/models/badges"
 	user_model "gitea.dev/models/user"
 	api "gitea.dev/modules/structs"
 	"gitea.dev/modules/web"
@@ -113,12 +114,12 @@ func DeleteUserBadges(ctx *context.APIContext) {
 	ctx.Status(http.StatusNoContent)
 }
 
-func prepareBadgesForReplaceOrAdd(form api.UserBadgeOption) []*user_model.Badge {
-	badges := make([]*user_model.Badge, len(form.BadgeSlugs))
+func prepareBadgesForReplaceOrAdd(form api.UserBadgeOption) []*badges.Badge {
+	badgesList := make([]*badges.Badge, len(form.BadgeSlugs))
 	for i, badge := range form.BadgeSlugs {
-		badges[i] = &user_model.Badge{
+		badgesList[i] = &badges.Badge{
 			Slug: badge,
 		}
 	}
-	return badges
+	return badgesList
 }

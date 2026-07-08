@@ -32,13 +32,13 @@ func testGetBadgeNotExist(t *testing.T) {
 }
 
 func testCreateBadgeAlreadyExists(t *testing.T) {
-	badge := &user_model.Badge{
+	badge := &badges.Badge{
 		Slug:        "duplicate-badge-slug",
 		Description: "First",
 	}
 	assert.NoError(t, user_model.CreateBadge(t.Context(), badge))
 
-	err := user_model.CreateBadge(t.Context(), &user_model.Badge{
+	err := user_model.CreateBadge(t.Context(), &badges.Badge{
 		Slug:        "duplicate-badge-slug",
 		Description: "Second",
 	})
@@ -48,7 +48,7 @@ func testCreateBadgeAlreadyExists(t *testing.T) {
 
 func testGetBadgeUsers(t *testing.T) {
 	// Create a test badge
-	badge := &user_model.Badge{
+	badge := &badges.Badge{
 		Slug:        "test-badge-users",
 		Description: "Test Badge",
 		ImageURL:    "test.png",
@@ -96,7 +96,7 @@ func testGetBadgeUsers(t *testing.T) {
 }
 
 func testAddAndRemoveUserBadges(t *testing.T) {
-	badge1 := unittest.AssertExistsAndLoadBean(t, &user_model.Badge{ID: 1})
+	badge1 := unittest.AssertExistsAndLoadBean(t, &badges.Badge{ID: 1})
 	user1 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 1})
 
 	// Add a badge to user and verify that it is returned in the list
@@ -125,11 +125,11 @@ func testAddAndRemoveUserBadges(t *testing.T) {
 
 	// Removing empty or missing badge selections should be a no-op.
 	assert.NoError(t, user_model.RemoveUserBadges(t.Context(), user1, nil))
-	assert.NoError(t, user_model.RemoveUserBadges(t.Context(), user1, []*user_model.Badge{{Slug: "does-not-exist"}}))
+	assert.NoError(t, user_model.RemoveUserBadges(t.Context(), user1, []*badges.Badge{{Slug: "does-not-exist"}}))
 }
 
 func testSearchBadgesOrderingAndKeyword(t *testing.T) {
-	createdBadges := []*user_model.Badge{
+	createdBadges := []*badges.Badge{
 		{Slug: "badge-sort-b", Description: "Badge Sort B"},
 		{Slug: "badge-sort-c", Description: "Badge Sort C"},
 		{Slug: "badge-sort-a", Description: "Badge Sort A"},
@@ -176,7 +176,7 @@ func testSearchBadgesOrderingAndKeyword(t *testing.T) {
 	assert.Equal(t, []string{"badge-sort-case"}, collectBadgeSlugs(caseInsensitive))
 }
 
-func collectBadgeSlugs(badges []*user_model.Badge) []string {
+func collectBadgeSlugs(badges []*badges.Badge) []string {
 	slugs := make([]string, 0, len(badges))
 	for _, badge := range badges {
 		slugs = append(slugs, badge.Slug)

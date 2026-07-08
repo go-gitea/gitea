@@ -7,11 +7,7 @@
 			<div class="item-main">
 				<div class="item-title">
 					{{template "shared/user/name" .}}
-					{{range .Badges}}
-						<span class="ui basic tiny label" {{if .Description}}data-tooltip-content="{{.Description}}"{{end}}>
-							{{if .ImageURL}}<img width="16" height="16" src="{{.ImageURL}}" alt="{{.Description}}" class="tw-mr-1 tw-align-middle">{{end}}{{.Slug}}
-						</span>
-					{{end}}
+					{{template "shared/badges" .Badges}}
 					{{if .Visibility.IsPrivate}}
 						<span class="ui basic tiny label">{{ctx.Locale.Tr "repo.desc.private"}}</span>
 					{{end}}

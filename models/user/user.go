@@ -22,6 +22,7 @@ import (
 	"unicode"
 
 	"gitea.dev/models/auth"
+	"gitea.dev/models/badges"
 	"gitea.dev/models/db"
 	"gitea.dev/modules/auth/openid"
 	"gitea.dev/modules/auth/password/hash"
@@ -155,7 +156,7 @@ type User struct {
 	Theme               string `xorm:"NOT NULL DEFAULT ''"`
 	KeepActivityPrivate bool   `xorm:"NOT NULL DEFAULT false"`
 
-	Badges []*Badge `xorm:"-"`
+	Badges []*badges.Badge `xorm:"-"`
 }
 
 // Meta defines the meta information of a user, to be stored in the K/V table

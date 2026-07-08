@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"strings"
 
+	"gitea.dev/models/badges"
 	"gitea.dev/models/db"
 	"gitea.dev/models/perm"
 	"gitea.dev/models/unit"
@@ -825,13 +826,13 @@ func (repos RepositoryList) LoadBadges(ctx context.Context) error {
 		return nil
 	}
 
-	badges := make([]*user_model.Badge, 0, len(badgeIDs))
-	if err := db.GetEngine(ctx).Table("badge").In("id", badgeIDs).Find(&badges); err != nil {
+	badgesList := make([]*badges.Badge, 0, len(badgeIDs))
+	if err := db.GetEngine(ctx).Table("badge").In("id", badgeIDs).Find(&badgesList); err != nil {
 		return err
 	}
 
-	badgeMap := make(map[int64]*user_model.Badge, len(badges))
-	for _, b := range badges {
+	badgeMap := make(map[int64]*badges.Badge, len(badgesList))
+	for _, b := range badgesList {
 		badgeMap[b.ID] = b
 	}
 

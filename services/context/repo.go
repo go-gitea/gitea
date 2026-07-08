@@ -678,6 +678,11 @@ func repoAssignmentPrepareTemplateData(ctx *Context, data *repoAssignmentPrepare
 			return
 		}
 	}
+
+	if err := repo_model.RepositoryList([]*repo_model.Repository{repo}).LoadBadges(ctx); err != nil {
+		ctx.ServerError("LoadBadges", err)
+		return
+	}
 }
 
 func repoAssignmentIsHomeOrSettings(ctx *Context, data *repoAssignmentPrepareDataStruct) bool {

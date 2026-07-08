@@ -6,8 +6,8 @@ package organization
 import (
 	"context"
 
+	"gitea.dev/models/badges"
 	"gitea.dev/models/db"
-	user_model "gitea.dev/models/user"
 	"gitea.dev/modules/util"
 
 	"xorm.io/xorm/schemas"
@@ -34,19 +34,19 @@ func init() {
 }
 
 // GetOrgBadges returns the org's badges.
-func GetOrgBadges(ctx context.Context, org *Organization) ([]*user_model.Badge, int64, error) {
+func GetOrgBadges(ctx context.Context, org *Organization) ([]*badges.Badge, int64, error) {
 	sess := db.GetEngine(ctx).
 		Select("`badge`.*").
 		Join("INNER", "org_badge", "`org_badge`.badge_id=badge.id").
 		Where("org_badge.org_id=?", org.ID)
 
-	badges := make([]*user_model.Badge, 0, 8)
-	count, err := sess.FindAndCount(&badges)
-	return badges, count, err
+	badgesSlice := make([]*badges.Badge, 0, 8)
+	count, err := sess.FindAndCount(&badgesSlice)
+	return badgesSlice, count, err
 }
 
 // AddOrgBadge adds a badge to an organization.
-func AddOrgBadge(ctx context.Context, org *Organization, badge *user_model.Badge) error {
+func AddOrgBadge(ctx context.Context, org *Organization, badge *badges.Badge) error {
 	return db.WithTx(ctx, func(ctx context.Context) error {
 		// hydrate badge and check if it exists
 		has, err := db.GetEngine(ctx).Where("slug=?", badge.Slug).Get(badge)
@@ -79,7 +79,7 @@ func AddOrgBadge(ctx context.Context, org *Organization, badge *user_model.Badge
 }
 
 // RemoveOrgBadge removes a badge from an organization.
-func RemoveOrgBadge(ctx context.Context, org *Organization, badge *user_model.Badge) error {
+func RemoveOrgBadge(ctx context.Context, org *Organization, badge *badges.Badge) error {
 	return db.WithTx(ctx, func(ctx context.Context) error {
 		var userBadges []OrgBadge
 		if err := db.GetEngine(ctx).Table("org_badge").
