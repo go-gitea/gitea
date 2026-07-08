@@ -231,6 +231,11 @@ func makeTaskStepDisplayName(step *jobparser.Step, limit int) (name string) {
 // another runner won the optimistic-lock race; it is never returned to callers.
 var errJobAlreadyClaimed = errors.New("job already claimed by another runner")
 
+// pickTaskBatchSize bounds how many waiting jobs each CreateTaskForRunner query loads,
+// so a large backlog is not fetched into memory on every runner poll.
+// It is a var only so tests can shrink it to exercise pagination cheaply.
+var pickTaskBatchSize = 100
+
 // CreateTaskForRunner finds a waiting job that matches the runner's labels and
 // atomically claims it. It iterates through all matching jobs so that a
 // concurrent claim by another runner (which would lose the optimistic lock on
@@ -249,31 +254,51 @@ func CreateTaskForRunner(ctx context.Context, runner *ActionRunner) (*ActionTask
 			Join("INNER", "repo_unit", "`repository`.id = `repo_unit`.repo_id").
 			Where(builder.Eq{"`repository`.owner_id": runner.OwnerID, "`repo_unit`.type": unit.TypeActions}))
 	}
-	if jobCond.IsValid() {
-		jobCond = builder.In("run_id", builder.Select("id").From("action_run").Where(jobCond))
-	}
-
-	var jobs []*ActionRunJob
-	if err := e.Where("task_id=? AND status=? AND is_reusable_caller=?", 0, StatusWaiting, false).And(jobCond).Asc("updated", "id").Find(&jobs); err != nil {
-		return nil, false, err
-	}
+	baseCond := builder.Eq{"task_id": 0, "status": StatusWaiting, "is_reusable_caller": false}.And(jobCond)
 
 	// TODO: a more efficient way to filter labels
 	log.Trace("runner labels: %v", runner.AgentLabels)
-	for _, v := range jobs {
-		if !runner.CanMatchLabels(v.RunsOn) {
-			continue
+
+	// Page through the waiting jobs oldest-first instead of loading the whole backlog into memory on every poll.
+	// Keyset pagination on (updated, id) is safe under concurrent claims:
+	// updated only moves forward, so the advancing cursor never skips a still-waiting job even as claimed jobs drop out.
+	var cursorUpdated timeutil.TimeStamp
+	var cursorID int64
+	for {
+		cond := baseCond
+		if cursorID > 0 {
+			cond = cond.And(builder.Or(
+				builder.Gt{"updated": cursorUpdated},
+				builder.And(builder.Eq{"updated": cursorUpdated}, builder.Gt{"id": cursorID}),
+			))
 		}
-		task, ok, err := claimJobForRunner(ctx, runner, v)
-		if err != nil {
+
+		var jobs []*ActionRunJob
+		if err := e.Where(cond).Asc("updated", "id").Limit(pickTaskBatchSize).Find(&jobs); err != nil {
 			return nil, false, err
 		}
-		if ok {
-			return task, true, nil
+
+		for _, v := range jobs {
+			if !runner.CanMatchLabels(v.RunsOn) {
+				continue
+			}
+			task, ok, err := claimJobForRunner(ctx, runner, v)
+			if err != nil {
+				return nil, false, err
+			}
+			if ok {
+				return task, true, nil
+			}
+			// Another runner claimed this job concurrently; try the next one.
 		}
-		// Another runner claimed this job concurrently; try the next one.
+
+		// A short page means no waiting jobs remain beyond it.
+		if len(jobs) < pickTaskBatchSize {
+			return nil, false, nil
+		}
+		last := jobs[len(jobs)-1]
+		cursorUpdated, cursorID = last.Updated, last.ID
 	}
-	return nil, false, nil
 }
 
 // claimJobForRunner attempts to atomically claim job for runner inside its own
