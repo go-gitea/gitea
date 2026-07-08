@@ -201,17 +201,12 @@ func newComparePageInfo() *comparePageInfoType {
 }
 
 // parseCompareInfo parse compare info between two commit for preparing comparing references
-func (cpi *comparePageInfoType) parseCompareInfo(ctx *context.Context) error {
+func (cpi *comparePageInfoType) parseCompareInfo(ctx *context.Context, compareParam string) error {
 	baseRepo := ctx.Repo.Repository
 	fileOnly := ctx.FormBool("file-only")
 
 	// 1 Parse compare router param
-	compareReq := common.ParseCompareRouterParam(ctx.PathParam("*"))
-
-	// remove the check when we support compare with carets
-	if compareReq.BaseOriRefSuffix != "" {
-		return util.NewInvalidArgumentErrorf("unsupported comparison syntax: ref with suffix")
-	}
+	compareReq := common.ParseCompareRouterParam(compareParam)
 
 	// 2 get repository and owner for head
 	headOwner, headRepo, err := common.GetHeadOwnerAndRepo(ctx, baseRepo, compareReq)
@@ -241,18 +236,18 @@ func (cpi *comparePageInfoType) parseCompareInfo(ctx *context.Context) error {
 	baseRefName := util.IfZero(compareReq.BaseOriRef, baseRepo.GetPullRequestTargetBranch(ctx))
 	headRefName := util.IfZero(compareReq.HeadOriRef, headRepo.DefaultBranch)
 
-	baseRef := ctx.Repo.GitRepo.UnstableGuessRefByShortName(baseRefName)
-	if baseRef == "" {
-		return util.NewNotExistErrorf("no base ref: %s", baseRefName)
+	baseRef, err := common.ResolveRefWithSuffix(ctx.Repo.GitRepo, baseRefName, compareReq.BaseOriRefSuffix)
+	if err != nil {
+		return err
 	}
 	headGitRepo, err := gitrepo.RepositoryFromRequestContextOrOpen(ctx, headRepo)
 	if err != nil {
 		return err
 	}
 
-	headRef := headGitRepo.UnstableGuessRefByShortName(headRefName)
-	if headRef == "" {
-		return util.NewNotExistErrorf("no head ref: %s", headRefName)
+	headRef, err := common.ResolveRefWithSuffix(headGitRepo, headRefName, compareReq.HeadOriRefSuffix)
+	if err != nil {
+		return err
 	}
 
 	ctx.Data["BaseName"] = baseRepo.OwnerName
@@ -388,7 +383,9 @@ func autoTitleFromBranchName(name string) string {
 
 func prepareNewPullRequestTitleContent(ci *git_service.CompareInfo, commits []*git_model.SignCommitWithStatuses, defaultTitleSource string) (title, content string) {
 	useFirstCommitAsTitle := len(commits) == 1 || (defaultTitleSource == setting.RepoPRTitleSourceFirstCommit && len(commits) > 0)
-	if useFirstCommitAsTitle {
+	if defaultTitleSource == setting.RepoPRTitleSourceBranchName {
+		title = ci.HeadRef.ShortName()
+	} else if useFirstCommitAsTitle {
 		// the "commits" are from "ShowPrettyFormatLogToList", which is ordered from newest to oldest, here take the oldest one
 		c := commits[len(commits)-1]
 		title = c.UserCommit.GitCommit.MessageTitle()
@@ -545,7 +542,7 @@ func getBranchesAndTagsForRepo(ctx gocontext.Context, repo *repo_model.Repositor
 // CompareDiff show different from one commit to another commit
 func CompareDiff(ctx *context.Context) {
 	comparePageInfo := newComparePageInfo()
-	err := comparePageInfo.parseCompareInfo(ctx)
+	err := comparePageInfo.parseCompareInfo(ctx, ctx.PathParam("*"))
 	if errors.Is(err, util.ErrNotExist) || errors.Is(err, util.ErrInvalidArgument) {
 		ctx.NotFound(nil)
 		return
@@ -603,6 +600,45 @@ func CompareDiff(ctx *context.Context) {
 	ctx.Data["PageIsComparePull"] = comparePageInfo.allowCreatePull
 	ctx.Data["IsNothingToCompare"] = comparePageInfo.nothingToCompare
 	ctx.HTML(http.StatusOK, tplCompare)
+}
+
+// DownloadCompareDiff render a comparison's raw unified diff
+func DownloadCompareDiff(ctx *context.Context) {
+	downloadCompareDiffOrPatch(ctx, false)
+}
+
+// DownloadComparePatch render a comparison as a git format-patch
+func DownloadComparePatch(ctx *context.Context) {
+	downloadCompareDiffOrPatch(ctx, true)
+}
+
+func downloadCompareDiffOrPatch(ctx *context.Context, patch bool) {
+	// The route captures `basehead` separately so the `.diff`/`.patch` suffix is
+	// stripped from the catch-all `*` param parseCompareInfo would otherwise read.
+	cpi := newComparePageInfo()
+	if err := cpi.parseCompareInfo(ctx, ctx.PathParam("basehead")); err != nil {
+		if errors.Is(err, util.ErrNotExist) || errors.Is(err, util.ErrInvalidArgument) {
+			ctx.NotFound(nil)
+		} else {
+			ctx.ServerError("ParseCompareInfo", err)
+		}
+		return
+	}
+	ci := cpi.compareInfo
+
+	ctx.Resp.Header().Set("Content-Type", "text/plain; charset=utf-8")
+	compareArg := ci.BaseCommitID + ci.CompareSeparator + ci.HeadCommitID
+
+	var err error
+	if patch {
+		err = ci.HeadGitRepo.GetPatch(compareArg, ctx.Resp)
+	} else {
+		err = ci.HeadGitRepo.GetDiff(compareArg, ctx.Resp)
+	}
+	if err != nil {
+		ctx.ServerError("DownloadCompareDiffOrPatch", err)
+		return
+	}
 }
 
 func (cpi *comparePageInfoType) prepareCreatePullRequestPage(ctx *context.Context) {

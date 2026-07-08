@@ -11,6 +11,8 @@ import (
 	"gitea.dev/modules/setting"
 	"gitea.dev/modules/timeutil"
 	"gitea.dev/modules/util"
+
+	"xorm.io/builder"
 )
 
 // WatchMode specifies what kind of watch the user has on a repository
@@ -53,11 +55,13 @@ func init() {
 }
 
 // GetWatch gets what kind of subscription a user has on a given repository; returns dummy record if none found
-func GetWatch(ctx context.Context, userID, repoID int64) (Watch, error) {
-	watch := Watch{UserID: userID, RepoID: repoID}
-	has, err := db.GetEngine(ctx).Get(&watch)
+func GetWatch(ctx context.Context, userID, repoID int64) (*Watch, error) {
+	watch, has, err := db.Get[Watch](ctx, builder.Eq{"user_id": userID, "repo_id": repoID})
 	if err != nil {
 		return watch, err
+	}
+	if watch == nil {
+		watch = &Watch{UserID: userID, RepoID: repoID}
 	}
 	if !has {
 		watch.Mode = WatchModeNone
@@ -76,7 +80,7 @@ func IsWatching(ctx context.Context, userID, repoID int64) bool {
 	return err == nil && IsWatchMode(watch.Mode)
 }
 
-func watchRepoMode(ctx context.Context, watch Watch, mode WatchMode) (err error) {
+func watchRepoMode(ctx context.Context, watch *Watch, mode WatchMode) (err error) {
 	if watch.Mode == mode {
 		return nil
 	}

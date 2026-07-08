@@ -99,6 +99,7 @@ import (
 	_ "gitea.dev/routers/api/v1/swagger" // for swagger generation
 
 	"gitea.com/go-chi/binding"
+	chi_middleware "github.com/go-chi/chi/v5/middleware"
 	"github.com/go-chi/cors"
 )
 
@@ -500,6 +501,21 @@ func reqOrgOwnership() func(ctx *context.APIContext) {
 			} else {
 				ctx.APIErrorNotFound()
 			}
+			return
+		}
+	}
+}
+
+// reqOrgVisible requires the organization to be visible to the doer, or a site admin
+func reqOrgVisible() func(ctx *context.APIContext) {
+	return func(ctx *context.APIContext) {
+		if ctx.Org.Organization == nil {
+			setting.PanicInDevOrTesting("reqOrgVisible: unprepared context")
+			ctx.APIErrorInternal(errors.New("reqOrgVisible: unprepared context"))
+			return
+		}
+		if !organization.HasOrgOrUserVisible(ctx, ctx.Org.Organization.AsUser(), ctx.Doer) {
+			ctx.APIErrorNotFound()
 			return
 		}
 	}
@@ -934,6 +950,9 @@ func checkDeprecatedAuthMethods(ctx *context.APIContext) {
 // Routes registers all v1 APIs routes to web application.
 func Routes() *web.Router {
 	m := web.NewRouter()
+
+	// redirect HEAD requests to GET if no HEAD handler is defined (RFC 9110 §9.3.2)
+	m.BeforeRouting(chi_middleware.GetHead)
 
 	if setting.CORSConfig.Enabled {
 		m.BeforeRouting(cors.Handler(cors.Options{
@@ -1704,7 +1723,7 @@ func Routes() *web.Router {
 				m.Get("", reqToken(), org.ListMembers)
 				m.Combo("/{username}").Get(reqToken(), org.IsMember).
 					Delete(reqToken(), reqOrgOwnership(), org.DeleteMember)
-			})
+			}, reqOrgVisible())
 			addActionsRoutes(
 				m,
 				reqOrgMembership(),
@@ -1716,7 +1735,7 @@ func Routes() *web.Router {
 				m.Combo("/{username}").Get(org.IsPublicMember).
 					Put(reqToken(), reqOrgMembership(), org.PublicizeMember).
 					Delete(reqToken(), reqOrgMembership(), org.ConcealMember)
-			})
+			}, reqOrgVisible())
 			m.Group("/teams", func() {
 				m.Get("", org.ListTeams)
 				m.Post("", reqOrgOwnership(), bind(api.CreateTeamOption{}), org.CreateTeam)
@@ -1728,7 +1747,7 @@ func Routes() *web.Router {
 				m.Combo("/{id}").Get(reqToken(), org.GetLabel).
 					Patch(reqToken(), reqOrgOwnership(), bind(api.EditLabelOption{}), org.EditLabel).
 					Delete(reqToken(), reqOrgOwnership(), org.DeleteLabel)
-			})
+			}, reqOrgVisible())
 			m.Group("/hooks", func() {
 				m.Combo("").Get(org.ListHooks).
 					Post(bind(api.CreateHookOption{}), org.CreateHook)

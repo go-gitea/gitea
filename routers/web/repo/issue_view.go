@@ -949,7 +949,9 @@ func (prInfo *pullRequestViewInfo) prepareMergeBox(ctx *context.Context, issue *
 
 	// admin can merge without checks, writer can merge when checks succeed
 	// admin and writer both can make an auto merge schedule (not affected by overridable blockers)
-	data.hasStatusCheckBlocker = data.enableStatusCheck && !data.StatusCheckData.RequiredChecksState.IsSuccess()
+	// Required scoped workflow checks gate the merge even when the rule's own status check is disabled (see IsPullCommitStatusPass),
+	// so block on any required status context, not only when enableStatusCheck is on.
+	data.hasStatusCheckBlocker = (data.enableStatusCheck || data.hasRequiredStatusContexts) && !data.StatusCheckData.RequiredChecksState.IsSuccess()
 
 	// this logic is from:
 	// {{$notAllOverridableChecksOk := or .IsBlockedByApprovals .IsBlockedByRejection .IsBlockedByOfficialReviewRequests .IsBlockedByOutdatedBranch .IsBlockedByChangedProtectedFiles (and .EnableStatusCheck (not $requiredStatusCheckState.IsSuccess))}}
