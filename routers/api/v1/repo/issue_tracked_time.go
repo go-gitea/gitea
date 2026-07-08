@@ -118,6 +118,12 @@ func ListTrackedTimes(ctx *context.APIContext) {
 		}
 	}
 
+	count, err := issues_model.CountTrackedTimes(ctx, opts)
+	if err != nil {
+		ctx.APIErrorInternal(err)
+		return
+	}
+
 	trackedTimes, err := issues_model.GetTrackedTimes(ctx, opts)
 	if err != nil {
 		ctx.APIErrorInternal(err)
@@ -133,7 +139,7 @@ func ListTrackedTimes(ctx *context.APIContext) {
 		return
 	}
 
-	ctx.SetTotalCountHeader(int64(len(trackedTimes)))
+	ctx.SetTotalCountHeader(count)
 	ctx.JSON(http.StatusOK, convert.ToTrackedTimeList(ctx, ctx.Doer, trackedTimes))
 }
 
@@ -544,6 +550,12 @@ func ListTrackedTimesByRepository(ctx *context.APIContext) {
 		}
 	}
 
+	count, err := issues_model.CountTrackedTimes(ctx, opts)
+	if err != nil {
+		ctx.APIErrorInternal(err)
+		return
+	}
+
 	trackedTimes, err := issues_model.GetTrackedTimes(ctx, opts)
 	if err != nil {
 		ctx.APIErrorInternal(err)
@@ -559,7 +571,7 @@ func ListTrackedTimesByRepository(ctx *context.APIContext) {
 		return
 	}
 
-	ctx.SetTotalCountHeader(int64(len(trackedTimes)))
+	ctx.SetTotalCountHeader(count)
 	ctx.JSON(http.StatusOK, convert.ToTrackedTimeList(ctx, ctx.Doer, trackedTimes))
 }
 
@@ -604,6 +616,12 @@ func ListMyTrackedTimes(ctx *context.APIContext) {
 		return
 	}
 
+	count, err := issues_model.CountTrackedTimes(ctx, opts)
+	if err != nil {
+		ctx.APIErrorInternal(err)
+		return
+	}
+
 	trackedTimes, err := issues_model.GetTrackedTimes(ctx, opts)
 	if err != nil {
 		ctx.APIErrorInternal(err)
@@ -620,6 +638,6 @@ func ListMyTrackedTimes(ctx *context.APIContext) {
 		return
 	}
 
-	ctx.SetTotalCountHeader(int64(len(trackedTimes)))
+	ctx.SetTotalCountHeader(count)
 	ctx.JSON(http.StatusOK, convert.ToTrackedTimeList(ctx, ctx.Doer, trackedTimes))
 }
