@@ -584,6 +584,18 @@ func repoAssignmentPrepareRepo(ctx *Context, data *repoAssignmentPrepareDataStru
 	data.repo = repo
 }
 
+// cloneButtonsShow decides which repository clone protocol buttons are shown in
+// the UI. A protocol that the admin disabled is never shown, so the UI does not
+// advertise a clone URL that would be rejected: DISABLE_HTTP_GIT hides HTTPS, and
+// SSH is only shown when enabled and either the viewer is signed in or anonymous
+// SSH URLs are exposed. When both protocols are unavailable to the viewer neither
+// button is shown (see issue #38339).
+func cloneButtonsShow(isSigned bool) (showHTTPS, showSSH bool) {
+	showHTTPS = !setting.Repository.DisableHTTPGit
+	showSSH = !setting.SSH.Disabled && (isSigned || setting.SSH.ExposeAnonymous)
+	return showHTTPS, showSSH
+}
+
 func repoAssignmentPrepareTemplateData(ctx *Context, data *repoAssignmentPrepareDataStruct) {
 	repo := data.repo
 	ctx.Repo.RepoLink = repo.Link()
@@ -645,12 +657,7 @@ func repoAssignmentPrepareTemplateData(ctx *Context, data *repoAssignmentPrepare
 
 	ctx.Data["RepoCloneLink"] = repo.CloneLink(ctx, ctx.Doer)
 
-	cloneButtonShowHTTPS := !setting.Repository.DisableHTTPGit
-	cloneButtonShowSSH := !setting.SSH.Disabled && (ctx.IsSigned || setting.SSH.ExposeAnonymous)
-	if !cloneButtonShowHTTPS && !cloneButtonShowSSH {
-		// We have to show at least one link, so we just show the HTTPS
-		cloneButtonShowHTTPS = true
-	}
+	cloneButtonShowHTTPS, cloneButtonShowSSH := cloneButtonsShow(ctx.IsSigned)
 	ctx.Data["CloneButtonShowHTTPS"] = cloneButtonShowHTTPS
 	ctx.Data["CloneButtonShowSSH"] = cloneButtonShowSSH
 	ctx.Data["CloneButtonOriginLink"] = ctx.Data["RepoCloneLink"] // it may be rewritten to the WikiCloneLink by the router middleware
