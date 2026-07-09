@@ -34,7 +34,7 @@
 			</div>
 			<div class="comment-header-right">
 				{{if .Invalidated}}
-					{{$referenceUrl := printf "%s#%s" $.root.Issue.Link .HashTag}}
+					{{$referenceUrl := printf "%s#%s" (if $.root.Issue $.root.Issue.Link (printf "%s/commit/%s" $.root.RepoLink $.root.AfterCommitID)) .HashTag}}
 					<a href="{{$referenceUrl}}" class="ui label basic small" data-tooltip-content="{{ctx.Locale.Tr "repo.issues.review.outdated_description"}}">
 						{{ctx.Locale.Tr "repo.issues.review.outdated"}}
 					</a>

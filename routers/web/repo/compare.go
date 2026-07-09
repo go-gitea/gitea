@@ -821,6 +821,22 @@ func ExcerptBlob(ctx *context.Context) {
 				}
 			}
 		}
+	} else if diffBlobExcerptData.AfterCommitID != "" {
+		ctx.Data["PageIsCommitFiles"] = true
+		ctx.Data["AfterCommitID"] = diffBlobExcerptData.AfterCommitID
+		ctx.Data["CanBlockUser"] = func(blocker, blockee *user_model.User) bool {
+			return false // No-op for now unless user_service is imported and reachable
+		}
+
+		allComments, err := issues_model.FetchCommitCodeComments(ctx, ctx.Repo.Repository, diffBlobExcerptData.AfterCommitID)
+		if err != nil {
+			log.Error("FetchCommitCodeComments error: %v", err)
+		} else {
+			if lineComments, ok := allComments[filePath]; ok {
+				attachCommentsToLines(section, lineComments)
+				attachHiddenCommentIDs(section, lineComments)
+			}
+		}
 	}
 
 	ctx.Data["section"] = section

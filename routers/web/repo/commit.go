@@ -30,8 +30,11 @@ import (
 	"gitea.dev/modules/setting"
 	"gitea.dev/modules/templates"
 	"gitea.dev/modules/util"
+	"gitea.dev/modules/web"
 	asymkey_service "gitea.dev/services/asymkey"
 	"gitea.dev/services/context"
+	"gitea.dev/services/context/upload"
+	"gitea.dev/services/forms"
 	git_service "gitea.dev/services/git"
 	"gitea.dev/services/gitdiff"
 	repo_service "gitea.dev/services/repository"
@@ -334,6 +337,11 @@ func Diff(ctx *context.Context) {
 		ctx.NotFound(err)
 		return
 	}
+
+	if err := diff.LoadCommitComments(ctx, ctx.Repo.Repository, commitID); err != nil {
+		log.Error("LoadCommitComments failed: %v", err)
+	}
+
 	diffShortStat, err := gitdiff.GetDiffShortStat(ctx, gitRepoStore, gitRepo, "", commitID)
 	if err != nil {
 		ctx.ServerError("GetDiffShortStat", err)
@@ -477,4 +485,100 @@ func processGitCommits(ctx *context.Context, gitCommits []*git.Commit) ([]*git_m
 		}
 	}
 	return commits, nil
+}
+
+// RenderNewCommitCodeCommentForm renders the form for creating a new commit comment
+func RenderNewCommitCodeCommentForm(ctx *context.Context) {
+	commitID := ctx.Params(":sha")
+	if len(commitID) != 40 {
+		ctx.NotFound(nil)
+		return
+	}
+
+	ctx.Data["PageIsCommitFiles"] = true
+	ctx.Data["AfterCommitID"] = commitID
+	ctx.Data["IsAttachmentEnabled"] = setting.Attachment.Enabled
+	upload.AddUploadContext(ctx, "comment")
+	ctx.HTML(http.StatusOK, "repo/diff/new_comment")
+}
+
+// CreateCommitCodeComment will create a code comment on a commit
+func CreateCommitCodeComment(ctx *context.Context) {
+	form := web.GetForm(ctx).(*forms.CodeCommentForm)
+	commitID := ctx.Params(":sha")
+	if len(commitID) != 40 {
+		ctx.NotFound(nil)
+		return
+	}
+
+	if ctx.HasError() {
+		ctx.Flash.Error(ctx.GetErrMsg())
+		ctx.Redirect(fmt.Sprintf("%s/commit/%s", ctx.Repo.RepoLink, commitID))
+		return
+	}
+
+	signedLine := form.Line
+	if form.Side == "previous" {
+		signedLine *= -1
+	}
+
+	var attachments []string
+	if setting.Attachment.Enabled {
+		attachments = form.Files
+	}
+
+	comment, err := repo_service.CreateCommitCodeComment(ctx,
+		ctx.Doer,
+		ctx.Repo.Repository,
+		ctx.Repo.GitRepo,
+		commitID,
+		signedLine,
+		form.Content,
+		form.TreePath,
+		attachments,
+	)
+	if err != nil {
+		ctx.ServerError("CreateCommitCodeComment", err)
+		return
+	}
+
+	if comment == nil {
+		ctx.Redirect(fmt.Sprintf("%s/commit/%s", ctx.Repo.RepoLink, commitID))
+		return
+	}
+
+	renderCommitConversation(ctx, comment, form.Origin)
+}
+
+func renderCommitConversation(ctx *context.Context, comment *issues_model.Comment, origin string) {
+	ctx.Data["PageIsCommitFiles"] = true
+
+	showOutdatedComments := origin == "timeline" || GetShowOutdatedComments(ctx)
+	comments, err := issues_model.FetchCommitCodeCommentsByLine(ctx, ctx.Repo.Repository, comment.CommitSHA, ctx.Doer, comment.TreePath, comment.Line, showOutdatedComments)
+	if err != nil {
+		ctx.ServerError("FetchCommitCodeCommentsByLine", err)
+		return
+	}
+	if len(comments) == 0 {
+		ctx.HTML(http.StatusOK, "repo/diff/conversation_outdated")
+		return
+	}
+
+	if err := comments.LoadAttachments(ctx); err != nil {
+		ctx.ServerError("LoadAttachments", err)
+		return
+	}
+
+	ctx.Data["IsAttachmentEnabled"] = setting.Attachment.Enabled
+	upload.AddUploadContext(ctx, "comment")
+
+	ctx.Data["comments"] = comments
+	ctx.Data["AfterCommitID"] = comment.CommitSHA
+
+	// Add missing bits that might be needed by the template
+	ctx.Data["CanBlockUser"] = func(blocker, blockee *user_model.User) bool {
+		return false // Or implement properly
+	}
+
+	ctx.HTML(http.StatusOK, "repo/diff/conversation")
 }

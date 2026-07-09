@@ -1640,3 +1640,31 @@ func GetWhitespaceFlag(whitespaceBehavior string) gitcmd.TrustedCmdArgs {
 	}
 	return nil
 }
+
+// LoadCommitComments loads comments into each line for a commit diff
+func (diff *Diff) LoadCommitComments(ctx context.Context, repo *repo_model.Repository, commitSHA string) error {
+	allComments, err := issues_model.FetchCommitCodeComments(ctx, repo, commitSHA)
+	if err != nil {
+		return err
+	}
+	for _, file := range diff.Files {
+		if lineCommits, ok := allComments[file.Name]; ok {
+			for _, section := range file.Sections {
+				for _, line := range section.Lines {
+					if comments, ok := lineCommits[int64(line.LeftIdx*-1)]; ok {
+						line.Comments = append(line.Comments, comments...)
+					}
+					if comments, ok := lineCommits[int64(line.RightIdx)]; ok {
+						line.Comments = append(line.Comments, comments...)
+					}
+					sort.SliceStable(line.Comments, func(i, j int) bool {
+						return line.Comments[i].CreatedUnix < line.Comments[j].CreatedUnix
+					})
+					// Mark expand buttons that have comments in hidden lines
+					FillHiddenCommentIDsForDiffLine(line, lineCommits)
+				}
+			}
+		}
+	}
+	return nil
+}
