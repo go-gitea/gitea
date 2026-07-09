@@ -20,7 +20,7 @@
 
 	<div class="clone-panel-field">
 		<div class="ui input tiny action">
-			<input size="30" class="repo-clone-url js-clone-url" value="{{if $.CloneButtonShowHTTPS}}{{$.CloneButtonOriginLink.HTTPS}}{{else if $.CloneButtonShowSSH}}{{$.CloneButtonOriginLink.SSH}}{{end}}" readonly>
+			<input size="30" class="repo-clone-url js-clone-url" value="{{if $.CloneButtonShowHTTPS}}{{$.CloneButtonOriginLink.HTTPS}}{{else if $.CloneButtonShowSSH}}{{$.CloneButtonOriginLink.SSH}}{{else}}{{$.CloneButtonOriginLink.Tea}}{{end}}" readonly>
 			<div class="ui small compact icon button" data-clipboard-target=".js-clone-url" data-tooltip-content="{{ctx.Locale.Tr "copy_url"}}">
 				{{svg "octicon-copy" 14}}
 			</div>
@@ -28,11 +28,14 @@
 	</div>
 
 	{{if not .PageIsWiki}}
+		{{if or $.CloneButtonShowHTTPS $.CloneButtonShowSSH}}
+		<!-- editors clone via a git URL, so only offer them when HTTPS/SSH is available (not for the Tea CLI command) -->
 		<div class="flex-items-block clone-panel-list">
 			{{range .OpenWithEditorApps}}
 			<a class="item muted js-clone-url-editor" data-href-template="{{.OpenURL}}">{{.IconHTML}}{{ctx.Locale.Tr "repo.open_with_editor" .DisplayName}}</a>
 			{{end}}
 		</div>
+		{{end}}
 
 		{{if and (not $.DisableDownloadSourceArchives) $.RefFullName}}
 		<div class="divider"></div>

@@ -57,20 +57,13 @@ function initCloneSchemeUrlSelection(parent: Element) {
   const tabHttps = parent.querySelector('.repo-clone-https');
   const tabSsh = parent.querySelector('.repo-clone-ssh');
   const tabTea = parent.querySelector('.repo-clone-tea');
+  // not every tab exists in every panel, eg: the admin may disable HTTP/SSH, and the empty repo page has no Tea CLI tab
+  const tabByScheme: Record<string, Element | null> = {https: tabHttps, ssh: tabSsh, tea: tabTea};
   const updateClonePanelUi = function() {
     let scheme = localUserSettings.getString('repo-clone-protocol');
-    if (!['https', 'ssh', 'tea'].includes(scheme)) {
-      scheme = 'https';
-    }
-
-    // Fallbacks if the scheme preference is not available in the tabs, for example: empty repo page, there are only HTTPS and SSH
-    if (scheme === 'tea' && !tabTea) {
-      scheme = 'https';
-    }
-    if (scheme === 'https' && !tabHttps) {
-      scheme = 'ssh';
-    } else if (scheme === 'ssh' && !tabSsh) {
-      scheme = 'https';
+    // fall back to the first available tab when the preferred scheme's tab is absent (unset preference, or disabled protocol)
+    if (!tabByScheme[scheme]) {
+      scheme = ['https', 'ssh', 'tea'].find((s) => tabByScheme[s]) ?? '';
     }
 
     const isHttps = scheme === 'https';
@@ -89,16 +82,8 @@ function initCloneSchemeUrlSelection(parent: Element) {
       tabTea.classList.toggle('active', isTea);
     }
 
-    let tab: Element | null = null;
-    if (isHttps) {
-      tab = tabHttps;
-    } else if (isSsh) {
-      tab = tabSsh;
-    } else if (isTea) {
-      tab = tabTea;
-    }
-
-    if (!tab) return;
+    const tab = tabByScheme[scheme];
+    if (!tab) return; // no protocol available at all, leave the (hidden) input untouched
     const link = tab.getAttribute('data-link')!;
 
     for (const el of document.querySelectorAll('.js-clone-url')) {
