@@ -23,6 +23,7 @@ import (
 	issues_model "gitea.dev/models/issues"
 	pull_model "gitea.dev/models/pull"
 	user_model "gitea.dev/models/user"
+	repo_model "gitea.dev/models/repo"
 	"gitea.dev/modules/analyze"
 	"gitea.dev/modules/base"
 	"gitea.dev/modules/charset"

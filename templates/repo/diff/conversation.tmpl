@@ -5,7 +5,10 @@
 	{{$resolveDoer := $comment.ResolveDoer}}
 	{{$hasReview := and $comment.Review}}
 	{{$isReviewPending := and $hasReview (eq $comment.Review.Type 0)}}
-	{{$referenceUrl := printf "%s#%s" (if $.Issue $.Issue.Link (printf "%s/commit/%s" $.RepoLink $.AfterCommitID)) $comment.HashTag}}
+	{{$referenceUrl := printf "%s/commit/%s#%s" $.RepoLink $.AfterCommitID $comment.HashTag}}
+	{{if $.Issue}}
+		{{$referenceUrl = printf "%s#%s" $.Issue.Link $comment.HashTag}}
+	{{end}}
 	<div class="conversation-holder" data-path="{{$comment.TreePath}}" data-side="{{if lt $comment.Line 0}}left{{else}}right{{end}}" data-idx="{{$comment.UnsignedLine}}">
 		{{if $resolved}}
 			<div class="resolved-placeholder">

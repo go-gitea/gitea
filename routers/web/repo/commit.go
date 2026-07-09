@@ -489,7 +489,7 @@ func processGitCommits(ctx *context.Context, gitCommits []*git.Commit) ([]*git_m
 
 // RenderNewCommitCodeCommentForm renders the form for creating a new commit comment
 func RenderNewCommitCodeCommentForm(ctx *context.Context) {
-	commitID := ctx.Params(":sha")
+	commitID := ctx.PathParam("sha")
 	if len(commitID) != 40 {
 		ctx.NotFound(nil)
 		return
@@ -505,7 +505,7 @@ func RenderNewCommitCodeCommentForm(ctx *context.Context) {
 // CreateCommitCodeComment will create a code comment on a commit
 func CreateCommitCodeComment(ctx *context.Context) {
 	form := web.GetForm(ctx).(*forms.CodeCommentForm)
-	commitID := ctx.Params(":sha")
+	commitID := ctx.PathParam("sha")
 	if len(commitID) != 40 {
 		ctx.NotFound(nil)
 		return

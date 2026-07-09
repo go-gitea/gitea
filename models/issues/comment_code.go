@@ -9,6 +9,7 @@ import (
 
 	"gitea.dev/models/db"
 	"gitea.dev/models/renderhelper"
+	repo_model "gitea.dev/models/repo"
 	user_model "gitea.dev/models/user"
 	"gitea.dev/modules/markup/markdown"
 
