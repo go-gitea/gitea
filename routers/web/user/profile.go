@@ -9,6 +9,7 @@ import (
 	"net/http"
 	"path"
 	"strings"
+	"time"
 
 	activities_model "gitea.dev/models/activities"
 	"gitea.dev/models/db"
@@ -188,6 +189,27 @@ func prepareUserProfileTabData(ctx *context.Context, profileDbRepo *repo_model.R
 		}
 		ctx.Data["Feeds"] = items
 		ctx.Data["Date"] = date
+
+		// when the user opted in to showing private contributions, tell viewers
+		// how many actions on that day they cannot see (count only, no details);
+		// the date must be valid, otherwise FeedDateCond silently skips the day
+		// filter and the count would cover all time; only render the placeholder
+		// on the last page so it appears once per day view
+		_, dateErr := time.ParseInLocation("2006-01-02", date, setting.DefaultUILocation)
+		lastPage := max(1, int((feedCount+int64(pagingNum)-1)/int64(pagingNum)))
+		isLastPage := page == lastPage
+		if dateErr == nil && isLastPage && !showPrivate && !ctx.ContextUser.IsOrganization() &&
+			ctx.ContextUser.ShowPrivateActivity &&
+			activities_model.ActivityReadable(ctx.ContextUser, ctx.Doer) {
+			totalOnDate, err := activities_model.CountUserActivitiesOnDate(ctx, ctx.ContextUser, date)
+			if err != nil {
+				ctx.ServerError("CountUserActivitiesOnDate", err)
+				return
+			}
+			if hidden := totalOnDate - feedCount; hidden > 0 {
+				ctx.Data["PrivateContributionsCount"] = hidden
+			}
+		}
 		curRows = len(items)
 		total = feedCount
 	case "stars":

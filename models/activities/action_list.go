@@ -8,12 +8,14 @@ import (
 	"errors"
 	"fmt"
 	"strconv"
+	"time"
 
 	"gitea.dev/models/db"
 	issues_model "gitea.dev/models/issues"
 	repo_model "gitea.dev/models/repo"
 	user_model "gitea.dev/models/user"
 	"gitea.dev/modules/container"
+	"gitea.dev/modules/setting"
 	"gitea.dev/modules/util"
 
 	"xorm.io/builder"
@@ -281,4 +283,20 @@ func GetFeeds(ctx context.Context, opts GetFeedsOptions) (ActionList, int64, err
 	}
 
 	return actions, count, nil
+}
+
+// CountUserActivitiesOnDate counts all actions performed by the user on the given
+// day (YYYY-MM-DD), regardless of viewer permissions. The condition deliberately
+// matches the heatmap owner condition (no is_private/is_deleted/repo-access
+// filters) so that within the heatmap's time window
+// heatmap(day) == visible_feed(day) + hidden_count(day) for any viewer.
+func CountUserActivitiesOnDate(ctx context.Context, user *user_model.User, date string) (int64, error) {
+	// an unparseable date must not fall through FeedDateCond's lenient handling,
+	// as the count would then silently cover all time
+	if _, err := time.ParseInLocation("2006-01-02", date, setting.DefaultUILocation); err != nil {
+		return 0, err
+	}
+	cond := builder.Eq{"user_id": user.ID, "act_user_id": user.ID}.
+		And(FeedDateCond(GetFeedsOptions{Date: date}))
+	return db.GetEngine(ctx).Table("action").Where(cond).Count()
 }

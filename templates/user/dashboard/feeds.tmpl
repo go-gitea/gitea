@@ -126,5 +126,15 @@
 			</div>
 		</div>
 	{{end}}
+	{{if .PrivateContributionsCount}}
+		<div class="item">
+			<div class="item-main tw-gap-2">
+				<div>{{ctx.Locale.TrN .PrivateContributionsCount "user.activity.private_contributions_1" "user.activity.private_contributions_n" .PrivateContributionsCount}}</div>
+			</div>
+			<div class="item-trailing">
+				{{svg "octicon-lock" 32 "tw-text-text-light tw-mr-1"}}
+			</div>
+		</div>
+	{{end}}
 	{{template "base/paginate" .}}
 </div>

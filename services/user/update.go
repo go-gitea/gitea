@@ -47,6 +47,7 @@ type UpdateOptions struct {
 	IsRestricted                 optional.Option[bool]
 	Visibility                   optional.Option[structs.VisibleType]
 	KeepActivityPrivate          optional.Option[bool]
+	ShowPrivateActivity          optional.Option[bool]
 	Language                     optional.Option[string]
 	Theme                        optional.Option[string]
 	DiffViewStyle                optional.Option[string]
@@ -157,6 +158,11 @@ func UpdateUser(ctx context.Context, u *user_model.User, opts *UpdateOptions) er
 		u.KeepActivityPrivate = opts.KeepActivityPrivate.Value()
 
 		cols = append(cols, "keep_activity_private")
+	}
+	if opts.ShowPrivateActivity.Has() {
+		u.ShowPrivateActivity = opts.ShowPrivateActivity.Value()
+
+		cols = append(cols, "show_private_activity")
 	}
 
 	if opts.AllowCreateOrganization.Has() {

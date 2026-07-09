@@ -11,6 +11,8 @@ import (
 	user_model "gitea.dev/models/user"
 	"gitea.dev/modules/setting"
 	"gitea.dev/modules/timeutil"
+
+	"xorm.io/builder"
 )
 
 // UserHeatmapData represents the data needed to create a heatmap
@@ -47,19 +49,30 @@ func getUserHeatmapData(ctx context.Context, user *user_model.User, team *organi
 		groupByName = groupBy
 	}
 
-	cond, err := ActivityQueryCondition(ctx, GetFeedsOptions{
-		RequestedUser:  user,
-		RequestedTeam:  team,
-		Actor:          doer,
-		IncludePrivate: true, // don't filter by private, as we already filter by repo access
-		IncludeDeleted: true,
-		// * Heatmaps for individual users only include actions that the user themself did.
-		// * For organizations actions by all users that were made in owned
-		//   repositories are counted.
-		OnlyPerformedBy: !user.IsOrganization(),
-	})
-	if err != nil {
-		return nil, err
+	var cond builder.Cond
+	if !user.IsOrganization() && user.ShowPrivateActivity && user_model.IsUserVisibleToViewer(ctx, user, doer) {
+		// the user opted in to counting private contributions publicly, so skip
+		// the repo-access filtering and count all their own actions (same shape
+		// as the owner fast path in GetFeeds); ActivityReadable is checked above,
+		// and the visibility check keeps limited/private profiles hidden from
+		// viewers who cannot see the profile at all
+		cond = builder.Eq{"user_id": user.ID, "act_user_id": user.ID}
+	} else {
+		var err error
+		cond, err = ActivityQueryCondition(ctx, GetFeedsOptions{
+			RequestedUser:  user,
+			RequestedTeam:  team,
+			Actor:          doer,
+			IncludePrivate: true, // don't filter by private, as we already filter by repo access
+			IncludeDeleted: true,
+			// * Heatmaps for individual users only include actions that the user themself did.
+			// * For organizations actions by all users that were made in owned
+			//   repositories are counted.
+			OnlyPerformedBy: !user.IsOrganization(),
+		})
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	// HINT: USER-ACTIVITY-PUSH-COMMITS: it only uses the doer's action time, it doesn't use git commit's time
