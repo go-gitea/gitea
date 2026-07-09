@@ -53,20 +53,19 @@
   flex: 0 0 280px;
 }
 
-.run-list-ref {
-  display: inline-block !important;
-  max-width: 105px;
+.ui.label.run-list-ref {
+  display: inline-block;
+  max-width: 110px;
 }
 
 @media (max-width: 767.98px) {
   .run-list-item-trailing {
     flex-direction: column;
     align-items: flex-end;
-    width: auto;
-    flex-basis: auto;
+    max-width: 30%;
+    flex: 0 0 30%;
   }
-  .run-list-item-right,
-  .run-list-ref {
+  .run-list-item-right {
     max-width: 110px;
   }
 }
