@@ -35,7 +35,7 @@ type detectResult int
 const (
 	detectMatched       detectResult = iota // event matched; run normally
 	detectNotApplicable                     // event/type doesn't apply; create nothing
-	detectFilteredOut                       // matched but excluded by a branch/paths filter; emits a skipped commit status
+	detectFilteredOut                       // matched but excluded by a branch/paths filter; posts a skipped commit status when the context is a required check
 )
 
 func init() {
