@@ -8,8 +8,11 @@ package git
 
 import (
 	"context"
+	"os"
 	"path/filepath"
+	"strings"
 
+	"gitea.dev/modules/git/gitcmd"
 	gitealog "gitea.dev/modules/log"
 	"gitea.dev/modules/setting"
 	"gitea.dev/modules/util"
@@ -53,13 +56,20 @@ func OpenRepository(ctx context.Context, repoPath string) (*Repository, error) {
 	}
 
 	fs := osfs.New(repoPath)
-	_, err = fs.Stat(".git")
-	if err == nil {
+	gitDirPath := repoPath
+	if _, err = fs.Stat(".git"); err == nil {
+		gitDirPath = filepath.Join(repoPath, ".git")
 		fs, err = fs.Chroot(".git")
 		if err != nil {
 			return nil, err
 		}
 	}
+
+	// Regenerate any orphan packfile index before go-git tries to read it, otherwise a single
+	// pack without its ".idx" makes the whole repository unreadable with "packfile not found".
+	// This happens on Windows (issue #38359): the gogit storage keeps ".pack" descriptors open,
+	// so git's repack cleanup can delete the ".idx" while failing to unlink the locked ".pack".
+	repairOrphanPackIndexes(ctx, gitDirPath)
 	// the "clone --shared" repo doesn't work well with go-git AlternativeFS, https://github.com/go-git/go-git/issues/1006
 	// so use "/" for AlternatesFS, I guess it is the same behavior as current nogogit (no limitation or check for the "objects/info/alternates" paths), trust the "clone" command executed by the server.
 	var altFs billy.Filesystem
@@ -101,4 +111,31 @@ func (repo *Repository) Close() error {
 // GoGitRepo gets the go-git repo representation
 func (repo *Repository) GoGitRepo() *gogit.Repository {
 	return repo.gogitRepo
+}
+
+// repairOrphanPackIndexes finds packfiles that lost their ".idx" and regenerates it with
+// "git index-pack". It is a no-op for healthy repositories (the common case) and never
+// returns an error: a repository that cannot be repaired is left for go-git to report.
+func repairOrphanPackIndexes(ctx context.Context, gitDirPath string) {
+	packDir := filepath.Join(gitDirPath, "objects", "pack")
+	entries, err := os.ReadDir(packDir)
+	if err != nil {
+		return // no pack dir (e.g. empty repo) or unreadable; nothing to repair
+	}
+	for _, entry := range entries {
+		name := entry.Name()
+		if entry.IsDir() || !strings.HasSuffix(name, ".pack") {
+			continue
+		}
+		idxPath := filepath.Join(packDir, strings.TrimSuffix(name, ".pack")+".idx")
+		if _, err = os.Stat(idxPath); err == nil || !os.IsNotExist(err) {
+			continue // index present, or an unexpected stat error we should not act on
+		}
+		packPath := filepath.Join(packDir, name)
+		if err = gitcmd.NewCommand("index-pack").AddDynamicArguments(packPath).WithDir(gitDirPath).Run(ctx); err != nil {
+			gitealog.Error("Failed to regenerate missing index for orphan packfile %q: %v", packPath, err)
+		} else {
+			gitealog.Warn("Regenerated missing index for orphan packfile %q", packPath)
+		}
+	}
 }
