@@ -254,22 +254,23 @@ func BatchHandler(ctx *context.Context) {
 
 		var responseObject *lfs_module.ObjectResponse
 		if isUpload {
-			var err *lfs_module.ObjectError
-			if !exists && setting.LFS.MaxFileSize > 0 && p.Size > setting.LFS.MaxFileSize {
-				err = &lfs_module.ObjectError{
-					Code:    http.StatusUnprocessableEntity,
-					Message: fmt.Sprintf("Size must be less than or equal to %d", setting.LFS.MaxFileSize),
-				}
-			}
-
 			if exists && meta == nil {
 				// The object exists in the content store but is not linked to this
 				// repo. Do not auto-link it based on cross-repo access: the token
 				// only authorizes this repo, and for deploy keys ctx.Doer is the
 				// repo owner, so trusting it here would let a single-repo key pull
 				// objects from any repo the owner can see. Require proof of
-				// possession by making the client upload the (hash-verified) bytes.
+				// possession by making the client upload the (hash-verified) bytes,
+				// and treat it as a new upload for size-limit enforcement below.
 				exists = false
+			}
+
+			var err *lfs_module.ObjectError
+			if !exists && setting.LFS.MaxFileSize > 0 && p.Size > setting.LFS.MaxFileSize {
+				err = &lfs_module.ObjectError{
+					Code:    http.StatusUnprocessableEntity,
+					Message: fmt.Sprintf("Size must be less than or equal to %d", setting.LFS.MaxFileSize),
+				}
 			}
 
 			responseObject = buildObjectResponse(rc, p, false, !exists, err)
