@@ -35,7 +35,8 @@ test('pdf file', async ({page, request}) => {
   await page.goto(`/${owner}/${repoName}/src/branch/main/test.pdf`);
   const container = page.locator('.file-view-render-container');
   await expect(container).toHaveAttribute('data-render-name', 'pdf-viewer');
-  expect((await container.boundingBox())!.height).toBeGreaterThan(300);
+  // the attribute is set before the plugin's async render completes, so poll until the height is applied
+  await expect.poll(async () => (await container.boundingBox())!.height).toBeGreaterThan(300);
   await assertFlushWithParent(container, page.locator('.file-view'));
 });
 
