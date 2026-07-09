@@ -43,7 +43,7 @@
   align-items: center;
 }
 
-.run-list .item-trailing {
+.run-list.items-with-main > .item .item-trailing {
   flex-wrap: nowrap;
   width: 280px;
   flex: 0 0 280px;
@@ -55,7 +55,7 @@
 }
 
 @media (max-width: 767.98px) {
-  .run-list .item-trailing {
+  .run-list.items-with-main > .item .item-trailing {
     flex-direction: column;
     align-items: flex-end;
     width: auto;
