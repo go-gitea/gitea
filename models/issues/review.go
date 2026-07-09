@@ -364,7 +364,7 @@ func RecalculateReviewsOfficial(ctx context.Context, issue *Issue) error {
 			return err
 		}
 		if official {
-			if _, err := db.Exec(ctx, "UPDATE `review` SET official=? WHERE id=?", true, review.ID); err != nil {
+			if _, err := db.GetEngine(ctx).ID(review.ID).Cols("official").Update(&Review{Official: true}); err != nil {
 				return err
 			}
 		}
