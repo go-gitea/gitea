@@ -7,15 +7,46 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"sync"
 
 	runnerv1 "gitea.dev/actions-proto-go/runner/v1"
 	actions_model "gitea.dev/models/actions"
 	"gitea.dev/models/db"
 	secret_model "gitea.dev/models/secret"
 	"gitea.dev/modules/log"
+	"gitea.dev/modules/setting"
 
 	"google.golang.org/protobuf/types/known/structpb"
 )
+
+var (
+	taskPickSem     chan struct{}
+	taskPickSemOnce sync.Once
+)
+
+func taskPickLimiter() chan struct{} {
+	taskPickSemOnce.Do(func() {
+		taskPickSem = make(chan struct{}, setting.Actions.MaxConcurrentTaskPicks)
+	})
+	return taskPickSem
+}
+
+// TryPickTask attempts to assign a task to the runner, bounding the number of
+// concurrent assignment transactions to avoid a thundering herd when many
+// runners poll at once. When the concurrency limit is reached it returns
+// throttled=true without touching the DB, so the caller can let the runner
+// retry on its next poll instead of advancing its tasks version.
+func TryPickTask(ctx context.Context, runner *actions_model.ActionRunner) (task *runnerv1.Task, ok, throttled bool, err error) {
+	sem := taskPickLimiter()
+	select {
+	case sem <- struct{}{}:
+		defer func() { <-sem }()
+	default:
+		return nil, false, true, nil
+	}
+	task, ok, err = PickTask(ctx, runner)
+	return task, ok, false, err
+}
 
 func PickTask(ctx context.Context, runner *actions_model.ActionRunner) (*runnerv1.Task, bool, error) {
 	var (
@@ -74,6 +105,15 @@ func PickTask(ctx context.Context, runner *actions_model.ActionRunner) (*runnerv
 	// so Started is zero only on the very first pick-up of that run.
 	if job.Run.Started.IsZero() {
 		NotifyWorkflowRunStatusUpdateWithReload(ctx, job.RepoID, job.RunID)
+	}
+
+	// The job is claimed and its payload assembled, but if the request context was cancelled meanwhile, response can no longer reach the runner.
+	// Release the claim so another runner can pick the job up.
+	if err := ctx.Err(); err != nil {
+		if relErr := actions_model.ReleaseTaskForRunner(ctx, t); relErr != nil {
+			log.Error("ReleaseTaskForRunner [task_id: %d]: %v", t.ID, relErr)
+		}
+		return nil, false, err
 	}
 
 	return task, true, nil
