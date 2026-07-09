@@ -22,6 +22,9 @@ type StarredReposOptions struct {
 	StarrerID      int64
 	RepoOwnerID    int64
 	IncludePrivate bool
+	// Actor is the user the private repositories are gated on: a private repo is only
+	// returned when Actor still has access to it, even if it was starred while access was granted.
+	Actor *user_model.User
 }
 
 func (opts *StarredReposOptions) ApplyPublicOnly(publicOnly bool) {
@@ -39,7 +42,10 @@ func (opts *StarredReposOptions) ToConds() builder.Cond {
 			"repository.owner_id": opts.RepoOwnerID,
 		})
 	}
-	if !opts.IncludePrivate {
+	if opts.IncludePrivate {
+		// only include private repos the actor can still access, so metadata does not leak after access revocation
+		cond = cond.And(AccessibleRepositoryCondition(opts.Actor, unit.TypeInvalid))
+	} else {
 		cond = cond.And(builder.Eq{
 			"repository.is_private": false,
 		})
@@ -66,6 +72,9 @@ type WatchedReposOptions struct {
 	WatcherID      int64
 	RepoOwnerID    int64
 	IncludePrivate bool
+	// Actor is the user the private repositories are gated on: a private repo is only
+	// returned when Actor still has access to it, even if it was watched while access was granted.
+	Actor *user_model.User
 }
 
 func (opts *WatchedReposOptions) ApplyPublicOnly(publicOnly bool) {
@@ -83,7 +92,10 @@ func (opts *WatchedReposOptions) ToConds() builder.Cond {
 			"repository.owner_id": opts.RepoOwnerID,
 		})
 	}
-	if !opts.IncludePrivate {
+	if opts.IncludePrivate {
+		// only include private repos the actor can still access, so metadata does not leak after access revocation
+		cond = cond.And(AccessibleRepositoryCondition(opts.Actor, unit.TypeInvalid))
+	} else {
 		cond = cond.And(builder.Eq{
 			"repository.is_private": false,
 		})
