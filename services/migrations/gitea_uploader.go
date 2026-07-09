@@ -56,7 +56,7 @@ type GiteaLocalUploader struct {
 	gitServiceType structs.GitServiceType
 }
 
-// NewGiteaLocalUploader creates an gitea Uploader via gitea API v1
+// NewGiteaLocalUploader creates a gitea Uploader via gitea API v1
 func NewGiteaLocalUploader(_ context.Context, doer *user_model.User, repoOwner, repoName string) *GiteaLocalUploader {
 	return &GiteaLocalUploader{
 		doer:        doer,
