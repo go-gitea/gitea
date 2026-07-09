@@ -36,11 +36,11 @@ import (
 	"gitea.com/gitea/runner/act/model"
 )
 
-// ListActionsSecrets list an repo's actions secrets
+// ListActionsSecrets list a repo's actions secrets
 func (Action) ListActionsSecrets(ctx *context.APIContext) {
 	// swagger:operation GET /repos/{owner}/{repo}/actions/secrets repository repoListActionsSecrets
 	// ---
-	// summary: List an repo's actions secrets
+	// summary: List a repo's actions secrets
 	// produces:
 	// - application/json
 	// parameters:

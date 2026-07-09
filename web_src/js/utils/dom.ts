@@ -341,49 +341,50 @@ export function generateElemId(prefix: string = ''): string {
 }
 
 export type ActivePageTimerOptions = {
-  once: boolean;
+  once?: boolean;
+  interval: () => number; // if it returns 0, the timer is stopped
+  callback: () => Promise<void>;
 };
 
 export class ActivePageTimer {
-  callback?: () => Promise<void>;
-
-  private readonly interval: number;
   private readonly opts: ActivePageTimerOptions;
   private readonly onVisibilityChange: () => void;
 
   private sysTimerId?: number;
   private startTime?: number;
 
-  constructor(interval: number, opts: ActivePageTimerOptions = {once: false}) {
-    this.interval = interval;
+  constructor(opts: ActivePageTimerOptions) {
     this.opts = opts;
     this.onVisibilityChange = () => {
       if (!this.startTime) return;
+      const interval = this.opts.interval();
       if (document.hidden) {
         this.clearSysTimer();
-      } else {
-        this.startSysTimer();
+      } else if (interval) {
+        this.startSysTimer(interval);
       }
     };
   }
 
   private async handler() {
     this.clear();
-    await this.callback!();
+    await this.opts.callback();
     if (!this.opts.once) this.start();
   }
 
   start() {
+    const interval = this.opts.interval();
+    if (!interval) return;
     if (this.sysTimerId) return;
     if (!this.startTime) {
       this.startTime = Date.now();
       document.addEventListener('visibilitychange', this.onVisibilityChange);
     }
-    if (!document.hidden) this.startSysTimer();
+    if (!document.hidden) this.startSysTimer(interval);
   }
 
-  private startSysTimer() {
-    const remaining = this.interval - (Date.now() - this.startTime!);
+  private startSysTimer(interval: number) {
+    const remaining = interval - (Date.now() - this.startTime!);
     if (remaining <= 0) {
       this.handler();
     } else {
@@ -392,15 +393,21 @@ export class ActivePageTimer {
   }
 
   private clearSysTimer() {
-    if (this.sysTimerId === undefined) return;
+    if (!this.sysTimerId) return;
     window.clearTimeout(this.sysTimerId);
     this.sysTimerId = undefined;
   }
 
   clear() {
-    if (this.startTime === undefined) return;
+    if (!this.startTime) return;
     this.startTime = undefined;
     this.clearSysTimer();
     document.removeEventListener('visibilitychange', this.onVisibilityChange);
   }
+}
+
+export function activePageTimerRefresh(opts: ActivePageTimerOptions): ActivePageTimer {
+  const timer = new ActivePageTimer(opts);
+  timer.start();
+  return timer;
 }
