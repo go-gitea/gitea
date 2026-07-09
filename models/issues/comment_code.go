@@ -20,21 +20,20 @@ type CodeComments map[string]map[int64][]*Comment
 
 // FetchCodeComments will return a 2d-map: ["Path"]["Line"] = Comments at line
 func FetchCodeComments(ctx context.Context, issue *Issue, currentUser *user_model.User, showOutdatedComments bool) (CodeComments, error) {
-	return fetchCodeCommentsByReview(ctx, issue, currentUser, nil, showOutdatedComments)
+	return fetchCodeCommentsByReview(ctx, issue.Repo, issue, currentUser, nil, showOutdatedComments)
 }
 
-func fetchCodeCommentsByReview(ctx context.Context, issue *Issue, currentUser *user_model.User, review *Review, showOutdatedComments bool) (CodeComments, error) {
+// FetchCommitCodeComments will return a 2d-map: ["Path"]["Line"] = Comments at line for a commit
+func FetchCommitCodeComments(ctx context.Context, repo *repo_model.Repository, commitSHA string) (CodeComments, error) {
 	pathToLineToComment := make(CodeComments)
-	if review == nil {
-		review = &Review{ID: 0}
-	}
 	opts := FindCommentsOptions{
-		Type:     CommentTypeCode,
-		IssueID:  issue.ID,
-		ReviewID: review.ID,
+		Type:      CommentTypeCode,
+		RepoID:    repo.ID,
+		CommitSHA: commitSHA,
+		IssueID:   0, // No issue for commit comments
 	}
 
-	comments, err := findCodeComments(ctx, opts, issue, currentUser, review, showOutdatedComments)
+	comments, err := findCodeComments(ctx, opts, repo, nil, nil, nil, true)
 	if err != nil {
 		return nil, err
 	}
@@ -48,7 +47,32 @@ func fetchCodeCommentsByReview(ctx context.Context, issue *Issue, currentUser *u
 	return pathToLineToComment, nil
 }
 
-func findCodeComments(ctx context.Context, opts FindCommentsOptions, issue *Issue, currentUser *user_model.User, review *Review, showOutdatedComments bool) ([]*Comment, error) {
+func fetchCodeCommentsByReview(ctx context.Context, repo *repo_model.Repository, issue *Issue, currentUser *user_model.User, review *Review, showOutdatedComments bool) (CodeComments, error) {
+	pathToLineToComment := make(CodeComments)
+	if review == nil {
+		review = &Review{ID: 0}
+	}
+	opts := FindCommentsOptions{
+		Type:     CommentTypeCode,
+		IssueID:  issue.ID,
+		ReviewID: review.ID,
+	}
+
+	comments, err := findCodeComments(ctx, opts, repo, issue, currentUser, review, showOutdatedComments)
+	if err != nil {
+		return nil, err
+	}
+
+	for _, comment := range comments {
+		if pathToLineToComment[comment.TreePath] == nil {
+			pathToLineToComment[comment.TreePath] = make(map[int64][]*Comment)
+		}
+		pathToLineToComment[comment.TreePath][comment.Line] = append(pathToLineToComment[comment.TreePath][comment.Line], comment)
+	}
+	return pathToLineToComment, nil
+}
+
+func findCodeComments(ctx context.Context, opts FindCommentsOptions, repo *repo_model.Repository, issue *Issue, currentUser *user_model.User, review *Review, showOutdatedComments bool) ([]*Comment, error) {
 	var comments CommentList
 	if review == nil {
 		review = &Review{ID: 0}
@@ -67,8 +91,11 @@ func findCodeComments(ctx context.Context, opts FindCommentsOptions, issue *Issu
 		return nil, err
 	}
 
-	if err := issue.LoadRepo(ctx); err != nil {
-		return nil, err
+	if issue != nil {
+		if err := issue.LoadRepo(ctx); err != nil {
+			return nil, err
+		}
+		repo = issue.Repo
 	}
 
 	if err := comments.LoadPosters(ctx); err != nil {
@@ -83,7 +110,7 @@ func findCodeComments(ctx context.Context, opts FindCommentsOptions, issue *Issu
 		return nil, err
 	}
 
-	if err := comments.loadReactions(ctx, issue.Repo); err != nil {
+	if err := comments.loadReactions(ctx, repo); err != nil {
 		return nil, err
 	}
 
@@ -116,7 +143,7 @@ func findCodeComments(ctx context.Context, opts FindCommentsOptions, issue *Issu
 		n++
 
 		var err error
-		rctx := renderhelper.NewRenderContextRepoComment(ctx, issue.Repo, renderhelper.RepoCommentOptions{
+		rctx := renderhelper.NewRenderContextRepoComment(ctx, repo, renderhelper.RepoCommentOptions{
 			FootnoteContextID: strconv.FormatInt(comment.ID, 10),
 		})
 		if comment.RenderedContent, err = markdown.RenderString(rctx, comment.Content); err != nil {
@@ -134,5 +161,17 @@ func FetchCodeCommentsByLine(ctx context.Context, issue *Issue, currentUser *use
 		TreePath: treePath,
 		Line:     line,
 	}
-	return findCodeComments(ctx, opts, issue, currentUser, nil, showOutdatedComments)
+	return findCodeComments(ctx, opts, issue.Repo, issue, currentUser, nil, showOutdatedComments)
+}
+
+// FetchCommitCodeCommentsByLine fetches the code comments for a given treePath and line number for a commit
+func FetchCommitCodeCommentsByLine(ctx context.Context, repo *repo_model.Repository, commitSHA string, currentUser *user_model.User, treePath string, line int64, showOutdatedComments bool) (CommentList, error) {
+	opts := FindCommentsOptions{
+		Type:      CommentTypeCode,
+		RepoID:    repo.ID,
+		CommitSHA: commitSHA,
+		TreePath:  treePath,
+		Line:      line,
+	}
+	return findCodeComments(ctx, opts, repo, nil, currentUser, nil, showOutdatedComments)
 }

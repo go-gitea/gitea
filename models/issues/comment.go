@@ -837,11 +837,16 @@ func CreateComment(ctx context.Context, opts *CreateCommentOptions) (_ *Comment,
 			}
 		}
 
+		var issueID int64
+		if opts.Issue != nil {
+			issueID = opts.Issue.ID
+		}
+
 		comment := &Comment{
 			Type:             opts.Type,
 			PosterID:         opts.Doer.ID,
 			Poster:           opts.Doer,
-			IssueID:          opts.Issue.ID,
+			IssueID:          issueID,
 			LabelID:          LabelID,
 			OldMilestoneID:   opts.OldMilestoneID,
 			MilestoneID:      opts.MilestoneID,
@@ -910,8 +915,10 @@ func updateCommentInfos(ctx context.Context, opts *CreateCommentOptions, comment
 		}
 		fallthrough
 	case CommentTypeComment:
-		if err := UpdateIssueNumComments(ctx, opts.Issue.ID); err != nil {
-			return err
+		if opts.Issue != nil {
+			if err := UpdateIssueNumComments(ctx, opts.Issue.ID); err != nil {
+				return err
+			}
 		}
 		fallthrough
 	case CommentTypeReview:
@@ -921,7 +928,10 @@ func updateCommentInfos(ctx context.Context, opts *CreateCommentOptions, comment
 		// comment type reopen and close event have their own logic to update numbers but not here
 	}
 	// update the issue's updated_unix column
-	return UpdateIssueCols(ctx, opts.Issue, "updated_unix")
+	if opts.Issue != nil {
+		return UpdateIssueCols(ctx, opts.Issue, "updated_unix")
+	}
+	return nil
 }
 
 func createDeadlineComment(ctx context.Context, doer *user_model.User, issue *Issue, newDeadlineUnix timeutil.TimeStamp) (*Comment, error) {
@@ -1073,6 +1083,7 @@ type FindCommentsOptions struct {
 	TreePath    string
 	Type        CommentType
 	IssueIDs    []int64
+	CommitSHA   string
 	Invalidated optional.Option[bool]
 	IsPull      optional.Option[bool]
 }
@@ -1105,6 +1116,9 @@ func (opts FindCommentsOptions) ToConds() builder.Cond {
 	}
 	if len(opts.TreePath) > 0 {
 		cond = cond.And(builder.Eq{"comment.tree_path": opts.TreePath})
+	}
+	if len(opts.CommitSHA) > 0 {
+		cond = cond.And(builder.Eq{"comment.commit_sha": opts.CommitSHA})
 	}
 	if opts.Invalidated.Has() {
 		cond = cond.And(builder.Eq{"comment.invalidated": opts.Invalidated.Value()})
