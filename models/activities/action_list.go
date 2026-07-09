@@ -8,12 +8,15 @@ import (
 	"errors"
 	"fmt"
 	"strconv"
+	"time"
 
 	"gitea.dev/models/db"
 	issues_model "gitea.dev/models/issues"
 	repo_model "gitea.dev/models/repo"
 	user_model "gitea.dev/models/user"
 	"gitea.dev/modules/container"
+	"gitea.dev/modules/setting"
+	"gitea.dev/modules/timeutil"
 	"gitea.dev/modules/util"
 
 	"xorm.io/builder"
@@ -283,26 +286,76 @@ func GetFeeds(ctx context.Context, opts GetFeedsOptions) (ActionList, int64, err
 	return actions, count, nil
 }
 
-// CountHiddenUserActivities counts the requested user's own actions that the actor
-// cannot see within the time span covered by the given feed page. Page spans
-// partition the timeline so per-page counts sum up to the feed-wide total: the
-// upper bound is the oldest visible action of the previous page (none on the first
-// page), the lower bound is the oldest visible action on this page (none on the
-// last page, so older hidden actions surface there). opts must be the options the
-// visible page was fetched with, pageActions the actions it returned.
-func CountHiddenUserActivities(ctx context.Context, opts GetFeedsOptions, pageActions ActionList) (int64, error) {
-	if opts.RequestedUser == nil || opts.PageSize <= 0 {
-		return 0, errors.New("need RequestedUser and a positive PageSize")
+// HiddenActivityRollup is the per-day count of a user's actions that the viewer
+// cannot see. Time is the day's midnight (server timezone) so the rollup sorts
+// below the day's visible actions; DisplayTime is the day's noon, which keeps
+// browser-local date rendering on the right day for viewers within 12h of the
+// server timezone while revealing nothing beyond the day itself.
+type HiddenActivityRollup struct {
+	Time        timeutil.TimeStamp
+	DisplayTime timeutil.TimeStamp
+	Count       int64
+}
+
+// dayStartOf returns the start of ts's day in the server timezone; when a DST
+// transition removes midnight, the day starts right after the gap instead of
+// resolving into the previous day
+func dayStartOf(ts timeutil.TimeStamp) timeutil.TimeStamp {
+	day := ts.FormatInLocation("2006-01-02", setting.DefaultUILocation)
+	tt := ts.AsTimeInLocation(setting.DefaultUILocation)
+	start := time.Date(tt.Year(), tt.Month(), tt.Day(), 0, 0, 0, 0, setting.DefaultUILocation)
+	for timeutil.TimeStamp(start.Unix()).FormatInLocation("2006-01-02", setting.DefaultUILocation) != day {
+		start = start.Add(time.Hour)
 	}
+	return timeutil.TimeStamp(start.Unix())
+}
+
+func dayBoundsOf(ts timeutil.TimeStamp) (dayStart, nextDayStart timeutil.TimeStamp) {
+	dayStart = dayStartOf(ts)
+	// a day is 23-25h long, so 26h past its start is always inside the next day
+	return dayStart, dayStartOf(dayStart.Add(26 * 60 * 60))
+}
+
+// FindHiddenUserActivityRollups groups the requested user's own actions that the
+// actor cannot see into per-day rollups (newest first, days per the server's
+// default timezone like FeedDateCond), within the time span covered by the given
+// feed page. Page spans are snapped to whole days so that a page boundary never
+// reveals how hidden actions interleave with visible ones inside a day: a day's
+// hidden actions all surface on the page showing the day's oldest visible
+// action, and days without any visible action surface on the page whose span
+// contains them. Consecutive pages decide their shared edge day with the same
+// query, so per-page rollups still sum up to the feed-wide totals. opts must be
+// the options the visible page was fetched with, pageActions the actions it
+// returned.
+func FindHiddenUserActivityRollups(ctx context.Context, opts GetFeedsOptions, pageActions ActionList) ([]*HiddenActivityRollup, error) {
+	if opts.RequestedUser == nil || opts.PageSize <= 0 {
+		return nil, errors.New("need RequestedUser and a positive PageSize")
+	}
+	opts.SetDefaultValues() // clamp PageSize the same way GetFeeds does
 
 	visibleCond, err := ActivityQueryCondition(ctx, opts)
 	if err != nil {
-		return 0, err
+		return nil, err
 	}
 
 	cond := builder.Eq{"user_id": opts.RequestedUser.ID, "act_user_id": opts.RequestedUser.ID}.
 		And(FeedDateCond(opts)).
 		And(builder.Not{visibleCond})
+
+	// reports whether a visible action exists in [dayStart, before), i.e. whether
+	// the day of `before` continues on later feed pages, and if so the oldest such
+	// action; both pages sharing an edge day call this with identical bounds and
+	// so agree on which one of them rolls the day up
+	oldestVisibleBefore := func(dayStart, before timeutil.TimeStamp) (timeutil.TimeStamp, bool, error) {
+		var oldest int64
+		has, err := db.GetEngine(ctx).Table("action").Where(visibleCond).
+			And(builder.Gte{"`action`.created_unix": dayStart}).
+			And(builder.Lt{"`action`.created_unix": before}).
+			Cols("created_unix").Asc("created_unix").Limit(1).Get(&oldest)
+		return timeutil.TimeStamp(oldest), has, err
+	}
+
+	pageFull := len(pageActions) == opts.PageSize // a short page is the last one
 
 	if opts.Page > 1 {
 		var boundary int64
@@ -310,16 +363,72 @@ func CountHiddenUserActivities(ctx context.Context, opts GetFeedsOptions, pageAc
 			Cols("created_unix").Desc("created_unix").
 			Limit(1, (opts.Page-1)*opts.PageSize-1).Get(&boundary)
 		if err != nil {
-			return 0, err
+			return nil, err
 		}
 		if !has { // the page is beyond the visible feed, its span is already covered
-			return 0, nil
+			return nil, nil
 		}
-		cond = cond.And(builder.Lt{"`action`.created_unix": boundary})
+		dayStart, nextDay := dayBoundsOf(timeutil.TimeStamp(boundary))
+		// the boundary day rolls up here only when the day's oldest visible
+		// action also falls on this page; otherwise the previous page (day ends
+		// at the boundary) or a later page (day continues past this one) owns it
+		oldest, dayContinues, err := oldestVisibleBefore(dayStart, timeutil.TimeStamp(boundary))
+		if err != nil {
+			return nil, err
+		}
+		if dayContinues && (!pageFull || oldest >= pageActions[len(pageActions)-1].CreatedUnix) {
+			cond = cond.And(builder.Lt{"`action`.created_unix": nextDay})
+		} else {
+			cond = cond.And(builder.Lt{"`action`.created_unix": dayStart})
+		}
 	}
-	if len(pageActions) == opts.PageSize { // a short page is the last one
-		cond = cond.And(builder.Gte{"`action`.created_unix": pageActions[len(pageActions)-1].CreatedUnix})
+	if pageFull {
+		oldestOnPage := pageActions[len(pageActions)-1].CreatedUnix
+		dayStart, nextDay := dayBoundsOf(oldestOnPage)
+		// mirror image of the boundary-day decision above, for this page's own
+		// oldest day against the next page
+		_, dayContinues, err := oldestVisibleBefore(dayStart, oldestOnPage)
+		if err != nil {
+			return nil, err
+		}
+		if dayContinues {
+			cond = cond.And(builder.Gte{"`action`.created_unix": nextDay})
+		} else {
+			cond = cond.And(builder.Gte{"`action`.created_unix": dayStart})
+		}
 	}
 
-	return db.GetEngine(ctx).Table("action").Where(cond).Count()
+	groupBy := "created_unix / 900 * 900"
+	groupByName := "timestamp" // mssql does not allow grouping by alias
+	switch {
+	case setting.Database.Type.IsMySQL():
+		groupBy = "created_unix DIV 900 * 900"
+	case setting.Database.Type.IsMSSQL():
+		groupByName = groupBy
+	}
+
+	// aggregate like the heatmap does: 15-minute buckets bound the result size
+	// regardless of how many hidden actions exist, and cannot straddle a day
+	// boundary because timezone offsets are multiples of 15 minutes
+	buckets := make([]*UserHeatmapData, 0, 8)
+	if err := db.GetEngine(ctx).Table("action").Where(cond).
+		Select(groupBy + " AS timestamp, count(user_id) AS contributions").
+		GroupBy(groupByName).OrderBy("timestamp DESC").Find(&buckets); err != nil {
+		return nil, err
+	}
+
+	rollups := make([]*HiddenActivityRollup, 0, 8)
+	lastDay := ""
+	for _, bucket := range buckets {
+		if day := bucket.Timestamp.FormatInLocation("2006-01-02", setting.DefaultUILocation); day != lastDay {
+			dayStart := dayStartOf(bucket.Timestamp)
+			rollups = append(rollups, &HiddenActivityRollup{
+				Time:        dayStart,
+				DisplayTime: dayStart.Add(12 * 60 * 60),
+			})
+			lastDay = day
+		}
+		rollups[len(rollups)-1].Count += bucket.Contributions
+	}
+	return rollups, nil
 }

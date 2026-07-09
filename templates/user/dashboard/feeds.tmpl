@@ -1,5 +1,10 @@
 <div id="activity-feed" class="flex-divided-list items-with-main" data-ref-issue-container>
-	{{range .Feeds}}
+	{{if .FeedRollups}}
+		{{range index .FeedRollups -1}}
+			{{template "user/dashboard/feed_private_rollup" .}}
+		{{end}}
+	{{end}}
+	{{range $i, $feed := .Feeds}}
 		<div class="item">
 			<div class="item-leading">
 				{{ctx.AvatarUtils.AvatarByAction .}}
@@ -125,16 +130,11 @@
 				{{svg (printf "octicon-%s" (ActionIcon .GetOpType)) 32 "tw-text-text-light tw-mr-1"}}
 			</div>
 		</div>
-	{{end}}
-	{{if .PrivateContributionsCount}}
-		<div class="item">
-			<div class="item-main tw-gap-2">
-				<div>{{ctx.Locale.TrN .PrivateContributionsCount "user.activity.private_contributions_1" "user.activity.private_contributions_n" .PrivateContributionsCount}}</div>
-			</div>
-			<div class="item-trailing">
-				{{svg "octicon-lock" 32 "tw-text-text-light tw-mr-1"}}
-			</div>
-		</div>
+		{{if $.FeedRollups}}
+			{{range index $.FeedRollups $i}}
+				{{template "user/dashboard/feed_private_rollup" .}}
+			{{end}}
+		{{end}}
 	{{end}}
 	{{template "base/paginate" .}}
 </div>
