@@ -10,6 +10,8 @@ import (
 	"time"
 
 	activities_model "gitea.dev/models/activities"
+	auth_model "gitea.dev/models/auth"
+	api "gitea.dev/modules/structs"
 	"gitea.dev/modules/timeutil"
 	"gitea.dev/tests"
 
@@ -143,6 +145,36 @@ func TestShowPrivateActivity(t *testing.T) {
 		feed := htmlDoc.doc.Find("#activity-feed")
 		assert.NotContains(t, feed.Text(), privateContributionsText)
 		assert.Positive(t, feed.Find(".item").Length())
+	})
+
+	t.Run("APISettingsToggle", func(t *testing.T) {
+		defer tests.PrintCurrentTest(t)()
+		testShowPrivateActivityHelperEnableSetting(t, session, false)
+		token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeWriteUser)
+		enabled, disabled := true, false
+
+		req := NewRequestWithJSON(t, "PATCH", "/api/v1/user/settings", &api.UserSettingsOptions{
+			ShowPrivateActivity: &disabled,
+		}).AddTokenAuth(token)
+		resp := session.MakeRequest(t, req, http.StatusOK)
+		settings := DecodeJSON(t, resp, &api.UserSettings{})
+		assert.False(t, settings.ShowPrivateActivity)
+		assert.EqualValues(t, 0, testShowPrivateActivityHelperTotalContributionsFromAPI(t))
+
+		req = NewRequestWithJSON(t, "PATCH", "/api/v1/user/settings", &api.UserSettingsOptions{
+			ShowPrivateActivity: &enabled,
+		}).AddTokenAuth(token)
+		resp = session.MakeRequest(t, req, http.StatusOK)
+		settings = DecodeJSON(t, resp, &api.UserSettings{})
+		assert.True(t, settings.ShowPrivateActivity)
+		assert.EqualValues(t, 1, testShowPrivateActivityHelperTotalContributionsFromAPI(t))
+
+		// a PATCH with the field left null must leave the setting untouched
+		req = NewRequestWithJSON(t, "PATCH", "/api/v1/user/settings", &api.UserSettingsOptions{}).
+			AddTokenAuth(token)
+		resp = session.MakeRequest(t, req, http.StatusOK)
+		settings = DecodeJSON(t, resp, &api.UserSettings{})
+		assert.True(t, settings.ShowPrivateActivity)
 	})
 
 	t.Run("KeepActivityPrivateWins", func(t *testing.T) {
