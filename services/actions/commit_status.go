@@ -156,8 +156,8 @@ func createCommitStatus(ctx context.Context, repo *repo_model.Repository, event,
 	return createWorkflowCommitStatus(ctx, repo, commitID, ctxName, run.WorkflowID, toCommitStatus(job.Status), targetURL, toCommitStatusDescription(job))
 }
 
-// getAllRequiredStatusContextGlobs returns the compiled globs of every required status-check context.
-// The union across all protected branch rules because a push cannot know which branch protection rule its future pull request will fall under.
+// getAllRequiredStatusContextGlobs returns the compiled globs of every status-check context required in the repo:
+// its protected branch rules' contexts and its required scoped workflows' patterns (see EffectiveRequiredContexts).
 func getAllRequiredStatusContextGlobs(ctx context.Context, repo *repo_model.Repository) ([]glob.Glob, error) {
 	rules, err := git_model.FindRepoProtectedBranchRules(ctx, repo.ID)
 	if err != nil {
@@ -184,6 +184,10 @@ func getAllRequiredStatusContextGlobs(ctx context.Context, repo *repo_model.Repo
 // Only contexts matching requiredGlobs are posted; a non-required context gets no skipped status.
 // No ActionRun is created, so the status has no target URL (there is no run/job to link to).
 // A non-empty scopedPrefix prefixes each context with its source repo, matching scoped runs.
+//
+// TODO: requiredGlobs over-approximates by including every protected branch rule's required contexts.
+// If possible, the set should be narrowed to the required contexts of a specific branch protection rule (and the contexts from required scoped workflows).
+// Currently, a `push` event must keep the repo-wide union since its future pull request base branch is unknown.
 func CreateSkippedCommitStatusForFilteredWorkflow(ctx context.Context, repo *repo_model.Repository, event webhook_module.HookEventType, triggerEvent, workflowID string, content []byte, payload api.Payloader, scopedPrefix string, requiredGlobs []glob.Glob) error {
 	if len(requiredGlobs) == 0 {
 		return nil // nothing is required, so no skipped status is needed
