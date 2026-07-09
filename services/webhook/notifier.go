@@ -6,6 +6,7 @@ package webhook
 import (
 	"context"
 	"errors"
+	"slices"
 
 	actions_model "gitea.dev/models/actions"
 	git_model "gitea.dev/models/git"
@@ -154,6 +155,8 @@ func (m *webhookNotifier) IssueChangeAssignee(ctx context.Context, doer *user_mo
 			log.Error("LoadPullRequest failed: %v", err)
 			return
 		}
+		recipientEmails := deliveryRecipientEmails(ctx, issue, doer.ID, []*user_model.User{assignee})
+		ctx = WithDeliveryRecipients(ctx, recipientEmails)
 		apiPullRequest := &api.PullRequestPayload{
 			Index:       issue.Index,
 			PullRequest: convert.ToAPIPullRequest(ctx, issue.PullRequest, doer),
@@ -172,6 +175,8 @@ func (m *webhookNotifier) IssueChangeAssignee(ctx context.Context, doer *user_mo
 		}
 	} else {
 		permission, _ := access_model.GetDoerRepoPermission(ctx, issue.Repo, doer)
+		recipientEmails := deliveryRecipientEmails(ctx, issue, doer.ID, []*user_model.User{assignee})
+		ctx = WithDeliveryRecipients(ctx, recipientEmails)
 		apiIssue := &api.IssuePayload{
 			Index:      issue.Index,
 			Issue:      convert.ToAPIIssue(ctx, doer, issue),
@@ -193,6 +198,8 @@ func (m *webhookNotifier) IssueChangeAssignee(ctx context.Context, doer *user_mo
 
 func (m *webhookNotifier) IssueChangeTitle(ctx context.Context, doer *user_model.User, issue *issues_model.Issue, oldTitle string) {
 	permission, _ := access_model.GetIndividualUserRepoPermission(ctx, issue.Repo, issue.Poster)
+	recipientEmails := deliveryRecipientEmails(ctx, issue, doer.ID, nil)
+	ctx = WithDeliveryRecipients(ctx, recipientEmails)
 	var err error
 	if issue.IsPull {
 		if err = issue.LoadPullRequest(ctx); err != nil {
@@ -239,6 +246,8 @@ func (m *webhookNotifier) IssueChangeStatus(ctx context.Context, doer *user_mode
 			log.Error("LoadPullRequest: %v", err)
 			return
 		}
+		recipientEmails := deliveryRecipientEmails(ctx, issue, doer.ID, nil)
+		ctx = WithDeliveryRecipients(ctx, recipientEmails)
 		// Merge pull request calls issue.changeStatus so we need to handle separately.
 		apiPullRequest := &api.PullRequestPayload{
 			Index:       issue.Index,
@@ -254,6 +263,8 @@ func (m *webhookNotifier) IssueChangeStatus(ctx context.Context, doer *user_mode
 		}
 		err = PrepareWebhooks(ctx, EventSource{Repository: issue.Repo}, webhook_module.HookEventPullRequest, apiPullRequest)
 	} else {
+		recipientEmails := deliveryRecipientEmails(ctx, issue, doer.ID, nil)
+		ctx = WithDeliveryRecipients(ctx, recipientEmails)
 		apiIssue := &api.IssuePayload{
 			Index:      issue.Index,
 			Issue:      convert.ToAPIIssue(ctx, doer, issue),
@@ -273,6 +284,119 @@ func (m *webhookNotifier) IssueChangeStatus(ctx context.Context, doer *user_mode
 	}
 }
 
+// deliveryRecipientEmails resolves the recipient email addresses for an
+// issue/PR event's direct-message delivery. It mirrors the mailer's recipient
+// selection (see services/mailer mailIssueCommentToParticipants): the issue
+// poster, assignees, participants, (for pull requests) the requested
+// reviewers, issue/repo watchers, plus the explicitly @mentioned users.
+func deliveryRecipientEmails(ctx context.Context, issue *issues_model.Issue, doerID int64, mentions []*user_model.User) []string {
+	ids := make([]int64, 0, 64)
+	ids = append(ids, issue.PosterID)
+	if assigneeIDs, err := issues_model.GetAssigneeIDsByIssue(ctx, issue.ID); err != nil {
+		log.Error("deliveryRecipientEmails GetAssigneeIDsByIssue(%d): %v", issue.ID, err)
+	} else {
+		ids = append(ids, assigneeIDs...)
+	}
+	if participantIDs, err := issues_model.GetParticipantsIDsByIssueID(ctx, issue.ID); err != nil {
+		log.Error("deliveryRecipientEmails GetParticipantsIDsByIssueID(%d): %v", issue.ID, err)
+	} else {
+		ids = append(ids, participantIDs...)
+	}
+
+	// For pull requests, also notify the requested reviewers so they stay in
+	// the loop on review activity. This mirrors the mailer, which includes PR
+	// reviewers as recipients.
+	if issue.IsPull {
+		if pr, err := issues_model.GetPullRequestByIssueID(ctx, issue.ID); err != nil {
+			log.Error("deliveryRecipientEmails GetPullRequestByIssueID(%d): %v", issue.ID, err)
+		} else {
+			// GetPullRequestByIssueID returns a PR without Issue loaded, but
+			// LoadRequestedReviewers accesses pr.Issue.ID — set it here.
+			pr.Issue = issue
+			if err := pr.LoadRequestedReviewers(ctx); err != nil {
+				log.Error("deliveryRecipientEmails LoadRequestedReviewers(%d): %v", issue.ID, err)
+			} else {
+				for _, r := range pr.RequestedReviewers {
+					if r != nil {
+						ids = append(ids, r.ID)
+					}
+				}
+			}
+		}
+	}
+
+	// Issue watchers (mirrors the mailer, which notifies users watching the
+	// issue/PR directly).
+	if watcherIDs, err := issues_model.GetIssueWatchersIDs(ctx, issue.ID, true); err != nil {
+		log.Error("deliveryRecipientEmails GetIssueWatchersIDs(%d): %v", issue.ID, err)
+	} else {
+		ids = append(ids, watcherIDs...)
+	}
+
+	// Repo watchers, mirroring the mailer. For work-in-progress pull requests
+	// the mailer skips repo watchers, so we do the same when the PR is loaded.
+	if !(issue.IsPull && issue.PullRequest != nil && issue.PullRequest.IsWorkInProgress(ctx)) {
+		if watcherIDs, err := repo_model.GetRepoWatchersIDs(ctx, issue.RepoID); err != nil {
+			log.Error("deliveryRecipientEmails GetRepoWatchersIDs(%d): %v", issue.RepoID, err)
+		} else {
+			ids = append(ids, watcherIDs...)
+		}
+	}
+
+	// Explicitly mentioned users may have opted into "on mention only"
+	// notifications, so resolve them with isMention=true.
+	mentionIDs := make([]int64, 0, len(mentions))
+	for _, u := range mentions {
+		if u != nil {
+			mentionIDs = append(mentionIDs, u.ID)
+		}
+	}
+
+	// Exclude users who explicitly unwatched the issue, mirroring the mailer
+	// (see mailIssueCommentToParticipants: "Avoid mailing explicit unwatched").
+	if unwatchedIDs, err := issues_model.GetIssueWatchersIDs(ctx, issue.ID, false); err != nil {
+		log.Error("deliveryRecipientEmails GetIssueWatchersIDs(false)(%d): %v", issue.ID, err)
+	} else {
+		excluded := make(map[int64]struct{}, len(unwatchedIDs))
+		for _, id := range unwatchedIDs {
+			excluded[id] = struct{}{}
+		}
+		ids = slices.DeleteFunc(ids, func(id int64) bool {
+			_, ok := excluded[id]
+			return ok
+		})
+	}
+
+	others, err := user_model.GetMailableUsersByIDs(ctx, ids, false)
+	if err != nil {
+		log.Error("deliveryRecipientEmails GetMailableUsersByIDs: %v", err)
+	}
+	mentioned, err := user_model.GetMailableUsersByIDs(ctx, mentionIDs, true)
+	if err != nil {
+		log.Error("deliveryRecipientEmails GetMailableUsersByIDs(mentions): %v", err)
+	}
+
+	emails := make([]string, 0, len(others)+len(mentioned))
+	seen := make(map[string]struct{})
+	add := func(u *user_model.User) {
+		if u == nil || u.Email == "" || u.ID == doerID {
+			return
+		}
+		if _, ok := seen[u.Email]; ok {
+			return
+		}
+		seen[u.Email] = struct{}{}
+		emails = append(emails, u.Email)
+	}
+	for _, u := range others {
+		add(u)
+	}
+	for _, u := range mentioned {
+		add(u)
+	}
+	return emails
+}
+
 func (m *webhookNotifier) NewIssue(ctx context.Context, issue *issues_model.Issue, mentions []*user_model.User) {
 	if err := issue.LoadRepo(ctx); err != nil {
 		log.Error("issue.LoadRepo: %v", err)
@@ -284,6 +408,9 @@ func (m *webhookNotifier) NewIssue(ctx context.Context, issue *issues_model.Issu
 	}
 
 	permission, _ := access_model.GetIndividualUserRepoPermission(ctx, issue.Repo, issue.Poster)
+	recipientEmails := deliveryRecipientEmails(ctx, issue, issue.PosterID, mentions)
+	ctx = WithDeliveryRecipients(ctx, recipientEmails)
+
 	if err := PrepareWebhooks(ctx, EventSource{Repository: issue.Repo}, webhook_module.HookEventIssues, &api.IssuePayload{
 		Action:     api.HookIssueOpened,
 		Index:      issue.Index,
@@ -347,6 +474,9 @@ func (m *webhookNotifier) NewPullRequest(ctx context.Context, pull *issues_model
 	}
 
 	permission, _ := access_model.GetIndividualUserRepoPermission(ctx, pull.Issue.Repo, pull.Issue.Poster)
+	recipientEmails := deliveryRecipientEmails(ctx, pull.Issue, pull.Issue.PosterID, mentions)
+	ctx = WithDeliveryRecipients(ctx, recipientEmails)
+
 	if err := PrepareWebhooks(ctx, EventSource{Repository: pull.Issue.Repo}, webhook_module.HookEventPullRequest, &api.PullRequestPayload{
 		Action:      api.HookIssueOpened,
 		Index:       pull.Issue.Index,
@@ -462,6 +592,9 @@ func (m *webhookNotifier) CreateIssueComment(ctx context.Context, doer *user_mod
 	}
 
 	permission, _ := access_model.GetDoerRepoPermission(ctx, repo, doer)
+	recipientEmails := deliveryRecipientEmails(ctx, issue, doer.ID, mentions)
+	ctx = WithDeliveryRecipients(ctx, recipientEmails)
+
 	if err := PrepareWebhooks(ctx, EventSource{Repository: issue.Repo}, eventType, &api.IssueCommentPayload{
 		Action:      api.HookIssueCommentCreated,
 		Issue:       convert.ToAPIIssue(ctx, doer, issue),
@@ -695,6 +828,8 @@ func (*webhookNotifier) MergePullRequest(ctx context.Context, doer *user_model.U
 	}
 
 	// Merge pull request calls issue.changeStatus so we need to handle separately.
+	recipientEmails := deliveryRecipientEmails(ctx, pr.Issue, doer.ID, nil)
+	ctx = WithDeliveryRecipients(ctx, recipientEmails)
 	apiPullRequest := &api.PullRequestPayload{
 		Index:       pr.Issue.Index,
 		PullRequest: convert.ToAPIPullRequest(ctx, pr, doer),
@@ -759,6 +894,9 @@ func (m *webhookNotifier) PullRequestReview(ctx context.Context, pr *issues_mode
 		log.Error("models.GetIndividualUserRepoPermission: %v", err)
 		return
 	}
+	recipientEmails := deliveryRecipientEmails(ctx, pr.Issue, review.Reviewer.ID, mentions)
+	ctx = WithDeliveryRecipients(ctx, recipientEmails)
+
 	if err := PrepareWebhooks(ctx, EventSource{Repository: review.Issue.Repo}, reviewHookType, &api.PullRequestPayload{
 		Action:            api.HookIssueReviewed,
 		Index:             review.Issue.Index,
@@ -785,6 +923,10 @@ func (m *webhookNotifier) PullRequestReviewRequest(ctx context.Context, doer *us
 		log.Error("LoadPullRequest failed: %v", err)
 		return
 	}
+	// Notify the requested reviewer (and the PR's other participants) via Feishu
+	// direct message, mirroring the mailer's review-request notification.
+	recipientEmails := deliveryRecipientEmails(ctx, issue, doer.ID, []*user_model.User{reviewer})
+	ctx = WithDeliveryRecipients(ctx, recipientEmails)
 	apiPullRequest := &api.PullRequestPayload{
 		Index:             issue.Index,
 		PullRequest:       convert.ToAPIPullRequest(ctx, issue.PullRequest, doer),
@@ -827,6 +969,8 @@ func (m *webhookNotifier) PullRequestSynchronized(ctx context.Context, doer *use
 		return
 	}
 
+	recipientEmails := deliveryRecipientEmails(ctx, pr.Issue, doer.ID, nil)
+	ctx = WithDeliveryRecipients(ctx, recipientEmails)
 	if err := PrepareWebhooks(ctx, EventSource{Repository: pr.Issue.Repo}, webhook_module.HookEventPullRequestSync, &api.PullRequestPayload{
 		Action:      api.HookIssueSynchronized,
 		Before:      before,
@@ -861,6 +1005,26 @@ func sendReleaseHook(ctx context.Context, doer *user_model.User, rel *repo_model
 	}
 
 	permission, _ := access_model.GetDoerRepoPermission(ctx, rel.Repo, doer)
+
+	// Notify repo watchers via DM, mirroring the mailer (MailNewRelease).
+	watcherIDs, err := repo_model.GetRepoWatchersIDs(ctx, rel.RepoID)
+	if err != nil {
+		log.Error("sendReleaseHook GetRepoWatchersIDs(%d): %v", rel.RepoID, err)
+	} else {
+		users, err := user_model.GetMailableUsersByIDs(ctx, watcherIDs, false)
+		if err != nil {
+			log.Error("sendReleaseHook GetMailableUsersByIDs: %v", err)
+		} else {
+			emails := make([]string, 0, len(users))
+			for _, u := range users {
+				if u != nil && u.Email != "" && u.ID != doer.ID {
+					emails = append(emails, u.Email)
+				}
+			}
+			ctx = WithDeliveryRecipients(ctx, emails)
+		}
+	}
+
 	if err := PrepareWebhooks(ctx, EventSource{Repository: rel.Repo}, webhook_module.HookEventRelease, &api.ReleasePayload{
 		Action:     action,
 		Release:    convert.ToAPIRelease(ctx, rel.Repo, rel),

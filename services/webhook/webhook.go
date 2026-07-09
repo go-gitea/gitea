@@ -25,6 +25,28 @@ import (
 	webhook_module "gitea.dev/modules/webhook"
 )
 
+// contextKeyDeliveryRecipients is the context key for per-delivery recipient
+// email addresses. Notifier methods that compute a recipient list (poster,
+// assignees, participants, reviewers, @mentions) store it in the context so
+// that PrepareWebhook can attach it to the HookTask without modifying the
+// function signature. Any webhook requester (not just Feishu) can read it.
+type contextKeyDeliveryRecipients struct{}
+
+// WithDeliveryRecipients stores recipient email addresses in the context for
+// downstream webhook delivery.
+func WithDeliveryRecipients(ctx context.Context, recipients []string) context.Context {
+	return context.WithValue(ctx, contextKeyDeliveryRecipients{}, recipients)
+}
+
+// DeliveryRecipientsFromContext retrieves the per-delivery recipient list that
+// was stored via WithDeliveryRecipients. Returns nil when none were set.
+func DeliveryRecipientsFromContext(ctx context.Context) []string {
+	if v, ok := ctx.Value(contextKeyDeliveryRecipients{}).([]string); ok {
+		return v
+	}
+	return nil
+}
+
 type Requester func(context.Context, *webhook_model.Webhook, *webhook_model.HookTask) (req *http.Request, body []byte, err error)
 
 var webhookRequesters = map[webhook_module.HookType]Requester{}
@@ -168,6 +190,11 @@ func PrepareWebhook(ctx context.Context, w *webhook_model.Webhook, event webhook
 		PayloadContent: string(payload),
 		EventType:      event,
 		PayloadVersion: 2,
+		// DeliveryRecipients is populated from the context (set by notifier
+		// methods that compute a recipient list). When no recipients were
+		// stored the field stays nil and the zero-cost xorm round-trip
+		// preserves it.
+		DeliveryRecipients: DeliveryRecipientsFromContext(ctx),
 	})
 	if err != nil {
 		return fmt.Errorf("CreateHookTask for %s: %w", event, err)

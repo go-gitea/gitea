@@ -4,16 +4,95 @@
 package webhook
 
 import (
+	"context"
+	"net/http"
+	"net/http/httptest"
+	"strings"
 	"testing"
 
 	webhook_model "gitea.dev/models/webhook"
-	"gitea.dev/modules/json"
 	api "gitea.dev/modules/structs"
 	webhook_module "gitea.dev/modules/webhook"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
+
+// TestFeishuGetTenantAccessToken verifies that the tenant_access_token is read
+// from the top level of the response (the Feishu token endpoint does not wrap
+// it in a "data" object). A previous bug parsed r.Data.TenantAccessToken, which
+// is always empty, so the access token was never attached and Feishu returned
+// 99991661 "Missing access token for authorization".
+func TestFeishuGetTenantAccessToken(t *testing.T) {
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = w.Write([]byte(`{"code":0,"msg":"success","tenant_access_token":"t-fake-token","expire":7200}`))
+	}))
+	defer srv.Close()
+
+	origBase := feishuAPIBaseURL
+	feishuAPIBaseURL = srv.URL
+	defer func() { feishuAPIBaseURL = origBase }()
+
+	token, expire, err := feishuGetTenantAccessToken(context.Background(), feishuAPIBaseURL, "app_id", "app_secret")
+	require.NoError(t, err)
+	assert.Equal(t, "t-fake-token", token)
+	assert.Equal(t, 7200, expire)
+}
+
+// TestFeishuGetTenantAccessTokenEmpty ensures an error is returned when the
+// token endpoint succeeds but returns an empty tenant_access_token, so the bug
+// surfaces as a clear error instead of a missing Authorization header.
+func TestFeishuGetTenantAccessTokenEmpty(t *testing.T) {
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = w.Write([]byte(`{"code":0,"msg":"success","tenant_access_token":"","expire":7200}`))
+	}))
+	defer srv.Close()
+
+	origBase := feishuAPIBaseURL
+	feishuAPIBaseURL = srv.URL
+	defer func() { feishuAPIBaseURL = origBase }()
+
+	_, _, err := feishuGetTenantAccessToken(context.Background(), feishuAPIBaseURL, "app_id", "app_secret")
+	require.Error(t, err)
+	assert.True(t, strings.Contains(err.Error(), "empty tenant_access_token"))
+}
+
+// TestFeishuGetAccessTokenCaching verifies that the underlying token endpoint
+// is only hit once within the cache window: subsequent calls reuse the cached
+// tenant_access_token instead of requesting a new one every time.
+func TestFeishuGetAccessTokenCaching(t *testing.T) {
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = w.Write([]byte(`{"code":0,"msg":"success","tenant_access_token":"t-cached","expire":7200}`))
+	}))
+	defer srv.Close()
+
+	origBase := feishuAPIBaseURL
+	feishuAPIBaseURL = srv.URL
+	defer func() { feishuAPIBaseURL = origBase }()
+
+	// Start from a clean cache so the call count is deterministic.
+	feishuTokenMu.Lock()
+	feishuTokenCache = map[string]feishuTokenEntry{}
+	feishuTokenMu.Unlock()
+
+	var calls int
+	orig := feishuGetTenantAccessTokenFunc
+	feishuGetTenantAccessTokenFunc = func(ctx context.Context, baseURL, appID, appSecret string) (string, int, error) {
+		calls++
+		return feishuGetTenantAccessToken(ctx, baseURL, appID, appSecret)
+	}
+	defer func() { feishuGetTenantAccessTokenFunc = orig }()
+
+	for i := 0; i < 3; i++ {
+		tok, err := feishuGetAccessToken(context.Background(), feishuAPIBaseURL, "app_id", "app_secret")
+		require.NoError(t, err)
+		assert.Equal(t, "t-cached", tok)
+	}
+	assert.Equal(t, 1, calls, "underlying token endpoint should be called only once within the cache window")
+}
 
 func TestFeishuPayload(t *testing.T) {
 	fc := feishuConvertor{}
@@ -166,7 +245,7 @@ func TestFeishuJSONPayload(t *testing.T) {
 		IsActive:   true,
 		Type:       webhook_module.FEISHU,
 		URL:        "https://feishu.example.com/",
-		Meta:       `{}`,
+		Meta:       `{"app_id":"app_id","app_secret":"app_secret"}`,
 		HTTPMethod: "POST",
 		Secret:     "secret",
 	}
@@ -182,15 +261,106 @@ func TestFeishuJSONPayload(t *testing.T) {
 	require.NotNil(t, reqBody)
 	require.NoError(t, err)
 
+	// A push event has no mentioned users, so no direct message is delivered.
+	// The framework request validates the app credentials against the token
+	// endpoint instead, which is what the user observes in the delivery log.
 	assert.Equal(t, "POST", req.Method)
-	assert.Equal(t, "https://feishu.example.com/", req.URL.String())
+	assert.Equal(t, "https://open.feishu.cn/open-apis/auth/v3/tenant_access_token/internal/", req.URL.String())
 	assert.Equal(t, "application/json", req.Header.Get("Content-Type"))
-	var body FeishuPayload
-	err = json.NewDecoder(req.Body).Decode(&body)
-	assert.NoError(t, err)
-	assert.Equal(t, "[test/repo:test] \r\n[2020558](http://localhost:3000/test/repo/commit/2020558fe2e34debb818a514715839cabd25e778) commit message - user1\r\n[2020558](http://localhost:3000/test/repo/commit/2020558fe2e34debb818a514715839cabd25e778) commit message - user1", body.Content.Text)
-	assert.Equal(t, feishuGenSign(hook.Secret, body.Timestamp), body.Sign)
+	assert.JSONEq(t, `{"app_id":"app_id","app_secret":"app_secret"}`, string(reqBody))
+}
 
-	// a separate sign test, the result is generated by official python code, so the algo must be correct
-	assert.Equal(t, "rWZ84lcag1x9aBFhn1gtV4ZN+4gme3pilfQNMk86vKg=", feishuGenSign("a", 1))
+// TestFeishuJSONPayloadWithRecipients verifies that when an event has direct
+// message recipients, the framework request itself is a real Feishu direct
+// message (sent to the im/v1/messages endpoint with a bearer token) instead of
+// only probing the token endpoint. This was the root cause of the previous bug:
+// the actual direct messages were fired asynchronously via the SDK and silently
+// dropped.
+func TestFeishuJSONPayloadWithRecipients(t *testing.T) {
+	// Avoid any real Feishu API call: substitute a mock token getter.
+	orig := feishuGetAccessTokenFunc
+	feishuGetAccessTokenFunc = func(ctx context.Context, baseURL, appID, appSecret string) (string, error) {
+		return "fake-tenant-token", nil
+	}
+	defer func() { feishuGetAccessTokenFunc = orig }()
+
+	p := issueTestPayload()
+	p.Action = api.HookIssueOpened
+
+	data, err := p.JSONPayload()
+	require.NoError(t, err)
+
+	hook := &webhook_model.Webhook{
+		Type:       webhook_module.FEISHU,
+		Meta:       `{"app_id":"app_id","app_secret":"app_secret"}`,
+		HTTPMethod: "POST",
+	}
+	task := &webhook_model.HookTask{
+		EventType:          webhook_module.HookEventIssues,
+		PayloadContent:     string(data),
+		PayloadVersion:     2,
+		DeliveryRecipients: []string{"user@example.com"},
+	}
+
+	req, reqBody, err := newFeishuRequest(t.Context(), hook, task)
+	require.NoError(t, err)
+	require.NotNil(t, req)
+	require.NotNil(t, reqBody)
+
+	// The framework request is a real direct message, not a token probe.
+	assert.Equal(t, "POST", req.Method)
+	assert.Equal(t, feishuAPIBaseURL+"/open-apis/im/v1/messages?receive_id_type=email", req.URL.String())
+	assert.Equal(t, "Bearer fake-tenant-token", req.Header.Get("Authorization"))
+	assert.Contains(t, string(reqBody), `"receive_id":"user@example.com"`)
+	assert.Contains(t, string(reqBody), `"msg_type":"text"`)
+}
+
+// TestFeishuJSONPayloadWithMultipleRecipients verifies that when an event has
+// several recipients, the first one is delivered by the framework request while
+// the remaining ones are sent via direct Open API calls (no Feishu SDK
+// involved).
+func TestFeishuJSONPayloadWithMultipleRecipients(t *testing.T) {
+	origToken := feishuGetAccessTokenFunc
+	feishuGetAccessTokenFunc = func(ctx context.Context, baseURL, appID, appSecret string) (string, error) {
+		return "fake-token", nil
+	}
+	defer func() { feishuGetAccessTokenFunc = origToken }()
+
+	var sent []string
+	origSend := feishuSendMessageFunc
+	feishuSendMessageFunc = func(ctx context.Context, baseURL, token, receiveID, text string) error {
+		sent = append(sent, receiveID)
+		return nil
+	}
+	defer func() { feishuSendMessageFunc = origSend }()
+
+	p := issueTestPayload()
+	p.Action = api.HookIssueOpened
+
+	data, err := p.JSONPayload()
+	require.NoError(t, err)
+
+	hook := &webhook_model.Webhook{
+		Type:       webhook_module.FEISHU,
+		Meta:       `{"app_id":"app_id","app_secret":"app_secret"}`,
+		HTTPMethod: "POST",
+	}
+	task := &webhook_model.HookTask{
+		EventType:          webhook_module.HookEventIssues,
+		PayloadContent:     string(data),
+		PayloadVersion:     2,
+		DeliveryRecipients: []string{"first@example.com", "second@example.com", "third@example.com"},
+	}
+
+	req, reqBody, err := newFeishuRequest(t.Context(), hook, task)
+	require.NoError(t, err)
+	require.NotNil(t, req)
+
+	// The framework request delivers the first recipient.
+	assert.Equal(t, feishuAPIBaseURL+"/open-apis/im/v1/messages?receive_id_type=email", req.URL.String())
+	assert.Equal(t, "Bearer fake-token", req.Header.Get("Authorization"))
+	assert.Contains(t, string(reqBody), `"receive_id":"first@example.com"`)
+
+	// Remaining recipients are delivered via direct Open API calls.
+	assert.Equal(t, []string{"second@example.com", "third@example.com"}, sent)
 }

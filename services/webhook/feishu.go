@@ -4,32 +4,45 @@
 package webhook
 
 import (
+	"bytes"
 	"context"
-	"crypto/hmac"
-	"crypto/sha256"
-	"encoding/base64"
 	"fmt"
 	"net/http"
+	"slices"
 	"strings"
-	"time"
 
 	webhook_model "gitea.dev/models/webhook"
 	"gitea.dev/modules/git"
+	"gitea.dev/modules/json"
+	"gitea.dev/modules/log"
 	api "gitea.dev/modules/structs"
 	webhook_module "gitea.dev/modules/webhook"
 )
 
 type (
-	// FeishuPayload represents the payload for Feishu webhook
+	// FeishuPayload represents the payload for Feishu direct message content.
 	FeishuPayload struct {
-		Timestamp int64  `json:"timestamp,omitempty"` // Unix timestamp for signature verification
-		Sign      string `json:"sign,omitempty"`      // Signature for verification
-		MsgType   string `json:"msg_type"`            // text / post / image / share_chat / interactive / file /audio / media
-		Content   struct {
+		MsgType string `json:"msg_type"` // text / post / image / share_chat / interactive / file /audio / media
+		Content struct {
 			Text string `json:"text"`
 		} `json:"content"`
 	}
 )
+
+// FeishuMeta contains the feishu webhook metadata for self-built app usage
+type FeishuMeta struct {
+	AppID     string `json:"app_id"`
+	AppSecret string `json:"app_secret"`
+}
+
+// GetFeishuHook returns feishu metadata
+func GetFeishuHook(w *webhook_model.Webhook) *FeishuMeta {
+	m := &FeishuMeta{}
+	if err := json.Unmarshal([]byte(w.Meta), m); err != nil {
+		log.Error("webhook.GetFeishuHook(%d): %v", w.ID, err)
+	}
+	return m
+}
 
 func newFeishuTextPayload(text string) FeishuPayload {
 	return FeishuPayload{
@@ -191,29 +204,81 @@ func (feishuConvertor) WorkflowJob(p *api.WorkflowJobPayload) (FeishuPayload, er
 	return newFeishuTextPayload(text), nil
 }
 
-// feishuGenSign generates a signature for Feishu webhook
-// https://open.feishu.cn/document/client-docs/bot-v3/add-custom-bot
-func feishuGenSign(secret string, timestamp int64) string {
-	// key="{timestamp}\n{secret}", then hmac-sha256, then base64 encode
-	stringToSign := fmt.Sprintf("%d\n%s", timestamp, secret)
-	h := hmac.New(sha256.New, []byte(stringToSign))
-	return base64.StdEncoding.EncodeToString(h.Sum(nil))
-}
-
-func newFeishuRequest(_ context.Context, w *webhook_model.Webhook, t *webhook_model.HookTask) (*http.Request, []byte, error) {
+func newFeishuRequest(ctx context.Context, w *webhook_model.Webhook, t *webhook_model.HookTask) (*http.Request, []byte, error) {
 	payload, err := newPayload(feishuConvertor{}, []byte(t.PayloadContent), t.EventType)
 	if err != nil {
 		return nil, nil, err
 	}
+	text := payload.Content.Text
 
-	// Add timestamp and signature if secret is provided
-	if w.Secret != "" {
-		timestamp := time.Now().Unix()
-		payload.Timestamp = timestamp
-		payload.Sign = feishuGenSign(w.Secret, timestamp)
+	// The recipient emails are stored directly on the HookTask by the notifier,
+	// not embedded in the webhook payload JSON. This keeps the webhook API payload
+	// clean and avoids adding a Feishu-specific field to the cross-cutting structs.
+	recipients := t.DeliveryRecipients
+	meta := GetFeishuHook(w)
+	if meta.AppID == "" || meta.AppSecret == "" {
+		return nil, nil, fmt.Errorf("feishu app credentials (app_id/app_secret) not configured")
 	}
 
-	return prepareJSONRequest(payload, w, t, false /* no default headers */)
+	// The webhook URL can be used to override the default API base URL (e.g.
+	// https://open.larksuite.com for Lark Suite).
+	baseURL := feishuBaseURLFromWebhook(w)
+
+	// Deduplicate recipient emails while keeping their order. Build a fresh
+	// slice so we never mutate the HookTask's stored DeliveryRecipients.
+	seen := make(map[string]struct{})
+	recipients = slices.DeleteFunc(slices.Clone(recipients), func(r string) bool {
+		if r == "" {
+			return true
+		}
+		if _, ok := seen[r]; ok {
+			return true
+		}
+		seen[r] = struct{}{}
+		return false
+	})
+
+	// No recipients: there is no one to notify via direct message. Validate
+	// the app credentials against the token endpoint so the framework still
+	// records a successful delivery (and surfaces misconfigured credentials).
+	if len(recipients) == 0 {
+		return newFeishuNoopRequest(ctx, baseURL, meta.AppID, meta.AppSecret)
+	}
+
+	// Obtain a tenant access token, reusing a cached one when available.
+	token, err := feishuGetAccessTokenFunc(ctx, baseURL, meta.AppID, meta.AppSecret)
+	if err != nil {
+		return nil, nil, fmt.Errorf("feishu get tenant_access_token: %w", err)
+	}
+
+	// Deliver direct messages to every recipient except the first one via
+	// the Feishu Open API. This runs synchronously so failures are logged and
+	// observable instead of being silently dropped.
+	for _, email := range recipients[1:] {
+		if err := feishuSendMessageFunc(ctx, baseURL, token, email, text); err != nil {
+			log.Error("feishu send direct message to %s: %v", email, err)
+		}
+	}
+
+	// The first recipient is delivered by the framework request itself, so
+	// its delivery status is recorded and visible to the user.
+
+	contentBytes, _ := json.Marshal(map[string]string{"text": text})
+	contentStr := string(contentBytes)
+	body := map[string]string{
+		"receive_id": recipients[0],
+		"msg_type":   "text",
+		"content":    contentStr,
+	}
+	b, _ := json.Marshal(body)
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost,
+		baseURL+"/open-apis/im/v1/messages?receive_id_type=email", bytes.NewReader(b))
+	if err != nil {
+		return nil, nil, err
+	}
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("Authorization", "Bearer "+token)
+	return req, b, nil
 }
 
 func init() {
