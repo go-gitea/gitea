@@ -49,7 +49,7 @@ type RepositoryDumper struct {
 	prHeadCache map[string]string
 }
 
-// NewRepositoryDumper creates an gitea Uploader
+// NewRepositoryDumper creates a gitea Uploader
 func NewRepositoryDumper(ctx context.Context, baseDir, repoOwner, repoName string, opts base.MigrateOptions) (*RepositoryDumper, error) {
 	baseDir = filepath.Join(baseDir, repoOwner, repoName)
 	if err := os.MkdirAll(baseDir, os.ModePerm); err != nil {
