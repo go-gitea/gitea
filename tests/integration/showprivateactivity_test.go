@@ -87,6 +87,11 @@ func TestShowPrivateActivity(t *testing.T) {
 
 		htmlDoc := testShowPrivateActivityHelperGetDayFeed(t, nil)
 		assert.NotContains(t, htmlDoc.doc.Find("#activity-feed").Text(), privateContributionsText)
+
+		req := NewRequestf(t, "GET", "/%s?tab=activity", showPrivateActivityTestUser)
+		resp := MakeRequest(t, req, http.StatusOK)
+		htmlDoc = NewHTMLParser(t, resp.Body)
+		assert.NotContains(t, htmlDoc.doc.Find("#activity-feed").Text(), privateContributionsText)
 	})
 
 	t.Run("SettingOnCountsPrivateContributions", func(t *testing.T) {
@@ -108,19 +113,26 @@ func TestShowPrivateActivity(t *testing.T) {
 		assert.Zero(t, feed.Find("a[href*='/user2/repo2']").Length())
 	})
 
-	t.Run("NoPlaceholderWithoutValidDate", func(t *testing.T) {
+	t.Run("GeneralFeedShowsRollup", func(t *testing.T) {
 		defer tests.PrintCurrentTest(t)()
 		testShowPrivateActivityHelperEnableSetting(t, session, false)
 
 		for _, uri := range []string{
 			"/" + showPrivateActivityTestUser + "?tab=activity",                 // general feed
-			"/" + showPrivateActivityTestUser + "?tab=activity&date=not-a-date", // invalid date must not count all time
+			"/" + showPrivateActivityTestUser + "?tab=activity&date=not-a-date", // invalid date behaves like the general feed
 		} {
 			req := NewRequest(t, "GET", uri)
 			resp := MakeRequest(t, req, http.StatusOK)
-			htmlDoc := NewHTMLParser(t, resp.Body)
-			assert.NotContains(t, htmlDoc.doc.Find("#activity-feed").Text(), privateContributionsText, "no placeholder expected for %s", uri)
+			feed := NewHTMLParser(t, resp.Body).doc.Find("#activity-feed")
+			assert.Contains(t, feed.Text(), "1 "+privateContributionsText, "rollup expected for %s", uri)
+			assert.Zero(t, feed.Find("a[href*='/user2/repo2']").Length())
 		}
+
+		// pages beyond the visible feed show no phantom rollup
+		req := NewRequestf(t, "GET", "/%s?tab=activity&page=5", showPrivateActivityTestUser)
+		resp := MakeRequest(t, req, http.StatusOK)
+		feed := NewHTMLParser(t, resp.Body).doc.Find("#activity-feed")
+		assert.NotContains(t, feed.Text(), privateContributionsText)
 	})
 
 	t.Run("SelfSeesRealActionsInsteadOfPlaceholder", func(t *testing.T) {

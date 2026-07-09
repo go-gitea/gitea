@@ -8,6 +8,7 @@ import (
 	"time"
 
 	activities_model "gitea.dev/models/activities"
+	"gitea.dev/models/db"
 	"gitea.dev/models/unittest"
 	user_model "gitea.dev/models/user"
 	"gitea.dev/modules/json"
@@ -142,60 +143,82 @@ func TestGetUserHeatmapDataByUserHiddenFromViewer(t *testing.T) {
 	assert.Empty(t, heatmap)
 }
 
-func TestCountUserActivitiesOnDate(t *testing.T) {
+func TestCountHiddenUserActivities(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 
 	// mock time so the heatmap window covers the fixture actions
 	timeutil.MockSet(time.Date(2021, 1, 1, 0, 0, 0, 0, time.UTC))
 	defer timeutil.MockUnset()
 
-	testCases := []struct {
-		desc   string
-		userID int64
-		date   string
-		count  int64
-	}{
-		{"private repo action counted", 2, "2020-10-20", 1},
-		{"day without actions", 2, "2020-10-19", 0},
-		{"private repo action of another user", 16, "2020-10-21", 1},
-		{"multiple actions on one day", 10, "2020-10-18", 3},
-	}
-	for _, tc := range testCases {
-		user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: tc.userID})
-		count, err := activities_model.CountUserActivitiesOnDate(t.Context(), user, tc.date)
+	countForPage := func(t *testing.T, user, doer *user_model.User, date string, page, pageSize int) int64 {
+		opts := activities_model.GetFeedsOptions{
+			RequestedUser:   user,
+			Actor:           doer,
+			IncludePrivate:  false,
+			OnlyPerformedBy: true,
+			Date:            date,
+			ListOptions:     db.ListOptions{Page: page, PageSize: pageSize},
+		}
+		items, _, err := activities_model.GetFeeds(t.Context(), opts)
 		assert.NoError(t, err)
-		assert.Equal(t, tc.count, count, "testcase '%s'", tc.desc)
+		hidden, err := activities_model.CountHiddenUserActivities(t.Context(), opts, items)
+		assert.NoError(t, err)
+		return hidden
 	}
 
-	// unparseable dates must error instead of counting all time
-	for _, invalidDate := range []string{"", "not-a-date"} {
-		user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
-		_, err := activities_model.CountUserActivitiesOnDate(t.Context(), user, invalidDate)
-		assert.Error(t, err, "date %q should be rejected", invalidDate)
-	}
+	user2 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
+	user16 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 16})
+	user15 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 15})
 
-	// the placeholder subtraction scenario: a collaborator's visible profile feed
-	// hides private actions, so hidden = total - visible must equal the heatmap count
-	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 16})
-	user.ShowPrivateActivity = true
-	viewer := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 15})
-	_, visible, err := activities_model.GetFeeds(t.Context(), activities_model.GetFeedsOptions{
-		RequestedUser:   user,
-		Actor:           viewer,
-		IncludePrivate:  false,
-		OnlyPerformedBy: true,
-		Date:            "2020-10-21",
-	})
-	assert.NoError(t, err)
-	total, err := activities_model.CountUserActivitiesOnDate(t.Context(), user, "2020-10-21")
-	assert.NoError(t, err)
-	heatmap, err := activities_model.GetUserHeatmapDataByUser(t.Context(), user, viewer)
+	// anonymous viewer, day filter: the single private action is hidden
+	assert.EqualValues(t, 1, countForPage(t, user2, nil, "2020-10-20", 1, 20))
+	// day without actions
+	assert.EqualValues(t, 0, countForPage(t, user2, nil, "2020-10-19", 1, 20))
+	// no date filter: the whole feed rolls up on the (only) page
+	assert.EqualValues(t, 1, countForPage(t, user2, nil, "", 1, 20))
+	// an invalid date behaves like the unfiltered feed, matching FeedDateCond
+	assert.EqualValues(t, 1, countForPage(t, user2, nil, "not-a-date", 1, 20))
+	// pages beyond the visible feed have an empty span
+	assert.EqualValues(t, 0, countForPage(t, user2, nil, "", 3, 20))
+
+	// a collaborator's visible profile feed hides private actions too, so the
+	// hidden count must equal the heatmap count for that day
+	user16.ShowPrivateActivity = true
+	heatmap, err := activities_model.GetUserHeatmapDataByUser(t.Context(), user16, user15)
 	assert.NoError(t, err)
 	var contributions int64
 	for _, hm := range heatmap {
 		contributions += hm.Contributions
 	}
-	assert.EqualValues(t, 0, visible)
-	assert.Equal(t, int64(1), total-visible)
-	assert.Equal(t, contributions, visible+(total-visible), "heatmap(day) == visible(day) + hidden(day)")
+	hidden := countForPage(t, user16, user15, "2020-10-21", 1, 20)
+	assert.EqualValues(t, 1, hidden)
+	assert.Equal(t, contributions, hidden, "heatmap(day) == visible(day) + hidden(day)")
+
+	// page spans must partition the timeline: interleave extra public and private
+	// actions newer than user2's fixture action (ts 1603228283 in private repo2)
+	for i, action := range []*activities_model.Action{
+		{UserID: 2, ActUserID: 2, OpType: activities_model.ActionCreateIssue, RepoID: 1, IsPrivate: false}, // public, oldest
+		{UserID: 2, ActUserID: 2, OpType: activities_model.ActionCreateIssue, RepoID: 2, IsPrivate: true},  // hidden
+		{UserID: 2, ActUserID: 2, OpType: activities_model.ActionCreateIssue, RepoID: 1, IsPrivate: false}, // public
+		{UserID: 2, ActUserID: 2, OpType: activities_model.ActionCloseIssue, RepoID: 1, IsPrivate: false},  // public, newest
+	} {
+		assert.NoError(t, db.Insert(t.Context(), action))
+		// bypass the xorm `created` tag which overrides provided timestamps
+		_, err := db.GetEngine(t.Context()).Exec("UPDATE action SET created_unix=? WHERE id=?",
+			1603300000+int64(i)*1000, action.ID)
+		assert.NoError(t, err)
+	}
+
+	// visible to anonymous: the 3 public actions; hidden: fixture action 1 + 1 inserted
+	perPage := make([]int64, 0, 4)
+	var sum int64
+	for page := 1; page <= 4; page++ {
+		hidden := countForPage(t, user2, nil, "", page, 1)
+		perPage = append(perPage, hidden)
+		sum += hidden
+	}
+	// a hidden action between two visible ones lands on the older neighbour's page;
+	// hidden actions older than all visible ones land on the last page
+	assert.Equal(t, []int64{0, 0, 1, 1}, perPage)
+	assert.EqualValues(t, 2, sum, "per-page hidden counts must sum to the feed-wide total")
 }

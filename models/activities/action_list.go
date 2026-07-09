@@ -8,14 +8,12 @@ import (
 	"errors"
 	"fmt"
 	"strconv"
-	"time"
 
 	"gitea.dev/models/db"
 	issues_model "gitea.dev/models/issues"
 	repo_model "gitea.dev/models/repo"
 	user_model "gitea.dev/models/user"
 	"gitea.dev/modules/container"
-	"gitea.dev/modules/setting"
 	"gitea.dev/modules/util"
 
 	"xorm.io/builder"
@@ -285,18 +283,43 @@ func GetFeeds(ctx context.Context, opts GetFeedsOptions) (ActionList, int64, err
 	return actions, count, nil
 }
 
-// CountUserActivitiesOnDate counts all actions performed by the user on the given
-// day (YYYY-MM-DD), regardless of viewer permissions. The condition deliberately
-// matches the heatmap owner condition (no is_private/is_deleted/repo-access
-// filters) so that within the heatmap's time window
-// heatmap(day) == visible_feed(day) + hidden_count(day) for any viewer.
-func CountUserActivitiesOnDate(ctx context.Context, user *user_model.User, date string) (int64, error) {
-	// an unparseable date must not fall through FeedDateCond's lenient handling,
-	// as the count would then silently cover all time
-	if _, err := time.ParseInLocation("2006-01-02", date, setting.DefaultUILocation); err != nil {
+// CountHiddenUserActivities counts the requested user's own actions that the actor
+// cannot see within the time span covered by the given feed page. Page spans
+// partition the timeline so per-page counts sum up to the feed-wide total: the
+// upper bound is the oldest visible action of the previous page (none on the first
+// page), the lower bound is the oldest visible action on this page (none on the
+// last page, so older hidden actions surface there). opts must be the options the
+// visible page was fetched with, pageActions the actions it returned.
+func CountHiddenUserActivities(ctx context.Context, opts GetFeedsOptions, pageActions ActionList) (int64, error) {
+	if opts.RequestedUser == nil || opts.PageSize <= 0 {
+		return 0, errors.New("need RequestedUser and a positive PageSize")
+	}
+
+	visibleCond, err := ActivityQueryCondition(ctx, opts)
+	if err != nil {
 		return 0, err
 	}
-	cond := builder.Eq{"user_id": user.ID, "act_user_id": user.ID}.
-		And(FeedDateCond(GetFeedsOptions{Date: date}))
+
+	cond := builder.Eq{"user_id": opts.RequestedUser.ID, "act_user_id": opts.RequestedUser.ID}.
+		And(FeedDateCond(opts)).
+		And(builder.Not{visibleCond})
+
+	if opts.Page > 1 {
+		var boundary int64
+		has, err := db.GetEngine(ctx).Table("action").Where(visibleCond).
+			Cols("created_unix").Desc("created_unix").
+			Limit(1, (opts.Page-1)*opts.PageSize-1).Get(&boundary)
+		if err != nil {
+			return 0, err
+		}
+		if !has { // the page is beyond the visible feed, its span is already covered
+			return 0, nil
+		}
+		cond = cond.And(builder.Lt{"`action`.created_unix": boundary})
+	}
+	if len(pageActions) == opts.PageSize { // a short page is the last one
+		cond = cond.And(builder.Gte{"`action`.created_unix": pageActions[len(pageActions)-1].CreatedUnix})
+	}
+
 	return db.GetEngine(ctx).Table("action").Where(cond).Count()
 }
