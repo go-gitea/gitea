@@ -4,7 +4,7 @@ import RepoActionView from '../components/RepoActionView.vue';
 import {registerGlobalInitFunc} from '../modules/observer.ts';
 import {html} from '../utils/html.ts';
 import {GET} from '../modules/fetch.ts';
-import {ActivePageTimer, createElementFromHTML} from '../utils/dom.ts';
+import {activePageTimerRefresh, createElementFromHTML} from '../utils/dom.ts';
 
 export function updateWorkflowBadgeFields(form: HTMLElement, branch: string): void {
   const badgeURLParsed = new URL(form.getAttribute('data-badge-url')!);
@@ -108,38 +108,27 @@ function initRepositoryActionsView() {
   view.mount(el);
 }
 
-async function initActionRunsList(el: HTMLElement) {
-  let timer: ActivePageTimer;
-  let startRefresh: () => void;
-  const refresh = async (link: string) => {
-    const resp = await GET(link);
-    if (!resp.ok) {
-      timer.start(); // retry on network error
-      return;
-    }
-    const newEl = createElementFromHTML(await resp.text());
-    for (const attr of newEl.attributes) el.setAttribute(attr.name, attr.value);
-
-    Idiomorph.morph(el, newEl.innerHTML, {
-      morphStyle: 'innerHTML',
-      callbacks: {
-        beforeNodeMorphed: (oldNode: Node) => !(
-          oldNode instanceof HTMLElement &&
-          oldNode.classList.contains('dropdown') &&
-          (oldNode.classList.contains('active') || oldNode.classList.contains('visible'))
-        ),
-      },
-    });
-
-    startRefresh();
-  };
-  startRefresh = () => {
-    const link = el.getAttribute('data-action-runs-refresh-link')!;
-    const interval = Number(el.getAttribute('data-action-runs-refresh-interval'));
-    if (!interval) return;
-    timer = new ActivePageTimer(interval, {once: true});
-    timer.callback = async () => await refresh(link);
-    timer.start();
-  };
-  startRefresh();
+function initActionRunsList(el: HTMLElement) {
+  // The refresh link and interval are refreshed from the response attributes on every morph,
+  // so the timer picks up pagination/filter changes and stops (interval 0) once all runs are over.
+  activePageTimerRefresh({
+    interval: () => Number(el.getAttribute('data-action-runs-refresh-interval')),
+    async callback() {
+      const resp = await GET(el.getAttribute('data-action-runs-refresh-link')!);
+      if (!resp.ok) return; // the timer keeps running and retries on the next cycle
+      const newEl = createElementFromHTML(await resp.text());
+      for (const attr of newEl.attributes) el.setAttribute(attr.name, attr.value);
+      // Morph in place instead of replacing so opened dropdowns keep focus; skip morphing active dropdowns.
+      Idiomorph.morph(el, newEl.innerHTML, {
+        morphStyle: 'innerHTML',
+        callbacks: {
+          beforeNodeMorphed: (oldNode: Node) => !(
+            oldNode instanceof HTMLElement &&
+            oldNode.classList.contains('dropdown') &&
+            (oldNode.classList.contains('active') || oldNode.classList.contains('visible'))
+          ),
+        },
+      });
+    },
+  });
 }
