@@ -131,3 +131,17 @@ func (c *Commit) AllParticipantIdentities() []*CommitIdentity {
 	}
 	return c.allParticipants
 }
+
+// CoAuthorIdentities returns the commit's co-authors: the participants without the
+// author and the committer, which are already displayed separately. This avoids
+// surfacing the committer as a "co-author" (see issue #38384).
+func (c *Commit) CoAuthorIdentities() []*CommitIdentity {
+	var ret []*CommitIdentity
+	for _, p := range c.AllParticipantIdentities()[1:] { // index 0 is always the author
+		if c.Committer.Email != "" && strings.EqualFold(p.Email, c.Committer.Email) {
+			continue
+		}
+		ret = append(ret, p)
+	}
+	return ret
+}
