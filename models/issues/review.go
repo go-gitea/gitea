@@ -334,43 +334,47 @@ func RecalculateReviewsOfficial(ctx context.Context, issue *Issue) error {
 		return err
 	}
 
-	// Only the latest approve/reject review of each reviewer counts as official, so
-	// clear the flag on all of them first and restore it only where it still applies.
-	if _, err := db.GetEngine(ctx).
-		Where("issue_id = ?", issue.ID).
-		In("type", ReviewTypeApprove, ReviewTypeReject).
-		Cols("official").
-		Update(&Review{Official: false}); err != nil {
-		return err
-	}
-
-	reviews, err := FindLatestReviews(ctx, FindReviewOptions{
-		Types:   []ReviewType{ReviewTypeApprove, ReviewTypeReject},
-		IssueID: issue.ID,
-	})
-	if err != nil {
-		return err
-	}
-
-	for _, review := range reviews {
-		if err := review.LoadReviewer(ctx); err != nil {
+	// Clearing and restoring the official flags must happen atomically, otherwise a
+	// failure in between would leave the reviews without any official flag set.
+	return db.WithTx(ctx, func(ctx context.Context) error {
+		// Only the latest approve/reject review of each reviewer counts as official, so
+		// clear the flag on all of them first and restore it only where it still applies.
+		if _, err := db.GetEngine(ctx).
+			Where("issue_id = ?", issue.ID).
+			In("type", ReviewTypeApprove, ReviewTypeReject).
+			Cols("official").
+			Update(&Review{Official: false}); err != nil {
 			return err
 		}
-		if review.Reviewer == nil {
-			continue
-		}
-		official, err := IsOfficialReviewer(ctx, issue, review.Reviewer)
+
+		reviews, err := FindLatestReviews(ctx, FindReviewOptions{
+			Types:   []ReviewType{ReviewTypeApprove, ReviewTypeReject},
+			IssueID: issue.ID,
+		})
 		if err != nil {
 			return err
 		}
-		if official {
-			if _, err := db.GetEngine(ctx).ID(review.ID).Cols("official").Update(&Review{Official: true}); err != nil {
+
+		for _, review := range reviews {
+			if err := review.LoadReviewer(ctx); err != nil {
 				return err
 			}
+			if review.Reviewer == nil {
+				continue
+			}
+			official, err := IsOfficialReviewer(ctx, issue, review.Reviewer)
+			if err != nil {
+				return err
+			}
+			if official {
+				if _, err := db.GetEngine(ctx).ID(review.ID).Cols("official").Update(&Review{Official: true}); err != nil {
+					return err
+				}
+			}
 		}
-	}
 
-	return nil
+		return nil
+	})
 }
 
 // CreateReview creates a new review based on opts
