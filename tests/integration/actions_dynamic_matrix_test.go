@@ -130,7 +130,7 @@ jobs:
 			}
 		})
 
-		t.Run("empty matrix runs job once with no matrix context", func(t *testing.T) {
+		t.Run("empty matrix skips the job", func(t *testing.T) {
 			const workflow = `name: empty-dynamic-matrix
 on:
   push:
@@ -162,11 +162,47 @@ jobs:
 				outputs: map[string]string{"matrix": "[]"},
 			})
 
-			buildTask := runner.fetchTask(t, 10*time.Second)
-			buildName := getTaskJobNameByTaskID(t, token, user2.Name, apiRepo.Name, buildTask.Id)
-			assert.Equal(t, "build", buildName, "empty matrix should dispatch the job once with no matrix suffix")
-			runner.execTask(t, buildTask, &mockTaskOutcome{result: runnerv1.Result_RESULT_SUCCESS})
+			// An empty matrix expands to zero combinations, so the build job is skipped and no
+			// task is ever dispatched (matching GitHub).
+			runner.fetchNoTask(t, 2*time.Second)
+		})
 
+		t.Run("job-level if:false skips every combination", func(t *testing.T) {
+			// Regression: the deferred-matrix job must still honour its job-level `if:`; expansion
+			// must not bypass the if/concurrency gate and dispatch the combinations regardless.
+			const workflow = `name: if-false-dynamic-matrix
+on:
+  push:
+    paths: ['.gitea/workflows/if-false-dynamic-matrix.yml']
+jobs:
+  generate:
+    runs-on: ubuntu-latest
+    outputs:
+      matrix: ${{ steps.set.outputs.matrix }}
+    steps:
+      - id: set
+        run: echo "matrix=[\"a\",\"b\"]" >> "$GITHUB_OUTPUT"
+  build:
+    needs: [generate]
+    if: false
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        value: ${{ fromJson(needs.generate.outputs.matrix) }}
+    steps:
+      - run: echo "building ${{ matrix.value }}"
+`
+			opts := getWorkflowCreateFileOptions(user2, apiRepo.DefaultBranch, "create if-false-dynamic-matrix.yml", workflow)
+			createWorkflowFile(t, token, user2.Name, apiRepo.Name, ".gitea/workflows/if-false-dynamic-matrix.yml", opts)
+
+			generateTask := runner.fetchTask(t, 10*time.Second)
+			assert.Equal(t, "generate", getTaskJobNameByTaskID(t, token, user2.Name, apiRepo.Name, generateTask.Id))
+			runner.execTask(t, generateTask, &mockTaskOutcome{
+				result:  runnerv1.Result_RESULT_SUCCESS,
+				outputs: map[string]string{"matrix": `["a","b"]`},
+			})
+
+			// `if: false` must skip the whole matrix: no build combination is ever dispatched.
 			runner.fetchNoTask(t, 2*time.Second)
 		})
 

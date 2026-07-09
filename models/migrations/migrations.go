@@ -419,8 +419,8 @@ func prepareMigrationTasks() []*migration {
 		newMigration(339, "Extend action c_u index to include created_unix for faster dashboard feed queries", v1_27.AddCreatedUnixToActionUserIsDeletedIndex),
 		newMigration(340, "Add ContinueOnError column to ActionRunJob", v1_27.AddContinueOnErrorToActionRunJob),
 		newMigration(341, "Convert legacy MSSQL DATETIME columns to DATETIME2", v1_27.FixLegacyMSSQLDateTimeColumns),
-		newMigration(342, "Add support for matrix actions evaluation", v1_27.AddMatrixEvaluationColumnsToActionRunJob),
-		newMigration(343, "Add scoped workflows schema", v1_27.AddScopedWorkflowsSchema),
+		newMigration(342, "Add scoped workflows schema", v1_27.AddScopedWorkflowsSchema),
+		newMigration(343, "Add support for matrix actions evaluation", v1_27.AddMatrixEvaluationColumnsToActionRunJob),
 	}
 	return preparedMigrations
 }

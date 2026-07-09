@@ -290,10 +290,10 @@ jobs:
 		// Parse without providing job outputs - should gracefully handle
 		result, err := Parse([]byte(workflowYAML))
 
-		// Should not error on parse
-		assert.NoError(t, err)
-		assert.NotNil(t, result)
-		assert.NotEmpty(t, result)
+		require.NoError(t, err)
+		// Both static matrices expand independently: setup version[2], build os[2].
+		assert.Len(t, distinctJobNames(result, "setup"), 2)
+		assert.Len(t, distinctJobNames(result, "build"), 2)
 	})
 
 	t.Run("empty_job_outputs_map", func(t *testing.T) {
@@ -320,12 +320,21 @@ jobs:
 		result, err := Parse([]byte(workflowYAML),
 			WithJobOutputs(map[string]map[string]string{}))
 
-		assert.NoError(t, err)
-		assert.NotNil(t, result)
-
-		// Should still parse successfully
-		assert.NotEmpty(t, result)
+		require.NoError(t, err)
+		// build's static matrix version[2] expands regardless of outputs.
+		assert.Len(t, distinctJobNames(result, "build"), 2)
 	})
+}
+
+// distinctJobNames returns the distinct names of the workflows whose single job has the given id.
+func distinctJobNames(result []*SingleWorkflow, id string) map[string]bool {
+	names := map[string]bool{}
+	for _, w := range result {
+		if jid, j := w.Job(); jid == id {
+			names[j.Name] = true
+		}
+	}
+	return names
 }
 
 func TestParseWithNeedsReferenceNoOutputs(t *testing.T) {
@@ -356,10 +365,9 @@ jobs:
 				"setup": "success",
 			}))
 
-		// Should not error on parse
-		assert.NoError(t, err)
-		assert.NotNil(t, result)
-		assert.NotEmpty(t, result)
+		require.NoError(t, err)
+		// build's static matrix os[2] expands to 2 combinations.
+		assert.Len(t, distinctJobNames(result, "build"), 2)
 	})
 
 	t.Run("needs_reference_with_partial_outputs", func(t *testing.T) {
@@ -393,11 +401,9 @@ jobs:
 				},
 			}))
 
-		assert.NoError(t, err)
-		assert.NotNil(t, result)
-
-		// Should parse successfully
-		assert.NotEmpty(t, result)
+		require.NoError(t, err)
+		// version(2 from fromJson) x os(2) = 4 combinations.
+		assert.Len(t, distinctJobNames(result, "build"), 4)
 	})
 }
 
@@ -435,30 +441,9 @@ jobs:
 				},
 			}))
 
-		assert.NoError(t, err)
-		assert.NotNil(t, result)
-
-		// Verify we have workflows
-		assert.NotEmpty(t, result)
-
-		// Check that all three matrix dimensions are present
-		hasAllDimensions := false
-		for _, workflow := range result {
-			id, swfJob := workflow.Job()
-			if id == "build" {
-				// In jobparser, we just verify the job was parsed successfully
-				if swfJob != nil {
-					// Check strategy has matrix
-					if swfJob.Strategy.RawMatrix.Kind != 0 {
-						// All three dimensions should be defined
-						hasAllDimensions = true
-					}
-				}
-				break
-			}
-		}
-
-		assert.True(t, hasAllDimensions, "should have all matrix dimensions")
+		require.NoError(t, err)
+		// os(3) x version(2 from fromJson) x node(3) = 18 build combinations, each named distinctly.
+		assert.Len(t, distinctJobNames(result, "build"), 18, "expected 18 distinct build combinations")
 	})
 
 	t.Run("multiple_dynamic_matrix_values", func(t *testing.T) {
@@ -495,9 +480,9 @@ jobs:
 				},
 			}))
 
-		assert.NoError(t, err)
-		assert.NotNil(t, result)
-		assert.NotEmpty(t, result)
+		require.NoError(t, err)
+		// version(2) x platform(2) x static(2) = 8 build combinations.
+		assert.Len(t, distinctJobNames(result, "build"), 8)
 	})
 
 	t.Run("all_static_arrays_no_dynamic", func(t *testing.T) {
@@ -519,23 +504,16 @@ jobs:
 		// Parse with all static arrays, no dynamic values
 		result, err := Parse([]byte(workflowYAML))
 
-		assert.NoError(t, err)
-		assert.NotNil(t, result)
+		require.NoError(t, err)
 
-		// Should expand correctly
-		// 2 os * 3 versions * 2 node = 12 combinations
-		assert.NotEmpty(t, result)
-
-		// Verify matrix structure
+		// os(2) * version(3) * node(2) = 12 combinations, each named distinctly.
+		names := map[string]bool{}
 		for _, workflow := range result {
-			id, swfJob := workflow.Job()
-			if id == "build" {
-				// Verify the job was parsed with a matrix strategy
-				assert.NotNil(t, swfJob)
-				assert.NotEqual(t, 0, swfJob.Strategy.RawMatrix.Kind)
-				break
+			if id, j := workflow.Job(); id == "build" {
+				names[j.Name] = true
 			}
 		}
+		assert.Len(t, names, 12, "expected 12 distinct build combinations")
 	})
 }
 

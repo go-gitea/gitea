@@ -319,7 +319,9 @@ func checkJobsOfCurrentRunAttempt(ctx context.Context, run *actions_model.Action
 	}
 
 	result.Jobs = jobs
-	if expandedAnyCaller {
+	// Caller expansion inserts Blocked children, and matrix expansion inserts Blocked siblings; both
+	// need a follow-up resolver pass to evaluate their needs/`if:`/concurrency and start them.
+	if expandedAnyCaller || resolver.matrixExpanded {
 		result.RunIDsToReEmit = append(result.RunIDsToReEmit, run.ID)
 	}
 	result.CancelledJobs = resolver.cancelledJobs

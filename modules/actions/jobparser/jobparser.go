@@ -17,20 +17,32 @@ import (
 	"go.yaml.in/yaml/v4"
 )
 
-// deepCopyYamlNode creates a deep copy of a yaml.Node to prevent mutations
-// from affecting the original. This is important because yaml.Node.Content
-// is a slice of pointers, and a shallow copy would share the same child nodes.
+// deepCopyYamlNode creates a deep copy of a yaml.Node tree so mutations (e.g. matrix evaluation) do
+// not affect the original. yaml.Node.Content holds pointers, so a shallow copy would share the
+// children; the Alias pointer is likewise re-pointed at the corresponding copied anchor node so an
+// aliased matrix value is evaluated on the copy instead of resolving back into the original tree.
 func deepCopyYamlNode(node *yaml.Node) *yaml.Node {
+	return copyYamlNode(node, map[*yaml.Node]*yaml.Node{})
+}
+
+// copyYamlNode deep-copies node, memoizing original->copy in seen so an anchor reached both through
+// Content and through an Alias maps to a single copy (and cycles terminate).
+func copyYamlNode(node *yaml.Node, seen map[*yaml.Node]*yaml.Node) *yaml.Node {
 	if node == nil {
 		return nil
 	}
+	if c, ok := seen[node]; ok {
+		return c
+	}
 	nodeCopy := *node
+	seen[node] = &nodeCopy
 	if node.Content != nil {
 		nodeCopy.Content = make([]*yaml.Node, len(node.Content))
 		for i, child := range node.Content {
-			nodeCopy.Content[i] = deepCopyYamlNode(child)
+			nodeCopy.Content[i] = copyYamlNode(child, seen)
 		}
 	}
+	nodeCopy.Alias = copyYamlNode(node.Alias, seen)
 	return &nodeCopy
 }
 
@@ -124,11 +136,11 @@ func Parse(content []byte, options ...ParseOption) ([]*SingleWorkflow, error) {
 		if err != nil {
 			return nil, fmt.Errorf("getMatrixes: %w", err)
 		}
-		for _, matrix := range matricxes {
-			combo, err := expandJobCombo(id, job, matrix, evaluatedJob, pc.gitContext, results, pc.vars, pc.inputs)
-			if err != nil {
-				return nil, err
-			}
+		combos, err := buildMatrixCombos(id, job, matricxes, evaluatedJob, pc.gitContext, results, pc.vars, pc.inputs)
+		if err != nil {
+			return nil, err
+		}
+		for _, combo := range combos {
 			swf := workflow.Clone()
 			if err := swf.SetJob(id, combo); err != nil {
 				return nil, fmt.Errorf("SetJob: %w", err)
@@ -205,10 +217,20 @@ func ExpandMatrixWithNeeds(jobID string, job *Job, gitCtx *model.GithubContext, 
 	if err != nil {
 		return nil, fmt.Errorf("getMatrixes: %w", err)
 	}
+	// A matrix whose every dimension resolved to an empty list produces a single empty combination
+	// from act; report zero combinations so the caller skips the job, matching GitHub semantics.
+	if len(matrixes) == 1 && len(matrixes[0]) == 0 {
+		return nil, nil
+	}
+	return buildMatrixCombos(jobID, job, matrixes, actJob, gitCtx, results, vars, inputs)
+}
 
+// buildMatrixCombos builds one Job per matrix combination from src, driving the interpreter with
+// actJob. Shared by Parse (plan time) and ExpandMatrixWithNeeds (defer time).
+func buildMatrixCombos(jobID string, src *Job, matrixes []map[string]any, actJob *model.Job, gitCtx *model.GithubContext, results map[string]*JobResult, vars map[string]string, inputs map[string]any) ([]*Job, error) {
 	expanded := make([]*Job, 0, len(matrixes))
 	for _, matrix := range matrixes {
-		combo, err := expandJobCombo(jobID, job, matrix, actJob, gitCtx, results, vars, inputs)
+		combo, err := expandJobCombo(jobID, src, matrix, actJob, gitCtx, results, vars, inputs)
 		if err != nil {
 			return nil, err
 		}
