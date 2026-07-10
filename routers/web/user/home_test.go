@@ -4,6 +4,7 @@
 package user
 
 import (
+	"maps"
 	"net/http"
 	"testing"
 
@@ -120,12 +121,14 @@ func TestDashboardPagination(t *testing.T) {
 	page := context.NewPagination(10, 3, 1, 3)
 
 	setting.AppSubURL = "/SubPath"
-	out, err := ctx.RenderToHTML("base/paginate", map[string]any{"Link": setting.AppSubURL, "Page": page})
+	maps.Copy(ctx.Data, map[string]any{"Link": setting.AppSubURL, "Page": page})
+	out, err := ctx.RenderToHTML("base/paginate", ctx.Data)
 	assert.NoError(t, err)
 	assert.Contains(t, out, `<a class=" item navigation" href="/SubPath/?page=2">`)
 
 	setting.AppSubURL = ""
-	out, err = ctx.RenderToHTML("base/paginate", map[string]any{"Link": setting.AppSubURL, "Page": page})
+	maps.Copy(ctx.Data, map[string]any{"Link": setting.AppSubURL, "Page": page})
+	out, err = ctx.RenderToHTML("base/paginate", ctx.Data)
 	assert.NoError(t, err)
 	assert.Contains(t, out, `<a class=" item navigation" href="/?page=2">`)
 }
