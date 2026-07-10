@@ -124,6 +124,11 @@ func List(ctx *context.Context) {
 	if ctx.Written() {
 		return
 	}
+	prepareWorkflowDispatchTemplate(ctx, workflows, curWorkflowID, data.scopedWorkflowSourceRepoID)
+	if ctx.Written() {
+		return
+	}
+
 	if !data.prepareFullPageRuns(ctx, otherWorkflows) {
 		return
 	}
@@ -131,11 +136,6 @@ func List(ctx *context.Context) {
 		return
 	}
 	if !data.prepareFullPageTemplate(ctx) {
-		return
-	}
-
-	prepareWorkflowDispatchTemplate(ctx, workflows, curWorkflowID, data.scopedWorkflowSourceRepoID)
-	if ctx.Written() {
 		return
 	}
 
@@ -473,6 +473,42 @@ func prepareWorkflowDispatchTemplate(ctx *context.Context, workflowInfos []Workf
 	ctx.Data["Tags"] = tags
 }
 
+func (data *actionRunListData) prepareFullPageRuns(ctx *context.Context, otherWorkflows []string) bool {
+	opts := actions_model.FindRunOptions{
+		ListOptions: db.ListOptions{
+			Page:     max(ctx.FormInt("page"), 1),
+			PageSize: convert.ToCorrectPageSize(ctx.FormInt("limit")),
+		},
+		RepoID:         ctx.Repo.Repository.ID,
+		WorkflowID:     data.workflowID,
+		WorkflowRepoID: data.scopedWorkflowSourceRepoID,
+		TriggerUserID:  data.actorID,
+	}
+
+	// Constrain scoped vs repo-level only for a listed workflow, whose link carries scoped_workflow_source_repo_id.
+	if data.workflowID != "" && !slices.Contains(otherWorkflows, data.workflowID) {
+		opts.IsScopedRun = optional.Some(data.scopedWorkflowSourceRepoID > 0)
+	}
+
+	// if status is not StatusUnknown, it means user has selected a status filter
+	if data.status != actions_model.StatusUnknown {
+		opts.Status = []actions_model.Status{data.status}
+	}
+	if data.branch != "" {
+		opts.Ref = string(git.RefNameFromBranch(data.branch))
+	}
+
+	runs, total, err := db.FindAndCount[actions_model.ActionRun](ctx, opts)
+	if err != nil {
+		ctx.ServerError("FindAndCount", err)
+		return false
+	}
+	data.pager = context.NewPagination(total, opts.PageSize, opts.Page, 5)
+	data.pager.AddParamFromRequest(ctx.Req)
+	data.ActionRuns = runs
+	return true
+}
+
 type actionRunListData struct {
 	actorID                    int64
 	status                     actions_model.Status
@@ -594,42 +630,6 @@ func prepareWorkflowList(ctx *context.Context, curWorkflowID string) *actionRunL
 	data.CurWorkflow = curWorkflowID
 	data.CanWriteRepoUnitActions = ctx.Repo.Permission.CanWrite(unit.TypeActions)
 	return data
-}
-
-func (data *actionRunListData) prepareFullPageRuns(ctx *context.Context, otherWorkflows []string) bool {
-	opts := actions_model.FindRunOptions{
-		ListOptions: db.ListOptions{
-			Page:     max(ctx.FormInt("page"), 1),
-			PageSize: convert.ToCorrectPageSize(ctx.FormInt("limit")),
-		},
-		RepoID:         ctx.Repo.Repository.ID,
-		WorkflowID:     data.workflowID,
-		WorkflowRepoID: data.scopedWorkflowSourceRepoID,
-		TriggerUserID:  data.actorID,
-	}
-
-	// Constrain scoped vs repo-level only for a listed workflow, whose link carries scoped_workflow_source_repo_id.
-	if data.workflowID != "" && !slices.Contains(otherWorkflows, data.workflowID) {
-		opts.IsScopedRun = optional.Some(data.scopedWorkflowSourceRepoID > 0)
-	}
-
-	// if status is not StatusUnknown, it means user has selected a status filter
-	if data.status != actions_model.StatusUnknown {
-		opts.Status = []actions_model.Status{data.status}
-	}
-	if data.branch != "" {
-		opts.Ref = string(git.RefNameFromBranch(data.branch))
-	}
-
-	runs, total, err := db.FindAndCount[actions_model.ActionRun](ctx, opts)
-	if err != nil {
-		ctx.ServerError("FindAndCount", err)
-		return false
-	}
-	data.pager = context.NewPagination(total, opts.PageSize, opts.Page, 5)
-	data.pager.AddParamFromRequest(ctx.Req)
-	data.ActionRuns = runs
-	return true
 }
 
 func (data *actionRunListData) preparePartialRefreshRuns(ctx *context.Context) bool {
