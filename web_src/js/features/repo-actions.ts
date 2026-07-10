@@ -3,7 +3,12 @@ import RepoActionView from '../components/RepoActionView.vue';
 import {registerGlobalInitFunc} from '../modules/observer.ts';
 import {html} from '../utils/html.ts';
 import {GET} from '../modules/fetch.ts';
-import {activePageTimerRefresh, createElementFromHTML} from '../utils/dom.ts';
+import {
+  activePageTimerRefresh,
+  createElementFromHTML,
+  protectMorphElements,
+  recoverMorphElements
+} from '../utils/dom.ts';
 import {Idiomorph} from 'idiomorph';
 
 export function updateWorkflowBadgeFields(form: HTMLElement, branch: string): void {
@@ -114,14 +119,17 @@ function initActionRunsList(el: HTMLElement) {
     async callback() {
       const resp = await GET(el.getAttribute('data-action-runs-refresh-link')!);
       if (!resp.ok) return;
+
       const newEl = createElementFromHTML(await resp.text());
       for (const attr of newEl.attributes) el.setAttribute(attr.name, attr.value);
       for (const newItem of newEl.querySelectorAll(':scope > .item')) {
         const oldItem = el.querySelector(`#${newItem.id}`);
         if (!oldItem) return;
         if (oldItem.querySelector('.ui.dropdown.active')) continue;
-        // FIXME: morph doesn't work with dropdown, it should not touch any element in the dropdown
+
+        const protectedElems = protectMorphElements(newItem);
         Idiomorph.morph(oldItem, newItem, {morphStyle: 'outerHTML'});
+        recoverMorphElements(el.querySelector(`#${newItem.id}`)!, protectedElems);
       }
     },
   });
