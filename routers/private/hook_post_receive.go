@@ -160,10 +160,17 @@ func hookPostReceiveUpdateRepoByOptions(ctx *gitea_context.PrivateContext, opts 
 			return false
 		}
 
-		// FIXME: these options are not quite right, for example: changing visibility should do more works than just setting the is_private flag
-		// These options should only be used for "push-to-create"
+		// Only honor these options while the repo is still empty (the push-to-create
+		// case). On a populated repo a bare "git push -o repo.private=..." would
+		// silently flip visibility, bypassing the audit log, webhooks and notifications.
+		if !repo.IsEmpty {
+			return true
+		}
+
+		// The repo is empty and being initialized by this push, so there is no
+		// dependent state (webhooks, notifications, visibility fan-out) to reconcile
+		// yet; setting the flags directly is sufficient in this push-to-create case.
 		if isPrivate.Has() && repo.IsPrivate != isPrivate.Value() {
-			// TODO: it needs to do more work
 			repo.IsPrivate = isPrivate.Value()
 			if err = repo_model.UpdateRepositoryColsNoAutoTime(ctx, repo, "is_private"); err != nil {
 				log.Error("failed to update repo is_private: %v", err)
