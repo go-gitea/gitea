@@ -1,7 +1,8 @@
 {{$page := or $.Page ctx.RootData.Page}}
-{{$paginationParams := $page.GetParams}}
-{{$paginationLink := ctx.RootData.Link}}
+{{$paginationLink := $.Link}}
+{{if eq $paginationLink nil}}{{$paginationLink = ctx.RootData.Link}}{{end}}
 {{if eq $paginationLink AppSubUrl}}{{$paginationLink = print $paginationLink "/"}}{{end}}
+{{$paginationParams := $page.GetParams}}
 {{with $page.Paginater}}
 	{{if or (eq .TotalPages -1) (gt .TotalPages 1)}}
 		{{$showFirstLast := gt .TotalPages 1}}
