@@ -6,11 +6,13 @@ package convert
 import (
 	"context"
 	"fmt"
+	"strings"
 
 	git_model "gitea.dev/models/git"
 	issues_model "gitea.dev/models/issues"
 	"gitea.dev/models/perm"
 	access_model "gitea.dev/models/perm/access"
+	pull_model "gitea.dev/models/pull"
 	repo_model "gitea.dev/models/repo"
 	user_model "gitea.dev/models/user"
 	"gitea.dev/modules/cache"
@@ -23,6 +25,17 @@ import (
 	"gitea.dev/modules/util"
 	"gitea.dev/services/gitdiff"
 )
+
+// toAPIAutoMerge converts a scheduled auto merge into the GitHub-compatible "auto_merge" object
+func toAPIAutoMerge(ctx context.Context, autoMerge *pull_model.AutoMerge, enabledBy *user_model.User) *api.PullRequestAutoMerge {
+	commitTitle, commitMessage, _ := strings.Cut(autoMerge.Message, "\n\n")
+	return &api.PullRequestAutoMerge{
+		EnabledBy:     ToUser(ctx, enabledBy, nil),
+		MergeMethod:   string(autoMerge.MergeStyle),
+		CommitTitle:   commitTitle,
+		CommitMessage: commitMessage,
+	}
+}
 
 // ToAPIPullRequest assumes following fields have been assigned with valid values:
 // Required - Issue
@@ -268,6 +281,10 @@ func ToAPIPullRequest(ctx context.Context, pr *issues_model.PullRequest, doer *u
 		apiPullRequest.Merged = pr.MergedUnix.AsTimePtr()
 		apiPullRequest.MergedCommitID = &pr.MergedCommitID
 		apiPullRequest.MergedBy = ToUser(ctx, pr.Merger, nil)
+	} else if scheduled, autoMerge, err := pull_model.GetScheduledMergeByPullID(ctx, pr.ID); err != nil {
+		log.Error("GetScheduledMergeByPullID[%d]: %v", pr.ID, err)
+	} else if scheduled {
+		apiPullRequest.AutoMerge = toAPIAutoMerge(ctx, autoMerge, autoMerge.Doer)
 	}
 
 	return apiPullRequest
@@ -342,6 +359,31 @@ func ToAPIPullRequests(ctx context.Context, baseRepo *repo_model.Repository, prs
 	}
 
 	apiRepo := ToRepo(ctx, baseRepo, baseRepoPerm)
+
+	// batch-load scheduled auto merges (and their doers) to avoid N+1 queries in the loop.
+	// A lookup failure only drops the optional "auto_merge" field (matching the single-PR path),
+	// rather than failing the whole list.
+	prIDs := make([]int64, 0, len(prs))
+	for _, pr := range prs {
+		prIDs = append(prIDs, pr.ID)
+	}
+	autoMerges, err := pull_model.GetScheduledMergeByPullIDs(ctx, prIDs)
+	if err != nil {
+		log.Error("GetScheduledMergeByPullIDs: %v", err)
+	}
+	autoMergeDoerIDs := make([]int64, 0, len(autoMerges))
+	for _, am := range autoMerges {
+		autoMergeDoerIDs = append(autoMergeDoerIDs, am.DoerID)
+	}
+	autoMergeDoers, err := user_model.GetPossibleUserByIDs(ctx, autoMergeDoerIDs)
+	if err != nil {
+		log.Error("GetPossibleUserByIDs: %v", err)
+	}
+	autoMergeDoersMap := make(map[int64]*user_model.User, len(autoMergeDoers))
+	for _, u := range autoMergeDoers {
+		autoMergeDoersMap[u.ID] = u
+	}
+
 	baseBranchCache := make(map[string]*git_model.Branch)
 	apiPullRequests := make([]*api.PullRequest, 0, len(prs))
 	for _, pr := range prs {
@@ -473,6 +515,12 @@ func ToAPIPullRequests(ctx context.Context, baseRepo *repo_model.Repository, prs
 			apiPullRequest.Merged = pr.MergedUnix.AsTimePtr()
 			apiPullRequest.MergedCommitID = &pr.MergedCommitID
 			apiPullRequest.MergedBy = ToUser(ctx, pr.Merger, nil)
+		} else if am := autoMerges[pr.ID]; am != nil {
+			doer := autoMergeDoersMap[am.DoerID]
+			if doer == nil {
+				doer = user_model.NewGhostUser() // match the single-PR path, which ghost-fills a deleted scheduler
+			}
+			apiPullRequest.AutoMerge = toAPIAutoMerge(ctx, am, doer)
 		}
 
 		// Do not provide "ChangeFiles/Additions/Deletions" for the PR list, because the "diff" is quite slow

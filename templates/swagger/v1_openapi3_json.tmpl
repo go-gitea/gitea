@@ -8397,6 +8397,9 @@
             "type": "array",
             "x-go-name": "Assignees"
           },
+          "auto_merge": {
+            "$ref": "#/components/schemas/PullRequestAutoMerge"
+          },
           "base": {
             "$ref": "#/components/schemas/PRBranchInfo"
           },
@@ -8580,6 +8583,31 @@
           },
           "user": {
             "$ref": "#/components/schemas/User"
+          }
+        },
+        "type": "object",
+        "x-go-package": "gitea.dev/modules/structs"
+      },
+      "PullRequestAutoMerge": {
+        "description": "PullRequestAutoMerge represents a pull request scheduled to auto merge when all checks succeed",
+        "properties": {
+          "commit_message": {
+            "description": "The message of the resulting merge commit",
+            "type": "string",
+            "x-go-name": "CommitMessage"
+          },
+          "commit_title": {
+            "description": "The title of the resulting merge commit",
+            "type": "string",
+            "x-go-name": "CommitTitle"
+          },
+          "enabled_by": {
+            "$ref": "#/components/schemas/User"
+          },
+          "merge_method": {
+            "description": "The merge method that will be used, eg: \"merge\", \"rebase\", \"rebase-merge\", \"squash\", \"fast-forward-only\"",
+            "type": "string",
+            "x-go-name": "MergeMethod"
           }
         },
         "type": "object",

@@ -80,6 +80,23 @@ func GetScheduledMergeByPullID(ctx context.Context, pullID int64) (bool, *AutoMe
 	return true, scheduledPRM, err
 }
 
+// GetScheduledMergeByPullIDs returns the scheduled auto merges for the given pull request IDs, keyed by pull ID.
+// The returned entries do not have their Doer loaded.
+func GetScheduledMergeByPullIDs(ctx context.Context, pullIDs []int64) (map[int64]*AutoMerge, error) {
+	if len(pullIDs) == 0 {
+		return map[int64]*AutoMerge{}, nil
+	}
+	merges := make([]*AutoMerge, 0, len(pullIDs))
+	if err := db.GetEngine(ctx).In("pull_id", pullIDs).Find(&merges); err != nil {
+		return nil, err
+	}
+	result := make(map[int64]*AutoMerge, len(merges))
+	for _, m := range merges {
+		result[m.PullID] = m
+	}
+	return result, nil
+}
+
 // DeleteScheduledAutoMerge delete a scheduled pull request
 func DeleteScheduledAutoMerge(ctx context.Context, pullID int64) error {
 	exist, scheduledPRM, err := GetScheduledMergeByPullID(ctx, pullID)

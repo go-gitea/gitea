@@ -281,11 +281,10 @@ type pullMergeBoxData struct {
 	// The latter gate the merge even when the rule's own status check is disabled.
 	hasRequiredStatusContexts bool
 
-	hasOverridableBlockers     bool
-	canMergeNow                bool // PR is mergeable, either no blocker, or doer can bypass the blockers
-	hasPermToMerge             bool // doer has permission to merge
-	canBypassProtection        bool
-	canBypassProtectionAsAdmin bool
+	hasOverridableBlockers bool
+	canMergeNow            bool // PR is mergeable, either no blocker, or doer can bypass the blockers
+	hasPermToMerge         bool // doer has permission to merge
+	canBypassProtection    bool
 
 	ShowUpdatePullInfo  bool
 	UpdatePrimaryAction *pullUpdateAction

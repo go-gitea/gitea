@@ -28670,6 +28670,9 @@
           },
           "x-go-name": "Assignees"
         },
+        "auto_merge": {
+          "$ref": "#/definitions/PullRequestAutoMerge"
+        },
         "base": {
           "$ref": "#/definitions/PRBranchInfo"
         },
@@ -28851,6 +28854,31 @@
         },
         "user": {
           "$ref": "#/definitions/User"
+        }
+      },
+      "x-go-package": "gitea.dev/modules/structs"
+    },
+    "PullRequestAutoMerge": {
+      "description": "PullRequestAutoMerge represents a pull request scheduled to auto merge when all checks succeed",
+      "type": "object",
+      "properties": {
+        "commit_message": {
+          "description": "The message of the resulting merge commit",
+          "type": "string",
+          "x-go-name": "CommitMessage"
+        },
+        "commit_title": {
+          "description": "The title of the resulting merge commit",
+          "type": "string",
+          "x-go-name": "CommitTitle"
+        },
+        "enabled_by": {
+          "$ref": "#/definitions/User"
+        },
+        "merge_method": {
+          "description": "The merge method that will be used, eg: \"merge\", \"rebase\", \"rebase-merge\", \"squash\", \"fast-forward-only\"",
+          "type": "string",
+          "x-go-name": "MergeMethod"
         }
       },
       "x-go-package": "gitea.dev/modules/structs"

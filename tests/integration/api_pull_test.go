@@ -23,6 +23,8 @@ import (
 	"gitea.dev/modules/setting"
 	api "gitea.dev/modules/structs"
 	"gitea.dev/modules/util"
+	"gitea.dev/services/automerge"
+	"gitea.dev/services/automergequeue"
 	"gitea.dev/services/convert"
 	"gitea.dev/services/forms"
 	"gitea.dev/services/gitdiff"
@@ -142,6 +144,56 @@ func TestAPIViewPulls(t *testing.T) {
 				assert.Len(t, files, 1)
 			}))
 	}
+}
+
+func TestAPIPullAutoMergeScheduled(t *testing.T) {
+	defer tests.PrepareTestEnv(t)()
+
+	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
+	owner := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: repo.OwnerID})
+	pr := unittest.AssertExistsAndLoadBean(t, &issues_model.PullRequest{BaseRepoID: repo.ID, Index: 3})
+	doer := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 1})
+
+	ctx := NewAPITestContext(t, owner.Name, repo.Name, auth_model.AccessTokenScopeReadRepository)
+	singleReq := NewRequestf(t, "GET", "/api/v1/repos/%s/%s/pulls/%d", owner.Name, repo.Name, pr.Index).AddTokenAuth(ctx.Token)
+
+	// not scheduled: auto_merge is null (GitHub-compatible)
+	resp := ctx.Session.MakeRequest(t, singleReq, http.StatusOK)
+	apiPull := DecodeJSON(t, resp, &api.PullRequest{})
+	assert.Nil(t, apiPull.AutoMerge)
+
+	// schedule an auto merge; stub the queue so nothing gets merged in the background
+	oldAddToQueue := automergequeue.AddToQueue
+	automergequeue.AddToQueue = func(*issues_model.PullRequest, string) {}
+	defer func() { automergequeue.AddToQueue = oldAddToQueue }()
+	scheduled, err := automerge.ScheduleAutoMerge(t.Context(), doer, pr, repo_model.MergeStyleSquash, "the title\n\nthe body", false)
+	require.NoError(t, err)
+	require.True(t, scheduled)
+
+	// scheduled: auto_merge is populated with method, commit texts and the scheduling user
+	resp = ctx.Session.MakeRequest(t, singleReq, http.StatusOK)
+	apiPull = DecodeJSON(t, resp, &api.PullRequest{})
+	require.NotNil(t, apiPull.AutoMerge)
+	assert.Equal(t, "squash", apiPull.AutoMerge.MergeMethod)
+	assert.Equal(t, "the title", apiPull.AutoMerge.CommitTitle)
+	assert.Equal(t, "the body", apiPull.AutoMerge.CommitMessage)
+	require.NotNil(t, apiPull.AutoMerge.EnabledBy)
+	assert.Equal(t, doer.Name, apiPull.AutoMerge.EnabledBy.UserName)
+
+	// the list endpoint exposes it too
+	listReq := NewRequestf(t, "GET", "/api/v1/repos/%s/%s/pulls?state=all", owner.Name, repo.Name).AddTokenAuth(ctx.Token)
+	resp = ctx.Session.MakeRequest(t, listReq, http.StatusOK)
+	pulls := DecodeJSON(t, resp, []*api.PullRequest{})
+	var listed *api.PullRequest
+	for _, p := range pulls {
+		if p.Index == pr.Index {
+			listed = p
+		}
+	}
+	require.NotNil(t, listed)
+	require.NotNil(t, listed.AutoMerge)
+	assert.Equal(t, "squash", listed.AutoMerge.MergeMethod)
+	assert.Equal(t, doer.Name, listed.AutoMerge.EnabledBy.UserName)
 }
 
 func TestAPIViewPullsByBaseHead(t *testing.T) {

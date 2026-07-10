@@ -1132,13 +1132,14 @@ func TestPullForceMergeForBypassAllowlistUser(t *testing.T) {
 
 		resp = bypassSession.MakeRequest(t, NewRequest(t, "GET", pullURL), http.StatusOK)
 		htmlDoc := NewHTMLParser(t, resp.Body)
-		assert.Contains(t, htmlDoc.doc.Find(".merge-section").Text(), "You are allowed to bypass branch protection rules for this merge.")
 		mergeFormProps, exists := htmlDoc.doc.Find("#pull-request-merge-form").Attr("data-merge-form-props")
 		require.True(t, exists)
 		var mergeForm map[string]any
 		require.NoError(t, json.Unmarshal([]byte(mergeFormProps), &mergeForm))
 		assert.Equal(t, true, mergeForm["canMergeNow"])
 		assert.Equal(t, false, mergeForm["allOverridableChecksOk"])
+		// the bypass-allowlist user is offered the explicit "bypass rules" opt-in checkbox
+		assert.Equal(t, true, mergeForm["canBypassProtection"])
 
 		mergeReq := func(forceMerge bool) *RequestWrapper {
 			return NewRequestWithValues(t, "POST", fmt.Sprintf("/api/v1/repos/user2/repo1/pulls/%d/merge", prIndex), map[string]string{

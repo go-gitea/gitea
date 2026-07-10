@@ -961,10 +961,8 @@ func (prInfo *pullRequestViewInfo) prepareMergeBox(ctx *context.Context, issue *
 		data.hasStatusCheckBlocker
 
 	data.canBypassProtection = isRepoAdmin
-	data.canBypassProtectionAsAdmin = isRepoAdmin
 	if ctx.IsSigned && prInfo.ProtectedBranchRule != nil {
 		data.canBypassProtection = git_model.CanBypassBranchProtection(ctx, prInfo.ProtectedBranchRule, ctx.Doer, isRepoAdmin)
-		data.canBypassProtectionAsAdmin = isRepoAdmin && !prInfo.ProtectedBranchRule.BlockAdminMergeOverride
 	}
 
 	// CanMergeNow means: if the doer has write permission, whether the PR can be merged now
