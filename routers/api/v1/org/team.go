@@ -567,10 +567,20 @@ func GetTeamRepos(ctx *context.APIContext) {
 
 	team := ctx.Org.Team
 	listOptions := utils.GetListOptions(ctx)
-	teamRepos, err := repo_model.GetTeamRepositories(ctx, &repo_model.SearchTeamRepoOptions{
+	// A public-only token must not expose (or count) private repos, even when the
+	// doer owning the token otherwise has access to them, so filter them out at the
+	// query level to keep the returned page and the total-count header consistent.
+	searchOpts := &repo_model.SearchTeamRepoOptions{
 		ListOptions: listOptions,
 		TeamID:      team.ID,
-	})
+		PublicOnly:  ctx.PublicOnly,
+	}
+	teamRepos, err := repo_model.GetTeamRepositories(ctx, searchOpts)
+	if err != nil {
+		ctx.APIErrorInternal(err)
+		return
+	}
+	count, err := repo_model.CountTeamRepositories(ctx, searchOpts)
 	if err != nil {
 		ctx.APIErrorInternal(err)
 		return
@@ -584,14 +594,16 @@ func GetTeamRepos(ctx *context.APIContext) {
 		}
 		// A team's repo list is reachable by non-team-members through the team's
 		// visibility tier, so never expose repos (incl. their names) the doer
-		// cannot access.
+		// cannot access. This per-repo visibility trim can't be expressed in the
+		// SQL count above without regressing per-unit public access, so for such
+		// non-members the total-count header may be a small upper bound.
 		if !permission.HasAnyUnitAccessOrPublicAccess() {
 			continue
 		}
 		repos = append(repos, convert.ToRepo(ctx, repo, permission))
 	}
-	ctx.SetLinkHeader(int64(team.NumRepos), listOptions.PageSize)
-	ctx.SetTotalCountHeader(int64(team.NumRepos))
+	ctx.SetLinkHeader(count, listOptions.PageSize)
+	ctx.SetTotalCountHeader(count)
 	ctx.JSON(http.StatusOK, repos)
 }
 
@@ -627,6 +639,12 @@ func GetTeamRepo(ctx *context.APIContext) {
 
 	repo := getRepositoryByParams(ctx)
 	if ctx.Written() {
+		return
+	}
+
+	// A public-only token must not confirm the existence of a private repo.
+	if !ctx.TokenCanAccessRepo(repo) {
+		ctx.APIErrorNotFound()
 		return
 	}
 
@@ -911,6 +929,8 @@ func ListTeamActivityFeeds(ctx *context.APIContext) {
 		Date:           ctx.FormString("date"),
 		ListOptions:    listOptions,
 	}
+	// A public-only token must not receive private activity entries.
+	opts.ApplyPublicOnly(ctx.PublicOnly)
 
 	feeds, count, err := feed_service.GetFeeds(ctx, opts)
 	if err != nil {
