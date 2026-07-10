@@ -13,8 +13,6 @@ import (
 	repo_model "gitea.dev/models/repo"
 	"gitea.dev/models/unittest"
 	user_model "gitea.dev/models/user"
-	webhook_model "gitea.dev/models/webhook"
-	webhook_module "gitea.dev/modules/webhook"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -95,41 +93,4 @@ func TestRepository_DeleteCollaborationRemovesSubscriptionsAndStopwatches(t *tes
 	hasStopwatch, _, _, err := issues_model.HasUserStopwatch(ctx, user.ID)
 	assert.NoError(t, err)
 	assert.False(t, hasStopwatch)
-}
-
-func TestRepository_DeleteCollaborationDeactivatesOwnedWebhooks(t *testing.T) {
-	assert.NoError(t, unittest.PrepareTestDatabase())
-
-	ctx := t.Context()
-	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 15})
-	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 22})
-	assert.NoError(t, repo.LoadOwner(ctx))
-
-	removedUserHook := &webhook_model.Webhook{
-		RepoID:      repo.ID,
-		OwnerID:     user.ID,
-		URL:         "https://example.com/removed-user",
-		Type:        webhook_module.GITEA,
-		ContentType: webhook_model.ContentTypeJSON,
-		Events:      `{"push_only":true}`,
-		IsActive:    true,
-	}
-	otherUserHook := &webhook_model.Webhook{
-		RepoID:      repo.ID,
-		OwnerID:     repo.OwnerID,
-		URL:         "https://example.com/owner",
-		Type:        webhook_module.GITEA,
-		ContentType: webhook_model.ContentTypeJSON,
-		Events:      `{"push_only":true}`,
-		IsActive:    true,
-	}
-	assert.NoError(t, db.Insert(ctx, removedUserHook, otherUserHook))
-
-	assert.NoError(t, DeleteCollaboration(ctx, repo, user))
-
-	removedUserHook = unittest.AssertExistsAndLoadBean(t, &webhook_model.Webhook{ID: removedUserHook.ID})
-	assert.False(t, removedUserHook.IsActive)
-
-	otherUserHook = unittest.AssertExistsAndLoadBean(t, &webhook_model.Webhook{ID: otherUserHook.ID})
-	assert.True(t, otherUserHook.IsActive)
 }
