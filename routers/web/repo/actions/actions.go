@@ -598,6 +598,9 @@ func (data *actionRunListData) fillRefreshMeta(ctx *context.Context) bool {
 	if !setting.IsProd {
 		data.RefreshIntervalMs = util.Iif[int64](hasActiveRuns, 1000, 2*1000) // faster in dev mode to make debug easier
 	}
+	if len(data.ActionRuns) == 0 {
+		data.RefreshIntervalMs = 0
+	}
 	data.RefreshLink = templates.QueryBuild(setting.AppSubURL+ctx.Req.RequestURI, "run_ids", strings.Join(base.Int64sToStrings(actionRunIDs), ","))
 	return true
 }
@@ -623,7 +626,7 @@ func prepareWorkflowList(ctx *context.Context, curWorkflowID string) *actionRunL
 	data.scopedWorkflowSourceRepoID = ctx.FormInt64("scoped_workflow_source_repo_id")
 	data.branch = ctx.FormString("branch")
 	data.refreshRunIDs = ctx.FormStringInt64s("run_ids")
-	data.partialRefresh = len(data.refreshRunIDs) != 0
+	data.partialRefresh = ctx.Req.Form.Has("run_ids")
 
 	data.IsFiltered = data.actorID > 0 || data.status != actions_model.StatusUnknown || data.branch != ""
 	data.CurWorkflow = curWorkflowID

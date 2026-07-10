@@ -1,8 +1,7 @@
 import {
-  createElementFromAttrs,
-  createElementFromHTML,
-  queryElemChildren,
-  querySingleVisibleElem,
+  createElementFromAttrs, createElementFromHTML,
+  queryElemChildren, querySingleVisibleElem,
+  protectMorphElements, recoverMorphElements,
   toggleElem,
 } from './dom.ts';
 
@@ -53,4 +52,15 @@ test('toggleElem', () => {
   expect(el.outerHTML).toEqual('<div><div class="tw-hidden">a</div><div class="tw-hidden">b</div></div>');
   toggleElem(el.children, true);
   expect(el.outerHTML).toEqual('<div><div class="">a</div><div class="">b</div></div>');
+});
+
+test('protectMorphElements', () => {
+  const el = createElementFromHTML('<div><span data-morph-protect="">foo</span></div>');
+  const protectedElems = protectMorphElements(el);
+  expect(el.outerHTML).toEqual('<div><span data-morph-protect="0">foo</span></div>');
+  el.querySelector('span')!.textContent = 'bar';
+  el.querySelector('span')!.classList.add('new-class');
+  expect(el.outerHTML).toEqual('<div><span data-morph-protect="0" class="new-class">bar</span></div>');
+  recoverMorphElements(el, protectedElems);
+  expect(el.outerHTML).toEqual('<div><span data-morph-protect="">foo</span></div>');
 });
