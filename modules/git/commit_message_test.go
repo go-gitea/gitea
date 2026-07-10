@@ -47,86 +47,83 @@ func TestCommitMessageTrailer(t *testing.T) {
 	}
 }
 
-func TestCommitMessageAllParticipantIdentities(t *testing.T) {
+func TestCommitMessageParticipants(t *testing.T) {
 	sig := func(n, e string) *Signature { return &Signature{Name: n, Email: e} }
 	idt := func(n, e string, r int) *CommitIdentity { return &CommitIdentity{n, e, r} }
-	cases := []struct {
-		commit      *Commit
-		participant []*CommitIdentity
-	}{
-		{
-			&Commit{
-				Author: sig("a", "a@m.com"), Committer: sig("c", "c@m.com"),
-				CommitMessage: CommitMessage{MessageRaw: "CO-Authored-BY: x@m.com"},
-			},
-			[]*CommitIdentity{idt("a", "a@m.com", commitIdentityRoleAuthor), idt("c", "c@m.com", commitIdentityRoleCommitter), idt("", "x@m.com", commitIdentityRoleCoAuthor)},
-		},
-		{
-			&Commit{
-				Author: sig("a", "a@m.com"), Committer: sig("a", "A@M.com"),
-				CommitMessage: CommitMessage{MessageRaw: "CO-Authored-BY: a@m.com"},
-			},
-			[]*CommitIdentity{idt("a", "a@m.com", commitIdentityRoleAuthor)},
-		},
-		{
-			&Commit{
-				Author: sig("a", "a@m.com"), Committer: sig("", ""),
-				CommitMessage: CommitMessage{MessageRaw: "Co-authored-by: Full Name <X@M.com>"},
-			},
-			[]*CommitIdentity{idt("a", "a@m.com", commitIdentityRoleAuthor), idt("Full Name", "X@M.com", commitIdentityRoleCoAuthor)},
-		},
+	roleAuthor, roleCommitter, roleCoAuthor := commitIdentityRoleAuthor, commitIdentityRoleCommitter, commitIdentityRoleCoAuthor
+	type testCase struct {
+		name       string
+		commit     *Commit
+		identities []*CommitIdentity
 	}
-	for _, c := range cases {
-		assert.Equal(t, c.participant, c.commit.AllParticipantIdentities())
-	}
-}
-
-func TestCommitMessageCoAuthorIdentities(t *testing.T) {
-	sig := func(n, e string) *Signature { return &Signature{Name: n, Email: e} }
-	idt := func(n, e string, r int) *CommitIdentity { return &CommitIdentity{n, e, r} }
-	cases := []struct {
-		name      string
-		commit    *Commit
-		coAuthors []*CommitIdentity
-	}{
-		{
-			"GenuineCoAuthor",
-			&Commit{
-				Author: sig("a", "a@m.com"), Committer: sig("c", "c@m.com"),
-				CommitMessage: CommitMessage{MessageRaw: "Co-authored-by: x <x@m.com>"},
+	t.Run("AllParticipants", func(t *testing.T) {
+		cases := []testCase{
+			{
+				"DifferentUsers",
+				&Commit{
+					Author: sig("a", "a@m.com"), Committer: sig("c", "c@m.com"),
+					CommitMessage: CommitMessage{MessageRaw: "CO-Authored-BY: x@m.com"},
+				},
+				[]*CommitIdentity{idt("a", "a@m.com", roleAuthor), idt("c", "c@m.com", roleCommitter), idt("", "x@m.com", roleCoAuthor)},
 			},
-			[]*CommitIdentity{idt("x", "x@m.com", commitIdentityRoleCoAuthor)},
-		},
-		{
-			"CoAuthorIsCommitter",
-			&Commit{
-				Author: sig("a", "a@m.com"), Committer: sig("c", "c@m.com"),
-				CommitMessage: CommitMessage{MessageRaw: "Co-authored-by: c <c@m.com>"},
+			{
+				"SameUser",
+				&Commit{
+					Author: sig("a", "a@m.com"), Committer: sig("a", "A@M.com"),
+					CommitMessage: CommitMessage{MessageRaw: "CO-Authored-BY: a@m.com"},
+				},
+				[]*CommitIdentity{idt("a", "a@m.com", roleAuthor)},
 			},
-			[]*CommitIdentity{idt("c", "c@m.com", commitIdentityRoleCoAuthor)},
-		},
-		{
-			"CoAuthorIsAuthor",
-			&Commit{
-				Author: sig("a", "a@m.com"), Committer: sig("c", "c@m.com"),
-				CommitMessage: CommitMessage{MessageRaw: "Co-authored-by: a <a@m.com>"},
+			{
+				"NoCommitter",
+				&Commit{
+					Author: sig("a", "a@m.com"), Committer: sig("", ""),
+					CommitMessage: CommitMessage{MessageRaw: "Co-authored-by: Full Name <X@M.com>"},
+				},
+				[]*CommitIdentity{idt("a", "a@m.com", roleAuthor), idt("Full Name", "X@M.com", roleCoAuthor)},
 			},
-			[]*CommitIdentity{},
-		},
-		{
-			"CoAuthorCommitterNameWithIndex", // restore the committer co-author to the co-author list by the index with correct name
-			&Commit{
-				Author: sig("a", "a@m.com"), Committer: sig("c", "c@m.com"),
-				CommitMessage: CommitMessage{MessageRaw: "Co-authored-by: x <x@m.com>\nCo-authored-by: c-other <c@m.com>\nCo-authored-by: y <y@m.com>"},
+		}
+		for _, c := range cases {
+			assert.Equal(t, c.identities, c.commit.AllParticipantIdentities(), "case: %s", c.name)
+		}
+	})
+	t.Run("CoAuthors", func(t *testing.T) {
+		cases := []testCase{
+			{
+				"GenuineCoAuthor",
+				&Commit{
+					Author: sig("a", "a@m.com"), Committer: sig("c", "c@m.com"),
+					CommitMessage: CommitMessage{MessageRaw: "Co-authored-by: x <x@m.com>"},
+				},
+				[]*CommitIdentity{idt("x", "x@m.com", roleCoAuthor)},
 			},
-			[]*CommitIdentity{
-				idt("x", "x@m.com", commitIdentityRoleCoAuthor),
-				idt("c-other", "c@m.com", commitIdentityRoleCoAuthor),
-				idt("y", "y@m.com", commitIdentityRoleCoAuthor),
+			{
+				"CoAuthorIsCommitter",
+				&Commit{
+					Author: sig("a", "a@m.com"), Committer: sig("c", "c@m.com"),
+					CommitMessage: CommitMessage{MessageRaw: "Co-authored-by: c <c@m.com>"},
+				},
+				[]*CommitIdentity{idt("c", "c@m.com", roleCoAuthor)},
 			},
-		},
-	}
-	for _, c := range cases {
-		assert.Equal(t, c.coAuthors, c.commit.CoAuthorIdentities(), "case: %s", c.name)
-	}
+			{
+				"CoAuthorIsAuthor",
+				&Commit{
+					Author: sig("a", "a@m.com"), Committer: sig("c", "c@m.com"),
+					CommitMessage: CommitMessage{MessageRaw: "Co-authored-by: a <a@m.com>"},
+				},
+				[]*CommitIdentity{},
+			},
+			{
+				"CoAuthorCommitterNameWithIndex", // restore the committer co-author to the co-author list by the index with correct name
+				&Commit{
+					Author: sig("a", "a@m.com"), Committer: sig("c", "c@m.com"),
+					CommitMessage: CommitMessage{MessageRaw: "Co-authored-by: x <x@m.com>\nCo-authored-by: c-other <c@m.com>\nCo-authored-by: y <y@m.com>"},
+				},
+				[]*CommitIdentity{idt("x", "x@m.com", roleCoAuthor), idt("c-other", "c@m.com", roleCoAuthor), idt("y", "y@m.com", roleCoAuthor)},
+			},
+		}
+		for _, c := range cases {
+			assert.Equal(t, c.identities, c.commit.CoAuthorIdentities(), "case: %s", c.name)
+		}
+	})
 }
