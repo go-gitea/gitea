@@ -130,7 +130,7 @@ func newMailRenderer() (*MailRender, error) {
 			renderer.TemplateNames = slices.DeleteFunc(slices.Clone(names), func(name string) bool {
 				return strings.HasPrefix(name, "base/")
 			})
-			return names, nil // the "base/" partials must stay compiled
+			return names, nil
 		},
 		readTemplateContent: func(name string) ([]byte, error) {
 			content, err := assetFS.ReadFile("mail/" + name + ".tmpl")
