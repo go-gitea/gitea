@@ -52,7 +52,7 @@ func loadReusableWorkflowSource(ctx context.Context, run *actions_model.ActionRu
 		return bytes, callerRepo.ID, resolvedSHA, nil
 
 	case jobparser.UsesKindLocalCrossRepo:
-		repo, err := repo_model.GetRepositoryByOwnerAndName(ctx, ref.Owner, ref.Repo)
+		repo, err := repo_model.GetRepositoryByOwnerAndName(ctx, ref.Owner, ref.Repo, ref.GroupID)
 		if err != nil {
 			return nil, 0, "", fmt.Errorf("look up cross-repo workflow source %q: %w", ref.Owner+"/"+ref.Repo, err)
 		}

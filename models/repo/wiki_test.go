@@ -25,6 +25,6 @@ func TestRepository_RelativeWikiPath(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 
 	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
-	assert.Equal(t, "user2/repo1.wiki.git", repo_model.RelativeWikiPath(repo.OwnerName, repo.Name))
+	assert.Equal(t, "user2/repo1.wiki.git", repo_model.RelativeWikiPath(repo.OwnerName, repo.Name, repo.GroupID))
 	assert.Equal(t, "user2/repo1.wiki.git", repo.WikiStorageRepo().RelativePath())
 }
