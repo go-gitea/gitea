@@ -80,3 +80,42 @@ func TestCommitMessageAllParticipantIdentities(t *testing.T) {
 		assert.Equal(t, c.participant, c.commit.AllParticipantIdentities())
 	}
 }
+
+func TestCommitMessageCoAuthorIdentities(t *testing.T) {
+	sig := func(n, e string) *Signature { return &Signature{Name: n, Email: e} }
+	idt := func(n, e string) *CommitIdentity { return &CommitIdentity{Name: n, Email: e} }
+	cases := []struct {
+		commit    *Commit
+		coAuthors []*CommitIdentity
+	}{
+		{
+			// a genuine co-author (neither author nor committer) is reported
+			&Commit{
+				Author: sig("a", "a@m.com"), Committer: sig("c", "c@m.com"),
+				CommitMessage: CommitMessage{MessageRaw: "Co-authored-by: x <x@m.com>"},
+			},
+			[]*CommitIdentity{idt("x", "x@m.com")},
+		},
+		{
+			// the committer is shown separately as "committed by", so it must
+			// not appear as a co-author even though it is a participant
+			&Commit{
+				Author: sig("a", "a@m.com"), Committer: sig("c", "c@m.com"),
+				CommitMessage: CommitMessage{MessageRaw: "Co-authored-by: c <c@m.com>"},
+			},
+			nil,
+		},
+		{
+			// regression for #38384: a Co-authored-by trailer naming the author
+			// must not cause the committer to be surfaced as the co-author
+			&Commit{
+				Author: sig("silverwind", "me@silverwind.io"), Committer: sig("bircni", "bircni@icloud.com"),
+				CommitMessage: CommitMessage{MessageRaw: "Co-authored-by: silverwind <me@silverwind.io>"},
+			},
+			nil,
+		},
+	}
+	for _, c := range cases {
+		assert.Equal(t, c.coAuthors, c.commit.CoAuthorIdentities())
+	}
+}
