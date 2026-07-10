@@ -691,7 +691,7 @@ func (data *actionRunListData) prepareFullPageTemplate(ctx *context.Context) boo
 
 	ctx.Data["StatusInfoList"] = actions_model.GetStatusInfoList(ctx, ctx.Locale)
 	ctx.Data["CurActor"] = data.actorID
-	ctx.Data["CurStatus"] = data.status
+	ctx.Data["CurStatus"] = int(data.status) // don't make template use its "String" method, otherwise the query parameter would be wrong
 	ctx.Data["CurBranch"] = data.branch
 	ctx.Data["CurWorkflowRepoID"] = data.scopedWorkflowSourceRepoID
 	ctx.Data["Page"] = data.pager
