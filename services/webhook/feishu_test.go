@@ -7,7 +7,6 @@ import (
 	"context"
 	"net/http"
 	"net/http/httptest"
-	"strings"
 	"testing"
 
 	webhook_model "gitea.dev/models/webhook"
@@ -56,7 +55,7 @@ func TestFeishuGetTenantAccessTokenEmpty(t *testing.T) {
 
 	_, _, err := feishuGetTenantAccessToken(context.Background(), feishuAPIBaseURL, "app_id", "app_secret")
 	require.Error(t, err)
-	assert.True(t, strings.Contains(err.Error(), "empty tenant_access_token"))
+	assert.Contains(t, err.Error(), "empty tenant_access_token")
 }
 
 // TestFeishuGetAccessTokenCaching verifies that the underlying token endpoint
@@ -86,7 +85,7 @@ func TestFeishuGetAccessTokenCaching(t *testing.T) {
 	}
 	defer func() { feishuGetTenantAccessTokenFunc = orig }()
 
-	for i := 0; i < 3; i++ {
+	for range 3 {
 		tok, err := feishuGetAccessToken(context.Background(), feishuAPIBaseURL, "app_id", "app_secret")
 		require.NoError(t, err)
 		assert.Equal(t, "t-cached", tok)

@@ -6,6 +6,7 @@ package webhook
 import (
 	"bytes"
 	"context"
+	"errors"
 	"fmt"
 	"net/http"
 	"slices"
@@ -217,7 +218,7 @@ func newFeishuRequest(ctx context.Context, w *webhook_model.Webhook, t *webhook_
 	recipients := t.DeliveryRecipients
 	meta := GetFeishuHook(w)
 	if meta.AppID == "" || meta.AppSecret == "" {
-		return nil, nil, fmt.Errorf("feishu app credentials (app_id/app_secret) not configured")
+		return nil, nil, errors.New("feishu app credentials (app_id/app_secret) not configured")
 	}
 
 	// The webhook URL can be used to override the default API base URL (e.g.
