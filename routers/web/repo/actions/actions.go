@@ -44,9 +44,9 @@ const (
 )
 
 type WorkflowInfo struct {
-	Entry    git.TreeEntry
-	ErrMsg   string
-	Workflow *act_model.Workflow
+	EntryName string
+	ErrMsg    string
+	Workflow  *act_model.Workflow
 }
 
 type workflowBadge struct {
@@ -60,7 +60,7 @@ func (w WorkflowInfo) DisplayName() string {
 	if w.Workflow != nil && w.Workflow.Name != "" {
 		return w.Workflow.Name
 	}
-	return w.Entry.Name()
+	return w.EntryName
 }
 
 // MustEnableActions check if actions are enabled in settings
@@ -134,7 +134,7 @@ func List(ctx *context.Context) {
 func prepareOtherWorkflows(ctx *context.Context, workflows []WorkflowInfo, scopedNames container.Set[string], curWorkflowID string) []string {
 	listed := make(container.Set[string], len(workflows))
 	for _, w := range workflows {
-		listed.Add(w.Entry.Name())
+		listed.Add(w.EntryName)
 	}
 
 	var other []string
@@ -200,7 +200,7 @@ func prepareWorkflowTemplate(ctx *context.Context, commit *git.Commit) (workflow
 
 	workflows = make([]WorkflowInfo, 0, len(entries))
 	for _, entry := range entries {
-		workflow := WorkflowInfo{Entry: *entry}
+		workflow := WorkflowInfo{EntryName: entry.Name()}
 		content, err := actions.GetContentFromEntry(entry)
 		if err != nil {
 			ctx.ServerError("GetContentFromEntry", err)
@@ -411,7 +411,7 @@ func prepareWorkflowDispatchTemplate(ctx *context.Context, workflowInfos []Workf
 		curWorkflow = loadScopedWorkflowModel(ctx, repo, curWorkflowRepoID, curWorkflowID)
 	} else {
 		for _, workflowInfo := range workflowInfos {
-			if workflowInfo.Entry.Name() == curWorkflowID {
+			if workflowInfo.EntryName == curWorkflowID {
 				if workflowInfo.Workflow == nil {
 					log.Debug("CurWorkflowID %s is found but its workflowInfo.Workflow is nil", curWorkflowID)
 					return
@@ -615,8 +615,8 @@ func (data *actionRunListData) fillWorkflowNames(workflows []WorkflowInfo) bool 
 	data.workflowDisplayName = data.workflowID
 	for _, wf := range workflows {
 		displayName := wf.DisplayName()
-		data.workflowNames[wf.Entry.Name()] = displayName
-		if wf.Entry.Name() == data.workflowID {
+		data.workflowNames[wf.EntryName] = displayName
+		if wf.EntryName == data.workflowID {
 			data.workflowDisplayName = displayName
 		}
 	}
