@@ -8,7 +8,6 @@ import (
 	"context"
 	"fmt"
 	"sort"
-	"time"
 
 	actions_model "gitea.dev/models/actions"
 	repo_model "gitea.dev/models/repo"
@@ -25,11 +24,33 @@ import (
 const tplWorkflowRun templates.TplName = "repo/actions/workflow_run"
 
 type convertedWorkflowJob struct {
-	HTMLURL  string
-	Name     string
-	Status   actions_model.Status
-	Attempt  int64
-	Duration time.Duration
+	HTMLURL string
+	Name    string
+	Status  actions_model.Status
+	Attempt int64
+}
+
+type workflowRunMailJob struct {
+	HTMLURL     string
+	Name        string
+	StatusIcon  string
+	StatusClass string
+	StatusText  string
+	Attempt     int64
+}
+
+// mail clients strip svg, use unicode instead
+func workflowRunJobStatusPresentation(status actions_model.Status) (icon, class string) {
+	switch {
+	case status.IsSuccess():
+		return "✔", "status-success"
+	case status.IsCancelled():
+		return "⊘", ""
+	case status.IsSkipped():
+		return "–", ""
+	default:
+		return "×", "status-failure"
+	}
 }
 
 func generateMessageIDForActionsWorkflowRunStatusEmail(repo *repo_model.Repository, run *actions_model.ActionRun) string {
@@ -82,11 +103,10 @@ func composeAndSendActionsWorkflowRunStatusEmail(ctx context.Context, repo *repo
 			continue
 		}
 		convertedJobs = append(convertedJobs, convertedWorkflowJob{
-			HTMLURL:  converted0.HTMLURL,
-			Name:     converted0.Name,
-			Status:   job.Status,
-			Attempt:  converted0.RunAttempt,
-			Duration: job.Duration(),
+			HTMLURL: converted0.HTMLURL,
+			Name:    converted0.Name,
+			Status:  job.Status,
+			Attempt: converted0.RunAttempt,
 		})
 	}
 
@@ -111,14 +131,26 @@ func composeAndSendActionsWorkflowRunStatusEmail(ctx context.Context, repo *repo
 		case actions_model.StatusCancelled:
 			runStatusTrString = "mail.repo.actions.jobs.all_cancelled"
 		}
-		subject := fmt.Sprintf("%s: %s (%s)", locale.TrString(subjectTrString), run.WorkflowID, base.ShortSha(run.CommitSHA))
+		mailJobs := make([]workflowRunMailJob, 0, len(convertedJobs))
+		for _, job := range convertedJobs {
+			icon, class := workflowRunJobStatusPresentation(job.Status)
+			mailJobs = append(mailJobs, workflowRunMailJob{
+				HTMLURL:     job.HTMLURL,
+				Name:        job.Name,
+				StatusIcon:  icon,
+				StatusClass: class,
+				StatusText:  job.Status.LocaleString(locale),
+				Attempt:     job.Attempt,
+			})
+		}
+		subject := fmt.Sprintf("[%s] %s: %s - %s (%s)", repo.FullName(), locale.TrString(subjectTrString), run.WorkflowID, run.PrettyRef(), base.ShortSha(run.CommitSHA))
 		var mailBody bytes.Buffer
 		if err := LoadedTemplates().BodyTemplates.ExecuteTemplate(&mailBody, string(tplWorkflowRun), map[string]any{
 			"Subject":       subject,
 			"Repo":          repo,
 			"Run":           run,
 			"RunStatusText": locale.TrString(runStatusTrString),
-			"Jobs":          convertedJobs,
+			"Jobs":          mailJobs,
 			"locale":        locale,
 		}); err != nil {
 			return err

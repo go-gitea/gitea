@@ -1,30 +1,42 @@
 <!DOCTYPE html>
 <html>
 <head>
-	<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
-	<meta name="format-detection" content="telephone=no,date=no,address=no,email=no,url=no">
-	<title>{{.Subject}}</title>
+	{{template "base/head" (dict "Title" .Subject)}}
+	<style>
+		.job-table {border: 1px solid #d0d7de; border-radius: 6px}
+		.job-row td {border-top: 1px solid #d0d7de}
+		.job-row:first-child td {border-top: none}
+		.status-success {color: #0e7a31}
+		.status-failure {color: #db2828}
+		@media (prefers-color-scheme: dark) {
+			.job-table {border-color: #3f4248}
+			.job-row td {border-top-color: #3f4248}
+			.status-success {color: #3fb950}
+			.status-failure {color: #f85149}
+		}
+	</style>
 </head>
-<body style="background-color: #f5f7fa; margin: 20px;">
+<body style="margin: 20px;">
 
-	<h2 style="color: #2c3e50; margin-bottom: 20px;">
+	<h2 style="margin-bottom: 20px;">
 		{{.Repo.FullName}} {{.Run.WorkflowID}}: {{.RunStatusText}}
 	</h2>
 
-	<ul style="list-style: none; padding: 0; margin: 0 0 30px 0;">
+	<table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" class="job-table" style="width: 100%; border-collapse: separate; border-spacing: 0; margin-bottom: 30px;">
 	{{range $job := .Jobs}}
-		<li style="background-color: #ffffff; border: 1px solid #ddd; border-radius: 6px; padding: 12px 16px; margin-bottom: 10px; box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05); transition: box-shadow 0.2s ease;">
-			<a href="{{$job.HTMLURL}}" style="color: #0073e6; text-decoration: none; font-weight: bold;">
-				{{$job.Status}}: {{$job.Name}}{{if gt $job.Attempt 1}}, Attempt #{{$job.Attempt}}{{end}}, {{$job.Duration}}
-			</a>
-		</li>
+		<tr class="job-row">
+			<td class="{{$job.StatusClass}}" width="24" style="width: 24px; padding: 6px 8px 6px 12px; font-family: Menlo, Consolas, monospace; font-size: 20px; line-height: 1; font-weight: bold; text-align: center;">{{$job.StatusIcon}}</td>
+			<td class="{{$job.StatusClass}}" style="padding: 6px 8px 6px 0; white-space: nowrap;">{{$job.StatusText}}</td>
+			<td width="100%" style="width: 100%; padding: 6px 12px 6px 0;">
+				<a href="{{$job.HTMLURL}}" style="text-decoration: none; font-weight: bold;">{{$job.Name}}</a>
+				{{if gt $job.Attempt 1}}(Attempt #{{$job.Attempt}}){{end}}
+			</td>
+		</tr>
 	{{end}}
-	</ul>
-
-	<br/>
+	</table>
 
 	<div style="text-align: center; margin-top: 30px;">
-		<a href="{{.Run.HTMLURL}}" style="display: inline-block; background-color: #28a745; color: #ffffff !important; text-decoration: none; padding: 10px 20px; border-radius: 5px; font-weight: bold; box-shadow: 0 2px 4px rgba(0,0,0,0.1); transition: background-color 0.3s ease;">
+		<a href="{{.Run.HTMLURL}}" style="display: inline-block; background-color: #4183c4; color: #ffffff !important; text-decoration: none; padding: 10px 20px; border-radius: 5px; font-weight: bold;">
 			{{.locale.Tr "mail.view_it_on" AppName}}
 		</a>
 	</div>

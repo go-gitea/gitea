@@ -1,9 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
-	<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
-	<meta name="format-detection" content="telephone=no,date=no,address=no,email=no,url=no">
-	<title>{{.locale.Tr "mail.reset_password.title" (.DisplayName|DotEscape)}}</title>
+	{{template "base/head" (dict "Title" (.locale.Tr "mail.reset_password.title" (.DisplayName|DotEscape)))}}
 </head>
 
 {{$recover_url := printf "%suser/recover_account?code=%s" AppUrl (QueryEscape .Code)}}
@@ -12,6 +10,6 @@
 	<p>{{.locale.Tr "mail.reset_password.text" .ResetPwdCodeLives}}</p><p><a href="{{$recover_url}}">{{$recover_url}}</a></p><br>
 	<p>{{.locale.Tr "mail.link_not_working_do_paste"}}</p>
 
-	<p>© <a href="{{AppUrl}}">{{AppName}}</a></p>
+	{{template "base/footer_copyright"}}
 </body>
 </html>

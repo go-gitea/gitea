@@ -1,7 +1,8 @@
+Subject: "[user/repo] Run failed: workflow.yml - main (1234567890)"
 RunStatusText: Jobs status aggregation
 
 Repo:
-  FullName: Repo/Name
+  FullName: user/repo
 
 Run:
   WorkflowID: workflow.yml
@@ -9,12 +10,26 @@ Run:
 
 Jobs:
   - Name: Job-Name-1
-    Status: success
+    StatusIcon: "✔"
+    StatusClass: status-success
+    StatusText: Success
     Attempt: 1
     HTMLURL: http://localhost/job/1
-    Duration: 1h2m3s
   - Name: Job-Name-2
-    Status: failure
+    StatusIcon: "×"
+    StatusClass: status-failure
+    StatusText: Failure
     Attempt: 2
     HTMLURL: http://localhost/job/2
-    Duration: 1h2m3s
+  - Name: Job-Name-3
+    StatusIcon: "⊘"
+    StatusClass: ""
+    StatusText: Canceled
+    Attempt: 1
+    HTMLURL: http://localhost/job/3
+  - Name: Job-Name-4
+    StatusIcon: "–"
+    StatusClass: ""
+    StatusText: Skipped
+    Attempt: 1
+    HTMLURL: http://localhost/job/4
