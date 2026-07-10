@@ -9,11 +9,14 @@ import (
 	"testing"
 
 	auth_model "gitea.dev/models/auth"
+	"gitea.dev/models/perm"
+	repo_model "gitea.dev/models/repo"
 	"gitea.dev/models/unittest"
 	user_model "gitea.dev/models/user"
 	"gitea.dev/modules/setting"
 	api "gitea.dev/modules/structs"
 	"gitea.dev/modules/test"
+	repo_service "gitea.dev/services/repository"
 	"gitea.dev/tests"
 
 	"github.com/stretchr/testify/assert"
@@ -91,6 +94,52 @@ func TestAPIStar(t *testing.T) {
 			AddTokenAuth(tokenWithUserScope)
 		MakeRequest(t, req, http.StatusNoContent)
 	})
+}
+
+// TestAPIStarredReposAccessRevoked ensures a private repository disappears from a user's
+// starred list once their access to it has been revoked, so no metadata leaks afterwards.
+func TestAPIStarredReposAccessRevoked(t *testing.T) {
+	defer tests.PrepareTestEnv(t)()
+
+	// user2/repo2 is a private repository owned by user2
+	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 2})
+	owner := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: repo.OwnerID})
+	collaborator := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 4})
+
+	// grant the collaborator read access and star the private repo as them
+	require.NoError(t, repo_service.AddOrUpdateCollaborator(t.Context(), repo, collaborator, perm.AccessModeRead))
+	require.NoError(t, repo_model.StarRepo(t.Context(), collaborator, repo, true))
+
+	token := getUserToken(t, collaborator.Name, auth_model.AccessTokenScopeReadUser, auth_model.AccessTokenScopeReadRepository)
+
+	// while access is granted, the private repo is visible in the starred list
+	req := NewRequest(t, "GET", "/api/v1/user/starred").AddTokenAuth(token)
+	resp := MakeRequest(t, req, http.StatusOK)
+	repos := DecodeJSON(t, resp, []api.Repository{})
+	require.Len(t, repos, 1)
+	assert.Equal(t, repo.FullName(), repos[0].FullName)
+
+	// revoke access
+	require.NoError(t, repo_service.DeleteCollaboration(t.Context(), repo, collaborator))
+
+	// the star record still exists, but the repo (and its metadata) must no longer be returned
+	assert.True(t, repo_model.IsStaring(t.Context(), collaborator.ID, repo.ID))
+	req = NewRequest(t, "GET", "/api/v1/user/starred").AddTokenAuth(token)
+	resp = MakeRequest(t, req, http.StatusOK)
+	repos = DecodeJSON(t, resp, []api.Repository{})
+	assert.Empty(t, repos)
+
+	// sanity: the owner still sees their own private repo
+	ownerToken := getUserToken(t, owner.Name, auth_model.AccessTokenScopeReadUser, auth_model.AccessTokenScopeReadRepository)
+	require.NoError(t, repo_model.StarRepo(t.Context(), owner, repo, true))
+	req = NewRequest(t, "GET", "/api/v1/user/starred").AddTokenAuth(ownerToken)
+	resp = MakeRequest(t, req, http.StatusOK)
+	repos = DecodeJSON(t, resp, []api.Repository{})
+	fullNames := make([]string, len(repos))
+	for i, r := range repos {
+		fullNames[i] = r.FullName
+	}
+	assert.Contains(t, fullNames, repo.FullName())
 }
 
 func TestAPIStarDisabled(t *testing.T) {
