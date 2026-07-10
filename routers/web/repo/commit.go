@@ -398,7 +398,7 @@ func Diff(ctx *context.Context) {
 	verification := asymkey_service.ParseCommitWithSignature(ctx, commit)
 	ctx.Data["Verification"] = verification
 	ctx.Data["Author"] = user_model.GetUserByGitAuthor(ctx, commit)
-	ctx.Data["CommitOtherParticipants"] = gituser.BuildAvatarStackData(ctx, commit.AllParticipantIdentities(), nil).Participants[1:]
+	ctx.Data["CommitOtherParticipants"] = gituser.BuildAvatarStackData(ctx, commit.CoAuthorIdentities(), nil).Participants
 	ctx.Data["Parents"] = parents
 	ctx.Data["DiffNotAvailable"] = diffShortStat.NumFiles == 0
 
