@@ -108,26 +108,19 @@ function initRepositoryActionsView() {
 }
 
 function initActionRunsList(el: HTMLElement) {
-  // The refresh link and interval are refreshed from the response attributes on every morph,
-  // so the timer picks up pagination/filter changes and stops (interval 0) once all runs are over.
   activePageTimerRefresh({
     interval: () => Number(el.getAttribute('data-action-runs-refresh-interval')),
     async callback() {
       const resp = await GET(el.getAttribute('data-action-runs-refresh-link')!);
-      if (!resp.ok) return; // the timer keeps running and retries on the next cycle
+      if (!resp.ok) return;
       const newEl = createElementFromHTML(await resp.text());
       for (const attr of newEl.attributes) el.setAttribute(attr.name, attr.value);
-      // Morph in place instead of replacing so opened dropdowns keep focus; skip morphing active dropdowns.
-      Idiomorph.morph(el, newEl.innerHTML, {
-        morphStyle: 'innerHTML',
-        callbacks: {
-          beforeNodeMorphed: (oldNode: Node) => !(
-            oldNode instanceof HTMLElement &&
-            oldNode.classList.contains('dropdown') &&
-            (oldNode.classList.contains('active') || oldNode.classList.contains('visible'))
-          ),
-        },
-      });
+      for (const newItem of newEl.querySelectorAll(':scope > .item')) {
+        const oldItem = el.querySelector(`#${newItem.id}`);
+        if (!oldItem) return;
+        if (oldItem.querySelector('.ui.dropdown.active')) continue;
+        Idiomorph.morph(oldItem, newItem, {morphStyle: 'outerHTML'});
+      }
     },
   });
 }
