@@ -589,11 +589,10 @@ func (data *actionRunListData) fillRefreshMeta(ctx *context.Context) bool {
 	hasActiveRuns := false
 	var actionRunIDs []int64
 	for _, run := range data.ActionRuns {
-		actionRunIDs = append(actionRunIDs, run.ID)
-		if run.Status.In(actions_model.StatusWaiting, actions_model.StatusRunning, actions_model.StatusBlocked) {
+		if !hasActiveRuns && run.Status.In(actions_model.StatusWaiting, actions_model.StatusRunning, actions_model.StatusBlocked) {
 			hasActiveRuns = true
-			break
 		}
+		actionRunIDs = append(actionRunIDs, run.ID)
 	}
 	data.RefreshIntervalMs = util.Iif[int64](hasActiveRuns, 3*1000, 12*1000)
 	if !setting.IsProd {

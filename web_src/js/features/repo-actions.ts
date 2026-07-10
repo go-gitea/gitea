@@ -119,7 +119,7 @@ function initActionRunsList(el: HTMLElement) {
       for (const attr of newEl.attributes) el.setAttribute(attr.name, attr.value);
       for (const newItem of newEl.querySelectorAll(':scope > .item')) {
         const oldItem = el.querySelector(`#${newItem.id}`);
-        if (!oldItem) return;
+        if (!oldItem) continue;
         if (oldItem.querySelector('.ui.dropdown.active')) continue;
 
         const protectedElems = protectMorphElements(newItem);

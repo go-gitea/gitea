@@ -154,6 +154,7 @@
 
 				<div class="ui attached segment">
 					{{template "repo/actions/runs_list" dict "ActionRunListData" $.ActionRunListData}}
+					{{template "base/paginate" dict "Page" $.Page}}
 				</div>
 			</div>
 		</div>
