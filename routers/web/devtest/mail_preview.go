@@ -7,6 +7,7 @@ import (
 	"bytes"
 	"fmt"
 	"net/http"
+	"regexp"
 	"strings"
 
 	"gitea.dev/modules/templates"
@@ -17,7 +18,7 @@ import (
 	"go.yaml.in/yaml/v4"
 )
 
-const mailDarkSchemeQuery = "@media (prefers-color-scheme: dark)"
+var mailDarkSchemeQuery = regexp.MustCompile(`@media\s*\(\s*prefers-color-scheme\s*:\s*dark\s*\)`)
 
 func mailPreviewMockData(tmplName string) (map[string]any, error) {
 	mockData := map[string]any{}
@@ -45,8 +46,8 @@ func MailPreviewRender(ctx *context.Context) {
 	body := mailBody.String()
 	// a page can force "color-scheme" on an embedded document but never "prefers-color-scheme"
 	if scheme := ctx.FormString("scheme"); scheme == "light" || scheme == "dark" {
-		body = strings.ReplaceAll(body, mailDarkSchemeQuery, util.Iif(scheme == "dark", "@media all", "@media not all"))
-		body += fmt.Sprintf(`<style>:root {color-scheme: %s}</style>`, scheme)
+		body = mailDarkSchemeQuery.ReplaceAllString(body, util.Iif(scheme == "dark", "@media all", "@media not all"))
+		body = strings.Replace(body, "</head>", fmt.Sprintf("<style>:root {color-scheme: %s}</style></head>", scheme), 1)
 	}
 	_, _ = ctx.Resp.Write([]byte(body))
 }
