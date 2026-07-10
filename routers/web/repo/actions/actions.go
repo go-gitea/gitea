@@ -469,6 +469,7 @@ type actionRunListData struct {
 	branch                     string
 	refreshRunIDs              []int64
 	partialRefresh             bool
+	pager                      *context.Pagination
 
 	RefreshLink             template.URL
 	RefreshIntervalMs       int64
@@ -518,9 +519,8 @@ func (data *actionRunListData) loadActionRuns(ctx *context.Context, otherWorkflo
 			ctx.ServerError("FindAndCount", err)
 			return false
 		}
-		pager := context.NewPagination(total, opts.PageSize, opts.Page, 5)
-		pager.AddParamFromRequest(ctx.Req)
-		ctx.Data["Page"] = pager
+		data.pager = context.NewPagination(total, opts.PageSize, opts.Page, 5)
+		data.pager.AddParamFromRequest(ctx.Req)
 		data.ActionRuns = runs
 	}
 
@@ -668,8 +668,6 @@ func prepareWorkflowList(ctx *context.Context, workflows []WorkflowInfo, curWork
 	}
 	ctx.Data["Actors"] = shared_user.MakeSelfOnTop(ctx.Doer, actors)
 
-	ctx.Data["StatusInfoList"] = actions_model.GetStatusInfoList(ctx, ctx.Locale)
-
 	runBranches, err := actions_model.GetRunBranches(ctx, ctx.Repo.Repository.ID)
 	if err != nil {
 		ctx.ServerError("GetRunBranches", err)
@@ -677,10 +675,12 @@ func prepareWorkflowList(ctx *context.Context, workflows []WorkflowInfo, curWork
 	}
 	ctx.Data["RunBranches"] = runBranches
 
+	ctx.Data["StatusInfoList"] = actions_model.GetStatusInfoList(ctx, ctx.Locale)
 	ctx.Data["HasWorkflowsOrRuns"] = len(workflows) > 0 || len(otherWorkflows) > 0 || len(data.ActionRuns) > 0 || hasScopedWorkflows
 	ctx.Data["CurActor"] = data.actorID
 	ctx.Data["CurStatus"] = data.status
 	ctx.Data["CurBranch"] = data.branch
+	ctx.Data["Page"] = data.pager
 	return data
 }
 
