@@ -3,12 +3,7 @@ import RepoActionView from '../components/RepoActionView.vue';
 import {registerGlobalInitFunc} from '../modules/observer.ts';
 import {html} from '../utils/html.ts';
 import {GET} from '../modules/fetch.ts';
-import {
-  activePageTimerRefresh,
-  createElementFromHTML,
-  protectMorphElements,
-  recoverMorphElements
-} from '../utils/dom.ts';
+import {activePageTimerRefresh, createElementFromHTML, protectMorphElements, recoverMorphElements} from '../utils/dom.ts';
 import {Idiomorph} from 'idiomorph';
 
 export function updateWorkflowBadgeFields(form: HTMLElement, branch: string): void {
@@ -118,7 +113,7 @@ function initActionRunsList(el: HTMLElement) {
     interval: () => Number(el.getAttribute('data-action-runs-refresh-interval')),
     async callback() {
       const resp = await GET(el.getAttribute('data-action-runs-refresh-link')!);
-      if (!resp.ok) return;
+      if (!resp.ok || resp.status !== 200) return;
 
       const newEl = createElementFromHTML(await resp.text());
       for (const attr of newEl.attributes) el.setAttribute(attr.name, attr.value);
