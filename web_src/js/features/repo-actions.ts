@@ -1,5 +1,4 @@
 import {createApp} from 'vue';
-import {Idiomorph} from 'idiomorph';
 import RepoActionView from '../components/RepoActionView.vue';
 import {registerGlobalInitFunc} from '../modules/observer.ts';
 import {html} from '../utils/html.ts';
