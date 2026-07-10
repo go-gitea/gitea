@@ -121,7 +121,7 @@ func List(ctx *context.Context) {
 		return
 	}
 
-	data := prepareWorkflowList(ctx, workflows, otherWorkflows, len(scopedNames) > 0)
+	data := prepareWorkflowList(ctx, workflows, curWorkflowID, otherWorkflows, len(scopedNames) > 0)
 	if ctx.Written() {
 		return
 	}
@@ -671,7 +671,7 @@ type actionRunListData struct {
 	CanWriteRepoUnitActions bool
 }
 
-func prepareWorkflowList(ctx *context.Context, workflows []WorkflowInfo, otherWorkflows []string, hasScopedWorkflows bool) (data *actionRunListData) {
+func prepareWorkflowList(ctx *context.Context, workflows []WorkflowInfo, curWorkflowID string, otherWorkflows []string, hasScopedWorkflows bool) (data *actionRunListData) {
 	data = &actionRunListData{}
 	actorID := ctx.FormInt64("actor")
 	status := ctx.FormInt("status")
