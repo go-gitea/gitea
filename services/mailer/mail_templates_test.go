@@ -12,9 +12,9 @@ import (
 
 func TestMailTemplatesBasePartials(t *testing.T) {
 	for _, name := range LoadedTemplates().TemplateNames {
-		assert.False(t, strings.HasPrefix(name, "base/"), "partial %q must not be listed as a mail", name)
+		assert.False(t, strings.HasPrefix(name, "mail/base/"), "partial %q must not be listed as a mail", name)
 	}
-	for _, name := range []string{"base/head", "base/footer", "base/footer_copyright"} {
+	for _, name := range []string{"mail/base/head", "mail/base/footer", "mail/base/footer_copyright"} {
 		assert.True(t, LoadedTemplates().BodyTemplates.HasTemplate(name), "partial %q must stay compiled", name)
 	}
 }

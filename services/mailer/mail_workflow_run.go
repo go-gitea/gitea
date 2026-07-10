@@ -21,7 +21,7 @@ import (
 	sender_service "gitea.dev/services/mailer/sender"
 )
 
-const tplWorkflowRun templates.TplName = "repo/actions/workflow_run"
+const tplWorkflowRun templates.TplName = "mail/repo/actions/workflow_run"
 
 type convertedWorkflowJob struct {
 	HTMLURL string

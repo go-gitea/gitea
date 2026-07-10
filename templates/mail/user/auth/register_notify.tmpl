@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
-	{{template "base/head" (dict "Title" (.locale.Tr "mail.register_notify.title" (.DisplayName|DotEscape) AppName))}}
+	{{template "mail/base/head" (dict "Title" (.locale.Tr "mail.register_notify.title" (.DisplayName|DotEscape) AppName))}}
 </head>
 
 {{$set_pwd_url := printf "%[1]suser/forgot_password" AppUrl}}
@@ -11,6 +11,6 @@
 	<p>{{.locale.Tr "mail.register_notify.text_2" .Username}}</p><p><a href="{{AppUrl}}user/login">{{AppUrl}}user/login</a></p><br>
 	<p>{{.locale.Tr "mail.register_notify.text_3" $set_pwd_url}}</p><br>
 
-	{{template "base/footer_copyright"}}
+	{{template "mail/base/footer_copyright"}}
 </body>
 </html>

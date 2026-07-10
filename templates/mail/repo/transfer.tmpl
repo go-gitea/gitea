@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
-	{{template "base/head" (dict "Title" .Subject)}}
+	{{template "mail/base/head" (dict "Title" .Subject)}}
 </head>
 
 {{$url := HTMLFormat "<a href='%[1]s'>%[2]s</a>" .Link .Repo}}
@@ -9,6 +9,6 @@
 	<p>{{.Subject}}.
 		{{.locale.Tr "mail.repo.transfer.body" $url}}
 	</p>
-	{{template "base/footer" .}}
+	{{template "mail/base/footer" .}}
 </body>
 </html>

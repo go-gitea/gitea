@@ -259,18 +259,18 @@ func actionToTemplate(issue *issues_model.Issue, actionType activities_model.Act
 		}
 	}
 
-	template = "repo/" + typeName + "/" + name
+	template = "mail/repo/" + typeName + "/" + name
 	ok := LoadedTemplates().BodyTemplates.HasTemplate(template)
 	if !ok && typeName != "issue" {
-		template = "repo/issue/" + name
+		template = "mail/repo/issue/" + name
 		ok = LoadedTemplates().BodyTemplates.HasTemplate(template)
 	}
 	if !ok {
-		template = "repo/" + typeName + "/default"
+		template = "mail/repo/" + typeName + "/default"
 		ok = LoadedTemplates().BodyTemplates.HasTemplate(template)
 	}
 	if !ok {
-		template = "repo/issue/default"
+		template = "mail/repo/issue/default"
 	}
 	return typeName, name, template
 }

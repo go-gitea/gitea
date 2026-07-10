@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
-	{{template "base/head" (dict "Title" .Subject)}}
+	{{template "mail/base/head" (dict "Title" .Subject)}}
 </head>
 
 {{$repo_url := HTMLFormat "<a href='%s'>%s</a>" .Issue.Repo.HTMLURL .Issue.Repo.FullName}}
@@ -14,6 +14,6 @@
 			{{.locale.Tr "mail.issue_assigned.issue" .Doer.Name $link $repo_url}}
 		{{end}}
 	</p>
-	{{template "base/footer" .}}
+	{{template "mail/base/footer" .}}
 </body>
 </html>

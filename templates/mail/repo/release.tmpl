@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
-	{{template "base/head" (dict "Title" .Subject)}}
+	{{template "mail/base/head" (dict "Title" .Subject)}}
 </head>
 
 {{$release_url := HTMLFormat "<a href='%s'>%s</a>" .Release.HTMLURL .Release.TagName}}
@@ -43,6 +43,6 @@
 			{{end}}
 		</ul>
 	</p>
-	{{template "base/footer" .}}
+	{{template "mail/base/footer" .}}
 </body>
 </html>

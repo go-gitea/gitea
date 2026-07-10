@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
-	{{template "base/head" (dict "Title" (.locale.Tr "mail.activate_email.title" (.DisplayName|DotEscape)))}}
+	{{template "mail/base/head" (dict "Title" (.locale.Tr "mail.activate_email.title" (.DisplayName|DotEscape)))}}
 </head>
 
 {{$activate_url := printf "%suser/activate_email?code=%s&email=%s" AppUrl (QueryEscape .Code) (QueryEscape .Email)}}
@@ -10,6 +10,6 @@
 	<p>{{.locale.Tr "mail.activate_email.text" .ActiveCodeLives}}</p><p><a href="{{$activate_url}}">{{$activate_url}}</a></p><br>
 	<p>{{.locale.Tr "mail.link_not_working_do_paste"}}</p>
 
-	{{template "base/footer_copyright"}}
+	{{template "mail/base/footer_copyright"}}
 </body>
 </html>

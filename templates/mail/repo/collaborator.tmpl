@@ -1,11 +1,11 @@
 <!DOCTYPE html>
 <html>
 <head>
-	{{template "base/head" (dict "Title" .Subject)}}
+	{{template "mail/base/head" (dict "Title" .Subject)}}
 </head>
 
 <body>
 	<p>{{.locale.Tr "mail.repo.collaborator.added.text"}} <code>{{.RepoName}}</code></p>
-	{{template "base/footer" .}}
+	{{template "mail/base/footer" .}}
 </body>
 </html>

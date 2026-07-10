@@ -22,7 +22,7 @@ var mailDarkSchemeQuery = regexp.MustCompile(`@media\s*\(\s*prefers-color-scheme
 
 func mailPreviewMockData(tmplName string) (map[string]any, error) {
 	mockData := map[string]any{}
-	mockDataContent, err := templates.AssetFS().ReadFile("mail/" + tmplName + ".devtest.yml")
+	mockDataContent, err := templates.AssetFS().ReadFile(tmplName + ".devtest.yml")
 	if err != nil {
 		return mockData, nil
 	}
