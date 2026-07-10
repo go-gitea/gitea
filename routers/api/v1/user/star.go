@@ -33,13 +33,16 @@ func getStarredRepos(ctx *context.APIContext, user *user_model.User, private boo
 		return nil, err
 	}
 
-	repos := make([]*api.Repository, len(starredRepos))
-	for i, starred := range starredRepos {
+	repos := make([]*api.Repository, 0, len(starredRepos))
+	for _, starred := range starredRepos {
 		permission, err := access_model.GetIndividualUserRepoPermission(ctx, starred, user)
 		if err != nil {
 			return nil, err
 		}
-		repos[i] = convert.ToRepo(ctx, starred, permission)
+		if !permission.HasAnyUnitAccessOrPublicAccess() {
+			continue
+		}
+		repos = append(repos, convert.ToRepo(ctx, starred, permission))
 	}
 	return repos, nil
 }
