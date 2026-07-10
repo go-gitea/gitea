@@ -594,7 +594,9 @@ func GetTeamRepos(ctx *context.APIContext) {
 		}
 		// A team's repo list is reachable by non-team-members through the team's
 		// visibility tier, so never expose repos (incl. their names) the doer
-		// cannot access.
+		// cannot access. This per-repo visibility trim can't be expressed in the
+		// SQL count above without regressing per-unit public access, so for such
+		// non-members the total-count header may be a small upper bound.
 		if !permission.HasAnyUnitAccessOrPublicAccess() {
 			continue
 		}
