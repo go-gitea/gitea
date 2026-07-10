@@ -682,6 +682,22 @@ func getRepositoryByParams(ctx *context.APIContext) *repo_model.Repository {
 	return repo
 }
 
+func canChangeTeamRepository(ctx *context.APIContext) bool {
+	if ctx.Org.Organization.RepoAdminChangeTeamAccess {
+		return true
+	}
+	isOwner, err := ctx.Org.Organization.IsOwnedBy(ctx, ctx.Doer.ID)
+	if err != nil {
+		ctx.APIErrorInternal(err)
+		return false
+	}
+	if !isOwner {
+		ctx.APIError(http.StatusForbidden, "user is nor repo admin nor owner")
+		return false
+	}
+	return true
+}
+
 // AddTeamRepository api for adding a repository to a team
 func AddTeamRepository(ctx *context.APIContext) {
 	// swagger:operation PUT /teams/{id}/repos/{org}/{repo} organization orgAddTeamRepository
@@ -716,6 +732,9 @@ func AddTeamRepository(ctx *context.APIContext) {
 
 	repo := getRepositoryByParams(ctx)
 	if ctx.Written() {
+		return
+	}
+	if !canChangeTeamRepository(ctx) {
 		return
 	}
 	if access, err := access_model.AccessLevel(ctx, ctx.Doer, repo); err != nil {
@@ -768,6 +787,9 @@ func RemoveTeamRepository(ctx *context.APIContext) {
 
 	repo := getRepositoryByParams(ctx)
 	if ctx.Written() {
+		return
+	}
+	if !canChangeTeamRepository(ctx) {
 		return
 	}
 	if access, err := access_model.AccessLevel(ctx, ctx.Doer, repo); err != nil {
