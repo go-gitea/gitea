@@ -4,10 +4,11 @@
 	{{svg "octicon-triangle-down" 14 "dropdown icon"}}
 </button>
 <div class="clone-panel-popup tippy-target">
+	{{if or $.CloneButtonShowHTTPS $.CloneButtonShowSSH}}
 	<div class="flex-text-block clone-panel-field">{{svg "octicon-terminal"}} Clone</div>
 
 	<div class="clone-panel-tab">
-		<!-- Tea CLI is always available; HTTPS/SSH are shown only when the admin has not disabled them -->
+		<!-- tea clone also uses the git HTTPS/SSH transports, so the whole clone section is hidden when both are disabled -->
 		{{if $.CloneButtonShowHTTPS}}
 			<button class="item repo-clone-https" data-link="{{$.CloneButtonOriginLink.HTTPS}}">HTTPS</button>
 		{{end}}
@@ -20,12 +21,13 @@
 
 	<div class="clone-panel-field">
 		<div class="ui input tiny action">
-			<input size="30" class="repo-clone-url js-clone-url" value="{{if $.CloneButtonShowHTTPS}}{{$.CloneButtonOriginLink.HTTPS}}{{else if $.CloneButtonShowSSH}}{{$.CloneButtonOriginLink.SSH}}{{else}}{{$.CloneButtonOriginLink.Tea}}{{end}}" readonly>
+			<input size="30" class="repo-clone-url js-clone-url" value="{{if $.CloneButtonShowHTTPS}}{{$.CloneButtonOriginLink.HTTPS}}{{else}}{{$.CloneButtonOriginLink.SSH}}{{end}}" readonly>
 			<div class="ui small compact icon button" data-clipboard-target=".js-clone-url" data-tooltip-content="{{ctx.Locale.Tr "copy_url"}}">
 				{{svg "octicon-copy" 14}}
 			</div>
 		</div>
 	</div>
+	{{end}}
 
 	{{if not .PageIsWiki}}
 		{{if or $.CloneButtonShowHTTPS $.CloneButtonShowSSH}}

@@ -52,7 +52,9 @@ export function substituteRepoOpenWithUrl(tmpl: string, url: string): string {
 }
 
 function initCloneSchemeUrlSelection(parent: Element) {
-  const elCloneUrlInput = parent.querySelector<HTMLInputElement>('.repo-clone-url')!;
+  // the clone section is not rendered at all when no git transport (HTTPS/SSH) is available
+  const elCloneUrlInput = parent.querySelector<HTMLInputElement>('.repo-clone-url');
+  if (!elCloneUrlInput) return;
 
   const tabHttps = parent.querySelector('.repo-clone-https');
   const tabSsh = parent.querySelector('.repo-clone-ssh');
