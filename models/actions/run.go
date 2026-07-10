@@ -121,7 +121,7 @@ func (run *ActionRun) PrettyRef() string {
 	return refName.ShortName()
 }
 
-// RefTooltip return a tooltop of run's ref. For pull request, it's the title of the PR, otherwise it's the ShortName.
+// RefTooltip return a tooltip of run's ref. For pull request, it's the title of the PR, otherwise it's the ShortName.
 func (run *ActionRun) RefTooltip() string {
 	payload, err := run.GetPullRequestEventPayload()
 	if err == nil && payload != nil && payload.PullRequest != nil {
