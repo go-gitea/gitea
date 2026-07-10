@@ -326,6 +326,14 @@ func ChangeTargetBranch(ctx context.Context, pr *issues_model.PullRequest, doer 
 			return fmt.Errorf("syncCommitDivergence: %w", err)
 		}
 
+		// The "official" flag of existing reviews was computed against the previous
+		// target branch's protection rules, so re-evaluate it against the new branch.
+		// Otherwise a stale official approval could bypass the new branch's protection.
+		pr.Issue.PullRequest = pr
+		if err := issues_model.RecalculateReviewsOfficial(ctx, pr.Issue); err != nil {
+			return fmt.Errorf("RecalculateReviewsOfficial: %w", err)
+		}
+
 		// Create comment
 		options := &issues_model.CreateCommentOptions{
 			Type:   issues_model.CommentTypeChangeTargetBranch,
