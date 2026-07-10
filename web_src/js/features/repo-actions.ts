@@ -4,6 +4,7 @@ import {registerGlobalInitFunc} from '../modules/observer.ts';
 import {html} from '../utils/html.ts';
 import {GET} from '../modules/fetch.ts';
 import {activePageTimerRefresh, createElementFromHTML} from '../utils/dom.ts';
+import {Idiomorph} from 'idiomorph';
 
 export function updateWorkflowBadgeFields(form: HTMLElement, branch: string): void {
   const badgeURLParsed = new URL(form.getAttribute('data-badge-url')!);
@@ -119,6 +120,7 @@ function initActionRunsList(el: HTMLElement) {
         const oldItem = el.querySelector(`#${newItem.id}`);
         if (!oldItem) return;
         if (oldItem.querySelector('.ui.dropdown.active')) continue;
+        // FIXME: morph doesn't work with dropdown, it should not touch any element in the dropdown
         Idiomorph.morph(oldItem, newItem, {morphStyle: 'outerHTML'});
       }
     },

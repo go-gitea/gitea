@@ -122,7 +122,7 @@ func List(ctx *context.Context) {
 	}
 
 	ctx.Data["ActionRunListData"] = data
-	if data.PartialRefresh {
+	if data.partialRefresh {
 		ctx.HTML(http.StatusOK, "repo/actions/runs_list")
 		return
 	}
@@ -460,7 +460,16 @@ func prepareWorkflowDispatchTemplate(ctx *context.Context, workflowInfos []Workf
 }
 
 type actionRunListData struct {
-	PartialRefresh          bool
+	actorID                    int64
+	status                     actions_model.Status
+	workflowID                 string
+	workflowNames              map[string]string
+	workflowDisplayName        string
+	scopedWorkflowSourceRepoID int64
+	branch                     string
+	refreshRunIDs              []int64
+	partialRefresh             bool
+
 	RefreshLink             template.URL
 	RefreshIntervalMs       int64
 	ActionRuns              []*actions_model.ActionRun
@@ -471,30 +480,12 @@ type actionRunListData struct {
 	CanWriteRepoUnitActions bool
 }
 
-func prepareWorkflowList(ctx *context.Context, workflows []WorkflowInfo, curWorkflowID string, otherWorkflows []string, hasScopedWorkflows bool) (data *actionRunListData) {
-	data = &actionRunListData{}
-	actorID := ctx.FormInt64("actor")
-	status := ctx.FormInt("status")
-	workflowID := ctx.FormString("workflow")
-	scopedWorkflowSourceRepoID := ctx.FormInt64("scoped_workflow_source_repo_id")
-	branch := ctx.FormString("branch")
-	refreshRunIDs := ctx.FormStringInt64s("run_ids")
-
-	// if status or actor query param is not given to frontend href, (href="/<repoLink>/actions")
-	// they will be 0 by default, which indicates get all status or actors
-	ctx.Data["CurActor"] = actorID
-	ctx.Data["CurStatus"] = status
-	ctx.Data["CurBranch"] = branch
-
-	// use shorter interval in dev mode to make debug easier
-	// FIXME: if no need to refresh (statuses are all "over"), set data.RefreshIntervalMs to 0
-	data.RefreshIntervalMs = util.Iif[int64](setting.IsProd, 10*1000, 1000)
-	data.PartialRefresh = len(refreshRunIDs) != 0
-	if data.PartialRefresh {
-		runs, err := actions_model.GetRunsByRepoAndID(ctx, ctx.Repo.Repository.ID, refreshRunIDs)
+func (data *actionRunListData) loadActionRuns(ctx *context.Context, otherWorkflows []string) bool {
+	if data.partialRefresh {
+		runs, err := actions_model.GetRunsByRepoAndID(ctx, ctx.Repo.Repository.ID, data.refreshRunIDs)
 		if err != nil {
 			ctx.ServerError("GetRunsByRepoAndID", err)
-			return data
+			return false
 		}
 		data.ActionRuns = runs
 	} else {
@@ -504,28 +495,28 @@ func prepareWorkflowList(ctx *context.Context, workflows []WorkflowInfo, curWork
 				PageSize: convert.ToCorrectPageSize(ctx.FormInt("limit")),
 			},
 			RepoID:         ctx.Repo.Repository.ID,
-			WorkflowID:     workflowID,
-			WorkflowRepoID: scopedWorkflowSourceRepoID,
-			TriggerUserID:  actorID,
+			WorkflowID:     data.workflowID,
+			WorkflowRepoID: data.scopedWorkflowSourceRepoID,
+			TriggerUserID:  data.actorID,
 		}
 
 		// Constrain scoped vs repo-level only for a listed workflow, whose link carries scoped_workflow_source_repo_id.
-		if workflowID != "" && !slices.Contains(otherWorkflows, workflowID) {
-			opts.IsScopedRun = optional.Some(scopedWorkflowSourceRepoID > 0)
+		if data.workflowID != "" && !slices.Contains(otherWorkflows, data.workflowID) {
+			opts.IsScopedRun = optional.Some(data.scopedWorkflowSourceRepoID > 0)
 		}
 
 		// if status is not StatusUnknown, it means user has selected a status filter
-		if actions_model.Status(status) != actions_model.StatusUnknown {
-			opts.Status = []actions_model.Status{actions_model.Status(status)}
+		if data.status != actions_model.StatusUnknown {
+			opts.Status = []actions_model.Status{data.status}
 		}
-		if branch != "" {
-			opts.Ref = string(git.RefNameFromBranch(branch))
+		if data.branch != "" {
+			opts.Ref = string(git.RefNameFromBranch(data.branch))
 		}
 
 		runs, total, err := db.FindAndCount[actions_model.ActionRun](ctx, opts)
 		if err != nil {
 			ctx.ServerError("FindAndCount", err)
-			return data
+			return false
 		}
 		pager := context.NewPagination(total, opts.PageSize, opts.Page, 5)
 		pager.AddParamFromRequest(ctx.Req)
@@ -539,15 +530,16 @@ func prepareWorkflowList(ctx *context.Context, workflows []WorkflowInfo, curWork
 
 	if err := actions_model.RunList(data.ActionRuns).LoadTriggerUser(ctx); err != nil {
 		ctx.ServerError("LoadTriggerUser", err)
-		return data
+		return false
 	}
-
 	if err := loadIsRefDeleted(ctx, ctx.Repo.Repository.ID, data.ActionRuns); err != nil {
 		log.Error("LoadIsRefDeleted", err)
 	}
+	return true
+}
 
+func (data *actionRunListData) processActionRuns(ctx *context.Context) bool {
 	// Check for each run if there is at least one online runner that can run its jobs
-	runErrors := make(map[int64]string)
 	runners, err := db.Find[actions_model.ActionRunner](ctx, actions_model.FindRunnerOptions{
 		RepoID:        ctx.Repo.Repository.ID,
 		IsOnline:      optional.Some(true),
@@ -555,31 +547,30 @@ func prepareWorkflowList(ctx *context.Context, workflows []WorkflowInfo, curWork
 	})
 	if err != nil {
 		ctx.ServerError("FindRunners", err)
-		return data
+		return false
 	}
 
-	var actionRunIDs []int64
+	data.RunErrors = make(map[int64]string)
 	for _, run := range data.ActionRuns {
-		actionRunIDs = append(actionRunIDs, run.ID)
 		if !run.Status.In(actions_model.StatusWaiting, actions_model.StatusRunning, actions_model.StatusBlocked) {
 			continue
 		}
 		jobs, err := actions_model.GetLatestAttemptJobsByRepoAndRunID(ctx, run.RepoID, run.ID)
 		if err != nil {
 			ctx.ServerError("GetRunJobsByRunID", err)
-			return data
+			return false
 		}
 		for _, job := range jobs {
 			if !job.Status.In(actions_model.StatusWaiting, actions_model.StatusBlocked) {
 				continue
 			}
 			if err := actions.ValidateWorkflowContent(job.WorkflowPayload); err != nil {
-				runErrors[run.ID] = ctx.Locale.TrString("actions.runs.invalid_workflow_helper", err.Error())
+				data.RunErrors[run.ID] = ctx.Locale.TrString("actions.runs.invalid_workflow_helper", err.Error())
 				break
 			}
 			if job.CallUses != "" {
 				if _, err := actions_service.ResolveUses(ctx, job.CallUses); err != nil {
-					runErrors[run.ID] = ctx.Locale.TrString("actions.runs.invalid_reusable_workflow_uses", err.Error())
+					data.RunErrors[run.ID] = ctx.Locale.TrString("actions.runs.invalid_reusable_workflow_uses", err.Error())
 					break
 				}
 			}
@@ -592,34 +583,88 @@ func prepareWorkflowList(ctx *context.Context, workflows []WorkflowInfo, curWork
 					}
 				}
 				if !hasOnlineRunner {
-					runErrors[run.ID] = ctx.Locale.TrString("actions.runs.no_matching_online_runner_helper", strings.Join(job.RunsOn, ","))
+					data.RunErrors[run.ID] = ctx.Locale.TrString("actions.runs.no_matching_online_runner_helper", strings.Join(job.RunsOn, ","))
 					break
 				}
 			}
 		}
 	}
-	data.RefreshLink = templates.QueryBuild(setting.AppSubURL+ctx.Req.RequestURI, "run_ids", strings.Join(base.Int64sToStrings(actionRunIDs), ","))
+	return true
+}
 
-	workflowNames := make(map[string]string, len(workflows))
-	workflowDisplayName := workflowID
+func (data *actionRunListData) fillRefreshMeta(ctx *context.Context) bool {
+	hasActiveRuns := false
+	var actionRunIDs []int64
+	for _, run := range data.ActionRuns {
+		actionRunIDs = append(actionRunIDs, run.ID)
+		if run.Status.In(actions_model.StatusWaiting, actions_model.StatusRunning, actions_model.StatusBlocked) {
+			hasActiveRuns = true
+			break
+		}
+	}
+	data.RefreshIntervalMs = util.Iif[int64](hasActiveRuns, 3*1000, 12*1000)
+	if !setting.IsProd {
+		data.RefreshIntervalMs /= 3 // faster in dev mode to make debug easier
+	}
+	data.RefreshLink = templates.QueryBuild(setting.AppSubURL+ctx.Req.RequestURI, "run_ids", strings.Join(base.Int64sToStrings(actionRunIDs), ","))
+	return true
+}
+
+func (data *actionRunListData) fillWorkflowNames(workflows []WorkflowInfo) bool {
+	data.workflowNames = make(map[string]string, len(workflows))
+	data.workflowDisplayName = data.workflowID
 	for _, wf := range workflows {
 		displayName := wf.DisplayName()
-		workflowNames[wf.Entry.Name()] = displayName
-		if wf.Entry.Name() == workflowID {
-			workflowDisplayName = displayName
+		data.workflowNames[wf.Entry.Name()] = displayName
+		if wf.Entry.Name() == data.workflowID {
+			data.workflowDisplayName = displayName
 		}
+	}
+	return true
+}
+
+func prepareWorkflowList(ctx *context.Context, workflows []WorkflowInfo, curWorkflowID string, otherWorkflows []string, hasScopedWorkflows bool) *actionRunListData {
+	data := &actionRunListData{}
+	data.actorID = ctx.FormInt64("actor")
+	data.status = actions_model.Status(ctx.FormInt("status"))
+	data.workflowID = ctx.FormString("workflow")
+	data.scopedWorkflowSourceRepoID = ctx.FormInt64("scoped_workflow_source_repo_id")
+	data.branch = ctx.FormString("branch")
+	data.refreshRunIDs = ctx.FormStringInt64s("run_ids")
+	data.partialRefresh = len(data.refreshRunIDs) != 0
+
+	data.IsFiltered = data.actorID > 0 || data.status != actions_model.StatusUnknown || data.branch != ""
+	data.CurWorkflow = curWorkflowID
+	data.CanWriteRepoUnitActions = ctx.Repo.Permission.CanWrite(unit.TypeActions)
+
+	if !data.loadActionRuns(ctx, otherWorkflows) {
+		return nil
+	}
+	if !data.processActionRuns(ctx) {
+		return nil
+	}
+	if !data.fillRefreshMeta(ctx) {
+		return nil
+	}
+	if !data.fillWorkflowNames(workflows) {
+		return nil
+	}
+	if data.partialRefresh {
+		// partial refresh doesn't need the following template data
+		return data
 	}
 
 	// A scoped workflow has no repo-level badge on this repo (the badge endpoint reads is_scoped_run=false runs),
 	// so don't offer the "create status badge" entry for it.
-	if scopedWorkflowSourceRepoID == 0 {
-		prepareWorkflowBadgeTemplate(ctx, workflowID, workflowDisplayName)
+	if data.scopedWorkflowSourceRepoID == 0 {
+		prepareWorkflowBadgeTemplate(ctx, data.workflowID, data.workflowDisplayName)
 	}
 
+	// fill template data
 	actors, err := actions_model.GetActors(ctx, ctx.Repo.Repository.ID)
 	if err != nil {
 		ctx.ServerError("GetActors", err)
-		return data
+		return nil
 	}
 	ctx.Data["Actors"] = shared_user.MakeSelfOnTop(ctx.Doer, actors)
 
@@ -628,17 +673,14 @@ func prepareWorkflowList(ctx *context.Context, workflows []WorkflowInfo, curWork
 	runBranches, err := actions_model.GetRunBranches(ctx, ctx.Repo.Repository.ID)
 	if err != nil {
 		ctx.ServerError("GetRunBranches", err)
-		return data
+		return nil
 	}
 	ctx.Data["RunBranches"] = runBranches
 
 	ctx.Data["HasWorkflowsOrRuns"] = len(workflows) > 0 || len(otherWorkflows) > 0 || len(data.ActionRuns) > 0 || hasScopedWorkflows
-
-	data.IsFiltered = actorID > 0 || status != int(actions_model.StatusUnknown) || branch != ""
-	data.WorkflowNames = workflowNames
-	data.RunErrors = runErrors
-	data.CurWorkflow = curWorkflowID
-	data.CanWriteRepoUnitActions = ctx.Repo.Permission.CanWrite(unit.TypeActions)
+	ctx.Data["CurActor"] = data.actorID
+	ctx.Data["CurStatus"] = data.status
+	ctx.Data["CurBranch"] = data.branch
 	return data
 }
 
