@@ -54,37 +54,37 @@ func dialContextInternalAPI(ctx context.Context, network, address string) (conn 
 	return conn, nil
 }
 
-// internalAPITLSHost decides how the internal API transport treats TLS for the target dialed at localURL.
-// The self-signed local certificate is trusted (verification skipped) only for a unix socket or a
-// loopback host; any other host must be verified, and then the TLS ServerName must match the dialed host
-// (localURL's host), not the public setting.Domain. localURL is a valid URL in any working instance
-// (Gitea's sub-commands dial it too), so an unparseable value can only be a hard misconfiguration and is
-// treated as a non-loopback host that must verify.
-func internalAPITLSHost(protocol setting.Scheme, localURL string) (skipVerify bool, serverName string) {
+// internalAPIConnectionIsLocal reports whether the internal API transport connects to a local target,
+// where the self-signed local certificate cannot be verified so skipping verification is safe. It mirrors
+// what dialContextInternalAPI actually dials: a unix socket whenever Protocol is HTTPUnix (always local,
+// whatever LOCAL_ROOT_URL says), otherwise the LOCAL_ROOT_URL host directly. A non-loopback LOCAL_ROOT_URL
+// is a real network hop, so its certificate must be verified, else the internal token can be MITM'd. An
+// unparseable LOCAL_ROOT_URL is a hard misconfiguration and fails closed (verify).
+func internalAPIConnectionIsLocal(protocol setting.Scheme, localURL string) bool {
 	if protocol == setting.HTTPUnix {
-		return true, ""
+		return true
 	}
 	u, err := url.Parse(localURL)
 	if err != nil {
-		return false, ""
+		return false
 	}
 	host := u.Hostname()
 	if host == "localhost" {
-		return true, ""
+		return true
 	}
-	if ip := net.ParseIP(host); ip != nil && ip.IsLoopback() {
-		return true, ""
-	}
-	return false, host
+	ip := net.ParseIP(host)
+	return ip != nil && ip.IsLoopback()
 }
 
 var internalAPITransport = sync.OnceValue(func() http.RoundTripper {
-	skipVerify, serverName := internalAPITLSHost(setting.Protocol, setting.LocalURL)
 	return &http.Transport{
 		DialContext: dialContextInternalAPI,
 		TLSClientConfig: &tls.Config{
-			InsecureSkipVerify: skipVerify,
-			ServerName:         serverName,
+			// Skip verification only for a local target (unix socket, or a loopback LOCAL_ROOT_URL), where the
+			// self-signed local cert can't be verified anyway; a non-loopback LOCAL_ROOT_URL is a real network
+			// hop and must be verified so the internal token can't be MITM'd. When verifying, Go's default
+			// ServerName (the dialed LOCAL_ROOT_URL host) is already correct, so it is not overridden.
+			InsecureSkipVerify: internalAPIConnectionIsLocal(setting.Protocol, setting.LocalURL),
 		},
 	}
 })
