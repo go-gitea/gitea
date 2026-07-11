@@ -36,12 +36,18 @@ import (
 
 const ssh2keyStart = "---- BEGIN SSH2 PUBLIC KEY ----"
 
-// maxKeyStringLength bounds accepted SSH public key input.
-// The longest RSA key ssh-keygen allows to generate is 16384 bits, so we set the conservative limit as 4 times that and reject
-// longer ones
-const maxKeyStringLength = 65536
+const (
+	// the longest RSA key ssh-keygen allows to generate is 16384 bits (2048 bytes), we still relax the limit a little here
+	maxKeyBinaryBytes        = 4096
+	maxKeyContentBase64Bytes = maxKeyBinaryBytes * 4 / 3
+	maxKeyContentExtraBytes  = 4 * 1024 // header, footer, comment
+	maxKeyContentBytes       = maxKeyContentBase64Bytes + maxKeyContentExtraBytes
+)
 
 func extractTypeFromBase64Key(key string) (string, error) {
+	if len(key) > maxKeyContentBase64Bytes {
+		return "", util.NewInvalidArgumentErrorf("SSH public key base64 is too long")
+	}
 	b, err := base64.StdEncoding.DecodeString(key)
 	if err != nil || len(b) < 4 {
 		return "", fmt.Errorf("invalid key format: %w", err)
@@ -57,13 +63,12 @@ func extractTypeFromBase64Key(key string) (string, error) {
 
 // parseKeyString parses any key string in OpenSSH or SSH2 format to clean OpenSSH string (RFC4253).
 func parseKeyString(content string) (string, error) {
+	if len(content) > maxKeyContentBytes {
+		return "", util.NewInvalidArgumentErrorf("SSH public key content is too long")
+	}
+
 	// remove whitespace at start and end
 	content = strings.TrimSpace(content)
-
-	// bound the input length (see maxKeyStringLength) before the SSH2 accumulation loop
-	if len(content) > maxKeyStringLength {
-		return "", util.NewInvalidArgumentErrorf("SSH public key is too long")
-	}
 
 	var keyType, keyContent, keyComment string
 

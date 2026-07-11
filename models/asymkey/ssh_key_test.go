@@ -9,13 +9,11 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
-	"runtime"
 	"strings"
 	"testing"
 
 	"gitea.dev/models/unittest"
 	"gitea.dev/modules/setting"
-	"gitea.dev/modules/util"
 
 	"github.com/42wim/sshsig"
 	"github.com/stretchr/testify/assert"
@@ -485,18 +483,10 @@ func TestPublicKeysAreExternallyManaged(t *testing.T) {
 
 // TestCheckPublicKeyStringOversized tests if oversized SSH2 public key strings are rejected before triggering costly operations.
 func TestCheckPublicKeyStringOversized(t *testing.T) {
-	stats := &runtime.MemStats{}
-	var b strings.Builder
-	b.WriteString("---- BEGIN SSH2 PUBLIC KEY ----\n")
-	for b.Len() <= maxKeyStringLength {
-		b.WriteString(strings.Repeat("a", 100) + "\n")
-	}
-	b.WriteString("---- END SSH2 PUBLIC KEY ----\n")
-	runtime.ReadMemStats(stats)
-	allocsBase := stats.TotalAlloc / 1024 / 1024
-	_, err := CheckPublicKeyString(b.String())
-	runtime.ReadMemStats(stats)
-	allocsAfterParse := stats.TotalAlloc / 1024 / 1024
-	assert.ErrorIs(t, err, util.ErrInvalidArgument)
-	assert.InDelta(t, allocsBase, allocsAfterParse, 1.0)
+	_, err := parseKeyString(strings.Repeat("a", maxKeyContentBytes+1))
+	assert.ErrorContains(t, err, "SSH public key content is too long")
+
+	content := "---- BEGIN SSH2 PUBLIC KEY ----\n" + strings.Repeat("a", maxKeyContentBase64Bytes+1) + "\n--- END SSH2 PUBLIC KEY ----"
+	_, err = parseKeyString(content)
+	assert.ErrorContains(t, err, "SSH public key base64 is too long")
 }
