@@ -7,39 +7,33 @@ import (
 	"testing"
 
 	"gitea.dev/modules/setting"
-	"gitea.dev/modules/test"
 
 	"github.com/stretchr/testify/assert"
 )
 
-func TestInternalAPISkipTLSVerify(t *testing.T) {
+func TestInternalAPITLSHost(t *testing.T) {
 	cases := []struct {
-		name     string
-		protocol setting.Scheme
-		localURL string
-		want     bool
+		name           string
+		protocol       setting.Scheme
+		localURL       string
+		wantSkip       bool
+		wantServerName string
 	}{
-		{"unix socket", setting.HTTPUnix, "http://localhost:3000/", true},
-		{"localhost", setting.HTTP, "http://localhost:3000/", true},
-		{"loopback ipv4", setting.HTTPS, "https://127.0.0.1:3000/", true},
-		{"loopback ipv6", setting.HTTPS, "https://[::1]:3000/", true},
-		{"remote host", setting.HTTPS, "https://gitea.internal:443/", false},
-		{"remote ip", setting.HTTPS, "https://10.0.0.5:3000/", false},
-		{"invalid url", setting.HTTPS, "://bad", false},
+		{"unix socket", setting.HTTPUnix, "http://localhost:3000/", true, ""},
+		{"localhost", setting.HTTP, "http://localhost:3000/", true, ""},
+		{"loopback ipv4", setting.HTTPS, "https://127.0.0.1:3000/", true, ""},
+		{"loopback ipv6", setting.HTTPS, "https://[::1]:3000/", true, ""},
+		// a non-loopback host must be verified, and then the ServerName must be the dialed internal host
+		{"remote host", setting.HTTPS, "https://gitea.internal:443/", false, "gitea.internal"},
+		{"remote ip", setting.HTTPS, "https://10.0.0.5:3000/", false, "10.0.0.5"},
+		// an unparseable LOCAL_ROOT_URL can only be a hard misconfiguration; fail closed to verification
+		{"invalid url", setting.HTTPS, "://bad", false, ""},
 	}
 	for _, c := range cases {
 		t.Run(c.name, func(t *testing.T) {
-			assert.Equal(t, c.want, internalAPISkipTLSVerify(c.protocol, c.localURL))
+			skip, serverName := internalAPITLSHost(c.protocol, c.localURL)
+			assert.Equal(t, c.wantSkip, skip)
+			assert.Equal(t, c.wantServerName, serverName)
 		})
 	}
-}
-
-func TestInternalAPIServerName(t *testing.T) {
-	defer test.MockVariableValue(&setting.Domain, "public.example.com")()
-
-	// when verification is enabled the cert must match the dialed internal host, not the public domain
-	assert.Equal(t, "gitea.internal", internalAPIServerName("https://gitea.internal:443/"))
-	assert.Equal(t, "127.0.0.1", internalAPIServerName("https://127.0.0.1:3000/"))
-	// an unparseable URL falls back to the public domain
-	assert.Equal(t, "public.example.com", internalAPIServerName("://bad"))
 }

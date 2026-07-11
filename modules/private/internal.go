@@ -54,42 +54,37 @@ func dialContextInternalAPI(ctx context.Context, network, address string) (conn 
 	return conn, nil
 }
 
-// internalAPISkipTLSVerify allows the self-signed local cert only for a unix socket or a
-// loopback LOCAL_ROOT_URL; a non-loopback target must verify, else the token is MITM-able.
-func internalAPISkipTLSVerify(protocol setting.Scheme, localURL string) bool {
+// internalAPITLSHost decides how the internal API transport treats TLS for the target dialed at localURL.
+// The self-signed local certificate is trusted (verification skipped) only for a unix socket or a
+// loopback host; any other host must be verified, and then the TLS ServerName must match the dialed host
+// (localURL's host), not the public setting.Domain. localURL is a valid URL in any working instance
+// (Gitea's sub-commands dial it too), so an unparseable value can only be a hard misconfiguration and is
+// treated as a non-loopback host that must verify.
+func internalAPITLSHost(protocol setting.Scheme, localURL string) (skipVerify bool, serverName string) {
 	if protocol == setting.HTTPUnix {
-		return true
+		return true, ""
 	}
 	u, err := url.Parse(localURL)
 	if err != nil {
-		return false
+		return false, ""
 	}
 	host := u.Hostname()
 	if host == "localhost" {
-		return true
+		return true, ""
 	}
-	if ip := net.ParseIP(host); ip != nil {
-		return ip.IsLoopback()
+	if ip := net.ParseIP(host); ip != nil && ip.IsLoopback() {
+		return true, ""
 	}
-	return false
-}
-
-// internalAPIServerName is the TLS ServerName for the internal API transport. When verification is
-// enabled (a non-loopback LOCAL_ROOT_URL) the certificate must match the host actually dialed, which is
-// the LOCAL_ROOT_URL host, not the public setting.Domain. It falls back to setting.Domain if unparseable.
-func internalAPIServerName(localURL string) string {
-	if u, err := url.Parse(localURL); err == nil && u.Hostname() != "" {
-		return u.Hostname()
-	}
-	return setting.Domain
+	return false, host
 }
 
 var internalAPITransport = sync.OnceValue(func() http.RoundTripper {
+	skipVerify, serverName := internalAPITLSHost(setting.Protocol, setting.LocalURL)
 	return &http.Transport{
 		DialContext: dialContextInternalAPI,
 		TLSClientConfig: &tls.Config{
-			InsecureSkipVerify: internalAPISkipTLSVerify(setting.Protocol, setting.LocalURL),
-			ServerName:         internalAPIServerName(setting.LocalURL),
+			InsecureSkipVerify: skipVerify,
+			ServerName:         serverName,
 		},
 	}
 })
