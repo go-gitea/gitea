@@ -310,9 +310,8 @@ func Init() error {
 	timeout := time.Duration(setting.Webhook.DeliverTimeout) * time.Second
 	allowedHostMatcher := hostmatcher.ParseHostMatchList("security.ALLOWED_HOST_LIST", setting.Webhook.AllowedHostList)
 
-	// wrap webhookProxy with NewProxyFunc so the target is validated against the allow-list before any
-	// proxy dials it: webhookProxy only checks the allow-list for PROXY_HOSTS matches and otherwise
-	// returns an environment proxy for the target unchecked, leaving the real target unconfined (SSRF).
+	// NewHTTPTransport enforces the allow-list on direct connections; when webhookProxy routes a request
+	// through a configured proxy, restricting the proxied target is the proxy server's responsibility.
 	webhookHTTPClient = &http.Client{
 		Timeout: timeout,
 		Transport: hostmatcher.NewHTTPTransport("webhook", allowedHostMatcher, nil, webhookProxy(allowedHostMatcher), setting.Webhook.ProxyURLFixed,
