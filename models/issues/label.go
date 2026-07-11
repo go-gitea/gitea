@@ -6,6 +6,7 @@ package issues
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"slices"
 	"strconv"
@@ -18,7 +19,6 @@ import (
 	"gitea.dev/modules/timeutil"
 	"gitea.dev/modules/util"
 
-	"github.com/pkg/errors"
 	"xorm.io/builder"
 )
 
