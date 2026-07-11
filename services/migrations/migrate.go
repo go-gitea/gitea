@@ -530,7 +530,7 @@ func Init() error {
 
 	// build the shared client from the freshly parsed lists so download paths reuse one connection pool
 	// instead of creating a client (and pool) per request
-	migrationHTTPClient = NewMigrationHTTPClient()
+	migrationHTTPClient = newMigrationHTTPClient()
 
 	return nil
 }

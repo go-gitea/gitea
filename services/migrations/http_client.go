@@ -18,8 +18,8 @@ import (
 // is (re)built by Init whenever the allow/block lists change.
 var migrationHTTPClient *http.Client
 
-// NewMigrationHTTPClient returns a HTTP client for migration
-func NewMigrationHTTPClient() *http.Client {
+// newMigrationHTTPClient returns a HTTP client for migration
+func newMigrationHTTPClient() *http.Client {
 	return &http.Client{
 		Transport: NewMigrationHTTPTransport(),
 	}
@@ -31,7 +31,7 @@ func getMigrationHTTPClient() *http.Client {
 	if migrationHTTPClient != nil {
 		return migrationHTTPClient
 	}
-	return NewMigrationHTTPClient()
+	return newMigrationHTTPClient()
 }
 
 // NewMigrationHTTPTransport returns a HTTP transport for migration. The target is validated against the
