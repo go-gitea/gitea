@@ -439,6 +439,18 @@ func UpdateTask(ctx context.Context, task *ActionTask, cols ...string) error {
 	return err
 }
 
+func getRunIDByTaskID(ctx context.Context, taskID int64) (runID int64, _ error) {
+	if has, err := db.GetEngine(ctx).Cols("action_run_job.run_id").
+		Table("action_task").
+		Join("INNER", "action_run_job", "action_run_job.id = action_task.job_id").
+		Where(builder.Eq{"action_task.id": taskID}).Get(&runID); err != nil {
+		return runID, err
+	} else if !has {
+		return runID, util.ErrNotExist
+	}
+	return runID, nil
+}
+
 // UpdateTaskByState updates the task by the state.
 // It will always update the task if the state is not final, even there is no change.
 // So it will update ActionTask.Updated to avoid the task being judged as a zombie task.
@@ -451,10 +463,13 @@ func UpdateTaskByState(ctx context.Context, runnerID int64, state *runnerv1.Task
 	// Only one request can update the task because the final state needs to be calculated with all job states.
 	// Otherwise, concurrent requests with transaction will make the SQL read stale job state and result in wrong final state.
 	taskID := state.Id
+	runID, err := getRunIDByTaskID(ctx, taskID)
+	if err != nil {
+		return nil, err
+	}
 	task := &ActionTask{}
-	err := globallock.LockAndDo(ctx, fmt.Sprintf("UpdateTaskByState-%d", taskID), func(ctx context.Context) error {
-		e := db.GetEngine(ctx)
-		if has, err := e.ID(taskID).Get(task); err != nil {
+	err = globallock.LockAndDo(ctx, fmt.Sprintf("UpdateTaskByState-run-%d", runID), func(ctx context.Context) error {
+		if has, err := db.GetEngine(ctx).ID(taskID).Get(task); err != nil {
 			return err
 		} else if !has {
 			return util.ErrNotExist
@@ -513,7 +528,7 @@ func UpdateTaskByState(ctx context.Context, runnerID int64, state *runnerv1.Task
 			} else if step.Started != 0 {
 				step.Status = StatusRunning
 			}
-			if _, err := e.ID(step.ID).Update(step); err != nil {
+			if _, err := db.GetEngine(ctx).ID(step.ID).Update(step); err != nil {
 				return err
 			}
 		}
