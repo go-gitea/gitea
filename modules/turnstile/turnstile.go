@@ -12,8 +12,19 @@ import (
 	"strings"
 
 	"gitea.dev/modules/json"
+	"gitea.dev/modules/proxy"
 	"gitea.dev/modules/setting"
 )
+
+// httpClient returns an HTTP client that honors Gitea's proxy configuration.
+// It is built per call so that the proxy settings are read after they are loaded.
+func httpClient() *http.Client {
+	return &http.Client{
+		Transport: &http.Transport{
+			Proxy: proxy.Proxy(),
+		},
+	}
+}
 
 // Response is the structure of JSON returned from API
 type Response struct {
@@ -40,7 +51,7 @@ func Verify(ctx context.Context, response string) (bool, error) {
 	}
 	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 
-	resp, err := http.DefaultClient.Do(req)
+	resp, err := httpClient().Do(req)
 	if err != nil {
 		return false, fmt.Errorf("Failed to send CAPTCHA response: %w", err)
 	}
