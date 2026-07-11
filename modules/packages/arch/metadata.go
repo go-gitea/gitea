@@ -51,7 +51,7 @@ var (
 	// caps on the accumulated package file list (vars so tests can lower them); far above
 	// any legitimate package, but low enough to stop metadata amplification
 	maxFileEntries   = 100000
-	maxFileNameBytes = 16 << 20
+	maxFileNameBytes = 16 * 1024 * 1024
 )
 
 type Package struct {
@@ -130,9 +130,6 @@ func ParsePackage(r io.Reader) (*Package, error) {
 	}
 
 	var p *Package
-	// bound the accumulated file list: empty tar entries are tiny and highly compressible, so a small
-	// package could otherwise amplify into a huge stored/indexed file list (DoS). The bound lives in the
-	// shared packages helper so every parser can enforce it the same way.
 	files := packages.NewBoundedFileList(maxFileEntries, maxFileNameBytes)
 
 	tr := tar.NewReader(inner)

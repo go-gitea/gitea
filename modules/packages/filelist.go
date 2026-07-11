@@ -5,16 +5,6 @@ package packages
 
 import "gitea.dev/modules/util"
 
-// Default caps for a package's accumulated file list. They sit far above any legitimate package but low
-// enough to stop metadata amplification, where a tiny, highly-compressible archive (e.g. many empty tar
-// entries) expands into a huge stored/indexed file list. Package parsers that build a per-file list from
-// an untrusted archive should accumulate through BoundedFileList so the limit is enforced uniformly
-// rather than reimplemented per parser.
-const (
-	DefaultMaxFileEntries   = 100000
-	DefaultMaxFileNameBytes = 16 << 20
-)
-
 // BoundedFileList accumulates file names from a package archive while enforcing caps on the number of
 // entries and their total name length, returning an error once either cap would be exceeded.
 type BoundedFileList struct {
@@ -27,12 +17,6 @@ type BoundedFileList struct {
 // NewBoundedFileList creates a BoundedFileList with the given caps; a non-positive cap falls back to the
 // corresponding default.
 func NewBoundedFileList(maxFiles, maxNameBytes int) *BoundedFileList {
-	if maxFiles <= 0 {
-		maxFiles = DefaultMaxFileEntries
-	}
-	if maxNameBytes <= 0 {
-		maxNameBytes = DefaultMaxFileNameBytes
-	}
 	return &BoundedFileList{maxFiles: maxFiles, maxBytes: maxNameBytes}
 }
 

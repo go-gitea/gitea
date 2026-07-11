@@ -196,7 +196,6 @@ func ParseControlFile(r io.Reader) (*Package, error) {
 		if line[0] == ' ' || line[0] == '\t' {
 			switch key {
 			case "Description":
-				// use a Builder instead of string += to avoid O(n^2) growth on crafted input
 				description.WriteString(line)
 			case "Depends":
 				depends.WriteString(trimmed)
