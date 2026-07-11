@@ -199,13 +199,5 @@ func loadSecurityFrom(rootCfg ConfigProvider) {
 	if sectionHasDisableQueryAuthToken && !DisableQueryAuthToken {
 		log.Warn("Enabling Query API Auth tokens is not recommended. DISABLE_QUERY_AUTH_TOKEN will default to true in gitea 1.23 and will be removed in gitea 1.24.")
 	}
-
-	// record whether the operator explicitly set the key before MustString materializes the default into
-	// it, so the deprecated [webhook] ALLOWED_HOST_LIST bridge can avoid overwriting an explicit value
-	securityAllowedHostListExplicit = sec.HasKey("ALLOWED_HOST_LIST")
 	Security.AllowedHostList = sec.Key("ALLOWED_HOST_LIST").MustString("external")
 }
-
-// securityAllowedHostListExplicit reports whether [security] ALLOWED_HOST_LIST was set in the config.
-// It is captured in loadSecurityFrom, which runs before loadWebhookFrom.
-var securityAllowedHostListExplicit bool

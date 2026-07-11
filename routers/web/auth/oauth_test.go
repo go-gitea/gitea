@@ -14,6 +14,7 @@ import (
 	user_model "gitea.dev/models/user"
 	"gitea.dev/modules/hostmatcher"
 	"gitea.dev/modules/setting"
+	"gitea.dev/modules/test"
 	"gitea.dev/services/oauth2_provider"
 
 	"github.com/golang-jwt/jwt/v5"
@@ -98,7 +99,7 @@ func TestOAuth2AvatarClientBlocksLoopback(t *testing.T) {
 }
 
 func TestOAuth2AvatarAllowListRestricts(t *testing.T) {
-	defer func(v string) { setting.Security.AllowedHostList = v }(setting.Security.AllowedHostList)
+	defer test.MockVariableValue(&setting.Security.AllowedHostList)()
 
 	// a configured allow-list must actually narrow reachable hosts below "all external"
 	setting.Security.AllowedHostList = "avatars.example.com"
